@@ -2,7 +2,7 @@
 description: Autonomous agent that finds and completes ready tasks
 ---
 
-You are a task-completion agent for beads. Your goal is to find ready work and complete it autonomously.
+You are a task-completion agent for issuegraph. Your goal is to find ready work and complete it autonomously.
 
 # Agent Workflow
 
@@ -47,7 +47,7 @@ You are a task-completion agent for beads. Your goal is to find ready work and c
 
 # Available Tools
 
-Via beads MCP server:
+Via issuegraph MCP server:
 - `ready` - Find unblocked tasks
 - `show` - Get task details
 - `claim` - Atomically claim task for work

@@ -1,4 +1,4 @@
-# Release Gate: be-sr7a — cmd/bd capture helpers leak os.Stdout on t.Fatal, poisoning later tests with EPIPE
+# Release Gate: be-sr7a — modules/cli capture helpers leak os.Stdout on t.Fatal, poisoning later tests with EPIPE
 
 - **Deploy bead:** be-sr7a
 - **Review bead:** be-1kxq (verdict: pass)
@@ -11,7 +11,7 @@
 
 ## Scope
 
-`cmd/bd`'s stdout-capture test helpers leaked the real `os.Stdout` when a
+`modules/cli`'s stdout-capture test helpers leaked the real `os.Stdout` when a
 captured subtest called `t.Fatal`: the helper's deferred restore never ran
 because `t.Fatal` unwinds via `runtime.Goexit`, not a normal return, so the
 process-level `os.Stdout` stayed pointed at the (now-closed) capture pipe.
@@ -20,7 +20,7 @@ EPIPE ("broken pipe"), a flaky-looking failure with no relation to the test
 that actually broke.
 
 Diff, confirmed via `git diff --stat origin/main..c0b7f865b` (14 files, all
-`cmd/bd/*_test.go` — test-only, no production code changed):
+`modules/cli/*_test.go` — test-only, no production code changed):
 
 - `bca2d94e0` (red): adds a regression test that reproduces the leak.
 - `c0b7f865b` (green): fixes the capture helper to restore `os.Stdout` via
@@ -39,7 +39,7 @@ Diff, confirmed via `git diff --stat origin/main..c0b7f865b` (14 files, all
 | 3b | Policy/lint lane (`make ci-pr-policy`) | **PASS** | See "Policy lane" below. |
 | 4 | No unresolved HIGH findings | **PASS** | be-1kxq reports no security findings, no HIGH findings. Diff is test-only (capture-helper lifecycle fix), consistent with that assessment. |
 | 5 | Clean branch | **PASS** | `git status --porcelain=v1` on `deploy/be-sr7a-gate` is empty aside from 3 pre-existing untracked files belonging to *other* sessions' work (`release-gates/be-hi97-no-workspace-tests-gate.md`, `release-gates/be-uoat-dolt-diff-export-gate.md`, `scripts/rebase-resolve-lib.sh` — a known-crippled duplicate of the canonical library used to evaluate this gate) — not staged, not part of this branch's history, deliberately left untouched for their owning sessions. |
-| 7 | Single feature theme | **PASS** | 14 files, all `cmd/bd/*_test.go` — one bug (stdout-leak-on-Fatal), one fix, test-file-only. `assert_deploy_ancestry_scope origin/main c0b7f865b be-sr7a be-leuf` → rc=0 (both commits cite `be-leuf`, the builder bead this deploy bead's own description names as source). |
+| 7 | Single feature theme | **PASS** | 14 files, all `modules/cli/*_test.go` — one bug (stdout-leak-on-Fatal), one fix, test-file-only. `assert_deploy_ancestry_scope origin/main c0b7f865b be-sr7a be-leuf` → rc=0 (both commits cite `be-leuf`, the builder bead this deploy bead's own description names as source). |
 
 ## Tests run
 
@@ -52,16 +52,16 @@ sandbox):
 
 ```
 DOCKER_HOST=... TESTCONTAINERS_RYUK_DISABLED=true BEADS_TEST_SKIP=dolt \
-  scripts/test.sh -v -count=1 ./cmd/bd/...
+  scripts/test.sh -v -count=1 ./modules/cli/...
 ```
 
 Result: **2389 PASS, 0 FAIL, 844 SKIP, 0 panics.** All 844 skips are
 Dolt-backend tests skipped via `BEADS_TEST_SKIP=dolt` (no Dolt server in
 this sandbox) — environmental, not diff-owned; none are silent, all are
 explicit `--- SKIP:` lines tied to the same documented, justified cause. All
-5 packages under `./cmd/bd/...` report `ok`: `cmd/bd` (137.0s),
-`cmd/bd/doctor` (1.7s), `cmd/bd/doctor/fix` (0.4s), `cmd/bd/protocol`
-(9.5s), `cmd/bd/setup` (0.1s).
+5 packages under `./modules/cli/...` report `ok`: `modules/cli` (137.0s),
+`modules/cli/doctor` (1.7s), `modules/cli/doctor/fix` (0.4s), `modules/cli/protocol`
+(9.5s), `modules/cli/setup` (0.1s).
 
 **Diff-owned tests** (the actual regression coverage for this fix), each
 confirmed **PASS** by name:

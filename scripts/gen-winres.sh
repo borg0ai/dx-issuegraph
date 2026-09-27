@@ -15,14 +15,14 @@ set -euo pipefail
 
 SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
 REPO_ROOT="$(cd "$SCRIPT_DIR/.." && pwd)"
-WINRES_DIR="$REPO_ROOT/cmd/bd/winres"
-OUT_PREFIX="$REPO_ROOT/cmd/bd/rsrc"
+WINRES_DIR="$REPO_ROOT/modules/cli/winres"
+OUT_PREFIX="$REPO_ROOT/modules/cli/rsrc"
 
 # Determine version
 if [[ $# -ge 1 ]]; then
     VERSION="$1"
 else
-    VERSION=$(grep 'Version = ' "$REPO_ROOT/cmd/bd/version.go" | sed 's/.*"\(.*\)".*/\1/')
+    VERSION=$(grep 'Version = ' "$REPO_ROOT/modules/cli/version.go" | sed 's/.*"\(.*\)".*/\1/')
 fi
 
 echo "[winres] Generating Windows PE resources for bd v${VERSION}"
@@ -42,4 +42,4 @@ go-winres make \
     --file-version "$PE_VERSION"
 
 echo "[winres] Generated:"
-ls -la "$REPO_ROOT"/cmd/bd/rsrc_windows_*.syso 2>/dev/null || echo "[winres] (no .syso files found - check go-winres output)"
+ls -la "$REPO_ROOT"/modules/cli/rsrc_windows_*.syso 2>/dev/null || echo "[winres] (no .syso files found - check go-winres output)"

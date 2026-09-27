@@ -1,0 +1,4 @@
+interface:
+  display_name: "IssueGraph"
+  short_description: "Project task tracking with issuegraph"
+  default_prompt: "Use $issuegraph to inspect ready work and manage durable project tasks."

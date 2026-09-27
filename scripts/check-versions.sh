@@ -9,10 +9,10 @@ GREEN='\033[0;32m'
 NC='\033[0m'
 
 # Get the canonical version from version.go
-CANONICAL=$(grep 'Version = ' cmd/bd/version.go | sed 's/.*"\(.*\)".*/\1/')
+CANONICAL=$(grep 'Version = ' modules/cli/version.go | sed 's/.*"\(.*\)".*/\1/')
 
 if [ -z "$CANONICAL" ]; then
-    echo -e "${RED}❌ Could not read version from cmd/bd/version.go${NC}"
+    echo -e "${RED}❌ Could not read version from modules/cli/version.go${NC}"
     exit 1
 fi
 
@@ -107,7 +107,7 @@ fi
 
 # Tracked managed git-hook sections (.githooks/*): the BEGIN/END markers embed
 # the binary Version, and TestTrackedManagedHookSectionsMatchGenerator holds
-# them equal to the cmd/bd/hooks.go generator output. A version bump that skips
+# them equal to the modules/cli/hooks.go generator output. A version bump that skips
 # them reddens main only after the push (that was the v1.2.0 bump), so gate the
 # markers here. Marker version only — full body equality stays the test's job.
 for hook in .githooks/*; do
@@ -135,7 +135,7 @@ done
 # four-part version) must be purely numeric, so they carry the base version:
 # for 1.1.0-rc.1 they read 1.1.0 while FileVersion/ProductVersion read the full
 # prerelease string.
-WINRES_JSON="cmd/bd/winres/winres.json"
+WINRES_JSON="modules/cli/winres/winres.json"
 for field in file_version product_version; do
     check_expected "$WINRES_JSON" \
         "$(jq -r ".RT_VERSION.\"#1\".\"0000\".fixed.$field" "$WINRES_JSON" 2>/dev/null)" \
@@ -149,8 +149,8 @@ done
 
 # Anchor on line start: the XML declaration on line 1 also carries a
 # version="1.0" attribute.
-check_expected "cmd/bd/winres/manifest.xml" \
-    "$(grep -oE '^[[:space:]]*version="[0-9][^"]*"' cmd/bd/winres/manifest.xml 2>/dev/null | head -1 | sed -E 's/.*"(.*)"/\1/')" \
+check_expected "modules/cli/winres/manifest.xml" \
+    "$(grep -oE '^[[:space:]]*version="[0-9][^"]*"' modules/cli/winres/manifest.xml 2>/dev/null | head -1 | sed -E 's/.*"(.*)"/\1/')" \
     "$BASE_VERSION.0" "manifest.xml assemblyIdentity version"
 
 echo ""
@@ -159,18 +159,18 @@ if [ $MISMATCH -eq 1 ]; then
     echo -e "${RED}❌ Version mismatch detected!${NC}"
     echo ""
     echo "Note: re-running 'scripts/update-versions.sh $CANONICAL' will NOT fix"
-    echo "most of these. It derives the OLD version from cmd/bd/version.go, which"
+    echo "most of these. It derives the OLD version from modules/cli/version.go, which"
     echo "already reads $CANONICAL, so its old->new substitutions rewrite"
     echo "$CANONICAL -> $CANONICAL and no-op on a file that drifted. Only the"
     echo ".githooks markers (rewritten wholesale) and uv.lock (regenerated) heal"
     echo "on a re-run."
     echo ""
     echo "Fix whichever applies:"
-    echo "  • cmd/bd/version.go itself is wrong (you meant another version):"
+    echo "  • modules/cli/version.go itself is wrong (you meant another version):"
     echo "      scripts/update-versions.sh <intended-version>"
     echo "  • one gated file drifted: edit that file to $CANONICAL and re-run"
     echo "    this script."
-    echo "  • several drifted: set cmd/bd/version.go back to the previous"
+    echo "  • several drifted: set modules/cli/version.go back to the previous"
     echo "    version, then scripts/update-versions.sh $CANONICAL to replay the"
     echo "    whole bump."
     exit 1

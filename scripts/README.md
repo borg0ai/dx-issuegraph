@@ -1,6 +1,6 @@
-# Beads Scripts
+# IssueGraph Scripts
 
-Utility scripts for maintaining the beads project.
+Utility scripts for maintaining the issuegraph project.
 
 ## ci/
 
@@ -21,7 +21,7 @@ invokes Go in the default build mode, and records per-command timing through
 
 Broad Go test wrappers also source `scripts/ci/lib/test-env.sh`, which creates a
 temporary HOME/XDG/Dolt root, isolates Git global/system config, clears runtime
-Beads/Dolt environment variables, and sets `BEADS_TEST_SKIP=dolt` before tests
+IssueGraph/Dolt environment variables, and sets `BEADS_TEST_SKIP=dolt` before tests
 run. This keeps local `make test` and `make ci-pr-core` results comparable to
 the fast PR-core contract even on shared agent hosts. Set
 `BEADS_TEST_ENV_RUN_DOLT=1` only when intentionally running the Dolt-dependent
@@ -39,7 +39,7 @@ boundaries.
 
 Package gate wrappers validate publishable/package-adjacent surfaces:
 
-- `make ci-package-mcp` builds or consumes a `bd` binary, puts it on `PATH` as
+- `make ci-package-mcp` builds or consumes an `issuegraph` binary, puts it on `PATH` as
   `bd`, then runs locked MCP package `uv sync`, Ruff, mypy, pytest, and build
   checks.
 - `make ci-package-npm` builds or consumes the native binary expected by
@@ -156,7 +156,7 @@ After the script finishes:
 
 ## bump-version.sh
 
-Bumps the version number across all beads components in a single command.
+Bumps the version number across all issuegraph components in a single command.
 
 ### Usage
 
@@ -174,7 +174,7 @@ Bumps the version number across all beads components in a single command.
 ### What It Does
 
 Updates version in all these files:
-- `cmd/bd/version.go` - bd CLI version constant
+- `modules/cli/version.go` - issuegraph CLI version constant
 - `plugins/beads/.claude-plugin/plugin.json` - Claude plugin version
 - `plugins/beads/.codex-plugin/plugin.json` - Codex plugin version
 - `.claude-plugin/marketplace.json` - Claude marketplace plugin version
@@ -204,7 +204,7 @@ git push origin main
 
 ### Why This Script Exists
 
-Previously, version bumps only updated `cmd/bd/version.go`, leaving other components out of sync. This script ensures all version numbers stay consistent across the project.
+Previously, version bumps only updated `modules/cli/version.go`, leaving other components out of sync. This script ensures all version numbers stay consistent across the project.
 
 ### Safety
 

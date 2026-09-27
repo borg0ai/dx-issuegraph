@@ -39,7 +39,7 @@ cd "$REPO_ROOT" || exit 1
 # type-check the ICU path instead, while check-build-tags.sh still passes (it
 # only greps for the literal string `.buildflags`).
 # shellcheck source=/dev/null
-source ./.buildflags || { echo "build-examples: cannot source .buildflags" >&2; exit 1; }
+source ./modules/core/.buildflags || { echo "build-examples: cannot source modules/core/.buildflags" >&2; exit 1; }
 
 # Bash 3.2 compatible (stock macOS ships 3.2, which has no `mapfile`), and no
 # GNU-only `xargs -r` or `sort -z` (BSD sort has no -z; a sort stage would have
@@ -50,13 +50,13 @@ source ./.buildflags || { echo "build-examples: cannot source .buildflags" >&2; 
 modules=()
 while IFS= read -r -d '' f; do
     modules+=("$(dirname "$f")")
-done < <(git ls-files -z 'examples/*/go.mod')
+done < <(git ls-files -z 'modules/examples/*/go.mod')
 
 if [[ "${#modules[@]}" -eq 0 ]]; then
     # Not a pass. Either examples/ was restructured, or this is running outside
     # a git checkout (a release tarball), and a job that compiles nothing must
     # not report success.
-    echo "build-examples: found no example modules (git ls-files 'examples/*/go.mod' was empty)" >&2
+    echo "build-examples: found no example modules (git ls-files 'modules/examples/*/go.mod' was empty)" >&2
     echo "build-examples: refusing to report success having checked nothing" >&2
     exit 1
 fi

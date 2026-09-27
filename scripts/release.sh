@@ -148,7 +148,7 @@ elif command -v bd >/dev/null 2>&1 && bd_resolves_repo_formula bd; then
 elif [ -x "$REPO_ROOT/bd" ] && bd_resolves_repo_formula "$REPO_ROOT/bd"; then
     BD_CMD=("$REPO_ROOT/bd")
 else
-    BD_CMD=(go run -tags gms_pure_go ./cmd/bd)
+    BD_CMD=(go run -tags gms_pure_go github.com/steveyegge/beads/modules/cli)
     BD_FALLBACK_HINT=" (falling back to go run; run make install for faster releases)"
 fi
 

@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 # Guard user-facing docs and hints against unsupported first-party go install forms.
 #
-# Plain `go install github.com/.../beads/cmd/bd@latest` takes the CGO+ICU path
+# Plain `go install github.com/.../beads/modules/cli@latest` takes the CGO+ICU path
 # on many hosts. Keep first-party guidance on one of the documented supported
 # modes:
 #   - CGO_ENABLED=0 ... (server-mode only)
@@ -17,10 +17,10 @@ while IFS= read -r hit; do
     line_no="${rest%%:*}"
 
     printf 'error: %s:%s: unsupported go install module path\n' "$file" "$line_no" >&2
-    printf '       use github.com/steveyegge/beads/cmd/bd because go.mod still declares that module path\n' >&2
+    printf '       use github.com/steveyegge/beads/modules/cli because go.mod still declares that module path\n' >&2
     fail=1
 done < <(
-    git grep -n -E 'go install github\.com/gastownhall/beads/cmd/bd@latest' -- . || true
+    git grep -n -E 'go install github\.com/gastownhall/beads/modules/cli@latest' -- . || true
 )
 
 while IFS= read -r hit; do
@@ -43,7 +43,7 @@ while IFS= read -r hit; do
     printf '       use CGO_ENABLED=0 for server mode or GOFLAGS=-tags=gms_pure_go for embedded mode\n' >&2
     fail=1
 done < <(
-    git grep -n -E 'go install github\.com/(steveyegge|gastownhall)/beads/cmd/bd@latest' -- . || true
+    git grep -n -E 'go install github\.com/(steveyegge|gastownhall)/beads/modules/cli@latest' -- . || true
 )
 
 exit "$fail"

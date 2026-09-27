@@ -1,6 +1,6 @@
 # Release gate — Incremental auto-export via `dolt_diff` (be-hka), round 4
 
-- **Builder bead (CLOSED):** be-hka — incremental `bd export --auto` using
+- **Builder bead (CLOSED):** be-hka — incremental `issuegraph export --auto` using
   `dolt_diff()` to patch only changed issues instead of rewriting the full
   JSONL file on every export.
 - **Deploy bead:** be-y1jo (round 2 of deploy; supersedes be-uoat, which
@@ -30,7 +30,7 @@ Same feature as be-uoat's round-2 gate: incremental auto-export via
 `dolt_diff()`, patching only changed issue lines instead of rewriting the
 whole JSONL file on every export. This round makes **zero** further changes
 to feature/production logic beyond what be-uoat already gated — the
-production files (`cmd/bd/export_auto.go`, `internal/storage/diff_store.go`,
+production files (`modules/cli/export_auto.go`, `internal/storage/diff_store.go`,
 `internal/storage/dolt/versioned.go`) are unchanged since round 2. Rounds 3
 and 4 are both test-infrastructure-only, addressing be-uoat's criterion-3 FAIL:
 
@@ -44,7 +44,7 @@ and 4 are both test-infrastructure-only, addressing be-uoat's criterion-3 FAIL:
   `dolt.Config.PoolReadTimeout` through both the shared-branch fast path and
   the per-test-DB fallback. The flaky test now opts into
   `bulkSeedPoolReadTimeout = 5 * time.Minute`
-  (`cmd/bd/export_auto_test.go:1425`) via
+  (`modules/cli/export_auto_test.go:1425`) via
   `setupIncrementalExportTestWithReadTimeout` — this is the exact
   evidence-calibrated-long-timeout fix be-uoat's gate recommended, arrived at
   independently. Existing callers keep the 10s default; only this one
@@ -63,18 +63,18 @@ and 4 are both test-infrastructure-only, addressing be-uoat's criterion-3 FAIL:
   of calling `t.Fatal` inside a subtest; the test now asserts on that error
   value with no subtest wrapper for the expected-to-fail branch. Round-4
   review (be-unlq) confirmed this live against a real Dolt container (PASS,
-  0.09s, not a self-skip) plus a full default-mode `./cmd/bd/...` run (5/5
+  0.09s, not a self-skip) plus a full default-mode `./modules/cli/...` run (5/5
   packages, 0 FAIL, 246.3s).
 
 Diff scope, confirmed directly via `git diff --name-only origin/main...fc5caadcf`
 (7 files, identical set to be-uoat's already-approved scope):
 
-- `cmd/bd/export_auto.go` — feature logic (unchanged since round 2)
+- `modules/cli/export_auto.go` — feature logic (unchanged since round 2)
 - `internal/storage/diff_store.go` — feature logic (unchanged since round 2)
 - `internal/storage/dolt/versioned.go` — feature logic (unchanged since round 2)
-- `cmd/bd/export_auto_test.go` — feature tests (round 3+4: PoolReadTimeout plumbing)
-- `cmd/bd/test_helpers_test.go` — shared test infra (round 3+4: PoolReadTimeout plumbing)
-- `cmd/bd/test_dolt_server_cgo_test.go` — shared test infra (round 2, carried forward)
+- `modules/cli/export_auto_test.go` — feature tests (round 3+4: PoolReadTimeout plumbing)
+- `modules/cli/test_helpers_test.go` — shared test infra (round 3+4: PoolReadTimeout plumbing)
+- `modules/cli/test_dolt_server_cgo_test.go` — shared test infra (round 2, carried forward)
 - `internal/testutil/testdoltserver.go` — shared test infra (round 2, carried forward)
 
 ## Gate criteria
@@ -117,7 +117,7 @@ function's own docstring warns against, so none was passed.
 
 Independently verified this is benign rather than taking the extraction
 narrative on faith: `git show --stat --format='' 5e94e0cc5` shows exactly 4
-files (`cmd/bd/export_auto.go`, `cmd/bd/export_auto_test.go`,
+files (`modules/cli/export_auto.go`, `modules/cli/export_auto_test.go`,
 `internal/storage/diff_store.go`, `internal/storage/dolt/versioned.go`) — a
 strict subset of the already-approved 7-file cumulative scope, zero overlap
 with `.claude/**`, zero unrelated files. Proceeding past this flag with that
@@ -179,9 +179,9 @@ grep -n "BEADS INTEGRATION" .githooks/commit-msg                        # no hit
 
 `.githooks/commit-msg` is not one of the 7 diff files and is byte-identical
 to `origin/main`, so this is a pre-existing gap on baseline, not something
-this diff introduces or could fix within its own scope. `bd search` for
+this diff introduces or could fix within its own scope. `issuegraph search` for
 "githooks commit-msg" and "ci-pr-policy" returned no existing tracking bead.
-Same disposition class as the `cmd/bd` / `internal/remotecache` failures
+Same disposition class as the `modules/cli` / `internal/remotecache` failures
 triaged non-blocking in be-uoat's gate: zero file overlap with the diff,
 independently root-caused rather than waved through. Filing a small P3
 tracking bead for this gap separately (not blocking this deploy).

@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
-# clean-test-tmp.sh — sweep orphaned cmd/bd test temp dirs.
+# clean-test-tmp.sh — sweep orphaned modules/cli test temp dirs.
 #
-# The cmd/bd test suite creates several MkdirTemp parents under $TMPDIR
+# The modules/cli test suite creates several MkdirTemp parents under $TMPDIR
 # (HOME isolation, built test binaries, etc.). They are normally cleaned
 # by testMainInner's defer, but a SIGKILLed / OOMed test run leaves them
 # behind. On tmpfs hosts (e.g. Bluefin's 20GB /tmp) these can grow to
@@ -17,7 +17,7 @@ set -euo pipefail
 
 tmpdir="${TMPDIR:-/tmp}"
 
-# Patterns created by cmd/bd test helpers (see test_repo_beads_guard_test.go
+# Patterns created by modules/cli test helpers (see test_repo_beads_guard_test.go
 # and the package-level sync.Once builders).
 patterns=(
     "beads-bd-tests-*"

@@ -12,7 +12,7 @@
 
 ## Scope
 
-Three `TestMain` functions (`beads_test.go`, `cmd/bd/doctor/fix/testmain_cgo_test.go`,
+Three `TestMain` functions (`beads_test.go`, `modules/cli/doctor/fix/testmain_cgo_test.go`,
 `tests/regression/regression_test.go`) called `os.Exit(N)` directly inside
 their own body, after `defer TerminateDoltContainer(...)`. A deferred call
 never runs when the enclosing function exits via `os.Exit`, so container
@@ -43,7 +43,7 @@ deploy range cite it, confirmed by `assert_deploy_ancestry_scope`.
 | 0 | Already merged? (pre-flight) | **NO** | `git merge-base --is-ancestor 9e40379 origin/main` → not an ancestor; `gh pr list --search "be-r3ysh OR be-43oyc OR 9e4037916"` → no existing PR. Proceeded. |
 | 1 | Review PASS present | **PASS** | be-43oyc, `verdict: pass`, closed 2026-08-20T06:12:56Z, close_reason `pass`. |
 | 2 | Acceptance criteria met | **PASS** | All 3 exit_contract criteria from be-5kkk6 independently verified in be-43oyc: (1) pattern applied correctly across all 3 files including all 4 exit sites in `regression_test.go`; (2) no behavior change beyond the split, confirmed by diff read; (3) RED commit independently checked out to a throwaway worktree and confirmed to fail citing exactly the 3 affected files with no false positives on 8 other pre-existing-correct `TestMain` files. |
-| 3 | Tests pass (diff-owned-SKIP=FAIL rule) | **PASS** | 259 PASS / 0 FAIL / 18 SKIP across all 4 diff-owned files, executed on real Dolt-container infrastructure (rootless podman, container lifecycle create→start→stop→terminate logged cleanly — direct behavioral proof the defer now runs). All 18 SKIPs are pre-existing and individually attributed: named by test, cited with a GH#/bd- issue ref or explicit "intentional change" rationale, confirmed unrelated to `TestMain`/defer/`os.Exit`, confirmed present before this diff. Zero diff-owned SKIPs. Independently re-verified by deployer on the cut branch: `gofmt -l` (4 diff-owned files) clean, `go build ./...` clean, `go vet ./...` clean, `go vet -tags=regression ./tests/regression/...` clean, `go vet -tags=cgo ./cmd/bd/doctor/fix/...` clean. |
+| 3 | Tests pass (diff-owned-SKIP=FAIL rule) | **PASS** | 259 PASS / 0 FAIL / 18 SKIP across all 4 diff-owned files, executed on real Dolt-container infrastructure (rootless podman, container lifecycle create→start→stop→terminate logged cleanly — direct behavioral proof the defer now runs). All 18 SKIPs are pre-existing and individually attributed: named by test, cited with a GH#/bd- issue ref or explicit "intentional change" rationale, confirmed unrelated to `TestMain`/defer/`os.Exit`, confirmed present before this diff. Zero diff-owned SKIPs. Independently re-verified by deployer on the cut branch: `gofmt -l` (4 diff-owned files) clean, `go build ./...` clean, `go vet ./...` clean, `go vet -tags=regression ./tests/regression/...` clean, `go vet -tags=cgo ./modules/cli/doctor/fix/...` clean. |
 | 4 | Policy / lint lane | **PASS** | `golangci-lint run --new-from-merge-base=origin/main` clean (default tags, `regression` tag, `cgo` tag) — 0 issues across all 3 scopes, per be-43oyc. |
 | 5 | No open HIGH findings | **PASS** | be-43oyc: zero security findings (explicit OWASP Top 10 walk — test-only diff, zero production files touched, no injection/auth/data-exposure/config surface). Zero style findings; nothing blocking. |
 | 6 | Clean branch status / clean divergence from main | **PASS** | `git merge-tree --write-tree origin/main 9e40379` exits 0 with a single resulting tree, no conflict markers — clean merge despite the reviewed SHA's base sitting 14 commits behind current `origin/main` tip (2 commits ahead of merge-base). No self-rebase needed; bounded self-rebase exception not invoked. `assert_deploy_ancestry_scope origin/main 9e40379 be-r3ysh be-5kkk6` → rc=0 (no `.claude/**` paths introduced; both commits in range cite `be-5kkk6`). `assert_safe_push_target deploy/be-r3ysh-gate` → rc=0 (not a shared worktree branch). |
@@ -53,11 +53,11 @@ deploy range cite it, confirmed by `assert_deploy_ancestry_scope`.
 
 | Check | Result |
 |---|---|
-| `gofmt -l beads_test.go cmd/bd/doctor/fix/testmain_cgo_test.go tests/regression/regression_test.go test/testmainconvention/testmain_convention_test.go` | clean (no output) |
+| `gofmt -l beads_test.go modules/cli/doctor/fix/testmain_cgo_test.go tests/regression/regression_test.go test/testmainconvention/testmain_convention_test.go` | clean (no output) |
 | `go build ./...` | clean, exit 0 |
 | `go vet ./...` | clean, exit 0 |
 | `go vet -tags=regression ./tests/regression/...` | clean, exit 0 |
-| `go vet -tags=cgo ./cmd/bd/doctor/fix/...` | clean, exit 0 |
+| `go vet -tags=cgo ./modules/cli/doctor/fix/...` | clean, exit 0 |
 
 Full container-backed test execution (259 PASS / 0 FAIL / 18 pre-existing
 SKIP) was not re-run by the deployer — already performed by the reviewer

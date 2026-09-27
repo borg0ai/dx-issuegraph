@@ -19,16 +19,16 @@ TODAY_DAY=""
 ERRORS=0
 
 DOCS=(
-    "docs/reference/configuration.md|cmd/bd/main.go;cmd/bd/config.go;internal/configfile/"
-    "docs/getting-started/ide-setup.md|cmd/bd/setup*.go;internal/recipes/"
-    "docs/integrations/azure-devops.md|cmd/bd/ado*.go;internal/ado/"
-    "docs/reference/json-schema.md|cmd/bd/output.go;cmd/bd/errors.go;cmd/bd/protocol/json_contract_test.go"
-    "docs/recovery/init-safety.md|cmd/bd/init.go;cmd/bd/init_safety.go;cmd/bd/init_safety_test.go;cmd/bd/dolt.go"
-    "engdocs/ERROR_HANDLING.md|cmd/bd/*.go;cmd/bd/errors.go"
-    "engdocs/SERVE_RUNBOOK.md|internal/httpapi/server.go;internal/httpapi/events_watch.go;cmd/bd/serve.go;internal/httpapi/auth.go"
+    "docs/reference/configuration.md|modules/cli/main.go;modules/cli/config.go;internal/configfile/"
+    "docs/getting-started/ide-setup.md|modules/cli/setup*.go;internal/recipes/"
+    "docs/integrations/azure-devops.md|modules/cli/ado*.go;internal/ado/"
+    "docs/reference/json-schema.md|modules/cli/output.go;modules/cli/errors.go;modules/cli/protocol/json_contract_test.go"
+    "docs/recovery/init-safety.md|modules/cli/init.go;modules/cli/init_safety.go;modules/cli/init_safety_test.go;modules/cli/dolt.go"
+    "engdocs/ERROR_HANDLING.md|modules/cli/*.go;modules/cli/errors.go"
+    "engdocs/SERVE_RUNBOOK.md|internal/httpapi/server.go;internal/httpapi/events_watch.go;modules/cli/serve.go;internal/httpapi/auth.go"
     "engdocs/LINTING.md|.golangci.yml;scripts/ci/pr-lint.sh;Makefile;.github/workflows/pr.yml;.github/workflows/main.yml"
     "engdocs/CI_CLEANUP_PLAN.md|engdocs/CI_TEST_SURFACE_AUDIT.md;.github/workflows/*.yml;.buildflags;.golangci.yml;scripts/ci/pr-lint.sh;Makefile"
-    "engdocs/design/otel/otel-data-model.md|internal/telemetry/;internal/storage/dolt/store.go;internal/compact/haiku.go;cmd/bd/find_duplicates.go;internal/hooks/"
+    "engdocs/design/otel/otel-data-model.md|internal/telemetry/;internal/storage/dolt/store.go;internal/compact/haiku.go;modules/cli/find_duplicates.go;internal/hooks/"
 )
 
 date_day_number() {

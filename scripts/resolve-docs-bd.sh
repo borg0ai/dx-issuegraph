@@ -54,6 +54,6 @@ trap cleanup EXIT
 
 git -C "$PROJECT_ROOT" worktree add --detach --quiet "$WT" "refs/tags/$PIN"
 mkdir -p "$CACHE_DIR"
-(cd "$WT" && CGO_ENABLED=0 go build -tags gms_pure_go -o "$CACHED_BD" ./cmd/bd/) >&2
+(cd "$WT" && CGO_ENABLED=0 go build -tags gms_pure_go -o "$CACHED_BD" github.com/steveyegge/beads/modules/cli) >&2
 
 echo "$CACHED_BD"

@@ -146,7 +146,7 @@ fi
 
 cd "$WT" || exit 2
 # shellcheck disable=SC1091
-[ -f .buildflags ] && source .buildflags
+[ -f modules/core/.buildflags ] && source modules/core/.buildflags
 export BEADS_TEST_EMBEDDED_DOLT="${BEADS_TEST_EMBEDDED_DOLT:-1}"
 
 restore() { git -C "$WT" checkout -q -- . 2>/dev/null; }

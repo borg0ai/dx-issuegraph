@@ -16,7 +16,7 @@ TOTAL = int(sys.argv[1]) if len(sys.argv) > 1 else 15
 func_re = re.compile(r'^func (TestProxiedServer[A-Za-z0-9_]+)\(')
 
 costs = {}
-for path in glob.glob('cmd/bd/*_test.go'):
+for path in glob.glob('modules/cli/*_test.go'):
     with open(path) as fh:
         lines = fh.readlines()
     cur = None

@@ -39,8 +39,8 @@ SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
 PROJECT_ROOT="$(cd "$SCRIPT_DIR/.." && pwd)"
 
 # Canonical build flags (GOFLAGS=-tags=gms_pure_go, CGO_ENABLED=1).
-# shellcheck source=../.buildflags
-source "$PROJECT_ROOT/.buildflags"
+# shellcheck source=../modules/core/.buildflags
+source "$PROJECT_ROOT/modules/core/.buildflags"
 
 # ---------------------------------------------------------------------------
 # Multi-version mode: SMOKE_VERSIONS overrides single-version argument
@@ -67,7 +67,7 @@ if [ -n "${1:-}" ]; then
     PREV_VERSION="$1"
 else
     # Default: fetch the latest release tag before the current version
-    CURRENT_VERSION=$(grep 'Version = ' "$PROJECT_ROOT/cmd/bd/version.go" \
+    CURRENT_VERSION=$(grep 'Version = ' "$PROJECT_ROOT/modules/cli/version.go" \
         | head -1 | sed 's/.*"\(.*\)".*/\1/')
     # Try to get the previous release tag from git
     PREV_VERSION=$(git -C "$PROJECT_ROOT" tag --sort=-version:refname \
@@ -144,7 +144,7 @@ build_candidate() {
 
     local candidate="$CACHE_DIR/bd-candidate-$$"
     echo -e "${YELLOW}Building candidate binary...${NC}" >&2
-    (cd "$PROJECT_ROOT" && go build -o "$candidate" ./cmd/bd) >&2
+    (cd "$PROJECT_ROOT" && go build -o "$candidate" github.com/steveyegge/beads/modules/cli) >&2
     echo "$candidate"
 }
 

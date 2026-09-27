@@ -26,13 +26,13 @@ fi
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 REPO_ROOT="$(cd "$SCRIPT_DIR/../.." && pwd)"
 
-# shellcheck source=../../.buildflags
-source "$REPO_ROOT/.buildflags"
+# shellcheck source=../../modules/core/.buildflags
+source "$REPO_ROOT/modules/core/.buildflags"
 
 cd "$REPO_ROOT"
 
 if (($# == 0)); then
-    set -- ./...
+    set -- github.com/steveyegge/beads/...
 fi
 
 SHARD_INDEX=$((SHARD_NUMBER - 1))

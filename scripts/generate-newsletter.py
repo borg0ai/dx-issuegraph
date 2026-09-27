@@ -215,7 +215,7 @@ def extract_new_commands(from_version: str, to_version: str) -> list[dict]:
         # Try with v prefix first, then without
         for prefix in ['v', '']:
             result = subprocess.run(
-                ["git", "diff", f"{prefix}{from_ver}..{prefix}{to_ver}", "--name-only", "--", "cmd/bd"],
+                ["git", "diff", f"{prefix}{from_ver}..{prefix}{to_ver}", "--name-only", "--", "modules/cli"],
                 capture_output=True,
                 text=True,
                 check=False

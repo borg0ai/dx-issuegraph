@@ -1,4 +1,4 @@
-# Release Gate: be-3b4e — `bd show` text view labels `created_by` as "Owner:"
+# Release Gate: be-3b4e — `issuegraph show` text view labels `created_by` as "Owner:"
 
 - **Deploy bead:** be-3b4e
 - **Review bead:** be-r0za (closed, verdict: pass)
@@ -11,23 +11,23 @@
 
 ## Scope
 
-`bd show`'s text view labeled the `created_by` field as "Owner:", which is
+`issuegraph show`'s text view labeled the `created_by` field as "Owner:", which is
 misleading — `--json` exposes a distinct `owner` field with a different
 value. The fix relabels the text-view line to "Created by:" so it no longer
 implies the two fields are the same thing.
 
 Diff, confirmed via `git diff --name-only origin/main...HEAD` (2 files):
 
-- `cmd/bd/show_format.go` — relabels `Owner: %s` → `Created by: %s` in
+- `modules/cli/show_format.go` — relabels `Owner: %s` → `Created by: %s` in
   `formatIssueMetadata`; updates the adjacent comment.
-- `cmd/bd/show_format_metadata_test.go` — adds
+- `modules/cli/show_format_metadata_test.go` — adds
   `TestFormatIssueMetadata_CreatedByLabel`, asserting "Created by: alice" is
   present, "Assignee: carol" is present, and "Owner: " is absent, given a
   fixture with distinct `CreatedBy`/`Owner`/`Assignee` values — directly
   proving the two fields are not conflated.
 
 Repo-wide grep for other `"Owner:"` call sites found exactly one other hit,
-`cmd/bd/github.go:313`, which formats an unrelated GitHub-repo-config field
+`modules/cli/github.go:313`, which formats an unrelated GitHub-repo-config field
 — correctly out of scope for this fix.
 
 ## Gate criteria
@@ -53,7 +53,7 @@ on top:
 
 ```
 28c259392 witness: salvage uncommitted work (be-3b4e)
-092947695 fix(cmd/bd): label created_by as 'Created by:' instead of 'Owner:'
+092947695 fix(modules/cli): label created_by as 'Created by:' instead of 'Owner:'
 ```
 
 This "witness" commit was not created by any action taken while evaluating
@@ -91,11 +91,11 @@ verbose run.
 
 **Full suite** (`scripts/ci/pr-core.sh`-equivalent, `-race -short -skip
 '^TestEmbedded' -p 4 -parallel 4`, default 10m per-package timeout):
-88 ok / 5 FAIL packages — `cmd/bd` (timed out: `panic: test timed out after
+88 ok / 5 FAIL packages — `modules/cli` (timed out: `panic: test timed out after
 10m0s`, 600.560s), `internal/beads`, `internal/config`, `internal/formula`,
 `internal/metrics`. 0 SKIP. This is one package worse than be-r0za's own
-baseline (4 FAIL: `cmd/bd`, `internal/beads`, `internal/config`,
-`internal/formula`) — both discrepancies (the `cmd/bd` timeout and the extra
+baseline (4 FAIL: `modules/cli`, `internal/beads`, `internal/config`,
+`internal/formula`) — both discrepancies (the `modules/cli` timeout and the extra
 `internal/metrics` FAIL) were investigated to a specific, confirmed root
 cause rather than waived:
 
@@ -103,7 +103,7 @@ cause rather than waived:
   this shared multi-agent host (multiple concurrent `dolt sql-server`
   processes, concurrent `go test`/`go build` for unrelated packages, other
   active agent sessions) — the immediate suspect for both anomalies.
-- **`cmd/bd` timeout**: re-ran in isolation (`./cmd/bd/...` alone, `-timeout
+- **`modules/cli` timeout**: re-ran in isolation (`./modules/cli/...` alone, `-timeout
   30m`, no other change). Completed cleanly, **no timeout, no panic** —
   directly confirms transient resource contention, not a diff-caused hang.
   This isolated run surfaced 72 individual `--- FAIL:` tests; every one
@@ -118,8 +118,8 @@ cause rather than waived:
   concurrent, interleaved output made naive line-based attribution
   unreliable. Re-ran `internal/metrics` alone in isolation: clean `ok`, 0
   failures. Not a real failure, diff-unrelated regardless.
-- **`cmd/bd/doctor` flip-flop**: passed in the full-suite run above
-  (`ok  5.489s`) but failed in the isolated `cmd/bd` retest
+- **`modules/cli/doctor` flip-flop**: passed in the full-suite run above
+  (`ok  5.489s`) but failed in the isolated `modules/cli` retest
   (`FAIL  5.452s`), the inverse pattern from `internal/metrics`. Resolved
   by direct origin/main baseline reproduction (see below) rather than
   assumption — the pass/fail flip between two runs of *identical* code is
@@ -134,7 +134,7 @@ workaround):
 - `TestWhereNoWorkspace` (representative test, matching be-r0za's own
   baseline-reproduction proof): **FAILS identically** on origin/main with
   zero diff.
-- `cmd/bd/doctor` full package: **FAILS identically** on origin/main with
+- `modules/cli/doctor` full package: **FAILS identically** on origin/main with
   zero diff — `FAIL  4.829s`, with the same 6 test names as the isolated
   retest above (`TestRunDoltHealthChecks_DoltBackendNoServer`,
   `TestCheckFederationRemotesAPI_ServerNotRunning`,
@@ -181,7 +181,7 @@ categories, all clear) or style (gofmt/go vet/golangci-lint clean).
 All 7 criteria plus the 3b policy/lint lane pass, independently
 re-verified rather than trusted from be-r0za's report. Two genuine
 discrepancies between my results and the reviewer's baseline
-(`internal/metrics`, `cmd/bd/doctor`) were investigated to specific,
+(`internal/metrics`, `modules/cli/doctor`) were investigated to specific,
 confirmed root causes rather than asserted away. One branch-integrity
 incident (an unrelated automated commit) was found and losslessly
 corrected before push.
@@ -206,8 +206,8 @@ The criteria walk above examined
 | this commit | This annotation. |
 
 None of them touches production code, so the criteria walk still describes
-the shipped diff (`cmd/bd/show_format.go` plus
-`cmd/bd/show_format_metadata_test.go`) exactly, and the **PASS** stands for
+the shipped diff (`modules/cli/show_format.go` plus
+`modules/cli/show_format_metadata_test.go`) exactly, and the **PASS** stands for
 the SHA it examined. This section exists so the "exactly the two reviewed
 commits over `origin/main`" line in the branch-integrity section above is
 not read as a claim about the current head.

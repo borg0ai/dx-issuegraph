@@ -61,13 +61,13 @@ fi
 BASE_VERSION="${NEW_VERSION%%-*}"
 
 # Check we're in repo root
-if [ ! -f "cmd/bd/version.go" ]; then
+if [ ! -f "modules/cli/version.go" ]; then
     echo -e "${RED}Error: Must run from repository root${NC}"
     exit 1
 fi
 
 # Get current version
-CURRENT_VERSION=$(grep 'Version = ' cmd/bd/version.go | sed 's/.*"\(.*\)".*/\1/')
+CURRENT_VERSION=$(grep 'Version = ' modules/cli/version.go | sed 's/.*"\(.*\)".*/\1/')
 # Base (prerelease-stripped) form of the current version. The Windows PE
 # numeric fields (file_version/product_version, manifest version) only ever
 # hold the base form, so they must be matched on the base, not on the full
@@ -90,9 +90,9 @@ update_file() {
 
 echo "Updating version files..."
 
-# 1. cmd/bd/version.go
-echo "  • cmd/bd/version.go"
-update_file "cmd/bd/version.go" "Version = \"$CURRENT_VERSION\"" "Version = \"$NEW_VERSION\""
+# 1. modules/cli/version.go
+echo "  • modules/cli/version.go"
+update_file "modules/cli/version.go" "Version = \"$CURRENT_VERSION\"" "Version = \"$NEW_VERSION\""
 
 # 2. Plugin JSON files
 echo "  • plugin metadata"
@@ -138,7 +138,7 @@ echo "  • default.nix"
 update_file "default.nix" "version = \"$CURRENT_VERSION\";" "version = \"$NEW_VERSION\";"
 
 # 7. Tracked managed git-hook sections. The hooks a fresh `bd init` installs
-# are generated dynamically by cmd/bd/hooks.go, but this repo also TRACKS
+# are generated dynamically by modules/cli/hooks.go, but this repo also TRACKS
 # rendered copies in .githooks/, whose BEGIN/END markers embed the binary
 # Version (hookSectionBeginLine), and TestTrackedManagedHookSectionsMatchGenerator
 # holds them byte-equal to the generator's output. Rewrite the marker version
@@ -155,13 +155,13 @@ for hook in .githooks/*; do
 done
 
 # 8. Windows PE resource metadata
-echo "  • cmd/bd/winres/winres.json"
-update_file "cmd/bd/winres/winres.json" "\"file_version\": \"$CURRENT_BASE\"" "\"file_version\": \"$BASE_VERSION\""
-update_file "cmd/bd/winres/winres.json" "\"product_version\": \"$CURRENT_BASE\"" "\"product_version\": \"$BASE_VERSION\""
-update_file "cmd/bd/winres/winres.json" "\"FileVersion\": \"$CURRENT_VERSION\"" "\"FileVersion\": \"$NEW_VERSION\""
-update_file "cmd/bd/winres/winres.json" "\"ProductVersion\": \"$CURRENT_VERSION\"" "\"ProductVersion\": \"$NEW_VERSION\""
-echo "  • cmd/bd/winres/manifest.xml"
-update_file "cmd/bd/winres/manifest.xml" "version=\"$CURRENT_BASE.0\"" "version=\"$BASE_VERSION.0\""
+echo "  • modules/cli/winres/winres.json"
+update_file "modules/cli/winres/winres.json" "\"file_version\": \"$CURRENT_BASE\"" "\"file_version\": \"$BASE_VERSION\""
+update_file "modules/cli/winres/winres.json" "\"product_version\": \"$CURRENT_BASE\"" "\"product_version\": \"$BASE_VERSION\""
+update_file "modules/cli/winres/winres.json" "\"FileVersion\": \"$CURRENT_VERSION\"" "\"FileVersion\": \"$NEW_VERSION\""
+update_file "modules/cli/winres/winres.json" "\"ProductVersion\": \"$CURRENT_VERSION\"" "\"ProductVersion\": \"$NEW_VERSION\""
+echo "  • modules/cli/winres/manifest.xml"
+update_file "modules/cli/winres/manifest.xml" "version=\"$CURRENT_BASE.0\"" "version=\"$BASE_VERSION.0\""
 
 echo ""
 echo -e "${GREEN}✓ Version constants updated to $NEW_VERSION${NC}"
@@ -171,5 +171,5 @@ git diff --stat 2>/dev/null || true
 echo ""
 echo "Next steps:"
 echo "  • Update CHANGELOG.md with release notes"
-echo "  • Update cmd/bd/info.go versionChanges"
+echo "  • Update modules/cli/info.go versionChanges"
 echo "  • Or use: bd mol wisp beads-release --var version=$NEW_VERSION"

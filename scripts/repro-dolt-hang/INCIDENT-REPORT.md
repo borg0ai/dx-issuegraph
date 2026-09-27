@@ -3,7 +3,7 @@
 **Date:** 2026-02-23
 **Dolt Version:** 1.82.2 (now upgraded to 1.82.4)
 **Platform:** macOS Darwin 25.3.0, arm64
-**Reporter:** Steve Yegge (multi-agent workspace / beads project)
+**Reporter:** Steve Yegge (multi-agent workspace / issuegraph project)
 
 ## Summary
 
@@ -15,7 +15,7 @@ force-killing the Dolt server and all ~15 stuck bd/gt processes to recover.
 ## Environment
 
 The workspace is a multi-agent environment where ~20 Claude Code agents run
-concurrently, each issuing `bd` (beads CLI) commands that connect to a shared
+concurrently, each issuing `issuegraph` (IssueGraph CLI) commands that connect to a shared
 Dolt SQL server.
 
 ### Server Configuration (`config.yaml`)
@@ -32,12 +32,12 @@ listener:
 
 ### Databases
 
-The shared server hosts ~15 databases (beads, hq, plus project-specific and
+The shared server hosts ~15 databases (issuegraph, hq, plus project-specific and
 test databases from automated test runs).
 
 ### Client Connection Pattern (pre-fix)
 
-Each `bd` command is a separate Go process using `go-sql-driver/mysql`. The
+Each `issuegraph` command is a separate Go process using `go-sql-driver/mysql`. The
 transaction pattern was:
 
 ```go
@@ -62,7 +62,7 @@ No query-level timeouts — root context has no deadline.
 
 ## Timeline
 
-1. ~20 agents simultaneously issue `bd` commands (create, update, list, close)
+1. ~20 agents simultaneously issue `issuegraph` commands (create, update, list, close)
 2. Each command opens a connection to port 3307, does work, calls DOLT_COMMIT
 3. Dolt server becomes completely unresponsive — all queries hang
 4. ~15 bd/gt processes pile up waiting for responses

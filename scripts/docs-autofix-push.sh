@@ -155,7 +155,7 @@ git commit -m "docs: regenerate CLI reference"
 git push
 \`\`\`
 
-Or regenerate from scratch: \`CGO_ENABLED=0 go build -tags gms_pure_go -o ./bd-docs ./cmd/bd/ && ./scripts/generate-cli-docs.sh ./bd-docs && rm ./bd-docs\`
+Or regenerate from scratch: \`CGO_ENABLED=0 go build -tags gms_pure_go -o ./bd-docs github.com/steveyegge/beads/modules/cli && ./scripts/generate-cli-docs.sh ./bd-docs && rm ./bd-docs\`
 
 _Automated by the [docs-autofix workflow]($RUN_URL); this comment is updated in place on each failing run._
 EOF

@@ -40,8 +40,8 @@ SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
 PROJECT_ROOT="$(cd "$SCRIPT_DIR/.." && pwd)"
 
 # Canonical build flags (GOFLAGS=-tags=gms_pure_go, CGO_ENABLED=1).
-# shellcheck source=../.buildflags
-source "$PROJECT_ROOT/.buildflags"
+# shellcheck source=../modules/core/.buildflags
+source "$PROJECT_ROOT/modules/core/.buildflags"
 
 CACHE_DIR="${HOME}/.cache/beads-regression"
 mkdir -p "$CACHE_DIR"
@@ -122,7 +122,7 @@ build_candidate() {
 
     local candidate="$CACHE_DIR/bd-candidate-$$"
     echo -e "${YELLOW}Building candidate binary...${NC}" >&2
-    (cd "$PROJECT_ROOT" && go build -o "$candidate" ./cmd/bd) >&2
+    (cd "$PROJECT_ROOT" && go build -o "$candidate" github.com/steveyegge/beads/modules/cli) >&2
     echo "$candidate"
 }
 

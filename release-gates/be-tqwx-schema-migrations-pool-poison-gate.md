@@ -5,7 +5,7 @@
   `migrationSource.currentVersion` ran a bare `SELECT` against the cursor
   table before it necessarily existed, so on a fresh database the pooled
   connection that hit the missing-table error stayed poisoned for the rest
-  of its life in the pool. Real production bug (hits `bd init` and any first
+  of its life in the pool. Real production bug (hits `issuegraph init` and any first
   writable open with `CreateIfMissing` on a fresh database), not test-only.
 - **Deploy bead:** be-tqwx
 - **Review bead:** be-43sq — verdict **PASS**, recorded on commit

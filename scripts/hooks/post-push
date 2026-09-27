@@ -9,7 +9,7 @@ if git log --name-only -1 origin/main..HEAD 2>/dev/null | grep -q '\.go$' || \
    git diff --name-only HEAD~1 HEAD 2>/dev/null | grep -q '\.go$'; then
     echo ""
     echo "Go files changed, rebuilding bd CLI..."
-    go install ./cmd/bd
+    go install github.com/steveyegge/beads/modules/cli
     echo "✓ bd CLI installed successfully"
     echo ""
 fi

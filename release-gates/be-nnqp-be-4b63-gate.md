@@ -1,4 +1,4 @@
-# Release Gate: be-nnqp + be-4b63 — bd stats --no-blocked flag
+# Release Gate: be-nnqp + be-4b63 — issuegraph stats --no-blocked flag
 
 **PR**: https://github.com/gastownhall/beads/pull/4022
 **Branch**: `feat/be-nnqp-be-4b63-stats-no-blocked` (quad341/beads)
@@ -20,8 +20,8 @@
 
 | Criterion | Evidence | Result |
 |-----------|----------|--------|
-| `bd stats --no-blocked` completes (skips blocked scan) | `noBlocked=true` path calls `store.GetStatisticsNoBlocked(ctx)` instead of `store.GetStatistics(ctx)` | ✅ |
-| `bd stats` (default) behavior unchanged | Conditional flag check; non-flag path unchanged | ✅ |
+| `issuegraph stats --no-blocked` completes (skips blocked scan) | `noBlocked=true` path calls `store.GetStatisticsNoBlocked(ctx)` instead of `store.GetStatistics(ctx)` | ✅ |
+| `issuegraph stats` (default) behavior unchanged | Conditional flag check; non-flag path unchanged | ✅ |
 | Human output shows `Blocked: (skipped)` with muted style | `ui.MutedStyle.Render("(skipped)")` on `stats.BlockedIssues == nil` path | ✅ |
 | JSON: `blocked_issues` is null when `--no-blocked` | `BlockedIssues *int \`json:"blocked_issues"\`` — pointer, nil when no-blocked | ✅ |
 | JSON: `blocked_count_skipped: true` when `--no-blocked` | `BlockedCountSkipped: stats.BlockedIssues == nil` in output struct | ✅ |
@@ -39,4 +39,4 @@
 |-----|-------------|
 | `ddf53438c` | feat(stats): add --no-blocked flag; fix Blocked:0 red render (be-nnqp, be-4b63) |
 | `ceb15695b` | fix(stats): F1 BlockedCountSkipped reflects actual nil; F2 Ready shows (skipped) with --no-blocked |
-| `4ea5bd8fd` | docs(cli): regen CLI reference for `bd status --no-blocked` |
+| `4ea5bd8fd` | docs(cli): regen CLI reference for `issuegraph status --no-blocked` |

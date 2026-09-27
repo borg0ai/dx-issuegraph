@@ -9,7 +9,7 @@ NPM_DIR="$REPO_ROOT/npm-package"
 NPM_BIN="$NPM_DIR/bin/bd"
 
 # shellcheck source=../../.buildflags
-source "$REPO_ROOT/.buildflags"
+source "$REPO_ROOT/modules/core/.buildflags"
 # shellcheck source=lib/timing.sh
 source "$REPO_ROOT/scripts/ci/lib/timing.sh"
 
@@ -37,7 +37,7 @@ prepare_bd_binary() {
     if [[ -n "${BEADS_TEST_BD_BINARY:-}" ]]; then
         cp "$BEADS_TEST_BD_BINARY" "$NPM_BIN"
     else
-        go build -o "$NPM_BIN" ./cmd/bd
+        go build -o "$NPM_BIN" github.com/steveyegge/beads/modules/cli
     fi
 
     chmod +x "$NPM_BIN"

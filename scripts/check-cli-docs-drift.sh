@@ -94,7 +94,7 @@ regen_worktree() {
         if [ -x scripts/resolve-docs-bd.sh ] && [ -n "$(scripts/resolve-docs-bd.sh)" ]; then
             ./scripts/generate-cli-docs.sh >/dev/null
         else
-            CGO_ENABLED=0 go build -tags gms_pure_go -o "$dir/.docs-bd" ./cmd/bd/
+            CGO_ENABLED=0 go build -tags gms_pure_go -o "$dir/.docs-bd" github.com/steveyegge/beads/modules/cli
             ./scripts/generate-cli-docs.sh "$dir/.docs-bd" >/dev/null
             rm -f "$dir/.docs-bd"
         fi

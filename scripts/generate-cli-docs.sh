@@ -94,7 +94,7 @@ else
     TMP_BUILD_DIR="$(mktemp -d)"
     BD="$TMP_BUILD_DIR/bd"
     echo "Building temporary bd for docs generation..."
-    (cd "$PROJECT_ROOT" && CGO_ENABLED=0 go build -tags gms_pure_go -o "$BD" ./cmd/bd/)
+    (cd "$PROJECT_ROOT" && CGO_ENABLED=0 go build -tags gms_pure_go -o "$BD" github.com/steveyegge/beads/modules/cli)
 fi
 
 # Guard against a CGO-enabled bd: it exposes the full `bd federation` subcommand tree
@@ -104,7 +104,7 @@ fi
 # naive regen on a machine with a C compiler produces spurious federation churn.
 #
 # The pure-go federation stub prints "Federation commands require CGO" (see
-# cmd/bd/federation_nocgo.go); a CGO build does not. If the resolved binary is missing
+# modules/cli/federation_nocgo.go); a CGO build does not. If the resolved binary is missing
 # that stub marker, warn and rebuild a pinned CGO_ENABLED=0 -tags gms_pure_go binary so
 # the committed docs always match CI. Set BD_DOCS_ALLOW_CGO=1 to bypass the rebuild and
 # trust the supplied binary as-is (e.g. to deliberately regenerate the full federation
@@ -123,7 +123,7 @@ if [ -z "$PINNED_BD" ] && [ -x "$BD" ] && ! "$BD" federation --help 2>&1 | grep 
             TMP_BUILD_DIR="$(mktemp -d)"
         fi
         BD="$TMP_BUILD_DIR/bd-pure"
-        (cd "$PROJECT_ROOT" && CGO_ENABLED=0 go build -tags gms_pure_go -o "$BD" ./cmd/bd/)
+        (cd "$PROJECT_ROOT" && CGO_ENABLED=0 go build -tags gms_pure_go -o "$BD" github.com/steveyegge/beads/modules/cli)
     fi
 fi
 

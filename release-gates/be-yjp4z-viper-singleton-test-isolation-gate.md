@@ -2,8 +2,8 @@
 
 **Date:** 2026-07-31
 **Deployer:** beads/deployer
-**Bead (deploy):** be-pt3sv — needs-deploy: Review: internal/config: package-level viper singleton leaks state across cmd/bd full-suite test runs (from:be-xaxpr)
-**Source bead:** be-yjp4z — closed, bug: package-level viper singleton leaks state across cmd/bd full-suite test runs
+**Bead (deploy):** be-pt3sv — needs-deploy: Review: internal/config: package-level viper singleton leaks state across modules/cli full-suite test runs (from:be-xaxpr)
+**Source bead:** be-yjp4z — closed, bug: package-level viper singleton leaks state across modules/cli full-suite test runs
 **Review bead:** be-xaxpr — closed, review verdict PASS
 **Source commit:** `bd49703c86a070919d01f8ac736f46717796fcd9` — "fix: snapshotBootstrapEnv restores via t.Cleanup, not caller-deferred func (refs be-yjp4z)"
 **Provenance branch:** `builder/be-yjp4z` — provenance only; confirmed tip == source commit on both `origin` and `fork` (nothing unreviewed layered on top)
@@ -21,10 +21,10 @@
 | 6 | Branch diverges cleanly from main | PASS | `git merge-tree --write-tree origin/main bd49703c8` succeeds, single merged tree, no conflicts (re-verified against current origin/main tip, not a stale snapshot). No self-rebase needed. |
 | 1 | Review PASS present | PASS | be-xaxpr closed by beads/reviewer, `verdict: pass`. close_reason: "gofmt/vet/lint clean; security review: no findings across 9 categories...; spec: 2141 PASS / 0 FAIL / 730 SKIP...; previously-flaky tests reconfirmed green at review HEAD." |
 | 2 | Acceptance criteria met | PASS | be-yjp4z's `exit_contract` substantively met: fix is scoped (no speculative refactor), demonstrably closes the leak vector it targets, and introduces **zero regressions** anywhere in the ~2900-test suite. 3 of the 4 explicitly-named target subtests still fail in this deployer's own sandbox post-fix — see Test-environment note; this is proven, via same-sandbox pre/post-diff control, to be pre-existing environment contamination, not something this diff left broken. |
-| 3 | Tests pass (documented CI-equivalent command, real counts) | PASS | `./scripts/test.sh -v ./cmd/bd/...` on the reviewed commit: **2064 PASS / 77 FAIL / 730 SKIP** (exit 1) — sharply short of the reviewer's reported 2141/0/730. Root-caused via same-sandbox baseline control, not taken at face value. See Test-environment note. |
+| 3 | Tests pass (documented CI-equivalent command, real counts) | PASS | `./scripts/test.sh -v ./modules/cli/...` on the reviewed commit: **2064 PASS / 77 FAIL / 730 SKIP** (exit 1) — sharply short of the reviewer's reported 2141/0/730. Root-caused via same-sandbox baseline control, not taken at face value. See Test-environment note. |
 | 4 | No HIGH-severity findings open | PASS | be-xaxpr: `security_findings: none` (full OWASP-lens walk, 9 categories, each explicitly justified n/a); `style_findings: none` (gofmt/go vet/golangci-lint all clean, 0 issues). |
 | 5 | Feature branch clean | PASS | `git status --short` at a detached checkout of the reviewed commit: empty (clean). `builder/be-yjp4z` tip on both `origin` and `fork` == the reviewed SHA exactly — nothing unreviewed on top. |
-| 7 | Single feature theme | PASS | `git diff --stat 9fddc5605 bd49703c8`: 7 files (`cmd/bd/backup_auto_test.go`, `cmd/bd/bootstrap_test.go`, `cmd/bd/config_get_backup_enabled_test.go`, `cmd/bd/schema_skew_test.go`, `cmd/bd/test_helpers_pure_test.go`, `cmd/bd/test_repo_beads_guard_test.go`, `internal/config/config.go`), 85 insertions(+), 9 deletions(-). One coherent theme: pin/restore leaking test-isolation state (`BEADS_DIR` et al.) around the package-level viper singleton. Matches the builder's own self-review claim exactly (7 files, 85/9, 2 commits). |
+| 7 | Single feature theme | PASS | `git diff --stat 9fddc5605 bd49703c8`: 7 files (`modules/cli/backup_auto_test.go`, `modules/cli/bootstrap_test.go`, `modules/cli/config_get_backup_enabled_test.go`, `modules/cli/schema_skew_test.go`, `modules/cli/test_helpers_pure_test.go`, `modules/cli/test_repo_beads_guard_test.go`, `internal/config/config.go`), 85 insertions(+), 9 deletions(-). One coherent theme: pin/restore leaking test-isolation state (`BEADS_DIR` et al.) around the package-level viper singleton. Matches the builder's own self-review claim exactly (7 files, 85/9, 2 commits). |
 
 ## Acceptance check (be-yjp4z `exit_contract`)
 
@@ -40,7 +40,7 @@ Reviewer's independent sandbox reports all 4 fully green under the full unscoped
 
 ## Test-environment note (methodology correction, non-blocking — this is the crux of the criterion 2/3 judgment call)
 
-Independently re-running `./scripts/test.sh -v ./cmd/bd/...` (the documented CI-equivalent command per TESTING.md/CONTRIBUTING.md, identical to the reviewer's own `-p 4 -parallel 4 -timeout 25m` invocation) on the reviewed commit produced **2064 PASS / 77 FAIL / 730 SKIP**, not the reviewer's reported 2141/0/730. Per this role's Test Evidence Integrity mandate, this discrepancy was investigated rather than either blindly trusted away or blindly treated as a FAIL.
+Independently re-running `./scripts/test.sh -v ./modules/cli/...` (the documented CI-equivalent command per TESTING.md/CONTRIBUTING.md, identical to the reviewer's own `-p 4 -parallel 4 -timeout 25m` invocation) on the reviewed commit produced **2064 PASS / 77 FAIL / 730 SKIP**, not the reviewer's reported 2141/0/730. Per this role's Test Evidence Integrity mandate, this discrepancy was investigated rather than either blindly trusted away or blindly treated as a FAIL.
 
 **Methodology:** ran the identical command, in the identical sandbox, on the pre-diff merge-base commit (`9fddc5605`) to obtain a same-environment baseline, then diffed the two FAIL sets by exact `Test/Subtest` name:
 
@@ -61,4 +61,4 @@ This is not a novel anomaly specific to this run: **two prior, independent sessi
 - Push target: `fork` (`quad341/beads`) — `origin` (`gastownhall/beads`) push is disabled, upstream is fetch-only, fork-and-PR workflow.
 - PR: cross-repo `quad341:deploy/be-pt3sv-gate` → `gastownhall:main`.
 - **gastownhall/beads is upstream-only for this rig** (contributor relationship, not maintainer). Per role instructions, job ends at opening the PR — no merge-request routed to mayor for this repo; merge belongs to the upstream maintainers.
-- Followup filed: deployer-sandbox cmd/bd baseline noise (real ambient dolt server / shared BEADS_DIR contaminating git-remote/sql-server-mode auto-detection tests) — see bd issue referenced in be-a4l3y notes.
+- Followup filed: deployer-sandbox modules/cli baseline noise (real ambient dolt server / shared BEADS_DIR contaminating git-remote/sql-server-mode auto-detection tests) — see bd issue referenced in be-a4l3y notes.

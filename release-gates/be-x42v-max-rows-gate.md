@@ -12,24 +12,24 @@
 
 ## Scope
 
-Adds an opt-in process-level row-count safety net to `bd`'s storage and CLI:
+Adds an opt-in process-level row-count safety net to `issuegraph`'s storage and CLI:
 
-- Flag `--max-rows N` on `bd list`, `bd ready`, `bd dep tree`,
-  `bd find-duplicates`, `bd graph`.
-- Env var `BEADS_MAX_ROWS=N` honored on the five above plus `bd lint`,
-  `bd doctor-conventions`, `bd doctor-pollution` (env-only per designer §4).
+- Flag `--max-rows N` on `issuegraph list`, `issuegraph ready`, `issuegraph dep tree`,
+  `issuegraph find-duplicates`, `issuegraph graph`.
+- Env var `BEADS_MAX_ROWS=N` honored on the five above plus `issuegraph lint`,
+  `issuegraph doctor-conventions`, `issuegraph doctor-pollution` (env-only per designer §4).
 - Explicit opt-out (`MaxRows=0`, `MaxRowsSource=""`) wired at every
-  `IssueFilter` constructor in `bd cleanup`, `bd gc`, `bd export`,
-  `bd export --auto`, `bd migrate-issues`, `bd jira`.
+  `IssueFilter` constructor in `issuegraph cleanup`, `issuegraph gc`, `issuegraph export`,
+  `issuegraph export --auto`, `issuegraph migrate-issues`, `issuegraph jira`.
 - Storage: `internal/types.IssueFilter.MaxRows`/`MaxRowsSource`,
   `*issueops.ErrTooManyRows{Found, Cap, Source}`, exported helpers
   `EffectiveSearchLimit` and `EnforceMaxRowsCap`. Cap evaluated after the
   `issues + wisps` merge in `SearchIssuesInTx`; `searchTableInTx` issues
   `LIMIT cap+1` for bounded over-fetch. `WorkFilter.MaxRows` mirror with
   `GetReadyWorkInTx` enforcement.
-- `bd dep tree` applies the cap at the CLI layer (post-walk `TreeNode`
+- `issuegraph dep tree` applies the cap at the CLI layer (post-walk `TreeNode`
   count) because tree walks don't flow through `IssueFilter`.
-- `bd config show` lists `BEADS_MAX_ROWS` via a new standalone-env
+- `issuegraph config show` lists `BEADS_MAX_ROWS` via a new standalone-env
   collector.
 - `CHANGELOG.md` Unreleased / Added entry; `CONTRIBUTING.md` storage
   filter convention note on the explicit opt-out rule.
@@ -73,15 +73,15 @@ every code path.
 
 | Criterion | Status | Evidence |
 |---|---|---|
-| `--max-rows int` flag on `bd list`, `bd ready`, `bd dep tree`, `bd find-duplicates`, `bd graph` | ✓ | `grep addMaxRowsFlag cmd/bd/` shows the five expected call sites. |
-| Help text matches designer §2.2 verbatim | ✓ | `bd list --help` shows the prescribed text including "Hard upper bound … exit code 2 … 0 disables (the default). Overrides BEADS_MAX_ROWS for this invocation." |
-| `BEADS_MAX_ROWS` env on the 5 above plus `bd lint`, `bd doctor-conventions`, `bd doctor-pollution` | ✓ | `resolveMaxRowsEnvOnly` wired in `cmd/bd/lint.go`, `doctor_conventions.go`, `doctor_pollution.go`. |
-| Opt-out sites set explicit `MaxRows=0`, `MaxRowsSource=""` | ✓ | `grep -l 'MaxRows: *0' cmd/bd/{cleanup,gc,export,export_auto,migrate_issues,jira}.go` → all six present. |
+| `--max-rows int` flag on `issuegraph list`, `issuegraph ready`, `issuegraph dep tree`, `issuegraph find-duplicates`, `issuegraph graph` | ✓ | `grep addMaxRowsFlag modules/cli/` shows the five expected call sites. |
+| Help text matches designer §2.2 verbatim | ✓ | `issuegraph list --help` shows the prescribed text including "Hard upper bound … exit code 2 … 0 disables (the default). Overrides BEADS_MAX_ROWS for this invocation." |
+| `BEADS_MAX_ROWS` env on the 5 above plus `issuegraph lint`, `issuegraph doctor-conventions`, `issuegraph doctor-pollution` | ✓ | `resolveMaxRowsEnvOnly` wired in `modules/cli/lint.go`, `doctor_conventions.go`, `doctor_pollution.go`. |
+| Opt-out sites set explicit `MaxRows=0`, `MaxRowsSource=""` | ✓ | `grep -l 'MaxRows: *0' modules/cli/{cleanup,gc,export,export_auto,migrate_issues,jira}.go` → all six present. |
 | Error format: exit 2; two-line stderr; stdout empty; no ANSI | ✓ | Reviewer behavioral verification (designer §5 scenarios) on a fresh 10-issue DB matches the spec exactly; `handleMaxRowsError` formats from the typed `Found`/`Cap`/`Source` fields, not `err.Error()` passthrough. |
 | `--max-rows -1` → exit 1, "must be non-negative" | ✓ | Reviewer-verified. |
 | `WorkFilter.MaxRows` + `MaxRowsSource` added; `GetReadyWorkInTx` uses `EffectiveSearchLimit`/`EnforceMaxRowsCap` | ✓ | `internal/types/types.go` + `internal/storage/issueops/ready_work.go`. |
-| `bd dep tree` cap at CLI layer (TreeNode count) | ✓ | `cmd/bd/dep.go` applies cap post-walk; appropriate since tree walks don't use `IssueFilter`. |
-| `bd config show` lists `BEADS_MAX_ROWS` | ✓ | New `collectStandaloneEnvEntries` collector in `cmd/bd/config_show.go`. |
+| `issuegraph dep tree` cap at CLI layer (TreeNode count) | ✓ | `modules/cli/dep.go` applies cap post-walk; appropriate since tree walks don't use `IssueFilter`. |
+| `issuegraph config show` lists `BEADS_MAX_ROWS` | ✓ | New `collectStandaloneEnvEntries` collector in `modules/cli/config_show.go`. |
 | `CHANGELOG.md` Unreleased / Added entry | ✓ | Present. |
 | `CONTRIBUTING.md` storage-filter-conventions section | ✓ | Present; documents the explicit `MaxRows=0` opt-out rule for new commands. |
 
@@ -89,13 +89,13 @@ every code path.
 
 | Test | Result | Notes |
 |------|--------|-------|
-| `go build -tags gms_pure_go ./cmd/bd/` | success | clean build. |
+| `go build -tags gms_pure_go ./modules/cli/` | success | clean build. |
 | `go test -tags gms_pure_go ./internal/storage/issueops/ ./internal/types/` | PASS | targeted change packages. |
 | `go test -tags gms_pure_go ./internal/storage/embeddeddolt/ ./internal/storage/schema/` | PASS | downstream consumers of `SearchIssuesInTx`. |
 | `go test -tags gms_pure_go -v -run 'TestEffectiveSearchLimit\|TestEnforceMaxRowsCap\|TestSearchIssues_MaxRows\|TestErrTooManyRows' ./internal/storage/issueops/` | PASS (all sub-tests) | 7-case `TestEffectiveSearchLimit`, three `TestEnforceMaxRowsCap_*`, three `TestSearchIssues_MaxRows_Exceeded_ReturnsErrTooManyRows` sub-cases, two `TestErrTooManyRows_Error_*`. |
-| `go vet -tags gms_pure_go ./internal/storage/issueops/ ./internal/types/ ./cmd/bd/` | clean | no output. |
-| `golangci-lint run --build-tags gms_pure_go ./cmd/bd/... ./internal/storage/issueops/... ./internal/types/...` | 0 issues | matches reviewer's lint result. |
-| `bd list --help` smoke (--max-rows flag presence + spec text) | matches §2.2 | verified locally on this branch. |
+| `go vet -tags gms_pure_go ./internal/storage/issueops/ ./internal/types/ ./modules/cli/` | clean | no output. |
+| `golangci-lint run --build-tags gms_pure_go ./modules/cli/... ./internal/storage/issueops/... ./internal/types/...` | 0 issues | matches reviewer's lint result. |
+| `issuegraph list --help` smoke (--max-rows flag presence + spec text) | matches §2.2 | verified locally on this branch. |
 
 The reviewer's pre-existing rig-isolation failure
 (`internal/storage/dolt/TestApplyConfigDefaults_*` env-leak from
@@ -119,7 +119,7 @@ From be-xf0o (foundation review):
   in `handleMaxRowsError`), not from `Error()` passthrough.
 - **F3 (info):** `doltTransaction.SearchIssues` (the Transaction-interface
   variant in `transaction.go:222`) has its own implementation that
-  ignores `filter.MaxRows`. No production caller in `cmd/bd` uses
+  ignores `filter.MaxRows`. No production caller in `modules/cli` uses
   `tx.SearchIssues` today (grep confirmed). Validator bead be-x42v.3 to
   exercise this path or file a follow-up to wire the cap.
 

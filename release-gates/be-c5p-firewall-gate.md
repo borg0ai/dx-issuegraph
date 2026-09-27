@@ -38,8 +38,8 @@
    - **PASS.**
 4. **Test suites set `BEADS_TEST_SERVER=1` in `TestMain`.**
    - All 13 testmain files updated (verified via grep).
-   - `cmd/bd/doctor/fix/testmain_cgo_test.go` also unsets in cleanup; others rely on `os.Exit` terminating the process.
-   - `cmd/bd/context_binding_integration_test.go` explicitly puts the var in subprocess `Cmd.Env` because that suite filters `BEADS_*`.
+   - `modules/cli/doctor/fix/testmain_cgo_test.go` also unsets in cleanup; others rely on `os.Exit` terminating the process.
+   - `modules/cli/context_binding_integration_test.go` explicitly puts the var in subprocess `Cmd.Env` because that suite filters `BEADS_*`.
    - `internal/storage/dolt/` package test PASSES under a clean env.
    - **PASS.**
 
@@ -47,7 +47,7 @@
 
 `make test` in this rig (deployer worktree) reports 35 pre-existing failures on `origin/main` as well as on this branch. Failures cluster in:
 
-- `internal/config` / `cmd/bd` / `internal/beads` — worktree/HOME-coupled config tests pick up rig-session config and `BEADS_DIR`.
+- `internal/config` / `modules/cli` / `internal/beads` — worktree/HOME-coupled config tests pick up rig-session config and `BEADS_DIR`.
 - `internal/storage/dolt` (when env is unscrubbed) — port-resolution tests trip when `BEADS_DOLT_SERVER_PORT` (set by the rig for its own dolt server) leaks into the test environment. Scrubbing `BEADS_DOLT_SERVER_PORT`, `BEADS_DOLT_AUTO_START`, `BEADS_DIR`, `GC_DOLT_PORT`, `GC_BEADS_SCOPE_ROOT`, `BEADS_ACTOR` clears that subset.
 
 These do not reproduce in builder/reviewer rigs (builder reported "build/vet/tests clean" for the source branch; reviewer confirmed `make test` PASS in be-m1u notes). Out of scope for this gate; the diff between `origin/main` and `release/be-c5p-firewall` is **zero new failures**, which is what criterion #3 actually requires.

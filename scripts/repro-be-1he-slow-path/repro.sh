@@ -24,7 +24,7 @@
 #       raw `dolt` binary directly, not bd's ListCLIRemotes, so the timings
 #       below are never capped — they demonstrate the underlying dolt
 #       slowness the cap protects against.
-#     - Layer 3 (cmd/bd/version_tracking.go): a read-only bd_version probe
+#     - Layer 3 (modules/cli/version_tracking.go): a read-only bd_version probe
 #       before autoMigrateOnVersionBump opens the store writeable, saving an
 #       unnecessary initSchema round-trip when no migration is needed.
 #   (An earlier draft of this fix also described a "Layer 1" sentinel in

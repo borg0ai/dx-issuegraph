@@ -1,6 +1,6 @@
 # Newsletter Generator
 
-This script generates a weekly Beads newsletter based on the changelog, git commits, and code changes.
+This script generates a weekly IssueGraph newsletter based on the changelog, git commits, and code changes.
 
 ## Setup
 

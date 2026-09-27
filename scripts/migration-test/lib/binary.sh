@@ -235,7 +235,7 @@ build_verified_v091_source_binary() (
     if ! (cd "$source_dir" && env GOFLAGS=-modcacherw GOWORK=off GOTOOLCHAIN=local \
         GOMODCACHE="$scratch/mod" GOSUMDB=sum.golang.org GONOSUMDB= GOPRIVATE= \
         GOOS="$OS" GOARCH="$ARCH" CGO_ENABLED=1 \
-        "$toolchain_go" build -trimpath -modfile="$scratch/source.mod" -o "$temporary" ./cmd/bd); then
+        "$toolchain_go" build -trimpath -modfile="$scratch/source.mod" -o "$temporary" github.com/steveyegge/beads/modules/cli); then
         echo "ERROR: could not build verified v0.9.1 source for $OS/$ARCH with CGO" >&2
         return 1
     fi
@@ -252,6 +252,6 @@ build_candidate() {
 
     local candidate="$CACHE_DIR/bd-candidate-$$"
     echo -e "${YELLOW:-}Building candidate binary...${NC:-}" >&2
-    (cd "$PROJECT_ROOT" && go build -tags gms_pure_go -o "$candidate" ./cmd/bd) >&2
+    (cd "$PROJECT_ROOT" && go build -tags gms_pure_go -o "$candidate" github.com/steveyegge/beads/modules/cli) >&2
     echo "$candidate"
 }

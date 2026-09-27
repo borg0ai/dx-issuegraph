@@ -8,7 +8,7 @@ REPO_ROOT="$(cd "$SCRIPT_DIR/../.." && pwd)"
 MCP_DIR="$REPO_ROOT/integrations/beads-mcp"
 
 # shellcheck source=../../.buildflags
-source "$REPO_ROOT/.buildflags"
+source "$REPO_ROOT/modules/core/.buildflags"
 # shellcheck source=lib/timing.sh
 source "$REPO_ROOT/scripts/ci/lib/timing.sh"
 
@@ -27,7 +27,7 @@ prepare_bd_binary() {
     if [[ -n "${BEADS_TEST_BD_BINARY:-}" ]]; then
         cp "$BEADS_TEST_BD_BINARY" "$target"
     else
-        go build -o "$target" ./cmd/bd
+        go build -o "$target" github.com/steveyegge/beads/modules/cli
     fi
 
     chmod +x "$target"

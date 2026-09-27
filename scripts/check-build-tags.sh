@@ -40,7 +40,7 @@ for f in "${candidates[@]}"; do
         continue
     fi
 
-    # Does the file source .buildflags before any `go` invocation?
+    # Does the file source modules/core/.buildflags before any `go` invocation?
     # If so, GOFLAGS covers all bare `go` commands in the file.
     sources_buildflags=no
     if grep -Eq '(^|[[:space:]])(source|\.)[[:space:]]+[^#]*\.buildflags' "$f"; then
@@ -134,7 +134,7 @@ invocation to build with -tags=gms_pure_go (see engdocs/ICU-POLICY.md).
 Fix by EITHER:
   1. Source .buildflags in the script (preferred, canonical):
        # shellcheck source=../.buildflags
-       source "$PROJECT_ROOT/.buildflags"
+       source "$PROJECT_ROOT/modules/core/.buildflags"
   2. Pass -tags=gms_pure_go (or -tags=other,gms_pure_go) explicitly.
   3. Add a '# build-tags: allow-bare' marker in the top 5 lines of the
      file if it intentionally exercises the ICU path.

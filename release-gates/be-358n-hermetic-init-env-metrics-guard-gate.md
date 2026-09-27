@@ -1,10 +1,10 @@
 # Release gate — hermeticInitEnv metrics-guard race fix (be-xxwt)
 
 - **Builder bead (CLOSED):** be-xxwt — `hermeticInitEnv` in
-  `cmd/bd/init_safety_test.go` stripped the two fixed metrics-guard env vars
+  `modules/cli/init_safety_test.go` stripped the two fixed metrics-guard env vars
   (`BD_DISABLE_METRICS`, `BD_DISABLE_EVENT_FLUSH`) along with the ambient
   `BD_*`/`BEADS_*` config it's meant to filter, letting an isolated-HOME init
-  test spawn a detached `bd send-metrics` child that could race the test's
+  test spawn a detached `issuegraph send-metrics` child that could race the test's
   own `t.TempDir()` cleanup.
 - **Deploy bead:** be-358n
 - **Review bead:** be-6qzy — verdict **PASS**, recorded on commit
@@ -22,21 +22,21 @@
 ## Scope
 
 `hermeticInitEnv` builds an isolated subprocess environment for the three
-tests in `cmd/bd/init_safety_test.go` by copying `os.Environ()` and dropping
+tests in `modules/cli/init_safety_test.go` by copying `os.Environ()` and dropping
 every `BD_*`/`BEADS_*`-prefixed var, so ambient user/CI beads config can't
 leak into init behavior. That filter also removed the two metrics guards
-`cmd/bd`'s `TestMain` installs package-wide
+`modules/cli`'s `TestMain` installs package-wide
 (`test_repo_beads_guard_test.go:139-140`) — `hermeticInitEnv` was the one
 call site in the package that rebuilt its env from scratch instead of
 appending to an already-guarded one. With both guards absent and `HOME`
 pointed at a fresh `t.TempDir()`, `resolveMetricsEnabled()` returns true,
 `metrics.Init` creates `$HOME/.beads/eventsData`, and a detached
-`bd send-metrics` child can still be writing there when the test's
+`issuegraph send-metrics` child can still be writing there when the test's
 `t.TempDir()` cleanup runs `RemoveAll`.
 
 Diff scope, confirmed via `git diff --name-only origin/main...HEAD` (1 file):
 
-- `cmd/bd/init_safety_test.go` — re-adds the two guard vars before the
+- `modules/cli/init_safety_test.go` — re-adds the two guard vars before the
   function's existing `extra...` append, updates the doc comment to explain
   why they survive the strip, and adds a deterministic regression assertion
   (`eventsData` must not exist under the isolated HOME) to
@@ -72,7 +72,7 @@ or reviewer's reports:
 | `gofmt -l` on the diff file | clean, 0 files listed |
 
 Diff-owned tests (`-run 'TestInitFresh\|TestInitReinitLocal'`, 3 functions,
-`./cmd/bd/`, matching the fix spec's own done-when scope):
+`./modules/cli/`, matching the fix spec's own done-when scope):
 
 | Run | Result |
 |---|---|

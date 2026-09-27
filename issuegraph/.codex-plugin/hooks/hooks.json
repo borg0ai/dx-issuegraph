@@ -6,8 +6,8 @@
         "hooks": [
           {
             "type": "command",
-            "command": "bd codex-hook SessionStart",
-            "statusMessage": "Loading Beads context"
+            "command": "issuegraph codex-hook SessionStart",
+            "statusMessage": "Loading IssueGraph context"
           }
         ]
       }
@@ -18,8 +18,8 @@
         "hooks": [
           {
             "type": "command",
-            "command": "bd codex-hook PreCompact",
-            "statusMessage": "Checking Beads context"
+            "command": "issuegraph codex-hook PreCompact",
+            "statusMessage": "Checking IssueGraph context"
           }
         ]
       }
@@ -30,8 +30,8 @@
         "hooks": [
           {
             "type": "command",
-            "command": "bd codex-hook PostCompact",
-            "statusMessage": "Scheduling Beads context refresh"
+            "command": "issuegraph codex-hook PostCompact",
+            "statusMessage": "Scheduling IssueGraph context refresh"
           }
         ]
       }
@@ -41,8 +41,8 @@
         "hooks": [
           {
             "type": "command",
-            "command": "bd codex-hook UserPromptSubmit",
-            "statusMessage": "Refreshing Beads context"
+            "command": "issuegraph codex-hook UserPromptSubmit",
+            "statusMessage": "Refreshing IssueGraph context"
           }
         ]
       }

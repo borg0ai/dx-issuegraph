@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 #
-# Beads (bd) installation script
+# IssueGraph (issuegraph) installation script
 # Usage: curl -fsSL https://raw.githubusercontent.com/gastownhall/beads/main/scripts/install.sh | bash
 #
 # ⚠️ IMPORTANT: This script must be EXECUTED, never SOURCED
@@ -150,13 +150,13 @@ verify_release_checksum() {
 find_extracted_bd() {
     local search_dir=$1
 
-    if [ -x "$search_dir/bd" ]; then
-        printf '%s\n' "$search_dir/bd"
+    if [ -x "$search_dir/issuegraph" ]; then
+        printf '%s\n' "$search_dir/issuegraph"
         return 0
     fi
 
     local extracted_bd
-    extracted_bd=$(find "$search_dir" -mindepth 2 -maxdepth 2 -type f -name bd | head -n 1)
+    extracted_bd=$(find "$search_dir" -mindepth 2 -maxdepth 2 -type f -name issuegraph | head -n 1)
     if [ -n "$extracted_bd" ] && [ -x "$extracted_bd" ]; then
         printf '%s\n' "$extracted_bd"
         return 0
@@ -222,8 +222,8 @@ detect_platform() {
     if [ -f /proc/version ] && grep -qi 'microsoft\|wsl' /proc/version 2>/dev/null; then
         log_warning "WSL (Windows Subsystem for Linux) detected."
         echo "" >&2
-        echo "  This will install the Linux version of bd, usable only inside WSL." >&2
-        echo "  If you want bd available in native Windows (PowerShell, cmd), use:" >&2
+        echo "  This will install the Linux version of issuegraph, usable only inside WSL." >&2
+        echo "  If you want issuegraph available in native Windows (PowerShell, cmd), use:" >&2
         echo "" >&2
         echo "    irm https://raw.githubusercontent.com/gastownhall/beads/main/install.ps1 | iex" >&2
         echo "" >&2
@@ -271,23 +271,9 @@ detect_platform() {
     echo "${os}_${arch}"
 }
 
-# Create 'beads' symlink alias for bd
-create_beads_alias() {
-    local install_dir=$1
-
-    log_info "Creating 'beads' alias..."
-    rm -f "$install_dir/beads"
-    if [[ -w "$install_dir" ]]; then
-        ln -s bd "$install_dir/beads"
-    else
-        sudo ln -s bd "$install_dir/beads"
-    fi
-    log_success "Created 'beads' alias -> bd"
-}
-
 # Download and install from GitHub releases
 install_from_release() {
-    log_info "Installing bd from GitHub releases..."
+    log_info "Installing issuegraph from GitHub releases..."
 
     local platform=$1
     local tmp_dir
@@ -354,7 +340,7 @@ install_from_release() {
 
     local extracted_bd
     if ! extracted_bd=$(find_extracted_bd "$tmp_dir"); then
-        log_error "Extracted archive does not contain an executable 'bd' binary"
+        log_error "Extracted archive does not contain an executable 'issuegraph' binary"
         cd - > /dev/null || cd "$HOME"
         rm -rf "$tmp_dir"
         return 1
@@ -372,15 +358,15 @@ install_from_release() {
     # Install binary
     log_info "Installing to $install_dir..."
     if [[ -w "$install_dir" ]]; then
-        if ! mv "$extracted_bd" "$install_dir/bd"; then
-            log_error "Failed to install bd to $install_dir"
+        if ! mv "$extracted_bd" "$install_dir/issuegraph"; then
+            log_error "Failed to install issuegraph to $install_dir"
             cd - > /dev/null || cd "$HOME"
             rm -rf "$tmp_dir"
             return 1
         fi
     else
-        if ! sudo mv "$extracted_bd" "$install_dir/bd"; then
-            log_error "Failed to install bd to $install_dir"
+        if ! sudo mv "$extracted_bd" "$install_dir/issuegraph"; then
+            log_error "Failed to install issuegraph to $install_dir"
             cd - > /dev/null || cd "$HOME"
             rm -rf "$tmp_dir"
             return 1
@@ -388,16 +374,13 @@ install_from_release() {
     fi
 
     # Optional local ad-hoc re-sign for macOS (off by default)
-    resign_for_macos "$install_dir/bd"
+    resign_for_macos "$install_dir/issuegraph"
 
-    # Create 'beads' alias symlink
-    create_beads_alias "$install_dir"
-
-    log_success "bd installed to $install_dir/bd"
+    log_success "issuegraph installed to $install_dir/issuegraph"
 
     # Record where we installed the binary so PATH precedence warnings can
     # point to the newly installed release binary.
-    LAST_INSTALL_PATH="$install_dir/bd"
+    LAST_INSTALL_PATH="$install_dir/issuegraph"
 
     # Check if install_dir is in PATH
     if [[ ":$PATH:" != *":$install_dir:"* ]]; then
@@ -472,7 +455,7 @@ verify_binary_has_cgo() {
 # CGO_ENABLED=0 which yields a server-mode-only binary that still works on
 # any Go-capable box. See engdocs/ICU-POLICY.md and docs/getting-started/installation.md.
 install_with_go() {
-    log_info "Installing bd using 'go install'..."
+    log_info "Installing issuegraph using 'go install'..."
 
     local gobin bin_dir
     gobin=$(go env GOBIN 2>/dev/null || true)
@@ -484,19 +467,21 @@ install_with_go() {
 
     # The repository lives under gastownhall, but the Go module path remains
     # github.com/steveyegge/beads for compatibility with released tags.
-    if CGO_ENABLED=1 GOFLAGS="${GOFLAGS:+$GOFLAGS }-tags=gms_pure_go" go install github.com/steveyegge/beads/cmd/bd@latest; then
-        log_success "bd installed via go install (embedded-capable)"
-        LAST_INSTALL_PATH="$bin_dir/bd"
+    # `go install` names the binary after the package directory (cli), not
+    # the product name.
+    if CGO_ENABLED=1 GOFLAGS="${GOFLAGS:+$GOFLAGS }-tags=gms_pure_go" go install github.com/steveyegge/beads/modules/cli@latest; then
+        log_success "issuegraph installed via go install (embedded-capable)"
+        LAST_INSTALL_PATH="$bin_dir/cli"
 
         if ! verify_binary_has_cgo "$LAST_INSTALL_PATH" "go install"; then
             return 1
         fi
     else
         log_warning "go install with CGO failed; retrying without CGO (server-mode-only binary)"
-        if CGO_ENABLED=0 go install github.com/steveyegge/beads/cmd/bd@latest; then
-            log_success "bd installed via go install (CGO_ENABLED=0, server mode only)"
-            log_warning "This bd cannot use embedded Dolt. Run 'bd init --server' to use an external dolt sql-server, or reinstall with a C toolchain for embedded mode."
-            LAST_INSTALL_PATH="$bin_dir/bd"
+        if CGO_ENABLED=0 go install github.com/steveyegge/beads/modules/cli@latest; then
+            log_success "issuegraph installed via go install (CGO_ENABLED=0, server mode only)"
+            log_warning "This build cannot use embedded Dolt. Run 'issuegraph init --server' to use an external dolt sql-server, or reinstall with a C toolchain for embedded mode."
+            LAST_INSTALL_PATH="$bin_dir/cli"
         else
             log_error "go install failed both with and without CGO"
             print_missing_build_deps_help
@@ -505,10 +490,7 @@ install_with_go() {
     fi
 
     # Optional local ad-hoc re-sign for macOS (off by default)
-    resign_for_macos "$bin_dir/bd"
-
-    # Create 'beads' alias symlink
-    create_beads_alias "$bin_dir"
+    resign_for_macos "$bin_dir/cli"
 
     # Check if GOPATH/bin (or GOBIN) is in PATH
     if [[ ":$PATH:" != *":$bin_dir:"* ]]; then
@@ -524,7 +506,7 @@ install_with_go() {
 
 # Build from source (last resort)
 build_from_source() {
-    log_info "Building bd from source..."
+    log_info "Building issuegraph from source..."
 
     local tmp_dir
     tmp_dir=$(mktemp -d)
@@ -536,8 +518,8 @@ build_from_source() {
         cd beads
         log_info "Building binary..."
 
-        if CGO_ENABLED=1 go build -tags gms_pure_go -o bd ./cmd/bd; then
-            if ! verify_binary_has_cgo "./bd" "source build"; then
+        if CGO_ENABLED=1 go build -tags gms_pure_go -o issuegraph github.com/steveyegge/beads/modules/cli; then
+            if ! verify_binary_has_cgo "./issuegraph" "source build"; then
                 cd - > /dev/null || cd "$HOME"
                 rm -rf "$tmp_dir"
                 return 1
@@ -554,21 +536,18 @@ build_from_source() {
 
             log_info "Installing to $install_dir..."
             if [[ -w "$install_dir" ]]; then
-                mv bd "$install_dir/"
+                mv issuegraph "$install_dir/"
             else
-                sudo mv bd "$install_dir/"
+                sudo mv issuegraph "$install_dir/"
             fi
 
             # Optional local ad-hoc re-sign for macOS (off by default)
-            resign_for_macos "$install_dir/bd"
+            resign_for_macos "$install_dir/issuegraph"
 
-            # Create 'beads' alias symlink
-            create_beads_alias "$install_dir"
-
-            log_success "bd installed to $install_dir/bd"
+            log_success "issuegraph installed to $install_dir/issuegraph"
 
             # Record where we installed the binary when building from source
-            LAST_INSTALL_PATH="$install_dir/bd"
+            LAST_INSTALL_PATH="$install_dir/issuegraph"
 
             # Check if install_dir is in PATH
             if [[ ":$PATH:" != *":$install_dir:"* ]]; then
@@ -599,29 +578,27 @@ build_from_source() {
 
 # Verify installation
 verify_installation() {
-    # If multiple 'bd' binaries exist on PATH, warn the user before verification
+    # If multiple 'issuegraph' binaries exist on PATH, warn the user before verification
     warn_if_multiple_bd || true
 
-    if command -v bd &> /dev/null; then
-        log_success "bd is installed and ready!"
+    if command -v issuegraph &> /dev/null; then
+        log_success "issuegraph is installed and ready!"
         echo ""
-        bd version 2>/dev/null || echo "bd (development build)"
-        echo ""
-        echo "You can use either 'bd' or 'beads' to run the command."
+        issuegraph version 2>/dev/null || echo "issuegraph (development build)"
         echo ""
         echo "Get started:"
         echo "  cd your-project"
-        echo "  bd init"
-        echo "  bd quickstart"
+        echo "  issuegraph init"
+        echo "  issuegraph quickstart"
         echo ""
         return 0
     else
-        log_error "bd was installed but is not in PATH"
+        log_error "issuegraph was installed but is not in PATH"
         return 1
     fi
 }
 
-# Returns a list of full paths to 'bd' found in PATH (earlier entries first)
+# Returns a list of full paths to 'issuegraph' found in PATH (earlier entries first)
 get_bd_paths_in_path() {
     local IFS=':'
     local -a entries
@@ -630,12 +607,12 @@ get_bd_paths_in_path() {
     local p
     for p in "${entries[@]}"; do
         [ -z "$p" ] && continue
-        if [ -x "$p/bd" ]; then
+        if [ -x "$p/issuegraph" ]; then
             # Resolve symlink if possible
             if command -v readlink >/dev/null 2>&1; then
-                resolved=$(readlink -f "$p/bd" 2>/dev/null || printf '%s' "$p/bd")
+                resolved=$(readlink -f "$p/issuegraph" 2>/dev/null || printf '%s' "$p/issuegraph")
             else
-                resolved="$p/bd"
+                resolved="$p/issuegraph"
             fi
             # avoid duplicates
             skip=0
@@ -663,8 +640,8 @@ warn_if_multiple_bd() {
         return 0
     fi
 
-    log_warning "Multiple 'bd' executables found on your PATH. An older copy may be executed instead of the one we installed."
-    echo "Found the following 'bd' executables (entries earlier in PATH take precedence):"
+    log_warning "Multiple 'issuegraph' executables found on your PATH. An older copy may be executed instead of the one we installed."
+    echo "Found the following 'issuegraph' executables (entries earlier in PATH take precedence):"
     local i=1
     for p in "${bd_paths[@]}"; do
         local ver
@@ -682,22 +659,22 @@ warn_if_multiple_bd() {
         # Compare first PATH entry vs installed path
         first="${bd_paths[0]}"
         if [ "$first" != "$LAST_INSTALL_PATH" ]; then
-            log_warning "The 'bd' executable that appears first in your PATH is different from the one we installed. To make the newly installed 'bd' the one you get when running 'bd', either:"
+            log_warning "The 'issuegraph' executable that appears first in your PATH is different from the one we installed. To make the newly installed 'issuegraph' the one you get when running 'issuegraph', either:"
             echo "  - Remove or rename the older $first from your PATH, or"
             echo "  - Reorder your PATH so that $(dirname "$LAST_INSTALL_PATH") appears before $(dirname "$first")"
-            echo "After updating PATH, restart your shell and run 'bd version' to confirm."
+            echo "After updating PATH, restart your shell and run 'issuegraph version' to confirm."
         else
-            echo "The installed 'bd' is first in your PATH.";
+            echo "The installed 'issuegraph' is first in your PATH.";
         fi
     else
-        log_warning "We couldn't determine where we installed 'bd' during this run.";
+        log_warning "We couldn't determine where we installed 'issuegraph' during this run.";
     fi
 }
 
 # Main installation flow
 main() {
     echo ""
-    echo "🔗 Beads (bd) Installer"
+    echo "🔗 IssueGraph (issuegraph) Installer"
     echo ""
 
     log_info "Detecting platform..."
@@ -727,7 +704,7 @@ main() {
     if ! check_go; then
         log_warning "Go is not installed"
         echo ""
-        echo "bd requires Go 1.24 or later to build from source. You can:"
+        echo "issuegraph requires Go 1.24 or later to build from source. You can:"
         echo "  1. Install Go from https://go.dev/dl/"
         echo "  2. Use your package manager:"
         echo "     - macOS: brew install go"
@@ -749,11 +726,11 @@ main() {
     echo "Manual installation:"
     echo "  1. Download from https://github.com/gastownhall/beads/releases/latest"
     echo "  2. Verify SHA256 checksum against checksums.txt"
-    echo "  3. Extract and move 'bd' to your PATH"
+    echo "  3. Extract and move 'issuegraph' to your PATH"
     echo ""
     echo "Or install from source:"
     echo "  1. Install Go from https://go.dev/dl/"
-    echo "  2. Run: CGO_ENABLED=1 GOFLAGS=-tags=gms_pure_go go install github.com/steveyegge/beads/cmd/bd@latest"
+    echo "  2. Run: CGO_ENABLED=1 GOFLAGS=-tags=gms_pure_go go install github.com/steveyegge/beads/modules/cli@latest"
     echo ""
     exit 1
 }

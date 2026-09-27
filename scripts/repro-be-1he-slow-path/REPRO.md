@@ -33,7 +33,7 @@ open .dolt/repo_state.json: no such file or directory
 current `main` — that writeable-open path was separately reworked around
 `doltutil.PersistedRemotes`, a fast on-disk `repo_state.json` read with no
 `dolt` subprocess. `ListCLIRemotes` itself is still present and still shells
-out to `dolt remote -v`, though: it's called from `cmd/bd/doctor/federation.go`
+out to `dolt remote -v`, though: it's called from `modules/cli/doctor/federation.go`
 (federation health checks) and from CLI push/pull/fetch remote routing in
 `internal/storage/doltutil/remotes.go`. Those call sites are what be-1he's
 Layer 2 timeout protects.
@@ -93,7 +93,7 @@ is needed.
 | Layer | File | What it does |
 |-------|------|-------------|
 | 2 | `internal/storage/doltutil/remotes.go` | `ListCLIRemotes` wraps `dolt remote -v` in `context.WithTimeout`: 2 s when the target directory lacks `repo_state.json` (this repro's case), 30 s otherwise — a slow-but-valid answer from a real repo is never mistaken for "remote absent" |
-| 3 | `cmd/bd/version_tracking.go` | `autoMigrateOnVersionBump` does a read-only `bd_version` probe before opening the store writeable, skipping an unnecessary `initSchema` round-trip when no migration is needed |
+| 3 | `modules/cli/version_tracking.go` | `autoMigrateOnVersionBump` does a read-only `bd_version` probe before opening the store writeable, skipping an unnecessary `initSchema` round-trip when no migration is needed |
 
 An earlier draft of this fix also described a "Layer 1" sentinel in
 `internal/storage/dolt/federation.go` (`migrateServerRootRemotes` stat-checking
