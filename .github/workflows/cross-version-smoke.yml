@@ -61,7 +61,7 @@ jobs:
           key: smoke-binaries-${{ matrix.prev_version }}-${{ runner.os }}
 
       - name: Build candidate binary
-        run: go build -tags gms_pure_go -o /tmp/bd-candidate ./cmd/bd
+        run: go build -tags gms_pure_go -o /tmp/bd-candidate github.com/steveyegge/beads/modules/cli
 
       - name: Run upgrade smoke tests
         env:

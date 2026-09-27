@@ -10,14 +10,14 @@
 2. **Use `-run` to target specific tests when developing features**
    ```bash
    # Good: When working on feature X
-   ./scripts/test.sh -run TestFeatureX ./cmd/bd/...
+   ./scripts/test.sh -run TestFeatureX ./modules/cli/...
 
    # Avoid: Running full suite unnecessarily
    ./scripts/test.sh ./...
    ```
 
 3. **Understand the bottleneck: COMPILATION not EXECUTION**
-   - 180s compilation time vs 3.8s actual test execution (cmd/bd)
+   - 180s compilation time vs 3.8s actual test execution (modules/cli)
    - Running subset of tests doesn't save much time (still recompiles)
    - But use `-run` anyway to avoid seeing unrelated failures
 
@@ -28,11 +28,11 @@
 ./scripts/test.sh
 
 # Test specific package
-./scripts/test.sh ./cmd/bd/...
+./scripts/test.sh ./modules/cli/...
 ./scripts/test.sh ./internal/storage/embeddeddolt/...
 
 # Test specific feature
-./scripts/test.sh -run TestCreate ./cmd/bd/...
+./scripts/test.sh -run TestCreate ./modules/cli/...
 ./scripts/test.sh -run TestImport
 
 # Verbose output (when debugging)
@@ -58,7 +58,7 @@
 
 ## Package Size Context
 
-The `cmd/bd` package is LARGE:
+The `modules/cli` package is LARGE:
 - 41,696 lines of code
 - 205 files (82 test files)
 - 313 individual tests
@@ -89,7 +89,7 @@ TEST_RUN=TestSomething ./scripts/test.sh
 | Task | Command |
 |------|---------|
 | Run all tests | `make test` or `./scripts/test.sh` |
-| Test one package | `./scripts/test.sh ./cmd/bd/...` |
+| Test one package | `./scripts/test.sh ./modules/cli/...` |
 | Test one function | `./scripts/test.sh -run TestName` |
 | Verbose output | `./scripts/test.sh -v` |
 | Custom timeout | `./scripts/test.sh -timeout 10m` |

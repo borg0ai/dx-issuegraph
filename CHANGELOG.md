@@ -227,7 +227,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   every existing code, message and exit status as it was, and `reason` is absent
   on refusals that report a runtime state rather than a policy, so existing
   consumers are unaffected. The policy behind it moved into one registry
-  (`cmd/bd/capability_registry.go`) that every command must appear in.
+  (`modules/cli/capability_registry.go`) that every command must appear in.
 - **A command with no proxied-server route now fails with a typed error**
   (`proxy.store.unrouted`) instead of the bare string `proxy server store
   should be uow provider`.
@@ -1380,7 +1380,7 @@ stopgap (`BD_IGNORE_SCHEMA_SKEW=1`).
   points at the recovery guide instead of advising "install the latest
   release" (which would loop back to that binary).
 - **`go.mod` retracts v1.2.1, v1.2.0, and v1.1.1** so
-  `go install github.com/steveyegge/beads/cmd/bd@latest` resolves to this
+  `go install github.com/steveyegge/beads/modules/cli@latest` resolves to this
   release instead of the accidental one. (The retract block is also
   carried on main so future tags keep the retractions.)
 
@@ -2856,7 +2856,7 @@ never reused, per the v1.1.1 precedent.)
   retried `bd close <id> --claim-next` used to get work from the retry; it now
   gets nothing, because the retry closes nothing. That retry-safety property
   was deliberate, and the way to get it back without re-coupling a claim to a
-  no-op is for `cmd/bd` to call `ReadyClaimer.ClaimNext` itself when the batch
+  no-op is for `modules/cli` to call `ReadyClaimer.ClaimNext` itself when the batch
   reports no change. That is a design call above the role seam and has not been
   made.
 
@@ -3166,7 +3166,7 @@ never reused, per the v1.1.1 precedent.)
   two-step read. Molecule auto-close runs after ALL the closes land rather than
   between them — the root still closes exactly once; only which id's slot prints
   the `Auto-closed completed molecule` line can move. The open-children refusal
-  moved from a cmd/bd pre-flight read into the close's own transaction, closing
+  moved from a modules/cli pre-flight read into the close's own transaction, closing
   a read-then-write window that made `bd close <child> <parent>` depend on
   argument order; its message is unchanged. And an unsatisfied gate on an issue
   that ALSO has open children now reports the gate rather than the children,
@@ -3923,7 +3923,7 @@ gate that rc.1 introduced, and ships the validated upgrade documentation.
   migrations are safe for your workload. Fresh databases and normal
   forward-migration paths are unaffected.
 
-- **Foreign keys across issue and wisp tables.** Migrations `0040`–`0042` and the new `ignored/0001`–`ignored/0004` add explicit FKs with `ON DELETE CASCADE ON UPDATE CASCADE` on `dependencies`, `labels`, `comments`, `events`, `issue_snapshots`, `compaction_snapshots`, `child_counters`, and the matching `wisp_*` tables. Deleting or renaming a parent row now cascades automatically — the manual cleanup loops in `issueops/delete.go`, `dolt/wisps.go`, `dolt/ephemeral_routing.go`, and `cmd/bd/rename_prefix.go` have been removed (net ~300 lines down). ([#3952](https://github.com/gastownhall/beads/pull/3952))
+- **Foreign keys across issue and wisp tables.** Migrations `0040`–`0042` and the new `ignored/0001`–`ignored/0004` add explicit FKs with `ON DELETE CASCADE ON UPDATE CASCADE` on `dependencies`, `labels`, `comments`, `events`, `issue_snapshots`, `compaction_snapshots`, `child_counters`, and the matching `wisp_*` tables. Deleting or renaming a parent row now cascades automatically — the manual cleanup loops in `issueops/delete.go`, `dolt/wisps.go`, `dolt/ephemeral_routing.go`, and `modules/cli/rename_prefix.go` have been removed (net ~300 lines down). ([#3952](https://github.com/gastownhall/beads/pull/3952))
 - **`issueops.DeleteWispFromDependenciesInTx` / `UpdateWispIDInDependenciesInTx`.** Because Dolt forbids foreign keys from tracked tables (`dependencies`) to `dolt_ignore`'d tables (`wisps`), wisp deletion and rename now invoke these helpers explicitly to keep `dependencies.depends_on_wisp_id` consistent. The standard store APIs (`DeleteIssue`, `UpdateIssueID`, `deleteWispBatch`, etc.) wire them up automatically; only call them directly if you bypass those entry points. ([#3952](https://github.com/gastownhall/beads/pull/3952))
 - **Forward schema-skew guard.** `bd` now hard-fails when it opens a database that has been migrated to a *newer* schema version than the binary understands, instead of operating blindly on forward-migrated data. ([#4152](https://github.com/gastownhall/beads/pull/4152))
 - **`dolt.mode` config key.** New `dolt.mode` (`server` | `embedded`) configuration key with validation; `bd init` now warns on ambiguous configs and hard-fails when `dolt.host`/`dolt.port` are set without server mode.
@@ -3992,7 +3992,7 @@ gate that rc.1 introduced, and ships the validated upgrade documentation.
 - **Stable exit codes for init refusals** — `10` remote divergence, `11` local exists, `12` destroy-token missing. Grep-safe for CI.
 - **[ADR 0002 — `bd init` safety invariants](engdocs/adr/0002-init-safety-invariants.md)** — encodes the single-source identity rule, scope-bound `--force`/`--reinit-local`, the `CheckRemoteSafety` chokepoint, the error-text-no-echo rule, and the race-safety invariant.
 - **[`docs/RECOVERY.md`](docs/RECOVERY.md)** — playbooks for each named init refusal.
-- **CODEOWNERS** — `cmd/bd/init*.go` routes review to maintainers with an ADR-linked acknowledgment requirement.
+- **CODEOWNERS** — `modules/cli/init*.go` routes review to maintainers with an ADR-linked acknowledgment requirement.
 - **`bd -C <path>`** — run bd from another directory without changing the caller's shell cwd. Useful for hooks, agents, and scripts that coordinate multiple workspaces.
 - **`bd close --reason-file`** — reads close reasons from a file or stdin, matching existing body-file workflows.
 - **Linear sync throughput and correctness improvements** — batch create/update, idempotency markers, retry-after handling, OAuth client-credentials support, and workspace-level sync locking.
@@ -4656,7 +4656,7 @@ Contributors: coffeegoddd (Dustin Brown), matt wilkie (maphew), harry-miller-tri
 ### Performance
 
 - **Test parallelization** — Dolt storage tests 3.5x faster, protocol tests 3x faster
-- **Branch-per-test isolation** — shared DB with branch-per-test for doctor (44s → ~12s), cmd/bd, and protocol tests
+- **Branch-per-test isolation** — shared DB with branch-per-test for doctor (44s → ~12s), modules/cli, and protocol tests
 - **Testcontainers migration** — test Dolt server uses testcontainers instead of binary spawning
 - **Consolidated test suites** — messaging and dep test suites merged for efficiency
 - Add phantom catalog detection to `bd doctor`
@@ -4733,8 +4733,8 @@ Contributors: coffeegoddd (Dustin Brown), matt wilkie (maphew), harry-miller-tri
 
 - **Binary size** — 168MB → ~41MB (dropped `dolthub/driver` and wazero WASM runtime)
 - **Linux/Windows startup** — eliminated 2-second wazero JIT compilation penalty on every invocation
-- **Test suite** — doctor tests 89s → 28s; shared DB pattern across cmd/bd suites
-- **Test isolation** — dolt package and cmd/bd tests now isolated from production Dolt server (bd-2lf6)
+- **Test suite** — doctor tests 89s → 28s; shared DB pattern across modules/cli suites
+- **Test isolation** — dolt package and modules/cli tests now isolated from production Dolt server (bd-2lf6)
 - **N+1 queries** — batch dependency/label/comment queries with per-invocation caching (#1874)
 
 ## [0.55.4] - 2026-02-20
@@ -6158,7 +6158,7 @@ Contributors: coffeegoddd (Dustin Brown), matt wilkie (maphew), harry-miller-tri
   - Cleaner `bd --help` output
 
 - **Code organization** - File size limits
-  - Split large cmd/bd files to meet 800-line limit
+  - Split large modules/cli files to meet 800-line limit
   - init.go: 1928 → 705 lines
   - Improved maintainability
 
@@ -8019,7 +8019,7 @@ and muscle memory before v1.0.0 to avoid breakage.
   - Provides project-specific guidance for GitHub Copilot
   - Improves AI-assisted development experience
 
-- **Documentation**: Moved design/audit docs from cmd/bd to docs/ (ce433bb)
+- **Documentation**: Moved design/audit docs from modules/cli to docs/ (ce433bb)
   - Better organization of project documentation
   - Clearer separation of code and documentation
 
@@ -8963,7 +8963,7 @@ See README.md for hash ID format details and birthday paradox collision analysis
 
 ### Performance
 - Test coverage improvements: 46.0% → 57.7% (+11.7%)
-  - Added tests for RPC, storage, cmd/bd helpers
+  - Added tests for RPC, storage, modules/cli helpers
   - New test files: coverage_test.go, helpers_test.go, epics_test.go
 
 ### Community
@@ -9531,9 +9531,9 @@ No breaking changes. All changes are backward compatible:
 
 Simply pull the latest version and rebuild:
 ```bash
-go install github.com/steveyegge/beads/cmd/bd@latest
+go install github.com/steveyegge/beads/modules/cli@latest
 # or
-git pull && go build -o bd ./cmd/bd
+git pull && go build -o bd ./modules/cli
 ```
 
 **Note**: The `bd compact` command requires an Anthropic API key in `$ANTHROPIC_API_KEY` environment variable. All other features work without any additional setup.
@@ -9548,9 +9548,9 @@ No breaking changes. All changes are backward compatible:
 
 Simply pull the latest version and rebuild:
 ```bash
-go install github.com/steveyegge/beads/cmd/bd@latest
+go install github.com/steveyegge/beads/modules/cli@latest
 # or
-git pull && go build -o bd ./cmd/bd
+git pull && go build -o bd ./modules/cli
 ```
 
 ### Upgrading to 0.9.1

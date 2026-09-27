@@ -1,0 +1,193 @@
+{
+  "revision": "c25059adad4da6002d3d0c813b8c23fdc23c0bc0",
+  "scope": "只审查与本次重品牌、本地 Git、禁止远程同步直接相关的指令：根 AGENTS.md、modules/cli/AGENTS.md、engdocs/PROJECT_CHARTER.md、engdocs/CLAUDE.md、docs/core-concepts/sync-concepts.md、docs/architecture/index.md。目录收集了 81 个源、2090 个小节；其余源未做语义审查。37 条引用目标缺失，保留为缺口，不计入有效规则。",
+  "ruleReview": {
+    "scope": "部分审查。有效规则仅来自上述文件中已读段落。技能正文、CONTRIBUTING、测试与发布文档未提炼。"
+  },
+  "architectureBinding": {
+    "mapId": "issuegraph-current",
+    "mapRevision": 2,
+    "sourceRevision": "c25059adad4da6002d3d0c813b8c23fdc23c0bc0"
+  },
+  "groups": [
+    {
+      "sourcePath": "engdocs/PROJECT_CHARTER.md",
+      "category": "lifecycle",
+      "topic": { "id": "storage-boundary", "name": "存储与同步边界" },
+      "rules": [
+        {
+          "id": "rule-not-storage-engine",
+          "name": "不自造存储引擎",
+          "anchor": "Beads should not become a storage engine.",
+          "condition": "提议把版本、合并、同步或崩溃恢复写进 beads 核心时",
+          "explanation": "Dolt 拥有存储、版本、同步、合并、并发和崩溃安全。Beads 只通过存储接口进出数据。用 Git 文件代替 Dolt 远程，仍不得在核心里重写一套存储引擎。",
+          "applicability": "applicable",
+          "verification": "对照 engdocs/PROJECT_CHARTER.md 存储边界，以及 .golangci.yml 对 dolthub 导入的 depguard。",
+          "modules": ["dolt-store", "sync-remotes"]
+        },
+        {
+          "id": "rule-sync-is-core",
+          "name": "同步属于核心范围",
+          "anchor": "import, export, sync, backup, and recovery for beads data",
+          "condition": "判断远程同步是否可以整段删除时",
+          "explanation": "章程把 import、export、sync、backup、recovery 列为核心。去掉远程 push/pull 与章程冲突，必须先改章程，不能当成无关清理。",
+          "applicability": "conflict",
+          "verification": "章程修订 RFC 合并前，不删除同步命令。",
+          "modules": ["sync-remotes", "cli"]
+        },
+        {
+          "id": "rule-schema-stable",
+          "name": "先用 metadata 再改表",
+          "anchor": "The database schema is considered stable.",
+          "condition": "为重品牌或本地 Git 增加字段时",
+          "explanation": "表结构默认稳定。集成或流程专用数据先放 issue metadata。没有产品级必要时不加列。",
+          "applicability": "applicable",
+          "verification": "检查提案是否先说明 metadata 不够用。",
+          "modules": ["issue-model", "dolt-store"]
+        },
+        {
+          "id": "rule-no-orchestration",
+          "name": "不编码编排策略",
+          "anchor": "Beads should not know about orchestration layers built on top of it.",
+          "condition": "重品牌时顺手加入调度、swarm 或发布协调时",
+          "explanation": "编排层可以用 beads，核心不编码路由、模型选择、重试或跨系统协调。",
+          "applicability": "applicable",
+          "verification": "核对新增命令是否只服务 issue 图，而不是编排政策。",
+          "modules": ["cli", "issue-model"]
+        }
+      ]
+    },
+    {
+      "sourcePath": "AGENTS.md",
+      "category": "delivery",
+      "topic": { "id": "sync-and-git", "name": "同步与 Git 推送" },
+      "rules": [
+        {
+          "id": "rule-dolt-push-pull",
+          "name": "远程同步用 dolt push/pull",
+          "anchor": "Use `bd dolt push`/`bd dolt pull` for remote sync",
+          "condition": "需要把 issue 历史同步到别的机器时",
+          "explanation": "现行指令要求用 bd dolt push 与 bd dolt pull。这与「不向任何远程同步」的目标相反，实施前要改这段指令。",
+          "applicability": "conflict",
+          "verification": "实施后 AGENTS.md 不再把 dolt push/pull 写成常规同步。",
+          "modules": ["sync-remotes", "cli"]
+        },
+        {
+          "id": "rule-jsonl-not-protocol",
+          "name": "JSONL 不是同步协议",
+          "anchor": "Do not treat `.beads/issues.jsonl` as the sync protocol",
+          "condition": "打算用 issues.jsonl 的 import/export 代替远程同步时",
+          "explanation": "现行架构把 JSONL 当作被动导出。若 Git 跟踪的快照成为仓库内唯一载体，必须重新定义它能表达删除，不能悄悄把 upsert 导入当成同步。",
+          "applicability": "conflict",
+          "verification": "设计 RFC 写明删除如何进 Git 快照，并改掉本句。",
+          "modules": ["git-workspace", "sync-remotes"]
+        },
+        {
+          "id": "rule-conservative-no-push",
+          "name": "未要求则不推远程",
+          "anchor": "Do not run git commits, git pushes, or Dolt remote sync unless explicitly asked.",
+          "condition": "默认保守配置下结束会话时",
+          "explanation": "未明确要求时，不 git commit、不 git push、不做 Dolt 远程同步。用户本轮要求 RFC 留在仓库且不推远程。",
+          "applicability": "applicable",
+          "verification": "本轮不执行 git push 与 bd dolt push。",
+          "modules": ["cli", "sync-remotes"]
+        },
+        {
+          "id": "rule-landing-plane-push",
+          "name": "落地流程要求 git push",
+          "anchor": "Work is NOT complete until `git push` succeeds",
+          "condition": "根 AGENTS.md 的 Landing the Plane 被当作会话结束条件时",
+          "explanation": "同一文件后文写明显式用户指令优先，且保守配置禁止未要求的 push。本轮用户要求不推远程，因此本条对本轮不适用。它与 rule-conservative-no-push 冲突。",
+          "applicability": "conflict",
+          "verification": "确认本轮没有 git push。产品重品牌不把代理 git push 误写成 issue 同步协议。",
+          "modules": ["cli"]
+        },
+        {
+          "id": "rule-no-bd-edit",
+          "name": "代理不用 bd edit",
+          "anchor": "**DO NOT use `bd edit`**",
+          "condition": "代理修改 issue 正文时",
+          "explanation": "bd edit 会打开交互编辑器。用 bd update 标志或 stdin。重品牌后命令名可变，交互编辑器禁令仍在。",
+          "applicability": "applicable",
+          "verification": "代理路径不调用 edit 子命令。",
+          "modules": ["cli", "agent-guides"],
+          "targetRole": "frontend",
+          "roleReason": "规则约束人与代理使用的 CLI，对应用户入口。"
+        },
+        {
+          "id": "rule-no-emoji-icons",
+          "name": "CLI 不用 emoji 状态图标",
+          "anchor": "**NEVER use emoji-style icons**",
+          "condition": "改 CLI 状态输出时",
+          "explanation": "状态用小符号 ○ ◐ ● ✓ ❄，优先级用 P0–P4 标签。重品牌不改这套视觉规则。",
+          "applicability": "applicable",
+          "verification": "抽查新增 CLI 输出不含红橙黄蓝白圆点 emoji。",
+          "modules": ["cli"],
+          "targetRole": "frontend",
+          "roleReason": "规则约束 CLI 可见输出。"
+        }
+      ]
+    },
+    {
+      "sourcePath": "docs/core-concepts/sync-concepts.md",
+      "category": "interfaces",
+      "topic": { "id": "wire-format", "name": "同步线路" },
+      "rules": [
+        {
+          "id": "rule-dolt-source-of-truth",
+          "name": "本地 Dolt 是读写真源",
+          "anchor": "Beads issue data lives in Dolt.",
+          "condition": "实现 list、show、ready 或写命令时",
+          "explanation": "命令读写真源是本地 Dolt，不是 JSONL，也不是远程。本地化之后查询仍应打本地库。",
+          "applicability": "applicable",
+          "verification": "写路径测试仍对本地库断言，而不是对远程。",
+          "modules": ["dolt-store", "issue-model"]
+        },
+        {
+          "id": "rule-jsonl-upsert-limit",
+          "name": "JSONL 导入不能表示删除",
+          "anchor": "It is not the canonical cross-machine sync channel.",
+          "condition": "用 JSONL 作为 Git 里的 issue 载体时",
+          "explanation": "导入是 upsert。文件里没有的记录不会被推断为删除。Git 快照若只靠这份导出，会丢删除。",
+          "applicability": "applicable",
+          "verification": "验收包含删除 issue 后，另一份克隆仅靠 Git 文件能看到删除。",
+          "modules": ["git-workspace"]
+        }
+      ]
+    },
+    {
+      "sourcePath": "engdocs/CLAUDE.md",
+      "category": "testing",
+      "topic": { "id": "build", "name": "构建" },
+      "rules": [
+        {
+          "id": "rule-make-install",
+          "name": "用 make install 装 bd",
+          "anchor": "Always use `make install`.",
+          "condition": "本地安装 CLI 验证时",
+          "explanation": "直接 go build -o bd 或 go install 会留下盖住 ~/.local/bin/bd 的旧二进制。",
+          "applicability": "applicable",
+          "verification": "验证步骤写 make install，不写 go install。",
+          "modules": ["cli"]
+        }
+      ]
+    },
+    {
+      "sourcePath": "modules/cli/AGENTS.md",
+      "category": "delivery",
+      "topic": { "id": "cmd-landing", "name": "命令目录落地" },
+      "rules": [
+        {
+          "id": "rule-cmd-landing-push",
+          "name": "modules/cli 落地也要求 push",
+          "anchor": "Work is NOT complete until `git push` succeeds.",
+          "condition": "只读 modules/cli/AGENTS.md 的落地清单时",
+          "explanation": "该文件把 git push 写成强制完成条件，没有复述根文件的保守配置例外。本轮用户明确不推远程，根 AGENTS 的用户指令优先条款覆盖它。",
+          "applicability": "conflict",
+          "verification": "本轮 git status 不需要与 origin 同步。",
+          "modules": ["cli"]
+        }
+      ]
+    }
+  ]
+}

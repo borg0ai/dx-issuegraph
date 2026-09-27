@@ -105,7 +105,7 @@ while :; do
 			set_full "build_input"
 			break
 			;;
-		cmd/bd/*)
+		modules/cli/*)
 			embedded_cli=true
 			proxied_cli=true
 			saw_cmd=true

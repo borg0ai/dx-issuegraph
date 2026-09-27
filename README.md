@@ -1,4 +1,4 @@
-# bd - Beads
+# issuegraph - IssueGraph
 
 **Distributed graph issue tracker for AI agents, powered by [Dolt](https://github.com/dolthub/dolt).**
 
@@ -12,48 +12,48 @@
 
 **Docs:** https://beads.gascity.com/
 
-Beads provides a persistent, structured memory for coding agents. It replaces messy markdown plans with a dependency-aware graph, allowing agents to handle long-horizon tasks without losing context.
+IssueGraph provides a persistent, structured memory for coding agents. It replaces messy markdown plans with a dependency-aware graph, allowing agents to handle long-horizon tasks without losing context.
 
 ```mermaid
 flowchart LR
-    create["bd create<br/>new bead"] --> depgraph["dependency<br/>graph"]
-    depgraph --> ready["bd ready<br/>claimable work"]
-    ready --> claim["bd update --claim<br/>agent takes it"]
-    claim --> close["bd close<br/>work done"]
+    create["issuegraph create<br/>new bead"] --> depgraph["dependency<br/>graph"]
+    depgraph --> ready["issuegraph ready<br/>claimable work"]
+    ready --> claim["issuegraph update --claim<br/>agent takes it"]
+    claim --> close["issuegraph close<br/>work done"]
     close -->|blockers released| ready
-    depgraph <-->|"bd dolt push / pull"| remote[("other machines<br/>and agents")]
+    depgraph <-->|"issuegraph dolt push / pull"| remote[("other machines<br/>and agents")]
 ```
 
 ## ⚡ Quick Start
 
 ```bash
-# Install beads CLI (system-wide - don't clone this repo into your project)
+# Install issuegraph CLI (system-wide - don't clone this repo into your project)
 curl -fsSL https://raw.githubusercontent.com/gastownhall/beads/main/scripts/install.sh | bash
 
 # Initialize in YOUR project
 cd your-project
-bd init
+issuegraph init
 
 # Optional: refresh or install richer instructions for your agent
-bd setup codex    # Codex CLI - installs skill, AGENTS.md guidance, and hooks
-bd setup claude   # Claude Code - installs hooks/settings
-bd setup factory  # Factory.ai Droid - creates/updates AGENTS.md
+issuegraph setup codex    # Codex CLI - installs skill, AGENTS.md guidance, and hooks
+issuegraph setup claude   # Claude Code - installs hooks/settings
+issuegraph setup factory  # Factory.ai Droid - creates/updates AGENTS.md
 ```
 
-**Note:** Beads is a CLI tool you install once and use everywhere. You don't need to clone this repository into your project.
+**Note:** IssueGraph is a CLI tool you install once and use everywhere. You don't need to clone this repository into your project.
 
-`bd init` creates or updates `AGENTS.md` by default so agents can discover the beads workflow, and also installs project Claude/Codex integrations unless you pass `--skip-agents` or `--stealth`. Use `bd setup --list` to see supported integrations, including `bd setup codex`, `bd setup factory`, `bd setup claude`, `bd setup mux`, `bd setup cursor`, and more. See [Agent and IDE setup](docs/getting-started/ide-setup.md).
+`issuegraph init` creates or updates `AGENTS.md` by default so agents can discover the issuegraph workflow, and also installs project Claude/Codex integrations unless you pass `--skip-agents` or `--stealth`. Use `issuegraph setup --list` to see supported integrations, including `issuegraph setup codex`, `issuegraph setup factory`, `issuegraph setup claude`, `issuegraph setup mux`, `issuegraph setup cursor`, and more. See [Agent and IDE setup](docs/getting-started/ide-setup.md).
 
-Manual copy-paste is only for unsupported agents, existing projects where you cannot rerun `bd init`/`bd setup`, or custom instruction files. In those cases, run `bd onboard` and paste the printed snippet into the file your agent reads.
+Manual copy-paste is only for unsupported agents, existing projects where you cannot rerun `issuegraph init`/`issuegraph setup`, or custom instruction files. In those cases, run `issuegraph onboard` and paste the printed snippet into the file your agent reads.
 
-If your agent is not covered by `bd setup`, add this minimal `AGENTS.md` section:
+If your agent is not covered by `issuegraph setup`, add this minimal `AGENTS.md` section:
 
 ```markdown
-This project uses bd (beads) for issue tracking.
+This project uses issuegraph (IssueGraph) for issue tracking.
 
-- Run `bd prime` for workflow context and command guidance.
-- Use `bd ready`, `bd show <id>`, `bd update <id> --claim`, and `bd close <id>`.
-- Use `bd remember "insight"` for persistent project memory; do not create MEMORY.md files.
+- Run `issuegraph prime` for workflow context and command guidance.
+- Use `issuegraph ready`, `issuegraph show <id>`, `issuegraph update <id> --claim`, and `issuegraph close <id>`.
+- Use `issuegraph remember "insight"` for persistent project memory; do not create MEMORY.md files.
 - Do not use markdown TODO lists for task tracking.
 ```
 
@@ -70,28 +70,28 @@ This project uses bd (beads) for issue tracking.
 
 | Command | Action |
 | --- | --- |
-| `bd ready` | List tasks with no open blockers. |
-| `bd create "Title" -p 0` | Create a P0 task. |
-| `bd update <id> --claim` | Atomically claim a task (sets assignee + in_progress). |
-| `bd dep add <child> <parent>` | Link tasks (blocks, related, parent-child). |
-| `bd show <id>` | View task details and audit trail. |
-| `bd prime` | Print agent workflow context and persistent memories. |
-| `bd remember "insight"` | Store project memory that `bd prime` injects later. |
+| `issuegraph ready` | List tasks with no open blockers. |
+| `issuegraph create "Title" -p 0` | Create a P0 task. |
+| `issuegraph update <id> --claim` | Atomically claim a task (sets assignee + in_progress). |
+| `issuegraph dep add <child> <parent>` | Link tasks (blocks, related, parent-child). |
+| `issuegraph show <id>` | View task details and audit trail. |
+| `issuegraph prime` | Print agent workflow context and persistent memories. |
+| `issuegraph remember "insight"` | Store project memory that `issuegraph prime` injects later. |
 
 ## 🔗 Hierarchy & Workflow
 
-Beads supports hierarchical IDs for epics:
+IssueGraph supports hierarchical IDs for epics:
 
 * `bd-a3f8` (Epic)
 * `bd-a3f8.1` (Task)
 * `bd-a3f8.1.1` (Sub-task)
 
-**Stealth Mode:** Run `bd init --stealth` to use Beads locally without committing files to the main repo. Perfect for personal use on shared projects. See [Git-Free Usage](#-git-free-usage) below.
+**Stealth Mode:** Run `issuegraph init --stealth` to use IssueGraph locally without committing files to the main repo. Perfect for personal use on shared projects. See [Git-Free Usage](#-git-free-usage) below.
 
 **Contributor vs Maintainer:** When working on open-source projects:
 
-* **Contributors** (forked repos): Run `bd init --contributor` to route planning issues to a separate repo (e.g., `~/.beads-planning`). Keeps experimental work out of PRs.
-* **Maintainers** (write access): Beads auto-detects maintainer role via SSH URLs or HTTPS with credentials. Only need `git config beads.role maintainer` if using GitHub HTTPS without credentials but you have write access.
+* **Contributors** (forked repos): Run `issuegraph init --contributor` to route planning issues to a separate repo (e.g., `~/.beads-planning`). Keeps experimental work out of PRs.
+* **Maintainers** (write access): IssueGraph auto-detects maintainer role via SSH URLs or HTTPS with credentials. Only need `git config beads.role maintainer` if using GitHub HTTPS without credentials but you have write access.
 
 ## 📦 Installation
 
@@ -105,12 +105,12 @@ npm install -g @beads/bd     # Node.js users
 **Requirements:** macOS, Linux, Windows, or FreeBSD. See [docs/getting-started/installation.md](docs/getting-started/installation.md) for complete installation guide.
 
 **Upgrading?** Replacing the binary is not always the whole story. Short
-version: sync remote-backed databases with your current `bd`, back up with
-`bd export --all`, upgrade the binary, then run `bd info --whats-new`,
-`bd hooks install`, and `bd version`. If the upgrade crosses a schema
+version: sync remote-backed databases with your current `issuegraph`, back up with
+`issuegraph export --all`, upgrade the binary, then run `issuegraph info --whats-new`,
+`issuegraph hooks install`, and `issuegraph version`. If the upgrade crosses a schema
 migration on a remote-backed database, exactly one designated clone runs
-`bd migrate` and `bd dolt push`; other clones install the new binary
-and run `bd bootstrap`. See the full
+`issuegraph migrate` and `issuegraph dolt push`; other clones install the new binary
+and run `issuegraph bootstrap`. See the full
 [upgrade guide](https://beads.gascity.com/getting-started/upgrading)
 or [docs/getting-started/installation.md](docs/getting-started/installation.md#updating-bd).
 
@@ -126,26 +126,26 @@ See [docs/reference/antivirus.md](docs/reference/antivirus.md) for Windows AV fa
 
 ## 💾 Storage Modes
 
-Beads uses [Dolt](https://github.com/dolthub/dolt) as its database. Two modes:
+IssueGraph uses [Dolt](https://github.com/dolthub/dolt) as its database. Two modes:
 
-- **Embedded (default)** — `bd init`. Dolt runs in-process, data lives in
+- **Embedded (default)** — `issuegraph init`. Dolt runs in-process, data lives in
   `.beads/embeddeddolt/`, single writer. Recommended for most users.
-- **Server** — `bd init --server`. Connects to an external `dolt sql-server`
+- **Server** — `issuegraph init --server`. Connects to an external `dolt sql-server`
   for multiple concurrent writers; data lives in `.beads/dolt/`.
 
-Cross-machine sync uses `bd dolt push` / `bd dolt pull` against
+Cross-machine sync uses `issuegraph dolt push` / `issuegraph dolt pull` against
 `refs/dolt/data` on your git remote; `.beads/issues.jsonl` is an export for
 viewers and interchange, not the source of truth or a backup. Back up and
-migrate between modes with `bd backup`; reclaim space with `bd prune` /
-`bd purge`.
+migrate between modes with `issuegraph backup`; reclaim space with `issuegraph prune` /
+`issuegraph purge`.
 
 Full detail — connection flags, sockets, maintenance, backup, and migration —
 in the [Dolt backend guide](docs/architecture/dolt.md).
 
 ### Schema Version Guard
 
-`bd` checks the database schema version at open time. If the database has been
-migrated by a newer binary and an older binary tries to open it, `bd` exits
+`issuegraph` checks the database schema version at open time. If the database has been
+migrated by a newer binary and an older binary tries to open it, `issuegraph` exits
 with an actionable error rather than issuing queries that fail with cryptic SQL
 errors:
 
@@ -156,14 +156,14 @@ schema version mismatch: database is at v45, binary knows up to v42 (3 migration
   with cryptic SQL errors (e.g. "column X could not be found in any table in scope").
 
   Rebuild from main:
-    CGO_ENABLED=0 go build -tags gms_pure_go ./cmd/bd
+    CGO_ENABLED=0 go build -tags gms_pure_go ./modules/cli
 
   Or install the latest release:
-    CGO_ENABLED=0 go install -tags gms_pure_go github.com/steveyegge/beads/cmd/bd@latest
+    CGO_ENABLED=0 go install -tags gms_pure_go github.com/steveyegge/beads/modules/cli@latest
 
   To proceed despite the risk (some read commands may still work):
-    BD_IGNORE_SCHEMA_SKEW=1 bd <command>
-    bd --ignore-schema-skew <command>
+    BD_IGNORE_SCHEMA_SKEW=1 issuegraph <command>
+    issuegraph --ignore-schema-skew <command>
 ````
 
 **When this fires:** only when the database schema is *ahead* of the binary
@@ -183,23 +183,23 @@ See [docs/related-projects.md](docs/related-projects.md) for adjacent or complem
 
 ## 🚀 Git-Free Usage
 
-Beads works without git. The Dolt database is the storage backend — git
+IssueGraph works without git. The Dolt database is the storage backend — git
 integration (hooks, repo discovery, identity) is optional.
 
 ```bash
 # Initialize without git
 export BEADS_DIR=/path/to/your/project/.beads
-bd init --quiet --stealth
+issuegraph init --quiet --stealth
 
 # All core commands work with zero git calls
-bd create "Fix auth bug" -p 1 -t bug
-bd ready --json
-bd update bd-a1b2 --claim
-bd prime
-bd close bd-a1b2 "Fixed"
+issuegraph create "Fix auth bug" -p 1 -t bug
+issuegraph ready --json
+issuegraph update bd-a1b2 --claim
+issuegraph prime
+issuegraph close bd-a1b2 "Fixed"
 ```
 
-`BEADS_DIR` tells bd where to put the `.beads/` database directory,
+`BEADS_DIR` tells issuegraph where to put the `.beads/` database directory,
 bypassing git repo discovery. `--stealth` sets `no-git-ops: true` in
 config, disabling all git hook installation and git operations.
 

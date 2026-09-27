@@ -1,6 +1,6 @@
 # Maintainer PR Guidelines
 
-This is the source of truth for agents triaging, reviewing, landing, closing, or otherwise maintaining pull requests for beads.
+This is the source of truth for agents triaging, reviewing, landing, closing, or otherwise maintaining pull requests for issuegraph.
 
 ## Philosophy
 
@@ -11,7 +11,7 @@ For every PR, look for the value in it and choose the action that moves useful w
 The goal is not to block contributors unnecessarily. The goal is to identify useful work, preserve it, and keep the project moving.
 
 Read [engdocs/PROJECT_CHARTER.md](engdocs/PROJECT_CHARTER.md) when a PR changes
-Beads' product surface area. Scope boundaries should guide where value lands:
+IssueGraph's product surface area. Scope boundaries should guide where value lands:
 core, metadata, integration, plugin, orchestration layer, or external tool.
 
 ## Contributor Protection
@@ -129,7 +129,7 @@ These rules apply to everyone who can merge — human maintainers and agents ali
 - Be explicit when closing a PR: thank the contributor, state the outcome, and explain what was accepted, rejected, superseded, or implemented differently.
 - Treat request-changes as exceptional because it can strand contributor work.
 - Consider the entire PR thread. Valuable clarifying info are often in the comments.
-- File follow-up work as beads issues instead of hidden notes.
+- File follow-up work as issuegraph issues instead of hidden notes.
 - When code changes result from PR maintenance, follow repo quality gates and session completion rules in `AGENTS.md`.
 - Post multi-line PR comments from a real Markdown body file or a shell heredoc, not from strings with escaped `\n` sequences. Run `scripts/gh-body-lint <body-file>` before posting body files; after posting or editing, verify the rendered body with `gh pr view --comments --json comments --jq ...` before moving on.
 - Sign agent-written GitHub comments, reviews, and commits using [engdocs/AGENT_SIGNING.md](engdocs/AGENT_SIGNING.md).

@@ -26,7 +26,7 @@ fi
 source "$(dirname "$0")/../.buildflags"
 
 echo "🔧 Building bd from source..."
-go build -o bd ./cmd/bd
+go build -o bd ./modules/cli
 
 echo "📦 Installing bd globally..."
 sudo mv bd /usr/local/bin/bd

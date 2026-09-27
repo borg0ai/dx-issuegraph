@@ -1,9 +1,9 @@
 #!/usr/bin/env bash
-# embedded-test-shard.sh — run a shard of embedded dolt cmd/bd tests.
+# embedded-test-shard.sh — run a shard of embedded dolt modules/cli tests.
 #
 # Usage: embedded-test-shard.sh <shard_number> <total_shards>
 #
-# Discovers all TestEmbedded* top-level functions from cmd/bd/*_embedded_test.go.
+# Discovers all TestEmbedded* top-level functions from modules/cli/*_embedded_test.go.
 # Tests listed in embedded-cmd-test-shards.txt for the requested shard count use
 # that committed assignment; newly-added tests fall back to hash(name) % total.
 # Runs the matching subset using the pre-built test binary at
@@ -12,7 +12,7 @@
 # Environment:
 #   BEADS_TEST_EMBEDDED_DOLT=1    required (tests skip without it)
 #   BEADS_TEST_BD_BINARY=<path>   optional pre-built bd binary (used by tests)
-#   BEADS_TEST_CMD_BINARY=<path>  pre-built cmd/bd test binary (default: /tmp/bd-cmd-test)
+#   BEADS_TEST_CMD_BINARY=<path>  pre-built modules/cli test binary (default: /tmp/bd-cmd-test)
 #   BEADS_TEST_SHARD_LIST_ONLY=1  print selected tests without running them
 
 set -euo pipefail
@@ -34,7 +34,7 @@ SHARD_INDEX=$(( SHARD_NUMBER - 1 ))
 MANIFEST="${BEADS_TEST_SHARD_MANIFEST:-.github/scripts/embedded-cmd-test-shards.txt}"
 
 # Discover all top-level TestEmbedded* functions.
-ALL_TESTS=$(grep -rh '^func TestEmbedded' cmd/bd/*_embedded_test.go \
+ALL_TESTS=$(grep -rh '^func TestEmbedded' modules/cli/*_embedded_test.go \
   | sed 's/func \(TestEmbedded[A-Za-z0-9_]*\).*/\1/' \
   | sort -u)
 
@@ -131,5 +131,5 @@ else
   exec go test -tags=gms_pure_go -v -race -count=1 -timeout 20m \
     -run "$RUN_REGEX" \
     "$@" \
-    ./cmd/bd/
+    github.com/steveyegge/beads/modules/cli
 fi

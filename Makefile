@@ -1,4 +1,4 @@
-# Makefile for beads project
+# Makefile for issuegraph project
 
 # Native Windows GNU Make needs Git for Windows' bash for the POSIX shell
 # syntax used throughout this Makefile. MSYS2 and Cygwin Make already provide
@@ -50,7 +50,9 @@ endif
 # Default target
 all: build
 
-BUILD_DIR := .
+BUILD_DIR := apps/cli/bin
+GO_DIR := modules/core
+CLI_DIR := modules/cli
 GIT_BUILD := $(shell git rev-parse --short HEAD)
 ifeq ($(OS),Windows_NT)
 INSTALL_DIR := $(USERPROFILE)/.local/bin
@@ -81,9 +83,9 @@ export CGO_ENABLED := 1
 # the floor we promise importers, `toolchain` is what we actually build with,
 # and reading `go` here would silently downgrade every make target below the
 # toolchain the release binaries are built with.
-GO_VERSION := $(shell sed -n 's/^toolchain go//p' go.mod)
+GO_VERSION := $(shell sed -n 's/^toolchain go//p' $(GO_DIR)/go.mod)
 ifeq ($(GO_VERSION),)
-GO_VERSION := $(shell sed -n 's/^go //p' go.mod)
+GO_VERSION := $(shell sed -n 's/^go //p' $(GO_DIR)/go.mod)
 endif
 ifneq ($(GO_VERSION),)
 export GOTOOLCHAIN := go$(GO_VERSION)
@@ -97,27 +99,27 @@ endif
 BUILD_TAGS := gms_pure_go
 REGRESSION_TIMEOUT ?= 20m
 
-# Build the bd binary
+# Build the native CLI binary for apps/cli
 build:
-	@echo "Building bd..."
+	@echo "Building CLI..."
 ifeq ($(OS),Windows_NT)
 	@if [ -n "$$CC" ]; then \
 		echo "Using CC=$$CC"; \
-		go build -tags "$(BUILD_TAGS)" -ldflags="-X main.Build=$(GIT_BUILD)" -o $(BUILD_DIR)/bd.exe ./cmd/bd; \
+		go -C $(CLI_DIR) build -tags "$(BUILD_TAGS)" -ldflags="-X main.Build=$(GIT_BUILD)" -o $(abspath $(BUILD_DIR))/cli.exe .; \
 	elif command -v gcc >/dev/null 2>&1; then \
-		CC=gcc go build -tags "$(BUILD_TAGS)" -ldflags="-X main.Build=$(GIT_BUILD)" -o $(BUILD_DIR)/bd.exe ./cmd/bd; \
+		CC=gcc go -C $(CLI_DIR) build -tags "$(BUILD_TAGS)" -ldflags="-X main.Build=$(GIT_BUILD)" -o $(abspath $(BUILD_DIR))/cli.exe .; \
 	elif command -v clang >/dev/null 2>&1 && clang -dumpmachine 2>/dev/null | grep -qi 'windows.*gnu'; then \
-		CC=clang go build -tags "$(BUILD_TAGS)" -ldflags="-X main.Build=$(GIT_BUILD)" -o $(BUILD_DIR)/bd.exe ./cmd/bd; \
+		CC=clang go -C $(CLI_DIR) build -tags "$(BUILD_TAGS)" -ldflags="-X main.Build=$(GIT_BUILD)" -o $(abspath $(BUILD_DIR))/cli.exe .; \
 	else \
 		for bin in $(WINDOWS_CGO_BINS); do \
 			if [ -x "$$bin/gcc.exe" ]; then \
 				echo "Using Windows CGO gcc from $$bin"; \
-				PATH="$$bin:$$PATH" CC=gcc go build -tags "$(BUILD_TAGS)" -ldflags="-X main.Build=$(GIT_BUILD)" -o $(BUILD_DIR)/bd.exe ./cmd/bd; \
+				PATH="$$bin:$$PATH" CC=gcc go -C $(CLI_DIR) build -tags "$(BUILD_TAGS)" -ldflags="-X main.Build=$(GIT_BUILD)" -o $(abspath $(BUILD_DIR))/cli.exe .; \
 				exit $$?; \
 			fi; \
 			if [ -x "$$bin/clang.exe" ] && "$$bin/clang.exe" -dumpmachine 2>/dev/null | grep -qi 'windows.*gnu'; then \
 				echo "Using Windows CGO clang from $$bin"; \
-				PATH="$$bin:$$PATH" CC=clang go build -tags "$(BUILD_TAGS)" -ldflags="-X main.Build=$(GIT_BUILD)" -o $(BUILD_DIR)/bd.exe ./cmd/bd; \
+				PATH="$$bin:$$PATH" CC=clang go -C $(CLI_DIR) build -tags "$(BUILD_TAGS)" -ldflags="-X main.Build=$(GIT_BUILD)" -o $(abspath $(BUILD_DIR))/cli.exe .; \
 				exit $$?; \
 			fi; \
 		done; \
@@ -127,24 +129,24 @@ ifeq ($(OS),Windows_NT)
 		exit 1; \
 	fi
 else
-	go build -tags "$(BUILD_TAGS)" -ldflags="-X main.Build=$(GIT_BUILD)" -o $(BUILD_DIR)/bd ./cmd/bd
+	go -C $(CLI_DIR) build -tags "$(BUILD_TAGS)" -ldflags="-X main.Build=$(GIT_BUILD)" -o $(abspath $(BUILD_DIR))/cli .
 ifeq ($(shell uname),Darwin)
-	@codesign -s - -f $(BUILD_DIR)/bd 2>/dev/null || true
-	@echo "Signed bd for macOS"
+	@codesign -s - -f $(BUILD_DIR)/cli 2>/dev/null || true
+	@echo "Signed CLI for macOS"
 endif
 endif
 
 # Diagnose the local build environment for the gms_pure_go/CGO build trap
-# (mybd-t7mk.1). A bare `CGO_ENABLED=1 go build ./cmd/bd` without
+# (mybd-t7mk.1). A bare `CGO_ENABLED=1 go -C modules/cli build .` without
 # -tags=gms_pure_go fails with a C-linker error from go-icu-regex
 # (unicode/uregex.h: No such file or directory) because go-mysql-server
 # links ICU by default under cgo; CGO_ENABLED=0 avoids that but can't open
 # embedded Dolt at runtime. See engdocs/ICU-POLICY.md.
 doctor-build:
 	@echo "Build environment diagnostic (doctor-build):"
-	@GOFLAGS_VAL="$$(go env GOFLAGS)"; \
-	CGO_VAL="$$(go env CGO_ENABLED)"; \
-	CC_VAL="$$(go env CC)"; \
+	@GOFLAGS_VAL="$$(go -C $(GO_DIR) env GOFLAGS)"; \
+	CGO_VAL="$$(go -C $(GO_DIR) env CGO_ENABLED)"; \
+	CC_VAL="$$(go -C $(GO_DIR) env CC)"; \
 	echo "  GOFLAGS:     $${GOFLAGS_VAL:-<empty>}"; \
 	echo "  CGO_ENABLED: $$CGO_VAL"; \
 	echo "  CC:          $$CC_VAL"; \
@@ -160,7 +162,7 @@ doctor-build:
 			echo "PASS: GOFLAGS carries -tags=gms_pure_go; bare 'go build'/'go test' are safe." ;; \
 		*) \
 			echo "WARN: GOFLAGS is missing -tags=gms_pure_go."; \
-			echo "      A bare 'CGO_ENABLED=1 go build ./cmd/bd' will fail with a C-linker error"; \
+			echo "      A bare 'CGO_ENABLED=1 go build ./modules/cli' will fail with a C-linker error"; \
 			echo "      (unicode/uregex.h: No such file or directory) from go-icu-regex, because"; \
 			echo "      go-mysql-server links ICU by default under cgo."; \
 			echo ""; \
@@ -168,7 +170,7 @@ doctor-build:
 			echo "        go env -w GOFLAGS=-tags=gms_pure_go"; \
 			echo "      Or build explicitly this once (CGO_ENABLED=1 is required for"; \
 			echo "      embedded Dolt at runtime; CGO_ENABLED=0 cannot open it):"; \
-			echo "        CGO_ENABLED=1 go build -tags gms_pure_go ./cmd/bd" ;; \
+			echo "        CGO_ENABLED=1 go build -tags gms_pure_go ./modules/cli" ;; \
 	esac
 
 # Run all tests (skips known broken tests listed in .test-skip)
@@ -215,7 +217,7 @@ API_GEN_FILE := internal/httpapi/apigen/types.gen.go
 
 # Regenerate the wire types from internal/httpapi/spec/openapi.v0.yaml.
 api-gen:
-	go generate -tags "$(BUILD_TAGS)" ./internal/httpapi/apigen
+	go -C $(GO_DIR) generate -tags "$(BUILD_TAGS)" ./internal/httpapi/apigen
 
 # Two-part spec drift gate: regenerate and fail if regeneration CHANGED
 # anything, then run the spec tests. Runs in the PR workflow's policy job
@@ -243,7 +245,7 @@ api-check:
 		echo "run 'make api-gen' and commit the result."; \
 		exit 1; \
 	fi
-	go test -tags "$(BUILD_TAGS)" ./internal/httpapi/... -count=1
+	go -C $(GO_DIR) test -tags "$(BUILD_TAGS)" ./internal/httpapi/... -count=1
 
 ci-package-mcp:
 	@./scripts/ci/package-mcp.sh
@@ -256,14 +258,14 @@ ci-package-npm:
 # Override baseline: BD_REGRESSION_BASELINE_BIN=/path/to/bd make test-regression
 test-regression:
 	@echo "Running regression tests (baseline vs candidate)..."
-	go test -tags=regression,$(BUILD_TAGS) -timeout=$(REGRESSION_TIMEOUT) -v ./tests/regression/...
+	go -C $(GO_DIR) test -tags=regression,$(BUILD_TAGS) -timeout=$(REGRESSION_TIMEOUT) -v ./tests/regression/...
 
 # Run upgrade smoke tests (release stability gate).
 # Tests that upgrading from previous release preserves data, role, and mode.
 # Override version: ./scripts/upgrade-smoke-test.sh v0.62.0
 test-upgrade: build
 	@echo "Running upgrade smoke tests..."
-	@CANDIDATE_BIN=./bd ./scripts/upgrade-smoke-test.sh
+	@CANDIDATE_BIN=./apps/cli/bin/cli ./scripts/upgrade-smoke-test.sh
 
 
 # Run cross-version smoke tests (last 30 tags → candidate).
@@ -272,21 +274,21 @@ test-upgrade: build
 # All from v0.30.0: ./scripts/cross-version-smoke-test.sh --from v0.30.0
 test-cross-version: build
 	@echo "Running cross-version smoke tests..."
-	@CANDIDATE_BIN=./bd ./scripts/cross-version-smoke-test.sh
+	@CANDIDATE_BIN=./apps/cli/bin/cli ./scripts/cross-version-smoke-test.sh
 
 # Run the authenticated historical upgrade corpus with strict fidelity checks.
 # All qualified versions: ./scripts/migration-test/run.sh
 # Single version: ./scripts/migration-test/run.sh --version v0.49.6
 test-migration: build
 	@echo "Running migration test harness..."
-	@CANDIDATE_BIN=./bd ./scripts/migration-test/run.sh
+	@CANDIDATE_BIN=./apps/cli/bin/cli ./scripts/migration-test/run.sh
 
-# Regenerate the golden-JSON contract corpus (cmd/bd/protocol/testdata/corpus/).
+# Regenerate the golden-JSON contract corpus (modules/cli/protocol/testdata/corpus/).
 # Run after any deliberate bd --json wire change; review the diff, then commit.
 # A downstream consumer vendors this corpus to detect cross-version drift. Needs Docker (Dolt).
 corpus-regen:
 	@echo "Regenerating contract corpus..."
-	go test -tags "$(BUILD_TAGS)" ./cmd/bd/protocol -run TestCorpusGolden -corpus.update -count=1
+	go -C $(CLI_DIR) test -tags "$(BUILD_TAGS)" ./protocol -run TestCorpusGolden -corpus.update -count=1
 
 
 # Run performance benchmarks against Dolt storage backend
@@ -295,14 +297,14 @@ corpus-regen:
 bench:
 	@echo "Running performance benchmarks (Dolt backend)..."
 	@echo ""
-	go test -tags "$(BUILD_TAGS)" -bench=. -benchtime=1s -benchmem -run=^$$ ./internal/storage/dolt/ -timeout=30m
+	go -C $(GO_DIR) test -tags "$(BUILD_TAGS)" -bench=. -benchtime=1s -benchmem -run=^$$ ./internal/storage/dolt/ -timeout=30m
 	@echo ""
 	@echo "Benchmark complete."
 
 # Run quick benchmarks (shorter benchtime for faster feedback)
 bench-quick:
 	@echo "Running quick performance benchmarks..."
-	go test -tags "$(BUILD_TAGS)" -bench=. -benchtime=100ms -benchmem -run=^$$ ./internal/storage/dolt/ -timeout=15m
+	go -C $(GO_DIR) test -tags "$(BUILD_TAGS)" -bench=. -benchtime=100ms -benchmem -run=^$$ ./internal/storage/dolt/ -timeout=15m
 
 # Check that local branch is up to date with origin/main
 check-up-to-date:
@@ -321,33 +323,29 @@ ifndef SKIP_UPDATE_CHECK
 	fi
 endif
 
-# Install bd to ~/.local/bin (builds, signs on macOS, then renames into place)
-# Also creates 'beads' symlink as an alias for bd
+# Install the CLI to ~/.local/bin (builds, signs on macOS, then renames into place)
 # Use install-force to skip the origin/main update check
 #
 # The install stages to a temp name inside INSTALL_DIR and rename(2)s over the
 # final path: the live path must never hold a partial binary. A plain cp onto
-# bd leaves a truncated (on macOS: signature-invalid) binary for the whole
-# ~200MB copy, and any bd exec'd in that window dies at exec with rc 137 and
+# cli leaves a truncated (on macOS: signature-invalid) binary for the whole
+# ~200MB copy, and any cli exec'd in that window dies at exec with rc 137 and
 # zero bytes of output — indistinguishable from an empty result set to callers.
-# The old rm-first shape added an ENOENT window on top. Same treatment for the
-# beads symlink.
+# The old rm-first shape added an ENOENT window on top.
 #
 # EXCEPTION — native Windows keeps the rm-first + cp shape: under Git for
-# Windows' bash the staged tmp+rename leaves no bd.exe at the destination even
+# Windows' bash the staged tmp+rename leaves no cli.exe at the destination even
 # though cp && mv exit 0 (caught by pr.yml's spaced-USERPROFILE install proof;
 # root cause untraced). Restore Windows atomicity only with that proof green.
 install install-force: build
 	@mkdir -p "$(INSTALL_DIR)"
 ifeq ($(OS),Windows_NT)
-	@rm -f "$(INSTALL_DIR)/bd" "$(INSTALL_DIR)/bd.exe"
-	@cp "$(BUILD_DIR)/bd.exe" "$(INSTALL_DIR)/bd.exe"
-	@echo "Installed bd.exe to $(INSTALL_DIR)/bd.exe"
+	@rm -f "$(INSTALL_DIR)/cli" "$(INSTALL_DIR)/cli.exe"
+	@cp "$(BUILD_DIR)/cli.exe" "$(INSTALL_DIR)/cli.exe"
+	@echo "Installed cli.exe to $(INSTALL_DIR)/cli.exe"
 else
-	@cp "$(BUILD_DIR)/bd" "$(INSTALL_DIR)/.bd.install.tmp.$$$$" && mv -f "$(INSTALL_DIR)/.bd.install.tmp.$$$$" "$(INSTALL_DIR)/bd"
-	@echo "Installed bd to $(INSTALL_DIR)/bd"
-	@ln -sfn bd "$(INSTALL_DIR)/.beads.install.tmp.$$$$" && mv -f "$(INSTALL_DIR)/.beads.install.tmp.$$$$" "$(INSTALL_DIR)/beads"
-	@echo "Created 'beads' alias -> bd"
+	@cp "$(BUILD_DIR)/cli" "$(INSTALL_DIR)/.cli.install.tmp.$$$$" && mv -f "$(INSTALL_DIR)/.cli.install.tmp.$$$$" "$(INSTALL_DIR)/cli"
+	@echo "Installed CLI to $(INSTALL_DIR)/cli"
 endif
 	@git config core.hooksPath .githooks 2>/dev/null && echo "Configured git hooks (.githooks/)" || true
 
@@ -356,7 +354,7 @@ install: check-up-to-date
 # Format all Go files
 fmt:
 	@echo "Formatting Go files..."
-	@gofmt -w .
+	@gofmt -w modules
 	@echo "Done"
 
 # Check that all Go files are properly formatted (for CI)
@@ -365,11 +363,11 @@ fmt-check:
 
 # Validate documentation references against actual CLI flags
 check-docs:
-	@echo "Building bd for docs checks..."
-	@CGO_ENABLED=0 go build -tags "$(BUILD_TAGS)" -ldflags="-X main.Build=$(GIT_BUILD)" -o $(BUILD_DIR)/bd ./cmd/bd
-	@./scripts/check-doc-flags.sh ./bd
+	@echo "Building CLI for docs checks..."
+	@CGO_ENABLED=0 go -C $(CLI_DIR) build -tags "$(BUILD_TAGS)" -ldflags="-X main.Build=$(GIT_BUILD)" -o $(abspath $(BUILD_DIR))/cli .
+	@./scripts/check-doc-flags.sh ./apps/cli/bin/cli
 	@./scripts/check-doc-freshness.sh
-	@go test -tags=gms_pure_go ./test/docsync
+	@go -C $(GO_DIR) test -tags=gms_pure_go ./test/docsync
 
 # Render committed Excalidraw diagram sources to SVG (idempotent; only
 # re-renders when the .excalidraw source is newer than its .svg). Both the
@@ -406,22 +404,22 @@ check-testing-short:
 # Clean build artifacts and benchmark profiles
 clean:
 	@echo "Cleaning..."
-	rm -f bd
-	rm -f bd.exe
+	rm -f cli
+	rm -f cli.exe
 	rm -f internal/storage/dolt/bench-cpu-*.prof
 	rm -f beads-perf-*.prof
 
-# Sweep orphaned cmd/bd test temp dirs (e.g. when a test run was SIGKILLed
+# Sweep orphaned modules/cli test temp dirs (e.g. when a test run was SIGKILLed
 # before its TestMain cleanup ran). Safe to run between test runs; will
 # skip dirs in use by a live test process. See bd-3q2u.
 clean-test-tmp:
-	@echo "Sweeping orphaned cmd/bd test temp dirs from $${TMPDIR:-/tmp}..."
+	@echo "Sweeping orphaned modules/cli test temp dirs from $${TMPDIR:-/tmp}..."
 	@./scripts/clean-test-tmp.sh
 
 # Show help
 help:
-	@echo "Beads Makefile targets:"
-	@echo "  make build        - Build the bd binary"
+	@echo "IssueGraph Makefile targets:"
+	@echo "  make build        - Build the CLI binary"
 	@echo "  make doctor-build - Diagnose build env (GOFLAGS/CGO/CC) for the ICU build trap"
 	@echo "  make test         - Run all tests"
 	@echo "  make test-icu-path - Run opt-in ICU regex path tests (maintainer-only)"
@@ -440,13 +438,13 @@ help:
 	@echo "  make test-migration - Run authenticated historical upgrade tests"
 	@echo "  make bench        - Run performance benchmarks (generates CPU profiles)"
 	@echo "  make bench-quick  - Run quick benchmarks (shorter benchtime)"
-	@echo "  make install      - Install bd to ~/.local/bin (with codesign on macOS, includes 'beads' alias)"
-	@echo "  make install-force - Install bd, skipping the origin/main update check"
+	@echo "  make install      - Install the CLI to ~/.local/bin (with codesign on macOS)"
+	@echo "  make install-force - Install the CLI, skipping the origin/main update check"
 	@echo "  make fmt          - Format all Go files with gofmt"
 	@echo "  make fmt-check    - Check Go formatting (for CI)"
 	@echo "  make check-docs   - Validate docs against CLI flags"
 	@echo "  make api-gen      - Regenerate HTTP API types from the OpenAPI spec"
 	@echo "  make api-check    - OpenAPI drift gate (regenerate, diff-or-fail, spec tests)"
 	@echo "  make clean        - Remove build artifacts and profile files"
-	@echo "  make clean-test-tmp - Sweep orphaned cmd/bd test temp dirs from \$$TMPDIR"
+	@echo "  make clean-test-tmp - Sweep orphaned modules/cli test temp dirs from \$$TMPDIR"
 	@echo "  make help         - Show this help message"

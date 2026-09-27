@@ -68,7 +68,7 @@ driver instead of patching around it in beads.
 
 A live application of this rule: `bd doctor` support for embedded mode is
 enabled one subcommand at a time, each human-vetted (GH#3794). Do not lift the
-embedded-mode gate in `cmd/bd/doctor.go` wholesale, and keep database-layer
+embedded-mode gate in `modules/cli/doctor.go` wholesale, and keep database-layer
 checks and fixes server-gated until the driver interface covers them.
 
 ## Agent Warning: Interactive Commands
@@ -165,7 +165,7 @@ and the recommended prompt for the next session.
 ### Why bd?
 
 - Dependency-aware: Track blockers and relationships between issues
-- Git-friendly: Dolt-powered version control with native sync
+- Git-friendly: local Dolt plus a complete Git-tracked issue snapshot
 - Agent-optimized: JSON output, ready work detection, discovered-from links
 - Prevents duplicate tracking systems and confusion
 
@@ -234,13 +234,15 @@ bd close bd-42 --reason "Completed" --json
 
 ### Sync
 
-bd stores issue history in Dolt:
+IssueGraph stores active issues in local Dolt and writes a complete Git-tracked
+snapshot to `.issuegraph/`:
 
-- Each write auto-commits to Dolt history
-- Use `bd dolt push`/`bd dolt pull` for remote sync
-- Do not treat `.beads/issues.jsonl` as the sync protocol
+- Each write updates the local database and snapshot
+- The snapshot manifest defines the full issue set, including deletions
+- Use Git yourself to commit, pull, or push the repository when wanted
+- IssueGraph never runs Git network commands or pushes issue data to a service
 
-**Architecture in one line:** issues live in a local Dolt DB; sync uses `refs/dolt/data` on your git remote; `.beads/issues.jsonl` is a passive export. See https://github.com/gastownhall/beads/blob/main/docs/core-concepts/sync-concepts.md for details and anti-patterns.
+**Architecture in one line:** local Dolt for runtime; complete `.issuegraph/` snapshot for Git; no IssueGraph remote sync. See [sync concepts](docs/core-concepts/sync-concepts.md).
 
 ### Important Rules
 
@@ -276,7 +278,6 @@ This protocol applies when ending a Beads implementation workflow. It is subordi
 
    # Team-maintainer opt-in only, unless current instructions forbid it:
    git pull --rebase
-   bd dolt push
    git push
    git status
    ```

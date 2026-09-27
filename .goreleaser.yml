@@ -1,4 +1,4 @@
-# GoReleaser configuration for beads
+# GoReleaser configuration for issuegraph
 # See https://goreleaser.com for documentation
 
 version: 2
@@ -6,15 +6,16 @@ version: 2
 before:
   hooks:
     # Ensure dependencies are up to date
-    - go mod tidy
+    - go -C modules/cli mod tidy
     # Generate Windows PE version info resources (.syso files)
     # Reduces antivirus false positives by embedding legitimate metadata
     - ./scripts/gen-winres.sh
 
 builds:
-  - id: bd-linux-amd64
-    main: ./cmd/bd
-    binary: bd
+  - id: issuegraph-linux-amd64
+    dir: modules/cli
+    main: .
+    binary: issuegraph
     env:
       - CGO_ENABLED=1
       - CC=gcc
@@ -35,9 +36,10 @@ builds:
       post:
         - ./scripts/verify-cgo.sh "{{ .Path }}"
 
-  - id: bd-linux-arm64
-    main: ./cmd/bd
-    binary: bd
+  - id: issuegraph-linux-arm64
+    dir: modules/cli
+    main: .
+    binary: issuegraph
     env:
       - CGO_ENABLED=1
       - CC=aarch64-linux-gnu-gcc
@@ -57,9 +59,10 @@ builds:
       post:
         - ./scripts/verify-cgo.sh "{{ .Path }}"
 
-  - id: bd-android-arm64
-    main: ./cmd/bd
-    binary: bd
+  - id: issuegraph-android-arm64
+    dir: modules/cli
+    main: .
+    binary: issuegraph
     env:
       - CGO_ENABLED=0
     tags:
@@ -78,9 +81,10 @@ builds:
   # darwin-amd64 and darwin-arm64 are built by a dedicated macOS CI job
   # (release.yml: goreleaser-macos) with CGO_ENABLED=1 for embedded Dolt support.
 
-  - id: bd-windows-amd64
-    main: ./cmd/bd
-    binary: bd
+  - id: issuegraph-windows-amd64
+    dir: modules/cli
+    main: .
+    binary: issuegraph
     env:
       - CGO_ENABLED=1
       - CC=x86_64-w64-mingw32-gcc
@@ -105,9 +109,10 @@ builds:
         # Requires WINDOWS_SIGNING_CERT_PFX_BASE64 and WINDOWS_SIGNING_CERT_PASSWORD secrets
         - ./scripts/sign-windows.sh "{{ .Path }}"
 
-  - id: bd-windows-arm64
-    main: ./cmd/bd
-    binary: bd
+  - id: issuegraph-windows-arm64
+    dir: modules/cli
+    main: .
+    binary: issuegraph
     env:
       - CGO_ENABLED=0
     tags:
@@ -129,9 +134,10 @@ builds:
         # Requires WINDOWS_SIGNING_CERT_PFX_BASE64 and WINDOWS_SIGNING_CERT_PASSWORD secrets
         - ./scripts/sign-windows.sh "{{ .Path }}"
 
-  - id: bd-freebsd-amd64
-    main: ./cmd/bd
-    binary: bd
+  - id: issuegraph-freebsd-amd64
+    dir: modules/cli
+    main: .
+    binary: issuegraph
     env:
       - CGO_ENABLED=0
     tags:
@@ -148,7 +154,7 @@ builds:
       - -X main.Branch={{.Branch}}
 
 archives:
-  - id: bd-archive
+  - id: issuegraph-archive
     format: tar.gz
     name_template: "{{ .ProjectName }}_{{ .Version }}_{{ .Os }}_{{ .Arch }}"
     format_overrides:
@@ -193,7 +199,7 @@ release:
   prerelease: auto
   name_template: "v{{.Version}}"
   header: |
-    ## beads v{{.Version}}
+    ## IssueGraph v{{.Version}}
 
     Pre-compiled binaries for Linux, macOS (Intel & Apple Silicon), Windows (AMD64 & ARM64), Android/Termux (ARM64), and FreeBSD.
     {{ if .Prerelease }}
@@ -206,13 +212,13 @@ release:
 
     **Manual download (recommended):**
     Download the archive for your platform from the **Assets** below, extract it,
-    and place `bd` on your PATH.
+    and place `issuegraph` on your PATH.
 
     **Go install (pinned to this RC):**
     ```bash
-    go install github.com/steveyegge/beads/cmd/bd@v{{ .Version }}
+    go install github.com/steveyegge/beads/modules/cli@v{{ .Version }}
     # For embedded Dolt support:
-    CGO_ENABLED=1 GOFLAGS=-tags=gms_pure_go go install github.com/steveyegge/beads/cmd/bd@v{{ .Version }}
+    CGO_ENABLED=1 GOFLAGS=-tags=gms_pure_go go install github.com/steveyegge/beads/modules/cli@v{{ .Version }}
     ```
 
     When you are done validating, return to the stable release through your normal

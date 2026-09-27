@@ -1,6 +1,6 @@
-# PROPOSAL: general conditional (compare-and-set) update for `bd`
+# PROPOSAL: general conditional (compare-and-set) update for `issuegraph`
 
-**Status:** design, ready for implementation as a beads PR
+**Status:** design, ready for implementation as an issuegraph PR
 **Author:** design handoff (wyvern hostile-review epic wy-mdi5h)
 **Repo:** `github.com/steveyegge/beads` (`~/src/beads`, branch `main` @ `3a6dcff96`)
 **Motivating incidents:** wyvern wheelhouse review findings wy-mdi5h.3, .6, .7, .4 (TOCTOU park/restore/take/bulldog); upstream lineage bd-zccb9, #4727, wy-ejph3, wy-x543k.
@@ -10,19 +10,19 @@
 ## 1. Problem
 
 A hostile review of wyvern's wheelhouse fleet scripts found that its single most
-common bug class is **check-then-act on `bd` assignee/status**: park, interactive
+common bug class is **check-then-act on `issuegraph` assignee/status**: park, interactive
 restore, queue-take, and bulldog-claim each read a bead's state, then issue a
-*blind* `bd update -a X` / `-s Y`, and lose to a racing writer in the gap. The
+*blind* `issuegraph update -a X` / `-s Y`, and lose to a racing writer in the gap. The
 scripts paper over it with re-reads (`wh-take.sh`), but re-reads only narrow the
 window; they cannot close it. The root cause is not a wheelhouse bug — it is that
-**`bd` exposes no general compare-and-set for the coordination fields.**
+**`issuegraph` exposes no general compare-and-set for the coordination fields.**
 
-`bd` already recognizes this need and has been closing it verb by verb:
+`issuegraph` already recognizes this need and has been closing it verb by verb:
 
 | primitive | CAS semantics | added |
 |---|---|---|
-| `bd update --claim` | `assignee ∈ {'', pool-alias} → me`, `status → in_progress` | (existing) |
-| `bd unclaim --if-assignee X` | `assignee == X → ''`, `status → open` | #4727 |
+| `issuegraph update --claim` | `assignee ∈ {'', pool-alias} → me`, `status → in_progress` | (existing) |
+| `issuegraph unclaim --if-assignee X` | `assignee == X → ''`, `status → open` | #4727 |
 | `verifiedClaimWrite` (WIP) | verify-after-write for the above under a degraded server | bd-zccb9 (uncommitted in tree) |
 
 The pattern is a `UPDATE … WHERE id=? AND status IN(…) AND assignee=?` with
@@ -50,14 +50,14 @@ are adoption gaps: `--claim` already handles pool aliases (`claim.pools`, e.g.
 non-zero exit instead of a blind `-a` + swallowed refusal. This proposal fixes
 the primitive; those two are follow-up wheelhouse patches (wy-mdi5h.7, .4).
 
-## 3. Proposal: `--if-assignee` / `--if-status` guards on `bd update`
+## 3. Proposal: `--if-assignee` / `--if-status` guards on `issuegraph update`
 
 Add two precondition flags to the existing `update` command. When either is
 present, the mutation becomes an atomic CAS; when neither is present, `update` is
 unchanged.
 
 ```
-bd update <id> --if-assignee <expected> [--if-status <expected>] [ -a <new> ] [ -s <new> ] [ …other field flags ]
+issuegraph update <id> --if-assignee <expected> [--if-status <expected>] [ -a <new> ] [ -s <new> ] [ …other field flags ]
 ```
 
 Semantics:
@@ -78,7 +78,7 @@ Semantics:
   non-zero exit** with actual-vs-expected in the message. It must **never** be
   swallowed or collapse to exit 0 — this is the whole point; the CLI already has
   the "requested-but-lost claim ⇒ SilentExit()/non-zero" plumbing for `--claim`
-  (update_proxied_server.go, "beads audit finding #10") and this reuses it.
+  (update_proxied_server.go, "issuegraph audit finding #10") and this reuses it.
 - **Verify-after-write**: route through the WIP `verifiedClaimWrite` (a guarded
   reassign is coordination-critical and idempotent for the winner — safe to
   replay when a re-read proves the commit rolled back). Add a `reassigned(actor)`
@@ -87,7 +87,7 @@ Semantics:
 - **Batch/JSON**: same mixed-batch exit-code rule as `--claim` (one lost
   precondition in a batch ⇒ non-zero overall), same JSON shape.
 
-### Why guards on `update` rather than a new `bd reassign` verb
+### Why guards on `update` rather than a new `issuegraph reassign` verb
 
 - The transitions we need are *arbitrary* field CAS (assignee and/or status), not
   a single named operation; a verb per transition is how we got here.
@@ -96,9 +96,9 @@ Semantics:
   for free.
 - `--claim` and `unclaim --if-assignee` remain the ergonomic shorthands for their
   two hot paths; the general guards are the escape hatch the wrappers currently
-  fake with `bd sql`.
+  fake with `issuegraph sql`.
 
-Alternative considered — **dedicated `bd reassign --from --to`**: more
+Alternative considered — **dedicated `issuegraph reassign --from --to`**: more
 discoverable for the park case, but doesn't express restore's status-guarded
 claim-on-behalf without yet more flags, and duplicates update's plumbing. Rejected
 in favor of the general guards. (Flag it for maintainer preference — it is a CLI
@@ -108,16 +108,16 @@ surface call, not a correctness call.)
 
 ```sh
 # park (wy-mdi5h.3) — reassign only if the worker still holds it:
-bd update "$id" --if-assignee "$reclaimed_worker" -a "$PARK_ASSIGNEE"
+issuegraph update "$id" --if-assignee "$reclaimed_worker" -a "$PARK_ASSIGNEE"
 
 # interactive restore (wy-mdi5h.6) — claim-on-behalf, only while still open:
-bd update "$id" --if-assignee '' --if-status open -a "$owner" -s in_progress
+issuegraph update "$id" --if-assignee '' --if-status open -a "$owner" -s in_progress
 
 # queue-take (wy-mdi5h.7) — ADOPTION, no new primitive: use pool-aware claim
-bd update "$id" --claim          # fable-crew is a claim.pools alias
+issuegraph update "$id" --claim          # fable-crew is a claim.pools alias
 
 # bulldog (wy-mdi5h.4) — ADOPTION: claim + honor the non-zero exit, don't swallow
-bd update "$BEAD" --claim || { echo "foreign/lost; not mutating"; exit 1; }
+issuegraph update "$BEAD" --claim || { echo "foreign/lost; not mutating"; exit 1; }
 ```
 
 The first two are the primitive this proposal adds; the last two are wheelhouse
@@ -133,16 +133,16 @@ patches that consume the *existing* `--claim`.
   `UpdateIssueIfMatch(ctx, id, actor, guards, updates)` to the `Storage` interface.
 - `internal/storage/dolt/issues.go`: `DoltStore.UpdateIssueIfMatch` wrapping
   `verifiedClaimWrite` with a `matched(post)` postcondition + DOLT_ADD/COMMIT.
-- `cmd/bd/update.go`: register `--if-assignee` (String) and `--if-status`
+- `modules/cli/update.go`: register `--if-assignee` (String) and `--if-status`
   (String); when either `Changed()`, route to the CAS path; wire the
   precondition-failed → non-zero exit through the existing `claimFailed` machinery
   (both `update.go` and `update_proxied_server.go`). Reject `--if-*` combined with
   `--claim` (mutually exclusive; `--claim` is its own CAS).
-- `cmd/bd/prime.go`: document the new guards next to `--claim`.
+- `modules/cli/prime.go`: document the new guards next to `--claim`.
 
 ## 6. Tests
 
-Beads side (their conventions):
+IssueGraph side (their conventions):
 - `internal/storage/issueops` unit tests: match applies, assignee-mismatch no-op,
   status-mismatch no-op, `--if-assignee ''` matches only unassigned, closed-issue
   reject, row_lock rewritten on success.
@@ -162,6 +162,6 @@ Wyvern side (house rule — each consuming fix gets a `test-*.sh` pin):
   the two wheelhouse consumers that are genuine primitive gaps.
 - **Out:** label/other-field guards (`--if-label`) — no current consumer; add later
   if one appears. The wheelhouse *adoption* patches (queue-take, bulldog switching
-  to `--claim`) are separate wy-mdi5h children, not part of this beads PR.
+  to `--claim`) are separate wy-mdi5h children, not part of this issuegraph PR.
 - **Coordinate with the uncommitted `claim_verify.go` WIP** already in the tree —
   this proposal depends on `verifiedClaimWrite` landing (or lands alongside it).

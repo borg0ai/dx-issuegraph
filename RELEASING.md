@@ -1,6 +1,6 @@
-# Release Process for Beads
+# Release Process for IssueGraph
 
-This document describes the complete release process for beads, including GitHub releases, Homebrew, PyPI (MCP server), and npm packages.
+This document describes the complete release process for issuegraph, including GitHub releases, Homebrew, PyPI (MCP server), and npm packages.
 
 ## Table of Contents
 
@@ -22,7 +22,7 @@ This document describes the complete release process for beads, including GitHub
 
 ## Overview
 
-A beads release involves multiple distribution channels:
+An issuegraph release involves multiple distribution channels:
 
 1. **GitHub Release** - Binary downloads for all platforms
 2. **Homebrew** - macOS/Linux package manager
@@ -34,7 +34,7 @@ A beads release involves multiple distribution channels:
 For routine releases, run the release molecule:
 
 ```bash
-bd mol wisp beads-release --var version=1.3.0
+issuegraph mol wisp beads-release --var version=1.3.0
 ```
 
 `.beads/formulas/beads-release.formula.toml` defines the whole flow as
@@ -114,7 +114,7 @@ git push origin release/1.3.0
 Base the PR on `release/x.y.z`, not `main`, and label it
 `status/needs-review-auto` so it goes through the automated review workflow
 like any other change. That includes the release-prep PR itself (version
-bump, CHANGELOG, `cmd/bd/info.go`) and any fix the release validation turns
+bump, CHANGELOG, `modules/cli/info.go`) and any fix the release validation turns
 up. Nothing is pushed straight to the release branch.
 
 **Tag from the release branch**, following [1. Prepare Release](#1-prepare-release)
@@ -151,7 +151,7 @@ Before starting a release:
       belongs in this release, and nothing filed under a *previous* release's
       section that shipped after that tag. Verify with
       `git merge-base --is-ancestor <commit> <previous-tag>` when in doubt.
-- [ ] **`cmd/bd/info.go` `versionChanges` entry added** for this version
+- [ ] **`modules/cli/info.go` `versionChanges` entry added** for this version
 - [ ] **Breaking changes documented** with migration steps and recovery instructions
 - [ ] **Docs cutover planned** — `docs/cli-docs.pin` bump plus
       `./scripts/generate-cli-docs.sh`, and the release line on the docs
@@ -230,7 +230,7 @@ is retired; it now only prints a pointer here.)
 ```
 
 This updates:
-- `cmd/bd/version.go` — CLI version constant. This is the canonical version:
+- `modules/cli/version.go` — CLI version constant. This is the canonical version:
   `check-versions.sh` reads it and compares the gated files against it. Note
   that "gated" is narrower than "updated" — `default.nix` and `README.md` are
   bumped here but checked by nothing, so eyeball them.
@@ -246,16 +246,16 @@ This updates:
 - `.claude-plugin/marketplace.json` — Claude marketplace version
 - `npm-package/package.json` — npm package version
 - `.githooks/*` — the `BEGIN`/`END BEADS INTEGRATION v<version>` markers on the
-  tracked managed hook sections, held byte-equal to the `cmd/bd/hooks.go`
+  tracked managed hook sections, held byte-equal to the `modules/cli/hooks.go`
   generator by `TestTrackedManagedHookSectionsMatchGenerator`. Skipping them
   reddens the branch only after the push (that was the v1.2.0 bump).
 - `default.nix` — Nix package version
-- `cmd/bd/winres/winres.json`, `cmd/bd/winres/manifest.xml` — Windows PE
+- `modules/cli/winres/winres.json`, `modules/cli/winres/manifest.xml` — Windows PE
   resource metadata (the numeric fields take the base version, with any
   prerelease suffix stripped)
 - `README.md` — the static Alpha version badge, if one is present
 
-It does **not** touch `CHANGELOG.md`, `cmd/bd/info.go`, or `default.nix`'s
+It does **not** touch `CHANGELOG.md`, `modules/cli/info.go`, or `default.nix`'s
 `vendorHash`. Write the release notes first (above), and run
 `./scripts/update-nix-vendorhash.sh` if `go.mod`/`go.sum` changed since the
 last tag.
@@ -303,7 +303,7 @@ release.
 **Recommended workflow:**
 
 ```bash
-# 1. Update CHANGELOG.md and cmd/bd/info.go with release notes (manual step)
+# 1. Update CHANGELOG.md and modules/cli/info.go with release notes (manual step)
 
 # 2. Bump versions and verify
 ./scripts/update-versions.sh 0.22.0
@@ -488,12 +488,12 @@ the release tag the docs corpus is generated from and validated against
 (engdocs/decisions/2026-07-17-docs-release-pin.md); it lags `main` between
 releases by design, so any command or flag added on `main` since the last
 bump is invisible to `scripts/check-doc-flags.sh` Check 4 ("covers all live
-top-level CLI commands" passes vacuously for it, e.g. wy-gx5rj for `bd
+top-level CLI commands" passes vacuously for it, e.g. wy-gx5rj for `issuegraph
 sync`). Bump it as part of THIS release, not a follow-up:
 
 ```bash
 # After tagging (see "Update Version and Create Release Tag" above).
-# generate-cli-docs.sh builds bd from the pinned tag, so the tag must exist.
+# generate-cli-docs.sh builds issuegraph from the pinned tag, so the tag must exist.
 echo "v0.22.0" > docs/cli-docs.pin
 ./scripts/generate-cli-docs.sh
 git add docs/cli-docs.pin docs/CLI_REFERENCE.md docs/cli-reference docs/docs.json
@@ -511,7 +511,7 @@ from docs/CLI_REFERENCE.md" failures with no obvious release to blame.
 
 **The docs homepage names the release line, and it is hand-maintained.**
 `docs/index.md` carries a line of the form "These docs are for the X.Y.Z
-release of beads" with a link to that tag's release notes. Nothing generates
+release of issuegraph" with a link to that tag's release notes. Nothing generates
 or validates it, so it goes stale silently — it still said 1.1.0 when the pin
 had already moved to v1.2.2. Update it in the same commit as the pin:
 
@@ -709,7 +709,7 @@ cut on `release/1.1.0`, not `release/1.1.0-rc.1`.
 # 0. Cut (or check out) the release branch — see Release Branches above.
 git checkout release/1.1.0
 
-# 1. Update CHANGELOG.md and cmd/bd/info.go with the RC notes (manual step),
+# 1. Update CHANGELOG.md and modules/cli/info.go with the RC notes (manual step),
 #    same as a stable release. Date the CHANGELOG section.
 
 # 2. Bump versions. update-versions.sh accepts a prerelease identifier, and
@@ -885,8 +885,8 @@ After a successful release:
 
 3. **Verify the upgraded CLI**:
    ```bash
-   bd version
-   bd doctor quick
+   issuegraph version
+   issuegraph doctor quick
    ```
 
 4. **Announce** on relevant channels (Twitter, blog, etc.)
@@ -936,7 +936,7 @@ goreleaser build --snapshot --clean
 
 ## Version Numbering
 
-Beads follows [Semantic Versioning](https://semver.org/):
+IssueGraph follows [Semantic Versioning](https://semver.org/):
 
 - **MAJOR** (x.0.0): Removals and incompatible interface changes — a command,
   flag, config key, schema table or published Go API that is deleted or
@@ -953,14 +953,14 @@ Beads follows [Semantic Versioning](https://semver.org/):
 The MINOR clause is a description of practice, not a loophole. It carries an
 obligation: every behavioral break in a minor release must appear in
 CHANGELOG.md under that release, name its override or migration step, and be
-summarized in `cmd/bd/info.go` so `bd info --whats-new` surfaces it to agents.
+summarized in `modules/cli/info.go` so `issuegraph info --whats-new` surfaces it to agents.
 A behavioral break that is *not* documented that way is a bug in the release,
 not a minor bump.
 
 **1.3.0 is a worked example.** It ships seven documented behavioral breaks —
-`bd update --status <done-status>` enforcing close policy, `bd search`
-including closed issues, the interactive-only last-touched fallback, `bd human
-list` status handling, `bd dolt push` remote-adoption consent, Dolt port
+`issuegraph update --status <done-status>` enforcing close policy, `issuegraph search`
+including closed issues, the interactive-only last-touched fallback, `issuegraph human
+list` status handling, `issuegraph dolt push` remote-adoption consent, Dolt port
 precedence over `BEADS_DOLT_PORT`, and actor `--` decoding — plus a schema
 migration and a flag rename (`--profile` → `--cpu-profile`). Every one has a
 CHANGELOG entry with its override, and the release is a MINOR bump.

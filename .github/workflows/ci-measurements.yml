@@ -80,16 +80,16 @@ jobs:
           set -euo pipefail
           mkdir -p artifacts
           source scripts/ci/lib/timing.sh
-          source ./.buildflags
+          source ./modules/core/.buildflags
 
           ci_time "install gotestsum" -- go install gotest.tools/gotestsum@v1.13.0
           ci_time "install golangci-lint" -- go install github.com/golangci/golangci-lint/v2/cmd/golangci-lint@v2.10.1
           status=0
           ci_time "pr-policy wrapper" -- make ci-pr-policy || status=$?
           # -timeout=30m keeps this in step with the lane it measures
-          # (scripts/ci/pr-core.sh). Without it ./cmd/bd can die on `go test`'s
+          # (scripts/ci/pr-core.sh). Without it github.com/steveyegge/beads/modules/cli can die on `go test`'s
           # 10m default and the measurement reports a panic instead of a duration.
-          ci_time "pr-core gotestsum" -- gotestsum --junitfile artifacts/pr-core-junit.xml --format testdox -- -race -short -timeout=30m -skip '^TestEmbedded' ./... || status=$?
+          ci_time "pr-core gotestsum" -- gotestsum --junitfile artifacts/pr-core-junit.xml --format testdox -- -race -short -timeout=30m -skip '^TestEmbedded' github.com/steveyegge/beads/... || status=$?
           ci_time "pr-lint wrapper" -- make ci-pr-lint || status=$?
           exit "$status"
 
@@ -129,12 +129,12 @@ jobs:
         run: |
           set -euo pipefail
           source scripts/ci/lib/timing.sh
-          source ./.buildflags
+          source ./modules/core/.buildflags
 
           # -timeout=30m matches the macOS lanes this measures (pr.yml, main.yml).
-          # This is the job that produced the ./cmd/bd duration distribution, and
+          # This is the job that produced the github.com/steveyegge/beads/modules/cli duration distribution, and
           # at 10m it clips its own longest samples into timeout panics.
-          ci_time "macos short go test" -- go test -v -race -short -timeout=30m -skip '^TestEmbedded' ./...
+          ci_time "macos short go test" -- go test -v -race -short -timeout=30m -skip '^TestEmbedded' github.com/steveyegge/beads/...
 
   macos-candidates:
     name: Measure macOS no-short candidates
@@ -165,8 +165,8 @@ jobs:
           source scripts/ci/lib/timing.sh
 
           status=0
-          ci_time "macos no-short go test" -- go test -tags=gms_pure_go -v -race -timeout=30m -skip '^TestEmbedded' ./... || status=$?
-          ci_time "macos integration go test" -- go test -tags=integration,gms_pure_go -v -race -timeout=30m -skip '^TestEmbedded' ./... || status=$?
+          ci_time "macos no-short go test" -- go test -tags=gms_pure_go -v -race -timeout=30m -skip '^TestEmbedded' github.com/steveyegge/beads/... || status=$?
+          ci_time "macos integration go test" -- go test -tags=integration,gms_pure_go -v -race -timeout=30m -skip '^TestEmbedded' github.com/steveyegge/beads/... || status=$?
           exit "$status"
 
   linux-integration:
@@ -199,7 +199,7 @@ jobs:
           source scripts/ci/lib/timing.sh
 
           ci_time "install gotestsum" -- go install gotest.tools/gotestsum@v1.13.0
-          ci_time "linux integration go test" -- env BEADS_TEST_SKIP=dolt gotestsum --junitfile artifacts/linux-integration-junit.xml --format testdox -- -v -race -tags=integration,gms_pure_go -timeout=30m ./...
+          ci_time "linux integration go test" -- env BEADS_TEST_SKIP=dolt gotestsum --junitfile artifacts/linux-integration-junit.xml --format testdox -- -v -race -tags=integration,gms_pure_go -timeout=30m github.com/steveyegge/beads/...
 
       - name: Upload measurement artifacts
         if: always()
@@ -276,7 +276,7 @@ jobs:
           if-no-files-found: ignore
 
   linux-integration-hybrid-packages:
-    name: Measure Linux integration package shard ${{ matrix.shard }}/6 (no cmd/bd)
+    name: Measure Linux integration package shard ${{ matrix.shard }}/6 (no modules/cli)
     if: ${{ inputs.suite == 'linux-integration-hybrid-sharded' || inputs.suite == 'linux-integration-hybrid-16-sharded' || inputs.suite == 'linux-integration-hybrid-prebuilt-sharded' }}
     runs-on: ubuntu-latest
     timeout-minutes: 30
@@ -316,7 +316,7 @@ jobs:
           package_manifest="artifacts/linux-integration-hybrid-packages-${SHARD}-of-${TOTAL_SHARDS}.txt"
           write_package_manifest() {
             GO_TEST_SHARD_TAGS=integration,gms_pure_go \
-              GO_TEST_SHARD_EXCLUDE_REGEX="^github.com/steveyegge/beads/cmd/bd$" \
+              GO_TEST_SHARD_EXCLUDE_REGEX="^github.com/steveyegge/beads/modules/cli$" \
               scripts/ci/go-test-shard-packages.sh "$SHARD" "$TOTAL_SHARDS" > "$package_manifest"
           }
           ci_time "list integration package shard ${SHARD}/${TOTAL_SHARDS}" -- write_package_manifest
@@ -344,7 +344,7 @@ jobs:
           if-no-files-found: ignore
 
   linux-integration-hybrid-cmd-bd:
-    name: Measure Linux integration cmd/bd shard ${{ matrix.shard }}/8
+    name: Measure Linux integration modules/cli shard ${{ matrix.shard }}/8
     if: ${{ inputs.suite == 'linux-integration-hybrid-sharded' }}
     runs-on: ubuntu-latest
     timeout-minutes: 30
@@ -384,9 +384,9 @@ jobs:
           test_manifest="artifacts/linux-integration-cmd-bd-tests-${SHARD}-of-${TOTAL_SHARDS}.txt"
           write_test_manifest() {
             GO_TEST_SHARD_TAGS=integration,gms_pure_go \
-              scripts/ci/go-test-shard-names.sh "$SHARD" "$TOTAL_SHARDS" ./cmd/bd > "$test_manifest"
+              scripts/ci/go-test-shard-names.sh "$SHARD" "$TOTAL_SHARDS" github.com/steveyegge/beads/modules/cli > "$test_manifest"
           }
-          ci_time "list cmd/bd test shard ${SHARD}/${TOTAL_SHARDS}" -- write_test_manifest
+          ci_time "list modules/cli test shard ${SHARD}/${TOTAL_SHARDS}" -- write_test_manifest
           cat "$test_manifest"
           mapfile -t tests < "$test_manifest"
 
@@ -396,11 +396,11 @@ jobs:
           fi
 
           run_regex="^($(IFS='|'; echo "${tests[*]}"))$"
-          ci_time "linux integration cmd/bd shard ${SHARD}/${TOTAL_SHARDS} go test" -- \
+          ci_time "linux integration modules/cli shard ${SHARD}/${TOTAL_SHARDS} go test" -- \
             env BEADS_TEST_SKIP=dolt gotestsum \
               --junitfile "artifacts/linux-integration-cmd-bd-${SHARD}-of-${TOTAL_SHARDS}.xml" \
               --format testdox \
-              -- -v -race -tags=integration,gms_pure_go -timeout=30m -run "$run_regex" ./cmd/bd
+              -- -v -race -tags=integration,gms_pure_go -timeout=30m -run "$run_regex" github.com/steveyegge/beads/modules/cli
 
       - name: Upload measurement artifacts
         if: always()
@@ -412,7 +412,7 @@ jobs:
           if-no-files-found: ignore
 
   linux-integration-hybrid-16-cmd-bd:
-    name: Measure Linux integration cmd/bd shard ${{ matrix.shard }}/16
+    name: Measure Linux integration modules/cli shard ${{ matrix.shard }}/16
     if: ${{ inputs.suite == 'linux-integration-hybrid-16-sharded' }}
     runs-on: ubuntu-latest
     timeout-minutes: 30
@@ -452,9 +452,9 @@ jobs:
           test_manifest="artifacts/linux-integration-cmd-bd-tests-${SHARD}-of-${TOTAL_SHARDS}.txt"
           write_test_manifest() {
             GO_TEST_SHARD_TAGS=integration,gms_pure_go \
-              scripts/ci/go-test-shard-names.sh "$SHARD" "$TOTAL_SHARDS" ./cmd/bd > "$test_manifest"
+              scripts/ci/go-test-shard-names.sh "$SHARD" "$TOTAL_SHARDS" github.com/steveyegge/beads/modules/cli > "$test_manifest"
           }
-          ci_time "list cmd/bd test shard ${SHARD}/${TOTAL_SHARDS}" -- write_test_manifest
+          ci_time "list modules/cli test shard ${SHARD}/${TOTAL_SHARDS}" -- write_test_manifest
           cat "$test_manifest"
           mapfile -t tests < "$test_manifest"
 
@@ -464,11 +464,11 @@ jobs:
           fi
 
           run_regex="^($(IFS='|'; echo "${tests[*]}"))$"
-          ci_time "linux integration cmd/bd shard ${SHARD}/${TOTAL_SHARDS} go test" -- \
+          ci_time "linux integration modules/cli shard ${SHARD}/${TOTAL_SHARDS} go test" -- \
             env BEADS_TEST_SKIP=dolt gotestsum \
               --junitfile "artifacts/linux-integration-cmd-bd-${SHARD}-of-${TOTAL_SHARDS}.xml" \
               --format testdox \
-              -- -v -race -tags=integration,gms_pure_go -timeout=30m -run "$run_regex" ./cmd/bd
+              -- -v -race -tags=integration,gms_pure_go -timeout=30m -run "$run_regex" github.com/steveyegge/beads/modules/cli
 
       - name: Upload measurement artifacts
         if: always()
@@ -480,7 +480,7 @@ jobs:
           if-no-files-found: ignore
 
   linux-integration-hybrid-prebuilt-bd:
-    name: Measure Linux integration prebuild cmd/bd binary
+    name: Measure Linux integration prebuild modules/cli binary
     if: ${{ inputs.suite == 'linux-integration-hybrid-prebuilt-sharded' }}
     runs-on: ubuntu-latest
     timeout-minutes: 20
@@ -497,9 +497,9 @@ jobs:
           set -euo pipefail
           mkdir -p artifacts
           source scripts/ci/lib/timing.sh
-          source ./.buildflags
+          source ./modules/core/.buildflags
 
-          ci_time "build cmd/bd subprocess binary" -- go build -tags "$BEADS_BUILD_TAGS" -o artifacts/bd ./cmd/bd
+          ci_time "build modules/cli subprocess binary" -- go build -tags "$BEADS_BUILD_TAGS" -o artifacts/bd github.com/steveyegge/beads/modules/cli
 
       - name: Upload prebuilt bd
         uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7
@@ -510,7 +510,7 @@ jobs:
           if-no-files-found: error
 
   linux-integration-hybrid-prebuilt-cmd-bd:
-    name: Measure Linux integration prebuilt cmd/bd shard ${{ matrix.shard }}/8
+    name: Measure Linux integration prebuilt modules/cli shard ${{ matrix.shard }}/8
     if: ${{ inputs.suite == 'linux-integration-hybrid-prebuilt-sharded' }}
     needs: linux-integration-hybrid-prebuilt-bd
     runs-on: ubuntu-latest
@@ -559,9 +559,9 @@ jobs:
           test_manifest="artifacts/linux-integration-cmd-bd-tests-${SHARD}-of-${TOTAL_SHARDS}.txt"
           write_test_manifest() {
             GO_TEST_SHARD_TAGS=integration,gms_pure_go \
-              scripts/ci/go-test-shard-names.sh "$SHARD" "$TOTAL_SHARDS" ./cmd/bd > "$test_manifest"
+              scripts/ci/go-test-shard-names.sh "$SHARD" "$TOTAL_SHARDS" github.com/steveyegge/beads/modules/cli > "$test_manifest"
           }
-          ci_time "list cmd/bd test shard ${SHARD}/${TOTAL_SHARDS}" -- write_test_manifest
+          ci_time "list modules/cli test shard ${SHARD}/${TOTAL_SHARDS}" -- write_test_manifest
           cat "$test_manifest"
           mapfile -t tests < "$test_manifest"
 
@@ -571,11 +571,11 @@ jobs:
           fi
 
           run_regex="^($(IFS='|'; echo "${tests[*]}"))$"
-          ci_time "linux integration prebuilt cmd/bd shard ${SHARD}/${TOTAL_SHARDS} go test" -- \
+          ci_time "linux integration prebuilt modules/cli shard ${SHARD}/${TOTAL_SHARDS} go test" -- \
             env BEADS_TEST_SKIP=dolt gotestsum \
               --junitfile "artifacts/linux-integration-prebuilt-cmd-bd-${SHARD}-of-${TOTAL_SHARDS}.xml" \
               --format testdox \
-              -- -v -race -tags=integration,gms_pure_go -timeout=30m -run "$run_regex" ./cmd/bd
+              -- -v -race -tags=integration,gms_pure_go -timeout=30m -run "$run_regex" github.com/steveyegge/beads/modules/cli
 
       - name: Upload measurement artifacts
         if: always()
@@ -617,7 +617,7 @@ jobs:
 
           ci_time "install gotestsum" -- go install gotest.tools/gotestsum@v1.13.0
           status=0
-          ci_time "linux integration coverage go test" -- env BEADS_TEST_SKIP=dolt gotestsum --junitfile artifacts/linux-integration-coverage-junit.xml --format testdox -- -v -race -tags=integration,gms_pure_go -coverprofile=artifacts/coverage.out -timeout=30m ./... || status=$?
+          ci_time "linux integration coverage go test" -- env BEADS_TEST_SKIP=dolt gotestsum --junitfile artifacts/linux-integration-coverage-junit.xml --format testdox -- -v -race -tags=integration,gms_pure_go -coverprofile=artifacts/coverage.out -timeout=30m github.com/steveyegge/beads/... || status=$?
           if [[ -f artifacts/coverage.out ]]; then
             ci_time "coverage summary" -- go tool cover -func=artifacts/coverage.out || status=$?
           else
@@ -665,9 +665,9 @@ jobs:
         run: |
           set -euo pipefail
           source scripts/ci/lib/timing.sh
-          source ./.buildflags
+          source ./modules/core/.buildflags
 
-          ci_time "build candidate binary" -- go build -o /tmp/bd-candidate ./cmd/bd
+          ci_time "build candidate binary" -- go build -o /tmp/bd-candidate github.com/steveyegge/beads/modules/cli
           export CANDIDATE_BIN=/tmp/bd-candidate
           if [[ -z "$SMOKE_VERSION" ]]; then
             SMOKE_VERSION="$(gh release list --repo "$GITHUB_REPOSITORY" --limit 1 --json tagName --jq '.[0].tagName')"

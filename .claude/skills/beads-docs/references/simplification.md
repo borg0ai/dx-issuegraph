@@ -73,7 +73,7 @@ implementation. Before pushing, verify every **checkable claim** on the
 touched pages against the current code: CLI commands/subcommands/flags
 (cheapest check: the generated `docs/cli-reference/` pages, which are correct
 by construction), config keys and defaults (`internal/configfile/`,
-`cmd/bd/config.go`), environment variables, file and directory paths
+`modules/cli/config.go`), environment variables, file and directory paths
 (embedded mode data lives at `.beads/embeddeddolt/`, server mode at
 `.beads/dolt/`), issue types and dependency types, and numeric defaults.
 

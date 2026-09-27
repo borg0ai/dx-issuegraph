@@ -1,6 +1,6 @@
-# Beads Performance Benchmarks
+# IssueGraph Performance Benchmarks
 
-This document describes the performance benchmarks available in the beads project and how to use them.
+This document describes the performance benchmarks available in the issuegraph project and how to use them.
 
 ## Running Benchmarks
 

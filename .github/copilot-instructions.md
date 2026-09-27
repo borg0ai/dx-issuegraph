@@ -30,7 +30,7 @@
 
 ### Code Style
 - Run `make ci-pr-lint` before committing changes to Go or lint-controlled files
-- Follow existing patterns in `cmd/bd/` for new commands
+- Follow existing patterns in `modules/cli/` for new commands
 - Add `--json` flag to all commands for programmatic use
 - Update docs when changing behavior
 
@@ -91,7 +91,7 @@ bd dolt pull                   # Pull from Dolt remote
 
 ```
 beads/
-├── cmd/bd/              # CLI commands (add new commands here)
+├── modules/cli/              # CLI commands (add new commands here)
 ├── internal/
 │   ├── types/           # Core data types
 │   └── storage/         # Storage layer

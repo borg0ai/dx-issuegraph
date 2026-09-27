@@ -53,10 +53,10 @@ jobs:
         run: |
           set -euo pipefail
           mkdir -p artifacts
-          source ./.buildflags
+          source ./modules/core/.buildflags
           go_version="$(go version)"
           commit="$(git rev-parse HEAD)"
-          go build -tags "$BEADS_BUILD_TAGS" -o artifacts/bd-linux-gms-pure ./cmd/bd
+          go build -tags "$BEADS_BUILD_TAGS" -o artifacts/bd-linux-gms-pure github.com/steveyegge/beads/modules/cli
           chmod +x artifacts/bd-linux-gms-pure
           (
             cd artifacts
@@ -165,7 +165,7 @@ jobs:
       - run: ./scripts/check-build-tags.sh
       - run: ./scripts/check-go-install-guidance.sh
 
-  # Lock in two CGO-disabled portability boundaries. cmd/bd carries a mix of
+  # Lock in two CGO-disabled portability boundaries. modules/cli carries a mix of
   # cgo-only test helpers (embedded Dolt, sql.DB) and pure-Go tests; compiling
   # and running its pure-Go subset prevents test contamination (mybd-ycx /
   # GH#3683 follow-up). internal/hooks also declares a js/wasm boundary where
@@ -204,7 +204,7 @@ jobs:
           test_output="$(go test -tags gms_pure_go -count=1 -timeout=2m \
             -exec="$(go env GOROOT)/lib/wasm/go_js_wasm_exec" \
             -run '^TestRunHookReportsUnsupportedExecution$' \
-            -v ./internal/hooks 2>&1)" || test_status=$?
+            -v github.com/steveyegge/beads/internal/hooks 2>&1)" || test_status=$?
           printf '%s\n' "$test_output"
           (( test_status == 0 )) || exit "$test_status"
 
@@ -230,20 +230,20 @@ jobs:
             exit 1
           fi
 
-      - name: Build cmd/bd (CGO_ENABLED=0, gms_pure_go)
+      - name: Build modules/cli (CGO_ENABLED=0, gms_pure_go)
         env:
           CGO_ENABLED: "0"
-        run: go build -tags gms_pure_go -o /tmp/bd-puregeo ./cmd/bd
+        run: go build -tags gms_pure_go -o /tmp/bd-puregeo github.com/steveyegge/beads/modules/cli
 
       - name: Compile pure-Go test binaries (CGO_ENABLED=0, gms_pure_go)
         env:
           CGO_ENABLED: "0"
         run: |
-          go test -tags gms_pure_go -c -o /tmp/bd-cmd-puregeo-test ./cmd/bd
-          go test -tags gms_pure_go -c -o /tmp/bd-embeddeddolt-puregeo-test ./internal/storage/embeddeddolt
-          go test -tags gms_pure_go -c -o /tmp/bd-tracker-puregeo-test ./internal/tracker
+          go test -tags gms_pure_go -c -o /tmp/bd-cmd-puregeo-test github.com/steveyegge/beads/modules/cli
+          go test -tags gms_pure_go -c -o /tmp/bd-embeddeddolt-puregeo-test github.com/steveyegge/beads/internal/storage/embeddeddolt
+          go test -tags gms_pure_go -c -o /tmp/bd-tracker-puregeo-test github.com/steveyegge/beads/internal/tracker
 
-      - name: Run pure-Go cmd/bd test subset (CGO_ENABLED=0)
+      - name: Run pure-Go modules/cli test subset (CGO_ENABLED=0)
         env:
           CGO_ENABLED: "0"
         # Restrict to tests that exercise pure-Go code paths. Tests that
@@ -251,7 +251,7 @@ jobs:
         # is available; the goal here is to catch compile-time contamination,
         # not run the full suite.
         run: |
-          go test -tags gms_pure_go -count=1 -short -run '^Test(Help|CheckRemoteSafety|FormatDestroyToken|ShouldWireInitRemote|ExtractPrefix|IsNumericID|GetWorktreeGitDir|DriftItemStatuses|RunDriftChecks|IsServerProbablyRunning|CheckHooksDriftNotGitRepo|CheckServerDriftNoBeadsDir|CheckRemoteDriftNoBeadsDir)' ./cmd/bd
+          go test -tags gms_pure_go -count=1 -short -run '^Test(Help|CheckRemoteSafety|FormatDestroyToken|ShouldWireInitRemote|ExtractPrefix|IsNumericID|GetWorktreeGitDir|DriftItemStatuses|RunDriftChecks|IsServerProbablyRunning|CheckHooksDriftNotGitRepo|CheckServerDriftNoBeadsDir|CheckRemoteDriftNoBeadsDir)' github.com/steveyegge/beads/modules/cli
 
   # The lingering-handle liveness regression test is //go:build windows: the
   # Ubuntu job above selects it by name but compiles it out, and main.yml's
@@ -259,7 +259,7 @@ jobs:
   # exactly the liveness pair on windows-latest so the regression guard
   # actually executes at PR time.
   test-windows-liveness:
-    name: Test (Windows) cmd/bd liveness regression
+    name: Test (Windows) modules/cli liveness regression
     runs-on: windows-latest
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v6
@@ -272,7 +272,7 @@ jobs:
           cache: false
 
       - name: Run Windows liveness regression test
-        run: go test -tags gms_pure_go -count=1 -run '^TestIsServerProbablyRunning' ./cmd/bd
+        run: go test -tags gms_pure_go -count=1 -run '^TestIsServerProbablyRunning' github.com/steveyegge/beads/modules/cli
 
   # internal/doltversion carries Windows-specific branches (PATHEXT
   # extension completion in Resolve, ERROR_BAD_EXE_FORMAT detection, the
@@ -296,7 +296,7 @@ jobs:
           cache: false
 
       - name: Run doltversion package tests on Windows
-        run: go test -tags gms_pure_go -count=1 ./internal/doltversion/
+        run: go test -tags gms_pure_go -count=1 github.com/steveyegge/beads/internal/doltversion/
 
   # Destructive worktree removal depends on native Windows path identity.
   # This focused process suite requires NTFS per-directory case sensitivity
@@ -333,7 +333,7 @@ jobs:
         env:
           CGO_ENABLED: "0"
           GOCACHE: ${{ runner.temp }}/go-cache/non-race
-        run: go test -tags gms_pure_go -count=1 -run '^TestWorktreeRemove' ./cmd/bd
+        run: go test -tags gms_pure_go -count=1 -run '^TestWorktreeRemove' github.com/steveyegge/beads/modules/cli
 
   # internal/storage/dbproxy/server carries the platform-portable path
   # handling that #5820 introduced (testPlatformPath, external dolt config
@@ -371,7 +371,7 @@ jobs:
       - name: Run dbproxy server package tests on Windows
         env:
           CGO_ENABLED: "0"
-        run: go test -tags gms_pure_go -count=1 -v ./internal/storage/dbproxy/server/
+        run: go test -tags gms_pure_go -count=1 -v github.com/steveyegge/beads/internal/storage/dbproxy/server/
 
   # Fast check to ensure all version files are in sync
   check-version-consistency:
@@ -419,7 +419,7 @@ jobs:
           cache: false
 
       - name: Build bd
-        run: CGO_ENABLED=0 go build -tags gms_pure_go -o bd ./cmd/bd/
+        run: CGO_ENABLED=0 go build -tags gms_pure_go -o bd github.com/steveyegge/beads/modules/cli
 
       - name: Validate docs against CLI
         env:
@@ -513,7 +513,7 @@ jobs:
 
       - name: Exercise generated Git hook timeout process boundary
         shell: bash
-        run: go test '-tags=gms_pure_go' -count=1 -run '^TestGeneratedHookTimeoutProcessBoundary$' ./cmd/bd
+        run: go test '-tags=gms_pure_go' -count=1 -run '^TestGeneratedHookTimeoutProcessBoundary$' github.com/steveyegge/beads/modules/cli
 
       - name: Check benchmark environment scrubbing
         if: matrix.os == 'windows-latest'
@@ -820,7 +820,7 @@ jobs:
 
   # Focused job for the hexagonal storage layer (internal/storage/domain/* and
   # internal/storage/uow). These packages back the proxied-server init path and
-  # also live behind the existing ./... matrix, but TestDomainDB requires the
+  # also live behind the existing github.com/steveyegge/beads/... matrix, but TestDomainDB requires the
   # Dolt sql-server image cached locally (testcontainers checks `docker image
   # inspect` and skips otherwise). Pulling the image up front guarantees the
   # suite actually runs and surfaces failures here with a clear job name.
@@ -874,7 +874,7 @@ jobs:
       - name: Test domain + uow + tracker
         env:
           BEADS_TEST_BD_BINARY: ${{ github.workspace }}/ci-build-artifacts/bd-linux-gms-pure
-        run: go test -tags gms_pure_go -race -count=1 -timeout 15m -v ./internal/storage/domain/... ./internal/storage/uow/... ./internal/tracker/...
+        run: go test -tags gms_pure_go -race -count=1 -timeout 15m -v github.com/steveyegge/beads/internal/storage/domain/... github.com/steveyegge/beads/internal/storage/uow/... github.com/steveyegge/beads/internal/tracker/...
 
       # The doctor/fix DB-backed suite spins its own Dolt container in
       # TestMain. BEADS_FIX_REQUIRE_DOLT=1 turns a missing container into a
@@ -884,7 +884,7 @@ jobs:
         env:
           BEADS_TEST_BD_BINARY: ${{ github.workspace }}/ci-build-artifacts/bd-linux-gms-pure
           BEADS_FIX_REQUIRE_DOLT: "1"
-        run: go test -tags gms_pure_go -race -count=1 -timeout 10m -v ./cmd/bd/doctor/fix/
+        run: go test -tags gms_pure_go -race -count=1 -timeout 10m -v github.com/steveyegge/beads/modules/cli/doctor/fix
 
   # macOS-only regressions were landing on main undetected: main.yml's Test
   # (macos-latest) leg only runs `if: github.event_name == 'push' &&
@@ -957,23 +957,23 @@ jobs:
       - name: Build
         env:
           GOCACHE: ${{ runner.temp }}/go-cache/non-race
-        run: go build -v -tags gms_pure_go ./cmd/bd
+        run: go build -v -tags gms_pure_go github.com/steveyegge/beads/modules/cli
 
       - name: Test
         env:
           BEADS_TEST_BD_BINARY: ${{ github.workspace }}/bd
           GOCACHE: ${{ runner.temp }}/go-cache/race
         # -timeout is explicit for the same reason it is in scripts/ci/pr-core.sh
-        # (#6091): ./cmd/bd has outgrown `go test`'s 10m per-package default. On
+        # (#6091): github.com/steveyegge/beads/modules/cli has outgrown `go test`'s 10m per-package default. On
         # this runner it lands between 357s and 600s across recent runs — #6091's
         # own macOS lane passed at 596.7s, 3.3s under the wall — so the package
         # intermittently dies on the alarm and the panic names whichever test was
         # in flight, which reads like a hang instead of the clock running out. 30m
         # matches every other -race lane here for this same code.
-        run: go test -tags gms_pure_go -v -race -short -timeout=30m -skip '^TestEmbedded' ./...
+        run: go test -tags gms_pure_go -v -race -short -timeout=30m -skip '^TestEmbedded' github.com/steveyegge/beads/...
 
   # Producer-side guard for the Beads<->consumer CLI contract. Runs the whole
-  # cmd/bd/protocol package: the golden corpus (regenerated from this branch's
+  # modules/cli/protocol package: the golden corpus (regenerated from this branch's
   # bd and byte-compared to the committed testdata/corpus/, so an unreviewed
   # wire change is a hard failure — run `make corpus-regen`), the double-run
   # determinism check, and the TestProtocol_/TestJSONContract_ behavioral
@@ -981,7 +981,7 @@ jobs:
   #
   # Run the PACKAGE, never a -run subset: a filter here is what let the
   # conformance tests sit red on main for ~3 months while every CI run was
-  # green (they matched no job's -run, and every broad ./... job skips them
+  # green (they matched no job's -run, and every broad github.com/steveyegge/beads/... job skips them
   # for want of a Dolt store). Package scope means a newly added protocol test
   # is gated the moment it lands.
   #
@@ -1019,13 +1019,13 @@ jobs:
         # Require a live Dolt store here: this is the gate that must exercise the
         # conformance, golden and double-run checks, so a failed container is a
         # hard failure, not a silent skip (see requireDoltStore in the
-        # cmd/bd/protocol tests).
+        # modules/cli/protocol tests).
         #
         # -timeout is explicit because the package runs well past `go test`'s
         # 10m default; without it a slow runner reports a panic, not a verdict.
         env:
           BEADS_PROTOCOL_REQUIRE_DOLT: "1"
-        run: go test -tags gms_pure_go -count=1 -timeout 30m ./cmd/bd/protocol
+        run: go test -tags gms_pure_go -count=1 -timeout 30m github.com/steveyegge/beads/modules/cli/protocol
 
   fmt-check:
     name: Check formatting

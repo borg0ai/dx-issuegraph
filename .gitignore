@@ -1,6 +1,4 @@
 # Binaries
-/beads
-/bd
 *.exe
 *.dll
 *.so
@@ -53,11 +51,16 @@ Thumbs.db
 # Runtime files
 .beads/bd.sock
 .beads/.exclusive-lock
+.issuegraph/bd.sock
+.issuegraph/.exclusive-lock
 
-# .beads directory files
+# .beads / .issuegraph directory files
 .beads/.gitignore
 .beads/db.sqlite
 .beads/bd.db
+.issuegraph/.gitignore
+.issuegraph/db.sqlite
+.issuegraph/bd.db
 
 # Ignore nix result
 result
@@ -87,6 +90,7 @@ npm-package/bin/README.md
 npm-package/node_modules/
 npm-package/package-lock.json
 .beads/beads.db?*
+.issuegraph/beads.db?*
 bd-original
 mcp_agent_mail/
 bd-test
@@ -114,6 +118,7 @@ history/
 # Orchestrator agent state
 state.json
 .beads/redirect
+.issuegraph/redirect
 
 # Claude Code runtime
 .runtime/
@@ -125,19 +130,25 @@ output
 bd_test
 .beads/export-state/
 .beads/beads.db
+.issuegraph/export-state/
+.issuegraph/beads.db
 
 # Orchestrator (added by gt)
 .logs/
 .beads/*
 !.beads/formulas/
 !.beads/formulas/**
+.issuegraph/*
+!.issuegraph/formulas/
+!.issuegraph/formulas/**
 .opencode/
 
-# Beads / Dolt files (added by bd init)
+# Beads / Dolt files (added by bd init / issuegraph init)
 .beads-credential-key
 
-# Beads / Dolt files (added by bd init)
+# Beads / Dolt files (added by bd init / issuegraph init)
 .beads/proxieddb/
+.issuegraph/proxieddb/
 /build/
 node_modules/
 tmp/build/cli-docs/admin.md
@@ -255,3 +266,8 @@ tmp/build/cli-docs/where.md
 tmp/build/cli-docs/worktree.md
 tmp/docs/CLI_REFERENCE.md
 *.gate.lock*
+# Local Go build output and generated IssueGraph assets
+/apps/cli/bin/bd
+/apps/cli/bin/issuegraph
+/apps/cli/bin/cli
+/modules/core/internal/generated/issuegraphassets/assets_gen.go

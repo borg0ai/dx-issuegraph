@@ -4,7 +4,7 @@ Path: @/ (root level - Makefile, .goreleaser.yml)
 
 ### Overview
 
-The beads project uses a coordinated build and version reporting system that ensures all installation methods (direct `go install`, `make install`, GitHub releases, Homebrew, npm) produce binaries with complete version information including git commit hash and branch name.
+The issuegraph project uses a coordinated build and version reporting system that ensures all installation methods (direct `go install`, `make install`, GitHub releases, Homebrew, npm) produce binaries with complete version information including git commit hash and branch name.
 
 This infrastructure is critical for debugging, auditing, and user support - it allows anyone to identify exactly what code their binary was built from.
 
@@ -12,14 +12,14 @@ This infrastructure is critical for debugging, auditing, and user support - it a
 
 - **Build Entry Points**: The Makefile and .goreleaser.yml are the authoritative build configurations that users and CI/CD systems interact with. They control how version information flows into binaries.
 
-- **Version Pipeline**: These files work with `@/cmd/bd/version.go` to establish the complete version reporting chain:
+- **Version Pipeline**: These files work with `@/modules/cli/version.go` to establish the complete version reporting chain:
   - Build time: Extract git info via shell commands (Makefile) or goreleaser templates
   - Compilation: Pass info to Go compiler via `-X` ldflags
   - Runtime: Resolve functions in version.go retrieve and display the info
 
 - **Installation Methods**: The build configuration enables multiple installation paths while maintaining version consistency:
   - `make install` - Used by developers building from source
-  - `go install ./cmd/bd` - Direct Go installation with embedded ldflag injection
+  - `go install ./modules/cli` - Direct Go installation with embedded ldflag injection
   - GitHub releases - Goreleaser-built binaries for all platforms
   - Homebrew - Pre-built binaries installed via `brew install beads`
   - npm - Node.js package that downloads pre-built binaries via postinstall hook
@@ -38,7 +38,7 @@ install:
 	@echo "Installing bd to $$(go env GOPATH)/bin..."
 	@bash -c 'commit=$$(git rev-parse HEAD 2>/dev/null || echo ""); \
 		branch=$$(git rev-parse --abbrev-ref HEAD 2>/dev/null || echo ""); \
-		go install -ldflags="-X main.Commit=$$commit -X main.Branch=$$branch" ./cmd/bd'
+		go install -ldflags="-X main.Commit=$$commit -X main.Branch=$$branch" ./modules/cli'
 ```
 
 How it works:
@@ -47,7 +47,7 @@ How it works:
 3. `git rev-parse --abbrev-ref HEAD` gets the current branch name
 4. Passes both as ldflags to `go install` using the `-X` flag (variable assignment)
 5. The ldflags set `main.Commit` and `main.Branch` package variables
-6. These variables are then retrieved by functions in `@/cmd/bd/version.go` at runtime
+6. These variables are then retrieved by functions in `@/modules/cli/version.go` at runtime
 
 Key implementation detail: The original target depended on `build`, but this was removed because `go install` is sufficient and handles compilation itself.
 
@@ -89,9 +89,9 @@ Goreleaser template variables:
 Provides a user-friendly way to build from source with full version info:
 - Extracts git commit and branch
 - Calls `go install` with the same ldflags pattern as Makefile
-- Immediately verifies installation by running `bd version`
+- Immediately verifies installation by running `issuegraph version`
 
-**Version Resolution Chain** (`@/cmd/bd/version.go`, lines 116-163):
+**Version Resolution Chain** (`@/modules/cli/version.go`, lines 116-163):
 
 The version.go file implements functions that retrieve the injected information:
 
@@ -114,24 +114,24 @@ The version.go file implements functions that retrieve the injected information:
 **Critical Design Decision - Why Explicit Ldflags**:
 
 The Go toolchain (as of 1.18+) can automatically embed VCS information when compiling with `go build`, but this does NOT happen with `go install`. This creates an asymmetry:
-- `go build ./cmd/bd` → automatically embeds vcs.revision and vcs.branch
-- `go install ./cmd/bd` → does NOT embed VCS info automatically
+- `go build ./modules/cli` → automatically embeds vcs.revision and vcs.branch
+- `go install ./modules/cli` → does NOT embed VCS info automatically
 
 The solution is to explicitly pass git information as ldflags in all build configurations. This ensures:
 - Users who run `make install` get full version info
-- Users who run `go install ./cmd/bd` need to explicitly set ldflags (via Makefile or script)
+- Users who run `go install ./modules/cli` need to explicitly set ldflags (via Makefile or script)
 - Released binaries from goreleaser have full version info (handled by goreleaser templates)
 - The version command is consistent regardless of installation method
 
 **Issue #503 Root Cause**:
 
-The original system relied on Go's automatic VCS embedding which only works with `go build`. When released binaries (built via goreleaser) or installed binaries (via `go install`) came without explicit ldflags, the `bd version` command couldn't report commit and branch information.
+The original system relied on Go's automatic VCS embedding which only works with `go build`. When released binaries (built via goreleaser) or installed binaries (via `go install`) came without explicit ldflags, the `issuegraph version` command couldn't report commit and branch information.
 
 The fix adds explicit ldflag injection at all build points, creating a reliable pipeline independent of Go's automatic VCS embedding feature.
 
 **Ldflag Variable Names**:
 
-The variables in `@/cmd/bd/version.go` (lines 15-23) must match the ldflag paths in build configurations:
+The variables in `@/modules/cli/version.go` (lines 15-23) must match the ldflag paths in build configurations:
 - `main.Version` → Version variable
 - `main.Build` → Build variable
 - `main.Commit` → Commit variable
@@ -162,7 +162,7 @@ The build configuration integrates with `@/RELEASING.md`:
 
 **Testing Version Information**:
 
-The test file `@/cmd/bd/version_test.go` includes:
+The test file `@/modules/cli/version_test.go` includes:
 - `TestResolveCommitHash`: Verifies ldflag values are prioritized
 - `TestResolveBranch`: Verifies ldflag values are prioritized  
 - `TestVersionOutputWithCommitAndBranch`: Verifies output formatting with real values

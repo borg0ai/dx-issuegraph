@@ -1,4 +1,4 @@
-# Claude Code Entry Point for Beads
+# Claude Code Entry Point for IssueGraph
 
 This file is intentionally short. Do not copy workflow, build, storage, or UI
 rules here; those details drift quickly when repeated across agent entrypoints.
@@ -12,10 +12,10 @@ rules here; those details drift quickly when repeated across agent entrypoints.
 
 ## Current Ground Rules
 
-- Run `bd prime` before doing tracked work.
+- Run `issuegraph prime` before doing tracked work.
 - Follow `go.mod` and [AGENT_INSTRUCTIONS.md](AGENT_INSTRUCTIONS.md) for build
   and test commands; do not hard-code toolchain versions here.
-- Beads uses Dolt as the issue database. Use `bd dolt push` / `bd dolt pull`
+- IssueGraph uses Dolt as the issue database. Use `issuegraph dolt push` / `issuegraph dolt pull`
   for issue data sync; do not use export/import as a routine git workflow.
 - The CLI Visual Design System lives in
   [AGENT_INSTRUCTIONS.md](AGENT_INSTRUCTIONS.md#visual-design-system).

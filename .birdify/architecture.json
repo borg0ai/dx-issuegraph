@@ -1,0 +1,623 @@
+{
+  "schemaVersion": 1,
+  "language": "zh",
+  "mapId": "issuegraph-current",
+  "revision": 2,
+  "project": {
+    "id": "dx-issuegraph",
+    "name": "dx-issuegraph",
+    "revision": "c25059adad4da6002d3d0c813b8c23fdc23c0bc0"
+  },
+  "constraintDiscovery": {
+    "checkedAt": "2026-09-27T03:50:00.000Z",
+    "checkedPaths": [
+      "AGENTS.md",
+      "CLAUDE.md",
+      "modules/cli/AGENTS.md",
+      "docs/architecture/index.md",
+      "docs/core-concepts/sync-concepts.md",
+      "docs/multi-agent/federation.md",
+      "engdocs/CLAUDE.md",
+      "engdocs/PROJECT_CHARTER.md",
+      "README.md"
+    ],
+    "uninspectedPaths": [
+      ".claude/skills/beads-docs/SKILL.md",
+      ".github/copilot-instructions.md",
+      "AGENT_INSTRUCTIONS.md",
+      "CONTRIBUTING.md",
+      "CHANGELOG.md",
+      "engdocs/TESTING.md",
+      "plugins/beads/skills/beads/SKILL.md",
+      "plugins/beads/skills/beads/resources/AGENTS.md"
+    ]
+  },
+  "modules": [
+    {
+      "id": "cli",
+      "role": "frontend",
+      "name": "bd 命令面",
+      "kind": "local",
+      "responsibility": "Cobra CLI。Agent 用 JSON 创建、认领、关闭 issue。",
+      "ownership": [{ "kind": "directory", "path": "modules/cli" }],
+      "evidence": [
+        {
+          "path": "engdocs/CLAUDE.md",
+          "line": 48,
+          "endLine": 52,
+          "note": "CLI 层在 modules/cli，每条命令一个文件，支持 --json。"
+        },
+        {
+          "path": "README.md",
+          "line": 18,
+          "endLine": 24,
+          "note": "README 把 create、ready、claim、close 与 dolt push/pull 画成主路径。"
+        }
+      ],
+      "status": "supported",
+      "openQuestions": [],
+      "layout": { "row": 0, "column": 0 }
+    },
+    {
+      "id": "agent-guides",
+      "role": "generic",
+      "roleAssessment": {
+        "basis": "out-of-taxonomy",
+        "note": "职责是给代理安装的工作流文案和技能索引，不是界面、服务、缓存、数据库、队列或安全控制。"
+      },
+      "name": "代理工作流文案",
+      "kind": "local",
+      "responsibility": "bd prime 与 setup 写入的技能、AGENTS 片段。不复制 CLI 参考。",
+      "ownership": [
+        { "kind": "directory", "path": "plugins/beads" },
+        { "kind": "directory", "path": "internal/templates" }
+      ],
+      "evidence": [
+        {
+          "path": "plugins/beads/skills/beads/CLAUDE.md",
+          "line": 14,
+          "endLine": 16,
+          "note": "技能维护要求 CLI 文档以 bd prime 为准，技能里不复制命令语法。"
+        }
+      ],
+      "status": "supported",
+      "openQuestions": [],
+      "layout": { "row": 0, "column": 1 }
+    },
+    {
+      "id": "mcp-server",
+      "role": "backend",
+      "name": "beads-mcp",
+      "kind": "local",
+      "responsibility": "无 shell 的代理经 MCP 调 bd。有 shell 时文档建议用 CLI。",
+      "ownership": [{ "kind": "directory", "path": "integrations/beads-mcp" }],
+      "evidence": [
+        {
+          "path": "integrations/beads-mcp/README.md",
+          "line": 1,
+          "endLine": 7,
+          "note": "MCP 包装 bd CLI；README 写明有 shell 时优先 CLI + hooks。"
+        }
+      ],
+      "status": "supported",
+      "openQuestions": [],
+      "layout": { "row": 0, "column": 2 }
+    },
+    {
+      "id": "issue-model",
+      "role": "backend",
+      "name": "Issue 图模型",
+      "kind": "local",
+      "responsibility": "Issue、依赖、标签、评论、事件，以及 issue/memory/journal 操作。",
+      "ownership": [
+        { "kind": "directory", "path": "internal/types" },
+        { "kind": "directory", "path": "issueops" },
+        { "kind": "directory", "path": "memoryops" },
+        { "kind": "directory", "path": "journalops" }
+      ],
+      "evidence": [
+        {
+          "path": "docs/architecture/index.md",
+          "line": 53,
+          "endLine": 53,
+          "note": "库内五类记录：issues、dependencies、labels、comments、events。"
+        },
+        {
+          "path": "engdocs/PROJECT_CHARTER.md",
+          "line": 13,
+          "endLine": 19,
+          "note": "章程把 issue 生命周期、依赖、标签、评论、状态、优先级、分配列为核心范围。"
+        }
+      ],
+      "status": "supported",
+      "openQuestions": [],
+      "layout": { "row": 1, "column": 0 }
+    },
+    {
+      "id": "dolt-store",
+      "role": "database",
+      "name": "Dolt 存储",
+      "kind": "local",
+      "responsibility": "本地版本化 SQL。嵌入式为默认，服务模式给多写者。Beads 不自造存储引擎。",
+      "ownership": [
+        { "kind": "directory", "path": "internal/storage" },
+        { "kind": "directory", "path": "internal/doltserver" },
+        { "kind": "directory", "path": "backend" }
+      ],
+      "evidence": [
+        {
+          "path": "engdocs/PROJECT_CHARTER.md",
+          "line": 46,
+          "endLine": 48,
+          "note": "Dolt 提供存储、版本、同步、合并、并发和崩溃安全。Beads 只进出存储边界。"
+        },
+        {
+          "path": "docs/architecture/index.md",
+          "line": 10,
+          "endLine": 14,
+          "note": "唯一存储后端是 Dolt；默认嵌入式，多写者切 sql-server。"
+        },
+        {
+          "path": "backend/backend.go",
+          "line": 1,
+          "endLine": 6,
+          "note": "backend 包把存储契约别名给外部实现，树内 internal 仍是定义源。"
+        }
+      ],
+      "status": "supported",
+      "openQuestions": [],
+      "layout": { "row": 1, "column": 1 }
+    },
+    {
+      "id": "http-api",
+      "role": "backend",
+      "name": "HTTP API",
+      "kind": "local",
+      "responsibility": "进程内 HTTP 服务，经 storage 读写 issue。路由表面本次未逐条阅读。",
+      "ownership": [{ "kind": "directory", "path": "internal/httpapi" }],
+      "evidence": [
+        {
+          "path": "internal/httpapi/server.go",
+          "line": 1,
+          "endLine": 29,
+          "symbol": "package httpapi",
+          "note": "包导入 internal/storage。只读了文件开头，未核对路由表。"
+        }
+      ],
+      "status": "uncertain",
+      "openQuestions": ["bd serve 的路由与鉴权是否全部落在 internal/httpapi，本次未读完 server.go。"],
+      "layout": { "row": 1, "column": 2 }
+    },
+    {
+      "id": "sync-remotes",
+      "role": "backend",
+      "name": "远程同步",
+      "kind": "local",
+      "responsibility": "bd dolt push/pull、bootstrap、federation、autopush。可选 dolt.local-only 关闭部分远程写。",
+      "ownership": [
+        { "kind": "directory", "path": "internal/doltremote" },
+        { "kind": "file", "path": "modules/cli/dolt.go" },
+        { "kind": "file", "path": "modules/cli/sync.go" },
+        { "kind": "file", "path": "modules/cli/dolt_local_only.go" },
+        { "kind": "file", "path": "modules/cli/bootstrap.go" },
+        { "kind": "file", "path": "modules/cli/dolt_autopush.go" }
+      ],
+      "evidence": [
+        {
+          "path": "docs/core-concepts/sync-concepts.md",
+          "line": 11,
+          "endLine": 20,
+          "note": "跨机器同步走 Dolt remote；git 项目把历史放在 refs/dolt/data，与代码分支分开。"
+        },
+        {
+          "path": "modules/cli/dolt_local_only.go",
+          "line": 4,
+          "endLine": 9,
+          "symbol": "isDoltLocalOnly",
+          "note": "dolt.local-only 为真时，push、pull、remote add 变为空操作或错误。"
+        },
+        {
+          "path": "docs/multi-agent/federation.md",
+          "line": 3,
+          "endLine": 8,
+          "note": "Federation 用 Dolt remote 在工作区之间对等同步数据库。"
+        }
+      ],
+      "status": "uncertain",
+      "openQuestions": ["dolt.local-only 是否覆盖 federation、autopush 和 git refs/dolt/data，本次未逐命令核对。"],
+      "layout": { "row": 2, "column": 0 }
+    },
+    {
+      "id": "git-workspace",
+      "role": "backend",
+      "name": "Git 工作区挂钩",
+      "kind": "local",
+      "responsibility": "检测 git remote、安装 hook、刷新 JSONL 导出。JSONL 不是跨机器同步通道。",
+      "ownership": [
+        { "kind": "directory", "path": "internal/git" },
+        { "kind": "directory", "path": "internal/hooks" }
+      ],
+      "evidence": [
+        {
+          "path": "docs/core-concepts/sync-concepts.md",
+          "line": 29,
+          "endLine": 43,
+          "note": "issues.jsonl 是导出。pre-commit 在 export.auto 时刷新它，但不推送 Dolt 历史。"
+        }
+      ],
+      "status": "uncertain",
+      "openQuestions": [".gitignore 忽略 .beads/*。哪些 issue 文件会被 git 跟踪，本次未对 hook 实现逐文件核对。"],
+      "layout": { "row": 2, "column": 1 }
+    },
+    {
+      "id": "credentials",
+      "role": "security",
+      "name": "远程凭据",
+      "kind": "local",
+      "responsibility": "Dolt 与 tracker 远程用的凭据存放。不进入仓库。",
+      "ownership": [{ "kind": "directory", "path": "internal/creds" }],
+      "evidence": [
+        {
+          "path": ".gitignore",
+          "line": 137,
+          "endLine": 137,
+          "note": ".beads-credential-key 被 gitignore，说明凭据键不入库。"
+        }
+      ],
+      "status": "uncertain",
+      "openQuestions": ["internal/creds 的读取路径本次未读。"],
+      "layout": { "row": 2, "column": 2 }
+    },
+    {
+      "id": "tracker-bridges",
+      "role": "backend",
+      "name": "外部工单桥",
+      "kind": "local",
+      "responsibility": "把 GitHub、GitLab、Jira、Linear 等映射进 beads 概念。不是第二套工单产品。",
+      "ownership": [
+        { "kind": "directory", "path": "internal/github" },
+        { "kind": "directory", "path": "internal/gitlab" },
+        { "kind": "directory", "path": "internal/jira" },
+        { "kind": "directory", "path": "internal/linear" },
+        { "kind": "directory", "path": "internal/ado" }
+      ],
+      "evidence": [
+        {
+          "path": "engdocs/PROJECT_CHARTER.md",
+          "line": 84,
+          "endLine": 87,
+          "note": "集成是采纳桥：映射外部数据，保持依赖图有用，不复制对方 UI 或凭证库。"
+        }
+      ],
+      "status": "uncertain",
+      "openQuestions": ["integrations 同时包含 beads-mcp。桥接包的调用入口本次未读。"],
+      "layout": { "row": 3, "column": 0 }
+    },
+    {
+      "id": "remote-targets",
+      "role": "generic",
+      "roleAssessment": {
+        "basis": "out-of-taxonomy",
+        "note": "仓库外的 Dolt 远程（DoltHub、对象存储、git refs/dolt/data）是同步目的地，不是本仓库里的数据库模块。"
+      },
+      "name": "Dolt 远程",
+      "kind": "external",
+      "responsibility": "DoltHub、S3、GCS、文件系统或 git origin 上的 refs/dolt/data。",
+      "ownership": [],
+      "evidence": [
+        {
+          "path": "docs/architecture/index.md",
+          "line": 22,
+          "endLine": 26,
+          "note": "架构图把 DoltHub / S3 / GCS 标成同步与备份远程，经 bd dolt push/pull 连接。"
+        }
+      ],
+      "status": "supported",
+      "openQuestions": [],
+      "layout": { "row": 3, "column": 1 }
+    },
+    {
+      "id": "tracker-hosts",
+      "role": "generic",
+      "roleAssessment": {
+        "basis": "insufficient-evidence",
+        "note": "章程点名 GitHub、GitLab、Jira、Linear、Azure DevOps，但各宿主 API 的接入文件未逐个阅读。"
+      },
+      "name": "外部工单宿主",
+      "kind": "external",
+      "responsibility": "仓库外的工单宿主。桥接代码把它们的数据译进 issue 图。",
+      "ownership": [],
+      "evidence": [
+        {
+          "path": "engdocs/PROJECT_CHARTER.md",
+          "line": 89,
+          "endLine": 90,
+          "note": "集成章程覆盖 GitHub、GitLab、Jira、Linear、Azure DevOps。"
+        }
+      ],
+      "status": "uncertain",
+      "openQuestions": ["Azure DevOps 的代码是否在 internal/ado，本次只看到目录名，未读实现。"],
+      "layout": { "row": 3, "column": 2 }
+    }
+  ],
+  "relationships": [
+    {
+      "id": "cli-issues",
+      "from": "cli",
+      "to": "issue-model",
+      "label": "执行 issue 命令",
+      "kind": "request",
+      "visibility": "overview",
+      "evidence": [
+        {
+          "path": "README.md",
+          "line": 71,
+          "endLine": 78,
+          "note": "ready、create、claim、show、prime 是面向 issue 图的命令。"
+        }
+      ],
+      "status": "supported",
+      "openQuestions": []
+    },
+    {
+      "id": "cli-store",
+      "from": "cli",
+      "to": "dolt-store",
+      "label": "读写本地库",
+      "kind": "request",
+      "visibility": "overview",
+      "evidence": [
+        {
+          "path": "docs/architecture/index.md",
+          "line": 92,
+          "endLine": 102,
+          "note": "写路径是 bd create 更新 Dolt 并自动提交；读路径是 SQL 查询。"
+        }
+      ],
+      "status": "supported",
+      "openQuestions": []
+    },
+    {
+      "id": "cli-sync",
+      "from": "cli",
+      "to": "sync-remotes",
+      "label": "发起 push/pull",
+      "kind": "request",
+      "visibility": "overview",
+      "evidence": [
+        {
+          "path": "docs/architecture/index.md",
+          "line": 105,
+          "endLine": 111,
+          "note": "同步路径是用户运行 bd dolt push 与 bd dolt pull。"
+        }
+      ],
+      "status": "supported",
+      "openQuestions": []
+    },
+    {
+      "id": "issues-store",
+      "from": "issue-model",
+      "to": "dolt-store",
+      "label": "持久化记录",
+      "kind": "dependency",
+      "visibility": "overview",
+      "evidence": [
+        {
+          "path": "docs/architecture/index.md",
+          "line": 36,
+          "endLine": 37,
+          "note": "文档写明 Dolt 是 source of truth，每次写入自动提交历史。"
+        }
+      ],
+      "status": "supported",
+      "openQuestions": []
+    },
+    {
+      "id": "sync-store",
+      "from": "sync-remotes",
+      "to": "dolt-store",
+      "label": "读取本地历史",
+      "kind": "dependency",
+      "visibility": "overview",
+      "evidence": [
+        {
+          "path": "docs/core-concepts/sync-concepts.md",
+          "line": 3,
+          "endLine": 6,
+          "note": "issue 数据在 Dolt；list/show/ready 和写命令都以本地库为准。"
+        }
+      ],
+      "status": "supported",
+      "openQuestions": []
+    },
+    {
+      "id": "sync-remote",
+      "from": "sync-remotes",
+      "to": "remote-targets",
+      "label": "推送到远程",
+      "kind": "request",
+      "visibility": "overview",
+      "evidence": [
+        {
+          "path": "docs/core-concepts/sync-concepts.md",
+          "line": 17,
+          "endLine": 25,
+          "note": "init 会探测 git origin，第一次 dolt push 发布 refs/dolt/data。"
+        }
+      ],
+      "status": "supported",
+      "openQuestions": []
+    },
+    {
+      "id": "creds-sync",
+      "from": "sync-remotes",
+      "to": "credentials",
+      "label": "使用远程凭据",
+      "kind": "dependency",
+      "visibility": "detail",
+      "evidence": [
+        {
+          "path": ".gitignore",
+          "line": 137,
+          "endLine": 137,
+          "note": "凭据键被忽略。同步命令如何加载它，本次未读 internal/creds。"
+        }
+      ],
+      "status": "uncertain",
+      "openQuestions": ["push/pull 是否一定经过 internal/creds，未读调用点。"]
+    },
+    {
+      "id": "git-cli",
+      "from": "git-workspace",
+      "to": "cli",
+      "label": "hook 刷新导出",
+      "kind": "result",
+      "visibility": "overview",
+      "evidence": [
+        {
+          "path": "docs/core-concepts/sync-concepts.md",
+          "line": 37,
+          "endLine": 40,
+          "note": "pre-commit 在 export.auto 时刷新 JSONL，不推送 Dolt。"
+        }
+      ],
+      "status": "uncertain",
+      "openQuestions": ["hook 实现是否在 internal/hooks，未读源码。"]
+    },
+    {
+      "id": "cli-guides",
+      "from": "cli",
+      "to": "agent-guides",
+      "label": "安装工作流文案",
+      "kind": "result",
+      "visibility": "overview",
+      "evidence": [
+        {
+          "path": "README.md",
+          "line": 37,
+          "endLine": 40,
+          "note": "bd setup 为 Codex、Claude、Factory 安装技能和 AGENTS.md。"
+        }
+      ],
+      "status": "supported",
+      "openQuestions": []
+    },
+    {
+      "id": "mcp-cli",
+      "from": "mcp-server",
+      "to": "cli",
+      "label": "转调 bd",
+      "kind": "request",
+      "visibility": "overview",
+      "evidence": [
+        {
+          "path": "integrations/beads-mcp/README.md",
+          "line": 3,
+          "endLine": 3,
+          "note": "MCP 让代理通过协议管理任务，底层是 bd CLI。"
+        }
+      ],
+      "status": "supported",
+      "openQuestions": []
+    },
+    {
+      "id": "http-store",
+      "from": "http-api",
+      "to": "dolt-store",
+      "label": "经 storage 读写",
+      "kind": "dependency",
+      "visibility": "overview",
+      "evidence": [
+        {
+          "path": "internal/httpapi/server.go",
+          "line": 28,
+          "endLine": 28,
+          "note": "server.go 导入 internal/storage。具体查询未读。"
+        }
+      ],
+      "status": "uncertain",
+      "openQuestions": ["HTTP 写路径是否绕过 CLI 直接打存储，未读处理函数。"]
+    },
+    {
+      "id": "bridges-issues",
+      "from": "tracker-bridges",
+      "to": "issue-model",
+      "label": "映射外部工单",
+      "kind": "request",
+      "visibility": "overview",
+      "evidence": [
+        {
+          "path": "engdocs/PROJECT_CHARTER.md",
+          "line": 21,
+          "endLine": 21,
+          "note": "核心范围包含把外部 tracker 数据译成 beads 概念的集成。"
+        }
+      ],
+      "status": "supported",
+      "openQuestions": []
+    },
+    {
+      "id": "bridges-hosts",
+      "from": "tracker-bridges",
+      "to": "tracker-hosts",
+      "label": "拉取宿主数据",
+      "kind": "request",
+      "visibility": "detail",
+      "evidence": [
+        {
+          "path": "engdocs/PROJECT_CHARTER.md",
+          "line": 89,
+          "endLine": 90,
+          "note": "宿主名单在集成章程。调用方向由章程描述，未读客户端代码。"
+        }
+      ],
+      "status": "uncertain",
+      "openQuestions": ["各桥是拉取还是 webhook，未读实现。"]
+    }
+  ],
+  "groups": [
+    {
+      "id": "interaction",
+      "role": "interaction",
+      "name": "人与代理入口",
+      "members": ["cli", "agent-guides", "mcp-server"],
+      "evidence": [
+        {
+          "path": "README.md",
+          "line": 15,
+          "endLine": 15,
+          "note": "产品面对编码代理：CLI、setup 文案、以及无 shell 时的 MCP。"
+        }
+      ]
+    },
+    {
+      "id": "runtime",
+      "role": "runtime",
+      "name": "本地执行与存储",
+      "members": ["issue-model", "dolt-store", "http-api", "sync-remotes", "git-workspace", "credentials"],
+      "evidence": [
+        {
+          "path": "engdocs/CLAUDE.md",
+          "line": 28,
+          "endLine": 44,
+          "note": "文档把存储、数据库运行时和 CLI 分成三层；同步命令在 CLI 里打到 Dolt。"
+        }
+      ]
+    },
+    {
+      "id": "outside",
+      "role": "external-services",
+      "name": "仓库外系统",
+      "members": ["tracker-bridges", "remote-targets", "tracker-hosts"],
+      "evidence": [
+        {
+          "path": "docs/architecture/index.md",
+          "line": 22,
+          "endLine": 26,
+          "note": "Dolt 远程在本进程之外。工单桥也通向仓库外宿主。"
+        }
+      ]
+    }
+  ]
+}

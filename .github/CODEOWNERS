@@ -1,16 +1,16 @@
 # CODEOWNERS — review ownership
 #
-# Changes under cmd/bd/init*.go interact with init-safety invariants
+# Changes under modules/cli/init*.go interact with init-safety invariants
 # documented in engdocs/adr/0002-init-safety-invariants.md. Reviewers MUST
 # confirm new flags / data sources extend CheckRemoteSafety's guard
-# matrix (cmd/bd/init_safety_test.go) before approving. Silent guard
+# matrix (modules/cli/init_safety_test.go) before approving. Silent guard
 # accretion is how we ended up with 8+ paper-over commits before ADR 0002
 # — the matrix + review gate is the structural hedge.
 
 # Init-safety critical path
-cmd/bd/init.go              @gastownhall/beads-maintainers
-cmd/bd/init_*.go            @gastownhall/beads-maintainers
-cmd/bd/init_safety*.go      @gastownhall/beads-maintainers
+modules/cli/init.go              @gastownhall/beads-maintainers
+modules/cli/init_*.go            @gastownhall/beads-maintainers
+modules/cli/init_safety*.go      @gastownhall/beads-maintainers
 engdocs/adr/0002-init-safety-invariants.md  @gastownhall/beads-maintainers
 
 # Schema-migration critical path (bd-6dnrw.15). The 2026 Apr-Jun window

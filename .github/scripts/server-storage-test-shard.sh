@@ -156,5 +156,5 @@ else
   exec go test -tags=integration,gms_pure_go -v -count=1 -timeout 15m \
     -run "$RUN_REGEX" \
     "$@" \
-    ./internal/storage/dolt/
+    github.com/steveyegge/beads/internal/storage/dolt/
 fi

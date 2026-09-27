@@ -90,12 +90,12 @@ jobs:
         run: |
           set -euo pipefail
           mkdir -p artifacts
-          source ./.buildflags
+          source ./modules/core/.buildflags
           go_version="$(go version)"
           commit="$(git rev-parse HEAD)"
-          go build -tags "$BEADS_BUILD_TAGS" -o artifacts/bd-linux-gms-pure ./cmd/bd
+          go build -tags "$BEADS_BUILD_TAGS" -o artifacts/bd-linux-gms-pure github.com/steveyegge/beads/modules/cli
           chmod +x artifacts/bd-linux-gms-pure
-          go test -tags "$BEADS_BUILD_TAGS" -c -o artifacts/bd-cmd-test ./cmd/bd
+          go test -tags "$BEADS_BUILD_TAGS" -c -o artifacts/bd-cmd-test github.com/steveyegge/beads/modules/cli
           chmod +x artifacts/bd-cmd-test
           (
             cd artifacts
@@ -142,14 +142,14 @@ jobs:
       - run: ./scripts/check-go-install-guidance.sh
 
   # Lock in the cgo-test-contamination fix (mybd-ycx / GH#3683 follow-up).
-  # cmd/bd carries a mix of cgo-only test helpers (embedded Dolt, sql.DB) and
+  # modules/cli carries a mix of cgo-only test helpers (embedded Dolt, sql.DB) and
   # pure-Go tests. Untagged test files that reach for cgo-only helpers break
   # the entire package's CGO_ENABLED=0 compile, silently neutering pure-Go
-  # tests (the original symptom in PR #3704). This job compiles the cmd/bd
+  # tests (the original symptom in PR #3704). This job compiles the modules/cli
   # test binary with CGO_ENABLED=0 and runs the pure-Go subset, so a
   # regression that re-introduces cgo coupling fails fast.
   check-cmd-bd-puregeo-tests:
-    name: Check cmd/bd pure-Go tests compile (CGO_ENABLED=0)
+    name: Check modules/cli pure-Go tests compile (CGO_ENABLED=0)
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v6
@@ -160,20 +160,20 @@ jobs:
           go-version-file: 'go.mod'
           cache: false
 
-      - name: Build cmd/bd (CGO_ENABLED=0, gms_pure_go)
+      - name: Build modules/cli (CGO_ENABLED=0, gms_pure_go)
         env:
           CGO_ENABLED: "0"
-        run: go build -tags gms_pure_go -o /tmp/bd-puregeo ./cmd/bd
+        run: go build -tags gms_pure_go -o /tmp/bd-puregeo github.com/steveyegge/beads/modules/cli
 
       - name: Compile pure-Go test binaries (CGO_ENABLED=0, gms_pure_go)
         env:
           CGO_ENABLED: "0"
         run: |
-          go test -tags gms_pure_go -c -o /tmp/bd-cmd-puregeo-test ./cmd/bd
-          go test -tags gms_pure_go -c -o /tmp/bd-embeddeddolt-puregeo-test ./internal/storage/embeddeddolt
-          go test -tags gms_pure_go -c -o /tmp/bd-tracker-puregeo-test ./internal/tracker
+          go test -tags gms_pure_go -c -o /tmp/bd-cmd-puregeo-test github.com/steveyegge/beads/modules/cli
+          go test -tags gms_pure_go -c -o /tmp/bd-embeddeddolt-puregeo-test github.com/steveyegge/beads/internal/storage/embeddeddolt
+          go test -tags gms_pure_go -c -o /tmp/bd-tracker-puregeo-test github.com/steveyegge/beads/internal/tracker
 
-      - name: Run pure-Go cmd/bd test subset (CGO_ENABLED=0)
+      - name: Run pure-Go modules/cli test subset (CGO_ENABLED=0)
         env:
           CGO_ENABLED: "0"
         # Restrict to tests that exercise pure-Go code paths. Tests that
@@ -181,7 +181,7 @@ jobs:
         # is available; the goal here is to catch compile-time contamination,
         # not run the full suite.
         run: |
-          go test -tags gms_pure_go -count=1 -short -run '^Test(Help|CheckRemoteSafety|FormatDestroyToken|ShouldWireInitRemote|ExtractPrefix|IsNumericID|GetWorktreeGitDir|DriftItemStatuses|RunDriftChecks|IsServerProbablyRunning|CheckHooksDriftNotGitRepo|CheckServerDriftNoBeadsDir|CheckRemoteDriftNoBeadsDir)' ./cmd/bd
+          go test -tags gms_pure_go -count=1 -short -run '^Test(Help|CheckRemoteSafety|FormatDestroyToken|ShouldWireInitRemote|ExtractPrefix|IsNumericID|GetWorktreeGitDir|DriftItemStatuses|RunDriftChecks|IsServerProbablyRunning|CheckHooksDriftNotGitRepo|CheckServerDriftNoBeadsDir|CheckRemoteDriftNoBeadsDir)' github.com/steveyegge/beads/modules/cli
 
   # Fast check to ensure all version files are in sync
   check-version-consistency:
@@ -234,7 +234,7 @@ jobs:
           cache: false
 
       - name: Build bd
-        run: CGO_ENABLED=0 go build -tags gms_pure_go -o bd ./cmd/bd/
+        run: CGO_ENABLED=0 go build -tags gms_pure_go -o bd github.com/steveyegge/beads/modules/cli
 
       - name: Validate docs against CLI
         run: |
@@ -452,12 +452,12 @@ jobs:
 
   # Cross-platform test matrix (Linux/macOS only - Windows uses smoke tests)
   #
-  # Both legs run every package in one `./...` invocation, so go test's DEFAULT
-  # 10m per-package deadline applied — and cmd/bd outgrew it. scripts/test.sh
-  # already documents the floor for local runs: cmd/bd is the slowest package at
+  # Both legs run every package in one `github.com/steveyegge/beads/...` invocation, so go test's DEFAULT
+  # 10m per-package deadline applied — and modules/cli outgrew it. scripts/test.sh
+  # already documents the floor for local runs: modules/cli is the slowest package at
   # ~18min wall, which is why TEST_TIMEOUT defaults to 25m there. CI was still on
   # the 10m default and rode the edge: on 2026-09-01 main run 33497003321 failed
-  # twice with `panic: test timed out after 10m0s` in cmd/bd AND, in the same
+  # twice with `panic: test timed out after 10m0s` in modules/cli AND, in the same
   # coverage pass, internal/storage/uow — different tests only 1-12s in flight
   # each attempt (a package-wide crawl on the 2-core coverage-instrumented
   # runner, not a hang), while a rerun of the identical tree passed. Match
@@ -555,9 +555,9 @@ jobs:
         if: matrix.os != 'ubuntu-latest'
         env:
           GOCACHE: ${{ runner.temp }}/go-cache/non-race
-        run: go build -v -tags gms_pure_go ./cmd/bd
+        run: go build -v -tags gms_pure_go github.com/steveyegge/beads/modules/cli
 
-      # Both lanes below pass -timeout=30m explicitly. ./cmd/bd has outgrown
+      # Both lanes below pass -timeout=30m explicitly. github.com/steveyegge/beads/modules/cli has outgrown
       # `go test`'s 10m per-package default (see scripts/ci/pr-core.sh and
       # #6091), and when it trips the alarm the panic names whichever test was
       # in flight, so it reads like a hang rather than the package running out
@@ -573,14 +573,14 @@ jobs:
           gotestsum \
             --junitfile junit.xml \
             --format testdox \
-            -- -tags gms_pure_go -race -short -timeout=30m -coverprofile=coverage.out -skip '^TestEmbedded' ./...
+            -- -tags gms_pure_go -race -short -timeout=30m -coverprofile=coverage.out -skip '^TestEmbedded' github.com/steveyegge/beads/...
 
       - name: Test
         if: ${{ !matrix.coverage }}
         env:
           BEADS_TEST_BD_BINARY: ${{ github.workspace }}/bd
           GOCACHE: ${{ runner.temp }}/go-cache/race
-        run: go test -tags gms_pure_go ${{ matrix.test-flags }} -timeout=30m -skip '^TestEmbedded' ./...
+        run: go test -tags gms_pure_go ${{ matrix.test-flags }} -timeout=30m -skip '^TestEmbedded' github.com/steveyegge/beads/...
 
       - name: Upload coverage to Codecov
         if: matrix.coverage && !cancelled()
@@ -626,7 +626,7 @@ jobs:
 
   # Focused job for the hexagonal storage layer (internal/storage/domain/* and
   # internal/storage/uow). These packages back the proxied-server init path and
-  # also live behind the existing ./... matrix, but TestDomainDB requires the
+  # also live behind the existing github.com/steveyegge/beads/... matrix, but TestDomainDB requires the
   # Dolt sql-server image cached locally (testcontainers checks `docker image
   # inspect` and skips otherwise). Pulling the image up front guarantees the
   # suite actually runs and surfaces failures here with a clear job name.
@@ -680,7 +680,7 @@ jobs:
       - name: Test domain + uow + tracker
         env:
           BEADS_TEST_BD_BINARY: ${{ github.workspace }}/ci-build-artifacts/bd-linux-gms-pure
-        run: go test -tags gms_pure_go -race -count=1 -timeout 15m -v ./internal/storage/domain/... ./internal/storage/uow/... ./internal/tracker/...
+        run: go test -tags gms_pure_go -race -count=1 -timeout 15m -v github.com/steveyegge/beads/internal/storage/domain/... github.com/steveyegge/beads/internal/storage/uow/... github.com/steveyegge/beads/internal/tracker/...
 
       # The doctor/fix DB-backed suite spins its own Dolt container in
       # TestMain. BEADS_FIX_REQUIRE_DOLT=1 turns a missing container into a
@@ -690,7 +690,7 @@ jobs:
         env:
           BEADS_TEST_BD_BINARY: ${{ github.workspace }}/ci-build-artifacts/bd-linux-gms-pure
           BEADS_FIX_REQUIRE_DOLT: "1"
-        run: go test -tags gms_pure_go -race -count=1 -timeout 10m -v ./cmd/bd/doctor/fix/
+        run: go test -tags gms_pure_go -race -count=1 -timeout 10m -v github.com/steveyegge/beads/modules/cli/doctor/fix
 
   main-linux-integration-packages:
     name: Main Linux integration packages (${{ matrix.shard }}/6)
@@ -749,7 +749,7 @@ jobs:
           package_manifest="artifacts/main-linux-integration-packages-${SHARD}-of-${TOTAL_SHARDS}.txt"
           write_package_manifest() {
             GO_TEST_SHARD_TAGS=integration,gms_pure_go \
-              GO_TEST_SHARD_EXCLUDE_REGEX="^github.com/steveyegge/beads/cmd/bd$" \
+              GO_TEST_SHARD_EXCLUDE_REGEX="^github.com/steveyegge/beads/modules/cli$" \
               scripts/ci/go-test-shard-packages.sh "$SHARD" "$TOTAL_SHARDS" > "$package_manifest"
           }
           ci_time "list integration package shard ${SHARD}/${TOTAL_SHARDS}" -- write_package_manifest
@@ -777,7 +777,7 @@ jobs:
           if-no-files-found: ignore
 
   main-linux-integration-cmd-bd:
-    name: Main Linux integration cmd/bd (${{ matrix.shard }}/8)
+    name: Main Linux integration modules/cli (${{ matrix.shard }}/8)
     if: github.event_name == 'push' && github.ref == 'refs/heads/main'
     runs-on: ubuntu-latest
     needs: build-artifacts
@@ -818,7 +818,7 @@ jobs:
           dolt config --global --add user.name "CI Bot"
           dolt config --global --add user.email "ci@beads.test"
 
-      - name: Test cmd/bd shard
+      - name: Test modules/cli shard
         env:
           SHARD: ${{ matrix.shard }}
           TOTAL_SHARDS: 8
@@ -833,9 +833,9 @@ jobs:
           test_manifest="artifacts/main-linux-integration-cmd-bd-tests-${SHARD}-of-${TOTAL_SHARDS}.txt"
           write_test_manifest() {
             GO_TEST_SHARD_TAGS=integration,gms_pure_go \
-              scripts/ci/go-test-shard-names.sh "$SHARD" "$TOTAL_SHARDS" ./cmd/bd > "$test_manifest"
+              scripts/ci/go-test-shard-names.sh "$SHARD" "$TOTAL_SHARDS" github.com/steveyegge/beads/modules/cli > "$test_manifest"
           }
-          ci_time "list cmd/bd test shard ${SHARD}/${TOTAL_SHARDS}" -- write_test_manifest
+          ci_time "list modules/cli test shard ${SHARD}/${TOTAL_SHARDS}" -- write_test_manifest
           cat "$test_manifest"
           mapfile -t tests < "$test_manifest"
 
@@ -845,11 +845,11 @@ jobs:
           fi
 
           run_regex="^($(IFS='|'; echo "${tests[*]}"))$"
-          ci_time "main linux integration cmd/bd shard ${SHARD}/${TOTAL_SHARDS} go test" -- \
+          ci_time "main linux integration modules/cli shard ${SHARD}/${TOTAL_SHARDS} go test" -- \
             env BEADS_TEST_SKIP=dolt gotestsum \
               --junitfile "artifacts/main-linux-integration-cmd-bd-${SHARD}-of-${TOTAL_SHARDS}.xml" \
               --format testdox \
-              -- -v -race -tags=integration,gms_pure_go -timeout=30m -run "$run_regex" ./cmd/bd
+              -- -v -race -tags=integration,gms_pure_go -timeout=30m -run "$run_regex" github.com/steveyegge/beads/modules/cli
 
       - name: Upload integration artifacts
         if: always()
@@ -863,9 +863,9 @@ jobs:
   # End-to-end coverage for proxied-server CLI subcommands, sharded across the
   # CI matrix. Each sub-test drives the bd CLI subprocess against a real dolt
   # sql-server started via testcontainers by the shared proxied harness
-  # (cmd/bd/*_proxied_integration_test.go).
+  # (modules/cli/*_proxied_integration_test.go).
   #
-  # Reuses the cmd/bd test binary compiled once by build-artifacts (bd-cmd-test):
+  # Reuses the modules/cli test binary compiled once by build-artifacts (bd-cmd-test):
   # the proxied tests share the package and are gated at runtime by
   # BEADS_TEST_PROXIED_SERVER=1. Shard assignment is committed in
   # .github/scripts/proxied-cmd-test-shards.txt; newly-added TestProxiedServer*
@@ -932,7 +932,7 @@ jobs:
   # Embedded Dolt tests - test the in-process Dolt engine (no server required)
   #
   # Split into: build → storage tests + parallel cmd test shards.
-  # cmd/bd embedded tests use a committed shard manifest; newly-added tests
+  # modules/cli embedded tests use a committed shard manifest; newly-added tests
   # still auto-distribute via hash fallback until the manifest is updated.
 
   build-embedded:
@@ -969,17 +969,17 @@ jobs:
       - name: Build embedded bd binary
         env:
           GOCACHE: ${{ runner.temp }}/go-cache/race
-        run: go build -tags gms_pure_go -race -o /tmp/bd-embedded-test ./cmd/bd/
+        run: go build -tags gms_pure_go -race -o /tmp/bd-embedded-test github.com/steveyegge/beads/modules/cli
 
       - name: Build embedded storage test binary
         env:
           GOCACHE: ${{ runner.temp }}/go-cache/race
-        run: go test -tags gms_pure_go -race -c -o /tmp/embeddeddolt-test ./internal/storage/embeddeddolt/
+        run: go test -tags gms_pure_go -race -c -o /tmp/embeddeddolt-test github.com/steveyegge/beads/internal/storage/embeddeddolt/
 
       - name: Build embedded cmd test binary
         env:
           GOCACHE: ${{ runner.temp }}/go-cache/race
-        run: go test -tags gms_pure_go -race -c -o /tmp/bd-cmd-test ./cmd/bd/
+        run: go test -tags gms_pure_go -race -c -o /tmp/bd-cmd-test github.com/steveyegge/beads/modules/cli
 
       - name: Upload binaries
         uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7
@@ -1155,7 +1155,7 @@ jobs:
       - name: Build (pure Go regex)
         env:
           GOCACHE: ${{ runner.temp }}/go-cache/non-race
-        run: go build -v -tags gms_pure_go -o bd.exe ./cmd/bd
+        run: go build -v -tags gms_pure_go -o bd.exe github.com/steveyegge/beads/modules/cli
 
       - name: Smoke test - version
         run: ./bd.exe version

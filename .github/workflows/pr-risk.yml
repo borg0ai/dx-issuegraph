@@ -58,9 +58,9 @@ jobs:
   # End-to-end coverage for proxied-server CLI subcommands, sharded across the
   # CI matrix. Each sub-test drives the bd CLI subprocess against a real dolt
   # sql-server started via testcontainers by the shared proxied harness
-  # (cmd/bd/*_proxied_integration_test.go).
+  # (modules/cli/*_proxied_integration_test.go).
   #
-  # Reuses the cmd/bd test binary compiled once by build-embedded: the proxied
+  # Reuses the modules/cli test binary compiled once by build-embedded: the proxied
   # tests live in the same package and are gated at runtime by
   # BEADS_TEST_PROXIED_SERVER=1, so no separate build is needed. Shard
   # assignment is committed in .github/scripts/proxied-cmd-test-shards.txt;
@@ -116,7 +116,7 @@ jobs:
   # Embedded Dolt tests - test the in-process Dolt engine (no server required)
   #
   # Split into: build → storage tests + parallel cmd test shards.
-  # cmd/bd embedded tests use a committed shard manifest; newly-added tests
+  # modules/cli embedded tests use a committed shard manifest; newly-added tests
   # still auto-distribute via hash fallback until the manifest is updated.
 
   build-embedded:
@@ -158,17 +158,17 @@ jobs:
       - name: Build embedded bd binary
         env:
           GOCACHE: ${{ runner.temp }}/go-cache/race
-        run: go build -tags gms_pure_go -race -o /tmp/bd-embedded-test ./cmd/bd/
+        run: go build -tags gms_pure_go -race -o /tmp/bd-embedded-test github.com/steveyegge/beads/modules/cli
 
       - name: Build embedded storage test binary
         env:
           GOCACHE: ${{ runner.temp }}/go-cache/race
-        run: go test -tags gms_pure_go -race -c -o /tmp/embeddeddolt-test ./internal/storage/embeddeddolt/
+        run: go test -tags gms_pure_go -race -c -o /tmp/embeddeddolt-test github.com/steveyegge/beads/internal/storage/embeddeddolt/
 
       - name: Build embedded cmd test binary
         env:
           GOCACHE: ${{ runner.temp }}/go-cache/race
-        run: go test -tags gms_pure_go -race -c -o /tmp/bd-cmd-test ./cmd/bd/
+        run: go test -tags gms_pure_go -race -c -o /tmp/bd-cmd-test github.com/steveyegge/beads/modules/cli
 
       # Non-race bd used as the proxied-server test subprocess. The proxied
       # tests spawn bd many times per sub-test; a -race subprocess would slow
@@ -176,7 +176,7 @@ jobs:
       - name: Build proxied bd subprocess binary
         env:
           GOCACHE: ${{ runner.temp }}/go-cache/non-race
-        run: go build -tags gms_pure_go -o /tmp/bd-proxied ./cmd/bd/
+        run: go build -tags gms_pure_go -o /tmp/bd-proxied github.com/steveyegge/beads/modules/cli
 
       # Server-Dolt conformance binary. No -race: the Dolt server runs
       # out-of-process in a container, and omitting it keeps the run inside the
@@ -185,7 +185,7 @@ jobs:
       - name: Build server Dolt conformance test binary
         env:
           GOCACHE: ${{ runner.temp }}/go-cache/non-race
-        run: go test -tags=integration,gms_pure_go -c -o /tmp/dolt-conformance-test ./internal/storage/dolt/
+        run: go test -tags=integration,gms_pure_go -c -o /tmp/dolt-conformance-test github.com/steveyegge/beads/internal/storage/dolt/
 
       - name: Upload binaries
         uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7

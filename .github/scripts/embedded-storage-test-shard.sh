@@ -149,5 +149,5 @@ else
   exec go test -tags=gms_pure_go -v -race -count=1 -timeout 15m \
     -run "$RUN_REGEX" \
     "$@" \
-    ./internal/storage/embeddeddolt/
+    github.com/steveyegge/beads/internal/storage/embeddeddolt/
 fi

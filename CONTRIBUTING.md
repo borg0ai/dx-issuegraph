@@ -1,6 +1,6 @@
-# Contributing to bd
+# Contributing to issuegraph
 
-Thank you for your interest in contributing to bd! This document provides guidelines and instructions for contributing.
+Thank you for your interest in contributing to issuegraph! This document provides guidelines and instructions for contributing.
 
 ## Development Setup
 
@@ -33,7 +33,7 @@ make install
 
 ```
 beads/
-├── cmd/bd/              # CLI entry point and commands
+├── modules/cli/              # CLI entry point and commands
 ├── internal/
 │   ├── types/           # Core data types (Issue, Dependency, etc.)
 │   └── storage/         # Storage interface and implementations
@@ -84,7 +84,7 @@ CI runs the same required wrapper on all pull requests.
 ### Project Scope
 
 Before adding new feature surface area, read
-[engdocs/PROJECT_CHARTER.md](engdocs/PROJECT_CHARTER.md). Beads owns issue tracking
+[engdocs/PROJECT_CHARTER.md](engdocs/PROJECT_CHARTER.md). IssueGraph owns issue tracking
 primitives. It should not encode orchestration-layer policy, become a storage
 engine, or expand the database schema when issue metadata is sufficient.
 
@@ -162,7 +162,7 @@ For test commands, test design, and PR-readiness gates, see the canonical
 `MaxRowsSource string`) that the storage layer enforces via
 `*issueops.ErrTooManyRows`. The cap is wired from `--max-rows` /
 `BEADS_MAX_ROWS` on user-facing commands listed in designer §4 of be-x42v
-(`bd list`, `bd ready`, `bd dep tree`, `bd find-duplicates`, `bd graph`,
+(`issuegraph list`, `issuegraph ready`, `issuegraph dep tree`, `issuegraph find-duplicates`, `issuegraph graph`,
 plus env-only on the doctor family).
 
 **Rule for new code that builds an `IssueFilter`:** if your call site is
@@ -184,7 +184,7 @@ Include in your bug report:
 - Steps to reproduce
 - Expected behavior
 - Actual behavior
-- Version of bd (`bd version` if implemented)
+- Version of issuegraph (`issuegraph version` if implemented)
 - Operating system and Go version
 
 ### Feature Requests
@@ -238,8 +238,8 @@ Before starting a rewrite, cleanup, or large refactoring pass, maintainers and a
    - Thank the contributor and invite follow-up if their use case was not fully covered.
 
 6. Leave an audit trail:
-   - Link the intake decision from the refactor PR or Beads issue.
-   - Record any follow-up work as Beads issues instead of hidden notes.
+   - Link the intake decision from the refactor PR or IssueGraph issue.
+   - Record any follow-up work as IssueGraph issues instead of hidden notes.
    - Call out contributor-owned tests or behavior in the refactor PR summary.
 
 ## Code Review Process
@@ -260,19 +260,19 @@ All contributions go through code review:
 make install
 
 # Test specific functionality
-bd init --prefix test
-bd create "Test issue" -p 1 -t bug
-bd dep add test-2 test-1
-bd ready
+issuegraph init --prefix test
+issuegraph create "Test issue" -p 1 -t bug
+issuegraph dep add test-2 test-1
+issuegraph ready
 ```
 
 ### Database Inspection
 
 ```bash
 # Inspect the Dolt database directly
-bd query "SELECT * FROM issues"
-bd query "SELECT * FROM dependencies"
-bd query "SELECT * FROM events WHERE issue_id = 'test-1'"
+issuegraph query "SELECT * FROM issues"
+issuegraph query "SELECT * FROM dependencies"
+issuegraph query "SELECT * FROM events WHERE issue_id = 'test-1'"
 ```
 
 ### Updating Nix flake.lock (without nix installed)
@@ -299,10 +299,10 @@ Use Go's built-in debugging tools:
 
 ```bash
 # Run with verbose logging
-go run ./cmd/bd -v create "Test"
+go run ./modules/cli -v create "Test"
 
 # Use delve for debugging
-dlv debug ./cmd/bd -- create "Test issue"
+dlv debug ./modules/cli -- create "Test issue"
 ```
 
 ## Release Process
@@ -331,4 +331,4 @@ Be respectful and professional in all interactions. We're here to build somethin
 
 ---
 
-Thank you for contributing to bd! 🎉
+Thank you for contributing to issuegraph! 🎉

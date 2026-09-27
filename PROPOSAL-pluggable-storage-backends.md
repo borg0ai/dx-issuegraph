@@ -14,7 +14,7 @@ against `worktree-beads-new`.
 > PostgreSQL and MySQL adapters were rolled back before entering a tagged
 > release because supporting additional general-purpose server databases adds
 > substantial dialect, credential, schema-lifecycle, migration, CI, and
-> operational complexity. Our goal is to keep Beads as simple as possible and
+> operational complexity. Our goal is to keep IssueGraph as simple as possible and
 > consume as few resources as possible. The supported paths are now embedded
 > Dolt, Dolt server, and SQLite; Dolt server's use of the MySQL wire protocol is
 > unchanged. See [Storage Backends](docs/architecture/storage-backends.md) for
@@ -27,13 +27,13 @@ current backend support or migration guidance.
 
 ## 1. End state
 
-- `bd init --backend=dolt|sqlite|postgres` — the user picks the engine at init. The workspace
+- `issuegraph init --backend=dolt|sqlite|postgres` — the user picks the engine at init. The workspace
   locator records the choice; opening consults the locator, never the environment.
 - **One core command set** (the gc-contract 16 plus the portable CORE inventory, ~67 commands)
   behaves identically on every backend, proven by a differential conformance harness — not by
   code review.
-- **Storage-specific commands are capability-gated addons.** `bd history`, `bd dolt push/pull`,
-  `bd vc`, `bd branch`, `bd diff`, `bd federation`, `bd backup`, `bd sql` are live only when the
+- **Storage-specific commands are capability-gated addons.** `issuegraph history`, `issuegraph dolt push/pull`,
+  `issuegraph vc`, `issuegraph branch`, `issuegraph diff`, `issuegraph federation`, `issuegraph backup`, `issuegraph sql` are live only when the
   opened store advertises the matching capability; otherwise they are deterministic stubs that
   explain what backend provides them (Decision D2, resolved: stubs, not hidden — see §6).
   Pick Dolt → you get history and remotes. Pick SQLite → you get a fast, zero-dep, pure-Go
@@ -41,7 +41,7 @@ current backend support or migration guidance.
 - Dolt remains the default and richest backend. **Back-compat guarantee:** a workspace created
   before this migration keeps opening exactly as it does today — enforced by an explicit
   legacy-locator rule (§4.3), not by hope.
-- Adoption path for existing workspaces: `bd export` → re-init on the new backend → `bd import`,
+- Adoption path for existing workspaces: `issuegraph export` → re-init on the new backend → `issuegraph import`,
   with documented fidelity limits (§5, Phase 4 gate). In-place cross-backend data migration is
   a separate initiative.
 
@@ -52,14 +52,14 @@ Evidence: `bts-rs/docs/` (`SEAM_VALIDATION_FINDINGS.md`, `CONFORMANCE_GAPS.md`,
 
 ### 2.1 The seam shape
 Six small core traits (33 data methods) + **optional capability traits** reached via accessors
-defaulting to "absent". Two backends (Postgres, file-backed memory) hit byte-parity with real bd
+defaulting to "absent". Two backends (Postgres, file-backed memory) hit byte-parity with real issuegraph
 on 299/299 scenarios **with zero command-handler changes** — handlers never name a backend.
 
 **Go gets the spike's hardest problem for free.** Rust's non-object-safe async traits forced a
 399-line delegation enum; in Go, `storage.Storage` is already an interface and `Open()` returns
 the interface value. Budget the port on semantics and conformance, not plumbing.
 
-**Seam-size caveat (from review):** the spike's 33-method core is NOT evidence that beads' much
+**Seam-size caveat (from review):** the spike's 33-method core is NOT evidence that issuegraph's much
 larger core (§4.1: ~107+24 methods after the fold) is cheap to implement per-backend. The spike's
 "~1–10k LOC per adapter" anchor was measured against 33 methods. Phase 0 therefore includes a
 core-shrink review: which core methods are truly primitive vs derivable-above-the-seam vs
@@ -75,11 +75,11 @@ capability material. Sizing in §8 assumes the core does NOT shrink (worst case)
    a core command there must be a core-interface fallback, OR the whole command is
    capability-gated. (The spike's only runtime divergence violated this.)
 
-### 2.3 Transactional-integrity rules that apply to beads' CORE (not just capabilities)
-The spike's red team hit this bug class three times; in beads it lives on the core surface:
-- **Same-tx side effects:** beads writes the events table inside the mutation transaction
+### 2.3 Transactional-integrity rules that apply to issuegraph's CORE (not just capabilities)
+The spike's red team hit this bug class three times; in issuegraph it lives on the core surface:
+- **Same-tx side effects:** issuegraph writes the events table inside the mutation transaction
   (`issueops/create.go:601`, `labels.go:151`, `helpers.go:147`; read via core
-  `GetAllEventsSince`, `storage.go:84`, and `bd audit`). Any new backend must do the same —
+  `GetAllEventsSince`, `storage.go:84`, and `issuegraph audit`). Any new backend must do the same —
   events emitted outside the mutation tx strand or duplicate audit rows on crash.
 - **Denormalized `is_blocked` is the most conformance-dangerous core semantic.** It is
   maintained across 10+ issueops write paths (dependencies/close/reopen/delete/promote/…) and
@@ -105,7 +105,7 @@ The spike's red team hit this bug class three times; in beads it lives on the co
   silently and scores a stale binary).
 
 ### 2.5 History without Dolt (later, not now)
-`bd history`'s minimal substrate is a per-issue, ordered, never-pruned field-delta changelog
+`issuegraph history`'s minimal substrate is a per-issue, ordered, never-pruned field-delta changelog
 written in the same tx as each mutation + `HistoryViewer{History, AsOf, Diff}` as a backward
 fold. Dolt provides all three natively (`dolt_history_*`, `AS OF`, `dolt_diff`). So "pick Dolt →
 get history" can later relax to "any backend with the Changelog capability" without
@@ -119,19 +119,19 @@ paths to 1–2 statements; `FOR UPDATE SKIP LOCKED` IS the claim guarantee. Yuga
 latency / 10× write cost — multi-region only. An embedded pure-Go store is the cheapest second
 backend and the one that validates the seam.
 
-## 3. Where beads is today (recon summary, review-corrected)
+## 3. Where issuegraph is today (recon summary, review-corrected)
 
 ### 3.1 The good news — the seam is already 80% drawn
 - `storage.DoltStorage` (`internal/storage/storage.go:200-213`) composes core `Storage` (62
   methods) + 11 sub-interfaces (144 total; + `Transaction` 24). The Dolt-shaped surface is
   already isolated in **5 named sub-interfaces** — VersionControl (16), HistoryViewer (3),
   RemoteStore (12), SyncStore (2), FederationStore (4) = 37 methods, ~87 genuine call sites in
-  non-test cmd/bd. The other **6 sub-interfaces are backend-neutral** (BulkIssueStore,
+  non-test modules/cli. The other **6 sub-interfaces are backend-neutral** (BulkIssueStore,
   DependencyQueryStore, AnnotationStore, ConfigMetadataStore, CompactionStore,
-  AdvancedQueryStore — ~45 methods, ~155 cmd/bd call sites serving CORE commands like
+  AdvancedQueryStore — ~45 methods, ~155 modules/cli call sites serving CORE commands like
   `ready --claim`, `dep`, `comment`) and fold INTO the core seam (§4.1).
 - **The capability-gating pattern already ships:** 10 optional interfaces
-  (`storage.go:217-287`), `UnwrapStore` + type-assert at 22 cmd/bd sites, graceful errors
+  (`storage.go:217-287`), `UnwrapStore` + type-assert at 22 modules/cli sites, graceful errors
   (`sql.go:54-57`).
 - **The public API is not frozen to the god interface:** root `beads.go:20` aliases
   `Storage = beads.Storage` (= `storage.Storage`); RemoteStore/SyncStore are exported as
@@ -186,11 +186,11 @@ backend and the one that validates the seam.
   extension point).
 - **H5. Core-signature Dolt leaks.** `RunInTransaction(ctx, commitMsg, fn)` — where the message
   is load-bearing suppression semantics per H2, NOT advisory; `GetCurrentCommit` as freshness
-  token (`export_auto.go:85`, `backup_auto.go:127`); `ApplyCompaction(commitHash)`; `bd edit`'s
+  token (`export_auto.go:85`, `backup_auto.go:127`); `ApplyCompaction(commitHash)`; `issuegraph edit`'s
   raw `*sql.DB` keepalive (`edit.go:150`); "dolt-ignored" LocalMetadata contract.
 - **H6. Command metadata in name-keyed string lists.** `noDbCommands` (27), `readOnlyCommands`
   (14), dolt-subcommand patch lists (`main.go:770-808,122-137`).
-- **H7. bd doctor** — 37/45 files Dolt-tinged, raw SQL on `dolt_remotes`/`dolt_status`.
+- **H7. issuegraph doctor** — 37/45 files Dolt-tinged, raw SQL on `dolt_remotes`/`dolt_status`.
 - **H8. Mode-divergent semantics are unformalized.** The draft claimed this "includes a LIVE
   BUG": ~~with server-mode autocommit OFF, `GetCurrentCommit` never advances, so
   auto-export/backup freshness checks silently stop firing in server mode.~~
@@ -207,7 +207,7 @@ backend and the one that validates the seam.
   inaccurate model of the server store. The rest of H8 stands: auto-commit ON embedded / OFF
   server; single-writer flock embedded-only (`store_factory.go:66-85`); server DoltStore has
   real streaming iterators (`dolt/iter_issues.go:48`) while embedded ships `NewSliceIter`
-  stubs; `bd sql`/`bd admin` work in server mode but error in embedded (`sql.go:45`,
+  stubs; `issuegraph sql`/`issuegraph admin` work in server mode but error in embedded (`sql.go:45`,
   `admin.go:17`) — and that embedded error string is gc contract class 3.
 - **H9. Auto-import is a silent data-mutation path on the core surface** (missed in the first
   draft; review-added). `maybeAutoImportJSONL` runs in PreRun for every command
@@ -226,8 +226,8 @@ backend and the one that validates the seam.
 ### 3.3 The command surface (census, corrected)
 ~271 cobra commands (~111 top-level), all registered unconditionally **in package `init()` —
 before any workspace resolution** (this kills naive hide-at-registration; see D2). Classified:
-CORE ≈ 67 (incl. the gc-contract 16), STORAGE-SPECIFIC = 11 (+3 mixed: `bd gc`, `bd migrate`,
-`bd restore`'s history fallback), INTEGRATION = 6 families, INFRA ≈ 27. **12 of the gc-16 have
+CORE ≈ 67 (incl. the gc-contract 16), STORAGE-SPECIFIC = 11 (+3 mixed: `issuegraph gc`, `issuegraph migrate`,
+`issuegraph restore`'s history fallback), INTEGRATION = 6 families, INFRA ≈ 27. **12 of the gc-16 have
 dual (store+uow) implementations; `purge`, `count`, `version`, `stats` do not** — and `purge`
 is precisely where the spike's red team found re-seeding bugs, so it is a required Phase 1
 scenario, not a "covered elsewhere" case.
@@ -244,7 +244,7 @@ scaffolding that de-risks the retype and is thinned afterward (Phase 7).
 
 ```
 ┌────────────────────────────────────────────────────────────────────────┐
-│ cmd/bd — commands, formatting, streams, contract strings               │
+│ modules/cli — commands, formatting, streams, contract strings               │
 │ command registry: declared metadata {needsStore, readOnly,             │
 │ requires: Capability} — replaces the name-keyed string lists (H6)      │
 └──────────────────────────────┬─────────────────────────────────────────┘
@@ -293,7 +293,7 @@ type Store interface {
 }
 
 // OpInfo + CommandScope are where the H2 commit protocol collapses to. NOTE
-// (red-team blocker): commit messages are OUTCOME-derived in bd (composed after
+// (red-team blocker): commit messages are OUTCOME-derived in issuegraph (composed after
 // close/claim results — close_proxied_server.go:242-255, uow.RunInTxMsg), so the
 // description travels on Commit, NOT on Begin. A CommandScope above Tx owns the
 // one-version-commit-per-command rule (N txs -> ONE dolt commit), the tips
@@ -341,7 +341,7 @@ type RetryClass int // Transient | Serialization | CommitIndeterminate | Permane
 | ~7 small domain interfaces, no god interface | the 805-line panic wall (PR #3792); "can't easily mock DoltStorage"; 168 methods before one command works |
 | `OpInfo` on `Begin` | H2: commit protocol currently lives in CLI globals (message-blanking, `commandDidExplicitDoltCommit`, tips double-commit) |
 | `ChangeToken()` on core | backend-neutral freshness: `GetCurrentCommit`/`DOLT_HASHOF` is Dolt-specific, so export/backup freshness must key on a neutral opaque token any backend can supply (SQLite/Postgres have no Dolt commit hash). (NB: the earlier "H8 live bug" rationale is withdrawn — see H8; ChangeToken stands on backend-neutrality alone.) |
-| per-instance `CapabilitySet`, extend-never-gate | `bd sql` works on Dolt-server, stubs on Dolt-embedded — capability varies by topology; the spike's only runtime divergence was a capability gating core behavior |
+| per-instance `CapabilitySet`, extend-never-gate | `issuegraph sql` works on Dolt-server, stubs on Dolt-embedded — capability varies by topology; the spike's only runtime divergence was a capability gating core behavior |
 | topologies INSIDE `backend/dolt` | embedded/server/proxied are three connections to ONE engine; CLI knowledge of them produced 38 scattered mode checks |
 | events written inside mutations, same tx | the spike's red team hit emit-outside-tx three times; the use-cases already do it right — make it structural + contract-tested |
 | `backend/fake` + `storetest.RunContract` | nothing tests against the interface today; every suite needs a Dolt container |
@@ -353,7 +353,7 @@ domain surface, wearing bts-rs's construction/capability/error discipline.**
 
 ### 4.1 Bridge-seam arithmetic (the flat waypoint; review-corrected)
 Core = today's `Storage` (62) **+ the six backend-neutral sub-interfaces (~45)** = ~107 methods,
-+ `Transaction` (24), all mandatory for every backend. The ~155 cmd/bd call sites of the six
++ `Transaction` (24), all mandatory for every backend. The ~155 modules/cli call sites of the six
 folded interfaces need **zero conversion**. The ~87 call sites of the 5 Dolt-shaped interfaces
 convert to capability asserts. `DoltStorage` is deleted; the Dolt backends keep a `var _`
 compile assertion for core + all capabilities. Phase 0's core-shrink review may pull some of
@@ -398,7 +398,7 @@ A specified seam protocol, designed in Phase 2b BEFORE code moves:
 ### 4.4 Errors, formatting, and the public API
 - Typed errors below the seam (NotFound/ClaimConflict/Unsupported{op,backend}/retry-class);
   ALL envelope/stream routing and contract strings above it — including gc error class 3
-  (`bd sql` embedded string), class 4 (H9 auto-import strings — now backend-neutral pinned
+  (`issuegraph sql` embedded string), class 4 (H9 auto-import strings — now backend-neutral pinned
   contract), and the claim-conflict text.
 - Public API: `beads.Open*` route through the registry (H3 fifth path). **Compat note for
   extension authors:** on non-Dolt workspaces, type-asserting `RemoteStore` etc. on the
@@ -425,7 +425,7 @@ components map as: `uow.UnitOfWork`/use-cases/`domain/db` → the seam's embryo;
 The seam must not assume SQL — two of the three named future backends are key-value and one
 is object storage. Design constraints this imposes, to be validated by adversarial review:
 - **FoundationDB:** interactive transactions exist but carry hard limits (~5s / ~10MB);
-  `bd import`-scale work cannot be one `Tx`. The seam therefore must NOT promise unbounded
+  `issuegraph import`-scale work cannot be one `Tx`. The seam therefore must NOT promise unbounded
   transaction size — bulk operations need an explicit chunked/bulk path on the seam, and the
   contract suite must pin what atomicity bulk ops actually guarantee. Ordered scans and
   secondary indexes are backend-built (the bts-rs readiness-projection pattern applies).
@@ -516,7 +516,7 @@ the next full edit. Convergent = demanded independently by 2+ lenses.
     bounded-by-workspace materialization, stated as such.
 
 **§4.6 corrections from the future-backend lenses:** FDB limits apply to reads too (~5s
-read-version expiry; 100kB value cap vs bd's unbounded LONGTEXT — chunked content or
+read-version expiry; 100kB value cap vs issuegraph's unbounded LONGTEXT — chunked content or
 declared `Limits`); the readiness-projection pattern transplants only with rework (chunked
 catch-up outside the op Tx, lease-based projector); redb: what the spike validated is "an
 embedded single-file backend behind the seam for the gc-16 surface" — the 9-sort-order
@@ -534,7 +534,7 @@ that names its in_scope coverage.
 ### Phase 0 — Decisions + contract pinning (docs only)
 - Resolve D1–D6 (§6) with maintainers.
 - **Leak-4 audit** over capability-sourced behavior in core commands (restore's history
-  fallback; export/backup freshness → ChangeToken; `bd gc`'s portable decay phase; tracker
+  fallback; export/backup freshness → ChangeToken; `issuegraph gc`'s portable decay phase; tracker
   fast path). Classification defines the core command set.
 - **Core-shrink review** (§2.1 caveat): triage the ~107 core methods into primitive /
   derivable-above-seam / capability.
@@ -592,15 +592,15 @@ candidate-binary paths.
 
 ### Phase 3 — Capability-gate the addon surface
 - `Capabilities()` is **instance-level** (computed after open, backend × topology — review
-  fix: `bd sql` works on Dolt-server but not Dolt-embedded, same backend). Gating happens at
+  fix: `issuegraph sql` works on Dolt-server but not Dolt-embedded, same backend). Gating happens at
   **RunE-time via stubs** (D2 resolved): registration stays in `init()` (no bootstrap
-  restructuring; `bd --help` and the CI docs-regen stay deterministic); absent capability →
+  restructuring; `issuegraph --help` and the CI docs-regen stay deterministic); absent capability →
   deterministic stub error naming the backend that provides it (federation_nocgo precedent;
-  `bd sql`'s embedded string preserved verbatim as contract).
-- Surface: `bd dolt` (16 subcmds), `bd vc`, `bd branch`, `bd history`, `bd diff`,
-  `bd show --as-of`, `bd federation`, `bd backup`, `bd sql`, `bd flatten`, Dolt legs of
-  `bd compact`/`bd gc`, `db-proxy-child`, `--global` (§4.3).
-- `bd doctor`: per-backend check registry (D6); Dolt checks (incl. `blocked_consistency`'s
+  `issuegraph sql`'s embedded string preserved verbatim as contract).
+- Surface: `issuegraph dolt` (16 subcmds), `issuegraph vc`, `issuegraph branch`, `issuegraph history`, `issuegraph diff`,
+  `issuegraph show --as-of`, `issuegraph federation`, `issuegraph backup`, `issuegraph sql`, `issuegraph flatten`, Dolt legs of
+  `issuegraph compact`/`issuegraph gc`, `db-proxy-child`, `--global` (§4.3).
+- `issuegraph doctor`: per-backend check registry (D6); Dolt checks (incl. `blocked_consistency`'s
   `dolt_status` guard) move into the Dolt backend's set.
 - Audit + flip the `--backend=sqlite` deprecation contract (`init.go:215-225` hard-errors
   today; docs/scripts written against that string need a coordinated, release-noted flip).
@@ -608,7 +608,7 @@ candidate-binary paths.
   exercises every stub; docs regen green.
 
 ### Phase 4 — Second backend: Postgres (THE PROOF backend; reordered per owner direction)
-Owner-stated success criterion: **beads runs on a Postgres backend and the bd CLI simply
+Owner-stated success criterion: **issuegraph runs on a Postgres backend and the issuegraph CLI simply
 doesn't have the history functionality.** Postgres — not SQLite — is therefore the seam
 validator and the critical-path deliverable. (The first draft's SQLite-first ordering
 followed the spike's cheapest-second-backend guidance; the owner's proof criterion overrides
@@ -636,10 +636,10 @@ relationship:**
 **Proof-wedge milestone (demoable before Phases 2–3 fully land):** minimal locator `backend`
 field + one factory arm + the PG stack + a TEMPORARY full-`DoltStorage` compat shell whose 37
 Dolt-shaped methods return typed Unsupported errors (graceful errors, NOT panics — the D1
-design-history lesson) + PersistentPostRun neutralized for non-Dolt. This demonstrates "bd on
-Postgres, `bd history` absent" without waiting for the 159-ref retype; the shell is deleted
+design-history lesson) + PersistentPostRun neutralized for non-Dolt. This demonstrates "issuegraph on
+Postgres, `issuegraph history` absent" without waiting for the 159-ref retype; the shell is deleted
 when Phase 2a lands. Accepted sharp edges for the demo: auto-export/backup freshness and
-parts of `bd doctor` degrade on the wedge; the gc-16 harness subset is the demo's acceptance
+parts of `issuegraph doctor` degrade on the wedge; the gc-16 harness subset is the demo's acceptance
 test.
 - **Gate:** Phase-1 harness PG-vs-Dolt green over the gc-16 in_scope set, THEN widened to the
   CORE-67 surface before the backend is announced (coverage artifact enforces the widening —
@@ -673,7 +673,7 @@ package's godoc IS the backend-author contract, and `storetest.RunContract` is t
 thing a new backend must pass before the differential harness.
 
 ### Explicitly deferred / out of scope
-- In-place cross-backend DATA migration (`bd migrate --to-backend=X`) — the interim adoption
+- In-place cross-backend DATA migration (`issuegraph migrate --to-backend=X`) — the interim adoption
   path is export→re-init→import with Phase-4-documented fidelity limits.
 - Retiring the uow layer's 13 dual command paths (fate fixed by D1; execution follows Phase 3).
 - YugabyteDB/FDB backends; dynamic plugin loading; backend-neutral federation.
@@ -745,7 +745,7 @@ thing a new backend must pass before the differential harness.
 | Allowlist waivers rot and mask real regressions | Pair-scoped, field-scoped, tagged, expiring entries; no carryover to new-backend runs |
 | Green harness over-trusted | §2.4 epistemics: hooks/timing/coverage limits stated per gate; coverage artifact required; CORE-67 widening enforced before Phase-4 announce |
 | A from-scratch backend (Route B) re-opens the spike's transactional bug class | §2.3 rules are Phase 4/5 implementation requirements with mandatory transition fixtures; Route A sidesteps by reusing the parity-tested use-case semantics |
-| `bd doctor`/backup partial coverage confuses users | Capability-aware stubs + doctor prints per-backend coverage |
+| `issuegraph doctor`/backup partial coverage confuses users | Capability-aware stubs + doctor prints per-backend coverage |
 | Public-API extensions break on non-Dolt workspaces | §4.4 compat note; assertions return false (defined behavior), release-noted |
 | Schema drift between per-backend migration streams | Shared logical-schema contract suite each backend's fresh DB must pass |
 
@@ -764,7 +764,7 @@ thing a new backend must pass before the differential harness.
 | 6 | 2–4 weeks | optional; independent — and under Route A, the Changelog capability could later give PG history too (§2.5), making "no history on Postgres" a v1 statement, not a permanent one |
 
 Phases 4/5 are independent of each other; 6 independent of both.
-**Critical path to the owner's PROOF** ("bd on Postgres, no history"): 0 (D1 + route choice) →
+**Critical path to the owner's PROOF** ("issuegraph on Postgres, no history"): 0 (D1 + route choice) →
 1 (gc-16 harness subset) → Phase-4 proof wedge (~6–9 weeks). **Critical path to the full
 end state** ("users choose a backend", shipped properly): 0 → 1 → 2a → 2b → 3 → 4
 (~12–19 weeks sequential); the wedge work is on that path, not thrown away — only the compat

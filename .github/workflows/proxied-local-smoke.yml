@@ -19,19 +19,19 @@ on:
   push:
     branches: [main]
     paths:
-      - 'cmd/bd/proxied_local_*'
-      - 'cmd/bd/proxied_server*.go'
-      - 'cmd/bd/dolt*.go'
-      - 'cmd/bd/*_proxied_server.go'
-      - 'cmd/bd/*managed_local*'
-      - 'cmd/bd/proxied_outage_reconnect_integration_test.go'
-      - 'cmd/bd/db_proxy_child.go'
-      - 'cmd/bd/init*.go'
-      - 'cmd/bd/proxied_integration_helpers_test.go'
-      - 'cmd/bd/store_factory*.go'
-      - 'cmd/bd/test_dolt_server_cgo_test.go'
-      - 'cmd/bd/tracker_proxy_uow_conformance_integration_test.go'
-      - 'cmd/bd/uow_factory.go'
+      - 'modules/cli/proxied_local_*'
+      - 'modules/cli/proxied_server*.go'
+      - 'modules/cli/dolt*.go'
+      - 'modules/cli/*_proxied_server.go'
+      - 'modules/cli/*managed_local*'
+      - 'modules/cli/proxied_outage_reconnect_integration_test.go'
+      - 'modules/cli/db_proxy_child.go'
+      - 'modules/cli/init*.go'
+      - 'modules/cli/proxied_integration_helpers_test.go'
+      - 'modules/cli/store_factory*.go'
+      - 'modules/cli/test_dolt_server_cgo_test.go'
+      - 'modules/cli/tracker_proxy_uow_conformance_integration_test.go'
+      - 'modules/cli/uow_factory.go'
       - 'internal/configfile/**'
       - 'internal/doltserver/**'
       - 'internal/storage/dbproxy/**'
@@ -45,19 +45,19 @@ on:
       - '.github/workflows/proxied-local-smoke.yml'
   pull_request:
     paths:
-      - 'cmd/bd/proxied_local_*'
-      - 'cmd/bd/proxied_server*.go'
-      - 'cmd/bd/dolt*.go'
-      - 'cmd/bd/*_proxied_server.go'
-      - 'cmd/bd/*managed_local*'
-      - 'cmd/bd/proxied_outage_reconnect_integration_test.go'
-      - 'cmd/bd/db_proxy_child.go'
-      - 'cmd/bd/init*.go'
-      - 'cmd/bd/proxied_integration_helpers_test.go'
-      - 'cmd/bd/store_factory*.go'
-      - 'cmd/bd/test_dolt_server_cgo_test.go'
-      - 'cmd/bd/tracker_proxy_uow_conformance_integration_test.go'
-      - 'cmd/bd/uow_factory.go'
+      - 'modules/cli/proxied_local_*'
+      - 'modules/cli/proxied_server*.go'
+      - 'modules/cli/dolt*.go'
+      - 'modules/cli/*_proxied_server.go'
+      - 'modules/cli/*managed_local*'
+      - 'modules/cli/proxied_outage_reconnect_integration_test.go'
+      - 'modules/cli/db_proxy_child.go'
+      - 'modules/cli/init*.go'
+      - 'modules/cli/proxied_integration_helpers_test.go'
+      - 'modules/cli/store_factory*.go'
+      - 'modules/cli/test_dolt_server_cgo_test.go'
+      - 'modules/cli/tracker_proxy_uow_conformance_integration_test.go'
+      - 'modules/cli/uow_factory.go'
       - 'internal/configfile/**'
       - 'internal/doltserver/**'
       - 'internal/storage/dbproxy/**'
@@ -102,8 +102,8 @@ jobs:
 
       - name: Build bd and compile the test binary (online)
         run: |
-          go build -tags gms_pure_go -o /tmp/bd-under-test ./cmd/bd
-          go test -tags gms_pure_go -c -o /tmp/proxied-local-smoke.test ./cmd/bd
+          go build -tags gms_pure_go -o /tmp/bd-under-test github.com/steveyegge/beads/modules/cli
+          go test -tags gms_pure_go -c -o /tmp/proxied-local-smoke.test github.com/steveyegge/beads/modules/cli
 
       - name: Assert the managed-local lifecycle tests are compiled in
         run: |
@@ -148,7 +148,7 @@ jobs:
                 echo "outbound network unexpectedly available inside the netns" >&2
                 exit 1
               fi
-              cd cmd/bd
+              cd modules/cli
               /tmp/proxied-local-smoke.test \
                 -test.run "^TestManagedLocalProxied" \
                 -test.v -test.timeout 15m

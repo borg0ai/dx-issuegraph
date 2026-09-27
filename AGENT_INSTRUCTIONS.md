@@ -1,8 +1,8 @@
-# Detailed Agent Instructions for Beads Development
+# Detailed Agent Instructions for IssueGraph Development
 
 **For project overview and quick start, see [AGENTS.md](AGENTS.md)**
 
-This document contains detailed operational instructions for AI agents working on beads development, testing, and releases.
+This document contains detailed operational instructions for AI agents working on issuegraph development, testing, and releases.
 
 ## Development Guidelines
 
@@ -18,7 +18,7 @@ This document contains detailed operational instructions for AI agents working o
 
 ```
 beads/
-├── cmd/bd/              # CLI commands
+├── modules/cli/              # CLI commands
 ├── internal/
 │   ├── types/           # Core data types
 │   └── storage/         # Storage layer
@@ -42,13 +42,13 @@ beads_manual_dir="$(mktemp -d)"
 (
   set -e
   cd "$beads_manual_dir"
-  bd init --quiet --prefix test --skip-hooks --skip-agents
-  bd create "Test issue" -p 1
+  issuegraph init --quiet --prefix test --skip-hooks --skip-agents
+  issuegraph create "Test issue" -p 1
 )
 rm -rf -- "$beads_manual_dir"
 ```
 
-`BEADS_DB` alone does not redirect `bd init` workspace setup. Do not run manual
+`BEADS_DB` alone does not redirect `issuegraph init` workspace setup. Do not run manual
 initialization from a production workspace even when selecting another database.
 
 **For automated tests**, use `t.TempDir()` in Go tests:
@@ -71,11 +71,11 @@ git config core.hooksPath .git/hooks
 Do not rely on the developer's global git config. Global `core.hooksPath` can leak
 into temp repos and produce flaky test behavior.
 
-**Warning:** bd will warn you when creating issues with a "Test" prefix in the
+**Warning:** issuegraph will warn you when creating issues with a "Test" prefix in the
 production database. The disposable working directory is the isolation
 boundary for manual initialization and experiments.
 
-**Tmpfs hosts:** the `cmd/bd` test suite creates an isolated `$HOME` and several
+**Tmpfs hosts:** the `modules/cli` test suite creates an isolated `$HOME` and several
 test binaries under `$TMPDIR`. They are normally cleaned by the test process,
 but a SIGKILLed or OOMed run can leave orphans behind. On hosts where `/tmp`
 is tmpfs (e.g. Fedora Atomic / Bluefin), run `make clean-test-tmp` between
@@ -87,7 +87,7 @@ test runs if `du -sh /tmp/beads-* /tmp/bd-*` shows accumulation. See bd-3q2u.
 2. **Run the required lint contract when its code surface changed**:
    `make ci-pr-lint`
 3. **Update docs**: If you changed behavior, update README.md or other docs
-4. **Commit**: With git hooks installed (`bd hooks install`), Dolt changes are auto-committed
+4. **Commit**: With git hooks installed (`issuegraph hooks install`), Dolt changes are auto-committed
 
 ### Commit Message Convention
 
@@ -98,7 +98,7 @@ git commit -m "Fix auth validation bug (bd-abc)"
 git commit -m "Add retry logic for database locks (bd-xyz)"
 ```
 
-This enables `bd doctor` to detect **orphaned issues** - work that was committed but the issue wasn't closed. The doctor check cross-references open issues against git history to find these orphans.
+This enables `issuegraph doctor` to detect **orphaned issues** - work that was committed but the issue wasn't closed. The doctor check cross-references open issues against git history to find these orphans.
 
 For agent-prepared commits, also include the
 `Agent-Signature:` trailer described in
@@ -107,26 +107,26 @@ For agent-prepared commits, also include the
 
 ### Git Workflow
 
-bd uses **Dolt** as its primary database. Changes are committed to Dolt history automatically (one Dolt commit per write command).
+issuegraph uses **Dolt** as its primary database. Changes are committed to Dolt history automatically (one Dolt commit per write command).
 
 **Install git hooks** for commit integration and legacy fallback behavior:
 ```bash
-bd hooks install
+issuegraph hooks install
 ```
 
 ### Git Integration
 
-**Dolt sync**: Dolt handles sync natively via `bd dolt push` / `bd dolt pull`. No export/import round-trip needed for normal sync.
+**Issue data**: Dolt is the local runtime store. A complete Git-tracked snapshot under `.issuegraph/` carries issue data between clones. IssueGraph never pushes or pulls issue data from a remote service; users manage repository transport with Git.
 
-**Protected branches**: Dolt stores data under `refs/dolt/data`, separate from standard Git refs. See [docs/reference/protected-branches.md](docs/reference/protected-branches.md).
+**Protected branches**: IssueGraph does not publish `refs/dolt/data`. Git branch protection applies to ordinary repository commits.
 
-**Git worktrees**: Work directly with Dolt — no special flags needed. See [docs/reference/advanced.md](docs/reference/advanced.md).
+**Git worktrees**: Work directly with the local database and tracked snapshot. See [docs/reference/advanced.md](docs/reference/advanced.md).
 
-**Merge conflicts**: Rare with hash IDs. Dolt uses cell-level 3-way merge for conflict resolution.
+**Merge conflicts**: Git merges the tracked snapshot as repository text. Resolve conflicts, then restore the validated snapshot into local Dolt.
 
 ## Git Workflow: PR by Default
 
-Crew workers use a PR-based workflow. Beads is a dependency of a downstream consumer, so we
+Crew workers use a PR-based workflow. IssueGraph is a dependency of a downstream consumer, so we
 defer to the standard PR flow to keep changes reviewable.
 
 - Work on a feature branch, push the branch, open a PR against `main`
@@ -185,21 +185,21 @@ cleanup, and next-session hand-off).
 
 ## Agent Session Workflow
 
-**WARNING: DO NOT use `bd edit`** - it opens an interactive editor ($EDITOR) which AI agents cannot use. Use `bd update` with flags instead:
+**WARNING: DO NOT use `issuegraph edit`** - it opens an interactive editor ($EDITOR) which AI agents cannot use. Use `issuegraph update` with flags instead:
 ```bash
-bd update <id> --description "new description"
-bd update <id> --title "new title"
-bd update <id> --design "design notes"
-bd update <id> --notes "additional notes"
-bd update <id> --acceptance "acceptance criteria"
+issuegraph update <id> --description "new description"
+issuegraph update <id> --title "new title"
+issuegraph update <id> --design "design notes"
+issuegraph update <id> --notes "additional notes"
+issuegraph update <id> --acceptance "acceptance criteria"
 ```
 
-**Read execution metadata before prose.** When enacting a bd issue, inspect the
+**Read execution metadata before prose.** When enacting an issuegraph issue, inspect the
 structured metadata before using description or notes to choose execution mode,
 delegation, model, reasoning level, or parallel group:
 
 ```bash
-bd show <id> --json | jq '.[0] | {id,title,metadata,description,notes}'
+issuegraph show <id> --json | jq '.[0] | {id,title,metadata,description,notes}'
 ```
 
 The execution metadata keys are:
@@ -219,11 +219,11 @@ after launch.
 **Use stdin for descriptions with special characters** (backticks, `!`, nested quotes):
 ```bash
 # Pipe via stdin to avoid shell escaping issues
-echo 'Description with `backticks` and "quotes"' | bd create "Title" --stdin
-echo 'Updated description with $variables' | bd update <id> --description=-
+echo 'Description with `backticks` and "quotes"' | issuegraph create "Title" --stdin
+echo 'Updated description with $variables' | issuegraph update <id> --description=-
 
 # Or use --body-file for longer content
-bd create "Title" --body-file=description.md
+issuegraph create "Title" --body-file=description.md
 ```
 
 **GitHub body hygiene.** For GitHub PR, issue, comment, and review bodies,
@@ -235,23 +235,23 @@ non-linking `GH#123` references.
 
 ```bash
 # Make changes (each write auto-commits to Dolt)
-bd create "Fix bug" -p 1
-bd create "Add tests" -p 1
-bd update bd-42 --claim
-bd close bd-40 --reason "Completed"
+issuegraph create "Fix bug" -p 1
+issuegraph create "Add tests" -p 1
+issuegraph update bd-42 --claim
+issuegraph close bd-40 --reason "Completed"
 
-# Push Dolt data to remote if configured
-bd dolt push
+# User may push the repository, including its tracked IssueGraph snapshot, with Git
+git push
 
 # Now safe to end session
 ```
 
-This installs:
+This installs repository-native checks:
 
-- **pre-commit** — Commits pending Dolt changes
-- **post-merge** — Runs chained hooks and a legacy JSONL import fallback only when no Dolt remote is configured
+- **pre-commit** — Refreshes the complete local IssueGraph snapshot and runs local checks
+- **post-merge** — Validates and restores the tracked snapshot into the local database
 
-**Note:** Hooks are embedded in the bd binary and work for all bd users (not just source repo users).
+**Note:** Hooks are embedded in the issuegraph binary and work for all issuegraph users (not just source repo users).
 
 ## Common Development Tasks
 
@@ -351,24 +351,24 @@ case types.StatusClosed:
 
 **Minimize cognitive overload.** Every new command, flag, or option adds cognitive burden for users. Before adding anything:
 
-1. **Recovery/fix operations → `bd doctor --fix`**: Don't create separate commands like `bd recover` or `bd repair`. Doctor already detects problems - let `--fix` handle remediation. This keeps all health-related operations in one discoverable place.
-   For git hook marker migration specifically: use `bd migrate hooks --dry-run` to preview operations, and `bd doctor --fix` for the standard apply path.
+1. **Recovery/fix operations → `issuegraph doctor --fix`**: Don't create separate commands like `issuegraph recover` or `issuegraph repair`. Doctor already detects problems - let `--fix` handle remediation. This keeps all health-related operations in one discoverable place.
+   For git hook marker migration specifically: use `issuegraph migrate hooks --dry-run` to preview operations, and `issuegraph doctor --fix` for the standard apply path.
 
-2. **Prefer flags on existing commands**: Before creating a new command, ask: "Can this be a flag on an existing command?" Example: `bd list --stale` instead of `bd stale`.
+2. **Prefer flags on existing commands**: Before creating a new command, ask: "Can this be a flag on an existing command?" Example: `issuegraph list --stale` instead of `issuegraph stale`.
 
-3. **Consolidate related operations**: Related operations should live together. Version control uses `bd vc {log,diff,commit}`, not separate top-level commands.
+3. **Consolidate related operations**: Related operations should live together. Version control uses `issuegraph vc {log,diff,commit}`, not separate top-level commands.
 
-4. **Count the commands**: Run `bd --help` and count. If we're approaching 30+ commands, we have a discoverability problem. Consider subcommand grouping.
+4. **Count the commands**: Run `issuegraph --help` and count. If we're approaching 30+ commands, we have a discoverability problem. Consider subcommand grouping.
 
 5. **New commands need strong justification**: A new command should represent a fundamentally different operation, not just a convenience wrapper.
 
 ### Adding a New Command
 
-1. Create file in `cmd/bd/`
-2. Add to root command in `cmd/bd/main.go`
+1. Create file in `modules/cli/`
+2. Add to root command in `modules/cli/main.go`
 3. Implement with Cobra framework
 4. Add `--json` flag for agent use
-5. Add tests in `cmd/bd/*_test.go`
+5. Add tests in `modules/cli/*_test.go`
 6. Document in README.md
 
 ### Adding Storage Features
@@ -378,7 +378,7 @@ case types.StatusClosed:
 3. Update `internal/types/types.go` if new types
 4. Implement in `internal/storage/dolt/` (queries, issues, etc.)
 5. Add tests
-6. Update export/import in `cmd/bd/export.go` and `cmd/bd/import.go`
+6. Update export/import in `modules/cli/export.go` and `modules/cli/import.go`
 
 ### Adding Examples
 
@@ -391,24 +391,24 @@ case types.StatusClosed:
 ## Building
 
 ```bash
-# Build and install bd to ~/.local/bin (the canonical location)
+# Build and install issuegraph to ~/.local/bin (the canonical location)
 make install
 
 # Verify installed binary
-bd init --prefix test
-bd create "Test issue" -p 1
-bd ready
+issuegraph init --prefix test
+issuegraph create "Test issue" -p 1
+issuegraph ready
 ```
 
 For testing commands, test design, and PR-readiness gates, use
 [engdocs/TESTING.md](engdocs/TESTING.md).
 
-> **WARNING**: Do NOT use `go build -o bd ./cmd/bd`, `go install ./cmd/bd`,
-> or raw `go run ./cmd/bd ...`.
+> **WARNING**: Do NOT use `go build -o bd ./modules/cli`, `go install ./modules/cli`,
+> or raw `go run ./modules/cli ...`.
 > These bypass the canonical build path, can create stale binaries in the
 > working directory or `~/go/bin/`, and raw `go run` may miss the required
 > `gms_pure_go` build tag. Always use `make install`, `./bd`, or
-> `go run -tags gms_pure_go ./cmd/bd ...` when you explicitly need `go run`.
+> `go run -tags gms_pure_go ./modules/cli ...` when you explicitly need `go run`.
 
 ## Version Management
 
@@ -446,7 +446,7 @@ git push origin main
 
 **Files updated automatically:**
 
-- `cmd/bd/version.go` - CLI version
+- `modules/cli/version.go` - CLI version
 - `plugins/beads/.claude-plugin/plugin.json` - Claude plugin version
 - `plugins/beads/.codex-plugin/plugin.json` - Codex plugin version
 - `.claude-plugin/marketplace.json` - Claude marketplace version
@@ -499,29 +499,29 @@ gh issue view 201
 
 ## Telemetry
 
-`bd` collects anonymous command-usage metrics. Each event is a `cli_command`
-record carrying only the command name; each batch also carries the bd version
+`issuegraph` collects anonymous command-usage metrics. Each event is a `cli_command`
+record carrying only the command name; each batch also carries the issuegraph version
 and OS platform, keyed by a machine-derived, HMAC-protected distinct ID. No
 email, repo path, remote URL, issue content, or user-supplied strings are
 collected. Events are written under `~/.beads/eventsData` and POSTed to
 `https://gastownhall-eventsapi.com/mp/collect`.
 
 Metrics are enabled by default (opt-out). The friendliest way to see or change
-them is `bd metrics` (`bd metrics on` / `bd metrics off` / `bd metrics example`),
+them is `issuegraph metrics` (`issuegraph metrics on` / `issuegraph metrics off` / `issuegraph metrics example`),
 which takes effect on the next command with no restart. `BD_DISABLE_METRICS=1`
 still works as a one-off, shell-scoped override. The cross-tool
 [`DO_NOT_TRACK`](https://donottrack.sh/) standard is honored as a disable-only
 opt-out: `DO_NOT_TRACK=1` opts out, while a falsey or empty value
 (`DO_NOT_TRACK=0`, `false`, or unset-but-present) falls through to your saved
-`bd metrics` preference instead of forcing metrics back on. `BD_DISABLE_METRICS`
+`issuegraph metrics` preference instead of forcing metrics back on. `BD_DISABLE_METRICS`
 is the bidirectional override and takes precedence when both are set.
 
 ## Questions?
 
-- Check existing issues: `bd list`
+- Check existing issues: `issuegraph list`
 - Look at recent commits: `git log --oneline -20`
 - Read the docs: README.md, ADVANCED.md, docs/reference/configuration.md
-- Create an issue if unsure: `bd create "Question: ..." -t task -p 2`
+- Create an issue if unsure: `issuegraph create "Question: ..." -t task -p 2`
 
 ## Important Files
 
