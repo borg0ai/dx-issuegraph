@@ -1,17 +1,17 @@
 ---
 title: GitHub Copilot
-description: Use beads from Copilot Chat in VS Code via the beads-mcp server to track issues in natural language
+description: Use issuegraph from Copilot Chat in VS Code via the beads-mcp server to track issues in natural language
 ---
 
-Beads gives Copilot a persistent, structured memory for tracking work: with the MCP server configured, you create, update, and track issues in natural language without leaving the editor.
+IssueGraph gives Copilot a persistent, structured memory for tracking work: with the MCP server configured, you create, update, and track issues in natural language without leaving the editor.
 
-This page covers **Copilot Chat in VS Code via MCP**. For the terminal-based Copilot CLI plugin installed by `bd setup copilot`, see [Copilot CLI](/integrations/copilot-cli).
+This page covers **Copilot Chat in VS Code via MCP**. For the terminal-based Copilot CLI plugin installed by `issuegraph setup copilot`, see [Copilot CLI](/integrations/copilot-cli).
 
 ## Prerequisites
 
 - VS Code 1.96+ with the GitHub Copilot extension
 - A GitHub Copilot subscription (Individual, Business, or Enterprise)
-- The beads CLI installed ([installation guide](/getting-started/installation))
+- The issuegraph CLI installed ([installation guide](/getting-started/installation))
 - Python 3.10+ or the `uv` package manager
 
 ## Setup
@@ -58,9 +58,9 @@ This page covers **Copilot Chat in VS Code via MCP**. For the terminal-based Cop
    }
    ```
 
-3. Initialize beads:
+3. Initialize issuegraph:
    ```bash
-   bd init --quiet
+   issuegraph init --quiet
    ```
 
    This creates a `.beads/` directory with the issue database.
@@ -69,7 +69,7 @@ This page covers **Copilot Chat in VS Code via MCP**. For the terminal-based Cop
 
 ### Verify Setup
 
-Ask Copilot Chat: "What beads issues are ready to work on?"
+Ask Copilot Chat: "What issuegraph issues are ready to work on?"
 
 ## Using Natural Language
 
@@ -94,7 +94,7 @@ You: Close bd-42 with reason "Fixed timeout handling"
 Copilot: Closed bd-42: Fixed timeout handling
 ```
 
-Syncing stays on the CLI: run `bd dolt push` at the end of a session. There is no MCP push tool.
+Syncing stays on the CLI: run `issuegraph dolt push` at the end of a session. There is no MCP push tool.
 
 ## MCP Tools
 
@@ -120,14 +120,14 @@ Optionally add `.github/copilot-instructions.md`:
 ```markdown
 ## Issue Tracking
 
-This project uses **bd (beads)** for issue tracking.
-Run `bd prime` for workflow context.
+This project uses **issuegraph** for issue tracking.
+Run `issuegraph prime` for workflow context.
 
 Quick reference:
-- `bd ready` - Find unblocked work
-- `bd create "Title" --type task --priority 2` - Create issue
-- `bd close <id>` - Complete work
-- `bd dolt push` - Push changes to Dolt remote (run at session end)
+- `issuegraph ready` - Find unblocked work
+- `issuegraph create "Title" --type task --priority 2` - Create issue
+- `issuegraph close <id>` - Complete work
+- `issuegraph dolt push` - Push changes to Dolt remote (run at session end)
 ```
 
 ## CLI vs MCP
@@ -168,7 +168,7 @@ uv tool install beads-mcp --force
 ### No database found
 
 ```bash
-bd init --quiet
+issuegraph init --quiet
 ```
 
 ### Changes not persisting
@@ -176,7 +176,7 @@ bd init --quiet
 Push to the Dolt remote at the end of your session, from the terminal:
 
 ```bash
-bd dolt push
+issuegraph dolt push
 ```
 
 ### Organization policies blocking MCP
@@ -185,15 +185,15 @@ For Copilot Business/Enterprise, your organization must enable the "MCP servers 
 
 ## FAQ
 
-### Do I need to clone beads?
+### Do I need to clone issuegraph?
 
-**No.** Beads is a system-wide CLI tool. Install once, use everywhere. The `.beads/` directory in your project only contains the issue database.
+**No.** IssueGraph is a system-wide CLI tool. Install once, use everywhere. The `.beads/` directory in your project only contains the issue database.
 
 ### What about git hooks?
 
-Git hooks are optional. They refresh exports and legacy fallback checks, while issue sync uses `bd dolt push` / `bd dolt pull`. They never modify your source code; skip them with `bd init --skip-hooks`.
+Git hooks are optional. They refresh exports and legacy fallback checks, while issue sync uses `issuegraph dolt push` / `issuegraph dolt pull`. They never modify your source code; skip them with `issuegraph init --skip-hooks`.
 
-### Can I use beads without Copilot?
+### Can I use issuegraph without Copilot?
 
 Yes. The same database works from the terminal, [Claude Code](/integrations/claude-code), [Cursor](/integrations/cursor), [Aider](/integrations/aider), and any editor with MCP or shell access.
 
@@ -205,6 +205,6 @@ This page covers VS Code. For JetBrains IDEs, check whether your IDE supports MC
 
 - [MCP Server](/integrations/mcp-server) - Detailed MCP configuration
 - [Copilot CLI](/integrations/copilot-cli) - Terminal-based Copilot integration
-- [Quickstart](/getting-started/quickstart) - bd command basics
+- [Quickstart](/getting-started/quickstart) - issuegraph command basics
 - [Installation](/getting-started/installation) - Full install guide
 - [Agent Instructions](https://github.com/gastownhall/beads/blob/main/AGENT_INSTRUCTIONS.md) - Full agent workflow reference

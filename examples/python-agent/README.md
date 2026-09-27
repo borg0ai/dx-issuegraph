@@ -1,10 +1,10 @@
 # Python Agent Example
 
-A simple Python script demonstrating how an AI agent can use bd to manage tasks.
+A simple Python script demonstrating how an AI agent can use issuegraph to manage tasks.
 
 ## Features
 
-- Finds ready work using `bd ready --json`
+- Finds ready work using `issuegraph ready --json`
 - Claims tasks by updating status
 - Simulates discovering new issues during work
 - Links discovered issues with `discovered-from` dependency
@@ -13,8 +13,8 @@ A simple Python script demonstrating how an AI agent can use bd to manage tasks.
 ## Prerequisites
 
 - Python 3.7+
-- bd installed: `curl -fsSL https://raw.githubusercontent.com/gastownhall/beads/main/scripts/install.sh | bash`
-- A beads database initialized: `bd init`
+- issuegraph installed: `curl -fsSL https://raw.githubusercontent.com/gastownhall/beads/main/scripts/install.sh | bash`
+- An issuegraph database initialized: `issuegraph init`
 
 ## Usage
 
@@ -39,7 +39,7 @@ chmod +x agent.py
 ## Example Output
 
 ```
-🚀 Beads Agent starting...
+🚀 IssueGraph Agent starting...
 
 ============================================================
 Iteration 1/10

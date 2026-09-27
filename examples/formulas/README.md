@@ -17,8 +17,8 @@ cp *.formula.toml ~/.beads/formulas/
 Then list and use them:
 
 ```bash
-bd formula list        # See available formulas
-bd mol pour release --var version=1.2.0   # Pour into a molecule
+issuegraph formula list        # See available formulas
+issuegraph mol pour release --var version=1.2.0   # Pour into a molecule
 ```
 
 For advanced GitHub workflows like `gh-issue-to-pr` and `gh-pr-review`,

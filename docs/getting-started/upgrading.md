@@ -1,43 +1,43 @@
 ---
 title: Upgrading
-description: Upgrade the bd binary, refresh git hooks, run schema migrations, and handle remote-backed and cross-era databases
+description: Upgrade the issuegraph binary, refresh git hooks, run schema migrations, and handle remote-backed and cross-era databases
 ---
 
-How to upgrade bd and keep your projects in sync.
+How to upgrade issuegraph and keep your projects in sync.
 
 ## Checking for Updates
 
 ```bash
 # Current version
-bd version
+issuegraph version
 
 # What changed since the version you were running — the delta, not the archive
-bd upgrade review
-bd upgrade review --json  # Machine-readable
+issuegraph upgrade review
+issuegraph upgrade review --json  # Machine-readable
 
-# The full release history (large; every version bd knows about)
-bd info --whats-new
+# The full release history (large; every version issuegraph knows about)
+issuegraph info --whats-new
 ```
 
 ## Short Version
 
-1. With your current `bd`, sync remote-backed databases before installing the
+1. With your current `issuegraph`, sync remote-backed databases before installing the
    new binary:
-   `bd dolt push`
-   `bd dolt pull`
+   `issuegraph dolt push`
+   `issuegraph dolt pull`
 2. Back up **with that same current binary**, before installing:
-   `bd export --all -o .beads/backup/pre-migrate-$(date +%Y%m%d).jsonl`
+   `issuegraph export --all -o .beads/backup/pre-migrate-$(date +%Y%m%d).jsonl`
 3. Upgrade using the command that matches your install method.
 4. After upgrading:
-   `bd upgrade review`
-   `bd hooks install`
-   `bd version`
+   `issuegraph upgrade review`
+   `issuegraph hooks install`
+   `issuegraph version`
 5. If crossing a schema migration on a remote-backed database, only the
    designated migrator runs:
-   `bd migrate`
-   `bd dolt push`
+   `issuegraph migrate`
+   `issuegraph dolt push`
 
-Other clones should install the new binary and run `bd bootstrap`, not
+Other clones should install the new binary and run `issuegraph bootstrap`, not
 independently migrate. The full procedure is below.
 
 ## Upgrading
@@ -49,8 +49,8 @@ Use the command that matches your install method.
 | Quick install script | macOS, Linux, FreeBSD | `curl -fsSL https://raw.githubusercontent.com/gastownhall/beads/main/scripts/install.sh \| bash` |
 | PowerShell installer | Windows | `irm https://raw.githubusercontent.com/gastownhall/beads/main/install.ps1 \| iex` |
 | Homebrew | macOS, Linux | `brew upgrade beads` |
-| go install (server-mode only) | macOS, Linux, FreeBSD, Windows | `CGO_ENABLED=0 go install github.com/steveyegge/beads/cmd/bd@latest` |
-| go install (embedded-capable) | macOS, Linux, Windows | `CGO_ENABLED=1 GOFLAGS=-tags=gms_pure_go go install github.com/steveyegge/beads/cmd/bd@latest` |
+| go install (server-mode only) | macOS, Linux, FreeBSD, Windows | `CGO_ENABLED=0 go install github.com/steveyegge/beads/modules/cli@latest` |
+| go install (embedded-capable) | macOS, Linux, Windows | `CGO_ENABLED=1 GOFLAGS=-tags=gms_pure_go go install github.com/steveyegge/beads/modules/cli@latest` |
 | npm | macOS, Linux, Windows | `npm update -g @beads/bd` |
 | bun | macOS, Linux, Windows | `bun install -g --trust @beads/bd` |
 | From source (Unix shell) | macOS, Linux, FreeBSD | `git pull && make build` |
@@ -89,10 +89,10 @@ brew install beads
 
 ```bash
 # Server-mode only
-CGO_ENABLED=0 go install github.com/steveyegge/beads/cmd/bd@latest
+CGO_ENABLED=0 go install github.com/steveyegge/beads/modules/cli@latest
 
 # Embedded-capable
-CGO_ENABLED=1 GOFLAGS=-tags=gms_pure_go go install github.com/steveyegge/beads/cmd/bd@latest
+CGO_ENABLED=1 GOFLAGS=-tags=gms_pure_go go install github.com/steveyegge/beads/modules/cli@latest
 ```
 
 ### From Source
@@ -110,19 +110,19 @@ sudo mv bd /usr/local/bin/
 
 ```bash
 # 1. Check what changed
-bd info --whats-new
+issuegraph info --whats-new
 
 # 2. Update git hooks to match new version
-bd hooks install
+issuegraph hooks install
 
 # 3. Check for any outdated hooks
-bd info  # Shows warnings if hooks are outdated
+issuegraph info  # Shows warnings if hooks are outdated
 
 # 4. If using Dolt backend, restart the server
-bd dolt stop && bd dolt start
+issuegraph dolt stop && issuegraph dolt start
 ```
 
-**Why update hooks?** Git hooks are versioned with bd. Outdated hooks may miss export refresh, legacy fallback, or safety fixes.
+**Why update hooks?** Git hooks are versioned with issuegraph. Outdated hooks may miss export refresh, legacy fallback, or safety fixes.
 
 ## Database Migrations
 
@@ -130,16 +130,16 @@ After major upgrades, check for database migrations:
 
 ```bash
 # Inspect migration plan (AI agents)
-bd migrate --inspect --json
+issuegraph migrate --inspect --json
 
 # Preview migration changes
-bd migrate --dry-run
+issuegraph migrate --dry-run
 
 # Apply migrations
-bd migrate
+issuegraph migrate
 
 # Migrate and clean up old files
-bd migrate --yes
+issuegraph migrate --yes
 ```
 
 ### Upgrading to 1.3.0
@@ -151,26 +151,26 @@ between the two.
 
 #### Back up first, with the binary you have now
 
-Do this **before** you install 1.3.0. Under the new binary, `bd export` triggers
+Do this **before** you install 1.3.0. Under the new binary, `issuegraph export` triggers
 the migration before it exports, so a snapshot taken afterwards is a
 post-migration snapshot and cannot protect you against the migration going
 wrong. The same ordering rule as the section below applies: do all syncing with
 your **current** binary, since once 1.3.0 is installed the pending-migration
-gate refuses `bd dolt push` and `bd dolt pull` too.
+gate refuses `issuegraph dolt push` and `issuegraph dolt pull` too.
 
 ```bash
-# with your CURRENT bd:
-bd dolt push                                                   # remote-backed stores only
-bd export --all -o .beads/backup/pre-1.3.0-$(date +%Y%m%d).jsonl
+# with your CURRENT issuegraph:
+issuegraph dolt push                                                   # remote-backed stores only
+issuegraph export --all -o .beads/backup/pre-1.3.0-$(date +%Y%m%d).jsonl
 ```
 
 For a Dolt-native snapshot that keeps history and config, configure a
-destination and sync it. Bare `bd backup` takes no backup — it is a command
+destination and sync it. Bare `issuegraph backup` takes no backup — it is a command
 group that prints help and exits 0:
 
 ```bash
-bd backup init <path-or-dolthub-url>   # once, to configure a destination
-bd backup sync                         # take the snapshot
+issuegraph backup init <path-or-dolthub-url>   # once, to configure a destination
+issuegraph backup sync                         # take the snapshot
 ```
 
 #### What the migration looks like
@@ -198,11 +198,11 @@ upgrade prints nothing at all. Silence there is not a stall either.
 
 #### Upgrade every client that shares a store, together
 
-A bd binary refuses a database migrated past the schema it knows, rather than
+A issuegraph binary refuses a database migrated past the schema it knows, rather than
 proceeding blind. One machine upgrading takes the shared store forward and every
 client still on 1.2.2 stops working. Check for a second binary earlier in your
-`PATH` with `which -a bd`, and restart any long-running `bd serve` — noting that
-`bd --readonly serve` is now refused outright, so a server scripted with that
+`PATH` with `which -a issuegraph`, and restart any long-running `issuegraph serve` — noting that
+`issuegraph --readonly serve` is now refused outright, so a server scripted with that
 flag will not come back up until you drop it.
 
 If the store is a shared `dolt sql-server` rather than a local one, follow
@@ -215,15 +215,15 @@ downgrade of the data — see
 procedure is the same for any cursor rollback even though its worked example is
 that release.
 
-Once you are on the new binary, `bd upgrade review` prints exactly the changes
+Once you are on the new binary, `issuegraph upgrade review` prints exactly the changes
 between the version you were running and this one. Several commands changed
 defaults, so read it before your first session.
 
 ### Remote-backed databases and multiple clones
 
-`bd` refuses to silently apply pending schema migrations to a database that has
+`issuegraph` refuses to silently apply pending schema migrations to a database that has
 a Dolt remote configured. Migrating more than one clone of a shared remote
-independently forks the schema, after which `bd dolt pull` can no longer merge —
+independently forks the schema, after which `issuegraph dolt pull` can no longer merge —
 the break is silent and, across a primary-key-reshaping migration, unrecoverable
 ([#4259](https://github.com/gastownhall/beads/issues/4259)). The supported flow
 is: one machine migrates and publishes; every other clone re-clones the migrated
@@ -235,15 +235,15 @@ prerelease or to a stable release.
 
 The gate is **state-aware by default**
 ([#4516](https://github.com/gastownhall/beads/issues/4516)): before blocking,
-`bd` consults the remote's *cached* schema state and
+`issuegraph` consults the remote's *cached* schema state and
 
 - **auto-migrates** when the remote is at the same schema version as this
   clone — no one has migrated yet, so this clone is a safe first-mover
   (concurrent first-movers converge to identical tables). It reminds you to
-  `bd dolt push` afterwards. This applies to embedded mode only: a shared
+  `issuegraph dolt push` afterwards. This applies to embedded mode only: a shared
   server always stops for consent, because migrating it changes the schema
   every connected client sees (see [Shared servers](#shared-servers) below).
-- **stops and directs you to adopt** (`bd bootstrap`) when the remote has
+- **stops and directs you to adopt** (`issuegraph bootstrap`) when the remote has
   already been migrated by another clone.
 - **stops for a human decision** when this clone and the remote applied
   different content for the same migration (a genuine fork), or when the
@@ -253,13 +253,13 @@ Set `BD_SMART_GATE=0` to opt out and make the gate block unconditionally.
 The recipes below are the explicit path and work the same in either mode.
 
 **Important ordering:** once the new binary is installed, a database with
-pending migrations is gated on **every** open — `bd dolt push` and `bd dolt
-pull` are refused too, not just `bd migrate`. So do all syncing with your
+pending migrations is gated on **every** open — `issuegraph dolt push` and `issuegraph dolt
+pull` are refused too, not just `issuegraph migrate`. So do all syncing with your
 **current** binary, *before* you install the new one.
 
 There is one exception, and the gate names it when it applies: if the stop is
 the *data-behind* one — this clone is level with the remote on schema but is
-missing commits it has not pulled — then `bd dolt pull` is the remedy and is
+missing commits it has not pulled — then `issuegraph dolt pull` is the remedy and is
 allowed through, because migrating before that pull is what wedges the clone.
 See [Clone behind the remote](#clone-behind-the-remote). Every other
 pending-migration refusal still blocks the pull, so the ordering rule above is
@@ -268,33 +268,33 @@ what to plan for.
 **Back up before you migrate.** Schema migrations assume the database matches
 the shape the previous migrations left behind; real databases sometimes drift
 (interrupted writes, tooling bugs, very old bootstraps). A JSONL export is
-cheap, issue-complete, and importable by any bd version:
+cheap, issue-complete, and importable by any issuegraph version:
 
 ```bash
-bd export --all -o .beads/backup/pre-migrate-$(date +%Y%m%d).jsonl
+issuegraph export --all -o .beads/backup/pre-migrate-$(date +%Y%m%d).jsonl
 ```
 
-`bd export` captures issues, not Dolt history or config — for a full snapshot
+`issuegraph export` captures issues, not Dolt history or config — for a full snapshot
 also copy the `.beads` directory (or `dolt backup` in server mode) while no
-`bd` command is running.
+`issuegraph` command is running.
 
 **Single clone (including a solo user with a remote):**
 
 ```bash
-bd dolt push                              # 1. CURRENT binary: publish all local work
-bd export --all -o .beads/backup/pre-migrate.jsonl   # 2. backup (see above)
+issuegraph dolt push                              # 1. CURRENT binary: publish all local work
+issuegraph export --all -o .beads/backup/pre-migrate.jsonl   # 2. backup (see above)
 # 3. install the new binary (see Upgrading above)
-bd migrate                                # 4. migrate as the designated migrator
-bd dolt push                              # 5. publish the migrated schema
-bd version                                # 6. confirm the new version is active
+issuegraph migrate                                # 4. migrate as the designated migrator
+issuegraph dolt push                              # 5. publish the migrated schema
+issuegraph version                                # 6. confirm the new version is active
 ```
 
-If `bd`'s remote-migrate gate blocks the run, it prints the available options —
+If `issuegraph`'s remote-migrate gate blocks the run, it prints the available options —
 migrating here as the designated migrator, adopting the remote's already-migrated
 database, or recovering a fork — and asks for an explicit operator decision.
 Follow the guidance it prints.
 
-For scripted or CI upgrades where nobody reads the output, run `bd migrate` as
+For scripted or CI upgrades where nobody reads the output, run `issuegraph migrate` as
 an explicit step in exactly one job, never in all of them. If the gate blocks a
 run it prints both the available options and the scripted override that fits
 the situation.
@@ -304,37 +304,37 @@ the situation.
 ```bash
 # 1. With your CURRENT (old) binary, on EVERY clone: publish all work and get in
 #    sync, then stop editing until the upgrade is done.
-bd dolt push
-bd dolt pull
+issuegraph dolt push
+issuegraph dolt pull
 
 # 2. Designated migrator ONLY: back up, install the new binary, then migrate
 #    and publish.
-bd export --all -o .beads/backup/pre-migrate.jsonl
-bd migrate
-bd dolt push
+issuegraph export --all -o .beads/backup/pre-migrate.jsonl
+issuegraph migrate
+issuegraph dolt push
 
 # 3. Every OTHER clone: install the new binary, then ADOPT the migrated database.
-#    (bd dolt pull is refused here — the clone still has pending migrations — so
+#    (issuegraph dolt pull is refused here — the clone still has pending migrations — so
 #    re-clone instead. Safe because step 1 already pushed all work.)
-bd bootstrap
+issuegraph bootstrap
 ```
 
-`bd bootstrap` replaces the local database, so any work not pushed in step 1 is
+`issuegraph bootstrap` replaces the local database, so any work not pushed in step 1 is
 lost — that is why step 1 publishes everything first. If a clone was instead
-migrated independently and `bd dolt pull` later fails with `cannot merge because
+migrated independently and `issuegraph dolt pull` later fails with `cannot merge because
 table dependencies has different primary keys in its common ancestor`, the
 schema has already forked — follow the recovery playbook:
 [the pk-fork-refused runbook](/recovery/init-safety#pk-fork-refused).
 
 <Note>
-`bd doctor` includes a migration-content-skew check that flags a forked
+`issuegraph doctor` includes a migration-content-skew check that flags a forked
 schema against the cached remote ref — a useful post-upgrade verification.
 It runs in both server and embedded modes.
 </Note>
 
 ### Clone behind the remote
 
-This is the one pending-migration stop whose remedy is a `bd dolt pull`, and
+This is the one pending-migration stop whose remedy is a `issuegraph dolt pull`, and
 the one the gate links here rather than to the migrate-or-adopt recipe above.
 
 It fires when the clone is **level with the remote on schema but behind it in
@@ -343,27 +343,27 @@ clone looks like a safe first-mover, so before
 [#6575](https://github.com/gastownhall/beads/issues/6575) the gate let it
 migrate; the new schema commits then landed on a history missing those
 commits, and once a migration moves a tracked table onto Dolt's ignore plane
-every later `bd dolt pull` refuses to merge
+every later `issuegraph dolt pull` refuses to merge
 ([#6368](https://github.com/gastownhall/beads/issues/6368)). The clone can no
 longer fetch what it was already behind on.
 
 The remedy is the pull, and nothing else:
 
 ```bash
-bd dolt pull        # allowed through this stop, unlike other refusals
+issuegraph dolt pull        # allowed through this stop, unlike other refusals
 # then re-run the command that was refused
 ```
 
 Nothing local is discarded: with no commits of its own the pull is a pure
 fast-forward, and if the clone has diverged the pull merges (resolve any
-conflicts, or decide them in bulk with `bd dolt pull --strategy ours|theirs`
-on embedded storage / `bd conflicts resolve` on a server store). Once there is
+conflicts, or decide them in bulk with `issuegraph dolt pull --strategy ours|theirs`
+on embedded storage / `issuegraph conflicts resolve` on a server store). Once there is
 nothing left to pull, the clone is the first-mover it looked like and the
 migration proceeds on its own.
 
-Do **not** force past this stop. `bd migrate --force` applies the migration
+Do **not** force past this stop. `issuegraph migrate --force` applies the migration
 while the clone is still behind — precisely the state the stop exists to
-prevent — and the `bd dolt push` that would follow is rejected as a
+prevent — and the `issuegraph dolt push` that would follow is rejected as a
 non-fast-forward anyway.
 
 **On a shared server**, the pull is still the first step, but the migration
@@ -372,22 +372,22 @@ co-resident client at once (see [Shared servers](#shared-servers)). Confirm
 those clients are upgraded, then:
 
 ```bash
-bd dolt pull                     # first, as above
-bd migrate schema --force        # add --global for the shared global database
+issuegraph dolt pull                     # first, as above
+issuegraph migrate schema --force        # add --global for the shared global database
 ```
 
 `--force` is the consent form here because this stop always has a remote
 configured — the behind-ness is read from the remote-tracking ref — and the
-bare `bd migrate schema` consent applies only to a shared database with *no*
+bare `issuegraph migrate schema` consent applies only to a shared database with *no*
 remote. It is safe at this point and only at this point: the pull has already
 landed the commits the clone was missing.
 
 ### Shared servers
 
-A server-mode database is served to every `bd` client connected to that
+A server-mode database is served to every `issuegraph` client connected to that
 `dolt sql-server`, so a schema migration is not a local event: it promotes the
 schema version for **all** of them at once, and clients still running an older
-`bd` refuse the database until they are upgraded too. `bd` therefore never
+`issuegraph` refuse the database until they are upgraded too. `issuegraph` therefore never
 auto-migrates a shared database on a version bump — with or without a remote
 configured, though the two cases consent differently
 ([#5920](https://github.com/gastownhall/beads/issues/5920)).
@@ -395,15 +395,15 @@ configured, though the two cases consent differently
 Upgrade one server's clients like this:
 
 ```bash
-# 1. Upgrade bd on every client of the server. Reads keep working throughout —
+# 1. Upgrade issuegraph on every client of the server. Reads keep working throughout —
 #    an upgraded client reads the old schema, it just cannot write to it.
-bd version                     # on each client, confirm the new version
+issuegraph version                     # on each client, confirm the new version
 
 # 2. Once, from a workspace already set up against this server: consent.
-bd migrate schema              # add --global for the shared global database
+issuegraph migrate schema              # add --global for the shared global database
 
 # 3. Confirm.
-bd doctor
+issuegraph doctor
 ```
 
 Between steps 1 and 2, an upgraded client reads normally and its writes are
@@ -413,31 +413,31 @@ deadline — but the window is a degraded one, so keep it short.
 **If the shared server also has a Dolt remote**, step 2 is not enough. Two
 hazards now apply at once — the co-resident lockout above and the cross-clone
 fork of [Remote-backed databases](#remote-backed-databases-and-multiple-clones)
-— so `bd` requires the stronger designated-migrator consent it describes:
-`bd migrate --force`, from exactly one machine, followed by `bd dolt push`. If
+— so `issuegraph` requires the stronger designated-migrator consent it describes:
+`issuegraph migrate --force`, from exactly one machine, followed by `issuegraph dolt push`. If
 another clone has already migrated and pushed, adopt its database with
-`bd bootstrap` instead of migrating. On a shared server, adopting also promotes
+`issuegraph bootstrap` instead of migrating. On a shared server, adopting also promotes
 the schema for every client of that server, so step 1 still comes first either
 way.
 
 <Warning>
 Migrating is one-way for the fleet: after step 2, a client still on the older
-`bd` refuses the database until it is upgraded. Do step 1 first, and confirm it
+`issuegraph` refuses the database until it is upgraded. Do step 1 first, and confirm it
 — the gate cannot see the other clients' versions and will take your word for
 it.
 </Warning>
 
 A new client **joining** a server whose schema is behind is refused before its
-workspace is written, so there is nothing to run `bd migrate schema` from
+workspace is written, so there is nothing to run `issuegraph migrate schema` from
 there: do step 2 from a client that is already set up, or join and migrate in
-one step with `BD_ALLOW_REMOTE_MIGRATE=1 bd init …`.
+one step with `BD_ALLOW_REMOTE_MIGRATE=1 issuegraph init …`.
 
 The same rules apply in **proxied-server mode**, which is a shared server
 reached through a local proxy. Two differences worth knowing:
 
 - read commands print a warning and keep serving the current schema, rather
   than the read simply not touching it;
-- `bd serve` refuses to start against a database with pending migrations,
+- `issuegraph serve` refuses to start against a database with pending migrations,
   because a daemon has no operator to consent for it. Reconcile the schema
   first with step 2, then start the daemon — or, for an unattended service,
   put `BD_ALLOW_REMOTE_MIGRATE=1` in its environment as an explicit, auditable
@@ -445,10 +445,10 @@ reached through a local proxy. Two differences worth knowing:
 
 ## Cross-era Upgrades
 
-If you're upgrading from a much older version of bd, inspect the storage layout
+If you're upgrading from a much older version of issuegraph, inspect the storage layout
 and metadata before running the current binary. A `.beads/dolt/` directory alone
 does not identify a legacy workspace: supported current server mode uses that
-directory too. Current `bd` evaluates explicit server metadata, the presence of
+directory too. Current `issuegraph` evaluates explicit server metadata, the presence of
 that local root, and the bounded `.local_version` witness together. An explicit
 server selection is not overridden by a stale `.beads/embeddeddolt/` repository.
 
@@ -463,20 +463,20 @@ server selection is not overridden by a stale `.beads/embeddeddolt/` repository.
 | `.beads/dolt/` with missing metadata or persisted `dolt_mode` blank/`embedded` | Explicit legacy Dolt export/import, except for the configured shared-server compatibility path described below |
 | One `.beads/*.db` file, such as `beads.db` or `vc.db` | Sealed SQLite bridge |
 
-The witness is whatever `bd` held in its own version string when it last touched
+The witness is whatever `issuegraph` held in its own version string when it last touched
 the workspace, so it may be a plain release, a release candidate, a build
 carrying metadata, or a Go pseudo-version; all of those are read as the version
 they name. A witness that is present but unreadable is not treated as a legacy
-marker — no pre-v1 `bd` could have written one — so `bd` warns and continues
+marker — no pre-v1 `issuegraph` could have written one — so `issuegraph` warns and continues
 rather than refusing every command. A *missing* witness stays ambiguous and is
 still refused.
 
-Current `bd` refuses recognized historical SQLite and legacy Dolt layouts before
+Current `issuegraph` refuses recognized historical SQLite and legacy Dolt layouts before
 opening storage or rewriting metadata. This is intentional: preserve the source
 and complete the matching explicit migration below.
 
 PostgreSQL and MySQL are removed backends, not supported cross-era upgrade
-paths. Current `bd` refuses metadata that selects either backend, and the sealed
+paths. Current `issuegraph` refuses metadata that selects either backend, and the sealed
 bridge below accepts SQLite sources only.
 
 ### `.beads/embeddeddolt/`: direct upgrade
@@ -484,31 +484,31 @@ bridge below accepts SQLite sources only.
 Upgrade the binary and run:
 
 ```bash
-bd migrate
+issuegraph migrate
 ```
 
-If the project was initialized before `bd init` automatically wired git origin
+If the project was initialized before `issuegraph init` automatically wired git origin
 as the Dolt remote, verify the remote after upgrading:
 
 ```bash
-bd dolt remote list
+issuegraph dolt remote list
 ```
 
 When the list is empty, fix it on the machine whose local database is
 authoritative:
 
 ```bash
-bd export -o .beads/issues.pre-remote.jsonl   # optional issue audit export
-bd dolt remote add origin git+ssh://git@github.com/org/repo.git
-bd dolt push
+issuegraph export -o .beads/issues.pre-remote.jsonl   # optional issue audit export
+issuegraph dolt remote add origin git+ssh://git@github.com/org/repo.git
+issuegraph dolt push
 ```
 
 Commit the resulting `.beads/config.yaml` change so other clones can run
-`bd bootstrap` or `bd dolt pull`.
+`issuegraph bootstrap` or `issuegraph dolt pull`.
 
 ### Historical Dolt server mode: explicit migration
 
-Do not run current `bd init --force` when `.beads/dolt/` has missing metadata
+Do not run current `issuegraph init --force` when `.beads/dolt/` has missing metadata
 or persisted `dolt_mode` is blank/`embedded`. Those old embedded layouts are
 never current embedded storage. The same explicit path applies when metadata
 selects `backend: dolt`, `dolt_mode: server` and `.local_version` records
@@ -532,7 +532,7 @@ metadata is missing or leaves `dolt_mode` blank/`embedded`; it does not override
 an explicit server selection with a local root. Compatibility admission cannot
 prove that a workspace is modern. If you know it was created by v0.55.4 through
 v0.62.0, use this explicit bridge even when its witness was lost or damaged.
-Otherwise, follow the normal `bd migrate --dry-run` and `bd migrate` flow for
+Otherwise, follow the normal `issuegraph migrate --dry-run` and `issuegraph migrate` flow for
 an admitted server workspace.
 
 ### One `.beads/*.db` file: sealed SQLite bridge
@@ -544,7 +544,7 @@ The old binary stored data in SQLite. The new binary uses Dolt.
 Stop every process that can write the old workspace before starting.
 Run this from a source checkout at the exact commit you intend to run; installed
 binaries do not include repository scripts. Record that commit with
-`git rev-parse HEAD` before executing the script. Download the old `bd` asset
+`git rev-parse HEAD` before executing the script. Download the old `issuegraph` asset
 only from the official `gastownhall/beads` release and verify the asset with its
 published SHA-256:
 
@@ -560,8 +560,8 @@ scripts/migrate-legacy-to-current.sh \
   --source /absolute/path/to/old-project \
   --destination /absolute/path/to/old-project-cutover \
   --source-version v0.50.3 \
-  --old-bd /absolute/path/to/verified-old-bd \
-  --new-bd /absolute/path/to/current-bd \
+  --old-issuegraph /absolute/path/to/verified-old-issuegraph \
+  --new-issuegraph /absolute/path/to/current-issuegraph \
   --prefix beads
 ```
 
@@ -572,9 +572,9 @@ scripts/migrate-legacy-to-current.sh \
   --source /absolute/path/to/old-project \
   --destination /absolute/path/to/old-project-cutover \
   --source-version v0.17.0 \
-  --old-bd /absolute/path/to/verified-old-bd \
-  --canonicalizer-bd /absolute/path/to/verified-v0.49.6-bd \
-  --new-bd /absolute/path/to/current-bd \
+  --old-issuegraph /absolute/path/to/verified-old-issuegraph \
+  --canonicalizer-issuegraph /absolute/path/to/verified-v0.49.6-issuegraph \
+  --new-issuegraph /absolute/path/to/current-issuegraph \
   --prefix beads
 ```
 
@@ -589,14 +589,14 @@ manually only after reviewing those retained artifacts.
 ### Hooks out of date
 
 ```bash
-bd hooks install
+issuegraph hooks install
 ```
 
 ### Database schema changed
 
 ```bash
-bd migrate --dry-run
-bd migrate
+issuegraph migrate --dry-run
+issuegraph migrate
 ```
 
 ### Recovery after upgrade
@@ -604,12 +604,12 @@ bd migrate
 If you need to restore from a backup:
 
 ```bash
-bd init
-bd backup restore [path] --force
+issuegraph init
+issuegraph backup restore [path] --force
 ```
 
 Or pull from a Dolt remote:
 
 ```bash
-bd dolt pull
+issuegraph dolt pull
 ```

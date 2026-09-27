@@ -1,19 +1,19 @@
 ---
 title: Kilo Code
-description: Set up beads for Kilo Code by writing a .kilocode/rules/beads.md project rules file
+description: Set up issuegraph for Kilo Code by writing a .kilocode/rules/beads.md project rules file
 ---
 
-Use Beads with Kilo Code through a project rules file.
+Use IssueGraph with Kilo Code through a project rules file.
 
 ```bash
-bd setup kilocode
-bd setup kilocode --check
+issuegraph setup kilocode
+issuegraph setup kilocode --check
 ```
 
-The setup command creates `.kilocode/rules/beads.md` with Beads workflow guidance.
+The setup command creates `.kilocode/rules/beads.md` with IssueGraph workflow guidance.
 
 ## Remove
 
 ```bash
-bd setup kilocode --remove
+issuegraph setup kilocode --remove
 ```

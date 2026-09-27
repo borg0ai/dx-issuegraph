@@ -203,7 +203,7 @@ Given a group of rules to merge:
 
 ## Go Implementation Sketch
 
-### File: `cmd/bd/rules.go`
+### File: `modules/cli/rules.go`
 
 ```go
 package main
@@ -364,7 +364,7 @@ See the CLI Interface section above. Uses:
 
 ## Test Plan
 
-### Unit Tests (`cmd/bd/rules_test.go`)
+### Unit Tests (`modules/cli/rules_test.go`)
 
 | Test | What it verifies |
 |------|-----------------|
@@ -409,8 +409,8 @@ See the CLI Interface section above. Uses:
 
 | File | Action | Lines (est.) |
 |------|--------|-------------|
-| `cmd/bd/rules.go` | Create | ~450 |
-| `cmd/bd/rules_test.go` | Create | ~350 |
+| `modules/cli/rules.go` | Create | ~450 |
+| `modules/cli/rules_test.go` | Create | ~350 |
 | `docs/RULES_AUDIT.md` | Create (user docs) | ~80 |
 | `CHANGELOG.md` | Update | +5 |
 

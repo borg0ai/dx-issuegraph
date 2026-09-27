@@ -1,36 +1,36 @@
 ---
 title: Installation
-description: Install the bd CLI, Claude Code plugin, and MCP server on macOS, Linux, Windows, and FreeBSD via Homebrew, npm, or go install
+description: Install the issuegraph CLI, Claude Code plugin, and MCP server on macOS, Linux, Windows, and FreeBSD via Homebrew, npm, or go install
 ---
 
 Complete installation guide for all platforms.
 
 ## Components Overview
 
-Beads has several components - here's what they are and when you need them:
+IssueGraph has several components - here's what they are and when you need them:
 
 | Component | What It Is | When You Need It |
 |-----------|------------|------------------|
-| **bd CLI** | Core command-line tool | Always - this is the foundation |
+| **issuegraph CLI** | Core command-line tool | Always - this is the foundation |
 | **Claude Code Plugin** | Slash commands + enhanced UX | Optional - if you want `/beads:ready`, `/beads:create` commands |
 | **MCP Server (beads-mcp)** | Model Context Protocol interface | Only for MCP-only environments (Claude Desktop, Amp) |
 
 **How they relate:**
-- The **bd CLI** is the core - install it first via Homebrew, npm, or script
+- The **issuegraph CLI** is the core - install it first via Homebrew, npm, or script
 - The **Plugin** enhances Claude Code with slash commands but *requires* the CLI installed
 - The **MCP server** is an *alternative* to the CLI for environments without shell access
 
-**Important:** Beads is installed system-wide, not cloned into your project. The `.beads/` directory in your project only contains the issue database.
+**Important:** IssueGraph is installed system-wide, not cloned into your project. The `.beads/` directory in your project only contains the issue database.
 
 **Typical setups:**
 
 | Environment | What to Install |
 |-------------|-----------------|
-| Claude Code, Cursor, Windsurf | bd CLI (+ optional Plugin for Claude Code) |
-| GitHub Copilot (VS Code) | bd CLI + MCP server |
+| Claude Code, Cursor, Windsurf | issuegraph CLI (+ optional Plugin for Claude Code) |
+| GitHub Copilot (VS Code) | issuegraph CLI + MCP server |
 | Claude Desktop (no shell) | MCP server only |
-| Terminal / scripts | bd CLI only |
-| CI/CD pipelines | bd CLI only |
+| Terminal / scripts | issuegraph CLI only |
+| CI/CD pipelines | issuegraph CLI only |
 
 **Are they mutually exclusive?** No - you can have CLI + Plugin + MCP all installed. They don't conflict. But most users only need the CLI.
 
@@ -55,14 +55,14 @@ switch to the core formula.
 
 ### Mise-en-place (macOS/Linux/Windows)
 
-You can install beads using [mise](https://mise.jdx.dev) from the latest GitHub release:
+You can install issuegraph using [mise](https://mise.jdx.dev) from the latest GitHub release:
 
 ```bash
 mise install github:gastownhall/beads
 mise use -g github:gastownhall/beads
 ```
 
-The `-g` enables beads globally. To enable project-specific versions, omit it.
+The `-g` enables issuegraph globally. To enable project-specific versions, omit it.
 
 **Why Mise?**
 - Same as Homebrew: simple, updates via `mise up`, works without Go, handles PATH
@@ -113,8 +113,8 @@ Use Homebrew, npm, or the install script if you do not specifically need `go ins
 
 `go install` has two supported modes that give different capabilities:
 
-- **Server-mode only (nocgo, simplest):** `CGO_ENABLED=0 go install github.com/steveyegge/beads/cmd/bd@latest`. Works on any machine with a Go toolchain, no C compiler needed. Produces a server-mode-only binary — you must run an external `dolt sql-server` and use `bd init --server`. See [Dolt](/architecture/dolt) for server-mode setup.
-- **Embedded-capable (cgo):** `CGO_ENABLED=1 GOFLAGS=-tags=gms_pure_go go install github.com/steveyegge/beads/cmd/bd@latest`. Requires a C compiler (gcc/clang on Unix, MinGW on Windows). Produces a binary with the default embedded-Dolt backend — `bd init` Just Works.
+- **Server-mode only (nocgo, simplest):** `CGO_ENABLED=0 go install github.com/steveyegge/beads/modules/cli@latest`. Works on any machine with a Go toolchain, no C compiler needed. Produces a server-mode-only binary — you must run an external `dolt sql-server` and use `issuegraph init --server`. See [Dolt](/architecture/dolt) for server-mode setup.
+- **Embedded-capable (cgo):** `CGO_ENABLED=1 GOFLAGS=-tags=gms_pure_go go install github.com/steveyegge/beads/modules/cli@latest`. Requires a C compiler (gcc/clang on Unix, MinGW on Windows). Produces a binary with the default embedded-Dolt backend — `issuegraph init` Just Works.
 
 ICU headers are not required. The embedded-capable command uses `gms_pure_go` so go-mysql-server uses Go's stdlib regexp instead of ICU.
 
@@ -166,12 +166,12 @@ brew install beads
 
 **Via go install** (server-mode only):
 ```bash
-CGO_ENABLED=0 go install github.com/steveyegge/beads/cmd/bd@latest
+CGO_ENABLED=0 go install github.com/steveyegge/beads/modules/cli@latest
 ```
 
 **Via go install** (embedded-capable, needs Xcode CLI tools):
 ```bash
-CGO_ENABLED=1 GOFLAGS=-tags=gms_pure_go go install github.com/steveyegge/beads/cmd/bd@latest
+CGO_ENABLED=1 GOFLAGS=-tags=gms_pure_go go install github.com/steveyegge/beads/modules/cli@latest
 ```
 
 **From source**:
@@ -201,12 +201,12 @@ Thanks to [@v4rgas](https://github.com/v4rgas) for maintaining the AUR package!
 
 **Via go install** (server-mode only):
 ```bash
-CGO_ENABLED=0 go install github.com/steveyegge/beads/cmd/bd@latest
+CGO_ENABLED=0 go install github.com/steveyegge/beads/modules/cli@latest
 ```
 
 **Via go install** (embedded-capable, needs gcc):
 ```bash
-CGO_ENABLED=1 GOFLAGS=-tags=gms_pure_go go install github.com/steveyegge/beads/cmd/bd@latest
+CGO_ENABLED=1 GOFLAGS=-tags=gms_pure_go go install github.com/steveyegge/beads/modules/cli@latest
 ```
 
 ### FreeBSD
@@ -218,12 +218,12 @@ curl -fsSL https://raw.githubusercontent.com/gastownhall/beads/main/scripts/inst
 
 **Via go install** (server-mode only):
 ```bash
-CGO_ENABLED=0 go install github.com/steveyegge/beads/cmd/bd@latest
+CGO_ENABLED=0 go install github.com/steveyegge/beads/modules/cli@latest
 ```
 
 ### Windows 11
 
-Beads ships with native Windows support—no MSYS or MinGW required.
+IssueGraph ships with native Windows support—no MSYS or MinGW required.
 
 **Prerequisites:**
 - [Go 1.24+](https://go.dev/dl/) installed (add `%USERPROFILE%\go\bin` to your `PATH`)
@@ -238,14 +238,14 @@ The script installs a prebuilt Windows release if available and verifies the dow
 
 **Via go install** (server-mode only):
 ```pwsh
-$env:CGO_ENABLED="0"; go install github.com/steveyegge/beads/cmd/bd@latest
+$env:CGO_ENABLED="0"; go install github.com/steveyegge/beads/modules/cli@latest
 ```
 
-This produces a server-mode-only binary with no C compiler requirement — the fastest path to a working `bd` on Windows.
+This produces a server-mode-only binary with no C compiler requirement — the fastest path to a working `issuegraph` on Windows.
 
 **Via go install** (embedded-capable, needs a Windows CGO toolchain):
 ```pwsh
-$env:CGO_ENABLED="1"; $env:GOFLAGS="-tags=gms_pure_go"; go install github.com/steveyegge/beads/cmd/bd@latest
+$env:CGO_ENABLED="1"; $env:GOFLAGS="-tags=gms_pure_go"; go install github.com/steveyegge/beads/modules/cli@latest
 ```
 
 Requires a GCC-compatible Windows CGO compiler on your PATH, such as
@@ -266,7 +266,7 @@ Move-Item bd.exe $env:USERPROFILE\AppData\Local\Microsoft\WindowsApps\
 **Windows notes:**
 - The Dolt server listens on a loopback TCP endpoint
 - Allow `bd.exe` loopback traffic through any host firewall
-- Installed from npm, `bd` is a `bd.cmd` shim — Node's `execFile`/`spawn`
+- Installed from npm, `issuegraph` is a `bd.cmd` shim — Node's `execFile`/`spawn`
   need `shell: true` to run it ([details](/reference/troubleshooting#platform-specific-issues))
 
 ## IDE and Editor Integrations
@@ -276,38 +276,38 @@ Move-Item bd.exe $env:USERPROFILE\AppData\Local\Microsoft\WindowsApps\
 The recommended approach for Claude Code, Cursor, Windsurf, and other editors with shell access:
 
 ```bash
-# 1. Install bd CLI (see Quick Install above)
+# 1. Install issuegraph CLI (see Quick Install above)
 brew install beads
 
 # 2. Initialize in your project
 cd your-project
-bd init --quiet
+issuegraph init --quiet
 
 # 3. Setup editor integration (choose one)
-bd setup claude   # Claude Code - installs SessionStart hooks
-bd setup copilot  # GitHub Copilot CLI - creates .copilot-plugin/plugin.json + .github/copilot-instructions.md
-bd setup cursor   # Cursor IDE - creates .cursor/rules/beads.mdc
-bd setup aider    # Aider - creates .aider.conf.yml
-bd setup codex    # Codex CLI - installs Beads skill, AGENTS.md guidance, and native hooks
-bd setup factory  # Factory.ai Droid - creates/updates AGENTS.md
-bd setup mux      # Mux - creates/updates AGENTS.md
+issuegraph setup claude   # Claude Code - installs SessionStart hooks
+issuegraph setup copilot  # GitHub Copilot CLI - creates .copilot-plugin/plugin.json + .github/copilot-instructions.md
+issuegraph setup cursor   # Cursor IDE - creates .cursor/rules/beads.mdc
+issuegraph setup aider    # Aider - creates .aider.conf.yml
+issuegraph setup codex    # Codex CLI - installs IssueGraph skill, AGENTS.md guidance, and native hooks
+issuegraph setup factory  # Factory.ai Droid - creates/updates AGENTS.md
+issuegraph setup mux      # Mux - creates/updates AGENTS.md
 ```
 
 **How it works:**
-- `bd init` creates or updates `AGENTS.md` and installs project Claude/Codex integrations by default unless you use `--skip-agents` or `--stealth`
-- Editor hooks/rules inject `bd prime` automatically on session start
-- Codex 0.129.0+ uses native `/hooks`: SessionStart injects `bd prime`, compact hooks mark context stale, and the next prompt after compaction refreshes Beads context once
-- `bd prime` provides ~1-2k tokens of workflow context
-- You use `bd` CLI commands directly
-- Git hooks (installed by `bd init`) refresh exports and legacy fallbacks; `bd dolt push/pull` syncs the database
-- `bd onboard` prints the small manual snippet for unsupported agents or custom instruction files
+- `issuegraph init` creates or updates `AGENTS.md` and installs project Claude/Codex integrations by default unless you use `--skip-agents` or `--stealth`
+- Editor hooks/rules inject `issuegraph prime` automatically on session start
+- Codex 0.129.0+ uses native `/hooks`: SessionStart injects `issuegraph prime`, compact hooks mark context stale, and the next prompt after compaction refreshes IssueGraph context once
+- `issuegraph prime` provides ~1-2k tokens of workflow context
+- You use `issuegraph` CLI commands directly
+- Git hooks (installed by `issuegraph init`) refresh exports and legacy fallbacks; `issuegraph dolt push/pull` syncs the database
+- `issuegraph onboard` prints the small manual snippet for unsupported agents or custom instruction files
 
 **Why this is recommended:**
 - **Context efficient** - ~1-2k tokens vs 10-50k for MCP tool schemas
 - **Lower latency** - Direct CLI calls, no MCP protocol overhead
 - **Universal** - Works with any editor that has shell access
 
-**Verify installation:** every recipe supports a check flag, e.g. `bd setup claude --check` or `bd setup copilot --check`.
+**Verify installation:** every recipe supports a check flag, e.g. `issuegraph setup claude --check` or `issuegraph setup copilot --check`.
 
 ### Claude Code Plugin (Optional)
 
@@ -333,8 +333,8 @@ For **VS Code with GitHub Copilot**, install the MCP server (`uv tool install be
 For the **GitHub Copilot CLI** terminal integration:
 
 ```bash
-bd setup copilot         # Install project Copilot plugin + repository instructions
-bd setup copilot --check # Verify the project integration files exist
+issuegraph setup copilot         # Install project Copilot plugin + repository instructions
+issuegraph setup copilot --check # Verify the project integration files exist
 ```
 
 This setup is currently project-scoped only. It writes `.copilot-plugin/plugin.json` and `.github/copilot-instructions.md`; there is no separate `--global` or `--project` mode for Copilot today, and it does not manage `~/.copilot/...` paths. See [Copilot CLI](/integrations/copilot-cli) for the full guide.
@@ -369,11 +369,11 @@ For Sourcegraph Amp configuration and detailed MCP server documentation, see [MC
 
 ## Verifying Installation
 
-After installing, verify bd is working:
+After installing, verify issuegraph is working:
 
 ```bash
-bd version
-bd help
+issuegraph version
+issuegraph help
 ```
 
 ## Troubleshooting
@@ -382,11 +382,11 @@ For additional troubleshooting, see [Troubleshooting](/reference/troubleshooting
 
 ### `bd: command not found`
 
-bd is not in your PATH:
+issuegraph is not in your PATH:
 
 ```bash
 # Check if installed
-go list -f {{.Target}} github.com/steveyegge/beads/cmd/bd
+go list -f {{.Target}} github.com/steveyegge/beads/modules/cli
 
 # Add Go bin to PATH (add to ~/.bashrc or ~/.zshrc)
 export PATH="$PATH:$(go env GOPATH)/bin"
@@ -401,7 +401,7 @@ This is typically caused by CGO/SQLite compatibility issues:
 
 ```bash
 # Install an embedded-capable build
-CGO_ENABLED=1 GOFLAGS=-tags=gms_pure_go go install github.com/steveyegge/beads/cmd/bd@latest
+CGO_ENABLED=1 GOFLAGS=-tags=gms_pure_go go install github.com/steveyegge/beads/modules/cli@latest
 ```
 
 If you installed via Homebrew, this shouldn't be necessary as the formula already enables CGO. If you're still seeing crashes with the Homebrew version, please [file an issue](https://github.com/gastownhall/beads/issues).
@@ -431,27 +431,27 @@ which uv
 
 See [Claude Code Plugin](/integrations/claude-code-plugin) for alternative installation methods.
 
-## Updating bd
+## Updating issuegraph
 
 Upgrade checklist:
 
-1. With your current `bd`, sync remote-backed databases before installing the
+1. With your current `issuegraph`, sync remote-backed databases before installing the
    new binary:
-   `bd dolt push`
-   `bd dolt pull`
+   `issuegraph dolt push`
+   `issuegraph dolt pull`
 2. Back up before migration:
-   `bd export --all -o .beads/backup/pre-migrate-$(date +%Y%m%d).jsonl`
+   `issuegraph export --all -o .beads/backup/pre-migrate-$(date +%Y%m%d).jsonl`
 3. Upgrade using the command for your install method below.
 4. After upgrading:
-   `bd info --whats-new`
-   `bd hooks install`
-   `bd version`
+   `issuegraph info --whats-new`
+   `issuegraph hooks install`
+   `issuegraph version`
 5. If crossing a schema migration on a remote-backed database, only the
    designated migrator runs:
-   `bd migrate`
-   `bd dolt push`
+   `issuegraph migrate`
+   `issuegraph dolt push`
 
-Other clones should install the new binary and run `bd bootstrap`, not
+Other clones should install the new binary and run `issuegraph bootstrap`, not
 independently migrate. For the full procedure, see [Upgrading](/getting-started/upgrading).
 
 ### Quick install script (macOS/Linux/FreeBSD)
@@ -490,10 +490,10 @@ Use whichever mode you installed with originally:
 
 ```bash
 # Server-mode only
-CGO_ENABLED=0 go install github.com/steveyegge/beads/cmd/bd@latest
+CGO_ENABLED=0 go install github.com/steveyegge/beads/modules/cli@latest
 
 # Embedded-capable
-CGO_ENABLED=1 GOFLAGS=-tags=gms_pure_go go install github.com/steveyegge/beads/cmd/bd@latest
+CGO_ENABLED=1 GOFLAGS=-tags=gms_pure_go go install github.com/steveyegge/beads/modules/cli@latest
 ```
 
 ### From source
@@ -513,13 +513,13 @@ For post-upgrade steps (hooks, migrations), see [Upgrading](/getting-started/upg
 
 ## Uninstalling
 
-To completely remove Beads from a repository, see [Uninstalling](/recovery/uninstalling).
+To completely remove IssueGraph from a repository, see [Uninstalling](/recovery/uninstalling).
 
 ## Next Steps
 
 After installation:
 
-1. **Initialize a project**: `cd your-project && bd init`
+1. **Initialize a project**: `cd your-project && issuegraph init`
 2. **Learn the basics**: See [Quick Start](/getting-started/quickstart)
-3. **Configure your agent**: See [IDE Setup](/getting-started/ide-setup), or run `bd setup --list`
+3. **Configure your agent**: See [IDE Setup](/getting-started/ide-setup), or run `issuegraph setup --list`
 4. **Explore examples**: Check out the [examples/](https://github.com/gastownhall/beads/tree/main/examples) directory

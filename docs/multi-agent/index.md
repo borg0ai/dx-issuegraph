@@ -1,9 +1,9 @@
 ---
 title: Multi-Agent
-description: Coordinate beads across multiple agents and repositories with routing, cross-repo dependencies, and work handoff
+description: Coordinate issuegraph across multiple agents and repositories with routing, cross-repo dependencies, and work handoff
 ---
 
-Beads supports coordination between multiple AI agents and repositories.
+IssueGraph supports coordination between multiple AI agents and repositories.
 
 ## Overview
 
@@ -26,9 +26,9 @@ for the decision flow and configuration reference.
 Assign or atomically claim work:
 
 ```bash
-bd assign bd-42 agent-1        # shorthand for bd update bd-42 --assignee agent-1
-bd update bd-42 --claim        # atomically set assignee + in_progress
-bd ready --claim --json        # claim the first ready match
+issuegraph assign bd-42 agent-1        # shorthand for issuegraph update bd-42 --assignee agent-1
+issuegraph update bd-42 --claim        # atomically set assignee + in_progress
+issuegraph ready --claim --json        # claim the first ready match
 ```
 
 ### Cross-repo Dependencies
@@ -36,7 +36,7 @@ bd ready --claim --json        # claim the first ready match
 Track dependencies across repositories:
 
 ```bash
-bd dep add bd-42 external:other-repo:api-ready
+issuegraph dep add bd-42 external:other-repo:api-ready
 ```
 
 ## Architecture
@@ -57,7 +57,7 @@ bd dep add bd-42 external:other-repo:api-ready
 
 ## Getting Started
 
-1. **Single repo**: Standard beads workflow
+1. **Single repo**: Standard issuegraph workflow
 2. **Multi-repo**: Configure routes and cross-repo deps
 3. **Multi-agent**: Add work assignment and handoff
 
@@ -67,7 +67,7 @@ bd dep add bd-42 external:other-repo:api-ready
   repositories and `BEADS_DIR` resolution.
 - [Coordination](/multi-agent/coordination) — work assignment and handoff
   patterns between agents.
-- [Federation](/multi-agent/federation) — peer-to-peer sharing of beads
+- [Federation](/multi-agent/federation) — peer-to-peer sharing of issuegraph
   across repos and organizations.
 - [Bucket Federation Quickstart](/multi-agent/bucket-federation) — federate
   two machines through a GCS or S3 bucket, with no server to run.

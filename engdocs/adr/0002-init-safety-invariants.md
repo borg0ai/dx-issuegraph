@@ -1,4 +1,4 @@
-# ADR 0002 — `bd init` safety invariants
+# ADR 0002 — `issuegraph init` safety invariants
 
 ## Status
 
@@ -6,15 +6,15 @@ Accepted — 2026-04-24.
 
 ## Context
 
-`bd init --force` in a repo whose origin already has `refs/dolt/data`
-silently skipped the bootstrap-from-remote path at `cmd/bd/init.go:511`
+`issuegraph init --force` in a repo whose origin already has `refs/dolt/data`
+silently skipped the bootstrap-from-remote path at `modules/cli/init.go:511`
 and then still wired origin as a Dolt remote (`init.go:643-650`). The
 next write auto-pushed an orphan Dolt history, failing with
 "no common ancestor." Recovery options were all destructive (force-push
 over the team's remote, or `rm -rf .beads/dolt`). The tool's own warning
 text acknowledged the failure class as a well-known footgun.
 
-Historical pattern analysis (git log for `cmd/bd/init.go`): at least
+Historical pattern analysis (git log for `modules/cli/init.go`): at least
 eight prior commits each patched one surface of this class without
 encoding the underlying invariant:
 
@@ -39,39 +39,39 @@ that applied to every future guard.
 
 ### Invariant 1 — single-source identity resolution
 
-Every `bd init` invocation resolves `project_id` from exactly **one**
+Every `issuegraph init` invocation resolves `project_id` from exactly **one**
 explicitly-named source: (a) mint fresh, (b) adopt from remote (via
-`bd bootstrap` or automatic bootstrap when origin has `refs/dolt/data`),
+`issuegraph bootstrap` or automatic bootstrap when origin has `refs/dolt/data`),
 or (c) reuse remote identity with local reinit. When two disjoint
 candidate sources exist (local data + remote Dolt history) and no flag
-names the winner, `bd init` refuses.
+names the winner, `issuegraph init` refuses.
 
 ### Invariant 2 — scope-bound `--force` / `--reinit-local`
 
 `--force` (and its replacement `--reinit-local`) bypasses the **local**
 data-safety guard only. It never authorizes silent divergence of remote
-history. When origin advertises `refs/dolt/data`, `bd init --force`
+history. When origin advertises `refs/dolt/data`, `issuegraph init --force`
 refuses unless `--discard-remote` is also passed.
 
 ### Invariant 3 — central chokepoint (executable, not advisory)
 
-Every flag on `bd init` that can interact with remote history routes
-through `CheckRemoteSafety` in `cmd/bd/init_safety.go`. Adding a new
+Every flag on `issuegraph init` that can interact with remote history routes
+through `CheckRemoteSafety` in `modules/cli/init_safety.go`. Adding a new
 flag is a signal to extend the guard matrix test in
-`cmd/bd/init_safety_test.go`; if the table doesn't exhaustively cover
+`modules/cli/init_safety_test.go`; if the table doesn't exhaustively cover
 `(dataSource × flagSet) → outcome`, this ADR has a gap.
 
 ### Invariant 4 — error-text-no-echo
 
-No `bd` runtime error output may contain a complete invocation of a
+No `issuegraph` runtime error output may contain a complete invocation of a
 destructive command. Flag identifiers (`--discard-remote`,
-`--destroy-token`) and safe-tool names (`bd bootstrap`, `bd doctor`,
-`bd help init-safety`) are permitted; token values
+`--destroy-token`) and safe-tool names (`issuegraph bootstrap`, `issuegraph doctor`,
+`issuegraph help init-safety`) are permitted; token values
 (`DESTROY-<prefix>`), hashes, and other friction-bearing arguments
-live in `bd help init-safety`, this ADR, and `docs/RECOVERY.md` only.
+live in `issuegraph help init-safety`, this ADR, and `docs/RECOVERY.md` only.
 
 This invariant closes the `58f5989bf` failure class where an AI agent
-copy-pasted the suggested `bd init --force --destroy-token=<hash>`
+copy-pasted the suggested `issuegraph init --force --destroy-token=<hash>`
 one-liner from the tool's own error text and destroyed 247 issues. The
 agent's behavior was rational for the error it read; the text was the
 bug.
@@ -79,9 +79,9 @@ bug.
 ### Invariant 5 — race-safety
 
 When `--discard-remote` is authorized (interactive confirm or
-destroy-token match), `bd init` re-verifies `refs/dolt/data` on origin
+destroy-token match), `issuegraph init` re-verifies `refs/dolt/data` on origin
 between prompt/confirm and execute. If the remote state changed during
-the confirmation window (another agent pushed), `bd init` aborts with
+the confirmation window (another agent pushed), `issuegraph init` aborts with
 `ExitRemoteDivergenceRefused`. Race-safety is an internal invariant,
 not a user-facing ceremony.
 
@@ -90,13 +90,13 @@ not a user-facing ceremony.
 ### Flag surface after this ADR
 
 ```
-bd init                         mint, or auto-bootstrap if origin has refs/dolt/data
-bd init --reinit-local          local reinit; refuses remote divergence
-bd init --reinit-local \        local reinit, overwrite remote on next push
+issuegraph init                         mint, or auto-bootstrap if origin has refs/dolt/data
+issuegraph init --reinit-local          local reinit; refuses remote divergence
+issuegraph init --reinit-local \        local reinit, overwrite remote on next push
     --discard-remote            (interactive confirm or --destroy-token required)
-bd init --from-jsonl            local JSONL import; refuses remote divergence
-bd init --force                 deprecated alias for --reinit-local (≥2 releases)
-bd bootstrap                    adopt remote — signposted by init refusal
+issuegraph init --from-jsonl            local JSONL import; refuses remote divergence
+issuegraph init --force                 deprecated alias for --reinit-local (≥2 releases)
+issuegraph bootstrap                    adopt remote — signposted by init refusal
 ```
 
 ### Exit codes (stable, grep-safe)
@@ -120,7 +120,7 @@ names the substitute.
    (flag combination × remote state) permutation. New flags must extend
    this table.
 2. `TestCheckRemoteSafety_RefusalTextNoEcho` — asserts Invariant 4:
-   refusal text must name `bd bootstrap` and `bd help init-safety`; must
+   refusal text must name `issuegraph bootstrap` and `issuegraph help init-safety`; must
    NOT contain a complete destructive invocation.
 3. `TestInitForceRefusesWhenRemoteHasDoltData` — subprocess regression
    for the bd-q83 bug, using a synthetic `refs/dolt/data` git ref
@@ -133,7 +133,7 @@ subprocess test fail. If either stays green, coverage is theater.
 
 ### Review discipline
 
-`.github/CODEOWNERS` points `cmd/bd/init*.go` at maintainers and
+`.github/CODEOWNERS` points `modules/cli/init*.go` at maintainers and
 references this ADR in the review-requirement comment. Future reviewers
 are reminded to walk the matrix when a new flag or data source lands.
 
@@ -149,17 +149,17 @@ are reminded to walk the matrix when a new flag or data source lands.
   the local-data-destruction path. Introducing a second confirmation
   convention for the same op class is surface bloat. With Invariant 4,
   the token pattern is not friction-theater.
-- **Fold `bd bootstrap` into `bd init --adopt-remote`.** Rejected:
-  `bd bootstrap` is a first-class command users rely on; the verb split
+- **Fold `issuegraph bootstrap` into `issuegraph init --adopt-remote`.** Rejected:
+  `issuegraph bootstrap` is a first-class command users rely on; the verb split
   between "init" (mint) and "bootstrap" (adopt) is the UX that works.
   Flattening it would break existing muscle memory for zero structural
   benefit.
 
 ## References
 
-- Issue source: bd-q83 (local beads tracker, merged from qa-engineer F1
+- Issue source: bd-q83 (local issuegraph tracker, merged from qa-engineer F1
   and historian F3 findings in `council-2026-04-22-beads-resilience-audit`).
 - Decision log: `~/.claude/councils/2026-04-24-bd-q83-init-force-safety/log.md`.
-- Implementation chokepoint: `cmd/bd/init_safety.go`.
-- Guard matrix: `cmd/bd/init_safety_test.go`.
+- Implementation chokepoint: `modules/cli/init_safety.go`.
+- Guard matrix: `modules/cli/init_safety_test.go`.
 - Recovery playbooks: `docs/RECOVERY.md`.

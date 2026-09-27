@@ -1,27 +1,27 @@
 # Direct-local ownership handoff contract
 
-This contract defines the Beads-side boundary required before Gas City can
+This contract defines the IssueGraph-side boundary required before Gas City can
 retire a legacy GC-managed direct-local Dolt server. It is intentionally an
-explicit operation; normal `bd` or `gc` startup never invokes it.
+explicit operation; normal `issuegraph` or `gc` startup never invokes it.
 
 ## Request identity
 
 The handoff request must name the canonical, real-path Dolt data root, Dolt
-database, Beads project/workspace identity, endpoint (host/port or socket),
+database, IssueGraph project/workspace identity, endpoint (host/port or socket),
 and current owner (`legacy-gc`). The provider rejects missing, symlinked,
 non-canonical, or conflicting identity. It must never create a replacement
 root or database when identity cannot be proved.
 
 ## Journaled phases
 
-The operation persists an atomic journal beside the Beads metadata. Every
+The operation persists an atomic journal beside the IssueGraph metadata. Every
 retry resumes from the last durable phase and a committed retry is a no-op.
 
 1. `prepared`: snapshot metadata, config, endpoint, ownership, and sentinel.
-2. `target_configured`: validate that bd can open the exact root/database.
+2. `target_configured`: validate that issuegraph can open the exact root/database.
 3. `old_owner_stopped`: stop only the positively identified GC owner through
    its existing lifecycle interface; a live or unknown process fails closed.
-4. `verified`: start through bd and verify endpoint, database identity, and
+4. `verified`: start through issuegraph and verify endpoint, database identity, and
    sentinel rows.
 5. `committed`: atomically record owner `bd` and retire only GC artifacts whose
    ownership matches the snapshot.

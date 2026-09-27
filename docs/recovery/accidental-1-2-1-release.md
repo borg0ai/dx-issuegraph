@@ -12,7 +12,7 @@ federation, the HTTP API server, provenance events) are not in v1.2.2; they
 will return in a properly tested release.
 
 The catch: running the v1.2.1 binary even once (any command, including
-`bd list`) migrated your local database schema from v53 to v65. The v1.2.2
+`issuegraph list`) migrated your local database schema from v53 to v65. The v1.2.2
 binary speaks schema v53, so on such a database it stops with:
 
 ```
@@ -27,7 +27,7 @@ recovery is a two-minute metadata fix, not a data migration.
 
 Only if you both ran v1.2.1 at least once **and** see the schema-mismatch
 error above with v1.2.2 (or any 1.1.x binary). Users who upgraded but never
-ran `bd`, and users whose workspace has a Dolt remote configured (the
+ran `issuegraph`, and users whose workspace has a Dolt remote configured (the
 remote-migrate gate blocked silent migration), are typically not affected.
 
 ## Recommended fix: roll the schema cursor back
@@ -38,8 +38,8 @@ will work normally afterwards.
 
 1. **Upgrade every machine and clone to v1.2.2 first.** A leftover v1.2.1
    binary that touches the database will silently re-migrate it.
-2. Stop anything using the database: close running `bd` processes; in
-   server mode also run `bd dolt stop`.
+2. Stop anything using the database: close running `issuegraph` processes; in
+   server mode also run `issuegraph dolt stop`.
 3. Take a backup copy of the workspace database:
 
    ```sh
@@ -54,13 +54,13 @@ will work normally afterwards.
 
    ```sh
    cd .beads/embeddeddolt/<db>
-   dolt sql -q "DELETE FROM schema_migrations WHERE version > 53; CALL DOLT_ADD('schema_migrations'); CALL DOLT_COMMIT('-m', 'recovery: roll schema cursor back to v53 (accidental v1.2.1)', '--author', 'bd recovery <recovery@beads.invalid>')"
+   dolt sql -q "DELETE FROM schema_migrations WHERE version > 53; CALL DOLT_ADD('schema_migrations'); CALL DOLT_COMMIT('-m', 'recovery: roll schema cursor back to v53 (accidental v1.2.1)', '--author', 'issuegraph recovery <recovery@issuegraph.invalid>')"
    ```
 
    (If this reports there is nothing to commit, the step was already
    done — safe to continue.)
 
-5. Run any `bd` command from the workspace. It should work with no
+5. Run any `issuegraph` command from the workspace. It should work with no
    warnings and no `BD_IGNORE_SCHEMA_SKEW` needed.
 
 This also works for databases **created** by v1.2.1 (not just upgraded
@@ -79,15 +79,15 @@ normally). If you rely on the versioned audit trail, re-track the table
 from the same database directory:
 
 ```sh
-dolt sql -q "DELETE FROM dolt_ignore WHERE pattern = 'events'; CALL DOLT_ADD('-f', 'events'); CALL DOLT_COMMIT('-m', 'recovery: re-track events table', '--author', 'bd recovery <recovery@beads.invalid>')"
+dolt sql -q "DELETE FROM dolt_ignore WHERE pattern = 'events'; CALL DOLT_ADD('-f', 'events'); CALL DOLT_COMMIT('-m', 'recovery: re-track events table', '--author', 'issuegraph recovery <recovery@issuegraph.invalid>')"
 ```
 
 ## Stopgap: keep working before you recover
 
-If you need `bd` this minute, the skew guard has an escape hatch:
+If you need `issuegraph` this minute, the skew guard has an escape hatch:
 
 ```sh
-BD_IGNORE_SCHEMA_SKEW=1 bd <command>
+BD_IGNORE_SCHEMA_SKEW=1 issuegraph <command>
 ```
 
 This has been verified against the exact v53-binary/v65-database
@@ -112,9 +112,9 @@ state (the cursor rollback keeps the migration commits in history), the
 v1.2.1 migrator made one labeled Dolt commit per migration
 (`schema: apply migration 0054_...` through `0065_...`), so the
 pre-migration commit is easy to find. The safe sequence is: export with
-the v1.2.1 binary (`bd export --all -o backup.jsonl`), stop everything and
+the v1.2.1 binary (`issuegraph export --all -o backup.jsonl`), stop everything and
 copy `.beads` aside, `dolt reset --hard <pre-migration-commit>` in the
-database directory, install v1.2.2, then `bd import backup.jsonl`.
+database directory, install v1.2.2, then `issuegraph import backup.jsonl`.
 Caveats: issues deleted after the upgrade come back (import cannot
 re-delete), and audit events recorded while on v1.2.1 are lost. Most users
 should prefer the cursor rollback above.

@@ -1,13 +1,13 @@
 ---
-title: Beads Claude Code Plugin
-description: Install the beads Claude Code plugin for /beads slash commands, a bundled skill, and session lifecycle hooks
+title: IssueGraph Claude Code Plugin
+description: Install the issuegraph Claude Code plugin for /beads slash commands, a bundled skill, and session lifecycle hooks
 ---
 
 AI-supervised issue tracker for coding workflows. Manage tasks, discover work, and maintain context with slash commands, a bundled skill, and lifecycle hooks.
 
-## What is Beads?
+## What is IssueGraph?
 
-Beads (`bd`) is an issue tracker designed specifically for AI-supervised coding workflows. It helps AI agents and developers:
+IssueGraph (`issuegraph`) is an issue tracker designed specifically for AI-supervised coding workflows. It helps AI agents and developers:
 - Track work with a simple CLI
 - Discover and link related tasks during development
 - Maintain context across coding sessions
@@ -17,7 +17,7 @@ Beads (`bd`) is an issue tracker designed specifically for AI-supervised coding 
 
 ### Prerequisites
 
-1. Install beads CLI:
+1. Install issuegraph CLI:
 ```bash
 curl -sSL https://raw.githubusercontent.com/gastownhall/beads/main/scripts/install.sh | bash
 ```
@@ -62,7 +62,7 @@ After installation, restart Claude Code to load the plugin's commands and hooks.
 ## Quick Start
 
 ```bash
-# Initialize beads in your project
+# Initialize issuegraph in your project
 /beads:init
 
 # Create your first issue
@@ -79,7 +79,7 @@ After installation, restart Claude Code to load the plugin's commands and hooks.
 
 ### Version Management
 
-- **`/beads:version`** - Check bd CLI and plugin versions
+- **`/beads:version`** - Check issuegraph CLI and plugin versions
 
 ### Core Workflow Commands
 
@@ -91,7 +91,7 @@ After installation, restart Claude Code to load the plugin's commands and hooks.
 
 ### Project Management
 
-- **`/beads:init`** - Initialize beads in the current project
+- **`/beads:init`** - Initialize issuegraph in the current project
 - **`/beads:workflow`** - Show the AI-supervised issue workflow guide
 - **`/beads:stats`** - Show project statistics and progress
 
@@ -101,7 +101,7 @@ After installation, restart Claude Code to load the plugin's commands and hooks.
 
 ## MCP Tools
 
-The plugin does not bundle an MCP server — it works through the bd CLI,
+The plugin does not bundle an MCP server — it works through the issuegraph CLI,
 which Claude Code drives directly (lower token overhead than MCP tool
 schemas). If you want MCP tools as well — for example in MCP-only
 surfaces — configure the standalone `beads-mcp` server alongside the
@@ -110,7 +110,7 @@ options and full tool catalog.
 
 ## Workflow
 
-The beads workflow is designed for AI agents but works great for humans too:
+The issuegraph workflow is designed for AI agents but works great for humans too:
 
 1. **Find ready work**: `/beads:ready`
 2. **Claim your task**: `/beads:update <id> in_progress`
@@ -156,7 +156,7 @@ development.
 
 **Available Options:**
 
-#### 1. Auto-Approve All Beads Tools (Recommended for Trusted Projects)
+#### 1. Auto-Approve All IssueGraph Tools (Recommended for Trusted Projects)
 
 Add to your Claude Code `settings.json`:
 
@@ -166,7 +166,7 @@ Add to your Claude Code `settings.json`:
 }
 ```
 
-This auto-approves all beads commands without prompting.
+This auto-approves all issuegraph commands without prompting.
 
 #### 2. Auto-Approve Project MCP Servers
 
@@ -187,14 +187,14 @@ No configuration needed. Claude Code will prompt for approval on each MCP tool i
 **Security Trade-offs:**
 
 - **Manual approval (default)**: Maximum safety, but interrupts workflow frequently
-- **Server-level auto-approval**: Convenient for trusted projects, but allows any beads operation without confirmation
+- **Server-level auto-approval**: Convenient for trusted projects, but allows any issuegraph operation without confirmation
 - **Project-level auto-approval**: Good balance for multi-project workflows with project-specific trust levels
 
-**Limitation:** Claude Code doesn't currently support per-tool approval granularity. You cannot auto-approve only read operations (like `bd ready`, `bd show`) while requiring confirmation for mutations (like `bd create`, `bd update`). It's all-or-nothing at the server level.
+**Limitation:** Claude Code doesn't currently support per-tool approval granularity. You cannot auto-approve only read operations (like `issuegraph ready`, `issuegraph show`) while requiring confirmation for mutations (like `issuegraph create`, `issuegraph update`). It's all-or-nothing at the server level.
 
 **Recommended Configuration:**
 
-For active development on trusted projects where you're frequently using beads:
+For active development on trusted projects where you're frequently using issuegraph:
 
 ```json
 {
@@ -230,7 +230,7 @@ For more information, see the [Claude Code settings documentation](https://docs.
 /beads:create "Add rate limiting to API" feature 2
 
 # Link it to current work
-bd dep add bd-11 bd-10 --type discovered-from
+issuegraph dep add bd-11 bd-10 --type discovered-from
 
 # Close original task
 /beads:close bd-10 "Done, discovered bd-11 for rate limiting"
@@ -253,24 +253,24 @@ bd dep add bd-11 bd-10 --type discovered-from
 
 ## Auto-Sync with Dolt
 
-Beads automatically commits changes to Dolt history after every write operation. This enables seamless collaboration:
+IssueGraph automatically commits changes to Dolt history after every write operation. This enables seamless collaboration:
 
 ```bash
 # Make changes
-bd create "Add feature" -p 1
+issuegraph create "Add feature" -p 1
 
 # Changes are automatically committed to Dolt history
 # Sync with remotes when ready:
-bd dolt push
+issuegraph dolt push
 
 # Pull changes from collaborators:
-bd dolt pull
-bd ready  # Shows issues ready to work on (with fresh data)
+issuegraph dolt pull
+issuegraph ready  # Shows issues ready to work on (with fresh data)
 ```
 
 ## Updating
 
-The beads plugin has three components that may need updating:
+The issuegraph plugin has three components that may need updating:
 
 ### 1. Plugin Updates
 
@@ -281,24 +281,24 @@ Check for plugin updates:
 
 Claude Code will pull the latest version from GitHub. After updating, **restart Claude Code** to apply plugin changes.
 
-### 2. bd CLI Updates
+### 2. issuegraph CLI Updates
 
-The plugin requires the `bd` CLI to be installed. Update it separately:
+The plugin requires the `issuegraph` CLI to be installed. Update it separately:
 
 ```bash
 # Quick update
 curl -fsSL https://raw.githubusercontent.com/gastownhall/beads/main/scripts/install.sh | bash
 
 # Or with Go (server-mode only)
-CGO_ENABLED=0 go install github.com/steveyegge/beads/cmd/bd@latest
+CGO_ENABLED=0 go install github.com/steveyegge/beads/modules/cli@latest
 
 # Or with Go (embedded-capable)
-CGO_ENABLED=1 GOFLAGS=-tags=gms_pure_go go install github.com/steveyegge/beads/cmd/bd@latest
+CGO_ENABLED=1 GOFLAGS=-tags=gms_pure_go go install github.com/steveyegge/beads/modules/cli@latest
 ```
 
 ### 3. Version Compatibility
 
-The MCP server **automatically checks** bd CLI version on startup and will fail with a clear error if your version is too old.
+The MCP server **automatically checks** issuegraph CLI version on startup and will fail with a clear error if your version is too old.
 
 Check version compatibility manually:
 ```bash
@@ -306,21 +306,21 @@ Check version compatibility manually:
 ```
 
 This will show:
-- bd CLI version
+- issuegraph CLI version
 - Plugin version
 - MCP server status
 - Compatibility warnings if versions mismatch
 
 **Recommended update workflow:**
 1. Check versions: `/beads:version`
-2. Update bd CLI if needed (see above)
+2. Update issuegraph CLI if needed (see above)
 3. Update plugin: `/plugin update beads`
 4. Restart Claude Code
 5. Verify: `/beads:version`
 
 ### Version Numbering
 
-Beads follows semantic versioning. The plugin version tracks the bd CLI
+IssueGraph follows semantic versioning. The plugin version tracks the issuegraph CLI
 version; major version bumps may introduce breaking changes — check
 CHANGELOG.md for release notes.
 
@@ -330,7 +330,7 @@ CHANGELOG.md for release notes.
 
 1. Check installation: `/plugin list`
 2. Restart Claude Code
-3. Verify `bd` is in PATH: `which bd`
+3. Verify `issuegraph` is in PATH: `which issuegraph`
 4. Check uv is installed: `which uv`
 
 ### MCP server not connecting
@@ -342,15 +342,15 @@ CHANGELOG.md for release notes.
 
 ### Commands not working
 
-1. Make sure you're in a project with beads initialized: `/beads:init`
+1. Make sure you're in a project with issuegraph initialized: `/beads:init`
 2. Check if database exists: `ls -la .beads/`
 3. Try direct MCP tool access instead of slash commands
-4. Check the beads CLI works: `bd --help`
+4. Check the issuegraph CLI works: `issuegraph --help`
 
 ### MCP tool errors
 
-1. Verify `bd` executable location: `BEADS_PATH` env var
-2. Check `bd` works in terminal: `bd stats`
+1. Verify `issuegraph` executable location: `BEADS_PATH` env var
+2. Check `issuegraph` works in terminal: `issuegraph stats`
 3. Review MCP server logs in Claude Code
 4. Try reinitializing: `/beads:init`
 
@@ -363,7 +363,7 @@ CHANGELOG.md for release notes.
 
 ## Contributing
 
-Found a bug or have a feature idea? Create an issue in the beads repository!
+Found a bug or have a feature idea? Create an issue in the issuegraph repository!
 
 ## License
 

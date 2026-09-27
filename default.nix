@@ -12,7 +12,7 @@ buildGoModule {
   src = self;
 
   # Point to the main Go package
-  subPackages = [ "cmd/bd" ];
+  subPackages = [ "modules/cli" ];
   tags = [ "gms_pure_go" ];
   doCheck = false;
 

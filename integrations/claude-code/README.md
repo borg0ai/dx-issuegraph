@@ -1,15 +1,15 @@
-# Claude Code Integration for Beads
+# Claude Code Integration for IssueGraph
 
-Slash command for converting [Claude Code](https://docs.anthropic.com/en/docs/claude-code) plans to beads tasks.
+Slash command for converting [Claude Code](https://docs.anthropic.com/en/docs/claude-code) plans to issuegraph tasks.
 
 ## Prerequisites
 
 ```bash
-# Install beads
+# Install issuegraph
 curl -fsSL https://raw.githubusercontent.com/gastownhall/beads/main/scripts/install.sh | bash
 
 # Install hooks (auto-injects workflow context on session start)
-bd setup claude
+issuegraph setup claude
 ```
 
 ## Installation
@@ -26,7 +26,7 @@ Optionally add to `~/.claude/settings.json` under `permissions.allow`:
 
 ## /plan-to-beads
 
-Converts a Claude Code plan file into a beads epic with tasks.
+Converts a Claude Code plan file into an issuegraph epic with tasks.
 
 ```
 /plan-to-beads                    # Convert most recent plan
@@ -50,15 +50,15 @@ Epic: Standardize ID Generation (bd-abc)
   └── Update schema (bd-jkl) - blocked by bd-ghi
 
 Total: 4 tasks
-Run `bd ready` to start.
+Run `issuegraph ready` to start.
 ```
 
 ## Related
 
-- `bd prime` - Workflow context (auto-injected via hooks)
-- `bd setup claude` - Install/manage Claude Code hooks
-- `bd ready` - Find unblocked work
+- `issuegraph prime` - Workflow context (auto-injected via hooks)
+- `issuegraph setup claude` - Install/manage Claude Code hooks
+- `issuegraph ready` - Find unblocked work
 
 ## License
 
-Same as beads (see repository root).
+Same as issuegraph (see repository root).

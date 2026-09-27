@@ -1,7 +1,7 @@
-# Convert Plan to Beads Tasks
+# Convert Plan to IssueGraph Tasks
 
 ## description:
-Convert a Claude Code plan file into beads epic + tasks for cross-session tracking.
+Convert a Claude Code plan file into issuegraph epic + tasks for cross-session tracking.
 
 ## Arguments
 $ARGUMENTS (optional - path to plan file, defaults to most recent in ~/.claude/plans/)
@@ -26,21 +26,21 @@ The agent should:
 
 3. **Create the epic**
    ```bash
-   bd create "[Plan Title]" -t epic -p 1 -d "[summary]. Files: N to modify." --json
+   issuegraph create "[Plan Title]" -t epic -p 1 -d "[summary]. Files: N to modify." --json
    ```
 
 4. **Create tasks from phases**
    - Each phase becomes a task
    - Use first paragraph of phase content as description
    ```bash
-   bd create "[Phase title]" -t task -p 2 -d "[description]" --json
+   issuegraph create "[Phase title]" -t task -p 2 -d "[description]" --json
    ```
 
 5. **Add sequential dependencies**
-   - Phases are sequential: `bd dep add <phase2> <phase1>`
+   - Phases are sequential: `issuegraph dep add <phase2> <phase1>`
 
 6. **Link tasks to epic**
-   - `bd dep add <epic> <task>` for each task
+   - `issuegraph dep add <epic> <task>` for each task
 
 7. **Return a concise summary** (not raw output):
    ```
@@ -52,7 +52,7 @@ The agent should:
      └── [Phase 3] ([id]) - blocked by [prev]
 
    Total: [N] tasks
-   Run `bd ready` to start.
+   Run `issuegraph ready` to start.
    ```
 
 ## Notes

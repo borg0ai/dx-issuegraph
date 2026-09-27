@@ -7,7 +7,7 @@ This document describes the context engineering optimizations added to beads-mcp
 ## The Problem
 
 MCP servers load all tool schemas at startup, consuming significant context:
-- **Before:** ~10-50k tokens for full beads tool schemas
+- **Before:** ~10-50k tokens for full issuegraph tool schemas
 - **After:** ~2-5k tokens with lazy loading and compaction
 
 For coding agents operating in limited context windows (100k-200k tokens), this overhead leaves less room for:
@@ -116,7 +116,7 @@ close(issue_id="bd-a1b2", reason="Fixed in PR #123")
 ### Tool Discovery Workflow
 
 ```python
-# First time using beads? Discover tools efficiently:
+# First time using issuegraph? Discover tools efficiently:
 tools = discover_tools()
 # → {"tools": {"ready": "...", "list": "...", ...}, "count": 15}
 
@@ -225,7 +225,7 @@ def handle_response(response: Union[list, dict]):
 Here's a complete example handling both response types:
 
 ```python
-class BeadsClient:
+class IssueGraphClient:
     """Example client with proper compaction handling."""
     
     def get_all_ready_work(self):

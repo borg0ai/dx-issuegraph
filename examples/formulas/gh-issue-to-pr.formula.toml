@@ -502,7 +502,7 @@ Handling failures:
 
 For changes touching Dolt/CGO-relevant code, also run:
 ```
-CGO_ENABLED=1 go test -tags gms_pure_go ./cmd/bd/...
+CGO_ENABLED=1 go test -tags gms_pure_go ./modules/cli/...
 ```
 
 If you need to abort after this step, clean up the worktree first (see worktree-setup)."""
@@ -525,7 +525,7 @@ You must either:
 Recommended approach — review by file path (works whether changes are
 committed or staged):
   - Use council_review with target set to the worktree path of changed files
-  - Example: council_review target="/path/to/worktree/cmd/bd/init.go"
+  - Example: council_review target="/path/to/worktree/modules/cli/init.go"
   - For multiple files, review the most significant ones individually
 
 Alternative — review staged diff (requires uncommitted changes):

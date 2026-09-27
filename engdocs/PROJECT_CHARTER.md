@@ -10,15 +10,15 @@ small enough to remain reliable, understandable, and composable.
 
 ## Core Scope
 
-Beads owns issue tracking primitives:
+IssueGraph owns local issue tracking primitives:
 
 - issues and issue lifecycle
 - dependency relationships and readiness
 - labels, comments, status, priority, and assignment
 - metadata attached to issues
 - local CLI workflows around those concepts
-- import, export, sync, backup, and recovery for beads data
-- integrations that translate external tracker data into beads concepts
+- local import, export, backup, and recovery for issue data
+- local issue workflows and Git-tracked snapshot recovery
 
 Within those boundaries, the project should absorb useful contributor work
 when practical. If a contribution has value but does not fit as submitted,
@@ -43,9 +43,12 @@ adding first-class fields or commands.
 
 ## Storage Boundary
 
-Beads should not become a storage engine. Dolt provides storage, versioning,
-sync, merge behavior, concurrency, and crash safety. Beads should put data in
-and pull data out through the storage boundary.
+IssueGraph should not become a storage engine. Dolt provides local storage,
+versioning, concurrency, and crash safety. IssueGraph reads and writes through
+the storage boundary. IssueGraph does not connect to Dolt remotes or external
+trackers to synchronize issue data. A complete snapshot in the user's Git
+working tree is the only portable issue-data copy; Git handles commit, pull,
+and push when the user chooses.
 
 Storage-engine details should not leak into beads packages unless they are part
 of a deliberate storage interface. Avoid beads-side flocks, engine
@@ -81,13 +84,10 @@ meaning for beads itself and the migration cost is justified.
 
 ## Integration Boundary
 
-Tracker integrations are adoption bridges, not a second product surface. They
-should map external tracker data into beads concepts and keep the dependency
-graph useful. They should not replicate tracker UIs, notification systems,
-credential vaults, webhook gateways, or cross-tracker automation.
-
-See [Integration Charter](INTEGRATION_CHARTER.md) for the detailed policy for
-GitHub, GitLab, Jira, Linear, Azure DevOps, and similar tracker integrations.
+IssueGraph has no built-in network tracker integration. Import/export operates
+on local files. Users who need GitHub, GitLab, Jira, Linear, Azure DevOps, or
+similar services can use those clients independently and manage local
+IssueGraph snapshots with Git.
 
 ## Review Posture
 
@@ -98,18 +98,17 @@ For pull requests and proposals:
 
 - identify the contributor value first
 - keep the part that belongs in core when possible
-- move boundary-crossing behavior to metadata, integrations, plugins, or
-  external tools when that preserves the use case
+- move boundary-crossing behavior to external tools when that preserves the
+  use case
 - preserve attribution when transforming, cherry-picking, or reimplementing
   contributor work
-- explain clearly when a feature belongs outside beads
+- explain clearly when a feature belongs outside IssueGraph
 
 Use request-changes or rejection only after considering whether the project can
 absorb, transform, or reroute the useful part.
 
 ## Related Documents
 
-- [Integration Charter](INTEGRATION_CHARTER.md) - tracker integration scope
 - [Issue Metadata](../docs/core-concepts/metadata.md) - metadata extension point
 - [Architecture](../docs/architecture/index.md) - data model and storage architecture
 - [Maintainer PR Guidelines](../PR_MAINTAINER_GUIDELINES.md) - PR triage and

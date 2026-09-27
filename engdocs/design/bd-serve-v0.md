@@ -1,7 +1,7 @@
-# `bd serve` — the v0 HTTP surface
+# `issuegraph serve` — the v0 HTTP surface
 
-`bd serve` answers the same work surface the CLI answers, over HTTP, for
-automation clients and orchestrators that would otherwise fork a `bd`
+`issuegraph serve` answers the same work surface the CLI answers, over HTTP, for
+automation clients and orchestrators that would otherwise fork an `issuegraph`
 subprocess per call. It exists because the subprocess-per-call shape has two
 costs a long-running client cannot pay down: process startup on every read, and
 a contract made of stdout text that clients end up parsing.
@@ -71,7 +71,7 @@ renamed or removed without breaking the HTTP contract, not just the CLI's.
 
 The reads hold no query logic of their own. Each decodes its parameters and
 hands the whole request to `issueops.Reader` — the same role, reached the same
-way, that `bd show --json` reaches on a store. Filter construction, the
+way, that `issuegraph show --json` reaches on a store. Filter construction, the
 workspace config it depends on, the default limits and the wisp fallback all
 live inside that role, so a handler cannot half-perform that construction and
 answer the same question a different way.
@@ -202,7 +202,7 @@ position shape, a strictly-after predicate, an index — rather than a display
 preference. Both of these keys are total (`priority` and `created_at` are
 non-null, `id` is unique), so a page boundary inside a run of equal keys
 resolves on `id` with no dropped and no repeated row. The seven other orders
-`bd list --sort` accepts have no such key: `id` is a natural-numeric order no
+`issuegraph list --sort` accepts have no such key: `id` is a natural-numeric order no
 database expresses, `updated` moves on every write, `closed` is nullable, and
 `status`/`title`/`type`/`assignee` are mutable and unindexed. A client that
 wants one of those still pages in `created` order and sorts what it received.
@@ -223,12 +223,12 @@ the middle of it.
 
 v0 has **optional** bearer authentication and no TLS. On loopback the trust
 model is the loopback boundary — the same boundary the database behind it
-already relies on — and a `bd serve` with no auth flags is byte for byte the
+already relies on — and an `issuegraph serve` with no auth flags is byte for byte the
 server it has always been.
 
 `--auth-token-file` turns authentication on: every operation except
 `GET /healthz` then requires `Authorization: Bearer <token>`, including
-`GET /v0/beads/context`, which reports the repo root, beads directory and
+`GET /v0/beads/context`, which reports the repo root, issuegraph directory and
 database name. The file holds one token per line and every line is accepted;
 it is re-read while the server runs, so rotation and revocation both take
 effect within about a second and neither needs a restart. There is
@@ -270,7 +270,7 @@ write from any browser on the host. The document states the rule once, at the
 document level, because it holds for every body-carrying operation.
 
 **The mode-dependent refusal of an unlimited read.** `limit=0` means unlimited
-on both list operations, exactly as `bd list --limit 0` does — except under
+on both list operations, exactly as `issuegraph list --limit 0` does — except under
 `--allow-non-loopback`, where it is refused with 400 `invalid_argument`,
 `param: "limit"`, `reason: "invalid_value"`. An unlimited read buffers the
 whole active set and its JSON encoding inside one shared process, which must
@@ -356,12 +356,12 @@ sentence by sentence, and deliberately not strengthened here.
 
 **SHARED.** `GET /v0/beads/ready`, `GET /v0/beads/issues` and
 `GET /v0/beads/issues/{id}` go through `issueops.Reader`, and so does
-`bd show --json`'s detail view on both its routes. This says nothing about the
-surface's other reads, which are on sibling roles. `bd list` and
-`bd ready` are *not* on the role and share instead the request types, the two
+`issuegraph show --json`'s detail view on both its routes. This says nothing about the
+surface's other reads, which are on sibling roles. `issuegraph list` and
+`issuegraph ready` are *not* on the role and share instead the request types, the two
 builders in `internal/workapi` that their golden files pin, and
-`workapi.FinishPage` — `bd list` on both routes in every mode but the
-hierarchical `--parent` tree, `bd ready` on its proxied route only.
+`workapi.FinishPage` — `issuegraph list` on both routes in every mode but the
+hierarchical `--parent` tree, `issuegraph ready` on its proxied route only.
 
 **ENFORCED, and by what.** depguard (`httpapi-transport-boundary`) denies
 `internal/workapi` from every non-test file of `internal/httpapi`, so no builder
@@ -369,19 +369,19 @@ is callable there; a forbidigo rule denies naming `types.IssueFilter` or
 `types.WorkFilter` there at all, so no filter is writable there either. Both
 are directory-scoped with no per-file exception, so a file added to that package
 tomorrow is covered the moment it exists. That same forbidigo rule covers
-`cmd/bd` deny-by-default with 64 named exceptions, so the files implementing
-`bd list` and `bd show` cannot write a filter, and neither can a file they are
+`modules/cli` deny-by-default with 64 named exceptions, so the files implementing
+`issuegraph list` and `issuegraph show` cannot write a filter, and neither can a file they are
 split or renamed into unless the new name lands on that list.
 
 **NOT ENFORCED.** The rule forbids *naming* those types, not holding a value,
 so the property is "no filter is written there", not "every filter there came
 from a builder". Test files are exempt from both rules, because the oracles hold
-filters in order to inspect them. `bd ready`'s files are among the 64, since its
+filters in order to inspect them. `issuegraph ready`'s files are among the 64, since its
 listing and `--claim` are handed the filter itself and the blocked-issue views in
 those files name one directly, so it is guarded by the builder and the golden
 files and not by the linter. `GET /healthz` and
-`GET /v0/beads/context` are not issue queries and are on no role. `bd ready`'s
-direct route and `bd list`'s hierarchical tree run epilogues of their own. And
+`GET /v0/beads/context` are not issue queries and are on no role. `issuegraph ready`'s
+direct route and `issuegraph list`'s hierarchical tree run epilogues of their own. And
 none of this is a merge gate: the rules run in `make ci-pr-lint` on every pull
 request and aggregate into the `ci-gate` job, but main carries no branch
 protection beyond deletion and non-fast-forward, so no check is GitHub-required
@@ -392,7 +392,7 @@ methods on the read one.
 
 ## Workspace modes
 
-`bd serve` refuses exactly one workspace mode, permanently: embedded Dolt. Its
+`issuegraph serve` refuses exactly one workspace mode, permanently: embedded Dolt. Its
 commit protocol runs outside the SQL transaction on a separate connection, so
 the per-request atomicity this contract states would be a lie there. That is a
 property of the backend rather than of what has been built so far, which is what
@@ -406,13 +406,13 @@ provider or nothing at all, so an embedded-backed server was not *constructible*
 — the absence of a provider was itself the refusal. `httpapi.Config` now also
 takes the two issue roles as a database source, and the embedded store publishes
 both accessors, so one is. The gate is `serveDatabaseSource` in
-`cmd/bd/serve.go`, which classifies the workspace and refuses; it is both the
+`modules/cli/serve.go`, which classifies the workspace and refuses; it is both the
 gate and the wiring decision, in one function, so the two cannot disagree about
 one workspace. `TestServeRefusalsPromiseNothing` pins both that it refuses and
 that its message promises nothing, and
 `TestServeRefusesAnEmbeddedWorkspaceEndToEnd` drives the refusal through
 `runServe`. `TestServeNamesOneDatabaseSourcePerServerItBuilds` pins against the
-source of `cmd/bd` that every server `bd` builds names exactly one complete
+source of `modules/cli` that every server `issuegraph` builds names exactly one complete
 database source and that a roles-backed one is only ever built where that
 classification is consulted — so a change that reached for store roles anywhere
 else fails a test rather than quietly reaching the embedded backend by a path
@@ -424,7 +424,7 @@ protocol of the backend behind it; every check available at that layer is a
 self-declaration by the same caller-supplied code being checked, which is the
 trust it would be replacing rather than a replacement for it. The precondition
 is therefore stated on `Config.Reader`/`Config.Claimer` — each call commits on
-its own, atomically and durably — and a caller outside `bd` that hands the
+its own, atomically and durably — and a caller outside `issuegraph` that hands the
 server embedded-backed roles gets a server whose per-request atomicity claim is
 false, with nothing in this repository to stop it.
 
@@ -438,7 +438,7 @@ idle store matters only for the connection budget — see the runbook.
 downstream distribution registers a backend (`internal/storage/backends`) whose
 facade is a store rather than a unit-of-work provider, and
 `PersistentPreRunE` already opens it through the same `backends.Lookup` dispatch
-every ordinary `bd` command opens it with. So serve creates nothing on this arm:
+every ordinary `issuegraph` command opens it with. So serve creates nothing on this arm:
 it takes `Config.Reader` and `Config.Claimer` off that store and hands them to
 `Listen`. A second handle would double the pools and self-conflict with any
 backend holding an exclusive workspace lock, and one creation path is the point.
@@ -480,7 +480,7 @@ rather than fail (an absent dolt_mode reads "embedded", an absent dolt_database
 reads "beads").
 
 The fix is in that projection (`domain.ContextInfo.SetBackendIdentity`), not in
-`bd serve`, and the placement is the point: `bd context`, `bd context --json`
+`issuegraph serve`, and the placement is the point: `issuegraph context`, `issuegraph context --json`
 and this endpoint all read their workspace identity through
 `domain.PublishedContext`, which exists so the three cannot name one workspace
 differently. Correcting the value in `runServe` would have made the HTTP
@@ -492,7 +492,7 @@ endpoint and proxied root were already withheld; `dolt_mode` and `database` were
 the two with no such guard.
 
 There were TWO copies of the hardcode, which is why one policy function rather
-than one edit: the contextinfo use case, and `bd context`'s direct route, which
+than one edit: the contextinfo use case, and `issuegraph context`'s direct route, which
 reads the config files itself so it can answer in degraded states where no
 database opens. Both carried their own `Backend: configfile.BackendDolt`, so
 they agreed by telling the same lie — indistinguishable, until now, from
@@ -501,13 +501,13 @@ routes publish for one workspace, which is the claim the shared projection has
 always made and nothing had tested.
 
 A registered backend reports the EMPTY string for both, and that is the only
-value `bd` can assert. The backend's `Open` reads whatever it wants out of the
-workspace; `bd` does not implement it and cannot know which logical database it
+value `issuegraph` can assert. The backend's `Open` reads whatever it wants out of the
+workspace; `issuegraph` does not implement it and cannot know which logical database it
 settled on, so any non-empty guess is the same lie made quieter. Both stay
 required strings on the wire — no field is renamed, retyped or dropped, and the
 `v0` shape is unchanged.
 
-**STRICT READONLY IS REFUSED.** `bd --readonly serve` does not bind, on either
+**STRICT READONLY IS REFUSED.** `issuegraph --readonly serve` does not bind, on either
 source, and the gate runs before the workspace is resolved so that the answer
 cannot depend on the topology. Every server this command builds publishes the
 same operation set, claim included.
@@ -526,6 +526,6 @@ capabilities — was rejected as a wire change: `capabilities` is the documented
 pre-flight a client checks before calling, and making one operation's presence
 depend on a flag on the process that started the server gives a client something
 it cannot discover before connecting. Refusing keeps the published surface a
-property of the build, and matches how `bd` already answers this question one
+property of the build, and matches how `issuegraph` already answers this question one
 layer down, where a backend that cannot guarantee mutation-free access is turned
 away rather than opened anyway.

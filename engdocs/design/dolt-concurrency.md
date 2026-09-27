@@ -4,13 +4,13 @@
 > **Date**: 2026-02-22 (implemented 2026-02-24)
 > **Authors**: Steve Yegge
 > **Input**: Tim Sehn (Dolt co-founder), DoltHub blog 2026-02-18
-> **Scope**: Beads (primary), orchestrator (operational), Wasteland (federation)
+> **Scope**: IssueGraph (primary), orchestrator (operational), Wasteland (federation)
 
 ---
 
 ## Problem Statement
 
-Beads is the universal data plane for multi-agent systems. Every agent role —
+IssueGraph is the universal data plane for multi-agent systems. Every agent role —
 workers, coordinators, observers, processors, patrols — reads and writes beads as their primary
 means of coordination. The Dolt concurrency model must serve **all** of them,
 not just individual workers.
@@ -26,7 +26,7 @@ rate in tests. But the concurrency wins are **illusory** because:
    invisible to agent B until A's branch merges to main. This breaks
    cross-agent visibility for dispatching, dependency tracking, and status queries.
 
-2. **Shared state must live on main.** Beads is the coordination layer for the
+2. **Shared state must live on main.** IssueGraph is the coordination layer for the
    entire system. Every role — workers doing tasks, coordinators dispatching, observers
    monitoring, processors validating, assistants helping — needs the same view of
    bead state. Branch isolation is the opposite of what a shared data plane
@@ -37,7 +37,7 @@ rate in tests. But the concurrency wins are **illusory** because:
    a continuous shared view.
 
 4. **Branch proliferation.** Each sling creates a branch; cleanup relies on
-   `bd done` or branch cleanup. Orphaned branches accumulate. The
+   `issuegraph done` or branch cleanup. Orphaned branches accumulate. The
    BD_BRANCH safety analysis (#1796) adds code complexity across the codebase.
 
 Tim Sehn's guidance (2026-02-21): **"It is far simpler to use one branch, so
@@ -164,7 +164,7 @@ tx.Exec("CALL DOLT_COMMIT('-Am', ?)", batchMsg)
 tx.Commit()
 ```
 
-### What Changes in Beads
+### What Changes in IssueGraph
 
 #### `store.go`: Remove Branch-Per-Worker
 
@@ -229,7 +229,7 @@ should use transaction-scoped commits.
 `Merge()` and `DeleteBranch()` are only needed during the migration period
 (cleaning up existing worker branches). After migration, they become
 dead code for the normal write path. Retain for federation use cases
-(DoltHub remote merge) and standalone Beads.
+(DoltHub remote merge) and standalone IssueGraph.
 
 ### What Changes in the Orchestrator
 
@@ -371,14 +371,14 @@ Wisps are `dolt_ignore`-d and never pushed. This is correct:
 - The digest publication flow is already a separate operation that creates
   a proper bead (not a wisp)
 
-## Implications for Standalone Beads
+## Implications for Standalone IssueGraph
 
-The `bd` CLI supports both embedded Dolt and server mode. This design
+The `issuegraph` CLI supports both embedded Dolt and server mode. This design
 applies to **server mode only** (the orchestrator's deployment). Embedded mode
 is single-process and doesn't have the multi-connection concurrency
 concerns described here.
 
-For standalone `bd` with embedded Dolt:
+For standalone `issuegraph` with embedded Dolt:
 - Single connection, auto-commit is fine
 - No branch-per-worker (single user)
 - Transaction wrapping is still good practice but not critical
@@ -399,7 +399,7 @@ far below the hundreds-per-second ceiling.
 
 ## Open Questions
 
-1. **Commit granularity.** Should every `bd create` produce its own Dolt
+1. **Commit granularity.** Should every `issuegraph create` produce its own Dolt
    commit, or should we batch at a higher level (e.g., per-molecule, per-formula
    step)? Per-operation gives better auditability; batching reduces commit
    graph size. Tim's model suggests per-operation is fine at our scale.
@@ -416,7 +416,7 @@ far below the hundreds-per-second ceiling.
    worker branches. Need a migration script to merge-or-delete these
    before switching to all-on-main.
 
-5. **Embedded mode fallback.** If a standalone `bd` user runs multiple
+5. **Embedded mode fallback.** If a standalone `issuegraph` user runs multiple
    processes against the same embedded Dolt (unlikely but possible), they'd
    hit the same issues. Document as unsupported, or add transaction
    discipline to embedded mode too?
@@ -427,7 +427,7 @@ far below the hundreds-per-second ceiling.
 - Tim Sehn email to Steve Yegge, 2026-02-21
 - `beads/internal/storage/dolt/store.go` — DoltStore, branch-per-worker init
 - `beads/internal/storage/dolt/transaction.go` — RunInTransaction
-- `beads/cmd/bd/dolt_autocommit.go` — auto-commit wrapper
+- `beads/modules/cli/dolt_autocommit.go` — auto-commit wrapper
 - (Historical) Orchestrator `done.go` — merge flow (removed)
 - (Historical) Orchestrator `session_manager.go` — BD_BRANCH injection (removed)
 - (Historical) Orchestrator `bdbranch/` — BD_BRANCH safety analyzer (removed)

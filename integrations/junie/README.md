@@ -1,25 +1,25 @@
-# Junie Integration for Beads
+# Junie Integration for IssueGraph
 
-Integration for [Junie](https://www.jetbrains.com/junie/) (JetBrains AI Agent) with beads issue tracking.
+Integration for [Junie](https://www.jetbrains.com/junie/) (JetBrains AI Agent) with issuegraph issue tracking.
 
 ## Prerequisites
 
 ```bash
-# Install beads
+# Install issuegraph
 curl -fsSL https://raw.githubusercontent.com/gastownhall/beads/main/scripts/install.sh | bash
 
-# Initialize beads in your project
-bd init
+# Initialize issuegraph in your project
+issuegraph init
 ```
 
 ## Installation
 
 ```bash
-bd setup junie
+issuegraph setup junie
 ```
 
 This creates:
-- `.junie/guidelines.md` - Agent instructions for beads workflow
+- `.junie/guidelines.md` - Agent instructions for issuegraph workflow
 - `.junie/mcp/mcp.json` - MCP server configuration
 
 ## What Gets Installed
@@ -27,14 +27,14 @@ This creates:
 ### Guidelines (`.junie/guidelines.md`)
 
 Junie automatically reads this file on session start. It contains:
-- Core workflow rules for using beads
-- Command reference for the `bd` CLI
+- Core workflow rules for using issuegraph
+- Command reference for the `issuegraph` CLI
 - Issue types and priorities
 - MCP tool documentation
 
 ### MCP Config (`.junie/mcp/mcp.json`)
 
-Configures the beads MCP server so Junie can use beads tools directly:
+Configures the issuegraph MCP server so Junie can use issuegraph tools directly:
 
 ```json
 {
@@ -51,8 +51,8 @@ Configures the beads MCP server so Junie can use beads tools directly:
 
 Once installed, Junie will:
 1. Read workflow instructions from `.junie/guidelines.md`
-2. Have access to beads MCP tools for direct issue management
-3. Be able to use `bd` CLI commands
+2. Have access to issuegraph MCP tools for direct issue management
+3. Be able to use `issuegraph` CLI commands
 
 ### MCP Tools Available
 
@@ -69,21 +69,21 @@ Once installed, Junie will:
 ## Verification
 
 ```bash
-bd setup junie --check
+issuegraph setup junie --check
 ```
 
 ## Removal
 
 ```bash
-bd setup junie --remove
+issuegraph setup junie --remove
 ```
 
 ## Related
 
-- `bd prime` - Get full workflow context
-- `bd ready` - Find unblocked work
-- `bd dolt push` - Push issue changes to Dolt remote (run at session end)
+- `issuegraph prime` - Get full workflow context
+- `issuegraph ready` - Find unblocked work
+- `issuegraph dolt push` - Push issue changes to Dolt remote (run at session end)
 
 ## License
 
-Same as beads (see repository root).
+Same as issuegraph (see repository root).

@@ -1,19 +1,19 @@
 ---
 title: Factory.ai Droid
-description: Set up beads for Factory.ai Droid through a managed Beads section in AGENTS.md
+description: Set up issuegraph for Factory.ai Droid through a managed IssueGraph section in AGENTS.md
 ---
 
-Use Beads with Factory.ai Droid through managed `AGENTS.md` guidance.
+Use IssueGraph with Factory.ai Droid through managed `AGENTS.md` guidance.
 
 ```bash
-bd setup factory
-bd setup factory --check
+issuegraph setup factory
+issuegraph setup factory --check
 ```
 
-The setup command creates or updates `AGENTS.md` with a managed Beads section. Factory Droid reads `AGENTS.md` automatically when it starts a session.
+The setup command creates or updates `AGENTS.md` with a managed IssueGraph section. Factory Droid reads `AGENTS.md` automatically when it starts a session.
 
 ## Remove
 
 ```bash
-bd setup factory --remove
+issuegraph setup factory --remove
 ```

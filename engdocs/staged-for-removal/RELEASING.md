@@ -72,7 +72,7 @@ git push origin main
 ```
 
 This updates:
-- `cmd/bd/version.go`
+- `modules/cli/version.go`
 - `plugins/beads/.claude-plugin/plugin.json`
 - `plugins/beads/.codex-plugin/plugin.json`
 - `.claude-plugin/marketplace.json`

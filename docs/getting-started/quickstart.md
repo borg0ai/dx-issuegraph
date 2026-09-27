@@ -1,15 +1,15 @@
 ---
 title: Quick Start
-description: Initialize beads, create issues with dependencies, find ready work, and sync with your team in a few minutes
+description: Initialize issuegraph, create issues with dependencies, find ready work, and sync with your team in a few minutes
 ---
 
-Get up and running with Beads in a few minutes.
+Get up and running with IssueGraph in a few minutes.
 
-## Why Beads?
+## Why IssueGraph?
 
 Flat issue trackers (GitHub Issues, Jira, etc.) show you a list of open items. You pick one. But if that item depends on something else that isn't done yet, you've wasted time. Multiply this across a team of AI agents and humans, and you get thrashing.
 
-Beads tracks **dependencies between issues** and computes a **ready queue** — only items with no active blockers appear. Here's the difference:
+IssueGraph tracks **dependencies between issues** and computes a **ready queue** — only items with no active blockers appear. Here's the difference:
 
 **Flat tracker (GitHub Issues):**
 ```
@@ -17,12 +17,12 @@ Open issues: Set up database, Create API, Add authentication
 → An agent picks "Add authentication" and gets stuck immediately
 ```
 
-**Beads:**
+**IssueGraph:**
 ```bash
-$ bd ready
+$ issuegraph ready
 1. [P1] [task] bd-1: Set up database
 
-$ bd ready --explain --json | jq '.blocked[0]'
+$ issuegraph ready --explain --json | jq '.blocked[0]'
 {
   "id": "bd-3",
   "title": "Add authentication",
@@ -34,12 +34,12 @@ The agent picks the right task every time. No wasted cycles.
 
 ## Installation
 
-Install `bd` using [the full installation guide](/getting-started/installation) (Homebrew, install script, npm, or `go install`).
+Install `issuegraph` using [the full installation guide](/getting-started/installation) (Homebrew, install script, npm, or `go install`).
 
 **Developing in a clone of this repository:** use `make install` so the binary gets correct build metadata and a consistent install path. Avoid ad-hoc `go build` / `go install` without the Makefile unless you know what you are doing — see the repository `README` and `AGENTS.md`.
 
 ```bash
-bd --help
+issuegraph --help
 ```
 
 ## Initialize
@@ -48,16 +48,16 @@ First time in a repository:
 
 ```bash
 # Basic setup (prompts for contributor mode)
-bd init
+issuegraph init
 
 # For AI agents (non-interactive)
-bd init --quiet
+issuegraph init --quiet
 
 # OSS contributor (fork workflow with separate planning repo)
-bd init --contributor
+issuegraph init --contributor
 
 # Team member (branch workflow for collaboration)
-bd init --team
+issuegraph init --team
 
 # Protected main branch (GitHub/GitLab)
 # Note: Dolt stores data under refs/dolt/data, separate from
@@ -73,17 +73,17 @@ The wizard will:
 Notes:
 - Dolt is the default (and only) storage backend. Data is stored in `.beads/embeddeddolt/`.
 - By default, Dolt runs in **embedded mode** (in-process, no server needed).
-- For multi-writer setups, use `bd init --server` to connect to a `dolt sql-server` instead.
-- To import issues from an older installation, run `bd init --from-jsonl`.
+- For multi-writer setups, use `issuegraph init --server` to connect to a `dolt sql-server` instead.
+- To import issues from an older installation, run `issuegraph init --from-jsonl`.
 
 ### Role configuration
 
-During `bd init`, you'll be asked: "Contributing to someone else's repo? [y/N]"
+During `issuegraph init`, you'll be asked: "Contributing to someone else's repo? [y/N]"
 
 - Answer **Y** if you're contributing to a fork (runs contributor wizard)
 - Answer **N** if you're the maintainer or have push access
 
-This sets `git config beads.role` which determines how beads routes issues:
+This sets `git config beads.role` which determines how issuegraph routes issues:
 
 | Role | Use case | Issue storage |
 |------|----------|---------------|
@@ -103,18 +103,18 @@ git config beads.role maintainer
 git config --get beads.role
 ```
 
-**Note:** If `beads.role` is not configured, beads falls back to URL-based detection (deprecated). Run `bd doctor` to check configuration status.
+**Note:** If `beads.role` is not configured, issuegraph falls back to URL-based detection (deprecated). Run `issuegraph doctor` to check configuration status.
 
 ## Your first issues
 
 ```bash
 # Create a few issues
-bd create "Set up database" -p 1 -t task
-bd create "Create API" -p 2 -t feature
-bd create "Add authentication" -p 2 -t feature
+issuegraph create "Set up database" -p 1 -t task
+issuegraph create "Create API" -p 2 -t feature
+issuegraph create "Add authentication" -p 2 -t feature
 
 # List them
-bd list
+issuegraph list
 ```
 
 **Note:** Issue IDs are hash-based (e.g., `bd-a1b2`, `bd-f14c`) to prevent collisions when multiple agents/branches work concurrently.
@@ -125,16 +125,16 @@ For large features, use hierarchical IDs to organize work:
 
 ```bash
 # Create epic (generates parent hash ID)
-bd create "Auth System" -t epic -p 1
+issuegraph create "Auth System" -t epic -p 1
 # Returns: bd-a3f8e9
 
 # Create child tasks (use --parent to attach to the epic)
-bd create "Design login UI" -p 1 --parent bd-a3f8e9       # bd-a3f8e9.1
-bd create "Backend validation" -p 1 --parent bd-a3f8e9    # bd-a3f8e9.2
-bd create "Integration tests" -p 1 --parent bd-a3f8e9     # bd-a3f8e9.3
+issuegraph create "Design login UI" -p 1 --parent bd-a3f8e9       # bd-a3f8e9.1
+issuegraph create "Backend validation" -p 1 --parent bd-a3f8e9    # bd-a3f8e9.2
+issuegraph create "Integration tests" -p 1 --parent bd-a3f8e9     # bd-a3f8e9.3
 
 # View hierarchy
-bd dep tree bd-a3f8e9
+issuegraph dep tree bd-a3f8e9
 ```
 
 Output:
@@ -153,13 +153,13 @@ Children inherit the epic's labels by default — if the epic carries a size/eff
 
 ```bash
 # API depends on database
-bd dep add bd-2 bd-1
+issuegraph dep add bd-2 bd-1
 
 # Auth depends on API
-bd dep add bd-3 bd-2
+issuegraph dep add bd-3 bd-2
 
 # View the tree
-bd dep tree bd-3
+issuegraph dep tree bd-3
 ```
 
 Output:
@@ -171,7 +171,7 @@ Dependency tree for bd-3:
     > bd-1: Set up database [P1] (open)
 ```
 
-**Dependency visibility:** `bd list` shows blocking dependencies inline:
+**Dependency visibility:** `issuegraph list` shows blocking dependencies inline:
 ```
 ○ bd-a1b2 [P1] [task] - Set up database
 ○ bd-f14c [P2] [feature] - Create API (blocked by: bd-a1b2)
@@ -181,7 +181,7 @@ Dependency tree for bd-3:
 ## Find ready work
 
 ```bash
-bd ready
+issuegraph ready
 ```
 
 Output:
@@ -196,7 +196,7 @@ Only bd-1 is ready because bd-2 and bd-3 are blocked.
 **Understanding why:** Use `--explain` to see the full graph reasoning:
 
 ```bash
-bd ready --explain
+issuegraph ready --explain
 ```
 
 Output:
@@ -220,19 +220,19 @@ Ready Work Explanation
 ─ Summary: 1 ready, 2 blocked
 ```
 
-**Note:** `bd ready` is not the same as `bd list --status open`. The `list` command shows all open issues regardless of blockers. The `ready` command computes the dependency graph and only shows truly unblocked work.
+**Note:** `issuegraph ready` is not the same as `issuegraph list --status open`. The `list` command shows all open issues regardless of blockers. The `ready` command computes the dependency graph and only shows truly unblocked work.
 
 ## Work the queue
 
 ```bash
 # Start working on bd-1
-bd update bd-1 --claim
+issuegraph update bd-1 --claim
 
 # Complete it
-bd close bd-1 --reason "Database setup complete"
+issuegraph close bd-1 --reason "Database setup complete"
 
 # Check ready work again
-bd ready
+issuegraph ready
 ```
 
 Now bd-2 is ready.
@@ -241,46 +241,46 @@ Now bd-2 is ready.
 
 ```bash
 # See blocked issues
-bd blocked
+issuegraph blocked
 
 # View statistics
-bd stats
+issuegraph stats
 ```
 
 ## Team sync
 
-Share issues with your team using Dolt remotes. Dolt stores data under `refs/dolt/data` on the same Git remote, separate from standard Git refs. In repos with `origin`, `bd init` configures that Dolt remote automatically.
+Share issues with your team using Dolt remotes. Dolt stores data under `refs/dolt/data` on the same Git remote, separate from standard Git refs. In repos with `origin`, `issuegraph init` configures that Dolt remote automatically.
 
 ```bash
 # Verify the remote, or add one if the repo had no origin during init
-bd dolt remote list
-bd dolt remote add origin git+ssh://git@github.com/org/repo.git  # if needed
+issuegraph dolt remote list
+issuegraph dolt remote add origin git+ssh://git@github.com/org/repo.git  # if needed
 
 # Push your issues
-bd dolt push
+issuegraph dolt push
 
 # Pull teammates' changes
-bd dolt pull
+issuegraph dolt pull
 ```
 
-When a teammate clones the repo, `bd bootstrap` auto-detects the existing database on `refs/dolt/data`, clones it, and wires `origin` for future `bd dolt push` / `bd dolt pull`.
+When a teammate clones the repo, `issuegraph bootstrap` auto-detects the existing database on `refs/dolt/data`, clones it, and wires `origin` for future `issuegraph dolt push` / `issuegraph dolt pull`.
 
-See [`bd dolt`](/cli-reference/dolt) for CLI details. For remote configuration, see [Dolt architecture](/architecture/dolt); for federation, see [federation](/multi-agent/federation).
+See [`issuegraph dolt`](/cli-reference/dolt) for CLI details. For remote configuration, see [Dolt architecture](/architecture/dolt); for federation, see [federation](/multi-agent/federation).
 
 ## Optional: Notion sync
 
 If you keep project issues in Notion, save an integration token first:
 
 ```bash
-bd config set notion.token <your-token>
+issuegraph config set notion.token <your-token>
 ```
 
-Then either create a new Beads database under a parent page or connect to an existing target:
+Then either create a new IssueGraph database under a parent page or connect to an existing target:
 
 ```bash
-bd notion init --parent <page-id>
+issuegraph notion init --parent <page-id>
 # or
-bd notion connect --url <notion-database-or-data-source-url>
+issuegraph notion connect --url <notion-database-or-data-source-url>
 ```
 
 The same auth value can also come from `NOTION_TOKEN`. Directly setting `notion.data_source_id` remains available as an escape hatch for advanced setups.
@@ -288,17 +288,17 @@ The same auth value can also come from `NOTION_TOKEN`. Directly setting `notion.
 Check which auth source is active and whether the target schema is ready:
 
 ```bash
-bd notion status
-bd notion status --json
+issuegraph notion status
+issuegraph notion status --json
 ```
 
 Preview or run sync:
 
 ```bash
-bd notion sync --dry-run
-bd notion sync
-bd notion sync --pull
-bd notion sync --push
+issuegraph notion sync --dry-run
+issuegraph notion sync
+issuegraph notion sync --pull
+issuegraph notion sync --push
 ```
 
 ## Database location
@@ -308,23 +308,23 @@ In server mode, data is managed by the external `dolt sql-server`.
 
 ## Migrating databases
 
-After upgrading bd, use `bd migrate` to check for and migrate old database files:
+After upgrading issuegraph, use `issuegraph migrate` to check for and migrate old database files:
 
 ```bash
 # Inspect migration plan (AI agents)
-bd migrate --inspect --json
+issuegraph migrate --inspect --json
 
 # Check schema and config
-bd info --schema --json
+issuegraph info --schema --json
 
 # Preview migration changes
-bd migrate --dry-run
+issuegraph migrate --dry-run
 
 # Migrate old databases to beads.db
-bd migrate
+issuegraph migrate
 
 # Migrate and clean up old files
-bd migrate --yes
+issuegraph migrate --yes
 ```
 
 **AI agents:** Use `--inspect` to analyze migration safety before running. The system verifies required config keys and data integrity invariants.
@@ -335,16 +335,16 @@ As your project accumulates closed issues, the database grows. Manage size with 
 
 ```bash
 # View compaction statistics
-bd admin compact --stats
+issuegraph admin compact --stats
 
 # Preview compaction candidates (30+ days closed)
-bd admin compact --analyze --json
+issuegraph admin compact --analyze --json
 
 # Apply agent-generated summary
-bd admin compact --apply --id bd-42 --summary summary.txt
+issuegraph admin compact --apply --id bd-42 --summary summary.txt
 
 # Immediately delete closed issues (CAUTION: permanent!)
-bd admin cleanup --force
+issuegraph admin cleanup --force
 ```
 
 **When to compact:**
@@ -352,18 +352,18 @@ bd admin cleanup --force
 - After major project milestones when old issues are no longer relevant
 - Before archiving a project phase
 
-**Note:** Compaction is permanent graceful decay. Original content is discarded but recoverable via `bd restore <id>` (from the pre-compaction snapshot, with Dolt history as fallback).
+**Note:** Compaction is permanent graceful decay. Original content is discarded but recoverable via `issuegraph restore <id>` (from the pre-compaction snapshot, with Dolt history as fallback).
 
 ## Next steps
 
-- Add labels: `bd create "Task" -l "backend,urgent"`
-- Filter ready work: `bd ready --priority 1`
-- Explain the graph: `bd ready --explain`
-- Check graph integrity: `bd graph check`
-- Search issues: `bd list --status open`
-- Detect cycles: `bd dep cycles`
-- Gates for PR/CI sync: [`bd gate`](/cli-reference/gate)
-- More sync scenarios: [`bd dolt`](/cli-reference/dolt)
+- Add labels: `issuegraph create "Task" -l "backend,urgent"`
+- Filter ready work: `issuegraph ready --priority 1`
+- Explain the graph: `issuegraph ready --explain`
+- Check graph integrity: `issuegraph graph check`
+- Search issues: `issuegraph list --status open`
+- Detect cycles: `issuegraph dep cycles`
+- Gates for PR/CI sync: [`issuegraph gate`](/cli-reference/gate)
+- More sync scenarios: [`issuegraph dolt`](/cli-reference/dolt)
 - Full command list: [CLI Reference](/cli-reference/index)
 
 See the [repository README](https://github.com/gastownhall/beads/blob/main/README.md) for an overview and links to deeper docs.

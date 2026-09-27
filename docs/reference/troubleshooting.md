@@ -13,7 +13,7 @@ Common issues and solutions. For step-by-step runbooks, see the
 ```bash
 # Check if installed
 which bd
-go list -f {{.Target}} github.com/steveyegge/beads/cmd/bd
+go list -f {{.Target}} github.com/steveyegge/beads/modules/cli
 
 # Add Go bin to PATH (add to ~/.bashrc or ~/.zshrc)
 export PATH="$PATH:$(go env GOPATH)/bin"
@@ -55,12 +55,12 @@ ahead of a newer package-manager install. Choose one installation method
 CGO/SQLite compatibility issue:
 
 ```bash
-CGO_ENABLED=1 GOFLAGS=-tags=gms_pure_go go install github.com/steveyegge/beads/cmd/bd@latest
+CGO_ENABLED=1 GOFLAGS=-tags=gms_pure_go go install github.com/steveyegge/beads/modules/cli@latest
 
 # Or if building from source
 git clone https://github.com/gastownhall/beads
 cd beads
-CGO_ENABLED=1 go build -tags gms_pure_go -o bd ./cmd/bd
+CGO_ENABLED=1 go build -tags gms_pure_go -o bd ./modules/cli
 sudo mv bd /usr/local/bin/
 ```
 

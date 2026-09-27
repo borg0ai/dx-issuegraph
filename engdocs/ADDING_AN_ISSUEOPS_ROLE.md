@@ -23,7 +23,7 @@ Two questions, both of which must be yes.
   answer.
 - **Is it reached THROUGH a substrate?** A role is handed back by an accessor
   on a store or a unit-of-work provider. Anything that CREATES a substrate —
-  `bd init`'s filesystem and git provisioning — is constructor territory and
+  `issuegraph init`'s filesystem and git provisioning — is constructor territory and
   cannot be a role.
 
 A role may be born with more than one method when they are two shapes of ONE
@@ -62,12 +62,12 @@ answer shape, one call through — the honest outcome is one role, not two. Ask
 it before writing the leaf, because the answer decides whether you are writing
 one contract file or two.
 
-**And one command may be born with TWO roles.** `bd init` is the case:
+**And one command may be born with TWO roles.** `issuegraph init` is the case:
 `Bootstrapper` writes the workspace identity and `InitVerifier` reads it, and
 they are separate even though `VersionReconciler` — whose read and write are
 also two shapes of one question — is one. The test that separates them is not
 "is it the same question" but **can one caller be entitled to the read and not
-the write**. bd reads a workspace identity on paths where it is forbidden to
+the write**. issuegraph reads a workspace identity on paths where it is forbidden to
 write one: a bts-provisioned team database whose identity the provisioning tool
 owns, an authenticating gateway whose credential may be read-only. Handing those
 callers a surface with the write on it is the shape that produces writes the
@@ -77,7 +77,7 @@ capability a caller must not have is a capability it should not be able to
 reach.
 
 **Ask what the role's fields' LIFETIMES are before folding them in.** The same
-slice teaches this: `bd init` seeds five values, and only two of them —
+slice teaches this: `issuegraph init` seeds five values, and only two of them —
 the prefix and the project id — are written once and adopted forever. The
 repository and clone fingerprints, the synced-at marker and the recorded binary
 version are refreshed on EVERY init, adopt or not, because a fresh clone of an
@@ -107,7 +107,7 @@ in; 13 is the HTTP surface, which lands with the command rather than after it.
 
 3. **The store-backed body**, shared by dolt and embeddeddolt:
    `internal/workapi/store<role>/`. Its own package, not a file in
-   `internal/workapi` — 22 `cmd/bd` files already import workapi, so a
+   `internal/workapi` — 22 `modules/cli` files already import workapi, so a
    constructor there is one line away from any front door, and a front door
    that constructed the role directly would get one stripped of its decorators.
 
@@ -344,8 +344,8 @@ in; 13 is the HTTP surface, which lands with the command rather than after it.
     | `routes.go` | The `routeTable` row, carrying the `capability` token |
     | `server.go` | A required `Config` field, its entry in `sourceRoles`, its name in `roleSourceNames`, the `Server` field, the `Listen` assignment, and the per-request accessor |
     | `claim.go` | The `timedProvider` accessor, plus the `uow.<Role>Source` compile-time assertion beside its siblings |
-    | `cmd/bd/serve.go` | The `serveRoleSource` method, the `serveIssueRoles` row, the `serveRoles` field, and the `httpapi.Config` literal |
-    | `cmd/bd/serve_source_test.go`, `cmd/bd/serve_store_identity_test.go` | The two serve stubs — a COMPILE ERROR since #5539 if you forget, see "the step with no number" |
+    | `modules/cli/serve.go` | The `serveRoleSource` method, the `serveIssueRoles` row, the `serveRoles` field, and the `httpapi.Config` literal |
+    | `modules/cli/serve_source_test.go`, `modules/cli/serve_store_identity_test.go` | The two serve stubs — a COMPILE ERROR since #5539 if you forget, see "the step with no number" |
 
     Nine files, and the spec tests name most of them if you miss one. Budget
     `server.go` in particular: six lines in one file, and the `Config` field is
@@ -386,12 +386,12 @@ in; 13 is the HTTP surface, which lands with the command rather than after it.
 
 ## What the whole thing costs
 
-`bd count` behind `issueops.Counter`, end to end, in one commit:
+`issuegraph count` behind `issueops.Counter`, end to end, in one commit:
 
 | | files |
 |---|---|
 | new production files | 6 (leaf, builder, store body, uow body, hook wrapper, telemetry wrapper) + 2 store accessors |
-| edited production files | 3 (`storage.go`, `cmd/bd/count.go`, `cmd/bd/count_proxied_server.go`) |
+| edited production files | 3 (`storage.go`, `modules/cli/count.go`, `modules/cli/count_proxied_server.go`) |
 | new test files | 4 (contract + three wirings) + 1 builder unit test |
 | edited test files | 5 (two decorator enumerations, the root layering pins, the command's own, the `internal/jira` stub from step 9) |
 | config | 1 (`.golangci.yml`: one deny entry added, one exception entry removed) |
@@ -399,7 +399,7 @@ in; 13 is the HTTP surface, which lands with the command rather than after it.
 Counter's commit also touched three files the next role will not: renaming the
 depguard rule from `cmd-bd-reader-constructor` to `cmd-bd-role-constructors`
 moved a word in `internal/workapi/storereader/reader.go`,
-`cmd/bd/show_proxied_server.go` and `issueops/reader.go`. That was the one-off
+`modules/cli/show_proxied_server.go` and `issueops/reader.go`. That was the one-off
 generalization that made step 12 a one-line edit from here on.
 
 Nine of those are mechanical once the leaf contract is written. The two that
@@ -422,8 +422,8 @@ MEANS, and the parts every later reader trusts.
 ## The second namespace
 
 `memoryops.Memories` is the first role in a leaf that is NOT `issueops`: the
-`kv.memory.*` plane behind `bd remember`, `bd recall`, `bd forget`,
-`bd memories` and `bd prime`'s injection. Steps 1-11 transferred without
+`kv.memory.*` plane behind `issuegraph remember`, `issuegraph recall`, `issuegraph forget`,
+`issuegraph memories` and `issuegraph prime`'s injection. Steps 1-11 transferred without
 argument — same accessor on `storage.Storage`, same two decorators declared
 rather than inherited, same three wirings over two independent bodies. What
 follows is only where the second namespace had to DECIDE instead of copy,
@@ -433,7 +433,7 @@ convention until you notice it was situational.
 **Alias the sentinels; do not mint a second vocabulary.** `memoryops/errors.go`
 is one line of declaration — `var ErrValidation = beadserrors.ErrValidation`
 — and the IDENTITY is the entire point. `errors.Is` against that one
-value is what the HTTP problem classifier, `cmd/bd`'s error handling and every
+value is what the HTTP problem classifier, `modules/cli`'s error handling and every
 conformance contract already do. A `memoryops`-flavored twin would be a
 different value meaning the same thing, so all of those sites would have to
 match both forever; and the cost is not the double-match, it is the site that
@@ -481,20 +481,20 @@ entries at all, and the absence has to be readable as a decision rather than as
 a step someone skipped.
 
 `issueops.BatchApplier` is the second role with no entry, for the same reason
-and one more: its step-3 body is an `…InTx` function AND it has no `cmd/bd`
+and one more: its step-3 body is an `…InTx` function AND it has no `modules/cli`
 front door at all in the slice that introduced it — it landed with the HTTP
 half only. An absent CLI is a decision too, and the place to write it down is
 the leaf doc beside the promises, exactly as `VersionReconciler` writes down
 its absent HTTP half.
 
 The test: **does step 3 have an exported constructor returning the role
-interface, in a package a `cmd/bd` file can import?**
+interface, in a package a `modules/cli` file can import?**
 `internal/workapi/store<role>` does, so it gets an entry. A `…InTx` function
 does not. What the test is NOT is "does the namespace have a package below the
 role" — `internal/memoryapi` is exactly that, holds `DeriveKey`, the two
-refusals and the search filter, and is deliberately importable from `cmd/bd`
+refusals and the search filter, and is deliberately importable from `modules/cli`
 (`internal/memoryapi/memoryapi.go:7-13`),
-because the `bd remember` front door has to derive a key to recognize the
+because the `issuegraph remember` front door has to derive a key to recognize the
 bare-slug case before it knows which method to call. Denying the meaning layer
 would be denying step 2, which every role depends on being reachable.
 Constructors are the boundary; meaning functions are not.
@@ -522,7 +522,7 @@ follows the substrate, and the substrate is the thing to cite.
 **One promise the contract declares UNPINNABLE rather than faking.** Every
 implementation promises that the existence probe and the act it qualifies
 happen in ONE transaction; that is why step 3 moved down, and it is what makes
-`Replaced` and the value `bd forget` prints true statements instead of hopeful
+`Replaced` and the value `issuegraph forget` prints true statements instead of hopeful
 ones. The contract does not test it, and SAYS SO, in the file header beside the
 vote count (`backend/conformance/memories_contract.go:51-57`).
 
@@ -563,7 +563,7 @@ may be a row that cannot fail.**
 ## The third namespace
 
 `journalops.Journal` is the durable mutation journal's read side: the
-seq-ordered replay feed behind `bd events tail`, `bd events export` and
+seq-ordered replay feed behind `issuegraph events tail`, `issuegraph events export` and
 `GET /v0/beads/events`. It is a third leaf rather than a role in either
 existing one because its rows are neither beads nor settings — they are
 clone-local engine state on a `dolt_ignore`d table, written in the same
@@ -579,7 +579,7 @@ things did not, and the first two are the ones a fourth namespace inherits.
 source parse rather than a convenience.** Every other role in this tree is
 handed out by a method on a store or a provider; this one is reached by TYPE
 ASSERTION, because the journal is not on `storage.DoltStorage`'s published
-surface and a backend is free not to implement it (`cmd/bd/serve.go`,
+surface and a backend is free not to implement it (`modules/cli/serve.go`,
 `serveJournalCursor`). `issueops.Importer` is the precedent and the warning: it
 had no contract case from the day it was written and nothing noticed, precisely
 because a reflection-only census can only ask about types something already
@@ -618,7 +618,7 @@ names and a constant moved from `internal/storage` into the leaf and the old
 spellings became aliases —
 `type EventsJournalCursor = journalops.Journal` and its three siblings — and
 the whole tree compiled with **no non-test change anywhere else**: not in
-`internal/httpapi`, not in `cmd/bd`, not in any of the four implementations,
+`internal/httpapi`, not in `modules/cli`, not in any of the four implementations,
 not in the enterprise sync. `errors.As` against `*journalops.TruncatedError`
 matches an error every leg constructs as `*storage.EventsJournalTruncatedError`,
 because they are one type. The direction is what has to be right — the leaf
@@ -642,8 +642,8 @@ are the cases the shipped tests were least likely to have covered.
 **And keep the operator's half OFF the role, deliberately and in writing.**
 `storage.EventsJournalAccessor` (read plus prune) and
 `storage.EventsJournalConfigurer` (per-instance activation) stayed in
-`internal/storage` when the read moved out. The entitlement test from `bd init`
-applies and comes back loudly yes: `bd serve` documents itself as publishing
+`internal/storage` when the read moved out. The entitlement test from `issuegraph init`
+applies and comes back loudly yes: `issuegraph serve` documents itself as publishing
 the journal and never retaining it, so handing it a delete would make that
 documentation the only thing between a consumer's checkpoint and a prune. The
 conformance fixture still needs both — the cases have to create records and
@@ -703,7 +703,7 @@ first three lines from a sibling.
 
 **A role whose front doors land later still lands whole, and says so.** The
 checklist's steps 1-11 are the role; steps 12 and 13 are the front doors.
-`issueops.GraphCounter` shipped with NEITHER — no `bd` command and no HTTP
+`issueops.GraphCounter` shipped with NEITHER — no `issuegraph` command and no HTTP
 operation — because the numbers it answers are already printed through
 `internal/workapi`'s detail seam, which is shared with an HTTP handler and
 therefore moves in a change with its own parity argument, and because the wire
@@ -767,11 +767,11 @@ the build stays green and the first symptom is a nil dereference in somebody
 else's stub. `issueops.MetadataCAS` was caught by CI in four such places after
 passing every package test its own slice ran: `storage.RoleFiresHooks` (a role
 whose hook decorator WRAPS must gain a case, or `checkDatabaseSource` cannot
-refuse a hook-firing one — missing it is a `bd serve` that runs a user
+refuse a hook-firing one — missing it is an `issuegraph serve` that runs a user
 subprocess per call); `uow`'s notifying wrapper, in BOTH halves — the recording
 use case, which silently records nothing for an inherited method, and the
 notifying provider, whose missing accessor makes a caller's type assertion stop
-matching; and two `cmd/bd` stub stores that embedded `storage.DoltStorage`. Grep
+matching; and two `modules/cli` stub stores that embedded `storage.DoltStorage`. Grep
 for the embed, not for the interface.
 
 **A READ ROLE IS THE ONE THAT BITES, and the reason is the decorator, not the
@@ -784,14 +784,14 @@ that promoted the accessor off a nil embed dereferences nil right there. Both
 roles this actually happened to, `issueops.Counter` and
 `issueops.GraphCounter`, are reads.
 
-Neither was found by reasoning about it. `Counter` surfaced only once `bd serve`
+Neither was found by reasoning about it. `Counter` surfaced only once `issuegraph serve`
 began binding the role, and `GraphCounter` (#5508) surfaced as a panic in
 `TestServeIssueRolesComeFromBeneathTheHookDecorator` on a full-package CI
 shard — a test about hook peeling, which no `-run` pattern anyone reaches for
 names, so local runs never touched it. **The sharpened rule: a role bound in
 `serveIssueRoles` must be DECLARED on the serve stub store in the same commit.**
 
-Those two `cmd/bd` stubs are the one place this step is now taken FOR you.
+Those two `modules/cli` stubs are the one place this step is now taken FOR you.
 `serveIssueRoles` asks for `serveRoleSource` — the accessor subset it actually
 reaches — and both stubs declare that subset, assert it with
 `var _ serveRoleSource = (*serveRolesStore)(nil)`, and embed NOTHING, so there

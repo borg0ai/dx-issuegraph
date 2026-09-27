@@ -1,4 +1,4 @@
-# cmd/bd Test Suite Audit (bd-c49)
+# modules/cli Test Suite Audit (bd-c49)
 
 ## Executive Summary
 

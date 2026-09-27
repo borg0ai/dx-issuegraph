@@ -1,35 +1,35 @@
 ---
 title: Gemini CLI
-description: Set up beads for Gemini CLI with SessionStart hooks that run bd prime and GEMINI.md workflow guidance
+description: Set up issuegraph for Gemini CLI with SessionStart hooks that run issuegraph prime and GEMINI.md workflow guidance
 ---
 
-Use Beads with Gemini CLI through SessionStart hooks and `GEMINI.md` guidance.
+Use IssueGraph with Gemini CLI through SessionStart hooks and `GEMINI.md` guidance.
 
 ```bash
-bd setup gemini
-bd setup gemini --check
+issuegraph setup gemini
+issuegraph setup gemini --check
 ```
 
 By default, setup installs global hooks in `~/.gemini/settings.json`. For project-local hooks, use:
 
 ```bash
-bd setup gemini --project
+issuegraph setup gemini --project
 ```
 
-The hook runs `bd prime --hook-json` so Gemini receives compact Beads workflow context at session start. The setup also writes Beads guidance to `GEMINI.md`.
+The hook runs `issuegraph prime --hook-json` so Gemini receives compact IssueGraph workflow context at session start. The setup also writes IssueGraph guidance to `GEMINI.md`.
 
 ## Stealth Mode
 
 For CI or other environments where setup should avoid git operations:
 
 ```bash
-bd setup gemini --stealth
-bd setup gemini --project --stealth
+issuegraph setup gemini --stealth
+issuegraph setup gemini --project --stealth
 ```
 
 ## Remove
 
 ```bash
-bd setup gemini --remove
-bd setup gemini --project --remove
+issuegraph setup gemini --remove
+issuegraph setup gemini --project --remove
 ```

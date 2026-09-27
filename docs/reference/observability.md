@@ -1,9 +1,9 @@
 ---
 title: Observability (OpenTelemetry)
-description: Exporting bd metrics and traces over OpenTelemetry (OTLP), with a local VictoriaMetrics and Grafana stack, env vars, and a metric reference.
+description: Exporting issuegraph metrics and traces over OpenTelemetry (OTLP), with a local VictoriaMetrics and Grafana stack, env vars, and a metric reference.
 ---
 
-Beads exports metrics via OTLP HTTP. Telemetry is **disabled by default** — zero overhead when no variable is set.
+IssueGraph exports metrics via OTLP HTTP. Telemetry is **disabled by default** — zero overhead when no variable is set.
 
 ## Recommended local stack
 
@@ -29,7 +29,7 @@ export BD_OTEL_ENABLED=true
 export OTEL_EXPORTER_OTLP_METRICS_ENDPOINT=http://localhost:8428/opentelemetry/api/v1/push
 ```
 
-A standard `OTEL_*` variable alone will not turn bd telemetry on — `bd` won't
+A standard `OTEL_*` variable alone will not turn issuegraph telemetry on — `issuegraph` won't
 auto-activate from a machine-global `OTEL_*` setting that was set for some
 other instrumented tool.
 
@@ -53,25 +53,25 @@ export OTEL_EXPORTER_OTLP_METRICS_ENDPOINT=http://localhost:8428/opentelemetry/a
 | `OTEL_EXPORTER_OTLP_LOGS_ENDPOINT` | `http://localhost:9428/insert/opentelemetry/v1/logs` | Push logs to an OTLP HTTP receiver (reserved for future log export). |
 | `OTEL_TRACES_EXPORTER` | `console` | Write spans to stderr (dev/debug). |
 | `OTEL_METRICS_EXPORTER` | `console` | Metric exporter selection, comma-separated (`otlp`, `console`, `none`). Unset defaults to `otlp`; `console` writes to stderr (dev/debug); a selection without `otlp` never exports to an OTLP endpoint, even if one is configured machine-globally. |
-| `OTEL_SERVICE_NAME` | `bd` | Override the `service.name` resource attribute. |
+| `OTEL_SERVICE_NAME` | `issuegraph` | Override the `service.name` resource attribute. |
 | `OTEL_RESOURCE_ATTRIBUTES` | `deployment.environment=workstation,team=infra` | Extend or override resource attributes (comma-separated `key=value`). |
 | `OTEL_SDK_DISABLED` | `true` | Force telemetry off even when `BD_OTEL_ENABLED=true` is set. |
 
 ### Resource attributes
 
-Every metric and span carries the OTel resource describing the bd process:
+Every metric and span carries the OTel resource describing the issuegraph process:
 
 | Attribute | Value | Notes |
 |-----------|-------|-------|
-| `service.name` | `bd` | Override with `OTEL_SERVICE_NAME`. |
-| `service.version` | bd version | |
+| `service.name` | `issuegraph` | Override with `OTEL_SERVICE_NAME`. |
+| `service.version` | issuegraph version | |
 
 Add anything else via `OTEL_RESOURCE_ATTRIBUTES`.
 
 ### Local debug mode
 
 ```bash
-BD_OTEL_ENABLED=true OTEL_TRACES_EXPORTER=console OTEL_METRICS_EXPORTER=console bd list
+BD_OTEL_ENABLED=true OTEL_TRACES_EXPORTER=console OTEL_METRICS_EXPORTER=console issuegraph list
 ```
 
 ### Legacy environment variables (deprecated)
@@ -80,7 +80,7 @@ The earlier `BD_OTEL_*` data variables are honored for backwards
 compatibility. Setting any of them activates telemetry on its own (no
 `BD_OTEL_ENABLED=true` required) and translates to the standard OTLP equivalent
 — a legacy value wins over a pre-existing `OTEL_*` value so a machine-global
-`OTEL_*` setting cannot silently redirect bd telemetry. Each `bd` invocation
+`OTEL_*` setting cannot silently redirect issuegraph telemetry. Each `issuegraph` invocation
 that sees one logs a one-line deprecation warning to stderr:
 
 | Legacy | Standard equivalent |
@@ -92,7 +92,7 @@ that sees one logs a one-line deprecation warning to stderr:
 ## Verification
 
 ```bash
-bd list   # triggers metrics → visible in VictoriaMetrics
+issuegraph list   # triggers metrics → visible in VictoriaMetrics
 ```
 
 Verification queries in Grafana (VictoriaMetrics datasource):
@@ -105,17 +105,17 @@ sum(rate(bd_storage_operations_total[5m]))               # operation rate
 ### Confirm storage instrumentation locally
 
 To verify the storage decorator chain is wired up without standing up a
-collector, run `bd` with stdout exporters and look for `bd.storage.*`
+collector, run `issuegraph` with stdout exporters and look for `bd.storage.*`
 records on stderr:
 
 ```bash
-BD_OTEL_STDOUT=true bd list 2>&1 | grep -F bd.storage.operations
+BD_OTEL_STDOUT=true issuegraph list 2>&1 | grep -F bd.storage.operations
 ```
 
 Expect at least one line per storage call (`GetReadyWork`, `GetIssue`, …).
 If `bd.storage.*` and `bd.issue.count` are absent but `bd.db.pool_*` is
 present, the storage decorator is not in the chain — check
-`wireStorageDecorators` in `cmd/bd/storage_chain.go`.
+`wireStorageDecorators` in `modules/cli/storage_chain.go`.
 
 ---
 
@@ -129,7 +129,7 @@ present, the storage decorator is not in the chain — check
 | `bd_storage_operation_duration_ms` | Histogram | `db.operation` | Operation duration (ms) |
 | `bd_storage_errors_total` | Counter | `db.operation` | Storage errors |
 
-> These metrics are emitted by `InstrumentedStorage`, the beads SDK wrapper.
+> These metrics are emitted by `InstrumentedStorage`, the issuegraph SDK wrapper.
 
 ### Dolt database (`bd_db_*`)
 
@@ -198,7 +198,7 @@ The `hook.stdout` / `hook.stderr` events carry two attributes: `output` (the tex
 ## Architecture
 
 ```
-cmd/bd/main.go
+modules/cli/main.go
   └─ telemetry.Init()
       ├─ OTEL_TRACES_EXPORTER=console        → TracerProvider stdout
       ├─ OTEL_METRICS_EXPORTER=console       → MeterProvider stdout

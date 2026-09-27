@@ -3,10 +3,10 @@
 Last reviewed: 2026-08-07
 
 Freshness source: `internal/telemetry/`, `internal/storage/dolt/store.go`,
-`internal/compact/haiku.go`, `cmd/bd/find_duplicates.go`, and hook execution
+`internal/compact/haiku.go`, `modules/cli/find_duplicates.go`, and hook execution
 code under `internal/hooks/`.
 
-Complete schema of all telemetry events emitted by Beads. Each event consists of:
+Complete schema of all telemetry events emitted by IssueGraph. Each event consists of:
 
 1. **Span** (→ stdout/console only, when `OTEL_TRACES_EXPORTER=console`; the legacy `BD_OTEL_STDOUT=true` translates to that — no remote/OTLP trace backend is wired) with full structured attributes
 2. **Metric counter/histogram** (→ any OTLP v1.x+ backend, defaults to VictoriaMetrics) for aggregation
@@ -64,12 +64,12 @@ The outermost grouping. Derived at command startup time from the machine hostnam
 
 ### 1.2 Command
 
-Each `bd` command execution generates a span with full context.
+Each `issuegraph` command execution generates a span with full context.
 
 | Attribute | Type | Source |
 |---|---|---|
 | `bd.command` | string | Subcommand name (`create`, `list`, `show`, etc.) |
-| `bd.version` | string | Current bd version string |
+| `bd.version` | string | Current issuegraph version string |
 | `bd.args` | string | Full argument list |
 | `bd.actor` | string | Actor identity — set after actor resolution (may lag span start) |
 
@@ -79,12 +79,12 @@ Each `bd` command execution generates a span with full context.
 
 ### `bd.command.<name>`
 
-Emitted once per `bd` subcommand execution. Anchors all subsequent events for that command. The span name is `bd.command.` + command name (e.g. `bd.command.create`).
+Emitted once per `issuegraph` subcommand execution. Anchors all subsequent events for that command. The span name is `bd.command.` + command name (e.g. `bd.command.create`).
 
 | Attribute | Type | Description |
 |---|---|---|
 | `bd.command` | string | Subcommand name |
-| `bd.version` | string | bd version |
+| `bd.version` | string | issuegraph version |
 | `bd.args` | string | Full arguments passed to command, scrubbed via `scrubArgsForTelemetry` (secret-flag values and DSN userinfo redacted) |
 | `bd.actor` | string | Actor identity (set after actor resolution) |
 
@@ -290,7 +290,7 @@ Emitted for DOLT_MERGE operations.
 
 ### `dolt.merge_with_strategy`
 
-Emitted for `bd vc merge --strategy` merges (pinned-connection merge/resolve/commit sequence).
+Emitted for `issuegraph vc merge --strategy` merges (pinned-connection merge/resolve/commit sequence).
 
 | Attribute | Type | Description |
 |---|---|---|
@@ -356,7 +356,7 @@ Stdout/stderr are added as span **events** (not attributes):
 
 ## 7. AI Events
 
-Emitted by the compaction engine (`bd compact`) via `internal/compact/haiku.go`, and by duplicate detection (`bd find-duplicates --method ai`) via `cmd/bd/find_duplicates.go`. Both use the Anthropic SDK with Anthropic-compatible credentials from `ANTHROPIC_API_KEY`, `MINIMAX_API_KEY`, or `ai.api_key`.
+Emitted by the compaction engine (`issuegraph compact`) via `internal/compact/haiku.go`, and by duplicate detection (`issuegraph find-duplicates --method ai`) via `modules/cli/find_duplicates.go`. Both use the Anthropic SDK with Anthropic-compatible credentials from `ANTHROPIC_API_KEY`, `MINIMAX_API_KEY`, or `ai.api_key`.
 
 > **Note**: Only `compact/haiku.go` records to the `bd.ai.*` OTel metric instruments. `find_duplicates.go` records token counts and duration as span attributes only.
 
@@ -453,8 +453,8 @@ Every metric name, span name, and attribute listed in this document is backed by
 
 | Span name | Attributes | Source |
 |-----------|-----------|--------|
-| `bd.command.<name>` | `bd.command`, `bd.version`, `bd.args` (scrubbed) | built in `cmd/bd/command_telemetry.go` (`startCommandSpan`/`commandSpanAttrs`), called from `cmd/bd/main.go:938` |
-| `bd.command.<name>` | `bd.actor` (added later) | `cmd/bd/main.go:1367` |
+| `bd.command.<name>` | `bd.command`, `bd.version`, `bd.args` (scrubbed) | built in `modules/cli/command_telemetry.go` (`startCommandSpan`/`commandSpanAttrs`), called from `modules/cli/main.go:938` |
+| `bd.command.<name>` | `bd.actor` (added later) | `modules/cli/main.go:1367` |
 | `storage.<op>` / `storage.<Role>.<Method>` (all methods) | `db.operation` + method-specific attrs | `internal/telemetry/storage.go:75-76` (role decorators throughout `internal/telemetry/`) |
 | `dolt.query` | `db.operation="query"`, `db.statement` + `doltSpanAttrs()` | `store.go:1309` |
 | `dolt.exec` | `db.operation="exec"`, `db.statement` + `doltSpanAttrs()` | `store.go:1168` |

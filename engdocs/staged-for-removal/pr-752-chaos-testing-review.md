@@ -7,7 +7,7 @@
 
 ## Summary
 
-Jordan proposes adding chaos testing and E2E test coverage to beads. The PR:
+Jordan proposes adding chaos testing and E2E test coverage to issuegraph. The PR:
 - Adds 4849 lines, removes 511 lines
 - Introduces chaos testing framework (random corruption, disk space exhaustion, NFS-like failures)
 - Creates side databases for testing recovery scenarios
@@ -23,18 +23,18 @@ Jordan proposes adding chaos testing and E2E test coverage to beads. The PR:
 ## Files Changed (Major Categories)
 
 ### Chaos/Doctor Infrastructure
-- `cmd/bd/doctor_repair_chaos_test.go` (378 lines) - Core chaos testing
-- `cmd/bd/doctor/fix/database_integrity.go` (116 lines) - DB integrity fixes
-- `cmd/bd/doctor/fix/jsonl_integrity.go` (87 lines) - JSONL integrity fixes
-- `cmd/bd/doctor/fix/fs.go` (57 lines) - Filesystem fault injection
-- `cmd/bd/doctor/fix/sqlite_open.go` (52 lines) - SQLite open handling
-- `cmd/bd/doctor/jsonl_integrity.go` (123 lines) - JSONL checks
-- `cmd/bd/doctor/git.go` (168 additions) - Git hygiene checks
+- `modules/cli/doctor_repair_chaos_test.go` (378 lines) - Core chaos testing
+- `modules/cli/doctor/fix/database_integrity.go` (116 lines) - DB integrity fixes
+- `modules/cli/doctor/fix/jsonl_integrity.go` (87 lines) - JSONL integrity fixes
+- `modules/cli/doctor/fix/fs.go` (57 lines) - Filesystem fault injection
+- `modules/cli/doctor/fix/sqlite_open.go` (52 lines) - SQLite open handling
+- `modules/cli/doctor/jsonl_integrity.go` (123 lines) - JSONL checks
+- `modules/cli/doctor/git.go` (168 additions) - Git hygiene checks
 
 ### Test Coverage Additions
 - `internal/storage/memory/memory_more_coverage_test.go` (921 lines) - Memory storage tests
-- `cmd/bd/cli_coverage_show_test.go` (426 lines) - CLI show command tests
-- `cmd/bd/daemon_autostart_unit_test.go` (331 lines) - Server autostart tests
+- `modules/cli/cli_coverage_show_test.go` (426 lines) - CLI show command tests
+- `modules/cli/daemon_autostart_unit_test.go` (331 lines) - Server autostart tests
 - `internal/rpc/client_gate_shutdown_test.go` (107 lines) - RPC client tests
 - Various other test files
 
@@ -52,9 +52,9 @@ Jordan proposes adding chaos testing and E2E test coverage to beads. The PR:
 4. **Complexity**: Chaos testing framework itself needs maintenance
 
 ### Benefits
-1. **Robustness validation**: Proves beads can recover from corruption
+1. **Robustness validation**: Proves issuegraph can recover from corruption
 2. **Bug discovery**: Already found migration bugs (021, 022)
-3. **Confidence**: If chaos tests pass, beads is more robust than feared
+3. **Confidence**: If chaos tests pass, issuegraph is more robust than feared
 4. **Documentation**: E2E tests document expected user scenarios
 5. **Regression prevention**: Future changes caught before release
 
@@ -76,7 +76,7 @@ From `doctor_repair_chaos_test.go`:
 
 Each test:
 - Uses isolated temp directories
-- Builds a fresh `bd` binary for testing
+- Builds a fresh `issuegraph` binary for testing
 - Uses "side databases" (separate from real data)
 - Has proper cleanup
 
@@ -105,8 +105,8 @@ Is the testing worth the ongoing maintenance cost?
 
 ### Argument FOR Merging
 
-1. **Beads is more robust than feared**. If Jordan got these tests passing, it means:
-   - `bd doctor` actually recovers from corruption
+1. **IssueGraph is more robust than feared**. If Jordan got these tests passing, it means:
+   - `issuegraph doctor` actually recovers from corruption
    - JSONL/DB sync is working correctly
    - Migration edge cases are handled
 
@@ -140,18 +140,18 @@ Is the testing worth the ongoing maintenance cost?
 3. **Framework maintenance**. The chaos testing framework itself (side databases, build
    tags, test helpers) becomes another thing to maintain.
 
-4. **False confidence**. Tests passing doesn't mean beads is production-ready. It means
+4. **False confidence**. Tests passing doesn't mean issuegraph is production-ready. It means
    tested scenarios work. Edge cases not covered still fail silently.
 
 ### The Real Question: What Phase Are We In?
 
-**If beads is still in "rapid prototype" phase**: The testing overhead is premature.
+**If issuegraph is still in "rapid prototype" phase**: The testing overhead is premature.
 Focus on features, fix crashes as they happen, lean on git backstop.
 
-**If beads is approaching "reliable tool" phase**: Testing is essential. Multi-agent
+**If issuegraph is approaching "reliable tool" phase**: Testing is essential. Multi-agent
 workflows amplify bugs. Corruption during a 10-agent batch is expensive.
 
-**Current reality**: Beads is being dogfooded seriously. Multiple agents, real work,
+**Current reality**: IssueGraph is being dogfooded seriously. Multiple agents, real work,
 real data loss when things break. We're closer to "reliable tool" than "prototype."
 
 ### ROI Calculation
@@ -180,7 +180,7 @@ If corruption happens weekly (or with each new feature), testing pays for itself
 1. The implementation quality is high
 2. Bugs already found justify the effort
 3. Build tag isolation minimizes velocity impact
-4. Beads is past the prototype phase
+4. IssueGraph is past the prototype phase
 
 ### Suggested Modifications
 
@@ -196,9 +196,9 @@ If corruption happens weekly (or with each new feature), testing pays for itself
 ### Decision Framework for User
 
 If you answer YES to 2+ of these, merge:
-- [ ] Are you dogfooding beads for real work?
+- [ ] Are you dogfooding issuegraph for real work?
 - [ ] Has corruption caused you to lose time in the last month?
-- [ ] Do you expect multiple agents using beads concurrently?
-- [ ] Is beads approaching a "v1.0" milestone?
+- [ ] Do you expect multiple agents using issuegraph concurrently?
+- [ ] Is issuegraph approaching a "v1.0" milestone?
 
-If you answer NO to all, defer the PR until beads stabilizes.
+If you answer NO to all, defer the PR until issuegraph stabilizes.

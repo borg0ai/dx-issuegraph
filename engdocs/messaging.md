@@ -1,13 +1,13 @@
-# Messaging in Beads
+# Messaging in IssueGraph
 
-Beads supports messaging as a first-class issue type, enabling inter-agent and human-agent communication within the same system used for issue tracking.
+IssueGraph supports messaging as a first-class issue type, enabling inter-agent and human-agent communication within the same system used for issue tracking.
 
 ## Architecture
 
-Mail commands (`bd mail`) delegate to an external mail provider (typically `gt mail` in an orchestrator). Beads stores messages as issues with `type: message`, threading via `replies_to` dependencies, and ephemeral lifecycle via the `ephemeral` flag.
+Mail commands (`issuegraph mail`) delegate to an external mail provider (typically `gt mail` in an orchestrator). IssueGraph stores messages as issues with `type: message`, threading via `replies_to` dependencies, and ephemeral lifecycle via the `ephemeral` flag.
 
 This design separates concerns:
-- **Beads** = data plane (stores messages as issues)
+- **IssueGraph** = data plane (stores messages as issues)
 - **Orchestrator** = control plane (routing, delivery, notifications)
 
 ## Setup
@@ -19,23 +19,23 @@ Configure the mail delegate (one-time):
 export BEADS_MAIL_DELEGATE="gt mail"
 
 # Or per-project config
-bd config set mail.delegate "gt mail"
+issuegraph config set mail.delegate "gt mail"
 ```
 
 ## Sending and Receiving
 
 ```bash
 # Send mail (delegates to gt mail)
-bd mail send worker/ -s "Review needed" -m "Please review bd-abc"
+issuegraph mail send worker/ -s "Review needed" -m "Please review bd-abc"
 
 # Check inbox
-bd mail inbox
+issuegraph mail inbox
 
 # Read a message
-bd mail read msg-123
+issuegraph mail read msg-123
 
 # Reply to a thread
-bd mail reply msg-123 -m "Reviewed and approved"
+issuegraph mail reply msg-123 -m "Reviewed and approved"
 ```
 
 ## Message Issue Type
@@ -57,7 +57,7 @@ Messages are issues with `type: message`:
 Messages form threads via `replies_to` dependencies. View a full thread:
 
 ```bash
-bd show msg-123 --thread
+issuegraph show msg-123 --thread
 ```
 
 This traces the `replies_to` chain to find the root message, then collects all replies via BFS, displaying the conversation with proper indentation.
@@ -74,17 +74,17 @@ Messages marked `ephemeral: true` are transient - they can be bulk-deleted after
 
 ```bash
 # Clean up closed ephemeral messages
-bd purge --force
+issuegraph purge --force
 
 # Preview what would be deleted
-bd purge --dry-run
+issuegraph purge --dry-run
 
 # Only delete ephemeral messages older than 7 days
-bd purge --older-than 7d --force
+issuegraph purge --older-than 7d --force
 ```
 
 Ephemeral messages are:
-- Excluded from `bd ready` by default
+- Excluded from `issuegraph ready` by default
 - Not synced to remotes (transient)
 - Eligible for bulk deletion when closed
 
@@ -99,17 +99,17 @@ The actor identity (used for `sender` on messages) is resolved in order:
 5. `$USER` environment variable
 6. `"unknown"`
 
-## Beads Event Hooks
+## IssueGraph Event Hooks
 
 Scripts in `.beads/hooks/` run after certain events:
 
 | Hook | Trigger |
 |------|---------|
-| `on_create` | After `bd create` |
-| `on_update` | After `bd update` |
-| `on_close` | After `bd close` |
+| `on_create` | After `issuegraph create` |
+| `on_update` | After `issuegraph update` |
+| `on_close` | After `issuegraph close` |
 
-Hooks receive event data as JSON on stdin. This enables orchestrator integration (e.g., notifying services of new messages) without beads knowing about the orchestrator.
+Hooks receive event data as JSON on stdin. This enables orchestrator integration (e.g., notifying services of new messages) without issuegraph knowing about the orchestrator.
 
 Creates with initial labels preserve the legacy hook sequence: `on_create` receives the issue snapshot before labels, followed by one or more `on_update` events with cumulative label snapshots. The labels are already persisted before those hooks run, so hook scripts that need the create-time sequence should rely on the JSON payload instead of re-reading the issue from the store during the hook.
 

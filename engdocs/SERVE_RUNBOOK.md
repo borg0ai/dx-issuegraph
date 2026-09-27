@@ -1,9 +1,9 @@
-# `bd serve` operator runbook
+# `issuegraph serve` operator runbook
 
 Last reviewed: 2026-08-10
 
 Freshness source: `internal/httpapi/server.go`,
-`internal/httpapi/events_watch.go`, `cmd/bd/serve.go` and
+`internal/httpapi/events_watch.go`, `modules/cli/serve.go` and
 `internal/httpapi/auth.go` — the operating-envelope constants, the fields their
 `event` emitters write, and the flag, posture and token-file rules.
 
@@ -23,7 +23,7 @@ not change.
 ### Pass an explicit port
 
 ```
-bd serve --addr 127.0.0.1:7777
+issuegraph serve --addr 127.0.0.1:7777
 ```
 
 The default is `--addr 127.0.0.1:0`, which takes an ephemeral port. That is
@@ -42,7 +42,7 @@ server, not in the HTTP process. What you lose without a fixed port is the
 ability to know how many servers you are running, and clients' ability to find
 the one you meant.
 
-There is no lock file, pid file or discovery file. `bd serve` is
+There is no lock file, pid file or discovery file. `issuegraph serve` is
 operator-invoked, and on a fixed port the TCP bind *is* the mutual exclusion: a
 second instance fails at bind with the operating system's own address-in-use
 error. Clients are configured with the address; they do not discover it.
@@ -63,9 +63,9 @@ stderr, so the two can be redirected separately.
 
 ### Run it under a supervisor
 
-`bd serve` runs in the foreground and shuts down gracefully on **SIGHUP** as
+`issuegraph serve` runs in the foreground and shuts down gracefully on **SIGHUP** as
 well as SIGINT and SIGTERM. SIGHUP is in that set on purpose: closing the
-terminal of a foreground `bd serve` stops it, rather than leaving an orphan
+terminal of a foreground `issuegraph serve` stops it, rather than leaving an orphan
 holding a port and a pool of database connections. A supervisor that
 double-forks and expects the child to survive its controlling terminal must
 either detach the process from the terminal itself or keep it in the
@@ -73,16 +73,16 @@ foreground under the supervisor.
 
 ### Authentication
 
-Off by default, and off is the loopback posture: a `bd serve` with no auth
+Off by default, and off is the loopback posture: an `issuegraph serve` with no auth
 flags is byte for byte the server it has always been.
 
 ```
-bd serve --addr 127.0.0.1:7777 --auth-token-file /run/secrets/bd-tokens
+issuegraph serve --addr 127.0.0.1:7777 --auth-token-file /run/secrets/bd-tokens
 ```
 
 Every operation except `GET /healthz` then requires
 `Authorization: Bearer <token>`. `GET /v0/beads/context` is **not** exempt — it
-reports the repo root, the beads directory and the database name. `/healthz` is
+reports the repo root, the issuegraph directory and the database name. `/healthz` is
 the one exemption, because a kubelet probe presents no credential and a
 liveness endpoint that 401s is a pod that restarts forever.
 
@@ -128,7 +128,7 @@ reaching the address would otherwise be the whole authorization: every peer
 that can reach it gets full read and claim access.
 
 ```
-bd serve --addr 0.0.0.0:7777 --auth-token-file /run/secrets/bd-tokens \
+issuegraph serve --addr 0.0.0.0:7777 --auth-token-file /run/secrets/bd-tokens \
          --allowed-host bd.internal.example
 ```
 
@@ -214,8 +214,8 @@ slow client.
 
 ## Connection budget
 
-Size a shared external `dolt sql-server` before pointing several `bd serve`
-processes at it. Every `bd serve` process claims, at steady state:
+Size a shared external `dolt sql-server` before pointing several `issuegraph serve`
+processes at it. Every `issuegraph serve` process claims, at steady state:
 
 | Consumer | Connections |
 |---|---|
@@ -235,27 +235,27 @@ The shape behind those numbers:
   handler that later touches the database escapes the semaphore entirely. The
   four spare slots absorb that.
 - In server, external-server and shared-server modes the root command has
-  already opened a `DoltStore` that `bd serve` never uses. It stays open for the
+  already opened a `DoltStore` that `issuegraph serve` never uses. It stays open for the
   life of the process and holds an idle connection or two against the very
   server this process is about to pool twenty more on. Opening and closing it is
   the root command's business, not one command's — but it is not free, and it
   belongs in the arithmetic.
 
-So `max_connections` on a shared server must cover roughly `22 × (number of bd
-serve processes)` plus every other `bd` process pointed at the same server,
+So `max_connections` on a shared server must cover roughly `22 × (number of
+issuegraph serve processes)` plus every other `issuegraph` process pointed at the same server,
 each of which claims its own. Idle connections are reclaimed after 5 minutes and
 recycled after an hour, so a bursty deployment settles below the worst case —
 but size for the worst case.
 
 Those pool limits are applied only if the unit-of-work provider exposes the
-knob. If it does not, `bd serve` says so at startup with
+knob. If it does not, `issuegraph serve` says so at startup with
 `event=pool_limits_unavailable` and runs with an **unbounded** pool rather than
 silently pretending. Check for that line before trusting the arithmetic above.
 
 None of this arithmetic applies to a registered backend, which is served from
 the store the root command opened rather than from a unit-of-work provider
 (`db=roles` on the startup line, against `db=provider` for every Dolt topology).
-The pool belongs to that backend, `bd serve` neither owns it nor can reach it,
+The pool belongs to that backend, `issuegraph serve` neither owns it nor can reach it,
 and no `pool_limits_unavailable` line is emitted — a missing capability would be
 reported for a provider that was never asked for. Size that pool wherever the
 backend is configured.
@@ -404,7 +404,7 @@ Other events on the same stream:
 | `events_watch_admitted` | A journal stream opened, carrying `streams=N max_streams=48`. One line per stream, not per record: this is the gauge that shows accumulation before the cap is hit. |
 | `events_watch_saturated` | A journal stream was refused because this process is already holding its cap. Carries the live count and the cap. Streams end when their consumers leave, so a run of these means consumers are accumulating, not that the server is slow. |
 | `events_watch_failed` | An open journal stream ended on a failure it could not report to the client, because the `200` was already sent: a read that failed (carrying the checkpoint it reached), or a stored payload that would not encode (carrying its `seq`). The client reconnects on its own; a repeated read failure names a database problem, and a repeated `seq` names one unencodable row that will end every stream that reaches it. |
-| `events_watch_unflushable` | A journal stream was refused because the response writer cannot flush. Not reachable through `bd serve`'s own server; it means something is wrapping this handler. |
+| `events_watch_unflushable` | A journal stream was refused because the response writer cannot flush. Not reachable through `issuegraph serve`'s own server; it means something is wrapping this handler. |
 
 A 5xx body carries a fixed static detail by design, so `request_id` is the
 client's only handle on the one line that has the real error. When a user

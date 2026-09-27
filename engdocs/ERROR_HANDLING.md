@@ -2,14 +2,14 @@
 
 Last reviewed: 2026-07-07
 
-Freshness source: `cmd/bd/*.go`, especially command error exits and JSON error
-helpers in `cmd/bd/errors.go`.
+Freshness source: `modules/cli/*.go`, especially command error exits and JSON error
+helpers in `modules/cli/errors.go`.
 
-This document describes the error handling patterns used throughout the beads codebase and provides guidelines for when each pattern should be applied.
+This document describes the error handling patterns used throughout the issuegraph codebase and provides guidelines for when each pattern should be applied.
 
 ## Overview
 
-The beads codebase currently uses **three distinct error handling patterns** across different scenarios. Understanding when to use each pattern is critical for maintaining consistent behavior and a good user experience.
+The issuegraph codebase currently uses **three distinct error handling patterns** across different scenarios. Understanding when to use each pattern is critical for maintaining consistent behavior and a good user experience.
 
 ## The Three Patterns
 
@@ -51,7 +51,7 @@ command after flushing metrics first. A handful of pre-existing direct
 `os.Exit(1)` calls also remain inside handler bodies; new command code should
 return a `HandleError*` value instead of adding more.
 
-**Files using this pattern:** nearly every command in `cmd/bd/` — search for
+**Files using this pattern:** nearly every command in `modules/cli/` — search for
 `return HandleError` (e.g. `create.go`, `defer.go`, `dolt.go`, `unclaim.go`,
 `compact.go`).
 
@@ -80,10 +80,10 @@ if err := createConfigYaml(beadsDir, false); err != nil {
 - Core functionality still works
 
 **Files using this pattern:**
-- `cmd/bd/init.go` (lines 155-157, 161-163, 167-169, 188-190, 236-238, 272-274, etc.)
-- `cmd/bd/sync.go` (lines 156, 257, 281, 329, 335, 720-722, 740, 743, 752, 762)
-- `cmd/bd/create.go` (lines 333-334, 340-341)
-- `cmd/bd/sync.go` *(handles Dolt sync operations)*
+- `modules/cli/init.go` (lines 155-157, 161-163, 167-169, 188-190, 236-238, 272-274, etc.)
+- `modules/cli/sync.go` (lines 156, 257, 281, 329, 335, 720-722, 740, 743, 752, 762)
+- `modules/cli/create.go` (lines 333-334, 340-341)
+- `modules/cli/sync.go` *(handles Dolt sync operations)*
 
 ---
 
@@ -107,9 +107,9 @@ _ = os.Remove(tempPath)
 - Primary error already reported
 
 **Files using this pattern:**
-- `cmd/bd/init.go` (line 209, 326-327)
-- `cmd/bd/sync.go` (lines 696-698)
-- `cmd/bd/sync.go` *(sync cleanup)*
+- `modules/cli/init.go` (line 209, 326-327)
+- `modules/cli/sync.go` (lines 696-698)
+- `modules/cli/sync.go` *(sync cleanup)*
 - Dozens of other locations throughout the codebase
 
 ---
@@ -324,7 +324,7 @@ if err := store.SetMetadata(ctx, "last_import_hash", hash); err != nil {
 
 **Rationale:** System degrades gracefully if tracking metadata is unavailable. Core functionality (creating issues, importing data) still works. Failures here might indicate temporary issues (e.g., read-only filesystem) that shouldn't block the entire operation.
 
-**See also:** `cmd/bd/init.go` lines 206-272 for detailed inline documentation of this distinction.
+**See also:** `modules/cli/init.go` lines 206-272 for detailed inline documentation of this distinction.
 
 ### File Permission Errors
 
@@ -361,7 +361,7 @@ defer func() {
 
 ### Error Helpers
 
-`cmd/bd/errors.go` provides the shared helpers that enforce consistency. Pattern A
+`modules/cli/errors.go` provides the shared helpers that enforce consistency. Pattern A
 handlers return one of the `HandleError*` values; Pattern B uses `WarnError`:
 
 ```go
@@ -390,7 +390,7 @@ func WarnError(format string, args ...interface{})
 
 ## References
 
-- `cmd/bd/errors.go` - The `HandleError*` / `WarnError` / `SilentExit` helpers and the `exitError` sentinel that `main()` maps to an exit code
-- `cmd/bd/defer.go` - Clean example of Pattern A: `return HandleError(...)` from a `RunE` with `SilenceUsage`/`SilenceErrors` set
-- `cmd/bd/init.go` - Examples of all three patterns
-- `cmd/bd/sync.go` - Examples of Pattern B for metadata operations and Pattern C for cleanup operations
+- `modules/cli/errors.go` - The `HandleError*` / `WarnError` / `SilentExit` helpers and the `exitError` sentinel that `main()` maps to an exit code
+- `modules/cli/defer.go` - Clean example of Pattern A: `return HandleError(...)` from a `RunE` with `SilenceUsage`/`SilenceErrors` set
+- `modules/cli/init.go` - Examples of all three patterns
+- `modules/cli/sync.go` - Examples of Pattern B for metadata operations and Pattern C for cleanup operations

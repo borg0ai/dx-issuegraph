@@ -1,34 +1,34 @@
 ---
 title: Junie
-description: Set up beads for Junie, the JetBrains AI agent, with a guidelines file and an MCP server configuration
+description: Set up issuegraph for Junie, the JetBrains AI agent, with a guidelines file and an MCP server configuration
 ---
 
-How to use beads with Junie (JetBrains AI Agent).
+How to use issuegraph with Junie (JetBrains AI Agent).
 
 ## Setup
 
 ### Quick Setup
 
 ```bash
-bd setup junie
+issuegraph setup junie
 ```
 
 This creates:
-- **`.junie/guidelines.md`** - Agent instructions for beads workflow
+- **`.junie/guidelines.md`** - Agent instructions for issuegraph workflow
 - **`.junie/mcp/mcp.json`** - MCP server configuration
 
 ### Verify Setup
 
 ```bash
-bd setup junie --check
+issuegraph setup junie --check
 ```
 
 ## How It Works
 
 1. **Session starts** → Junie reads `.junie/guidelines.md` for workflow context
-2. **MCP tools available** → Junie can use beads MCP tools directly
-3. **You work** → Use `bd` CLI commands or MCP tools
-4. **Session ends** → Run `bd dolt push` to push changes to Dolt remote
+2. **MCP tools available** → Junie can use issuegraph MCP tools directly
+3. **You work** → Use `issuegraph` CLI commands or MCP tools
+4. **Session ends** → Run `issuegraph dolt push` to push changes to Dolt remote
 
 ## Configuration Files
 
@@ -43,8 +43,8 @@ Contains workflow instructions that Junie reads automatically:
 ### MCP Config (`.junie/mcp/mcp.json`)
 
 <Warning>
-`bd setup junie` currently writes an MCP config that invokes `bd mcp`, a
-command that does not exist in current bd builds — that config will not
+`issuegraph setup junie` currently writes an MCP config that invokes `issuegraph mcp`, a
+command that does not exist in current issuegraph builds — that config will not
 start a server. Until the recipe is fixed, point Junie at the standalone
 `beads-mcp` server instead:
 </Warning>
@@ -65,18 +65,18 @@ and other install options (pip/pipx).
 
 ## CLI Commands
 
-You can also use the `bd` CLI directly:
+You can also use the `issuegraph` CLI directly:
 
 ### Creating Issues
 
 ```bash
 # Always include description for context
-bd create "Fix authentication bug" \
+issuegraph create "Fix authentication bug" \
   --description="Login fails with special characters in password" \
   -t bug -p 1 --json
 
 # Link discovered issues
-bd create "Found SQL injection" \
+issuegraph create "Found SQL injection" \
   --description="User input not sanitized in query builder" \
   --deps discovered-from:bd-42 --json
 ```
@@ -85,33 +85,33 @@ bd create "Found SQL injection" \
 
 ```bash
 # Find ready work
-bd ready --json
+issuegraph ready --json
 
 # Start work
-bd update bd-42 --claim --json
+issuegraph update bd-42 --claim --json
 
 # Complete work
-bd close bd-42 --reason "Fixed in commit abc123" --json
+issuegraph close bd-42 --reason "Fixed in commit abc123" --json
 ```
 
 ### Querying
 
 ```bash
 # List open issues
-bd list --status open --json
+issuegraph list --status open --json
 
 # Show issue details
-bd show bd-42 --json
+issuegraph show bd-42 --json
 
 # Check blocked issues
-bd blocked --json
+issuegraph blocked --json
 ```
 
 ### Syncing
 
 ```bash
 # ALWAYS run at session end
-bd dolt push
+issuegraph dolt push
 ```
 
 ## Best Practices
@@ -119,28 +119,28 @@ bd dolt push
 ### Always Use `--json`
 
 ```bash
-bd list --json          # Parse programmatically
-bd create "Task" --json # Get issue ID from output
-bd show bd-42 --json    # Structured data
+issuegraph list --json          # Parse programmatically
+issuegraph create "Task" --json # Get issue ID from output
+issuegraph show bd-42 --json    # Structured data
 ```
 
 ### Always Include Descriptions
 
 ```bash
 # Good
-bd create "Fix auth bug" \
+issuegraph create "Fix auth bug" \
   --description="Login fails when password contains quotes" \
   -t bug -p 1 --json
 
 # Bad - no context for future work
-bd create "Fix auth bug" -t bug -p 1 --json
+issuegraph create "Fix auth bug" -t bug -p 1 --json
 ```
 
 ### Link Related Work
 
 ```bash
 # When you discover issues during work
-bd create "Found related bug" \
+issuegraph create "Found related bug" \
   --deps discovered-from:bd-current --json
 ```
 
@@ -148,7 +148,7 @@ bd create "Found related bug" \
 
 ```bash
 # ALWAYS run before ending
-bd dolt push
+issuegraph dolt push
 ```
 
 ## Troubleshooting
@@ -157,10 +157,10 @@ bd dolt push
 
 ```bash
 # Check setup
-bd setup junie --check
+issuegraph setup junie --check
 
 # Reinstall if needed
-bd setup junie
+issuegraph setup junie
 ```
 
 ### MCP tools not available
@@ -177,23 +177,23 @@ pip show beads-mcp
 
 ```bash
 # Force push
-bd dolt push
+issuegraph dolt push
 
 # Check system health
-bd doctor
+issuegraph doctor
 ```
 
 ### Database not found
 
 ```bash
-# Initialize beads
-bd init --quiet
+# Initialize issuegraph
+issuegraph init --quiet
 ```
 
 ## Removing Integration
 
 ```bash
-bd setup junie --remove
+issuegraph setup junie --remove
 ```
 
 This removes:

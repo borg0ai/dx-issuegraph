@@ -3,21 +3,21 @@ title: Multi-Repo Migration Guide
 description: Adopt multi-repo routing for OSS contributor, team, multi-phase, and multi-persona workflows with separate planning repos
 ---
 
-This guide helps you adopt beads' multi-repo workflow for OSS contributions, team collaboration, and multi-phase development.
+This guide helps you adopt issuegraph's multi-repo workflow for OSS contributions, team collaboration, and multi-phase development.
 
 ## Quick Start
 
-**Already have beads installed?** Jump to your scenario:
+**Already have issuegraph installed?** Jump to your scenario:
 - [OSS Contributor](#oss-contributor-workflow) - Keep planning out of upstream PRs
 - [Team Member](#team-workflow) - Shared planning on branches
 - [Multi-Phase Development](#multi-phase-development) - Separate repos per phase
 - [Multiple Personas](#multiple-personas) - Architect vs. implementer separation
 
-**New to beads?** See [Quick Start](/getting-started/quickstart) first.
+**New to issuegraph?** See [Quick Start](/getting-started/quickstart) first.
 
 ## What is Multi-Repo Mode?
 
-By default, beads stores issues in its Dolt database under `.beads/` in your current repository (`.beads/embeddeddolt/` in the default embedded mode). Multi-repo mode lets you:
+By default, issuegraph stores issues in its Dolt database under `.beads/` in your current repository (`.beads/embeddeddolt/` in the default embedded mode). Multi-repo mode lets you:
 
 - **Route issues to different repositories** based on your role (maintainer vs. contributor)
 - **Aggregate issues from multiple repos** into a unified view
@@ -54,24 +54,24 @@ Every issue has a `source_repo` field indicating which repository owns it:
 
 ### 2. Auto-Routing
 
-Beads automatically routes new issues to the right repository based on your role:
+IssueGraph automatically routes new issues to the right repository based on your role:
 
 ```bash
 # Maintainer (has SSH push access)
-bd create "Fix bug" -p 1
+issuegraph create "Fix bug" -p 1
 # → Creates in current repo (source_repo = ".")
 
 # Contributor (HTTPS or no push access)
-bd create "Fix bug" -p 1  
+issuegraph create "Fix bug" -p 1  
 # → Creates in ~/.beads-planning (source_repo = "~/.beads-planning")
 ```
 
 ### 3. Multi-Repo Hydration
 
-Beads can aggregate issues from multiple repositories into a unified database:
+IssueGraph can aggregate issues from multiple repositories into a unified database:
 
 ```bash
-bd list --json
+issuegraph list --json
 # Shows issues from:
 # - Current repo (.)
 # - Planning repo (~/.beads-planning)
@@ -91,11 +91,11 @@ bd list --json
 git clone https://github.com/you/project.git
 cd project
 
-# 2. Initialize beads (if not already done)
-bd init
+# 2. Initialize issuegraph (if not already done)
+issuegraph init
 
 # 3. Run the contributor setup wizard
-bd init --contributor
+issuegraph init --contributor
 
 # The wizard will:
 # - Detect that you're in a fork (checks for 'upstream' remote)
@@ -113,15 +113,15 @@ If you prefer manual setup:
 mkdir -p ~/.beads-planning
 cd ~/.beads-planning
 git init
-bd init --prefix plan
+issuegraph init --prefix plan
 
 # 2. Configure routing in your fork
 cd ~/projects/project
-bd config set routing.mode auto
-bd config set routing.contributor "~/.beads-planning"
+issuegraph config set routing.mode auto
+issuegraph config set routing.contributor "~/.beads-planning"
 
 # 3. Add planning repo to hydration sources
-bd config set repos.additional "~/.beads-planning"
+issuegraph config set repos.additional "~/.beads-planning"
 ```
 
 ### Daily Workflow
@@ -131,18 +131,18 @@ bd config set repos.additional "~/.beads-planning"
 cd ~/projects/project
 
 # Create planning issues (auto-routed to ~/.beads-planning)
-bd create "Investigate auth implementation" -p 1
-bd create "Draft RFC for new feature" -p 2
+issuegraph create "Investigate auth implementation" -p 1
+issuegraph create "Draft RFC for new feature" -p 2
 
 # View all issues (current repo + planning repo)
-bd ready
-bd list --json
+issuegraph ready
+issuegraph list --json
 
 # Work on an issue
-bd update plan-42 --claim
+issuegraph update plan-42 --claim
 
 # Complete work
-bd close plan-42 --reason "Completed"
+issuegraph close plan-42 --reason "Completed"
 
 # Create PR - your planning issues never appear!
 git add .
@@ -157,12 +157,12 @@ If you want to share a planning issue with upstream:
 
 ```bash
 # Option 1: Manually copy issue to upstream repo
-bd show plan-42 --json > /tmp/issue.json
+issuegraph show plan-42 --json > /tmp/issue.json
 # (Send to maintainers or create GitHub issue)
 
 # Option 2: Migrate issue (future feature, see bd-mlcz)
-bd migrate plan-42 --to . --dry-run
-bd migrate plan-42 --to .
+issuegraph migrate plan-42 --to . --dry-run
+issuegraph migrate plan-42 --to .
 ```
 
 ## Team Workflow
@@ -174,12 +174,12 @@ bd migrate plan-42 --to .
 ### Setup (Team Lead)
 
 ```bash
-# 1. Initialize beads in main repo
+# 1. Initialize issuegraph in main repo
 cd ~/projects/team-project
-bd init --prefix team
+issuegraph init --prefix team
 
 # 2. Run team setup wizard  
-bd init --team
+issuegraph init --team
 
 # The wizard will:
 # - Detect shared repository (SSH push access)
@@ -195,38 +195,38 @@ bd init --team
 git clone git@github.com:team/project.git
 cd project
 
-# 2. Beads auto-detects you're a maintainer (SSH access)
-bd create "Implement feature X" -p 1
+# 2. IssueGraph auto-detects you're a maintainer (SSH access)
+issuegraph create "Implement feature X" -p 1
 # → Creates in current repo (team-123)
 
 # 3. Optional: Create personal planning repo for experiments
 mkdir -p ~/.beads-planning-personal
 cd ~/.beads-planning-personal
 git init
-bd init --prefix exp
+issuegraph init --prefix exp
 
 # 4. Configure multi-repo in team project
 cd ~/projects/project
-bd config set repos.additional "~/.beads-planning-personal"
+issuegraph config set repos.additional "~/.beads-planning-personal"
 ```
 
 ### Daily Workflow
 
 ```bash
 # Shared team planning (committed to repo)
-bd create "Implement auth" -p 1 --repo .
+issuegraph create "Implement auth" -p 1 --repo .
 # → team-42 (visible to entire team)
 
 # Personal experiments (not committed to team repo)
-bd create "Try alternative approach" -p 2 --repo ~/.beads-planning-personal
+issuegraph create "Try alternative approach" -p 2 --repo ~/.beads-planning-personal
 # → exp-99 (private planning)
 
 # View all work
-bd ready
-bd list --json
+issuegraph ready
+issuegraph list --json
 
 # Complete team work and sync
-bd dolt push
+issuegraph dolt push
 ```
 
 ## Multi-Phase Development
@@ -246,19 +246,19 @@ mkdir -p ~/projects/myapp-maintenance
 # 2. Initialize each phase
 cd ~/projects/myapp-planning
 git init
-bd init --prefix plan
+issuegraph init --prefix plan
 
 cd ~/projects/myapp-implementation  
 git init
-bd init --prefix impl
+issuegraph init --prefix impl
 
 cd ~/projects/myapp-maintenance
 git init
-bd init --prefix maint
+issuegraph init --prefix maint
 
 # 3. Configure aggregation in main workspace
 cd ~/projects/myapp-implementation
-bd config set repos.additional "~/projects/myapp-planning,~/projects/myapp-maintenance"
+issuegraph config set repos.additional "~/projects/myapp-planning,~/projects/myapp-maintenance"
 ```
 
 ### Workflow
@@ -266,18 +266,18 @@ bd config set repos.additional "~/projects/myapp-planning,~/projects/myapp-maint
 ```bash
 # Phase 1: Planning
 cd ~/projects/myapp-planning
-bd create "Design auth system" -p 1 -t epic
-bd create "Research OAuth providers" -p 1
+issuegraph create "Design auth system" -p 1 -t epic
+issuegraph create "Research OAuth providers" -p 1
 
 # Phase 2: Implementation (view planning + implementation issues)
 cd ~/projects/myapp-implementation
-bd ready  # Shows issues from both repos
-bd create "Implement auth backend" -p 1
-bd dep add impl-42 plan-10 --type blocks  # Link across repos
+issuegraph ready  # Shows issues from both repos
+issuegraph create "Implement auth backend" -p 1
+issuegraph dep add impl-42 plan-10 --type blocks  # Link across repos
 
 # Phase 3: Maintenance
 cd ~/projects/myapp-maintenance
-bd create "Security patch for auth" -p 0 -t bug
+issuegraph create "Security patch for auth" -p 0 -t bug
 ```
 
 ## Multiple Personas

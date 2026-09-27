@@ -1,23 +1,23 @@
 ---
 title: IDE Setup
-description: Configure bd setup recipes, hooks, and instruction files for Claude Code, Cursor, Gemini, Copilot, and other coding agents
+description: Configure issuegraph setup recipes, hooks, and instruction files for Claude Code, Cursor, Gemini, Copilot, and other coding agents
 ---
 
-Configure your IDE or coding agent for optimal beads integration.
+Configure your IDE or coding agent for optimal issuegraph integration.
 
 Last reviewed: 2026-07-10
 
-Freshness source: `cmd/bd/setup*.go` and `internal/recipes/`.
+Freshness source: `modules/cli/setup*.go` and `internal/recipes/`.
 
-## How `bd setup` Works
+## How `issuegraph setup` Works
 
-The `bd setup` command uses a **recipe-based architecture**: recipes define where beads workflow instructions are written. Built-in recipes cover popular tools, and you can add custom recipes for any other tool (see Custom Recipes below). Integrations complement each other — you can install several at once.
+The `issuegraph setup` command uses a **recipe-based architecture**: recipes define where issuegraph workflow instructions are written. Built-in recipes cover popular tools, and you can add custom recipes for any other tool (see Custom Recipes below). Integrations complement each other — you can install several at once.
 
 ```bash
-bd setup --list             # Show all available recipes
-bd setup claude             # Install an integration (claude, cursor, gemini, ...)
-bd setup claude --check     # Verify installation
-bd setup claude --remove    # Uninstall
+issuegraph setup --list             # Show all available recipes
+issuegraph setup claude             # Install an integration (claude, cursor, gemini, ...)
+issuegraph setup claude --check     # Verify installation
+issuegraph setup claude --remove    # Uninstall
 ```
 
 | Recipe | Files written | Details |
@@ -37,7 +37,7 @@ bd setup claude --remove    # Uninstall
 | `kilocode` | `.kilocode/rules/beads.md` | [Kilo Code](/integrations/kilocode) |
 | `kiro` | `.kiro/steering/beads.md` | [Kiro CLI](/integrations/kiro) |
 
-`bd prime` is the single source of truth for operational workflow commands. Each integration's instruction file either points to `bd prime` (hook-enabled agents) or carries the full command reference (AGENTS-first agents).
+`issuegraph prime` is the single source of truth for operational workflow commands. Each integration's instruction file either points to `issuegraph prime` (hook-enabled agents) or carries the full command reference (AGENTS-first agents).
 
 <Note>
 Commit the instruction files (`AGENTS.md`, `CLAUDE.md`, `GEMINI.md`, as applicable) to git so all team members and AI tools get the same instructions.
@@ -50,9 +50,9 @@ Each integration writes one of two **profiles** that control how much content go
 | Profile | Used by | Content |
 |---------|---------|---------|
 | `full` | Factory, Mux, OpenCode | Complete command reference, issue types, priorities, workflow |
-| `minimal` | Claude Code, GitHub Copilot CLI, Gemini CLI | Pointer to `bd prime`, quick reference only (~60% smaller) |
+| `minimal` | Claude Code, GitHub Copilot CLI, Gemini CLI | Pointer to `issuegraph prime`, quick reference only (~60% smaller) |
 
-Hook-enabled agents use the `minimal` profile because `bd prime` injects full context at session start. AGENTS-first agents use the `full` profile because their instruction file remains the primary integration surface. Codex is skill-based instead: it uses `.agents/skills/beads/SKILL.md`, with managed `AGENTS.md` guidance telling Codex when to use the skill.
+Hook-enabled agents use the `minimal` profile because `issuegraph prime` injects full context at session start. AGENTS-first agents use the `full` profile because their instruction file remains the primary integration surface. Codex is skill-based instead: it uses `.agents/skills/beads/SKILL.md`, with managed `AGENTS.md` guidance telling Codex when to use the skill.
 
 **Profile precedence:** if a file already has a `full` profile section and a `minimal` profile tool installs to the same file (for example via symlinks), the `full` profile is preserved to avoid information loss.
 
@@ -62,63 +62,63 @@ Template profiles control how much text gets installed. Policy profiles control 
 
 | Policy | Default scope | Commit/push guidance |
 |--------|---------------|----------------------|
-| `conservative` | Standalone projects, unknown projects, and one-off assistance | Use `bd` for task tracking, then report changed files, validation, and proposed commands. Do not commit, push, or run Dolt remote sync without explicit user or orchestrator approval. |
-| `minimal` | Hook-first integrations where `bd prime` carries the detailed workflow | Same git authority as conservative; the installed file stays short and points to `bd prime`. |
-| `team-maintainer` | Repositories that explicitly delegate session close to agents | Agents may close beads, run quality gates, commit, run `bd dolt push`, and `git push` as part of routine work. Current "do not commit" or "do not push" instructions still override the profile. |
+| `conservative` | Standalone projects, unknown projects, and one-off assistance | Use `issuegraph` for task tracking, then report changed files, validation, and proposed commands. Do not commit, push, or run Dolt remote sync without explicit user or orchestrator approval. |
+| `minimal` | Hook-first integrations where `issuegraph prime` carries the detailed workflow | Same git authority as conservative; the installed file stays short and points to `issuegraph prime`. |
+| `team-maintainer` | Repositories that explicitly delegate session close to agents | Agents may close beads, run quality gates, commit, run `issuegraph dolt push`, and `git push` as part of routine work. Current "do not commit" or "do not push" instructions still override the profile. |
 
-The generated beads section and `bd prime` default to conservative git authority. Set the profile explicitly with the `agent.profile` config key or the `BD_AGENT_PROFILE` environment variable (values: `conservative`, `minimal`, `team-maintainer`; the env var takes precedence; an unrecognized value falls back to `conservative`):
+The generated issuegraph section and `issuegraph prime` default to conservative git authority. Set the profile explicitly with the `agent.profile` config key or the `BD_AGENT_PROFILE` environment variable (values: `conservative`, `minimal`, `team-maintainer`; the env var takes precedence; an unrecognized value falls back to `conservative`):
 
 ```bash
-bd config set agent.profile team-maintainer
+issuegraph config set agent.profile team-maintainer
 # or, for a single session/process:
-BD_AGENT_PROFILE=team-maintainer bd prime
+BD_AGENT_PROFILE=team-maintainer issuegraph prime
 ```
 
-`bd prime` layers this explicit knob on top of its per-branch git-authority checks (stealth mode, no git remote, ephemeral branch, `no-push`); those hard constraints still take precedence, and `team-maintainer` remains subordinate to any explicit "do not commit"/"do not push" instruction. Beads never infers team-maintainer authority merely because a remote exists — it must be set via this knob (or, for tools without config access, via top-level project instructions).
+`issuegraph prime` layers this explicit knob on top of its per-branch git-authority checks (stealth mode, no git remote, ephemeral branch, `no-push`); those hard constraints still take precedence, and `team-maintainer` remains subordinate to any explicit "do not commit"/"do not push" instruction. IssueGraph never infers team-maintainer authority merely because a remote exists — it must be set via this knob (or, for tools without config access, via top-level project instructions).
 
 ### Managed Sections
 
-`bd setup factory`, `bd setup mux`, and `bd setup opencode` append a beads section to `AGENTS.md`, wrapped in `BEGIN/END BEADS INTEGRATION` HTML-comment markers. The begin marker carries version, profile, and hash metadata (e.g. `<!-- BEGIN BEADS INTEGRATION v:1 profile:full hash:19cc25d9 -->`) so `--check` can report `missing`, `stale`, or `current`; legacy markers without metadata are auto-upgraded on the next install or update. Re-running setup updates the existing section in place (idempotent), and `--remove` deletes only the managed section — the rest of your `AGENTS.md` is untouched.
+`issuegraph setup factory`, `issuegraph setup mux`, and `issuegraph setup opencode` append an issuegraph section to `AGENTS.md`, wrapped in `BEGIN/END BEADS INTEGRATION` HTML-comment markers. The begin marker carries version, profile, and hash metadata (e.g. `<!-- BEGIN BEADS INTEGRATION v:1 profile:full hash:19cc25d9 -->`) so `--check` can report `missing`, `stale`, or `current`; legacy markers without metadata are auto-upgraded on the next install or update. Re-running setup updates the existing section in place (idempotent), and `--remove` deletes only the managed section — the rest of your `AGENTS.md` is untouched.
 
-`bd setup codex` uses its own marker pair (`BEGIN/END BEADS CODEX SETUP`). Running it alongside `bd setup factory` or `bd setup mux` against the same `AGENTS.md` leaves two managed sections side by side; each recipe's `--check` inspects only its own section, and each `--remove` removes only its own section.
+`issuegraph setup codex` uses its own marker pair (`BEGIN/END BEADS CODEX SETUP`). Running it alongside `issuegraph setup factory` or `issuegraph setup mux` against the same `AGENTS.md` leaves two managed sections side by side; each recipe's `--check` inspects only its own section, and each `--remove` removes only its own section.
 
-One `AGENTS.md` works across many tools — Factory Droid, Mux, OpenCode, Cursor, Zed, Jules, and other AGENTS.md-aware assistants — so `bd setup factory` is a good starting point when your team mixes AI tools.
+One `AGENTS.md` works across many tools — Factory Droid, Mux, OpenCode, Cursor, Zed, Jules, and other AGENTS.md-aware assistants — so `issuegraph setup factory` is a good starting point when your team mixes AI tools.
 
 ## Claude Code
 
 The recommended approach for Claude Code:
 
 ```bash
-bd setup claude            # Project install: .claude/settings.json
-bd setup claude --global   # Global install: ~/.claude/settings.json
+issuegraph setup claude            # Project install: .claude/settings.json
+issuegraph setup claude --global   # Global install: ~/.claude/settings.json
 ```
 
 This installs:
-- **SessionStart hook** - Runs `bd prime --hook-json`, which wraps the workflow context in the JSON envelope Claude Code expects. SessionStart fires when a session starts, resumes, or clears, and again after context compaction — no separate compaction hook is needed.
-- **Minimal beads section in `CLAUDE.md`** - A pointer to `bd prime`, managed with hash/version markers for safe updates and `--check` freshness detection.
+- **SessionStart hook** - Runs `issuegraph prime --hook-json`, which wraps the workflow context in the JSON envelope Claude Code expects. SessionStart fires when a session starts, resumes, or clears, and again after context compaction — no separate compaction hook is needed.
+- **Minimal issuegraph section in `CLAUDE.md`** - A pointer to `issuegraph prime`, managed with hash/version markers for safe updates and `--check` freshness detection.
 
-If the [beads Claude Code plugin](/integrations/claude-code-plugin) is installed, hooks are plugin-managed and `bd setup claude` skips writing them, so `bd prime` doesn't fire twice per session.
+If the [issuegraph Claude Code plugin](/integrations/claude-code-plugin) is installed, hooks are plugin-managed and `issuegraph setup claude` skips writing them, so `issuegraph prime` doesn't fire twice per session.
 
 **How it works:**
-1. SessionStart hook runs `bd prime --hook-json` automatically
-2. `bd prime` injects ~1-2k tokens of workflow context
-3. You use `bd` CLI commands directly
+1. SessionStart hook runs `issuegraph prime --hook-json` automatically
+2. `issuegraph prime` injects ~1-2k tokens of workflow context
+3. You use `issuegraph` CLI commands directly
 4. Git hooks refresh exports and legacy fallbacks; Dolt remotes handle sync
 
 **Flags:**
 
 | Flag | Description |
 |------|-------------|
-| `--check` | Check both hooks and the managed `CLAUDE.md` beads section |
-| `--remove` | Remove beads hooks and the managed `CLAUDE.md` beads section |
+| `--check` | Check both hooks and the managed `CLAUDE.md` issuegraph section |
+| `--remove` | Remove issuegraph hooks and the managed `CLAUDE.md` issuegraph section |
 | `--global` | Install to `~/.claude/settings.json` instead of the project |
-| `--stealth` | Use `bd prime --stealth --hook-json` (flush only, no git operations) — useful in CI/CD where git operations might fail |
+| `--stealth` | Use `issuegraph prime --stealth --hook-json` (flush only, no git operations) — useful in CI/CD where git operations might fail |
 
 Restart Claude Code after installation for the hooks to take effect.
 
 **Verify installation:**
 ```bash
-bd setup claude --check
+issuegraph setup claude --check
 ```
 
 ### Manual Setup
@@ -132,7 +132,7 @@ If you prefer manual configuration, add the hook to your Claude Code settings:
       {
         "matcher": "",
         "hooks": [
-          { "type": "command", "command": "bd prime --hook-json" }
+          { "type": "command", "command": "issuegraph prime --hook-json" }
         ]
       }
     ]
@@ -143,15 +143,15 @@ If you prefer manual configuration, add the hook to your Claude Code settings:
 ## Cursor IDE
 
 ```bash
-bd setup cursor            # Always-applied rules file
+issuegraph setup cursor            # Always-applied rules file
 ```
 
-This creates `.cursor/rules/beads.mdc` with beads-aware rules that Cursor
+This creates `.cursor/rules/beads.mdc` with issuegraph-aware rules that Cursor
 re-includes every turn.
 
 **Verify:**
 ```bash
-bd setup cursor --check
+issuegraph setup cursor --check
 ```
 
 See [Cursor](/integrations/cursor) for details.
@@ -159,15 +159,15 @@ See [Cursor](/integrations/cursor) for details.
 ## Gemini CLI
 
 ```bash
-bd setup gemini            # Global hooks in ~/.gemini/settings.json
-bd setup gemini --project  # Project hooks in .gemini/settings.json
+issuegraph setup gemini            # Global hooks in ~/.gemini/settings.json
+issuegraph setup gemini --project  # Project hooks in .gemini/settings.json
 ```
 
-This installs a SessionStart hook running `bd prime --hook-json` — Gemini requires hook stdout to be valid JSON, and `--hook-json` wraps the markdown in the required envelope — plus a minimal beads section in `GEMINI.md`. `--stealth` works the same as for Claude Code; `--check` and `--remove` cover both the hooks and the managed `GEMINI.md` section.
+This installs a SessionStart hook running `issuegraph prime --hook-json` — Gemini requires hook stdout to be valid JSON, and `--hook-json` wraps the markdown in the required envelope — plus a minimal issuegraph section in `GEMINI.md`. `--stealth` works the same as for Claude Code; `--check` and `--remove` cover both the hooks and the managed `GEMINI.md` section.
 
 **Verify:**
 ```bash
-bd setup gemini --check
+issuegraph setup gemini --check
 ```
 
 See [Gemini CLI](/integrations/gemini) for details.
@@ -176,7 +176,7 @@ See [Gemini CLI](/integrations/gemini) for details.
 
 ```bash
 # Setup Aider integration
-bd setup aider
+issuegraph setup aider
 ```
 
 This writes three files:
@@ -187,23 +187,23 @@ This writes three files:
 | `.aider/BEADS.md` | Workflow instructions for the AI |
 | `.aider/README.md` | Quick reference for humans |
 
-Aider is human-in-the-loop: the AI **suggests** `bd` commands, and you run them with `/run`. See [Aider](/integrations/aider) for the workflow.
+Aider is human-in-the-loop: the AI **suggests** `issuegraph` commands, and you run them with `/run`. See [Aider](/integrations/aider) for the workflow.
 
 **Verify:**
 ```bash
-bd setup aider --check
+issuegraph setup aider --check
 ```
 
 ## AGENTS.md Tools: Factory, Mux, OpenCode, Codex
 
 ```bash
-bd setup factory    # Factory.ai Droid — AGENTS.md section
-bd setup mux        # Mux — AGENTS.md section (+ --project/--global layers)
-bd setup opencode   # OpenCode — AGENTS.md section
-bd setup codex      # Codex — beads skill + AGENTS.md guidance + native hooks
+issuegraph setup factory    # Factory.ai Droid — AGENTS.md section
+issuegraph setup mux        # Mux — AGENTS.md section (+ --project/--global layers)
+issuegraph setup opencode   # OpenCode — AGENTS.md section
+issuegraph setup codex      # Codex — issuegraph skill + AGENTS.md guidance + native hooks
 ```
 
-These create or update a managed section in `AGENTS.md` (see Managed Sections above). `bd init` runs the project Codex setup automatically unless `--skip-agents` or `--stealth` is used. In worktree, shared, or `BEADS_DIR` setups, use `bd where` to confirm the resolved workspace — these integrations do not require a local `./.beads`. Restart the tool after setup if it is already running.
+These create or update a managed section in `AGENTS.md` (see Managed Sections above). `issuegraph init` runs the project Codex setup automatically unless `--skip-agents` or `--stealth` is used. In worktree, shared, or `BEADS_DIR` setups, use `issuegraph where` to confirm the resolved workspace — these integrations do not require a local `./.beads`. Restart the tool after setup if it is already running.
 
 Details: [Factory.ai Droid](/integrations/factory), [Mux](/integrations/mux), [OpenCode](/integrations/opencode), [Codex](/integrations/codex).
 
@@ -212,10 +212,10 @@ Details: [Factory.ai Droid](/integrations/factory), [Mux](/integrations/mux), [O
 **Copilot CLI:**
 
 ```bash
-bd setup copilot
+issuegraph setup copilot
 ```
 
-This installs a native Copilot CLI plugin manifest (`.copilot-plugin/plugin.json`, which registers `bd prime` hooks) and repository instructions (`.github/copilot-instructions.md`). See [Copilot CLI](/integrations/copilot-cli).
+This installs a native Copilot CLI plugin manifest (`.copilot-plugin/plugin.json`, which registers `issuegraph prime` hooks) and repository instructions (`.github/copilot-instructions.md`). See [Copilot CLI](/integrations/copilot-cli).
 
 **For VS Code with GitHub Copilot**, use the MCP server:
 
@@ -255,20 +255,20 @@ Create `.vscode/mcp.json` in your project:
 }
 ```
 
-Initialize beads and reload VS Code:
+Initialize issuegraph and reload VS Code:
 
 ```bash
-bd init --quiet
+issuegraph init --quiet
 ```
 
 See [GitHub Copilot Integration](/integrations/github-copilot) for detailed setup.
 
-## Context Injection with `bd prime`
+## Context Injection with `issuegraph prime`
 
-All integrations use `bd prime` to inject context:
+All integrations use `issuegraph prime` to inject context:
 
 ```bash
-bd prime
+issuegraph prime
 ```
 
 This outputs a compact (~1-2k tokens) workflow reference including:
@@ -276,14 +276,14 @@ This outputs a compact (~1-2k tokens) workflow reference including:
 - Current project status
 - Workflow patterns
 - Best practices
-- Persistent memories from `bd remember`
+- Persistent memories from `issuegraph remember`
 
-`bd prime` prints memories near the top and starts with a truncation warning. If your host stores the full hook output in a file and only shows a preview, have the agent read the full file before continuing.
+`issuegraph prime` prints memories near the top and starts with a truncation warning. If your host stores the full hook output in a file and only shows a preview, have the agent read the full file before continuing.
 
-In hook contexts, `bd prime --hook-json` wraps the output in the SessionStart JSON envelope (Claude Code, Gemini CLI, Codex). For memory-only hooks:
+In hook contexts, `issuegraph prime --hook-json` wraps the output in the SessionStart JSON envelope (Claude Code, Gemini CLI, Codex). For memory-only hooks:
 
 ```bash
-bd prime --memories-only
+issuegraph prime --memories-only
 ```
 
 **Why context efficiency matters:**
@@ -323,13 +323,13 @@ See [MCP Server](/integrations/mcp-server) for detailed configuration.
 For editors or tools without a built-in recipe:
 
 ```bash
-bd setup --add myeditor .myeditor/rules.md   # Save a custom recipe
-bd setup myeditor                            # Install it
-bd setup myeditor --check                    # Check it
-bd setup myeditor --remove                   # Remove it
+issuegraph setup --add myeditor .myeditor/rules.md   # Save a custom recipe
+issuegraph setup myeditor                            # Install it
+issuegraph setup myeditor --check                    # Check it
+issuegraph setup myeditor --remove                   # Remove it
 ```
 
-Custom recipes are stored in `.beads/recipes.toml` (adding one requires an active beads workspace):
+Custom recipes are stored in `.beads/recipes.toml` (adding one requires an active issuegraph workspace):
 
 ```toml
 [recipes.myeditor]
@@ -341,8 +341,8 @@ type = "file"
 For a one-off install without saving a recipe, write the template to any path — or inspect it first:
 
 ```bash
-bd setup -o .my-custom-location/beads.md
-bd setup --print
+issuegraph setup -o .my-custom-location/beads.md
+issuegraph setup --print
 ```
 
 **Recipe types:**
@@ -361,7 +361,7 @@ Custom recipes added via `--add` are always type `file`.
 Ensure git hooks are installed for export refresh and legacy fallback behavior:
 
 ```bash
-bd hooks install
+issuegraph hooks install
 ```
 
 This installs:
@@ -373,8 +373,8 @@ This installs:
 
 **Check hook status:**
 ```bash
-bd hooks list   # Installed, outdated, or missing
-bd info         # Shows warnings if hooks are outdated
+issuegraph hooks list   # Installed, outdated, or missing
+issuegraph info         # Shows warnings if hooks are outdated
 ```
 
 ## Verifying Your Setup
@@ -383,18 +383,18 @@ Run a complete health check:
 
 ```bash
 # Check version
-bd version
+issuegraph version
 
 # Check project health (includes integration status)
-bd doctor
+issuegraph doctor
 
 # Check git hooks
-bd hooks list
+issuegraph hooks list
 
 # Check editor integration
-bd setup claude --check   # or cursor, gemini, aider, ...
+issuegraph setup claude --check   # or cursor, gemini, aider, ...
 ```
 
 **Troubleshooting:**
-- *Hooks not working?* Restart your AI tool after installation, then re-run `bd setup claude --check` (or your tool's recipe) and check `bd doctor` output for integration status.
-- *Context not appearing?* Make sure `bd prime` works standalone; if it fails, fix the underlying beads issue first.
+- *Hooks not working?* Restart your AI tool after installation, then re-run `issuegraph setup claude --check` (or your tool's recipe) and check `issuegraph doctor` output for integration status.
+- *Context not appearing?* Make sure `issuegraph prime` works standalone; if it fails, fix the underlying issuegraph issue first.

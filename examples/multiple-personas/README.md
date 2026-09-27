@@ -1,6 +1,6 @@
 # Multiple Personas Workflow Example
 
-This example demonstrates how to use beads when different roles work on the same project (architect, implementer, reviewer, etc.).
+This example demonstrates how to use issuegraph when different roles work on the same project (architect, implementer, reviewer, etc.).
 
 ## Problem
 
@@ -17,17 +17,17 @@ Each persona needs:
 
 ## Solution
 
-Use beads labels, priorities, and dependencies to organize work by persona, with clear ownership and handoffs.
+Use issuegraph labels, priorities, and dependencies to organize work by persona, with clear ownership and handoffs.
 
 ## Setup
 
 ```bash
-# Initialize beads
+# Initialize issuegraph
 cd my-project
-bd init
+issuegraph init
 
 # Start Dolt server for auto-sync (optional for teams)
-bd dolt start
+issuegraph dolt start
 ```
 
 ## Persona: Architect
@@ -38,38 +38,38 @@ The architect creates high-level design and makes technical decisions.
 
 ```bash
 # Main epic
-bd create "Design new caching layer" -t epic -p 1
+issuegraph create "Design new caching layer" -t epic -p 1
 # Returns: bd-a1b2c3
 
 # Add architecture label
-bd label add bd-a1b2c3 architecture
+issuegraph label add bd-a1b2c3 architecture
 
 # Architecture tasks
-bd create "Research caching strategies (Redis vs Memcached)" -p 1 \
+issuegraph create "Research caching strategies (Redis vs Memcached)" -p 1 \
   --deps discovered-from:bd-a1b2c3
-bd label add bd-xyz architecture
+issuegraph label add bd-xyz architecture
 
-bd create "Write ADR: Caching layer design" -p 1 \
+issuegraph create "Write ADR: Caching layer design" -p 1 \
   --deps discovered-from:bd-a1b2c3
-bd label add bd-abc architecture
+issuegraph label add bd-abc architecture
 
-bd create "Design cache invalidation strategy" -p 1 \
+issuegraph create "Design cache invalidation strategy" -p 1 \
   --deps discovered-from:bd-a1b2c3
-bd label add bd-def architecture
+issuegraph label add bd-def architecture
 ```
 
 ### View Architect Work
 
 ```bash
 # See only architecture issues
-bd list --label architecture
+issuegraph list --label architecture
 
 # See architecture issues that are ready
-bd list --label architecture --status open | grep -v blocked
+issuegraph list --label architecture --status open | grep -v blocked
 
 # High-priority architecture decisions
-bd list --label architecture --priority 0
-bd list --label architecture --priority 1
+issuegraph list --label architecture --priority 0
+issuegraph list --label architecture --priority 1
 ```
 
 ### Handoff to Implementer
@@ -78,21 +78,21 @@ When design is complete, create implementation tasks:
 
 ```bash
 # Close architecture tasks
-bd close bd-xyz --reason "Decided on Redis with write-through"
-bd close bd-abc --reason "ADR-007 published"
+issuegraph close bd-xyz --reason "Decided on Redis with write-through"
+issuegraph close bd-abc --reason "ADR-007 published"
 
 # Create implementation tasks with labels
-bd create "Implement Redis connection pool" -p 1 \
+issuegraph create "Implement Redis connection pool" -p 1 \
   --deps discovered-from:bd-a1b2c3
-bd label add bd-impl1 implementation
+issuegraph label add bd-impl1 implementation
 
-bd create "Add cache middleware to API routes" -p 1 \
+issuegraph create "Add cache middleware to API routes" -p 1 \
   --deps discovered-from:bd-a1b2c3
-bd label add bd-impl2 implementation
+issuegraph label add bd-impl2 implementation
 
 # Link implementation to architecture
-bd dep add bd-impl1 bd-abc --type related  # Based on ADR
-bd dep add bd-impl2 bd-abc --type related
+issuegraph dep add bd-impl1 bd-abc --type related  # Based on ADR
+issuegraph dep add bd-impl2 bd-abc --type related
 ```
 
 ## Persona: Implementer
@@ -103,45 +103,45 @@ The implementer writes code based on architecture decisions.
 
 ```bash
 # See only implementation tasks
-bd list --label implementation --status open
+issuegraph list --label implementation --status open
 
 # See what's ready to implement
-bd ready | grep implementation
+issuegraph ready | grep implementation
 
 # High-priority bugs to fix
-bd list --label implementation --type bug --priority 0
-bd list --label implementation --type bug --priority 1
+issuegraph list --label implementation --type bug --priority 0
+issuegraph list --label implementation --type bug --priority 1
 ```
 
 ### Claim and Implement
 
 ```bash
 # Claim a task
-bd update bd-impl1 --claim
+issuegraph update bd-impl1 --claim
 
 # During implementation, discover issues
-bd create "Need connection retry logic" -t bug -p 1 \
+issuegraph create "Need connection retry logic" -t bug -p 1 \
   --deps discovered-from:bd-impl1
-bd label add bd-bug1 implementation bug
+issuegraph label add bd-bug1 implementation bug
 
-bd create "Add metrics for cache hit rate" -p 2 \
+issuegraph create "Add metrics for cache hit rate" -p 2 \
   --deps discovered-from:bd-impl1
-bd label add bd-metric1 implementation observability
+issuegraph label add bd-metric1 implementation observability
 
 # Complete implementation
-bd close bd-impl1 --reason "Redis pool working, tested locally"
+issuegraph close bd-impl1 --reason "Redis pool working, tested locally"
 ```
 
 ### Handoff to Reviewer
 
 ```bash
 # Mark ready for review
-bd create "Code review: Redis caching layer" -p 1
-bd label add bd-review1 review
+issuegraph create "Code review: Redis caching layer" -p 1
+issuegraph label add bd-review1 review
 
 # Link to implementation
-bd dep add bd-review1 bd-impl1 --type related
-bd dep add bd-review1 bd-impl2 --type related
+issuegraph dep add bd-review1 bd-impl1 --type related
+issuegraph dep add bd-review1 bd-impl2 --type related
 ```
 
 ## Persona: Reviewer
@@ -152,48 +152,48 @@ The reviewer checks code quality, tests, and approvals.
 
 ```bash
 # See all review tasks
-bd list --label review --status open
+issuegraph list --label review --status open
 
 # See what's ready for review
-bd ready | grep review
+issuegraph ready | grep review
 
 # High-priority reviews
-bd list --label review --priority 0
-bd list --label review --priority 1
+issuegraph list --label review --priority 0
+issuegraph list --label review --priority 1
 ```
 
 ### Perform Review
 
 ```bash
 # Claim review
-bd update bd-review1 --claim
+issuegraph update bd-review1 --claim
 
 # Found issues during review
-bd create "Add unit tests for retry logic" -t task -p 1 \
+issuegraph create "Add unit tests for retry logic" -t task -p 1 \
   --deps discovered-from:bd-review1
-bd label add bd-test1 implementation testing
+issuegraph label add bd-test1 implementation testing
 
-bd create "Fix: connection leak on timeout" -t bug -p 0 \
+issuegraph create "Fix: connection leak on timeout" -t bug -p 0 \
   --deps discovered-from:bd-review1
-bd label add bd-bug2 implementation bug critical
+issuegraph label add bd-bug2 implementation bug critical
 
-bd create "Document Redis config options" -p 2 \
+issuegraph create "Document Redis config options" -p 2 \
   --deps discovered-from:bd-review1
-bd label add bd-doc1 documentation
+issuegraph label add bd-doc1 documentation
 
 # Block review until issues fixed
-bd dep add bd-review1 bd-test1 --type blocks
-bd dep add bd-review1 bd-bug2 --type blocks
+issuegraph dep add bd-review1 bd-test1 --type blocks
+issuegraph dep add bd-review1 bd-bug2 --type blocks
 ```
 
 ### Approve or Request Changes
 
 ```bash
 # After fixes, approve
-bd close bd-review1 --reason "LGTM, all tests pass"
+issuegraph close bd-review1 --reason "LGTM, all tests pass"
 
 # Or request changes
-bd update bd-review1 --status blocked
+issuegraph update bd-review1 --status blocked
 # (blockers will show up in dependency tree)
 ```
 
@@ -205,42 +205,42 @@ The product owner manages priorities and requirements.
 
 ```bash
 # See all features
-bd list --type feature
+issuegraph list --type feature
 
 # See high-priority work
-bd list --priority 0
-bd list --priority 1
+issuegraph list --priority 0
+issuegraph list --priority 1
 
 # See what's in progress
-bd list --status in_progress
+issuegraph list --status in_progress
 
 # See what's blocked
-bd list --status blocked
+issuegraph list --status blocked
 ```
 
 ### Prioritize Work
 
 ```bash
 # Bump priority based on customer feedback
-bd update bd-impl2 --priority 0
+issuegraph update bd-impl2 --priority 0
 
 # Lower priority for nice-to-haves
-bd update bd-metric1 --priority 3
+issuegraph update bd-metric1 --priority 3
 
 # Add product label to track customer-facing work
-bd label add bd-impl2 customer-facing
+issuegraph label add bd-impl2 customer-facing
 ```
 
 ### Create User Stories
 
 ```bash
 # User story
-bd create "As a user, I want faster page loads" -t feature -p 1
-bd label add bd-story1 user-story customer-facing
+issuegraph create "As a user, I want faster page loads" -t feature -p 1
+issuegraph label add bd-story1 user-story customer-facing
 
 # Link technical work to user story
-bd dep add bd-impl1 bd-story1 --type related
-bd dep add bd-impl2 bd-story1 --type related
+issuegraph dep add bd-impl1 bd-story1 --type related
+issuegraph dep add bd-impl2 bd-story1 --type related
 ```
 
 ## Multi-Persona Workflow Example
@@ -251,24 +251,24 @@ bd dep add bd-impl2 bd-story1 --type related
 
 ```bash
 # Create epic
-bd create "Implement rate limiting" -t epic -p 1  # bd-epic1
-bd label add bd-epic1 architecture
+issuegraph create "Implement rate limiting" -t epic -p 1  # bd-epic1
+issuegraph label add bd-epic1 architecture
 
 # Research
-bd create "Research rate limiting algorithms" -p 1 \
+issuegraph create "Research rate limiting algorithms" -p 1 \
   --deps discovered-from:bd-epic1
-bd label add bd-research1 architecture research
+issuegraph label add bd-research1 architecture research
 
-bd update bd-research1 --claim
+issuegraph update bd-research1 --claim
 # ... research done ...
-bd close bd-research1 --reason "Chose token bucket algorithm"
+issuegraph close bd-research1 --reason "Chose token bucket algorithm"
 
 # Design
-bd create "Write ADR: Rate limiting design" -p 1 \
+issuegraph create "Write ADR: Rate limiting design" -p 1 \
   --deps discovered-from:bd-epic1
-bd label add bd-adr1 architecture documentation
+issuegraph label add bd-adr1 architecture documentation
 
-bd close bd-adr1 --reason "ADR-012 approved"
+issuegraph close bd-adr1 --reason "ADR-012 approved"
 ```
 
 ### Week 2: Implementation Phase
@@ -277,53 +277,53 @@ bd close bd-adr1 --reason "ADR-012 approved"
 
 ```bash
 # See what's ready to implement
-bd ready | grep implementation
+issuegraph ready | grep implementation
 
 # Create implementation tasks based on architecture
-bd create "Implement token bucket algorithm" -p 1 \
+issuegraph create "Implement token bucket algorithm" -p 1 \
   --deps discovered-from:bd-epic1
-bd label add bd-impl1 implementation
-bd dep add bd-impl1 bd-adr1 --type related
+issuegraph label add bd-impl1 implementation
+issuegraph dep add bd-impl1 bd-adr1 --type related
 
-bd create "Add rate limit middleware" -p 1 \
+issuegraph create "Add rate limit middleware" -p 1 \
   --deps discovered-from:bd-epic1
-bd label add bd-impl2 implementation
+issuegraph label add bd-impl2 implementation
 
 # Claim and start
-bd update bd-impl1 --claim
+issuegraph update bd-impl1 --claim
 
 # Discover issues
-bd create "Need distributed rate limiting (Redis)" -t bug -p 1 \
+issuegraph create "Need distributed rate limiting (Redis)" -t bug -p 1 \
   --deps discovered-from:bd-impl1
-bd label add bd-bug1 implementation bug
+issuegraph label add bd-bug1 implementation bug
 ```
 
 **Architect (consulted):**
 
 ```bash
 # Architect reviews discovered issue
-bd show bd-bug1
-bd update bd-bug1 --priority 0  # Escalate to critical
-bd label add bd-bug1 architecture  # Architect will handle
+issuegraph show bd-bug1
+issuegraph update bd-bug1 --priority 0  # Escalate to critical
+issuegraph label add bd-bug1 architecture  # Architect will handle
 
 # Make decision
-bd create "Design: Distributed rate limiting" -p 0 \
+issuegraph create "Design: Distributed rate limiting" -p 0 \
   --deps discovered-from:bd-bug1
-bd label add bd-design1 architecture
+issuegraph label add bd-design1 architecture
 
-bd close bd-design1 --reason "Use Redis with sliding window"
+issuegraph close bd-design1 --reason "Use Redis with sliding window"
 ```
 
 **Implementer (continues):**
 
 ```bash
 # Implement based on architecture decision
-bd create "Add Redis sliding window for rate limits" -p 0 \
+issuegraph create "Add Redis sliding window for rate limits" -p 0 \
   --deps discovered-from:bd-design1
-bd label add bd-impl3 implementation
+issuegraph label add bd-impl3 implementation
 
-bd close bd-impl1 --reason "Token bucket working"
-bd close bd-impl3 --reason "Redis rate limiting working"
+issuegraph close bd-impl1 --reason "Token bucket working"
+issuegraph close bd-impl3 --reason "Redis rate limiting working"
 ```
 
 ### Week 3: Review Phase
@@ -332,53 +332,53 @@ bd close bd-impl3 --reason "Redis rate limiting working"
 
 ```bash
 # See what's ready for review
-bd list --label review
+issuegraph list --label review
 
 # Create review task
-bd create "Code review: Rate limiting" -p 1
-bd label add bd-review1 review
-bd dep add bd-review1 bd-impl1 --type related
-bd dep add bd-review1 bd-impl3 --type related
+issuegraph create "Code review: Rate limiting" -p 1
+issuegraph label add bd-review1 review
+issuegraph dep add bd-review1 bd-impl1 --type related
+issuegraph dep add bd-review1 bd-impl3 --type related
 
-bd update bd-review1 --claim
+issuegraph update bd-review1 --claim
 
 # Found issues
-bd create "Add integration tests for Redis" -t task -p 1 \
+issuegraph create "Add integration tests for Redis" -t task -p 1 \
   --deps discovered-from:bd-review1
-bd label add bd-test1 testing implementation
+issuegraph label add bd-test1 testing implementation
 
-bd create "Missing error handling for Redis down" -t bug -p 0 \
+issuegraph create "Missing error handling for Redis down" -t bug -p 0 \
   --deps discovered-from:bd-review1
-bd label add bd-bug2 implementation bug critical
+issuegraph label add bd-bug2 implementation bug critical
 
 # Block review
-bd dep add bd-review1 bd-test1 --type blocks
-bd dep add bd-review1 bd-bug2 --type blocks
+issuegraph dep add bd-review1 bd-test1 --type blocks
+issuegraph dep add bd-review1 bd-bug2 --type blocks
 ```
 
 **Implementer (fixes):**
 
 ```bash
 # Fix review findings
-bd update bd-bug2 --claim
-bd close bd-bug2 --reason "Added circuit breaker for Redis"
+issuegraph update bd-bug2 --claim
+issuegraph close bd-bug2 --reason "Added circuit breaker for Redis"
 
-bd update bd-test1 --claim
-bd close bd-test1 --reason "Integration tests passing"
+issuegraph update bd-test1 --claim
+issuegraph close bd-test1 --reason "Integration tests passing"
 ```
 
 **Reviewer (approves):**
 
 ```bash
 # Review unblocked
-bd close bd-review1 --reason "Approved, merging PR"
+issuegraph close bd-review1 --reason "Approved, merging PR"
 ```
 
 **Product Owner (closes epic):**
 
 ```bash
 # Feature shipped!
-bd close bd-epic1 --reason "Rate limiting in production"
+issuegraph close bd-epic1 --reason "Rate limiting in production"
 ```
 
 ## Label Organization
@@ -409,16 +409,16 @@ customer-facing, user-story, feedback
 
 ```bash
 # Critical bugs for implementers
-bd list --label implementation --label bug --label critical
+issuegraph list --label implementation --label bug --label critical
 
 # Architecture issues needing review
-bd list --label architecture --label review
+issuegraph list --label architecture --label review
 
 # Customer-facing features
-bd list --label customer-facing --type feature
+issuegraph list --label customer-facing --type feature
 
 # Backend implementation work
-bd list --label backend --label implementation --status open
+issuegraph list --label backend --label implementation --status open
 ```
 
 ## Filtering by Persona
@@ -427,60 +427,60 @@ bd list --label backend --label implementation --status open
 
 ```bash
 # My work
-bd list --label architecture --status open
+issuegraph list --label architecture --status open
 
 # Design decisions to make
-bd list --label architecture --label needs-design
+issuegraph list --label architecture --label needs-design
 
 # High-priority architecture
-bd list --label architecture --priority 0
-bd list --label architecture --priority 1
+issuegraph list --label architecture --priority 0
+issuegraph list --label architecture --priority 1
 ```
 
 ### Implementer View
 
 ```bash
 # My work
-bd list --label implementation --status open
+issuegraph list --label implementation --status open
 
 # Ready to implement
-bd ready | grep implementation
+issuegraph ready | grep implementation
 
 # Bugs to fix
-bd list --label implementation --type bug --priority 0
-bd list --label implementation --type bug --priority 1
+issuegraph list --label implementation --type bug --priority 0
+issuegraph list --label implementation --type bug --priority 1
 
 # Blocked work
-bd list --label implementation --status blocked
+issuegraph list --label implementation --status blocked
 ```
 
 ### Reviewer View
 
 ```bash
 # Reviews waiting
-bd list --label review --status open
+issuegraph list --label review --status open
 
 # Critical reviews
-bd list --label review --priority 0
+issuegraph list --label review --priority 0
 
 # Blocked reviews
-bd list --label review --status blocked
+issuegraph list --label review --status blocked
 ```
 
 ### Product Owner View
 
 ```bash
 # All customer-facing work
-bd list --label customer-facing
+issuegraph list --label customer-facing
 
 # Features in progress
-bd list --type feature --status in_progress
+issuegraph list --type feature --status in_progress
 
 # Blocked work (needs attention)
-bd list --status blocked
+issuegraph list --status blocked
 
 # High-priority items across all personas
-bd list --priority 0
+issuegraph list --priority 0
 ```
 
 ## Handoff Patterns
@@ -489,42 +489,42 @@ bd list --priority 0
 
 ```bash
 # Architect creates spec
-bd create "Design: New payment API" -p 1
-bd label add bd-design1 architecture documentation
+issuegraph create "Design: New payment API" -p 1
+issuegraph label add bd-design1 architecture documentation
 
 # When done, create implementation tasks
-bd create "Implement Stripe integration" -p 1
-bd label add bd-impl1 implementation
-bd dep add bd-impl1 bd-design1 --type related
+issuegraph create "Implement Stripe integration" -p 1
+issuegraph label add bd-impl1 implementation
+issuegraph dep add bd-impl1 bd-design1 --type related
 
-bd close bd-design1 --reason "Spec complete, ready for implementation"
+issuegraph close bd-design1 --reason "Spec complete, ready for implementation"
 ```
 
 ### Implementation → Review
 
 ```bash
 # Implementer finishes
-bd close bd-impl1 --reason "Stripe working, PR ready"
+issuegraph close bd-impl1 --reason "Stripe working, PR ready"
 
 # Create review task
-bd create "Code review: Stripe integration" -p 1
-bd label add bd-review1 review
-bd dep add bd-review1 bd-impl1 --type related
+issuegraph create "Code review: Stripe integration" -p 1
+issuegraph label add bd-review1 review
+issuegraph dep add bd-review1 bd-impl1 --type related
 ```
 
 ### Review → Product
 
 ```bash
 # Reviewer approves
-bd close bd-review1 --reason "Approved, deployed to staging"
+issuegraph close bd-review1 --reason "Approved, deployed to staging"
 
 # Product tests in staging
-bd create "UAT: Test Stripe in staging" -p 1
-bd label add bd-uat1 product testing
-bd dep add bd-uat1 bd-review1 --type related
+issuegraph create "UAT: Test Stripe in staging" -p 1
+issuegraph label add bd-uat1 product testing
+issuegraph dep add bd-uat1 bd-review1 --type related
 
 # Product approves for production
-bd close bd-uat1 --reason "UAT passed, deploying to prod"
+issuegraph close bd-uat1 --reason "UAT passed, deploying to prod"
 ```
 
 ## Best Practices
@@ -533,9 +533,9 @@ bd close bd-uat1 --reason "UAT passed, deploying to prod"
 
 ```bash
 # Good: Clear role separation
-bd label add bd-123 architecture
-bd label add bd-456 implementation
-bd label add bd-789 review
+issuegraph label add bd-123 architecture
+issuegraph label add bd-456 implementation
+issuegraph label add bd-789 review
 
 # Bad: Mixing concerns
 # (same issue shouldn't be both architecture and implementation)
@@ -545,17 +545,17 @@ bd label add bd-789 review
 
 ```bash
 # Always link implementation to architecture
-bd dep add bd-impl bd-arch --type related
+issuegraph dep add bd-impl bd-arch --type related
 
 # Link bugs to features
-bd dep add bd-bug bd-feature --type discovered-from
+issuegraph dep add bd-bug bd-feature --type discovered-from
 ```
 
 ### 3. Clear Handoffs
 
 ```bash
 # Document why closing
-bd close bd-arch --reason "Design complete, created bd-impl1 and bd-impl2 for implementation"
+issuegraph close bd-arch --reason "Design complete, created bd-impl1 and bd-impl2 for implementation"
 
 # Not: "done" (too vague)
 ```
@@ -564,23 +564,23 @@ bd close bd-arch --reason "Design complete, created bd-impl1 and bd-impl2 for im
 
 ```bash
 # Implementer discovers architectural issue
-bd create "Current design doesn't handle edge case X" -t bug -p 0
-bd label add bd-issue architecture  # Tag for architect
-bd label add bd-issue needs-design  # Flag as needing design
+issuegraph create "Current design doesn't handle edge case X" -t bug -p 0
+issuegraph label add bd-issue architecture  # Tag for architect
+issuegraph label add bd-issue needs-design  # Flag as needing design
 ```
 
 ### 5. Regular Syncs
 
 ```bash
 # Daily: Each persona checks their work
-bd list --label architecture --status open  # Architect
-bd list --label implementation --status open  # Implementer
-bd list --label review --status open  # Reviewer
+issuegraph list --label architecture --status open  # Architect
+issuegraph list --label implementation --status open  # Implementer
+issuegraph list --label review --status open  # Reviewer
 
 # Weekly: Team reviews together
-bd stats  # Overall progress
-bd list --status blocked  # What's stuck?
-bd ready  # What's ready to work on?
+issuegraph stats  # Overall progress
+issuegraph list --status blocked  # What's stuck?
+issuegraph ready  # What's ready to work on?
 ```
 
 ## Common Patterns
@@ -589,72 +589,72 @@ bd ready  # What's ready to work on?
 
 ```bash
 # Architect creates research spike
-bd create "Spike: Evaluate GraphQL vs REST" -p 1
-bd label add bd-spike1 architecture research
+issuegraph create "Spike: Evaluate GraphQL vs REST" -p 1
+issuegraph label add bd-spike1 architecture research
 
-bd close bd-spike1 --reason "Chose GraphQL, created implementation tasks"
+issuegraph close bd-spike1 --reason "Chose GraphQL, created implementation tasks"
 
 # Implementation follows
-bd create "Implement GraphQL API" -p 1
-bd label add bd-impl1 implementation
-bd dep add bd-impl1 bd-spike1 --type related
+issuegraph create "Implement GraphQL API" -p 1
+issuegraph label add bd-impl1 implementation
+issuegraph dep add bd-impl1 bd-spike1 --type related
 ```
 
 ### Bug Triage
 
 ```bash
 # Bug reported
-bd create "App crashes on large files" -t bug -p 1
+issuegraph create "App crashes on large files" -t bug -p 1
 
 # Implementer investigates
-bd update bd-bug1 --label implementation
-bd update bd-bug1 --claim
+issuegraph update bd-bug1 --label implementation
+issuegraph update bd-bug1 --claim
 
 # Discovers architectural issue
-bd create "Need streaming uploads, not buffering" -t bug -p 0
-bd label add bd-arch1 architecture
-bd dep add bd-arch1 bd-bug1 --type discovered-from
+issuegraph create "Need streaming uploads, not buffering" -t bug -p 0
+issuegraph label add bd-arch1 architecture
+issuegraph dep add bd-arch1 bd-bug1 --type discovered-from
 
 # Architect designs solution
-bd update bd-arch1 --label architecture
-bd close bd-arch1 --reason "Designed streaming upload flow"
+issuegraph update bd-arch1 --label architecture
+issuegraph close bd-arch1 --reason "Designed streaming upload flow"
 
 # Implementer fixes
-bd update bd-bug1 --claim
-bd close bd-bug1 --reason "Implemented streaming uploads"
+issuegraph update bd-bug1 --claim
+issuegraph close bd-bug1 --reason "Implemented streaming uploads"
 ```
 
 ### Feature Development
 
 ```bash
 # Product creates user story
-bd create "Users want bulk import" -t feature -p 1
-bd label add bd-story1 user-story product
+issuegraph create "Users want bulk import" -t feature -p 1
+issuegraph label add bd-story1 user-story product
 
 # Architect designs
-bd create "Design: Bulk import system" -p 1
-bd label add bd-design1 architecture
-bd dep add bd-design1 bd-story1 --type related
+issuegraph create "Design: Bulk import system" -p 1
+issuegraph label add bd-design1 architecture
+issuegraph dep add bd-design1 bd-story1 --type related
 
 # Implementation tasks
-bd create "Implement CSV parser" -p 1
-bd label add bd-impl1 implementation
-bd dep add bd-impl1 bd-design1 --type related
+issuegraph create "Implement CSV parser" -p 1
+issuegraph label add bd-impl1 implementation
+issuegraph dep add bd-impl1 bd-design1 --type related
 
-bd create "Implement batch processor" -p 1
-bd label add bd-impl2 implementation
-bd dep add bd-impl2 bd-design1 --type related
+issuegraph create "Implement batch processor" -p 1
+issuegraph label add bd-impl2 implementation
+issuegraph dep add bd-impl2 bd-design1 --type related
 
 # Review
-bd create "Code review: Bulk import" -p 1
-bd label add bd-review1 review
-bd dep add bd-review1 bd-impl1 --type blocks
-bd dep add bd-review1 bd-impl2 --type blocks
+issuegraph create "Code review: Bulk import" -p 1
+issuegraph label add bd-review1 review
+issuegraph dep add bd-review1 bd-impl1 --type blocks
+issuegraph dep add bd-review1 bd-impl2 --type blocks
 
 # Product UAT
-bd create "UAT: Bulk import" -p 1
-bd label add bd-uat1 product testing
-bd dep add bd-uat1 bd-review1 --type blocks
+issuegraph create "UAT: Bulk import" -p 1
+issuegraph label add bd-uat1 product testing
+issuegraph dep add bd-uat1 bd-review1 --type blocks
 ```
 
 ## See Also

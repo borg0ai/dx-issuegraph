@@ -2,11 +2,11 @@
 
 ## Overview
 
-Beads uses OpenTelemetry (OTel) for structured observability of all database operations, CLI commands, and Dolt version control. Telemetry is emitted via standard OTLP HTTP to any compatible backend (metrics, traces).
+IssueGraph uses OpenTelemetry (OTel) for structured observability of all database operations, CLI commands, and Dolt version control. Telemetry is emitted via standard OTLP HTTP to any compatible backend (metrics, traces).
 
 **Backend-agnostic design**: The system emits standard OpenTelemetry Protocol (OTLP) — any OTLP v1.x+ compatible backend can consume it. You are **not obligated** to use VictoriaMetrics/VictoriaLogs; these are simply development defaults.
 
-**Best-effort design**: Telemetry initialization errors are returned but do not affect normal `bd` operation. The system remains functional even when telemetry is unavailable.
+**Best-effort design**: Telemetry initialization errors are returned but do not affect normal `issuegraph` operation. The system remains functional even when telemetry is unavailable.
 
 ---
 
@@ -153,7 +153,7 @@ defer telemetry.Shutdown(ctx)
 - Metrics: `http://localhost:8428/opentelemetry/api/v1/push`
 - Traces: stdout (via `BD_OTEL_STDOUT=true`)
 
-> **Note**: These defaults target VictoriaMetrics for local development convenience. Beads uses standard OTLP — you can override endpoints to use any OTLP v1.x+ compatible backend (Prometheus, Grafana Mimir, Datadog, New Relic, Grafana Cloud, Loki, OpenTelemetry Collector, etc.).
+> **Note**: These defaults target VictoriaMetrics for local development convenience. IssueGraph uses standard OTLP — you can override endpoints to use any OTLP v1.x+ compatible backend (Prometheus, Grafana Mimir, Datadog, New Relic, Grafana Cloud, Loki, OpenTelemetry Collector, etc.).
 
 **OTLP Compatibility**:
 - Uses standard OpenTelemetry Protocol (OTLP) over HTTP
@@ -281,7 +281,7 @@ OTel SDK uses dot-notation internally. Prometheus-compatible backends (VictoriaM
 
 ## Environment Variables
 
-### Beads-Level Variables
+### IssueGraph-Level Variables
 
 | Variable | Set by | Description |
 |-----------|----------|-------------|
@@ -320,7 +320,7 @@ OTel SDK uses dot-notation internally. Prometheus-compatible backends (VictoriaM
 
 | Event | Trigger | Key Attributes |
 |-------|---------|----------------|
-| `bd.command.<name>` | Each `bd` subcommand execution | `bd.command`, `bd.version`, `bd.args`, `bd.actor` |
+| `bd.command.<name>` | Each `issuegraph` subcommand execution | `bd.command`, `bd.version`, `bd.args`, `bd.actor` |
 
 ### Storage Events
 
@@ -424,8 +424,8 @@ Dolt exposes internal metrics only via:
 - `performance_schema` tables (MySQL standard, accessible via SQL queries)
 - System tables (`dolt_log`, `dolt_status`, `dolt_diff`, `dolt_branches`, `dolt_conflicts`)
 
-**Beads implementation**:
-Beads currently queries Dolt metrics via direct SQL (see `cmd/bd/doctor/perf_dolt.go`) rather than via OTLP. This is intentional — Dolt lacks native OTel support.
+**IssueGraph implementation**:
+IssueGraph currently queries Dolt metrics via direct SQL (see `modules/cli/doctor/perf_dolt.go`) rather than via OTLP. This is intentional — Dolt lacks native OTel support.
 
 ### Dolt System Tables for Telemetry
 
@@ -509,7 +509,7 @@ Audited against **`main` @ `371df32b`**. All line numbers below refer to that co
 
 Every factual claim in this document is backed by a specific source location. This table exists to prevent documentation drift and to make it easy to re-verify after code changes.
 
-### Initialization (`internal/telemetry/telemetry.go`, `cmd/bd/main.go`)
+### Initialization (`internal/telemetry/telemetry.go`, `modules/cli/main.go`)
 
 | Claim | Source |
 |-------|--------|
@@ -591,7 +591,7 @@ Every factual claim in this document is backed by a specific source location. Th
 | `hook.stdout` / `hook.stderr` events carry `output`, `bytes` attrs | `hooks_otel.go:15-16, 21-22` |
 | No metric counters or histograms for hooks | grep `internal/hooks/` for `Counter\|Histogram` → zero matches |
 
-### AI (`internal/compact/haiku.go`, `cmd/bd/find_duplicates.go`)
+### AI (`internal/compact/haiku.go`, `modules/cli/find_duplicates.go`)
 
 | Claim | Source |
 |-------|--------|

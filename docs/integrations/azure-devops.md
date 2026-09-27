@@ -1,16 +1,16 @@
 ---
 title: Azure DevOps (ADO) Integration Configuration
-description: Configuration reference for bd ado sync, which bidirectionally syncs beads issues with Azure DevOps work items
+description: Configuration reference for issuegraph ado sync, which bidirectionally syncs issuegraph issues with Azure DevOps work items
 ---
 
 Last reviewed: 2026-08-07
 
-Freshness source: `cmd/bd/ado*.go` and `internal/ado/`.
+Freshness source: `modules/cli/ado*.go` and `internal/ado/`.
 
-This guide covers all configuration options for the `bd ado sync` command, which synchronizes beads issues with Azure DevOps work items.
+This guide covers all configuration options for the `issuegraph ado sync` command, which synchronizes issuegraph issues with Azure DevOps work items.
 
-**Proxied-server mode:** `bd ado sync`, `bd ado status`, and `bd ado projects`
-are not supported when bd is connected to a proxied server (error:
+**Proxied-server mode:** `issuegraph ado sync`, `issuegraph ado status`, and `issuegraph ado projects`
+are not supported when issuegraph is connected to a proxied server (error:
 `ado sync is not supported in proxied-server mode`); run them from a
 workspace with direct database access.
 
@@ -18,9 +18,9 @@ workspace with direct database access.
 
 ```bash
 # Set required config
-bd config set ado.pat "your-personal-access-token"
-bd config set ado.org "your-organization"
-bd config set ado.project "your-project"
+issuegraph config set ado.pat "your-personal-access-token"
+issuegraph config set ado.org "your-organization"
+issuegraph config set ado.project "your-project"
 
 # Or use environment variables
 export AZURE_DEVOPS_PAT="your-personal-access-token"
@@ -28,16 +28,16 @@ export AZURE_DEVOPS_ORG="your-organization"
 export AZURE_DEVOPS_PROJECT="your-project"
 
 # Sync (bidirectional)
-bd ado sync
+issuegraph ado sync
 
 # Pull only (import from ADO)
-bd ado sync --pull-only
+issuegraph ado sync --pull-only
 
 # Push only (export to ADO)
-bd ado sync --push-only
+issuegraph ado sync --push-only
 
 # Preview without making changes
-bd ado sync --dry-run
+issuegraph ado sync --dry-run
 ```
 
 ## Connection Configuration
@@ -54,7 +54,7 @@ bd ado sync --dry-run
 
 ² At least one project must be configured via `ado.project` or `ado.projects`.
 
-**Config vs env var precedence:** Config keys (set via `bd config set`) take priority over environment variables.
+**Config vs env var precedence:** Config keys (set via `issuegraph config set`) take priority over environment variables.
 
 `ado.pat` is a secret key stored in `config.yaml` (per-repo or user-global),
 never the shared database, so the PAT cannot leak via `dolt push`.
@@ -64,8 +64,8 @@ never the shared database, so the PAT cannot leak via `dolt push`.
 For Azure DevOps Server (on-prem), use `ado.url` instead of `ado.org`:
 
 ```bash
-bd config set ado.url "https://tfs.company.com/DefaultCollection"
-bd config set ado.project "MyProject"
+issuegraph config set ado.url "https://tfs.company.com/DefaultCollection"
+issuegraph config set ado.project "MyProject"
 ```
 
 ### Multi-Project Sync
@@ -73,7 +73,7 @@ bd config set ado.project "MyProject"
 Sync across multiple projects in a single command:
 
 ```bash
-bd config set ado.projects "ProjectA,ProjectB,ProjectC"
+issuegraph config set ado.projects "ProjectA,ProjectB,ProjectC"
 ```
 
 The first project is used as the primary for URL construction. WIQL queries use `TeamProject IN (...)` for multi-project support.
@@ -109,7 +109,7 @@ SELECT [System.Id] FROM WorkItems WHERE
 
 Priority mapping is bidirectional but **lossy for P3/P4**:
 
-| Beads Priority | ADO Priority | Direction | Notes |
+| IssueGraph Priority | ADO Priority | Direction | Notes |
 |---|---|---|---|
 | 0 (Critical) | 1 | ↔ | |
 | 1 (High) | 2 | ↔ | |
@@ -117,11 +117,11 @@ Priority mapping is bidirectional but **lossy for P3/P4**:
 | 3 (Low) | 4 | → | |
 | 4 (Backlog) | 4 | → | **Lossy**: becomes P3 on pull |
 
-> **Note:** Beads P3 and P4 both map to ADO priority 4. On a fresh pull into an empty database, ADO 4 maps back to beads P3. The original priority is not preserved across a full round-trip for P4 issues.
+> **Note:** IssueGraph P3 and P4 both map to ADO priority 4. On a fresh pull into an empty database, ADO 4 maps back to issuegraph P3. The original priority is not preserved across a full round-trip for P4 issues.
 
 For Bug-type work items, ADO also requires a Severity field:
 
-| Beads Priority | ADO Severity |
+| IssueGraph Priority | ADO Severity |
 |---|---|
 | 0 | 1 - Critical |
 | 1 | 2 - High |
@@ -130,7 +130,7 @@ For Bug-type work items, ADO also requires a Severity field:
 
 ### Status Mapping
 
-| Beads Status | Default ADO State | Config Key |
+| IssueGraph Status | Default ADO State | Config Key |
 |---|---|---|
 | `open` | `New` | `ado.state_map.open` |
 | `in_progress` | `Active` | `ado.state_map.in_progress` |
@@ -138,20 +138,20 @@ For Bug-type work items, ADO also requires a Severity field:
 | `deferred` | `Removed` | `ado.state_map.deferred` |
 | `closed` | `Closed` | `ado.state_map.closed` |
 
-**Blocked status:** ADO has no native blocked state. beads maps blocked to `Active` and adds a `beads:blocked` tag. On pull, `Active` + `beads:blocked` tag restores `StatusBlocked`.
+**Blocked status:** ADO has no native blocked state. issuegraph maps blocked to `Active` and adds a `beads:blocked` tag. On pull, `Active` + `beads:blocked` tag restores `StatusBlocked`.
 
 Override defaults for your process template:
 
 ```bash
 # Example: Scrum template
-bd config set ado.state_map.open "To Do"
-bd config set ado.state_map.in_progress "In Progress"
-bd config set ado.state_map.closed "Done"
+issuegraph config set ado.state_map.open "To Do"
+issuegraph config set ado.state_map.in_progress "In Progress"
+issuegraph config set ado.state_map.closed "Done"
 ```
 
 ### Type Mapping
 
-| Beads Type | Default ADO Type | Config Key |
+| IssueGraph Type | Default ADO Type | Config Key |
 |---|---|---|
 | `bug` | `Bug` | `ado.type_map.bug` |
 | `feature` | `User Story` | `ado.type_map.feature` |
@@ -159,7 +159,7 @@ bd config set ado.state_map.closed "Done"
 | `epic` | `Epic` | `ado.type_map.epic` |
 | `chore` | `Task` | `ado.type_map.chore` |
 
-Reverse mapping (ADO → beads) also recognizes:
+Reverse mapping (ADO → issuegraph) also recognizes:
 - `Product Backlog Item` → `feature` (Scrum template)
 - `Issue` → `task`
 
@@ -167,7 +167,7 @@ Override for your process template:
 
 ```bash
 # Example: Scrum template
-bd config set ado.type_map.feature "Product Backlog Item"
+issuegraph config set ado.type_map.feature "Product Backlog Item"
 ```
 
 ## Process Template Configuration
@@ -189,10 +189,10 @@ Epic:        New → Active → Resolved → Closed
 ### Scrum
 
 ```bash
-bd config set ado.type_map.feature "Product Backlog Item"
-bd config set ado.state_map.open "New"
-bd config set ado.state_map.in_progress "Committed"
-bd config set ado.state_map.closed "Done"
+issuegraph config set ado.type_map.feature "Product Backlog Item"
+issuegraph config set ado.state_map.open "New"
+issuegraph config set ado.state_map.in_progress "Committed"
+issuegraph config set ado.state_map.closed "Done"
 ```
 
 State transitions:
@@ -205,10 +205,10 @@ Bug:                  New → Approved → Committed → Done
 ### CMMI
 
 ```bash
-bd config set ado.type_map.feature "Requirement"
-bd config set ado.state_map.open "Proposed"
-bd config set ado.state_map.in_progress "Active"
-bd config set ado.state_map.closed "Closed"
+issuegraph config set ado.type_map.feature "Requirement"
+issuegraph config set ado.state_map.open "Proposed"
+issuegraph config set ado.state_map.in_progress "Active"
+issuegraph config set ado.state_map.closed "Closed"
 ```
 
 State transitions:
@@ -220,13 +220,13 @@ Bug:         Proposed → Active → Resolved → Closed
 
 ### State Transition Handling
 
-When creating a work item in a non-initial state (e.g., pushing a closed issue), beads:
+When creating a work item in a non-initial state (e.g., pushing a closed issue), issuegraph:
 
 1. Creates the item in the initial state (e.g., `New`)
 2. Transitions through intermediate states to reach the target
 3. Example: Creating a closed Bug → `New → Active → Resolved → Closed`
 
-If a direct transition fails (ADO returns 400), beads automatically walks the known transition path for the work item type and process template.
+If a direct transition fails (ADO returns 400), issuegraph automatically walks the known transition path for the work item type and process template.
 
 ## Sync Options
 
@@ -245,7 +245,7 @@ When the same issue has been modified both locally and in ADO:
 | Flag | Description |
 |---|---|
 | `--prefer-newer` | Most recently updated version wins (default) |
-| `--prefer-local` | Local beads version always wins |
+| `--prefer-local` | Local issuegraph version always wins |
 | `--prefer-ado` | ADO version always wins |
 
 ### Additional Flags
@@ -264,7 +264,7 @@ When the same issue has been modified both locally and in ADO:
 
 ### Reconciliation
 
-A reconciliation scan re-checks work items beads already tracks, so items deleted
+A reconciliation scan re-checks work items issuegraph already tracks, so items deleted
 in ADO (404) or no longer readable (403) are detected instead of lingering. It
 does not run on every sync — that would cost an API call per tracked item — so it
 runs periodically, and `--reconcile` forces it immediately.
@@ -273,7 +273,7 @@ runs periodically, and `--reconcile` forces it immediately.
 |---|---|---|
 | `ado.reconcile_interval` | `10` | Number of syncs between automatic reconciliation scans |
 
-`ado.syncs_since_reconcile` also appears in config: it is the counter beads keeps
+`ado.syncs_since_reconcile` also appears in config: it is the counter issuegraph keeps
 to know when the next scan is due, not a setting to edit.
 
 ## PAT Permissions
@@ -288,7 +288,7 @@ Generate a PAT at: `https://dev.azure.com/{org}/_usersettings/tokens`
 
 ## Metadata Preserved
 
-beads stores ADO-specific metadata for round-trip fidelity:
+issuegraph stores ADO-specific metadata for round-trip fidelity:
 
 | Metadata Key | Description |
 |---|---|
@@ -301,12 +301,12 @@ beads stores ADO-specific metadata for round-trip fidelity:
 
 ## Description Conversion
 
-- **Push (beads → ADO):** Markdown converted to HTML
-- **Pull (ADO → beads):** HTML converted to Markdown
+- **Push (issuegraph → ADO):** Markdown converted to HTML
+- **Pull (ADO → issuegraph):** HTML converted to Markdown
 
 ## Tags and Labels
 
-- ADO tags are semicolon-separated; beads labels use arrays
+- ADO tags are semicolon-separated; issuegraph labels use arrays
 - User labels round-trip through ADO tags
 - Internal `beads:*` tags (e.g., `beads:blocked`) are filtered on pull — they don't appear as user labels
 
@@ -324,18 +324,18 @@ beads stores ADO-specific metadata for round-trip fidelity:
 
 ### Common Errors
 
-**`ado.pat not configured: set via 'bd config set ado.pat <token>' or AZURE_DEVOPS_PAT env var`**
+**`ado.pat not configured: set via 'issuegraph config set ado.pat <token>' or AZURE_DEVOPS_PAT env var`**
 ```bash
-bd config set ado.pat "your-pat-here"
+issuegraph config set ado.pat "your-pat-here"
 # or
 export AZURE_DEVOPS_PAT="your-pat-here"
 ```
 
-**`ado.org not configured: set via 'bd config set ado.org <org>' or AZURE_DEVOPS_ORG env var`**
+**`ado.org not configured: set via 'issuegraph config set ado.org <org>' or AZURE_DEVOPS_ORG env var`**
 ```bash
-bd config set ado.org "your-org"
+issuegraph config set ado.org "your-org"
 # or for on-prem:
-bd config set ado.url "https://tfs.company.com/DefaultCollection"
+issuegraph config set ado.url "https://tfs.company.com/DefaultCollection"
 ```
 
 **State transition errors (400 Bad Request)**
@@ -348,10 +348,10 @@ Verify your `ado.type_map.*` config matches the work item types available in you
 
 ```bash
 # Preview what would happen
-bd ado sync --dry-run
+issuegraph ado sync --dry-run
 
 # Check current config
-bd config get ado.pat
-bd config get ado.org
-bd config get ado.project
+issuegraph config get ado.pat
+issuegraph config get ado.org
+issuegraph config get ado.project
 ```

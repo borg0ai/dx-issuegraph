@@ -1,4 +1,4 @@
-# Beads (bd) Windows installer
+# IssueGraph (issuegraph) Windows installer
 # Usage:
 #   irm https://raw.githubusercontent.com/gastownhall/beads/main/install.ps1 | iex
 
@@ -12,25 +12,6 @@ function Write-Info($Message)    { Write-Host "==> $Message" -ForegroundColor Cy
 function Write-Success($Message) { Write-Host "==> $Message" -ForegroundColor Green }
 function Write-WarningMsg($Message) { Write-Warning $Message }
 function Write-Err($Message)     { Write-Host "Error: $Message" -ForegroundColor Red }
-
-# Create 'beads' alias (copy of bd.exe)
-# On Windows, symlinks require admin privileges, so we create a copy instead
-function Create-BeadsAlias {
-    param([string]$BinDir)
-
-    $bdPath = Join-Path $BinDir "bd.exe"
-    $beadsPath = Join-Path $BinDir "beads.exe"
-
-    if (Test-Path $bdPath) {
-        Write-Info "Creating 'beads' alias..."
-        try {
-            Copy-Item -Path $bdPath -Destination $beadsPath -Force
-            Write-Success "Created 'beads.exe' alias -> bd.exe"
-        } catch {
-            Write-WarningMsg "Failed to create beads.exe alias: $_"
-        }
-    }
-}
 
 function Test-GoSupport {
     $goCmd = Get-Command go -ErrorAction SilentlyContinue
@@ -78,9 +59,9 @@ function Install-WithGo {
         return $false
     }
 
-    Write-Info "Installing bd via go install..."
+    Write-Info "Installing issuegraph via go install..."
     try {
-        & go install -tags gms_pure_go github.com/steveyegge/beads/cmd/bd@latest
+        & go install -tags gms_pure_go github.com/steveyegge/beads/modules/cli@latest
         if ($LASTEXITCODE -ne 0) {
             Write-WarningMsg "go install exited with code $LASTEXITCODE"
             return $false
@@ -101,15 +82,14 @@ function Install-WithGo {
         $binDir = Join-Path $gopath "bin"
     }
 
-    $bdPath = Join-Path $binDir "bd.exe"
+    # `go install` names the binary after the package directory (cli), not
+    # the product name.
+    $bdPath = Join-Path $binDir "cli.exe"
     # Record where we expect the binary to have been installed in this run
     $Script:LastInstallPath = $bdPath
 
     if (-not (Test-Path $bdPath)) {
-        Write-WarningMsg "bd.exe not found in $binDir after install"
-    } else {
-        # Create 'beads' alias
-        Create-BeadsAlias -BinDir $binDir
+        Write-WarningMsg "cli.exe not found in $binDir after install"
     }
 
     $pathEntries = [Environment]::GetEnvironmentVariable("PATH", "Process").Split([IO.Path]::PathSeparator) | ForEach-Object { $_.Trim() }
@@ -174,7 +154,7 @@ function Get-ExpectedReleaseChecksum {
 }
 
 function Install-FromRelease {
-    Write-Info "Installing bd from GitHub releases..."
+    Write-Info "Installing issuegraph from GitHub releases..."
 
     $arch = Get-WindowsArch
     if (-not $arch) {
@@ -229,19 +209,19 @@ function Install-FromRelease {
         Write-Info "Extracting archive..."
         Microsoft.PowerShell.Archive\Expand-Archive -Path $zipPath -DestinationPath $tempRoot -Force
 
-        $bdPath = Join-Path $tempRoot "bd.exe"
+        $bdPath = Join-Path $tempRoot "issuegraph.exe"
         if (-not (Test-Path $bdPath)) {
-            Write-WarningMsg "bd.exe not found in release archive. Falling back to source install."
+            Write-WarningMsg "issuegraph.exe not found in release archive. Falling back to source install."
             return $false
         }
 
-        $installDir = Join-Path $env:LOCALAPPDATA "Programs\bd"
+        $installDir = Join-Path $env:LOCALAPPDATA "Programs\issuegraph"
         New-Item -ItemType Directory -Path $installDir -Force | Out-Null
 
-        Copy-Item -Path $bdPath -Destination (Join-Path $installDir "bd.exe") -Force
-        Write-Success "bd installed to $installDir\bd.exe"
+        Copy-Item -Path $bdPath -Destination (Join-Path $installDir "issuegraph.exe") -Force
+        Write-Success "issuegraph installed to $installDir\issuegraph.exe"
 
-        $Script:LastInstallPath = Join-Path $installDir "bd.exe"
+        $Script:LastInstallPath = Join-Path $installDir "issuegraph.exe"
 
         $pathEntries = [Environment]::GetEnvironmentVariable("PATH", "Process").Split([IO.Path]::PathSeparator) | ForEach-Object { $_.Trim() }
         if (-not ($pathEntries -contains $installDir)) {
@@ -258,7 +238,7 @@ function Install-FromRelease {
 }
 
 function Install-FromSource {
-    Write-Info "Building bd from source..."
+    Write-Info "Building issuegraph from source..."
 
     $tempRoot = Join-Path ([System.IO.Path]::GetTempPath()) ("beads-install-" + [guid]::NewGuid().ToString("N"))
     New-Item -ItemType Directory -Path $tempRoot | Out-Null
@@ -294,8 +274,8 @@ function Install-FromSource {
 
         Push-Location $repoPath
         try {
-            Write-Info "Compiling bd.exe..."
-            & go build -tags gms_pure_go -o bd.exe ./cmd/bd
+            Write-Info "Compiling issuegraph.exe..."
+            & go build -tags gms_pure_go -o issuegraph.exe ./modules/cli
             if ($LASTEXITCODE -ne 0) {
                 throw "go build failed with exit code $LASTEXITCODE"
             }
@@ -303,17 +283,14 @@ function Install-FromSource {
             Pop-Location
         }
 
-        $installDir = Join-Path $env:LOCALAPPDATA "Programs\bd"
+        $installDir = Join-Path $env:LOCALAPPDATA "Programs\issuegraph"
         New-Item -ItemType Directory -Path $installDir -Force | Out-Null
 
-        Copy-Item -Path (Join-Path $repoPath "bd.exe") -Destination (Join-Path $installDir "bd.exe") -Force
-        Write-Success "bd installed to $installDir\bd.exe"
-
-        # Create 'beads' alias
-        Create-BeadsAlias -BinDir $installDir
+        Copy-Item -Path (Join-Path $repoPath "issuegraph.exe") -Destination (Join-Path $installDir "issuegraph.exe") -Force
+        Write-Success "issuegraph installed to $installDir\issuegraph.exe"
 
         # Record where we installed the binary when building from source
-        $Script:LastInstallPath = Join-Path $installDir "bd.exe"
+        $Script:LastInstallPath = Join-Path $installDir "issuegraph.exe"
 
         $pathEntries = [Environment]::GetEnvironmentVariable("PATH", "Process").Split([IO.Path]::PathSeparator) | ForEach-Object { $_.Trim() }
         if (-not ($pathEntries -contains $installDir)) {
@@ -331,7 +308,7 @@ function Get-BdPathsInPath {
     $found = @()
     foreach ($entry in $pathEntries) {
         try {
-            $candidate = Join-Path $entry "bd.exe"
+            $candidate = Join-Path $entry "issuegraph.exe"
         } catch {
             continue
         }
@@ -351,8 +328,8 @@ function Warn-IfMultipleBd {
     $paths = Get-BdPathsInPath
     if ($paths.Count -le 1) { return }
 
-    Write-WarningMsg "Multiple 'bd' executables found on your PATH. This can cause an older version to be executed instead of the one we installed."
-    Write-Host "Found the following 'bd' executables (entries earlier in PATH take precedence):" -ForegroundColor Yellow
+    Write-WarningMsg "Multiple 'issuegraph' executables found on your PATH. This can cause an older version to be executed instead of the one we installed."
+    Write-Host "Found the following 'issuegraph' executables (entries earlier in PATH take precedence):" -ForegroundColor Yellow
     $i = 0
     foreach ($p in $paths) {
         $i++
@@ -369,32 +346,32 @@ function Warn-IfMultipleBd {
         Write-Host "`nWe installed to: $($Script:LastInstallPath)" -ForegroundColor Cyan
         $first = $paths[0]
         if ($first -ne $Script:LastInstallPath) {
-            Write-WarningMsg "The 'bd' executable that appears first in your PATH is different from the one we installed. To make the newly installed 'bd' the one you get when running 'bd', either:"
+            Write-WarningMsg "The 'issuegraph' executable that appears first in your PATH is different from the one we installed. To make the newly installed 'issuegraph' the one you get when running 'issuegraph', either:"
             Write-Host "  - Remove the older $first from your PATH, or" -ForegroundColor Yellow
             Write-Host "  - Reorder your PATH so that $([System.IO.Path]::GetDirectoryName($Script:LastInstallPath)) appears before $([System.IO.Path]::GetDirectoryName($first))" -ForegroundColor Yellow
-            Write-Host "After updating PATH, restart your shell and run 'bd version' to confirm." -ForegroundColor Yellow
+            Write-Host "After updating PATH, restart your shell and run 'issuegraph version' to confirm." -ForegroundColor Yellow
         } else {
-            Write-Host "The installed 'bd' is first in your PATH." -ForegroundColor Green
+            Write-Host "The installed 'issuegraph' is first in your PATH." -ForegroundColor Green
         }
     } else {
-        Write-WarningMsg "We couldn't determine where we installed 'bd' during this run."
+        Write-WarningMsg "We couldn't determine where we installed 'issuegraph' during this run."
     }
 }
 
 function Verify-Install {
     Write-Info "Verifying installation..."
-    # If there are multiple bd binaries on PATH, warn the user before running the verification
+    # If there are multiple issuegraph binaries on PATH, warn the user before running the verification
     try { Warn-IfMultipleBd } catch { }
     try {
-        $versionOutput = & bd version 2>$null
+        $versionOutput = & issuegraph version 2>$null
         if ($LASTEXITCODE -ne 0) {
-            Write-WarningMsg "bd version exited with code $LASTEXITCODE"
+            Write-WarningMsg "issuegraph version exited with code $LASTEXITCODE"
             return $false
         }
-        Write-Success "bd is installed: $versionOutput"
+        Write-Success "issuegraph is installed: $versionOutput"
         return $true
     } catch {
-        Write-WarningMsg "bd is not on PATH yet. Add the install directory to PATH and re-open your shell."
+        Write-WarningMsg "issuegraph is not on PATH yet. Add the install directory to PATH and re-open your shell."
         return $false
     }
 }
@@ -453,7 +430,7 @@ if (-not $installed) {
         exit 1
     } else {
         # No Go present - do not attempt to auto-download or auto-install Go.
-        Write-Err "Go is not installed. bd requires Go 1.24+ to build from source."
+        Write-Err "Go is not installed. issuegraph requires Go 1.24+ to build from source."
         Print-GoInstallInstructions
         exit 1
     }
@@ -461,8 +438,8 @@ if (-not $installed) {
 
 if ($installed) {
     Verify-Install | Out-Null
-    Write-Success "Installation complete. You can use either 'bd' or 'beads' to run the command."
-    Write-Host "Run 'bd quickstart' inside a repo to begin." -ForegroundColor Cyan
+    Write-Success "Installation complete. Run 'issuegraph' to use the command."
+    Write-Host "Run 'issuegraph quickstart' inside a repo to begin." -ForegroundColor Cyan
 } else {
     Write-Err "Installation failed. Please install Go 1.24+ and try again."
     exit 1

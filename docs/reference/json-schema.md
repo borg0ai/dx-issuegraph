@@ -5,8 +5,8 @@ description: The stable JSON output contract for bd --json commands, covering th
 
 Last reviewed: 2026-08-07
 
-Freshness source: `cmd/bd/output.go`, `cmd/bd/errors.go`, and
-`cmd/bd/protocol/json_contract_test.go`.
+Freshness source: `modules/cli/output.go`, `modules/cli/errors.go`, and
+`modules/cli/protocol/json_contract_test.go`.
 
 All `bd` commands that support `--json` output can wrap their response in
 a uniform envelope by setting `BD_JSON_ENVELOPE=1`. This will become the

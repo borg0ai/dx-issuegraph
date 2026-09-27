@@ -5,13 +5,13 @@ description: Why antivirus tools flag the bd binary as a false positive, and how
 
 ## Overview
 
-Some antivirus software may flag beads (`bd` or `bd.exe`) as malicious. This is a **false positive** - beads is a legitimate, open-source command-line tool for issue tracking.
+Some antivirus software may flag issuegraph (`bd` or `bd.exe`) as malicious. This is a **false positive** - issuegraph is a legitimate, open-source command-line tool for issue tracking.
 
-Beads release installers now verify downloaded archives against release `checksums.txt` before installation. For users who manually install binaries, checksum verification should be the first trust step before running `bd` or creating antivirus exclusions.
+IssueGraph release installers now verify downloaded archives against release `checksums.txt` before installation. For users who manually install binaries, checksum verification should be the first trust step before running `bd` or creating antivirus exclusions.
 
 ## Why This Happens
 
-Go binaries (including beads) are sometimes flagged by antivirus software due to:
+Go binaries (including issuegraph) are sometimes flagged by antivirus software due to:
 
 1. **Heuristic detection**: Some malware is written in Go, causing antivirus ML models to flag Go-specific binary patterns as suspicious
 2. **Behavioral analysis**: CLI tools that modify files and interact with git may trigger behavioral detection
@@ -35,7 +35,7 @@ Kaspersky's PDM (Proactive Defense Module) uses behavioral analysis that commonl
 
 Before running a downloaded binary or adding antivirus exclusions, verify the file is legitimate:
 
-1. Download beads from the [official GitHub releases](https://github.com/gastownhall/beads/releases)
+1. Download issuegraph from the [official GitHub releases](https://github.com/gastownhall/beads/releases)
 2. Verify the SHA256 checksum matches the `checksums.txt` file in the release
 3. If a release includes code signing, verify that signature too
 
@@ -53,7 +53,7 @@ Compare the output with the checksum in `checksums.txt` from the release page.
 
 ### Option 2: Add Exclusion (After Verification)
 
-Add beads to your antivirus exclusion list:
+Add issuegraph to your antivirus exclusion list:
 
 **Kaspersky:**
 1. Open Kaspersky and go to Settings
@@ -66,11 +66,11 @@ Add beads to your antivirus exclusion list:
 1. Open Windows Security
 2. Go to Virus & threat protection → Manage settings
 3. Scroll to Exclusions → Add or remove exclusions
-4. Add the beads installation directory or the specific `bd.exe` file
+4. Add the issuegraph installation directory or the specific `bd.exe` file
 
 **Other antivirus software:**
 - Look for "Exclusions", "Whitelist", or "Trusted Applications" settings
-- Add the beads installation directory or executable
+- Add the issuegraph installation directory or executable
 
 ### Option 3: Report False Positive
 
@@ -80,7 +80,7 @@ Help improve detection accuracy by reporting the false positive:
 1. Visit [Kaspersky Threat Intelligence Portal](https://opentip.kaspersky.com/)
 2. Upload the `bd.exe` file for analysis
 3. Mark it as a false positive
-4. Reference: beads is open-source CLI tool (https://github.com/gastownhall/beads)
+4. Reference: issuegraph is open-source CLI tool (https://github.com/gastownhall/beads)
 
 **Windows Defender:**
 1. Go to [Microsoft Security Intelligence](https://www.microsoft.com/en-us/wdsi/filesubmission)
@@ -93,11 +93,11 @@ Help improve detection accuracy by reporting the false positive:
 
 ## For Developers/Distributors
 
-If you're building beads from source or distributing it:
+If you're building issuegraph from source or distributing it:
 
 ### Current Build Configuration
 
-Beads releases are built with multiple optimizations to reduce false positives:
+IssueGraph releases are built with multiple optimizations to reduce false positives:
 
 ```yaml
 ldflags:
@@ -144,16 +144,16 @@ osslsigncode verify -in bd.exe
 
 Some users report success with:
 ```bash
-go build -ldflags "-s -w" -o bd ./cmd/bd
+go build -ldflags "-s -w" -o bd ./modules/cli
 ```
 
 However, results vary by antivirus vendor and version.
 
 ## Frequently Asked Questions
 
-### Is beads safe to use?
+### Is issuegraph safe to use?
 
-Yes. Beads is:
+Yes. IssueGraph is:
 - Open source (all code is auditable on [GitHub](https://github.com/gastownhall/beads))
 - Releases include checksums for verification
 - Used by developers worldwide
@@ -161,7 +161,7 @@ Yes. Beads is:
 
 ### Why don't you just fix the code to avoid detection?
 
-The issue isn't specific to beads' code - it's a characteristic of Go binaries in general. Changing code won't reliably prevent heuristic/behavioral detection. The proper solutions are:
+The issue isn't specific to issuegraph's code - it's a characteristic of Go binaries in general. Changing code won't reliably prevent heuristic/behavioral detection. The proper solutions are:
 1. Code signing (builds trust over time)
 2. Whitelist applications with antivirus vendors
 3. User reports of false positives
@@ -176,7 +176,7 @@ We've implemented:
 
 Still in progress:
 - Acquiring an EV code signing certificate
-- Submitting beads to antivirus vendor whitelists
+- Submitting issuegraph to antivirus vendor whitelists
 
 False positives may still occur with new releases until the certificate builds reputation with antivirus vendors. This typically takes several months of consistent signed releases.
 
@@ -185,7 +185,7 @@ False positives may still occur with new releases until the certificate builds r
 **No.** Instead:
 1. Verify release checksums before first run
 2. Keep your antivirus enabled for other threats
-3. Add beads to your antivirus exclusions only after verification if detections persist
+3. Add issuegraph to your antivirus exclusions only after verification if detections persist
 
 ## Reporting Issues
 
@@ -195,7 +195,7 @@ If you encounter a new antivirus false positive:
 2. Include:
    - Antivirus software name and version
    - Detection/threat name
-   - Beads version (`bd version`)
+   - IssueGraph version (`bd version`)
    - Operating system
 
 This helps us track and address false positives across different antivirus vendors.

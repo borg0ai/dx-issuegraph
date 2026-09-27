@@ -1,14 +1,14 @@
 # Performance Testing Guide
 
-This guide covers beads' performance testing framework, including running benchmarks, profiling, and diagnosing performance issues.
+This guide covers issuegraph's performance testing framework, including running benchmarks, profiling, and diagnosing performance issues.
 
 ## Overview
 
-The beads performance testing framework provides:
+The issuegraph performance testing framework provides:
 
 - **Benchmarks**: Measure operation speed on 10K-20K issue databases
 - **CPU Profiling**: Automatic profiling during benchmarks with flamegraph support
-- **User Diagnostics**: `bd doctor --perf` for end-user performance analysis
+- **User Diagnostics**: `issuegraph doctor --perf` for end-user performance analysis
 - **Database Caching**: One-time generation of test databases, reused across runs
 
 Performance issues typically only manifest at scale (10K+ issues), so benchmarks focus on large databases.
@@ -123,12 +123,12 @@ Look for:
 
 ## User Diagnostics
 
-### Using `bd doctor --perf`
+### Using `issuegraph doctor --perf`
 
 End users can run performance diagnostics:
 
 ```bash
-bd doctor --perf
+issuegraph doctor --perf
 ```
 
 This:
@@ -141,7 +141,7 @@ This:
 
 When reporting performance issues:
 
-1. Run `bd doctor --perf`
+1. Run `issuegraph doctor --perf`
 2. Note the profile file path from output
 3. Attach the `.prof` file to the bug report
 4. Include the diagnostic output
@@ -214,7 +214,7 @@ A change is significant if:
 | "Is this fast enough?" | Benchmark |
 | "Why is this slow?" | Profile |
 | "Did my change help?" | benchstat |
-| "User reports slowness" | `bd doctor --perf` |
+| "User reports slowness" | `issuegraph doctor --perf` |
 
 ### Common Optimization Patterns
 

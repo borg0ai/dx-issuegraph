@@ -136,7 +136,7 @@ export BD_REPO_PATH="$(pwd)"
 
 ### Script says "bd command not found"
 
-Ensure bd is in PATH:
+Ensure issuegraph is in PATH:
 ```bash
 which bd
 export PATH="$PATH:/usr/local/bin"
@@ -171,7 +171,7 @@ Track compaction costs:
 
 ```bash
 # Show stats after compaction
-bd admin compact --stats
+issuegraph admin compact --stats
 
 # Estimate monthly cost
 # (issues_compacted / 1000) * $1.00

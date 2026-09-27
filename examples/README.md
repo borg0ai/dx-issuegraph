@@ -1,20 +1,20 @@
-# Beads Examples
+# IssueGraph Examples
 
-This directory contains examples of how to integrate bd with AI agents and workflows.
+This directory contains examples of how to integrate issuegraph with AI agents and workflows.
 
 ## Examples
 
 ### Agent Integration
 - **[python-agent/](python-agent/)** - Simple Python agent that discovers ready work and completes tasks
 - **[bash-agent/](bash-agent/)** - Bash script showing the full agent workflow
-- **[startup-hooks/](startup-hooks/)** - Session startup scripts for automatic bd upgrade detection
+- **[startup-hooks/](startup-hooks/)** - Session startup scripts for automatic issuegraph upgrade detection
 - **[claude-desktop-mcp/](claude-desktop-mcp/)** - MCP server for Claude Desktop integration
 
 ### Tools & Utilities
 - **[monitor-webui/](monitor-webui/)** - Standalone web interface for real-time issue monitoring and visualization
 - **[git-hooks/](git-hooks/)** - Pre-configured git hooks for automatic Dolt sync
 <!-- REMOVED (bd-4c74): branch-merge example - collision resolution no longer needed with hash IDs -->
-<!-- REMOVED (bd-9ni.5): markdown-to-jsonl, github-import, jira-import converters - bd import removed; use native bd jira/linear/gitlab sync -->
+<!-- REMOVED (bd-9ni.5): markdown-to-jsonl, github-import, jira-import converters - issuegraph import removed; use native issuegraph jira/linear/gitlab sync -->
 
 ### Workflow Patterns
 - **[contributor-workflow/](contributor-workflow/)** - OSS contributor setup with separate planning repo
@@ -45,11 +45,11 @@ cd git-hooks
 
 The basic agent workflow:
 
-1. **Find ready work**: `bd ready --json --limit 1`
-2. **Claim the task**: `bd update <id> --claim --json`
+1. **Find ready work**: `issuegraph ready --json --limit 1`
+2. **Claim the task**: `issuegraph update <id> --claim --json`
 3. **Do the work**: Execute the task
-4. **Discover new issues**: `bd create "Found bug" --json`
-5. **Link discoveries**: `bd dep add <new-id> <parent-id> --type discovered-from`
-6. **Complete the task**: `bd close <id> --reason "Done" --json`
+4. **Discover new issues**: `issuegraph create "Found bug" --json`
+5. **Link discoveries**: `issuegraph dep add <new-id> <parent-id> --type discovered-from`
+6. **Complete the task**: `issuegraph close <id> --reason "Done" --json`
 
 All commands support `--json` for easy parsing.

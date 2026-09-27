@@ -1,6 +1,6 @@
 # Bash Agent Example
 
-A bash script demonstrating how an AI agent can use bd to manage tasks autonomously.
+A bash script demonstrating how an AI agent can use issuegraph to manage tasks autonomously.
 
 ## Features
 
@@ -14,9 +14,9 @@ A bash script demonstrating how an AI agent can use bd to manage tasks autonomou
 ## Prerequisites
 
 - bash 4.0+
-- bd installed: `curl -fsSL https://raw.githubusercontent.com/gastownhall/beads/main/scripts/install.sh | bash`
+- issuegraph installed: `curl -fsSL https://raw.githubusercontent.com/gastownhall/beads/main/scripts/install.sh | bash`
 - jq for JSON parsing: `brew install jq` (macOS) or `apt install jq` (Linux)
-- A beads database initialized: `bd init`
+- An issuegraph database initialized: `issuegraph init`
 
 ## Usage
 
@@ -46,11 +46,11 @@ The agent runs in a loop:
 ## Example Output
 
 ```
-🚀 Beads Agent starting...
+🚀 IssueGraph Agent starting...
    Max iterations: 10
 
 ═══════════════════════════════════════════════════
-  Beads Statistics
+  IssueGraph Statistics
 ═══════════════════════════════════════════════════
 Open: 5  In Progress: 0  Closed: 2
 
@@ -100,13 +100,13 @@ if [[ $((RANDOM % 2)) -eq 0 ]]; then  # 50% chance
 if [[ $((RANDOM % 10)) -lt 3 ]]; then  # 30% chance
 
 # Add assignee filtering
-bd ready --json --assignee "bot" --limit 1
+issuegraph ready --json --assignee "bot" --limit 1
 
 # Add priority filtering
-bd ready --json --priority 1 --limit 1
+issuegraph ready --json --priority 1 --limit 1
 
 # Add custom labels
-bd create "New task" -l "automated,agent-discovered"
+issuegraph create "New task" -l "automated,agent-discovered"
 ```
 
 ## Integration with Real Agents

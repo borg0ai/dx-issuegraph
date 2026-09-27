@@ -1,19 +1,19 @@
 ---
 title: OpenCode
-description: Give OpenCode beads workflow context via a managed Beads section in AGENTS.md
+description: Give OpenCode issuegraph workflow context via a managed IssueGraph section in AGENTS.md
 ---
 
-Use Beads with OpenCode through managed `AGENTS.md` guidance.
+Use IssueGraph with OpenCode through managed `AGENTS.md` guidance.
 
 ```bash
-bd setup opencode
-bd setup opencode --check
+issuegraph setup opencode
+issuegraph setup opencode --check
 ```
 
-The setup command creates or updates `AGENTS.md` with a managed Beads section. Restart OpenCode after setup if it is already running.
+The setup command creates or updates `AGENTS.md` with a managed IssueGraph section. Restart OpenCode after setup if it is already running.
 
 ## Remove
 
 ```bash
-bd setup opencode --remove
+issuegraph setup opencode --remove
 ```

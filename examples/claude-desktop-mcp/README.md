@@ -1,12 +1,12 @@
-# Claude Desktop MCP Server for Beads
+# Claude Desktop MCP Server for IssueGraph
 
-> **Note**: The beads MCP server is now fully implemented! See [integrations/beads-mcp](../../integrations/beads-mcp/) for the production implementation.
+> **Note**: The issuegraph MCP server is now fully implemented! See [integrations/beads-mcp](../../integrations/beads-mcp/) for the production implementation.
 
 > **Recommendation**: For environments with shell access (Claude Code, Cursor, Windsurf), use **CLI + hooks** instead of MCP. It uses ~1-2k tokens vs 10-50k for MCP schemas, resulting in lower compute cost and latency. **Use MCP only for MCP-only environments** like Claude Desktop where CLI is unavailable.
 
 ## What This Provides
 
-An MCP server that exposes bd functionality to Claude Desktop and other MCP clients, allowing Claude to:
+An MCP server that exposes issuegraph functionality to Claude Desktop and other MCP clients, allowing Claude to:
 - Query ready work
 - Create and update issues
 - Manage dependencies
@@ -14,7 +14,7 @@ An MCP server that exposes bd functionality to Claude Desktop and other MCP clie
 
 ## Quick Start
 
-Install the beads MCP server:
+Install the issuegraph MCP server:
 
 ```bash
 # Using uv (recommended)
@@ -36,7 +36,7 @@ Add to your Claude Desktop config (`~/Library/Application Support/Claude/claude_
 }
 ```
 
-Restart Claude Desktop and you're done! Claude can now manage your beads issues.
+Restart Claude Desktop and you're done! Claude can now manage your issuegraph issues.
 
 ## Full Documentation
 
@@ -105,7 +105,7 @@ See the [beads-mcp README](../../integrations/beads-mcp/README.md) for:
 ## How It Would Work
 
 1. Install the MCP server for Claude Desktop
-2. Claude gains access to bd commands
+2. Claude gains access to issuegraph commands
 3. During coding sessions, Claude can:
    - Check for ready work: "What should I work on next?"
    - Create issues: "I found a bug, let me track it"
@@ -154,7 +154,7 @@ To implement this MCP server:
 
 1. Create a Node.js/TypeScript project
 2. Use the MCP SDK: `npm install @anthropic/mcp-sdk`
-3. Implement tool handlers that call `bd` commands via child_process
+3. Implement tool handlers that call `issuegraph` commands via child_process
 4. Register with Claude Desktop's config
 
 Example skeleton:
@@ -174,7 +174,7 @@ const server = new Server({
 // Register ready work tool
 server.tool("beads_ready_work", async (params) => {
   const { stdout } = await execAsync(
-    `bd ready --json --limit ${params.limit || 10}`
+    `issuegraph ready --json --limit ${params.limit || 10}`
   );
   return JSON.parse(stdout);
 });
@@ -182,7 +182,7 @@ server.tool("beads_ready_work", async (params) => {
 // Register create issue tool
 server.tool("beads_create_issue", async (params) => {
   const { stdout } = await execAsync(
-    `bd create "${params.title}" -d "${params.description}" -p ${params.priority} -t ${params.type} --json`
+    `issuegraph create "${params.title}" -d "${params.description}" -p ${params.priority} -t ${params.type} --json`
   );
   return JSON.parse(stdout);
 });
@@ -212,22 +212,22 @@ npm install -g beads-mcp-server
 # Restart Claude Desktop
 ```
 
-## Alternative: Direct bd Usage
+## Alternative: Direct issuegraph Usage
 
-Until the MCP server is available, you can instruct Claude to use bd directly:
+Until the MCP server is available, you can instruct Claude to use issuegraph directly:
 
 ```markdown
 # In your CLAUDE.md or project instructions:
 
-We use Beads (bd) for issue tracking. Available commands:
+We use IssueGraph (issuegraph) for issue tracking. Available commands:
 
-- `bd ready --json` - Find ready work
-- `bd create "title" -p 1 -t bug --json` - Create issue
-- `bd update bd-1 --status in_progress --json` - Update status
-- `bd dep add bd-2 bd-1 --type discovered-from` - Link issues
-- `bd close bd-1 --reason "Done" --json` - Complete work
+- `issuegraph ready --json` - Find ready work
+- `issuegraph create "title" -p 1 -t bug --json` - Create issue
+- `issuegraph update bd-1 --status in_progress --json` - Update status
+- `issuegraph dep add bd-2 bd-1 --type discovered-from` - Link issues
+- `issuegraph close bd-1 --reason "Done" --json` - Complete work
 
-All commands support --json for parsing. Please use bd to track work during our sessions.
+All commands support --json for parsing. Please use issuegraph to track work during our sessions.
 ```
 
 ## Contributing

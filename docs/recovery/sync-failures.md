@@ -7,7 +7,7 @@ This runbook helps you recover from Dolt sync failures.
 
 ## Symptoms
 
-- `bd dolt push` or `bd dolt pull` hangs or times out
+- `issuegraph dolt push` or `issuegraph dolt pull` hangs or times out
 - Network-related error messages
 - "failed to push" or "failed to pull" errors
 - Dolt server not responding
@@ -16,8 +16,8 @@ This runbook helps you recover from Dolt sync failures.
 
 ```bash
 # Check Dolt server health
-bd doctor
-bd dolt show
+issuegraph doctor
+issuegraph dolt show
 
 # View Dolt server logs
 tail -50 .beads/dolt-server.log   # server mode
@@ -27,7 +27,7 @@ tail -50 .beads/dolt-server.log   # server mode
 
 **Step 1:** Stop the Dolt server
 ```bash
-bd dolt stop
+issuegraph dolt stop
 ```
 
 **Step 2:** Check for lock files
@@ -40,12 +40,12 @@ rm -f .beads/*.lock
 **Step 3:** Back up and preview fixes
 ```bash
 cp -r .beads .beads.backup
-bd doctor --dry-run
+issuegraph doctor --dry-run
 ```
 
 **Step 4:** Apply fixes if needed
 ```bash
-bd doctor --fix
+issuegraph doctor --fix
 ```
 
 **Step 5:** Restart the Dolt server
@@ -55,8 +55,8 @@ dolt sql-server
 
 **Step 6:** Verify sync works
 ```bash
-bd dolt push
-bd doctor
+issuegraph dolt push
+issuegraph doctor
 ```
 
 ## Common Causes
@@ -65,11 +65,11 @@ bd doctor
 |-------|----------|
 | Network timeout | Retry with better connection |
 | Stale lock file | Remove lock after stopping Dolt server |
-| Corrupted state | Back up, then `bd doctor --fix` |
+| Corrupted state | Back up, then `issuegraph doctor --fix` |
 | Merge conflicts | See [Merge Conflicts](/recovery/merge-conflicts) |
 
 ## Prevention
 
 - Ensure stable network before sync
 - Let sync complete before closing terminal
-- Use `bd dolt stop` before system shutdown
+- Use `issuegraph dolt stop` before system shutdown

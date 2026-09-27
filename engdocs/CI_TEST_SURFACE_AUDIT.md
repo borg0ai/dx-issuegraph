@@ -54,7 +54,7 @@ exists only as an opt-in maintainer path.
 
 | Target | Command path | Purpose |
 |---|---|---|
-| `make build` | `go build -tags "$(BUILD_TAGS)" ./cmd/bd` | Build local `bd` binary with `gms_pure_go`. |
+| `make build` | `go build -tags "$(BUILD_TAGS)" ./modules/cli` | Build local `bd` binary with `gms_pure_go`. |
 | `make test` | `TEST_COVER=1 ./scripts/test.sh` | Local default suite with coverage and `.test-skip` handling. |
 | `make test-icu-path` | `./scripts/test-icu-path.sh ./...` | Opt-in ICU regex path, not normal validation. |
 | `make test-full-cgo` | Alias to `make test-icu-path` | Deprecated compatibility target. |
@@ -88,7 +88,7 @@ patterns.
 | Build tag / mode | Observed surface | Current command |
 |---|---:|---|
 | default CGO + `gms_pure_go` | Most Go tests | `./scripts/test.sh`, `make test`, PR Linux/macOS jobs. |
-| `!cgo` | 3 test files | Only partially covered by the CI pure-Go cmd/bd job. |
+| `!cgo` | 3 test files | Only partially covered by the CI pure-Go modules/cli job. |
 | `cgo` | 186 test files | Covered when CGO is enabled, including normal Linux/macOS CI. |
 | `integration` | 31 test files mention `integration` | Nightly broad run; selected PR jobs. |
 | `regression` | 2 test files | `make test-regression`, regression workflow. |
@@ -114,7 +114,7 @@ Embedded Dolt tests are split out from the PR/core matrix:
   (excluding `TestConformance`) across 5 jobs using
   `.github/scripts/embedded-storage-test-shard.sh`, with
   `BEADS_TEST_EMBEDDED_DOLT=1`.
-- `test-embedded-cmd` shards `cmd/bd` `TestEmbedded*` across 20 jobs using
+- `test-embedded-cmd` shards `modules/cli` `TestEmbedded*` across 20 jobs using
   `.github/scripts/embedded-test-shard.sh`.
 
 The tier detector runs full embedded coverage on:
@@ -172,7 +172,7 @@ Key jobs preserved by display name:
   `bd-linux-gms-pure`, and uploads checksummed run-scoped artifacts.
 - `Check build-tag policy`: runs `scripts/check-build-tags.sh` and
   `scripts/check-go-install-guidance.sh`.
-- `Check cmd/bd pure-Go tests compile (CGO_ENABLED=0)`: CGO-disabled cmd/bd
+- `Check modules/cli pure-Go tests compile (CGO_ENABLED=0)`: CGO-disabled modules/cli
   build, test-binary compile, and a focused pure-Go test subset.
 - `Check version consistency`, `Check no duplicate migration versions`,
   `Check doc flags freshness`, and PR-only `Check for .beads changes`.
@@ -187,7 +187,7 @@ Key jobs preserved by display name:
 - Main-only platform and integration jobs: `Test (ubuntu-latest)`,
   `Test (macos-latest)`, `Test (Windows - smoke)`,
   `Main Linux integration packages (N/6)`, and
-  `Main Linux integration cmd/bd (N/8)`.
+  `Main Linux integration modules/cli (N/8)`.
 - `Check formatting`, `Lint`, and `Test Nix Flake`.
 
 ### Other Workflows
@@ -231,7 +231,7 @@ Impact:
 
 ### P1: No-CGO Coverage Is Partial
 
-CI has a focused CGO-disabled cmd/bd compile/run job, but `!cgo` tests outside
+CI has a focused CGO-disabled modules/cli compile/run job, but `!cgo` tests outside
 that subset are not obviously covered by a full no-CGO `./...` job.
 
 Impact: regressions in server-mode/no-CGO behavior outside the focused subset
@@ -366,12 +366,12 @@ For every tier, capture enough artifacts to debug failures without rerunning:
 
 1. Turn this audit into a shorter `docs/CI.md` policy once maintainers agree on
    the tier names.
-2. Split `cmd/bd` by top-level test name for the no-short Linux integration
-   lane; the first package-sharded run showed `cmd/bd` owns the wall-clock tail.
+2. Split `modules/cli` by top-level test name for the no-short Linux integration
+   lane; the first package-sharded run showed `modules/cli` owns the wall-clock tail.
 3. Promote the additive PR wrapper jobs after repeated measurements confirm
    they preserve the current required PR behavior.
 4. Add a no-CGO all-package compile/test gate or explicitly document why the
-   focused cmd/bd subset is enough.
+   focused modules/cli subset is enough.
 5. Add path-gated MCP, npm package, and website checks before touching the main
    Go matrix.
 6. Keep `engdocs/TESTING.md` aligned with the wrapper commands as direct workflow

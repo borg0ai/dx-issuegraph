@@ -1,17 +1,17 @@
 ---
 title: Integrations
-description: Browse every beads editor and agent integration, from bd setup recipes to MCP-based clients
+description: Browse every issuegraph editor and agent integration, from issuegraph setup recipes to MCP-based clients
 ---
 
-Beads integration pages are based on two sources of support in the repository:
+IssueGraph integration pages are based on two sources of support in the repository:
 
-- Built-in `bd setup` recipes from `internal/recipes/recipes.go`
+- Built-in `issuegraph setup` recipes from `internal/recipes/recipes.go`
 - First-party MCP integrations and editor guides already shipped in the repo
 
-Run this command to see the built-in setup recipes supported by your installed `bd` binary:
+Run this command to see the built-in setup recipes supported by your installed `issuegraph` binary:
 
 ```bash
-bd setup --list
+issuegraph setup --list
 ```
 
 ## Built-in Setup Recipes
@@ -20,7 +20,7 @@ bd setup --list
 |--------|-------------|-----------------------|
 | `aider` | [Aider](/integrations/aider) | `.aider.conf.yml` and `.aider/` instructions |
 | `claude` | [Claude Code](/integrations/claude-code) | Claude hooks and `CLAUDE.md` |
-| `codex` | [Codex](/integrations/codex) | Beads skill, `AGENTS.md`, and Codex hooks |
+| `codex` | [Codex](/integrations/codex) | IssueGraph skill, `AGENTS.md`, and Codex hooks |
 | `cody` | [Sourcegraph Cody](/integrations/cody) | `.cody/rules/beads.md` |
 | `cursor` | [Cursor](/integrations/cursor) | `.cursor/rules/beads.mdc` + `.cursor/hooks.json` |
 | `factory` | [Factory.ai Droid](/integrations/factory) | `AGENTS.md` |
@@ -34,9 +34,9 @@ bd setup --list
 
 ## MCP-Based Integrations
 
-These integrations use the Beads MCP server rather than a dedicated `bd setup` recipe:
+These integrations use the IssueGraph MCP server rather than a dedicated `issuegraph setup` recipe:
 
-- [MCP Server](/integrations/mcp-server) — the beads MCP server for any
+- [MCP Server](/integrations/mcp-server) — the issuegraph MCP server for any
   MCP-capable client.
 - [GitHub Copilot](/integrations/github-copilot) — Copilot in VS Code via
   MCP.
@@ -48,4 +48,4 @@ These integrations use the Beads MCP server rather than a dedicated `bd setup` r
 - [Claude Code Plugin](/integrations/claude-code-plugin) — the packaged
   plugin with slash commands and MCP tools (`/plugin install beads`).
 - [Azure DevOps](/integrations/azure-devops) — configuration reference for
-  syncing beads with ADO work items.
+  syncing issuegraph with ADO work items.

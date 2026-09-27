@@ -296,5 +296,5 @@ Everything else is reference documentation, not getting-started documentation.
 | docs/SYNC_SETUP.md | ~100 | Multi-machine sync |
 | AGENT_INSTRUCTIONS.md | ~100 | Agent dev workflow |
 
-Also reviewed: `cmd/bd/init.go` (actual init flow), `cmd/bd/prime.go` (context
-injection), `cmd/bd/doctor.go` (health checks), `scripts/install.sh` (installer).
+Also reviewed: `modules/cli/init.go` (actual init flow), `modules/cli/prime.go` (context
+injection), `modules/cli/doctor.go` (health checks), `scripts/install.sh` (installer).

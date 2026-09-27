@@ -1,13 +1,13 @@
-# Linear Integration for bd
+# Linear Integration for issuegraph
 
-Bidirectional synchronization between Linear and bd (beads) using the built-in `bd linear` commands.
+Bidirectional synchronization between Linear and issuegraph (IssueGraph) using the built-in `issuegraph linear` commands.
 
 ## Overview
 
 The Linear integration provides:
 
-- **Pull**: Import issues from Linear into bd
-- **Push**: Export bd issues to Linear
+- **Pull**: Import issues from Linear into issuegraph
+- **Push**: Export issuegraph issues to Linear
 - **Bidirectional Sync**: Two-way sync with conflict resolution
 - **Incremental Sync**: Only sync issues changed since last sync
 - **Configurable Mappings**: Customize priority, state, label, and relation mappings
@@ -19,33 +19,33 @@ The Linear integration provides:
 1. **API Key**: Go to Linear → Settings → API → Personal API keys → Create key
 2. **Team ID**: Go to Linear → Settings → General → find the Team ID (UUID format)
 
-### 2. Configure bd
+### 2. Configure issuegraph
 
 ```bash
 # Set API key via environment variable (recommended — avoids git exposure)
 export LINEAR_API_KEY="lin_api_YOUR_API_KEY_HERE"  # add to ~/.secrets or ~/.zshrc
 
 # Set team ID
-bd config set linear.team_id "YOUR_TEAM_UUID"
+issuegraph config set linear.team_id "YOUR_TEAM_UUID"
 ```
 
 ### 3. Sync with Linear
 
 ```bash
 # Check configuration status
-bd linear status
+issuegraph linear status
 
 # Pull issues from Linear
-bd linear sync --pull
+issuegraph linear sync --pull
 
-# Pull issues and Linear blocking relations as bd dependencies
-bd linear sync --pull --relations
+# Pull issues and Linear blocking relations as issuegraph dependencies
+issuegraph linear sync --pull --relations
 
 # Push local issues to Linear
-bd linear sync --push
+issuegraph linear sync --push
 
 # Full bidirectional sync (pull, resolve conflicts, push)
-bd linear sync
+issuegraph linear sync
 ```
 
 ## Authentication
@@ -61,8 +61,8 @@ Store securely:
 # Recommended: Environment variable (avoids git exposure)
 export LINEAR_API_KEY="lin_api_..."  # add to ~/.secrets or ~/.zshrc
 
-# Alternative: bd config (only if config.yaml is NOT git-tracked)
-bd config set linear.api_key "lin_api_..."
+# Alternative: issuegraph config (only if config.yaml is NOT git-tracked)
+issuegraph config set linear.api_key "lin_api_..."
 ```
 
 ### Team ID
@@ -73,42 +73,42 @@ Find your Team ID in Linear:
 
 ## Sync Modes
 
-### Pull Only (Linear → bd)
+### Pull Only (Linear → issuegraph)
 
 Import issues from Linear without pushing local changes:
 
 ```bash
-bd linear sync --pull
+issuegraph linear sync --pull
 
-# Import Linear relations as bd dependencies
-bd linear sync --pull --relations
+# Import Linear relations as issuegraph dependencies
+issuegraph linear sync --pull --relations
 
 # Filter by state
-bd linear sync --pull --state open    # Only open issues
-bd linear sync --pull --state closed  # Only closed issues
-bd linear sync --pull --state all     # All issues (default)
+issuegraph linear sync --pull --state open    # Only open issues
+issuegraph linear sync --pull --state closed  # Only closed issues
+issuegraph linear sync --pull --state all     # All issues (default)
 
 # Reconstruct Linear project milestones as local epic parents
-bd linear sync --pull --milestones
+issuegraph linear sync --pull --milestones
 ```
 
-With `--milestones`, bd creates or reuses one local epic per Linear
+With `--milestones`, issuegraph creates or reuses one local epic per Linear
 `projectMilestone`, then adds parent-child links from each pulled issue to its
 milestone epic. Milestone epics are marked as Linear milestone records and are
 skipped by later Linear pushes.
 
-### Push Only (bd → Linear)
+### Push Only (issuegraph → Linear)
 
 Export local issues to Linear without pulling:
 
 ```bash
-bd linear sync --push
+issuegraph linear sync --push
 
 # Create only (don't update existing Linear issues)
-bd linear sync --push --create-only
+issuegraph linear sync --push --create-only
 
 # Disable automatic external_ref update
-bd linear sync --push --update-refs=false
+issuegraph linear sync --push --update-refs=false
 ```
 
 ### Bidirectional Sync
@@ -117,13 +117,13 @@ Full two-way sync with conflict detection and resolution:
 
 ```bash
 # Default: newer timestamp wins conflicts
-bd linear sync
+issuegraph linear sync
 
 # Always prefer local version on conflicts
-bd linear sync --prefer-local
+issuegraph linear sync --prefer-local
 
 # Always prefer Linear version on conflicts
-bd linear sync --prefer-linear
+issuegraph linear sync --prefer-linear
 ```
 
 ### Dry Run
@@ -131,16 +131,16 @@ bd linear sync --prefer-linear
 Preview what would happen without making changes:
 
 ```bash
-bd linear sync --dry-run
+issuegraph linear sync --dry-run
 ```
 
 ## Data Mapping
 
 ### Priority Mapping
 
-Linear and Beads use different priority semantics:
+Linear and IssueGraph use different priority semantics:
 
-| Linear | Meaning | Beads | Meaning |
+| Linear | Meaning | IssueGraph | Meaning |
 |--------|---------|-------|---------|
 | 0 | No priority | 4 | Backlog |
 | 1 | Urgent | 0 | Critical |
@@ -148,7 +148,7 @@ Linear and Beads use different priority semantics:
 | 3 | Medium | 2 | Medium |
 | 4 | Low | 3 | Low |
 
-**Default mapping** (Linear → Beads):
+**Default mapping** (Linear → IssueGraph):
 - 0 (no priority) → 4 (backlog)
 - 1 (urgent) → 0 (critical)
 - 2 (high) → 1 (high)
@@ -159,15 +159,15 @@ Linear and Beads use different priority semantics:
 
 ```bash
 # Override default mappings
-bd config set linear.priority_map.0 2    # No priority -> Medium (instead of Backlog)
-bd config set linear.priority_map.1 1    # Urgent -> High (instead of Critical)
+issuegraph config set linear.priority_map.0 2    # No priority -> Medium (instead of Backlog)
+issuegraph config set linear.priority_map.1 1    # Urgent -> High (instead of Critical)
 ```
 
 ### State Mapping
 
-Map Linear workflow states to bd statuses:
+Map Linear workflow states to issuegraph statuses:
 
-| Linear State Type | Beads Status |
+| Linear State Type | IssueGraph Status |
 |-------------------|--------------|
 | backlog | open |
 | unstarted | open |
@@ -179,21 +179,21 @@ Map Linear workflow states to bd statuses:
 
 ```bash
 # Map by state type
-bd config set linear.state_map.started in_progress
+issuegraph config set linear.state_map.started in_progress
 
 # Map by state name (for custom workflow states)
-bd config set linear.state_map.in_review in_progress
-bd config set linear.state_map.blocked blocked
-bd config set linear.state_map.on_hold blocked
-bd config set linear.state_map.testing in_progress
-bd config set linear.state_map.deployed closed
+issuegraph config set linear.state_map.in_review in_progress
+issuegraph config set linear.state_map.blocked blocked
+issuegraph config set linear.state_map.on_hold blocked
+issuegraph config set linear.state_map.testing in_progress
+issuegraph config set linear.state_map.deployed closed
 ```
 
 ### Label to Issue Type
 
-Infer bd issue type from Linear labels:
+Infer issuegraph issue type from Linear labels:
 
-| Linear Label | Beads Type |
+| Linear Label | IssueGraph Type |
 |--------------|------------|
 | bug, defect | bug |
 | feature, enhancement | feature |
@@ -204,23 +204,23 @@ Infer bd issue type from Linear labels:
 **Custom label mappings:**
 
 ```bash
-bd config set linear.label_type_map.incident bug
-bd config set linear.label_type_map.improvement feature
-bd config set linear.label_type_map.tech_debt chore
-bd config set linear.label_type_map.story feature
+issuegraph config set linear.label_type_map.incident bug
+issuegraph config set linear.label_type_map.improvement feature
+issuegraph config set linear.label_type_map.tech_debt chore
+issuegraph config set linear.label_type_map.story feature
 ```
 
 ### Relation Mapping
 
-Map Linear relations to bd dependencies:
+Map Linear relations to issuegraph dependencies:
 
 Relation import is opt-in during pull:
 
 ```bash
-bd linear sync --pull --relations
+issuegraph linear sync --pull --relations
 ```
 
-| Linear Relation | Beads Dependency |
+| Linear Relation | IssueGraph Dependency |
 |-----------------|------------------|
 | blocks | blocks |
 | blockedBy | blocks (inverted) |
@@ -231,8 +231,8 @@ bd linear sync --pull --relations
 **Custom relation mappings:**
 
 ```bash
-bd config set linear.relation_map.causes discovered-from
-bd config set linear.relation_map.duplicate related
+issuegraph config set linear.relation_map.causes discovered-from
+issuegraph config set linear.relation_map.duplicate related
 ```
 
 ## Conflict Resolution
@@ -244,15 +244,15 @@ Conflicts occur when both local and Linear versions are modified since the last 
 The newer version wins:
 
 ```bash
-bd linear sync  # Newer timestamp wins
+issuegraph linear sync  # Newer timestamp wins
 ```
 
 ### Prefer Local
 
-Local bd version always wins:
+Local issuegraph version always wins:
 
 ```bash
-bd linear sync --prefer-local
+issuegraph linear sync --prefer-local
 ```
 
 Use when:
@@ -264,7 +264,7 @@ Use when:
 Linear version always wins:
 
 ```bash
-bd linear sync --prefer-linear
+issuegraph linear sync --prefer-linear
 ```
 
 Use when:
@@ -280,17 +280,17 @@ First-time import of existing Linear issues:
 ```bash
 # Configure credentials
 export LINEAR_API_KEY="lin_api_..."  # add to ~/.secrets or ~/.zshrc
-bd config set linear.team_id "team-uuid"
+issuegraph config set linear.team_id "team-uuid"
 
 # Check status
-bd linear status
+issuegraph linear status
 
 # Import all issues
-bd linear sync --pull
+issuegraph linear sync --pull
 
 # See what was imported
-bd stats
-bd list --json
+issuegraph stats
+issuegraph list --json
 ```
 
 ### Workflow 2: Daily Sync
@@ -299,18 +299,18 @@ Regular synchronization:
 
 ```bash
 # Pull latest from Linear (incremental since last sync)
-bd linear sync --pull
+issuegraph linear sync --pull
 
 # Do local work
-bd update bd-123 --claim
+issuegraph update bd-123 --claim
 # ... work ...
-bd close bd-123 --reason "Fixed"
+issuegraph close bd-123 --reason "Fixed"
 
 # Push changes to Linear
-bd linear sync --push
+issuegraph linear sync --push
 
 # Or do full bidirectional sync
-bd linear sync
+issuegraph linear sync
 ```
 
 ### Workflow 3: Create Local Issues, Push to Linear
@@ -319,28 +319,28 @@ Create issues locally and sync to Linear:
 
 ```bash
 # Create issue locally
-bd create "Fix authentication bug" -t bug -p 1
+issuegraph create "Fix authentication bug" -t bug -p 1
 
 # Push to Linear (creates new Linear issue, updates external_ref)
-bd linear sync --push
+issuegraph linear sync --push
 
 # Verify
-bd show bd-abc  # Should have external_ref pointing to Linear
+issuegraph show bd-abc  # Should have external_ref pointing to Linear
 ```
 
-### Workflow 4: Migrate to bd
+### Workflow 4: Migrate to issuegraph
 
-Full migration from Linear to bd:
+Full migration from Linear to issuegraph:
 
 ```bash
 # Import all issues
-bd linear sync --pull --state all
+issuegraph linear sync --pull --state all
 
 # Preview import
-bd stats
+issuegraph stats
 
-# Continue using bd locally, push updates back to Linear
-bd linear sync  # Regular bidirectional sync
+# Continue using issuegraph locally, push updates back to Linear
+issuegraph linear sync  # Regular bidirectional sync
 ```
 
 ### Workflow 5: Read-Only Linear Mirror
@@ -349,10 +349,10 @@ Mirror Linear issues locally without pushing back:
 
 ```bash
 # Only ever pull, never push
-bd linear sync --pull
+issuegraph linear sync --pull
 
 # Set up a cron job or alias
-alias bd-mirror="bd linear sync --pull"
+alias bd-mirror="issuegraph linear sync --pull"
 ```
 
 ## Status & Debugging
@@ -360,7 +360,7 @@ alias bd-mirror="bd linear sync --pull"
 ### Check Sync Status
 
 ```bash
-bd linear status
+issuegraph linear status
 ```
 
 Shows:
@@ -372,8 +372,8 @@ Shows:
 ### JSON Output
 
 ```bash
-bd linear status --json
-bd linear sync --json
+issuegraph linear status --json
+issuegraph linear sync --json
 ```
 
 ### Verbose Output
@@ -392,21 +392,21 @@ All configuration keys for Linear integration:
 linear.api_key          # Linear API key (or LINEAR_API_KEY env var)
 linear.team_id          # Linear team UUID
 
-# Automatic (set by bd)
+# Automatic (set by issuegraph)
 linear.last_sync        # ISO8601 timestamp of last sync
 
 # ID generation (optional)
-linear.id_mode          # hash (default) or db (let bd generate IDs)
+linear.id_mode          # hash (default) or db (let issuegraph generate IDs)
 linear.hash_length      # Hash length 3-8 (default: 6)
 
-# Priority mapping (Linear 0-4 to Beads 0-4)
+# Priority mapping (Linear 0-4 to IssueGraph 0-4)
 linear.priority_map.0   # No priority -> ? (default: 4/backlog)
 linear.priority_map.1   # Urgent -> ? (default: 0/critical)
 linear.priority_map.2   # High -> ? (default: 1/high)
 linear.priority_map.3   # Medium -> ? (default: 2/medium)
 linear.priority_map.4   # Low -> ? (default: 3/low)
 
-# State mapping (Linear state type/name to Beads status)
+# State mapping (Linear state type/name to IssueGraph status)
 linear.state_map.backlog     # (default: open)
 linear.state_map.unstarted   # (default: open)
 linear.state_map.started     # (default: in_progress)
@@ -425,7 +425,7 @@ linear.label_type_map.maintenance # (default: chore)
 linear.label_type_map.task        # (default: task)
 linear.label_type_map.<custom>    # Map custom labels
 
-# Relation mapping (Linear relation type to Beads dependency type)
+# Relation mapping (Linear relation type to IssueGraph dependency type)
 linear.relation_map.blocks    # (default: blocks)
 linear.relation_map.blockedBy # (default: blocks)
 linear.relation_map.duplicate # (default: duplicates)
@@ -448,7 +448,7 @@ export LINEAR_API_KEY="lin_api_YOUR_KEY"  # add to ~/.secrets or ~/.zshrc
 Set the team ID:
 
 ```bash
-bd config set linear.team_id "YOUR_TEAM_UUID"
+issuegraph config set linear.team_id "YOUR_TEAM_UUID"
 ```
 
 ### "GraphQL errors: Not authorized"
@@ -467,7 +467,7 @@ Linear has API rate limits. The client automatically retries with exponential ba
 
 - Check network connectivity
 - Verify API key permissions
-- Check `bd linear status` for configuration issues
+- Check `issuegraph linear status` for configuration issues
 
 ### Sync seems slow
 
@@ -475,7 +475,7 @@ For large projects, initial sync fetches all issues. Subsequent syncs are increm
 
 ## Limitations
 
-- **Single team**: Sync is configured per-team (one team_id per bd project)
+- **Single team**: Sync is configured per-team (one team_id per issuegraph project)
 - **No attachments**: Attachments are not synced
 - **No comments**: Comments are not synced (only description)
 - **Custom fields**: Linear custom fields are not mapped
@@ -485,7 +485,7 @@ For large projects, initial sync fetches all issues. Subsequent syncs are increm
 ## See Also
 
 - [CONFIG.md](../../docs/reference/configuration.md) - Full configuration documentation
-- [Jira Sync](../../README.md) - Similar integration for Jira (`bd jira sync`)
+- [Jira Sync](../../README.md) - Similar integration for Jira (`issuegraph jira sync`)
 - [Linear GraphQL API](https://developers.linear.app/docs/graphql/working-with-the-graphql-api)
 
 ---
@@ -494,12 +494,12 @@ For large projects, initial sync fetches all issues. Subsequent syncs are increm
 
 ```bash
 # Initial setup
-$ bd init --quiet
+$ issuegraph init --quiet
 $ export LINEAR_API_KEY="lin_api_abc123..."  # add to ~/.secrets or ~/.zshrc
-$ bd config set linear.team_id "team-uuid-456"
+$ issuegraph config set linear.team_id "team-uuid-456"
 
 # Check status
-$ bd linear status
+$ issuegraph linear status
 Linear Sync Status
 ==================
 
@@ -512,7 +512,7 @@ With Linear:  0
 Local Only:   0
 
 # Pull from Linear
-$ bd linear sync --pull
+$ issuegraph linear sync --pull
 → Pulling issues from Linear...
   Full sync (no previous sync timestamp)
 ✓ Pulled 47 issues (47 created, 0 updated)
@@ -520,16 +520,16 @@ $ bd linear sync --pull
 ✓ Linear sync complete
 
 # Check what we got
-$ bd stats
+$ issuegraph stats
 Issues: 47 (42 open, 5 closed)
 Types:  23 task, 15 bug, 7 feature, 2 epic
 
 # Create a local issue
-$ bd create "New bug from testing" -t bug -p 1
+$ issuegraph create "New bug from testing" -t bug -p 1
 Created: bd-a1b2c3
 
 # Push to Linear
-$ bd linear sync --push
+$ issuegraph linear sync --push
 → Pushing issues to Linear...
   Created: bd-a1b2c3 -> TEAM-148
 ✓ Pushed 1 issues (1 created, 0 updated)
@@ -537,7 +537,7 @@ $ bd linear sync --push
 ✓ Linear sync complete
 
 # Full bidirectional sync
-$ bd linear sync
+$ issuegraph linear sync
 → Pulling issues from Linear...
   Incremental sync since 2025-01-17 10:30:00
 ✓ Pulled 3 issues (0 created, 3 updated)

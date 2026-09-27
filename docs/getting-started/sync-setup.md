@@ -11,20 +11,20 @@ You need two tools installed on every machine:
 
 | Tool | Version | Install |
 |------|---------|---------|
-| **bd** (beads CLI) | 0.59.0+ | See [Installation](/getting-started/installation) |
+| **issuegraph** (beads CLI) | 0.59.0+ | See [Installation](/getting-started/installation) |
 | **Dolt** | A specific pinned version, not "latest" | See [Which Dolt version to install](/architecture/dolt#which-dolt-version-to-install) |
 
 Verify both are installed:
 
 ```bash
-bd version     # must be 0.59.0+
+issuegraph version     # must be 0.59.0+
 dolt version   # must match the pinned version
 ```
 
 Install a specific Dolt version rather than `releases/latest`. On Dolt 2.3.x a
 few percent of freshly created databases come up with `CALL
 DOLT_RESET('--hard')` broken for the life of the server process, which breaks
-`bd flatten`, `bd admin compact` and the rollback behind `bd dolt pull`;
+`issuegraph flatten`, `issuegraph admin compact` and the rollback behind `issuegraph dolt pull`;
 separately, the upstream `latest` URL can resolve to a *lower* version than
 one released days earlier.
 [Which Dolt version to install](/architecture/dolt#which-dolt-version-to-install)
@@ -37,20 +37,20 @@ already have.
 
 ```bash
 cd your-project
-bd init
+issuegraph init
 ```
 
 This creates the `.beads/` directory with a Dolt database. If the git repo has
-an `origin` remote, `bd init` also configures a Dolt remote named `origin`
+an `origin` remote, `issuegraph init` also configures a Dolt remote named `origin`
 pointing at that same git URL. Dolt stores issue data under `refs/dolt/data`,
 separate from normal source branches.
 
 ### 2. Create some issues
 
 ```bash
-bd create "Set up CI pipeline" -p 1 -t task
-bd create "Add authentication" -p 2 -t feature
-bd list
+issuegraph create "Set up CI pipeline" -p 1 -t task
+issuegraph create "Add authentication" -p 2 -t feature
+issuegraph list
 ```
 
 ### 3. Verify or add a Dolt remote
@@ -58,7 +58,7 @@ bd list
 In a normal git repo with `origin`, this should already be configured:
 
 ```bash
-bd dolt remote list
+issuegraph dolt remote list
 # Expected: origin  <your git origin URL>
 ```
 
@@ -67,10 +67,10 @@ sync:
 
 ```bash
 # GitHub (SSH — recommended)
-bd dolt remote add origin git+ssh://git@github.com/org/repo.git
+issuegraph dolt remote add origin git+ssh://git@github.com/org/repo.git
 
 # GitHub (HTTPS)
-bd dolt remote add origin git+https://github.com/org/repo.git
+issuegraph dolt remote add origin git+https://github.com/org/repo.git
 
 # Other options: DoltHub, S3, GCS, local path
 # See DOLT.md for all remote types
@@ -79,7 +79,7 @@ bd dolt remote add origin git+https://github.com/org/repo.git
 ### 4. Push your issues
 
 ```bash
-bd dolt push
+issuegraph dolt push
 ```
 
 Verify the push worked:
@@ -91,70 +91,70 @@ git ls-remote origin | grep dolt
 
 ## Existing Projects Without a Dolt Remote
 
-Projects initialized by older versions of `bd init` may have a local embedded
+Projects initialized by older versions of `issuegraph init` may have a local embedded
 Dolt database and a committed `.beads/issues.jsonl`, but no Dolt remote. Fix
 that from the machine whose local database is authoritative:
 
 ```bash
-bd dolt remote list
-bd export -o .beads/issues.pre-remote.jsonl   # optional issue audit export
-bd dolt remote add origin git+ssh://git@github.com/org/repo.git
-bd dolt push
+issuegraph dolt remote list
+issuegraph export -o .beads/issues.pre-remote.jsonl   # optional issue audit export
+issuegraph dolt remote add origin git+ssh://git@github.com/org/repo.git
+issuegraph dolt push
 ```
 
-`bd dolt remote add origin ...` writes `sync.remote` to `.beads/config.yaml`.
+`issuegraph dolt remote add origin ...` writes `sync.remote` to `.beads/config.yaml`.
 Commit and push that config file with your normal git workflow. Other clones can
-then run `bd bootstrap` if their database is missing/stale, or `bd dolt pull`
+then run `issuegraph bootstrap` if their database is missing/stale, or `issuegraph dolt pull`
 when they already have the right database.
 
 ## Cloning to a New Computer
 
 When you clone a repo that already has beads data on the remote, a standard `git clone` does **not** fetch `refs/dolt/data`. You need to bootstrap the Dolt database.
 
-### Quick path: bd bootstrap
+### Quick path: issuegraph bootstrap
 
-On recent versions of bd, `bd bootstrap` handles everything automatically:
+On recent versions of issuegraph, `issuegraph bootstrap` handles everything automatically:
 
 ```bash
 git clone git@github.com:org/repo.git
 cd repo
 
-bd bootstrap
+issuegraph bootstrap
 ```
 
-`bd bootstrap` auto-detects `refs/dolt/data` on origin, clones the Dolt database, and configures the remote. Verify with:
+`issuegraph bootstrap` auto-detects `refs/dolt/data` on origin, clones the Dolt database, and configures the remote. Verify with:
 
 ```bash
-bd list       # should show your issues
-bd history    # should show recent issue history
+issuegraph list       # should show your issues
+issuegraph history    # should show recent issue history
 ```
 
-If `bd bootstrap` succeeds, you're done — skip to [Day-to-day Sync](#day-to-day-sync).
+If `issuegraph bootstrap` succeeds, you're done — skip to [Day-to-day Sync](#day-to-day-sync).
 
 ### Manual path (if bootstrap fails)
 
-If `bd bootstrap` doesn't work (older bd versions, unusual remote configs), follow these steps:
+If `issuegraph bootstrap` doesn't work (older issuegraph versions, unusual remote configs), follow these steps:
 
 **Step 1: Confirm the remote has beads data**
 
 ```bash
 git ls-remote origin | grep dolt
 # Expected: <hash>  refs/dolt/data
-# If missing, the remote has no beads data — use bd init normally.
+# If missing, the remote has no beads data — use issuegraph init normally.
 ```
 
 **Step 2: Initialize beads**
 
 ```bash
-bd init
+issuegraph init
 ```
 
-This creates `.beads/` with an empty database. Ignore any warnings about `bd bootstrap` — we'll replace the empty database manually.
+This creates `.beads/` with an empty database. Ignore any warnings about `issuegraph bootstrap` — we'll replace the empty database manually.
 
 **Step 3: Stop the Dolt server**
 
 ```bash
-bd dolt stop
+issuegraph dolt stop
 ```
 
 **Step 4: Find your database name and remove the empty database**
@@ -182,14 +182,14 @@ cd ../..
 **Step 6: Start the server and migrate**
 
 ```bash
-bd dolt start
-bd migrate --yes
+issuegraph dolt start
+issuegraph migrate --yes
 ```
 
 **Step 7: Ensure the remote is registered**
 
 ```bash
-bd dolt remote add origin git+ssh://git@github.com/org/repo.git
+issuegraph dolt remote add origin git+ssh://git@github.com/org/repo.git
 ```
 
 If you see "remote already exists", that's fine — `dolt clone` already set it up.
@@ -197,8 +197,8 @@ If you see "remote already exists", that's fine — `dolt clone` already set it 
 **Step 8: Verify**
 
 ```bash
-bd dolt remote list   # should show origin
-bd list               # should show your issues
+issuegraph dolt remote list   # should show origin
+issuegraph list               # should show your issues
 ```
 
 ## Day-to-day Sync
@@ -207,10 +207,10 @@ Once set up on both machines, sync is two commands:
 
 ```bash
 # Push your changes to the remote
-bd dolt push
+issuegraph dolt push
 
 # Pull changes from the remote
-bd dolt pull
+issuegraph dolt pull
 ```
 
 ### Typical workflow
@@ -218,20 +218,20 @@ bd dolt pull
 ```
 Machine A                          Machine B
 ─────────                          ─────────
-bd create "New task" -p 1
-bd dolt push
-                                   bd dolt pull
-                                   bd update bd-a1b2 --claim
-                                   bd close bd-a1b2 --reason "Done"
-                                   bd dolt push
-bd dolt pull
-bd list                            # sees the closed task
+issuegraph create "New task" -p 1
+issuegraph dolt push
+                                   issuegraph dolt pull
+                                   issuegraph update bd-a1b2 --claim
+                                   issuegraph close bd-a1b2 --reason "Done"
+                                   issuegraph dolt push
+issuegraph dolt pull
+issuegraph list                            # sees the closed task
 ```
 
 ### Important rules
 
-- **Always use `bd dolt ...` commands** — never run raw `dolt` CLI commands while the Dolt server is running. It causes journal corruption.
-- **Commit before pulling** — if you have uncommitted working set changes, `bd dolt pull` will fail with "cannot merge with uncommitted changes". Run `bd dolt commit` first.
+- **Always use `issuegraph dolt ...` commands** — never run raw `dolt` CLI commands while the Dolt server is running. It causes journal corruption.
+- **Commit before pulling** — if you have uncommitted working set changes, `issuegraph dolt pull` will fail with "cannot merge with uncommitted changes". Run `issuegraph dolt commit` first.
 - **Push before switching machines** — unpushed changes only exist locally.
 - **Do not use JSONL as sync** — `.beads/issues.jsonl` is an export for viewers and interchange. It is not the source of truth, not a full database backup, and cannot safely reconcile deletes or pruning.
 
@@ -243,7 +243,7 @@ A stale `refs/dolt/data` from a previous database is conflicting. Clear it and r
 
 ```bash
 git update-ref -d refs/dolt/data
-bd dolt push
+issuegraph dolt push
 ```
 
 ### "cannot merge with uncommitted changes" on pull
@@ -251,27 +251,27 @@ bd dolt push
 Commit your working set first:
 
 ```bash
-bd dolt commit
-bd dolt pull
+issuegraph dolt commit
+issuegraph dolt pull
 ```
 
 ### "no store available" on push or commit
 
-This was a bug in bd < 0.59.0. Upgrade bd:
+This was a bug in issuegraph < 0.59.0. Upgrade issuegraph:
 
 ```bash
 brew upgrade beads
 # or re-run the install script
 ```
 
-### bd list shows nothing after clone
+### issuegraph list shows nothing after clone
 
-The Dolt database wasn't bootstrapped. Either run `bd bootstrap` or follow the [manual path](#manual-path-if-bootstrap-fails) above.
+The Dolt database wasn't bootstrapped. Either run `issuegraph bootstrap` or follow the [manual path](#manual-path-if-bootstrap-fails) above.
 
 ### Stale lock files after crash
 
 ```bash
-bd doctor --fix --yes
+issuegraph doctor --fix --yes
 ```
 
 **WARNING**: Do NOT manually remove files inside `.dolt/` directories (including
@@ -283,8 +283,8 @@ unrecoverable data corruption**. Dolt manages these files itself.
 The Dolt server's working directory no longer exists (common after branch switches). Restart it:
 
 ```bash
-bd dolt stop
-bd dolt start
+issuegraph dolt stop
+issuegraph dolt start
 ```
 
 ## See Also

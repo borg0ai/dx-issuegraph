@@ -18,15 +18,15 @@ Accepted
 
 ## Context
 
-Beads federation currently supports a single remote for push/pull sync:
+IssueGraph federation currently supports a single remote for push/pull sync:
 
 - `federation.remote` in `config.yaml` is a single URL string.
 - `FederationConfig` has one `Remote string` field.
 - `DoltStore.remote` is a single string, used by `Push()` and `Pull()`.
-- `bd dolt push` / `bd dolt pull` have no `--remote` argument.
+- `issuegraph dolt push` / `issuegraph dolt pull` have no `--remote` argument.
 
 Dolt natively supports multiple remotes (like git): `dolt remote add backup az://...`
-and `CALL DOLT_PUSH('backup', 'main')` work out of the box. The gap is in the beads
+and `CALL DOLT_PUSH('backup', 'main')` work out of the box. The gap is in the issuegraph
 layer, not in Dolt itself.
 
 A spike (bd-qky) investigated four approaches. A council review produced 49 findings
@@ -39,10 +39,10 @@ tracer bullet, then evolve to Approach A (config-managed additional remotes).
 
 ### Phase 1 — Tracer Bullet (Approach C)
 
-Expose Dolt's native multi-remote capability through the beads CLI:
+Expose Dolt's native multi-remote capability through the issuegraph CLI:
 
-- Add `--remote <name>` flag to `bd dolt push`.
-- Users manage additional remotes manually via `bd dolt remote add <name> <url>`.
+- Add `--remote <name>` flag to `issuegraph dolt push`.
+- Users manage additional remotes manually via `issuegraph dolt remote add <name> <url>`.
 - No config changes. No new orchestration layer.
 - Pull remains single-remote only (primary / `origin`). Pulling from non-primary
   remotes is not supported — mirrors are push-only.
@@ -105,7 +105,7 @@ Replace `federation.remote` with a list of remotes, each with name/url/role
 
 ### Approach C: Dolt-native `--remote` flag — *selected as first step (Phase 1)*
 
-Expose Dolt's native multi-remote via a CLI flag on `bd dolt push`/`bd dolt pull`.
+Expose Dolt's native multi-remote via a CLI flag on `issuegraph dolt push`/`issuegraph dolt pull`.
 
 **Pros**: Minimal code changes. Leverages Dolt's existing multi-remote support.
 Fast feedback loop — validates workflow assumptions before investing in config
@@ -151,18 +151,18 @@ automatic failover.
   minimum bar.
 - **Partial failure**: If primary succeeds but a backup fails, the command
   reports success with warnings. The operator is responsible for retrying
-  the failed backup push (e.g., `bd dolt push --remote backup`). The
+  the failed backup push (e.g., `issuegraph dolt push --remote backup`). The
   exit code reflects primary success (0), with diagnostic output for
   backup failures. A future `--strict` mode could fail on any mirror
   push failure for CI pipelines that require confirmed redundancy.
-- **Phase 2 default behavior**: Plain `bd dolt push` (no `--remote` flag)
+- **Phase 2 default behavior**: Plain `issuegraph dolt push` (no `--remote` flag)
   pushes to primary and all configured additional remotes. The `--remote`
   flag targets a single remote.
 
 ### Credential routing
 
 Phase 1 relies on ambient environment variables — the user sets the appropriate
-credentials before invoking `bd dolt push --remote <name>`. This matches how
+credentials before invoking `issuegraph dolt push --remote <name>`. This matches how
 Dolt itself handles credentials.
 
 Phase 2 may introduce per-remote credential configuration within the
@@ -218,7 +218,7 @@ and credential isolation.
 
 ### Negative
 
-- **Phase 1 is manual**: Users must run `bd dolt remote add` and manage
+- **Phase 1 is manual**: Users must run `issuegraph dolt remote add` and manage
   credentials via environment variables. No config-driven setup.
 - **Temporary inconsistency**: Between Phase 1 and Phase 2, remotes are managed
   two ways (manual Dolt remotes vs. config-managed). Migration path from

@@ -7,7 +7,7 @@ Complete configuration reference for beads.
 
 Last reviewed: 2026-08-28
 
-Freshness source: `cmd/bd/main.go`, `cmd/bd/config.go`, and `internal/configfile/`.
+Freshness source: `modules/cli/main.go`, `modules/cli/config.go`, and `internal/configfile/`.
 
 beads has two complementary configuration systems:
 

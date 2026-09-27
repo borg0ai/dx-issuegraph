@@ -1,6 +1,6 @@
 # Team Workflow Example
 
-This example demonstrates how to use beads for team collaboration with shared repositories.
+This example demonstrates how to use issuegraph for team collaboration with shared repositories.
 
 ## Problem
 
@@ -12,7 +12,7 @@ When working as a team on a shared repository, you want to:
 
 ## Solution
 
-Use `bd init --team` to set up team collaboration with automatic sync and optional protected branch support.
+Use `issuegraph init --team` to set up team collaboration with automatic sync and optional protected branch support.
 
 ## Setup
 
@@ -23,7 +23,7 @@ Use `bd init --team` to set up team collaboration with automatic sync and option
 cd my-project
 
 # Run the team setup wizard
-bd init --team
+issuegraph init --team
 ```
 
 The wizard will:
@@ -37,7 +37,7 @@ The wizard will:
 
 If your main branch is protected (GitHub/GitLab), the wizard will:
 - Create a separate `beads-metadata` branch for issue updates
-- Configure beads to commit to this branch automatically
+- Configure issuegraph to commit to this branch automatically
 - Set up periodic PR workflow for merging to main
 
 ### Step 3: Team Members Join
@@ -49,11 +49,11 @@ Other team members just need to:
 git clone https://github.com/org/project.git
 cd project
 
-# Initialize beads (auto-imports existing issues)
-bd init
+# Initialize issuegraph (auto-imports existing issues)
+issuegraph init
 
 # Start working!
-bd ready
+issuegraph ready
 ```
 
 ## How It Works
@@ -64,14 +64,14 @@ If main isn't protected:
 
 ```bash
 # Create issue
-bd create "Implement feature X" -p 1
+issuegraph create "Implement feature X" -p 1
 
 # Dolt server auto-commits to main
-# (or run 'bd dolt push' manually)
+# (or run 'issuegraph dolt push' manually)
 
 # Pull to see team's issues
 git pull
-bd list
+issuegraph list
 ```
 
 ### Protected Branch Workflow
@@ -80,10 +80,10 @@ If main is protected:
 
 ```bash
 # Create issue
-bd create "Implement feature X" -p 1
+issuegraph create "Implement feature X" -p 1
 
 # Auto-commits to beads-metadata branch
-# (or run 'bd dolt push' manually)
+# (or run 'issuegraph dolt push' manually)
 
 # Push beads-metadata
 git push origin beads-metadata
@@ -108,13 +108,13 @@ dolt:
 
 ```bash
 # Enable team mode
-bd config set team.enabled true
+issuegraph config set team.enabled true
 
 # Set sync branch
-bd config set team.sync_branch beads-metadata
+issuegraph config set team.sync_branch beads-metadata
 
 # Enable auto-commit
-bd config set dolt.auto-commit on
+issuegraph config set dolt.auto-commit on
 ```
 
 ## Example Workflows
@@ -123,17 +123,17 @@ bd config set dolt.auto-commit on
 
 ```bash
 # Alice creates an issue
-bd create "Fix authentication bug" -p 1
+issuegraph create "Fix authentication bug" -p 1
 
 # Auto-commits and pushes to main
 # (auto-sync enabled)
 
 # Bob pulls changes
 git pull
-bd list  # Sees Alice's issue
+issuegraph list  # Sees Alice's issue
 
 # Bob claims it
-bd update bd-abc --claim
+issuegraph update bd-abc --claim
 
 # Auto-commits Bob's update
 # Alice pulls and sees Bob is working on it
@@ -143,14 +143,14 @@ bd update bd-abc --claim
 
 ```bash
 # Alice creates an issue
-bd create "Add new API endpoint" -p 1
+issuegraph create "Add new API endpoint" -p 1
 
 # Auto-commits to beads-metadata
 git push origin beads-metadata
 
 # Bob pulls beads-metadata
 git pull origin beads-metadata
-bd list  # Sees Alice's issue
+issuegraph list  # Sees Alice's issue
 
 # Later: merge beads-metadata to main via PR
 git checkout main
@@ -165,46 +165,46 @@ git merge beads-metadata
 
 ```bash
 # See what everyone's working on
-bd list --status in_progress
+issuegraph list --status in_progress
 
 # See what's ready for work
-bd ready
+issuegraph ready
 
 # See recently closed issues
-bd list --status closed --limit 10
+issuegraph list --status closed --limit 10
 ```
 
 ### Sprint Planning
 
 ```bash
 # Create sprint issues
-bd create "Implement user auth" -p 1
-bd create "Add profile page" -p 1
-bd create "Fix responsive layout" -p 2
+issuegraph create "Implement user auth" -p 1
+issuegraph create "Add profile page" -p 1
+issuegraph create "Fix responsive layout" -p 2
 
 # Assign to team members
-bd update bd-abc --assignee alice
-bd update bd-def --assignee bob
+issuegraph update bd-abc --assignee alice
+issuegraph update bd-def --assignee bob
 
 # Track dependencies
-bd dep add bd-def bd-abc --type blocks
+issuegraph dep add bd-def bd-abc --type blocks
 ```
 
 ### PR Integration
 
 ```bash
 # Create issue for PR work
-bd create "Refactor auth module" -p 1
+issuegraph create "Refactor auth module" -p 1
 
 # Work on it
-bd update bd-abc --claim
+issuegraph update bd-abc --claim
 
 # Open PR with issue reference
 git push origin feature-branch
 # PR title: "feat: refactor auth module (bd-abc)"
 
 # Close when PR merges
-bd close bd-abc --reason "PR #123 merged"
+issuegraph close bd-abc --reason "PR #123 merged"
 ```
 
 ## Sync Strategies
@@ -214,8 +214,8 @@ bd close bd-abc --reason "PR #123 merged"
 The Dolt server commits and pushes automatically when auto-commit is enabled:
 
 ```bash
-bd config set dolt.auto-commit on
-bd dolt start
+issuegraph config set dolt.auto-commit on
+issuegraph dolt start
 ```
 
 Benefits:
@@ -228,8 +228,8 @@ Benefits:
 Push and pull when you want:
 
 ```bash
-bd dolt push  # Push local changes to remote
-bd dolt pull  # Pull remote changes locally
+issuegraph dolt push  # Push local changes to remote
+issuegraph dolt pull  # Pull remote changes locally
 ```
 
 Benefits:
@@ -239,19 +239,19 @@ Benefits:
 
 ## Conflict Resolution
 
-Hash-based IDs prevent most conflicts. Dolt handles merges natively using three-way merge, similar to git. If conflicts occur during `bd dolt pull`:
+Hash-based IDs prevent most conflicts. Dolt handles merges natively using three-way merge, similar to git. If conflicts occur during `issuegraph dolt pull`:
 
 ```bash
 # View conflicts
-bd sql "SELECT * FROM dolt_conflicts"
+issuegraph sql "SELECT * FROM dolt_conflicts"
 
 # Resolve by accepting ours or theirs
-bd sql "CALL dolt_conflicts_resolve('--ours')"
+issuegraph sql "CALL dolt_conflicts_resolve('--ours')"
 # OR
-bd sql "CALL dolt_conflicts_resolve('--theirs')"
+issuegraph sql "CALL dolt_conflicts_resolve('--theirs')"
 
 # Complete the sync
-bd dolt push
+issuegraph dolt push
 ```
 
 ## Protected Branch Best Practices
@@ -292,11 +292,11 @@ bd dolt push
 
 ### Q: How do team members see each other's issues?
 
-A: Issues are stored in Dolt, which supports distributed sync. Use `bd dolt pull` to fetch and `bd dolt push` to share changes.
+A: Issues are stored in Dolt, which supports distributed sync. Use `issuegraph dolt pull` to fetch and `issuegraph dolt push` to share changes.
 
 ```bash
-bd dolt pull
-bd list  # See everyone's issues
+issuegraph dolt pull
+issuegraph list  # See everyone's issues
 ```
 
 ### Q: What if two people create issues at the same time?
@@ -308,11 +308,11 @@ A: Hash-based IDs prevent collisions. Even if created simultaneously, they get d
 A: Turn it off:
 
 ```bash
-bd config set dolt.auto-commit off
+issuegraph config set dolt.auto-commit off
 
 # Sync manually
-bd dolt push
-bd dolt pull
+issuegraph dolt push
+issuegraph dolt pull
 ```
 
 ### Q: Can we use different sync branches per person?
@@ -320,7 +320,7 @@ bd dolt pull
 A: Not recommended. Use a single shared branch for consistency. If needed:
 
 ```bash
-bd config set sync.branch my-custom-branch
+issuegraph config set sync.branch my-custom-branch
 ```
 
 ### Q: What about CI/CD integration?
@@ -329,9 +329,9 @@ A: Add to your CI pipeline:
 
 ```bash
 # In .github/workflows/main.yml
-- name: Sync beads issues
+- name: Sync issuegraph issues
   run: |
-    bd dolt push
+    issuegraph dolt push
     git push origin beads-metadata
 ```
 
@@ -342,20 +342,20 @@ A: Add to your CI pipeline:
 Check server status:
 
 ```bash
-bd doctor
+issuegraph doctor
 ```
 
 Verify config:
 
 ```bash
-bd config get dolt.auto-commit
+issuegraph config get dolt.auto-commit
 ```
 
 Restart Dolt server:
 
 ```bash
-bd dolt stop
-bd dolt start
+issuegraph dolt stop
+issuegraph dolt start
 ```
 
 ### Issue: Merge conflicts
@@ -363,9 +363,9 @@ bd dolt start
 Dolt handles merges natively. If conflicts occur during sync:
 
 ```bash
-bd sql "SELECT * FROM dolt_conflicts"
-bd sql "CALL dolt_conflicts_resolve('--ours')"
-bd dolt push
+issuegraph sql "SELECT * FROM dolt_conflicts"
+issuegraph sql "CALL dolt_conflicts_resolve('--ours')"
+issuegraph dolt push
 ```
 
 See [GIT_INTEGRATION.md](../../docs/reference/git-integration.md) for details.
@@ -375,15 +375,15 @@ See [GIT_INTEGRATION.md](../../docs/reference/git-integration.md) for details.
 Manually sync:
 
 ```bash
-bd dolt push
-bd dolt pull
+issuegraph dolt push
+issuegraph dolt pull
 ```
 
 Check for conflicts:
 
 ```bash
 git status
-bd validate --checks=conflicts
+issuegraph validate --checks=conflicts
 ```
 
 ## See Also

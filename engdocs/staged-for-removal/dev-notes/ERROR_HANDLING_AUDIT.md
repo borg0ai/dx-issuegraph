@@ -1,7 +1,7 @@
 # Error Handling Audit Report
 **Date:** 2025-11-24
 **Issue:** bd-1qwo
-**Scope:** cmd/bd/*.go
+**Scope:** modules/cli/*.go
 
 This document audits error handling patterns across the beads CLI codebase to ensure consistency with the guidelines established in [ERROR_HANDLING.md](../../ERROR_HANDLING.md).
 
@@ -504,7 +504,7 @@ if err := TouchDatabaseFile(dbPath, jsonlPath); err != nil {
 
 ## Files Not Yet Audited
 
-The following files in cmd/bd/ still need review:
+The following files in modules/cli/ still need review:
 - update.go
 - list.go
 - show.go
@@ -556,7 +556,7 @@ The codebase demonstrates strong adherence to error handling patterns with a few
 
 ---
 
-## Phase 2 Audit: Additional cmd/bd Files (bd-3gc)
+## Phase 2 Audit: Additional modules/cli Files (bd-3gc)
 
 **Date:** 2025-11-28
 **Files Audited:** list.go, show.go, dep.go, label.go, comments.go, delete.go, compact.go, config.go, validate.go

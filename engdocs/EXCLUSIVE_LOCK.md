@@ -1,6 +1,6 @@
 # Exclusive Lock Protocol
 
-The exclusive lock protocol allows external tools to claim exclusive management of a beads database, preventing the Dolt server from interfering with their operations.
+The exclusive lock protocol allows external tools to claim exclusive management of an issuegraph database, preventing the Dolt server from interfering with their operations.
 
 ## Use Cases
 
@@ -108,8 +108,8 @@ cat > "$LOCK_FILE" <<EOF
 EOF
 
 # Do work...
-bd create "My issue" -p 1
-bd update bd-42 --claim
+issuegraph create "My issue" -p 1
+issuegraph update bd-42 --claim
 
 # Release lock
 rm "$LOCK_FILE"
@@ -135,7 +135,7 @@ func main() {
         }
     }()
     
-    // Do work with beads database...
+    // Do work with issuegraph database...
 }
 ```
 
@@ -180,7 +180,7 @@ Check server logs (`.beads/dolt/sql-server.log`) to troubleshoot lock issues.
 
 ## Testing Your Integration
 
-1. **Start the Dolt server**: `bd dolt start`
+1. **Start the Dolt server**: `issuegraph dolt start`
 2. **Create a lock**: Use your tool to create `.beads/.exclusive-lock`
 3. **Verify server skips**: Check server logs for "Skipping database" message
 4. **Release lock**: Remove `.beads/.exclusive-lock`

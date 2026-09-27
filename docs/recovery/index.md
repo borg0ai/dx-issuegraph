@@ -1,40 +1,40 @@
 ---
 title: Recovery Overview
-description: Diagnose and resolve common Beads issues
+description: Diagnose and resolve common IssueGraph issues
 ---
 
-This section provides step-by-step recovery procedures for common Beads issues. Each runbook follows a consistent format: Symptoms, Diagnosis, Solution (5 steps max), and Prevention.
+This section provides step-by-step recovery procedures for common IssueGraph issues. Each runbook follows a consistent format: Symptoms, Diagnosis, Solution (5 steps max), and Prevention.
 
 ## Common Issues
 
 | Issue | Symptoms | Runbook |
 |-------|----------|---------|
-| Schema Version Mismatch | `bd` refuses with `schema version mismatch: database is at vNN, binary knows up to vNN` | [Accidental v1.2.1 Release](/recovery/accidental-1-2-1-release) |
-| Init Safety Refusals | `bd init` or `bd dolt` refuses with a pattern code like `pk-fork-refused` | [Recovery Playbooks](/recovery/init-safety) |
+| Schema Version Mismatch | `issuegraph` refuses with `schema version mismatch: database is at vNN, binary knows up to vNN` | [Accidental v1.2.1 Release](/recovery/accidental-1-2-1-release) |
+| Init Safety Refusals | `issuegraph init` or `issuegraph dolt` refuses with a pattern code like `pk-fork-refused` | [Recovery Playbooks](/recovery/init-safety) |
 | Database Corruption | Database errors, missing data | [Database Corruption](/recovery/database-corruption) |
 | Merge Conflicts | Dolt conflicts during sync | [Merge Conflicts](/recovery/merge-conflicts) |
 | Circular Dependencies | Cycle detection errors | [Circular Dependencies](/recovery/circular-dependencies) |
-| Sync Failures | `bd dolt push`/`bd dolt pull` errors | [Sync Failures](/recovery/sync-failures) |
+| Sync Failures | `issuegraph dolt push`/`issuegraph dolt pull` errors | [Sync Failures](/recovery/sync-failures) |
 | History Bloat | Store grows unbounded; `dolt gc` reclaims nothing | [History Bloat](/recovery/history-squash) |
-| Removing beads | Uninstall bd or strip beads from a repo | [Uninstalling](/recovery/uninstalling) |
+| Removing issuegraph | Uninstall issuegraph or strip issuegraph from a repo | [Uninstalling](/recovery/uninstalling) |
 
 ## Quick Diagnostic
 
 Before diving into specific runbooks, try these quick checks:
 
 ```bash
-# Check Beads status
-bd status
+# Check IssueGraph status
+issuegraph status
 
 # Verify Dolt server is running
-bd doctor
+issuegraph doctor
 
 # Check for blocked issues
-bd blocked
+issuegraph blocked
 ```
 
 <Tip>
-Most issues can be diagnosed with `bd status`. Start there before following specific runbooks.
+Most issues can be diagnosed with `issuegraph status`. Start there before following specific runbooks.
 </Tip>
 
 ## Getting Help

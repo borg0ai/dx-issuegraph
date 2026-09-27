@@ -1,25 +1,25 @@
 ---
 title: Mux
-description: Set up beads for Mux with a managed AGENTS.md section, optional layered instruction files, and Mux hooks
+description: Set up issuegraph for Mux with a managed AGENTS.md section, optional layered instruction files, and Mux hooks
 ---
 
-Use Beads with Mux through `AGENTS.md`, optional layered Mux instruction files, and Mux hooks.
+Use IssueGraph with Mux through `AGENTS.md`, optional layered Mux instruction files, and Mux hooks.
 
 ```bash
-bd setup mux
-bd setup mux --check
+issuegraph setup mux
+issuegraph setup mux --check
 ```
 
-The default setup writes a managed Beads section to root `AGENTS.md`.
+The default setup writes a managed IssueGraph section to root `AGENTS.md`.
 
 ## Workspace and Global Layers
 
 Mux also supports workspace and global instruction layers:
 
 ```bash
-bd setup mux --project
-bd setup mux --global
-bd setup mux --project --global
+issuegraph setup mux --project
+issuegraph setup mux --global
+issuegraph setup mux --project --global
 ```
 
 Project setup writes `.mux/AGENTS.md` and installs Mux hook files under `.mux/`:
@@ -33,7 +33,7 @@ Global setup writes `~/.mux/AGENTS.md`.
 ## Remove
 
 ```bash
-bd setup mux --remove
-bd setup mux --project --remove
-bd setup mux --global --remove
+issuegraph setup mux --remove
+issuegraph setup mux --project --remove
+issuegraph setup mux --global --remove
 ```

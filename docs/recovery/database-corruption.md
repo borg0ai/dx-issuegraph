@@ -3,11 +3,11 @@ title: Database Corruption
 description: Recover from Dolt database corruption
 ---
 
-This runbook helps you recover from database corruption in Beads.
+This runbook helps you recover from database corruption in IssueGraph.
 
 ## Symptoms
 
-- Error messages during `bd` commands
+- Error messages during `issuegraph` commands
 - "database is locked" errors that persist
 - Missing issues that should exist
 - Inconsistent database state
@@ -16,17 +16,17 @@ This runbook helps you recover from database corruption in Beads.
 
 ```bash
 # Check database integrity
-bd doctor
+issuegraph doctor
 
 # Check Dolt server health
-bd dolt show
+issuegraph dolt show
 ```
 
 ## Solution
 
 **Step 1:** Stop the Dolt server
 ```bash
-bd dolt stop
+issuegraph dolt stop
 ```
 
 **Step 2:** Back up current state
@@ -36,18 +36,18 @@ cp -r .beads .beads.backup
 
 **Step 3:** Preview what doctor would fix
 ```bash
-bd doctor --dry-run
+issuegraph doctor --dry-run
 ```
 
 **Step 4:** Rebuild database
 ```bash
-bd doctor --fix
+issuegraph doctor --fix
 ```
 
 **Step 5:** Verify recovery
 ```bash
-bd doctor
-bd list
+issuegraph doctor
+issuegraph list
 ```
 
 **Step 6:** Restart the Dolt server
@@ -58,5 +58,5 @@ dolt sql-server
 ## Prevention
 
 - Let the Dolt server handle synchronization
-- Use `bd dolt stop` before system shutdown
-- Run `bd doctor` periodically to catch issues early
+- Use `issuegraph dolt stop` before system shutdown
+- Run `issuegraph doctor` periodically to catch issues early

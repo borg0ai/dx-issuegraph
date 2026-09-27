@@ -132,16 +132,16 @@ After removing legacy path:
 
 ## Files Modified
 
-- `cmd/bd/main_test.go` - Delete 7 tests, refactor 2 tests
-- `cmd/bd/flush_manager.go` - Add MarkClean() method
-- `cmd/bd/autoflush.go` - Remove legacy paths
-- `cmd/bd/main.go` - Remove global variables (Phase 3)
+- `modules/cli/main_test.go` - Delete 7 tests, refactor 2 tests
+- `modules/cli/flush_manager.go` - Add MarkClean() method
+- `modules/cli/autoflush.go` - Remove legacy paths
+- `modules/cli/main.go` - Remove global variables (Phase 3)
 - `docs/MAIN_TEST_REFACTOR_NOTES.md` - Update with new approach
 
 ## References
 
 - Original analysis: `docs/MAIN_TEST_REFACTOR_NOTES.md`
-- FlushManager implementation: `cmd/bd/flush_manager.go`
-- FlushManager tests: `cmd/bd/flush_manager_test.go`
+- FlushManager implementation: `modules/cli/flush_manager.go`
+- FlushManager tests: `modules/cli/flush_manager_test.go`
 - Issue bd-52: FlushManager refactoring
 - Issue bd-159: Test config reference

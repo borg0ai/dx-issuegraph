@@ -4,9 +4,9 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Project Overview
 
-**beads** (command: `bd`) is a Dolt-powered issue tracker for AI-supervised coding workflows. Git integration is optional — see `BEADS_DIR` + `--stealth` for git-free operation. We dogfood our own tool.
+**IssueGraph** (command: `issuegraph`) is a Dolt-powered issue tracker for AI-supervised coding workflows. Git integration is optional — see `BEADS_DIR` + `--stealth` for git-free operation. We dogfood our own tool.
 
-**IMPORTANT**: See [AGENTS.md](../AGENTS.md) for complete workflow instructions, bd commands, and development guidelines.
+**IMPORTANT**: See [AGENTS.md](../AGENTS.md) for complete workflow instructions, issuegraph commands, and development guidelines.
 
 ## Architecture Overview
 
@@ -22,7 +22,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
    - Proxy and pidfile helpers live under `internal/storage/db/`
    - Storage-facing server adapters live under `internal/storage/doltserver/`
 
-3. **CLI Layer** (`cmd/bd/`)
+3. **CLI Layer** (`modules/cli/`)
    - Cobra-based commands (one file per command: `create.go`, `list.go`, etc.)
    - Direct database access (embedded mode for standalone, server mode for orchestrator)
    - All commands support `--json` for programmatic use
@@ -30,25 +30,26 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ### Storage Architecture
 
-Beads uses **Dolt** as its storage backend — a version-controlled SQL database:
+IssueGraph uses **Dolt** as its local storage backend — a version-controlled SQL database:
 
 ```
-Dolt DB (.beads/dolt/)
+Dolt DB (.issuegraph/dolt/)
     ↕ Dolt commits (automatic per write)
-    ↕ Dolt push/pull (native sync)
-Remote (Dolt remotes: DoltHub, S3, GCS, etc.)
+Complete Git-tracked snapshot (.issuegraph/issues.jsonl + manifest.json)
+    ↕ User-managed Git commit/pull/push
+Other clones of the repository
 ```
 
 - **Write path**: CLI → Dolt → auto-commit to Dolt history
 - **Read path**: Direct SQL queries against Dolt
-- **Sync**: Dolt handles versioning and sync natively via `bd dolt push` / `bd dolt pull`
+- **Portability**: the complete local snapshot is tracked by Git; IssueGraph never runs Git network commands or Dolt remote sync
 - **Hash-based IDs**: Automatic collision prevention (v0.20+)
 
 Core implementation:
 - Dolt storage: `internal/storage/dolt/`
 - Embedded runtime: `internal/storage/embeddeddolt/`
 - Server runtime: `internal/doltserver/`, `internal/storage/db/`, and `internal/storage/doltserver/`
-- Sync commands: `cmd/bd/dolt_*.go`, `cmd/bd/sync_*.go`
+- Legacy remote sync commands are being removed under RFC 0003
 
 ### Key Data Types
 
@@ -65,8 +66,8 @@ Use the canonical [TESTING.md](TESTING.md) for test commands, test design, and
 PR-readiness gates. This file should not duplicate command matrices or
 version-management workflows.
 
-> **Do NOT** use `go build -o bd` or `go install` directly — they create
-> stale binaries that shadow `~/.local/bin/bd`. Always use `make install`.
+> **Do NOT** use `go build -o issuegraph` or `go install` directly — they create
+> stale binaries that shadow `~/.local/bin/issuegraph`. Always use `make install`.
 
 ## Testing
 
@@ -77,7 +78,7 @@ instruction-file generation.
 ## Important Notes
 
 - **Always read AGENTS.md first** - it has the complete workflow
-- Check for duplicates proactively: `bd duplicates --auto-merge`
+- Check for duplicates proactively: `issuegraph duplicates --auto-merge`
 - Use `--json` flags for all programmatic use
 
 ## Key Files

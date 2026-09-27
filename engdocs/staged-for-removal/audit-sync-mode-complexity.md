@@ -34,7 +34,7 @@ var validSyncModes = map[SyncMode]bool{
 - `SyncConfig` struct in `config.go` with `Mode` field
 - `GetSyncConfig()` that calls `GetSyncMode()`
 - Config default: `v.SetDefault("sync.mode", SyncModeDoltNative)`
-- Config validation in `cmd/bd/config.go` that checks `sync.mode` is valid
+- Config validation in `modules/cli/config.go` that checks `sync.mode` is valid
 - Tests for all of the above (`sync_test.go`: 6 test functions)
 
 **Recommendation: Remove.** Since there is only one mode and `GetSyncMode()` is hardcoded, all SyncMode machinery is dead weight. Any code that checks the sync mode can be simplified to unconditional dolt-native behavior.
@@ -159,8 +159,8 @@ primary keys. UUID PKs eliminate counter collisions in multi-clone federation.
 | `internal/storage/versioned.go` | 60 | Shared types: Conflict, SyncStatus, FederationPeer |
 | `internal/tracker/engine.go` | ~200 | External tracker SyncEngine |
 | `internal/hooks/hooks.go` | ~100 | Hook runner (create/update/close events) |
-| `cmd/bd/config.go` | ~500 | CLI config commands, sync.mode validation |
-| `cmd/bd/info.go` | ~400 | Version history documenting sync removals |
+| `modules/cli/config.go` | ~500 | CLI config commands, sync.mode validation |
+| `modules/cli/info.go` | ~400 | Version history documenting sync removals |
 
 ## Historical Context
 

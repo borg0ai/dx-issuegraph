@@ -1,9 +1,9 @@
 ---
 title: Federation Setup Guide
-description: Configure peer-to-peer sync of beads databases across workspaces with Dolt remotes, sovereignty tiers, and topologies
+description: Configure peer-to-peer sync of issuegraph databases across workspaces with Dolt remotes, sovereignty tiers, and topologies
 ---
 
-Federation enables peer-to-peer synchronization of beads databases between
+Federation enables peer-to-peer synchronization of issuegraph databases between
 multiple workspaces using Dolt remotes. Each workspace maintains its own database
 while sharing work items with configured peers.
 
@@ -58,10 +58,10 @@ export BD_FEDERATION_SOVEREIGNTY="T2"
 
 ## Adding Federation Peers
 
-Use `bd federation add-peer` to register remote peers:
+Use `issuegraph federation add-peer` to register remote peers:
 
 ```bash
-bd federation add-peer <name> <endpoint>
+issuegraph federation add-peer <name> <endpoint>
 ```
 
 ### Peer Name Rules
@@ -86,17 +86,17 @@ bd federation add-peer <name> <endpoint>
 
 ```bash
 # Add a staging environment on DoltHub
-bd federation add-peer staging dolthub://myorg/staging-beads
+issuegraph federation add-peer staging dolthub://myorg/staging-beads
 
 # Add a cloud backup
-bd federation add-peer backup gs://mybucket/beads-backup
-bd federation add-peer backup-s3 s3://mybucket/beads-backup
+issuegraph federation add-peer backup gs://mybucket/beads-backup
+issuegraph federation add-peer backup-s3 s3://mybucket/beads-backup
 
 # Add a local backup
-bd federation add-peer local file:///home/user/beads-backup
+issuegraph federation add-peer local file:///home/user/beads-backup
 
 # Add a partner organization
-bd federation add-peer partner-town dolthub://partner-org/beads
+issuegraph federation add-peer partner-town dolthub://partner-org/beads
 ```
 
 ### Credentials
@@ -106,7 +106,7 @@ prompted interactively) store SQL credentials AES-256 encrypted, locally.
 Stored credentials are used automatically during sync:
 
 ```bash
-bd federation add-peer town-gamma 192.168.1.100:3306/beads --user sync-bot
+issuegraph federation add-peer town-gamma 192.168.1.100:3306/beads --user sync-bot
 ```
 
 ### JSON Output
@@ -114,7 +114,7 @@ bd federation add-peer town-gamma 192.168.1.100:3306/beads --user sync-bot
 For scripting, use the `--json` flag:
 
 ```bash
-bd --json federation add-peer staging dolthub://myorg/staging-beads
+issuegraph --json federation add-peer staging dolthub://myorg/staging-beads
 # {"added":"staging","url":"dolthub://myorg/staging-beads","has_auth":false,"sovereignty":""}
 ```
 
@@ -123,27 +123,27 @@ bd --json federation add-peer staging dolthub://myorg/staging-beads
 List configured peers:
 
 ```bash
-bd federation list-peers
+issuegraph federation list-peers
 ```
 
 ## Syncing with Peers
 
-Use `bd federation sync` to pull from and push to peer towns, and
-`bd federation status` to check sync state without transferring data.
+Use `issuegraph federation sync` to pull from and push to peer towns, and
+`issuegraph federation status` to check sync state without transferring data.
 
 ```bash
 # Sync with all peers
-bd federation sync
+issuegraph federation sync
 
 # Sync with a specific peer
-bd federation sync --peer town-beta
+issuegraph federation sync --peer town-beta
 
 # Handle conflicts
-bd federation sync --strategy theirs  # or 'ours'
+issuegraph federation sync --strategy theirs  # or 'ours'
 
 # Check status (ahead/behind, reachability, conflicts)
-bd federation status
-bd federation status --peer town-beta
+issuegraph federation status
+issuegraph federation status --peer town-beta
 ```
 
 Without `--strategy`, a sync that hits merge conflicts pauses and reports the
@@ -163,7 +163,7 @@ conflicting tables for manual resolution instead of auto-resolving.
 
 1. Each workspace has its own Dolt database
 2. `add-peer` registers a Dolt remote (similar to `git remote add`)
-3. `bd federation sync` pushes and pulls commits between peers
+3. `issuegraph federation sync` pushes and pulls commits between peers
 4. Conflict resolution follows the configured strategy
 
 When run against a Dolt SQL server, federation uses two ports: MySQL (3306)
@@ -191,7 +191,7 @@ the peer. This allows configuring remotes before infrastructure is ready.
 
 ### Leases are per-replica
 
-A claim lease (`bd ready --claim` + `bd heartbeat`, reaped by `bd reclaim`) is
+A claim lease (`issuegraph ready --claim` + `issuegraph heartbeat`, reaped by `issuegraph reclaim`) is
 only meaningful on the replica that granted it. The `leases` table is
 clone-local and never replicates; what crosses the bridge is the claim's
 *visibility* — `status`/`assignee` on the issue row — and that is stale on
@@ -200,20 +200,20 @@ every other replica by up to one sync interval.
 Two rules follow, and a federated deployment owes both:
 
 1. **Grace window > sync interval, and lease TTL > sync interval.** A TTL or
-   `bd reclaim --older-than` grace shorter than the cadence at which replicas
+   `issuegraph reclaim --older-than` grace shorter than the cadence at which replicas
    exchange state is meaningless across the bridge: the remote view is a full
    interval old by construction, so a reaper over there would be judging
-   liveness from data older than the lease itself. `bd reclaim` defaults its
+   liveness from data older than the lease itself. `issuegraph reclaim` defaults its
    grace to 2× the lease TTL; raise the TTL (or the grace) above your sync
    interval, never shrink the interval to fit them.
 2. **Reclaim belongs to the granting replica.** Each lease records the replica
-   that granted it, and `bd reclaim` skips a lease granted elsewhere, naming
+   that granted it, and `issuegraph reclaim` skips a lease granted elsewhere, naming
    it on stderr. Reap dead workers on the machine that hired them.
 
 The guard is **opt-in**: it arms only where you name this replica.
 
 ```bash
-export BEADS_NODE_ID=mini          # per-machine; or `bd config set node_id mini`
+export BEADS_NODE_ID=mini          # per-machine; or `issuegraph config set node_id mini`
 ```
 
 Two rules about what to name, both load-bearing:
@@ -231,7 +231,7 @@ Two rules about what to name, both load-bearing:
   comparison matches: the guard is fully *armed* and fully *inert*, and `laptop`
   reaps `mini`'s leases exactly as if they were local — the precise hazard this
   feature exists to close, now happening while you believe you are protected.
-  That is worse than not setting it at all. `bd config set node_id` therefore
+  That is worse than not setting it at all. `issuegraph config set node_id` therefore
   writes the **user-global** `~/.config/bd/config.yaml`, alongside the other
   per-machine state (`sync-state.json`, `push-state.json`, `redirect`). Use the
   env var or that command; never hand-add `node_id` to `.beads/config.yaml`.
@@ -253,7 +253,7 @@ deployment, can never strand a lease the reaper could previously recover.
 Leases granted before this feature landed likewise carry no replica and stay
 reclaimable until a heartbeat re-stamps them with a configured node.
 
-`bd reclaim --any-replica` disarms the guard. It is for a replica that is
+`issuegraph reclaim --any-replica` disarms the guard. It is for a replica that is
 permanently gone (or a node that was renamed and now sees its own old leases
 as foreign) — not a normal setting, since only the granting machine has a
 first-hand view of whether the holder is alive.
@@ -277,21 +277,21 @@ local heartbeat is keeping it alive:
 different *spelling* of the lease row's holder: it re-arms through the upsert,
 which stamps this node.)
 
-Recover a stranded lease with `bd reclaim --any-replica`, once you have
+Recover a stranded lease with `issuegraph reclaim --any-replica`, once you have
 confirmed the granting replica is not still reaping — that confirmation is the
 whole point of the guard, so prefer the narrow forms:
-`bd reclaim --any-replica --id <id>` for one issue, or `bd unclaim --force
+`issuegraph reclaim --any-replica --id <id>` for one issue, or `issuegraph unclaim --force
 <id>`; the bare global form reverts *every* foreign stale lease, live peers
-included. `bd reclaim` names what it declined on stderr — one summary line per
-run, with `bd -v` expanding it to the first 20 leases individually.
+included. `issuegraph reclaim` names what it declined on stderr — one summary line per
+run, with `issuegraph -v` expanding it to the first 20 leases individually.
 
 ## Planned Features
 
 The following operation has infrastructure support but is not yet exposed as
 a command:
 
-- `bd federation push <peer>` / `bd federation pull <peer>` - single-direction
-  sync with one peer. `bd federation sync` already covers the bidirectional
+- `issuegraph federation push <peer>` / `issuegraph federation pull <peer>` - single-direction
+  sync with one peer. `issuegraph federation sync` already covers the bidirectional
   case.
 
 ## Troubleshooting
@@ -304,7 +304,7 @@ you have the Dolt backend configured for federation operations.
 ### "peer already exists"
 
 A peer with that name is already configured. Use a different name or check
-existing peers with `bd federation list-peers`.
+existing peers with `issuegraph federation list-peers`.
 
 ### Invalid endpoint format
 
@@ -315,12 +315,12 @@ or git SSH format (`git@host:path`).
 ### General health check
 
 ```bash
-bd doctor --deep
+issuegraph doctor --deep
 ```
 
 ## Reference
 
 - Configuration: See [Configuration](/reference/configuration) for all federation settings
-- Source: `cmd/bd/federation.go`
+- Source: `modules/cli/federation.go`
 - Storage interfaces: `internal/storage/versioned.go`
 - Dolt implementation: `internal/storage/dolt/store.go`

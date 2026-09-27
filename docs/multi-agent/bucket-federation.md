@@ -1,9 +1,9 @@
 ---
 title: Bucket Federation Quickstart
-description: Federate a beads database across machines through a GCS or S3 bucket — remote add, seed push, birth the second replica, and pick a sync cadence
+description: Federate a issuegraph database across machines through a GCS or S3 bucket — remote add, seed push, birth the second replica, and pick a sync cadence
 ---
 
-Point two machines at one object-storage bucket and you have a beads
+Point two machines at one object-storage bucket and you have a issuegraph
 federation: no server to run, no hosted account, no ports to open. Dolt speaks
 GCS and S3 natively, so the bucket *is* the remote — the same role a git
 remote plays for a repo.
@@ -17,13 +17,13 @@ cloud account, or when you already have one.
 ```
    machine one                  gs://my-bucket/beads/myproject                machine two
   ┌─────────────┐                    ┌──────────────┐                      ┌─────────────┐
-  │ .beads/dolt │ ──── bd sync ────► │    bucket    │ ◄──── bd sync ────── │ .beads/dolt │
+  │ .beads/dolt │ ──── issuegraph sync ────► │    bucket    │ ◄──── issuegraph sync ────── │ .beads/dolt │
   │  (replica)  │ ◄──────────────────│  (no server) │ ─────────────────────►│  (replica)  │
   └─────────────┘                    └──────────────┘                      └─────────────┘
 ```
 
 Each machine keeps a full local replica and works offline against it; a timer
-runs `bd sync` on both ends. Nothing arbitrates between them but the bucket.
+runs `issuegraph sync` on both ends. Nothing arbitrates between them but the bucket.
 
 ## Prerequisites
 
@@ -40,7 +40,7 @@ runs `bd sync` on both ends. Nothing arbitrates between them but the bucket.
 
 ## 1. Create the bucket path
 
-One bucket path per beads database. Two databases sharing a path will fight
+One bucket path per issuegraph database. Two databases sharing a path will fight
 over the same Dolt history.
 
 ```bash
@@ -58,8 +58,8 @@ No layout to prepare inside it — the first push creates everything.
 Run this in the workspace that already holds the database you want to share:
 
 ```bash
-bd dolt remote add origin gs://my-bucket/beads/myproject
-bd dolt push
+issuegraph dolt remote add origin gs://my-bucket/beads/myproject
+issuegraph dolt push
 ```
 
 Supported schemes are `gs://`, `s3://` (or Dolt's `aws://`), `az://`,
@@ -67,28 +67,28 @@ Supported schemes are `gs://`, `s3://` (or Dolt's `aws://`), `az://`,
 
 Two details worth knowing:
 
-- **Use `bd dolt remote add`, not raw `dolt remote add`.** bd registers the
+- **Use `issuegraph dolt remote add`, not raw `dolt remote add`.** issuegraph registers the
   remote through the store API so a running Dolt SQL server sees it
   immediately. A remote added with the `dolt` CLI lands in filesystem config
   only, and push/pull then fail with *remote not found* until the server
   restarts.
 - **Naming it `origin` also persists `sync.remote`** into `.beads/config.yaml`,
-  which is what lets `bd sync` find the remote with no flags. Any other name
-  works, but every sync then needs `bd sync --remote <name>`.
+  which is what lets `issuegraph sync` find the remote with no flags. Any other name
+  works, but every sync then needs `issuegraph sync --remote <name>`.
 
 Verify:
 
 ```bash
-bd dolt remote list
+issuegraph dolt remote list
 ```
 
 ## 3. Machine two: birth the replica from the bucket
 
 ```bash
-bd init --remote gs://my-bucket/beads/myproject
+issuegraph init --remote gs://my-bucket/beads/myproject
 ```
 
-`bd init --remote` clones the Dolt database from the bucket and persists
+`issuegraph init --remote` clones the Dolt database from the bucket and persists
 `sync.remote`, so machine two is ready to sync immediately. This is a *clone*,
 not an import: no JSONL round-trip, no re-keying, and the full commit history
 comes with it.
@@ -96,8 +96,8 @@ comes with it.
 Verify the birth before you trust it:
 
 ```bash
-bd dolt remote list          # points at the bucket
-bd list --status all --json | jq length   # issue-count parity with machine one
+issuegraph dolt remote list          # points at the bucket
+issuegraph list --status all --json | jq length   # issue-count parity with machine one
 ```
 
 An issue that machine one closed *after* the last push will still look open
@@ -106,19 +106,19 @@ here. That is federation lag, not a bad clone — it arrives on the next sync.
 <Note>
 Already have a `.beads/` directory on machine two that you want to replace with
 the bucket's copy? Don't clone over it. Move it aside first, then run
-`bd init --remote`; see [Init Safety](/recovery/init-safety) for the guard
+`issuegraph init --remote`; see [Init Safety](/recovery/init-safety) for the guard
 rails.
 </Note>
 
 ## 4. Pick a sync cadence
 
-`bd sync` is the whole loop — pull, positively check for conflicts, repair
+`issuegraph sync` is the whole loop — pull, positively check for conflicts, repair
 `is_blocked`, push with bounded retry:
 
 ```bash
-bd sync                  # default remote
-bd sync --remote mini    # a specific named remote
-bd sync --json           # machine-parseable outcome
+issuegraph sync                  # default remote
+issuegraph sync --remote mini    # a specific named remote
+issuegraph sync --json           # machine-parseable outcome
 ```
 
 Run it from a timer on both machines. A 60-second cadence is comfortable at
@@ -126,7 +126,7 @@ the scale measured below; the loop is a no-op when nothing changed.
 
 ```bash
 # cron, every minute
-* * * * * cd /path/to/workspace && /usr/local/bin/bd sync --json >> /tmp/bd-sync.log 2>&1
+* * * * * cd /path/to/workspace && /usr/local/bin/issuegraph sync --json >> /tmp/bd-sync.log 2>&1
 ```
 
 A timer branches on the exit code without parsing output:
@@ -147,10 +147,10 @@ Three rules for choosing the interval:
   only meaningful on the replica that granted it, and a reaper on the other
   machine would be judging liveness from data older than the lease. See
   [Leases are per-replica](/multi-agent/federation#leases-are-per-replica),
-  and name each replica with `bd config set node_id <name>` so the
+  and name each replica with `issuegraph config set node_id <name>` so the
   cross-replica reclaim guard arms.
 - **A longer interval means more conflicts, not just staler data.**
-  `updated_at` is touched by *every* bd mutation, so two replicas editing the
+  `updated_at` is touched by *every* issuegraph mutation, so two replicas editing the
   same issue between syncs conflict even when the fields they changed are
   disjoint. Disjoint edits to *different* issues merge cleanly at any cadence.
 
@@ -171,13 +171,13 @@ state is dominated by no-ops.
 
 ## Failure modes
 
-### `bd dolt push` says the remote does not exist
+### `issuegraph dolt push` says the remote does not exist
 
 The remote was added with raw `dolt remote add`, so it exists in filesystem
 config but not in the SQL server's `dolt_remotes` table. Re-register it:
 
 ```bash
-bd dolt remote add origin gs://my-bucket/beads/myproject
+issuegraph dolt remote add origin gs://my-bucket/beads/myproject
 ```
 
 ### Pull fails on a fresh machine with no conflicts reported
@@ -195,7 +195,7 @@ dolt config --global --add user.email "you@example.com"
 
 With an external Dolt SQL server, `CALL DOLT_PUSH/PULL` runs *inside the
 server process*, which only has the environment it inherited at startup.
-Credentials exported afterwards never reach it. bd detects cloud credentials
+Credentials exported afterwards never reach it. issuegraph detects cloud credentials
 matching the remote's scheme (`GOOGLE_*`/`GCS_*` for `gs://`, `AWS_*` for
 `s3://`/`aws://`, `AZURE_STORAGE_*` for `az://`) and routes push/pull through
 a `dolt` CLI subprocess, which inherits the current environment. If sync still
@@ -204,14 +204,14 @@ environment.
 
 ### The remote is named something other than `origin`
 
-A replica born with `bd init --remote` (or `dolt clone`) names its remote
+A replica born with `issuegraph init --remote` (or `dolt clone`) names its remote
 `origin`; a machine where someone added the remote by hand may have named it
 anything. Timers must pass the right `--remote` on each machine — or rename
 the remote so both ends match.
 
 ### A sync exits 2 (conflict)
 
-`bd sync` halts before recomputing or pushing and never auto-resolves what it
+`issuegraph sync` halts before recomputing or pushing and never auto-resolves what it
 cannot settle safely. Repeated runs keep halting the same way until an
 operator resolves the divergence. Inside `.beads/dolt/<db>`:
 
@@ -230,11 +230,11 @@ A bucket path is a single Dolt history. Pointing a second, unrelated beads
 database at the same path produces a divergence no merge can reconcile. Give
 each database its own path.
 
-## Relationship to `bd federation`
+## Relationship to `issuegraph federation`
 
 Both paths write Dolt remotes; they differ in what they are for.
 
-| | `bd sync` (this page) | `bd federation sync` |
+| | `issuegraph sync` (this page) | `issuegraph federation sync` |
 |---|---|---|
 | Target | The workspace's configured remote | Named peer towns |
 | Conflicts | Halts (exit 2); no override switch | `--strategy ours\|theirs` available |
@@ -244,7 +244,7 @@ Registering the bucket as a named peer instead is one command, and the peer
 surface adds sovereignty tiers and topologies:
 
 ```bash
-bd federation add-peer backup gs://my-bucket/beads-backup
+issuegraph federation add-peer backup gs://my-bucket/beads-backup
 ```
 
 See [Federation Setup](/multi-agent/federation) for peers, sovereignty tiers,
@@ -254,6 +254,6 @@ and topologies.
 
 - [Federation Setup](/multi-agent/federation) — peers, sovereignty, topologies
 - [Dolt Architecture](/architecture/dolt) — remotes, push/pull, storage layout
-- [`bd dolt`](/cli-reference/dolt) · [`bd init`](/cli-reference/init) ·
-  `bd sync --help` for the full sync surface
+- [`issuegraph dolt`](/cli-reference/dolt) · [`issuegraph init`](/cli-reference/init) ·
+  `issuegraph sync --help` for the full sync surface
 - [Sync Failures](/recovery/sync-failures) — recovering a wedged sync

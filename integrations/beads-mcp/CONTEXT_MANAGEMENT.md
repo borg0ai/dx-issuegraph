@@ -5,8 +5,8 @@
 MCP servers don't receive working directory context from AI clients (Claude Code/Amp), causing database routing issues:
 
 1. MCP server process starts with its own CWD
-2. `bd` uses tree-walking to discover databases based on CWD
-3. Without correct CWD, `bd` discovers wrong database or falls back to `~/.beads`
+2. `issuegraph` uses tree-walking to discover databases based on CWD
+3. Without correct CWD, `issuegraph` discovers wrong database or falls back to `~/.beads`
 4. Result: Issues get misrouted across repositories
 
 ## Current Implementation (Partial Solution)
@@ -16,7 +16,7 @@ We've added two new MCP tools to allow explicit context management:
 ### Tools
 
 #### `set_context`
-Sets the workspace root directory for all bd operations.
+Sets the workspace root directory for all issuegraph operations.
 
 **Parameters:**
 - `workspace_root` (string): Absolute path to workspace/project root directory

@@ -26,13 +26,13 @@ freshness source.
 
 | Doc | Freshness path |
 |---|---|
-| `CLI_REFERENCE.md` | Generated from `bd help --all`. |
+| `CLI_REFERENCE.md` | Generated from `issuegraph help --all`. |
 | `plugins/beads/skills/beads/resources/CLI_REFERENCE.md` | Pointer-only doc: must link to live CLI help and canonical generated `docs/CLI_REFERENCE.md`; do not duplicate generated command tables. |
-| `reference/configuration.md` | `Last reviewed:` marker tied to `cmd/bd/main.go`, `cmd/bd/config.go`, and `internal/configfile/`. (Mintlify port: absorbed `CONFIG.md`.) |
-| `getting-started/ide-setup.md` | `Last reviewed:` marker tied to `cmd/bd/setup*.go` and `internal/recipes/`. (Mintlify port: absorbed `SETUP.md`.) |
-| `integrations/azure-devops.md` | `Last reviewed:` marker tied to `cmd/bd/ado*.go` and `internal/ado/`. (Mintlify port: was `ADO_CONFIG.md`.) |
-| `reference/json-schema.md` | `Last reviewed:` marker tied to `cmd/bd/output.go`, `cmd/bd/errors.go`, and protocol tests. (Mintlify port: was `JSON_SCHEMA.md`.) |
-| `recovery/init-safety.md` | `Last reviewed:` marker tied to `cmd/bd/init*.go` safety code and tests. (Mintlify port: was `RECOVERY.md`.) |
+| `reference/configuration.md` | `Last reviewed:` marker tied to `modules/cli/main.go`, `modules/cli/config.go`, and `internal/configfile/`. (Mintlify port: absorbed `CONFIG.md`.) |
+| `getting-started/ide-setup.md` | `Last reviewed:` marker tied to `modules/cli/setup*.go` and `internal/recipes/`. (Mintlify port: absorbed `SETUP.md`.) |
+| `integrations/azure-devops.md` | `Last reviewed:` marker tied to `modules/cli/ado*.go` and `internal/ado/`. (Mintlify port: was `ADO_CONFIG.md`.) |
+| `reference/json-schema.md` | `Last reviewed:` marker tied to `modules/cli/output.go`, `modules/cli/errors.go`, and protocol tests. (Mintlify port: was `JSON_SCHEMA.md`.) |
+| `recovery/init-safety.md` | `Last reviewed:` marker tied to `modules/cli/init*.go` safety code and tests. (Mintlify port: was `RECOVERY.md`.) |
 | `ERROR_HANDLING.md` | `Last reviewed:` marker tied to current command error exits and JSON error helpers. |
 | `LINTING.md` | `Last reviewed:` marker tied to `.golangci.yml`, `scripts/ci/pr-lint.sh`, the `Makefile` wrapper, and CI workflow wiring. |
 | `SERVE_RUNBOOK.md` | `Last reviewed:` marker tied to the operating-envelope constants in `internal/httpapi/server.go` and the log fields in its `event`/`request` emitters. |
@@ -51,7 +51,7 @@ Follow-up automation should replace marker-only checks with generated or
 | `AGENT_SIGNING.md` | Keep | Maintainer/operator convention for agent comment and commit signatures. |
 | `adr/0001-multi-remote-approach.md` | Keep | ADR; historical decision record, not a live reference table. |
 | `adr/0002-init-safety-invariants.md` | Keep | ADR backing `RECOVERY.md` and init safety code. |
-| `adr/0003-provenance-event-log.md` | Keep | ADR; historical decision record for the `provenance_events` table and `bd provenance` command group. Status: Proposed pending a maintainer post on issue 4460. |
+| `adr/0003-provenance-event-log.md` | Keep | ADR; historical decision record for the `provenance_events` table and `issuegraph provenance` command group. Status: Proposed pending a maintainer post on issue 4460. |
 | `ADVANCED.md` | Keep/revise as needed | User-facing advanced workflows; mixed command examples should defer to generated CLI reference when expanded. |
 | `AIDER_INTEGRATION.md` | Keep | User-facing integration guide; evidence is setup/integration behaviour. |
 | `ANTIVIRUS.md` | Keep | User-facing operational note; review vendor/version claims when touched. |
@@ -72,7 +72,7 @@ Follow-up automation should replace marker-only checks with generated or
 | `COPILOT_CLI_INTEGRATION.md` | Keep | Design doc for GitHub Copilot CLI integration; paired with `COPILOT_INTEGRATION.md` (VS Code + MCP). |
 | `COPILOT_INTEGRATION.md` | Keep | User-facing integration guide. |
 | `DEPENDENCIES.md` | Keep | Behaviour doc for graph semantics. |
-| `design/bd-serve-v0.md` | Keep | `bd serve` v0 contract and the decisions behind it; defers to `internal/httpapi/spec/openapi.v0.yaml`, `internal/httpapi/doc.go` and `issueops/reader.go` as sources of truth. |
+| `design/bd-serve-v0.md` | Keep | `issuegraph serve` v0 contract and the decisions behind it; defers to `internal/httpapi/spec/openapi.v0.yaml`, `internal/httpapi/doc.go` and `issueops/reader.go` as sources of truth. |
 | `design/dolt-concurrency.md` | Keep | Design note for Dolt concurrency. |
 | `design/kv-store.md` | Keep | Draft design note; retain as design seam, not user reference. |
 | `design/otel/otel-architecture.md` | Keep | Architecture/design doc for telemetry; reference tables should defer to data model. |
@@ -82,7 +82,7 @@ Follow-up automation should replace marker-only checks with generated or
 | `DOLT.md` | Keep/canonical | Canonical Dolt backend guide. |
 | `ERROR_HANDLING.md` | Keep with freshness | Pattern guide with code-linked examples; marker added. |
 | `EXCLUSIVE_LOCK.md` | Keep | Behaviour/design doc for lock protocol. |
-| `FAQ.md` | Revise | Opening wording now describes beads as Dolt-powered; stale pre-1.0 status removed. |
+| `FAQ.md` | Revise | Opening wording now describes issuegraph as Dolt-powered; stale pre-1.0 status removed. |
 | `FEDERATION.md` | Keep/canonical | Canonical federation (peer-to-peer sync) guide; moved from root `FEDERATION-SETUP.md`, which is now a stable pointer. Absorbed the duplicate federation section previously in `DOLT.md`. |
 | `GIT_INTEGRATION.md` | Keep | User-facing git/worktree/hook behaviour. |
 | `graph-links.md` | Keep | Behaviour/design doc for graph links. |
@@ -113,7 +113,7 @@ Follow-up automation should replace marker-only checks with generated or
 | `ROUTING.md` | Keep | Multi-repo auto-routing design. |
 | `RULES_AUDIT_DESIGN.md` | Keep | Design doc for rules audit. |
 | `SECURITY-DEPENDENCY-EXCEPTIONS.md` | Keep with freshness | Existing freshness-marker exemplar. |
-| `SERVE_RUNBOOK.md` | Keep with freshness | Operator runbook for `bd serve`; the operating envelope it tabulates is constants in `internal/httpapi/server.go` and must be re-checked when they move. |
+| `SERVE_RUNBOOK.md` | Keep with freshness | Operator runbook for `issuegraph serve`; the operating envelope it tabulates is constants in `internal/httpapi/server.go` and must be re-checked when they move. |
 | `SETUP.md` | Keep with freshness | Setup reference; marker tied to setup commands and recipes. |
 | `staged-for-removal/MANIFEST.md` | Keep | Staged removal process and per-file rationale. |
 | `superpowers/plans/2026-05-03-unclaim-command.md` | Removed | PR-passenger planning artifact from a contributor's personal multi-agent rig, same class as the artifacts removed in commit 187ba85f3 (#4632); no readers in this repo, content stays in git history. |
@@ -122,7 +122,7 @@ Follow-up automation should replace marker-only checks with generated or
 | `SYNC_SETUP.md` | Revise | Links now point at canonical `DOLT.md`. |
 | `TESTING.md` | Keep/canonical | Sole authority for test commands, test design, and PR-readiness guidance. |
 | `TESTING_PHILOSOPHY.md` | Compatibility pointer | Points to the sole canonical testing guide, `TESTING.md`. |
-| `TODO.md` | Keep | Behaviour/user guide for `bd todo`. |
+| `TODO.md` | Keep | Behaviour/user guide for `issuegraph todo`. |
 | `TROUBLESHOOTING.md` | Keep | User-facing recovery guide; debug/env tables need freshness review when edited. |
 | `UI_PHILOSOPHY.md` | Keep | Design philosophy. |
 | `UNINSTALLING.md` | Keep | User-facing uninstall guide. |

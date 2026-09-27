@@ -20,19 +20,19 @@ For the full schema index - every exported struct declared in
 run:
 
 ```sh
-bd formula schema                 # list every declared schema struct
-bd formula schema loop            # show LoopSpec fields
-bd formula primitives gate        # alias
-bd formula schema --json          # machine-readable
+issuegraph formula schema                 # list every declared schema struct
+issuegraph formula schema loop            # show LoopSpec fields
+issuegraph formula primitives gate        # alias
+issuegraph formula schema --json          # machine-readable
 ```
 
-Treat `bd formula schema` as structural reference. Treat this directory
+Treat `issuegraph formula schema` as structural reference. Treat this directory
 as the verified authoring surface: every fixture here is smoke-tested for
 an observable parse-to-cook effect.
 
 ## Smoke harness
 
-`cmd/bd/formula_primitives_test.go` walks this directory, parses and
+`modules/cli/formula_primitives_test.go` walks this directory, parses and
 cooks every fixture, and asserts each primitive's observable effect on
 the cooked subgraph. A new fixture added here without a registered
 assertion is a deliberate test failure: the harness exists to prove
@@ -41,7 +41,7 @@ primitives are wired, not just that fixtures parse.
 Run with `make test`, or in isolation:
 
 ```sh
-go test -tags gms_pure_go -run TestFormulaPrimitiveExamples ./cmd/bd/
+go test -tags gms_pure_go -run TestFormulaPrimitiveExamples ./modules/cli/
 ```
 
 ## What's NOT here

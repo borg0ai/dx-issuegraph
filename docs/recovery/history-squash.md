@@ -21,7 +21,7 @@ this database**, backup verified first.
 ## Symptoms
 
 - The Dolt data directory (or its remote/backup) is large and growing while
-  `bd stats` shows a modest number of beads
+  `issuegraph stats` shows a modest number of beads
 - `dolt gc` and `dolt gc --full` reclaim little or nothing
 - Cloning or pulling the database is slow far out of proportion to its content
 
@@ -57,8 +57,8 @@ server mode also stop the server after backing up. The backup is dolt-native
 and keeps the full history, so it remains your rollback.
 
 ```bash
-bd backup sync
-bd dolt stop
+issuegraph backup sync
+issuegraph dolt stop
 ```
 
 **Step 2:** Squash to a single baseline. From the Dolt data directory,
@@ -97,9 +97,9 @@ the gc succeeds.)
 the old, so the first publish must replace it:
 
 ```bash
-bd dolt push --force
-bd backup remove && bd backup init <path>   # fresh destination, then:
-bd backup sync
+issuegraph dolt push --force
+issuegraph backup remove && issuegraph backup init <path>   # fresh destination, then:
+issuegraph backup sync
 ```
 
 <Warning>
@@ -107,8 +107,8 @@ A Dolt remote accumulates chunks monotonically: the force-push re-points the
 remote's refs at the squashed chain but deletes nothing, so the *remote's*
 storage does not shrink. To reclaim the published side too, replace the
 remote — clear its storage (or pick a fresh path/prefix) before the push:
-`bd dolt remote remove <name>`, `bd dolt remote add <name> <fresh-url>`,
-then `bd dolt push --force`. Every other clone must re-clone after a squash
+`issuegraph dolt remote remove <name>`, `issuegraph dolt remote add <name> <fresh-url>`,
+then `issuegraph dolt push --force`. Every other clone must re-clone after a squash
 regardless, so replacing the remote costs nothing extra.
 </Warning>
 
@@ -122,14 +122,14 @@ chunks. Code branches are untouched.
 
 ```bash
 git push origin :refs/dolt/data :refs/heads/__dolt_remote_info__
-bd dolt push --force
+issuegraph dolt push --force
 ```
 
 **Step 5:** Verify, then re-clone everywhere else. On this machine:
 
 ```bash
-bd doctor
-bd list -n 5
+issuegraph doctor
+issuegraph list -n 5
 ```
 
 Every other clone of this database must be re-created from the squashed
@@ -146,7 +146,7 @@ pre-squash store to the fresh remote.
 The first push from a re-cloned machine can be far larger than a routine
 sync. If that machine's scheduled sync job enforces a timeout, the capped
 push can die mid-upload on every tick, orphaning partial uploads on the
-remote — run one manual `bd dolt push` (no timeout) right after re-cloning
+remote — run one manual `issuegraph dolt push` (no timeout) right after re-cloning
 and hand back to the schedule once it completes.
 
 ## Prevention

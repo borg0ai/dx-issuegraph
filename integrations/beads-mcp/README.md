@@ -1,7 +1,7 @@
 # beads-mcp
 
-MCP server for [beads](https://github.com/gastownhall/beads) issue tracker and agentic memory system.
-Enables AI agents to manage tasks using bd CLI through Model Context Protocol.
+MCP server for [issuegraph](https://github.com/gastownhall/beads) issue tracker and agentic memory system.
+Enables AI agents to manage tasks using issuegraph CLI through Model Context Protocol.
 
 > **Note:** For environments with shell access (Claude Code, Cursor, Windsurf), the **CLI + hooks approach is recommended** over MCP. It uses ~1-2k tokens vs 10-50k for MCP schemas, resulting in lower compute cost and latency. See the [main README](../../README.md) for CLI setup.
 >
@@ -61,15 +61,15 @@ Then use in Claude Desktop config:
 
 **Environment Variables** (all optional):
 - `BEADS_PATH` - Path to bd executable (default: `~/.local/bin/bd`)
-- `BEADS_DB` - Path to beads database file (default: auto-discover from cwd)
-- `BEADS_WORKING_DIR` - Working directory for bd commands (default: `$PWD` or current directory). Used for multi-repo setups - see below
+- `BEADS_DB` - Path to issuegraph database file (default: auto-discover from cwd)
+- `BEADS_WORKING_DIR` - Working directory for issuegraph commands (default: `$PWD` or current directory). Used for multi-repo setups - see below
 - `BEADS_ACTOR` - Actor name for audit trail (default: `$USER`)
 - `BEADS_NO_AUTO_FLUSH` - Disable automatic sync (default: `false`)
 - `BEADS_NO_AUTO_IMPORT` - Disable automatic import (default: `false`)
 
 ## Multi-Repository Setup
 
-**Recommended:** Use a single MCP server instance for all beads projects - it automatically routes to per-project Dolt servers.
+**Recommended:** Use a single MCP server instance for all issuegraph projects - it automatically routes to per-project Dolt servers.
 
 ### Single MCP Server (Recommended)
 
@@ -85,7 +85,7 @@ Then use in Claude Desktop config:
 ```
 
 **How it works (LSP model):**
-1. MCP server detects the beads project in your current workspace
+1. MCP server detects the issuegraph project in your current workspace
 2. Routes requests to the **per-project Dolt server** based on working directory
 3. Auto-starts the local Dolt server if not running
 4. **Each project gets its own isolated Dolt server** serving only its database
@@ -133,7 +133,7 @@ Configure separate MCP servers for specific projects using `BEADS_WORKING_DIR`:
 
 ## Multi-Project Support
 
-The MCP server supports managing multiple beads projects in a single session using per-request workspace routing.
+The MCP server supports managing multiple issuegraph projects in a single session using per-request workspace routing.
 
 ### Using `workspace_root` Parameter
 
@@ -207,10 +207,10 @@ await beads_ready_work(workspace_root="/Users/you/project-a")
 ## Features
 
 **Resource:**
-- `beads://quickstart` - Quickstart guide for using beads
+- `beads://quickstart` - Quickstart guide for using issuegraph
 
 **Tools (all support `workspace_root` parameter):**
-- `init` - Initialize bd in current directory
+- `init` - Initialize issuegraph in current directory
 - `create` - Create new issue (bug, feature, task, epic, chore, decision)
 - `list` - List issues with filters (status, priority, type, assignee)
 - `ready` - Find tasks with no blockers ready to work on
@@ -258,8 +258,8 @@ uv run pytest
 uv run python -m build
 ```
 
-Integration tests require a current `bd` binary from this repository. In
-particular, `bd init --help` must include `--non-interactive`, `--skip-agents`,
+Integration tests require a current `issuegraph` binary from this repository. In
+particular, `issuegraph init --help` must include `--non-interactive`, `--skip-agents`,
 and `--skip-hooks`; older installed versions are skipped with a clear pytest
 message.
 
@@ -292,7 +292,7 @@ With coverage:
 uv run pytest --cov=beads_mcp tests/
 ```
 
-Test suite includes both mocked unit tests and integration tests with real `bd` CLI.
+Test suite includes both mocked unit tests and integration tests with real `issuegraph` CLI.
 
 ### Multi-Repo Integration Test
 
@@ -300,7 +300,7 @@ Test Dolt server with multiple repositories:
 ```bash
 # Start the Dolt server first
 cd /path/to/beads
-bd dolt start
+issuegraph dolt start
 
 # Run multi-repo test
 cd integrations/beads-mcp

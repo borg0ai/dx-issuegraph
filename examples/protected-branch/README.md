@@ -1,6 +1,6 @@
 # Protected Branch Workflow Example
 
-This example demonstrates how to use beads with protected branches on platforms like GitHub, GitLab, and Bitbucket.
+This example demonstrates how to use issuegraph with protected branches on platforms like GitHub, GitLab, and Bitbucket.
 
 ## Scenario
 
@@ -11,7 +11,7 @@ You have a repository with:
 
 ## Solution
 
-Use beads' separate sync branch feature to commit issue metadata to a dedicated branch (e.g., `beads-metadata`), then periodically merge via pull request.
+Use issuegraph's separate sync branch feature to commit issue metadata to a dedicated branch (e.g., `beads-metadata`), then periodically merge via pull request.
 
 ## Quick Demo
 
@@ -22,11 +22,11 @@ Use beads' separate sync branch feature to commit issue metadata to a dedicated 
 git init my-project
 cd my-project
 
-# Initialize beads with separate sync branch
-bd init --branch beads-metadata --quiet
+# Initialize issuegraph with separate sync branch
+issuegraph init --branch beads-metadata --quiet
 
 # Verify configuration
-bd config get sync.branch
+issuegraph config get sync.branch
 # Output: beads-metadata
 ```
 
@@ -34,16 +34,16 @@ bd config get sync.branch
 
 ```bash
 # AI agent creates issues normally
-bd create "Implement user authentication" -t feature -p 1
-bd create "Add login page" -t task -p 1
-bd create "Write auth tests" -t task -p 2
+issuegraph create "Implement user authentication" -t feature -p 1
+issuegraph create "Add login page" -t task -p 1
+issuegraph create "Write auth tests" -t task -p 2
 
 # Link tasks to parent feature
-bd link bd-XXXXX --blocks bd-YYYYY  # auth blocks login
-bd link bd-XXXXX --blocks bd-ZZZZZ  # auth blocks tests
+issuegraph link bd-XXXXX --blocks bd-YYYYY  # auth blocks login
+issuegraph link bd-XXXXX --blocks bd-ZZZZZ  # auth blocks tests
 
 # Start work
-bd update bd-XXXXX --claim
+issuegraph update bd-XXXXX --claim
 ```
 
 **Note:** Replace `bd-XXXXX` etc. with actual issue IDs created above.
@@ -52,8 +52,8 @@ bd update bd-XXXXX --claim
 
 ```bash
 # Start Dolt server with auto-commit
-bd config set dolt.auto-commit on
-bd dolt start
+issuegraph config set dolt.auto-commit on
+issuegraph dolt start
 
 # All issue changes are now automatically committed to beads-metadata branch
 ```
@@ -74,11 +74,11 @@ If you're not using the Dolt server:
 
 ```bash
 # Create or update issues
-bd create "Fix bug in login" -t bug -p 0
-bd update bd-XXXXX --status closed
+issuegraph create "Fix bug in login" -t bug -p 0
+issuegraph update bd-XXXXX --status closed
 
 # Manually push to remote
-bd dolt push
+issuegraph dolt push
 
 # Verify commit
 git log beads-metadata -1
@@ -95,12 +95,12 @@ git push origin beads-metadata
 # Create PR on GitHub
 gh pr create --base main --head beads-metadata \
   --title "Update issue metadata" \
-  --body "Automated issue tracker updates from beads"
+  --body "Automated issue tracker updates from issuegraph"
 
 # After PR is approved and merged:
 git checkout main
 git pull
-bd dolt pull  # Pull merged changes into local database
+issuegraph dolt pull  # Pull merged changes into local database
 ```
 
 Option 2: Direct merge (if you have push access):
@@ -113,7 +113,7 @@ git log main..beads-metadata --oneline
 git checkout main
 git merge beads-metadata --no-ff
 git push
-bd dolt pull  # Pull merged changes into local database
+issuegraph dolt pull  # Pull merged changes into local database
 ```
 
 ### 6. Multi-Clone Sync
@@ -122,14 +122,14 @@ If you have multiple clones or agents:
 
 ```bash
 # Clone 1: Create issue
-bd create "New feature" -t feature -p 1
-bd dolt push  # Push to remote
+issuegraph create "New feature" -t feature -p 1
+issuegraph dolt push  # Push to remote
 git push origin beads-metadata
 
 # Clone 2: Pull changes
 git fetch origin beads-metadata
-bd dolt pull  # Pull from remote into local database
-bd list  # See the new feature issue
+issuegraph dolt pull  # Pull from remote into local database
+issuegraph list  # See the new feature issue
 ```
 
 ## Workflow Summary
@@ -177,9 +177,9 @@ my-project/
 │   │       └── .beads/
 │   │           └── dolt/
 │   └── ...
-├── .beads/                    # Main beads directory (in your workspace)
+├── .beads/                    # Main issuegraph directory (in your workspace)
 │   ├── dolt/                  # Dolt database (source of truth)
-│   └── config.yaml            # Beads configuration
+│   └── config.yaml            # IssueGraph configuration
 ├── src/                       # Your application code
 │   └── ...
 └── README.md
@@ -188,7 +188,7 @@ my-project/
 **Key points:**
 - `.git/beads-worktrees/` is hidden from your main workspace
 - Only `.beads/` is checked out in the worktree (sparse checkout)
-- Your `src/` code is never affected by beads commits
+- Your `src/` code is never affected by issuegraph commits
 - Minimal disk overhead (~few MB for worktree)
 
 ## Tips
@@ -201,32 +201,32 @@ my-project/
 
 ### For AI Agents
 
-- **No workflow changes:** Agents use `bd create`, `bd update`, etc. as normal
+- **No workflow changes:** Agents use `issuegraph create`, `issuegraph update`, etc. as normal
 - **Let the Dolt server handle it:** With auto-commit enabled, agents don't think about sync
-- **Session end:** Run `bd dolt push` at end of session to ensure everything is pushed
+- **Session end:** Run `issuegraph dolt push` at end of session to ensure everything is pushed
 
 ### Troubleshooting
 
 **"Merge conflicts during sync"**
 
 Dolt handles merges natively using three-way merge. If conflicts occur:
-1. Run `bd sql "SELECT * FROM dolt_conflicts"` to view them
-2. Resolve with `bd sql "CALL dolt_conflicts_resolve('--ours')"` or `'--theirs'`
-3. Complete with `bd dolt push`
+1. Run `issuegraph sql "SELECT * FROM dolt_conflicts"` to view them
+2. Resolve with `issuegraph sql "CALL dolt_conflicts_resolve('--ours')"` or `'--theirs'`
+3. Complete with `issuegraph dolt push`
 
 **"Worktree doesn't exist"**
 
 The Dolt server creates it automatically on first commit. To create manually:
 ```bash
-bd config get sync.branch  # Verify it's set
-bd dolt stop && bd dolt start              # Server will create worktree
+issuegraph config get sync.branch  # Verify it's set
+issuegraph dolt stop && issuegraph dolt start              # Server will create worktree
 ```
 
 **"Changes not syncing"**
 
 Make sure:
-- `bd config get sync.branch` returns the same value on all clones
-- Dolt server is running: `bd doctor`
+- `issuegraph config get sync.branch` returns the same value on all clones
+- Dolt server is running: `issuegraph doctor`
 - Both clones have fetched: `git fetch origin beads-metadata`
 
 ## Advanced: GitHub Actions Integration
@@ -234,7 +234,7 @@ Make sure:
 Automate the merge process with GitHub Actions:
 
 ```yaml
-name: Auto-Merge Beads Metadata
+name: Auto-Merge IssueGraph Metadata
 on:
   schedule:
     - cron: '0 0 * * *'  # Daily at midnight
@@ -248,7 +248,7 @@ jobs:
         with:
           fetch-depth: 0
 
-      - name: Install bd
+      - name: Install issuegraph
         run: curl -fsSL https://raw.githubusercontent.com/gastownhall/beads/main/scripts/install.sh | bash
 
       - name: Check for changes
@@ -266,7 +266,7 @@ jobs:
         run: |
           gh pr create --base main --head beads-metadata \
             --title "Update issue metadata" \
-            --body "Automated issue tracker updates from beads" \
+            --body "Automated issue tracker updates from issuegraph" \
             || echo "PR already exists"
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
@@ -276,4 +276,4 @@ jobs:
 
 - [docs/reference/protected-branches.md](../../docs/reference/protected-branches.md) - Complete guide
 - [AGENTS.md](../../AGENTS.md) - Agent integration instructions
-- [docs/getting-started/quickstart.md](../../docs/getting-started/quickstart.md) - `bd dolt push` / `bd dolt pull` usage
+- [docs/getting-started/quickstart.md](../../docs/getting-started/quickstart.md) - `issuegraph dolt push` / `issuegraph dolt pull` usage

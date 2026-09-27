@@ -15,7 +15,7 @@ Proposed
   or *landed*, and to bind that fact to a structured external artifact (a git
   SHA, a PR, a work-id, a transcript, a branch).
 - **Primitive, not policy**: the recording surface must be usable by *any*
-  runtime without bd knowing anything about sessions, agents, or a specific
+  runtime without issuegraph knowing anything about sessions, agents, or a specific
   orchestrator's vocabulary.
 - **Honesty under reconstruction**: a consumer that later backfills derived
   events must be able to distinguish them from first-party recordings, so a
@@ -26,7 +26,7 @@ Proposed
 
 ## Context
 
-bd already has an `events` table (migration 0005): a two-value field-mutation
+issuegraph already has an `events` table (migration 0005): a two-value field-mutation
 audit trail (`old_value` / `new_value`, plus an `event_type` like
 `status_changed`). It answers "what field changed on this issue, when, by whom."
 
@@ -41,19 +41,19 @@ durable upstream version.
 
 ## Decision
 
-Add a dedicated, append-only `provenance_events` table (migration 0063) and a
-`bd provenance` command group with exactly three verbs: `record`, `log`,
+Add a dedicated, append-only `provenance_events` table (migration 0063) and an
+`issuegraph provenance` command group with exactly three verbs: `record`, `log`,
 `by-ref`. There is deliberately **no** update or delete verb.
 
 **Append-only is at the event level.** There is no UPDATE or DELETE operation on
 an individual event. An event's lifecycle is bound to its issue: it is removed
 only if the issue itself is deleted (`ON DELETE CASCADE`), identical to the
-`events` audit table (migration 0005). In bd, `issues` is the source of truth, so
+`events` audit table (migration 0005). In issuegraph, `issues` is the source of truth, so
 a provenance event for a deleted issue is meaningless; cascading on issue delete
 matches the existing audit-log precedent rather than leaving orphaned rows.
 
 **Wisp demotion is a delete for this purpose.** Demoting a permanent issue to a
-wisp (`bd update <id> --ephemeral`) deletes the row from `issues` — a wisp is a
+wisp (`issuegraph update <id> --ephemeral`) deletes the row from `issues` — a wisp is a
 separate table, not a status on the same row — so it drops that issue's
 provenance events for the same `ON DELETE CASCADE` reason as any other issue
 deletion. This is an accepted consequence, not a gap: wisps are cheap,
@@ -62,19 +62,19 @@ counterpart to `provenance_events` to preserve history across the demotion.
 
 Key design points:
 
-- **Opaque identifiers.** `actor` and `ref` are opaque strings that bd never
+- **Opaque identifiers.** `actor` and `ref` are opaque strings that issuegraph never
   interprets. Only `kind` and `ref_kind` are structurally validated against
   closed sets (`kind` ∈ {cut, claim, suspend, resume, handoff, commit, land,
   used}; `ref_kind` ∈ {git-sha, pr, work-id, transcript, branch}). When
   `ref_kind = git-sha`, the `ref` must match `^[0-9a-f]{40}$`. This is the only
-  shape bd asserts — consistent with ZFC: bd validates structure, never meaning.
+  shape issuegraph asserts — consistent with ZFC: issuegraph validates structure, never meaning.
 
 - **occurred_at vs created_at.** `occurred_at` (event-time) is separate from
   `created_at` (ingest-time, `DEFAULT CURRENT_TIMESTAMP`), because a producer
   such as a git hook may record a fact *after* it happened. Reads order by
   `occurred_at` (nulls last) then `id`.
 
-- **Idempotent recording.** `bd provenance record` computes a deterministic id
+- **Idempotent recording.** `issuegraph provenance record` computes a deterministic id
   from `source:issue:kind:(ref or occurred_at)` and inserts with `INSERT
   IGNORE`, so a producer firing twice is a harmless no-op (`inserted=false` on
   the second call). The id is always content-addressed — a caller-supplied `id`
@@ -106,18 +106,18 @@ widen and complicate the most frequently written table, (b) mix two unrelated
 reasons-to-change in one schema (SRP violation), and (c) force every `events`
 reader to reason about NULL provenance columns.
 
-bd already has a precedent for purpose-specific event tables: `wisp_events`
+issuegraph already has a precedent for purpose-specific event tables: `wisp_events`
 (migration 0021) is a parallel event log for ephemeral wisps rather than a column
 set grafted onto `events`. A separate `provenance_events` table follows the same
 established pattern and keeps the hot audit path untouched.
 
-### Make `actor` / `ref` typed and interpreted by bd
+### Make `actor` / `ref` typed and interpreted by issuegraph
 
-Rejected. If bd parsed `actor` into a session/agent identity or `ref` into a
+Rejected. If issuegraph parsed `actor` into a session/agent identity or `ref` into a
 known orchestrator's work-id format, the table would only be usable by that one
 runtime. Keeping them opaque makes provenance a *primitive*: a git hook, a CI
 job, and an orchestrator can all record into the same log, and consumers attach
-whatever semantics they need at read time. bd's only job is to store the binding
+whatever semantics they need at read time. issuegraph's only job is to store the binding
 and validate its structural shape.
 
 ### Allow update/delete
@@ -131,8 +131,8 @@ delete path; it is the same issue-bound lifecycle the `events` audit table has.)
 
 ## Distributed merge
 
-`provenance_events` is **not** in the merge auto-resolve allowlist today. A
-`bd pull` that brings in concurrent inserts from two clones will leave the
+`provenance_events` is **not** in the merge auto-resolve allowlist today. An
+`issuegraph pull` that brings in concurrent inserts from two clones will leave the
 conflict for the operator to resolve manually, like any other non-allowlisted
 table.
 
