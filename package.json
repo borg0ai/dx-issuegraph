@@ -1,0 +1,16 @@
+{
+  "name": "issuegraph-workspace",
+  "private": true,
+  "packageManager": "pnpm@10.27.0",
+  "scripts": {
+    "build": "turbo run build",
+    "build:go": "pnpm run generate:assets && go -C modules/cli build -tags gms_pure_go -o ../../apps/cli/bin/cli .",
+    "check": "turbo run check",
+    "lint": "turbo run lint",
+    "test": "turbo run test",
+    "generate:assets": "node scripts/generate-issuegraph-assets.mjs"
+  },
+  "devDependencies": {
+    "turbo": "2.11.4"
+  }
+}
