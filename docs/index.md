@@ -3,17 +3,17 @@ title: Introduction
 description: Dependency-aware, Dolt-backed issue tracker built for AI coding agents that survive context loss
 ---
 
-**Beads** (`bd`) is a Dolt-powered issue tracker designed for AI-supervised coding workflows.
+**IssueGraph** (`issuegraph`) is a Dolt-powered issue tracker designed for AI-supervised coding workflows.
 
-These docs are for the 1.3.0 release of beads — see the [v1.3.0 release notes](https://github.com/gastownhall/beads/releases/tag/v1.3.0). Upgrading from 1.2.2 or earlier crosses a schema migration; read [Upgrading](/getting-started/upgrading) first.
+These docs are for the 1.3.0 release of issuegraph — see the [v1.3.0 release notes](https://github.com/gastownhall/beads/releases/tag/v1.3.0). Upgrading from 1.2.2 or earlier crosses a schema migration; read [Upgrading](/getting-started/upgrading) first.
 
-## Why Beads?
+## Why IssueGraph?
 
-Traditional issue trackers (Jira, GitHub Issues) weren't designed for AI agents. Beads was built from the ground up for:
+Traditional issue trackers (Jira, GitHub Issues) weren't designed for AI agents. IssueGraph was built from the ground up for:
 
 - **AI-native workflows** - Hash-based IDs prevent collisions when multiple agents work concurrently
 - **Dolt-backed storage** - Issues stored in a version-controlled SQL database, enabling collaboration via Dolt-native replication
-- **Dependency-aware execution** - `bd ready` shows only unblocked work
+- **Dependency-aware execution** - `issuegraph ready` shows only unblocked work
 - **Formula system** - Declarative templates for repeatable workflows
 - **Multi-agent coordination** - Routing, gates, and molecules for complex workflows
 
@@ -28,18 +28,18 @@ curl -fsSL https://raw.githubusercontent.com/gastownhall/beads/main/scripts/inst
 
 # Initialize in your project
 cd your-project
-bd init --quiet
+issuegraph init --quiet
 
 # Create your first issue
-bd create "Set up database" -p 1 -t task
+issuegraph create "Set up database" -p 1 -t task
 
 # See ready work
-bd ready
+issuegraph ready
 ```
 
 ## Core Concepts
 
-The whole model on one page: [How Beads Works](/core-concepts/index).
+The whole model on one page: [How IssueGraph Works](/core-concepts/index).
 
 | Concept | Description |
 |---------|-------------|
@@ -52,19 +52,19 @@ The whole model on one page: [How Beads Works](/core-concepts/index).
 
 ## For AI Agents
 
-Beads is optimized for AI coding agents:
+IssueGraph is optimized for AI coding agents:
 
 ```bash
 # Always use --json for programmatic access
-bd list --json
-bd show bd-42 --json
+issuegraph list --json
+issuegraph show bd-42 --json
 
 # Track discovered work during implementation
-bd create "Found bug in auth" --description="Details..." \
+issuegraph create "Found bug in auth" --description="Details..." \
   --deps discovered-from:bd-100 --json
 
 # Push changes at end of session
-bd dolt push
+issuegraph dolt push
 ```
 
 See the [Claude Code integration](/integrations/claude-code) for detailed agent instructions.
@@ -84,8 +84,8 @@ The magic is automatic synchronization via Dolt's version-controlled database wi
 
 ## Next Steps
 
-- [Installation](/getting-started/installation) - Get bd installed
+- [Installation](/getting-started/installation) - Get issuegraph installed
 - [Quick Start](/getting-started/quickstart) - Create your first issues
-- [How Beads Works](/core-concepts/index) - The concept model on one page
+- [How IssueGraph Works](/core-concepts/index) - The concept model on one page
 - [CLI Reference](/cli-reference/index) - All available commands
 - [Workflows](/workflows/index) - Formulas, molecules, and gates

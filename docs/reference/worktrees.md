@@ -1,39 +1,39 @@
 ---
 title: Git Worktrees Guide
-description: Using beads from Git worktrees, which share one .beads workspace, plus external BEADS_DIR setups and legacy sync-branch cleanup.
+description: Using issuegraph from Git worktrees, which share one .beads workspace, plus external BEADS_DIR setups and legacy sync-branch cleanup.
 ---
 
-Beads works from normal Git worktrees without a separate sync branch. Current
-beads stores issue data in Dolt under `refs/dolt/data`, so issue sync is
+IssueGraph works from normal Git worktrees without a separate sync branch. Current
+issuegraph stores issue data in Dolt under `refs/dolt/data`, so issue sync is
 separate from Git branch commits.
 
 ## Current Model
 
-All worktrees in the same repository use the same beads workspace unless you
+All worktrees in the same repository use the same issuegraph workspace unless you
 override discovery with `BEADS_DIR`.
 
 ```
 project/
 ├── .git/                 # Shared Git directory
-├── .beads/               # Shared beads config and local Dolt data
+├── .beads/               # Shared issuegraph config and local Dolt data
 ├── main-worktree/
 └── feature-worktree/
 ```
 
 Key points:
 
-- `bd` discovers the repository's `.beads` directory from linked worktrees.
+- `issuegraph` discovers the repository's `.beads` directory from linked worktrees.
 - Issue changes are stored in Dolt, not committed to the current Git branch.
-- Cross-clone sync uses `bd dolt pull` and `bd dolt push`.
-- No `sync.branch` or beads-managed Git worktree is required.
+- Cross-clone sync uses `issuegraph dolt pull` and `issuegraph dolt push`.
+- No `sync.branch` or issuegraph-managed Git worktree is required.
 
 ## Basic Usage
 
-Initialize beads once in the repository:
+Initialize issuegraph once in the repository:
 
 ```bash
 cd project
-bd init
+issuegraph init
 ```
 
 Create linked worktrees normally:
@@ -41,18 +41,18 @@ Create linked worktrees normally:
 ```bash
 git worktree add ../project-feature feature-branch
 cd ../project-feature
-bd ready
-bd create "Implement feature X" -t feature -p 1
+issuegraph ready
+issuegraph create "Implement feature X" -t feature -p 1
 ```
 
 Sync issue data through the configured Dolt remote:
 
 ```bash
-bd dolt pull
-bd dolt push
+issuegraph dolt pull
+issuegraph dolt push
 ```
 
-## External Beads Workspace
+## External IssueGraph Workspace
 
 If you want a separate issue-tracker repository shared by many code worktrees,
 point `BEADS_DIR` at that workspace:
@@ -60,30 +60,30 @@ point `BEADS_DIR` at that workspace:
 ```bash
 export BEADS_DIR=~/project-beads/.beads
 
-cd ~/project/main       && bd list
-cd ~/project/feature-1  && bd list
-cd ~/project/feature-2  && bd list
+cd ~/project/main       && issuegraph list
+cd ~/project/feature-1  && issuegraph list
+cd ~/project/feature-2  && issuegraph list
 ```
 
-With an external `BEADS_DIR`, `bd dolt push` and `bd dolt pull` target the
-external beads workspace, not the code repository.
+With an external `BEADS_DIR`, `issuegraph dolt push` and `issuegraph dolt pull` target the
+external issuegraph workspace, not the code repository.
 
 ## Hooks
 
-Git hooks installed by beads are worktree-aware. If hooks are stale or mention
+Git hooks installed by issuegraph are worktree-aware. If hooks are stale or mention
 removed legacy sync commands, refresh them:
 
 ```bash
-bd hooks install
+issuegraph hooks install
 ```
 
 ## Legacy Cleanup
 
-Older beads versions had an experimental `sync.branch` workflow that created
+Older issuegraph versions had an experimental `sync.branch` workflow that created
 hidden worktrees such as `.git/beads-worktrees/<branch>/`. That workflow has
 been removed.
 
-If a legacy checkout cannot switch branches because a beads-created worktree
+If a legacy checkout cannot switch branches because an issuegraph-created worktree
 still holds the branch, remove the stale worktree records:
 
 ```bash
@@ -95,7 +95,7 @@ git worktree prune
 If old config still contains a sync branch, clear it:
 
 ```bash
-bd config set sync.branch ""
+issuegraph config set sync.branch ""
 ```
 
 ## Troubleshooting
@@ -111,7 +111,7 @@ cd /path/to/main/repo
 ls -la .beads
 ```
 
-If the repository has no beads workspace yet, run `bd init` from the main
+If the repository has no issuegraph workspace yet, run `issuegraph init` from the main
 repository.
 
 ### Multiple `.beads` Directories
@@ -124,7 +124,7 @@ worktrees should share the repository workspace.
 
 For ordinary single-user worktree use, run commands directly. For true
 multi-writer workflows across machines or agents, sync frequently with
-`bd dolt pull` and `bd dolt push`, and coordinate through the tracker to avoid
+`issuegraph dolt pull` and `issuegraph dolt push`, and coordinate through the tracker to avoid
 working the same issue concurrently.
 
 ## See Also

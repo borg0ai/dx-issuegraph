@@ -12,3 +12,4 @@
   - [ ] Implement RFC 0008: Disable external tracker network sync (child of 0001) (RFC 0008)
   - [ ] Implement RFC 0009: 根 Go module 与 CLI 构建布局 (child of 0001) (RFC 0009)
   - [ ] Implement RFC 0010: IssueGraph 集成资产目录迁移 (child of 0001) (RFC 0010)
+  - [ ] Implement RFC 0011: `@borg0ai/issuegraph` npm installer (child of 0001) (RFC 0011)

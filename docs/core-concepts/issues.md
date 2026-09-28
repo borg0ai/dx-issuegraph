@@ -3,14 +3,14 @@ title: "Issues & Dependencies"
 description: "The issue model: fields, types, priorities, and the dependencies that decide what work is ready"
 ---
 
-Understanding the issue model in beads.
+Understanding the issue model in issuegraph.
 
 ## Issue Structure
 
 Every issue has:
 
 ```bash
-bd show bd-42 --json
+issuegraph show bd-42 --json
 ```
 
 ```json
@@ -51,18 +51,18 @@ bd show bd-42 --json
 
 ```bash
 # Basic issue
-bd create "Fix login bug" -t bug -p 1
+issuegraph create "Fix login bug" -t bug -p 1
 
 # With description
-bd create "Add password reset" \
+issuegraph create "Add password reset" \
   --description="Users need to reset forgotten passwords via email" \
   -t feature -p 2
 
 # With labels
-bd create "Update dependencies" -t chore -l "maintenance,security"
+issuegraph create "Update dependencies" -t chore -l "maintenance,security"
 
 # JSON output for agents
-bd create "Task" -t task --json
+issuegraph create "Task" -t task --json
 ```
 
 ## Dependencies
@@ -73,16 +73,16 @@ The `blocks` relationship affects the ready queue:
 
 ```bash
 # Add dependency: bd-2 depends on bd-1
-bd dep add bd-2 bd-1
+issuegraph dep add bd-2 bd-1
 
 # View dependencies
-bd dep tree bd-2
+issuegraph dep tree bd-2
 
 # See blocked issues
-bd blocked
+issuegraph blocked
 
 # See ready work (not blocked)
-bd ready
+issuegraph ready
 ```
 
 ### Structural Relationships
@@ -91,14 +91,14 @@ These don't affect the ready queue:
 
 ```bash
 # Parent-child (epic subtasks)
-bd create "Epic" -t epic
-bd create "Subtask" --parent bd-42
+issuegraph create "Epic" -t epic
+issuegraph create "Subtask" --parent bd-42
 
 # Discovered-from (found during work)
-bd create "Found bug" --deps discovered-from:bd-42
+issuegraph create "Found bug" --deps discovered-from:bd-42
 
 # Related (soft link)
-bd dep relate bd-1 bd-2
+issuegraph dep relate bd-1 bd-2
 ```
 
 ### Dependency Types
@@ -116,65 +116,65 @@ For large features, use hierarchical IDs:
 
 ```bash
 # Create epic
-bd create "Auth System" -t epic -p 1
+issuegraph create "Auth System" -t epic -p 1
 # Returns: bd-a3f8e9
 
 # Child tasks auto-number
-bd create "Design login UI" --parent bd-a3f8e9     # bd-a3f8e9.1
-bd create "Backend validation" --parent bd-a3f8e9  # bd-a3f8e9.2
+issuegraph create "Design login UI" --parent bd-a3f8e9     # bd-a3f8e9.1
+issuegraph create "Backend validation" --parent bd-a3f8e9  # bd-a3f8e9.2
 
 # View hierarchy
-bd dep tree bd-a3f8e9
+issuegraph dep tree bd-a3f8e9
 ```
 
 ## Updating Issues
 
 ```bash
 # Change status
-bd update bd-42 --claim
+issuegraph update bd-42 --claim
 
 # Change priority
-bd update bd-42 --priority 0
+issuegraph update bd-42 --priority 0
 
 # Add labels
-bd update bd-42 --add-label urgent
+issuegraph update bd-42 --add-label urgent
 
 # Multiple changes
-bd update bd-42 --claim --priority 1 --add-label "in-review"
+issuegraph update bd-42 --claim --priority 1 --add-label "in-review"
 ```
 
 ## Closing Issues
 
 ```bash
 # Simple close
-bd close bd-42
+issuegraph close bd-42
 
 # With reason
-bd close bd-42 --reason "Implemented in PR #123"
+issuegraph close bd-42 --reason "Implemented in PR #123"
 
 # JSON output
-bd close bd-42 --json
+issuegraph close bd-42 --json
 ```
 
 ## Searching and Filtering
 
 ```bash
 # By status
-bd list --status open
-bd list --status in_progress
+issuegraph list --status open
+issuegraph list --status in_progress
 
 # By priority
-bd list --priority 1
-bd list --priority 0,1  # Multiple
+issuegraph list --priority 1
+issuegraph list --priority 0,1  # Multiple
 
 # By type
-bd list --type bug
-bd list --type feature,task
+issuegraph list --type bug
+issuegraph list --type feature,task
 
 # By label
-bd list --label-any urgent,critical
-bd list --label-all backend,security
+issuegraph list --label-any urgent,critical
+issuegraph list --label-all backend,security
 
 # Combined filters
-bd list --status open --priority 1 --type bug --json
+issuegraph list --status open --priority 1 --type bug --json
 ```

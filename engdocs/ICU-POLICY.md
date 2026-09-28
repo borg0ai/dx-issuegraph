@@ -2,7 +2,7 @@
 
 ## The Rule
 
-**`bd` never ships with an ICU runtime dependency. All release binaries use
+**`IssueGraph` never ships with an ICU runtime dependency. All release binaries use
 Go's stdlib `regexp` via the `gms_pure_go` build tag.**
 
 This is non-negotiable. Do not remove, conditionally skip, or override
@@ -12,7 +12,7 @@ This is non-negotiable. Do not remove, conditionally skip, or override
 
 ICU (International Components for Unicode) is a C library that provides
 MySQL-compatible regex via `go-icu-regex`. It enters our dependency tree
-through `go-mysql-server` (the embedded Dolt SQL engine). `bd` does not
+through `go-mysql-server` (the embedded Dolt SQL engine). `IssueGraph` does not
 use SQL `REGEXP` functions, so ICU provides zero functional value while
 creating significant portability problems:
 
@@ -125,7 +125,7 @@ If ICU linkage is detected, the release build fails.
 
 ## The Upstream Fork (historical)
 
-Beads used to carry a `replace github.com/dolthub/go-mysql-server => github.com/maphew/go-mysql-server ...` directive in `go.mod`, added in PR #3112 to try to make `go install` work on Windows without ICU headers. It was removed in PR #3306 (see GH#3303) after empirical testing confirmed that **`replace` directives are not honored by `go install pkg@version`** — the mechanism never worked for its stated purpose, and having the directive actively broke `go install` on every platform with a confusing error.
+IssueGraph used to carry a `replace github.com/dolthub/go-mysql-server => github.com/maphew/go-mysql-server ...` directive in `go.mod`, added in PR #3112 to try to make `go install` work on Windows without ICU headers. It was removed in PR #3306 (see GH#3303) after empirical testing confirmed that **`replace` directives are not honored by `go install pkg@version`** — the mechanism never worked for its stated purpose, and having the directive actively broke `go install` on every platform with a confusing error.
 
 Upstream PR (closed, declined): https://github.com/dolthub/go-mysql-server/pull/3504
 Upstream issue (closed, declined): https://github.com/dolthub/go-mysql-server/issues/3506
@@ -136,7 +136,7 @@ The dolthub maintainers have made clear the upstream default will not flip: *"We
 
 Two supported modes, documented in [INSTALLING.md](../docs/getting-started/installation.md):
 
-1. **`CGO_ENABLED=0 go install github.com/steveyegge/beads/modules/cli@latest`** produces a **server-mode-only** binary. Works on any Go-capable box with no C compiler. Users must run an external `dolt sql-server` and use `bd init --server`.
+1. **`CGO_ENABLED=0 go install github.com/steveyegge/beads/modules/cli@latest`** produces a **server-mode-only** binary. Works on any Go-capable box with no C compiler. Users must run an external `dolt sql-server` and use `issuegraph init --server`.
 
 2. **`CGO_ENABLED=1 GOFLAGS=-tags=gms_pure_go go install ...`** produces an embedded-capable binary. Requires a C compiler but NOT libicu.
 
@@ -159,7 +159,7 @@ No fork, no replace directive, no upstream patch required. The tradeoff is that 
 4. **Confusing CGO with ICU** -- CGO is required for embedded Dolt mode
    (NBS chunk compression via `gozstd`). ICU is independent. `CGO_ENABLED=1`
    does not imply ICU linkage as long as `-tags gms_pure_go` is present.
-   beads also supports `CGO_ENABLED=0` builds via nocgo stubs: the binary
+   issuegraph also supports `CGO_ENABLED=0` builds via nocgo stubs: the binary
    runs in server-mode only (no embedded Dolt backend), which is the
    blessed `go install` path for users without a C toolchain.
 
@@ -167,7 +167,7 @@ No fork, no replace directive, no upstream patch required. The tradeoff is that 
 
 - Go's `regexp` uses RE2 syntax, which is slightly less MySQL-compatible
   than ICU regex (no backreferences, no lookahead/lookbehind)
-- `bd` does not use SQL `REGEXP` functions, so this has zero practical impact
+- `IssueGraph` does not use SQL `REGEXP` functions, so this has zero practical impact
 - If a future feature needs SQL `REGEXP`, revisit this policy then
 
 ## See Also

@@ -3,14 +3,14 @@ title: GitHub Copilot CLI Integration Design
 description: Design rationale and setup for the Copilot CLI integration, which uses a plugin manifest plus repository instructions
 ---
 
-This document explains design decisions for GitHub Copilot CLI integration in beads.
+This document explains design decisions for GitHub Copilot CLI integration in issuegraph.
 
 For **VS Code + MCP**, see [GitHub Copilot](/integrations/github-copilot).
 
 ## Integration Approach
 
-**Recommended: Copilot CLI plugin + repository instructions** - Beads uses Copilot CLI's native plugin manifest plus repository instructions:
-- `.copilot-plugin/plugin.json` registers `bd prime` hooks natively
+**Recommended: Copilot CLI plugin + repository instructions** - IssueGraph uses Copilot CLI's native plugin manifest plus repository instructions:
+- `.copilot-plugin/plugin.json` registers `issuegraph prime` hooks natively
 - `.github/copilot-instructions.md` provides repository-specific workflow guidance
 - Direct CLI commands with `--json` flags remain the primary operational interface
 
@@ -26,7 +26,7 @@ For **VS Code + MCP**, see [GitHub Copilot](/integrations/github-copilot).
 1. **Hooks belong in the tool's native format**
    - Copilot CLI understands plugin manifests directly
    - `SessionStart` and `PreCompact` can be declared as data instead of custom Go logic
-   - This keeps beads core smaller and easier to maintain
+   - This keeps issuegraph core smaller and easier to maintain
 
 2. **Instructions stay explicit and reviewable**
    - Repository guidance still lives in `.github/copilot-instructions.md`
@@ -49,35 +49,35 @@ For **VS Code + MCP**, see [GitHub Copilot](/integrations/github-copilot).
 
 **The math:**
 - MCP tool schemas can add 10-50k tokens to context
-- `bd prime` adds ~1-2k tokens of workflow context
+- `issuegraph prime` adds ~1-2k tokens of workflow context
 - That is an order-of-magnitude reduction in overhead
 
 ## Installation
 
 ```bash
 # Install the Copilot CLI plugin manifest + repository instructions
-bd setup copilot
+issuegraph setup copilot
 
 # Check installation status
-bd setup copilot --check
+issuegraph setup copilot --check
 
 # Remove the integration
-bd setup copilot --remove
+issuegraph setup copilot --remove
 ```
 
 **What it installs:**
 - `.copilot-plugin/plugin.json`
-  - `SessionStart` hook: Runs `bd prime` when Copilot CLI starts a session
-  - `PreCompact` hook: Runs `bd prime` before context compaction
+  - `SessionStart` hook: Runs `issuegraph prime` when Copilot CLI starts a session
+  - `PreCompact` hook: Runs `issuegraph prime` before context compaction
 - `.github/copilot-instructions.md`
   - Repository workflow guidance for Copilot CLI
 
 ## Related Files
 
 - `plugins/beads/.copilot-plugin/plugin.json` - Source plugin manifest for the shared plugin package
-- `plugins/beads/copilot_manifest.go` - Embedded manifest source used by `bd setup copilot`
+- `plugins/beads/copilot_manifest.go` - Embedded manifest source used by `issuegraph setup copilot`
 - `internal/recipes/recipes.go` - Lightweight `copilot` recipe definition
-- `internal/recipes/template.go` - Static Copilot instructions template used by `bd setup`
+- `internal/recipes/template.go` - Static Copilot instructions template used by `issuegraph setup`
 - [GitHub Copilot integration](/integrations/github-copilot) - VS Code MCP integration
 
 ## References

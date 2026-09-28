@@ -560,8 +560,8 @@ scripts/migrate-legacy-to-current.sh \
   --source /absolute/path/to/old-project \
   --destination /absolute/path/to/old-project-cutover \
   --source-version v0.50.3 \
-  --old-issuegraph /absolute/path/to/verified-old-issuegraph \
-  --new-issuegraph /absolute/path/to/current-issuegraph \
+  --old-bd /absolute/path/to/verified-old-issuegraph \
+  --new-bd /absolute/path/to/current-issuegraph \
   --prefix beads
 ```
 
@@ -572,9 +572,9 @@ scripts/migrate-legacy-to-current.sh \
   --source /absolute/path/to/old-project \
   --destination /absolute/path/to/old-project-cutover \
   --source-version v0.17.0 \
-  --old-issuegraph /absolute/path/to/verified-old-issuegraph \
-  --canonicalizer-issuegraph /absolute/path/to/verified-v0.49.6-issuegraph \
-  --new-issuegraph /absolute/path/to/current-issuegraph \
+  --old-bd /absolute/path/to/verified-old-issuegraph \
+  --canonicalizer-bd /absolute/path/to/verified-v0.49.6-issuegraph \
+  --new-bd /absolute/path/to/current-issuegraph \
   --prefix beads
 ```
 

@@ -29,7 +29,7 @@
 | `Blocked: 0` renders in plain text (not red) | `else` branch (not warning) when `BlockedIssues != nil && *BlockedIssues == 0` — be-4b63 fix | ✅ |
 | `Blocked: N>0` renders in warning/red style | `ui.RenderFail(...)` when `*BlockedIssues > 0` | ✅ |
 | All callers nil-guarded | Reviewer confirmed "nil-guarding correct" | ✅ |
-| CLI docs regenerated | `4ea5bd8fd docs(cli): regen CLI reference for bd status --no-blocked` | ✅ |
+| CLI docs regenerated | `4ea5bd8fd docs(cli): regen CLI reference for issuegraph status --no-blocked` | ✅ |
 
 **Note on LOW-1** (reviewer): `BlockedIssues int→*int` is a JSON schema change: callers now receive `blocked_issues: null` instead of `blocked_issues: 0` when `--no-blocked` is used. Mitigated by `blocked_count_skipped: true` signal. Deliberate opt-in flag — acceptable.
 

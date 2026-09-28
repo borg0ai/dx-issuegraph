@@ -12,3 +12,4 @@
 | 0008 | [Disable external tracker network sync (child of 0001)](rfc/0008-external-trackers-local-only.md) | Approved |
 | 0009 | [根 Go module 与 CLI 构建布局 (child of 0001)](rfc/0009-go-module-cli-build.md) | Approved |
 | 0010 | [IssueGraph 集成资产目录迁移 (child of 0001)](rfc/0010-issuegraph-asset-layout.md) | Approved |
+| 0011 | [`@borg0ai/issuegraph` npm installer (child of 0001)](rfc/0011-go-cli-npm-delivery.md) | Draft |

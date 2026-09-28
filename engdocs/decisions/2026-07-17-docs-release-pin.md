@@ -4,7 +4,7 @@ Date: 2026-07-17
 Decided by: Chris Sells
 Status: settled — do not relitigate without new information
 
-Scope: which bd version the user docs (`docs/`) — hand-written pages and the
+Scope: which IssueGraph version the user docs (`docs/`) — hand-written pages and the
 generated CLI reference — are written against and validated against.
 
 ## The problem
@@ -13,7 +13,7 @@ The Mintlify site publishes from `main`, but users run the latest release.
 Between a release tag and the next release, `main` accumulates commands,
 flags, and behavior no released binary has; docs generated from `main`'s
 source then document features users cannot run (as happened between v1.1.0
-and this decision: storage backends, pool claiming, `bd migrate --force`,
+and this decision: storage backends, pool claiming, `issuegraph migrate --force`,
 four unreleased commands).
 
 ## Decisions
@@ -29,7 +29,7 @@ future-feature pages.
 
 `docs/cli-docs.pin` names the release tag. The docs pipeline
 (`scripts/generate-cli-docs.sh`, `scripts/check-doc-flags.sh`,
-`scripts/check-cli-docs-drift.sh`) builds bd from that tag
+`scripts/check-cli-docs-drift.sh`) builds IssueGraph from that tag
 (`scripts/resolve-docs-bd.sh`, CGO_ENABLED=0 `-tags gms_pure_go` — CI's
 canonical build) and generates/validates the committed docs against it. A
 binary supplied on the command line is ignored while the pin is set

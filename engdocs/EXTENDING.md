@@ -1,7 +1,7 @@
-# Extending bd
+# Extending IssueGraph
 
 This file documents contracts that callers of the storage API must honor.
-It is not user-facing; it is for code that embeds bd or talks to the
+It is not user-facing; it is for code that embeds IssueGraph or talks to the
 storage layer directly.
 
 ## Lite SELECT shape — `IssueFilter.Lite`

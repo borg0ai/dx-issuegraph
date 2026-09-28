@@ -1,9 +1,9 @@
 ---
 title: MCP Server
-description: Run the beads-mcp server for MCP-only environments like Claude Desktop where the bd CLI is unavailable
+description: Run the beads-mcp server for MCP-only environments like Claude Desktop where the issuegraph CLI is unavailable
 ---
 
-Use beads in MCP-only environments.
+Use issuegraph in MCP-only environments.
 
 ## When to Use MCP
 
@@ -129,8 +129,8 @@ The MCP server exposes these tools:
 | `admin` | Administrative operations |
 | `discover_tools` / `get_tool_info` | Tool discovery and schemas |
 
-There is no MCP sync tool — syncing stays on the CLI (`bd dolt push` /
-`bd dolt pull`).
+There is no MCP sync tool — syncing stays on the CLI (`issuegraph dolt push` /
+`issuegraph dolt pull`).
 
 ## Usage
 
@@ -140,7 +140,7 @@ Once configured, use naturally:
 Create an issue for fixing the login bug with priority 1
 ```
 
-The MCP server translates to appropriate `bd` commands.
+The MCP server translates to appropriate `issuegraph` commands.
 
 ## Trade-offs
 
@@ -182,7 +182,7 @@ pip install beads-mcp
 ls -la .beads/
 
 # Initialize if needed
-bd init --quiet
+issuegraph init --quiet
 ```
 
 ## See Also

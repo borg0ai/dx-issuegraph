@@ -1,9 +1,9 @@
 ---
 title: Molecules
-description: Molecules are epics whose children flow through bd ready as ordered steps; covers creating, executing, bonding, and the molecule lifecycle.
+description: Molecules are epics whose children flow through issuegraph ready as ordered steps; covers creating, executing, bonding, and the molecule lifecycle.
 ---
 
-Molecules are work graphs: epics whose children flow through `bd ready` as
+Molecules are work graphs: epics whose children flow through `issuegraph ready` as
 dependency-ordered steps. They are usually instantiated from formulas, but a
 formula is optional — any epic with children is a molecule.
 
@@ -32,8 +32,8 @@ composition — most work needs only epics and dependencies.
 
 ```bash
 # Cook the formula into a proto, then pour the proto into a molecule
-bd cook release.formula.toml
-bd mol pour release --var version=1.0.0
+issuegraph cook release.formula.toml
+issuegraph mol pour release --var version=1.0.0
 ```
 
 This creates:
@@ -45,33 +45,33 @@ This creates:
 Create the epic and wire the dependencies directly:
 
 ```bash
-bd create "Feature X" -t epic
-bd create "Design" -t task --parent <epic-id>
-bd create "Implement" -t task --parent <epic-id>
-bd create "Test" -t task --parent <epic-id>
-bd dep add <implement-id> <design-id>   # implement needs design
-bd dep add <test-id> <implement-id>     # test needs implement
+issuegraph create "Feature X" -t epic
+issuegraph create "Design" -t task --parent <epic-id>
+issuegraph create "Implement" -t task --parent <epic-id>
+issuegraph create "Test" -t task --parent <epic-id>
+issuegraph dep add <implement-id> <design-id>   # implement needs design
+issuegraph dep add <test-id> <implement-id>     # test needs implement
 ```
 
 If the epic carries a size/effort label, see [Labels](/core-concepts/labels) for keeping it off the steps.
 
 If an ad-hoc epic turns out to be worth repeating, extract a reusable formula
-from it with `bd mol distill <epic-id> <formula-name>`.
+from it with `issuegraph mol distill <epic-id> <formula-name>`.
 
 ### Finding Molecules
 
 ```bash
-bd mol current           # Where you are in the molecule you're working
-bd mol stale             # Complete-but-still-open molecules
-bd mol wisp list         # Ephemeral molecules (wisps)
+issuegraph mol current           # Where you are in the molecule you're working
+issuegraph mol stale             # Complete-but-still-open molecules
+issuegraph mol wisp list         # Ephemeral molecules (wisps)
 ```
 
 ### Viewing a Molecule
 
 ```bash
-bd mol show <molecule-id>             # Structure and variables
-bd mol show <molecule-id> --parallel  # Highlight steps that can run concurrently
-bd dep tree <molecule-id>             # Shows full hierarchy
+issuegraph mol show <molecule-id>             # Structure and variables
+issuegraph mol show <molecule-id> --parallel  # Highlight steps that can run concurrently
+issuegraph dep tree <molecule-id>             # Shows full hierarchy
 ```
 
 ## Working with Molecules
@@ -92,10 +92,10 @@ epic-root (assigned to agent)
 **Children are parallel by default.** Only explicit dependencies create
 sequence. The multi-session loop:
 
-1. Get ready work: `bd ready --mol <molecule-id>`
-2. Claim it: `bd update <id> --claim`
+1. Get ready work: `issuegraph ready --mol <molecule-id>`
+2. Claim it: `issuegraph update <id> --claim`
 3. Do the work
-4. Close it: `bd close <id>`
+4. Close it: `issuegraph close <id>`
 5. Repeat until the molecule is done
 
 ### Dependency Types
@@ -126,48 +126,48 @@ needs = ["design"]  # Must complete design first
 On live issues, add the edge directly — the dependent comes first:
 
 ```bash
-bd dep add <B-id> <A-id>   # B depends on A (B needs A)
+issuegraph dep add <B-id> <A-id>   # B depends on A (B needs A)
 ```
 
-The `bd ready` command respects these:
+The `issuegraph ready` command respects these:
 
 ```bash
-bd ready --mol <molecule-id>  # Only shows steps with completed dependencies
+issuegraph ready --mol <molecule-id>  # Only shows steps with completed dependencies
 ```
 
 ### Progressing Through Steps
 
 ```bash
 # Start a step
-bd update bd-xyz.1 --claim
+issuegraph update bd-xyz.1 --claim
 
 # Complete a step
-bd close bd-xyz.1 --reason "Done"
+issuegraph close bd-xyz.1 --reason "Done"
 
 # Check what's ready next
-bd ready --mol bd-xyz
+issuegraph ready --mol bd-xyz
 ```
 
 ### Viewing Progress
 
 ```bash
 # See blocked steps
-bd blocked
+issuegraph blocked
 
 # Step-by-step status: [done] / [current] / [ready] / [blocked] / [pending]
-bd mol current <molecule-id>
+issuegraph mol current <molecule-id>
 
 # Progress summary: completed/total, rate, ETA
-bd mol progress <molecule-id>
+issuegraph mol progress <molecule-id>
 ```
 
 ## Molecule Lifecycle
 
 ```
 Formula (template source)
-    ↓ bd cook
+    ↓ issuegraph cook
 Proto (template epic)
-    ↓ bd mol pour
+    ↓ issuegraph mol pour
 Molecule (instance)
     ↓ work steps
 Completed Molecule
@@ -176,12 +176,12 @@ Closed / Squashed / Burned
 ```
 
 Closing the last child does not close the molecule root — epics stay open as
-close-eligible work until closed explicitly (`bd epic close-eligible` sweeps
+close-eligible work until closed explicitly (`issuegraph epic close-eligible` sweeps
 them). For cleanup of the beads themselves:
 
-- `bd mol squash <id>` condenses a molecule's ephemeral children into a
+- `issuegraph mol squash <id>` condenses a molecule's ephemeral children into a
   permanent digest issue.
-- `bd mol burn <id>` deletes a molecule outright, no digest — for abandoned
+- `issuegraph mol burn <id>` deletes a molecule outright, no digest — for abandoned
   or test runs.
 
 See [Wisps](/workflows/wisps) for the ephemeral lifecycle these commands
@@ -194,9 +194,9 @@ blocks molecule B, completing A unblocks B and an agent can continue from A
 into B — one compound workflow that can span days.
 
 ```bash
-bd mol bond A B                    # B depends on A (sequential by default)
-bd mol bond A B --type parallel    # B runs alongside A
-bd mol bond A B --type conditional # B runs only if A fails
+issuegraph mol bond A B                    # B depends on A (sequential by default)
+issuegraph mol bond A B --type parallel    # B runs alongside A
+issuegraph mol bond A B --type conditional # B runs only if A fails
 ```
 
 The command is polymorphic over its operands:
@@ -219,7 +219,7 @@ When the number of children isn't known until runtime, bond in a loop with
 
 ```bash
 # One arm per discovered worker
-bd mol bond mol-worker-arm bd-patrol --ref arm-{{name}} --var name=ace
+issuegraph mol bond mol-worker-arm bd-patrol --ref arm-{{name}} --var name=ace
 # Creates: bd-patrol.arm-ace (and children like bd-patrol.arm-ace.capture)
 ```
 
@@ -251,37 +251,37 @@ Assign the molecule root to an agent at pour time, then track where each
 agent is:
 
 ```bash
-bd mol pour mol-feature --assignee <agent>   # Assign on creation
-bd mol current --for <agent>                 # Where that agent is
+issuegraph mol pour mol-feature --assignee <agent>   # Assign on creation
+issuegraph mol current --for <agent>                 # Where that agent is
 ```
 
 ## Agent Pitfalls
 
 1. **Temporal language inverts dependencies.** "Phase 1 comes before Phase 2"
-   tempts `bd dep add phase1 phase2` — backwards. Use requirement language:
-   "Phase 2 needs Phase 1" is `bd dep add phase2 phase1`. Verify with
-   `bd blocked`.
+   tempts `issuegraph dep add phase1 phase2` — backwards. Use requirement language:
+   "Phase 2 needs Phase 1" is `issuegraph dep add phase2 phase1`. Verify with
+   `issuegraph blocked`.
 2. **Numbered steps don't create sequence.** Steps named "Step 1/2/3" still
    run in parallel until you add dependencies between them.
 3. **Forgetting to close work.** Blocked issues stay blocked forever if their
-   blockers aren't closed: `bd close <id> --reason "Done"`.
+   blockers aren't closed: `issuegraph close <id> --reason "Done"`.
 
 ## Example Workflow
 
 ```bash
 # 1. Create molecule from formula
-bd cook feature-workflow.formula.toml
-bd mol pour feature-workflow --var name="dark-mode"
+issuegraph cook feature-workflow.formula.toml
+issuegraph mol pour feature-workflow --var name="dark-mode"
 
 # 2. View structure
-bd dep tree bd-xyz
+issuegraph dep tree bd-xyz
 
 # 3. Start first step
-bd update bd-xyz.1 --claim
+issuegraph update bd-xyz.1 --claim
 
 # 4. Complete and progress
-bd close bd-xyz.1
-bd ready --mol bd-xyz  # Shows next steps
+issuegraph close bd-xyz.1
+issuegraph ready --mol bd-xyz  # Shows next steps
 
 # 5. Continue until complete
 ```

@@ -1,17 +1,17 @@
 ---
 title: Advanced Features
-description: Advanced bd operations for renaming issues and prefixes, merging duplicates, compaction, database redirects, and performance tuning.
+description: Advanced issuegraph operations for renaming issues and prefixes, merging duplicates, compaction, database redirects, and performance tuning.
 ---
 
-Advanced beads functionality.
+Advanced issuegraph functionality.
 
 ## Issue Rename
 
 Rename issues while preserving references:
 
 ```bash
-bd rename bd-42 bd-new-id
-bd rename bd-42 bd-new-id --dry-run  # Preview
+issuegraph rename bd-42 bd-new-id
+issuegraph rename bd-42 bd-new-id --dry-run  # Preview
 ```
 
 Updates:
@@ -25,15 +25,15 @@ Change the issue prefix for every issue in the database — for example,
 shortening `knowledge-work-` to `kw-`:
 
 ```bash
-bd rename-prefix kw- --dry-run  # Preview without applying
-bd rename-prefix kw-            # Every knowledge-work-* ID becomes kw-*
+issuegraph rename-prefix kw- --dry-run  # Preview without applying
+issuegraph rename-prefix kw-            # Every knowledge-work-* ID becomes kw-*
 ```
 
 The rename updates all issue IDs and all text references across all fields.
 Prefixes are lowercase letters, numbers, and hyphens,
 must start with a letter, and must end with a hyphen. If a corrupted database
-contains issues with multiple prefixes, `bd rename-prefix <prefix> --repair`
-consolidates them. See [bd rename-prefix](/cli-reference/rename-prefix).
+contains issues with multiple prefixes, `issuegraph rename-prefix <prefix> --repair`
+consolidates them. See [issuegraph rename-prefix](/cli-reference/rename-prefix).
 
 ## Duplicate Detection and Merge
 
@@ -41,9 +41,9 @@ Find issues with identical content (title, description, design, acceptance
 criteria) and consolidate them:
 
 ```bash
-bd duplicates              # Report duplicate groups with suggested actions
-bd duplicates --dry-run    # Preview what --auto-merge would do
-bd duplicates --auto-merge # Merge every duplicate group
+issuegraph duplicates              # Report duplicate groups with suggested actions
+issuegraph duplicates --dry-run    # Preview what --auto-merge would do
+issuegraph duplicates --auto-merge # Merge every duplicate group
 ```
 
 Issues are grouped by content hash, and only when their statuses match (open
@@ -57,11 +57,11 @@ in each group, falling back to the smallest ID. For each group, `--auto-merge`:
 To mark a single known duplicate manually:
 
 ```bash
-bd duplicate bd-42 --of bd-41  # Close bd-42 as a duplicate of bd-41
+issuegraph duplicate bd-42 --of bd-41  # Close bd-42 as a duplicate of bd-41
 ```
 
 Closing is permanent, but Dolt version history preserves the original state.
-Verify results with `bd show bd-41` and `bd dep tree bd-41`.
+Verify results with `issuegraph show bd-41` and `issuegraph dep tree bd-41`.
 
 ## Database Compaction
 
@@ -69,16 +69,16 @@ Reduce database size by compacting old issues:
 
 ```bash
 # View compaction statistics
-bd admin compact --stats
+issuegraph admin compact --stats
 
 # Preview candidates (30+ days closed)
-bd admin compact --analyze --json
+issuegraph admin compact --analyze --json
 
 # Apply agent-generated summary
-bd admin compact --apply --id bd-42 --summary summary.txt
+issuegraph admin compact --apply --id bd-42 --summary summary.txt
 
 # Immediate deletion (CAUTION!)
-bd admin cleanup --force
+issuegraph admin cleanup --force
 ```
 
 **When to compact:**
@@ -91,30 +91,30 @@ bd admin cleanup --force
 Recover the pre-compaction content of a compacted issue:
 
 ```bash
-bd restore bd-42          # Display the archived original content
-bd restore bd-42 --apply  # Write the original content back into the issue
+issuegraph restore bd-42          # Display the archived original content
+issuegraph restore bd-42 --apply  # Write the original content back into the issue
 ```
 
-If no archived snapshot exists, `bd restore` falls back to a best-effort
+If no archived snapshot exists, `issuegraph restore` falls back to a best-effort
 reconstruction from Dolt version history, which can only be displayed, not
 applied.
 
 ## Database Inspection
 
-`bd sql` requires Dolt server mode (`bd dolt start`, see Performance Tuning
+`issuegraph sql` requires Dolt server mode (`issuegraph dolt start`, see Performance Tuning
 below); it is not available against the default embedded-mode database.
 
 ```bash
 # Schema info
-bd info --schema --json
+issuegraph info --schema --json
 
 # Raw database query (server mode only)
-bd sql "SELECT * FROM issues LIMIT 5"
+issuegraph sql "SELECT * FROM issues LIMIT 5"
 ```
 
 ## Database Redirects
 
-Multiple git clones can share one beads database — useful when several agents
+Multiple git clones can share one issuegraph database — useful when several agents
 or checkout directories work the same issues. Create a `.beads/redirect` file
 in the secondary clone containing a single path (relative or absolute) to the
 target `.beads` directory:
@@ -128,8 +128,8 @@ echo "../main-clone/.beads" > .beads/redirect
 Check which database is actually in use:
 
 ```bash
-bd where          # Active .beads location, including redirect info
-bd where --json
+issuegraph where          # Active .beads location, including redirect info
+issuegraph where --json
 ```
 
 Limitations and guidance:
@@ -145,16 +145,16 @@ Limitations and guidance:
 
 ## Extensible Database
 
-For Dolt-backed projects, keep extension state outside the beads database and
-connect it to beads through stable CLI surfaces:
+For Dolt-backed projects, keep extension state outside the issuegraph database and
+connect it to issuegraph through stable CLI surfaces:
 
 ```bash
 # Query issues for integration workflows
-bd list --json
-bd query "status=open AND priority<=2" --json
+issuegraph list --json
+issuegraph query "status=open AND priority<=2" --json
 
 # Run direct SQL for inspection (server mode only)
-bd sql "SELECT id, title, status FROM issues LIMIT 5"
+issuegraph sql "SELECT id, title, status FROM issues LIMIT 5"
 ```
 
 Custom tables through direct storage access are a legacy SQLite-only pattern.
@@ -163,7 +163,7 @@ only if you are maintaining a SQLite-backed extension.
 
 ## Audit Data
 
-Beads records issue lifecycle events in the database for audit and recovery
+IssueGraph records issue lifecycle events in the database for audit and recovery
 workflows. This is the human-facing history — for the machine-facing feed of
 committed mutations, see the [Events Journal](/reference/events-journal).
 Inspect current issue state through JSON output, or query the audit tables
@@ -171,10 +171,10 @@ directly when needed:
 
 ```bash
 # Current issue state
-bd show bd-a1b2 --json
+issuegraph show bd-a1b2 --json
 
 # Recent stored events for one issue (server mode only)
-bd sql "SELECT event_type, actor, created_at FROM events WHERE issue_id = 'bd-a1b2' ORDER BY created_at DESC LIMIT 20"
+issuegraph sql "SELECT event_type, actor, created_at FROM events WHERE issue_id = 'bd-a1b2' ORDER BY created_at DESC LIMIT 20"
 ```
 
 Events:
@@ -192,11 +192,11 @@ Bootstrap a new database from a JSONL export:
 
 ```bash
 # In the source project
-bd export -o issues.jsonl
+issuegraph export -o issues.jsonl
 
 # In the new project: place the export at .beads/issues.jsonl
 # (or the configured import.path), then initialize from it
-bd init --from-jsonl
+issuegraph init --from-jsonl
 ```
 
 Importing records whose IDs already exist updates those issues in place —
@@ -206,17 +206,17 @@ collision.
 ### Update Multiple
 
 ```bash
-bd list --status open --priority 4 --json | \
+issuegraph list --status open --priority 4 --json | \
   jq -r '.[].id' | \
-  xargs -I {} bd update {} --priority 3
+  xargs -I {} issuegraph update {} --priority 3
 ```
 
 ### Close Multiple
 
 ```bash
-bd list --label "sprint-1" --status open --json | \
+issuegraph list --label "sprint-1" --status open --json | \
   jq -r '.[].id' | \
-  xargs -I {} bd close {} --reason "Sprint complete"
+  xargs -I {} issuegraph close {} --reason "Sprint complete"
 ```
 
 ## Integration Access
@@ -225,19 +225,19 @@ Use the CLI as the supported integration boundary:
 
 ```bash
 # Machine-readable issue data
-bd show bd-a1b2 --json
+issuegraph show bd-a1b2 --json
 
 # Ready-work queue for automation
-bd ready --json
+issuegraph ready --json
 
 # Direct SQL inspection against the active Dolt database (server mode only)
-bd sql "SELECT id, priority, status FROM issues WHERE status != 'closed'"
+issuegraph sql "SELECT id, priority, status FROM issues WHERE status != 'closed'"
 ```
 
 The storage packages under `internal/` are not a public Go API.
 
 The [MCP server](/integrations/mcp-server) is a stateless adapter over the
-same boundary: it translates MCP calls into `bd` CLI invocations and routes
+same boundary: it translates MCP calls into `issuegraph` CLI invocations and routes
 each call to the correct `.beads` workspace based on the working directory.
 It never caches or stores issue data itself.
 
@@ -247,34 +247,34 @@ It never caches or stores issue data itself.
 
 ```bash
 # Summarize old closed issues (see Database Compaction above)
-bd admin compact --stats
+issuegraph admin compact --stats
 
 # Reclaim disk space with Dolt garbage collection
-bd admin compact --dolt
+issuegraph admin compact --dolt
 
 # Squash Dolt commits older than 30 days (preview first)
-bd compact --dry-run
-bd compact --force
+issuegraph compact --dry-run
+issuegraph compact --force
 ```
 
 ### Many Concurrent Agents
 
-Beads uses Dolt server mode to handle concurrent access from multiple agents.
+IssueGraph uses Dolt server mode to handle concurrent access from multiple agents.
 The server manages transaction isolation automatically.
 
 ```bash
 # Start the Dolt server
-bd dolt start
+issuegraph dolt start
 
 # Check server health
-bd doctor
+issuegraph doctor
 ```
 
 ### CI/CD Optimization
 
-In CI/CD environments, beads uses embedded mode by default (no server required):
+In CI/CD environments, issuegraph uses embedded mode by default (no server required):
 
 ```bash
 # Just run commands directly — no special flags needed
-bd list
+issuegraph list
 ```

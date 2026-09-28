@@ -15,29 +15,29 @@ A gate is a bead like any other: created open, it blocks its waiters through
 a normal dependency edge, and the step becomes ready the moment the gate
 closes. Gates close in one of two ways:
 
-- **Manually** — `bd gate resolve <gate-id>` (human gates always close this
+- **Manually** — `issuegraph gate resolve <gate-id>` (human gates always close this
   way).
-- **Via `bd gate check`** — evaluates open timer, GitHub, and bead gates
+- **Via `issuegraph gate check`** — evaluates open timer, GitHub, and bead gates
   against the real world and closes the ones whose condition is met.
 
 ```bash
-bd gate list                 # open gates
-bd gate list --all           # include closed
-bd gate show <gate-id>       # details and waiters
-bd gate check                # evaluate open gates, close satisfied ones
-bd gate check --dry-run      # report without closing
-bd gate resolve <gate-id>    # close a gate manually
+issuegraph gate list                 # open gates
+issuegraph gate list --all           # include closed
+issuegraph gate show <gate-id>       # details and waiters
+issuegraph gate check                # evaluate open gates, close satisfied ones
+issuegraph gate check --dry-run      # report without closing
+issuegraph gate resolve <gate-id>    # close a gate manually
 ```
 
 ## Gate types
 
 | Type | Waits for | Closed by |
 |------|-----------|-----------|
-| `human` | a person's decision | `bd gate resolve` only |
-| `timer` | a duration after gate creation | `bd gate check` once the timeout elapses |
-| `gh:run` | a GitHub Actions workflow to complete successfully | `bd gate check` (uses `gh run view`) |
-| `gh:pr` | a pull request to merge | `bd gate check` (uses `gh pr view`) |
-| `bead` | a bead to close — a plain ID names a bead in this rig, the cross-rig form is `<rig>:<bead-id>` | `bd gate check` for plain local IDs; cross-rig values cannot be checked — resolve those manually |
+| `human` | a person's decision | `issuegraph gate resolve` only |
+| `timer` | a duration after gate creation | `issuegraph gate check` once the timeout elapses |
+| `gh:run` | a GitHub Actions workflow to complete successfully | `issuegraph gate check` (uses `gh run view`) |
+| `gh:pr` | a pull request to merge | `issuegraph gate check` (uses `gh pr view`) |
+| `bead` | a bead to close — a plain ID names a bead in this rig, the cross-rig form is `<rig>:<bead-id>` | `issuegraph gate check` for plain local IDs; cross-rig values cannot be checked — resolve those manually |
 
 Timeouts use Go duration syntax: `30m`, `1h`, `24h` (there is no `d` unit —
 write `24h`, not `1d`).
@@ -45,9 +45,9 @@ write `24h`, not `1d`).
 GitHub gates use the current Git repository by default. To evaluate a PR or
 workflow run in another repository, set the gate's string `metadata.repo` value
 to `OWNER/REPO` or `HOST/OWNER/REPO`. An ad-hoc `gh:run`/`gh:pr` gate created
-with `bd gate create` inherits a valid `metadata.repo` value from the issue it
+with `issuegraph gate create` inherits a valid `metadata.repo` value from the issue it
 blocks; `human`/`timer`/`bead` gates do not, since `metadata.repo` is
-unrelated, ordinary metadata for those types. `bd gate check` rejects
+unrelated, ordinary metadata for those types. `issuegraph gate check` rejects
 malformed repository values instead of falling back to the current
 repository.
 
@@ -60,12 +60,12 @@ topology. Three limitations to expect, all tracked in
 - **Cross-rig bead gates never resolve on their own.** A `<rig>:<bead-id>`
   await value reports `cannot be checked (multi-rig routing removed)` and
   stays pending regardless of the awaited bead's status. Close it with
-  `bd gate resolve`.
-- **`bd close` cannot verify a bead gate in the experimental proxied-server
+  `issuegraph gate resolve`.
+- **`issuegraph close` cannot verify a bead gate in the experimental proxied-server
   mode.** Proxied-server commands never open a local store, so closing the
   gate refuses with `no local store available` even when the awaited bead is
-  closed. Run `bd gate check`, which evaluates bead gates in proxied-server
-  mode and closes the satisfied ones, or `bd close --force`.
+  closed. Run `issuegraph gate check`, which evaluates bead gates in proxied-server
+  mode and closes the satisfied ones, or `issuegraph close --force`.
 - **Prefix routing cannot open a proxied-server target rig.** A routed
   lookup into a rig that is itself in proxied-server mode fails with
   `proxy server store needs to be uow provider`, so an all-proxied
@@ -74,11 +74,11 @@ topology. Three limitations to expect, all tracked in
 ## Gates in formulas
 
 A formula step declares a gate with a `[steps.gate]` block. When the formula
-is instantiated, bd creates the gate issue and wires it as a blocker of that
+is instantiated, issuegraph creates the gate issue and wires it as a blocker of that
 step. The schema has five fields: `type`, `id`, `await_id`, `timeout`, and
 `repo`.
 
-This is the release gate from beads' own release formula — the step that
+This is the release gate from issuegraph's own release formula — the step that
 waits for the GitHub release workflow:
 
 ```toml
@@ -108,11 +108,11 @@ repo = "org/downstream-repo"   # check gh:run against this repo, not the current
 ```
 
 `repo` accepts a `{{var}}` placeholder (e.g. `repo = "{{gate_repo}}"`); for a
-formula persisted with `bd cook --persist`, the placeholder is substituted
-when the proto is later poured with `bd mol pour --var gate_repo=...`, the
+formula persisted with `issuegraph cook --persist`, the placeholder is substituted
+when the proto is later poured with `issuegraph mol pour --var gate_repo=...`, the
 same as `title`, `description`, and `await_id`.
 
-`bd gate discover` (auto-discovery of a `gh:run` gate's run ID) requires a
+`issuegraph gate discover` (auto-discovery of a `gh:run` gate's run ID) requires a
 workflow name hint (`await_id`/`id`, not left blank) for a gate targeting
 another repository — without one, the local commit/branch heuristics that
 narrow a same-repo match don't apply across repos, so nothing but the
@@ -148,22 +148,22 @@ Verify what the parser actually understood before pouring — unknown keys in
 TOML are dropped silently:
 
 ```bash
-bd formula show <formula> --json   # inspect the parsed gate blocks
+issuegraph formula show <formula> --json   # inspect the parsed gate blocks
 ```
 
 ## Creating gates outside formulas
 
-`bd gate create` attaches a gate to existing work:
+`issuegraph gate create` attaches a gate to existing work:
 
 ```bash
 # Block bd-abc until a PR merges
-bd gate create --type=gh:pr --blocks bd-abc --await-id=42
+issuegraph gate create --type=gh:pr --blocks bd-abc --await-id=42
 
 # Block bd-abc until a human resolves the gate
-bd gate create --type=human --blocks bd-abc --reason "Design sign-off"
+issuegraph gate create --type=human --blocks bd-abc --reason "Design sign-off"
 
 # Add another waiter to an existing gate
-bd gate add-waiter <gate-id> <issue-id>
+issuegraph gate add-waiter <gate-id> <issue-id>
 ```
 
 ## Fan-in: waiting on other steps
@@ -187,10 +187,10 @@ waits_for = "all-children"       # or "any-children", or "children-of(step-id)"
 ## Working with gated molecules
 
 ```bash
-bd ready --gated        # molecules where a gate just closed (ready to resume)
-bd blocked              # what's waiting, and on which gates
+issuegraph ready --gated        # molecules where a gate just closed (ready to resume)
+issuegraph blocked              # what's waiting, and on which gates
 ```
 
-Automation patterns: run `bd gate check` on a schedule (cron, CI, or an
+Automation patterns: run `issuegraph gate check` on a schedule (cron, CI, or an
 orchestrator loop) so timer and GitHub gates close without a human in the
 loop; keep `human` gates for the decisions that should never auto-close.

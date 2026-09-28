@@ -124,7 +124,7 @@ Periodic SQL queries against Dolt system tables to surface metrics unavailable v
 
 ### Tier 3 — Low priority / future
 
-- **Command-level sub-spans**: Instrument validation vs. DB vs. render breakdown per command (`bd create`, `bd list`, `bd compact`, etc.)
+- **Command-level sub-spans**: Instrument validation vs. DB vs. render breakdown per command (`issuegraph create`, `issuegraph list`, `issuegraph compact`, etc.)
 - **Molecules & recipes**: `molecule.create`, `recipe.execute` spans
 - **Hook duration metrics**: Currently only spans (`hook.exec`), no histogram for aggregation
 - **OTel test suite**: Integration tests that verify telemetry output (currently none)

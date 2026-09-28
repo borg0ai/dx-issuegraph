@@ -12,15 +12,15 @@ deleted wholesale later.
 ## What are Wisps?
 
 - Issues in the main database with the ephemeral flag set — worked on with
-  normal `bd` commands.
+  normal `issuegraph` commands.
 - Local by design: excluded from federation push by default
   (`federation.exclude_types` defaults to `[wisp]`) and not part of the
   shared audit trail.
-- Deleted in bulk by `bd purge` or `bd mol wisp gc` once closed.
+- Deleted in bulk by `issuegraph purge` or `issuegraph mol wisp gc` once closed.
 
 ## Wisp vs Pour
 
-| Aspect | Molecule (`bd mol pour`) | Wisp (`bd mol wisp`) |
+| Aspect | Molecule (`issuegraph mol pour`) | Wisp (`issuegraph mol wisp`) |
 |--------|--------------------------|----------------------|
 | Persistence | permanent, part of history | ephemeral, purged when done |
 | Sync | synced like any bead | excluded from federation push |
@@ -33,35 +33,35 @@ pouring a vapor-phase formula warns.
 
 ```bash
 # 1. Create — from a proto, or ad-hoc
-bd mol wisp <proto-id> [--var key=value]
-bd create "One-off check" --ephemeral
+issuegraph mol wisp <proto-id> [--var key=value]
+issuegraph create "One-off check" --ephemeral
 
-# 2. Execute — normal bd operations work on wisp issues
-bd ready --mol <wisp-id>
-bd update <id> --claim
-bd close <id>
+# 2. Execute — normal issuegraph operations work on wisp issues
+issuegraph ready --mol <wisp-id>
+issuegraph update <id> --claim
+issuegraph close <id>
 
 # 3a. Keep it after all: squash promotes to persistent (clears the flag)
-bd mol squash <wisp-id>
+issuegraph mol squash <wisp-id>
 
 # 3b. Or burn: delete without creating a digest
-bd mol burn <wisp-id>
+issuegraph mol burn <wisp-id>
 ```
 
 ## Managing Wisps
 
 ```bash
-bd mol wisp list      # list all wisps in the current context
-bd mol wisp gc        # garbage collect old/abandoned wisps
-bd purge --force      # delete all closed ephemeral beads
+issuegraph mol wisp list      # list all wisps in the current context
+issuegraph mol wisp gc        # garbage collect old/abandoned wisps
+issuegraph purge --force      # delete all closed ephemeral beads
 ```
 
 ## Forcing a Phase
 
-`bd mol bond` accepts phase overrides when combining work:
+`issuegraph mol bond` accepts phase overrides when combining work:
 
 ```bash
-bd mol bond mol-critical-bug wisp-patrol --pour   # persist a bug found during a patrol
+issuegraph mol bond mol-critical-bug wisp-patrol --pour   # persist a bug found during a patrol
 ```
 
 ## Best Practices
@@ -70,5 +70,5 @@ bd mol bond mol-critical-bug wisp-patrol --pour   # persist a bug found during a
 2. **Molecules for tracked work** — anything with audit value gets poured,
    not wisped.
 3. **Squash before you delete** — if a wisp surfaced something durable,
-   `bd mol squash` promotes it; burning is irreversible.
-4. **Garbage collect regularly** — `bd mol wisp gc` or `bd purge --force`.
+   `issuegraph mol squash` promotes it; burning is irreversible.
+4. **Garbage collect regularly** — `issuegraph mol wisp gc` or `issuegraph purge --force`.

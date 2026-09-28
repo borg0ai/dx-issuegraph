@@ -20,7 +20,7 @@ Every release candidate must pass upgrade smoke tests from these starting points
 1. **Data preservation**: issues created before upgrade are visible after upgrade
 2. **Mode preservation**: `embedded` stays `embedded`, `shared-server` stays `shared-server`
 3. **Role preservation**: `beads.role` git config is not cleared or changed
-4. **Config continuity**: `bd doctor quick` passes after upgrade
+4. **Config continuity**: `issuegraph doctor quick` passes after upgrade
 5. **No silent errors**: upgrade path produces no unexpected warnings or errors
 
 ## Running the Gate
@@ -37,7 +37,7 @@ The script:
 1. Downloads the previous release binary (cached in `~/.cache/beads-regression/`)
 2. Creates isolated workspaces for each scenario
 3. Initialises with the old binary, creates test data
-4. Runs `bd init` with the candidate binary (simulating upgrade)
+4. Runs `issuegraph init` with the candidate binary (simulating upgrade)
 5. Verifies data, role, and mode are preserved
 6. Reports pass/fail for each scenario
 

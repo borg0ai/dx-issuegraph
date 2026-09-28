@@ -24,6 +24,7 @@
 
 | RFC | Concern |
 |-----|---------|
+| [0011](0011-go-cli-npm-delivery.md) | `@borg0ai/issuegraph` npm installer |
 | [0010](0010-issuegraph-asset-layout.md) | IssueGraph 集成资产目录迁移 |
 | [0009](0009-go-module-cli-build.md) | 根 Go module 与 CLI 构建布局 |
 | [0008](0008-external-trackers-local-only.md) | Disable external tracker network sync |

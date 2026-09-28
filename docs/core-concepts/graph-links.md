@@ -1,9 +1,9 @@
 ---
-title: Graph Links in Beads
+title: Graph Links in IssueGraph
 description: "Non-blocking links between issues: replies-to threads, relates-to, duplicates, and supersedes (replacement) links"
 ---
 
-Beads supports several types of links between issues to create a knowledge graph. These links enable rich querying and traversal beyond simple blocking dependencies.
+IssueGraph supports several types of links between issues to create a knowledge graph. These links enable rich querying and traversal beyond simple blocking dependencies.
 
 ## Link Types
 
@@ -13,7 +13,7 @@ Creates message threads, similar to email or chat conversations.
 
 **Created by:**
 - Orchestrator mail reply commands (orchestrator handles messaging)
-- `bd dep add <new-id> <original-id> --type replies-to` (manual linking)
+- `issuegraph dep add <new-id> <original-id> --type replies-to` (manual linking)
 
 **Use cases:**
 - Agent-to-agent message threads
@@ -35,7 +35,7 @@ Creates message threads, similar to email or chat conversations.
 **Viewing threads:**
 
 ```bash
-bd show gt-a1b2 --thread
+issuegraph show gt-a1b2 --thread
 ```
 
 ### relates-to - Loose Associations
@@ -43,10 +43,10 @@ bd show gt-a1b2 --thread
 Bidirectional "see also" links between related issues. Not blocking, not hierarchical - just related.
 
 **Created by:**
-- `bd dep relate <id1> <id2>` - Links both issues to each other
+- `issuegraph dep relate <id1> <id2>` - Links both issues to each other
 
 **Removed by:**
-- `bd dep unrelate <id1> <id2>` - Removes link in both directions
+- `issuegraph dep unrelate <id1> <id2>` - Removes link in both directions
 
 **Use cases:**
 - Cross-referencing related features
@@ -58,25 +58,25 @@ Bidirectional "see also" links between related issues. Not blocking, not hierarc
 
 ```bash
 # Link two related issues
-bd dep relate bd-auth bd-security
+issuegraph dep relate bd-auth bd-security
 # Result: bd-auth.relates-to includes bd-security
 #         bd-security.relates-to includes bd-auth
 
 # View related issues
-bd show bd-auth
+issuegraph show bd-auth
 # Shows: Related: bd-security
 
 # Remove the link
-bd dep unrelate bd-auth bd-security
+issuegraph dep unrelate bd-auth bd-security
 ```
 
 **Multiple links:**
 An issue can have multiple relates-to links:
 
 ```bash
-bd dep relate bd-api bd-auth
-bd dep relate bd-api bd-docs
-bd dep relate bd-api bd-tests
+issuegraph dep relate bd-api bd-auth
+issuegraph dep relate bd-api bd-docs
+issuegraph dep relate bd-api bd-tests
 # bd-api now relates to 3 issues
 ```
 
@@ -85,7 +85,7 @@ bd dep relate bd-api bd-tests
 Marks an issue as a duplicate of a canonical issue. The duplicate is automatically closed.
 
 **Created by:**
-- `bd duplicate <id> --of <canonical>`
+- `issuegraph duplicate <id> --of <canonical>`
 
 **Use cases:**
 - Consolidating duplicate bug reports
@@ -96,15 +96,15 @@ Marks an issue as a duplicate of a canonical issue. The duplicate is automatical
 
 ```bash
 # Two similar bug reports exist
-bd show bd-bug1  # "Login fails on Safari"
-bd show bd-bug2  # "Safari login broken"
+issuegraph show bd-bug1  # "Login fails on Safari"
+issuegraph show bd-bug2  # "Safari login broken"
 
 # Mark bug2 as duplicate of bug1
-bd duplicate bd-bug2 --of bd-bug1
+issuegraph duplicate bd-bug2 --of bd-bug1
 # Result: bd-bug2 is closed with duplicate_of: bd-bug1
 
 # View shows the relationship
-bd show bd-bug2
+issuegraph show bd-bug2
 # Status: closed
 # Duplicate of: bd-bug1
 ```
@@ -119,7 +119,7 @@ bd show bd-bug2
 Marks an issue as superseded by a different (replacement) issue. The old issue is automatically closed. This is a replacement link, not a version relation: the new issue takes the old one's place.
 
 **Created by:**
-- `bd supersede <old-id> --with <new-id>`
+- `issuegraph supersede <old-id> --with <new-id>`
 
 **Use cases:**
 - Design document versions
@@ -131,19 +131,19 @@ Marks an issue as superseded by a different (replacement) issue. The old issue i
 
 ```bash
 # Original design doc
-bd create --title "Design Doc v1" --type task
+issuegraph create --title "Design Doc v1" --type task
 # Creates: bd-doc1
 
 # Later, create updated version
-bd create --title "Design Doc v2" --type task
+issuegraph create --title "Design Doc v2" --type task
 # Creates: bd-doc2
 
 # Mark v1 as superseded
-bd supersede bd-doc1 --with bd-doc2
+issuegraph supersede bd-doc1 --with bd-doc2
 # Result: bd-doc1 closed with superseded_by: bd-doc2
 
 # View shows the replacement
-bd show bd-doc1
+issuegraph show bd-doc1
 # Status: closed
 # Superseded by: bd-doc2
 ```
@@ -169,7 +169,7 @@ These fields are added to issues:
 ### View Issue Details
 
 ```bash
-bd show <id>
+issuegraph show <id>
 ```
 
 Shows all link types for an issue:
@@ -188,7 +188,7 @@ Related to (3):
 ### View Threads
 
 ```bash
-bd show <id> --thread
+issuegraph show <id> --thread
 ```
 
 Follows `replies-to` chain to show conversation history.
@@ -196,7 +196,7 @@ Follows `replies-to` chain to show conversation history.
 ### JSON Output
 
 ```bash
-bd show <id> --json
+issuegraph show <id> --json
 ```
 
 Returns all fields including graph links:
@@ -229,9 +229,9 @@ Returns all fields including graph links:
 Link related documentation:
 
 ```bash
-bd dep relate bd-api-ref bd-quickstart
-bd dep relate bd-api-ref bd-examples
-bd dep relate bd-quickstart bd-install
+issuegraph dep relate bd-api-ref bd-quickstart
+issuegraph dep relate bd-api-ref bd-examples
+issuegraph dep relate bd-quickstart bd-install
 ```
 
 ### Bug Triage
@@ -240,11 +240,11 @@ Consolidate duplicate reports:
 
 ```bash
 # Find potential duplicates
-bd duplicates
+issuegraph duplicates
 
 # Merge duplicates
-bd duplicate bd-bug42 --of bd-bug17
-bd duplicate bd-bug58 --of bd-bug17
+issuegraph duplicate bd-bug42 --of bd-bug17
+issuegraph duplicate bd-bug58 --of bd-bug17
 ```
 
 ### Replacement History
@@ -252,8 +252,8 @@ bd duplicate bd-bug58 --of bd-bug17
 Track document evolution:
 
 ```bash
-bd supersede bd-rfc1 --with bd-rfc2
-bd supersede bd-rfc2 --with bd-rfc3
+issuegraph supersede bd-rfc1 --with bd-rfc2
+issuegraph supersede bd-rfc2 --with bd-rfc3
 # bd-rfc3 is now the live issue
 ```
 
@@ -273,7 +273,7 @@ Build conversation chains (via orchestrator mail):
 2. **Prefer specific link types** - `duplicates` is clearer than generic relates-to
 3. **Keep threads shallow** - Deep reply chains are hard to follow
 4. **Document replacements** - Note why the issue was replaced
-5. **Query before creating duplicates** - `bd search` first
+5. **Query before creating duplicates** - `issuegraph search` first
 
 ## See Also
 

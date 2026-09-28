@@ -1,6 +1,6 @@
 # Release Process
 
-Quick guide for releasing a new version of beads.
+Quick guide for releasing a new version of issuegraph.
 
 ## 🚀 The Easy Way (Recommended)
 
@@ -25,7 +25,7 @@ If you prefer step-by-step control:
 1. **Stop all running Dolt servers (CRITICAL)**:
    ```bash
    # Stop Dolt servers in all workspaces
-   bd dolt stop
+   issuegraph dolt stop
 
    # Or find and stop by process
    pkill -f "dolt sql-server" 2>/dev/null
@@ -42,13 +42,13 @@ If you prefer step-by-step control:
    make test
    golangci-lint run ./...
    make build
-   ./bd version  # Verify it shows new version
+   ./issuegraph version  # Verify it shows new version
    ```
 
 3. **Skip local install** (avoid go install vs brew conflicts):
-   - Use `./bd` directly from the repo for testing
-   - Your system bd will be updated via brew after Homebrew formula update
-   - Or temporarily: `alias bd="$PWD/bd"` if needed
+   - Use `./issuegraph` directly from the repo for testing
+   - Your system issuegraph will be updated via brew after Homebrew formula update
+   - Or temporarily: `alias issuegraph="$PWD/issuegraph"` if needed
 
 4. **Update CHANGELOG.md**:
    - Add version heading: `## [0.9.X] - YYYY-MM-DD`
@@ -84,7 +84,7 @@ This updates:
 **IMPORTANT**: After version bump, rebuild the local binary:
 ```bash
 make build
-./bd version  # Should show new version
+./issuegraph version  # Should show new version
 ```
 
 ## Publish to All Channels
@@ -198,7 +198,7 @@ Commit `website/versioned_docs/`, `website/versioned_sidebars/`, and `website/ve
 
 1. **Stop old Dolt servers**:
    ```bash
-   bd dolt stop
+   issuegraph dolt stop
    pkill -f "dolt sql-server" 2>/dev/null
    pgrep -lf "dolt sql-server" || echo "No Dolt servers running ✓"
    ```

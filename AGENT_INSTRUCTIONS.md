@@ -17,7 +17,7 @@ This document contains detailed operational instructions for AI agents working o
 ### File Organization
 
 ```
-beads/
+issuegraph/
 ├── modules/cli/              # CLI commands
 ├── internal/
 │   ├── types/           # Core data types

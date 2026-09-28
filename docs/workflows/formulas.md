@@ -185,27 +185,27 @@ Formulas are searched in order:
 1. `.beads/formulas/` (project-level)
 2. `~/.beads/formulas/` (user-level)
 
-`bd formula list` shows everything visible on the search paths.
+`issuegraph formula list` shows everything visible on the search paths.
 
 ## Using Formulas
 
 ```bash
 # List available formulas
-bd formula list
+issuegraph formula list
 
 # Cook the formula into a proto, then pour it into a molecule
-bd cook <formula-file>
-bd mol pour <proto-id> --var key=value
+issuegraph cook <formula-file>
+issuegraph mol pour <proto-id> --var key=value
 
 # Preview what would be created
-bd mol pour <proto-id> --dry-run
+issuegraph mol pour <proto-id> --dry-run
 ```
 
 ## Creating Custom Formulas
 
 1. Create file: `.beads/formulas/my-workflow.formula.toml`
 2. Define structure (see examples above)
-3. Use with: `bd cook my-workflow` then `bd mol pour <proto-id>`
+3. Use with: `issuegraph cook my-workflow` then `issuegraph mol pour <proto-id>`
 
 ## Example: Release Formula
 

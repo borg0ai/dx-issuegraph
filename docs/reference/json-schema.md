@@ -1,6 +1,6 @@
 ---
 title: JSON Output Schema Contract
-description: The stable JSON output contract for bd --json commands, covering the schema_version envelope, per-command fields, and consumer guidelines.
+description: The stable JSON output contract for issuegraph --json commands, covering the schema_version envelope, per-command fields, and consumer guidelines.
 ---
 
 Last reviewed: 2026-08-07
@@ -8,7 +8,7 @@ Last reviewed: 2026-08-07
 Freshness source: `modules/cli/output.go`, `modules/cli/errors.go`, and
 `modules/cli/protocol/json_contract_test.go`.
 
-All `bd` commands that support `--json` output can wrap their response in
+All `issuegraph` commands that support `--json` output can wrap their response in
 a uniform envelope by setting `BD_JSON_ENVELOPE=1`. This will become the
 default format in v2.0.
 
@@ -32,7 +32,7 @@ The original payload is untouched inside `.data` — no type corruption,
 no field injection. Works identically for objects, arrays, and maps.
 
 When a `--limit`-truncated listing runs in envelope mode (currently wired
-for `bd ready`), the envelope also carries a `pagination` key:
+for `issuegraph ready`), the envelope also carries a `pagination` key:
 
 ```json
 {"schema_version": 1, "data": [...], "pagination": {"returned": 10, "total": 42, "truncated": true}}
@@ -45,15 +45,15 @@ the result was not truncated. Legacy mode keeps the stderr text hint instead.
 
 ```bash
 # Before (legacy):
-bd list --json | jq '.[0].id'
-bd show beads-abc --json | jq '.[0].title'
+issuegraph list --json | jq '.[0].id'
+issuegraph show beads-abc --json | jq '.[0].title'
 
 # After (envelope):
-bd list --json | jq '.data[0].id'
-bd show beads-abc --json | jq '.data[0].title'
+issuegraph list --json | jq '.data[0].id'
+issuegraph show beads-abc --json | jq '.data[0].title'
 
 # Version check (object commands, e.g. create):
-bd create "Example" --json | jq '.schema_version'
+issuegraph create "Example" --json | jq '.schema_version'
 ```
 
 ### Timeline
@@ -158,7 +158,7 @@ JSON-mode errors exit with code 1.
 
 ## Field Contracts by Command
 
-### bd list --json
+### issuegraph list --json
 
 Required fields per item:
 - `id` (string): Issue ID (e.g., "beads-abc")
@@ -175,21 +175,21 @@ Optional fields:
 - `dependency_count`, `dependent_count`, `comment_count` (number)
 - `parent` (string|null): Parent issue ID
 
-### bd ready --json
+### issuegraph ready --json
 
-Same schema as `bd list --json`. Items are filtered to unblocked issues only.
+Same schema as `issuegraph list --json`. Items are filtered to unblocked issues only.
 Each item includes `dependency_count`, `dependent_count`, `comment_count`,
 and optional `parent` fields. In envelope mode a `--limit`-truncated result
 adds the envelope-level `pagination` key (see the envelope section above).
 
-### bd blocked --json
+### issuegraph blocked --json
 
 Returns issues that are blocked by unresolved dependencies.
 Each item includes all standard issue fields plus:
 - `blocked_by_count` (number): Number of blocking dependencies
 - `blocked_by` (string[]): IDs of blocking issues
 
-### bd show --json
+### issuegraph show --json
 
 Returns a top-level JSON array with one element per requested ID; items do
 not carry `schema_version` (this shape is pinned by a contract test — a
@@ -224,7 +224,7 @@ Returns a summary object when `--json` is active:
 - `skipped_dependencies` (string[]): Dependency edges whose target id was absent
 - `dry_run` (boolean): Whether `--dry-run` was active
 
-### bd export --json
+### issuegraph export --json
 
 Outputs JSONL (one JSON object per line), not wrapped in an envelope.
 Each line is a self-contained issue or memory record, discriminated by

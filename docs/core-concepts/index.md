@@ -1,21 +1,21 @@
 ---
-title: How Beads Works
-description: The orientation for beads — the dependency-aware issue graph, what bd ready computes, the formula-to-molecule workflow pipeline, and how Dolt sync moves it all between machines.
+title: How IssueGraph Works
+description: The orientation for issuegraph — the dependency-aware issue graph, what issuegraph ready computes, the formula-to-molecule workflow pipeline, and how Dolt sync moves it all between machines.
 ---
 
 Coding agents lose their memory every time a session ends. Markdown plans rot,
-TODO comments scatter, and a crashed agent takes its context with it. Beads
+TODO comments scatter, and a crashed agent takes its context with it. IssueGraph
 replaces that with a **persistent, structured work graph**: every unit of work
 is a **bead** (an issue) in a version-controlled database, connected by
-dependencies, and `bd ready` computes exactly what can be worked on right now.
+dependencies, and `issuegraph ready` computes exactly what can be worked on right now.
 Work survives the agent; the next session picks up where the last one died.
 
 ```mermaid
 flowchart LR
-    create["bd create<br/>new bead"] --> depgraph["dependency<br/>graph"]
-    depgraph --> ready["bd ready<br/>claimable work"]
-    ready --> claim["bd update --claim<br/>agent takes it"]
-    claim --> close["bd close<br/>work done"]
+    create["issuegraph create<br/>new bead"] --> depgraph["dependency<br/>graph"]
+    depgraph --> ready["issuegraph ready<br/>claimable work"]
+    ready --> claim["issuegraph update --claim<br/>agent takes it"]
+    claim --> close["issuegraph close<br/>work done"]
     close -->|blockers released| ready
 ```
 
@@ -27,7 +27,7 @@ workable next.
 
 A **bead** is one tracked unit of work: a hash ID (`bd-a1b2`), a title, a
 type (`bug`, `task`, `feature`, `epic`, `chore`, and friends — see
-[`bd types`](/cli-reference/types)), a priority (`0` critical → `4` backlog),
+[`issuegraph types`](/cli-reference/types)), a priority (`0` critical → `4` backlog),
 and a status moving `open` → `in_progress` → `closed`. "Bead" and "issue"
 name the same thing; the CLI says issue, the product says bead.
 
@@ -46,7 +46,7 @@ Workflow steps add two more blocking types (`conditional-blocks`,
 edges (`relates-to`, `duplicates`, `supersedes`, `replies-to`) are covered in
 [Graph Links](/core-concepts/graph-links).
 
-## Ready work — what `bd ready` computes
+## Ready work — what `issuegraph ready` computes
 
 **Ready work** is the claimable frontier of the graph: open beads with no
 open blockers, excluding anything in progress, blocked, deferred, or held by
@@ -68,13 +68,13 @@ flowchart TD
     class B done
 ```
 
-Here `bd ready` returns `bd-a1b2` and `bd-77aa` — everything else is either
+Here `issuegraph ready` returns `bd-a1b2` and `bd-77aa` — everything else is either
 closed or waiting on an open blocker. Closing `bd-a1b2` makes `bd-c3d4`
 ready; nothing needs re-planning.
 
 ```bash
-bd ready --json            # the claimable frontier, machine-readable
-bd ready --claim --json    # atomically claim the first match
+issuegraph ready --json            # the claimable frontier, machine-readable
+issuegraph ready --claim --json    # atomically claim the first match
 ```
 
 ## Hash IDs — why agents never collide
@@ -93,9 +93,9 @@ Repeatable multi-step work is declared once and stamped out on demand:
 
 ```mermaid
 flowchart LR
-    formula["formula<br/>(TOML file)"] -->|bd cook| proto["proto<br/>(template epic)"]
-    proto -->|bd mol pour| mol["molecule<br/>(persistent beads)"]
-    proto -->|bd mol wisp| wisp["wisp<br/>(ephemeral beads)"]
+    formula["formula<br/>(TOML file)"] -->|issuegraph cook| proto["proto<br/>(template epic)"]
+    proto -->|issuegraph mol pour| mol["molecule<br/>(persistent beads)"]
+    proto -->|issuegraph mol wisp| wisp["wisp<br/>(ephemeral beads)"]
     gate["gate<br/>(async wait)"] -.blocks a step.-> mol
 ```
 
@@ -104,15 +104,15 @@ flowchart LR
 - Cooking compiles it into a **proto**: a template epic with
   `{{variables}}`, not yet live work.
 - Pouring instantiates a **molecule**: real beads whose steps flow through
-  `bd ready` like any other work — see [Molecules](/workflows/molecules).
+  `issuegraph ready` like any other work — see [Molecules](/workflows/molecules).
 - A **wisp** is the same instantiation with an ephemeral lifecycle — gone at
-  the next `bd purge` — see [Wisps](/workflows/wisps).
+  the next `issuegraph purge` — see [Wisps](/workflows/wisps).
 - A **gate** parks a step until something external happens: a human sign-off,
   a timer, or a GitHub run or PR — see [Gates](/workflows/gates).
 
 ## Sync — how work moves between machines
 
-Beads stores everything in [Dolt](https://github.com/dolthub/dolt), a
+IssueGraph stores everything in [Dolt](https://github.com/dolthub/dolt), a
 version-controlled SQL database. Every write auto-commits to Dolt history;
 sync is native push/pull, piggybacking on your existing git remote under a
 separate ref — no server to run.
@@ -128,8 +128,8 @@ flowchart LR
     subgraph teammate["teammate / other clone"]
         db2[("Dolt DB")]
     end
-    db -->|bd dolt push| ref
-    ref -->|bd dolt pull| db
+    db -->|issuegraph dolt push| ref
+    ref -->|issuegraph dolt pull| db
     db2 <-->|push / pull| ref
 ```
 
@@ -143,8 +143,8 @@ is not the database, not the sync protocol, and not a backup. The full model
 
 | Mode | Command | Data lives at | Writers |
 |------|---------|---------------|---------|
-| **Embedded** (default) | `bd init` | `.beads/embeddeddolt/` | one (file-locked) |
-| **Server** | `bd init --server` | `.beads/dolt/` | many concurrent |
+| **Embedded** (default) | `issuegraph init` | `.beads/embeddeddolt/` | one (file-locked) |
+| **Server** | `issuegraph init --server` | `.beads/dolt/` | many concurrent |
 
 Embedded runs Dolt in-process and is right for almost everyone; server mode
 connects to an external `dolt sql-server` for multi-writer setups — see the

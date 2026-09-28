@@ -1,6 +1,6 @@
 # Dolt Storage Backend
 
-Beads uses [Dolt](https://www.dolthub.com/) as its default storage backend. Dolt provides Git-like version control for your database, enabling advanced workflows like branch-based development, time travel queries, and distributed sync.
+IssueGraph uses [Dolt](https://www.dolthub.com/) as its default storage backend. Dolt provides Git-like version control for your database, enabling advanced workflows like branch-based development, time travel queries, and distributed sync.
 
 > **Note:** Dolt is the only supported backend. The legacy SQLite backend has been removed.
 > To migrate from SQLite, see [Migration from SQLite](#migration-from-sqlite-legacy) below.
@@ -22,7 +22,7 @@ Beads uses [Dolt](https://www.dolthub.com/) as its default storage backend. Dolt
 ### 1. Install Dolt
 
 Do not install `releases/latest` — Dolt 2.3.x has a data-operation defect
-that breaks `bd flatten` and `bd admin compact`. Use the pinned version and
+that breaks `issuegraph flatten` and `issuegraph admin compact`. Use the pinned version and
 install method in
 [docs/architecture/dolt.md](../../docs/architecture/dolt.md), which carries
 the measurements and the criterion for raising the pin.
@@ -36,7 +36,7 @@ dolt version
 
 ```bash
 # New project (Dolt is the default backend)
-bd init
+issuegraph init
 
 # For legacy SQLite installations, see Migration from SQLite below
 ```
@@ -52,7 +52,7 @@ sync:
 ## Embedded Mode (Default)
 
 Embedded mode runs the Dolt engine in-process — no separate server needed. This is
-the default for all `bd init` installations. Just `bd init` and go.
+the default for all `issuegraph init` installations. Just `issuegraph init` and go.
 
 - Zero-config: no server, no ports, no PID files
 - Single-writer (one process at a time, enforced via file lock)
@@ -67,11 +67,11 @@ server mode when you need concurrent writers (multiple agents, orchestrator setu
 
 ```bash
 # During init
-bd init --server
+issuegraph init --server
 
 # Or via environment variable
 export BEADS_DOLT_SERVER_MODE=1
-bd init
+issuegraph init
 ```
 
 For an existing embedded project, see [Migrating Between Backends](#migrating-between-backends) below.
@@ -93,17 +93,17 @@ These commands are only available in server mode:
 
 ```bash
 # Check server status
-bd doctor
+issuegraph doctor
 
 # Start/stop/status
-bd dolt start
-bd dolt stop
-bd dolt status
+issuegraph dolt start
+issuegraph dolt stop
+issuegraph dolt status
 
 # Server-only config commands (error in embedded mode)
-bd dolt show
-bd dolt set
-bd dolt test
+issuegraph dolt show
+issuegraph dolt set
+issuegraph dolt test
 ```
 
 ### Shared Server Mode
@@ -113,7 +113,7 @@ for all projects (instead of one server per project):
 
 ```bash
 # Enable via config
-bd dolt set shared-server true
+issuegraph dolt set shared-server true
 
 # Or via environment variable (machine-wide)
 export BEADS_DOLT_SHARED_SERVER=1
@@ -125,7 +125,7 @@ own database (named by project prefix). See [DOLT.md](../../docs/architecture/do
 
 ## Central Dolt Server (macOS)
 
-If you plan to use an orchestrator or manage multiple beads projects from a single
+If you plan to use an orchestrator or manage multiple issuegraph projects from a single
 machine, you can run a central persistent Dolt server instead of per-project
 embedded instances.
 
@@ -133,7 +133,7 @@ embedded instances.
 
 | | Embedded (default) | Central Server |
 |---|---|---|
-| **Setup** | Zero-config — `bd init` handles everything | One-time server setup required |
+| **Setup** | Zero-config — `issuegraph init` handles everything | One-time server setup required |
 | **Data location** | `.beads/embeddeddolt/` per project | Central directory (e.g. `/opt/homebrew/var/dolt`) |
 | **Concurrency** | Single writer per project | Multi-writer via MySQL protocol |
 | **Use case** | Solo development, single agent | Orchestrator, multiple projects, multiple agents |
@@ -223,7 +223,7 @@ launchctl load ~/Library/LaunchAgents/com.local.dolt-server.plist
 mysql -h 127.0.0.1 -P 3307 -u root -e "SELECT 1"
 ```
 
-**5. Point beads at the central server** — add to `~/.zshrc` (or `~/.bashrc`):
+**5. Point issuegraph at the central server** — add to `~/.zshrc` (or `~/.bashrc`):
 
 ```bash
 export BEADS_DOLT_SERVER_HOST="127.0.0.1"
@@ -231,7 +231,7 @@ export BEADS_DOLT_SERVER_PORT="3307"
 export BEADS_DOLT_SERVER_MODE=1
 ```
 
-Now `bd init` in any project will connect to the central server instead of
+Now `issuegraph init` in any project will connect to the central server instead of
 spawning an embedded instance.
 
 ### Managing the Service
@@ -254,49 +254,49 @@ Dolt supports multiple sync strategies:
 
 ### Sync Mode
 
-Beads uses `dolt-native` sync mode exclusively:
+IssueGraph uses `dolt-native` sync mode exclusively:
 
 - Uses Dolt remotes (DoltHub, S3, GCS, etc.)
 - Native database-level sync with cell-level merge
 - Supports branching and merging
-- `bd export` available for issue portability; `bd backup init` / `bd backup sync` / `bd backup restore` for Dolt-native backups
+- `issuegraph export` available for issue portability; `issuegraph backup init` / `issuegraph backup sync` / `issuegraph backup restore` for Dolt-native backups
 
 ## Dolt Remotes
 
 ### Configure a Remote
 
-Use `bd dolt remote add` to configure remotes. This ensures the running Dolt SQL
+Use `issuegraph dolt remote add` to configure remotes. This ensures the running Dolt SQL
 server sees the remote immediately. Remotes added via the `dolt` CLI directly
 are written to the filesystem but are not visible to the server until restart.
 
 ```bash
 # DoltHub (public or private)
-bd dolt remote add origin https://doltremoteapi.dolthub.com/org/beads
+issuegraph dolt remote add origin https://doltremoteapi.dolthub.com/org/beads
 
 # S3
-bd dolt remote add origin aws://[bucket]/path/to/repo
+issuegraph dolt remote add origin aws://[bucket]/path/to/repo
 
 # GCS
-bd dolt remote add origin gs://[bucket]/path/to/repo
+issuegraph dolt remote add origin gs://[bucket]/path/to/repo
 
 # Git SSH (GitHub, GitLab, etc.)
-bd dolt remote add origin git+ssh://git@github.com/org/repo.git
+issuegraph dolt remote add origin git+ssh://git@github.com/org/repo.git
 
 # Local file system
-bd dolt remote add origin file:///path/to/remote
+issuegraph dolt remote add origin file:///path/to/remote
 ```
 
 ### Push/Pull
 
 ```bash
-bd dolt push
-bd dolt pull
+issuegraph dolt push
+issuegraph dolt pull
 ```
 
-For SSH remotes, `bd dolt push` and `bd dolt pull` automatically use the `dolt`
+For SSH remotes, `issuegraph dolt push` and `issuegraph dolt pull` automatically use the `dolt`
 CLI instead of the SQL server to avoid MySQL connection timeouts during transfer.
 
-`bd dolt remote add` registers the remote on both the SQL server and the
+`issuegraph dolt remote add` registers the remote on both the SQL server and the
 filesystem (CLI) config. This ensures `dolt push`/`dolt pull` via CLI can find
 the remote. If either surface already has a remote with that name, you'll be
 prompted before overwriting.
@@ -309,11 +309,11 @@ prompted before overwriting.
 ### List/Remove Remotes
 
 ```bash
-bd dolt remote list    # Shows remotes from both SQL server and CLI, flags discrepancies
-bd dolt remote remove origin   # Removes from both surfaces
+issuegraph dolt remote list    # Shows remotes from both SQL server and CLI, flags discrepancies
+issuegraph dolt remote remove origin   # Removes from both surfaces
 ```
 
-Use `bd doctor --fix` to resolve any discrepancies between SQL and CLI remote configs.
+Use `issuegraph doctor --fix` to resolve any discrepancies between SQL and CLI remote configs.
 
 ## Migration from SQLite (Legacy)
 
@@ -334,13 +334,13 @@ If upgrading from an older version that used SQLite:
 
 ```bash
 # Export current state
-bd export -o backup.jsonl
+issuegraph export -o backup.jsonl
 
 # Archive existing beads
 mv .beads .beads-sqlite-backup
 
 # Initialize fresh from backup
-bd init --from-jsonl
+issuegraph init --from-jsonl
 ```
 
 ## Troubleshooting
@@ -349,7 +349,7 @@ bd init --from-jsonl
 
 If you committed `.beads/dolt/` before this fix:
 
-1. Update gitignore: `bd doctor --fix`
+1. Update gitignore: `issuegraph doctor --fix`
 2. Remove from git tracking: `git rm --cached -r .beads/dolt/`
 3. Commit the removal: `git commit -m "fix: remove accidentally committed dolt data"`
 4. To purge from history (optional): use [BFG Repo-Cleaner](https://rtyley.github.io/bfg-repo-cleaner/) or `git filter-repo`
@@ -377,16 +377,16 @@ cd .beads/dolt && dolt sql-server --host 127.0.0.1 --port 3306
 mysql -h 127.0.0.1 -P 3306 -u root beads
 
 # Check server is running
-bd doctor
+issuegraph doctor
 
 # Force restart
 kill $(cat .beads/dolt/sql-server.pid) 2>/dev/null
-bd list  # Triggers auto-start
+issuegraph list  # Triggers auto-start
 ```
 
 ### Performance Issues
 
-1. Run `bd doctor` for diagnostics
+1. Run `issuegraph doctor` for diagnostics
 2. If using server mode, check server logs for errors
 3. Consider `dolt gc` for database maintenance:
    ```bash
@@ -403,8 +403,8 @@ cd .beads/dolt
 # Create feature branch
 dolt checkout -b feature/experiment
 
-# Make changes via bd commands
-bd create "experimental issue"
+# Make changes via issuegraph commands
+issuegraph create "experimental issue"
 
 # Merge back
 dolt checkout main
@@ -483,7 +483,7 @@ federation:
 
 ## Migrating Between Backends
 
-Use `bd backup` to migrate data between embedded and server mode. Both
+Use `issuegraph backup` to migrate data between embedded and server mode. Both
 directions preserve full Dolt commit history. See [DOLT.md](../../docs/architecture/dolt.md#migrating-between-backends)
 for step-by-step instructions.
 
@@ -491,16 +491,16 @@ for step-by-step instructions.
 
 ```bash
 # 1. Backup the source project
-bd backup init /path/to/backup-dir
-bd backup sync
+issuegraph backup init /path/to/backup-dir
+issuegraph backup sync
 
 # 2. Create target project and restore
 mkdir target && cd target
-bd init                    # or bd init --server
-bd backup restore --force /path/to/backup-dir
+issuegraph init                    # or issuegraph init --server
+issuegraph backup restore --force /path/to/backup-dir
 
 # 3. Verify
-bd list
+issuegraph list
 ```
 
 **Key details:**
@@ -508,7 +508,7 @@ bd list
 - `--force` is required when restoring into an initialized project (overwrites the database)
 - The restore auto-registers the backup dir for future syncs and updates the project identity
 - Embedded mode uses file locking (`flock`) — only one writer at a time
-- Alternative: migrate via Dolt remotes (`bd dolt push` / `bd dolt pull`) if both projects share a remote
+- Alternative: migrate via Dolt remotes (`issuegraph dolt push` / `issuegraph dolt pull`) if both projects share a remote
 
 ## See Also
 

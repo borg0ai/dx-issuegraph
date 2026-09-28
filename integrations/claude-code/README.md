@@ -21,7 +21,7 @@ cp commands/plan-to-beads.md ~/.claude/commands/
 Optionally add to `~/.claude/settings.json` under `permissions.allow`:
 
 ```json
-"Bash(bd:*)"
+"Bash(issuegraph:*)"
 ```
 
 ## /plan-to-beads

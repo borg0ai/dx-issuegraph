@@ -1,11 +1,11 @@
 # Project Charter
 
-This document defines the product boundary for beads. It is the source of
+This document defines the product boundary for issuegraph. It is the source of
 truth for deciding whether proposed work belongs in core, belongs in an
 integration or plugin, belongs in an orchestration layer, or should stay
 outside the project.
 
-Beads is a focused issue tracker for AI-supervised development. It should stay
+IssueGraph is a focused issue tracker for AI-supervised development. It should stay
 small enough to remain reliable, understandable, and composable.
 
 ## Core Scope
@@ -28,12 +28,12 @@ reimplementing the use case in a smaller design.
 
 ## Orchestration Boundary
 
-Beads should not know about orchestration layers built on top of it. Systems
+IssueGraph should not know about orchestration layers built on top of it. Systems
 such as schedulers, swarms, release coordinators, and future
-workflow engines may use beads, but beads should not encode their concepts in
+workflow engines may use issuegraph, but issuegraph should not encode their concepts in
 core.
 
-Core beads can expose stable issue data, metadata, CLI output, and documented
+Core issuegraph can expose stable issue data, metadata, CLI output, and documented
 extension points. The orchestration layer owns orchestration policy: agent
 routing, task assignment strategy, model choice, retry plans, scheduling,
 workflow semantics, and cross-system coordination.
@@ -50,8 +50,8 @@ trackers to synchronize issue data. A complete snapshot in the user's Git
 working tree is the only portable issue-data copy; Git handles commit, pull,
 and push when the user chooses.
 
-Storage-engine details should not leak into beads packages unless they are part
-of a deliberate storage interface. Avoid beads-side flocks, engine
+Storage-engine details should not leak into issuegraph packages unless they are part
+of a deliberate storage interface. Avoid issuegraph-side flocks, engine
 introspection, storage-specific retry loops, crash-recovery workarounds, or
 schema poking that belongs in Dolt or the Dolt driver.
 
@@ -75,12 +75,12 @@ answer to extension requests.
 Use issue metadata first when:
 
 - the data is specific to one integration, orchestrator, or team workflow
-- the data is advisory rather than part of beads' core issue model
+- the data is advisory rather than part of issuegraph's core issue model
 - the data can be represented as JSON without harming queryability
 - the shape may evolve before it deserves a stable CLI or schema contract
 
 Promote metadata to first-class schema only when the field has broad, durable
-meaning for beads itself and the migration cost is justified.
+meaning for issuegraph itself and the migration cost is justified.
 
 ## Integration Boundary
 

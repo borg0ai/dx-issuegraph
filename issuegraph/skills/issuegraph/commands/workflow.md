@@ -55,4 +55,4 @@ Use these via the issuegraph MCP server:
 - `dep` (manage dependencies), `blocked`, `stats`
 - `init` (initialize issuegraph in a project)
 
-For more details, see the beads README at: https://github.com/gastownhall/beads
+For more details, see the IssueGraph README at: https://github.com/gastownhall/beads

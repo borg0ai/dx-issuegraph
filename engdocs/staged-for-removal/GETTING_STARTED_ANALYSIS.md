@@ -32,22 +32,22 @@ can't reasonably convey it automatically.
 
 ### 1.1 Core concept: "What is this and why would I use it?"
 - **README.md** quick pitch (lines 1-30): Necessary. Explains the value prop.
-- **QUICKSTART.md** "Why Beads?" section (lines 1-30): Good concrete example
+- **QUICKSTART.md** "Why IssueGraph?" section (lines 1-30): Good concrete example
   showing flat tracker vs. dependency-aware ready queue.
 
 ### 1.2 The actual happy path (5 commands)
 ```bash
 brew install beads      # or npm install -g @beads/bd
 cd your-project
-bd init
-bd create "Task" -p 1
-bd ready
+issuegraph init
+issuegraph create "Task" -p 1
+issuegraph ready
 ```
 This is the irreducible core. Everything else is either reference or
 workaround.
 
 ### 1.3 Dependency concepts
-- `bd dep add`, `bd dep tree`, `bd ready --explain` — these are the
+- `issuegraph dep add`, `issuegraph dep tree`, `issuegraph ready --explain` — these are the
   differentiating feature. The QUICKSTART walkthrough (lines 98-230) is
   well-written and necessary.
 
@@ -66,11 +66,11 @@ These documentation sections exist because the tool has a UX gap. Each one
 represents a place where the *tool should be smarter* so the *docs can be
 shorter*.
 
-### 2.1 `bd: command not found` / PATH issues (~40 lines across 3 files)
+### 2.1 `issuegraph: command not found` / PATH issues (~40 lines across 3 files)
 
 **Appears in:** INSTALLING.md, TROUBLESHOOTING.md, QUICKSTART.md
 
-**The fix:** The install script already tries to handle PATH. But `bd` should
+**The fix:** The install script already tries to handle PATH. But `issuegraph` should
 print a one-liner after install: "Add this to your shell profile: `export
 PATH=...`" — or better, the Homebrew formula and npm package should handle
 this automatically (Homebrew already does). The `go install` path is the
@@ -96,7 +96,7 @@ install method. The prebuilt binary path (Homebrew, npm, install script)
 requires zero build dependencies. The two supported `go install` forms belong
 in the full installation docs, not the happy path.
 
-### 2.3 `zsh: killed bd` / macOS crashes (~20 lines, duplicated in 2 files)
+### 2.3 `zsh: killed issuegraph` / macOS crashes (~20 lines, duplicated in 2 files)
 
 **Appears in:** INSTALLING.md, TROUBLESHOOTING.md (identical content)
 
@@ -108,16 +108,16 @@ demoted to a contributor path, this goes away for users. For contributors,
 
 **Appears in:** TROUBLESHOOTING.md
 
-**The fix:** `bd init` should detect when it fails to create `.beads/` and
+**The fix:** `issuegraph init` should detect when it fails to create `.beads/` and
 print a helpful message: "Windows Controlled Folder Access may be blocking
 bd.exe. Add bd.exe to the whitelist in Windows Security settings." Currently
 it hangs indefinitely, which is the real bug.
 
-### 2.5 Multiple `bd` binaries in PATH (~30 lines)
+### 2.5 Multiple `issuegraph` binaries in PATH (~30 lines)
 
 **Appears in:** TROUBLESHOOTING.md
 
-**The fix:** `bd version` (or `bd doctor`) should check for multiple `bd`
+**The fix:** `issuegraph version` (or `issuegraph doctor`) should check for multiple `issuegraph`
 binaries in PATH and warn. Many CLI tools do this (e.g., `brew doctor`).
 
 ### 2.6 Port conflicts with multiple projects (~30 lines)
@@ -126,15 +126,15 @@ binaries in PATH and warn. Many CLI tools do this (e.g., `brew doctor`).
 
 **The fix:** Embedded mode (the default) doesn't have port conflicts. This
 only applies to server mode. The docs should note this is server-mode-only
-and `bd init` in server mode should detect port conflicts and suggest shared
+and `issuegraph init` in server mode should detect port conflicts and suggest shared
 server mode.
 
 ### 2.7 "Database is locked" (~20 lines)
 
 **Appears in:** TROUBLESHOOTING.md
 
-**The fix:** Embedded mode uses file locking. `bd` should detect the lock,
-identify the holding PID, and print: "Another bd process (PID 12345) is using
+**The fix:** Embedded mode uses file locking. `issuegraph` should detect the lock,
+identify the holding PID, and print: "Another issuegraph process (PID 12345) is using
 the database. Wait for it to finish or kill it." Instead of a raw SQLite error.
 
 ### 2.8 Circuit breaker / stale state file (~50 lines)
@@ -144,16 +144,16 @@ the database. Wait for it to finish or kill it." Instead of a raw SQLite error.
 **Root cause:** A `/tmp/beads-dolt-circuit-*.json` file persists and blocks
 all operations. Users have to know to manually delete it.
 
-**The fix:** `bd doctor --fix` should clear stale circuit breaker files. Or
+**The fix:** `issuegraph doctor --fix` should clear stale circuit breaker files. Or
 better: the circuit breaker should auto-reset after a configurable cooldown
 (it has a 30s cooldown, but the state file persists across reboots on macOS
 because `/tmp` -> `/private/tmp` isn't cleared).
 
-### 2.9 `bd doctor` not working in embedded mode (~15 lines)
+### 2.9 `issuegraph doctor` not working in embedded mode (~15 lines)
 
 **Appears in:** TROUBLESHOOTING.md (indirectly), doctor.go code
 
-**The fix:** This is the default mode! `bd doctor` should work in the default
+**The fix:** This is the default mode! `issuegraph doctor` should work in the default
 mode. Telling users to switch to server mode to use the diagnostic tool is
 backwards.
 
@@ -169,9 +169,9 @@ should be the primary content; the manual flags should be a small footnote.
 
 **Appears in:** TROUBLESHOOTING.md
 
-**The fix:** `bd hooks install` should set correct permissions automatically
+**The fix:** `issuegraph hooks install` should set correct permissions automatically
 (it may already, but users still hit this). The timeout issue should be
-documented in `bd hooks install` output, not buried in troubleshooting.
+documented in `issuegraph hooks install` output, not buried in troubleshooting.
 
 ### 2.12 Antivirus false positives (~40 lines + separate ANTIVIRUS.md)
 
@@ -195,34 +195,34 @@ The extensive troubleshooting section is a band-aid.
 | CONTRIBUTING.md lines 16-31 | Clone + build from source |
 
 **Recommendation:** README.md should have a 3-line install section linking to
-INSTALLING.md. QUICKSTART.md should say "Install bd (see INSTALLING.md)" and
+INSTALLING.md. QUICKSTART.md should say "Install issuegraph (see INSTALLING.md)" and
 skip the build commands. CONTRIBUTING.md should cover dev setup only.
 
-### 3.2 QUICKSTART.md uses `./bd` (local binary) syntax
+### 3.2 QUICKSTART.md uses `./issuegraph` (local binary) syntax
 
-The quickstart shows `./bd create`, `./bd ready`, etc. — suggesting the user
+The quickstart shows `./issuegraph create`, `./issuegraph ready`, etc. — suggesting the user
 built from source and is running a local binary. This is the contributor
 experience, not the user experience. Users who installed via Homebrew/npm
-would just run `bd`.
+would just run `issuegraph`.
 
-**The fix:** Change all `./bd` references to `bd` in QUICKSTART.md.
+**The fix:** Change all `./issuegraph` references to `issuegraph` in QUICKSTART.md.
 
 ### 3.3 The role/contributor/maintainer explanation is over-documented
 
 Lines 69-96 in QUICKSTART.md + lines 60-63 in README.md + FAQ entries.
-The `bd init` wizard already asks and explains this interactively.
+The `issuegraph init` wizard already asks and explains this interactively.
 
 **Recommendation:** One paragraph in QUICKSTART.md, link to a reference doc
 for details.
 
-### 3.4 SETUP.md is enormous (555 lines) for a `bd setup <tool>` reference
+### 3.4 SETUP.md is enormous (555 lines) for a `issuegraph setup <tool>` reference
 
-Most of SETUP.md documents `bd setup --check`, `bd setup --remove`, flags for
+Most of SETUP.md documents `issuegraph setup --check`, `issuegraph setup --remove`, flags for
 each of 10+ tools, comparison tables, custom recipes, etc.
 
 **Recommendation:** This is reference documentation, not getting-started
 documentation. Move it out of the getting-started path. Most users need
-exactly: `bd setup claude` or `bd setup cursor`. One line each.
+exactly: `issuegraph setup claude` or `issuegraph setup cursor`. One line each.
 
 ### 3.5 Database maintenance in QUICKSTART.md
 
@@ -245,17 +245,17 @@ integration, not a getting-started topic.
 
 1. **Demote `go install` to contributor docs** — eliminates CGO/ICU/PATH docs
    for users (~120 lines saved across files)
-2. **Fix `bd init` hang on Windows Controlled Folder Access** — detect the
+2. **Fix `issuegraph init` hang on Windows Controlled Folder Access** — detect the
    failure and print a message instead of hanging
-3. **Make `bd doctor` work in embedded mode** — this is the default mode
-4. **Auto-clear stale circuit breaker files** — or make `bd doctor --fix`
+3. **Make `issuegraph doctor` work in embedded mode** — this is the default mode
+4. **Auto-clear stale circuit breaker files** — or make `issuegraph doctor --fix`
    handle them
-5. **Detect multiple `bd` binaries in PATH** — warn in `bd version` output
+5. **Detect multiple `issuegraph` binaries in PATH** — warn in `issuegraph version` output
 6. **Print better error for locked database** — show PID of holder
 
 ### Immediate wins (doc changes only)
 
-1. **Change `./bd` to `bd` in QUICKSTART.md** — reflects actual user experience
+1. **Change `./issuegraph` to `issuegraph` in QUICKSTART.md** — reflects actual user experience
 2. **Remove database maintenance from QUICKSTART.md** — move to ADVANCED.md
 3. **Remove Notion sync from QUICKSTART.md** — move to integrations doc
 4. **Consolidate install instructions** — one canonical location (INSTALLING.md),
@@ -268,9 +268,9 @@ integration, not a getting-started topic.
 ```bash
 brew install beads    # or: npm install -g @beads/bd
 cd my-project
-bd init               # creates database, detects role, installs hooks
-bd create "My first task" -p 1
-bd ready              # shows the task
+issuegraph init               # creates database, detects role, installs hooks
+issuegraph create "My first task" -p 1
+issuegraph ready              # shows the task
 ```
 
 Five commands. No CGO. No PATH fiddling. No Dolt installation. No role

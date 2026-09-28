@@ -12,14 +12,14 @@ adding first-class fields, commands, or schema changes, check the
 
 ## Example: Agent Execution Metadata
 
-Agent execution hints are one example of using metadata to extend beads without
+Agent execution hints are one example of using metadata to extend issuegraph without
 adding new native database fields. Automation may store these hints so agents
 can make routing decisions without parsing prose. Agents enacting an issue
 should read metadata first, then use description and notes for scope and
 rationale:
 
 ```bash
-bd show <id> --json | jq '.[0] | {id,title,metadata,description,notes}'
+issuegraph show <id> --json | jq '.[0] | {id,title,metadata,description,notes}'
 ```
 
 The current convention for execution hint keys is:
@@ -49,16 +49,16 @@ Parent/orchestrator agents must consume these keys before spawning subagents.
 Model and reasoning effort are normally fixed at launch, so reading metadata
 after delegation is too late.
 
-Do not add a first-class helper such as `bd show <id> --execution` or
-`bd plan <id> --json`. Issue gh-3541 resolved to keep execution hints as
+Do not add a first-class helper such as `issuegraph show <id> --execution` or
+`issuegraph plan <id> --json`. Issue gh-3541 resolved to keep execution hints as
 metadata only; the JSON/JQ snippet remains the supported access path.
 
 ## Example: Tracker Round-Trip Metadata
 
-Tracker integrations map external issues into beads fields such as title,
+Tracker integrations map external issues into issuegraph fields such as title,
 status, priority, type, labels, dependencies, and `external_ref`. When an
 integration needs to preserve tracker-specific fields that do not belong in the
-native beads schema, it can store those fields in issue metadata:
+native issuegraph schema, it can store those fields in issue metadata:
 
 ```json
 {
@@ -70,19 +70,19 @@ native beads schema, it can store those fields in issue metadata:
 }
 ```
 
-This keeps beads' core issue model stable while allowing the integration to
+This keeps issuegraph's core issue model stable while allowing the integration to
 round-trip fields it understands. Prefer namespaced keys and keep
 tracker-specific policy in the integration. If a value becomes broadly useful
-to beads itself, revisit whether it deserves a native field.
+to issuegraph itself, revisit whether it deserves a native field.
 
 ## Reserved Key Prefixes
 
 | Prefix | Reserved For |
 |--------|------------|
-| `bd:` | Beads internal use |
+| `bd:` | IssueGraph internal use |
 | `_` | Internal/private keys |
 
-Avoid these prefixes in user-defined keys to prevent conflicts with future Beads features.
+Avoid these prefixes in user-defined keys to prevent conflicts with future IssueGraph features.
 
 ## Related
 

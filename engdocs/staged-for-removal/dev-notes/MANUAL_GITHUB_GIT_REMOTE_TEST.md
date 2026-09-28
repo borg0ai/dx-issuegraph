@@ -1,6 +1,6 @@
 # Manual Test Plan: Dolt Git Remotes with GitHub
 
-Validates that a standalone Beads Dolt database can push/pull/clone to a real
+Validates that a standalone IssueGraph Dolt database can push/pull/clone to a real
 GitHub repository using Dolt v1.81.8+ native git remote support. Dolt stores
 its data under `refs/dolt/data` in the git repo, invisible to normal `git clone`.
 
@@ -14,7 +14,7 @@ its data under `refs/dolt/data` in the git repo, invisible to normal `git clone`
 - [ ] A **scratch GitHub repo** you can push to (public or private)
   - Create one at https://github.com/new (e.g., `beads-dolt-test`)
   - Can be empty (no README, no .gitignore)
-- [ ] `bd` CLI built and available on PATH
+- [ ] `issuegraph` CLI built and available on PATH
 - [ ] `git` CLI available
 
 ## Variables
@@ -36,26 +36,26 @@ echo "Working in: $WORKDIR"
 ```bash
 mkdir -p "$WORKDIR/town-a" && cd "$WORKDIR/town-a"
 git init && git commit --allow-empty -m "init"
-bd init --backend dolt
+issuegraph init --backend dolt
 ```
 
-**Expected:** `.beads/dolt/` directory created, `bd list` returns empty.
+**Expected:** `.beads/dolt/` directory created, `issuegraph list` returns empty.
 
-- [ ] PASS / FAIL: `bd init --backend dolt` succeeds
+- [ ] PASS / FAIL: `issuegraph init --backend dolt` succeeds
 - [ ] PASS / FAIL: `.beads/dolt/` directory exists
-- [ ] PASS / FAIL: `bd list` runs without error
+- [ ] PASS / FAIL: `issuegraph list` runs without error
 
 ### 1.2 Create test data
 
 ```bash
-bd create "Test issue alpha" -p 1
-bd create "Test issue beta" -p 2 -t bug
-bd create "Test issue gamma" -p 3
+issuegraph create "Test issue alpha" -p 1
+issuegraph create "Test issue beta" -p 2 -t bug
+issuegraph create "Test issue gamma" -p 3
 ```
 
 **Expected:** Three issues created.
 
-- [ ] PASS / FAIL: `bd list` shows 3 issues with correct priorities/types
+- [ ] PASS / FAIL: `issuegraph list` shows 3 issues with correct priorities/types
 
 ### 1.3 Add GitHub repo as a Dolt remote
 
@@ -140,7 +140,7 @@ dependencies, comments, events, metadata, etc.).
 
 ```bash
 cd "$WORKDIR/town-a"
-bd create "Incremental issue delta" -p 1
+issuegraph create "Incremental issue delta" -p 1
 cd .beads/dolt
 dolt add .
 dolt commit -m "Add delta issue"
@@ -258,7 +258,7 @@ DOLT_REMOTE_PASSWORD="<github-pat>" dolt push --user "<you>" origin-https main
 Create 100+ issues, push, clone, and verify all data arrives intact:
 
 ```bash
-for i in $(seq 1 100); do bd create "Bulk issue $i" -p $((i % 4 + 1)); done
+for i in $(seq 1 100); do issuegraph create "Bulk issue $i" -p $((i % 4 + 1)); done
 ```
 
 - [ ] PASS / FAIL: All 100+ issues survive round-trip
@@ -266,8 +266,8 @@ for i in $(seq 1 100); do bd create "Bulk issue $i" -p $((i % 4 + 1)); done
 ### 6.4 Special characters in data
 
 ```bash
-bd create 'Issue with "quotes" and <brackets> & ampersands'
-bd create "Issue with unicode: emoji 🐛 and CJK 你好"
+issuegraph create 'Issue with "quotes" and <brackets> & ampersands'
+issuegraph create "Issue with unicode: emoji 🐛 and CJK 你好"
 ```
 
 Push, clone, verify data integrity.

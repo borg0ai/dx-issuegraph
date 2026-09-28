@@ -1,4 +1,4 @@
-# `bd rules audit` / `bd rules compact` Design Doc
+# `issuegraph rules audit` / `issuegraph rules compact` Design Doc
 
 > **Status:** Ready | **Target:** Upstream PR to `gastownhall/beads`
 > **Companion spec:** SESSION-OUTPUT-SPEC Items 2 & 6
@@ -14,7 +14,7 @@ Claude Code projects accumulate rules in `.claude/rules/*.md` over time. Each ru
 - **Bloat** — 40 files, ~12K tokens of system prompt. Every Claude session loads all of them. Token cost scales linearly.
 - **No auditing** — No tooling exists to detect any of the above. Discovery is manual.
 
-Beads already tracks issues, specs, skills, and comments. Rules are the missing entity. `bd rules audit` fills this gap.
+IssueGraph already tracks issues, specs, skills, and comments. Rules are the missing entity. `issuegraph rules audit` fills this gap.
 
 ### Motivating Example
 
@@ -30,12 +30,12 @@ Nobody noticed until manual review. This should be automated.
 
 ## CLI Interface
 
-### `bd rules audit`
+### `issuegraph rules audit`
 
 Scan rules and report problems.
 
 ```
-bd rules audit [--path .claude/rules/] [--json] [--threshold 0.6]
+issuegraph rules audit [--path .claude/rules/] [--json] [--threshold 0.6]
 
 Flags:
   --path         Path to rules directory (default: .claude/rules/)
@@ -79,17 +79,17 @@ Merge Candidates (similarity > 0.60):
     → context-loading.md
     Suggested: merge into context-management.md
 
-Run `bd rules compact --auto` to apply suggested merges.
+Run `issuegraph rules compact --auto` to apply suggested merges.
 ```
 
-### `bd rules compact`
+### `issuegraph rules compact`
 
 Merge related rules into composites.
 
 ```
-bd rules compact --group <rule1> <rule2> ...   # Merge specific rules
-bd rules compact --auto                         # Apply audit suggestions
-bd rules compact --dry-run                      # Show diff without applying
+issuegraph rules compact --group <rule1> <rule2> ...   # Merge specific rules
+issuegraph rules compact --auto                         # Apply audit suggestions
+issuegraph rules compact --dry-run                      # Show diff without applying
 
 Flags:
   --path         Path to rules directory (default: .claude/rules/)
@@ -102,7 +102,7 @@ Flags:
 **Compact workflow:**
 
 ```
-$ bd rules compact --group agent-spawn-discipline agent-efficiency agent-token-efficiency
+$ issuegraph rules compact --group agent-spawn-discipline agent-efficiency agent-token-efficiency
 Preview merge → agent-discipline.md:
 ────────────────────────────────────
 # Agent Discipline
@@ -180,7 +180,7 @@ If a Do directive from rule A uses a word, and a Do directive from rule B uses i
 
 **Tension description:** Generated from the conflicting Do/Don't lines, truncated to ~60 chars.
 
-### Step 5: Compaction (for `bd rules compact`)
+### Step 5: Compaction (for `issuegraph rules compact`)
 
 Given a group of rules to merge:
 
@@ -239,7 +239,7 @@ type MergeCandidate struct {
     Score      float64  `json:"score"` // average pairwise Jaccard
 }
 
-// AuditResult is the full output of `bd rules audit`.
+// AuditResult is the full output of `issuegraph rules audit`.
 type AuditResult struct {
     TotalRules      int                   `json:"total_rules"`
     TokenEstimate   int                   `json:"token_estimate"`
@@ -268,7 +268,7 @@ func FindMergeCandidates(rules []RuleFile, threshold float64) []MergeCandidate
 // CompactRules merges a group of rules into a single composite file.
 func CompactRules(rules []RuleFile, groupLabel string) (string, error)
 
-// RunAudit is the top-level orchestrator for `bd rules audit`.
+// RunAudit is the top-level orchestrator for `issuegraph rules audit`.
 func RunAudit(rulesDir string, threshold float64) (*AuditResult, error)
 ```
 

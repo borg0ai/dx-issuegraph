@@ -1,4 +1,4 @@
-# Beads v0.62.0 — Standalone & The Road to 1.0
+# IssueGraph v0.62.0 — Standalone & The Road to 1.0
 
 **March 21, 2026**
 

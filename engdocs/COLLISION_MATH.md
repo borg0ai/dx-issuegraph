@@ -1,6 +1,6 @@
 # Hash ID Collision Mathematics
 
-This document explains the collision probability calculations for beads' adaptive hash-based IDs and the thresholds used for automatic length scaling.
+This document explains the collision probability calculations for issuegraph's adaptive hash-based IDs and the thresholds used for automatic length scaling.
 
 ## Birthday Paradox Formula
 
@@ -52,7 +52,7 @@ This shows the average number of actual hash collisions you'll encounter:
 
 ## Adaptive Scaling Strategy
 
-Beads automatically increases ID length when the collision probability exceeds **25%** (configurable via `max_collision_prob`).
+IssueGraph automatically increases ID length when the collision probability exceeds **25%** (configurable via `max_collision_prob`).
 
 ### Default Thresholds (25% max collision)
 
@@ -75,7 +75,7 @@ Even at 25% collision *probability*, the *expected number* of actual collisions 
 
 ## Alternative Thresholds
 
-You can customize the threshold with `bd config set max_collision_prob <value>`:
+You can customize the threshold with `issuegraph config set max_collision_prob <value>`:
 
 ### Conservative (10% threshold)
 
@@ -97,7 +97,7 @@ You can customize the threshold with `bd config set max_collision_prob <value>`:
 
 ## Collision Resolution
 
-When a hash collision occurs (same ID generated twice), beads automatically:
+When a hash collision occurs (same ID generated twice), issuegraph automatically:
 
 1. Tries base length with different nonce (10 attempts)
 2. Tries base+1 length with different nonce (10 attempts)

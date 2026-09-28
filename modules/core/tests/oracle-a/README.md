@@ -12,7 +12,7 @@ binaries and diffs every step:
 | **CANDIDATE** | the current working tree (HEAD + uncommitted) | the "after" |
 
 Each scenario is an ordered list of `bd` CLI argv steps run as real processes in
-a throwaway workspace (`bd init` + steps). For every step the harness compares
+a throwaway workspace (`issuegraph init` + steps). For every step the harness compares
 **exit code**, **stderr**, and **JSON-aware stdout** (object key order ignored;
 array order compared as a multiset by default, as an ordered sequence for
 scenarios flagged `ordered`). Volatile values — timestamps, UUIDs, and the host
@@ -84,7 +84,7 @@ the loop — every scenario uses embedded Dolt in its own tempdir.
   `purge` with re-seed** (both must recompute surviving neighbours' `is_blocked`),
   **`comment` add/list**, **`config set`/`get` success and reject paths**,
   metadata storage, **label-based query filtering** (`list --label`), and the
-  error contracts (`bd sql` embedded-unsupported, not-found, config-key rejection).
+  error contracts (`issuegraph sql` embedded-unsupported, not-found, config-key rejection).
 
 ## What green does NOT prove
 

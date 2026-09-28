@@ -295,15 +295,15 @@ mkdir -p ~/implementer-tasks
 
 cd ~/architect-planning
 git init
-bd init --prefix arch
+issuegraph init --prefix arch
 
 cd ~/implementer-tasks
 git init  
-bd init --prefix impl
+issuegraph init --prefix impl
 
 # 2. Configure aggregation
 cd ~/implementer-tasks
-bd config set repos.additional "~/architect-planning"
+issuegraph config set repos.additional "~/architect-planning"
 ```
 
 ### Workflow
@@ -311,17 +311,17 @@ bd config set repos.additional "~/architect-planning"
 ```bash
 # Architect mode
 cd ~/architect-planning
-bd create "System architecture for feature X" -p 1 -t epic
-bd create "Database schema design" -p 1
+issuegraph create "System architecture for feature X" -p 1 -t epic
+issuegraph create "Database schema design" -p 1
 
 # Implementer mode (sees both architect + implementation tasks)
 cd ~/implementer-tasks
-bd ready
-bd create "Implement user table" -p 1
-bd dep add impl-10 arch-42 --type blocks
+issuegraph ready
+issuegraph create "Implement user table" -p 1
+issuegraph dep add impl-10 arch-42 --type blocks
 
 # Complete implementation
-bd close impl-10 --reason "Completed"
+issuegraph close impl-10 --reason "Completed"
 ```
 
 ## Configuration Reference
@@ -330,69 +330,69 @@ bd close impl-10 --reason "Completed"
 
 ```bash
 # Auto-detect role and route accordingly
-bd config set routing.mode auto
+issuegraph config set routing.mode auto
 
 # Always use default repo (ignore role detection)
-bd config set routing.mode explicit  
-bd config set routing.default "."
+issuegraph config set routing.mode explicit  
+issuegraph config set routing.default "."
 
 # Configure repos for each role
-bd config set routing.maintainer "."
-bd config set routing.contributor "~/.beads-planning"
+issuegraph config set routing.maintainer "."
+issuegraph config set routing.contributor "~/.beads-planning"
 ```
 
 ### Multi-Repo Hydration
 
 ```bash
 # Add additional repos to aggregate
-bd config set repos.additional "~/repo1,~/repo2,~/repo3"
+issuegraph config set repos.additional "~/repo1,~/repo2,~/repo3"
 
 # Set primary repo (optional)
-bd config set repos.primary "."
+issuegraph config set repos.primary "."
 ```
 
 ### Override Auto-Routing
 
 ```bash
 # Force issue to specific repo (ignores auto-routing)
-bd create "Issue" -p 1 --repo /path/to/repo
+issuegraph create "Issue" -p 1 --repo /path/to/repo
 ```
 
 ## Troubleshooting
 
 ### Issues appearing in wrong repository
 
-**Problem:** `bd create` routes issues to unexpected repository.
+**Problem:** `issuegraph create` routes issues to unexpected repository.
 
 **Solution:**
 ```bash
 # Check current routing configuration
-bd config get routing.mode
-bd config get routing.maintainer
-bd config get routing.contributor
+issuegraph config get routing.mode
+issuegraph config get routing.maintainer
+issuegraph config get routing.contributor
 
 # Check detected role
-bd config get beads.role
+issuegraph config get beads.role
 
 # Override with explicit flag
-bd create "Issue" -p 1 --repo .
+issuegraph create "Issue" -p 1 --repo .
 ```
 
 ### Can't see issues from other repos
 
-**Problem:** `bd list` only shows issues from current repo.
+**Problem:** `issuegraph list` only shows issues from current repo.
 
 **Solution:**
 ```bash
 # Check multi-repo configuration
-bd config get repos.additional
+issuegraph config get repos.additional
 
 # Add missing repos
-bd config set repos.additional "~/repo1,~/repo2"
+issuegraph config set repos.additional "~/repo1,~/repo2"
 
 # Verify hydration
-bd dolt push
-bd list --json
+issuegraph dolt push
+issuegraph list --json
 ```
 
 ### Merge conflicts
@@ -407,7 +407,7 @@ bd list --json
 
 **Solution:** Discovered issues automatically inherit parent's `source_repo`. This is intentional. To override:
 ```bash
-bd create "Issue" -p 1 --deps discovered-from:bd-42 --repo /different/repo
+issuegraph create "Issue" -p 1 --deps discovered-from:bd-42 --repo /different/repo
 ```
 
 ### Planning repo polluting PRs
@@ -421,7 +421,7 @@ ls -la ~/.beads-planning/.git  # Should exist
 ls -la ~/projects/fork/.beads/  # Should NOT contain planning issues
 
 # Verify routing
-bd config get routing.contributor  # Should be ~/.beads-planning
+issuegraph config get routing.contributor  # Should be ~/.beads-planning
 ```
 
 ## Backward Compatibility
@@ -432,11 +432,11 @@ No migration needed! Multi-repo mode is opt-in:
 
 ```bash
 # Before (single repo)
-bd create "Issue" -p 1
+issuegraph create "Issue" -p 1
 # → Creates in local Dolt database
 
 # After (multi-repo configured)
-bd create "Issue" -p 1
+issuegraph create "Issue" -p 1
 # → Auto-routed based on role
 # → Old issues in local database still work
 ```
@@ -445,11 +445,11 @@ bd create "Issue" -p 1
 
 ```bash
 # Remove routing configuration
-bd config unset routing.mode
-bd config unset repos.additional
+issuegraph config unset routing.mode
+issuegraph config unset repos.additional
 
 # All issues go to current repo again
-bd create "Issue" -p 1
+issuegraph create "Issue" -p 1
 # → Back to single-repo mode
 ```
 
@@ -462,7 +462,7 @@ bd create "Issue" -p 1
 - ❌ Don't mix planning and implementation in the same repo
 
 ### Teams
-- ✅ Use `bd dolt push` to sync the shared Dolt database
+- ✅ Use `issuegraph dolt push` to sync the shared Dolt database
 - ✅ Use protected branch workflow for main/master
 - ✅ Review issue changes in PRs like code changes
 - ❌ Don't delete `.beads/` - you lose all issue data
@@ -483,6 +483,6 @@ bd create "Issue" -p 1
 ## Related Issues
 
 - `bd-8rd` - Migration and onboarding epic
-- `bd-mlcz` - `bd migrate` command (planned)
-- `bd-kla1` - `bd init --contributor` wizard - implemented
-- `bd-twlr` - `bd init --team` wizard - implemented
+- `bd-mlcz` - `issuegraph migrate` command (planned)
+- `bd-kla1` - `issuegraph init --contributor` wizard - implemented
+- `bd-twlr` - `issuegraph init --team` wizard - implemented

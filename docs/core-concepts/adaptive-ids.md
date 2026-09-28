@@ -3,7 +3,7 @@ title: Adaptive ID Length
 description: How hash ID length scales with database size to stay short while avoiding collisions
 ---
 
-Beads uses adaptive hash ID lengths that automatically scale based on database size, optimizing for readability in small databases while preventing collisions as databases grow.
+IssueGraph uses adaptive hash ID lengths that automatically scale based on database size, optimizing for readability in small databases while preventing collisions as databases grow.
 
 ## Motivation
 
@@ -54,10 +54,10 @@ Default: 25% (0.25)
 
 ```bash
 # More lenient (allow up to 50% collision probability)
-bd config set max_collision_prob "0.50"
+issuegraph config set max_collision_prob "0.50"
 
 # Stricter (only allow 1% collision probability)
-bd config set max_collision_prob "0.01"
+issuegraph config set max_collision_prob "0.01"
 ```
 
 ### Minimum Hash Length
@@ -66,10 +66,10 @@ Default: 4 chars
 
 ```bash
 # Start with 5-char IDs minimum
-bd config set min_hash_length "5"
+issuegraph config set min_hash_length "5"
 
 # Very short IDs (use with caution)
-bd config set min_hash_length "3"
+issuegraph config set min_hash_length "3"
 ```
 
 ### Maximum Hash Length
@@ -78,7 +78,7 @@ Default: 8 chars
 
 ```bash
 # Allow even longer IDs for huge databases
-bd config set max_hash_length "10"
+issuegraph config set max_hash_length "10"
 ```
 
 ## Examples
@@ -87,18 +87,18 @@ bd config set max_hash_length "10"
 
 ```bash
 # Initialize with hash IDs
-bd init --id-mode hash --prefix myproject
+issuegraph init --id-mode hash --prefix myproject
 
 # First 500 issues get 4-char IDs
-bd create "Fix bug" -p 1
+issuegraph create "Fix bug" -p 1
 # → myproject-a3f2
 
 # After 1000 issues, switches to 5-char IDs
-bd create "Add feature" -p 1
+issuegraph create "Add feature" -p 1
 # → myproject-7f3a8c
 
 # At 10,000 issues, uses 6-char IDs
-bd create "Refactor" -p 1
+issuegraph create "Refactor" -p 1
 # → myproject-b9d1e4
 ```
 
@@ -106,16 +106,16 @@ bd create "Refactor" -p 1
 
 ```bash
 # Very strict collision tolerance
-bd config set max_collision_prob "0.01"
+issuegraph config set max_collision_prob "0.01"
 
 # With 1% threshold and 100 issues, uses 4-char IDs
 # (collision probability is ~0.3% with 4 chars)
 
 # Force minimum 5-char IDs for consistency
-bd config set min_hash_length "5"
+issuegraph config set min_hash_length "5"
 
 # All IDs will be at least 5 chars now
-bd create "Task" -p 1
+issuegraph create "Task" -p 1
 # → myproject-7f3a8
 ```
 
@@ -169,7 +169,7 @@ Existing databases with 6-char IDs will:
 
 ### Sequential to Hash Migration
 
-When migrating from sequential IDs to hash IDs with `bd migrate --to-hash-ids`:
+When migrating from sequential IDs to hash IDs with `issuegraph migrate --to-hash-ids`:
 - Uses adaptive length algorithm for new IDs
 - Preserves existing sequential IDs
 - References are automatically updated
@@ -192,17 +192,17 @@ Potential improvements (not yet implemented):
 
 ## Alternative: Sequential Counter IDs
 
-Adaptive hash IDs are the default, but beads also supports sequential integer IDs
+Adaptive hash IDs are the default, but issuegraph also supports sequential integer IDs
 (`bd-1`, `bd-2`, ...) for projects that prefer human-readable numbering.
 
 Counter mode is controlled by the `issue_id_mode` config key:
 
 ```bash
 # Switch to sequential IDs
-bd config set issue_id_mode counter
+issuegraph config set issue_id_mode counter
 
 # Revert to hash IDs (default)
-bd config set issue_id_mode hash
+issuegraph config set issue_id_mode hash
 ```
 
 **Tradeoff:**

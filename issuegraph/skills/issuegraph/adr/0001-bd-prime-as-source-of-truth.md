@@ -1,4 +1,4 @@
-# ADR-0001: Use bd prime as CLI Reference Source of Truth
+# ADR-0001: Use issuegraph prime as CLI Reference Source of Truth
 
 ## Status
 

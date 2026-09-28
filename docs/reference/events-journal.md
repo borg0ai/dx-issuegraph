@@ -3,9 +3,9 @@ title: Events Journal
 description: The durable, ordered record of every committed issue mutation that external tooling tails and replays — enabling it, the record contract, resuming after a prune, automatic retention, and what it deliberately does not cover.
 ---
 
-Something outside beads wants to stay in step with a workspace: a dashboard, a
+Something outside issuegraph wants to stay in step with a workspace: a dashboard, a
 mirror in another system, an indexer that has to see every state change rather
-than the latest one. Polling `bd list` for that means diffing whole snapshots
+than the latest one. Polling `issuegraph list` for that means diffing whole snapshots
 and still missing anything that changed twice between two reads.
 
 The **events journal** answers it. Every committed issue mutation writes one
@@ -15,25 +15,25 @@ not a notification: a record states a change that has already committed, it
 carries the resulting state, and it stays readable until you prune it.
 
 The journal is **off by default**, local to one clone, and bounded by default
-once it is on: beads keeps the retention floors below and prunes past them
+once it is on: issuegraph keeps the retention floors below and prunes past them
 without being asked. Everything below assumes you turned it on for a consumer
 that is actually reading it.
 
 ## Which of the three event systems do you want?
 
-Beads has three things called events, and they answer different questions.
+IssueGraph has three things called events, and they answer different questions.
 
 | System | What it is | Reach for it when |
 |---|---|---|
 | **Script hooks** | Executable `on_create` / `on_update` / `on_close` scripts in `.beads/hooks/`, run after the mutation and fire-and-forget: asynchronous, output discarded, a failure neither blocks nor retries the write. | A side effect is nice to have — a chat ping, a cache bust — and losing one now and then is acceptable. |
-| **Audit history** | The per-issue trail behind `bd history <id> --events`: who changed what, when, with the old and new value of the field. | A person is asking who closed this bead, and when. |
+| **Audit history** | The per-issue trail behind `issuegraph history <id> --events`: who changed what, when, with the old and new value of the field. | A person is asking who closed this bead, and when. |
 | **Events journal** | One workspace-wide, sequence-ordered stream of committed mutations, replayable from a checkpoint. | A machine is keeping its own copy of the graph in step. |
 
 ## Turning it on
 
 ```bash
-bd config set events-journal true      # this workspace, written to .beads/config.yaml
-BD_EVENTS_JOURNAL=1 bd close bd-a1b2   # or per process / operator-wide
+issuegraph config set events-journal true      # this workspace, written to .beads/config.yaml
+BD_EVENTS_JOURNAL=1 issuegraph close bd-a1b2   # or per process / operator-wide
 ```
 
 Records are written only while the journal is enabled. Enabling it does not
@@ -42,13 +42,13 @@ workspace's current state (an [export](/cli-reference/export), or a full read)
 and follows the journal from there.
 
 <Warning>
-Turn it on wherever beads **writes**, not just where your consumer reads. The
+Turn it on wherever issuegraph **writes**, not just where your consumer reads. The
 journal records the mutations made by the clone that made them, so a workspace
 whose writers never enabled it stays permanently empty — and an empty journal
 is indistinguishable from a caught-up one. Every writer of a workspace you
 intend to replay needs `events-journal: true` (or `BD_EVENTS_JOURNAL=1` in its
-environment), including agents, CI jobs, and a `bd serve` process. `bd events
-export` and `bd events tail` say so on stderr when the workspace they read is
+environment), including agents, CI jobs, and a `issuegraph serve` process. `issuegraph events
+export` and `issuegraph events tail` say so on stderr when the workspace they read is
 disabled; over HTTP the same condition is a `409`.
 </Warning>
 
@@ -57,9 +57,9 @@ disabled; over HTTP the same condition is a `409`.
 | `events-journal` | `false` | Master switch. Off costs nothing; on costs one snapshot write per mutation. |
 | `events-journal-retain-days` | `7` | Keep every record younger than this many days. `0` disables the floor. |
 | `events-journal-retain-rows` | `100000` | Always keep this many newest records. `0` disables the floor. |
-| `events-journal-auto-prune` | `true` | Enforce the floors automatically. `false` leaves deletion to `bd events prune`. |
+| `events-journal-auto-prune` | `true` | Enforce the floors automatically. `false` leaves deletion to `issuegraph events prune`. |
 
-The floors bound both prunes: the automatic one and `bd events prune`. See
+The floors bound both prunes: the automatic one and `issuegraph events prune`. See
 [Retention and pruning](#retention-and-pruning).
 
 All four are startup settings kept in `config.yaml` rather than database config,
@@ -70,11 +70,11 @@ and each has an environment equivalent: `BD_EVENTS_JOURNAL`,
 ## Reading it
 
 ```bash
-bd events tail --since 0                # every retained record, oldest first
-bd events tail --since 4211             # resume from a checkpoint
-bd events tail --since 4211 --follow    # ...and keep printing as writes commit (polls once a second; Ctrl-C to stop)
-bd events tail --since 4211 --limit 100 # cap one batch
-bd events export                        # the whole journal from seq 1 — same as --since 0
+issuegraph events tail --since 0                # every retained record, oldest first
+issuegraph events tail --since 4211             # resume from a checkpoint
+issuegraph events tail --since 4211 --follow    # ...and keep printing as writes commit (polls once a second; Ctrl-C to stop)
+issuegraph events tail --since 4211 --limit 100 # cap one batch
+issuegraph events export                        # the whole journal from seq 1 — same as --since 0
 ```
 
 Output is JSON Lines, one record per line, in sequence order:
@@ -90,7 +90,7 @@ processed, and passes that as the next `--since`.
 
 ### Over HTTP
 
-A consumer that already talks to a workspace over `bd serve` reads the same
+A consumer that already talks to a workspace over `issuegraph serve` reads the same
 journal at `GET /v0/beads/events` instead of shelling out:
 
 ```bash
@@ -108,7 +108,7 @@ curl 'http://127.0.0.1:8080/v0/beads/events?since=4211&limit=500'
 
 The `records` are the records above — the same fields, the same encoding, the
 same [record contract](#the-record-contract) — so an HTTP mirror and a
-`bd events export` on the same workspace can be reconciled directly.
+`issuegraph events export` on the same workspace can be reconciled directly.
 
 - `since` is **required**, and it is the same checkpoint `--since` takes. A
   missing or negative value is a `400`, never a read from the beginning.
@@ -119,7 +119,7 @@ same [record contract](#the-record-contract) — so an HTTP mirror and a
   whether to keep reading or back off. When the last record's `seq` equals
   `head` you are caught up — a full page proves nothing on its own.
 - The journal is read-only over HTTP. Pruning stays a workspace decision made
-  with `bd events prune` and the retention floors.
+  with `issuegraph events prune` and the retention floors.
 
 <Warning>
 Publishing the journal publishes the workspace's **history**, not its current
@@ -128,7 +128,7 @@ mutation, including titles and descriptions since edited and issues since
 deleted. Pruning and the retention floors are the only thing that removes a
 record — editing or deleting a bead does not redact it from the journal. And
 because this is an HTTP read, any process that can reach the address gets that
-history without the filesystem permissions on `.beads/` that `bd events tail`
+history without the filesystem permissions on `.beads/` that `issuegraph events tail`
 requires. Weigh both before binding a journal-enabled workspace with
 `--allow-non-loopback` — which requires `--auth-token-file` (or the explicit
 `--insecure-no-auth`), and that token is shared and surface-wide: every client
@@ -147,7 +147,7 @@ state, not a missing feature: `events.list` appears in `/v0/beads/context`'s
 capabilities on every build, so treat the capability as "this server speaks it"
 and the 409 as "not on this workspace". (A workspace that has enabled the
 journal on a storage backend with no journal support never gets this far —
-`bd serve` refuses to start, the same refusal opening that workspace already
+`issuegraph serve` refuses to start, the same refusal opening that workspace already
 gives.)
 
 The journal is per replica, which matters more over HTTP than on the command
@@ -158,7 +158,7 @@ Track one per server, and re-baseline rather than carry one across.
 
 `GET /v0/beads/events:watch` is the same journal, pushed. It answers
 `text/event-stream` and holds the connection open, emitting each mutation as it
-commits — the HTTP form of `bd events tail --follow`:
+commits — the HTTP form of `issuegraph events tail --follow`:
 
 ```bash
 curl -N 'http://127.0.0.1:8080/v0/beads/events:watch?since=4211'
@@ -317,7 +317,7 @@ and it does not return an empty success, because both are silent record loss
 and indistinguishable from "nothing new" at the cursor.
 
 ```bash
-bd events tail --since 12 --json
+issuegraph events tail --since 12 --json
 ```
 
 ```json
@@ -331,19 +331,19 @@ bd events tail --since 12 --json
 }
 ```
 
-The command exits 1, and the payload carries bd's usual
+The command exits 1, and the payload carries issuegraph's usual
 [`schema_version` envelope](/reference/json-schema). `floor` is the oldest
 sequence number still retained, `head` the highest ever assigned. Two ways
 forward, and the engine takes neither on your behalf:
 
-- **Accept the gap** — resume from `floor - 1` (`bd events tail --since 40`
+- **Accept the gap** — resume from `floor - 1` (`issuegraph events tail --since 40`
   here) and carry on knowing records 13..40 are lost.
 - **Re-baseline** — rebuild your copy from the workspace's current state, then
   follow again from `head`. Re-reading a few records is harmless: every record
   carries the full post-mutation snapshot, so applying one twice is the same as
   applying it once.
 
-`bd events export` refuses the same way rather than present a pruned journal's
+`issuegraph events export` refuses the same way rather than present a pruned journal's
 surviving suffix as a complete history.
 
 Mid-`--follow`, the same failure arrives as **one line of JSON on the stream it
@@ -357,7 +357,7 @@ line reader:
 
 A hole in the *middle* of the retained window refuses the same way, with
 `since` reporting the last sequence number the read could serve contiguously
-from your checkpoint. Nothing bd does produces such a hole — pruning only ever
+from your checkpoint. Nothing issuegraph does produces such a hole — pruning only ever
 removes a prefix — but a restored, hand-edited, or half-copied journal table
 can, and a consumer must never be handed one silently.
 
@@ -370,8 +370,8 @@ succeeds:
 
 ```bash
 # refused with since 40 (your checkpoint was 12), floor 61
-bd events tail --since 12 --limit 28   # records 13..40, the intact stretch
-bd events tail --since 60              # then take the gap, or re-baseline
+issuegraph events tail --since 12 --limit 28   # records 13..40, the intact stretch
+issuegraph events tail --since 60              # then take the gap, or re-baseline
 ```
 
 Skipping straight to `floor - 1` loses records you could have had.
@@ -379,12 +379,12 @@ Skipping straight to `floor - 1` loses records you could have had.
 ## Retention and pruning
 
 The journal is bounded automatically. After a mutating command commits — and on
-a timer inside `bd serve` — beads deletes the prefix the two retention floors do
+a timer inside `issuegraph serve` — issuegraph deletes the prefix the two retention floors do
 not protect, so an enabled journal settles at "the last 7 days, or the newest
 100 000 records, whichever is larger" instead of growing forever.
 
 ```bash
-bd events prune --before 4000   # an earlier, on-demand cut below the floors
+issuegraph events prune --before 4000   # an earlier, on-demand cut below the floors
 ```
 
 Both floors compose onto `--before` and can only ever *reduce* what a prune
@@ -394,7 +394,7 @@ leave a hole above a protected record. Automatic pruning is that same
 computation with `--before` set past the head: delete everything the floors do
 not protect, and nothing else.
 
-`bd events prune` therefore cuts *earlier*, never *deeper*: it removes a
+`issuegraph events prune` therefore cuts *earlier*, never *deeper*: it removes a
 consumed span before the floors would have, and shrinking the retained window
 itself means lowering the floors.
 
@@ -403,7 +403,7 @@ itself means lowering the floors.
 | A bounded feed | Nothing. It is the default. |
 | A different window | Set `events-journal-retain-days` / `events-journal-retain-rows`. |
 | An unbounded ledger | Set **both** floors to `0`. Automatic pruning then does nothing at all. |
-| Floors respected on reads, deletion under your own control | `bd config set events-journal-auto-prune false`, and run `bd events prune` yourself. |
+| Floors respected on reads, deletion under your own control | `issuegraph config set events-journal-auto-prune false`, and run `issuegraph events prune` yourself. |
 
 Maintenance never fails a command. A pass that cannot run is logged and skipped,
 it is capped at a few batches per invocation so a long backlog drains over
@@ -411,10 +411,10 @@ several commands rather than stalling one, and a throttle keeps it to about one
 pass an hour per workspace — or sooner after a large burst of writes.
 
 A pass maintains **the workspace whose command triggered it**. A routed write
-(`bd create --repo ../other`) records into the target's journal, but the
+(`issuegraph create --repo ../other`) records into the target's journal, but the
 retention pass runs against the workspace you ran the command in. A workspace
 that is only ever written remotely relies on commands run in it — or on its own
-`bd serve` — to stay bounded; if nothing ever runs there, prune it on a schedule
+`issuegraph serve` — to stay bounded; if nothing ever runs there, prune it on a schedule
 of your own.
 
 <Warning>
@@ -452,18 +452,18 @@ assumes otherwise.
   active branch. Records arrive by direct write, not by merge, so read on the
   same branch the writer commits to; a branch checkout or merge carries no
   records across.
-- **[Sync](/core-concepts/sync-concepts) is not journaled.** `bd dolt pull`,
+- **[Sync](/core-concepts/sync-concepts) is not journaled.** `issuegraph dolt pull`,
   and the changes a merge settles into this clone, arrived as data — nothing
   here wrote them through the mutation path. A consumer mirroring a synced
   workspace re-baselines after a sync.
-- **Raw SQL is not journaled.** DML run through `bd sql` bypasses the write
+- **Raw SQL is not journaled.** DML run through `issuegraph sql` bypasses the write
   paths that record, and is a known non-coverage.
 - **Store-open writes are not journaled.** Schema migrations and the version
   reconciliation that runs before the workspace's configuration reaches the
   store touch schema and clone-local metadata, never a bead, so a replaying
   consumer has nothing to apply them to.
-- **Compaction and restore are not journaled.** `bd admin compact` rewrites a
-  bead's text outside the operation vocabulary, and `bd restore --apply` puts
+- **Compaction and restore are not journaled.** `issuegraph admin compact` rewrites a
+  bead's text outside the operation vocabulary, and `issuegraph restore --apply` puts
   it back the same way. A consumer's mirror of a compacted bead goes stale and
   stays stale until that bead's next journaled mutation delivers a fresh
   snapshot.

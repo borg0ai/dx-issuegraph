@@ -195,7 +195,7 @@ If you encounter a new antivirus false positive:
 2. Include:
    - Antivirus software name and version
    - Detection/threat name
-   - IssueGraph version (`bd version`)
+   - IssueGraph version (`issuegraph version`)
    - Operating system
 
 This helps us track and address false positives across different antivirus vendors.

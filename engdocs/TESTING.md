@@ -92,14 +92,14 @@ beads_manual_dir="$(mktemp -d)"
 (
   set -e
   cd "$beads_manual_dir"
-  bd init --quiet --prefix test --skip-hooks --skip-agents
-  bd create "Test issue" -p 1
+  issuegraph init --quiet --prefix test --skip-hooks --skip-agents
+  issuegraph create "Test issue" -p 1
 )
 rm -rf -- "$beads_manual_dir"
 ```
 
 `BEADS_DB` selects a database for database-opening commands, but it does not by
-itself redirect `bd init` workspace setup. Never run a manual `bd init` from a
+itself redirect `issuegraph init` workspace setup. Never run a manual `issuegraph init` from a
 production workspace merely because `BEADS_DB` points elsewhere.
 
 `testing.Short()` is for genuine runtime, stress, or large-fixture skips. It

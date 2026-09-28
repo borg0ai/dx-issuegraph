@@ -1,4 +1,4 @@
-# Audit: Sync Mode Complexity in Beads
+# Audit: Sync Mode Complexity in IssueGraph
 
 **Wanted Item:** w-bd-004
 **Date:** 2026-03-04
@@ -6,7 +6,7 @@
 
 ## Executive Summary
 
-Beads' sync subsystem has been significantly simplified through recent refactoring (v0.50-v0.53). The old multi-mode architecture (git-portable, belt-and-suspenders, dolt-native) has been collapsed to a single mode: **dolt-native**. However, vestigial configuration scaffolding and unnecessary abstraction layers remain. This audit identifies remaining complexity and recommends further simplifications.
+IssueGraph's sync subsystem has been significantly simplified through recent refactoring (v0.50-v0.53). The old multi-mode architecture (git-portable, belt-and-suspenders, dolt-native) has been collapsed to a single mode: **dolt-native**. However, vestigial configuration scaffolding and unnecessary abstraction layers remain. This audit identifies remaining complexity and recommends further simplifications.
 
 ## Current Architecture
 

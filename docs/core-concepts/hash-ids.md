@@ -1,9 +1,9 @@
 ---
 title: Hash-based IDs
-description: Why beads uses collision-resistant hash IDs like bd-a1b2 so agents and branches never clash
+description: Why issuegraph uses collision-resistant hash IDs like bd-a1b2 so agents and branches never clash
 ---
 
-Understanding beads' collision-resistant ID system.
+Understanding issuegraph's collision-resistant ID system.
 
 ## The Problem
 
@@ -26,7 +26,7 @@ flowchart TD
 
 ## The Solution
 
-Beads uses hash-based IDs:
+IssueGraph uses hash-based IDs:
 
 ```
 bd-a1b2c3    # Short hash
@@ -49,7 +49,7 @@ IDs are generated from:
 
 ```bash
 # Create issue - ID assigned automatically
-bd create "Fix authentication bug"
+issuegraph create "Fix authentication bug"
 # Returns: bd-7x2f
 
 # The ID is deterministic for same content+timestamp
@@ -61,13 +61,13 @@ For epics and subtasks:
 
 ```bash
 # Parent epic
-bd create "Auth System" -t epic
+issuegraph create "Auth System" -t epic
 # Returns: bd-a3f8e9
 
 # Children auto-increment
-bd create "Design UI" --parent bd-a3f8e9    # bd-a3f8e9.1
-bd create "Backend" --parent bd-a3f8e9      # bd-a3f8e9.2
-bd create "Tests" --parent bd-a3f8e9        # bd-a3f8e9.3
+issuegraph create "Design UI" --parent bd-a3f8e9    # bd-a3f8e9.1
+issuegraph create "Backend" --parent bd-a3f8e9      # bd-a3f8e9.2
+issuegraph create "Tests" --parent bd-a3f8e9        # bd-a3f8e9.3
 ```
 
 Benefits:
@@ -81,13 +81,13 @@ Configure ID prefix and length:
 
 ```bash
 # Set prefix (default: bd)
-bd config set id.prefix myproject
+issuegraph config set id.prefix myproject
 
 # Set hash length (default: 4)
-bd config set id.hash_length 6
+issuegraph config set id.hash_length 6
 
 # New issues use new format
-bd create "Test"
+issuegraph create "Test"
 # Returns: myproject-a1b2c3
 ```
 
@@ -96,26 +96,26 @@ bd create "Test"
 While rare, collisions are handled automatically:
 
 1. On import, if hash collision detected
-2. Beads appends disambiguator
+2. IssueGraph appends disambiguator
 3. Both issues preserved
 
 ```bash
 # Check for collisions
-bd info --schema --json | jq '.collision_count'
+issuegraph info --schema --json | jq '.collision_count'
 ```
 
 ## Working with IDs
 
 ```bash
 # Partial ID matching
-bd show a1b2     # Finds bd-a1b2...
-bd show auth     # Fuzzy match by title
+issuegraph show a1b2     # Finds bd-a1b2...
+issuegraph show auth     # Fuzzy match by title
 
 # Full ID required for ambiguous cases
-bd show bd-a1b2c3d4
+issuegraph show bd-a1b2c3d4
 
 # List with full IDs
-bd list --full-ids
+issuegraph list --full-ids
 ```
 
 ## Migration from Sequential IDs
@@ -124,10 +124,10 @@ If migrating from a system with sequential IDs:
 
 ```bash
 # Bootstrap from a JSONL export (preserves original IDs in metadata)
-bd init --from-jsonl old-issues.jsonl
+issuegraph init --from-jsonl old-issues.jsonl
 
 # View original ID
-bd show bd-new --json | jq '.original_id'
+issuegraph show bd-new --json | jq '.original_id'
 ```
 
 ## Best Practices

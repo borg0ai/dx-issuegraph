@@ -6,13 +6,13 @@ See [AGENT_INSTRUCTIONS.md](AGENT_INSTRUCTIONS.md) for full instructions.
 
 This file exists for compatibility with tools that look for AGENTS.md.
 
-The marker above tells `bd doctor` that the intentional divergence between
+The marker above tells `issuegraph doctor` that the intentional divergence between
 this file and `CLAUDE.md` (different audiences, different reading orders) is
 expected and should not be flagged.
 
 ## Key Sections
 
-- **Issue Tracking** - How to use bd for work management
+- **Issue Tracking** - How to use issuegraph for work management
 - **Development Guidelines** - Code standards and testing
 - **Project Scope** - Read [engdocs/PROJECT_CHARTER.md](engdocs/PROJECT_CHARTER.md) before adding new feature surface area
 - **Visual Design System** - Status icons, colors, and semantic styling for CLI output
@@ -22,7 +22,7 @@ expected and should not be flagged.
 ## Project Scope
 
 Before adding new feature surface area, read
-[engdocs/PROJECT_CHARTER.md](engdocs/PROJECT_CHARTER.md). Beads owns issue tracking
+[engdocs/PROJECT_CHARTER.md](engdocs/PROJECT_CHARTER.md). IssueGraph owns issue tracking
 primitives and should not encode orchestration-layer policy, become a storage
 engine, or casually expand the database schema when metadata would work.
 
@@ -60,32 +60,32 @@ See [AGENT_INSTRUCTIONS.md](AGENT_INSTRUCTIONS.md) for full development guidelin
 
 The canonical storage boundary is in
 [engdocs/PROJECT_CHARTER.md](engdocs/PROJECT_CHARTER.md#storage-boundary). In short:
-Beads talks to storage through a driver interface (`dolthub/driver` for Dolt).
-Do not add beads-side flocks, engine introspection, storage-specific retry or
+IssueGraph talks to storage through a driver interface (`dolthub/driver` for Dolt).
+Do not add issuegraph-side flocks, engine introspection, storage-specific retry or
 crash-recovery logic, or public SDK return types that leak driver internals.
 If the boundary is too narrow, widen the interface or route the issue to the
-driver instead of patching around it in beads.
+driver instead of patching around it in issuegraph.
 
-A live application of this rule: `bd doctor` support for embedded mode is
+A live application of this rule: `issuegraph doctor` support for embedded mode is
 enabled one subcommand at a time, each human-vetted (GH#3794). Do not lift the
 embedded-mode gate in `modules/cli/doctor.go` wholesale, and keep database-layer
 checks and fixes server-gated until the driver interface covers them.
 
 ## Agent Warning: Interactive Commands
 
-**DO NOT use `bd edit`** - it opens an interactive editor ($EDITOR) which AI agents cannot use.
+**DO NOT use `issuegraph edit`** - it opens an interactive editor ($EDITOR) which AI agents cannot use.
 
-Use `bd update` with flags instead:
+Use `issuegraph update` with flags instead:
 ```bash
-bd update <id> --description "new description"
-bd update <id> --title "new title"
-bd update <id> --design "design notes"
-bd update <id> --notes "additional notes"
-bd update <id> --acceptance "acceptance criteria"
+issuegraph update <id> --description "new description"
+issuegraph update <id> --title "new title"
+issuegraph update <id> --design "design notes"
+issuegraph update <id> --notes "additional notes"
+issuegraph update <id> --acceptance "acceptance criteria"
 
 # Use stdin for descriptions with special characters (backticks, !, nested quotes)
-echo 'Description with `backticks` and "quotes"' | bd create "Title" --description=-
-echo 'Updated text' | bd update <id> --description=-
+echo 'Description with `backticks` and "quotes"' | issuegraph create "Title" --description=-
+echo 'Updated text' | issuegraph update <id> --description=-
 ```
 
 ## Testing

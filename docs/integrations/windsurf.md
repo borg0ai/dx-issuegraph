@@ -1,19 +1,19 @@
 ---
 title: Windsurf
-description: Enable beads in Windsurf through a .windsurf/rules/beads.md rules file with workflow guidance
+description: Enable issuegraph in Windsurf through a .windsurf/rules/beads.md rules file with workflow guidance
 ---
 
-Use Beads with Windsurf through a project rules file.
+Use IssueGraph with Windsurf through a project rules file.
 
 ```bash
-bd setup windsurf
-bd setup windsurf --check
+issuegraph setup windsurf
+issuegraph setup windsurf --check
 ```
 
-The setup command creates `.windsurf/rules/beads.md` with Beads workflow guidance.
+The setup command creates `.windsurf/rules/beads.md` with IssueGraph workflow guidance.
 
 ## Remove
 
 ```bash
-bd setup windsurf --remove
+issuegraph setup windsurf --remove
 ```

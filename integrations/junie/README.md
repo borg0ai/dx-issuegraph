@@ -40,7 +40,7 @@ Configures the issuegraph MCP server so Junie can use issuegraph tools directly:
 {
   "mcpServers": {
     "beads": {
-      "command": "bd",
+      "command": "issuegraph",
       "args": ["mcp"]
     }
   }

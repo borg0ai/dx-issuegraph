@@ -1,6 +1,6 @@
 # IssueGraph Skill for Claude Code
 
-A comprehensive skill for using [beads](https://github.com/gastownhall/beads) (issuegraph) issue tracking with Claude Code.
+A comprehensive skill for using [IssueGraph](https://github.com/gastownhall/beads) (formerly beads) issue tracking with Claude Code.
 
 ## What This Skill Does
 
@@ -121,4 +121,4 @@ Issues and PRs welcome for:
 
 ## License
 
-MIT (same as beads)
+MIT (same as issuegraph)

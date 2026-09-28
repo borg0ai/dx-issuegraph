@@ -12,7 +12,7 @@ actionable — some are by-design tradeoffs. The audit column tracks triage.
 | 2026-02-22 | Manual testing of dep tree, blocking, close guard, labels, status filtering, reparenting, concurrency, validation | Found 14 bugs, confirmed 23 protocol invariants. Wrote `discovery_test.go` (34 tests). |
 | 2026-02-22 | Audit of all bugs for fix vs wontfix | 5-6 clear fix PRs, 2 need design discussion, 5-6 wontfix/by-design |
 | 2026-02-22 | Code review of labels.go, schema.go, dependencies.go for BUG-5 and BUG-7 root cause | BUG-5 upgraded to INVESTIGATE (not clearly wontfix). BUG-7 downgraded to FILE ISSUE (intentionally coded upsert, needs product decision). BUG-4 upgraded to DOCS FIX (help text promises "blocked" as a status). |
-| 2026-02-22 | **Phase 1-3: Snapshot harness + full parity run** | Replaced bd export with snapshot (list+show). Fixed database isolation (unique prefixes per workspace). Normalization for show-vs-export field differences. **Result: 95+ PASS, 15 FAIL (all known bugs), 10 SKIP.** |
+| 2026-02-22 | **Phase 1-3: Snapshot harness + full parity run** | Replaced issuegraph export with snapshot (list+show). Fixed database isolation (unique prefixes per workspace). Normalization for show-vs-export field differences. **Result: 95+ PASS, 15 FAIL (all known bugs), 10 SKIP.** |
 | 2026-02-22 | **Phase 4: Ship fix PRs with tests** | BUG-2+3 already merged (PR #1992). BUG-10 PR #2014, BUG-11+12+14 PR #1994, BUG-4 PR #2017. All PRs include protocol tests. |
 | 2026-02-22 | **Session 3: Candidate-only discovery (lane 3)** | Found 5 new bugs (BUG-16 through 20) + 3 code-review-only findings. External blockers, conditional-blocks, count/list discrepancy, waits-for gating, parent-child blocked consistency. Filed DECISION PRs #2025, #2026. |
 | 2026-02-22 | **Session 4: Deep discovery (search, lifecycle, batch, deps)** | Found 7 more bugs (BUG-21 through 27). Update bypasses close guard, reopen superseded corruption, defer past date invisible, wisp sort order, conditional-blocks cycle, epic wisp children. 2 new protocol tests. |
@@ -105,7 +105,7 @@ actionable — some are by-design tradeoffs. The audit column tracks triage.
 1. **BUG-2+3**: dep tree ParentID + ready annotation — PR #1992 **MERGED**
 2. **BUG-10**: exit codes for close guard / claim failures — PR #2014
 3. **BUG-11+12+14**: input validation gaps (status, title, label) — PR #1994
-4. **BUG-4**: clarify --status flag vs bd blocked — PR #2017
+4. **BUG-4**: clarify --status flag vs issuegraph blocked — PR #2017
 
 ### DECISION PRs (need PO review)
 
@@ -119,7 +119,7 @@ actionable — some are by-design tradeoffs. The audit column tracks triage.
 
 10. **BUG-18**: count vs list default filter discrepancy
 11. **BUG-19**: waits-for bare dep doesn't block (needs investigation)
-12. **BUG-20**: children of blocked parent not in bd blocked
+12. **BUG-20**: children of blocked parent not in issuegraph blocked
 13. **BUG-21**: update --status closed bypasses close guard
 14. **BUG-22**: reopen superseded = semantic corruption (DECISION)
 15. **BUG-23**: defer with past date creates invisible issue
@@ -137,8 +137,8 @@ actionable — some are by-design tradeoffs. The audit column tracks triage.
 27. **BUG-35**: overdue comparison edge case (PROTOCOL — works correctly)
 28. **BUG-36**: --priority-min > --priority-max silently returns empty
 29. **BUG-37**: --created-after > --created-before silently returns empty
-30. **BUG-38**: bd list -n -1 accepted as unlimited (no validation)
-31. **BUG-39**: bd duplicate on closed issue succeeds (PROTOCOL — correct)
+30. **BUG-38**: issuegraph list -n -1 accepted as unlimited (no validation)
+31. **BUG-39**: issuegraph duplicate on closed issue succeeds (PROTOCOL — correct)
 32. **BUG-40**: update --title whitespace-only accepted (extends BUG-12)
 33. **BUG-41**: config set "" then config get shows "(not set)" — ambiguous
 34. **BUG-42**: dep rm nonexistent says "Removed dependency" — false positive
@@ -175,22 +175,22 @@ actionable — some are by-design tradeoffs. The audit column tracks triage.
 
 ### Investigate further
 
-8. **BUG-5**: concurrent label race — need to determine if Dolt working-set merge is the root cause or if beads-level batching/serialization would fix it
+8. **BUG-5**: concurrent label race — need to determine if Dolt working-set merge is the root cause or if issuegraph-level batching/serialization would fix it
 
 ---
 
 ## CONFIRMED BUGS
 
-### BUG-1: `bd export` command removed from main — **RESOLVED in test harness**
+### BUG-1: `issuegraph export` command removed from main — **RESOLVED in test harness**
 
 **Severity: HIGH** — Broke entire regression test suite
-**Affected:** `tests/regression/` — all 85 tests relied on `compareExports()` → `bd export`
+**Affected:** `tests/regression/` — all 85 tests relied on `compareExports()` → `issuegraph export`
 **Status:** ✅ RESOLVED — Snapshot harness (`fix/regression-snapshot-harness` branch)
 
-The `bd export` command was removed during the JSONL→Dolt-native refactor
+The `issuegraph export` command was removed during the JSONL→Dolt-native refactor
 (commit 1e1568fa). The test harness now uses `snapshot()` (list+show) instead.
 The `export()` method translates old flags and delegates to `snapshot()`.
-`bd import` was also removed — tests that relied on it are now SKIP.
+`issuegraph import` was also removed — tests that relied on it are now SKIP.
 
 ---
 
@@ -255,20 +255,20 @@ query the store or compute from the tree data.
 ### BUG-4: `list --status blocked` and `count --status blocked` return empty
 
 **Severity: MEDIUM** — Documented status value doesn't work
-**Affects:** `bd list --status blocked`, `bd count --status blocked`, `bd query "status=blocked"`
+**Affects:** `issuegraph list --status blocked`, `issuegraph count --status blocked`, `issuegraph query "status=blocked"`
 
 The help text for `list` says: `--status string  Filter by status (open, in_progress, blocked, deferred, closed)`
 
 But "blocked" is a computed status derived from dependency relationships, never
 stored in the `issues.status` column (which stays "open"). So:
-- `bd blocked` → 4 issues ✓
-- `bd list --status blocked` → 0 issues ✗
-- `bd count --status blocked` → 0 ✗
+- `issuegraph blocked` → 4 issues ✓
+- `issuegraph list --status blocked` → 0 issues ✗
+- `issuegraph count --status blocked` → 0 ✗
 
 **Fix options:**
 1. Materialize blocked status: When a blocking dep is added, update status to "blocked"
 2. Compute on query: In the list/count SQL, join with dependencies to detect blocked
-3. Remove "blocked" from the documented status values and point users to `bd blocked`
+3. Remove "blocked" from the documented status values and point users to `issuegraph blocked`
 
 ---
 
@@ -280,10 +280,10 @@ stored in the `issues.status` column (which stays "open"). So:
 ```bash
 # Parallel adds — expect 5 labels, get 0
 for i in 1 2 3 4 5; do
-  bd label add <id> "stress-$i" &
+  issuegraph label add <id> "stress-$i" &
 done
 wait
-bd show <id> --json  # labels: []
+issuegraph show <id> --json  # labels: []
 ```
 
 Sequential label adds work perfectly (5/5). Parallel adds produce 0 labels
@@ -304,7 +304,7 @@ transactions.
 **Severity: LOW for end users, HIGH for test infrastructure**
 **Status:** ✅ RESOLVED — Unique prefix per workspace
 
-All `bd init --prefix test` workspaces on the same Dolt server (127.0.0.1:3307)
+All `issuegraph init --prefix test` workspaces on the same Dolt server (127.0.0.1:3307)
 share the same `beads_test` database. This is by design for collaborative use.
 
 The regression harness now uses unique prefixes per workspace (FNV hash of temp
@@ -319,8 +319,8 @@ is fully isolated.
 **Reproduction:**
 
 ```bash
-bd dep add A B --type blocks    # ✓ Added dependency
-bd dep add A B --type caused-by # ✓ Added dependency  (SILENTLY REPLACES blocks)
+issuegraph dep add A B --type blocks    # ✓ Added dependency
+issuegraph dep add A B --type caused-by # ✓ Added dependency  (SILENTLY REPLACES blocks)
 # DB now only has caused-by — blocks relationship is LOST
 # A is no longer blocked!
 ```
@@ -344,8 +344,8 @@ removes the blocking relationship. The issue becomes unblocked without warning.
 **Severity: MEDIUM** — Confusing behavior after reparenting
 **File:** `internal/storage/dolt/queries.go:211`
 **Root cause:** Parent filter uses `OR id LIKE CONCAT(?, '.%')` in addition to
-dependency lookup. After `bd create --title X --parent P1` creates `P1.1`,
-reparenting with `bd update P1.1 --parent P2` correctly updates the
+dependency lookup. After `issuegraph create --title X --parent P1` creates `P1.1`,
+reparenting with `issuegraph update P1.1 --parent P2` correctly updates the
 parent-child dep to P2, but the ID `P1.1` still matches `P1.%` via LIKE.
 
 ```sql
@@ -353,8 +353,8 @@ parent-child dep to P2, but the ID `P1.1` still matches `P1.%` via LIKE.
  OR id LIKE CONCAT(?, '.%'))
 ```
 
-**Impact:** `bd children P1` shows `P1.1` even after reparenting to P2.
-`bd children P2` also correctly shows it. The child appears under BOTH parents.
+**Impact:** `issuegraph children P1` shows `P1.1` even after reparenting to P2.
+`issuegraph children P2` also correctly shows it. The child appears under BOTH parents.
 
 **Fix options:**
 1. After reparent, rename the issue ID to match new parent (e.g., `P1.1` → `P2.1`)
@@ -366,10 +366,10 @@ parent-child dep to P2, but the ID `P1.1` still matches `P1.%` via LIKE.
 ### BUG-9: `list --ready` includes blocked issues (documented but confusing)
 
 **Severity: LOW** (documented in help text)
-**File:** `bd list --ready` help says "Note: 'bd list --ready' is NOT equivalent"
+**File:** `issuegraph list --ready` help says "Note: 'issuegraph list --ready' is NOT equivalent"
 
-`bd list --ready -n 0` returns 34 issues including blocked ones.
-`bd ready -n 0` returns 29 truly ready issues (excludes blocked).
+`issuegraph list --ready -n 0` returns 34 issues including blocked ones.
+`issuegraph ready -n 0` returns 29 truly ready issues (excludes blocked).
 
 The discrepancy of 5 issues = exactly the issues with open `blocks` dependencies.
 The help text documents this, but the `--ready` flag name is misleading.
@@ -379,7 +379,7 @@ The help text documents this, but the `--ready` flag name is misleading.
 ### BUG-10: Commands exit 0 on soft failures (close guard, claim, etc.)
 
 **Severity: MEDIUM** — Breaks scripting and automation
-**Affects:** `bd close` (close guard), `bd update --claim` (already claimed), likely others
+**Affects:** `issuegraph close` (close guard), `issuegraph update --claim` (already claimed), likely others
 **Files:** `modules/cli/close.go:117`, `modules/cli/update.go:278`
 
 When close guard prevents closing a blocked issue, the command prints a message
@@ -401,12 +401,12 @@ They must parse stderr text instead, which is fragile.
 
 ---
 
-### BUG-11: `bd update --status` accepts arbitrary values
+### BUG-11: `issuegraph update --status` accepts arbitrary values
 
 **Severity: MEDIUM** — Data integrity issue
 **File:** `modules/cli/update.go`
 
-`bd update X --status "bogus"` succeeds and stores "bogus" as the status.
+`issuegraph update X --status "bogus"` succeeds and stores "bogus" as the status.
 Valid statuses should be: open, in_progress, closed, deferred.
 The `--type` flag correctly validates against a whitelist, but `--status` does not.
 
@@ -417,13 +417,13 @@ won't appear in any filtered list (they're not open, not closed, not deferred).
 
 ---
 
-### BUG-12: `bd update --title ""` accepts empty title
+### BUG-12: `issuegraph update --title ""` accepts empty title
 
 **Severity: LOW** — Data quality issue
 **File:** `modules/cli/update.go`
 
-`bd create --title ""` correctly fails with "title required".
-`bd update X --title ""` succeeds and stores an empty title.
+`issuegraph create --title ""` correctly fails with "title required".
+`issuegraph update X --title ""` succeeds and stores an empty title.
 Validation is inconsistent between create and update.
 
 **Fix:** Add empty-title check in update command.
@@ -436,15 +436,15 @@ Validation is inconsistent between create and update.
 **Reproduction:**
 
 ```bash
-bd defer X --until 2099-12-31   # status=deferred
-bd close X                      # status=closed, defer_until preserved
-bd reopen X                     # status=open, defer_until STILL SET
+issuegraph defer X --until 2099-12-31   # status=deferred
+issuegraph close X                      # status=closed, defer_until preserved
+issuegraph reopen X                     # status=open, defer_until STILL SET
 ```
 
 After reopening, the issue has status "open" but defer_until is still set.
-- Not in `bd ready` (excluded by defer_until check) ✓
-- Not in `bd list --status deferred` (status is "open", not "deferred") ✗
-- Appears in `bd list --status open` but won't show in ready ✗
+- Not in `issuegraph ready` (excluded by defer_until check) ✓
+- Not in `issuegraph list --status deferred` (status is "open", not "deferred") ✗
+- Appears in `issuegraph list --status open` but won't show in ready ✗
 
 The issue is effectively invisible to normal workflows.
 
@@ -455,36 +455,36 @@ The issue is effectively invisible to normal workflows.
 
 ---
 
-### BUG-14: `bd label add` accepts empty string label
+### BUG-14: `issuegraph label add` accepts empty string label
 
 **Severity: LOW** — Data quality issue
 
-`bd label add X ""` succeeds and stores an empty string as a label.
+`issuegraph label add X ""` succeeds and stores an empty string as a label.
 This creates invisible/confusing entries in the label list.
 
 **Fix:** Validate label is non-empty before inserting.
 
 ---
 
-### BUG-15: Labels missing from dependent sub-objects in `bd show --json` (NEW — parity run)
+### BUG-15: Labels missing from dependent sub-objects in `issuegraph show --json` (NEW — parity run)
 
 **Severity: LOW** — Cosmetic data difference in nested view
 **Discovered:** Phase 3 parity run, TestUpdateDoesNotClobberRelationalData
 **Reproduction:**
 
 ```bash
-bd create --title "Data-rich issue" --type feature --priority 0
-bd label add <id> important
-bd label add <id> v2
-bd dep add <other> <id> --type blocks
-bd show <other> --json
+issuegraph create --title "Data-rich issue" --type feature --priority 0
+issuegraph label add <id> important
+issuegraph label add <id> v2
+issuegraph dep add <other> <id> --type blocks
+issuegraph show <other> --json
 # Dependent sub-object for <id> is missing "labels" field on Dolt
 # Baseline (v0.49.6 SQLite) includes labels in the dependent view
 ```
 
-The dependent/dependency sub-objects returned by `bd show --json` on the Dolt
+The dependent/dependency sub-objects returned by `issuegraph show --json` on the Dolt
 backend don't include the `labels` array, even though the baseline does. This
-affects only the nested view — `bd show <id> --json` for the issue itself
+affects only the nested view — `issuegraph show <id> --json` for the issue itself
 correctly shows labels.
 
 **Triage: INVESTIGATE** — Need to check if this is a deliberate field selection
@@ -503,7 +503,7 @@ difference in the Dolt backend's show query vs the SQLite backend.
 `computeBlockedIDs()` only marks issues blocked if BOTH issue AND blocker are
 in the local `activeIDs` map. External blockers (`external:project:capability`)
 are never in `activeIDs`, so issues with external blocking deps silently appear
-in `bd ready` and can be closed without close guard intervention.
+in `issuegraph ready` and can be closed without close guard intervention.
 
 **Impact:** Cross-project blocking relationships are completely ignored for
 readiness and close guard. An issue that should be blocked by an external
@@ -530,16 +530,16 @@ blocked appear as ready.
 
 ---
 
-### BUG-18: `bd count` vs `bd list` disagree on default filtering (NEW — session 3)
+### BUG-18: `issuegraph count` vs `issuegraph list` disagree on default filtering (NEW — session 3)
 
 **Severity: LOW-MEDIUM** — Silent discrepancy between related commands
 **Discovered:** Lane 3 candidate-only discovery, code review + test
 **File:** `modules/cli/count.go:106-110` vs `modules/cli/list.go:410-412`
 **Test:** `TestDiscovery_CountVsListDefaultFilter`
 
-`bd count` (no flags) counts ALL issues including closed.
-`bd list` (no flags) excludes closed issues by default.
-Running `bd count` and `bd list -n 0 --json | jq length` gives different numbers.
+`issuegraph count` (no flags) counts ALL issues including closed.
+`issuegraph list` (no flags) excludes closed issues by default.
+Running `issuegraph count` and `issuegraph list -n 0 --json | jq length` gives different numbers.
 
 **Root cause:** `count.go` doesn't apply `ExcludeStatus` for closed issues,
 while `list.go:410` does: `filter.ExcludeStatus = []types.Status{types.StatusClosed}`.
@@ -554,8 +554,8 @@ while `list.go:410` does: `filter.ExcludeStatus = []types.Status{types.StatusClo
 **Test:** `TestDiscovery_WaitsForBlocksReadiness`
 
 `waits-for` IS included in the `computeBlockedIDs()` SQL, but a bare `waits-for`
-dep (created via `bd dep add X Y --type waits-for` without gate metadata) does
-NOT block readiness. The issue appears in `bd ready` and is not in `bd blocked`.
+dep (created via `issuegraph dep add X Y --type waits-for` without gate metadata) does
+NOT block readiness. The issue appears in `issuegraph ready` and is not in `issuegraph blocked`.
 
 Likely cause: the waits-for processing path in `computeBlockedIDs()` (lines
 916-932) requires specific gate metadata to evaluate. A bare waits-for dep
@@ -566,35 +566,35 @@ block (gate metadata required) or if this is a bug.
 
 ---
 
-### BUG-20: Children of blocked parent not in `bd blocked` (NEW — session 3)
+### BUG-20: Children of blocked parent not in `issuegraph blocked` (NEW — session 3)
 
 **Severity: LOW-MEDIUM** — Inconsistency between ready and blocked commands
 **Discovered:** Lane 3 candidate-only discovery, test
 **Test:** `TestDiscovery_ParentBlockedChildrenConsistency`
 
 `computeBlockedIDs()` correctly propagates blocking to children of blocked
-parents for `bd ready` (children excluded). But `bd blocked` does NOT list
+parents for `issuegraph ready` (children excluded). But `issuegraph blocked` does NOT list
 these transitively-blocked children. This creates an inconsistency: the child
 is not in ready, not in blocked — invisible to the user.
 
-**Impact:** User runs `bd ready` → child missing. Runs `bd blocked` → child
+**Impact:** User runs `issuegraph ready` → child missing. Runs `issuegraph blocked` → child
 not there either. Has no way to discover why the child isn't showing in ready.
 
 ---
 
-### BUG-21: `bd update --status closed` bypasses close guard (NEW — session 4)
+### BUG-21: `issuegraph update --status closed` bypasses close guard (NEW — session 4)
 
 **Severity: HIGH** — Silent bypass of safety mechanism
 **Discovered:** Session 4 deep discovery, test
 **File:** `modules/cli/update.go` (no blocker check) vs `modules/cli/close.go:109-119`
 **Test:** `TestDiscovery_UpdateStatusClosedBypassesCloseGuard`
 
-`bd close X` checks for open blockers and rejects the close. `bd update X
+`issuegraph close X` checks for open blockers and rejects the close. `issuegraph update X
 --status closed` does NOT check for blockers — it sets status directly,
 bypassing the close guard, gate checks, and close hooks. It also leaves
 `close_reason` empty (losing audit trail).
 
-**Impact:** Scripts or agents using `bd update --status closed` can close
+**Impact:** Scripts or agents using `issuegraph update --status closed` can close
 blocked issues silently, violating the blocking contract.
 
 ---
@@ -605,10 +605,10 @@ blocked issues silently, violating the blocking contract.
 **Discovered:** Session 4 deep discovery, test
 **Test:** `TestDiscovery_ReopenSupersededSemanticCorruption`
 
-`bd supersede A --with B` creates a `supersedes` dep and closes A. `bd reopen A`
+`issuegraph supersede A --with B` creates a `supersedes` dep and closes A. `issuegraph reopen A`
 sets status to open but does NOT remove the supersedes dep. Result: A is "open
 but superseded by B" — a contradictory state. The `supersedes` dep is non-blocking,
-so A appears in `bd ready` as actionable work despite being superseded.
+so A appears in `issuegraph ready` as actionable work despite being superseded.
 
 **DECISION:** Should reopen remove supersedes/duplicates deps, or should reopen
 be rejected for superseded/duplicated issues?
@@ -622,11 +622,11 @@ be rejected for superseded/duplicated issues?
 **File:** `modules/cli/defer.go:37-44` (no past-date validation)
 **Test:** `TestDiscovery_DeferPastDateInvisible`
 
-`bd defer X --until 2020-01-01` sets status=deferred and defer_until to a past
+`issuegraph defer X --until 2020-01-01` sets status=deferred and defer_until to a past
 date. Nothing transitions status back to open when defer_until passes. The issue
-is not in `bd ready` (status is deferred, not open) and not in any other
-actionable view. Note: `bd update --defer` warns about past dates but
-`bd defer` does NOT.
+is not in `issuegraph ready` (status is deferred, not open) and not in any other
+actionable view. Note: `issuegraph update --defer` warns about past dates but
+`issuegraph defer` does NOT.
 
 **Impact:** The user thinks "it will reappear after 2020-01-01" but it never
 does. The issue is silently lost.
@@ -662,7 +662,7 @@ sort order. Hard to notice with small wisp counts.
 
 Cycle detection at `AddDependency` only runs for `type == blocks`. `DetectCycles`
 also only follows `blocks` edges. A cycle like A blocks B, B conditional-blocks A
-is not detected — `bd dep cycles` reports "No dependency cycles detected."
+is not detected — `issuegraph dep cycles` reports "No dependency cycles detected."
 
 Since `conditional-blocks` is declared as `AffectsReadyWork()`, cycles through
 it could create deadlocks that are never detected.
@@ -675,12 +675,12 @@ it could create deadlocks that are never detected.
 **Discovered:** Session 4 deep discovery, test
 **Test:** `TestDiscovery_ReopenSupersededSemanticCorruption`
 
-`bd supersede A --with B` creates a `supersedes` dep and closes A. `bd reopen A`
+`issuegraph supersede A --with B` creates a `supersedes` dep and closes A. `issuegraph reopen A`
 sets status to open but does NOT remove the supersedes dep. Result: A is "open
 but superseded by B." The supersedes dep is non-blocking, so A appears in
-`bd ready` as actionable work despite being semantically obsolete.
+`issuegraph ready` as actionable work despite being semantically obsolete.
 
-Same issue applies to `bd duplicate` — reopening a duplicate creates
+Same issue applies to `issuegraph duplicate` — reopening a duplicate creates
 "open but duplicate-of" state.
 
 **DECISION:** Should reopen remove supersedes/duplicates deps, or should
@@ -695,11 +695,11 @@ reopen be rejected for superseded/duplicated issues?
 **File:** `modules/cli/defer.go:37-44` (no past-date validation)
 **Test:** `TestDiscovery_DeferPastDateInvisible`
 
-`bd defer X --until 2020-01-01` sets status=deferred and defer_until to a past
+`issuegraph defer X --until 2020-01-01` sets status=deferred and defer_until to a past
 date. Nothing transitions status back to open when defer_until passes. The issue
-is not in `bd ready` (status is "deferred", not "open") and IS in
+is not in `issuegraph ready` (status is "deferred", not "open") and IS in
 `list --status deferred`, but the user expects it to reappear automatically.
-Note: `bd update --defer` warns about past dates but `bd defer` does NOT.
+Note: `issuegraph update --defer` warns about past dates but `issuegraph defer` does NOT.
 
 ---
 
@@ -711,7 +711,7 @@ Note: `bd update --defer` warns about past dates but `bd defer` does NOT.
 **File:** `modules/cli/list.go:436-441` (sets filter) vs `internal/storage/dolt/queries.go` (never reads it)
 **Test:** `TestDiscovery_LabelPatternFilterDeadCode`
 
-`bd list --label-pattern "tech-*"` sets `filter.LabelPattern` in the IssueFilter
+`issuegraph list --label-pattern "tech-*"` sets `filter.LabelPattern` in the IssueFilter
 struct, but `SearchIssues()` in queries.go NEVER reads or processes `LabelPattern`
 or `LabelRegex`. The SQL query builder completely ignores these fields. The user
 gets unfiltered results while believing they filtered by label glob/regex.
@@ -735,20 +735,20 @@ documented the live bug.
 **File:** `modules/cli/update.go:276-306` (sequential non-transactional ops)
 **Test:** `TestDiscovery_ClaimThenStatusOverwrite`
 
-`bd update X --claim --status open` first calls `ClaimIssue` (sets status=in_progress),
+`issuegraph update X --claim --status open` first calls `ClaimIssue` (sets status=in_progress),
 then calls `UpdateIssue` with status=open — silently overwriting the claim. The
 user sees "Updated" with no warning about the contradictory flags.
 
 ---
 
-### BUG-30: `--ready` silently overrides `--status` on bd list (NEW — session 5)
+### BUG-30: `--ready` silently overrides `--status` on issuegraph list (NEW — session 5)
 
 **Severity: MEDIUM** — Silent filter override
 **Discovered:** Session 5 deep discovery, test
 **File:** `modules/cli/list.go:401-408` (if-else precedence)
 **Test:** `TestDiscovery_ListReadyOverridesStatusFlag`
 
-`bd list --status closed --ready` silently discards `--status closed` because
+`issuegraph list --status closed --ready` silently discards `--status closed` because
 `--ready` takes precedence in the if-else chain. Returns open issues instead of
 closed — completely wrong results with no warning.
 
@@ -761,21 +761,21 @@ closed — completely wrong results with no warning.
 **File:** `modules/cli/list.go:423-425` (empty string check)
 **Test:** `TestDiscovery_AssigneeEmptyStringVsNoAssignee`
 
-`bd list --assignee ""` fails the `!= ""` check, so the assignee filter is never
+`issuegraph list --assignee ""` fails the `!= ""` check, so the assignee filter is never
 set. Returns ALL issues instead of unassigned ones. Meanwhile `--no-assignee`
 correctly filters. A user expecting empty string to mean "unassigned" gets
 silently wrong results.
 
 ---
 
-### BUG-32: `bd stale --days -1` silently inverts staleness logic (NEW — session 6)
+### BUG-32: `issuegraph stale --days -1` silently inverts staleness logic (NEW — session 6)
 
 **Severity: HIGH** — Completely wrong results, silently
 **Discovered:** Session 6 discovery, test
 **File:** `modules/cli/stale.go:22,71` (no validation) + `internal/storage/dolt/queries.go:767`
 **Test:** `TestDiscovery_StaleNegativeDaysSilentlyInverts`
 
-`bd stale --days -1` is accepted without error. The cutoff computation at
+`issuegraph stale --days -1` is accepted without error. The cutoff computation at
 `queries.go:767` uses `time.Now().UTC().AddDate(0, 0, -filter.Days)`. With
 `Days=-1`, this becomes `AddDate(0,0,1)` = tomorrow. All issues updated before
 tomorrow (i.e., everything) appear as "stale." The user gets all issues returned
@@ -783,14 +783,14 @@ while expecting "issues not updated in the last day."
 
 ---
 
-### BUG-33: `bd list --sort unknown_field` silently ignored (NEW — session 6)
+### BUG-33: `issuegraph list --sort unknown_field` silently ignored (NEW — session 6)
 
 **Severity: MEDIUM** — Silent degradation of sort behavior
 **Discovered:** Session 6 discovery, test
 **File:** `modules/cli/list.go:238-240` (default case in sort switch)
 **Test:** `TestDiscovery_ListSortUnknownFieldSilentNoOp`
 
-`bd list --sort nonexistent_field` succeeds without error. The sort comparator
+`issuegraph list --sort nonexistent_field` succeeds without error. The sort comparator
 at `list.go:238-240` has a `default` case that returns 0 (all items compare
 equal), effectively disabling sorting. The user believes results are sorted by
 their specified field but gets arbitrary ordering.
@@ -804,7 +804,7 @@ their specified field but gets arbitrary ordering.
 **File:** `modules/cli/update.go:328-342` (reparent logic, no cycle check)
 **Test:** `TestDiscovery_ReparentCreatesParentChildCycle`
 
-`bd update parent --parent child` (where child is already a child of parent)
+`issuegraph update parent --parent child` (where child is already a child of parent)
 succeeds without validation. The reparent logic updates the parent-child
 dependency but does NOT check if the new parent is a descendant, creating a
 mutual parent-child cycle. Both issues claim the other as parent.
@@ -815,14 +815,14 @@ tree-walking code.
 
 ---
 
-### BUG-35: `bd list --overdue` timezone edge cases (NEW — session 6)
+### BUG-35: `issuegraph list --overdue` timezone edge cases (NEW — session 6)
 
 **Severity: LOW** — Documenting correct behavior for reference
 **Discovered:** Session 6 discovery, test
 **File:** `internal/storage/dolt/queries.go:237-239`
 **Test:** `TestDiscovery_OverdueComparisonEdgeCase`
 
-`bd list --overdue` compares `due_at` against `time.Now().UTC()`. The test
+`issuegraph list --overdue` compares `due_at` against `time.Now().UTC()`. The test
 verifies basic overdue semantics (past due included, future due excluded, no
 due date excluded). More investigation needed to determine if timezone mismatch
 occurs at UTC boundary edge cases.
@@ -839,7 +839,7 @@ need more thorough testing with controlled time.
 **File:** `modules/cli/list.go:522-535` (independent validation, no min<=max check)
 **Test:** `TestDiscovery_PriorityMinMaxReversedSilentEmpty`
 
-`bd list --priority-min 4 --priority-max 0` produces SQL `priority >= 4 AND
+`issuegraph list --priority-min 4 --priority-max 0` produces SQL `priority >= 4 AND
 priority <= 0` which is always false. Returns empty array with no error. Each
 bound is validated independently (0-4 range) but the pair is never checked.
 
@@ -852,94 +852,94 @@ bound is validated independently (0-4 range) but the pair is never checked.
 **File:** `modules/cli/list.go:466-508` (independent parsing, no range check)
 **Test:** `TestDiscovery_DateRangeReversedSilentEmpty`
 
-`bd list --created-after 2099-12-31 --created-before 2020-01-01` produces SQL
+`issuegraph list --created-after 2099-12-31 --created-before 2020-01-01` produces SQL
 `created_at >= 2099 AND created_at <= 2020` which is always false. Returns
 empty with no error.
 
 ---
 
-### BUG-38: `bd list -n -1` silently accepted as unlimited (NEW — session 6)
+### BUG-38: `issuegraph list -n -1` silently accepted as unlimited (NEW — session 6)
 
 **Severity: LOW** — Negative limit not validated
 **Discovered:** Session 6 discovery, test
 **File:** `modules/cli/list.go:666-668` (`effectiveLimit > 0` check)
 **Test:** `TestDiscovery_NegativeLimitNotRejected`
 
-`bd list -n -1` is silently accepted and acts as unlimited (same as `-n 0`).
+`issuegraph list -n -1` is silently accepted and acts as unlimited (same as `-n 0`).
 The check `effectiveLimit > 0` lets negative values pass through. Should
 either reject negative values or document that negative means unlimited.
 
 ---
 
-### BUG-39: `bd duplicate` on already-closed issue succeeds (NEW — session 6)
+### BUG-39: `issuegraph duplicate` on already-closed issue succeeds (NEW — session 6)
 
 **Severity: LOW** — Documenting correct behavior
 **Discovered:** Session 6 discovery, test
 **Test:** `TestDiscovery_DuplicateAlreadyClosedSucceeds`
 
-`bd duplicate <closed-id> --of <original>` succeeds even when the duplicate
+`issuegraph duplicate <closed-id> --of <original>` succeeds even when the duplicate
 is already closed. The status update is idempotent and the duplicate-of dep
 is correctly added. This is reasonable behavior — the dep link is what matters,
 not the status transition. Classified as PROTOCOL (correct behavior).
 
 ---
 
-### BUG-40: `bd update --title "   "` accepts whitespace-only title (NEW — session 6)
+### BUG-40: `issuegraph update --title "   "` accepts whitespace-only title (NEW — session 6)
 
 **Severity: LOW** — Data quality issue (extension of BUG-12)
 **Discovered:** Session 6 discovery, test
 **File:** `modules/cli/update.go:66-68` (no whitespace validation)
 **Test:** `TestDiscovery_WhitespaceOnlyTitleAccepted`
 
-`bd update X --title "   "` succeeds and stores a whitespace-only title. The
-issue becomes effectively untitled. `bd create` rejects empty titles but
-`bd update` doesn't validate for whitespace-only content.
+`issuegraph update X --title "   "` succeeds and stores a whitespace-only title. The
+issue becomes effectively untitled. `issuegraph create` rejects empty titles but
+`issuegraph update` doesn't validate for whitespace-only content.
 
 ---
 
-### BUG-41: `bd config get` shows "(not set)" for empty-string values (NEW — session 6)
+### BUG-41: `issuegraph config get` shows "(not set)" for empty-string values (NEW — session 6)
 
 **Severity: LOW** — UX ambiguity
 **Discovered:** Session 6 discovery, test
 **File:** `modules/cli/config.go:207` (empty string check)
 **Test:** `TestDiscovery_ConfigEmptyValueAmbiguous`
 
-After `bd config set key ""`, `bd config get key` displays "(not set)" — the
+After `issuegraph config set key ""`, `issuegraph config get key` displays "(not set)" — the
 same as for a key that was never set. JSON output correctly distinguishes:
 `{"key": "test.key", "value": ""}` vs `{"key": "test.key", "value": null}`.
 But human-readable output is ambiguous.
 
 ---
 
-### BUG-42: `bd dep rm` on nonexistent dep reports success (NEW — session 6)
+### BUG-42: `issuegraph dep rm` on nonexistent dep reports success (NEW — session 6)
 
 **Severity: LOW** — False positive confirmation
 **Discovered:** Session 6 discovery, test
 **File:** `internal/storage/dolt/dependencies.go:89-109` (no rows-affected check)
 **Test:** `TestDiscovery_DepRmNonexistentSilentSuccess`
 
-`bd dep rm A B` where no dep exists between A and B reports
+`issuegraph dep rm A B` where no dep exists between A and B reports
 "Removed dependency: A no longer depends on B" even though nothing was removed.
 The DELETE statement succeeds with 0 rows affected but the command doesn't
 check the result.
 
 ---
 
-### BUG-43: `bd update --status deferred` without `--defer` = permanently deferred (NEW — session 7)
+### BUG-43: `issuegraph update --status deferred` without `--defer` = permanently deferred (NEW — session 7)
 
 **Severity: MEDIUM** — State corruption, issue can't wake up
 **Discovered:** Session 7 discovery, test
 **File:** `modules/cli/update.go:43-199` (status and defer are independent)
 **Test:** `TestDiscovery_DeferredStatusWithoutDate`
 
-`bd update X --status deferred` (without `--defer`) sets status=deferred but
-leaves defer_until empty. The issue is excluded from bd ready (status check)
+`issuegraph update X --status deferred` (without `--defer`) sets status=deferred but
+leaves defer_until empty. The issue is excluded from issuegraph ready (status check)
 and appears in `list --status deferred`, but has no date to ever transition
-back to open. User must manually `bd undefer` or `bd update --status open`.
+back to open. User must manually `issuegraph undefer` or `issuegraph update --status open`.
 
 ---
 
-### BUG-44: `bd list --status "open,closed"` silently returns empty (NEW — session 7)
+### BUG-44: `issuegraph list --status "open,closed"` silently returns empty (NEW — session 7)
 
 **Severity: MEDIUM** — Silent wrong results
 **Discovered:** Session 7 discovery, test
@@ -965,70 +965,70 @@ which is always false. Returns empty with no error or warning.
 
 ---
 
-### BUG-46: `bd create --parent <closed>` succeeds (NEW — session 7)
+### BUG-46: `issuegraph create --parent <closed>` succeeds (NEW — session 7)
 
 **Severity: MEDIUM** — Creates child under dead parent
 **Discovered:** Session 7 discovery, test
 **File:** `modules/cli/create.go:422-437` (only checks existence, not status)
 **Test:** `TestDiscovery_CreateChildOfClosedParent`
 
-`bd create --parent <closed-issue>` validates that the parent exists but does
+`issuegraph create --parent <closed-issue>` validates that the parent exists but does
 NOT check if the parent is open/active. The child is created and appears in
-`bd ready` even though its parent is closed.
+`issuegraph ready` even though its parent is closed.
 
 **DECISION:** May be intentional for post-mortem documentation. Maintainer
 should decide if children of closed parents are valid.
 
 ---
 
-### BUG-47: `bd dep add --type custom` accepted by design (NEW — session 7)
+### BUG-47: `issuegraph dep add --type custom` accepted by design (NEW — session 7)
 
 **Severity: N/A** — Documenting correct behavior
 **Discovered:** Session 7 discovery, test
 **File:** `internal/types/types.go:715-717` (length check only)
 **Test:** `TestDiscovery_DepAddInvalidTypeSilentlyAccepted`
 
-`bd dep add A B --type "not-a-real-type"` succeeds and stores the custom dep
+`issuegraph dep add A B --type "not-a-real-type"` succeeds and stores the custom dep
 type. This is by design — custom dep types are supported. The only validation
 is non-empty and ≤50 chars. Classified as PROTOCOL (correct behavior).
 
 ---
 
-### BUG-52: `bd comments add` accepts empty comment text (NEW — session 7c)
+### BUG-52: `issuegraph comments add` accepts empty comment text (NEW — session 7c)
 
 **Severity: LOW** — Data quality issue (same pattern as BUG-14)
 **Discovered:** Session 7c discovery, test
 **File:** `modules/cli/comments.go:110-114` (no validation)
 **Test:** `TestDiscovery_EmptyCommentAccepted`
 
-`bd comments add X ""` accepts and stores a comment with empty text. Same
+`issuegraph comments add X ""` accepts and stores a comment with empty text. Same
 category as BUG-14 (empty label) and BUG-12 (empty title). Empty comments
 create noise in the comment list.
 
 ---
 
-### BUG-53: `bd update --due` past date accepted without warning (NEW — session 7c)
+### BUG-53: `issuegraph update --due` past date accepted without warning (NEW — session 7c)
 
 **Severity: LOW-MEDIUM** — Inconsistency with --defer warning
 **Discovered:** Session 7c discovery, test
 **File:** `modules/cli/update.go:169-180` (no past-date check) vs lines 192-197 (--defer warns)
 **Test:** `TestDiscovery_DueDatePastNoWarning`
 
-`bd update X --due 2020-01-01` sets due_at to a past date without any warning.
-The issue immediately appears in `bd list --overdue`. Unlike `--defer` which
+`issuegraph update X --due 2020-01-01` sets due_at to a past date without any warning.
+The issue immediately appears in `issuegraph list --overdue`. Unlike `--defer` which
 warns about past dates, `--due` has no validation. Users who accidentally set
 a past due date won't know until they check `--overdue`.
 
 ---
 
-### BUG-54: `bd list --id` requires exact match (NEW — session 7c)
+### BUG-54: `issuegraph list --id` requires exact match (NEW — session 7c)
 
 **Severity: N/A** — Documenting correct behavior
 **Discovered:** Session 7c discovery, test
 **Test:** `TestDiscovery_ListIDFilterExactMatchOnly`
 
-`bd list --id <partial>` uses exact string matching, not partial ID resolution
-like `bd show`. This is by design — `list` is a filter command, not a
+`issuegraph list --id <partial>` uses exact string matching, not partial ID resolution
+like `issuegraph show`. This is by design — `list` is a filter command, not a
 resolution command. Classified as PROTOCOL.
 
 ---
@@ -1043,55 +1043,55 @@ retrieved correctly via JSON output.
 
 ---
 
-### BUG-56: `bd reopen` on already-open issue succeeds silently (NEW — session 8)
+### BUG-56: `issuegraph reopen` on already-open issue succeeds silently (NEW — session 8)
 
 **Severity: MEDIUM** — Missing lifecycle validation
 **Discovered:** Session 8 discovery, test
 **File:** `modules/cli/reopen.go` (no status validation) + `internal/validation/issue.go:150-156` (forReopen validator exists but unused)
 **Test:** `TestDiscovery_ReopenAlreadyOpenSucceeds`
 
-`bd reopen <open-issue>` succeeds with "Reopened" message even though the issue
+`issuegraph reopen <open-issue>` succeeds with "Reopened" message even though the issue
 is already open. The `forReopen()` validator in `validation/issue.go` checks for
 `HasStatus(types.StatusClosed)` but is never called from `reopen.go`. This masks
 accidental double-reopens and confuses users about the actual state.
 
 ---
 
-### BUG-57: `bd undefer` on non-deferred issue succeeds silently (NEW — session 8)
+### BUG-57: `issuegraph undefer` on non-deferred issue succeeds silently (NEW — session 8)
 
 **Severity: MEDIUM** — Missing lifecycle validation
 **Discovered:** Session 8 discovery, test
 **File:** `modules/cli/undefer.go:25-75` (no status validation)
 **Test:** `TestDiscovery_UndeferNonDeferredSucceeds`
 
-`bd undefer <open-issue>` succeeds with "Undeferred" message even though the
+`issuegraph undefer <open-issue>` succeeds with "Undeferred" message even though the
 issue was never deferred. Sets status to "open" (no-op since already open) and
 clears defer_until (which was already empty). Misleading confirmation message.
 
 ---
 
-### BUG-58: `bd ready --priority 5` accepts out-of-range priority silently (NEW — session 8)
+### BUG-58: `issuegraph ready --priority 5` accepts out-of-range priority silently (NEW — session 8)
 
 **Severity: LOW** — Silent validation gap
 **Discovered:** Session 8 discovery, test
 **File:** `modules/cli/ready.go:96-98` (no validation on priority value)
 **Test:** `TestDiscovery_ReadyPriorityOutOfRange`
 
-`bd ready --priority 5` is accepted without error. Valid priorities are 0-4.
+`issuegraph ready --priority 5` is accepted without error. Valid priorities are 0-4.
 The filter is applied but matches nothing, returning empty results. The user
 has no way to know their filter value was invalid vs. truly no matching work.
 
 ---
 
-### BUG-59: `bd children <nonexistent>` returns empty instead of error (NEW — session 8)
+### BUG-59: `issuegraph children <nonexistent>` returns empty instead of error (NEW — session 8)
 
 **Severity: MEDIUM** — Silent validation gap
 **Discovered:** Session 8 discovery, test
 **File:** `modules/cli/children.go` (no parent existence validation)
 **Test:** `TestDiscovery_ChildrenNonexistentParentSilentEmpty`
 
-`bd children nonexistent-xyz` returns success with empty results. Compare with
-`bd show nonexistent-xyz` which returns an error. The user cannot distinguish
+`issuegraph children nonexistent-xyz` returns success with empty results. Compare with
+`issuegraph show nonexistent-xyz` which returns an error. The user cannot distinguish
 between "parent has no children" and "parent doesn't exist."
 
 ---
@@ -1103,7 +1103,7 @@ between "parent has no children" and "parent doesn't exist."
 **File:** `modules/cli/duplicate.go` (no cycle check) + `internal/storage/dolt/dependencies.go:54` (cycle detection only for 'blocks')
 **Test:** `TestDiscovery_DuplicateCycleUndetected`
 
-`bd duplicate A --of B` then `bd duplicate B --of A` creates a mutual
+`issuegraph duplicate A --of B` then `issuegraph duplicate B --of A` creates a mutual
 duplicate cycle with no error. Both issues claim the other as their canonical.
 Cycle detection at `dependencies.go:54` only runs for `type == "blocks"`.
 Same class of bug as BUG-25 (conditional-blocks cycle) but through the
@@ -1111,14 +1111,14 @@ duplicate/supersede command path.
 
 ---
 
-### BUG-61: `bd stale --days 0` returns brand-new issues as "stale" (NEW — session 8b)
+### BUG-61: `issuegraph stale --days 0` returns brand-new issues as "stale" (NEW — session 8b)
 
 **Severity: MEDIUM** — Semantically invalid results
 **Discovered:** Session 8b discovery, test
 **File:** `modules/cli/stale.go:22` (no validation) + `internal/storage/dolt/queries.go:767`
 **Test:** `TestDiscovery_StaleZeroDaysReturnsFreshIssue`
 
-`bd stale --days 0` is accepted without error. The cutoff computation at
+`issuegraph stale --days 0` is accepted without error. The cutoff computation at
 `queries.go:767` uses `time.Now().UTC().AddDate(0, 0, -0)` = now. The SQL
 `WHERE updated_at < cutoff` matches all issues with `updated_at` before the
 current instant — including brand-new issues (created milliseconds ago).
@@ -1126,7 +1126,7 @@ The user gets all issues returned as "stale" when they expected "nothing is stal
 
 ---
 
-### BUG-62: `bd search --status "open,closed"` silently returns empty (NEW — session 8b)
+### BUG-62: `issuegraph search --status "open,closed"` silently returns empty (NEW — session 8b)
 
 **Severity: MEDIUM** — Same comma-status bug as BUG-44 but in search
 **Discovered:** Session 8b discovery, test
@@ -1139,34 +1139,34 @@ status value, matching no issues. Returns empty with no error.
 
 ---
 
-### BUG-63: `bd list --type nonexistent` silently returns empty (NEW — session 8b)
+### BUG-63: `issuegraph list --type nonexistent` silently returns empty (NEW — session 8b)
 
 **Severity: MEDIUM** — Silent filter failure
 **Discovered:** Session 8b discovery, test
 **File:** `modules/cli/list.go` (no type validation on filter)
 **Test:** `TestDiscovery_ListTypeNonexistentSilentEmpty`
 
-`bd list --type nonexistent_type_xyz` is accepted without error and returns
-empty results. Compare: `bd create --type nonexistent` correctly validates
+`issuegraph list --type nonexistent_type_xyz` is accepted without error and returns
+empty results. Compare: `issuegraph create --type nonexistent` correctly validates
 and rejects unknown types. The asymmetry between create (validates) and
 list (doesn't validate) means users silently get wrong results.
 
 ---
 
-### BUG-69: `bd blocked --parent <nonexistent>` returns empty instead of error (NEW — session 8c)
+### BUG-69: `issuegraph blocked --parent <nonexistent>` returns empty instead of error (NEW — session 8c)
 
 **Severity: MEDIUM** — Silent validation gap (same class as BUG-59)
 **Discovered:** Session 8c discovery, test
 **File:** `modules/cli/ready.go:218-245` (no parent validation)
 **Test:** `TestDiscovery_BlockedNonexistentParentSilentEmpty`
 
-`bd blocked --parent nonexistent-xyz` returns "No blocked issues" with exit 0.
+`issuegraph blocked --parent nonexistent-xyz` returns "No blocked issues" with exit 0.
 The user can't distinguish "parent has no blocked children" from "parent doesn't
 exist." Same class of bug as BUG-59 (children nonexistent parent).
 
 ---
 
-### BUG-70: `bd label remove` on nonexistent label reports success (NEW — session 8c)
+### BUG-70: `issuegraph label remove` on nonexistent label reports success (NEW — session 8c)
 
 **Severity: LOW** — False positive confirmation (same class as BUG-42)
 **Status: FIXED — PR #6742** (GH#5988)
@@ -1174,12 +1174,12 @@ exist." Same class of bug as BUG-59 (children nonexistent parent).
 **File:** `modules/cli/label.go` (no existence check before remove)
 **Test:** `TestDiscovery_LabelRemoveNonexistentSilentSuccess`
 
-`bd label remove X 'never-existed-label'` reports success even though the label
+`issuegraph label remove X 'never-existed-label'` reports success even though the label
 was never on the issue. Same pattern as BUG-42 (dep rm nonexistent says "Removed").
 
 ---
 
-### BUG-71: `bd label add` duplicate reports "Added" when already exists (NEW — session 8c)
+### BUG-71: `issuegraph label add` duplicate reports "Added" when already exists (NEW — session 8c)
 
 **Severity: LOW** — Misleading success message
 **Status: FIXED — PR #6742** (GH#5988)
@@ -1187,7 +1187,7 @@ was never on the issue. Same pattern as BUG-42 (dep rm nonexistent says "Removed
 **File:** `modules/cli/label.go:99-102` (no existence check before add)
 **Test:** `TestDiscovery_LabelAddDuplicateReportsAdded`
 
-`bd label add X 'existing-label'` reports "Added label" even when the label is
+`issuegraph label add X 'existing-label'` reports "Added label" even when the label is
 already on the issue. The storage layer is correctly idempotent (no duplicate
 created), but the command's success message is misleading. Should warn "label
 already exists on issue."
@@ -1196,11 +1196,11 @@ already exists on issue."
 
 ### Code review findings (session 7, not CLI-testable)
 
-**`bd sync` is a deprecated no-op:** `modules/cli/sync.go:9-37` — all flags
+**`issuegraph sync` is a deprecated no-op:** `modules/cli/sync.go:9-37` — all flags
 (--message, --dry-run, --no-push, --import, --export) are accepted but
 ignored. Silently succeeds with no actual work done.
 
-**Multiple `bd doctor --fix` checks are no-ops:** `modules/cli/doctor_fix.go:253-315` —
+**Multiple `issuegraph doctor --fix` checks are no-ops:** `modules/cli/doctor_fix.go:253-315` —
 "Sync Divergence", "JSONL Config", "Duplicate Issues", "Test Pollution",
 "Git Conflicts", "Large Database" fixes all print messages but do nothing.
 
@@ -1248,9 +1248,9 @@ NOT the `comments` table. Structured comments are silently lost during migration
 
 ### Code review findings (session 4, not CLI-testable)
 
-**`bd update --status closed` audit trail gap:** Issues closed via update have
+**`issuegraph update --status closed` audit trail gap:** Issues closed via update have
 `close_reason = ''` (empty) and generate different event data format than
-`bd close`. `IsFailureClose()` always returns false for these, silently
+`issuegraph close`. `IsFailureClose()` always returns false for these, silently
 preventing conditional-blocks from firing. Also runs `EventUpdate` hook instead
 of `EventClose` hook. See BUG-21.
 
@@ -1284,9 +1284,9 @@ with no conflict detection. MEDIUM severity.
 
 ## MINOR ISSUES / OBSERVATIONS
 
-### OBS-1: `bd supersede` and `bd duplicate` don't set close_reason
+### OBS-1: `issuegraph supersede` and `issuegraph duplicate` don't set close_reason
 
-When `bd supersede X --with Y` or `bd duplicate X --of Y` closes issue X,
+When `issuegraph supersede X --with Y` or `issuegraph duplicate X --of Y` closes issue X,
 the `close_reason` field is empty. The relationship is tracked via a
 `supersedes`/`duplicate-of` dependency, but there's no close_reason like
 "superseded" or "duplicate" set on the issue. Users querying closed issues
@@ -1298,23 +1298,23 @@ by reason would miss these.
 "deferred" when applicable). Issues with open blocking dependencies show as
 "open", not "blocked". This is consistent with BUG-4 but may confuse users.
 
-### OBS-3: `bd sql` allows arbitrary writes (no safety check)
+### OBS-3: `issuegraph sql` allows arbitrary writes (no safety check)
 
-`bd sql "UPDATE issues SET title = 'X'"` succeeds without warning. Only
+`issuegraph sql "UPDATE issues SET title = 'X'"` succeeds without warning. Only
 `--readonly` flag prevents it (but blocks ALL sql, even reads). There's no
 write-specific safety prompt or `--force` requirement for mutating SQL.
 
-### OBS-4: `bd label rm` is not a recognized alias for `bd label remove`
+### OBS-4: `issuegraph label rm` is not a recognized alias for `issuegraph label remove`
 
-Running `bd label rm <id> <label>` shows the `bd label` help text instead of
-an error message. Users might expect `rm` as a common alias. The `bd delete`
+Running `issuegraph label rm <id> <label>` shows the `issuegraph label` help text instead of
+an error message. Users might expect `rm` as a common alias. The `issuegraph delete`
 command uses `--force` not `--yes`.
 
-### OBS-3: `bd label add` syntax is `[issue-id...] [label]` (last arg = label)
+### OBS-3: `issuegraph label add` syntax is `[issue-id...] [label]` (last arg = label)
 
 The syntax treats all args except the last as issue IDs and the last as the
 label. This means you can label multiple issues at once, but only one label
-at a time. This is correct but potentially confusing — `bd label add id lab1 lab2`
+at a time. This is correct but potentially confusing — `issuegraph label add id lab1 lab2`
 adds label "lab2" to issues "id" and "lab1".
 
 ---
@@ -1352,7 +1352,7 @@ Already tested manually — works correctly. Good protocol invariant to formaliz
 GIVEN epic E with children C1, C2
 WHEN close C1, close C2 (all children closed)
 THEN E remains open
-AND E appears in bd ready output
+AND E appears in issuegraph ready output
 WHEN close E
 THEN E is closed
 ```
@@ -1366,7 +1366,7 @@ alternative policy. This test documents current behavior, not a hard invariant.
 GIVEN A depends on B (blocks)
 WHEN delete B --force
 THEN A has no dependencies
-AND A appears in bd ready output
+AND A appears in issuegraph ready output
 ```
 
 Works correctly. CASCADE DELETE on FK ensures this at the schema level.
@@ -1396,7 +1396,7 @@ Currently broken — only root shows. Needs BUG-2 fix first.
 
 ```
 GIVEN A→B (blocks), A→C (blocks), D (no deps)
-WHEN bd ready
+WHEN issuegraph ready
 THEN A is NOT in ready list (blocked by B and C)
 AND B is in ready list (no blockers)
 AND C is in ready list (no blockers)
@@ -1409,7 +1409,7 @@ Works correctly.
 
 ```
 GIVEN A deferred until 2099-12-31
-WHEN bd ready
+WHEN issuegraph ready
 THEN A is NOT in ready list
 WHEN undefer A
 THEN A IS in ready list
@@ -1420,7 +1420,7 @@ Works correctly.
 ### PT-8: Concurrent create is safe — DATA INTEGRITY
 
 ```
-WHEN 10 parallel bd create commands
+WHEN 10 parallel issuegraph create commands
 THEN all 10 issues exist with unique IDs
 AND count matches expected total
 ```
@@ -1430,7 +1430,7 @@ Works correctly.
 ### PT-9: Concurrent label add is NOT safe (documents BUG-5) — DATA INTEGRITY
 
 ```
-WHEN 5 parallel bd label add <id> "label-N"
+WHEN 5 parallel issuegraph label add <id> "label-N"
 THEN only 0-4 labels survive (lost update race)
 ```
 
@@ -1440,8 +1440,8 @@ This would be a regression test to verify when the fix lands.
 
 ```
 GIVEN A→B (blocks), both open
-THEN bd list --status blocked should include A
-AND bd blocked should include A
+THEN issuegraph list --status blocked should include A
+AND issuegraph blocked should include A
 AND counts should match
 ```
 
@@ -1472,7 +1472,7 @@ Works correctly.
 ### PT-13: Special characters in fields — DATA INTEGRITY
 
 ```
-GIVEN bd create --title 'Test "quotes" & <brackets>'
+GIVEN issuegraph create --title 'Test "quotes" & <brackets>'
 THEN show --json correctly escapes and preserves the title
 ```
 
@@ -1481,7 +1481,7 @@ Works correctly.
 ### PT-14: Export command existence (BLOCKED by BUG-1) — POLICY/UX
 
 ```
-WHEN bd export
+WHEN issuegraph export
 THEN command exists and produces JSONL output
 ```
 
@@ -1491,7 +1491,7 @@ Currently fails — export removed from main.
 
 ```
 GIVEN issue A and B
-WHEN bd supersede A --with B
+WHEN issuegraph supersede A --with B
 THEN A is closed
 AND A has supersedes dependency on B
 ```
@@ -1502,7 +1502,7 @@ Works correctly (though close_reason is empty — see OBS-1).
 
 ```
 GIVEN issue A and B
-WHEN bd duplicate B --of A
+WHEN issuegraph duplicate B --of A
 THEN B is closed
 AND B has duplicate-of dependency on A
 ```
@@ -1701,7 +1701,7 @@ future investigators don't re-discover them. All are merged to main.
 | #1914 (turian) | Column drift in issue scan projection | Centralized column list prevents SELECT * from silently gaining/losing columns after schema migration. |
 | #1816 (sjsyrek) | Silent empty results on Dolt lock errors | Dolt lock contention returned empty results instead of errors. |
 | #1797 (sjsyrek) | Locking, migration, compaction stability | Major stabilization pass on Dolt backend. |
-| #1948 (Xexr) | Parent-child deps mixed with blocking deps in `bd list` | `list --parent` was showing blocking deps as children. |
+| #1948 (Xexr) | Parent-child deps mixed with blocking deps in `issuegraph list` | `list --parent` was showing blocking deps as children. |
 | #1909 (zjrosen) | `AddDependency`/`RemoveDependency` not in explicit transactions | Writes could be lost under `--no-auto-commit`. Directly relevant to BUG-7 — the upsert at `dependencies.go:78` is now inside an explicit tx. |
 
 ### Key Dolt constraints learned from prior fixes
@@ -1716,9 +1716,9 @@ future investigators don't re-discover them. All are merged to main.
 
 ### Snapshot harness (DONE — branch fix/regression-snapshot-harness)
 
-The regression harness has been adapted to work without `bd export`:
+The regression harness has been adapted to work without `issuegraph export`:
 
-1. **`snapshot()` method** replaces `bd export` with `bd list --json -n 0` + `bd show <id> --json` per issue, emitting JSONL for the existing normalization pipeline.
+1. **`snapshot()` method** replaces `issuegraph export` with `issuegraph list --json -n 0` + `issuegraph show <id> --json` per issue, emitting JSONL for the existing normalization pipeline.
 
 2. **`export()` method** rewired to translate old export flags (`--status`, `--assignee`, `-o`) and delegate to `snapshot()`. All 71 direct `.export()` calls in scenarios_test.go work unchanged.
 
@@ -1749,4 +1749,4 @@ The regression harness has been adapted to work without `bd export`:
 
 The `BEADS_TEST_MODE=1` env var is intended to create isolated test databases via FNV hash of `cfg.Path`. However, `main.go:543` calls `cfg.GetDoltDatabase()` which pre-fills `cfg.Database` BEFORE `applyConfigDefaults` checks for test mode. This means the test mode hash is bypassed.
 
-The regression harness works around this by using unique prefixes per workspace, which causes `bd init` to create unique databases (`beads_t<hash>`). The `BEADS_TEST_MODE` bypass should be fixed in the main codebase for other test consumers.
+The regression harness works around this by using unique prefixes per workspace, which causes `issuegraph init` to create unique databases (`beads_t<hash>`). The `BEADS_TEST_MODE` bypass should be fixed in the main codebase for other test consumers.

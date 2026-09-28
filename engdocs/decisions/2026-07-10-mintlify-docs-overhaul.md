@@ -5,20 +5,20 @@ Decided by: Chris Sells (interviewed decision-by-decision; each entry below is
 his explicit call)
 Status: settled — do not relitigate without new information
 
-Scope: the migration of beads user documentation from the Docusaurus site
+Scope: the migration of issuegraph user documentation from the Docusaurus site
 (`website/`, GitHub Pages) to a Mintlify site rooted at `docs/`.
 
 ## Decisions
 
-### 1. bd emits generic Markdown only
+### 1. IssueGraph emits generic Markdown only
 
-`bd help --docs-root` emits **generic MD + frontmatter** (title, description —
+`issuegraph help --docs-root` emits **generic MD + frontmatter** (title, description —
 nothing else). No Docusaurus-specific output (`id:`, `slug:`,
 `sidebar_position:`) and no Mintlify-specific output (JSX comments, MDX
 escaping conventions, nav fragments) from the binary, ever. Vendor targeting
 lives in repo tooling, not in the OSS binary.
 
-Why: keeps bd's OSS surface vendor-neutral while the repo still targets
+Why: keeps IssueGraph's OSS surface vendor-neutral while the repo still targets
 Mintlify.
 
 ### 2. All-in on Mintlify on this branch — no parallel run, no cutover PR
@@ -44,11 +44,11 @@ keep their existing model, now covering the post-processed output.
 ### 4. Post-processor is a Go tool in the repo
 
 `tools/docsmint/` (package outside `modules/cli`, run via `go run` from
-`generate-cli-docs.sh`): transforms bd's generic pages into the Mintlify
+`generate-cli-docs.sh`): transforms IssueGraph's generic pages into the Mintlify
 pages and splices the docs.json CLI nav. Unit-tested with `go test`.
 
 Implementation consequence (not separately interviewed, follows from 1+3):
-bd writes the generic per-command tree to an **uncommitted staging dir**
+IssueGraph writes the generic per-command tree to an **uncommitted staging dir**
 (`build/cli-docs/`, gitignored) plus the already-generic
 `docs/CLI_REFERENCE.md`; docsmint owns everything under `docs/cli-reference/`
 and the nav splice. The generic tree does not exist at rest.
@@ -68,11 +68,11 @@ STORAGE-BACKENDS, JSON_SCHEMA, SYNC_CONCEPTS, SETUP, INSTALLING,
 GIT_INTEGRATION, QUICKSTART, DOLT-BACKEND) are deleted. Old routes are
 covered by the `redirects` array in `docs/docs.json` (Mintlify forwarding).
 
-**Accepted consequence:** already-released bd binaries print GitHub paths/URLs
+**Accepted consequence:** already-released IssueGraph binaries print GitHub paths/URLs
 to the old locations (e.g. `docs/RECOVERY.md#pk-fork-refused`); after merge
 those GitHub links 404. Future binaries print the new locations (decision 7).
 
-### 7. bd's printed doc paths are fixed on this branch
+### 7. IssueGraph's printed doc paths are fixed on this branch
 
 Go string fixes land here (with regenerated docs): `prime.go`
 (SETUP→getting-started/ide-setup), `store_factory_nocgo.go`
@@ -83,7 +83,7 @@ Go string fixes land here (with regenerated docs): `prime.go`
 (STORAGE-BACKENDS→architecture/storage-backends), `init_safety_help.go`
 (docs/adr→engdocs/adr), `doctor/managed_handoff.go` (DOLT→architecture/dolt),
 `setup/aider.go` (QUICKSTART), agent templates (SYNC_CONCEPTS, QUICKSTART),
-`recipes.go` stale claude ProjectPath metadata, and the `bd mol pour` help
+`recipes.go` stale claude ProjectPath metadata, and the `issuegraph mol pour` help
 wording "synced with git" → Dolt-sync phrasing.
 
 **Recorded, not fixed (behavior-level, needs its own change):**
@@ -99,9 +99,9 @@ To `engdocs/`: ERROR_HANDLING.md, CONTRIBUTOR_NAMESPACE_ISOLATION.md,
 messaging.md, UI_PHILOSOPHY.md, AGENT_SIGNING.md (plus the originally listed
 internal set). Stays user-facing: graph-links.md → core-concepts/graph-links.
 
-### 9. No bd issue tracking from this clone
+### 9. No issuegraph issue tracking from this clone
 
-This clone gets no `.beads/` writes (no `bd bootstrap`). Branch work,
+This clone gets no `.beads/` writes (no `issuegraph bootstrap`). Branch work,
 findings, and follow-ups are tracked in the PR description and this record.
 
 ### 10. Excalidraw pipeline ported (machinery only)
