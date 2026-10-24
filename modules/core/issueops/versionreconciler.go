@@ -8,7 +8,7 @@ import "context"
 // interface — the reason ListSettingsRequest is spelled the same way.
 type RecordedVersionRequest struct{}
 
-// RecordedVersionResult is what the workspace currently records about the bd
+// RecordedVersionResult is what the workspace currently records about the issuegraph
 // binaries that have opened it.
 //
 // BOTH FIELDS ARE CLONE-LOCAL. They live in the dolt-ignored local metadata
@@ -18,7 +18,7 @@ type RecordedVersionRequest struct{}
 // own role rather than as two more keys on WorkspaceConfig, whose values are
 // durable workspace settings that DO travel.
 type RecordedVersionResult struct {
-	// Recorded is the version of the last bd binary that reconciled this
+	// Recorded is the version of the last issuegraph binary that reconciled this
 	// workspace, or "" for a workspace no binary has reconciled yet.
 	//
 	// "" IS A NORMAL ANSWER, not an error and not a missing row to classify:
@@ -90,7 +90,7 @@ type VersionReconcileResult struct {
 }
 
 // VersionReconciler describes the workspace's CLONE-LOCAL VERSION MARKERS: the
-// pair of dolt-ignored values recording which bd binary last opened this
+// pair of dolt-ignored values recording which issuegraph binary last opened this
 // workspace and the highest one that ever has. Like Lifecycle, Reader, Counter,
 // WorkspaceConfig, StatsReporter, CycleDetector, EdgeReader and ReadyCounter, it
 // is a role with its own accessor, and a new capability gets a new role rather
@@ -99,7 +99,7 @@ type VersionReconcileResult struct {
 // IT BELONGS TO NO COMMAND, and it is the only role in this program that
 // does not. It fires from PersistentPreRun on EVERY startup, on both routes,
 // before the command the user actually typed has run — which is precisely why
-// it went unnoticed for so long: `bd version` prints two strings, opens no
+// it went unnoticed for so long: `issuegraph version` prints two strings, opens no
 // store and reaches nothing here, so the state machinery was hiding behind a
 // command that does not use it.
 //
@@ -144,7 +144,7 @@ type VersionReconcileResult struct {
 // arriving; a client cannot usefully ask a server to record the CLIENT's
 // version, because the marker describes the binary holding the database, and
 // the one version fact a client can act on — the serving binary's release —
-// is already published as ContextResponse.bd_version on GET /v0/beads/context.
+// is already published as ContextResponse.issuegraph_version on GET /v0/issuegraph/context.
 // An endpoint here would publish a per-clone number that a remote caller can
 // neither compare against its own nor do anything with.
 //

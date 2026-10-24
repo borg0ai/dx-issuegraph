@@ -11,14 +11,14 @@ import (
 	"testing"
 	"time"
 
-	"github.com/steveyegge/beads/internal/storage/embeddeddolt"
-	"github.com/steveyegge/beads/internal/storage/issueops"
-	"github.com/steveyegge/beads/internal/types"
+	"github.com/borg0ai/dx-issuegraph/internal/storage/embeddeddolt"
+	"github.com/borg0ai/dx-issuegraph/internal/storage/issueops"
+	"github.com/borg0ai/dx-issuegraph/internal/types"
 )
 
 // countingTx counts the statements a read issues. Against a remote SQL server
 // every statement is one sequential round trip, so this number — not rows
-// scanned — is what `bd ready` latency is made of.
+// scanned — is what `issuegraph ready` latency is made of.
 type countingTx struct {
 	tx    *sql.Tx
 	stmts []string
@@ -135,7 +135,7 @@ func seedReadyTotalWorld(t *testing.T, te *testEnv, prefix string, w readyTotalW
 }
 
 // TestReadyWorkPageTotal pins the in-band total GetReadyWorkWithCountsAndTotal
-// hands `bd ready`: for every page size it must equal both the ReadyCounter
+// hands `issuegraph ready`: for every page size it must equal both the ReadyCounter
 // identity (CountReadyWorkInTx) and the length of the unbounded page, and the
 // page itself must be the unbounded page's prefix — the counting pass it
 // replaced proved nothing more.
@@ -235,7 +235,7 @@ func TestReadyWorkPageTotal(t *testing.T) {
 	}
 }
 
-// TestReadyWorkStatementBudget is the round-trip regression guard. `bd ready
+// TestReadyWorkStatementBudget is the round-trip regression guard. `issuegraph ready
 // --json --limit 1` against a remote store with ~55 ms per round trip took
 // 5.4 s — slower than --limit 0 — because a capped page re-ran every probe per
 // table family and then sized the set in a second pass. These budgets are the
@@ -310,7 +310,7 @@ func prefixed(prefix string, suffixes []string) []string {
 }
 
 // TestReadyWorkPageTotalFilterMatrix runs the in-band total across the
-// WorkFilter fields `bd ready` forwards. Each filter's ready set is written
+// WorkFilter fields `issuegraph ready` forwards. Each filter's ready set is written
 // out by hand (the oracle); the total must equal the unbounded listing's
 // length, and every capped page must be that listing's prefix, so a filter
 // the window total ignored — or applied to one family only — fails here.

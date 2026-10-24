@@ -7,30 +7,30 @@ import (
 	"testing"
 	"time"
 
-	"github.com/steveyegge/beads/internal/doltserver"
-	"github.com/steveyegge/beads/internal/procid"
-	"github.com/steveyegge/beads/internal/storage/dbproxy/proxy"
-	"github.com/steveyegge/beads/internal/storage/dbproxy/server"
+	"github.com/borg0ai/dx-issuegraph/internal/doltserver"
+	"github.com/borg0ai/dx-issuegraph/internal/procid"
+	"github.com/borg0ai/dx-issuegraph/internal/storage/dbproxy/proxy"
+	"github.com/borg0ai/dx-issuegraph/internal/storage/dbproxy/server"
 )
 
 // stopSharedServerCleanup is the cleanup every fixture in this package that
-// runs a subprocess `bd init` with BEADS_DOLT_SHARED_SERVER=1 owes.
+// runs a subprocess `issuegraph init` with ISSUEGRAPH_DOLT_SHARED_SERVER=1 owes.
 //
 // That init takes the shared-global branch in init.go, which calls
 // doltserver.Start(sharedDir) — and Start DAEMONIZES: cmd.Process.Release(),
-// no Wait, cmd.Dir = <sharedDir>/dolt (doltserver.go:1443-1446). The `bd`
+// no Wait, cmd.Dir = <sharedDir>/dolt (doltserver.go:1443-1446). The `issuegraph`
 // subprocess then exits and the sql-server keeps running, serving a directory
 // under the suite's temp HOME that TestMain deletes on the way out. Nothing in
 // those fixtures ever stopped it, so a full modules/cli run finished with a live
-// `dolt sql-server --config <suite root>/.beads/shared-server/…` still in the
-// process table — the leak this bead is about (wy-j2zc8q).
+// `dolt sql-server --config <suite root>/.issuegraph/shared-server/…` still in the
+// process table — the leak this issue is about (wy-j2zc8q).
 //
-// Because every one of those fixtures resolves the SAME $HOME/.beads/
+// Because every one of those fixtures resolves the SAME $HOME/.issuegraph/
 // shared-server, only the last one to start a server leaves a survivor, which
 // is why the process table names one fixture while three carry the defect.
 //
 // Register it after the fixture's directories are built and BEFORE the first
-// subprocess `bd` runs, so it covers the t.Fatalf paths too.
+// subprocess `issuegraph` runs, so it covers the t.Fatalf paths too.
 func stopSharedServerCleanup(t *testing.T) {
 	t.Helper()
 	// SharedServerPath, not SharedServerDir: resolving must not create the
@@ -43,14 +43,14 @@ func stopSharedServerCleanup(t *testing.T) {
 }
 
 // stopDoltServerCleanup is the same cleanup for a server whose pid file lives
-// under an explicit beads directory: a per-project server under
-// <repo>/.beads, or a shared server under a HOME the fixture hands ONLY to
+// under an explicit issuegraph directory: a per-project server under
+// <repo>/.issuegraph, or a shared server under a HOME the fixture hands ONLY to
 // the subprocess (`cmd.Env = ...HOME=<tmp>...`), where this process's own
 // SharedServerPath would resolve the wrong tree. Register it BEFORE the first
-// subprocess `bd` runs; the directory need not exist yet.
-func stopDoltServerCleanup(t *testing.T, beadsDir string) {
+// subprocess `issuegraph` runs; the directory need not exist yet.
+func stopDoltServerCleanup(t *testing.T, issuegraphDir string) {
 	t.Helper()
-	sharedDir := beadsDir
+	sharedDir := issuegraphDir
 	t.Cleanup(func() {
 		// Read the record BEFORE stopping: a clean Stop removes the pid
 		// file, so afterwards there is nothing left to verify against.
@@ -81,12 +81,12 @@ func stopDoltServerCleanup(t *testing.T, beadsDir string) {
 	})
 }
 
-// stopProxiedServerCleanup is the same duty for a subprocess `bd init
+// stopProxiedServerCleanup is the same duty for a subprocess `issuegraph init
 // --proxied-server`: that init leaves a proxy (proxy.pid) and its backend
-// dolt sql-server (proxy-child.pid) running under <beadsDir>/dolt, with no
+// dolt sql-server (proxy-child.pid) running under <issuegraphDir>/dolt, with no
 // dolt-server.pid for stopDoltServerCleanup to find — the post-run sweep
 // named the metrics fixture's repo by exactly that cwd. proxy.Shutdown is
-// the verified stop `bd dolt stop` performs and covers both records. A root
+// the verified stop `issuegraph dolt stop` performs and covers both records. A root
 // that never started (the embedded and per-project cases of the same table)
 // has neither record and is not an error.
 func stopProxiedServerCleanup(t *testing.T, proxyRoot string) {

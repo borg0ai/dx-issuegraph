@@ -1,6 +1,6 @@
 package protocol
 
-// Interchange contract tests (PROPOSAL-beads-protocol-v0 §J1/§J2/§J6).
+// Interchange contract tests (PROPOSAL-issuegraph-protocol-v0 §J1/§J2/§J6).
 //
 // These pin the JSONL interchange at the CLI level: what a conforming reader
 // must tolerate (unknown fields, header records, dangling dep targets), what
@@ -24,7 +24,7 @@ import (
 // Interchange helpers
 // ---------------------------------------------------------------------------
 
-// exportJSONL runs `bd export -o <file>` and returns the file's bytes as a
+// exportJSONL runs `issuegraph export -o <file>` and returns the file's bytes as a
 // string. Export-to-file (not stdout) is deliberate: the summary line goes to
 // stderr and the atomic-write path is the one real callers use.
 func (w *workspace) exportJSONL(name string, extra ...string) string {
@@ -40,7 +40,7 @@ func (w *workspace) exportJSONL(name string, extra ...string) string {
 }
 
 // importStream writes stream to a file in the workspace and imports it,
-// returning bd's combined output.
+// returning issuegraph's combined output.
 func (w *workspace) importStream(name, stream string, extra ...string) string {
 	w.t.Helper()
 	path := filepath.Join(w.dir, name)
@@ -51,11 +51,11 @@ func (w *workspace) importStream(name, stream string, extra ...string) string {
 	return w.run(args...)
 }
 
-// runStdin runs bd with stream on stdin and returns stdout only (stdout is
+// runStdin runs issuegraph with stream on stdin and returns stdout only (stdout is
 // where --json summaries land; stderr carries human progress lines).
 func (w *workspace) runStdin(stream string, args ...string) string {
 	w.t.Helper()
-	cmd := exec.Command(w.bd, args...)
+	cmd := exec.Command(w.issuegraph, args...)
 	cmd.Dir = w.dir
 	cmd.Env = w.env()
 	cmd.Stdin = strings.NewReader(stream)
@@ -65,7 +65,7 @@ func (w *workspace) runStdin(stream string, args ...string) string {
 		if ee, ok := err.(*exec.ExitError); ok {
 			stderr = string(ee.Stderr)
 		}
-		w.t.Fatalf("bd %s (stdin): %v\n%s", strings.Join(args, " "), err, stderr)
+		w.t.Fatalf("issuegraph %s (stdin): %v\n%s", strings.Join(args, " "), err, stderr)
 	}
 	return string(out)
 }
@@ -78,7 +78,7 @@ func (w *workspace) importJSONSummary(name, stream string) map[string]any {
 	if err := os.WriteFile(path, []byte(stream), 0o644); err != nil {
 		w.t.Fatalf("write %s: %v", path, err)
 	}
-	cmd := exec.Command(w.bd, "import", "-i", path, "--json")
+	cmd := exec.Command(w.issuegraph, "import", "-i", path, "--json")
 	cmd.Dir = w.dir
 	cmd.Env = w.env()
 	out, err := cmd.Output()
@@ -87,11 +87,11 @@ func (w *workspace) importJSONSummary(name, stream string) map[string]any {
 		if ee, ok := err.(*exec.ExitError); ok {
 			stderr = string(ee.Stderr)
 		}
-		w.t.Fatalf("bd import --json: %v\n%s", err, stderr)
+		w.t.Fatalf("issuegraph import --json: %v\n%s", err, stderr)
 	}
 	items := parseJSONOutput(w.t, string(out))
 	if len(items) == 0 {
-		w.t.Fatalf("bd import --json produced no summary object:\n%s", out)
+		w.t.Fatalf("issuegraph import --json produced no summary object:\n%s", out)
 	}
 	return items[0]
 }
@@ -200,7 +200,7 @@ func TestProtocol_Interchange_RoundTripEquivalence(t *testing.T) {
 // ---------------------------------------------------------------------------
 
 // TestProtocol_Interchange_UnknownFieldsTolerated pins §J1.2: readers MUST
-// ignore unknown fields on any record. A future bd emitting new fields must not
+// ignore unknown fields on any record. A future issuegraph emitting new fields must not
 // break an older reader — so a stream carrying fields this build has never heard
 // of (at the top level, inside a dependency object, and inside a comment) still
 // imports cleanly, with the known fields intact.
@@ -240,14 +240,14 @@ func TestProtocol_Interchange_UnknownFieldsTolerated(t *testing.T) {
 }
 
 // ---------------------------------------------------------------------------
-// §J1.3 — header record skipped by the `bd import` reader
+// §J1.3 — header record skipped by the `issuegraph import` reader
 // ---------------------------------------------------------------------------
 
 // TestProtocol_Interchange_SchemaHeaderSkipped pins §J1.3: a reader MUST skip
 // any record bearing `_schema`.
 //
 // This was a real gap, not a hypothetical: the bootstrap reader (parseJSONLFile)
-// skipped the header, but the `bd import` reader loop did not — a canonical
+// skipped the header, but the `issuegraph import` reader loop did not — a canonical
 // export with a provenance header aborted the WHOLE import with "title is
 // required", because the header line fell through to the issue path and
 // unmarshaled into an empty Issue. Fixed alongside this test (wy-ltox1).
@@ -256,7 +256,7 @@ func TestProtocol_Interchange_SchemaHeaderSkipped(t *testing.T) {
 	w := newWorkspace(t)
 	id := w.prefix + "-hdr1"
 
-	stream := `{"_schema":"beads-jsonl/1","_dolt_branch":"main","_sort":"stable-v1"}` + "\n" +
+	stream := `{"_schema":"issuegraph-jsonl/1","_dolt_branch":"main","_sort":"stable-v1"}` + "\n" +
 		`{"_type":"issue","id":"` + id + `","title":"After the header","status":"open","issue_type":"task",` +
 		`"priority":2,"created_at":"2026-01-01T00:00:00Z","updated_at":"2026-01-01T00:00:00Z"}` + "\n"
 
@@ -283,7 +283,7 @@ func TestProtocol_Interchange_SchemaHeaderSkipped(t *testing.T) {
 // Absence of an id from the stream implies nothing — an import of a partial
 // stream MUST NOT delete the local issues it omits. (Doc-stated in
 // SYNC_CONCEPTS; no test held the line, and a "make the store match the file"
-// regression would silently destroy every bead the file predates.)
+// regression would silently destroy every issue the file predates.)
 func TestProtocol_Interchange_ImportNeverDeletes(t *testing.T) {
 	t.Parallel()
 	w := newWorkspace(t)
@@ -337,7 +337,7 @@ func TestProtocol_Interchange_MissingDepTargetSkippedAndReported(t *testing.T) {
 	// ...and the skip is reported, naming the target.
 	reported := getStringSlice(summary, "skipped_dependencies")
 	if len(reported) == 0 {
-		t.Fatalf("§J6.3 violated: skipped dependency was not reported in bd import --json (summary: %v)", summary)
+		t.Fatalf("§J6.3 violated: skipped dependency was not reported in issuegraph import --json (summary: %v)", summary)
 	}
 	if !strings.Contains(strings.Join(reported, "\n"), missing) {
 		t.Errorf("§J6.3: skipped_dependencies does not name the missing target %s: %v", missing, reported)
@@ -349,7 +349,7 @@ func TestProtocol_Interchange_MissingDepTargetSkippedAndReported(t *testing.T) {
 // ---------------------------------------------------------------------------
 
 // TestProtocol_Interchange_StdinImport pins §J6.5: import MUST accept stdin
-// (`bd import -`) — the `bd export | ssh host bd import -` pipe is the
+// (`issuegraph import -`) — the `issuegraph export | ssh host issuegraph import -` pipe is the
 // interchange's whole point, and it was untested.
 func TestProtocol_Interchange_StdinImport(t *testing.T) {
 	t.Parallel()
@@ -361,7 +361,7 @@ func TestProtocol_Interchange_StdinImport(t *testing.T) {
 	dst.runStdin(stream, "import", "-")
 
 	if got := len(dst.listAllIDs()); got != 1 {
-		t.Fatalf("bd import - : expected 1 issue in the destination store, got %d", got)
+		t.Fatalf("issuegraph import - : expected 1 issue in the destination store, got %d", got)
 	}
 	if dst.exportJSONL("dst.jsonl") != stream {
 		t.Errorf("§J6.5: stream imported from stdin did not re-export identically")

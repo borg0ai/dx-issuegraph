@@ -4,8 +4,8 @@ import (
 	"errors"
 	"net/http"
 
-	"github.com/steveyegge/beads/internal/httpapi/apigen"
-	"github.com/steveyegge/beads/issueops"
+	"github.com/borg0ai/dx-issuegraph/internal/httpapi/apigen"
+	"github.com/borg0ai/dx-issuegraph/issueops"
 )
 
 // claimNextRequestMembers is the document's member list for ClaimNextRequest.
@@ -17,7 +17,7 @@ var claimNextRequestMembers = []string{claimActorMember}
 // handleClaimNext takes ONE ready issue and hands it back claimed.
 //
 // It exists to retire a RACE, not to save a round trip. A client composing
-// GET /v0/beads/ready with POST /v0/beads/issues/{id}:claim reads a row that
+// GET /v0/issuegraph/ready with POST /v0/issuegraph/issues/{id}:claim reads a row that
 // another agent claims before the second request arrives, so it earns a 409 for
 // a row it was correctly offered — and a fleet polling one queue spends its
 // requests losing those races. Selection, the compare-and-set and the hydration
@@ -26,7 +26,7 @@ var claimNextRequestMembers = []string{claimActorMember}
 //
 // THE FILTER IS THE LISTING'S, decoded by readyFilters itself rather than by a
 // copy that admits the same names. That is the same argument countReadyWork
-// makes for sharing it: a claim answering a different question than `bd ready`
+// makes for sharing it: a claim answering a different question than `issuegraph ready`
 // shows would hand an agent work the listing never offered it.
 //
 // A COLLECTION-LEVEL CUSTOM METHOD, spelled the way issues:sweep is: the

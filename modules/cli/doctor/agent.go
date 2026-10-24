@@ -107,7 +107,7 @@ var agentEnrichers = map[string]enricher{
 	"Fresh Clone":                  enrichFreshClone,
 	"Database Config":              enrichDatabaseConfig,
 	"Config Values":                enrichConfigValues,
-	"Role Configuration":           enrichBeadsRole,
+	"Role Configuration":           enrichIssueGraphRole,
 	"Lock Files":                   enrichStaleLockFiles,
 	"Dolt Connection":              enrichDoltConnection,
 	"Dolt Schema":                  enrichDoltSchema,
@@ -131,7 +131,7 @@ var agentEnrichers = map[string]enricher{
 	"Cursor Integration":           enrichCursor,
 	"Cursor Settings Health":       enrichCursorSettings,
 	"Cursor Hook Completeness":     enrichCursorHooks,
-	"bd prime Output":              enrichBdPrimeOutput,
+	"issuegraph prime Output":      enrichBdPrimeOutput,
 	"CLI Availability":             enrichBdInPath,
 	"Repo Fingerprint":             enrichRepoFingerprint,
 	"Version Tracking":             enrichMetadataVersion,
@@ -147,10 +147,10 @@ var agentEnrichers = map[string]enricher{
 func enrichInstallation(dc DoctorCheck) agentEnrichment {
 	return agentEnrichment{
 		severity:    "blocking",
-		explanation: "The .beads/ directory does not exist in this project. Beads cannot function without it. This is the data directory that holds the issue database, configuration, and metadata.",
+		explanation: "The .issuegraph/ directory does not exist in this project. IssueGraph cannot function without it. This is the data directory that holds the issue database, configuration, and metadata.",
 		observed:    dc.Message,
-		expected:    ".beads/ directory exists at project root with config.yaml and dolt/ database inside",
-		commands:    []string{"bd init"},
+		expected:    ".issuegraph/ directory exists at project root with config.yaml and dolt/ database inside",
+		commands:    []string{"issuegraph init"},
 		sourceFiles: []string{"modules/cli/doctor/installation.go:CheckInstallation"},
 	}
 }
@@ -158,10 +158,10 @@ func enrichInstallation(dc DoctorCheck) agentEnrichment {
 func enrichPermissions(dc DoctorCheck) agentEnrichment {
 	return agentEnrichment{
 		severity:    "blocking",
-		explanation: fmt.Sprintf("File permission issue in .beads/ directory: %s. The database or directory cannot be read/written, which prevents all beads operations.", dc.Message),
+		explanation: fmt.Sprintf("File permission issue in .issuegraph/ directory: %s. The database or directory cannot be read/written, which prevents all issuegraph operations.", dc.Message),
 		observed:    dc.Message,
-		expected:    ".beads/ directory and all contents are readable and writable by current user",
-		commands:    []string{"bd doctor --fix", "chmod -R u+rw .beads/"},
+		expected:    ".issuegraph/ directory and all contents are readable and writable by current user",
+		commands:    []string{"issuegraph doctor --fix", "chmod -R u+rw .issuegraph/"},
 		sourceFiles: []string{"modules/cli/doctor/installation.go:CheckPermissions"},
 	}
 }
@@ -173,14 +173,14 @@ func enrichDatabase(dc DoctorCheck) agentEnrichment {
 	}
 	if dc.Status == StatusError {
 		e.severity = "blocking"
-		e.explanation = fmt.Sprintf("The Dolt database is broken or missing: %s. Without a working database, no beads commands will function.", dc.Message)
-		e.expected = "Dolt database opens successfully and contains bd_version metadata matching CLI version"
-		e.commands = []string{"bd doctor --fix", "bd dolt status"}
+		e.explanation = fmt.Sprintf("The Dolt database is broken or missing: %s. Without a working database, no issuegraph commands will function.", dc.Message)
+		e.expected = "Dolt database opens successfully and contains issuegraph_version metadata matching CLI version"
+		e.commands = []string{"issuegraph doctor --fix", "issuegraph dolt status"}
 	} else {
 		e.severity = "degraded"
-		e.explanation = fmt.Sprintf("Database version mismatch: %s. The database was last written by a different bd version. Auto-migration should resolve this.", dc.Message)
-		e.expected = "Database bd_version metadata matches CLI version"
-		e.commands = []string{"bd doctor --fix"}
+		e.explanation = fmt.Sprintf("Database version mismatch: %s. The database was last written by a different issuegraph version. Auto-migration should resolve this.", dc.Message)
+		e.expected = "Database issuegraph_version metadata matches CLI version"
+		e.commands = []string{"issuegraph doctor --fix"}
 	}
 	if dc.Detail != "" {
 		e.observed += "\n" + dc.Detail
@@ -194,7 +194,7 @@ func enrichSchemaCompatibility(dc DoctorCheck) agentEnrichment {
 		explanation: fmt.Sprintf("The database schema is incompatible with the current CLI version: %s. Core tables (issues, dependencies, metadata, config, wisps) must be queryable. This usually means a migration hasn't been applied.", dc.Message),
 		observed:    dc.Message + "\n" + dc.Detail,
 		expected:    "All core tables (issues, dependencies, metadata, config, wisps) are queryable with the current schema",
-		commands:    []string{"bd migrate", "bd doctor --fix"},
+		commands:    []string{"issuegraph migrate", "issuegraph doctor --fix"},
 		sourceFiles: []string{"modules/cli/doctor/database.go:CheckSchemaCompatibility", "internal/storage/dolt/migrations.go"},
 	}
 }
@@ -205,7 +205,7 @@ func enrichDatabaseIntegrity(dc DoctorCheck) agentEnrichment {
 		explanation: fmt.Sprintf("Database integrity check failed: %s. Basic queries against metadata and statistics tables failed, suggesting the database may be corrupted.", dc.Message),
 		observed:    dc.Message + "\n" + dc.Detail,
 		expected:    "Metadata table readable, statistics query succeeds",
-		commands:    []string{"bd doctor --fix", "bd dolt status"},
+		commands:    []string{"issuegraph doctor --fix", "issuegraph dolt status"},
 		sourceFiles: []string{"modules/cli/doctor/database.go:CheckDatabaseIntegrity"},
 	}
 }
@@ -216,7 +216,7 @@ func enrichLargeDatabase(dc DoctorCheck) agentEnrichment {
 		explanation: fmt.Sprintf("The database has accumulated many closed issues: %s. This may cause performance degradation in list/search operations. Pruning is optional and destructive.", dc.Message),
 		observed:    dc.Message,
 		expected:    "Closed issue count below configured threshold",
-		commands:    []string{"bd prune --older-than 90d"},
+		commands:    []string{"issuegraph prune --older-than 90d"},
 		sourceFiles: []string{"modules/cli/doctor/database.go:CheckDatabaseSize"},
 	}
 }
@@ -224,10 +224,10 @@ func enrichLargeDatabase(dc DoctorCheck) agentEnrichment {
 func enrichIDFormat(dc DoctorCheck) agentEnrichment {
 	return agentEnrichment{
 		severity:    "degraded",
-		explanation: fmt.Sprintf("ID format issue: %s. Beads uses hash-based IDs (e.g. bd-a1b2c). Sequential numeric IDs indicate a very old database that should be migrated.", dc.Message),
+		explanation: fmt.Sprintf("ID format issue: %s. IssueGraph uses hash-based IDs (e.g. bd-a1b2c). Sequential numeric IDs indicate a very old database that should be migrated.", dc.Message),
 		observed:    dc.Message,
 		expected:    "All issues use hash-based IDs with configured prefix",
-		commands:    []string{"bd doctor --fix"},
+		commands:    []string{"issuegraph doctor --fix"},
 		sourceFiles: []string{"modules/cli/doctor/integrity.go:CheckIDFormat"},
 	}
 }
@@ -246,10 +246,10 @@ func enrichCLIVersion(dc DoctorCheck) agentEnrichment {
 func enrichGitHooks(dc DoctorCheck) agentEnrichment {
 	return agentEnrichment{
 		severity:    "degraded",
-		explanation: fmt.Sprintf("Git hooks issue: %s. Beads git hooks refresh JSONL exports and run legacy fallback checks, while cross-clone sync uses Dolt remotes via bd dolt push/pull.", dc.Message),
+		explanation: fmt.Sprintf("Git hooks issue: %s. IssueGraph git hooks refresh JSONL exports and run legacy fallback checks, while cross-clone sync uses Dolt remotes via issuegraph dolt push/pull.", dc.Message),
 		observed:    dc.Message + "\n" + dc.Detail,
 		expected:    "Git hooks installed and version matches CLI version",
-		commands:    []string{"bd hooks install"},
+		commands:    []string{"issuegraph hooks install"},
 		sourceFiles: []string{"modules/cli/doctor/git.go:CheckGitHooks", "modules/cli/doctor/fix/hooks.go"},
 	}
 }
@@ -260,7 +260,7 @@ func enrichGitHooksDolt(dc DoctorCheck) agentEnrichment {
 		explanation: fmt.Sprintf("Git hooks are incompatible with Dolt backend: %s. Hooks that predate the Dolt migration may run SQLite operations on a Dolt database, causing errors on every git operation.", dc.Message),
 		observed:    dc.Message + "\n" + dc.Detail,
 		expected:    "Git hooks contain Dolt-compatible commands",
-		commands:    []string{"bd hooks install"},
+		commands:    []string{"issuegraph hooks install"},
 		sourceFiles: []string{"modules/cli/doctor/git.go:CheckGitHooksDoltCompatibility"},
 	}
 }
@@ -268,10 +268,10 @@ func enrichGitHooksDolt(dc DoctorCheck) agentEnrichment {
 func enrichGitignore(dc DoctorCheck) agentEnrichment {
 	return agentEnrichment{
 		severity:    "degraded",
-		explanation: fmt.Sprintf("Gitignore issue: %s. The .beads/.gitignore must exclude runtime files (dolt/, locks, temp files) while tracking config.yaml and metadata.json.", dc.Message),
+		explanation: fmt.Sprintf("Gitignore issue: %s. The .issuegraph/.gitignore must exclude runtime files (dolt/, locks, temp files) while tracking config.yaml and metadata.json.", dc.Message),
 		observed:    dc.Message,
-		expected:    ".beads/.gitignore is up to date with current patterns",
-		commands:    []string{"bd doctor --fix"},
+		expected:    ".issuegraph/.gitignore is up to date with current patterns",
+		commands:    []string{"issuegraph doctor --fix"},
 		sourceFiles: []string{"modules/cli/doctor/gitignore.go:CheckGitignore"},
 	}
 }
@@ -281,8 +281,8 @@ func enrichProjectGitignore(dc DoctorCheck) agentEnrichment {
 		severity:    "degraded",
 		explanation: fmt.Sprintf("Project .gitignore issue: %s. The project-root .gitignore needs Dolt exclusion patterns to prevent committing large binary database files.", dc.Message),
 		observed:    dc.Message,
-		expected:    "Project .gitignore contains .beads/dolt/ exclusion pattern",
-		commands:    []string{"bd doctor --fix"},
+		expected:    "Project .gitignore contains .issuegraph/dolt/ exclusion pattern",
+		commands:    []string{"issuegraph doctor --fix"},
 		sourceFiles: []string{"modules/cli/doctor/gitignore.go:CheckProjectGitignore"},
 	}
 }
@@ -290,10 +290,10 @@ func enrichProjectGitignore(dc DoctorCheck) agentEnrichment {
 func enrichGitWorkingTree(dc DoctorCheck) agentEnrichment {
 	return agentEnrichment{
 		severity:    "advisory",
-		explanation: fmt.Sprintf("Git working tree is dirty: %s. Uncommitted changes in .beads/ files may indicate interrupted operations or manual edits.", dc.Message),
+		explanation: fmt.Sprintf("Git working tree is dirty: %s. Uncommitted changes in .issuegraph/ files may indicate interrupted operations or manual edits.", dc.Message),
 		observed:    dc.Message + "\n" + dc.Detail,
-		expected:    "Git working tree clean (no uncommitted .beads/ changes)",
-		commands:    []string{"git status .beads/", "git add .beads/ && git commit -m 'sync beads state'"},
+		expected:    "Git working tree clean (no uncommitted .issuegraph/ changes)",
+		commands:    []string{"git status .issuegraph/", "git add .issuegraph/ && git commit -m 'sync issuegraph state'"},
 		sourceFiles: []string{"modules/cli/doctor/git.go:CheckGitWorkingTree"},
 	}
 }
@@ -301,7 +301,7 @@ func enrichGitWorkingTree(dc DoctorCheck) agentEnrichment {
 func enrichGitUpstream(dc DoctorCheck) agentEnrichment {
 	return agentEnrichment{
 		severity:    "advisory",
-		explanation: fmt.Sprintf("Git upstream drift: %s. Local branch is out of sync with remote. This may mean beads changes from other clones haven't been pulled.", dc.Message),
+		explanation: fmt.Sprintf("Git upstream drift: %s. Local branch is out of sync with remote. This may mean issuegraph changes from other clones haven't been pulled.", dc.Message),
 		observed:    dc.Message + "\n" + dc.Detail,
 		expected:    "Local branch is in sync with upstream tracking branch",
 		commands:    []string{"git pull --rebase"},
@@ -310,13 +310,13 @@ func enrichGitUpstream(dc DoctorCheck) agentEnrichment {
 }
 
 func enrichFreshClone(dc DoctorCheck) agentEnrichment {
-	commands := []string{"bd bootstrap"}
-	explanation := fmt.Sprintf("Fresh clone detected: %s. The .beads/ directory exists (committed to git) but the local database has not been recovered yet. Run bd bootstrap as the safe existing-project recovery entry point.", dc.Message)
+	commands := []string{"issuegraph bootstrap"}
+	explanation := fmt.Sprintf("Fresh clone detected: %s. The .issuegraph/ directory exists (committed to git) but the local database has not been recovered yet. Run issuegraph bootstrap as the safe existing-project recovery entry point.", dc.Message)
 
 	// When the message mentions sync.remote, include it in the suggested commands.
 	if strings.Contains(dc.Message, "sync.remote") {
-		explanation = fmt.Sprintf("Fresh clone detected: %s. The .beads/ directory exists (committed to git) but the database is not found on the configured server. Run bd bootstrap as the safe entry point; if bootstrap cannot find the expected remote automatically, then set sync.remote in .beads/config.yaml and rerun bd bootstrap.", dc.Message)
-		commands = []string{"bd bootstrap", "Set sync.remote in .beads/config.yaml if bootstrap cannot find the expected remote"}
+		explanation = fmt.Sprintf("Fresh clone detected: %s. The .issuegraph/ directory exists (committed to git) but the database is not found on the configured server. Run issuegraph bootstrap as the safe entry point; if bootstrap cannot find the expected remote automatically, then set sync.remote in .issuegraph/config.yaml and rerun issuegraph bootstrap.", dc.Message)
+		commands = []string{"issuegraph bootstrap", "Set sync.remote in .issuegraph/config.yaml if bootstrap cannot find the expected remote"}
 	}
 
 	return agentEnrichment{
@@ -335,7 +335,7 @@ func enrichDatabaseConfig(dc DoctorCheck) agentEnrichment {
 		explanation: fmt.Sprintf("Database configuration mismatch: %s. The config.yaml backend setting doesn't match what's actually on disk. This can happen after a migration or manual file manipulation.", dc.Message),
 		observed:    dc.Message + "\n" + dc.Detail,
 		expected:    "config.yaml backend setting matches actual database on disk",
-		commands:    []string{"bd doctor --fix"},
+		commands:    []string{"issuegraph doctor --fix"},
 		sourceFiles: []string{"modules/cli/doctor/legacy.go:CheckDatabaseConfig", "internal/configfile/config.go"},
 	}
 }
@@ -346,29 +346,29 @@ func enrichConfigValues(dc DoctorCheck) agentEnrichment {
 		explanation: fmt.Sprintf("Configuration value issue: %s. One or more config values are invalid, unknown, or using deprecated keys.", dc.Message),
 		observed:    dc.Message + "\n" + dc.Detail,
 		expected:    "All config values are valid and recognized",
-		commands:    []string{"bd config list", "bd doctor --fix"},
+		commands:    []string{"issuegraph config list", "issuegraph doctor --fix"},
 		sourceFiles: []string{"modules/cli/doctor/config_values.go:CheckConfigValues"},
 	}
 }
 
-func enrichBeadsRole(dc DoctorCheck) agentEnrichment {
+func enrichIssueGraphRole(dc DoctorCheck) agentEnrichment {
 	return agentEnrichment{
 		severity:    "advisory",
-		explanation: fmt.Sprintf("Beads role configuration: %s. The beads.role config determines how beads behaves (e.g. 'maintainer' vs 'contributor'). Missing role config falls back to URL heuristic detection.", dc.Message),
+		explanation: fmt.Sprintf("IssueGraph role configuration: %s. The issuegraph.role config determines how issuegraph behaves (e.g. 'maintainer' vs 'contributor'). Missing role config falls back to URL heuristic detection.", dc.Message),
 		observed:    dc.Message + "\n" + dc.Detail,
-		expected:    "beads.role is configured in config.yaml",
-		commands:    []string{"bd config set beads.role maintainer"},
-		sourceFiles: []string{"modules/cli/doctor/role.go:CheckBeadsRole"},
+		expected:    "issuegraph.role is configured in config.yaml",
+		commands:    []string{"issuegraph config set issuegraph.role maintainer"},
+		sourceFiles: []string{"modules/cli/doctor/role.go:CheckIssueGraphRole"},
 	}
 }
 
 func enrichStaleLockFiles(dc DoctorCheck) agentEnrichment {
 	return agentEnrichment{
 		severity:    "degraded",
-		explanation: fmt.Sprintf("Stale lock files detected: %s. Lock files from crashed or killed bd processes prevent new operations. They are safe to remove if no bd process is currently running.", dc.Message),
+		explanation: fmt.Sprintf("Stale lock files detected: %s. Lock files from crashed or killed issuegraph processes prevent new operations. They are safe to remove if no issuegraph process is currently running.", dc.Message),
 		observed:    dc.Message + "\n" + dc.Detail,
-		expected:    "No stale lock files in .beads/",
-		commands:    []string{"bd doctor --fix"},
+		expected:    "No stale lock files in .issuegraph/",
+		commands:    []string{"issuegraph doctor --fix"},
 		sourceFiles: []string{"modules/cli/doctor/locks.go:CheckStaleLockFiles"},
 	}
 }
@@ -379,7 +379,7 @@ func enrichDoltConnection(dc DoctorCheck) agentEnrichment {
 		explanation: fmt.Sprintf("Cannot connect to Dolt database: %s. Either the embedded Dolt engine failed to start, or the Dolt server (if using server mode) is unreachable.", dc.Message),
 		observed:    dc.Message + "\n" + dc.Detail,
 		expected:    "Dolt database opens successfully (embedded) or server is reachable (server mode)",
-		commands:    []string{"bd doctor --fix", "gt dolt status", "gt dolt start"},
+		commands:    []string{"issuegraph doctor --fix", "gt dolt status", "gt dolt start"},
 		sourceFiles: []string{"modules/cli/doctor/dolt.go:CheckDoltConnection"},
 	}
 }
@@ -390,7 +390,7 @@ func enrichDoltSchema(dc DoctorCheck) agentEnrichment {
 		explanation: fmt.Sprintf("Dolt schema issue: %s. Required tables or columns are missing from the Dolt database. This usually means a migration is needed.", dc.Message),
 		observed:    dc.Message + "\n" + dc.Detail,
 		expected:    "All required tables and columns present in Dolt database",
-		commands:    []string{"bd migrate", "bd doctor --fix"},
+		commands:    []string{"issuegraph migrate", "issuegraph doctor --fix"},
 		sourceFiles: []string{"modules/cli/doctor/dolt.go:CheckDoltSchema", "internal/storage/dolt/migrations.go"},
 	}
 }
@@ -411,7 +411,7 @@ func enrichDoltStatus(dc DoctorCheck) agentEnrichment {
 		explanation: fmt.Sprintf("Dolt database status: %s. Reports uncommitted changes, dirty working set, or other Dolt-specific state issues.", dc.Message),
 		observed:    dc.Message + "\n" + dc.Detail,
 		expected:    "Dolt working set is clean (no uncommitted changes)",
-		commands:    []string{"bd dolt commit"},
+		commands:    []string{"issuegraph dolt commit"},
 		sourceFiles: []string{"modules/cli/doctor/dolt.go:CheckDoltStatus"},
 	}
 }
@@ -422,7 +422,7 @@ func enrichDependencyCycles(dc DoctorCheck) agentEnrichment {
 		explanation: fmt.Sprintf("Dependency cycle detected: %s. Circular dependencies prevent topological sorting and can confuse priority calculations. The cycle must be broken by removing one dependency edge.", dc.Message),
 		observed:    dc.Message + "\n" + dc.Detail,
 		expected:    "Dependency graph is a DAG (no cycles)",
-		commands:    []string{"bd validate", "bd dep rm <issue-a> <issue-b>"},
+		commands:    []string{"issuegraph validate", "issuegraph dep rm <issue-a> <issue-b>"},
 		sourceFiles: []string{"modules/cli/doctor/integrity.go:CheckDependencyCycles"},
 	}
 }
@@ -433,7 +433,7 @@ func enrichDuplicateIssues(dc DoctorCheck) agentEnrichment {
 		explanation: fmt.Sprintf("Duplicate issues detected: %s. Multiple issues share the same title, which may indicate accidental creation. Review and close duplicates.", dc.Message),
 		observed:    dc.Message + "\n" + dc.Detail,
 		expected:    "No duplicate issue titles",
-		commands:    []string{"bd validate", "bd close <duplicate-id>"},
+		commands:    []string{"issuegraph validate", "issuegraph close <duplicate-id>"},
 		sourceFiles: []string{"modules/cli/doctor/validation.go:CheckDuplicateIssues"},
 	}
 }
@@ -444,7 +444,7 @@ func enrichTestPollution(dc DoctorCheck) agentEnrichment {
 		explanation: fmt.Sprintf("Test pollution detected: %s. Test-created issues are present in the production database. These are artifacts from test runs that didn't clean up properly.", dc.Message),
 		observed:    dc.Message + "\n" + dc.Detail,
 		expected:    "No test issues in production database",
-		commands:    []string{"bd doctor --check=pollution", "bd doctor --check=pollution --clean"},
+		commands:    []string{"issuegraph doctor --check=pollution", "issuegraph doctor --check=pollution --clean"},
 		sourceFiles: []string{"modules/cli/doctor/validation.go:CheckTestPollution"},
 	}
 }
@@ -455,7 +455,7 @@ func enrichOrphanedDeps(dc DoctorCheck) agentEnrichment {
 		explanation: fmt.Sprintf("Orphaned dependencies found: %s. Some dependency edges reference issues that no longer exist. These are harmless but noisy.", dc.Message),
 		observed:    dc.Message + "\n" + dc.Detail,
 		expected:    "All dependency edges reference existing issues",
-		commands:    []string{"bd doctor --check=validate --fix"},
+		commands:    []string{"issuegraph doctor --check=validate --fix"},
 		sourceFiles: []string{"modules/cli/doctor/validation.go:CheckOrphanedDependencies"},
 	}
 }
@@ -466,7 +466,7 @@ func enrichCloneLocalFKs(dc DoctorCheck) agentEnrichment {
 		explanation: fmt.Sprintf("Severed clone-local FK(s): %s. A hard reset (flatten/compact squash, merge abort, migration error recovery) silently drops foreign keys from dolt_ignored tables onto the tracked plane; enforcement stays off across server restarts and orphaned rows accumulate until the constraint is re-added.", dc.Message),
 		observed:    dc.Message + "\n" + dc.Detail,
 		expected:    "Every FK on clone-local tables (events, wisp_dependencies, wisp_labels, wisp_comments, wisp_events, wisp_child_counters) present and enforcing",
-		commands:    []string{"bd doctor --fix"},
+		commands:    []string{"issuegraph doctor --fix"},
 		sourceFiles: []string{"modules/cli/doctor/clone_local_fks.go:CheckCloneLocalFKs"},
 	}
 }
@@ -477,7 +477,7 @@ func enrichChildParentDeps(dc DoctorCheck) agentEnrichment {
 		explanation: fmt.Sprintf("Child→parent dependencies found: %s. These are an anti-pattern where a child issue depends on its own parent. The parent-child relationship already implies ordering.", dc.Message),
 		observed:    dc.Message + "\n" + dc.Detail,
 		expected:    "No dependency edges between parent and child issues",
-		commands:    []string{"bd doctor --fix --fix-child-parent"},
+		commands:    []string{"issuegraph doctor --fix --fix-child-parent"},
 		sourceFiles: []string{"modules/cli/doctor/validation.go:CheckChildParentDependencies"},
 	}
 }
@@ -488,7 +488,7 @@ func enrichClassicArtifacts(dc DoctorCheck) agentEnrichment {
 		explanation: fmt.Sprintf("Classic (pre-Dolt) artifacts found: %s. These are leftover files from the SQLite/JSONL era that are no longer needed after Dolt migration.", dc.Message),
 		observed:    dc.Message + "\n" + dc.Detail,
 		expected:    "No classic artifacts present (JSONL files, SQLite database, cruft directories)",
-		commands:    []string{"bd doctor --check=artifacts", "bd doctor --check=artifacts --clean"},
+		commands:    []string{"issuegraph doctor --check=artifacts", "issuegraph doctor --check=artifacts --clean"},
 		sourceFiles: []string{"modules/cli/doctor/artifacts.go:CheckClassicArtifacts"},
 	}
 }
@@ -499,7 +499,7 @@ func enrichPendingMigrations(dc DoctorCheck) agentEnrichment {
 		explanation: fmt.Sprintf("Pending migrations: %s. Database schema migrations are available but haven't been applied. Some may be required for correct operation.", dc.Message),
 		observed:    dc.Message + "\n" + dc.Detail,
 		expected:    "All available migrations have been applied",
-		commands:    []string{"bd migrate"},
+		commands:    []string{"issuegraph migrate"},
 		sourceFiles: []string{"modules/cli/doctor/migration.go:CheckPendingMigrations", "internal/storage/dolt/migrations.go"},
 	}
 }
@@ -510,7 +510,7 @@ func enrichKVSync(dc DoctorCheck) agentEnrichment {
 		explanation: fmt.Sprintf("KV store sync status: %s. The key-value store may be out of sync with the main database.", dc.Message),
 		observed:    dc.Message + "\n" + dc.Detail,
 		expected:    "KV store is in sync with main database",
-		commands:    []string{"bd dolt push"},
+		commands:    []string{"issuegraph dolt push"},
 		sourceFiles: []string{"modules/cli/doctor/kv.go:CheckKVSyncStatus"},
 	}
 }
@@ -521,7 +521,7 @@ func enrichStaleClosedIssues(dc DoctorCheck) agentEnrichment {
 		explanation: fmt.Sprintf("Stale closed issues: %s. Old closed issues can be pruned to reduce database size and improve query performance.", dc.Message),
 		observed:    dc.Message + "\n" + dc.Detail,
 		expected:    "Closed issues are within acceptable age/count thresholds",
-		commands:    []string{"bd prune --older-than 90d"},
+		commands:    []string{"issuegraph prune --older-than 90d"},
 		sourceFiles: []string{"modules/cli/doctor/maintenance.go:CheckStaleClosedIssues"},
 	}
 }
@@ -532,7 +532,7 @@ func enrichStaleMolecules(dc DoctorCheck) agentEnrichment {
 		explanation: fmt.Sprintf("Stale molecules detected: %s. These are molecules (multi-step workflows) where all steps are complete but the molecule itself was never closed.", dc.Message),
 		observed:    dc.Message + "\n" + dc.Detail,
 		expected:    "Completed molecules are closed",
-		commands:    []string{"bd mol list", "bd close <molecule-id>"},
+		commands:    []string{"issuegraph mol list", "issuegraph close <molecule-id>"},
 		sourceFiles: []string{"modules/cli/doctor/maintenance.go:CheckStaleMolecules"},
 	}
 }
@@ -540,10 +540,10 @@ func enrichStaleMolecules(dc DoctorCheck) agentEnrichment {
 func enrichClaude(dc DoctorCheck) agentEnrichment {
 	return agentEnrichment{
 		severity:    "advisory",
-		explanation: fmt.Sprintf("Claude integration: %s. Beads integrates with Claude Code via SessionStart hooks defined in .claude/settings.json.", dc.Message),
+		explanation: fmt.Sprintf("Claude integration: %s. IssueGraph integrates with Claude Code via SessionStart hooks defined in .claude/settings.json.", dc.Message),
 		observed:    dc.Message + "\n" + dc.Detail,
-		expected:    "Claude Code hooks configured for beads (bd prime on SessionStart)",
-		commands:    []string{"bd hooks install"},
+		expected:    "Claude Code hooks configured for issuegraph (issuegraph prime on SessionStart)",
+		commands:    []string{"issuegraph hooks install"},
 		sourceFiles: []string{"modules/cli/doctor/claude.go:CheckClaude"},
 	}
 }
@@ -551,10 +551,10 @@ func enrichClaude(dc DoctorCheck) agentEnrichment {
 func enrichClaudeSettings(dc DoctorCheck) agentEnrichment {
 	return agentEnrichment{
 		severity:    "blocking",
-		explanation: fmt.Sprintf("Claude settings file is malformed: %s. A corrupted .claude/settings.json prevents Claude Code from loading hooks, which breaks beads integration entirely.", dc.Message),
+		explanation: fmt.Sprintf("Claude settings file is malformed: %s. A corrupted .claude/settings.json prevents Claude Code from loading hooks, which breaks issuegraph integration entirely.", dc.Message),
 		observed:    dc.Message + "\n" + dc.Detail,
 		expected:    ".claude/settings.json is valid JSON",
-		commands:    []string{"cat .claude/settings.json | python3 -m json.tool", "bd hooks install"},
+		commands:    []string{"cat .claude/settings.json | python3 -m json.tool", "issuegraph hooks install"},
 		sourceFiles: []string{"modules/cli/doctor/claude.go:CheckClaudeSettingsHealth"},
 	}
 }
@@ -562,10 +562,10 @@ func enrichClaudeSettings(dc DoctorCheck) agentEnrichment {
 func enrichClaudeHooks(dc DoctorCheck) agentEnrichment {
 	return agentEnrichment{
 		severity:    "advisory",
-		explanation: fmt.Sprintf("Claude hook completeness: %s. Beads needs a SessionStart hook to inject context in Claude Code sessions, including after compaction.", dc.Message),
+		explanation: fmt.Sprintf("Claude hook completeness: %s. IssueGraph needs a SessionStart hook to inject context in Claude Code sessions, including after compaction.", dc.Message),
 		observed:    dc.Message + "\n" + dc.Detail,
-		expected:    "SessionStart hook configured for beads",
-		commands:    []string{"bd hooks install"},
+		expected:    "SessionStart hook configured for issuegraph",
+		commands:    []string{"issuegraph hooks install"},
 		sourceFiles: []string{"modules/cli/doctor/claude.go:CheckClaudeHookCompleteness"},
 	}
 }
@@ -573,10 +573,10 @@ func enrichClaudeHooks(dc DoctorCheck) agentEnrichment {
 func enrichClaudePlugin(dc DoctorCheck) agentEnrichment {
 	return agentEnrichment{
 		severity:    "advisory",
-		explanation: fmt.Sprintf("Claude plugin version: %s. An outdated Claude plugin may not support current beads features.", dc.Message),
+		explanation: fmt.Sprintf("Claude plugin version: %s. An outdated Claude plugin may not support current issuegraph features.", dc.Message),
 		observed:    dc.Message,
 		expected:    "Claude plugin version matches CLI version",
-		commands:    []string{"bd hooks install"},
+		commands:    []string{"issuegraph hooks install"},
 		sourceFiles: []string{"modules/cli/doctor/claude.go:CheckClaudePlugin"},
 	}
 }
@@ -584,10 +584,10 @@ func enrichClaudePlugin(dc DoctorCheck) agentEnrichment {
 func enrichCursor(dc DoctorCheck) agentEnrichment {
 	return agentEnrichment{
 		severity:    "advisory",
-		explanation: fmt.Sprintf("Cursor integration: %s. Beads integrates with Cursor via agent hooks in .cursor/hooks.json (or ~/.cursor/hooks.json) that run 'bd cursor-hook' to inject bd prime on sessionStart and recover context after compaction.", dc.Message),
+		explanation: fmt.Sprintf("Cursor integration: %s. IssueGraph integrates with Cursor via agent hooks in .cursor/hooks.json (or ~/.cursor/hooks.json) that run 'issuegraph cursor-hook' to inject issuegraph prime on sessionStart and recover context after compaction.", dc.Message),
 		observed:    dc.Message + "\n" + dc.Detail,
-		expected:    "Cursor hooks configured for beads (bd cursor-hook on sessionStart/preCompact/postToolUse)",
-		commands:    []string{"bd setup cursor"},
+		expected:    "Cursor hooks configured for issuegraph (issuegraph cursor-hook on sessionStart/preCompact/postToolUse)",
+		commands:    []string{"issuegraph setup cursor"},
 		sourceFiles: []string{"modules/cli/doctor/cursor.go:CheckCursor"},
 	}
 }
@@ -595,10 +595,10 @@ func enrichCursor(dc DoctorCheck) agentEnrichment {
 func enrichCursorSettings(dc DoctorCheck) agentEnrichment {
 	return agentEnrichment{
 		severity:    "blocking",
-		explanation: fmt.Sprintf("Cursor hooks file is malformed: %s. A corrupted .cursor/hooks.json prevents Cursor from loading any hooks, which silently breaks beads context injection and post-compaction recovery.", dc.Message),
+		explanation: fmt.Sprintf("Cursor hooks file is malformed: %s. A corrupted .cursor/hooks.json prevents Cursor from loading any hooks, which silently breaks issuegraph context injection and post-compaction recovery.", dc.Message),
 		observed:    dc.Message + "\n" + dc.Detail,
 		expected:    ".cursor/hooks.json (and ~/.cursor/hooks.json) are valid JSON",
-		commands:    []string{"cat .cursor/hooks.json | python3 -m json.tool", "bd setup cursor"},
+		commands:    []string{"cat .cursor/hooks.json | python3 -m json.tool", "issuegraph setup cursor"},
 		sourceFiles: []string{"modules/cli/doctor/cursor.go:CheckCursorSettingsHealth"},
 	}
 }
@@ -606,10 +606,10 @@ func enrichCursorSettings(dc DoctorCheck) agentEnrichment {
 func enrichCursorHooks(dc DoctorCheck) agentEnrichment {
 	return agentEnrichment{
 		severity:    "advisory",
-		explanation: fmt.Sprintf("Cursor hook completeness: %s. Beads recovers context across compaction in Cursor using three hooks: sessionStart, preCompact, and postToolUse. A partial install degrades recovery.", dc.Message),
+		explanation: fmt.Sprintf("Cursor hook completeness: %s. IssueGraph recovers context across compaction in Cursor using three hooks: sessionStart, preCompact, and postToolUse. A partial install degrades recovery.", dc.Message),
 		observed:    dc.Message + "\n" + dc.Detail,
-		expected:    "sessionStart, preCompact, and postToolUse hooks all configured for beads",
-		commands:    []string{"bd setup cursor"},
+		expected:    "sessionStart, preCompact, and postToolUse hooks all configured for issuegraph",
+		commands:    []string{"issuegraph setup cursor"},
 		sourceFiles: []string{"modules/cli/doctor/cursor.go:CheckCursorHookCompleteness"},
 	}
 }
@@ -617,9 +617,9 @@ func enrichCursorHooks(dc DoctorCheck) agentEnrichment {
 func enrichBdPrimeOutput(dc DoctorCheck) agentEnrichment {
 	return agentEnrichment{
 		severity:    "advisory",
-		explanation: fmt.Sprintf("bd prime output issue: %s. The bd prime command's output may not match expected format, which can confuse agent context loading.", dc.Message),
+		explanation: fmt.Sprintf("issuegraph prime output issue: %s. The issuegraph prime command's output may not match expected format, which can confuse agent context loading.", dc.Message),
 		observed:    dc.Message + "\n" + dc.Detail,
-		expected:    "bd prime produces valid context output",
+		expected:    "issuegraph prime produces valid context output",
 		sourceFiles: []string{"modules/cli/doctor/claude.go:VerifyPrimeOutput"},
 	}
 }
@@ -627,10 +627,10 @@ func enrichBdPrimeOutput(dc DoctorCheck) agentEnrichment {
 func enrichBdInPath(dc DoctorCheck) agentEnrichment {
 	return agentEnrichment{
 		severity:    "degraded",
-		explanation: fmt.Sprintf("bd not in PATH: %s. Claude Code hooks invoke bd commands, but bd is not found in the system PATH. Hooks will fail silently.", dc.Message),
+		explanation: fmt.Sprintf("issuegraph not in PATH: %s. Claude Code hooks invoke issuegraph commands, but issuegraph is not found in the system PATH. Hooks will fail silently.", dc.Message),
 		observed:    dc.Message,
-		expected:    "'bd' executable is in PATH and runnable",
-		commands:    []string{"which bd", installScriptCommand},
+		expected:    "'issuegraph' executable is in PATH and runnable",
+		commands:    []string{"which issuegraph", installScriptCommand},
 		sourceFiles: []string{"modules/cli/doctor/claude.go:CheckBdInPath"},
 	}
 }
@@ -641,7 +641,7 @@ func enrichRepoFingerprint(dc DoctorCheck) agentEnrichment {
 		explanation: fmt.Sprintf("Repo fingerprint mismatch: %s. The database may belong to a different repository (e.g. copied from another project or remote URL changed).", dc.Message),
 		observed:    dc.Message + "\n" + dc.Detail,
 		expected:    "Database fingerprint matches current git remote URL",
-		commands:    []string{"bd doctor --fix"},
+		commands:    []string{"issuegraph doctor --fix"},
 		sourceFiles: []string{"modules/cli/doctor/integrity.go:CheckRepoFingerprint"},
 	}
 }
@@ -649,10 +649,10 @@ func enrichRepoFingerprint(dc DoctorCheck) agentEnrichment {
 func enrichMetadataVersion(dc DoctorCheck) agentEnrichment {
 	return agentEnrichment{
 		severity:    "advisory",
-		explanation: fmt.Sprintf("Metadata version tracking: %s. The metadata.json LastBdVersion field tracks which bd version last wrote to this database.", dc.Message),
+		explanation: fmt.Sprintf("Metadata version tracking: %s. The metadata.json LastBdVersion field tracks which issuegraph version last wrote to this database.", dc.Message),
 		observed:    dc.Message,
 		expected:    "metadata.json LastBdVersion matches current CLI version",
-		commands:    []string{"bd doctor --fix"},
+		commands:    []string{"issuegraph doctor --fix"},
 		sourceFiles: []string{"modules/cli/doctor/version.go:CheckMetadataVersionTracking"},
 	}
 }
@@ -663,7 +663,7 @@ func enrichOrphanedIssues(dc DoctorCheck) agentEnrichment {
 		explanation: fmt.Sprintf("Orphaned issues: %s. These issues are referenced in git commits (e.g. 'fix(bd-xyz): ...') but are still open. They may have been accidentally left open after the fix was committed.", dc.Message),
 		observed:    dc.Message + "\n" + dc.Detail,
 		expected:    "Issues referenced in commits are closed",
-		commands:    []string{"bd orphans", "bd close <issue-id>"},
+		commands:    []string{"issuegraph orphans", "issuegraph close <issue-id>"},
 		sourceFiles: []string{"modules/cli/doctor/git.go:CheckOrphanedIssues"},
 	}
 }
@@ -671,10 +671,10 @@ func enrichOrphanedIssues(dc DoctorCheck) agentEnrichment {
 func enrichRedirectTarget(dc DoctorCheck) agentEnrichment {
 	return agentEnrichment{
 		severity:    "degraded",
-		explanation: fmt.Sprintf("Redirect target issue: %s. The .beads/redirect file points to an external directory that is missing or has an invalid database. This is used in worktree setups where multiple worktrees share one database.", dc.Message),
+		explanation: fmt.Sprintf("Redirect target issue: %s. The .issuegraph/redirect file points to an external directory that is missing or has an invalid database. This is used in worktree setups where multiple worktrees share one database.", dc.Message),
 		observed:    dc.Message + "\n" + dc.Detail,
-		expected:    "Redirect target exists and contains a valid beads database",
-		commands:    []string{"cat .beads/redirect", "bd doctor --fix"},
+		expected:    "Redirect target exists and contains a valid issuegraph database",
+		commands:    []string{"cat .issuegraph/redirect", "issuegraph doctor --fix"},
 		sourceFiles: []string{"modules/cli/doctor/gitignore.go:CheckRedirectTargetValid"},
 	}
 }
@@ -682,10 +682,10 @@ func enrichRedirectTarget(dc DoctorCheck) agentEnrichment {
 func enrichRedirectTracking(dc DoctorCheck) agentEnrichment {
 	return agentEnrichment{
 		severity:    "advisory",
-		explanation: fmt.Sprintf("Redirect file tracking: %s. The .beads/redirect file contains an absolute local path and should not be committed to git (it's machine-specific).", dc.Message),
+		explanation: fmt.Sprintf("Redirect file tracking: %s. The .issuegraph/redirect file contains an absolute local path and should not be committed to git (it's machine-specific).", dc.Message),
 		observed:    dc.Message,
-		expected:    ".beads/redirect is in .gitignore and not tracked by git",
-		commands:    []string{"echo '.beads/redirect' >> .beads/.gitignore", "git rm --cached .beads/redirect"},
+		expected:    ".issuegraph/redirect is in .gitignore and not tracked by git",
+		commands:    []string{"echo '.issuegraph/redirect' >> .issuegraph/.gitignore", "git rm --cached .issuegraph/redirect"},
 		sourceFiles: []string{"modules/cli/doctor/gitignore.go:CheckRedirectNotTracked"},
 	}
 }
@@ -693,10 +693,10 @@ func enrichRedirectTracking(dc DoctorCheck) agentEnrichment {
 func enrichRedirectTargetSync(dc DoctorCheck) agentEnrichment {
 	return agentEnrichment{
 		severity:    "advisory",
-		explanation: fmt.Sprintf("Redirect target sync worktree: %s. The redirect target directory is missing a beads-sync worktree, which is needed for git-based synchronization of the shared database.", dc.Message),
+		explanation: fmt.Sprintf("Redirect target sync worktree: %s. The redirect target directory is missing a issuegraph-sync worktree, which is needed for git-based synchronization of the shared database.", dc.Message),
 		observed:    dc.Message + "\n" + dc.Detail,
-		expected:    "Redirect target has a beads-sync worktree for database synchronization",
-		commands:    []string{"bd init"},
+		expected:    "Redirect target has a issuegraph-sync worktree for database synchronization",
+		commands:    []string{"issuegraph init"},
 		sourceFiles: []string{"modules/cli/doctor/gitignore.go:CheckRedirectTargetSyncWorktree"},
 	}
 }
@@ -704,10 +704,10 @@ func enrichRedirectTargetSync(dc DoctorCheck) agentEnrichment {
 func enrichUntrackedFiles(dc DoctorCheck) agentEnrichment {
 	return agentEnrichment{
 		severity:    "advisory",
-		explanation: fmt.Sprintf("Untracked beads files: %s. Legacy data files in .beads/ are not tracked by git. In direct-commit mode, these should be committed to propagate changes. (Dolt backends store data on the server and do not need tracked files.)", dc.Message),
+		explanation: fmt.Sprintf("Untracked issuegraph files: %s. Legacy data files in .issuegraph/ are not tracked by git. In direct-commit mode, these should be committed to propagate changes. (Dolt backends store data on the server and do not need tracked files.)", dc.Message),
 		observed:    dc.Message,
-		expected:    "All legacy .beads/ data files are tracked by git (or using Dolt/sync-branch mode)",
-		commands:    []string{"git add .beads/*.jsonl && git commit -m 'sync beads data'"},
-		sourceFiles: []string{"modules/cli/doctor/installation.go:CheckUntrackedBeadsFiles"},
+		expected:    "All legacy .issuegraph/ data files are tracked by git (or using Dolt/sync-branch mode)",
+		commands:    []string{"git add .issuegraph/*.jsonl && git commit -m 'sync issuegraph data'"},
+		sourceFiles: []string{"modules/cli/doctor/installation.go:CheckUntrackedIssueGraphFiles"},
 	}
 }

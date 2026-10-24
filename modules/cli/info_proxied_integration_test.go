@@ -11,13 +11,13 @@ import (
 func TestProxiedServerInfo(t *testing.T) {
 	requireSharedProxiedServer(t)
 	t.Parallel()
-	bd := buildEmbeddedBD(t)
-	p := newSharedProxiedProject(t, bd, "inf")
-	seedProxiedListData(t, bd, p)
+	issuegraph := buildEmbeddedBD(t)
+	p := newSharedProxiedProject(t, issuegraph, "inf")
+	seedProxiedListData(t, issuegraph, p)
 
 	infoJSON := func(t *testing.T, args ...string) map[string]interface{} {
 		t.Helper()
-		out, err := bdProxiedRun(t, bd, p.dir, append([]string{"info", "--json"}, args...)...)
+		out, err := issuegraphProxiedRun(t, issuegraph, p.dir, append([]string{"info", "--json"}, args...)...)
 		if err != nil {
 			t.Fatalf("info %v: %v\n%s", args, err, out)
 		}
@@ -30,7 +30,7 @@ func TestProxiedServerInfo(t *testing.T) {
 
 	infoText := func(t *testing.T, args ...string) string {
 		t.Helper()
-		out, err := bdProxiedRun(t, bd, p.dir, append([]string{"info"}, args...)...)
+		out, err := issuegraphProxiedRun(t, issuegraph, p.dir, append([]string{"info"}, args...)...)
 		if err != nil {
 			t.Fatalf("info %v: %v\n%s", args, err, out)
 		}
@@ -48,7 +48,7 @@ func TestProxiedServerInfo(t *testing.T) {
 		if !ok {
 			t.Fatalf("issue_count missing/not a number: %v", got["issue_count"])
 		}
-		want := len(bdProxiedListJSON(t, bd, p, "--all"))
+		want := len(issuegraphProxiedListJSON(t, issuegraph, p, "--all"))
 		if int(count) != want {
 			t.Errorf("issue_count = %d, want %d (list --all)", int(count), want)
 		}
@@ -105,7 +105,7 @@ func TestProxiedServerInfo(t *testing.T) {
 			t.Errorf("expected 'issues' table in schema tables, got %v", tables)
 		}
 		if v, _ := schema["schema_version"].(string); v == "" || v == "unknown" {
-			t.Errorf("schema_version = %q, want a resolved bd_version", v)
+			t.Errorf("schema_version = %q, want a resolved issuegraph_version", v)
 		}
 		samples, ok := schema["sample_issue_ids"].([]interface{})
 		if !ok || len(samples) == 0 {

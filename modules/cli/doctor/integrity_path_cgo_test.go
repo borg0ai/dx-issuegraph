@@ -7,9 +7,9 @@ import (
 	"path/filepath"
 	"testing"
 
-	"github.com/steveyegge/beads/internal/beads"
-	"github.com/steveyegge/beads/internal/configfile"
-	"github.com/steveyegge/beads/internal/storage/dolt"
+	"github.com/borg0ai/dx-issuegraph/internal/configfile"
+	"github.com/borg0ai/dx-issuegraph/internal/issuegraph"
+	"github.com/borg0ai/dx-issuegraph/internal/storage/dolt"
 )
 
 func TestCheckRepoFingerprint_UsesTargetRepoOutsideCWD(t *testing.T) {
@@ -19,24 +19,24 @@ func TestCheckRepoFingerprint_UsesTargetRepoOutsideCWD(t *testing.T) {
 	setupGitRepoInDir(t, outerRepo)
 	setupGitRepoInDir(t, targetRepo)
 
-	targetRepoID, err := beads.ComputeRepoIDForPath(targetRepo)
+	targetRepoID, err := issuegraph.ComputeRepoIDForPath(targetRepo)
 	if err != nil {
 		t.Fatalf("ComputeRepoIDForPath(targetRepo) failed: %v", err)
 	}
 
-	beadsDir := filepath.Join(targetRepo, ".beads")
+	issuegraphDir := filepath.Join(targetRepo, ".issuegraph")
 	cfg := &configfile.Config{
 		Database: "dolt",
 		Backend:  configfile.BackendDolt,
 	}
-	if err := cfg.Save(beadsDir); err != nil {
+	if err := cfg.Save(issuegraphDir); err != nil {
 		t.Fatalf("failed to save config: %v", err)
 	}
 
 	ctx := context.Background()
 	store, err := dolt.New(ctx, &dolt.Config{
-		Path:     filepath.Join(beadsDir, "dolt"),
-		Database: "beads",
+		Path:     filepath.Join(issuegraphDir, "dolt"),
+		Database: "issuegraph",
 	})
 	if err != nil {
 		t.Skipf("skipping: Dolt server not available: %v", err)

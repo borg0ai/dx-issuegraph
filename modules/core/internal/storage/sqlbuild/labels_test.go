@@ -4,11 +4,11 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/steveyegge/beads/internal/types"
+	"github.com/borg0ai/dx-issuegraph/internal/types"
 )
 
 // TestLabelSetClauses pins the SQL and arg ordering shared by the listing
-// commands that cannot take a label JOIN (bd stale, bd blocked). The clauses
+// commands that cannot take a label JOIN (issuegraph stale, issuegraph blocked). The clauses
 // must stay interchangeable with the equivalent blocks in
 // BuildIssueFilterClauses — see TestLabelSetClausesMatchesFilterClauses.
 func TestLabelSetClauses(t *testing.T) {
@@ -141,8 +141,8 @@ func TestLabelSetClausesPlaceholderArgAgreement(t *testing.T) {
 }
 
 // TestLabelSetClausesMatchesFilterClauses pins the helper against the inline
-// label handling in BuildIssueFilterClauses. The two must agree: bd stale and
-// bd blocked filter through the helper while bd list filters through
+// label handling in BuildIssueFilterClauses. The two must agree: issuegraph stale and
+// issuegraph blocked filter through the helper while issuegraph list filters through
 // BuildIssueFilterClauses, and a user is entitled to the same answer from
 // --label whichever command they reach for.
 func TestLabelSetClausesMatchesFilterClauses(t *testing.T) {

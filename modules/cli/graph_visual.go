@@ -6,8 +6,8 @@ import (
 	"os"
 	"strings"
 
-	"github.com/steveyegge/beads/internal/types"
-	"github.com/steveyegge/beads/internal/ui"
+	"github.com/borg0ai/dx-issuegraph/internal/types"
+	"github.com/borg0ai/dx-issuegraph/internal/ui"
 )
 
 // dagEdgeInfo represents a directed edge routed through a gutter column

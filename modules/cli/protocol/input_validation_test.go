@@ -5,7 +5,7 @@ import (
 	"testing"
 )
 
-// TestProtocol_UpdateRejectsEmptyTitle verifies that bd update --title ""
+// TestProtocol_UpdateRejectsEmptyTitle verifies that issuegraph update --title ""
 // exits non-zero rather than silently blanking the title.
 func TestProtocol_UpdateRejectsEmptyTitle(t *testing.T) {
 	t.Parallel()
@@ -37,7 +37,7 @@ func TestProtocol_UpdateRejectsWhitespaceTitle(t *testing.T) {
 	}
 }
 
-// TestProtocol_LabelAddRejectsEmptyLabel verifies that bd label add with
+// TestProtocol_LabelAddRejectsEmptyLabel verifies that issuegraph label add with
 // an empty label exits non-zero.
 func TestProtocol_LabelAddRejectsEmptyLabel(t *testing.T) {
 	t.Parallel()

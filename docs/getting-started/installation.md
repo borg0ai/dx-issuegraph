@@ -12,15 +12,15 @@ IssueGraph has several components - here's what they are and when you need them:
 | Component | What It Is | When You Need It |
 |-----------|------------|------------------|
 | **issuegraph CLI** | Core command-line tool | Always - this is the foundation |
-| **Claude Code Plugin** | Slash commands + enhanced UX | Optional - if you want `/beads:ready`, `/beads:create` commands |
-| **MCP Server (beads-mcp)** | Model Context Protocol interface | Only for MCP-only environments (Claude Desktop, Amp) |
+| **Claude Code Plugin** | Slash commands + enhanced UX | Optional - if you want `/issuegraph:ready`, `/issuegraph:create` commands |
+| **MCP Server (issuegraph-mcp)** | Model Context Protocol interface | Only for MCP-only environments (Claude Desktop, Amp) |
 
 **How they relate:**
 - The **issuegraph CLI** is the core - install it first via Homebrew, npm, or script
 - The **Plugin** enhances Claude Code with slash commands but *requires* the CLI installed
 - The **MCP server** is an *alternative* to the CLI for environments without shell access
 
-**Important:** IssueGraph is installed system-wide, not cloned into your project. The `.beads/` directory in your project only contains the issue database.
+**Important:** IssueGraph is installed system-wide, not cloned into your project. The `.issuegraph/` directory in your project only contains the issue database.
 
 **Typical setups:**
 
@@ -39,13 +39,13 @@ IssueGraph has several components - here's what they are and when you need them:
 ### Homebrew (macOS/Linux)
 
 ```bash
-brew install beads
+brew install systembugtj/luban-homebrew/issuegraph
 ```
 
-Homebrew core's `beads` formula is the supported Homebrew package. If you
-previously installed the old tap formula as `bd`, see
-[Migrating from the old Homebrew tap](/getting-started/upgrading#homebrew) to
-switch to the core formula.
+After the IssueGraph formula is published in
+[`systembugtj/luban-homebrew`](https://github.com/systembugtj/luban-homebrew),
+install it with that qualified formula name. It selects the matching macOS
+binary for Apple Silicon or Intel.
 
 **Why Homebrew?**
 - Simple one-command install
@@ -58,8 +58,8 @@ switch to the core formula.
 You can install issuegraph using [mise](https://mise.jdx.dev) from the latest GitHub release:
 
 ```bash
-mise install github:gastownhall/beads
-mise use -g github:gastownhall/beads
+mise install github:borg0ai/dx-issuegraph
+mise use -g github:borg0ai/dx-issuegraph
 ```
 
 The `-g` enables issuegraph globally. To enable project-specific versions, omit it.
@@ -75,7 +75,7 @@ Mise's Go backend follows the same caveats as `go install`; prefer the release b
 ### Quick Install Script (macOS/Linux/FreeBSD)
 
 ```bash
-curl -fsSL https://raw.githubusercontent.com/gastownhall/beads/main/scripts/install.sh | bash
+curl -fsSL https://raw.githubusercontent.com/borg0ai/dx-issuegraph/main/scripts/install.sh | bash
 ```
 
 The installer will:
@@ -88,17 +88,17 @@ The installer will:
 On macOS, the script preserves the downloaded binary signature by default. If you explicitly want ad-hoc local re-signing, opt in:
 
 ```bash
-BEADS_INSTALL_RESIGN_MACOS=1 curl -fsSL https://raw.githubusercontent.com/gastownhall/beads/main/scripts/install.sh | bash
+ISSUEGRAPH_INSTALL_RESIGN_MACOS=1 curl -fsSL https://raw.githubusercontent.com/borg0ai/dx-issuegraph/main/scripts/install.sh | bash
 ```
 
 ### Comparison of Installation Methods
 
 | Method | Best For | Updates | Prerequisites | Notes |
 |--------|----------|---------|---------------|-------|
-| **Homebrew** | macOS/Linux users | `brew upgrade beads` | Homebrew | Recommended. Handles everything automatically |
+| **Homebrew** | macOS/Linux users | `brew upgrade issuegraph` | Homebrew | Recommended. Handles everything automatically |
 | **Mise** | All platforms | `mise up` | mise | Installs the latest GitHub release |
-| **npm** | JS/Node.js projects | `npm update -g @beads/bd` | Node.js | Convenient if npm is your ecosystem |
-| **bun** | JS/Bun.js projects | `bun install -g --trust @beads/bd` | Bun.js | Convenient if bun is your ecosystem |
+| **npm** | JS/Node.js projects | `npm update -g @borg0ai/issuegraph` | Node.js | Convenient if npm is your ecosystem |
+| **bun** | JS/Bun.js projects | `bun install -g --trust @borg0ai/issuegraph` | Bun.js | Convenient if bun is your ecosystem |
 | **Install script** | Quick setup, CI/CD | Re-run script | curl, bash | Good for automation and one-liners |
 | **go install (nocgo)** | Go developers, simplest install | Re-run command | Go 1.24+ | **Server-mode only** (no embedded Dolt) |
 | **go install (cgo)** | Go developers wanting embedded mode | Re-run command | Go 1.24+, C compiler | Full embedded-Dolt support |
@@ -113,14 +113,14 @@ Use Homebrew, npm, or the install script if you do not specifically need `go ins
 
 `go install` has two supported modes that give different capabilities:
 
-- **Server-mode only (nocgo, simplest):** `CGO_ENABLED=0 go install github.com/steveyegge/beads/modules/cli@latest`. Works on any machine with a Go toolchain, no C compiler needed. Produces a server-mode-only binary — you must run an external `dolt sql-server` and use `issuegraph init --server`. See [Dolt](/architecture/dolt) for server-mode setup.
-- **Embedded-capable (cgo):** `CGO_ENABLED=1 GOFLAGS=-tags=gms_pure_go go install github.com/steveyegge/beads/modules/cli@latest`. Requires a C compiler (gcc/clang on Unix, MinGW on Windows). Produces a binary with the default embedded-Dolt backend — `issuegraph init` Just Works.
+- **Server-mode only (nocgo, simplest):** `CGO_ENABLED=0 go install github.com/borg0ai/dx-issuegraph/modules/cli@latest`. Works on any machine with a Go toolchain, no C compiler needed. Produces a server-mode-only binary — you must run an external `dolt sql-server` and use `issuegraph init --server`. See [Dolt](/architecture/dolt) for server-mode setup.
+- **Embedded-capable (cgo):** `CGO_ENABLED=1 GOFLAGS=-tags=gms_pure_go go install github.com/borg0ai/dx-issuegraph/modules/cli@latest`. Requires a C compiler (gcc/clang on Unix, MinGW on Windows). Produces a binary with the default embedded-Dolt backend — `issuegraph init` Just Works.
 
 ICU headers are not required. The embedded-capable command uses `gms_pure_go` so go-mysql-server uses Go's stdlib regexp instead of ICU.
 
-Use the `github.com/steveyegge/beads` path for `go install`. The repository now lives under `gastownhall/beads`, but released Go modules still declare `github.com/steveyegge/beads` for compatibility.
+Go install paths follow the repository and module layout: CLI at `github.com/borg0ai/dx-issuegraph/modules/cli`, core library at `github.com/borg0ai/dx-issuegraph`.
 
-If you don't have a preference, `brew install beads` or the install script give you the embedded-capable build with no fuss.
+If you don't have a preference, `brew install issuegraph` or the install script give you the embedded-capable build with no fuss.
 
 ### Build Dependencies (Contributors Only)
 
@@ -131,7 +131,7 @@ These dependencies are only needed if you build from source. If you installed vi
 Building from source requires a C compiler (for CGO / embedded Dolt). ICU is
 not required — all builds use the `gms_pure_go` tag which selects Go's
 stdlib `regexp` instead of ICU regex. See
-[ICU-POLICY.md](https://github.com/gastownhall/beads/blob/main/engdocs/ICU-POLICY.md)
+[ICU-POLICY.md](https://github.com/borg0ai/dx-issuegraph/blob/main/engdocs/ICU-POLICY.md)
 for details.
 
 macOS (Homebrew):
@@ -150,7 +150,7 @@ sudo dnf install -y libzstd-devel
 ```
 
 For maintainers only: if you intentionally need to run
-[scripts/test-icu-path.sh](https://github.com/gastownhall/beads/blob/main/scripts/test-icu-path.sh)
+[scripts/test-icu-path.sh](https://github.com/borg0ai/dx-issuegraph/blob/main/scripts/test-icu-path.sh)
 (which exercises the leftover ICU code path), install ICU headers:
 `brew install icu4c` (macOS) or `sudo apt-get install -y libicu-dev` (Linux).
 This is not needed for normal development.
@@ -161,64 +161,64 @@ This is not needed for normal development.
 
 **Via Homebrew** (recommended):
 ```bash
-brew install beads
+brew install issuegraph
 ```
 
 **Via go install** (server-mode only):
 ```bash
-CGO_ENABLED=0 go install github.com/steveyegge/beads/modules/cli@latest
+CGO_ENABLED=0 go install github.com/borg0ai/dx-issuegraph/modules/cli@latest
 ```
 
 **Via go install** (embedded-capable, needs Xcode CLI tools):
 ```bash
-CGO_ENABLED=1 GOFLAGS=-tags=gms_pure_go go install github.com/steveyegge/beads/modules/cli@latest
+CGO_ENABLED=1 GOFLAGS=-tags=gms_pure_go go install github.com/borg0ai/dx-issuegraph/modules/cli@latest
 ```
 
 **From source**:
 ```bash
-git clone https://github.com/gastownhall/beads
-cd beads
+git clone https://github.com/borg0ai/dx-issuegraph
+cd issuegraph
 make build
-sudo mv bd /usr/local/bin/
+sudo mv issuegraph /usr/local/bin/
 ```
 
 ### Linux
 
 **Via Homebrew** (works on Linux too):
 ```bash
-brew install beads
+brew install issuegraph
 ```
 
 **Arch Linux** (AUR):
 ```bash
 # Install from AUR
-yay -S beads-git
+yay -S issuegraph-git
 # or
-paru -S beads-git
+paru -S issuegraph-git
 ```
 
 Thanks to [@v4rgas](https://github.com/v4rgas) for maintaining the AUR package!
 
 **Via go install** (server-mode only):
 ```bash
-CGO_ENABLED=0 go install github.com/steveyegge/beads/modules/cli@latest
+CGO_ENABLED=0 go install github.com/borg0ai/dx-issuegraph/modules/cli@latest
 ```
 
 **Via go install** (embedded-capable, needs gcc):
 ```bash
-CGO_ENABLED=1 GOFLAGS=-tags=gms_pure_go go install github.com/steveyegge/beads/modules/cli@latest
+CGO_ENABLED=1 GOFLAGS=-tags=gms_pure_go go install github.com/borg0ai/dx-issuegraph/modules/cli@latest
 ```
 
 ### FreeBSD
 
 **Via quick install script**:
 ```bash
-curl -fsSL https://raw.githubusercontent.com/gastownhall/beads/main/scripts/install.sh | bash
+curl -fsSL https://raw.githubusercontent.com/borg0ai/dx-issuegraph/main/scripts/install.sh | bash
 ```
 
 **Via go install** (server-mode only):
 ```bash
-CGO_ENABLED=0 go install github.com/steveyegge/beads/modules/cli@latest
+CGO_ENABLED=0 go install github.com/borg0ai/dx-issuegraph/modules/cli@latest
 ```
 
 ### Windows 11
@@ -231,21 +231,21 @@ IssueGraph ships with native Windows support—no MSYS or MinGW required.
 
 **Via PowerShell script**:
 ```pwsh
-irm https://raw.githubusercontent.com/gastownhall/beads/main/install.ps1 | iex
+irm https://raw.githubusercontent.com/borg0ai/dx-issuegraph/main/install.ps1 | iex
 ```
 
 The script installs a prebuilt Windows release if available and verifies the downloaded ZIP checksum against release `checksums.txt`. Go is only required for `go install` or building from source.
 
 **Via go install** (server-mode only):
 ```pwsh
-$env:CGO_ENABLED="0"; go install github.com/steveyegge/beads/modules/cli@latest
+$env:CGO_ENABLED="0"; go install github.com/borg0ai/dx-issuegraph/modules/cli@latest
 ```
 
 This produces a server-mode-only binary with no C compiler requirement — the fastest path to a working `issuegraph` on Windows.
 
 **Via go install** (embedded-capable, needs a Windows CGO toolchain):
 ```pwsh
-$env:CGO_ENABLED="1"; $env:GOFLAGS="-tags=gms_pure_go"; go install github.com/steveyegge/beads/modules/cli@latest
+$env:CGO_ENABLED="1"; $env:GOFLAGS="-tags=gms_pure_go"; go install github.com/borg0ai/dx-issuegraph/modules/cli@latest
 ```
 
 Requires a GCC-compatible Windows CGO compiler on your PATH, such as
@@ -257,16 +257,16 @@ Go passes GCC-style CGO flags; use a MinGW/MSYS2 toolchain, set `CC`, or set
 
 **From source**:
 ```pwsh
-git clone https://github.com/gastownhall/beads
-cd beads
+git clone https://github.com/borg0ai/dx-issuegraph
+cd issuegraph
 make build
-Move-Item bd.exe $env:USERPROFILE\AppData\Local\Microsoft\WindowsApps\
+Move-Item issuegraph.exe $env:USERPROFILE\AppData\Local\Microsoft\WindowsApps\
 ```
 
 **Windows notes:**
 - The Dolt server listens on a loopback TCP endpoint
-- Allow `bd.exe` loopback traffic through any host firewall
-- Installed from npm, `issuegraph` is a `bd.cmd` shim — Node's `execFile`/`spawn`
+- Allow `issuegraph.exe` loopback traffic through any host firewall
+- Installed from npm, `issuegraph` is a `issuegraph.cmd` shim — Node's `execFile`/`spawn`
   need `shell: true` to run it ([details](/reference/troubleshooting#platform-specific-issues))
 
 ## IDE and Editor Integrations
@@ -277,7 +277,7 @@ The recommended approach for Claude Code, Cursor, Windsurf, and other editors wi
 
 ```bash
 # 1. Install issuegraph CLI (see Quick Install above)
-brew install beads
+brew install issuegraph
 
 # 2. Initialize in your project
 cd your-project
@@ -286,7 +286,7 @@ issuegraph init --quiet
 # 3. Setup editor integration (choose one)
 issuegraph setup claude   # Claude Code - installs SessionStart hooks
 issuegraph setup copilot  # GitHub Copilot CLI - creates .copilot-plugin/plugin.json + .github/copilot-instructions.md
-issuegraph setup cursor   # Cursor IDE - creates .cursor/rules/beads.mdc
+issuegraph setup cursor   # Cursor IDE - creates .cursor/rules/issuegraph.mdc
 issuegraph setup aider    # Aider - creates .aider.conf.yml
 issuegraph setup codex    # Codex CLI - installs IssueGraph skill, AGENTS.md guidance, and native hooks
 issuegraph setup factory  # Factory.ai Droid - creates/updates AGENTS.md
@@ -315,20 +315,20 @@ For enhanced UX with slash commands:
 
 ```bash
 # In Claude Code
-/plugin marketplace add gastownhall/beads
-/plugin install beads
+/plugin marketplace add borg0ai/dx-issuegraph
+/plugin install issuegraph
 # Restart Claude Code
 ```
 
 The plugin adds:
-- Slash commands: `/beads:ready`, `/beads:create`, `/beads:show`, `/beads:update`, `/beads:close`, etc.
+- Slash commands: `/issuegraph:ready`, `/issuegraph:create`, `/issuegraph:show`, `/issuegraph:update`, `/issuegraph:close`, etc.
 - Task agent for autonomous execution
 
 See [Claude Code Plugin](/integrations/claude-code-plugin) for complete plugin documentation.
 
 ### GitHub Copilot
 
-For **VS Code with GitHub Copilot**, install the MCP server (`uv tool install beads-mcp`) and create `.vscode/mcp.json` in your project — or add it to the VS Code user-level MCP config to enable it for all projects. See [GitHub Copilot](/integrations/github-copilot) for the complete setup guide, including the user-level config paths per platform.
+For **VS Code with GitHub Copilot**, install the MCP server (`uv tool install issuegraph-mcp`) and create `.vscode/mcp.json` in your project — or add it to the VS Code user-level MCP config to enable it for all projects. See [GitHub Copilot](/integrations/github-copilot) for the complete setup guide, including the user-level config paths per platform.
 
 For the **GitHub Copilot CLI** terminal integration:
 
@@ -345,10 +345,10 @@ Use MCP only when CLI is unavailable (Claude Desktop, Sourcegraph Amp without sh
 
 ```bash
 # Using uv (recommended)
-uv tool install beads-mcp
+uv tool install issuegraph-mcp
 
 # Or using pip
-pip install beads-mcp
+pip install issuegraph-mcp
 ```
 
 **Configuration for Claude Desktop** (macOS):
@@ -358,8 +358,8 @@ Add to `~/Library/Application Support/Claude/claude_desktop_config.json`:
 ```json
 {
   "mcpServers": {
-    "beads": {
-      "command": "beads-mcp"
+    "issuegraph": {
+      "command": "issuegraph-mcp"
     }
   }
 }
@@ -380,35 +380,35 @@ issuegraph help
 
 For additional troubleshooting, see [Troubleshooting](/reference/troubleshooting).
 
-### `bd: command not found`
+### `issuegraph: command not found`
 
 issuegraph is not in your PATH:
 
 ```bash
 # Check if installed
-go list -f {{.Target}} github.com/steveyegge/beads/modules/cli
+go list -f {{.Target}} github.com/borg0ai/dx-issuegraph/modules/cli
 
 # Add Go bin to PATH (add to ~/.bashrc or ~/.zshrc)
 export PATH="$PATH:$(go env GOPATH)/bin"
 
 # Or reinstall with the recommended installer
-curl -fsSL https://raw.githubusercontent.com/gastownhall/beads/main/scripts/install.sh | bash
+curl -fsSL https://raw.githubusercontent.com/borg0ai/dx-issuegraph/main/scripts/install.sh | bash
 ```
 
-### `zsh: killed bd` or crashes on macOS
+### `zsh: killed issuegraph` or crashes on macOS
 
 This is typically caused by CGO/SQLite compatibility issues:
 
 ```bash
 # Install an embedded-capable build
-CGO_ENABLED=1 GOFLAGS=-tags=gms_pure_go go install github.com/steveyegge/beads/modules/cli@latest
+CGO_ENABLED=1 GOFLAGS=-tags=gms_pure_go go install github.com/borg0ai/dx-issuegraph/modules/cli@latest
 ```
 
-If you installed via Homebrew, this shouldn't be necessary as the formula already enables CGO. If you're still seeing crashes with the Homebrew version, please [file an issue](https://github.com/gastownhall/beads/issues).
+If you installed via Homebrew, this shouldn't be necessary as the formula already enables CGO. If you're still seeing crashes with the Homebrew version, please [file an issue](https://github.com/borg0ai/dx-issuegraph/issues).
 
-### MCP server fails to start (standalone beads-mcp)
+### MCP server fails to start (standalone issuegraph-mcp)
 
-The Claude Code plugin itself does not bundle an MCP server. If you configured the standalone `beads-mcp` server (see [MCP Server](/integrations/mcp-server)) and it fails immediately, `uv` is likely not installed or not in your PATH.
+The Claude Code plugin itself does not bundle an MCP server. If you configured the standalone `issuegraph-mcp` server (see [MCP Server](/integrations/mcp-server)) and it fails immediately, `uv` is likely not installed or not in your PATH.
 
 **Symptoms:**
 - Plugin slash commands work, but MCP tools are unavailable
@@ -440,7 +440,7 @@ Upgrade checklist:
    `issuegraph dolt push`
    `issuegraph dolt pull`
 2. Back up before migration:
-   `issuegraph export --all -o .beads/backup/pre-migrate-$(date +%Y%m%d).jsonl`
+   `issuegraph export --all -o .issuegraph/backup/pre-migrate-$(date +%Y%m%d).jsonl`
 3. Upgrade using the command for your install method below.
 4. After upgrading:
    `issuegraph info --whats-new`
@@ -457,31 +457,31 @@ independently migrate. For the full procedure, see [Upgrading](/getting-started/
 ### Quick install script (macOS/Linux/FreeBSD)
 
 ```bash
-curl -fsSL https://raw.githubusercontent.com/gastownhall/beads/main/scripts/install.sh | bash
+curl -fsSL https://raw.githubusercontent.com/borg0ai/dx-issuegraph/main/scripts/install.sh | bash
 ```
 
 ### PowerShell installer (Windows)
 
 ```pwsh
-irm https://raw.githubusercontent.com/gastownhall/beads/main/install.ps1 | iex
+irm https://raw.githubusercontent.com/borg0ai/dx-issuegraph/main/install.ps1 | iex
 ```
 
 ### Homebrew
 
 ```bash
-brew upgrade beads
+brew upgrade issuegraph
 ```
 
 ### npm
 
 ```bash
-npm update -g @beads/bd
+npm update -g @borg0ai/issuegraph
 ```
 
 ### bun
 
 ```bash
-bun install -g --trust @beads/bd
+bun install -g --trust @borg0ai/issuegraph
 ```
 
 ### go install
@@ -490,19 +490,19 @@ Use whichever mode you installed with originally:
 
 ```bash
 # Server-mode only
-CGO_ENABLED=0 go install github.com/steveyegge/beads/modules/cli@latest
+CGO_ENABLED=0 go install github.com/borg0ai/dx-issuegraph/modules/cli@latest
 
 # Embedded-capable
-CGO_ENABLED=1 GOFLAGS=-tags=gms_pure_go go install github.com/steveyegge/beads/modules/cli@latest
+CGO_ENABLED=1 GOFLAGS=-tags=gms_pure_go go install github.com/borg0ai/dx-issuegraph/modules/cli@latest
 ```
 
 ### From source
 
 ```bash
-cd beads
+cd issuegraph
 git pull
 make build
-sudo mv bd /usr/local/bin/
+sudo mv issuegraph /usr/local/bin/
 ```
 
 Prereleases (e.g. release candidates) are published only as GitHub prereleases
@@ -522,4 +522,4 @@ After installation:
 1. **Initialize a project**: `cd your-project && issuegraph init`
 2. **Learn the basics**: See [Quick Start](/getting-started/quickstart)
 3. **Configure your agent**: See [IDE Setup](/getting-started/ide-setup), or run `issuegraph setup --list`
-4. **Explore examples**: Check out the [examples/](https://github.com/gastownhall/beads/tree/main/examples) directory
+4. **Explore examples**: Check out the [examples/](https://github.com/borg0ai/dx-issuegraph/tree/main/examples) directory

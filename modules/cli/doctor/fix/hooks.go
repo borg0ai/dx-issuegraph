@@ -79,18 +79,18 @@ func DetectExternalHookManagers(path string) []ExternalHookManager {
 	return managers
 }
 
-// HookIntegrationStatus represents the status of bd integration in an external hook manager.
+// HookIntegrationStatus represents the status of issuegraph integration in an external hook manager.
 type HookIntegrationStatus struct {
 	Manager          string   // Hook manager name
-	HooksWithBd      []string // Hooks that have bd integration (bd hooks run)
-	HooksWithoutBd   []string // Hooks configured but without bd integration
+	HooksWithBd      []string // Hooks that have issuegraph integration (issuegraph hooks run)
+	HooksWithoutBd   []string // Hooks configured but without issuegraph integration
 	HooksNotInConfig []string // Recommended hooks not in config at all
-	Configured       bool     // Whether any bd integration was found
+	Configured       bool     // Whether any issuegraph integration was found
 	DetectionOnly    bool     // True if we detected the manager but can't verify its config
 }
 
-// bdHookPattern matches the recommended bd hooks run pattern with word boundaries
-var bdHookPattern = regexp.MustCompile(`\bbd\s+hooks\s+run\b`)
+// issuegraphHookPattern matches the recommended issuegraph hooks run pattern with word boundaries
+var issuegraphHookPattern = regexp.MustCompile(`\bbd\s+hooks\s+run\b`)
 
 // hookManagerPattern pairs a manager name with its detection pattern.
 type hookManagerPattern struct {
@@ -159,14 +159,14 @@ func DetectActiveHookManager(path string) string {
 	return ""
 }
 
-// recommendedBdHooks are the hooks that should have bd integration
+// recommendedBdHooks are the hooks that should have issuegraph integration
 var recommendedBdHooks = []string{"pre-commit", "post-merge", "pre-push"}
 
 // lefthookConfigFiles lists lefthook config files (derived from hookManagerConfigs).
 // Format is inferred from extension.
 var lefthookConfigFiles = hookManagerConfigs[0].configFiles // lefthook is first
 
-// CheckLefthookBdIntegration parses lefthook config (YAML, TOML, or JSON) and checks if bd hooks are integrated.
+// CheckLefthookBdIntegration parses lefthook config (YAML, TOML, or JSON) and checks if issuegraph hooks are integrated.
 // See https://lefthook.dev/configuration/ for supported config file locations.
 func CheckLefthookBdIntegration(path string) *HookIntegrationStatus {
 	// Find first existing config file
@@ -219,12 +219,12 @@ func CheckLefthookBdIntegration(path string) *HookIntegrationStatus {
 			continue
 		}
 
-		// Walk to commands.*.run to check for bd hooks run
+		// Walk to commands.*.run to check for issuegraph hooks run
 		if hasBdInCommands(hookSection) {
 			status.HooksWithBd = append(status.HooksWithBd, hookName)
 			status.Configured = true
 		} else {
-			// Hook is in config but has no bd integration
+			// Hook is in config but has no issuegraph integration
 			status.HooksWithoutBd = append(status.HooksWithoutBd, hookName)
 		}
 	}
@@ -232,7 +232,7 @@ func CheckLefthookBdIntegration(path string) *HookIntegrationStatus {
 	return status
 }
 
-// hasBdInCommands checks if any command's "run" field contains bd hooks run.
+// hasBdInCommands checks if any command's "run" field contains issuegraph hooks run.
 // Walks the lefthook structure for both syntaxes:
 // - commands (map-based, older): hookSection.commands.*.run
 // - jobs (array-based, v1.10.0+): hookSection.jobs[*].run
@@ -267,7 +267,7 @@ func hasBdInCommands(hookSection interface{}) bool {
 	return false
 }
 
-// hasBdInRunField checks if a command/job config has bd hooks run in its "run" field.
+// hasBdInRunField checks if a command/job config has issuegraph hooks run in its "run" field.
 func hasBdInRunField(config interface{}) bool {
 	configMap, ok := config.(map[string]interface{})
 	if !ok {
@@ -284,13 +284,13 @@ func hasBdInRunField(config interface{}) bool {
 		return false
 	}
 
-	return bdHookPattern.MatchString(runStr)
+	return issuegraphHookPattern.MatchString(runStr)
 }
 
 // precommitConfigFiles lists pre-commit config files.
 var precommitConfigFiles = []string{".pre-commit-config.yaml", ".pre-commit-config.yml"}
 
-// CheckPrecommitBdIntegration parses pre-commit config and checks if bd hooks are integrated.
+// CheckPrecommitBdIntegration parses pre-commit config and checks if issuegraph hooks are integrated.
 // See https://pre-commit.com/ for config file format.
 func CheckPrecommitBdIntegration(path string) *HookIntegrationStatus {
 	// Find first existing config file
@@ -322,7 +322,7 @@ func CheckPrecommitBdIntegration(path string) *HookIntegrationStatus {
 		Configured: false,
 	}
 
-	// Track which hooks have bd integration
+	// Track which hooks have issuegraph integration
 	hooksWithBd := make(map[string]bool)
 
 	// Parse repos list
@@ -362,7 +362,7 @@ func CheckPrecommitBdIntegration(path string) *HookIntegrationStatus {
 				continue
 			}
 
-			// Check if entry contains bd hooks run
+			// Check if entry contains issuegraph hooks run
 			entry, ok := hookMap["entry"]
 			if !ok {
 				continue
@@ -373,11 +373,11 @@ func CheckPrecommitBdIntegration(path string) *HookIntegrationStatus {
 				continue
 			}
 
-			if !bdHookPattern.MatchString(entryStr) {
+			if !issuegraphHookPattern.MatchString(entryStr) {
 				continue
 			}
 
-			// Found bd hooks run - determine which hook stage(s) it applies to
+			// Found issuegraph hooks run - determine which hook stage(s) it applies to
 			stages := getPrecommitStages(hookMap)
 			for _, stage := range stages {
 				hooksWithBd[stage] = true
@@ -391,7 +391,7 @@ func CheckPrecommitBdIntegration(path string) *HookIntegrationStatus {
 			status.HooksWithBd = append(status.HooksWithBd, hookName)
 			status.Configured = true
 		} else {
-			// Hook not configured with bd integration
+			// Hook not configured with issuegraph integration
 			status.HooksNotInConfig = append(status.HooksNotInConfig, hookName)
 		}
 	}
@@ -439,7 +439,7 @@ func getPrecommitStages(hookMap map[string]interface{}) []string {
 	return result
 }
 
-// CheckHuskyBdIntegration checks .husky/ scripts for bd integration.
+// CheckHuskyBdIntegration checks .husky/ scripts for issuegraph integration.
 func CheckHuskyBdIntegration(path string) *HookIntegrationStatus {
 	huskyDir := filepath.Join(path, ".husky")
 	if _, err := os.Stat(huskyDir); os.IsNotExist(err) {
@@ -462,8 +462,8 @@ func CheckHuskyBdIntegration(path string) *HookIntegrationStatus {
 
 		contentStr := string(content)
 
-		// Check for bd hooks run pattern
-		if bdHookPattern.MatchString(contentStr) {
+		// Check for issuegraph hooks run pattern
+		if issuegraphHookPattern.MatchString(contentStr) {
 			status.HooksWithBd = append(status.HooksWithBd, hookName)
 			status.Configured = true
 		} else {
@@ -477,7 +477,7 @@ func CheckHuskyBdIntegration(path string) *HookIntegrationStatus {
 // hkConfigFiles lists hk config files (derived from hookManagerConfigs).
 var hkConfigFiles = []string{"hk.pkl", ".config/hk.pkl", "hk.local.pkl", ".config/hk.local.pkl"}
 
-// CheckHkBdIntegration checks hk Pkl config for bd integration.
+// CheckHkBdIntegration checks hk Pkl config for issuegraph integration.
 // hk uses Pkl configuration where hooks are nested under hooks { ["hook-name"] { steps { ... } } }.
 // See https://hk.jdx.dev/ for config format.
 func CheckHkBdIntegration(path string) *HookIntegrationStatus {
@@ -508,16 +508,16 @@ func CheckHkBdIntegration(path string) *HookIntegrationStatus {
 
 	// For each recommended hook, check two things:
 	// 1. Is the hook section present? (e.g., ["pre-commit"] appears in config)
-	// 2. Does "bd hooks run <hookname>" appear in the config?
-	// Since bd hooks run commands include the hook name, we can match them directly.
+	// 2. Does "issuegraph hooks run <hookname>" appear in the config?
+	// Since issuegraph hooks run commands include the hook name, we can match them directly.
 	for _, hookName := range recommendedBdHooks {
 		sectionPattern := regexp.MustCompile(`\[\s*"` + regexp.QuoteMeta(hookName) + `"\s*\]`)
 		hasBdRun := regexp.MustCompile(`\bbd\s+hooks\s+run\s+` + regexp.QuoteMeta(hookName) + `\b`)
 
 		sectionExists := sectionPattern.MatchString(contentStr)
-		bdRunExists := hasBdRun.MatchString(contentStr)
+		issuegraphRunExists := hasBdRun.MatchString(contentStr)
 
-		if bdRunExists {
+		if issuegraphRunExists {
 			status.HooksWithBd = append(status.HooksWithBd, hookName)
 			status.Configured = true
 		} else if sectionExists {
@@ -530,7 +530,7 @@ func CheckHkBdIntegration(path string) *HookIntegrationStatus {
 	return status
 }
 
-// checkManagerBdIntegration checks a specific manager for bd integration.
+// checkManagerBdIntegration checks a specific manager for issuegraph integration.
 func checkManagerBdIntegration(name, path string) *HookIntegrationStatus {
 	switch name {
 	case "lefthook":
@@ -551,7 +551,7 @@ func checkManagerBdIntegration(name, path string) *HookIntegrationStatus {
 	}
 }
 
-// CheckExternalHookManagerIntegration checks if detected hook managers have bd integration.
+// CheckExternalHookManagerIntegration checks if detected hook managers have issuegraph integration.
 func CheckExternalHookManagerIntegration(path string) *HookIntegrationStatus {
 	managers := DetectExternalHookManagers(path)
 	if len(managers) == 0 {
@@ -589,12 +589,12 @@ func ManagerNames(managers []ExternalHookManager) string {
 	return strings.Join(names, ", ")
 }
 
-// GitHooks fixes missing or broken git hooks by calling bd hooks install.
+// GitHooks fixes missing or broken git hooks by calling issuegraph hooks install.
 // If external hook managers are detected (lefthook, husky, etc.), it uses
 // --chain to preserve existing hooks instead of overwriting them.
 func GitHooks(path string) error {
 	// Validate workspace
-	if err := validateBeadsWorkspace(path); err != nil {
+	if err := validateIssueGraphWorkspace(path); err != nil {
 		return err
 	}
 
@@ -609,8 +609,8 @@ func GitHooks(path string) error {
 	// Detect external hook managers
 	externalManagers := DetectExternalHookManagers(path)
 
-	// Get bd binary path
-	bdBinary, err := getBdBinary()
+	// Get issuegraph binary path
+	issuegraphBinary, err := getBdBinary()
 	if err != nil {
 		return err
 	}
@@ -624,8 +624,8 @@ func GitHooks(path string) error {
 		args = append(args, "--chain")
 	}
 
-	// Run bd hooks install
-	cmd := newBdCmd(bdBinary, args...)
+	// Run issuegraph hooks install
+	cmd := newBdCmd(issuegraphBinary, args...)
 	cmd.Dir = path // Set working directory without changing process dir
 	cmd.Stdout = os.Stdout
 	cmd.Stderr = os.Stderr

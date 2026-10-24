@@ -4,19 +4,19 @@ import (
 	"fmt"
 	"path/filepath"
 
-	"github.com/steveyegge/beads/internal/doltserver"
+	"github.com/borg0ai/dx-issuegraph/internal/doltserver"
 )
 
 // DoltFormat fixes the "Dolt Format" warning by seeding the .bd-dolt-ok marker
 // for pre-0.56 dolt databases that are otherwise functional.
 //
-// In server mode, the .beads/dolt/.dolt/ directory is vestigial from an older
+// In server mode, the .issuegraph/dolt/.dolt/ directory is vestigial from an older
 // embedded Dolt setup. The data lives on the Dolt server. Seeding the marker
 // tells future doctor checks that this database has been acknowledged.
 func DoltFormat(path string) error {
-	// resolveBeadsDir follows .beads/redirect to find the actual beads directory
-	beadsDir := resolveBeadsDir(filepath.Join(path, ".beads"))
-	doltDir := filepath.Join(beadsDir, "dolt")
+	// resolveIssueGraphDir follows .issuegraph/redirect to find the actual issuegraph directory
+	issuegraphDir := resolveIssueGraphDir(filepath.Join(path, ".issuegraph"))
+	doltDir := filepath.Join(issuegraphDir, "dolt")
 
 	if !doltserver.IsPreV56DoltDir(doltDir) {
 		return nil // Already OK or no .dolt/ directory

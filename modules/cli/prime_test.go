@@ -11,19 +11,19 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/steveyegge/beads/internal/config"
+	"github.com/borg0ai/dx-issuegraph/internal/config"
 )
 
 // stubPrimeStoreUnavailable temporarily disconnects prime from any ambient
 // workspace store, so tests assert against prime's own text rather than
 // whatever database (and persistent memories) happens to exist in an ancestor
 // directory of the test process. Without this, a developer or verify runner
-// whose checkout is nested under a real beads workspace gets that workspace's
+// whose checkout is nested under a real issuegraph workspace gets that workspace's
 // live memory text injected into the output under test — e.g. a memory
 // containing "git pull" fails the stealth-mode rejectText assertions. CI never
 // sees the leak because its checkouts have no ancestor database.
 //
-// The stub reports ErrNoBeadsDatabase, i.e. "there is no workspace here" — the
+// The stub reports ErrNoIssueGraphDatabase, i.e. "there is no workspace here" — the
 // one memory-read failure prime still passes over in silence. Any other error
 // would (correctly, since gh#5877) render the storage-unavailable banner into
 // every one of these tests' output, and whether it did would depend on the
@@ -40,7 +40,7 @@ func stubPrimeStoreUnavailable() func() {
 	store = nil
 	storeActive = false
 	ensureStoreActiveForPrime = func(context.Context) error {
-		return fmt.Errorf("prime store stubbed out in test: %w", ErrNoBeadsDatabase)
+		return fmt.Errorf("prime store stubbed out in test: %w", ErrNoIssueGraphDatabase)
 	}
 	return func() {
 		store = origStore
@@ -75,8 +75,8 @@ func TestOutputContextFunction(t *testing.T) {
 			stealthMode:   false,
 			ephemeralMode: false,
 			localOnlyMode: false,
-			expectText:    []string{"Beads Workflow Context", "bd dolt push", "Team-maintainer behavior is opt-in", "conservative by default"},
-			rejectText:    []string{"bd export", "--from-main"},
+			expectText:    []string{"IssueGraph Workflow Context", "issuegraph dolt push", "Team-maintainer behavior is opt-in", "conservative by default"},
+			rejectText:    []string{"issuegraph export", "--from-main"},
 		},
 		{
 			name:          "CLI team-maintainer profile (non-ephemeral)",
@@ -85,8 +85,8 @@ func TestOutputContextFunction(t *testing.T) {
 			ephemeralMode: false,
 			localOnlyMode: false,
 			profile:       config.ProfileTeamMaintainer,
-			expectText:    []string{"Beads Workflow Context", "agent.profile=team-maintainer", "bd dolt push", "git push"},
-			rejectText:    []string{"bd export", "--from-main", "Team-maintainer behavior is opt-in"},
+			expectText:    []string{"IssueGraph Workflow Context", "agent.profile=team-maintainer", "issuegraph dolt push", "git push"},
+			rejectText:    []string{"issuegraph export", "--from-main", "Team-maintainer behavior is opt-in"},
 		},
 		{
 			name:          "CLI Normal (ephemeral)",
@@ -94,8 +94,8 @@ func TestOutputContextFunction(t *testing.T) {
 			stealthMode:   false,
 			ephemeralMode: true,
 			localOnlyMode: false,
-			expectText:    []string{"Beads Workflow Context", "bd dolt pull", "ephemeral branch"},
-			rejectText:    []string{"bd export", "git push", "--from-main"},
+			expectText:    []string{"IssueGraph Workflow Context", "issuegraph dolt pull", "ephemeral branch"},
+			rejectText:    []string{"issuegraph export", "git push", "--from-main"},
 		},
 		{
 			name:          "CLI no-push",
@@ -104,8 +104,8 @@ func TestOutputContextFunction(t *testing.T) {
 			ephemeralMode: false,
 			localOnlyMode: false,
 			noPushMode:    true,
-			expectText:    []string{"Beads Workflow Context", "push disabled", "report handoff"},
-			rejectText:    []string{"bd export", "--from-main"},
+			expectText:    []string{"IssueGraph Workflow Context", "push disabled", "report handoff"},
+			rejectText:    []string{"issuegraph export", "--from-main"},
 		},
 		{
 			name:          "CLI Stealth",
@@ -113,8 +113,8 @@ func TestOutputContextFunction(t *testing.T) {
 			stealthMode:   true,
 			ephemeralMode: false, // stealth mode overrides ephemeral detection
 			localOnlyMode: false,
-			expectText:    []string{"Beads Workflow Context", "bd close", "Git authority: no git operations in this context"},
-			rejectText:    []string{"git push", "git pull", "git commit", "git status", "git add", "bd export", "No git remote configured", "Git authority: local-only/no-remote"},
+			expectText:    []string{"IssueGraph Workflow Context", "issuegraph close", "Git authority: no git operations in this context"},
+			rejectText:    []string{"git push", "git pull", "git commit", "git status", "git add", "issuegraph export", "No git remote configured", "Git authority: local-only/no-remote"},
 		},
 		{
 			name:          "CLI Local-only (no git remote)",
@@ -122,8 +122,8 @@ func TestOutputContextFunction(t *testing.T) {
 			stealthMode:   false,
 			ephemeralMode: false,
 			localOnlyMode: true,
-			expectText:    []string{"Beads Workflow Context", "bd close", "No git remote configured", "Do not push, pull, or run remote sync", "Local git operations follow active user, orchestrator, and repository authority", "Git authority: local-only/no-remote", "git status"},
-			rejectText:    []string{"git push", "git pull", "bd dolt push", "bd dolt pull", "--from-main", "bd export", "Git authority: no git operations in this context"},
+			expectText:    []string{"IssueGraph Workflow Context", "issuegraph close", "No git remote configured", "Do not push, pull, or run remote sync", "Local git operations follow active user, orchestrator, and repository authority", "Git authority: local-only/no-remote", "git status"},
+			rejectText:    []string{"git push", "git pull", "issuegraph dolt push", "issuegraph dolt pull", "--from-main", "issuegraph export", "Git authority: no git operations in this context"},
 		},
 		{
 			name:          "CLI Local-only team-maintainer profile",
@@ -132,8 +132,8 @@ func TestOutputContextFunction(t *testing.T) {
 			ephemeralMode: false,
 			localOnlyMode: true,
 			profile:       config.ProfileTeamMaintainer,
-			expectText:    []string{"Beads Workflow Context", "Git authority: local-only/no-remote", "agent.profile=team-maintainer", "git commit"},
-			rejectText:    []string{"git push", "git pull", "bd dolt push", "bd dolt pull", "wait for authority", "Git authority: no git operations in this context"},
+			expectText:    []string{"IssueGraph Workflow Context", "Git authority: local-only/no-remote", "agent.profile=team-maintainer", "git commit"},
+			rejectText:    []string{"git push", "git pull", "issuegraph dolt push", "issuegraph dolt pull", "wait for authority", "Git authority: no git operations in this context"},
 		},
 		{
 			name:          "CLI Local-only overrides ephemeral",
@@ -141,8 +141,8 @@ func TestOutputContextFunction(t *testing.T) {
 			stealthMode:   false,
 			ephemeralMode: true, // ephemeral is true but local-only takes precedence
 			localOnlyMode: true,
-			expectText:    []string{"Beads Workflow Context", "bd close", "No git remote configured", "Do not push, pull, or run remote sync", "Local git operations follow active user, orchestrator, and repository authority", "Git authority: local-only/no-remote", "git status"},
-			rejectText:    []string{"git push", "git pull", "bd dolt push", "bd dolt pull", "--from-main", "ephemeral branch", "bd export", "Git authority: no git operations in this context"},
+			expectText:    []string{"IssueGraph Workflow Context", "issuegraph close", "No git remote configured", "Do not push, pull, or run remote sync", "Local git operations follow active user, orchestrator, and repository authority", "Git authority: local-only/no-remote", "git status"},
+			rejectText:    []string{"git push", "git pull", "issuegraph dolt push", "issuegraph dolt pull", "--from-main", "ephemeral branch", "issuegraph export", "Git authority: no git operations in this context"},
 		},
 		{
 			name:          "CLI Stealth overrides local-only",
@@ -150,8 +150,8 @@ func TestOutputContextFunction(t *testing.T) {
 			stealthMode:   true,
 			ephemeralMode: false,
 			localOnlyMode: true, // local-only is true but stealth takes precedence
-			expectText:    []string{"Beads Workflow Context", "bd close", "Git authority: no git operations in this context"},
-			rejectText:    []string{"git push", "git pull", "git commit", "git status", "git add", "No git remote configured", "Git authority: local-only/no-remote", "bd export"},
+			expectText:    []string{"IssueGraph Workflow Context", "issuegraph close", "Git authority: no git operations in this context"},
+			rejectText:    []string{"git push", "git pull", "git commit", "git status", "git add", "No git remote configured", "Git authority: local-only/no-remote", "issuegraph export"},
 		},
 		{
 			name:          "MCP Normal (non-ephemeral)",
@@ -159,8 +159,8 @@ func TestOutputContextFunction(t *testing.T) {
 			stealthMode:   false,
 			ephemeralMode: false,
 			localOnlyMode: false,
-			expectText:    []string{"Beads Issue Tracker Active", "Team-maintainer behavior is opt-in"},
-			rejectText:    []string{"bd export", "--from-main"},
+			expectText:    []string{"IssueGraph Issue Tracker Active", "Team-maintainer behavior is opt-in"},
+			rejectText:    []string{"issuegraph export", "--from-main"},
 		},
 		{
 			name:          "MCP team-maintainer profile (non-ephemeral)",
@@ -169,8 +169,8 @@ func TestOutputContextFunction(t *testing.T) {
 			ephemeralMode: false,
 			localOnlyMode: false,
 			profile:       config.ProfileTeamMaintainer,
-			expectText:    []string{"Beads Issue Tracker Active", "agent.profile=team-maintainer", "bd dolt push"},
-			rejectText:    []string{"bd export", "--from-main", "Team-maintainer behavior is opt-in"},
+			expectText:    []string{"IssueGraph Issue Tracker Active", "agent.profile=team-maintainer", "issuegraph dolt push"},
+			rejectText:    []string{"issuegraph export", "--from-main", "Team-maintainer behavior is opt-in"},
 		},
 		{
 			name:          "MCP Normal (ephemeral)",
@@ -178,8 +178,8 @@ func TestOutputContextFunction(t *testing.T) {
 			stealthMode:   false,
 			ephemeralMode: true,
 			localOnlyMode: false,
-			expectText:    []string{"Beads Issue Tracker Active", "ephemeral branch"},
-			rejectText:    []string{"bd export", "git push", "--from-main"},
+			expectText:    []string{"IssueGraph Issue Tracker Active", "ephemeral branch"},
+			rejectText:    []string{"issuegraph export", "git push", "--from-main"},
 		},
 		{
 			name:          "MCP no-push",
@@ -188,8 +188,8 @@ func TestOutputContextFunction(t *testing.T) {
 			ephemeralMode: false,
 			localOnlyMode: false,
 			noPushMode:    true,
-			expectText:    []string{"Beads Issue Tracker Active", "push disabled"},
-			rejectText:    []string{"bd export", "--from-main"},
+			expectText:    []string{"IssueGraph Issue Tracker Active", "push disabled"},
+			rejectText:    []string{"issuegraph export", "--from-main"},
 		},
 		{
 			name:          "MCP Stealth",
@@ -197,8 +197,8 @@ func TestOutputContextFunction(t *testing.T) {
 			stealthMode:   true,
 			ephemeralMode: false, // stealth mode overrides ephemeral detection
 			localOnlyMode: false,
-			expectText:    []string{"Beads Issue Tracker Active", "bd close", "Git authority: no git operations in this context"},
-			rejectText:    []string{"git push", "git pull", "git commit", "git status", "git add", "bd export", "No git remote configured", "Git authority: local-only/no-remote"},
+			expectText:    []string{"IssueGraph Issue Tracker Active", "issuegraph close", "Git authority: no git operations in this context"},
+			rejectText:    []string{"git push", "git pull", "git commit", "git status", "git add", "issuegraph export", "No git remote configured", "Git authority: local-only/no-remote"},
 		},
 		{
 			name:          "MCP Local-only (no git remote)",
@@ -206,8 +206,8 @@ func TestOutputContextFunction(t *testing.T) {
 			stealthMode:   false,
 			ephemeralMode: false,
 			localOnlyMode: true,
-			expectText:    []string{"Beads Issue Tracker Active", "bd close", "No git remote configured", "Do not push, pull, or run remote sync", "Local git operations follow active user, orchestrator, and repository authority", "Git authority: local-only/no-remote", "git status"},
-			rejectText:    []string{"git push", "git pull", "bd dolt push", "bd dolt pull", "--from-main", "bd export", "Git authority: no git operations in this context"},
+			expectText:    []string{"IssueGraph Issue Tracker Active", "issuegraph close", "No git remote configured", "Do not push, pull, or run remote sync", "Local git operations follow active user, orchestrator, and repository authority", "Git authority: local-only/no-remote", "git status"},
+			rejectText:    []string{"git push", "git pull", "issuegraph dolt push", "issuegraph dolt pull", "--from-main", "issuegraph export", "Git authority: no git operations in this context"},
 		},
 		{
 			name:          "MCP Local-only team-maintainer profile",
@@ -216,8 +216,8 @@ func TestOutputContextFunction(t *testing.T) {
 			ephemeralMode: false,
 			localOnlyMode: true,
 			profile:       config.ProfileTeamMaintainer,
-			expectText:    []string{"Beads Issue Tracker Active", "Git authority: local-only/no-remote", "No git remote configured", "agent.profile=team-maintainer", "commit local changes"},
-			rejectText:    []string{"git push", "git pull", "bd dolt push", "bd dolt pull", "proposed handoff", "Git authority: no git operations in this context"},
+			expectText:    []string{"IssueGraph Issue Tracker Active", "Git authority: local-only/no-remote", "No git remote configured", "agent.profile=team-maintainer", "commit local changes"},
+			rejectText:    []string{"git push", "git pull", "issuegraph dolt push", "issuegraph dolt pull", "proposed handoff", "Git authority: no git operations in this context"},
 		},
 		{
 			name:          "MCP Local-only overrides ephemeral",
@@ -225,8 +225,8 @@ func TestOutputContextFunction(t *testing.T) {
 			stealthMode:   false,
 			ephemeralMode: true, // ephemeral is true but local-only takes precedence
 			localOnlyMode: true,
-			expectText:    []string{"Beads Issue Tracker Active", "bd close", "No git remote configured", "Do not push, pull, or run remote sync", "Local git operations follow active user, orchestrator, and repository authority", "Git authority: local-only/no-remote", "git status"},
-			rejectText:    []string{"git push", "git pull", "bd dolt push", "bd dolt pull", "--from-main", "ephemeral branch", "bd export", "Git authority: no git operations in this context"},
+			expectText:    []string{"IssueGraph Issue Tracker Active", "issuegraph close", "No git remote configured", "Do not push, pull, or run remote sync", "Local git operations follow active user, orchestrator, and repository authority", "Git authority: local-only/no-remote", "git status"},
+			rejectText:    []string{"git push", "git pull", "issuegraph dolt push", "issuegraph dolt pull", "--from-main", "ephemeral branch", "issuegraph export", "Git authority: no git operations in this context"},
 		},
 		{
 			name:          "MCP Stealth overrides local-only",
@@ -234,13 +234,13 @@ func TestOutputContextFunction(t *testing.T) {
 			stealthMode:   true,
 			ephemeralMode: false,
 			localOnlyMode: true, // local-only is true but stealth takes precedence
-			expectText:    []string{"Beads Issue Tracker Active", "bd close", "Git authority: no git operations in this context"},
-			rejectText:    []string{"git push", "git pull", "git commit", "git status", "git add", "bd export", "Git authority: local-only/no-remote"},
+			expectText:    []string{"IssueGraph Issue Tracker Active", "issuegraph close", "Git authority: no git operations in this context"},
+			rejectText:    []string{"git push", "git pull", "git commit", "git status", "git add", "issuegraph export", "Git authority: local-only/no-remote"},
 		},
 		// The following cases pin the two-axis fix (gh#4130, gh#4230 review):
 		// git-remote presence (localOnlyMode) must drive git push/pull hints
 		// independently of Dolt sync-remote presence (noSyncRemoteMode),
-		// which must drive only the "bd dolt push"/"bd dolt pull" hint lines.
+		// which must drive only the "issuegraph dolt push"/"issuegraph dolt pull" hint lines.
 		{
 			name:             "CLI git remote present, no sync remote (non-ephemeral)",
 			mcpMode:          false,
@@ -248,8 +248,8 @@ func TestOutputContextFunction(t *testing.T) {
 			ephemeralMode:    false,
 			localOnlyMode:    false, // git remote present -> git hints retained
 			noSyncRemoteMode: true,  // no Dolt sync remote -> dolt hints dropped
-			expectText:       []string{"Beads Workflow Context", "git status", "conservative by default"},
-			rejectText:       []string{"bd dolt push", "bd dolt pull", "No git remote configured", "Git authority: local-only/no-remote"},
+			expectText:       []string{"IssueGraph Workflow Context", "git status", "conservative by default"},
+			rejectText:       []string{"issuegraph dolt push", "issuegraph dolt pull", "No git remote configured", "Git authority: local-only/no-remote"},
 		},
 		{
 			name:             "CLI git remote present, no sync remote (ephemeral)",
@@ -258,8 +258,8 @@ func TestOutputContextFunction(t *testing.T) {
 			ephemeralMode:    true,
 			localOnlyMode:    false,
 			noSyncRemoteMode: true,
-			expectText:       []string{"Beads Workflow Context", "ephemeral branch", "git status"},
-			rejectText:       []string{"bd dolt push", "bd dolt pull", "No git remote configured"},
+			expectText:       []string{"IssueGraph Workflow Context", "ephemeral branch", "git status"},
+			rejectText:       []string{"issuegraph dolt push", "issuegraph dolt pull", "No git remote configured"},
 		},
 		{
 			name:             "CLI git remote present, no sync remote (team-maintainer)",
@@ -269,8 +269,8 @@ func TestOutputContextFunction(t *testing.T) {
 			localOnlyMode:    false,
 			noSyncRemoteMode: true,
 			profile:          config.ProfileTeamMaintainer,
-			expectText:       []string{"Beads Workflow Context", "agent.profile=team-maintainer", "git push"},
-			rejectText:       []string{"bd dolt push", "bd dolt pull", "No git remote configured"},
+			expectText:       []string{"IssueGraph Workflow Context", "agent.profile=team-maintainer", "git push"},
+			rejectText:       []string{"issuegraph dolt push", "issuegraph dolt pull", "No git remote configured"},
 		},
 		{
 			name:             "MCP git remote present, no sync remote (team-maintainer)",
@@ -280,8 +280,8 @@ func TestOutputContextFunction(t *testing.T) {
 			localOnlyMode:    false,
 			noSyncRemoteMode: true,
 			profile:          config.ProfileTeamMaintainer,
-			expectText:       []string{"Beads Issue Tracker Active", "agent.profile=team-maintainer", "commit and git push"},
-			rejectText:       []string{"bd dolt push", "bd dolt pull", "No git remote configured"},
+			expectText:       []string{"IssueGraph Issue Tracker Active", "agent.profile=team-maintainer", "commit and git push"},
+			rejectText:       []string{"issuegraph dolt push", "issuegraph dolt pull", "No git remote configured"},
 		},
 		{
 			name:          "CLI sync remote present (no-push) -> dolt hints retained",
@@ -290,7 +290,7 @@ func TestOutputContextFunction(t *testing.T) {
 			ephemeralMode: false,
 			localOnlyMode: false,
 			noPushMode:    true,
-			expectText:    []string{"Beads Workflow Context", "bd dolt push", "bd dolt pull", "push disabled"},
+			expectText:    []string{"IssueGraph Workflow Context", "issuegraph dolt push", "issuegraph dolt pull", "push disabled"},
 			rejectText:    []string{"No git remote configured"},
 		},
 	}
@@ -367,8 +367,8 @@ func TestPrimeLocalOnlyDoesNotClaimNoGitAuthority(t *testing.T) {
 				"Git authority: no git operations in this context",
 				"git push",
 				"git pull",
-				"bd dolt push",
-				"bd dolt pull",
+				"issuegraph dolt push",
+				"issuegraph dolt pull",
 			} {
 				if strings.Contains(output, rejected) {
 					t.Fatalf("local-only output should not contain %q; output:\n%s", rejected, output)
@@ -389,11 +389,11 @@ func TestPrimeClaimGuidanceUsesAtomicClaim(t *testing.T) {
 	}
 
 	output := buf.String()
-	if !strings.Contains(output, "bd update <id> --claim") {
-		t.Fatal("prime output should teach bd update <id> --claim")
+	if !strings.Contains(output, "issuegraph update <id> --claim") {
+		t.Fatal("prime output should teach issuegraph update <id> --claim")
 	}
-	if strings.Contains(output, "bd update <id> --status=in_progress") {
-		t.Fatal("prime output should not teach bd update <id> --status=in_progress")
+	if strings.Contains(output, "issuegraph update <id> --status=in_progress") {
+		t.Fatal("prime output should not teach issuegraph update <id> --status=in_progress")
 	}
 }
 
@@ -482,27 +482,27 @@ func stubPrimeStoreOpen(t *testing.T, err error) {
 // entirely, so "no memories" and "memory plane down" produced identical output
 // and an identical exit 0. The failure must now announce itself.
 func TestFormatMemoriesForPrimeReportsUnavailableStore(t *testing.T) {
-	openErr := fmt.Errorf("failed to open database: dial tcp 127.0.0.1:3308: connect: connection refused\nHint: run bd doctor")
+	openErr := fmt.Errorf("failed to open database: dial tcp 127.0.0.1:3308: connect: connection refused\nHint: run issuegraph doctor")
 
 	tests := []struct {
 		name    string
 		compact bool
 		header  string
 	}{
-		{name: "full", compact: false, header: "## Persistent Memories\n\nSkipped: beads storage unavailable ("},
-		{name: "compact", compact: true, header: "## Memories\n- Skipped: beads storage unavailable ("},
+		{name: "full", compact: false, header: "## Persistent Memories\n\nSkipped: issuegraph storage unavailable ("},
+		{name: "compact", compact: true, header: "## Memories\n- Skipped: issuegraph storage unavailable ("},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			stubPrimeStoreOpen(t, openErr)
 
 			out := formatMemoriesForPrime(tt.compact)
-			for _, want := range []string{tt.header, "connection refused", "were NOT injected this session", "bd doctor"} {
+			for _, want := range []string{tt.header, "connection refused", "were NOT injected this session", "issuegraph doctor"} {
 				if !strings.Contains(out, want) {
 					t.Fatalf("prime memory output missing %q, got %q", want, out)
 				}
 			}
-			if strings.Contains(out, "Hint: run bd doctor") {
+			if strings.Contains(out, "Hint: run issuegraph doctor") {
 				t.Fatalf("multi-line store error leaked past the first line into prime output: %q", out)
 			}
 		})
@@ -512,7 +512,7 @@ func TestFormatMemoriesForPrimeReportsUnavailableStore(t *testing.T) {
 // A workspace-less directory is the one failure prime still swallows: there is
 // nothing to inject and nothing is wrong, so a fresh checkout gets no banner.
 func TestFormatMemoriesForPrimeStaysSilentWithoutWorkspace(t *testing.T) {
-	stubPrimeStoreOpen(t, fmt.Errorf("%w.\nHint: run 'bd init'", ErrNoBeadsDatabase))
+	stubPrimeStoreOpen(t, fmt.Errorf("%w.\nHint: run 'issuegraph init'", ErrNoIssueGraphDatabase))
 
 	for _, compact := range []bool{false, true} {
 		if out := formatMemoriesForPrime(compact); out != "" {
@@ -534,7 +534,7 @@ func TestFormatPrimeMemoryUnavailable(t *testing.T) {
 			compact: false,
 			err:     errors.New("connection refused"),
 			want: []string{
-				"\n## Persistent Memories\n\nSkipped: beads storage unavailable (connection refused) — persistent memories were NOT injected this session.",
+				"\n## Persistent Memories\n\nSkipped: issuegraph storage unavailable (connection refused) — persistent memories were NOT injected this session.",
 				"if the store is a Dolt server, check it is running and reachable.",
 			},
 		},
@@ -542,7 +542,7 @@ func TestFormatPrimeMemoryUnavailable(t *testing.T) {
 			name:    "compact shape",
 			compact: true,
 			err:     errors.New("connection refused"),
-			want:    []string{"\n## Memories\n- Skipped: beads storage unavailable (connection refused) — persistent memories were NOT injected this session."},
+			want:    []string{"\n## Memories\n- Skipped: issuegraph storage unavailable (connection refused) — persistent memories were NOT injected this session."},
 			reject:  []string{"## Persistent Memories"},
 		},
 		{
@@ -583,7 +583,7 @@ func TestPrimeErrorSummary(t *testing.T) {
 		{name: "nil", err: nil, want: "unknown error"},
 		{name: "blank", err: errors.New("  \n  "), want: "unknown error"},
 		{name: "single line", err: errors.New("connection refused"), want: "connection refused"},
-		{name: "first line only", err: errors.New("open failed: boom\nHint: run bd doctor\nmore detail"), want: "open failed: boom"},
+		{name: "first line only", err: errors.New("open failed: boom\nHint: run issuegraph doctor\nmore detail"), want: "open failed: boom"},
 		{name: "whitespace collapsed", err: errors.New("open   failed:\tboom"), want: "open failed: boom"},
 		{name: "capped", err: errors.New(long), want: strings.Repeat("é", primeMemoryErrorMaxLen) + "…"},
 	}
@@ -621,8 +621,8 @@ func TestPrimeContextUsesWorkspaceLanguage(t *testing.T) {
 	if !strings.Contains(output, "resolved") || !strings.Contains(output, "workspace") {
 		t.Fatalf("prime output should describe resolved workspace semantics: %s", output)
 	}
-	if strings.Contains(output, "when .beads/ detected") {
-		t.Fatal("prime output should not imply local .beads detection is required")
+	if strings.Contains(output, "when .issuegraph/ detected") {
+		t.Fatal("prime output should not imply local .issuegraph detection is required")
 	}
 }
 
@@ -697,13 +697,13 @@ func stubPrimeHasSyncRemote(hasSyncRemote bool) func() {
 func TestPrimeGlobalFallback(t *testing.T) {
 	// Create a temp directory to act as config dir
 	tmpDir := t.TempDir()
-	beadsConfigDir := filepath.Join(tmpDir, "beads")
-	if err := os.MkdirAll(beadsConfigDir, 0755); err != nil {
+	issuegraphConfigDir := filepath.Join(tmpDir, "issuegraph")
+	if err := os.MkdirAll(issuegraphConfigDir, 0755); err != nil {
 		t.Fatalf("mkdir: %v", err)
 	}
 
 	content := "# Global PRIME override\nCustom instructions here.\n"
-	if err := os.WriteFile(filepath.Join(beadsConfigDir, "PRIME.md"), []byte(content), 0644); err != nil {
+	if err := os.WriteFile(filepath.Join(issuegraphConfigDir, "PRIME.md"), []byte(content), 0644); err != nil {
 		t.Fatalf("write PRIME.md: %v", err)
 	}
 

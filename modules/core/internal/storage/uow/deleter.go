@@ -4,11 +4,11 @@ import (
 	"context"
 	"fmt"
 
-	"github.com/steveyegge/beads/internal/storage/dberrors"
-	"github.com/steveyegge/beads/internal/storage/domain"
-	"github.com/steveyegge/beads/internal/types"
-	"github.com/steveyegge/beads/internal/workapi"
-	publicops "github.com/steveyegge/beads/issueops"
+	"github.com/borg0ai/dx-issuegraph/internal/storage/dberrors"
+	"github.com/borg0ai/dx-issuegraph/internal/storage/domain"
+	"github.com/borg0ai/dx-issuegraph/internal/types"
+	"github.com/borg0ai/dx-issuegraph/internal/workapi"
+	publicops "github.com/borg0ai/dx-issuegraph/issueops"
 )
 
 // DeleterSource is the capability accessor a unit-of-work provider offers for
@@ -72,7 +72,7 @@ func (d *deleter) Delete(ctx context.Context, req publicops.DeleteRequest) (publ
 			// no-op.
 			return result, "", err
 		}
-		return result, fmt.Sprintf("bd: delete %d issue(s)", result.Deleted), nil
+		return result, fmt.Sprintf("issuegraph: delete %d issue(s)", result.Deleted), nil
 	})
 }
 

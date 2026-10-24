@@ -7,12 +7,12 @@ import (
 	"regexp"
 	"strings"
 
-	"github.com/steveyegge/beads/internal/types"
+	"github.com/borg0ai/dx-issuegraph/internal/types"
 )
 
 // Pollution detection utilities used by doctor_pollution.go, create.go, and export.go.
-// The deprecated 'bd detect-pollution' command has been removed;
-// use 'bd doctor --check=pollution' instead.
+// The deprecated 'issuegraph detect-pollution' command has been removed;
+// use 'issuegraph doctor --check=pollution' instead.
 
 type pollutionResult struct {
 	issue   *types.Issue

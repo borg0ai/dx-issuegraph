@@ -65,7 +65,7 @@
 //	}
 //
 // An EXTERNAL module writes the same test naming the engine interface through
-// its public alias, github.com/steveyegge/beads/backend.DoltStorage — the
+// its public alias, github.com/borg0ai/dx-issuegraph/backend.DoltStorage — the
 // identical type, so the factory literal satisfies Factory as-is. The whole
 // public contract an external backend implements (interface, signature types,
 // registry, sentinels) lives in that backend package.
@@ -74,7 +74,7 @@
 //
 // EXPERIMENTAL, same terms as the backend package: the suite tracks the
 // evolving storage contract, and new assertions or entry points may appear in
-// any release. Pin an exact beads version and re-run the suite on every bump.
+// any release. Pin an exact issuegraph version and re-run the suite on every bump.
 package conformance
 
 import (
@@ -89,8 +89,8 @@ import (
 	"testing"
 	"time"
 
-	"github.com/steveyegge/beads/internal/storage"
-	"github.com/steveyegge/beads/internal/types"
+	"github.com/borg0ai/dx-issuegraph/internal/storage"
+	"github.com/borg0ai/dx-issuegraph/internal/types"
 )
 
 var (
@@ -165,7 +165,7 @@ func RunUnsupportedContract(t *testing.T, store any, unsupported map[string]stri
 //
 // The returned store must be initialized and ready to accept writes: in
 // particular the backend's required config (e.g. issue_prefix) must already be
-// set, exactly as `bd init` would leave it. The suite only exercises behavior;
+// set, exactly as `issuegraph init` would leave it. The suite only exercises behavior;
 // it does not perform backend initialization.
 type Factory func(t *testing.T) storage.DoltStorage
 
@@ -310,7 +310,7 @@ func must(t *testing.T, err error) {
 
 // withDefaults fills the Status and IssueType that the storage contract
 // requires on every issue (the storage layer validates them and does not
-// default them; bd's CLI layer is what normally supplies open/task). Tests
+// default them; issuegraph's CLI layer is what normally supplies open/task). Tests
 // that do not care about these fields can leave them unset and stay terse;
 // explicit values set by a test are preserved.
 func withDefaults(i *types.Issue) *types.Issue {
@@ -369,9 +369,9 @@ func testCreateAndGet(t *testing.T, f Factory) {
 // The raw CreateIssue verb is an UPSERT: a second write to an occupied ID
 // reconciles into the one row. The Operations role is CREATE-ONLY: the same
 // second write is refused with ErrAlreadyExists and the stored row must come
-// back byte-identical. This is a deliberate divergence, not drift — `bd create
+// back byte-identical. This is a deliberate divergence, not drift — `issuegraph create
 // --id <occupied>` used to reach the upsert through the proxied server and
-// silently overwrite a bead while the direct route refused, which is the
+// silently overwrite a issue while the direct route refused, which is the
 // regression that contract case exists for. This case is the only observer of
 // the unguarded path, which is still what import and reconcile callers ride.
 func testCreateDuplicate(t *testing.T, f Factory) {
@@ -380,7 +380,7 @@ func testCreateDuplicate(t *testing.T, f Factory) {
 
 	// Creating an issue with an existing ID must not silently fork into a
 	// second, divergent row. Backends differ on how they reconcile the second
-	// write (beads' storage layer upserts; another backend might error or
+	// write (issuegraph' storage layer upserts; another backend might error or
 	// skip), so the contract asserts only the invariant that matters for data
 	// integrity: exactly one row exists for the ID afterward. It deliberately
 	// does NOT bless last-writer-wins overwrite — whether a duplicate create
@@ -578,8 +578,8 @@ func testSearchLimit(t *testing.T, f Factory) {
 //
 // The nil-error half is the load-bearing one. internal/utils/id_parser.go
 // branches on `err == nil && len(results) > 0` (GH#942), so a backend that
-// reports a miss as an error silently pushes every user-typed `bd show`,
-// `bd update` and `bd close` argument onto the slow substring path. The pinned
+// reports a miss as an error silently pushes every user-typed `issuegraph show`,
+// `issuegraph update` and `issuegraph close` argument onto the slow substring path. The pinned
 // testGetByIDs covers the different GetIssuesByIDs method; no case sends
 // IssueFilter.IDs to SearchIssues.
 //
@@ -655,13 +655,13 @@ func testSearchIssueIDsProjection(t *testing.T, f Factory) {
 
 // testCountByGroupIsBlockedFilter proves the additive IssueFilter.IsBlocked predicate honors the
 // denormalized is_blocked column in the grouped-count path on every backend: IsBlocked=&true returns
-// only is_blocked=true beads per status, &false the complement, and nil the whole population
+// only is_blocked=true issuegraph per status, &false the complement, and nil the whole population
 // (unchanged from testCountByGroup). Blockedness is produced the same way a real writer does — an open
 // blocker on a blocks-type dependency, which the write path denormalizes onto is_blocked.
 func testCountByGroupIsBlockedFilter(t *testing.T, f Factory) {
 	s := f(t)
-	// Two open beads blocked by an open blocker (is_blocked=true after AddDependency), one open
-	// bead left unblocked, and one closed bead (is_blocked=false) — a (status × is_blocked) mix.
+	// Two open issuegraph blocked by an open blocker (is_blocked=true after AddDependency), one open
+	// issue left unblocked, and one closed issue (is_blocked=false) — a (status × is_blocked) mix.
 	must(t, s.CreateIssue(ctx(), withDefaults(&types.Issue{ID: "ibf-blk", Title: "Blocker", Status: types.StatusOpen}), "a"))
 	must(t, s.CreateIssue(ctx(), withDefaults(&types.Issue{ID: "ibf-w1", Title: "Waiter1", Status: types.StatusOpen}), "a"))
 	must(t, s.CreateIssue(ctx(), withDefaults(&types.Issue{ID: "ibf-w2", Title: "Waiter2", Status: types.StatusOpen}), "a"))
@@ -685,7 +685,7 @@ func testCountByGroupIsBlockedFilter(t *testing.T, f Factory) {
 		t.Errorf("IsBlocked=true closed = %d, want 0", onlyBlocked["closed"])
 	}
 
-	// IsBlocked=&false: the complement — the blocker + the free bead (open) and the done bead (closed).
+	// IsBlocked=&false: the complement — the blocker + the free issue (open) and the done issue (closed).
 	onlyUnblocked, err := s.CountIssuesByGroup(ctx(), types.IssueFilter{IsBlocked: &blockedFalse}, "status")
 	if err != nil {
 		t.Fatalf("CountIssuesByGroup(IsBlocked=false): %v", err)
@@ -1184,7 +1184,7 @@ func testTransactionSnapshotReads(t *testing.T, f Factory) {
 		t.Fatalf("AddIssueComment: %v", err)
 	}
 
-	err := s.RunInTransaction(c, "bd: snapshot", func(tx storage.Transaction) error {
+	err := s.RunInTransaction(c, "issuegraph: snapshot", func(tx storage.Transaction) error {
 		// --- Baseline reads off the opening snapshot. ---
 		base, err := readSnapView(c, tx)
 		if err != nil {
@@ -1327,7 +1327,7 @@ func testTransactionReadYourWrites(t *testing.T, f Factory) {
 	s := f(t)
 	c := ctx()
 
-	err := s.RunInTransaction(c, "bd: ryw", func(tx storage.Transaction) error {
+	err := s.RunInTransaction(c, "issuegraph: ryw", func(tx storage.Transaction) error {
 		if err := seedReadYourWritesGraph(c, tx); err != nil {
 			return err
 		}

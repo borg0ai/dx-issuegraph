@@ -1,8 +1,8 @@
-# Test bd update command
-bd init --prefix test
+# Test issuegraph update command
+issuegraph init --prefix test
 
 # Create issue and capture its hash ID
-bd create 'Issue to update'
+issuegraph create 'Issue to update'
 cp stdout issue.txt
 grep 'Created issue: test-' issue.txt
 
@@ -10,9 +10,9 @@ grep 'Created issue: test-' issue.txt
 exec sh -c 'grep -oE "test-[a-z0-9]+" issue.txt > issue_id.txt'
 
 # Claim the issue (sets status to in_progress)
-exec sh -c 'bd update $(cat issue_id.txt) --claim'
+exec sh -c 'issuegraph update $(cat issue_id.txt) --claim'
 stdout 'Updated issue:'
 
 # Verify the update
-exec sh -c 'bd show $(cat issue_id.txt)'
+exec sh -c 'issuegraph show $(cat issue_id.txt)'
 stdout 'in_progress'

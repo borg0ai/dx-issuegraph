@@ -5,15 +5,15 @@ import (
 	"path/filepath"
 	"testing"
 
-	"github.com/steveyegge/beads/internal/configfile"
+	"github.com/borg0ai/dx-issuegraph/internal/configfile"
 )
 
 // TestDatabaseConfigFix_DoltBackend tests that DatabaseConfig returns a clear error for Dolt backends.
 func TestDatabaseConfigFix_DoltBackend(t *testing.T) {
 	tmpDir := t.TempDir()
-	beadsDir := filepath.Join(tmpDir, ".beads")
-	if err := os.Mkdir(beadsDir, 0755); err != nil {
-		t.Fatalf("Failed to create .beads dir: %v", err)
+	issuegraphDir := filepath.Join(tmpDir, ".issuegraph")
+	if err := os.Mkdir(issuegraphDir, 0755); err != nil {
+		t.Fatalf("Failed to create .issuegraph dir: %v", err)
 	}
 
 	// Create config with Dolt backend (the default and most common case)
@@ -21,7 +21,7 @@ func TestDatabaseConfigFix_DoltBackend(t *testing.T) {
 		Backend:  configfile.BackendDolt,
 		Database: "dolt",
 	}
-	if err := cfg.Save(beadsDir); err != nil {
+	if err := cfg.Save(issuegraphDir); err != nil {
 		t.Fatalf("Failed to save config: %v", err)
 	}
 
@@ -37,16 +37,16 @@ func TestDatabaseConfigFix_DoltBackend(t *testing.T) {
 // TestDatabaseConfigFix_DoltBackendDefault tests that empty backend (defaults to Dolt) is handled.
 func TestDatabaseConfigFix_DoltBackendDefault(t *testing.T) {
 	tmpDir := t.TempDir()
-	beadsDir := filepath.Join(tmpDir, ".beads")
-	if err := os.Mkdir(beadsDir, 0755); err != nil {
-		t.Fatalf("Failed to create .beads dir: %v", err)
+	issuegraphDir := filepath.Join(tmpDir, ".issuegraph")
+	if err := os.Mkdir(issuegraphDir, 0755); err != nil {
+		t.Fatalf("Failed to create .issuegraph dir: %v", err)
 	}
 
 	// Empty backend defaults to Dolt
 	cfg := &configfile.Config{
 		Database: "",
 	}
-	if err := cfg.Save(beadsDir); err != nil {
+	if err := cfg.Save(issuegraphDir); err != nil {
 		t.Fatalf("Failed to save config: %v", err)
 	}
 
@@ -61,19 +61,19 @@ func TestDatabaseConfigFix_DoltBackendDefault(t *testing.T) {
 
 // TestFindActualDBFile tests database file discovery.
 func TestFindActualDBFile(t *testing.T) {
-	t.Run("finds beads.db", func(t *testing.T) {
+	t.Run("finds issuegraph.db", func(t *testing.T) {
 		dir := t.TempDir()
-		if err := os.WriteFile(filepath.Join(dir, "beads.db"), []byte("test"), 0600); err != nil {
+		if err := os.WriteFile(filepath.Join(dir, "issuegraph.db"), []byte("test"), 0600); err != nil {
 			t.Fatal(err)
 		}
-		if got := findActualDBFile(dir); got != "beads.db" {
-			t.Errorf("expected beads.db, got %q", got)
+		if got := findActualDBFile(dir); got != "issuegraph.db" {
+			t.Errorf("expected issuegraph.db, got %q", got)
 		}
 	})
 
 	t.Run("skips backups", func(t *testing.T) {
 		dir := t.TempDir()
-		if err := os.WriteFile(filepath.Join(dir, "beads.db.backup"), []byte("test"), 0600); err != nil {
+		if err := os.WriteFile(filepath.Join(dir, "issuegraph.db.backup"), []byte("test"), 0600); err != nil {
 			t.Fatal(err)
 		}
 		if got := findActualDBFile(dir); got != "" {

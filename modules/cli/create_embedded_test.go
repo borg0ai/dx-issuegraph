@@ -13,19 +13,19 @@ import (
 	"testing"
 	"time"
 
-	"github.com/steveyegge/beads/internal/storage/embeddeddolt"
-	"github.com/steveyegge/beads/internal/storage/schema"
-	"github.com/steveyegge/beads/internal/types"
+	"github.com/borg0ai/dx-issuegraph/internal/storage/embeddeddolt"
+	"github.com/borg0ai/dx-issuegraph/internal/storage/schema"
+	"github.com/borg0ai/dx-issuegraph/internal/types"
 )
 
-// bdCreate runs "bd create" in the given dir with --json and extra args.
+// issuegraphCreate runs "issuegraph create" in the given dir with --json and extra args.
 // Returns the parsed issue JSON. Retries on flock contention, fatals on other failures.
-func bdCreate(t *testing.T, bd, dir string, args ...string) *types.Issue {
+func issuegraphCreate(t *testing.T, issuegraph, dir string, args ...string) *types.Issue {
 	t.Helper()
 	fullArgs := append([]string{"create", "--json"}, args...)
-	out, err := bdRunWithFlockRetry(t, bd, dir, fullArgs...)
+	out, err := issuegraphRunWithFlockRetry(t, issuegraph, dir, fullArgs...)
 	if err != nil {
-		t.Fatalf("bd create %s failed: %v\n%s", strings.Join(args, " "), err, out)
+		t.Fatalf("issuegraph create %s failed: %v\n%s", strings.Join(args, " "), err, out)
 	}
 	return parseIssueJSON(t, out)
 }
@@ -55,28 +55,28 @@ func parseIssueJSON(t *testing.T, out []byte) *types.Issue {
 	return &issue
 }
 
-// bdCreateSilent runs "bd create" with --silent and returns the issue ID.
+// issuegraphCreateSilent runs "issuegraph create" with --silent and returns the issue ID.
 // Retries on flock contention.
-func bdCreateSilent(t *testing.T, bd, dir string, args ...string) string {
+func issuegraphCreateSilent(t *testing.T, issuegraph, dir string, args ...string) string {
 	t.Helper()
 	fullArgs := append([]string{"create", "--silent"}, args...)
-	out, err := bdRunWithFlockRetry(t, bd, dir, fullArgs...)
+	out, err := issuegraphRunWithFlockRetry(t, issuegraph, dir, fullArgs...)
 	if err != nil {
-		t.Fatalf("bd create --silent %s failed: %v\n%s", strings.Join(args, " "), err, out)
+		t.Fatalf("issuegraph create --silent %s failed: %v\n%s", strings.Join(args, " "), err, out)
 	}
 	return strings.TrimSpace(string(out))
 }
 
-// bdCreateFail runs "bd create" expecting failure. Returns combined output.
-func bdCreateFail(t *testing.T, bd, dir string, args ...string) string {
+// issuegraphCreateFail runs "issuegraph create" expecting failure. Returns combined output.
+func issuegraphCreateFail(t *testing.T, issuegraph, dir string, args ...string) string {
 	t.Helper()
 	fullArgs := append([]string{"create"}, args...)
-	cmd := exec.Command(bd, fullArgs...)
+	cmd := exec.Command(issuegraph, fullArgs...)
 	cmd.Dir = dir
-	cmd.Env = bdEnv(dir)
+	cmd.Env = issuegraphEnv(dir)
 	out, err := cmd.CombinedOutput()
 	if err == nil {
-		t.Fatal("bd create should have failed")
+		t.Fatal("issuegraph create should have failed")
 	}
 	return string(out)
 }
@@ -100,12 +100,12 @@ func writeGraphCreatePlan(t *testing.T, dir string) string {
 	return planFile
 }
 
-func bdCreateGraph(t *testing.T, bd, dir, planFile string, args ...string) graphCreateResult {
+func issuegraphCreateGraph(t *testing.T, issuegraph, dir, planFile string, args ...string) graphCreateResult {
 	t.Helper()
 	fullArgs := append([]string{"create", "--json", "--graph", planFile}, args...)
-	out, err := bdRunWithFlockRetry(t, bd, dir, fullArgs...)
+	out, err := issuegraphRunWithFlockRetry(t, issuegraph, dir, fullArgs...)
 	if err != nil {
-		t.Fatalf("bd create --graph %s failed: %v\n%s", strings.Join(args, " "), err, out)
+		t.Fatalf("issuegraph create --graph %s failed: %v\n%s", strings.Join(args, " "), err, out)
 	}
 	var result graphCreateResult
 	if err := json.Unmarshal(out, &result); err != nil {
@@ -114,23 +114,23 @@ func bdCreateGraph(t *testing.T, bd, dir, planFile string, args ...string) graph
 	return result
 }
 
-// bdShow runs "bd show <id> --json" and returns the parsed issue.
-func bdShow(t *testing.T, bd, dir, id string) *types.Issue {
+// issuegraphShow runs "issuegraph show <id> --json" and returns the parsed issue.
+func issuegraphShow(t *testing.T, issuegraph, dir, id string) *types.Issue {
 	t.Helper()
-	cmd := exec.Command(bd, "show", id, "--json")
+	cmd := exec.Command(issuegraph, "show", id, "--json")
 	cmd.Dir = dir
-	cmd.Env = bdEnv(dir)
+	cmd.Env = issuegraphEnv(dir)
 	stdout, stderr, err := runCommandBuffers(t, cmd)
 	if err != nil {
-		t.Fatalf("bd show %s --json failed: %v\nstdout:\n%s\nstderr:\n%s", id, err, stdout.String(), stderr.String())
+		t.Fatalf("issuegraph show %s --json failed: %v\nstdout:\n%s\nstderr:\n%s", id, err, stdout.String(), stderr.String())
 	}
 	return parseIssueJSON(t, stdout.Bytes())
 }
 
 // openStore opens an EmbeddedDoltStore for direct verification queries.
-func openStore(t *testing.T, beadsDir, database string) *embeddeddolt.EmbeddedDoltStore {
+func openStore(t *testing.T, issuegraphDir, database string) *embeddeddolt.EmbeddedDoltStore {
 	t.Helper()
-	store, err := embeddeddolt.Open(t.Context(), beadsDir, database, "main")
+	store, err := embeddeddolt.Open(t.Context(), issuegraphDir, database, "main")
 	if err != nil {
 		t.Fatalf("openStore: %v", err)
 	}
@@ -139,9 +139,9 @@ func openStore(t *testing.T, beadsDir, database string) *embeddeddolt.EmbeddedDo
 }
 
 // assertDepExists verifies a dependency row exists via raw SQL.
-func assertDepExists(t *testing.T, beadsDir, database, issueID, dependsOnID string) {
+func assertDepExists(t *testing.T, issuegraphDir, database, issueID, dependsOnID string) {
 	t.Helper()
-	dataDir := filepath.Join(beadsDir, "embeddeddolt")
+	dataDir := filepath.Join(issuegraphDir, "embeddeddolt")
 	db, cleanup, err := embeddeddolt.OpenSQL(t.Context(), dataDir, database, "main")
 	if err != nil {
 		t.Fatalf("OpenSQL: %v", err)
@@ -159,9 +159,9 @@ func assertDepExists(t *testing.T, beadsDir, database, issueID, dependsOnID stri
 	}
 }
 
-func assertDepExistsWithType(t *testing.T, beadsDir, database, issueID, dependsOnID, expectedType string) {
+func assertDepExistsWithType(t *testing.T, issuegraphDir, database, issueID, dependsOnID, expectedType string) {
 	t.Helper()
-	dataDir := filepath.Join(beadsDir, "embeddeddolt")
+	dataDir := filepath.Join(issuegraphDir, "embeddeddolt")
 	db, cleanup, err := embeddeddolt.OpenSQL(t.Context(), dataDir, database, "main")
 	if err != nil {
 		t.Fatalf("OpenSQL: %v", err)
@@ -181,28 +181,28 @@ func assertDepExistsWithType(t *testing.T, beadsDir, database, issueID, dependsO
 }
 
 func TestEmbeddedCreate(t *testing.T) {
-	if os.Getenv("BEADS_TEST_EMBEDDED_DOLT") != "1" {
-		t.Skip("set BEADS_TEST_EMBEDDED_DOLT=1 to run embedded dolt create tests")
+	if os.Getenv("ISSUEGRAPH_TEST_EMBEDDED_DOLT") != "1" {
+		t.Skip("set ISSUEGRAPH_TEST_EMBEDDED_DOLT=1 to run embedded dolt create tests")
 	}
 	t.Parallel()
 
-	bd := buildEmbeddedBD(t)
+	issuegraph := buildEmbeddedBD(t)
 
 	t.Run("scalar_create_journey", func(t *testing.T) {
-		dir, _, _ := bdInit(t, bd, "--prefix", "sc")
+		dir, _, _ := issuegraphInit(t, issuegraph, "--prefix", "sc")
 
-		basic := bdCreate(t, bd, dir, "Basic JSON issue")
+		basic := issuegraphCreate(t, issuegraph, dir, "Basic JSON issue")
 		if basic.ID == "" || basic.Title != "Basic JSON issue" || basic.Status != types.StatusOpen || basic.Priority != 2 || basic.IssueType != types.TypeTask {
 			t.Fatalf("default JSON create = %+v", basic)
 		}
-		if issue := bdCreate(t, bd, dir, "--title", "Title via flag"); issue.Title != "Title via flag" {
+		if issue := issuegraphCreate(t, issuegraph, dir, "--title", "Title via flag"); issue.Title != "Title via flag" {
 			t.Fatalf("title flag = %q", issue.Title)
 		}
-		if id := bdCreateSilent(t, bd, dir, "Silent issue"); id == "" || strings.Contains(id, "\n") {
+		if id := issuegraphCreateSilent(t, issuegraph, dir, "Silent issue"); id == "" || strings.Contains(id, "\n") {
 			t.Fatalf("silent output = %q, want exactly one ID", id)
 		}
 
-		full := bdCreate(t, bd, dir, "Full fields",
+		full := issuegraphCreate(t, issuegraph, dir, "Full fields",
 			"--id", "sc-full", "-p", "1", "-t", "bug", "-d", "description", "--design", "design",
 			"--acceptance", "acceptance", "-a", "worker", "-l", "portfolio-scalar-a,portfolio-scalar-b",
 			"--due", "+24h", "--defer", "+2h", "-e", "60", "--notes", "notes", "--spec-id", "sc-spec",
@@ -223,20 +223,20 @@ func TestEmbeddedCreate(t *testing.T) {
 			t.Fatalf("full-field metadata = %q, err = %v", full.Metadata, err)
 		}
 
-		if issue := bdCreate(t, bd, dir, "Built-in status", "--status", "blocked"); issue.Status != types.StatusBlocked {
+		if issue := issuegraphCreate(t, issuegraph, dir, "Built-in status", "--status", "blocked"); issue.Status != types.StatusBlocked {
 			t.Fatalf("built-in status = %q, want %q", issue.Status, types.StatusBlocked)
 		}
-		bdConfig(t, bd, dir, "set", "status.custom", "review:wip")
-		if issue := bdCreate(t, bd, dir, "Custom status", "--status", "review"); issue.Status != types.Status("review") {
+		issuegraphConfig(t, issuegraph, dir, "set", "status.custom", "review:wip")
+		if issue := issuegraphCreate(t, issuegraph, dir, "Custom status", "--status", "review"); issue.Status != types.Status("review") {
 			t.Fatalf("custom status = %q, want review", issue.Status)
 		}
-		if out := bdCreateFail(t, bd, dir, "Invalid status", "--status", "not_a_status"); !strings.Contains(out, `invalid status "not_a_status"`) {
+		if out := issuegraphCreateFail(t, issuegraph, dir, "Invalid status", "--status", "not_a_status"); !strings.Contains(out, `invalid status "not_a_status"`) {
 			t.Fatalf("invalid status output = %s", out)
 		}
-		if issue := bdCreate(t, bd, dir, "Status wins", "--status", "blocked", "--defer", "+2h"); issue.Status != types.StatusBlocked || issue.DeferUntil == nil {
+		if issue := issuegraphCreate(t, issuegraph, dir, "Status wins", "--status", "blocked", "--defer", "+2h"); issue.Status != types.StatusBlocked || issue.DeferUntil == nil {
 			t.Fatalf("status-over-defer = %+v", issue)
 		}
-		if out := bdCreateFail(t, bd, dir); !strings.Contains(out, "title") {
+		if out := issuegraphCreateFail(t, issuegraph, dir); !strings.Contains(out, "title") {
 			t.Fatalf("missing title output = %s", out)
 		}
 	})
@@ -244,22 +244,22 @@ func TestEmbeddedCreate(t *testing.T) {
 	// GH#6035: create stored a bare JSON string/array/number as metadata,
 	// and update rejected the same value only late, in the storage merge.
 	t.Run("metadata_must_be_object_GH6035", func(t *testing.T) {
-		dir, _, _ := bdInit(t, bd, "--prefix", "mo")
+		dir, _, _ := issuegraphInit(t, issuegraph, "--prefix", "mo")
 		const want = "invalid --metadata: must be a JSON object"
-		target := bdCreate(t, bd, dir, "Metadata target", "--metadata", `{"a":1}`)
+		target := issuegraphCreate(t, issuegraph, dir, "Metadata target", "--metadata", `{"a":1}`)
 		var metadata map[string]any
 		if err := json.Unmarshal(target.Metadata, &metadata); err != nil || metadata["a"] != float64(1) {
 			t.Fatalf("object metadata = %q, err = %v", target.Metadata, err)
 		}
 		for _, value := range []string{`"oops"`, `[1,2]`, `42`, `true`, `null`} {
-			if out := bdCreateFail(t, bd, dir, "Bad metadata", "--metadata", value); !strings.Contains(out, want) {
+			if out := issuegraphCreateFail(t, issuegraph, dir, "Bad metadata", "--metadata", value); !strings.Contains(out, want) {
 				t.Fatalf("create --metadata %s output = %s, want %q", value, out, want)
 			}
-			if out := bdUpdateFail(t, bd, dir, target.ID, "--metadata", value); !strings.Contains(out, want) {
+			if out := issuegraphUpdateFail(t, issuegraph, dir, target.ID, "--metadata", value); !strings.Contains(out, want) {
 				t.Fatalf("update --metadata %s output = %s, want %q", value, out, want)
 			}
 		}
-		got := bdShow(t, bd, dir, target.ID)
+		got := issuegraphShow(t, issuegraph, dir, target.ID)
 		var after map[string]any
 		if err := json.Unmarshal(got.Metadata, &after); err != nil || len(after) != 1 || after["a"] != float64(1) {
 			t.Fatalf("rejected updates changed metadata to %q, err = %v", got.Metadata, err)
@@ -267,25 +267,25 @@ func TestEmbeddedCreate(t *testing.T) {
 	})
 
 	t.Run("relationships_and_parent_journey", func(t *testing.T) {
-		dir, beadsDir, _ := bdInit(t, bd, "--prefix", "rp")
-		blocker := bdCreate(t, bd, dir, "Blocker")
-		dependent := bdCreate(t, bd, dir, "Dependent", "--deps", "blocks:"+blocker.ID)
-		assertDepExists(t, beadsDir, "rp", blocker.ID, dependent.ID)
+		dir, issuegraphDir, _ := issuegraphInit(t, issuegraph, "--prefix", "rp")
+		blocker := issuegraphCreate(t, issuegraph, dir, "Blocker")
+		dependent := issuegraphCreate(t, issuegraph, dir, "Dependent", "--deps", "blocks:"+blocker.ID)
+		assertDepExists(t, issuegraphDir, "rp", blocker.ID, dependent.ID)
 
-		parent := bdCreate(t, bd, dir, "Parent", "-t", "epic", "-l", "portfolio-parent,portfolio-shared")
-		child := bdCreate(t, bd, dir, "Child", "--parent", parent.ID, "-l", "portfolio-child,portfolio-shared")
+		parent := issuegraphCreate(t, issuegraph, dir, "Parent", "-t", "epic", "-l", "portfolio-parent,portfolio-shared")
+		child := issuegraphCreate(t, issuegraph, dir, "Child", "--parent", parent.ID, "-l", "portfolio-child,portfolio-shared")
 		if child.ID != parent.ID+".1" {
 			t.Fatalf("child ID = %q, want %q", child.ID, parent.ID+".1")
 		}
-		assertDepExists(t, beadsDir, "rp", child.ID, parent.ID)
+		assertDepExists(t, issuegraphDir, "rp", child.ID, parent.ID)
 
-		noInherit := bdCreate(t, bd, dir, "No inherited labels", "--parent", parent.ID, "--no-inherit-labels", "-l", "portfolio-own")
-		grandchild := bdCreate(t, bd, dir, "Grandchild", "--parent", child.ID)
+		noInherit := issuegraphCreate(t, issuegraph, dir, "No inherited labels", "--parent", parent.ID, "--no-inherit-labels", "-l", "portfolio-own")
+		grandchild := issuegraphCreate(t, issuegraph, dir, "Grandchild", "--parent", child.ID)
 		if grandchild.ID != child.ID+".1" {
 			t.Fatalf("hierarchical child counter = %q, want %q", grandchild.ID, child.ID+".1")
 		}
 
-		store := openStore(t, beadsDir, "rp")
+		store := openStore(t, issuegraphDir, "rp")
 		labels, err := store.GetLabels(t.Context(), child.ID)
 		if err != nil {
 			t.Fatalf("get child labels: %v", err)
@@ -324,8 +324,8 @@ func TestEmbeddedCreate(t *testing.T) {
 		}
 		store.Close()
 
-		discovered := bdCreate(t, bd, dir, "Discovered work", "--deps", "discovered-from:"+sourceParent.ID)
-		db, cleanup, err := embeddeddolt.OpenSQL(t.Context(), filepath.Join(beadsDir, "embeddeddolt"), "rp", "main")
+		discovered := issuegraphCreate(t, issuegraph, dir, "Discovered work", "--deps", "discovered-from:"+sourceParent.ID)
+		db, cleanup, err := embeddeddolt.OpenSQL(t.Context(), filepath.Join(issuegraphDir, "embeddeddolt"), "rp", "main")
 		if err != nil {
 			t.Fatalf("OpenSQL: %v", err)
 		}
@@ -340,10 +340,10 @@ func TestEmbeddedCreate(t *testing.T) {
 	})
 
 	t.Run("storage_plane_journey", func(t *testing.T) {
-		dir, beadsDir, _ := bdInit(t, bd, "--prefix", "sp")
-		ephemeral := bdCreate(t, bd, dir, "Ephemeral", "--ephemeral")
-		noHistory := bdCreate(t, bd, dir, "No history", "--no-history")
-		db, cleanup, err := embeddeddolt.OpenSQL(t.Context(), filepath.Join(beadsDir, "embeddeddolt"), "sp", "main")
+		dir, issuegraphDir, _ := issuegraphInit(t, issuegraph, "--prefix", "sp")
+		ephemeral := issuegraphCreate(t, issuegraph, dir, "Ephemeral", "--ephemeral")
+		noHistory := issuegraphCreate(t, issuegraph, dir, "No history", "--no-history")
+		db, cleanup, err := embeddeddolt.OpenSQL(t.Context(), filepath.Join(issuegraphDir, "embeddeddolt"), "sp", "main")
 		if err != nil {
 			t.Fatalf("OpenSQL: %v", err)
 		}
@@ -363,13 +363,13 @@ func TestEmbeddedCreate(t *testing.T) {
 	})
 
 	t.Run("graph_create_journey", func(t *testing.T) {
-		dir, beadsDir, _ := bdInit(t, bd, "--prefix", "gr")
+		dir, issuegraphDir, _ := issuegraphInit(t, issuegraph, "--prefix", "gr")
 		plan := `{
 			"nodes": [
 				{"key":"main","id":"gr-a1b2c3","title":"Full-field node","type":"task","status":"in_progress","description":"desc","design":"the design","acceptance_criteria":"the criteria","notes":"the notes","spec_id":"gr-spec1","external_ref":"gh-42","assignee":"worker","owner":"owner@example.com","priority":1,"estimated_minutes":45,"due_at":"2030-01-02T15:04:05Z","labels":["portfolio-graph-a","portfolio-graph-b"],"metadata":{"str":"v","num":3},"mol_type":"swarm","storage_class":"unversioned","pinned":true},
 				{"key":"deferred","title":"Deferred node","defer_until":"2030-01-01T00:00:00Z"},
 				{"key":"done","title":"Closed node","status":"closed"},
-				{"key":"evt","title":"Event node","type":"event","event_kind":"agent.started","actor":"agent://a","target":"bead://b","payload":"{\"k\":1}"},
+				{"key":"evt","title":"Event node","type":"event","event_kind":"agent.started","actor":"agent://a","target":"issue://b","payload":"{\"k\":1}"},
 				{"key":"wisp","title":"Wisp node","ephemeral":true},
 				{"key":"gate","title":"Fanout gate"},
 				{"key":"spawner","title":"Spawner step"}
@@ -380,11 +380,11 @@ func TestEmbeddedCreate(t *testing.T) {
 		if err := os.WriteFile(planFile, []byte(plan), 0o600); err != nil {
 			t.Fatalf("write compound graph plan: %v", err)
 		}
-		result := bdCreateGraph(t, bd, dir, planFile)
+		result := issuegraphCreateGraph(t, issuegraph, dir, planFile)
 		if result.IDs["main"] != "gr-a1b2c3" || result.IDs["deferred"] == "" || result.IDs["done"] == "" || result.IDs["evt"] == "" || result.IDs["wisp"] == "" || result.IDs["gate"] == "" || result.IDs["spawner"] == "" {
 			t.Fatalf("compound graph IDs = %#v", result.IDs)
 		}
-		issue := bdShow(t, bd, dir, result.IDs["main"])
+		issue := issuegraphShow(t, issuegraph, dir, result.IDs["main"])
 		if issue.Status != types.StatusInProgress || issue.Description != "desc" || issue.Design != "the design" || issue.AcceptanceCriteria != "the criteria" || issue.Notes != "the notes" || issue.SpecID != "gr-spec1" || issue.ExternalRef == nil || *issue.ExternalRef != "gh-42" || issue.Assignee != "worker" || issue.Owner != "owner@example.com" || issue.Priority != 1 || issue.EstimatedMinutes == nil || *issue.EstimatedMinutes != 45 || issue.MolType != types.MolType("swarm") || issue.StorageClass != types.StorageClassUnversioned || !issue.Pinned {
 			t.Fatalf("compound graph full-field issue = %+v", issue)
 		}
@@ -395,16 +395,16 @@ func TestEmbeddedCreate(t *testing.T) {
 		if err := json.Unmarshal(issue.Metadata, &metadata); err != nil || metadata["str"] != "v" || metadata["num"] != float64(3) {
 			t.Fatalf("compound graph metadata = %q, err = %v", issue.Metadata, err)
 		}
-		deferred := bdShow(t, bd, dir, result.IDs["deferred"])
+		deferred := issuegraphShow(t, issuegraph, dir, result.IDs["deferred"])
 		if deferred.Status != types.StatusDeferred || deferred.DeferUntil == nil || deferred.DeferUntil.UTC().Format(time.RFC3339) != "2030-01-01T00:00:00Z" {
 			t.Fatalf("compound graph deferred node = %+v", deferred)
 		}
-		done := bdShow(t, bd, dir, result.IDs["done"])
+		done := issuegraphShow(t, issuegraph, dir, result.IDs["done"])
 		if done.Status != types.StatusClosed || done.ClosedAt == nil {
 			t.Fatalf("compound graph closed node = %+v", done)
 		}
-		event := bdShow(t, bd, dir, result.IDs["evt"])
-		if event.EventKind != "agent.started" || event.Actor != "agent://a" || event.Target != "bead://b" || event.Payload != `{"k":1}` {
+		event := issuegraphShow(t, issuegraph, dir, result.IDs["evt"])
+		if event.EventKind != "agent.started" || event.Actor != "agent://a" || event.Target != "issue://b" || event.Payload != `{"k":1}` {
 			t.Fatalf("compound graph event fields: kind=%q actor=%q target=%q payload=%q", event.EventKind, event.Actor, event.Target, event.Payload)
 		}
 		planWide := make([]struct {
@@ -416,14 +416,14 @@ func TestEmbeddedCreate(t *testing.T) {
 			wantEphemeral, wantNoHistory int
 		}{{[]string{"--ephemeral"}, 1, 0}, {[]string{"--no-history"}, 0, 1}} {
 			planFile := writeGraphCreatePlan(t, dir)
-			journey := bdCreateGraph(t, bd, dir, planFile, check.args...)
+			journey := issuegraphCreateGraph(t, issuegraph, dir, planFile, check.args...)
 			planWide = append(planWide, struct {
 				ids                          []string
 				wantEphemeral, wantNoHistory int
 			}{[]string{journey.IDs["root"], journey.IDs["child"]}, check.wantEphemeral, check.wantNoHistory})
 		}
 
-		db, cleanup, err := embeddeddolt.OpenSQL(t.Context(), filepath.Join(beadsDir, "embeddeddolt"), "gr", "main")
+		db, cleanup, err := embeddeddolt.OpenSQL(t.Context(), filepath.Join(issuegraphDir, "embeddeddolt"), "gr", "main")
 		if err != nil {
 			t.Fatalf("OpenSQL: %v", err)
 		}
@@ -464,14 +464,14 @@ func TestEmbeddedCreate(t *testing.T) {
 	})
 
 	t.Run("dry_run_journey", func(t *testing.T) {
-		dir, beadsDir, _ := bdInit(t, bd, "--prefix", "dr")
-		parent := bdCreate(t, bd, dir, "Parent", "-t", "epic", "-l", "portfolio-preview-parent,portfolio-preview-shared")
+		dir, issuegraphDir, _ := issuegraphInit(t, issuegraph, "--prefix", "dr")
+		parent := issuegraphCreate(t, issuegraph, dir, "Parent", "-t", "epic", "-l", "portfolio-preview-parent,portfolio-preview-shared")
 		type dryRunSnapshot struct {
 			head                                        string
 			issues, wisps, labels, dependencies, events int
 		}
 		readSnapshot := func() dryRunSnapshot {
-			db, cleanup, err := embeddeddolt.OpenSQL(t.Context(), filepath.Join(beadsDir, "embeddeddolt"), "dr", "main")
+			db, cleanup, err := embeddeddolt.OpenSQL(t.Context(), filepath.Join(issuegraphDir, "embeddeddolt"), "dr", "main")
 			if err != nil {
 				t.Fatalf("OpenSQL: %v", err)
 			}
@@ -501,9 +501,9 @@ func TestEmbeddedCreate(t *testing.T) {
 			return got
 		}
 		before := readSnapshot()
-		cmd := exec.Command(bd, "create", "--dry-run", "Preview child", "--json", "--parent", parent.ID, "-l", "portfolio-preview-child,portfolio-preview-shared")
+		cmd := exec.Command(issuegraph, "create", "--dry-run", "Preview child", "--json", "--parent", parent.ID, "-l", "portfolio-preview-child,portfolio-preview-shared")
 		cmd.Dir = dir
-		cmd.Env = bdEnv(dir)
+		cmd.Env = issuegraphEnv(dir)
 		stdout, stderr, err := runCommandBuffers(t, cmd)
 		if err != nil {
 			t.Fatalf("dry-run create: %v\nstdout:\n%s\nstderr:\n%s", err, stdout.String(), stderr.String())
@@ -520,14 +520,14 @@ func TestEmbeddedCreate(t *testing.T) {
 		if after != before {
 			t.Fatalf("dry-run mutated embedded state: before=%+v after=%+v", before, after)
 		}
-		child := bdCreate(t, bd, dir, "Real child", "--parent", parent.ID)
+		child := issuegraphCreate(t, issuegraph, dir, "Real child", "--parent", parent.ID)
 		if child.ID != parent.ID+".1" {
 			t.Fatalf("dry-run consumed child counter: got %q, want %q", child.ID, parent.ID+".1")
 		}
 	})
 
 	t.Run("markdown_bulk_journey", func(t *testing.T) {
-		dir, beadsDir, _ := bdInit(t, bd, "--prefix", "mk")
+		dir, issuegraphDir, _ := issuegraphInit(t, issuegraph, "--prefix", "mk")
 		markdown := `## First issue
 
 ### Priority
@@ -557,14 +557,14 @@ A new feature
 		if err := os.WriteFile(path, []byte(markdown), 0o600); err != nil {
 			t.Fatal(err)
 		}
-		cmd := exec.Command(bd, "create", "-f", path, "--json")
+		cmd := exec.Command(issuegraph, "create", "-f", path, "--json")
 		cmd.Dir = dir
-		cmd.Env = bdEnv(dir)
+		cmd.Env = issuegraphEnv(dir)
 		stdout, stderr, err := runCommandBuffers(t, cmd)
 		if err != nil {
 			t.Fatalf("markdown bulk create: %v\nstdout:\n%s\nstderr:\n%s", err, stdout.String(), stderr.String())
 		}
-		store := openStore(t, beadsDir, "mk")
+		store := openStore(t, issuegraphDir, "mk")
 		stats, err := store.GetStatistics(t.Context())
 		if err != nil || stats.TotalIssues < 2 {
 			t.Fatalf("markdown bulk statistics = %+v, err = %v", stats, err)
@@ -580,11 +580,11 @@ type embeddedStoreSnapshot struct {
 	issueCount    int
 }
 
-func readEmbeddedStoreSnapshot(t *testing.T, beadsDir, database string) embeddedStoreSnapshot {
+func readEmbeddedStoreSnapshot(t *testing.T, issuegraphDir, database string) embeddedStoreSnapshot {
 	t.Helper()
 	db, cleanup, err := embeddeddolt.OpenSQL(
 		t.Context(),
-		filepath.Join(beadsDir, "embeddeddolt"),
+		filepath.Join(issuegraphDir, "embeddeddolt"),
 		database,
 		"main",
 	)
@@ -617,11 +617,11 @@ func readEmbeddedStoreSnapshot(t *testing.T, beadsDir, database string) embedded
 // commits a new HEAD — which is exactly what makes the cursor a usable
 // tripwire. Keeping the physical schema intact lets the preview's own reads
 // still work against the older recorded version.
-func regressEmbeddedSchemaCursor(t *testing.T, beadsDir, database string) {
+func regressEmbeddedSchemaCursor(t *testing.T, issuegraphDir, database string) {
 	t.Helper()
 	db, cleanup, err := embeddeddolt.OpenSQL(
 		t.Context(),
-		filepath.Join(beadsDir, "embeddeddolt"),
+		filepath.Join(issuegraphDir, "embeddeddolt"),
 		database,
 		"main",
 	)
@@ -644,19 +644,19 @@ func regressEmbeddedSchemaCursor(t *testing.T, beadsDir, database string) {
 }
 
 func TestEmbeddedCreateDryRunDoesNotMigrate(t *testing.T) {
-	bd := buildEmbeddedBD(t)
-	dir, beadsDir, _ := bdInit(t, bd, "--prefix", "dnm")
-	bdCreate(t, bd, dir, "Existing issue")
+	issuegraph := buildEmbeddedBD(t)
+	dir, issuegraphDir, _ := issuegraphInit(t, issuegraph, "--prefix", "dnm")
+	issuegraphCreate(t, issuegraph, dir, "Existing issue")
 
 	readSnapshot := func() embeddedStoreSnapshot {
-		return readEmbeddedStoreSnapshot(t, beadsDir, "dnm")
+		return readEmbeddedStoreSnapshot(t, issuegraphDir, "dnm")
 	}
 
-	regressEmbeddedSchemaCursor(t, beadsDir, "dnm")
+	regressEmbeddedSchemaCursor(t, issuegraphDir, "dnm")
 
 	// Force the version-bump path that previously opened a second writable
 	// store and migrated before create.RunE reached --dry-run handling.
-	if err := os.WriteFile(filepath.Join(beadsDir, localVersionFile), []byte("0.9.0\n"), 0o600); err != nil {
+	if err := os.WriteFile(filepath.Join(issuegraphDir, localVersionFile), []byte("0.9.0\n"), 0o600); err != nil {
 		t.Fatalf("write old local version: %v", err)
 	}
 
@@ -665,12 +665,12 @@ func TestEmbeddedCreateDryRunDoesNotMigrate(t *testing.T) {
 		t.Fatalf("fixture schema version = %d, want %d", before.schemaVersion, schema.LatestVersion()-1)
 	}
 
-	cmd := exec.Command(bd, "create", "--dry-run", "Preview only", "--json")
+	cmd := exec.Command(issuegraph, "create", "--dry-run", "Preview only", "--json")
 	cmd.Dir = dir
-	cmd.Env = bdEnv(dir)
+	cmd.Env = issuegraphEnv(dir)
 	stdout, stderr, err := runCommandBuffers(t, cmd)
 	if err != nil {
-		t.Fatalf("bd create --dry-run failed: %v\nstdout:\n%s\nstderr:\n%s", err, stdout.String(), stderr.String())
+		t.Fatalf("issuegraph create --dry-run failed: %v\nstdout:\n%s\nstderr:\n%s", err, stdout.String(), stderr.String())
 	}
 
 	after := readSnapshot()
@@ -692,40 +692,40 @@ func TestEmbeddedCreateDryRunDoesNotMigrate(t *testing.T) {
 // read-only says nothing about that one — the mutation lands in a repository
 // the user only named as a lookup target.
 func TestEmbeddedCreateDryRunCrossRepoDoesNotMigrateTarget(t *testing.T) {
-	bd := buildEmbeddedBD(t)
-	targetDir, targetBeadsDir, _ := bdInit(t, bd, "--prefix", "xtgt")
-	parent := bdCreate(t, bd, targetDir, "Parent in the target repo")
+	issuegraph := buildEmbeddedBD(t)
+	targetDir, targetIssueGraphDir, _ := issuegraphInit(t, issuegraph, "--prefix", "xtgt")
+	parent := issuegraphCreate(t, issuegraph, targetDir, "Parent in the target repo")
 	if parent.ID == "" {
 		t.Fatal("parent issue has no ID")
 	}
 
-	callerDir, callerBeadsDir, _ := bdInit(t, bd, "--prefix", "xsrc")
+	callerDir, callerIssueGraphDir, _ := issuegraphInit(t, issuegraph, "--prefix", "xsrc")
 
 	// The tripwire goes in the TARGET repo: only a writable open of that repo
 	// restores its cursor and commits.
-	regressEmbeddedSchemaCursor(t, targetBeadsDir, "xtgt")
+	regressEmbeddedSchemaCursor(t, targetIssueGraphDir, "xtgt")
 
 	// Force the version-bump path in the caller repo too, so this exercises
 	// the same post-upgrade window as the single-repo test.
-	if err := os.WriteFile(filepath.Join(callerBeadsDir, localVersionFile), []byte("0.9.0\n"), 0o600); err != nil {
+	if err := os.WriteFile(filepath.Join(callerIssueGraphDir, localVersionFile), []byte("0.9.0\n"), 0o600); err != nil {
 		t.Fatalf("write old local version: %v", err)
 	}
 
-	before := readEmbeddedStoreSnapshot(t, targetBeadsDir, "xtgt")
+	before := readEmbeddedStoreSnapshot(t, targetIssueGraphDir, "xtgt")
 	if before.schemaVersion != schema.LatestVersion()-1 {
 		t.Fatalf("fixture schema version = %d, want %d", before.schemaVersion, schema.LatestVersion()-1)
 	}
 
-	cmd := exec.Command(bd, "create", "--dry-run",
+	cmd := exec.Command(issuegraph, "create", "--dry-run",
 		"--parent", parent.ID, "--repo", targetDir, "Preview only", "--json")
 	cmd.Dir = callerDir
-	cmd.Env = bdEnv(callerDir)
+	cmd.Env = issuegraphEnv(callerDir)
 	stdout, stderr, err := runCommandBuffers(t, cmd)
 	if err != nil {
-		t.Fatalf("bd create --dry-run --parent --repo failed: %v\nstdout:\n%s\nstderr:\n%s", err, stdout.String(), stderr.String())
+		t.Fatalf("issuegraph create --dry-run --parent --repo failed: %v\nstdout:\n%s\nstderr:\n%s", err, stdout.String(), stderr.String())
 	}
 
-	after := readEmbeddedStoreSnapshot(t, targetBeadsDir, "xtgt")
+	after := readEmbeddedStoreSnapshot(t, targetIssueGraphDir, "xtgt")
 	if after.schemaVersion != before.schemaVersion {
 		t.Errorf("target repo schema version changed during cross-repo dry-run: before=%d after=%d", before.schemaVersion, after.schemaVersion)
 	}
@@ -740,27 +740,27 @@ func TestEmbeddedCreateDryRunCrossRepoDoesNotMigrateTarget(t *testing.T) {
 // TestEmbeddedPreviewDoesNotConsumeVersionMarker is the two-invocation
 // regression for the one-shot upgrade signal: a preview run first after an
 // upgrade correctly skips the version-bump reconciliation, so it must also
-// leave .beads/.local_version alone. Burning the marker there would mean the
+// leave .issuegraph/.local_version alone. Burning the marker there would mean the
 // next ordinary command sees a matching version and never reconciles —
 // whichever command happened to run first would silently decide whether the
 // upgrade was finished.
 func TestEmbeddedPreviewDoesNotConsumeVersionMarker(t *testing.T) {
-	bd := buildEmbeddedBD(t)
-	dir, beadsDir, _ := bdInit(t, bd, "--prefix", "pvm")
-	bdCreate(t, bd, dir, "Existing issue")
+	issuegraph := buildEmbeddedBD(t)
+	dir, issuegraphDir, _ := issuegraphInit(t, issuegraph, "--prefix", "pvm")
+	issuegraphCreate(t, issuegraph, dir, "Existing issue")
 
-	localVersionPath := filepath.Join(beadsDir, localVersionFile)
+	localVersionPath := filepath.Join(issuegraphDir, localVersionFile)
 	if err := os.WriteFile(localVersionPath, []byte("0.9.0\n"), 0o600); err != nil {
 		t.Fatalf("write old local version: %v", err)
 	}
 
 	// Invocation 1: preview.
-	preview := exec.Command(bd, "create", "--dry-run", "Preview only", "--json")
+	preview := exec.Command(issuegraph, "create", "--dry-run", "Preview only", "--json")
 	preview.Dir = dir
-	preview.Env = bdEnv(dir)
+	preview.Env = issuegraphEnv(dir)
 	stdout, stderr, err := runCommandBuffers(t, preview)
 	if err != nil {
-		t.Fatalf("bd create --dry-run failed: %v\nstdout:\n%s\nstderr:\n%s", err, stdout.String(), stderr.String())
+		t.Fatalf("issuegraph create --dry-run failed: %v\nstdout:\n%s\nstderr:\n%s", err, stdout.String(), stderr.String())
 	}
 
 	raw, err := os.ReadFile(localVersionPath)
@@ -772,12 +772,12 @@ func TestEmbeddedPreviewDoesNotConsumeVersionMarker(t *testing.T) {
 	}
 
 	// Invocation 2: an ordinary command, which must still see the upgrade.
-	status := exec.Command(bd, "upgrade", "status", "--json")
+	status := exec.Command(issuegraph, "upgrade", "status", "--json")
 	status.Dir = dir
-	status.Env = bdEnv(dir)
+	status.Env = issuegraphEnv(dir)
 	stdout, stderr, err = runCommandBuffers(t, status)
 	if err != nil {
-		t.Fatalf("bd upgrade status failed: %v\nstdout:\n%s\nstderr:\n%s", err, stdout.String(), stderr.String())
+		t.Fatalf("issuegraph upgrade status failed: %v\nstdout:\n%s\nstderr:\n%s", err, stdout.String(), stderr.String())
 	}
 	var upgradeStatus struct {
 		Upgraded        bool   `json:"upgraded"`
@@ -800,24 +800,24 @@ func TestEmbeddedPreviewDoesNotConsumeVersionMarker(t *testing.T) {
 	}
 }
 
-func TestEmbeddedChangeDirOverridesInheritedBeadsDir(t *testing.T) {
-	bd := buildEmbeddedBD(t)
-	callerDir, callerBeadsDir, _ := bdInit(t, bd, "--prefix", "caller")
-	targetDir, targetBeadsDir, _ := bdInit(t, bd, "--prefix", "target")
+func TestEmbeddedChangeDirOverridesInheritedIssueGraphDir(t *testing.T) {
+	issuegraph := buildEmbeddedBD(t)
+	callerDir, callerIssueGraphDir, _ := issuegraphInit(t, issuegraph, "--prefix", "caller")
+	targetDir, targetIssueGraphDir, _ := issuegraphInit(t, issuegraph, "--prefix", "target")
 
-	cmd := exec.Command(bd, "-C", targetDir, "create", "Explicit target", "--json")
+	cmd := exec.Command(issuegraph, "-C", targetDir, "create", "Explicit target", "--json")
 	cmd.Dir = callerDir
-	cmd.Env = append(bdEnv(callerDir), "BEADS_DIR="+callerBeadsDir)
+	cmd.Env = append(issuegraphEnv(callerDir), "ISSUEGRAPH_DIR="+callerIssueGraphDir)
 	stdout, stderr, err := runCommandBuffers(t, cmd)
 	if err != nil {
-		t.Fatalf("bd -C target create failed: %v\nstdout:\n%s\nstderr:\n%s", err, stdout.String(), stderr.String())
+		t.Fatalf("issuegraph -C target create failed: %v\nstdout:\n%s\nstderr:\n%s", err, stdout.String(), stderr.String())
 	}
 
-	countIssues := func(beadsDir, database string) int {
+	countIssues := func(issuegraphDir, database string) int {
 		t.Helper()
 		db, cleanup, err := embeddeddolt.OpenSQL(
 			t.Context(),
-			filepath.Join(beadsDir, "embeddeddolt"),
+			filepath.Join(issuegraphDir, "embeddeddolt"),
 			database,
 			"main",
 		)
@@ -836,10 +836,10 @@ func TestEmbeddedChangeDirOverridesInheritedBeadsDir(t *testing.T) {
 		return count
 	}
 
-	if got := countIssues(callerBeadsDir, "caller"); got != 0 {
-		t.Fatalf("inherited BEADS_DIR received %d issues, want 0", got)
+	if got := countIssues(callerIssueGraphDir, "caller"); got != 0 {
+		t.Fatalf("inherited ISSUEGRAPH_DIR received %d issues, want 0", got)
 	}
-	if got := countIssues(targetBeadsDir, "target"); got != 1 {
+	if got := countIssues(targetIssueGraphDir, "target"); got != 1 {
 		t.Fatalf("-C target received %d issues, want 1", got)
 	}
 }
@@ -847,16 +847,16 @@ func TestEmbeddedChangeDirOverridesInheritedBeadsDir(t *testing.T) {
 // TestEmbeddedCreateCommitPending verifies that CommitPending works on EmbeddedDoltStore:
 // no-op when clean, commits when there are pending changes.
 func TestEmbeddedCreateCommitPending(t *testing.T) {
-	if os.Getenv("BEADS_TEST_EMBEDDED_DOLT") != "1" {
-		t.Skip("set BEADS_TEST_EMBEDDED_DOLT=1 to run embedded dolt create tests")
+	if os.Getenv("ISSUEGRAPH_TEST_EMBEDDED_DOLT") != "1" {
+		t.Skip("set ISSUEGRAPH_TEST_EMBEDDED_DOLT=1 to run embedded dolt create tests")
 	}
 	t.Parallel()
 
-	bd := buildEmbeddedBD(t)
+	issuegraph := buildEmbeddedBD(t)
 
 	t.Run("no_pending_changes", func(t *testing.T) {
-		_, beadsDir, _ := bdInit(t, bd, "--prefix", "cp1")
-		store := openStore(t, beadsDir, "cp1")
+		_, issuegraphDir, _ := issuegraphInit(t, issuegraph, "--prefix", "cp1")
+		store := openStore(t, issuegraphDir, "cp1")
 		committed, err := store.CommitPending(t.Context(), "test")
 		if err != nil {
 			t.Fatalf("CommitPending: %v", err)
@@ -867,8 +867,8 @@ func TestEmbeddedCreateCommitPending(t *testing.T) {
 	})
 
 	t.Run("with_pending_changes", func(t *testing.T) {
-		_, beadsDir, _ := bdInit(t, bd, "--prefix", "cp2")
-		store := openStore(t, beadsDir, "cp2")
+		_, issuegraphDir, _ := issuegraphInit(t, issuegraph, "--prefix", "cp2")
+		store := openStore(t, issuegraphDir, "cp2")
 		ctx := t.Context()
 
 		// Create an issue (writes to working set, no dolt commit in embedded mode)
@@ -902,13 +902,13 @@ func TestEmbeddedCreateCommitPending(t *testing.T) {
 }
 
 func TestEmbeddedCreateFormCommitsLabelOnlyCreate(t *testing.T) {
-	if os.Getenv("BEADS_TEST_EMBEDDED_DOLT") != "1" {
-		t.Skip("set BEADS_TEST_EMBEDDED_DOLT=1 to run embedded dolt create tests")
+	if os.Getenv("ISSUEGRAPH_TEST_EMBEDDED_DOLT") != "1" {
+		t.Skip("set ISSUEGRAPH_TEST_EMBEDDED_DOLT=1 to run embedded dolt create tests")
 	}
 
-	bd := buildEmbeddedBD(t)
-	_, beadsDir, _ := bdInit(t, bd, "--prefix", "cfl")
-	store := openStore(t, beadsDir, "cfl")
+	issuegraph := buildEmbeddedBD(t)
+	_, issuegraphDir, _ := issuegraphInit(t, issuegraph, "--prefix", "cfl")
+	store := openStore(t, issuegraphDir, "cfl")
 
 	issue, err := CreateIssueFromFormValues(t.Context(), store, &createFormValues{
 		Title:     "Form labels commit",
@@ -923,7 +923,7 @@ func TestEmbeddedCreateFormCommitsLabelOnlyCreate(t *testing.T) {
 		t.Fatalf("Close store: %v", err)
 	}
 
-	dataDir := filepath.Join(beadsDir, "embeddeddolt")
+	dataDir := filepath.Join(issuegraphDir, "embeddeddolt")
 	db, cleanup, err := embeddeddolt.OpenSQL(t.Context(), dataDir, "cfl", "main")
 	if err != nil {
 		t.Fatalf("OpenSQL: %v", err)
@@ -942,18 +942,18 @@ func TestEmbeddedCreateFormCommitsLabelOnlyCreate(t *testing.T) {
 	}
 }
 
-// TestEmbeddedCreateCrossRepo verifies that bd create --repo routes to a different
+// TestEmbeddedCreateCrossRepo verifies that issuegraph create --repo routes to a different
 // repo's embedded dolt store, creates the issue there, and commits it.
 func TestEmbeddedCreateCrossRepo(t *testing.T) {
-	if os.Getenv("BEADS_TEST_EMBEDDED_DOLT") != "1" {
-		t.Skip("set BEADS_TEST_EMBEDDED_DOLT=1 to run embedded dolt create tests")
+	if os.Getenv("ISSUEGRAPH_TEST_EMBEDDED_DOLT") != "1" {
+		t.Skip("set ISSUEGRAPH_TEST_EMBEDDED_DOLT=1 to run embedded dolt create tests")
 	}
 	t.Parallel()
 
-	bd := buildEmbeddedBD(t)
+	issuegraph := buildEmbeddedBD(t)
 
 	// Set up primary repo
-	dir, _, _ := bdInit(t, bd, "--prefix", "cr")
+	dir, _, _ := issuegraphInit(t, issuegraph, "--prefix", "cr")
 
 	// Set up target repo in a subdirectory
 	targetDir := filepath.Join(dir, "target-repo")
@@ -961,17 +961,17 @@ func TestEmbeddedCreateCrossRepo(t *testing.T) {
 		t.Fatal(err)
 	}
 	initGitRepoAt(t, targetDir)
-	runBDInit(t, bd, targetDir, "--prefix", "tgt")
+	runIssueGraphInit(t, issuegraph, targetDir, "--prefix", "tgt")
 
 	// Create issue routed to target repo
-	issue := bdCreate(t, bd, dir, "Cross-repo issue", "--repo", targetDir)
+	issue := issuegraphCreate(t, issuegraph, dir, "Cross-repo issue", "--repo", targetDir)
 	if issue.ID == "" {
 		t.Fatal("expected issue ID")
 	}
 
 	// Verify issue exists in the TARGET store, not the source
-	targetBeadsDir := filepath.Join(targetDir, ".beads")
-	tgtStore := openStore(t, targetBeadsDir, "tgt")
+	targetIssueGraphDir := filepath.Join(targetDir, ".issuegraph")
+	tgtStore := openStore(t, targetIssueGraphDir, "tgt")
 	got, err := tgtStore.GetIssue(t.Context(), issue.ID)
 	if err != nil {
 		t.Fatalf("GetIssue in target: %v", err)
@@ -987,15 +987,15 @@ func TestEmbeddedCreateCrossRepo(t *testing.T) {
 // After the multi-rig refactor (d7629204), --repo uses the same code path as
 // local create, so --parent is resolved against the target store.
 func TestEmbeddedCreateCrossRepoWithParent(t *testing.T) {
-	if os.Getenv("BEADS_TEST_EMBEDDED_DOLT") != "1" {
-		t.Skip("set BEADS_TEST_EMBEDDED_DOLT=1 to run embedded dolt create tests")
+	if os.Getenv("ISSUEGRAPH_TEST_EMBEDDED_DOLT") != "1" {
+		t.Skip("set ISSUEGRAPH_TEST_EMBEDDED_DOLT=1 to run embedded dolt create tests")
 	}
 	t.Parallel()
 
-	bd := buildEmbeddedBD(t)
+	issuegraph := buildEmbeddedBD(t)
 
 	// Set up primary repo (where we run from)
-	dir, _, _ := bdInit(t, bd, "--prefix", "cr")
+	dir, _, _ := issuegraphInit(t, issuegraph, "--prefix", "cr")
 
 	// Set up target repo
 	targetDir := filepath.Join(dir, "target-repo")
@@ -1003,16 +1003,16 @@ func TestEmbeddedCreateCrossRepoWithParent(t *testing.T) {
 		t.Fatal(err)
 	}
 	initGitRepoAt(t, targetDir)
-	runBDInit(t, bd, targetDir, "--prefix", "tgt")
+	runIssueGraphInit(t, issuegraph, targetDir, "--prefix", "tgt")
 
 	// Create parent issue in target repo
-	parent := bdCreate(t, bd, dir, "Parent epic", "-t", "epic", "--repo", targetDir)
+	parent := issuegraphCreate(t, issuegraph, dir, "Parent epic", "-t", "epic", "--repo", targetDir)
 	if parent.ID == "" {
 		t.Fatal("expected parent issue ID")
 	}
 
 	// Create child issue with --parent in the same target repo
-	child := bdCreate(t, bd, dir, "Child task", "--parent", parent.ID, "--repo", targetDir)
+	child := issuegraphCreate(t, issuegraph, dir, "Child task", "--parent", parent.ID, "--repo", targetDir)
 	if child.ID == "" {
 		t.Fatal("expected child issue ID")
 	}
@@ -1023,62 +1023,62 @@ func TestEmbeddedCreateCrossRepoWithParent(t *testing.T) {
 	}
 
 	// Verify parent-child dependency exists in the target store
-	targetBeadsDir := filepath.Join(targetDir, ".beads")
-	assertDepExists(t, targetBeadsDir, "tgt", child.ID, parent.ID)
+	targetIssueGraphDir := filepath.Join(targetDir, ".issuegraph")
+	assertDepExists(t, targetIssueGraphDir, "tgt", child.ID, parent.ID)
 }
 
 func TestEmbeddedCreateDryRunRepoDoesNotInitializeTarget(t *testing.T) {
-	if os.Getenv("BEADS_TEST_EMBEDDED_DOLT") != "1" {
-		t.Skip("set BEADS_TEST_EMBEDDED_DOLT=1 to run embedded dolt create tests")
+	if os.Getenv("ISSUEGRAPH_TEST_EMBEDDED_DOLT") != "1" {
+		t.Skip("set ISSUEGRAPH_TEST_EMBEDDED_DOLT=1 to run embedded dolt create tests")
 	}
 	t.Parallel()
 
-	bd := buildEmbeddedBD(t)
+	issuegraph := buildEmbeddedBD(t)
 
-	dir, _, _ := bdInit(t, bd, "--prefix", "dr")
+	dir, _, _ := issuegraphInit(t, issuegraph, "--prefix", "dr")
 	targetDir := filepath.Join(dir, "uninit-dry-run-target")
 	if err := os.MkdirAll(targetDir, 0750); err != nil {
 		t.Fatal(err)
 	}
 	initGitRepoAt(t, targetDir)
 
-	cmd := exec.Command(bd, "create", "--dry-run", "Preview only", "--json", "--repo", targetDir)
+	cmd := exec.Command(issuegraph, "create", "--dry-run", "Preview only", "--json", "--repo", targetDir)
 	cmd.Dir = dir
-	cmd.Env = bdEnv(dir)
+	cmd.Env = issuegraphEnv(dir)
 	stdout, stderr, err := runCommandBuffers(t, cmd)
 	if err != nil {
-		t.Fatalf("bd create --dry-run --repo failed: %v\nstdout:\n%s\nstderr:\n%s", err, stdout.String(), stderr.String())
+		t.Fatalf("issuegraph create --dry-run --repo failed: %v\nstdout:\n%s\nstderr:\n%s", err, stdout.String(), stderr.String())
 	}
 
-	if _, err := os.Stat(filepath.Join(targetDir, ".beads")); !os.IsNotExist(err) {
-		t.Fatalf("dry-run target .beads stat err = %v, want not exist", err)
+	if _, err := os.Stat(filepath.Join(targetDir, ".issuegraph")); !os.IsNotExist(err) {
+		t.Fatalf("dry-run target .issuegraph stat err = %v, want not exist", err)
 	}
 }
 
 func TestEmbeddedCreateCrossRepoDryRunWithParent(t *testing.T) {
-	if os.Getenv("BEADS_TEST_EMBEDDED_DOLT") != "1" {
-		t.Skip("set BEADS_TEST_EMBEDDED_DOLT=1 to run embedded dolt create tests")
+	if os.Getenv("ISSUEGRAPH_TEST_EMBEDDED_DOLT") != "1" {
+		t.Skip("set ISSUEGRAPH_TEST_EMBEDDED_DOLT=1 to run embedded dolt create tests")
 	}
 	t.Parallel()
 
-	bd := buildEmbeddedBD(t)
+	issuegraph := buildEmbeddedBD(t)
 
-	dir, _, _ := bdInit(t, bd, "--prefix", "drp")
+	dir, _, _ := issuegraphInit(t, issuegraph, "--prefix", "drp")
 	targetDir := filepath.Join(dir, "target-repo")
 	if err := os.MkdirAll(targetDir, 0750); err != nil {
 		t.Fatal(err)
 	}
 	initGitRepoAt(t, targetDir)
-	runBDInit(t, bd, targetDir, "--prefix", "tgt")
+	runIssueGraphInit(t, issuegraph, targetDir, "--prefix", "tgt")
 
-	parent := bdCreate(t, bd, dir, "Parent epic", "-t", "epic", "-l", "team-a,shared", "--repo", targetDir)
-	cmd := exec.Command(bd, "create", "--dry-run", "Preview child", "--json",
+	parent := issuegraphCreate(t, issuegraph, dir, "Parent epic", "-t", "epic", "-l", "team-a,shared", "--repo", targetDir)
+	cmd := exec.Command(issuegraph, "create", "--dry-run", "Preview child", "--json",
 		"--parent", parent.ID, "-l", "child,shared", "--repo", targetDir)
 	cmd.Dir = dir
-	cmd.Env = bdEnv(dir)
+	cmd.Env = issuegraphEnv(dir)
 	stdout, stderr, err := runCommandBuffers(t, cmd)
 	if err != nil {
-		t.Fatalf("bd create --dry-run --repo --parent failed: %v\nstdout:\n%s\nstderr:\n%s", err, stdout.String(), stderr.String())
+		t.Fatalf("issuegraph create --dry-run --repo --parent failed: %v\nstdout:\n%s\nstderr:\n%s", err, stdout.String(), stderr.String())
 	}
 
 	preview := parseIssueJSON(t, stdout.Bytes())
@@ -1092,45 +1092,45 @@ func TestEmbeddedCreateCrossRepoDryRunWithParent(t *testing.T) {
 		}
 	}
 
-	child := bdCreate(t, bd, dir, "Real child after dry-run", "--parent", parent.ID, "--repo", targetDir)
+	child := issuegraphCreate(t, issuegraph, dir, "Real child after dry-run", "--parent", parent.ID, "--repo", targetDir)
 	if child.ID != parent.ID+".1" {
 		t.Fatalf("child ID after dry-run = %q, want %q", child.ID, parent.ID+".1")
 	}
 }
 
-// TestEmbeddedCreateCrossRepoUninit verifies that bd create --repo works when
-// the target directory has NOT been initialized with bd init. This is a
+// TestEmbeddedCreateCrossRepoUninit verifies that issuegraph create --repo works when
+// the target directory has NOT been initialized with issuegraph init. This is a
 // regression test for be-sy8 / GH#2988: newDoltStoreFromConfig used to pass
 // an empty database name to the embedded Dolt engine, causing "no database
 // selected" during schema init.
 func TestEmbeddedCreateCrossRepoUninit(t *testing.T) {
-	if os.Getenv("BEADS_TEST_EMBEDDED_DOLT") != "1" {
-		t.Skip("set BEADS_TEST_EMBEDDED_DOLT=1 to run embedded dolt create tests")
+	if os.Getenv("ISSUEGRAPH_TEST_EMBEDDED_DOLT") != "1" {
+		t.Skip("set ISSUEGRAPH_TEST_EMBEDDED_DOLT=1 to run embedded dolt create tests")
 	}
 	t.Parallel()
 
-	bd := buildEmbeddedBD(t)
+	issuegraph := buildEmbeddedBD(t)
 
 	// Set up primary repo (source — initialized)
-	dir, _, _ := bdInit(t, bd, "--prefix", "src")
+	dir, _, _ := issuegraphInit(t, issuegraph, "--prefix", "src")
 
-	// Set up target repo WITHOUT bd init — just a bare git repo
+	// Set up target repo WITHOUT issuegraph init — just a bare git repo
 	targetDir := filepath.Join(dir, "uninit-target")
 	if err := os.MkdirAll(targetDir, 0750); err != nil {
 		t.Fatal(err)
 	}
 	initGitRepoAt(t, targetDir)
 
-	// This should succeed: ensureBeadsDirForPath creates .beads,
-	// and newDoltStoreFromConfig defaults to database "beads".
-	issue := bdCreate(t, bd, dir, "Issue in uninit target", "--repo", targetDir)
+	// This should succeed: ensureIssueGraphDirForPath creates .issuegraph,
+	// and newDoltStoreFromConfig defaults to database "issuegraph".
+	issue := issuegraphCreate(t, issuegraph, dir, "Issue in uninit target", "--repo", targetDir)
 	if issue.ID == "" {
 		t.Fatal("expected issue ID")
 	}
 
 	// Verify issue exists in the target store
-	targetBeadsDir := filepath.Join(targetDir, ".beads")
-	tgtStore, err := newDoltStoreFromConfig(t.Context(), targetBeadsDir)
+	targetIssueGraphDir := filepath.Join(targetDir, ".issuegraph")
+	tgtStore, err := newDoltStoreFromConfig(t.Context(), targetIssueGraphDir)
 	if err != nil {
 		t.Fatalf("failed to open target store: %v", err)
 	}
@@ -1154,41 +1154,41 @@ func TestEmbeddedCreateCrossRepoUninit(t *testing.T) {
 // TestEmbeddedCreateCrossRepoUninit, which uses an absolute --repo path and
 // must still succeed.
 func TestEmbeddedCreateRepoRelativeUninitRefused(t *testing.T) {
-	if os.Getenv("BEADS_TEST_EMBEDDED_DOLT") != "1" {
-		t.Skip("set BEADS_TEST_EMBEDDED_DOLT=1 to run embedded dolt create tests")
+	if os.Getenv("ISSUEGRAPH_TEST_EMBEDDED_DOLT") != "1" {
+		t.Skip("set ISSUEGRAPH_TEST_EMBEDDED_DOLT=1 to run embedded dolt create tests")
 	}
 	t.Parallel()
 
-	bd := buildEmbeddedBD(t)
-	dir, _, _ := bdInit(t, bd, "--prefix", "src")
+	issuegraph := buildEmbeddedBD(t)
+	dir, _, _ := issuegraphInit(t, issuegraph, "--prefix", "src")
 
 	relTarget := "some-other-rig"
-	out, err := bdRunWithFlockRetry(t, bd, dir, "create", "--json", "Should not land anywhere", "--repo", relTarget)
+	out, err := issuegraphRunWithFlockRetry(t, issuegraph, dir, "create", "--json", "Should not land anywhere", "--repo", relTarget)
 	if err == nil {
-		t.Fatalf("expected bd create --repo %q to fail for an uninitialized relative target, got success: %s", relTarget, out)
+		t.Fatalf("expected issuegraph create --repo %q to fail for an uninitialized relative target, got success: %s", relTarget, out)
 	}
 	if !strings.Contains(string(out), "absolute") {
 		t.Errorf("expected error to explain the absolute/~-prefixed path requirement, got: %s", out)
 	}
 
-	if _, statErr := os.Stat(filepath.Join(dir, relTarget, ".beads")); !os.IsNotExist(statErr) {
-		t.Errorf("expected no .beads directory to be fabricated at %s, stat err = %v", filepath.Join(dir, relTarget), statErr)
+	if _, statErr := os.Stat(filepath.Join(dir, relTarget, ".issuegraph")); !os.IsNotExist(statErr) {
+		t.Errorf("expected no .issuegraph directory to be fabricated at %s, stat err = %v", filepath.Join(dir, relTarget), statErr)
 	}
 }
 
 // TestEmbeddedCreateRepoRelativeExistingWorkspaceUnaffected verifies the
 // bd-8d3f gate only blocks *fabricating* a new workspace: a relative --repo
 // value that already has an initialized workspace at the resolved path must
-// keep working exactly as before, since ensureBeadsDirForPath's existing
+// keep working exactly as before, since ensureIssueGraphDirForPath's existing
 // os.Stat(metadata.json) check returns early before the new gate runs.
 func TestEmbeddedCreateRepoRelativeExistingWorkspaceUnaffected(t *testing.T) {
-	if os.Getenv("BEADS_TEST_EMBEDDED_DOLT") != "1" {
-		t.Skip("set BEADS_TEST_EMBEDDED_DOLT=1 to run embedded dolt create tests")
+	if os.Getenv("ISSUEGRAPH_TEST_EMBEDDED_DOLT") != "1" {
+		t.Skip("set ISSUEGRAPH_TEST_EMBEDDED_DOLT=1 to run embedded dolt create tests")
 	}
 	t.Parallel()
 
-	bd := buildEmbeddedBD(t)
-	dir, _, _ := bdInit(t, bd, "--prefix", "src")
+	issuegraph := buildEmbeddedBD(t)
+	dir, _, _ := issuegraphInit(t, issuegraph, "--prefix", "src")
 
 	relTarget := "already-initialized-sibling"
 	absTarget := filepath.Join(dir, relTarget)
@@ -1199,7 +1199,7 @@ func TestEmbeddedCreateRepoRelativeExistingWorkspaceUnaffected(t *testing.T) {
 
 	// Initialize the target workspace first via an absolute --repo path
 	// (the already-covered, unambiguous case).
-	first := bdCreate(t, bd, dir, "Seed issue", "--repo", absTarget)
+	first := issuegraphCreate(t, issuegraph, dir, "Seed issue", "--repo", absTarget)
 	if first.ID == "" {
 		t.Fatal("expected issue ID for absolute --repo seed create")
 	}
@@ -1207,23 +1207,23 @@ func TestEmbeddedCreateRepoRelativeExistingWorkspaceUnaffected(t *testing.T) {
 	// A relative --repo pointing at that SAME, now-initialized workspace
 	// must succeed unaffected by the bd-8d3f gate: the gate only blocks
 	// fabricating a workspace that doesn't exist yet.
-	second := bdCreate(t, bd, dir, "Should land in the pre-existing workspace", "--repo", relTarget)
+	second := issuegraphCreate(t, issuegraph, dir, "Should land in the pre-existing workspace", "--repo", relTarget)
 	if second.ID == "" {
 		t.Fatal("expected issue ID for relative --repo pointing at an existing workspace")
 	}
 }
 
-// TestEmbeddedCreateWithGitRemote verifies bd create works end-to-end when a
+// TestEmbeddedCreateWithGitRemote verifies issuegraph create works end-to-end when a
 // git remote exists (which enables auto-backup in PersistentPostRun). This
 // catches panics from unimplemented methods called after the create succeeds.
 func TestEmbeddedCreateWithGitRemote(t *testing.T) {
-	if os.Getenv("BEADS_TEST_EMBEDDED_DOLT") != "1" {
-		t.Skip("set BEADS_TEST_EMBEDDED_DOLT=1 to run embedded dolt create tests")
+	if os.Getenv("ISSUEGRAPH_TEST_EMBEDDED_DOLT") != "1" {
+		t.Skip("set ISSUEGRAPH_TEST_EMBEDDED_DOLT=1 to run embedded dolt create tests")
 	}
 	t.Parallel()
 
-	bd := buildEmbeddedBD(t)
-	dir, _, _ := bdInit(t, bd, "--prefix", "gr")
+	issuegraph := buildEmbeddedBD(t)
+	dir, _, _ := issuegraphInit(t, issuegraph, "--prefix", "gr")
 
 	// Add a fake git remote so isBackupAutoEnabled returns true
 	cmd := exec.Command("git", "remote", "add", "origin", "https://example.com/fake.git")
@@ -1232,8 +1232,8 @@ func TestEmbeddedCreateWithGitRemote(t *testing.T) {
 		t.Fatalf("git remote add failed: %v\n%s", err, out)
 	}
 
-	// bd create should succeed without panicking in PersistentPostRun
-	issue := bdCreate(t, bd, dir, "Issue with git remote")
+	// issuegraph create should succeed without panicking in PersistentPostRun
+	issue := issuegraphCreate(t, issuegraph, dir, "Issue with git remote")
 	if issue.ID == "" {
 		t.Fatal("expected issue ID")
 	}
@@ -1242,13 +1242,13 @@ func TestEmbeddedCreateWithGitRemote(t *testing.T) {
 // TestEmbeddedCreateConcurrent verifies one contended create from each of six
 // CLI processes, then proves every requested issue was durably created.
 func TestEmbeddedCreateConcurrent(t *testing.T) {
-	if os.Getenv("BEADS_TEST_EMBEDDED_DOLT") != "1" {
-		t.Skip("set BEADS_TEST_EMBEDDED_DOLT=1 to run embedded dolt create tests")
+	if os.Getenv("ISSUEGRAPH_TEST_EMBEDDED_DOLT") != "1" {
+		t.Skip("set ISSUEGRAPH_TEST_EMBEDDED_DOLT=1 to run embedded dolt create tests")
 	}
 	t.Parallel()
 
-	bd := buildEmbeddedBD(t)
-	dir, beadsDir, _ := bdInit(t, bd, "--prefix", "cc")
+	issuegraph := buildEmbeddedBD(t)
+	dir, issuegraphDir, _ := issuegraphInit(t, issuegraph, "--prefix", "cc")
 
 	// Six first attempts plus at most one serial retry per lock loser keeps the
 	// create-process budget at twelve.
@@ -1273,9 +1273,9 @@ func TestEmbeddedCreateConcurrent(t *testing.T) {
 			ready <- struct{}{}
 			<-start
 
-			cmd := exec.Command(bd, "create", "--silent", title)
+			cmd := exec.Command(issuegraph, "create", "--silent", title)
 			cmd.Dir = dir
-			cmd.Env = bdEnv(dir)
+			cmd.Env = issuegraphEnv(dir)
 			out, err := cmd.CombinedOutput()
 			results[worker] = result{title: title, out: string(out), err: err}
 		}(w)
@@ -1322,9 +1322,9 @@ func TestEmbeddedCreateConcurrent(t *testing.T) {
 
 	// Retry only the lock losers, once each, after concurrent contention ends.
 	for _, r := range lockLosers {
-		cmd := exec.Command(bd, "create", "--silent", r.title)
+		cmd := exec.Command(issuegraph, "create", "--silent", r.title)
 		cmd.Dir = dir
-		cmd.Env = bdEnv(dir)
+		cmd.Env = issuegraphEnv(dir)
 		out, err := cmd.CombinedOutput()
 		if err != nil {
 			t.Fatalf("retry create %q failed: %v\n%s", r.title, err, out)
@@ -1338,7 +1338,7 @@ func TestEmbeddedCreateConcurrent(t *testing.T) {
 
 	// Read the durable store directly: a CLI list would duplicate a read path
 	// rather than prove an additional risk here.
-	store := openStore(t, beadsDir, "cc")
+	store := openStore(t, issuegraphDir, "cc")
 	issues, err := store.SearchIssues(t.Context(), "", types.IssueFilter{})
 	if err != nil {
 		t.Fatalf("SearchIssues durable readback: %v", err)

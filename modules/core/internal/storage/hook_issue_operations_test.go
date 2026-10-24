@@ -6,9 +6,9 @@ import (
 	"reflect"
 	"testing"
 
-	"github.com/steveyegge/beads/internal/hooks"
-	"github.com/steveyegge/beads/internal/types"
-	"github.com/steveyegge/beads/issueops"
+	"github.com/borg0ai/dx-issuegraph/internal/hooks"
+	"github.com/borg0ai/dx-issuegraph/internal/types"
+	"github.com/borg0ai/dx-issuegraph/issueops"
 )
 
 // fakeIssueOperations records which verbs reached it and can fail or report an

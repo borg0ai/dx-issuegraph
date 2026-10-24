@@ -9,9 +9,9 @@ import (
 	"strings"
 	"time"
 
-	"github.com/steveyegge/beads/internal/storage/dberrors"
-	"github.com/steveyegge/beads/internal/storage/sqlbuild"
-	"github.com/steveyegge/beads/internal/types"
+	"github.com/borg0ai/dx-issuegraph/internal/storage/dberrors"
+	"github.com/borg0ai/dx-issuegraph/internal/storage/sqlbuild"
+	"github.com/borg0ai/dx-issuegraph/internal/types"
 )
 
 type readyWorkPredicates struct {

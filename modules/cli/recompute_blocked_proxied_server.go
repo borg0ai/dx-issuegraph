@@ -4,10 +4,10 @@ import (
 	"context"
 	"database/sql"
 
-	"github.com/steveyegge/beads/internal/storage/versioncontrolops"
+	"github.com/borg0ai/dx-issuegraph/internal/storage/versioncontrolops"
 )
 
-// runRecomputeBlockedProxiedServer routes bd recompute-blocked through the
+// runRecomputeBlockedProxiedServer routes issuegraph recompute-blocked through the
 // proxied-server plane (bd-04vav).
 //
 // The repair itself is not reimplemented here: the guard, the fixpoint

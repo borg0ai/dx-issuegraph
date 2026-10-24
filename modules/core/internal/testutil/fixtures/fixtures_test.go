@@ -7,9 +7,9 @@ import (
 	"context"
 	"testing"
 
-	"github.com/steveyegge/beads/internal/storage/dolt"
-	"github.com/steveyegge/beads/internal/testutil"
-	"github.com/steveyegge/beads/internal/types"
+	"github.com/borg0ai/dx-issuegraph/internal/storage/dolt"
+	"github.com/borg0ai/dx-issuegraph/internal/testutil"
+	"github.com/borg0ai/dx-issuegraph/internal/types"
 )
 
 func TestLargeDolt(t *testing.T) {

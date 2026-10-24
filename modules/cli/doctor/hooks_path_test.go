@@ -85,23 +85,23 @@ func TestCheckHooksPath_SetToExistingDir(t *testing.T) {
 	})
 }
 
-func TestCheckHooksPath_MissingBeadsManagedPath(t *testing.T) {
+func TestCheckHooksPath_MissingIssueGraphManagedPath(t *testing.T) {
 	tests := []struct {
 		name        string
 		hooksPath   func(dir string) string
 		wantAbsHint bool
 	}{
 		{
-			name:      "relative .beads/hooks",
-			hooksPath: func(dir string) string { return ".beads/hooks" },
+			name:      "relative .issuegraph/hooks",
+			hooksPath: func(dir string) string { return ".issuegraph/hooks" },
 		},
 		{
-			name:      "relative .beads-hooks",
-			hooksPath: func(dir string) string { return ".beads-hooks" },
+			name:      "relative .issuegraph-hooks",
+			hooksPath: func(dir string) string { return ".issuegraph-hooks" },
 		},
 		{
-			name:        "absolute .beads/hooks",
-			hooksPath:   func(dir string) string { return filepath.Join(dir, ".beads", "hooks") },
+			name:        "absolute .issuegraph/hooks",
+			hooksPath:   func(dir string) string { return filepath.Join(dir, ".issuegraph", "hooks") },
 			wantAbsHint: true,
 		},
 	}
@@ -118,8 +118,8 @@ func TestCheckHooksPath_MissingBeadsManagedPath(t *testing.T) {
 				if check.Status != StatusWarning {
 					t.Fatalf("expected StatusWarning, got %q: %s", check.Status, check.Message)
 				}
-				if !strings.Contains(check.Fix, "bd doctor --fix") {
-					t.Errorf("expected beads-managed fix hint, got %q", check.Fix)
+				if !strings.Contains(check.Fix, "issuegraph doctor --fix") {
+					t.Errorf("expected issuegraph-managed fix hint, got %q", check.Fix)
 				}
 				if !strings.Contains(check.Detail, hooksPath) {
 					t.Errorf("expected detail to mention configured value %q, got %q", hooksPath, check.Detail)
@@ -137,7 +137,7 @@ func TestCheckHooksPath_MissingBeadsManagedPath(t *testing.T) {
 	}
 }
 
-func TestCheckHooksPath_MissingNonBeadsPath(t *testing.T) {
+func TestCheckHooksPath_MissingNonIssueGraphPath(t *testing.T) {
 	dir := t.TempDir()
 	setupGitRepoInDir(t, dir)
 	setGitConfig(t, dir, "core.hooksPath", ".husky/_")
@@ -147,11 +147,11 @@ func TestCheckHooksPath_MissingNonBeadsPath(t *testing.T) {
 		if check.Status != StatusWarning {
 			t.Fatalf("expected StatusWarning, got %q: %s", check.Status, check.Message)
 		}
-		if strings.Contains(check.Fix, "bd doctor --fix") {
-			t.Errorf("did not expect bd auto-fix to be offered for a non-beads-managed path, got %q", check.Fix)
+		if strings.Contains(check.Fix, "issuegraph doctor --fix") {
+			t.Errorf("did not expect issuegraph auto-fix to be offered for a non-issuegraph-managed path, got %q", check.Fix)
 		}
-		if !strings.Contains(check.Fix, "not beads-managed") {
-			t.Errorf("expected fix text to say the path is not beads-managed, got %q", check.Fix)
+		if !strings.Contains(check.Fix, "not issuegraph-managed") {
+			t.Errorf("expected fix text to say the path is not issuegraph-managed, got %q", check.Fix)
 		}
 
 		// The important guard: FixHooksPath must be a no-op for a third-party
@@ -166,7 +166,7 @@ func TestCheckHooksPath_MissingNonBeadsPath(t *testing.T) {
 	}
 }
 
-func TestCheckHooksPath_ExistingNonBeadsPath(t *testing.T) {
+func TestCheckHooksPath_ExistingNonIssueGraphPath(t *testing.T) {
 	dir := t.TempDir()
 	setupGitRepoInDir(t, dir)
 	huskyDir := filepath.Join(dir, ".husky", "_")
@@ -186,11 +186,11 @@ func TestCheckHooksPath_ExistingNonBeadsPath(t *testing.T) {
 func TestFixHooksPath_NoOpWhenTargetExists(t *testing.T) {
 	dir := t.TempDir()
 	setupGitRepoInDir(t, dir)
-	beadsHooksDir := filepath.Join(dir, ".beads", "hooks")
-	if err := os.MkdirAll(beadsHooksDir, 0755); err != nil {
-		t.Fatalf("failed to create .beads/hooks: %v", err)
+	issuegraphHooksDir := filepath.Join(dir, ".issuegraph", "hooks")
+	if err := os.MkdirAll(issuegraphHooksDir, 0755); err != nil {
+		t.Fatalf("failed to create .issuegraph/hooks: %v", err)
 	}
-	setGitConfig(t, dir, "core.hooksPath", ".beads/hooks")
+	setGitConfig(t, dir, "core.hooksPath", ".issuegraph/hooks")
 
 	runInDir(t, dir, func() {
 		if err := FixHooksPath(); err != nil {
@@ -198,14 +198,14 @@ func TestFixHooksPath_NoOpWhenTargetExists(t *testing.T) {
 		}
 	})
 
-	if got := getGitConfig(t, dir, "core.hooksPath"); got != ".beads/hooks" {
-		t.Errorf("expected core.hooksPath to remain %q when target exists, got %q", ".beads/hooks", got)
+	if got := getGitConfig(t, dir, "core.hooksPath"); got != ".issuegraph/hooks" {
+		t.Errorf("expected core.hooksPath to remain %q when target exists, got %q", ".issuegraph/hooks", got)
 	}
 }
 
 // TestCheckHooksPath_SymlinkedRepoRoot pins the fix for the macOS-red build at
 // 868dd077a: git canonicalizes the repo root it reports, but the configured
-// core.hooksPath is whatever string was written, so an absolute beads-managed
+// core.hooksPath is whatever string was written, so an absolute issuegraph-managed
 // path reached through a symlink used to string-compare unequal and be
 // misreported as third-party — leaving FixHooksPath refusing to unset it.
 //
@@ -228,9 +228,9 @@ func TestCheckHooksPath_SymlinkedRepoRoot(t *testing.T) {
 	}
 	setupGitRepoInDir(t, realDir)
 
-	// The value a user (or an older bd) wrote: absolute, and carrying the
+	// The value a user (or an older issuegraph) wrote: absolute, and carrying the
 	// unresolved symlink prefix. Its target does not exist, so it is dangling.
-	hooksPath := filepath.Join(linkDir, ".beads", "hooks")
+	hooksPath := filepath.Join(linkDir, ".issuegraph", "hooks")
 	setGitConfig(t, realDir, "core.hooksPath", hooksPath)
 
 	runInDir(t, realDir, func() {
@@ -238,8 +238,8 @@ func TestCheckHooksPath_SymlinkedRepoRoot(t *testing.T) {
 		if check.Status != StatusWarning {
 			t.Fatalf("expected StatusWarning, got %q: %s", check.Status, check.Message)
 		}
-		if !strings.Contains(check.Fix, "bd doctor --fix") {
-			t.Errorf("expected beads-managed fix hint for a symlinked repo root, got %q", check.Fix)
+		if !strings.Contains(check.Fix, "issuegraph doctor --fix") {
+			t.Errorf("expected issuegraph-managed fix hint for a symlinked repo root, got %q", check.Fix)
 		}
 		if err := FixHooksPath(); err != nil {
 			t.Fatalf("FixHooksPath failed: %v", err)
@@ -251,33 +251,33 @@ func TestCheckHooksPath_SymlinkedRepoRoot(t *testing.T) {
 	}
 }
 
-// TestIsBeadsManagedHooksPath_LeavesThirdPartyAlone guards the widened
+// TestIsIssueGraphManagedHooksPath_LeavesThirdPartyAlone guards the widened
 // symlink-resolving match against over-reach: resolving paths must not make
-// an unrelated hooks directory look beads-managed, since a false positive here
-// means bd unsets a hooksPath it does not own (husky, lefthook).
-func TestIsBeadsManagedHooksPath_LeavesThirdPartyAlone(t *testing.T) {
+// an unrelated hooks directory look issuegraph-managed, since a false positive here
+// means issuegraph unsets a hooksPath it does not own (husky, lefthook).
+func TestIsIssueGraphManagedHooksPath_LeavesThirdPartyAlone(t *testing.T) {
 	root := t.TempDir()
 	cases := []struct {
 		name      string
 		hooksPath string
 		want      bool
 	}{
-		{"relative beads hooks", ".beads/hooks", true},
-		{"relative shared beads hooks", ".beads-hooks", true},
-		{"absolute beads hooks", filepath.Join(root, ".beads", "hooks"), true},
-		{"absolute shared beads hooks", filepath.Join(root, ".beads-hooks"), true},
+		{"relative issuegraph hooks", ".issuegraph/hooks", true},
+		{"relative shared issuegraph hooks", ".issuegraph-hooks", true},
+		{"absolute issuegraph hooks", filepath.Join(root, ".issuegraph", "hooks"), true},
+		{"absolute shared issuegraph hooks", filepath.Join(root, ".issuegraph-hooks"), true},
 		{"relative husky", ".husky/_", false},
 		{"relative githooks", ".githooks", false},
 		{"absolute husky", filepath.Join(root, ".husky", "_"), false},
-		{"beads hooks under a different repo", filepath.Join(t.TempDir(), ".beads", "hooks"), false},
-		{"deeper path below beads hooks", filepath.Join(root, ".beads", "hooks", "pre-commit"), false},
+		{"issuegraph hooks under a different repo", filepath.Join(t.TempDir(), ".issuegraph", "hooks"), false},
+		{"deeper path below issuegraph hooks", filepath.Join(root, ".issuegraph", "hooks", "pre-commit"), false},
 		{"empty", "", false},
 	}
 
 	for _, tc := range cases {
 		t.Run(tc.name, func(t *testing.T) {
-			if got := IsBeadsManagedHooksPath(root, tc.hooksPath); got != tc.want {
-				t.Errorf("IsBeadsManagedHooksPath(%q, %q) = %v, want %v", root, tc.hooksPath, got, tc.want)
+			if got := IsIssueGraphManagedHooksPath(root, tc.hooksPath); got != tc.want {
+				t.Errorf("IsIssueGraphManagedHooksPath(%q, %q) = %v, want %v", root, tc.hooksPath, got, tc.want)
 			}
 		})
 	}

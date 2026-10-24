@@ -10,7 +10,7 @@ import (
 )
 
 // End-to-end for the comment append, against real Dolt through a real
-// `bd serve` subprocess.
+// `issuegraph serve` subprocess.
 //
 // The pure tests in internal/httpapi cover the wire edge on a fake role — the
 // request projection, the response shape, the path bound and every refusal this
@@ -36,7 +36,7 @@ import (
 // against: what the thread holds after a write, not what the write said.
 func (sp *serveProcess) comments(t *testing.T, id string) []map[string]any {
 	t.Helper()
-	status, body, _ := sp.get(t, "/v0/beads/issues/"+id+"?include_comments=true")
+	status, body, _ := sp.get(t, "/v0/issuegraph/issues/"+id+"?include_comments=true")
 	if status != http.StatusOK {
 		t.Fatalf("GET the thread of %s: status = %d: %v", id, status, body)
 	}
@@ -60,16 +60,16 @@ func (sp *serveProcess) comments(t *testing.T, id string) []map[string]any {
 func TestProxiedServerServeAddComment(t *testing.T) {
 	requireSharedProxiedServer(t)
 	t.Parallel()
-	bd := buildEmbeddedBD(t)
-	p := newSharedProxiedProject(t, bd, "srvcomment")
-	sp := startServe(t, bd, p.dir, bdProxiedEnv(p.dir))
+	issuegraph := buildEmbeddedBD(t)
+	p := newSharedProxiedProject(t, issuegraph, "srvcomment")
+	sp := startServe(t, issuegraph, p.dir, issuegraphProxiedEnv(p.dir))
 
 	// THE ROW IS WHAT THE RESPONSE SAID, and the read-back is what proves it.
 	// The response's `id` and `created_at` are values the request never sent, so
 	// this is the case that separates "the server answered plausibly" from "the
 	// database holds this".
 	t.Run("the comment lands and reads back verbatim", func(t *testing.T) {
-		issue := bdProxiedCreate(t, bd, p.dir, "an issue with a thread", "-p", "2")
+		issue := issuegraphProxiedCreate(t, issuegraph, p.dir, "an issue with a thread", "-p", "2")
 
 		// Newlines and surrounding space, because that is what a real comment
 		// carries and because `text` is the one member on this surface that is
@@ -79,7 +79,7 @@ func TestProxiedServerServeAddComment(t *testing.T) {
 		if err != nil {
 			t.Fatalf("marshal body: %v", err)
 		}
-		status, body := sp.postJSON(t, "/v0/beads/issues/"+issue.ID+"/comments", string(raw))
+		status, body := sp.postJSON(t, "/v0/issuegraph/issues/"+issue.ID+"/comments", string(raw))
 		if status != http.StatusOK {
 			t.Fatalf("status = %d, want 200: %v", status, body)
 		}
@@ -113,12 +113,12 @@ func TestProxiedServerServeAddComment(t *testing.T) {
 	// A WISP IS A LEGAL TARGET, and this is the case a one-plane implementation
 	// fails. The anchor resolves through the issue-then-wisp fallback and the row
 	// lands in `wisp_comments`; a server that probed only `issues` would answer
-	// 404 for an id `bd comment` writes to happily.
+	// 404 for an id `issuegraph comment` writes to happily.
 	t.Run("an ephemeral issue is a legal target", func(t *testing.T) {
-		wisp := bdProxiedCreate(t, bd, p.dir, "an ephemeral thread", "-p", "2",
+		wisp := issuegraphProxiedCreate(t, issuegraph, p.dir, "an ephemeral thread", "-p", "2",
 			"--ephemeral", "--wisp-type", "heartbeat")
 
-		status, body := sp.postJSON(t, "/v0/beads/issues/"+wisp.ID+"/comments",
+		status, body := sp.postJSON(t, "/v0/issuegraph/issues/"+wisp.ID+"/comments",
 			`{"author":"alice","text":"a note on ephemeral work"}`)
 		if status != http.StatusOK {
 			t.Fatalf("commenting on a wisp: status = %d, want 200 — the anchor resolves across both planes: %v", status, body)
@@ -152,8 +152,8 @@ func TestProxiedServerServeAddComment(t *testing.T) {
 	// under the 1 MiB body cap, so a failure here is the COLUMN and never the
 	// transport.
 	t.Run("a large comment lands on both planes", func(t *testing.T) {
-		durable := bdProxiedCreate(t, bd, p.dir, "a durable issue with a big comment", "-p", "2")
-		wisp := bdProxiedCreate(t, bd, p.dir, "an ephemeral issue with a big comment", "-p", "2",
+		durable := issuegraphProxiedCreate(t, issuegraph, p.dir, "a durable issue with a big comment", "-p", "2")
+		wisp := issuegraphProxiedCreate(t, issuegraph, p.dir, "an ephemeral issue with a big comment", "-p", "2",
 			"--ephemeral", "--wisp-type", "heartbeat")
 
 		big := strings.Repeat("a stack frame that goes on and on\n", 3000)
@@ -169,7 +169,7 @@ func TestProxiedServerServeAddComment(t *testing.T) {
 			{"durable", durable.ID},
 			{"wisp", wisp.ID},
 		} {
-			status, body := sp.postJSON(t, "/v0/beads/issues/"+target.id+"/comments", string(raw))
+			status, body := sp.postJSON(t, "/v0/issuegraph/issues/"+target.id+"/comments", string(raw))
 			if status != http.StatusOK {
 				t.Fatalf("a %d-byte comment on the %s plane: status = %d, want 200 — the column, not the transport: %v",
 					len(big), target.name, status, body)
@@ -193,10 +193,10 @@ func TestProxiedServerServeAddComment(t *testing.T) {
 	// can tell that pair from a retry. This is a claim about the table, which is
 	// why it is asserted here and not on a fake.
 	t.Run("a repeated request appends a second row", func(t *testing.T) {
-		issue := bdProxiedCreate(t, bd, p.dir, "an issue commented on twice", "-p", "2")
+		issue := issuegraphProxiedCreate(t, issuegraph, p.dir, "an issue commented on twice", "-p", "2")
 
 		for range 2 {
-			status, body := sp.postJSON(t, "/v0/beads/issues/"+issue.ID+"/comments",
+			status, body := sp.postJSON(t, "/v0/issuegraph/issues/"+issue.ID+"/comments",
 				`{"author":"alice","text":"the same words"}`)
 			if status != http.StatusOK {
 				t.Fatalf("status = %d, want 200: %v", status, body)
@@ -210,7 +210,7 @@ func TestProxiedServerServeAddComment(t *testing.T) {
 	// AN ABSENT ANCHOR IS A 404 and nothing is written — one anchor, so there is
 	// no other answer to preserve by reporting the miss in the body.
 	t.Run("an id that names nothing is refused", func(t *testing.T) {
-		status, body := sp.postJSON(t, "/v0/beads/issues/bd-nosuchbead/comments",
+		status, body := sp.postJSON(t, "/v0/issuegraph/issues/bd-nosuchissue/comments",
 			`{"author":"alice","text":"into the void"}`)
 		if status != http.StatusNotFound {
 			t.Fatalf("status = %d, want 404: %v", status, body)
@@ -225,9 +225,9 @@ func TestProxiedServerServeAddComment(t *testing.T) {
 	// is the one case that shows the role's sentence reaching a client as the 400
 	// it is rather than as a generic 500.
 	t.Run("a blank body is refused by name and writes nothing", func(t *testing.T) {
-		issue := bdProxiedCreate(t, bd, p.dir, "an issue nobody managed to comment on", "-p", "2")
+		issue := issuegraphProxiedCreate(t, issuegraph, p.dir, "an issue nobody managed to comment on", "-p", "2")
 
-		status, body := sp.postJSON(t, "/v0/beads/issues/"+issue.ID+"/comments",
+		status, body := sp.postJSON(t, "/v0/issuegraph/issues/"+issue.ID+"/comments",
 			`{"author":"alice","text":"   \n  "}`)
 		if status != http.StatusBadRequest {
 			t.Fatalf("status = %d, want 400: %v", status, body)
@@ -241,7 +241,7 @@ func TestProxiedServerServeAddComment(t *testing.T) {
 
 		// Nothing was written: the detail read omits `comments` entirely for a
 		// thread with no rows, which is what `comments_omitted` reports about.
-		status, detail, _ := sp.get(t, "/v0/beads/issues/"+issue.ID+"?include_comments=true")
+		status, detail, _ := sp.get(t, "/v0/issuegraph/issues/"+issue.ID+"?include_comments=true")
 		if status != http.StatusOK {
 			t.Fatalf("read back: status = %d", status)
 		}

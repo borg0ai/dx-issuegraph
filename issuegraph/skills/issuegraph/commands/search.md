@@ -13,7 +13,7 @@ Search issues across title, description, and ID with a simple text query.
 issuegraph search "authentication bug"
 issuegraph search login --status open
 issuegraph search database --label backend
-issuegraph search "bd-5q"  # Search by partial issue ID
+issuegraph search "issuegraph-5q"  # Search by partial issue ID
 ```
 
 ## How It Works

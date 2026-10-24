@@ -8,10 +8,10 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/steveyegge/beads/internal/types"
+	"github.com/borg0ai/dx-issuegraph/internal/types"
 )
 
-// batchParityOutcome is everything a `bd batch` caller can observe, recorded
+// batchParityOutcome is everything a `issuegraph batch` caller can observe, recorded
 // once per backend: exit codes, the summary and per-line report, and the state
 // the batch left in the database. Ids never appear — the two workspaces mint
 // their own — so rows are named by role and edges are counted.
@@ -52,10 +52,10 @@ type batchParityOutcome struct {
 	cDepsAfter int
 }
 
-// TestProxiedServerBatchParity is the cross-mode oracle for `bd batch` ported
+// TestProxiedServerBatchParity is the cross-mode oracle for `issuegraph batch` ported
 // to proxied-server mode.
 //
-// `bd batch` exists because a shell loop of N `bd` invocations is N
+// `issuegraph batch` exists because a shell loop of N `issuegraph` invocations is N
 // transactions and N Dolt commits; the command's whole value is that it is ONE
 // of each, all-or-nothing. So the interesting assertions are not "the ops
 // happened" but the transactional ones: a failing line at the END must undo the
@@ -74,9 +74,9 @@ type batchParityOutcome struct {
 func TestProxiedServerBatchParity(t *testing.T) {
 	requireSharedProxiedServer(t)
 	t.Parallel()
-	bd := buildEmbeddedBD(t)
+	issuegraph := buildEmbeddedBD(t)
 
-	envs := newCrossModeEnvs(t, bd, "bpc", "bpp")
+	envs := newCrossModeEnvs(t, issuegraph, "bpc", "bpp")
 	outcomes := make(map[string]batchParityOutcome, len(envs))
 
 	for _, env := range envs {
@@ -103,7 +103,7 @@ func TestProxiedServerBatchParity(t *testing.T) {
 		got.dryTail = lastNonEmptyLine(stdout)
 		got.dryTouchedA = env.show(t, a).Status != types.StatusOpen
 
-		// 2. Empty input is a no-op success, matching `bd list ... | bd batch`
+		// 2. Empty input is a no-op success, matching `issuegraph list ... | issuegraph batch`
 		// on an empty list.
 		stdout, _, code = env.runStdin(t, "", "batch")
 		got.emptyCode = code
@@ -132,7 +132,7 @@ func TestProxiedServerBatchParity(t *testing.T) {
 		// KNOWN PRE-EXISTING DIVERGENCE, deliberately not exercised here: an
 		// OUT-OF-RANGE priority (`priority=5`) is written by the classic batch
 		// and refused by the proxied one, because the domain update funnel
-		// validates the range and issueops' transaction path does not. `bd
+		// validates the range and issueops' transaction path does not. `issuegraph
 		// update --priority 5` rejects it on both paths — only the batch
 		// grammar reaches the unvalidated seam — so this is a hole in classic
 		// batch rather than something the port introduced. Closing it is its
@@ -260,7 +260,7 @@ func assertBatchParity(t *testing.T, classic, proxied batchParityOutcome) {
 }
 
 // depList reads the dependency records of one issue as a flat array, the shape
-// `bd dep list --json` documents.
+// `issuegraph dep list --json` documents.
 func (e crossModeEnv) depList(t *testing.T, id string) []map[string]any {
 	t.Helper()
 	out := e.mustRun(t, "dep", "list", id, "--json")
@@ -301,7 +301,7 @@ func (e crossModeEnv) hasIssueTitled(t *testing.T, title string) bool {
 	return false
 }
 
-// batchReportOps pulls the op names out of the per-line report `bd batch`
+// batchReportOps pulls the op names out of the per-line report `issuegraph batch`
 // prints after a successful commit ("  line 3: update bd-x").
 func batchReportOps(stdout string) []string {
 	var ops []string

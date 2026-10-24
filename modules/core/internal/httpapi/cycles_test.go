@@ -7,11 +7,11 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/steveyegge/beads/internal/types"
-	"github.com/steveyegge/beads/issueops"
+	"github.com/borg0ai/dx-issuegraph/internal/types"
+	"github.com/borg0ai/dx-issuegraph/issueops"
 )
 
-const cyclesPath = "/v0/beads/dependencies/cycles"
+const cyclesPath = "/v0/issuegraph/dependencies/cycles"
 
 // cyclesServer binds a roles-backed server whose cycle detector answers with
 // report. The rest of the role set is inert: this operation touches none of it,

@@ -1,11 +1,11 @@
 ---
-title: "bd stale"
+title: "issuegraph stale"
 description: "Show issues that haven't been updated recently and may need attention."
 ---
 
 {/* AUTO-GENERATED: do not edit manually */}
 
-Generated from `bd help --doc stale`.
+Generated from `issuegraph help --doc stale`.
 
 Show issues that haven't been updated recently and may need attention.
 This helps identify:
@@ -14,7 +14,7 @@ This helps identify:
 - Issues that might be outdated or no longer relevant
 
 ```
-bd stale [flags]
+issuegraph stale [flags]
 ```
 
 **Flags:**

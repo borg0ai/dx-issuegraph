@@ -8,11 +8,11 @@ import (
 	"path/filepath"
 	"testing"
 
+	"github.com/borg0ai/dx-issuegraph/internal/configfile"
+	"github.com/borg0ai/dx-issuegraph/internal/storage"
+	"github.com/borg0ai/dx-issuegraph/internal/types"
+	"github.com/borg0ai/dx-issuegraph/internal/utils"
 	"github.com/spf13/cobra"
-	"github.com/steveyegge/beads/internal/configfile"
-	"github.com/steveyegge/beads/internal/storage"
-	"github.com/steveyegge/beads/internal/types"
-	"github.com/steveyegge/beads/internal/utils"
 )
 
 func TestWithStorage_ReopensUsingMetadata(t *testing.T) {
@@ -34,14 +34,14 @@ func TestWithStorage_ReopensUsingMetadata(t *testing.T) {
 	}
 }
 
-func TestResolveBeadsDirForDBPath_UsesRawBeadsDirForSymlinkedDBPath(t *testing.T) {
+func TestResolveIssueGraphDirForDBPath_UsesRawIssueGraphDirForSymlinkedDBPath(t *testing.T) {
 	repoDir := t.TempDir()
-	beadsDir := filepath.Join(repoDir, ".beads")
+	issuegraphDir := filepath.Join(repoDir, ".issuegraph")
 	actualDBPath := filepath.Join(repoDir, "external-dolt")
-	linkDBPath := filepath.Join(beadsDir, "dolt")
+	linkDBPath := filepath.Join(issuegraphDir, "dolt")
 
-	if err := os.MkdirAll(beadsDir, 0o755); err != nil {
-		t.Fatalf("mkdir beads dir: %v", err)
+	if err := os.MkdirAll(issuegraphDir, 0o755); err != nil {
+		t.Fatalf("mkdir issuegraph dir: %v", err)
 	}
 	if err := os.MkdirAll(actualDBPath, 0o755); err != nil {
 		t.Fatalf("mkdir external dolt dir: %v", err)
@@ -54,12 +54,12 @@ func TestResolveBeadsDirForDBPath_UsesRawBeadsDirForSymlinkedDBPath(t *testing.T
 		Database: "dolt",
 		Backend:  configfile.BackendDolt,
 	}
-	if err := cfg.Save(beadsDir); err != nil {
+	if err := cfg.Save(issuegraphDir); err != nil {
 		t.Fatalf("save metadata: %v", err)
 	}
 
-	if got := resolveBeadsDirForDBPath(linkDBPath); !utils.PathsEqual(got, beadsDir) {
-		t.Fatalf("resolveBeadsDirForDBPath(%q) = %q, want %q", linkDBPath, got, beadsDir)
+	if got := resolveIssueGraphDirForDBPath(linkDBPath); !utils.PathsEqual(got, issuegraphDir) {
+		t.Fatalf("resolveIssueGraphDirForDBPath(%q) = %q, want %q", linkDBPath, got, issuegraphDir)
 	}
 }
 
@@ -103,33 +103,33 @@ func TestIssueIDCompletion_UsesMetadataWhenStoreNil(t *testing.T) {
 	}
 }
 
-func TestResolveCommandBeadsDir_NoCWDFallbackForExplicitPath(t *testing.T) {
-	// Set up project A with metadata so FindBeadsDir() discovers it from CWD.
+func TestResolveCommandIssueGraphDir_NoCWDFallbackForExplicitPath(t *testing.T) {
+	// Set up project A with metadata so FindIssueGraphDir() discovers it from CWD.
 	projectA := t.TempDir()
-	beadsDirA := filepath.Join(projectA, ".beads")
-	if err := os.MkdirAll(filepath.Join(beadsDirA, "dolt"), 0o755); err != nil {
-		t.Fatalf("mkdir beads dir A: %v", err)
+	issuegraphDirA := filepath.Join(projectA, ".issuegraph")
+	if err := os.MkdirAll(filepath.Join(issuegraphDirA, "dolt"), 0o755); err != nil {
+		t.Fatalf("mkdir issuegraph dir A: %v", err)
 	}
 	cfgA := &configfile.Config{
 		Database:     "dolt",
 		Backend:      configfile.BackendDolt,
 		DoltDatabase: "project_a_db",
 	}
-	if err := cfgA.Save(beadsDirA); err != nil {
+	if err := cfgA.Save(issuegraphDirA); err != nil {
 		t.Fatalf("save metadata A: %v", err)
 	}
 
-	// Project B: .beads/dolt exists but metadata.json is missing.
+	// Project B: .issuegraph/dolt exists but metadata.json is missing.
 	// This triggers the bug: filepath.Dir(dbPath) gives the correct
-	// .beads dir but configfile.Load returns nil, so the old code falls
-	// through to FindBeadsDir() which discovers project A instead.
+	// .issuegraph dir but configfile.Load returns nil, so the old code falls
+	// through to FindIssueGraphDir() which discovers project A instead.
 	projectB := t.TempDir()
-	beadsDirB := filepath.Join(projectB, ".beads")
-	if err := os.MkdirAll(filepath.Join(beadsDirB, "dolt"), 0o755); err != nil {
-		t.Fatalf("mkdir beads dir B: %v", err)
+	issuegraphDirB := filepath.Join(projectB, ".issuegraph")
+	if err := os.MkdirAll(filepath.Join(issuegraphDirB, "dolt"), 0o755); err != nil {
+		t.Fatalf("mkdir issuegraph dir B: %v", err)
 	}
 
-	// CWD is inside project A so FindBeadsDir() discovers A
+	// CWD is inside project A so FindIssueGraphDir() discovers A
 	origDir, err := os.Getwd()
 	if err != nil {
 		t.Fatalf("getwd: %v", err)
@@ -140,13 +140,13 @@ func TestResolveCommandBeadsDir_NoCWDFallbackForExplicitPath(t *testing.T) {
 	t.Cleanup(func() { os.Chdir(origDir) })
 
 	// Simulate --db pointing to project B's database path
-	dbPathB := filepath.Join(beadsDirB, "dolt")
-	got := resolveCommandBeadsDir(dbPathB)
+	dbPathB := filepath.Join(issuegraphDirB, "dolt")
+	got := resolveCommandIssueGraphDir(dbPathB)
 
-	// Must resolve to project B's .beads, NOT project A's.
-	// The old code falls back to FindBeadsDir() and returns beadsDirA.
-	if !utils.PathsEqual(got, beadsDirB) {
-		t.Fatalf("resolveCommandBeadsDir(%q) = %q, want %q", dbPathB, got, beadsDirB)
+	// Must resolve to project B's .issuegraph, NOT project A's.
+	// The old code falls back to FindIssueGraphDir() and returns issuegraphDirA.
+	if !utils.PathsEqual(got, issuegraphDirB) {
+		t.Fatalf("resolveCommandIssueGraphDir(%q) = %q, want %q", dbPathB, got, issuegraphDirB)
 	}
 }
 

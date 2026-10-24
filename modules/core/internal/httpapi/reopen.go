@@ -4,9 +4,9 @@ import (
 	"errors"
 	"net/http"
 
-	"github.com/steveyegge/beads/internal/httpapi/apigen"
-	"github.com/steveyegge/beads/internal/types"
-	"github.com/steveyegge/beads/issueops"
+	"github.com/borg0ai/dx-issuegraph/internal/httpapi/apigen"
+	"github.com/borg0ai/dx-issuegraph/internal/types"
+	"github.com/borg0ai/dx-issuegraph/issueops"
 )
 
 // reopenRequestMembers is the document's member list for ReopenIssueRequest,
@@ -17,7 +17,7 @@ var reopenRequestMembers = []string{"actor", "reason", expectedVersionMember}
 // naming the surface it came from.
 //
 // The role's own default is not good enough for this: the implementations do
-// not agree on it — the store-backed ones write "bd: reopen issue" and the
+// not agree on it — the store-backed ones write "issuegraph: reopen issue" and the
 // unit-of-work one "reopen issue" — so a workspace served by one backend today
 // and another tomorrow would grow two spellings of the same event. Spelling it
 // here makes the entry read the same whichever backend answered, which is the
@@ -25,7 +25,7 @@ var reopenRequestMembers = []string{"actor", "reason", expectedVersionMember}
 //
 // It never changes WHETHER history is recorded, only how the entry reads, and
 // it is not wire-visible.
-const reopenProvenance = "bd serve: reopen issue"
+const reopenProvenance = "issuegraph serve: reopen issue"
 
 // handleReopen reopens one issue: the close's mirror, and the half that makes a
 // recovery flow work end to end over this surface.
@@ -33,7 +33,7 @@ const reopenProvenance = "bd serve: reopen issue"
 // It carries the claim's posture verbatim. The actor is caller-ASSERTED
 // provenance for the audit trail and not authenticated identity; hooks do not
 // fire and the per-command auto-commit machinery does not run, exactly as for
-// POST /v0/beads/issues/{id}:claim. The only durable effect is the single
+// POST /v0/issuegraph/issues/{id}:claim. The only durable effect is the single
 // storage commit the role makes inside its own transaction.
 //
 // Everything above the role is argument validation. The move itself — which

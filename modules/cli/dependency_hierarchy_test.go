@@ -3,7 +3,7 @@ package main
 import (
 	"testing"
 
-	"github.com/steveyegge/beads/internal/types"
+	"github.com/borg0ai/dx-issuegraph/internal/types"
 )
 
 func TestIsDisallowedHierarchicalDependency(t *testing.T) {

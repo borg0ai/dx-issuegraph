@@ -31,7 +31,7 @@ issuegraph dolt stop
 
 **Step 2:** Back up current state
 ```bash
-cp -r .beads .beads.backup
+cp -r .issuegraph .issuegraph.backup
 ```
 
 **Step 3:** Preview what doctor would fix

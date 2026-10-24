@@ -5,7 +5,7 @@ import (
 	"errors"
 	"testing"
 
-	"github.com/steveyegge/beads/issueops"
+	"github.com/borg0ai/dx-issuegraph/issueops"
 )
 
 func raw(s string) *json.RawMessage {

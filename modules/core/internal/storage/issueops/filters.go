@@ -1,8 +1,8 @@
 package issueops
 
 import (
-	"github.com/steveyegge/beads/internal/storage/sqlbuild"
-	"github.com/steveyegge/beads/internal/types"
+	"github.com/borg0ai/dx-issuegraph/internal/storage/sqlbuild"
+	"github.com/borg0ai/dx-issuegraph/internal/types"
 )
 
 // FilterTables configures table names for BuildIssueFilterClauses,
@@ -23,7 +23,7 @@ func BuildIssueFilterClauses(query string, filter types.IssueFilter, tables Filt
 	return sqlbuild.BuildIssueFilterClauses(query, filter, tables)
 }
 
-// LooksLikeIssueID returns true if the query string looks like a beads issue ID.
+// LooksLikeIssueID returns true if the query string looks like a issuegraph issue ID.
 func LooksLikeIssueID(query string) bool {
 	return sqlbuild.LooksLikeIssueID(query)
 }

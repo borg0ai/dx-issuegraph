@@ -5,8 +5,8 @@ import (
 
 	"github.com/spf13/cobra"
 
-	"github.com/steveyegge/beads/internal/metrics"
-	"github.com/steveyegge/beads/internal/ui"
+	"github.com/borg0ai/dx-issuegraph/internal/metrics"
+	"github.com/borg0ai/dx-issuegraph/internal/ui"
 )
 
 var heartbeatCmd = &cobra.Command{
@@ -18,7 +18,7 @@ var heartbeatCmd = &cobra.Command{
 
 A claim carries a lease that expires after a TTL. A worker keeps its claim alive
 by heartbeating faster than the TTL; once it stops (because it died), the lease
-goes stale and 'bd reclaim' reverts the issue to ready so another worker can pick
+goes stale and 'issuegraph reclaim' reverts the issue to ready so another worker can pick
 it up. Heartbeat pushes lease_expires_at forward and stamps heartbeat_at = now.
 
 Only the current owner may heartbeat. If the lease has already been reclaimed or
@@ -30,8 +30,8 @@ only enforceable on the node that granted them; cross-machine claim visibility
 rides the issue's status and assignee, which do commit.
 
 Examples:
-  bd heartbeat bd-123
-  bd hb bd-123`,
+  issuegraph heartbeat bd-123
+  issuegraph hb bd-123`,
 	Args:          cobra.ExactArgs(1),
 	SilenceUsage:  true,
 	SilenceErrors: true,

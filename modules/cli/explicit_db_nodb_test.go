@@ -15,61 +15,61 @@ import (
 	"testing"
 	"time"
 
-	"github.com/steveyegge/beads/internal/configfile"
+	"github.com/borg0ai/dx-issuegraph/internal/configfile"
 )
 
-// buildBDUnderTest builds the bd binary once per test process and returns the path.
+// buildIssueGraphUnderTest builds the issuegraph binary once per test process and returns the path.
 // Previously each caller built a fresh binary in t.TempDir(), which on slow runners
 // (macOS arm64) took 30-240s each and blew the 10m package timeout when many
-// buildBDUnderTest-using tests ran together.
+// buildIssueGraphUnderTest-using tests ran together.
 var (
-	buildBDOnce sync.Once
-	buildBDPath string
-	buildBDErr  error
-	buildBDDir  string
+	buildIssueGraphOnce sync.Once
+	buildIssueGraphPath string
+	buildIssueGraphErr  error
+	buildIssueGraphDir  string
 )
 
-func buildBDUnderTest(t *testing.T) string {
+func buildIssueGraphUnderTest(t *testing.T) string {
 	t.Helper()
-	buildBDOnce.Do(func() {
-		prebuilt, err := findPrebuiltBDBinary()
+	buildIssueGraphOnce.Do(func() {
+		prebuilt, err := findPrebuiltIssueGraphBinary()
 		if err != nil {
-			buildBDErr = err
+			buildIssueGraphErr = err
 			return
 		}
 		if prebuilt != "" {
-			buildBDPath = prebuilt
+			buildIssueGraphPath = prebuilt
 			return
 		}
-		dir, err := testTempDir("bd-testbin-*")
+		dir, err := testTempDir("issuegraph-testbin-*")
 		if err != nil {
-			buildBDErr = err
+			buildIssueGraphErr = err
 			return
 		}
-		buildBDDir = dir
-		binName := "bd"
+		buildIssueGraphDir = dir
+		binName := "issuegraph"
 		if runtime.GOOS == "windows" {
-			binName = "bd.exe"
+			binName = "issuegraph.exe"
 		}
-		buildBDPath = filepath.Join(dir, binName)
-		buildCmd := exec.Command("go", "build", "-tags", "gms_pure_go", "-o", buildBDPath, ".")
+		buildIssueGraphPath = filepath.Join(dir, binName)
+		buildCmd := exec.Command("go", "build", "-tags", "gms_pure_go", "-o", buildIssueGraphPath, ".")
 		if out, err := buildCmd.CombinedOutput(); err != nil {
-			buildBDErr = &buildBDError{err: err, output: out}
+			buildIssueGraphErr = &buildIssueGraphError{err: err, output: out}
 			return
 		}
 	})
-	if buildBDErr != nil {
-		t.Fatalf("go build failed: %v", buildBDErr)
+	if buildIssueGraphErr != nil {
+		t.Fatalf("go build failed: %v", buildIssueGraphErr)
 	}
-	return buildBDPath
+	return buildIssueGraphPath
 }
 
-type buildBDError struct {
+type buildIssueGraphError struct {
 	err    error
 	output []byte
 }
 
-func (e *buildBDError) Error() string {
+func (e *buildIssueGraphError) Error() string {
 	return e.err.Error() + "\n" + string(e.output)
 }
 
@@ -83,7 +83,7 @@ func initGitRepo(t *testing.T, dir string) {
 	if out, err := cmd.CombinedOutput(); err != nil {
 		t.Fatalf("git init %s: %v\n%s", dir, err, out)
 	}
-	writeFile(t, filepath.Join(dir, ".gitignore"), []byte(".beads/.env\n"))
+	writeFile(t, filepath.Join(dir, ".gitignore"), []byte(".issuegraph/.env\n"))
 	commitCmd := exec.Command("git", "add", ".")
 	commitCmd.Dir = dir
 	_, _ = commitCmd.CombinedOutput()
@@ -115,13 +115,13 @@ func writeServerRepo(t *testing.T, repoDir, database, host, syncRemote string, p
 func writeServerRepoWithDataDir(t *testing.T, repoDir, database, host, syncRemote string, port int, doltDataDir string) string {
 	t.Helper()
 	initGitRepo(t, repoDir)
-	beadsDir := filepath.Join(repoDir, ".beads")
-	if err := os.MkdirAll(beadsDir, 0o755); err != nil {
-		t.Fatalf("mkdir beads dir: %v", err)
+	issuegraphDir := filepath.Join(repoDir, ".issuegraph")
+	if err := os.MkdirAll(issuegraphDir, 0o755); err != nil {
+		t.Fatalf("mkdir issuegraph dir: %v", err)
 	}
-	doltDir := filepath.Join(beadsDir, "dolt")
+	doltDir := filepath.Join(issuegraphDir, "dolt")
 	if doltDataDir != "" {
-		doltDir = filepath.Join(beadsDir, doltDataDir)
+		doltDir = filepath.Join(issuegraphDir, doltDataDir)
 	}
 	if err := os.MkdirAll(doltDir, 0o755); err != nil {
 		t.Fatalf("mkdir dolt dir: %v", err)
@@ -135,36 +135,36 @@ func writeServerRepoWithDataDir(t *testing.T, repoDir, database, host, syncRemot
 	if doltDataDir != "" {
 		cfg.DoltDataDir = doltDataDir
 	}
-	if err := cfg.Save(beadsDir); err != nil {
+	if err := cfg.Save(issuegraphDir); err != nil {
 		t.Fatalf("save metadata: %v", err)
 	}
 	// A server-mode workspace with a local Dolt root is current only when it
 	// carries a valid post-1.0 witness; otherwise the upgrade guard correctly
 	// treats the shape as an ambiguous historical workspace.
-	if err := writeLocalVersion(filepath.Join(beadsDir, localVersionFile), Version); err != nil {
+	if err := writeLocalVersion(filepath.Join(issuegraphDir, localVersionFile), Version); err != nil {
 		t.Fatalf("write local version: %v", err)
 	}
-	writeFile(t, filepath.Join(beadsDir, "dolt-server.port"), []byte(strconv.Itoa(port)))
-	writeFile(t, filepath.Join(beadsDir, "config.yaml"), []byte("sync:\n  git-remote: "+syncRemote+"\n"))
-	writeFile(t, filepath.Join(beadsDir, ".env"), []byte("BEADS_DOLT_SERVER_HOST="+host+"\n"))
-	return beadsDir
+	writeFile(t, filepath.Join(issuegraphDir, "dolt-server.port"), []byte(strconv.Itoa(port)))
+	writeFile(t, filepath.Join(issuegraphDir, "config.yaml"), []byte("sync:\n  git-remote: "+syncRemote+"\n"))
+	writeFile(t, filepath.Join(issuegraphDir, ".env"), []byte("ISSUEGRAPH_DOLT_SERVER_HOST="+host+"\n"))
+	return issuegraphDir
 }
 
-func writeProjectConfig(t *testing.T, beadsDir string, syncRemote string, port int, shared bool) {
+func writeProjectConfig(t *testing.T, issuegraphDir string, syncRemote string, port int, shared bool) {
 	t.Helper()
 	sharedText := "false"
 	if shared {
 		sharedText = "true"
 	}
-	writeFile(t, filepath.Join(beadsDir, "config.yaml"), []byte(
+	writeFile(t, filepath.Join(issuegraphDir, "config.yaml"), []byte(
 		"sync:\n  git-remote: "+syncRemote+"\n"+
 			"dolt:\n  port: "+strconv.Itoa(port)+"\n  shared-server: "+sharedText+"\n",
 	))
 }
 
-func writeIssuePrefixConfig(t *testing.T, beadsDir, prefix string) {
+func writeIssuePrefixConfig(t *testing.T, issuegraphDir, prefix string) {
 	t.Helper()
-	writeFile(t, filepath.Join(beadsDir, "config.yaml"), []byte("issue-prefix: "+prefix+"\n"))
+	writeFile(t, filepath.Join(issuegraphDir, "config.yaml"), []byte("issue-prefix: "+prefix+"\n"))
 }
 
 // evalPath resolves symlinks in a path for consistent comparison.
@@ -191,7 +191,7 @@ func decodeJSONOutput(t *testing.T, out []byte, target any) {
 	}
 }
 
-func runBDCommand(t *testing.T, binPath, dir string, extraEnv []string, args ...string) []byte {
+func runIssueGraphCommand(t *testing.T, binPath, dir string, extraEnv []string, args ...string) []byte {
 	t.Helper()
 	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
 	defer cancel()
@@ -201,13 +201,13 @@ func runBDCommand(t *testing.T, binPath, dir string, extraEnv []string, args ...
 	cmd.Env = append(os.Environ(),
 		"HOME="+t.TempDir(),
 		"XDG_CONFIG_HOME="+t.TempDir(),
-		"BEADS_TEST_IGNORE_REPO_CONFIG=1",
-		"BEADS_DIR=",
-		"BEADS_DB=",
-		"BEADS_DOLT_SERVER_DATABASE=",
-		"BEADS_DOLT_SERVER_HOST=",
-		"BEADS_DOLT_SERVER_PORT=",
-		"BEADS_DOLT_PORT=",
+		"ISSUEGRAPH_TEST_IGNORE_REPO_CONFIG=1",
+		"ISSUEGRAPH_DIR=",
+		"ISSUEGRAPH_DB=",
+		"ISSUEGRAPH_DOLT_SERVER_DATABASE=",
+		"ISSUEGRAPH_DOLT_SERVER_HOST=",
+		"ISSUEGRAPH_DOLT_SERVER_PORT=",
+		"ISSUEGRAPH_DOLT_PORT=",
 	)
 	cmd.Env = append(cmd.Env, extraEnv...)
 	out, err := cmd.CombinedOutput()
@@ -221,10 +221,10 @@ func runBDCommand(t *testing.T, binPath, dir string, extraEnv []string, args ...
 }
 
 type whereExpectation struct {
-	beadsDir   string
-	database   string
-	prefix     string
-	omitPrefix bool
+	issuegraphDir string
+	database      string
+	prefix        string
+	omitPrefix    bool
 }
 
 func assertWhereOutput(t *testing.T, out []byte, want whereExpectation) {
@@ -233,8 +233,8 @@ func assertWhereOutput(t *testing.T, out []byte, want whereExpectation) {
 	var got map[string]any
 	decodeJSONOutput(t, out, &got)
 
-	if evalPath(t, got["path"].(string)) != evalPath(t, want.beadsDir) {
-		t.Fatalf("path = %v, want %s", got["path"], want.beadsDir)
+	if evalPath(t, got["path"].(string)) != evalPath(t, want.issuegraphDir) {
+		t.Fatalf("path = %v, want %s", got["path"], want.issuegraphDir)
 	}
 	if evalPath(t, got["database_path"].(string)) != evalPath(t, want.database) {
 		t.Fatalf("database_path = %v, want %s", got["database_path"], want.database)
@@ -251,19 +251,19 @@ func assertWhereOutput(t *testing.T, out []byte, want whereExpectation) {
 }
 
 func TestContextUsesExplicitDBFlagForNoDBCommand(t *testing.T) {
-	binPath := buildBDUnderTest(t)
+	binPath := buildIssueGraphUnderTest(t)
 	root := t.TempDir()
 	repoA := filepath.Join(root, "repo-a")
 	repoB := filepath.Join(root, "repo-b")
 	writeServerRepo(t, repoA, "repo_a_db", "10.0.0.1", "origin-a", 3311)
-	beadsDirB := writeServerRepo(t, repoB, "repo_b_db", "10.0.0.2", "origin-b", 3312)
+	issuegraphDirB := writeServerRepo(t, repoB, "repo_b_db", "10.0.0.2", "origin-b", 3312)
 
-	out := runBDCommand(t, binPath, repoA, nil, "--db", filepath.Join(beadsDirB, "dolt"), "context", "--json")
+	out := runIssueGraphCommand(t, binPath, repoA, nil, "--db", filepath.Join(issuegraphDirB, "dolt"), "context", "--json")
 
 	var got map[string]any
 	decodeJSONOutput(t, out, &got)
-	if evalPath(t, got["beads_dir"].(string)) != evalPath(t, beadsDirB) {
-		t.Fatalf("beads_dir = %v, want %s", got["beads_dir"], beadsDirB)
+	if evalPath(t, got["issuegraph_dir"].(string)) != evalPath(t, issuegraphDirB) {
+		t.Fatalf("issuegraph_dir = %v, want %s", got["issuegraph_dir"], issuegraphDirB)
 	}
 	if got["database"] != "repo_b_db" {
 		t.Fatalf("database = %v, want repo_b_db", got["database"])
@@ -277,32 +277,32 @@ func TestContextUsesExplicitDBFlagForNoDBCommand(t *testing.T) {
 }
 
 func TestWhereUsesExplicitDBFlagForNoDBCommand(t *testing.T) {
-	binPath := buildBDUnderTest(t)
+	binPath := buildIssueGraphUnderTest(t)
 	root := t.TempDir()
 	repoA := filepath.Join(root, "repo-a")
 	repoB := filepath.Join(root, "repo-b")
-	beadsDirA := writeServerRepo(t, repoA, "repo_a_db", "10.0.0.1", "origin-a", 3311)
-	beadsDirB := writeServerRepo(t, repoB, "repo_b_db", "10.0.0.2", "origin-b", 3312)
-	writeIssuePrefixConfig(t, beadsDirA, "repo-a")
-	writeIssuePrefixConfig(t, beadsDirB, "repo-b")
+	issuegraphDirA := writeServerRepo(t, repoA, "repo_a_db", "10.0.0.1", "origin-a", 3311)
+	issuegraphDirB := writeServerRepo(t, repoB, "repo_b_db", "10.0.0.2", "origin-b", 3312)
+	writeIssuePrefixConfig(t, issuegraphDirA, "repo-a")
+	writeIssuePrefixConfig(t, issuegraphDirB, "repo-b")
 
-	out := runBDCommand(t, binPath, repoA, nil, "--db", filepath.Join(beadsDirB, "dolt"), "where", "--json")
+	out := runIssueGraphCommand(t, binPath, repoA, nil, "--db", filepath.Join(issuegraphDirB, "dolt"), "where", "--json")
 	assertWhereOutput(t, out, whereExpectation{
-		beadsDir: beadsDirB,
-		database: filepath.Join(beadsDirB, "dolt"),
-		prefix:   "repo-b",
+		issuegraphDir: issuegraphDirB,
+		database:      filepath.Join(issuegraphDirB, "dolt"),
+		prefix:        "repo-b",
 	})
 }
 
 func TestDoltShowUsesExplicitDBFlagForNoDBCommand(t *testing.T) {
-	binPath := buildBDUnderTest(t)
+	binPath := buildIssueGraphUnderTest(t)
 	root := t.TempDir()
 	repoA := filepath.Join(root, "repo-a")
 	repoB := filepath.Join(root, "repo-b")
 	writeServerRepo(t, repoA, "repo_a_db", "10.0.0.1", "origin-a", 3311)
-	beadsDirB := writeServerRepo(t, repoB, "repo_b_db", "10.0.0.2", "origin-b", 3312)
+	issuegraphDirB := writeServerRepo(t, repoB, "repo_b_db", "10.0.0.2", "origin-b", 3312)
 
-	out := runBDCommand(t, binPath, repoA, nil, "--db", filepath.Join(beadsDirB, "dolt"), "dolt", "show", "--json")
+	out := runIssueGraphCommand(t, binPath, repoA, nil, "--db", filepath.Join(issuegraphDirB, "dolt"), "dolt", "show", "--json")
 
 	var got map[string]any
 	decodeJSONOutput(t, out, &got)
@@ -317,57 +317,57 @@ func TestDoltShowUsesExplicitDBFlagForNoDBCommand(t *testing.T) {
 	}
 }
 
-func TestContextUsesBEADSDBForNoDBCommand(t *testing.T) {
-	binPath := buildBDUnderTest(t)
+func TestContextUsesISSUEGRAPHDBForNoDBCommand(t *testing.T) {
+	binPath := buildIssueGraphUnderTest(t)
 	root := t.TempDir()
 	repoA := filepath.Join(root, "repo-a")
 	repoB := filepath.Join(root, "repo-b")
 	writeServerRepo(t, repoA, "repo_a_db", "10.0.0.1", "origin-a", 3311)
-	beadsDirB := writeServerRepo(t, repoB, "repo_b_db", "10.0.0.2", "origin-b", 3312)
+	issuegraphDirB := writeServerRepo(t, repoB, "repo_b_db", "10.0.0.2", "origin-b", 3312)
 
-	out := runBDCommand(t, binPath, repoA, []string{"BEADS_DB=" + filepath.Join(beadsDirB, "dolt")}, "context", "--json")
+	out := runIssueGraphCommand(t, binPath, repoA, []string{"ISSUEGRAPH_DB=" + filepath.Join(issuegraphDirB, "dolt")}, "context", "--json")
 
 	var got map[string]any
 	decodeJSONOutput(t, out, &got)
-	if evalPath(t, got["beads_dir"].(string)) != evalPath(t, beadsDirB) {
-		t.Fatalf("beads_dir = %v, want %s", got["beads_dir"], beadsDirB)
+	if evalPath(t, got["issuegraph_dir"].(string)) != evalPath(t, issuegraphDirB) {
+		t.Fatalf("issuegraph_dir = %v, want %s", got["issuegraph_dir"], issuegraphDirB)
 	}
 	if got["database"] != "repo_b_db" {
 		t.Fatalf("database = %v, want repo_b_db", got["database"])
 	}
 }
 
-func TestWhereUsesBEADSDBForNoDBCommand(t *testing.T) {
-	binPath := buildBDUnderTest(t)
+func TestWhereUsesISSUEGRAPHDBForNoDBCommand(t *testing.T) {
+	binPath := buildIssueGraphUnderTest(t)
 	root := t.TempDir()
 	repoA := filepath.Join(root, "repo-a")
 	repoB := filepath.Join(root, "repo-b")
 	writeServerRepo(t, repoA, "repo_a_db", "10.0.0.1", "origin-a", 3311)
-	beadsDirB := writeServerRepo(t, repoB, "repo_b_db", "10.0.0.2", "origin-b", 3312)
-	writeIssuePrefixConfig(t, beadsDirB, "repo-b")
+	issuegraphDirB := writeServerRepo(t, repoB, "repo_b_db", "10.0.0.2", "origin-b", 3312)
+	writeIssuePrefixConfig(t, issuegraphDirB, "repo-b")
 
-	out := runBDCommand(t, binPath, repoA, []string{"BEADS_DB=" + filepath.Join(beadsDirB, "dolt")}, "where", "--json")
+	out := runIssueGraphCommand(t, binPath, repoA, []string{"ISSUEGRAPH_DB=" + filepath.Join(issuegraphDirB, "dolt")}, "where", "--json")
 	assertWhereOutput(t, out, whereExpectation{
-		beadsDir: beadsDirB,
-		database: filepath.Join(beadsDirB, "dolt"),
-		prefix:   "repo-b",
+		issuegraphDir: issuegraphDirB,
+		database:      filepath.Join(issuegraphDirB, "dolt"),
+		prefix:        "repo-b",
 	})
 }
 
-func TestContextUsesBEADSDBDirectoryForNoDBCommand(t *testing.T) {
-	binPath := buildBDUnderTest(t)
+func TestContextUsesISSUEGRAPHDBDirectoryForNoDBCommand(t *testing.T) {
+	binPath := buildIssueGraphUnderTest(t)
 	root := t.TempDir()
 	repoA := filepath.Join(root, "repo-a")
 	repoB := filepath.Join(root, "repo-b")
 	writeServerRepo(t, repoA, "repo_a_db", "10.0.0.1", "origin-a", 3311)
-	beadsDirB := writeServerRepo(t, repoB, "repo_b_db", "10.0.0.2", "origin-b", 3312)
+	issuegraphDirB := writeServerRepo(t, repoB, "repo_b_db", "10.0.0.2", "origin-b", 3312)
 
-	out := runBDCommand(t, binPath, repoA, []string{"BEADS_DB=" + beadsDirB}, "context", "--json")
+	out := runIssueGraphCommand(t, binPath, repoA, []string{"ISSUEGRAPH_DB=" + issuegraphDirB}, "context", "--json")
 
 	var got map[string]any
 	decodeJSONOutput(t, out, &got)
-	if evalPath(t, got["beads_dir"].(string)) != evalPath(t, beadsDirB) {
-		t.Fatalf("beads_dir = %v, want %s", got["beads_dir"], beadsDirB)
+	if evalPath(t, got["issuegraph_dir"].(string)) != evalPath(t, issuegraphDirB) {
+		t.Fatalf("issuegraph_dir = %v, want %s", got["issuegraph_dir"], issuegraphDirB)
 	}
 	if got["database"] != "repo_b_db" {
 		t.Fatalf("database = %v, want repo_b_db", got["database"])
@@ -375,19 +375,19 @@ func TestContextUsesBEADSDBDirectoryForNoDBCommand(t *testing.T) {
 }
 
 func TestContextUsesExplicitDBFlagForExternalDoltDataDir(t *testing.T) {
-	binPath := buildBDUnderTest(t)
+	binPath := buildIssueGraphUnderTest(t)
 	root := t.TempDir()
 	repoA := filepath.Join(root, "repo-a")
 	repoB := filepath.Join(root, "repo-b")
 	writeServerRepo(t, repoA, "repo_a_db", "10.0.0.1", "origin-a", 3311)
-	beadsDirB := writeServerRepoWithDataDir(t, repoB, "repo_b_db", "10.0.0.2", "origin-b", 3312, "../external-dolt")
+	issuegraphDirB := writeServerRepoWithDataDir(t, repoB, "repo_b_db", "10.0.0.2", "origin-b", 3312, "../external-dolt")
 
-	out := runBDCommand(t, binPath, repoA, nil, "--db", filepath.Join(beadsDirB, "../external-dolt"), "context", "--json")
+	out := runIssueGraphCommand(t, binPath, repoA, nil, "--db", filepath.Join(issuegraphDirB, "../external-dolt"), "context", "--json")
 
 	var got map[string]any
 	decodeJSONOutput(t, out, &got)
-	if evalPath(t, got["beads_dir"].(string)) != evalPath(t, beadsDirB) {
-		t.Fatalf("beads_dir = %v, want %s", got["beads_dir"], beadsDirB)
+	if evalPath(t, got["issuegraph_dir"].(string)) != evalPath(t, issuegraphDirB) {
+		t.Fatalf("issuegraph_dir = %v, want %s", got["issuegraph_dir"], issuegraphDirB)
 	}
 	if got["database"] != "repo_b_db" {
 		t.Fatalf("database = %v, want repo_b_db", got["database"])
@@ -398,119 +398,119 @@ func TestContextUsesExplicitDBFlagForExternalDoltDataDir(t *testing.T) {
 }
 
 func TestWhereUsesExplicitDBFlagForExternalDoltDataDir(t *testing.T) {
-	binPath := buildBDUnderTest(t)
+	binPath := buildIssueGraphUnderTest(t)
 	root := t.TempDir()
 	repoA := filepath.Join(root, "repo-a")
 	repoB := filepath.Join(root, "repo-b")
 	writeServerRepo(t, repoA, "repo_a_db", "10.0.0.1", "origin-a", 3311)
-	beadsDirB := writeServerRepoWithDataDir(t, repoB, "repo_b_db", "10.0.0.2", "origin-b", 3312, "../external-dolt")
-	writeIssuePrefixConfig(t, beadsDirB, "repo-b")
+	issuegraphDirB := writeServerRepoWithDataDir(t, repoB, "repo_b_db", "10.0.0.2", "origin-b", 3312, "../external-dolt")
+	writeIssuePrefixConfig(t, issuegraphDirB, "repo-b")
 
-	out := runBDCommand(t, binPath, repoA, nil, "--db", filepath.Join(beadsDirB, "../external-dolt"), "where", "--json")
+	out := runIssueGraphCommand(t, binPath, repoA, nil, "--db", filepath.Join(issuegraphDirB, "../external-dolt"), "where", "--json")
 	assertWhereOutput(t, out, whereExpectation{
-		beadsDir: beadsDirB,
-		database: filepath.Join(beadsDirB, "../external-dolt"),
-		prefix:   "repo-b",
+		issuegraphDir: issuegraphDirB,
+		database:      filepath.Join(issuegraphDirB, "../external-dolt"),
+		prefix:        "repo-b",
 	})
 }
 
-func TestContextExplicitDBFlagOverridesBEADSDBForNoDBCommand(t *testing.T) {
-	binPath := buildBDUnderTest(t)
+func TestContextExplicitDBFlagOverridesISSUEGRAPHDBForNoDBCommand(t *testing.T) {
+	binPath := buildIssueGraphUnderTest(t)
 	root := t.TempDir()
 	repoA := filepath.Join(root, "repo-a")
 	repoB := filepath.Join(root, "repo-b")
 	repoC := filepath.Join(root, "repo-c")
 	writeServerRepo(t, repoA, "repo_a_db", "10.0.0.1", "origin-a", 3311)
-	beadsDirB := writeServerRepo(t, repoB, "repo_b_db", "10.0.0.2", "origin-b", 3312)
-	beadsDirC := writeServerRepo(t, repoC, "repo_c_db", "10.0.0.3", "origin-c", 3313)
+	issuegraphDirB := writeServerRepo(t, repoB, "repo_b_db", "10.0.0.2", "origin-b", 3312)
+	issuegraphDirC := writeServerRepo(t, repoC, "repo_c_db", "10.0.0.3", "origin-c", 3313)
 
-	out := runBDCommand(t, binPath, repoA, []string{"BEADS_DB=" + filepath.Join(beadsDirC, "dolt")}, "--db", filepath.Join(beadsDirB, "dolt"), "context", "--json")
+	out := runIssueGraphCommand(t, binPath, repoA, []string{"ISSUEGRAPH_DB=" + filepath.Join(issuegraphDirC, "dolt")}, "--db", filepath.Join(issuegraphDirB, "dolt"), "context", "--json")
 
 	var got map[string]any
 	decodeJSONOutput(t, out, &got)
-	if evalPath(t, got["beads_dir"].(string)) != evalPath(t, beadsDirB) {
-		t.Fatalf("beads_dir = %v, want %s", got["beads_dir"], beadsDirB)
+	if evalPath(t, got["issuegraph_dir"].(string)) != evalPath(t, issuegraphDirB) {
+		t.Fatalf("issuegraph_dir = %v, want %s", got["issuegraph_dir"], issuegraphDirB)
 	}
 	if got["database"] != "repo_b_db" {
 		t.Fatalf("database = %v, want repo_b_db", got["database"])
 	}
 }
 
-func TestWhereExplicitDBFlagOverridesBEADSDBForNoDBCommand(t *testing.T) {
-	binPath := buildBDUnderTest(t)
+func TestWhereExplicitDBFlagOverridesISSUEGRAPHDBForNoDBCommand(t *testing.T) {
+	binPath := buildIssueGraphUnderTest(t)
 	root := t.TempDir()
 	repoA := filepath.Join(root, "repo-a")
 	repoB := filepath.Join(root, "repo-b")
 	repoC := filepath.Join(root, "repo-c")
 	writeServerRepo(t, repoA, "repo_a_db", "10.0.0.1", "origin-a", 3311)
-	beadsDirB := writeServerRepo(t, repoB, "repo_b_db", "10.0.0.2", "origin-b", 3312)
-	beadsDirC := writeServerRepo(t, repoC, "repo_c_db", "10.0.0.3", "origin-c", 3313)
-	writeIssuePrefixConfig(t, beadsDirB, "repo-b")
-	writeIssuePrefixConfig(t, beadsDirC, "repo-c")
+	issuegraphDirB := writeServerRepo(t, repoB, "repo_b_db", "10.0.0.2", "origin-b", 3312)
+	issuegraphDirC := writeServerRepo(t, repoC, "repo_c_db", "10.0.0.3", "origin-c", 3313)
+	writeIssuePrefixConfig(t, issuegraphDirB, "repo-b")
+	writeIssuePrefixConfig(t, issuegraphDirC, "repo-c")
 
-	out := runBDCommand(t, binPath, repoA, []string{"BEADS_DB=" + filepath.Join(beadsDirC, "dolt")}, "--db", filepath.Join(beadsDirB, "dolt"), "where", "--json")
+	out := runIssueGraphCommand(t, binPath, repoA, []string{"ISSUEGRAPH_DB=" + filepath.Join(issuegraphDirC, "dolt")}, "--db", filepath.Join(issuegraphDirB, "dolt"), "where", "--json")
 	assertWhereOutput(t, out, whereExpectation{
-		beadsDir: beadsDirB,
-		database: filepath.Join(beadsDirB, "dolt"),
-		prefix:   "repo-b",
+		issuegraphDir: issuegraphDirB,
+		database:      filepath.Join(issuegraphDirB, "dolt"),
+		prefix:        "repo-b",
 	})
 }
 
 func TestWhereUsesExplicitDBFlagForMetadataOnlyServerRepo(t *testing.T) {
-	binPath := buildBDUnderTest(t)
+	binPath := buildIssueGraphUnderTest(t)
 	root := t.TempDir()
 	repoA := filepath.Join(root, "repo-a")
 	repoB := filepath.Join(root, "repo-b")
 	writeServerRepo(t, repoA, "repo_a_db", "10.0.0.1", "origin-a", 3311)
-	beadsDirB := writeServerRepo(t, repoB, "repo_b_db", "10.0.0.2", "origin-b", 3312)
+	issuegraphDirB := writeServerRepo(t, repoB, "repo_b_db", "10.0.0.2", "origin-b", 3312)
 
-	out := runBDCommand(t, binPath, repoA, nil, "--db", filepath.Join(beadsDirB, "dolt"), "where", "--json")
+	out := runIssueGraphCommand(t, binPath, repoA, nil, "--db", filepath.Join(issuegraphDirB, "dolt"), "where", "--json")
 	assertWhereOutput(t, out, whereExpectation{
-		beadsDir:   beadsDirB,
-		database:   filepath.Join(beadsDirB, "dolt"),
-		omitPrefix: true,
+		issuegraphDir: issuegraphDirB,
+		database:      filepath.Join(issuegraphDirB, "dolt"),
+		omitPrefix:    true,
 	})
 }
 
-func TestWhereBEADSDBOverridesBDDBForNoDBCommand(t *testing.T) {
-	binPath := buildBDUnderTest(t)
+func TestWhereISSUEGRAPHDBOverridesIssueGraphDBForNoDBCommand(t *testing.T) {
+	binPath := buildIssueGraphUnderTest(t)
 	root := t.TempDir()
 	repoA := filepath.Join(root, "repo-a")
 	repoB := filepath.Join(root, "repo-b")
 	repoC := filepath.Join(root, "repo-c")
 	writeServerRepo(t, repoA, "repo_a_db", "10.0.0.1", "origin-a", 3311)
-	beadsDirB := writeServerRepo(t, repoB, "repo_b_db", "10.0.0.2", "origin-b", 3312)
-	beadsDirC := writeServerRepo(t, repoC, "repo_c_db", "10.0.0.3", "origin-c", 3313)
-	writeIssuePrefixConfig(t, beadsDirB, "repo-b")
-	writeIssuePrefixConfig(t, beadsDirC, "repo-c")
+	issuegraphDirB := writeServerRepo(t, repoB, "repo_b_db", "10.0.0.2", "origin-b", 3312)
+	issuegraphDirC := writeServerRepo(t, repoC, "repo_c_db", "10.0.0.3", "origin-c", 3313)
+	writeIssuePrefixConfig(t, issuegraphDirB, "repo-b")
+	writeIssuePrefixConfig(t, issuegraphDirC, "repo-c")
 
-	out := runBDCommand(t, binPath, repoA, []string{
-		"BEADS_DB=" + filepath.Join(beadsDirB, "dolt"),
-		"BD_DB=" + filepath.Join(beadsDirC, "dolt"),
+	out := runIssueGraphCommand(t, binPath, repoA, []string{
+		"ISSUEGRAPH_DB=" + filepath.Join(issuegraphDirB, "dolt"),
+		"ISSUEGRAPH_DB=" + filepath.Join(issuegraphDirC, "dolt"),
 	}, "where", "--json")
 	assertWhereOutput(t, out, whereExpectation{
-		beadsDir: beadsDirB,
-		database: filepath.Join(beadsDirB, "dolt"),
-		prefix:   "repo-b",
+		issuegraphDir: issuegraphDirB,
+		database:      filepath.Join(issuegraphDirB, "dolt"),
+		prefix:        "repo-b",
 	})
 }
 
-func TestContextBEADSDBOverridesBDDBForNoDBCommand(t *testing.T) {
-	binPath := buildBDUnderTest(t)
+func TestContextISSUEGRAPHDBOverridesIssueGraphDBForNoDBCommand(t *testing.T) {
+	binPath := buildIssueGraphUnderTest(t)
 	root := t.TempDir()
 	repoA := filepath.Join(root, "repo-a")
 	repoB := filepath.Join(root, "repo-b")
 	repoC := filepath.Join(root, "repo-c")
 	writeServerRepo(t, repoA, "repo_a_db", "10.0.0.1", "origin-a", 3311)
-	beadsDirB := writeServerRepo(t, repoB, "repo_b_db", "10.0.0.2", "origin-b", 3312)
-	beadsDirC := writeServerRepo(t, repoC, "repo_c_db", "10.0.0.3", "origin-c", 3313)
+	issuegraphDirB := writeServerRepo(t, repoB, "repo_b_db", "10.0.0.2", "origin-b", 3312)
+	issuegraphDirC := writeServerRepo(t, repoC, "repo_c_db", "10.0.0.3", "origin-c", 3313)
 
-	out := runBDCommand(t, binPath, repoA, []string{"BEADS_DB=" + filepath.Join(beadsDirB, "dolt"), "BD_DB=" + filepath.Join(beadsDirC, "dolt")}, "context", "--json")
+	out := runIssueGraphCommand(t, binPath, repoA, []string{"ISSUEGRAPH_DB=" + filepath.Join(issuegraphDirB, "dolt"), "ISSUEGRAPH_DB=" + filepath.Join(issuegraphDirC, "dolt")}, "context", "--json")
 
 	var got map[string]any
 	decodeJSONOutput(t, out, &got)
-	if evalPath(t, got["beads_dir"].(string)) != evalPath(t, beadsDirB) {
-		t.Fatalf("beads_dir = %v, want %s", got["beads_dir"], beadsDirB)
+	if evalPath(t, got["issuegraph_dir"].(string)) != evalPath(t, issuegraphDirB) {
+		t.Fatalf("issuegraph_dir = %v, want %s", got["issuegraph_dir"], issuegraphDirB)
 	}
 	if got["database"] != "repo_b_db" {
 		t.Fatalf("database = %v, want repo_b_db", got["database"])
@@ -518,30 +518,30 @@ func TestContextBEADSDBOverridesBDDBForNoDBCommand(t *testing.T) {
 }
 
 func TestContextPreservesSourceDatabaseAcrossRedirectForNoDBCommand(t *testing.T) {
-	binPath := buildBDUnderTest(t)
+	binPath := buildIssueGraphUnderTest(t)
 	root := t.TempDir()
 	repoA := filepath.Join(root, "repo-a")
 	repoB := filepath.Join(root, "repo-b")
 	writeServerRepo(t, repoA, "repo_a_db", "10.0.0.1", "origin-a", 3311)
-	beadsDirB := writeServerRepo(t, repoB, "repo_b_db", "10.0.0.2", "origin-b", 3312)
-	sharedBeadsDir := filepath.Join(repoB, "shared-beads")
-	if err := os.RemoveAll(beadsDirB); err != nil {
-		t.Fatalf("remove source beads dir: %v", err)
+	issuegraphDirB := writeServerRepo(t, repoB, "repo_b_db", "10.0.0.2", "origin-b", 3312)
+	sharedIssueGraphDir := filepath.Join(repoB, "shared-issuegraph")
+	if err := os.RemoveAll(issuegraphDirB); err != nil {
+		t.Fatalf("remove source issuegraph dir: %v", err)
 	}
-	if err := os.MkdirAll(beadsDirB, 0o755); err != nil {
-		t.Fatalf("mkdir source beads dir: %v", err)
+	if err := os.MkdirAll(issuegraphDirB, 0o755); err != nil {
+		t.Fatalf("mkdir source issuegraph dir: %v", err)
 	}
-	writeFile(t, filepath.Join(beadsDirB, "redirect"), []byte("../shared-beads\n"))
+	writeFile(t, filepath.Join(issuegraphDirB, "redirect"), []byte("../shared-issuegraph\n"))
 	if err := (&configfile.Config{
 		Backend:        configfile.BackendDolt,
 		DoltMode:       configfile.DoltModeServer,
 		DoltServerHost: "10.0.0.2",
 		DoltDatabase:   "repo_b_db",
-	}).Save(beadsDirB); err != nil {
+	}).Save(issuegraphDirB); err != nil {
 		t.Fatalf("save source metadata: %v", err)
 	}
-	writeFile(t, filepath.Join(beadsDirB, "dolt-server.port"), []byte("3312"))
-	if err := os.MkdirAll(filepath.Join(sharedBeadsDir, "dolt"), 0o755); err != nil {
+	writeFile(t, filepath.Join(issuegraphDirB, "dolt-server.port"), []byte("3312"))
+	if err := os.MkdirAll(filepath.Join(sharedIssueGraphDir, "dolt"), 0o755); err != nil {
 		t.Fatalf("mkdir shared dolt dir: %v", err)
 	}
 	if err := (&configfile.Config{
@@ -549,14 +549,14 @@ func TestContextPreservesSourceDatabaseAcrossRedirectForNoDBCommand(t *testing.T
 		DoltMode:       configfile.DoltModeServer,
 		DoltServerHost: "10.0.0.9",
 		DoltDatabase:   "shared_db",
-	}).Save(sharedBeadsDir); err != nil {
+	}).Save(sharedIssueGraphDir); err != nil {
 		t.Fatalf("save shared metadata: %v", err)
 	}
-	writeFile(t, filepath.Join(sharedBeadsDir, "dolt-server.port"), []byte("3399"))
-	writeFile(t, filepath.Join(sharedBeadsDir, "config.yaml"), []byte("sync:\n  git-remote: shared-origin\n"))
-	writeFile(t, filepath.Join(sharedBeadsDir, ".env"), []byte("BEADS_DOLT_SERVER_HOST=10.0.0.9\n"))
+	writeFile(t, filepath.Join(sharedIssueGraphDir, "dolt-server.port"), []byte("3399"))
+	writeFile(t, filepath.Join(sharedIssueGraphDir, "config.yaml"), []byte("sync:\n  git-remote: shared-origin\n"))
+	writeFile(t, filepath.Join(sharedIssueGraphDir, ".env"), []byte("ISSUEGRAPH_DOLT_SERVER_HOST=10.0.0.9\n"))
 
-	out := runBDCommand(t, binPath, repoA, nil, "--db", filepath.Join(beadsDirB, "dolt"), "context", "--json")
+	out := runIssueGraphCommand(t, binPath, repoA, nil, "--db", filepath.Join(issuegraphDirB, "dolt"), "context", "--json")
 
 	var got map[string]any
 	decodeJSONOutput(t, out, &got)
@@ -566,22 +566,22 @@ func TestContextPreservesSourceDatabaseAcrossRedirectForNoDBCommand(t *testing.T
 }
 
 func TestDoltShowUsesSelectedRepoConfigForNoDBCommand(t *testing.T) {
-	binPath := buildBDUnderTest(t)
+	binPath := buildIssueGraphUnderTest(t)
 	root := t.TempDir()
 	repoA := filepath.Join(root, "repo-a")
 	repoB := filepath.Join(root, "repo-b")
-	beadsDirA := writeServerRepo(t, repoA, "repo_a_db", "10.0.0.1", "origin-a", 3311)
-	beadsDirB := writeServerRepo(t, repoB, "repo_b_db", "10.0.0.2", "origin-b", 3312)
-	if err := os.Remove(filepath.Join(beadsDirA, "dolt-server.port")); err != nil {
+	issuegraphDirA := writeServerRepo(t, repoA, "repo_a_db", "10.0.0.1", "origin-a", 3311)
+	issuegraphDirB := writeServerRepo(t, repoB, "repo_b_db", "10.0.0.2", "origin-b", 3312)
+	if err := os.Remove(filepath.Join(issuegraphDirA, "dolt-server.port")); err != nil {
 		t.Fatalf("remove port file A: %v", err)
 	}
-	if err := os.Remove(filepath.Join(beadsDirB, "dolt-server.port")); err != nil {
+	if err := os.Remove(filepath.Join(issuegraphDirB, "dolt-server.port")); err != nil {
 		t.Fatalf("remove port file B: %v", err)
 	}
-	writeProjectConfig(t, beadsDirA, "origin-a", 4401, true)
-	writeProjectConfig(t, beadsDirB, "origin-b", 4402, false)
+	writeProjectConfig(t, issuegraphDirA, "origin-a", 4401, true)
+	writeProjectConfig(t, issuegraphDirB, "origin-b", 4402, false)
 
-	out := runBDCommand(t, binPath, repoA, nil, "--db", filepath.Join(beadsDirB, "dolt"), "dolt", "show", "--json")
+	out := runIssueGraphCommand(t, binPath, repoA, nil, "--db", filepath.Join(issuegraphDirB, "dolt"), "dolt", "show", "--json")
 
 	var got map[string]any
 	decodeJSONOutput(t, out, &got)
@@ -600,14 +600,14 @@ func TestDoltShowUsesSelectedRepoConfigForNoDBCommand(t *testing.T) {
 }
 
 func TestContextPreservesShellEnvPrecedenceForNoDBCommand(t *testing.T) {
-	binPath := buildBDUnderTest(t)
+	binPath := buildIssueGraphUnderTest(t)
 	root := t.TempDir()
 	repoA := filepath.Join(root, "repo-a")
 	repoB := filepath.Join(root, "repo-b")
 	writeServerRepo(t, repoA, "repo_a_db", "10.0.0.1", "origin-a", 3311)
-	beadsDirB := writeServerRepo(t, repoB, "repo_b_db", "10.0.0.2", "origin-b", 3312)
+	issuegraphDirB := writeServerRepo(t, repoB, "repo_b_db", "10.0.0.2", "origin-b", 3312)
 
-	out := runBDCommand(t, binPath, repoA, []string{"BEADS_DOLT_SERVER_HOST=9.9.9.9"}, "--db", filepath.Join(beadsDirB, "dolt"), "context", "--json")
+	out := runIssueGraphCommand(t, binPath, repoA, []string{"ISSUEGRAPH_DOLT_SERVER_HOST=9.9.9.9"}, "--db", filepath.Join(issuegraphDirB, "dolt"), "context", "--json")
 
 	var got map[string]any
 	decodeJSONOutput(t, out, &got)
@@ -619,15 +619,15 @@ func TestContextPreservesShellEnvPrecedenceForNoDBCommand(t *testing.T) {
 	}
 }
 
-func TestDoltShowUsesBEADSDBForNoDBCommand(t *testing.T) {
-	binPath := buildBDUnderTest(t)
+func TestDoltShowUsesISSUEGRAPHDBForNoDBCommand(t *testing.T) {
+	binPath := buildIssueGraphUnderTest(t)
 	root := t.TempDir()
 	repoA := filepath.Join(root, "repo-a")
 	repoB := filepath.Join(root, "repo-b")
 	writeServerRepo(t, repoA, "repo_a_db", "10.0.0.1", "origin-a", 3311)
-	beadsDirB := writeServerRepo(t, repoB, "repo_b_db", "10.0.0.2", "origin-b", 3312)
+	issuegraphDirB := writeServerRepo(t, repoB, "repo_b_db", "10.0.0.2", "origin-b", 3312)
 
-	out := runBDCommand(t, binPath, repoA, []string{"BEADS_DB=" + filepath.Join(beadsDirB, "dolt")}, "dolt", "show", "--json")
+	out := runIssueGraphCommand(t, binPath, repoA, []string{"ISSUEGRAPH_DB=" + filepath.Join(issuegraphDirB, "dolt")}, "dolt", "show", "--json")
 
 	var got map[string]any
 	decodeJSONOutput(t, out, &got)

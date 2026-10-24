@@ -1,48 +1,48 @@
 ---
-title: "bd repo"
+title: "issuegraph repo"
 description: "Configure and manage multiple repository support for multi-repo hydration."
 ---
 
 {/* AUTO-GENERATED: do not edit manually */}
 
-Generated from `bd help --doc repo`.
+Generated from `issuegraph help --doc repo`.
 
 Configure and manage multiple repository support for multi-repo hydration.
 
-Multi-repo support allows hydrating issues from multiple beads repositories
+Multi-repo support allows hydrating issues from multiple issuegraph repositories
 into a single database for unified cross-repo issue tracking.
 
-Configuration is stored in .beads/config.yaml under the 'repos' section:
+Configuration is stored in .issuegraph/config.yaml under the 'repos' section:
 
   repos:
     primary: "."
     additional:
-      - ~/beads-planning
+      - ~/issuegraph-planning
       - ~/work-repo
 
 Examples:
-  bd repo add ~/beads-planning       # Add planning repo
-  bd repo add ../other-repo          # Add relative path repo
-  bd repo list                       # Show all configured repos
-  bd repo remove ~/beads-planning    # Remove by path
-  bd repo sync                       # Sync from all configured repos
+  issuegraph repo add ~/issuegraph-planning       # Add planning repo
+  issuegraph repo add ../other-repo          # Add relative path repo
+  issuegraph repo list                       # Show all configured repos
+  issuegraph repo remove ~/issuegraph-planning    # Remove by path
+  issuegraph repo sync                       # Sync from all configured repos
 
 ```
-bd repo [flags]
+issuegraph repo [flags]
 ```
 
-## bd repo add
+## issuegraph repo add
 
 Add a repository path to the repos.additional list in config.yaml.
 
-The path should point to a directory containing a .beads folder.
+The path should point to a directory containing a .issuegraph folder.
 Paths can be absolute or relative (they are stored as-is).
 
-This modifies .beads/config.yaml, which is version-controlled and
+This modifies .issuegraph/config.yaml, which is version-controlled and
 shared across all clones of this repository.
 
 ```
-bd repo add <path> [flags]
+issuegraph repo add <path> [flags]
 ```
 
 **Flags:**
@@ -51,15 +51,15 @@ bd repo add <path> [flags]
       --json   Output JSON
 ```
 
-## bd repo list
+## issuegraph repo list
 
-List all repositories configured in .beads/config.yaml.
+List all repositories configured in .issuegraph/config.yaml.
 
 Shows the primary repository (always ".") and any additional
 repositories configured for hydration.
 
 ```
-bd repo list [flags]
+issuegraph repo list [flags]
 ```
 
 **Flags:**
@@ -68,7 +68,7 @@ bd repo list [flags]
       --json   Output JSON
 ```
 
-## bd repo remove
+## issuegraph repo remove
 
 Remove a repository path from the repos.additional list in config.yaml.
 
@@ -79,7 +79,7 @@ This command also removes any previously-hydrated issues from the database
 that came from the removed repository.
 
 ```
-bd repo remove <path> [flags]
+issuegraph repo remove <path> [flags]
 ```
 
 **Flags:**
@@ -88,7 +88,7 @@ bd repo remove <path> [flags]
       --json   Output JSON
 ```
 
-## bd repo sync
+## issuegraph repo sync
 
 Synchronize issues from all configured additional repositories.
 
@@ -99,7 +99,7 @@ Uses mtime caching to skip repos whose JSONL hasn't changed.
 Also triggers Dolt push/pull if a remote is configured.
 
 ```
-bd repo sync [flags]
+issuegraph repo sync [flags]
 ```
 
 **Flags:**

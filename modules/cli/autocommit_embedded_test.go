@@ -9,125 +9,125 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/steveyegge/beads/internal/types"
+	"github.com/borg0ai/dx-issuegraph/internal/types"
 )
 
-func bdCommand(t *testing.T, bd, dir string, args ...string) string {
+func issuegraphCommand(t *testing.T, issuegraph, dir string, args ...string) string {
 	t.Helper()
-	out, err := bdRunWithFlockRetry(t, bd, dir, args...)
+	out, err := issuegraphRunWithFlockRetry(t, issuegraph, dir, args...)
 	if err != nil {
-		t.Fatalf("bd %s failed: %v\n%s", strings.Join(args, " "), err, out)
+		t.Fatalf("issuegraph %s failed: %v\n%s", strings.Join(args, " "), err, out)
 	}
 	return string(out)
 }
 
-func assertEmbeddedHeadUnchanged(t *testing.T, beadsDir, database, before, command string) {
+func assertEmbeddedHeadUnchanged(t *testing.T, issuegraphDir, database, before, command string) {
 	t.Helper()
-	after := embeddedCurrentCommit(t, beadsDir, database)
+	after := embeddedCurrentCommit(t, issuegraphDir, database)
 	if after != before {
 		t.Fatalf("%s advanced HEAD in batch mode; before=%s after=%s", command, before, after)
 	}
 }
 
-func assertEmbeddedHeadAdvanced(t *testing.T, beadsDir, database, before, command string) {
+func assertEmbeddedHeadAdvanced(t *testing.T, issuegraphDir, database, before, command string) {
 	t.Helper()
-	after := embeddedCurrentCommit(t, beadsDir, database)
+	after := embeddedCurrentCommit(t, issuegraphDir, database)
 	if after == before {
 		t.Fatalf("%s did not advance target HEAD; before=%s after=%s", command, before, after)
 	}
 }
 
-func setupRoutedEmbeddedRepo(t *testing.T, bd string, sourcePrefix, targetPrefix string) (sourceDir, targetDir, targetBeadsDir string) {
+func setupRoutedEmbeddedRepo(t *testing.T, issuegraph string, sourcePrefix, targetPrefix string) (sourceDir, targetDir, targetIssueGraphDir string) {
 	t.Helper()
 
-	sourceDir, _, _ = bdInit(t, bd, "--prefix", sourcePrefix)
+	sourceDir, _, _ = issuegraphInit(t, issuegraph, "--prefix", sourcePrefix)
 	targetDir = filepath.Join(sourceDir, "target-repo")
 	if err := os.MkdirAll(targetDir, 0750); err != nil {
 		t.Fatal(err)
 	}
 	initGitRepoAt(t, targetDir)
-	runBDInit(t, bd, targetDir, "--prefix", targetPrefix)
+	runIssueGraphInit(t, issuegraph, targetDir, "--prefix", targetPrefix)
 
 	route := `{"prefix":"` + targetPrefix + `-","path":"target-repo"}` + "\n"
-	if err := os.WriteFile(filepath.Join(sourceDir, ".beads", "routes.jsonl"), []byte(route), 0644); err != nil {
+	if err := os.WriteFile(filepath.Join(sourceDir, ".issuegraph", "routes.jsonl"), []byte(route), 0644); err != nil {
 		t.Fatalf("write routes.jsonl: %v", err)
 	}
-	return sourceDir, targetDir, filepath.Join(targetDir, ".beads")
+	return sourceDir, targetDir, filepath.Join(targetDir, ".issuegraph")
 }
 
 func TestEmbeddedDepAndLinkBatchAutoCommitDoesNotAdvanceHead(t *testing.T) {
-	if os.Getenv("BEADS_TEST_EMBEDDED_DOLT") != "1" {
-		t.Skip("set BEADS_TEST_EMBEDDED_DOLT=1 to run embedded dolt auto-commit tests")
+	if os.Getenv("ISSUEGRAPH_TEST_EMBEDDED_DOLT") != "1" {
+		t.Skip("set ISSUEGRAPH_TEST_EMBEDDED_DOLT=1 to run embedded dolt auto-commit tests")
 	}
 	t.Parallel()
 
-	bd := buildEmbeddedBD(t)
+	issuegraph := buildEmbeddedBD(t)
 
 	t.Run("dep_add", func(t *testing.T) {
-		dir, beadsDir, _ := bdInit(t, bd, "--prefix", "da")
-		from := bdCreate(t, bd, dir, "Dependent issue")
-		to := bdCreate(t, bd, dir, "Blocking issue")
-		before := embeddedCurrentCommit(t, beadsDir, "da")
+		dir, issuegraphDir, _ := issuegraphInit(t, issuegraph, "--prefix", "da")
+		from := issuegraphCreate(t, issuegraph, dir, "Dependent issue")
+		to := issuegraphCreate(t, issuegraph, dir, "Blocking issue")
+		before := embeddedCurrentCommit(t, issuegraphDir, "da")
 
-		bdCommand(t, bd, dir, "--dolt-auto-commit", "batch", "dep", "add", from.ID, to.ID)
+		issuegraphCommand(t, issuegraph, dir, "--dolt-auto-commit", "batch", "dep", "add", from.ID, to.ID)
 
-		assertEmbeddedHeadUnchanged(t, beadsDir, "da", before, "dep add")
+		assertEmbeddedHeadUnchanged(t, issuegraphDir, "da", before, "dep add")
 	})
 
 	t.Run("dep_blocks", func(t *testing.T) {
-		dir, beadsDir, _ := bdInit(t, bd, "--prefix", "db")
-		blocker := bdCreate(t, bd, dir, "Blocking issue")
-		blocked := bdCreate(t, bd, dir, "Blocked issue")
-		before := embeddedCurrentCommit(t, beadsDir, "db")
+		dir, issuegraphDir, _ := issuegraphInit(t, issuegraph, "--prefix", "db")
+		blocker := issuegraphCreate(t, issuegraph, dir, "Blocking issue")
+		blocked := issuegraphCreate(t, issuegraph, dir, "Blocked issue")
+		before := embeddedCurrentCommit(t, issuegraphDir, "db")
 
-		bdCommand(t, bd, dir, "--dolt-auto-commit", "batch", "dep", blocker.ID, "--blocks", blocked.ID)
+		issuegraphCommand(t, issuegraph, dir, "--dolt-auto-commit", "batch", "dep", blocker.ID, "--blocks", blocked.ID)
 
-		assertEmbeddedHeadUnchanged(t, beadsDir, "db", before, "dep --blocks")
+		assertEmbeddedHeadUnchanged(t, issuegraphDir, "db", before, "dep --blocks")
 	})
 
 	t.Run("dep_remove", func(t *testing.T) {
-		dir, beadsDir, _ := bdInit(t, bd, "--prefix", "dr")
-		from := bdCreate(t, bd, dir, "Dependent issue")
-		to := bdCreate(t, bd, dir, "Blocking issue")
-		bdDep(t, bd, dir, "add", from.ID, to.ID)
-		before := embeddedCurrentCommit(t, beadsDir, "dr")
+		dir, issuegraphDir, _ := issuegraphInit(t, issuegraph, "--prefix", "dr")
+		from := issuegraphCreate(t, issuegraph, dir, "Dependent issue")
+		to := issuegraphCreate(t, issuegraph, dir, "Blocking issue")
+		issuegraphDep(t, issuegraph, dir, "add", from.ID, to.ID)
+		before := embeddedCurrentCommit(t, issuegraphDir, "dr")
 
-		bdCommand(t, bd, dir, "--dolt-auto-commit", "batch", "dep", "remove", from.ID, to.ID)
+		issuegraphCommand(t, issuegraph, dir, "--dolt-auto-commit", "batch", "dep", "remove", from.ID, to.ID)
 
-		assertEmbeddedHeadUnchanged(t, beadsDir, "dr", before, "dep remove")
+		assertEmbeddedHeadUnchanged(t, issuegraphDir, "dr", before, "dep remove")
 	})
 
 	t.Run("link", func(t *testing.T) {
-		dir, beadsDir, _ := bdInit(t, bd, "--prefix", "dl")
-		from := bdCreate(t, bd, dir, "Dependent issue")
-		to := bdCreate(t, bd, dir, "Blocking issue")
-		before := embeddedCurrentCommit(t, beadsDir, "dl")
+		dir, issuegraphDir, _ := issuegraphInit(t, issuegraph, "--prefix", "dl")
+		from := issuegraphCreate(t, issuegraph, dir, "Dependent issue")
+		to := issuegraphCreate(t, issuegraph, dir, "Blocking issue")
+		before := embeddedCurrentCommit(t, issuegraphDir, "dl")
 
-		bdCommand(t, bd, dir, "--dolt-auto-commit", "batch", "link", from.ID, to.ID)
+		issuegraphCommand(t, issuegraph, dir, "--dolt-auto-commit", "batch", "link", from.ID, to.ID)
 
-		assertEmbeddedHeadUnchanged(t, beadsDir, "dl", before, "link")
+		assertEmbeddedHeadUnchanged(t, issuegraphDir, "dl", before, "link")
 	})
 }
 
 func TestEmbeddedDirectCommitPathsBatchAutoCommitDoesNotAdvanceHead(t *testing.T) {
-	if os.Getenv("BEADS_TEST_EMBEDDED_DOLT") != "1" {
-		t.Skip("set BEADS_TEST_EMBEDDED_DOLT=1 to run embedded dolt auto-commit tests")
+	if os.Getenv("ISSUEGRAPH_TEST_EMBEDDED_DOLT") != "1" {
+		t.Skip("set ISSUEGRAPH_TEST_EMBEDDED_DOLT=1 to run embedded dolt auto-commit tests")
 	}
 	t.Parallel()
 
-	bd := buildEmbeddedBD(t)
+	issuegraph := buildEmbeddedBD(t)
 
 	t.Run("create", func(t *testing.T) {
-		dir, beadsDir, _ := bdInit(t, bd, "--prefix", "dc")
-		before := embeddedCurrentCommit(t, beadsDir, "dc")
+		dir, issuegraphDir, _ := issuegraphInit(t, issuegraph, "--prefix", "dc")
+		before := embeddedCurrentCommit(t, issuegraphDir, "dc")
 
-		bdCommand(t, bd, dir, "--dolt-auto-commit", "batch", "create", "Deferred create")
+		issuegraphCommand(t, issuegraph, dir, "--dolt-auto-commit", "batch", "create", "Deferred create")
 
-		assertEmbeddedHeadUnchanged(t, beadsDir, "dc", before, "create")
+		assertEmbeddedHeadUnchanged(t, issuegraphDir, "dc", before, "create")
 	})
 
 	t.Run("markdown_create", func(t *testing.T) {
-		dir, beadsDir, _ := bdInit(t, bd, "--prefix", "dm")
+		dir, issuegraphDir, _ := issuegraphInit(t, issuegraph, "--prefix", "dm")
 		mdFile := filepath.Join(dir, "issues.md")
 		mdContent := `## Markdown batch issue
 
@@ -143,35 +143,35 @@ Created while Dolt auto-commit is in batch mode.
 		if err := os.WriteFile(mdFile, []byte(mdContent), 0644); err != nil {
 			t.Fatalf("write markdown fixture: %v", err)
 		}
-		before := embeddedCurrentCommit(t, beadsDir, "dm")
+		before := embeddedCurrentCommit(t, issuegraphDir, "dm")
 
-		bdCommand(t, bd, dir, "--dolt-auto-commit", "batch", "create", "-f", mdFile)
+		issuegraphCommand(t, issuegraph, dir, "--dolt-auto-commit", "batch", "create", "-f", mdFile)
 
-		assertEmbeddedHeadUnchanged(t, beadsDir, "dm", before, "markdown create")
+		assertEmbeddedHeadUnchanged(t, issuegraphDir, "dm", before, "markdown create")
 	})
 
 	t.Run("label_add", func(t *testing.T) {
-		dir, beadsDir, _ := bdInit(t, bd, "--prefix", "dlb")
-		issue := bdCreate(t, bd, dir, "Batch label target")
-		before := embeddedCurrentCommit(t, beadsDir, "dlb")
+		dir, issuegraphDir, _ := issuegraphInit(t, issuegraph, "--prefix", "dlb")
+		issue := issuegraphCreate(t, issuegraph, dir, "Batch label target")
+		before := embeddedCurrentCommit(t, issuegraphDir, "dlb")
 
-		bdCommand(t, bd, dir, "--dolt-auto-commit", "batch", "label", "add", issue.ID, "batched")
+		issuegraphCommand(t, issuegraph, dir, "--dolt-auto-commit", "batch", "label", "add", issue.ID, "batched")
 
-		assertEmbeddedHeadUnchanged(t, beadsDir, "dlb", before, "label add")
-		labels := showLabels(t, bd, dir, issue.ID)
+		assertEmbeddedHeadUnchanged(t, issuegraphDir, "dlb", before, "label add")
+		labels := showLabels(t, issuegraph, dir, issue.ID)
 		if !slices.Contains(labels, "batched") {
 			t.Fatalf("labels = %v, want batched", labels)
 		}
 	})
 
 	t.Run("delete", func(t *testing.T) {
-		dir, beadsDir, _ := bdInit(t, bd, "--prefix", "dd")
-		issue := bdCreate(t, bd, dir, "Batch delete target")
-		before := embeddedCurrentCommit(t, beadsDir, "dd")
+		dir, issuegraphDir, _ := issuegraphInit(t, issuegraph, "--prefix", "dd")
+		issue := issuegraphCreate(t, issuegraph, dir, "Batch delete target")
+		before := embeddedCurrentCommit(t, issuegraphDir, "dd")
 
-		bdCommand(t, bd, dir, "--dolt-auto-commit", "batch", "delete", issue.ID, "--force")
+		issuegraphCommand(t, issuegraph, dir, "--dolt-auto-commit", "batch", "delete", issue.ID, "--force")
 
-		assertEmbeddedHeadUnchanged(t, beadsDir, "dd", before, "delete")
+		assertEmbeddedHeadUnchanged(t, issuegraphDir, "dd", before, "delete")
 	})
 
 	// Prune rides the Sweeper role, which mints its own version commit — so
@@ -180,34 +180,34 @@ Created while Dolt auto-commit is in batch mode.
 	// accident: nothing under it committed at all, and the post-run flush
 	// already honored the mode.
 	t.Run("prune", func(t *testing.T) {
-		dir, beadsDir, _ := bdInit(t, bd, "--prefix", "dp")
-		issue := bdCreate(t, bd, dir, "Batch prune target")
-		bdClose(t, bd, dir, issue.ID, "--reason", "done")
-		before := embeddedCurrentCommit(t, beadsDir, "dp")
+		dir, issuegraphDir, _ := issuegraphInit(t, issuegraph, "--prefix", "dp")
+		issue := issuegraphCreate(t, issuegraph, dir, "Batch prune target")
+		issuegraphClose(t, issuegraph, dir, issue.ID, "--reason", "done")
+		before := embeddedCurrentCommit(t, issuegraphDir, "dp")
 
-		bdCommand(t, bd, dir, "--dolt-auto-commit", "batch", "prune", "--pattern", "dp-*", "--force")
+		issuegraphCommand(t, issuegraph, dir, "--dolt-auto-commit", "batch", "prune", "--pattern", "dp-*", "--force")
 
-		assertEmbeddedHeadUnchanged(t, beadsDir, "dp", before, "prune")
+		assertEmbeddedHeadUnchanged(t, issuegraphDir, "dp", before, "prune")
 	})
 }
 
 func TestEmbeddedRoutedSiblingWritesCommitTargetHead(t *testing.T) {
-	if os.Getenv("BEADS_TEST_EMBEDDED_DOLT") != "1" {
-		t.Skip("set BEADS_TEST_EMBEDDED_DOLT=1 to run embedded dolt auto-commit tests")
+	if os.Getenv("ISSUEGRAPH_TEST_EMBEDDED_DOLT") != "1" {
+		t.Skip("set ISSUEGRAPH_TEST_EMBEDDED_DOLT=1 to run embedded dolt auto-commit tests")
 	}
 	t.Parallel()
 
-	bd := buildEmbeddedBD(t)
+	issuegraph := buildEmbeddedBD(t)
 
 	t.Run("comment", func(t *testing.T) {
-		sourceDir, targetDir, targetBeadsDir := setupRoutedEmbeddedRepo(t, bd, "sc", "tc")
-		issue := bdCreate(t, bd, targetDir, "Routed comment target")
-		before := embeddedCurrentCommit(t, targetBeadsDir, "tc")
+		sourceDir, targetDir, targetIssueGraphDir := setupRoutedEmbeddedRepo(t, issuegraph, "sc", "tc")
+		issue := issuegraphCreate(t, issuegraph, targetDir, "Routed comment target")
+		before := embeddedCurrentCommit(t, targetIssueGraphDir, "tc")
 
-		bdCommand(t, bd, sourceDir, "comment", issue.ID, "routed comment")
+		issuegraphCommand(t, issuegraph, sourceDir, "comment", issue.ID, "routed comment")
 
-		assertEmbeddedHeadAdvanced(t, targetBeadsDir, "tc", before, "routed comment")
-		targetStore := openStore(t, targetBeadsDir, "tc")
+		assertEmbeddedHeadAdvanced(t, targetIssueGraphDir, "tc", before, "routed comment")
+		targetStore := openStore(t, targetIssueGraphDir, "tc")
 		comments, err := targetStore.GetIssueComments(t.Context(), issue.ID)
 		if err != nil {
 			t.Fatalf("GetIssueComments: %v", err)
@@ -225,14 +225,14 @@ func TestEmbeddedRoutedSiblingWritesCommitTargetHead(t *testing.T) {
 	})
 
 	t.Run("note", func(t *testing.T) {
-		sourceDir, targetDir, targetBeadsDir := setupRoutedEmbeddedRepo(t, bd, "sn", "tn")
-		issue := bdCreate(t, bd, targetDir, "Routed note target")
-		before := embeddedCurrentCommit(t, targetBeadsDir, "tn")
+		sourceDir, targetDir, targetIssueGraphDir := setupRoutedEmbeddedRepo(t, issuegraph, "sn", "tn")
+		issue := issuegraphCreate(t, issuegraph, targetDir, "Routed note target")
+		before := embeddedCurrentCommit(t, targetIssueGraphDir, "tn")
 
-		bdCommand(t, bd, sourceDir, "note", issue.ID, "routed note")
+		issuegraphCommand(t, issuegraph, sourceDir, "note", issue.ID, "routed note")
 
-		assertEmbeddedHeadAdvanced(t, targetBeadsDir, "tn", before, "routed note")
-		targetStore := openStore(t, targetBeadsDir, "tn")
+		assertEmbeddedHeadAdvanced(t, targetIssueGraphDir, "tn", before, "routed note")
+		targetStore := openStore(t, targetIssueGraphDir, "tn")
 		got, err := targetStore.GetIssue(t.Context(), issue.ID)
 		if err != nil {
 			t.Fatalf("GetIssue: %v", err)
@@ -243,15 +243,15 @@ func TestEmbeddedRoutedSiblingWritesCommitTargetHead(t *testing.T) {
 	})
 
 	t.Run("reopen", func(t *testing.T) {
-		sourceDir, targetDir, targetBeadsDir := setupRoutedEmbeddedRepo(t, bd, "sr", "tr")
-		issue := bdCreate(t, bd, targetDir, "Routed reopen target")
-		bdClose(t, bd, targetDir, issue.ID)
-		before := embeddedCurrentCommit(t, targetBeadsDir, "tr")
+		sourceDir, targetDir, targetIssueGraphDir := setupRoutedEmbeddedRepo(t, issuegraph, "sr", "tr")
+		issue := issuegraphCreate(t, issuegraph, targetDir, "Routed reopen target")
+		issuegraphClose(t, issuegraph, targetDir, issue.ID)
+		before := embeddedCurrentCommit(t, targetIssueGraphDir, "tr")
 
-		bdCommand(t, bd, sourceDir, "reopen", issue.ID, "--reason", "routed reopen")
+		issuegraphCommand(t, issuegraph, sourceDir, "reopen", issue.ID, "--reason", "routed reopen")
 
-		assertEmbeddedHeadAdvanced(t, targetBeadsDir, "tr", before, "routed reopen")
-		targetStore := openStore(t, targetBeadsDir, "tr")
+		assertEmbeddedHeadAdvanced(t, targetIssueGraphDir, "tr", before, "routed reopen")
+		targetStore := openStore(t, targetIssueGraphDir, "tr")
 		got, err := targetStore.GetIssue(t.Context(), issue.ID)
 		if err != nil {
 			t.Fatalf("GetIssue: %v", err)
@@ -267,26 +267,26 @@ func TestEmbeddedRoutedSiblingWritesCommitTargetHead(t *testing.T) {
 // comment/note/reopen above. These commands (the assign/tag shorthands plus
 // dep/delete/close) resolve a prefix-routed target through the write-intent
 // router and must commit on the target head, not fail "store is read-only"
-// (#4141). Each subtest creates the bead in the target rig, runs the command
+// (#4141). Each subtest creates the issue in the target rig, runs the command
 // from the source rig so resolution must route, and asserts both that the
 // target HEAD advanced and that the mutation persisted in the target store.
 func TestEmbeddedRoutedMutatingSiblingWritesCommitTargetHead(t *testing.T) {
-	if os.Getenv("BEADS_TEST_EMBEDDED_DOLT") != "1" {
-		t.Skip("set BEADS_TEST_EMBEDDED_DOLT=1 to run embedded dolt auto-commit tests")
+	if os.Getenv("ISSUEGRAPH_TEST_EMBEDDED_DOLT") != "1" {
+		t.Skip("set ISSUEGRAPH_TEST_EMBEDDED_DOLT=1 to run embedded dolt auto-commit tests")
 	}
 	t.Parallel()
 
-	bd := buildEmbeddedBD(t)
+	issuegraph := buildEmbeddedBD(t)
 
 	t.Run("assign", func(t *testing.T) {
-		sourceDir, targetDir, targetBeadsDir := setupRoutedEmbeddedRepo(t, bd, "sas", "tas")
-		issue := bdCreate(t, bd, targetDir, "Routed assign target")
-		before := embeddedCurrentCommit(t, targetBeadsDir, "tas")
+		sourceDir, targetDir, targetIssueGraphDir := setupRoutedEmbeddedRepo(t, issuegraph, "sas", "tas")
+		issue := issuegraphCreate(t, issuegraph, targetDir, "Routed assign target")
+		before := embeddedCurrentCommit(t, targetIssueGraphDir, "tas")
 
-		bdCommand(t, bd, sourceDir, "assign", issue.ID, "alice")
+		issuegraphCommand(t, issuegraph, sourceDir, "assign", issue.ID, "alice")
 
-		assertEmbeddedHeadAdvanced(t, targetBeadsDir, "tas", before, "routed assign")
-		targetStore := openStore(t, targetBeadsDir, "tas")
+		assertEmbeddedHeadAdvanced(t, targetIssueGraphDir, "tas", before, "routed assign")
+		targetStore := openStore(t, targetIssueGraphDir, "tas")
 		got, err := targetStore.GetIssue(t.Context(), issue.ID)
 		if err != nil {
 			t.Fatalf("GetIssue: %v", err)
@@ -297,14 +297,14 @@ func TestEmbeddedRoutedMutatingSiblingWritesCommitTargetHead(t *testing.T) {
 	})
 
 	t.Run("tag", func(t *testing.T) {
-		sourceDir, targetDir, targetBeadsDir := setupRoutedEmbeddedRepo(t, bd, "stg", "ttg")
-		issue := bdCreate(t, bd, targetDir, "Routed tag target")
-		before := embeddedCurrentCommit(t, targetBeadsDir, "ttg")
+		sourceDir, targetDir, targetIssueGraphDir := setupRoutedEmbeddedRepo(t, issuegraph, "stg", "ttg")
+		issue := issuegraphCreate(t, issuegraph, targetDir, "Routed tag target")
+		before := embeddedCurrentCommit(t, targetIssueGraphDir, "ttg")
 
-		bdCommand(t, bd, sourceDir, "tag", issue.ID, "routed-label")
+		issuegraphCommand(t, issuegraph, sourceDir, "tag", issue.ID, "routed-label")
 
-		assertEmbeddedHeadAdvanced(t, targetBeadsDir, "ttg", before, "routed tag")
-		targetStore := openStore(t, targetBeadsDir, "ttg")
+		assertEmbeddedHeadAdvanced(t, targetIssueGraphDir, "ttg", before, "routed tag")
+		targetStore := openStore(t, targetIssueGraphDir, "ttg")
 		labels, err := targetStore.GetLabelsForIssues(t.Context(), []string{issue.ID})
 		if err != nil {
 			t.Fatalf("GetLabelsForIssues: %v", err)
@@ -315,15 +315,15 @@ func TestEmbeddedRoutedMutatingSiblingWritesCommitTargetHead(t *testing.T) {
 	})
 
 	t.Run("dep_add", func(t *testing.T) {
-		sourceDir, targetDir, targetBeadsDir := setupRoutedEmbeddedRepo(t, bd, "sdp", "tdp")
-		from := bdCreate(t, bd, targetDir, "Routed dep source")
-		to := bdCreate(t, bd, targetDir, "Routed dep target")
-		before := embeddedCurrentCommit(t, targetBeadsDir, "tdp")
+		sourceDir, targetDir, targetIssueGraphDir := setupRoutedEmbeddedRepo(t, issuegraph, "sdp", "tdp")
+		from := issuegraphCreate(t, issuegraph, targetDir, "Routed dep source")
+		to := issuegraphCreate(t, issuegraph, targetDir, "Routed dep target")
+		before := embeddedCurrentCommit(t, targetIssueGraphDir, "tdp")
 
-		bdCommand(t, bd, sourceDir, "dep", "add", from.ID, to.ID)
+		issuegraphCommand(t, issuegraph, sourceDir, "dep", "add", from.ID, to.ID)
 
-		assertEmbeddedHeadAdvanced(t, targetBeadsDir, "tdp", before, "routed dep add")
-		targetStore := openStore(t, targetBeadsDir, "tdp")
+		assertEmbeddedHeadAdvanced(t, targetIssueGraphDir, "tdp", before, "routed dep add")
+		targetStore := openStore(t, targetIssueGraphDir, "tdp")
 		deps, err := targetStore.GetDependencies(t.Context(), from.ID)
 		if err != nil {
 			t.Fatalf("GetDependencies: %v", err)
@@ -341,28 +341,28 @@ func TestEmbeddedRoutedMutatingSiblingWritesCommitTargetHead(t *testing.T) {
 	})
 
 	t.Run("delete", func(t *testing.T) {
-		sourceDir, targetDir, targetBeadsDir := setupRoutedEmbeddedRepo(t, bd, "sdl", "tdl")
-		issue := bdCreate(t, bd, targetDir, "Routed delete target")
-		before := embeddedCurrentCommit(t, targetBeadsDir, "tdl")
+		sourceDir, targetDir, targetIssueGraphDir := setupRoutedEmbeddedRepo(t, issuegraph, "sdl", "tdl")
+		issue := issuegraphCreate(t, issuegraph, targetDir, "Routed delete target")
+		before := embeddedCurrentCommit(t, targetIssueGraphDir, "tdl")
 
-		bdCommand(t, bd, sourceDir, "delete", issue.ID, "--force")
+		issuegraphCommand(t, issuegraph, sourceDir, "delete", issue.ID, "--force")
 
-		assertEmbeddedHeadAdvanced(t, targetBeadsDir, "tdl", before, "routed delete")
-		targetStore := openStore(t, targetBeadsDir, "tdl")
+		assertEmbeddedHeadAdvanced(t, targetIssueGraphDir, "tdl", before, "routed delete")
+		targetStore := openStore(t, targetIssueGraphDir, "tdl")
 		if _, err := targetStore.GetIssue(t.Context(), issue.ID); err == nil {
 			t.Fatalf("routed delete did not remove %s from target store", issue.ID)
 		}
 	})
 
 	t.Run("close", func(t *testing.T) {
-		sourceDir, targetDir, targetBeadsDir := setupRoutedEmbeddedRepo(t, bd, "scl", "tcl")
-		issue := bdCreate(t, bd, targetDir, "Routed close target")
-		before := embeddedCurrentCommit(t, targetBeadsDir, "tcl")
+		sourceDir, targetDir, targetIssueGraphDir := setupRoutedEmbeddedRepo(t, issuegraph, "scl", "tcl")
+		issue := issuegraphCreate(t, issuegraph, targetDir, "Routed close target")
+		before := embeddedCurrentCommit(t, targetIssueGraphDir, "tcl")
 
-		bdCommand(t, bd, sourceDir, "close", issue.ID, "--reason", "routed close")
+		issuegraphCommand(t, issuegraph, sourceDir, "close", issue.ID, "--reason", "routed close")
 
-		assertEmbeddedHeadAdvanced(t, targetBeadsDir, "tcl", before, "routed close")
-		targetStore := openStore(t, targetBeadsDir, "tcl")
+		assertEmbeddedHeadAdvanced(t, targetIssueGraphDir, "tcl", before, "routed close")
+		targetStore := openStore(t, targetIssueGraphDir, "tcl")
 		got, err := targetStore.GetIssue(t.Context(), issue.ID)
 		if err != nil {
 			t.Fatalf("GetIssue: %v", err)

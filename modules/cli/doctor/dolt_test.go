@@ -17,19 +17,19 @@ func TestRunDoltHealthChecks_DoltBackendNoServer(t *testing.T) {
 	// instead of reporting false errors. The embedded SharedStore checks
 	// already cover data integrity.
 	tmpDir := t.TempDir()
-	beadsDir := filepath.Join(tmpDir, ".beads")
-	if err := os.MkdirAll(beadsDir, 0o755); err != nil {
-		t.Fatalf("failed to create beads dir: %v", err)
+	issuegraphDir := filepath.Join(tmpDir, ".issuegraph")
+	if err := os.MkdirAll(issuegraphDir, 0o755); err != nil {
+		t.Fatalf("failed to create issuegraph dir: %v", err)
 	}
 
 	// Write metadata.json marking this as dolt backend (no explicit server port → owned mode)
 	configContent := []byte(`{"backend":"dolt"}`)
-	if err := os.WriteFile(filepath.Join(beadsDir, "metadata.json"), configContent, 0o644); err != nil {
+	if err := os.WriteFile(filepath.Join(issuegraphDir, "metadata.json"), configContent, 0o644); err != nil {
 		t.Fatalf("failed to write config: %v", err)
 	}
 
-	// No BEADS_DOLT_SERVER_PORT set → port 0 → no server running
-	// No BEADS_DOLT_SHARED_SERVER → owned mode (not external)
+	// No ISSUEGRAPH_DOLT_SERVER_PORT set → port 0 → no server running
+	// No ISSUEGRAPH_DOLT_SHARED_SERVER → owned mode (not external)
 	checks := RunDoltHealthChecks(tmpDir)
 	if len(checks) != 7 {
 		t.Fatalf("expected exactly 7 checks (consistent shape), got %d", len(checks))
@@ -60,20 +60,20 @@ func TestRunDoltHealthChecks_ExternalModeNoServer(t *testing.T) {
 	// In external/shared server mode, a server IS expected to be running,
 	// so connection failure should report real errors.
 	tmpDir := t.TempDir()
-	beadsDir := filepath.Join(tmpDir, ".beads")
-	if err := os.MkdirAll(beadsDir, 0o755); err != nil {
-		t.Fatalf("failed to create beads dir: %v", err)
+	issuegraphDir := filepath.Join(tmpDir, ".issuegraph")
+	if err := os.MkdirAll(issuegraphDir, 0o755); err != nil {
+		t.Fatalf("failed to create issuegraph dir: %v", err)
 	}
 
 	// Write metadata.json marking this as dolt backend
 	configContent := []byte(`{"backend":"dolt"}`)
-	if err := os.WriteFile(filepath.Join(beadsDir, "metadata.json"), configContent, 0o644); err != nil {
+	if err := os.WriteFile(filepath.Join(issuegraphDir, "metadata.json"), configContent, 0o644); err != nil {
 		t.Fatalf("failed to write config: %v", err)
 	}
 
 	// Point at a port nothing listens on AND set server mode to external
-	t.Setenv("BEADS_DOLT_SERVER_PORT", "59998")
-	t.Setenv("BEADS_DOLT_SERVER_MODE", "1")
+	t.Setenv("ISSUEGRAPH_DOLT_SERVER_PORT", "59998")
+	t.Setenv("ISSUEGRAPH_DOLT_SERVER_MODE", "1")
 
 	checks := RunDoltHealthChecks(tmpDir)
 	if len(checks) != 7 {
@@ -100,9 +100,9 @@ func TestRunDoltHealthChecks_ExternalModeNoServer(t *testing.T) {
 
 func TestRunDoltHealthChecks_CheckNameAndCategory(t *testing.T) {
 	tmpDir := t.TempDir()
-	beadsDir := filepath.Join(tmpDir, ".beads")
-	if err := os.MkdirAll(beadsDir, 0o755); err != nil {
-		t.Fatalf("failed to create beads dir: %v", err)
+	issuegraphDir := filepath.Join(tmpDir, ".issuegraph")
+	if err := os.MkdirAll(issuegraphDir, 0o755); err != nil {
+		t.Fatalf("failed to create issuegraph dir: %v", err)
 	}
 
 	checks := RunDoltHealthChecks(tmpDir)
@@ -124,19 +124,19 @@ func TestServerMode_NoLockAcquired(t *testing.T) {
 	// Server-only mode never acquires advisory locks.
 	// We force a non-listening port in external mode so the connection always fails.
 	tmpDir := t.TempDir()
-	beadsDir := filepath.Join(tmpDir, ".beads")
-	doltDir := filepath.Join(beadsDir, "dolt")
+	issuegraphDir := filepath.Join(tmpDir, ".issuegraph")
+	doltDir := filepath.Join(issuegraphDir, "dolt")
 	if err := os.MkdirAll(doltDir, 0o755); err != nil {
 		t.Fatalf("failed to create dolt dir: %v", err)
 	}
 
 	configContent := []byte(`{"backend":"dolt"}`)
-	if err := os.WriteFile(filepath.Join(beadsDir, "metadata.json"), configContent, 0o644); err != nil {
+	if err := os.WriteFile(filepath.Join(issuegraphDir, "metadata.json"), configContent, 0o644); err != nil {
 		t.Fatalf("failed to write config: %v", err)
 	}
 
-	t.Setenv("BEADS_DOLT_SERVER_PORT", "59999")
-	t.Setenv("BEADS_DOLT_SERVER_MODE", "1") // External mode: server expected
+	t.Setenv("ISSUEGRAPH_DOLT_SERVER_PORT", "59999")
+	t.Setenv("ISSUEGRAPH_DOLT_SERVER_MODE", "1") // External mode: server expected
 
 	checks := RunDoltHealthChecks(tmpDir)
 	if len(checks) != 7 {

@@ -8,12 +8,12 @@ import (
 	"slices"
 	"strings"
 
+	"github.com/borg0ai/dx-issuegraph/internal/metrics"
+	"github.com/borg0ai/dx-issuegraph/internal/types"
+	"github.com/borg0ai/dx-issuegraph/internal/ui"
+	"github.com/borg0ai/dx-issuegraph/internal/workapi"
+	"github.com/borg0ai/dx-issuegraph/issueops"
 	"github.com/spf13/cobra"
-	"github.com/steveyegge/beads/internal/metrics"
-	"github.com/steveyegge/beads/internal/types"
-	"github.com/steveyegge/beads/internal/ui"
-	"github.com/steveyegge/beads/internal/workapi"
-	"github.com/steveyegge/beads/issueops"
 )
 
 var humanCmd = &cobra.Command{
@@ -22,16 +22,16 @@ var humanCmd = &cobra.Command{
 	Short:   "Show essential commands for human users",
 	Long: `Display a focused help menu showing only the most common commands.
 
-bd has 70+ commands - many for AI agents, integrations, and advanced workflows.
+issuegraph has 70+ commands - many for AI agents, integrations, and advanced workflows.
 This command shows the ~15 essential commands that human users need most often.
 
-For the full command list, run: bd --help
+For the full command list, run: issuegraph --help
 
 SUBCOMMANDS:
-  human list              List human-needed beads (issues with 'human' label; hides closed by default)
-  human respond <id>      Respond to a human-needed bead (adds comment and closes)
-  human dismiss <id>      Dismiss a human-needed bead permanently
-  human stats             Show summary statistics for human-needed beads`,
+  human list              List human-needed issuegraph (issues with 'human' label; hides closed by default)
+  human respond <id>      Respond to a human-needed issue (adds comment and closes)
+  human dismiss <id>      Dismiss a human-needed issue permanently
+  human stats             Show summary statistics for human-needed issuegraph`,
 	Run: func(cmd *cobra.Command, args []string) {
 		evt := metrics.NewCommandEvent("human")
 		defer func() {
@@ -40,8 +40,8 @@ SUBCOMMANDS:
 			}
 		}()
 
-		fmt.Printf("\n%s\n", ui.RenderBold("bd - Essential Commands for Humans"))
-		fmt.Printf("For all 70+ commands: bd --help\n\n")
+		fmt.Printf("\n%s\n", ui.RenderBold("issuegraph - Essential Commands for Humans"))
+		fmt.Printf("For all 70+ commands: issuegraph --help\n\n")
 
 		// Issues - Core workflow
 		fmt.Printf("%s\n", ui.RenderAccent("Working With Issues:"))
@@ -73,7 +73,7 @@ SUBCOMMANDS:
 
 		// Setup & Maintenance
 		fmt.Printf("%s\n", ui.RenderAccent("Setup & Maintenance:"))
-		printCmd("init", "Initialize bd in current directory")
+		printCmd("init", "Initialize issuegraph in current directory")
 		printCmd("doctor", "Check installation health")
 		fmt.Println()
 
@@ -87,34 +87,34 @@ SUBCOMMANDS:
 		// Common examples
 		fmt.Printf("%s\n", ui.RenderAccent("Quick Examples:"))
 		fmt.Printf("  %s\n", ui.RenderMuted("# Create and track an issue"))
-		fmt.Printf("  bd create \"Fix login bug\" --priority 1\n")
-		fmt.Printf("  bd update bd-abc123 --claim\n")
-		fmt.Printf("  bd close bd-abc123\n\n")
+		fmt.Printf("  issuegraph create \"Fix login bug\" --priority 1\n")
+		fmt.Printf("  issuegraph update bd-abc123 --claim\n")
+		fmt.Printf("  issuegraph close bd-abc123\n\n")
 
 		fmt.Printf("  %s\n", ui.RenderMuted("# See what needs doing"))
-		fmt.Printf("  bd ready                    # What can I work on?\n")
-		fmt.Printf("  bd list --status open       # All open issues\n")
-		fmt.Printf("  bd blocked                  # What's stuck?\n\n")
+		fmt.Printf("  issuegraph ready                    # What can I work on?\n")
+		fmt.Printf("  issuegraph list --status open       # All open issues\n")
+		fmt.Printf("  issuegraph blocked                  # What's stuck?\n\n")
 	},
 }
 
 // human list command
 var humanListCmd = &cobra.Command{
 	Use:   "list",
-	Short: "List human-needed beads",
+	Short: "List human-needed issuegraph",
 	Long: `List issues labeled with 'human' tag.
 
 These are issues that require human intervention or input. Every
-human-labeled bead shows regardless of type (including gates and wisps).
-By default closed, pinned, and other done/frozen beads are hidden; use
+human-labeled issue shows regardless of type (including gates and wisps).
+By default closed, pinned, and other done/frozen issuegraph are hidden; use
 --status to select specific statuses, or --status=all to include every
 status.
 
 Examples:
-  bd human list
-  bd human list --status=closed
-  bd human list --status=all
-  bd human list --json`,
+  issuegraph human list
+  issuegraph human list --status=closed
+  issuegraph human list --status=all
+  issuegraph human list --json`,
 	SilenceUsage:  true,
 	SilenceErrors: true,
 	RunE: func(cmd *cobra.Command, args []string) error {
@@ -129,7 +129,7 @@ Examples:
 
 		issues, err := humanIssues(rootCtx, status)
 		if err != nil {
-			return HandleErrorRespectJSON("listing human beads: %v", err)
+			return HandleErrorRespectJSON("listing human issuegraph: %v", err)
 		}
 
 		if jsonOutput {
@@ -149,7 +149,7 @@ Examples:
 	},
 }
 
-// humanIssues loads the human-labeled beads matching the status selector
+// humanIssues loads the human-labeled issuegraph matching the status selector
 // through whichever backend this invocation uses: the direct store, or a
 // proxied-server unit of work. Both routes apply the same humanListFilter.
 func humanIssues(ctx context.Context, status string) ([]*types.Issue, error) {
@@ -172,10 +172,10 @@ func humanIssues(ctx context.Context, status string) ([]*types.Issue, error) {
 }
 
 // humanListRequest builds the list request for "human list": every
-// human-labeled bead regardless of type — a human label is an explicit
+// human-labeled issue regardless of type — a human label is an explicit
 // request for a person's attention, and this command is the only place a
-// person sees it, so gates, wisps, infra beads, and templates all show.
-// Status filtering matches `bd list`: done/frozen statuses and pinned beads
+// person sees it, so gates, wisps, infra issuegraph, and templates all show.
+// Status filtering matches `issuegraph list`: done/frozen statuses and pinned issuegraph
 // are hidden by default, an explicit --status selects specific statuses
 // (validated against the built-in and custom status names), and "all" lifts
 // the status defaults entirely.
@@ -184,7 +184,7 @@ func humanListRequest(status string) issueops.ListRequest {
 	req := issueops.ListRequest{
 		Labels: []string{"human"},
 		Limit:  &unlimited, // human list has never paginated; 0 = unlimited
-		// No bead type is hidden from a human listing.
+		// No issue type is hidden from a human listing.
 		IncludeAllTypes: true,
 	}
 	req.Status = status // "" applies the defaults; "all" lifts them
@@ -196,8 +196,8 @@ func humanListFilter(status string, cfg workapi.ListConfig) (types.IssueFilter, 
 	return workapi.BuildListFilter(humanListRequest(status), cfg)
 }
 
-// warnIfNotHumanLabeled warns on stderr when the bead lacks the 'human'
-// label. The check is advisory — respond/dismiss act on whichever bead the
+// warnIfNotHumanLabeled warns on stderr when the issue lacks the 'human'
+// label. The check is advisory — respond/dismiss act on whichever issue the
 // user named. The issue must carry its labels; anything returned by
 // GetIssue/resolveAndGetIssueForMutation does.
 func warnIfNotHumanLabeled(issue *types.Issue) {
@@ -208,14 +208,14 @@ func warnIfNotHumanLabeled(issue *types.Issue) {
 
 func printHumanList(issues []*types.Issue) {
 	if len(issues) == 0 {
-		fmt.Println("No human-needed beads found.")
+		fmt.Println("No human-needed issuegraph found.")
 		return
 	}
 
-	fmt.Printf("\n%s (%d found)\n\n", ui.RenderBold("Human-needed beads"), len(issues))
+	fmt.Printf("\n%s (%d found)\n\n", ui.RenderBold("Human-needed issuegraph"), len(issues))
 	for _, issue := range issues {
 		if issue.Status == types.StatusClosed {
-			// Closed items fade to muted gray, matching bd list/query. They
+			// Closed items fade to muted gray, matching issuegraph list/query. They
 			// only appear under an explicit --status, so the fade is what
 			// distinguishes them from the work still waiting on a person.
 			fmt.Printf("  %s\n", ui.RenderClosedLine(fmt.Sprintf("%s %s", issue.ID, issue.Title)))
@@ -236,17 +236,17 @@ func printHumanList(issues []*types.Issue) {
 // human respond command
 var humanRespondCmd = &cobra.Command{
 	Use:   "respond <issue-id> [response...]",
-	Short: "Respond to a human-needed bead",
-	Long: `Respond to a human-needed bead by adding a comment and closing it.
+	Short: "Respond to a human-needed issue",
+	Long: `Respond to a human-needed issue by adding a comment and closing it.
 
 The response is added as a comment and the issue is closed with reason "Responded".
 The response text can be given as positional arguments, --response, --file, or --stdin.
 
 Examples:
-  bd human respond bd-123 "Use OAuth2 for authentication"
-  bd human respond bd-123 -r "Approved, proceed with implementation"
-  bd human respond bd-123 --file response.md
-  echo "Approved" | bd human respond bd-123 --stdin`,
+  issuegraph human respond bd-123 "Use OAuth2 for authentication"
+  issuegraph human respond bd-123 -r "Approved, proceed with implementation"
+  issuegraph human respond bd-123 --file response.md
+  echo "Approved" | issuegraph human respond bd-123 --stdin`,
 	Args:          cobra.MinimumNArgs(1),
 	SilenceUsage:  true,
 	SilenceErrors: true,
@@ -281,7 +281,7 @@ Examples:
 
 		// Direct mode
 		if err := ensureStoreActive(); err != nil {
-			return HandleErrorRespectJSON("responding to human bead: %v", err)
+			return HandleErrorRespectJSON("responding to human issue: %v", err)
 		}
 
 		// Resolve partial ID and get issue
@@ -313,10 +313,10 @@ Examples:
 		}
 
 		if err := targetStore.CloseIssue(ctx, resolvedID, "Responded", actor, ""); err != nil {
-			return HandleErrorRespectJSON("closing bead: %v", err)
+			return HandleErrorRespectJSON("closing issue: %v", err)
 		}
 
-		fmt.Printf("%s Bead %s closed with response.\n", ui.RenderPass("✔"), resolvedID)
+		fmt.Printf("%s Issue %s closed with response.\n", ui.RenderPass("✔"), resolvedID)
 		return nil
 	},
 }
@@ -324,16 +324,16 @@ Examples:
 // human dismiss command
 var humanDismissCmd = &cobra.Command{
 	Use:   "dismiss <issue-id> [reason...]",
-	Short: "Dismiss a human-needed bead",
-	Long: `Dismiss a human-needed bead permanently without responding.
+	Short: "Dismiss a human-needed issue",
+	Long: `Dismiss a human-needed issue permanently without responding.
 
 The issue is closed with a "Dismissed" reason and optional note.
 The reason can be given as positional arguments or --reason.
 
 Examples:
-  bd human dismiss bd-123
-  bd human dismiss bd-123 "No longer applicable"
-  bd human dismiss bd-123 --reason "No longer applicable"`,
+  issuegraph human dismiss bd-123
+  issuegraph human dismiss bd-123 "No longer applicable"
+  issuegraph human dismiss bd-123 --reason "No longer applicable"`,
 	Args:          cobra.MinimumNArgs(1),
 	SilenceUsage:  true,
 	SilenceErrors: true,
@@ -377,7 +377,7 @@ Examples:
 
 		// Direct mode
 		if err := ensureStoreActive(); err != nil {
-			return HandleErrorRespectJSON("dismissing human bead: %v", err)
+			return HandleErrorRespectJSON("dismissing human issue: %v", err)
 		}
 
 		// Resolve partial ID and get issue
@@ -404,10 +404,10 @@ Examples:
 		warnIfNotHumanLabeled(issue)
 
 		if err := targetStore.CloseIssue(ctx, resolvedID, closeReason, actor, ""); err != nil {
-			return HandleErrorRespectJSON("closing bead: %v", err)
+			return HandleErrorRespectJSON("closing issue: %v", err)
 		}
 
-		fmt.Printf("%s Bead %s dismissed.\n", ui.RenderPass("✔"), resolvedID)
+		fmt.Printf("%s Issue %s dismissed.\n", ui.RenderPass("✔"), resolvedID)
 		return nil
 	},
 }
@@ -415,14 +415,14 @@ Examples:
 // human stats command
 var humanStatsCmd = &cobra.Command{
 	Use:   "stats",
-	Short: "Show summary statistics for human-needed beads",
-	Long: `Display summary statistics for human-needed beads.
+	Short: "Show summary statistics for human-needed issuegraph",
+	Long: `Display summary statistics for human-needed issuegraph.
 
 Shows counts for total, pending (open), responded (closed without dismiss),
-and dismissed beads.
+and dismissed issuegraph.
 
 Example:
-  bd human stats`,
+  issuegraph human stats`,
 	SilenceUsage:  true,
 	SilenceErrors: true,
 	RunE: func(cmd *cobra.Command, args []string) error {
@@ -434,10 +434,10 @@ Example:
 		}()
 
 		// The stats universe is `human list --status=all`: every human-labeled
-		// bead, every status, every type.
+		// issue, every status, every type.
 		issues, err := humanIssues(rootCtx, "all")
 		if err != nil {
-			return HandleErrorRespectJSON("getting human bead stats: %v", err)
+			return HandleErrorRespectJSON("getting human issue stats: %v", err)
 		}
 
 		printHumanStats(issues)
@@ -446,7 +446,7 @@ Example:
 }
 
 // dismissedCloseReason prefixes the close reason `human dismiss` writes;
-// printHumanStats classifies dismissed beads by this same prefix so the
+// printHumanStats classifies dismissed issuegraph by this same prefix so the
 // writer and the classifier cannot drift apart.
 const dismissedCloseReason = "Dismissed"
 
@@ -471,7 +471,7 @@ func printHumanStats(issues []*types.Issue) {
 
 	responded := closed - dismissed
 
-	fmt.Printf("\n%s\n", ui.RenderBold("Human Beads Stats"))
+	fmt.Printf("\n%s\n", ui.RenderBold("Human IssueGraph Stats"))
 	fmt.Println()
 	fmt.Printf("  Total:      %d\n", total)
 	fmt.Printf("  Pending:    %d\n", pending)

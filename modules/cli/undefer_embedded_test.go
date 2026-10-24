@@ -12,28 +12,28 @@ import (
 )
 
 func TestEmbeddedUndefer(t *testing.T) {
-	if os.Getenv("BEADS_TEST_EMBEDDED_DOLT") != "1" {
-		t.Skip("set BEADS_TEST_EMBEDDED_DOLT=1 to run embedded dolt integration tests")
+	if os.Getenv("ISSUEGRAPH_TEST_EMBEDDED_DOLT") != "1" {
+		t.Skip("set ISSUEGRAPH_TEST_EMBEDDED_DOLT=1 to run embedded dolt integration tests")
 	}
 	t.Parallel()
 
-	bd := buildEmbeddedBD(t)
-	dir, _, _ := bdInit(t, bd, "--prefix", "ud")
+	issuegraph := buildEmbeddedBD(t)
+	dir, _, _ := issuegraphInit(t, issuegraph, "--prefix", "ud")
 
 	// ===== Single Issue =====
 
 	t.Run("undefer_single", func(t *testing.T) {
-		issue := bdCreate(t, bd, dir, "Undefer single", "--type", "task")
-		bdDefer(t, bd, dir, issue.ID)
-		if s := getIssueStatus(t, bd, dir, issue.ID); s != "deferred" {
+		issue := issuegraphCreate(t, issuegraph, dir, "Undefer single", "--type", "task")
+		issuegraphDefer(t, issuegraph, dir, issue.ID)
+		if s := getIssueStatus(t, issuegraph, dir, issue.ID); s != "deferred" {
 			t.Fatalf("expected deferred before undefer, got %q", s)
 		}
 
-		out := bdUndefer(t, bd, dir, issue.ID)
+		out := issuegraphUndefer(t, issuegraph, dir, issue.ID)
 		if !strings.Contains(out, "Undeferred") {
 			t.Errorf("expected 'Undeferred' in output: %s", out)
 		}
-		if s := getIssueStatus(t, bd, dir, issue.ID); s != "open" {
+		if s := getIssueStatus(t, issuegraph, dir, issue.ID); s != "open" {
 			t.Errorf("expected status=open after undefer, got %q", s)
 		}
 	})
@@ -41,16 +41,16 @@ func TestEmbeddedUndefer(t *testing.T) {
 	// ===== Multiple Issues =====
 
 	t.Run("undefer_multiple", func(t *testing.T) {
-		issue1 := bdCreate(t, bd, dir, "Undefer multi 1", "--type", "task")
-		issue2 := bdCreate(t, bd, dir, "Undefer multi 2", "--type", "task")
-		bdDefer(t, bd, dir, issue1.ID, issue2.ID)
+		issue1 := issuegraphCreate(t, issuegraph, dir, "Undefer multi 1", "--type", "task")
+		issue2 := issuegraphCreate(t, issuegraph, dir, "Undefer multi 2", "--type", "task")
+		issuegraphDefer(t, issuegraph, dir, issue1.ID, issue2.ID)
 
-		out := bdUndefer(t, bd, dir, issue1.ID, issue2.ID)
+		out := issuegraphUndefer(t, issuegraph, dir, issue1.ID, issue2.ID)
 		if !strings.Contains(out, issue1.ID) || !strings.Contains(out, issue2.ID) {
 			t.Errorf("expected both IDs in output: %s", out)
 		}
 		for _, id := range []string{issue1.ID, issue2.ID} {
-			if s := getIssueStatus(t, bd, dir, id); s != "open" {
+			if s := getIssueStatus(t, issuegraph, dir, id); s != "open" {
 				t.Errorf("expected %s status=open, got %q", id, s)
 			}
 		}
@@ -59,11 +59,11 @@ func TestEmbeddedUndefer(t *testing.T) {
 	// ===== Not Deferred =====
 
 	t.Run("undefer_not_deferred", func(t *testing.T) {
-		issue := bdCreate(t, bd, dir, "Undefer not deferred", "--type", "task")
+		issue := issuegraphCreate(t, issuegraph, dir, "Undefer not deferred", "--type", "task")
 		// Issue is open, not deferred — undefer should print error but not crash
-		cmd := exec.Command(bd, "undefer", issue.ID)
+		cmd := exec.Command(issuegraph, "undefer", issue.ID)
 		cmd.Dir = dir
-		cmd.Env = bdEnv(dir)
+		cmd.Env = issuegraphEnv(dir)
 		out, _ := cmd.CombinedOutput()
 		if !strings.Contains(string(out), "not deferred") {
 			t.Errorf("expected 'not deferred' message: %s", out)
@@ -73,19 +73,19 @@ func TestEmbeddedUndefer(t *testing.T) {
 
 // TestEmbeddedUndeferConcurrent exercises undefer operations concurrently.
 func TestEmbeddedUndeferConcurrent(t *testing.T) {
-	if os.Getenv("BEADS_TEST_EMBEDDED_DOLT") != "1" {
-		t.Skip("set BEADS_TEST_EMBEDDED_DOLT=1 to run embedded dolt integration tests")
+	if os.Getenv("ISSUEGRAPH_TEST_EMBEDDED_DOLT") != "1" {
+		t.Skip("set ISSUEGRAPH_TEST_EMBEDDED_DOLT=1 to run embedded dolt integration tests")
 	}
 	t.Parallel()
 
-	bd := buildEmbeddedBD(t)
-	dir, _, _ := bdInit(t, bd, "--prefix", "ux")
+	issuegraph := buildEmbeddedBD(t)
+	dir, _, _ := issuegraphInit(t, issuegraph, "--prefix", "ux")
 
 	// Pre-create and defer issues
 	var issueIDs []string
 	for i := 0; i < 8; i++ {
-		issue := bdCreate(t, bd, dir, fmt.Sprintf("undefer-concurrent-%d", i), "--type", "task")
-		bdDefer(t, bd, dir, issue.ID)
+		issue := issuegraphCreate(t, issuegraph, dir, fmt.Sprintf("undefer-concurrent-%d", i), "--type", "task")
+		issuegraphDefer(t, issuegraph, dir, issue.ID)
 		issueIDs = append(issueIDs, issue.ID)
 	}
 
@@ -104,9 +104,9 @@ func TestEmbeddedUndeferConcurrent(t *testing.T) {
 			r := workerResult{worker: worker}
 			id := issueIDs[worker]
 
-			cmd := exec.Command(bd, "undefer", id)
+			cmd := exec.Command(issuegraph, "undefer", id)
 			cmd.Dir = dir
-			cmd.Env = bdEnv(dir)
+			cmd.Env = issuegraphEnv(dir)
 			out, err := cmd.CombinedOutput()
 			if err != nil {
 				r.err = fmt.Errorf("undefer %s (worker %d): %v\n%s", id, worker, err, out)
@@ -137,7 +137,7 @@ func TestEmbeddedUndeferConcurrent(t *testing.T) {
 			continue
 		}
 		id := issueIDs[r.worker]
-		status := getIssueStatus(t, bd, dir, id)
+		status := getIssueStatus(t, issuegraph, dir, id)
 		if status != "open" {
 			t.Errorf("issue %d (%s): expected status=open, got %q", r.worker, id, status)
 		}

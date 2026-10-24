@@ -12,7 +12,7 @@ func TestValidateExternalRef(t *testing.T) {
 	}{
 		{
 			name:    "valid external ref",
-			ref:     "external:beads:mol-run-assignee",
+			ref:     "external:issuegraph:mol-run-assignee",
 			wantErr: false,
 		},
 		{
@@ -22,12 +22,12 @@ func TestValidateExternalRef(t *testing.T) {
 		},
 		{
 			name:    "missing external prefix",
-			ref:     "beads:mol-run",
+			ref:     "issuegraph:mol-run",
 			wantErr: true,
 		},
 		{
 			name:    "missing capability",
-			ref:     "external:beads:",
+			ref:     "external:issuegraph:",
 			wantErr: true,
 		},
 		{
@@ -42,7 +42,7 @@ func TestValidateExternalRef(t *testing.T) {
 		},
 		{
 			name:    "too few parts",
-			ref:     "external:beads",
+			ref:     "external:issuegraph",
 			wantErr: true,
 		},
 		{
@@ -67,11 +67,11 @@ func TestIsExternalRef(t *testing.T) {
 		ref  string
 		want bool
 	}{
-		{"external:beads:capability", true},
+		{"external:issuegraph:capability", true},
 		{"external:", true}, // prefix matches even if invalid
 		{"bd-xyz", false},
 		{"", false},
-		{"External:beads:cap", false}, // case-sensitive
+		{"External:issuegraph:cap", false}, // case-sensitive
 	}
 
 	for _, tt := range tests {
@@ -89,7 +89,7 @@ func TestParseExternalRef(t *testing.T) {
 		wantProject    string
 		wantCapability string
 	}{
-		{"external:beads:mol-run-assignee", "beads", "mol-run-assignee"},
+		{"external:issuegraph:mol-run-assignee", "issuegraph", "mol-run-assignee"},
 		{"external:other-project:cross-project", "other-project", "cross-project"},
 		{"external:a:b", "a", "b"},
 		{"bd-xyz", "", ""},        // not external

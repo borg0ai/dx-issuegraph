@@ -9,7 +9,7 @@ import (
 	"golang.org/x/sys/unix"
 )
 
-func openBeadsDirHandle(path string) (beadsDirHandle, error) {
+func openIssueGraphDirHandle(path string) (issuegraphDirHandle, error) {
 	fd, err := unix.Open(path, unix.O_RDONLY|unix.O_CLOEXEC|unix.O_NOFOLLOW|unix.O_DIRECTORY, 0)
 	if err == nil {
 		return os.NewFile(uintptr(fd), path), nil
@@ -20,10 +20,10 @@ func openBeadsDirHandle(path string) (beadsDirHandle, error) {
 
 	// O_PATH needs no read permission. Chmod uses fchmodat2 with AT_EMPTY_PATH,
 	// so the operation remains anchored to this descriptor rather than the path.
-	return openBeadsDirPathHandle(path)
+	return openIssueGraphDirPathHandle(path)
 }
 
-func openBeadsDirPathHandle(path string) (beadsDirHandle, error) {
+func openIssueGraphDirPathHandle(path string) (issuegraphDirHandle, error) {
 	fd, err := unix.Open(path, unix.O_PATH|unix.O_CLOEXEC|unix.O_NOFOLLOW|unix.O_DIRECTORY, 0)
 	if err != nil {
 		return nil, err

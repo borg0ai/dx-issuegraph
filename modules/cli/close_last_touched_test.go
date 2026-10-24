@@ -13,10 +13,10 @@ import (
 	"time"
 )
 
-// runBDStdout runs the bd binary with args in workDir and returns trimmed
+// runIssueGraphStdout runs the issuegraph binary with args in workDir and returns trimmed
 // stdout. stderr is captured separately so auto-pull/warning lines don't
-// pollute parsed values (e.g. an issue ID from `bd q`).
-func runBDStdout(t *testing.T, binPath, workDir string, args ...string) string {
+// pollute parsed values (e.g. an issue ID from `issuegraph q`).
+func runIssueGraphStdout(t *testing.T, binPath, workDir string, args ...string) string {
 	t.Helper()
 	ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
 	defer cancel()
@@ -25,44 +25,44 @@ func runBDStdout(t *testing.T, binPath, workDir string, args ...string) string {
 	cmd.Env = append(os.Environ(),
 		"HOME="+t.TempDir(),
 		"XDG_CONFIG_HOME="+t.TempDir(),
-		"BEADS_TEST_IGNORE_REPO_CONFIG=1",
-		"BEADS_DIR=",
-		"BEADS_DB=",
+		"ISSUEGRAPH_TEST_IGNORE_REPO_CONFIG=1",
+		"ISSUEGRAPH_DIR=",
+		"ISSUEGRAPH_DB=",
 		"LINEAR_API_KEY=",
 	)
 	var outBuf, errBuf bytes.Buffer
 	cmd.Stdout = &outBuf
 	cmd.Stderr = &errBuf
 	if err := cmd.Run(); err != nil {
-		t.Fatalf("bd %v in %s: %v\nstdout: %s\nstderr: %s", args, workDir, err, outBuf.String(), errBuf.String())
+		t.Fatalf("issuegraph %v in %s: %v\nstdout: %s\nstderr: %s", args, workDir, err, outBuf.String(), errBuf.String())
 	}
 	return strings.TrimSpace(outBuf.String())
 }
 
-// TestClose_UpdatesLastTouched verifies `bd close <id>` records the closed issue
+// TestClose_UpdatesLastTouched verifies `issuegraph close <id>` records the closed issue
 // as the last-touched issue, honoring its documented contract (GH#3965). Before
 // the fix, close only set last-touched on the --claim-next path, so a plain
 // close left the marker pointing at a stale issue.
 func TestClose_UpdatesLastTouched(t *testing.T) {
-	binPath := buildBDUnderTest(t)
+	binPath := buildIssueGraphUnderTest(t)
 	workDir := t.TempDir()
-	initBeadsWorkspace(t, binPath, workDir)
+	initIssueGraphWorkspace(t, binPath, workDir)
 
 	// Create an issue to close.
-	id := runBDStdout(t, binPath, workDir, "q", "Issue to close")
+	id := runIssueGraphStdout(t, binPath, workDir, "q", "Issue to close")
 	if id == "" {
-		t.Fatal("bd q returned empty issue ID")
+		t.Fatal("issuegraph q returned empty issue ID")
 	}
 
 	// Point last-touched at a sentinel so the assertion proves close updated it
-	// (independent of whatever `bd q` may have written).
-	lastTouchedPath := filepath.Join(workDir, ".beads", lastTouchedFile)
+	// (independent of whatever `issuegraph q` may have written).
+	lastTouchedPath := filepath.Join(workDir, ".issuegraph", lastTouchedFile)
 	if err := os.WriteFile(lastTouchedPath, []byte("SENTINEL-NOT-CLOSED\n"), 0600); err != nil {
 		t.Fatalf("seed last-touched sentinel: %v", err)
 	}
 
 	// Close the issue.
-	runBDStdout(t, binPath, workDir, "close", id, "--reason", "done via test")
+	runIssueGraphStdout(t, binPath, workDir, "close", id, "--reason", "done via test")
 
 	data, err := os.ReadFile(lastTouchedPath)
 	if err != nil {

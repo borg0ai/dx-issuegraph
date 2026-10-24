@@ -6,7 +6,7 @@ import (
 	"reflect"
 	"testing"
 
-	"github.com/steveyegge/beads/internal/types"
+	"github.com/borg0ai/dx-issuegraph/internal/types"
 )
 
 type currentIssueSearchCall struct {

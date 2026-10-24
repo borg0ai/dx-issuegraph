@@ -1,8 +1,8 @@
 package main
 
 import (
-	"github.com/steveyegge/beads/internal/config"
-	"github.com/steveyegge/beads/internal/types"
+	"github.com/borg0ai/dx-issuegraph/internal/config"
+	"github.com/borg0ai/dx-issuegraph/internal/types"
 )
 
 // formatFeedbackID returns "id — title" or just "id" based on output.title-length config.

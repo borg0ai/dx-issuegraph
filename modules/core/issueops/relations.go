@@ -3,7 +3,7 @@ package issueops
 import (
 	"context"
 
-	"github.com/steveyegge/beads/internal/types"
+	"github.com/borg0ai/dx-issuegraph/internal/types"
 )
 
 // RelatedIssue is one issue on the far end of an edge, carrying the edge's
@@ -65,7 +65,7 @@ type RelatedRequest struct {
 	Types []DependencyType
 }
 
-// Relations describes reading an issue's neighbors: the read side of `bd dep
+// Relations describes reading an issue's neighbors: the read side of `issuegraph dep
 // list`, and — like Reader — a role with its own accessor. A new capability
 // gets a new role interface and its own accessor; never append a method here.
 //

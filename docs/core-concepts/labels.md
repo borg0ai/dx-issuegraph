@@ -29,20 +29,20 @@ Labels provide flexible, multi-dimensional categorization for issues beyond the 
 issuegraph create "Fix auth bug" -t bug -p 1 -l auth,backend,urgent
 
 # Add labels to existing issues
-issuegraph label add bd-42 security
-issuegraph label add bd-42 breaking-change
+issuegraph label add issuegraph-42 security
+issuegraph label add issuegraph-42 breaking-change
 
 # Add multiple labels at once (comma-separated, no spaces around commas)
-issuegraph label add bd-42 security,breaking-change
+issuegraph label add issuegraph-42 security,breaking-change
 
 # List issue labels
-issuegraph label list bd-42
+issuegraph label list issuegraph-42
 
 # Remove a label
-issuegraph label remove bd-42 urgent
+issuegraph label remove issuegraph-42 urgent
 
 # Remove multiple labels at once
-issuegraph label remove bd-42 urgent,needs-review
+issuegraph label remove issuegraph-42 urgent,needs-review
 
 # List all labels in use
 issuegraph label list-all
@@ -169,7 +169,7 @@ shared can still be added explicitly).
 issuegraph ready --json | jq '.[] | select(.labels[] == "small")'
 
 # Child keeps its own size label without inheriting the epic's
-issuegraph create "Implement auth endpoints" -p 1 --parent bd-a3f8e9 --no-inherit-labels -l small
+issuegraph create "Implement auth endpoints" -p 1 --parent issuegraph-a3f8e9 --no-inherit-labels -l small
 ```
 
 ### 4. Quality Gates
@@ -184,7 +184,7 @@ breaking-change
 
 **Example:**
 ```bash
-issuegraph label add bd-42 needs-review
+issuegraph label add issuegraph-42 needs-review
 issuegraph list --label needs-review --status in_progress
 ```
 
@@ -201,7 +201,7 @@ release-blocker
 **Example:**
 ```bash
 issuegraph list --label v1.0 --status open    # What's left for v1.0?
-issuegraph label add bd-42 release-blocker
+issuegraph label add issuegraph-42 release-blocker
 ```
 
 ### 6. Team/Ownership
@@ -281,10 +281,10 @@ issuegraph list --label needs-review,needs-tests --label-any frontend,ui,mobile
 issuegraph create "Crash on login" -t bug -p 1 -l needs-triage
 
 # During triage, add context
-issuegraph label add bd-42 auth
-issuegraph label add bd-42 backend
-issuegraph label add bd-42 urgent
-issuegraph label remove bd-42 needs-triage
+issuegraph label add issuegraph-42 auth
+issuegraph label add issuegraph-42 backend
+issuegraph label add issuegraph-42 urgent
+issuegraph label remove issuegraph-42 needs-triage
 
 # Find untriaged issues
 issuegraph list --label needs-triage
@@ -293,28 +293,28 @@ issuegraph list --label needs-triage
 ### Quality Gate Workflow
 ```bash
 # Start work
-issuegraph update bd-42 --claim
+issuegraph update issuegraph-42 --claim
 
 # Mark quality requirements
-issuegraph label add bd-42 needs-tests
-issuegraph label add bd-42 needs-docs
+issuegraph label add issuegraph-42 needs-tests
+issuegraph label add issuegraph-42 needs-docs
 
 # Before closing, verify
-issuegraph label list bd-42
+issuegraph label list issuegraph-42
 # ... write tests and docs ...
-issuegraph label remove bd-42 needs-tests
-issuegraph label remove bd-42 needs-docs
+issuegraph label remove issuegraph-42 needs-tests
+issuegraph label remove issuegraph-42 needs-docs
 
 # Close when gates satisfied
-issuegraph close bd-42
+issuegraph close issuegraph-42
 ```
 
 ### Release Planning
 ```bash
 # Tag issues for v1.0
-issuegraph label add bd-42 v1.0
-issuegraph label add bd-43 v1.0
-issuegraph label add bd-44 v1.0
+issuegraph label add issuegraph-42 v1.0
+issuegraph label add issuegraph-43 v1.0
+issuegraph label add issuegraph-44 v1.0
 
 # Track v1.0 progress
 issuegraph list --label v1.0 --status closed    # Done
@@ -322,8 +322,8 @@ issuegraph list --label v1.0 --status open      # Remaining
 issuegraph stats  # Overall progress
 
 # Mark critical items
-issuegraph label add bd-45 v1.0
-issuegraph label add bd-45 release-blocker
+issuegraph label add issuegraph-45 v1.0
+issuegraph label add issuegraph-45 release-blocker
 ```
 
 ### Component-Based Work Distribution
@@ -343,7 +343,7 @@ issuegraph list --label help-wanted,good-first-issue
 ### Listing Labels
 ```bash
 # Labels on a specific issue
-issuegraph label list bd-42
+issuegraph label list issuegraph-42
 
 # All labels in database with usage counts
 issuegraph label list-all
@@ -391,7 +391,7 @@ Labels are stored in the Dolt database and synced automatically with all issue d
 ```bash
 # Make changes
 issuegraph create "Fix bug" -l backend,urgent
-issuegraph label add bd-42 needs-review
+issuegraph label add issuegraph-42 needs-review
 
 # Changes are committed to Dolt history automatically
 # Sync with remotes when ready:
@@ -462,8 +462,8 @@ Labels + dependencies = powerful organization:
 ```bash
 # Epic with labeled subtasks
 issuegraph create "Auth system rewrite" -t epic -p 1 -l auth,v2.0
-issuegraph create "Implement JWT" -t task -p 1 -l auth,backend --deps parent-child:bd-42
-issuegraph create "Update login UI" -t task -p 1 -l auth,frontend --deps parent-child:bd-42
+issuegraph create "Implement JWT" -t task -p 1 -l auth,backend --deps parent-child:issuegraph-42
+issuegraph create "Update login UI" -t task -p 1 -l auth,frontend --deps parent-child:issuegraph-42
 
 # Find all v2.0 auth work
 issuegraph list --label auth,v2.0
@@ -481,8 +481,8 @@ issuegraph create "Found TODO in auth.go" -t task -p 2 -l auto-generated,technic
 issuegraph list --label needs-review --status in_progress --json
 
 # Track automation metadata
-issuegraph label add bd-42 ai-generated
-issuegraph label add bd-42 needs-human-review
+issuegraph label add issuegraph-42 ai-generated
+issuegraph label add issuegraph-42 needs-human-review
 ```
 
 Example agent workflow:
@@ -490,23 +490,23 @@ Example agent workflow:
 # Agent discovers issues during refactor
 issuegraph create "Extract validateToken function" -t chore -p 2 \
   -l technical-debt,backend,auth,small \
-  --deps discovered-from:bd-10
+  --deps discovered-from:issuegraph-10
 
 # Agent marks work for review
-issuegraph update bd-42 --claim
+issuegraph update issuegraph-42 --claim
 # ... agent does work ...
-issuegraph label add bd-42 needs-review
-issuegraph label add bd-42 ai-generated
+issuegraph label add issuegraph-42 needs-review
+issuegraph label add issuegraph-42 ai-generated
 
 # Human reviews and approves
-issuegraph label remove bd-42 needs-review
-issuegraph label add bd-42 approved
-issuegraph close bd-42
+issuegraph label remove issuegraph-42 needs-review
+issuegraph label add issuegraph-42 approved
+issuegraph close issuegraph-42
 ```
 
 ## Labels as State Cache
 
-Labels can cache operational state for fast queries, enabling patterns where beads track both immutable history (events) and current state (labels).
+Labels can cache operational state for fast queries, enabling patterns where issuegraph track both immutable history (events) and current state (labels).
 
 ### The Pattern
 
@@ -519,17 +519,17 @@ Examples:
 - `health:healthy` / `health:failing` - component health
 
 **Implementation:**
-1. Create an event bead (full context, immutable history)
-2. Update the role bead's labels (current state cache)
+1. Create an event issue (full context, immutable history)
+2. Update the role issue's labels (current state cache)
 
 ```bash
 # Event: Full record of what happened and why
 issuegraph create "Muted patrol: user requested during debugging" -t event \
   -l event-type:patrol-muted,actor:observer,reason:user-request
 
-# State: Update the role bead's label to reflect current state
-issuegraph label remove beads/observer patrol:active
-issuegraph label add beads/observer patrol:muted
+# State: Update the role issue's label to reflect current state
+issuegraph label remove issuegraph/observer patrol:active
+issuegraph label add issuegraph/observer patrol:muted
 ```
 
 **Key principle:** Events are the source of truth. Labels are a cache for fast queries.
@@ -542,7 +542,7 @@ issuegraph label add beads/observer patrol:muted
 issuegraph list --type event | grep "patrol" | tail -1  # Slow, fragile
 
 # With labels-as-state: direct query
-issuegraph show beads/observer | grep "patrol:"  # Instant
+issuegraph show issuegraph/observer | grep "patrol:"  # Instant
 ```
 
 **History preserved:**
@@ -591,14 +591,14 @@ transition_state() {
 }
 
 # Usage
-transition_state beads/observer patrol active muted "User debugging session"
+transition_state issuegraph/observer patrol active muted "User debugging session"
 ```
 
 ### Querying State
 
 ```bash
 # Current state of a role
-issuegraph label list beads/observer | grep ":"
+issuegraph label list issuegraph/observer | grep ":"
 
 # All roles in a specific state
 issuegraph list --label patrol:muted
@@ -620,13 +620,13 @@ issuegraph list --type event --label event-type:state-change
 
 ### Future Helpers
 
-The pattern suggests helper commands (see bd-7l67):
+The pattern suggests helper commands (see issuegraph-7l67):
 ```bash
 # Query current state
-issuegraph state beads/observer patrol     # → "muted"
+issuegraph state issuegraph/observer patrol     # → "muted"
 
 # Transition with automatic event creation
-issuegraph set-state beads/observer patrol=active --reason "Debugging complete"
+issuegraph set-state issuegraph/observer patrol=active --reason "Debugging complete"
 ```
 
 Until helpers exist, use the manual pattern above.
@@ -649,7 +649,7 @@ issuegraph list --priority 0 --label-any backend,frontend,infrastructure
 ### Sprint Planning
 ```bash
 # Label issues for sprint
-for id in bd-42 bd-43 bd-44 bd-45; do
+for id in issuegraph-42 issuegraph-43 issuegraph-44 issuegraph-45; do
   issuegraph label add "$id" sprint-12
 done
 
@@ -672,8 +672,8 @@ issuegraph list --label technical-debt --priority 1  # High-priority debt
 ### Breaking Change Coordination
 ```bash
 # Identify breaking changes
-issuegraph label add bd-42 breaking-change
-issuegraph label add bd-42 v2.0
+issuegraph label add issuegraph-42 breaking-change
+issuegraph label add issuegraph-42 v2.0
 
 # Find all breaking changes for next major release
 issuegraph list --label breaking-change,v2.0
@@ -684,7 +684,7 @@ issuegraph list --label breaking-change --label needs-docs
 
 ## Operational State Pattern (Labels as Cache)
 
-For orchestration systems, labels can cache the current operational state of "role beads" (issues representing agents or system components). This enables fast state queries without scanning event history.
+For orchestration systems, labels can cache the current operational state of "role issuegraph" (issues representing agents or system components). This enables fast state queries without scanning event history.
 
 ### Convention: `<dimension>:<value>`
 
@@ -699,8 +699,8 @@ health:healthy    health:failing
 
 ### The Pattern
 
-1. **Create an event bead** with full context (immutable, audit trail)
-2. **Update the role bead's labels** to reflect current state (fast lookup)
+1. **Create an event issue** with full context (immutable, audit trail)
+2. **Update the role issue's labels** to reflect current state (fast lookup)
 
 ```bash
 # 1. Record the event (source of truth)
@@ -729,7 +729,7 @@ The pattern gives you both: complete history via events, fast queries via labels
 ### Example: Agent Role States
 
 ```bash
-# Create a role bead for an agent
+# Create a role issue for an agent
 issuegraph create "witness-alpha" -t role -l patrol:active,mode:normal,health:healthy
 
 # Agent enters degraded mode
@@ -802,7 +802,7 @@ issuegraph set-state witness-alpha patrol=muted --reason "Investigating issue"
 ```
 
 The `set-state` command atomically:
-1. Creates an event bead with the reason (source of truth)
+1. Creates an event issue with the reason (source of truth)
 2. Removes the old dimension label if present
 3. Adds the new dimension:value label (cache)
 
@@ -818,15 +818,15 @@ Labels require explicit fetching. The `issuegraph list` command shows issues but
 issuegraph list --json | jq '.[] | {id, labels}'
 
 # See labels for specific issue
-issuegraph show bd-42 --json | jq '.labels'
-issuegraph label list bd-42
+issuegraph show issuegraph-42 --json | jq '.labels'
+issuegraph label list issuegraph-42
 ```
 
 ### Label Filtering Not Working
 Check label names for exact matches (case-sensitive):
 ```bash
 # These are different labels:
-issuegraph label add bd-42 Backend    # Capital B
+issuegraph label add issuegraph-42 Backend    # Capital B
 issuegraph list --label backend       # Won't match
 
 # List all labels to see exact names
@@ -845,6 +845,6 @@ issuegraph doctor
 
 ## See Also
 
-- [README.md](https://github.com/gastownhall/beads/blob/main/README.md) - Main documentation
-- [AGENTS.md](https://github.com/gastownhall/beads/blob/main/AGENTS.md) - AI agent integration guide
+- [README.md](https://github.com/borg0ai/dx-issuegraph/blob/main/README.md) - Main documentation
+- [AGENTS.md](https://github.com/borg0ai/dx-issuegraph/blob/main/AGENTS.md) - AI agent integration guide
 - [Advanced Features](/reference/advanced) - Advanced features and configuration

@@ -6,7 +6,7 @@ import (
 	"fmt"
 	"regexp"
 
-	"github.com/steveyegge/beads/internal/types"
+	"github.com/borg0ai/dx-issuegraph/internal/types"
 )
 
 // doltCommitHashRE matches a Dolt commit hash (32 base32 characters). The
@@ -61,7 +61,7 @@ func pendingIsBlockedRecompute(ctx context.Context, tx *sql.Tx) string {
 // RecomputeIsBlockedAfterMergeInTx recomputes the denormalized is_blocked
 // column for every issue and wisp whose blocked state may have changed between
 // fromCommit and the current working set — typically the HEAD before a
-// `bd dolt pull` and the merged result it produced (bd-6dnrw.3, PR 4107
+// `issuegraph dolt pull` and the merged result it produced (bd-6dnrw.3, PR 4107
 // follow-up). The diff targets WORKING, not HEAD: an auto-resolved or
 // cascade-repaired merge sits in the working set without a merge commit until
 // a later DOLT_COMMIT, so HEAD alone misses it (bd-6dnrw.39).
@@ -70,7 +70,7 @@ func pendingIsBlockedRecompute(ctx context.Context, tx *sql.Tx) string {
 // delete/dep/promote/bulk ops), so a merge that brings in another clone's
 // writes bypasses every recompute hook: clone A closes blocker X while clone B
 // adds an edge W->X, and the merged result silently carries W.is_blocked=1
-// with a closed blocker — `bd ready` then trusts the stale column. This is the
+// with a closed blocker — `issuegraph ready` then trusts the stale column. This is the
 // missing merge-side hook.
 //
 // The recompute is scoped by dolt_diff: rows of issues/dependencies changed
@@ -130,7 +130,7 @@ func recomputeIsBlockedAfterMergeScoped(ctx context.Context, tx *sql.Tx, fromCom
 	}
 	if head == fromCommit {
 		// HEAD did not advance — but a merge whose conflicts or constraint
-		// violations bd auto-resolved lands in the WORKING SET without a merge
+		// violations issuegraph auto-resolved lands in the WORKING SET without a merge
 		// commit (bd-6dnrw.39), so an unchanged HEAD alone does not mean
 		// nothing merged. Skip only when issues/dependencies are clean too;
 		// on a status read error fall through to the diff, which answers the

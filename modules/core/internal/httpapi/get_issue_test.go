@@ -10,11 +10,11 @@ import (
 	"testing"
 	"time"
 
-	"github.com/steveyegge/beads/internal/types"
-	"github.com/steveyegge/beads/issueops"
+	"github.com/borg0ai/dx-issuegraph/internal/types"
+	"github.com/borg0ai/dx-issuegraph/issueops"
 )
 
-// The pins for the two include parameters on GET /v0/beads/issues/{id}.
+// The pins for the two include parameters on GET /v0/issuegraph/issues/{id}.
 //
 // The handler is a decoder and nothing else — the row lists are the ROLE's to
 // populate — so the property under test is that each parameter reaches
@@ -56,7 +56,7 @@ func seededComments(issueID string) []*types.Comment {
 }
 
 // seededDependents carries two DIFFERENT edge types because the type is what
-// `bd show` groups its dependents by: a surface that flattened every edge to
+// `issuegraph show` groups its dependents by: a surface that flattened every edge to
 // one type would still render, into the wrong section.
 func seededDependents() []*types.IssueWithDependencyMetadata {
 	return []*types.IssueWithDependencyMetadata{
@@ -117,7 +117,7 @@ func newGetIssueServer(t *testing.T) (*testServer, *includeAwareReader) {
 func TestGetIssueWithoutTheIncludeParametersIsUnchanged(t *testing.T) {
 	ts, rd := newGetIssueServer(t)
 
-	resp := ts.get(t, "/v0/beads/issues/bd-1")
+	resp := ts.get(t, "/v0/issuegraph/issues/bd-1")
 	if resp.StatusCode != http.StatusOK {
 		t.Fatalf("status = %d, want 200: %s", resp.StatusCode, readAll(t, resp))
 	}
@@ -137,7 +137,7 @@ func TestGetIssueWithoutTheIncludeParametersIsUnchanged(t *testing.T) {
 		t.Error("`dependents` is populated without include_dependents")
 	}
 
-	explicit := ts.get(t, "/v0/beads/issues/bd-1?include_comments=false&include_dependents=false")
+	explicit := ts.get(t, "/v0/issuegraph/issues/bd-1?include_comments=false&include_dependents=false")
 	if explicit.StatusCode != http.StatusOK {
 		t.Fatalf("explicit false: status = %d, want 200: %s", explicit.StatusCode, readAll(t, explicit))
 	}
@@ -179,7 +179,7 @@ func TestGetIssueIncludeParametersReachTheRole(t *testing.T) {
 		t.Run(tc.name, func(t *testing.T) {
 			ts, rd := newGetIssueServer(t)
 
-			resp := ts.get(t, "/v0/beads/issues/bd-1"+tc.query)
+			resp := ts.get(t, "/v0/issuegraph/issues/bd-1"+tc.query)
 			if resp.StatusCode != http.StatusOK {
 				t.Fatalf("status = %d, want 200: %s", resp.StatusCode, readAll(t, resp))
 			}
@@ -212,7 +212,7 @@ func TestGetIssueIncludeParametersReachTheRole(t *testing.T) {
 // above cannot reach: what is IN the two lists once a caller has paid for them.
 //
 // Presence is the cheap property. The row CONTENT is the expensive one and the
-// one clients read — `bd show` prints each comment's author and time in the
+// one clients read — `issuegraph show` prints each comment's author and time in the
 // order it received them, and GROUPS dependents by edge type — so a surface
 // that answered the rows in a different order, dropped Author, or flattened
 // every dependent onto one edge type would satisfy every other test in this
@@ -228,7 +228,7 @@ func TestGetIssueIncludeParametersReachTheRole(t *testing.T) {
 func TestGetIssueIncludeLegsCarryTheWireShape(t *testing.T) {
 	ts, _ := newGetIssueServer(t)
 
-	resp := ts.get(t, "/v0/beads/issues/bd-1?include_comments=true&include_dependents=true")
+	resp := ts.get(t, "/v0/issuegraph/issues/bd-1?include_comments=true&include_dependents=true")
 	if resp.StatusCode != http.StatusOK {
 		t.Fatalf("status = %d, want 200: %s", resp.StatusCode, readAll(t, resp))
 	}
@@ -270,7 +270,7 @@ func TestGetIssueIncludeLegsCarryTheWireShape(t *testing.T) {
 			t.Errorf("dependents[%d].id = %v, want %q — the rows are answered in the role's order", i, got["id"], want.ID)
 		}
 		if got["dependency_type"] != string(want.DependencyType) {
-			t.Errorf("dependents[%d].dependency_type = %v, want %q — the edge type is what `bd show` groups this row by",
+			t.Errorf("dependents[%d].dependency_type = %v, want %q — the edge type is what `issuegraph show` groups this row by",
 				i, got["dependency_type"], want.DependencyType)
 		}
 	}
@@ -328,7 +328,7 @@ func TestGetIssueRefusesAMalformedIncludeParameter(t *testing.T) {
 		t.Run(param, func(t *testing.T) {
 			ts, rd := newGetIssueServer(t)
 
-			resp := ts.get(t, "/v0/beads/issues/bd-1?"+param+"=maybe")
+			resp := ts.get(t, "/v0/issuegraph/issues/bd-1?"+param+"=maybe")
 			if resp.StatusCode != http.StatusBadRequest {
 				t.Fatalf("status = %d, want 400: %s", resp.StatusCode, readAll(t, resp))
 			}
@@ -368,7 +368,7 @@ func TestGetIssueStaysStrictAboutUnknownParameters(t *testing.T) {
 		t.Run(tc.name, func(t *testing.T) {
 			ts, rd := newGetIssueServer(t)
 
-			resp := ts.get(t, "/v0/beads/issues/bd-1"+tc.query)
+			resp := ts.get(t, "/v0/issuegraph/issues/bd-1"+tc.query)
 			if resp.StatusCode != http.StatusBadRequest {
 				t.Fatalf("status = %d, want 400: %s", resp.StatusCode, readAll(t, resp))
 			}
@@ -391,7 +391,7 @@ func TestGetIssueStaysStrictAboutUnknownParameters(t *testing.T) {
 func TestGetIssueAnswersAQueryRefusalBeforeTheIDBound(t *testing.T) {
 	ts, rd := newGetIssueServer(t)
 
-	resp := ts.get(t, "/v0/beads/issues/bd-%01?bogus=1")
+	resp := ts.get(t, "/v0/issuegraph/issues/bd-%01?bogus=1")
 	if resp.StatusCode != http.StatusBadRequest {
 		t.Fatalf("status = %d, want 400: %s", resp.StatusCode, readAll(t, resp))
 	}
@@ -449,7 +449,7 @@ func TestGetIssuePublishesTheRevisionToken(t *testing.T) {
 			rd := &revisionReader{token: tc.token}
 			ts := newTestServer(t, rolesConfig(Config{Reader: rd}))
 
-			resp := ts.get(t, "/v0/beads/issues/bd-1")
+			resp := ts.get(t, "/v0/issuegraph/issues/bd-1")
 			if resp.StatusCode != http.StatusOK {
 				t.Fatalf("status = %d, want 200: %s", resp.StatusCode, readAll(t, resp))
 			}
@@ -489,7 +489,7 @@ func TestGetIssuePublishesTheRevisionToken(t *testing.T) {
 // TestListIssuesRowsCarryNoRevision is the negative space beside the member
 // above, and it is a real assertion rather than a restatement of the schema.
 //
-// types.IssueWithCounts is also the record `bd export` writes to JSONL, so a
+// types.IssueWithCounts is also the record `issuegraph export` writes to JSONL, so a
 // token on that element would put a per-write-random value into a git-tracked
 // file — the loss types.Issue.RowVersion's json:"-" exists to prevent.
 //
@@ -508,7 +508,7 @@ func TestListIssuesRowsCarryNoRevision(t *testing.T) {
 	}}
 	ts := newTestServer(t, rolesConfig(Config{Reader: rd}))
 
-	resp := ts.get(t, "/v0/beads/issues?limit=10")
+	resp := ts.get(t, "/v0/issuegraph/issues?limit=10")
 	if resp.StatusCode != http.StatusOK {
 		t.Fatalf("status = %d, want 200: %s", resp.StatusCode, readAll(t, resp))
 	}
@@ -530,7 +530,7 @@ func TestListIssuesRowsCarryNoRevision(t *testing.T) {
 func TestGetIssueBriefDepsReachesTheRequest(t *testing.T) {
 	ts, rd := newGetIssueServer(t)
 
-	if resp := ts.get(t, "/v0/beads/issues/bd-1?brief_deps=true"); resp.StatusCode != http.StatusOK {
+	if resp := ts.get(t, "/v0/issuegraph/issues/bd-1?brief_deps=true"); resp.StatusCode != http.StatusOK {
 		t.Fatalf("status = %d, want 200: %s", resp.StatusCode, readAll(t, resp))
 	}
 	reqs := rd.getRequests()

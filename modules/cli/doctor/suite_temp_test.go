@@ -3,7 +3,7 @@ package doctor
 import (
 	"testing"
 
-	"github.com/steveyegge/beads/internal/testutil"
+	"github.com/borg0ai/dx-issuegraph/internal/testutil"
 )
 
 // suiteTempRoot is the TestMain-owned temp directory that t.TempDir must
@@ -12,7 +12,7 @@ var suiteTempRoot string
 
 // suiteRootPrefix is this suite's PinSuiteTempRoot pattern without its
 // random tail. SweepDeadSuiteRoots globs for it, so the two must not drift.
-const suiteRootPrefix = "beads-doctor-tests-"
+const suiteRootPrefix = "issuegraph-doctor-tests-"
 
 func TestTempDirLandsUnderSuiteSweepRoot(t *testing.T) {
 	if suiteTempRoot == "" {

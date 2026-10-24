@@ -5,10 +5,10 @@ import (
 	"regexp"
 	"strings"
 
+	"github.com/borg0ai/dx-issuegraph/internal/metrics"
+	"github.com/borg0ai/dx-issuegraph/internal/types"
+	"github.com/borg0ai/dx-issuegraph/internal/ui"
 	"github.com/spf13/cobra"
-	"github.com/steveyegge/beads/internal/metrics"
-	"github.com/steveyegge/beads/internal/types"
-	"github.com/steveyegge/beads/internal/ui"
 )
 
 var duplicatesCmd = &cobra.Command{
@@ -22,9 +22,9 @@ The merge target is chosen by:
 2. Lexicographically smallest ID if reference counts are equal
 Only groups issues with matching status (open with open, closed with closed).
 Example:
-  bd duplicates                    # Show all duplicate groups
-  bd duplicates --auto-merge       # Automatically merge all duplicates
-  bd duplicates --dry-run          # Show what would be merged`,
+  issuegraph duplicates                    # Show all duplicate groups
+  issuegraph duplicates --auto-merge       # Automatically merge all duplicates
+  issuegraph duplicates --dry-run          # Show what would be merged`,
 	SilenceUsage:  true,
 	SilenceErrors: true,
 	RunE: func(cmd *cobra.Command, _ []string) error {
@@ -124,7 +124,7 @@ func outputDuplicates(duplicateGroups [][]*types.Issue, refCounts map[string]int
 				sources = append(sources, issue.ID)
 			}
 		}
-		cmd := fmt.Sprintf("# Duplicate: %s (same content as %s)\n# Suggested action: bd close %s && bd dep add %s %s --type related",
+		cmd := fmt.Sprintf("# Duplicate: %s (same content as %s)\n# Suggested action: issuegraph close %s && issuegraph dep add %s %s --type related",
 			strings.Join(sources, " "),
 			target.ID,
 			strings.Join(sources, " "),
@@ -170,7 +170,7 @@ func outputDuplicates(duplicateGroups [][]*types.Issue, refCounts map[string]int
 			}
 		}
 		fmt.Printf("  %s Duplicate: %s (same content as %s)\n", ui.RenderAccent("Note:"), strings.Join(sources, " "), target.ID)
-		fmt.Printf("  %s bd close %s && bd dep add %s %s --type related\n\n",
+		fmt.Printf("  %s issuegraph close %s && issuegraph dep add %s %s --type related\n\n",
 			ui.RenderAccent("Suggested:"), strings.Join(sources, " "), strings.Join(sources, " "), target.ID)
 	}
 	if autoMerge {
@@ -365,7 +365,7 @@ func formatDuplicateGroupsJSON(groups [][]*types.Issue, refCounts map[string]int
 			"issues":            issues,
 			"suggested_target":  target.ID,
 			"suggested_sources": sources,
-			"suggested_action":  fmt.Sprintf("bd close %s && bd dep add %s %s --type related", strings.Join(sources, " "), strings.Join(sources, " "), target.ID),
+			"suggested_action":  fmt.Sprintf("issuegraph close %s && issuegraph dep add %s %s --type related", strings.Join(sources, " "), strings.Join(sources, " "), target.ID),
 			"note":              fmt.Sprintf("Duplicate: %s (same content as %s)", strings.Join(sources, " "), target.ID),
 		})
 	}

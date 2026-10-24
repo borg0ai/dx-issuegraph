@@ -4,7 +4,7 @@ import (
 	"encoding/json"
 	"testing"
 
-	"github.com/steveyegge/beads/internal/storage"
+	"github.com/borg0ai/dx-issuegraph/internal/storage"
 )
 
 func TestLoadMetadataSchema_DefaultNone(t *testing.T) {

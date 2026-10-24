@@ -23,27 +23,27 @@ import (
 	"github.com/spf13/cobra"
 	"github.com/subosito/gotenv"
 
-	"github.com/steveyegge/beads/internal/beads"
-	"github.com/steveyegge/beads/internal/config"
-	"github.com/steveyegge/beads/internal/configfile"
-	"github.com/steveyegge/beads/internal/debug"
-	"github.com/steveyegge/beads/internal/doltserver"
-	"github.com/steveyegge/beads/internal/hooks"
-	"github.com/steveyegge/beads/internal/metrics"
-	"github.com/steveyegge/beads/internal/migration"
-	"github.com/steveyegge/beads/internal/molecules"
-	"github.com/steveyegge/beads/internal/remotecache"
-	"github.com/steveyegge/beads/internal/routing"
-	"github.com/steveyegge/beads/internal/storage"
-	"github.com/steveyegge/beads/internal/storage/backends"
-	"github.com/steveyegge/beads/internal/storage/dolt"
-	dbidentifier "github.com/steveyegge/beads/internal/storage/domain/db"
-	"github.com/steveyegge/beads/internal/storage/embeddeddolt"
-	"github.com/steveyegge/beads/internal/storage/schema"
-	"github.com/steveyegge/beads/internal/storage/uow"
-	"github.com/steveyegge/beads/internal/telemetry"
-	"github.com/steveyegge/beads/internal/ui"
-	"github.com/steveyegge/beads/internal/utils"
+	"github.com/borg0ai/dx-issuegraph/internal/config"
+	"github.com/borg0ai/dx-issuegraph/internal/configfile"
+	"github.com/borg0ai/dx-issuegraph/internal/debug"
+	"github.com/borg0ai/dx-issuegraph/internal/doltserver"
+	"github.com/borg0ai/dx-issuegraph/internal/hooks"
+	"github.com/borg0ai/dx-issuegraph/internal/issuegraph"
+	"github.com/borg0ai/dx-issuegraph/internal/metrics"
+	"github.com/borg0ai/dx-issuegraph/internal/migration"
+	"github.com/borg0ai/dx-issuegraph/internal/molecules"
+	"github.com/borg0ai/dx-issuegraph/internal/remotecache"
+	"github.com/borg0ai/dx-issuegraph/internal/routing"
+	"github.com/borg0ai/dx-issuegraph/internal/storage"
+	"github.com/borg0ai/dx-issuegraph/internal/storage/backends"
+	"github.com/borg0ai/dx-issuegraph/internal/storage/dolt"
+	dbidentifier "github.com/borg0ai/dx-issuegraph/internal/storage/domain/db"
+	"github.com/borg0ai/dx-issuegraph/internal/storage/embeddeddolt"
+	"github.com/borg0ai/dx-issuegraph/internal/storage/schema"
+	"github.com/borg0ai/dx-issuegraph/internal/storage/uow"
+	"github.com/borg0ai/dx-issuegraph/internal/telemetry"
+	"github.com/borg0ai/dx-issuegraph/internal/ui"
+	"github.com/borg0ai/dx-issuegraph/internal/utils"
 	"go.opentelemetry.io/otel/attribute"
 	oteltrace "go.opentelemetry.io/otel/trace"
 )
@@ -69,8 +69,8 @@ var (
 	storeActive = false    // Tracks if store is available
 
 	// Version upgrade tracking
-	versionUpgradeDetected = false // Set to true if bd version changed since last run
-	previousVersion        = ""    // The last bd version user had (empty = first run or unknown)
+	versionUpgradeDetected = false // Set to true if issuegraph version changed since last run
+	previousVersion        = ""    // The last issuegraph version user had (empty = first run or unknown)
 	upgradeAcknowledged    = false // Set to true after showing upgrade notification once per session
 )
 
@@ -119,7 +119,7 @@ var (
 	commandDeletedIssueIDs deletedIssueIDSet
 
 	// commandDidExplicitDoltCommit is set when a command already created a Dolt commit
-	// explicitly (e.g., bd sync in dolt-native mode, hook flows, bd vc commit).
+	// explicitly (e.g., issuegraph sync in dolt-native mode, hook flows, issuegraph vc commit).
 	// This prevents a redundant auto-commit attempt in PersistentPostRun.
 	commandDidExplicitDoltCommit bool
 
@@ -147,11 +147,11 @@ var (
 )
 
 // skipStoreAnnotation, when set to "1" on a command (or any of its ancestors),
-// makes bd skip database/store initialization for that command — the
+// makes issuegraph skip database/store initialization for that command — the
 // annotation-based equivalent of listing the command name in noDbCommands. It
 // lets commands defined in other files or build-tagged variants opt out of the
 // store gate locally, without editing the central noDbCommands list.
-const skipStoreAnnotation = "bd:skip_store"
+const skipStoreAnnotation = "issuegraph:skip_store"
 
 // commandOptsOutOfStore reports whether cmd or any of its ancestors carries the
 // skipStoreAnnotation set to "1". The whole ancestor chain is walked, so
@@ -182,11 +182,11 @@ var readOnlyCommands = map[string]bool{
 	"graph":      true,
 	"duplicates": true,
 	"comments":   true, // list comments (not add)
-	"current":    true, // bd sync mode current
+	"current":    true, // issuegraph sync mode current
 	"ping":       true,
-	"backup":     true, // reads from Dolt, writes only to .beads/backup/
+	"backup":     true, // reads from Dolt, writes only to .issuegraph/backup/
 	"export":     true, // reads from Dolt, writes JSONL to file/stdout
-	"tail":       true, // bd events tail: reads bd_events_journal, writes nothing
+	"tail":       true, // issuegraph events tail: reads issuegraph_events_journal, writes nothing
 }
 
 // isReadOnlyCommand returns true if the command only reads from the database.
@@ -233,7 +233,7 @@ func effectiveRootStorePolicy(cmdName string, strictReadonly bool) rootStorePoli
 // post-command maintenance net — Dolt auto-commit, the tip-metadata commit,
 // auto-backup, auto-export and auto-push.
 //
-// `bd serve` is excluded, and not as an optimization. Those steps are per-
+// `issuegraph serve` is excluded, and not as an optimization. Those steps are per-
 // COMMAND bookkeeping, and a server is not a command: it is a process that ran
 // for hours and committed each mutation inside its own transaction as it
 // happened. Running them when the operator finally sends SIGTERM would push and
@@ -253,20 +253,20 @@ func runsPostCommandMaintenance(cmdName string, strictReadonly bool) bool {
 // server — host, port, socket, user, password, TLS — on doltCfg.
 //
 // Both consumers of a SQL server in this process go through here: the CLI's own
-// store open, and the unit-of-work provider `bd serve` builds for a server-mode
+// store open, and the unit-of-work provider `issuegraph serve` builds for a server-mode
 // workspace. That matters more than the deduplication: an HTTP request and a
 // CLI command in the same workspace must reach the same server as the same
 // identity, and the only way to guarantee that is to resolve it once.
 //
 // It mirrors dolt.applyResolvedConfig, which this hand-built doltCfg path
 // bypasses.
-func resolveDoltServerConnection(ctx context.Context, beadsDir string, fileCfg *configfile.Config, doltCfg *dolt.Config) error {
+func resolveDoltServerConnection(ctx context.Context, issuegraphDir string, fileCfg *configfile.Config, doltCfg *dolt.Config) error {
 	doltCfg.ServerHost = fileCfg.GetDoltServerHost()
 	// Port 0 is fine here — auto-start will resolve it. Use the shared helper
 	// rather than DefaultConfig(...).Port: this hand-built doltCfg is handed
 	// straight to dolt.New, and a port arriving there without its source is
 	// read as a caller assertion (see ApplyResolvedServerPort).
-	dolt.ApplyResolvedServerPort(beadsDir, doltCfg)
+	dolt.ApplyResolvedServerPort(issuegraphDir, doltCfg)
 	doltCfg.ServerSocket = fileCfg.GetDoltServerSocket()
 	// A configured credential command targets an authenticating gateway server:
 	// run it for a short-lived token used as the connection username. Fail closed
@@ -299,13 +299,13 @@ var (
 )
 
 // isWorkingSetReconcileCommand reports whether cmd's whole purpose is to
-// reconcile the Dolt working set: "bd dolt commit" or "bd vc commit". These
+// reconcile the Dolt working set: "issuegraph dolt commit" or "issuegraph vc commit". These
 // commands are the documented recovery from a pending-migration dirty-table
 // refusal, but they also open the store, and an open runs the migration -
 // hitting that same refusal before the commit that would clear the dirty
 // state ever runs. Opening leniently (embeddeddolt.OpenForWorkingSetReconcile)
 // breaks that deadlock by skipping the migration instead of failing the open
-// (gastownhall/beads#4566).
+// (borg0ai/dx-issuegraph#4566).
 func isWorkingSetReconcileCommand(cmd *cobra.Command) bool {
 	if cmd.Name() != "commit" {
 		return false
@@ -317,19 +317,19 @@ func isWorkingSetReconcileCommand(cmd *cobra.Command) bool {
 	return parent.Name() == "dolt" || parent.Name() == "vc"
 }
 
-// isRemoteSyncCommand reports whether cmd is `bd dolt pull`: the one command
+// isRemoteSyncCommand reports whether cmd is `issuegraph dolt pull`: the one command
 // the #6575 data-behind migrate-gate refusal tells the operator to run.
 //
 // It is the same deadlock isWorkingSetReconcileCommand breaks for #4566, one
 // refusal over. The gate stops a data-behind clone from migrating and names
-// `bd dolt pull` as the remedy — but the pull opens the store too, so it hit
+// `issuegraph dolt pull` as the remedy — but the pull opens the store too, so it hit
 // that refusal before it could clear its cause. On an embedded clone there is
 // no external `dolt` binary to fall back to, which left the refused clone with
-// exactly one exit: BD_ALLOW_REMOTE_MIGRATE=1, i.e. performing the migration
+// exactly one exit: ISSUEGRAPH_ALLOW_REMOTE_MIGRATE=1, i.e. performing the migration
 // the refusal exists to prevent. Opening via embeddeddolt.OpenForRemoteSync /
 // dolt.Config.RemoteSyncOpen tolerates that ONE gate reason and nothing else.
 //
-// Deliberately just the pull, not `bd sync`: sync also pushes and can write
+// Deliberately just the pull, not `issuegraph sync`: sync also pushes and can write
 // issue rows, and a write against a stale schema is the hazard the gate is
 // about. The pull only moves the commit graph, which is precisely the
 // precondition the refusal is waiting on.
@@ -341,7 +341,7 @@ func isRemoteSyncCommand(cmd *cobra.Command) bool {
 	return parent != nil && parent.Name() == "dolt"
 }
 
-// isForcedMigrate reports whether cmd is `bd migrate` or `bd migrate schema`
+// isForcedMigrate reports whether cmd is `issuegraph migrate` or `issuegraph migrate schema`
 // invoked with --force: the operator confirming they are the single designated
 // migrator, so the remote-migrate gate (#4259) must not block this run's store
 // opens. Consulted in the root PersistentPreRunE because the gate fires during
@@ -357,7 +357,7 @@ func isForcedMigrate(cmd *cobra.Command) bool {
 
 // printGlobalDatabaseConsentHint adds the one thing the gate's own block
 // cannot know: which database this invocation was aimed at. Under --global the
-// open targets `beads_global`, so the block's `bd migrate schema` would
+// open targets `issuegraph_global`, so the block's `issuegraph migrate schema` would
 // migrate the PROJECT database and leave the refusal in place — the working
 // remedy is the same verb with the same flag.
 //
@@ -388,7 +388,7 @@ func printGlobalDatabaseConsentHint(w io.Writer, e *schema.RemoteMigrateGateErro
 // return means the caller should fall back to its own generic message.
 //
 // Every open path needs this — the Dolt store, the proxied unit-of-work
-// provider, and `bd serve`'s startup. The proxied one used to render every
+// provider, and `issuegraph serve`'s startup. The proxied one used to render every
 // failure as `%v` inside "failed to open uow provider", which turned a
 // multi-line rebuild or migrate-consent guide into one truncated line.
 func renderTypedOpenError(err error) bool {
@@ -417,18 +417,18 @@ func renderTypedOpenError(err error) bool {
 	return false
 }
 
-// isSchemaMigrateVerb reports whether cmd is `bd migrate schema` — the one
+// isSchemaMigrateVerb reports whether cmd is `issuegraph migrate schema` — the one
 // invocation in which the operator asked for a schema migration by name. That
 // request is the consent the shared-store gate wants for a database with no
 // remote (#5920); see schema.SetSharedMigrateConsent.
 //
-// Deliberately just this one command, not the `bd migrate` tree. Bare
-// `bd migrate` reconciles version/repo-id/clone-id metadata and never applies
+// Deliberately just this one command, not the `issuegraph migrate` tree. Bare
+// `issuegraph migrate` reconciles version/repo-id/clone-id metadata and never applies
 // a migration itself, and its flag modes are further from schema work still:
-// `bd migrate --update-repo-id` is repo-fingerprint surgery after a git remote
+// `issuegraph migrate --update-repo-id` is repo-fingerprint surgery after a git remote
 // change, and treating it as consent would let a repo-ID update promote the
-// schema for every co-resident client as a side effect. `bd migrate sync`,
-// `bd migrate hooks`, and the mode-switch verbs consent to nothing either.
+// schema for every co-resident client as a side effect. `issuegraph migrate sync`,
+// `issuegraph migrate hooks`, and the mode-switch verbs consent to nothing either.
 // The operator who does want to migrate has the verb this names, and
 // `--force` still unlocks from either migrate command.
 func isSchemaMigrateVerb(cmd *cobra.Command) bool {
@@ -459,48 +459,48 @@ func applyNoColorFlag() {
 	}
 }
 
-// loadBeadsEnvFile loads .beads/.env into process environment for per-project
+// loadIssueGraphEnvFile loads .issuegraph/.env into process environment for per-project
 // Dolt credentials (GH#2520). Uses gotenv.Load which is non-overriding —
 // existing shell env vars always take precedence.
-// Safe to call with an empty beadsDir (no-op).
-func loadBeadsEnvFile(beadsDir string) {
-	if beadsDir == "" {
+// Safe to call with an empty issuegraphDir (no-op).
+func loadIssueGraphEnvFile(issuegraphDir string) {
+	if issuegraphDir == "" {
 		return
 	}
-	envFile := filepath.Join(beadsDir, ".env")
+	envFile := filepath.Join(issuegraphDir, ".env")
 	if _, err := os.Stat(envFile); err != nil {
 		return
 	}
 	_ = gotenv.Load(envFile)
 }
 
-func logConfigDiscovery(beadsDir, reason string) {
-	metadataPath := filepath.Join(beadsDir, configfile.ConfigFileName)
-	configYAMLPath := filepath.Join(beadsDir, "config.yaml")
+func logConfigDiscovery(issuegraphDir, reason string) {
+	metadataPath := filepath.Join(issuegraphDir, configfile.ConfigFileName)
+	configYAMLPath := filepath.Join(issuegraphDir, "config.yaml")
 	_, metadataErr := os.Stat(metadataPath)
 	_, yamlErr := os.Stat(configYAMLPath)
 	debug.Logf("Debug: %s at %s -> metadata=%v (%v), config.yaml=%v (%v)\n",
-		reason, beadsDir, metadataErr == nil, metadataErr, yamlErr == nil, yamlErr)
+		reason, issuegraphDir, metadataErr == nil, metadataErr, yamlErr == nil, yamlErr)
 }
 
 func shouldLogDefaultDoltDatabase(cfg *configfile.Config) bool {
-	return cfg != nil && cfg.DoltDatabase == "" && os.Getenv("BEADS_DOLT_SERVER_DATABASE") == ""
+	return cfg != nil && cfg.DoltDatabase == "" && os.Getenv("ISSUEGRAPH_DOLT_SERVER_DATABASE") == ""
 }
 
-// loadBeadsSelectionEnvFile loads only the selector keys needed for early
-// workspace/database discovery. Unlike loadBeadsEnvFile, this intentionally
-// limits itself to BEADS_DIR / BEADS_DB / BD_DB so caller credentials and
+// loadIssueGraphSelectionEnvFile loads only the selector keys needed for early
+// workspace/database discovery. Unlike loadIssueGraphEnvFile, this intentionally
+// limits itself to ISSUEGRAPH_DIR / ISSUEGRAPH_DB / ISSUEGRAPH_DB so caller credentials and
 // runtime knobs do not leak into explicit-target commands before rebinding.
-func loadBeadsSelectionEnvFile(beadsDir string) {
-	if beadsDir == "" {
+func loadIssueGraphSelectionEnvFile(issuegraphDir string) {
+	if issuegraphDir == "" {
 		return
 	}
-	envFile := filepath.Join(beadsDir, ".env")
+	envFile := filepath.Join(issuegraphDir, ".env")
 	pairs, err := gotenv.Read(envFile)
 	if err != nil {
 		return
 	}
-	for _, key := range []string{"BEADS_DIR", "BEADS_DB", "BD_DB"} {
+	for _, key := range []string{"ISSUEGRAPH_DIR", "ISSUEGRAPH_DB", "ISSUEGRAPH_DB"} {
 		if os.Getenv(key) != "" {
 			continue
 		}
@@ -512,31 +512,31 @@ func loadBeadsSelectionEnvFile(beadsDir string) {
 
 // loadSelectionEnvironment loads only the selector keys required to discover
 // the target workspace/database before the store-init path runs. This preserves
-// historical support for .beads/.env files that route commands via BEADS_DB or
-// BEADS_DIR without importing the caller workspace's broader runtime settings.
+// historical support for .issuegraph/.env files that route commands via ISSUEGRAPH_DB or
+// ISSUEGRAPH_DIR without importing the caller workspace's broader runtime settings.
 func loadSelectionEnvironment() {
-	if os.Getenv("BEADS_DIR") != "" || os.Getenv("BEADS_DB") != "" || os.Getenv("BD_DB") != "" {
+	if os.Getenv("ISSUEGRAPH_DIR") != "" || os.Getenv("ISSUEGRAPH_DB") != "" || os.Getenv("ISSUEGRAPH_DB") != "" {
 		return
 	}
-	if beadsDir := beads.FindBeadsDir(); beadsDir != "" {
-		loadBeadsSelectionEnvFile(beadsDir)
+	if issuegraphDir := issuegraph.FindIssueGraphDir(); issuegraphDir != "" {
+		loadIssueGraphSelectionEnvFile(issuegraphDir)
 	}
 }
 
 // loadEnvironment runs the lightweight, always-needed environment setup that
 // must happen before the noDbCommands early return. This ensures commands like
-// "bd doctor --server" pick up per-project Dolt credentials from .beads/.env.
+// "issuegraph doctor --server" pick up per-project Dolt credentials from .issuegraph/.env.
 //
 // This function intentionally does NOT do any store initialization, auto-migrate,
 // or telemetry setup — those belong in the store-init phase that runs after the
 // noDbCommands check.
 func loadEnvironment() {
-	// FindBeadsDir is lightweight (filesystem walk, no git subprocesses)
-	// and resolves BEADS_DIR, redirects, and worktree paths.
-	if beadsDir := beads.FindBeadsDir(); beadsDir != "" {
-		loadBeadsEnvFile(beadsDir)
-		// Non-fatal warning if .beads/ directory has overly permissive access.
-		config.CheckBeadsDirPermissions(beadsDir)
+	// FindIssueGraphDir is lightweight (filesystem walk, no git subprocesses)
+	// and resolves ISSUEGRAPH_DIR, redirects, and worktree paths.
+	if issuegraphDir := issuegraph.FindIssueGraphDir(); issuegraphDir != "" {
+		loadIssueGraphEnvFile(issuegraphDir)
+		// Non-fatal warning if .issuegraph/ directory has overly permissive access.
+		config.CheckIssueGraphDirPermissions(issuegraphDir)
 	}
 }
 
@@ -545,7 +545,7 @@ var sharedServerEmbeddedMismatchWarned bool
 // warnSharedServerEmbeddedMismatch detects the case where shared-server mode
 // is active but metadata.json explicitly pins dolt_mode=embedded. The
 // shared-server setting wins for this invocation (GH#2946/2949: stale embedded
-// metadata must not hide server-backed issue state), but bd never rewrites the
+// metadata must not hide server-backed issue state), but issuegraph never rewrites the
 // committed metadata.json — per-machine environment must not leak into shared
 // config (bd-6dnrw.5). Print guidance so the user resolves the conflict
 // explicitly.
@@ -560,13 +560,13 @@ func warnSharedServerEmbeddedMismatch(cfg *configfile.Config) {
 		return
 	}
 	sharedServerEmbeddedMismatchWarned = true
-	fmt.Fprintln(os.Stderr, "Notice: shared-server mode is enabled (BEADS_DOLT_SHARED_SERVER or dolt.shared-server in config.yaml) but .beads/metadata.json pins dolt_mode=\"embedded\". Using the shared server for this run.")
-	fmt.Fprintln(os.Stderr, "  To persist server mode: set dolt_mode to \"server\" in .beads/metadata.json and commit it.")
-	fmt.Fprintln(os.Stderr, "  To stay embedded: unset BEADS_DOLT_SHARED_SERVER (or remove dolt.shared-server from config.yaml).")
+	fmt.Fprintln(os.Stderr, "Notice: shared-server mode is enabled (ISSUEGRAPH_DOLT_SHARED_SERVER or dolt.shared-server in config.yaml) but .issuegraph/metadata.json pins dolt_mode=\"embedded\". Using the shared server for this run.")
+	fmt.Fprintln(os.Stderr, "  To persist server mode: set dolt_mode to \"server\" in .issuegraph/metadata.json and commit it.")
+	fmt.Fprintln(os.Stderr, "  To stay embedded: unset ISSUEGRAPH_DOLT_SHARED_SERVER (or remove dolt.shared-server from config.yaml).")
 }
 
-// loadServerModeFromBeadsDir loads the storage mode (embedded vs server vs
-// proxied-server) from the given beads directory's metadata.json so that
+// loadServerModeFromIssueGraphDir loads the storage mode (embedded vs server vs
+// proxied-server) from the given issuegraph directory's metadata.json so that
 // usesSQLServer() and usesProxiedServer() return the correct values.
 //
 // A metadata.json that exists but cannot be loaded is a hard error: treating
@@ -574,13 +574,13 @@ func warnSharedServerEmbeddedMismatch(cfg *configfile.Config) {
 // embedded store, where every query answers from an empty relic with exit 0
 // (false-empty). Absent metadata.json (cfg == nil) keeps the fresh-repo
 // embedded default.
-func loadServerModeFromBeadsDir(beadsDir string) error {
-	if beadsDir == "" {
+func loadServerModeFromIssueGraphDir(issuegraphDir string) error {
+	if issuegraphDir == "" {
 		return nil
 	}
-	cfg, err := configfile.LoadForDiscovery(beadsDir)
+	cfg, err := configfile.LoadForDiscovery(issuegraphDir)
 	if err != nil {
-		return fmt.Errorf("load %s: %w; no storage database was opened or modified (storage mode unknown; data commands refuse to fall back to the embedded store)", configfile.ConfigPath(beadsDir), err)
+		return fmt.Errorf("load %s: %w; no storage database was opened or modified (storage mode unknown; data commands refuse to fall back to the embedded store)", configfile.ConfigPath(issuegraphDir), err)
 	}
 	// Absent metadata.json keeps the fresh-repo embedded default unless
 	// env/config.yaml supply a remote host (GH#3545) — inference must not
@@ -607,52 +607,52 @@ func loadServerModeFromBeadsDir(beadsDir string) error {
 // usesProxiedServer() return the correct values. Called for commands that
 // skip full DB init but still need to know the mode.
 func loadServerModeFromConfig() error {
-	return loadServerModeFromBeadsDir(beads.FindBeadsDir())
+	return loadServerModeFromIssueGraphDir(issuegraph.FindIssueGraphDir())
 }
 
-func preserveRedirectSourceDatabase(beadsDir string) {
-	if beadsDir == "" || os.Getenv("BEADS_DOLT_SERVER_DATABASE") != "" {
+func preserveRedirectSourceDatabase(issuegraphDir string) {
+	if issuegraphDir == "" || os.Getenv("ISSUEGRAPH_DOLT_SERVER_DATABASE") != "" {
 		return
 	}
 
-	rInfo := beads.ResolveRedirect(beadsDir)
+	rInfo := issuegraph.ResolveRedirect(issuegraphDir)
 	if rInfo.WasRedirected && rInfo.SourceDatabase != "" {
-		_ = os.Setenv("BEADS_DOLT_SERVER_DATABASE", rInfo.SourceDatabase)
-		if os.Getenv("BD_DEBUG_ROUTING") != "" {
+		_ = os.Setenv("ISSUEGRAPH_DOLT_SERVER_DATABASE", rInfo.SourceDatabase)
+		if os.Getenv("ISSUEGRAPH_DEBUG_ROUTING") != "" {
 			fmt.Fprintf(os.Stderr, "[routing] Preserved source dolt_database %q across redirect\n", rInfo.SourceDatabase)
 		}
 	}
 }
 
-func selectedNoDBBeadsDir(cmd *cobra.Command) string {
+func selectedNoDBIssueGraphDir(cmd *cobra.Command) string {
 	if cmd != nil && cmd.Root() != nil && cmd.Root().PersistentFlags().Changed("db") && dbPath != "" {
-		if selectedBeadsDir := resolveCommandBeadsDir(dbPath); selectedBeadsDir != "" {
-			return selectedBeadsDir
+		if selectedIssueGraphDir := resolveCommandIssueGraphDir(dbPath); selectedIssueGraphDir != "" {
+			return selectedIssueGraphDir
 		}
 	} else if cmd != nil && cmd.PersistentFlags().Changed("db") && dbPath != "" {
-		if selectedBeadsDir := resolveCommandBeadsDir(dbPath); selectedBeadsDir != "" {
-			return selectedBeadsDir
+		if selectedIssueGraphDir := resolveCommandIssueGraphDir(dbPath); selectedIssueGraphDir != "" {
+			return selectedIssueGraphDir
 		}
-	} else if envDB := os.Getenv("BEADS_DB"); envDB != "" {
-		if selectedBeadsDir := resolveCommandBeadsDir(envDB); selectedBeadsDir != "" {
-			return selectedBeadsDir
+	} else if envDB := os.Getenv("ISSUEGRAPH_DB"); envDB != "" {
+		if selectedIssueGraphDir := resolveCommandIssueGraphDir(envDB); selectedIssueGraphDir != "" {
+			return selectedIssueGraphDir
 		}
-	} else if envDB := os.Getenv("BD_DB"); envDB != "" {
-		if selectedBeadsDir := resolveCommandBeadsDir(envDB); selectedBeadsDir != "" {
-			return selectedBeadsDir
+	} else if envDB := os.Getenv("ISSUEGRAPH_DB"); envDB != "" {
+		if selectedIssueGraphDir := resolveCommandIssueGraphDir(envDB); selectedIssueGraphDir != "" {
+			return selectedIssueGraphDir
 		}
 	}
-	if os.Getenv("BEADS_DIR") != "" {
-		if selectedBeadsDir := beads.FindBeadsDir(); selectedBeadsDir != "" {
-			return selectedBeadsDir
+	if os.Getenv("ISSUEGRAPH_DIR") != "" {
+		if selectedIssueGraphDir := issuegraph.FindIssueGraphDir(); selectedIssueGraphDir != "" {
+			return selectedIssueGraphDir
 		}
 	}
 	if dbPath != "" {
-		if selectedBeadsDir := resolveCommandBeadsDir(dbPath); selectedBeadsDir != "" {
-			return selectedBeadsDir
+		if selectedIssueGraphDir := resolveCommandIssueGraphDir(dbPath); selectedIssueGraphDir != "" {
+			return selectedIssueGraphDir
 		}
 	}
-	return beads.FindBeadsDir()
+	return issuegraph.FindIssueGraphDir()
 }
 
 func isSelectedNoDBCommand(cmd *cobra.Command) bool {
@@ -689,7 +689,7 @@ func configCommandCanRunWithoutStore(cmd *cobra.Command, args []string) bool {
 			return true
 		}
 		key := args[0]
-		return config.IsYamlOnlyKey(key) || key == "beads.role"
+		return config.IsYamlOnlyKey(key) || key == "issuegraph.role"
 	case "set-many":
 		if len(args) == 0 {
 			return true
@@ -699,7 +699,7 @@ func configCommandCanRunWithoutStore(cmd *cobra.Command, args []string) bool {
 			if !ok || key == "" {
 				return true
 			}
-			if !config.IsYamlOnlyKey(key) && key != "beads.role" {
+			if !config.IsYamlOnlyKey(key) && key != "issuegraph.role" {
 				return false
 			}
 		}
@@ -709,20 +709,20 @@ func configCommandCanRunWithoutStore(cmd *cobra.Command, args []string) bool {
 	}
 }
 
-func prepareSelectedCommandContext(beadsDir string, loadEnv bool) {
-	if beadsDir == "" {
+func prepareSelectedCommandContext(issuegraphDir string, loadEnv bool) {
+	if issuegraphDir == "" {
 		return
 	}
-	_ = os.Setenv("BEADS_DIR", beadsDir)
+	_ = os.Setenv("ISSUEGRAPH_DIR", issuegraphDir)
 	if loadEnv {
-		loadBeadsEnvFile(beadsDir)
+		loadIssueGraphEnvFile(issuegraphDir)
 	}
-	preserveRedirectSourceDatabase(beadsDir)
+	preserveRedirectSourceDatabase(issuegraphDir)
 	if err := config.Initialize(); err != nil {
-		fmt.Fprintf(os.Stderr, "Warning: failed to reinitialize config for selected beads dir: %v\n", err)
+		fmt.Fprintf(os.Stderr, "Warning: failed to reinitialize config for selected issuegraph dir: %v\n", err)
 	}
-	config.CheckBeadsDirPermissions(beadsDir)
-	if err := loadServerModeFromBeadsDir(beadsDir); err != nil {
+	config.CheckIssueGraphDirPermissions(issuegraphDir)
+	if err := loadServerModeFromIssueGraphDir(issuegraphDir); err != nil {
 		// Warn, don't fatal: this context also serves no-DB commands —
 		// doctor, init, bootstrap, config — which are exactly the repair
 		// paths for a corrupt metadata.json. Data commands stay protected
@@ -731,8 +731,8 @@ func prepareSelectedCommandContext(beadsDir string, loadEnv bool) {
 	}
 }
 
-func prepareSelectedNoDBContext(beadsDir string) {
-	prepareSelectedCommandContext(beadsDir, true)
+func prepareSelectedNoDBContext(issuegraphDir string) {
+	prepareSelectedCommandContext(issuegraphDir, true)
 }
 
 func commandJSONFlagChanged(cmd *cobra.Command) bool {
@@ -747,7 +747,7 @@ func commandJSONFlagChanged(cmd *cobra.Command) bool {
 }
 
 // refreshBoundCommandConfig reapplies config-backed defaults after the command
-// context has been rebound to a resolved target beads directory. This keeps
+// context has been rebound to a resolved target issuegraph directory. This keeps
 // explicit flags authoritative while letting rerouted/explicit-db commands use
 // the target repo's config rather than the caller's config.
 func refreshBoundCommandConfig(cmd *cobra.Command) {
@@ -772,25 +772,25 @@ func refreshBoundCommandConfig(cmd *cobra.Command) {
 	}
 }
 
-// resolveCommandBeadsDir maps a discovered Dolt data path back to the owning
-// .beads directory. filepath.Dir(dbPath) only works when the Dolt data lives
-// under .beads/dolt; custom dolt_data_dir values can place it elsewhere.
-func resolveCommandBeadsDir(dbPath string) string {
+// resolveCommandIssueGraphDir maps a discovered Dolt data path back to the owning
+// .issuegraph directory. filepath.Dir(dbPath) only works when the Dolt data lives
+// under .issuegraph/dolt; custom dolt_data_dir values can place it elsewhere.
+func resolveCommandIssueGraphDir(dbPath string) string {
 	if dbPath == "" {
 		return ""
 	}
 
 	// Use the same validated candidate logic as the helper/reopen path
 	// (GH#2627). This checks filepath.Dir, canonicalized paths, AND
-	// FindBeadsDir — but only returns a candidate whose metadata.json
+	// FindIssueGraphDir — but only returns a candidate whose metadata.json
 	// actually points to dbPath, preventing CWD discovery from overriding
 	// an explicit --db flag.
-	if beadsDir := resolveBeadsDirForDBPath(dbPath); beadsDir != "" {
-		return beadsDir
+	if issuegraphDir := resolveIssueGraphDirForDBPath(dbPath); issuegraphDir != "" {
+		return issuegraphDir
 	}
 
 	for dir := filepath.Dir(dbPath); dir != "" && dir != filepath.Dir(dir); dir = filepath.Dir(dir) {
-		candidate := filepath.Join(dir, ".beads")
+		candidate := filepath.Join(dir, ".issuegraph")
 		if info, err := os.Stat(candidate); err == nil && info.IsDir() {
 			return candidate
 		}
@@ -801,24 +801,17 @@ func resolveCommandBeadsDir(dbPath string) string {
 	return filepath.Dir(dbPath)
 }
 
-// resolveConfiguredActor returns the actor implied by env/config when no
-// explicit --actor flag was passed, honoring the documented priority
-// BEADS_ACTOR > BD_ACTOR (deprecated) > config.yaml `actor`.
-//
-// viper's AutomaticEnv binds the deprecated BD_ACTOR to the "actor" key (env
-// prefix "BD"), and it is consulted ahead of any explicit binding — so
-// config.GetString("actor") alone returns BD_ACTOR's value even when
-// BEADS_ACTOR is also set, silently letting the deprecated alias win (GH#4645).
-// Check BEADS_ACTOR explicitly first so the primary override outranks it.
+// resolveConfiguredActor returns the actor implied by the current environment
+// or configuration when no explicit --actor flag was passed.
 func resolveConfiguredActor() string {
-	if beadsActor := os.Getenv("BEADS_ACTOR"); beadsActor != "" {
-		return beadsActor
+	if issuegraphActor := os.Getenv("ISSUEGRAPH_ACTOR"); issuegraphActor != "" {
+		return issuegraphActor
 	}
 	return config.GetString("actor")
 }
 
 // getActorWithGit returns the actor for audit trails with git config fallback.
-// Priority: --actor flag > BEADS_ACTOR env > BD_ACTOR env (deprecated) > git config user.name > $USER > "unknown"
+// Priority: --actor flag > ISSUEGRAPH_ACTOR env > git config user.name > $USER > "unknown"
 // This provides a sensible default for developers: their git identity is used unless
 // explicitly overridden
 func getActorWithGit() string {
@@ -827,14 +820,9 @@ func getActorWithGit() string {
 		return actor
 	}
 
-	// Check BEADS_ACTOR env var (primary env override)
-	if beadsActor := os.Getenv("BEADS_ACTOR"); beadsActor != "" {
-		return beadsActor
-	}
-
-	// Check BD_ACTOR env var (deprecated alias, kept for backwards compatibility)
-	if bdActor := os.Getenv("BD_ACTOR"); bdActor != "" {
-		return bdActor
+	// Check the actor environment override.
+	if issuegraphActor := os.Getenv("ISSUEGRAPH_ACTOR"); issuegraphActor != "" {
+		return issuegraphActor
 	}
 
 	// Try git config user.name - the natural default for a git-native tool
@@ -881,18 +869,18 @@ func init() {
 
 	// Register persistent flags
 	rootCmd.PersistentFlags().StringVarP(&changeDir, "directory", "C", "", "Change to this directory before running the command (like git -C)")
-	rootCmd.PersistentFlags().StringVar(&dbPath, "db", "", "Database path (default: auto-discover .beads/*.db). In proxied-server mode, a value that isn't an existing path is treated as a database name override (see --database)")
+	rootCmd.PersistentFlags().StringVar(&dbPath, "db", "", "Database path (default: auto-discover .issuegraph/*.db). In proxied-server mode, a value that isn't an existing path is treated as a database name override (see --database)")
 	rootCmd.PersistentFlags().StringVar(&databaseFlag, "database", "", "Run against a different server database for this invocation, without changing the project's configured database (proxied-server mode only)")
-	rootCmd.PersistentFlags().StringVar(&actor, "actor", "", "Actor name for audit trail (default: $BEADS_ACTOR, git user.name, $USER)")
+	rootCmd.PersistentFlags().StringVar(&actor, "actor", "", "Actor name for audit trail (default: $ISSUEGRAPH_ACTOR, git user.name, $USER)")
 	rootCmd.PersistentFlags().BoolVar(&jsonOutput, "json", false, "Output in JSON format")
 	rootCmd.PersistentFlags().String("format", "", "Output format (json). Alias for --json")
 	_ = rootCmd.PersistentFlags().MarkHidden("format") // Hidden alias for CLI ergonomics
 	rootCmd.PersistentFlags().BoolVar(&sandboxMode, "sandbox", false, "Sandbox mode: disables Dolt auto-push")
 	rootCmd.PersistentFlags().BoolVar(&readonlyMode, "readonly", false, "Read-only mode: block write operations (for worker sandboxes)")
-	rootCmd.PersistentFlags().BoolVar(&globalFlag, "global", false, "Use the global shared-server database (beads_global)")
-	rootCmd.PersistentFlags().StringVar(&doltAutoCommit, "dolt-auto-commit", "", "Dolt auto-commit policy (off|on|batch). 'on': commit after each write. 'batch': defer commits to bd dolt commit; uncommitted changes persist in the working set until then (a live batch-mode bd process also flushes on SIGTERM/SIGHUP). Applies to embedded and direct SQL-server modes; proxied-server routes are unaffected. Default: on. Override via config key dolt.auto-commit")
+	rootCmd.PersistentFlags().BoolVar(&globalFlag, "global", false, "Use the global shared-server database (issuegraph_global)")
+	rootCmd.PersistentFlags().StringVar(&doltAutoCommit, "dolt-auto-commit", "", "Dolt auto-commit policy (off|on|batch). 'on': commit after each write. 'batch': defer commits to issuegraph dolt commit; uncommitted changes persist in the working set until then (a live batch-mode issuegraph process also flushes on SIGTERM/SIGHUP). Applies to embedded and direct SQL-server modes; proxied-server routes are unaffected. Default: on. Override via config key dolt.auto-commit")
 	rootCmd.PersistentFlags().BoolVar(&cpuProfileEnabled, "cpu-profile", false, "Generate CPU profile for performance analysis")
-	rootCmd.PersistentFlags().StringVar(&memProfilePath, "mem-profile", "", "Write heap profile to FILE on exit (also respects BEADS_MEM_PROFILE)")
+	rootCmd.PersistentFlags().StringVar(&memProfilePath, "mem-profile", "", "Write heap profile to FILE on exit (also respects ISSUEGRAPH_MEM_PROFILE)")
 	rootCmd.PersistentFlags().BoolVarP(&verboseFlag, "verbose", "v", false, "Enable verbose/debug output")
 	rootCmd.PersistentFlags().BoolVarP(&quietFlag, "quiet", "q", false, "Suppress non-essential output (errors only)")
 	rootCmd.PersistentFlags().BoolVar(&ignoreSchemaSkew, "ignore-schema-skew", false, "Proceed despite forward schema drift (some queries may fail)")
@@ -908,7 +896,7 @@ func init() {
 	rootCmd.AddGroup(&cobra.Group{ID: "sync", Title: "Sync & Data:"})
 	rootCmd.AddGroup(&cobra.Group{ID: "setup", Title: "Setup & Configuration:"})
 	// NOTE: Many maintenance commands (clean, cleanup, compact, validate, repair-deps)
-	// should eventually be consolidated into 'bd doctor' and 'bd doctor --fix' to simplify
+	// should eventually be consolidated into 'issuegraph doctor' and 'issuegraph doctor --fix' to simplify
 	// the user experience. The doctor command can detect issues and offer fixes interactively.
 	rootCmd.AddGroup(&cobra.Group{ID: "maint", Title: "Maintenance:"})
 	rootCmd.AddGroup(&cobra.Group{ID: "advanced", Title: "Integrations & Advanced:"})
@@ -918,7 +906,7 @@ func init() {
 	rootCmd.SetHelpFunc(colorizedHelpFunc)
 }
 
-func resolveChangeDirBeadsDir(path string) (string, error) {
+func resolveChangeDirIssueGraphDir(path string) (string, error) {
 	if strings.TrimSpace(path) == "" {
 		return "", nil
 	}
@@ -933,27 +921,27 @@ func resolveChangeDirBeadsDir(path string) (string, error) {
 	if !info.IsDir() {
 		return "", fmt.Errorf("cannot use -C directory %q: not a directory", path)
 	}
-	beadsDir := beads.FindBeadsDirFrom(absPath)
-	if beadsDir == "" {
-		return "", fmt.Errorf("cannot use -C directory %q: no beads project found", path)
+	issuegraphDir := issuegraph.FindIssueGraphDirFrom(absPath)
+	if issuegraphDir == "" {
+		return "", fmt.Errorf("cannot use -C directory %q: no issuegraph project found", path)
 	}
-	return beadsDir, nil
+	return issuegraphDir, nil
 }
 
 func applyChangeDirSelection() error {
 	if strings.TrimSpace(changeDir) == "" {
 		return nil
 	}
-	beadsDir, err := resolveChangeDirBeadsDir(changeDir)
+	issuegraphDir, err := resolveChangeDirIssueGraphDir(changeDir)
 	if err != nil {
 		return HandleError("%v", err)
 	}
 	changeDirEnvSnapshot = make(map[string]envSnapshotValue, 3)
-	for _, key := range []string{"BEADS_DIR", "BEADS_DB", "BD_DB"} {
+	for _, key := range []string{"ISSUEGRAPH_DIR", "ISSUEGRAPH_DB", "ISSUEGRAPH_DB"} {
 		value, ok := os.LookupEnv(key)
 		changeDirEnvSnapshot[key] = envSnapshotValue{value: value, ok: ok}
 	}
-	_ = os.Setenv("BEADS_DIR", beadsDir)
+	_ = os.Setenv("ISSUEGRAPH_DIR", issuegraphDir)
 	return nil
 }
 
@@ -971,7 +959,7 @@ func restoreChangeDirSelection() {
 	changeDirEnvSnapshot = nil
 }
 
-func guardLegacyNoStoreCommand(cmd *cobra.Command, beadsDir string) error {
+func guardLegacyNoStoreCommand(cmd *cobra.Command, issuegraphDir string) error {
 	if cmd == nil || !cmd.Runnable() || cmd.Parent() == nil || cmd == versionCmd ||
 		cmd == doctorCmd || cmd == initCmd || cmd == bootstrapCmd ||
 		cmd == legacySQLiteCmd {
@@ -989,20 +977,20 @@ func guardLegacyNoStoreCommand(cmd *cobra.Command, beadsDir string) error {
 	case "__complete", "__completeNoDesc", "bash", "completion", "fish", "help", "powershell", "zsh":
 		return nil
 	}
-	if beadsDir == "" {
+	if issuegraphDir == "" {
 		return guardUndiscoveredLegacyWorkspace()
 	}
-	return guardLegacyUpgradeWorkspace(beadsDir)
+	return guardLegacyUpgradeWorkspace(issuegraphDir)
 }
 
 var rootCmd = &cobra.Command{
-	Use:   "bd",
-	Short: "bd - Dependency-aware issue tracker",
-	Long:  `Issues chained together like beads. A lightweight issue tracker with first-class dependency support.`,
+	Use:   "issuegraph",
+	Short: "issuegraph - Dependency-aware issue tracker",
+	Long:  `Issues chained together like issuegraph. A lightweight issue tracker with first-class dependency support.`,
 	Run: func(cmd *cobra.Command, args []string) {
 		// Handle --version flag on root command
 		if v, _ := cmd.Flags().GetBool("version"); v {
-			fmt.Printf("bd version %s (%s)\n", Version, Build)
+			fmt.Printf("issuegraph version %s (%s)\n", Version, Build)
 			return
 		}
 		// No subcommand - show help
@@ -1037,17 +1025,17 @@ var rootCmd = &cobra.Command{
 		setRootContext(setupGracefulShutdown())
 
 		// Initialize OTel. Telemetry is opt-in — initTelemetry is a noop
-		// unless BD_OTEL_ENABLED=true or a legacy BD_OTEL_* selector is set.
+		// unless ISSUEGRAPH_OTEL_ENABLED=true or a legacy ISSUEGRAPH_OTEL_* selector is set.
 		// Must run before any DB access so SQL spans nest under the command
 		// span.
 		initTelemetry(rootCtx, Version)
 
 		// Materialize the user-level metrics config only when metrics are
-		// actually enabled. When metrics are disabled (BD_DISABLE_METRICS or a
+		// actually enabled. When metrics are disabled (ISSUEGRAPH_DISABLE_METRICS or a
 		// user-global metrics.disabled), there is nothing to bootstrap. The
 		// send-metrics flusher is exempt so it never recurses into bootstrap.
 		// This mirrors the resolveMetricsEnabled() gate on the first-run notice
-		// below. (~/.config/bd/ lives outside the repo, so this write is not a
+		// below. (~/.config/issuegraph/ lives outside the repo, so this write is not a
 		// stealth/per-repository trace; stealth init is handled by suppressing
 		// the first-run notice, not by skipping this user-global bootstrap.)
 		if cmd.Name() != metrics.SendMetricsSubcommand && resolveMetricsEnabled() {
@@ -1105,7 +1093,7 @@ var rootCmd = &cobra.Command{
 		// SHADOWING HAZARD (GH#6278): this reads the ROOT persistent --format
 		// only, so a subcommand that registers its own local --format shadows
 		// it here and still gets `json: true` promoted over the format it was
-		// asked for. `bd list` compensates in gatherListInput; any new local
+		// asked for. `issuegraph list` compensates in gatherListInput; any new local
 		// --format registration needs the same treatment or this fires again.
 		if !commandJSONFlagChanged(cmd) && !cmd.Root().PersistentFlags().Changed("format") {
 			jsonOutput = config.GetBool("json")
@@ -1136,7 +1124,7 @@ var rootCmd = &cobra.Command{
 		}
 
 		if !cmd.Root().PersistentFlags().Changed("db") && dbPath == "" &&
-			os.Getenv("BEADS_DB") == "" && os.Getenv("BD_DB") == "" && os.Getenv("BEADS_DIR") == "" {
+			os.Getenv("ISSUEGRAPH_DB") == "" && os.Getenv("ISSUEGRAPH_DB") == "" && os.Getenv("ISSUEGRAPH_DIR") == "" {
 			dbPath = config.GetString("db")
 		} else if cmd.Root().PersistentFlags().Changed("db") {
 			flagOverrides["db"] = struct {
@@ -1161,10 +1149,10 @@ var rootCmd = &cobra.Command{
 			}{doltAutoCommit, true}
 		}
 
-		// --ignore-schema-skew sets BD_IGNORE_SCHEMA_SKEW so the env-var escape
+		// --ignore-schema-skew sets ISSUEGRAPH_IGNORE_SCHEMA_SKEW so the env-var escape
 		// hatch works uniformly for all store open paths (dolt, embedded).
 		if ignoreSchemaSkew {
-			_ = os.Setenv("BD_IGNORE_SCHEMA_SKEW", "1")
+			_ = os.Setenv("ISSUEGRAPH_IGNORE_SCHEMA_SKEW", "1")
 		}
 
 		// Check for and log configuration overrides (only in verbose mode)
@@ -1177,7 +1165,7 @@ var rootCmd = &cobra.Command{
 
 		// GH#1093: Check noDbCommands BEFORE expensive operations
 		// to avoid spawning git subprocesses for simple commands
-		// like "bd version" that don't need database access.
+		// like "issuegraph version" that don't need database access.
 		//
 		// A command can also opt out of store init by setting the
 		// skipStoreAnnotation on its Command literal instead of being listed
@@ -1192,9 +1180,9 @@ var rootCmd = &cobra.Command{
 			"completion",
 			"context", // reads config files directly, does not need DB open
 			"codex-hook",
-			"cursor-hook", // shells out to `bd prime`; never opens the store itself
+			"cursor-hook", // shells out to `issuegraph prime`; never opens the store itself
 			// "doctor" opts out via skipStoreAnnotation on its Command literal.
-			"dolt", // bare "bd dolt" shows help only; subcommands handled below
+			"dolt", // bare "issuegraph dolt" shows help only; subcommands handled below
 			"fish",
 			"formula", // parser-only subcommands; add a store-needed guard before adding DB-backed formula subcommands
 			"help",
@@ -1220,7 +1208,7 @@ var rootCmd = &cobra.Command{
 		// config/diagnostic commands that skip DB init via the "dolt" parent entry above.
 		needsStoreDoltSubcommands := []string{"push", "pull", "commit"}
 
-		// GH#2224: Dolt grandchild subcommands (e.g. "bd dolt remote add") whose
+		// GH#2224: Dolt grandchild subcommands (e.g. "issuegraph dolt remote add") whose
 		// Cobra parent is "remote", not "dolt". These need the store but would be
 		// silently skipped if "remote" were ever added to noDbCommands.
 		needsStoreDoltGrandchildren := []string{"remote"}
@@ -1236,7 +1224,7 @@ var rootCmd = &cobra.Command{
 
 		// Check both the command name and parent command name for subcommands
 		cmdName := cmd.Name()
-		isSubcommand := cmd.Parent() != nil && cmd.Parent().Name() != "bd"
+		isSubcommand := cmd.Parent() != nil && cmd.Parent().Name() != "issuegraph"
 		skipsStoreInit := false
 		if cmd.Parent() != nil {
 			parentName := cmd.Parent().Name()
@@ -1253,7 +1241,7 @@ var rootCmd = &cobra.Command{
 			}
 		}
 		// Only skip for top-level commands in noDbCommands, not subcommands
-		// that happen to share names (e.g., "bd backup init" vs "bd init").
+		// that happen to share names (e.g., "issuegraph backup init" vs "issuegraph init").
 		if slices.Contains(noDbCommands, cmdName) && !isSubcommand {
 			skipsStoreInit = true
 		}
@@ -1263,13 +1251,13 @@ var rootCmd = &cobra.Command{
 			skipsStoreInit = true
 		}
 
-		// Also skip for --version flag on root command (cmdName would be "bd")
+		// Also skip for --version flag on root command (cmdName would be "issuegraph")
 		if v, _ := cmd.Flags().GetBool("version"); v {
 			skipsStoreInit = true
 		}
 
 		// A command may also opt out of store init by declaring the
-		// bd:skip_store annotation (see commandOptsOutOfStore), instead of being
+		// issuegraph:skip_store annotation (see commandOptsOutOfStore), instead of being
 		// added to the noDbCommands list above. Commands defined in other files
 		// or build-tagged variants use this to exempt themselves without editing
 		// the central list.
@@ -1286,13 +1274,13 @@ var rootCmd = &cobra.Command{
 
 		// Commands that skip store initialization still need early config/env
 		// setup before they inspect server mode or per-project Dolt settings.
-		// Rebind them to the selected workspace so explicit --db / BEADS_DB
+		// Rebind them to the selected workspace so explicit --db / ISSUEGRAPH_DB
 		// targets behave consistently across doctor/bootstrap/context/dolt.
 		if skipsStoreInit {
-			beadsDir := selectedNoDBBeadsDir(cmd)
-			prepareSelectedNoDBContext(beadsDir)
+			issuegraphDir := selectedNoDBIssueGraphDir(cmd)
+			prepareSelectedNoDBContext(issuegraphDir)
 			refreshBoundCommandConfig(cmd)
-			if os.Getenv("BEADS_DIR") == "" {
+			if os.Getenv("ISSUEGRAPH_DIR") == "" {
 				loadEnvironment()
 				if err := loadServerModeFromConfig(); err != nil {
 					// Warn, don't fatal: skipsStoreInit commands (doctor,
@@ -1302,19 +1290,19 @@ var rootCmd = &cobra.Command{
 					fmt.Fprintf(os.Stderr, "warning: %v\n", err)
 				}
 			}
-			if beadsDir == "" {
-				beadsDir = beads.FindBeadsDir()
+			if issuegraphDir == "" {
+				issuegraphDir = issuegraph.FindIssueGraphDir()
 			}
 			if commandRegistryPath(cmd) == "doctor" && usesProxiedServer() {
 				// Refuse only on a real refusal. The registry validator
 				// returns nil for doctor subcommands, and returning early on
 				// that would skip the legacy-store guard and autocommit-mode
 				// resolution every other skipsStoreInit command still runs.
-				if err := validateProxyRegistryBeforeProvider(cmd, resolveProxiedTopology(beadsDir)); err != nil {
+				if err := validateProxyRegistryBeforeProvider(cmd, resolveProxiedTopology(issuegraphDir)); err != nil {
 					return err
 				}
 			}
-			if err := guardLegacyNoStoreCommand(cmd, beadsDir); err != nil {
+			if err := guardLegacyNoStoreCommand(cmd, issuegraphDir); err != nil {
 				isMigrationCommand := false
 				for current := cmd; current != nil; current = current.Parent() {
 					if current.Name() == "migrate" {
@@ -1339,11 +1327,11 @@ var rootCmd = &cobra.Command{
 		// Performance profiling setup
 		if cpuProfileEnabled {
 			timestamp := time.Now().Format("20060102-150405")
-			if f, _ := os.Create(fmt.Sprintf("bd-profile-%s-%s.prof", cmd.Name(), timestamp)); f != nil {
+			if f, _ := os.Create(fmt.Sprintf("issuegraph-profile-%s-%s.prof", cmd.Name(), timestamp)); f != nil {
 				profileFile = f
 				_ = pprof.StartCPUProfile(f) // Best effort: profiling is a debug tool, failure is non-fatal
 			}
-			if f, _ := os.Create(fmt.Sprintf("bd-trace-%s-%s.out", cmd.Name(), timestamp)); f != nil {
+			if f, _ := os.Create(fmt.Sprintf("issuegraph-trace-%s-%s.out", cmd.Name(), timestamp)); f != nil {
 				traceFile = f
 				_ = trace.Start(f) // Best effort: profiling is a debug tool, failure is non-fatal
 			}
@@ -1358,41 +1346,41 @@ var rootCmd = &cobra.Command{
 		}
 
 		// Capture redirect info BEFORE FindDatabasePath() follows the redirect.
-		// When .beads/redirect points to a shared directory with a different
+		// When .issuegraph/redirect points to a shared directory with a different
 		// dolt_database, the source's database name would be lost. Capture it
-		// early and set BEADS_DOLT_SERVER_DATABASE so all store opens use it.
+		// early and set ISSUEGRAPH_DOLT_SERVER_DATABASE so all store opens use it.
 		if dbPath == "" {
-			preserveRedirectSourceDatabase(beads.GetRedirectInfo().LocalDir)
+			preserveRedirectSourceDatabase(issuegraph.GetRedirectInfo().LocalDir)
 		}
 
 		if dbPath == "" {
-			if bd := beads.FindBeadsDir(); bd != "" {
+			if issuegraph := issuegraph.FindIssueGraphDir(); issuegraph != "" {
 				// Bind the discovered target before admission so the legacy guard
 				// honors its config.yaml (including dolt.shared-server), not the
 				// caller's. This setup is read-only: metadata discovery below still
 				// uses LoadForDiscovery and cannot migrate config.json.
-				prepareSelectedCommandContext(bd, true)
+				prepareSelectedCommandContext(issuegraph, true)
 				refreshBoundCommandConfig(cmd)
-				if guardErr := guardLegacyUpgradeWorkspace(bd); guardErr != nil {
+				if guardErr := guardLegacyUpgradeWorkspace(issuegraph); guardErr != nil {
 					return HandleError("%v", guardErr)
 				}
-				cfg, cfgErr := configfile.LoadForDiscovery(bd)
+				cfg, cfgErr := configfile.LoadForDiscovery(issuegraph)
 				if cfgErr != nil || cfg != nil && (cfg.IsDoltProxiedServerMode() ||
-					registeredBackendWorkspaceIsBeadsDir(cfg) ||
+					registeredBackendWorkspaceIsIssueGraphDir(cfg) ||
 					!configfile.IsSupportedBackend(cfg.Backend)) {
 					// Proxied-server, registered remote, and removed-backend
 					// workspaces may have no local Dolt database file. Invalid
 					// or unknown metadata likewise must reach config validation
 					// instead of becoming a generic "no database" result.
-					dbPath = bd
+					dbPath = issuegraph
 				} else if cfg == nil && cfgErr == nil &&
 					configfile.DefaultConfig().HostImpliesServerMode() {
 					// Metadata-less workspace whose server lives at a
-					// remote host named by BEADS_DOLT_SERVER_HOST or
+					// remote host named by ISSUEGRAPH_DOLT_SERVER_HOST or
 					// config.yaml (GH#3545): there is no local database
-					// directory to discover, so route the .beads dir as
+					// directory to discover, so route the .issuegraph dir as
 					// a server workspace instead of "no database found".
-					dbPath = bd
+					dbPath = issuegraph
 				}
 			} else if guardErr := guardUndiscoveredLegacyWorkspace(); guardErr != nil {
 				return HandleError("%v", guardErr)
@@ -1402,7 +1390,7 @@ var rootCmd = &cobra.Command{
 		// Initialize database path
 		if dbPath == "" {
 			// Use public API to find database (same logic as extensions)
-			if foundDB := beads.FindDatabasePath(); foundDB != "" {
+			if foundDB := issuegraph.FindDatabasePath(); foundDB != "" {
 				dbPath = foundDB
 			} else {
 				// No database found — allow some commands to run without a database
@@ -1411,18 +1399,18 @@ var rootCmd = &cobra.Command{
 				// - config subcommands that operate on config.yaml, git config,
 				//   or best-effort diagnostics only (GH#536, bd-934, bd-omc, bd-3rw)
 				if configCommandCanRunWithoutStore(cmd, args) {
-					// When --db is provided, resolve BEADS_DIR so yaml-only
+					// When --db is provided, resolve ISSUEGRAPH_DIR so yaml-only
 					// config writes target the correct directory (GH#3348).
 					if dbPath != "" {
-						if beadsDir := resolveCommandBeadsDir(dbPath); beadsDir != "" {
-							prepareSelectedCommandContext(beadsDir, false)
+						if issuegraphDir := resolveCommandIssueGraphDir(dbPath); issuegraphDir != "" {
+							prepareSelectedCommandContext(issuegraphDir, false)
 						}
 					}
 					return nil
 				}
 
-				// GH#3686: `bd create --repo=<path-or-URL>` targets a different
-				// repo's workspace. Without this, PreRun exits with "no beads
+				// GH#3686: `issuegraph create --repo=<path-or-URL>` targets a different
+				// repo's workspace. Without this, PreRun exits with "no issuegraph
 				// database found" before create.go's --repo handling runs, even
 				// when the target has a valid workspace of its own. Resolve
 				// local targets here so store initialization points at them.
@@ -1431,22 +1419,22 @@ var rootCmd = &cobra.Command{
 				// touches the local `store` global on that path (a gap left by
 				// #4615, which only handled local paths), so skip local
 				// discovery entirely instead of falling through to the "no
-				// beads database found" exit below.
+				// issuegraph database found" exit below.
 				if cmd.Name() == "create" && cmd.Flags().Changed("repo") {
 					if repoVal, _ := cmd.Flags().GetString("repo"); repoVal != "" {
 						if remotecache.IsRemoteURL(repoVal) {
 							return nil
 						}
-						targetBeadsDir := filepath.Join(routing.ExpandPath(repoVal), ".beads")
-						dbPath = utils.CanonicalizePath(filepath.Join(targetBeadsDir, beads.CanonicalDatabaseName))
+						targetIssueGraphDir := filepath.Join(routing.ExpandPath(repoVal), ".issuegraph")
+						dbPath = utils.CanonicalizePath(filepath.Join(targetIssueGraphDir, issuegraph.CanonicalDatabaseName))
 					}
 				}
 
 				if dbPath == "" && cmd.Name() != "import" && cmd.Name() != "setup" {
 					// No database found - provide context-aware error message
-					fmt.Fprintf(os.Stderr, "Error: no beads database found\n")
+					fmt.Fprintf(os.Stderr, "Error: no issuegraph database found\n")
 					fmt.Fprintf(os.Stderr, "Hint: %s\n", diagHint())
-					fmt.Fprintf(os.Stderr, "      or set BEADS_DIR to point to your .beads directory\n")
+					fmt.Fprintf(os.Stderr, "      or set ISSUEGRAPH_DIR to point to your .issuegraph directory\n")
 					return SilentExit()
 				}
 
@@ -1455,36 +1443,36 @@ var rootCmd = &cobra.Command{
 					// Invariant: dbPath must always be absolute. Use CanonicalizePath for OS-agnostic
 					// handling (symlinks, case normalization on macOS).
 					//
-					// IMPORTANT: Use FindBeadsDir() to get the correct .beads directory,
-					// which follows redirect files. Without this, a redirected .beads
+					// IMPORTANT: Use FindIssueGraphDir() to get the correct .issuegraph directory,
+					// which follows redirect files. Without this, a redirected .issuegraph
 					// would create a local database instead of using the redirect target.
 					// (GH#bd-0qel)
-					targetBeadsDir := beads.FindBeadsDir()
-					if targetBeadsDir == "" {
-						targetBeadsDir = ".beads"
+					targetIssueGraphDir := issuegraph.FindIssueGraphDir()
+					if targetIssueGraphDir == "" {
+						targetIssueGraphDir = ".issuegraph"
 					}
-					dbPath = utils.CanonicalizePath(filepath.Join(targetBeadsDir, beads.CanonicalDatabaseName))
+					dbPath = utils.CanonicalizePath(filepath.Join(targetIssueGraphDir, issuegraph.CanonicalDatabaseName))
 				}
 			}
 		}
 
-		beadsDir := resolveCommandBeadsDir(dbPath)
-		prepareSelectedCommandContext(beadsDir, true)
+		issuegraphDir := resolveCommandIssueGraphDir(dbPath)
+		prepareSelectedCommandContext(issuegraphDir, true)
 		refreshBoundCommandConfig(cmd)
-		if guardErr := guardLegacyUpgradeWorkspace(beadsDir); guardErr != nil {
+		if guardErr := guardLegacyUpgradeWorkspace(issuegraphDir); guardErr != nil {
 			return HandleError("%v", guardErr)
 		}
 
 		// Workspace operation gate: every command that reaches this point
 		// will open the store (the skipsStoreInit early return is above),
 		// so take the workspace + physical-root gates now, in the final
-		// mode (SHARED for normal commands, EXCLUSIVE for bd backup
+		// mode (SHARED for normal commands, EXCLUSIVE for issuegraph backup
 		// restore — there is no upgrade path). See workspace_gate.go for
 		// the fail-open/fail-closed posture. The handle is released in
 		// PersistentPostRunE after store close; if this PreRunE fails
 		// later, cobra never runs PostRunE, so the deferred release below
 		// covers the PreRunE error paths after acquisition.
-		if err := acquireCommandWorkspaceGates(rootCtx, cmd, beadsDir); err != nil {
+		if err := acquireCommandWorkspaceGates(rootCtx, cmd, issuegraphDir); err != nil {
 			return err
 		}
 		defer func() {
@@ -1505,11 +1493,11 @@ var rootCmd = &cobra.Command{
 		// any store construction. PostgreSQL/MySQL values are retained as metadata
 		// tombstones so an existing workspace fails closed instead of falling through
 		// to a new, empty Dolt database.
-		cfg, cfgErr := configfile.Load(beadsDir)
+		cfg, cfgErr := configfile.Load(issuegraphDir)
 		if cfgErr != nil {
-			return HandleError("failed to load beads config from %s: %v (refusing to fall back to the embedded store; fix or restore metadata.json and retry)", beadsDir, cfgErr)
+			return HandleError("failed to load issuegraph config from %s: %v (refusing to fall back to the embedded store; fix or restore metadata.json and retry)", issuegraphDir, cfgErr)
 		}
-		if backendErr := validateConfiguredBackend(cfg, beadsDir); backendErr != nil {
+		if backendErr := validateConfiguredBackend(cfg, issuegraphDir); backendErr != nil {
 			return HandleError("%v", backendErr)
 		}
 		// Reject proxy capability combinations before any workspace side effect
@@ -1520,7 +1508,7 @@ var rootCmd = &cobra.Command{
 			if err := validateProxyCapabilitiesBeforeProvider(cmd); err != nil {
 				return err
 			}
-			if err := validateProxyRegistryBeforeProvider(cmd, resolveProxiedTopology(beadsDir)); err != nil {
+			if err := validateProxyRegistryBeforeProvider(cmd, resolveProxiedTopology(issuegraphDir)); err != nil {
 				return err
 			}
 		}
@@ -1536,7 +1524,7 @@ var rootCmd = &cobra.Command{
 		actor = getActorWithGit()
 		// Attach actor to the command span now that we have it.
 		if commandSpan != nil {
-			commandSpan.SetAttributes(attribute.String("bd.actor", actor))
+			commandSpan.SetAttributes(attribute.String("issuegraph.actor", actor))
 		}
 
 		// Check if this is a read-only command (GH#804) or an explicitly
@@ -1565,7 +1553,7 @@ var rootCmd = &cobra.Command{
 		// useReadOnly and so skips this early gate the same way, but is NOT
 		// exempt overall: the per-command chokepoint checks again once RunE
 		// is reached, with no preview awareness — CheckReadonly for the ~120
-		// commands that call it, and runImport's own call for `bd import
+		// commands that call it, and runImport's own call for `issuegraph import
 		// --dry-run`, which is not one of them. So a preview on a frozen
 		// workspace still exits ExitMigrationFrozen there, fail-closed, same
 		// as strict --readonly already blocks `create --dry-run` today.
@@ -1579,7 +1567,7 @@ var rootCmd = &cobra.Command{
 		// the two readings disagree about a marker that appeared or vanished
 		// in between (write allowed but maintenance skipped, or the reverse).
 		// PostRunE reads the same answer via commandFreeze.
-		commandFreeze = migration.Find(beadsDir)
+		commandFreeze = migration.Find(issuegraphDir)
 		if !useReadOnly {
 			if err := migrationFreezeGate(cmd, strings.TrimPrefix(cmd.CommandPath(), cmd.Root().Name()+" "), commandFreeze); err != nil {
 				return err
@@ -1594,13 +1582,13 @@ var rootCmd = &cobra.Command{
 		// command's own classification — so "the command is a read" must not
 		// imply "these side effects may still run". Reproduced pre-fix:
 		// freeze the workspace, seed .local_version with a stale version, run
-		// `bd list` — exit 0 (correct, it's a read), but .local_version was
+		// `issuegraph list` — exit 0 (correct, it's a read), but .local_version was
 		// silently rewritten mid-freeze anyway. Skip both calls under an
 		// active freeze without blocking the read itself. Reuses the single
 		// lookup resolved above rather than repeating the walk.
 		frozenForMaintenance := policy.runMaintenance && commandFreeze.Frozen()
 
-		// Track bd version changes unless strict readonly forbids repository mutation.
+		// Track issuegraph version changes unless strict readonly forbids repository mutation.
 		// Best-effort tracking - failures are silent.
 		//
 		// A preview detects the change but must not consume it: .local_version
@@ -1614,7 +1602,7 @@ var rootCmd = &cobra.Command{
 			}
 		}
 
-		// If the operator passed --force on `bd migrate` or `bd migrate schema`,
+		// If the operator passed --force on `issuegraph migrate` or `issuegraph migrate schema`,
 		// set the programmatic gate override before both autoMigrateOnVersionBump
 		// and the main store open — both open their own store connections and the
 		// gate fires on each.
@@ -1628,10 +1616,10 @@ var rootCmd = &cobra.Command{
 		// root command ever be re-run in-process (tests, a future server mode).
 		schema.SetForceAllowRemoteMigrate(forcedMigrate)
 
-		// Typing `bd migrate schema` is consent to migrate a shared database
+		// Typing `issuegraph migrate schema` is consent to migrate a shared database
 		// that has no remote (#5920): there is no cross-clone fork to risk,
 		// only the co-resident lockout the operator is asking to accept. A
-		// preview withholds it — `bd migrate schema --dry-run` must not
+		// preview withholds it — `issuegraph migrate schema --dry-run` must not
 		// migrate on the way to printing what it would do. Same set-or-clear
 		// discipline as the --force override above.
 		schema.SetSharedMigrateConsent(isSchemaMigrateVerb(cmd) && !previewMode)
@@ -1640,7 +1628,7 @@ var rootCmd = &cobra.Command{
 		// Runs for ALL non-preview commands (including read-only ones) because
 		// the migration opens its own store connection, writes the version
 		// metadata, commits it, and closes BEFORE the main store is opened.
-		// This ensures bd doctor and read-only commands see the correct version
+		// This ensures issuegraph doctor and read-only commands see the correct version
 		// after a CLI upgrade.
 		//
 		// Preview paths must never call this helper: it opens a separate
@@ -1649,7 +1637,7 @@ var rootCmd = &cobra.Command{
 		// dry-run plan. frozenForMaintenance excludes it for the same reason
 		// as the trackBdVersion call above — see that comment.
 		if policy.runMaintenance && !previewMode && !frozenForMaintenance {
-			autoMigrateOnVersionBump(beadsDir)
+			autoMigrateOnVersionBump(issuegraphDir)
 		}
 
 		// Initialize direct storage access
@@ -1657,12 +1645,12 @@ var rootCmd = &cobra.Command{
 
 		// Create Dolt storage config — resolve dolt data dir which may be
 		// on a different filesystem (e.g., ext4 for performance on WSL).
-		doltPath := doltserver.ResolveDoltDir(beadsDir)
+		doltPath := doltserver.ResolveDoltDir(issuegraphDir)
 		doltCfg := &dolt.Config{
 			ReadOnly:         useReadOnly,
 			Preview:          previewMode,
 			DisableAutoStart: policy.disableAutoStart,
-			BeadsDir:         beadsDir,
+			IssueGraphDir:    issuegraphDir,
 			LenientOpen:      isWorkingSetReconcileCommand(cmd),
 			RemoteSyncOpen:   isRemoteSyncCommand(cmd),
 			// Bulk loads outlive the pool's 10s fast-fail on every server
@@ -1687,17 +1675,17 @@ var rootCmd = &cobra.Command{
 		// Host inference (GH#3545) answers only one layer of that question and
 		// deliberately returns false as soon as config.yaml names a
 		// `dolt.mode`: correct for inferring FROM a host, wrong as the whole
-		// gate. A workspace declaring `dolt.mode: server` in .beads/config.yaml
+		// gate. A workspace declaring `dolt.mode: server` in .issuegraph/config.yaml
 		// with no metadata.json therefore kept cfg nil, fell through to the
 		// embedded branch, and answered every query out of a phantom
-		// .beads/embeddeddolt database that same run had just created —
+		// .issuegraph/embeddeddolt database that same run had just created —
 		// exit 0, no rows, nothing to distinguish it from real emptiness.
-		// BEADS_DOLT_SERVER_MODE=1 did not rescue it either; the old gate
+		// ISSUEGRAPH_DOLT_SERVER_MODE=1 did not rescue it either; the old gate
 		// never consulted it. IsDoltServerMode is a superset of
 		// HostImpliesServerMode, so nothing that reached server mode before
 		// stops reaching it now.
 		if cfg == nil && configfile.DefaultConfig().IsDoltServerMode() {
-			logConfigDiscovery(beadsDir, "no metadata.json; env/config.yaml select server mode")
+			logConfigDiscovery(issuegraphDir, "no metadata.json; env/config.yaml select server mode")
 			cfg = configfile.DefaultConfig()
 		}
 		if cfg != nil {
@@ -1722,30 +1710,30 @@ var rootCmd = &cobra.Command{
 			}
 
 			// Always set database name (needed for bootstrap to find
-			// prefix-based databases like "beads_hq"; see #1669)
+			// prefix-based databases like "issuegraph_hq"; see #1669)
 			doltCfg.Database = cfg.GetDoltDatabase()
 			if shouldLogDefaultDoltDatabase(cfg) {
-				logConfigDiscovery(beadsDir, fmt.Sprintf("metadata loaded without dolt_database; using default database name %q", configfile.DefaultDoltDatabase))
+				logConfigDiscovery(issuegraphDir, fmt.Sprintf("metadata loaded without dolt_database; using default database name %q", configfile.DefaultDoltDatabase))
 			}
 
-			if err := resolveDoltServerConnection(rootCtx, beadsDir, cfg, doltCfg); err != nil {
+			if err := resolveDoltServerConnection(rootCtx, issuegraphDir, cfg, doltCfg); err != nil {
 				return HandleError("%v", err)
 			}
 		} else if cfgErr == nil {
-			logConfigDiscovery(beadsDir, "config discovery")
+			logConfigDiscovery(issuegraphDir, "config discovery")
 			// Load returned (nil, nil) — no config file found.
 			// Fall back to the canonical default database name; matches the
 			// behavior of newDoltStoreFromConfig / newReadOnlyStoreFromConfig
 			// (see store_factory.go). Without this, embeddeddolt.New rejects
 			// the empty database name with "database name must not be empty
-			// (caller should default to \"beads\")".
-			fmt.Fprintf(os.Stderr, "warning: no beads configuration found in %s; using default database name %q\n", beadsDir, configfile.DefaultDoltDatabase)
+			// (caller should default to \"issuegraph\")".
+			fmt.Fprintf(os.Stderr, "warning: no issuegraph configuration found in %s; using default database name %q\n", issuegraphDir, configfile.DefaultDoltDatabase)
 			doltCfg.Database = configfile.DefaultDoltDatabase
 		}
 		// Honor shared-server mode even when no project config was found
 		// (cfg == nil) or the parse failed. The override inside the
 		// cfg != nil branch above is skipped in those cases, so without this
-		// an exported BEADS_DOLT_SHARED_SERVER is silently ignored and bd
+		// an exported ISSUEGRAPH_DOLT_SHARED_SERVER is silently ignored and issuegraph
 		// falls through to embeddeddolt.Open, creating a phantom embedded DB
 		// that subsequent writes fragment into (GH#3817). This is idempotent:
 		// when the override above already ran, ServerMode is already true.
@@ -1767,14 +1755,14 @@ var rootCmd = &cobra.Command{
 		// Must be in shared-server mode; errors otherwise.
 		if globalFlag {
 			if !doltserver.IsSharedServerMode() {
-				return HandleError("--global requires shared-server mode (set BEADS_DOLT_SHARED_SERVER=1 or dolt.shared-server: true in config.yaml)")
+				return HandleError("--global requires shared-server mode (set ISSUEGRAPH_DOLT_SHARED_SERVER=1 or dolt.shared-server: true in config.yaml)")
 			}
 			doltCfg.Database = doltserver.GlobalDatabaseName
 		}
 
 		// Keep standalone CLI auto-start behavior centralized so doctor and
 		// other helper paths stay in lockstep with the main command path.
-		dolt.ApplyCLIAutoStart(beadsDir, doltCfg)
+		dolt.ApplyCLIAutoStart(issuegraphDir, doltCfg)
 
 		databaseOverride := databaseFlag
 		if dbNameFromDBFlag != "" {
@@ -1802,7 +1790,7 @@ var rootCmd = &cobra.Command{
 		// root pre-run, before --dry-run/--inspect has had any effect. Proxied
 		// mode is where that is least visible, not where it is acceptable.
 		if proxiedServerMode {
-			p, err := newProxiedServerUOWProvider(rootCtx, beadsDir, databaseOverride,
+			p, err := newProxiedServerUOWProvider(rootCtx, issuegraphDir, databaseOverride,
 				rootProviderOptions(previewMode, useReadOnly)...)
 			if err != nil {
 				// Same typed rendering the store path gets below: a schema
@@ -1821,8 +1809,8 @@ var rootCmd = &cobra.Command{
 			// call below. With hooks disabled the sinks are empty and the
 			// provider comes back unwrapped.
 			var uowSinks uow.Sinks
-			if beadsDir != "" && !config.GetBool("no-hooks") {
-				hookRunner = hooks.NewRunner(filepath.Join(beadsDir, "hooks"))
+			if issuegraphDir != "" && !config.GetBool("no-hooks") {
+				hookRunner = hooks.NewRunner(filepath.Join(issuegraphDir, "hooks"))
 				uowSinks.Hook = hookRunner
 			}
 			uowProvider = wireExternalDependencyUOWProvider(uow.NewNotifyingProvider(p, uowSinks))
@@ -1856,7 +1844,7 @@ var rootCmd = &cobra.Command{
 		// Dolt manages these files itself; external interference is never safe.
 
 		if _, ok := backends.Lookup(cfg.GetBackend()); ok {
-			store, err = newRegisteredBackendStore(rootCtx, cfg.GetBackend(), beadsDir, useReadOnly)
+			store, err = newRegisteredBackendStore(rootCtx, cfg.GetBackend(), issuegraphDir, useReadOnly)
 		} else {
 			store, err = newDoltStore(rootCtx, doltCfg)
 		}
@@ -1889,37 +1877,37 @@ var rootCmd = &cobra.Command{
 		// This handles the upgrade path from pre-0.56 (dolt/) to 1.0+ (embeddeddolt/)
 		// where the new embedded database starts empty but the git-tracked JSONL
 		// still has all the user's data.
-		// Skip auto-import when the user is explicitly running "bd import" —
+		// Skip auto-import when the user is explicitly running "issuegraph import" —
 		// the import command handles JSONL files itself and auto-importing
 		// first would interfere (double-import / upsert confusion).
 		if shouldRunAutoImportJSONL(cmd, store, useReadOnly, globalFlag, doltCfg.ServerMode) &&
 			!isDisablingImportAutoViaConfigCommand(cmd, args) {
-			maybeAutoImportJSONL(rootCtx, store, beadsDir)
+			maybeAutoImportJSONL(rootCtx, store, issuegraphDir)
 		}
 
 		// Validate workspace identity for write commands (GH#2438, GH#2372)
 		// Skip for read-only commands since they can't corrupt data.
 		// Skip for --global: the global database uses a sentinel project ID
 		// that won't match any project's metadata.json.
-		if !useReadOnly && !globalFlag && os.Getenv("BEADS_SKIP_IDENTITY_CHECK") != "1" {
-			if err := validateWorkspaceIdentity(rootCtx, beadsDir); err != nil {
+		if !useReadOnly && !globalFlag && os.Getenv("ISSUEGRAPH_SKIP_IDENTITY_CHECK") != "1" {
+			if err := validateWorkspaceIdentity(rootCtx, issuegraphDir); err != nil {
 				return err
 			}
 		}
 
-		// Initialize hook runner using the .beads directory resolved above via
-		// resolveCommandBeadsDir. Do not use filepath.Dir(dbPath): for a
-		// registered WorkspaceIsBeadsDir backend dbPath is the .beads directory
+		// Initialize hook runner using the .issuegraph directory resolved above via
+		// resolveCommandIssueGraphDir. Do not use filepath.Dir(dbPath): for a
+		// registered WorkspaceIsIssueGraphDir backend dbPath is the .issuegraph directory
 		// itself, so filepath.Dir(dbPath) would load hooks from the repo root
-		// (<repo>/hooks) instead of .beads/hooks; custom dolt_data_dir layouts
-		// can likewise place the Dolt data outside .beads.
-		if beadsDir != "" {
-			hookRunner = hooks.NewRunner(filepath.Join(beadsDir, "hooks"))
+		// (<repo>/hooks) instead of .issuegraph/hooks; custom dolt_data_dir layouts
+		// can likewise place the Dolt data outside .issuegraph.
+		if issuegraphDir != "" {
+			hookRunner = hooks.NewRunner(filepath.Join(issuegraphDir, "hooks"))
 		}
 
 		// Compose the storage decorator chain: OTel instrumentation (no-op
 		// when telemetry is off) wrapped by hook firing (skipped when
-		// BD_NO_HOOKS=1, which is useful for bulk imports, migrations, or
+		// ISSUEGRAPH_NO_HOOKS=1, which is useful for bulk imports, migrations, or
 		// environments where on_create/on_update/on_close hooks should not
 		// run). Order matters — see wireStorageDecorators in storage_chain.go.
 		store = wireStorageDecorators(store, hookRunner, config.GetBool("no-hooks"))
@@ -1931,11 +1919,11 @@ var rootCmd = &cobra.Command{
 		// Templates are loaded after auto-import to ensure the database is up-to-date.
 		// Skip for import command to avoid conflicts during import operations.
 		if cmd.Name() != "import" && store != nil {
-			// Reuse the resolved .beads directory (see the hook runner note
-			// above) so a registered WorkspaceIsBeadsDir workspace loads
-			// .beads/molecules.jsonl rather than <repo>/molecules.jsonl.
+			// Reuse the resolved .issuegraph directory (see the hook runner note
+			// above) so a registered WorkspaceIsIssueGraphDir workspace loads
+			// .issuegraph/molecules.jsonl rather than <repo>/molecules.jsonl.
 			loader := molecules.NewLoader(store)
-			if result, err := loader.LoadAll(rootCtx, beadsDir); err != nil {
+			if result, err := loader.LoadAll(rootCtx, issuegraphDir); err != nil {
 				debug.Logf("warning: failed to load molecules: %v", err)
 			} else if result.Loaded > 0 {
 				debug.Logf("loaded %d molecules from %v", result.Loaded, result.Sources)
@@ -1956,7 +1944,7 @@ var rootCmd = &cobra.Command{
 		// to) handed those closers a dead context on the way out.
 		//
 		// Clearing matters as much as canceling. Leaving rootCtx pointing at
-		// the context we just canceled is harmless when a real bd process
+		// the context we just canceled is harmless when a real issuegraph process
 		// exits here, but every in-process caller that runs Execute() more
 		// than once -- the modules/cli test binary, library embedders -- would
 		// hand that dead context to the next command, and anything reading
@@ -1974,7 +1962,7 @@ var rootCmd = &cobra.Command{
 		defer restoreChangeDirSelection()
 		// Give the hooks this command fired their moment before the process
 		// exits. Both plumbings run them fire-and-forget on their own
-		// goroutines, and a bd command is short enough that returning from main
+		// goroutines, and a issuegraph command is short enough that returning from main
 		// can kill one that has not reached exec yet — a hook that silently did
 		// not fire, which is the failure this whole seam exists to stop.
 		// Bounded by the runner's own per-hook budget: a script that outlives it
@@ -1982,7 +1970,7 @@ var rootCmd = &cobra.Command{
 		//
 		// Deferred order is load-bearing on both sides. It runs AFTER the
 		// close-and-release below, because a hook script commonly shells out to
-		// bd and an EMBEDDED workspace's Dolt lock is held until this process
+		// issuegraph and an EMBEDDED workspace's Dolt lock is held until this process
 		// closes its store — the child would fail to open it. (The workspace
 		// gates are not the reason: a normal command holds them SHARED, and the
 		// child takes them shared too, so those never contend.) It runs BEFORE
@@ -2008,7 +1996,7 @@ var rootCmd = &cobra.Command{
 			// rather than beside the deferred hook wait, for the reason spelled
 			// out at the other trigger site below.
 			if shouldAutoPruneEventsJournal(cmd) {
-				maybeAutoPruneEventsJournal(rootCtx, beads.FindBeadsDir())
+				maybeAutoPruneEventsJournal(rootCtx, issuegraph.FindIssueGraphDir())
 			}
 			if uowProvider != nil {
 				_ = uowProvider.Close(rootCtx)
@@ -2020,7 +2008,7 @@ var rootCmd = &cobra.Command{
 			// not the user's command — auto-commit, the tip_*_last_shown
 			// metadata write and its separate Dolt commit, auto-backup,
 			// auto-export and auto-push all mutate the very store being
-			// migrated, and `bd list` on a frozen workspace reaches every one
+			// migrated, and `issuegraph list` on a frozen workspace reaches every one
 			// of them. Guarding the outer block keeps that promise in one
 			// place instead of six. Writes never get here at all: they were
 			// refused in PersistentPreRunE.
@@ -2093,7 +2081,7 @@ var rootCmd = &cobra.Command{
 
 				// Auto-push: push to Dolt remote if enabled and due.
 				// Skip for read-only commands to avoid unnecessary network operations
-				// and metadata writes on commands like bd list/show/ready (GH#2191).
+				// and metadata writes on commands like issuegraph list/show/ready (GH#2191).
 				if !isReadOnlyCommand(cmd.Name()) {
 					runPostRunAutoPush(rootCtx)
 				}
@@ -2113,7 +2101,7 @@ var rootCmd = &cobra.Command{
 				// context cancel. That is the only order in which both hold.
 				// Auto-prune needs an OPEN store, which the body still has and
 				// the hook wait deliberately does not (it is sequenced after
-				// the close so a hook that shells out to bd can take the
+				// the close so a hook that shells out to issuegraph can take the
 				// embedded Dolt lock). And it must not be deferred alongside
 				// them: it would then either run after the store closed, or
 				// delay the close the hook children are waiting on. Its cost is
@@ -2121,7 +2109,7 @@ var rootCmd = &cobra.Command{
 				// budget at worst — so the hook wait it precedes starts
 				// essentially on time.
 				if shouldAutoPruneEventsJournal(cmd) {
-					maybeAutoPruneEventsJournal(rootCtx, beads.FindBeadsDir())
+					maybeAutoPruneEventsJournal(rootCtx, issuegraph.FindIssueGraphDir())
 				}
 			}
 
@@ -2156,14 +2144,14 @@ var rootCmd = &cobra.Command{
 			_ = traceFile.Close() // Best effort cleanup
 		}
 
-		// Heap profiling: --mem-profile flag or BEADS_MEM_PROFILE env var.
-		// Runs a GC first by default; BEADS_MEM_PROFILE_NOGC=1 skips it to capture peak.
+		// Heap profiling: --mem-profile flag or ISSUEGRAPH_MEM_PROFILE env var.
+		// Runs a GC first by default; ISSUEGRAPH_MEM_PROFILE_NOGC=1 skips it to capture peak.
 		heapDest := memProfilePath
 		if heapDest == "" {
-			heapDest = os.Getenv("BEADS_MEM_PROFILE")
+			heapDest = os.Getenv("ISSUEGRAPH_MEM_PROFILE")
 		}
 		if heapDest != "" {
-			if os.Getenv("BEADS_MEM_PROFILE_NOGC") == "" {
+			if os.Getenv("ISSUEGRAPH_MEM_PROFILE_NOGC") == "" {
 				runtime.GC()
 			}
 			if f, err := os.Create(heapDest); err == nil { // #nosec G304 -- user-supplied profiling path
@@ -2171,8 +2159,8 @@ var rootCmd = &cobra.Command{
 				_ = f.Close()
 			}
 		}
-		// Optional one-line MemStats summary: BEADS_MEM_STATS=/path/to/stats.txt
-		if statsDest := os.Getenv("BEADS_MEM_STATS"); statsDest != "" {
+		// Optional one-line MemStats summary: ISSUEGRAPH_MEM_STATS=/path/to/stats.txt
+		if statsDest := os.Getenv("ISSUEGRAPH_MEM_STATS"); statsDest != "" {
 			var ms runtime.MemStats
 			runtime.ReadMemStats(&ms)
 			if f, err := os.Create(statsDest); err == nil { // #nosec G304 -- user-supplied profiling path
@@ -2200,7 +2188,7 @@ func shouldRunAutoImportJSONL(cmd *cobra.Command, s storage.DoltStorage, useRead
 	if cmd == nil || s == nil || useReadOnly || globalFlag || serverMode {
 		return false
 	}
-	// import.auto=false (or BD_IMPORT_AUTO=false) must disable ALL auto-import
+	// import.auto=false (or ISSUEGRAPH_IMPORT_AUTO=false) must disable ALL auto-import
 	// behavior, not just the git-hook sync path (importJSONLForSync). Without
 	// this check, a fresh/empty database would silently auto-import stale
 	// issues.jsonl on every write command regardless of the config setting
@@ -2212,12 +2200,12 @@ func shouldRunAutoImportJSONL(cmd *cobra.Command, s storage.DoltStorage, useRead
 }
 
 // isDisablingImportAutoViaConfigCommand reports whether the command about to
-// run is "bd config set import.auto false" (or an equivalent
-// "bd config set-many ... import.auto=false" pair). shouldRunAutoImportJSONL
+// run is "issuegraph config set import.auto false" (or an equivalent
+// "issuegraph config set-many ... import.auto=false" pair). shouldRunAutoImportJSONL
 // runs in PersistentPreRun before configSetCmd/configSetManyCmd write the new
 // value to config.yaml, so without this exemption the master switch would
 // trigger the very auto-import it is meant to disable on its own invocation
-// when a stale .beads/issues.jsonl sits next to an empty database (GH#4304).
+// when a stale .issuegraph/issues.jsonl sits next to an empty database (GH#4304).
 func isDisablingImportAutoViaConfigCommand(cmd *cobra.Command, args []string) bool {
 	if cmd == nil || cmd.Parent() == nil || cmd.Parent().Name() != "config" {
 		return false
@@ -2258,14 +2246,14 @@ func commandAllowsEmptyAutoExport(cmd *cobra.Command) bool {
 // blockedEnvVars lists environment variables that must not be set because they
 // could silently override the storage backend via viper's AutomaticEnv, causing
 // data fragmentation (bd-hevyw).
-var blockedEnvVars = []string{"BD_BACKEND", "BD_DATABASE_BACKEND"}
+var blockedEnvVars = []string{"ISSUEGRAPH_BACKEND", "ISSUEGRAPH_DATABASE_BACKEND"}
 
 // checkBlockedEnvVars returns an error if any blocked env vars are set.
 func checkBlockedEnvVars() error {
 	for _, name := range blockedEnvVars {
 		if os.Getenv(name) != "" {
 			return fmt.Errorf("%s env var is not supported and has been removed to prevent data fragmentation.\n"+
-				"Unset %s; storage selection comes from .beads/metadata.json. To choose a different supported backend, follow 'bd help init-safety'; do not edit metadata.json by hand", name, name)
+				"Unset %s; storage selection comes from .issuegraph/metadata.json. To choose a different supported backend, follow 'issuegraph help init-safety'; do not edit metadata.json by hand", name, name)
 		}
 	}
 	return nil
@@ -2344,13 +2332,13 @@ func flushBatchCommitOnShutdown() {
 // 1. Read commands are safe even against wrong databases (no data mutation)
 // 2. The check requires an open store connection
 // 3. New databases won't have _project_id yet (bootstrap case)
-func validateWorkspaceIdentity(ctx context.Context, beadsDir string) error {
+func validateWorkspaceIdentity(ctx context.Context, issuegraphDir string) error {
 	if store == nil {
 		return nil // No store connection, nothing to validate
 	}
 
 	// Load project_id from metadata.json
-	cfg, err := configfile.Load(beadsDir)
+	cfg, err := configfile.Load(issuegraphDir)
 	if err != nil || cfg == nil {
 		return nil // No config, skip validation (fresh init)
 	}
@@ -2372,22 +2360,22 @@ func validateWorkspaceIdentity(ctx context.Context, beadsDir string) error {
 		fmt.Fprintf(os.Stderr, "  database _project_id:     %s\n\n", dbProjectID)
 		fmt.Fprintf(os.Stderr, "This means the CLI config and database belong to different projects.\n")
 		fmt.Fprintf(os.Stderr, "Possible causes:\n")
-		fmt.Fprintf(os.Stderr, "  • BEADS_DIR points to a different project's .beads/\n")
+		fmt.Fprintf(os.Stderr, "  • ISSUEGRAPH_DIR points to a different project's .issuegraph/\n")
 		fmt.Fprintf(os.Stderr, "  • Dolt server endpoint changed and now serves a different database\n")
 		fmt.Fprintf(os.Stderr, "  • metadata.json was copied from another project\n\n")
-		fmt.Fprintf(os.Stderr, "Recovery: run 'bd doctor --fix' or 'bd bootstrap' to reconcile workspace metadata with the authoritative database when shared-server metadata drifted.\n")
-		fmt.Fprintf(os.Stderr, "To diagnose: bd context --json\n")
-		fmt.Fprintf(os.Stderr, "To override: set BEADS_SKIP_IDENTITY_CHECK=1\n")
+		fmt.Fprintf(os.Stderr, "Recovery: run 'issuegraph doctor --fix' or 'issuegraph bootstrap' to reconcile workspace metadata with the authoritative database when shared-server metadata drifted.\n")
+		fmt.Fprintf(os.Stderr, "To diagnose: issuegraph context --json\n")
+		fmt.Fprintf(os.Stderr, "To override: set ISSUEGRAPH_SKIP_IDENTITY_CHECK=1\n")
 		return SilentExit()
 	}
 	return nil
 }
 
 func main() {
-	// BD_NAME overrides the binary name in help text (e.g. BD_NAME=ops makes
-	// "ops --help" show "ops" instead of "bd"). Useful for multi-instance
-	// setups where wrapper scripts set BEADS_DIR for routing.
-	if name := os.Getenv("BD_NAME"); name != "" {
+	// ISSUEGRAPH_NAME overrides the binary name in help text (e.g. ISSUEGRAPH_NAME=ops makes
+	// "ops --help" show "ops" instead of "issuegraph"). Useful for multi-instance
+	// setups where wrapper scripts set ISSUEGRAPH_DIR for routing.
+	if name := os.Getenv("ISSUEGRAPH_NAME"); name != "" {
 		rootCmd.Use = name
 	}
 
@@ -2402,7 +2390,7 @@ func main() {
 	// Let this command's fire-and-forget hooks finish, for the same
 	// every-exit-path reason the metrics flush below is here rather than in
 	// PersistentPostRunE: cobra SKIPS PostRunE when RunE returns an error, so a
-	// partial batch — `bd close A B` where A commits and B refuses — would exit
+	// partial batch — `issuegraph close A B` where A commits and B refuses — would exit
 	// with A's committed mutation never reaching its hook script. Idempotent, so
 	// the PostRunE call on the clean path makes this one free.
 	waitForCommandHooks()
@@ -2430,15 +2418,15 @@ func resolveMetricsEnabled() bool {
 	// DO_NOT_TRACK is a disable-only alias: a truthy value opts out, but a
 	// falsey or empty value (DO_NOT_TRACK=0/false/"") must fall through to the
 	// user's saved preference instead of forcing metrics back on over a saved
-	// `bd metrics off`. Only BD_DISABLE_METRICS (checked first) is a
+	// `issuegraph metrics off`. Only ISSUEGRAPH_DISABLE_METRICS (checked first) is a
 	// bidirectional override.
 	if v, ok := os.LookupEnv(metrics.EnvDoNotTrack); ok && envTruthyValue(v) {
 		return false
 	}
 	// Consent is the user's own global choice: resolve it from the user-global
-	// config only, never merged project/BEADS_DIR config. Otherwise a
-	// repository's .beads/config.yaml (highest viper precedence) could re-enable
-	// metrics for a user who ran `bd metrics off`.
+	// config only, never merged project/ISSUEGRAPH_DIR config. Otherwise a
+	// repository's .issuegraph/config.yaml (highest viper precedence) could re-enable
+	// metrics for a user who ran `issuegraph metrics off`.
 	return !config.MetricsDisabledByUserConfig()
 }
 
@@ -2466,7 +2454,7 @@ func envTruthyValue(v string) bool {
 }
 
 // secretFlagNames are long flag names whose entire value is an opaque credential
-// that must never reach the bd.args telemetry span. The flag's value is redacted
+// that must never reach the issuegraph.args telemetry span. The flag's value is redacted
 // wholesale. Only federation add-peer's --password currently qualifies. Its shorthand (-p) is
 // resolved per command via secretFlagTokens so the same letter bound to
 // --priority/--prefix/--parallel on other commands is never redacted.
@@ -2495,7 +2483,7 @@ func secretFlagTokens(cmd *cobra.Command) map[string]bool {
 	return tokens
 }
 
-// scrubArgsForTelemetry joins argv for the bd.args span attribute with any
+// scrubArgsForTelemetry joins argv for the issuegraph.args span attribute with any
 // credential-bearing values redacted. A secretFlags token's value is redacted
 // wholesale across the `--password <v>`,
 // `--password=<v>`, `-p <v>`, `-p=<v>`, and `-p<v>` spellings pflag accepts. Every

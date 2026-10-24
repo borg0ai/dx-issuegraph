@@ -7,10 +7,10 @@ import (
 	"fmt"
 	"time"
 
-	"github.com/steveyegge/beads/internal/storage"
-	"github.com/steveyegge/beads/internal/storage/issueops"
-	"github.com/steveyegge/beads/internal/storage/versioncontrolops"
-	"github.com/steveyegge/beads/internal/types"
+	"github.com/borg0ai/dx-issuegraph/internal/storage"
+	"github.com/borg0ai/dx-issuegraph/internal/storage/issueops"
+	"github.com/borg0ai/dx-issuegraph/internal/storage/versioncontrolops"
+	"github.com/borg0ai/dx-issuegraph/internal/types"
 )
 
 // History returns the complete version history for an issue.
@@ -221,7 +221,7 @@ func (s *DoltStore) GetConflicts(ctx context.Context) ([]storage.Conflict, error
 var _ storage.ConflictInspector = (*DoltStore)(nil)
 
 // GetConflictRows returns the live conflicted rows of table, per field.
-// Implements storage.ConflictInspector (backs `bd conflicts list|show`).
+// Implements storage.ConflictInspector (backs `issuegraph conflicts list|show`).
 func (s *DoltStore) GetConflictRows(ctx context.Context, table string) ([]storage.ConflictRow, error) {
 	return versioncontrolops.GetConflictRows(ctx, s.db, table)
 }
@@ -236,7 +236,7 @@ func (s *DoltStore) GetMergeBlockers(ctx context.Context) (storage.MergeBlockers
 }
 
 // ResolveConflictRows resolves individual conflicted rows of table by key.
-// Implements storage.ConflictInspector (backs `bd conflicts resolve <id>`).
+// Implements storage.ConflictInspector (backs `issuegraph conflicts resolve <id>`).
 //
 // It runs on a pinned connection, not the pool: the resolution sets dolt's
 // conflict-tolerance session flags, and on *sql.DB a follow-up statement could

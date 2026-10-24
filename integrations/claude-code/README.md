@@ -6,7 +6,7 @@ Slash command for converting [Claude Code](https://docs.anthropic.com/en/docs/cl
 
 ```bash
 # Install issuegraph
-curl -fsSL https://raw.githubusercontent.com/gastownhall/beads/main/scripts/install.sh | bash
+curl -fsSL https://raw.githubusercontent.com/borg0ai/dx-issuegraph/main/scripts/install.sh | bash
 
 # Install hooks (auto-injects workflow context on session start)
 issuegraph setup claude
@@ -15,7 +15,7 @@ issuegraph setup claude
 ## Installation
 
 ```bash
-cp commands/plan-to-beads.md ~/.claude/commands/
+cp commands/plan-to-issuegraph.md ~/.claude/commands/
 ```
 
 Optionally add to `~/.claude/settings.json` under `permissions.allow`:
@@ -24,13 +24,13 @@ Optionally add to `~/.claude/settings.json` under `permissions.allow`:
 "Bash(issuegraph:*)"
 ```
 
-## /plan-to-beads
+## /plan-to-issuegraph
 
 Converts a Claude Code plan file into an issuegraph epic with tasks.
 
 ```
-/plan-to-beads                    # Convert most recent plan
-/plan-to-beads path/to/plan.md    # Convert specific plan
+/plan-to-issuegraph                    # Convert most recent plan
+/plan-to-issuegraph path/to/plan.md    # Convert specific plan
 ```
 
 **What it does:**
@@ -44,10 +44,10 @@ Converts a Claude Code plan file into an issuegraph epic with tasks.
 ```
 Created from: peaceful-munching-spark.md
 
-Epic: Standardize ID Generation (bd-abc)
-  ├── Add dependency (bd-def) - ready
-  ├── Create ID utility (bd-ghi) - blocked by bd-def
-  └── Update schema (bd-jkl) - blocked by bd-ghi
+Epic: Standardize ID Generation (issuegraph-abc)
+  ├── Add dependency (issuegraph-def) - ready
+  ├── Create ID utility (issuegraph-ghi) - blocked by issuegraph-def
+  └── Update schema (issuegraph-jkl) - blocked by issuegraph-ghi
 
 Total: 4 tasks
 Run `issuegraph ready` to start.

@@ -8,10 +8,10 @@ import (
 	"strings"
 	"time"
 
-	"github.com/steveyegge/beads/internal/storage"
+	"github.com/borg0ai/dx-issuegraph/internal/storage"
 )
 
-// This file backs `bd conflicts` (federation ask #3): the issue-oriented view
+// This file backs `issuegraph conflicts` (federation ask #3): the issue-oriented view
 // of a halted merge that spares operators the raw dolt CLI
 // (`dolt conflicts cat`, `dolt conflicts resolve`, `dolt add -A && dolt
 // commit`). It reads dolt's per-table conflict tables — dolt_conflicts_<t>,
@@ -437,7 +437,7 @@ func resolveOneConflictRow(ctx context.Context, db DBConn, table, keyCol, key, s
 	return nil
 }
 
-// GetMergeBlockers reports the merge state that `bd conflicts` cannot show as
+// GetMergeBlockers reports the merge state that `issuegraph conflicts` cannot show as
 // rows: whether a merge is open at all, plus the schema conflicts and
 // constraint violations that make dolt refuse the merge commit even when
 // every dolt_conflicts row is resolved (wy-36ilm F12). Without it, that state

@@ -8,10 +8,10 @@ import (
 
 	"github.com/spf13/cobra"
 
-	"github.com/steveyegge/beads/internal/beads"
-	"github.com/steveyegge/beads/internal/metrics"
-	"github.com/steveyegge/beads/internal/migration"
-	"github.com/steveyegge/beads/internal/ui"
+	"github.com/borg0ai/dx-issuegraph/internal/issuegraph"
+	"github.com/borg0ai/dx-issuegraph/internal/metrics"
+	"github.com/borg0ai/dx-issuegraph/internal/migration"
+	"github.com/borg0ai/dx-issuegraph/internal/ui"
 )
 
 type exitError struct {
@@ -31,11 +31,11 @@ func exitCodeFromError(err error) (int, bool) {
 }
 
 func activeWorkspaceNotFoundError() string {
-	return "no active beads workspace found"
+	return "no active issuegraph workspace found"
 }
 
 func activeWorkspaceNotFoundMessage() string {
-	return "No active beads workspace found."
+	return "No active issuegraph workspace found."
 }
 
 func diagHint() string {
@@ -49,14 +49,14 @@ func whereDiagHint() string {
 func workspaceDiagHint(includeWhere bool) string {
 	if includeWhere {
 		if !usesSQLServer() {
-			return "run 'bd where' to inspect the resolved workspace, or 'bd init' to create a new database"
+			return "run 'issuegraph where' to inspect the resolved workspace, or 'issuegraph init' to create a new database"
 		}
-		return "run 'bd where' to inspect the resolved workspace, run 'bd doctor' to diagnose, or 'bd init' to create a new database"
+		return "run 'issuegraph where' to inspect the resolved workspace, run 'issuegraph doctor' to diagnose, or 'issuegraph init' to create a new database"
 	}
 	if !usesSQLServer() {
-		return "check BEADS_DIR/worktree setup, or run 'bd init' to create a new database"
+		return "check ISSUEGRAPH_DIR/worktree setup, or run 'issuegraph init' to create a new database"
 	}
-	return "check BEADS_DIR/worktree setup, run 'bd doctor' to diagnose, or run 'bd init' to create a new database"
+	return "check ISSUEGRAPH_DIR/worktree setup, run 'issuegraph doctor' to diagnose, or run 'issuegraph init' to create a new database"
 }
 
 func buildJSONError(message, hint string) interface{} {
@@ -182,7 +182,7 @@ func WarnError(format string, args ...interface{}) {
 // retrying immediately.
 const ExitMigrationFrozen = 14
 
-// CheckReadonly aborts the command when bd is running in read-only mode (the
+// CheckReadonly aborts the command when issuegraph is running in read-only mode (the
 // worker-sandbox posture, see readonlyMode), or when a migration freeze
 // marker is active (dc-6jaq, folded in here rather than requiring every write
 // command to remember a second call — see migrationFreezeError below). This
@@ -190,7 +190,7 @@ const ExitMigrationFrozen = 14
 // folding the freeze check in here covers the whole write surface at once,
 // including commands added after this comment is written — not just a
 // hand-picked list that rots (one concrete instance the hand-picked list
-// missed: "bd q", modules/cli/quick.go, the create alias). It exits via os.Exit
+// missed: "issuegraph q", modules/cli/quick.go, the create alias). It exits via os.Exit
 // and so cannot run the per-command deferred CloseEventAndAdd — a command
 // blocked here records no cli_command event of its own (it never actually
 // ran). It does flush metrics first, so events already queued earlier in this
@@ -213,21 +213,21 @@ func CheckReadonly(operation string) {
 // freezeSearchRoots returns the directories whose ancestry the freeze lookup
 // must cover in addition to the working directory: the resolved workspace, so
 // the gate keys on the store being written rather than on the caller's shell.
-// Without it, `BEADS_DIR=/work/repo/.beads bd create` run from $HOME, `bd -C
-// /work/repo create` (which sets BEADS_DIR and never chdirs), and any daemon
+// Without it, `ISSUEGRAPH_DIR=/work/repo/.issuegraph issuegraph create` run from $HOME, `issuegraph -C
+// /work/repo create` (which sets ISSUEGRAPH_DIR and never chdirs), and any daemon
 // or cron job with an unrelated cwd all walk the wrong tree and write straight
 // through a freeze.
 //
-// PersistentPreRunE exports BEADS_DIR as part of selecting the workspace
+// PersistentPreRunE exports ISSUEGRAPH_DIR as part of selecting the workspace
 // (prepareSelectedCommandContext), so by the time a command's RunE reaches
-// CheckReadonly this is a cheap env read. The FindBeadsDir fallback covers the
+// CheckReadonly this is a cheap env read. The FindIssueGraphDir fallback covers the
 // callers that run before that — and returns "" rather than erroring when
 // there is no workspace at all, which Find skips.
 func freezeSearchRoots() []string {
-	if dir := os.Getenv("BEADS_DIR"); dir != "" {
+	if dir := os.Getenv("ISSUEGRAPH_DIR"); dir != "" {
 		return []string{dir}
 	}
-	if dir := beads.FindBeadsDir(); dir != "" {
+	if dir := issuegraph.FindIssueGraphDir(); dir != "" {
 		return []string{dir}
 	}
 	return nil
@@ -250,7 +250,7 @@ func freezeSearchRoots() []string {
 //     call would let a version-bump migration or a JSONL auto-import slip
 //     through a freeze first (the most dangerous writes here, since they
 //     run against the very store the freeze protects).
-//  3. import.go directly — bd import (runImport) is not gated by
+//  3. import.go directly — issuegraph import (runImport) is not gated by
 //     CheckReadonly at all today (a pre-existing, separate gap: readonlyMode
 //     doesn't block it either), so it cannot inherit the freeze check from
 //     caller 1 and needs its own explicit call.
@@ -269,18 +269,18 @@ func migrationFreezeRefusal(operation string, res migration.Result) error {
 	}
 
 	if res.Err != nil {
-		// Fail closed: bd could not tell whether a marker is present (a
+		// Fail closed: issuegraph could not tell whether a marker is present (a
 		// permission error on the marker or a directory above it). An
 		// undeterminable gate is not an open gate, and saying so beats
 		// writing into a workspace that may be mid-migration.
 		fmt.Fprint(os.Stderr, "⛔ ERROR: cannot determine whether this workspace is frozen for migration.\n")
 		fmt.Fprintf(os.Stderr, "   %s\n", ui.SanitizeForTerminal(res.Err.Error()))
-		fmt.Fprintf(os.Stderr, "   bd %s is blocked until the marker can be read.\n", operation)
-		fmt.Fprintf(os.Stderr, "   Fix the permissions, or set %s to a path bd can stat.\n", migration.EnvFreezeFile)
+		fmt.Fprintf(os.Stderr, "   issuegraph %s is blocked until the marker can be read.\n", operation)
+		fmt.Fprintf(os.Stderr, "   Fix the permissions, or set %s to a path issuegraph can stat.\n", migration.EnvFreezeFile)
 		return &exitError{Code: ExitMigrationFrozen}
 	}
 
-	// The marker can live in a directory bd does not control, so its payload
+	// The marker can live in a directory issuegraph does not control, so its payload
 	// is untrusted input on its way to a terminal. parse already keeps it to
 	// one line; sanitizing strips ANSI and control bytes on top of that.
 	operator := ""
@@ -300,7 +300,7 @@ func migrationFreezeRefusal(operation string, res migration.Result) error {
 	if reason != "" {
 		fmt.Fprintf(os.Stderr, "   Reason: %s\n", reason)
 	}
-	fmt.Fprintf(os.Stderr, "   bd %s is blocked by the freeze marker at %s.\n", operation, res.Path)
+	fmt.Fprintf(os.Stderr, "   issuegraph %s is blocked by the freeze marker at %s.\n", operation, res.Path)
 	if res.FromEnv {
 		fmt.Fprintf(os.Stderr, "   To resume writes, remove that file or unset %s.\n", migration.EnvFreezeFile)
 	} else {
@@ -308,7 +308,7 @@ func migrationFreezeRefusal(operation string, res migration.Result) error {
 		// directory the caller cannot write to, pointing the variable
 		// elsewhere is the only recovery available to them.
 		fmt.Fprint(os.Stderr, "   To resume writes, remove that file.\n")
-		fmt.Fprintf(os.Stderr, "   If you cannot remove it, set %s to a path bd should check instead.\n", migration.EnvFreezeFile)
+		fmt.Fprintf(os.Stderr, "   If you cannot remove it, set %s to a path issuegraph should check instead.\n", migration.EnvFreezeFile)
 	}
 	return &exitError{Code: ExitMigrationFrozen}
 }
@@ -335,8 +335,8 @@ func migrationFreezeGate(cmd *cobra.Command, operation string, res migration.Res
 }
 
 // migrationFreezeGateFor resolves the freeze and gates in one step, for the
-// callers that have no Result to thread: the skip-store commands (bd init,
-// bd bootstrap), which return from PersistentPreRunE long before it resolves
+// callers that have no Result to thread: the skip-store commands (issuegraph init,
+// issuegraph bootstrap), which return from PersistentPreRunE long before it resolves
 // one, and any command handed an explicit target path.
 func migrationFreezeGateFor(cmd *cobra.Command, operation string, extraRoots ...string) error {
 	return migrationFreezeGate(cmd, operation, migration.Find(freezeRootsWith(extraRoots)...))
@@ -359,7 +359,7 @@ func migrationFreezeActive() bool {
 
 // migrationFreezeActiveFor is migrationFreezeActive against extra roots — the
 // probe half of the migrationFreezeErrorFor pair, for a diagnosis path handed a
-// workspace that is not the one bd was launched in. `bd doctor /frozen/repo`
+// workspace that is not the one issuegraph was launched in. `issuegraph doctor /frozen/repo`
 // skips its own maintenance writes on the strength of this, so it has to look
 // at the tree it is about to write to and not just at the caller's cwd.
 func migrationFreezeActiveFor(extraRoots ...string) bool {

@@ -94,8 +94,8 @@ func TestResolveSocketTransport_SocketDownNoPort_KeepsSocket(t *testing.T) {
 // dial. Keep this test on the connection-error path so it needs no live Dolt
 // server while still proving that server-mode configuration is normalized.
 func TestNewServerMode_SocketDownTCPUpFallsBack(t *testing.T) {
-	t.Setenv("BEADS_TEST_MODE", "1")
-	const socket = "/tmp/beads-test-mysql.sock"
+	t.Setenv("ISSUEGRAPH_TEST_MODE", "1")
+	const socket = "/tmp/issuegraph-test-mysql.sock"
 	const host = "127.0.0.1"
 	const port = 1 // expected to be unreachable for the eventual real connection dial
 	tcpAddr := net.JoinHostPort(host, "1")
@@ -127,7 +127,7 @@ func TestNewServerMode_SocketDownTCPUpFallsBack(t *testing.T) {
 }
 
 func TestNewServerMode_NoSocketDoesNotProbe(t *testing.T) {
-	t.Setenv("BEADS_TEST_MODE", "1")
+	t.Setenv("ISSUEGRAPH_TEST_MODE", "1")
 	calls := withStubbedDialProbe(t, map[string]bool{})
 	cfg := &Config{
 		Database:   "test_socket_fallback_no_socket",

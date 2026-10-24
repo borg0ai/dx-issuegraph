@@ -4,9 +4,9 @@ import (
 	"fmt"
 	"time"
 
+	"github.com/borg0ai/dx-issuegraph/internal/metrics"
+	"github.com/borg0ai/dx-issuegraph/internal/storage"
 	"github.com/spf13/cobra"
-	"github.com/steveyegge/beads/internal/metrics"
-	"github.com/steveyegge/beads/internal/storage"
 )
 
 var (
@@ -31,7 +31,7 @@ This uses the Tim Sehn recipe:
 
 The GC pass is a full collection: Dolt storage is generational, and a default
 GC never revisits data an earlier GC moved to the old generation. On any store
-that has been GC'd before (bd gc, or a previous flatten or compact), only a
+that has been GC'd before (issuegraph gc, or a previous flatten or compact), only a
 full collection reclaims the squashed history. A full GC can take minutes on
 multi-gigabyte stores.
 
@@ -39,14 +39,14 @@ This is irreversible — all commit history is lost. The resulting database
 has exactly one commit containing all current data.
 
 Use this when:
-  - Your .beads/dolt directory has grown very large
+  - Your .issuegraph/dolt directory has grown very large
   - You don't need commit-level history (time travel)
   - You want to start fresh with minimal storage
 
 Examples:
-  bd flatten --dry-run               # Preview: show commit count and disk usage
-  bd flatten --force                 # Actually squash all history
-  bd flatten --force --json          # JSON output`,
+  issuegraph flatten --dry-run               # Preview: show commit count and disk usage
+  issuegraph flatten --force                 # Actually squash all history
+  issuegraph flatten --force --json          # JSON output`,
 	SilenceUsage:  true,
 	SilenceErrors: true,
 	RunE: func(_ *cobra.Command, _ []string) error {

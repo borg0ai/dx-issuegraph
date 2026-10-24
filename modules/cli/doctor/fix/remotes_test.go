@@ -14,16 +14,16 @@ import (
 	"testing"
 	"time"
 
-	"github.com/steveyegge/beads/internal/configfile"
-	"github.com/steveyegge/beads/internal/storage/dolt"
-	"github.com/steveyegge/beads/internal/testutil"
-	"github.com/steveyegge/beads/internal/types"
+	"github.com/borg0ai/dx-issuegraph/internal/configfile"
+	"github.com/borg0ai/dx-issuegraph/internal/storage/dolt"
+	"github.com/borg0ai/dx-issuegraph/internal/testutil"
+	"github.com/borg0ai/dx-issuegraph/internal/types"
 )
 
 // newIdentityTestStore is a variant of newFixTestStore that seeds a
 // project_id shared by metadata.json and the database, matching what a real
-// `bd init` produces.
-func newIdentityTestStore(t *testing.T, dir, prefix string) (store *dolt.DoltStore, beadsDir, projectID string) {
+// `issuegraph init` produces.
+func newIdentityTestStore(t *testing.T, dir, prefix string) (store *dolt.DoltStore, issuegraphDir, projectID string) {
 	t.Helper()
 	testutil.RequireDoltBinary(t)
 	ctx := context.Background()
@@ -31,9 +31,9 @@ func newIdentityTestStore(t *testing.T, dir, prefix string) (store *dolt.DoltSto
 	requireFixDoltContainer(t)
 	port := fixTestServerPort()
 
-	beadsDir = filepath.Join(dir, ".beads")
-	if err := os.MkdirAll(beadsDir, 0755); err != nil {
-		t.Fatalf("create .beads: %v", err)
+	issuegraphDir = filepath.Join(dir, ".issuegraph")
+	if err := os.MkdirAll(issuegraphDir, 0755); err != nil {
+		t.Fatalf("create .issuegraph: %v", err)
 	}
 
 	// Hash the test name: subtest names blow past Dolt's database-name
@@ -50,12 +50,12 @@ func newIdentityTestStore(t *testing.T, dir, prefix string) (store *dolt.DoltSto
 		DoltDatabase:   dbName,
 		ProjectID:      projectID,
 	}
-	if err := cfg.Save(beadsDir); err != nil {
+	if err := cfg.Save(issuegraphDir); err != nil {
 		t.Fatalf("write metadata.json: %v", err)
 	}
 
 	store, err := dolt.New(ctx, &dolt.Config{
-		Path:            filepath.Join(beadsDir, "beads.db"),
+		Path:            filepath.Join(issuegraphDir, "issuegraph.db"),
 		ServerHost:      "127.0.0.1",
 		ServerPort:      port,
 		Database:        dbName,
@@ -79,16 +79,16 @@ func newIdentityTestStore(t *testing.T, dir, prefix string) (store *dolt.DoltSto
 		store.Close()
 		dropFixTestDatabase(dbName, port)
 	})
-	return store, beadsDir, projectID
+	return store, issuegraphDir, projectID
 }
 
 // TestDestructiveFix_AbortsOnProjectIdentityMismatch is the mybd-2qegi
 // regression test: destructive doctor --fix paths (remotes.go's openFixDB)
 // dial a fresh connection on every call, re-resolving the dolt server port
 // independently of whatever connection doctor's read-only checks used. A
-// stale .beads/dolt-server.port file (or the shared-mode default port) can
+// stale .issuegraph/dolt-server.port file (or the shared-mode default port) can
 // aim that fresh connection at a different project's database — one that
-// commonly shares the same default database name ("beads").
+// commonly shares the same default database name ("issuegraph").
 //
 // This models the observable effect a stale/wrong port resolution would
 // have: the connection openDoltDB opens belongs to a database whose stored
@@ -151,7 +151,7 @@ func TestDestructiveFix_AbortsOnProjectIdentityMismatch(t *testing.T) {
 
 	// Same guard must apply to the other destructive fix entrypoints that
 	// share openDoltDB/openFixDB, including RecomputeBlocked — which
-	// orderDoctorFixes (modules/cli/doctor_fix.go) runs LAST in a `bd doctor
+	// orderDoctorFixes (modules/cli/doctor_fix.go) runs LAST in a `issuegraph doctor
 	// --fix` pass, after every graph-mutating fix, and which would otherwise
 	// still land a DOLT_COMMIT into the wrong project's history.
 	for name, fn := range map[string]func(string) error{
@@ -180,15 +180,15 @@ func TestDestructiveFix_AbortsOnProjectIdentityMismatch(t *testing.T) {
 // unreachable" skip convention at each call site.
 func TestDestructiveFix_SkipsOnUnverifiableTarget(t *testing.T) {
 	dir := t.TempDir()
-	store, beadsDir, _ := newIdentityTestStore(t, dir, "skp")
+	store, issuegraphDir, _ := newIdentityTestStore(t, dir, "skp")
 	ctx := context.Background()
 
-	cfg, err := configfile.Load(beadsDir)
+	cfg, err := configfile.Load(issuegraphDir)
 	if err != nil || cfg == nil {
 		t.Fatalf("load config: %v", err)
 	}
 	cfg.ProjectID = ""
-	if err := cfg.Save(beadsDir); err != nil {
+	if err := cfg.Save(issuegraphDir); err != nil {
 		t.Fatalf("save config: %v", err)
 	}
 
@@ -234,19 +234,19 @@ func TestDestructiveFix_SkipsOnUnverifiableTarget(t *testing.T) {
 // subtests don't depend on run order.
 func TestVerifyFixTargetIdentity(t *testing.T) {
 	t.Run("matching project ids pass", func(t *testing.T) {
-		store, beadsDir, _ := newIdentityTestStore(t, t.TempDir(), "vfi1")
-		if err := verifyFixTargetIdentity(store.UnderlyingDB(), beadsDir, nil); err != nil {
+		store, issuegraphDir, _ := newIdentityTestStore(t, t.TempDir(), "vfi1")
+		if err := verifyFixTargetIdentity(store.UnderlyingDB(), issuegraphDir, nil); err != nil {
 			t.Errorf("expected no error for matching project ids, got: %v", err)
 		}
 	})
 
 	t.Run("mismatched project ids abort with a plain error", func(t *testing.T) {
-		store, beadsDir, _ := newIdentityTestStore(t, t.TempDir(), "vfi2")
+		store, issuegraphDir, _ := newIdentityTestStore(t, t.TempDir(), "vfi2")
 		ctx := context.Background()
 		if err := store.SetMetadata(ctx, "_project_id", "some-other-project"); err != nil {
 			t.Fatalf("SetMetadata: %v", err)
 		}
-		err := verifyFixTargetIdentity(store.UnderlyingDB(), beadsDir, nil)
+		err := verifyFixTargetIdentity(store.UnderlyingDB(), issuegraphDir, nil)
 		if err == nil {
 			t.Fatal("expected mismatch error, got nil")
 		}
@@ -259,13 +259,13 @@ func TestVerifyFixTargetIdentity(t *testing.T) {
 	})
 
 	t.Run("missing database project_id is unverifiable", func(t *testing.T) {
-		store, beadsDir, _ := newIdentityTestStore(t, t.TempDir(), "vfi3")
+		store, issuegraphDir, _ := newIdentityTestStore(t, t.TempDir(), "vfi3")
 		ctx := context.Background()
 		db := store.UnderlyingDB()
 		if _, err := db.ExecContext(ctx, "DELETE FROM metadata WHERE `key` = '_project_id'"); err != nil {
 			t.Fatalf("clear _project_id: %v", err)
 		}
-		err := verifyFixTargetIdentity(db, beadsDir, nil)
+		err := verifyFixTargetIdentity(db, issuegraphDir, nil)
 		if err == nil {
 			t.Fatal("expected unverifiable-target error, got nil")
 		}
@@ -275,16 +275,16 @@ func TestVerifyFixTargetIdentity(t *testing.T) {
 	})
 
 	t.Run("missing local project_id is unverifiable", func(t *testing.T) {
-		store, beadsDir, _ := newIdentityTestStore(t, t.TempDir(), "vfi4")
-		cfg, err := configfile.Load(beadsDir)
+		store, issuegraphDir, _ := newIdentityTestStore(t, t.TempDir(), "vfi4")
+		cfg, err := configfile.Load(issuegraphDir)
 		if err != nil || cfg == nil {
 			t.Fatalf("load config: %v", err)
 		}
 		cfg.ProjectID = ""
-		if err := cfg.Save(beadsDir); err != nil {
+		if err := cfg.Save(issuegraphDir); err != nil {
 			t.Fatalf("save config: %v", err)
 		}
-		verr := verifyFixTargetIdentity(store.UnderlyingDB(), beadsDir, nil)
+		verr := verifyFixTargetIdentity(store.UnderlyingDB(), issuegraphDir, nil)
 		if verr == nil {
 			t.Fatal("expected unverifiable-target error for missing local project_id, got nil")
 		}
@@ -294,12 +294,12 @@ func TestVerifyFixTargetIdentity(t *testing.T) {
 	})
 
 	t.Run("passed-in cfg is used instead of reloading", func(t *testing.T) {
-		store, beadsDir, projectID := newIdentityTestStore(t, t.TempDir(), "vfi5")
+		store, issuegraphDir, projectID := newIdentityTestStore(t, t.TempDir(), "vfi5")
 		// A cfg with a different (wrong) project_id than what's on disk —
 		// if verifyFixTargetIdentity ignored the passed-in cfg and reloaded
-		// from beadsDir instead, this would incorrectly pass.
+		// from issuegraphDir instead, this would incorrectly pass.
 		staleCfg := &configfile.Config{ProjectID: "stale-in-memory-id"}
-		err := verifyFixTargetIdentity(store.UnderlyingDB(), beadsDir, staleCfg)
+		err := verifyFixTargetIdentity(store.UnderlyingDB(), issuegraphDir, staleCfg)
 		if err == nil {
 			t.Fatal("expected mismatch using the passed-in (stale) cfg, got nil")
 		}
@@ -307,7 +307,7 @@ func TestVerifyFixTargetIdentity(t *testing.T) {
 			t.Errorf("expected PROJECT IDENTITY MISMATCH, got: %v", err)
 		}
 		// Sanity: the real on-disk project_id still matches the database.
-		onDisk, loadErr := configfile.Load(beadsDir)
+		onDisk, loadErr := configfile.Load(issuegraphDir)
 		if loadErr != nil || onDisk == nil || onDisk.ProjectID != projectID {
 			t.Fatalf("on-disk project_id drifted unexpectedly: %+v, err=%v", onDisk, loadErr)
 		}

@@ -4,11 +4,11 @@ import (
 	"fmt"
 	"os"
 
+	"github.com/borg0ai/dx-issuegraph/internal/metrics"
+	"github.com/borg0ai/dx-issuegraph/internal/types"
+	"github.com/borg0ai/dx-issuegraph/internal/ui"
+	"github.com/borg0ai/dx-issuegraph/issueops"
 	"github.com/spf13/cobra"
-	"github.com/steveyegge/beads/internal/metrics"
-	"github.com/steveyegge/beads/internal/types"
-	"github.com/steveyegge/beads/internal/ui"
-	"github.com/steveyegge/beads/issueops"
 )
 
 // StatusOutput represents the complete status output
@@ -40,7 +40,7 @@ This command provides a summary of issue counts by state (open, in_progress,
 blocked, closed), ready work, extended statistics (pinned issues,
 average lead time), and recent activity over the last 24 hours from git history.
 
-Similar to how 'git status' shows working tree state, 'bd status' gives you
+Similar to how 'git status' shows working tree state, 'issuegraph status' gives you
 a quick overview of your issue database without needing multiple queries.
 
 Use cases:
@@ -51,13 +51,13 @@ Use cases:
   - Fast CI status checks that don't need blocked-count accuracy
 
 Examples:
-  bd status                    # Show summary with activity
-  bd status --no-activity      # Skip git activity (faster)
-  bd status --no-blocked       # Skip slow blocked-count scan (faster)
-  bd stats --no-blocked --json # JSON output without blocked count
-  bd status --json             # JSON format output
-  bd status --assigned         # Show issues assigned to current user
-  bd stats                     # Alias for bd status`,
+  issuegraph status                    # Show summary with activity
+  issuegraph status --no-activity      # Skip git activity (faster)
+  issuegraph status --no-blocked       # Skip slow blocked-count scan (faster)
+  issuegraph stats --no-blocked --json # JSON output without blocked count
+  issuegraph status --json             # JSON format output
+  issuegraph status --assigned         # Show issues assigned to current user
+  issuegraph stats                     # Alias for issuegraph status`,
 	SilenceUsage:  true,
 	SilenceErrors: true,
 	RunE: func(cmd *cobra.Command, args []string) error {
@@ -181,7 +181,7 @@ func renderStatus(stats *types.Statistics, recentActivity *RecentActivitySummary
 		fmt.Printf("  Issues Updated:         %d\n", recentActivity.IssuesUpdated)
 	}
 
-	fmt.Printf("\nFor more details, use 'bd list' to see individual issues.\n")
+	fmt.Printf("\nFor more details, use 'issuegraph list' to see individual issues.\n")
 	fmt.Println()
 
 	return nil

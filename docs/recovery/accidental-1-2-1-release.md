@@ -43,17 +43,17 @@ will work normally afterwards.
 3. Take a backup copy of the workspace database:
 
    ```sh
-   cp -a .beads .beads.backup-pre-recovery
+   cp -a .issuegraph .issuegraph.backup-pre-recovery
    ```
 
 4. Roll the cursor back with the [Dolt CLI](https://docs.dolthub.com/cli-reference/cli)
    (any recent `dolt` release works; no `dolt config` setup is needed —
    the command carries its own author). The database directory is
-   `.beads/embeddeddolt/<db>` (embedded mode, the default) or
-   `.beads/dolt/<db>` (server mode):
+   `.issuegraph/embeddeddolt/<db>` (embedded mode, the default) or
+   `.issuegraph/dolt/<db>` (server mode):
 
    ```sh
-   cd .beads/embeddeddolt/<db>
+   cd .issuegraph/embeddeddolt/<db>
    dolt sql -q "DELETE FROM schema_migrations WHERE version > 53; CALL DOLT_ADD('schema_migrations'); CALL DOLT_COMMIT('-m', 'recovery: roll schema cursor back to v53 (accidental v1.2.1)', '--author', 'issuegraph recovery <recovery@issuegraph.invalid>')"
    ```
 
@@ -61,7 +61,7 @@ will work normally afterwards.
    done — safe to continue.)
 
 5. Run any `issuegraph` command from the workspace. It should work with no
-   warnings and no `BD_IGNORE_SCHEMA_SKEW` needed.
+   warnings and no `ISSUEGRAPH_IGNORE_SCHEMA_SKEW` needed.
 
 This also works for databases **created** by v1.2.1 (not just upgraded
 ones): the v65 schema is a superset of everything the 1.1 line needs.
@@ -87,7 +87,7 @@ dolt sql -q "DELETE FROM dolt_ignore WHERE pattern = 'events'; CALL DOLT_ADD('-f
 If you need `issuegraph` this minute, the skew guard has an escape hatch:
 
 ```sh
-BD_IGNORE_SCHEMA_SKEW=1 issuegraph <command>
+ISSUEGRAPH_IGNORE_SCHEMA_SKEW=1 issuegraph <command>
 ```
 
 This has been verified against the exact v53-binary/v65-database
@@ -113,7 +113,7 @@ v1.2.1 migrator made one labeled Dolt commit per migration
 (`schema: apply migration 0054_...` through `0065_...`), so the
 pre-migration commit is easy to find. The safe sequence is: export with
 the v1.2.1 binary (`issuegraph export --all -o backup.jsonl`), stop everything and
-copy `.beads` aside, `dolt reset --hard <pre-migration-commit>` in the
+copy `.issuegraph` aside, `dolt reset --hard <pre-migration-commit>` in the
 database directory, install v1.2.2, then `issuegraph import backup.jsonl`.
 Caveats: issues deleted after the upgrade come back (import cannot
 re-delete), and audit events recorded while on v1.2.1 are lost. Most users

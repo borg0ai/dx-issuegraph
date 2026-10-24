@@ -8,7 +8,7 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/steveyegge/beads/internal/git"
+	"github.com/borg0ai/dx-issuegraph/internal/git"
 )
 
 func TestDetectExistingHooks(t *testing.T) {
@@ -35,9 +35,9 @@ func TestDetectExistingHooks(t *testing.T) {
 				wantExists: false,
 			},
 			{
-				name:         "bd hook",
+				name:         "issuegraph hook",
 				setupHook:    "pre-commit",
-				hookContent:  "#!/bin/sh\n# bd (beads) pre-commit hook\necho test",
+				hookContent:  "#!/bin/sh\n# issuegraph (issuegraph) pre-commit hook\necho test",
 				wantExists:   true,
 				wantIsBdHook: true,
 			},
@@ -116,8 +116,8 @@ func TestInstallGitHooks_NoExistingHooks(t *testing.T) {
 
 		if _, err := os.Stat(preCommitPath); err == nil {
 			content, _ := os.ReadFile(preCommitPath)
-			if !strings.Contains(string(content), "bd (beads)") {
-				t.Error("pre-commit hook doesn't contain bd marker")
+			if !strings.Contains(string(content), "issuegraph (issuegraph)") {
+				t.Error("pre-commit hook doesn't contain issuegraph marker")
 			}
 			if strings.Contains(string(content), "chained") {
 				t.Error("pre-commit hook shouldn't be chained when no existing hooks")
@@ -126,8 +126,8 @@ func TestInstallGitHooks_NoExistingHooks(t *testing.T) {
 
 		if _, err := os.Stat(postMergePath); err == nil {
 			content, _ := os.ReadFile(postMergePath)
-			if !strings.Contains(string(content), "bd (beads)") {
-				t.Error("post-merge hook doesn't contain bd marker")
+			if !strings.Contains(string(content), "issuegraph (issuegraph)") {
+				t.Error("post-merge hook doesn't contain issuegraph marker")
 			}
 		}
 	})
@@ -167,7 +167,7 @@ func TestInstallGitHooks_ExistingHookBackup(t *testing.T) {
 		}
 
 		if !hasExisting {
-			t.Error("should detect existing non-bd hook")
+			t.Error("should detect existing non-issuegraph hook")
 		}
 	})
 }
@@ -181,7 +181,7 @@ func TestGenerateHookSection(t *testing.T) {
 	if !strings.Contains(section, hookSectionEndPrefix) {
 		t.Error("section missing end marker prefix")
 	}
-	if !strings.Contains(section, "bd hooks run pre-commit") {
+	if !strings.Contains(section, "issuegraph hooks run pre-commit") {
 		t.Error("section missing hook invocation")
 	}
 	if !strings.Contains(section, Version) {
@@ -195,14 +195,14 @@ func TestGenerateHookSection(t *testing.T) {
 	}
 }
 
-// TestGenerateHookSection_Timeout verifies the timeout wrapper around bd hooks run (GH#2453).
+// TestGenerateHookSection_Timeout verifies the timeout wrapper around issuegraph hooks run (GH#2453).
 func TestGenerateHookSection_Timeout(t *testing.T) {
 	section := generateHookSection("pre-push")
 
 	// The duration is configurable but must be validated before it reaches a
 	// helper command line.
-	if !strings.Contains(section, "BEADS_HOOK_TIMEOUT") {
-		t.Error("section missing BEADS_HOOK_TIMEOUT env var")
+	if !strings.Contains(section, "ISSUEGRAPH_HOOK_TIMEOUT") {
+		t.Error("section missing ISSUEGRAPH_HOOK_TIMEOUT env var")
 	}
 	if !strings.Contains(section, fmt.Sprintf("%d", hookTimeoutSeconds)) {
 		t.Errorf("section missing default timeout %d", hookTimeoutSeconds)
@@ -210,38 +210,38 @@ func TestGenerateHookSection_Timeout(t *testing.T) {
 	if !strings.Contains(section, `*[^0-9]*`) && !strings.Contains(section, `*[!0-9]*`) {
 		t.Error("section missing positive-integer timeout validation")
 	}
-	if !strings.Contains(section, "invalid BEADS_HOOK_TIMEOUT") {
+	if !strings.Contains(section, "invalid ISSUEGRAPH_HOOK_TIMEOUT") {
 		t.Error("section missing invalid-timeout warning")
 	}
 
 	// A name match is insufficient: native Windows has an incompatible
 	// timeout.exe. Require a successful GNU identity probe for timeout or
 	// gtimeout before invoking it.
-	if !strings.Contains(section, "for _bd_timeout_candidate in timeout gtimeout") {
+	if !strings.Contains(section, "for _issuegraph_timeout_candidate in timeout gtimeout") {
 		t.Error("section missing ordered timeout/gtimeout capability probes")
 	}
-	if !strings.Contains(section, `if _bd_timeout_version="$("$_bd_timeout_candidate" --version 2>/dev/null)"; then`) {
+	if !strings.Contains(section, `if _issuegraph_timeout_version="$("$_issuegraph_timeout_candidate" --version 2>/dev/null)"; then`) {
 		t.Error("section does not require a successful version probe")
 	}
 	if !strings.Contains(section, `"timeout (GNU coreutils) "*`) {
 		t.Error("section missing GNU coreutils identity check")
 	}
-	if !strings.Contains(section, `"$_bd_timeout_command" -- "$_bd_timeout"`) {
+	if !strings.Contains(section, `"$_issuegraph_timeout_command" -- "$_issuegraph_timeout"`) {
 		t.Error("section missing GNU timeout argv separator")
 	}
 	if !strings.Contains(section, "perl -e 'alarm shift; exec @ARGV' --") {
 		t.Error("section missing perl alarm fallback for stock macOS")
 	}
-	if !strings.Contains(section, "_bd_timeout_backend=perl") {
+	if !strings.Contains(section, "_issuegraph_timeout_backend=perl") {
 		t.Error("section missing scoped perl backend marker")
 	}
 
 	// GNU deadline statuses and Perl SIGALRM are scoped to the backend that can
 	// synthesize them. The direct fallback must not swallow a natural 124/142.
-	if !strings.Contains(section, `"$_bd_exit" -eq 124`) {
+	if !strings.Contains(section, `"$_issuegraph_exit" -eq 124`) {
 		t.Error("section missing timeout exit code handling")
 	}
-	if !strings.Contains(section, `"$_bd_timeout_backend" = perl`) || !strings.Contains(section, `"$_bd_exit" -eq 142`) {
+	if !strings.Contains(section, `"$_issuegraph_timeout_backend" = perl`) || !strings.Contains(section, `"$_issuegraph_exit" -eq 142`) {
 		t.Error("section missing perl-scoped SIGALRM timeout exit code handling")
 	}
 	if !strings.Contains(section, "timed out") {
@@ -290,8 +290,8 @@ func TestTrackedManagedHookSectionsMatchGenerator(t *testing.T) {
 func TestGenerateHookSection_DBNotInitialized(t *testing.T) {
 	section := generateHookSection("pre-commit")
 
-	// Exit code 3 = beads database not initialized; hook must continue gracefully
-	if !strings.Contains(section, `"$_bd_exit" -eq 3`) {
+	// Exit code 3 = issuegraph database not initialized; hook must continue gracefully
+	if !strings.Contains(section, `"$_issuegraph_exit" -eq 3`) {
 		t.Error("section missing exit code 3 (DB not initialized) handling")
 	}
 	if !strings.Contains(section, "database not initialized") {
@@ -299,8 +299,8 @@ func TestGenerateHookSection_DBNotInitialized(t *testing.T) {
 	}
 
 	// After handling exit code 3, the effective exit must be 0 (success)
-	// Verify the pattern: set _bd_exit=0 after detecting code 3
-	if !strings.Contains(section, `if [ "$_bd_exit" -eq 3 ]; then`) {
+	// Verify the pattern: set _issuegraph_exit=0 after detecting code 3
+	if !strings.Contains(section, `if [ "$_issuegraph_exit" -eq 3 ]; then`) {
 		t.Error("section missing exit code 3 conditional")
 	}
 }
@@ -336,42 +336,42 @@ func TestInjectHookSection(t *testing.T) {
 		},
 		{
 			name:     "update existing section",
-			existing: "#!/bin/sh\necho before\n# --- BEGIN BEADS INTEGRATION v0.40.0 ---\nold content\n# --- END BEADS INTEGRATION ---\necho after\n",
-			wantHas:  []string{"echo before", "echo after", "bd hooks run pre-commit", hookSectionEndPrefix},
+			existing: "#!/bin/sh\necho before\n# --- BEGIN ISSUEGRAPH INTEGRATION v0.40.0 ---\nold content\n# --- END ISSUEGRAPH INTEGRATION ---\necho after\n",
+			wantHas:  []string{"echo before", "echo after", "issuegraph hooks run pre-commit", hookSectionEndPrefix},
 		},
 		{
 			name:     "orphaned BEGIN without END",
-			existing: "#!/bin/sh\n# --- BEGIN BEADS INTEGRATION v0.57.0 ---\nbd hook pre-commit \"$@\"\n",
-			wantHas:  []string{"#!/bin/sh\n", hookSectionBeginPrefix, "bd hooks run pre-commit"},
+			existing: "#!/bin/sh\n# --- BEGIN ISSUEGRAPH INTEGRATION v0.57.0 ---\nbd hook pre-commit \"$@\"\n",
+			wantHas:  []string{"#!/bin/sh\n", hookSectionBeginPrefix, "issuegraph hooks run pre-commit"},
 		},
 		{
 			name: "orphaned BEGIN followed by valid block",
 			existing: "#!/bin/sh\n" +
-				"# --- BEGIN BEADS INTEGRATION v0.57.0 ---\n" +
-				"bd hook pre-commit \"$@\"\n" +
+				"# --- BEGIN ISSUEGRAPH INTEGRATION v0.57.0 ---\n" +
+				"issuegraph hook pre-commit \"$@\"\n" +
 				"\n" +
-				"# --- BEGIN BEADS INTEGRATION v0.58.0 ---\n" +
-				"# This section is managed by beads. Do not remove these markers.\n" +
-				"if command -v bd >/dev/null 2>&1; then\n" +
-				"  export BD_GIT_HOOK=1\n" +
-				"  bd hooks run pre-commit \"$@\"\n" +
-				"  _bd_exit=$?; if [ $_bd_exit -ne 0 ]; then exit $_bd_exit; fi\n" +
+				"# --- BEGIN ISSUEGRAPH INTEGRATION v0.58.0 ---\n" +
+				"# This section is managed by issuegraph. Do not remove these markers.\n" +
+				"if command -v issuegraph >/dev/null 2>&1; then\n" +
+				"  export ISSUEGRAPH_GIT_HOOK=1\n" +
+				"  issuegraph hooks run pre-commit \"$@\"\n" +
+				"  _issuegraph_exit=$?; if [ $_issuegraph_exit -ne 0 ]; then exit $_issuegraph_exit; fi\n" +
 				"fi\n" +
-				"# --- END BEADS INTEGRATION ---\n",
-			wantHas: []string{"#!/bin/sh\n", hookSectionBeginPrefix, "bd hooks run pre-commit"},
+				"# --- END ISSUEGRAPH INTEGRATION ---\n",
+			wantHas: []string{"#!/bin/sh\n", hookSectionBeginPrefix, "issuegraph hooks run pre-commit"},
 		},
 		{
 			name: "reversed markers (END before BEGIN)",
 			existing: "#!/bin/sh\necho user-linter\n" +
-				"# --- END BEADS INTEGRATION ---\n" +
-				"# --- BEGIN BEADS INTEGRATION v0.57.0 ---\n" +
-				"bd hook pre-commit \"$@\"\n",
-			wantHas: []string{"#!/bin/sh\n", "echo user-linter", hookSectionBeginPrefix, "bd hooks run pre-commit"},
+				"# --- END ISSUEGRAPH INTEGRATION ---\n" +
+				"# --- BEGIN ISSUEGRAPH INTEGRATION v0.57.0 ---\n" +
+				"issuegraph hook pre-commit \"$@\"\n",
+			wantHas: []string{"#!/bin/sh\n", "echo user-linter", hookSectionBeginPrefix, "issuegraph hooks run pre-commit"},
 		},
 		{
 			name:     "update existing section with versioned END marker",
-			existing: "#!/bin/sh\necho before\n# --- BEGIN BEADS INTEGRATION v0.57.0 ---\nold content\n# --- END BEADS INTEGRATION v0.57.0 ---\necho after\n",
-			wantHas:  []string{"echo before", "echo after", "bd hooks run pre-commit", hookSectionEndPrefix},
+			existing: "#!/bin/sh\necho before\n# --- BEGIN ISSUEGRAPH INTEGRATION v0.57.0 ---\nold content\n# --- END ISSUEGRAPH INTEGRATION v0.57.0 ---\necho after\n",
+			wantHas:  []string{"echo before", "echo after", "issuegraph hooks run pre-commit", hookSectionEndPrefix},
 		},
 	}
 
@@ -407,8 +407,8 @@ func TestInjectHookSection(t *testing.T) {
 				if endCount != 1 {
 					t.Errorf("expected exactly 1 END marker, got %d\ngot:\n%s", endCount, result)
 				}
-				if strings.Contains(result, "bd hook pre-commit") && !strings.Contains(result, "bd hooks run pre-commit") {
-					t.Error("stale 'bd hook' command should have been removed")
+				if strings.Contains(result, "issuegraph hook pre-commit") && !strings.Contains(result, "issuegraph hooks run pre-commit") {
+					t.Error("stale 'issuegraph hook' command should have been removed")
 				}
 				if strings.Contains(result, "v0.57.0") {
 					t.Error("stale v0.57.0 marker should have been removed")
@@ -447,20 +447,20 @@ func TestRemoveHookSection(t *testing.T) {
 		},
 		{
 			name:      "orphaned BEGIN without END",
-			content:   "#!/bin/sh\necho before\n\n# --- BEGIN BEADS INTEGRATION v0.57.0 ---\nbd hook pre-commit \"$@\"\n",
+			content:   "#!/bin/sh\necho before\n\n# --- BEGIN ISSUEGRAPH INTEGRATION v0.57.0 ---\nbd hook pre-commit \"$@\"\n",
 			wantFound: true,
 			wantHas:   []string{"echo before"},
-			wantNot:   []string{hookSectionBeginPrefix, "bd hook pre-commit"},
+			wantNot:   []string{hookSectionBeginPrefix, "issuegraph hook pre-commit"},
 		},
 		{
 			name: "reversed markers (END before BEGIN)",
 			content: "#!/bin/sh\necho user-linter\n" +
-				"# --- END BEADS INTEGRATION ---\n" +
-				"# --- BEGIN BEADS INTEGRATION v0.57.0 ---\n" +
-				"bd hook pre-commit \"$@\"\n",
+				"# --- END ISSUEGRAPH INTEGRATION ---\n" +
+				"# --- BEGIN ISSUEGRAPH INTEGRATION v0.57.0 ---\n" +
+				"issuegraph hook pre-commit \"$@\"\n",
 			wantFound: true,
 			wantHas:   []string{"echo user-linter"},
-			wantNot:   []string{hookSectionBeginPrefix, hookSectionEndPrefix, "bd hook pre-commit"},
+			wantNot:   []string{hookSectionBeginPrefix, hookSectionEndPrefix, "issuegraph hook pre-commit"},
 		},
 	}
 
@@ -496,7 +496,7 @@ func TestInstallHooksWithSectionMarkers(t *testing.T) {
 			t.Fatalf("Failed to create hooks directory: %v", err)
 		}
 
-		// Create an existing non-bd hook
+		// Create an existing non-issuegraph hook
 		preCommitPath := filepath.Join(hooksDir, "pre-commit")
 		if err := os.WriteFile(preCommitPath, []byte("#!/bin/sh\necho my-linter\n"), 0700); err != nil {
 			t.Fatal(err)
@@ -519,7 +519,7 @@ func TestInstallHooksWithSectionMarkers(t *testing.T) {
 		if !strings.Contains(contentStr, hookSectionBeginPrefix) {
 			t.Error("section marker should be present")
 		}
-		if !strings.Contains(contentStr, "bd hooks run pre-commit") {
+		if !strings.Contains(contentStr, "issuegraph hooks run pre-commit") {
 			t.Error("hook invocation should be present")
 		}
 
@@ -562,8 +562,8 @@ func TestInstallHooksWithOptions_MockHookWithoutCurrentHook(t *testing.T) {
 		if !strings.Contains(contentStr, hookSectionBeginPrefix) {
 			t.Errorf("mock hook should include managed section begin marker, got:\n%s", contentStr)
 		}
-		if !strings.Contains(contentStr, "bd hooks run "+mockHookName) {
-			t.Errorf("mock hook should invoke bd hooks run %s, got:\n%s", mockHookName, contentStr)
+		if !strings.Contains(contentStr, "issuegraph hooks run "+mockHookName) {
+			t.Errorf("mock hook should invoke issuegraph hooks run %s, got:\n%s", mockHookName, contentStr)
 		}
 	})
 }
@@ -603,8 +603,8 @@ func TestInstallHooksWithOptions_MockHookWithCurrentHook(t *testing.T) {
 		if !strings.Contains(contentStr, hookSectionBeginPrefix) {
 			t.Errorf("mock hook should include managed section begin marker, got:\n%s", contentStr)
 		}
-		if !strings.Contains(contentStr, "bd hooks run "+mockHookName) {
-			t.Errorf("mock hook should invoke bd hooks run %s, got:\n%s", mockHookName, contentStr)
+		if !strings.Contains(contentStr, "issuegraph hooks run "+mockHookName) {
+			t.Errorf("mock hook should invoke issuegraph hooks run %s, got:\n%s", mockHookName, contentStr)
 		}
 	})
 }
@@ -694,7 +694,7 @@ func TestUninstallHooksWithSectionMarkers(t *testing.T) {
 			t.Fatalf("Failed to create hooks directory: %v", err)
 		}
 
-		// Create a hook with user content + beads section
+		// Create a hook with user content + issuegraph section
 		preCommitPath := filepath.Join(hooksDir, "pre-commit")
 		hookContent := "#!/bin/sh\necho my-linter\n\n" + generateHookSection("pre-commit")
 		if err := os.WriteFile(preCommitPath, []byte(hookContent), 0700); err != nil {
@@ -705,7 +705,7 @@ func TestUninstallHooksWithSectionMarkers(t *testing.T) {
 			t.Fatalf("uninstallHooks() failed: %v", err)
 		}
 
-		// File should still exist with user content, but no beads section
+		// File should still exist with user content, but no issuegraph section
 		content, err := os.ReadFile(preCommitPath)
 		if err != nil {
 			t.Fatal("hook file should still exist after uninstall")
@@ -715,7 +715,7 @@ func TestUninstallHooksWithSectionMarkers(t *testing.T) {
 			t.Error("user content should be preserved after uninstall")
 		}
 		if strings.Contains(contentStr, hookSectionBeginPrefix) {
-			t.Error("beads section should be removed after uninstall")
+			t.Error("issuegraph section should be removed after uninstall")
 		}
 	})
 }
@@ -732,7 +732,7 @@ func TestUninstallHooksRemovesEmptyFile(t *testing.T) {
 			t.Fatalf("Failed to create hooks directory: %v", err)
 		}
 
-		// Create a hook with only beads section (no user content)
+		// Create a hook with only issuegraph section (no user content)
 		preCommitPath := filepath.Join(hooksDir, "pre-commit")
 		hookContent := "#!/usr/bin/env sh\n" + generateHookSection("pre-commit")
 		if err := os.WriteFile(preCommitPath, []byte(hookContent), 0700); err != nil {
@@ -750,19 +750,19 @@ func TestUninstallHooksRemovesEmptyFile(t *testing.T) {
 	})
 }
 
-// TestConfigureBeadsHooksPath_AbsolutePath verifies that core.hooksPath is set to
+// TestConfigureIssueGraphHooksPath_AbsolutePath verifies that core.hooksPath is set to
 // an absolute path so that git worktrees can find the hooks directory (GH#2414).
-func TestConfigureBeadsHooksPath_AbsolutePath(t *testing.T) {
+func TestConfigureIssueGraphHooksPath_AbsolutePath(t *testing.T) {
 	tmpDir := newGitRepo(t)
 	runInDir(t, tmpDir, func() {
-		// Create .beads/hooks/ directory
-		beadsHooksDir := filepath.Join(tmpDir, ".beads", "hooks")
-		if err := os.MkdirAll(beadsHooksDir, 0750); err != nil {
-			t.Fatalf("Failed to create .beads/hooks/: %v", err)
+		// Create .issuegraph/hooks/ directory
+		issuegraphHooksDir := filepath.Join(tmpDir, ".issuegraph", "hooks")
+		if err := os.MkdirAll(issuegraphHooksDir, 0750); err != nil {
+			t.Fatalf("Failed to create .issuegraph/hooks/: %v", err)
 		}
 
-		if err := configureBeadsHooksPath(); err != nil {
-			t.Fatalf("configureBeadsHooksPath() failed: %v", err)
+		if err := configureIssueGraphHooksPath(); err != nil {
+			t.Fatalf("configureIssueGraphHooksPath() failed: %v", err)
 		}
 
 		// Read back core.hooksPath
@@ -777,24 +777,24 @@ func TestConfigureBeadsHooksPath_AbsolutePath(t *testing.T) {
 			t.Errorf("core.hooksPath should be absolute, got %q", hooksPath)
 		}
 
-		// Must point to .beads/hooks
-		if !strings.HasSuffix(hooksPath, filepath.Join(".beads", "hooks")) {
-			t.Errorf("core.hooksPath should end with .beads/hooks, got %q", hooksPath)
+		// Must point to .issuegraph/hooks
+		if !strings.HasSuffix(hooksPath, filepath.Join(".issuegraph", "hooks")) {
+			t.Errorf("core.hooksPath should end with .issuegraph/hooks, got %q", hooksPath)
 		}
 	})
 }
 
-// TestInstallHooksBeads_WorktreeAccess verifies that hooks installed with --beads
+// TestInstallHooksIssueGraph_WorktreeAccess verifies that hooks installed with --issuegraph
 // are accessible from a git worktree (GH#2414).
-func TestInstallHooksBeads_WorktreeAccess(t *testing.T) {
+func TestInstallHooksIssueGraph_WorktreeAccess(t *testing.T) {
 	tmpDir := newGitRepo(t)
 	runInDir(t, tmpDir, func() {
-		// Create .beads/ directory with metadata.json (needed for FindBeadsDir)
-		beadsDir := filepath.Join(tmpDir, ".beads")
-		if err := os.MkdirAll(beadsDir, 0750); err != nil {
-			t.Fatalf("Failed to create .beads/: %v", err)
+		// Create .issuegraph/ directory with metadata.json (needed for FindIssueGraphDir)
+		issuegraphDir := filepath.Join(tmpDir, ".issuegraph")
+		if err := os.MkdirAll(issuegraphDir, 0750); err != nil {
+			t.Fatalf("Failed to create .issuegraph/: %v", err)
 		}
-		if err := os.WriteFile(filepath.Join(beadsDir, "metadata.json"), []byte(`{}`), 0644); err != nil {
+		if err := os.WriteFile(filepath.Join(issuegraphDir, "metadata.json"), []byte(`{}`), 0644); err != nil {
 			t.Fatalf("Failed to create metadata.json: %v", err)
 		}
 
@@ -804,14 +804,14 @@ func TestInstallHooksBeads_WorktreeAccess(t *testing.T) {
 			t.Fatalf("git commit failed: %v\n%s", err, string(output))
 		}
 
-		// Install hooks with --beads
+		// Install hooks with --issuegraph
 		if err := installHooksWithOptions(managedHookNames, false, false, false, true); err != nil {
-			t.Fatalf("installHooksWithOptions(beads=true) failed: %v", err)
+			t.Fatalf("installHooksWithOptions(issuegraph=true) failed: %v", err)
 		}
 
-		// Verify hooks exist in .beads/hooks/
+		// Verify hooks exist in .issuegraph/hooks/
 		for _, hookName := range managedHookNames {
-			hookPath := filepath.Join(beadsDir, "hooks", hookName)
+			hookPath := filepath.Join(issuegraphDir, "hooks", hookName)
 			if _, err := os.Stat(hookPath); err != nil {
 				t.Errorf("hook %s not found at %s", hookName, hookPath)
 			}
@@ -820,7 +820,7 @@ func TestInstallHooksBeads_WorktreeAccess(t *testing.T) {
 		// Read core.hooksPath and verify it's absolute
 		out, err := exec.Command("git", "config", "--get", "core.hooksPath").Output()
 		if err != nil {
-			t.Fatalf("core.hooksPath not set after --beads install: %v", err)
+			t.Fatalf("core.hooksPath not set after --issuegraph install: %v", err)
 		}
 		hooksPath := strings.TrimSpace(string(out))
 		if !filepath.IsAbs(hooksPath) {
@@ -864,23 +864,23 @@ func TestInstallHooksBeads_WorktreeAccess(t *testing.T) {
 	})
 }
 
-// setupBeadsDir creates .beads/ with a minimal metadata.json so FindBeadsDir works.
-func setupBeadsDir(t *testing.T, repoDir string) string {
+// setupIssueGraphDir creates .issuegraph/ with a minimal metadata.json so FindIssueGraphDir works.
+func setupIssueGraphDir(t *testing.T, repoDir string) string {
 	t.Helper()
-	beadsDir := filepath.Join(repoDir, ".beads")
-	if err := os.MkdirAll(beadsDir, 0750); err != nil {
-		t.Fatalf("failed to create .beads/: %v", err)
+	issuegraphDir := filepath.Join(repoDir, ".issuegraph")
+	if err := os.MkdirAll(issuegraphDir, 0750); err != nil {
+		t.Fatalf("failed to create .issuegraph/: %v", err)
 	}
-	if err := os.WriteFile(filepath.Join(beadsDir, "metadata.json"), []byte(`{}`), 0644); err != nil {
+	if err := os.WriteFile(filepath.Join(issuegraphDir, "metadata.json"), []byte(`{}`), 0644); err != nil {
 		t.Fatalf("failed to create metadata.json: %v", err)
 	}
-	return beadsDir
+	return issuegraphDir
 }
 
-// TestInstallHooksBeads_PreservesGlobalHooks is a regression test: bd init sets
+// TestInstallHooksIssueGraph_PreservesGlobalHooks is a regression test: issuegraph init sets
 // a local core.hooksPath that shadows the global one, silently killing global
 // hooks. The fix copies hooks from the effective directory before overriding.
-func TestInstallHooksBeads_PreservesGlobalHooks(t *testing.T) {
+func TestInstallHooksIssueGraph_PreservesGlobalHooks(t *testing.T) {
 	fakeHome := t.TempDir()
 	t.Setenv("HOME", fakeHome)
 	t.Setenv("XDG_CONFIG_HOME", filepath.Join(fakeHome, ".config"))
@@ -919,31 +919,31 @@ func TestInstallHooksBeads_PreservesGlobalHooks(t *testing.T) {
 	}
 
 	runInDir(t, repoDir, func() {
-		beadsDir := setupBeadsDir(t, repoDir)
+		issuegraphDir := setupIssueGraphDir(t, repoDir)
 
 		if err := installHooksWithOptions(managedHookNames, false, false, false, true); err != nil {
-			t.Fatalf("installHooksWithOptions(beads=true) failed: %v", err)
+			t.Fatalf("installHooksWithOptions(issuegraph=true) failed: %v", err)
 		}
 
-		content, err := os.ReadFile(filepath.Join(beadsDir, "hooks", "pre-commit"))
+		content, err := os.ReadFile(filepath.Join(issuegraphDir, "hooks", "pre-commit"))
 		if err != nil {
-			t.Fatalf("failed to read .beads/hooks/pre-commit: %v", err)
+			t.Fatalf("failed to read .issuegraph/hooks/pre-commit: %v", err)
 		}
 		contentStr := string(content)
 
 		if !strings.Contains(contentStr, "echo global-hook-marker") {
-			t.Errorf("global hook content not preserved in .beads/hooks/pre-commit.\nGot:\n%s", contentStr)
+			t.Errorf("global hook content not preserved in .issuegraph/hooks/pre-commit.\nGot:\n%s", contentStr)
 		}
 		if !strings.Contains(contentStr, hookSectionBeginPrefix) {
-			t.Errorf("beads section marker missing.\nGot:\n%s", contentStr)
+			t.Errorf("issuegraph section marker missing.\nGot:\n%s", contentStr)
 		}
 	})
 }
 
-// TestInstallHooksBeads_PreservesDefaultGitHooks verifies that hooks in the
+// TestInstallHooksIssueGraph_PreservesDefaultGitHooks verifies that hooks in the
 // default .git/hooks/ directory (both managed and non-managed) are preserved
-// when beads redirects core.hooksPath to .beads/hooks/.
-func TestInstallHooksBeads_PreservesDefaultGitHooks(t *testing.T) {
+// when issuegraph redirects core.hooksPath to .issuegraph/hooks/.
+func TestInstallHooksIssueGraph_PreservesDefaultGitHooks(t *testing.T) {
 	repoDir := newGitRepo(t)
 	runInDir(t, repoDir, func() {
 		hooksDir := filepath.Join(repoDir, ".git", "hooks")
@@ -960,29 +960,29 @@ func TestInstallHooksBeads_PreservesDefaultGitHooks(t *testing.T) {
 		// Unset the local core.hooksPath that newGitRepo sets so git falls back to .git/hooks/.
 		exec.Command("git", "config", "--unset", "core.hooksPath").Run()
 
-		beadsDir := setupBeadsDir(t, repoDir)
+		issuegraphDir := setupIssueGraphDir(t, repoDir)
 
 		if err := installHooksWithOptions(managedHookNames, false, false, false, true); err != nil {
-			t.Fatalf("installHooksWithOptions(beads=true) failed: %v", err)
+			t.Fatalf("installHooksWithOptions(issuegraph=true) failed: %v", err)
 		}
 
-		// Managed hook: should be preserved with beads section injected.
-		content, err := os.ReadFile(filepath.Join(beadsDir, "hooks", "pre-commit"))
+		// Managed hook: should be preserved with issuegraph section injected.
+		content, err := os.ReadFile(filepath.Join(issuegraphDir, "hooks", "pre-commit"))
 		if err != nil {
-			t.Fatalf("failed to read .beads/hooks/pre-commit: %v", err)
+			t.Fatalf("failed to read .issuegraph/hooks/pre-commit: %v", err)
 		}
 		contentStr := string(content)
 		if !strings.Contains(contentStr, "echo custom-default-hook") {
 			t.Errorf(".git/hooks/pre-commit content not preserved.\nGot:\n%s", contentStr)
 		}
 		if !strings.Contains(contentStr, hookSectionBeginPrefix) {
-			t.Errorf("beads section marker missing.\nGot:\n%s", contentStr)
+			t.Errorf("issuegraph section marker missing.\nGot:\n%s", contentStr)
 		}
 
 		// Non-managed hook: should be copied as-is.
-		cmContent, err := os.ReadFile(filepath.Join(beadsDir, "hooks", "commit-msg"))
+		cmContent, err := os.ReadFile(filepath.Join(issuegraphDir, "hooks", "commit-msg"))
 		if err != nil {
-			t.Fatalf("non-managed hook commit-msg not copied to .beads/hooks/: %v", err)
+			t.Fatalf("non-managed hook commit-msg not copied to .issuegraph/hooks/: %v", err)
 		}
 		if !strings.Contains(string(cmContent), "echo commit-msg-hook") {
 			t.Errorf("Unmanaged hook content not preserved.\nGot:\n%s", string(cmContent))
@@ -1008,33 +1008,33 @@ func TestHooksNeedUpdate(t *testing.T) {
 		{
 			name:           "current version hooks",
 			setupHooks:     true,
-			preCommitBody:  "#!/bin/sh\n# bd-hooks-version: " + Version + "\n# bd (beads) pre-commit hook\nbd sync --flush-only\n",
-			postMergeBody:  "#!/bin/sh\n# bd-hooks-version: " + Version + "\n# bd (beads) post-merge hook\nbd import\n",
+			preCommitBody:  "#!/bin/sh\n# bd-hooks-version: " + Version + "\n# issuegraph (issuegraph) pre-commit hook\nbd sync --flush-only\n",
+			postMergeBody:  "#!/bin/sh\n# bd-hooks-version: " + Version + "\n# issuegraph (issuegraph) post-merge hook\nbd import\n",
 			wantNeedUpdate: false,
 		},
 		{
 			name:           "outdated version hooks",
 			setupHooks:     true,
-			preCommitBody:  "#!/bin/sh\n# bd-hooks-version: 0.40.0\n# bd (beads) pre-commit hook\nbd sync --flush-only\n",
-			postMergeBody:  "#!/bin/sh\n# bd-hooks-version: 0.40.0\n# bd (beads) post-merge hook\nbd import\n",
+			preCommitBody:  "#!/bin/sh\n# bd-hooks-version: 0.40.0\n# issuegraph (issuegraph) pre-commit hook\nbd sync --flush-only\n",
+			postMergeBody:  "#!/bin/sh\n# bd-hooks-version: 0.40.0\n# issuegraph (issuegraph) post-merge hook\nbd import\n",
 			wantNeedUpdate: true,
 		},
 		{
 			name:           "inline hooks without version",
 			setupHooks:     true,
-			preCommitBody:  "#!/bin/sh\n#\n# bd (beads) pre-commit hook\n#\nbd sync --flush-only\n",
-			postMergeBody:  "#!/bin/sh\n#\n# bd (beads) post-merge hook\n#\nbd import\n",
+			preCommitBody:  "#!/bin/sh\n#\n# issuegraph (issuegraph) pre-commit hook\n#\nbd sync --flush-only\n",
+			postMergeBody:  "#!/bin/sh\n#\n# issuegraph (issuegraph) post-merge hook\n#\nbd import\n",
 			wantNeedUpdate: true,
 		},
 		{
 			name:           "shim hooks",
 			setupHooks:     true,
-			preCommitBody:  "#!/bin/sh\n# bd-shim 0.40.0\nexec bd hooks run pre-commit \"$@\"\n",
-			postMergeBody:  "#!/bin/sh\n# bd-shim 0.40.0\nexec bd hooks run post-merge \"$@\"\n",
+			preCommitBody:  "#!/bin/sh\n# bd-shim 0.40.0\nexec issuegraph hooks run pre-commit \"$@\"\n",
+			postMergeBody:  "#!/bin/sh\n# bd-shim 0.40.0\nexec issuegraph hooks run post-merge \"$@\"\n",
 			wantNeedUpdate: false,
 		},
 		{
-			name:           "non-bd hooks",
+			name:           "non-issuegraph hooks",
 			setupHooks:     true,
 			preCommitBody:  "#!/bin/sh\necho 'custom pre-commit'\n",
 			postMergeBody:  "#!/bin/sh\necho 'custom post-merge'\n",
@@ -1050,36 +1050,36 @@ func TestHooksNeedUpdate(t *testing.T) {
 		{
 			name:           "version prefix with empty version",
 			setupHooks:     true,
-			preCommitBody:  "#!/bin/sh\n# bd-hooks-version: \n# bd (beads) pre-commit hook\n",
-			postMergeBody:  "#!/bin/sh\n# bd-hooks-version: \n# bd (beads) post-merge hook\n",
+			preCommitBody:  "#!/bin/sh\n# bd-hooks-version: \n# issuegraph (issuegraph) pre-commit hook\n",
+			postMergeBody:  "#!/bin/sh\n# bd-hooks-version: \n# issuegraph (issuegraph) post-merge hook\n",
 			wantNeedUpdate: true,
 		},
 		{
 			name:           "mixed state: one outdated one current",
 			setupHooks:     true,
-			preCommitBody:  "#!/bin/sh\n# bd-hooks-version: 0.40.0\n# bd (beads) pre-commit hook\nbd sync --flush-only\n",
-			postMergeBody:  "#!/bin/sh\n# bd-hooks-version: " + Version + "\n# bd (beads) post-merge hook\nbd import\n",
+			preCommitBody:  "#!/bin/sh\n# bd-hooks-version: 0.40.0\n# issuegraph (issuegraph) pre-commit hook\nbd sync --flush-only\n",
+			postMergeBody:  "#!/bin/sh\n# bd-hooks-version: " + Version + "\n# issuegraph (issuegraph) post-merge hook\nbd import\n",
 			wantNeedUpdate: true,
 		},
 		{
 			name:           "mixed state: shim and outdated template",
 			setupHooks:     true,
-			preCommitBody:  "#!/bin/sh\n# bd-shim 0.49.6\nexec bd hooks run pre-commit \"$@\"\n",
-			postMergeBody:  "#!/bin/sh\n# bd-hooks-version: 0.40.0\n# bd (beads) post-merge hook\n",
+			preCommitBody:  "#!/bin/sh\n# bd-shim 0.49.6\nexec issuegraph hooks run pre-commit \"$@\"\n",
+			postMergeBody:  "#!/bin/sh\n# bd-hooks-version: 0.40.0\n# issuegraph (issuegraph) post-merge hook\n",
 			wantNeedUpdate: true,
 		},
 		{
 			name:           "only pre-commit exists",
 			setupHooks:     true,
-			preCommitBody:  "#!/bin/sh\n# bd-hooks-version: 0.40.0\n# bd (beads) pre-commit hook\nbd sync --flush-only\n",
+			preCommitBody:  "#!/bin/sh\n# bd-hooks-version: 0.40.0\n# issuegraph (issuegraph) pre-commit hook\nbd sync --flush-only\n",
 			skipPostMerge:  true,
 			wantNeedUpdate: true,
 		},
 		{
 			name:           "non-executable current version hooks",
 			setupHooks:     true,
-			preCommitBody:  "#!/bin/sh\n# bd-hooks-version: " + Version + "\n# bd (beads) pre-commit hook\nbd sync --flush-only\n",
-			postMergeBody:  "#!/bin/sh\n# bd-hooks-version: " + Version + "\n# bd (beads) post-merge hook\nbd import\n",
+			preCommitBody:  "#!/bin/sh\n# bd-hooks-version: " + Version + "\n# issuegraph (issuegraph) pre-commit hook\nbd sync --flush-only\n",
+			postMergeBody:  "#!/bin/sh\n# bd-hooks-version: " + Version + "\n# issuegraph (issuegraph) post-merge hook\nbd import\n",
 			fileMode:       0644,
 			wantNeedUpdate: false, // hooksNeedUpdate checks version, not permissions
 		},
@@ -1093,9 +1093,9 @@ func TestHooksNeedUpdate(t *testing.T) {
 		{
 			name:           "section marker hooks older version (shim-like, not outdated)",
 			setupHooks:     true,
-			preCommitBody:  "#!/bin/sh\n# --- BEGIN BEADS INTEGRATION v0.40.0 ---\nbd hooks run pre-commit \"$@\"\n# --- END BEADS INTEGRATION ---\n",
-			postMergeBody:  "#!/bin/sh\n# --- BEGIN BEADS INTEGRATION v0.40.0 ---\nbd hooks run post-merge \"$@\"\n# --- END BEADS INTEGRATION ---\n",
-			wantNeedUpdate: false, // section-marker hooks delegate to bd hooks run, like shims
+			preCommitBody:  "#!/bin/sh\n# --- BEGIN ISSUEGRAPH INTEGRATION v0.40.0 ---\nbd hooks run pre-commit \"$@\"\n# --- END ISSUEGRAPH INTEGRATION ---\n",
+			postMergeBody:  "#!/bin/sh\n# --- BEGIN ISSUEGRAPH INTEGRATION v0.40.0 ---\nbd hooks run post-merge \"$@\"\n# --- END ISSUEGRAPH INTEGRATION ---\n",
+			wantNeedUpdate: false, // section-marker hooks delegate to issuegraph hooks run, like shims
 		},
 		{
 			name:           "section marker with user content preserved",
@@ -1147,10 +1147,10 @@ func TestHooksNeedUpdate(t *testing.T) {
 	}
 }
 
-// TestInstallHooksBeads_HuskyV8Helper verifies that the husky v8 _/ helper
+// TestInstallHooksIssueGraph_HuskyV8Helper verifies that the husky v8 _/ helper
 // directory is symlinked when hooks are preserved from a husky-managed directory.
 // GH#3132 Bug 1: without this, hooks that source $(dirname "$0")/_/husky.sh fail.
-func TestInstallHooksBeads_HuskyV8Helper(t *testing.T) {
+func TestInstallHooksIssueGraph_HuskyV8Helper(t *testing.T) {
 	fakeHome := t.TempDir()
 	t.Setenv("HOME", fakeHome)
 	t.Setenv("XDG_CONFIG_HOME", filepath.Join(fakeHome, ".config"))
@@ -1196,17 +1196,17 @@ func TestInstallHooksBeads_HuskyV8Helper(t *testing.T) {
 	}
 
 	runInDir(t, repoDir, func() {
-		beadsDir := setupBeadsDir(t, repoDir)
+		issuegraphDir := setupIssueGraphDir(t, repoDir)
 
 		if err := installHooksWithOptions(managedHookNames, false, false, false, true); err != nil {
 			t.Fatalf("installHooksWithOptions: %v", err)
 		}
 
 		// Verify the _/ symlink was created
-		tgtHelper := filepath.Join(beadsDir, "hooks", "_")
+		tgtHelper := filepath.Join(issuegraphDir, "hooks", "_")
 		info, err := os.Lstat(tgtHelper)
 		if err != nil {
-			t.Fatalf("expected _/ symlink in .beads/hooks/: %v", err)
+			t.Fatalf("expected _/ symlink in .issuegraph/hooks/: %v", err)
 		}
 		if info.Mode()&os.ModeSymlink == 0 {
 			t.Errorf("expected _/ to be a symlink, got mode %v", info.Mode())
@@ -1223,7 +1223,7 @@ func TestInstallHooksBeads_HuskyV8Helper(t *testing.T) {
 		}
 
 		// Verify the hook content was preserved
-		content, err := os.ReadFile(filepath.Join(beadsDir, "hooks", "pre-commit"))
+		content, err := os.ReadFile(filepath.Join(issuegraphDir, "hooks", "pre-commit"))
 		if err != nil {
 			t.Fatalf("read pre-commit: %v", err)
 		}
@@ -1233,11 +1233,11 @@ func TestInstallHooksBeads_HuskyV8Helper(t *testing.T) {
 	})
 }
 
-// TestInstallHooksBeads_HuskyV9Shims verifies that husky v9 shims are replaced
+// TestInstallHooksIssueGraph_HuskyV9Shims verifies that husky v9 shims are replaced
 // with actual user hook content when preserved.
 // GH#3132 Bug 2: husky v9's h dispatcher uses dirname(dirname($0)) which breaks
-// when hooks are relocated from .husky/_/ to .beads/hooks/.
-func TestInstallHooksBeads_HuskyV9Shims(t *testing.T) {
+// when hooks are relocated from .husky/_/ to .issuegraph/hooks/.
+func TestInstallHooksIssueGraph_HuskyV9Shims(t *testing.T) {
 	fakeHome := t.TempDir()
 	t.Setenv("HOME", fakeHome)
 	t.Setenv("XDG_CONFIG_HOME", filepath.Join(fakeHome, ".config"))
@@ -1302,20 +1302,20 @@ s=$(dirname "$(dirname "$0")")/$n
 	}
 
 	runInDir(t, repoDir, func() {
-		beadsDir := setupBeadsDir(t, repoDir)
+		issuegraphDir := setupIssueGraphDir(t, repoDir)
 
 		if err := installHooksWithOptions(managedHookNames, false, false, false, true); err != nil {
 			t.Fatalf("installHooksWithOptions: %v", err)
 		}
 
 		// Verify the h dispatcher was removed
-		hTarget := filepath.Join(beadsDir, "hooks", "h")
+		hTarget := filepath.Join(issuegraphDir, "hooks", "h")
 		if _, err := os.Stat(hTarget); !os.IsNotExist(err) {
-			t.Error("h dispatcher should have been removed from .beads/hooks/")
+			t.Error("h dispatcher should have been removed from .issuegraph/hooks/")
 		}
 
 		// Verify the shim was replaced with actual user hook content
-		content, err := os.ReadFile(filepath.Join(beadsDir, "hooks", "pre-commit"))
+		content, err := os.ReadFile(filepath.Join(issuegraphDir, "hooks", "pre-commit"))
 		if err != nil {
 			t.Fatalf("read pre-commit: %v", err)
 		}
@@ -1337,9 +1337,9 @@ s=$(dirname "$(dirname "$0")")/$n
 			t.Error("preserved hook should have a shebang")
 		}
 
-		// Beads section should also be present (injected by installHooksWithOptions)
+		// IssueGraph section should also be present (injected by installHooksWithOptions)
 		if !strings.Contains(contentStr, hookSectionBeginPrefix) {
-			t.Errorf("beads section marker missing.\nGot:\n%s", contentStr)
+			t.Errorf("issuegraph section marker missing.\nGot:\n%s", contentStr)
 		}
 	})
 }

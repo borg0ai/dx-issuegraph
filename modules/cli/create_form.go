@@ -9,12 +9,12 @@ import (
 	"strings"
 
 	"charm.land/huh/v2"
+	"github.com/borg0ai/dx-issuegraph/internal/metrics"
+	"github.com/borg0ai/dx-issuegraph/internal/storage"
+	"github.com/borg0ai/dx-issuegraph/internal/storage/domain"
+	"github.com/borg0ai/dx-issuegraph/internal/types"
+	"github.com/borg0ai/dx-issuegraph/internal/ui"
 	"github.com/spf13/cobra"
-	"github.com/steveyegge/beads/internal/metrics"
-	"github.com/steveyegge/beads/internal/storage"
-	"github.com/steveyegge/beads/internal/storage/domain"
-	"github.com/steveyegge/beads/internal/types"
-	"github.com/steveyegge/beads/internal/ui"
 )
 
 // createFormRawInput holds the raw string values from the form UI.
@@ -117,7 +117,7 @@ func CreateIssueFromFormValues(ctx context.Context, s storage.DoltStorage, fv *c
 		explicitID = childID
 		ctx = storage.WithReservedChildCounter(ctx, fv.ParentID, childID)
 
-		// Inherit parent labels (GH#2100), matching bd create --parent behavior
+		// Inherit parent labels (GH#2100), matching issuegraph create --parent behavior
 		inheritedLabels, _ = s.GetLabels(ctx, fv.ParentID)
 	}
 
@@ -187,7 +187,7 @@ func CreateIssueFromFormValues(ctx context.Context, s storage.DoltStorage, fv *c
 
 	// The issue and its edges (parent-child per GH#1983, plus form deps)
 	// commit in one transaction; a failed edge rolls back the create instead
-	// of leaving a dep-less issue behind (same contract as bd create).
+	// of leaving a dep-less issue behind (same contract as issuegraph create).
 	edges := createDepEdges{parentID: fv.ParentID, specs: depSpecs}
 	if err := createIssueWithDeps(ctx, s, issue, actor, edges); err != nil {
 		return nil, fmt.Errorf("failed to create issue: %w", err)
@@ -201,7 +201,7 @@ func CreateIssueFromFormValues(ctx context.Context, s storage.DoltStorage, fv *c
 			return nil, fmt.Errorf("dolt auto-commit: %w", err)
 		}
 		if shouldCommit {
-			commitMsg := fmt.Sprintf("bd: create %s", issue.ID)
+			commitMsg := fmt.Sprintf("issuegraph: create %s", issue.ID)
 			if err := s.Commit(ctx, commitMsg); err != nil && !isDoltNothingToCommit(err) {
 				WarnError("failed to commit post-create metadata: %v", err)
 			}

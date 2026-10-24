@@ -1,38 +1,38 @@
 ---
-title: "bd init-safety"
-description: "bd init flag safety contract."
+title: "issuegraph init-safety"
+description: "issuegraph init flag safety contract."
 ---
 
 {/* AUTO-GENERATED: do not edit manually */}
 
-Generated from `bd help --doc init-safety`.
+Generated from `issuegraph help --doc init-safety`.
 
-bd init flag safety contract.
+issuegraph init flag safety contract.
 
-Every bd init invocation resolves project_id from exactly one explicitly
+Every issuegraph init invocation resolves project_id from exactly one explicitly
 named source (local reinit, remote adoption, or a fresh mint). When the
-source is ambiguous, bd init refuses.
+source is ambiguous, issuegraph init refuses.
 
 FLAG SURFACE
 
-  bd init                       Mint a new identity. Bootstraps from
+  issuegraph init                       Mint a new identity. Bootstraps from
                                 origin if it has refs/dolt/data.
 
-  bd init --reinit-local        Re-initialize local .beads/ over existing
+  issuegraph init --reinit-local        Re-initialize local .issuegraph/ over existing
                                 local data. Does NOT authorize discarding
                                 remote history. If origin has Dolt data
                                 this will refuse — pair with
                                 --discard-remote to override.
 
-  bd init --reinit-local \      Discard the remote's Dolt history and
+  issuegraph init --reinit-local \      Discard the remote's Dolt history and
       --discard-remote          replace it with the local reinit. First
-                                bd dolt push after this will be a
+                                issuegraph dolt push after this will be a
                                 history-replacing force-push.
 
-  bd init --force               Deprecated alias for --reinit-local.
+  issuegraph init --force               Deprecated alias for --reinit-local.
                                 Kept working for ≥2 releases.
 
-  bd init --from-jsonl          Import from configured import.path. If
+  issuegraph init --from-jsonl          Import from configured import.path. If
                                 origin has Dolt data, this refuses unless
                                 --discard-remote authorizes replacing that
                                 remote history.
@@ -41,9 +41,9 @@ ADOPTING A REMOTE
 
   If you want to use the remote's existing history, use:
 
-      bd bootstrap
+      issuegraph bootstrap
 
-  bd init will automatically suggest this when a remote is detected.
+  issuegraph init will automatically suggest this when a remote is detected.
 
 DESTROY-TOKEN (non-interactive only)
 
@@ -52,12 +52,12 @@ DESTROY-TOKEN (non-interactive only)
 
       DESTROY-&lt;issue-prefix&gt;
 
-  For example, if your issue prefix is "bd", the token is "DESTROY-bd":
+  For example, if your issue prefix is "issuegraph", the token is "DESTROY-issuegraph":
 
-      bd init --reinit-local --discard-remote --destroy-token=DESTROY-bd
+      issuegraph init --reinit-local --discard-remote --destroy-token=DESTROY-issuegraph
 
   In interactive (TTY) mode you confirm via a typed prompt instead. The
-  token is not echoed by bd's runtime error messages — this is a
+  token is not echoed by issuegraph's runtime error messages — this is a
   deliberate guard against pattern-matched one-liners (see
   docs/adr/0002-init-safety-invariants.md).
 
@@ -76,5 +76,5 @@ RECOVERY
 
 
 ```
-bd init-safety [flags]
+issuegraph init-safety [flags]
 ```

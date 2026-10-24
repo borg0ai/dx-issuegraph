@@ -12,44 +12,44 @@ import (
 	"testing"
 )
 
-// bdSearch runs "bd search" with the given args and returns stdout.
-func bdSearch(t *testing.T, bd, dir string, args ...string) string {
+// issuegraphSearch runs "issuegraph search" with the given args and returns stdout.
+func issuegraphSearch(t *testing.T, issuegraph, dir string, args ...string) string {
 	t.Helper()
 	fullArgs := append([]string{"search"}, args...)
-	cmd := exec.Command(bd, fullArgs...)
+	cmd := exec.Command(issuegraph, fullArgs...)
 	cmd.Dir = dir
-	cmd.Env = bdEnv(dir)
+	cmd.Env = issuegraphEnv(dir)
 	stdout, stderr, err := runCommandBuffers(t, cmd)
 	if err != nil {
-		t.Fatalf("bd search %s failed: %v\nstdout:\n%s\nstderr:\n%s", strings.Join(args, " "), err, stdout.String(), stderr.String())
+		t.Fatalf("issuegraph search %s failed: %v\nstdout:\n%s\nstderr:\n%s", strings.Join(args, " "), err, stdout.String(), stderr.String())
 	}
 	return stdout.String()
 }
 
-// bdSearchFail runs "bd search" and returns combined output from an expected failure.
-func bdSearchFail(t *testing.T, bd, dir string, args ...string) string {
+// issuegraphSearchFail runs "issuegraph search" and returns combined output from an expected failure.
+func issuegraphSearchFail(t *testing.T, issuegraph, dir string, args ...string) string {
 	t.Helper()
 	fullArgs := append([]string{"search"}, args...)
-	cmd := exec.Command(bd, fullArgs...)
+	cmd := exec.Command(issuegraph, fullArgs...)
 	cmd.Dir = dir
-	cmd.Env = bdEnv(dir)
+	cmd.Env = issuegraphEnv(dir)
 	stdout, stderr, err := runCommandBuffers(t, cmd)
 	if err == nil {
-		t.Fatalf("expected bd search %s to fail, got:\nstdout:\n%s\nstderr:\n%s", strings.Join(args, " "), stdout.String(), stderr.String())
+		t.Fatalf("expected issuegraph search %s to fail, got:\nstdout:\n%s\nstderr:\n%s", strings.Join(args, " "), stdout.String(), stderr.String())
 	}
 	return stdout.String() + stderr.String()
 }
 
-// bdSearchJSON runs "bd search --json" and returns parsed results.
-func bdSearchJSON(t *testing.T, bd, dir string, args ...string) []map[string]interface{} {
+// issuegraphSearchJSON runs "issuegraph search --json" and returns parsed results.
+func issuegraphSearchJSON(t *testing.T, issuegraph, dir string, args ...string) []map[string]interface{} {
 	t.Helper()
 	fullArgs := append([]string{"search", "--json"}, args...)
-	cmd := exec.Command(bd, fullArgs...)
+	cmd := exec.Command(issuegraph, fullArgs...)
 	cmd.Dir = dir
-	cmd.Env = bdEnv(dir)
+	cmd.Env = issuegraphEnv(dir)
 	stdout, stderr, err := runCommandBuffers(t, cmd)
 	if err != nil {
-		t.Fatalf("bd search --json %s failed: %v\nstdout:\n%s\nstderr:\n%s", strings.Join(args, " "), err, stdout.String(), stderr.String())
+		t.Fatalf("issuegraph search --json %s failed: %v\nstdout:\n%s\nstderr:\n%s", strings.Join(args, " "), err, stdout.String(), stderr.String())
 	}
 	s := strings.TrimSpace(stdout.String())
 	start := strings.Index(s, "[")
@@ -65,26 +65,26 @@ func bdSearchJSON(t *testing.T, bd, dir string, args ...string) []map[string]int
 }
 
 func TestEmbeddedSearch(t *testing.T) {
-	if os.Getenv("BEADS_TEST_EMBEDDED_DOLT") != "1" {
-		t.Skip("set BEADS_TEST_EMBEDDED_DOLT=1 to run embedded dolt integration tests")
+	if os.Getenv("ISSUEGRAPH_TEST_EMBEDDED_DOLT") != "1" {
+		t.Skip("set ISSUEGRAPH_TEST_EMBEDDED_DOLT=1 to run embedded dolt integration tests")
 	}
 	t.Parallel()
 
-	bd := buildEmbeddedBD(t)
-	dir, _, _ := bdInit(t, bd, "--prefix", "sr")
+	issuegraph := buildEmbeddedBD(t)
+	dir, _, _ := issuegraphInit(t, issuegraph, "--prefix", "sr")
 
 	// Create test fixtures
-	taskA := bdCreate(t, bd, dir, "Alpha task", "--type", "task", "--priority", "1", "--assignee", "alice", "--description", "Important alpha work", "--label", "urgent")
-	taskB := bdCreate(t, bd, dir, "Beta bug", "--type", "bug", "--priority", "3", "--assignee", "bob", "--description", "Beta bug description", "--label", "backend")
-	taskC := bdCreate(t, bd, dir, "Gamma feature", "--type", "feature", "--priority", "2", "--label", "urgent", "--label", "frontend")
-	taskD := bdCreate(t, bd, dir, "Delta task no desc", "--type", "task")
-	closedTask := bdCreate(t, bd, dir, "Closed epsilon", "--type", "task")
-	bdClose(t, bd, dir, closedTask.ID)
+	taskA := issuegraphCreate(t, issuegraph, dir, "Alpha task", "--type", "task", "--priority", "1", "--assignee", "alice", "--description", "Important alpha work", "--label", "urgent")
+	taskB := issuegraphCreate(t, issuegraph, dir, "Beta bug", "--type", "bug", "--priority", "3", "--assignee", "bob", "--description", "Beta bug description", "--label", "backend")
+	taskC := issuegraphCreate(t, issuegraph, dir, "Gamma feature", "--type", "feature", "--priority", "2", "--label", "urgent", "--label", "frontend")
+	taskD := issuegraphCreate(t, issuegraph, dir, "Delta task no desc", "--type", "task")
+	closedTask := issuegraphCreate(t, issuegraph, dir, "Closed epsilon", "--type", "task")
+	issuegraphClose(t, issuegraph, dir, closedTask.ID)
 
 	// ===== Basic Search =====
 
 	t.Run("search_positional_query", func(t *testing.T) {
-		results := bdSearchJSON(t, bd, dir, "Alpha")
+		results := issuegraphSearchJSON(t, issuegraph, dir, "Alpha")
 		found := false
 		for _, r := range results {
 			if r["id"] == taskA.ID {
@@ -97,7 +97,7 @@ func TestEmbeddedSearch(t *testing.T) {
 	})
 
 	t.Run("search_query_flag", func(t *testing.T) {
-		results := bdSearchJSON(t, bd, dir, "--query", "Beta")
+		results := issuegraphSearchJSON(t, issuegraph, dir, "--query", "Beta")
 		found := false
 		for _, r := range results {
 			if r["id"] == taskB.ID {
@@ -110,7 +110,7 @@ func TestEmbeddedSearch(t *testing.T) {
 	})
 
 	t.Run("search_no_results", func(t *testing.T) {
-		results := bdSearchJSON(t, bd, dir, "nonexistentxyz123")
+		results := issuegraphSearchJSON(t, issuegraph, dir, "nonexistentxyz123")
 		if len(results) != 0 {
 			t.Errorf("expected 0 results, got %d", len(results))
 		}
@@ -119,7 +119,7 @@ func TestEmbeddedSearch(t *testing.T) {
 	// ===== Status Filter =====
 
 	t.Run("search_status_open", func(t *testing.T) {
-		results := bdSearchJSON(t, bd, dir, "task", "--status", "open")
+		results := issuegraphSearchJSON(t, issuegraph, dir, "task", "--status", "open")
 		for _, r := range results {
 			if r["id"] == closedTask.ID {
 				t.Error("should not find closed task with --status open")
@@ -128,7 +128,7 @@ func TestEmbeddedSearch(t *testing.T) {
 	})
 
 	t.Run("search_status_closed", func(t *testing.T) {
-		results := bdSearchJSON(t, bd, dir, "epsilon", "--status", "closed")
+		results := issuegraphSearchJSON(t, issuegraph, dir, "epsilon", "--status", "closed")
 		found := false
 		for _, r := range results {
 			if r["id"] == closedTask.ID {
@@ -142,7 +142,7 @@ func TestEmbeddedSearch(t *testing.T) {
 
 	t.Run("search_status_all", func(t *testing.T) {
 		// Use prefix to match all issues
-		results := bdSearchJSON(t, bd, dir, "sr-", "--status", "all")
+		results := issuegraphSearchJSON(t, issuegraph, dir, "sr-", "--status", "all")
 		ids := map[string]bool{}
 		for _, r := range results {
 			ids[r["id"].(string)] = true
@@ -155,7 +155,7 @@ func TestEmbeddedSearch(t *testing.T) {
 	t.Run("search_default_includes_closed", func(t *testing.T) {
 		// bd-t5yex: "was this already filed/fixed?" is the dominant search
 		// query, so the default must not silently hide closed issues.
-		results := bdSearchJSON(t, bd, dir, "sr-")
+		results := issuegraphSearchJSON(t, issuegraph, dir, "sr-")
 		ids := map[string]bool{}
 		for _, r := range results {
 			ids[r["id"].(string)] = true
@@ -166,7 +166,7 @@ func TestEmbeddedSearch(t *testing.T) {
 	})
 
 	t.Run("search_status_comma_separated", func(t *testing.T) {
-		results := bdSearchJSON(t, bd, dir, "sr-", "--status", "open,closed")
+		results := issuegraphSearchJSON(t, issuegraph, dir, "sr-", "--status", "open,closed")
 		ids := map[string]bool{}
 		for _, r := range results {
 			ids[r["id"].(string)] = true
@@ -177,7 +177,7 @@ func TestEmbeddedSearch(t *testing.T) {
 	})
 
 	t.Run("search_status_invalid", func(t *testing.T) {
-		out := bdSearchFail(t, bd, dir, "sr-", "--status", "not-a-status")
+		out := issuegraphSearchFail(t, issuegraph, dir, "sr-", "--status", "not-a-status")
 		if !strings.Contains(out, "invalid status") || !strings.Contains(out, "not-a-status") {
 			t.Errorf("expected useful invalid status error, got: %s", out)
 		}
@@ -186,7 +186,7 @@ func TestEmbeddedSearch(t *testing.T) {
 	// ===== Assignee Filter =====
 
 	t.Run("search_assignee", func(t *testing.T) {
-		results := bdSearchJSON(t, bd, dir, "sr-", "--assignee", "alice")
+		results := issuegraphSearchJSON(t, issuegraph, dir, "sr-", "--assignee", "alice")
 		for _, r := range results {
 			if r["id"] == taskB.ID {
 				t.Error("bob's task should not appear with --assignee alice")
@@ -204,7 +204,7 @@ func TestEmbeddedSearch(t *testing.T) {
 	})
 
 	t.Run("search_no_assignee", func(t *testing.T) {
-		results := bdSearchJSON(t, bd, dir, "sr-", "--no-assignee")
+		results := issuegraphSearchJSON(t, issuegraph, dir, "sr-", "--no-assignee")
 		for _, r := range results {
 			if r["id"] == taskA.ID || r["id"] == taskB.ID {
 				t.Errorf("assigned tasks should not appear with --no-assignee")
@@ -215,7 +215,7 @@ func TestEmbeddedSearch(t *testing.T) {
 	// ===== Type Filter =====
 
 	t.Run("search_type", func(t *testing.T) {
-		results := bdSearchJSON(t, bd, dir, "sr-", "--type", "bug")
+		results := issuegraphSearchJSON(t, issuegraph, dir, "sr-", "--type", "bug")
 		if len(results) == 0 {
 			t.Fatal("expected bug results")
 		}
@@ -229,7 +229,7 @@ func TestEmbeddedSearch(t *testing.T) {
 	// ===== Label Filters =====
 
 	t.Run("search_label_and", func(t *testing.T) {
-		results := bdSearchJSON(t, bd, dir, "sr-", "--label", "urgent", "--label", "frontend")
+		results := issuegraphSearchJSON(t, issuegraph, dir, "sr-", "--label", "urgent", "--label", "frontend")
 		// Only taskC has both urgent AND frontend
 		if len(results) != 1 || results[0]["id"] != taskC.ID {
 			t.Errorf("expected only %s with --label urgent --label frontend, got %d results", taskC.ID, len(results))
@@ -237,7 +237,7 @@ func TestEmbeddedSearch(t *testing.T) {
 	})
 
 	t.Run("search_label_any", func(t *testing.T) {
-		results := bdSearchJSON(t, bd, dir, "sr-", "--label-any", "urgent,frontend")
+		results := issuegraphSearchJSON(t, issuegraph, dir, "sr-", "--label-any", "urgent,frontend")
 		ids := map[string]bool{}
 		for _, r := range results {
 			ids[r["id"].(string)] = true
@@ -249,7 +249,7 @@ func TestEmbeddedSearch(t *testing.T) {
 	})
 
 	t.Run("search_no_labels", func(t *testing.T) {
-		results := bdSearchJSON(t, bd, dir, "sr-", "--no-labels")
+		results := issuegraphSearchJSON(t, issuegraph, dir, "sr-", "--no-labels")
 		for _, r := range results {
 			if r["id"] == taskA.ID || r["id"] == taskC.ID {
 				t.Errorf("labeled tasks should not appear with --no-labels")
@@ -260,14 +260,14 @@ func TestEmbeddedSearch(t *testing.T) {
 	// ===== Limit =====
 
 	t.Run("search_limit", func(t *testing.T) {
-		results := bdSearchJSON(t, bd, dir, "sr-", "--limit", "2")
+		results := issuegraphSearchJSON(t, issuegraph, dir, "sr-", "--limit", "2")
 		if len(results) > 2 {
 			t.Errorf("expected at most 2 results with --limit 2, got %d", len(results))
 		}
 	})
 
 	t.Run("search_limit_zero", func(t *testing.T) {
-		results := bdSearchJSON(t, bd, dir, "sr-", "--limit", "0", "--status", "all")
+		results := issuegraphSearchJSON(t, issuegraph, dir, "sr-", "--limit", "0", "--status", "all")
 		// limit=0 means unlimited — should get all issues
 		if len(results) < 5 {
 			t.Errorf("expected all issues with --limit 0, got %d", len(results))
@@ -277,7 +277,7 @@ func TestEmbeddedSearch(t *testing.T) {
 	// ===== Sort =====
 
 	t.Run("search_sort_priority", func(t *testing.T) {
-		results := bdSearchJSON(t, bd, dir, "sr-", "--sort", "priority")
+		results := issuegraphSearchJSON(t, issuegraph, dir, "sr-", "--sort", "priority")
 		if len(results) < 2 {
 			t.Skip("need at least 2 results to test sort")
 		}
@@ -290,7 +290,7 @@ func TestEmbeddedSearch(t *testing.T) {
 	})
 
 	t.Run("search_sort_reverse", func(t *testing.T) {
-		results := bdSearchJSON(t, bd, dir, "sr-", "--sort", "priority", "--reverse")
+		results := issuegraphSearchJSON(t, issuegraph, dir, "sr-", "--sort", "priority", "--reverse")
 		if len(results) < 2 {
 			t.Skip("need at least 2 results to test reverse sort")
 		}
@@ -304,7 +304,7 @@ func TestEmbeddedSearch(t *testing.T) {
 	// ===== Priority Filters =====
 
 	t.Run("search_priority_min", func(t *testing.T) {
-		results := bdSearchJSON(t, bd, dir, "sr-", "--priority-min", "2")
+		results := issuegraphSearchJSON(t, issuegraph, dir, "sr-", "--priority-min", "2")
 		for _, r := range results {
 			pri := int(r["priority"].(float64))
 			if pri < 2 {
@@ -314,7 +314,7 @@ func TestEmbeddedSearch(t *testing.T) {
 	})
 
 	t.Run("search_priority_max", func(t *testing.T) {
-		results := bdSearchJSON(t, bd, dir, "sr-", "--priority-max", "2")
+		results := issuegraphSearchJSON(t, issuegraph, dir, "sr-", "--priority-max", "2")
 		for _, r := range results {
 			pri := int(r["priority"].(float64))
 			if pri > 2 {
@@ -326,7 +326,7 @@ func TestEmbeddedSearch(t *testing.T) {
 	// ===== Description Filters =====
 
 	t.Run("search_desc_contains", func(t *testing.T) {
-		results := bdSearchJSON(t, bd, dir, "sr-", "--desc-contains", "alpha")
+		results := issuegraphSearchJSON(t, issuegraph, dir, "sr-", "--desc-contains", "alpha")
 		found := false
 		for _, r := range results {
 			if r["id"] == taskA.ID {
@@ -339,7 +339,7 @@ func TestEmbeddedSearch(t *testing.T) {
 	})
 
 	t.Run("search_empty_description", func(t *testing.T) {
-		results := bdSearchJSON(t, bd, dir, "sr-", "--empty-description")
+		results := issuegraphSearchJSON(t, issuegraph, dir, "sr-", "--empty-description")
 		found := false
 		for _, r := range results {
 			if r["id"] == taskD.ID {
@@ -359,7 +359,7 @@ func TestEmbeddedSearch(t *testing.T) {
 	// ===== Long Output =====
 
 	t.Run("search_long", func(t *testing.T) {
-		out := bdSearch(t, bd, dir, "sr-", "--long", "--limit", "2")
+		out := issuegraphSearch(t, issuegraph, dir, "sr-", "--long", "--limit", "2")
 		// Long format should have more detail than default
 		if !strings.Contains(out, "Alpha task") && !strings.Contains(out, "Beta bug") {
 			t.Logf("long output may not contain expected titles: %s", out)
@@ -370,7 +370,7 @@ func TestEmbeddedSearch(t *testing.T) {
 
 	t.Run("search_created_after", func(t *testing.T) {
 		// All test issues were created today, so searching for yesterday should find them
-		results := bdSearchJSON(t, bd, dir, "sr-", "--created-after", "2020-01-01")
+		results := issuegraphSearchJSON(t, issuegraph, dir, "sr-", "--created-after", "2020-01-01")
 		if len(results) == 0 {
 			t.Error("expected results with --created-after 2020-01-01")
 		}
@@ -378,7 +378,7 @@ func TestEmbeddedSearch(t *testing.T) {
 
 	t.Run("search_created_before", func(t *testing.T) {
 		// Searching before 2020 should find nothing
-		results := bdSearchJSON(t, bd, dir, "sr-", "--created-before", "2020-01-01")
+		results := issuegraphSearchJSON(t, issuegraph, dir, "sr-", "--created-before", "2020-01-01")
 		if len(results) != 0 {
 			t.Errorf("expected 0 results with --created-before 2020-01-01, got %d", len(results))
 		}
@@ -388,8 +388,8 @@ func TestEmbeddedSearch(t *testing.T) {
 
 	t.Run("search_metadata_field", func(t *testing.T) {
 		// Create an issue with metadata
-		mdIssue := bdCreate(t, bd, dir, "Metadata issue", "--type", "task", "--metadata", `{"team":"platform"}`)
-		results := bdSearchJSON(t, bd, dir, "sr-", "--metadata-field", "team=platform")
+		mdIssue := issuegraphCreate(t, issuegraph, dir, "Metadata issue", "--type", "task", "--metadata", `{"team":"platform"}`)
+		results := issuegraphSearchJSON(t, issuegraph, dir, "sr-", "--metadata-field", "team=platform")
 		found := false
 		for _, r := range results {
 			if r["id"] == mdIssue.ID {
@@ -402,7 +402,7 @@ func TestEmbeddedSearch(t *testing.T) {
 	})
 
 	t.Run("search_has_metadata_key", func(t *testing.T) {
-		results := bdSearchJSON(t, bd, dir, "sr-", "--has-metadata-key", "team")
+		results := issuegraphSearchJSON(t, issuegraph, dir, "sr-", "--has-metadata-key", "team")
 		if len(results) == 0 {
 			t.Error("expected results with --has-metadata-key team")
 		}
@@ -411,7 +411,7 @@ func TestEmbeddedSearch(t *testing.T) {
 	// ===== Combined Filters =====
 
 	t.Run("search_combined_filters", func(t *testing.T) {
-		results := bdSearchJSON(t, bd, dir, "sr-", "--type", "task", "--assignee", "alice", "--label", "urgent")
+		results := issuegraphSearchJSON(t, issuegraph, dir, "sr-", "--type", "task", "--assignee", "alice", "--label", "urgent")
 		if len(results) != 1 || results[0]["id"] != taskA.ID {
 			t.Errorf("expected only %s with combined filters, got %d results", taskA.ID, len(results))
 		}
@@ -424,19 +424,19 @@ func TestEmbeddedSearch(t *testing.T) {
 
 // TestEmbeddedSearchConcurrent exercises search operations concurrently.
 func TestEmbeddedSearchConcurrent(t *testing.T) {
-	if os.Getenv("BEADS_TEST_EMBEDDED_DOLT") != "1" {
-		t.Skip("set BEADS_TEST_EMBEDDED_DOLT=1 to run embedded dolt integration tests")
+	if os.Getenv("ISSUEGRAPH_TEST_EMBEDDED_DOLT") != "1" {
+		t.Skip("set ISSUEGRAPH_TEST_EMBEDDED_DOLT=1 to run embedded dolt integration tests")
 	}
 	t.Parallel()
 
-	bd := buildEmbeddedBD(t)
-	dir, _, _ := bdInit(t, bd, "--prefix", "sx")
+	issuegraph := buildEmbeddedBD(t)
+	dir, _, _ := issuegraphInit(t, issuegraph, "--prefix", "sx")
 
 	const numWorkers = 8
 
 	// Pre-create issues for searching
 	for i := 0; i < 20; i++ {
-		bdCreate(t, bd, dir, fmt.Sprintf("concurrent-search-%d", i), "--type", "task", "--priority", fmt.Sprintf("%d", i%4+1))
+		issuegraphCreate(t, issuegraph, dir, fmt.Sprintf("concurrent-search-%d", i), "--type", "task", "--priority", fmt.Sprintf("%d", i%4+1))
 	}
 
 	type workerResult struct {
@@ -463,9 +463,9 @@ func TestEmbeddedSearchConcurrent(t *testing.T) {
 			}
 			q := queries[worker%len(queries)]
 
-			cmd := exec.Command(bd, append([]string{"search"}, q...)...)
+			cmd := exec.Command(issuegraph, append([]string{"search"}, q...)...)
 			cmd.Dir = dir
-			cmd.Env = bdEnv(dir)
+			cmd.Env = issuegraphEnv(dir)
 			out, err := cmd.CombinedOutput()
 			if err != nil {
 				r.err = fmt.Errorf("search %v: %v\n%s", q, err, out)

@@ -8,13 +8,13 @@ import (
 	"strconv"
 	"strings"
 
+	"github.com/borg0ai/dx-issuegraph/internal/config"
+	"github.com/borg0ai/dx-issuegraph/internal/doltserver"
+	"github.com/borg0ai/dx-issuegraph/internal/git"
+	"github.com/borg0ai/dx-issuegraph/internal/issuegraph"
+	"github.com/borg0ai/dx-issuegraph/internal/metrics"
+	"github.com/borg0ai/dx-issuegraph/internal/storage/dolt"
 	"github.com/spf13/cobra"
-	"github.com/steveyegge/beads/internal/beads"
-	"github.com/steveyegge/beads/internal/config"
-	"github.com/steveyegge/beads/internal/doltserver"
-	"github.com/steveyegge/beads/internal/git"
-	"github.com/steveyegge/beads/internal/metrics"
-	"github.com/steveyegge/beads/internal/storage/dolt"
 )
 
 // DriftItem represents a single drift check result.
@@ -51,8 +51,8 @@ Exit codes:
   1  Drift detected (at least one check has status "drift")
 
 Examples:
-  bd config drift
-  bd config drift --json`,
+  issuegraph config drift
+  issuegraph config drift --json`,
 	SilenceUsage:  true,
 	SilenceErrors: true,
 	RunE: func(_ *cobra.Command, _ []string) error {
@@ -156,17 +156,17 @@ func checkRemoteDrift() []DriftItem {
 	federationRemote := config.GetString("federation.remote")
 
 	// Find the dolt data directory for CLI remote listing
-	beadsDir := beads.FindBeadsDir()
-	if beadsDir == "" {
+	issuegraphDir := issuegraph.FindIssueGraphDir()
+	if issuegraphDir == "" {
 		return []DriftItem{{
 			Check:   "remote",
 			Status:  driftStatusSkipped,
-			Message: "No active beads workspace found",
+			Message: "No active issuegraph workspace found",
 		}}
 	}
 
 	ctx := context.Background()
-	st, err := dolt.NewFromConfigWithOptions(ctx, beadsDir, &dolt.Config{
+	st, err := dolt.NewFromConfigWithOptions(ctx, issuegraphDir, &dolt.Config{
 		ReadOnly:         true,
 		DisableAutoStart: true,
 	})
@@ -252,18 +252,18 @@ func checkRemoteDrift() []DriftItem {
 // Uses non-mutating PID file check instead of doltserver.IsRunning() which can
 // delete stale state files.
 func checkServerDrift() []DriftItem {
-	beadsDir := beads.FindBeadsDir()
-	if beadsDir == "" {
+	issuegraphDir := issuegraph.FindIssueGraphDir()
+	if issuegraphDir == "" {
 		return []DriftItem{{
 			Check:   "server",
 			Status:  driftStatusSkipped,
-			Message: "No active beads workspace found",
+			Message: "No active issuegraph workspace found",
 		}}
 	}
 
 	wantServer := doltserver.IsSharedServerMode()
 
-	serverDir := beadsDir
+	serverDir := issuegraphDir
 	if wantServer {
 		var err error
 		serverDir, err = doltserver.SharedServerPath()
@@ -316,8 +316,8 @@ func checkServerDrift() []DriftItem {
 
 // isServerProbablyRunning performs a non-mutating check for a running Dolt server.
 // Reads the PID file and checks if the process exists, without deleting stale files.
-func isServerProbablyRunning(beadsDir string) bool {
-	pidFile := filepath.Join(beadsDir, doltserver.PIDFileName)
+func isServerProbablyRunning(issuegraphDir string) bool {
+	pidFile := filepath.Join(issuegraphDir, doltserver.PIDFileName)
 	data, err := os.ReadFile(pidFile) // #nosec G304 -- controlled path
 	if err != nil {
 		return false

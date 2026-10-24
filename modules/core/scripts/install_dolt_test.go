@@ -235,7 +235,7 @@ esac
 	root := sourceRepoRoot(t)
 	env := []string{
 		"PATH=" + os.Getenv("PATH"),
-		"BEADS_TEST_COMMAND_PATH=" + commandPath,
+		"ISSUEGRAPH_TEST_COMMAND_PATH=" + commandPath,
 		"LC_ALL=C",
 		"LANG=C",
 		"BASH_ENV=",

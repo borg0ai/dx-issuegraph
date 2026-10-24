@@ -1,4 +1,4 @@
-// Package doctor provides health check and repair functionality for beads.
+// Package doctor provides health check and repair functionality for issuegraph.
 package doctor
 
 import (
@@ -8,7 +8,7 @@ import (
 	"os"
 	"strings"
 
-	"github.com/steveyegge/beads/internal/configfile"
+	"github.com/borg0ai/dx-issuegraph/internal/configfile"
 )
 
 // DeepValidationResult holds all deep validation check results
@@ -31,11 +31,11 @@ func RunDeepValidation(path string) DeepValidationResult {
 		OverallOK: true,
 	}
 
-	beadsDir := ResolveBeadsDirForRepo(path)
+	issuegraphDir := ResolveIssueGraphDirForRepo(path)
 
 	// Check backend
 	backend := configfile.BackendDolt
-	if cfg, err := configfile.Load(beadsDir); err == nil && cfg != nil {
+	if cfg, err := configfile.Load(issuegraphDir); err == nil && cfg != nil {
 		backend = cfg.GetBackend()
 	}
 
@@ -51,7 +51,7 @@ func RunDeepValidation(path string) DeepValidationResult {
 	}
 
 	// Check if Dolt directory exists
-	doltPath := getDatabasePath(beadsDir)
+	doltPath := getDatabasePath(issuegraphDir)
 	if _, err := os.Stat(doltPath); os.IsNotExist(err) {
 		check := DoctorCheck{
 			Name:     "Deep Validation",
@@ -64,7 +64,7 @@ func RunDeepValidation(path string) DeepValidationResult {
 	}
 
 	// Open Dolt connection
-	conn, err := openDoltConn(beadsDir)
+	conn, err := openDoltConn(issuegraphDir)
 	if err != nil {
 		check := DoctorCheck{
 			Name:     "Deep Validation",
@@ -177,7 +177,7 @@ func checkParentConsistency(db *sql.DB) DoctorCheck {
 	check.Status = StatusError
 	check.Message = fmt.Sprintf("Found %d orphaned parent-child dependencies", len(orphanedDeps))
 	check.Detail = fmt.Sprintf("Examples: %s", strings.Join(orphanedDeps[:min(3, len(orphanedDeps))], ", "))
-	check.Fix = "Run 'bd doctor --fix' to remove orphaned dependencies"
+	check.Fix = "Run 'issuegraph doctor --fix' to remove orphaned dependencies"
 	return check
 }
 
@@ -236,7 +236,7 @@ func checkDependencyIntegrity(db *sql.DB) DoctorCheck {
 	check.Status = StatusError
 	check.Message = fmt.Sprintf("Found %d broken dependencies", len(brokenDeps))
 	check.Detail = fmt.Sprintf("Examples: %s", strings.Join(brokenDeps[:min(3, len(brokenDeps))], ", "))
-	check.Fix = "Run 'bd repair-deps' to remove broken dependencies"
+	check.Fix = "Run 'issuegraph repair-deps' to remove broken dependencies"
 	return check
 }
 
@@ -297,7 +297,7 @@ func checkEpicCompleteness(db *sql.DB) DoctorCheck {
 	check.Status = StatusWarning
 	check.Message = fmt.Sprintf("Found %d epics ready to close", len(completedEpics))
 	check.Detail = fmt.Sprintf("Examples: %s", strings.Join(completedEpics[:min(5, len(completedEpics))], ", "))
-	check.Fix = "Run 'bd close <epic-id>' to close completed epics"
+	check.Fix = "Run 'issuegraph close <epic-id>' to close completed epics"
 	return check
 }
 
@@ -394,7 +394,7 @@ func checkMoleculeIntegrity(db *sql.DB) DoctorCheck {
 		Category: CategoryMetadata,
 	}
 
-	// Find molecules (issue_type='molecule' or has beads:template label) with broken structures
+	// Find molecules (issue_type='molecule' or has issuegraph:template label) with broken structures
 	// A molecule should have parent-child relationships forming a valid DAG
 
 	// First, find molecules
@@ -402,7 +402,7 @@ func checkMoleculeIntegrity(db *sql.DB) DoctorCheck {
 		SELECT DISTINCT i.id, i.title
 		FROM issues i
 		LEFT JOIN labels l ON l.issue_id = i.id
-		WHERE (i.issue_type = 'molecule' OR l.label = 'beads:template')
+		WHERE (i.issue_type = 'molecule' OR l.label = 'issuegraph:template')
 		LIMIT 100`
 
 	rows, err := db.Query(query)
@@ -478,7 +478,7 @@ func checkMoleculeIntegrity(db *sql.DB) DoctorCheck {
 		check.Status = StatusError
 		check.Message = fmt.Sprintf("Found %d molecules with missing children", len(brokenMolecules))
 		check.Detail = fmt.Sprintf("Examples: %s", strings.Join(brokenMolecules[:min(3, len(brokenMolecules))], ", "))
-		check.Fix = "Run 'bd repair-deps' to clean up orphaned relationships"
+		check.Fix = "Run 'issuegraph repair-deps' to clean up orphaned relationships"
 		return check
 	}
 

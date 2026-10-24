@@ -4,25 +4,25 @@ import (
 	"errors"
 	"net/http"
 
-	"github.com/steveyegge/beads/internal/httpapi/apigen"
-	"github.com/steveyegge/beads/internal/storage"
-	"github.com/steveyegge/beads/internal/types"
-	"github.com/steveyegge/beads/issueops"
+	"github.com/borg0ai/dx-issuegraph/internal/httpapi/apigen"
+	"github.com/borg0ai/dx-issuegraph/internal/storage"
+	"github.com/borg0ai/dx-issuegraph/internal/types"
+	"github.com/borg0ai/dx-issuegraph/issueops"
 )
 
 // defaultTreeDepth is the document's `max_depth` default, and it is the CLI's
-// too (`bd dep tree --max-depth`, 50).
+// too (`issuegraph dep tree --max-depth`, 50).
 //
 // It is a FRONT-DOOR default rather than a role default on purpose: the role
 // refuses a zero depth outright, because an uninitialized recursive walk must
 // not mean "walk the whole graph".
 const defaultTreeDepth = 50
 
-// handleDependencyTree answers GET /v0/beads/dependencies/tree.
+// handleDependencyTree answers GET /v0/issuegraph/dependencies/tree.
 //
 // No graph is walked, no depth counted, no visited set kept, no `both` merge
 // performed and no status prune applied: all of that is inside
-// issueops.TreeWalker, which `bd dep tree` reaches through the same accessor. A
+// issueops.TreeWalker, which `issuegraph dep tree` reaches through the same accessor. A
 // handler that merged the two directions for itself would be a second
 // definition of what `direction=both` means.
 //

@@ -6,7 +6,7 @@ import (
 	"errors"
 	"testing"
 
-	"github.com/steveyegge/beads/internal/storage"
+	"github.com/borg0ai/dx-issuegraph/internal/storage"
 )
 
 func TestEmbeddedDoltStoreIssueLifecycleBuildsOperations(t *testing.T) {

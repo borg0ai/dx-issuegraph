@@ -9,29 +9,29 @@ import (
 	"path/filepath"
 	"testing"
 
-	"github.com/steveyegge/beads/internal/storage/embeddeddolt"
-	"github.com/steveyegge/beads/internal/storage/schema"
-	"github.com/steveyegge/beads/internal/types"
+	"github.com/borg0ai/dx-issuegraph/internal/storage/embeddeddolt"
+	"github.com/borg0ai/dx-issuegraph/internal/storage/schema"
+	"github.com/borg0ai/dx-issuegraph/internal/types"
 )
 
 // TestEmbeddedDirtyTablesGate_BlocksReopenThenWorkingSetReconcileRecovers
-// covers gastownhall/beads#4566: a pending schema migration that alters a
+// covers borg0ai/dx-issuegraph#4566: a pending schema migration that alters a
 // table with pre-existing dirty (uncommitted) content must refuse a plain
-// open, but a working-set-reconcile open (used by "bd dolt commit" / "bd vc
+// open, but a working-set-reconcile open (used by "issuegraph dolt commit" / "issuegraph vc
 // commit") must still be able to open the store, so the commit that clears
 // the dirty state can actually run. Without this, the documented recovery
 // deadlocks against the very guard it is meant to clear.
 func TestEmbeddedDirtyTablesGate_BlocksReopenThenWorkingSetReconcileRecovers(t *testing.T) {
-	if os.Getenv("BEADS_TEST_EMBEDDED_DOLT") != "1" {
-		t.Skip("set BEADS_TEST_EMBEDDED_DOLT=1 to run embedded dolt tests")
+	if os.Getenv("ISSUEGRAPH_TEST_EMBEDDED_DOLT") != "1" {
+		t.Skip("set ISSUEGRAPH_TEST_EMBEDDED_DOLT=1 to run embedded dolt tests")
 	}
 
 	ctx := t.Context()
-	beadsDir := filepath.Join(t.TempDir(), ".beads")
-	dataDir := filepath.Join(beadsDir, "embeddeddolt")
+	issuegraphDir := filepath.Join(t.TempDir(), ".issuegraph")
+	dataDir := filepath.Join(issuegraphDir, "embeddeddolt")
 
 	// Create and fully migrate the embedded database.
-	store, err := embeddeddolt.Open(ctx, beadsDir, "testdb", "main")
+	store, err := embeddeddolt.Open(ctx, issuegraphDir, "testdb", "main")
 	if err != nil {
 		t.Fatalf("Open: %v", err)
 	}
@@ -39,7 +39,7 @@ func TestEmbeddedDirtyTablesGate_BlocksReopenThenWorkingSetReconcileRecovers(t *
 		store.Close()
 		t.Fatalf("SetConfig(issue_prefix): %v", err)
 	}
-	if err := store.Commit(ctx, "bd init"); err != nil {
+	if err := store.Commit(ctx, "issuegraph init"); err != nil {
 		store.Close()
 		t.Fatalf("Commit (init): %v", err)
 	}
@@ -87,7 +87,7 @@ func TestEmbeddedDirtyTablesGate_BlocksReopenThenWorkingSetReconcileRecovers(t *
 	store.Close()
 
 	// Plain Open must hit the dirty-table guard.
-	gated, gateErr := embeddeddolt.Open(ctx, beadsDir, "testdb", "main")
+	gated, gateErr := embeddeddolt.Open(ctx, issuegraphDir, "testdb", "main")
 	if gateErr == nil {
 		gated.Close()
 		t.Fatal("Open (reopen) = nil, want *schema.DirtyTablesError for a dirty table touched by a pending migration")
@@ -108,7 +108,7 @@ func TestEmbeddedDirtyTablesGate_BlocksReopenThenWorkingSetReconcileRecovers(t *
 
 	// The working-set-reconcile open must succeed WITHOUT migrating: the
 	// schema stays behind, and the store is otherwise usable.
-	reconcileStore, err := embeddeddolt.OpenForWorkingSetReconcile(ctx, beadsDir, "testdb", "main")
+	reconcileStore, err := embeddeddolt.OpenForWorkingSetReconcile(ctx, issuegraphDir, "testdb", "main")
 	if err != nil {
 		t.Fatalf("OpenForWorkingSetReconcile: %v", err)
 	}
@@ -129,7 +129,7 @@ func TestEmbeddedDirtyTablesGate_BlocksReopenThenWorkingSetReconcileRecovers(t *
 	reconcileStore.Close()
 
 	// A plain reopen now migrates cleanly up to the latest schema.
-	migrated, err := embeddeddolt.Open(ctx, beadsDir, "testdb", "main")
+	migrated, err := embeddeddolt.Open(ctx, issuegraphDir, "testdb", "main")
 	if err != nil {
 		t.Fatalf("Open (post-commit reopen): %v", err)
 	}

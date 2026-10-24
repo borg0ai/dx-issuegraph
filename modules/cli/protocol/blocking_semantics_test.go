@@ -5,7 +5,7 @@ import (
 	"testing"
 )
 
-// TestProtocol_ReadyOrderingIsPriorityAsc asserts that bd ready --json returns
+// TestProtocol_ReadyOrderingIsPriorityAsc asserts that issuegraph ready --json returns
 // issues ordered by priority ascending (P0 first, then P1, P2, ..., P4).
 //
 // Minimal protocol: only the primary sort key (priority ASC) is enforced.
@@ -28,10 +28,10 @@ func TestProtocol_ReadyOrderingIsPriorityAsc(t *testing.T) {
 
 	// Sanity: the ready set must be non-empty given we just created 5 open tasks
 	if len(items) == 0 {
-		t.Fatal("bd ready --json returned 0 issues; expected at least 5 open tasks")
+		t.Fatal("issuegraph ready --json returned 0 issues; expected at least 5 open tasks")
 	}
 	if len(items) != 5 {
-		t.Fatalf("bd ready --json returned %d issues, want 5", len(items))
+		t.Fatalf("issuegraph ready --json returned %d issues, want 5", len(items))
 	}
 
 	// Non-decreasing priority (the only ordering contract we enforce)
@@ -50,11 +50,11 @@ func TestProtocol_ReadyOrderingIsPriorityAsc(t *testing.T) {
 }
 
 // TestProtocol_ClosedBlockerNotShownAsBlocking asserts that when all of an
-// issue's blockers are closed, bd list must NOT display "(blocked by: ...)"
+// issue's blockers are closed, issuegraph list must NOT display "(blocked by: ...)"
 // for that issue.
 //
-// Pins down the behavior that GH#1858 reports: bd list shows resolved blockers
-// as still blocking even though bd ready and bd show correctly identify them
+// Pins down the behavior that GH#1858 reports: issuegraph list shows resolved blockers
+// as still blocking even though issuegraph ready and issuegraph show correctly identify them
 // as resolved.
 func TestProtocol_ClosedBlockerNotShownAsBlocking(t *testing.T) {
 	t.Parallel()
@@ -82,31 +82,31 @@ func TestProtocol_ClosedBlockerNotShownAsBlocking(t *testing.T) {
 	// Close the blocker
 	w.run("close", blocker)
 
-	// After closing: bd ready should show the previously-blocked issue
+	// After closing: issuegraph ready should show the previously-blocked issue
 	t.Run("ready_after_close", func(t *testing.T) {
 		out := w.run("ready", "--json")
 		items := parseJSONOutput(t, out)
 		found := findByID(items, blocked)
 		if found == nil {
-			t.Errorf("issue %s should appear in bd ready after blocker %s was closed",
+			t.Errorf("issue %s should appear in issuegraph ready after blocker %s was closed",
 				blocked, blocker)
 		}
 	})
 
-	// After closing: bd list text output must NOT show "(blocked by: ...)"
+	// After closing: issuegraph list text output must NOT show "(blocked by: ...)"
 	t.Run("list_text_no_blocked_annotation", func(t *testing.T) {
 		out := w.run("list", "--status", "open")
 		if strings.Contains(out, "blocked by") {
-			t.Errorf("bd list shows 'blocked by' annotation after blocker was closed (GH#1858)\noutput:\n%s", out)
+			t.Errorf("issuegraph list shows 'blocked by' annotation after blocker was closed (GH#1858)\noutput:\n%s", out)
 		}
 	})
 }
 
 // TestProtocol_ClosingBlockerMakesDepReady asserts that closing an issue
-// that blocks another causes the blocked issue to appear in bd ready.
+// that blocks another causes the blocked issue to appear in issuegraph ready.
 //
 // Invariant: if B depends-on A (blocks type), and A is closed,
-// then B must appear in bd ready (assuming B has no other open blockers).
+// then B must appear in issuegraph ready (assuming B has no other open blockers).
 func TestProtocol_ClosingBlockerMakesDepReady(t *testing.T) {
 	t.Parallel()
 	w := newWorkspace(t)
@@ -224,9 +224,9 @@ func TestProtocol_TransitiveBlockingChain(t *testing.T) {
 }
 
 // TestProtocol_DeferredExcludedFromReady asserts that deferred issues are
-// NOT in bd ready, and undefer brings them back.
+// NOT in issuegraph ready, and undefer brings them back.
 //
-// Invariant: deferred issues must not appear in bd ready output.
+// Invariant: deferred issues must not appear in issuegraph ready output.
 func TestProtocol_DeferredExcludedFromReady(t *testing.T) {
 	t.Parallel()
 	w := newWorkspace(t)
@@ -244,7 +244,7 @@ func TestProtocol_DeferredExcludedFromReady(t *testing.T) {
 	// Should NOT be ready while deferred
 	readyIDs = parseReadyIDs(t, w)
 	if readyIDs[a] {
-		t.Errorf("deferred issue %s should NOT appear in bd ready", a)
+		t.Errorf("deferred issue %s should NOT appear in issuegraph ready", a)
 	}
 
 	// Undefer
@@ -258,7 +258,7 @@ func TestProtocol_DeferredExcludedFromReady(t *testing.T) {
 }
 
 // TestProtocol_DepRmUnblocksIssue asserts that removing a blocking dependency
-// makes the previously-blocked issue appear in bd ready.
+// makes the previously-blocked issue appear in issuegraph ready.
 //
 // Invariant: after dep rm, issue with no remaining blockers is ready.
 func TestProtocol_DepRmUnblocksIssue(t *testing.T) {

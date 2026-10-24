@@ -74,7 +74,7 @@ Output:
 ```
 📋 Ready work (1 issues with no blockers):
 
-1. [P1] bd-a1b2: Set up database
+1. [P1] issuegraph-a1b2: Set up database
 ```
 
 An issue is ready when ALL of its blocking dependencies are closed.
@@ -191,7 +191,7 @@ issuegraph issue status.
 | `gh:pr` | PR merged | `gh pr view` returns MERGED |
 | `gh:run` | CI passes | `gh run view` returns completed + success |
 | `timer` | Time elapsed | Current time exceeds timeout |
-| `bead` | Cross-rig issue closed | Remote bead status checked |
+| `issue` | Cross-rig issue closed | Remote issue status checked |
 | `human` | Manual approval | `issuegraph gate resolve <id>` |
 
 ### Creating Gates
@@ -209,9 +209,9 @@ issuegraph create --type=gate --title="Wait for CI" \
 issuegraph create --type=gate --title="Cooldown" \
   --await-type=timer --await-id=30m
 
-# Wait for a cross-rig bead to close
+# Wait for a cross-rig issue to close
 issuegraph create --type=gate --title="Wait for upstream fix" \
-  --await-type=bead --await-id=other-rig:issue-id
+  --await-type=issue --await-id=other-rig:issue-id
 
 # Manual approval gate
 issuegraph create --type=gate --title="Deploy approval"

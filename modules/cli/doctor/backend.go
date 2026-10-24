@@ -4,44 +4,44 @@ import (
 	"path/filepath"
 	"sync"
 
-	"github.com/steveyegge/beads/internal/beads"
-	"github.com/steveyegge/beads/internal/configfile"
-	"github.com/steveyegge/beads/internal/utils"
+	"github.com/borg0ai/dx-issuegraph/internal/configfile"
+	"github.com/borg0ai/dx-issuegraph/internal/issuegraph"
+	"github.com/borg0ai/dx-issuegraph/internal/utils"
 )
 
-var resolveBeadsDirCache sync.Map
+var resolveIssueGraphDirCache sync.Map
 
-// getBackendAndBeadsDir resolves the effective .beads directory (following redirects)
+// getBackendAndIssueGraphDir resolves the effective .issuegraph directory (following redirects)
 // and returns the configured storage backend ("dolt" by default).
-func getBackendAndBeadsDir(repoPath string) (backend string, beadsDir string) {
-	beadsDir = ResolveBeadsDirForRepo(repoPath)
+func getBackendAndIssueGraphDir(repoPath string) (backend string, issuegraphDir string) {
+	issuegraphDir = ResolveIssueGraphDirForRepo(repoPath)
 
-	cfg, err := configfile.Load(beadsDir)
+	cfg, err := configfile.Load(issuegraphDir)
 	if err != nil || cfg == nil {
-		return configfile.BackendDolt, beadsDir
+		return configfile.BackendDolt, issuegraphDir
 	}
-	return cfg.GetBackend(), beadsDir
+	return cfg.GetBackend(), issuegraphDir
 }
 
-func ResolveBeadsDirForRepo(repoPath string) string {
+func ResolveIssueGraphDirForRepo(repoPath string) string {
 	cacheKey := utils.CanonicalizePath(repoPath)
-	if resolved, ok := resolveBeadsDirCache.Load(cacheKey); ok {
+	if resolved, ok := resolveIssueGraphDirCache.Load(cacheKey); ok {
 		return resolved.(string)
 	}
 
-	resolved := resolveBeadsDirForRepoUncached(repoPath)
-	resolveBeadsDirCache.Store(cacheKey, resolved)
+	resolved := resolveIssueGraphDirForRepoUncached(repoPath)
+	resolveIssueGraphDirCache.Store(cacheKey, resolved)
 	return resolved
 }
 
-func resolveBeadsDirForRepoUncached(repoPath string) string {
-	return beads.ResolveBeadsDirForRepo(repoPath)
+func resolveIssueGraphDirForRepoUncached(repoPath string) string {
+	return issuegraph.ResolveIssueGraphDirForRepo(repoPath)
 }
 
-func resolvedBeadsRepoRoot(repoPath string) string {
-	return filepath.Dir(ResolveBeadsDirForRepo(repoPath))
+func resolvedIssueGraphRepoRoot(repoPath string) string {
+	return filepath.Dir(ResolveIssueGraphDirForRepo(repoPath))
 }
 
-func clearResolveBeadsDirCache() {
-	resolveBeadsDirCache = sync.Map{}
+func clearResolveIssueGraphDirCache() {
+	resolveIssueGraphDirCache = sync.Map{}
 }

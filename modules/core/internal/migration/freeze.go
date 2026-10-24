@@ -1,8 +1,8 @@
 // Package migration provides read-side access to the MIGRATION-FREEZE
 // write-freeze marker. The marker is a plain file that an operator — or an
 // external orchestration tool driving a migration — creates to stop writes
-// against a workspace, and removes to resume them. bd only ever reads it,
-// before a write command runs, so a human typing 'bd create'/'bd update'
+// against a workspace, and removes to resume them. issuegraph only ever reads it,
+// before a write command runs, so a human typing 'issuegraph create'/'issuegraph update'
 // mid-migration cannot slip a write past whatever quiesced the workspace
 // (dc-6jaq).
 package migration
@@ -19,20 +19,20 @@ import (
 	"time"
 )
 
-// FileName is the name of the freeze marker file. bd looks for it in a start
+// FileName is the name of the freeze marker file. issuegraph looks for it in a start
 // directory and every ancestor up to the filesystem root, so a marker placed
 // at the top of a multi-repo tree freezes every workspace beneath it.
 const FileName = "MIGRATION-FREEZE"
 
 // EnvFreezeFile names an explicit freeze-marker path. When set and non-empty
-// it is authoritative: bd checks that path only and skips the ancestor walk,
+// it is authoritative: issuegraph checks that path only and skips the ancestor walk,
 // so it doubles as the hook for markers that live outside any workspace tree
 // and as an opt-out (point it at a path that does not exist).
-const EnvFreezeFile = "BD_MIGRATION_FREEZE_FILE"
+const EnvFreezeFile = "ISSUEGRAPH_MIGRATION_FREEZE_FILE"
 
-// maxMarkerSize caps how much of a marker bd will read. The payload is one
+// maxMarkerSize caps how much of a marker issuegraph will read. The payload is one
 // short line; anything larger is a mistake or a hostile file (the ancestor
-// walk can reach directories bd does not control), and a freeze must not turn
+// walk can reach directories issuegraph does not control), and a freeze must not turn
 // into a multi-gigabyte allocation.
 const maxMarkerSize = 64 << 10
 
@@ -50,11 +50,11 @@ type Result struct {
 
 	// FromEnv reports that Path — or, when the lookup failed, the path that
 	// failed — came from EnvFreezeFile rather than an ancestor walk. Callers
-	// use it to add "or unset BD_MIGRATION_FREEZE_FILE" to a refusal.
+	// use it to add "or unset ISSUEGRAPH_MIGRATION_FREEZE_FILE" to a refusal.
 	FromEnv bool
 
 	// Err reports that the lookup could not be completed: a path that is
-	// neither present nor absent as far as bd can tell (a permission error on
+	// neither present nor absent as far as issuegraph can tell (a permission error on
 	// the marker or a directory above it). Callers must treat a non-nil Err as
 	// frozen — an undeterminable gate is not an open gate — and say so.
 	Err error
@@ -71,8 +71,8 @@ func (r Result) Frozen() bool { return r.Path != "" || r.Err != nil }
 // then does the same for each directory in also, stopping at the first marker.
 //
 // Passing the resolved workspace in also is what keys the gate on the store
-// being written rather than on the caller's shell: `BEADS_DIR=/work/repo/.beads
-// bd create` run from $HOME, `bd -C /work/repo create` (which sets BEADS_DIR
+// being written rather than on the caller's shell: `ISSUEGRAPH_DIR=/work/repo/.issuegraph
+// issuegraph create` run from $HOME, `issuegraph -C /work/repo create` (which sets ISSUEGRAPH_DIR
 // without ever chdir'ing), and a daemon with an unrelated cwd must all still
 // be stopped by /work/MIGRATION-FREEZE.
 func Find(also ...string) Result {
@@ -155,7 +155,7 @@ func walkAll(starts []string) Result {
 // simply not a marker; so is a directory or a device named MIGRATION-FREEZE,
 // which the walk can otherwise hit in vendored fixtures or an extracted
 // archive. Any other stat failure — a permission error on the marker or on a
-// directory above it — is returned, because "bd cannot tell" must not read as
+// directory above it — is returned, because "issuegraph cannot tell" must not read as
 // "not frozen".
 //
 // trusted separates the operator-named EnvFreezeFile path from one the untrusted
@@ -193,7 +193,7 @@ func statMarker(path string, trusted bool) (bool, error) {
 func statSymlinkMarker(path string, trusted bool) (bool, error) {
 	if !trusted {
 		fmt.Fprintf(os.Stderr,
-			"bd: ignoring symlinked %s at %s; a freeze marker must be a regular file (set %s to honor a symlink)\n",
+			"issuegraph: ignoring symlinked %s at %s; a freeze marker must be a regular file (set %s to honor a symlink)\n",
 			FileName, path, EnvFreezeFile)
 		return false, nil
 	}
@@ -225,7 +225,7 @@ func classifyMarkerStatErr(path string, err error) (bool, error) {
 // /tmp and its kin. The ancestor walk reaches those on the way to the root,
 // and a marker there is both forgeable by any local account and, thanks to the
 // sticky bit, undeletable by the victim the refusal tells to delete it. An
-// explicit BD_MIGRATION_FREEZE_FILE is exempt: that path is the operator's own
+// explicit ISSUEGRAPH_MIGRATION_FREEZE_FILE is exempt: that path is the operator's own
 // stated intent, not something the walk stumbled onto.
 func inUntrustedDir(dir string) bool {
 	info, err := os.Stat(dir)
@@ -242,7 +242,7 @@ func ReadFile(path string) *Info {
 	if path == "" {
 		return nil
 	}
-	f, err := os.Open(path) //nolint:gosec // G304: path comes from Find/FindFrom — an ancestor walk for a fixed filename, or the operator's own BD_MIGRATION_FREEZE_FILE
+	f, err := os.Open(path) //nolint:gosec // G304: path comes from Find/FindFrom — an ancestor walk for a fixed filename, or the operator's own ISSUEGRAPH_MIGRATION_FREEZE_FILE
 	if err != nil {
 		return nil
 	}

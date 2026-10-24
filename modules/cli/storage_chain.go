@@ -4,22 +4,22 @@ import (
 	"context"
 	"path/filepath"
 
-	"github.com/steveyegge/beads/internal/config"
-	"github.com/steveyegge/beads/internal/hooks"
-	"github.com/steveyegge/beads/internal/storage"
-	"github.com/steveyegge/beads/internal/storage/externaldeps"
-	"github.com/steveyegge/beads/internal/storage/uow"
-	"github.com/steveyegge/beads/internal/telemetry"
+	"github.com/borg0ai/dx-issuegraph/internal/config"
+	"github.com/borg0ai/dx-issuegraph/internal/hooks"
+	"github.com/borg0ai/dx-issuegraph/internal/storage"
+	"github.com/borg0ai/dx-issuegraph/internal/storage/externaldeps"
+	"github.com/borg0ai/dx-issuegraph/internal/storage/uow"
+	"github.com/borg0ai/dx-issuegraph/internal/telemetry"
 )
 
 // wireStorageDecorators composes the storage chain in the order the rest of
-// bd expects:
+// issuegraph expects:
 //
 //	caller → HookFiringStore → externaldeps.Store → InstrumentedStorage → raw DoltStorage
 //
 // telemetry.WrapStorage is a no-op when telemetry is disabled, so the
-// instrumentation layer is only present when BD_OTEL_ENABLED=true (or a
-// legacy BD_OTEL_* selector is set). The hook layer sits outside telemetry so
+// instrumentation layer is only present when ISSUEGRAPH_OTEL_ENABLED=true (or a
+// legacy ISSUEGRAPH_OTEL_* selector is set). The hook layer sits outside telemetry so
 // storage spans measure pure DB time without hook-firing overhead. The policy
 // sits directly beneath hooks so serve's one hook-layer peel retains it.
 //
@@ -51,7 +51,7 @@ func wireExternalDependencyPolicy(store storage.DoltStorage) storage.DoltStorage
 			return path, path != ""
 		},
 		func(ctx context.Context, projectRoot string) (storage.DoltStorage, error) {
-			return newReadOnlyStoreFromConfig(ctx, filepath.Join(projectRoot, ".beads"))
+			return newReadOnlyStoreFromConfig(ctx, filepath.Join(projectRoot, ".issuegraph"))
 		},
 	)
 }
@@ -83,7 +83,7 @@ func wireExternalDependencyUOWProvider(provider uow.UnitOfWorkProvider) uow.Unit
 			return path, path != ""
 		},
 		func(ctx context.Context, projectRoot string) (storage.DoltStorage, error) {
-			return newReadOnlyStoreFromConfig(ctx, filepath.Join(projectRoot, ".beads"))
+			return newReadOnlyStoreFromConfig(ctx, filepath.Join(projectRoot, ".issuegraph"))
 		},
 	)
 }

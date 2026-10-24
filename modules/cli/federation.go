@@ -7,10 +7,10 @@ import (
 	"os"
 	"strings"
 
+	"github.com/borg0ai/dx-issuegraph/internal/metrics"
+	"github.com/borg0ai/dx-issuegraph/internal/storage"
+	"github.com/borg0ai/dx-issuegraph/internal/ui"
 	"github.com/spf13/cobra"
-	"github.com/steveyegge/beads/internal/metrics"
-	"github.com/steveyegge/beads/internal/storage"
-	"github.com/steveyegge/beads/internal/ui"
 	"golang.org/x/term"
 )
 
@@ -26,7 +26,7 @@ var federationCmd = &cobra.Command{
 	Use:     "federation",
 	GroupID: "sync",
 	Short:   "Manage peer-to-peer federation with other workspaces",
-	Long: `Manage peer-to-peer federation between Dolt-backed beads databases.
+	Long: `Manage peer-to-peer federation between Dolt-backed issuegraph databases.
 
 Federation enables synchronized issue tracking across multiple workspaces,
 each maintaining their own Dolt database while sharing updates via remotes.
@@ -50,9 +50,9 @@ If no strategy is specified and conflicts occur, the sync will pause
 and report which tables have conflicts for manual resolution.
 
 Examples:
-  bd federation sync                      # Sync with all peers
-  bd federation sync --peer town-beta     # Sync with specific peer
-  bd federation sync --strategy theirs    # Auto-resolve using remote values`,
+  issuegraph federation sync                      # Sync with all peers
+  issuegraph federation sync --peer town-beta     # Sync with specific peer
+  issuegraph federation sync --strategy theirs    # Auto-resolve using remote values`,
 	SilenceUsage:  true,
 	SilenceErrors: true,
 	RunE:          runFederationSync,
@@ -69,8 +69,8 @@ Displays:
   - Whether there are unresolved conflicts
 
 Examples:
-  bd federation status                    # Status for all peers
-  bd federation status --peer town-beta   # Status for specific peer`,
+  issuegraph federation status                    # Status for all peers
+  issuegraph federation status --peer town-beta   # Status for specific peer`,
 	SilenceUsage:  true,
 	SilenceErrors: true,
 	RunE:          runFederationStatus,
@@ -91,9 +91,9 @@ when syncing with the peer. If --user is provided without --password,
 you will be prompted for the password interactively.
 
 Examples:
-  bd federation add-peer town-beta dolthub://acme/town-beta-beads
-  bd federation add-peer town-gamma 192.168.1.100:3306/beads --user sync-bot
-  bd federation add-peer partner https://partner.example.com/beads --user admin --password secret`,
+  issuegraph federation add-peer town-beta dolthub://acme/town-beta-issuegraph
+  issuegraph federation add-peer town-gamma 192.168.1.100:3306/issuegraph --user sync-bot
+  issuegraph federation add-peer partner https://partner.example.com/issuegraph --user admin --password secret`,
 	Args:          cobra.ExactArgs(2),
 	SilenceUsage:  true,
 	SilenceErrors: true,
@@ -185,7 +185,7 @@ func runFederationSync(cmd *cobra.Command, args []string) error {
 	}
 
 	if len(peers) == 0 {
-		return HandleErrorRespectJSON("no federation peers configured (use 'bd federation add-peer' to add peers)")
+		return HandleErrorRespectJSON("no federation peers configured (use 'issuegraph federation add-peer' to add peers)")
 	}
 
 	// Sync with each peer

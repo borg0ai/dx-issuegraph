@@ -8,9 +8,9 @@ import (
 	"os"
 	"sync"
 
-	"github.com/steveyegge/beads/internal/storage/dberrors"
-	"github.com/steveyegge/beads/internal/storage/issueops"
-	"github.com/steveyegge/beads/internal/types"
+	"github.com/borg0ai/dx-issuegraph/internal/storage/dberrors"
+	"github.com/borg0ai/dx-issuegraph/internal/storage/issueops"
+	"github.com/borg0ai/dx-issuegraph/internal/types"
 )
 
 // SearchIssues finds issues matching query and filters.
@@ -81,7 +81,7 @@ func (s *DoltStore) wakeExpiredDefers(ctx context.Context) {
 
 // deferWakeAccessDeniedOnce rate-limits the access-denied advisory to one
 // warning per process: a read-only-privileged SQL user hits it on every
-// ready-front read, and repeating a configuration fact on each `bd ready`
+// ready-front read, and repeating a configuration fact on each `issuegraph ready`
 // is noise, not signal.
 var deferWakeAccessDeniedOnce sync.Once
 
@@ -119,7 +119,7 @@ func (s *DoltStore) GetReadyWorkWithCounts(ctx context.Context, filter types.Wor
 
 // GetReadyWorkWithCountsAndTotal returns the ready page and the size of the
 // whole ready set in one read transaction (and one defer-wake sweep), so a
-// capped `bd ready` needs no separate count pass.
+// capped `issuegraph ready` needs no separate count pass.
 func (s *DoltStore) GetReadyWorkWithCountsAndTotal(ctx context.Context, filter types.WorkFilter) ([]*types.IssueWithCounts, int, error) {
 	s.wakeExpiredDefers(ctx)
 	var result []*types.IssueWithCounts
@@ -212,7 +212,7 @@ func (s *DoltStore) GetStatistics(ctx context.Context) (*types.Statistics, error
 
 // GetStatisticsNoBlocked returns aggregate counts without the blocked-set traversal.
 // BlockedIssues and ReadyIssues are nil in the result (readiness needs the blocked
-// set). Use for bd stats --no-blocked fast path.
+// set). Use for issuegraph stats --no-blocked fast path.
 func (s *DoltStore) GetStatisticsNoBlocked(ctx context.Context) (*types.Statistics, error) {
 	stats := &types.Statistics{}
 	err := s.withReadTx(ctx, func(tx *sql.Tx) error {

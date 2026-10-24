@@ -13,26 +13,26 @@ import (
 	"testing"
 )
 
-// bdBootstrap runs "bd bootstrap" with the given args and returns stdout.
-func bdBootstrap(t *testing.T, bd, dir string, args ...string) string {
+// issuegraphBootstrap runs "issuegraph bootstrap" with the given args and returns stdout.
+func issuegraphBootstrap(t *testing.T, issuegraph, dir string, args ...string) string {
 	t.Helper()
 	fullArgs := append([]string{"bootstrap"}, args...)
-	cmd := exec.Command(bd, fullArgs...)
+	cmd := exec.Command(issuegraph, fullArgs...)
 	cmd.Dir = dir
-	cmd.Env = bdEnv(dir)
+	cmd.Env = issuegraphEnv(dir)
 	stdout, stderr, err := runCommandBuffers(t, cmd)
 	if err != nil {
-		t.Fatalf("bd bootstrap %s failed: %v\nstdout:\n%s\nstderr:\n%s", strings.Join(args, " "), err, stdout.String(), stderr.String())
+		t.Fatalf("issuegraph bootstrap %s failed: %v\nstdout:\n%s\nstderr:\n%s", strings.Join(args, " "), err, stdout.String(), stderr.String())
 	}
 	return stdout.String()
 }
 
-func bdBootstrapAllowError(t *testing.T, bd, dir string, args ...string) (string, error) {
+func issuegraphBootstrapAllowError(t *testing.T, issuegraph, dir string, args ...string) (string, error) {
 	t.Helper()
 	fullArgs := append([]string{"bootstrap"}, args...)
-	cmd := exec.Command(bd, fullArgs...)
+	cmd := exec.Command(issuegraph, fullArgs...)
 	cmd.Dir = dir
-	cmd.Env = bdEnv(dir)
+	cmd.Env = issuegraphEnv(dir)
 	out, err := cmd.CombinedOutput()
 	return string(out), err
 }
@@ -40,30 +40,30 @@ func bdBootstrapAllowError(t *testing.T, bd, dir string, args ...string) (string
 func TestBootstrapNoWorkspace(t *testing.T) {
 	t.Parallel()
 
-	bd := buildEmbeddedBD(t)
+	issuegraph := buildEmbeddedBD(t)
 	dir := t.TempDir()
 	initGitRepoAt(t, dir)
 
 	t.Run("default_output", func(t *testing.T) {
-		out, err := bdBootstrapAllowError(t, bd, dir)
+		out, err := issuegraphBootstrapAllowError(t, issuegraph, dir)
 		if err == nil {
-			t.Fatal("expected bd bootstrap to exit non-zero without a workspace")
+			t.Fatal("expected issuegraph bootstrap to exit non-zero without a workspace")
 		}
 		if !strings.Contains(out, activeWorkspaceNotFoundMessage()) {
 			t.Fatalf("expected no-workspace message, got: %s", out)
 		}
-		if !strings.Contains(out, "bd where") {
-			t.Fatalf("expected bootstrap hint to mention bd where, got: %s", out)
+		if !strings.Contains(out, "issuegraph where") {
+			t.Fatalf("expected bootstrap hint to mention issuegraph where, got: %s", out)
 		}
 	})
 
 	t.Run("json_output", func(t *testing.T) {
-		cmd := exec.Command(bd, "bootstrap", "--json")
+		cmd := exec.Command(issuegraph, "bootstrap", "--json")
 		cmd.Dir = dir
-		cmd.Env = bdEnv(dir)
+		cmd.Env = issuegraphEnv(dir)
 		stdout, stderr, err := runCommandBuffers(t, cmd)
 		if err == nil {
-			t.Fatal("expected bd bootstrap --json to exit non-zero without a workspace")
+			t.Fatal("expected issuegraph bootstrap --json to exit non-zero without a workspace")
 		}
 
 		s := strings.TrimSpace(stdout.String())
@@ -82,31 +82,31 @@ func TestBootstrapNoWorkspace(t *testing.T) {
 		if reason, _ := payload["reason"].(string); reason != activeWorkspaceNotFoundError() {
 			t.Fatalf("reason = %q, want %q", reason, activeWorkspaceNotFoundError())
 		}
-		if suggestion, _ := payload["suggestion"].(string); !strings.Contains(suggestion, "bd where") {
-			t.Fatalf("suggestion should mention bd where, got: %q", suggestion)
+		if suggestion, _ := payload["suggestion"].(string); !strings.Contains(suggestion, "issuegraph where") {
+			t.Fatalf("suggestion should mention issuegraph where, got: %q", suggestion)
 		}
 	})
 }
 
 func TestEmbeddedBootstrap(t *testing.T) {
-	if os.Getenv("BEADS_TEST_EMBEDDED_DOLT") != "1" {
-		t.Skip("set BEADS_TEST_EMBEDDED_DOLT=1 to run embedded dolt integration tests")
+	if os.Getenv("ISSUEGRAPH_TEST_EMBEDDED_DOLT") != "1" {
+		t.Skip("set ISSUEGRAPH_TEST_EMBEDDED_DOLT=1 to run embedded dolt integration tests")
 	}
 	t.Parallel()
 
-	bd := buildEmbeddedBD(t)
+	issuegraph := buildEmbeddedBD(t)
 
 	// ===== Already Exists =====
 
 	t.Run("bootstrap_existing_db", func(t *testing.T) {
-		dir, _, _ := bdInit(t, bd, "--prefix", "tb")
-		out := bdBootstrap(t, bd, dir, "--dry-run")
+		dir, _, _ := issuegraphInit(t, issuegraph, "--prefix", "tb")
+		out := issuegraphBootstrap(t, issuegraph, dir, "--dry-run")
 		if !strings.Contains(out, "already exists") && !strings.Contains(out, "Nothing to do") {
 			t.Errorf("expected 'already exists' for initialized db: %s", out)
 		}
 	})
 
-	// ===== Dry Run (fresh .beads with no db) =====
+	// ===== Dry Run (fresh .issuegraph with no db) =====
 
 	t.Run("bootstrap_dry_run_fresh", func(t *testing.T) {
 		dir := t.TempDir()
@@ -119,12 +119,12 @@ func TestEmbeddedBootstrap(t *testing.T) {
 		cmd = exec.Command("git", "config", "user.email", "test@test.com")
 		cmd.Dir = dir
 		cmd.CombinedOutput()
-		// Create .beads with metadata.json so FindBeadsDir detects it
-		beadsDir := filepath.Join(dir, ".beads")
-		os.MkdirAll(beadsDir, 0o750)
-		os.WriteFile(filepath.Join(beadsDir, "metadata.json"), []byte("{}"), 0o644)
+		// Create .issuegraph with metadata.json so FindIssueGraphDir detects it
+		issuegraphDir := filepath.Join(dir, ".issuegraph")
+		os.MkdirAll(issuegraphDir, 0o750)
+		os.WriteFile(filepath.Join(issuegraphDir, "metadata.json"), []byte("{}"), 0o644)
 
-		out := bdBootstrap(t, bd, dir, "--dry-run")
+		out := issuegraphBootstrap(t, issuegraph, dir, "--dry-run")
 		if !strings.Contains(out, "create fresh") && !strings.Contains(out, "init") {
 			t.Errorf("expected fresh init plan: %s", out)
 		}
@@ -143,13 +143,13 @@ func TestEmbeddedBootstrap(t *testing.T) {
 		cmd = exec.Command("git", "config", "user.email", "test@test.com")
 		cmd.Dir = dir
 		cmd.CombinedOutput()
-		beadsDir := filepath.Join(dir, ".beads")
-		os.MkdirAll(beadsDir, 0o750)
-		os.WriteFile(filepath.Join(beadsDir, "metadata.json"), []byte("{}"), 0o644)
+		issuegraphDir := filepath.Join(dir, ".issuegraph")
+		os.MkdirAll(issuegraphDir, 0o750)
+		os.WriteFile(filepath.Join(issuegraphDir, "metadata.json"), []byte("{}"), 0o644)
 
-		bcmd := exec.Command(bd, "bootstrap")
+		bcmd := exec.Command(issuegraph, "bootstrap")
 		bcmd.Dir = dir
-		bcmd.Env = bdEnv(dir)
+		bcmd.Env = issuegraphEnv(dir)
 		bcmd.Stdin = strings.NewReader("y\n")
 		stdout, stderr, err := runCommandBuffers(t, bcmd)
 		if err != nil {
@@ -165,16 +165,16 @@ func TestEmbeddedBootstrap(t *testing.T) {
 
 	t.Run("bootstrap_jsonl_import", func(t *testing.T) {
 		// First create a db and export
-		srcDir, _, _ := bdInit(t, bd, "--prefix", "bs")
-		bdCreate(t, bd, srcDir, "Export for bootstrap", "--type", "task")
-		cmd := exec.Command(bd, "export", "-o", filepath.Join(srcDir, ".beads", "issues.jsonl"))
+		srcDir, _, _ := issuegraphInit(t, issuegraph, "--prefix", "bs")
+		issuegraphCreate(t, issuegraph, srcDir, "Export for bootstrap", "--type", "task")
+		cmd := exec.Command(issuegraph, "export", "-o", filepath.Join(srcDir, ".issuegraph", "issues.jsonl"))
 		cmd.Dir = srcDir
-		cmd.Env = bdEnv(srcDir)
+		cmd.Env = issuegraphEnv(srcDir)
 		if out, err := cmd.CombinedOutput(); err != nil {
 			t.Fatalf("export failed: %v\n%s", err, out)
 		}
 
-		// Create new dir with .beads + issues.jsonl but no database
+		// Create new dir with .issuegraph + issues.jsonl but no database
 		dir := t.TempDir()
 		gitCmd := exec.Command("git", "init", "-q")
 		gitCmd.Dir = dir
@@ -185,18 +185,18 @@ func TestEmbeddedBootstrap(t *testing.T) {
 		gitCmd = exec.Command("git", "config", "user.email", "test@test.com")
 		gitCmd.Dir = dir
 		gitCmd.CombinedOutput()
-		destBeads := filepath.Join(dir, ".beads")
-		os.MkdirAll(destBeads, 0o750)
-		os.WriteFile(filepath.Join(destBeads, "metadata.json"), []byte("{}"), 0o644)
+		destIssueGraph := filepath.Join(dir, ".issuegraph")
+		os.MkdirAll(destIssueGraph, 0o750)
+		os.WriteFile(filepath.Join(destIssueGraph, "metadata.json"), []byte("{}"), 0o644)
 
 		// Copy the JSONL file
-		data, _ := os.ReadFile(filepath.Join(srcDir, ".beads", "issues.jsonl"))
-		os.WriteFile(filepath.Join(dir, ".beads", "issues.jsonl"), data, 0o644)
+		data, _ := os.ReadFile(filepath.Join(srcDir, ".issuegraph", "issues.jsonl"))
+		os.WriteFile(filepath.Join(dir, ".issuegraph", "issues.jsonl"), data, 0o644)
 
 		// Bootstrap should detect and import JSONL
-		bcmd := exec.Command(bd, "bootstrap")
+		bcmd := exec.Command(issuegraph, "bootstrap")
 		bcmd.Dir = dir
-		bcmd.Env = bdEnv(dir)
+		bcmd.Env = issuegraphEnv(dir)
 		bcmd.Stdin = strings.NewReader("y\n")
 		stdout, stderr, err := runCommandBuffers(t, bcmd)
 		if err != nil {
@@ -219,24 +219,24 @@ func TestEmbeddedBootstrap(t *testing.T) {
 		runGitForBootstrapTest(t, sourceDir, "remote", "add", "origin", remoteURL)
 		runGitForBootstrapTest(t, sourceDir, "commit", "--allow-empty", "-m", "init")
 		runGitForBootstrapTest(t, sourceDir, "push", "-u", "origin", "main")
-		runBDInit(t, bd, sourceDir, "--prefix", "beads", "--skip-hooks", "--skip-agents")
-		bdCreate(t, bd, sourceDir, "Seed remote data", "--type", "task")
-		bdDolt(t, bd, sourceDir, "push")
+		runIssueGraphInit(t, issuegraph, sourceDir, "--prefix", "issuegraph", "--skip-hooks", "--skip-agents")
+		issuegraphCreate(t, issuegraph, sourceDir, "Seed remote data", "--type", "task")
+		issuegraphDolt(t, issuegraph, sourceDir, "push")
 
 		cloneDir := t.TempDir()
 		runGitForBootstrapTest(t, cloneDir, "init", "-b", "main")
 		runGitForBootstrapTest(t, cloneDir, "remote", "add", "origin", remoteURL)
 
-		out := bdBootstrap(t, bd, cloneDir, "--yes")
+		out := issuegraphBootstrap(t, issuegraph, cloneDir, "--yes")
 		if !strings.Contains(out, "clone from remote") {
 			t.Fatalf("expected bootstrap sync plan, got:\n%s", out)
 		}
 
-		remotes := bdDolt(t, bd, cloneDir, "remote", "list")
+		remotes := issuegraphDolt(t, issuegraph, cloneDir, "remote", "list")
 		if !strings.Contains(remotes, "origin") || !strings.Contains(remotes, remoteURL) {
 			t.Fatalf("bootstrap should leave origin configured as a Dolt remote %q; remote list:\n%s", remoteURL, remotes)
 		}
-		configYAML, err := os.ReadFile(filepath.Join(cloneDir, ".beads", "config.yaml"))
+		configYAML, err := os.ReadFile(filepath.Join(cloneDir, ".issuegraph", "config.yaml"))
 		if err != nil {
 			t.Fatalf("read config.yaml: %v", err)
 		}
@@ -248,13 +248,13 @@ func TestEmbeddedBootstrap(t *testing.T) {
 
 // TestEmbeddedBootstrapConcurrent exercises bootstrap --dry-run concurrently.
 func TestEmbeddedBootstrapConcurrent(t *testing.T) {
-	if os.Getenv("BEADS_TEST_EMBEDDED_DOLT") != "1" {
-		t.Skip("set BEADS_TEST_EMBEDDED_DOLT=1 to run embedded dolt integration tests")
+	if os.Getenv("ISSUEGRAPH_TEST_EMBEDDED_DOLT") != "1" {
+		t.Skip("set ISSUEGRAPH_TEST_EMBEDDED_DOLT=1 to run embedded dolt integration tests")
 	}
 	t.Parallel()
 
-	bd := buildEmbeddedBD(t)
-	dir, _, _ := bdInit(t, bd, "--prefix", "bx")
+	issuegraph := buildEmbeddedBD(t)
+	dir, _, _ := issuegraphInit(t, issuegraph, "--prefix", "bx")
 
 	const numWorkers = 8
 	type workerResult struct {
@@ -269,9 +269,9 @@ func TestEmbeddedBootstrapConcurrent(t *testing.T) {
 		go func(worker int) {
 			defer wg.Done()
 			r := workerResult{worker: worker}
-			cmd := exec.Command(bd, "bootstrap", "--dry-run")
+			cmd := exec.Command(issuegraph, "bootstrap", "--dry-run")
 			cmd.Dir = dir
-			cmd.Env = bdEnv(dir)
+			cmd.Env = issuegraphEnv(dir)
 			out, err := cmd.CombinedOutput()
 			if err != nil {
 				r.err = fmt.Errorf("bootstrap --dry-run (worker %d): %v\n%s", worker, err, out)

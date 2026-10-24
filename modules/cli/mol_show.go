@@ -5,11 +5,11 @@ import (
 	"sort"
 	"strings"
 
+	"github.com/borg0ai/dx-issuegraph/internal/metrics"
+	"github.com/borg0ai/dx-issuegraph/internal/types"
+	"github.com/borg0ai/dx-issuegraph/internal/ui"
+	"github.com/borg0ai/dx-issuegraph/internal/utils"
 	"github.com/spf13/cobra"
-	"github.com/steveyegge/beads/internal/metrics"
-	"github.com/steveyegge/beads/internal/types"
-	"github.com/steveyegge/beads/internal/ui"
-	"github.com/steveyegge/beads/internal/utils"
 )
 
 var (
@@ -27,7 +27,7 @@ The --parallel flag highlights parallelizable steps:
   - Identifies parallel groups (steps that can run concurrently)
 
 Example:
-  bd mol show bd-patrol --parallel`,
+  issuegraph mol show bd-patrol --parallel`,
 	Args:          cobra.ExactArgs(1),
 	SilenceUsage:  true,
 	SilenceErrors: true,

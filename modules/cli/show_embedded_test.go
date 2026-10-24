@@ -11,28 +11,28 @@ import (
 	"sync"
 	"testing"
 
-	"github.com/steveyegge/beads/internal/types"
+	"github.com/borg0ai/dx-issuegraph/internal/types"
 )
 
-// bdShowRaw runs "bd show" with the given args and returns raw stdout.
+// issuegraphShowRaw runs "issuegraph show" with the given args and returns raw stdout.
 // Retries on flock contention.
-func bdShowRaw(t *testing.T, bd, dir string, args ...string) string {
+func issuegraphShowRaw(t *testing.T, issuegraph, dir string, args ...string) string {
 	t.Helper()
 	fullArgs := append([]string{"show"}, args...)
-	out, err := bdRunWithFlockRetry(t, bd, dir, fullArgs...)
+	out, err := issuegraphRunWithFlockRetry(t, issuegraph, dir, fullArgs...)
 	if err != nil {
-		t.Fatalf("bd show %s failed: %v\n%s", strings.Join(args, " "), err, out)
+		t.Fatalf("issuegraph show %s failed: %v\n%s", strings.Join(args, " "), err, out)
 	}
 	return string(out)
 }
 
-// bdShowDetails runs "bd show --json" and parses the IssueDetails.
+// issuegraphShowDetails runs "issuegraph show --json" and parses the IssueDetails.
 // Retries on flock contention.
-func bdShowDetails(t *testing.T, bd, dir, id string) map[string]interface{} {
+func issuegraphShowDetails(t *testing.T, issuegraph, dir, id string) map[string]interface{} {
 	t.Helper()
-	out, err := bdRunWithFlockRetry(t, bd, dir, "show", id, "--json")
+	out, err := issuegraphRunWithFlockRetry(t, issuegraph, dir, "show", id, "--json")
 	if err != nil {
-		t.Fatalf("bd show %s --json failed: %v\n%s", id, err, out)
+		t.Fatalf("issuegraph show %s --json failed: %v\n%s", id, err, out)
 	}
 	// JSON output may be wrapped in an array
 	s := strings.TrimSpace(string(out))
@@ -61,7 +61,7 @@ func bdShowDetails(t *testing.T, bd, dir, id string) map[string]interface{} {
 	return m
 }
 
-// assertLiveRevisionToken holds a `revision` read off a `bd show --json` detail
+// assertLiveRevisionToken holds a `revision` read off a `issuegraph show --json` detail
 // view to the wire contract the token carries: a decimal STRING, never a JSON
 // number.
 //
@@ -96,34 +96,34 @@ func assertLiveRevisionToken(t *testing.T, value any) {
 	}
 }
 
-// bdShowFail2 runs "bd show" expecting failure.
-func bdShowFail2(t *testing.T, bd, dir string, args ...string) string {
+// issuegraphShowFail2 runs "issuegraph show" expecting failure.
+func issuegraphShowFail2(t *testing.T, issuegraph, dir string, args ...string) string {
 	t.Helper()
 	fullArgs := append([]string{"show"}, args...)
-	cmd := exec.Command(bd, fullArgs...)
+	cmd := exec.Command(issuegraph, fullArgs...)
 	cmd.Dir = dir
-	cmd.Env = bdEnv(dir)
+	cmd.Env = issuegraphEnv(dir)
 	out, err := cmd.CombinedOutput()
 	if err == nil {
-		t.Fatalf("expected bd show %s to fail, but succeeded:\n%s", strings.Join(args, " "), out)
+		t.Fatalf("expected issuegraph show %s to fail, but succeeded:\n%s", strings.Join(args, " "), out)
 	}
 	return string(out)
 }
 
 func TestEmbeddedShow(t *testing.T) {
-	if os.Getenv("BEADS_TEST_EMBEDDED_DOLT") != "1" {
-		t.Skip("set BEADS_TEST_EMBEDDED_DOLT=1 to run embedded dolt integration tests")
+	if os.Getenv("ISSUEGRAPH_TEST_EMBEDDED_DOLT") != "1" {
+		t.Skip("set ISSUEGRAPH_TEST_EMBEDDED_DOLT=1 to run embedded dolt integration tests")
 	}
 	t.Parallel()
 
-	bd := buildEmbeddedBD(t)
-	dir, beadsDir, _ := bdInit(t, bd, "--prefix", "ts")
+	issuegraph := buildEmbeddedBD(t)
+	dir, issuegraphDir, _ := issuegraphInit(t, issuegraph, "--prefix", "ts")
 
 	// ===== Basic Show =====
 
 	t.Run("show_single_issue", func(t *testing.T) {
-		issue := bdCreate(t, bd, dir, "Show me", "--type", "task")
-		out := bdShowRaw(t, bd, dir, issue.ID)
+		issue := issuegraphCreate(t, issuegraph, dir, "Show me", "--type", "task")
+		out := issuegraphShowRaw(t, issuegraph, dir, issue.ID)
 		if !strings.Contains(out, "Show me") {
 			t.Errorf("expected title in output: %s", out)
 		}
@@ -133,9 +133,9 @@ func TestEmbeddedShow(t *testing.T) {
 	})
 
 	t.Run("show_multiple_issues", func(t *testing.T) {
-		issue1 := bdCreate(t, bd, dir, "Multi 1", "--type", "task")
-		issue2 := bdCreate(t, bd, dir, "Multi 2", "--type", "task")
-		out := bdShowRaw(t, bd, dir, issue1.ID, issue2.ID)
+		issue1 := issuegraphCreate(t, issuegraph, dir, "Multi 1", "--type", "task")
+		issue2 := issuegraphCreate(t, issuegraph, dir, "Multi 2", "--type", "task")
+		out := issuegraphShowRaw(t, issuegraph, dir, issue1.ID, issue2.ID)
 		if !strings.Contains(out, "Multi 1") {
 			t.Errorf("expected first issue title: %s", out)
 		}
@@ -145,18 +145,18 @@ func TestEmbeddedShow(t *testing.T) {
 	})
 
 	t.Run("show_nonexistent_id", func(t *testing.T) {
-		bdShowFail2(t, bd, dir, "ts-nonexistent999")
+		issuegraphShowFail2(t, issuegraph, dir, "ts-nonexistent999")
 	})
 
 	t.Run("show_no_args", func(t *testing.T) {
-		bdShowFail2(t, bd, dir)
+		issuegraphShowFail2(t, issuegraph, dir)
 	})
 
 	// ===== --json =====
 
 	t.Run("show_json", func(t *testing.T) {
-		issue := bdCreate(t, bd, dir, "JSON show", "--type", "task", "--description", "A description")
-		m := bdShowDetails(t, bd, dir, issue.ID)
+		issue := issuegraphCreate(t, issuegraph, dir, "JSON show", "--type", "task", "--description", "A description")
+		m := issuegraphShowDetails(t, issuegraph, dir, issue.ID)
 		if m["id"] != issue.ID {
 			t.Errorf("expected id=%s, got %v", issue.ID, m["id"])
 		}
@@ -170,8 +170,8 @@ func TestEmbeddedShow(t *testing.T) {
 	})
 
 	t.Run("show_json_includes_labels", func(t *testing.T) {
-		issue := bdCreate(t, bd, dir, "Labeled show", "--type", "task", "--label", "bug")
-		m := bdShowDetails(t, bd, dir, issue.ID)
+		issue := issuegraphCreate(t, issuegraph, dir, "Labeled show", "--type", "task", "--label", "bug")
+		m := issuegraphShowDetails(t, issuegraph, dir, issue.ID)
 		labels, ok := m["labels"].([]interface{})
 		if !ok {
 			t.Fatalf("expected labels array, got %T", m["labels"])
@@ -188,11 +188,11 @@ func TestEmbeddedShow(t *testing.T) {
 	})
 
 	t.Run("show_json_includes_dependencies", func(t *testing.T) {
-		parent := bdCreate(t, bd, dir, "Dep parent", "--type", "task")
-		child := bdCreate(t, bd, dir, "Dep child", "--type", "task")
-		bdDepAdd(t, bd, dir, child.ID, parent.ID)
+		parent := issuegraphCreate(t, issuegraph, dir, "Dep parent", "--type", "task")
+		child := issuegraphCreate(t, issuegraph, dir, "Dep child", "--type", "task")
+		issuegraphDepAdd(t, issuegraph, dir, child.ID, parent.ID)
 
-		m := bdShowDetails(t, bd, dir, child.ID)
+		m := issuegraphShowDetails(t, issuegraph, dir, child.ID)
 		deps, _ := m["dependencies"].([]interface{})
 		if len(deps) == 0 {
 			t.Error("expected dependencies in JSON output")
@@ -200,15 +200,15 @@ func TestEmbeddedShow(t *testing.T) {
 	})
 
 	t.Run("show_json_includes_comments", func(t *testing.T) {
-		issue := bdCreate(t, bd, dir, "Commented show", "--type", "task")
-		store := openStore(t, beadsDir, "ts")
+		issue := issuegraphCreate(t, issuegraph, dir, "Commented show", "--type", "task")
+		store := openStore(t, issuegraphDir, "ts")
 		_, _ = store.AddIssueComment(t.Context(), issue.ID, "tester", "A comment")
 		store.Close() // release flock before subprocess
 
 		// Comments are count-only by default; --include-comments streams them.
-		out, err := bdRunWithFlockRetry(t, bd, dir, "show", issue.ID, "--json", "--include-comments")
+		out, err := issuegraphRunWithFlockRetry(t, issuegraph, dir, "show", issue.ID, "--json", "--include-comments")
 		if err != nil {
-			t.Fatalf("bd show --include-comments failed: %v\n%s", err, out)
+			t.Fatalf("issuegraph show --include-comments failed: %v\n%s", err, out)
 		}
 		s := strings.TrimSpace(string(out))
 		if start := strings.IndexAny(s, "[{"); start >= 0 {
@@ -234,14 +234,14 @@ func TestEmbeddedShow(t *testing.T) {
 	// show_wisp_comments_default_count_only. A wisp's comments live in
 	// wisp_comments; the default count-only view must count them there.
 	t.Run("show_json_wisp_comment_count", func(t *testing.T) {
-		wisp := bdCreate(t, bd, dir, "Wisp w/comments", "--type", "task", "--ephemeral")
+		wisp := issuegraphCreate(t, issuegraph, dir, "Wisp w/comments", "--type", "task", "--ephemeral")
 		for i := 0; i < 2; i++ {
-			if out, err := bdRunWithFlockRetry(t, bd, dir, "comments", "add", wisp.ID, fmt.Sprintf("wisp comment %d", i)); err != nil {
-				t.Fatalf("bd comments add failed: %v\n%s", err, out)
+			if out, err := issuegraphRunWithFlockRetry(t, issuegraph, dir, "comments", "add", wisp.ID, fmt.Sprintf("wisp comment %d", i)); err != nil {
+				t.Fatalf("issuegraph comments add failed: %v\n%s", err, out)
 			}
 		}
 
-		m := bdShowDetails(t, bd, dir, wisp.ID)
+		m := issuegraphShowDetails(t, issuegraph, dir, wisp.ID)
 		if got, _ := m["comment_count"].(float64); got != 2 {
 			t.Errorf("comment_count: got %v, want 2", m["comment_count"])
 		}
@@ -253,8 +253,8 @@ func TestEmbeddedShow(t *testing.T) {
 	// ===== --short =====
 
 	t.Run("show_short", func(t *testing.T) {
-		issue := bdCreate(t, bd, dir, "Short show", "--type", "task")
-		out := bdShowRaw(t, bd, dir, issue.ID, "--short")
+		issue := issuegraphCreate(t, issuegraph, dir, "Short show", "--type", "task")
+		out := issuegraphShowRaw(t, issuegraph, dir, issue.ID, "--short")
 		lines := strings.Split(strings.TrimSpace(out), "\n")
 		// Short mode should be compact — one line per issue (maybe with ANSI codes)
 		if len(lines) > 3 {
@@ -268,8 +268,8 @@ func TestEmbeddedShow(t *testing.T) {
 	// ===== --long =====
 
 	t.Run("show_long", func(t *testing.T) {
-		issue := bdCreate(t, bd, dir, "Long show", "--type", "task", "--description", "Desc", "--assignee", "alice")
-		out := bdShowRaw(t, bd, dir, issue.ID, "--long")
+		issue := issuegraphCreate(t, issuegraph, dir, "Long show", "--type", "task", "--description", "Desc", "--assignee", "alice")
+		out := issuegraphShowRaw(t, issuegraph, dir, issue.ID, "--long")
 		// Long mode should show extra fields
 		if !strings.Contains(out, "Long show") {
 			t.Errorf("expected title in long output: %s", out)
@@ -279,8 +279,8 @@ func TestEmbeddedShow(t *testing.T) {
 	// ===== --id flag (for flag-like IDs) =====
 
 	t.Run("show_id_flag", func(t *testing.T) {
-		issue := bdCreate(t, bd, dir, "ID flag test", "--type", "task")
-		out := bdShowRaw(t, bd, dir, "--id", issue.ID, "--short")
+		issue := issuegraphCreate(t, issuegraph, dir, "ID flag test", "--type", "task")
+		out := issuegraphShowRaw(t, issuegraph, dir, "--id", issue.ID, "--short")
 		if !strings.Contains(out, issue.ID) {
 			t.Errorf("expected ID in output via --id flag: %s", out)
 		}
@@ -289,11 +289,11 @@ func TestEmbeddedShow(t *testing.T) {
 	// ===== --refs =====
 
 	t.Run("show_refs", func(t *testing.T) {
-		parent := bdCreate(t, bd, dir, "Refs parent", "--type", "task")
-		child := bdCreate(t, bd, dir, "Refs child", "--type", "task")
-		bdDepAdd(t, bd, dir, child.ID, parent.ID)
+		parent := issuegraphCreate(t, issuegraph, dir, "Refs parent", "--type", "task")
+		child := issuegraphCreate(t, issuegraph, dir, "Refs child", "--type", "task")
+		issuegraphDepAdd(t, issuegraph, dir, child.ID, parent.ID)
 
-		out := bdShowRaw(t, bd, dir, parent.ID, "--refs")
+		out := issuegraphShowRaw(t, issuegraph, dir, parent.ID, "--refs")
 		// --refs should mention the child that references this issue
 		if !strings.Contains(out, child.ID) {
 			t.Logf("--refs output did not contain child ID %s: %s", child.ID, out)
@@ -303,29 +303,29 @@ func TestEmbeddedShow(t *testing.T) {
 	// ===== --children =====
 
 	t.Run("show_children", func(t *testing.T) {
-		parent := bdCreate(t, bd, dir, "Children parent", "--type", "epic")
-		child := bdCreate(t, bd, dir, "Children child", "--type", "task")
-		bdDepAdd(t, bd, dir, child.ID, parent.ID, "--type", "parent-child")
+		parent := issuegraphCreate(t, issuegraph, dir, "Children parent", "--type", "epic")
+		child := issuegraphCreate(t, issuegraph, dir, "Children child", "--type", "task")
+		issuegraphDepAdd(t, issuegraph, dir, child.ID, parent.ID, "--type", "parent-child")
 
-		out := bdShowRaw(t, bd, dir, parent.ID, "--children")
+		out := issuegraphShowRaw(t, issuegraph, dir, parent.ID, "--children")
 		if !strings.Contains(out, child.ID) {
 			t.Logf("--children output did not contain child ID %s: %s", child.ID, out)
 		}
 	})
 
 	t.Run("show_children_empty", func(t *testing.T) {
-		issue := bdCreate(t, bd, dir, "No children", "--type", "task")
+		issue := issuegraphCreate(t, issuegraph, dir, "No children", "--type", "task")
 		// Should not error even with no children
-		_ = bdShowRaw(t, bd, dir, issue.ID, "--children")
+		_ = issuegraphShowRaw(t, issuegraph, dir, issue.ID, "--children")
 	})
 
 	// ===== --as-of =====
 
 	t.Run("show_as_of", func(t *testing.T) {
-		issue := bdCreate(t, bd, dir, "AsOf test", "--type", "task")
+		issue := issuegraphCreate(t, issuegraph, dir, "AsOf test", "--type", "task")
 
 		// Get current commit hash
-		store := openStore(t, beadsDir, "ts")
+		store := openStore(t, issuegraphDir, "ts")
 		commitHash, err := store.GetCurrentCommit(t.Context())
 		if err != nil {
 			t.Fatalf("GetCurrentCommit: %v", err)
@@ -333,10 +333,10 @@ func TestEmbeddedShow(t *testing.T) {
 		store.Close() // release flock before subprocess
 
 		// Update the issue
-		bdUpdate(t, bd, dir, issue.ID, "--title", "AsOf updated")
+		issuegraphUpdate(t, issuegraph, dir, issue.ID, "--title", "AsOf updated")
 
 		// Show at the old commit — should have original title
-		out := bdShowRaw(t, bd, dir, issue.ID, "--as-of", commitHash)
+		out := issuegraphShowRaw(t, issuegraph, dir, issue.ID, "--as-of", commitHash)
 		if !strings.Contains(out, "AsOf test") {
 			t.Errorf("expected original title at old commit, got: %s", out)
 		}
@@ -348,9 +348,9 @@ func TestEmbeddedShow(t *testing.T) {
 	// ===== --local-time =====
 
 	t.Run("show_local_time", func(t *testing.T) {
-		issue := bdCreate(t, bd, dir, "Local time", "--type", "task")
+		issue := issuegraphCreate(t, issuegraph, dir, "Local time", "--type", "task")
 		// Just verify it doesn't error
-		out := bdShowRaw(t, bd, dir, issue.ID, "--local-time")
+		out := issuegraphShowRaw(t, issuegraph, dir, issue.ID, "--local-time")
 		if !strings.Contains(out, "Local time") {
 			t.Errorf("expected title in output: %s", out)
 		}
@@ -360,17 +360,17 @@ func TestEmbeddedShow(t *testing.T) {
 
 	t.Run("show_current_fallback_to_last_touched", func(t *testing.T) {
 		// After showing issues in earlier tests, --current resolves via last-touched fallback
-		out := bdShowRaw(t, bd, dir, "--current")
+		out := issuegraphShowRaw(t, issuegraph, dir, "--current")
 		if len(out) == 0 {
 			t.Error("expected --current to produce output")
 		}
 	})
 
 	t.Run("show_current_with_in_progress", func(t *testing.T) {
-		issue := bdCreate(t, bd, dir, "In progress for current", "--type", "task")
-		bdUpdate(t, bd, dir, issue.ID, "--status", "in_progress", "--assignee", "test@test.com")
+		issue := issuegraphCreate(t, issuegraph, dir, "In progress for current", "--type", "task")
+		issuegraphUpdate(t, issuegraph, dir, issue.ID, "--status", "in_progress", "--assignee", "test@test.com")
 
-		out := bdShowRaw(t, bd, dir, "--current")
+		out := issuegraphShowRaw(t, issuegraph, dir, "--current")
 		if !strings.Contains(out, "In progress for current") {
 			t.Logf("--current did not resolve to in-progress issue: %s", out)
 		}
@@ -379,13 +379,13 @@ func TestEmbeddedShow(t *testing.T) {
 	// ===== view alias =====
 
 	t.Run("view_alias", func(t *testing.T) {
-		issue := bdCreate(t, bd, dir, "View alias test", "--type", "task")
-		cmd := exec.Command(bd, "view", issue.ID, "--short")
+		issue := issuegraphCreate(t, issuegraph, dir, "View alias test", "--type", "task")
+		cmd := exec.Command(issuegraph, "view", issue.ID, "--short")
 		cmd.Dir = dir
-		cmd.Env = bdEnv(dir)
+		cmd.Env = issuegraphEnv(dir)
 		stdout, stderr, err := runCommandBuffers(t, cmd)
 		if err != nil {
-			t.Fatalf("bd view failed: %v\nstdout:\n%s\nstderr:\n%s", err, stdout.String(), stderr.String())
+			t.Fatalf("issuegraph view failed: %v\nstdout:\n%s\nstderr:\n%s", err, stdout.String(), stderr.String())
 		}
 		if !strings.Contains(stdout.String(), issue.ID) {
 			t.Errorf("expected ID in view alias output: %s", stdout.String())
@@ -395,21 +395,21 @@ func TestEmbeddedShow(t *testing.T) {
 	// ===== --current with --id conflict =====
 
 	t.Run("show_current_with_id_fails", func(t *testing.T) {
-		issue := bdCreate(t, bd, dir, "Conflict test", "--type", "task")
-		bdShowFail2(t, bd, dir, "--current", issue.ID)
+		issue := issuegraphCreate(t, issuegraph, dir, "Conflict test", "--type", "task")
+		issuegraphShowFail2(t, issuegraph, dir, "--current", issue.ID)
 	})
 
 	// ===== Epic progress in JSON =====
 
 	t.Run("show_json_epic_progress", func(t *testing.T) {
-		epic := bdCreate(t, bd, dir, "Epic progress", "--type", "epic")
-		child1 := bdCreate(t, bd, dir, "Epic child 1", "--type", "task")
-		child2 := bdCreate(t, bd, dir, "Epic child 2", "--type", "task")
-		bdDepAdd(t, bd, dir, child1.ID, epic.ID, "--type", "parent-child")
-		bdDepAdd(t, bd, dir, child2.ID, epic.ID, "--type", "parent-child")
-		bdClose(t, bd, dir, child1.ID)
+		epic := issuegraphCreate(t, issuegraph, dir, "Epic progress", "--type", "epic")
+		child1 := issuegraphCreate(t, issuegraph, dir, "Epic child 1", "--type", "task")
+		child2 := issuegraphCreate(t, issuegraph, dir, "Epic child 2", "--type", "task")
+		issuegraphDepAdd(t, issuegraph, dir, child1.ID, epic.ID, "--type", "parent-child")
+		issuegraphDepAdd(t, issuegraph, dir, child2.ID, epic.ID, "--type", "parent-child")
+		issuegraphClose(t, issuegraph, dir, child1.ID)
 
-		m := bdShowDetails(t, bd, dir, epic.ID)
+		m := issuegraphShowDetails(t, issuegraph, dir, epic.ID)
 		if total, ok := m["epic_total_children"]; ok {
 			if total != float64(2) {
 				t.Errorf("expected epic_total_children=2, got %v", total)
@@ -425,13 +425,13 @@ func TestEmbeddedShow(t *testing.T) {
 
 // TestEmbeddedShowConcurrent exercises show operations concurrently.
 func TestEmbeddedShowConcurrent(t *testing.T) {
-	if os.Getenv("BEADS_TEST_EMBEDDED_DOLT") != "1" {
-		t.Skip("set BEADS_TEST_EMBEDDED_DOLT=1 to run embedded dolt integration tests")
+	if os.Getenv("ISSUEGRAPH_TEST_EMBEDDED_DOLT") != "1" {
+		t.Skip("set ISSUEGRAPH_TEST_EMBEDDED_DOLT=1 to run embedded dolt integration tests")
 	}
 	t.Parallel()
 
-	bd := buildEmbeddedBD(t)
-	dir, _, _ := bdInit(t, bd, "--prefix", "sc")
+	issuegraph := buildEmbeddedBD(t)
+	dir, _, _ := issuegraphInit(t, issuegraph, "--prefix", "sc")
 
 	const (
 		numWorkers      = 8
@@ -441,7 +441,7 @@ func TestEmbeddedShowConcurrent(t *testing.T) {
 	// Pre-create issues
 	var allIDs []string
 	for i := 0; i < numWorkers*issuesPerWorker; i++ {
-		issue := bdCreate(t, bd, dir, fmt.Sprintf("concurrent-show-%d", i), "--type", "task")
+		issue := issuegraphCreate(t, issuegraph, dir, fmt.Sprintf("concurrent-show-%d", i), "--type", "task")
 		allIDs = append(allIDs, issue.ID)
 	}
 
@@ -464,9 +464,9 @@ func TestEmbeddedShowConcurrent(t *testing.T) {
 				id := allIDs[idx]
 
 				// Show via JSON
-				cmd := exec.Command(bd, "show", id, "--json")
+				cmd := exec.Command(issuegraph, "show", id, "--json")
 				cmd.Dir = dir
-				cmd.Env = bdEnv(dir)
+				cmd.Env = issuegraphEnv(dir)
 				out, err := cmd.CombinedOutput()
 				if err != nil {
 					r.err = fmt.Errorf("show %s: %v\n%s", id, err, out)
@@ -475,9 +475,9 @@ func TestEmbeddedShowConcurrent(t *testing.T) {
 				}
 
 				// Show via short
-				cmd = exec.Command(bd, "show", id, "--short")
+				cmd = exec.Command(issuegraph, "show", id, "--short")
 				cmd.Dir = dir
-				cmd.Env = bdEnv(dir)
+				cmd.Env = issuegraphEnv(dir)
 				out, err = cmd.CombinedOutput()
 				if err != nil {
 					r.err = fmt.Errorf("show --short %s: %v\n%s", id, err, out)

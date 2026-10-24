@@ -5,7 +5,7 @@ import (
 	"os"
 	"strings"
 
-	"github.com/steveyegge/beads/internal/storage/dolt"
+	"github.com/borg0ai/dx-issuegraph/internal/storage/dolt"
 )
 
 // SuppressConfigPrefix is the config namespace for suppressing specific doctor warnings.
@@ -19,14 +19,14 @@ const SuppressConfigPrefix = "doctor.suppress."
 func GetSuppressedChecks(path string) map[string]bool {
 	suppressed := make(map[string]bool)
 
-	beadsDir := ResolveBeadsDirForRepo(path)
+	issuegraphDir := ResolveIssueGraphDirForRepo(path)
 
-	if _, err := os.Stat(beadsDir); os.IsNotExist(err) {
+	if _, err := os.Stat(issuegraphDir); os.IsNotExist(err) {
 		return suppressed
 	}
 
 	ctx := context.Background()
-	store, err := dolt.NewFromConfigWithCLIOptions(ctx, beadsDir, &dolt.Config{ReadOnly: true})
+	store, err := dolt.NewFromConfigWithCLIOptions(ctx, issuegraphDir, &dolt.Config{ReadOnly: true})
 	if err != nil {
 		return suppressed
 	}
@@ -55,8 +55,8 @@ func getSuppressedChecksFromStore(store *dolt.DoltStore) map[string]bool {
 }
 
 // SuppressedChecksFromConfig extracts the suppressed check slugs from an
-// already-loaded config map, for callers outside bd doctor that hold their
-// own store (e.g. bd info, GH#6027).
+// already-loaded config map, for callers outside issuegraph doctor that hold their
+// own store (e.g. issuegraph info, GH#6027).
 func SuppressedChecksFromConfig(allConfig map[string]string) map[string]bool {
 	suppressed := make(map[string]bool)
 

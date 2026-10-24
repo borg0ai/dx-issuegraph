@@ -6,7 +6,7 @@ import (
 )
 
 func TestInitializeServerCircuitBreakerHonorsDisableAutoStart(t *testing.T) {
-	t.Setenv("BEADS_TEST_MODE", "")
+	t.Setenv("ISSUEGRAPH_TEST_MODE", "")
 	originalClean := cleanServerCircuitState
 	originalNew := newServerCircuitBreaker
 	t.Cleanup(func() {
@@ -55,7 +55,7 @@ func TestInitializeServerCircuitBreakerSkipsTestMode(t *testing.T) {
 		cleanServerCircuitState = originalClean
 		newServerCircuitBreaker = originalNew
 	})
-	t.Setenv("BEADS_TEST_MODE", "1")
+	t.Setenv("ISSUEGRAPH_TEST_MODE", "1")
 
 	cleanCalls := 0
 	newCalls := 0
@@ -76,39 +76,39 @@ func TestInitializeServerCircuitBreakerSkipsTestMode(t *testing.T) {
 func TestPersistResolvedPortFileHonorsDisableAutoStart(t *testing.T) {
 	originalEnsure := ensureResolvedPortFile
 	t.Cleanup(func() { ensureResolvedPortFile = originalEnsure })
-	t.Setenv("BEADS_DOLT_SERVER_PORT", "")
-	t.Setenv("BEADS_DOLT_PORT", "")
+	t.Setenv("ISSUEGRAPH_DOLT_SERVER_PORT", "")
+	t.Setenv("ISSUEGRAPH_DOLT_PORT", "")
 
 	calls := 0
 	var gotDir string
 	var gotPort int
-	ensureResolvedPortFile = func(beadsDir string, port int) error {
+	ensureResolvedPortFile = func(issuegraphDir string, port int) error {
 		calls++
-		gotDir, gotPort = beadsDir, port
+		gotDir, gotPort = issuegraphDir, port
 		return nil
 	}
 
-	beadsDir := t.TempDir()
-	if err := persistResolvedPortFile(&Config{DisableAutoStart: true, ServerHost: "127.0.0.1", ServerPort: 3307}, beadsDir); err != nil {
+	issuegraphDir := t.TempDir()
+	if err := persistResolvedPortFile(&Config{DisableAutoStart: true, ServerHost: "127.0.0.1", ServerPort: 3307}, issuegraphDir); err != nil {
 		t.Fatalf("strict read-only persist policy: %v", err)
 	}
 	if calls != 0 {
 		t.Fatalf("strict read-only server open repaired port file %d time(s)", calls)
 	}
 
-	if err := persistResolvedPortFile(&Config{ServerHost: "127.0.0.1", ServerPort: 3308}, beadsDir); err != nil {
+	if err := persistResolvedPortFile(&Config{ServerHost: "127.0.0.1", ServerPort: 3308}, issuegraphDir); err != nil {
 		t.Fatalf("writable persist policy: %v", err)
 	}
-	if calls != 1 || gotDir != beadsDir || gotPort != 3308 {
+	if calls != 1 || gotDir != issuegraphDir || gotPort != 3308 {
 		t.Fatalf("writable port persistence = calls:%d dir:%q port:%d", calls, gotDir, gotPort)
 	}
 
 	// An ordinary classified-read command sets ReadOnly but not
 	// DisableAutoStart, and must retain port-file repair.
-	if err := persistResolvedPortFile(&Config{ReadOnly: true, ServerHost: "127.0.0.1", ServerPort: 3309}, beadsDir); err != nil {
+	if err := persistResolvedPortFile(&Config{ReadOnly: true, ServerHost: "127.0.0.1", ServerPort: 3309}, issuegraphDir); err != nil {
 		t.Fatalf("classified-read persist policy: %v", err)
 	}
-	if calls != 2 || gotDir != beadsDir || gotPort != 3309 {
+	if calls != 2 || gotDir != issuegraphDir || gotPort != 3309 {
 		t.Fatalf("classified-read port persistence = calls:%d dir:%q port:%d", calls, gotDir, gotPort)
 	}
 }
@@ -124,7 +124,7 @@ func TestServerOpenCanAutoStartHonorsDisableAutoStart(t *testing.T) {
 		t.Fatal("writable server open must retain auto-start behavior")
 	}
 
-	// An ordinary classified-read command (bd show, bd list, ...) sets
+	// An ordinary classified-read command (issuegraph show, issuegraph list, ...) sets
 	// ReadOnly but not DisableAutoStart, and must still be able to
 	// auto-start a stopped managed server (regression guard for the
 	// ReadOnly/DisableAutoStart conflation; see

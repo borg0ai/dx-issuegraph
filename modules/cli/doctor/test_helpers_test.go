@@ -10,16 +10,16 @@ import (
 	"testing"
 	"time"
 
+	"github.com/borg0ai/dx-issuegraph/internal/storage/dolt"
+	"github.com/borg0ai/dx-issuegraph/internal/storage/doltutil"
+	"github.com/borg0ai/dx-issuegraph/internal/testutil"
+	"github.com/borg0ai/dx-issuegraph/internal/types"
 	_ "github.com/go-sql-driver/mysql"
-	"github.com/steveyegge/beads/internal/storage/dolt"
-	"github.com/steveyegge/beads/internal/storage/doltutil"
-	"github.com/steveyegge/beads/internal/testutil"
-	"github.com/steveyegge/beads/internal/types"
 )
 
 // doctorTestServerPort returns the Dolt server port for doctor tests.
 // Uses DoltContainerPortInt so the port is only non-zero when TestMain
-// actually started a container, ignoring any external BEADS_DOLT_PORT.
+// actually started a container, ignoring any external ISSUEGRAPH_DOLT_PORT.
 func doctorTestServerPort() int {
 	return testutil.DoltContainerPortInt()
 }

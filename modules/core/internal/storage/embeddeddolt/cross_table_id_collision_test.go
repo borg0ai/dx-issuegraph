@@ -6,13 +6,13 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/steveyegge/beads/internal/types"
+	"github.com/borg0ai/dx-issuegraph/internal/types"
 )
 
 // TestCreateRejectsCrossTableIDCollision is the regression test for GH#4455:
-// `bd create` must never put the same ID in both the issues and wisps tables.
+// `issuegraph create` must never put the same ID in both the issues and wisps tables.
 // Issues and wisps share one ID space but live in separate tables, so a dual
-// presence row makes merge-based lookups (bd ready/search) hard-error for the
+// presence row makes merge-based lookups (issuegraph ready/search) hard-error for the
 // whole store. The fix rejects a create whose ID already exists in the sibling
 // table; #4163 only made the lookups tolerant of an already-corrupted store.
 func TestCreateRejectsCrossTableIDCollision(t *testing.T) {

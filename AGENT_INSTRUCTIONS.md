@@ -38,17 +38,17 @@ For test commands, tier selection, and test-design guidance, use the canonical
 working directory. This safety example supplements the canonical testing guide:
 
 ```bash
-beads_manual_dir="$(mktemp -d)"
+issuegraph_manual_dir="$(mktemp -d)"
 (
   set -e
-  cd "$beads_manual_dir"
+  cd "$issuegraph_manual_dir"
   issuegraph init --quiet --prefix test --skip-hooks --skip-agents
   issuegraph create "Test issue" -p 1
 )
-rm -rf -- "$beads_manual_dir"
+rm -rf -- "$issuegraph_manual_dir"
 ```
 
-`BEADS_DB` alone does not redirect `issuegraph init` workspace setup. Do not run manual
+`ISSUEGRAPH_DB` alone does not redirect `issuegraph init` workspace setup. Do not run manual
 initialization from a production workspace even when selecting another database.
 
 **For automated tests**, use `t.TempDir()` in Go tests:
@@ -56,7 +56,7 @@ initialization from a production workspace even when selecting another database.
 ```go
 func TestMyFeature(t *testing.T) {
     tmpDir := t.TempDir()
-    testDB := filepath.Join(tmpDir, ".beads", "beads.db")
+    testDB := filepath.Join(tmpDir, ".issuegraph", "issuegraph.db")
     s := newTestStore(t, testDB)
     // ... test code
 }
@@ -79,7 +79,7 @@ boundary for manual initialization and experiments.
 test binaries under `$TMPDIR`. They are normally cleaned by the test process,
 but a SIGKILLed or OOMed run can leave orphans behind. On hosts where `/tmp`
 is tmpfs (e.g. Fedora Atomic / Bluefin), run `make clean-test-tmp` between
-test runs if `du -sh /tmp/beads-* /tmp/bd-*` shows accumulation. See bd-3q2u.
+test runs if `du -sh /tmp/issuegraph-* /tmp/issuegraph-*` shows accumulation. See issuegraph-3q2u.
 
 ### Before Committing
 
@@ -94,8 +94,8 @@ test runs if `du -sh /tmp/beads-* /tmp/bd-*` shows accumulation. See bd-3q2u.
 When committing work for an issue, include the issue ID in parentheses at the end:
 
 ```bash
-git commit -m "Fix auth validation bug (bd-abc)"
-git commit -m "Add retry logic for database locks (bd-xyz)"
+git commit -m "Fix auth validation bug (issuegraph-abc)"
+git commit -m "Add retry logic for database locks (issuegraph-xyz)"
 ```
 
 This enables `issuegraph doctor` to detect **orphaned issues** - work that was committed but the issue wasn't closed. The doctor check cross-references open issues against git history to find these orphans.
@@ -155,14 +155,14 @@ Run the read-only preflight before implementing related work, opening a PR, or
 merging/closing a PR:
 
 ```bash
-scripts/pr-preflight.sh --search "<topic keywords>" --repo gastownhall/beads
-scripts/pr-preflight.sh <pr-number> --repo gastownhall/beads
+scripts/pr-preflight.sh --search "<topic keywords>" --repo borg0ai/dx-issuegraph
+scripts/pr-preflight.sh <pr-number> --repo borg0ai/dx-issuegraph
 ```
 
 **Before implementing any feature or fix, check for existing open PRs on the same topic:**
 
 ```bash
-gh pr list --repo gastownhall/beads --state open --search "<topic keywords>" --json number,title,author,headRefName
+gh pr list --repo borg0ai/dx-issuegraph --state open --search "<topic keywords>" --json number,title,author,headRefName
 ```
 
 **Contributor work gets priority.** If an external PR already exists:
@@ -237,8 +237,8 @@ non-linking `GH#123` references.
 # Make changes (each write auto-commits to Dolt)
 issuegraph create "Fix bug" -p 1
 issuegraph create "Add tests" -p 1
-issuegraph update bd-42 --claim
-issuegraph close bd-40 --reason "Completed"
+issuegraph update issuegraph-42 --claim
+issuegraph close issuegraph-40 --reason "Completed"
 
 # User may push the repository, including its tracked IssueGraph snapshot, with Git
 git push
@@ -403,11 +403,11 @@ issuegraph ready
 For testing commands, test design, and PR-readiness gates, use
 [engdocs/TESTING.md](engdocs/TESTING.md).
 
-> **WARNING**: Do NOT use `go build -o bd ./modules/cli`, `go install ./modules/cli`,
+> **WARNING**: Do NOT use `go build -o issuegraph ./modules/cli`, `go install ./modules/cli`,
 > or raw `go run ./modules/cli ...`.
 > These bypass the canonical build path, can create stale binaries in the
 > working directory or `~/go/bin/`, and raw `go run` may miss the required
-> `gms_pure_go` build tag. Always use `make install`, `./bd`, or
+> `gms_pure_go` build tag. Always use `make install`, `./issuegraph`, or
 > `go run -tags gms_pure_go ./modules/cli ...` when you explicitly need `go run`.
 
 ## Version Management
@@ -447,14 +447,14 @@ git push origin main
 **Files updated automatically:**
 
 - `modules/cli/version.go` - CLI version
-- `plugins/beads/.claude-plugin/plugin.json` - Claude plugin version
-- `plugins/beads/.codex-plugin/plugin.json` - Codex plugin version
+- `plugins/issuegraph/.claude-plugin/plugin.json` - Claude plugin version
+- `plugins/issuegraph/.codex-plugin/plugin.json` - Codex plugin version
 - `.claude-plugin/marketplace.json` - Claude marketplace version
-- `integrations/beads-mcp/pyproject.toml` - MCP server version
+- `integrations/issuegraph-mcp/pyproject.toml` - MCP server version
 - `README.md` - Documentation version
 - `PLUGIN.md` - Version requirements
 
-**Why this matters:** We had version mismatches (bd-66) when only `version.go` was updated. This script prevents that by updating all components atomically.
+**Why this matters:** We had version mismatches (issuegraph-66) when only `version.go` was updated. This script prevents that by updating all components atomically.
 
 See `scripts/README.md` for more details.
 
@@ -503,17 +503,17 @@ gh issue view 201
 record carrying only the command name; each batch also carries the issuegraph version
 and OS platform, keyed by a machine-derived, HMAC-protected distinct ID. No
 email, repo path, remote URL, issue content, or user-supplied strings are
-collected. Events are written under `~/.beads/eventsData` and POSTed to
+collected. Events are written under `~/.issuegraph/eventsData` and POSTed to
 `https://gastownhall-eventsapi.com/mp/collect`.
 
 Metrics are enabled by default (opt-out). The friendliest way to see or change
 them is `issuegraph metrics` (`issuegraph metrics on` / `issuegraph metrics off` / `issuegraph metrics example`),
-which takes effect on the next command with no restart. `BD_DISABLE_METRICS=1`
+which takes effect on the next command with no restart. `ISSUEGRAPH_DISABLE_METRICS=1`
 still works as a one-off, shell-scoped override. The cross-tool
 [`DO_NOT_TRACK`](https://donottrack.sh/) standard is honored as a disable-only
 opt-out: `DO_NOT_TRACK=1` opts out, while a falsey or empty value
 (`DO_NOT_TRACK=0`, `false`, or unset-but-present) falls through to your saved
-`issuegraph metrics` preference instead of forcing metrics back on. `BD_DISABLE_METRICS`
+`issuegraph metrics` preference instead of forcing metrics back on. `ISSUEGRAPH_DISABLE_METRICS`
 is the bidirectional override and takes precedence when both are set.
 
 ## Questions?

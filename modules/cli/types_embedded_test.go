@@ -12,30 +12,30 @@ import (
 	"testing"
 )
 
-// bdTypes runs "bd types" with the given args and returns raw stdout.
-func bdTypes(t *testing.T, bd, dir string, args ...string) string {
+// issuegraphTypes runs "issuegraph types" with the given args and returns raw stdout.
+func issuegraphTypes(t *testing.T, issuegraph, dir string, args ...string) string {
 	t.Helper()
 	fullArgs := append([]string{"types"}, args...)
-	cmd := exec.Command(bd, fullArgs...)
+	cmd := exec.Command(issuegraph, fullArgs...)
 	cmd.Dir = dir
-	cmd.Env = bdEnv(dir)
+	cmd.Env = issuegraphEnv(dir)
 	stdout, stderr, err := runCommandBuffers(t, cmd)
 	if err != nil {
-		t.Fatalf("bd types %s failed: %v\nstdout:\n%s\nstderr:\n%s", strings.Join(args, " "), err, stdout.String(), stderr.String())
+		t.Fatalf("issuegraph types %s failed: %v\nstdout:\n%s\nstderr:\n%s", strings.Join(args, " "), err, stdout.String(), stderr.String())
 	}
 	return stdout.String()
 }
 
-// bdTypesJSON runs "bd types --json" and parses the result.
-func bdTypesJSON(t *testing.T, bd, dir string, args ...string) map[string]interface{} {
+// issuegraphTypesJSON runs "issuegraph types --json" and parses the result.
+func issuegraphTypesJSON(t *testing.T, issuegraph, dir string, args ...string) map[string]interface{} {
 	t.Helper()
 	fullArgs := append([]string{"types", "--json"}, args...)
-	cmd := exec.Command(bd, fullArgs...)
+	cmd := exec.Command(issuegraph, fullArgs...)
 	cmd.Dir = dir
-	cmd.Env = bdEnv(dir)
+	cmd.Env = issuegraphEnv(dir)
 	stdout, stderr, err := runCommandBuffers(t, cmd)
 	if err != nil {
-		t.Fatalf("bd types --json %s failed: %v\nstdout:\n%s\nstderr:\n%s", strings.Join(args, " "), err, stdout.String(), stderr.String())
+		t.Fatalf("issuegraph types --json %s failed: %v\nstdout:\n%s\nstderr:\n%s", strings.Join(args, " "), err, stdout.String(), stderr.String())
 	}
 	s := strings.TrimSpace(stdout.String())
 	start := strings.Index(s, "{")
@@ -50,18 +50,18 @@ func bdTypesJSON(t *testing.T, bd, dir string, args ...string) map[string]interf
 }
 
 func TestEmbeddedTypes(t *testing.T) {
-	if os.Getenv("BEADS_TEST_EMBEDDED_DOLT") != "1" {
-		t.Skip("set BEADS_TEST_EMBEDDED_DOLT=1 to run embedded dolt integration tests")
+	if os.Getenv("ISSUEGRAPH_TEST_EMBEDDED_DOLT") != "1" {
+		t.Skip("set ISSUEGRAPH_TEST_EMBEDDED_DOLT=1 to run embedded dolt integration tests")
 	}
 	t.Parallel()
 
-	bd := buildEmbeddedBD(t)
-	dir, _, _ := bdInit(t, bd, "--prefix", "ty")
+	issuegraph := buildEmbeddedBD(t)
+	dir, _, _ := issuegraphInit(t, issuegraph, "--prefix", "ty")
 
 	// ===== Default output lists core types =====
 
 	t.Run("default_output_core_types", func(t *testing.T) {
-		out := bdTypes(t, bd, dir)
+		out := issuegraphTypes(t, issuegraph, dir)
 		if !strings.Contains(out, "Core work types") {
 			t.Errorf("expected 'Core work types' header: %s", out)
 		}
@@ -73,7 +73,7 @@ func TestEmbeddedTypes(t *testing.T) {
 	})
 
 	t.Run("default_output_descriptions", func(t *testing.T) {
-		out := bdTypes(t, bd, dir)
+		out := issuegraphTypes(t, issuegraph, dir)
 		// Should show descriptions alongside types
 		if !strings.Contains(out, "General work item") {
 			t.Errorf("expected task description in output: %s", out)
@@ -86,7 +86,7 @@ func TestEmbeddedTypes(t *testing.T) {
 	// ===== --json output =====
 
 	t.Run("json_output_structure", func(t *testing.T) {
-		m := bdTypesJSON(t, bd, dir)
+		m := issuegraphTypesJSON(t, issuegraph, dir)
 		coreTypes, ok := m["core_types"].([]interface{})
 		if !ok {
 			t.Fatal("expected 'core_types' array in JSON output")
@@ -97,7 +97,7 @@ func TestEmbeddedTypes(t *testing.T) {
 	})
 
 	t.Run("json_core_type_fields", func(t *testing.T) {
-		m := bdTypesJSON(t, bd, dir)
+		m := issuegraphTypesJSON(t, issuegraph, dir)
 		coreTypes := m["core_types"].([]interface{})
 		for _, ct := range coreTypes {
 			ctm := ct.(map[string]interface{})
@@ -111,7 +111,7 @@ func TestEmbeddedTypes(t *testing.T) {
 	})
 
 	t.Run("json_has_all_core_types", func(t *testing.T) {
-		m := bdTypesJSON(t, bd, dir)
+		m := issuegraphTypesJSON(t, issuegraph, dir)
 		coreTypes := m["core_types"].([]interface{})
 		names := make(map[string]bool)
 		for _, ct := range coreTypes {
@@ -128,23 +128,23 @@ func TestEmbeddedTypes(t *testing.T) {
 	// ===== Custom types =====
 
 	t.Run("no_custom_types_message", func(t *testing.T) {
-		out := bdTypes(t, bd, dir)
+		out := issuegraphTypes(t, issuegraph, dir)
 		if !strings.Contains(out, "No custom types") {
 			t.Errorf("expected 'No custom types' message: %s", out)
 		}
 	})
 
 	t.Run("custom_types_from_config", func(t *testing.T) {
-		// Set custom types via bd config
-		cmd := exec.Command(bd, "config", "set", "types.custom", "spike,research,ops")
+		// Set custom types via issuegraph config
+		cmd := exec.Command(issuegraph, "config", "set", "types.custom", "spike,research,ops")
 		cmd.Dir = dir
-		cmd.Env = bdEnv(dir)
+		cmd.Env = issuegraphEnv(dir)
 		stdout, stderr, err := runCommandBuffers(t, cmd)
 		if err != nil {
-			t.Fatalf("bd config set failed: %v\nstdout:\n%s\nstderr:\n%s", err, stdout.String(), stderr.String())
+			t.Fatalf("issuegraph config set failed: %v\nstdout:\n%s\nstderr:\n%s", err, stdout.String(), stderr.String())
 		}
 
-		m := bdTypesJSON(t, bd, dir)
+		m := issuegraphTypesJSON(t, issuegraph, dir)
 		customTypes, ok := m["custom_types"].([]interface{})
 		if !ok || len(customTypes) == 0 {
 			t.Error("expected custom_types in JSON after config set")
@@ -162,7 +162,7 @@ func TestEmbeddedTypes(t *testing.T) {
 	})
 
 	t.Run("custom_types_in_text_output", func(t *testing.T) {
-		out := bdTypes(t, bd, dir)
+		out := issuegraphTypes(t, issuegraph, dir)
 		if !strings.Contains(out, "custom types") {
 			t.Errorf("expected custom types section: %s", out)
 		}
@@ -171,13 +171,13 @@ func TestEmbeddedTypes(t *testing.T) {
 
 // TestEmbeddedTypesConcurrent exercises types operations concurrently.
 func TestEmbeddedTypesConcurrent(t *testing.T) {
-	if os.Getenv("BEADS_TEST_EMBEDDED_DOLT") != "1" {
-		t.Skip("set BEADS_TEST_EMBEDDED_DOLT=1 to run embedded dolt integration tests")
+	if os.Getenv("ISSUEGRAPH_TEST_EMBEDDED_DOLT") != "1" {
+		t.Skip("set ISSUEGRAPH_TEST_EMBEDDED_DOLT=1 to run embedded dolt integration tests")
 	}
 	t.Parallel()
 
-	bd := buildEmbeddedBD(t)
-	dir, _, _ := bdInit(t, bd, "--prefix", "tyc")
+	issuegraph := buildEmbeddedBD(t)
+	dir, _, _ := issuegraphInit(t, issuegraph, "--prefix", "tyc")
 
 	const numWorkers = 8
 
@@ -203,9 +203,9 @@ func TestEmbeddedTypesConcurrent(t *testing.T) {
 				args = []string{"types"}
 			}
 
-			cmd := exec.Command(bd, args...)
+			cmd := exec.Command(issuegraph, args...)
 			cmd.Dir = dir
-			cmd.Env = bdEnv(dir)
+			cmd.Env = issuegraphEnv(dir)
 			stdout, stderr, err := runCommandBuffers(t, cmd)
 			if err != nil {
 				r.err = fmt.Errorf("worker %d types: %v\nstdout:\n%s\nstderr:\n%s", worker, err, stdout.String(), stderr.String())

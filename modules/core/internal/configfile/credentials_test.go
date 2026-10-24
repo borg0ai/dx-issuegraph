@@ -15,7 +15,7 @@ func TestLookupCredentialsPassword(t *testing.T) {
 [127.0.0.1:3307]
 password=localPass
 
-[beads.company.com:3307]
+[issuegraph.company.com:3307]
 password=companyPass
 
 [10.0.1.50:3308]
@@ -25,8 +25,8 @@ password=officePass
 		t.Fatalf("failed to write credentials file: %v", err)
 	}
 
-	// Point BEADS_CREDENTIALS_FILE at our temp file
-	t.Setenv("BEADS_CREDENTIALS_FILE", credFile)
+	// Point ISSUEGRAPH_CREDENTIALS_FILE at our temp file
+	t.Setenv("ISSUEGRAPH_CREDENTIALS_FILE", credFile)
 
 	tests := []struct {
 		name     string
@@ -42,7 +42,7 @@ password=officePass
 		},
 		{
 			name:     "company server",
-			host:     "beads.company.com",
+			host:     "issuegraph.company.com",
 			port:     3307,
 			wantPass: "companyPass",
 		},
@@ -78,7 +78,7 @@ password=officePass
 }
 
 func TestLookupCredentialsPassword_MissingFile(t *testing.T) {
-	t.Setenv("BEADS_CREDENTIALS_FILE", "/nonexistent/path/credentials")
+	t.Setenv("ISSUEGRAPH_CREDENTIALS_FILE", "/nonexistent/path/credentials")
 
 	got := LookupCredentialsPassword("127.0.0.1", 3307)
 	if got != "" {
@@ -93,10 +93,10 @@ func TestLookupCredentialsPassword_EnvVarTakesPrecedence(t *testing.T) {
 	if err := os.WriteFile(credFile, []byte("[127.0.0.1:3307]\npassword=filePass\n"), 0600); err != nil {
 		t.Fatalf("failed to write credentials file: %v", err)
 	}
-	t.Setenv("BEADS_CREDENTIALS_FILE", credFile)
+	t.Setenv("ISSUEGRAPH_CREDENTIALS_FILE", credFile)
 
-	// Set BEADS_DOLT_PASSWORD env var — should win
-	t.Setenv("BEADS_DOLT_PASSWORD", "envPass")
+	// Set ISSUEGRAPH_DOLT_PASSWORD env var — should win
+	t.Setenv("ISSUEGRAPH_DOLT_PASSWORD", "envPass")
 
 	cfg := DefaultConfig()
 	got := cfg.GetDoltServerPassword()
@@ -112,12 +112,12 @@ func TestLookupCredentialsPassword_FallsBackToFile(t *testing.T) {
 	if err := os.WriteFile(credFile, []byte("[127.0.0.1:3307]\npassword=filePass\n"), 0600); err != nil {
 		t.Fatalf("failed to write credentials file: %v", err)
 	}
-	t.Setenv("BEADS_CREDENTIALS_FILE", credFile)
+	t.Setenv("ISSUEGRAPH_CREDENTIALS_FILE", credFile)
 
 	// Clear port and password env vars so defaults + file lookup kick in.
-	t.Setenv("BEADS_DOLT_SERVER_PORT", "")
-	t.Setenv("BEADS_DOLT_PORT", "")
-	t.Setenv("BEADS_DOLT_PASSWORD", "")
+	t.Setenv("ISSUEGRAPH_DOLT_SERVER_PORT", "")
+	t.Setenv("ISSUEGRAPH_DOLT_PORT", "")
+	t.Setenv("ISSUEGRAPH_DOLT_PASSWORD", "")
 
 	cfg := DefaultConfig()
 	got := cfg.GetDoltServerPassword()
@@ -133,16 +133,16 @@ func TestLookupCredentialsPassword_MultipleServers(t *testing.T) {
 	content := `[127.0.0.1:3307]
 password=personalDevPass
 
-[beads.work.internal:3307]
+[issuegraph.work.internal:3307]
 password=workServerPass
 `
 	if err := os.WriteFile(credFile, []byte(content), 0600); err != nil {
 		t.Fatalf("failed to write credentials file: %v", err)
 	}
-	t.Setenv("BEADS_CREDENTIALS_FILE", credFile)
-	t.Setenv("BEADS_DOLT_SERVER_PORT", "")
-	t.Setenv("BEADS_DOLT_PORT", "")
-	t.Setenv("BEADS_DOLT_PASSWORD", "")
+	t.Setenv("ISSUEGRAPH_CREDENTIALS_FILE", credFile)
+	t.Setenv("ISSUEGRAPH_DOLT_SERVER_PORT", "")
+	t.Setenv("ISSUEGRAPH_DOLT_PORT", "")
+	t.Setenv("ISSUEGRAPH_DOLT_PASSWORD", "")
 
 	// Personal project uses localhost
 	personal := DefaultConfig()
@@ -155,7 +155,7 @@ password=workServerPass
 
 	// Work project uses corporate server
 	work := DefaultConfig()
-	work.DoltServerHost = "beads.work.internal"
+	work.DoltServerHost = "issuegraph.work.internal"
 	work.DoltServerPort = 3307
 	got = work.GetDoltServerPassword()
 	if got != "workServerPass" {
@@ -180,10 +180,10 @@ password=tunnelPass
 	if err := os.WriteFile(credFile, []byte(content), 0600); err != nil {
 		t.Fatalf("failed to write credentials file: %v", err)
 	}
-	t.Setenv("BEADS_CREDENTIALS_FILE", credFile)
-	t.Setenv("BEADS_DOLT_SERVER_PORT", "")
-	t.Setenv("BEADS_DOLT_PORT", "")
-	t.Setenv("BEADS_DOLT_PASSWORD", "")
+	t.Setenv("ISSUEGRAPH_CREDENTIALS_FILE", credFile)
+	t.Setenv("ISSUEGRAPH_DOLT_SERVER_PORT", "")
+	t.Setenv("ISSUEGRAPH_DOLT_PORT", "")
+	t.Setenv("ISSUEGRAPH_DOLT_PASSWORD", "")
 
 	cfg := DefaultConfig()
 	cfg.DoltServerHost = "127.0.0.1"

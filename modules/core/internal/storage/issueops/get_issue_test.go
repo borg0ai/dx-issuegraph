@@ -11,8 +11,8 @@ import (
 	"github.com/DATA-DOG/go-sqlmock"
 	mysql "github.com/go-sql-driver/mysql"
 
-	"github.com/steveyegge/beads/internal/storage"
-	"github.com/steveyegge/beads/internal/storage/sqlbuild"
+	"github.com/borg0ai/dx-issuegraph/internal/storage"
+	"github.com/borg0ai/dx-issuegraph/internal/storage/sqlbuild"
 )
 
 // missingTableError builds the driver error a Dolt query returns when its FROM
@@ -48,7 +48,7 @@ func TestGetIssueInTxMissingLeasesTableIsAnError(t *testing.T) {
 		err  error
 	}{
 		{name: "dolt wording", err: missingTableError("leases")},
-		{name: "mysql wording", err: missingTableErrorMySQLText("beads", "leases")},
+		{name: "mysql wording", err: missingTableErrorMySQLText("issuegraph", "leases")},
 	}
 
 	for _, tc := range tests {

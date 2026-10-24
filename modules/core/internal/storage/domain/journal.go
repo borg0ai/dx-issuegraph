@@ -3,7 +3,7 @@ package domain
 import (
 	"context"
 
-	"github.com/steveyegge/beads/internal/storage"
+	"github.com/borg0ai/dx-issuegraph/internal/storage"
 )
 
 // EventsJournalSQLRepository is the transaction-bound persistence seam for

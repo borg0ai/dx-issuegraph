@@ -5,16 +5,16 @@ import (
 	"fmt"
 	"os"
 
+	"github.com/borg0ai/dx-issuegraph/internal/metrics"
+	"github.com/borg0ai/dx-issuegraph/internal/storage"
+	"github.com/borg0ai/dx-issuegraph/internal/types"
+	"github.com/borg0ai/dx-issuegraph/internal/ui"
+	"github.com/borg0ai/dx-issuegraph/internal/utils"
 	"github.com/spf13/cobra"
-	"github.com/steveyegge/beads/internal/metrics"
-	"github.com/steveyegge/beads/internal/storage"
-	"github.com/steveyegge/beads/internal/types"
-	"github.com/steveyegge/beads/internal/ui"
-	"github.com/steveyegge/beads/internal/utils"
 )
 
 // promotionComment is the audit comment both routes record on the promoted
-// bead. Shared by the classic and proxied-server paths so the text cannot
+// issue. Shared by the classic and proxied-server paths so the text cannot
 // drift.
 func promotionComment(reason string) string {
 	comment := "Promoted from Level 0"
@@ -24,7 +24,7 @@ func promotionComment(reason string) string {
 	return comment
 }
 
-// printPromoteResult renders the `bd promote` success output. updated is the
+// printPromoteResult renders the `issuegraph promote` success output. updated is the
 // best-effort post-promote re-read used only by --json (it may be nil, in
 // which case the JSON path prints nothing, matching the classic behavior).
 // Shared by the classic and proxied-server paths so the output shape cannot
@@ -36,15 +36,15 @@ func printPromoteResult(fullID string, updated *types.Issue) error {
 		}
 		return nil
 	}
-	fmt.Printf("%s Promoted %s to permanent bead\n", ui.RenderPass("✓"), fullID)
+	fmt.Printf("%s Promoted %s to permanent issue\n", ui.RenderPass("✓"), fullID)
 	return nil
 }
 
 var promoteCmd = &cobra.Command{
 	Use:     "promote <wisp-id>",
 	GroupID: "issues",
-	Short:   "Promote a wisp to a permanent bead",
-	Long: `Promote a wisp (ephemeral issue) to a permanent bead.
+	Short:   "Promote a wisp to a permanent issue",
+	Long: `Promote a wisp (ephemeral issue) to a permanent issue.
 
 This copies the issue from the wisps table (dolt_ignored) to the permanent
 issues table (Dolt-versioned), preserving labels, dependencies, events, and
@@ -53,8 +53,8 @@ comments. The original ID is preserved so all links keep working.
 A comment is added recording the promotion and optional reason.
 
 Examples:
-  bd promote bd-wisp-abc123
-  bd promote bd-wisp-abc123 --reason "Worth tracking long-term"`,
+  issuegraph promote issuegraph-wisp-abc123
+  issuegraph promote issuegraph-wisp-abc123 --reason "Worth tracking long-term"`,
 	Args:          cobra.ExactArgs(1),
 	SilenceUsage:  true,
 	SilenceErrors: true,

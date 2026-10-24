@@ -12,7 +12,7 @@ import (
 	"testing"
 
 	"github.com/DATA-DOG/go-sqlmock"
-	"github.com/steveyegge/beads/internal/debug"
+	"github.com/borg0ai/dx-issuegraph/internal/debug"
 )
 
 // expectConvergedFastPathMiss walks the REAL pre-lock probe on the shape the
@@ -771,7 +771,7 @@ func TestAlreadyConvergedFailsClosedOnUnreadableState(t *testing.T) {
 // probe that correctly declined — and the symptom (every seat back on the
 // saturated GET_LOCK) shows up nowhere near the cause. Discarding the error
 // without a word is what made the unreachable-fast-path defect survive
-// review; say so where BD_DEBUG and -v can see it.
+// review; say so where ISSUEGRAPH_DEBUG and -v can see it.
 func TestMigrateUpWithLockLogsAnUnavailableFastPath(t *testing.T) {
 	conn, mock, cleanup := newMockConn(t)
 	defer cleanup()

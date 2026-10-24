@@ -8,25 +8,25 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/steveyegge/beads/internal/configfile"
+	"github.com/borg0ai/dx-issuegraph/internal/configfile"
 )
 
 func TestCommandStartupRejectsRemovedBackendsBeforeLocalWrites(t *testing.T) {
-	bd := buildBDForInitTests(t)
+	issuegraph := buildIssueGraphForInitTests(t)
 	for _, backend := range []string{configfile.BackendPostgres, configfile.BackendMySQL, configfile.BackendSQLite} {
 		t.Run(backend, func(t *testing.T) {
 			root := t.TempDir()
-			beadsDir := filepath.Join(root, ".beads")
-			if err := os.MkdirAll(beadsDir, 0o755); err != nil {
-				t.Fatalf("create beads dir: %v", err)
+			issuegraphDir := filepath.Join(root, ".issuegraph")
+			if err := os.MkdirAll(issuegraphDir, 0o755); err != nil {
+				t.Fatalf("create issuegraph dir: %v", err)
 			}
-			if err := (&configfile.Config{Backend: backend}).Save(beadsDir); err != nil {
+			if err := (&configfile.Config{Backend: backend}).Save(issuegraphDir); err != nil {
 				t.Fatalf("save config: %v", err)
 			}
 
-			cmd := exec.Command(bd, "list", "--json")
+			cmd := exec.Command(issuegraph, "list", "--json")
 			cmd.Dir = root
-			cmd.Env = append(removedBackendTestEnv(beadsDir), "BD_DISABLE_METRICS=1")
+			cmd.Env = append(removedBackendTestEnv(issuegraphDir), "ISSUEGRAPH_DISABLE_METRICS=1")
 			out, err := cmd.CombinedOutput()
 			if err == nil {
 				t.Fatalf("removed backend %s unexpectedly opened", backend)
@@ -38,8 +38,8 @@ func TestCommandStartupRejectsRemovedBackendsBeforeLocalWrites(t *testing.T) {
 				}
 			}
 
-			for _, name := range []string{"embeddeddolt", "dolt", "beads.db", ".local_version"} {
-				path := filepath.Join(beadsDir, name)
+			for _, name := range []string{"embeddeddolt", "dolt", "issuegraph.db", ".local_version"} {
+				path := filepath.Join(issuegraphDir, name)
 				if _, statErr := os.Stat(path); !os.IsNotExist(statErr) {
 					t.Fatalf("removed backend %s created local state at %s (stat error: %v)", backend, path, statErr)
 				}
@@ -49,25 +49,25 @@ func TestCommandStartupRejectsRemovedBackendsBeforeLocalWrites(t *testing.T) {
 }
 
 func TestCommandStartupRejectsUnknownBackendBeforeLocalWrites(t *testing.T) {
-	bd := buildBDForInitTests(t)
+	issuegraph := buildIssueGraphForInitTests(t)
 	root := t.TempDir()
-	beadsDir := filepath.Join(root, ".beads")
-	if err := os.MkdirAll(beadsDir, 0o700); err != nil {
-		t.Fatalf("create .beads: %v", err)
+	issuegraphDir := filepath.Join(root, ".issuegraph")
+	if err := os.MkdirAll(issuegraphDir, 0o700); err != nil {
+		t.Fatalf("create .issuegraph: %v", err)
 	}
-	if err := (&configfile.Config{Backend: "mystery"}).Save(beadsDir); err != nil {
+	if err := (&configfile.Config{Backend: "mystery"}).Save(issuegraphDir); err != nil {
 		t.Fatalf("save unknown-backend metadata: %v", err)
 	}
 
-	cmd := exec.Command(bd, "list", "--json")
+	cmd := exec.Command(issuegraph, "list", "--json")
 	cmd.Dir = root
-	cmd.Env = append(removedBackendTestEnv(beadsDir), "BD_DISABLE_METRICS=1")
+	cmd.Env = append(removedBackendTestEnv(issuegraphDir), "ISSUEGRAPH_DISABLE_METRICS=1")
 	out, err := cmd.CombinedOutput()
 	if err == nil {
 		t.Fatalf("unknown backend unexpectedly opened:\n%s", out)
 	}
 	message := string(out)
-	if strings.Contains(message, "no beads database found") {
+	if strings.Contains(message, "no issuegraph database found") {
 		t.Fatalf("unknown backend stopped at generic discovery instead of metadata guidance:\n%s", out)
 	}
 	for _, want := range []string{"not recognized", "opened or modified", "dolt"} {
@@ -75,25 +75,25 @@ func TestCommandStartupRejectsUnknownBackendBeforeLocalWrites(t *testing.T) {
 			t.Errorf("unknown-backend error missing %q:\n%s", want, out)
 		}
 	}
-	for _, name := range []string{"embeddeddolt", "dolt", "beads.db", ".local_version"} {
-		if _, statErr := os.Stat(filepath.Join(beadsDir, name)); !os.IsNotExist(statErr) {
+	for _, name := range []string{"embeddeddolt", "dolt", "issuegraph.db", ".local_version"} {
+		if _, statErr := os.Stat(filepath.Join(issuegraphDir, name)); !os.IsNotExist(statErr) {
 			t.Fatalf("unknown backend created %s (stat error: %v)", name, statErr)
 		}
 	}
 }
 
 func TestInitGuardRejectsCorruptMetadataBeforeWorkspaceWrites(t *testing.T) {
-	beadsDir := filepath.Join(t.TempDir(), ".beads")
-	if err := os.MkdirAll(beadsDir, 0o700); err != nil {
-		t.Fatalf("create .beads: %v", err)
+	issuegraphDir := filepath.Join(t.TempDir(), ".issuegraph")
+	if err := os.MkdirAll(issuegraphDir, 0o700); err != nil {
+		t.Fatalf("create .issuegraph: %v", err)
 	}
-	metadataPath := filepath.Join(beadsDir, configfile.ConfigFileName)
+	metadataPath := filepath.Join(issuegraphDir, configfile.ConfigFileName)
 	metadata := []byte("{\n")
 	if err := os.WriteFile(metadataPath, metadata, 0o600); err != nil {
 		t.Fatalf("write corrupt metadata.json: %v", err)
 	}
 
-	err := checkExistingBeadsDataAt(beadsDir, "guard")
+	err := checkExistingIssueGraphDataAt(issuegraphDir, "guard")
 	if err == nil || !strings.Contains(err.Error(), "metadata.json") {
 		t.Fatalf("init guard error = %v, want corrupt metadata refusal", err)
 	}
@@ -104,19 +104,19 @@ func TestInitGuardRejectsCorruptMetadataBeforeWorkspaceWrites(t *testing.T) {
 	if string(after) != string(metadata) {
 		t.Fatalf("init guard rewrote corrupt metadata: before %q, after %q", metadata, after)
 	}
-	for _, name := range []string{"embeddeddolt", "dolt", "beads.db", ".local_version"} {
-		if _, statErr := os.Stat(filepath.Join(beadsDir, name)); !os.IsNotExist(statErr) {
+	for _, name := range []string{"embeddeddolt", "dolt", "issuegraph.db", ".local_version"} {
+		if _, statErr := os.Stat(filepath.Join(issuegraphDir, name)); !os.IsNotExist(statErr) {
 			t.Fatalf("init guard created %s (stat error: %v)", name, statErr)
 		}
 	}
 }
 
 func TestDoctorRejectsUnknownBackendBeforeDoltChecks(t *testing.T) {
-	bd := buildBDForInitTests(t)
+	issuegraph := buildIssueGraphForInitTests(t)
 	root := t.TempDir()
-	beadsDir := filepath.Join(root, ".beads")
-	if err := os.MkdirAll(beadsDir, 0o700); err != nil {
-		t.Fatalf("create .beads: %v", err)
+	issuegraphDir := filepath.Join(root, ".issuegraph")
+	if err := os.MkdirAll(issuegraphDir, 0o700); err != nil {
+		t.Fatalf("create .issuegraph: %v", err)
 	}
 	cfg := &configfile.Config{
 		Backend:        "mystery",
@@ -124,13 +124,13 @@ func TestDoctorRejectsUnknownBackendBeforeDoltChecks(t *testing.T) {
 		DoltServerHost: "127.0.0.1",
 		DoltServerPort: 1,
 	}
-	if err := cfg.Save(beadsDir); err != nil {
+	if err := cfg.Save(issuegraphDir); err != nil {
 		t.Fatalf("save unknown-backend metadata: %v", err)
 	}
 
-	cmd := exec.Command(bd, "doctor", "--server", "--json")
+	cmd := exec.Command(issuegraph, "doctor", "--server", "--json")
 	cmd.Dir = root
-	cmd.Env = append(removedBackendTestEnv(beadsDir), "BEADS_DOLT_AUTO_START=0", "BD_DISABLE_METRICS=1")
+	cmd.Env = append(removedBackendTestEnv(issuegraphDir), "ISSUEGRAPH_DOLT_AUTO_START=0", "ISSUEGRAPH_DISABLE_METRICS=1")
 	out, err := cmd.CombinedOutput()
 	if err == nil {
 		t.Fatalf("doctor unexpectedly ran Dolt checks for unknown backend:\n%s", out)
@@ -140,15 +140,15 @@ func TestDoctorRejectsUnknownBackendBeforeDoltChecks(t *testing.T) {
 			t.Errorf("doctor unknown-backend error missing %q:\n%s", want, out)
 		}
 	}
-	for _, name := range []string{"embeddeddolt", "dolt", "beads.db", "dolt-server.pid", "dolt-server.port"} {
-		if _, statErr := os.Stat(filepath.Join(beadsDir, name)); !os.IsNotExist(statErr) {
+	for _, name := range []string{"embeddeddolt", "dolt", "issuegraph.db", "dolt-server.pid", "dolt-server.port"} {
+		if _, statErr := os.Stat(filepath.Join(issuegraphDir, name)); !os.IsNotExist(statErr) {
 			t.Fatalf("doctor created %s for unknown backend (stat error: %v)", name, statErr)
 		}
 	}
 }
 
 func TestLegacyInitFlagsReachRemovedBackendGuidance(t *testing.T) {
-	bd := buildBDForInitTests(t)
+	issuegraph := buildIssueGraphForInitTests(t)
 	tests := []struct {
 		backend string
 		args    []string
@@ -158,7 +158,7 @@ func TestLegacyInitFlagsReachRemovedBackendGuidance(t *testing.T) {
 			backend: configfile.BackendPostgres,
 			args: []string{
 				"init", "--backend=postgres",
-				"--pg-url=postgres://beads@127.0.0.1:5432/beads",
+				"--pg-url=postgres://issuegraph@127.0.0.1:5432/issuegraph",
 				"--pg-schema=legacy_workspace",
 			},
 			wants: []string{"no longer supported", "general-purpose server databases", "simple and resource-light", "dolt"},
@@ -167,7 +167,7 @@ func TestLegacyInitFlagsReachRemovedBackendGuidance(t *testing.T) {
 			backend: configfile.BackendMySQL,
 			args: []string{
 				"init", "--backend=mysql",
-				"--mysql-url=beads@tcp(127.0.0.1:3306)/",
+				"--mysql-url=issuegraph@tcp(127.0.0.1:3306)/",
 				"--mysql-database=legacy_workspace",
 			},
 			wants: []string{"no longer supported", "general-purpose server databases", "simple and resource-light", "dolt"},
@@ -176,7 +176,7 @@ func TestLegacyInitFlagsReachRemovedBackendGuidance(t *testing.T) {
 			backend: configfile.BackendSQLite,
 			args: []string{
 				"init", "--backend=sqlite",
-				"--sqlite-path=beads.db",
+				"--sqlite-path=issuegraph.db",
 			},
 			wants: []string{"no longer supported", "single engine", "dolt"},
 		},
@@ -185,10 +185,10 @@ func TestLegacyInitFlagsReachRemovedBackendGuidance(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.backend, func(t *testing.T) {
 			root := t.TempDir()
-			beadsDir := filepath.Join(root, ".beads")
-			cmd := exec.Command(bd, tt.args...)
+			issuegraphDir := filepath.Join(root, ".issuegraph")
+			cmd := exec.Command(issuegraph, tt.args...)
 			cmd.Dir = root
-			cmd.Env = append(removedBackendTestEnv(beadsDir), "BD_DISABLE_METRICS=1")
+			cmd.Env = append(removedBackendTestEnv(issuegraphDir), "ISSUEGRAPH_DISABLE_METRICS=1")
 			out, err := cmd.CombinedOutput()
 			if err == nil {
 				t.Fatalf("legacy %s init unexpectedly succeeded: %s", tt.backend, out)
@@ -203,7 +203,7 @@ func TestLegacyInitFlagsReachRemovedBackendGuidance(t *testing.T) {
 					t.Errorf("legacy %s init error missing %q: %s", tt.backend, want, message)
 				}
 			}
-			if _, statErr := os.Stat(beadsDir); !os.IsNotExist(statErr) {
+			if _, statErr := os.Stat(issuegraphDir); !os.IsNotExist(statErr) {
 				t.Fatalf("rejected legacy %s init created workspace state (stat error: %v)", tt.backend, statErr)
 			}
 		})
@@ -211,7 +211,7 @@ func TestLegacyInitFlagsReachRemovedBackendGuidance(t *testing.T) {
 }
 
 func TestDoltAdministrativeCommandsRejectRemovedBackends(t *testing.T) {
-	bd := buildBDForInitTests(t)
+	issuegraph := buildIssueGraphForInitTests(t)
 	commands := []struct {
 		name string
 		args []string
@@ -227,19 +227,19 @@ func TestDoltAdministrativeCommandsRejectRemovedBackends(t *testing.T) {
 	}
 
 	root := t.TempDir()
-	beadsDir := filepath.Join(root, ".beads")
-	if err := os.MkdirAll(beadsDir, 0o755); err != nil {
-		t.Fatalf("create beads dir: %v", err)
+	issuegraphDir := filepath.Join(root, ".issuegraph")
+	if err := os.MkdirAll(issuegraphDir, 0o755); err != nil {
+		t.Fatalf("create issuegraph dir: %v", err)
 	}
-	if err := (&configfile.Config{Backend: configfile.BackendSQLite}).Save(beadsDir); err != nil {
+	if err := (&configfile.Config{Backend: configfile.BackendSQLite}).Save(issuegraphDir); err != nil {
 		t.Fatalf("save config: %v", err)
 	}
 
 	for _, command := range commands {
 		t.Run(command.name, func(t *testing.T) {
-			cmd := exec.Command(bd, command.args...)
+			cmd := exec.Command(issuegraph, command.args...)
 			cmd.Dir = root
-			cmd.Env = append(removedBackendTestEnv(beadsDir), "BD_DISABLE_METRICS=1")
+			cmd.Env = append(removedBackendTestEnv(issuegraphDir), "ISSUEGRAPH_DISABLE_METRICS=1")
 			out, err := cmd.CombinedOutput()
 			if err == nil {
 				t.Fatalf("%q unexpectedly succeeded for removed backend %s: %s", strings.Join(command.args, " "), configfile.BackendSQLite, out)
@@ -252,8 +252,8 @@ func TestDoltAdministrativeCommandsRejectRemovedBackends(t *testing.T) {
 				}
 			}
 
-			for _, name := range []string{"embeddeddolt", "dolt", "beads.db", ".local_version"} {
-				path := filepath.Join(beadsDir, name)
+			for _, name := range []string{"embeddeddolt", "dolt", "issuegraph.db", ".local_version"} {
+				path := filepath.Join(issuegraphDir, name)
 				if _, statErr := os.Stat(path); !os.IsNotExist(statErr) {
 					t.Fatalf("%q created local state for removed backend %s at %s (stat error: %v)", strings.Join(command.args, " "), configfile.BackendSQLite, path, statErr)
 				}
@@ -263,60 +263,60 @@ func TestDoltAdministrativeCommandsRejectRemovedBackends(t *testing.T) {
 }
 
 func TestDoltReadOnlyCommandsRejectUnknownBackend(t *testing.T) {
-	bd := buildBDForInitTests(t)
+	issuegraph := buildIssueGraphForInitTests(t)
 	root := t.TempDir()
-	beadsDir := filepath.Join(root, ".beads")
-	if err := os.MkdirAll(beadsDir, 0o700); err != nil {
-		t.Fatalf("create .beads: %v", err)
+	issuegraphDir := filepath.Join(root, ".issuegraph")
+	if err := os.MkdirAll(issuegraphDir, 0o700); err != nil {
+		t.Fatalf("create .issuegraph: %v", err)
 	}
-	if err := (&configfile.Config{Backend: "mystery", DoltMode: configfile.DoltModeServer, DoltServerPort: 1}).Save(beadsDir); err != nil {
+	if err := (&configfile.Config{Backend: "mystery", DoltMode: configfile.DoltModeServer, DoltServerPort: 1}).Save(issuegraphDir); err != nil {
 		t.Fatalf("save unknown-backend metadata: %v", err)
 	}
 
 	for _, args := range [][]string{{"dolt", "show"}, {"dolt", "status"}, {"dolt", "killall"}} {
-		cmd := exec.Command(bd, args...)
+		cmd := exec.Command(issuegraph, args...)
 		cmd.Dir = root
-		cmd.Env = append(removedBackendTestEnv(beadsDir), "BEADS_DOLT_AUTO_START=0", "BD_DISABLE_METRICS=1")
+		cmd.Env = append(removedBackendTestEnv(issuegraphDir), "ISSUEGRAPH_DOLT_AUTO_START=0", "ISSUEGRAPH_DISABLE_METRICS=1")
 		out, err := cmd.CombinedOutput()
 		if err == nil {
-			t.Errorf("bd %s unexpectedly treated unknown metadata as Dolt:\n%s", strings.Join(args, " "), out)
+			t.Errorf("issuegraph %s unexpectedly treated unknown metadata as Dolt:\n%s", strings.Join(args, " "), out)
 			continue
 		}
 		if !strings.Contains(string(out), "not recognized") || !strings.Contains(string(out), "opened or modified") {
-			t.Errorf("bd %s error lacks fail-closed guidance:\n%s", strings.Join(args, " "), out)
+			t.Errorf("issuegraph %s error lacks fail-closed guidance:\n%s", strings.Join(args, " "), out)
 		}
 	}
 }
 
 func TestDoltKillallRejectsCorruptMetadataBeforeServerCleanup(t *testing.T) {
-	bd := buildBDForInitTests(t)
+	issuegraph := buildIssueGraphForInitTests(t)
 	root := t.TempDir()
-	beadsDir := filepath.Join(root, ".beads")
-	if err := os.MkdirAll(beadsDir, 0o700); err != nil {
-		t.Fatalf("create .beads: %v", err)
+	issuegraphDir := filepath.Join(root, ".issuegraph")
+	if err := os.MkdirAll(issuegraphDir, 0o700); err != nil {
+		t.Fatalf("create .issuegraph: %v", err)
 	}
 	metadata := []byte("{\n")
-	metadataPath := filepath.Join(beadsDir, configfile.ConfigFileName)
+	metadataPath := filepath.Join(issuegraphDir, configfile.ConfigFileName)
 	if err := os.WriteFile(metadataPath, metadata, 0o600); err != nil {
 		t.Fatalf("write corrupt metadata: %v", err)
 	}
 
-	cmd := exec.Command(bd, "dolt", "killall")
+	cmd := exec.Command(issuegraph, "dolt", "killall")
 	cmd.Dir = root
-	cmd.Env = append(removedBackendTestEnv(beadsDir),
-		"BEADS_DOLT_SHARED_SERVER=1",
-		"BEADS_DOLT_AUTO_START=0",
-		"BEADS_SHARED_SERVER_DIR="+filepath.Join(root, "shared-server"),
-		"BD_DISABLE_METRICS=1",
+	cmd.Env = append(removedBackendTestEnv(issuegraphDir),
+		"ISSUEGRAPH_DOLT_SHARED_SERVER=1",
+		"ISSUEGRAPH_DOLT_AUTO_START=0",
+		"ISSUEGRAPH_SHARED_SERVER_DIR="+filepath.Join(root, "shared-server"),
+		"ISSUEGRAPH_DISABLE_METRICS=1",
 	)
 	out, err := cmd.CombinedOutput()
 	if err == nil {
-		t.Fatalf("bd dolt killall unexpectedly ignored corrupt metadata:\n%s", out)
+		t.Fatalf("issuegraph dolt killall unexpectedly ignored corrupt metadata:\n%s", out)
 	}
 	message := strings.ToLower(string(out))
 	for _, want := range []string{"loading config", "parsing config"} {
 		if !strings.Contains(message, want) {
-			t.Errorf("bd dolt killall corrupt-metadata error missing %q:\n%s", want, out)
+			t.Errorf("issuegraph dolt killall corrupt-metadata error missing %q:\n%s", want, out)
 		}
 	}
 	after, readErr := os.ReadFile(metadataPath)
@@ -324,32 +324,32 @@ func TestDoltKillallRejectsCorruptMetadataBeforeServerCleanup(t *testing.T) {
 		t.Fatalf("read metadata after refusal: %v", readErr)
 	}
 	if string(after) != string(metadata) {
-		t.Fatalf("bd dolt killall rewrote corrupt metadata: before %q, after %q", metadata, after)
+		t.Fatalf("issuegraph dolt killall rewrote corrupt metadata: before %q, after %q", metadata, after)
 	}
-	for _, name := range []string{"embeddeddolt", "dolt", "beads.db", ".local_version", "dolt-server.pid", "dolt-server.port"} {
-		if _, statErr := os.Stat(filepath.Join(beadsDir, name)); !os.IsNotExist(statErr) {
-			t.Fatalf("bd dolt killall created %s before rejecting corrupt metadata (stat error: %v)", name, statErr)
+	for _, name := range []string{"embeddeddolt", "dolt", "issuegraph.db", ".local_version", "dolt-server.pid", "dolt-server.port"} {
+		if _, statErr := os.Stat(filepath.Join(issuegraphDir, name)); !os.IsNotExist(statErr) {
+			t.Fatalf("issuegraph dolt killall created %s before rejecting corrupt metadata (stat error: %v)", name, statErr)
 		}
 	}
 }
 
-func removedBackendTestEnv(beadsDir string) []string {
+func removedBackendTestEnv(issuegraphDir string) []string {
 	var env []string
 	for _, entry := range os.Environ() {
-		if strings.HasPrefix(entry, "BEADS_") || strings.HasPrefix(entry, "BD_") {
+		if strings.HasPrefix(entry, "ISSUEGRAPH_") || strings.HasPrefix(entry, "ISSUEGRAPH_") {
 			continue
 		}
 		env = append(env, entry)
 	}
-	return append(env, "BEADS_DIR="+beadsDir)
+	return append(env, "ISSUEGRAPH_DIR="+issuegraphDir)
 }
 
 func TestStoreFactoriesRemovedBackendsFailLoud(t *testing.T) {
 	for _, backend := range []string{configfile.BackendPostgres, configfile.BackendMySQL, configfile.BackendSQLite} {
 		t.Run(backend, func(t *testing.T) {
-			beadsDir := t.TempDir()
+			issuegraphDir := t.TempDir()
 			cfg := &configfile.Config{Backend: backend}
-			if err := cfg.Save(beadsDir); err != nil {
+			if err := cfg.Save(issuegraphDir); err != nil {
 				t.Fatalf("save config: %v", err)
 			}
 
@@ -364,7 +364,7 @@ func TestStoreFactoriesRemovedBackendsFailLoud(t *testing.T) {
 
 			for name, open := range factories {
 				t.Run(name, func(t *testing.T) {
-					store, err := open(t.Context(), beadsDir)
+					store, err := open(t.Context(), issuegraphDir)
 					if err == nil {
 						if store != nil {
 							_ = store.Close()
@@ -384,8 +384,8 @@ func TestStoreFactoriesRemovedBackendsFailLoud(t *testing.T) {
 					if strings.Contains(guidance, "to heal") {
 						t.Fatalf("error offered a metadata heal for a workspace with no Dolt data: %v", err)
 					}
-					for _, name := range []string{"embeddeddolt", "dolt", "beads.db"} {
-						path := filepath.Join(beadsDir, name)
+					for _, name := range []string{"embeddeddolt", "dolt", "issuegraph.db"} {
+						path := filepath.Join(issuegraphDir, name)
 						if _, statErr := os.Stat(path); !os.IsNotExist(statErr) {
 							t.Fatalf("removed backend %s created local storage at %s (stat error: %v)", backend, path, statErr)
 						}
@@ -397,15 +397,15 @@ func TestStoreFactoriesRemovedBackendsFailLoud(t *testing.T) {
 }
 
 func TestRequireDoltBackend(t *testing.T) {
-	beadsDir := t.TempDir()
+	issuegraphDir := t.TempDir()
 	for _, cfg := range []*configfile.Config{nil, {}, {Backend: configfile.BackendDolt}} {
-		if err := requireDoltBackend(cfg, beadsDir); err != nil {
+		if err := requireDoltBackend(cfg, issuegraphDir); err != nil {
 			t.Fatalf("Dolt config %#v rejected: %v", cfg, err)
 		}
 	}
 
 	for _, backend := range []string{configfile.BackendPostgres, configfile.BackendMySQL, configfile.BackendSQLite} {
-		err := requireDoltBackend(&configfile.Config{Backend: backend}, beadsDir)
+		err := requireDoltBackend(&configfile.Config{Backend: backend}, issuegraphDir)
 		if err == nil || !strings.Contains(err.Error(), "no longer supported") || !strings.Contains(err.Error(), "export") {
 			t.Fatalf("removed backend %q guard error = %v, want rollback and migration guidance", backend, err)
 		}

@@ -3,7 +3,7 @@ package main
 import (
 	"testing"
 
-	"github.com/steveyegge/beads/internal/storage"
+	"github.com/borg0ai/dx-issuegraph/internal/storage"
 )
 
 func strp(s string) *string { return &s }
@@ -88,7 +88,7 @@ func TestFilterShownFieldsHonorsAllFields(t *testing.T) {
 	if len(got[0].Fields) != 1 || got[0].Fields[0].Name != "status" {
 		t.Errorf("default view = %+v, want only the diverged field", got[0].Fields)
 	}
-	// The caller's slice must not be mutated: `bd conflicts show` renders the
+	// The caller's slice must not be mutated: `issuegraph conflicts show` renders the
 	// same rows again after filtering for JSON.
 	if len(rows[0].Fields) != 2 {
 		t.Error("filterShownFields mutated its input")

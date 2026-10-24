@@ -12,12 +12,12 @@ import (
 	"slices"
 	"strings"
 
+	"github.com/borg0ai/dx-issuegraph/internal/metrics"
+	"github.com/borg0ai/dx-issuegraph/internal/storage"
+	"github.com/borg0ai/dx-issuegraph/internal/types"
+	"github.com/borg0ai/dx-issuegraph/internal/ui"
+	"github.com/borg0ai/dx-issuegraph/internal/utils"
 	"github.com/spf13/cobra"
-	"github.com/steveyegge/beads/internal/metrics"
-	"github.com/steveyegge/beads/internal/storage"
-	"github.com/steveyegge/beads/internal/types"
-	"github.com/steveyegge/beads/internal/ui"
-	"github.com/steveyegge/beads/internal/utils"
 )
 
 var renamePrefixCmd = &cobra.Command{
@@ -45,9 +45,9 @@ The --repair flag will rename all issues with incorrect prefixes to the new pref
 preserving issues that already have the correct prefix.
 
 EXAMPLES:
-  bd rename-prefix kw-                # Rename from 'knowledge-work-' to 'kw-'
-  bd rename-prefix mtg- --repair      # Consolidate multiple prefixes into 'mtg-'
-  bd rename-prefix team- --dry-run    # Preview changes without applying
+  issuegraph rename-prefix kw-                # Rename from 'knowledge-work-' to 'kw-'
+  issuegraph rename-prefix mtg- --repair      # Consolidate multiple prefixes into 'mtg-'
+  issuegraph rename-prefix team- --dry-run    # Preview changes without applying
 
 NOTE: This is a rare operation. Most users never need this command.`,
 	Args:          cobra.ExactArgs(1),
@@ -108,7 +108,7 @@ NOTE: This is a rare operation. Most users never need this command.`,
 			if !repair {
 				return HandleErrorWithHint(
 					"cannot rename with multiple prefixes. Use --repair to consolidate.",
-					fmt.Sprintf("Example: bd rename-prefix %s --repair", newPrefix),
+					fmt.Sprintf("Example: issuegraph rename-prefix %s --repair", newPrefix),
 				)
 			}
 
@@ -402,8 +402,8 @@ func repairPrefixes(ctx context.Context, st storage.DoltStorage, actorName strin
 // the possibly-stale issue_prefix config cell — see PR #5135 review (maphew,
 // 2026-07-29): using the config cell here made the "already on target
 // prefix" check ambiguous with genuine prefix-shortening renames (e.g.
-// "beads-vscode-" -> "beads-" would leave "beads-vscode-1" unchanged,
-// because it also starts with "beads-"). The GH#4827 half-migrated-config
+// "issuegraph-vscode-" -> "issuegraph-" would leave "issuegraph-vscode-1" unchanged,
+// because it also starts with "issuegraph-"). The GH#4827 half-migrated-config
 // case is now handled by the caller comparing the detected prefix to
 // newPrefix directly and skipping ID rewrites entirely (config-only
 // repair), so this function no longer needs — or has — a newPrefix guard.

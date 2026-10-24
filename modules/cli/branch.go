@@ -3,9 +3,9 @@ package main
 import (
 	"fmt"
 
+	"github.com/borg0ai/dx-issuegraph/internal/metrics"
+	"github.com/borg0ai/dx-issuegraph/internal/ui"
 	"github.com/spf13/cobra"
-	"github.com/steveyegge/beads/internal/metrics"
-	"github.com/steveyegge/beads/internal/ui"
 )
 
 var branchCmd = &cobra.Command{
@@ -18,8 +18,8 @@ This command requires the Dolt storage backend. Without arguments,
 it lists all branches. With an argument, it creates a new branch.
 
 Examples:
-  bd branch                    # List all branches
-  bd branch feature-xyz        # Create a new branch named feature-xyz`,
+  issuegraph branch                    # List all branches
+  issuegraph branch feature-xyz        # Create a new branch named feature-xyz`,
 	Args:          cobra.MaximumNArgs(1),
 	SilenceUsage:  true,
 	SilenceErrors: true,

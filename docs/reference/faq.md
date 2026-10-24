@@ -40,7 +40,7 @@ Absolutely. IssueGraph is a good CLI issue tracker for humans too — `issuegrap
 
 ### What does "issuegraph" stand for?
 
-Nothing specific — it's a metaphor for linked work items, like beads on a string.
+Nothing specific — it's a metaphor for linked work items, like issuegraph on a string.
 
 ### Is issuegraph production-ready?
 
@@ -62,37 +62,37 @@ See [Dolt architecture](/architecture/dolt) for the detailed analysis.
 
 ### Why hash-based IDs instead of sequential?
 
-Sequential IDs (`#1`, `#2`) collide the moment two agents or two branches create issues concurrently — both mint the same next number, and the merge produces two different issues with one ID. Hash IDs like `bd-a1b2` are globally unique without coordination:
+Sequential IDs (`#1`, `#2`) collide the moment two agents or two branches create issues concurrently — both mint the same next number, and the merge produces two different issues with one ID. Hash IDs like `issuegraph-a1b2` are globally unique without coordination:
 
 ```bash
 # Branch A
-issuegraph create "Add OAuth"   # bd-a1b2
+issuegraph create "Add OAuth"   # issuegraph-a1b2
 
 # Branch B
-issuegraph create "Add Stripe"  # bd-f14c — no collision
+issuegraph create "Add Stripe"  # issuegraph-f14c — no collision
 
 git merge feature-auth  # clean merge, distinct IDs
 ```
 
-IDs start at 3 characters and grow automatically (up to 8) as the database grows, keeping the collision probability under a fixed threshold. See [Hash IDs](/core-concepts/hash-ids) and [Adaptive IDs](/core-concepts/adaptive-ids), or the [collision math](https://github.com/gastownhall/beads/blob/main/engdocs/COLLISION_MATH.md) if you want the numbers.
+IDs start at 3 characters and grow automatically (up to 8) as the database grows, keeping the collision probability under a fixed threshold. See [Hash IDs](/core-concepts/hash-ids) and [Adaptive IDs](/core-concepts/adaptive-ids), or the [collision math](https://github.com/borg0ai/dx-issuegraph/blob/main/engdocs/COLLISION_MATH.md) if you want the numbers.
 
 ### What are hierarchical child IDs?
 
-Hierarchical IDs (`bd-a3f8e9.1`, `bd-a3f8e9.2`) give epics and their subtasks human-readable structure:
+Hierarchical IDs (`issuegraph-a3f8e9.1`, `issuegraph-a3f8e9.2`) give epics and their subtasks human-readable structure:
 
 ```bash
-issuegraph create "Auth System" -t epic          # bd-a3f8e9
-issuegraph create "Login UI" --parent bd-a3f8e9  # bd-a3f8e9.1
-issuegraph create "Validation" --parent bd-a3f8e9 # bd-a3f8e9.2
+issuegraph create "Auth System" -t epic          # issuegraph-a3f8e9
+issuegraph create "Login UI" --parent issuegraph-a3f8e9  # issuegraph-a3f8e9.1
+issuegraph create "Validation" --parent issuegraph-a3f8e9 # issuegraph-a3f8e9.2
 ```
 
 The parent hash keeps the namespace unique across epics, the child numbers stay human-friendly, and up to 3 levels of nesting are supported. Use them for work breakdown structures; for cross-cutting relationships, use `issuegraph dep add` instead. See [Hash IDs](/core-concepts/hash-ids).
 
 ### Embedded mode or server mode — which am I running?
 
-The default `issuegraph init` uses **embedded mode**: Dolt runs in-process inside `issuegraph`, data lives at `.beads/embeddeddolt/`, and there is no server, port, or PID file to manage. This is the right mode for solo work, CI/CD, and single-agent setups.
+The default `issuegraph init` uses **embedded mode**: Dolt runs in-process inside `issuegraph`, data lives at `.issuegraph/embeddeddolt/`, and there is no server, port, or PID file to manage. This is the right mode for solo work, CI/CD, and single-agent setups.
 
-**Server mode** (`issuegraph init --server`) connects to a running `dolt sql-server` and stores data at `.beads/dolt/`. Switch to it when multiple processes need concurrent write access to the same database — for example several agents on one machine. See [Dolt architecture](/architecture/dolt) for setup and migration between modes.
+**Server mode** (`issuegraph init --server`) connects to a running `dolt sql-server` and stores data at `.issuegraph/dolt/`. Switch to it when multiple processes need concurrent write access to the same database — for example several agents on one machine. See [Dolt architecture](/architecture/dolt) for setup and migration between modes.
 
 ## Usage
 
@@ -105,7 +105,7 @@ issuegraph init          # Humans: interactive, prompts for git hooks
 issuegraph init --quiet  # Agents: non-interactive, auto-installs hooks
 ```
 
-For an existing project, clone and run `issuegraph init`; it creates the Dolt database and pulls from the configured remote. For a new project, run `issuegraph init`, then commit the `.beads/` directory.
+For an existing project, clone and run `issuegraph init`; it creates the Dolt database and pulls from the configured remote. For a new project, run `issuegraph init`, then commit the `.issuegraph/` directory.
 
 ### How do I sync issues across machines?
 
@@ -118,7 +118,7 @@ issuegraph dolt pull    # Pull changes from the Dolt remote
 
 ### Do I need to run export/import manually?
 
-No. All writes go directly to the Dolt database and are committed to Dolt history automatically; `issuegraph dolt push` / `issuegraph dolt pull` handle sync. `issuegraph export` exists for portability and interchange — `.beads/issues.jsonl` is a passive export, never the database. For backups, use `issuegraph backup init <path>` / `issuegraph backup sync` / `issuegraph backup restore`. See [Sync Concepts](/core-concepts/sync-concepts) for the full model and the sync patterns to avoid.
+No. All writes go directly to the Dolt database and are committed to Dolt history automatically; `issuegraph dolt push` / `issuegraph dolt pull` handle sync. `issuegraph export` exists for portability and interchange — `.issuegraph/issues.jsonl` is a passive export, never the database. For backups, use `issuegraph backup init <path>` / `issuegraph backup sync` / `issuegraph backup restore`. See [Sync Concepts](/core-concepts/sync-concepts) for the full model and the sync patterns to avoid.
 
 ### What if my database feels stale after a colleague pushes changes?
 
@@ -149,9 +149,9 @@ cd ~/project1 && issuegraph init --prefix proj1
 cd ~/project2 && issuegraph init --prefix proj2
 ```
 
-Each project gets its own `.beads/` directory and database, and `issuegraph` auto-discovers the right one by walking up from your current directory (like git). To link work across projects, hydrate the other repo into your database (`issuegraph repo add`, then `issuegraph repo sync`) and add normal dependencies, or depend on another project's capability with an `external:<project>:<capability>` target — see [cross-repo routing](/multi-agent/routing).
+Each project gets its own `.issuegraph/` directory and database, and `issuegraph` auto-discovers the right one by walking up from your current directory (like git). To link work across projects, hydrate the other repo into your database (`issuegraph repo add`, then `issuegraph repo sync`) and add normal dependencies, or depend on another project's capability with an `external:<project>:<capability>` target — see [cross-repo routing](/multi-agent/routing).
 
-In server mode, each project runs its own Dolt server by default. On machines with many projects you can opt into a single shared server (`issuegraph init --shared-server`, or `export BEADS_DOLT_SHARED_SERVER=1`) that serves every project from `~/.beads/shared-server/`. See [Dolt architecture](/architecture/dolt).
+In server mode, each project runs its own Dolt server by default. On machines with many projects you can opt into a single shared server (`issuegraph init --shared-server`, or `export ISSUEGRAPH_DOLT_SHARED_SERVER=1`) that serves every project from `~/.issuegraph/shared-server/`. See [Dolt architecture](/architecture/dolt).
 
 ### Can multiple agents work on the same repo?
 
@@ -159,8 +159,8 @@ Yes — that's what issuegraph was designed for. Hash IDs prevent collisions, an
 
 ```bash
 issuegraph ready --assignee agent-name       # Query ready work for an agent
-issuegraph update bd-a1b2 --claim            # Atomically claim an issue (assignee + in_progress)
-issuegraph create "Found issue" --deps discovered-from:bd-a1b2   # Track discovered work
+issuegraph update issuegraph-a1b2 --claim            # Atomically claim an issue (assignee + in_progress)
+issuegraph create "Found issue" --deps discovered-from:issuegraph-a1b2   # Track discovered work
 ```
 
 In orchestrated workflows an orchestrator usually assigns work (`issuegraph assign`); agents picking work directly should use the atomic `--claim`. For multiple concurrent processes on one machine, use server mode; for distributed setups, Dolt's cell-level merge and [federation](/multi-agent/federation) let agents work independently and merge like developers do. See [Agent Coordination](/multi-agent/coordination).
@@ -182,7 +182,7 @@ issuegraph ready --json
 
 ### What are formulas?
 
-Declarative workflow templates in TOML or JSON. `issuegraph cook` compiles a formula into a proto (a template epic), and `issuegraph mol pour` instantiates the proto as a molecule of real, tracked beads. See [Formulas](/workflows/formulas).
+Declarative workflow templates in TOML or JSON. `issuegraph cook` compiles a formula into a proto (a template epic), and `issuegraph mol pour` instantiates the proto as a molecule of real, tracked issuegraph. See [Formulas](/workflows/formulas).
 
 ### What are gates?
 
@@ -196,7 +196,7 @@ See [Gates](/workflows/gates).
 
 ### What's the difference between molecules and wisps?
 
-Both are instantiated workflows made of real beads. **Molecules** (`issuegraph mol pour`) are persistent — part of history, synced like any bead. **Wisps** (`issuegraph mol wisp`) are ephemeral — flagged so they stay out of federation push and can be deleted wholesale (`issuegraph purge`, `issuegraph mol wisp gc`) once closed. Use molecules for work worth referencing later, wisps for operational loops like release checklists and health patrols. See [Molecules](/workflows/molecules) and [Wisps](/workflows/wisps).
+Both are instantiated workflows made of real issuegraph. **Molecules** (`issuegraph mol pour`) are persistent — part of history, synced like any issue. **Wisps** (`issuegraph mol wisp`) are ephemeral — flagged so they stay out of federation push and can be deleted wholesale (`issuegraph purge`, `issuegraph mol wisp gc`) once closed. Use molecules for work worth referencing later, wisps for operational loops like release checklists and health patrols. See [Molecules](/workflows/molecules) and [Wisps](/workflows/wisps).
 
 ## Integrations
 
@@ -230,11 +230,11 @@ Yes — `issuegraph github sync --pull-only` imports issues in bulk (`issuegraph
 
 IssueGraph has built-in bidirectional sync for all three — `issuegraph github`, `issuegraph jira`, and `issuegraph linear` each provide `sync` for bulk moves, plus `pull`/`push` for specific issues by ID (GitLab, Azure DevOps, and Notion are covered by `issuegraph gitlab`, `issuegraph ado`, and `issuegraph notion`). Configure credentials with `issuegraph config set` per the [CLI reference](/cli-reference/index), then run the sync in the pull direction: `issuegraph github sync --pull-only`, `issuegraph jira sync --pull`, or `issuegraph linear sync --pull`.
 
-For any other tracker: export from it (usually CSV or JSON), convert to issuegraph's JSONL format, and run `issuegraph import <file>`. See [examples](https://github.com/gastownhall/beads/tree/main/examples) for scripting patterns.
+For any other tracker: export from it (usually CSV or JSON), convert to issuegraph's JSONL format, and run `issuegraph import <file>`. See [examples](https://github.com/borg0ai/dx-issuegraph/tree/main/examples) for scripting patterns.
 
 ### Can I export back out of issuegraph?
 
-For GitHub, Jira, and Linear, use the same integrations in the push direction — `issuegraph github sync --push-only`, `issuegraph jira sync --push`, or `issuegraph linear sync --push` for everything, or `issuegraph <tracker> push <ids>` for specific beads. For anything else, `issuegraph export -o issues.jsonl` produces JSONL you can convert with a script and feed to the target system's API.
+For GitHub, Jira, and Linear, use the same integrations in the push direction — `issuegraph github sync --push-only`, `issuegraph jira sync --push`, or `issuegraph linear sync --push` for everything, or `issuegraph <tracker> push <ids>` for specific issuegraph. For anything else, `issuegraph export -o issues.jsonl` produces JSONL you can convert with a script and feed to the target system's API.
 
 ## Performance
 
@@ -279,17 +279,17 @@ Yes, three ways: `issuegraph query` for the built-in query language (compound fi
 
 Yes — native Windows support, no MSYS or MinGW required. A PowerShell script installs prebuilt releases, and everything works with Windows paths. See [Installation](/getting-started/installation#windows-11).
 
-Because `issuegraph.exe` is a native binary, two integration details catch people out: Node programs cannot spawn the npm `bd.cmd` shim without a shell, and `/tmp` paths that reach `issuegraph` unconverted — from Node, scripts, or config values — resolve to the drive root, not Git Bash's `/tmp`. Both are covered under [Platform-Specific Issues](/reference/troubleshooting#platform-specific-issues).
+Because `issuegraph.exe` is a native binary, two integration details catch people out: Node programs cannot spawn the npm `issuegraph.cmd` shim without a shell, and `/tmp` paths that reach `issuegraph` unconverted — from Node, scripts, or config values — resolve to the drive root, not Git Bash's `/tmp`. Both are covered under [Platform-Specific Issues](/reference/troubleshooting#platform-specific-issues).
 
 ### Can I use issuegraph with git worktrees?
 
-Yes — issuegraph works from normal git worktrees with no special setup. All worktrees in a repository share the same `.beads` workspace; `issuegraph` discovers it from linked worktrees automatically.
+Yes — issuegraph works from normal git worktrees with no special setup. All worktrees in a repository share the same `.issuegraph` workspace; `issuegraph` discovers it from linked worktrees automatically.
 
 If an old issuegraph version left hidden worktrees under `.git/` (from a since-removed sync-branch feature), clean them up:
 
 ```bash
-rm -rf .git/beads-worktrees
-rm -rf .git/worktrees/beads-*
+rm -rf .git/issuegraph-worktrees
+rm -rf .git/worktrees/issuegraph-*
 git worktree prune
 ```
 
@@ -303,7 +303,7 @@ This applies to server mode only (embedded mode has no server):
 
 ```bash
 issuegraph doctor                        # Check health
-cat .beads/dolt-server.log       # Check server logs (server mode)
+cat .issuegraph/dolt-server.log       # Check server logs (server mode)
 issuegraph dolt stop && issuegraph dolt start    # Restart the server
 ```
 
@@ -325,11 +325,11 @@ These are two distinct integrity issues:
 
 **Logical consistency** — same ID assigned to different issues, wrong-prefix bugs, branch divergence. Hash-based IDs eliminate collisions by design, and `issuegraph doctor --fix` repairs logical inconsistencies.
 
-**Physical corruption** — disk failures, power loss, or multiple processes writing to an embedded database simultaneously. Start with the [database corruption runbook](/recovery/database-corruption) (`issuegraph doctor --fix` after backing up `.beads/`). If the database is unrecoverable and you have a Dolt remote, back up `.beads/`, delete the data directory for your mode — `.beads/embeddeddolt/` in embedded mode, `.beads/dolt/` in server mode — then re-init and pull:
+**Physical corruption** — disk failures, power loss, or multiple processes writing to an embedded database simultaneously. Start with the [database corruption runbook](/recovery/database-corruption) (`issuegraph doctor --fix` after backing up `.issuegraph/`). If the database is unrecoverable and you have a Dolt remote, back up `.issuegraph/`, delete the data directory for your mode — `.issuegraph/embeddeddolt/` in embedded mode, `.issuegraph/dolt/` in server mode — then re-init and pull:
 
 ```bash
-cp -r .beads .beads.backup
-rm -rf .beads/embeddeddolt   # or .beads/dolt in server mode
+cp -r .issuegraph .issuegraph.backup
+rm -rf .issuegraph/embeddeddolt   # or .issuegraph/dolt in server mode
 issuegraph init
 issuegraph dolt pull
 ```
@@ -338,23 +338,23 @@ For multi-writer scenarios, use server mode so concurrent access goes through th
 
 ### How do I report a bug?
 
-1. Check existing issues: https://github.com/gastownhall/beads/issues
+1. Check existing issues: https://github.com/borg0ai/dx-issuegraph/issues
 2. Include `issuegraph version`, `issuegraph info --json`, and reproduction steps
-3. File at: https://github.com/gastownhall/beads/issues/new
+3. File at: https://github.com/borg0ai/dx-issuegraph/issues/new
 
 ## Getting Help
 
 ### Where can I get more help?
 
-- **Documentation**: [Quickstart](/getting-started/quickstart), [Advanced Features](/reference/advanced), [README](https://github.com/gastownhall/beads/blob/main/README.md)
+- **Documentation**: [Quickstart](/getting-started/quickstart), [Advanced Features](/reference/advanced), [README](https://github.com/borg0ai/dx-issuegraph/blob/main/README.md)
 - **Troubleshooting**: [Troubleshooting guide](/reference/troubleshooting) and the [recovery runbooks](/recovery/index)
-- **Examples**: [examples/](https://github.com/gastownhall/beads/tree/main/examples)
-- **GitHub Issues**: [Report bugs or request features](https://github.com/gastownhall/beads/issues)
-- **GitHub Discussions**: [Ask questions](https://github.com/gastownhall/beads/discussions)
+- **Examples**: [examples/](https://github.com/borg0ai/dx-issuegraph/tree/main/examples)
+- **GitHub Issues**: [Report bugs or request features](https://github.com/borg0ai/dx-issuegraph/issues)
+- **GitHub Discussions**: [Ask questions](https://github.com/borg0ai/dx-issuegraph/discussions)
 
 ### How can I contribute?
 
-Contributions are welcome. See [CONTRIBUTING.md](https://github.com/gastownhall/beads/blob/main/CONTRIBUTING.md) for guidelines, test instructions, and the development workflow.
+Contributions are welcome. See [CONTRIBUTING.md](https://github.com/borg0ai/dx-issuegraph/blob/main/CONTRIBUTING.md) for guidelines, test instructions, and the development workflow.
 
 ### Where's the roadmap?
 

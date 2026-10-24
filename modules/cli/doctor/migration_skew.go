@@ -8,17 +8,17 @@ import (
 	"path/filepath"
 	"strings"
 
-	"github.com/steveyegge/beads/internal/configfile"
-	"github.com/steveyegge/beads/internal/storage/dberrors"
-	"github.com/steveyegge/beads/internal/storage/embeddeddolt"
-	"github.com/steveyegge/beads/internal/storage/schema"
+	"github.com/borg0ai/dx-issuegraph/internal/configfile"
+	"github.com/borg0ai/dx-issuegraph/internal/storage/dberrors"
+	"github.com/borg0ai/dx-issuegraph/internal/storage/embeddeddolt"
+	"github.com/borg0ai/dx-issuegraph/internal/storage/schema"
 )
 
 const migrationContentSkewCheckName = "Migration Content Skew"
 
 // CheckMigrationContentSkew detects when this database and its remote applied
 // DIFFERENT content for the same migration version — the silent schema fork from
-// gastownhall/beads#4259. It compares the local schema_migrations content hashes
+// borg0ai/dx-issuegraph#4259. It compares the local schema_migrations content hashes
 // against the already-cached remote-tracking ref (no network fetch) and warns on
 // any divergence.
 //
@@ -32,7 +32,7 @@ func CheckMigrationContentSkew(ss *SharedStore) DoctorCheck {
 	if store := ss.Store(); store != nil {
 		return checkMigrationContentSkew(context.Background(), store.DB(), store.RemoteName())
 	}
-	if check, ok := checkMigrationContentSkewEmbedded(context.Background(), sharedStoreBeadsDir(ss)); ok {
+	if check, ok := checkMigrationContentSkewEmbedded(context.Background(), sharedStoreIssueGraphDir(ss)); ok {
 		return check
 	}
 	return DoctorCheck{
@@ -47,16 +47,16 @@ func CheckMigrationContentSkew(ss *SharedStore) DoctorCheck {
 // database (read-only diagnostic queries only; nothing is written) and runs
 // the skew comparison on it. Returns ok=false when there is no embedded
 // database to inspect.
-func checkMigrationContentSkewEmbedded(ctx context.Context, beadsDir string) (DoctorCheck, bool) {
-	if beadsDir == "" {
+func checkMigrationContentSkewEmbedded(ctx context.Context, issuegraphDir string) (DoctorCheck, bool) {
+	if issuegraphDir == "" {
 		return DoctorCheck{}, false
 	}
-	dataDir := filepath.Join(beadsDir, "embeddeddolt")
+	dataDir := filepath.Join(issuegraphDir, "embeddeddolt")
 	if _, err := os.Stat(dataDir); err != nil {
 		return DoctorCheck{}, false
 	}
 	database := configfile.DefaultDoltDatabase
-	if cfg, err := configfile.Load(beadsDir); err == nil && cfg != nil {
+	if cfg, err := configfile.Load(issuegraphDir); err == nil && cfg != nil {
 		database = cfg.GetDoltDatabase()
 	}
 	db, cleanup, err := embeddeddolt.OpenSQL(ctx, dataDir, database, "")
@@ -65,7 +65,7 @@ func checkMigrationContentSkewEmbedded(ctx context.Context, beadsDir string) (Do
 			Name:     migrationContentSkewCheckName,
 			Status:   StatusWarning,
 			Message:  fmt.Sprintf("Could not check migration content skew (open embedded database): %v", err),
-			Detail:   "The skew check failed to run; this does not mean skew exists. Re-run `bd doctor` and report the error if it persists.",
+			Detail:   "The skew check failed to run; this does not mean skew exists. Re-run `issuegraph doctor` and report the error if it persists.",
 			Category: CategoryData,
 		}, true
 	}
@@ -89,7 +89,7 @@ func checkMigrationContentSkew(ctx context.Context, db *sql.DB, remote string) D
 			Name:     migrationContentSkewCheckName,
 			Status:   StatusWarning,
 			Message:  fmt.Sprintf("Could not check migration content skew (%s): %v", stage, err),
-			Detail:   "The skew check failed to run; this does not mean skew exists. Re-run `bd doctor` and report the error if it persists.",
+			Detail:   "The skew check failed to run; this does not mean skew exists. Re-run `issuegraph doctor` and report the error if it persists.",
 			Category: CategoryData,
 		}
 	}
@@ -155,8 +155,8 @@ func checkMigrationContentSkew(ctx context.Context, db *sql.DB, remote string) D
 		Name:     migrationContentSkewCheckName,
 		Status:   StatusWarning,
 		Message:  fmt.Sprintf("This database and remote %q applied different content for migration(s) %s", remote, strings.Join(versions, ", ")),
-		Detail:   "Two clones ran different migration content for the same version number — a silent schema fork (gastownhall/beads#4259). `bd dolt pull` may fail to merge cryptically.",
-		Fix:      "Upgrade every clone to a bd version that carries the schema-convergence migration. If a merge already fails, make one clone canonical and re-bootstrap the others from the remote.",
+		Detail:   "Two clones ran different migration content for the same version number — a silent schema fork (borg0ai/dx-issuegraph#4259). `issuegraph dolt pull` may fail to merge cryptically.",
+		Fix:      "Upgrade every clone to a issuegraph version that carries the schema-convergence migration. If a merge already fails, make one clone canonical and re-bootstrap the others from the remote.",
 		Category: CategoryData,
 	}
 }

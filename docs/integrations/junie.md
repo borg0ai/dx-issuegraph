@@ -46,15 +46,15 @@ Contains workflow instructions that Junie reads automatically:
 `issuegraph setup junie` currently writes an MCP config that invokes `issuegraph mcp`, a
 command that does not exist in current issuegraph builds — that config will not
 start a server. Until the recipe is fixed, point Junie at the standalone
-`beads-mcp` server instead:
+`issuegraph-mcp` server instead:
 </Warning>
 
 ```json
 {
   "mcpServers": {
-    "beads": {
+    "issuegraph": {
       "command": "uvx",
-      "args": ["beads-mcp"]
+      "args": ["issuegraph-mcp"]
     }
   }
 }
@@ -78,7 +78,7 @@ issuegraph create "Fix authentication bug" \
 # Link discovered issues
 issuegraph create "Found SQL injection" \
   --description="User input not sanitized in query builder" \
-  --deps discovered-from:bd-42 --json
+  --deps discovered-from:issuegraph-42 --json
 ```
 
 ### Working on Issues
@@ -88,10 +88,10 @@ issuegraph create "Found SQL injection" \
 issuegraph ready --json
 
 # Start work
-issuegraph update bd-42 --claim --json
+issuegraph update issuegraph-42 --claim --json
 
 # Complete work
-issuegraph close bd-42 --reason "Fixed in commit abc123" --json
+issuegraph close issuegraph-42 --reason "Fixed in commit abc123" --json
 ```
 
 ### Querying
@@ -101,7 +101,7 @@ issuegraph close bd-42 --reason "Fixed in commit abc123" --json
 issuegraph list --status open --json
 
 # Show issue details
-issuegraph show bd-42 --json
+issuegraph show issuegraph-42 --json
 
 # Check blocked issues
 issuegraph blocked --json
@@ -121,7 +121,7 @@ issuegraph dolt push
 ```bash
 issuegraph list --json          # Parse programmatically
 issuegraph create "Task" --json # Get issue ID from output
-issuegraph show bd-42 --json    # Structured data
+issuegraph show issuegraph-42 --json    # Structured data
 ```
 
 ### Always Include Descriptions
@@ -141,7 +141,7 @@ issuegraph create "Fix auth bug" -t bug -p 1 --json
 ```bash
 # When you discover issues during work
 issuegraph create "Found related bug" \
-  --deps discovered-from:bd-current --json
+  --deps discovered-from:issuegraph-current --json
 ```
 
 ### Push Before Session End
@@ -166,11 +166,11 @@ issuegraph setup junie
 ### MCP tools not available
 
 ```bash
-# Verify MCP config exists and points at the beads-mcp server
+# Verify MCP config exists and points at the issuegraph-mcp server
 cat .junie/mcp/mcp.json
 
 # Verify the server package is installed
-pip show beads-mcp
+pip show issuegraph-mcp
 ```
 
 ### Changes not syncing

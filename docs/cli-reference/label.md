@@ -1,54 +1,54 @@
 ---
-title: "bd label"
+title: "issuegraph label"
 description: "Manage issue labels"
 ---
 
 {/* AUTO-GENERATED: do not edit manually */}
 
-Generated from `bd help --doc label`.
+Generated from `issuegraph help --doc label`.
 
 Manage issue labels
 
 ```
-bd label [flags]
+issuegraph label [flags]
 ```
 
-## bd label add
+## issuegraph label add
 
 Add a label to one or more issues
 
 ```
-bd label add [issue-id...] [label] [flags]
+issuegraph label add [issue-id...] [label] [flags]
 ```
 
-## bd label list
+## issuegraph label list
 
 List labels for an issue
 
 ```
-bd label list [issue-id] [flags]
+issuegraph label list [issue-id] [flags]
 ```
 
-## bd label list-all
+## issuegraph label list-all
 
 List all unique labels in the database
 
 ```
-bd label list-all [flags]
+issuegraph label list-all [flags]
 ```
 
-## bd label propagate
+## issuegraph label propagate
 
 Push a label from a parent down to all direct children that don't already have it. Useful for applying branch: labels across an epic's subtasks.
 
 ```
-bd label propagate [parent-id] [label] [flags]
+issuegraph label propagate [parent-id] [label] [flags]
 ```
 
-## bd label remove
+## issuegraph label remove
 
 Remove a label from one or more issues
 
 ```
-bd label remove [issue-id...] [label] [flags]
+issuegraph label remove [issue-id...] [label] [flags]
 ```

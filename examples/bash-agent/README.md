@@ -14,7 +14,7 @@ A bash script demonstrating how an AI agent can use issuegraph to manage tasks a
 ## Prerequisites
 
 - bash 4.0+
-- issuegraph installed: `curl -fsSL https://raw.githubusercontent.com/gastownhall/beads/main/scripts/install.sh | bash`
+- issuegraph installed: `curl -fsSL https://raw.githubusercontent.com/borg0ai/dx-issuegraph/main/scripts/install.sh | bash`
 - jq for JSON parsing: `brew install jq` (macOS) or `apt install jq` (Linux)
 - An issuegraph database initialized: `issuegraph init`
 
@@ -58,15 +58,15 @@ Open: 5  In Progress: 0  Closed: 2
   Iteration 1/10
 ═══════════════════════════════════════════════════
 ℹ Looking for ready work...
-ℹ Claiming task: bd-3
+ℹ Claiming task: issuegraph-3
 ✓ Task claimed
-ℹ Working on: Fix authentication bug (bd-3)
+ℹ Working on: Fix authentication bug (issuegraph-3)
   Priority: 1
 ⚠ Discovered issue while working!
-✓ Created issue: bd-8
-✓ Linked bd-8 ← discovered-from ← bd-3
-ℹ Completing task: bd-3
-✓ Task completed: bd-3
+✓ Created issue: issuegraph-8
+✓ Linked issuegraph-8 ← discovered-from ← issuegraph-3
+ℹ Completing task: issuegraph-3
+✓ Task completed: issuegraph-3
 ```
 
 ## Use Cases

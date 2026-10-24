@@ -1,4 +1,4 @@
-// Tests for doctor's mutation gate (#6028): `bd doctor --fix` / `--clean` must
+// Tests for doctor's mutation gate (#6028): `issuegraph doctor --fix` / `--clean` must
 // refuse to run under strict --readonly, exactly like the ~120 write commands
 // that call CheckReadonly at the top of their RunE. Doctor never made that call
 // — it opts out of the root PersistentPreRunE store init via
@@ -9,7 +9,7 @@
 // beside the rest of the freeze suite; both halves share the helpers below and
 // the hermetic subprocess harness declared there.
 //
-// This file MUST NOT carry a cgo build tag: it drives a bd binary built with
+// This file MUST NOT carry a cgo build tag: it drives a issuegraph binary built with
 // the gms_pure_go tag via subprocess, and asserts only on files and output.
 
 package main
@@ -50,7 +50,7 @@ func doctorWorkspaceFingerprint(t *testing.T, dir string) map[string][]byte {
 	t.Helper()
 	fingerprint := make(map[string][]byte)
 	for _, name := range []string{localVersionFile, "metadata.json"} {
-		path := filepath.Join(dir, ".beads", name)
+		path := filepath.Join(dir, ".issuegraph", name)
 		data, err := os.ReadFile(path)
 		if err != nil {
 			if !os.IsNotExist(err) {
@@ -74,11 +74,11 @@ func assertDoctorWorkspaceUnchanged(t *testing.T, dir string, before map[string]
 	for name, want := range before {
 		got, ok := after[name]
 		if !ok {
-			t.Errorf(".beads/%s was deleted by a refused doctor run", name)
+			t.Errorf(".issuegraph/%s was deleted by a refused doctor run", name)
 			continue
 		}
 		if string(got) != string(want) {
-			t.Errorf(".beads/%s was rewritten by a refused doctor run:\nbefore:\n%s\nafter:\n%s", name, want, got)
+			t.Errorf(".issuegraph/%s was rewritten by a refused doctor run:\nbefore:\n%s\nafter:\n%s", name, want, got)
 		}
 	}
 }
@@ -101,13 +101,13 @@ func assertDoctorRefusalIsClean(t *testing.T, stdout string) {
 // One workspace serves every row: a refused run must leave it untouched, so a
 // row that leaks a mutation is caught by the next row's fingerprint too.
 func TestDoctorMutationBlockedInReadonlyMode(t *testing.T) {
-	bd, dir := setupMigrationFreezeWorkspace(t)
+	issuegraph, dir := setupMigrationFreezeWorkspace(t)
 	before := doctorWorkspaceFingerprint(t, dir)
 
 	for _, tt := range doctorMutationSurfaces() {
 		t.Run(tt.name, func(t *testing.T) {
 			args := append(append([]string{}, tt.args...), "--readonly")
-			stdout, stderr, code := runBDMigrationFreeze(t, bd, dir, args...)
+			stdout, stderr, code := runIssueGraphMigrationFreeze(t, issuegraph, dir, args...)
 
 			if code != 1 {
 				t.Fatalf("exit code = %d, want 1\nstdout:\n%s\nstderr:\n%s", code, stdout, stderr)
@@ -126,7 +126,7 @@ func TestDoctorMutationBlockedInReadonlyMode(t *testing.T) {
 // the gate keys on --fix/--clean alone, so every diagnosis mode still runs
 // under --readonly. Diagnosing a sandboxed workspace is the whole point.
 func TestDoctorDiagnosisWorksInReadonlyMode(t *testing.T) {
-	bd, dir := setupMigrationFreezeWorkspace(t)
+	issuegraph, dir := setupMigrationFreezeWorkspace(t)
 
 	for _, args := range [][]string{
 		{"doctor"},
@@ -135,9 +135,9 @@ func TestDoctorDiagnosisWorksInReadonlyMode(t *testing.T) {
 		{"doctor", "--check=artifacts"},
 	} {
 		t.Run(strings.Join(args, "_"), func(t *testing.T) {
-			stdout, stderr, _ := runBDMigrationFreeze(t, bd, dir, append(args, "--readonly")...)
+			stdout, stderr, _ := runIssueGraphMigrationFreeze(t, issuegraph, dir, append(args, "--readonly")...)
 			if strings.Contains(stderr, "not allowed in read-only mode") {
-				t.Errorf("bd %v was refused under --readonly but mutates nothing:\nstderr:\n%s\nstdout:\n%s", args, stderr, stdout)
+				t.Errorf("issuegraph %v was refused under --readonly but mutates nothing:\nstderr:\n%s\nstdout:\n%s", args, stderr, stdout)
 			}
 		})
 	}
@@ -145,16 +145,16 @@ func TestDoctorDiagnosisWorksInReadonlyMode(t *testing.T) {
 
 // TestDoctorMaintenanceSkippedInReadonlyMode is the readonly twin of
 // TestDoctorMaintenanceSkippedDuringMigrationFreeze — see that test for why
-// plain `bd doctor` had hidden writes at all, and for the shared-server setup.
+// plain `issuegraph doctor` had hidden writes at all, and for the shared-server setup.
 func TestDoctorMaintenanceSkippedInReadonlyMode(t *testing.T) {
-	bd, dir := setupMigrationFreezeWorkspace(t)
+	issuegraph, dir := setupMigrationFreezeWorkspace(t)
 	seedStaleLocalVersion(t, dir)
 
-	stdout, stderr, _ := runBDMigrationFreezeWithEnv(t, bd, dir, doctorMaintenanceEnv(), "doctor", "--readonly")
+	stdout, stderr, _ := runIssueGraphMigrationFreezeWithEnv(t, issuegraph, dir, doctorMaintenanceEnv(), "doctor", "--readonly")
 
 	assertDoctorReportedStaleVersionWithoutHealing(t, dir, stdout, stderr)
 	if strings.Contains(stderr, "not allowed in read-only mode") {
-		t.Errorf("plain 'bd doctor --readonly' must diagnose, not refuse:\nstderr:\n%s", stderr)
+		t.Errorf("plain 'issuegraph doctor --readonly' must diagnose, not refuse:\nstderr:\n%s", stderr)
 	}
 }
 
@@ -163,16 +163,16 @@ func TestDoctorMaintenanceSkippedInReadonlyMode(t *testing.T) {
 // fix outcome itself is not this test's business — only that neither refusal
 // fires and neither exit path is the gate's.
 func TestDoctorMutationNotBlockedWithoutGates(t *testing.T) {
-	bd, dir := setupMigrationFreezeWorkspace(t)
+	issuegraph, dir := setupMigrationFreezeWorkspace(t)
 
 	for _, tt := range doctorMutationSurfaces() {
 		t.Run(tt.name, func(t *testing.T) {
-			stdout, stderr, code := runBDMigrationFreeze(t, bd, dir, tt.args...)
+			stdout, stderr, code := runIssueGraphMigrationFreeze(t, issuegraph, dir, tt.args...)
 			if code == ExitMigrationFrozen || strings.Contains(stderr, "frozen for migration") {
-				t.Errorf("bd %v hit the freeze gate with no marker present (exit %d):\nstderr:\n%s", tt.args, code, stderr)
+				t.Errorf("issuegraph %v hit the freeze gate with no marker present (exit %d):\nstderr:\n%s", tt.args, code, stderr)
 			}
 			if strings.Contains(stderr, "not allowed in read-only mode") {
-				t.Errorf("bd %v hit the readonly gate without --readonly (exit %d):\nstderr:\n%s", tt.args, code, stderr)
+				t.Errorf("issuegraph %v hit the readonly gate without --readonly (exit %d):\nstderr:\n%s", tt.args, code, stderr)
 			}
 			_ = stdout
 		})
@@ -180,13 +180,13 @@ func TestDoctorMutationNotBlockedWithoutGates(t *testing.T) {
 }
 
 // TestDoctorMaintenanceStillRunsWithoutGates is the companion control for the
-// diagnosis-path change: unfrozen and not read-only, plain `bd doctor` must
+// diagnosis-path change: unfrozen and not read-only, plain `issuegraph doctor` must
 // still reconcile a stale .local_version exactly as it did before #6028.
 func TestDoctorMaintenanceStillRunsWithoutGates(t *testing.T) {
-	bd, dir := setupMigrationFreezeWorkspace(t)
+	issuegraph, dir := setupMigrationFreezeWorkspace(t)
 	seedStaleLocalVersion(t, dir)
 
-	stdout, stderr, _ := runBDMigrationFreezeWithEnv(t, bd, dir, doctorMaintenanceEnv(), "doctor")
+	stdout, stderr, _ := runIssueGraphMigrationFreezeWithEnv(t, issuegraph, dir, doctorMaintenanceEnv(), "doctor")
 
 	if !strings.Contains(stderr, "auto-migrate:") {
 		t.Errorf("expected autoMigrateOnVersionBump to run (an 'auto-migrate:' debug line) with no gate active, got none:\nstderr:\n%s", stderr)
@@ -205,11 +205,11 @@ func TestDoctorMaintenanceStillRunsWithoutGates(t *testing.T) {
 // stops the run, but they carry different exit codes — 1 vs ExitMigrationFrozen
 // — so which one wins is observable, and the precedence has to be deliberate.
 func TestDoctorReadonlyWinsOverMigrationFreeze(t *testing.T) {
-	bd, dir := setupMigrationFreezeWorkspace(t)
+	issuegraph, dir := setupMigrationFreezeWorkspace(t)
 	writeFreezeMarker(t, dir, "migrator", "dolt v2 migration")
 	before := doctorWorkspaceFingerprint(t, dir)
 
-	stdout, stderr, code := runBDFrozen(t, bd, dir, "doctor", "--fix", "--yes", "--readonly")
+	stdout, stderr, code := runIssueGraphFrozen(t, issuegraph, dir, "doctor", "--fix", "--yes", "--readonly")
 
 	if code != 1 {
 		t.Fatalf("exit code = %d, want 1 (not %d — readonly is answered before the freeze)\nstdout:\n%s\nstderr:\n%s",

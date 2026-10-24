@@ -7,9 +7,9 @@ import (
 	"sort"
 	"strings"
 
-	"github.com/steveyegge/beads/internal/storage/dberrors"
-	"github.com/steveyegge/beads/internal/storage/sqlbuild"
-	"github.com/steveyegge/beads/internal/types"
+	"github.com/borg0ai/dx-issuegraph/internal/storage/dberrors"
+	"github.com/borg0ai/dx-issuegraph/internal/storage/sqlbuild"
+	"github.com/borg0ai/dx-issuegraph/internal/types"
 )
 
 // SearchIssuesInTx executes a filtered issue search within an existing
@@ -196,7 +196,7 @@ func searchInTx[T any](ctx context.Context, tx DBTX, query string, filter types.
 	// This is also a terminal return of the row set actually handed back to
 	// the caller, so — like the empty-wisps-table early return above — it
 	// must enforce the cap itself; skipping it here would let SkipWisps
-	// callers (e.g. bd list's default filter) silently bypass MaxRows.
+	// callers (e.g. issuegraph list's default filter) silently bypass MaxRows.
 	if filter.SkipWisps {
 		results = trimToSearchLimit(results, filter.Limit)
 		if err := EnforceMaxRowsCap(len(results), filter.MaxRows, filter.MaxRowsSource); err != nil {
@@ -206,11 +206,11 @@ func searchInTx[T any](ctx context.Context, tx DBTX, query string, filter types.
 	}
 
 	// When filter.Ephemeral is nil (search everything) or false (non-ephemeral
-	// only), also search the wisps table and merge results. NoHistory beads are
+	// only), also search the wisps table and merge results. NoHistory issuegraph are
 	// stored in the wisps table with ephemeral=0, so they must survive an
 	// Ephemeral=&false filter (GH#3649). The WHERE clause added by
 	// BuildIssueFilterClauses handles the per-row ephemeral column check, so
-	// querying wisps here with Ephemeral=&false returns only NoHistory beads
+	// querying wisps here with Ephemeral=&false returns only NoHistory issuegraph
 	// while correctly excluding true ephemeral wisps. (GH#3659)
 	if filter.Ephemeral == nil || !*filter.Ephemeral {
 		empty, probeErr := wispsTableEmptyOrMissingInTx(ctx, tx)

@@ -1,7 +1,7 @@
 [
  {
   "name": "assign_notfound_json_respectjson",
-  "purpose": "bd assign <missing> <user> --json emits 'issue <id> not found' as stdout JSON envelope (RespectJSON), exit 1.",
+  "purpose": "issuegraph assign <missing> <user> --json emits 'issue <id> not found' as stdout JSON envelope (RespectJSON), exit 1.",
   "prefix": "nf",
   "steps": [
    [
@@ -23,16 +23,16 @@
  },
  {
   "name": "blocked_env_var_rejected",
-  "purpose": "Setting BD_BACKEND (a blocked env var) causes any command to fail with the data-fragmentation guidance, exit 1.",
+  "purpose": "Setting ISSUEGRAPH_BACKEND (a blocked env var) causes any command to fail with the data-fragmentation guidance, exit 1.",
   "prefix": "env",
   "steps": [
    [
     "version"
    ]
   ],
-  "pins": "main.go checkBlockedEnvVars (blockedEnvVars=[BD_BACKEND, BD_DATABASE_BACKEND]) -> HandleError('%s env var is not supported and has been removed to prevent data fragmentation.\\nThe storage backend is set in .beads/metadata.json. To change it, use: bd migrate dolt'). Runs in PersistentPreRunE before noDbCommands early-return. exit 1.",
+  "pins": "main.go checkBlockedEnvVars (blockedEnvVars=[ISSUEGRAPH_BACKEND, ISSUEGRAPH_DATABASE_BACKEND]) -> HandleError('%s env var is not supported and has been removed to prevent data fragmentation.\\nThe storage backend is set in .issuegraph/metadata.json. To change it, use: issuegraph migrate dolt'). Runs in PersistentPreRunE before noDbCommands early-return. exit 1.",
   "deterministic": true,
-  "notes": "Harness must set env BD_BACKEND=anything for this step. Even 'version' (a noDbCommand) trips it because the check precedes the skip. Pin stream=stderr, exit 1. GOLDEN DELETED 2026-07-03 (W1.4): capture requires per-step env (BD_BACKEND) the harness does not support; the captured bytes were actually the plain bd version banner (identity-bearing, wrong pin). Now no-golden (skipped); it was already out-of-scope (step lacks --json). Re-capture only after the harness grows env support. See docs/ORACLE_PROVENANCE.md."
+  "notes": "Harness must set env ISSUEGRAPH_BACKEND=anything for this step. Even 'version' (a noDbCommand) trips it because the check precedes the skip. Pin stream=stderr, exit 1. GOLDEN DELETED 2026-07-03 (W1.4): capture requires per-step env (ISSUEGRAPH_BACKEND) the harness does not support; the captured bytes were actually the plain issuegraph version banner (identity-bearing, wrong pin). Now no-golden (skipped); it was already out-of-scope (step lacks --json). Re-capture only after the harness grows env support. See docs/ORACLE_PROVENANCE.md."
  },
  {
   "name": "close_already_closed_idempotent",
@@ -363,7 +363,7 @@
  },
  {
   "name": "close_done_alias_desire_path",
-  "purpose": "'bd done <id> <message>' treats trailing positional as the close reason.",
+  "purpose": "'issuegraph done <id> <message>' treats trailing positional as the close reason.",
   "prefix": "cldn",
   "steps": [
    [
@@ -506,7 +506,7 @@
  },
  {
   "name": "close_no_id_no_lasttouched",
-  "purpose": "bd close with no args and no last-touched issue fails 'no issue ID provided and no last touched issue', exit 1.",
+  "purpose": "issuegraph close with no args and no last-touched issue fails 'no issue ID provided and no last touched issue', exit 1.",
   "prefix": "clt",
   "steps": [
    [
@@ -540,7 +540,7 @@
  },
  {
   "name": "close_notfound_json",
-  "purpose": "bd close <missing> --json emits the resolve error as a stdout JSON envelope (RespectJSON), exit 1.",
+  "purpose": "issuegraph close <missing> --json emits the resolve error as a stdout JSON envelope (RespectJSON), exit 1.",
   "prefix": "nf",
   "steps": [
    [
@@ -869,7 +869,7 @@
  },
  {
   "name": "config_get_missing_key_human",
-  "purpose": "bd config get <unset-db-key> prints '<key> (not set)' to stdout, exit 0 (not an error).",
+  "purpose": "issuegraph config get <unset-db-key> prints '<key> (not set)' to stdout, exit 0 (not an error).",
   "prefix": "cfg",
   "steps": [
    [
@@ -890,7 +890,7 @@
  },
  {
   "name": "config_get_missing_key_json",
-  "purpose": "bd config get <unset-key> --json returns {key, value:'', schema_version:1} on stdout, exit 0.",
+  "purpose": "issuegraph config get <unset-key> --json returns {key, value:'', schema_version:1} on stdout, exit 0.",
   "prefix": "cfg",
   "steps": [
    [
@@ -1057,13 +1057,13 @@
     "foo"
    ]
   ],
-  "pins": "config.go rejectProtectedConfigKey: prints 'Error: issue_prefix cannot be set via bd config set.' + 3 bullet lines to stderr, returns SilentExit() (exit 1, no second 'Error:' line). Both issue_prefix and issue-prefix forms.",
+  "pins": "config.go rejectProtectedConfigKey: prints 'Error: issue_prefix cannot be set via issuegraph config set.' + 3 bullet lines to stderr, returns SilentExit() (exit 1, no second 'Error:' line). Both issue_prefix and issue-prefix forms.",
   "deterministic": true,
   "notes": "SilentExit returns exit 1 but main() only prints err.Error() when SilenceErrors AND err is generic; here the message is pre-printed and SilentExit's exitError short-circuits, so no extra line. Add a second step ['config','set','issue-prefix','foo'] variant."
  },
  {
   "name": "config_set_role_invalid",
-  "purpose": "config set beads.role with a value outside {maintainer,contributor} fails 'invalid role ... (valid values: maintainer, contributor)' stderr exit 1.",
+  "purpose": "config set issuegraph.role with a value outside {maintainer,contributor} fails 'invalid role ... (valid values: maintainer, contributor)' stderr exit 1.",
   "prefix": "cfg",
   "steps": [
    [
@@ -1075,13 +1075,13 @@
    [
     "config",
     "set",
-    "beads.role",
+    "issuegraph.role",
     "wizard"
    ]
   ],
-  "pins": "config.go: key=='beads.role' validates against allowlist before git config write -> HandleError('invalid role %q (valid values: maintainer, contributor)').",
+  "pins": "config.go: key=='issuegraph.role' validates against allowlist before git config write -> HandleError('invalid role %q (valid values: maintainer, contributor)').",
   "deterministic": true,
-  "notes": "beads.role is git-config backed; valid set would shell out to git. The invalid path is pure validation."
+  "notes": "issuegraph.role is git-config backed; valid set would shell out to git. The invalid path is pure validation."
  },
  {
   "name": "config_set_status_custom_invalid",
@@ -1123,7 +1123,7 @@
     "x"
    ]
   ],
-  "pins": "config.go: !isRecognizedConfigKey -> Warning + suggestConfigKey (levenshtein) -> 'Did you mean \"jira.url\"?' then 'Run bd config --help'. Proceeds to write. Exit 0, 'Set jra.url = x' on stdout.",
+  "pins": "config.go: !isRecognizedConfigKey -> Warning + suggestConfigKey (levenshtein) -> 'Did you mean \"jira.url\"?' then 'Run issuegraph config --help'. Proceeds to write. Exit 0, 'Set jra.url = x' on stdout.",
   "deterministic": true,
   "notes": "Pins suggestion engine (jra->jira within edit distance 3). A no-suggestion variant (e.g. 'zzz.foo') yields the 'Use custom.* for user-defined keys' warning."
  },
@@ -1525,7 +1525,7 @@
  },
  {
   "name": "count_default_durable_tier_only",
-  "purpose": "Pin that default `bd count` counts the DURABLE tier only (SkipWisps default), excluding both wisp tiers.",
+  "purpose": "Pin that default `issuegraph count` counts the DURABLE tier only (SkipWisps default), excluding both wisp tiers.",
   "prefix": "st",
   "steps": [
    [
@@ -1570,7 +1570,7 @@
  },
  {
   "name": "count_default_empty",
-  "purpose": "bd count --json on an empty DB returns {\"count\":0}.",
+  "purpose": "issuegraph count --json on an empty DB returns {\"count\":0}.",
   "prefix": "c",
   "steps": [
    [
@@ -1583,7 +1583,7 @@
  },
  {
   "name": "count_default_plain",
-  "purpose": "bd count (no json) prints the bare integer.",
+  "purpose": "issuegraph count (no json) prints the bare integer.",
   "prefix": "c",
   "steps": [
    [
@@ -1605,7 +1605,7 @@
  },
  {
   "name": "count_empty_result_json",
-  "purpose": "bd count with a filter matching nothing returns {count:0, schema_version:1} on stdout, exit 0.",
+  "purpose": "issuegraph count with a filter matching nothing returns {count:0, schema_version:1} on stdout, exit 0.",
   "prefix": "cnt",
   "steps": [
    [
@@ -1814,7 +1814,7 @@
  },
  {
   "name": "count_include_infra_merges_wisps_tier",
-  "purpose": "Pin that `bd count --include-infra` merges the wisps tier so count = DURABLE + NO_HISTORY + EPHEMERAL, matching list --include-infra --all cardinality.",
+  "purpose": "Pin that `issuegraph count --include-infra` merges the wisps tier so count = DURABLE + NO_HISTORY + EPHEMERAL, matching list --include-infra --all cardinality.",
   "prefix": "st",
   "steps": [
    [
@@ -1903,7 +1903,7 @@
  },
  {
   "name": "count_multiple_by_flags_error",
-  "purpose": "bd count with two --by-* flags fails 'only one --by-* flag can be specified', exit 1.",
+  "purpose": "issuegraph count with two --by-* flags fails 'only one --by-* flag can be specified', exit 1.",
   "prefix": "cnt",
   "steps": [
    [
@@ -2204,7 +2204,7 @@
  },
  {
   "name": "count_total_json",
-  "purpose": "bd count --json counts all durable issues.",
+  "purpose": "issuegraph count --json counts all durable issues.",
   "prefix": "c",
   "steps": [
    [
@@ -2385,7 +2385,7 @@
  },
  {
   "name": "create_defer_past_keeps_open_status_all_tiers_ready",
-  "purpose": "Pin that a past --defer leaves status=open (not deferred) so even an ephemeral bead is ready under --include-ephemeral, and a no_history one is ready by default.",
+  "purpose": "Pin that a past --defer leaves status=open (not deferred) so even an ephemeral issue is ready under --include-ephemeral, and a no_history one is ready by default.",
   "prefix": "st",
   "steps": [
    [
@@ -2892,12 +2892,12 @@
  },
  {
   "name": "create_ephemeral_flag_json_shows_ephemeral_true",
-  "purpose": "Pin that --ephemeral sets ephemeral:true in create JSON and routes the bead to the wisps tier.",
+  "purpose": "Pin that --ephemeral sets ephemeral:true in create JSON and routes the issue to the wisps tier.",
   "prefix": "st",
   "steps": [
    [
     "create",
-    "Ephemeral bead",
+    "Ephemeral issue",
     "--id",
     "st-eph",
     "--force",
@@ -3310,7 +3310,7 @@
  },
  {
   "name": "create_invalid_priority_stderr",
-  "purpose": "bd create -p high fails 'Error: invalid priority \"high\" (expected 0-4 or P0-P4, not words like high/medium/low)' on stderr, exit 1.",
+  "purpose": "issuegraph create -p high fails 'Error: invalid priority \"high\" (expected 0-4 or P0-P4, not words like high/medium/low)' on stderr, exit 1.",
   "prefix": "val",
   "steps": [
    [
@@ -3330,7 +3330,7 @@
     "--json"
    ]
   ],
-  "pins": "create.go: validation.ValidatePriority -> bead.go line 50 exact string. HandleError -> stderr. exit 1.",
+  "pins": "create.go: validation.ValidatePriority -> issue.go line 50 exact string. HandleError -> stderr. exit 1.",
   "deterministic": true,
   "notes": "Confirmed exact message. Also covers that priority parse happens before any DB write."
  },
@@ -3355,7 +3355,7 @@
  },
  {
   "name": "create_invalid_type_stderr",
-  "purpose": "bd create -t bogus --json fails 'Error: validation failed for issue <id>: invalid issue type: bogus' on STDERR (plain HandleError ignores --json), exit 1.",
+  "purpose": "issuegraph create -t bogus --json fails 'Error: validation failed for issue <id>: invalid issue type: bogus' on STDERR (plain HandleError ignores --json), exit 1.",
   "prefix": "val",
   "steps": [
    [
@@ -3375,7 +3375,7 @@
     "--json"
    ]
   ],
-  "pins": "create.go validation via validation.ValidateBead -> 'invalid issue type: %s'; surfaced through HandleError('%v') -> stderr. validation/bead.go line 38. exit 1. Confirmed empirically.",
+  "pins": "create.go validation via validation.ValidateIssue -> 'invalid issue type: %s'; surfaced through HandleError('%v') -> stderr. validation/issue.go line 38. exit 1. Confirmed empirically.",
   "deterministic": true,
   "notes": "Tripwire: create validation errors go to stderr even under --json. Title/--id deterministic via --force."
  },
@@ -3544,7 +3544,7 @@
  },
  {
   "name": "create_mutually_exclusive_flags",
-  "purpose": "bd create with --file and --graph together fails 'Error: cannot specify both --file and --graph' stderr exit 1.",
+  "purpose": "issuegraph create with --file and --graph together fails 'Error: cannot specify both --file and --graph' stderr exit 1.",
   "prefix": "val",
   "steps": [
    [
@@ -3590,7 +3590,7 @@
   "steps": [
    [
     "create",
-    "No-history bead",
+    "No-history issue",
     "--id",
     "st-nh",
     "--force",
@@ -3923,7 +3923,7 @@
  },
  {
   "name": "create_title_looks_like_flag",
-  "purpose": "bd create -- a title that starts with '-' triggers the 'looks like a flag' guidance error, stderr exit 1.",
+  "purpose": "issuegraph create -- a title that starts with '-' triggers the 'looks like a flag' guidance error, stderr exit 1.",
   "prefix": "val",
   "steps": [
    [
@@ -3960,7 +3960,7 @@
  },
  {
   "name": "create_title_required",
-  "purpose": "bd create with no title and no --file fails 'Error: title required (or use --file to create from markdown)' stderr exit 1.",
+  "purpose": "issuegraph create with no title and no --file fails 'Error: title required (or use --file to create from markdown)' stderr exit 1.",
   "prefix": "val",
   "steps": [
    [
@@ -4520,7 +4520,7 @@
  },
  {
   "name": "delete_notfound_human",
-  "purpose": "bd delete <missing> prints 'Error: issue <id> not found' to stderr, exit 1.",
+  "purpose": "issuegraph delete <missing> prints 'Error: issue <id> not found' to stderr, exit 1.",
   "prefix": "nf",
   "steps": [
    [
@@ -4563,7 +4563,7 @@
     "--json"
    ]
   ],
-  "pins": "delete.go:137-171 prints '⚠️  DELETE PREVIEW', 'Issue to delete:', and 'bd delete del-1 --force' hint to stdout; returns nil (no delete); show still finds issue. Note: single-delete preview ignores --json (always plain text).",
+  "pins": "delete.go:137-171 prints '⚠️  DELETE PREVIEW', 'Issue to delete:', and 'issuegraph delete del-1 --force' hint to stdout; returns nil (no delete); show still finds issue. Note: single-delete preview ignores --json (always plain text).",
   "deterministic": true
  },
  {
@@ -4660,7 +4660,7 @@
  },
  {
   "name": "dep_add_argcount_custom",
-  "purpose": "bd dep add with one positional arg yields the CUSTOM arg error 'requires 2 arg(s), only received 1 (or use --blocked-by/--depends-on flag)' stderr exit 1.",
+  "purpose": "issuegraph dep add with one positional arg yields the CUSTOM arg error 'requires 2 arg(s), only received 1 (or use --blocked-by/--depends-on flag)' stderr exit 1.",
   "prefix": "dep",
   "steps": [
    [
@@ -6017,7 +6017,7 @@
  },
  {
   "name": "dep_bare_no_args_help",
-  "purpose": "Bare 'bd dep' with no args and no --blocks prints help and exits 0.",
+  "purpose": "Bare 'issuegraph dep' with no args and no --blocks prints help and exits 0.",
   "prefix": "dep",
   "steps": [
    [
@@ -6181,7 +6181,7 @@
  },
  {
   "name": "dep_invalid_type",
-  "purpose": "bd dep add with an unknown dependency --type fails with the valid-types list, exit 1.",
+  "purpose": "issuegraph dep add with an unknown dependency --type fails with the valid-types list, exit 1.",
   "prefix": "dep",
   "steps": [
    [
@@ -6999,7 +6999,7 @@
  },
  {
   "name": "dep_self_dependency_json",
-  "purpose": "bd dep add <id> <id> --json fails 'cannot add self-dependency: <id> cannot depend on itself' as stdout JSON envelope, exit 1.",
+  "purpose": "issuegraph dep add <id> <id> --json fails 'cannot add self-dependency: <id> cannot depend on itself' as stdout JSON envelope, exit 1.",
   "prefix": "dep",
   "steps": [
    [
@@ -7055,7 +7055,7 @@
  },
  {
   "name": "dep_top_level_blocks_shorthand",
-  "purpose": "Top-level 'bd dep <blocker> --blocks <blocked>' shorthand: blocker blocks blocked. Pin its DISTINCT JSON shape (blocker_id/blocked_id, not issue_id/depends_on_id).",
+  "purpose": "Top-level 'issuegraph dep <blocker> --blocks <blocked>' shorthand: blocker blocks blocked. Pin its DISTINCT JSON shape (blocker_id/blocked_id, not issue_id/depends_on_id).",
   "prefix": "dep",
   "steps": [
    [
@@ -7479,7 +7479,7 @@
  },
  {
   "name": "ephemeral_deferred_status_and_ready_hidden",
-  "purpose": "Pin that --defer on an ephemeral create yields status=deferred AND the bead is hidden from default ready (both by defer and by ephemeral).",
+  "purpose": "Pin that --defer on an ephemeral create yields status=deferred AND the issue is hidden from default ready (both by defer and by ephemeral).",
   "prefix": "st",
   "steps": [
    [
@@ -7510,7 +7510,7 @@
  },
  {
   "name": "format_json_alias",
-  "purpose": "bd version --format json behaves identically to --json (the hidden --format alias), exit 0.",
+  "purpose": "issuegraph version --format json behaves identically to --json (the hidden --format alias), exit 0.",
   "prefix": "fmt",
   "steps": [
    [
@@ -7525,7 +7525,7 @@
  },
  {
   "name": "global_requires_shared_server",
-  "purpose": "bd --global <cmd> in non-shared-server mode fails '--global requires shared-server mode (...)', exit 1.",
+  "purpose": "issuegraph --global <cmd> in non-shared-server mode fails '--global requires shared-server mode (...)', exit 1.",
   "prefix": "glb",
   "steps": [
    [
@@ -7540,13 +7540,13 @@
     "--json"
    ]
   ],
-  "pins": "main.go: globalFlag && !IsSharedServerMode() -> HandleError('--global requires shared-server mode (set BEADS_DOLT_SHARED_SERVER=1 or dolt.shared-server: true in config.yaml)'). exit 1. Plain HandleError -> stderr even with --json.",
+  "pins": "main.go: globalFlag && !IsSharedServerMode() -> HandleError('--global requires shared-server mode (set ISSUEGRAPH_DOLT_SHARED_SERVER=1 or dolt.shared-server: true in config.yaml)'). exit 1. Plain HandleError -> stderr even with --json.",
   "deterministic": true,
   "notes": "Embedded init is not shared-server, so --global always trips here. stderr exit 1."
  },
  {
   "name": "init_already_initialized",
-  "purpose": "Running bd init twice fails: second init aborts with the 'workspace is already initialized' guidance, exit 1, no data destroyed.",
+  "purpose": "Running issuegraph init twice fails: second init aborts with the 'workspace is already initialized' guidance, exit 1, no data destroyed.",
   "prefix": "ini",
   "steps": [
    [
@@ -7562,13 +7562,13 @@
     "--non-interactive"
    ]
   ],
-  "pins": "init.go checkExistingBeadsData -> alreadyInitialized() returns errWorkspaceAlreadyInitialized; without --init-if-missing it is fatal via 'fmt.Errorf(%v)' -> exit 1. Message includes 'This workspace is already initialized.' (embedded-mode variant lists the dolt path + reinit-local guidance).",
+  "pins": "init.go checkExistingIssueGraphData -> alreadyInitialized() returns errWorkspaceAlreadyInitialized; without --init-if-missing it is fatal via 'fmt.Errorf(%v)' -> exit 1. Message includes 'This workspace is already initialized.' (embedded-mode variant lists the dolt path + reinit-local guidance).",
   "deterministic": false,
   "notes": "Message embeds the absolute embeddeddolt path (workspace-specific) and ui.RenderWarn ANSI; harness must normalize the path and strip color. Pin the stable substring 'This workspace is already initialized.' and exit 1."
  },
  {
   "name": "init_backend_sqlite_removed",
-  "purpose": "bd init --backend=sqlite prints the 'SQLite backend has been removed' deprecation block to stderr and fails '--backend=sqlite is no longer supported', exit 1.",
+  "purpose": "issuegraph init --backend=sqlite prints the 'SQLite backend has been removed' deprecation block to stderr and fails '--backend=sqlite is no longer supported', exit 1.",
   "prefix": "ini",
   "steps": [
    [
@@ -7586,7 +7586,7 @@
  },
  {
   "name": "init_if_missing_idempotent",
-  "purpose": "bd init --init-if-missing on an already-initialized workspace SKIPS and exits 0 with 'Skipping init: workspace already initialized.' on stderr.",
+  "purpose": "issuegraph init --init-if-missing on an already-initialized workspace SKIPS and exits 0 with 'Skipping init: workspace already initialized.' on stderr.",
   "prefix": "ini",
   "steps": [
    [
@@ -7609,7 +7609,7 @@
  },
  {
   "name": "init_if_missing_prefix_mismatch",
-  "purpose": "bd init --init-if-missing with a DIFFERENT --prefix than the existing workspace fails 'workspace already initialized as database ... but --prefix ... was requested', exit 1.",
+  "purpose": "issuegraph init --init-if-missing with a DIFFERENT --prefix than the existing workspace fails 'workspace already initialized as database ... but --prefix ... was requested', exit 1.",
   "prefix": "ini",
   "steps": [
    [
@@ -7628,11 +7628,11 @@
   ],
   "pins": "init.go: initIfMissingPrefixMismatch -> fmt.Errorf('workspace already initialized as database %q, but --prefix %q was requested...'). Guards against silently reusing a mismatched workspace. exit 1.",
   "deterministic": false,
-  "notes": "Message embeds the existing database name (derived from first prefix, deterministic) — should be byte-stable if prefix is fixed. Verify db-name derivation matches between bd and the candidate."
+  "notes": "Message embeds the existing database name (derived from first prefix, deterministic) — should be byte-stable if prefix is fixed. Verify db-name derivation matches between issuegraph and the candidate."
  },
  {
   "name": "init_invalid_database_name",
-  "purpose": "bd init --database with an invalid identifier fails 'invalid database name \"<x>\": ...', exit 1.",
+  "purpose": "issuegraph init --database with an invalid identifier fails 'invalid database name \"<x>\": ...', exit 1.",
   "prefix": "ini",
   "steps": [
    [
@@ -7650,7 +7650,7 @@
  },
  {
   "name": "init_invalid_role",
-  "purpose": "bd init --role bogus fails 'invalid --role \"bogus\": must be \"maintainer\" or \"contributor\"', exit 1.",
+  "purpose": "issuegraph init --role bogus fails 'invalid --role \"bogus\": must be \"maintainer\" or \"contributor\"', exit 1.",
   "prefix": "ini",
   "steps": [
    [
@@ -7668,7 +7668,7 @@
  },
  {
   "name": "init_json_success_shape",
-  "purpose": "bd init --json --non-interactive emits a machine-readable success object on stdout (or, if init does not support --json, falls back to human) — establish which.",
+  "purpose": "issuegraph init --json --non-interactive emits a machine-readable success object on stdout (or, if init does not support --json, falls back to human) — establish which.",
   "prefix": "ini",
   "steps": [
    [
@@ -7685,7 +7685,7 @@
  },
  {
   "name": "init_noninteractive_rejects_contributor",
-  "purpose": "bd init --non-interactive --contributor fails '--contributor requires interactive prompts and cannot be used with --non-interactive', exit 1.",
+  "purpose": "issuegraph init --non-interactive --contributor fails '--contributor requires interactive prompts and cannot be used with --non-interactive', exit 1.",
   "prefix": "ini",
   "steps": [
    [
@@ -7702,7 +7702,7 @@
  },
  {
   "name": "init_proxied_server_not_implemented",
-  "purpose": "bd init --proxied-server fails '--proxied-server is not yet implemented', exit 1.",
+  "purpose": "issuegraph init --proxied-server fails '--proxied-server is not yet implemented', exit 1.",
   "prefix": "ini",
   "steps": [
    [
@@ -7719,7 +7719,7 @@
  },
  {
   "name": "init_unknown_backend",
-  "purpose": "bd init --backend=foo fails 'unknown backend \"foo\": only \"dolt\" is supported', exit 1.",
+  "purpose": "issuegraph init --backend=foo fails 'unknown backend \"foo\": only \"dolt\" is supported', exit 1.",
   "prefix": "ini",
   "steps": [
    [
@@ -7737,7 +7737,7 @@
  },
  {
   "name": "json_envelope_tripwire_list",
-  "purpose": "A read command's --json output array is bare (flat) by default and wrapped in {schema_version,data:[...]} under BD_JSON_ENVELOPE=1.",
+  "purpose": "A read command's --json output array is bare (flat) by default and wrapped in {schema_version,data:[...]} under ISSUEGRAPH_JSON_ENVELOPE=1.",
   "prefix": "env",
   "steps": [
    [
@@ -7915,7 +7915,7 @@
  },
  {
   "name": "list_completely_empty_db",
-  "purpose": "`bd list --json` against a DB with no matching durable issues returns [] exit 0.",
+  "purpose": "`issuegraph list --json` against a DB with no matching durable issues returns [] exit 0.",
   "prefix": "ce",
   "steps": [
    [
@@ -8013,7 +8013,7 @@
  },
  {
   "name": "list_default_durable_only_excludes_both_wisp_tiers",
-  "purpose": "Pin that default `bd list` shows DURABLE ONLY and excludes BOTH no_history and ephemeral beads (SkipWisps default).",
+  "purpose": "Pin that default `issuegraph list` shows DURABLE ONLY and excludes BOTH no_history and ephemeral issuegraph (SkipWisps default).",
   "prefix": "st",
   "steps": [
    [
@@ -8058,7 +8058,7 @@
  },
  {
   "name": "list_default_excludes_closed",
-  "purpose": "Bare `bd list --json` returns only non-closed, non-pinned, durable issues; closed issue is hidden by default.",
+  "purpose": "Bare `issuegraph list --json` returns only non-closed, non-pinned, durable issues; closed issue is hidden by default.",
   "prefix": "li",
   "steps": [
    [
@@ -8595,7 +8595,7 @@
  },
  {
   "name": "list_include_infra_all_merges_full_wisps_tier",
-  "purpose": "Pin that `bd list --include-infra --all` merges the wisps tier so the SET becomes DURABLE + NO_HISTORY + EPHEMERAL.",
+  "purpose": "Pin that `issuegraph list --include-infra --all` merges the wisps tier so the SET becomes DURABLE + NO_HISTORY + EPHEMERAL.",
   "prefix": "st",
   "steps": [
    [
@@ -8642,12 +8642,12 @@
  },
  {
   "name": "list_include_infra_shows_agents",
-  "purpose": "Infra-typed beads (agent/role/message) are hidden by default and shown with `--include-infra`.",
+  "purpose": "Infra-typed issuegraph (agent/role/message) are hidden by default and shown with `--include-infra`.",
   "prefix": "if",
   "steps": [
    [
     "create",
-    "Agent bead",
+    "Agent issue",
     "--id",
     "if-1",
     "--force",
@@ -9559,7 +9559,7 @@
  },
  {
   "name": "list_positional_arg_rejected",
-  "purpose": "`bd list foo` (positional) is rejected — list takes flags only.",
+  "purpose": "`issuegraph list foo` (positional) is rejected — list takes flags only.",
   "prefix": "po",
   "steps": [
    [
@@ -9578,12 +9578,12 @@
     "--json"
    ]
   ],
-  "pins": "Args validator returns 'bd list does not accept positional arguments' (list.go:458) exit 1.",
+  "pins": "Args validator returns 'issuegraph list does not accept positional arguments' (list.go:458) exit 1.",
   "deterministic": true
  },
  {
   "name": "list_positional_known_flag_hint",
-  "purpose": "`bd list ready` (a flag-name typed as positional) yields the special did-you-mean hint.",
+  "purpose": "`issuegraph list ready` (a flag-name typed as positional) yields the special did-you-mean hint.",
   "prefix": "ph",
   "steps": [
    [
@@ -9602,7 +9602,7 @@
     "--json"
    ]
   ],
-  "pins": "knownListFlags maps 'ready' -> hint 'did you mean \"--ready\" or bd ready?' (list.go:454-456) exit 1.",
+  "pins": "knownListFlags maps 'ready' -> hint 'did you mean \"--ready\" or issuegraph ready?' (list.go:454-456) exit 1.",
   "deterministic": true
  },
  {
@@ -10301,7 +10301,7 @@
  },
  {
   "name": "no_history_appears_in_ready_but_not_default_list",
-  "purpose": "Pin the no_history tier's split visibility: a no_history bead is READY (ephemeral=0) yet ABSENT from default list (SkipWisps).",
+  "purpose": "Pin the no_history tier's split visibility: a no_history issue is READY (ephemeral=0) yet ABSENT from default list (SkipWisps).",
   "prefix": "st",
   "steps": [
    [
@@ -10329,7 +10329,7 @@
  },
  {
   "name": "no_history_deferred_status_and_ready_visibility",
-  "purpose": "Pin that a deferred no_history bead is status=deferred and hidden from ready until --include-deferred, isolating the defer behavior on the no_history tier.",
+  "purpose": "Pin that a deferred no_history issue is status=deferred and hidden from ready until --include-deferred, isolating the defer behavior on the no_history tier.",
   "prefix": "st",
   "steps": [
    [
@@ -10360,7 +10360,7 @@
  },
  {
   "name": "promote_durable_rejected_already_persistent",
-  "purpose": "Pin that promote rejects an ordinary durable bead (also Ephemeral=false) as already persistent.",
+  "purpose": "Pin that promote rejects an ordinary durable issue (also Ephemeral=false) as already persistent.",
   "prefix": "st",
   "steps": [
    [
@@ -10379,12 +10379,12 @@
     "--json"
    ]
   ],
-  "pins": "promote.go:64-66 same guard; durable bead -> 'is not a wisp (already persistent)'.",
+  "pins": "promote.go:64-66 same guard; durable issue -> 'is not a wisp (already persistent)'.",
   "deterministic": true
  },
  {
   "name": "promote_ephemeral_to_durable_then_show",
-  "purpose": "Pin that bd promote crystallizes an EPHEMERAL bead into the durable tier (ephemeral cleared, ID preserved, moves to issues table).",
+  "purpose": "Pin that issuegraph promote crystallizes an EPHEMERAL issue into the durable tier (ephemeral cleared, ID preserved, moves to issues table).",
   "prefix": "st",
   "steps": [
    [
@@ -10414,7 +10414,7 @@
  },
  {
   "name": "promote_no_history_rejected_already_persistent",
-  "purpose": "Pin that promote REJECTS a no_history bead with 'not a wisp (already persistent)' since promote only applies to ephemeral beads.",
+  "purpose": "Pin that promote REJECTS a no_history issue with 'not a wisp (already persistent)' since promote only applies to ephemeral issuegraph.",
   "prefix": "st",
   "steps": [
    [
@@ -10439,7 +10439,7 @@
  },
  {
   "name": "promote_then_purge_no_longer_targets_it",
-  "purpose": "Pin tier-transition side effect: after promoting an ephemeral bead and closing it, purge (ephemeral-only) no longer deletes it.",
+  "purpose": "Pin tier-transition side effect: after promoting an ephemeral issue and closing it, purge (ephemeral-only) no longer deletes it.",
   "prefix": "st",
   "steps": [
    [
@@ -10474,12 +10474,12 @@
     "--json"
    ]
   ],
-  "pins": "After promote, Ephemeral=false so purge.go filter (Ephemeral=true) skips it; bead survives purge. Confirms purge scope tracks current tier, not history.",
+  "pins": "After promote, Ephemeral=false so purge.go filter (Ephemeral=true) skips it; issue survives purge. Confirms purge scope tracks current tier, not history.",
   "deterministic": true
  },
  {
   "name": "purge_dry_run_empty",
-  "purpose": "purge --dry-run with no closed ephemeral beads reports zero and makes no changes.",
+  "purpose": "purge --dry-run with no closed ephemeral issuegraph reports zero and makes no changes.",
   "prefix": "pg",
   "steps": [
    [
@@ -10498,7 +10498,7 @@
     "--json"
    ]
   ],
-  "pins": "purge.go ephemeralOnly filter finds none -> 'No closed ephemeral beads to purge' (json {purged_count:0,message}); exit 0. Note: empty-result path returns countKey not dryRunCountKey.",
+  "pins": "purge.go ephemeralOnly filter finds none -> 'No closed ephemeral issuegraph to purge' (json {purged_count:0,message}); exit 0. Note: empty-result path returns countKey not dryRunCountKey.",
   "deterministic": true
  },
  {
@@ -10533,12 +10533,12 @@
     "--json"
    ]
   ],
-  "pins": "purge.go:175-206 dry-run emits {dry_run:true, purge_count:1, dependencies, labels, events}; bead still exists afterward.",
+  "pins": "purge.go:175-206 dry-run emits {dry_run:true, purge_count:1, dependencies, labels, events}; issue still exists afterward.",
   "deterministic": true
  },
  {
   "name": "purge_dry_run_with_candidates",
-  "purpose": "purge --dry-run lists ephemeral closed beads that would be purged with stats.",
+  "purpose": "purge --dry-run lists ephemeral closed issuegraph that would be purged with stats.",
   "prefix": "pgd",
   "steps": [
    [
@@ -10563,12 +10563,12 @@
     "--json"
    ]
   ],
-  "pins": "purge.go:175-206 dry-run JSON {dry_run:true,purge_count:1,dependencies,labels,events}; no deletion; bead still present afterward.",
+  "pins": "purge.go:175-206 dry-run JSON {dry_run:true,purge_count:1,dependencies,labels,events}; no deletion; issue still present afterward.",
   "deterministic": true
  },
  {
   "name": "purge_empty_when_no_closed_ephemeral",
-  "purpose": "Pin the EMPTY purge result/message when there are no closed ephemeral beads (open ephemeral + closed durable present).",
+  "purpose": "Pin the EMPTY purge result/message when there are no closed ephemeral issuegraph (open ephemeral + closed durable present).",
   "prefix": "st",
   "steps": [
    [
@@ -10603,12 +10603,12 @@
     "--json"
    ]
   ],
-  "pins": "purge.go:152-168 closedIssues empty (open ephemeral excluded by Status=closed; durable excluded by Ephemeral=true) -> {purged_count:0, message:'No closed ephemeral beads to purge'}.",
+  "pins": "purge.go:152-168 closedIssues empty (open ephemeral excluded by Status=closed; durable excluded by Ephemeral=true) -> {purged_count:0, message:'No closed ephemeral issuegraph to purge'}.",
   "deterministic": true
  },
  {
   "name": "purge_force_deletes_ephemeral",
-  "purpose": "purge --force deletes closed ephemeral beads and reports counts.",
+  "purpose": "purge --force deletes closed ephemeral issuegraph and reports counts.",
   "prefix": "pgf",
   "steps": [
    [
@@ -10652,12 +10652,12 @@
     "--json"
    ]
   ],
-  "pins": "purge.go:152-168 len==0 -> JSON {purged_count:0,message:'No closed ephemeral beads to purge'}; exit 0.",
+  "pins": "purge.go:152-168 len==0 -> JSON {purged_count:0,message:'No closed ephemeral issuegraph to purge'}; exit 0.",
   "deterministic": true
  },
  {
   "name": "purge_older_than_filter",
-  "purpose": "purge --older-than restricts to beads closed before the cutoff; recently closed are excluded.",
+  "purpose": "purge --older-than restricts to issuegraph closed before the cutoff; recently closed are excluded.",
   "prefix": "pgt",
   "steps": [
    [
@@ -10689,7 +10689,7 @@
     "--json"
    ]
   ],
-  "pins": "purge.go:121-130 ClosedBefore cutoff (now-7d); just-closed bead is newer than cutoff -> excluded -> 'No closed ephemeral beads to purge (older than 7d)'; pgt-1 still present.",
+  "pins": "purge.go:121-130 ClosedBefore cutoff (now-7d); just-closed issue is newer than cutoff -> excluded -> 'No closed ephemeral issuegraph to purge (older than 7d)'; pgt-1 still present.",
   "deterministic": true
  },
  {
@@ -10768,7 +10768,7 @@
  },
  {
   "name": "purge_pattern_filters_by_id_glob",
-  "purpose": "Pin that --pattern restricts purge to ID-glob-matching closed ephemeral beads only.",
+  "purpose": "Pin that --pattern restricts purge to ID-glob-matching closed ephemeral issuegraph only.",
   "prefix": "st",
   "steps": [
    [
@@ -10821,7 +10821,7 @@
  },
  {
   "name": "purge_preview_default_no_force",
-  "purpose": "Pin purge's default (no --force, no --dry-run) preview behavior and exit code when closed ephemeral beads exist.",
+  "purpose": "Pin purge's default (no --force, no --dry-run) preview behavior and exit code when closed ephemeral issuegraph exist.",
   "prefix": "st",
   "steps": [
    [
@@ -10844,7 +10844,7 @@
     "purge"
    ]
   ],
-  "pins": "purge.go:208-223 without --force returns HandleErrorWithHint 'would purge 1 bead(s)' on stderr + non-zero exit; no deletion.",
+  "pins": "purge.go:208-223 without --force returns HandleErrorWithHint 'would purge 1 issue(s)' on stderr + non-zero exit; no deletion.",
   "deterministic": true
  },
  {
@@ -10878,12 +10878,12 @@
     "--json"
    ]
   ],
-  "pins": "purge.go:208-223 !force&&!dryRun -> HandleErrorWithHint 'would purge 1 bead(s)' + hint 'Use --force to confirm or --dry-run to preview'; exit 1; pgp-1 still present.",
+  "pins": "purge.go:208-223 !force&&!dryRun -> HandleErrorWithHint 'would purge 1 issue(s)' + hint 'Use --force to confirm or --dry-run to preview'; exit 1; pgp-1 still present.",
   "deterministic": true
  },
  {
   "name": "purge_scope_is_ephemeral_only_spares_no_history_and_durable",
-  "purpose": "Pin that `bd purge` only deletes CLOSED EPHEMERAL beads, leaving closed no_history and closed durable beads untouched.",
+  "purpose": "Pin that `issuegraph purge` only deletes CLOSED EPHEMERAL issuegraph, leaving closed no_history and closed durable issuegraph untouched.",
   "prefix": "st",
   "steps": [
    [
@@ -10949,7 +10949,7 @@
  },
  {
   "name": "purge_skip_pinned",
-  "purpose": "purge skips pinned ephemeral beads and reports the skipped count.",
+  "purpose": "purge skips pinned ephemeral issuegraph and reports the skipped count.",
   "prefix": "pgpn",
   "steps": [
    [
@@ -10976,12 +10976,12 @@
     "--json"
    ]
   ],
-  "pins": "filterClosedDeletionCandidates skips pinned (PinnedSkipped). Pinned status is not 'closed' so excluded from the closed filter; pins that pinned beads are protected from purge. (Verify whether pinned-but-closed combination is representable; if pinned overrides closed, candidate set is empty.)",
+  "pins": "filterClosedDeletionCandidates skips pinned (PinnedSkipped). Pinned status is not 'closed' so excluded from the closed filter; pins that pinned issuegraph are protected from purge. (Verify whether pinned-but-closed combination is representable; if pinned overrides closed, candidate set is empty.)",
   "deterministic": true
  },
  {
   "name": "purge_skips_non_ephemeral",
-  "purpose": "purge does not touch closed non-ephemeral beads (disjoint scope from prune).",
+  "purpose": "purge does not touch closed non-ephemeral issuegraph (disjoint scope from prune).",
   "prefix": "pgn",
   "steps": [
    [
@@ -11010,12 +11010,12 @@
     "--json"
    ]
   ],
-  "pins": "purge.go ephemeralOnly=true filter excludes non-ephemeral; 'No closed ephemeral beads to purge'; pgn-1 still present.",
+  "pins": "purge.go ephemeralOnly=true filter excludes non-ephemeral; 'No closed ephemeral issuegraph to purge'; pgn-1 still present.",
   "deterministic": true
  },
  {
   "name": "purge_skips_open_ephemeral",
-  "purpose": "purge does not touch open (not-closed) ephemeral beads.",
+  "purpose": "purge does not touch open (not-closed) ephemeral issuegraph.",
   "prefix": "pgo",
   "steps": [
    [
@@ -11040,7 +11040,7 @@
     "--json"
    ]
   ],
-  "pins": "filter Status=closed; open ephemeral excluded; 'No closed ephemeral beads to purge'; pgo-1 still present.",
+  "pins": "filter Status=closed; open ephemeral excluded; 'No closed ephemeral issuegraph to purge'; pgo-1 still present.",
   "deterministic": true
  },
  {
@@ -11417,7 +11417,7 @@
     "status=open"
    ]
   ],
-  "pins": "limit=2 caps results AND priority-orders them: distinct priorities (P3/P1/P0) make bd's `priority ASC` first-N deterministic across impls (newest-N tiebreak is timestamp-precision dependent). -n 2 -> {q-3(P0), q-2(P1)}.",
+  "pins": "limit=2 caps results AND priority-orders them: distinct priorities (P3/P1/P0) make issuegraph's `priority ASC` first-N deterministic across impls (newest-N tiebreak is timestamp-precision dependent). -n 2 -> {q-3(P0), q-2(P1)}.",
   "deterministic": true
  },
  {
@@ -11450,7 +11450,7 @@
  },
  {
   "name": "query_no_expression_error",
-  "purpose": "bd query with no expression prints required-expression error + help to stderr and exits 1.",
+  "purpose": "issuegraph query with no expression prints required-expression error + help to stderr and exits 1.",
   "prefix": "q",
   "steps": [
    [
@@ -11903,7 +11903,7 @@
  },
  {
   "name": "query_status_equals_json",
-  "purpose": "bd query 'status=open' --json returns only open issues as IssueWithCounts.",
+  "purpose": "issuegraph query 'status=open' --json returns only open issues as IssueWithCounts.",
   "prefix": "q",
   "steps": [
    [
@@ -11984,7 +11984,7 @@
  },
  {
   "name": "readonly_blocks_write",
-  "purpose": "bd --readonly create ... is blocked: 'Error: operation create is not allowed in read-only mode', exit 1.",
+  "purpose": "issuegraph --readonly create ... is blocked: 'Error: operation create is not allowed in read-only mode', exit 1.",
   "prefix": "ro",
   "steps": [
    [
@@ -12160,7 +12160,7 @@
  },
  {
   "name": "ready_default_excludes_ephemeral_includes_durable_and_no_history",
-  "purpose": "Pin the core ready SET: by default ready returns DURABLE and NO_HISTORY beads but EXCLUDES ephemeral wisps.",
+  "purpose": "Pin the core ready SET: by default ready returns DURABLE and NO_HISTORY issuegraph but EXCLUDES ephemeral wisps.",
   "prefix": "st",
   "steps": [
    [
@@ -12253,7 +12253,7 @@
  },
  {
   "name": "ready_empty_no_issues_json",
-  "purpose": "bd ready --json on an empty DB returns an empty JSON array and exit 0 (empty is NOT an error).",
+  "purpose": "issuegraph ready --json on an empty DB returns an empty JSON array and exit 0 (empty is NOT an error).",
   "prefix": "re",
   "steps": [
    [
@@ -12266,7 +12266,7 @@
  },
  {
   "name": "ready_empty_no_issues_plain",
-  "purpose": "bd ready (no --json) on empty DB prints the '✨ No open issues' branch, exit 0.",
+  "purpose": "issuegraph ready (no --json) on empty DB prints the '✨ No open issues' branch, exit 0.",
   "prefix": "re",
   "steps": [
    [
@@ -12297,7 +12297,7 @@
     "--json"
    ]
   ],
-  "pins": "Default ready filters ephemeral=1; with no durable/no_history open beads the set is empty -> [] in JSON.",
+  "pins": "Default ready filters ephemeral=1; with no durable/no_history open issuegraph the set is empty -> [] in JSON.",
   "deterministic": true
  },
  {
@@ -12344,7 +12344,7 @@
  },
  {
   "name": "ready_excludes_in_progress",
-  "purpose": "An in_progress issue is excluded from bd ready (hardcoded Status=open filter).",
+  "purpose": "An in_progress issue is excluded from issuegraph ready (hardcoded Status=open filter).",
   "prefix": "re",
   "steps": [
    [
@@ -13207,7 +13207,7 @@
  },
  {
   "name": "ready_parent_descendants",
-  "purpose": "--parent limits ready work to descendants of the given epic/bead.",
+  "purpose": "--parent limits ready work to descendants of the given epic/issue.",
   "prefix": "re",
   "steps": [
    [
@@ -13261,7 +13261,7 @@
  },
  {
   "name": "ready_single_open_json",
-  "purpose": "One open task with no blockers appears in bd ready --json as IssueWithCounts.",
+  "purpose": "One open task with no blockers appears in issuegraph ready --json as IssueWithCounts.",
   "prefix": "re",
   "steps": [
    [
@@ -13651,7 +13651,7 @@
  },
  {
   "name": "show_assigned_issue_json",
-  "purpose": "Show an issue after `bd assign`. Pins that JSON 'assignee' reflects the assigned name. Uses an explicit assignee string so output is deterministic (not actor/git dependent).",
+  "purpose": "Show an issue after `issuegraph assign`. Pins that JSON 'assignee' reflects the assigned name. Uses an explicit assignee string so output is deterministic (not actor/git dependent).",
   "prefix": "sh",
   "steps": [
    [
@@ -13954,8 +13954,8 @@
   "deterministic": true
  },
  {
-  "name": "show_ephemeral_bead_resolves_from_wisps_table",
-  "purpose": "Pin that show/get resolves an ephemeral bead by exact ID (falls back to wisps table) and reports ephemeral:true.",
+  "name": "show_ephemeral_issue_resolves_from_wisps_table",
+  "purpose": "Pin that show/get resolves an ephemeral issue by exact ID (falls back to wisps table) and reports ephemeral:true.",
   "prefix": "st",
   "steps": [
    [
@@ -13973,7 +13973,7 @@
     "--json"
    ]
   ],
-  "pins": "get_issue.go:17-34 reads issues then wisps; ephemeral bead found in wisps, JSON carries ephemeral:true.",
+  "pins": "get_issue.go:17-34 reads issues then wisps; ephemeral issue found in wisps, JSON carries ephemeral:true.",
   "deterministic": true
  },
  {
@@ -14499,8 +14499,8 @@
   "deterministic": true
  },
  {
-  "name": "show_no_history_bead_resolves_from_wisps_table",
-  "purpose": "Pin that show resolves a no_history bead (also in wisps table) and reports no_history:true with no ephemeral key.",
+  "name": "show_no_history_issue_resolves_from_wisps_table",
+  "purpose": "Pin that show resolves a no_history issue (also in wisps table) and reports no_history:true with no ephemeral key.",
   "prefix": "st",
   "steps": [
    [
@@ -14523,7 +14523,7 @@
  },
  {
   "name": "show_notfound_human",
-  "purpose": "bd show <missing> prints 'Error fetching <id>: no issue found matching \"<id>\"' to stderr, exit 1.",
+  "purpose": "issuegraph show <missing> prints 'Error fetching <id>: no issue found matching \"<id>\"' to stderr, exit 1.",
   "prefix": "nf",
   "steps": [
    [
@@ -14543,7 +14543,7 @@
  },
  {
   "name": "show_notfound_json_dual_stream",
-  "purpose": "bd show <missing> --json writes BOTH a human stderr line AND a stdout JSON error envelope whose text DIFFERS ('no issues found matching the provided IDs'), exit 1.",
+  "purpose": "issuegraph show <missing> --json writes BOTH a human stderr line AND a stdout JSON error envelope whose text DIFFERS ('no issues found matching the provided IDs'), exit 1.",
   "prefix": "nf",
   "steps": [
    [
@@ -14829,7 +14829,7 @@
  },
  {
   "name": "show_single_id_json_is_array",
-  "purpose": "Pin that `bd show --json <id>` ALWAYS emits a JSON ARRAY (even for a single issue), because allDetails is a []interface{} slice returned as-is by wrapWithSchemaVersion (no schema_version key, no envelope). Pins the full default IssueDetails field set: embedded Issue fields + dependency_count/dependent_count/comment_count (all 0), no dependencies/dependents/comments/labels/parent keys (omitempty).",
+  "purpose": "Pin that `issuegraph show --json <id>` ALWAYS emits a JSON ARRAY (even for a single issue), because allDetails is a []interface{} slice returned as-is by wrapWithSchemaVersion (no schema_version key, no envelope). Pins the full default IssueDetails field set: embedded Issue fields + dependency_count/dependent_count/comment_count (all 0), no dependencies/dependents/comments/labels/parent keys (omitempty).",
   "prefix": "sh",
   "steps": [
    [
@@ -14880,7 +14880,7 @@
  },
  {
   "name": "show_view_alias",
-  "purpose": "Exercise the 'view' alias for show (show.go:19). Pins that `bd view <id> --json` produces identical output to `bd show <id> --json` (one-element array). Guards alias registration.",
+  "purpose": "Exercise the 'view' alias for show (show.go:19). Pins that `issuegraph view <id> --json` produces identical output to `issuegraph show <id> --json` (one-element array). Guards alias registration.",
   "prefix": "sh",
   "steps": [
    [
@@ -15042,7 +15042,7 @@
  },
  {
   "name": "sql_embedded_unsupported_stderr",
-  "purpose": "bd sql in embedded mode is rejected 'Error: bd sql is not yet supported in embedded mode' on STDERR even with --json, exit 1.",
+  "purpose": "issuegraph sql in embedded mode is rejected 'Error: issuegraph sql is not yet supported in embedded mode' on STDERR even with --json, exit 1.",
   "prefix": "sql",
   "steps": [
    [
@@ -15063,7 +15063,7 @@
  },
  {
   "name": "sql_unsupported_embedded_error",
-  "purpose": "bd sql is rejected in embedded mode with a fixed error and exit 1.",
+  "purpose": "issuegraph sql is rejected in embedded mode with a fixed error and exit 1.",
   "prefix": "sql",
   "steps": [
    [
@@ -15071,12 +15071,12 @@
     "SELECT COUNT(*) FROM issues"
    ]
   ],
-  "pins": "!usesSQLServer() -> HandleError 'Error: \\'bd sql\\' is not yet supported in embedded mode' to stderr, exit 1 (sql.go:44-46). Deterministic error; bd sql is NOT a usable query path in embedded/differential mode.",
+  "pins": "!usesSQLServer() -> HandleError 'Error: \\'issuegraph sql\\' is not yet supported in embedded mode' to stderr, exit 1 (sql.go:44-46). Deterministic error; issuegraph sql is NOT a usable query path in embedded/differential mode.",
   "deterministic": true
  },
  {
   "name": "unknown_command",
-  "purpose": "bd <bogus-command> fails 'Error: unknown command \"<x>\" for \"bd\"' + 'Run bd --help for usage.' to stderr, exit 1.",
+  "purpose": "issuegraph <bogus-command> fails 'Error: unknown command \"<x>\" for \"issuegraph\"' + 'Run issuegraph --help for usage.' to stderr, exit 1.",
   "prefix": "cli",
   "steps": [
    [
@@ -15085,11 +15085,11 @@
   ],
   "pins": "cobra top-level unknown command. No store init (fails before). stderr exit 1. Confirmed empirically: two lines.",
   "deterministic": true,
-  "notes": "No workspace needed. Pins cobra's unknown-command routing and the 'Run bd --help for usage.' suggestion line."
+  "notes": "No workspace needed. Pins cobra's unknown-command routing and the 'Run issuegraph --help for usage.' suggestion line."
  },
  {
   "name": "unknown_flag_global",
-  "purpose": "bd version --nonsense fails 'Error: unknown flag: --nonsense' to stderr, exit 1.",
+  "purpose": "issuegraph version --nonsense fails 'Error: unknown flag: --nonsense' to stderr, exit 1.",
   "prefix": "cli",
   "steps": [
    [
@@ -15713,7 +15713,7 @@
  },
  {
   "name": "update_invalid_status_json_respectjson",
-  "purpose": "bd update --status bogus --json emits the long built-in-status error as a clean stdout JSON envelope, exit 1.",
+  "purpose": "issuegraph update --status bogus --json emits the long built-in-status error as a clean stdout JSON envelope, exit 1.",
   "prefix": "val",
   "steps": [
    [
@@ -16304,7 +16304,7 @@
     "--json"
    ]
   ],
-  "pins": "validateIssueUpdatable -> NotTemplate: stderr 'cannot modify template uptm-1: templates are read-only; use \\'bd mol pour\\' to create a work item'; SilentExit exit 1. (Verify --template create flag exists; if not, deterministic state still holds via validation path.)",
+  "pins": "validateIssueUpdatable -> NotTemplate: stderr 'cannot modify template uptm-1: templates are read-only; use \\'issuegraph mol pour\\' to create a work item'; SilentExit exit 1. (Verify --template create flag exists; if not, deterministic state still holds via validation path.)",
   "deterministic": true
  },
  {
@@ -16444,7 +16444,7 @@
  },
  {
   "name": "version_human_default",
-  "purpose": "bd version (no --json) human line on stdout: 'bd version <V> (<build>[: <branch>@<commit>])', exit 0.",
+  "purpose": "issuegraph version (no --json) human line on stdout: 'issuegraph version <V> (<build>[: <branch>@<commit>])', exit 0.",
   "prefix": "ver",
   "steps": [
    [
@@ -16453,11 +16453,11 @@
   ],
   "pins": "version.go non-json branch: three printf variants depending on commit/branch presence. Always stdout, never stderr (absent PATH-dup warning).",
   "deterministic": false,
-  "notes": "Version string + commit + branch differ between bd and the candidate builds; non-byte-diffable. Pin only the 'bd version ' prefix and the parenthesized shape."
+  "notes": "Version string + commit + branch differ between issuegraph and the candidate builds; non-byte-diffable. Pin only the 'issuegraph version ' prefix and the parenthesized shape."
  },
  {
   "name": "version_json_flat_envelope",
-  "purpose": "bd version --json default (flat) shape: object with build/version and injected schema_version=1, on stdout, exit 0.",
+  "purpose": "issuegraph version --json default (flat) shape: object with build/version and injected schema_version=1, on stdout, exit 0.",
   "prefix": "ver",
   "steps": [
    [
@@ -16467,11 +16467,11 @@
   ],
   "pins": "version.go: jsonOutput branch emits map{version,build} through outputJSON; output.go wrapWithSchemaVersion injects schema_version into the object. commit/branch keys omitted when empty (dev build).",
   "deterministic": false,
-  "notes": "version/build/commit values are non-reproducible across the two binaries, so diff must normalize the values; the KEY SET and schema_version=1 are what is pinned. RE-SCOPED 2026-07-03 (W1.4): version identity is implementation-defined by definition — byte-parity retired when bts stopped impersonating bd. Shape (key set + schema_version=1) is pinned by bts-cli unit tests (version_payload tests in crates/bts-cli/src/main.rs). Golden deleted; bd's reference bytes preserved in git history. See docs/ORACLE_PROVENANCE.md."
+  "notes": "version/build/commit values are non-reproducible across the two binaries, so diff must normalize the values; the KEY SET and schema_version=1 are what is pinned. RE-SCOPED 2026-07-03 (W1.4): version identity is implementation-defined by definition — byte-parity retired when bts stopped impersonating issuegraph. Shape (key set + schema_version=1) is pinned by bts-cli unit tests (version_payload tests in crates/bts-cli/src/main.rs). Golden deleted; issuegraph's reference bytes preserved in git history. See docs/ORACLE_PROVENANCE.md."
  },
  {
   "name": "version_json_v2_envelope_tripwire",
-  "purpose": "BD_JSON_ENVELOPE=1 wraps version --json in {schema_version, data:{...}} instead of flat. The v1-vs-v2 envelope tripwire.",
+  "purpose": "ISSUEGRAPH_JSON_ENVELOPE=1 wraps version --json in {schema_version, data:{...}} instead of flat. The v1-vs-v2 envelope tripwire.",
   "prefix": "ver",
   "steps": [
    [
@@ -16479,13 +16479,13 @@
     "--json"
    ]
   ],
-  "pins": "output.go jsonEnvelopeEnabled() reads BD_JSON_ENVELOPE==1; wrapWithSchemaVersion returns {schema_version:1, data:v}. data has no schema_version inside.",
+  "pins": "output.go jsonEnvelopeEnabled() reads ISSUEGRAPH_JSON_ENVELOPE==1; wrapWithSchemaVersion returns {schema_version:1, data:v}. data has no schema_version inside.",
   "deterministic": false,
-  "notes": "Harness must run this step with env BD_JSON_ENVELOPE=1. Compare against real bd with the same env. Normalize version/build values. RE-SCOPED 2026-07-03 (W1.4): re-scoped with version_json_flat_envelope (identity is implementation-defined). This golden never actually pinned the v2 envelope: run_scenario sets only BEADS_TEST_MODE=1 and has no per-scenario env, so BD_JSON_ENVELOPE=1 was never set at capture — the captured bytes were the flat envelope. Golden deleted; shape pinned by bts-cli version_payload unit tests. See docs/ORACLE_PROVENANCE.md."
+  "notes": "Harness must run this step with env ISSUEGRAPH_JSON_ENVELOPE=1. Compare against real issuegraph with the same env. Normalize version/build values. RE-SCOPED 2026-07-03 (W1.4): re-scoped with version_json_flat_envelope (identity is implementation-defined). This golden never actually pinned the v2 envelope: run_scenario sets only ISSUEGRAPH_TEST_MODE=1 and has no per-scenario env, so ISSUEGRAPH_JSON_ENVELOPE=1 was never set at capture — the captured bytes were the flat envelope. Golden deleted; shape pinned by bts-cli version_payload unit tests. See docs/ORACLE_PROVENANCE.md."
  },
  {
   "name": "version_root_flag_ignores_json",
-  "purpose": "bd --version --json STILL prints plain text (root --version flag path never consults jsonOutput), exit 0.",
+  "purpose": "issuegraph --version --json STILL prints plain text (root --version flag path never consults jsonOutput), exit 0.",
   "prefix": "ver",
   "steps": [
    [
@@ -16506,13 +16506,13 @@
     "-V"
    ]
   ],
-  "pins": "main.go rootCmd.Run: if --version bool set, prints fmt.Printf('bd version %s (%s)\\n', Version, Build) and returns — bypasses versionCmd, ignores --json. version.go registers BoolP('version','V',...).",
+  "pins": "main.go rootCmd.Run: if --version bool set, prints fmt.Printf('issuegraph version %s (%s)\\n', Version, Build) and returns — bypasses versionCmd, ignores --json. version.go registers BoolP('version','V',...).",
   "deterministic": false,
   "notes": "Second variant ['--version'] should be a sibling scenario or extra step. Output is the bare two-field form regardless of --json. Non-byte-diffable version value."
  },
  {
   "name": "wisp_create_proto_is_ephemeral",
-  "purpose": "Verify `bd mol wisp create` instantiates a proto as an ephemeral molecule (phase vapor) routed to the wisps tier.",
+  "purpose": "Verify `issuegraph mol wisp create` instantiates a proto as an ephemeral molecule (phase vapor) routed to the wisps tier.",
   "prefix": "st",
   "steps": [
    [
@@ -16540,7 +16540,7 @@
  },
  {
   "name": "wisp_gc_closed_deletes_closed_ephemeral_only",
-  "purpose": "Pin that `bd mol wisp gc --closed --force` deletes closed ephemeral wisps but spares closed no_history beads.",
+  "purpose": "Pin that `issuegraph mol wisp gc --closed --force` deletes closed ephemeral wisps but spares closed no_history issuegraph.",
   "prefix": "st",
   "steps": [
    [
@@ -16594,7 +16594,7 @@
  },
  {
   "name": "wisp_list_shows_both_wisps_table_tiers",
-  "purpose": "Pin that `bd mol wisp list --json` enumerates the wisps tier (Ephemeral=true) and that no_history beads (ephemeral=0) are EXCLUDED from wisp list.",
+  "purpose": "Pin that `issuegraph mol wisp list --json` enumerates the wisps tier (Ephemeral=true) and that no_history issuegraph (ephemeral=0) are EXCLUDED from wisp list.",
   "prefix": "st",
   "steps": [
    [

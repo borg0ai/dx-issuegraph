@@ -10,10 +10,10 @@ import (
 	"sync"
 	"testing"
 
-	"github.com/steveyegge/beads/internal/storage"
-	"github.com/steveyegge/beads/internal/storage/issueops"
-	"github.com/steveyegge/beads/internal/types"
-	publicops "github.com/steveyegge/beads/issueops"
+	"github.com/borg0ai/dx-issuegraph/internal/storage"
+	"github.com/borg0ai/dx-issuegraph/internal/storage/issueops"
+	"github.com/borg0ai/dx-issuegraph/internal/types"
+	publicops "github.com/borg0ai/dx-issuegraph/issueops"
 )
 
 // claimCommitBoundaryDriver models a permanent claim through its SQL mutation,
@@ -325,7 +325,7 @@ func TestClaimReadyIssueDoltCommitResponseLossDoesNotDoubleClaim(t *testing.T) {
 // reset the breaker the instant the SQL commit returned — laundering a phantom
 // claim (reported success, failed verification) into breaker-health optimism.
 func TestClaimReadyIssueVerifyFailureDoesNotRecordCircuitSuccess(t *testing.T) {
-	t.Setenv("BEADS_TEST_MODE", "")
+	t.Setenv("ISSUEGRAPH_TEST_MODE", "")
 	// The commit succeeds (no commitErr/sqlCommitErr), but the verify re-read
 	// returns ("", open) — checkedUpdate stays false — which cannot match
 	// claimedBy("alice"), so the claim reports success then fails verification.
@@ -384,7 +384,7 @@ func TestClaimReadyIssueVerifyFailureDoesNotRecordCircuitSuccess(t *testing.T) {
 // phantom facade claim (reported success, failed verification) into breaker-health
 // optimism.
 func TestIssueOperationsUpdateClaimVerifyFailureDoesNotRecordCircuitSuccess(t *testing.T) {
-	t.Setenv("BEADS_TEST_MODE", "")
+	t.Setenv("ISSUEGRAPH_TEST_MODE", "")
 	// The commit succeeds (no commitErr/sqlCommitErr), but every verify re-read
 	// returns ("", open) — checkedUpdate stays false — which cannot match
 	// claimedAs("alice", in_progress), so the facade claim reports success then
@@ -446,7 +446,7 @@ func TestIssueOperationsUpdateClaimVerifyFailureDoesNotRecordCircuitSuccess(t *t
 // travels the same withCircuitWrite boundary and must defer success accounting the
 // same way.
 func TestIssueOperationsUpdateGuardedVerifyFailureDoesNotRecordCircuitSuccess(t *testing.T) {
-	t.Setenv("BEADS_TEST_MODE", "")
+	t.Setenv("ISSUEGRAPH_TEST_MODE", "")
 	// checkedUpdate stays false, so every SELECT assignee,status returns
 	// ("", open). The CAS read sees open and matches ExpectedStatus open, so the
 	// guard passes and the write runs; the post-write verify sees open again,

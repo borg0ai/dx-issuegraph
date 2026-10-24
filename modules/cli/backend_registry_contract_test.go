@@ -5,9 +5,9 @@ import (
 	"errors"
 	"testing"
 
-	"github.com/steveyegge/beads/internal/configfile"
-	"github.com/steveyegge/beads/internal/storage"
-	"github.com/steveyegge/beads/internal/storage/backends"
+	"github.com/borg0ai/dx-issuegraph/internal/configfile"
+	"github.com/borg0ai/dx-issuegraph/internal/storage"
+	"github.com/borg0ai/dx-issuegraph/internal/storage/backends"
 )
 
 var (
@@ -24,32 +24,32 @@ func registerContractBackend(t *testing.T, name string) {
 		OpenReadOnly: func(context.Context, string) (storage.DoltStorage, error) {
 			return nil, errRegistryReadOnly
 		},
-		WorkspaceIsBeadsDir: true,
+		WorkspaceIsIssueGraphDir: true,
 	})
 	t.Cleanup(func() { backends.Deregister(name) })
 }
 
 func writeContractBackendConfig(t *testing.T, backend string) string {
 	t.Helper()
-	beadsDir := t.TempDir()
-	if err := (&configfile.Config{Backend: backend}).Save(beadsDir); err != nil {
+	issuegraphDir := t.TempDir()
+	if err := (&configfile.Config{Backend: backend}).Save(issuegraphDir); err != nil {
 		t.Fatalf("save metadata.json: %v", err)
 	}
-	return beadsDir
+	return issuegraphDir
 }
 
 func TestRegisteredBackendDispatchesReadWriteAndReadOnly(t *testing.T) {
 	const name = "contract"
 	registerContractBackend(t, name)
-	beadsDir := writeContractBackendConfig(t, name)
+	issuegraphDir := writeContractBackendConfig(t, name)
 
-	if err := validateConfiguredBackend(&configfile.Config{Backend: name}, beadsDir); err != nil {
+	if err := validateConfiguredBackend(&configfile.Config{Backend: name}, issuegraphDir); err != nil {
 		t.Fatalf("validateConfiguredBackend() rejected registered backend: %v", err)
 	}
-	if _, err := newDoltStoreFromConfig(t.Context(), beadsDir); !errors.Is(err, errRegistryReadWrite) {
+	if _, err := newDoltStoreFromConfig(t.Context(), issuegraphDir); !errors.Is(err, errRegistryReadWrite) {
 		t.Fatalf("read-write factory error = %v, want %v", err, errRegistryReadWrite)
 	}
-	if _, err := newReadOnlyStoreFromConfig(t.Context(), beadsDir); !errors.Is(err, errRegistryReadOnly) {
+	if _, err := newReadOnlyStoreFromConfig(t.Context(), issuegraphDir); !errors.Is(err, errRegistryReadOnly) {
 		t.Fatalf("read-only factory error = %v, want %v", err, errRegistryReadOnly)
 	}
 }
@@ -58,13 +58,13 @@ func TestRegisteredBackendDrivesWorkspaceDiscovery(t *testing.T) {
 	const name = "contract-discovery"
 	registerContractBackend(t, name)
 
-	if !registeredBackendWorkspaceIsBeadsDir(&configfile.Config{Backend: name}) {
-		t.Fatal("registered backend did not expose its .beads workspace")
+	if !registeredBackendWorkspaceIsIssueGraphDir(&configfile.Config{Backend: name}) {
+		t.Fatal("registered backend did not expose its .issuegraph workspace")
 	}
-	if registeredBackendWorkspaceIsBeadsDir(&configfile.Config{Backend: "unregistered"}) {
-		t.Fatal("unregistered backend exposed a .beads workspace")
+	if registeredBackendWorkspaceIsIssueGraphDir(&configfile.Config{Backend: "unregistered"}) {
+		t.Fatal("unregistered backend exposed a .issuegraph workspace")
 	}
-	if registeredBackendWorkspaceIsBeadsDir(&configfile.Config{Backend: configfile.BackendDolt}) {
+	if registeredBackendWorkspaceIsIssueGraphDir(&configfile.Config{Backend: configfile.BackendDolt}) {
 		t.Fatal("Dolt must retain its existing database discovery path")
 	}
 }

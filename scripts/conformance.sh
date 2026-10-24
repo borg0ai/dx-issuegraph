@@ -31,7 +31,7 @@ assert_conformance_passed() {
 
 echo "==> Tier 1: in-process store conformance + wedge gates"
 # The embedded-Dolt backend runs the full backend-agnostic suite (conformance.RunAll) as
-# the reference oracle any future backend is compared against. BEADS_TEST_EMBEDDED_DOLT=1
+# the reference oracle any future backend is compared against. ISSUEGRAPH_TEST_EMBEDDED_DOLT=1
 # is REQUIRED, not optional: without it that suite self-skips
 # (internal/storage/embeddeddolt/conformance_test.go), which would let this whole
 # storage-parity gate report success while never running the oracle. Run it with -v and
@@ -39,10 +39,10 @@ echo "==> Tier 1: in-process store conformance + wedge gates"
 # never go green on a silent skip.
 # (assert_conformance_passed explains why the skip/pass checks anchor to column-0 lines.)
 embedded_dolt_log="$(mktemp)"
-BEADS_TEST_EMBEDDED_DOLT=1 CGO_ENABLED=1 go test -tags "$TAGS" -v \
+ISSUEGRAPH_TEST_EMBEDDED_DOLT=1 CGO_ENABLED=1 go test -tags "$TAGS" -v \
   -timeout 30m ./internal/storage/embeddeddolt/ -run TestConformance | tee "$embedded_dolt_log"
-assert_conformance_passed "$embedded_dolt_log" "embedded-Dolt reference (need BEADS_TEST_EMBEDDED_DOLT=1)"
-echo "==> Tier 2: end-to-end 'bd init' + CLI conformance (reference round-trip)"
+assert_conformance_passed "$embedded_dolt_log" "embedded-Dolt reference (need ISSUEGRAPH_TEST_EMBEDDED_DOLT=1)"
+echo "==> Tier 2: end-to-end 'issuegraph init' + CLI conformance (reference round-trip)"
 CGO_ENABLED=1 go test -tags "$TAGS e2e" -timeout 10m ./test/conformance/
 
 echo "==> conformance OK"

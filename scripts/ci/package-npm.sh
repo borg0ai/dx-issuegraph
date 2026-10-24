@@ -5,8 +5,8 @@ set -euo pipefail
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 REPO_ROOT="$(cd "$SCRIPT_DIR/../.." && pwd)"
-NPM_DIR="$REPO_ROOT/npm-package"
-NPM_BIN="$NPM_DIR/bin/bd"
+NPM_DIR="$REPO_ROOT/apps/cli"
+NPM_BIN="$NPM_DIR/bin/issuegraph"
 
 # shellcheck source=../../.buildflags
 source "$REPO_ROOT/modules/core/.buildflags"
@@ -26,7 +26,7 @@ cleanup() {
 }
 trap cleanup EXIT
 
-prepare_bd_binary() {
+prepare_issuegraph_binary() {
     mkdir -p "$NPM_DIR/bin"
 
     if [[ -e "$NPM_BIN" ]]; then
@@ -34,10 +34,10 @@ prepare_bd_binary() {
         mv -f "$NPM_BIN" "$backup_bin"
     fi
 
-    if [[ -n "${BEADS_TEST_BD_BINARY:-}" ]]; then
-        cp "$BEADS_TEST_BD_BINARY" "$NPM_BIN"
+    if [[ -n "${ISSUEGRAPH_TEST_ISSUEGRAPH_BINARY:-}" ]]; then
+        cp "$ISSUEGRAPH_TEST_ISSUEGRAPH_BINARY" "$NPM_BIN"
     else
-        go build -o "$NPM_BIN" github.com/steveyegge/beads/modules/cli
+        go build -o "$NPM_BIN" github.com/borg0ai/dx-issuegraph/modules/cli
     fi
 
     chmod +x "$NPM_BIN"
@@ -66,7 +66,7 @@ cd "$REPO_ROOT"
 # CI is not set. Package gates validate the candidate binary prepared above.
 export CI="${CI:-1}"
 
-ci_time "prepare bd for npm package" -- prepare_bd_binary
+ci_time "prepare issuegraph for npm package" -- prepare_issuegraph_binary
 ci_time "npm package install" -- npm_install
 ci_time "npm package test:all" -- npm_test_all
 ci_time "npm package pack dry-run" -- npm_pack_dry_run

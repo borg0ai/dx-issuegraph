@@ -12,15 +12,15 @@ import (
 	"sync"
 	"time"
 
+	"github.com/borg0ai/dx-issuegraph/internal/config"
+	"github.com/borg0ai/dx-issuegraph/internal/debug"
+	"github.com/borg0ai/dx-issuegraph/internal/issuegraph"
+	"github.com/borg0ai/dx-issuegraph/internal/linear"
+	"github.com/borg0ai/dx-issuegraph/internal/metrics"
+	"github.com/borg0ai/dx-issuegraph/internal/storage"
+	"github.com/borg0ai/dx-issuegraph/internal/tracker"
+	"github.com/borg0ai/dx-issuegraph/internal/types"
 	"github.com/spf13/cobra"
-	"github.com/steveyegge/beads/internal/beads"
-	"github.com/steveyegge/beads/internal/config"
-	"github.com/steveyegge/beads/internal/debug"
-	"github.com/steveyegge/beads/internal/linear"
-	"github.com/steveyegge/beads/internal/metrics"
-	"github.com/steveyegge/beads/internal/storage"
-	"github.com/steveyegge/beads/internal/tracker"
-	"github.com/steveyegge/beads/internal/types"
 )
 
 // linearCmd is the root command for Linear integration.
@@ -28,13 +28,13 @@ var linearCmd = &cobra.Command{
 	Use:     "linear",
 	GroupID: "advanced",
 	Short:   "Linear integration commands",
-	Long: `Synchronize issues between beads and Linear.
+	Long: `Synchronize issues between issuegraph and Linear.
 
 Configuration:
-  bd config set linear.api_key "YOUR_API_KEY"
-  bd config set linear.team_id "TEAM_ID"
-  bd config set linear.team_ids "TEAM_ID1,TEAM_ID2"  # Multiple teams (comma-separated)
-  bd config set linear.project_id "PROJECT_ID"  # Optional: sync only this project
+  issuegraph config set linear.api_key "YOUR_API_KEY"
+  issuegraph config set linear.team_id "TEAM_ID"
+  issuegraph config set linear.team_ids "TEAM_ID1,TEAM_ID2"  # Multiple teams (comma-separated)
+  issuegraph config set linear.project_id "PROJECT_ID"  # Optional: sync only this project
 
 Environment variables (alternative to config):
   LINEAR_API_KEY  - Linear API key (for individual developers)
@@ -51,55 +51,55 @@ OAuth (for CI workers / automated sync):
   Precedence: OAuth > LINEAR_API_KEY > config file.
 
 Data Mapping (optional, sensible defaults provided):
-  Priority mapping (Linear 0-4 to Beads 0-4):
-    bd config set linear.priority_map.0 4    # No priority -> Backlog
-    bd config set linear.priority_map.1 0    # Urgent -> Critical
-    bd config set linear.priority_map.2 1    # High -> High
-    bd config set linear.priority_map.3 2    # Medium -> Medium
-    bd config set linear.priority_map.4 3    # Low -> Low
+  Priority mapping (Linear 0-4 to IssueGraph 0-4):
+    issuegraph config set linear.priority_map.0 4    # No priority -> Backlog
+    issuegraph config set linear.priority_map.1 0    # Urgent -> Critical
+    issuegraph config set linear.priority_map.2 1    # High -> High
+    issuegraph config set linear.priority_map.3 2    # Medium -> Medium
+    issuegraph config set linear.priority_map.4 3    # Low -> Low
 
-  State mapping (Linear state type to Beads status):
-    bd config set linear.state_map.backlog open
-    bd config set linear.state_map.unstarted open
-    bd config set linear.state_map.started in_progress
-    bd config set linear.state_map.completed closed
-    bd config set linear.state_map.canceled closed
-    bd config set linear.state_map.my_custom_state in_progress  # Custom state names
+  State mapping (Linear state type to IssueGraph status):
+    issuegraph config set linear.state_map.backlog open
+    issuegraph config set linear.state_map.unstarted open
+    issuegraph config set linear.state_map.started in_progress
+    issuegraph config set linear.state_map.completed closed
+    issuegraph config set linear.state_map.canceled closed
+    issuegraph config set linear.state_map.my_custom_state in_progress  # Custom state names
 
   Label to issue type mapping:
-    bd config set linear.label_type_map.bug bug
-    bd config set linear.label_type_map.feature feature
-    bd config set linear.label_type_map.epic epic
+    issuegraph config set linear.label_type_map.bug bug
+    issuegraph config set linear.label_type_map.feature feature
+    issuegraph config set linear.label_type_map.epic epic
 
-  Relation type mapping (Linear relations to Beads dependencies):
-    bd config set linear.relation_map.blocks blocks
-    bd config set linear.relation_map.blockedBy blocks
-    bd config set linear.relation_map.duplicate duplicates
-    bd config set linear.relation_map.related related
+  Relation type mapping (Linear relations to IssueGraph dependencies):
+    issuegraph config set linear.relation_map.blocks blocks
+    issuegraph config set linear.relation_map.blockedBy blocks
+    issuegraph config set linear.relation_map.duplicate duplicates
+    issuegraph config set linear.relation_map.related related
 
-  ID generation (optional, hash IDs to match bd/Jira hash mode):
-    bd config set linear.id_mode "hash"      # hash (default)
-    bd config set linear.hash_length "6"     # hash length 3-8 (default: 6)
+  ID generation (optional, hash IDs to match issuegraph/Jira hash mode):
+    issuegraph config set linear.id_mode "hash"      # hash (default)
+    issuegraph config set linear.hash_length "6"     # hash length 3-8 (default: 6)
 
 Examples:
-  bd linear sync --pull         # Import issues from Linear
-  bd linear sync --push         # Export issues to Linear
-  bd linear sync                # Bidirectional sync (pull then push)
-  bd linear sync --dry-run      # Preview sync without changes
-  bd create "Fix login" --external-ref https://linear.app/team/issue/TEAM-123
+  issuegraph linear sync --pull         # Import issues from Linear
+  issuegraph linear sync --push         # Export issues to Linear
+  issuegraph linear sync                # Bidirectional sync (pull then push)
+  issuegraph linear sync --dry-run      # Preview sync without changes
+  issuegraph create "Fix login" --external-ref https://linear.app/team/issue/TEAM-123
                               # Link a local issue to an existing Linear issue
-  bd linear status              # Show sync status`,
+  issuegraph linear status              # Show sync status`,
 }
 
 // linearSyncCmd handles synchronization with Linear.
 var linearSyncCmd = &cobra.Command{
 	Use:   "sync",
 	Short: "Synchronize issues with Linear",
-	Long: `Synchronize issues between beads and Linear.
+	Long: `Synchronize issues between issuegraph and Linear.
 
 Modes:
-  --pull              Import issues from Linear into beads
-  --push              Export issues from beads to Linear
+  --pull              Import issues from Linear into issuegraph
+  --push              Export issues from issuegraph to Linear
   --pull-if-stale     Pull only if data is stale (skip if fresh)
   (no flags)          Bidirectional sync: pull then push, with conflict resolution
 
@@ -122,36 +122,36 @@ Type Filtering (--push only):
   --exclude-type wisp       Exclude issues of these types
   --include-ephemeral       Include ephemeral issues (wisps, etc.); default is to exclude
   --parent TICKET           Only push this ticket and its descendants
-  --relations               Import Linear relations as bd dependencies on pull
+  --relations               Import Linear relations as issuegraph dependencies on pull
 
-Persistent push-direction ID filters (workflow artifacts, sandbox beads, etc.):
-  bd config set linear.exclude_id_prefix "hw-mol-"
-  bd config set linear.exclude_id_patterns "-wisp-,sandbox-,scratch-"
+Persistent push-direction ID filters (workflow artifacts, sandbox issuegraph, etc.):
+  issuegraph config set linear.exclude_id_prefix "hw-mol-"
+  issuegraph config set linear.exclude_id_patterns "-wisp-,sandbox-,scratch-"
 
-  exclude_id_prefix is a single case-sensitive prefix on the bead ID.
+  exclude_id_prefix is a single case-sensitive prefix on the issue ID.
   exclude_id_patterns is a comma-separated list of case-sensitive substrings
-  (matched anywhere in the ID). Both are combined as a union: a bead
-  matching either rule is skipped from push (no create, no update). Beads
+  (matched anywhere in the ID). Both are combined as a union: a issue
+  matching either rule is skipped from push (no create, no update). IssueGraph
   with an existing external_ref that NOW match are silently skipped on
   future syncs; the Linear-side issue persists — archive/delete it manually
   if desired.
 
 Conflict Resolution:
   By default, newer timestamp wins. Override with:
-  --prefer-local    Always prefer local beads version
+  --prefer-local    Always prefer local issuegraph version
   --prefer-linear   Always prefer Linear version
 
 Examples:
-  bd linear sync --pull                         # Import from Linear
-  bd linear sync --pull-if-stale                # Pull only if data is stale
-  bd linear sync --pull-if-stale --threshold 5m # Pull if older than 5 minutes
-  bd linear sync --pull --relations             # Import Linear blocking relations as bd deps
-  bd linear sync --push --create-only           # Push new issues only
-  bd linear sync --push --type=task,feature     # Push only tasks and features
-  bd linear sync --push --exclude-type=wisp     # Push all except wisps
-  bd linear sync --push --parent=bd-abc123      # Push one ticket tree
-  bd linear sync --dry-run                      # Preview without changes
-  bd linear sync --prefer-local                 # Bidirectional, local wins`,
+  issuegraph linear sync --pull                         # Import from Linear
+  issuegraph linear sync --pull-if-stale                # Pull only if data is stale
+  issuegraph linear sync --pull-if-stale --threshold 5m # Pull if older than 5 minutes
+  issuegraph linear sync --pull --relations             # Import Linear blocking relations as issuegraph deps
+  issuegraph linear sync --push --create-only           # Push new issues only
+  issuegraph linear sync --push --type=task,feature     # Push only tasks and features
+  issuegraph linear sync --push --exclude-type=wisp     # Push all except wisps
+  issuegraph linear sync --push --parent=bd-abc123      # Push one ticket tree
+  issuegraph linear sync --dry-run                      # Preview without changes
+  issuegraph linear sync --prefer-local                 # Bidirectional, local wins`,
 	SilenceUsage:  true,
 	SilenceErrors: true,
 	RunE:          runLinearSync,
@@ -180,8 +180,8 @@ var linearTeamsCmd = &cobra.Command{
 Use this to find the team ID (UUID) needed for configuration.
 
 Example:
-  bd linear teams
-  bd config set linear.team_id "12345678-1234-1234-1234-123456789abc"`,
+  issuegraph linear teams
+  issuegraph config set linear.team_id "12345678-1234-1234-1234-123456789abc"`,
 	SilenceUsage:  true,
 	SilenceErrors: true,
 	RunE:          runLinearTeams,
@@ -200,9 +200,9 @@ func init() {
 	linearSyncCmd.Flags().StringSlice("type", nil, "Only sync issues of these types (can be repeated)")
 	linearSyncCmd.Flags().StringSlice("exclude-type", nil, "Exclude issues of these types (can be repeated)")
 	linearSyncCmd.Flags().Bool("include-ephemeral", false, "Include ephemeral issues (wisps, etc.) when pushing to Linear")
-	linearSyncCmd.Flags().String("parent", "", "Limit push to this beads ticket and its descendants")
+	linearSyncCmd.Flags().String("parent", "", "Limit push to this issuegraph ticket and its descendants")
 	linearSyncCmd.Flags().StringSlice("team", nil, "Team ID(s) to sync (overrides configured team_id/team_ids)")
-	linearSyncCmd.Flags().Bool("relations", false, "Import Linear relations as bd dependencies when pulling")
+	linearSyncCmd.Flags().Bool("relations", false, "Import Linear relations as issuegraph dependencies when pulling")
 	linearSyncCmd.Flags().Bool("pull-if-stale", false, "Pull only if Linear data is stale (skip if fresh)")
 	linearSyncCmd.Flags().Duration("threshold", linear.DefaultStaleThreshold, "Staleness threshold for --pull-if-stale (default 20m)")
 	linearSyncCmd.Flags().Bool("no-wait", false, "Fail immediately if another sync is running instead of waiting")
@@ -240,10 +240,10 @@ func runLinearSync(cmd *cobra.Command, args []string) error {
 	noWait, _ := cmd.Flags().GetBool("no-wait")
 
 	if pullIfStale {
-		beadsDir := resolveBeadsDirForStaleness()
-		if beadsDir != "" {
-			if linear.IsWithinDebounce(beadsDir) {
-				info := linear.GetStalenessInfo(beadsDir, threshold)
+		issuegraphDir := resolveIssueGraphDirForStaleness()
+		if issuegraphDir != "" {
+			if linear.IsWithinDebounce(issuegraphDir) {
+				info := linear.GetStalenessInfo(issuegraphDir, threshold)
 				if jsonOutput {
 					return outputJSON(map[string]interface{}{
 						"is_fresh":  true,
@@ -256,8 +256,8 @@ func runLinearSync(cmd *cobra.Command, args []string) error {
 				return nil
 			}
 
-			if !linear.IsPullStale(beadsDir, threshold) {
-				info := linear.GetStalenessInfo(beadsDir, threshold)
+			if !linear.IsPullStale(issuegraphDir, threshold) {
+				info := linear.GetStalenessInfo(issuegraphDir, threshold)
 				if jsonOutput {
 					return outputJSON(map[string]interface{}{
 						"is_fresh":  true,
@@ -273,7 +273,7 @@ func runLinearSync(cmd *cobra.Command, args []string) error {
 		pull = true
 	}
 
-	if lockDir := beads.FindBeadsDir(); lockDir != "" {
+	if lockDir := issuegraph.FindIssueGraphDir(); lockDir != "" {
 		wait := !noWait
 		if !wait {
 			fmt.Fprintln(os.Stderr, "Acquiring sync lock (non-blocking)...")
@@ -284,10 +284,10 @@ func runLinearSync(cmd *cobra.Command, args []string) error {
 		if err != nil {
 			if held, ok := err.(*linear.SyncLockHeldError); ok {
 				if held.Info != nil {
-					return HandleError("another bd linear sync is already running (PID %d, started %s)",
+					return HandleError("another issuegraph linear sync is already running (PID %d, started %s)",
 						held.Info.PID, held.Info.Started.Format("15:04:05"))
 				}
-				return HandleError("another bd linear sync is already running")
+				return HandleError("another issuegraph linear sync is already running")
 			}
 			return HandleError("acquiring sync lock: %v", err)
 		}
@@ -324,7 +324,7 @@ func runLinearSync(cmd *cobra.Command, args []string) error {
 
 	if willPush && len(teamIDs) > 1 && len(cliTeams) == 0 {
 		return HandleErrorRespectJSON("push requires explicit --team flag when multiple teams are configured\n" +
-			"Use: bd linear sync --push --team <TEAM_ID>")
+			"Use: issuegraph linear sync --push --team <TEAM_ID>")
 	}
 
 	lt := &linear.Tracker{}
@@ -405,7 +405,7 @@ func runLinearSync(cmd *cobra.Command, args []string) error {
 	// mutation is skipped per-link.
 	//
 	// Skipped on scoped syncs (--parent / --type / --exclude-type / --since
-	// / --issue-id) because the reconciler walks ALL local beads with
+	// / --issue-id) because the reconciler walks ALL local issuegraph with
 	// external_refs, not just the in-scope ones — a scoped sync that
 	// silently mutated other parts of the tree would surprise the user.
 	// A full sync still picks up the repair on the next run.
@@ -413,7 +413,7 @@ func runLinearSync(cmd *cobra.Command, args []string) error {
 	// `effectivePush` mirrors engine.Sync's bidirectional default: when
 	// neither --pull nor --push is passed, the engine internally runs both
 	// directions, so the reconcile pass must also fire (otherwise
-	// `bd linear sync --dry-run` with no direction flag silently skips the
+	// `issuegraph linear sync --dry-run` with no direction flag silently skips the
 	// preview). We can't read opts.Push after engine.Sync because Sync
 	// receives opts by value.
 	effectivePush := push || (!push && !pull)
@@ -423,8 +423,8 @@ func runLinearSync(cmd *cobra.Command, args []string) error {
 
 	// Record successful pull timestamp
 	if (pull || !push) && !dryRun {
-		if beadsDir := resolveBeadsDirForStaleness(); beadsDir != "" {
-			_ = linear.WriteLastPullTimestamp(beadsDir)
+		if issuegraphDir := resolveIssueGraphDirForStaleness(); issuegraphDir != "" {
+			_ = linear.WriteLastPullTimestamp(issuegraphDir)
 		}
 	}
 
@@ -511,7 +511,7 @@ func buildLinearPullHooksForStore(ctx context.Context, st tracker.Store, opts li
 			var err error
 			prefix, err = st.GetConfig(ctx, "issue_prefix")
 			if err != nil || prefix == "" {
-				prefix = "bd"
+				prefix = "issuegraph"
 			}
 		}
 
@@ -771,11 +771,11 @@ func buildLinearPushHooksForStore(ctx context.Context, st tracker.Store, lt *lin
 			if ok && remoteIssue != nil {
 				return linear.PushFieldsEqual(local, remoteIssue, config, loadPushLabelCache())
 			}
-			remoteConv := lt.FieldMapper().IssueToBeads(remote)
+			remoteConv := lt.FieldMapper().IssueToIssueGraph(remote)
 			if remoteConv == nil || remoteConv.Issue == nil {
 				return false
 			}
-			return linear.PushFieldsEqualToBeads(local, remoteConv.Issue)
+			return linear.PushFieldsEqualToIssueGraph(local, remoteConv.Issue)
 		},
 		BuildStateCache: func(ctx context.Context) (interface{}, error) {
 			return linear.BuildStateCacheFromTracker(ctx, lt)
@@ -785,7 +785,7 @@ func buildLinearPushHooksForStore(ctx context.Context, st tracker.Store, lt *lin
 			if !ok || sc == nil {
 				return "", false
 			}
-			id := sc.FindStateForBeadsStatus(status)
+			id := sc.FindStateForIssueGraphStatus(status)
 			return id, id != ""
 		},
 		ShouldPush: func(issue *types.Issue) bool {
@@ -890,9 +890,9 @@ func runLinearStatus(cmd *cobra.Command, args []string) error {
 		fmt.Println("Status: Not configured")
 		fmt.Println()
 		fmt.Println("To configure Linear integration:")
-		fmt.Println("  bd config set linear.api_key \"YOUR_API_KEY\"")
-		fmt.Println("  bd config set linear.team_id \"TEAM_ID\"")
-		fmt.Println("  bd config set linear.team_ids \"TEAM_ID1,TEAM_ID2\"  # multiple teams")
+		fmt.Println("  issuegraph config set linear.api_key \"YOUR_API_KEY\"")
+		fmt.Println("  issuegraph config set linear.team_id \"TEAM_ID\"")
+		fmt.Println("  issuegraph config set linear.team_ids \"TEAM_ID1,TEAM_ID2\"  # multiple teams")
 		fmt.Println()
 		fmt.Println("Or use environment variables:")
 		fmt.Println("  export LINEAR_API_KEY=\"YOUR_API_KEY\"")
@@ -926,7 +926,7 @@ func runLinearStatus(cmd *cobra.Command, args []string) error {
 
 	if pendingPush > 0 {
 		fmt.Println()
-		fmt.Printf("Run 'bd linear sync --push' to push %d local issue(s) to Linear\n", pendingPush)
+		fmt.Printf("Run 'issuegraph linear sync --push' to push %d local issue(s) to Linear\n", pendingPush)
 	}
 	return nil
 }
@@ -942,7 +942,7 @@ func runLinearTeams(cmd *cobra.Command, args []string) error {
 	ctx := rootCtx
 
 	// Team discovery is API-only and must not initialize or probe a local
-	// beads store. In proxied mode, read config through the existing UOW seam.
+	// issuegraph store. In proxied mode, read config through the existing UOW seam.
 	var configStore tracker.Store
 	var err error
 	if usesProxiedServer() {
@@ -982,19 +982,19 @@ func runLinearTeams(cmd *cobra.Command, args []string) error {
 	}
 	fmt.Println()
 	fmt.Println("To configure:")
-	fmt.Println("  bd config set linear.team_id \"<ID>\"")
-	fmt.Println("  bd config set linear.team_ids \"<ID1>,<ID2>\"  # multiple teams")
+	fmt.Println("  issuegraph config set linear.team_id \"<ID>\"")
+	fmt.Println("  issuegraph config set linear.team_ids \"<ID1>,<ID2>\"  # multiple teams")
 	return nil
 }
 
-// resolveBeadsDirForStaleness returns the active beads directory for
-// staleness tracking. Falls back to BEADS_DIR env, then dbPath resolution.
-func resolveBeadsDirForStaleness() string {
-	if dir := os.Getenv("BEADS_DIR"); dir != "" {
+// resolveIssueGraphDirForStaleness returns the active issuegraph directory for
+// staleness tracking. Falls back to ISSUEGRAPH_DIR env, then dbPath resolution.
+func resolveIssueGraphDirForStaleness() string {
+	if dir := os.Getenv("ISSUEGRAPH_DIR"); dir != "" {
 		return dir
 	}
 	if dbPath != "" {
-		return resolveCommandBeadsDir(dbPath)
+		return resolveCommandIssueGraphDir(dbPath)
 	}
 	return ""
 }
@@ -1026,13 +1026,13 @@ func validateLinearConfigForStore(st tracker.Store, cliTeams []string) error {
 			return fmt.Errorf("Linear authentication not configured\n" +
 				"Options:\n" +
 				"  OAuth (for CI):  export LINEAR_OAUTH_CLIENT_ID=... LINEAR_OAUTH_CLIENT_SECRET=...\n" +
-				"  API key (devs):  export LINEAR_API_KEY=... or bd config set linear.api_key \"YOUR_API_KEY\"")
+				"  API key (devs):  export LINEAR_API_KEY=... or issuegraph config set linear.api_key \"YOUR_API_KEY\"")
 		}
 	}
 
 	teamIDs := getLinearTeamIDsForStore(ctx, st, cliTeams)
 	if len(teamIDs) == 0 {
-		return fmt.Errorf("no Linear team ID configured\nRun: bd config set linear.team_id \"TEAM_ID\"\nOr:  bd config set linear.team_ids \"TEAM_ID1,TEAM_ID2\"\nOr: export LINEAR_TEAM_ID=TEAM_ID")
+		return fmt.Errorf("no Linear team ID configured\nRun: issuegraph config set linear.team_id \"TEAM_ID\"\nOr:  issuegraph config set linear.team_ids \"TEAM_ID1,TEAM_ID2\"\nOr: export LINEAR_TEAM_ID=TEAM_ID")
 	}
 
 	for _, id := range teamIDs {
@@ -1082,7 +1082,7 @@ func getLinearConfigForStore(ctx context.Context, st tracker.Store, key string) 
 	if st != nil {
 		value, _ = st.GetConfig(ctx, key) // Best effort: empty value is valid fallback
 		if value != "" {
-			return value, "project config (bd config)"
+			return value, "project config (issuegraph config)"
 		}
 	} else if dbPath != "" {
 		tempStore, err := openReadOnlyStoreForDBPath(ctx, dbPath)
@@ -1090,7 +1090,7 @@ func getLinearConfigForStore(ctx context.Context, st tracker.Store, key string) 
 			defer func() { _ = tempStore.Close() }()
 			value, _ = tempStore.GetConfig(ctx, key) // Best effort: empty value is valid fallback
 			if value != "" {
-				return value, "project config (bd config)"
+				return value, "project config (issuegraph config)"
 			}
 		}
 	}
@@ -1137,7 +1137,7 @@ func getLinearTeamIDsForStore(ctx context.Context, st tracker.Store, cliTeams []
 	return tracker.ResolveProjectIDs(cliTeams, pluralVal, singularVal)
 }
 
-// getLinearClient creates a configured Linear client from beads config.
+// getLinearClient creates a configured Linear client from issuegraph config.
 // Uses the first configured team ID for operations that require a single team.
 //
 // Auth precedence:
@@ -1164,7 +1164,7 @@ func getLinearClient(ctx context.Context) (*linear.Client, error) {
 			client = client.WithProjectID(projectID)
 		}
 		// Apply optional rate-limit circuit-breaker floor.
-		// Readable/settable via `bd config get/set linear.rate_limit_floor`.
+		// Readable/settable via `issuegraph config get/set linear.rate_limit_floor`.
 		// Also honored via the LINEAR_RATE_LIMIT_FLOOR environment variable.
 		floorStr, _ := getLinearConfig(ctx, "linear.rate_limit_floor")
 		if floorStr == "" {
@@ -1200,7 +1200,7 @@ func buildLinearClient(ctx context.Context, teamID string) (*linear.Client, erro
 		return nil, fmt.Errorf("Linear authentication not configured\n" +
 			"Options:\n" +
 			"  OAuth (for CI):  export LINEAR_OAUTH_CLIENT_ID=... LINEAR_OAUTH_CLIENT_SECRET=...\n" +
-			"  API key (devs):  export LINEAR_API_KEY=... or bd config set linear.api_key \"...\"")
+			"  API key (devs):  export LINEAR_API_KEY=... or issuegraph config set linear.api_key \"...\"")
 	}
 
 	return linear.NewClient(apiKey, teamID), nil
@@ -1249,7 +1249,7 @@ func (l *storeConfigLoader) GetAllConfig() (map[string]string, error) {
 	return store.GetAllConfig(l.ctx)
 }
 
-// loadLinearMappingConfig loads mapping configuration from beads config.
+// loadLinearMappingConfig loads mapping configuration from issuegraph config.
 func loadLinearMappingConfig(ctx context.Context) *linear.MappingConfig {
 	if store == nil {
 		return linear.DefaultMappingConfig()
@@ -1321,7 +1321,7 @@ func getLinearHashLengthForStore(ctx context.Context, st tracker.Store) int {
 }
 
 // syncIsScoped returns true when the user explicitly constrained THIS
-// invocation to a specific subset of beads (via --parent, --issues, or
+// invocation to a specific subset of issuegraph (via --parent, --issues, or
 // --type). The parent reconcile pass is skipped on scoped syncs because
 // it walks the full local tree, which could mutate Linear-side state
 // outside the scope the user asked for.
@@ -1349,7 +1349,7 @@ func syncIsScoped(opts *tracker.SyncOptions) bool {
 	return false
 }
 
-// reconcileLinearParents runs as a post-sync pass to wire parent-child bead
+// reconcileLinearParents runs as a post-sync pass to wire parent-child issue
 // dependencies into Linear's parent issue field. Idempotent — no API call
 // when the remote parent already matches.
 //
@@ -1358,7 +1358,7 @@ func syncIsScoped(opts *tracker.SyncOptions) bool {
 //  1. Fresh tree push: when a child is pushed before its parent in the same
 //     sync, the create call has no parentId to send. After all issues have
 //     external_refs, this pass closes the loop.
-//  2. Orphan repair: existing Linear issues created in earlier bd versions
+//  2. Orphan repair: existing Linear issues created in earlier issuegraph versions
 //     (or by interrupted syncs) without a parent get wired up retroactively.
 //
 // In dry-run mode the read-only fetches still run and the per-link mutation
@@ -1418,12 +1418,12 @@ func reconcileLinearParentsForStore(ctx context.Context, st tracker.Store, lt *l
 	}
 }
 
-// buildLinearParentLinks enumerates local beads with a Linear external_ref
+// buildLinearParentLinks enumerates local issuegraph with a Linear external_ref
 // and a parent-child dependency to a parent that also has a Linear
 // external_ref. The result is the set of (child, parent) pairs whose
 // Linear parent field should be set.
 //
-// Beads whose parent isn't yet synced to Linear are silently skipped —
+// IssueGraph whose parent isn't yet synced to Linear are silently skipped —
 // they'll get picked up on a subsequent sync once the parent has an
 // external_ref.
 func buildLinearParentLinks(ctx context.Context, lt *linear.Tracker) ([]linear.ParentLink, error) {
@@ -1438,8 +1438,8 @@ func buildLinearParentLinksForStore(ctx context.Context, st tracker.Store, lt *l
 	if err != nil {
 		return nil, err
 	}
-	// First pass: build bead_id → linear-identifier index, restricted to
-	// beads whose ref looks like a Linear ref.
+	// First pass: build issue_id → linear-identifier index, restricted to
+	// issuegraph whose ref looks like a Linear ref.
 	idToIdent := make(map[string]string, len(issues))
 	for _, issue := range issues {
 		if issue.ExternalRef == nil {
@@ -1458,7 +1458,7 @@ func buildLinearParentLinksForStore(ctx context.Context, st tracker.Store, lt *l
 	if len(idToIdent) == 0 {
 		return nil, nil
 	}
-	// Second pass: walk each child-bead's dependencies, find the
+	// Second pass: walk each child-issue's dependencies, find the
 	// parent-child edge, and emit a link if both ends are Linear-synced.
 	links := make([]linear.ParentLink, 0)
 	for _, issue := range issues {

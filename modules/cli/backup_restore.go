@@ -6,30 +6,30 @@ import (
 	"os"
 	"strings"
 
+	"github.com/borg0ai/dx-issuegraph/internal/configfile"
+	"github.com/borg0ai/dx-issuegraph/internal/issuegraph"
+	"github.com/borg0ai/dx-issuegraph/internal/metrics"
+	"github.com/borg0ai/dx-issuegraph/internal/storage"
+	"github.com/borg0ai/dx-issuegraph/internal/ui"
 	"github.com/spf13/cobra"
-	"github.com/steveyegge/beads/internal/beads"
-	"github.com/steveyegge/beads/internal/configfile"
-	"github.com/steveyegge/beads/internal/metrics"
-	"github.com/steveyegge/beads/internal/storage"
-	"github.com/steveyegge/beads/internal/ui"
 )
 
 var backupRestoreCmd = &cobra.Command{
 	Use:   "restore [path]",
 	Short: "Restore database from a Dolt backup",
-	Long: `Restore the beads database from a Dolt-native backup.
+	Long: `Restore the issuegraph database from a Dolt-native backup.
 
-By default, reads from .beads/backup/ (or the configured backup directory).
+By default, reads from .issuegraph/backup/ (or the configured backup directory).
 Optionally specify a path to a directory containing a Dolt backup.
 
-This restores a full database backup created by 'bd backup sync' or an
-equivalent Dolt backup. JSONL files produced by 'bd export' are issue exports,
+This restores a full database backup created by 'issuegraph backup sync' or an
+equivalent Dolt backup. JSONL files produced by 'issuegraph export' are issue exports,
 not restore targets for this command.
 
 Use --force to overwrite an existing database with the backup contents.
 
-The database must already be initialized (run 'bd init' first if needed).
-To initialize and restore in one step, use: bd init && bd backup restore`,
+The database must already be initialized (run 'issuegraph init' first if needed).
+To initialize and restore in one step, use: issuegraph init && issuegraph backup restore`,
 	Args:          cobra.MaximumNArgs(1),
 	SilenceUsage:  true,
 	SilenceErrors: true,
@@ -90,7 +90,7 @@ func init() {
 // runBackupRestore restores the database from a Dolt-native backup.
 func runBackupRestore(ctx context.Context, s storage.DoltStorage, dir string, force bool) error {
 	if s == nil {
-		return fmt.Errorf("database is not initialized. Run 'bd init' first")
+		return fmt.Errorf("database is not initialized. Run 'issuegraph init' first")
 	}
 
 	bs, ok := storage.UnwrapStore(s).(storage.BackupStore)
@@ -113,10 +113,10 @@ func runBackupRestore(ctx context.Context, s storage.DoltStorage, dir string, fo
 	}
 
 	// Register the restore source as the backup destination so
-	// `bd backup sync` works immediately without a separate `bd backup add`.
+	// `issuegraph backup sync` works immediately without a separate `issuegraph backup add`.
 	registerBackupRemote(ctx, bs, dir)
 
-	if err := s.Commit(ctx, "bd backup restore"); err != nil {
+	if err := s.Commit(ctx, "issuegraph backup restore"); err != nil {
 		if !strings.Contains(err.Error(), "nothing to commit") {
 			return fmt.Errorf("failed to commit restore: %w", err)
 		}
@@ -149,12 +149,12 @@ func syncProjectIDFromDB(ctx context.Context, s storage.DoltStorage) error {
 		return err
 	}
 
-	beadsDir := beads.FindBeadsDir()
-	if beadsDir == "" {
+	issuegraphDir := issuegraph.FindIssueGraphDir()
+	if issuegraphDir == "" {
 		return fmt.Errorf("%s; %s", activeWorkspaceNotFoundError(), diagHint())
 	}
 
-	cfg, err := configfile.Load(beadsDir)
+	cfg, err := configfile.Load(issuegraphDir)
 	if err != nil {
 		return err
 	}
@@ -164,12 +164,12 @@ func syncProjectIDFromDB(ctx context.Context, s storage.DoltStorage) error {
 	}
 
 	cfg.ProjectID = dbID
-	return cfg.Save(beadsDir)
+	return cfg.Save(issuegraphDir)
 }
 
 func validateBackupRestoreDir(dir string) error {
 	if _, err := os.Stat(dir); os.IsNotExist(err) {
-		return fmt.Errorf("backup directory not found: %s\nRun 'bd backup' first to create a backup", dir)
+		return fmt.Errorf("backup directory not found: %s\nRun 'issuegraph backup' first to create a backup", dir)
 	}
 	return nil
 }

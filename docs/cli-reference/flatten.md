@@ -1,11 +1,11 @@
 ---
-title: "bd flatten"
+title: "issuegraph flatten"
 description: "Nuclear option: squash ALL Dolt commit history into a single commit."
 ---
 
 {/* AUTO-GENERATED: do not edit manually */}
 
-Generated from `bd help --doc flatten`.
+Generated from `issuegraph help --doc flatten`.
 
 Nuclear option: squash ALL Dolt commit history into a single commit.
 
@@ -20,17 +20,17 @@ This is irreversible — all commit history is lost. The resulting database
 has exactly one commit containing all current data.
 
 Use this when:
-  - Your .beads/dolt directory has grown very large
+  - Your .issuegraph/dolt directory has grown very large
   - You don't need commit-level history (time travel)
   - You want to start fresh with minimal storage
 
 Examples:
-  bd flatten --dry-run               # Preview: show commit count and disk usage
-  bd flatten --force                 # Actually squash all history
-  bd flatten --force --json          # JSON output
+  issuegraph flatten --dry-run               # Preview: show commit count and disk usage
+  issuegraph flatten --force                 # Actually squash all history
+  issuegraph flatten --force --json          # JSON output
 
 ```
-bd flatten [flags]
+issuegraph flatten [flags]
 ```
 
 **Flags:**

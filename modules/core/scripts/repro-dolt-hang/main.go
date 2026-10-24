@@ -31,8 +31,8 @@ import (
 	"syscall"
 	"time"
 
+	"github.com/borg0ai/dx-issuegraph/internal/storage/doltutil"
 	_ "github.com/go-sql-driver/mysql"
-	"github.com/steveyegge/beads/internal/storage/doltutil"
 )
 
 const (
@@ -329,7 +329,7 @@ func runWorkers(ctx context.Context, dsn string, numWorkers, opsPerWorker int, u
 		go func(workerID int) {
 			defer wg.Done()
 
-			// Each worker gets its own sql.DB (mimics separate bd processes)
+			// Each worker gets its own sql.DB (mimics separate issuegraph processes)
 			db, err := sql.Open("mysql", dsn)
 			if err != nil {
 				mu.Lock()

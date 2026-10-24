@@ -9,46 +9,46 @@ import (
 	"testing"
 )
 
-// bdComment runs "bd comments add" with the given args and returns stdout.
-func bdComment(t *testing.T, bd, dir string, args ...string) string {
+// issuegraphComment runs "issuegraph comments add" with the given args and returns stdout.
+func issuegraphComment(t *testing.T, issuegraph, dir string, args ...string) string {
 	t.Helper()
 	fullArgs := append([]string{"comments", "add"}, args...)
-	cmd := exec.Command(bd, fullArgs...)
+	cmd := exec.Command(issuegraph, fullArgs...)
 	cmd.Dir = dir
-	cmd.Env = bdEnv(dir)
+	cmd.Env = issuegraphEnv(dir)
 	stdout, stderr, err := runCommandBuffers(t, cmd)
 	if err != nil {
-		t.Fatalf("bd comments add %s failed: %v\nstdout:\n%s\nstderr:\n%s", strings.Join(args, " "), err, stdout.String(), stderr.String())
+		t.Fatalf("issuegraph comments add %s failed: %v\nstdout:\n%s\nstderr:\n%s", strings.Join(args, " "), err, stdout.String(), stderr.String())
 	}
 	return stdout.String()
 }
 
-// bdCommentList runs "bd comments list" and returns stdout.
-func bdCommentList(t *testing.T, bd, dir, issueID string) string {
+// issuegraphCommentList runs "issuegraph comments list" and returns stdout.
+func issuegraphCommentList(t *testing.T, issuegraph, dir, issueID string) string {
 	t.Helper()
-	cmd := exec.Command(bd, "comments", "list", issueID)
+	cmd := exec.Command(issuegraph, "comments", "list", issueID)
 	cmd.Dir = dir
-	cmd.Env = bdEnv(dir)
+	cmd.Env = issuegraphEnv(dir)
 	stdout, stderr, err := runCommandBuffers(t, cmd)
 	if err != nil {
-		t.Fatalf("bd comments list %s failed: %v\nstdout:\n%s\nstderr:\n%s", issueID, err, stdout.String(), stderr.String())
+		t.Fatalf("issuegraph comments list %s failed: %v\nstdout:\n%s\nstderr:\n%s", issueID, err, stdout.String(), stderr.String())
 	}
 	return stdout.String()
 }
 
 func TestEmbeddedComments(t *testing.T) {
-	if os.Getenv("BEADS_TEST_EMBEDDED_DOLT") != "1" {
-		t.Skip("set BEADS_TEST_EMBEDDED_DOLT=1 to run embedded dolt integration tests")
+	if os.Getenv("ISSUEGRAPH_TEST_EMBEDDED_DOLT") != "1" {
+		t.Skip("set ISSUEGRAPH_TEST_EMBEDDED_DOLT=1 to run embedded dolt integration tests")
 	}
 	t.Parallel()
 
-	bd := buildEmbeddedBD(t)
-	dir, beadsDir, _ := bdInit(t, bd, "--prefix", "cm")
+	issuegraph := buildEmbeddedBD(t)
+	dir, issuegraphDir, _ := issuegraphInit(t, issuegraph, "--prefix", "cm")
 
 	t.Run("add_and_list_comment", func(t *testing.T) {
-		issue := bdCreate(t, bd, dir, "Comment target", "--type", "task")
+		issue := issuegraphCreate(t, issuegraph, dir, "Comment target", "--type", "task")
 
-		store := openStore(t, beadsDir, "cm")
+		store := openStore(t, issuegraphDir, "cm")
 		comment, err := store.AddIssueComment(t.Context(), issue.ID, "tester", "Hello world")
 		if err != nil {
 			t.Fatalf("AddIssueComment: %v", err)
@@ -81,16 +81,16 @@ func TestEmbeddedComments(t *testing.T) {
 	})
 
 	t.Run("add_comment_event", func(t *testing.T) {
-		issue := bdCreate(t, bd, dir, "Event comment target", "--type", "task")
+		issue := issuegraphCreate(t, issuegraph, dir, "Event comment target", "--type", "task")
 
-		store := openStore(t, beadsDir, "cm")
+		store := openStore(t, issuegraphDir, "cm")
 		if err := store.AddComment(t.Context(), issue.ID, "actor", "A comment event"); err != nil {
 			t.Fatalf("AddComment: %v", err)
 		}
 	})
 
 	t.Run("add_comment_nonexistent_issue", func(t *testing.T) {
-		store := openStore(t, beadsDir, "cm")
+		store := openStore(t, issuegraphDir, "cm")
 		_, err := store.AddIssueComment(t.Context(), "cm-nonexistent999", "tester", "nope")
 		if err == nil {
 			t.Error("expected error for nonexistent issue")
@@ -99,19 +99,19 @@ func TestEmbeddedComments(t *testing.T) {
 }
 
 func TestEmbeddedPromote(t *testing.T) {
-	if os.Getenv("BEADS_TEST_EMBEDDED_DOLT") != "1" {
-		t.Skip("set BEADS_TEST_EMBEDDED_DOLT=1 to run embedded dolt integration tests")
+	if os.Getenv("ISSUEGRAPH_TEST_EMBEDDED_DOLT") != "1" {
+		t.Skip("set ISSUEGRAPH_TEST_EMBEDDED_DOLT=1 to run embedded dolt integration tests")
 	}
 	t.Parallel()
 
-	bd := buildEmbeddedBD(t)
-	dir, beadsDir, _ := bdInit(t, bd, "--prefix", "pm")
+	issuegraph := buildEmbeddedBD(t)
+	dir, issuegraphDir, _ := issuegraphInit(t, issuegraph, "--prefix", "pm")
 
 	t.Run("promote_wisp", func(t *testing.T) {
 		// Create an ephemeral issue (routes to wisps table).
-		issue := bdCreate(t, bd, dir, "Promote me", "--ephemeral")
+		issue := issuegraphCreate(t, issuegraph, dir, "Promote me", "--ephemeral")
 
-		store := openStore(t, beadsDir, "pm")
+		store := openStore(t, issuegraphDir, "pm")
 
 		// Verify it's a wisp before promote.
 		got, err := store.GetIssue(t.Context(), issue.ID)
@@ -138,7 +138,7 @@ func TestEmbeddedPromote(t *testing.T) {
 	})
 
 	t.Run("promote_nonexistent_wisp", func(t *testing.T) {
-		store := openStore(t, beadsDir, "pm")
+		store := openStore(t, issuegraphDir, "pm")
 		err := store.PromoteFromEphemeral(t.Context(), "pm-nonexistent999", "tester")
 		if err == nil {
 			t.Error("expected error for nonexistent wisp")

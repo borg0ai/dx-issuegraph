@@ -7,10 +7,10 @@ import (
 	"github.com/spf13/cobra"
 	"github.com/spf13/pflag"
 
-	"github.com/steveyegge/beads/internal/metrics"
-	"github.com/steveyegge/beads/internal/storage/issueops"
-	"github.com/steveyegge/beads/internal/types"
-	"github.com/steveyegge/beads/internal/ui"
+	"github.com/borg0ai/dx-issuegraph/internal/metrics"
+	"github.com/borg0ai/dx-issuegraph/internal/storage/issueops"
+	"github.com/borg0ai/dx-issuegraph/internal/types"
+	"github.com/borg0ai/dx-issuegraph/internal/ui"
 )
 
 var reclaimCmd = &cobra.Command{
@@ -20,7 +20,7 @@ var reclaimCmd = &cobra.Command{
 	Long: `Revert in_progress issues whose lease has gone stale back to ready.
 
 When a worker claims an issue it takes a lease that expires after a TTL, kept
-alive by 'bd heartbeat'. A worker that dies stops heartbeating, so its lease
+alive by 'issuegraph heartbeat'. A worker that dies stops heartbeating, so its lease
 expires and its issue would otherwise stay in_progress forever. reclaim is the
 reaper: it finds in_progress issues whose lease expired more than --older-than
 ago, clears the assignee, and sets them back to open so another worker can
@@ -44,7 +44,7 @@ replica's view of the holder's liveness is stale by up to one sync interval,
 so a reaper elsewhere can revert a unit that is very much alive over there.
 reclaim therefore records the granting replica on each lease and SKIPS a lease
 another replica granted, summarizing what it declined on stderr (one line per
-run; 'bd -v' expands it to the first 20 leases individually). Reap it where it
+run; 'issuegraph -v' expands it to the first 20 leases individually). Reap it where it
 was granted; use --any-replica only when that replica is permanently gone (or
 when this node was renamed and its own old leases now look foreign — an
 ordinary heartbeat keeps a lease alive but does not re-home it to the node
@@ -58,9 +58,9 @@ Two invariants the guard cannot enforce for you:
 A TTL or grace shorter than the cadence at which replicas exchange state is
 meaningless across the bridge — the remote view is a full interval old by
 construction. Raise the TTL/grace above the sync interval, never the reverse.
-The guard is opt-in: set BEADS_NODE_ID, or run 'bd config set node_id <name>'
-(which writes the per-machine ~/.config/bd/config.yaml — never commit a node_id
-to the git-tracked .beads/config.yaml, or every clone reads the same name and
+The guard is opt-in: set ISSUEGRAPH_NODE_ID, or run 'issuegraph config set node_id <name>'
+(which writes the per-machine ~/.config/issuegraph/config.yaml — never commit a node_id
+to the git-tracked .issuegraph/config.yaml, or every clone reads the same name and
 the guard goes armed-but-inert). One id per STORE, not per host: machines that
 are clients of the same dolt sql-server are ONE replica and must share one value
 or leave it unset. There is no hostname fallback — the hostname names the client
@@ -68,14 +68,14 @@ process's machine, not the store — so an unnamed deployment keeps the old,
 unguarded behavior instead of stranding its own work.
 
 Examples:
-  bd reclaim                       # default grace window (2× the lease TTL)
-  bd reclaim --older-than 10m      # reclaim leases expired >10m ago
-  bd reclaim --older-than 0s       # reclaim every currently-expired lease
-  bd reclaim --label lane-a        # only this machine's claim partition
-  bd reclaim --label-any lane-a,lane-b --exclude-label pinned
-  bd reclaim --assignee zelda --assignee epona   # only these workers' leases
-  bd reclaim --id wy-abc --id wy-def             # exactly these issues
-  bd reclaim --any-replica         # also reap leases granted by a departed replica`,
+  issuegraph reclaim                       # default grace window (2× the lease TTL)
+  issuegraph reclaim --older-than 10m      # reclaim leases expired >10m ago
+  issuegraph reclaim --older-than 0s       # reclaim every currently-expired lease
+  issuegraph reclaim --label lane-a        # only this machine's claim partition
+  issuegraph reclaim --label-any lane-a,lane-b --exclude-label pinned
+  issuegraph reclaim --assignee zelda --assignee epona   # only these workers' leases
+  issuegraph reclaim --id wy-abc --id wy-def             # exactly these issues
+  issuegraph reclaim --any-replica         # also reap leases granted by a departed replica`,
 	Args:          cobra.NoArgs,
 	SilenceUsage:  true,
 	SilenceErrors: true,
@@ -154,7 +154,7 @@ func renderReclaim(reclaimed []types.ReclaimedLease, scoped bool) error {
 }
 
 // registerReclaimScopeFlags declares the scope filters — the same label surface
-// as the claim side (bd ready --claim), so a fleet can reclaim exactly the
+// as the claim side (issuegraph ready --claim), so a fleet can reclaim exactly the
 // partition it claims from. Split out of init() so tests can exercise the real
 // flag set on a fresh command instead of a hand-copied one.
 func registerReclaimScopeFlags(fs *pflag.FlagSet) {
@@ -170,7 +170,7 @@ func registerReclaimScopeFlags(fs *pflag.FlagSet) {
 // reclaimFilterFromFlags maps the scope flags onto a types.ReclaimFilter,
 // rejecting a flag that was SUPPLIED but carries no usable value.
 //
-// The hard error is the point. `bd reclaim --label "$LANE"` with LANE unset
+// The hard error is the point. `issuegraph reclaim --label "$LANE"` with LANE unset
 // parses to an empty slice, which would otherwise be indistinguishable from
 // "no --label at all" — i.e. a supervisor's scoped sweep silently degrading
 // into a global one that reaps every stale lease in a federated database. A

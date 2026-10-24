@@ -7,11 +7,11 @@ import (
 	"strconv"
 	"time"
 
-	"github.com/steveyegge/beads/internal/metrics"
-	"github.com/steveyegge/beads/internal/storage/domain"
-	"github.com/steveyegge/beads/internal/storage/uow"
-	"github.com/steveyegge/beads/internal/storage/versioncontrolops"
-	"github.com/steveyegge/beads/internal/types"
+	"github.com/borg0ai/dx-issuegraph/internal/metrics"
+	"github.com/borg0ai/dx-issuegraph/internal/storage/domain"
+	"github.com/borg0ai/dx-issuegraph/internal/storage/uow"
+	"github.com/borg0ai/dx-issuegraph/internal/storage/versioncontrolops"
+	"github.com/borg0ai/dx-issuegraph/internal/types"
 )
 
 func runGCProxiedServer(ctx context.Context) error {
@@ -97,7 +97,7 @@ func runGCProxiedServer(ctx context.Context) error {
 				if err != nil {
 					return domain.DeleteIssuesResult{}, "", err
 				}
-				return res, fmt.Sprintf("bd: gc decay %d issue(s)", res.DeletedCount), nil
+				return res, fmt.Sprintf("issuegraph: gc decay %d issue(s)", res.DeletedCount), nil
 			})
 			if err != nil {
 				return HandleErrorRespectJSON("deleting closed issues: %v", err)
@@ -136,13 +136,13 @@ func runGCProxiedServer(ctx context.Context) error {
 		results = append(results, phaseResult{name: "Compact", detail: "nothing to compact"})
 	} else if gcDryRun {
 		if !jsonOutput {
-			fmt.Printf("  %d commits in history (use bd flatten to squash)\n\n", commitCount)
+			fmt.Printf("  %d commits in history (use issuegraph flatten to squash)\n\n", commitCount)
 		}
 		results = append(results, phaseResult{name: "Compact", detail: fmt.Sprintf("%d commits (dry-run)", commitCount)})
 	} else {
 		if !jsonOutput {
 			fmt.Printf("  %d commits in history\n", commitCount)
-			fmt.Printf("  Tip: use 'bd flatten' to squash all history to one commit\n\n")
+			fmt.Printf("  Tip: use 'issuegraph flatten' to squash all history to one commit\n\n")
 		}
 		results = append(results, phaseResult{name: "Compact", detail: fmt.Sprintf("%d commits", commitCount)})
 	}

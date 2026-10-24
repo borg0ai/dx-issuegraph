@@ -5,11 +5,11 @@ import (
 	"fmt"
 	"net/http"
 
-	"github.com/steveyegge/beads/internal/httpapi/apigen"
-	"github.com/steveyegge/beads/issueops"
+	"github.com/borg0ai/dx-issuegraph/internal/httpapi/apigen"
+	"github.com/borg0ai/dx-issuegraph/issueops"
 )
 
-// handleBlockingAnnotations answers GET /v0/beads/dependencies/blocking.
+// handleBlockingAnnotations answers GET /v0/issuegraph/dependencies/blocking.
 //
 // Everything below the wire is on issueops.BlockingAnnotator: which edge types
 // count, which row's status decides an edge is live, that an unresolvable

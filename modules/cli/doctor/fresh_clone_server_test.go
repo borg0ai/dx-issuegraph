@@ -21,7 +21,7 @@ func TestFreshCloneServerResult(t *testing.T) {
 	}{
 		"DB exists on server returns OK (FR-021)": {
 			dbExists:   true,
-			dbName:     "acf_beads",
+			dbName:     "acf_issuegraph",
 			host:       "127.0.0.1",
 			port:       3309,
 			wantStatus: StatusOK,
@@ -31,41 +31,41 @@ func TestFreshCloneServerResult(t *testing.T) {
 		},
 		"DB missing, no sync.remote returns Warning (FR-020)": {
 			dbExists:   false,
-			dbName:     "acf_beads",
+			dbName:     "acf_issuegraph",
 			host:       "127.0.0.1",
 			port:       3309,
 			syncRemote: "",
 			wantStatus: StatusWarning,
 			wantContains: []string{
-				`"acf_beads"`,
+				`"acf_issuegraph"`,
 				"not found on server",
 				"127.0.0.1:3309",
 				"sync.remote",
-				".beads/config.yaml",
+				".issuegraph/config.yaml",
 			},
 			wantNotContain: []string{
 				"sync.remote is configured",
 			},
-			wantFix: "bd bootstrap",
+			wantFix: "issuegraph bootstrap",
 		},
 		"DB missing, sync.remote IS configured returns Warning with remote hint": {
 			dbExists:   false,
-			dbName:     "beads_kc",
+			dbName:     "issuegraph_kc",
 			host:       "192.168.1.50",
 			port:       3307,
-			syncRemote: "https://doltremoteapi.dolthub.com/myorg/beads",
+			syncRemote: "https://doltremoteapi.dolthub.com/myorg/issuegraph",
 			wantStatus: StatusWarning,
 			wantContains: []string{
-				`"beads_kc"`,
+				`"issuegraph_kc"`,
 				"not found on server",
 				"sync.remote is configured",
-				"https://doltremoteapi.dolthub.com/myorg/beads",
-				"bd bootstrap",
+				"https://doltremoteapi.dolthub.com/myorg/issuegraph",
+				"issuegraph bootstrap",
 			},
 			wantNotContain: []string{
-				"Set sync.remote in .beads/config.yaml",
+				"Set sync.remote in .issuegraph/config.yaml",
 			},
-			wantFix: "bd bootstrap",
+			wantFix: "issuegraph bootstrap",
 		},
 	}
 
@@ -120,31 +120,31 @@ func TestCheckFreshClone_ServerModeUnreachable(t *testing.T) {
 	//      the GetDoltServerPasswordForPort(port) call before the failed ping.
 	//   2. Surface a server-mode-aware warning instead of the misleading
 	//      legacy "Fresh clone detected (no database)" message (GH#35). In
-	//      server mode the local DB absence is expected; suggesting bd
+	//      server mode the local DB absence is expected; suggesting issuegraph
 	//      bootstrap is wrong when the actual problem is connectivity/auth.
 	tmpDir := t.TempDir()
-	beadsDir := filepath.Join(tmpDir, ".beads")
-	if err := os.MkdirAll(beadsDir, 0o755); err != nil {
+	issuegraphDir := filepath.Join(tmpDir, ".issuegraph")
+	if err := os.MkdirAll(issuegraphDir, 0o755); err != nil {
 		t.Fatal(err)
 	}
 
 	// JSONL with issues so the check proceeds past the fresh-clone gate.
 	jsonl := `{"id":"bd-abc","title":"t"}` + "\n" + `{"id":"bd-def","title":"t"}` + "\n"
-	if err := os.WriteFile(filepath.Join(beadsDir, "issues.jsonl"), []byte(jsonl), 0o644); err != nil {
+	if err := os.WriteFile(filepath.Join(issuegraphDir, "issues.jsonl"), []byte(jsonl), 0o644); err != nil {
 		t.Fatal(err)
 	}
 
 	// metadata.json declaring server mode pointed at an unreachable host:port.
 	// Port 1 is guaranteed-unreachable on loopback.
 	meta := `{
-  "database": "beads.db",
+  "database": "issuegraph.db",
   "dolt_mode": "server",
   "dolt_server_host": "127.0.0.1",
   "dolt_server_port": 1,
   "dolt_server_user": "root",
-  "dolt_database": "beads"
+  "dolt_database": "issuegraph"
 }`
-	if err := os.WriteFile(filepath.Join(beadsDir, "metadata.json"), []byte(meta), 0o644); err != nil {
+	if err := os.WriteFile(filepath.Join(issuegraphDir, "metadata.json"), []byte(meta), 0o644); err != nil {
 		t.Fatal(err)
 	}
 
@@ -169,10 +169,10 @@ func TestCheckFreshClone_ServerModeUnreachable(t *testing.T) {
 		}
 	}
 
-	// Fix should suggest connectivity/credential checks, not bd bootstrap
+	// Fix should suggest connectivity/credential checks, not issuegraph bootstrap
 	// (which won't help when the server itself is unreachable).
-	if strings.Contains(check.Fix, "bd bootstrap") {
-		t.Errorf("server-mode unreachable fix should not suggest 'bd bootstrap'; got: %s", check.Fix)
+	if strings.Contains(check.Fix, "issuegraph bootstrap") {
+		t.Errorf("server-mode unreachable fix should not suggest 'issuegraph bootstrap'; got: %s", check.Fix)
 	}
 	for _, want := range []string{"server", "credentials"} {
 		if !strings.Contains(strings.ToLower(check.Fix), want) {
@@ -184,9 +184,9 @@ func TestCheckFreshClone_ServerModeUnreachable(t *testing.T) {
 func TestFreshCloneServerUnreachableResult(t *testing.T) {
 	// Pure-function coverage for the server-unreachable branch (GH#35).
 	// Verifies the message identifies server mode, includes host:port and
-	// the underlying error, and avoids the misleading bd bootstrap fix.
+	// the underlying error, and avoids the misleading issuegraph bootstrap fix.
 	check := freshCloneServerUnreachableResult(
-		"acf_beads",
+		"acf_issuegraph",
 		"dolt.example.com",
 		3306,
 		errSentinelForTest{msg: "dial tcp: i/o timeout"},
@@ -202,7 +202,7 @@ func TestFreshCloneServerUnreachableResult(t *testing.T) {
 	wantInMsg := []string{
 		"unreachable",
 		"dolt.example.com:3306",
-		`"acf_beads"`,
+		`"acf_issuegraph"`,
 		"server mode",
 	}
 	for _, want := range wantInMsg {
@@ -215,14 +215,14 @@ func TestFreshCloneServerUnreachableResult(t *testing.T) {
 		t.Errorf("expected detail to surface underlying error, got: %s", check.Detail)
 	}
 
-	// Must NOT recommend bd bootstrap — the problem is connectivity, not
+	// Must NOT recommend issuegraph bootstrap — the problem is connectivity, not
 	// missing local state.
-	if strings.Contains(check.Fix, "bd bootstrap") {
-		t.Errorf("server-unreachable fix should not suggest 'bd bootstrap'; got: %s", check.Fix)
+	if strings.Contains(check.Fix, "issuegraph bootstrap") {
+		t.Errorf("server-unreachable fix should not suggest 'issuegraph bootstrap'; got: %s", check.Fix)
 	}
 
 	// Nil error path should still produce a usable message and not panic.
-	checkNil := freshCloneServerUnreachableResult("beads", "127.0.0.1", 3307, nil)
+	checkNil := freshCloneServerUnreachableResult("issuegraph", "127.0.0.1", 3307, nil)
 	if checkNil.Status != StatusWarning {
 		t.Errorf("nil-err path: expected Status %q, got %q", StatusWarning, checkNil.Status)
 	}
@@ -246,26 +246,26 @@ func TestCheckFreshClone_EmbeddedMode(t *testing.T) {
 		expectedStatus string
 		wantContains   string
 	}{
-		"no beads directory": {
+		"no issuegraph directory": {
 			setupFunc:      func(t *testing.T, tmpDir string) {},
 			expectedStatus: StatusOK,
 			wantContains:   "N/A",
 		},
-		"beads dir with JSONL but no database (embedded Dolt)": {
-			// AC-005: .beads/ exists with JSONL and dolt backend config, but NO
+		"issuegraph dir with JSONL but no database (embedded Dolt)": {
+			// AC-005: .issuegraph/ exists with JSONL and dolt backend config, but NO
 			// server mode — should detect fresh clone via filesystem only, no server call.
 			setupFunc: func(t *testing.T, tmpDir string) {
-				beadsDir := filepath.Join(tmpDir, ".beads")
-				if err := os.MkdirAll(beadsDir, 0o755); err != nil {
+				issuegraphDir := filepath.Join(tmpDir, ".issuegraph")
+				if err := os.MkdirAll(issuegraphDir, 0o755); err != nil {
 					t.Fatal(err)
 				}
 				// Write a minimal JSONL file so the check proceeds past the JSONL gate.
-				if err := os.WriteFile(filepath.Join(beadsDir, "issues.jsonl"), []byte(`{"id":"test-1"}`+"\n"), 0o644); err != nil {
+				if err := os.WriteFile(filepath.Join(issuegraphDir, "issues.jsonl"), []byte(`{"id":"test-1"}`+"\n"), 0o644); err != nil {
 					t.Fatal(err)
 				}
 				// Write a config.yaml with dolt backend but NO server mode.
 				// This means embedded Dolt — filesystem check only.
-				if err := os.WriteFile(filepath.Join(beadsDir, "config.yaml"), []byte("backend: dolt\n"), 0o644); err != nil {
+				if err := os.WriteFile(filepath.Join(issuegraphDir, "config.yaml"), []byte("backend: dolt\n"), 0o644); err != nil {
 					t.Fatal(err)
 				}
 			},

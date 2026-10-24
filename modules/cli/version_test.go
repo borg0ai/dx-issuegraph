@@ -36,8 +36,8 @@ func TestVersionCommand(t *testing.T) {
 		output := buf.String()
 
 		// Verify output contains version info
-		if !strings.Contains(output, "bd version") {
-			t.Errorf("Expected output to contain 'bd version', got: %s", output)
+		if !strings.Contains(output, "issuegraph version") {
+			t.Errorf("Expected output to contain 'issuegraph version', got: %s", output)
 		}
 		if !strings.Contains(output, Version) {
 			t.Errorf("Expected output to contain version %s, got: %s", Version, output)
@@ -242,8 +242,8 @@ func TestVersionFlag(t *testing.T) {
 		output := buf.String()
 
 		// Verify output contains version info
-		if !strings.Contains(output, "bd version") {
-			t.Errorf("Expected output to contain 'bd version', got: %s", output)
+		if !strings.Contains(output, "issuegraph version") {
+			t.Errorf("Expected output to contain 'issuegraph version', got: %s", output)
 		}
 		if !strings.Contains(output, Version) {
 			t.Errorf("Expected output to contain version %s, got: %s", Version, output)
@@ -272,8 +272,8 @@ func TestVersionFlag(t *testing.T) {
 		output := buf.String()
 
 		// Verify output contains version info
-		if !strings.Contains(output, "bd version") {
-			t.Errorf("Expected output to contain 'bd version', got: %s", output)
+		if !strings.Contains(output, "issuegraph version") {
+			t.Errorf("Expected output to contain 'issuegraph version', got: %s", output)
 		}
 		if !strings.Contains(output, Version) {
 			t.Errorf("Expected output to contain version %s, got: %s", Version, output)

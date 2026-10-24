@@ -1,5 +1,5 @@
-// Package fdhygiene keeps descriptors that bd did not open from leaking into
-// the long-lived children bd spawns (the managed dolt sql-server and the
+// Package fdhygiene keeps descriptors that issuegraph did not open from leaking into
+// the long-lived children issuegraph spawns (the managed dolt sql-server and the
 // dbproxy child).
 //
 // Go's os/exec wires only fds 0/1/2 plus Cmd.ExtraFiles into a child, and the
@@ -7,7 +7,7 @@
 // inherited fds above 2 that lack FD_CLOEXEC — those pass straight through to
 // the child. A caller holding such an fd (a shell `exec 9>lock`, a systemd
 // unit, a CI harness, an editor terminal) therefore pins it for the entire
-// lifetime of a detached server bd starts, which outlives the caller. See
+// lifetime of a detached server issuegraph starts, which outlives the caller. See
 // GH#4634: an flock held on fd 9 by a sync script was inherited by a
 // cold-started sql-server and read as "held" by every subsequent run until the
 // server was restarted.
@@ -36,11 +36,11 @@ package fdhygiene
 //     original flags after the spawn would invert this and could clear
 //     FD_CLOEXEC on a recycled Go descriptor, so the flags are deliberately
 //     left set.
-//   - Nothing is missed. Descriptors inherited from bd's own parent — the only
+//   - Nothing is missed. Descriptors inherited from issuegraph's own parent — the only
 //     ones that can lack FD_CLOEXEC — exist from process start and are
 //     therefore visible to any scan. Descriptors opened concurrently by Go
 //     already carry the flag.
-//   - bd never passes descriptors to a child on purpose. There is no fd-passing
+//   - issuegraph never passes descriptors to a child on purpose. There is no fd-passing
 //     feature whose contract this could break, and Cmd.ExtraFiles is unaffected
 //     (os/exec dups those in the child after exec-time flags are applied).
 func MarkInheritedCloexec() []int {

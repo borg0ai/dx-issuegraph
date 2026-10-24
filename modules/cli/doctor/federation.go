@@ -9,49 +9,49 @@ import (
 	"strings"
 	"time"
 
-	"github.com/steveyegge/beads/internal/configfile"
-	"github.com/steveyegge/beads/internal/doltserver"
-	"github.com/steveyegge/beads/internal/storage/dolt"
-	"github.com/steveyegge/beads/internal/storage/doltutil"
+	"github.com/borg0ai/dx-issuegraph/internal/configfile"
+	"github.com/borg0ai/dx-issuegraph/internal/doltserver"
+	"github.com/borg0ai/dx-issuegraph/internal/storage/dolt"
+	"github.com/borg0ai/dx-issuegraph/internal/storage/doltutil"
 )
 
-// doltDatabaseName returns the configured Dolt database name for the given beads directory.
-// Falls back to the default ("beads") if config cannot be read.
-func doltDatabaseName(beadsDir string) string {
+// doltDatabaseName returns the configured Dolt database name for the given issuegraph directory.
+// Falls back to the default ("issuegraph") if config cannot be read.
+func doltDatabaseName(issuegraphDir string) string {
 	dbName := configfile.DefaultDoltDatabase
-	if cfg, err := configfile.Load(beadsDir); err == nil && cfg != nil {
+	if cfg, err := configfile.Load(issuegraphDir); err == nil && cfg != nil {
 		dbName = cfg.GetDoltDatabase()
 	}
 	return dbName
 }
 
 // doltServerConfig returns a read-only dolt.Config populated with server
-// connection settings from beads configuration. This ensures federation checks
+// connection settings from issuegraph configuration. This ensures federation checks
 // use the configured host/port rather than falling back to defaults.
-func doltServerConfig(beadsDir, doltPath string) *dolt.Config {
+func doltServerConfig(issuegraphDir, doltPath string) *dolt.Config {
 	cfg := &dolt.Config{
 		Path:     doltPath,
 		ReadOnly: true,
-		Database: doltDatabaseName(beadsDir),
+		Database: doltDatabaseName(issuegraphDir),
 	}
-	if bcfg, err := configfile.Load(beadsDir); err == nil && bcfg != nil {
+	if bcfg, err := configfile.Load(issuegraphDir); err == nil && bcfg != nil {
 		cfg.ServerHost = bcfg.GetDoltServerHost()
 		// Carries PortSource with the port: this cfg reaches applyConfigDefaults,
 		// which reads a sourceless port as caller-explicit (see
 		// dolt.ApplyResolvedServerPort).
-		dolt.ApplyResolvedServerPort(beadsDir, cfg)
+		dolt.ApplyResolvedServerPort(issuegraphDir, cfg)
 		cfg.ServerUser = bcfg.GetDoltServerUser()
 		cfg.ServerTLS = bcfg.GetDoltServerTLS()
 		cfg.ServerPassword = bcfg.GetDoltServerPasswordForPort(cfg.ServerPort)
 	}
-	dolt.ApplyCLIAutoStart(beadsDir, cfg)
+	dolt.ApplyCLIAutoStart(issuegraphDir, cfg)
 	return cfg
 }
 
 // CheckLegacyCLIRemotes warns when legacy filesystem CLI remotes are not
-// represented in SQL, because bd now treats SQL remotes as the source of truth.
+// represented in SQL, because issuegraph now treats SQL remotes as the source of truth.
 func CheckLegacyCLIRemotes(path string) DoctorCheck {
-	backend, beadsDir := getBackendAndBeadsDir(path)
+	backend, issuegraphDir := getBackendAndIssueGraphDir(path)
 	if backend != configfile.BackendDolt {
 		return DoctorCheck{
 			Name:     "Dolt Remote Migration",
@@ -61,7 +61,7 @@ func CheckLegacyCLIRemotes(path string) DoctorCheck {
 		}
 	}
 
-	doltPath := getDatabasePath(beadsDir)
+	doltPath := getDatabasePath(issuegraphDir)
 	if _, err := os.Stat(doltPath); os.IsNotExist(err) {
 		return DoctorCheck{
 			Name:     "Dolt Remote Migration",
@@ -72,7 +72,7 @@ func CheckLegacyCLIRemotes(path string) DoctorCheck {
 	}
 
 	ctx := context.Background()
-	store, err := dolt.New(ctx, doltServerConfig(beadsDir, doltPath))
+	store, err := dolt.New(ctx, doltServerConfig(issuegraphDir, doltPath))
 	if err != nil {
 		return DoctorCheck{
 			Name:     "Dolt Remote Migration",
@@ -167,7 +167,7 @@ func CheckLegacyCLIRemotes(path string) DoctorCheck {
 		Status:   StatusWarning,
 		Message:  fmt.Sprintf("%d legacy CLI remote(s) not visible through SQL", len(missing)),
 		Detail:   fmt.Sprintf("Inspected CLI directories:\n%s\nRemotes: %s\nbd dolt remote list, push, and pull use SQL remotes as the source of truth.", strings.Join(inspected, "\n"), strings.Join(missing, ", ")),
-		Fix:      "Re-register each remote with 'bd dolt remote add <name> <url>' so it is stored in SQL.",
+		Fix:      "Re-register each remote with 'issuegraph dolt remote add <name> <url>' so it is stored in SQL.",
 		Category: CategoryFederation,
 	}
 }
@@ -175,7 +175,7 @@ func CheckLegacyCLIRemotes(path string) DoctorCheck {
 // CheckFederationRemotesAPI checks if the remotesapi port is accessible for federation.
 // This is the port used for peer-to-peer sync operations.
 func CheckFederationRemotesAPI(path string) DoctorCheck {
-	backend, beadsDir := getBackendAndBeadsDir(path)
+	backend, issuegraphDir := getBackendAndIssueGraphDir(path)
 
 	// Only relevant for Dolt backend
 	if backend != configfile.BackendDolt {
@@ -188,7 +188,7 @@ func CheckFederationRemotesAPI(path string) DoctorCheck {
 	}
 
 	// Check if dolt directory exists
-	doltPath := getDatabasePath(beadsDir)
+	doltPath := getDatabasePath(issuegraphDir)
 	if _, err := os.Stat(doltPath); os.IsNotExist(err) {
 		return DoctorCheck{
 			Name:     "Federation remotesapi",
@@ -199,15 +199,15 @@ func CheckFederationRemotesAPI(path string) DoctorCheck {
 	}
 
 	// Check if dolt server is running using doltserver.IsRunning which
-	// correctly resolves PID file paths (in beadsDir, not doltPath)
+	// correctly resolves PID file paths (in issuegraphDir, not doltPath)
 	// and handles orchestrator daemon PID files.
-	serverState, _ := doltserver.IsRunning(beadsDir)
+	serverState, _ := doltserver.IsRunning(issuegraphDir)
 	serverRunning := serverState != nil && serverState.Running
 
 	if !serverRunning {
 		// No server running - check if we have remotes configured
 		ctx := context.Background()
-		store, err := dolt.New(ctx, doltServerConfig(beadsDir, doltPath))
+		store, err := dolt.New(ctx, doltServerConfig(issuegraphDir, doltPath))
 		if err != nil {
 			return DoctorCheck{
 				Name:     "Federation remotesapi",
@@ -243,7 +243,7 @@ func CheckFederationRemotesAPI(path string) DoctorCheck {
 	// probing the remotesapi port. Without peers, remotesapi is irrelevant.
 	{
 		ctx := context.Background()
-		store, err := dolt.New(ctx, doltServerConfig(beadsDir, doltPath))
+		store, err := dolt.New(ctx, doltServerConfig(issuegraphDir, doltPath))
 		if err == nil {
 			remotes, err := store.ListRemotes(ctx)
 			_ = store.Close()
@@ -270,7 +270,7 @@ func CheckFederationRemotesAPI(path string) DoctorCheck {
 	// Server is running and peers are configured - check if remotesapi port is accessible.
 	// Read port from config instead of hardcoding 8080.
 	remotesAPIPort := configfile.DefaultDoltRemotesAPIPort
-	if cfg, err := configfile.Load(beadsDir); err == nil && cfg != nil {
+	if cfg, err := configfile.Load(issuegraphDir); err == nil && cfg != nil {
 		remotesAPIPort = cfg.GetDoltRemotesAPIPort()
 	}
 	host := "127.0.0.1"
@@ -302,7 +302,7 @@ func CheckFederationRemotesAPI(path string) DoctorCheck {
 
 // CheckFederationPeerConnectivity checks if configured peer remotes are reachable.
 func CheckFederationPeerConnectivity(path string) DoctorCheck {
-	backend, beadsDir := getBackendAndBeadsDir(path)
+	backend, issuegraphDir := getBackendAndIssueGraphDir(path)
 
 	// Only relevant for Dolt backend
 	if backend != configfile.BackendDolt {
@@ -315,7 +315,7 @@ func CheckFederationPeerConnectivity(path string) DoctorCheck {
 	}
 
 	// Check if dolt directory exists
-	doltPath := getDatabasePath(beadsDir)
+	doltPath := getDatabasePath(issuegraphDir)
 	if _, err := os.Stat(doltPath); os.IsNotExist(err) {
 		return DoctorCheck{
 			Name:     "Peer Connectivity",
@@ -326,7 +326,7 @@ func CheckFederationPeerConnectivity(path string) DoctorCheck {
 	}
 
 	ctx := context.Background()
-	store, err := dolt.New(ctx, doltServerConfig(beadsDir, doltPath))
+	store, err := dolt.New(ctx, doltServerConfig(issuegraphDir, doltPath))
 	if err != nil {
 		return DoctorCheck{
 			Name:     "Peer Connectivity",
@@ -419,7 +419,7 @@ func CheckFederationPeerConnectivity(path string) DoctorCheck {
 
 // CheckFederationSyncStaleness checks for stale sync status with peers.
 func CheckFederationSyncStaleness(path string) DoctorCheck {
-	backend, beadsDir := getBackendAndBeadsDir(path)
+	backend, issuegraphDir := getBackendAndIssueGraphDir(path)
 
 	// Only relevant for Dolt backend
 	if backend != configfile.BackendDolt {
@@ -432,7 +432,7 @@ func CheckFederationSyncStaleness(path string) DoctorCheck {
 	}
 
 	// Check if dolt directory exists
-	doltPath := getDatabasePath(beadsDir)
+	doltPath := getDatabasePath(issuegraphDir)
 	if _, err := os.Stat(doltPath); os.IsNotExist(err) {
 		return DoctorCheck{
 			Name:     "Sync Staleness",
@@ -443,7 +443,7 @@ func CheckFederationSyncStaleness(path string) DoctorCheck {
 	}
 
 	ctx := context.Background()
-	store, err := dolt.New(ctx, doltServerConfig(beadsDir, doltPath))
+	store, err := dolt.New(ctx, doltServerConfig(issuegraphDir, doltPath))
 	if err != nil {
 		return DoctorCheck{
 			Name:     "Sync Staleness",
@@ -505,14 +505,14 @@ func CheckFederationSyncStaleness(path string) DoctorCheck {
 		Status:   StatusWarning,
 		Message:  fmt.Sprintf("%d total commits behind peers", totalBehind),
 		Detail:   strings.Join(staleWarnings, "\n"),
-		Fix:      "Run 'bd federation sync' to synchronize with peers",
+		Fix:      "Run 'issuegraph federation sync' to synchronize with peers",
 		Category: CategoryFederation,
 	}
 }
 
 // CheckFederationConflicts checks for unresolved merge conflicts.
 func CheckFederationConflicts(path string) DoctorCheck {
-	backend, beadsDir := getBackendAndBeadsDir(path)
+	backend, issuegraphDir := getBackendAndIssueGraphDir(path)
 
 	// Only relevant for Dolt backend
 	if backend != configfile.BackendDolt {
@@ -525,7 +525,7 @@ func CheckFederationConflicts(path string) DoctorCheck {
 	}
 
 	// Check if dolt directory exists
-	doltPath := getDatabasePath(beadsDir)
+	doltPath := getDatabasePath(issuegraphDir)
 	if _, err := os.Stat(doltPath); os.IsNotExist(err) {
 		return DoctorCheck{
 			Name:     "Federation Conflicts",
@@ -536,7 +536,7 @@ func CheckFederationConflicts(path string) DoctorCheck {
 	}
 
 	ctx := context.Background()
-	store, err := dolt.New(ctx, doltServerConfig(beadsDir, doltPath))
+	store, err := dolt.New(ctx, doltServerConfig(issuegraphDir, doltPath))
 	if err != nil {
 		return DoctorCheck{
 			Name:     "Federation Conflicts",
@@ -593,7 +593,7 @@ func CheckFederationConflicts(path string) DoctorCheck {
 		Status:   StatusError,
 		Message:  fmt.Sprintf("%d unresolved conflicts in %d issues", len(conflicts), len(issueConflicts)),
 		Detail:   strings.Join(details, "\n"),
-		Fix:      "Run 'bd federation sync --strategy ours|theirs' to resolve conflicts",
+		Fix:      "Run 'issuegraph federation sync --strategy ours|theirs' to resolve conflicts",
 		Category: CategoryFederation,
 	}
 }
@@ -603,7 +603,7 @@ func CheckFederationConflicts(path string) DoctorCheck {
 // - Server mode is expected but no server is running
 // - Embedded mode is being used when server mode should be used (federation with peers)
 func CheckDoltServerModeMismatch(path string) DoctorCheck {
-	backend, beadsDir := getBackendAndBeadsDir(path)
+	backend, issuegraphDir := getBackendAndIssueGraphDir(path)
 
 	// Only relevant for Dolt backend
 	if backend != configfile.BackendDolt {
@@ -616,7 +616,7 @@ func CheckDoltServerModeMismatch(path string) DoctorCheck {
 	}
 
 	// Check if dolt directory exists
-	doltPath := getDatabasePath(beadsDir)
+	doltPath := getDatabasePath(issuegraphDir)
 	if _, err := os.Stat(doltPath); os.IsNotExist(err) {
 		return DoctorCheck{
 			Name:     "Dolt Mode",
@@ -627,11 +627,11 @@ func CheckDoltServerModeMismatch(path string) DoctorCheck {
 	}
 
 	// Check if server is reachable by trying to connect
-	cfg, _ := configfile.Load(beadsDir)
+	cfg, _ := configfile.Load(issuegraphDir)
 	serverReachable := false
 	if cfg != nil {
 		host := cfg.GetDoltServerHost()
-		port := doltserver.DefaultConfig(beadsDir).Port
+		port := doltserver.DefaultConfig(issuegraphDir).Port
 		addr := net.JoinHostPort(host, fmt.Sprintf("%d", port))
 		if _, err := doltserver.ProbeSQLServer("tcp", addr, 2*time.Second); err == nil {
 			serverReachable = true
@@ -640,7 +640,7 @@ func CheckDoltServerModeMismatch(path string) DoctorCheck {
 
 	// Open storage to check for remotes
 	ctx := context.Background()
-	store, err := dolt.New(ctx, doltServerConfig(beadsDir, doltPath))
+	store, err := dolt.New(ctx, doltServerConfig(issuegraphDir, doltPath))
 	if err != nil {
 		return DoctorCheck{
 			Name:     "Dolt Mode",

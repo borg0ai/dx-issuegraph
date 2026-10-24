@@ -13,7 +13,7 @@ import (
 	sdktrace "go.opentelemetry.io/otel/sdk/trace"
 	"go.opentelemetry.io/otel/sdk/trace/tracetest"
 
-	"github.com/steveyegge/beads/internal/types"
+	"github.com/borg0ai/dx-issuegraph/internal/types"
 )
 
 func TestRunHookReportsUnsupportedExecution(t *testing.T) {
@@ -57,9 +57,9 @@ func TestRunHookReportsUnsupportedExecution(t *testing.T) {
 		gotAttributes[attr.Key] = attr.Value
 	}
 	wantAttributes := map[attribute.Key]string{
-		"hook.event":  EventCreate,
-		"hook.path":   hookPath,
-		"bd.issue_id": issue.ID,
+		"hook.event":          EventCreate,
+		"hook.path":           hookPath,
+		"issuegraph.issue_id": issue.ID,
 	}
 	if len(gotAttributes) != len(wantAttributes) {
 		t.Errorf("span attributes = %v, want exactly %v", span.Attributes(), wantAttributes)

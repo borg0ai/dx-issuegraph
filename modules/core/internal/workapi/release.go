@@ -4,13 +4,13 @@ import (
 	"fmt"
 	"strings"
 
-	"github.com/steveyegge/beads/issueops"
+	"github.com/borg0ai/dx-issuegraph/issueops"
 )
 
 // The shared, DATABASE-FREE half of issueops.Releaser: what a release request
 // means before anything is read.
 //
-// Every implementation runs it, so `bd unclaim` has one definition of a
+// Every implementation runs it, so `issuegraph unclaim` has one definition of a
 // malformed request rather than one per backend, and a refused request costs no
 // database work anywhere.
 //

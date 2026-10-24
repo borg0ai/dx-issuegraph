@@ -7,9 +7,9 @@ import (
 	"errors"
 	"testing"
 
-	"github.com/steveyegge/beads/internal/storage"
-	storageissueops "github.com/steveyegge/beads/internal/storage/issueops"
-	"github.com/steveyegge/beads/internal/types"
+	"github.com/borg0ai/dx-issuegraph/internal/storage"
+	storageissueops "github.com/borg0ai/dx-issuegraph/internal/storage/issueops"
+	"github.com/borg0ai/dx-issuegraph/internal/types"
 )
 
 type fakeCommitPendingStore struct {
@@ -39,7 +39,7 @@ func saveStorageMode(t *testing.T) {
 	oldStore := store
 	oldUseGlobals := testModeUseGlobals
 	oldDoltAutoCommit := doltAutoCommit
-	t.Setenv("BEADS_DOLT_SHARED_SERVER", "0")
+	t.Setenv("ISSUEGRAPH_DOLT_SHARED_SERVER", "0")
 	testModeUseGlobals = true
 	cmdCtx = nil
 	doltAutoCommit = string(doltAutoCommitOn)
@@ -111,7 +111,7 @@ func TestCommitPendingIfEmbeddedCommitsWhenEnabled(t *testing.T) {
 	if fake.pendingCalls != 0 {
 		t.Fatalf("CommitPending calls = %d, want 0", fake.pendingCalls)
 	}
-	if fake.message != "bd: update (auto-commit) by tester [bd-1]" {
+	if fake.message != "issuegraph: update (auto-commit) by tester [bd-1]" {
 		t.Fatalf("message = %q, want command-aware auto-commit message", fake.message)
 	}
 }
@@ -257,7 +257,7 @@ func TestTransactHonoringAutoCommitBlanksMessageInServerBatch(t *testing.T) {
 		mode    string
 		wantMsg string
 	}{
-		{mode: string(doltAutoCommitOn), wantMsg: "bd: test write"},
+		{mode: string(doltAutoCommitOn), wantMsg: "issuegraph: test write"},
 		{mode: string(doltAutoCommitBatch), wantMsg: ""},
 		{mode: string(doltAutoCommitOff), wantMsg: ""},
 	} {
@@ -268,7 +268,7 @@ func TestTransactHonoringAutoCommitBlanksMessageInServerBatch(t *testing.T) {
 			commandDidExplicitDoltCommit = false
 
 			fake := &fakeTransactStore{}
-			err := transactHonoringAutoCommit(context.Background(), fake, "bd: test write", func(tx storage.Transaction) error {
+			err := transactHonoringAutoCommit(context.Background(), fake, "issuegraph: test write", func(tx storage.Transaction) error {
 				return nil
 			})
 			if err != nil {

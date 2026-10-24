@@ -16,11 +16,11 @@ func TestOnboardCommand(t *testing.T) {
 
 		// Verify output contains expected sections
 		expectedSections := []string{
-			"bd Onboarding",
+			"issuegraph Onboarding",
 			"AGENTS.md",
 			"BEGIN AGENTS.MD CONTENT",
 			"END AGENTS.MD CONTENT",
-			"bd prime",
+			"issuegraph prime",
 			"How it works",
 		}
 
@@ -31,22 +31,22 @@ func TestOnboardCommand(t *testing.T) {
 		}
 	})
 
-	t.Run("agents content is minimal and points to bd prime", func(t *testing.T) {
-		// Verify the agentsContent constant is minimal and points to bd prime
-		if !strings.Contains(agentsContent, "bd prime") {
-			t.Error("agentsContent should point to 'bd prime' for full workflow")
+	t.Run("agents content is minimal and points to issuegraph prime", func(t *testing.T) {
+		// Verify the agentsContent constant is minimal and points to issuegraph prime
+		if !strings.Contains(agentsContent, "issuegraph prime") {
+			t.Error("agentsContent should point to 'issuegraph prime' for full workflow")
 		}
-		if !strings.Contains(agentsContent, "bd ready") {
-			t.Error("agentsContent should include quick reference to 'bd ready'")
+		if !strings.Contains(agentsContent, "issuegraph ready") {
+			t.Error("agentsContent should include quick reference to 'issuegraph ready'")
 		}
-		if !strings.Contains(agentsContent, "bd create") {
-			t.Error("agentsContent should include quick reference to 'bd create'")
+		if !strings.Contains(agentsContent, "issuegraph create") {
+			t.Error("agentsContent should include quick reference to 'issuegraph create'")
 		}
-		if !strings.Contains(agentsContent, "bd close") {
-			t.Error("agentsContent should include quick reference to 'bd close'")
+		if !strings.Contains(agentsContent, "issuegraph close") {
+			t.Error("agentsContent should include quick reference to 'issuegraph close'")
 		}
-		if !strings.Contains(agentsContent, "bd dolt push") {
-			t.Error("agentsContent should include quick reference to 'bd dolt push'")
+		if !strings.Contains(agentsContent, "issuegraph dolt push") {
+			t.Error("agentsContent should include quick reference to 'issuegraph dolt push'")
 		}
 
 		// Verify it's actually minimal (less than 500 chars)
@@ -57,8 +57,8 @@ func TestOnboardCommand(t *testing.T) {
 
 	t.Run("copilot instructions content is minimal", func(t *testing.T) {
 		// Verify copilotInstructionsContent is also minimal
-		if !strings.Contains(copilotInstructionsContent, "bd prime") {
-			t.Error("copilotInstructionsContent should point to 'bd prime'")
+		if !strings.Contains(copilotInstructionsContent, "issuegraph prime") {
+			t.Error("copilotInstructionsContent should point to 'issuegraph prime'")
 		}
 
 		// Verify it's minimal (less than 500 chars)

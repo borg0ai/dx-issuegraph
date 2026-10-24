@@ -10,11 +10,11 @@ import (
 	"path/filepath"
 	"strings"
 
-	"github.com/steveyegge/beads/internal/beads"
-	"github.com/steveyegge/beads/internal/debug"
-	"github.com/steveyegge/beads/internal/storage"
-	"github.com/steveyegge/beads/internal/types"
-	"github.com/steveyegge/beads/internal/utils"
+	"github.com/borg0ai/dx-issuegraph/internal/debug"
+	"github.com/borg0ai/dx-issuegraph/internal/issuegraph"
+	"github.com/borg0ai/dx-issuegraph/internal/storage"
+	"github.com/borg0ai/dx-issuegraph/internal/types"
+	"github.com/borg0ai/dx-issuegraph/internal/utils"
 )
 
 // isNotFoundErr returns true if the error indicates the issue was not found.
@@ -144,9 +144,9 @@ type prefixRoute struct {
 // resolveViaPrefixRouting attempts to find an issue by looking up its prefix
 // in routes.jsonl and opening the target rig's database read-only.
 //
-// This enables cross-rig lookups: when running from a redirected .beads directory
-// (e.g., crew/beercan → town/.beads with database "hq"), a bead ID like "hr-8wn.1"
-// can be resolved by following the "hr-" route to the herald rig's .beads directory,
+// This enables cross-rig lookups: when running from a redirected .issuegraph directory
+// (e.g., crew/beercan → town/.issuegraph with database "hq"), a issue ID like "hr-8wn.1"
+// can be resolved by following the "hr-" route to the herald rig's .issuegraph directory,
 // which declares dolt_database="herald".
 //
 // The read-only open guarantees a routed read cannot mutate the target; mutation
@@ -164,14 +164,14 @@ func resolveViaPrefixRoutingWithAccess(ctx context.Context, id string, writable 
 		return nil, fmt.Errorf("no prefix in ID %q", id)
 	}
 
-	// Find the resolved beads directory (where routes.jsonl lives)
-	currentBeadsDir := resolveCommandBeadsDir(dbPath)
-	if currentBeadsDir == "" {
-		return nil, fmt.Errorf("no beads directory available")
+	// Find the resolved issuegraph directory (where routes.jsonl lives)
+	currentIssueGraphDir := resolveCommandIssueGraphDir(dbPath)
+	if currentIssueGraphDir == "" {
+		return nil, fmt.Errorf("no issuegraph directory available")
 	}
 
 	// Load routes from routes.jsonl
-	routes, err := loadPrefixRoutes(currentBeadsDir)
+	routes, err := loadPrefixRoutes(currentIssueGraphDir)
 	if err != nil || len(routes) == 0 {
 		return nil, fmt.Errorf("no routes available")
 	}
@@ -188,38 +188,38 @@ func resolveViaPrefixRoutingWithAccess(ctx context.Context, id string, writable 
 		return nil, fmt.Errorf("route points to current database")
 	}
 
-	// Derive the town root from the current beads dir.
-	// currentBeadsDir is typically <town_root>/.beads
-	townRoot := filepath.Dir(currentBeadsDir)
+	// Derive the town root from the current issuegraph dir.
+	// currentIssueGraphDir is typically <town_root>/.issuegraph
+	townRoot := filepath.Dir(currentIssueGraphDir)
 
-	// Resolve the target rig's .beads directory
+	// Resolve the target rig's .issuegraph directory
 	rigDir := filepath.Join(townRoot, matchedRoute.Path)
-	targetBeadsDir := beads.FollowRedirect(filepath.Join(rigDir, ".beads"))
+	targetIssueGraphDir := issuegraph.FollowRedirect(filepath.Join(rigDir, ".issuegraph"))
 
 	// Check that the target has a different dolt_database
-	targetDB := readDoltDatabase(targetBeadsDir)
+	targetDB := readDoltDatabase(targetIssueGraphDir)
 	if targetDB == "" {
 		return nil, fmt.Errorf("target rig has no dolt_database configured")
 	}
 
 	debug.Logf("[routing] Prefix %q matched route to %s (database: %s)\n", prefix, matchedRoute.Path, targetDB)
 
-	// We need to temporarily override BEADS_DOLT_SERVER_DATABASE so server-mode
+	// We need to temporarily override ISSUEGRAPH_DOLT_SERVER_DATABASE so server-mode
 	// stores connect to the correct database on the shared Dolt server.
-	origDB := os.Getenv("BEADS_DOLT_SERVER_DATABASE")
-	_ = os.Setenv("BEADS_DOLT_SERVER_DATABASE", targetDB)
+	origDB := os.Getenv("ISSUEGRAPH_DOLT_SERVER_DATABASE")
+	_ = os.Setenv("ISSUEGRAPH_DOLT_SERVER_DATABASE", targetDB)
 	var targetStore storage.DoltStorage
 	var openErr error
 	if writable {
-		targetStore, openErr = newDoltStoreFromConfig(ctx, targetBeadsDir)
+		targetStore, openErr = newDoltStoreFromConfig(ctx, targetIssueGraphDir)
 	} else {
-		targetStore, openErr = newReadOnlyStoreFromConfig(ctx, targetBeadsDir)
+		targetStore, openErr = newReadOnlyStoreFromConfig(ctx, targetIssueGraphDir)
 	}
 	// Restore the original env var
 	if origDB != "" {
-		_ = os.Setenv("BEADS_DOLT_SERVER_DATABASE", origDB)
+		_ = os.Setenv("ISSUEGRAPH_DOLT_SERVER_DATABASE", origDB)
 	} else {
-		_ = os.Unsetenv("BEADS_DOLT_SERVER_DATABASE")
+		_ = os.Unsetenv("ISSUEGRAPH_DOLT_SERVER_DATABASE")
 	}
 	if openErr != nil {
 		return nil, fmt.Errorf("opening routed store for %s: %w", matchedRoute.Path, openErr)
@@ -232,7 +232,7 @@ func resolveViaPrefixRoutingWithAccess(ctx context.Context, id string, writable 
 	}
 	result.closeFn = func() { _ = targetStore.Close() }
 
-	if os.Getenv("BD_DEBUG_ROUTING") != "" {
+	if os.Getenv("ISSUEGRAPH_DEBUG_ROUTING") != "" {
 		fmt.Fprintf(os.Stderr, "[routing] Resolved %s via prefix route to %s (database: %s)\n", id, matchedRoute.Path, targetDB)
 	}
 
@@ -240,14 +240,14 @@ func resolveViaPrefixRoutingWithAccess(ctx context.Context, id string, writable 
 }
 
 // matchPrefixRoute returns the route whose prefix is the longest leading match
-// for beadID, or nil if none matches. Route prefixes end in "-", so a
+// for issueID, or nil if none matches. Route prefixes end in "-", so a
 // multi-hyphen prefix such as "claude-os-" matches "claude-os-76l", and with
 // both "hq-" and "hq-cv-" configured, "hq-cv-abc" takes the "hq-cv-" route
 // (GH#5048).
-func matchPrefixRoute(routes []prefixRoute, beadID string) *prefixRoute {
+func matchPrefixRoute(routes []prefixRoute, issueID string) *prefixRoute {
 	var best *prefixRoute
 	for i, r := range routes {
-		if !strings.HasSuffix(r.Prefix, "-") || !strings.HasPrefix(beadID, r.Prefix) {
+		if !strings.HasSuffix(r.Prefix, "-") || !strings.HasPrefix(issueID, r.Prefix) {
 			continue
 		}
 		if best == nil || len(r.Prefix) > len(best.Prefix) {
@@ -257,10 +257,10 @@ func matchPrefixRoute(routes []prefixRoute, beadID string) *prefixRoute {
 	return best
 }
 
-// loadPrefixRoutes loads prefix-to-path routes from routes.jsonl in the beads directory.
-func loadPrefixRoutes(beadsDir string) ([]prefixRoute, error) {
-	routesPath := filepath.Join(beadsDir, "routes.jsonl")
-	file, err := os.Open(routesPath) //nolint:gosec // G304: path is constructed from trusted beads directory
+// loadPrefixRoutes loads prefix-to-path routes from routes.jsonl in the issuegraph directory.
+func loadPrefixRoutes(issuegraphDir string) ([]prefixRoute, error) {
+	routesPath := filepath.Join(issuegraphDir, "routes.jsonl")
+	file, err := os.Open(routesPath) //nolint:gosec // G304: path is constructed from trusted issuegraph directory
 	if err != nil {
 		return nil, err
 	}
@@ -284,10 +284,10 @@ func loadPrefixRoutes(beadsDir string) ([]prefixRoute, error) {
 	return routes, scanner.Err()
 }
 
-// readDoltDatabase reads the dolt_database field from a .beads/metadata.json file.
-func readDoltDatabase(beadsDir string) string {
-	metadataPath := filepath.Join(beadsDir, "metadata.json")
-	data, err := os.ReadFile(metadataPath) //nolint:gosec // G304: path is constructed from trusted beads directory
+// readDoltDatabase reads the dolt_database field from a .issuegraph/metadata.json file.
+func readDoltDatabase(issuegraphDir string) string {
+	metadataPath := filepath.Join(issuegraphDir, "metadata.json")
+	data, err := os.ReadFile(metadataPath) //nolint:gosec // G304: path is constructed from trusted issuegraph directory
 	if err != nil {
 		return ""
 	}

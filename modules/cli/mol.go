@@ -3,8 +3,8 @@ package main
 import (
 	"context"
 
+	"github.com/borg0ai/dx-issuegraph/internal/storage"
 	"github.com/spf13/cobra"
-	"github.com/steveyegge/beads/internal/storage"
 )
 
 // Molecule commands - work templates for agent workflows
@@ -18,13 +18,13 @@ import (
 //   - Compound: Result of bonding
 //
 // Usage:
-//   bd mol show <id>                      # Show proto/molecule structure
-//   bd mol pour <id> --var key=value      # Instantiate proto → persistent mol
-//   bd mol wisp <id> --var key=value      # Instantiate proto → ephemeral wisp
+//   issuegraph mol show <id>                      # Show proto/molecule structure
+//   issuegraph mol pour <id> --var key=value      # Instantiate proto → persistent mol
+//   issuegraph mol wisp <id> --var key=value      # Instantiate proto → ephemeral wisp
 
 // MoleculeLabel is the label used to identify molecules (templates)
 // Molecules use the same label as templates - they ARE templates with workflow semantics
-const MoleculeLabel = BeadsTemplateLabel
+const MoleculeLabel = IssueGraphTemplateLabel
 
 // MoleculeSubgraph is an alias for TemplateSubgraph
 // Molecules and templates share the same subgraph structure
@@ -55,7 +55,7 @@ Commands:
   burn       Discard wisp
   distill    Extract proto from ad-hoc epic
 
-Use "bd formula list" to list available formulas.`,
+Use "issuegraph formula list" to list available formulas.`,
 }
 
 // =============================================================================

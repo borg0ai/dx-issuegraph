@@ -3,7 +3,7 @@ package protocol
 import "testing"
 
 // TestProtocol_CreateDoesNotSelfAssign pins protocol clause D1.6: a plain
-// `bd create` yields an UNASSIGNED issue, even though an actor identity is
+// `issuegraph create` yields an UNASSIGNED issue, even though an actor identity is
 // resolvable (D2.2) and is recorded in created_by. assignee is the work-queue
 // field the unassigned-only claim rule (L3.1) reads, so a self-assigning create
 // would make every freshly created issue unclaimable by a worker fleet — the
@@ -18,7 +18,7 @@ func TestProtocol_CreateDoesNotSelfAssign(t *testing.T) {
 
 	issue := w.showJSON(id)
 	if assignee, ok := issue["assignee"].(string); ok && assignee != "" {
-		t.Errorf("D1.6: bd create self-assigned (assignee = %q); a fresh issue MUST be unassigned", assignee)
+		t.Errorf("D1.6: issuegraph create self-assigned (assignee = %q); a fresh issue MUST be unassigned", assignee)
 	}
 	assertField(t, issue, "created_by", "protocol-test")
 
@@ -26,7 +26,7 @@ func TestProtocol_CreateDoesNotSelfAssign(t *testing.T) {
 	// shows up in the unassigned ready front a worker claims from.
 	out := w.run("ready", "--unassigned", "--json")
 	if findByID(parseJSONOutput(t, out), id) == nil {
-		t.Errorf("D1.6: freshly created %s is missing from `bd ready --unassigned`; it must be immediately claimable", id)
+		t.Errorf("D1.6: freshly created %s is missing from `issuegraph ready --unassigned`; it must be immediately claimable", id)
 	}
 
 	// An explicit --actor does not change this: it selects the actor identity,
@@ -34,13 +34,13 @@ func TestProtocol_CreateDoesNotSelfAssign(t *testing.T) {
 	id2 := w.create("--title", "Fresh work, explicit actor", "--type", "task", "--actor", "alice")
 	issue2 := w.showJSON(id2)
 	if assignee, ok := issue2["assignee"].(string); ok && assignee != "" {
-		t.Errorf("D1.6: bd create --actor alice set assignee = %q; --actor MUST NOT self-assign", assignee)
+		t.Errorf("D1.6: issuegraph create --actor alice set assignee = %q; --actor MUST NOT self-assign", assignee)
 	}
 	assertField(t, issue2, "created_by", "alice")
 }
 
 // TestProtocol_StatusUpdatePreservesAssignee pins protocol clause D2.4:
-// `bd update` mutates only the fields the caller named. Specifically, a status
+// `issuegraph update` mutates only the fields the caller named. Specifically, a status
 // change MUST NOT touch assignee — the Gas Station fleet relies on this when it
 // parks an in_progress unit back to open without releasing its owner, and the
 // inverse (status update silently clearing the assignee) would hand a live
@@ -71,6 +71,6 @@ func TestProtocol_StatusUpdatePreservesAssignee(t *testing.T) {
 	w.run("update", id, "-a", "")
 	issue = w.showJSON(id)
 	if assignee, ok := issue["assignee"].(string); ok && assignee != "" {
-		t.Errorf(`D1.6: bd update -a "" left assignee = %q, want cleared`, assignee)
+		t.Errorf(`D1.6: issuegraph update -a "" left assignee = %q, want cleared`, assignee)
 	}
 }

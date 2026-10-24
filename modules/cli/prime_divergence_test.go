@@ -8,7 +8,7 @@ import (
 	"testing"
 )
 
-const markerBlock = "<!-- BEGIN BEADS INTEGRATION v:1 profile:agents hash:abc -->\nbody\n<!-- END BEADS INTEGRATION -->\n"
+const markerBlock = "<!-- BEGIN ISSUEGRAPH INTEGRATION v:1 profile:agents hash:abc -->\nbody\n<!-- END ISSUEGRAPH INTEGRATION -->\n"
 
 func writePrimeTestFile(t *testing.T, path, content string) {
 	t.Helper()

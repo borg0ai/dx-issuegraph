@@ -12,35 +12,35 @@ import (
 	"testing"
 )
 
-// bdInfo runs "bd info" with the given args and returns stdout.
-func bdInfo(t *testing.T, bd, dir string, args ...string) string {
+// issuegraphInfo runs "issuegraph info" with the given args and returns stdout.
+func issuegraphInfo(t *testing.T, issuegraph, dir string, args ...string) string {
 	t.Helper()
 	fullArgs := append([]string{"info"}, args...)
-	cmd := exec.Command(bd, fullArgs...)
+	cmd := exec.Command(issuegraph, fullArgs...)
 	cmd.Dir = dir
-	cmd.Env = bdEnv(dir)
+	cmd.Env = issuegraphEnv(dir)
 	stdout, stderr, err := runCommandBuffers(t, cmd)
 	if err != nil {
-		t.Fatalf("bd info %s failed: %v\nstdout:\n%s\nstderr:\n%s", strings.Join(args, " "), err, stdout.String(), stderr.String())
+		t.Fatalf("issuegraph info %s failed: %v\nstdout:\n%s\nstderr:\n%s", strings.Join(args, " "), err, stdout.String(), stderr.String())
 	}
 	return stdout.String()
 }
 
 func TestEmbeddedInfo(t *testing.T) {
-	if os.Getenv("BEADS_TEST_EMBEDDED_DOLT") != "1" {
-		t.Skip("set BEADS_TEST_EMBEDDED_DOLT=1 to run embedded dolt integration tests")
+	if os.Getenv("ISSUEGRAPH_TEST_EMBEDDED_DOLT") != "1" {
+		t.Skip("set ISSUEGRAPH_TEST_EMBEDDED_DOLT=1 to run embedded dolt integration tests")
 	}
 	t.Parallel()
 
-	bd := buildEmbeddedBD(t)
-	dir, _, _ := bdInit(t, bd, "--prefix", "ti")
+	issuegraph := buildEmbeddedBD(t)
+	dir, _, _ := issuegraphInit(t, issuegraph, "--prefix", "ti")
 
 	// ===== Default Output =====
 
 	t.Run("info_default", func(t *testing.T) {
-		out := bdInfo(t, bd, dir)
-		if !strings.Contains(out, ".beads") {
-			t.Errorf("expected .beads path in info output: %s", out)
+		out := issuegraphInfo(t, issuegraph, dir)
+		if !strings.Contains(out, ".issuegraph") {
+			t.Errorf("expected .issuegraph path in info output: %s", out)
 		}
 		if !strings.Contains(out, "Issue Count") {
 			t.Errorf("expected 'Issue Count' in info output: %s", out)
@@ -48,10 +48,10 @@ func TestEmbeddedInfo(t *testing.T) {
 	})
 
 	t.Run("info_with_issues", func(t *testing.T) {
-		bdCreate(t, bd, dir, "Info test issue 1", "--type", "task")
-		bdCreate(t, bd, dir, "Info test issue 2", "--type", "task")
+		issuegraphCreate(t, issuegraph, dir, "Info test issue 1", "--type", "task")
+		issuegraphCreate(t, issuegraph, dir, "Info test issue 2", "--type", "task")
 
-		out := bdInfo(t, bd, dir)
+		out := issuegraphInfo(t, issuegraph, dir)
 		// Should show non-zero issue count
 		if strings.Contains(out, "Issue Count: 0") {
 			t.Errorf("expected non-zero issue count after creating issues: %s", out)
@@ -61,7 +61,7 @@ func TestEmbeddedInfo(t *testing.T) {
 	// ===== Schema Flag =====
 
 	t.Run("info_schema", func(t *testing.T) {
-		out := bdInfo(t, bd, dir, "--schema")
+		out := issuegraphInfo(t, issuegraph, dir, "--schema")
 		if !strings.Contains(out, "issues") {
 			t.Errorf("expected 'issues' table in schema output: %s", out)
 		}
@@ -73,7 +73,7 @@ func TestEmbeddedInfo(t *testing.T) {
 	// ===== Whats New =====
 
 	t.Run("info_whats_new", func(t *testing.T) {
-		out := bdInfo(t, bd, dir, "--whats-new")
+		out := issuegraphInfo(t, issuegraph, dir, "--whats-new")
 		if len(strings.TrimSpace(out)) == 0 {
 			t.Error("expected non-empty --whats-new output")
 		}
@@ -86,7 +86,7 @@ func TestEmbeddedInfo(t *testing.T) {
 
 	infoJSON := func(t *testing.T, args ...string) map[string]interface{} {
 		t.Helper()
-		out := bdInfo(t, bd, dir, append([]string{"--json"}, args...)...)
+		out := issuegraphInfo(t, issuegraph, dir, append([]string{"--json"}, args...)...)
 		var got map[string]interface{}
 		if err := json.Unmarshal([]byte(out), &got); err != nil {
 			t.Fatalf("info --json %v did not emit JSON: %v\n%s", args, err, out)
@@ -99,8 +99,8 @@ func TestEmbeddedInfo(t *testing.T) {
 		if got["mode"] != "direct" {
 			t.Errorf("mode = %v, want direct", got["mode"])
 		}
-		if path, ok := got["database_path"].(string); !ok || !strings.Contains(path, ".beads") {
-			t.Errorf("database_path missing or not a .beads path: %v", got["database_path"])
+		if path, ok := got["database_path"].(string); !ok || !strings.Contains(path, ".issuegraph") {
+			t.Errorf("database_path missing or not a .issuegraph path: %v", got["database_path"])
 		}
 		if _, ok := got["issue_count"].(float64); !ok {
 			t.Errorf("issue_count missing or not a number: %v", got["issue_count"])
@@ -141,47 +141,47 @@ func TestEmbeddedInfo(t *testing.T) {
 	})
 }
 
-// TestEmbeddedInfoSuppressGitHooks pins GH#6027: bd info must honor
-// doctor.suppress.git-hooks the same way bd doctor does, instead of printing
+// TestEmbeddedInfoSuppressGitHooks pins GH#6027: issuegraph info must honor
+// doctor.suppress.git-hooks the same way issuegraph doctor does, instead of printing
 // the missing-hooks warning unconditionally.
 func TestEmbeddedInfoSuppressGitHooks(t *testing.T) {
-	if os.Getenv("BEADS_TEST_EMBEDDED_DOLT") != "1" {
-		t.Skip("set BEADS_TEST_EMBEDDED_DOLT=1 to run embedded dolt integration tests")
+	if os.Getenv("ISSUEGRAPH_TEST_EMBEDDED_DOLT") != "1" {
+		t.Skip("set ISSUEGRAPH_TEST_EMBEDDED_DOLT=1 to run embedded dolt integration tests")
 	}
 	t.Parallel()
 
-	bd := buildEmbeddedBD(t)
-	dir, _, _ := bdInit(t, bd, "--prefix", "ih")
-	bdRunOK(t, bd, dir, "hooks", "uninstall")
+	issuegraph := buildEmbeddedBD(t)
+	dir, _, _ := issuegraphInit(t, issuegraph, "--prefix", "ih")
+	issuegraphRunOK(t, issuegraph, dir, "hooks", "uninstall")
 
 	const hookWarning = "Git hooks not installed"
-	if out := bdInfo(t, bd, dir); !strings.Contains(out, hookWarning) {
+	if out := issuegraphInfo(t, issuegraph, dir); !strings.Contains(out, hookWarning) {
 		t.Fatalf("precondition: expected %q with hooks uninstalled:\n%s", hookWarning, out)
 	}
 
-	bdConfig(t, bd, dir, "set", "doctor.suppress.git-hooks", "true")
-	if out := bdInfo(t, bd, dir); strings.Contains(out, hookWarning) {
+	issuegraphConfig(t, issuegraph, dir, "set", "doctor.suppress.git-hooks", "true")
+	if out := issuegraphInfo(t, issuegraph, dir); strings.Contains(out, hookWarning) {
 		t.Errorf("doctor.suppress.git-hooks=true should hide %q:\n%s", hookWarning, out)
 	}
 
-	bdConfig(t, bd, dir, "set", "doctor.suppress.git-hooks", "false")
-	if out := bdInfo(t, bd, dir); !strings.Contains(out, hookWarning) {
+	issuegraphConfig(t, issuegraph, dir, "set", "doctor.suppress.git-hooks", "false")
+	if out := issuegraphInfo(t, issuegraph, dir); !strings.Contains(out, hookWarning) {
 		t.Errorf("doctor.suppress.git-hooks=false should keep %q:\n%s", hookWarning, out)
 	}
 }
 
 // TestEmbeddedInfoConcurrent exercises info operations concurrently.
 func TestEmbeddedInfoConcurrent(t *testing.T) {
-	if os.Getenv("BEADS_TEST_EMBEDDED_DOLT") != "1" {
-		t.Skip("set BEADS_TEST_EMBEDDED_DOLT=1 to run embedded dolt integration tests")
+	if os.Getenv("ISSUEGRAPH_TEST_EMBEDDED_DOLT") != "1" {
+		t.Skip("set ISSUEGRAPH_TEST_EMBEDDED_DOLT=1 to run embedded dolt integration tests")
 	}
 	t.Parallel()
 
-	bd := buildEmbeddedBD(t)
-	dir, _, _ := bdInit(t, bd, "--prefix", "ix")
+	issuegraph := buildEmbeddedBD(t)
+	dir, _, _ := issuegraphInit(t, issuegraph, "--prefix", "ix")
 
 	for i := 0; i < 3; i++ {
-		bdCreate(t, bd, dir, fmt.Sprintf("info-concurrent-%d", i), "--type", "task")
+		issuegraphCreate(t, issuegraph, dir, fmt.Sprintf("info-concurrent-%d", i), "--type", "task")
 	}
 
 	const numWorkers = 8
@@ -209,9 +209,9 @@ func TestEmbeddedInfoConcurrent(t *testing.T) {
 			case 2:
 				args = []string{"info", "--whats-new"}
 			}
-			cmd := exec.Command(bd, args...)
+			cmd := exec.Command(issuegraph, args...)
 			cmd.Dir = dir
-			cmd.Env = bdEnv(dir)
+			cmd.Env = issuegraphEnv(dir)
 			out, err := cmd.CombinedOutput()
 			if err != nil {
 				r.err = fmt.Errorf("info (worker %d): %v\n%s", worker, err, out)

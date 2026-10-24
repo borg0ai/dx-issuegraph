@@ -13,21 +13,21 @@ import (
 	"testing"
 	"time"
 
-	"github.com/steveyegge/beads/internal/types"
+	"github.com/borg0ai/dx-issuegraph/internal/types"
 )
 
-// bdImport runs "bd import" with extra args. Returns combined output.
-// bd import writes status lines like "Imported N issues" to stderr
+// issuegraphImport runs "issuegraph import" with extra args. Returns combined output.
+// issuegraph import writes status lines like "Imported N issues" to stderr
 // (see modules/cli/import.go), so callers grepping for those need both streams.
-func bdImport(t *testing.T, bd, dir string, args ...string) string {
+func issuegraphImport(t *testing.T, issuegraph, dir string, args ...string) string {
 	t.Helper()
 	fullArgs := append([]string{"import"}, args...)
-	cmd := exec.Command(bd, fullArgs...)
+	cmd := exec.Command(issuegraph, fullArgs...)
 	cmd.Dir = dir
-	cmd.Env = bdEnv(dir)
+	cmd.Env = issuegraphEnv(dir)
 	stdout, stderr, err := runCommandBuffers(t, cmd)
 	if err != nil {
-		t.Fatalf("bd import %s failed: %v\nstdout:\n%s\nstderr:\n%s", strings.Join(args, " "), err, stdout.String(), stderr.String())
+		t.Fatalf("issuegraph import %s failed: %v\nstdout:\n%s\nstderr:\n%s", strings.Join(args, " "), err, stdout.String(), stderr.String())
 	}
 	return stdout.String() + stderr.String()
 }
@@ -49,15 +49,15 @@ func writeJSONLFile(t *testing.T, path string, issues []types.Issue) {
 }
 
 func TestEmbeddedImport(t *testing.T) {
-	if os.Getenv("BEADS_TEST_EMBEDDED_DOLT") != "1" {
-		t.Skip("set BEADS_TEST_EMBEDDED_DOLT=1 to run embedded dolt import tests")
+	if os.Getenv("ISSUEGRAPH_TEST_EMBEDDED_DOLT") != "1" {
+		t.Skip("set ISSUEGRAPH_TEST_EMBEDDED_DOLT=1 to run embedded dolt import tests")
 	}
 	t.Parallel()
 
-	bd := buildEmbeddedBD(t)
+	issuegraph := buildEmbeddedBD(t)
 
 	t.Run("from_explicit_file", func(t *testing.T) {
-		dir, _, _ := bdInit(t, bd, "--prefix", "imfile")
+		dir, _, _ := issuegraphInit(t, issuegraph, "--prefix", "imfile")
 
 		// Create a JSONL file with test issues
 		jsonlPath := filepath.Join(t.TempDir(), "import.jsonl")
@@ -67,75 +67,75 @@ func TestEmbeddedImport(t *testing.T) {
 			{ID: "imfile-bbb", Title: "Import B", Status: types.StatusOpen, IssueType: types.TypeBug, CreatedAt: now, UpdatedAt: now},
 		})
 
-		out := bdImport(t, bd, dir, jsonlPath)
+		out := issuegraphImport(t, issuegraph, dir, jsonlPath)
 		if !strings.Contains(out, "Imported 2 issues") {
 			t.Errorf("expected 'Imported 2 issues', got: %s", out)
 		}
 	})
 
 	t.Run("from_default_path", func(t *testing.T) {
-		dir, _, _ := bdInit(t, bd, "--prefix", "imdef")
+		dir, _, _ := issuegraphInit(t, issuegraph, "--prefix", "imdef")
 
-		// Write issues to the default .beads/issues.jsonl location
-		jsonlPath := filepath.Join(dir, ".beads", "issues.jsonl")
+		// Write issues to the default .issuegraph/issues.jsonl location
+		jsonlPath := filepath.Join(dir, ".issuegraph", "issues.jsonl")
 		now := time.Now().UTC()
 		writeJSONLFile(t, jsonlPath, []types.Issue{
 			{ID: "imdef-xxx", Title: "Default Path Issue", Status: types.StatusOpen, IssueType: types.TypeTask, CreatedAt: now, UpdatedAt: now},
 		})
 
-		out := bdImport(t, bd, dir)
+		out := issuegraphImport(t, issuegraph, dir)
 		if !strings.Contains(out, "Imported 1 issue") {
 			t.Errorf("expected 'Imported 1 issue', got: %s", out)
 		}
 	})
 
 	t.Run("from_configured_import_path", func(t *testing.T) {
-		dir, _, _ := bdInit(t, bd, "--prefix", "imcfg")
+		dir, _, _ := issuegraphInit(t, issuegraph, "--prefix", "imcfg")
 
-		cmd := exec.Command(bd, "config", "set", "import.path", "beads.jsonl")
+		cmd := exec.Command(issuegraph, "config", "set", "import.path", "issuegraph.jsonl")
 		cmd.Dir = dir
-		cmd.Env = bdEnv(dir)
+		cmd.Env = issuegraphEnv(dir)
 		if out, err := cmd.CombinedOutput(); err != nil {
-			t.Fatalf("bd config set import.path failed: %v\n%s", err, out)
+			t.Fatalf("issuegraph config set import.path failed: %v\n%s", err, out)
 		}
 
-		jsonlPath := filepath.Join(dir, ".beads", "beads.jsonl")
+		jsonlPath := filepath.Join(dir, ".issuegraph", "issuegraph.jsonl")
 		now := time.Now().UTC()
 		writeJSONLFile(t, jsonlPath, []types.Issue{
 			{ID: "imcfg-xxx", Title: "Configured Import Path Issue", Status: types.StatusOpen, IssueType: types.TypeTask, CreatedAt: now, UpdatedAt: now},
 		})
 
-		out := bdImport(t, bd, dir)
+		out := issuegraphImport(t, issuegraph, dir)
 		if !strings.Contains(out, "Imported 1 issue") {
 			t.Errorf("expected 'Imported 1 issue', got: %s", out)
 		}
 	})
 
 	t.Run("dry_run", func(t *testing.T) {
-		dir, _, _ := bdInit(t, bd, "--prefix", "imdry")
+		dir, _, _ := issuegraphInit(t, issuegraph, "--prefix", "imdry")
 
-		jsonlPath := filepath.Join(dir, ".beads", "issues.jsonl")
+		jsonlPath := filepath.Join(dir, ".issuegraph", "issues.jsonl")
 		now := time.Now().UTC()
 		writeJSONLFile(t, jsonlPath, []types.Issue{
 			{ID: "imdry-qqq", Title: "Dry Run Issue", Status: types.StatusOpen, IssueType: types.TypeTask, CreatedAt: now, UpdatedAt: now},
 		})
 
-		out := bdImport(t, bd, dir, "--dry-run")
+		out := issuegraphImport(t, issuegraph, dir, "--dry-run")
 		if !strings.Contains(out, "Would import") {
 			t.Errorf("expected 'Would import' in dry-run output, got: %s", out)
 		}
 
 		// Verify issue was NOT actually created
-		cmd := exec.Command(bd, "show", "imdry-qqq", "--json")
+		cmd := exec.Command(issuegraph, "show", "imdry-qqq", "--json")
 		cmd.Dir = dir
-		cmd.Env = bdEnv(dir)
+		cmd.Env = issuegraphEnv(dir)
 		if showOut, err := cmd.CombinedOutput(); err == nil {
 			t.Errorf("issue should not exist after dry-run, but show succeeded: %s", showOut)
 		}
 	})
 
 	t.Run("with_memories", func(t *testing.T) {
-		dir, _, _ := bdInit(t, bd, "--prefix", "immem")
+		dir, _, _ := issuegraphInit(t, issuegraph, "--prefix", "immem")
 
 		// Create a JSONL file with an issue and a memory record
 		jsonlPath := filepath.Join(t.TempDir(), "import-memories.jsonl")
@@ -156,7 +156,7 @@ func TestEmbeddedImport(t *testing.T) {
 			t.Fatal(err)
 		}
 
-		out := bdImport(t, bd, dir, jsonlPath)
+		out := issuegraphImport(t, issuegraph, dir, jsonlPath)
 		if !strings.Contains(out, "1 issue") {
 			t.Errorf("expected '1 issue' in output, got: %s", out)
 		}
@@ -166,24 +166,24 @@ func TestEmbeddedImport(t *testing.T) {
 	})
 
 	t.Run("empty_file", func(t *testing.T) {
-		dir, _, _ := bdInit(t, bd, "--prefix", "imemp")
+		dir, _, _ := issuegraphInit(t, issuegraph, "--prefix", "imemp")
 
 		jsonlPath := filepath.Join(t.TempDir(), "empty.jsonl")
 		if err := os.WriteFile(jsonlPath, []byte{}, 0644); err != nil {
 			t.Fatal(err)
 		}
 
-		out := bdImport(t, bd, dir, jsonlPath)
+		out := issuegraphImport(t, issuegraph, dir, jsonlPath)
 		if !strings.Contains(out, "Empty file") {
 			t.Errorf("expected 'Empty file' message, got: %s", out)
 		}
 	})
 
 	t.Run("upsert_existing", func(t *testing.T) {
-		dir, _, _ := bdInit(t, bd, "--prefix", "imups")
+		dir, _, _ := issuegraphInit(t, issuegraph, "--prefix", "imups")
 
-		// Create an issue via bd create
-		id := bdCreateSilent(t, bd, dir, "Original Title")
+		// Create an issue via issuegraph create
+		id := issuegraphCreateSilent(t, issuegraph, dir, "Original Title")
 
 		// Import with updated title for the same ID. UpdatedAt must be
 		// strictly newer than the created row's second-granularity
@@ -194,15 +194,15 @@ func TestEmbeddedImport(t *testing.T) {
 			{ID: id, Title: "Updated Title", Status: types.StatusOpen, IssueType: types.TypeTask, CreatedAt: now, UpdatedAt: now},
 		})
 
-		bdImport(t, bd, dir, jsonlPath)
+		issuegraphImport(t, issuegraph, dir, jsonlPath)
 
 		// Verify the title was updated
-		showCmd := exec.Command(bd, "show", id, "--json")
+		showCmd := exec.Command(issuegraph, "show", id, "--json")
 		showCmd.Dir = dir
-		showCmd.Env = bdEnv(dir)
+		showCmd.Env = issuegraphEnv(dir)
 		stdout, stderr, err := runCommandBuffers(t, showCmd)
 		if err != nil {
-			t.Fatalf("bd show %s failed: %v\nstdout:\n%s\nstderr:\n%s", id, err, stdout.String(), stderr.String())
+			t.Fatalf("issuegraph show %s failed: %v\nstdout:\n%s\nstderr:\n%s", id, err, stdout.String(), stderr.String())
 		}
 		if !strings.Contains(stdout.String(), "Updated Title") {
 			t.Errorf("expected 'Updated Title' after upsert, got: %s", stdout.String())
@@ -210,12 +210,12 @@ func TestEmbeddedImport(t *testing.T) {
 	})
 
 	t.Run("prefix_sync", func(t *testing.T) {
-		// Simulate a stale DB: init with --prefix bd (DB has issue_prefix=bd),
-		// then overwrite config.yaml with issue-prefix: be. bd import must sync
+		// Simulate a stale DB: init with --prefix issuegraph (DB has issue_prefix=issuegraph),
+		// then overwrite config.yaml with issue-prefix: be. issuegraph import must sync
 		// the DB to match config.yaml (be-llaf).
-		dir, beadsDir, _ := bdInit(t, bd, "--prefix", "bd")
+		dir, issuegraphDir, _ := issuegraphInit(t, issuegraph, "--prefix", "issuegraph")
 
-		if err := os.WriteFile(filepath.Join(beadsDir, "config.yaml"), []byte("issue-prefix: be\n"), 0o644); err != nil {
+		if err := os.WriteFile(filepath.Join(issuegraphDir, "config.yaml"), []byte("issue-prefix: be\n"), 0o644); err != nil {
 			t.Fatal(err)
 		}
 
@@ -225,9 +225,9 @@ func TestEmbeddedImport(t *testing.T) {
 			{ID: "bd-sync1", Title: "Prefix Sync Issue", Status: types.StatusOpen, IssueType: types.TypeTask, CreatedAt: now, UpdatedAt: now},
 		})
 
-		bdImport(t, bd, dir, jsonlPath)
+		issuegraphImport(t, issuegraph, dir, jsonlPath)
 
-		if val := readBack(t, beadsDir, "bd", "issue_prefix", false); val != "be" {
+		if val := readBack(t, issuegraphDir, "issuegraph", "issue_prefix", false); val != "be" {
 			t.Errorf("issue_prefix after import: got %q, want %q", val, "be")
 		}
 	})
@@ -235,9 +235,9 @@ func TestEmbeddedImport(t *testing.T) {
 	t.Run("prefix_sync_no_config_key", func(t *testing.T) {
 		// config.yaml with no issue-prefix key must not touch the DB's
 		// issue_prefix; the sync block only fires when yamlPrefix != "" (be-llaf).
-		dir, beadsDir, _ := bdInit(t, bd, "--prefix", "bd")
+		dir, issuegraphDir, _ := issuegraphInit(t, issuegraph, "--prefix", "issuegraph")
 
-		if err := os.WriteFile(filepath.Join(beadsDir, "config.yaml"), []byte("export:\n  auto: false\n"), 0o644); err != nil {
+		if err := os.WriteFile(filepath.Join(issuegraphDir, "config.yaml"), []byte("export:\n  auto: false\n"), 0o644); err != nil {
 			t.Fatal(err)
 		}
 
@@ -247,22 +247,22 @@ func TestEmbeddedImport(t *testing.T) {
 			{ID: "bd-nokey1", Title: "No Prefix Key Issue", Status: types.StatusOpen, IssueType: types.TypeTask, CreatedAt: now, UpdatedAt: now},
 		})
 
-		bdImport(t, bd, dir, jsonlPath)
+		issuegraphImport(t, issuegraph, dir, jsonlPath)
 
-		if val := readBack(t, beadsDir, "bd", "issue_prefix", false); val != "bd" {
-			t.Errorf("issue_prefix after import: got %q, want %q", val, "bd")
+		if val := readBack(t, issuegraphDir, "issuegraph", "issue_prefix", false); val != "issuegraph" {
+			t.Errorf("issue_prefix after import: got %q, want %q", val, "issuegraph")
 		}
 	})
 }
 
 func TestEmbeddedImportConcurrent(t *testing.T) {
-	if os.Getenv("BEADS_TEST_EMBEDDED_DOLT") != "1" {
-		t.Skip("set BEADS_TEST_EMBEDDED_DOLT=1 to run embedded dolt import tests")
+	if os.Getenv("ISSUEGRAPH_TEST_EMBEDDED_DOLT") != "1" {
+		t.Skip("set ISSUEGRAPH_TEST_EMBEDDED_DOLT=1 to run embedded dolt import tests")
 	}
 	t.Parallel()
 
-	bd := buildEmbeddedBD(t)
-	dir, _, _ := bdInit(t, bd, "--prefix", "imconc")
+	issuegraph := buildEmbeddedBD(t)
+	dir, _, _ := issuegraphInit(t, issuegraph, "--prefix", "imconc")
 
 	const numWorkers = 5
 
@@ -300,9 +300,9 @@ func TestEmbeddedImportConcurrent(t *testing.T) {
 			}
 			_ = os.WriteFile(jsonlPath, []byte(strings.Join(lines, "\n")+"\n"), 0644)
 
-			cmd := exec.Command(bd, "import", jsonlPath)
+			cmd := exec.Command(issuegraph, "import", jsonlPath)
 			cmd.Dir = dir
-			cmd.Env = bdEnv(dir)
+			cmd.Env = issuegraphEnv(dir)
 			out, err := cmd.CombinedOutput()
 			results[worker] = result{worker: worker, out: string(out), err: err}
 		}(w)

@@ -4,8 +4,8 @@ import (
 	"context"
 	"testing"
 
-	"github.com/steveyegge/beads/internal/types"
-	publicops "github.com/steveyegge/beads/issueops"
+	"github.com/borg0ai/dx-issuegraph/internal/types"
+	publicops "github.com/borg0ai/dx-issuegraph/issueops"
 )
 
 // IssueOperationsStagingFixture supplies adapter-specific storage access for

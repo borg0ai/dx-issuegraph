@@ -3,10 +3,10 @@ package main
 import (
 	"fmt"
 
+	"github.com/borg0ai/dx-issuegraph/internal/metrics"
+	"github.com/borg0ai/dx-issuegraph/internal/ui"
+	"github.com/borg0ai/dx-issuegraph/internal/validation"
 	"github.com/spf13/cobra"
-	"github.com/steveyegge/beads/internal/metrics"
-	"github.com/steveyegge/beads/internal/ui"
-	"github.com/steveyegge/beads/internal/validation"
 )
 
 var priorityCmd = &cobra.Command{
@@ -15,7 +15,7 @@ var priorityCmd = &cobra.Command{
 	Short:   "Set the priority of an issue",
 	Long: `Set the priority of an issue.
 
-Shorthand for 'bd update <id> --priority <n>'.
+Shorthand for 'issuegraph update <id> --priority <n>'.
 
 Priority levels:
   0 - Critical (security, data loss, broken builds)
@@ -25,8 +25,8 @@ Priority levels:
   4 - Backlog (future ideas)
 
 Examples:
-  bd priority bd-123 0    # Critical
-  bd priority bd-123 2    # Medium`,
+  issuegraph priority bd-123 0    # Critical
+  issuegraph priority bd-123 2    # Medium`,
 	Args:          cobra.ExactArgs(2),
 	SilenceUsage:  true,
 	SilenceErrors: true,

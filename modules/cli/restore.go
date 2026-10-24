@@ -6,10 +6,10 @@ import (
 	"os"
 	"strings"
 
+	"github.com/borg0ai/dx-issuegraph/internal/storage"
+	"github.com/borg0ai/dx-issuegraph/internal/types"
+	"github.com/borg0ai/dx-issuegraph/internal/ui"
 	"github.com/spf13/cobra"
-	"github.com/steveyegge/beads/internal/storage"
-	"github.com/steveyegge/beads/internal/types"
-	"github.com/steveyegge/beads/internal/ui"
 )
 
 var restoreApply bool
@@ -30,7 +30,7 @@ By default it is read-only: it displays the archived content without modifying
 the database. Pass --apply to write the original content back into the issue
 and step its compaction level back down.
 
-If no archived snapshot exists (e.g. the issue was compacted by an older bd
+If no archived snapshot exists (e.g. the issue was compacted by an older issuegraph
 before snapshot archiving), restore falls back to a best-effort reconstruction
 from Dolt version history, which can only be displayed, not applied.`,
 	Args: cobra.ExactArgs(1),
@@ -70,7 +70,7 @@ from Dolt version history, which can only be displayed, not applied.`,
 			if snap == nil {
 				fmt.Fprintf(os.Stderr, "Error: no archived snapshot for %s; cannot safely restore content\n", issueID)
 				fmt.Fprintf(os.Stderr, "Hint: this issue was compacted before snapshot archiving existed.\n")
-				fmt.Fprintf(os.Stderr, "      Run 'bd restore %s' (without --apply) to view the best-effort\n", issueID)
+				fmt.Fprintf(os.Stderr, "      Run 'issuegraph restore %s' (without --apply) to view the best-effort\n", issueID)
 				fmt.Fprintf(os.Stderr, "      version reconstructed from Dolt history.\n")
 				return SilentExit()
 			}
@@ -106,7 +106,7 @@ from Dolt version history, which can only be displayed, not applied.`,
 				}
 			} else {
 				displayRestoredIssue(view, "archived snapshot")
-				fmt.Printf("%s\n", ui.RenderMuted("Run 'bd restore "+issueID+" --apply' to write this content back."))
+				fmt.Printf("%s\n", ui.RenderMuted("Run 'issuegraph restore "+issueID+" --apply' to write this content back."))
 			}
 			return nil
 		}

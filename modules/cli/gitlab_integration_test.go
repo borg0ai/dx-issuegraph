@@ -1,7 +1,7 @@
 //go:build cgo && integration
 // +build cgo,integration
 
-// Package main provides the bd CLI commands.
+// Package main provides the issuegraph CLI commands.
 package main
 
 import (

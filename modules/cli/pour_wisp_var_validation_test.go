@@ -12,7 +12,7 @@ import (
 	"github.com/spf13/cobra"
 )
 
-// Regression coverage for mybd-u2r6: bd mol pour/wisp previously validated
+// Regression coverage for mybd-u2r6: issuegraph mol pour/wisp previously validated
 // only variable *presence* (extractRequiredVariables), never the enum/pattern
 // constraints cook enforces. Once resolveAndCookFormulaWithVars started
 // calling formula.ValidateProvidedVars (mybd-u2r6 fix), pour/wisp needed to
@@ -44,7 +44,7 @@ title = "Publish with {{policy}} / {{slug}}"
 func writeVarValidationFormula(t *testing.T) {
 	t.Helper()
 	gtRoot := t.TempDir()
-	formulaDir := filepath.Join(gtRoot, ".beads", "formulas")
+	formulaDir := filepath.Join(gtRoot, ".issuegraph", "formulas")
 	if err := os.MkdirAll(formulaDir, 0o755); err != nil {
 		t.Fatalf("mkdir formula dir: %v", err)
 	}
@@ -133,7 +133,7 @@ func TestPourMissingVarHintUnchanged(t *testing.T) {
 	}
 }
 
-// TestPourRejectsExplicitlyEmptyRequiredVar covers the bead's headline repro:
+// TestPourRejectsExplicitlyEmptyRequiredVar covers the issue's headline repro:
 // an unset shell variable interpolated into --var (e.g. --var
 // policy=$UNSET_SHELL_VAR) arrives as an explicitly-*provided*, empty-string
 // value rather than an absent flag, so it must hit ValidateProvidedVars'

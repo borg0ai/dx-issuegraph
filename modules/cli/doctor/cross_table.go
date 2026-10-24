@@ -3,7 +3,7 @@ package doctor
 import (
 	"fmt"
 
-	"github.com/steveyegge/beads/modules/cli/doctor/fix"
+	"github.com/borg0ai/dx-issuegraph/modules/cli/doctor/fix"
 )
 
 // CheckCrossTableDuplicates detects IDs that exist in both the issues and
@@ -33,6 +33,6 @@ func CheckCrossTableDuplicates(path string) DoctorCheck {
 		Status:  StatusError,
 		Message: fmt.Sprintf("%d id(s) exist in both issues and wisps", count),
 		Detail:  "Stale issues-table copies break every lookup for the affected IDs",
-		Fix:     "Run 'bd doctor --check=validate --fix' to remove stale issues copies (wisps are canonical)",
+		Fix:     "Run 'issuegraph doctor --check=validate --fix' to remove stale issues copies (wisps are canonical)",
 	}
 }

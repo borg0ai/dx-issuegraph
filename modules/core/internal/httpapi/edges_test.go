@@ -7,11 +7,11 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/steveyegge/beads/internal/types"
-	"github.com/steveyegge/beads/issueops"
+	"github.com/borg0ai/dx-issuegraph/internal/types"
+	"github.com/borg0ai/dx-issuegraph/issueops"
 )
 
-// These cover the transport half of GET /v0/beads/dependencies: the two size
+// These cover the transport half of GET /v0/issuegraph/dependencies: the two size
 // refusals this operation owns, how a role refusal is named on the wire, and the
 // two never-null members. Everything below the wire is the role's, and is pinned
 // by backend/conformance/edge_reader_contract.go at all three backends.
@@ -23,7 +23,7 @@ func newEdgesServer(t *testing.T, edges *roleEdgeReader) *testServer {
 
 // TestDependenciesFlattenTheRoleAnswer pins the wire projection: the per-anchor
 // answer becomes ONE flat array of edges in anchor order, which is the shape
-// `bd dep list a b c --json` emits, plus the ghost anchors on their own member.
+// `issuegraph dep list a b c --json` emits, plus the ghost anchors on their own member.
 func TestDependenciesFlattenTheRoleAnswer(t *testing.T) {
 	edges := &roleEdgeReader{result: issueops.EdgeReadResult{Anchors: []issueops.AnchorEdges{
 		{ID: "bd-1", Edges: []*types.Dependency{
@@ -37,7 +37,7 @@ func TestDependenciesFlattenTheRoleAnswer(t *testing.T) {
 	}}}
 	ts := newEdgesServer(t, edges)
 
-	body := decodeBody(t, ts.get(t, "/v0/beads/dependencies?issue_id=bd-1&issue_id=bd-3&issue_id=bd-4"))
+	body := decodeBody(t, ts.get(t, "/v0/issuegraph/dependencies?issue_id=bd-1&issue_id=bd-3&issue_id=bd-4"))
 	items, _ := body["items"].([]any)
 	if len(items) != 3 {
 		t.Fatalf("items = %v, want the three edges the role returned", body["items"])
@@ -68,14 +68,14 @@ func TestDependenciesNeverAnswerNull(t *testing.T) {
 	}}}
 	ts := newEdgesServer(t, edges)
 
-	raw := readAll(t, ts.get(t, "/v0/beads/dependencies?issue_id=bd-1"))
+	raw := readAll(t, ts.get(t, "/v0/issuegraph/dependencies?issue_id=bd-1"))
 	if strings.Contains(raw, "null") {
 		t.Fatalf("body = %s, want empty arrays rather than null", raw)
 	}
 }
 
 // TestDependenciesBoundTheQuestion pins the two refusals this operation owns.
-// They are on the ANCHOR COUNT rather than on the answer because `bd dep list`
+// They are on the ANCHOR COUNT rather than on the answer because `issuegraph dep list`
 // has no limit, so a `limit` here would make the two front doors default
 // differently; see maxDependencyAnchors.
 func TestDependenciesBoundTheQuestion(t *testing.T) {
@@ -86,9 +86,9 @@ func TestDependenciesBoundTheQuestion(t *testing.T) {
 		name  string
 		query string
 	}{
-		{"no issue_id at all", "/v0/beads/dependencies"},
-		{"an empty issue_id list", "/v0/beads/dependencies?type=blocks"},
-		{"more anchors than the cap", "/v0/beads/dependencies?" + repeatedIssueIDs(maxDependencyAnchors+1)},
+		{"no issue_id at all", "/v0/issuegraph/dependencies"},
+		{"an empty issue_id list", "/v0/issuegraph/dependencies?type=blocks"},
+		{"more anchors than the cap", "/v0/issuegraph/dependencies?" + repeatedIssueIDs(maxDependencyAnchors+1)},
 	} {
 		t.Run(tc.name, func(t *testing.T) {
 			resp := ts.get(t, tc.query)
@@ -104,7 +104,7 @@ func TestDependenciesBoundTheQuestion(t *testing.T) {
 
 	// The cap is a bound, not a rejection of large requests: exactly the cap
 	// is served.
-	if resp := ts.get(t, "/v0/beads/dependencies?"+repeatedIssueIDs(maxDependencyAnchors)); resp.StatusCode != http.StatusOK {
+	if resp := ts.get(t, "/v0/issuegraph/dependencies?"+repeatedIssueIDs(maxDependencyAnchors)); resp.StatusCode != http.StatusOK {
 		t.Errorf("status = %d for exactly %d anchors, want 200: %s", resp.StatusCode, maxDependencyAnchors, readAll(t, resp))
 	}
 }
@@ -115,7 +115,7 @@ func TestDependenciesBoundTheQuestion(t *testing.T) {
 func TestDependenciesRefuseAnUnknownParameter(t *testing.T) {
 	ts := newEdgesServer(t, &roleEdgeReader{})
 
-	resp := ts.get(t, "/v0/beads/dependencies?issue_id=bd-1&direction=up")
+	resp := ts.get(t, "/v0/issuegraph/dependencies?issue_id=bd-1&direction=up")
 	if resp.StatusCode != http.StatusBadRequest {
 		t.Fatalf("status = %d, want 400: %s", resp.StatusCode, readAll(t, resp))
 	}
@@ -137,8 +137,8 @@ func TestADependencyRoleRefusalIsTheDocumentedBadRequest(t *testing.T) {
 		query string
 		param string
 	}{
-		{"an empty id", "/v0/beads/dependencies?issue_id=bd-1&issue_id=", "issue_id"},
-		{"an unusable type", "/v0/beads/dependencies?issue_id=bd-1&type=", "type"},
+		{"an empty id", "/v0/issuegraph/dependencies?issue_id=bd-1&issue_id=", "issue_id"},
+		{"an unusable type", "/v0/issuegraph/dependencies?issue_id=bd-1&type=", "type"},
 	} {
 		t.Run(tc.name, func(t *testing.T) {
 			ts := newEdgesServer(t, &roleEdgeReader{
@@ -158,7 +158,7 @@ func TestADependencyRoleRefusalIsTheDocumentedBadRequest(t *testing.T) {
 	// Anything that is NOT a validation refusal keeps going through the one
 	// mapping in problem.go rather than becoming a wrong 400.
 	ts := newEdgesServer(t, &roleEdgeReader{err: errors.New("backend is unreachable")})
-	if resp := ts.get(t, "/v0/beads/dependencies?issue_id=bd-1"); resp.StatusCode != http.StatusInternalServerError {
+	if resp := ts.get(t, "/v0/issuegraph/dependencies?issue_id=bd-1"); resp.StatusCode != http.StatusInternalServerError {
 		t.Errorf("status = %d for an opaque role failure, want 500: %s", resp.StatusCode, readAll(t, resp))
 	}
 }

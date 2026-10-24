@@ -14,13 +14,13 @@ import (
 	"testing"
 	"time"
 
-	"github.com/steveyegge/beads/internal/storage/dolt"
-	"github.com/steveyegge/beads/internal/types"
+	"github.com/borg0ai/dx-issuegraph/internal/storage/dolt"
+	"github.com/borg0ai/dx-issuegraph/internal/types"
 )
 
 var cliCoverageMutex sync.Mutex
 
-func runBDForCoverage(t *testing.T, dir string, args ...string) (stdout string, stderr string) {
+func runIssueGraphForCoverage(t *testing.T, dir string, args ...string) (stdout string, stderr string) {
 	t.Helper()
 
 	cliCoverageMutex.Lock()
@@ -45,70 +45,60 @@ func runBDForCoverage(t *testing.T, dir string, args ...string) (stdout string, 
 	}()
 
 	// Mark tests explicitly.
-	oldTestMode, testModeWasSet := os.LookupEnv("BEADS_TEST_MODE")
-	os.Setenv("BEADS_TEST_MODE", "1")
+	oldTestMode, testModeWasSet := os.LookupEnv("ISSUEGRAPH_TEST_MODE")
+	os.Setenv("ISSUEGRAPH_TEST_MODE", "1")
 	defer func() {
 		if testModeWasSet {
-			_ = os.Setenv("BEADS_TEST_MODE", oldTestMode)
+			_ = os.Setenv("ISSUEGRAPH_TEST_MODE", oldTestMode)
 		} else {
-			os.Unsetenv("BEADS_TEST_MODE")
+			os.Unsetenv("ISSUEGRAPH_TEST_MODE")
 		}
 	}()
 
 	// Ensure all commands (including init) operate on the temp workspace DB.
-	db := filepath.Join(dir, ".beads", "beads.db")
-	beadsDir := filepath.Join(dir, ".beads")
-	oldBeadsDir, beadsDirWasSet := os.LookupEnv("BEADS_DIR")
-	os.Setenv("BEADS_DIR", beadsDir)
+	db := filepath.Join(dir, ".issuegraph", "issuegraph.db")
+	issuegraphDir := filepath.Join(dir, ".issuegraph")
+	oldIssueGraphDir, issuegraphDirWasSet := os.LookupEnv("ISSUEGRAPH_DIR")
+	os.Setenv("ISSUEGRAPH_DIR", issuegraphDir)
 	defer func() {
-		if beadsDirWasSet {
-			_ = os.Setenv("BEADS_DIR", oldBeadsDir)
+		if issuegraphDirWasSet {
+			_ = os.Setenv("ISSUEGRAPH_DIR", oldIssueGraphDir)
 		} else {
-			os.Unsetenv("BEADS_DIR")
+			os.Unsetenv("ISSUEGRAPH_DIR")
 		}
 	}()
 
-	oldDB, dbWasSet := os.LookupEnv("BEADS_DB")
-	os.Setenv("BEADS_DB", db)
+	oldDB, dbWasSet := os.LookupEnv("ISSUEGRAPH_DB")
+	os.Setenv("ISSUEGRAPH_DB", db)
 	defer func() {
 		if dbWasSet {
-			_ = os.Setenv("BEADS_DB", oldDB)
+			_ = os.Setenv("ISSUEGRAPH_DB", oldDB)
 		} else {
-			os.Unsetenv("BEADS_DB")
+			os.Unsetenv("ISSUEGRAPH_DB")
 		}
 	}()
-	oldBDDB, bdDBWasSet := os.LookupEnv("BD_DB")
-	os.Setenv("BD_DB", db)
+	oldIssueGraphDB, issuegraphDBWasSet := os.LookupEnv("ISSUEGRAPH_DB")
+	os.Setenv("ISSUEGRAPH_DB", db)
 	defer func() {
-		if bdDBWasSet {
-			_ = os.Setenv("BD_DB", oldBDDB)
+		if issuegraphDBWasSet {
+			_ = os.Setenv("ISSUEGRAPH_DB", oldIssueGraphDB)
 		} else {
-			os.Unsetenv("BD_DB")
+			os.Unsetenv("ISSUEGRAPH_DB")
 		}
 	}()
 
 	// Ensure actor is set so label operations record audit fields.
-	oldActor, actorWasSet := os.LookupEnv("BD_ACTOR")
-	os.Setenv("BD_ACTOR", "test-user")
+	oldActor, actorWasSet := os.LookupEnv("ISSUEGRAPH_ACTOR")
+	os.Setenv("ISSUEGRAPH_ACTOR", "test-user")
 	defer func() {
 		if actorWasSet {
-			_ = os.Setenv("BD_ACTOR", oldActor)
+			_ = os.Setenv("ISSUEGRAPH_ACTOR", oldActor)
 		} else {
-			os.Unsetenv("BD_ACTOR")
+			os.Unsetenv("ISSUEGRAPH_ACTOR")
 		}
 	}()
-	oldBeadsActor, beadsActorWasSet := os.LookupEnv("BEADS_ACTOR")
-	os.Setenv("BEADS_ACTOR", "test-user")
-	defer func() {
-		if beadsActorWasSet {
-			_ = os.Setenv("BEADS_ACTOR", oldBeadsActor)
-		} else {
-			os.Unsetenv("BEADS_ACTOR")
-		}
-	}()
-
 	rootCmd.SetArgs(args)
-	os.Args = append([]string{"bd"}, args...)
+	os.Args = append([]string{"issuegraph"}, args...)
 
 	err := rootCmd.Execute()
 
@@ -144,7 +134,7 @@ func runBDForCoverage(t *testing.T, dir string, args ...string) (stdout string, 
 	stderr = errBuf.String()
 
 	if err != nil {
-		t.Fatalf("bd %v failed: %v\nStdout: %s\nStderr: %s", args, err, stdout, stderr)
+		t.Fatalf("issuegraph %v failed: %v\nStdout: %s\nStderr: %s", args, err, stdout, stderr)
 	}
 
 	return stdout, stderr
@@ -175,18 +165,18 @@ func parseCreatedIssueID(t *testing.T, out string) string {
 func TestCoverage_ShowUpdateClose(t *testing.T) {
 
 	dir := t.TempDir()
-	runBDForCoverage(t, dir, "init", "--prefix", "test", "--quiet")
+	runIssueGraphForCoverage(t, dir, "init", "--prefix", "test", "--quiet")
 
-	out, _ := runBDForCoverage(t, dir, "create", "Show coverage issue", "-p", "1", "--json")
+	out, _ := runIssueGraphForCoverage(t, dir, "create", "Show coverage issue", "-p", "1", "--json")
 	id := parseCreatedIssueID(t, out)
 
 	// Exercise update label flows (add -> set -> add/remove).
-	runBDForCoverage(t, dir, "update", id, "--add-label", "old", "--json")
-	runBDForCoverage(t, dir, "update", id, "--set-labels", "a,b", "--add-label", "c", "--remove-label", "a", "--json")
-	runBDForCoverage(t, dir, "update", id, "--remove-label", "old", "--json")
+	runIssueGraphForCoverage(t, dir, "update", id, "--add-label", "old", "--json")
+	runIssueGraphForCoverage(t, dir, "update", id, "--set-labels", "a,b", "--add-label", "c", "--remove-label", "a", "--json")
+	runIssueGraphForCoverage(t, dir, "update", id, "--remove-label", "old", "--json")
 
 	// Show JSON output and verify labels were applied.
-	showOut, _ := runBDForCoverage(t, dir, "show", id, "--json")
+	showOut, _ := runIssueGraphForCoverage(t, dir, "show", id, "--json")
 	showPayload := extractJSONPayload(showOut)
 
 	var details []map[string]interface{}
@@ -215,15 +205,15 @@ func TestCoverage_ShowUpdateClose(t *testing.T) {
 	}
 
 	// Show text output.
-	showText, _ := runBDForCoverage(t, dir, "show", id)
+	showText, _ := runIssueGraphForCoverage(t, dir, "show", id)
 	if !strings.Contains(showText, "Show coverage issue") {
 		t.Fatalf("expected show output to contain title, got: %s", showText)
 	}
 
 	// Multi-ID show should print both issues.
-	out2, _ := runBDForCoverage(t, dir, "create", "Second issue", "-p", "2", "--json")
+	out2, _ := runIssueGraphForCoverage(t, dir, "create", "Second issue", "-p", "2", "--json")
 	id2 := parseCreatedIssueID(t, out2)
-	multi, _ := runBDForCoverage(t, dir, "show", id, id2)
+	multi, _ := runIssueGraphForCoverage(t, dir, "show", id, id2)
 	if !strings.Contains(multi, "Show coverage issue") || !strings.Contains(multi, "Second issue") {
 		t.Fatalf("expected multi-show output to include both titles, got: %s", multi)
 	}
@@ -232,7 +222,7 @@ func TestCoverage_ShowUpdateClose(t *testing.T) {
 	}
 
 	// Close and verify JSON output.
-	closeOut, _ := runBDForCoverage(t, dir, "close", id, "--reason", "Done", "--json")
+	closeOut, _ := runIssueGraphForCoverage(t, dir, "close", id, "--reason", "Done", "--json")
 	closePayload := extractJSONPayload(closeOut)
 	var closed []map[string]interface{}
 	if err := json.Unmarshal([]byte(closePayload), &closed); err != nil {
@@ -249,18 +239,18 @@ func TestCoverage_ShowUpdateClose(t *testing.T) {
 func TestCoverage_TemplateAndPinnedProtections(t *testing.T) {
 
 	dir := t.TempDir()
-	runBDForCoverage(t, dir, "init", "--prefix", "test", "--quiet")
+	runIssueGraphForCoverage(t, dir, "init", "--prefix", "test", "--quiet")
 
 	// Create a pinned issue and verify close requires --force.
-	out, _ := runBDForCoverage(t, dir, "create", "Pinned issue", "-p", "1", "--json")
+	out, _ := runIssueGraphForCoverage(t, dir, "create", "Pinned issue", "-p", "1", "--json")
 	pinnedID := parseCreatedIssueID(t, out)
-	runBDForCoverage(t, dir, "update", pinnedID, "--status", string(types.StatusPinned), "--json")
-	_, closeErr := runBDForCoverage(t, dir, "close", pinnedID, "--reason", "Done")
+	runIssueGraphForCoverage(t, dir, "update", pinnedID, "--status", string(types.StatusPinned), "--json")
+	_, closeErr := runIssueGraphForCoverage(t, dir, "close", pinnedID, "--reason", "Done")
 	if !strings.Contains(closeErr, "cannot close pinned issue") {
 		t.Fatalf("expected pinned close to be rejected, stderr: %s", closeErr)
 	}
 
-	forceOut, _ := runBDForCoverage(t, dir, "close", pinnedID, "--force", "--reason", "Done", "--json")
+	forceOut, _ := runIssueGraphForCoverage(t, dir, "close", pinnedID, "--force", "--reason", "Done", "--json")
 	forcePayload := extractJSONPayload(forceOut)
 	var closed []map[string]interface{}
 	if err := json.Unmarshal([]byte(forcePayload), &closed); err != nil {
@@ -271,7 +261,7 @@ func TestCoverage_TemplateAndPinnedProtections(t *testing.T) {
 	}
 
 	// Insert a template issue directly and verify update/close protect it.
-	dbFile := filepath.Join(dir, ".beads", "beads.db")
+	dbFile := filepath.Join(dir, ".issuegraph", "issuegraph.db")
 	s, err := dolt.New(context.Background(), &dolt.Config{Path: dbFile})
 	if err != nil {
 		t.Skipf("skipping: Dolt server not available: %v", err)
@@ -299,7 +289,7 @@ func TestCoverage_TemplateAndPinnedProtections(t *testing.T) {
 	}
 	_ = s.Close()
 
-	showOut, _ := runBDForCoverage(t, dir, "show", template.ID, "--json")
+	showOut, _ := runIssueGraphForCoverage(t, dir, "show", template.ID, "--json")
 	showPayload := extractJSONPayload(showOut)
 	var showDetails []map[string]interface{}
 	if err := json.Unmarshal([]byte(showPayload), &showDetails); err != nil {
@@ -329,11 +319,11 @@ func TestCoverage_TemplateAndPinnedProtections(t *testing.T) {
 		t.Fatalf("expected show JSON to include is_template=true, got: %s", showOut)
 	}
 
-	_, updErr := runBDForCoverage(t, dir, "update", template.ID, "--title", "New title")
+	_, updErr := runIssueGraphForCoverage(t, dir, "update", template.ID, "--title", "New title")
 	if !strings.Contains(updErr, "cannot update template") {
 		t.Fatalf("expected template update to be rejected, stderr: %s", updErr)
 	}
-	_, closeTemplateErr := runBDForCoverage(t, dir, "close", template.ID, "--reason", "Done")
+	_, closeTemplateErr := runIssueGraphForCoverage(t, dir, "close", template.ID, "--reason", "Done")
 	if !strings.Contains(closeTemplateErr, "cannot close template") {
 		t.Fatalf("expected template close to be rejected, stderr: %s", closeTemplateErr)
 	}
@@ -342,9 +332,9 @@ func TestCoverage_TemplateAndPinnedProtections(t *testing.T) {
 func TestCoverage_ShowThread(t *testing.T) {
 
 	dir := t.TempDir()
-	runBDForCoverage(t, dir, "init", "--prefix", "test", "--quiet")
+	runIssueGraphForCoverage(t, dir, "init", "--prefix", "test", "--quiet")
 
-	dbFile := filepath.Join(dir, ".beads", "beads.db")
+	dbFile := filepath.Join(dir, ".issuegraph", "issuegraph.db")
 	s, err := dolt.New(context.Background(), &dolt.Config{Path: dbFile})
 	if err != nil {
 		t.Skipf("skipping: Dolt server not available: %v", err)
@@ -376,7 +366,7 @@ func TestCoverage_ShowThread(t *testing.T) {
 	}
 	_ = s.Close()
 
-	out, _ := runBDForCoverage(t, dir, "show", reply2.ID, "--thread")
+	out, _ := runIssueGraphForCoverage(t, dir, "show", reply2.ID, "--thread")
 	if !strings.Contains(out, "Thread") || !strings.Contains(out, "Total: 3 messages") {
 		t.Fatalf("expected thread output, got: %s", out)
 	}

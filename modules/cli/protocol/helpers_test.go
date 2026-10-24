@@ -1,6 +1,6 @@
 // Package protocol contains invariant tests that pin down expected CLI behavior.
 //
-// Each test asserts a specific rule that the bd CLI must satisfy. When a test
+// Each test asserts a specific rule that the issuegraph CLI must satisfy. When a test
 // is skipped, the skip message references the issue tracking the violation.
 // Un-skip when the underlying bug is fixed — the test becomes a permanent
 // guardrail against re-regression.
@@ -25,7 +25,7 @@ import (
 	"sync"
 	"testing"
 
-	"github.com/steveyegge/beads/internal/testutil"
+	"github.com/borg0ai/dx-issuegraph/internal/testutil"
 )
 
 // ---------------------------------------------------------------------------
@@ -33,14 +33,14 @@ import (
 // ---------------------------------------------------------------------------
 
 var (
-	bdPath string
-	bdDir  string
-	bdOnce sync.Once
-	bdErr  error
+	issuegraphPath string
+	issuegraphDir  string
+	issuegraphOnce sync.Once
+	issuegraphErr  error
 )
 
 // testDoltPort is set by TestMain when a test Dolt server is available.
-// Passed to bd subprocesses via BEADS_DOLT_PORT so they never hit prod.
+// Passed to issuegraph subprocesses via ISSUEGRAPH_DOLT_PORT so they never hit prod.
 var testDoltPort int
 
 func TestMain(m *testing.M) {
@@ -48,9 +48,9 @@ func TestMain(m *testing.M) {
 }
 
 func testMainInner(m *testing.M) int {
-	os.Setenv("BEADS_TEST_MODE", "1")
+	os.Setenv("ISSUEGRAPH_TEST_MODE", "1")
 	// AD-01 (be-c5p): allow protocol tests to connect to the spawned test server.
-	os.Setenv("BEADS_TEST_SERVER", "1")
+	os.Setenv("ISSUEGRAPH_TEST_SERVER", "1")
 	if err := testutil.EnsureDoltContainerForTestMain(); err != nil {
 		fmt.Fprintf(os.Stderr, "WARN: %v, skipping Dolt tests\n", err)
 	} else {
@@ -60,11 +60,11 @@ func testMainInner(m *testing.M) int {
 
 	code := m.Run()
 
-	os.Unsetenv("BEADS_DOLT_PORT")
-	os.Unsetenv("BEADS_TEST_MODE")
+	os.Unsetenv("ISSUEGRAPH_DOLT_PORT")
+	os.Unsetenv("ISSUEGRAPH_TEST_MODE")
 
-	if bdDir != "" {
-		os.RemoveAll(bdDir)
+	if issuegraphDir != "" {
+		os.RemoveAll(issuegraphDir)
 	}
 	return code
 }
@@ -74,7 +74,7 @@ func testMainInner(m *testing.M) int {
 // the test, so contributors without Docker stay green. Two cases turn a missing
 // store into a hard failure instead of a silent skip:
 //
-//   - The required contract-corpus CI job sets BEADS_PROTOCOL_REQUIRE_DOLT=1, so
+//   - The required contract-corpus CI job sets ISSUEGRAPH_PROTOCOL_REQUIRE_DOLT=1, so
 //     it can never report success without exercising the golden or double-run
 //     checks when the Dolt container fails to start.
 //   - -corpus.update (i.e. `make corpus-regen`) means the caller intends to
@@ -88,8 +88,8 @@ func requireDoltStore(t *testing.T, what string) {
 	if testDoltPort != 0 {
 		return
 	}
-	if os.Getenv("BEADS_PROTOCOL_REQUIRE_DOLT") == "1" {
-		t.Fatalf("%s requires a live Dolt store, but the test container is unavailable and BEADS_PROTOCOL_REQUIRE_DOLT=1; the required contract-corpus job must not skip these checks", what)
+	if os.Getenv("ISSUEGRAPH_PROTOCOL_REQUIRE_DOLT") == "1" {
+		t.Fatalf("%s requires a live Dolt store, but the test container is unavailable and ISSUEGRAPH_PROTOCOL_REQUIRE_DOLT=1; the required contract-corpus job must not skip these checks", what)
 	}
 	if *updateCorpus {
 		t.Fatalf("%s: -corpus.update needs a live Dolt store, but the test container is unavailable; regenerating without it would silently write nothing and leave the committed corpus stale. Start Docker/Dolt, then rerun `make corpus-regen`.", what)
@@ -99,33 +99,33 @@ func requireDoltStore(t *testing.T, what string) {
 
 func buildBD(t *testing.T) string {
 	t.Helper()
-	bdOnce.Do(func() {
+	issuegraphOnce.Do(func() {
 		bin := "bd-protocol"
 		if runtime.GOOS == "windows" {
 			bin += ".exe"
 		}
 		dir, err := os.MkdirTemp("", "bd-protocol-*")
 		if err != nil {
-			bdErr = err
+			issuegraphErr = err
 			return
 		}
-		bdDir = dir
-		bdPath = filepath.Join(dir, bin)
+		issuegraphDir = dir
+		issuegraphPath = filepath.Join(dir, bin)
 
 		modRoot := findModuleRoot(t)
-		cmd := exec.Command("go", "build", "-tags", "gms_pure_go", "-o", bdPath, "./modules/cli")
+		cmd := exec.Command("go", "build", "-tags", "gms_pure_go", "-o", issuegraphPath, "./modules/cli")
 		cmd.Dir = modRoot
 		cmd.Env = buildEnv()
 
 		out, err := cmd.CombinedOutput()
 		if err != nil {
-			bdErr = fmt.Errorf("go build: %w\n%s", err, out)
+			issuegraphErr = fmt.Errorf("go build: %w\n%s", err, out)
 		}
 	})
-	if bdErr != nil {
-		t.Skipf("skipping: failed to build bd: %v", bdErr)
+	if issuegraphErr != nil {
+		t.Skipf("skipping: failed to build issuegraph: %v", issuegraphErr)
 	}
-	return bdPath
+	return issuegraphPath
 }
 
 func findModuleRoot(t *testing.T) string {
@@ -168,13 +168,13 @@ func icuPrefix() string {
 }
 
 // ---------------------------------------------------------------------------
-// Workspace: isolated temp dir with git repo + bd init
+// Workspace: isolated temp dir with git repo + issuegraph init
 // ---------------------------------------------------------------------------
 
 type workspace struct {
-	dir string
-	bd  string
-	t   *testing.T
+	dir        string
+	issuegraph string
+	t          *testing.T
 	// prefix is the id prefix this workspace was initialized with — the
 	// interchange tests need it to mint well-formed ids in hand-written
 	// JSONL fixtures.
@@ -196,9 +196,9 @@ func newWorkspace(t *testing.T) *workspace {
 	t.Helper()
 	testutil.RequireDoltBinary(t)
 	requireDoltStore(t, "protocol workspace")
-	bd := buildBD(t)
+	issuegraph := buildBD(t)
 	dir := t.TempDir()
-	w := &workspace{dir: dir, bd: bd, t: t}
+	w := &workspace{dir: dir, issuegraph: issuegraph, t: t}
 
 	w.git("init")
 	w.git("config", "user.name", "protocol-test")
@@ -221,22 +221,22 @@ func (w *workspace) env() []string {
 		"PATH=" + os.Getenv("PATH"),
 		"HOME=" + w.dir,
 		"GIT_CONFIG_NOSYSTEM=1",
-		"BEADS_TEST_MODE=1",
-		// Metrics off. Two reasons, one of them a test-stability bug: bd spawns a
-		// DETACHED `bd send-metrics` child that writes $HOME/.beads/eventsData
+		"ISSUEGRAPH_TEST_MODE=1",
+		// Metrics off. Two reasons, one of them a test-stability bug: issuegraph spawns a
+		// DETACHED `issuegraph send-metrics` child that writes $HOME/.issuegraph/eventsData
 		// after the parent exits, and HOME here is the t.TempDir() workspace — so
 		// the child races Go's RemoveAll and the test fails its own cleanup with
 		// "unlinkat …: directory not empty". (The other reason: a test suite
 		// should not ship telemetry.)
-		"BD_DISABLE_METRICS=1",
+		"ISSUEGRAPH_DISABLE_METRICS=1",
 	}
 	if testDoltPort > 0 {
-		env = append(env, "BEADS_DOLT_PORT="+strconv.Itoa(testDoltPort))
+		env = append(env, "ISSUEGRAPH_DOLT_PORT="+strconv.Itoa(testDoltPort))
 	}
 	if v := os.Getenv("TMPDIR"); v != "" {
 		env = append(env, "TMPDIR="+v)
 	}
-	// TZ must reach the child. This env is a whitelist, so without this the bd
+	// TZ must reach the child. This env is a whitelist, so without this the issuegraph
 	// subprocess inherits no TZ and its time.Local falls back to
 	// /etc/localtime, while the TEST process uses its own TZ. Assertions that
 	// compute an expectation from the parent's time.Local and compare it to a
@@ -263,50 +263,50 @@ func (w *workspace) git(args ...string) {
 
 func (w *workspace) run(args ...string) string {
 	w.t.Helper()
-	cmd := exec.Command(w.bd, args...)
+	cmd := exec.Command(w.issuegraph, args...)
 	cmd.Dir = w.dir
 	cmd.Env = w.env()
 	out, err := cmd.CombinedOutput()
 	if err != nil {
-		w.t.Fatalf("bd %s: %v\n%s", strings.Join(args, " "), err, out)
+		w.t.Fatalf("issuegraph %s: %v\n%s", strings.Join(args, " "), err, out)
 	}
 	return string(out)
 }
 
-// tryRun runs a bd command and returns output + error (does not fatal on failure).
+// tryRun runs a issuegraph command and returns output + error (does not fatal on failure).
 func (w *workspace) tryRun(args ...string) (string, error) {
 	w.t.Helper()
-	cmd := exec.Command(w.bd, args...)
+	cmd := exec.Command(w.issuegraph, args...)
 	cmd.Dir = w.dir
 	cmd.Env = w.env()
 	out, err := cmd.CombinedOutput()
 	return string(out), err
 }
 
-// runExpectError runs bd and expects a non-zero exit code.
+// runExpectError runs issuegraph and expects a non-zero exit code.
 // Returns the combined output and exit code.
 func (w *workspace) runExpectError(args ...string) (string, int) {
 	w.t.Helper()
-	cmd := exec.Command(w.bd, args...)
+	cmd := exec.Command(w.issuegraph, args...)
 	cmd.Dir = w.dir
 	cmd.Env = w.env()
 	out, err := cmd.CombinedOutput()
 	if err == nil {
-		w.t.Fatalf("bd %s: expected non-zero exit, got success\nOutput: %s",
+		w.t.Fatalf("issuegraph %s: expected non-zero exit, got success\nOutput: %s",
 			strings.Join(args, " "), out)
 	}
 	exitErr, ok := err.(*exec.ExitError)
 	if !ok {
-		w.t.Fatalf("bd %s: unexpected error type: %v", strings.Join(args, " "), err)
+		w.t.Fatalf("issuegraph %s: unexpected error type: %v", strings.Join(args, " "), err)
 	}
 	return string(out), exitErr.ExitCode()
 }
 
-// create runs bd create --silent and returns the issue ID.
+// create runs issuegraph create --silent and returns the issue ID.
 func (w *workspace) create(args ...string) string {
 	w.t.Helper()
 	allArgs := append([]string{"create", "--silent"}, args...)
-	cmd := exec.Command(w.bd, allArgs...)
+	cmd := exec.Command(w.issuegraph, allArgs...)
 	cmd.Dir = w.dir
 	cmd.Env = w.env()
 	out, err := cmd.Output()
@@ -315,16 +315,16 @@ func (w *workspace) create(args ...string) string {
 		if ee, ok := err.(*exec.ExitError); ok {
 			stderr = string(ee.Stderr)
 		}
-		w.t.Fatalf("bd create %s: %v\n%s", strings.Join(args, " "), err, stderr)
+		w.t.Fatalf("issuegraph create %s: %v\n%s", strings.Join(args, " "), err, stderr)
 	}
 	id := strings.TrimSpace(string(out))
 	if id == "" {
-		w.t.Fatal("bd create returned empty ID")
+		w.t.Fatal("issuegraph create returned empty ID")
 	}
 	return id
 }
 
-// showJSON runs bd show <id> --json and returns the first issue object.
+// showJSON runs issuegraph show <id> --json and returns the first issue object.
 //
 // The payload is count-only: labels and dependencies are inline, but comments
 // and dependents are reported as comment_count / dependent_count and their
@@ -335,18 +335,18 @@ func (w *workspace) showJSON(id string) map[string]any {
 	out := w.run("show", id, "--json")
 	items := parseJSONOutput(w.t, out)
 	if len(items) == 0 {
-		w.t.Fatalf("bd show %s --json returned no items", id)
+		w.t.Fatalf("issuegraph show %s --json returned no items", id)
 	}
 	return items[0]
 }
 
-// showJSONFull runs bd show <id> --json with the opt-in relational payloads and
+// showJSONFull runs issuegraph show <id> --json with the opt-in relational payloads and
 // returns the first issue object — the shape to assert against when a test
 // cares about comment or dependent CONTENT rather than counts.
 //
-// bd show --json has been count-only by default since cfcc95799 ("count-only
+// issuegraph show --json has been count-only by default since cfcc95799 ("count-only
 // JSON details with opt-in streamed payloads", be-ijck6q): materializing every
-// comment and dependent made show pathologically slow on hub beads, so the full
+// comment and dependent made show pathologically slow on hub issuegraph, so the full
 // lists moved behind --include-comments / --include-dependents. The data is
 // still there — these flags are how you ask for it.
 func (w *workspace) showJSONFull(id string) map[string]any {
@@ -354,7 +354,7 @@ func (w *workspace) showJSONFull(id string) map[string]any {
 	out := w.run("show", id, "--json", "--include-comments", "--include-dependents")
 	items := parseJSONOutput(w.t, out)
 	if len(items) == 0 {
-		w.t.Fatalf("bd show %s --json --include-comments --include-dependents returned no items", id)
+		w.t.Fatalf("issuegraph show %s --json --include-comments --include-dependents returned no items", id)
 	}
 	return items[0]
 }
@@ -373,7 +373,7 @@ func findByID(items []map[string]any, id string) map[string]any {
 	return nil
 }
 
-// parseReadyIDs runs bd ready --json and returns the set of issue IDs.
+// parseReadyIDs runs issuegraph ready --json and returns the set of issue IDs.
 func parseReadyIDs(t *testing.T, w *workspace) map[string]bool {
 	t.Helper()
 	out := w.run("ready", "--json")
@@ -600,7 +600,7 @@ func parseJSONOutput(t *testing.T, output string) []map[string]any {
 				return result
 			}
 		}
-		// Single object (e.g. bd show --json, bd create --json)
+		// Single object (e.g. issuegraph show --json, issuegraph create --json)
 		return []map[string]any{envelope}
 	}
 

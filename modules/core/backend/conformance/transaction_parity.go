@@ -8,9 +8,9 @@ import (
 	"testing"
 	"time"
 
-	"github.com/steveyegge/beads/internal/storage"
-	storageops "github.com/steveyegge/beads/internal/storage/issueops"
-	"github.com/steveyegge/beads/internal/types"
+	"github.com/borg0ai/dx-issuegraph/internal/storage"
+	storageops "github.com/borg0ai/dx-issuegraph/internal/storage/issueops"
+	"github.com/borg0ai/dx-issuegraph/internal/types"
 )
 
 // This file holds the transaction cases whose whole point is that the two Dolt
@@ -50,7 +50,7 @@ func testTransactionUpdateRecordsHistory(t *testing.T, f Factory) {
 	must(t, s.UpdateIssue(c, "txh-store", map[string]interface{}{"title": "Store edit, revised"}, "a"))
 
 	// Subject: the same field change, inside a transaction.
-	must(t, s.RunInTransaction(c, "bd: update txh-tx", func(tx storage.Transaction) error {
+	must(t, s.RunInTransaction(c, "issuegraph: update txh-tx", func(tx storage.Transaction) error {
 		return tx.UpdateIssue(c, "txh-tx", map[string]interface{}{"title": "Tx edit, revised"}, "a")
 	}))
 
@@ -94,7 +94,7 @@ func testTransactionSearchIncludeDependencies(t *testing.T, f Factory) {
 	}, "a"))
 
 	var on, off map[string][]*types.Dependency
-	must(t, s.RunInTransaction(c, "bd: search txdep", func(tx storage.Transaction) error {
+	must(t, s.RunInTransaction(c, "issuegraph: search txdep", func(tx storage.Transaction) error {
 		hydrated, err := tx.SearchIssues(c, "TxDepHydration", types.IssueFilter{IncludeDependencies: true})
 		if err != nil {
 			return err
@@ -191,7 +191,7 @@ func testTransactionSearchKeysetWalk(t *testing.T, f Factory) {
 	var walked []string
 	var repeated string
 	repeatedPage := -1
-	must(t, s.RunInTransaction(c, "bd: keyset walk", func(tx storage.Transaction) error {
+	must(t, s.RunInTransaction(c, "issuegraph: keyset walk", func(tx storage.Transaction) error {
 		seen := make(map[string]bool, len(keysetOverflowOrder))
 		var afterCreatedAt *time.Time
 		afterID := ""
@@ -243,7 +243,7 @@ func testTransactionSearchKeysetWalk(t *testing.T, f Factory) {
 	// whole set comes back at once, and the page positioned after its last row
 	// is empty — which is what terminates the walk above.
 	var single, tail []string
-	must(t, s.RunInTransaction(c, "bd: keyset single page", func(tx storage.Transaction) error {
+	must(t, s.RunInTransaction(c, "issuegraph: keyset single page", func(tx storage.Transaction) error {
 		filter := keysetOverflowFilter()
 		filter.Limit = len(keysetOverflowOrder)
 		rows, rowsErr := tx.SearchIssues(c, "", filter)
@@ -329,7 +329,7 @@ func testTransactionSearchFilterParity(t *testing.T, f Factory) {
 			}
 
 			var got []string
-			must(t, s.RunInTransaction(c, "bd: parity "+leg.name, func(tx storage.Transaction) error {
+			must(t, s.RunInTransaction(c, "issuegraph: parity "+leg.name, func(tx storage.Transaction) error {
 				rows, rowsErr := tx.SearchIssues(c, "", filter)
 				if rowsErr != nil {
 					return rowsErr
@@ -377,7 +377,7 @@ func testTransactionSearchFilterParity(t *testing.T, f Factory) {
 			}
 
 			var got []string
-			must(t, s.RunInTransaction(c, "bd: parity sort", func(tx storage.Transaction) error {
+			must(t, s.RunInTransaction(c, "issuegraph: parity sort", func(tx storage.Transaction) error {
 				rows, rowsErr := tx.SearchIssues(c, "", filter)
 				if rowsErr != nil {
 					return rowsErr
@@ -417,7 +417,7 @@ func testTransactionSearchFilterParity(t *testing.T, f Factory) {
 
 		var txErr error
 		var rows []*types.Issue
-		must(t, s.RunInTransaction(c, "bd: parity maxrows", func(tx storage.Transaction) error {
+		must(t, s.RunInTransaction(c, "issuegraph: parity maxrows", func(tx storage.Transaction) error {
 			rows, txErr = tx.SearchIssues(c, "", filter)
 			return nil
 		}))
@@ -438,7 +438,7 @@ func testTransactionSearchFilterParity(t *testing.T, f Factory) {
 		under := filter
 		under.MaxRows = parityFixtureSize
 		var underRows []string
-		must(t, s.RunInTransaction(c, "bd: parity maxrows under", func(tx storage.Transaction) error {
+		must(t, s.RunInTransaction(c, "issuegraph: parity maxrows under", func(tx storage.Transaction) error {
 			ok, okErr := tx.SearchIssues(c, "", under)
 			if okErr != nil {
 				return fmt.Errorf("MaxRows=%d over %d rows: %w", parityFixtureSize, parityFixtureSize, okErr)
@@ -467,7 +467,7 @@ func testTransactionSearchFilterParity(t *testing.T, f Factory) {
 		}
 
 		var got map[string][]string
-		must(t, s.RunInTransaction(c, "bd: parity labels", func(tx storage.Transaction) error {
+		must(t, s.RunInTransaction(c, "issuegraph: parity labels", func(tx storage.Transaction) error {
 			rows, rowsErr := tx.SearchIssues(c, "", filter)
 			if rowsErr != nil {
 				return rowsErr
@@ -485,7 +485,7 @@ func testTransactionSearchFilterParity(t *testing.T, f Factory) {
 		skipped := filter
 		skipped.SkipLabels = true
 		var skippedLabels map[string][]string
-		must(t, s.RunInTransaction(c, "bd: parity labels skipped", func(tx storage.Transaction) error {
+		must(t, s.RunInTransaction(c, "issuegraph: parity labels skipped", func(tx storage.Transaction) error {
 			rows, rowsErr := tx.SearchIssues(c, "", skipped)
 			if rowsErr != nil {
 				return rowsErr

@@ -10,8 +10,8 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/steveyegge/beads/internal/storage/embeddeddolt"
-	"github.com/steveyegge/beads/internal/storage/versioncontrolops"
+	"github.com/borg0ai/dx-issuegraph/internal/storage/embeddeddolt"
+	"github.com/borg0ai/dx-issuegraph/internal/storage/versioncontrolops"
 )
 
 // These tests run the bd-6dnrw.4 / GH#2466 merge-settlement coverage against
@@ -172,7 +172,7 @@ func isNothingToCommit(err error) bool {
 }
 
 // TestEmbeddedMergeAndSettleRefusesUnknownTable proves the repair's allowlist
-// on the embedded engine: a foreign-key violation on a table bd does not own
+// on the embedded engine: a foreign-key violation on a table issuegraph does not own
 // fails the merge, and the abort restores the pre-merge working set so a
 // retry is possible (the autocommit stand-in for server mode's tx rollback).
 func TestEmbeddedMergeAndSettleRefusesUnknownTable(t *testing.T) {
@@ -196,10 +196,10 @@ func TestEmbeddedMergeAndSettleRefusesUnknownTable(t *testing.T) {
 	peerBranch := seedEmbeddedFKCascadeDivergence(t, ctx, conn, tc)
 
 	if err := versioncontrolops.MergeAndSettle(ctx, conn, peerBranch); err == nil {
-		t.Fatal("expected the merge to fail on a violation bd cannot repair, but it succeeded")
+		t.Fatal("expected the merge to fail on a violation issuegraph cannot repair, but it succeeded")
 	}
 
-	// The abort left nothing behind: the table bd does not own keeps its row
+	// The abort left nothing behind: the table issuegraph does not own keeps its row
 	// on the peer branch and main never absorbed the merge.
 	var rows int
 	if err := conn.QueryRowContext(ctx, fmt.Sprintf(tc.orphanQuery, tc.name)).Scan(&rows); err != nil {

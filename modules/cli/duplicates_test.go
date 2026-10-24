@@ -6,7 +6,7 @@ import (
 	"context"
 	"testing"
 
-	"github.com/steveyegge/beads/internal/types"
+	"github.com/borg0ai/dx-issuegraph/internal/types"
 )
 
 func TestFindDuplicateGroups(t *testing.T) {
@@ -285,7 +285,7 @@ func TestDuplicateGroupsWithDifferentStatuses(t *testing.T) {
 
 func TestDuplicatesIntegration(t *testing.T) {
 	tmpDir := t.TempDir()
-	testStore := newTestStore(t, tmpDir+"/.beads/beads.db")
+	testStore := newTestStore(t, tmpDir+"/.issuegraph/issuegraph.db")
 	ctx := context.Background()
 
 	// Create duplicate issues (let DB assign IDs)
@@ -351,7 +351,7 @@ func TestDuplicatesIntegration(t *testing.T) {
 
 func TestPerformMerge(t *testing.T) {
 	tmpDir := t.TempDir()
-	testStore := newTestStore(t, tmpDir+"/.beads/beads.db")
+	testStore := newTestStore(t, tmpDir+"/.issuegraph/issuegraph.db")
 	ctx := context.Background()
 
 	// Set up global state needed by performMerge

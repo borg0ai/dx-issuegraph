@@ -5,8 +5,8 @@ import (
 	"errors"
 	"testing"
 
-	"github.com/steveyegge/beads/internal/storage"
-	"github.com/steveyegge/beads/internal/types"
+	"github.com/borg0ai/dx-issuegraph/internal/storage"
+	"github.com/borg0ai/dx-issuegraph/internal/types"
 )
 
 // The residue of close_issue_checked_test.go's and update_issue_checked_test.go's
@@ -27,7 +27,7 @@ import (
 // its CloseIssueCheckedInTx call, each failed the deleted tests and passed all
 // 69 IssueOperations and Lifecycle contract cases at this backend. After the
 // deletion this package had no caller of either method, and both are on the
-// storage.DoltStorage interface with beads.go publishing their option types as
+// storage.DoltStorage interface with issuegraph.go publishing their option types as
 // caller-facing API.
 //
 // These tests are therefore deliberately NARROW. They do not re-test what the

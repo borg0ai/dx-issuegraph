@@ -7,27 +7,27 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/steveyegge/beads/internal/types"
+	"github.com/borg0ai/dx-issuegraph/internal/types"
 )
 
 func TestProxiedServerHistory(t *testing.T) {
 	requireSharedProxiedServer(t)
 	t.Parallel()
-	bd := buildEmbeddedBD(t)
-	p := newSharedProxiedProject(t, bd, "hst")
+	issuegraph := buildEmbeddedBD(t)
+	p := newSharedProxiedProject(t, issuegraph, "hst")
 
 	// Seed: create an issue then mutate it several times to build commit history.
-	issue := bdProxiedCreate(t, bd, p.dir, "History test issue", "--type", "task", "--priority", "3")
-	bdProxiedUpdate(t, bd, p.dir, issue.ID, "--status", "in_progress")
-	bdProxiedUpdate(t, bd, p.dir, issue.ID, "--priority", "1")
-	bdProxiedUpdate(t, bd, p.dir, issue.ID, "--title", "History test issue updated")
+	issue := issuegraphProxiedCreate(t, issuegraph, p.dir, "History test issue", "--type", "task", "--priority", "3")
+	issuegraphProxiedUpdate(t, issuegraph, p.dir, issue.ID, "--status", "in_progress")
+	issuegraphProxiedUpdate(t, issuegraph, p.dir, issue.ID, "--priority", "1")
+	issuegraphProxiedUpdate(t, issuegraph, p.dir, issue.ID, "--title", "History test issue updated")
 
 	const missingID = "hst-nonexistent999"
 
 	// historyJSON parses commit-history (or --events) JSON into a generic slice.
 	historyJSON := func(t *testing.T, args ...string) []map[string]interface{} {
 		t.Helper()
-		out, err := bdProxiedRun(t, bd, p.dir, append([]string{"history", "--json"}, args...)...)
+		out, err := issuegraphProxiedRun(t, issuegraph, p.dir, append([]string{"history", "--json"}, args...)...)
 		if err != nil {
 			t.Fatalf("history --json %v: %v\n%s", args, err, out)
 		}
@@ -46,7 +46,7 @@ func TestProxiedServerHistory(t *testing.T) {
 	// ===== Basic plain-text history =====
 
 	t.Run("basic_history", func(t *testing.T) {
-		out, err := bdProxiedRun(t, bd, p.dir, "history", issue.ID)
+		out, err := issuegraphProxiedRun(t, issuegraph, p.dir, "history", issue.ID)
 		if err != nil {
 			t.Fatalf("history %s: %v\n%s", issue.ID, err, out)
 		}
@@ -92,7 +92,7 @@ func TestProxiedServerHistory(t *testing.T) {
 	// ===== --events audit output =====
 
 	t.Run("events_json_output", func(t *testing.T) {
-		out, err := bdProxiedRun(t, bd, p.dir, "history", issue.ID, "--events", "--json")
+		out, err := issuegraphProxiedRun(t, issuegraph, p.dir, "history", issue.ID, "--events", "--json")
 		if err != nil {
 			t.Fatalf("history --events --json: %v\n%s", err, out)
 		}
@@ -124,7 +124,7 @@ func TestProxiedServerHistory(t *testing.T) {
 	})
 
 	t.Run("events_limit", func(t *testing.T) {
-		out, err := bdProxiedRun(t, bd, p.dir, "history", issue.ID, "--events", "--limit", "1", "--json")
+		out, err := issuegraphProxiedRun(t, issuegraph, p.dir, "history", issue.ID, "--events", "--limit", "1", "--json")
 		if err != nil {
 			t.Fatalf("history --events --limit 1 --json: %v\n%s", err, out)
 		}
@@ -168,7 +168,7 @@ func TestProxiedServerHistory(t *testing.T) {
 	})
 
 	t.Run("commit_history_wrong_issue_guard", func(t *testing.T) {
-		out, err := bdProxiedRun(t, bd, p.dir, "history", issue.ID, "--json")
+		out, err := issuegraphProxiedRun(t, issuegraph, p.dir, "history", issue.ID, "--json")
 		if err != nil {
 			t.Fatalf("history --json: %v\n%s", err, out)
 		}
@@ -194,7 +194,7 @@ func TestProxiedServerHistory(t *testing.T) {
 	// ===== Nonexistent issue =====
 
 	t.Run("nonexistent_issue_empty_history", func(t *testing.T) {
-		out, err := bdProxiedRun(t, bd, p.dir, "history", missingID)
+		out, err := issuegraphProxiedRun(t, issuegraph, p.dir, "history", missingID)
 		if err != nil {
 			t.Fatalf("history %s: %v\n%s", missingID, err, out)
 		}
@@ -205,7 +205,7 @@ func TestProxiedServerHistory(t *testing.T) {
 
 	// --json must always produce parseable JSON, even when history is empty.
 	t.Run("nonexistent_issue_json_returns_empty_array", func(t *testing.T) {
-		out, err := bdProxiedRun(t, bd, p.dir, "history", "--json", missingID)
+		out, err := issuegraphProxiedRun(t, issuegraph, p.dir, "history", "--json", missingID)
 		if err != nil {
 			t.Fatalf("history --json %s: %v\n%s", missingID, err, out)
 		}
@@ -220,7 +220,7 @@ func TestProxiedServerHistory(t *testing.T) {
 
 	// --limit combined with --json on empty history must still parse to empty.
 	t.Run("nonexistent_issue_json_with_limit_returns_empty_array", func(t *testing.T) {
-		out, err := bdProxiedRun(t, bd, p.dir, "history", "--json", "--limit", "2", missingID)
+		out, err := issuegraphProxiedRun(t, issuegraph, p.dir, "history", "--json", "--limit", "2", missingID)
 		if err != nil {
 			t.Fatalf("history --json --limit 2 %s: %v\n%s", missingID, err, out)
 		}
@@ -236,13 +236,13 @@ func TestProxiedServerHistory(t *testing.T) {
 	// ===== Argument validation =====
 
 	t.Run("no_args_fails", func(t *testing.T) {
-		if out, err := bdProxiedRun(t, bd, p.dir, "history"); err == nil {
+		if out, err := issuegraphProxiedRun(t, issuegraph, p.dir, "history"); err == nil {
 			t.Fatalf("expected 'history' with no args to fail, got:\n%s", out)
 		}
 	})
 
 	t.Run("too_many_args_fails", func(t *testing.T) {
-		if out, err := bdProxiedRun(t, bd, p.dir, "history", issue.ID, "extra"); err == nil {
+		if out, err := issuegraphProxiedRun(t, issuegraph, p.dir, "history", issue.ID, "extra"); err == nil {
 			t.Fatalf("expected 'history %s extra' to fail, got:\n%s", issue.ID, out)
 		}
 	})
@@ -250,7 +250,7 @@ func TestProxiedServerHistory(t *testing.T) {
 	// ===== Newly created issue has history =====
 
 	t.Run("single_entry_for_new_issue", func(t *testing.T) {
-		fresh := bdProxiedCreate(t, bd, p.dir, "Fresh issue no updates", "--type", "task")
+		fresh := issuegraphProxiedCreate(t, issuegraph, p.dir, "Fresh issue no updates", "--type", "task")
 		entries := historyJSON(t, fresh.ID)
 		if len(entries) < 1 {
 			t.Error("expected at least 1 history entry for a newly created issue")

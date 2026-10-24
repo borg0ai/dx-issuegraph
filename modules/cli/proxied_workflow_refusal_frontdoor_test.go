@@ -14,9 +14,9 @@ import (
 )
 
 func TestDirectWorkflowRepresentativeBehavior(t *testing.T) {
-	bd := buildEmbeddedBD(t)
-	dir, _, _ := bdInit(t, bd, "--prefix", "directwf", "--skip-hooks", "--skip-agents")
-	cmd := exec.Command(bd, "ship", "refusal")
+	issuegraph := buildEmbeddedBD(t)
+	dir, _, _ := issuegraphInit(t, issuegraph, "--prefix", "directwf", "--skip-hooks", "--skip-agents")
+	cmd := exec.Command(issuegraph, "ship", "refusal")
 	cmd.Dir = dir
 	cmd.Env = os.Environ()
 	var out bytes.Buffer
@@ -29,14 +29,14 @@ func TestDirectWorkflowRepresentativeBehavior(t *testing.T) {
 	}
 }
 
-// TestProxiedWorkflowRefusalsFrontDoor executes the real bd binary for every
+// TestProxiedWorkflowRefusalsFrontDoor executes the real issuegraph binary for every
 // workflow family rejected by the proxy capability contract. Refusals must
 // happen before provider startup and leave the workspace untouched.
 func TestProxiedWorkflowRefusalsFrontDoor(t *testing.T) {
 	requireManagedLocalProxiedEnv(t)
-	bd := buildEmbeddedBD(t)
-	p := bdManagedLocalInit(t, bd, "refusal", 5*time.Minute)
-	epic := bdProxiedCreate(t, bd, p.dir, "refusal epic", "--type", "epic")
+	issuegraph := buildEmbeddedBD(t)
+	p := issuegraphManagedLocalInit(t, issuegraph, "refusal", 5*time.Minute)
+	epic := issuegraphProxiedCreate(t, issuegraph, p.dir, "refusal epic", "--type", "epic")
 	formula := filepath.Join(t.TempDir(), "refusal.toml")
 	if err := os.WriteFile(formula, []byte("name = \"refusal\"\n"), 0o600); err != nil {
 		t.Fatal(err)
@@ -45,10 +45,10 @@ func TestProxiedWorkflowRefusalsFrontDoor(t *testing.T) {
 	if err != nil {
 		t.Fatalf("read config before refusal: %v", err)
 	}
-	issuesBefore := bdProxiedListJSON(t, bd, p, "--all")
+	issuesBefore := issuegraphProxiedListJSON(t, issuegraph, p, "--all")
 	artifactBefore := map[string][]byte{}
 	for _, name := range []string{".local_version", "events.jsonl", "metadata.json", "proxy.pid", "proxy-child.pid", "proxy.lock", "proxy-child.lock"} {
-		b, _ := os.ReadFile(filepath.Join(p.beadsDir, name))
+		b, _ := os.ReadFile(filepath.Join(p.issuegraphDir, name))
 		artifactBefore[name] = b
 	}
 	commands := [][]string{{"cook", formula, "--persist"}, {"ship", "refusal"}, {"swarm", "create", epic.ID}, {"swarm", "list"}, {"merge-slot", "create"}, {"merge-slot", "check"}, {"merge-slot", "acquire"}, {"merge-slot", "release"}}
@@ -75,7 +75,7 @@ func TestProxiedWorkflowRefusalsFrontDoor(t *testing.T) {
 				if jsonMode {
 					invoke = append(invoke, "--json")
 				}
-				stdout, stderr, err := bdProxiedRunBuffers(t, bd, p.dir, invoke...)
+				stdout, stderr, err := issuegraphProxiedRunBuffers(t, issuegraph, p.dir, invoke...)
 				if err == nil {
 					t.Fatalf("%v unexpectedly succeeded: %s", invoke, stdout)
 				}
@@ -105,12 +105,12 @@ func TestProxiedWorkflowRefusalsFrontDoor(t *testing.T) {
 	if string(before) != string(after) {
 		t.Fatal("config changed during refused workflow commands")
 	}
-	issuesAfter := bdProxiedListJSON(t, bd, p, "--all")
+	issuesAfter := issuegraphProxiedListJSON(t, issuegraph, p, "--all")
 	if len(issuesBefore) != len(issuesAfter) {
 		t.Fatalf("issue rows changed during refusals: before=%d after=%d", len(issuesBefore), len(issuesAfter))
 	}
 	for name, want := range artifactBefore {
-		got, _ := os.ReadFile(filepath.Join(p.beadsDir, name))
+		got, _ := os.ReadFile(filepath.Join(p.issuegraphDir, name))
 		if string(got) != string(want) {
 			t.Fatalf("artifact %s changed", name)
 		}

@@ -10,11 +10,11 @@ import (
 	"strings"
 	"time"
 
+	"github.com/borg0ai/dx-issuegraph/internal/metrics"
+	"github.com/borg0ai/dx-issuegraph/internal/storage"
+	"github.com/borg0ai/dx-issuegraph/internal/types"
+	"github.com/borg0ai/dx-issuegraph/internal/ui"
 	"github.com/spf13/cobra"
-	"github.com/steveyegge/beads/internal/metrics"
-	"github.com/steveyegge/beads/internal/storage"
-	"github.com/steveyegge/beads/internal/types"
-	"github.com/steveyegge/beads/internal/ui"
 )
 
 // gateCmd is the parent command for gate operations
@@ -28,22 +28,22 @@ Gates are created automatically when a formula step has a gate field.
 They must be closed (manually or via watchers) for the blocked step to proceed.
 
 Gate types:
-  human   - Requires manual bd close (Phase 1)
+  human   - Requires manual issuegraph close (Phase 1)
   timer   - Expires after timeout (Phase 2)
   gh:run  - Waits for GitHub workflow (Phase 3)
   gh:pr   - Waits for PR merge (Phase 3)
-  bead    - Waits for another bead to close (Phase 4)
+  issue    - Waits for another issue to close (Phase 4)
 
-For bead gates, await_id may be a bead ID in this rig's database (e.g.,
-"bd-abc123") or the historical cross-rig form <rig>:<bead-id>. Cross-rig
-targets resolve through the bead ID's prefix route in routes.jsonl.
+For issue gates, await_id may be a issue ID in this rig's database (e.g.,
+"bd-abc123") or the historical cross-rig form <rig>:<issue-id>. Cross-rig
+targets resolve through the issue ID's prefix route in routes.jsonl.
 
 Examples:
-  bd gate list           # Show all open gates
-  bd gate list --all     # Show all gates including closed
-  bd gate check          # Evaluate all open gates
-  bd gate check --type=bead  # Evaluate only bead gates
-  bd gate resolve <id>   # Close a gate manually`,
+  issuegraph gate list           # Show all open gates
+  issuegraph gate list --all     # Show all gates including closed
+  issuegraph gate check          # Evaluate all open gates
+  issuegraph gate check --type=issue  # Evaluate only issue gates
+  issuegraph gate resolve <id>   # Close a gate manually`,
 }
 
 // gateListCmd lists gate issues
@@ -52,7 +52,7 @@ var gateListCmd = &cobra.Command{
 	Short: "List gate issues",
 	Long: `List gate issues.
 
-With no argument, lists all gate issues in the current beads database.
+With no argument, lists all gate issues in the current issuegraph database.
 With an [issue-id] argument, lists ONLY the gates that block that issue
 (its own dependency gates) — not every gate in the database.
 
@@ -77,7 +77,7 @@ By default, shows only open gates. Use --all to include closed gates.`,
 
 		ctx := rootCtx
 
-		// Bead-scoped: list only the gates that block this specific issue
+		// Issue-scoped: list only the gates that block this specific issue
 		// (its dependency gates), never the whole database. Without this an
 		// issue-id argument was silently ignored and the DB-wide list was
 		// returned, which could lead a caller to act on unrelated gates.
@@ -124,7 +124,7 @@ By default, shows only open gates. Use --all to include closed gates.`,
 
 // filterIssueGates selects the gate-type issues from an issue's dependency set,
 // honoring the same open/closed and limit semantics as the DB-wide list path.
-// Pulled out as a pure helper so the bead-scoping logic is unit-testable without
+// Pulled out as a pure helper so the issue-scoping logic is unit-testable without
 // a live store.
 func filterIssueGates(deps []*types.Issue, all bool, limit int) []*types.Issue {
 	var gates []*types.Issue
@@ -181,7 +181,7 @@ func displayGates(gates []*types.Issue, showAll bool) {
 		return
 	}
 
-	fmt.Printf("To resolve a gate: bd close <gate-id>\n")
+	fmt.Printf("To resolve a gate: issuegraph close <gate-id>\n")
 }
 
 // displaySingleGate formats and displays a single gate issue
@@ -223,12 +223,12 @@ func displaySingleGate(gate *types.Issue) {
 var gateAddWaiterCmd = &cobra.Command{
 	Use:   "add-waiter <gate-id> <waiter>",
 	Short: "Add a waiter to a gate",
-	Long: `Register an agent as a waiter on a gate bead.
+	Long: `Register an agent as a waiter on a gate issue.
 
-When the gate closes, the waiter will receive a wake notification via 'bd gate wake'.
+When the gate closes, the waiter will receive a wake notification via 'issuegraph gate wake'.
 The waiter is typically the worker's address (e.g., "my-project/workers/agent-1").
 
-This is used by 'bd done --phase-complete' to register for gate wake notifications.`,
+This is used by 'issuegraph done --phase-complete' to register for gate wake notifications.`,
 	Args:          cobra.ExactArgs(2),
 	SilenceUsage:  true,
 	SilenceErrors: true,
@@ -285,7 +285,7 @@ This is used by 'bd done --phase-complete' to register for gate wake notificatio
 }
 
 // renderGateWaiterAlready and renderGateWaiterAdded are shared by the direct
-// and proxied-server routes so `bd gate add-waiter` prints identically on both.
+// and proxied-server routes so `issuegraph gate add-waiter` prints identically on both.
 func renderGateWaiterAlready(gateID string) {
 	fmt.Printf("Waiter already registered on gate %s\n", gateID)
 }
@@ -300,21 +300,21 @@ var gateCreateCmd = &cobra.Command{
 	Short: "Create a gate that blocks an issue",
 	Long: `Create an ad-hoc gate issue that blocks another issue until resolved.
 
-The blocked issue will not appear in 'bd ready' until the gate is resolved
-via 'bd gate resolve'.
+The blocked issue will not appear in 'issuegraph ready' until the gate is resolved
+via 'issuegraph gate resolve'.
 
 Gate types:
-  human   - Requires manual 'bd gate resolve' (default)
+  human   - Requires manual 'issuegraph gate resolve' (default)
   timer   - Auto-resolves after --timeout duration
   gh:run  - Waits for GitHub Actions workflow
   gh:pr   - Waits for PR merge
 
 Examples:
-  bd gate create --blocks bd-abc
-  bd gate create --type=human --blocks bd-abc --reason="Need design review"
-  bd gate create --type=timer --blocks bd-abc --timeout=2h
-  bd gate create --type=gh:pr --blocks bd-abc --await-id=42
-  bd gate create --blocks bd-abc --title="Gate: awaiting owner sign-off"`,
+  issuegraph gate create --blocks bd-abc
+  issuegraph gate create --type=human --blocks bd-abc --reason="Need design review"
+  issuegraph gate create --type=timer --blocks bd-abc --timeout=2h
+  issuegraph gate create --type=gh:pr --blocks bd-abc --await-id=42
+  issuegraph gate create --blocks bd-abc --title="Gate: awaiting owner sign-off"`,
 	SilenceUsage:  true,
 	SilenceErrors: true,
 	RunE: func(cmd *cobra.Command, args []string) error {
@@ -362,7 +362,7 @@ Examples:
 			return HandleErrorRespectJSON("adding blocking dependency: %v", err)
 		}
 
-		commitMsg := fmt.Sprintf("bd: create gate %s blocking %s", gate.ID, targetIssue.ID)
+		commitMsg := fmt.Sprintf("issuegraph: create gate %s blocking %s", gate.ID, targetIssue.ID)
 		if err := store.Commit(ctx, commitMsg); err != nil && !isDoltNothingToCommit(err) {
 			return HandleErrorRespectJSON("failed to commit: %v", err)
 		}
@@ -376,7 +376,7 @@ Examples:
 	},
 }
 
-// gateCreateInput carries `bd gate create`'s parsed flags. Both routes gather
+// gateCreateInput carries `issuegraph gate create`'s parsed flags. Both routes gather
 // it through gatherGateCreateInput so they cannot drift on flag semantics.
 type gateCreateInput struct {
 	blocksID  string
@@ -448,7 +448,7 @@ func renderGateCreated(gate, targetIssue *types.Issue, in gateCreateInput) {
 	if in.timeout > 0 {
 		fmt.Printf("  Timeout: %s\n", in.timeout)
 	}
-	fmt.Printf("\nResolve with: bd gate resolve %s\n", gate.ID)
+	fmt.Printf("\nResolve with: issuegraph gate resolve %s\n", gate.ID)
 }
 
 // gateShowCmd shows a gate issue
@@ -457,7 +457,7 @@ var gateShowCmd = &cobra.Command{
 	Short: "Show a gate issue",
 	Long: `Display details of a gate issue including its waiters.
 
-This is similar to 'bd show' but validates that the issue is a gate.`,
+This is similar to 'issuegraph show' but validates that the issue is a gate.`,
 	Args:          cobra.ExactArgs(1),
 	SilenceUsage:  true,
 	SilenceErrors: true,
@@ -531,7 +531,7 @@ var gateResolveCmd = &cobra.Command{
 	Short: "Manually resolve (close) a gate",
 	Long: `Close a gate issue to unblock the step waiting on it.
 
-This is equivalent to 'bd close <gate-id>' but with a more explicit name.
+This is equivalent to 'issuegraph close <gate-id>' but with a more explicit name.
 Use --reason to provide context for why the gate was resolved.`,
 	Args:          cobra.ExactArgs(1),
 	SilenceUsage:  true,
@@ -577,7 +577,7 @@ Use --reason to provide context for why the gate was resolved.`,
 }
 
 // renderGateResolved is shared by the direct and proxied-server routes so
-// `bd gate resolve` prints identically on both.
+// `issuegraph gate resolve` prints identically on both.
 func renderGateResolved(gateID, reason string) {
 	fmt.Printf("%s Gate resolved: %s\n", ui.RenderPass("✓"), gateID)
 	if reason != "" {
@@ -598,7 +598,7 @@ Gate types:
   gh:run   - Check GitHub Actions workflow runs
   gh:pr    - Check pull request merge status
   timer    - Check timer gates (auto-expire based on timeout)
-  bead     - Check cross-rig bead gates
+  issue     - Check cross-rig issue gates
   all      - Check all gate types
 
 GitHub gates use the 'gh' CLI to query status:
@@ -609,20 +609,20 @@ A gate is resolved when:
   - gh:run: status=completed AND conclusion=success
   - gh:pr: state=MERGED
   - timer: current time > created_at + timeout
-  - bead: target bead status=closed
+  - issue: target issue status=closed
 
 A gate is escalated when:
   - gh:run: status=completed AND conclusion in (failure, canceled)
   - gh:pr: state=CLOSED
 
 Examples:
-  bd gate check              # Check all gates
-  bd gate check --type=gh    # Check only GitHub gates
-  bd gate check --type=gh:run # Check only workflow run gates
-  bd gate check --type=timer # Check only timer gates
-  bd gate check --type=bead  # Check only cross-rig bead gates
-  bd gate check --dry-run    # Show what would happen without changes
-  bd gate check --escalate   # Escalate expired/failed gates`,
+  issuegraph gate check              # Check all gates
+  issuegraph gate check --type=gh    # Check only GitHub gates
+  issuegraph gate check --type=gh:run # Check only workflow run gates
+  issuegraph gate check --type=timer # Check only timer gates
+  issuegraph gate check --type=issue  # Check only cross-rig issue gates
+  issuegraph gate check --dry-run    # Show what would happen without changes
+  issuegraph gate check --escalate   # Escalate expired/failed gates`,
 	SilenceUsage:  true,
 	SilenceErrors: true,
 	RunE: func(cmd *cobra.Command, args []string) error {
@@ -670,7 +670,7 @@ Examples:
 			}
 		}
 
-		results := evaluateGates(ctx, filteredGates, time.Now(), routedBeadGateGetter{localStore: store}, persistAwaitID)
+		results := evaluateGates(ctx, filteredGates, time.Now(), routedIssueGateGetter{localStore: store}, persistAwaitID)
 
 		resolvedCount, escalatedCount, errorCount := applyGateCheckResults(
 			results, dryRun, escalateFlag,
@@ -720,8 +720,8 @@ func evaluateGates(ctx context.Context, gates []*types.Issue, now time.Time, get
 			r.resolved, r.escalated, r.reason, r.err = checkGHPR(gate)
 		case gate.AwaitType == "timer":
 			r.resolved, r.escalated, r.reason, r.err = checkTimer(gate, now)
-		case gate.AwaitType == "bead":
-			r.resolved, r.reason = checkBeadGate(ctx, getter, gate.AwaitID)
+		case gate.AwaitType == "issue":
+			r.resolved, r.reason = checkIssueGate(ctx, getter, gate.AwaitID)
 		default:
 			continue
 		}
@@ -1177,20 +1177,20 @@ func checkTimer(gate *types.Issue, now time.Time) (resolved, escalated bool, rea
 	return false, false, fmt.Sprintf("expires in %s", remaining), nil
 }
 
-// issueGetter is the one storage method checkBeadGate needs, split out so
+// issueGetter is the one storage method checkIssueGate needs, split out so
 // tests can fake the lookup without standing up a Dolt store.
 type issueGetter interface {
 	GetIssue(ctx context.Context, id string) (*types.Issue, error)
 }
 
-// routedBeadGateGetter gives direct-mode gate checks the same local -> prefix
+// routedIssueGateGetter gives direct-mode gate checks the same local -> prefix
 // route -> contributor fallback used by other read commands. Routed stores are
 // opened read-only and closed before the result is returned.
-type routedBeadGateGetter struct {
+type routedIssueGateGetter struct {
 	localStore storage.DoltStorage
 }
 
-func (g routedBeadGateGetter) GetIssue(ctx context.Context, id string) (*types.Issue, error) {
+func (g routedIssueGateGetter) GetIssue(ctx context.Context, id string) (*types.Issue, error) {
 	if g.localStore == nil {
 		return nil, fmt.Errorf("no local store available")
 	}
@@ -1202,39 +1202,39 @@ func (g routedBeadGateGetter) GetIssue(ctx context.Context, id string) (*types.I
 	return result.Issue, nil
 }
 
-// checkBeadGate checks if a bead gate is satisfied.
+// checkIssueGate checks if a issue gate is satisfied.
 // Returns (satisfied, reason).
 //
-// A plain await_id names a bead in this rig. The historical
-// <rig>:<bead-id> form uses the bead ID as the routed lookup key; the rig
+// A plain await_id names a issue in this rig. The historical
+// <rig>:<issue-id> form uses the issue ID as the routed lookup key; the rig
 // component is retained for compatibility while routes.jsonl remains keyed by
-// bead prefix. The supplied getter owns local-versus-routed lookup policy.
-func checkBeadGate(ctx context.Context, st issueGetter, awaitID string) (bool, string) {
+// issue prefix. The supplied getter owns local-versus-routed lookup policy.
+func checkIssueGate(ctx context.Context, st issueGetter, awaitID string) (bool, string) {
 	if awaitID == "" {
-		return false, "bead gate has no await_id"
+		return false, "issue gate has no await_id"
 	}
 	targetID := awaitID
 	if strings.Contains(awaitID, ":") {
 		parts := strings.SplitN(awaitID, ":", 2)
 		if parts[0] == "" || parts[1] == "" {
-			return false, fmt.Sprintf("invalid cross-rig bead gate %q: expected <rig>:<bead-id>", awaitID)
+			return false, fmt.Sprintf("invalid cross-rig issue gate %q: expected <rig>:<issue-id>", awaitID)
 		}
 		targetID = parts[1]
 	}
 	if st == nil {
-		return false, fmt.Sprintf("bead gate %q: no local store available", awaitID)
+		return false, fmt.Sprintf("issue gate %q: no local store available", awaitID)
 	}
 	issue, err := st.GetIssue(ctx, targetID)
 	if err != nil {
-		return false, fmt.Sprintf("bead gate %q: %v", awaitID, err)
+		return false, fmt.Sprintf("issue gate %q: %v", awaitID, err)
 	}
 	if issue == nil {
-		return false, fmt.Sprintf("bead gate %q: bead not found", awaitID)
+		return false, fmt.Sprintf("issue gate %q: issue not found", awaitID)
 	}
 	if issue.Status == types.StatusClosed {
-		return true, fmt.Sprintf("bead %s closed", targetID)
+		return true, fmt.Sprintf("issue %s closed", targetID)
 	}
-	return false, fmt.Sprintf("bead %s is %s", targetID, issue.Status)
+	return false, fmt.Sprintf("issue %s is %s", targetID, issue.Status)
 }
 
 // closeGate closes a gate issue with the given reason
@@ -1273,7 +1273,7 @@ func init() {
 	gateResolveCmd.Flags().StringP("reason", "r", "", "Reason for resolving the gate")
 
 	// gate check flags
-	gateCheckCmd.Flags().StringP("type", "t", "", "Gate type to check (gh, gh:run, gh:pr, timer, bead, all)")
+	gateCheckCmd.Flags().StringP("type", "t", "", "Gate type to check (gh, gh:run, gh:pr, timer, issue, all)")
 	gateCheckCmd.Flags().Bool("dry-run", false, "Show what would happen without making changes")
 	gateCheckCmd.Flags().BoolP("escalate", "e", false, "Escalate failed/expired gates")
 	gateCheckCmd.Flags().IntP("limit", "l", 100, "Limit results (default 100)")

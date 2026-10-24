@@ -1,20 +1,20 @@
 ---
-title: "bd blocked"
+title: "issuegraph blocked"
 description: "Show blocked issues"
 ---
 
 {/* AUTO-GENERATED: do not edit manually */}
 
-Generated from `bd help --doc blocked`.
+Generated from `issuegraph help --doc blocked`.
 
 Show blocked issues
 
 ```
-bd blocked [flags]
+issuegraph blocked [flags]
 ```
 
 **Flags:**
 
 ```
-      --parent string   Filter to descendants of this bead/epic
+      --parent string   Filter to descendants of this issue/epic
 ```

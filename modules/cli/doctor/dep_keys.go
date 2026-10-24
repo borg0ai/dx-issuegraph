@@ -5,14 +5,14 @@ import (
 	"fmt"
 	"strings"
 
-	"github.com/steveyegge/beads/modules/cli/doctor/fix"
-	"github.com/steveyegge/beads/internal/storage/dolt"
+	"github.com/borg0ai/dx-issuegraph/internal/storage/dolt"
+	"github.com/borg0ai/dx-issuegraph/modules/cli/doctor/fix"
 )
 
 // CheckDependencyKeysWithStore reports dependency rows left behind by the
 // #4259 rekey backfill (bd-6dnrw.17): rows whose surrogate id is not the
 // deterministic depid.New(issue_id, target) — per-clone-random keys that
-// break bd dolt pull — and rows with no target at all, which the backfill
+// break issuegraph dolt pull — and rows with no target at all, which the backfill
 // deliberately skips and which otherwise stay randomly keyed forever.
 func CheckDependencyKeysWithStore(ss *SharedStore) DoctorCheck {
 	store := ss.Store()
@@ -60,9 +60,9 @@ func checkDependencyKeysWithStore(store *dolt.DoltStore) DoctorCheck {
 	var msg string
 	switch {
 	case misKeyed > 0 && nullTarget > 0:
-		msg = fmt.Sprintf("%d randomly-keyed and %d targetless dependency row(s) — random keys break 'bd dolt pull' across clones", misKeyed, nullTarget)
+		msg = fmt.Sprintf("%d randomly-keyed and %d targetless dependency row(s) — random keys break 'issuegraph dolt pull' across clones", misKeyed, nullTarget)
 	case misKeyed > 0:
-		msg = fmt.Sprintf("%d randomly-keyed dependency row(s) — random keys break 'bd dolt pull' across clones", misKeyed)
+		msg = fmt.Sprintf("%d randomly-keyed dependency row(s) — random keys break 'issuegraph dolt pull' across clones", misKeyed)
 	default:
 		msg = fmt.Sprintf("%d dependency row(s) with no target", nullTarget)
 	}
@@ -72,6 +72,6 @@ func checkDependencyKeysWithStore(store *dolt.DoltStore) DoctorCheck {
 		Status:  StatusWarning,
 		Message: msg,
 		Detail:  strings.Join(parts, "; "),
-		Fix:     "Run: bd doctor --fix (re-keys to deterministic ids, removes targetless rows)",
+		Fix:     "Run: issuegraph doctor --fix (re-keys to deterministic ids, removes targetless rows)",
 	}
 }

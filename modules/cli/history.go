@@ -5,12 +5,12 @@ import (
 	"errors"
 	"fmt"
 
+	"github.com/borg0ai/dx-issuegraph/internal/metrics"
+	"github.com/borg0ai/dx-issuegraph/internal/storage"
+	"github.com/borg0ai/dx-issuegraph/internal/types"
+	"github.com/borg0ai/dx-issuegraph/internal/ui"
+	"github.com/borg0ai/dx-issuegraph/internal/utils"
 	"github.com/spf13/cobra"
-	"github.com/steveyegge/beads/internal/metrics"
-	"github.com/steveyegge/beads/internal/storage"
-	"github.com/steveyegge/beads/internal/types"
-	"github.com/steveyegge/beads/internal/ui"
-	"github.com/steveyegge/beads/internal/utils"
 )
 
 var (
@@ -26,9 +26,9 @@ var historyCmd = &cobra.Command{
 where the issue was modified.
 
 Examples:
-  bd history bd-123           # Show all history for issue bd-123
-  bd history bd-123 --limit 5 # Show last 5 changes
-  bd history bd-123 --events  # Show database audit events`,
+  issuegraph history bd-123           # Show all history for issue bd-123
+  issuegraph history bd-123 --limit 5 # Show last 5 changes
+  issuegraph history bd-123 --events  # Show database audit events`,
 	Args:          cobra.ExactArgs(1),
 	SilenceUsage:  true,
 	SilenceErrors: true,

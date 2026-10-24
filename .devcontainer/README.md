@@ -28,7 +28,7 @@ This devcontainer configuration provides a fully-configured development environm
 The `setup.sh` script automatically:
 
 1. Builds issuegraph from source (`go build ./modules/cli`)
-2. Installs issuegraph to `/usr/local/bin/bd`
+2. Installs issuegraph to `/usr/local/bin/issuegraph`
 3. Runs `issuegraph init --quiet` (non-interactive initialization)
 4. Installs git hooks from `examples/git-hooks/`
 5. Downloads Go module dependencies
@@ -38,7 +38,7 @@ The `setup.sh` script automatically:
 After the container starts, verify everything works:
 
 ```bash
-# Check bd is installed
+# Check issuegraph is installed
 issuegraph --version
 
 # Check for ready tasks
@@ -59,7 +59,7 @@ git config --global user.email "your.email@example.com"
 
 ## Troubleshooting
 
-**bd command not found:**
+**issuegraph command not found:**
 - The setup script should install issuegraph automatically
 - Manually run: `bash .devcontainer/setup.sh`
 
@@ -74,5 +74,5 @@ git config --global user.email "your.email@example.com"
 
 ## Related Issues
 
-- GitHub Issue [#229](https://github.com/gastownhall/beads/issues/229): Git hooks not available in devcontainers
-- bd-ry1u: Publish official devcontainer configuration
+- GitHub Issue [#229](https://github.com/borg0ai/dx-issuegraph/issues/229): Git hooks not available in devcontainers
+- issuegraph-ry1u: Publish official devcontainer configuration

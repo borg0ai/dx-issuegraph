@@ -8,7 +8,7 @@ import (
 	"testing"
 	"time"
 
-	"github.com/steveyegge/beads/internal/config"
+	"github.com/borg0ai/dx-issuegraph/internal/config"
 )
 
 type fakeAutoPushTarget struct {
@@ -46,7 +46,7 @@ func TestIsDoltAutoPushEnabled_ExplicitConfig(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			t.Setenv("BD_DOLT_AUTO_PUSH", tt.envVal)
+			t.Setenv("ISSUEGRAPH_DOLT_AUTO_PUSH", tt.envVal)
 
 			config.ResetForTesting()
 			t.Cleanup(func() { config.ResetForTesting() })
@@ -66,8 +66,8 @@ func TestIsDoltAutoPushEnabled_ExplicitConfig(t *testing.T) {
 
 func TestIsDoltAutoPushEnabled_DefaultOff(t *testing.T) {
 	// Default (no explicit config) must return false — auto-push is opt-in only.
-	os.Unsetenv("BD_DOLT_AUTO_PUSH")
-	t.Cleanup(func() { os.Unsetenv("BD_DOLT_AUTO_PUSH") })
+	os.Unsetenv("ISSUEGRAPH_DOLT_AUTO_PUSH")
+	t.Cleanup(func() { os.Unsetenv("ISSUEGRAPH_DOLT_AUTO_PUSH") })
 
 	config.ResetForTesting()
 	t.Cleanup(func() { config.ResetForTesting() })
@@ -83,8 +83,8 @@ func TestIsDoltAutoPushEnabled_DefaultOff(t *testing.T) {
 
 func TestMaybeAutoPush_NilStore(t *testing.T) {
 	// maybeAutoPush should be a no-op when store is nil (no panic).
-	os.Unsetenv("BD_DOLT_AUTO_PUSH")
-	t.Cleanup(func() { os.Unsetenv("BD_DOLT_AUTO_PUSH") })
+	os.Unsetenv("ISSUEGRAPH_DOLT_AUTO_PUSH")
+	t.Cleanup(func() { os.Unsetenv("ISSUEGRAPH_DOLT_AUTO_PUSH") })
 
 	config.ResetForTesting()
 	t.Cleanup(func() { config.ResetForTesting() })
@@ -180,7 +180,7 @@ func TestPushWithContextBoundsIgnoredContext(t *testing.T) {
 
 func TestMaybeAutoPush_CancelledContext(t *testing.T) {
 	// maybeAutoPush should handle cancelled context gracefully (GH#3370).
-	t.Setenv("BD_DOLT_AUTO_PUSH", "true")
+	t.Setenv("ISSUEGRAPH_DOLT_AUTO_PUSH", "true")
 
 	config.ResetForTesting()
 	t.Cleanup(func() { config.ResetForTesting() })
@@ -195,7 +195,7 @@ func TestMaybeAutoPush_CancelledContext(t *testing.T) {
 
 func TestMaybeAutoPush_DisabledByConfig(t *testing.T) {
 	// When explicitly disabled, maybeAutoPush should be a no-op.
-	t.Setenv("BD_DOLT_AUTO_PUSH", "false")
+	t.Setenv("ISSUEGRAPH_DOLT_AUTO_PUSH", "false")
 
 	config.ResetForTesting()
 	t.Cleanup(func() { config.ResetForTesting() })
@@ -209,16 +209,16 @@ func TestMaybeAutoPush_DisabledByConfig(t *testing.T) {
 
 func TestLoadSavePushState(t *testing.T) {
 
-	// Create a temp .beads dir with metadata.json so FindBeadsDir works
+	// Create a temp .issuegraph dir with metadata.json so FindIssueGraphDir works
 	tmp := t.TempDir()
-	beadsDir := filepath.Join(tmp, ".beads")
-	if err := os.MkdirAll(beadsDir, 0o755); err != nil {
+	issuegraphDir := filepath.Join(tmp, ".issuegraph")
+	if err := os.MkdirAll(issuegraphDir, 0o755); err != nil {
 		t.Fatal(err)
 	}
-	if err := os.WriteFile(filepath.Join(beadsDir, "metadata.json"), []byte(`{}`), 0o644); err != nil {
+	if err := os.WriteFile(filepath.Join(issuegraphDir, "metadata.json"), []byte(`{}`), 0o644); err != nil {
 		t.Fatal(err)
 	}
-	t.Setenv("BEADS_DIR", beadsDir)
+	t.Setenv("ISSUEGRAPH_DIR", issuegraphDir)
 
 	// No file yet → nil, nil
 	ps, err := loadPushState()
@@ -246,17 +246,17 @@ func TestLoadSavePushState(t *testing.T) {
 func TestLoadPushState_CorruptJSON(t *testing.T) {
 
 	tmp := t.TempDir()
-	beadsDir := filepath.Join(tmp, ".beads")
-	if err := os.MkdirAll(beadsDir, 0o755); err != nil {
+	issuegraphDir := filepath.Join(tmp, ".issuegraph")
+	if err := os.MkdirAll(issuegraphDir, 0o755); err != nil {
 		t.Fatal(err)
 	}
-	if err := os.WriteFile(filepath.Join(beadsDir, "metadata.json"), []byte(`{}`), 0o644); err != nil {
+	if err := os.WriteFile(filepath.Join(issuegraphDir, "metadata.json"), []byte(`{}`), 0o644); err != nil {
 		t.Fatal(err)
 	}
-	t.Setenv("BEADS_DIR", beadsDir)
+	t.Setenv("ISSUEGRAPH_DIR", issuegraphDir)
 
 	// Write garbage
-	if err := os.WriteFile(filepath.Join(beadsDir, "push-state.json"), []byte(`not json`), 0o644); err != nil {
+	if err := os.WriteFile(filepath.Join(issuegraphDir, "push-state.json"), []byte(`not json`), 0o644); err != nil {
 		t.Fatal(err)
 	}
 

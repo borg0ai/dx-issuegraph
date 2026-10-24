@@ -9,14 +9,14 @@ import (
 	"strings"
 	"time"
 
+	"github.com/borg0ai/dx-issuegraph/internal/config"
+	"github.com/borg0ai/dx-issuegraph/internal/storage"
+	"github.com/borg0ai/dx-issuegraph/internal/storage/doltutil"
+	"github.com/borg0ai/dx-issuegraph/internal/storage/issueops"
+	"github.com/borg0ai/dx-issuegraph/internal/storage/schema"
+	"github.com/borg0ai/dx-issuegraph/internal/storage/versioncontrolops"
 	mysql "github.com/go-sql-driver/mysql"
 	"github.com/google/uuid"
-	"github.com/steveyegge/beads/internal/config"
-	"github.com/steveyegge/beads/internal/storage"
-	"github.com/steveyegge/beads/internal/storage/doltutil"
-	"github.com/steveyegge/beads/internal/storage/issueops"
-	"github.com/steveyegge/beads/internal/storage/schema"
-	"github.com/steveyegge/beads/internal/storage/versioncontrolops"
 )
 
 // federationStagingBranchPrefix identifies temporary filtered-push branches.

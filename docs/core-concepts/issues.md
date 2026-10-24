@@ -10,12 +10,12 @@ Understanding the issue model in issuegraph.
 Every issue has:
 
 ```bash
-issuegraph show bd-42 --json
+issuegraph show issuegraph-42 --json
 ```
 
 ```json
 {
-  "id": "bd-42",
+  "id": "issuegraph-42",
   "title": "Implement authentication",
   "description": "Add JWT-based auth",
   "type": "feature",
@@ -72,11 +72,11 @@ issuegraph create "Task" -t task --json
 The `blocks` relationship affects the ready queue:
 
 ```bash
-# Add dependency: bd-2 depends on bd-1
-issuegraph dep add bd-2 bd-1
+# Add dependency: issuegraph-2 depends on issuegraph-1
+issuegraph dep add issuegraph-2 issuegraph-1
 
 # View dependencies
-issuegraph dep tree bd-2
+issuegraph dep tree issuegraph-2
 
 # See blocked issues
 issuegraph blocked
@@ -92,13 +92,13 @@ These don't affect the ready queue:
 ```bash
 # Parent-child (epic subtasks)
 issuegraph create "Epic" -t epic
-issuegraph create "Subtask" --parent bd-42
+issuegraph create "Subtask" --parent issuegraph-42
 
 # Discovered-from (found during work)
-issuegraph create "Found bug" --deps discovered-from:bd-42
+issuegraph create "Found bug" --deps discovered-from:issuegraph-42
 
 # Related (soft link)
-issuegraph dep relate bd-1 bd-2
+issuegraph dep relate issuegraph-1 issuegraph-2
 ```
 
 ### Dependency Types
@@ -117,43 +117,43 @@ For large features, use hierarchical IDs:
 ```bash
 # Create epic
 issuegraph create "Auth System" -t epic -p 1
-# Returns: bd-a3f8e9
+# Returns: issuegraph-a3f8e9
 
 # Child tasks auto-number
-issuegraph create "Design login UI" --parent bd-a3f8e9     # bd-a3f8e9.1
-issuegraph create "Backend validation" --parent bd-a3f8e9  # bd-a3f8e9.2
+issuegraph create "Design login UI" --parent issuegraph-a3f8e9     # issuegraph-a3f8e9.1
+issuegraph create "Backend validation" --parent issuegraph-a3f8e9  # issuegraph-a3f8e9.2
 
 # View hierarchy
-issuegraph dep tree bd-a3f8e9
+issuegraph dep tree issuegraph-a3f8e9
 ```
 
 ## Updating Issues
 
 ```bash
 # Change status
-issuegraph update bd-42 --claim
+issuegraph update issuegraph-42 --claim
 
 # Change priority
-issuegraph update bd-42 --priority 0
+issuegraph update issuegraph-42 --priority 0
 
 # Add labels
-issuegraph update bd-42 --add-label urgent
+issuegraph update issuegraph-42 --add-label urgent
 
 # Multiple changes
-issuegraph update bd-42 --claim --priority 1 --add-label "in-review"
+issuegraph update issuegraph-42 --claim --priority 1 --add-label "in-review"
 ```
 
 ## Closing Issues
 
 ```bash
 # Simple close
-issuegraph close bd-42
+issuegraph close issuegraph-42
 
 # With reason
-issuegraph close bd-42 --reason "Implemented in PR #123"
+issuegraph close issuegraph-42 --reason "Implemented in PR #123"
 
 # JSON output
-issuegraph close bd-42 --json
+issuegraph close issuegraph-42 --json
 ```
 
 ## Searching and Filtering

@@ -8,9 +8,9 @@ import (
 	"net/http/httptest"
 	"testing"
 
-	"github.com/steveyegge/beads/internal/eventsjournal"
-	"github.com/steveyegge/beads/internal/httpapi/apigen"
-	"github.com/steveyegge/beads/internal/storage"
+	"github.com/borg0ai/dx-issuegraph/internal/eventsjournal"
+	"github.com/borg0ai/dx-issuegraph/internal/httpapi/apigen"
+	"github.com/borg0ai/dx-issuegraph/internal/storage"
 )
 
 // The events journal read. Three of these cases are about a distinction the
@@ -44,13 +44,13 @@ func journalServer(t *testing.T, journal *roleEventsJournal) *testServer {
 
 // TestEventsServesTheRecordsAndTheHead is the happy path, and it asserts the
 // RECORD SHAPE rather than only the count: these bodies are the same records
-// `bd events tail` prints, and a wire struct that quietly diverged from the
+// `issuegraph events tail` prints, and a wire struct that quietly diverged from the
 // CLI's would pass a length check.
 func TestEventsServesTheRecordsAndTheHead(t *testing.T) {
 	journal := &roleEventsJournal{page: storage.EventsJournalPage{Rows: eventsRows(4, 3), Head: 9}}
 	ts := journalServer(t, journal)
 
-	resp := ts.get(t, "/v0/beads/events?since=3")
+	resp := ts.get(t, "/v0/issuegraph/events?since=3")
 	if resp.StatusCode != http.StatusOK {
 		t.Fatalf("status = %d, want 200: %s", resp.StatusCode, readAll(t, resp))
 	}
@@ -100,7 +100,7 @@ func TestEventsSerializesADeleteRecordAsANullIssue(t *testing.T) {
 	}}
 	ts := journalServer(t, journal)
 
-	resp := ts.get(t, "/v0/beads/events?since=0")
+	resp := ts.get(t, "/v0/issuegraph/events?since=0")
 	if resp.StatusCode != http.StatusOK {
 		t.Fatalf("status = %d, want 200: %s", resp.StatusCode, readAll(t, resp))
 	}
@@ -132,7 +132,7 @@ func TestEventsCaughtUpIsAnEmptyPage(t *testing.T) {
 	journal := &roleEventsJournal{page: storage.EventsJournalPage{Head: 12}}
 	ts := journalServer(t, journal)
 
-	resp := ts.get(t, "/v0/beads/events?since=12")
+	resp := ts.get(t, "/v0/issuegraph/events?since=12")
 	if resp.StatusCode != http.StatusOK {
 		t.Fatalf("status = %d, want 200: %s", resp.StatusCode, readAll(t, resp))
 	}
@@ -162,7 +162,7 @@ func TestEventsCaughtUpIsAnEmptyPage(t *testing.T) {
 func TestEventsEmptyJournalIsNotTheDisabledRefusal(t *testing.T) {
 	ts := journalServer(t, &roleEventsJournal{page: storage.EventsJournalPage{Head: 0}})
 
-	resp := ts.get(t, "/v0/beads/events?since=0")
+	resp := ts.get(t, "/v0/issuegraph/events?since=0")
 	if resp.StatusCode != http.StatusOK {
 		t.Fatalf("status = %d, want 200: %s", resp.StatusCode, readAll(t, resp))
 	}
@@ -178,7 +178,7 @@ func TestEventsRefusesWhenTheJournalIsDisabled(t *testing.T) {
 	journal := &roleEventsJournal{page: storage.EventsJournalPage{Rows: eventsRows(1, 2), Head: 2}}
 	ts := newTestServer(t, rolesConfig(Config{EventsJournal: journal, EventsJournalEnabled: false}))
 
-	resp := ts.get(t, "/v0/beads/events?since=0")
+	resp := ts.get(t, "/v0/issuegraph/events?since=0")
 	if resp.StatusCode != http.StatusConflict {
 		t.Fatalf("status = %d, want 409: %s", resp.StatusCode, readAll(t, resp))
 	}
@@ -203,7 +203,7 @@ func TestEventsMapsTruncationToGone(t *testing.T) {
 	journal := &roleEventsJournal{err: truncated}
 	ts := journalServer(t, journal)
 
-	resp := ts.get(t, "/v0/beads/events?since=2")
+	resp := ts.get(t, "/v0/issuegraph/events?since=2")
 	if resp.StatusCode != http.StatusGone {
 		t.Fatalf("status = %d, want 410: %s", resp.StatusCode, readAll(t, resp))
 	}
@@ -240,7 +240,7 @@ func TestEventsMapsAWrappedTruncationToGone(t *testing.T) {
 	wrapped := fmt.Errorf("read events journal: %w", &storage.EventsJournalTruncatedError{Since: 0, Floor: 4, Head: 5})
 	ts := journalServer(t, &roleEventsJournal{err: wrapped})
 
-	resp := ts.get(t, "/v0/beads/events?since=0")
+	resp := ts.get(t, "/v0/issuegraph/events?since=0")
 	if resp.StatusCode != http.StatusGone {
 		t.Fatalf("status = %d, want 410: %s", resp.StatusCode, readAll(t, resp))
 	}
@@ -256,7 +256,7 @@ func TestEventsMapsAWrappedTruncationToGone(t *testing.T) {
 func TestEventsAnOrdinaryFailureIsNotGone(t *testing.T) {
 	ts := journalServer(t, &roleEventsJournal{err: errors.New("connection reset by the database")})
 
-	resp := ts.get(t, "/v0/beads/events?since=0")
+	resp := ts.get(t, "/v0/issuegraph/events?since=0")
 	if resp.StatusCode != http.StatusInternalServerError {
 		t.Fatalf("status = %d, want 500: %s", resp.StatusCode, readAll(t, resp))
 	}
@@ -290,7 +290,7 @@ func TestEventsRefusesABadCheckpoint(t *testing.T) {
 			journal := &roleEventsJournal{}
 			ts := journalServer(t, journal)
 
-			resp := ts.get(t, "/v0/beads/events"+tc.query)
+			resp := ts.get(t, "/v0/issuegraph/events"+tc.query)
 			if resp.StatusCode != http.StatusBadRequest {
 				t.Fatalf("status = %d, want 400: %s", resp.StatusCode, readAll(t, resp))
 			}
@@ -318,7 +318,7 @@ func TestEventsRefusesABadCheckpoint(t *testing.T) {
 func TestEventsRefusesAnUnknownParameterRatherThanTheCheckpoint(t *testing.T) {
 	ts := journalServer(t, &roleEventsJournal{})
 
-	resp := ts.get(t, "/v0/beads/events?since=0&follow=true")
+	resp := ts.get(t, "/v0/issuegraph/events?since=0&follow=true")
 	if resp.StatusCode != http.StatusBadRequest {
 		t.Fatalf("status = %d, want 400: %s", resp.StatusCode, readAll(t, resp))
 	}
@@ -354,7 +354,7 @@ func TestEventsAppliesTheDocumentedLimitBounds(t *testing.T) {
 			journal := &roleEventsJournal{}
 			ts := journalServer(t, journal)
 
-			resp := ts.get(t, "/v0/beads/events"+tc.query)
+			resp := ts.get(t, "/v0/issuegraph/events"+tc.query)
 			if tc.wantRefus {
 				if resp.StatusCode != http.StatusBadRequest {
 					t.Fatalf("status = %d, want 400: %s", resp.StatusCode, readAll(t, resp))
@@ -389,7 +389,7 @@ func TestEventsLimitZeroIsNotUnlimitedHere(t *testing.T) {
 	journal := &roleEventsJournal{}
 	ts := journalServer(t, journal)
 
-	resp := ts.get(t, "/v0/beads/events?since=0&limit=0")
+	resp := ts.get(t, "/v0/issuegraph/events?since=0&limit=0")
 	if resp.StatusCode != http.StatusBadRequest {
 		t.Fatalf("status = %d, want 400: %s", resp.StatusCode, readAll(t, resp))
 	}
@@ -410,7 +410,7 @@ func TestEventsAcceptsALargeCheckpoint(t *testing.T) {
 	journal := &roleEventsJournal{page: storage.EventsJournalPage{Head: big}}
 	ts := journalServer(t, journal)
 
-	resp := ts.get(t, fmt.Sprintf("/v0/beads/events?since=%d", big))
+	resp := ts.get(t, fmt.Sprintf("/v0/issuegraph/events?since=%d", big))
 	if resp.StatusCode != http.StatusOK {
 		t.Fatalf("status = %d, want 200: %s", resp.StatusCode, readAll(t, resp))
 	}
@@ -440,7 +440,7 @@ func TestListenRequiresTheJournalReaderOnlyWhenTheWorkspaceHasOne(t *testing.T) 
 		cfg.EventsJournalEnabled = false
 		ts := newTestServer(t, cfg)
 
-		resp := ts.get(t, "/v0/beads/events?since=0")
+		resp := ts.get(t, "/v0/issuegraph/events?since=0")
 		if resp.StatusCode != http.StatusConflict {
 			t.Fatalf("status = %d, want 409: %s", resp.StatusCode, readAll(t, resp))
 		}
@@ -529,7 +529,7 @@ func TestEventsStreamsExactlyTheGeneratedEnvelope(t *testing.T) {
 // to accept, which is version skew a client cannot detect.
 func TestEventsLimitBoundsMatchTheDocument(t *testing.T) {
 	doc := loadSpec(t)
-	events := mapAt(t, mapAt(t, mapAt(t, doc, "paths"), "/v0/beads/events"), "get")
+	events := mapAt(t, mapAt(t, mapAt(t, doc, "paths"), "/v0/issuegraph/events"), "get")
 
 	params, _ := events["parameters"].([]any)
 	var limit map[string]any
@@ -573,7 +573,7 @@ func TestEventsIsReadOnly(t *testing.T) {
 
 	for _, method := range []string{http.MethodPost, http.MethodDelete, http.MethodPatch, http.MethodPut} {
 		t.Run(method, func(t *testing.T) {
-			req, err := http.NewRequest(method, ts.base+"/v0/beads/events?since=0", nil)
+			req, err := http.NewRequest(method, ts.base+"/v0/issuegraph/events?since=0", nil)
 			if err != nil {
 				t.Fatalf("new request: %v", err)
 			}

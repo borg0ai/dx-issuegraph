@@ -7,8 +7,8 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/steveyegge/beads/internal/types"
-	publicops "github.com/steveyegge/beads/issueops"
+	"github.com/borg0ai/dx-issuegraph/internal/types"
+	publicops "github.com/borg0ai/dx-issuegraph/issueops"
 )
 
 // This file holds the contract every implementation of publicops.BatchCloser
@@ -266,7 +266,7 @@ func RunBatchCloserPerItemRefusalIsAResultAndSurvivorsCommit(t *testing.T, ctx c
 }
 
 // RunBatchCloserOutcomeSnapshotIsTheDocumentedShape pins batchcloser.go:78-80,
-// which the bead's case list did not cover: the post-close snapshot carries
+// which the issue's case list did not cover: the post-close snapshot carries
 // LABELS and DEPENDENCY RECORDS, and COMMENTS ARE OMITTED from it, exactly as
 // they are for CloseResult.
 //
@@ -599,7 +599,7 @@ func RunBatchCloserAllIdempotentBatchLandsNothing(t *testing.T, ctx context.Cont
 // occurrence of a duplicated id reports (batchcloser.go:28-33): the index
 // correspondence is promised for every item, so [a, a] gets two outcomes, and
 // the second is the intra-batch re-close the first made — a per-item success
-// with Changed false. `bd close a b a` is a plausible typo and it is not a
+// with Changed false. `issuegraph close a b a` is a plausible typo and it is not a
 // refusal.
 //
 // The two occurrences carry DISTINCT reasons, which is the half a caller can

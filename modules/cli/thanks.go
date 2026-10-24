@@ -6,7 +6,7 @@ import (
 	"slices"
 
 	lipgloss "charm.land/lipgloss/v2"
-	"github.com/steveyegge/beads/internal/ui"
+	"github.com/borg0ai/dx-issuegraph/internal/ui"
 )
 
 // lipgloss styles for the thanks page using Ayu theme
@@ -42,10 +42,10 @@ func thanksBoxStyle(width int) lipgloss.Style {
 		Align(lipgloss.Center)
 }
 
-// Static list of human contributors to the beads project.
-// To update: run `git shortlog -sn --all` in the beads repo.
+// Static list of human contributors to the issuegraph project.
+// To update: run `git shortlog -sn --all` in the issuegraph repo.
 // Map of contributor name -> commit count, sorted by contribution count descending.
-var beadsContributors = map[string]int{
+var issuegraphContributors = map[string]int{
 	"Steve Yegge":            2959,
 	"matt wilkie":            64,
 	"Ryan Snodgrass":         43,
@@ -114,7 +114,7 @@ func getContributorsSorted() []string {
 		commits int
 	}
 	var sorted []kv
-	for name, commits := range beadsContributors {
+	for name, commits := range issuegraphContributors {
 		sorted = append(sorted, kv{name, commits})
 	}
 	slices.SortFunc(sorted, func(a, b kv) int {
@@ -146,7 +146,7 @@ func printThanksPage() {
 
 	// build header content with styled text
 	title := thanksTitleStyle.Render("THANK YOU!")
-	subtitle := thanksSubtitleStyle.Render("To all the humans who contributed to beads")
+	subtitle := thanksSubtitleStyle.Render("To all the humans who contributed to issuegraph")
 	header := title + "\n\n" + subtitle
 
 	// render header in a bordered box matching content width

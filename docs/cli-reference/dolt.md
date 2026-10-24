@@ -1,70 +1,70 @@
 ---
-title: "bd dolt"
+title: "issuegraph dolt"
 description: "Configure and manage Dolt database settings and server lifecycle."
 ---
 
 {/* AUTO-GENERATED: do not edit manually */}
 
-Generated from `bd help --doc dolt`.
+Generated from `issuegraph help --doc dolt`.
 
 Configure and manage Dolt database settings and server lifecycle.
 
-Beads uses a dolt sql-server for all database operations. The server is
+IssueGraph uses a dolt sql-server for all database operations. The server is
 auto-started transparently when needed. Use these commands for explicit
 control or diagnostics.
 
 Server lifecycle:
-  bd dolt start        Start the Dolt server for this project
-  bd dolt stop         Stop the Dolt server for this project
-  bd dolt status       Show Dolt server status
+  issuegraph dolt start        Start the Dolt server for this project
+  issuegraph dolt stop         Stop the Dolt server for this project
+  issuegraph dolt status       Show Dolt server status
 
 Configuration:
-  bd dolt show         Show current Dolt configuration with connection test
-  bd dolt set &lt;k&gt; &lt;v&gt;  Set a configuration value
-  bd dolt test         Test server connection
+  issuegraph dolt show         Show current Dolt configuration with connection test
+  issuegraph dolt set &lt;k&gt; &lt;v&gt;  Set a configuration value
+  issuegraph dolt test         Test server connection
 
 Version control:
-  bd dolt commit       Commit pending changes
-  bd dolt push         Push commits to Dolt remote
-  bd dolt pull         Pull commits from Dolt remote
+  issuegraph dolt commit       Commit pending changes
+  issuegraph dolt push         Push commits to Dolt remote
+  issuegraph dolt pull         Pull commits from Dolt remote
 
 Remote management:
-  bd dolt remote add &lt;name&gt; &lt;url&gt;   Add a Dolt remote
-  bd dolt remote list                List configured remotes
-  bd dolt remote remove &lt;name&gt;       Remove a Dolt remote
+  issuegraph dolt remote add &lt;name&gt; &lt;url&gt;   Add a Dolt remote
+  issuegraph dolt remote list                List configured remotes
+  issuegraph dolt remote remove &lt;name&gt;       Remove a Dolt remote
 
-Configuration keys for 'bd dolt set':
-  database  Database name (default: issue prefix or "beads")
+Configuration keys for 'issuegraph dolt set':
+  database  Database name (default: issue prefix or "issuegraph")
   host      Server host (default: 127.0.0.1)
-  port      Server port (auto-detected; override with bd dolt set port &lt;N&gt;)
+  port      Server port (auto-detected; override with issuegraph dolt set port &lt;N&gt;)
   user      MySQL user (default: root)
-  data-dir  Custom dolt data directory (absolute path; default: .beads/dolt)
+  data-dir  Custom dolt data directory (absolute path; default: .issuegraph/dolt)
 
-Flags for 'bd dolt set':
+Flags for 'issuegraph dolt set':
   --update-config  Also write to config.yaml for team-wide defaults
 
 Examples:
-  bd dolt set database myproject
-  bd dolt set host 192.168.1.100 --update-config
-  bd dolt set data-dir /home/user/.beads-dolt/myproject
-  bd dolt test
+  issuegraph dolt set database myproject
+  issuegraph dolt set host 192.168.1.100 --update-config
+  issuegraph dolt set data-dir /home/user/.issuegraph-dolt/myproject
+  issuegraph dolt test
 
 ```
-bd dolt [flags]
+issuegraph dolt [flags]
 ```
 
-## bd dolt clean-databases
+## issuegraph dolt clean-databases
 
 Identify and drop leftover test and agent databases that accumulate
 on the shared Dolt server from interrupted test runs and terminated agents.
 
-Stale database prefixes: testdb_*, doctest_*, doctortest_*, beads_pt*, beads_vr*, beads_t*
+Stale database prefixes: testdb_*, doctest_*, doctortest_*, issuegraph_pt*, issuegraph_vr*, issuegraph_t*
 
 These waste server memory and can degrade performance under concurrent load.
 Use --dry-run to see what would be dropped without actually dropping.
 
 ```
-bd dolt clean-databases [flags]
+issuegraph dolt clean-databases [flags]
 ```
 
 **Flags:**
@@ -73,21 +73,21 @@ bd dolt clean-databases [flags]
       --dry-run   Show what would be dropped without dropping
 ```
 
-## bd dolt commit
+## issuegraph dolt commit
 
 Create a Dolt commit from any uncommitted changes in the working set.
 
 This is the primary commit point for batch mode. When auto-commit is set to
-"batch", changes accumulate in the working set across multiple bd commands and
+"batch", changes accumulate in the working set across multiple issuegraph commands and
 are committed together here with a descriptive summary message.
 
 Also useful before push operations that require a clean working set, or when
 auto-commit was off or changes were made externally.
 
-For more options (--stdin, custom messages), see: bd vc commit
+For more options (--stdin, custom messages), see: issuegraph vc commit
 
 ```
-bd dolt commit [flags]
+issuegraph dolt commit [flags]
 ```
 
 **Flags:**
@@ -96,12 +96,12 @@ bd dolt commit [flags]
   -m, --message string   Commit message (default: auto-generated)
 ```
 
-## bd dolt killall
+## issuegraph dolt killall
 
 Find and kill orphan dolt sql-server processes not tracked by the
 canonical PID file for the current repo's Dolt data directory.
 
-Under an orchestrator, the canonical server lives at $GT_ROOT/.beads/. Any other
+Under an orchestrator, the canonical server lives at $GT_ROOT/.issuegraph/. Any other
 dolt sql-server processes using that shared data directory are considered
 orphans and will be killed.
 
@@ -110,10 +110,10 @@ project's Dolt data directory are eligible for cleanup. Other projects'
 servers are preserved.
 
 ```
-bd dolt killall [flags]
+issuegraph dolt killall [flags]
 ```
 
-## bd dolt pull
+## issuegraph dolt pull
 
 Pull commits from the configured Dolt remote into the local database.
 
@@ -122,10 +122,10 @@ For Hosted Dolt, set DOLT_REMOTE_USER and DOLT_REMOTE_PASSWORD environment
 variables for authentication.
 
 Use --remote to pull from a specific named remote instead of the default.
-The remote must already exist (see 'bd dolt remote add').
+The remote must already exist (see 'issuegraph dolt remote add').
 
 ```
-bd dolt pull [flags]
+issuegraph dolt pull [flags]
 ```
 
 **Flags:**
@@ -134,7 +134,7 @@ bd dolt pull [flags]
       --remote string   Pull from a specific named remote instead of the default
 ```
 
-## bd dolt push
+## issuegraph dolt push
 
 Push local Dolt commits to the configured remote.
 
@@ -146,10 +146,10 @@ Use --force to overwrite remote changes (e.g., when the remote has
 uncommitted changes in its working set).
 
 Use --remote to push to a specific named remote instead of the default.
-The remote must already exist (see 'bd dolt remote add').
+The remote must already exist (see 'issuegraph dolt remote add').
 
 ```
-bd dolt push [flags]
+issuegraph dolt push [flags]
 ```
 
 **Flags:**
@@ -159,7 +159,7 @@ bd dolt push [flags]
       --remote string   Push to a specific named remote instead of the default
 ```
 
-## bd dolt remote
+## issuegraph dolt remote
 
 Manage Dolt remotes for push/pull replication.
 
@@ -169,54 +169,54 @@ Subcommands:
   remove &lt;name&gt;      Remove a remote
 
 ```
-bd dolt remote [flags]
+issuegraph dolt remote [flags]
 ```
 
-### bd dolt remote add
+### issuegraph dolt remote add
 
 Add a Dolt remote
 
 ```
-bd dolt remote add <name> <url> [flags]
+issuegraph dolt remote add <name> <url> [flags]
 ```
 
-### bd dolt remote list
+### issuegraph dolt remote list
 
 List configured Dolt remotes
 
 ```
-bd dolt remote list [flags]
+issuegraph dolt remote list [flags]
 ```
 
-### bd dolt remote remove
+### issuegraph dolt remote remove
 
 Remove a Dolt remote
 
 ```
-bd dolt remote remove <name> [flags]
+issuegraph dolt remote remove <name> [flags]
 ```
 
-## bd dolt set
+## issuegraph dolt set
 
 Set a Dolt configuration value in metadata.json.
 
 Keys:
-  database  Database name (default: issue prefix or "beads")
+  database  Database name (default: issue prefix or "issuegraph")
   host      Server host (default: 127.0.0.1)
-  port      Server port (auto-detected; override with bd dolt set port &lt;N&gt;)
+  port      Server port (auto-detected; override with issuegraph dolt set port &lt;N&gt;)
   user      MySQL user (default: root)
-  data-dir  Custom dolt data directory (absolute path; default: .beads/dolt)
+  data-dir  Custom dolt data directory (absolute path; default: .issuegraph/dolt)
 
 Use --update-config to also write to config.yaml for team-wide defaults.
 
 Examples:
-  bd dolt set database myproject
-  bd dolt set host 192.168.1.100
-  bd dolt set port 3307 --update-config
-  bd dolt set data-dir /home/user/.beads-dolt/myproject
+  issuegraph dolt set database myproject
+  issuegraph dolt set host 192.168.1.100
+  issuegraph dolt set port 3307 --update-config
+  issuegraph dolt set data-dir /home/user/.issuegraph-dolt/myproject
 
 ```
-bd dolt set <key> <value> [flags]
+issuegraph dolt set <key> <value> [flags]
 ```
 
 **Flags:**
@@ -225,53 +225,53 @@ bd dolt set <key> <value> [flags]
       --update-config   Also write to config.yaml for team-wide defaults
 ```
 
-## bd dolt show
+## issuegraph dolt show
 
 Show current Dolt configuration with connection status
 
 ```
-bd dolt show [flags]
+issuegraph dolt show [flags]
 ```
 
-## bd dolt start
+## issuegraph dolt start
 
-Start a dolt sql-server for the current beads project.
+Start a dolt sql-server for the current issuegraph project.
 
 The server runs in the background on a per-project port derived from the
-project path. PID and logs are stored in .beads/.
+project path. PID and logs are stored in .issuegraph/.
 
 The server auto-starts transparently when needed, so manual start is rarely
 required. Use this command for explicit control or diagnostics.
 
 ```
-bd dolt start [flags]
+issuegraph dolt start [flags]
 ```
 
-## bd dolt status
+## issuegraph dolt status
 
 Show the status of the Dolt engine for the current project.
 
 In embedded mode, reports that the Dolt engine runs in-process and shows
-the on-disk data directory. For beads-managed (local) servers, displays
+the on-disk data directory. For issuegraph-managed (local) servers, displays
 PID, port, and data directory from the local PID file. For externally-
 managed servers — either a remote dolt_server_host or a local server
-managed outside bd (dolt.auto-start: false, e.g. an orchestrator-shared
+managed outside issuegraph (dolt.auto-start: false, e.g. an orchestrator-shared
 sql-server) — pings the configured endpoint via SQL and reports
 reachability, server version, and database.
 
 ```
-bd dolt status [flags]
+issuegraph dolt status [flags]
 ```
 
-## bd dolt stop
+## issuegraph dolt stop
 
-Stop the dolt sql-server managed by beads for the current project.
+Stop the dolt sql-server managed by issuegraph for the current project.
 
 This sends a graceful shutdown signal. The server will restart automatically
-on the next bd command unless auto-start is disabled.
+on the next issuegraph command unless auto-start is disabled.
 
 ```
-bd dolt stop [flags]
+issuegraph dolt stop [flags]
 ```
 
 **Flags:**
@@ -280,7 +280,7 @@ bd dolt stop [flags]
       --force   Force stop the server
 ```
 
-## bd dolt test
+## issuegraph dolt test
 
 Test the connection to the configured Dolt server.
 
@@ -291,5 +291,5 @@ This verifies that:
 Use this before switching to server mode to ensure the server is running.
 
 ```
-bd dolt test [flags]
+issuegraph dolt test [flags]
 ```

@@ -27,7 +27,7 @@ const (
 
 // ProxyTopology distinguishes the provider deployment shape. The backup family
 // is the first policy that genuinely differs across these: a Dolt backup
-// destination is resolved on the machine running dolt, so "the server bd
+// destination is resolved on the machine running dolt, so "the server issuegraph
 // spawned itself" and "a server somebody else runs" are different answers to
 // the same command (see capability_registry.go's backup rows).
 type ProxyTopology string
@@ -38,12 +38,12 @@ const (
 	ProxyTopologyExternalTCP  ProxyTopology = "external-tcp"
 	ProxyTopologyExternalUnix ProxyTopology = "external-unix"
 	// ProxyTopologyTeamServer is a workspace whose database is owned by
-	// beads-team-server. It is a shape rather than a transport: bts owns the
-	// store's schema and identity whether bd reaches it over a port, a socket,
-	// or a child bd started, so the ownership fact decides capability policy and
+	// issuegraph-team-server. It is a shape rather than a transport: bts owns the
+	// store's schema and identity whether issuegraph reaches it over a port, a socket,
+	// or a child issuegraph started, so the ownership fact decides capability policy and
 	// the transport does not.
 	ProxyTopologyTeamServer ProxyTopology = "team-server"
-	// ProxyTopologyUnknown is what a workspace bd cannot classify reports. It is
+	// ProxyTopologyUnknown is what a workspace issuegraph cannot classify reports. It is
 	// never honored by a topology-keyed row, which is the fail-closed half of
 	// the policy: a workspace that cannot prove it owns its Dolt server does not
 	// get the privileges of one that can.
@@ -106,7 +106,7 @@ func (e *ProxyCapabilityError) Error() string { return e.Message }
 func errProxiedStoreUnrouted() error {
 	return &ProxyCapabilityError{
 		Code:     "proxy.store.unrouted",
-		Message:  "this command has no proxied-server route; bd will not open a proxied-server workspace as a direct store",
+		Message:  "this command has no proxied-server route; issuegraph will not open a proxied-server workspace as a direct store",
 		ExitCode: 1,
 		Reason:   ProxyReasonUnimplemented,
 	}
@@ -166,12 +166,12 @@ var (
 	// The cap is refused rather than silently dropped, which is right; the fix
 	// is threading it through the UOW reader the way `list` already does, so
 	// the refusal itself is the gap.
-	maxRowsRefusal = refused("proxy.max_rows.unsupported", "--max-rows / BEADS_MAX_ROWS is not supported in proxied-server mode", ProxyReasonUnimplemented, trackLongTail)
+	maxRowsRefusal = refused("proxy.max_rows.unsupported", "--max-rows / ISSUEGRAPH_MAX_ROWS is not supported in proxied-server mode", ProxyReasonUnimplemented, trackLongTail)
 	// `list --watch` is routed, so watching is possible over the provider;
 	// nothing else has been wired to it.
 	watchRefusal = refused("proxy.watch.unsupported", "watch mode not supported in proxied-server mode", ProxyReasonUnimplemented, trackLongTail)
 	// --repo routes to another workspace, bypassing the proxied root entirely,
-	// which is why it is design rather than a gap. `bd create` is the only
+	// which is why it is design rather than a gap. `issuegraph create` is the only
 	// command that registers the flag, so it is the only command this rule can
 	// actually refuse; every other row for it must be notApplicable(), which is
 	// what TestProxyCapabilityRowsNameFlagsTheCommandRegisters enforces.
@@ -186,7 +186,7 @@ var (
 // than routing: it is a GUARANTEE, the proxied provider carries no read-only
 // posture, and the only honest implementation is a read-only SQL principal on
 // the backend — which on external topologies is the operator's configuration,
-// not bd's. A best-effort version would betray exactly the workflows that ask
+// not issuegraph's. A best-effort version would betray exactly the workflows that ask
 // for it, so it is refused by design until that principal exists. --repo is
 // design for a simpler reason: it routes to another workspace, bypassing the
 // proxied root entirely.
@@ -206,15 +206,15 @@ var proxyCapabilityMatrix = map[ProxyMode]map[ProxyCapability]proxyCapabilityRul
 // proxyCommandCapabilities overrides the mode-wide default for one command.
 // Keys are command paths (commandRegistryPath), so a row lands on the command it
 // was written for and on nothing else. The "mol ready" row is a documentation
-// pin rather than the guard: path keying is what stops `bd mol ready --gated`
-// from inheriting the refusal `bd ready` carries on their shared leaf name
+// pin rather than the guard: path keying is what stops `issuegraph mol ready --gated`
+// from inheriting the refusal `issuegraph ready` carries on their shared leaf name
 // "ready", and the row records that the command has no --max-rows flag to
 // refuse. TestProxyCapabilityPolicyKeysResolveInRealCommandTree keeps the pin
 // honest by failing if the path it names stops existing.
 //
 // A row must describe a flag the command actually registers. `list`'s
 // ProxyCapRepo is notApplicable() for that reason and not as a hedge: listCmd
-// has no --repo flag (create.go:940 registers the only one), so `bd list --repo`
+// has no --repo flag (create.go:940 registers the only one), so `issuegraph list --repo`
 // dies in cobra as an unknown flag and a refusal row here would be policy no
 // command line can reach. TestProxyCapabilityRowsNameFlagsTheCommandRegisters
 // enforces both directions of that rule.

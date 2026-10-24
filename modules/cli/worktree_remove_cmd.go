@@ -6,8 +6,8 @@ import (
 	"fmt"
 	"strconv"
 
+	"github.com/borg0ai/dx-issuegraph/internal/worktreeremove"
 	"github.com/spf13/cobra"
-	"github.com/steveyegge/beads/internal/worktreeremove"
 )
 
 type singleWorktreeStringFlag struct {
@@ -109,9 +109,9 @@ cleanup fails, this command returns an error that explicitly reports the
 worktree as removed; it does not claim or attempt a rollback.
 
 Examples:
-  bd worktree remove feature-auth                    # Check the configured upstream
-  bd worktree remove feature-auth --merged-into main # Check containment in main
-  bd worktree remove feature-auth --force            # Skip clean/containment checks`,
+  issuegraph worktree remove feature-auth                    # Check the configured upstream
+  issuegraph worktree remove feature-auth --merged-into main # Check containment in main
+  issuegraph worktree remove feature-auth --force            # Skip clean/containment checks`,
 		Args: func(cmd *cobra.Command, args []string) error {
 			if err := cobra.ExactArgs(1)(cmd, args); err != nil {
 				return err

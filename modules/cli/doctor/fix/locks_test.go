@@ -8,32 +8,32 @@ import (
 )
 
 func TestStaleLockFiles(t *testing.T) {
-	t.Run("no beads dir", func(t *testing.T) {
+	t.Run("no issuegraph dir", func(t *testing.T) {
 		tmpDir := t.TempDir()
 		if err := StaleLockFiles(tmpDir); err != nil {
-			t.Errorf("expected no error for missing .beads dir, got %v", err)
+			t.Errorf("expected no error for missing .issuegraph dir, got %v", err)
 		}
 	})
 
 	t.Run("no lock files", func(t *testing.T) {
 		tmpDir := t.TempDir()
-		if err := os.MkdirAll(filepath.Join(tmpDir, ".beads"), 0755); err != nil {
+		if err := os.MkdirAll(filepath.Join(tmpDir, ".issuegraph"), 0755); err != nil {
 			t.Fatal(err)
 		}
 		if err := StaleLockFiles(tmpDir); err != nil {
-			t.Errorf("expected no error for empty .beads dir, got %v", err)
+			t.Errorf("expected no error for empty .issuegraph dir, got %v", err)
 		}
 	})
 
 	t.Run("stale bootstrap lock still removed", func(t *testing.T) {
 		// Verify we didn't break existing cleanup
 		tmpDir := t.TempDir()
-		beadsDir := filepath.Join(tmpDir, ".beads")
-		if err := os.MkdirAll(beadsDir, 0755); err != nil {
+		issuegraphDir := filepath.Join(tmpDir, ".issuegraph")
+		if err := os.MkdirAll(issuegraphDir, 0755); err != nil {
 			t.Fatal(err)
 		}
 
-		lockPath := filepath.Join(beadsDir, "dolt.bootstrap.lock")
+		lockPath := filepath.Join(issuegraphDir, "dolt.bootstrap.lock")
 		if err := os.WriteFile(lockPath, []byte("lock"), 0600); err != nil {
 			t.Fatal(err)
 		}
@@ -51,14 +51,14 @@ func TestStaleLockFiles(t *testing.T) {
 		}
 	})
 
-	t.Run("shared worktree stale lock is removed from shared beads dir", func(t *testing.T) {
+	t.Run("shared worktree stale lock is removed from shared issuegraph dir", func(t *testing.T) {
 		mainRepoDir, worktreeDir := setupSharedWorktreeWorkspace(t)
-		sharedBeadsDir := filepath.Join(mainRepoDir, ".beads")
-		if err := os.MkdirAll(sharedBeadsDir, 0o755); err != nil {
+		sharedIssueGraphDir := filepath.Join(mainRepoDir, ".issuegraph")
+		if err := os.MkdirAll(sharedIssueGraphDir, 0o755); err != nil {
 			t.Fatal(err)
 		}
 
-		lockPath := filepath.Join(sharedBeadsDir, "dolt.bootstrap.lock")
+		lockPath := filepath.Join(sharedIssueGraphDir, "dolt.bootstrap.lock")
 		if err := os.WriteFile(lockPath, []byte("lock"), 0o600); err != nil {
 			t.Fatal(err)
 		}

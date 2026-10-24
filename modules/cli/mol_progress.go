@@ -4,11 +4,11 @@ import (
 	"context"
 	"fmt"
 
+	"github.com/borg0ai/dx-issuegraph/internal/metrics"
+	"github.com/borg0ai/dx-issuegraph/internal/types"
+	"github.com/borg0ai/dx-issuegraph/internal/ui"
+	"github.com/borg0ai/dx-issuegraph/internal/utils"
 	"github.com/spf13/cobra"
-	"github.com/steveyegge/beads/internal/metrics"
-	"github.com/steveyegge/beads/internal/types"
-	"github.com/steveyegge/beads/internal/ui"
-	"github.com/steveyegge/beads/internal/utils"
 )
 
 var molProgressCmd = &cobra.Command{
@@ -28,7 +28,7 @@ Output includes:
   - ETA: estimated time to completion
 
 Example:
-  bd mol progress bd-hanoi-xyz`,
+  issuegraph mol progress bd-hanoi-xyz`,
 	Args:          cobra.MaximumNArgs(1),
 	SilenceUsage:  true,
 	SilenceErrors: true,
@@ -64,7 +64,7 @@ Example:
 					return outputJSON([]interface{}{})
 				}
 				fmt.Println("No molecules in progress.")
-				fmt.Println("\nUse: bd mol progress <molecule-id>")
+				fmt.Println("\nUse: issuegraph mol progress <molecule-id>")
 				return nil
 			}
 			moleculeID = moleculeIDs[0]

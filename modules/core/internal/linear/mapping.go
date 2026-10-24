@@ -8,8 +8,8 @@ import (
 	"strings"
 	"time"
 
-	"github.com/steveyegge/beads/internal/idgen"
-	"github.com/steveyegge/beads/internal/types"
+	"github.com/borg0ai/dx-issuegraph/internal/idgen"
+	"github.com/borg0ai/dx-issuegraph/internal/types"
 )
 
 // IDGenerationOptions configures Linear hash ID generation.
@@ -19,9 +19,9 @@ type IDGenerationOptions struct {
 	UsedIDs    map[string]bool // Pre-populated set to avoid collisions (e.g., DB IDs)
 }
 
-const missingExplicitStateMapMessage = "linear.state_map is not configured.\nRun 'bd linear link' to configure status mapping first."
+const missingExplicitStateMapMessage = "linear.state_map is not configured.\nRun 'issuegraph linear link' to configure status mapping first."
 
-// BuildLinearDescription formats a Beads issue for Linear's description field.
+// BuildLinearDescription formats a IssueGraph issue for Linear's description field.
 // This mirrors the payload used during push to keep hash comparisons consistent.
 func BuildLinearDescription(issue *types.Issue) string {
 	description := issue.Description
@@ -124,15 +124,15 @@ func GenerateIssueIDs(issues []*types.Issue, prefix, creator string, opts IDGene
 	return nil
 }
 
-// MappingConfig holds configurable mappings between Linear and Beads.
+// MappingConfig holds configurable mappings between Linear and IssueGraph.
 // All maps use lowercase keys for case-insensitive matching.
 type MappingConfig struct {
-	// PriorityMap maps Linear priority (0-4) to Beads priority (0-4).
-	// Key is Linear priority as string, value is Beads priority.
+	// PriorityMap maps Linear priority (0-4) to IssueGraph priority (0-4).
+	// Key is Linear priority as string, value is IssueGraph priority.
 	PriorityMap map[string]int
 
-	// StateMap maps Linear state types/names to Beads statuses.
-	// Key is lowercase state type or name, value is Beads status string.
+	// StateMap maps Linear state types/names to IssueGraph statuses.
+	// Key is lowercase state type or name, value is IssueGraph status string.
 	StateMap map[string]string
 
 	// ExplicitStateMap contains only user-configured linear.state_map.* entries.
@@ -140,24 +140,24 @@ type MappingConfig struct {
 	// mappings from type-based fallbacks.
 	ExplicitStateMap map[string]string
 
-	// OutboundStateMap maps a Beads status to the Linear workflow state NAME to
-	// use when pushing. Populated from linear.outbound_state_map.<beads_status>
+	// OutboundStateMap maps a IssueGraph status to the Linear workflow state NAME to
+	// use when pushing. Populated from linear.outbound_state_map.<issuegraph_status>
 	// config keys. Used to disambiguate cases where multiple Linear states share
 	// the same state type (e.g. "In Progress" and "In Review" are both
 	// "started"), which would otherwise fail the push with an ambiguity error.
-	// Keys are lowercase beads status strings; values are Linear state names
+	// Keys are lowercase issuegraph status strings; values are Linear state names
 	// matched case-insensitively against the workflow state cache.
 	OutboundStateMap map[string]string
 
-	// LabelTypeMap maps Linear label names to Beads issue types.
-	// Key is lowercase label name, value is Beads issue type.
+	// LabelTypeMap maps Linear label names to IssueGraph issue types.
+	// Key is lowercase label name, value is IssueGraph issue type.
 	LabelTypeMap map[string]string
 
-	// RelationMap maps Linear relation types to Beads dependency types.
-	// Key is Linear relation type, value is Beads dependency type.
+	// RelationMap maps Linear relation types to IssueGraph dependency types.
+	// Key is Linear relation type, value is IssueGraph dependency type.
 	RelationMap map[string]string
 
-	// CustomStatuses holds typed entries from status.custom (beads config).
+	// CustomStatuses holds typed entries from status.custom (issuegraph config).
 	// Used for push-time state_map validation and matching non-built-in statuses.
 	CustomStatuses []types.CustomStatus
 }
@@ -166,7 +166,7 @@ type MappingConfig struct {
 func DefaultMappingConfig() *MappingConfig {
 	return &MappingConfig{
 		// Linear priority: 0=none, 1=urgent, 2=high, 3=medium, 4=low
-		// Beads priority: 0=critical, 1=high, 2=medium, 3=low, 4=backlog
+		// IssueGraph priority: 0=critical, 1=high, 2=medium, 3=low, 4=backlog
 		PriorityMap: map[string]int{
 			"0": 4, // No priority -> Backlog
 			"1": 0, // Urgent -> Critical
@@ -199,7 +199,7 @@ func DefaultMappingConfig() *MappingConfig {
 			"story":       "story",
 			"milestone":   "milestone",
 		},
-		// Linear relation types to Beads dependency types
+		// Linear relation types to IssueGraph dependency types
 		RelationMap: map[string]string{
 			"blocks":    "blocks",
 			"blockedBy": "blocks", // Inverse: the related issue blocks this one
@@ -219,7 +219,7 @@ type ConfigLoader interface {
 // Config keys follow the pattern: linear.<category>_map.<key> = <value>
 // Examples:
 //
-//	linear.priority_map.0 = 4       (Linear "no priority" -> Beads backlog)
+//	linear.priority_map.0 = 4       (Linear "no priority" -> IssueGraph backlog)
 //	linear.state_map.started = in_progress
 //	linear.outbound_state_map.in_progress = "In Progress"
 //	linear.label_type_map.bug = bug
@@ -251,8 +251,8 @@ func LoadMappingConfig(loader ConfigLoader) *MappingConfig {
 		// Parse priority mappings: linear.priority_map.<linear_priority>
 		if strings.HasPrefix(key, "linear.priority_map.") {
 			linearPriority := strings.TrimPrefix(key, "linear.priority_map.")
-			if beadsPriority, err := parseIntValue(value); err == nil {
-				config.PriorityMap[linearPriority] = beadsPriority
+			if issuegraphPriority, err := parseIntValue(value); err == nil {
+				config.PriorityMap[linearPriority] = issuegraphPriority
 			}
 		}
 
@@ -263,7 +263,7 @@ func LoadMappingConfig(loader ConfigLoader) *MappingConfig {
 			config.ExplicitStateMap[stateKey] = value
 		}
 
-		// Parse outbound state mappings: linear.outbound_state_map.<beads_status>
+		// Parse outbound state mappings: linear.outbound_state_map.<issuegraph_status>
 		// Value is the Linear workflow state name to use for that status on push.
 		if strings.HasPrefix(key, "linear.outbound_state_map.") {
 			statusKey := strings.ToLower(strings.TrimPrefix(key, "linear.outbound_state_map."))
@@ -293,42 +293,42 @@ func parseIntValue(s string) (int, error) {
 	return v, err
 }
 
-// PriorityToBeads maps Linear priority (0-4) to Beads priority (0-4).
+// PriorityToIssueGraph maps Linear priority (0-4) to IssueGraph priority (0-4).
 // Linear: 0=no priority, 1=urgent, 2=high, 3=medium, 4=low
-// Beads:  0=critical, 1=high, 2=medium, 3=low, 4=backlog
+// IssueGraph:  0=critical, 1=high, 2=medium, 3=low, 4=backlog
 // Uses configurable mapping from linear.priority_map.* config.
-func PriorityToBeads(linearPriority int, config *MappingConfig) int {
+func PriorityToIssueGraph(linearPriority int, config *MappingConfig) int {
 	key := fmt.Sprintf("%d", linearPriority)
-	if beadsPriority, ok := config.PriorityMap[key]; ok {
-		return beadsPriority
+	if issuegraphPriority, ok := config.PriorityMap[key]; ok {
+		return issuegraphPriority
 	}
 	// Fallback to default mapping if not configured
 	return 2 // Default to Medium
 }
 
-// PriorityToLinear maps Beads priority (0-4) to Linear priority (0-4).
+// PriorityToLinear maps IssueGraph priority (0-4) to Linear priority (0-4).
 // Uses configurable mapping by inverting linear.priority_map.* config.
-func PriorityToLinear(beadsPriority int, config *MappingConfig) int {
+func PriorityToLinear(issuegraphPriority int, config *MappingConfig) int {
 	// Build inverse map from config
 	inverseMap := make(map[int]int)
-	for linearKey, beadsVal := range config.PriorityMap {
+	for linearKey, issuegraphVal := range config.PriorityMap {
 		var linearVal int
 		if _, err := fmt.Sscanf(linearKey, "%d", &linearVal); err == nil {
-			inverseMap[beadsVal] = linearVal
+			inverseMap[issuegraphVal] = linearVal
 		}
 	}
 
-	if linearPriority, ok := inverseMap[beadsPriority]; ok {
+	if linearPriority, ok := inverseMap[issuegraphPriority]; ok {
 		return linearPriority
 	}
 	// Fallback to default mapping if not found
 	return 3 // Default to Medium
 }
 
-// StateToBeadsStatus maps Linear state type to Beads status.
+// StateToIssueGraphStatus maps Linear state type to IssueGraph status.
 // Checks both state type (backlog, unstarted, etc.) and state name for custom workflows.
 // Uses configurable mapping from linear.state_map.* config.
-func StateToBeadsStatus(state *State, config *MappingConfig) types.Status {
+func StateToIssueGraphStatus(state *State, config *MappingConfig) types.Status {
 	if state == nil {
 		return types.StatusOpen
 	}
@@ -336,13 +336,13 @@ func StateToBeadsStatus(state *State, config *MappingConfig) types.Status {
 	// First, try to match by state type (preferred)
 	stateType := strings.ToLower(state.Type)
 	if statusStr, ok := config.StateMap[stateType]; ok {
-		return ParseBeadsStatus(statusStr)
+		return ParseIssueGraphStatus(statusStr)
 	}
 
 	// Then try to match by state name (for custom workflow states)
 	stateName := strings.ToLower(state.Name)
 	if statusStr, ok := config.StateMap[stateName]; ok {
-		return ParseBeadsStatus(statusStr)
+		return ParseIssueGraphStatus(statusStr)
 	}
 
 	// Default fallback
@@ -355,9 +355,9 @@ func stateMapMatchesStatus(mapped string, status types.Status) bool {
 	if normalizedMapped == normalizedStatus {
 		return true
 	}
-	parsed := ParseBeadsStatus(mapped)
+	parsed := ParseIssueGraphStatus(mapped)
 	if parsed == status {
-		// ParseBeadsStatus returns StatusOpen for unrecognized strings; do not
+		// ParseIssueGraphStatus returns StatusOpen for unrecognized strings; do not
 		// treat those as matching built-in open (avoids false "ambiguous mapping"
 		// when state_map values are custom status names like "review").
 		if parsed == types.StatusOpen && normalizedMapped != "open" {
@@ -368,11 +368,11 @@ func stateMapMatchesStatus(mapped string, status types.Status) bool {
 	return false
 }
 
-// ResolveStateIDForBeadsStatus returns the unique Linear workflow state ID to
-// use when pushing the given beads status. Push only trusts explicit
+// ResolveStateIDForIssueGraphStatus returns the unique Linear workflow state ID to
+// use when pushing the given issuegraph status. Push only trusts explicit
 // linear.state_map.* entries; defaults are safe for pull but too ambiguous for
 // mutation.
-func ResolveStateIDForBeadsStatus(cache *StateCache, status types.Status, config *MappingConfig) (string, error) {
+func ResolveStateIDForIssueGraphStatus(cache *StateCache, status types.Status, config *MappingConfig) (string, error) {
 	if cache == nil || len(cache.States) == 0 {
 		return "", fmt.Errorf("no workflow states found")
 	}
@@ -410,7 +410,7 @@ func ResolveStateIDForBeadsStatus(cache *StateCache, status types.Status, config
 		for _, state := range nameMatches {
 			names = append(names, state.Name)
 		}
-		return "", fmt.Errorf("linear.state_map maps beads status %q to multiple Linear states: %s", status, strings.Join(names, ", "))
+		return "", fmt.Errorf("linear.state_map maps issuegraph status %q to multiple Linear states: %s", status, strings.Join(names, ", "))
 	}
 
 	var typeMatches []State
@@ -428,14 +428,14 @@ func ResolveStateIDForBeadsStatus(cache *StateCache, status types.Status, config
 		for _, state := range typeMatches {
 			names = append(names, state.Name)
 		}
-		return "", fmt.Errorf("linear.state_map type fallback is ambiguous for beads status %q across Linear states: %s. Set linear.outbound_state_map.%s = \"<state name>\" to disambiguate", status, strings.Join(names, ", "), status)
+		return "", fmt.Errorf("linear.state_map type fallback is ambiguous for issuegraph status %q across Linear states: %s. Set linear.outbound_state_map.%s = \"<state name>\" to disambiguate", status, strings.Join(names, ", "), status)
 	}
 
-	return "", fmt.Errorf("linear.state_map has no configured Linear state for beads status %q", status)
+	return "", fmt.Errorf("linear.state_map has no configured Linear state for issuegraph status %q", status)
 }
 
-// ParseBeadsStatus converts a status string to types.Status.
-func ParseBeadsStatus(s string) types.Status {
+// ParseIssueGraphStatus converts a status string to types.Status.
+func ParseIssueGraphStatus(s string) types.Status {
 	switch strings.ToLower(s) {
 	case "open":
 		return types.StatusOpen
@@ -456,7 +456,7 @@ func ParseBeadsStatus(s string) types.Status {
 	}
 }
 
-// StatusToLinearStateType converts Beads status to Linear state type for filtering.
+// StatusToLinearStateType converts IssueGraph status to Linear state type for filtering.
 // This is used when pushing issues to Linear to find the appropriate state.
 func StatusToLinearStateType(status types.Status) string {
 	switch status {
@@ -501,7 +501,7 @@ func BuildLabelCache(ctx context.Context, client *Client) (*LabelCache, error) {
 }
 
 // IssueTypeToLinearLabelLookupKey returns the label_type_map key (lowercase) for
-// the given beads issue type, inverting linear.label_type_map.<label>=<type>.
+// the given issuegraph issue type, inverting linear.label_type_map.<label>=<type>.
 // When multiple labels map to the same type, the smallest key lexicographically wins.
 func IssueTypeToLinearLabelLookupKey(issueType types.IssueType, config *MappingConfig) string {
 	if config == nil || len(config.LabelTypeMap) == 0 {
@@ -524,7 +524,7 @@ func IssueTypeToLinearLabelLookupKey(issueType types.IssueType, config *MappingC
 	return keys[0]
 }
 
-// ResolveLabelIDs maps beads issue_type (via inverted label_type_map) and
+// ResolveLabelIDs maps issuegraph issue_type (via inverted label_type_map) and
 // issue.Labels to Linear label UUIDs. Names not present on the team are returned
 // in missing (deduplicated by display string order of discovery).
 func ResolveLabelIDs(issue *types.Issue, cache *LabelCache, config *MappingConfig) (ids []string, missing []string) {
@@ -590,7 +590,7 @@ func PushFieldsEqual(local *types.Issue, remote *Issue, config *MappingConfig, l
 	if PriorityToLinear(local.Priority, config) != remote.Priority {
 		return false
 	}
-	if StateToBeadsStatus(remote.State, config) != local.Status {
+	if StateToIssueGraphStatus(remote.State, config) != local.Status {
 		return false
 	}
 	if labelCache != nil {
@@ -605,9 +605,9 @@ func PushFieldsEqual(local *types.Issue, remote *Issue, config *MappingConfig, l
 	return true
 }
 
-// PushFieldsEqualToBeads is a fallback comparator for cases where Linear's raw
-// payload is unavailable and only the normalized beads form remains.
-func PushFieldsEqualToBeads(local, remote *types.Issue) bool {
+// PushFieldsEqualToIssueGraph is a fallback comparator for cases where Linear's raw
+// payload is unavailable and only the normalized issuegraph form remains.
+func PushFieldsEqualToIssueGraph(local, remote *types.Issue) bool {
 	if local == nil || remote == nil {
 		return false
 	}
@@ -693,17 +693,17 @@ func ParseIssueType(s string) types.IssueType {
 	}
 }
 
-// RelationToBeadsDep converts a Linear relation to a Beads dependency type.
+// RelationToIssueGraphDep converts a Linear relation to a IssueGraph dependency type.
 // Uses configurable mapping from linear.relation_map.* config.
-func RelationToBeadsDep(relationType string, config *MappingConfig) string {
+func RelationToIssueGraphDep(relationType string, config *MappingConfig) string {
 	if depType, ok := config.RelationMap[relationType]; ok {
 		return depType
 	}
 	return "related" // Default fallback
 }
 
-// IssueToBeads converts a Linear issue to a Beads issue.
-func IssueToBeads(li *Issue, config *MappingConfig) *IssueConversion {
+// IssueToIssueGraph converts a Linear issue to a IssueGraph issue.
+func IssueToIssueGraph(li *Issue, config *MappingConfig) *IssueConversion {
 	createdAt, err := time.Parse(time.RFC3339, li.CreatedAt)
 	if err != nil {
 		createdAt = time.Now()
@@ -717,14 +717,14 @@ func IssueToBeads(li *Issue, config *MappingConfig) *IssueConversion {
 	issue := &types.Issue{
 		Title:       li.Title,
 		Description: li.Description,
-		Priority:    PriorityToBeads(li.Priority, config),
+		Priority:    PriorityToIssueGraph(li.Priority, config),
 		IssueType:   LabelToIssueType(li.Labels, config),
 		CreatedAt:   createdAt,
 		UpdatedAt:   updatedAt,
 	}
 
 	// Map state using configurable mapping
-	issue.Status = StateToBeadsStatus(li.State, config)
+	issue.Status = StateToIssueGraphStatus(li.State, config)
 
 	if li.CompletedAt != "" {
 		completedAt, err := time.Parse(time.RFC3339, li.CompletedAt)
@@ -770,7 +770,7 @@ func IssueToBeads(li *Issue, config *MappingConfig) *IssueConversion {
 	// Map relations to dependencies
 	if li.Relations != nil {
 		for _, rel := range li.Relations.Nodes {
-			depType := RelationToBeadsDep(rel.Type, config)
+			depType := RelationToIssueGraphDep(rel.Type, config)
 
 			// For "blockedBy", we invert the direction since the related issue blocks this one
 			if rel.Type == "blockedBy" {
@@ -811,7 +811,7 @@ func IssueToBeads(li *Issue, config *MappingConfig) *IssueConversion {
 }
 
 // BuildLinearToLocalUpdates creates an updates map from a Linear issue
-// to apply to a local Beads issue. This is used when Linear wins a conflict.
+// to apply to a local IssueGraph issue. This is used when Linear wins a conflict.
 func BuildLinearToLocalUpdates(li *Issue, config *MappingConfig) map[string]interface{} {
 	updates := make(map[string]interface{})
 
@@ -822,10 +822,10 @@ func BuildLinearToLocalUpdates(li *Issue, config *MappingConfig) map[string]inte
 	updates["description"] = li.Description
 
 	// Update priority using configured mapping
-	updates["priority"] = PriorityToBeads(li.Priority, config)
+	updates["priority"] = PriorityToIssueGraph(li.Priority, config)
 
 	// Update status using configured mapping
-	updates["status"] = string(StateToBeadsStatus(li.State, config))
+	updates["status"] = string(StateToIssueGraphStatus(li.State, config))
 
 	// Update assignee if present
 	if li.Assignee != nil {
@@ -864,7 +864,7 @@ func BuildLinearToLocalUpdates(li *Issue, config *MappingConfig) map[string]inte
 	return updates
 }
 
-// ProjectToEpic converts a Linear Project to a Beads Epic issue.
+// ProjectToEpic converts a Linear Project to a IssueGraph Epic issue.
 func ProjectToEpic(lp *Project) *types.Issue {
 	createdAt, err := time.Parse(time.RFC3339, lp.CreatedAt)
 	if err != nil {
@@ -876,7 +876,7 @@ func ProjectToEpic(lp *Project) *types.Issue {
 		updatedAt = time.Now()
 	}
 
-	// Map Linear project state to Beads status
+	// Map Linear project state to IssueGraph status
 	var status types.Status
 	switch lp.State {
 	case "completed":
@@ -919,7 +919,7 @@ func ProjectToEpic(lp *Project) *types.Issue {
 	return issue
 }
 
-// MapEpicToProjectState maps a Beads status to Linear project state.
+// MapEpicToProjectState maps a IssueGraph status to Linear project state.
 func MapEpicToProjectState(status types.Status) string {
 	switch status {
 	case types.StatusClosed:

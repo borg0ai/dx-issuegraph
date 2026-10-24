@@ -189,9 +189,9 @@ func newWindowsCaseSensitiveRemovalFixture(t *testing.T, includeLower bool) (*wo
 	fixture.git(t, fixture.repo, "config", "core.ignorecase", "false")
 	fixture.git(t, fixture.repo, "config", "core.hooksPath", ".git/hooks")
 	fixture.git(t, fixture.repo, "symbolic-ref", "HEAD", "refs/heads/main")
-	gitignore := "# bd worktree\nLane/\nignored/\n"
+	gitignore := "# issuegraph worktree\nLane/\nignored/\n"
 	if includeLower {
-		gitignore = "# bd worktree\nLane/\n# bd worktree\nlane/\nignored/\n"
+		gitignore = "# issuegraph worktree\nLane/\n# issuegraph worktree\nlane/\nignored/\n"
 	}
 	if err := os.WriteFile(filepath.Join(fixture.repo, ".gitignore"), []byte(gitignore), 0644); err != nil {
 		t.Fatal(err)

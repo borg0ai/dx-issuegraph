@@ -5,7 +5,7 @@ import (
 	"path/filepath"
 	"testing"
 
-	"github.com/steveyegge/beads/internal/generated/issuegraphassets"
+	"github.com/borg0ai/dx-issuegraph/internal/generated/issuegraphassets"
 )
 
 func TestBuiltinRecipes(t *testing.T) {
@@ -36,8 +36,8 @@ func TestGetRecipe(t *testing.T) {
 	if recipe.Name != "Cursor IDE" {
 		t.Errorf("got Name=%q, want 'Cursor IDE'", recipe.Name)
 	}
-	if recipe.Path != ".cursor/rules/beads.mdc" {
-		t.Errorf("got Path=%q, want '.cursor/rules/beads.mdc'", recipe.Path)
+	if recipe.Path != ".cursor/rules/issuegraph.mdc" {
+		t.Errorf("got Path=%q, want '.cursor/rules/issuegraph.mdc'", recipe.Path)
 	}
 
 	// Test unknown recipe
@@ -168,7 +168,7 @@ func TestTemplate(t *testing.T) {
 		t.Error("Template is suspiciously short")
 	}
 	// Check for key content
-	if !containsAll(Template, "Beads", "bd ready", "bd create", "bd close") {
+	if !containsAll(Template, "IssueGraph", "issuegraph ready", "issuegraph create", "issuegraph close") {
 		t.Error("Template missing expected content")
 	}
 }
@@ -188,7 +188,7 @@ func TestContentForPathCopilot(t *testing.T) {
 	if err != nil {
 		t.Fatalf("ContentForPath(copilot-instructions.md): %v", err)
 	}
-	if !containsAll(instructions, "GitHub Copilot Instructions", "bd ready", "bd prime") {
+	if !containsAll(instructions, "GitHub Copilot Instructions", "issuegraph ready", "issuegraph prime") {
 		t.Fatalf("unexpected Copilot instructions:\n%s", instructions)
 	}
 }

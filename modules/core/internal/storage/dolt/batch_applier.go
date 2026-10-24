@@ -4,9 +4,9 @@ import (
 	"context"
 	"database/sql"
 
-	"github.com/steveyegge/beads/internal/storage"
-	storageissueops "github.com/steveyegge/beads/internal/storage/issueops"
-	"github.com/steveyegge/beads/issueops"
+	"github.com/borg0ai/dx-issuegraph/internal/storage"
+	storageissueops "github.com/borg0ai/dx-issuegraph/internal/storage/issueops"
+	"github.com/borg0ai/dx-issuegraph/issueops"
 )
 
 // BatchApplier returns the guarded apply-many surface for this store.
@@ -41,7 +41,7 @@ var _ issueops.BatchApplier = (*batchApplier)(nil)
 // durable in the branch working set. The Dolt history commit runs after the
 // SQL transaction (runIssueOperationTxWithMessage) and may be deferred — if it
 // fails after retries the changes still landed and ride the next Dolt commit;
-// the only signal is the bd.db.post_tx_commit_dropped counter, since the batch
+// the only signal is the issuegraph.db.post_tx_commit_dropped counter, since the batch
 // path has no verify-by-re-read recovery. A nil return is therefore not a retry
 // signal: the mutations already applied, and retrying would double-apply.
 func (o *batchApplier) ApplyBatch(ctx context.Context, request issueops.ApplyBatchRequest) (issueops.ApplyBatchResult, error) {

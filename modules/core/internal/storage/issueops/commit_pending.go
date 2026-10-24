@@ -59,7 +59,7 @@ func HasStagedChanges(ctx context.Context, db SQLQuerier) (bool, error) {
 // tables (labels, comments, events, etc.) that have uncommitted changes.
 func BuildBatchCommitMessage(ctx context.Context, db SQLQuerier, actor string) string {
 	if actor == "" {
-		actor = "bd"
+		actor = "issuegraph"
 	}
 
 	var added, modified, removed int
@@ -107,7 +107,7 @@ func BuildBatchCommitMessage(ctx context.Context, db SQLQuerier, actor string) s
 		_ = statusRows.Err()
 	}
 
-	msg := fmt.Sprintf("bd: batch commit by %s", actor)
+	msg := fmt.Sprintf("issuegraph: batch commit by %s", actor)
 	var parts []string
 	if added > 0 {
 		parts = append(parts, fmt.Sprintf("%d created", added))

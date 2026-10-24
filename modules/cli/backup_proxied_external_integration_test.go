@@ -9,13 +9,13 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/steveyegge/beads/internal/storage/dbproxy/proxy"
-	"github.com/steveyegge/beads/internal/storage/dbproxy/server"
+	"github.com/borg0ai/dx-issuegraph/internal/storage/dbproxy/proxy"
+	"github.com/borg0ai/dx-issuegraph/internal/storage/dbproxy/server"
 )
 
 // TestProxiedServerBackupRefusedOnExternalTopology is the other half of slice
 // S3: the backup family is honored on managed-local and refused BY DESIGN
-// against a Dolt server bd does not own.
+// against a Dolt server issuegraph does not own.
 //
 // The refusal matters more than the capability. `CALL DOLT_BACKUP('add', …)`
 // registers the remote on the server, where it is global to every client of
@@ -31,8 +31,8 @@ import (
 func TestProxiedServerBackupRefusedOnExternalTopology(t *testing.T) {
 	requireProxiedServerEnv(t)
 
-	bd := buildEmbeddedBD(t)
-	p := newSharedProxiedProject(t, bd, "bkext")
+	issuegraph := buildEmbeddedBD(t)
+	p := newSharedProxiedProject(t, issuegraph, "bkext")
 	dest := filepath.Join(t.TempDir(), "dolt-backup")
 
 	// Refusals are decided before the provider is constructed, so take the
@@ -54,9 +54,9 @@ func TestProxiedServerBackupRefusedOnExternalTopology(t *testing.T) {
 	} {
 		t.Run(tc.name, func(t *testing.T) {
 			args := append([]string{"--json"}, tc.args...)
-			out, err := bdProxiedRun(t, bd, p.dir, args...)
+			out, err := issuegraphProxiedRun(t, issuegraph, p.dir, args...)
 			if err == nil {
-				t.Fatalf("bd %s succeeded on an external proxied topology:\n%s",
+				t.Fatalf("issuegraph %s succeeded on an external proxied topology:\n%s",
 					strings.Join(tc.args, " "), out)
 			}
 
@@ -85,7 +85,7 @@ func TestProxiedServerBackupRefusedOnExternalTopology(t *testing.T) {
 			}
 			// The reason has to be the one that is true of every destination
 			// scheme. "resolved on the server's filesystem" is a file://
-			// property, and `bd backup init` also takes https/aws/gs.
+			// property, and `issuegraph backup init` also takes https/aws/gs.
 			if !strings.Contains(refusal.Error, "the backup remote is registered on the server, where it is global to every client") {
 				t.Errorf("refusal message does not say why: %q", refusal.Error)
 			}
@@ -96,7 +96,7 @@ func TestProxiedServerBackupRefusedOnExternalTopology(t *testing.T) {
 					t.Errorf("a refused backup command started the topology (%s)", name)
 				}
 			}
-			if _, err := os.Stat(filepath.Join(p.beadsDir, "dolt-backup.json")); err == nil {
+			if _, err := os.Stat(filepath.Join(p.issuegraphDir, "dolt-backup.json")); err == nil {
 				t.Errorf("a refused backup command wrote the local backup config")
 			}
 			if _, err := os.Stat(dest); err == nil {

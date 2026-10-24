@@ -1,5 +1,5 @@
 //! Live differential conformance: run the SAME command sequence against a
-//! reference `bd` (the "before") and a candidate `bd` (the "after") in isolated
+//! reference `issuegraph` (the "before") and a candidate `issuegraph` (the "after") in isolated
 //! workspaces, then diff their observable behavior — stdout, stderr, and exit
 //! code, per step.
 //!
@@ -15,12 +15,12 @@ use std::path::Path;
 use std::process::Command;
 use std::sync::OnceLock;
 
-/// The actor identity bd derives from git config on this host. Both runners use
+/// The actor identity issuegraph derives from git config on this host. Both runners use
 /// the same one; we normalize it to a stable token so traces are host-independent.
 pub const ACTOR_NAME: &str = "CI Bot";
-pub const ACTOR_EMAIL: &str = "ci@beads.test";
+pub const ACTOR_EMAIL: &str = "ci@issuegraph.test";
 
-/// A scenario: a prefix to `bd init` with, and an ordered list of argv steps
+/// A scenario: a prefix to `issuegraph init` with, and an ordered list of argv steps
 /// (each run after init in the same workspace).
 #[derive(Clone, Debug, Serialize, Deserialize)]
 pub struct Scenario {
@@ -28,7 +28,7 @@ pub struct Scenario {
     pub prefix: String,
     pub steps: Vec<Vec<String>>,
     /// When true, top-level array stdout is compared as an ORDERED sequence, not a
-    /// multiset. Only valid for scenarios whose bd order is implementation-independent
+    /// multiset. Only valid for scenarios whose issuegraph order is implementation-independent
     /// (all-distinct priorities) — equal-priority/same-second order is timestamp-precision
     /// dependent and must stay a multiset (see `stdout_equiv`).
     #[serde(default)]
@@ -100,17 +100,17 @@ pub fn normalize(s: &str) -> String {
 
 /// Run a scenario against `bin` in a throwaway workspace, returning the
 /// normalized trace. Requires the binary to support `init -p <prefix> --quiet`
-/// and to honor the workspace cwd (real bd uses embedded Dolt under `.beads/`).
+/// and to honor the workspace cwd (real issuegraph uses embedded Dolt under `.issuegraph/`).
 pub fn run_scenario(bin: &Path, sc: &Scenario) -> std::io::Result<Trace> {
     let work = tempfile::tempdir()?;
     let run = |args: &[String]| -> std::io::Result<std::process::Output> {
         // Scrub the environment to an explicit whitelist. The upstream harness
-        // inherited the FULL host env, so any host BEADS_*/BD_* var
-        // (BEADS_DOLT_SERVER_MODE, BEADS_ACTOR, auto-export toggles) silently
+        // inherited the FULL host env, so any host ISSUEGRAPH_*/ISSUEGRAPH_* var
+        // (ISSUEGRAPH_DOLT_SERVER_MODE, ISSUEGRAPH_ACTOR, auto-export toggles) silently
         // reshaped what BOTH binaries do — symmetric, so no divergence, but the
         // gate then certifies a different configuration than users run. Passing a
         // deliberate env makes each green attributable to the same config every
-        // run and on any host. (BEADS_TEST_MODE=1 is retained deliberately; its
+        // run and on any host. (ISSUEGRAPH_TEST_MODE=1 is retained deliberately; its
         // store-construction delta — auto-server decisions off, port rewiring —
         // is a documented ungated gap: this rig does not cover mode/topology
         // construction paths. See tests/oracle-a/README.md.)
@@ -118,7 +118,7 @@ pub fn run_scenario(bin: &Path, sc: &Scenario) -> std::io::Result<Trace> {
         cmd.args(args)
             .current_dir(work.path())
             .env_clear()
-            .env("BEADS_TEST_MODE", "1");
+            .env("ISSUEGRAPH_TEST_MODE", "1");
         for key in ["PATH", "HOME", "TMPDIR"] {
             if let Ok(val) = std::env::var(key) {
                 cmd.env(key, val);
@@ -178,9 +178,9 @@ impl std::fmt::Display for Divergence {
 
 /// JSON-aware stdout equivalence. Object key order is ignored (cosmetic).
 ///
-/// Array order is compared as a MULTISET, not a sequence. Empirically, bd's
+/// Array order is compared as a MULTISET, not a sequence. Empirically, issuegraph's
 /// ready/list ordering among equal-priority issues is wall-clock +
-/// timestamp-precision dependent: bd's
+/// timestamp-precision dependent: issuegraph's
 /// slow creates land in distinct seconds (ordering by `created_at`), while a
 /// fast reimplementation ties them in one second (ordering by `id`). Since
 /// `created_at` is itself normalized to `<TS>`, the order is neither stable nor
@@ -317,7 +317,7 @@ mod tests {
 
     #[test]
     fn normalize_collapses_timestamps_and_identity() {
-        let s = r#"{"created_at":"2026-06-27T00:02:33.222549155Z","owner":"ci@beads.test","by":"CI Bot"}"#;
+        let s = r#"{"created_at":"2026-06-27T00:02:33.222549155Z","owner":"ci@issuegraph.test","by":"CI Bot"}"#;
         let n = normalize(s);
         assert!(n.contains("<TS>"));
         assert!(n.contains("<EMAIL>"));
@@ -329,7 +329,7 @@ mod tests {
     fn stdout_equiv_ignores_key_and_array_order_but_catches_set_diffs() {
         // key order ignored
         assert!(stdout_equiv(r#"{"a":1,"b":2}"#, r#"{"b":2,"a":1}"#, false));
-        // array order ignored (multiset) — bd's timing-dependent order is not pinned
+        // array order ignored (multiset) — issuegraph's timing-dependent order is not pinned
         assert!(stdout_equiv(r#"[{"id":"a"},{"id":"b"}]"#, r#"[{"id":"b"},{"id":"a"}]"#, false));
         // but a genuinely different set IS caught
         assert!(!stdout_equiv(r#"[{"id":"a"}]"#, r#"[{"id":"b"}]"#, false));

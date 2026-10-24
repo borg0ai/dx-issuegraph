@@ -12,21 +12,21 @@ import (
 )
 
 func TestEmbeddedQuickstart(t *testing.T) {
-	if os.Getenv("BEADS_TEST_EMBEDDED_DOLT") != "1" {
-		t.Skip("set BEADS_TEST_EMBEDDED_DOLT=1 to run embedded dolt integration tests")
+	if os.Getenv("ISSUEGRAPH_TEST_EMBEDDED_DOLT") != "1" {
+		t.Skip("set ISSUEGRAPH_TEST_EMBEDDED_DOLT=1 to run embedded dolt integration tests")
 	}
 	t.Parallel()
 
-	bd := buildEmbeddedBD(t)
-	dir, _, _ := bdInit(t, bd, "--prefix", "tq")
+	issuegraph := buildEmbeddedBD(t)
+	dir, _, _ := issuegraphInit(t, issuegraph, "--prefix", "tq")
 
 	t.Run("quickstart_output", func(t *testing.T) {
-		cmd := exec.Command(bd, "quickstart")
+		cmd := exec.Command(issuegraph, "quickstart")
 		cmd.Dir = dir
-		cmd.Env = bdEnv(dir)
+		cmd.Env = issuegraphEnv(dir)
 		stdout, stderr, err := runCommandBuffers(t, cmd)
 		if err != nil {
-			t.Fatalf("bd quickstart failed: %v\nstdout:\n%s\nstderr:\n%s", err, stdout.String(), stderr.String())
+			t.Fatalf("issuegraph quickstart failed: %v\nstdout:\n%s\nstderr:\n%s", err, stdout.String(), stderr.String())
 		}
 		if len(strings.TrimSpace(stdout.String())) == 0 {
 			t.Error("expected non-empty quickstart output")
@@ -35,13 +35,13 @@ func TestEmbeddedQuickstart(t *testing.T) {
 }
 
 func TestEmbeddedQuickstartConcurrent(t *testing.T) {
-	if os.Getenv("BEADS_TEST_EMBEDDED_DOLT") != "1" {
-		t.Skip("set BEADS_TEST_EMBEDDED_DOLT=1 to run embedded dolt integration tests")
+	if os.Getenv("ISSUEGRAPH_TEST_EMBEDDED_DOLT") != "1" {
+		t.Skip("set ISSUEGRAPH_TEST_EMBEDDED_DOLT=1 to run embedded dolt integration tests")
 	}
 	t.Parallel()
 
-	bd := buildEmbeddedBD(t)
-	dir, _, _ := bdInit(t, bd, "--prefix", "qx")
+	issuegraph := buildEmbeddedBD(t)
+	dir, _, _ := issuegraphInit(t, issuegraph, "--prefix", "qx")
 
 	const numWorkers = 8
 	type workerResult struct {
@@ -56,9 +56,9 @@ func TestEmbeddedQuickstartConcurrent(t *testing.T) {
 		go func(worker int) {
 			defer wg.Done()
 			r := workerResult{worker: worker}
-			cmd := exec.Command(bd, "quickstart")
+			cmd := exec.Command(issuegraph, "quickstart")
 			cmd.Dir = dir
-			cmd.Env = bdEnv(dir)
+			cmd.Env = issuegraphEnv(dir)
 			out, err := cmd.CombinedOutput()
 			if err != nil {
 				r.err = fmt.Errorf("quickstart (worker %d): %v\n%s", worker, err, out)

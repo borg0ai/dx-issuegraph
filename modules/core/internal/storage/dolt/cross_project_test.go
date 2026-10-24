@@ -29,12 +29,12 @@ import (
 	"testing"
 	"time"
 
-	"github.com/steveyegge/beads/internal/configfile"
-	"github.com/steveyegge/beads/internal/types"
+	"github.com/borg0ai/dx-issuegraph/internal/configfile"
+	"github.com/borg0ai/dx-issuegraph/internal/types"
 )
 
 // setupTwoProjectStores creates two DoltStore instances on the same server,
-// each with its own database and issue prefix — simulating two beads projects
+// each with its own database and issue prefix — simulating two issuegraph projects
 // sharing a Dolt server (either intentionally or via port collision).
 func setupTwoProjectStores(t *testing.T, prefixA, prefixB string) (storeA, storeB *DoltStore, cleanup func()) {
 	t.Helper()
@@ -201,7 +201,7 @@ func TestCrossProject_ReadIsolation_DifferentPrefixes(t *testing.T) {
 
 // =============================================================================
 // Test 2: Port Collision — Same Database (the real #2372 scenario)
-// When two projects share the SAME database (e.g., both defaulting to "beads"),
+// When two projects share the SAME database (e.g., both defaulting to "issuegraph"),
 // data leakage occurs. This test documents the expected behavior.
 // =============================================================================
 
@@ -337,7 +337,7 @@ func TestCrossProject_PortCollision_SameDatabase(t *testing.T) {
 // =============================================================================
 
 func TestCrossProject_ReadIsolation_SamePrefix(t *testing.T) {
-	storeA, storeB, cleanup := setupTwoProjectStores(t, "beads", "beads")
+	storeA, storeB, cleanup := setupTwoProjectStores(t, "issuegraph", "issuegraph")
 	defer cleanup()
 
 	ctx, cancel := concurrentTestContext(t)
@@ -680,21 +680,21 @@ func TestCrossProject_ConcurrentReadWriteMix(t *testing.T) {
 // =============================================================================
 //
 // newServerMode's identity gate previously only ran when CreateIfMissing was
-// false. `bd init` always sets CreateIfMissing:true, so it never verified
+// false. `issuegraph init` always sets CreateIfMissing:true, so it never verified
 // identity at all — reconnecting to an already-existing database with a
-// mismatched local project_id (the shape of `bd init` accidentally targeting
+// mismatched local project_id (the shape of `issuegraph init` accidentally targeting
 // another project's shared-server database) was silently accepted. These
 // tests cover the fixed gate and the cases that must keep working unchanged:
 // a genuinely new database, and each of verifyProjectIdentity's soft-skip
 // paths (missing local metadata.json, empty project_id on either side).
 
-// identityTestFixture holds a temp beadsDir wired up for identity-check tests:
-// a Path for the Dolt client data dir, and a BeadsDir so verifyProjectIdentity
+// identityTestFixture holds a temp issuegraphDir wired up for identity-check tests:
+// a Path for the Dolt client data dir, and a IssueGraphDir so verifyProjectIdentity
 // can find metadata.json.
 type identityTestFixture struct {
-	tmpDir   string
-	beadsDir string
-	dbName   string
+	tmpDir        string
+	issuegraphDir string
+	dbName        string
 }
 
 func newIdentityTestFixture(t *testing.T, namePrefix string) *identityTestFixture {
@@ -705,20 +705,20 @@ func newIdentityTestFixture(t *testing.T, namePrefix string) *identityTestFixtur
 	}
 	t.Cleanup(func() { os.RemoveAll(tmpDir) })
 
-	beadsDir := filepath.Join(tmpDir, ".beads")
-	if err := os.MkdirAll(beadsDir, 0o755); err != nil {
-		t.Fatalf("mkdir beadsDir: %v", err)
+	issuegraphDir := filepath.Join(tmpDir, ".issuegraph")
+	if err := os.MkdirAll(issuegraphDir, 0o755); err != nil {
+		t.Fatalf("mkdir issuegraphDir: %v", err)
 	}
 	return &identityTestFixture{
-		tmpDir:   tmpDir,
-		beadsDir: beadsDir,
-		dbName:   uniqueTestDBName(t),
+		tmpDir:        tmpDir,
+		issuegraphDir: issuegraphDir,
+		dbName:        uniqueTestDBName(t),
 	}
 }
 
 func (f *identityTestFixture) saveLocalProjectID(t *testing.T, projectID string) {
 	t.Helper()
-	if err := (&configfile.Config{ProjectID: projectID}).Save(f.beadsDir); err != nil {
+	if err := (&configfile.Config{ProjectID: projectID}).Save(f.issuegraphDir); err != nil {
 		t.Fatalf("save metadata.json: %v", err)
 	}
 }
@@ -726,7 +726,7 @@ func (f *identityTestFixture) saveLocalProjectID(t *testing.T, projectID string)
 func (f *identityTestFixture) config() *Config {
 	return &Config{
 		Path:            filepath.Join(f.tmpDir, "dolt"),
-		BeadsDir:        f.beadsDir,
+		IssueGraphDir:   f.issuegraphDir,
 		CommitterName:   "test",
 		CommitterEmail:  "test@test.com",
 		Database:        f.dbName,
@@ -757,7 +757,7 @@ func TestCrossProject_IdentityCheck_ExistingDatabase_ForeignRejected(t *testing.
 
 	// A different project's local metadata.json (foreign project id)
 	// reconnects to the SAME already-existing database with
-	// CreateIfMissing:true — the exact shape of `bd init` against a shared
+	// CreateIfMissing:true — the exact shape of `issuegraph init` against a shared
 	// server. This must fail, not silently adopt the database.
 	foreignID := "22222222-2222-2222-2222-222222222222"
 	f.saveLocalProjectID(t, foreignID)
@@ -770,11 +770,11 @@ func TestCrossProject_IdentityCheck_ExistingDatabase_ForeignRejected(t *testing.
 	if !strings.Contains(err.Error(), "PROJECT IDENTITY MISMATCH") {
 		t.Fatalf("expected PROJECT IDENTITY MISMATCH error, got: %v", err)
 	}
-	// CreateIfMissing alone is not bd init: the library API, bd doctor --fix
-	// and bd bootstrap open this way too, and keep the ordinary-open advice
+	// CreateIfMissing alone is not issuegraph init: the library API, issuegraph doctor --fix
+	// and issuegraph bootstrap open this way too, and keep the ordinary-open advice
 	// (GH#5558). Only Config.OpenedByInit selects the init wording.
 	if strings.Contains(err.Error(), "refusing to initialize") {
-		t.Errorf("a non-init CreateIfMissing open got the bd init wording: %v", err)
+		t.Errorf("a non-init CreateIfMissing open got the issuegraph init wording: %v", err)
 	}
 
 	initCfg := f.config()
@@ -782,10 +782,10 @@ func TestCrossProject_IdentityCheck_ExistingDatabase_ForeignRejected(t *testing.
 	initStore, err := New(ctx, initCfg)
 	if err == nil {
 		initStore.Close()
-		t.Fatalf("expected identity mismatch error for the bd init open, got nil")
+		t.Fatalf("expected identity mismatch error for the issuegraph init open, got nil")
 	}
-	if !strings.Contains(err.Error(), "refusing to initialize") || strings.Contains(err.Error(), "Do NOT run 'bd init'") {
-		t.Errorf("the bd init open did not get the init wording: %v", err)
+	if !strings.Contains(err.Error(), "refusing to initialize") || strings.Contains(err.Error(), "Do NOT run 'issuegraph init'") {
+		t.Errorf("the issuegraph init open did not get the init wording: %v", err)
 	}
 }
 
@@ -794,7 +794,7 @@ func TestCrossProject_IdentityCheck_ExistingDatabase_ForeignRejected(t *testing.
 // already-existing-database + CreateIfMissing:true shape, but with local
 // metadata.json carrying the SAME project id the database already records.
 // This must keep succeeding — the fix must not turn ordinary reconnects
-// (e.g. a second `bd` invocation against the same project) into failures.
+// (e.g. a second `issuegraph` invocation against the same project) into failures.
 func TestCrossProject_IdentityCheck_ExistingDatabase_MatchingSucceeds(t *testing.T) {
 	skipIfNoDolt(t)
 	acquireTestSlot()

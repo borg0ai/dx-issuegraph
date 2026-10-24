@@ -4,7 +4,7 @@ import (
 	"fmt"
 	"strings"
 
-	"github.com/steveyegge/beads/issueops"
+	"github.com/borg0ai/dx-issuegraph/issueops"
 )
 
 // This file holds the shared, database-free half of issueops.Bootstrapper and
@@ -64,8 +64,8 @@ func ValidateBootstrapRequest(req issueops.BootstrapRequest) (issueops.Bootstrap
 // EITHER MARKER IS ENOUGH. A substrate several rigs share carries a prefix one
 // of them chose, and a bootstrap that overwrote it would rename every id the
 // others are about to mint; a substrate carrying only a project id is either a
-// server-provisioned one bd must adopt rather than stamp, or a bootstrap that
-// failed partway, and bd cannot tell those apart. The error carries both values
+// server-provisioned one issuegraph must adopt rather than stamp, or a bootstrap that
+// failed partway, and issuegraph cannot tell those apart. The error carries both values
 // so its caller can.
 func RefuseIdentifiedSubstrate(prefix, projectID string) error {
 	if prefix == "" && projectID == "" {

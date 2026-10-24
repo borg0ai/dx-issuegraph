@@ -11,9 +11,9 @@ import (
 
 	_ "github.com/go-sql-driver/mysql"
 
-	"github.com/steveyegge/beads/internal/configfile"
-	"github.com/steveyegge/beads/internal/storage/dbproxy/proxy"
-	"github.com/steveyegge/beads/internal/testutil"
+	"github.com/borg0ai/dx-issuegraph/internal/configfile"
+	"github.com/borg0ai/dx-issuegraph/internal/storage/dbproxy/proxy"
+	"github.com/borg0ai/dx-issuegraph/internal/testutil"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
@@ -30,9 +30,9 @@ func newTeamServerHarness(t *testing.T) *teamServerHarness {
 	portInt, err := strconv.Atoi(port)
 	require.NoError(t, err)
 
-	bdBin := buildBDBinary(t)
+	issuegraphBin := buildIssueGraphBinary(t)
 	prev := proxy.ResolveExecutable
-	proxy.ResolveExecutable = func() (string, error) { return bdBin, nil }
+	proxy.ResolveExecutable = func() (string, error) { return issuegraphBin, nil }
 	t.Cleanup(func() { proxy.ResolveExecutable = prev })
 
 	t.Setenv("HOME", t.TempDir())
@@ -96,22 +96,22 @@ func TestTeamServerMode_Integration(t *testing.T) {
 	ctx, cancel := context.WithTimeout(context.Background(), 60*time.Second)
 	defer cancel()
 
-	const database = "beads_ts"
+	const database = "issuegraph_ts"
 
 	// A privileged credential CAN see that the database is absent, so the
 	// refusal says exactly that and asks for provisioning. It must not repeat
 	// the old blanket "not found" for failures it did not classify.
 	t.Run("missing database refused as absent, with provisioning guidance", func(t *testing.T) {
-		p, err := h.openProvider(ctx, "beads_ts_missing", true, "")
+		p, err := h.openProvider(ctx, "issuegraph_ts_missing", true, "")
 		require.Error(t, err)
 		assert.Nil(t, p)
-		assert.Contains(t, err.Error(), `database "beads_ts_missing" does not exist on the server`)
+		assert.Contains(t, err.Error(), `database "issuegraph_ts_missing" does not exist on the server`)
 		assert.Contains(t, err.Error(), "ask the server administrator to create it")
 	})
 
 	t.Run("existing empty database refused with bts init", func(t *testing.T) {
-		// The container pre-creates beads_test with no beads schema in it.
-		p, err := h.openProvider(ctx, "beads_test", true, "")
+		// The container pre-creates issuegraph_test with no issuegraph schema in it.
+		p, err := h.openProvider(ctx, "issuegraph_test", true, "")
 		require.Error(t, err)
 		assert.Nil(t, p)
 		assert.Contains(t, err.Error(), "bts init")
@@ -142,7 +142,7 @@ func TestTeamServerMode_Integration(t *testing.T) {
 
 	// A credential granted only its own database is what a gateway front door
 	// hands out, and the server deliberately answers "access denied" for both
-	// absent and merely ungranted names — so bd cannot tell them apart and must
+	// absent and merely ungranted names — so issuegraph cannot tell them apart and must
 	// stop claiming it can.
 	t.Run("scoped credential", func(t *testing.T) {
 		admin := h.directDB(t, "")
@@ -161,15 +161,15 @@ func TestTeamServerMode_Integration(t *testing.T) {
 			t.Cleanup(func() { _ = p.Close(ctx) })
 		})
 
-		// beads_test exists on the server; the scoped credential has no grant
+		// issuegraph_test exists on the server; the scoped credential has no grant
 		// for it. Both this and the absent name below must produce the SAME
-		// honest message, because the server gives bd the same error.
+		// honest message, because the server gives issuegraph the same error.
 		for _, tc := range []struct {
 			name     string
 			database string
 		}{
-			{name: "ungranted existing database", database: "beads_test"},
-			{name: "absent database", database: "beads_ts_absent"},
+			{name: "ungranted existing database", database: "issuegraph_test"},
+			{name: "absent database", database: "issuegraph_ts_absent"},
 		} {
 			t.Run(tc.name+" is reported as denied, not as absent", func(t *testing.T) {
 				p, err := h.openProviderAs(ctx, tc.database, "scoped", "pw", true, "")
@@ -178,7 +178,7 @@ func TestTeamServerMode_Integration(t *testing.T) {
 				assert.Contains(t, err.Error(), "access to database "+strconv.Quote(tc.database)+" was denied")
 				assert.Contains(t, err.Error(), "ask the server administrator to provision the database and grant access")
 				assert.NotContains(t, err.Error(), "does not exist on the server",
-					"a denial hides existence — bd must not claim the database is absent")
+					"a denial hides existence — issuegraph must not claim the database is absent")
 				assert.NotContains(t, err.Error(), "bts init",
 					"the remedy for a denial is a grant, not provisioning by a named product")
 			})
@@ -186,7 +186,7 @@ func TestTeamServerMode_Integration(t *testing.T) {
 	})
 
 	t.Run("project identity is verified on every open, not just at init", func(t *testing.T) {
-		// bts provisions the shared database with a project identity; bd
+		// bts provisions the shared database with a project identity; issuegraph
 		// adopts it at init and, before this guard existed, never looked at
 		// it again on the proxied path.
 		_, err := direct.ExecContext(ctx,
@@ -214,7 +214,7 @@ func TestTeamServerMode_Integration(t *testing.T) {
 			assert.Contains(t, err.Error(), "project-owning-this-db")
 		})
 
-		// The adoption path (bd init --team-server) asserts nothing.
+		// The adoption path (issuegraph init --team-server) asserts nothing.
 		t.Run("adoption path still opens", func(t *testing.T) {
 			p, err := h.openProvider(ctx, database, true, "")
 			require.NoError(t, err)
@@ -241,7 +241,7 @@ func TestTeamServerMode_Integration(t *testing.T) {
 		require.Error(t, err)
 		assert.Nil(t, p)
 		assert.Contains(t, err.Error(), "bts migrate")
-		assert.NotContains(t, err.Error(), "run any bd write command",
+		assert.NotContains(t, err.Error(), "run any issuegraph write command",
 			"must not suggest bd-driven migration on a bts-owned schema")
 
 		assert.Equal(t, rolledBack, snapshotMigrations(t, ctx, direct),

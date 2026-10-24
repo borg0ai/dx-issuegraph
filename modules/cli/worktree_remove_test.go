@@ -14,11 +14,11 @@ import (
 )
 
 const (
-	worktreeRemoveHelperEnv      = "BD_WORKTREE_REMOVE_PROCESS_HELPER"
-	worktreeRemoveHelperArgsEnv  = "BD_WORKTREE_REMOVE_PROCESS_ARGS"
-	worktreeRemoveHelperHookEnv  = "BD_WORKTREE_REMOVE_PROCESS_HOOK"
-	worktreeRemoveHelperTarget   = "BD_WORKTREE_REMOVE_PROCESS_TARGET"
-	worktreeRemoveHelperMain     = "BD_WORKTREE_REMOVE_PROCESS_MAIN"
+	worktreeRemoveHelperEnv      = "ISSUEGRAPH_WORKTREE_REMOVE_PROCESS_HELPER"
+	worktreeRemoveHelperArgsEnv  = "ISSUEGRAPH_WORKTREE_REMOVE_PROCESS_ARGS"
+	worktreeRemoveHelperHookEnv  = "ISSUEGRAPH_WORKTREE_REMOVE_PROCESS_HOOK"
+	worktreeRemoveHelperTarget   = "ISSUEGRAPH_WORKTREE_REMOVE_PROCESS_TARGET"
+	worktreeRemoveHelperMain     = "ISSUEGRAPH_WORKTREE_REMOVE_PROCESS_MAIN"
 	worktreeRemoveHookReplace    = "replace-target"
 	worktreeRemoveHookCaseRace   = "case-race-before-remove"
 	worktreeRemoveHookGitignore  = "change-gitignore-after-remove"
@@ -206,7 +206,7 @@ func runWorktreeRemoveProcess(t *testing.T, dir string, extraEnv []string, args 
 	}
 	command := exec.Command(executable, "-test.run=^TestWorktreeRemoveProcessHelper$")
 	command.Dir = dir
-	command.Env = overrideWorktreeRemoveEnv(os.Environ(), append([]string{worktreeRemoveHelperEnv + "=1", worktreeRemoveHelperArgsEnv + "=" + string(encodedArgs), "BD_DISABLE_METRICS=1"}, extraEnv...))
+	command.Env = overrideWorktreeRemoveEnv(os.Environ(), append([]string{worktreeRemoveHelperEnv + "=1", worktreeRemoveHelperArgsEnv + "=" + string(encodedArgs), "ISSUEGRAPH_DISABLE_METRICS=1"}, extraEnv...))
 	var stdout, stderr bytes.Buffer
 	command.Stdout, command.Stderr = &stdout, &stderr
 	err = command.Run()
@@ -262,7 +262,7 @@ func newWorktreeRemovalFixtureAt(t *testing.T, gitignoreEntry string) *worktreeR
 	fixture.git(t, fixture.repo, "config", "commit.gpgsign", "false")
 	fixture.git(t, fixture.repo, "config", "core.hooksPath", ".git/hooks")
 	fixture.git(t, fixture.repo, "symbolic-ref", "HEAD", "refs/heads/main")
-	if err := os.WriteFile(filepath.Join(fixture.repo, ".gitignore"), []byte(fmt.Sprintf("# bd worktree\n%s/\nignored/\n", fixture.gitignoreEntry)), 0644); err != nil {
+	if err := os.WriteFile(filepath.Join(fixture.repo, ".gitignore"), []byte(fmt.Sprintf("# issuegraph worktree\n%s/\nignored/\n", fixture.gitignoreEntry)), 0644); err != nil {
 		t.Fatal(err)
 	}
 	fixture.git(t, fixture.repo, "add", ".gitignore")

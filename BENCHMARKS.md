@@ -88,7 +88,7 @@ go test -run=^$ -bench='BenchmarkPerf(SearchTypedLabelFilter|ResolvePartialIDInv
 For production-shaped CLI timeout and index experiments, use:
 
 ```bash
-go run ./scripts/repro-dolt-prod-timeouts --bd ./bd --scenario all
+go run ./scripts/repro-dolt-prod-timeouts --issuegraph ./issuegraph --scenario all
 go run ./scripts/bench-ready-indexes --dsn 'root@tcp(127.0.0.1:33307)/mc?timeout=30s&readTimeout=30s&writeTimeout=30s'
 ```
 
@@ -118,14 +118,14 @@ installed.
 
 ## Dataset Caching
 
-Benchmark datasets are cached in `/tmp/beads-bench-cache/`:
+Benchmark datasets are cached in `/tmp/issuegraph-bench-cache/`:
 - `large.db` - 10,000 issues (16.6 MB)
 - `xlarge.db` - 20,000 issues (generated on demand)
 
 
 Cached databases are reused across runs. To regenerate:
 ```bash
-rm /tmp/beads-bench-cache/*.db
+rm /tmp/issuegraph-bench-cache/*.db
 ```
 
 ## Adding New Benchmarks

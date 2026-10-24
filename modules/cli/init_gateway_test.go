@@ -6,18 +6,18 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/steveyegge/beads/internal/storage/dolt"
-	"github.com/steveyegge/beads/issueops"
+	"github.com/borg0ai/dx-issuegraph/internal/storage/dolt"
+	"github.com/borg0ai/dx-issuegraph/issueops"
 )
 
 // Gateway mode: a configured credential command resolves its token into the
 // connection username, marks the config as targeting a gateway server, and
 // disables local auto-start (the gateway is externally managed). This is what
-// makes bd init connect as the token — never as "root" — and what makes the
+// makes issuegraph init connect as the token — never as "root" — and what makes the
 // store skip the SHOW/CREATE DATABASE probe (openServerConnection keys that on
 // cfg.Gateway). ServerMode is set because gateway init always targets a server.
 func TestApplyInitGatewayCredentialAdoptsToken(t *testing.T) {
-	t.Setenv("BEADS_DOLT_CREDENTIAL_COMMAND", "printf tok-init")
+	t.Setenv("ISSUEGRAPH_DOLT_CREDENTIAL_COMMAND", "printf tok-init")
 	doltCfg := &dolt.Config{ServerMode: true, AutoStart: true}
 	if err := applyInitGatewayCredential(context.Background(), t.TempDir(), doltCfg); err != nil {
 		t.Fatalf("applyInitGatewayCredential: %v", err)
@@ -34,13 +34,13 @@ func TestApplyInitGatewayCredentialAdoptsToken(t *testing.T) {
 }
 
 // Embedded init (no ServerMode) must never run the credential command, even when
-// BEADS_DOLT_CREDENTIAL_COMMAND is ambient on the host. This is the FIX-1
+// ISSUEGRAPH_DOLT_CREDENTIAL_COMMAND is ambient on the host. This is the FIX-1
 // regression guard: the canonical open path gates the command on server mode
 // ("a command exported in the environment must not run (or fail) an embedded
 // open"), so init must too. The command here (`false`) would error if it ran;
 // the helper returning nil with the config untouched proves it did not.
 func TestApplyInitGatewayCredentialSkipsEmbeddedMode(t *testing.T) {
-	t.Setenv("BEADS_DOLT_CREDENTIAL_COMMAND", "false")
+	t.Setenv("ISSUEGRAPH_DOLT_CREDENTIAL_COMMAND", "false")
 	doltCfg := &dolt.Config{AutoStart: true} // ServerMode defaults to false
 	if err := applyInitGatewayCredential(context.Background(), t.TempDir(), doltCfg); err != nil {
 		t.Fatalf("embedded init must not run the credential command: %v", err)
@@ -53,7 +53,7 @@ func TestApplyInitGatewayCredentialSkipsEmbeddedMode(t *testing.T) {
 // Server mode, but no command configured: a strict no-op. The hand-built config is
 // left exactly as the caller built it.
 func TestApplyInitGatewayCredentialNoopWithoutCommand(t *testing.T) {
-	t.Setenv("BEADS_DOLT_CREDENTIAL_COMMAND", "")
+	t.Setenv("ISSUEGRAPH_DOLT_CREDENTIAL_COMMAND", "")
 	doltCfg := &dolt.Config{ServerMode: true, AutoStart: true}
 	if err := applyInitGatewayCredential(context.Background(), t.TempDir(), doltCfg); err != nil {
 		t.Fatalf("applyInitGatewayCredential: %v", err)
@@ -66,7 +66,7 @@ func TestApplyInitGatewayCredentialNoopWithoutCommand(t *testing.T) {
 // Fail-closed: in server mode a configured-but-failing command aborts init and
 // never leaves a fallback (root) user behind.
 func TestApplyInitGatewayCredentialFailsClosed(t *testing.T) {
-	t.Setenv("BEADS_DOLT_CREDENTIAL_COMMAND", "false")
+	t.Setenv("ISSUEGRAPH_DOLT_CREDENTIAL_COMMAND", "false")
 	doltCfg := &dolt.Config{ServerMode: true, AutoStart: true}
 	err := applyInitGatewayCredential(context.Background(), t.TempDir(), doltCfg)
 	if err == nil {
@@ -80,7 +80,7 @@ func TestApplyInitGatewayCredentialFailsClosed(t *testing.T) {
 // A caller/flag-preset --server-user wins over the credential command (the
 // command is not run). Mirrors ApplyGatewayCredential's preset short-circuit.
 func TestApplyInitGatewayCredentialPresetWins(t *testing.T) {
-	t.Setenv("BEADS_DOLT_CREDENTIAL_COMMAND", "false")
+	t.Setenv("ISSUEGRAPH_DOLT_CREDENTIAL_COMMAND", "false")
 	doltCfg := &dolt.Config{ServerMode: true, ServerUser: "preset", AutoStart: true}
 	if err := applyInitGatewayCredential(context.Background(), t.TempDir(), doltCfg); err != nil {
 		t.Fatalf("preset should short-circuit before running the command: %v", err)
@@ -93,7 +93,7 @@ func TestApplyInitGatewayCredentialPresetWins(t *testing.T) {
 // issue_prefix resolution.
 
 // Gateway with no server-provisioned issue_prefix is a provisioning-contract
-// violation: bd refuses to choose one for a hosted database.
+// violation: issuegraph refuses to choose one for a hosted database.
 func TestResolveInitIssuePrefixGatewayMissing(t *testing.T) {
 	value, err := resolveInitIssuePrefix(true, "", "myhosteddb", "fallback", nil)
 	if err == nil {
@@ -166,7 +166,7 @@ func TestResolveInitIssuePrefixNonGatewayExisting(t *testing.T) {
 // project identity resolution.
 
 // Gateway with no server-provisioned _project_id is a provisioning-contract
-// violation: bd will not mint an identity for a hosted database.
+// violation: issuegraph will not mint an identity for a hosted database.
 func TestResolveInitProjectIDGatewayMissing(t *testing.T) {
 	value, _, err := resolveInitProjectID(true, "", "", "myhosteddb", nil)
 	if err == nil {
@@ -335,7 +335,7 @@ func TestShouldConsultInitProjectID(t *testing.T) {
 	}
 }
 
-// The project identity is server-authoritative in gateway mode: bd must not
+// The project identity is server-authoritative in gateway mode: issuegraph must not
 // write _project_id back to the (possibly read-only) hosted database. Non-gateway
 // keeps writing it for cross-project verification.
 func TestShouldWriteProjectIDLocally(t *testing.T) {
@@ -350,7 +350,7 @@ func TestShouldWriteProjectIDLocally(t *testing.T) {
 	}
 }
 
-// FIX 2: gateway init must not write clone-local tracking state (bd_version,
+// FIX 2: gateway init must not write clone-local tracking state (issuegraph_version,
 // repo_id, clone_id, last_import_time) or issue the initial-state DOLT_COMMIT into
 // the shared, server-owned database. Non-gateway keeps doing all of it —
 // byte-identical legacy behavior.
@@ -363,9 +363,9 @@ func TestShouldWriteInitStateToDB(t *testing.T) {
 	}
 }
 
-// Gateway init must not manage the local shared server or provision beads_global.
+// Gateway init must not manage the local shared server or provision issuegraph_global.
 // Shared-server mode forces server mode on, which is exactly what makes the gateway
-// credential path run, so BEADS_DOLT_SHARED_SERVER and BEADS_DOLT_CREDENTIAL_COMMAND
+// credential path run, so ISSUEGRAPH_DOLT_SHARED_SERVER and ISSUEGRAPH_DOLT_CREDENTIAL_COMMAND
 // can be active together. When they are, the gateway wins: init skips starting a
 // local shared server, EnsureGlobalDatabase, and initGlobalDatabaseConfig — which
 // otherwise rebuilds its dolt.Config without the Gateway flag and would drive
@@ -436,7 +436,7 @@ func TestShouldWriteInitDoltRemote(t *testing.T) {
 // Bootstrapper refuses to complete a half-identified substrate on purpose, so
 // init cannot fix this state — which makes silence the failure. With no
 // _project_id to adopt, every clone's init mints a different local one and the
-// first `bd doctor --fix` turns that divergence into a hard PROJECT IDENTITY
+// first `issuegraph doctor --fix` turns that divergence into a hard PROJECT IDENTITY
 // MISMATCH for every other clone, with recovery advice that names the wrong
 // cause.
 func TestWarnHalfIdentifiedSubstrate(t *testing.T) {
@@ -448,12 +448,12 @@ func TestWarnHalfIdentifiedSubstrate(t *testing.T) {
 		{
 			name:  "prefix without a project identity",
 			found: issueops.VerifyIdentityResult{Prefix: "app"},
-			want:  []string{"no project identity", "app", "PROJECT IDENTITY MISMATCH", "bd doctor --fix"},
+			want:  []string{"no project identity", "app", "PROJECT IDENTITY MISMATCH", "issuegraph doctor --fix"},
 		},
 		{
 			name:  "project identity without a prefix",
 			found: issueops.VerifyIdentityResult{ProjectID: "proj-xyz"},
-			want:  []string{"no issue prefix", "uninitialized", "bd config set issue_prefix"},
+			want:  []string{"no issue prefix", "uninitialized", "issuegraph config set issue_prefix"},
 		},
 		{
 			name:  "fully identified says nothing",

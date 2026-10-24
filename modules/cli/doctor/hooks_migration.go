@@ -14,8 +14,8 @@ const (
 	hookMarkerStateValid  = "valid"
 	hookMarkerStateBroken = "broken"
 
-	hookMarkerBeginTag = "BEGIN BEADS INTEGRATION"
-	hookMarkerEndTag   = "END BEADS INTEGRATION"
+	hookMarkerBeginTag = "BEGIN ISSUEGRAPH INTEGRATION"
+	hookMarkerEndTag   = "END ISSUEGRAPH INTEGRATION"
 )
 
 var managedHookNames = []string{
@@ -28,17 +28,17 @@ var managedHookNames = []string{
 
 // HookMigrationHookPlan describes migration state for a single hook file.
 type HookMigrationHookPlan struct {
-	Name             string `json:"name"`
-	HookPath         string `json:"hook_path"`
-	Exists           bool   `json:"exists"`
-	MarkerState      string `json:"marker_state"`
-	LegacyBDHook     bool   `json:"legacy_bd_hook"`
-	HasOldSidecar    bool   `json:"has_old_sidecar"`
-	HasBackupSidecar bool   `json:"has_backup_sidecar"`
-	State            string `json:"state"`
-	NeedsMigration   bool   `json:"needs_migration"`
-	SuggestedAction  string `json:"suggested_action,omitempty"`
-	ReadError        string `json:"read_error,omitempty"`
+	Name                 string `json:"name"`
+	HookPath             string `json:"hook_path"`
+	Exists               bool   `json:"exists"`
+	MarkerState          string `json:"marker_state"`
+	LegacyIssueGraphHook bool   `json:"legacy_issuegraph_hook"`
+	HasOldSidecar        bool   `json:"has_old_sidecar"`
+	HasBackupSidecar     bool   `json:"has_backup_sidecar"`
+	State                string `json:"state"`
+	NeedsMigration       bool   `json:"needs_migration"`
+	SuggestedAction      string `json:"suggested_action,omitempty"`
+	ReadError            string `json:"read_error,omitempty"`
 }
 
 // HookMigrationPlan summarizes migration state for all managed hooks.
@@ -109,7 +109,7 @@ func inspectHookMigration(hooksDir, hookName string) HookMigrationHookPlan {
 		plan.Exists = true
 		contentStr := string(content)
 		plan.MarkerState = detectHookMarkerState(contentStr)
-		plan.LegacyBDHook = isLegacyBDHook(contentStr)
+		plan.LegacyIssueGraphHook = isLegacyIssueGraphHook(contentStr)
 	} else if !errors.Is(err, os.ErrNotExist) {
 		plan.ReadError = err.Error()
 		plan.State = "read_error"
@@ -137,7 +137,7 @@ func classifyHookMigration(hook *HookMigrationHookPlan) {
 		return
 	}
 
-	if hook.LegacyBDHook {
+	if hook.LegacyIssueGraphHook {
 		hook.NeedsMigration = true
 		switch {
 		case hook.HasOldSidecar && hook.HasBackupSidecar:
@@ -205,10 +205,10 @@ func detectHookMarkerState(content string) string {
 	}
 }
 
-func isLegacyBDHook(content string) bool {
+func isLegacyIssueGraphHook(content string) bool {
 	return strings.Contains(content, "# bd-shim") ||
 		strings.Contains(content, "bd-hooks-version:") ||
-		strings.Contains(content, "# bd (beads)")
+		strings.Contains(content, "# issuegraph (issuegraph)")
 }
 
 // IsUnmodifiedLegacyHook returns true if content contains only known BD-managed
@@ -241,10 +241,10 @@ func isKnownLegacyHookLine(line string) bool {
 		return true
 	}
 
-	// Any comment line containing BD/beads identifiers
+	// Any comment line containing ISSUEGRAPH/issuegraph identifiers
 	if strings.HasPrefix(trimmed, "#") {
 		lower := strings.ToLower(trimmed)
-		for _, keyword := range []string{"bd", "beads", "hook", "shim"} {
+		for _, keyword := range []string{"issuegraph", "issuegraph", "hook", "shim"} {
 			if strings.Contains(lower, keyword) {
 				return true
 			}
@@ -260,12 +260,12 @@ func isKnownLegacyHookLine(line string) bool {
 
 	// Known executable lines from legacy hook templates
 	knownPrefixes := []string{
-		"exec bd hook",
-		"bd hooks run",
-		"export BD_GIT_HOOK",
-		"if ! command -v bd",
-		"if command -v bd",
-		"_bd_exit=$?",
+		"exec issuegraph hook",
+		"issuegraph hooks run",
+		"export ISSUEGRAPH_GIT_HOOK",
+		"if ! command -v issuegraph",
+		"if command -v issuegraph",
+		"_issuegraph_exit=$?",
 	}
 	for _, prefix := range knownPrefixes {
 		if strings.HasPrefix(trimmed, prefix) {
@@ -273,10 +273,10 @@ func isKnownLegacyHookLine(line string) bool {
 		}
 	}
 
-	// echo lines with BD-related content (warnings about bd not being installed)
+	// echo lines with BD-related content (warnings about issuegraph not being installed)
 	if strings.HasPrefix(trimmed, "echo") {
 		lower := strings.ToLower(trimmed)
-		if strings.Contains(lower, "bd") || strings.Contains(lower, "beads") {
+		if strings.Contains(lower, "issuegraph") || strings.Contains(lower, "issuegraph") {
 			return true
 		}
 	}

@@ -5,53 +5,53 @@ import (
 	"path/filepath"
 	"testing"
 
-	"github.com/steveyegge/beads/internal/configfile"
-	"github.com/steveyegge/beads/internal/molecules"
+	"github.com/borg0ai/dx-issuegraph/internal/configfile"
+	"github.com/borg0ai/dx-issuegraph/internal/molecules"
 )
 
-// TestRegisteredBackendResolvesHookAndMoleculeDirsUnderBeads guards the root
-// command's directory derivation for a registered WorkspaceIsBeadsDir backend.
+// TestRegisteredBackendResolvesHookAndMoleculeDirsUnderIssueGraph guards the root
+// command's directory derivation for a registered WorkspaceIsIssueGraphDir backend.
 //
-// For such a backend the command sets dbPath to the .beads directory itself
-// (main.go: `dbPath = bd` when registeredBackendWorkspaceIsBeadsDir(cfg) is
-// true), not to a .beads/<db-file>. The hook runner and molecule loader must
-// therefore resolve their directory from the beadsDir the command already
-// computed with resolveCommandBeadsDir(dbPath), never from filepath.Dir(dbPath):
+// For such a backend the command sets dbPath to the .issuegraph directory itself
+// (main.go: `dbPath = issuegraph` when registeredBackendWorkspaceIsIssueGraphDir(cfg) is
+// true), not to a .issuegraph/<db-file>. The hook runner and molecule loader must
+// therefore resolve their directory from the issuegraphDir the command already
+// computed with resolveCommandIssueGraphDir(dbPath), never from filepath.Dir(dbPath):
 // for this case filepath.Dir(dbPath) is the repository root, so hooks and
 // molecule templates would load from <repo>/hooks and <repo>/molecules.jsonl
-// instead of .beads/hooks and .beads/molecules.jsonl.
+// instead of .issuegraph/hooks and .issuegraph/molecules.jsonl.
 //
 // Driving the full PersistentPreRunE end-to-end would require a live
 // storage.DoltStorage from the fake backend, which is impractical — the
 // interface is large and has no test double (see
 // internal/storage/hook_decorator_test.go). This test instead reproduces the
-// exact directory-derivation chain the command uses and asserts the .beads
+// exact directory-derivation chain the command uses and asserts the .issuegraph
 // hooks directory and molecule catalog are selected over repo-root decoys.
-func TestRegisteredBackendResolvesHookAndMoleculeDirsUnderBeads(t *testing.T) {
+func TestRegisteredBackendResolvesHookAndMoleculeDirsUnderIssueGraph(t *testing.T) {
 	const name = "contract-workspace-paths"
 	registerContractBackend(t, name)
 
 	repo := t.TempDir()
-	beadsDir := filepath.Join(repo, ".beads")
-	if err := os.MkdirAll(beadsDir, 0o755); err != nil {
-		t.Fatalf("mkdir .beads: %v", err)
+	issuegraphDir := filepath.Join(repo, ".issuegraph")
+	if err := os.MkdirAll(issuegraphDir, 0o755); err != nil {
+		t.Fatalf("mkdir .issuegraph: %v", err)
 	}
-	if err := (&configfile.Config{Backend: name}).Save(beadsDir); err != nil {
+	if err := (&configfile.Config{Backend: name}).Save(issuegraphDir); err != nil {
 		t.Fatalf("save metadata.json: %v", err)
 	}
 
-	// The workspace's real hooks directory and molecule catalog live under .beads.
-	wantHooksDir := filepath.Join(beadsDir, "hooks")
+	// The workspace's real hooks directory and molecule catalog live under .issuegraph.
+	wantHooksDir := filepath.Join(issuegraphDir, "hooks")
 	if err := os.MkdirAll(wantHooksDir, 0o755); err != nil {
-		t.Fatalf("mkdir .beads/hooks: %v", err)
+		t.Fatalf("mkdir .issuegraph/hooks: %v", err)
 	}
-	wantMoleculeFile := filepath.Join(beadsDir, molecules.MoleculeFileName)
+	wantMoleculeFile := filepath.Join(issuegraphDir, molecules.MoleculeFileName)
 	if err := os.WriteFile(wantMoleculeFile, []byte("{}\n"), 0o644); err != nil {
-		t.Fatalf("write .beads/molecules.jsonl: %v", err)
+		t.Fatalf("write .issuegraph/molecules.jsonl: %v", err)
 	}
 
 	// Decoys at the repository root: the pre-fix filepath.Dir(dbPath) code would
-	// have selected these instead of the .beads copies.
+	// have selected these instead of the .issuegraph copies.
 	decoyHooksDir := filepath.Join(repo, "hooks")
 	if err := os.MkdirAll(decoyHooksDir, 0o755); err != nil {
 		t.Fatalf("mkdir decoy hooks: %v", err)
@@ -61,30 +61,30 @@ func TestRegisteredBackendResolvesHookAndMoleculeDirsUnderBeads(t *testing.T) {
 		t.Fatalf("write decoy molecules.jsonl: %v", err)
 	}
 
-	// This workspace is exactly the case that makes the command use the .beads
+	// This workspace is exactly the case that makes the command use the .issuegraph
 	// directory as dbPath.
-	cfg, err := configfile.Load(beadsDir)
+	cfg, err := configfile.Load(issuegraphDir)
 	if err != nil {
 		t.Fatalf("load metadata.json: %v", err)
 	}
-	if !registeredBackendWorkspaceIsBeadsDir(cfg) {
-		t.Fatal("registered WorkspaceIsBeadsDir backend not recognized; dbPath would not be the .beads directory")
+	if !registeredBackendWorkspaceIsIssueGraphDir(cfg) {
+		t.Fatal("registered WorkspaceIsIssueGraphDir backend not recognized; dbPath would not be the .issuegraph directory")
 	}
 
-	// Mirror the command: dbPath is the .beads directory and the hook/molecule
-	// setup resolves the beads dir with resolveCommandBeadsDir(dbPath).
-	dbPath := beadsDir
-	gotBeadsDir := resolveCommandBeadsDir(dbPath)
+	// Mirror the command: dbPath is the .issuegraph directory and the hook/molecule
+	// setup resolves the issuegraph dir with resolveCommandIssueGraphDir(dbPath).
+	dbPath := issuegraphDir
+	gotIssueGraphDir := resolveCommandIssueGraphDir(dbPath)
 
-	requireSameFile(t, "resolved beads dir", gotBeadsDir, beadsDir)
-	requireSameFile(t, "hook runner dir", filepath.Join(gotBeadsDir, "hooks"), wantHooksDir)
-	requireSameFile(t, "molecule catalog", filepath.Join(gotBeadsDir, molecules.MoleculeFileName), wantMoleculeFile)
+	requireSameFile(t, "resolved issuegraph dir", gotIssueGraphDir, issuegraphDir)
+	requireSameFile(t, "hook runner dir", filepath.Join(gotIssueGraphDir, "hooks"), wantHooksDir)
+	requireSameFile(t, "molecule catalog", filepath.Join(gotIssueGraphDir, molecules.MoleculeFileName), wantMoleculeFile)
 
 	// Regression guard: the pre-fix filepath.Dir(dbPath) resolves to the repo
-	// root, so hooks and molecules would have loaded from the decoys, not .beads.
+	// root, so hooks and molecules would have loaded from the decoys, not .issuegraph.
 	preFix := filepath.Dir(dbPath)
-	if sameExistingFile(preFix, beadsDir) {
-		t.Fatalf("filepath.Dir(dbPath)=%q unexpectedly equals .beads %q; regression guard is vacuous", preFix, beadsDir)
+	if sameExistingFile(preFix, issuegraphDir) {
+		t.Fatalf("filepath.Dir(dbPath)=%q unexpectedly equals .issuegraph %q; regression guard is vacuous", preFix, issuegraphDir)
 	}
 	requireSameFile(t, "pre-fix hook dir resolves to repo-root decoy", filepath.Join(preFix, "hooks"), decoyHooksDir)
 }

@@ -10,10 +10,10 @@ import (
 	"strings"
 
 	"github.com/BurntSushi/toml"
+	"github.com/borg0ai/dx-issuegraph/internal/formula"
+	"github.com/borg0ai/dx-issuegraph/internal/metrics"
+	"github.com/borg0ai/dx-issuegraph/internal/ui"
 	"github.com/spf13/cobra"
-	"github.com/steveyegge/beads/internal/formula"
-	"github.com/steveyegge/beads/internal/metrics"
-	"github.com/steveyegge/beads/internal/ui"
 )
 
 // formulaCmd is the parent command for formula operations.
@@ -26,10 +26,10 @@ Formulas are TOML/JSON files that define workflows with composition rules.
 Define formulas, cook them into protos, then pour or wisp them into work.
 
 Search paths (in order):
-  1. <resolved-beads-dir>/formulas/ (active project)
-  2. <checkout-root>/.beads/formulas/ (repo-local formulas)
-  3. ~/.beads/formulas/ (user)
-  4. $GT_ROOT/.beads/formulas/ (shared workspace root, if GT_ROOT set)
+  1. <resolved-issuegraph-dir>/formulas/ (active project)
+  2. <checkout-root>/.issuegraph/formulas/ (repo-local formulas)
+  3. ~/.issuegraph/formulas/ (user)
+  4. $GT_ROOT/.issuegraph/formulas/ (shared workspace root, if GT_ROOT set)
 
 Commands:
   list    List available formulas from all search paths
@@ -37,9 +37,9 @@ Commands:
   schema  Show the formula schema index (alias: primitives)
 
 Discovering primitives:
-  bd formula schema                 # list every declared formula struct
-  bd formula schema loop            # show LoopSpec fields, types, and tags
-  bd formula primitives gate        # alias; same handler as 'schema'
+  issuegraph formula schema                 # list every declared formula struct
+  issuegraph formula schema loop            # show LoopSpec fields, types, and tags
+  issuegraph formula primitives gate        # alias; same handler as 'schema'
   examples/formulas/primitives/     # curated, smoke-tested wired fixtures
   docs/workflows/formulas.md          # narrative reference`,
 }
@@ -51,21 +51,21 @@ var formulaListCmd = &cobra.Command{
 	Long: `List all formulas from search paths.
 
 Search paths (in order of priority):
-  1. <resolved-beads-dir>/formulas/ (active project - highest priority)
-  2. <checkout-root>/.beads/formulas/ (repo-local formulas)
-  3. ~/.beads/formulas/ (user)
-  4. $GT_ROOT/.beads/formulas/ (shared workspace root, if GT_ROOT set)
+  1. <resolved-issuegraph-dir>/formulas/ (active project - highest priority)
+  2. <checkout-root>/.issuegraph/formulas/ (repo-local formulas)
+  3. ~/.issuegraph/formulas/ (user)
+  4. $GT_ROOT/.issuegraph/formulas/ (shared workspace root, if GT_ROOT set)
 
 Formulas in earlier paths shadow those with the same name in later paths.
 
 To list the declared formula schema structs an agent can write inside a .formula.toml,
-use 'bd formula schema' (alias: 'bd formula primitives').
+use 'issuegraph formula schema' (alias: 'issuegraph formula primitives').
 
 Examples:
-  bd formula list
-  bd formula list --json
-  bd formula list --type workflow
-  bd formula list --type convoy`,
+  issuegraph formula list
+  issuegraph formula list --json
+  issuegraph formula list --type workflow
+  issuegraph formula list --type convoy`,
 	SilenceUsage:  true,
 	SilenceErrors: true,
 	RunE:          runFormulaList,
@@ -85,12 +85,12 @@ Displays:
   - Bond points for external composition
 
 To inspect the structure of an individual primitive (e.g. LoopSpec, Gate)
-rather than a user-authored formula, use 'bd formula schema <primitive>'.
+rather than a user-authored formula, use 'issuegraph formula schema <primitive>'.
 
 Examples:
-  bd formula show shiny
-  bd formula show rule-of-five
-  bd formula show security-audit --json`,
+  issuegraph formula show shiny
+  issuegraph formula show rule-of-five
+  issuegraph formula show security-audit --json`,
 	Args:          cobra.ExactArgs(1),
 	SilenceUsage:  true,
 	SilenceErrors: true,
@@ -496,11 +496,11 @@ The convert command reads a .formula.json file and outputs .formula.toml.
 The original JSON file is preserved (use --delete to remove it).
 
 Examples:
-  bd formula convert shiny              # Convert shiny.formula.json to .toml
-  bd formula convert ./my.formula.json  # Convert specific file
-  bd formula convert --all              # Convert all JSON formulas
-  bd formula convert shiny --delete     # Convert and remove JSON file
-  bd formula convert shiny --stdout     # Print TOML to stdout`,
+  issuegraph formula convert shiny              # Convert shiny.formula.json to .toml
+  issuegraph formula convert ./my.formula.json  # Convert specific file
+  issuegraph formula convert --all              # Convert all JSON formulas
+  issuegraph formula convert shiny --delete     # Convert and remove JSON file
+  issuegraph formula convert shiny --stdout     # Print TOML to stdout`,
 	SilenceUsage:  true,
 	SilenceErrors: true,
 	RunE:          runFormulaConvert,
@@ -526,7 +526,7 @@ func runFormulaConvert(cmd *cobra.Command, args []string) error {
 	}
 
 	if len(args) == 0 {
-		return HandleErrorWithHint("formula name or path required", "Usage: bd formula convert <name|path> [--all]")
+		return HandleErrorWithHint("formula name or path required", "Usage: issuegraph formula convert <name|path> [--all]")
 	}
 
 	name := args[0]

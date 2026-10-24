@@ -10,7 +10,7 @@ import (
 	"testing"
 	"time"
 
-	"github.com/steveyegge/beads/internal/githooksenv"
+	"github.com/borg0ai/dx-issuegraph/internal/githooksenv"
 )
 
 // The bootstrap clone does not route through prepareDoltCLITransferCommand;
@@ -19,7 +19,7 @@ func TestBootstrapCloneCmdEnvIsGuarded(t *testing.T) {
 	t.Setenv("GIT_TRACE", "1")
 	t.Setenv("GIT_CURL_VERBOSE", "1")
 
-	cmd := bootstrapCloneCmd(context.Background(), "git+https://example.com/repo.git", filepath.Join(t.TempDir(), "beads"))
+	cmd := bootstrapCloneCmd(context.Background(), "git+https://example.com/repo.git", filepath.Join(t.TempDir(), "issuegraph"))
 	if cmd.Env == nil {
 		t.Fatal("bootstrapCloneCmd() left cmd.Env nil; the clone would inherit stderr-directed git tracing")
 	}
@@ -37,7 +37,7 @@ func TestBootstrapCloneCmdEnvIsGuarded(t *testing.T) {
 // BootstrapFromRemoteWithDB returns an error when called with an
 // empty database name. Callers should use cfg.GetDoltDatabase() which
 // applies the fallback chain (env var -> config -> default). A silent
-// fallback to "beads" here previously masked misconfiguration (GH#3029).
+// fallback to "issuegraph" here previously masked misconfiguration (GH#3029).
 func TestBootstrapFromRemoteWithDB_RejectsEmptyDatabase(t *testing.T) {
 	doltDir := t.TempDir()
 
@@ -132,7 +132,7 @@ func TestBootstrapFromRemoteWithDB_PreservesPreExistingCloneTarget(t *testing.T)
 	}
 
 	doltDir := t.TempDir()
-	cloneTarget := filepath.Join(doltDir, "beads")
+	cloneTarget := filepath.Join(doltDir, "issuegraph")
 	if err := os.MkdirAll(cloneTarget, 0o755); err != nil {
 		t.Fatal(err)
 	}
@@ -141,7 +141,7 @@ func TestBootstrapFromRemoteWithDB_PreservesPreExistingCloneTarget(t *testing.T)
 		t.Fatal(err)
 	}
 
-	_, err := BootstrapFromRemoteWithDB(context.Background(), doltDir, "file:///dev/null", "beads")
+	_, err := BootstrapFromRemoteWithDB(context.Background(), doltDir, "file:///dev/null", "issuegraph")
 	if err == nil {
 		t.Fatal("expected error from failed clone, got nil")
 	}
@@ -174,7 +174,7 @@ func TestRemoveFailedCloneTargetWithRetryRemovesPartialClone(t *testing.T) {
 	failedCloneCleanupRetryDelays = []time.Duration{0}
 	t.Cleanup(func() { failedCloneCleanupRetryDelays = oldDelays })
 
-	target := filepath.Join(t.TempDir(), "beads")
+	target := filepath.Join(t.TempDir(), "issuegraph")
 	if err := os.MkdirAll(filepath.Join(target, ".dolt", "noms"), 0o755); err != nil {
 		t.Fatal(err)
 	}
@@ -195,7 +195,7 @@ func TestRemoveFailedCloneTargetWithRetryRemovesPartialClone(t *testing.T) {
 }
 
 func TestRemoveFailedCloneTargetWithRetryPreservesNonDoltTarget(t *testing.T) {
-	target := filepath.Join(t.TempDir(), "beads")
+	target := filepath.Join(t.TempDir(), "issuegraph")
 	if err := os.MkdirAll(target, 0o755); err != nil {
 		t.Fatal(err)
 	}
@@ -216,7 +216,7 @@ func TestRemoveFailedCloneTargetWithRetryPreservesNonDoltTarget(t *testing.T) {
 }
 
 func TestRemoveFailedCloneTargetWithRetryPreservesDotDoltFile(t *testing.T) {
-	target := filepath.Join(t.TempDir(), "beads")
+	target := filepath.Join(t.TempDir(), "issuegraph")
 	if err := os.MkdirAll(target, 0o755); err != nil {
 		t.Fatal(err)
 	}
@@ -237,19 +237,19 @@ func TestRemoveFailedCloneTargetWithRetryPreservesDotDoltFile(t *testing.T) {
 }
 
 func TestFormatFailedCloneTargetErrorCleanupSucceeded(t *testing.T) {
-	err := formatFailedCloneTargetError(errors.New("exit status 1"), []byte("clone failed"), `C:\tmp\beads`, true, nil)
+	err := formatFailedCloneTargetError(errors.New("exit status 1"), []byte("clone failed"), `C:\tmp\issuegraph`, true, nil)
 
 	msg := err.Error()
 	if !strings.Contains(msg, "Cleaned up failed clone target") {
 		t.Fatalf("expected cleanup success note, got:\n%s", msg)
 	}
-	if !strings.Contains(msg, "retry `bd bootstrap`") {
+	if !strings.Contains(msg, "retry `issuegraph bootstrap`") {
 		t.Fatalf("expected retry guidance, got:\n%s", msg)
 	}
 }
 
 func TestFormatFailedCloneTargetErrorNoCleanup(t *testing.T) {
-	err := formatFailedCloneTargetError(errors.New("exit status 1"), []byte("clone failed before target"), `C:\tmp\beads`, false, nil)
+	err := formatFailedCloneTargetError(errors.New("exit status 1"), []byte("clone failed before target"), `C:\tmp\issuegraph`, false, nil)
 
 	msg := err.Error()
 	if strings.Contains(msg, "Cleaned up failed clone target") {
@@ -261,10 +261,10 @@ func TestFormatFailedCloneTargetErrorNoCleanup(t *testing.T) {
 }
 
 func TestFormatFailedCloneTargetErrorCleanupFailed(t *testing.T) {
-	err := formatFailedCloneTargetError(errors.New("exit status 1"), []byte("unable to clean up failed clone"), `C:\tmp\beads`, true, errors.New("file is in use"))
+	err := formatFailedCloneTargetError(errors.New("exit status 1"), []byte("unable to clean up failed clone"), `C:\tmp\issuegraph`, true, errors.New("file is in use"))
 
 	msg := err.Error()
-	for _, want := range []string{"Could not clean up failed clone target", "Windows", ".dolt/noms/LOCK", "Stop stuck dolt/bd processes"} {
+	for _, want := range []string{"Could not clean up failed clone target", "Windows", ".dolt/noms/LOCK", "Stop stuck dolt/issuegraph processes"} {
 		if !strings.Contains(msg, want) {
 			t.Fatalf("expected %q in error, got:\n%s", want, msg)
 		}

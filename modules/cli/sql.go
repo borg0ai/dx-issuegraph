@@ -6,24 +6,24 @@ import (
 	"os"
 	"strings"
 
+	"github.com/borg0ai/dx-issuegraph/internal/metrics"
+	"github.com/borg0ai/dx-issuegraph/internal/storage"
 	"github.com/spf13/cobra"
-	"github.com/steveyegge/beads/internal/metrics"
-	"github.com/steveyegge/beads/internal/storage"
 )
 
 var sqlCmd = &cobra.Command{
 	Use:     "sql <query>",
 	GroupID: "maint",
-	Short:   "Execute raw SQL against the beads database",
+	Short:   "Execute raw SQL against the issuegraph database",
 	Long: `Execute a raw SQL query against the underlying database (Dolt).
 
 Useful for debugging, maintenance, and working around bugs in higher-level commands.
 
 Examples:
-  bd sql 'SELECT COUNT(*) FROM issues'
-  bd sql 'SELECT id, title FROM issues WHERE status = "open" LIMIT 5'
-  bd sql 'DELETE FROM dirty_issues WHERE issue_id = "bd-abc123"'
-  bd sql --csv 'SELECT id, title, status FROM issues'
+  issuegraph sql 'SELECT COUNT(*) FROM issues'
+  issuegraph sql 'SELECT id, title FROM issues WHERE status = "open" LIMIT 5'
+  issuegraph sql 'DELETE FROM dirty_issues WHERE issue_id = "bd-abc123"'
+  issuegraph sql --csv 'SELECT id, title, status FROM issues'
 
 The query is passed directly to the database. SELECT queries return results as a
 table (or JSON/CSV with --json/--csv). Non-SELECT queries (INSERT, UPDATE, DELETE)
@@ -47,7 +47,7 @@ WARNING: Direct database access bypasses the storage layer. Use with caution.`,
 		}()
 
 		if !usesSQLServer() {
-			return HandleError("'bd sql' is not yet supported in embedded mode")
+			return HandleError("'issuegraph sql' is not yet supported in embedded mode")
 		}
 		query := args[0]
 		csvOutput, _ := cmd.Flags().GetBool("csv")

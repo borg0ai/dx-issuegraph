@@ -7,9 +7,9 @@ import (
 
 	gomysql "github.com/go-sql-driver/mysql"
 
-	"github.com/steveyegge/beads/internal/storage/doltutil"
-	"github.com/steveyegge/beads/internal/storage/domain"
-	"github.com/steveyegge/beads/internal/testutil"
+	"github.com/borg0ai/dx-issuegraph/internal/storage/doltutil"
+	"github.com/borg0ai/dx-issuegraph/internal/storage/domain"
+	"github.com/borg0ai/dx-issuegraph/internal/testutil"
 )
 
 // isSerializationFailure reports whether err is a Dolt/MySQL serialization
@@ -26,10 +26,10 @@ func isSerializationFailure(err error) bool {
 
 // TestEventsJournal_CommitOrderedGaplessSeq is the FINDING 1 proof: under two
 // OVERLAPPING transactions, the journal seq order equals commit-visibility order
-// with no gaps, on bd's actual (deferred-commit, optimistic-merge) Dolt server
+// with no gaps, on issuegraph's actual (deferred-commit, optimistic-merge) Dolt server
 // model.
 //
-// The seq is drawn from the single-row bd_events_seq counter inside each
+// The seq is drawn from the single-row issuegraph_events_seq counter inside each
 // mutation's own transaction. The two inserts touch DIFFERENT issue rows and
 // DIFFERENT event rows — the ONLY cell they share is the counter row — so any
 // serialization here is caused solely by the counter. That is exactly the point:
@@ -41,7 +41,7 @@ func (s *testSuite) TestEventsJournal_CommitOrderedGaplessSeq() {
 	s.journalEnabled = true
 	s.T().Cleanup(func() { s.journalEnabled = false })
 	ctx := s.Ctx()
-	_, err := s.Runner().ExecContext(ctx, "DELETE FROM bd_events_journal")
+	_, err := s.Runner().ExecContext(ctx, "DELETE FROM issuegraph_events_journal")
 	s.Require().NoError(err)
 
 	port := testutil.DoltContainerPortInt()
@@ -104,7 +104,7 @@ func (s *testSuite) TestEventsJournal_ConcurrentWritersGaplessNoDup() {
 	s.journalEnabled = true
 	s.T().Cleanup(func() { s.journalEnabled = false })
 	ctx := s.Ctx()
-	_, err := s.Runner().ExecContext(ctx, "DELETE FROM bd_events_journal")
+	_, err := s.Runner().ExecContext(ctx, "DELETE FROM issuegraph_events_journal")
 	s.Require().NoError(err)
 
 	port := testutil.DoltContainerPortInt()

@@ -11,52 +11,52 @@ import (
 	"testing"
 )
 
-// bdGC runs "bd gc" with the given args and returns stdout.
-func bdGC(t *testing.T, bd, dir string, args ...string) string {
+// issuegraphGC runs "issuegraph gc" with the given args and returns stdout.
+func issuegraphGC(t *testing.T, issuegraph, dir string, args ...string) string {
 	t.Helper()
 	fullArgs := append([]string{"gc"}, args...)
-	cmd := exec.Command(bd, fullArgs...)
+	cmd := exec.Command(issuegraph, fullArgs...)
 	cmd.Dir = dir
-	cmd.Env = bdEnv(dir)
+	cmd.Env = issuegraphEnv(dir)
 	stdout, stderr, err := runCommandBuffers(t, cmd)
 	if err != nil {
-		t.Fatalf("bd gc %s failed: %v\nstdout:\n%s\nstderr:\n%s", strings.Join(args, " "), err, stdout.String(), stderr.String())
+		t.Fatalf("issuegraph gc %s failed: %v\nstdout:\n%s\nstderr:\n%s", strings.Join(args, " "), err, stdout.String(), stderr.String())
 	}
 	return stdout.String()
 }
 
-// bdGCFail runs "bd gc" expecting failure.
-func bdGCFail(t *testing.T, bd, dir string, args ...string) string {
+// issuegraphGCFail runs "issuegraph gc" expecting failure.
+func issuegraphGCFail(t *testing.T, issuegraph, dir string, args ...string) string {
 	t.Helper()
 	fullArgs := append([]string{"gc"}, args...)
-	cmd := exec.Command(bd, fullArgs...)
+	cmd := exec.Command(issuegraph, fullArgs...)
 	cmd.Dir = dir
-	cmd.Env = bdEnv(dir)
+	cmd.Env = issuegraphEnv(dir)
 	out, err := cmd.CombinedOutput()
 	if err == nil {
-		t.Fatalf("expected bd gc %s to fail, but succeeded:\n%s", strings.Join(args, " "), out)
+		t.Fatalf("expected issuegraph gc %s to fail, but succeeded:\n%s", strings.Join(args, " "), out)
 	}
 	return string(out)
 }
 
 func TestEmbeddedGC(t *testing.T) {
-	if os.Getenv("BEADS_TEST_EMBEDDED_DOLT") != "1" {
-		t.Skip("set BEADS_TEST_EMBEDDED_DOLT=1 to run embedded dolt integration tests")
+	if os.Getenv("ISSUEGRAPH_TEST_EMBEDDED_DOLT") != "1" {
+		t.Skip("set ISSUEGRAPH_TEST_EMBEDDED_DOLT=1 to run embedded dolt integration tests")
 	}
 	t.Parallel()
 
-	bd := buildEmbeddedBD(t)
-	dir, _, _ := bdInit(t, bd, "--prefix", "tg")
+	issuegraph := buildEmbeddedBD(t)
+	dir, _, _ := issuegraphInit(t, issuegraph, "--prefix", "tg")
 
 	// Create some issues for gc to work with
 	for i := 0; i < 3; i++ {
-		bdCreate(t, bd, dir, fmt.Sprintf("GC test issue %d", i), "--type", "task")
+		issuegraphCreate(t, issuegraph, dir, fmt.Sprintf("GC test issue %d", i), "--type", "task")
 	}
 
 	// ===== Dry Run =====
 
 	t.Run("gc_dry_run", func(t *testing.T) {
-		out := bdGC(t, bd, dir, "--dry-run")
+		out := issuegraphGC(t, issuegraph, dir, "--dry-run")
 		if !strings.Contains(out, "Phase 1/3") {
 			t.Errorf("expected 'Phase 1/3' in dry-run output: %s", out)
 		}
@@ -68,21 +68,21 @@ func TestEmbeddedGC(t *testing.T) {
 	// ===== Skip Flags =====
 
 	t.Run("gc_skip_decay", func(t *testing.T) {
-		out := bdGC(t, bd, dir, "--dry-run", "--skip-decay")
+		out := issuegraphGC(t, issuegraph, dir, "--dry-run", "--skip-decay")
 		if !strings.Contains(out, "skipped") {
 			t.Errorf("expected 'skipped' for decay phase: %s", out)
 		}
 	})
 
 	t.Run("gc_skip_dolt", func(t *testing.T) {
-		out := bdGC(t, bd, dir, "--dry-run", "--skip-dolt")
+		out := issuegraphGC(t, issuegraph, dir, "--dry-run", "--skip-dolt")
 		if !strings.Contains(out, "skipped") {
 			t.Errorf("expected 'skipped' for dolt gc phase: %s", out)
 		}
 	})
 
 	t.Run("gc_skip_both", func(t *testing.T) {
-		out := bdGC(t, bd, dir, "--dry-run", "--skip-decay", "--skip-dolt")
+		out := issuegraphGC(t, issuegraph, dir, "--dry-run", "--skip-decay", "--skip-dolt")
 		if !strings.Contains(out, "DRY RUN") {
 			t.Errorf("expected 'DRY RUN' in output: %s", out)
 		}
@@ -91,7 +91,7 @@ func TestEmbeddedGC(t *testing.T) {
 	// ===== Older Than =====
 
 	t.Run("gc_older_than", func(t *testing.T) {
-		out := bdGC(t, bd, dir, "--dry-run", "--older-than", "0")
+		out := issuegraphGC(t, issuegraph, dir, "--dry-run", "--older-than", "0")
 		// With --older-than 0, all closed issues would be candidates
 		if !strings.Contains(out, "Phase 1/3") {
 			t.Errorf("expected phase output: %s", out)
@@ -101,14 +101,14 @@ func TestEmbeddedGC(t *testing.T) {
 	// ===== Force with Decay =====
 
 	t.Run("gc_force_with_decay", func(t *testing.T) {
-		gcDir, _, _ := bdInit(t, bd, "--prefix", "gf")
+		gcDir, _, _ := issuegraphInit(t, issuegraph, "--prefix", "gf")
 
 		// Create and close issues (non-ephemeral tasks)
 		for i := 0; i < 3; i++ {
-			issue := bdCreate(t, bd, gcDir, fmt.Sprintf("GC decay %d", i), "--type", "task")
-			cmd := exec.Command(bd, "close", issue.ID)
+			issue := issuegraphCreate(t, issuegraph, gcDir, fmt.Sprintf("GC decay %d", i), "--type", "task")
+			cmd := exec.Command(issuegraph, "close", issue.ID)
 			cmd.Dir = gcDir
-			cmd.Env = bdEnv(gcDir)
+			cmd.Env = issuegraphEnv(gcDir)
 			if out, err := cmd.CombinedOutput(); err != nil {
 				t.Fatalf("close %s failed: %v\n%s", issue.ID, err, out)
 			}
@@ -116,7 +116,7 @@ func TestEmbeddedGC(t *testing.T) {
 
 		// GC with force and older-than 0 (all closed issues eligible)
 		// --skip-dolt to avoid slow GC in tests
-		out := bdGC(t, bd, gcDir, "--force", "--older-than", "0", "--skip-dolt")
+		out := issuegraphGC(t, issuegraph, gcDir, "--force", "--older-than", "0", "--skip-dolt")
 		if !strings.Contains(out, "Deleted") && !strings.Contains(out, "deleted") {
 			// If no issues match (e.g., closed_at is too recent for the filter),
 			// at minimum verify the command completed.
@@ -129,18 +129,18 @@ func TestEmbeddedGC(t *testing.T) {
 	// ===== Full GC =====
 
 	t.Run("gc_full", func(t *testing.T) {
-		gcDir, _, _ := bdInit(t, bd, "--prefix", "gu")
+		gcDir, _, _ := issuegraphInit(t, issuegraph, "--prefix", "gu")
 		for i := 0; i < 3; i++ {
-			bdCreate(t, bd, gcDir, fmt.Sprintf("Full GC issue %d", i), "--type", "task")
+			issuegraphCreate(t, issuegraph, gcDir, fmt.Sprintf("Full GC issue %d", i), "--type", "task")
 		}
 
 		// A default pass first, so the second one has an old generation to
 		// collect — the case a generational pass cannot reclaim (#5907).
-		bdGC(t, bd, gcDir, "--force", "--skip-decay")
+		issuegraphGC(t, issuegraph, gcDir, "--force", "--skip-decay")
 
-		out := bdGC(t, bd, gcDir, "--full", "--force", "--skip-decay")
+		out := issuegraphGC(t, issuegraph, gcDir, "--full", "--force", "--skip-decay")
 		if !strings.Contains(out, "GC complete") {
-			t.Errorf("expected 'GC complete' from bd gc --full: %s", out)
+			t.Errorf("expected 'GC complete' from issuegraph gc --full: %s", out)
 		}
 		if !strings.Contains(out, "full Dolt GC") {
 			t.Errorf("expected the full-GC notice: %s", out)
@@ -148,7 +148,7 @@ func TestEmbeddedGC(t *testing.T) {
 	})
 
 	t.Run("gc_full_dry_run", func(t *testing.T) {
-		out := bdGC(t, bd, dir, "--full", "--dry-run")
+		out := issuegraphGC(t, issuegraph, dir, "--full", "--dry-run")
 		if !strings.Contains(out, "full DOLT_GC()") {
 			t.Errorf("dry run does not say it would run a full GC: %s", out)
 		}
@@ -157,20 +157,20 @@ func TestEmbeddedGC(t *testing.T) {
 	// ===== No --force prompts =====
 
 	t.Run("gc_no_force_prompts", func(t *testing.T) {
-		gcDir, _, _ := bdInit(t, bd, "--prefix", "gn")
-		issue := bdCreate(t, bd, gcDir, "GC no force", "--type", "task")
-		cmd := exec.Command(bd, "close", issue.ID)
+		gcDir, _, _ := issuegraphInit(t, issuegraph, "--prefix", "gn")
+		issue := issuegraphCreate(t, issuegraph, gcDir, "GC no force", "--type", "task")
+		cmd := exec.Command(issuegraph, "close", issue.ID)
 		cmd.Dir = gcDir
-		cmd.Env = bdEnv(gcDir)
+		cmd.Env = issuegraphEnv(gcDir)
 		if out, err := cmd.CombinedOutput(); err != nil {
 			t.Fatalf("close failed: %v\n%s", err, out)
 		}
 
 		// Without --force but with closed issues, should fail with hint.
 		// If no closed issues match the age filter, it may succeed (0 candidates).
-		cmd = exec.Command(bd, "gc", "--older-than", "0")
+		cmd = exec.Command(issuegraph, "gc", "--older-than", "0")
 		cmd.Dir = gcDir
-		cmd.Env = bdEnv(gcDir)
+		cmd.Env = issuegraphEnv(gcDir)
 		out, err := cmd.CombinedOutput()
 		// Either fails (prompt for --force) or succeeds (no matching issues) — both OK
 		_ = err
@@ -180,16 +180,16 @@ func TestEmbeddedGC(t *testing.T) {
 
 // TestEmbeddedGCConcurrent exercises gc --dry-run concurrently.
 func TestEmbeddedGCConcurrent(t *testing.T) {
-	if os.Getenv("BEADS_TEST_EMBEDDED_DOLT") != "1" {
-		t.Skip("set BEADS_TEST_EMBEDDED_DOLT=1 to run embedded dolt integration tests")
+	if os.Getenv("ISSUEGRAPH_TEST_EMBEDDED_DOLT") != "1" {
+		t.Skip("set ISSUEGRAPH_TEST_EMBEDDED_DOLT=1 to run embedded dolt integration tests")
 	}
 	t.Parallel()
 
-	bd := buildEmbeddedBD(t)
-	dir, _, _ := bdInit(t, bd, "--prefix", "gx")
+	issuegraph := buildEmbeddedBD(t)
+	dir, _, _ := issuegraphInit(t, issuegraph, "--prefix", "gx")
 
 	for i := 0; i < 3; i++ {
-		bdCreate(t, bd, dir, fmt.Sprintf("gc-concurrent-%d", i), "--type", "task")
+		issuegraphCreate(t, issuegraph, dir, fmt.Sprintf("gc-concurrent-%d", i), "--type", "task")
 	}
 
 	const numWorkers = 8
@@ -205,9 +205,9 @@ func TestEmbeddedGCConcurrent(t *testing.T) {
 		go func(worker int) {
 			defer wg.Done()
 			r := workerResult{worker: worker}
-			cmd := exec.Command(bd, "gc", "--dry-run")
+			cmd := exec.Command(issuegraph, "gc", "--dry-run")
 			cmd.Dir = dir
-			cmd.Env = bdEnv(dir)
+			cmd.Env = issuegraphEnv(dir)
 			out, err := cmd.CombinedOutput()
 			if err != nil {
 				r.err = fmt.Errorf("gc --dry-run (worker %d): %v\n%s", worker, err, out)

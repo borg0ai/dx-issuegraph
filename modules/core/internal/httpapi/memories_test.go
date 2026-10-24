@@ -6,7 +6,7 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/steveyegge/beads/memoryops"
+	"github.com/borg0ai/dx-issuegraph/memoryops"
 )
 
 // The pins for the memory operations. What is asserted here is the WIRE EDGE —
@@ -16,7 +16,7 @@ import (
 // encoding, which plane a row belongs to) is the conformance contract's, and is
 // deliberately not re-asserted here.
 
-const memoriesPath = "/v0/beads/memories"
+const memoriesPath = "/v0/issuegraph/memories"
 
 func (ts *testServer) remember(t *testing.T, body string) *http.Response {
 	t.Helper()
@@ -210,7 +210,7 @@ func TestRememberSurfacesTheRolesRefusalAsABadRequest(t *testing.T) {
 	if got := body["reason"]; got != string(ReasonInvalidValue) {
 		t.Errorf("reason = %v, want %q", got, ReasonInvalidValue)
 	}
-	// The role's own sentence, not a rewrite of it: `bd remember` and this
+	// The role's own sentence, not a rewrite of it: `issuegraph remember` and this
 	// endpoint refuse the same input with the same words.
 	if got, _ := body["detail"].(string); got != memoryops.ErrValidation.Error() {
 		t.Errorf("detail = %q, want the role's message", got)
@@ -245,7 +245,7 @@ func TestRememberRefusesAQueryString(t *testing.T) {
 // the stored bytes.
 //
 // The key here carries a space, a dot and a non-ASCII rune on purpose:
-// `bd remember --key` accepts any string, so a handler that slugged, folded or
+// `issuegraph remember --key` accepts any string, so a handler that slugged, folded or
 // trimmed the segment would answer about a different memory than the one asked
 // for.
 func TestGetMemoryAnswersTheStoredValue(t *testing.T) {
@@ -284,7 +284,7 @@ func TestGetMemoryAnswersTheStoredValue(t *testing.T) {
 // Both legs are the SAME answer from the role — Found false — and both are a
 // 404: a row stored as the empty string is a miss here because the storage seam
 // cannot tell it from an absent row, and the wire does not claim to see what
-// the role cannot. `GET /v0/beads/memories` enumerating such a row is the one
+// the role cannot. `GET /v0/issuegraph/memories` enumerating such a row is the one
 // way a client tells them apart.
 func TestGetMemoryAnswersAMissWithA404(t *testing.T) {
 	for _, tc := range []struct {
@@ -379,7 +379,7 @@ func TestGetMemoryRefusesAQueryString(t *testing.T) {
 
 // TestForgetMemoryRemovesTheNamedKeyAndReportsWhatItHeld: the surface's first
 // DELETE. The path segment reaches the role verbatim and the 200 body carries
-// what was removed, which is what `bd forget` prints.
+// what was removed, which is what `issuegraph forget` prints.
 //
 // WHICH ROW WAS REMOVED IS NOT ASSERTED HERE and must not be: the memory plane
 // shares one table with the workspace's settings and the generic kv namespace,
@@ -496,7 +496,7 @@ func TestForgetMemoryRefusesAQueryString(t *testing.T) {
 }
 
 // TestDeleteOnTheMemoryCollectionIsNotRouted: the DELETE row is registered for
-// `/v0/beads/memories/{key}`, and ServeMux requires the separating slash — so
+// `/v0/issuegraph/memories/{key}`, and ServeMux requires the separating slash — so
 // the collection path has no DELETE and answers the catch-all's 404.
 //
 // Worth a case because this is the surface's first DELETE method: a pattern
@@ -526,7 +526,7 @@ func TestListMemoriesAnswersThePlaneOrderedByKey(t *testing.T) {
 		"alpha":        "first by key",
 		"Has Spaces.✓": "an explicit key",
 		// A row written out of band with an empty value. It is enumerated here
-		// — its KEY exists — while GET /v0/beads/memories/{key} answers 404 for
+		// — its KEY exists — while GET /v0/issuegraph/memories/{key} answers 404 for
 		// it, and that asymmetry is the one way a client tells a row stored
 		// empty from a row that is not there.
 		"stored-empty": "",
@@ -591,7 +591,7 @@ func TestListMemoriesOfAnEmptyPlaneIsAnEmptyArray(t *testing.T) {
 // client sent it.
 //
 // Case folding is the ROLE's — it owns what matching means, so that this
-// surface and `bd memories` cannot come to disagree — and a handler that
+// surface and `issuegraph memories` cannot come to disagree — and a handler that
 // lowercased on the way past would be the second definition. Asserted on the
 // REQUEST the role received for that reason: a response says nothing about
 // which term was searched for.
@@ -653,7 +653,7 @@ func TestListMemoriesRefusesAnUnknownQueryParameter(t *testing.T) {
 	}{
 		{
 			// `q` SPECIFICALLY, which is the whole reason this operation's
-			// parameter is not called that. On GET /v0/beads/issues:query, `q`
+			// parameter is not called that. On GET /v0/issuegraph/issues:query, `q`
 			// is a boolean expression over issue fields; a client carrying that
 			// habit here has asked a question this operation does not answer,
 			// and the one useful reply is that the name is unknown. Were the

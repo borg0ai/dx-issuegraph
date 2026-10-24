@@ -27,7 +27,7 @@ func TestInitDisabledKeepsEnabledFalse(t *testing.T) {
 	Global().CloseEventAndAdd(evt)
 	closeFn(context.Background())
 
-	dir := filepath.Join(home, ".beads", "eventsData")
+	dir := filepath.Join(home, ".issuegraph", "eventsData")
 	if entries, err := os.ReadDir(dir); err == nil {
 		for _, e := range entries {
 			if filepath.Ext(e.Name()) == ".evtq" {
@@ -56,7 +56,7 @@ func TestInitEnabledFlipsEnabledTrue(t *testing.T) {
 	Global().CloseEventAndAdd(evt)
 	closeFn(context.Background())
 
-	dir := filepath.Join(home, ".beads", "eventsData")
+	dir := filepath.Join(home, ".issuegraph", "eventsData")
 	entries, err := os.ReadDir(dir)
 	if err != nil {
 		t.Fatalf("read eventsData: %v", err)
@@ -82,7 +82,7 @@ func TestInitEnabledFlipsEnabledTrue(t *testing.T) {
 func TestRunSendMetricsDisabledPrunesWithoutUploading(t *testing.T) {
 	home := t.TempDir()
 	t.Setenv("HOME", home)
-	dir := filepath.Join(home, ".beads", "eventsData")
+	dir := filepath.Join(home, ".issuegraph", "eventsData")
 	if err := os.MkdirAll(dir, 0o750); err != nil {
 		t.Fatalf("mkdir eventsData: %v", err)
 	}
@@ -130,7 +130,7 @@ func TestSpawnGateIgnoresDisabledMetrics(t *testing.T) {
 	home := t.TempDir()
 	t.Setenv("HOME", home)
 	// Hermetically clear the two env suppressors (the repo's own runner exports
-	// BEADS_TEST_MODE=1, and CI exports BD_DISABLE_EVENT_FLUSH=1 workflow-wide)
+	// ISSUEGRAPH_TEST_MODE=1, and CI exports ISSUEGRAPH_DISABLE_EVENT_FLUSH=1 workflow-wide)
 	// so the assertion below is gated on Enabled() alone. shouldSpawnFlusher is
 	// a pure decision — nothing forks here.
 	t.Setenv(EnvTestMode, "")
@@ -164,14 +164,14 @@ func TestSpawnGateIgnoresDisabledMetrics(t *testing.T) {
 
 // TestFlusherChildEnvPinsSanctionedEndpoint is the security regression for the
 // blocker on PR #4419: the detached send-metrics child must not be able to pick
-// up a BEADS_METRICS_ENDPOINT that a project .beads/.env loaded into the parent
+// up a ISSUEGRAPH_METRICS_ENDPOINT that a project .issuegraph/.env loaded into the parent
 // environment. flusherChildEnv must drop any inherited endpoint and pin it to
 // the value the parent already resolved from env + user-global config.
 func TestFlusherChildEnvPinsSanctionedEndpoint(t *testing.T) {
 	parent := []string{
 		"HOME=/home/user",
 		"PATH=/usr/bin",
-		// A hostile project .beads/.env redirected the endpoint into the parent.
+		// A hostile project .issuegraph/.env redirected the endpoint into the parent.
 		EnvEndpoint + "=https://attacker.example/collect",
 	}
 	const sanctioned = "https://gastownhall-eventsapi.com/mp/collect"
@@ -237,7 +237,7 @@ func TestCloseAndFlushPersistsQueuedEvents(t *testing.T) {
 	// Simulate an os.Exit guard finalizing metrics without the RunE/ExecuteC tail.
 	CloseAndFlush()
 
-	dir := filepath.Join(home, ".beads", "eventsData")
+	dir := filepath.Join(home, ".issuegraph", "eventsData")
 	entries, err := os.ReadDir(dir)
 	if err != nil {
 		t.Fatalf("read eventsData: %v", err)
@@ -268,7 +268,7 @@ func TestCloseAndFlushDisabledIsSafe(t *testing.T) {
 
 	CloseAndFlush()
 
-	dir := filepath.Join(home, ".beads", "eventsData")
+	dir := filepath.Join(home, ".issuegraph", "eventsData")
 	if entries, err := os.ReadDir(dir); err == nil {
 		for _, e := range entries {
 			if filepath.Ext(e.Name()) == ".evtq" {
@@ -295,7 +295,7 @@ func envContains(env []string, want string) bool {
 func TestRunSendMetricsPrunesUnderFlushDeadline(t *testing.T) {
 	home := t.TempDir()
 	t.Setenv("HOME", home)
-	if err := os.MkdirAll(filepath.Join(home, ".beads", "eventsData"), 0o750); err != nil {
+	if err := os.MkdirAll(filepath.Join(home, ".issuegraph", "eventsData"), 0o750); err != nil {
 		t.Fatalf("mkdir eventsData: %v", err)
 	}
 

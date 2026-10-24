@@ -4,7 +4,7 @@ import (
 	"database/sql"
 	"time"
 
-	"github.com/steveyegge/beads/internal/storage/issueops"
+	"github.com/borg0ai/dx-issuegraph/internal/storage/issueops"
 )
 
 // parseTimeString delegates to issueops.ParseTimeString.

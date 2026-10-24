@@ -5,14 +5,14 @@ import (
 	"errors"
 	"fmt"
 
-	"github.com/steveyegge/beads/internal/storage"
-	"github.com/steveyegge/beads/internal/storage/uow"
-	"github.com/steveyegge/beads/internal/types"
-	"github.com/steveyegge/beads/internal/utils"
-	"github.com/steveyegge/beads/internal/workapi"
+	"github.com/borg0ai/dx-issuegraph/internal/storage"
+	"github.com/borg0ai/dx-issuegraph/internal/storage/uow"
+	"github.com/borg0ai/dx-issuegraph/internal/types"
+	"github.com/borg0ai/dx-issuegraph/internal/utils"
+	"github.com/borg0ai/dx-issuegraph/internal/workapi"
 )
 
-// runPromoteProxiedServer is the proxied-server route for `bd promote`. It
+// runPromoteProxiedServer is the proxied-server route for `issuegraph promote`. It
 // mirrors the classic route: resolve the id, refuse a non-wisp with the same
 // error text, then promote through the domain PromoteWisp verb — which runs
 // the exact issueops implementation the classic route runs, so the row is
@@ -20,7 +20,7 @@ import (
 // comments carried to the permanent tables, inbound edges retargeted).
 //
 // Commit semantics: the cross-plane move and the promotion comment land in
-// ONE transaction under one Dolt commit ("bd: promote <id>", the classic
+// ONE transaction under one Dolt commit ("issuegraph: promote <id>", the classic
 // dolt commit message). The wisp-side deletes touch dolt_ignored tables so
 // only the issues-plane rows are versioned by that commit, but the single
 // transaction still makes the wisp delete and the issues insert atomic.
@@ -68,7 +68,7 @@ func runPromoteProxiedServer(ctx context.Context, id, reason string) error {
 		if _, err := uw.CommentUseCase().AddCommentToIssue(ctx, fullID, actor, promotionComment(reason)); err != nil {
 			return "", fmt.Errorf("adding promotion comment: %w", err)
 		}
-		return fmt.Sprintf("bd: promote %s", fullID), nil
+		return fmt.Sprintf("issuegraph: promote %s", fullID), nil
 	})
 	if err != nil {
 		return HandleErrorRespectJSON("promoting %s: %v", fullID, err)

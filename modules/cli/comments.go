@@ -5,12 +5,12 @@ import (
 	"fmt"
 	"strings"
 
+	"github.com/borg0ai/dx-issuegraph/internal/metrics"
+	"github.com/borg0ai/dx-issuegraph/internal/storage"
+	"github.com/borg0ai/dx-issuegraph/internal/types"
+	"github.com/borg0ai/dx-issuegraph/internal/uimd"
+	"github.com/borg0ai/dx-issuegraph/issueops"
 	"github.com/spf13/cobra"
-	"github.com/steveyegge/beads/internal/metrics"
-	"github.com/steveyegge/beads/internal/storage"
-	"github.com/steveyegge/beads/internal/types"
-	"github.com/steveyegge/beads/internal/uimd"
-	"github.com/steveyegge/beads/issueops"
 )
 
 // validateCommentsArgs runs as cobra's Args validation for the parent
@@ -18,7 +18,7 @@ import (
 // store (or runs migrations) and before RunE's usesProxiedServer() dispatch.
 // The parent command only lists comments for a single issue, so any trailing
 // positional arg is a mistake — most commonly the swapped-order add,
-// `bd comments <id> add <text>`, which otherwise falls through, reads only
+// `issuegraph comments <id> add <text>`, which otherwise falls through, reads only
 // args[0], and silently drops the rest with exit 0 (GH#4642). Validating
 // here (rather than inside RunE, local-store-only) rejects the malformed
 // invocation identically for the direct and proxied-server paths, before
@@ -34,25 +34,25 @@ func validateCommentsArgs(cmd *cobra.Command, args []string) error {
 
 	issueID := args[0]
 	if args[1] == "add" {
-		return HandleErrorRespectJSON(`"bd comments <issue-id> add ..." is not valid — the subcommand must come first.
+		return HandleErrorRespectJSON(`"issuegraph comments <issue-id> add ..." is not valid — the subcommand must come first.
 
 To add a comment, run:
-  bd comments add <issue-id> <text>
+  issuegraph comments add <issue-id> <text>
 
 Example:
-  bd comments add %s "your comment"
+  issuegraph comments add %s "your comment"
 
-See: bd comments --help`, issueID)
+See: issuegraph comments --help`, issueID)
 	}
-	return HandleErrorRespectJSON(`"bd comments" takes a single issue id and lists its comments.
+	return HandleErrorRespectJSON(`"issuegraph comments" takes a single issue id and lists its comments.
 
 To list comments:
-  bd comments <issue-id>
+  issuegraph comments <issue-id>
 
 To add a comment:
-  bd comments add <issue-id> <text>
+  issuegraph comments add <issue-id> <text>
 
-See: bd comments --help`)
+See: issuegraph comments --help`)
 }
 
 var commentsCmd = &cobra.Command{
@@ -63,16 +63,16 @@ var commentsCmd = &cobra.Command{
 
 Examples:
   # List all comments on an issue (issue id is required — there is no "comments list")
-  bd comments bd-123
+  issuegraph comments bd-123
 
   # List comments in JSON format
-  bd comments bd-123 --json
+  issuegraph comments bd-123 --json
 
   # Add a comment
-  bd comments add bd-123 "This is a comment"
+  issuegraph comments add bd-123 "This is a comment"
 
   # Add a comment from a file
-  bd comments add bd-123 -f notes.txt`,
+  issuegraph comments add bd-123 -f notes.txt`,
 	Args:          validateCommentsArgs,
 	SilenceUsage:  true,
 	SilenceErrors: true,
@@ -149,19 +149,19 @@ Examples:
 
 var commentsMisplacedListCmd = &cobra.Command{
 	Use:           "list",
-	Short:         "Invalid — use bd comments <issue-id> to list comments",
+	Short:         "Invalid — use issuegraph comments <issue-id> to list comments",
 	SilenceUsage:  true,
 	SilenceErrors: true,
 	RunE: func(cmd *cobra.Command, args []string) error {
-		return HandleErrorRespectJSON(`"bd comments list" is not valid.
+		return HandleErrorRespectJSON(`"issuegraph comments list" is not valid.
 
 To list comments on an issue, run:
-  bd comments <issue-id>
+  issuegraph comments <issue-id>
 
 Example:
-  bd comments bd-123
+  issuegraph comments bd-123
 
-See: bd comments --help`)
+See: issuegraph comments --help`)
 	},
 }
 
@@ -172,10 +172,10 @@ var commentsAddCmd = &cobra.Command{
 
 Examples:
   # Add a comment
-  bd comments add bd-123 "Working on this now"
+  issuegraph comments add bd-123 "Working on this now"
 
   # Add a comment from a file
-  bd comments add bd-123 -f notes.txt`,
+  issuegraph comments add bd-123 -f notes.txt`,
 	Args:          cobra.MinimumNArgs(1),
 	SilenceUsage:  true,
 	SilenceErrors: true,

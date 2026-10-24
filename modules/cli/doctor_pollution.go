@@ -5,8 +5,8 @@ import (
 	"os"
 	"strings"
 
-	"github.com/steveyegge/beads/internal/types"
-	"github.com/steveyegge/beads/internal/ui"
+	"github.com/borg0ai/dx-issuegraph/internal/types"
+	"github.com/borg0ai/dx-issuegraph/internal/ui"
 )
 
 // runPollutionCheck runs detailed test pollution detection
@@ -20,7 +20,7 @@ func runPollutionCheck(_ string, clean bool, yes bool) error {
 
 	ctx := rootCtx
 
-	// Get all issues (env-only cap via BEADS_MAX_ROWS; designer §4: doctor
+	// Get all issues (env-only cap via ISSUEGRAPH_MAX_ROWS; designer §4: doctor
 	// family is env opt-in, no operator-facing flag).
 	maxRows, maxRowsSource := resolveMaxRowsEnvOnly()
 	allIssues, err := store.SearchIssues(ctx, "", types.IssueFilter{
@@ -106,7 +106,7 @@ func runPollutionCheck(_ string, clean bool, yes bool) error {
 	}
 
 	if !clean {
-		fmt.Printf("Run 'bd doctor --check=pollution --clean' to delete these issues (with confirmation).\n")
+		fmt.Printf("Run 'issuegraph doctor --check=pollution --clean' to delete these issues (with confirmation).\n")
 		return nil
 	}
 
@@ -120,7 +120,7 @@ func runPollutionCheck(_ string, clean bool, yes bool) error {
 		}
 	}
 
-	backupPath := ".beads/pollution-backup.jsonl"
+	backupPath := ".issuegraph/pollution-backup.jsonl"
 	if err := backupPollutedIssues(polluted, backupPath); err != nil {
 		return HandleError("backing up issues: %v", err)
 	}
@@ -137,7 +137,7 @@ func runPollutionCheck(_ string, clean bool, yes bool) error {
 	}
 
 	fmt.Printf("%s Deleted %d test issues\n", ui.RenderPass("✓"), deleted)
-	fmt.Printf("\nCleanup complete. To restore, run: bd init --from-jsonl %s\n", backupPath)
+	fmt.Printf("\nCleanup complete. To restore, run: issuegraph init --from-jsonl %s\n", backupPath)
 	return nil
 }
 

@@ -6,13 +6,13 @@ import (
 	"strings"
 	"time"
 
+	"github.com/borg0ai/dx-issuegraph/internal/metrics"
+	"github.com/borg0ai/dx-issuegraph/internal/ui"
+	"github.com/borg0ai/dx-issuegraph/issueops"
 	"github.com/spf13/cobra"
-	"github.com/steveyegge/beads/internal/metrics"
-	"github.com/steveyegge/beads/internal/ui"
-	"github.com/steveyegge/beads/issueops"
 )
 
-// purgeScope is what `bd purge` and `bd prune` still differ by once the
+// purgeScope is what `issuegraph purge` and `issuegraph prune` still differ by once the
 // operation itself is behind issueops.Sweeper: a tier, a reference policy, and
 // the words each command prints.
 type purgeScope struct {
@@ -26,18 +26,18 @@ type purgeScope struct {
 	// dryRunCountKey is the JSON key used for the dry-run deletion count.
 	dryRunCountKey string
 	// subjectNoun describes what's being purged, in singular form
-	// (e.g. "closed ephemeral bead", "closed bead"). "(s)" is appended by
+	// (e.g. "closed ephemeral issue", "closed issue"). "(s)" is appended by
 	// the printer when multiple items are involved.
 	subjectNoun string
 	// tier is the plane this command sweeps. The two are DISJOINT: `prune`
 	// never touches a wisp that `purge` would handle, and vice versa.
 	tier issueops.SweepTier
-	// protectReferenced asks the role to skip candidates cited by a bead that
-	// is not done. `bd prune` asks unless --ignore-references; `bd purge`
+	// protectReferenced asks the role to skip candidates cited by a issue that
+	// is not done. `issuegraph prune` asks unless --ignore-references; `issuegraph purge`
 	// never does, because a wisp's citations are as transient as the wisp.
 	protectReferenced bool
 	// reportsReferences publishes the reference-skip keys under --json. It is
-	// separate from protectReferenced because `bd prune --ignore-references`
+	// separate from protectReferenced because `issuegraph prune --ignore-references`
 	// still publishes them, as zeroes, which is the shipped shape.
 	reportsReferences bool
 }
@@ -45,27 +45,27 @@ type purgeScope struct {
 var purgeCmd = &cobra.Command{
 	Use:     "purge",
 	GroupID: "maint",
-	Short:   "Delete closed ephemeral beads to reclaim space",
-	Long: `Permanently delete closed ephemeral beads and their associated data.
+	Short:   "Delete closed ephemeral issuegraph to reclaim space",
+	Long: `Permanently delete closed ephemeral issuegraph and their associated data.
 
-Closed ephemeral beads (wisps, transient molecules) accumulate rapidly and
+Closed ephemeral issuegraph (wisps, transient molecules) accumulate rapidly and
 have no value once closed. This command removes them to reclaim storage.
 
-Deletes: issues, dependencies, labels, events, and comments for matching beads.
-Skips: pinned beads (protected).
+Deletes: issues, dependencies, labels, events, and comments for matching issuegraph.
+Skips: pinned issuegraph (protected).
 
-To delete closed non-ephemeral beads (regular tasks, features, bugs, etc.)
-use ` + "`bd prune`" + ` instead.
+To delete closed non-ephemeral issuegraph (regular tasks, features, bugs, etc.)
+use ` + "`issuegraph prune`" + ` instead.
 
-For full Dolt storage reclaim after deleting many rows, follow with ` + "`bd flatten`" + `
+For full Dolt storage reclaim after deleting many rows, follow with ` + "`issuegraph flatten`" + `
 so history can be collapsed and old chunks can be garbage-collected.
 
 EXAMPLES:
-  bd purge                           # Preview what would be purged
-  bd purge --force                   # Delete all closed ephemeral beads
-  bd purge --older-than 7d --force   # Only purge items closed 7+ days ago
-  bd purge --pattern "*-wisp-*"      # Only purge matching ID pattern
-  bd purge --dry-run                 # Detailed preview with stats`,
+  issuegraph purge                           # Preview what would be purged
+  issuegraph purge --force                   # Delete all closed ephemeral issuegraph
+  issuegraph purge --older-than 7d --force   # Only purge items closed 7+ days ago
+  issuegraph purge --pattern "*-wisp-*"      # Only purge matching ID pattern
+  issuegraph purge --dry-run                 # Detailed preview with stats`,
 	SilenceUsage:  true,
 	SilenceErrors: true,
 	RunE: func(cmd *cobra.Command, _ []string) error {
@@ -81,7 +81,7 @@ EXAMPLES:
 			pastTense:      "purged",
 			countKey:       "purged_count",
 			dryRunCountKey: "purge_count",
-			subjectNoun:    "closed ephemeral bead",
+			subjectNoun:    "closed ephemeral issue",
 			tier:           issueops.SweepEphemeral,
 		})
 	},
@@ -101,8 +101,8 @@ func openSweeper() (issueops.Sweeper, error) {
 	return store.Sweeper()
 }
 
-// runPurgeOrPrune implements the shared delete-closed-beads flow used by both
-// `bd purge` (ephemeral tier) and `bd prune` (durable tier), on both routes.
+// runPurgeOrPrune implements the shared delete-closed-issuegraph flow used by both
+// `issuegraph purge` (ephemeral tier) and `issuegraph prune` (durable tier), on both routes.
 func runPurgeOrPrune(cmd *cobra.Command, scope purgeScope) error {
 	CheckReadonly(scope.cmdName)
 
@@ -114,14 +114,14 @@ func runPurgeOrPrune(cmd *cobra.Command, scope purgeScope) error {
 	// The ROLE refuses an unfiltered durable sweep — that guard is
 	// workapi.ValidateSweepRequest, below every front door. This branch is here
 	// for the MESSAGE: the role's refusal names request fields, not the two
-	// flags a person who typed `bd prune --force` has to reach for. The contract
+	// flags a person who typed `issuegraph prune --force` has to reach for. The contract
 	// case RunSweeperRefusesAnUnfilteredDurableSweep proves the guard survives
 	// this branch being deleted.
 	if scope.tier == issueops.SweepDurable && olderThan == "" && pattern == "" {
 		return HandleErrorWithHint(
-			fmt.Sprintf("bd %s requires --older-than or --pattern", scope.cmdName),
+			fmt.Sprintf("issuegraph %s requires --older-than or --pattern", scope.cmdName),
 			"Protects against accidental bulk deletion. Use `--pattern '*'` to\n"+
-				"  include all closed beads in this scope, or `--older-than 1d`\n"+
+				"  include all closed issuegraph in this scope, or `--older-than 1d`\n"+
 				"  / `--pattern '<glob>'` to narrow the deletion.")
 	}
 
@@ -149,8 +149,8 @@ func runPurgeOrPrune(cmd *cobra.Command, scope purgeScope) error {
 		return HandleErrorRespectJSON("%v", err)
 	}
 	// The role mints the sweep's version commit itself, so batch and off modes
-	// have to be said on the CONTEXT — the same way `bd delete` says them. Left
-	// off, an embedded `bd prune --dolt-auto-commit batch` advances HEAD, which
+	// have to be said on the CONTEXT — the same way `issuegraph delete` says them. Left
+	// off, an embedded `issuegraph prune --dolt-auto-commit batch` advances HEAD, which
 	// is the one thing batch mode promises it will not do.
 	opsCtx, err := issueOpsContext(rootCtx)
 	if err != nil {
@@ -195,8 +195,8 @@ func warnSweepDefenseSkips(skips issueops.SweepSkips) {
 }
 
 // addReferenceStats attaches the reference-skip members to a --json payload.
-// `bd prune` publishes them whether or not the protection was asked for, which
-// is the shipped shape; `bd purge` never does.
+// `issuegraph prune` publishes them whether or not the protection was asked for, which
+// is the shipped shape; `issuegraph purge` never does.
 func addReferenceStats(scope purgeScope, stats map[string]interface{}, result issueops.SweepResult) {
 	if !scope.reportsReferences {
 		return
@@ -227,7 +227,7 @@ func emitSweepEmpty(scope purgeScope, olderThan, pattern string, result issueops
 	fmt.Println(msg)
 	if result.Skipped.Referenced > 0 {
 		fmt.Println(ui.MutedStyle.Render(fmt.Sprintf(
-			"  (%d closed bead(s) protected by open-bead references — use --ignore-references to override)",
+			"  (%d closed issue(s) protected by open-issue references — use --ignore-references to override)",
 			result.Skipped.Referenced)))
 	}
 	return nil
@@ -278,12 +278,12 @@ func emitSweepDryRun(scope purgeScope, result issueops.SweepResult) error {
 func emitSweepConfirm(scope purgeScope, olderThan, pattern string, result issueops.SweepResult) error {
 	fmt.Printf("Found %d %s(s) to %s\n", result.Swept, scope.subjectNoun, scope.cmdName)
 	if result.Skipped.Pinned > 0 {
-		fmt.Printf("Skipping %d pinned bead(s)\n", result.Skipped.Pinned)
+		fmt.Printf("Skipping %d pinned issue(s)\n", result.Skipped.Pinned)
 	}
 	if result.Skipped.Referenced > 0 {
-		fmt.Println(ui.MutedStyle.Render(fmt.Sprintf("Skipping %d referenced bead(s)", result.Skipped.Referenced)))
+		fmt.Println(ui.MutedStyle.Render(fmt.Sprintf("Skipping %d referenced issue(s)", result.Skipped.Referenced)))
 	}
-	hint := fmt.Sprintf("bd %s --force", scope.cmdName)
+	hint := fmt.Sprintf("issuegraph %s --force", scope.cmdName)
 	if olderThan != "" {
 		hint += " --older-than " + olderThan
 	}
@@ -291,7 +291,7 @@ func emitSweepConfirm(scope purgeScope, olderThan, pattern string, result issueo
 		hint += " --pattern " + pattern
 	}
 	return HandleErrorWithHint(
-		fmt.Sprintf("would %s %d bead(s)", scope.cmdName, result.Swept),
+		fmt.Sprintf("would %s %d issue(s)", scope.cmdName, result.Swept),
 		fmt.Sprintf("Use --force to confirm or --dry-run to preview.\n  %s", hint))
 }
 
@@ -375,7 +375,7 @@ func parseHumanDuration(s string) (int, error) {
 func init() {
 	purgeCmd.Flags().BoolP("force", "f", false, "Actually purge (without this, shows preview)")
 	purgeCmd.Flags().Bool("dry-run", false, "Preview what would be purged with stats")
-	purgeCmd.Flags().String("older-than", "", "Only purge beads closed more than N ago (e.g., 7d, 2w, 30)")
-	purgeCmd.Flags().String("pattern", "", "Only purge beads matching ID glob pattern (e.g., *-wisp-*)")
+	purgeCmd.Flags().String("older-than", "", "Only purge issuegraph closed more than N ago (e.g., 7d, 2w, 30)")
+	purgeCmd.Flags().String("pattern", "", "Only purge issuegraph matching ID glob pattern (e.g., *-wisp-*)")
 	rootCmd.AddCommand(purgeCmd)
 }

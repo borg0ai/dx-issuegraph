@@ -8,14 +8,14 @@ import (
 	"path/filepath"
 	"testing"
 
-	"github.com/steveyegge/beads/internal/testutil"
+	"github.com/borg0ai/dx-issuegraph/internal/testutil"
 )
 
 // TestMigrateIssues_FilterHasZeroMaxRows is the be-x42v.4 opt-out gate
-// for `bd migrate-issues`. Asserts that the migration's candidate-find
+// for `issuegraph migrate-issues`. Asserts that the migration's candidate-find
 // filter — built in findCandidateIssues at modules/cli/migrate_issues.go:269
 // — never carries MaxRows>0 or a non-empty MaxRowsSource. A
-// BEADS_MAX_ROWS-tripped migration would leave the source and destination
+// ISSUEGRAPH_MAX_ROWS-tripped migration would leave the source and destination
 // repos in inconsistent states; the cap must be hard-opt-out here.
 //
 // Why findCandidateIssues and not executeMigrateIssues end-to-end:
@@ -48,8 +48,8 @@ func TestMigrateIssues_FilterHasZeroMaxRows(t *testing.T) {
 	_ = saved
 
 	tmpDir := t.TempDir()
-	beadsDir := filepath.Join(tmpDir, ".beads")
-	if err := os.MkdirAll(beadsDir, 0755); err != nil {
+	issuegraphDir := filepath.Join(tmpDir, ".issuegraph")
+	if err := os.MkdirAll(issuegraphDir, 0755); err != nil {
 		t.Fatal(err)
 	}
 	origWd, _ := os.Getwd()
@@ -59,7 +59,7 @@ func TestMigrateIssues_FilterHasZeroMaxRows(t *testing.T) {
 	t.Cleanup(func() { _ = os.Chdir(origWd) })
 
 	dbName := uniqueTestDBName(t)
-	testDBPath := filepath.Join(beadsDir, "dolt")
+	testDBPath := filepath.Join(issuegraphDir, "dolt")
 	writeTestMetadata(t, testDBPath, dbName)
 	inner := newTestStore(t, testDBPath)
 	spy := newFilterCapturingStore(inner)
@@ -100,10 +100,10 @@ func TestMigrateIssues_FilterHasZeroMaxRows(t *testing.T) {
 
 	for i, f := range spy.AllFilters() {
 		if f.MaxRows != 0 {
-			t.Errorf("be-x42v.4 gate: SearchIssues call %d had filter.MaxRows=%d; bd migrate-issues must opt out (MaxRows=0) — designer §4.1 cross-backend round-trip", i, f.MaxRows)
+			t.Errorf("be-x42v.4 gate: SearchIssues call %d had filter.MaxRows=%d; issuegraph migrate-issues must opt out (MaxRows=0) — designer §4.1 cross-backend round-trip", i, f.MaxRows)
 		}
 		if f.MaxRowsSource != "" {
-			t.Errorf("be-x42v.4 gate: SearchIssues call %d had filter.MaxRowsSource=%q; bd migrate-issues must opt out (MaxRowsSource=\"\")", i, f.MaxRowsSource)
+			t.Errorf("be-x42v.4 gate: SearchIssues call %d had filter.MaxRowsSource=%q; issuegraph migrate-issues must opt out (MaxRowsSource=\"\")", i, f.MaxRowsSource)
 		}
 	}
 }

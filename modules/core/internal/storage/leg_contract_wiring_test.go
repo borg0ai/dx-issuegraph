@@ -15,7 +15,7 @@ import (
 )
 
 // conformancePackage is the import path whose Run entrypoints each leg wires.
-const conformancePackage = "github.com/steveyegge/beads/backend/conformance"
+const conformancePackage = "github.com/borg0ai/dx-issuegraph/backend/conformance"
 
 // neverSatisfiedTags are build tags nothing ever sets. A file behind one is in
 // no build, so what it names is not wiring.
@@ -24,12 +24,12 @@ var neverSatisfiedTags = map[string]bool{"ignore": true, "never": true}
 // importerOneAccessorWaiverReason records why the Importer contract runs on one
 // leg. publicops.Importer has exactly one accessor anywhere — uow.ImporterSource
 // — and it is the only capability source in internal/storage/uow with no
-// storage.DoltStorage counterpart: on both store legs `bd import` still runs the
+// storage.DoltStorage counterpart: on both store legs `issuegraph import` still runs the
 // raw CreateIssuesWithFullOptions seam. Wiring the other two is a new interface
 // method plus a new body at each backend, not a test change. The waiver stops
 // the moment either leg grows the accessor.
 const importerOneAccessorWaiverReason = "Importer has one accessor (uow.ImporterSource); " +
-	"the store legs run bd import through the raw seam and implement no Importer role"
+	"the store legs run issuegraph import through the raw seam and implement no Importer role"
 
 // The waivers of the three legs registered here. Each is registered beside its
 // leg rather than written into one literal, so a leg registered elsewhere
@@ -60,7 +60,7 @@ func init() {
 // RATIFIED PER-LEG SPLIT rather than a gap.
 //
 // The bootstrap history contracts come in two halves that contradict each other
-// on purpose: the store legs assert the role records NO entry, because `bd
+// on purpose: the store legs assert the role records NO entry, because `issuegraph
 // init`'s own commit records it and an in-role commit would double it, and the
 // unit-of-work leg asserts EXACTLY ONE, because the proxied init route has no
 // other commit point and a zero there would leave the identity unversioned.
@@ -73,7 +73,7 @@ func init() {
 // across the three legs, and if either half stopped being wired anywhere the
 // leg that owns it fails.
 const bootstrapSplitWaiverReason = "the bootstrap history contracts are a ratified per-leg split — the store " +
-	"legs pin zero because `bd init` commits the identity itself, the unit-of-work leg pins one because the " +
+	"legs pin zero because `issuegraph init` commits the identity itself, the unit-of-work leg pins one because the " +
 	"proxied route has no other commit point; each leg wires its own half and the other half is not its promise"
 
 // stagingWaiverReason is why the two staging contracts stop at the two

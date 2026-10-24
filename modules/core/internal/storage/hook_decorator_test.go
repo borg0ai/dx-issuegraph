@@ -6,9 +6,9 @@ import (
 	"sync"
 	"testing"
 
-	"github.com/steveyegge/beads/internal/hooks"
-	"github.com/steveyegge/beads/internal/storage"
-	"github.com/steveyegge/beads/internal/types"
+	"github.com/borg0ai/dx-issuegraph/internal/hooks"
+	"github.com/borg0ai/dx-issuegraph/internal/storage"
+	"github.com/borg0ai/dx-issuegraph/internal/types"
 )
 
 // mockHookRunner records hook invocations synchronously for testing.
@@ -58,7 +58,7 @@ func TestHookTrackingTransactionAccumulatesEvents(t *testing.T) {
 	// decorator properly wraps the transaction.
 	//
 	// Full integration tests require a real DoltStore + hook scripts,
-	// which are covered by the bd CLI integration test suite.
+	// which are covered by the issuegraph CLI integration test suite.
 	t.Log("Transaction tracking is tested via integration tests in modules/cli/")
 }
 

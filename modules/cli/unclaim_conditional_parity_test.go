@@ -6,10 +6,10 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/steveyegge/beads/internal/types"
+	"github.com/borg0ai/dx-issuegraph/internal/types"
 )
 
-// unclaimGuardOutcome is everything a caller of `bd unclaim --if-assignee` can
+// unclaimGuardOutcome is everything a caller of `issuegraph unclaim --if-assignee` can
 // observe, recorded once per backend. Comparing two of these IS the parity
 // assertion: exit codes, the row state each step left behind, and whether the
 // refusal named the actual holder (the machine-greppable half of the contract).
@@ -42,12 +42,12 @@ type unclaimGuardOutcome struct {
 // must match.
 //
 // The compare-and-swap is the point. A supervisor returning a specific worker's
-// bead must never clobber a claim that has since moved on, so the refusal has
+// issue must never clobber a claim that has since moved on, so the refusal has
 // to leave the row EXACTLY as it found it — asserted here on both backends, in
 // the same test, rather than inferred from two suites that could drift apart.
 //
-// EXIT CODE, deliberately pinned: a stale guard exits 1 on both paths. `bd
-// unclaim` has never had `bd update`'s ExitGuardMismatch (13) verdict — its
+// EXIT CODE, deliberately pinned: a stale guard exits 1 on both paths. `issuegraph
+// unclaim` has never had `issuegraph update`'s ExitGuardMismatch (13) verdict — its
 // help says so outright ("1 when any release failed (including an
 // --if-assignee mismatch)") — and this port does not invent one for the proxied
 // path, because a proxied exit code that differs from the embedded one for the
@@ -57,9 +57,9 @@ type unclaimGuardOutcome struct {
 func TestProxiedServerUnclaimIfAssigneeParity(t *testing.T) {
 	requireSharedProxiedServer(t)
 	t.Parallel()
-	bd := buildEmbeddedBD(t)
+	issuegraph := buildEmbeddedBD(t)
 
-	envs := newCrossModeEnvs(t, bd, "ucc", "ucp")
+	envs := newCrossModeEnvs(t, issuegraph, "ucc", "ucp")
 	outcomes := make(map[string]unclaimGuardOutcome, len(envs))
 
 	for _, env := range envs {
@@ -116,7 +116,7 @@ func TestProxiedServerUnclaimIfAssigneeParity(t *testing.T) {
 			t.Errorf("[%s] stale --if-assignee must fail, got exit 0", env.mode)
 		}
 		if got.staleCode != 1 {
-			t.Errorf("[%s] stale --if-assignee exit = %d, want 1 (bd unclaim does not use ExitGuardMismatch=%d)",
+			t.Errorf("[%s] stale --if-assignee exit = %d, want 1 (issuegraph unclaim does not use ExitGuardMismatch=%d)",
 				env.mode, got.staleCode, ExitGuardMismatch)
 		}
 		if !got.staleNamesHolder {

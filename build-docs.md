@@ -21,7 +21,7 @@ This infrastructure is critical for debugging, auditing, and user support - it a
   - `make install` - Used by developers building from source
   - `go install ./modules/cli` - Direct Go installation with embedded ldflag injection
   - GitHub releases - Goreleaser-built binaries for all platforms
-  - Homebrew - Pre-built binaries installed via `brew install beads`
+  - Homebrew - Pre-built binaries installed via `brew install issuegraph`
   - npm - Node.js package that downloads pre-built binaries via postinstall hook
   - `./scripts/install.sh` - User-friendly build-from-source helper
 
@@ -35,7 +35,7 @@ The `install` target is the primary development build mechanism:
 
 ```makefile
 install:
-	@echo "Installing bd to $$(go env GOPATH)/bin..."
+	@echo "Installing issuegraph to $$(go env GOPATH)/bin..."
 	@bash -c 'commit=$$(git rev-parse HEAD 2>/dev/null || echo ""); \
 		branch=$$(git rev-parse --abbrev-ref HEAD 2>/dev/null || echo ""); \
 		go install -ldflags="-X main.Commit=$$commit -X main.Branch=$$branch" ./modules/cli'
@@ -65,11 +65,11 @@ ldflags:
 ```
 
 Platform configurations:
-1. **bd-linux-amd64** (lines 12-26): Linux 64-bit Intel
-2. **bd-linux-arm64** (lines 28-44): Linux 64-bit ARM (Apple Silicon support)
-3. **bd-darwin-amd64** (lines 46-60): macOS 64-bit Intel
-4. **bd-darwin-arm64** (lines 62-76): macOS 64-bit ARM (M1/M2/M3)
-5. **bd-windows-amd64** (lines 78-95): Windows 64-bit Intel with additional `-buildmode=exe` flag
+1. **issuegraph-linux-amd64** (lines 12-26): Linux 64-bit Intel
+2. **issuegraph-linux-arm64** (lines 28-44): Linux 64-bit ARM (Apple Silicon support)
+3. **issuegraph-darwin-amd64** (lines 46-60): macOS 64-bit Intel
+4. **issuegraph-darwin-arm64** (lines 62-76): macOS 64-bit ARM (M1/M2/M3)
+5. **issuegraph-windows-amd64** (lines 78-95): Windows 64-bit Intel with additional `-buildmode=exe` flag
 
 The ldflags explained:
 - `-s -w`: Strip debug symbols to reduce binary size
@@ -107,7 +107,7 @@ The version.go file implements functions that retrieve the injected information:
    - Returns empty string if none available
 
 3. **Output Formatting** (lines 52-58):
-   - Displays commit and branch in human-readable format: `bd version 0.29.0 (dev: main@7e70940)`
+   - Displays commit and branch in human-readable format: `issuegraph version 0.29.0 (dev: main@7e70940)`
 
 ### Things to Know
 

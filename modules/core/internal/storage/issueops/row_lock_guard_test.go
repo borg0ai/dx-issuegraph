@@ -1,7 +1,7 @@
 package issueops
 
 // Build-time completeness guard for the row_lock optimistic-concurrency token,
-// absorbed from gastownhall/beads#4682's revision guard and retargeted at the
+// absorbed from borg0ai/dx-issuegraph#4682's revision guard and retargeted at the
 // row_lock column current main actually ships (see the freshRowLock invariant
 // in lease.go and types.Issue.RowVersion). The PR's substring stamp check
 // (strings.Contains(body, "revision")) was false-negative-prone — any comment
@@ -66,7 +66,7 @@ var sqlWriteKeywordRe = regexp.MustCompile(`(?i)\b(?:SET|VALUES|SELECT)\b`)
 //     updated_at (blocked_state.go x4, dependencies.go, domain/db/dependency.go)
 //     and must not remint row_lock either — an aux-marker refresh that bumped
 //     the token would clobber a concurrent whole-row CAS (ExpectedVersion) for
-//     no content change. Analysis absorbed from gastownhall/beads#4682.
+//     no content change. Analysis absorbed from borg0ai/dx-issuegraph#4682.
 //     (The PR's other exemption, the lease heartbeat, is moot on main: since
 //     bd-lrgn1 heartbeats live entirely in the ephemeral leases table and never
 //     touch the issues row.)
@@ -130,7 +130,7 @@ var auxOrExemptMarkers = []string{
 // doesn't.
 var funcNameExemptions = map[string]string{
 	// resolveOneConflictRow's `theirs` branch (conflicts.go) is whole-row
-	// adoption for `bd conflicts resolve --theirs`: every their_* column,
+	// adoption for `issuegraph conflicts resolve --theirs`: every their_* column,
 	// including their row_lock, is copied verbatim over ours. The resulting
 	// row IS their row, byte for byte, so their row_lock already vouches for
 	// exactly this content — the same "settled row equals a parent, that
@@ -161,7 +161,7 @@ func TestAllIssueRowWritesStampRowLock(t *testing.T) {
 	// versioncontrolops is included alongside issueops and the proxied
 	// domain/db: it writes issues/wisps rows too, both from automerge's
 	// field-level conflict resolution (resolveIssuesFieldMerge) and from
-	// conflicts.go's manual `bd conflicts resolve` path — both of which this
+	// conflicts.go's manual `issuegraph conflicts resolve` path — both of which this
 	// branch's own resolveIssuesFieldMerge/freshRowLockDistinctFrom pairing
 	// can assign status/assignee. Absorbed from a dual-vendor review of
 	// d10544c96, which found the original two-directory scan missed this

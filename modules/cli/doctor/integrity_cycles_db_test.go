@@ -9,7 +9,7 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/steveyegge/beads/internal/storage/dolt"
+	"github.com/borg0ai/dx-issuegraph/internal/storage/dolt"
 )
 
 func execCycleFixture(t *testing.T, db *sql.DB, stmt string, args ...any) {
@@ -48,7 +48,7 @@ func createCycleWisps(t *testing.T, store *dolt.DoltStore, ids ...string) {
 
 // TestCheckDependencyCycles_WispOnlyCycle: a cycle that exists only in
 // wisp_dependencies must be reported, matching issueops.DetectCyclesInTx and
-// 'bd dep cycles', which read dependencies UNION wisp_dependencies.
+// 'issuegraph dep cycles', which read dependencies UNION wisp_dependencies.
 func TestCheckDependencyCycles_WispOnlyCycle(t *testing.T) {
 	store := newTestDoltStore(t, "test")
 	db := store.UnderlyingDB()

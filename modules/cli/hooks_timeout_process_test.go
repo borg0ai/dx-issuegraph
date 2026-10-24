@@ -13,18 +13,18 @@ import (
 	"time"
 )
 
-const hookProcessBDStub = `#!/bin/sh
+const hookProcessIssueGraphStub = `#!/bin/sh
 printf 'bd-argc=%s\n' "$#"
-_bd_test_index=0
-for _bd_test_arg
+_issuegraph_test_index=0
+for _issuegraph_test_arg
 do
-  printf 'bd-arg-%s=<%s>\n' "$_bd_test_index" "$_bd_test_arg"
-  _bd_test_index=$((_bd_test_index + 1))
+  printf 'bd-arg-%s=<%s>\n' "$_issuegraph_test_index" "$_issuegraph_test_arg"
+  _issuegraph_test_index=$((_issuegraph_test_index + 1))
 done
-exit "${HOOK_TEST_BD_EXIT:-0}"
+exit "${HOOK_TEST_ISSUEGRAPH_EXIT:-0}"
 `
 
-const hookProcessLongRunningBDStub = `#!/bin/sh
+const hookProcessLongRunningIssueGraphStub = `#!/bin/sh
 printf 'long-running-bd-started\n'
 while :; do :; done
 `
@@ -106,14 +106,14 @@ type hookProcessFixture struct {
 }
 
 type hookProcessCase struct {
-	fixtures    []hookProcessFixture
-	bdBody      string
-	bdExit      int
-	shellOption string
-	usePOSIXSh  bool
-	timeout     *string
-	pathTail    string
-	args        []string
+	fixtures       []hookProcessFixture
+	issuegraphBody string
+	issuegraphExit int
+	shellOption    string
+	usePOSIXSh     bool
+	timeout        *string
+	pathTail       string
+	args           []string
 }
 
 type hookProcessResult struct {
@@ -200,7 +200,7 @@ func testHookProcessBackendSelection(t *testing.T) {
 					t.Errorf("incompatible helper was invoked: %s\n%s", forbidden, result.output)
 				}
 			}
-			assertHookProcessBDInvocation(t, result.output, "pre-push", args...)
+			assertHookProcessIssueGraphInvocation(t, result.output, "pre-push", args...)
 		})
 	}
 }
@@ -232,7 +232,7 @@ func testHookProcessTimeoutValidation(t *testing.T) {
 			if marker := "duration=<" + tt.wantSeconds + ">"; !strings.Contains(result.output, marker) {
 				t.Errorf("output missing effective timeout %q\n%s", marker, result.output)
 			}
-			if got := strings.Contains(result.output, "invalid BEADS_HOOK_TIMEOUT"); got != tt.wantWarning {
+			if got := strings.Contains(result.output, "invalid ISSUEGRAPH_HOOK_TIMEOUT"); got != tt.wantWarning {
 				t.Errorf("invalid-timeout warning presence = %v, want %v\n%s", got, tt.wantWarning, result.output)
 			}
 		})
@@ -249,15 +249,15 @@ func testHookProcessShellOptions(t *testing.T) {
 		}
 		t.Run("set-"+name, func(t *testing.T) {
 			result := runGeneratedHookProcess(t, hookProcessCase{
-				fixtures:    []hookProcessFixture{{name: "timeout", body: hookProcessGNUTimeoutStub}},
-				bdExit:      wantExit,
-				shellOption: option,
-				args:        args,
+				fixtures:       []hookProcessFixture{{name: "timeout", body: hookProcessGNUTimeoutStub}},
+				issuegraphExit: wantExit,
+				shellOption:    option,
+				args:           args,
 			})
 			if result.exitCode != wantExit {
-				t.Fatalf("generated hook exit = %d, want bd exit %d\n%s", result.exitCode, wantExit, result.output)
+				t.Fatalf("generated hook exit = %d, want issuegraph exit %d\n%s", result.exitCode, wantExit, result.output)
 			}
-			assertHookProcessBDInvocation(t, result.output, "pre-push", args...)
+			assertHookProcessIssueGraphInvocation(t, result.output, "pre-push", args...)
 		})
 	}
 }
@@ -266,16 +266,16 @@ func testHookProcessPOSIXShell(t *testing.T) {
 	const wantExit = 37
 	args := []string{"argument with space", "second-argument"}
 	result := runGeneratedHookProcess(t, hookProcessCase{
-		fixtures:    []hookProcessFixture{{name: "timeout", body: hookProcessGNUTimeoutStub}},
-		bdExit:      wantExit,
-		shellOption: "eu",
-		usePOSIXSh:  true,
-		args:        args,
+		fixtures:       []hookProcessFixture{{name: "timeout", body: hookProcessGNUTimeoutStub}},
+		issuegraphExit: wantExit,
+		shellOption:    "eu",
+		usePOSIXSh:     true,
+		args:           args,
 	})
 	if result.exitCode != wantExit {
-		t.Fatalf("generated hook exit = %d, want bd exit %d\n%s", result.exitCode, wantExit, result.output)
+		t.Fatalf("generated hook exit = %d, want issuegraph exit %d\n%s", result.exitCode, wantExit, result.output)
 	}
-	assertHookProcessBDInvocation(t, result.output, "pre-push", args...)
+	assertHookProcessIssueGraphInvocation(t, result.output, "pre-push", args...)
 }
 
 func testHookProcessReservedStatuses(t *testing.T) {
@@ -287,27 +287,27 @@ func testHookProcessReservedStatuses(t *testing.T) {
 	}
 	direct := perl[:2]
 	tests := []struct {
-		name          string
-		fixtures      []hookProcessFixture
-		bdExit        int
-		wantExit      int
-		wantWarning   bool
-		wantDBWarning bool
+		name           string
+		fixtures       []hookProcessFixture
+		issuegraphExit int
+		wantExit       int
+		wantWarning    bool
+		wantDBWarning  bool
 	}{
-		{name: "database-not-initialized is skipped", fixtures: gnu, bdExit: 3, wantDBWarning: true},
-		{name: "GNU owns 124", fixtures: gnu, bdExit: 124, wantWarning: true},
-		{name: "GNU preserves 137", fixtures: gnu, bdExit: 137, wantExit: 137},
-		{name: "GNU preserves 142", fixtures: gnu, bdExit: 142, wantExit: 142},
-		{name: "Perl preserves 124", fixtures: perl, bdExit: 124, wantExit: 124},
-		{name: "Perl owns 142", fixtures: perl, bdExit: 142, wantWarning: true},
-		{name: "direct preserves 124", fixtures: direct, bdExit: 124, wantExit: 124},
-		{name: "direct preserves 137", fixtures: direct, bdExit: 137, wantExit: 137},
-		{name: "direct preserves 142", fixtures: direct, bdExit: 142, wantExit: 142},
+		{name: "database-not-initialized is skipped", fixtures: gnu, issuegraphExit: 3, wantDBWarning: true},
+		{name: "GNU owns 124", fixtures: gnu, issuegraphExit: 124, wantWarning: true},
+		{name: "GNU preserves 137", fixtures: gnu, issuegraphExit: 137, wantExit: 137},
+		{name: "GNU preserves 142", fixtures: gnu, issuegraphExit: 142, wantExit: 142},
+		{name: "Perl preserves 124", fixtures: perl, issuegraphExit: 124, wantExit: 124},
+		{name: "Perl owns 142", fixtures: perl, issuegraphExit: 142, wantWarning: true},
+		{name: "direct preserves 124", fixtures: direct, issuegraphExit: 124, wantExit: 124},
+		{name: "direct preserves 137", fixtures: direct, issuegraphExit: 137, wantExit: 137},
+		{name: "direct preserves 142", fixtures: direct, issuegraphExit: 142, wantExit: 142},
 	}
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			result := runGeneratedHookProcess(t, hookProcessCase{fixtures: tt.fixtures, bdExit: tt.bdExit})
+			result := runGeneratedHookProcess(t, hookProcessCase{fixtures: tt.fixtures, issuegraphExit: tt.issuegraphExit})
 			if result.exitCode != tt.wantExit {
 				t.Errorf("generated hook exit = %d, want %d\n%s", result.exitCode, tt.wantExit, result.output)
 			}
@@ -325,9 +325,9 @@ func testHookProcessRealTimeoutExpiry(t *testing.T) {
 	helperName, helperDir := findHookProcessGNUTimeout(t)
 	timeout := "1"
 	result := runGeneratedHookProcess(t, hookProcessCase{
-		bdBody:   hookProcessLongRunningBDStub,
-		timeout:  &timeout,
-		pathTail: helperDir,
+		issuegraphBody: hookProcessLongRunningIssueGraphStub,
+		timeout:        &timeout,
+		pathTail:       helperDir,
 	})
 	if result.exitCode != 0 {
 		t.Fatalf("generated hook exit = %d, want normalized timeout success\n%s", result.exitCode, result.output)
@@ -352,9 +352,9 @@ func testHookProcessRealPerlExpiry(t *testing.T) {
 			{name: "timeout", body: hookProcessIncompatibleTimeoutStub},
 			{name: "gtimeout", body: hookProcessIncompatibleGtimeoutStub},
 		},
-		bdBody:   hookProcessLongRunningBDStub,
-		timeout:  &timeout,
-		pathTail: perlDir,
+		issuegraphBody: hookProcessLongRunningIssueGraphStub,
+		timeout:        &timeout,
+		pathTail:       perlDir,
 	})
 	if result.exitCode != 0 {
 		t.Fatalf("generated hook exit = %d, want normalized Perl alarm success\n%s", result.exitCode, result.output)
@@ -383,13 +383,13 @@ func testHookProcessWindowsSystemTimeoutCheckout(t *testing.T) {
 	}
 
 	binDir := t.TempDir()
-	writeHookProcessFixture(t, binDir, "bd", hookProcessBDStub)
+	writeHookProcessFixture(t, binDir, "issuegraph", hookProcessIssueGraphStub)
 	controlledPath := hookProcessShellPath(t, binDir) + ":" + hookProcessShellPath(t, system32)
 	probe := exec.Command(hookProcessShell(t), "--noprofile", "--norc", "-c", `
 PATH=$1
 export PATH
-_bd_test_timeout=$(command -v timeout) || exit 1
-printf '%s\n' "$_bd_test_timeout"
+_issuegraph_test_timeout=$(command -v timeout) || exit 1
+printf '%s\n' "$_issuegraph_test_timeout"
 if timeout --version >/dev/null 2>&1; then exit 2; fi
 `, "system32-timeout-probe", controlledPath)
 	probe.Env = hookProcessEnv()
@@ -411,7 +411,7 @@ if timeout --version >/dev/null 2>&1; then exit 2; fi
 	if err != nil {
 		t.Fatalf("Git for Windows is required: %v", err)
 	}
-	gitEnv := hookProcessGitEnv(t.TempDir(), "HOOK_TEST_BD_EXIT=0")
+	gitEnv := hookProcessGitEnv(t.TempDir(), "HOOK_TEST_ISSUEGRAPH_EXIT=0")
 	runHookProcessGit(t, gitPath, repoDir, gitEnv, "init", "--initial-branch=main", ".")
 	runHookProcessGit(t, gitPath, repoDir, gitEnv, "config", "core.hooksPath", ".git/hooks")
 	runHookProcessGit(t, gitPath, repoDir, gitEnv, "config", "user.name", "Hook Test")
@@ -440,7 +440,7 @@ if timeout --version >/dev/null 2>&1; then exit 2; fi
 	if !strings.Contains(output, "running without timeout") {
 		t.Errorf("checkout output missing incompatible-timeout fallback warning\n%s", output)
 	}
-	assertHookProcessBDInvocation(t, output, "post-checkout", commit, commit, "1")
+	assertHookProcessIssueGraphInvocation(t, output, "post-checkout", commit, commit, "1")
 	if head := strings.TrimSpace(runHookProcessGit(t, gitPath, repoDir, gitEnv, "symbolic-ref", "--short", "HEAD")); head != "topic" {
 		t.Fatalf("HEAD = %q after successful checkout, want topic", head)
 	}
@@ -450,11 +450,11 @@ func runGeneratedHookProcess(t *testing.T, tc hookProcessCase) hookProcessResult
 	t.Helper()
 
 	binDir := t.TempDir()
-	bdBody := tc.bdBody
-	if bdBody == "" {
-		bdBody = hookProcessBDStub
+	issuegraphBody := tc.issuegraphBody
+	if issuegraphBody == "" {
+		issuegraphBody = hookProcessIssueGraphStub
 	}
-	writeHookProcessFixture(t, binDir, "bd", bdBody)
+	writeHookProcessFixture(t, binDir, "issuegraph", issuegraphBody)
 	for _, fixture := range tc.fixtures {
 		writeHookProcessFixture(t, binDir, fixture.name, fixture.body)
 	}
@@ -477,9 +477,9 @@ case "$1" in
   *) exit 95 ;;
 esac
 shift
-_bd_test_hook=$1
+_issuegraph_test_hook=$1
 shift
-. "$_bd_test_hook"
+. "$_issuegraph_test_hook"
 `
 	shellPath := hookProcessShell(t)
 	commandArgs := []string{"--noprofile", "--norc", "-c", controlScript, "generated-hook-test", controlledPath, tc.shellOption, hookProcessShellPath(t, hookPath)}
@@ -492,9 +492,9 @@ shift
 	t.Cleanup(cancel)
 	cmd := exec.CommandContext(ctx, shellPath, commandArgs...)
 	cmd.WaitDelay = time.Second
-	cmd.Env = append(hookProcessEnv(), "HOOK_TEST_BD_EXIT="+strconv.Itoa(tc.bdExit))
+	cmd.Env = append(hookProcessEnv(), "HOOK_TEST_ISSUEGRAPH_EXIT="+strconv.Itoa(tc.issuegraphExit))
 	if tc.timeout != nil {
-		cmd.Env = append(cmd.Env, "BEADS_HOOK_TIMEOUT="+*tc.timeout)
+		cmd.Env = append(cmd.Env, "ISSUEGRAPH_HOOK_TIMEOUT="+*tc.timeout)
 	}
 	started := time.Now()
 	output, err := cmd.CombinedOutput()
@@ -515,13 +515,13 @@ shift
 
 func findHookProcessGNUTimeout(t *testing.T) (string, string) {
 	t.Helper()
-	probe := `for _bd_test_candidate in timeout gtimeout; do
-  if command -v "$_bd_test_candidate" >/dev/null 2>&1 &&
-     _bd_test_version="$("$_bd_test_candidate" --version 2>/dev/null)"; then
-    case "$_bd_test_version" in
+	probe := `for _issuegraph_test_candidate in timeout gtimeout; do
+  if command -v "$_issuegraph_test_candidate" >/dev/null 2>&1 &&
+     _issuegraph_test_version="$("$_issuegraph_test_candidate" --version 2>/dev/null)"; then
+    case "$_issuegraph_test_version" in
       "timeout (GNU coreutils) "*)
-        _bd_test_path=$(command -v "$_bd_test_candidate")
-        printf '%s\n%s\n' "$_bd_test_candidate" "${_bd_test_path%/*}"
+        _issuegraph_test_path=$(command -v "$_issuegraph_test_candidate")
+        printf '%s\n%s\n' "$_issuegraph_test_candidate" "${_issuegraph_test_path%/*}"
         exit 0
         ;;
     esac
@@ -545,9 +545,9 @@ exit 1
 func findHookProcessPerl(t *testing.T) string {
 	t.Helper()
 	probe := `
-_bd_test_path=$(command -v perl) || exit 1
+_issuegraph_test_path=$(command -v perl) || exit 1
 perl -e 'exit 0' || exit 1
-printf '%s\n' "${_bd_test_path%/*}"
+printf '%s\n' "${_issuegraph_test_path%/*}"
 `
 	cmd := exec.Command(hookProcessShell(t), "--noprofile", "--norc", "-c", probe)
 	cmd.Env = hookProcessEnv()
@@ -573,7 +573,7 @@ func writeHookProcessFixture(t *testing.T, dir, name, body string) {
 	}
 }
 
-func assertHookProcessBDInvocation(t *testing.T, output, hookName string, hookArgs ...string) {
+func assertHookProcessIssueGraphInvocation(t *testing.T, output, hookName string, hookArgs ...string) {
 	t.Helper()
 	wantArgs := append([]string{"hooks", "run", hookName}, hookArgs...)
 	if marker := fmt.Sprintf("bd-argc=%d", len(wantArgs)); !strings.Contains(output, marker) {
@@ -663,7 +663,7 @@ func hookProcessEnv() []string {
 		}
 		upper := strings.ToUpper(key)
 		if upper == "BASH_ENV" || upper == "BASHOPTS" || upper == "ENV" || upper == "SHELLOPTS" ||
-			upper == "BEADS_HOOK_TIMEOUT" || upper == "HOOK_TEST_BD_EXIT" {
+			upper == "ISSUEGRAPH_HOOK_TIMEOUT" || upper == "HOOK_TEST_ISSUEGRAPH_EXIT" {
 			continue
 		}
 		env = append(env, entry)
@@ -680,7 +680,7 @@ func hookProcessGitEnv(home string, extra ...string) []string {
 		}
 		upper := strings.ToUpper(key)
 		if upper == "HOME" || upper == "USERPROFILE" || upper == "BASH_ENV" || upper == "BASHOPTS" || upper == "ENV" || upper == "SHELLOPTS" ||
-			strings.HasPrefix(upper, "GIT_") || upper == "HOOK_TEST_BD_EXIT" {
+			strings.HasPrefix(upper, "GIT_") || upper == "HOOK_TEST_ISSUEGRAPH_EXIT" {
 			continue
 		}
 		env = append(env, entry)

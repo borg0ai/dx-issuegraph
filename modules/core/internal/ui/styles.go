@@ -1,4 +1,4 @@
-// Package ui provides terminal styling for beads CLI output.
+// Package ui provides terminal styling for issuegraph CLI output.
 // Uses the Ayu color theme with adaptive light/dark mode support.
 package ui
 
@@ -9,7 +9,7 @@ import (
 	"strings"
 
 	lipgloss "charm.land/lipgloss/v2"
-	"github.com/steveyegge/beads/internal/types"
+	"github.com/borg0ai/dx-issuegraph/internal/types"
 )
 
 func init() {
@@ -80,12 +80,12 @@ func DisableColors() {
 
 // IsAgentMode returns true if the CLI is running in agent-optimized mode.
 // This is triggered by:
-//   - BD_AGENT_MODE=1 environment variable (explicit)
+//   - ISSUEGRAPH_AGENT_MODE=1 environment variable (explicit)
 //   - CLAUDE_CODE environment variable (auto-detect Claude Code)
 //
 // Agent mode provides ultra-compact output optimized for LLM context windows.
 func IsAgentMode() bool {
-	if os.Getenv("BD_AGENT_MODE") == "1" {
+	if os.Getenv("ISSUEGRAPH_AGENT_MODE") == "1" {
 		return true
 	}
 	// Auto-detect Claude Code environment

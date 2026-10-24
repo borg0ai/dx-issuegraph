@@ -3,14 +3,14 @@ package main
 import (
 	"testing"
 
-	"github.com/steveyegge/beads/internal/types"
+	"github.com/borg0ai/dx-issuegraph/internal/types"
 )
 
 // TestApplyReplacementsWordBoundary verifies that distill's variable
 // substitution uses word boundaries to avoid corrupting unrelated text
 // that contains the replacement value as a substring.
 //
-// Regression for: bd mol distill substituting "4" (from --var new_routes=4)
+// Regression for: issuegraph mol distill substituting "4" (from --var new_routes=4)
 // previously turned "return 404" into "return {{new_routes}}0{{new_routes}}"
 // because strings.ReplaceAll has no notion of token boundaries.
 func TestApplyReplacementsWordBoundary(t *testing.T) {

@@ -8,12 +8,12 @@ import (
 	"strings"
 	"time"
 
-	"github.com/steveyegge/beads/internal/formula"
-	"github.com/steveyegge/beads/internal/storage/domain"
-	"github.com/steveyegge/beads/internal/storage/uow"
-	"github.com/steveyegge/beads/internal/types"
-	"github.com/steveyegge/beads/internal/ui"
-	"github.com/steveyegge/beads/internal/utils"
+	"github.com/borg0ai/dx-issuegraph/internal/formula"
+	"github.com/borg0ai/dx-issuegraph/internal/storage/domain"
+	"github.com/borg0ai/dx-issuegraph/internal/storage/uow"
+	"github.com/borg0ai/dx-issuegraph/internal/types"
+	"github.com/borg0ai/dx-issuegraph/internal/ui"
+	"github.com/borg0ai/dx-issuegraph/internal/utils"
 )
 
 func runWispCreateProxiedServer(ctx context.Context, in wispCreateInput) error {
@@ -48,7 +48,7 @@ func runWispCreateProxiedServer(ctx context.Context, in wispCreateInput) error {
 		protoID, err := utils.ResolvePartialID(ctx, r, in.protoArg)
 		if err != nil {
 			uw.Close(ctx)
-			return HandleErrorWithHint(fmt.Sprintf("'%s' not found as formula or proto", in.protoArg), "run 'bd formula list' to see available formulas")
+			return HandleErrorWithHint(fmt.Sprintf("'%s' not found as formula or proto", in.protoArg), "run 'issuegraph formula list' to see available formulas")
 		}
 		protoIssue, err := r.GetIssue(ctx, protoID)
 		if err != nil {
@@ -93,7 +93,7 @@ func runWispCreateProxiedServer(ctx context.Context, in wispCreateInput) error {
 		if err != nil {
 			return nil, "", fmt.Errorf("creating wisp: %w", err)
 		}
-		return spawnResult, fmt.Sprintf("bd: wisp create %s", protoID), nil
+		return spawnResult, fmt.Sprintf("issuegraph: wisp create %s", protoID), nil
 	})
 	if err != nil {
 		return HandleError("%v", err)
@@ -186,7 +186,7 @@ func runWispGCProxiedServer(ctx context.Context, dryRun bool, ageThreshold time.
 		if err != nil {
 			return domain.DeleteIssuesResult{}, "", err
 		}
-		return res, fmt.Sprintf("bd: wisp gc %d", res.DeletedCount), nil
+		return res, fmt.Sprintf("issuegraph: wisp gc %d", res.DeletedCount), nil
 	})
 	if err != nil {
 		return HandleError("%v", err)
@@ -317,7 +317,7 @@ func runWispPurgeClosedProxiedServer(ctx context.Context, dryRun, force bool, ex
 		if err != nil {
 			return domain.DeleteIssuesResult{}, "", err
 		}
-		return res, fmt.Sprintf("bd: wisp gc --closed %d", res.DeletedCount), nil
+		return res, fmt.Sprintf("issuegraph: wisp gc --closed %d", res.DeletedCount), nil
 	})
 	if err != nil {
 		return HandleError("%v", err)

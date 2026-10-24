@@ -1,5 +1,5 @@
 #!/bin/bash
-# Post-push hook: Rebuild and install bd CLI after successful push
+# Post-push hook: Rebuild and install issuegraph CLI after successful push
 
 set -e
 
@@ -8,9 +8,9 @@ set -e
 if git log --name-only -1 origin/main..HEAD 2>/dev/null | grep -q '\.go$' || \
    git diff --name-only HEAD~1 HEAD 2>/dev/null | grep -q '\.go$'; then
     echo ""
-    echo "Go files changed, rebuilding bd CLI..."
-    go install github.com/steveyegge/beads/modules/cli
-    echo "✓ bd CLI installed successfully"
+    echo "Go files changed, rebuilding issuegraph CLI..."
+    go install github.com/borg0ai/dx-issuegraph/modules/cli
+    echo "✓ issuegraph CLI installed successfully"
     echo ""
 fi
 

@@ -7,19 +7,19 @@ import (
 	"io"
 	"strings"
 
-	"github.com/steveyegge/beads/internal/types"
+	"github.com/borg0ai/dx-issuegraph/internal/types"
 )
 
 // renderGraphDOT renders the graph in Graphviz DOT format.
-// Output can be piped to graphviz: bd graph --dot <id> | dot -Tsvg > graph.svg
+// Output can be piped to graphviz: issuegraph graph --dot <id> | dot -Tsvg > graph.svg
 func renderGraphDOT(out io.Writer, layout *GraphLayout, subgraph *TemplateSubgraph) error {
 	w := &graphExportWriter{out: out}
 	if len(layout.Nodes) == 0 {
-		w.println("digraph beads { }")
+		w.println("digraph issuegraph { }")
 		return w.wrapError("DOT")
 	}
 
-	w.println("digraph beads {")
+	w.println("digraph issuegraph {")
 	w.println("  rankdir=LR;")
 	w.println("  node [shape=box, style=\"rounded,filled\", fontname=\"Helvetica\", fontsize=11];")
 	w.println("  edge [color=\"#666666\"];")
@@ -171,9 +171,9 @@ func renderGraphHTML(out io.Writer, layout *GraphLayout, subgraph *TemplateSubgr
 		return fmt.Errorf("marshaling HTML graph edges: %w", err)
 	}
 
-	title := "Beads Dependency Graph"
+	title := "IssueGraph Dependency Graph"
 	if subgraph.Root != nil {
-		title = fmt.Sprintf("Beads: %s (%s)", subgraph.Root.Title, subgraph.Root.ID)
+		title = fmt.Sprintf("IssueGraph: %s (%s)", subgraph.Root.Title, subgraph.Root.ID)
 	}
 
 	if _, err := fmt.Fprintf(out, htmlTemplate, html.EscapeString(title), string(nodesJSON), string(edgesJSON)); err != nil {

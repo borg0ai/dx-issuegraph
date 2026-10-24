@@ -22,7 +22,7 @@ func TestCursorHookSessionStartInjectsPrime(t *testing.T) {
 	t.Cleanup(func() { cursorHookMarkerDirOverride = "" })
 
 	stubCursorHookPrime(t, func() (string, error) {
-		return "BEADS PRIME\nbd ready --json\n", nil
+		return "ISSUEGRAPH PRIME\nbd ready --json\n", nil
 	})
 
 	var out bytes.Buffer
@@ -38,7 +38,7 @@ func TestCursorHookSessionStartInjectsPrime(t *testing.T) {
 	if got.Continue == nil || !*got.Continue {
 		t.Fatalf("expected continue=true, got %#v", got)
 	}
-	if !strings.Contains(got.AdditionalContext, "bd ready --json") {
+	if !strings.Contains(got.AdditionalContext, "issuegraph ready --json") {
 		t.Fatalf("expected prime output in additional_context: %#v", got)
 	}
 }
@@ -91,7 +91,7 @@ func TestCursorHookPreCompactThenPostToolRefreshesOnce(t *testing.T) {
 	calls := 0
 	stubCursorHookPrime(t, func() (string, error) {
 		calls++
-		return "REFRESHED BEADS CONTEXT\n", nil
+		return "REFRESHED ISSUEGRAPH CONTEXT\n", nil
 	})
 
 	// preCompact arms the one-shot marker and emits a user message.
@@ -122,7 +122,7 @@ func TestCursorHookPreCompactThenPostToolRefreshesOnce(t *testing.T) {
 	if err := json.Unmarshal(toolOut.Bytes(), &toolResp); err != nil {
 		t.Fatalf("parse postToolUse: %v", err)
 	}
-	if !strings.Contains(toolResp.AdditionalContext, "REFRESHED BEADS CONTEXT") {
+	if !strings.Contains(toolResp.AdditionalContext, "REFRESHED ISSUEGRAPH CONTEXT") {
 		t.Fatalf("expected refreshed context in additional_context, got %#v", toolResp)
 	}
 	if toolResp.Continue == nil || !*toolResp.Continue {

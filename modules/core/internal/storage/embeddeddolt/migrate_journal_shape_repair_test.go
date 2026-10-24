@@ -9,14 +9,14 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/steveyegge/beads/internal/storage/schema"
+	"github.com/borg0ai/dx-issuegraph/internal/storage/schema"
 )
 
 // These tests pin ignored migration 0023, the events-journal shape repair
 // (bd-t9ovd). A workspace provisioned from the fork lineage that created the
 // journal tables under ignored slot 0017 arrives with its ignored cursor past
 // 0022, so upstream's 0017..0022 are recorded as applied without ever having
-// run: the payload columns stay TEXT, idx_bd_events_journal_ts is missing, and
+// run: the payload columns stay TEXT, idx_issuegraph_events_journal_ts is missing, and
 // idx_wisps_defer_until (0017's actual content upstream) never got created.
 // 0023 repairs all three, each behind its own probe, and does nothing at all on
 // a healthy workspace.
@@ -24,7 +24,7 @@ import (
 // Every fixture seeds the main schema at journalRepairSeedVersion rather than
 // at latest. That is not cosmetic: seedMainSchemaAt's DOLT_ADD('-A') baseline
 // commit runs before MigrateUp seeds the static dolt_ignore patterns, so a
-// baseline taken at or after 0064 lands bd_events_journal in committed history
+// baseline taken at or after 0064 lands issuegraph_events_journal in committed history
 // (the harness artifact migrate_ignored_plane_shape_test.go documents), and the
 // drifted fixture's drop/recreate would then show as a tracked change that
 // MigrateUp's ignored-source dirty-table guard refuses. Seeding one version
@@ -40,7 +40,7 @@ const (
 // issue_id index alone. Everything else matches 0022, because everything else
 // is what the two lineages agree on.
 const forkLineageJournalDDL = `
-CREATE TABLE bd_events_journal (
+CREATE TABLE issuegraph_events_journal (
     seq BIGINT NOT NULL PRIMARY KEY,
     ts DATETIME NOT NULL,
     op VARCHAR(32) NOT NULL,
@@ -48,7 +48,7 @@ CREATE TABLE bd_events_journal (
     issue_json LONGTEXT,
     dep_json TEXT,
     comment_json TEXT,
-    INDEX idx_bd_events_journal_issue (issue_id)
+    INDEX idx_issuegraph_events_journal_issue (issue_id)
 );`
 
 // TestEmbeddedIgnoredMigration0023RepairsForkLineageJournalShape is the
@@ -62,10 +62,10 @@ func TestEmbeddedIgnoredMigration0023RepairsForkLineageJournalShape(t *testing.T
 	conn, closeConn := newWorkspaceBeforeMigration0023(t, ctx)
 	defer closeConn()
 
-	// The drift. bd_events_journal and wisps are both clone-local and absent
+	// The drift. issuegraph_events_journal and wisps are both clone-local and absent
 	// from HEAD here, so replacing the table and dropping the index leaves the
 	// working set exactly as clean as it was.
-	execFrozenGuard(t, ctx, conn, "DROP TABLE IF EXISTS bd_events_journal;"+forkLineageJournalDDL)
+	execFrozenGuard(t, ctx, conn, "DROP TABLE IF EXISTS issuegraph_events_journal;"+forkLineageJournalDDL)
 	execFrozenGuard(t, ctx, conn, "DROP INDEX idx_wisps_defer_until ON wisps")
 
 	// Data the repair must not touch: three journal rows whose payloads carry
@@ -86,12 +86,12 @@ func TestEmbeddedIgnoredMigration0023RepairsForkLineageJournalShape(t *testing.T
 	}
 	for _, s := range seed {
 		if _, err := conn.ExecContext(ctx, `
-INSERT INTO bd_events_journal (seq, ts, op, issue_id, issue_json, dep_json, comment_json)
+INSERT INTO issuegraph_events_journal (seq, ts, op, issue_id, issue_json, dep_json, comment_json)
 VALUES (?, ?, ?, 'bd-t9ovd', ?, ?, ?)`, s.seq, s.ts, s.op, s.issueJSON, s.depJSON, s.commentJSON); err != nil {
 			t.Fatalf("seed journal row %d: %v", s.seq, err)
 		}
 	}
-	execFrozenGuard(t, ctx, conn, "UPDATE bd_events_seq SET next_seq = 1 WHERE id = 0")
+	execFrozenGuard(t, ctx, conn, "UPDATE issuegraph_events_seq SET next_seq = 1 WHERE id = 0")
 	rowsBefore := readJournalRows(t, ctx, conn)
 	if len(rowsBefore) != len(seed) {
 		t.Fatalf("seeded journal rows = %d, want %d", len(rowsBefore), len(seed))
@@ -102,7 +102,7 @@ VALUES (?, ?, ?, 'bd-t9ovd', ?, ?, ?)`, s.seq, s.ts, s.op, s.issueJSON, s.depJSO
 	// refusal rolls back the user mutation whose transaction the journal row
 	// shares.
 	if _, err := conn.ExecContext(ctx,
-		"INSERT INTO bd_events_journal (seq, ts, op, issue_id, comment_json) VALUES (99, '2026-08-01 00:00:03', 'comment', 'bd-t9ovd', ?)",
+		"INSERT INTO issuegraph_events_journal (seq, ts, op, issue_id, comment_json) VALUES (99, '2026-08-01 00:00:03', 'comment', 'bd-t9ovd', ?)",
 		strings.Repeat("x", 70000)); err == nil {
 		t.Fatal("oversized comment_json insert succeeded on the drifted TEXT column; the fixture is not reproducing the drift this migration repairs")
 	}
@@ -115,37 +115,37 @@ VALUES (?, ?, ?, 'bd-t9ovd', ?, ?, ?)`, s.seq, s.ts, s.op, s.issueJSON, s.depJSO
 	// Shape converged.
 	for _, column := range []string{"dep_json", "comment_json"} {
 		if got := journalColumnDataType(t, ctx, conn, column); got != "longtext" {
-			t.Errorf("bd_events_journal.%s DATA_TYPE = %q after repair, want %q", column, got, "longtext")
+			t.Errorf("issuegraph_events_journal.%s DATA_TYPE = %q after repair, want %q", column, got, "longtext")
 		}
 	}
-	requireIndex(t, ctx, conn, "bd_events_journal", "idx_bd_events_journal_ts", 1)
-	requireIndex(t, ctx, conn, "bd_events_journal", "idx_bd_events_journal_issue", 1)
+	requireIndex(t, ctx, conn, "issuegraph_events_journal", "idx_issuegraph_events_journal_ts", 1)
+	requireIndex(t, ctx, conn, "issuegraph_events_journal", "idx_issuegraph_events_journal_issue", 1)
 	requireIndex(t, ctx, conn, "wisps", "idx_wisps_defer_until", 1)
 
 	// Data survived byte for byte, and the counter was not touched.
 	assertJournalRowsEqual(t, rowsBefore, readJournalRows(t, ctx, conn))
-	if got := scalarInt(t, ctx, conn, "SELECT next_seq FROM bd_events_seq WHERE id = 0"); got != 1 {
-		t.Errorf("bd_events_seq.next_seq = %d after repair, want 1 (0023 must touch neither the counter nor any data)", got)
+	if got := scalarInt(t, ctx, conn, "SELECT next_seq FROM issuegraph_events_seq WHERE id = 0"); got != 1 {
+		t.Errorf("issuegraph_events_seq.next_seq = %d after repair, want 1 (0023 must touch neither the counter nor any data)", got)
 	}
 
 	// The repair is what makes the write that used to roll back a user's
 	// mutation land instead.
 	if _, err := conn.ExecContext(ctx,
-		"INSERT INTO bd_events_journal (seq, ts, op, issue_id, comment_json) VALUES (99, '2026-08-01 00:00:03', 'comment', 'bd-t9ovd', ?)",
+		"INSERT INTO issuegraph_events_journal (seq, ts, op, issue_id, comment_json) VALUES (99, '2026-08-01 00:00:03', 'comment', 'bd-t9ovd', ?)",
 		strings.Repeat("x", 70000)); err != nil {
 		t.Fatalf("oversized comment_json insert still refused after repair: %v", err)
 	}
-	if got := scalarInt(t, ctx, conn, "SELECT LENGTH(comment_json) FROM bd_events_journal WHERE seq = 99"); got != 70000 {
+	if got := scalarInt(t, ctx, conn, "SELECT LENGTH(comment_json) FROM issuegraph_events_journal WHERE seq = 99"); got != 70000 {
 		t.Errorf("stored oversized comment_json length = %d, want 70000", got)
 	}
-	execFrozenGuard(t, ctx, conn, "DELETE FROM bd_events_journal WHERE seq = 99")
+	execFrozenGuard(t, ctx, conn, "DELETE FROM issuegraph_events_journal WHERE seq = 99")
 
 	// Crash-replay: the pass can be killed and re-run, so the frozen bytes must
 	// be a clean no-op against the state they just produced.
-	createBefore := showCreateTable(t, ctx, conn, "bd_events_journal")
+	createBefore := showCreateTable(t, ctx, conn, "issuegraph_events_journal")
 	execFrozenGuard(t, ctx, conn, ignoredMigration0023SQL(t))
-	if createAfter := showCreateTable(t, ctx, conn, "bd_events_journal"); createAfter != createBefore {
-		t.Errorf("replaying 0023 changed bd_events_journal:\nbefore:\n%s\nafter:\n%s", createBefore, createAfter)
+	if createAfter := showCreateTable(t, ctx, conn, "issuegraph_events_journal"); createAfter != createBefore {
+		t.Errorf("replaying 0023 changed issuegraph_events_journal:\nbefore:\n%s\nafter:\n%s", createBefore, createAfter)
 	}
 	assertJournalRowsEqual(t, rowsBefore, readJournalRows(t, ctx, conn))
 }
@@ -162,7 +162,7 @@ func TestEmbeddedIgnoredMigration0023NoopsOnHealthyWorkspace(t *testing.T) {
 	conn, closeConn := newWorkspaceBeforeMigration0023(t, ctx)
 	defer closeConn()
 
-	tables := []string{"bd_events_journal", "bd_events_seq", "wisps"}
+	tables := []string{"issuegraph_events_journal", "issuegraph_events_seq", "wisps"}
 	before := make(map[string]string, len(tables))
 	for _, table := range tables {
 		before[table] = showCreateTable(t, ctx, conn, table)
@@ -198,7 +198,7 @@ func TestEmbeddedIgnoredMigration0023NoopsWithoutItsTables(t *testing.T) {
 	// Children before the FK parent, as migrate_ignored_plane_shape_test.go's
 	// clone door does.
 	execFrozenGuard(t, ctx, conn, `
-DROP TABLE IF EXISTS bd_events_journal;
+DROP TABLE IF EXISTS issuegraph_events_journal;
 DROP TABLE IF EXISTS wisp_child_counters;
 DROP TABLE IF EXISTS wisp_comments;
 DROP TABLE IF EXISTS wisp_events;
@@ -208,7 +208,7 @@ DROP TABLE IF EXISTS wisps;
 `)
 	execFrozenGuard(t, ctx, conn, ignoredMigration0023SQL(t))
 
-	for _, table := range []string{"bd_events_journal", "wisps"} {
+	for _, table := range []string{"issuegraph_events_journal", "wisps"} {
 		var got int
 		if err := conn.QueryRowContext(ctx, `
 SELECT COUNT(*) FROM INFORMATION_SCHEMA.TABLES
@@ -295,8 +295,8 @@ func journalColumnDataType(t *testing.T, ctx context.Context, conn *sql.Conn, co
 	var got string
 	if err := conn.QueryRowContext(ctx, `
 SELECT DATA_TYPE FROM INFORMATION_SCHEMA.COLUMNS
-WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = 'bd_events_journal' AND COLUMN_NAME = ?`, column).Scan(&got); err != nil {
-		t.Fatalf("read bd_events_journal.%s data type: %v", column, err)
+WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = 'issuegraph_events_journal' AND COLUMN_NAME = ?`, column).Scan(&got); err != nil {
+		t.Fatalf("read issuegraph_events_journal.%s data type: %v", column, err)
 	}
 	return got
 }
@@ -334,7 +334,7 @@ func readJournalRows(t *testing.T, ctx context.Context, conn *sql.Conn) []journa
 	t.Helper()
 	rows, err := conn.QueryContext(ctx, `
 SELECT seq, ts, op, issue_id, issue_json, dep_json, comment_json
-FROM bd_events_journal ORDER BY seq`)
+FROM issuegraph_events_journal ORDER BY seq`)
 	if err != nil {
 		t.Fatalf("read journal rows: %v", err)
 	}

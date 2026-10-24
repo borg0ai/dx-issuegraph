@@ -5,7 +5,7 @@ import "sort"
 // ContentHashSkew returns the migration versions that have a recorded content
 // hash on BOTH sides but whose hashes DIFFER — i.e. two clones applied divergent
 // content for the same migration version. That is the silent schema fork from
-// gastownhall/beads#4259: two clones report the same MAX(version) yet ran
+// borg0ai/dx-issuegraph#4259: two clones report the same MAX(version) yet ran
 // different migration content, which only surfaces (cryptically) when a merge
 // fails.
 //

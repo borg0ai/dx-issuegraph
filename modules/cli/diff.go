@@ -3,10 +3,10 @@ package main
 import (
 	"fmt"
 
+	"github.com/borg0ai/dx-issuegraph/internal/metrics"
+	"github.com/borg0ai/dx-issuegraph/internal/storage"
+	"github.com/borg0ai/dx-issuegraph/internal/ui"
 	"github.com/spf13/cobra"
-	"github.com/steveyegge/beads/internal/metrics"
-	"github.com/steveyegge/beads/internal/storage"
-	"github.com/steveyegge/beads/internal/ui"
 )
 
 var diffCmd = &cobra.Command{
@@ -21,9 +21,9 @@ The refs can be:
 - Special refs like HEAD, HEAD~1
 
 Examples:
-  bd diff main feature-branch   # Compare main to feature branch
-  bd diff HEAD~5 HEAD           # Show changes in last 5 commits
-  bd diff abc123 def456         # Compare two specific commits`,
+  issuegraph diff main feature-branch   # Compare main to feature branch
+  issuegraph diff HEAD~5 HEAD           # Show changes in last 5 commits
+  issuegraph diff abc123 def456         # Compare two specific commits`,
 	Args:          cobra.ExactArgs(2),
 	SilenceUsage:  true,
 	SilenceErrors: true,

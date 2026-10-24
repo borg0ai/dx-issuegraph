@@ -8,12 +8,12 @@ import (
 	"time"
 )
 
-// StaleLockFiles removes stale lock files from the .beads directory.
+// StaleLockFiles removes stale lock files from the .issuegraph directory.
 // This is safe because:
 // - Bootstrap/sync/startup locks use flock, which is released on process exit
 // - If the flock is released but the file remains, the file is just clutter
 func StaleLockFiles(path string) error {
-	beadsDir, err := resolvedWorkspaceBeadsDir(path)
+	issuegraphDir, err := resolvedWorkspaceIssueGraphDir(path)
 	if err != nil {
 		return nil
 	}
@@ -22,7 +22,7 @@ func StaleLockFiles(path string) error {
 	var errors []string
 
 	// Remove stale bootstrap lock
-	bootstrapLockPath := filepath.Join(beadsDir, "dolt.bootstrap.lock")
+	bootstrapLockPath := filepath.Join(issuegraphDir, "dolt.bootstrap.lock")
 	if info, err := os.Stat(bootstrapLockPath); err == nil {
 		age := time.Since(info.ModTime())
 		if age > 5*time.Minute {
@@ -35,7 +35,7 @@ func StaleLockFiles(path string) error {
 	}
 
 	// Remove stale sync lock
-	syncLockPath := filepath.Join(beadsDir, ".sync.lock")
+	syncLockPath := filepath.Join(issuegraphDir, ".sync.lock")
 	if info, err := os.Stat(syncLockPath); err == nil {
 		age := time.Since(info.ModTime())
 		if age > 1*time.Hour {
@@ -53,7 +53,7 @@ func StaleLockFiles(path string) error {
 	// Dolt manages these files itself; external interference is never safe.
 
 	// Remove stale startup locks
-	entries, err := os.ReadDir(beadsDir)
+	entries, err := os.ReadDir(issuegraphDir)
 	if err == nil {
 		for _, entry := range entries {
 			if strings.HasSuffix(entry.Name(), ".startlock") {
@@ -63,7 +63,7 @@ func StaleLockFiles(path string) error {
 				}
 				age := time.Since(info.ModTime())
 				if age > 30*time.Second {
-					lockPath := filepath.Join(beadsDir, entry.Name())
+					lockPath := filepath.Join(issuegraphDir, entry.Name())
 					if err := os.Remove(lockPath); err != nil {
 						errors = append(errors, fmt.Sprintf("%s: %v", entry.Name(), err))
 					} else {

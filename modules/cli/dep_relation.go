@@ -4,7 +4,7 @@ import (
 	"slices"
 	"strings"
 
-	"github.com/steveyegge/beads/internal/types"
+	"github.com/borg0ai/dx-issuegraph/internal/types"
 )
 
 // depRelation names one dependency type from both ends of its edge. A stored
@@ -12,15 +12,15 @@ import (
 // issue_id side sees it, in* as the depends_on_id side sees it.
 //
 // Each type's direction comes from the command that writes it, NOT from reading
-// the type name left to right — beads has no single convention there.
-// `bd supersede old --with new` stores (old, new, supersedes), so the edge
+// the type name left to right — issuegraph has no single convention there.
+// `issuegraph supersede old --with new` stores (old, new, supersedes), so the edge
 // reads "issue_id is superseded by depends_on_id", while
-// `bd duplicate dup --of canonical` stores (dup, canonical, duplicates), which
+// `issuegraph duplicate dup --of canonical` stores (dup, canonical, duplicates), which
 // reads the other way round. Getting this backwards prints a lie, so change an
 // entry only alongside the command that creates that edge.
 type depRelation struct {
-	outHeading string // bd show section heading for the edge's source
-	inHeading  string // bd show section heading for the edge's target
+	outHeading string // issuegraph show section heading for the edge's source
+	inHeading  string // issuegraph show section heading for the edge's target
 	outGlyph   string
 	inGlyph    string
 	phrase     string // reads "<source> <phrase> <target>", for dep add feedback
@@ -67,10 +67,10 @@ func depRelationFor(t types.DependencyType) depRelation {
 }
 
 // depSectionOrder fixes the order dependency sections print in. It leads with
-// the types bd show has always grouped, so an issue wired only with those
+// the types issuegraph show has always grouped, so an issue wired only with those
 // renders exactly as it did before the other types got sections of their own.
 // DepRelated stands for both symmetric spellings and sorts last, matching where
-// bd show has always printed RELATED.
+// issuegraph show has always printed RELATED.
 var depSectionOrder = []types.DependencyType{
 	types.DepParentChild, types.DepBlocks,
 	types.DepConditionalBlocks, types.DepWaitsFor,

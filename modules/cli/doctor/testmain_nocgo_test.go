@@ -7,13 +7,13 @@ import (
 	"os"
 	"testing"
 
-	"github.com/steveyegge/beads/internal/doltserver"
-	"github.com/steveyegge/beads/internal/testutil"
+	"github.com/borg0ai/dx-issuegraph/internal/doltserver"
+	"github.com/borg0ai/dx-issuegraph/internal/testutil"
 )
 
 // CGO_ENABLED=0 doctor tests compile this TestMain instead of the cgo e2e
 // one. Without it, tests that AutoStart a detached dolt sql-server leave
-// the process running after t.TempDir() cleanup (gastownhall/beads#5631).
+// the process running after t.TempDir() cleanup (borg0ai/dx-issuegraph#5631).
 func TestMain(m *testing.M) {
 	os.Exit(testMainInner(m))
 }

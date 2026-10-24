@@ -6,7 +6,7 @@ Integration for [Junie](https://www.jetbrains.com/junie/) (JetBrains AI Agent) w
 
 ```bash
 # Install issuegraph
-curl -fsSL https://raw.githubusercontent.com/gastownhall/beads/main/scripts/install.sh | bash
+curl -fsSL https://raw.githubusercontent.com/borg0ai/dx-issuegraph/main/scripts/install.sh | bash
 
 # Initialize issuegraph in your project
 issuegraph init
@@ -39,7 +39,7 @@ Configures the issuegraph MCP server so Junie can use issuegraph tools directly:
 ```json
 {
   "mcpServers": {
-    "beads": {
+    "issuegraph": {
       "command": "issuegraph",
       "args": ["mcp"]
     }
@@ -56,15 +56,15 @@ Once installed, Junie will:
 
 ### MCP Tools Available
 
-- `mcp_beads_ready` - Find tasks ready for work
-- `mcp_beads_list` - List issues with filters
-- `mcp_beads_show` - Show issue details
-- `mcp_beads_create` - Create new issues
-- `mcp_beads_update` - Update issue status/priority
-- `mcp_beads_close` - Close completed issues
-- `mcp_beads_dep` - Manage dependencies
-- `mcp_beads_blocked` - Show blocked issues
-- `mcp_beads_stats` - Get issue statistics
+- `mcp_issuegraph_ready` - Find tasks ready for work
+- `mcp_issuegraph_list` - List issues with filters
+- `mcp_issuegraph_show` - Show issue details
+- `mcp_issuegraph_create` - Create new issues
+- `mcp_issuegraph_update` - Update issue status/priority
+- `mcp_issuegraph_close` - Close completed issues
+- `mcp_issuegraph_dep` - Manage dependencies
+- `mcp_issuegraph_blocked` - Show blocked issues
+- `mcp_issuegraph_stats` - Get issue statistics
 
 ## Verification
 

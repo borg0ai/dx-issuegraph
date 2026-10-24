@@ -10,12 +10,12 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/steveyegge/beads/internal/storage"
+	"github.com/borg0ai/dx-issuegraph/internal/storage"
 )
 
 // TestAutoPruneBoundsTheJournalAfterAMutatingCommand is the feature as a user
 // meets it: enable the journal, write, and the journal stays inside its floors
-// without anyone running `bd events prune`.
+// without anyone running `issuegraph events prune`.
 //
 // End-to-end through the binary is the only way to see it. The trigger lives in
 // the root command's post-run maintenance region, which no store-level or
@@ -25,37 +25,37 @@ import (
 // consumer was promised.
 //
 // The test also pins the OFF switch, in the same run: the backlog is built with
-// BD_EVENTS_JOURNAL_AUTO_PRUNE=0, and every record survives it. That ordering
+// ISSUEGRAPH_EVENTS_JOURNAL_AUTO_PRUNE=0, and every record survives it. That ordering
 // is not incidental — it is what makes the pruning pass below deterministic,
 // because the throttle's persisted watermark is never stamped while auto-prune
 // is off, so the next command with it on is the first pass this workspace has
 // ever run.
 func TestAutoPruneBoundsTheJournalAfterAMutatingCommand(t *testing.T) {
-	if os.Getenv("BEADS_TEST_EMBEDDED_DOLT") != "1" {
-		t.Skip("set BEADS_TEST_EMBEDDED_DOLT=1 to run embedded dolt integration tests")
+	if os.Getenv("ISSUEGRAPH_TEST_EMBEDDED_DOLT") != "1" {
+		t.Skip("set ISSUEGRAPH_TEST_EMBEDDED_DOLT=1 to run embedded dolt integration tests")
 	}
 	t.Parallel()
 
-	bd := buildEmbeddedBD(t)
-	dir, _, _ := bdInit(t, bd, "--prefix", "apr", "--skip-hooks", "--skip-agents")
+	issuegraph := buildEmbeddedBD(t)
+	dir, _, _ := issuegraphInit(t, issuegraph, "--prefix", "apr", "--skip-hooks", "--skip-agents")
 
 	// A rows floor of 2 and no age floor, so the retained window is small
 	// enough to observe. The floors reach both prune paths through the same
 	// config keys.
 	base := append(autoPruneTestEnv(dir),
-		"BD_EVENTS_JOURNAL=1",
-		"BD_EVENTS_JOURNAL_RETAIN_DAYS=0",
-		"BD_EVENTS_JOURNAL_RETAIN_ROWS=2",
+		"ISSUEGRAPH_EVENTS_JOURNAL=1",
+		"ISSUEGRAPH_EVENTS_JOURNAL_RETAIN_DAYS=0",
+		"ISSUEGRAPH_EVENTS_JOURNAL_RETAIN_ROWS=2",
 	)
 	runWith := func(env []string, args ...string) (string, error) {
 		t.Helper()
-		cmd := exec.Command(bd, args...)
+		cmd := exec.Command(issuegraph, args...)
 		cmd.Dir = dir
 		cmd.Env = env
 		out, err := cmd.CombinedOutput()
 		return string(out), err
 	}
-	noAutoPrune := append(append([]string{}, base...), "BD_EVENTS_JOURNAL_AUTO_PRUNE=0")
+	noAutoPrune := append(append([]string{}, base...), "ISSUEGRAPH_EVENTS_JOURNAL_AUTO_PRUNE=0")
 
 	for i := range 5 {
 		if out, err := runWith(noAutoPrune, "create", fmt.Sprintf("backlog %d", i)); err != nil {
@@ -123,21 +123,21 @@ func TestAutoPruneBoundsTheJournalAfterAMutatingCommand(t *testing.T) {
 // the history those tests (and any consumer that chose an unbounded ledger)
 // depend on.
 func TestAutoPruneLeavesAnUnboundedJournalAlone(t *testing.T) {
-	if os.Getenv("BEADS_TEST_EMBEDDED_DOLT") != "1" {
-		t.Skip("set BEADS_TEST_EMBEDDED_DOLT=1 to run embedded dolt integration tests")
+	if os.Getenv("ISSUEGRAPH_TEST_EMBEDDED_DOLT") != "1" {
+		t.Skip("set ISSUEGRAPH_TEST_EMBEDDED_DOLT=1 to run embedded dolt integration tests")
 	}
 	t.Parallel()
 
-	bd := buildEmbeddedBD(t)
-	dir, _, _ := bdInit(t, bd, "--prefix", "aub", "--skip-hooks", "--skip-agents")
+	issuegraph := buildEmbeddedBD(t)
+	dir, _, _ := issuegraphInit(t, issuegraph, "--prefix", "aub", "--skip-hooks", "--skip-agents")
 	env := append(autoPruneTestEnv(dir),
-		"BD_EVENTS_JOURNAL=1",
-		"BD_EVENTS_JOURNAL_RETAIN_DAYS=0",
-		"BD_EVENTS_JOURNAL_RETAIN_ROWS=0",
+		"ISSUEGRAPH_EVENTS_JOURNAL=1",
+		"ISSUEGRAPH_EVENTS_JOURNAL_RETAIN_DAYS=0",
+		"ISSUEGRAPH_EVENTS_JOURNAL_RETAIN_ROWS=0",
 	)
 	run := func(args ...string) (string, error) {
 		t.Helper()
-		cmd := exec.Command(bd, args...)
+		cmd := exec.Command(issuegraph, args...)
 		cmd.Dir = dir
 		cmd.Env = env
 		out, err := cmd.CombinedOutput()
@@ -159,28 +159,28 @@ func TestAutoPruneLeavesAnUnboundedJournalAlone(t *testing.T) {
 }
 
 // TestAutoPruneRespectsBdConfigSet drives the whole retention story through
-// `bd config set` rather than the environment.
+// `issuegraph config set` rather than the environment.
 //
 // The four events-journal keys are startup settings read through viper before
 // the store opens, so they have to be written to config.yaml rather than the
 // database config table — the failure this feature's own review caught, where
-// `bd config set events-journal true` reported success and changed nothing.
+// `issuegraph config set events-journal true` reported success and changed nothing.
 // A new key is one YamlOnlyKeys entry away from repeating it, and the symptom
 // is invisible: retention that silently keeps whatever the default was.
 func TestAutoPruneRespectsBdConfigSet(t *testing.T) {
-	if os.Getenv("BEADS_TEST_EMBEDDED_DOLT") != "1" {
-		t.Skip("set BEADS_TEST_EMBEDDED_DOLT=1 to run embedded dolt integration tests")
+	if os.Getenv("ISSUEGRAPH_TEST_EMBEDDED_DOLT") != "1" {
+		t.Skip("set ISSUEGRAPH_TEST_EMBEDDED_DOLT=1 to run embedded dolt integration tests")
 	}
 	t.Parallel()
 
-	bd := buildEmbeddedBD(t)
-	dir, _, _ := bdInit(t, bd, "--prefix", "acs", "--skip-hooks", "--skip-agents")
-	// No BD_EVENTS_JOURNAL* anywhere: config.yaml is the only thing that can
+	issuegraph := buildEmbeddedBD(t)
+	dir, _, _ := issuegraphInit(t, issuegraph, "--prefix", "acs", "--skip-hooks", "--skip-agents")
+	// No ISSUEGRAPH_EVENTS_JOURNAL* anywhere: config.yaml is the only thing that can
 	// turn any of this on.
 	env := autoPruneTestEnv(dir)
 	run := func(args ...string) (string, error) {
 		t.Helper()
-		cmd := exec.Command(bd, args...)
+		cmd := exec.Command(issuegraph, args...)
 		cmd.Dir = dir
 		cmd.Env = env
 		out, err := cmd.CombinedOutput()
@@ -208,7 +208,7 @@ func TestAutoPruneRespectsBdConfigSet(t *testing.T) {
 		t.Fatalf("export with auto-prune disabled in config.yaml: %v\n%s", err, out)
 	}
 	if records := decodeEventRecords(t, out); len(records) < 5 {
-		t.Fatalf("`bd config set events-journal-auto-prune false` did not take: %d records survive a floor of 2",
+		t.Fatalf("`issuegraph config set events-journal-auto-prune false` did not take: %d records survive a floor of 2",
 			len(records))
 	}
 
@@ -217,7 +217,7 @@ func TestAutoPruneRespectsBdConfigSet(t *testing.T) {
 		t.Fatalf("create after re-enabling: %v\n%s", err, out)
 	}
 	if out, err := run("events", "export", "--json"); err == nil {
-		t.Fatalf("nothing was pruned after `bd config set events-journal-auto-prune true`\n%s", out)
+		t.Fatalf("nothing was pruned after `issuegraph config set events-journal-auto-prune true`\n%s", out)
 	}
 }
 
@@ -225,39 +225,39 @@ func TestAutoPruneRespectsBdConfigSet(t *testing.T) {
 // three separate gates keep it that way — each one covered here by a command
 // that would prune the journal without it:
 //
-//   - `bd list` is the read classification. A read-only classification still
+//   - `issuegraph list` is the read classification. A read-only classification still
 //     opens a writable store, so nothing underneath refuses the delete.
-//   - `bd events tail` is a JOURNAL READER. It is now classified read-only in
-//     its own right AND exempted with the whole `bd events` family, because a
+//   - `issuegraph events tail` is a JOURNAL READER. It is now classified read-only in
+//     its own right AND exempted with the whole `issuegraph events` family, because a
 //     consumer that trims its own backlog on the way out is the least expected
-//     thing this feature could do. `bd events export` used to stand in for
+//     thing this feature could do. `issuegraph events export` used to stand in for
 //     this case, and only passed through a leaf-name collision with top-level
-//     `bd export` — tail is the honest witness.
-//   - `bd migrate --dry-run` is a PREVIEW. It promised not to mutate and holds
+//     `issuegraph export` — tail is the honest witness.
+//   - `issuegraph migrate --dry-run` is a PREVIEW. It promised not to mutate and holds
 //     a write-refusing store; maintenance must not be the one write it
 //     performs.
 func TestAutoPruneDoesNotRunForReadOnlyCommands(t *testing.T) {
-	if os.Getenv("BEADS_TEST_EMBEDDED_DOLT") != "1" {
-		t.Skip("set BEADS_TEST_EMBEDDED_DOLT=1 to run embedded dolt integration tests")
+	if os.Getenv("ISSUEGRAPH_TEST_EMBEDDED_DOLT") != "1" {
+		t.Skip("set ISSUEGRAPH_TEST_EMBEDDED_DOLT=1 to run embedded dolt integration tests")
 	}
 	t.Parallel()
 
-	bd := buildEmbeddedBD(t)
-	dir, _, _ := bdInit(t, bd, "--prefix", "aro", "--skip-hooks", "--skip-agents")
+	issuegraph := buildEmbeddedBD(t)
+	dir, _, _ := issuegraphInit(t, issuegraph, "--prefix", "aro", "--skip-hooks", "--skip-agents")
 	base := append(autoPruneTestEnv(dir),
-		"BD_EVENTS_JOURNAL=1",
-		"BD_EVENTS_JOURNAL_RETAIN_DAYS=0",
-		"BD_EVENTS_JOURNAL_RETAIN_ROWS=2",
+		"ISSUEGRAPH_EVENTS_JOURNAL=1",
+		"ISSUEGRAPH_EVENTS_JOURNAL_RETAIN_DAYS=0",
+		"ISSUEGRAPH_EVENTS_JOURNAL_RETAIN_ROWS=2",
 	)
 	runWith := func(env []string, args ...string) (string, error) {
 		t.Helper()
-		cmd := exec.Command(bd, args...)
+		cmd := exec.Command(issuegraph, args...)
 		cmd.Dir = dir
 		cmd.Env = env
 		out, err := cmd.CombinedOutput()
 		return string(out), err
 	}
-	noAutoPrune := append(append([]string{}, base...), "BD_EVENTS_JOURNAL_AUTO_PRUNE=0")
+	noAutoPrune := append(append([]string{}, base...), "ISSUEGRAPH_EVENTS_JOURNAL_AUTO_PRUNE=0")
 
 	for i := range 5 {
 		if out, err := runWith(noAutoPrune, "create", fmt.Sprintf("backlog %d", i)); err != nil {
@@ -284,16 +284,16 @@ func TestAutoPruneDoesNotRunForReadOnlyCommands(t *testing.T) {
 		}
 		out, err := runWith(base, "events", "export")
 		if err != nil {
-			t.Fatalf("`bd %v` pruned the journal: %v\n%s", args, err, out)
+			t.Fatalf("`issuegraph %v` pruned the journal: %v\n%s", args, err, out)
 		}
 		if records := decodeEventRecords(t, out); len(records) < 5 {
-			t.Fatalf("journal holds %d records after `bd %v`, want all 5 still there\n%s",
+			t.Fatalf("journal holds %d records after `issuegraph %v`, want all 5 still there\n%s",
 				len(records), args, strings.TrimSpace(out))
 		}
 	}
 }
 
-// autoPruneTestEnv is bdEnv with the WHOLE BD_EVENTS_JOURNAL* family stripped.
+// autoPruneTestEnv is issuegraphEnv with the WHOLE ISSUEGRAPH_EVENTS_JOURNAL* family stripped.
 //
 // envWithout matches one exact name, and these tests turn the journal, its two
 // floors and auto-prune on and off independently — so a developer (or a CI
@@ -301,10 +301,10 @@ func TestAutoPruneDoesNotRunForReadOnlyCommands(t *testing.T) {
 // under test and the suite would fail, or worse pass, for a reason nothing in
 // the file mentions. The prefix is the unit that has to be cleared.
 func autoPruneTestEnv(dir string) []string {
-	env := bdEnv(dir)
+	env := issuegraphEnv(dir)
 	out := make([]string, 0, len(env))
 	for _, e := range env {
-		if strings.HasPrefix(e, "BD_EVENTS_JOURNAL") {
+		if strings.HasPrefix(e, "ISSUEGRAPH_EVENTS_JOURNAL") {
 			continue
 		}
 		out = append(out, e)

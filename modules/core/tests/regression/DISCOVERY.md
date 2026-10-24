@@ -305,10 +305,10 @@ transactions.
 **Status:** ✅ RESOLVED — Unique prefix per workspace
 
 All `issuegraph init --prefix test` workspaces on the same Dolt server (127.0.0.1:3307)
-share the same `beads_test` database. This is by design for collaborative use.
+share the same `issuegraph_test` database. This is by design for collaborative use.
 
 The regression harness now uses unique prefixes per workspace (FNV hash of temp
-dir path), creating separate `beads_t<hash>` databases. Each test workspace
+dir path), creating separate `issuegraph_t<hash>` databases. Each test workspace
 is fully isolated.
 
 ---
@@ -1724,7 +1724,7 @@ The regression harness has been adapted to work without `issuegraph export`:
 
 3. **`compareExports()`** calls `snapshot()` directly on both workspaces.
 
-4. **Database isolation**: Each workspace gets a unique prefix derived from FNV hash of its temp directory path (e.g., `t12345`). This creates separate Dolt databases (`beads_t12345`) per test workspace. Note: `BEADS_TEST_MODE=1` in env is kept but the real isolation comes from the unique prefix → `cfg.DoltDatabase = "beads_<prefix>"` in metadata.json.
+4. **Database isolation**: Each workspace gets a unique prefix derived from FNV hash of its temp directory path (e.g., `t12345`). This creates separate Dolt databases (`issuegraph_t12345`) per test workspace. Note: `ISSUEGRAPH_TEST_MODE=1` in env is kept but the real isolation comes from the unique prefix → `cfg.DoltDatabase = "issuegraph_<prefix>"` in metadata.json.
 
 5. **Normalization additions for show-vs-export field differences**:
    - Strip `content_hash`, `events` (show-only fields)
@@ -1745,8 +1745,8 @@ The regression harness has been adapted to work without `issuegraph export`:
 | FAIL (new findings) | 3 | TestUpdateDoesNotClobberRelationalData (labels missing in dependent view), TestBlockedEpicChildrenNotReady (GH#1495), TestListResolvedBlockerAnnotation (GH#1858) |
 | SKIP (pre-existing) | 10 | Export/import removed, waits-for baseline gap, sorting GH#1880, metadata GH#1912, etc. |
 
-### BEADS_DOLT_SERVER_DATABASE bypass (discovered during harness work)
+### ISSUEGRAPH_DOLT_SERVER_DATABASE bypass (discovered during harness work)
 
-The `BEADS_TEST_MODE=1` env var is intended to create isolated test databases via FNV hash of `cfg.Path`. However, `main.go:543` calls `cfg.GetDoltDatabase()` which pre-fills `cfg.Database` BEFORE `applyConfigDefaults` checks for test mode. This means the test mode hash is bypassed.
+The `ISSUEGRAPH_TEST_MODE=1` env var is intended to create isolated test databases via FNV hash of `cfg.Path`. However, `main.go:543` calls `cfg.GetDoltDatabase()` which pre-fills `cfg.Database` BEFORE `applyConfigDefaults` checks for test mode. This means the test mode hash is bypassed.
 
-The regression harness works around this by using unique prefixes per workspace, which causes `issuegraph init` to create unique databases (`beads_t<hash>`). The `BEADS_TEST_MODE` bypass should be fixed in the main codebase for other test consumers.
+The regression harness works around this by using unique prefixes per workspace, which causes `issuegraph init` to create unique databases (`issuegraph_t<hash>`). The `ISSUEGRAPH_TEST_MODE` bypass should be fixed in the main codebase for other test consumers.

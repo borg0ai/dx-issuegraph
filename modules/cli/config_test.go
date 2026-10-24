@@ -10,11 +10,11 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/steveyegge/beads/internal/beads"
-	"github.com/steveyegge/beads/internal/config"
-	"github.com/steveyegge/beads/internal/git"
-	"github.com/steveyegge/beads/internal/storage/dolt"
-	"github.com/steveyegge/beads/internal/types"
+	"github.com/borg0ai/dx-issuegraph/internal/config"
+	"github.com/borg0ai/dx-issuegraph/internal/git"
+	"github.com/borg0ai/dx-issuegraph/internal/issuegraph"
+	"github.com/borg0ai/dx-issuegraph/internal/storage/dolt"
+	"github.com/borg0ai/dx-issuegraph/internal/types"
 )
 
 func TestConfigCommands(t *testing.T) {
@@ -159,7 +159,7 @@ func TestConfigNamespaces(t *testing.T) {
 // TestYamlOnlyConfigWithoutDatabase verifies that yaml-only config keys
 // (like no-db) can be set/get without requiring a SQLite database.
 // This is the fix for GH#536 - the chicken-and-egg problem where you couldn't
-// run `bd config set no-db true` without first having a database.
+// run `issuegraph config set no-db true` without first having a database.
 func TestYamlOnlyConfigWithoutDatabase(t *testing.T) {
 	// Create a temp directory with only config.yaml (no database)
 	tmpDir, err := os.MkdirTemp("", "bd-test-yaml-config-*")
@@ -168,19 +168,19 @@ func TestYamlOnlyConfigWithoutDatabase(t *testing.T) {
 	}
 	defer os.RemoveAll(tmpDir)
 
-	beadsDir := filepath.Join(tmpDir, ".beads")
-	if err := os.MkdirAll(beadsDir, 0755); err != nil {
-		t.Fatalf("Failed to create .beads dir: %v", err)
+	issuegraphDir := filepath.Join(tmpDir, ".issuegraph")
+	if err := os.MkdirAll(issuegraphDir, 0755); err != nil {
+		t.Fatalf("Failed to create .issuegraph dir: %v", err)
 	}
 
 	// Create config.yaml with a prefix but NO database
-	configPath := filepath.Join(beadsDir, "config.yaml")
+	configPath := filepath.Join(issuegraphDir, "config.yaml")
 	if err := os.WriteFile(configPath, []byte("prefix: test\n"), 0644); err != nil {
 		t.Fatalf("Failed to create config.yaml: %v", err)
 	}
 
 	// Create empty issues.jsonl (simulates fresh clone)
-	jsonlPath := filepath.Join(beadsDir, "issues.jsonl")
+	jsonlPath := filepath.Join(issuegraphDir, "issues.jsonl")
 	if err := os.WriteFile(jsonlPath, []byte(""), 0644); err != nil {
 		t.Fatalf("Failed to create issues.jsonl: %v", err)
 	}
@@ -218,7 +218,7 @@ func setupTestDB(t *testing.T) (*dolt.DoltStore, func()) {
 
 	// CRITICAL (bd-166): Set issue_prefix to prevent "database not initialized" errors
 	ctx := context.Background()
-	if err := store.SetConfig(ctx, "issue_prefix", "bd"); err != nil {
+	if err := store.SetConfig(ctx, "issue_prefix", "issuegraph"); err != nil {
 		store.Close()
 		os.RemoveAll(tmpDir)
 		t.Fatalf("Failed to set issue_prefix: %v", err)
@@ -232,20 +232,20 @@ func setupTestDB(t *testing.T) (*dolt.DoltStore, func()) {
 	return store, cleanup
 }
 
-// TestBeadsRoleGitConfig verifies that beads.role is stored in git config,
-// not SQLite, so that bd doctor can find it (GH#1531).
-func TestBeadsRoleGitConfig(t *testing.T) {
+// TestIssueGraphRoleGitConfig verifies that issuegraph.role is stored in git config,
+// not SQLite, so that issuegraph doctor can find it (GH#1531).
+func TestIssueGraphRoleGitConfig(t *testing.T) {
 	tmpDir := newGitRepo(t)
 
 	t.Run("set contributor role writes to git config", func(t *testing.T) {
-		cmd := exec.Command("git", "config", "beads.role", "contributor")
+		cmd := exec.Command("git", "config", "issuegraph.role", "contributor")
 		cmd.Dir = tmpDir
 		if err := cmd.Run(); err != nil {
 			t.Fatalf("git config set failed: %v", err)
 		}
 
 		// Verify it's readable from git config
-		cmd = exec.Command("git", "config", "--get", "beads.role")
+		cmd = exec.Command("git", "config", "--get", "issuegraph.role")
 		cmd.Dir = tmpDir
 		output, err := cmd.Output()
 		if err != nil {
@@ -257,13 +257,13 @@ func TestBeadsRoleGitConfig(t *testing.T) {
 	})
 
 	t.Run("set maintainer role writes to git config", func(t *testing.T) {
-		cmd := exec.Command("git", "config", "beads.role", "maintainer")
+		cmd := exec.Command("git", "config", "issuegraph.role", "maintainer")
 		cmd.Dir = tmpDir
 		if err := cmd.Run(); err != nil {
 			t.Fatalf("git config set failed: %v", err)
 		}
 
-		cmd = exec.Command("git", "config", "--get", "beads.role")
+		cmd = exec.Command("git", "config", "--get", "issuegraph.role")
 		cmd.Dir = tmpDir
 		output, err := cmd.Output()
 		if err != nil {
@@ -315,16 +315,16 @@ func TestIsValidRemoteURL(t *testing.T) {
 func TestValidateSyncConfig(t *testing.T) {
 	// Create a temp directory for testing
 	tmpDir := t.TempDir()
-	beadsDir := filepath.Join(tmpDir, ".beads")
-	if err := os.MkdirAll(beadsDir, 0755); err != nil {
-		t.Fatalf("Failed to create .beads dir: %v", err)
+	issuegraphDir := filepath.Join(tmpDir, ".issuegraph")
+	if err := os.MkdirAll(issuegraphDir, 0755); err != nil {
+		t.Fatalf("Failed to create .issuegraph dir: %v", err)
 	}
 
 	t.Run("valid empty config", func(t *testing.T) {
 		// Create minimal config.yaml
 		configContent := `prefix: test
 `
-		if err := os.WriteFile(filepath.Join(beadsDir, "config.yaml"), []byte(configContent), 0644); err != nil {
+		if err := os.WriteFile(filepath.Join(issuegraphDir, "config.yaml"), []byte(configContent), 0644); err != nil {
 			t.Fatalf("Failed to write config.yaml: %v", err)
 		}
 
@@ -340,7 +340,7 @@ func TestValidateSyncConfig(t *testing.T) {
 federation:
   sovereignty: "invalid-value"
 `
-		if err := os.WriteFile(filepath.Join(beadsDir, "config.yaml"), []byte(configContent), 0644); err != nil {
+		if err := os.WriteFile(filepath.Join(issuegraphDir, "config.yaml"), []byte(configContent), 0644); err != nil {
 			t.Fatalf("Failed to write config.yaml: %v", err)
 		}
 
@@ -362,7 +362,7 @@ federation:
 sync:
   mode: "dolt-native"
 `
-		if err := os.WriteFile(filepath.Join(beadsDir, "config.yaml"), []byte(configContent), 0644); err != nil {
+		if err := os.WriteFile(filepath.Join(issuegraphDir, "config.yaml"), []byte(configContent), 0644); err != nil {
 			t.Fatalf("Failed to write config.yaml: %v", err)
 		}
 
@@ -384,7 +384,7 @@ sync:
 federation:
   remote: "invalid-url"
 `
-		if err := os.WriteFile(filepath.Join(beadsDir, "config.yaml"), []byte(configContent), 0644); err != nil {
+		if err := os.WriteFile(filepath.Join(issuegraphDir, "config.yaml"), []byte(configContent), 0644); err != nil {
 			t.Fatalf("Failed to write config.yaml: %v", err)
 		}
 
@@ -409,9 +409,9 @@ conflict:
   strategy: "newest"
 federation:
   sovereignty: "T2"
-  remote: "https://github.com/user/beads-data.git"
+  remote: "https://github.com/user/issuegraph-data.git"
 `
-		if err := os.WriteFile(filepath.Join(beadsDir, "config.yaml"), []byte(configContent), 0644); err != nil {
+		if err := os.WriteFile(filepath.Join(issuegraphDir, "config.yaml"), []byte(configContent), 0644); err != nil {
 			t.Fatalf("Failed to write config.yaml: %v", err)
 		}
 
@@ -423,7 +423,7 @@ federation:
 
 	t.Run("remote URL with null byte", func(t *testing.T) {
 		configContent := "prefix: test\nfederation:\n  remote: \"dolthub://org/repo\\x00evil\"\n"
-		if err := os.WriteFile(filepath.Join(beadsDir, "config.yaml"), []byte(configContent), 0644); err != nil {
+		if err := os.WriteFile(filepath.Join(issuegraphDir, "config.yaml"), []byte(configContent), 0644); err != nil {
 			t.Fatalf("Failed to write config.yaml: %v", err)
 		}
 
@@ -447,7 +447,7 @@ federation:
   allowed-remote-patterns:
     - "dolthub://myorg/*"
 `
-		if err := os.WriteFile(filepath.Join(beadsDir, "config.yaml"), []byte(configContent), 0644); err != nil {
+		if err := os.WriteFile(filepath.Join(issuegraphDir, "config.yaml"), []byte(configContent), 0644); err != nil {
 			t.Fatalf("Failed to write config.yaml: %v", err)
 		}
 
@@ -471,7 +471,7 @@ federation:
   allowed-remote-patterns:
     - "dolthub://myorg/*"
 `
-		if err := os.WriteFile(filepath.Join(beadsDir, "config.yaml"), []byte(configContent), 0644); err != nil {
+		if err := os.WriteFile(filepath.Join(issuegraphDir, "config.yaml"), []byte(configContent), 0644); err != nil {
 			t.Fatalf("Failed to write config.yaml: %v", err)
 		}
 
@@ -481,11 +481,11 @@ federation:
 		}
 	})
 
-	t.Run("uses shared worktree config when local .beads is absent", func(t *testing.T) {
+	t.Run("uses shared worktree config when local .issuegraph is absent", func(t *testing.T) {
 		bareDir, worktreeDir := setupBareParentInitWorktree(t)
-		bareBeadsDir := filepath.Join(bareDir, ".beads")
-		if err := os.MkdirAll(bareBeadsDir, 0o755); err != nil {
-			t.Fatalf("Failed to create bare .beads dir: %v", err)
+		bareIssueGraphDir := filepath.Join(bareDir, ".issuegraph")
+		if err := os.MkdirAll(bareIssueGraphDir, 0o755); err != nil {
+			t.Fatalf("Failed to create bare .issuegraph dir: %v", err)
 		}
 
 		configContent := `federation:
@@ -493,7 +493,7 @@ federation:
   allowed-remote-patterns:
     - "dolthub://myorg/*"
 `
-		if err := os.WriteFile(filepath.Join(bareBeadsDir, "config.yaml"), []byte(configContent), 0o644); err != nil {
+		if err := os.WriteFile(filepath.Join(bareIssueGraphDir, "config.yaml"), []byte(configContent), 0o644); err != nil {
 			t.Fatalf("Failed to write config.yaml: %v", err)
 		}
 
@@ -507,10 +507,10 @@ federation:
 func TestResolvedConfigRepoRoot(t *testing.T) {
 	resetResolutionCaches := func(t *testing.T) {
 		t.Helper()
-		beads.ResetCaches()
+		issuegraph.ResetCaches()
 		git.ResetCaches()
 		t.Cleanup(func() {
-			beads.ResetCaches()
+			issuegraph.ResetCaches()
 			git.ResetCaches()
 		})
 	}
@@ -533,13 +533,13 @@ func TestResolvedConfigRepoRoot(t *testing.T) {
 
 	t.Run("uses local workspace from subdirectory", func(t *testing.T) {
 		tmpDir := t.TempDir()
-		beadsDir := filepath.Join(tmpDir, ".beads")
+		issuegraphDir := filepath.Join(tmpDir, ".issuegraph")
 		subDir := filepath.Join(tmpDir, "sub", "dir")
 
-		if err := os.MkdirAll(beadsDir, 0o755); err != nil {
-			t.Fatalf("Failed to create .beads dir: %v", err)
+		if err := os.MkdirAll(issuegraphDir, 0o755); err != nil {
+			t.Fatalf("Failed to create .issuegraph dir: %v", err)
 		}
-		if err := os.WriteFile(filepath.Join(beadsDir, "metadata.json"), []byte(`{"backend":"dolt"}`), 0o644); err != nil {
+		if err := os.WriteFile(filepath.Join(issuegraphDir, "metadata.json"), []byte(`{"backend":"dolt"}`), 0o644); err != nil {
 			t.Fatalf("Failed to create metadata.json: %v", err)
 		}
 		if err := os.MkdirAll(subDir, 0o755); err != nil {
@@ -556,19 +556,19 @@ func TestResolvedConfigRepoRoot(t *testing.T) {
 		assertSameResolvedPath(t, got, tmpDir)
 	})
 
-	t.Run("uses BEADS_DIR target", func(t *testing.T) {
+	t.Run("uses ISSUEGRAPH_DIR target", func(t *testing.T) {
 		cwdDir := t.TempDir()
 		targetRepo := t.TempDir()
-		targetBeadsDir := filepath.Join(targetRepo, ".beads")
+		targetIssueGraphDir := filepath.Join(targetRepo, ".issuegraph")
 
-		if err := os.MkdirAll(targetBeadsDir, 0o755); err != nil {
-			t.Fatalf("Failed to create target .beads dir: %v", err)
+		if err := os.MkdirAll(targetIssueGraphDir, 0o755); err != nil {
+			t.Fatalf("Failed to create target .issuegraph dir: %v", err)
 		}
-		if err := os.WriteFile(filepath.Join(targetBeadsDir, "metadata.json"), []byte(`{"backend":"dolt"}`), 0o644); err != nil {
+		if err := os.WriteFile(filepath.Join(targetIssueGraphDir, "metadata.json"), []byte(`{"backend":"dolt"}`), 0o644); err != nil {
 			t.Fatalf("Failed to create target metadata.json: %v", err)
 		}
 
-		t.Setenv("BEADS_DIR", targetBeadsDir)
+		t.Setenv("ISSUEGRAPH_DIR", targetIssueGraphDir)
 		t.Chdir(cwdDir)
 		resetResolutionCaches(t)
 
@@ -579,14 +579,14 @@ func TestResolvedConfigRepoRoot(t *testing.T) {
 		assertSameResolvedPath(t, got, targetRepo)
 	})
 
-	t.Run("uses worktree fallback when local .beads is absent", func(t *testing.T) {
+	t.Run("uses worktree fallback when local .issuegraph is absent", func(t *testing.T) {
 		bareDir, worktreeDir := setupBareParentInitWorktree(t)
-		bareBeadsDir := filepath.Join(bareDir, ".beads")
+		bareIssueGraphDir := filepath.Join(bareDir, ".issuegraph")
 
-		if err := os.MkdirAll(bareBeadsDir, 0o755); err != nil {
-			t.Fatalf("Failed to create bare .beads dir: %v", err)
+		if err := os.MkdirAll(bareIssueGraphDir, 0o755); err != nil {
+			t.Fatalf("Failed to create bare .issuegraph dir: %v", err)
 		}
-		if err := os.WriteFile(filepath.Join(bareBeadsDir, "metadata.json"), []byte(`{"backend":"dolt"}`), 0o644); err != nil {
+		if err := os.WriteFile(filepath.Join(bareIssueGraphDir, "metadata.json"), []byte(`{"backend":"dolt"}`), 0o644); err != nil {
 			t.Fatalf("Failed to create bare metadata.json: %v", err)
 		}
 
@@ -720,7 +720,7 @@ func TestCustomStatusConfig(t *testing.T) {
 	})
 }
 
-// TestConfigSetMany tests the batch config set functionality used by 'bd config set-many'.
+// TestConfigSetMany tests the batch config set functionality used by 'issuegraph config set-many'.
 func TestConfigSetMany(t *testing.T) {
 	ctx := context.Background()
 	store, cleanup := setupTestDB(t)
@@ -811,7 +811,7 @@ func TestConfigSetMany(t *testing.T) {
 		// namespaces all written to the DB in one logical batch.
 		mixed := map[string]string{
 			"jira.url":             "https://jira.example.com",
-			"jira.project":         "BEADS",
+			"jira.project":         "ISSUEGRAPH",
 			"ado.state_map.open":   "New",
 			"ado.state_map.closed": "Done",
 			"custom.pipeline":      "review,qa,deploy",
@@ -883,7 +883,7 @@ func TestConfigSetMany(t *testing.T) {
 // in set-many correctly rejects invalid values for known constrained keys
 // before any DB writes would occur.
 func TestConfigSetManyValidationIntegration(t *testing.T) {
-	t.Run("beads.role only accepts maintainer or contributor", func(t *testing.T) {
+	t.Run("issuegraph.role only accepts maintainer or contributor", func(t *testing.T) {
 		validRoles := map[string]bool{"maintainer": true, "contributor": true}
 		for _, role := range []string{"maintainer", "contributor"} {
 			if !validRoles[role] {

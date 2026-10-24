@@ -7,12 +7,12 @@ import (
 
 	"github.com/spf13/cobra"
 
-	"github.com/steveyegge/beads/internal/storage/contextinfo"
-	"github.com/steveyegge/beads/internal/storage/domain"
+	"github.com/borg0ai/dx-issuegraph/internal/storage/contextinfo"
+	"github.com/borg0ai/dx-issuegraph/internal/storage/domain"
 )
 
 func runContextProxiedServer(cmd *cobra.Command, ctx context.Context) error {
-	if selected := selectedNoDBBeadsDir(cmd); selected != "" {
+	if selected := selectedNoDBIssueGraphDir(cmd); selected != "" {
 		prepareSelectedNoDBContext(selected)
 	}
 
@@ -44,13 +44,13 @@ func contextProxiedError(format string, args ...any) error {
 	return HandleError(format, args...)
 }
 
-// contextInfoView projects a workspace snapshot onto what `bd context` prints
+// contextInfoView projects a workspace snapshot onto what `issuegraph context` prints
 // and marshals. BOTH routes reach it — the proxied one above and the direct
-// one in context_cmd.go — so there is one answer to "what does bd context
+// one in context_cmd.go — so there is one answer to "what does issuegraph context
 // say", assembled once.
 //
 // The workspace identity half comes from domain.PublishedContext, the same
-// projection GET /v0/beads/context serves, so the two surfaces cannot name the
+// projection GET /v0/issuegraph/context serves, so the two surfaces cannot name the
 // same workspace differently.
 //
 // Everything below that call is LOCAL-ONLY and deliberately so, which is why
@@ -63,13 +63,13 @@ func contextProxiedError(format string, args ...any) error {
 func contextInfoView(d domain.ContextInfo) ContextInfo {
 	published := domain.PublishedContext(d)
 	return ContextInfo{
-		BdVersion: published.BdVersion,
-		Backend:   published.Backend,
-		DoltMode:  published.DoltMode,
-		Database:  published.Database,
-		BeadsDir:  published.BeadsDir,
-		RepoRoot:  published.RepoRoot,
-		ProjectID: published.ProjectID,
+		BdVersion:     published.BdVersion,
+		Backend:       published.Backend,
+		DoltMode:      published.DoltMode,
+		Database:      published.Database,
+		IssueGraphDir: published.IssueGraphDir,
+		RepoRoot:      published.RepoRoot,
+		ProjectID:     published.ProjectID,
 
 		CWDRepoRoot:   d.CWDRepoRoot,
 		IsRedirected:  d.IsRedirected,

@@ -8,8 +8,8 @@ import (
 	"strings"
 	"testing"
 
+	"github.com/borg0ai/dx-issuegraph/internal/configfile"
 	"github.com/spf13/cobra"
-	"github.com/steveyegge/beads/internal/configfile"
 )
 
 // TestProxiedRestoreFailureMessage pins the one distinction the operator acts
@@ -36,7 +36,7 @@ func TestProxiedRestoreFailureMessage(t *testing.T) {
 		{
 			name:         "restore succeeded, teardown failed",
 			err:          &proxiedTeardownError{err: boom},
-			wantContains: []string{"the data is restored", "bd dolt stop --force", "bd backup init"},
+			wantContains: []string{"the data is restored", "issuegraph dolt stop --force", "issuegraph backup init"},
 			wantMissing:  []string{"restore failed"},
 		},
 		{
@@ -50,9 +50,9 @@ func TestProxiedRestoreFailureMessage(t *testing.T) {
 			name:           "reconcile succeeded, teardown failed",
 			afterReconcile: true,
 			err:            &proxiedTeardownError{err: boom},
-			wantContains:   []string{"the data is restored and reconciled", "bd dolt stop --force"},
+			wantContains:   []string{"the data is restored and reconciled", "issuegraph dolt stop --force"},
 			// Nothing left to re-register: the reconcile already ran.
-			wantMissing: []string{"restore failed", "bd backup init"},
+			wantMissing: []string{"restore failed", "issuegraph backup init"},
 		},
 	} {
 		t.Run(tc.name, func(t *testing.T) {
@@ -82,8 +82,8 @@ var backupFamilyPaths = []string{
 //
 // A Dolt backup destination is resolved by the SERVER: CALL DOLT_BACKUP('add',
 // name, 'file:///…') names a path on the machine running dolt, not on the
-// machine running bd. On managed-local that is the same machine and the same
-// user, because bd spawned the child itself. On every other proxied shape it is
+// machine running issuegraph. On managed-local that is the same machine and the same
+// user, because issuegraph spawned the child itself. On every other proxied shape it is
 // somebody else's filesystem, so honoring the command would either fail at the
 // point of use or — much worse — succeed and write the backup somewhere the
 // operator cannot see. That is why these stay refused with Reason=design.
@@ -124,7 +124,7 @@ func TestProxiedBackupHonoredOnlyOnManagedLocal(t *testing.T) {
 // still fails.
 func TestProxiedBackupGateRefusesByTopology(t *testing.T) {
 	newBackupCmd := func(sub string) *cobra.Command {
-		root := &cobra.Command{Use: "bd"}
+		root := &cobra.Command{Use: "issuegraph"}
 		parent := &cobra.Command{Use: "backup"}
 		child := &cobra.Command{Use: sub}
 		parent.AddCommand(child)
@@ -149,12 +149,12 @@ func TestProxiedBackupGateRefusesByTopology(t *testing.T) {
 // The three frozen fields are unchanged and reason now says "design", which is
 // the difference that matters: this refusal is not waiting on a later slice.
 func TestProxiedBackupRefusalJSONCarriesDesignReason(t *testing.T) {
-	t.Setenv("BD_JSON_ENVELOPE", "")
+	t.Setenv("ISSUEGRAPH_JSON_ENVELOPE", "")
 	oldJSON := jsonOutput
 	jsonOutput = true
 	t.Cleanup(func() { jsonOutput = oldJSON })
 
-	root := &cobra.Command{Use: "bd"}
+	root := &cobra.Command{Use: "issuegraph"}
 	parent := &cobra.Command{Use: "backup"}
 	child := &cobra.Command{Use: "sync"}
 	parent.AddCommand(child)
@@ -177,7 +177,7 @@ func TestProxiedBackupRefusalJSONCarriesDesignReason(t *testing.T) {
 
 // TestResolveProxiedTopology covers the resolution the gate depends on. The
 // team-server case is the one worth reading twice: ownership beats transport,
-// because a bts-managed database is somebody else's store whether bd reaches it
+// because a bts-managed database is somebody else's store whether issuegraph reaches it
 // over a socket, a port, or a child it spawned itself.
 func TestResolveProxiedTopology(t *testing.T) {
 	for _, tc := range []struct {
@@ -243,13 +243,13 @@ func TestResolveProxiedTopology(t *testing.T) {
 		},
 	} {
 		t.Run(tc.name, func(t *testing.T) {
-			beadsDir := filepath.Join(t.TempDir(), ".beads")
-			if err := os.MkdirAll(beadsDir, 0o750); err != nil {
+			issuegraphDir := filepath.Join(t.TempDir(), ".issuegraph")
+			if err := os.MkdirAll(issuegraphDir, 0o750); err != nil {
 				t.Fatal(err)
 			}
 			switch {
 			case tc.rawCfg != "":
-				writeTestFile(t, configfile.ConfigPath(beadsDir), tc.rawCfg)
+				writeTestFile(t, configfile.ConfigPath(issuegraphDir), tc.rawCfg)
 			default:
 				cfg := tc.cfg
 				cfg.Backend = configfile.BackendDolt
@@ -257,20 +257,20 @@ func TestResolveProxiedTopology(t *testing.T) {
 				if err != nil {
 					t.Fatal(err)
 				}
-				writeTestFile(t, configfile.ConfigPath(beadsDir), string(data))
+				writeTestFile(t, configfile.ConfigPath(issuegraphDir), string(data))
 			}
 			switch {
 			case tc.rawCar != "":
-				writeTestFile(t, configfile.ProxiedServerClientInfoPath(beadsDir), tc.rawCar)
+				writeTestFile(t, configfile.ProxiedServerClientInfoPath(issuegraphDir), tc.rawCar)
 			case tc.sidecar != nil:
 				data, err := json.Marshal(tc.sidecar)
 				if err != nil {
 					t.Fatal(err)
 				}
-				writeTestFile(t, configfile.ProxiedServerClientInfoPath(beadsDir), string(data))
+				writeTestFile(t, configfile.ProxiedServerClientInfoPath(issuegraphDir), string(data))
 			}
 
-			if got := resolveProxiedTopology(beadsDir); got != tc.want {
+			if got := resolveProxiedTopology(issuegraphDir); got != tc.want {
 				t.Fatalf("resolveProxiedTopology = %q, want %q", got, tc.want)
 			}
 		})

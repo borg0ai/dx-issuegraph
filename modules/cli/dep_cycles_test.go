@@ -9,12 +9,12 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/steveyegge/beads/internal/storage"
-	"github.com/steveyegge/beads/internal/types"
-	"github.com/steveyegge/beads/issueops"
+	"github.com/borg0ai/dx-issuegraph/internal/storage"
+	"github.com/borg0ai/dx-issuegraph/internal/types"
+	"github.com/borg0ai/dx-issuegraph/issueops"
 )
 
-// The rendering half of `bd dep cycles` and of the post-add warning, driven
+// The rendering half of `issuegraph dep cycles` and of the post-add warning, driven
 // directly with a report rather than through a database.
 //
 // These need no store and no server: they pin the one thing the conformance
@@ -63,7 +63,7 @@ func TestDepCyclesSaysNothingIsWrongForACleanWorkspace(t *testing.T) {
 }
 
 // TestCycleWarningSpellsTheWholePathIncludingUndescribableMembers pins the
-// post-add warning both dep-add routes and `bd link` print. It is spelled from
+// post-add warning both dep-add routes and `issuegraph link` print. It is spelled from
 // the member IDS, so a node with no row behind it still appears.
 func TestCycleWarningSpellsTheWholePathIncludingUndescribableMembers(t *testing.T) {
 	origStderr := os.Stderr
@@ -93,13 +93,13 @@ func TestCycleWarningSpellsTheWholePathIncludingUndescribableMembers(t *testing.
 	if !strings.Contains(out, "bd-a → bd-ghost → bd-c → bd-a") {
 		t.Errorf("cycle path is not the whole rotated path closed on itself:\n%s", out)
 	}
-	if !strings.Contains(out, "Run 'bd dep cycles' for detailed analysis.") {
+	if !strings.Contains(out, "Run 'issuegraph dep cycles' for detailed analysis.") {
 		t.Errorf("the warning does not point at the detailed command:\n%s", out)
 	}
 }
 
 // TestCycleWarningIsSilentWithoutCycles keeps the sweep from printing a header
-// over an empty list on every successful `bd dep add`.
+// over an empty list on every successful `issuegraph dep add`.
 func TestCycleWarningIsSilentWithoutCycles(t *testing.T) {
 	origStderr := os.Stderr
 	r, w, err := os.Pipe()
@@ -123,7 +123,7 @@ func TestCycleWarningIsSilentWithoutCycles(t *testing.T) {
 	}
 }
 
-// printCycleReportForTest drives `bd dep cycles`'s human rendering with a
+// printCycleReportForTest drives `issuegraph dep cycles`'s human rendering with a
 // report, through the same role the command uses.
 func printCycleReportForTest(t *testing.T, report issueops.CycleReport) {
 	t.Helper()
@@ -143,7 +143,7 @@ func printCycleReportForTest(t *testing.T, report issueops.CycleReport) {
 
 // fixedCycleStore is a store whose only real method is the cycle accessor. It
 // embeds the interface, so any other method the command reached for would panic
-// rather than quietly answering zero — which is the assertion that `bd dep
+// rather than quietly answering zero — which is the assertion that `issuegraph dep
 // cycles` opens nothing but the role. The detector is a separate type because
 // the store's LEGACY surface already carries a DetectCycles with a different
 // signature.

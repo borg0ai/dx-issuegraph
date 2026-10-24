@@ -10,8 +10,8 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/steveyegge/beads/internal/types"
-	publicops "github.com/steveyegge/beads/issueops"
+	"github.com/borg0ai/dx-issuegraph/internal/types"
+	publicops "github.com/borg0ai/dx-issuegraph/issueops"
 )
 
 // This file holds the contract every implementation of publicops.CycleDetector
@@ -275,7 +275,7 @@ func RunCycleDetectorReportsAnHonestPartial(t *testing.T, ctx context.Context, f
 // RunCycleDetectorCountsAWhollyUndescribableCycle pins cycledetector.go:81-85:
 // a cycle no member of which can be described is still IN the report, so the
 // count cannot shrink because rows went missing. Under the previous body this
-// cycle produced nothing at all, so `bd dep cycles` printed a smaller number and
+// cycle produced nothing at all, so `issuegraph dep cycles` printed a smaller number and
 // a workspace looked healthier than it was.
 func RunCycleDetectorCountsAWhollyUndescribableCycle(t *testing.T, ctx context.Context, fixture CycleDetectorFixture) {
 	t.Helper()

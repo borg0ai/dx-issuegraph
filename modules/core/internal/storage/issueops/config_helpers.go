@@ -6,9 +6,9 @@ import (
 	"fmt"
 	"strings"
 
-	"github.com/steveyegge/beads/internal/config"
-	"github.com/steveyegge/beads/internal/storage/domain"
-	"github.com/steveyegge/beads/internal/types"
+	"github.com/borg0ai/dx-issuegraph/internal/config"
+	"github.com/borg0ai/dx-issuegraph/internal/storage/domain"
+	"github.com/borg0ai/dx-issuegraph/internal/types"
 )
 
 // ParseStatusFallback converts legacy []string status names (from YAML) to []CustomStatus.
@@ -246,14 +246,14 @@ func ReopenCategoryInTx(ctx context.Context, tx DBTX, status types.Status) (type
 
 // ResolveCustomTypesInTx reads custom issue types from the custom_types table,
 // falling back to config string when the table is empty or pre-migration,
-// and always overlay-unions project-extension types from .beads/config.yaml on
-// top of the database-side result (gastownhall/beads#4024).
+// and always overlay-unions project-extension types from .issuegraph/config.yaml on
+// top of the database-side result (borg0ai/dx-issuegraph#4024).
 //
 // The overlay shape: built-in types are the enforced floor (handled by
 // IsValidWithCustom), database-side custom_types are the next layer (operator-
-// /agent-installed project types), and .beads/config.yaml's types.custom is
+// /agent-installed project types), and .issuegraph/config.yaml's types.custom is
 // the topmost union-add (project-extension types declared in version-controlled
-// config). A bead whose type is in any of those three layers validates; a bead
+// config). A issue whose type is in any of those three layers validates; a issue
 // whose type is in none still fails cleanly.
 //
 // Does not cache — callers layer caching on top.
@@ -291,7 +291,7 @@ func ResolveCustomTypesInTx(ctx context.Context, tx DBTX) ([]string, error) {
 	}
 
 	// Overlay-union with YAML types.custom regardless of the DB-side result.
-	// gastownhall/beads#4024: project-extension types declared in .beads/config.yaml
+	// borg0ai/dx-issuegraph#4024: project-extension types declared in .issuegraph/config.yaml
 	// must validate server-side even when the database side hasn't been migrated
 	// or populated with those types.
 	return mergeWithYAMLCustomTypes(fromDB, config.GetCustomTypesFromYAML), nil
@@ -301,7 +301,7 @@ func ResolveCustomTypesInTx(ctx context.Context, tx DBTX) ([]string, error) {
 // types.custom set (in that order), with duplicates removed. dbTypes preserve
 // their order; YAML-only types are appended in their declared order. nil
 // inputs are tolerated. The function is the union-add step that implements
-// gastownhall/beads#4024's overlay semantics; keeping it isolated lets the
+// borg0ai/dx-issuegraph#4024's overlay semantics; keeping it isolated lets the
 // merge logic be unit-tested without sql.Tx mocking.
 func mergeWithYAMLCustomTypes(dbTypes []string, yamlGetter func() []string) []string {
 	if yamlGetter == nil {
@@ -349,7 +349,7 @@ func mergeWithYAMLCustomTypes(dbTypes []string, yamlGetter func() []string) []st
 // UpdateIssueInTx) treat this as the YAML-fallback case rather than a fatal
 // validation failure. If YAML has nothing, propagate the original error.
 // Mirrors the YAML-fallback shape used by ResolveCustomStatusesDetailedInTx,
-// and preserves the gastownhall/beads#4024 overlay goal under degraded /
+// and preserves the borg0ai/dx-issuegraph#4024 overlay goal under degraded /
 // pre-migration DB conditions. Extracted as a pure function so the fallback
 // decision is testable without sql.Tx mocking.
 func customTypesYAMLFallback(yamlGetter func() []string, dbErr error) ([]string, error) {
@@ -420,7 +420,7 @@ func syncCustomTypesTable(ctx context.Context, tx DBTX, value string) error {
 }
 
 // ParseTypesConfigValue parses a types.custom config value, accepting both
-// the JSON-array form written by bd config set / pour (e.g. ["duty","ops"])
+// the JSON-array form written by issuegraph config set / pour (e.g. ["duty","ops"])
 // and the legacy comma-separated form (duty,ops). Elements are trimmed and
 // empties dropped.
 func ParseTypesConfigValue(value string) []string {

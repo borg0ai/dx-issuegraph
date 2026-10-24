@@ -1,4 +1,4 @@
-// Package types defines core data structures for the bd issue tracker.
+// Package types defines core data structures for the issuegraph issue tracker.
 package types
 
 import "context"
@@ -10,7 +10,7 @@ type IssueProvider interface {
 	// Should return empty slice (not error) if no issues exist.
 	GetOpenIssues(ctx context.Context) ([]*Issue, error)
 
-	// GetIssuePrefix returns the configured prefix (e.g., "bd", "TEST").
-	// Should return "bd" as default if not configured.
+	// GetIssuePrefix returns the configured prefix (e.g., "issuegraph", "TEST").
+	// Should return "issuegraph" as default if not configured.
 	GetIssuePrefix() string
 }

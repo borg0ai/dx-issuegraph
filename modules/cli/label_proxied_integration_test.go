@@ -10,33 +10,33 @@ import (
 	"testing"
 )
 
-func bdProxiedLabel(t *testing.T, bd, dir string, args ...string) string {
+func issuegraphProxiedLabel(t *testing.T, issuegraph, dir string, args ...string) string {
 	t.Helper()
 	fullArgs := append([]string{"label"}, args...)
-	stdout, stderr, err := bdProxiedRunBuffers(t, bd, dir, fullArgs...)
+	stdout, stderr, err := issuegraphProxiedRunBuffers(t, issuegraph, dir, fullArgs...)
 	if err != nil {
-		t.Fatalf("bd label %s failed: %v\nstdout:\n%s\nstderr:\n%s",
+		t.Fatalf("issuegraph label %s failed: %v\nstdout:\n%s\nstderr:\n%s",
 			strings.Join(args, " "), err, stdout, stderr)
 	}
 	return stdout
 }
 
-func bdProxiedLabelFail(t *testing.T, bd, dir string, args ...string) string {
+func issuegraphProxiedLabelFail(t *testing.T, issuegraph, dir string, args ...string) string {
 	t.Helper()
 	fullArgs := append([]string{"label"}, args...)
-	stdout, stderr, err := bdProxiedRunBuffers(t, bd, dir, fullArgs...)
+	stdout, stderr, err := issuegraphProxiedRunBuffers(t, issuegraph, dir, fullArgs...)
 	if err == nil {
-		t.Fatalf("expected bd label %s to fail, got:\nstdout:\n%s\nstderr:\n%s",
+		t.Fatalf("expected issuegraph label %s to fail, got:\nstdout:\n%s\nstderr:\n%s",
 			strings.Join(args, " "), stdout, stderr)
 	}
 	return stdout + stderr
 }
 
-func bdProxiedLabelListJSON(t *testing.T, bd, dir, issueID string) []string {
+func issuegraphProxiedLabelListJSON(t *testing.T, issuegraph, dir, issueID string) []string {
 	t.Helper()
-	stdout, stderr, err := bdProxiedRunBuffers(t, bd, dir, "label", "list", issueID, "--json")
+	stdout, stderr, err := issuegraphProxiedRunBuffers(t, issuegraph, dir, "label", "list", issueID, "--json")
 	if err != nil {
-		t.Fatalf("bd label list %s --json failed: %v\nstdout:\n%s\nstderr:\n%s", issueID, err, stdout, stderr)
+		t.Fatalf("issuegraph label list %s --json failed: %v\nstdout:\n%s\nstderr:\n%s", issueID, err, stdout, stderr)
 	}
 	start := strings.Index(stdout, "[")
 	if start < 0 {
@@ -54,19 +54,19 @@ func TestProxiedServerLabel(t *testing.T) {
 	requireSharedProxiedServer(t)
 	t.Parallel()
 
-	bd := buildEmbeddedBD(t)
+	issuegraph := buildEmbeddedBD(t)
 
 	t.Run("add_list_remove", func(t *testing.T) {
 		t.Parallel()
-		p := newSharedProxiedProject(t, bd, "la")
-		issue := bdProxiedCreate(t, bd, p.dir, "Label target")
+		p := newSharedProxiedProject(t, issuegraph, "la")
+		issue := issuegraphProxiedCreate(t, issuegraph, p.dir, "Label target")
 
-		out := bdProxiedLabel(t, bd, p.dir, "add", issue.ID, "alpha,beta")
+		out := issuegraphProxiedLabel(t, issuegraph, p.dir, "add", issue.ID, "alpha,beta")
 		if !strings.Contains(out, "Added") {
 			t.Errorf("expected 'Added' confirmation, got:\n%s", out)
 		}
 
-		if got := bdProxiedLabelListJSON(t, bd, p.dir, issue.ID); len(got) != 2 || got[0] != "alpha" || got[1] != "beta" {
+		if got := issuegraphProxiedLabelListJSON(t, issuegraph, p.dir, issue.ID); len(got) != 2 || got[0] != "alpha" || got[1] != "beta" {
 			t.Fatalf("labels after add = %v, want [alpha beta]", got)
 		}
 
@@ -77,33 +77,33 @@ func TestProxiedServerLabel(t *testing.T) {
 			t.Errorf("persisted labels = %v, want [alpha beta]", persisted)
 		}
 
-		bdProxiedLabel(t, bd, p.dir, "remove", issue.ID, "alpha")
-		if got := bdProxiedLabelListJSON(t, bd, p.dir, issue.ID); len(got) != 1 || got[0] != "beta" {
+		issuegraphProxiedLabel(t, issuegraph, p.dir, "remove", issue.ID, "alpha")
+		if got := issuegraphProxiedLabelListJSON(t, issuegraph, p.dir, issue.ID); len(got) != 1 || got[0] != "beta" {
 			t.Fatalf("labels after remove = %v, want [beta]", got)
 		}
 	})
 
 	t.Run("add_multiple_issues", func(t *testing.T) {
 		t.Parallel()
-		p := newSharedProxiedProject(t, bd, "lm")
-		a := bdProxiedCreate(t, bd, p.dir, "Issue A")
-		b := bdProxiedCreate(t, bd, p.dir, "Issue B")
+		p := newSharedProxiedProject(t, issuegraph, "lm")
+		a := issuegraphProxiedCreate(t, issuegraph, p.dir, "Issue A")
+		b := issuegraphProxiedCreate(t, issuegraph, p.dir, "Issue B")
 
-		bdProxiedLabel(t, bd, p.dir, "add", a.ID, b.ID, "shared")
+		issuegraphProxiedLabel(t, issuegraph, p.dir, "add", a.ID, b.ID, "shared")
 
-		if got := bdProxiedLabelListJSON(t, bd, p.dir, a.ID); len(got) != 1 || got[0] != "shared" {
+		if got := issuegraphProxiedLabelListJSON(t, issuegraph, p.dir, a.ID); len(got) != 1 || got[0] != "shared" {
 			t.Errorf("issue A labels = %v, want [shared]", got)
 		}
-		if got := bdProxiedLabelListJSON(t, bd, p.dir, b.ID); len(got) != 1 || got[0] != "shared" {
+		if got := issuegraphProxiedLabelListJSON(t, issuegraph, p.dir, b.ID); len(got) != 1 || got[0] != "shared" {
 			t.Errorf("issue B labels = %v, want [shared]", got)
 		}
 	})
 
 	t.Run("list_empty", func(t *testing.T) {
 		t.Parallel()
-		p := newSharedProxiedProject(t, bd, "le")
-		issue := bdProxiedCreate(t, bd, p.dir, "No labels")
-		out := bdProxiedLabel(t, bd, p.dir, "list", issue.ID)
+		p := newSharedProxiedProject(t, issuegraph, "le")
+		issue := issuegraphProxiedCreate(t, issuegraph, p.dir, "No labels")
+		out := issuegraphProxiedLabel(t, issuegraph, p.dir, "list", issue.ID)
 		if !strings.Contains(out, "no labels") {
 			t.Errorf("expected empty-state message, got:\n%s", out)
 		}
@@ -111,14 +111,14 @@ func TestProxiedServerLabel(t *testing.T) {
 
 	t.Run("list_all", func(t *testing.T) {
 		t.Parallel()
-		p := newSharedProxiedProject(t, bd, "ll")
-		a := bdProxiedCreate(t, bd, p.dir, "A")
-		b := bdProxiedCreate(t, bd, p.dir, "B")
-		bdProxiedLabel(t, bd, p.dir, "add", a.ID, "common")
-		bdProxiedLabel(t, bd, p.dir, "add", b.ID, "common")
-		bdProxiedLabel(t, bd, p.dir, "add", a.ID, "solo")
+		p := newSharedProxiedProject(t, issuegraph, "ll")
+		a := issuegraphProxiedCreate(t, issuegraph, p.dir, "A")
+		b := issuegraphProxiedCreate(t, issuegraph, p.dir, "B")
+		issuegraphProxiedLabel(t, issuegraph, p.dir, "add", a.ID, "common")
+		issuegraphProxiedLabel(t, issuegraph, p.dir, "add", b.ID, "common")
+		issuegraphProxiedLabel(t, issuegraph, p.dir, "add", a.ID, "solo")
 
-		stdout, stderr, err := bdProxiedRunBuffers(t, bd, p.dir, "label", "list-all", "--json")
+		stdout, stderr, err := issuegraphProxiedRunBuffers(t, issuegraph, p.dir, "label", "list-all", "--json")
 		if err != nil {
 			t.Fatalf("label list-all --json failed: %v\nstderr:\n%s", err, stderr)
 		}
@@ -147,18 +147,18 @@ func TestProxiedServerLabel(t *testing.T) {
 
 	t.Run("propagate", func(t *testing.T) {
 		t.Parallel()
-		p := newSharedProxiedProject(t, bd, "lp")
-		parent := bdProxiedCreate(t, bd, p.dir, "Parent epic", "--type", "epic")
-		c1 := bdProxiedCreate(t, bd, p.dir, "Child 1", "--parent", parent.ID)
-		c2 := bdProxiedCreate(t, bd, p.dir, "Child 2", "--parent", parent.ID)
+		p := newSharedProxiedProject(t, issuegraph, "lp")
+		parent := issuegraphProxiedCreate(t, issuegraph, p.dir, "Parent epic", "--type", "epic")
+		c1 := issuegraphProxiedCreate(t, issuegraph, p.dir, "Child 1", "--parent", parent.ID)
+		c2 := issuegraphProxiedCreate(t, issuegraph, p.dir, "Child 2", "--parent", parent.ID)
 
-		out := bdProxiedLabel(t, bd, p.dir, "propagate", parent.ID, "branch:x")
+		out := issuegraphProxiedLabel(t, issuegraph, p.dir, "propagate", parent.ID, "branch:x")
 		if !strings.Contains(out, "Propagated") {
 			t.Errorf("expected 'Propagated' output, got:\n%s", out)
 		}
 
 		for _, child := range []string{c1.ID, c2.ID} {
-			if got := bdProxiedLabelListJSON(t, bd, p.dir, child); len(got) != 1 || got[0] != "branch:x" {
+			if got := issuegraphProxiedLabelListJSON(t, issuegraph, p.dir, child); len(got) != 1 || got[0] != "branch:x" {
 				t.Errorf("child %s labels = %v, want [branch:x]", child, got)
 			}
 		}
@@ -166,9 +166,9 @@ func TestProxiedServerLabel(t *testing.T) {
 
 	t.Run("propagate_no_children", func(t *testing.T) {
 		t.Parallel()
-		p := newSharedProxiedProject(t, bd, "pn")
-		lonely := bdProxiedCreate(t, bd, p.dir, "Lonely")
-		out := bdProxiedLabel(t, bd, p.dir, "propagate", lonely.ID, "nope")
+		p := newSharedProxiedProject(t, issuegraph, "pn")
+		lonely := issuegraphProxiedCreate(t, issuegraph, p.dir, "Lonely")
+		out := issuegraphProxiedLabel(t, issuegraph, p.dir, "propagate", lonely.ID, "nope")
 		if !strings.Contains(out, "No children found") {
 			t.Errorf("expected no-children message, got:\n%s", out)
 		}
@@ -176,10 +176,10 @@ func TestProxiedServerLabel(t *testing.T) {
 
 	t.Run("add_json", func(t *testing.T) {
 		t.Parallel()
-		p := newSharedProxiedProject(t, bd, "aj")
-		issue := bdProxiedCreate(t, bd, p.dir, "Add JSON")
+		p := newSharedProxiedProject(t, issuegraph, "aj")
+		issue := issuegraphProxiedCreate(t, issuegraph, p.dir, "Add JSON")
 
-		stdout, stderr, err := bdProxiedRunBuffers(t, bd, p.dir, "label", "add", issue.ID, "j1,j2", "--json")
+		stdout, stderr, err := issuegraphProxiedRunBuffers(t, issuegraph, p.dir, "label", "add", issue.ID, "j1,j2", "--json")
 		if err != nil {
 			t.Fatalf("label add --json failed: %v\nstderr:\n%s", err, stderr)
 		}
@@ -207,11 +207,11 @@ func TestProxiedServerLabel(t *testing.T) {
 
 	t.Run("remove_json", func(t *testing.T) {
 		t.Parallel()
-		p := newSharedProxiedProject(t, bd, "rj")
-		issue := bdProxiedCreate(t, bd, p.dir, "Remove JSON")
-		bdProxiedLabel(t, bd, p.dir, "add", issue.ID, "rmj")
+		p := newSharedProxiedProject(t, issuegraph, "rj")
+		issue := issuegraphProxiedCreate(t, issuegraph, p.dir, "Remove JSON")
+		issuegraphProxiedLabel(t, issuegraph, p.dir, "add", issue.ID, "rmj")
 
-		stdout, stderr, err := bdProxiedRunBuffers(t, bd, p.dir, "label", "remove", issue.ID, "rmj", "--json")
+		stdout, stderr, err := issuegraphProxiedRunBuffers(t, issuegraph, p.dir, "label", "remove", issue.ID, "rmj", "--json")
 		if err != nil {
 			t.Fatalf("label remove --json failed: %v\nstderr:\n%s", err, stderr)
 		}
@@ -233,12 +233,12 @@ func TestProxiedServerLabel(t *testing.T) {
 
 	t.Run("add_duplicate_idempotent", func(t *testing.T) {
 		t.Parallel()
-		p := newSharedProxiedProject(t, bd, "di")
-		issue := bdProxiedCreate(t, bd, p.dir, "Dup label")
-		bdProxiedLabel(t, bd, p.dir, "add", issue.ID, "dup")
-		bdProxiedLabel(t, bd, p.dir, "add", issue.ID, "dup")
+		p := newSharedProxiedProject(t, issuegraph, "di")
+		issue := issuegraphProxiedCreate(t, issuegraph, p.dir, "Dup label")
+		issuegraphProxiedLabel(t, issuegraph, p.dir, "add", issue.ID, "dup")
+		issuegraphProxiedLabel(t, issuegraph, p.dir, "add", issue.ID, "dup")
 
-		if got := bdProxiedLabelListJSON(t, bd, p.dir, issue.ID); len(got) != 1 || got[0] != "dup" {
+		if got := issuegraphProxiedLabelListJSON(t, issuegraph, p.dir, issue.ID); len(got) != 1 || got[0] != "dup" {
 			t.Fatalf("labels after duplicate add = %v, want [dup]", got)
 		}
 	})
@@ -247,17 +247,17 @@ func TestProxiedServerLabel(t *testing.T) {
 	// direct one, text and JSON, and still exits 0.
 	t.Run("noop_edit_reports_unchanged", func(t *testing.T) {
 		t.Parallel()
-		p := newSharedProxiedProject(t, bd, "no")
-		issue := bdProxiedCreate(t, bd, p.dir, "No-op label")
-		bdProxiedLabel(t, bd, p.dir, "add", issue.ID, "have")
+		p := newSharedProxiedProject(t, issuegraph, "no")
+		issue := issuegraphProxiedCreate(t, issuegraph, p.dir, "No-op label")
+		issuegraphProxiedLabel(t, issuegraph, p.dir, "add", issue.ID, "have")
 
-		if out := bdProxiedLabel(t, bd, p.dir, "remove", issue.ID, "never"); !strings.Contains(out, "Label 'never' was not on "+issue.ID) {
+		if out := issuegraphProxiedLabel(t, issuegraph, p.dir, "remove", issue.ID, "never"); !strings.Contains(out, "Label 'never' was not on "+issue.ID) {
 			t.Errorf("remove of an absent label text = %s", out)
 		}
-		if out := bdProxiedLabel(t, bd, p.dir, "add", issue.ID, "have"); !strings.Contains(out, issue.ID+" already has label 'have'") {
+		if out := issuegraphProxiedLabel(t, issuegraph, p.dir, "add", issue.ID, "have"); !strings.Contains(out, issue.ID+" already has label 'have'") {
 			t.Errorf("add of a present label text = %s", out)
 		}
-		stdout, stderr, err := bdProxiedRunBuffers(t, bd, p.dir, "label", "remove", issue.ID, "have,never", "--json")
+		stdout, stderr, err := issuegraphProxiedRunBuffers(t, issuegraph, p.dir, "label", "remove", issue.ID, "have,never", "--json")
 		if err != nil {
 			t.Fatalf("label remove --json failed: %v\nstderr:\n%s", err, stderr)
 		}
@@ -279,26 +279,26 @@ func TestProxiedServerLabel(t *testing.T) {
 
 	t.Run("remove_comma_separated_multi", func(t *testing.T) {
 		t.Parallel()
-		p := newSharedProxiedProject(t, bd, "rm")
-		issue := bdProxiedCreate(t, bd, p.dir, "Multi remove")
-		bdProxiedLabel(t, bd, p.dir, "add", issue.ID, "rm-a,rm-b,rm-keep")
+		p := newSharedProxiedProject(t, issuegraph, "rm")
+		issue := issuegraphProxiedCreate(t, issuegraph, p.dir, "Multi remove")
+		issuegraphProxiedLabel(t, issuegraph, p.dir, "add", issue.ID, "rm-a,rm-b,rm-keep")
 
-		bdProxiedLabel(t, bd, p.dir, "remove", issue.ID, "rm-a,rm-b")
-		if got := bdProxiedLabelListJSON(t, bd, p.dir, issue.ID); len(got) != 1 || got[0] != "rm-keep" {
+		issuegraphProxiedLabel(t, issuegraph, p.dir, "remove", issue.ID, "rm-a,rm-b")
+		if got := issuegraphProxiedLabelListJSON(t, issuegraph, p.dir, issue.ID); len(got) != 1 || got[0] != "rm-keep" {
 			t.Fatalf("labels after multi remove = %v, want [rm-keep]", got)
 		}
 	})
 
 	t.Run("remove_batch", func(t *testing.T) {
 		t.Parallel()
-		p := newSharedProxiedProject(t, bd, "rb")
-		a := bdProxiedCreate(t, bd, p.dir, "Batch rm A")
-		b := bdProxiedCreate(t, bd, p.dir, "Batch rm B")
-		bdProxiedLabel(t, bd, p.dir, "add", a.ID, b.ID, "batch-rm")
+		p := newSharedProxiedProject(t, issuegraph, "rb")
+		a := issuegraphProxiedCreate(t, issuegraph, p.dir, "Batch rm A")
+		b := issuegraphProxiedCreate(t, issuegraph, p.dir, "Batch rm B")
+		issuegraphProxiedLabel(t, issuegraph, p.dir, "add", a.ID, b.ID, "batch-rm")
 
-		bdProxiedLabel(t, bd, p.dir, "remove", a.ID, b.ID, "batch-rm")
+		issuegraphProxiedLabel(t, issuegraph, p.dir, "remove", a.ID, b.ID, "batch-rm")
 		for _, id := range []string{a.ID, b.ID} {
-			if got := bdProxiedLabelListJSON(t, bd, p.dir, id); len(got) != 0 {
+			if got := issuegraphProxiedLabelListJSON(t, issuegraph, p.dir, id); len(got) != 0 {
 				t.Errorf("labels on %s after batch remove = %v, want none", id, got)
 			}
 		}
@@ -306,11 +306,11 @@ func TestProxiedServerLabel(t *testing.T) {
 
 	t.Run("list_text", func(t *testing.T) {
 		t.Parallel()
-		p := newSharedProxiedProject(t, bd, "lx")
-		issue := bdProxiedCreate(t, bd, p.dir, "Text list")
-		bdProxiedLabel(t, bd, p.dir, "add", issue.ID, "alpha,beta")
+		p := newSharedProxiedProject(t, issuegraph, "lx")
+		issue := issuegraphProxiedCreate(t, issuegraph, p.dir, "Text list")
+		issuegraphProxiedLabel(t, issuegraph, p.dir, "add", issue.ID, "alpha,beta")
 
-		out := bdProxiedLabel(t, bd, p.dir, "list", issue.ID)
+		out := issuegraphProxiedLabel(t, issuegraph, p.dir, "list", issue.ID)
 		if !strings.Contains(out, "alpha") || !strings.Contains(out, "beta") {
 			t.Errorf("expected both labels in text list, got:\n%s", out)
 		}
@@ -318,11 +318,11 @@ func TestProxiedServerLabel(t *testing.T) {
 
 	t.Run("propagate_json", func(t *testing.T) {
 		t.Parallel()
-		p := newSharedProxiedProject(t, bd, "pj")
-		parent := bdProxiedCreate(t, bd, p.dir, "JSON propagate", "--type", "epic")
-		child := bdProxiedCreate(t, bd, p.dir, "JSON prop child", "--parent", parent.ID)
+		p := newSharedProxiedProject(t, issuegraph, "pj")
+		parent := issuegraphProxiedCreate(t, issuegraph, p.dir, "JSON propagate", "--type", "epic")
+		child := issuegraphProxiedCreate(t, issuegraph, p.dir, "JSON prop child", "--parent", parent.ID)
 
-		stdout, stderr, err := bdProxiedRunBuffers(t, bd, p.dir, "label", "propagate", parent.ID, "prop-json", "--json")
+		stdout, stderr, err := issuegraphProxiedRunBuffers(t, issuegraph, p.dir, "label", "propagate", parent.ID, "prop-json", "--json")
 		if err != nil {
 			t.Fatalf("label propagate --json failed: %v\nstderr:\n%s", err, stderr)
 		}
@@ -345,9 +345,9 @@ func TestProxiedServerLabel(t *testing.T) {
 
 	t.Run("add_empty_label_rejected", func(t *testing.T) {
 		t.Parallel()
-		p := newSharedProxiedProject(t, bd, "el")
-		issue := bdProxiedCreate(t, bd, p.dir, "Empty label")
-		out := bdProxiedLabelFail(t, bd, p.dir, "add", issue.ID, "")
+		p := newSharedProxiedProject(t, issuegraph, "el")
+		issue := issuegraphProxiedCreate(t, issuegraph, p.dir, "Empty label")
+		out := issuegraphProxiedLabelFail(t, issuegraph, p.dir, "add", issue.ID, "")
 		if !strings.Contains(out, "empty") {
 			t.Errorf("expected empty-label error, got:\n%s", out)
 		}
@@ -355,9 +355,9 @@ func TestProxiedServerLabel(t *testing.T) {
 
 	t.Run("provides_label_rejected", func(t *testing.T) {
 		t.Parallel()
-		p := newSharedProxiedProject(t, bd, "pv")
-		issue := bdProxiedCreate(t, bd, p.dir, "Provides guard")
-		out := bdProxiedLabelFail(t, bd, p.dir, "add", issue.ID, "provides:foo")
+		p := newSharedProxiedProject(t, issuegraph, "pv")
+		issue := issuegraphProxiedCreate(t, issuegraph, p.dir, "Provides guard")
+		out := issuegraphProxiedLabelFail(t, issuegraph, p.dir, "add", issue.ID, "provides:foo")
 		if !strings.Contains(out, "provides:") {
 			t.Errorf("expected provides guard error, got:\n%s", out)
 		}
@@ -365,25 +365,25 @@ func TestProxiedServerLabel(t *testing.T) {
 
 	t.Run("provides_in_comma_list_rejected", func(t *testing.T) {
 		t.Parallel()
-		p := newSharedProxiedProject(t, bd, "pc")
-		issue := bdProxiedCreate(t, bd, p.dir, "Provides in list")
-		out := bdProxiedLabelFail(t, bd, p.dir, "add", issue.ID, "ok-label,provides:auth")
+		p := newSharedProxiedProject(t, issuegraph, "pc")
+		issue := issuegraphProxiedCreate(t, issuegraph, p.dir, "Provides in list")
+		out := issuegraphProxiedLabelFail(t, issuegraph, p.dir, "add", issue.ID, "ok-label,provides:auth")
 		if !strings.Contains(out, "provides:") {
 			t.Errorf("expected provides guard error, got:\n%s", out)
 		}
-		if got := bdProxiedLabelListJSON(t, bd, p.dir, issue.ID); len(got) != 0 {
+		if got := issuegraphProxiedLabelListJSON(t, issuegraph, p.dir, issue.ID); len(got) != 0 {
 			t.Errorf("no label should be applied when the batch is rejected, got %v", got)
 		}
 	})
 
 	t.Run("wisp_label_routes_to_wisp_labels", func(t *testing.T) {
 		t.Parallel()
-		p := newSharedProxiedProject(t, bd, "lw")
-		wisp := bdProxiedCreate(t, bd, p.dir, "Wisp target", "--ephemeral")
+		p := newSharedProxiedProject(t, issuegraph, "lw")
+		wisp := issuegraphProxiedCreate(t, issuegraph, p.dir, "Wisp target", "--ephemeral")
 
-		bdProxiedLabel(t, bd, p.dir, "add", wisp.ID, "wlabel")
+		issuegraphProxiedLabel(t, issuegraph, p.dir, "add", wisp.ID, "wlabel")
 
-		if got := bdProxiedLabelListJSON(t, bd, p.dir, wisp.ID); len(got) != 1 || got[0] != "wlabel" {
+		if got := issuegraphProxiedLabelListJSON(t, issuegraph, p.dir, wisp.ID); len(got) != 1 || got[0] != "wlabel" {
 			t.Fatalf("wisp labels via list = %v, want [wlabel]", got)
 		}
 
@@ -407,13 +407,13 @@ func TestProxiedServerLabel(t *testing.T) {
 
 	t.Run("wisp_label_remove_routes_to_wisp_labels", func(t *testing.T) {
 		t.Parallel()
-		p := newSharedProxiedProject(t, bd, "wr")
-		wisp := bdProxiedCreate(t, bd, p.dir, "Wisp remove target", "--ephemeral")
+		p := newSharedProxiedProject(t, issuegraph, "wr")
+		wisp := issuegraphProxiedCreate(t, issuegraph, p.dir, "Wisp remove target", "--ephemeral")
 
-		bdProxiedLabel(t, bd, p.dir, "add", wisp.ID, "keep,drop")
-		bdProxiedLabel(t, bd, p.dir, "remove", wisp.ID, "drop")
+		issuegraphProxiedLabel(t, issuegraph, p.dir, "add", wisp.ID, "keep,drop")
+		issuegraphProxiedLabel(t, issuegraph, p.dir, "remove", wisp.ID, "drop")
 
-		if got := bdProxiedLabelListJSON(t, bd, p.dir, wisp.ID); len(got) != 1 || got[0] != "keep" {
+		if got := issuegraphProxiedLabelListJSON(t, issuegraph, p.dir, wisp.ID); len(got) != 1 || got[0] != "keep" {
 			t.Fatalf("wisp labels after remove = %v, want [keep]", got)
 		}
 
@@ -430,14 +430,14 @@ func TestProxiedServerLabel(t *testing.T) {
 
 	t.Run("list_all_includes_wisp_labels", func(t *testing.T) {
 		t.Parallel()
-		p := newSharedProxiedProject(t, bd, "law")
-		perm := bdProxiedCreate(t, bd, p.dir, "Perm issue")
-		wisp := bdProxiedCreate(t, bd, p.dir, "Wisp issue", "--ephemeral")
-		bdProxiedLabel(t, bd, p.dir, "add", perm.ID, "shared")
-		bdProxiedLabel(t, bd, p.dir, "add", wisp.ID, "shared")
-		bdProxiedLabel(t, bd, p.dir, "add", wisp.ID, "wisp-only")
+		p := newSharedProxiedProject(t, issuegraph, "law")
+		perm := issuegraphProxiedCreate(t, issuegraph, p.dir, "Perm issue")
+		wisp := issuegraphProxiedCreate(t, issuegraph, p.dir, "Wisp issue", "--ephemeral")
+		issuegraphProxiedLabel(t, issuegraph, p.dir, "add", perm.ID, "shared")
+		issuegraphProxiedLabel(t, issuegraph, p.dir, "add", wisp.ID, "shared")
+		issuegraphProxiedLabel(t, issuegraph, p.dir, "add", wisp.ID, "wisp-only")
 
-		stdout, stderr, err := bdProxiedRunBuffers(t, bd, p.dir, "label", "list-all", "--json")
+		stdout, stderr, err := issuegraphProxiedRunBuffers(t, issuegraph, p.dir, "label", "list-all", "--json")
 		if err != nil {
 			t.Fatalf("label list-all --json failed: %v\nstderr:\n%s", err, stderr)
 		}
@@ -466,16 +466,16 @@ func TestProxiedServerLabel(t *testing.T) {
 
 	t.Run("propagate_to_wisp_children", func(t *testing.T) {
 		t.Parallel()
-		p := newSharedProxiedProject(t, bd, "pw")
-		parent := bdProxiedCreate(t, bd, p.dir, "Wisp parent", "--ephemeral", "--type", "epic")
-		child := bdProxiedCreate(t, bd, p.dir, "Wisp child", "--ephemeral", "--parent", parent.ID)
+		p := newSharedProxiedProject(t, issuegraph, "pw")
+		parent := issuegraphProxiedCreate(t, issuegraph, p.dir, "Wisp parent", "--ephemeral", "--type", "epic")
+		child := issuegraphProxiedCreate(t, issuegraph, p.dir, "Wisp child", "--ephemeral", "--parent", parent.ID)
 
-		out := bdProxiedLabel(t, bd, p.dir, "propagate", parent.ID, "branch:w")
+		out := issuegraphProxiedLabel(t, issuegraph, p.dir, "propagate", parent.ID, "branch:w")
 		if !strings.Contains(out, "Propagated") {
 			t.Errorf("expected 'Propagated' output, got:\n%s", out)
 		}
 
-		if got := bdProxiedLabelListJSON(t, bd, p.dir, child.ID); len(got) != 1 || got[0] != "branch:w" {
+		if got := issuegraphProxiedLabelListJSON(t, issuegraph, p.dir, child.ID); len(got) != 1 || got[0] != "branch:w" {
 			t.Fatalf("wisp child labels = %v, want [branch:w]", got)
 		}
 

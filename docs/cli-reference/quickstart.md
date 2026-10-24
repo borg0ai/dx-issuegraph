@@ -1,14 +1,14 @@
 ---
-title: "bd quickstart"
-description: "Display a quick start guide showing common bd workflows and patterns."
+title: "issuegraph quickstart"
+description: "Display a quick start guide showing common issuegraph workflows and patterns."
 ---
 
 {/* AUTO-GENERATED: do not edit manually */}
 
-Generated from `bd help --doc quickstart`.
+Generated from `issuegraph help --doc quickstart`.
 
-Display a quick start guide showing common bd workflows and patterns.
+Display a quick start guide showing common issuegraph workflows and patterns.
 
 ```
-bd quickstart [flags]
+issuegraph quickstart [flags]
 ```

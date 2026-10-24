@@ -5,7 +5,7 @@ import (
 	"path/filepath"
 	"testing"
 
-	"github.com/steveyegge/beads/internal/config"
+	"github.com/borg0ai/dx-issuegraph/internal/config"
 )
 
 // pinLegacyUpgradeGuardEnv pins the process-global inputs the guard now reads
@@ -16,10 +16,10 @@ import (
 // match CI instead of changing what CI checks.
 func pinLegacyUpgradeGuardEnv(t *testing.T) {
 	t.Helper()
-	t.Setenv("BEADS_TEST_IGNORE_REPO_CONFIG", "1")
-	t.Setenv("BEADS_DOLT_SERVER_MODE", "0")
-	t.Setenv("BEADS_DOLT_SHARED_SERVER", "0")
-	t.Setenv("BEADS_DOLT_SERVER_HOST", "")
+	t.Setenv("ISSUEGRAPH_TEST_IGNORE_REPO_CONFIG", "1")
+	t.Setenv("ISSUEGRAPH_DOLT_SERVER_MODE", "0")
+	t.Setenv("ISSUEGRAPH_DOLT_SHARED_SERVER", "0")
+	t.Setenv("ISSUEGRAPH_DOLT_SERVER_HOST", "")
 }
 
 func TestLegacyUpgradeGuardRefusesHistoricalLayoutsWithoutMutatingMetadata(t *testing.T) {
@@ -33,7 +33,7 @@ func TestLegacyUpgradeGuardRefusesHistoricalLayoutsWithoutMutatingMetadata(t *te
 	}{
 		{
 			name:     "classic sqlite",
-			metadata: `{"database":"beads.db","backend":"sqlite"}`,
+			metadata: `{"database":"issuegraph.db","backend":"sqlite"}`,
 			version:  "0.50.3",
 			sqlite:   true,
 		},
@@ -53,22 +53,22 @@ func TestLegacyUpgradeGuardRefusesHistoricalLayoutsWithoutMutatingMetadata(t *te
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			beadsDir := t.TempDir()
-			metadataPath := filepath.Join(beadsDir, "metadata.json")
+			issuegraphDir := t.TempDir()
+			metadataPath := filepath.Join(issuegraphDir, "metadata.json")
 			if err := os.WriteFile(metadataPath, []byte(tt.metadata), 0o600); err != nil {
 				t.Fatal(err)
 			}
 			if tt.sqlite {
-				if err := os.WriteFile(filepath.Join(beadsDir, "beads.db"), []byte("SQLite format 3\x00"), 0o600); err != nil {
+				if err := os.WriteFile(filepath.Join(issuegraphDir, "issuegraph.db"), []byte("SQLite format 3\x00"), 0o600); err != nil {
 					t.Fatal(err)
 				}
 			}
 			if tt.dolt {
-				if err := os.Mkdir(filepath.Join(beadsDir, "dolt"), 0o700); err != nil {
+				if err := os.Mkdir(filepath.Join(issuegraphDir, "dolt"), 0o700); err != nil {
 					t.Fatal(err)
 				}
 			}
-			if err := os.WriteFile(filepath.Join(beadsDir, localVersionFile), []byte(tt.version+"\n"), 0o600); err != nil {
+			if err := os.WriteFile(filepath.Join(issuegraphDir, localVersionFile), []byte(tt.version+"\n"), 0o600); err != nil {
 				t.Fatal(err)
 			}
 
@@ -76,7 +76,7 @@ func TestLegacyUpgradeGuardRefusesHistoricalLayoutsWithoutMutatingMetadata(t *te
 			if err != nil {
 				t.Fatal(err)
 			}
-			err = guardLegacyUpgradeWorkspace(beadsDir)
+			err = guardLegacyUpgradeWorkspace(issuegraphDir)
 			if !isLegacyUpgradeRefusal(err) {
 				t.Fatalf("guardLegacyUpgradeWorkspace() = %v, want migration refusal", err)
 			}
@@ -94,144 +94,144 @@ func TestLegacyUpgradeGuardRefusesHistoricalLayoutsWithoutMutatingMetadata(t *te
 func TestLegacyUpgradeGuardMetadataLessSQLiteAndCurrentEmbeddedPrecedence(t *testing.T) {
 	pinLegacyUpgradeGuardEnv(t)
 	t.Run("metadata-less v091 vc database", func(t *testing.T) {
-		beadsDir := t.TempDir()
-		if err := os.WriteFile(filepath.Join(beadsDir, "vc.db"), []byte("SQLite format 3\x00"), 0o600); err != nil {
+		issuegraphDir := t.TempDir()
+		if err := os.WriteFile(filepath.Join(issuegraphDir, "vc.db"), []byte("SQLite format 3\x00"), 0o600); err != nil {
 			t.Fatal(err)
 		}
-		if !isLegacyUpgradeRefusal(guardLegacyUpgradeWorkspace(beadsDir)) {
+		if !isLegacyUpgradeRefusal(guardLegacyUpgradeWorkspace(issuegraphDir)) {
 			t.Fatal("metadata-less v0.9.1 layout was not refused")
 		}
 	})
 
 	t.Run("metadata-less source with unrelated file is ignored", func(t *testing.T) {
-		beadsDir := t.TempDir()
-		if err := os.WriteFile(filepath.Join(beadsDir, "vc.db"), []byte("SQLite format 3\x00"), 0o600); err != nil {
+		issuegraphDir := t.TempDir()
+		if err := os.WriteFile(filepath.Join(issuegraphDir, "vc.db"), []byte("SQLite format 3\x00"), 0o600); err != nil {
 			t.Fatal(err)
 		}
-		if err := os.WriteFile(filepath.Join(beadsDir, "unrelated.txt"), []byte("not source evidence"), 0o600); err != nil {
+		if err := os.WriteFile(filepath.Join(issuegraphDir, "unrelated.txt"), []byte("not source evidence"), 0o600); err != nil {
 			t.Fatal(err)
 		}
-		if err := guardLegacyUpgradeWorkspace(beadsDir); err != nil {
+		if err := guardLegacyUpgradeWorkspace(issuegraphDir); err != nil {
 			t.Fatalf("ambiguous metadata-less layout was refused: %v", err)
 		}
 	})
 
 	t.Run("metadata-less non-SQLite database is ignored", func(t *testing.T) {
-		beadsDir := t.TempDir()
-		if err := os.WriteFile(filepath.Join(beadsDir, "cache.db"), []byte("not a SQLite database"), 0o600); err != nil {
+		issuegraphDir := t.TempDir()
+		if err := os.WriteFile(filepath.Join(issuegraphDir, "cache.db"), []byte("not a SQLite database"), 0o600); err != nil {
 			t.Fatal(err)
 		}
-		if err := guardLegacyUpgradeWorkspace(beadsDir); err != nil {
+		if err := guardLegacyUpgradeWorkspace(issuegraphDir); err != nil {
 			t.Fatalf("non-SQLite database was refused as historical SQLite: %v", err)
 		}
 	})
 
 	t.Run("current embedded root wins over stale sqlite artifact", func(t *testing.T) {
-		beadsDir := t.TempDir()
-		if err := os.WriteFile(filepath.Join(beadsDir, "beads.db"), []byte("stale SQLite artifact"), 0o600); err != nil {
+		issuegraphDir := t.TempDir()
+		if err := os.WriteFile(filepath.Join(issuegraphDir, "issuegraph.db"), []byte("stale SQLite artifact"), 0o600); err != nil {
 			t.Fatal(err)
 		}
-		if err := os.MkdirAll(filepath.Join(beadsDir, "embeddeddolt", "beads", ".dolt"), 0o700); err != nil {
+		if err := os.MkdirAll(filepath.Join(issuegraphDir, "embeddeddolt", "issuegraph", ".dolt"), 0o700); err != nil {
 			t.Fatal(err)
 		}
-		if err := os.WriteFile(filepath.Join(beadsDir, "embeddeddolt", "beads", ".dolt", "repo-entry"), []byte("opaque"), 0o600); err != nil {
+		if err := os.WriteFile(filepath.Join(issuegraphDir, "embeddeddolt", "issuegraph", ".dolt", "repo-entry"), []byte("opaque"), 0o600); err != nil {
 			t.Fatal(err)
 		}
-		if err := os.Mkdir(filepath.Join(beadsDir, "dolt"), 0o700); err != nil {
+		if err := os.Mkdir(filepath.Join(issuegraphDir, "dolt"), 0o700); err != nil {
 			t.Fatal(err)
 		}
-		if err := guardLegacyUpgradeWorkspace(beadsDir); err != nil {
+		if err := guardLegacyUpgradeWorkspace(issuegraphDir); err != nil {
 			t.Fatalf("current embedded workspace was refused due to stale artifacts: %v", err)
 		}
 	})
 
 	t.Run("empty embedded root does not hide metadata-less sqlite", func(t *testing.T) {
-		beadsDir := t.TempDir()
-		if err := os.WriteFile(filepath.Join(beadsDir, "vc.db"), []byte("SQLite format 3\x00"), 0o600); err != nil {
+		issuegraphDir := t.TempDir()
+		if err := os.WriteFile(filepath.Join(issuegraphDir, "vc.db"), []byte("SQLite format 3\x00"), 0o600); err != nil {
 			t.Fatal(err)
 		}
-		if err := os.Mkdir(filepath.Join(beadsDir, "embeddeddolt"), 0o700); err != nil {
+		if err := os.Mkdir(filepath.Join(issuegraphDir, "embeddeddolt"), 0o700); err != nil {
 			t.Fatal(err)
 		}
-		if err := guardLegacyUpgradeWorkspace(beadsDir); !isLegacyUpgradeRefusal(err) {
+		if err := guardLegacyUpgradeWorkspace(issuegraphDir); !isLegacyUpgradeRefusal(err) {
 			t.Fatalf("guardLegacyUpgradeWorkspace() = %v, want migration refusal", err)
 		}
 	})
 
 	t.Run("empty embedded root does not hide legacy dolt", func(t *testing.T) {
-		beadsDir := t.TempDir()
-		if err := os.WriteFile(filepath.Join(beadsDir, "metadata.json"), []byte(`{"backend":"dolt"}`), 0o600); err != nil {
+		issuegraphDir := t.TempDir()
+		if err := os.WriteFile(filepath.Join(issuegraphDir, "metadata.json"), []byte(`{"backend":"dolt"}`), 0o600); err != nil {
 			t.Fatal(err)
 		}
-		if err := os.WriteFile(filepath.Join(beadsDir, localVersionFile), []byte("0.55.4\n"), 0o600); err != nil {
+		if err := os.WriteFile(filepath.Join(issuegraphDir, localVersionFile), []byte("0.55.4\n"), 0o600); err != nil {
 			t.Fatal(err)
 		}
-		if err := os.Mkdir(filepath.Join(beadsDir, "dolt"), 0o700); err != nil {
+		if err := os.Mkdir(filepath.Join(issuegraphDir, "dolt"), 0o700); err != nil {
 			t.Fatal(err)
 		}
-		if err := os.Mkdir(filepath.Join(beadsDir, "embeddeddolt"), 0o700); err != nil {
+		if err := os.Mkdir(filepath.Join(issuegraphDir, "embeddeddolt"), 0o700); err != nil {
 			t.Fatal(err)
 		}
-		if err := guardLegacyUpgradeWorkspace(beadsDir); !isLegacyUpgradeRefusal(err) {
+		if err := guardLegacyUpgradeWorkspace(issuegraphDir); !isLegacyUpgradeRefusal(err) {
 			t.Fatalf("guardLegacyUpgradeWorkspace() = %v, want migration refusal", err)
 		}
 	})
 
 	t.Run("current server metadata wins over stale sqlite artifact", func(t *testing.T) {
-		beadsDir := t.TempDir()
-		if err := os.WriteFile(filepath.Join(beadsDir, "metadata.json"), []byte(`{"backend":"dolt","dolt_mode":"server"}`), 0o600); err != nil {
+		issuegraphDir := t.TempDir()
+		if err := os.WriteFile(filepath.Join(issuegraphDir, "metadata.json"), []byte(`{"backend":"dolt","dolt_mode":"server"}`), 0o600); err != nil {
 			t.Fatal(err)
 		}
-		if err := os.WriteFile(filepath.Join(beadsDir, "beads.db"), []byte("SQLite format 3\x00"), 0o600); err != nil {
+		if err := os.WriteFile(filepath.Join(issuegraphDir, "issuegraph.db"), []byte("SQLite format 3\x00"), 0o600); err != nil {
 			t.Fatal(err)
 		}
-		if err := os.WriteFile(filepath.Join(beadsDir, localVersionFile), []byte("1.1.2\n"), 0o600); err != nil {
+		if err := os.WriteFile(filepath.Join(issuegraphDir, localVersionFile), []byte("1.1.2\n"), 0o600); err != nil {
 			t.Fatal(err)
 		}
-		if err := guardLegacyUpgradeWorkspace(beadsDir); err != nil {
+		if err := guardLegacyUpgradeWorkspace(issuegraphDir); err != nil {
 			t.Fatalf("current server workspace was refused as SQLite: %v", err)
 		}
 	})
 
 	t.Run("legacy external server needs no local Dolt root", func(t *testing.T) {
-		beadsDir := t.TempDir()
-		if err := os.WriteFile(filepath.Join(beadsDir, "metadata.json"), []byte(`{"backend":"dolt","dolt_mode":"server"}`), 0o600); err != nil {
+		issuegraphDir := t.TempDir()
+		if err := os.WriteFile(filepath.Join(issuegraphDir, "metadata.json"), []byte(`{"backend":"dolt","dolt_mode":"server"}`), 0o600); err != nil {
 			t.Fatal(err)
 		}
-		if err := os.WriteFile(filepath.Join(beadsDir, localVersionFile), []byte("0.62.0\n"), 0o600); err != nil {
+		if err := os.WriteFile(filepath.Join(issuegraphDir, localVersionFile), []byte("0.62.0\n"), 0o600); err != nil {
 			t.Fatal(err)
 		}
-		if err := guardLegacyUpgradeWorkspace(beadsDir); !isLegacyUpgradeRefusal(err) {
+		if err := guardLegacyUpgradeWorkspace(issuegraphDir); !isLegacyUpgradeRefusal(err) {
 			t.Fatalf("guardLegacyUpgradeWorkspace() = %v, want external-server migration refusal", err)
 		}
 	})
 
 	t.Run("explicit server metadata with missing version witness and local Dolt root is refused", func(t *testing.T) {
-		beadsDir := t.TempDir()
-		if err := os.WriteFile(filepath.Join(beadsDir, "metadata.json"), []byte(`{"backend":"dolt","dolt_mode":"server"}`), 0o600); err != nil {
+		issuegraphDir := t.TempDir()
+		if err := os.WriteFile(filepath.Join(issuegraphDir, "metadata.json"), []byte(`{"backend":"dolt","dolt_mode":"server"}`), 0o600); err != nil {
 			t.Fatal(err)
 		}
-		if err := os.Mkdir(filepath.Join(beadsDir, "dolt"), 0o700); err != nil {
+		if err := os.Mkdir(filepath.Join(issuegraphDir, "dolt"), 0o700); err != nil {
 			t.Fatal(err)
 		}
-		if err := guardLegacyUpgradeWorkspace(beadsDir); !isLegacyUpgradeRefusal(err) {
+		if err := guardLegacyUpgradeWorkspace(issuegraphDir); !isLegacyUpgradeRefusal(err) {
 			t.Fatalf("guardLegacyUpgradeWorkspace() = %v, want migration refusal", err)
 		}
 	})
 
 	t.Run("explicit server metadata with malformed version witness and local Dolt root is admitted with a warning", func(t *testing.T) {
 		warnings := captureLegacyUpgradeWarnings(t)
-		beadsDir := t.TempDir()
-		if err := os.WriteFile(filepath.Join(beadsDir, "metadata.json"), []byte(`{"backend":"dolt","dolt_mode":"server"}`), 0o600); err != nil {
+		issuegraphDir := t.TempDir()
+		if err := os.WriteFile(filepath.Join(issuegraphDir, "metadata.json"), []byte(`{"backend":"dolt","dolt_mode":"server"}`), 0o600); err != nil {
 			t.Fatal(err)
 		}
-		if err := os.WriteFile(filepath.Join(beadsDir, localVersionFile), []byte("not-a-version\n"), 0o600); err != nil {
+		if err := os.WriteFile(filepath.Join(issuegraphDir, localVersionFile), []byte("not-a-version\n"), 0o600); err != nil {
 			t.Fatal(err)
 		}
-		if err := os.Mkdir(filepath.Join(beadsDir, "dolt"), 0o700); err != nil {
+		if err := os.Mkdir(filepath.Join(issuegraphDir, "dolt"), 0o700); err != nil {
 			t.Fatal(err)
 		}
-		if err := guardLegacyUpgradeWorkspace(beadsDir); err != nil {
+		if err := guardLegacyUpgradeWorkspace(issuegraphDir); err != nil {
 			t.Fatalf("guardLegacyUpgradeWorkspace() = %v, want nil", err)
 		}
 		if warnings.Len() == 0 {
@@ -240,17 +240,17 @@ func TestLegacyUpgradeGuardMetadataLessSQLiteAndCurrentEmbeddedPrecedence(t *tes
 	})
 
 	t.Run("explicit server metadata with current version witness and local Dolt root is admitted", func(t *testing.T) {
-		beadsDir := t.TempDir()
-		if err := os.WriteFile(filepath.Join(beadsDir, "metadata.json"), []byte(`{"backend":"dolt","dolt_mode":"server"}`), 0o600); err != nil {
+		issuegraphDir := t.TempDir()
+		if err := os.WriteFile(filepath.Join(issuegraphDir, "metadata.json"), []byte(`{"backend":"dolt","dolt_mode":"server"}`), 0o600); err != nil {
 			t.Fatal(err)
 		}
-		if err := os.WriteFile(filepath.Join(beadsDir, localVersionFile), []byte("1.1.2\n"), 0o600); err != nil {
+		if err := os.WriteFile(filepath.Join(issuegraphDir, localVersionFile), []byte("1.1.2\n"), 0o600); err != nil {
 			t.Fatal(err)
 		}
-		if err := os.Mkdir(filepath.Join(beadsDir, "dolt"), 0o700); err != nil {
+		if err := os.Mkdir(filepath.Join(issuegraphDir, "dolt"), 0o700); err != nil {
 			t.Fatal(err)
 		}
-		if err := guardLegacyUpgradeWorkspace(beadsDir); err != nil {
+		if err := guardLegacyUpgradeWorkspace(issuegraphDir); err != nil {
 			t.Fatalf("current server workspace with current witness was refused: %v", err)
 		}
 	})
@@ -280,20 +280,20 @@ func TestLegacyUpgradeGuardServerSelectionBeatsStaleEmbeddedRepository(t *testin
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			captureLegacyUpgradeWarnings(t)
-			beadsDir := t.TempDir()
+			issuegraphDir := t.TempDir()
 			metadata := []byte(`{"backend":"dolt","dolt_mode":"server","dolt_database":"selected_server_db"}`)
-			if err := os.WriteFile(filepath.Join(beadsDir, "metadata.json"), metadata, 0o600); err != nil {
+			if err := os.WriteFile(filepath.Join(issuegraphDir, "metadata.json"), metadata, 0o600); err != nil {
 				t.Fatal(err)
 			}
 			if tt.version != "" {
-				if err := os.WriteFile(filepath.Join(beadsDir, localVersionFile), []byte(tt.version+"\n"), 0o600); err != nil {
+				if err := os.WriteFile(filepath.Join(issuegraphDir, localVersionFile), []byte(tt.version+"\n"), 0o600); err != nil {
 					t.Fatal(err)
 				}
 			}
-			if err := os.Mkdir(filepath.Join(beadsDir, "dolt"), 0o700); err != nil {
+			if err := os.Mkdir(filepath.Join(issuegraphDir, "dolt"), 0o700); err != nil {
 				t.Fatal(err)
 			}
-			staleRepo := filepath.Join(beadsDir, "embeddeddolt", "stale", ".dolt")
+			staleRepo := filepath.Join(issuegraphDir, "embeddeddolt", "stale", ".dolt")
 			if err := os.MkdirAll(staleRepo, 0o700); err != nil {
 				t.Fatal(err)
 			}
@@ -301,7 +301,7 @@ func TestLegacyUpgradeGuardServerSelectionBeatsStaleEmbeddedRepository(t *testin
 				t.Fatal(err)
 			}
 
-			err := guardLegacyUpgradeWorkspace(beadsDir)
+			err := guardLegacyUpgradeWorkspace(issuegraphDir)
 			if tt.wantRefusal && !isLegacyUpgradeRefusal(err) {
 				t.Fatalf("guardLegacyUpgradeWorkspace() = %v, want migration refusal", err)
 			}
@@ -327,21 +327,21 @@ func TestLegacyUpgradeGuardRefusesOldDoltRootWithoutTrustingVersionWitness(t *te
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			beadsDir := t.TempDir()
+			issuegraphDir := t.TempDir()
 			if tt.metadata != "" {
-				if err := os.WriteFile(filepath.Join(beadsDir, "metadata.json"), []byte(tt.metadata), 0o600); err != nil {
+				if err := os.WriteFile(filepath.Join(issuegraphDir, "metadata.json"), []byte(tt.metadata), 0o600); err != nil {
 					t.Fatal(err)
 				}
 			}
 			if tt.version != "" {
-				if err := os.WriteFile(filepath.Join(beadsDir, localVersionFile), []byte(tt.version+"\n"), 0o600); err != nil {
+				if err := os.WriteFile(filepath.Join(issuegraphDir, localVersionFile), []byte(tt.version+"\n"), 0o600); err != nil {
 					t.Fatal(err)
 				}
 			}
-			if err := os.Mkdir(filepath.Join(beadsDir, "dolt"), 0o700); err != nil {
+			if err := os.Mkdir(filepath.Join(issuegraphDir, "dolt"), 0o700); err != nil {
 				t.Fatal(err)
 			}
-			if err := guardLegacyUpgradeWorkspace(beadsDir); !isLegacyUpgradeRefusal(err) {
+			if err := guardLegacyUpgradeWorkspace(issuegraphDir); !isLegacyUpgradeRefusal(err) {
 				t.Fatalf("guardLegacyUpgradeWorkspace() = %v, want migration refusal", err)
 			}
 		})
@@ -349,7 +349,7 @@ func TestLegacyUpgradeGuardRefusesOldDoltRootWithoutTrustingVersionWitness(t *te
 }
 
 func TestLegacyUpgradeGuardSharedServerAdmission(t *testing.T) {
-	// The per-case BEADS_DOLT_SHARED_SERVER below is set after this and wins;
+	// The per-case ISSUEGRAPH_DOLT_SHARED_SERVER below is set after this and wins;
 	// the pin is what keeps the other two mode inputs out of the decision.
 	pinLegacyUpgradeGuardEnv(t)
 	tests := []struct {
@@ -372,24 +372,24 @@ func TestLegacyUpgradeGuardSharedServerAdmission(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			config.ResetForTesting()
 			t.Cleanup(config.ResetForTesting)
-			t.Setenv("BEADS_DOLT_SHARED_SERVER", tt.shared)
+			t.Setenv("ISSUEGRAPH_DOLT_SHARED_SERVER", tt.shared)
 
-			beadsDir := t.TempDir()
+			issuegraphDir := t.TempDir()
 			if tt.metadata != "" {
-				if err := os.WriteFile(filepath.Join(beadsDir, "metadata.json"), []byte(tt.metadata), 0o600); err != nil {
+				if err := os.WriteFile(filepath.Join(issuegraphDir, "metadata.json"), []byte(tt.metadata), 0o600); err != nil {
 					t.Fatal(err)
 				}
 			}
 			if tt.version != "" {
-				if err := os.WriteFile(filepath.Join(beadsDir, localVersionFile), []byte(tt.version+"\n"), 0o600); err != nil {
+				if err := os.WriteFile(filepath.Join(issuegraphDir, localVersionFile), []byte(tt.version+"\n"), 0o600); err != nil {
 					t.Fatal(err)
 				}
 			}
-			if err := os.Mkdir(filepath.Join(beadsDir, "dolt"), 0o700); err != nil {
+			if err := os.Mkdir(filepath.Join(issuegraphDir, "dolt"), 0o700); err != nil {
 				t.Fatal(err)
 			}
 
-			err := guardLegacyUpgradeWorkspace(beadsDir)
+			err := guardLegacyUpgradeWorkspace(issuegraphDir)
 			if tt.wantRefusal && !isLegacyUpgradeRefusal(err) {
 				t.Fatalf("guardLegacyUpgradeWorkspace() = %v, want migration refusal", err)
 			}
@@ -402,15 +402,15 @@ func TestLegacyUpgradeGuardSharedServerAdmission(t *testing.T) {
 
 func TestLegacyUpgradeGuardLeavesCurrentDoltWorkspaceAlone(t *testing.T) {
 	pinLegacyUpgradeGuardEnv(t)
-	beadsDir := t.TempDir()
+	issuegraphDir := t.TempDir()
 	metadata := `{"backend":"dolt","dolt_mode":"embedded"}`
-	if err := os.WriteFile(filepath.Join(beadsDir, "metadata.json"), []byte(metadata), 0o600); err != nil {
+	if err := os.WriteFile(filepath.Join(issuegraphDir, "metadata.json"), []byte(metadata), 0o600); err != nil {
 		t.Fatal(err)
 	}
-	if err := os.WriteFile(filepath.Join(beadsDir, localVersionFile), []byte("1.1.2\n"), 0o600); err != nil {
+	if err := os.WriteFile(filepath.Join(issuegraphDir, localVersionFile), []byte("1.1.2\n"), 0o600); err != nil {
 		t.Fatal(err)
 	}
-	if err := guardLegacyUpgradeWorkspace(beadsDir); err != nil {
+	if err := guardLegacyUpgradeWorkspace(issuegraphDir); err != nil {
 		t.Fatalf("guardLegacyUpgradeWorkspace(%s) = %v, want nil", metadata, err)
 	}
 }
@@ -419,13 +419,13 @@ func TestLegacyUpgradeGuardRejectsBackendTombstonesWithoutMigratingConfig(t *tes
 	for _, backend := range []string{"postgres", "mysql", "mystery"} {
 		backend := backend
 		t.Run(backend, func(t *testing.T) {
-			beadsDir := t.TempDir()
-			legacyPath := filepath.Join(beadsDir, "config.json")
+			issuegraphDir := t.TempDir()
+			legacyPath := filepath.Join(issuegraphDir, "config.json")
 			legacy := []byte(`{"backend":"` + backend + `"}`)
 			if err := os.WriteFile(legacyPath, legacy, 0o600); err != nil {
 				t.Fatal(err)
 			}
-			if err := guardLegacyUpgradeWorkspace(beadsDir); err == nil {
+			if err := guardLegacyUpgradeWorkspace(issuegraphDir); err == nil {
 				t.Fatal("guardLegacyUpgradeWorkspace() = nil, want backend refusal")
 			}
 			after, err := os.ReadFile(legacyPath)
@@ -435,7 +435,7 @@ func TestLegacyUpgradeGuardRejectsBackendTombstonesWithoutMigratingConfig(t *tes
 			if string(after) != string(legacy) {
 				t.Fatalf("guard rewrote config.json: got %q, want %q", after, legacy)
 			}
-			if _, err := os.Stat(filepath.Join(beadsDir, "metadata.json")); !os.IsNotExist(err) {
+			if _, err := os.Stat(filepath.Join(issuegraphDir, "metadata.json")); !os.IsNotExist(err) {
 				t.Fatalf("guard created metadata.json: %v", err)
 			}
 		})

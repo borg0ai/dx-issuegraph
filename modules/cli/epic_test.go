@@ -9,8 +9,8 @@ import (
 	"testing"
 	"time"
 
-	"github.com/steveyegge/beads/internal/storage/dolt"
-	"github.com/steveyegge/beads/internal/types"
+	"github.com/borg0ai/dx-issuegraph/internal/storage/dolt"
+	"github.com/borg0ai/dx-issuegraph/internal/types"
 )
 
 type epicTestHelper struct {
@@ -20,7 +20,7 @@ type epicTestHelper struct {
 
 func newEpicTestHelper(t *testing.T) *epicTestHelper {
 	tmpDir := t.TempDir()
-	testDB := filepath.Join(tmpDir, ".beads", "beads.db")
+	testDB := filepath.Join(tmpDir, ".issuegraph", "issuegraph.db")
 	return &epicTestHelper{
 		s:   newTestStore(t, testDB),
 		ctx: context.Background(),

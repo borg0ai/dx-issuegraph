@@ -40,16 +40,16 @@ func TestInitCancel_E2E(t *testing.T) {
 	cmd.Stdin = stdinR
 	cmd.Stdout = stdoutW
 	cmd.Stderr = stdoutW
-	cmd.Env = append(filteredEnv("BEADS_DB", "BEADS_DIR", "HOME", "XDG_CONFIG_HOME", "BD_NON_INTERACTIVE", "CI"),
-		"BEADS_DB=",
+	cmd.Env = append(filteredEnv("ISSUEGRAPH_DB", "ISSUEGRAPH_DIR", "HOME", "XDG_CONFIG_HOME", "ISSUEGRAPH_NON_INTERACTIVE", "CI"),
+		"ISSUEGRAPH_DB=",
 		"HOME="+tmpDir,
 		"XDG_CONFIG_HOME="+filepath.Join(tmpDir, "xdg-config"),
-		"BD_NON_INTERACTIVE=0",
+		"ISSUEGRAPH_NON_INTERACTIVE=0",
 		"CI=",
 	)
 
 	if err := cmd.Start(); err != nil {
-		t.Fatalf("failed to start bd init: %v", err)
+		t.Fatalf("failed to start issuegraph init: %v", err)
 	}
 
 	_ = stdinR.Close()
@@ -105,9 +105,9 @@ func TestInitCancel_E2E(t *testing.T) {
 			t.Fatalf("failed to send SIGINT: %v", err)
 		}
 	case err := <-waitCh:
-		t.Fatalf("bd init exited before prompt: %v\nOutput: %s", err, getOutput())
+		t.Fatalf("issuegraph init exited before prompt: %v\nOutput: %s", err, getOutput())
 	// This deadline guards against a hung init, not startup speed: before the
-	// wizard prints anything, bd init creates the embedded dolt store, which
+	// wizard prints anything, issuegraph init creates the embedded dolt store, which
 	// under the nightly full-suite -race load takes ~5s on CI runners and grew
 	// past the old 5s limit (4.71s -> 4.92s -> 5.02s across 2026-07-23..25).
 	case <-time.After(60 * time.Second):

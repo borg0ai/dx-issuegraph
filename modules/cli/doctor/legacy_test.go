@@ -94,7 +94,7 @@ func TestCheckAgentDocumentation(t *testing.T) {
 	}
 }
 
-func TestCheckLegacyBeadsSlashCommands(t *testing.T) {
+func TestCheckLegacyIssueGraphSlashCommands(t *testing.T) {
 	tests := []struct {
 		name           string
 		fileContent    map[string]string // filename -> content
@@ -110,7 +110,7 @@ func TestCheckLegacyBeadsSlashCommands(t *testing.T) {
 		{
 			name: "clean documentation",
 			fileContent: map[string]string{
-				"AGENTS.md": "# Agents\n\nUse bd ready to see ready issues.",
+				"AGENTS.md": "# Agents\n\nUse issuegraph ready to see ready issues.",
 			},
 			expectedStatus: "ok",
 			expectWarning:  false,
@@ -118,7 +118,7 @@ func TestCheckLegacyBeadsSlashCommands(t *testing.T) {
 		{
 			name: "legacy slash command in AGENTS.md",
 			fileContent: map[string]string{
-				"AGENTS.md": "# Agents\n\nUse /beads:ready to see ready issues.",
+				"AGENTS.md": "# Agents\n\nUse /issuegraph:ready to see ready issues.",
 			},
 			expectedStatus: "warning",
 			expectWarning:  true,
@@ -126,7 +126,7 @@ func TestCheckLegacyBeadsSlashCommands(t *testing.T) {
 		{
 			name: "legacy slash command in CLAUDE.md",
 			fileContent: map[string]string{
-				"CLAUDE.md": "# Claude\n\nRun /beads:quickstart to get started.",
+				"CLAUDE.md": "# Claude\n\nRun /issuegraph:quickstart to get started.",
 			},
 			expectedStatus: "warning",
 			expectWarning:  true,
@@ -134,7 +134,7 @@ func TestCheckLegacyBeadsSlashCommands(t *testing.T) {
 		{
 			name: "legacy slash command in .claude/CLAUDE.md",
 			fileContent: map[string]string{
-				".claude/CLAUDE.md": "Use /beads:show to see an issue.",
+				".claude/CLAUDE.md": "Use /issuegraph:show to see an issue.",
 			},
 			expectedStatus: "warning",
 			expectWarning:  true,
@@ -142,7 +142,7 @@ func TestCheckLegacyBeadsSlashCommands(t *testing.T) {
 		{
 			name: "legacy slash command in claude.local.md",
 			fileContent: map[string]string{
-				"claude.local.md": "Use /beads:show to see an issue.",
+				"claude.local.md": "Use /issuegraph:show to see an issue.",
 			},
 			expectedStatus: "warning",
 			expectWarning:  true,
@@ -150,7 +150,7 @@ func TestCheckLegacyBeadsSlashCommands(t *testing.T) {
 		{
 			name: "legacy slash command in .claude/claude.local.md",
 			fileContent: map[string]string{
-				".claude/claude.local.md": "Use /beads:ready to see ready issues.",
+				".claude/claude.local.md": "Use /issuegraph:ready to see ready issues.",
 			},
 			expectedStatus: "warning",
 			expectWarning:  true,
@@ -158,8 +158,8 @@ func TestCheckLegacyBeadsSlashCommands(t *testing.T) {
 		{
 			name: "multiple files with legacy commands",
 			fileContent: map[string]string{
-				"AGENTS.md": "Use /beads:ready",
-				"CLAUDE.md": "Use /beads:show",
+				"AGENTS.md": "Use /issuegraph:ready",
+				"CLAUDE.md": "Use /issuegraph:show",
 			},
 			expectedStatus: "warning",
 			expectWarning:  true,
@@ -184,7 +184,7 @@ func TestCheckLegacyBeadsSlashCommands(t *testing.T) {
 				}
 			}
 
-			check := CheckLegacyBeadsSlashCommands(tmpDir)
+			check := CheckLegacyIssueGraphSlashCommands(tmpDir)
 
 			if check.Status != tt.expectedStatus {
 				t.Errorf("Expected status %s, got %s", tt.expectedStatus, check.Status)
@@ -194,8 +194,8 @@ func TestCheckLegacyBeadsSlashCommands(t *testing.T) {
 				if check.Fix == "" {
 					t.Error("Expected fix message for warning, got empty string")
 				}
-				if !strings.Contains(check.Fix, "bd setup claude") {
-					t.Error("Expected fix message to mention 'bd setup claude'")
+				if !strings.Contains(check.Fix, "issuegraph setup claude") {
+					t.Error("Expected fix message to mention 'issuegraph setup claude'")
 				}
 				if !strings.Contains(check.Fix, "token") {
 					t.Error("Expected fix message to mention token savings")
@@ -221,7 +221,7 @@ func TestCheckLegacyMCPToolReferences(t *testing.T) {
 		{
 			name: "clean documentation without MCP references",
 			fileContent: map[string]string{
-				"AGENTS.md": "# Agents\n\nUse bd ready to see ready issues.",
+				"AGENTS.md": "# Agents\n\nUse issuegraph ready to see ready issues.",
 			},
 			expectedStatus: "ok",
 			expectWarning:  false,
@@ -229,7 +229,7 @@ func TestCheckLegacyMCPToolReferences(t *testing.T) {
 		{
 			name: "old MCP tool reference in AGENTS.md",
 			fileContent: map[string]string{
-				"AGENTS.md": "# Agents\n\nUse mcp__beads_beads__list to list issues.",
+				"AGENTS.md": "# Agents\n\nUse mcp__issuegraph_issuegraph__list to list issues.",
 			},
 			expectedStatus: "warning",
 			expectWarning:  true,
@@ -237,7 +237,7 @@ func TestCheckLegacyMCPToolReferences(t *testing.T) {
 		{
 			name: "plugin MCP tool reference in CLAUDE.md",
 			fileContent: map[string]string{
-				"CLAUDE.md": "# Claude\n\nCall mcp__plugin_beads_beads__show to see an issue.",
+				"CLAUDE.md": "# Claude\n\nCall mcp__plugin_issuegraph_issuegraph__show to see an issue.",
 			},
 			expectedStatus: "warning",
 			expectWarning:  true,
@@ -245,7 +245,7 @@ func TestCheckLegacyMCPToolReferences(t *testing.T) {
 		{
 			name: "Junie-style MCP tool reference",
 			fileContent: map[string]string{
-				"AGENTS.md": "# Agents\n\nUse mcp_beads_ready to see ready issues.",
+				"AGENTS.md": "# Agents\n\nUse mcp_issuegraph_ready to see ready issues.",
 			},
 			expectedStatus: "warning",
 			expectWarning:  true,
@@ -253,7 +253,7 @@ func TestCheckLegacyMCPToolReferences(t *testing.T) {
 		{
 			name: "MCP reference in .claude/CLAUDE.md",
 			fileContent: map[string]string{
-				".claude/CLAUDE.md": "Call mcp__beads_beads__create to create issues.",
+				".claude/CLAUDE.md": "Call mcp__issuegraph_issuegraph__create to create issues.",
 			},
 			expectedStatus: "warning",
 			expectWarning:  true,
@@ -261,7 +261,7 @@ func TestCheckLegacyMCPToolReferences(t *testing.T) {
 		{
 			name: "MCP reference in claude.local.md",
 			fileContent: map[string]string{
-				"claude.local.md": "Use mcp__beads_beads__ready to find work.",
+				"claude.local.md": "Use mcp__issuegraph_issuegraph__ready to find work.",
 			},
 			expectedStatus: "warning",
 			expectWarning:  true,
@@ -269,7 +269,7 @@ func TestCheckLegacyMCPToolReferences(t *testing.T) {
 		{
 			name: "MCP reference in .claude/claude.local.md",
 			fileContent: map[string]string{
-				".claude/claude.local.md": "Call mcp__plugin_beads_beads__list for issues.",
+				".claude/claude.local.md": "Call mcp__plugin_issuegraph_issuegraph__list for issues.",
 			},
 			expectedStatus: "warning",
 			expectWarning:  true,
@@ -277,8 +277,8 @@ func TestCheckLegacyMCPToolReferences(t *testing.T) {
 		{
 			name: "multiple files with MCP references",
 			fileContent: map[string]string{
-				"AGENTS.md": "Use mcp__beads_beads__list",
-				"CLAUDE.md": "Call mcp__plugin_beads_beads__show",
+				"AGENTS.md": "Use mcp__issuegraph_issuegraph__list",
+				"CLAUDE.md": "Call mcp__plugin_issuegraph_issuegraph__show",
 			},
 			expectedStatus: "warning",
 			expectWarning:  true,
@@ -313,13 +313,13 @@ func TestCheckLegacyMCPToolReferences(t *testing.T) {
 				if check.Fix == "" {
 					t.Error("Expected fix message for warning, got empty string")
 				}
-				if !strings.Contains(check.Fix, "bd setup claude") {
-					t.Error("Expected fix message to mention 'bd setup claude'")
+				if !strings.Contains(check.Fix, "issuegraph setup claude") {
+					t.Error("Expected fix message to mention 'issuegraph setup claude'")
 				}
 				if !strings.Contains(check.Fix, "token") {
 					t.Error("Expected fix message to mention token savings")
 				}
-				if !strings.Contains(check.Fix, "bd list") {
+				if !strings.Contains(check.Fix, "issuegraph list") {
 					t.Error("Expected fix message to show CLI command equivalents")
 				}
 			}
@@ -329,17 +329,17 @@ func TestCheckLegacyMCPToolReferences(t *testing.T) {
 
 func TestCheckDatabaseConfig_IgnoresSystemJSONLs(t *testing.T) {
 	tmpDir := t.TempDir()
-	beadsDir := filepath.Join(tmpDir, ".beads")
-	if err := os.Mkdir(beadsDir, 0750); err != nil {
+	issuegraphDir := filepath.Join(tmpDir, ".issuegraph")
+	if err := os.Mkdir(issuegraphDir, 0750); err != nil {
 		t.Fatal(err)
 	}
 
 	// Configure issues.jsonl, but only create interactions.jsonl.
-	metadataPath := filepath.Join(beadsDir, "metadata.json")
-	if err := os.WriteFile(metadataPath, []byte(`{"database":"beads.db"}`), 0644); err != nil {
+	metadataPath := filepath.Join(issuegraphDir, "metadata.json")
+	if err := os.WriteFile(metadataPath, []byte(`{"database":"issuegraph.db"}`), 0644); err != nil {
 		t.Fatal(err)
 	}
-	if err := os.WriteFile(filepath.Join(beadsDir, "interactions.jsonl"), []byte(`{"id":"x"}`), 0644); err != nil {
+	if err := os.WriteFile(filepath.Join(issuegraphDir, "interactions.jsonl"), []byte(`{"id":"x"}`), 0644); err != nil {
 		t.Fatal(err)
 	}
 
@@ -351,75 +351,75 @@ func TestCheckDatabaseConfig_IgnoresSystemJSONLs(t *testing.T) {
 
 func TestCheckFreshClone(t *testing.T) {
 	tests := []struct {
-		name           string
-		hasBeadsDir    bool
-		jsonlFile      string   // name of JSONL file to create
-		jsonlIssues    []string // issue IDs to put in JSONL
-		hasDatabase    bool
-		expectedStatus string
-		expectPrefix   string // expected prefix in fix message
+		name             string
+		hasIssueGraphDir bool
+		jsonlFile        string   // name of JSONL file to create
+		jsonlIssues      []string // issue IDs to put in JSONL
+		hasDatabase      bool
+		expectedStatus   string
+		expectPrefix     string // expected prefix in fix message
 	}{
 		{
-			name:           "no beads directory",
-			hasBeadsDir:    false,
-			expectedStatus: "ok",
+			name:             "no issuegraph directory",
+			hasIssueGraphDir: false,
+			expectedStatus:   "ok",
 		},
 		{
-			name:           "no JSONL file",
-			hasBeadsDir:    true,
-			jsonlFile:      "",
-			expectedStatus: "ok",
+			name:             "no JSONL file",
+			hasIssueGraphDir: true,
+			jsonlFile:        "",
+			expectedStatus:   "ok",
 		},
 		{
-			name:           "database exists",
-			hasBeadsDir:    true,
-			jsonlFile:      "issues.jsonl",
-			jsonlIssues:    []string{"bd-abc", "bd-def"},
-			hasDatabase:    true,
-			expectedStatus: "ok",
+			name:             "database exists",
+			hasIssueGraphDir: true,
+			jsonlFile:        "issues.jsonl",
+			jsonlIssues:      []string{"bd-abc", "bd-def"},
+			hasDatabase:      true,
+			expectedStatus:   "ok",
 		},
 		{
-			name:           "empty JSONL",
-			hasBeadsDir:    true,
-			jsonlFile:      "issues.jsonl",
-			jsonlIssues:    []string{},
-			hasDatabase:    false,
-			expectedStatus: "ok",
+			name:             "empty JSONL",
+			hasIssueGraphDir: true,
+			jsonlFile:        "issues.jsonl",
+			jsonlIssues:      []string{},
+			hasDatabase:      false,
+			expectedStatus:   "ok",
 		},
 		{
-			name:           "fresh clone with issues.jsonl (bd-4ew)",
-			hasBeadsDir:    true,
-			jsonlFile:      "issues.jsonl",
-			jsonlIssues:    []string{"bd-abc", "bd-def", "bd-ghi"},
-			hasDatabase:    false,
-			expectedStatus: "warning",
-			expectPrefix:   "bd",
+			name:             "fresh clone with issues.jsonl (bd-4ew)",
+			hasIssueGraphDir: true,
+			jsonlFile:        "issues.jsonl",
+			jsonlIssues:      []string{"bd-abc", "bd-def", "bd-ghi"},
+			hasDatabase:      false,
+			expectedStatus:   "warning",
+			expectPrefix:     "issuegraph",
 		},
 		{
-			name:           "fresh clone with beads.jsonl",
-			hasBeadsDir:    true,
-			jsonlFile:      "beads.jsonl",
-			jsonlIssues:    []string{"proj-1", "proj-2"},
-			hasDatabase:    false,
-			expectedStatus: "warning",
-			expectPrefix:   "proj",
+			name:             "fresh clone with issuegraph.jsonl",
+			hasIssueGraphDir: true,
+			jsonlFile:        "issuegraph.jsonl",
+			jsonlIssues:      []string{"proj-1", "proj-2"},
+			hasDatabase:      false,
+			expectedStatus:   "warning",
+			expectPrefix:     "proj",
 		},
 	}
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			tmpDir := t.TempDir()
-			beadsDir := filepath.Join(tmpDir, ".beads")
+			issuegraphDir := filepath.Join(tmpDir, ".issuegraph")
 
-			if tt.hasBeadsDir {
-				if err := os.Mkdir(beadsDir, 0750); err != nil {
+			if tt.hasIssueGraphDir {
+				if err := os.Mkdir(issuegraphDir, 0750); err != nil {
 					t.Fatal(err)
 				}
 			}
 
 			// Create JSONL file with issues
 			if tt.jsonlFile != "" {
-				jsonlPath := filepath.Join(beadsDir, tt.jsonlFile)
+				jsonlPath := filepath.Join(issuegraphDir, tt.jsonlFile)
 				file, err := os.Create(jsonlPath)
 				if err != nil {
 					t.Fatal(err)
@@ -433,9 +433,9 @@ func TestCheckFreshClone(t *testing.T) {
 				file.Close()
 			}
 
-			// Create database if needed (Dolt backend uses .beads/dolt/ directory)
+			// Create database if needed (Dolt backend uses .issuegraph/dolt/ directory)
 			if tt.hasDatabase {
-				doltDir := filepath.Join(beadsDir, "dolt")
+				doltDir := filepath.Join(issuegraphDir, "dolt")
 				if err := os.MkdirAll(doltDir, 0755); err != nil {
 					t.Fatal(err)
 				}
@@ -451,18 +451,18 @@ func TestCheckFreshClone(t *testing.T) {
 				if check.Fix == "" {
 					t.Error("Expected fix message for warning, got empty string")
 				}
-				if tt.expectPrefix != "" && strings.Contains(check.Fix, "bd init") {
+				if tt.expectPrefix != "" && strings.Contains(check.Fix, "issuegraph init") {
 					t.Errorf("did not expect legacy fresh-clone recovery to keep init-based guidance, got: %s", check.Fix)
 				}
-				if !strings.Contains(check.Fix, "bd bootstrap") {
-					t.Error("Expected fix to mention 'bd bootstrap'")
+				if !strings.Contains(check.Fix, "issuegraph bootstrap") {
+					t.Error("Expected fix to mention 'issuegraph bootstrap'")
 				}
 			}
 		})
 	}
 }
 
-func TestStripBeadsIntegrationSection(t *testing.T) {
+func TestStripIssueGraphIntegrationSection(t *testing.T) {
 	tests := []struct {
 		name string
 		in   string
@@ -475,28 +475,28 @@ func TestStripBeadsIntegrationSection(t *testing.T) {
 		},
 		{
 			name: "legacy markers stripped with trailing newline",
-			in:   "# Header\n<!-- BEGIN BEADS INTEGRATION -->\nManaged body\n<!-- END BEADS INTEGRATION -->\nFooter\n",
+			in:   "# Header\n<!-- BEGIN ISSUEGRAPH INTEGRATION -->\nManaged body\n<!-- END ISSUEGRAPH INTEGRATION -->\nFooter\n",
 			want: "# Header\nFooter\n",
 		},
 		{
 			name: "v1 markers stripped",
-			in:   "Pre\n<!-- BEGIN BEADS INTEGRATION v:1 profile:full hash:abcd1234 -->\nbody\n<!-- END BEADS INTEGRATION -->\nPost\n",
+			in:   "Pre\n<!-- BEGIN ISSUEGRAPH INTEGRATION v:1 profile:full hash:abcd1234 -->\nbody\n<!-- END ISSUEGRAPH INTEGRATION -->\nPost\n",
 			want: "Pre\nPost\n",
 		},
 		{
 			name: "missing END marker — left untouched",
-			in:   "<!-- BEGIN BEADS INTEGRATION -->\nbody without end\n",
-			want: "<!-- BEGIN BEADS INTEGRATION -->\nbody without end\n",
+			in:   "<!-- BEGIN ISSUEGRAPH INTEGRATION -->\nbody without end\n",
+			want: "<!-- BEGIN ISSUEGRAPH INTEGRATION -->\nbody without end\n",
 		},
 		{
 			name: "END before BEGIN — left untouched",
-			in:   "<!-- END BEADS INTEGRATION -->\nstuff\n<!-- BEGIN BEADS INTEGRATION -->\n",
-			want: "<!-- END BEADS INTEGRATION -->\nstuff\n<!-- BEGIN BEADS INTEGRATION -->\n",
+			in:   "<!-- END ISSUEGRAPH INTEGRATION -->\nstuff\n<!-- BEGIN ISSUEGRAPH INTEGRATION -->\n",
+			want: "<!-- END ISSUEGRAPH INTEGRATION -->\nstuff\n<!-- BEGIN ISSUEGRAPH INTEGRATION -->\n",
 		},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			if got := stripBeadsIntegrationSection(tt.in); got != tt.want {
+			if got := stripIssueGraphIntegrationSection(tt.in); got != tt.want {
 				t.Errorf("got %q, want %q", got, tt.want)
 			}
 		})
@@ -504,8 +504,8 @@ func TestStripBeadsIntegrationSection(t *testing.T) {
 }
 
 func TestNormalizeUserAuthored(t *testing.T) {
-	a := "# Header\n\nUser content.\n\n<!-- BEGIN BEADS INTEGRATION v:1 profile:full hash:aaaa1111 -->\nbody A\n<!-- END BEADS INTEGRATION -->\n"
-	b := "# Header\r\n\r\nUser content.   \r\n<!-- BEGIN BEADS INTEGRATION v:1 profile:full hash:bbbb2222 -->\nbody B is different\n<!-- END BEADS INTEGRATION -->\n\n"
+	a := "# Header\n\nUser content.\n\n<!-- BEGIN ISSUEGRAPH INTEGRATION v:1 profile:full hash:aaaa1111 -->\nbody A\n<!-- END ISSUEGRAPH INTEGRATION -->\n"
+	b := "# Header\r\n\r\nUser content.   \r\n<!-- BEGIN ISSUEGRAPH INTEGRATION v:1 profile:full hash:bbbb2222 -->\nbody B is different\n<!-- END ISSUEGRAPH INTEGRATION -->\n\n"
 	if normalizeUserAuthored(a) != normalizeUserAuthored(b) {
 		t.Errorf("expected normalized equality despite CRLF, trailing space, and managed-section differences\nA: %q\nB: %q", normalizeUserAuthored(a), normalizeUserAuthored(b))
 	}
@@ -518,7 +518,7 @@ func TestNormalizeUserAuthored(t *testing.T) {
 }
 
 func TestCheckAgentDocDivergence(t *testing.T) {
-	const managed = "<!-- BEGIN BEADS INTEGRATION v:1 profile:full hash:abcd1234 -->\nManaged body\n<!-- END BEADS INTEGRATION -->\n"
+	const managed = "<!-- BEGIN ISSUEGRAPH INTEGRATION v:1 profile:full hash:abcd1234 -->\nManaged body\n<!-- END ISSUEGRAPH INTEGRATION -->\n"
 
 	t.Run("missing files — N/A ok", func(t *testing.T) {
 		tmp := t.TempDir()
@@ -542,7 +542,7 @@ func TestCheckAgentDocDivergence(t *testing.T) {
 	t.Run("matching content with different managed sections — ok", func(t *testing.T) {
 		tmp := t.TempDir()
 		writeFile(t, tmp, "AGENTS.md", "# Project\n\nShared instructions.\n\n"+managed)
-		writeFile(t, tmp, "CLAUDE.md", "# Project\n\nShared instructions.\n\n<!-- BEGIN BEADS INTEGRATION v:1 profile:full hash:99999999 -->\nDifferent managed body\n<!-- END BEADS INTEGRATION -->\n")
+		writeFile(t, tmp, "CLAUDE.md", "# Project\n\nShared instructions.\n\n<!-- BEGIN ISSUEGRAPH INTEGRATION v:1 profile:full hash:99999999 -->\nDifferent managed body\n<!-- END ISSUEGRAPH INTEGRATION -->\n")
 		check := CheckAgentDocDivergence(tmp)
 		if check.Status != StatusOK {
 			t.Errorf("expected ok when only managed sections differ, got %s", check.Status)
@@ -563,8 +563,8 @@ func TestCheckAgentDocDivergence(t *testing.T) {
 		if !strings.Contains(check.Fix, "ln -sf") {
 			t.Error("expected fix to suggest symlink option")
 		}
-		if !strings.Contains(check.Fix, "bd setup claude") {
-			t.Error("expected fix to suggest bd setup claude")
+		if !strings.Contains(check.Fix, "issuegraph setup claude") {
+			t.Error("expected fix to suggest issuegraph setup claude")
 		}
 	})
 

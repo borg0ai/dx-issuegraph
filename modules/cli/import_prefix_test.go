@@ -10,7 +10,7 @@ import (
 	"testing"
 )
 
-// TestCLI_Import_ForeignPrefix_E2E pins that `bd import` accepts records whose
+// TestCLI_Import_ForeignPrefix_E2E pins that `issuegraph import` accepts records whose
 // id prefix is not the local workspace's — no flag required.
 //
 // This is a protocol requirement, not an accident: §J6.6 round-trips a stream
@@ -21,16 +21,16 @@ import (
 // This test used to assert the opposite — that import REJECTED a foreign prefix
 // unless given --skip-prefix-validation, a flag that no longer exists. Being
 // build-tagged out of CI (cgo && integration), it rotted unnoticed; it now pins
-// the behavior bd actually has.
+// the behavior issuegraph actually has.
 func TestCLI_Import_ForeignPrefix_E2E(t *testing.T) {
 	if testDoltServerPort == 0 {
 		t.Skip("skipping: Dolt test container not available")
 	}
 
-	// Step 0: Locate the bd binary — shared once-per-process build (honors
-	// BEADS_TEST_BD_BINARY) instead of a per-test go build (wy-4mtr0).
+	// Step 0: Locate the issuegraph binary — shared once-per-process build (honors
+	// ISSUEGRAPH_TEST_ISSUEGRAPH_BINARY) instead of a per-test go build (wy-4mtr0).
 	tmpDir := t.TempDir()
-	bdBinary := buildBDForInitTests(t)
+	issuegraphBinary := buildIssueGraphForInitTests(t)
 
 	// Step 1: Setup a database with a specific prefix
 	projDir := filepath.Join(tmpDir, "proj")
@@ -39,14 +39,14 @@ func TestCLI_Import_ForeignPrefix_E2E(t *testing.T) {
 	}
 
 	runCmd := func(args ...string) (string, error) {
-		cmd := exec.Command(bdBinary, args...)
+		cmd := exec.Command(issuegraphBinary, args...)
 		cmd.Dir = projDir
 		out, err := cmd.CombinedOutput()
 		return string(out), err
 	}
 
 	if out, err := runCmd("init", "--prefix", "current", "--quiet"); err != nil {
-		t.Fatalf("bd init failed: %v\nOutput: %s", err, out)
+		t.Fatalf("issuegraph init failed: %v\nOutput: %s", err, out)
 	}
 
 	// Step 2: A JSONL record minted by a DIFFERENT tracker (foreign prefix)
@@ -65,7 +65,7 @@ func TestCLI_Import_ForeignPrefix_E2E(t *testing.T) {
 	// Step 4: Verify the issue landed under its original id
 	out, err = runCmd("list", "--id", "legacy-123", "--json")
 	if err != nil {
-		t.Errorf("bd list failed: %v\nOutput: %s", err, out)
+		t.Errorf("issuegraph list failed: %v\nOutput: %s", err, out)
 	}
 	if !strings.Contains(out, "legacy-123") {
 		t.Errorf("Expected legacy-123 to be imported, but list output was: %s", out)

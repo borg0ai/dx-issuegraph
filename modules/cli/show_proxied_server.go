@@ -12,14 +12,14 @@ import (
 
 	"github.com/spf13/cobra"
 
-	"github.com/steveyegge/beads/internal/storage"
-	"github.com/steveyegge/beads/internal/storage/domain"
-	"github.com/steveyegge/beads/internal/storage/uow"
-	"github.com/steveyegge/beads/internal/types"
-	"github.com/steveyegge/beads/internal/ui"
-	"github.com/steveyegge/beads/internal/uimd"
-	"github.com/steveyegge/beads/internal/workapi"
-	"github.com/steveyegge/beads/issueops"
+	"github.com/borg0ai/dx-issuegraph/internal/storage"
+	"github.com/borg0ai/dx-issuegraph/internal/storage/domain"
+	"github.com/borg0ai/dx-issuegraph/internal/storage/uow"
+	"github.com/borg0ai/dx-issuegraph/internal/types"
+	"github.com/borg0ai/dx-issuegraph/internal/ui"
+	"github.com/borg0ai/dx-issuegraph/internal/uimd"
+	"github.com/borg0ai/dx-issuegraph/internal/workapi"
+	"github.com/borg0ai/dx-issuegraph/issueops"
 )
 
 type showProxiedInput struct {
@@ -473,7 +473,7 @@ func runShowProxiedDefault(ctx context.Context, uw uow.UnitOfWork, in *showProxi
 			_ = outputJSON(allDetails)
 		} else {
 			return HandleErrorWithHintRespectJSON("no issues found matching the provided IDs",
-				"some IDs may reference deleted/purged records with no trace left in the live database — try 'bd history <id>' to check")
+				"some IDs may reference deleted/purged records with no trace left in the live database — try 'issuegraph history <id>' to check")
 		}
 	} else if foundCount == 0 {
 		return SilentExit()
@@ -505,7 +505,7 @@ func proxiedRenderIssue(ctx context.Context, uw uow.UnitOfWork, issue *types.Iss
 		fmt.Printf("\n%s\n%s\n", ui.RenderBold("ACCEPTANCE CRITERIA"), uimd.RenderMarkdown(issue.AcceptanceCriteria))
 	}
 
-	// A READ on an ALTERNATE view. `bd show`'s detail view is on
+	// A READ on an ALTERNATE view. `issuegraph show`'s detail view is on
 	// issueops.Reader on both routes and gets its labels hydrated there; this
 	// renderer serves --refs, --children, --thread and --as-of, which answer
 	// with shapes the Reader contract does not describe, from a unit of work

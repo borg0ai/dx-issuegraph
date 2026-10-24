@@ -14,7 +14,7 @@ import (
 )
 
 // The CLI/HTTP parity oracle for the three read operations, against real Dolt
-// through a real `bd serve` subprocess.
+// through a real `issuegraph serve` subprocess.
 //
 // IT COMPARES FULL ITEM JSON, not id sets, and that is the whole point. An
 // id-set oracle passes while `ready` ships a bare Issue against the CLI's
@@ -32,8 +32,8 @@ import (
 // field-level answer is identical and the map is EMPTY.
 //
 // It was not always. `revision` — the guarded-write optimistic-concurrency
-// token — used to live here, because `bd show --json` projected it through a
-// CLI-only wrapper while GET /v0/beads/issues/{id} serialized a raw
+// token — used to live here, because `issuegraph show --json` projected it through a
+// CLI-only wrapper while GET /v0/issuegraph/issues/{id} serialized a raw
 // IssueDetails whose RowVersion is json:"-". That entry ended with "if the
 // token is ever needed over HTTP, extend that surface and delete this entry",
 // and the read-token slice did exactly that: the projection moved onto
@@ -47,22 +47,22 @@ import (
 // every comparison below states its terms explicitly instead of waving them
 // through here:
 //
-//   - `bd show --json` emits an array of one; GET /v0/beads/issues/{id} emits
+//   - `issuegraph show --json` emits an array of one; GET /v0/issuegraph/issues/{id} emits
 //     the object. The CLI envelope is byte-pinned by the protocol corpus.
-//   - `bd list`'s default order is priority-first; the list endpoint's DEFAULT
+//   - `issuegraph list`'s default order is priority-first; the list endpoint's DEFAULT
 //     is (created_at DESC, id ASC), because that is what the operation served
 //     before it had a `sort` parameter and the default is its compatibility
 //     contract. It is no longer a divergence a client has to live with:
-//     `sort=priority` serves `bd list`'s own order, row for row, and
+//     `sort=priority` serves `issuegraph list`'s own order, row for row, and
 //     TestProxiedServerListSortRetiresTheWalk measures that against this same
 //     CLI over 1400 rows. The ITEM SET and every item's JSON match under
 //     either order.
 //   - THE DEFAULT LIMIT. The endpoint always defaults to
-//     workapi.DefaultListLimit; `bd list` resolves a five-way CLI policy
+//     workapi.DefaultListLimit; `issuegraph list` resolves a five-way CLI policy
 //     first (an explicit --limit, --all, a configured list.limit, piped
 //     stdout -> unlimited per GH#4094, agent mode -> 20), so the shared
 //     request-level default is unreachable from the CLI. A client swapping
-//     `bd list --json | ...` for the HTTP call therefore loses rows past 50.
+//     `issuegraph list --json | ...` for the HTTP call therefore loses rows past 50.
 //     TestListLimitPolicyIsResolvedBeforeTheRequest pins that policy branch by
 //     branch; every comparison here passes an EXPLICIT limit on both sides so
 //     it is comparing the operation and not that policy.
@@ -118,20 +118,20 @@ func (sp *serveProcess) object(t *testing.T, path string) (int, map[string]any) 
 	return resp.StatusCode, body
 }
 
-// cliItems runs a `bd ... --json` array-emitting command and decodes it.
-func cliItems(t *testing.T, bd, dir string, args ...string) []map[string]any {
+// cliItems runs a `issuegraph ... --json` array-emitting command and decodes it.
+func cliItems(t *testing.T, issuegraph, dir string, args ...string) []map[string]any {
 	t.Helper()
-	stdout, stderr, err := bdProxiedRunBuffers(t, bd, dir, args...)
+	stdout, stderr, err := issuegraphProxiedRunBuffers(t, issuegraph, dir, args...)
 	if err != nil {
-		t.Fatalf("bd %s: %v\nstdout:\n%s\nstderr:\n%s", strings.Join(args, " "), err, stdout, stderr)
+		t.Fatalf("issuegraph %s: %v\nstdout:\n%s\nstderr:\n%s", strings.Join(args, " "), err, stdout, stderr)
 	}
 	start := strings.Index(stdout, "[")
 	if start < 0 {
-		t.Fatalf("no JSON array in `bd %s` output:\n%s", strings.Join(args, " "), stdout)
+		t.Fatalf("no JSON array in `issuegraph %s` output:\n%s", strings.Join(args, " "), stdout)
 	}
 	var items []map[string]any
 	if err := json.Unmarshal([]byte(stdout[start:]), &items); err != nil {
-		t.Fatalf("decode `bd %s` output: %v\nraw: %s", strings.Join(args, " "), err, stdout[start:])
+		t.Fatalf("decode `issuegraph %s` output: %v\nraw: %s", strings.Join(args, " "), err, stdout[start:])
 	}
 	return items
 }
@@ -184,12 +184,12 @@ func assertItemsMatch(t *testing.T, what string, cli, http []map[string]any) {
 			}
 			av, ok := a[key]
 			if !ok {
-				t.Errorf("%s: %s: field %q present over HTTP (%v) and absent from `bd --json`", what, id, key, b[key])
+				t.Errorf("%s: %s: field %q present over HTTP (%v) and absent from `issuegraph --json`", what, id, key, b[key])
 				continue
 			}
 			bv, ok := b[key]
 			if !ok {
-				t.Errorf("%s: %s: field %q present in `bd --json` (%v) and absent over HTTP", what, id, key, av)
+				t.Errorf("%s: %s: field %q present in `issuegraph --json` (%v) and absent over HTTP", what, id, key, av)
 				continue
 			}
 			if !reflect.DeepEqual(av, bv) {
@@ -225,48 +225,48 @@ func unionKeys(a, b map[string]any) []string {
 }
 
 // TestProxiedServerServeReadParity is the property this epic claims, made
-// checkable: over the same fixture data, `bd ready --json`, `bd list --json`
-// and `bd show --json` and their three endpoints answer with the same items and
+// checkable: over the same fixture data, `issuegraph ready --json`, `issuegraph list --json`
+// and `issuegraph show --json` and their three endpoints answer with the same items and
 // the same JSON for each item — because both front doors go through
 // issueops.Reader and neither builds a filter of its own.
 func TestProxiedServerServeReadParity(t *testing.T) {
 	requireSharedProxiedServer(t)
 	t.Parallel()
-	bd := buildEmbeddedBD(t)
-	p := newSharedProxiedProject(t, bd, "srvrp")
-	sp := startServe(t, bd, p.dir, bdProxiedEnv(p.dir))
+	issuegraph := buildEmbeddedBD(t)
+	p := newSharedProxiedProject(t, issuegraph, "srvrp")
+	sp := startServe(t, issuegraph, p.dir, issuegraphProxiedEnv(p.dir))
 
 	// A fixture with enough shape that a filter mistake shows: several
 	// priorities, two types, labels, an assignee, and a real blocker so the
 	// ready set is a strict subset of the list set.
-	top := bdProxiedCreate(t, bd, p.dir, "parity top", "-p", "0", "-t", "bug", "-l", "alpha")
-	mid := bdProxiedCreate(t, bd, p.dir, "parity mid", "-p", "2", "-t", "task", "-l", "alpha,beta")
-	low := bdProxiedCreate(t, bd, p.dir, "parity low", "-p", "3", "-t", "task")
-	blocked := bdProxiedCreate(t, bd, p.dir, "parity blocked", "-p", "1", "-t", "task")
-	if out, err := bdProxiedRun(t, bd, p.dir, "dep", "add", blocked.ID, top.ID); err != nil {
-		t.Fatalf("bd dep add: %v\n%s", err, out)
+	top := issuegraphProxiedCreate(t, issuegraph, p.dir, "parity top", "-p", "0", "-t", "bug", "-l", "alpha")
+	mid := issuegraphProxiedCreate(t, issuegraph, p.dir, "parity mid", "-p", "2", "-t", "task", "-l", "alpha,beta")
+	low := issuegraphProxiedCreate(t, issuegraph, p.dir, "parity low", "-p", "3", "-t", "task")
+	blocked := issuegraphProxiedCreate(t, issuegraph, p.dir, "parity blocked", "-p", "1", "-t", "task")
+	if out, err := issuegraphProxiedRun(t, issuegraph, p.dir, "dep", "add", blocked.ID, top.ID); err != nil {
+		t.Fatalf("issuegraph dep add: %v\n%s", err, out)
 	}
 
 	t.Run("ready", func(t *testing.T) {
 		// --limit 0 on both surfaces: unlimited means the same thing on each,
 		// and an unbounded read is the one that cannot hide a row behind a
 		// default that differs.
-		cli := cliItems(t, bd, p.dir, "ready", "--json", "--limit", "0")
-		got := sp.items(t, "/v0/beads/ready?limit=0")
+		cli := cliItems(t, issuegraph, p.dir, "ready", "--json", "--limit", "0")
+		got := sp.items(t, "/v0/issuegraph/ready?limit=0")
 		assertItemsMatch(t, "ready", cli, got)
 
-		// ORDER, not just membership. bd ready's default sort is priority and
+		// ORDER, not just membership. issuegraph ready's default sort is priority and
 		// the endpoint's documented default is the same, so the sequences must
 		// agree — this is the assertion that catches a handler forwarding an
 		// absent `sort` as "", which the storage layer reads as hybrid and
 		// which reorders (and, once a limit truncates, re-SELECTS) the page.
 		if cliIDs, gotIDs := itemIDs(cli), itemIDs(got); !reflect.DeepEqual(cliIDs, gotIDs) {
-			t.Errorf("ready order differs; the endpoint's default sort is not `bd ready`'s\n cli: %v\nhttp: %v", cliIDs, gotIDs)
+			t.Errorf("ready order differs; the endpoint's default sort is not `issuegraph ready`'s\n cli: %v\nhttp: %v", cliIDs, gotIDs)
 		}
 		// And the same again with the policy stated explicitly on both sides:
 		// if these two HTTP answers ever differ, the default is not priority
 		// whatever the document says.
-		explicit := sp.items(t, "/v0/beads/ready?limit=0&sort=priority")
+		explicit := sp.items(t, "/v0/issuegraph/ready?limit=0&sort=priority")
 		if !reflect.DeepEqual(itemIDs(got), itemIDs(explicit)) {
 			t.Errorf("ready with no `sort` differs from `sort=priority`\n default: %v\npriority: %v",
 				itemIDs(got), itemIDs(explicit))
@@ -277,8 +277,8 @@ func TestProxiedServerServeReadParity(t *testing.T) {
 	})
 
 	t.Run("list", func(t *testing.T) {
-		cli := cliItems(t, bd, p.dir, "list", "--json", "--limit", "0")
-		got := sp.items(t, "/v0/beads/issues?limit=0")
+		cli := cliItems(t, issuegraph, p.dir, "list", "--json", "--limit", "0")
+		got := sp.items(t, "/v0/issuegraph/issues?limit=0")
 		assertItemsMatch(t, "list", cli, got)
 
 		for _, want := range []string{top.ID, mid.ID, low.ID, blocked.ID} {
@@ -289,8 +289,8 @@ func TestProxiedServerServeReadParity(t *testing.T) {
 	})
 
 	t.Run("list with a filter both surfaces have to build the same way", func(t *testing.T) {
-		cli := cliItems(t, bd, p.dir, "list", "--json", "--limit", "0", "--label", "alpha")
-		got := sp.items(t, "/v0/beads/issues?limit=0&label=alpha")
+		cli := cliItems(t, issuegraph, p.dir, "list", "--json", "--limit", "0", "--label", "alpha")
+		got := sp.items(t, "/v0/issuegraph/issues?limit=0&label=alpha")
 		assertItemsMatch(t, "list --label alpha", cli, got)
 	})
 
@@ -305,10 +305,10 @@ func TestProxiedServerServeReadParity(t *testing.T) {
 		// different defaults (the endpoint keeps `created` for compatibility,
 		// the CLI is priority-first), so a truncation comparison that named
 		// neither would be comparing two different top-2s.
-		cli := cliItems(t, bd, p.dir, "list", "--json", "--limit", "2", "--sort", "created")
-		got := sp.items(t, "/v0/beads/issues?limit=2&sort=created")
+		cli := cliItems(t, issuegraph, p.dir, "list", "--json", "--limit", "2", "--sort", "created")
+		got := sp.items(t, "/v0/issuegraph/issues?limit=2&sort=created")
 		if len(cli) != 2 {
-			t.Fatalf("`bd list --limit 2` returned %d items, want 2", len(cli))
+			t.Fatalf("`issuegraph list --limit 2` returned %d items, want 2", len(cli))
 		}
 		if len(got) != 2 {
 			t.Fatalf("GET issues?limit=2 returned %d items, want 2", len(got))
@@ -318,8 +318,8 @@ func TestProxiedServerServeReadParity(t *testing.T) {
 		// The other order, under the same truncation. This is where the two
 		// defaults used to force a client to choose between the CLI's ordering
 		// and a bounded page; now the same two rows come back on both sides.
-		cliByPriority := cliItems(t, bd, p.dir, "list", "--json", "--limit", "2", "--sort", "priority")
-		gotByPriority := sp.items(t, "/v0/beads/issues?limit=2&sort=priority")
+		cliByPriority := cliItems(t, issuegraph, p.dir, "list", "--json", "--limit", "2", "--sort", "priority")
+		gotByPriority := sp.items(t, "/v0/issuegraph/issues?limit=2&sort=priority")
 		assertItemsMatch(t, "list --sort priority --limit 2", cliByPriority, gotByPriority)
 		if a, b := itemIDs(cliByPriority), itemIDs(gotByPriority); !reflect.DeepEqual(a, b) {
 			t.Errorf("a truncated priority page differs between the surfaces\n cli: %v\nhttp: %v", a, b)
@@ -340,15 +340,15 @@ func TestProxiedServerServeReadParity(t *testing.T) {
 		// keyset predicate and so cannot be paged with a cursor. What is being
 		// pinned is that the CLI's two routes agree, which is the same property
 		// by a different pair.
-		cli := cliItems(t, bd, p.dir, "list", "--json", "--limit", "2", "--sort", "id")
+		cli := cliItems(t, issuegraph, p.dir, "list", "--json", "--limit", "2", "--sort", "id")
 		if len(cli) != 2 {
-			t.Errorf("`bd list --sort id --limit 2` returned %d items (%v), want 2 — a sort SQL cannot express still has to respect the limit",
+			t.Errorf("`issuegraph list --sort id --limit 2` returned %d items (%v), want 2 — a sort SQL cannot express still has to respect the limit",
 				len(cli), itemIDs(cli))
 		}
 		// The endpoint turns it down by name, so a client that tried to move
 		// this command onto HTTP learns why rather than receiving a page in an
 		// order it did not ask for.
-		status, body := sp.object(t, "/v0/beads/issues?limit=2&sort=id")
+		status, body := sp.object(t, "/v0/issuegraph/issues?limit=2&sort=id")
 		if status != http.StatusBadRequest {
 			t.Errorf("GET issues?sort=id: status = %d, want 400: %v", status, body)
 		} else if body["param"] != "sort" || body["reason"] != "invalid_value" {
@@ -358,14 +358,14 @@ func TestProxiedServerServeReadParity(t *testing.T) {
 
 	t.Run("show", func(t *testing.T) {
 		for _, id := range []string{top.ID, mid.ID, blocked.ID} {
-			// `bd show --json` emits an array of one; the endpoint emits the
+			// `issuegraph show --json` emits an array of one; the endpoint emits the
 			// object. That envelope difference is the CLI's, byte-pinned by the
 			// protocol corpus, and is the only structural divergence here.
-			cli := cliItems(t, bd, p.dir, "show", id, "--json")
+			cli := cliItems(t, issuegraph, p.dir, "show", id, "--json")
 			if len(cli) != 1 {
-				t.Fatalf("bd show %s --json returned %d items, want the array of one", id, len(cli))
+				t.Fatalf("issuegraph show %s --json returned %d items, want the array of one", id, len(cli))
 			}
-			status, got := sp.object(t, "/v0/beads/issues/"+id)
+			status, got := sp.object(t, "/v0/issuegraph/issues/"+id)
 			if status != http.StatusOK {
 				t.Fatalf("GET issue %s: status = %d, body = %v", id, status, got)
 			}
@@ -374,13 +374,13 @@ func TestProxiedServerServeReadParity(t *testing.T) {
 	})
 
 	t.Run("a page limit truncates identically and pages back to the same set", func(t *testing.T) {
-		all := sp.items(t, "/v0/beads/issues?limit=0")
+		all := sp.items(t, "/v0/issuegraph/issues?limit=0")
 		if len(all) < 3 {
 			t.Skipf("fixture too small to page: %d rows", len(all))
 		}
 
 		var walked []map[string]any
-		path := "/v0/beads/issues?limit=2"
+		path := "/v0/issuegraph/issues?limit=2"
 		for range 10 {
 			resp, err := sp.client.Get(sp.url(path))
 			if err != nil {
@@ -406,7 +406,7 @@ func TestProxiedServerServeReadParity(t *testing.T) {
 			if page.NextCursor == nil {
 				t.Fatal("has_more is true but next_cursor is absent; paging cannot continue")
 			}
-			path = fmt.Sprintf("/v0/beads/issues?limit=2&cursor=%s", *page.NextCursor)
+			path = fmt.Sprintf("/v0/issuegraph/issues?limit=2&cursor=%s", *page.NextCursor)
 		}
 
 		if got, want := itemIDs(walked), itemIDs(all); !reflect.DeepEqual(got, want) {
@@ -415,7 +415,7 @@ func TestProxiedServerServeReadParity(t *testing.T) {
 	})
 
 	t.Run("a foreign cursor is refused, not silently ignored", func(t *testing.T) {
-		status, body := sp.object(t, "/v0/beads/issues?cursor=not-a-cursor")
+		status, body := sp.object(t, "/v0/issuegraph/issues?cursor=not-a-cursor")
 		if status != http.StatusBadRequest {
 			t.Fatalf("status = %d, want 400: %v", status, body)
 		}
@@ -427,7 +427,7 @@ func TestProxiedServerServeReadParity(t *testing.T) {
 	t.Run("an unknown filter parameter is refused by name", func(t *testing.T) {
 		// Silently ignoring it would WIDEN the result set, which is the one
 		// failure a client cannot detect.
-		status, body := sp.object(t, "/v0/beads/ready?nosuchparam=1")
+		status, body := sp.object(t, "/v0/issuegraph/ready?nosuchparam=1")
 		if status != http.StatusBadRequest {
 			t.Fatalf("status = %d, want 400: %v", status, body)
 		}
@@ -437,7 +437,7 @@ func TestProxiedServerServeReadParity(t *testing.T) {
 	})
 
 	t.Run("an unknown id is 404, on the same shape as every other failure", func(t *testing.T) {
-		status, body := sp.object(t, "/v0/beads/issues/bd-no-such-issue")
+		status, body := sp.object(t, "/v0/issuegraph/issues/bd-no-such-issue")
 		if status != http.StatusNotFound {
 			t.Fatalf("status = %d, want 404: %v", status, body)
 		}

@@ -8,7 +8,7 @@ import (
 
 // EmbeddedDoltStore.GetMergeBlockers had ZERO coverage (wy-wrq9o F5). It is
 // the embedded engine's half of the wy-36ilm F12 surface — the schema
-// conflicts and constraint violations `bd conflicts` cannot show as rows —
+// conflicts and constraint violations `issuegraph conflicts` cannot show as rows —
 // and the CLI reaches it through storage.UnwrapStore exactly as it reaches
 // the server-mode one. The reads run against the embedded engine's own
 // dolt_merge_status / dolt_schema_conflicts / dolt_constraint_violations, so
@@ -20,7 +20,7 @@ import (
 // caller depends on: with no merge open, GetMergeBlockers must report an
 // unblocked, non-merging state and — critically — no ERROR. Every read is
 // wrapped in missing-system-table tolerance precisely so this diagnosis
-// helper can never be the thing that fails `bd conflicts list`.
+// helper can never be the thing that fails `issuegraph conflicts list`.
 func TestEmbeddedGetMergeBlockersOnAQuietStore(t *testing.T) {
 	te := newTestEnv(t, "emb")
 	ctx := t.Context()

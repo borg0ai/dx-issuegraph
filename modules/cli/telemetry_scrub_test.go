@@ -8,8 +8,8 @@ import (
 )
 
 // TestScrubArgsForTelemetry locks the invariant that a positional connection
-// string cannot leak an embedded password into the bd.args telemetry span. This
-// defense is backend-neutral and remains useful even when bd does not implement
+// string cannot leak an embedded password into the issuegraph.args telemetry span. This
+// defense is backend-neutral and remains useful even when issuegraph does not implement
 // the connection string's database backend.
 func TestScrubArgsForTelemetry(t *testing.T) {
 	const secret = "s3cr3t-pw"
@@ -133,7 +133,7 @@ func TestSecretFlagTokensResolvesByCommand(t *testing.T) {
 }
 
 // TestScrubArgsForTelemetryRedactsFederationPassword locks that a SQL password
-// passed to federation add-peer never reaches bd.args, across pflag's space,
+// passed to federation add-peer never reaches issuegraph.args, across pflag's space,
 // equals, and concatenated-shorthand spellings for both --password and -p. This is
 // the same sink and harm model as the DSN leak, for a flag whose value is an opaque
 // credential rather than a parseable DSN.
@@ -237,7 +237,7 @@ func TestScrubArgsForTelemetryRedactsShorthandCluster(t *testing.T) {
 // non-secret commands is left intact: when no secret token is resolved (exactly
 // what secretFlagTokens returns for --priority/--prefix commands), -p and its value
 // pass through untouched. Without this guarantee the fix would silently redact
-// priority/prefix on the most common bd invocations.
+// priority/prefix on the most common issuegraph invocations.
 func TestScrubArgsForTelemetryKeepsOverloadedShortFlag(t *testing.T) {
 	if out := scrubArgsForTelemetry([]string{"ready", "-p", "1"}, nil); out != "ready -p 1" {
 		t.Fatalf("over-redacted non-secret -p priority: got %q", out)
@@ -254,7 +254,7 @@ func TestScrubArgsForTelemetryKeepsOverloadedShortFlag(t *testing.T) {
 // --flag=value argv element. The flag prefix must not prevent URL query parsing.
 func TestTelemetryRedactionURLInFlagEqualsValue(t *testing.T) {
 	const secret = "query-secret"
-	arg := "--remote=postgres://bts@db.example/beads?password=" + secret
+	arg := "--remote=postgres://bts@db.example/issuegraph?password=" + secret
 	out := scrubArgsForTelemetry([]string{"init", arg}, nil)
 	if strings.Contains(out, secret) {
 		t.Fatalf("PASSWORD LEAK: URL query password in --flag=value survived telemetry scrub: %q", out)
@@ -263,10 +263,10 @@ func TestTelemetryRedactionURLInFlagEqualsValue(t *testing.T) {
 
 // TestTelemetryRedactionMalformedURLQuery fails closed when a URL-shaped DSN has
 // an invalid percent escape. net/url rejects the whole URL in that case, but the
-// query password must still never reach the bd.args telemetry span.
+// query password must still never reach the issuegraph.args telemetry span.
 func TestTelemetryRedactionMalformedURLQuery(t *testing.T) {
 	const secret = "query-secret"
-	arg := "postgres://bts@db.example/beads%zz?password=" + secret + "&sslmode=require"
+	arg := "postgres://bts@db.example/issuegraph%zz?password=" + secret + "&sslmode=require"
 	out := scrubArgsForTelemetry([]string{"command", arg}, nil)
 	if strings.Contains(out, secret) {
 		t.Fatalf("PASSWORD LEAK: malformed URL query password survived telemetry scrub: %q", out)
@@ -350,9 +350,9 @@ func TestScrubArgsForTelemetryAdversarialDSNVectors(t *testing.T) {
 		},
 		{
 			name:  "url userinfo password with sslmode and application_name preserved",
-			dsn:   "postgres://bts:" + secret + "@127.0.0.1:5432/db?sslmode=require&application_name=beads",
+			dsn:   "postgres://bts:" + secret + "@127.0.0.1:5432/db?sslmode=require&application_name=issuegraph",
 			leaks: []string{secret},
-			keep:  []string{"sslmode=require", "application_name=beads", "127.0.0.1:5432/db"},
+			keep:  []string{"sslmode=require", "application_name=issuegraph", "127.0.0.1:5432/db"},
 		},
 		{
 			name:  "url userinfo password but no user",
@@ -431,7 +431,7 @@ func TestScrubArgsForTelemetryAdversarialDSNVectors(t *testing.T) {
 // here would destroy the non-secret operational signal the span exists to carry.
 func TestScrubArgsForTelemetryPasswordlessDSNUnchanged(t *testing.T) {
 	for _, dsn := range []string{
-		"postgres://bts@127.0.0.1:5432/db?application_name=beads&sslmode=require",
+		"postgres://bts@127.0.0.1:5432/db?application_name=issuegraph&sslmode=require",
 		"host=127.0.0.1 port=5432 user=bts dbname=db sslmode=require",
 	} {
 		want := "command " + dsn

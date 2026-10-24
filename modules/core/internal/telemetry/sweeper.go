@@ -3,7 +3,7 @@ package telemetry
 import (
 	"context"
 
-	"github.com/steveyegge/beads/issueops"
+	"github.com/borg0ai/dx-issuegraph/issueops"
 )
 
 // Sweeper returns the inner store's bulk-clearance surface wrapped in this

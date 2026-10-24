@@ -8,7 +8,7 @@ import (
 	"path/filepath"
 	"testing"
 
-	"github.com/steveyegge/beads/internal/storage/embeddeddolt"
+	"github.com/borg0ai/dx-issuegraph/internal/storage/embeddeddolt"
 )
 
 // TestPreviewStoreRefusesLocalMetadataWrite pins the classification the CLI's
@@ -18,14 +18,14 @@ import (
 // preview store must return an error that errors.Is recognizes, or a
 // successful dry-run exits non-zero after the fact.
 func TestPreviewStoreRefusesLocalMetadataWrite(t *testing.T) {
-	if os.Getenv("BEADS_TEST_EMBEDDED_DOLT") != "1" {
-		t.Skip("set BEADS_TEST_EMBEDDED_DOLT=1 to run embedded dolt tests")
+	if os.Getenv("ISSUEGRAPH_TEST_EMBEDDED_DOLT") != "1" {
+		t.Skip("set ISSUEGRAPH_TEST_EMBEDDED_DOLT=1 to run embedded dolt tests")
 	}
 
 	ctx := t.Context()
-	beadsDir := filepath.Join(t.TempDir(), ".beads")
+	issuegraphDir := filepath.Join(t.TempDir(), ".issuegraph")
 
-	store, err := embeddeddolt.Open(ctx, beadsDir, "previewdb", "main")
+	store, err := embeddeddolt.Open(ctx, issuegraphDir, "previewdb", "main")
 	if err != nil {
 		t.Fatalf("Open: %v", err)
 	}
@@ -36,7 +36,7 @@ func TestPreviewStoreRefusesLocalMetadataWrite(t *testing.T) {
 		t.Fatalf("Close: %v", err)
 	}
 
-	preview, err := embeddeddolt.OpenForPreviewCommand(ctx, beadsDir, "previewdb", "main")
+	preview, err := embeddeddolt.OpenForPreviewCommand(ctx, issuegraphDir, "previewdb", "main")
 	if err != nil {
 		t.Fatalf("OpenForPreviewCommand: %v", err)
 	}

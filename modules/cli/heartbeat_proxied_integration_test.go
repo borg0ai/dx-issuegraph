@@ -12,19 +12,19 @@ import (
 	"time"
 )
 
-// TestProxiedServerHeartbeat journeys bd heartbeat through the proxied-server
+// TestProxiedServerHeartbeat journeys issuegraph heartbeat through the proxied-server
 // plane (bd-aq0ql). The worker contract is the exit code (workers call
 // heartbeat every ~90s and only check rc), the --json success shape is
 // {"id","status":"heartbeat","owner"}, and — the bd-lrgn1 invariant — a
 // heartbeat mints exactly ZERO Dolt commits: the lease write lands in the
 // dolt_ignored leases table via the SQL-only ephemeral commit, with the same
-// timestamps/format classic `bd reclaim` staleness semantics consume (the
+// timestamps/format classic `issuegraph reclaim` staleness semantics consume (the
 // SQL body is literally issueops.HeartbeatIssueInTx in both modes).
 func TestProxiedServerHeartbeat(t *testing.T) {
 	requireSharedProxiedServer(t)
 	t.Parallel()
-	bd := buildEmbeddedBD(t)
-	p := newSharedProxiedProject(t, bd, "hbt")
+	issuegraph := buildEmbeddedBD(t)
+	p := newSharedProxiedProject(t, issuegraph, "hbt")
 
 	db := openProxiedDB(t, p)
 
@@ -71,8 +71,8 @@ func TestProxiedServerHeartbeat(t *testing.T) {
 	}
 
 	t.Run("refreshes_lease_zero_dolt_commits", func(t *testing.T) {
-		issue := bdProxiedCreate(t, bd, p.dir, "Heartbeat target", "--type", "task")
-		bdProxiedUpdate(t, bd, p.dir, issue.ID, "--claim", "--actor", "worker-7")
+		issue := issuegraphProxiedCreate(t, issuegraph, p.dir, "Heartbeat target", "--type", "task")
+		issuegraphProxiedUpdate(t, issuegraph, p.dir, issue.ID, "--claim", "--actor", "worker-7")
 		if holder, _, _, ok := leaseRow(t, issue.ID); !ok || holder != "worker-7" {
 			t.Fatalf("claim did not arm a worker-7 lease (ok=%v holder=%q)", ok, holder)
 		}
@@ -82,7 +82,7 @@ func TestProxiedServerHeartbeat(t *testing.T) {
 		_, preExpires, preHeartbeat, _ := leaseRow(t, issue.ID)
 
 		commitsBefore := doltCommits(t)
-		out, stderr, err := bdProxiedRunBuffers(t, bd, p.dir, "--actor", "worker-7", "heartbeat", issue.ID)
+		out, stderr, err := issuegraphProxiedRunBuffers(t, issuegraph, p.dir, "--actor", "worker-7", "heartbeat", issue.ID)
 		if err != nil {
 			t.Fatalf("heartbeat: %v\nstdout:\n%s\nstderr:\n%s", err, out, stderr)
 		}
@@ -113,7 +113,7 @@ func TestProxiedServerHeartbeat(t *testing.T) {
 		// Classic-staleness parity: the freshly-heartbeaten lease reads as
 		// live to the reclaim sweep (reclaim consumes the very timestamps
 		// heartbeat just wrote — same clock, same format).
-		rout, rerr := bdProxiedRun(t, bd, p.dir, "reclaim", "--older-than", "0s", "--json")
+		rout, rerr := issuegraphProxiedRun(t, issuegraph, p.dir, "reclaim", "--older-than", "0s", "--json")
 		if rerr != nil {
 			t.Fatalf("reclaim: %v\n%s", rerr, rout)
 		}
@@ -123,10 +123,10 @@ func TestProxiedServerHeartbeat(t *testing.T) {
 	})
 
 	t.Run("json_shape", func(t *testing.T) {
-		issue := bdProxiedCreate(t, bd, p.dir, "JSON heartbeat", "--type", "task")
-		bdProxiedUpdate(t, bd, p.dir, issue.ID, "--claim", "--actor", "worker-json")
+		issue := issuegraphProxiedCreate(t, issuegraph, p.dir, "JSON heartbeat", "--type", "task")
+		issuegraphProxiedUpdate(t, issuegraph, p.dir, issue.ID, "--claim", "--actor", "worker-json")
 
-		out, stderr, err := bdProxiedRunBuffers(t, bd, p.dir, "--actor", "worker-json", "heartbeat", issue.ID, "--json")
+		out, stderr, err := issuegraphProxiedRunBuffers(t, issuegraph, p.dir, "--actor", "worker-json", "heartbeat", issue.ID, "--json")
 		if err != nil {
 			t.Fatalf("heartbeat --json: %v\nstdout:\n%s\nstderr:\n%s", err, out, stderr)
 		}
@@ -154,11 +154,11 @@ func TestProxiedServerHeartbeat(t *testing.T) {
 	})
 
 	t.Run("wrong_owner_refused", func(t *testing.T) {
-		issue := bdProxiedCreate(t, bd, p.dir, "Not your lease", "--type", "task")
-		bdProxiedUpdate(t, bd, p.dir, issue.ID, "--claim", "--actor", "worker-7")
+		issue := issuegraphProxiedCreate(t, issuegraph, p.dir, "Not your lease", "--type", "task")
+		issuegraphProxiedUpdate(t, issuegraph, p.dir, issue.ID, "--claim", "--actor", "worker-7")
 		_, preExpires, _, _ := leaseRow(t, issue.ID)
 
-		stdout, stderr, err := bdProxiedRunBuffers(t, bd, p.dir, "--actor", "intruder", "heartbeat", issue.ID)
+		stdout, stderr, err := issuegraphProxiedRunBuffers(t, issuegraph, p.dir, "--actor", "intruder", "heartbeat", issue.ID)
 		if err == nil {
 			t.Fatalf("expected nonzero exit for wrong-owner heartbeat, got success:\n%s", stdout)
 		}
@@ -171,8 +171,8 @@ func TestProxiedServerHeartbeat(t *testing.T) {
 	})
 
 	t.Run("unclaimed_refused", func(t *testing.T) {
-		issue := bdProxiedCreate(t, bd, p.dir, "Never claimed", "--type", "task")
-		stdout, stderr, err := bdProxiedRunBuffers(t, bd, p.dir, "--actor", "worker-7", "heartbeat", issue.ID)
+		issue := issuegraphProxiedCreate(t, issuegraph, p.dir, "Never claimed", "--type", "task")
+		stdout, stderr, err := issuegraphProxiedRunBuffers(t, issuegraph, p.dir, "--actor", "worker-7", "heartbeat", issue.ID)
 		if err == nil {
 			t.Fatalf("expected nonzero exit heartbeating an unclaimed issue, got success:\n%s", stdout)
 		}
@@ -182,12 +182,12 @@ func TestProxiedServerHeartbeat(t *testing.T) {
 	})
 
 	t.Run("closed_refused", func(t *testing.T) {
-		issue := bdProxiedCreate(t, bd, p.dir, "Closed lease", "--type", "task")
-		bdProxiedUpdate(t, bd, p.dir, issue.ID, "--claim", "--actor", "worker-7")
-		if out, err := bdProxiedRun(t, bd, p.dir, "--actor", "worker-7", "close", issue.ID); err != nil {
+		issue := issuegraphProxiedCreate(t, issuegraph, p.dir, "Closed lease", "--type", "task")
+		issuegraphProxiedUpdate(t, issuegraph, p.dir, issue.ID, "--claim", "--actor", "worker-7")
+		if out, err := issuegraphProxiedRun(t, issuegraph, p.dir, "--actor", "worker-7", "close", issue.ID); err != nil {
 			t.Fatalf("close: %v\n%s", err, out)
 		}
-		stdout, stderr, err := bdProxiedRunBuffers(t, bd, p.dir, "--actor", "worker-7", "heartbeat", issue.ID)
+		stdout, stderr, err := issuegraphProxiedRunBuffers(t, issuegraph, p.dir, "--actor", "worker-7", "heartbeat", issue.ID)
 		if err == nil {
 			t.Fatalf("expected nonzero exit heartbeating a closed issue (worker must learn to stop), got:\n%s", stdout)
 		}
@@ -197,7 +197,7 @@ func TestProxiedServerHeartbeat(t *testing.T) {
 	})
 
 	t.Run("missing_refused", func(t *testing.T) {
-		stdout, stderr, err := bdProxiedRunBuffers(t, bd, p.dir, "heartbeat", "hbt-doesnotexist")
+		stdout, stderr, err := issuegraphProxiedRunBuffers(t, issuegraph, p.dir, "heartbeat", "hbt-doesnotexist")
 		if err == nil {
 			t.Fatalf("expected nonzero exit for a missing id, got success:\n%s", stdout)
 		}
@@ -212,14 +212,14 @@ func TestProxiedServerHeartbeat(t *testing.T) {
 		// This is the INSERT path of the lease write, so it doubles as the
 		// zero-Dolt-commit proof for UpsertLeaseInTx under the ephemeral
 		// commit.
-		issue := bdProxiedCreate(t, bd, p.dir, "Hand-doled claim", "--type", "task")
-		bdProxiedUpdate(t, bd, p.dir, issue.ID, "--assignee", "hand-worker", "--status", "in_progress")
+		issue := issuegraphProxiedCreate(t, issuegraph, p.dir, "Hand-doled claim", "--type", "task")
+		issuegraphProxiedUpdate(t, issuegraph, p.dir, issue.ID, "--assignee", "hand-worker", "--status", "in_progress")
 		if _, _, _, ok := leaseRow(t, issue.ID); ok {
 			t.Fatal("generic update must not arm a lease")
 		}
 
 		commitsBefore := doltCommits(t)
-		out, stderr, err := bdProxiedRunBuffers(t, bd, p.dir, "--actor", "hand-worker", "heartbeat", issue.ID)
+		out, stderr, err := issuegraphProxiedRunBuffers(t, issuegraph, p.dir, "--actor", "hand-worker", "heartbeat", issue.ID)
 		if err != nil {
 			t.Fatalf("re-arm heartbeat: %v\nstdout:\n%s\nstderr:\n%s", err, out, stderr)
 		}

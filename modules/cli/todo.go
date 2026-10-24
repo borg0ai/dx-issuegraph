@@ -7,11 +7,11 @@ import (
 	"slices"
 	"strings"
 
+	"github.com/borg0ai/dx-issuegraph/internal/metrics"
+	"github.com/borg0ai/dx-issuegraph/internal/types"
+	"github.com/borg0ai/dx-issuegraph/internal/ui"
+	"github.com/borg0ai/dx-issuegraph/internal/utils"
 	"github.com/spf13/cobra"
-	"github.com/steveyegge/beads/internal/metrics"
-	"github.com/steveyegge/beads/internal/types"
-	"github.com/steveyegge/beads/internal/ui"
-	"github.com/steveyegge/beads/internal/utils"
 )
 
 var todoCmd = &cobra.Command{
@@ -21,12 +21,12 @@ var todoCmd = &cobra.Command{
 	Long: `Manage TODO items as lightweight task issues.
 
 TODOs are regular task-type issues with convenient shortcuts:
-  bd todo add "Title"    -> bd create "Title" -t task -p 2
-  bd todo                -> bd list --type task --status open
-  bd todo done <id>      -> bd close <id>
+  issuegraph todo add "Title"    -> issuegraph create "Title" -t task -p 2
+  issuegraph todo                -> issuegraph list --type task --status open
+  issuegraph todo done <id>      -> issuegraph close <id>
 
 TODOs can be promoted to full issues by changing type or priority:
-  bd update todo-123 --type bug --priority 0`,
+  issuegraph update todo-123 --type bug --priority 0`,
 	SilenceUsage:  true,
 	SilenceErrors: true,
 	RunE: func(cmd *cobra.Command, args []string) error {
@@ -37,7 +37,7 @@ TODOs can be promoted to full issues by changing type or priority:
 			}
 		}()
 
-		// Delegate to the shared, non-emitting list core so a single `bd todo`
+		// Delegate to the shared, non-emitting list core so a single `issuegraph todo`
 		// records exactly one cli_command event ("todo"), not also "todo-list".
 		return runTodoListCore(cmd, args)
 	},
@@ -119,8 +119,8 @@ var listTodosCmd = &cobra.Command{
 }
 
 // runTodoListCore lists TODO (task) issues. It deliberately emits no metrics
-// event so callers own event emission: `bd todo list` emits "todo-list" and the
-// bare `bd todo` alias emits "todo", each exactly once.
+// event so callers own event emission: `issuegraph todo list` emits "todo-list" and the
+// bare `issuegraph todo` alias emits "todo", each exactly once.
 func runTodoListCore(cmd *cobra.Command, _ []string) error {
 	showAll, _ := cmd.Flags().GetBool("all")
 

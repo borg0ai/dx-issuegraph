@@ -6,8 +6,8 @@ import (
 	"fmt"
 	"sort"
 
-	"github.com/steveyegge/beads/internal/storage/sqlbuild"
-	"github.com/steveyegge/beads/internal/types"
+	"github.com/borg0ai/dx-issuegraph/internal/storage/sqlbuild"
+	"github.com/borg0ai/dx-issuegraph/internal/types"
 )
 
 func SearchIssuesWithCountsInTx(ctx context.Context, tx *sql.Tx, query string, filter types.IssueFilter) ([]*types.IssueWithCounts, error) {
@@ -35,7 +35,7 @@ func SearchIssuesWithCountsInTx(ctx context.Context, tx *sql.Tx, query string, f
 		// also surface a durable issues-table row flagged ephemeral=1 instead of
 		// dropping it. Use the same IssuesFilterTables query the non-ephemeral
 		// path uses, keeping the GH#4387 count/list cardinality parity for
-		// searches that project counts (e.g. `bd search --counts --include-infra`).
+		// searches that project counts (e.g. `issuegraph search --counts --include-infra`).
 		out, err := runFilterSearchQueryInTx(ctx, tx, query, filter, IssuesFilterTables, wispDepsExist)
 		if err != nil {
 			return nil, err
@@ -116,7 +116,7 @@ func runFilterSearchQueryInTx(ctx context.Context, tx *sql.Tx, query string, fil
 	// the same rule searchTableInTxT applies on the plain seam. sqlbuild.OrderBy
 	// renders no ORDER BY for a Go-side sort key ("id"), and a LIMIT with no
 	// ORDER BY returns n rows, not the first n; this is the seam
-	// bd query '<expr>' --sort id reaches on the store-shaped backends
+	// issuegraph query '<expr>' --sort id reaches on the store-shaped backends
 	// (storequerier → SearchIssuesWithCounts), where BuildQueryPlan always
 	// pushes a bound. So under a Go-side sort the query scans the complete
 	// matching set and the same eff bound is applied below, after the order

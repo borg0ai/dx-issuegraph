@@ -2,10 +2,10 @@
 // auxiliary history tables (events, comments, issue_snapshots,
 // compaction_snapshots).
 //
-// Background (bd-6dnrw.2, the aux-table sibling of gastownhall/beads#4259):
+// Background (bd-6dnrw.2, the aux-table sibling of borg0ai/dx-issuegraph#4259):
 // migration 0037 converted these tables' BIGINT AUTO_INCREMENT primary keys to
 // CHAR(36) by backfilling `uuid_id = UUID()` — a *different* random value on
-// every clone. Because beads syncs by merging independent Dolt clones, two
+// every clone. Because issuegraph syncs by merging independent Dolt clones, two
 // legacy clones that ran 0037 independently hold the same logical rows under
 // two different primary keys, so their merges either refuse outright
 // ("different primary keys in its common ancestor") or duplicate every
@@ -22,7 +22,7 @@
 // The derivation is consumed in two places. The upgrade backfills
 // (rekeyAuxRowIDs in internal/storage/schema) converge rows that predate it:
 // the 0037-randomized legacy rows, and the UUIDv7 rows minted between that
-// first backfill and bd-ri8bd. And since bd-ri8bd, every insert derives the
+// first backfill and bd-ri8issuegraph. And since bd-ri8bd, every insert derives the
 // id up front (issueops.InsertDerivedEvent and friends): merge-free
 // newest-wins replication (Protocol v0.1 §C) has no union pass to reconcile
 // independently-created identical rows, so convergence has to be a property
@@ -41,9 +41,9 @@ import (
 	"github.com/google/uuid"
 )
 
-// Namespace is the fixed UUIDv5 namespace for beads aux-table row ids. It was
+// Namespace is the fixed UUIDv5 namespace for issuegraph aux-table row ids. It was
 // generated once as uuid.NewSHA1(uuid.NameSpaceURL,
-// "https://github.com/gastownhall/beads#row-id") and is hardcoded here forever:
+// "https://github.com/borg0ai/dx-issuegraph#row-id") and is hardcoded here forever:
 // changing it (or the encoding below) would re-derive every backfilled id and
 // re-introduce the cross-clone divergence this package exists to remove.
 var Namespace = uuid.MustParse("92da14b5-20a8-5252-8eb2-3839e97b2156")

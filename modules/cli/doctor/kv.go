@@ -5,8 +5,8 @@ import (
 	"fmt"
 	"strings"
 
-	"github.com/steveyegge/beads/internal/storage/dolt"
-	"github.com/steveyegge/beads/internal/storage/kvkeys"
+	"github.com/borg0ai/dx-issuegraph/internal/storage/dolt"
+	"github.com/borg0ai/dx-issuegraph/internal/storage/kvkeys"
 )
 
 // kvPrefix matches the prefix used in modules/cli/kv.go
@@ -14,10 +14,10 @@ const kvPrefix = kvkeys.Prefix
 
 // CheckKVSyncStatus checks if KV data exists and reports sync status.
 func CheckKVSyncStatus(path string) DoctorCheck {
-	_, beadsDir := getBackendAndBeadsDir(path)
+	_, issuegraphDir := getBackendAndIssueGraphDir(path)
 
 	ctx := context.Background()
-	store, err := dolt.NewFromConfig(ctx, beadsDir)
+	store, err := dolt.NewFromConfig(ctx, issuegraphDir)
 	if err != nil {
 		return DoctorCheck{
 			Name:     "KV Store Sync",

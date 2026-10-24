@@ -6,7 +6,7 @@ import (
 	"testing"
 
 	lipgloss "charm.land/lipgloss/v2"
-	"github.com/steveyegge/beads/internal/types"
+	"github.com/borg0ai/dx-issuegraph/internal/types"
 )
 
 func TestRenderBasicStyles(t *testing.T) {
@@ -29,7 +29,7 @@ func TestRenderBasicStyles(t *testing.T) {
 			{"skip icon", RenderSkipIcon(), MutedStyle.Render(IconSkip)},
 			{"info icon", RenderInfoIcon(), AccentStyle.Render(IconInfo)},
 			{"bold", RenderBold("bold"), BoldStyle.Render("bold")},
-			{"command", RenderCommand("bd prime"), CommandStyle.Render("bd prime")},
+			{"command", RenderCommand("issuegraph prime"), CommandStyle.Render("issuegraph prime")},
 		}
 		for _, tc := range cases {
 			t.Run(tc.name, func(t *testing.T) {
@@ -181,8 +181,8 @@ func TestRenderCommandAndCategoryAreUppercaseSafe(t *testing.T) {
 		t.Fatalf("category should uppercase input, got %q", got)
 	}
 
-	cmd := RenderCommand("bd prime")
-	if !strings.Contains(cmd, "bd prime") {
+	cmd := RenderCommand("issuegraph prime")
+	if !strings.Contains(cmd, "issuegraph prime") {
 		t.Fatalf("command output missing text: %q", cmd)
 	}
 }
@@ -332,21 +332,21 @@ func TestRenderStatusIconWithCategory(t *testing.T) {
 
 func TestIsAgentMode(t *testing.T) {
 	// Test default (no env vars) - t.Setenv automatically restores after test
-	t.Setenv("BD_AGENT_MODE", "")
+	t.Setenv("ISSUEGRAPH_AGENT_MODE", "")
 	t.Setenv("CLAUDE_CODE", "")
 	if IsAgentMode() {
 		t.Fatal("expected false with no env vars")
 	}
 
-	// Test BD_AGENT_MODE=1
-	t.Setenv("BD_AGENT_MODE", "1")
+	// Test ISSUEGRAPH_AGENT_MODE=1
+	t.Setenv("ISSUEGRAPH_AGENT_MODE", "1")
 	t.Setenv("CLAUDE_CODE", "")
 	if !IsAgentMode() {
-		t.Fatal("expected true with BD_AGENT_MODE=1")
+		t.Fatal("expected true with ISSUEGRAPH_AGENT_MODE=1")
 	}
 
 	// Test CLAUDE_CODE auto-detection
-	t.Setenv("BD_AGENT_MODE", "")
+	t.Setenv("ISSUEGRAPH_AGENT_MODE", "")
 	t.Setenv("CLAUDE_CODE", "something")
 	if !IsAgentMode() {
 		t.Fatal("expected true with CLAUDE_CODE set")

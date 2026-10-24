@@ -5,16 +5,16 @@ import (
 	"net/http"
 	"testing"
 
-	"github.com/steveyegge/beads/internal/httpapi/apigen"
-	"github.com/steveyegge/beads/issueops"
+	"github.com/borg0ai/dx-issuegraph/internal/httpapi/apigen"
+	"github.com/borg0ai/dx-issuegraph/issueops"
 )
 
-// The pins for POST /v0/beads/issues/{id}:casMetadata. What is asserted here is
+// The pins for POST /v0/issuegraph/issues/{id}:casMetadata. What is asserted here is
 // the WIRE EDGE — that the handler carries the document's four members into the
 // role's request faithfully, PRESERVES THE DIFFERENCE BETWEEN AN OMITTED AND A
 // NULL VALUE MEMBER, and re-implements nothing the role owns.
 
-const casMetadataPath = "/v0/beads/issues/bd-1:casMetadata"
+const casMetadataPath = "/v0/issuegraph/issues/bd-1:casMetadata"
 
 func (ts *testServer) casMetadata(t *testing.T, path, body string) *http.Response {
 	t.Helper()
@@ -22,7 +22,7 @@ func (ts *testServer) casMetadata(t *testing.T, path, body string) *http.Respons
 }
 
 // TestCASMetadataPathReachesItsHandler: a fourth custom method on the shared
-// `/v0/beads/issues/{idop}` wildcard. A claim-shaped or reopen-shaped answer
+// `/v0/issuegraph/issues/{idop}` wildcard. A claim-shaped or reopen-shaped answer
 // here would mean the dispatcher routed the segment to the wrong row.
 func TestCASMetadataPathReachesItsHandler(t *testing.T) {
 	cas := &roleMetadataCAS{result: issueops.CompareAndSetKeyResult{Swapped: true}}

@@ -20,7 +20,7 @@ func TestCheckCursor_HooksInstalled(t *testing.T) {
 	repo := t.TempDir()
 	t.Setenv("HOME", t.TempDir()) // isolate any real ~/.cursor
 	t.Setenv("USERPROFILE", t.TempDir())
-	writeCursorHooksFile(t, repo, `{"version":1,"hooks":{"sessionStart":[{"command":"bd cursor-hook sessionStart"}]}}`)
+	writeCursorHooksFile(t, repo, `{"version":1,"hooks":{"sessionStart":[{"command":"issuegraph cursor-hook sessionStart"}]}}`)
 
 	dc := CheckCursor(repo)
 	if dc.Status != StatusOK {
@@ -33,10 +33,10 @@ func TestCheckCursor_HooksInstalled(t *testing.T) {
 
 func TestCheckCursor_PresentButNoHooks(t *testing.T) {
 	repo := t.TempDir()
-	t.Setenv("HOME", t.TempDir()) // ensure no global bd hooks
+	t.Setenv("HOME", t.TempDir()) // ensure no global issuegraph hooks
 	t.Setenv("USERPROFILE", t.TempDir())
 
-	// A .cursor/ dir signals Cursor is in use, but no bd hooks are installed.
+	// A .cursor/ dir signals Cursor is in use, but no issuegraph hooks are installed.
 	if err := os.MkdirAll(filepath.Join(repo, ".cursor", "rules"), 0o755); err != nil {
 		t.Fatal(err)
 	}
@@ -64,7 +64,7 @@ func TestCheckCursorSettingsHealth(t *testing.T) {
 		repo := t.TempDir()
 		t.Setenv("HOME", t.TempDir())
 		t.Setenv("USERPROFILE", t.TempDir())
-		writeCursorHooksFile(t, repo, `{"version":1,"hooks":{"sessionStart":[{"command":"bd cursor-hook sessionStart"}]}}`)
+		writeCursorHooksFile(t, repo, `{"version":1,"hooks":{"sessionStart":[{"command":"issuegraph cursor-hook sessionStart"}]}}`)
 
 		dc := CheckCursorSettingsHealth(repo)
 		if dc.Status != StatusOK {
@@ -90,9 +90,9 @@ func TestCheckCursorHookCompleteness(t *testing.T) {
 		t.Setenv("HOME", t.TempDir())
 		t.Setenv("USERPROFILE", t.TempDir())
 		writeCursorHooksFile(t, repo, `{"version":1,"hooks":{
-			"sessionStart":[{"command":"bd cursor-hook sessionStart"}],
-			"preCompact":[{"command":"bd cursor-hook preCompact"}],
-			"postToolUse":[{"command":"bd cursor-hook postToolUse"}]
+			"sessionStart":[{"command":"issuegraph cursor-hook sessionStart"}],
+			"preCompact":[{"command":"issuegraph cursor-hook preCompact"}],
+			"postToolUse":[{"command":"issuegraph cursor-hook postToolUse"}]
 		}}`)
 
 		dc := CheckCursorHookCompleteness(repo)
@@ -106,7 +106,7 @@ func TestCheckCursorHookCompleteness(t *testing.T) {
 		t.Setenv("HOME", t.TempDir())
 		t.Setenv("USERPROFILE", t.TempDir())
 		// sessionStart only — recovery hooks missing.
-		writeCursorHooksFile(t, repo, `{"version":1,"hooks":{"sessionStart":[{"command":"bd cursor-hook sessionStart"}]}}`)
+		writeCursorHooksFile(t, repo, `{"version":1,"hooks":{"sessionStart":[{"command":"issuegraph cursor-hook sessionStart"}]}}`)
 
 		dc := CheckCursorHookCompleteness(repo)
 		if dc.Status != StatusWarning {
@@ -126,7 +126,7 @@ func TestCheckCursorHookCompleteness(t *testing.T) {
 	})
 }
 
-func TestHasBeadsCursorHooks(t *testing.T) {
+func TestHasIssueGraphCursorHooks(t *testing.T) {
 	dir := t.TempDir()
 	hooks := filepath.Join(dir, "hooks.json")
 
@@ -135,8 +135,8 @@ func TestHasBeadsCursorHooks(t *testing.T) {
 		body string
 		want bool
 	}{
-		{"managed sessionStart", `{"hooks":{"sessionStart":[{"command":"bd cursor-hook sessionStart"}]}}`, true},
-		{"managed postToolUse", `{"hooks":{"postToolUse":[{"command":"bd cursor-hook postToolUse"}]}}`, true},
+		{"managed sessionStart", `{"hooks":{"sessionStart":[{"command":"issuegraph cursor-hook sessionStart"}]}}`, true},
+		{"managed postToolUse", `{"hooks":{"postToolUse":[{"command":"issuegraph cursor-hook postToolUse"}]}}`, true},
 		{"user hook only", `{"hooks":{"afterFileEdit":[{"command":"./format.sh"}]}}`, false},
 		{"empty", `{"version":1}`, false},
 		{"malformed", `{not json`, false},
@@ -146,8 +146,8 @@ func TestHasBeadsCursorHooks(t *testing.T) {
 			if err := os.WriteFile(hooks, []byte(tc.body), 0o644); err != nil {
 				t.Fatal(err)
 			}
-			if got := hasBeadsCursorHooks(hooks); got != tc.want {
-				t.Errorf("hasBeadsCursorHooks = %v, want %v", got, tc.want)
+			if got := hasIssueGraphCursorHooks(hooks); got != tc.want {
+				t.Errorf("hasIssueGraphCursorHooks = %v, want %v", got, tc.want)
 			}
 		})
 	}

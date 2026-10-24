@@ -7,13 +7,13 @@ import (
 	"testing"
 	"time"
 
-	"github.com/steveyegge/beads/internal/types"
+	"github.com/borg0ai/dx-issuegraph/internal/types"
 )
 
 // The async path's two promises, which fire-and-forget does NOT include.
 //
 // "The mutation never fails because a hook did" is what fire-and-forget buys.
-// It does not buy "the hook ran": a bd command fires its hooks after the commit
+// It does not buy "the hook ran": a issuegraph command fires its hooks after the commit
 // and returns, and the process exit takes a goroutine that has not reached exec
 // yet. Nor does it buy "the command still ends": a script that blocks forever
 // would hold the exit forever if the wait were unbounded.

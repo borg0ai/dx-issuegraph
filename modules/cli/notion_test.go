@@ -13,11 +13,11 @@ import (
 	"strings"
 	"testing"
 
+	"github.com/borg0ai/dx-issuegraph/internal/notion"
+	"github.com/borg0ai/dx-issuegraph/internal/storage"
+	"github.com/borg0ai/dx-issuegraph/internal/tracker"
+	"github.com/borg0ai/dx-issuegraph/internal/types"
 	"github.com/spf13/cobra"
-	"github.com/steveyegge/beads/internal/notion"
-	"github.com/steveyegge/beads/internal/storage"
-	"github.com/steveyegge/beads/internal/tracker"
-	"github.com/steveyegge/beads/internal/types"
 )
 
 type notionConfigOperation struct {
@@ -183,7 +183,7 @@ func TestRunNotionStatusJSONWithMissingConfig(t *testing.T) {
 	if resp.Configured {
 		t.Fatal("expected configured=false")
 	}
-	if !strings.Contains(resp.Error, "bd config set notion.token") {
+	if !strings.Contains(resp.Error, "issuegraph config set notion.token") {
 		t.Fatalf("error = %q", resp.Error)
 	}
 }
@@ -236,7 +236,7 @@ func TestRunNotionInitPersistsTargetConfig(t *testing.T) {
 				notionInitParent, notionInitTitle, jsonOutput = oldParent, oldTitle, oldJSON
 			})
 			notionInitParent = "329e5bf9-7fae-8080-bb4a-d94e1387655d"
-			notionInitTitle = "Beads Issues"
+			notionInitTitle = "IssueGraph Issues"
 			jsonOutput = false
 			t.Setenv("NOTION_TOKEN", "env-token")
 
@@ -248,14 +248,14 @@ func TestRunNotionInitPersistsTargetConfig(t *testing.T) {
 				for _, want := range []string{
 					`"page_id":"329e5bf9-7fae-8080-bb4a-d94e1387655d"`,
 					`"initial_data_source"`,
-					`"Beads ID"`,
+					`"IssueGraph ID"`,
 					`"Status"`,
 				} {
 					if !strings.Contains(string(body), want) {
 						t.Fatalf("request body missing %q\n%s", want, body)
 					}
 				}
-				_, _ = fmt.Fprintf(w, `{"id":"db_123","url":%q,"data_sources":[{"id":"ds_123","name":"Beads Issues"}]}`, tt.viewURL)
+				_, _ = fmt.Fprintf(w, `{"id":"db_123","url":%q,"data_sources":[{"id":"ds_123","name":"IssueGraph Issues"}]}`, tt.viewURL)
 			}))
 			defer server.Close()
 			newNotionSetupClient = func(token string) *notion.Client {
@@ -304,7 +304,7 @@ func TestRunNotionConnectResolvesDataSourceURL(t *testing.T) {
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		switch r.URL.Path {
 		case "/data_sources/329e5bf9-7fae-8080-bb4a-d94e1387655d":
-			_, _ = io.WriteString(w, `{"id":"329e5bf9-7fae-8080-bb4a-d94e1387655d","properties":{"Name":{"type":"title"},"Beads ID":{"type":"rich_text"},"Status":{"type":"select"},"Priority":{"type":"select"},"Type":{"type":"select"},"Description":{"type":"rich_text"},"Assignee":{"type":"rich_text"},"Labels":{"type":"multi_select"}}}`)
+			_, _ = io.WriteString(w, `{"id":"329e5bf9-7fae-8080-bb4a-d94e1387655d","properties":{"Name":{"type":"title"},"IssueGraph ID":{"type":"rich_text"},"Status":{"type":"select"},"Priority":{"type":"select"},"Type":{"type":"select"},"Description":{"type":"rich_text"},"Assignee":{"type":"rich_text"},"Labels":{"type":"multi_select"}}}`)
 		default:
 			t.Fatalf("unexpected path %q", r.URL.Path)
 		}
@@ -342,9 +342,9 @@ func TestRunNotionConnectResolvesDatabaseURL(t *testing.T) {
 			w.WriteHeader(http.StatusNotFound)
 			_, _ = io.WriteString(w, `{"code":"object_not_found","message":"not found"}`)
 		case "/databases/429e5bf9-7fae-8080-bb4a-d94e1387655d":
-			_, _ = io.WriteString(w, `{"id":"429e5bf9-7fae-8080-bb4a-d94e1387655d","data_sources":[{"id":"529e5bf9-7fae-8080-bb4a-d94e1387655d","name":"Beads Issues"}]}`)
+			_, _ = io.WriteString(w, `{"id":"429e5bf9-7fae-8080-bb4a-d94e1387655d","data_sources":[{"id":"529e5bf9-7fae-8080-bb4a-d94e1387655d","name":"IssueGraph Issues"}]}`)
 		case "/data_sources/529e5bf9-7fae-8080-bb4a-d94e1387655d":
-			_, _ = io.WriteString(w, `{"id":"529e5bf9-7fae-8080-bb4a-d94e1387655d","properties":{"Name":{"type":"title"},"Beads ID":{"type":"rich_text"},"Status":{"type":"select"},"Priority":{"type":"select"},"Type":{"type":"select"},"Description":{"type":"rich_text"},"Assignee":{"type":"rich_text"},"Labels":{"type":"multi_select"}}}`)
+			_, _ = io.WriteString(w, `{"id":"529e5bf9-7fae-8080-bb4a-d94e1387655d","properties":{"Name":{"type":"title"},"IssueGraph ID":{"type":"rich_text"},"Status":{"type":"select"},"Priority":{"type":"select"},"Type":{"type":"select"},"Description":{"type":"rich_text"},"Assignee":{"type":"rich_text"},"Labels":{"type":"multi_select"}}}`)
 		default:
 			t.Fatalf("unexpected path %q", r.URL.Path)
 		}
@@ -373,7 +373,7 @@ func TestRunNotionStatusUsesHTTPClient(t *testing.T) {
 			}
 			_, _ = io.WriteString(w, `{"id":"user-1","name":"Osamu","type":"person","person":{"email":"osamu@example.com"}}`)
 		case "/data_sources/ds_123":
-			_, _ = io.WriteString(w, `{"id":"ds_123","url":"https://www.notion.so/source","title":[{"plain_text":"Tasks"}],"properties":{"Name":{"type":"title"},"Beads ID":{"type":"rich_text"},"Status":{"type":"select"},"Priority":{"type":"select"},"Type":{"type":"select"},"Description":{"type":"rich_text"},"Assignee":{"type":"rich_text"},"Labels":{"type":"multi_select"}}}`)
+			_, _ = io.WriteString(w, `{"id":"ds_123","url":"https://www.notion.so/source","title":[{"plain_text":"Tasks"}],"properties":{"Name":{"type":"title"},"IssueGraph ID":{"type":"rich_text"},"Status":{"type":"select"},"Priority":{"type":"select"},"Type":{"type":"select"},"Description":{"type":"rich_text"},"Assignee":{"type":"rich_text"},"Labels":{"type":"multi_select"}}}`)
 		default:
 			t.Fatalf("unexpected path %q", r.URL.Path)
 		}
@@ -523,11 +523,11 @@ func TestValidateNotionConfigMessages(t *testing.T) {
 	t.Parallel()
 
 	err := validateNotionConfig(notionConfig{}, nil)
-	if err == nil || !strings.Contains(err.Error(), "bd config set notion.token") {
+	if err == nil || !strings.Contains(err.Error(), "issuegraph config set notion.token") {
 		t.Fatalf("err = %v", err)
 	}
 	err = validateNotionConfig(notionConfig{}, &notion.ResolvedAuth{Token: "token", Source: notion.AuthSourceConfigToken})
-	if err == nil || !strings.Contains(err.Error(), "bd notion init") {
+	if err == nil || !strings.Contains(err.Error(), "issuegraph notion init") {
 		t.Fatalf("err = %v", err)
 	}
 }
@@ -595,7 +595,7 @@ func TestShouldPushNotionIssue(t *testing.T) {
 			name: "existing notion ref is allowed",
 			issue: func() *types.Issue {
 				extRef := "https://www.notion.so/Test-0123456789abcdef0123456789abcdef"
-				return &types.Issue{ID: "beads-1", ExternalRef: &extRef}
+				return &types.Issue{ID: "issuegraph-1", ExternalRef: &extRef}
 			}(),
 			want: true,
 		},
@@ -603,55 +603,55 @@ func TestShouldPushNotionIssue(t *testing.T) {
 			name: "other tracker ref is rejected",
 			issue: func() *types.Issue {
 				extRef := "https://github.com/example/repo/issues/1"
-				return &types.Issue{ID: "beads-1", ExternalRef: &extRef}
+				return &types.Issue{ID: "issuegraph-1", ExternalRef: &extRef}
 			}(),
 			want: false,
 		},
 		{
 			name:  "unlinked issue is allowed when no gate is configured",
-			issue: &types.Issue{ID: "beads-1"},
+			issue: &types.Issue{ID: "issuegraph-1"},
 			want:  true,
 		},
 		{
 			name:       "prefix alone narrows issue set when no label gate is configured",
-			issue:      &types.Issue{ID: "beads-1"},
-			pushPrefix: "beads",
+			issue:      &types.Issue{ID: "issuegraph-1"},
+			pushPrefix: "issuegraph",
 			want:       true,
 		},
 		{
 			name:       "prefix mismatch still rejects issue without label gate",
-			issue:      &types.Issue{ID: "beads-1"},
+			issue:      &types.Issue{ID: "issuegraph-1"},
 			pushPrefix: "proj",
 			want:       false,
 		},
 		{
 			name:      "configured label opts issue in",
-			issue:     &types.Issue{ID: "beads-1", Labels: []string{"notion-sync"}},
+			issue:     &types.Issue{ID: "issuegraph-1", Labels: []string{"notion-sync"}},
 			pushLabel: "notion-sync",
 			want:      true,
 		},
 		{
 			name:      "configured label still gates unlinked issue",
-			issue:     &types.Issue{ID: "beads-1"},
+			issue:     &types.Issue{ID: "issuegraph-1"},
 			pushLabel: "notion-sync",
 			want:      false,
 		},
 		{
 			name:      "configured label is case insensitive",
-			issue:     &types.Issue{ID: "beads-1", Labels: []string{"Notion-Sync"}},
+			issue:     &types.Issue{ID: "issuegraph-1", Labels: []string{"Notion-Sync"}},
 			pushLabel: "notion-sync",
 			want:      true,
 		},
 		{
 			name:       "label plus matching prefix allows issue",
-			issue:      &types.Issue{ID: "beads-1", Labels: []string{"notion-sync"}},
-			pushPrefix: "beads",
+			issue:      &types.Issue{ID: "issuegraph-1", Labels: []string{"notion-sync"}},
+			pushPrefix: "issuegraph",
 			pushLabel:  "notion-sync",
 			want:       true,
 		},
 		{
 			name:       "label plus wrong prefix rejects issue",
-			issue:      &types.Issue{ID: "beads-1", Labels: []string{"notion-sync"}},
+			issue:      &types.Issue{ID: "issuegraph-1", Labels: []string{"notion-sync"}},
 			pushPrefix: "proj",
 			pushLabel:  "notion-sync",
 			want:       false,

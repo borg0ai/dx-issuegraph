@@ -5,21 +5,21 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/steveyegge/beads/internal/storage/dbproxy/proxy"
+	"github.com/borg0ai/dx-issuegraph/internal/storage/dbproxy/proxy"
 )
 
 func TestDoltStopHelpStatesForceExecutableSafety(t *testing.T) {
 	normalizedHelp := strings.Join(strings.Fields(strings.ToLower(doltStopCmd.Long)), " ")
 	for _, want := range []string{
 		"force still refuses to signal",
-		"executable identity cannot be matched to bd or dolt",
+		"executable identity cannot be matched to issuegraph or dolt",
 	} {
 		if !strings.Contains(normalizedHelp, want) {
 			t.Errorf("dolt stop long help missing %q:\n%s", want, doltStopCmd.Long)
 		}
 	}
 	flag := doltStopCmd.Flags().Lookup("force")
-	if flag == nil || !strings.Contains(flag.Usage, "bd/dolt executable match") {
+	if flag == nil || !strings.Contains(flag.Usage, "issuegraph/dolt executable match") {
 		t.Errorf("dolt stop --force usage does not state executable match: %+v", flag)
 	}
 }
@@ -29,7 +29,7 @@ func TestNewForcedDoltStopResultReportsCompletedActions(t *testing.T) {
 	result := newForcedDoltStopResult(shutdownErr, proxy.ForceStopReport{
 		RecordPath:      "/tmp/proxy.pid",
 		PID:             42,
-		Executable:      "bd",
+		Executable:      "issuegraph",
 		RecordFound:     true,
 		LockWasHeld:     true,
 		SignalSent:      true,
@@ -55,7 +55,7 @@ func TestNewForcedDoltStopResultReportsCompletedActions(t *testing.T) {
 
 func TestNewForcedDoltStopResultReportsRefusalWithoutClaimingActions(t *testing.T) {
 	shutdownErr := errors.New("verified shutdown refused")
-	forceErr := errors.New("executable basename is \"sleep\", want bd or dolt")
+	forceErr := errors.New("executable basename is \"sleep\", want issuegraph or dolt")
 	result := newForcedDoltStopResult(shutdownErr, proxy.ForceStopReport{
 		RecordPath:  "/tmp/proxy.pid",
 		PID:         43,

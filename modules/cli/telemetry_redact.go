@@ -9,7 +9,7 @@ import (
 
 // These expressions recognize password-bearing libpq keyword/value tokens. The
 // scrubber is intentionally backend-neutral: command-line telemetry may receive a
-// connection string even when bd does not implement that connection's backend.
+// connection string even when issuegraph does not implement that connection's backend.
 const dsnWhitespace = `\t\n\f\r \v`
 
 var dsnPasswordValue = regexp.MustCompile(`(?i)(?:^|[` + dsnWhitespace + `])(?:password|sslpassword)[` + dsnWhitespace + `]*=[` + dsnWhitespace + `]*(?:'((?:[^'\\]|\\.)*)'|((?:[^` + dsnWhitespace + `\\]|\\.)+))`)

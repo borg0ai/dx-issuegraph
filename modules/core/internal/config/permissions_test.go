@@ -11,34 +11,34 @@ import (
 	"testing"
 )
 
-func TestBeadsDirPermConstants(t *testing.T) {
-	if BeadsDirPerm != 0700 {
-		t.Errorf("BeadsDirPerm = %04o, want 0700", BeadsDirPerm)
+func TestIssueGraphDirPermConstants(t *testing.T) {
+	if IssueGraphDirPerm != 0700 {
+		t.Errorf("IssueGraphDirPerm = %04o, want 0700", IssueGraphDirPerm)
 	}
-	if BeadsFilePerm != 0600 {
-		t.Errorf("BeadsFilePerm = %04o, want 0600", BeadsFilePerm)
+	if IssueGraphFilePerm != 0600 {
+		t.Errorf("IssueGraphFilePerm = %04o, want 0600", IssueGraphFilePerm)
 	}
 }
 
-func TestEnsureBeadsDir(t *testing.T) {
-	dir := filepath.Join(t.TempDir(), ".beads")
-	if err := EnsureBeadsDir(dir); err != nil {
-		t.Fatalf("EnsureBeadsDir(%q) = %v", dir, err)
+func TestEnsureIssueGraphDir(t *testing.T) {
+	dir := filepath.Join(t.TempDir(), ".issuegraph")
+	if err := EnsureIssueGraphDir(dir); err != nil {
+		t.Fatalf("EnsureIssueGraphDir(%q) = %v", dir, err)
 	}
 	info, err := os.Stat(dir)
 	if err != nil {
 		t.Fatalf("Stat(%q) = %v", dir, err)
 	}
 	perm := info.Mode().Perm()
-	if perm != BeadsDirPerm {
-		t.Errorf("directory permissions = %04o, want %04o", perm, BeadsDirPerm)
+	if perm != IssueGraphDirPerm {
+		t.Errorf("directory permissions = %04o, want %04o", perm, IssueGraphDirPerm)
 	}
 }
 
-func TestEnsureBeadsDirNested(t *testing.T) {
-	dir := filepath.Join(t.TempDir(), ".beads", "dolt")
-	if err := EnsureBeadsDir(dir); err != nil {
-		t.Fatalf("EnsureBeadsDir(%q) = %v", dir, err)
+func TestEnsureIssueGraphDirNested(t *testing.T) {
+	dir := filepath.Join(t.TempDir(), ".issuegraph", "dolt")
+	if err := EnsureIssueGraphDir(dir); err != nil {
+		t.Fatalf("EnsureIssueGraphDir(%q) = %v", dir, err)
 	}
 	// Both parent and child should exist
 	for _, d := range []string{filepath.Dir(dir), dir} {
@@ -47,14 +47,14 @@ func TestEnsureBeadsDirNested(t *testing.T) {
 			t.Fatalf("Stat(%q) = %v", d, err)
 		}
 		perm := info.Mode().Perm()
-		if perm != BeadsDirPerm {
-			t.Errorf("%s permissions = %04o, want %04o", d, perm, BeadsDirPerm)
+		if perm != IssueGraphDirPerm {
+			t.Errorf("%s permissions = %04o, want %04o", d, perm, IssueGraphDirPerm)
 		}
 	}
 }
 
-func TestCheckBeadsDirPermissions_Secure(t *testing.T) {
-	dir := filepath.Join(t.TempDir(), ".beads")
+func TestCheckIssueGraphDirPermissions_Secure(t *testing.T) {
+	dir := filepath.Join(t.TempDir(), ".issuegraph")
 	if err := os.MkdirAll(dir, 0700); err != nil {
 		t.Fatal(err)
 	}
@@ -63,7 +63,7 @@ func TestCheckBeadsDirPermissions_Secure(t *testing.T) {
 	r, w, _ := os.Pipe()
 	os.Stderr = w
 
-	CheckBeadsDirPermissions(dir)
+	CheckIssueGraphDirPermissions(dir)
 
 	w.Close()
 	os.Stderr = old
@@ -74,8 +74,8 @@ func TestCheckBeadsDirPermissions_Secure(t *testing.T) {
 	}
 }
 
-func TestCheckBeadsDirPermissions_Permissive(t *testing.T) {
-	dir := filepath.Join(t.TempDir(), ".beads")
+func TestCheckIssueGraphDirPermissions_Permissive(t *testing.T) {
+	dir := filepath.Join(t.TempDir(), ".issuegraph")
 	if err := os.MkdirAll(dir, 0755); err != nil {
 		t.Fatal(err)
 	}
@@ -84,7 +84,7 @@ func TestCheckBeadsDirPermissions_Permissive(t *testing.T) {
 	r, w, _ := os.Pipe()
 	os.Stderr = w
 
-	CheckBeadsDirPermissions(dir)
+	CheckIssueGraphDirPermissions(dir)
 
 	w.Close()
 	os.Stderr = old
@@ -96,14 +96,14 @@ func TestCheckBeadsDirPermissions_Permissive(t *testing.T) {
 	}
 }
 
-func TestCheckBeadsDirPermissions_Nonexistent(t *testing.T) {
+func TestCheckIssueGraphDirPermissions_Nonexistent(t *testing.T) {
 	dir := filepath.Join(t.TempDir(), "no-such-dir")
 	// Capture stderr — should produce no output
 	old := os.Stderr
 	r, w, _ := os.Pipe()
 	os.Stderr = w
 
-	CheckBeadsDirPermissions(dir)
+	CheckIssueGraphDirPermissions(dir)
 
 	w.Close()
 	os.Stderr = old
@@ -114,7 +114,7 @@ func TestCheckBeadsDirPermissions_Nonexistent(t *testing.T) {
 	}
 }
 
-func TestFixBeadsDirPermissions(t *testing.T) {
+func TestFixIssueGraphDirPermissions(t *testing.T) {
 	tests := []struct {
 		name      string
 		startPerm os.FileMode
@@ -130,7 +130,7 @@ func TestFixBeadsDirPermissions(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			dir := filepath.Join(t.TempDir(), ".beads")
+			dir := filepath.Join(t.TempDir(), ".issuegraph")
 			if err := os.Mkdir(dir, tt.startPerm); err != nil {
 				t.Fatal(err)
 			}
@@ -138,9 +138,9 @@ func TestFixBeadsDirPermissions(t *testing.T) {
 				t.Fatal(err)
 			}
 
-			fixed, err := FixBeadsDirPermissions(dir)
+			fixed, err := FixIssueGraphDirPermissions(dir)
 			if err != nil {
-				t.Fatalf("FixBeadsDirPermissions() error = %v", err)
+				t.Fatalf("FixIssueGraphDirPermissions() error = %v", err)
 			}
 			if fixed != tt.wantFixed {
 				t.Errorf("fixed = %v, want %v", fixed, tt.wantFixed)
@@ -158,9 +158,9 @@ func TestFixBeadsDirPermissions(t *testing.T) {
 	}
 }
 
-func TestFixBeadsDirPermissions_Nonexistent(t *testing.T) {
+func TestFixIssueGraphDirPermissions_Nonexistent(t *testing.T) {
 	dir := filepath.Join(t.TempDir(), "no-such-dir")
-	fixed, err := FixBeadsDirPermissions(dir)
+	fixed, err := FixIssueGraphDirPermissions(dir)
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
@@ -169,18 +169,18 @@ func TestFixBeadsDirPermissions_Nonexistent(t *testing.T) {
 	}
 }
 
-func TestFixBeadsDirPermissions_RejectsSymlink(t *testing.T) {
+func TestFixIssueGraphDirPermissions_RejectsSymlink(t *testing.T) {
 	tmp := t.TempDir()
 	target := filepath.Join(tmp, "target")
 	if err := os.Mkdir(target, 0o755); err != nil {
 		t.Fatal(err)
 	}
-	link := filepath.Join(tmp, ".beads")
+	link := filepath.Join(tmp, ".issuegraph")
 	if err := os.Symlink(target, link); err != nil {
 		t.Fatal(err)
 	}
 
-	fixed, err := FixBeadsDirPermissions(link)
+	fixed, err := FixIssueGraphDirPermissions(link)
 	if err == nil {
 		t.Fatal("expected error for symbolic link")
 	}
@@ -189,13 +189,13 @@ func TestFixBeadsDirPermissions_RejectsSymlink(t *testing.T) {
 	}
 }
 
-func TestFixBeadsDirPermissions_RejectsNonDirectory(t *testing.T) {
-	path := filepath.Join(t.TempDir(), ".beads")
+func TestFixIssueGraphDirPermissions_RejectsNonDirectory(t *testing.T) {
+	path := filepath.Join(t.TempDir(), ".issuegraph")
 	if err := os.WriteFile(path, []byte("not a directory"), 0o755); err != nil {
 		t.Fatal(err)
 	}
 
-	fixed, err := FixBeadsDirPermissions(path)
+	fixed, err := FixIssueGraphDirPermissions(path)
 	if err == nil {
 		t.Fatal("expected error for non-directory")
 	}
@@ -204,9 +204,9 @@ func TestFixBeadsDirPermissions_RejectsNonDirectory(t *testing.T) {
 	}
 }
 
-func TestFixBeadsDirPermissions_RejectsSymlinkSwap(t *testing.T) {
+func TestFixIssueGraphDirPermissions_RejectsSymlinkSwap(t *testing.T) {
 	tmp := t.TempDir()
-	path := filepath.Join(tmp, ".beads")
+	path := filepath.Join(tmp, ".issuegraph")
 	if err := os.Mkdir(path, 0o755); err != nil {
 		t.Fatal(err)
 	}
@@ -221,14 +221,14 @@ func TestFixBeadsDirPermissions_RejectsSymlinkSwap(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	fixed, err := fixBeadsDirPermissions(path, func(path string) (beadsDirHandle, error) {
+	fixed, err := fixIssueGraphDirPermissions(path, func(path string) (issuegraphDirHandle, error) {
 		if err := os.Remove(path); err != nil {
 			t.Fatalf("remove validated directory: %v", err)
 		}
 		if err := os.Symlink(target, path); err != nil {
 			t.Fatalf("replace directory with symlink: %v", err)
 		}
-		return openBeadsDirHandle(path)
+		return openIssueGraphDirHandle(path)
 	})
 	if err == nil {
 		t.Fatal("expected error when directory is replaced with a symlink")
@@ -245,9 +245,9 @@ func TestFixBeadsDirPermissions_RejectsSymlinkSwap(t *testing.T) {
 	}
 }
 
-func TestFixBeadsDirPermissions_RejectsDirectorySwap(t *testing.T) {
+func TestFixIssueGraphDirPermissions_RejectsDirectorySwap(t *testing.T) {
 	tmp := t.TempDir()
-	path := filepath.Join(tmp, ".beads")
+	path := filepath.Join(tmp, ".issuegraph")
 	if err := os.Mkdir(path, 0o755); err != nil {
 		t.Fatal(err)
 	}
@@ -262,14 +262,14 @@ func TestFixBeadsDirPermissions_RejectsDirectorySwap(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	fixed, err := fixBeadsDirPermissions(path, func(path string) (beadsDirHandle, error) {
+	fixed, err := fixIssueGraphDirPermissions(path, func(path string) (issuegraphDirHandle, error) {
 		if err := os.Remove(path); err != nil {
 			t.Fatalf("remove validated directory: %v", err)
 		}
 		if err := os.Rename(replacement, path); err != nil {
 			t.Fatalf("replace validated directory: %v", err)
 		}
-		return openBeadsDirHandle(path)
+		return openIssueGraphDirHandle(path)
 	})
 	if err == nil {
 		t.Fatal("expected error when directory is replaced")
@@ -286,8 +286,8 @@ func TestFixBeadsDirPermissions_RejectsDirectorySwap(t *testing.T) {
 	}
 }
 
-func TestFixBeadsDirPermissions_ChmodUnsupportedLeavesDirectoryUnchanged(t *testing.T) {
-	path := filepath.Join(t.TempDir(), ".beads")
+func TestFixIssueGraphDirPermissions_ChmodUnsupportedLeavesDirectoryUnchanged(t *testing.T) {
+	path := filepath.Join(t.TempDir(), ".issuegraph")
 	if err := os.Mkdir(path, 0o755); err != nil {
 		t.Fatal(err)
 	}
@@ -296,7 +296,7 @@ func TestFixBeadsDirPermissions_ChmodUnsupportedLeavesDirectoryUnchanged(t *test
 	}
 	unsupported := errors.New("descriptor chmod unsupported")
 
-	fixed, err := fixBeadsDirPermissions(path, func(path string) (beadsDirHandle, error) {
+	fixed, err := fixIssueGraphDirPermissions(path, func(path string) (issuegraphDirHandle, error) {
 		file, openErr := os.Open(path)
 		if openErr != nil {
 			return nil, openErr

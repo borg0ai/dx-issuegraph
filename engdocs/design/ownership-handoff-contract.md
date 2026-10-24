@@ -23,7 +23,7 @@ retry resumes from the last durable phase and a committed retry is a no-op.
    its existing lifecycle interface; a live or unknown process fails closed.
 4. `verified`: start through issuegraph and verify endpoint, database identity, and
    sentinel rows.
-5. `committed`: atomically record owner `bd` and retire only GC artifacts whose
+5. `committed`: atomically record owner `issuegraph` and retire only GC artifacts whose
    ownership matches the snapshot.
 
 Any failure before `committed` leaves `legacy-gc` authoritative. Rollback

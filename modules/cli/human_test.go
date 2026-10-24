@@ -4,9 +4,9 @@ import (
 	"strings"
 	"testing"
 
+	"github.com/borg0ai/dx-issuegraph/internal/types"
+	"github.com/borg0ai/dx-issuegraph/internal/workapi"
 	"github.com/spf13/cobra"
-	"github.com/steveyegge/beads/internal/types"
-	"github.com/steveyegge/beads/internal/workapi"
 )
 
 func TestPrintHumanStats(t *testing.T) {
@@ -148,27 +148,27 @@ func TestHumanListFilter(t *testing.T) {
 		}
 	})
 
-	t.Run("default hides pinned beads but no bead types", func(t *testing.T) {
+	t.Run("default hides pinned issuegraph but no issue types", func(t *testing.T) {
 		filter, err := humanListFilter("", cfg)
 		if err != nil {
 			t.Fatalf("unexpected error: %v", err)
 		}
 		if filter.Pinned == nil || *filter.Pinned {
-			t.Errorf("default filter should hide boolean-pinned beads, got Pinned=%v", filter.Pinned)
+			t.Errorf("default filter should hide boolean-pinned issuegraph, got Pinned=%v", filter.Pinned)
 		}
 		if filter.Limit != 0 {
 			t.Errorf("human list should stay unlimited, got Limit=%d", filter.Limit)
 		}
 	})
 
-	t.Run("no bead type is ever hidden", func(t *testing.T) {
+	t.Run("no issue type is ever hidden", func(t *testing.T) {
 		for _, status := range []string{"", "open", "all"} {
 			filter, err := humanListFilter(status, cfg)
 			if err != nil {
 				t.Fatalf("unexpected error for status %q: %v", status, err)
 			}
 			if len(filter.ExcludeTypes) != 0 {
-				t.Errorf("status %q: human list must not exclude bead types (gates, infra), got %v", status, filter.ExcludeTypes)
+				t.Errorf("status %q: human list must not exclude issue types (gates, infra), got %v", status, filter.ExcludeTypes)
 			}
 			if filter.SkipWisps {
 				t.Errorf("status %q: human list must show human-labeled wisps", status)

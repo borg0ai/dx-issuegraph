@@ -12,12 +12,12 @@ This document lives next to the ADRs and matches the structure of `issuegraph`'s
 error messages: each named refusal in `issuegraph init` and `issuegraph dolt push`/`pull`
 has a labeled anchor here with step-by-step recovery instructions. The
 `issuegraph dolt push`/`pull` fork refusal deep-links its anchor directly; since
-[#5310](https://github.com/gastownhall/beads/pull/5310) the `issuegraph init`
+[#5310](https://github.com/borg0ai/dx-issuegraph/pull/5310) the `issuegraph init`
 refusals point at `issuegraph help init-safety`, which links this document as a
 whole — match those by exit code and symptom text.
 
 See also: `issuegraph help init-safety`, and
-[ADR 0002 — `issuegraph init` safety invariants](https://github.com/gastownhall/beads/blob/main/engdocs/adr/0002-init-safety-invariants.md).
+[ADR 0002 — `issuegraph init` safety invariants](https://github.com/borg0ai/dx-issuegraph/blob/main/engdocs/adr/0002-init-safety-invariants.md).
 
 ## Table of contents
 
@@ -59,7 +59,7 @@ Pick the one that matches your intent.
 issuegraph bootstrap
 ```
 
-This clones the remote's Dolt database into a fresh local `.beads/`.
+This clones the remote's Dolt database into a fresh local `.issuegraph/`.
 Your local state is ignored; the team's history becomes yours.
 
 ### 2. You want to diagnose what went wrong before deciding
@@ -126,18 +126,18 @@ you to type the destroy-token at confirmation time.
 ### 2. Supply the token explicitly (CI/automation)
 
 The token format is `DESTROY-<issue-prefix>`. For a project whose issue
-prefix is `bd`:
+prefix is `issuegraph`:
 
 ```
 # Destroys local issues only:
-issuegraph init --reinit-local --destroy-token=DESTROY-bd
+issuegraph init --reinit-local --destroy-token=DESTROY-issuegraph
 
 # Also discards the remote's Dolt history:
-issuegraph init --reinit-local --discard-remote --destroy-token=DESTROY-bd
+issuegraph init --reinit-local --discard-remote --destroy-token=DESTROY-issuegraph
 ```
 
 Automation should template the token from project state, not from error
-output. See [ADR 0002 — Invariant 4](https://github.com/gastownhall/beads/blob/main/engdocs/adr/0002-init-safety-invariants.md)
+output. See [ADR 0002 — Invariant 4](https://github.com/borg0ai/dx-issuegraph/blob/main/engdocs/adr/0002-init-safety-invariants.md)
 for why the token is never echoed in `issuegraph`'s error messages.
 
 ---
@@ -166,7 +166,7 @@ Refusing to destroy N issues in non-interactive mode.
 
 **Why this happens**
 
-Local `.beads/` has existing issues. `issuegraph init --reinit-local` (or its
+Local `.issuegraph/` has existing issues. `issuegraph init --reinit-local` (or its
 deprecated alias `--force`) would permanently destroy them, so `issuegraph` demands
 an explicit confirmation first: the typed prompt in a TTY, and a
 `--destroy-token` when there is no TTY. This applies to `--reinit-local` on
@@ -227,7 +227,7 @@ the histories are permanently un-mergeable.
 The usual cause is upgrading `issuegraph` independently on two clones while un-synced
 changes existed on both sides, across a release whose schema migrations
 reshape a primary key. Concretely: the
-[#4259](https://github.com/gastownhall/beads/issues/4259) incident — clones
+[#4259](https://github.com/borg0ai/dx-issuegraph/issues/4259) incident — clones
 straddling the `0041`/`0043`/`0050` reshapes of `dependencies` (v1.0.4 →
 v1.0.6) hit exactly this on the first post-upgrade pull if both sides had
 unpushed dependency edits.
@@ -269,10 +269,10 @@ clone.)
 ### 3. On EVERY other clone: save local-only work, re-clone, re-apply
 
 ```
-issuegraph export --all -o /tmp/beads-local.jsonl    # safety net for un-synced work
-rm -rf .beads/dolt                           # discard the un-mergeable history
+issuegraph export --all -o /tmp/issuegraph-local.jsonl    # safety net for un-synced work
+rm -rf .issuegraph/dolt                           # discard the un-mergeable history
 issuegraph bootstrap                                 # re-clone from the remote
-issuegraph import /tmp/beads-local.jsonl             # re-apply local-only work
+issuegraph import /tmp/issuegraph-local.jsonl             # re-apply local-only work
 ```
 
 `issuegraph import` has upsert semantics: issues that only existed on this clone are

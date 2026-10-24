@@ -9,8 +9,8 @@ import (
 
 	_ "github.com/go-sql-driver/mysql"
 
-	"github.com/steveyegge/beads/internal/config"
-	"github.com/steveyegge/beads/internal/storage/dbproxy/proxy"
+	"github.com/borg0ai/dx-issuegraph/internal/config"
+	"github.com/borg0ai/dx-issuegraph/internal/storage/dbproxy/proxy"
 )
 
 func NewDoltServerUOWProvider(
@@ -33,7 +33,7 @@ func NewDoltServerUOWProvider(
 		idleTimeout = defaultProxyIdleTimeout
 	}
 	if database == "" {
-		return nil, fmt.Errorf("uow: database name must not be empty (caller should default to %q)", "beads")
+		return nil, fmt.Errorf("uow: database name must not be empty (caller should default to %q)", "issuegraph")
 	}
 	if err := backend.Validate(); err != nil {
 		return nil, fmt.Errorf("uow: backend: %w", err)
@@ -54,7 +54,7 @@ func NewDoltServerUOWProvider(
 		return nil, fmt.Errorf("uow: resolving dolt bin exec: %w", err)
 	}
 
-	if err := os.MkdirAll(absServerRootDir, config.BeadsDirPerm); err != nil {
+	if err := os.MkdirAll(absServerRootDir, config.IssueGraphDirPerm); err != nil {
 		return nil, fmt.Errorf("uow: creating server root directory: %w", err)
 	}
 

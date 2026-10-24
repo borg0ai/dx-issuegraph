@@ -9,13 +9,13 @@ import (
 	"testing"
 	"time"
 
+	"github.com/borg0ai/dx-issuegraph/internal/configfile"
+	"github.com/borg0ai/dx-issuegraph/internal/storage/doltutil"
+	"github.com/borg0ai/dx-issuegraph/internal/testutil"
 	_ "github.com/go-sql-driver/mysql"
-	"github.com/steveyegge/beads/internal/configfile"
-	"github.com/steveyegge/beads/internal/storage/doltutil"
-	"github.com/steveyegge/beads/internal/testutil"
 )
 
-// openSharedDoltForPhantom returns a *sql.DB connected to a "beads" database on
+// openSharedDoltForPhantom returns a *sql.DB connected to a "issuegraph" database on
 // the shared test server. Phantom tests need server-level CREATE/DROP DATABASE,
 // so they use the shared server but operate at the database level rather than
 // using branch isolation.
@@ -30,24 +30,24 @@ func openSharedDoltForPhantom(t *testing.T) *sql.DB {
 		t.Skipf("Dolt test server crashed: %v", testutil.DoltContainerCrashError())
 	}
 
-	// Ensure a "beads" database exists on the shared server for phantom tests.
+	// Ensure a "issuegraph" database exists on the shared server for phantom tests.
 	// This matches configfile.DefaultDoltDatabase which checkPhantomDatabases uses.
 	rootDSN := doltutil.ServerDSN{Host: "127.0.0.1", Port: port, User: "root", Timeout: 10 * time.Second}.String()
 	rootDB, err := sql.Open("mysql", rootDSN)
 	if err != nil {
 		t.Fatalf("failed to open root connection: %v", err)
 	}
-	_, err = rootDB.Exec("CREATE DATABASE IF NOT EXISTS beads")
+	_, err = rootDB.Exec("CREATE DATABASE IF NOT EXISTS issuegraph")
 	if err != nil {
 		errLower := strings.ToLower(err.Error())
 		if !strings.Contains(errLower, "database exists") && !strings.Contains(errLower, "1007") {
 			rootDB.Close()
-			t.Fatalf("failed to create beads database: %v", err)
+			t.Fatalf("failed to create issuegraph database: %v", err)
 		}
 	}
 	rootDB.Close()
 
-	dsn := doltutil.ServerDSN{Host: "127.0.0.1", Port: port, User: "root", Database: "beads", Timeout: 10 * time.Second}.String()
+	dsn := doltutil.ServerDSN{Host: "127.0.0.1", Port: port, User: "root", Database: "issuegraph", Timeout: 10 * time.Second}.String()
 	db, err := sql.Open("mysql", dsn)
 	if err != nil {
 		t.Fatalf("failed to open connection: %v", err)
@@ -73,10 +73,10 @@ func cleanupAllPhantomDBs(t *testing.T, db *sql.DB) {
 		if err := rows.Scan(&dbName); err != nil {
 			continue
 		}
-		if dbName == "information_schema" || dbName == "mysql" || dbName == "beads" {
+		if dbName == "information_schema" || dbName == "mysql" || dbName == "issuegraph" {
 			continue
 		}
-		if strings.HasPrefix(dbName, "beads_") || strings.HasSuffix(dbName, "_beads") {
+		if strings.HasPrefix(dbName, "issuegraph_") || strings.HasSuffix(dbName, "_issuegraph") {
 			phantoms = append(phantoms, dbName)
 		}
 	}
@@ -99,13 +99,13 @@ func cleanupPhantomDB(t *testing.T, db *sql.DB, dbName string) {
 func TestCheckPhantomDatabases_Warning(t *testing.T) {
 	db := openSharedDoltForPhantom(t)
 
-	// Create a phantom database with beads_ prefix
+	// Create a phantom database with issuegraph_ prefix
 	//nolint:gosec // G202: test-only database name, not user input
-	_, err := db.Exec("CREATE DATABASE IF NOT EXISTS beads_phantom")
+	_, err := db.Exec("CREATE DATABASE IF NOT EXISTS issuegraph_phantom")
 	if err != nil {
 		t.Fatalf("failed to create phantom database: %v", err)
 	}
-	cleanupPhantomDB(t, db, "beads_phantom")
+	cleanupPhantomDB(t, db, "issuegraph_phantom")
 
 	conn := &doltConn{db: db, cfg: nil}
 	check := checkPhantomDatabases(conn)
@@ -113,8 +113,8 @@ func TestCheckPhantomDatabases_Warning(t *testing.T) {
 	if check.Status != StatusWarning {
 		t.Errorf("expected StatusWarning, got %s: %s", check.Status, check.Message)
 	}
-	if !strings.Contains(check.Message, "beads_phantom") {
-		t.Errorf("expected message to contain 'beads_phantom', got: %s", check.Message)
+	if !strings.Contains(check.Message, "issuegraph_phantom") {
+		t.Errorf("expected message to contain 'issuegraph_phantom', got: %s", check.Message)
 	}
 	if check.Category != CategoryData {
 		t.Errorf("expected CategoryData, got %q", check.Category)
@@ -130,7 +130,7 @@ func TestCheckPhantomDatabases_OK(t *testing.T) {
 	// Clean up any pre-existing phantom databases from other tests
 	cleanupAllPhantomDBs(t, db)
 
-	// No phantom databases — only system DBs and "beads" (the configured default)
+	// No phantom databases — only system DBs and "issuegraph" (the configured default)
 	conn := &doltConn{db: db, cfg: nil}
 	check := checkPhantomDatabases(conn)
 
@@ -145,40 +145,40 @@ func TestCheckPhantomDatabases_OK(t *testing.T) {
 func TestCheckPhantomDatabases_SuffixPattern(t *testing.T) {
 	db := openSharedDoltForPhantom(t)
 
-	// Create a phantom database with _beads suffix
+	// Create a phantom database with _issuegraph suffix
 	//nolint:gosec // G202: test-only database name, not user input
-	_, err := db.Exec("CREATE DATABASE IF NOT EXISTS acf_beads")
+	_, err := db.Exec("CREATE DATABASE IF NOT EXISTS acf_issuegraph")
 	if err != nil {
 		t.Fatalf("failed to create phantom database: %v", err)
 	}
-	cleanupPhantomDB(t, db, "acf_beads")
+	cleanupPhantomDB(t, db, "acf_issuegraph")
 
 	conn := &doltConn{db: db, cfg: nil}
 	check := checkPhantomDatabases(conn)
 
 	if check.Status != StatusWarning {
-		t.Errorf("expected StatusWarning for _beads suffix, got %s: %s", check.Status, check.Message)
+		t.Errorf("expected StatusWarning for _issuegraph suffix, got %s: %s", check.Status, check.Message)
 	}
-	if !strings.Contains(check.Message, "acf_beads") {
-		t.Errorf("expected message to contain 'acf_beads', got: %s", check.Message)
+	if !strings.Contains(check.Message, "acf_issuegraph") {
+		t.Errorf("expected message to contain 'acf_issuegraph', got: %s", check.Message)
 	}
 }
 
 func TestCheckPhantomDatabases_ConfiguredDBNotPhantom(t *testing.T) {
 	db := openSharedDoltForPhantom(t)
 
-	// Create a database that matches beads_ prefix but IS the configured database
+	// Create a database that matches issuegraph_ prefix but IS the configured database
 	//nolint:gosec // G202: test-only database name, not user input
-	_, err := db.Exec("CREATE DATABASE IF NOT EXISTS beads_test")
+	_, err := db.Exec("CREATE DATABASE IF NOT EXISTS issuegraph_test")
 	if err != nil {
 		t.Fatalf("failed to create test database: %v", err)
 	}
-	cleanupPhantomDB(t, db, "beads_test")
+	cleanupPhantomDB(t, db, "issuegraph_test")
 
-	// Configure the connection so beads_test IS the configured database
+	// Configure the connection so issuegraph_test IS the configured database
 	conn := &doltConn{
 		db:  db,
-		cfg: &configfile.Config{DoltDatabase: "beads_test"},
+		cfg: &configfile.Config{DoltDatabase: "issuegraph_test"},
 	}
 	check := checkPhantomDatabases(conn)
 
@@ -193,8 +193,8 @@ func TestCheckPhantomDatabases_NilConfig(t *testing.T) {
 	// Clean up any pre-existing phantom databases from other tests
 	cleanupAllPhantomDBs(t, db)
 
-	// With nil config, should use DefaultDoltDatabase ("beads") as the configured name.
-	// "beads" has no beads_ prefix or _beads suffix matching issues, so it's safe.
+	// With nil config, should use DefaultDoltDatabase ("issuegraph") as the configured name.
+	// "issuegraph" has no issuegraph_ prefix or _issuegraph suffix matching issues, so it's safe.
 	// No phantom databases present — should be OK.
 	conn := &doltConn{db: db, cfg: nil}
 	check := checkPhantomDatabases(conn)

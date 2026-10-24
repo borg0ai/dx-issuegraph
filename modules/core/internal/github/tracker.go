@@ -9,9 +9,9 @@ import (
 	"strconv"
 	"strings"
 
-	"github.com/steveyegge/beads/internal/config"
-	"github.com/steveyegge/beads/internal/tracker"
-	"github.com/steveyegge/beads/internal/types"
+	"github.com/borg0ai/dx-issuegraph/internal/config"
+	"github.com/borg0ai/dx-issuegraph/internal/tracker"
+	"github.com/borg0ai/dx-issuegraph/internal/types"
 )
 
 func init() {
@@ -133,7 +133,7 @@ func (t *Tracker) FetchIssue(ctx context.Context, identifier string) (*tracker.T
 }
 
 func (t *Tracker) CreateIssue(ctx context.Context, issue *types.Issue) (*tracker.TrackerIssue, error) {
-	fields := BeadsIssueToGitHubFields(issue, t.config)
+	fields := IssueGraphIssueToGitHubFields(issue, t.config)
 	labels, _ := fields["labels"].([]string)
 
 	created, err := t.client.CreateIssue(ctx, issue.Title, issue.Description, labels)
@@ -151,7 +151,7 @@ func (t *Tracker) UpdateIssue(ctx context.Context, externalID string, issue *typ
 		return nil, fmt.Errorf("invalid GitHub issue number %q: %w", externalID, err)
 	}
 
-	updates := BeadsIssueToGitHubFields(issue, t.config)
+	updates := IssueGraphIssueToGitHubFields(issue, t.config)
 	updated, err := t.client.UpdateIssue(ctx, number, updates)
 	if err != nil {
 		return nil, err

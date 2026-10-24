@@ -7,11 +7,11 @@ import (
 	"slices"
 	"strings"
 
-	"github.com/steveyegge/beads/modules/cli/doctor"
-	"github.com/steveyegge/beads/modules/cli/doctor/fix"
-	"github.com/steveyegge/beads/internal/doltserver"
-	"github.com/steveyegge/beads/internal/storage/dolt"
-	"github.com/steveyegge/beads/internal/ui"
+	"github.com/borg0ai/dx-issuegraph/internal/doltserver"
+	"github.com/borg0ai/dx-issuegraph/internal/storage/dolt"
+	"github.com/borg0ai/dx-issuegraph/internal/ui"
+	"github.com/borg0ai/dx-issuegraph/modules/cli/doctor"
+	"github.com/borg0ai/dx-issuegraph/modules/cli/doctor/fix"
 	"golang.org/x/term"
 )
 
@@ -50,7 +50,7 @@ func previewFixes(result doctorResult) {
 	}
 
 	fmt.Printf("[DRY-RUN] Would attempt to fix %d issue(s)\n", len(fixableIssues))
-	fmt.Println("Run 'bd doctor --fix' to apply these fixes")
+	fmt.Println("Run 'issuegraph doctor --fix' to apply these fixes")
 }
 
 func applyFixes(result doctorResult) {
@@ -86,7 +86,7 @@ func applyFixes(result doctorResult) {
 		if !isInteractive {
 			// In non-interactive mode without --yes, skip with helpful message
 			fmt.Fprintf(os.Stderr, "\n%s Running in non-interactive mode\n", ui.RenderWarn("⚠"))
-			fmt.Fprintf(os.Stderr, "  To auto-fix issues without prompting, use: %s\n\n", ui.RenderAccent("bd doctor --fix --yes"))
+			fmt.Fprintf(os.Stderr, "  To auto-fix issues without prompting, use: %s\n\n", ui.RenderAccent("issuegraph doctor --fix --yes"))
 			return
 		}
 
@@ -116,7 +116,7 @@ func applyFixesInteractive(path string, issues []doctorCheck) {
 	isInteractive := term.IsTerminal(int(os.Stdin.Fd()))
 	if !isInteractive {
 		fmt.Fprintf(os.Stderr, "\n%s Interactive mode requires a terminal\n", ui.RenderWarn("⚠"))
-		fmt.Fprintf(os.Stderr, "  Use 'bd doctor --fix --yes' for non-interactive mode\n\n")
+		fmt.Fprintf(os.Stderr, "  Use 'issuegraph doctor --fix --yes' for non-interactive mode\n\n")
 		return
 	}
 
@@ -273,11 +273,11 @@ func applyFixList(path string, fixes []doctorCheck) {
 			err = doctor.FixGitignore(path)
 		case "Project Gitignore":
 			// Stealth / no-git-ops repos must not get a tracked .gitignore; route the patterns into
-			// .git/info/exclude instead (matches bd init --stealth) and strip any beads section a
+			// .git/info/exclude instead (matches issuegraph init --stealth) and strip any issuegraph section a
 			// previous run leaked into the tracked .gitignore so stealth leaves no trace.
 			if isStealthRepo(path) {
 				if err = addProjectPatternsToGitExclude(path, doctor.ProjectGitignorePatterns, false); err == nil {
-					_, err = removeBeadsProjectGitignoreSection(path)
+					_, err = removeIssueGraphProjectGitignoreSection(path)
 				}
 			} else {
 				err = doctor.FixProjectGitignore(path)
@@ -299,7 +299,7 @@ func applyFixList(path string, fixes []doctorCheck) {
 			err = fix.Permissions(path)
 		case "Database":
 			err = fix.DatabaseVersionWithBdVersion(path, Version)
-			// Also repair any other missing metadata fields (bd_version, repo_id, clone_id)
+			// Also repair any other missing metadata fields (issuegraph_version, repo_id, clone_id)
 			if mErr := fix.FixMissingMetadata(path, Version); mErr != nil && err == nil {
 				err = mErr
 			}
@@ -310,7 +310,7 @@ func applyFixList(path string, fixes []doctorCheck) {
 			err = fix.SchemaCompatibility(path)
 		case "Repo Fingerprint":
 			err = fix.RepoFingerprint(path, doctorYes)
-			// Also repair any other missing metadata fields (bd_version, repo_id, clone_id)
+			// Also repair any other missing metadata fields (issuegraph_version, repo_id, clone_id)
 			if mErr := fix.FixMissingMetadata(path, Version); mErr != nil && err == nil {
 				err = mErr
 			}
@@ -338,17 +338,17 @@ func applyFixList(path string, fixes []doctorCheck) {
 		case "Child-Parent Dependencies":
 			// Requires explicit opt-in flag (destructive, may remove intentional deps)
 			if !doctorFixChildParent {
-				fmt.Printf("  ⚠ Child→parent deps require explicit opt-in: bd doctor --fix --fix-child-parent\n")
+				fmt.Printf("  ⚠ Child→parent deps require explicit opt-in: issuegraph doctor --fix --fix-child-parent\n")
 				continue
 			}
 			err = fix.ChildParentDependencies(path, doctorVerbose)
 		case "Duplicate Issues":
 			// No auto-fix: duplicates require user review
-			fmt.Printf("  ⚠ Run 'bd duplicates' to review and merge duplicates\n")
+			fmt.Printf("  ⚠ Run 'issuegraph duplicates' to review and merge duplicates\n")
 			continue
 		case "Test Pollution":
 			// No auto-fix: test cleanup requires user review
-			fmt.Printf("  ⚠ Run 'bd doctor --check=pollution' to review and clean test issues\n")
+			fmt.Printf("  ⚠ Run 'issuegraph doctor --check=pollution' to review and clean test issues\n")
 			continue
 		case "Git Conflicts":
 			// No auto-fix: git conflicts require manual resolution
@@ -359,11 +359,11 @@ func applyFixList(path string, fixes []doctorCheck) {
 			err = fix.StaleClosedIssues(path)
 		case "Compaction Candidates":
 			// No auto-fix: compaction requires agent review
-			fmt.Printf("  ⚠ Run 'bd compact --analyze' to review candidates\n")
+			fmt.Printf("  ⚠ Run 'issuegraph compact --analyze' to review candidates\n")
 			continue
 		case "Large Database":
 			// No auto-fix: pruning deletes data, must be user-controlled
-			fmt.Printf("  ⚠ Run 'bd prune --older-than 90d' to preview prunable closed issues (add --force to delete)\n")
+			fmt.Printf("  ⚠ Run 'issuegraph prune --older-than 90d' to preview prunable closed issues (add --force to delete)\n")
 			continue
 		case "Legacy MQ Files":
 			err = doctor.FixStaleMQFiles(path)
@@ -383,7 +383,7 @@ func applyFixList(path string, fixes []doctorCheck) {
 		case "Classic Artifacts":
 			err = fix.ClassicArtifacts(path)
 		case "Btrfs NoCOW (dolt)":
-			// Applies FS_NOCOW_FL to .beads/ and any existing dolt data
+			// Applies FS_NOCOW_FL to .issuegraph/ and any existing dolt data
 			// subdirs. Prints the returned message (which includes the
 			// "relocate existing files" warning) so the user sees why the
 			// fix is incomplete on its own.
@@ -407,7 +407,7 @@ func applyFixList(path string, fixes []doctorCheck) {
 			// GH#3290 / bd-6dnrw.6: destructive backup+reinit, gated here so it
 			// only ever runs on explicit doctor --fix confirmation.
 			var backups []string
-			backups, err = doltserver.RecoverCorruptManifest(doctor.ResolveBeadsDirForRepo(path))
+			backups, err = doltserver.RecoverCorruptManifest(doctor.ResolveIssueGraphDirForRepo(path))
 			for _, b := range backups {
 				fmt.Printf("  Backed up corrupt dolt database to %s and reinitialized\n", b)
 			}

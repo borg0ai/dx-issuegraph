@@ -12,7 +12,7 @@ import (
 )
 
 // TestCLI_ReopenClearsDeferUntil tests that reopening a deferred+closed issue
-// clears defer_until so the issue appears in bd ready immediately.
+// clears defer_until so the issue appears in issuegraph ready immediately.
 //
 // This documents the decision: reopen means "I want to work on this NOW",
 // so defer_until is cleared.

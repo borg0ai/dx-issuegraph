@@ -5,8 +5,8 @@ import (
 	"database/sql"
 	"fmt"
 
-	"github.com/steveyegge/beads/internal/storage/issueops"
-	"github.com/steveyegge/beads/internal/types"
+	"github.com/borg0ai/dx-issuegraph/internal/storage/issueops"
+	"github.com/borg0ai/dx-issuegraph/internal/types"
 )
 
 // AddLabel adds a label to an issue
@@ -21,7 +21,7 @@ func (s *DoltStore) AddLabel(ctx context.Context, issueID, label, actor string) 
 		if isWisp {
 			return nil
 		}
-		return s.doltAddAndCommit(ctx, []string{"events", "labels"}, fmt.Sprintf("bd: label add %s", issueID))
+		return s.doltAddAndCommit(ctx, []string{"events", "labels"}, fmt.Sprintf("issuegraph: label add %s", issueID))
 	})
 }
 
@@ -38,7 +38,7 @@ func (s *DoltStore) RemoveLabel(ctx context.Context, issueID, label, actor strin
 		if isWisp {
 			return nil
 		}
-		return s.doltAddAndCommit(ctx, []string{"events", "labels"}, fmt.Sprintf("bd: label remove %s", issueID))
+		return s.doltAddAndCommit(ctx, []string{"events", "labels"}, fmt.Sprintf("issuegraph: label remove %s", issueID))
 	})
 }
 

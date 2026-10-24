@@ -7,13 +7,13 @@ import (
 	"sort"
 	"strings"
 
+	"github.com/borg0ai/dx-issuegraph/internal/metrics"
+	"github.com/borg0ai/dx-issuegraph/internal/storage"
+	"github.com/borg0ai/dx-issuegraph/internal/storage/issueops"
+	"github.com/borg0ai/dx-issuegraph/internal/types"
+	"github.com/borg0ai/dx-issuegraph/internal/ui"
+	"github.com/borg0ai/dx-issuegraph/internal/utils"
 	"github.com/spf13/cobra"
-	"github.com/steveyegge/beads/internal/metrics"
-	"github.com/steveyegge/beads/internal/storage"
-	"github.com/steveyegge/beads/internal/storage/issueops"
-	"github.com/steveyegge/beads/internal/types"
-	"github.com/steveyegge/beads/internal/ui"
-	"github.com/steveyegge/beads/internal/utils"
 )
 
 // GraphNode represents a node in the rendered graph
@@ -69,16 +69,16 @@ The graph shows execution order:
 Status icons: ○ open  ◐ in_progress  ● blocked  ✓ closed  ❄ deferred
 
 Examples:
-  bd graph issue-id              # Terminal DAG visualization (default)
-  bd graph --box issue-id        # ASCII boxes with layer grouping
-  bd graph --dot issue-id | dot -Tsvg > graph.svg  # SVG via Graphviz
-  bd graph --dot issue-id | dot -Tpng > graph.png  # PNG via Graphviz
-  bd graph --html issue-id > graph.html  # Interactive browser view
-  bd graph --all --html > all.html       # All issues, interactive
-  bd graph --open issue-id       # Open issues only, layered by blocking order
-  bd graph --all --open          # All open issues, compact layers
+  issuegraph graph issue-id              # Terminal DAG visualization (default)
+  issuegraph graph --box issue-id        # ASCII boxes with layer grouping
+  issuegraph graph --dot issue-id | dot -Tsvg > graph.svg  # SVG via Graphviz
+  issuegraph graph --dot issue-id | dot -Tpng > graph.png  # PNG via Graphviz
+  issuegraph graph --html issue-id > graph.html  # Interactive browser view
+  issuegraph graph --all --html > all.html       # All issues, interactive
+  issuegraph graph --open issue-id       # Open issues only, layered by blocking order
+  issuegraph graph --all --open          # All open issues, compact layers
 
---max-rows / BEADS_MAX_ROWS caveat: the cap is checked differently per mode.
+--max-rows / ISSUEGRAPH_MAX_ROWS caveat: the cap is checked differently per mode.
 Single-issue graphs (no --all) check the connected-component node count
 after the BFS traversal completes — the whole subgraph is always walked
 first, then rejected if it's over cap. --all checks each status
@@ -143,7 +143,7 @@ in total before any individual status trips it.`,
 		// Apply the defensive row cap (be-x42v) on the connected-component
 		// node count. loadGraphSubgraph is a BFS over GetDependents/
 		// GetDependencies (per-ID lookups, no IssueFilter to thread MaxRows
-		// through), so — like `bd dep tree` — the cap is checked post-hoc
+		// through), so — like `issuegraph dep tree` — the cap is checked post-hoc
 		// against the final node set rather than during traversal.
 		graphMaxRows, graphMaxRowsSource, err := resolveMaxRows(cmd)
 		if err != nil {
@@ -776,7 +776,7 @@ func filterSubgraphOpen(subgraph *TemplateSubgraph) *TemplateSubgraph {
 
 // computeLayout assigns layers to nodes using topological sort
 // mergeSubgraphsForHTML joins disconnected components into one subgraph so
-// `bd graph --all --html` emits a single valid HTML document.
+// `issuegraph graph --all --html` emits a single valid HTML document.
 func mergeSubgraphsForHTML(subgraphs []*TemplateSubgraph) *TemplateSubgraph {
 	switch len(subgraphs) {
 	case 0:

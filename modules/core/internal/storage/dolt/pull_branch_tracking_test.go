@@ -11,7 +11,7 @@ import (
 
 // TestPullWithAutoResolve_BranchTrackingFallback verifies that when DOLT_PULL
 // returns the GH#3144 branch-tracking error (repo_state.json 'branches' map
-// is empty because the remote was added via `bd dolt remote add` rather than
+// is empty because the remote was added via `issuegraph dolt remote add` rather than
 // `dolt clone`), pullWithAutoResolve enters the DOLT_FETCH + DOLT_MERGE
 // fallback path.
 //

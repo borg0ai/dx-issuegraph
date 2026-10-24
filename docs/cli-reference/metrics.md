@@ -1,49 +1,49 @@
 ---
-title: "bd metrics"
+title: "issuegraph metrics"
 description: "Show whether anonymous usage metrics are on, see exactly what is sent, and"
 ---
 
 {/* AUTO-GENERATED: do not edit manually */}
 
-Generated from `bd help --doc metrics`.
+Generated from `issuegraph help --doc metrics`.
 
 Show whether anonymous usage metrics are on, see exactly what is sent, and
 turn them on or off.
 
-bd shares anonymous usage metrics to learn how people actually use it — just
-which commands get run, plus the bd version and OS platform. That's how we decide
+issuegraph shares anonymous usage metrics to learn how people actually use it — just
+which commands get run, plus the issuegraph version and OS platform. That's how we decide
 what to polish next. We never collect your issues, paths, remotes, identity, or
 any user-supplied text.
 
-  bd metrics            show the current status and what is collected
-  bd metrics on         turn metrics on
-  bd metrics off        turn metrics off
-  bd metrics example    show real examples of the events bd sends
+  issuegraph metrics            show the current status and what is collected
+  issuegraph metrics on         turn metrics on
+  issuegraph metrics off        turn metrics off
+  issuegraph metrics example    show real examples of the events issuegraph sends
 
 ```
-bd metrics [flags]
+issuegraph metrics [flags]
 ```
 
-## bd metrics example
+## issuegraph metrics example
 
-Show real examples of the anonymous metrics bd sends
+Show real examples of the anonymous metrics issuegraph sends
 
 ```
-bd metrics example [flags]
+issuegraph metrics example [flags]
 ```
 
-## bd metrics off
+## issuegraph metrics off
 
 Turn anonymous usage metrics off
 
 ```
-bd metrics off [flags]
+issuegraph metrics off [flags]
 ```
 
-## bd metrics on
+## issuegraph metrics on
 
 Turn anonymous usage metrics on
 
 ```
-bd metrics on [flags]
+issuegraph metrics on [flags]
 ```

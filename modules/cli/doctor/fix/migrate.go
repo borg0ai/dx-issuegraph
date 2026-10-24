@@ -10,11 +10,11 @@ import (
 	"path/filepath"
 	"strings"
 
-	"github.com/steveyegge/beads/internal/configfile"
-	"github.com/steveyegge/beads/internal/storage"
-	"github.com/steveyegge/beads/internal/storage/dolt"
-	"github.com/steveyegge/beads/internal/types"
-	"github.com/steveyegge/beads/internal/utils"
+	"github.com/borg0ai/dx-issuegraph/internal/configfile"
+	"github.com/borg0ai/dx-issuegraph/internal/storage"
+	"github.com/borg0ai/dx-issuegraph/internal/storage/dolt"
+	"github.com/borg0ai/dx-issuegraph/internal/types"
+	"github.com/borg0ai/dx-issuegraph/internal/utils"
 )
 
 // DatabaseVersion fixes database version mismatches by updating metadata in-process.
@@ -22,21 +22,21 @@ import (
 // For existing databases, it updates version metadata directly.
 //
 // This runs in-process to avoid Dolt lock contention that occurs when spawning
-// bd subcommands while the parent process holds database connections. (GH#1805)
+// issuegraph subcommands while the parent process holds database connections. (GH#1805)
 func DatabaseVersion(path string) error {
 	return DatabaseVersionWithBdVersion(path, "")
 }
 
 // DatabaseVersionWithBdVersion is like DatabaseVersion but accepts an explicit
-// bd version string for setting the bd_version metadata field.
-func DatabaseVersionWithBdVersion(path string, bdVersion string) error {
-	beadsDir, err := resolvedWorkspaceBeadsDir(path)
+// issuegraph version string for setting the issuegraph_version metadata field.
+func DatabaseVersionWithBdVersion(path string, issuegraphVersion string) error {
+	issuegraphDir, err := resolvedWorkspaceIssueGraphDir(path)
 	if err != nil {
 		return err
 	}
 
 	// Load or create config
-	cfg, err := configfile.Load(beadsDir)
+	cfg, err := configfile.Load(issuegraphDir)
 	if err != nil {
 		cfg = configfile.DefaultConfig()
 	}
@@ -45,7 +45,7 @@ func DatabaseVersionWithBdVersion(path string, bdVersion string) error {
 	}
 
 	// Determine database path
-	dbPath := cfg.DatabasePath(beadsDir)
+	dbPath := cfg.DatabasePath(issuegraphDir)
 
 	ctx := context.Background()
 
@@ -56,9 +56,9 @@ func DatabaseVersionWithBdVersion(path string, bdVersion string) error {
 		// "database not found" on exactly the fresh clones it exists for).
 		fmt.Println("  → No database found, creating Dolt store...")
 
-		// Bead-mutating: the branch below imports every issue in the JSONL, so
+		// Issue-mutating: the branch below imports every issue in the JSONL, so
 		// it opens through the activating factory and those creates journal.
-		store, err := openBeadMutatingStoreCreating(ctx, beadsDir)
+		store, err := openIssueMutatingStoreCreating(ctx, issuegraphDir)
 		if err != nil {
 			return fmt.Errorf("failed to create database: %w", err)
 		}
@@ -71,9 +71,9 @@ func DatabaseVersionWithBdVersion(path string, bdVersion string) error {
 		}
 
 		// Set version metadata if provided
-		if bdVersion != "" {
-			if err := store.SetLocalMetadata(ctx, "bd_version", bdVersion); err != nil {
-				fmt.Printf("  Warning: failed to set bd_version: %v\n", err)
+		if issuegraphVersion != "" {
+			if err := store.SetLocalMetadata(ctx, "issuegraph_version", issuegraphVersion); err != nil {
+				fmt.Printf("  Warning: failed to set issuegraph_version: %v\n", err)
 			}
 		}
 
@@ -81,8 +81,8 @@ func DatabaseVersionWithBdVersion(path string, bdVersion string) error {
 
 		// Import from JSONL if present (fresh clone with committed issues).
 		// This closes the chicken-and-egg gap where doctor --fix creates an
-		// empty Dolt store and then bd init refuses because the store exists.
-		jsonlPath := filepath.Join(beadsDir, "issues.jsonl")
+		// empty Dolt store and then issuegraph init refuses because the store exists.
+		jsonlPath := filepath.Join(issuegraphDir, "issues.jsonl")
 		if _, statErr := os.Stat(jsonlPath); statErr == nil {
 			count, importErr := importJSONLIntoStore(ctx, store, jsonlPath)
 			if importErr != nil {
@@ -98,16 +98,16 @@ func DatabaseVersionWithBdVersion(path string, bdVersion string) error {
 	// Database exists - update metadata in-process
 	fmt.Println("  → Updating database metadata...")
 
-	store, err := dolt.NewFromConfig(ctx, beadsDir)
+	store, err := dolt.NewFromConfig(ctx, issuegraphDir)
 	if err != nil {
 		return fmt.Errorf("failed to open database: %w", err)
 	}
 	defer func() { _ = store.Close() }()
 
-	// Update bd_version if provided (clone-local, dolt-ignored)
-	if bdVersion != "" {
-		if err := store.SetLocalMetadata(ctx, "bd_version", bdVersion); err != nil {
-			return fmt.Errorf("failed to set bd_version: %w", err)
+	// Update issuegraph_version if provided (clone-local, dolt-ignored)
+	if issuegraphVersion != "" {
+		if err := store.SetLocalMetadata(ctx, "issuegraph_version", issuegraphVersion); err != nil {
+			return fmt.Errorf("failed to set issuegraph_version: %w", err)
 		}
 	}
 
@@ -139,30 +139,30 @@ func SchemaCompatibility(path string) error {
 // FreshCloneImport handles the "Fresh Clone" fix: imports JSONL issues into an
 // existing (possibly empty) Dolt store. This covers the case where the Database
 // fix already created the store but a prior version didn't import.
-func FreshCloneImport(path string, bdVersion string) error {
-	beadsDir, err := resolvedWorkspaceBeadsDir(path)
+func FreshCloneImport(path string, issuegraphVersion string) error {
+	issuegraphDir, err := resolvedWorkspaceIssueGraphDir(path)
 	if err != nil {
 		return err
 	}
 
 	// Check for JSONL file
-	jsonlPath := filepath.Join(beadsDir, "issues.jsonl")
+	jsonlPath := filepath.Join(issuegraphDir, "issues.jsonl")
 	if _, err := os.Stat(jsonlPath); os.IsNotExist(err) {
 		return fmt.Errorf("no issues.jsonl found")
 	}
 
 	// Check if Dolt store exists
-	doltDir := getDatabasePath(beadsDir)
+	doltDir := getDatabasePath(issuegraphDir)
 	if _, err := os.Stat(doltDir); os.IsNotExist(err) {
 		// No Dolt store — delegate to Database fix which creates store + imports
-		return DatabaseVersionWithBdVersion(path, bdVersion)
+		return DatabaseVersionWithBdVersion(path, issuegraphVersion)
 	}
 
-	// Dolt store exists — check if it already has issues. Bead-mutating: an
+	// Dolt store exists — check if it already has issues. Issue-mutating: an
 	// empty store is imported into below, so it opens through the activating
 	// factory and those creates journal.
 	ctx := context.Background()
-	store, err := openBeadMutatingStore(ctx, beadsDir)
+	store, err := openIssueMutatingStore(ctx, issuegraphDir)
 	if err != nil {
 		return fmt.Errorf("failed to open database: %w", err)
 	}
@@ -244,11 +244,8 @@ func importJSONLIntoStore(ctx context.Context, store storage.DoltStorage, jsonlP
 
 // detectActor returns the best available actor name for automated operations.
 func detectActor() string {
-	if beadsActor := os.Getenv("BEADS_ACTOR"); beadsActor != "" {
-		return beadsActor
-	}
-	if bdActor := os.Getenv("BD_ACTOR"); bdActor != "" {
-		return bdActor
+	if issuegraphActor := os.Getenv("ISSUEGRAPH_ACTOR"); issuegraphActor != "" {
+		return issuegraphActor
 	}
 	if out, err := exec.Command("git", "config", "user.name").Output(); err == nil {
 		if gitUser := strings.TrimSpace(string(out)); gitUser != "" {

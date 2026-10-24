@@ -4,7 +4,7 @@
 It uses [`gocyclo`](https://github.com/fzipp/gocyclo) v0.6.0 and reports
 functions at or above a threshold (30 by default). The analyzer input is an
 explicit shipped-code allowlist: root Go files plus `cmd/`, `internal/`,
-`backend/`, `beadserrors/`, `format/`, `issueops/`, `journalops/`,
+`backend/`, `issuegrapherrors/`, `format/`, `issueops/`, `journalops/`,
 `memoryops/`, `schema/`, `plugins/`, `integrations/`, and `release-gates/`.
 Test files, generated files, and `backend/conformance/` are excluded. Keeping
 the scope explicit prevents fixtures, tools, and other non-production trees

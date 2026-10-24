@@ -10,7 +10,7 @@ import (
 	"testing"
 )
 
-// End-to-end for the release, against real Dolt through a real `bd serve`
+// End-to-end for the release, against real Dolt through a real `issuegraph serve`
 // subprocess. The pure tests in internal/httpapi cover the wire edge on a fake
 // role; what only this level can prove is the TRANSACTION, and here that is a
 // sharper claim than usual: a REFUSED release must leave the claim STANDING.
@@ -29,7 +29,7 @@ import (
 // releaseIssue posts a release for id and returns the status and decoded body.
 func (sp *serveProcess) releaseIssue(t *testing.T, id, body string) (int, map[string]any) {
 	t.Helper()
-	req, err := http.NewRequest(http.MethodPost, sp.url("/v0/beads/issues/"+id+":release"), strings.NewReader(body))
+	req, err := http.NewRequest(http.MethodPost, sp.url("/v0/issuegraph/issues/"+id+":release"), strings.NewReader(body))
 	if err != nil {
 		t.Fatalf("new release request: %v", err)
 	}
@@ -55,16 +55,16 @@ func (sp *serveProcess) releaseIssue(t *testing.T, id, body string) (int, map[st
 func TestProxiedServerServeRelease(t *testing.T) {
 	requireSharedProxiedServer(t)
 	t.Parallel()
-	bd := buildEmbeddedBD(t)
-	p := newSharedProxiedProject(t, bd, "srvrel")
-	sp := startServe(t, bd, p.dir, bdProxiedEnv(p.dir))
+	issuegraph := buildEmbeddedBD(t)
+	p := newSharedProxiedProject(t, issuegraph, "srvrel")
+	sp := startServe(t, issuegraph, p.dir, issuegraphProxiedEnv(p.dir))
 
 	// The loop this operation completes: claim it, give it back, and see the
 	// row available to the next taker. The post-state is the ANONYMOUS one the
 	// document describes, read back through the CLI rather than off the
 	// response the release itself composed.
 	t.Run("a holder releases its own claim", func(t *testing.T) {
-		issue := bdProxiedCreate(t, bd, p.dir, "release over http", "-p", "1")
+		issue := issuegraphProxiedCreate(t, issuegraph, p.dir, "release over http", "-p", "1")
 
 		if status, body := sp.claim(t, issue.ID, "http-agent"); status != http.StatusOK {
 			t.Fatalf("claim: status = %d, want 200: %v", status, body)
@@ -81,9 +81,9 @@ func TestProxiedServerServeRelease(t *testing.T) {
 			t.Errorf("the response carries no revision; a caller composing its next expected_version has nothing to read")
 		}
 
-		shown := bdProxiedShow(t, bd, p.dir, issue.ID)
+		shown := issuegraphProxiedShow(t, issuegraph, p.dir, issue.ID)
 		if string(shown.Status) != "open" || shown.Assignee != "" {
-			t.Fatalf("bd show reports status %q assignee %q; the HTTP release did not land",
+			t.Fatalf("issuegraph show reports status %q assignee %q; the HTTP release did not land",
 				shown.Status, shown.Assignee)
 		}
 	})
@@ -91,7 +91,7 @@ func TestProxiedServerServeRelease(t *testing.T) {
 	// THE GUARD SATISFIED. A supervisor that can NAME the holder releases it
 	// without being the holder — the fence replaced rather than bypassed.
 	t.Run("a satisfied expected_assignee releases another actor's claim", func(t *testing.T) {
-		issue := bdProxiedCreate(t, bd, p.dir, "release-if-current over http", "-p", "1")
+		issue := issuegraphProxiedCreate(t, issuegraph, p.dir, "release-if-current over http", "-p", "1")
 
 		if status, body := sp.claim(t, issue.ID, "worker-a"); status != http.StatusOK {
 			t.Fatalf("claim: status = %d, want 200: %v", status, body)
@@ -101,9 +101,9 @@ func TestProxiedServerServeRelease(t *testing.T) {
 		if status != http.StatusOK {
 			t.Fatalf("guarded release: status = %d, want 200: %v", status, body)
 		}
-		shown := bdProxiedShow(t, bd, p.dir, issue.ID)
+		shown := issuegraphProxiedShow(t, issuegraph, p.dir, issue.ID)
 		if string(shown.Status) != "open" || shown.Assignee != "" {
-			t.Fatalf("bd show reports status %q assignee %q; the guarded release did not land",
+			t.Fatalf("issuegraph show reports status %q assignee %q; the guarded release did not land",
 				shown.Status, shown.Assignee)
 		}
 	})
@@ -113,7 +113,7 @@ func TestProxiedServerServeRelease(t *testing.T) {
 	// and the claim SURVIVING a wrong-holder refusal is the property the whole
 	// ownership fence exists for.
 	t.Run("a refused release leaves the claim standing", func(t *testing.T) {
-		issue := bdProxiedCreate(t, bd, p.dir, "refused releases over http", "-p", "1")
+		issue := issuegraphProxiedCreate(t, issuegraph, p.dir, "refused releases over http", "-p", "1")
 
 		if status, body := sp.claim(t, issue.ID, "worker-a"); status != http.StatusOK {
 			t.Fatalf("claim: status = %d, want 200: %v", status, body)
@@ -127,7 +127,7 @@ func TestProxiedServerServeRelease(t *testing.T) {
 		if body["code"] != "already_claimed" {
 			t.Errorf("code = %v, want already_claimed", body["code"])
 		}
-		assertStillHeldBy(t, bd, p.dir, issue.ID, "worker-a", "the ownership fence")
+		assertStillHeldBy(t, issuegraph, p.dir, issue.ID, "worker-a", "the ownership fence")
 
 		// The guard, missed. It is a precondition_failed rather than the
 		// fence's code, and it echoes the REQUEST's expectation with no
@@ -146,14 +146,14 @@ func TestProxiedServerServeRelease(t *testing.T) {
 			t.Errorf("actual_assignee = %v; the role reports the holder in prose only, so this member cannot be honestly filled",
 				body["actual_assignee"])
 		}
-		assertStillHeldBy(t, bd, p.dir, issue.ID, "worker-a", "a missed guard")
+		assertStillHeldBy(t, issuegraph, p.dir, issue.ID, "worker-a", "a missed guard")
 	})
 
 	// NOT IDEMPOTENT, proved against a real row: the second release of a row
 	// the first one emptied is a refusal, not a 200. This is the case a client
 	// mapping the code to "already released" is written against.
 	t.Run("releasing an unheld row is a refusal", func(t *testing.T) {
-		issue := bdProxiedCreate(t, bd, p.dir, "unheld release over http", "-p", "1")
+		issue := issuegraphProxiedCreate(t, issuegraph, p.dir, "unheld release over http", "-p", "1")
 
 		if status, body := sp.claim(t, issue.ID, "worker-a"); status != http.StatusOK {
 			t.Fatalf("claim: status = %d, want 200: %v", status, body)
@@ -172,7 +172,7 @@ func TestProxiedServerServeRelease(t *testing.T) {
 		// A row that was never claimed at all answers the SAME way, which is
 		// the anonymity the non-idempotence argument rests on: there is nothing
 		// left on either row to tell the two situations apart.
-		fresh := bdProxiedCreate(t, bd, p.dir, "never claimed", "-p", "1")
+		fresh := issuegraphProxiedCreate(t, issuegraph, p.dir, "never claimed", "-p", "1")
 		status, body = sp.releaseIssue(t, fresh.ID, `{"actor":"worker-a"}`)
 		if status != http.StatusConflict || body["code"] != "not_releasable" {
 			t.Errorf("a never-claimed row answers %d/%v; it must be indistinguishable from a re-release",
@@ -184,7 +184,7 @@ func TestProxiedServerServeRelease(t *testing.T) {
 	// not reach it — it answers "may I release someone else's claim", and this
 	// is not a question about ownership.
 	t.Run("a closed row refuses a release, forced or not", func(t *testing.T) {
-		issue := bdProxiedCreate(t, bd, p.dir, "closed release over http", "-p", "1")
+		issue := issuegraphProxiedCreate(t, issuegraph, p.dir, "closed release over http", "-p", "1")
 
 		if status, body := sp.claim(t, issue.ID, "worker-a"); status != http.StatusOK {
 			t.Fatalf("claim: status = %d, want 200: %v", status, body)
@@ -219,9 +219,9 @@ func TestProxiedServerServeRelease(t *testing.T) {
 // intact. It is the assertion this file exists for: every refusal above is
 // followed by one, because a handler that emptied the row and THEN refused
 // would be indistinguishable from a correct one at the wire.
-func assertStillHeldBy(t *testing.T, bd, dir, id, holder, what string) {
+func assertStillHeldBy(t *testing.T, issuegraph, dir, id, holder, what string) {
 	t.Helper()
-	shown := bdProxiedShow(t, bd, dir, id)
+	shown := issuegraphProxiedShow(t, issuegraph, dir, id)
 	if shown.Assignee != holder {
 		t.Fatalf("after %s refused the release, %s is held by %q, want %q: the refusal wrote to the row",
 			what, id, shown.Assignee, holder)

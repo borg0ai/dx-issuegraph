@@ -9,8 +9,8 @@ import (
 	"testing"
 	"time"
 
-	"github.com/steveyegge/beads/internal/storage"
-	"github.com/steveyegge/beads/internal/types"
+	"github.com/borg0ai/dx-issuegraph/internal/storage"
+	"github.com/borg0ai/dx-issuegraph/internal/types"
 )
 
 type fakeImportIssueLookupStore struct {
@@ -671,7 +671,7 @@ func TestFilterStaleImportIssuesSkipsProvenUnchangedRowsOnResume(t *testing.T) {
 	mk := func(id string) *types.Issue {
 		return &types.Issue{
 			ID: id, Title: "row " + id, UpdatedAt: base,
-			Labels:       []string{"lane:beads", "tier:fable"},
+			Labels:       []string{"lane:issuegraph", "tier:fable"},
 			Comments:     []*types.Comment{{ID: "c-" + id, Author: "cat", Text: "drill", CreatedAt: commentAt}},
 			Dependencies: []*types.Dependency{{IssueID: id, DependsOnID: "bd-root", Type: types.DepBlocks}},
 		}
@@ -684,10 +684,10 @@ func TestFilterStaleImportIssuesSkipsProvenUnchangedRowsOnResume(t *testing.T) {
 	storedDep := []*types.Dependency{{DependsOnID: "bd-root", Type: types.DepBlocks}}
 	store := &fakeImportRelationStore{
 		fakeImportIssueLookupStore: fakeImportIssueLookupStore{issues: []*types.Issue{
-			local("bd-same", "tier:fable", "lane:beads"),
-			local("bd-nocomment", "lane:beads", "tier:fable"),
-			local("bd-nodep", "lane:beads", "tier:fable"),
-			local("bd-nolabel", "lane:beads"),
+			local("bd-same", "tier:fable", "lane:issuegraph"),
+			local("bd-nocomment", "lane:issuegraph", "tier:fable"),
+			local("bd-nodep", "lane:issuegraph", "tier:fable"),
+			local("bd-nolabel", "lane:issuegraph"),
 		}},
 		comments: map[string][]*types.Comment{"bd-same": storedComment, "bd-nodep": storedComment, "bd-nolabel": storedComment},
 		deps:     map[string][]*types.Dependency{"bd-same": storedDep, "bd-nocomment": storedDep, "bd-nolabel": storedDep},

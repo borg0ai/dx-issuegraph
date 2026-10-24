@@ -12,26 +12,26 @@ import (
 	"strings"
 	"time"
 
+	"github.com/borg0ai/dx-issuegraph/internal/atomicfile"
+	"github.com/borg0ai/dx-issuegraph/internal/config"
+	"github.com/borg0ai/dx-issuegraph/internal/debug"
+	"github.com/borg0ai/dx-issuegraph/internal/issuegraph"
+	"github.com/borg0ai/dx-issuegraph/internal/metrics"
+	"github.com/borg0ai/dx-issuegraph/internal/storage"
+	"github.com/borg0ai/dx-issuegraph/internal/storage/issueops"
+	"github.com/borg0ai/dx-issuegraph/internal/storage/versioncontrolops"
 	"github.com/spf13/cobra"
-	"github.com/steveyegge/beads/internal/atomicfile"
-	"github.com/steveyegge/beads/internal/beads"
-	"github.com/steveyegge/beads/internal/config"
-	"github.com/steveyegge/beads/internal/debug"
-	"github.com/steveyegge/beads/internal/metrics"
-	"github.com/steveyegge/beads/internal/storage"
-	"github.com/steveyegge/beads/internal/storage/issueops"
-	"github.com/steveyegge/beads/internal/storage/versioncontrolops"
 )
 
-// Exit codes for `bd sync`, chosen so a sync timer can branch on the outcome
+// Exit codes for `issuegraph sync`, chosen so a sync timer can branch on the outcome
 // without parsing output (wy-jpd3.4). The reference deployment this verb
-// generalizes — a two-machine beads federation on a 60-second timer — needs
+// generalizes — a two-machine issuegraph federation on a 60-second timer — needs
 // exactly three distinctions: it worked, a human must resolve a merge conflict,
 // or another replica kept winning the push race and the next tick should just
 // try again.
 //
 //	0  synced (or nothing to do)
-//	1  error (transport, auth, storage — the usual bd failure code)
+//	1  error (transport, auth, storage — the usual issuegraph failure code)
 //	2  merge conflict; the sync halted and nothing was pushed. NOT auto-resolved.
 //	3  retries exhausted on a transient, self-healing condition (another replica
 //	   kept winning the push race, or a concurrent writer kept the working set
@@ -215,7 +215,7 @@ func (o syncOps) report(format string, args ...interface{}) {
 //
 // The recompute between pull and push is not optional bookkeeping: is_blocked
 // is denormalized, and a merge that brings in a dependency edge from another
-// replica leaves it stale, so `bd ready` silently hides or surfaces the wrong
+// replica leaves it stale, so `issuegraph ready` silently hides or surfaces the wrong
 // work until someone repairs it.
 //
 // It runs UNCONDITIONALLY, on every attempt. That is deliberate, and it is the
@@ -561,8 +561,8 @@ func graphConstraintViolations(ctx context.Context, ops syncOps) []storage.Const
 	return out
 }
 
-// bareNoRemotePattern matches Dolt's bare "no remote" wording. `bd dolt push`
-// and `bd dolt pull` classify only the "remote ... not found" phrasing, but a
+// bareNoRemotePattern matches Dolt's bare "no remote" wording. `issuegraph dolt push`
+// and `issuegraph dolt pull` classify only the "remote ... not found" phrasing, but a
 // default-remote fetch on a rig that never configured one fails with
 // `Error 1105: no remote` instead, which that phrasing misses.
 var bareNoRemotePattern = regexp.MustCompile(`(?i)\bno remote\b`)
@@ -570,8 +570,8 @@ var bareNoRemotePattern = regexp.MustCompile(`(?i)\bno remote\b`)
 // isNoRemoteConfiguredErr reports whether a sync failure *sounds* like the
 // benign "no remote configured" case. It is a strict superset of
 // isRemoteNotFoundErr because sync is a timer verb: a solo rig that ran
-// `bd init` and never added a remote would otherwise fail on every tick with a
-// raw Dolt error code, where `bd dolt push` exits 0. The widening is safe only
+// `issuegraph init` and never added a remote would otherwise fail on every tick with a
+// raw Dolt error code, where `issuegraph dolt push` exits 0. The widening is safe only
 // because it is a hint, never the decision — hasNoRemoteConfigured must
 // independently prove the remotes are empty before anything exits 0, so a
 // deleted remote-side repo or a typoed remote name (both of which have a
@@ -653,7 +653,7 @@ var syncCmd = &cobra.Command{
 	Short:   "Pull, check for conflicts, repair is_blocked, and push (the federation loop)",
 	Long: `Run one full synchronization cycle against the Dolt remote.
 
-This is the loop every multi-machine beads deployment otherwise hand-rolls in
+This is the loop every multi-machine issuegraph deployment otherwise hand-rolls in
 shell:
 
   1. pull from the remote
@@ -661,7 +661,7 @@ shell:
      and from Dolt's conflict tables — never inferred from the pull's exit
      status, which is not a trustworthy conflict signal in either direction
   3. recompute the denormalized is_blocked flag, so dependency edges merged in
-     from another replica do not leave 'bd ready' stale
+     from another replica do not leave 'issuegraph ready' stale
   4. push, retrying a bounded number of times when another replica wins the
      push race
 
@@ -695,19 +695,19 @@ Exit codes (a sync timer can branch on these without parsing output):
      later tick will publish until an operator clears it
 
 On the default-remote path, a rig with no Dolt remote yet but a git origin
-configured adopts that origin as its Dolt remote first, exactly as 'bd dolt push'
-does — so 'bd sync' works as a first-time federation bring-up step instead of
+configured adopts that origin as its Dolt remote first, exactly as 'issuegraph dolt push'
+does — so 'issuegraph sync' works as a first-time federation bring-up step instead of
 reporting 'no remote' and doing nothing. Passing --remote never adopts anything.
 
-This is not 'bd federation sync', which syncs with named peer towns and takes a
---strategy ours|theirs to resolve whatever conflicts it meets. 'bd sync' targets
+This is not 'issuegraph federation sync', which syncs with named peer towns and takes a
+--strategy ours|theirs to resolve whatever conflicts it meets. 'issuegraph sync' targets
 the configured remote and has no such switch: what it cannot settle, it halts on.
 
 Examples:
-  bd sync                        # sync with the default remote
-  bd sync --remote mini          # sync with a specific remote
-  bd sync --attempts 5           # allow more push-race retries
-  bd sync --json                 # machine-parseable outcome`,
+  issuegraph sync                        # sync with the default remote
+  issuegraph sync --remote mini          # sync with a specific remote
+  issuegraph sync --attempts 5           # allow more push-race retries
+  issuegraph sync --json                 # machine-parseable outcome`,
 	SilenceUsage:  true,
 	SilenceErrors: true,
 	RunE:          runSyncCommand,
@@ -717,7 +717,7 @@ func init() {
 	syncCmd.Flags().String("remote", "", "Sync with a specific named remote instead of the default")
 	syncCmd.Flags().Int("attempts", defaultSyncAttempts, "Maximum pull/push attempts before reporting a transient retry exhaustion (exit 3)")
 	syncCmd.Flags().BoolP("yes", "y", false, "Consent to adopting a Dolt remote derived from git origin when none is configured")
-	syncCmd.Flags().Bool("no-adopt", false, "Never derive a Dolt remote from git origin (also BD_NO_REMOTE_ADOPT=1)")
+	syncCmd.Flags().Bool("no-adopt", false, "Never derive a Dolt remote from git origin (also ISSUEGRAPH_NO_REMOTE_ADOPT=1)")
 	rootCmd.AddCommand(syncCmd)
 }
 
@@ -748,7 +748,7 @@ func runSyncCommand(cmd *cobra.Command, _ []string) error {
 			return outputJSON(&syncOutcome{Status: syncStatusDisabled})
 		}
 		fmt.Println("Remote sync is disabled for this project (dolt.local-only=true).")
-		fmt.Println("To re-enable remote sync: bd config unset dolt.local-only")
+		fmt.Println("To re-enable remote sync: issuegraph config unset dolt.local-only")
 		return nil
 	}
 
@@ -767,28 +767,28 @@ func runSyncCommand(cmd *cobra.Command, _ []string) error {
 		return HandleErrorRespectJSON("storage backend does not support is_blocked recompute")
 	}
 
-	// Mirror what `bd dolt push` does before it pushes (dolt.go): a rig whose
+	// Mirror what `issuegraph dolt push` does before it pushes (dolt.go): a rig whose
 	// git origin implies a Dolt remote is not a remote-less rig, so adopt that
 	// remote before the loop runs.
 	//
 	// Without this the two verbs disagree about the same rig. On a first-time
 	// federation rig — git origin configured, no Dolt remote registered yet —
-	// `bd dolt push` adopts origin and pushes, while `bd sync` pulls, fails with
+	// `issuegraph dolt push` adopts origin and pushes, while `issuegraph sync` pulls, fails with
 	// Dolt's bare no-remote wording, and the confirmed-no-remote gate below
-	// agrees the rig has none (nothing ever adopted it), so bring-up by `bd sync`
+	// agrees the rig has none (nothing ever adopted it), so bring-up by `issuegraph sync`
 	// reports status=no-remote and exits 0, silently doing nothing (wy-gpzg7).
 	//
 	// Default-remote path only: an explicit --remote names a remote the operator
 	// expects to already exist, and inventing a different one there would sync
 	// somewhere they never asked for — the same reason the no-remote exit-0 gate
-	// is default-remote-only. Unlike `bd dolt push` this runs even under
+	// is default-remote-only. Unlike `issuegraph dolt push` this runs even under
 	// no-push, because sync's *pull* needs the remote as much as the push does;
 	// a no-push rig is a local-only mirror, not a rig forbidden to learn where it
 	// mirrors from. On a rig that already has a remote — listed in dolt_remotes
 	// or persisted on disk — adoption is a hasConfiguredRemote no-op, so the
 	// steady-state cost is the one listing the error path already paid.
 	if remote == "" {
-		// Same consent gate as `bd dolt push` (#5068): sync publishes the same
+		// Same consent gate as `issuegraph dolt push` (#5068): sync publishes the same
 		// history to the same derived remote, so it cannot be the soft way in.
 		syncYes, _ := cmd.Flags().GetBool("yes")
 		syncNoAdopt, _ := cmd.Flags().GetBool("no-adopt")
@@ -962,8 +962,8 @@ func printSyncErrorGuidance(remote string, err error) {
 		printDivergedHistoryGuidance("sync")
 	case remote != "" && isRemoteNotFoundErr(err):
 		fmt.Fprintf(os.Stderr, "\nRemote %q is not configured.\n", remote)
-		fmt.Fprintln(os.Stderr, "Use 'bd dolt remote add <name> <url>' to add it.")
-		fmt.Fprintln(os.Stderr, "Use 'bd dolt remote list' to see configured remotes.")
+		fmt.Fprintln(os.Stderr, "Use 'issuegraph dolt remote add <name> <url>' to add it.")
+		fmt.Fprintln(os.Stderr, "Use 'issuegraph dolt remote list' to see configured remotes.")
 	}
 }
 
@@ -991,7 +991,7 @@ func syncConflictMessage(out *syncOutcome) []string {
 			"above are live in the working set, left by an earlier halted sync or a hand-run",
 			"merge. Nothing was pulled, merged, or pushed this run. Resolve the live conflict",
 			"before sync can make progress — Dolt refuses to merge over an unresolved one.",
-			"Inspect with: bd conflicts list / bd conflicts show",
+			"Inspect with: issuegraph conflicts list / issuegraph conflicts show",
 			conflictsResolveHint)
 	case out.ConflictsLive:
 		lines = append(lines,
@@ -999,16 +999,16 @@ func syncConflictMessage(out *syncOutcome) []string {
 			"in place for you rather than aborting. The database is conflicted right now, and",
 			"Dolt will refuse to merge over it, so every later sync halts here until you resolve",
 			"it. Nothing was pushed.",
-			"Inspect with: bd conflicts list / bd conflicts show",
+			"Inspect with: issuegraph conflicts list / issuegraph conflicts show",
 			conflictsResolveHint)
 	default:
 		lines = append(lines,
 			"The conflicted merge was aborted and the working set restored, so no local work was",
 			"lost — and sync will keep halting here, unchanged, until an operator resolves the",
 			"divergence between this replica and the remote. Nothing is lost by waiting.",
-			"'bd conflicts list' will show nothing right now — this pull route restores the working",
+			"'issuegraph conflicts list' will show nothing right now — this pull route restores the working",
 			"set instead of leaving conflicts live for it. The same conflict recurs on every retry",
-			"until the two histories are reconciled by hand (see 'bd vc merge --help' for a route",
+			"until the two histories are reconciled by hand (see 'issuegraph vc merge --help' for a route",
 			"that leaves conflicts live and resolvable instead of aborting).")
 	}
 
@@ -1117,9 +1117,9 @@ func syncStuckMessage(out *syncOutcome) []string {
 			"A constraint violation is not something any commit resolves — the auto-repair path already",
 			"declined it, so retrying can never publish. Resolve it by hand, then the next tick syncs",
 			"normally:",
-			"  bd vc status                 # what is dirty",
-			"  bd conflicts list            # constraint violations / conflicts holding it dirty",
-			"  bd vc commit -m '...'        # commit the pending changes, if they are wanted",
+			"  issuegraph vc status                 # what is dirty",
+			"  issuegraph conflicts list            # constraint violations / conflicts holding it dirty",
+			"  issuegraph vc commit -m '...'        # commit the pending changes, if they are wanted",
 			"Nothing was pushed. This exit is deliberately distinct from exit 3 so a sync timer can page",
 			"instead of retrying forever.")
 		return append(lines, syncMixedTransientNote(out)...)
@@ -1136,9 +1136,9 @@ func syncStuckMessage(out *syncOutcome) []string {
 		"cannot publish — the repair refuses to derive is_blocked from a graph it cannot commit, so",
 		"local commits stay unpublished until an operator clears the working set.",
 		"Resolve it by hand, then the next tick syncs normally:",
-		"  bd vc status                 # what is dirty",
-		"  bd conflicts list            # constraint violations / conflicts holding it dirty",
-		"  bd vc commit -m '...'        # commit the pending changes, if they are wanted",
+		"  issuegraph vc status                 # what is dirty",
+		"  issuegraph conflicts list            # constraint violations / conflicts holding it dirty",
+		"  issuegraph vc commit -m '...'        # commit the pending changes, if they are wanted",
 		"Nothing was pushed. This exit is deliberately distinct from exit 3 so a sync timer can page",
 		"instead of retrying forever.")
 	return append(lines, syncMixedTransientNote(out)...)
@@ -1202,24 +1202,24 @@ func classifyDirtyProgress(out *syncOutcome, prev *syncState, now time.Time) (*s
 // evidence has survived long enough.
 //
 // Failure to read or write the marker is not fatal and not reported: the detector
-// is an escalation on top of a working retry, so a rig with no .beads directory
+// is an escalation on top of a working retry, so a rig with no .issuegraph directory
 // (or an unwritable one) keeps the pre-existing exit-3 behavior instead of losing
 // the sync.
 func applyDirtyProgress(out *syncOutcome, now time.Time) {
-	beadsDir := beads.FindBeadsDir()
-	if beadsDir == "" {
+	issuegraphDir := issuegraph.FindIssueGraphDir()
+	if issuegraphDir == "" {
 		return
 	}
-	next, stuck := classifyDirtyProgress(out, loadSyncState(beadsDir), now)
-	saveSyncState(beadsDir, next)
+	next, stuck := classifyDirtyProgress(out, loadSyncState(issuegraphDir), now)
+	saveSyncState(issuegraphDir, next)
 	out.DirtyGraphStuckTicks = next.StuckTicks
 	if stuck {
 		out.Status = syncStatusDirtyStuck
 	}
 }
 
-func loadSyncState(beadsDir string) *syncState {
-	data, err := os.ReadFile(filepath.Join(beadsDir, syncStateFile)) //nolint:gosec // path is the resolved .beads dir
+func loadSyncState(issuegraphDir string) *syncState {
+	data, err := os.ReadFile(filepath.Join(issuegraphDir, syncStateFile)) //nolint:gosec // path is the resolved .issuegraph dir
 	if err != nil {
 		return &syncState{}
 	}
@@ -1230,8 +1230,8 @@ func loadSyncState(beadsDir string) *syncState {
 	return &state
 }
 
-func saveSyncState(beadsDir string, state *syncState) {
-	path := filepath.Join(beadsDir, syncStateFile)
+func saveSyncState(issuegraphDir string, state *syncState) {
+	path := filepath.Join(issuegraphDir, syncStateFile)
 	if state == nil || state.DirtyGraphFingerprint == "" {
 		// Nothing to remember. Remove rather than write an empty marker so a
 		// healthy rig does not carry stale scratch around.

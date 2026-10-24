@@ -5,10 +5,10 @@ import (
 	"reflect"
 	"testing"
 
-	"github.com/steveyegge/beads/internal/types"
+	"github.com/borg0ai/dx-issuegraph/internal/types"
 )
 
-// The provider-path pins for GET /v0/beads/ready:count. The roles-path twin
+// The provider-path pins for GET /v0/issuegraph/ready:count. The roles-path twin
 // lives in roles_test.go, beside the other store-shaped-source cases.
 
 // TestCountReadyRunsTheListingsQueryUnbounded asserts the property the
@@ -30,7 +30,7 @@ func TestCountReadyRunsTheListingsQueryUnbounded(t *testing.T) {
 		readConfig: emptyConfig{},
 	}})
 
-	resp := ts.get(t, "/v0/beads/ready:count?label=api")
+	resp := ts.get(t, "/v0/issuegraph/ready:count?label=api")
 	if resp.StatusCode != http.StatusOK {
 		t.Fatalf("status = %d, want 200: %s", resp.StatusCode, readAll(t, resp))
 	}
@@ -65,7 +65,7 @@ func TestCountReadyRunsTheListingsQueryUnbounded(t *testing.T) {
 func TestCountReadyPublishesNoPageParameters(t *testing.T) {
 	for _, param := range []string{"limit=5", "limit=0", "offset=1", "sort=oldest"} {
 		ts, _ := newReadServer(t, Config{})
-		resp := ts.get(t, "/v0/beads/ready:count?"+param)
+		resp := ts.get(t, "/v0/issuegraph/ready:count?"+param)
 		if resp.StatusCode != http.StatusBadRequest {
 			t.Errorf("GET ready:count?%s: status = %d, want 400", param, resp.StatusCode)
 			continue
@@ -88,11 +88,11 @@ func TestCountReadyAndListReadyAdmitTheSameFilters(t *testing.T) {
 		"&metadata_field=team%3Dcore&has_metadata_key=team&include_ephemeral=true&include_deferred=true"
 
 	listing, listRec := newReadServer(t, Config{})
-	if resp := listing.get(t, "/v0/beads/ready?"+shared); resp.StatusCode != http.StatusOK {
+	if resp := listing.get(t, "/v0/issuegraph/ready?"+shared); resp.StatusCode != http.StatusOK {
 		t.Fatalf("GET ready: status = %d, want 200: %s", resp.StatusCode, readAll(t, resp))
 	}
 	counting, countRec := newReadServer(t, Config{})
-	if resp := counting.get(t, "/v0/beads/ready:count?"+shared); resp.StatusCode != http.StatusOK {
+	if resp := counting.get(t, "/v0/issuegraph/ready:count?"+shared); resp.StatusCode != http.StatusOK {
 		t.Fatalf("GET ready:count: status = %d, want 200: %s", resp.StatusCode, readAll(t, resp))
 	}
 

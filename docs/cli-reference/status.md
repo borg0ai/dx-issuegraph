@@ -1,11 +1,11 @@
 ---
-title: "bd status"
+title: "issuegraph status"
 description: "Show a quick snapshot of the issue database state and statistics."
 ---
 
 {/* AUTO-GENERATED: do not edit manually */}
 
-Generated from `bd help --doc status`.
+Generated from `issuegraph help --doc status`.
 
 Show a quick snapshot of the issue database state and statistics.
 
@@ -13,7 +13,7 @@ This command provides a summary of issue counts by state (open, in_progress,
 blocked, closed), ready work, extended statistics (pinned issues,
 average lead time), and recent activity over the last 24 hours from git history.
 
-Similar to how 'git status' shows working tree state, 'bd status' gives you
+Similar to how 'git status' shows working tree state, 'issuegraph status' gives you
 a quick overview of your issue database without needing multiple queries.
 
 Use cases:
@@ -23,14 +23,14 @@ Use cases:
   - Daily standup reference
 
 Examples:
-  bd status                    # Show summary with activity
-  bd status --no-activity      # Skip git activity (faster)
-  bd status --json             # JSON format output
-  bd status --assigned         # Show issues assigned to current user
-  bd stats                     # Alias for bd status
+  issuegraph status                    # Show summary with activity
+  issuegraph status --no-activity      # Skip git activity (faster)
+  issuegraph status --json             # JSON format output
+  issuegraph status --assigned         # Show issues assigned to current user
+  issuegraph stats                     # Alias for issuegraph status
 
 ```
-bd status [flags]
+issuegraph status [flags]
 ```
 
 **Aliases:** stats

@@ -11,7 +11,7 @@ import (
 	"testing"
 )
 
-// End-to-end for the close, against real Dolt through a real `bd serve`
+// End-to-end for the close, against real Dolt through a real `issuegraph serve`
 // subprocess. The pure tests in internal/httpapi cover the wire edge on a fake
 // role; what only this level can prove is the TRANSACTION — that first-close-
 // wins is a property of the stored row rather than of a fake's bookkeeping, and
@@ -33,7 +33,7 @@ import (
 // wants the ordinary decode — and the guarded cases read the raw bytes.
 func (sp *serveProcess) lifecycleVerbRaw(t *testing.T, verb, id, body string) (int, []byte) {
 	t.Helper()
-	req, err := http.NewRequest(http.MethodPost, sp.url("/v0/beads/issues/"+id+":"+verb), strings.NewReader(body))
+	req, err := http.NewRequest(http.MethodPost, sp.url("/v0/issuegraph/issues/"+id+":"+verb), strings.NewReader(body))
 	if err != nil {
 		t.Fatalf("new %s request: %v", verb, err)
 	}
@@ -91,15 +91,15 @@ func (sp *serveProcess) reopenIssue(t *testing.T, id, body string) (int, map[str
 func TestProxiedServerServeClose(t *testing.T) {
 	requireSharedProxiedServer(t)
 	t.Parallel()
-	bd := buildEmbeddedBD(t)
-	p := newSharedProxiedProject(t, bd, "srvclo")
-	sp := startServe(t, bd, p.dir, bdProxiedEnv(p.dir))
+	issuegraph := buildEmbeddedBD(t)
+	p := newSharedProxiedProject(t, issuegraph, "srvclo")
+	sp := startServe(t, issuegraph, p.dir, issuegraphProxiedEnv(p.dir))
 
 	// THE FIRST-CLOSE-WINS PROOF, read back through a second close. A fake role
 	// can report Changed false; only a real store can show that the second
 	// close left the first one's reason and session in the columns.
 	t.Run("the first close wins and a re-close does not rewrite it", func(t *testing.T) {
-		issue := bdProxiedCreate(t, bd, p.dir, "close over http", "-p", "1")
+		issue := issuegraphProxiedCreate(t, issuegraph, p.dir, "close over http", "-p", "1")
 
 		status, body := sp.closeIssue(t, issue.ID, `{"actor":"http-agent","reason":"shipped it","session":"session-a"}`)
 		if status != http.StatusOK {
@@ -117,9 +117,9 @@ func TestProxiedServerServeClose(t *testing.T) {
 		}
 
 		// The CLI reads the same row through its own path.
-		shown := bdProxiedShow(t, bd, p.dir, issue.ID)
+		shown := issuegraphProxiedShow(t, issuegraph, p.dir, issue.ID)
 		if string(shown.Status) != "closed" || shown.CloseReason != "shipped it" || shown.ClosedBySession != "session-a" {
-			t.Fatalf("bd show reports status %q reason %q session %q; the HTTP close did not land",
+			t.Fatalf("issuegraph show reports status %q reason %q session %q; the HTTP close did not land",
 				shown.Status, shown.CloseReason, shown.ClosedBySession)
 		}
 
@@ -134,7 +134,7 @@ func TestProxiedServerServeClose(t *testing.T) {
 			t.Errorf("already_closed = %v, want true for a re-close", body["already_closed"])
 		}
 
-		after := bdProxiedShow(t, bd, p.dir, issue.ID)
+		after := issuegraphProxiedShow(t, issuegraph, p.dir, issue.ID)
 		if after.CloseReason != "shipped it" {
 			t.Errorf("close_reason = %q after the replay, want the FIRST close's value", after.CloseReason)
 		}
@@ -147,11 +147,11 @@ func TestProxiedServerServeClose(t *testing.T) {
 	// real parent-child edge; the count in the problem body comes from the
 	// transaction that refused, and the force bypass is what a caller does next.
 	t.Run("open children refuse an unforced close and force bypasses them", func(t *testing.T) {
-		parent := bdProxiedCreate(t, bd, p.dir, "the parent", "-p", "1")
+		parent := issuegraphProxiedCreate(t, issuegraph, p.dir, "the parent", "-p", "1")
 		for i := range 2 {
-			child := bdProxiedCreate(t, bd, p.dir, fmt.Sprintf("child %d", i), "-p", "2")
-			if out, err := bdProxiedRun(t, bd, p.dir, "dep", "add", child.ID, parent.ID, "--type", "parent-child"); err != nil {
-				t.Fatalf("bd dep add: %v\n%s", err, out)
+			child := issuegraphProxiedCreate(t, issuegraph, p.dir, fmt.Sprintf("child %d", i), "-p", "2")
+			if out, err := issuegraphProxiedRun(t, issuegraph, p.dir, "dep", "add", child.ID, parent.ID, "--type", "parent-child"); err != nil {
+				t.Fatalf("issuegraph dep add: %v\n%s", err, out)
 			}
 		}
 
@@ -171,7 +171,7 @@ func TestProxiedServerServeClose(t *testing.T) {
 		}
 
 		// A refusal writes nothing.
-		if shown := bdProxiedShow(t, bd, p.dir, parent.ID); string(shown.Status) == "closed" {
+		if shown := issuegraphProxiedShow(t, issuegraph, p.dir, parent.ID); string(shown.Status) == "closed" {
 			t.Fatalf("the refused close closed the issue anyway: status %q", shown.Status)
 		}
 
@@ -184,8 +184,8 @@ func TestProxiedServerServeClose(t *testing.T) {
 		if body["open_children"] != float64(2) {
 			t.Errorf("open_children = %v on the forced close, want the 2 it bypassed", body["open_children"])
 		}
-		if shown := bdProxiedShow(t, bd, p.dir, parent.ID); string(shown.Status) != "closed" {
-			t.Errorf("bd show reports status %q after a forced close", shown.Status)
+		if shown := issuegraphProxiedShow(t, issuegraph, p.dir, parent.ID); string(shown.Status) != "closed" {
+			t.Errorf("issuegraph show reports status %q after a forced close", shown.Status)
 		}
 	})
 
@@ -197,11 +197,11 @@ func TestProxiedServerServeClose(t *testing.T) {
 	//
 	// The CLI side is an idempotent RE-close, the claim oracle's device: it
 	// writes nothing under first-close-wins, so both surfaces describe the same
-	// row from the same post-state snapshot. `bd show --json` is deliberately
+	// row from the same post-state snapshot. `issuegraph show --json` is deliberately
 	// not the oracle — it answers IssueDetails, with the counts and the revision
 	// this response does not carry, so it would compare two different shapes.
-	t.Run("the closed issue matches bd close --json element 0", func(t *testing.T) {
-		issue := bdProxiedCreate(t, bd, p.dir, "parity oracle", "-p", "1",
+	t.Run("the closed issue matches issuegraph close --json element 0", func(t *testing.T) {
+		issue := issuegraphProxiedCreate(t, issuegraph, p.dir, "parity oracle", "-p", "1",
 			"-d", "described", "--acceptance", "accepted", "--label", "oracle")
 
 		status, body := sp.closeIssue(t, issue.ID, `{"actor":"parity-agent","reason":"done","session":"oracle-session"}`)
@@ -213,13 +213,13 @@ func TestProxiedServerServeClose(t *testing.T) {
 			t.Fatalf("issue = %#v, want an object", body["issue"])
 		}
 
-		fromCLI := bdProxiedCloseOneRaw(t, bd, p.dir, issue.ID, "--reason", "ignored under first-close-wins")
+		fromCLI := issuegraphProxiedCloseOneRaw(t, issuegraph, p.dir, issue.ID, "--reason", "ignored under first-close-wins")
 
 		// The allowlist is EMPTY: both surfaces marshal the same canonical
 		// struct from the same post-state snapshot, so any difference at all is
 		// a real divergence and belongs in review, not in this list.
 		if diff := diffJSONObjects(fromHTTP, fromCLI, nil); diff != "" {
-			t.Errorf("CloseIssueResponse.issue and `bd close --json`[0] disagree:\n%s", diff)
+			t.Errorf("CloseIssueResponse.issue and `issuegraph close --json`[0] disagree:\n%s", diff)
 		}
 	})
 
@@ -228,12 +228,12 @@ func TestProxiedServerServeClose(t *testing.T) {
 	// what makes the close's first-close-wins rule survivable, since the way to
 	// write a new reason is to reopen and close again.
 	t.Run("a close and reopen round trip clears the close record", func(t *testing.T) {
-		issue := bdProxiedCreate(t, bd, p.dir, "round trip", "-p", "1")
+		issue := issuegraphProxiedCreate(t, issuegraph, p.dir, "round trip", "-p", "1")
 
 		if status, body := sp.closeIssue(t, issue.ID, `{"actor":"http-agent","reason":"shipped","session":"session-x"}`); status != http.StatusOK {
 			t.Fatalf("close: status = %d, want 200: %v", status, body)
 		}
-		closed := bdProxiedShow(t, bd, p.dir, issue.ID)
+		closed := issuegraphProxiedShow(t, issuegraph, p.dir, issue.ID)
 		if closed.CloseReason != "shipped" || closed.ClosedBySession != "session-x" {
 			t.Fatalf("the close did not record its reason/session: %q/%q", closed.CloseReason, closed.ClosedBySession)
 		}
@@ -253,9 +253,9 @@ func TestProxiedServerServeClose(t *testing.T) {
 			t.Errorf("the response reports status %v, want open", reopened["status"])
 		}
 
-		after := bdProxiedShow(t, bd, p.dir, issue.ID)
+		after := issuegraphProxiedShow(t, issuegraph, p.dir, issue.ID)
 		if string(after.Status) != "open" {
-			t.Fatalf("bd show reports status %q; the HTTP reopen did not land", after.Status)
+			t.Fatalf("issuegraph show reports status %q; the HTTP reopen did not land", after.Status)
 		}
 		if after.CloseReason != "" || after.ClosedBySession != "" {
 			t.Errorf("the reopen left close_reason %q and closed_by_session %q; both describe a closure that no longer holds",
@@ -265,9 +265,9 @@ func TestProxiedServerServeClose(t *testing.T) {
 		// The reason is recorded on the EVENT, which is where the document tells
 		// a client to read it back — not on a field of the issue, and not in the
 		// response.
-		events, err := bdProxiedRun(t, bd, p.dir, "history", issue.ID, "--events")
+		events, err := issuegraphProxiedRun(t, issuegraph, p.dir, "history", issue.ID, "--events")
 		if err != nil {
-			t.Fatalf("bd history --events: %v\n%s", err, events)
+			t.Fatalf("issuegraph history --events: %v\n%s", err, events)
 		}
 		if !strings.Contains(string(events), "the fix regressed") {
 			t.Errorf("the reopen reason is not on the issue's event stream:\n%s", events)
@@ -283,7 +283,7 @@ func TestProxiedServerServeClose(t *testing.T) {
 	// The idempotent half, against the real store: a reopen of an issue that was
 	// never done changes nothing and succeeds.
 	t.Run("reopening an issue that was never done is idempotent", func(t *testing.T) {
-		issue := bdProxiedCreate(t, bd, p.dir, "never closed", "-p", "2")
+		issue := issuegraphProxiedCreate(t, issuegraph, p.dir, "never closed", "-p", "2")
 
 		status, body := sp.reopenIssue(t, issue.ID, `{"actor":"http-agent"}`)
 		if status != http.StatusOK {
@@ -292,13 +292,13 @@ func TestProxiedServerServeClose(t *testing.T) {
 		if body["already_open"] != true {
 			t.Errorf("already_open = %v, want true for an issue that was never done", body["already_open"])
 		}
-		if shown := bdProxiedShow(t, bd, p.dir, issue.ID); string(shown.Status) != "open" {
-			t.Errorf("bd show reports status %q after an idempotent reopen", shown.Status)
+		if shown := issuegraphProxiedShow(t, issuegraph, p.dir, issue.ID); string(shown.Status) != "open" {
+			t.Errorf("issuegraph show reports status %q after an idempotent reopen", shown.Status)
 		}
 	})
 
 	t.Run("a closed issue is no longer claimable", func(t *testing.T) {
-		issue := bdProxiedCreate(t, bd, p.dir, "closed then claimed", "-p", "2")
+		issue := issuegraphProxiedCreate(t, issuegraph, p.dir, "closed then claimed", "-p", "2")
 		if status, body := sp.closeIssue(t, issue.ID, `{"actor":"http-agent"}`); status != http.StatusOK {
 			t.Fatalf("close: status = %d: %v", status, body)
 		}
@@ -323,7 +323,7 @@ func TestProxiedServerServeClose(t *testing.T) {
 			t.Errorf("code = %v, want not_found", body["code"])
 		}
 
-		issue := bdProxiedCreate(t, bd, p.dir, "never closed", "-p", "2")
+		issue := issuegraphProxiedCreate(t, issuegraph, p.dir, "never closed", "-p", "2")
 		for _, refused := range []string{
 			`{"actor":"   "}`,
 			`{"actor":"agent\nbd serve: close bd-0 by mallory"}`,
@@ -341,7 +341,7 @@ func TestProxiedServerServeClose(t *testing.T) {
 		}
 
 		// The refusals are wire-edge refusals: nothing reached the database.
-		if shown := bdProxiedShow(t, bd, p.dir, issue.ID); string(shown.Status) != "open" {
+		if shown := issuegraphProxiedShow(t, issuegraph, p.dir, issue.ID); string(shown.Status) != "open" {
 			t.Errorf("a refused close wrote to the row: status %q", shown.Status)
 		}
 	})
@@ -358,7 +358,7 @@ func TestProxiedServerServeClose(t *testing.T) {
 	// `revision - 1` is not "the previous revision"; there is no way to
 	// construct a stale one except to let something move the row.
 	t.Run("a guarded close and reopen compose from the revision the write answered", func(t *testing.T) {
-		issue := bdProxiedCreate(t, bd, p.dir, "guarded lifecycle", "-p", "2")
+		issue := issuegraphProxiedCreate(t, issuegraph, p.dir, "guarded lifecycle", "-p", "2")
 
 		// The first guarded write has to seed itself from an unguarded one:
 		// no READ on this surface publishes a revision yet, which is the gap
@@ -387,7 +387,7 @@ func TestProxiedServerServeClose(t *testing.T) {
 		if problem["code"] != "precondition_failed" || problem["param"] != "expected_version" {
 			t.Errorf("stale close: code = %v param = %v, want precondition_failed / expected_version", problem["code"], problem["param"])
 		}
-		if shown := bdProxiedShow(t, bd, p.dir, issue.ID); string(shown.Status) != "open" || shown.CloseReason != "" {
+		if shown := issuegraphProxiedShow(t, issuegraph, p.dir, issue.ID); string(shown.Status) != "open" || shown.CloseReason != "" {
 			t.Errorf("a refused guard closed the row anyway: status %q reason %q", shown.Status, shown.CloseReason)
 		}
 
@@ -399,7 +399,7 @@ func TestProxiedServerServeClose(t *testing.T) {
 		if status != http.StatusConflict {
 			t.Fatalf("forced stale close: status = %d, want 409 — force bypasses policy, never a precondition: %v", status, problem)
 		}
-		if shown := bdProxiedShow(t, bd, p.dir, issue.ID); string(shown.Status) != "open" {
+		if shown := issuegraphProxiedShow(t, issuegraph, p.dir, issue.ID); string(shown.Status) != "open" {
 			t.Errorf("a forced stale close closed the row: status %q", shown.Status)
 		}
 
@@ -413,7 +413,7 @@ func TestProxiedServerServeClose(t *testing.T) {
 		if closed == second {
 			t.Errorf("revision = %q after a close that wrote; the token did not move", closed)
 		}
-		if shown := bdProxiedShow(t, bd, p.dir, issue.ID); string(shown.Status) != "closed" {
+		if shown := issuegraphProxiedShow(t, issuegraph, p.dir, issue.ID); string(shown.Status) != "closed" {
 			t.Fatalf("the guarded close did not land: status %q", shown.Status)
 		}
 
@@ -452,7 +452,7 @@ func TestProxiedServerServeClose(t *testing.T) {
 		if problem["code"] != "precondition_failed" || problem["param"] != "expected_version" {
 			t.Errorf("stale reopen: code = %v param = %v", problem["code"], problem["param"])
 		}
-		if shown := bdProxiedShow(t, bd, p.dir, issue.ID); string(shown.Status) != "closed" {
+		if shown := issuegraphProxiedShow(t, issuegraph, p.dir, issue.ID); string(shown.Status) != "closed" {
 			t.Errorf("a refused guard reopened the row: status %q", shown.Status)
 		}
 
@@ -466,7 +466,7 @@ func TestProxiedServerServeClose(t *testing.T) {
 		if reopened := revisionOf(t, raw); reopened == afterReplay {
 			t.Errorf("revision = %q after a reopen that wrote; the token did not move", reopened)
 		}
-		if shown := bdProxiedShow(t, bd, p.dir, issue.ID); string(shown.Status) != "open" || shown.CloseReason != "" {
+		if shown := issuegraphProxiedShow(t, issuegraph, p.dir, issue.ID); string(shown.Status) != "open" || shown.CloseReason != "" {
 			t.Errorf("the guarded reopen did not land: status %q reason %q", shown.Status, shown.CloseReason)
 		}
 	})
@@ -474,16 +474,16 @@ func TestProxiedServerServeClose(t *testing.T) {
 	sp.shutdown(t)
 }
 
-// bdProxiedCloseOneRaw runs `bd close --json` and decodes the one item it
+// issuegraphProxiedCloseOneRaw runs `issuegraph close --json` and decodes the one item it
 // reports as a generic object rather than into types.Issue: the parity oracle
 // compares the JSON both surfaces actually emit, and decoding through the
 // struct would hide exactly the field-level drift it exists to catch.
-func bdProxiedCloseOneRaw(t *testing.T, bd, dir, id string, args ...string) map[string]any {
+func issuegraphProxiedCloseOneRaw(t *testing.T, issuegraph, dir, id string, args ...string) map[string]any {
 	t.Helper()
 	full := append([]string{"close", id, "--json"}, args...)
-	out, err := bdProxiedRun(t, bd, dir, full...)
+	out, err := issuegraphProxiedRun(t, issuegraph, dir, full...)
 	if err != nil {
-		t.Fatalf("bd close %s --json failed: %v\n%s", id, err, out)
+		t.Fatalf("issuegraph close %s --json failed: %v\n%s", id, err, out)
 	}
 	s := string(out)
 	start := strings.Index(s, "[")

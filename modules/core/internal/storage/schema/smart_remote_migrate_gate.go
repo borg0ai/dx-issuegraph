@@ -8,7 +8,7 @@ import (
 )
 
 // SmartGateEnv controls the state-aware ("smart") remote-migrate gate
-// (gastownhall/beads#4516). The smart gate is ON by default: when the blunt
+// (borg0ai/dx-issuegraph#4516). The smart gate is ON by default: when the blunt
 // gate would fire, it consults the remote's cached schema state and
 // auto-resolves the one provably-safe case (first-mover migrate), while still
 // stopping — with sharper guidance — on the cases that genuinely need a human.
@@ -17,14 +17,14 @@ import (
 // block, so the default is never less safe than the blunt gate; it only
 // resolves cases the blunt gate cannot distinguish.
 //
-// Set BD_SMART_GATE=0 (or any boolean false) to opt out and keep the blunt
+// Set ISSUEGRAPH_SMART_GATE=0 (or any boolean false) to opt out and keep the blunt
 // #4515 behavior unconditionally: any remote-backed database with pending
 // migrations refuses every write and hands the operator the
 // migrate-or-adopt decision.
 //
 // It is consulted only once the blunt gate would otherwise fire, so exporting it
 // permanently costs nothing on the common open path.
-const SmartGateEnv = "BD_SMART_GATE"
+const SmartGateEnv = "ISSUEGRAPH_SMART_GATE"
 
 // smartGateDefaultRemote is the sync remote the smart gate compares against
 // when the caller does not know a more specific configured default. The gate
@@ -49,7 +49,7 @@ const smartGateDefaultRemote = "origin"
 // allowlist so the two cannot drift if a new entry is ever added.
 const LastNonDeterministicMigration = 43
 
-// smartGateEnvState classifies the raw BD_SMART_GATE value.
+// smartGateEnvState classifies the raw ISSUEGRAPH_SMART_GATE value.
 type smartGateEnvState int
 
 const (
@@ -58,12 +58,12 @@ const (
 	smartGateEnvDisabled
 	// smartGateEnvUnparseable: set but strconv.ParseBool rejected it. Treated
 	// the same as smartGateEnvEnabled by SmartGateEnabled (the default holds),
-	// but callers building the fallback-block message (gastownhall/beads#4551
+	// but callers building the fallback-block message (borg0ai/dx-issuegraph#4551
 	// follow-up) still want to tell the operator their value was ignored.
 	smartGateEnvUnparseable
 )
 
-// smartGateEnvValue reads and classifies BD_SMART_GATE, returning the raw
+// smartGateEnvValue reads and classifies ISSUEGRAPH_SMART_GATE, returning the raw
 // value alongside the classification so a caller can quote it back to the
 // operator. Split out of SmartGateEnabled so "unset"/"valid true" (silently
 // fine) can be told apart from "set but unparseable" (worth a note) without
@@ -84,7 +84,7 @@ func smartGateEnvValue() (smartGateEnvState, string) {
 }
 
 // SmartGateEnabled reports whether the smart gate is active. It defaults to
-// true; the operator opts out with BD_SMART_GATE=0 (any parseable boolean
+// true; the operator opts out with ISSUEGRAPH_SMART_GATE=0 (any parseable boolean
 // false). An unparseable value keeps the default rather than silently
 // disabling the gate.
 func SmartGateEnabled() bool {
@@ -129,13 +129,13 @@ const (
 	// a TOCTOU miss, or the merge itself refusing) falls through to the
 	// plain smartAdopt directive instead, never forcing the write.
 	smartAdoptFastForward
-	// smartDataBehind (gastownhall/beads#6575): schema parity with the cached
+	// smartDataBehind (borg0ai/dx-issuegraph#6575): schema parity with the cached
 	// remote ref holds — the first-mover precondition — but local HEAD is
 	// BEHIND that ref with no local commits of its own (ahead == 0,
 	// behind >= 1), so this clone is missing DATA commits it has not pulled.
 	// Migrating in place here mints local-only schema commits on a HEAD that
 	// lacks those commits; when the pending batch moves a tracked table onto
-	// the dolt_ignore plane (0062's events), every subsequent `bd dolt pull`
+	// the dolt_ignore plane (0062's events), every subsequent `issuegraph dolt pull`
 	// then refuses (#6368) and the clone can no longer fetch the very commits
 	// it was behind on. Stop, and direct the operator to pull first — a pure
 	// fast-forward in this shape — after which the same open auto-migrates as
@@ -146,9 +146,9 @@ const (
 	// unpulled remote ones. It reaches the identical wedge — the pending
 	// migration lands on a HEAD missing the remote's commits either way — so
 	// it stops for the same reason. It is a separate verdict only because the
-	// remedy behaves differently: `bd dolt pull` MERGES here rather than
+	// remedy behaves differently: `issuegraph dolt pull` MERGES here rather than
 	// fast-forwarding, and can report conflicts the operator has to resolve
-	// before it completes. bd auto-commits every write, so this is the
+	// before it completes. issuegraph auto-commits every write, so this is the
 	// ORDINARY multi-machine shape, not an exotic one.
 	smartDataDiverged
 )
@@ -175,7 +175,7 @@ type FastForwardAdopter struct {
 	// AheadBehind reports the raw commit counts behind IsStrictAncestor:
 	// how many commits local HEAD has that ref lacks, and how many ref has
 	// that local lacks (versioncontrolops.LocalAheadBehind). The
-	// data-behind stop (gastownhall/beads#6575) needs behind >= 1 whatever
+	// data-behind stop (borg0ai/dx-issuegraph#6575) needs behind >= 1 whatever
 	// ahead is, which IsStrictAncestor's ahead == 0 && behind >= 1 cannot
 	// express, and needs to tell the two shapes apart so the remedy it
 	// prints matches the pull the operator will actually get (fast-forward
@@ -234,13 +234,13 @@ func routeAdoptFastForward(ctx context.Context, db DBConn, ref string, adopt *Fa
 // localDataBehind reports whether local HEAD is missing commits that ref has
 // (behind >= 1) and, when it is, whether the clone ALSO has commits of its own
 // that ref lacks (ahead >= 1 — the diverged shape). It is the equal-version
-// path's only ancestry fact (gastownhall/beads#6575).
+// path's only ancestry fact (borg0ai/dx-issuegraph#6575).
 //
 // The predicate is behind >= 1 regardless of ahead, not the narrower strict-
 // ancestor relation the remote-ahead path uses. Both shapes reach the same
 // wedge: the migration lands on a HEAD missing the remote's commits either
-// way, and the ignore-plane flip then refuses every later `bd dolt pull`.
-// Since bd auto-commits every write, "has local commits AND is behind" is the
+// way, and the ignore-plane flip then refuses every later `issuegraph dolt pull`.
+// Since issuegraph auto-commits every write, "has local commits AND is behind" is the
 // ordinary multi-machine state, so restricting the stop to ahead == 0 would
 // leave the larger half of the affected cohort unprotected. A level clone
 // (behind == 0) and a purely-ahead clone (behind == 0, ahead >= 1) are still
@@ -405,7 +405,7 @@ func routeSmartGate(ctx context.Context, db DBConn, current, latest int, remoteN
 	// remote == local on every shared version and at the same max version: a first-mover.
 	if current >= LastNonDeterministicMigration {
 		// Schema parity is not proof of first-mover status
-		// (gastownhall/beads#6575). It says nothing about where this clone's
+		// (borg0ai/dx-issuegraph#6575). It says nothing about where this clone's
 		// branch sits relative to the ref the hashes just came from: a clone
 		// that is level on schema and behind on DATA satisfies every
 		// precondition above. Read the ancestry fact the caller already wired
@@ -461,7 +461,7 @@ func smartGateAllowMigrate(pending int, current int) {
 	}
 	fmt.Fprintf(os.Stderr,
 		"Smart gate (%s): auto-applying %d pending deterministic schema %s to a remote-backed database "+
-			"(v%d, remote at same version — safe first-mover, concurrent migrators converge; #4516). Run `bd dolt push` after.\n",
+			"(v%d, remote at same version — safe first-mover, concurrent migrators converge; #4516). Run `issuegraph dolt push` after.\n",
 		SmartGateEnv, pending, unit, current)
 }
 

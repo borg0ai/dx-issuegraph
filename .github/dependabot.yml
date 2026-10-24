@@ -54,9 +54,9 @@ updates:
         patterns:
           - "*"
 
-  # Python (beads-mcp)
+  # Python (issuegraph-mcp)
   - package-ecosystem: "uv"
-    directory: "/integrations/beads-mcp"
+    directory: "/integrations/issuegraph-mcp"
     schedule:
       interval: "weekly"
     open-pull-requests-limit: 5
@@ -65,7 +65,7 @@ updates:
       - "python"
       - "mcp"
     groups:
-      beads-mcp-python:
+      issuegraph-mcp-python:
         applies-to: version-updates
         patterns:
           - "*"

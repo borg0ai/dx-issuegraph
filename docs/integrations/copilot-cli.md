@@ -74,8 +74,8 @@ issuegraph setup copilot --remove
 
 ## Related Files
 
-- `plugins/beads/.copilot-plugin/plugin.json` - Source plugin manifest for the shared plugin package
-- `plugins/beads/copilot_manifest.go` - Embedded manifest source used by `issuegraph setup copilot`
+- `plugins/issuegraph/.copilot-plugin/plugin.json` - Source plugin manifest for the shared plugin package
+- `plugins/issuegraph/copilot_manifest.go` - Embedded manifest source used by `issuegraph setup copilot`
 - `internal/recipes/recipes.go` - Lightweight `copilot` recipe definition
 - `internal/recipes/template.go` - Static Copilot instructions template used by `issuegraph setup`
 - [GitHub Copilot integration](/integrations/github-copilot) - VS Code MCP integration

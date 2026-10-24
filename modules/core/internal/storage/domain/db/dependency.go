@@ -8,14 +8,14 @@ import (
 	"strings"
 	"time"
 
-	"github.com/steveyegge/beads/internal/storage"
-	"github.com/steveyegge/beads/internal/storage/dberrors"
-	"github.com/steveyegge/beads/internal/storage/depid"
-	"github.com/steveyegge/beads/internal/storage/domain"
-	"github.com/steveyegge/beads/internal/storage/issueops"
-	"github.com/steveyegge/beads/internal/storage/sqlbuild"
-	"github.com/steveyegge/beads/internal/types"
-	publicops "github.com/steveyegge/beads/issueops"
+	"github.com/borg0ai/dx-issuegraph/internal/storage"
+	"github.com/borg0ai/dx-issuegraph/internal/storage/dberrors"
+	"github.com/borg0ai/dx-issuegraph/internal/storage/depid"
+	"github.com/borg0ai/dx-issuegraph/internal/storage/domain"
+	"github.com/borg0ai/dx-issuegraph/internal/storage/issueops"
+	"github.com/borg0ai/dx-issuegraph/internal/storage/sqlbuild"
+	"github.com/borg0ai/dx-issuegraph/internal/types"
+	publicops "github.com/borg0ai/dx-issuegraph/issueops"
 )
 
 func NewDependencySQLRepository(runner Runner) domain.DependencySQLRepository {
@@ -168,7 +168,7 @@ func (r *dependencySQLRepositoryImpl) Insert(ctx context.Context, dep *types.Dep
 	}
 
 	// Record the dependency_added event on the source's event table, matching the
-	// embedded/issueops AddDependencyInTx path so the bd CLI and library callers
+	// embedded/issueops AddDependencyInTx path so the issuegraph CLI and library callers
 	// observe the same history from either write plumbing. Reached only on the
 	// genuine new-edge path; the idempotent same-type refresh returned earlier.
 	// Gated on EmitEvent so only the explicit dep verbs emit: create-with-deps
@@ -177,7 +177,7 @@ func (r *dependencySQLRepositoryImpl) Insert(ctx context.Context, dep *types.Dep
 	// (createIssueWithDeps, reparent) match this by calling the plain,
 	// no-event AddDependency/tx.AddDependency, whose issueops.AddDependencyInTx
 	// EmitEvent gate is likewise unset — so both backends stay silent on implicit
-	// edges and emit only for the explicit bd dep add / bd link verbs.
+	// edges and emit only for the explicit issuegraph dep add / issuegraph link verbs.
 	if opts.EmitEvent {
 		if err := r.events.Record(ctx, domain.Event{
 			IssueID:  dep.IssueID,
@@ -360,7 +360,7 @@ func (r *dependencySQLRepositoryImpl) Delete(ctx context.Context, issueID, depen
 	// The type lookup above returned Found:false when no edge existed, so reaching
 	// here means a row was deleted — record the dependency_removed event on the
 	// source's event table, matching the embedded/issueops RemoveDependencyInTx path.
-	// Gated on EmitEvent so only the explicit `bd dep remove` verb emits.
+	// Gated on EmitEvent so only the explicit `issuegraph dep remove` verb emits.
 	if opts.EmitEvent {
 		if err := r.events.Record(ctx, domain.Event{
 			IssueID:  issueID,

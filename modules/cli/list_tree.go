@@ -7,9 +7,9 @@ import (
 	"strings"
 	"time"
 
-	"github.com/steveyegge/beads/internal/types"
-	"github.com/steveyegge/beads/internal/utils"
-	"github.com/steveyegge/beads/internal/workapi"
+	"github.com/borg0ai/dx-issuegraph/internal/types"
+	"github.com/borg0ai/dx-issuegraph/internal/utils"
+	"github.com/borg0ai/dx-issuegraph/internal/workapi"
 )
 
 // buildIssueTree builds parent-child tree structure from issues
@@ -253,7 +253,7 @@ func displayPrettyListWithDepsMode(issues []*types.Issue, showHeader bool, allDe
 		// Clear screen and show header
 		fmt.Print("\033[2J\033[H")
 		fmt.Println(strings.Repeat("=", 80))
-		fmt.Printf("Beads - Open & In Progress (%s)\n", time.Now().Format("15:04:05"))
+		fmt.Printf("IssueGraph - Open & In Progress (%s)\n", time.Now().Format("15:04:05"))
 		fmt.Println(strings.Repeat("=", 80))
 		fmt.Println()
 	}

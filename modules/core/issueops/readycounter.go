@@ -10,7 +10,7 @@ type ReadyCountResult struct {
 	Total int64
 }
 
-// ReadyCounter describes sizing the ready set: the question `bd ready`'s
+// ReadyCounter describes sizing the ready set: the question `issuegraph ready`'s
 // pagination answers when it reports "showing 100 of 412", and — like Reader,
 // ReadyClaimer and Counter — a role with its own accessor. A new capability
 // gets a new role interface and its own accessor; never append a method here.
@@ -90,6 +90,6 @@ type ReadyCounter interface {
 	// counts has issued two queries, and a write between them can leave the
 	// total disagreeing with the page by that write. Nothing here is
 	// transactional across the two calls, and no front door reconciles them:
-	// `bd ready --json` publishes both and says only what each is.
+	// `issuegraph ready --json` publishes both and says only what each is.
 	CountReady(ctx context.Context, req ReadyRequest) (ReadyCountResult, error)
 }

@@ -1,13 +1,13 @@
 ---
-title: "bd audit"
-description: "Audit log entries are appended to .beads/interactions.jsonl."
+title: "issuegraph audit"
+description: "Audit log entries are appended to .issuegraph/interactions.jsonl."
 ---
 
 {/* AUTO-GENERATED: do not edit manually */}
 
-Generated from `bd help --doc audit`.
+Generated from `issuegraph help --doc audit`.
 
-Audit log entries are appended to .beads/interactions.jsonl.
+Audit log entries are appended to .issuegraph/interactions.jsonl.
 
 Each line is one event. This file is intended to be versioned in git and used for:
 - auditing ("why did the agent do that?")
@@ -16,15 +16,15 @@ Each line is one event. This file is intended to be versioned in git and used fo
 Entries are append-only. Labeling creates a new "label" entry that references a parent entry.
 
 ```
-bd audit [flags]
+issuegraph audit [flags]
 ```
 
-## bd audit label
+## issuegraph audit label
 
 Append a label entry referencing an existing interaction
 
 ```
-bd audit label <entry-id> [flags]
+issuegraph audit label <entry-id> [flags]
 ```
 
 **Flags:**
@@ -34,12 +34,12 @@ bd audit label <entry-id> [flags]
       --reason string   Reason for label
 ```
 
-## bd audit record
+## issuegraph audit record
 
 Append an audit interaction entry
 
 ```
-bd audit record [flags]
+issuegraph audit record [flags]
 ```
 
 **Flags:**
@@ -47,7 +47,7 @@ bd audit record [flags]
 ```
       --error string       Error string (llm_call/tool_call)
       --exit-code int      Exit code (tool_call) (default -1)
-      --issue-id string    Related issue id (bd-...)
+      --issue-id string    Related issue id (issuegraph-...)
       --kind string        Entry kind (e.g. llm_call, tool_call, label)
       --model string       Model name (llm_call)
       --prompt string      Prompt text (llm_call)

@@ -4,7 +4,7 @@ import "testing"
 
 // TestIsUnknownArchiveLevelFlagError covers the classifier that decides
 // whether runCompactDolt should retry `dolt gc` without --archive-level
-// (gastownhall/beads#4986). It must recognize the real unknown-flag
+// (borg0ai/dx-issuegraph#4986). It must recognize the real unknown-flag
 // rejection from an older external dolt, and must NOT misclassify genuine
 // GC failures — those should keep failing compact rather than being
 // silently swallowed by a retry that then also fails.

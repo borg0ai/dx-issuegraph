@@ -5,8 +5,8 @@ import (
 
 	"github.com/spf13/cobra"
 
-	"github.com/steveyegge/beads/internal/ui"
-	"github.com/steveyegge/beads/internal/workapi"
+	"github.com/borg0ai/dx-issuegraph/internal/ui"
+	"github.com/borg0ai/dx-issuegraph/internal/workapi"
 )
 
 // newQueryLimitCommand registers the flags gatherQueryInput reads, with
@@ -27,9 +27,9 @@ func newQueryLimitCommand(t *testing.T, args ...string) *cobra.Command {
 	return cmd
 }
 
-// TestQueryLimitPolicyMatchesList pins GH#6229: `bd query` read --limit
-// straight through, so `bd query ... | consumer` silently stopped at
-// workapi.DefaultQueryLimit rows where `bd list | consumer` got every row
+// TestQueryLimitPolicyMatchesList pins GH#6229: `issuegraph query` read --limit
+// straight through, so `issuegraph query ... | consumer` silently stopped at
+// workapi.DefaultQueryLimit rows where `issuegraph list | consumer` got every row
 // (GH#4094). An unflagged query now resolves through the same policy as list.
 func TestQueryLimitPolicyMatchesList(t *testing.T) {
 	if ui.IsTerminal() {
@@ -57,7 +57,7 @@ func TestQueryLimitPolicyMatchesList(t *testing.T) {
 				t.Errorf("limit = %d, want %d", in.limit, tc.want)
 			}
 			if in.request.Limit == nil {
-				t.Fatal("QueryRequest.Limit is nil; `bd query` resolves its own limit before the request exists")
+				t.Fatal("QueryRequest.Limit is nil; `issuegraph query` resolves its own limit before the request exists")
 			}
 			if *in.request.Limit != tc.want {
 				t.Errorf("QueryRequest.Limit = %d, want %d", *in.request.Limit, tc.want)
@@ -80,7 +80,7 @@ func TestUnflaggedLimitBranches(t *testing.T) {
 			{"terminal gets the command default", true, false, fallback},
 			{"agent mode on a terminal is compact", true, true, agentModeLimit},
 			{"piped stdout is unlimited", false, false, 0},
-			// Piping outranks agent mode, as it always has for bd list.
+			// Piping outranks agent mode, as it always has for issuegraph list.
 			{"piped stdout is unlimited in agent mode too", false, true, 0},
 		} {
 			if got := resolveUnflaggedLimit(fallback, tc.terminal, tc.agent); got != tc.want {
@@ -90,6 +90,6 @@ func TestUnflaggedLimitBranches(t *testing.T) {
 		}
 	}
 	if agentModeLimit != 20 {
-		t.Errorf("agentModeLimit = %d, want 20 (bd list's historical agent-mode cap)", agentModeLimit)
+		t.Errorf("agentModeLimit = %d, want 20 (issuegraph list's historical agent-mode cap)", agentModeLimit)
 	}
 }

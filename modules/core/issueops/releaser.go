@@ -6,7 +6,7 @@ import (
 )
 
 // ReleaseRequest describes one release of a claim — the inverse of
-// ClaimRequest, and the shape behind `bd unclaim`.
+// ClaimRequest, and the shape behind `issuegraph unclaim`.
 //
 // Implementations never mutate caller-owned request values: ExpectedAssignee is
 // read, never written through.
@@ -86,7 +86,7 @@ type ReleaseRequest struct {
 	// ForceAssigneeTransfer beside its own ExpectedAssignee.
 	ExpectedAssignee *string
 	// Force bypasses the ownership fence, so an actor that is not the holder
-	// may release the claim. It is the escape hatch `bd unclaim --force` spells,
+	// may release the claim. It is the escape hatch `issuegraph unclaim --force` spells,
 	// for an abandoned claim whose holder crashed.
 	//
 	// IT BYPASSES THE FENCE AND NOTHING ELSE. It does not make an unheld row
@@ -175,7 +175,7 @@ var ErrNotClaimed = errors.New("issue holds no claim")
 // IT IS WIDER THAN "CLOSED", and that is worth knowing before it surprises
 // someone. The release is an UPDATE pinned to status open or in_progress, so an
 // issue parked in a workspace's own configured status — an active or wip status
-// a `bd update` put it in — is refused here even though it plainly holds a
+// a `issuegraph update` put it in — is refused here even though it plainly holds a
 // claim. That is a limitation of the transition rather than a policy, and it is
 // named rather than papered over: before this role, the same request failed
 // with an untyped "no matching row" that no caller could classify and no
@@ -183,7 +183,7 @@ var ErrNotClaimed = errors.New("issue holds no claim")
 var ErrNotReleasable = errors.New("issue status does not accept a release")
 
 // Releaser describes the release of a claim — the capability behind
-// `bd unclaim` — and, like every other capability here, a role with its own
+// `issuegraph unclaim` — and, like every other capability here, a role with its own
 // accessor. A new capability gets a new role interface and its own accessor;
 // never append a method here.
 //

@@ -8,11 +8,11 @@ import (
 	"regexp"
 	"strings"
 
+	"github.com/borg0ai/dx-issuegraph/internal/formula"
+	"github.com/borg0ai/dx-issuegraph/internal/metrics"
+	"github.com/borg0ai/dx-issuegraph/internal/ui"
+	"github.com/borg0ai/dx-issuegraph/internal/utils"
 	"github.com/spf13/cobra"
-	"github.com/steveyegge/beads/internal/formula"
-	"github.com/steveyegge/beads/internal/metrics"
-	"github.com/steveyegge/beads/internal/ui"
-	"github.com/steveyegge/beads/internal/utils"
 )
 
 var molDistillCmd = &cobra.Command{
@@ -37,13 +37,13 @@ Variable syntax (both work - we detect which side is the concrete value):
   --var feature-auth=branch    Substitution-style: value=variable
 
 Output locations (first writable wins):
-  1. <resolved-beads-dir>/formulas/ (project-level, default)
-  2. <checkout-root>/.beads/formulas/ (repo-local formulas)
-  3. ~/.beads/formulas/     (user-level, if project not writable)
+  1. <resolved-issuegraph-dir>/formulas/ (project-level, default)
+  2. <checkout-root>/.issuegraph/formulas/ (repo-local formulas)
+  3. ~/.issuegraph/formulas/     (user-level, if project not writable)
 
 Examples:
-  bd mol distill bd-o5xe my-workflow
-  bd mol distill bd-abc release-workflow --var feature_name=auth-refactor`,
+  issuegraph mol distill bd-o5xe my-workflow
+  issuegraph mol distill bd-abc release-workflow --var feature_name=auth-refactor`,
 	Args:          cobra.RangeArgs(1, 2),
 	SilenceUsage:  true,
 	SilenceErrors: true,
@@ -239,7 +239,7 @@ func distillSubgraph(epicID string, subgraph *TemplateSubgraph, in molDistillInp
 		fmt.Printf("  Variables: %s\n", strings.Join(result.Variables, ", "))
 	}
 	fmt.Printf("\nTo instantiate:\n")
-	fmt.Printf("  bd mol pour %s", result.FormulaName)
+	fmt.Printf("  issuegraph mol pour %s", result.FormulaName)
 	for _, v := range result.Variables {
 		fmt.Printf(" --var %s=<value>", v)
 	}

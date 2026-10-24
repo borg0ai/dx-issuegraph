@@ -9,7 +9,7 @@ import (
 	"testing"
 )
 
-// End-to-end for the issue count, against real Dolt through a real `bd serve`
+// End-to-end for the issue count, against real Dolt through a real `issuegraph serve`
 // subprocess.
 //
 // The pure tests in internal/httpapi cover the wire edge on a fake role — the
@@ -37,7 +37,7 @@ const countSliceLabel = "srvcnt-slice"
 // matched".
 func (sp *serveProcess) countIssues(t *testing.T, query string) (int, int64, *map[string]int) {
 	t.Helper()
-	resp, err := sp.client.Get(sp.url("/v0/beads/issues:count" + query))
+	resp, err := sp.client.Get(sp.url("/v0/issuegraph/issues:count" + query))
 	if err != nil {
 		t.Fatalf("GET issues:count%s: %v\nstderr:\n%s", query, err, sp.stderr.String())
 	}
@@ -59,21 +59,21 @@ func (sp *serveProcess) countIssues(t *testing.T, query string) (int, int64, *ma
 	return resp.StatusCode, body.Total, body.Groups
 }
 
-// bdProxiedCountTotal runs `bd count --json` and returns the scalar it printed.
+// issuegraphProxiedCountTotal runs `issuegraph count --json` and returns the scalar it printed.
 // It is the PARITY ORACLE: the CLI and this server reach one role through one
 // accessor, so a number that differs between them is a construction difference
 // and not a rounding one.
-func bdProxiedCountTotal(t *testing.T, bd, dir string, args ...string) int64 {
+func issuegraphProxiedCountTotal(t *testing.T, issuegraph, dir string, args ...string) int64 {
 	t.Helper()
-	out, err := bdProxiedRun(t, bd, dir, append([]string{"count", "--json"}, args...)...)
+	out, err := issuegraphProxiedRun(t, issuegraph, dir, append([]string{"count", "--json"}, args...)...)
 	if err != nil {
-		t.Fatalf("bd count --json %v failed: %v\n%s", args, err, out)
+		t.Fatalf("issuegraph count --json %v failed: %v\n%s", args, err, out)
 	}
 	var body struct {
 		Count int64 `json:"count"`
 	}
 	if err := json.Unmarshal(out, &body); err != nil {
-		t.Fatalf("decode bd count --json %q: %v", out, err)
+		t.Fatalf("decode issuegraph count --json %q: %v", out, err)
 	}
 	return body.Count
 }
@@ -81,9 +81,9 @@ func bdProxiedCountTotal(t *testing.T, bd, dir string, args ...string) int64 {
 func TestProxiedServerServeCount(t *testing.T) {
 	requireSharedProxiedServer(t)
 	t.Parallel()
-	bd := buildEmbeddedBD(t)
-	p := newSharedProxiedProject(t, bd, "srvcnt")
-	sp := startServe(t, bd, p.dir, bdProxiedEnv(p.dir))
+	issuegraph := buildEmbeddedBD(t)
+	p := newSharedProxiedProject(t, issuegraph, "srvcnt")
+	sp := startServe(t, issuegraph, p.dir, issuegraphProxiedEnv(p.dir))
 
 	scoped := "?label=" + countSliceLabel
 
@@ -91,16 +91,16 @@ func TestProxiedServerServeCount(t *testing.T) {
 	// role: a default count hides nothing. Three durable rows, one of them
 	// closed, and the bare count answers three.
 	//
-	// The closed row is the load-bearing one. `GET /v0/beads/issues` would hide
+	// The closed row is the load-bearing one. `GET /v0/issuegraph/issues` would hide
 	// it, so a handler that reused the listing's defaults would answer two here
 	// and look perfectly reasonable doing it.
 	t.Run("a bare count includes the closed rows a listing hides", func(t *testing.T) {
-		open1 := bdProxiedCreate(t, bd, p.dir, "count open one", "-p", "2", "-l", countSliceLabel)
-		bdProxiedCreate(t, bd, p.dir, "count open two", "-p", "2", "-l", countSliceLabel)
-		closed := bdProxiedCreate(t, bd, p.dir, "count closed", "-p", "2", "-l", countSliceLabel)
+		open1 := issuegraphProxiedCreate(t, issuegraph, p.dir, "count open one", "-p", "2", "-l", countSliceLabel)
+		issuegraphProxiedCreate(t, issuegraph, p.dir, "count open two", "-p", "2", "-l", countSliceLabel)
+		closed := issuegraphProxiedCreate(t, issuegraph, p.dir, "count closed", "-p", "2", "-l", countSliceLabel)
 
-		if out, err := bdProxiedRun(t, bd, p.dir, "close", closed.ID, "--reason", "done"); err != nil {
-			t.Fatalf("bd close: %v\n%s", err, out)
+		if out, err := issuegraphProxiedRun(t, issuegraph, p.dir, "close", closed.ID, "--reason", "done"); err != nil {
+			t.Fatalf("issuegraph close: %v\n%s", err, out)
 		}
 
 		status, total, groups := sp.countIssues(t, scoped)
@@ -114,10 +114,10 @@ func TestProxiedServerServeCount(t *testing.T) {
 			t.Errorf("groups = %v; a request that asked for no buckets must not carry the member", *groups)
 		}
 
-		// The parity oracle: `bd count` answers the same number through the
+		// The parity oracle: `issuegraph count` answers the same number through the
 		// same role.
-		if cli := bdProxiedCountTotal(t, bd, p.dir, "--label", countSliceLabel); cli != total {
-			t.Errorf("bd count = %d, the server said %d; the two front doors are on one role and must agree", cli, total)
+		if cli := issuegraphProxiedCountTotal(t, issuegraph, p.dir, "--label", countSliceLabel); cli != total {
+			t.Errorf("issuegraph count = %d, the server said %d; the two front doors are on one role and must agree", cli, total)
 		}
 
 		// And the filters narrow it the way the role says: one status, not a
@@ -143,11 +143,11 @@ func TestProxiedServerServeCount(t *testing.T) {
 		label := countSliceLabel + "-grouped"
 		scopedGroup := "?label=" + label
 
-		bdProxiedCreate(t, bd, p.dir, "grouped one", "-p", "1", "-l", label+",alpha")
-		bdProxiedCreate(t, bd, p.dir, "grouped two", "-p", "1", "-l", label+",alpha,beta")
-		third := bdProxiedCreate(t, bd, p.dir, "grouped three", "-p", "3", "-l", label)
-		if out, err := bdProxiedRun(t, bd, p.dir, "close", third.ID, "--reason", "done"); err != nil {
-			t.Fatalf("bd close: %v\n%s", err, out)
+		issuegraphProxiedCreate(t, issuegraph, p.dir, "grouped one", "-p", "1", "-l", label+",alpha")
+		issuegraphProxiedCreate(t, issuegraph, p.dir, "grouped two", "-p", "1", "-l", label+",alpha,beta")
+		third := issuegraphProxiedCreate(t, issuegraph, p.dir, "grouped three", "-p", "3", "-l", label)
+		if out, err := issuegraphProxiedRun(t, issuegraph, p.dir, "close", third.ID, "--reason", "done"); err != nil {
+			t.Fatalf("issuegraph close: %v\n%s", err, out)
 		}
 
 		status, total, groups := sp.countIssues(t, scopedGroup+"&group_by=status")
@@ -228,8 +228,8 @@ func TestProxiedServerServeCount(t *testing.T) {
 		label := countSliceLabel + "-planes"
 		scopedPlane := "?label=" + label
 
-		bdProxiedCreate(t, bd, p.dir, "durable row", "-p", "2", "-l", label)
-		wisp := bdProxiedCreate(t, bd, p.dir, "ephemeral row", "-p", "2", "-l", label,
+		issuegraphProxiedCreate(t, issuegraph, p.dir, "durable row", "-p", "2", "-l", label)
+		wisp := issuegraphProxiedCreate(t, issuegraph, p.dir, "ephemeral row", "-p", "2", "-l", label,
 			"--ephemeral", "--wisp-type", "heartbeat")
 		if wisp.ID == "" {
 			t.Fatal("the wisp was not created")
@@ -245,13 +245,13 @@ func TestProxiedServerServeCount(t *testing.T) {
 			t.Fatalf("include_infra counted %d, want 2 — the ephemeral tier is merged in", withInfra)
 		}
 
-		// Both answers match `bd count`'s, which is what makes the flag a
+		// Both answers match `issuegraph count`'s, which is what makes the flag a
 		// property of the ROLE rather than of either front door.
-		if cli := bdProxiedCountTotal(t, bd, p.dir, "--label", label); cli != durableOnly {
-			t.Errorf("bd count = %d, the server said %d", cli, durableOnly)
+		if cli := issuegraphProxiedCountTotal(t, issuegraph, p.dir, "--label", label); cli != durableOnly {
+			t.Errorf("issuegraph count = %d, the server said %d", cli, durableOnly)
 		}
-		if cli := bdProxiedCountTotal(t, bd, p.dir, "--label", label, "--include-infra"); cli != withInfra {
-			t.Errorf("bd count --include-infra = %d, the server said %d", cli, withInfra)
+		if cli := issuegraphProxiedCountTotal(t, issuegraph, p.dir, "--label", label, "--include-infra"); cli != withInfra {
+			t.Errorf("issuegraph count --include-infra = %d, the server said %d", cli, withInfra)
 		}
 	})
 

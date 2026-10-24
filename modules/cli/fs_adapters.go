@@ -1,30 +1,30 @@
 package main
 
 import (
-	"github.com/steveyegge/beads/modules/cli/doctor"
-	"github.com/steveyegge/beads/modules/cli/setup"
-	"github.com/steveyegge/beads/internal/config"
-	"github.com/steveyegge/beads/internal/storage/domain"
-	"github.com/steveyegge/beads/internal/templates/agents"
+	"github.com/borg0ai/dx-issuegraph/internal/config"
+	"github.com/borg0ai/dx-issuegraph/internal/storage/domain"
+	"github.com/borg0ai/dx-issuegraph/internal/templates/agents"
+	"github.com/borg0ai/dx-issuegraph/modules/cli/doctor"
+	"github.com/borg0ai/dx-issuegraph/modules/cli/setup"
 )
 
-func newBeadsDirTemplates() domain.BeadsDirTemplates {
-	return domain.BeadsDirTemplates{
-		BeadsGitignore:           doctor.GitignoreTemplate,
+func newIssueGraphDirTemplates() domain.IssueGraphDirTemplates {
+	return domain.IssueGraphDirTemplates{
+		IssueGraphGitignore:      doctor.GitignoreTemplate,
 		ProjectGitignoreHeader:   doctor.ProjectGitignoreHeader,
 		ProjectGitignorePatterns: doctor.ProjectGitignorePatterns,
-		Readme:                   BeadsReadmeTemplate,
+		Readme:                   IssueGraphReadmeTemplate,
 	}
 }
 
-func newFileSystemAdapters() domain.BeadsDirFSAdapters {
-	return domain.BeadsDirFSAdapters{
+func newFileSystemAdapters() domain.IssueGraphDirFSAdapters {
+	return domain.IssueGraphDirFSAdapters{
 		ApplyNoCOW:        applyNoCOW,
 		WriteLocalVersion: writeLocalVersion,
 		SetupForkExclude:  setupForkExclude,
 		SetupStealthMode:  setupStealthMode,
 		InstallGitHooks: func(p domain.HooksInstallParams) error {
-			return installHooksWithOptions(p.HookNames, p.Force, p.Shared, p.Chain, p.BeadsHooks)
+			return installHooksWithOptions(p.HookNames, p.Force, p.Shared, p.Chain, p.IssueGraphHooks)
 		},
 		InstallJJHooks: installJJHooks,
 		AddAgentsInstructions: func(p domain.AgentsFileParams) {

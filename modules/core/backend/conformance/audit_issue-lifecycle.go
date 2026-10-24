@@ -6,8 +6,8 @@ import (
 	"testing"
 	"time"
 
-	"github.com/steveyegge/beads/internal/storage"
-	"github.com/steveyegge/beads/internal/types"
+	"github.com/borg0ai/dx-issuegraph/internal/storage"
+	"github.com/borg0ai/dx-issuegraph/internal/types"
 )
 
 // This file encodes audit findings for the "issue-lifecycle" slice: batch delete
@@ -249,7 +249,7 @@ func testAuditStartedAtStampedOnceOnInProgress(t *testing.T, f Factory) {
 	}
 }
 
-// GetIssueByExternalRef resolves an ephemeral bead via the wisp tier fallthrough.
+// GetIssueByExternalRef resolves an ephemeral issue via the wisp tier fallthrough.
 func testAuditExternalRefResolvesWispTier(t *testing.T, f Factory) {
 	s := f(t)
 	ref := "gh-77"

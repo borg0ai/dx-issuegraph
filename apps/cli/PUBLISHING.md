@@ -1,13 +1,13 @@
-# Publishing @beads/bd to npm
+# Publishing @borg0ai/issuegraph to npm
 
-This guide covers how to publish the @beads/bd package to npm.
+This guide covers how to publish the @borg0ai/issuegraph package to npm.
 
 ## Prerequisites
 
 1. **npm account**: You need an npm account. Create one at https://www.npmjs.com/signup
-2. **@beads organization**: The package is scoped to `@beads`, so you need to either:
-   - Create the @beads organization on npm (if it doesn't exist)
-   - Be a member of the @beads organization with publish rights
+2. **@issuegraph organization**: The package is scoped to `@issuegraph`, so you need to either:
+   - Create the @issuegraph organization on npm (if it doesn't exist)
+   - Be a member of the @issuegraph organization with publish rights
 
 ## Setup
 
@@ -33,10 +33,10 @@ Should output your npm username.
 
 ### 3. Create organization (if needed)
 
-If the `@beads` organization doesn't exist:
+If the `@issuegraph` organization doesn't exist:
 
 ```bash
-npm org create beads
+npm org create issuegraph
 ```
 
 Or manually at: https://www.npmjs.com/org/create
@@ -55,7 +55,7 @@ npm version patch  # or minor, major
 ### 2. Test the package
 
 ```bash
-# From the npm-package directory
+# From the apps/cli directory
 npm test
 
 # Test installation locally
@@ -84,10 +84,10 @@ npm publish
 
 ```bash
 # Check the package page
-open https://www.npmjs.com/package/@beads/bd
+open https://www.npmjs.com/package/@borg0ai/issuegraph
 
 # Try installing it
-npm install -g @beads/bd
+npm install -g @borg0ai/issuegraph
 issuegraph version
 ```
 
@@ -120,7 +120,7 @@ jobs:
         with:
           node-version: '18'
           registry-url: 'https://registry.npmjs.org'
-      - run: cd npm-package && npm publish --access public
+      - run: cd apps/cli && npm publish --access public
         env:
           NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
 ```
@@ -147,7 +147,7 @@ npm whoami  # verify
 
 ### "E403: forbidden"
 
-You don't have permission to publish to @beads. Either:
+You don't have permission to publish to @issuegraph. Either:
 - Create the organization
 - Ask the organization owner to add you
 - Change the package name to something you own
@@ -156,16 +156,16 @@ You don't have permission to publish to @beads. Either:
 
 The version in package.json doesn't match a GitHub release, or the release doesn't have the required binary assets.
 
-Check: https://github.com/gastownhall/beads/releases/v{VERSION}
+Check: https://github.com/borg0ai/dx-issuegraph/releases/v{VERSION}
 
 ## Version Sync
 
 Keep these in sync:
-- `npm-package/package.json` version
+- `apps/cli/package.json` version
 - GitHub release tag (e.g., `v0.21.5`)
 - IssueGraph binary version
 
 The postinstall script downloads binaries from:
 ```
-https://github.com/gastownhall/beads/releases/download/v{VERSION}/beads_{VERSION}_{platform}_{arch}.{ext}
+https://github.com/borg0ai/dx-issuegraph/releases/download/v{VERSION}/issuegraph_{VERSION}_{platform}_{arch}.{ext}
 ```

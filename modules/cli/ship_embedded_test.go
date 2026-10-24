@@ -12,63 +12,63 @@ import (
 	"testing"
 )
 
-// bdShip runs "bd ship" with the given args and returns stdout.
-func bdShip(t *testing.T, bd, dir string, args ...string) string {
+// issuegraphShip runs "issuegraph ship" with the given args and returns stdout.
+func issuegraphShip(t *testing.T, issuegraph, dir string, args ...string) string {
 	t.Helper()
 	fullArgs := append([]string{"ship"}, args...)
-	cmd := exec.Command(bd, fullArgs...)
+	cmd := exec.Command(issuegraph, fullArgs...)
 	cmd.Dir = dir
-	cmd.Env = bdEnv(dir)
+	cmd.Env = issuegraphEnv(dir)
 	stdout, stderr, err := runCommandBuffers(t, cmd)
 	if err != nil {
-		t.Fatalf("bd ship %s failed: %v\nstdout:\n%s\nstderr:\n%s", strings.Join(args, " "), err, stdout.String(), stderr.String())
+		t.Fatalf("issuegraph ship %s failed: %v\nstdout:\n%s\nstderr:\n%s", strings.Join(args, " "), err, stdout.String(), stderr.String())
 	}
 	return stdout.String()
 }
 
-// bdShipFail runs "bd ship" expecting failure.
-func bdShipFail(t *testing.T, bd, dir string, args ...string) string {
+// issuegraphShipFail runs "issuegraph ship" expecting failure.
+func issuegraphShipFail(t *testing.T, issuegraph, dir string, args ...string) string {
 	t.Helper()
 	fullArgs := append([]string{"ship"}, args...)
-	cmd := exec.Command(bd, fullArgs...)
+	cmd := exec.Command(issuegraph, fullArgs...)
 	cmd.Dir = dir
-	cmd.Env = bdEnv(dir)
+	cmd.Env = issuegraphEnv(dir)
 	out, err := cmd.CombinedOutput()
 	if err == nil {
-		t.Fatalf("expected bd ship %s to fail, but succeeded:\n%s", strings.Join(args, " "), out)
+		t.Fatalf("expected issuegraph ship %s to fail, but succeeded:\n%s", strings.Join(args, " "), out)
 	}
 	return string(out)
 }
 
 func TestEmbeddedShip(t *testing.T) {
-	if os.Getenv("BEADS_TEST_EMBEDDED_DOLT") != "1" {
-		t.Skip("set BEADS_TEST_EMBEDDED_DOLT=1 to run embedded dolt integration tests")
+	if os.Getenv("ISSUEGRAPH_TEST_EMBEDDED_DOLT") != "1" {
+		t.Skip("set ISSUEGRAPH_TEST_EMBEDDED_DOLT=1 to run embedded dolt integration tests")
 	}
 	t.Parallel()
 
-	bd := buildEmbeddedBD(t)
-	dir, _, _ := bdInit(t, bd, "--prefix", "sh")
+	issuegraph := buildEmbeddedBD(t)
+	dir, _, _ := issuegraphInit(t, issuegraph, "--prefix", "sh")
 
 	// ===== Basic Ship =====
 
 	t.Run("ship_basic", func(t *testing.T) {
-		issue := bdCreate(t, bd, dir, "Ship basic test", "--type", "task")
+		issue := issuegraphCreate(t, issuegraph, dir, "Ship basic test", "--type", "task")
 		// Add export label
-		cmd := exec.Command(bd, "label", "add", issue.ID, "export:auth")
+		cmd := exec.Command(issuegraph, "label", "add", issue.ID, "export:auth")
 		cmd.Dir = dir
-		cmd.Env = bdEnv(dir)
+		cmd.Env = issuegraphEnv(dir)
 		if out, err := cmd.CombinedOutput(); err != nil {
 			t.Fatalf("label add failed: %v\n%s", err, out)
 		}
 		// Close the issue
-		cmd = exec.Command(bd, "close", issue.ID)
+		cmd = exec.Command(issuegraph, "close", issue.ID)
 		cmd.Dir = dir
-		cmd.Env = bdEnv(dir)
+		cmd.Env = issuegraphEnv(dir)
 		if out, err := cmd.CombinedOutput(); err != nil {
 			t.Fatalf("close failed: %v\n%s", err, out)
 		}
 
-		out := bdShip(t, bd, dir, "auth")
+		out := issuegraphShip(t, issuegraph, dir, "auth")
 		if !strings.Contains(out, "Shipped") {
 			t.Errorf("expected 'Shipped' in output: %s", out)
 		}
@@ -80,19 +80,19 @@ func TestEmbeddedShip(t *testing.T) {
 	// ===== --force (ship unclosed issue) =====
 
 	t.Run("ship_force", func(t *testing.T) {
-		issue := bdCreate(t, bd, dir, "Ship force test", "--type", "task")
-		cmd := exec.Command(bd, "label", "add", issue.ID, "export:force-cap")
+		issue := issuegraphCreate(t, issuegraph, dir, "Ship force test", "--type", "task")
+		cmd := exec.Command(issuegraph, "label", "add", issue.ID, "export:force-cap")
 		cmd.Dir = dir
-		cmd.Env = bdEnv(dir)
+		cmd.Env = issuegraphEnv(dir)
 		if out, err := cmd.CombinedOutput(); err != nil {
 			t.Fatalf("label add failed: %v\n%s", err, out)
 		}
 
 		// Ship without closing — should fail without --force
-		bdShipFail(t, bd, dir, "force-cap")
+		issuegraphShipFail(t, issuegraph, dir, "force-cap")
 
 		// Ship with --force — should succeed
-		out := bdShip(t, bd, dir, "force-cap", "--force")
+		out := issuegraphShip(t, issuegraph, dir, "force-cap", "--force")
 		if !strings.Contains(out, "Shipped") {
 			t.Errorf("expected 'Shipped' with --force: %s", out)
 		}
@@ -101,29 +101,29 @@ func TestEmbeddedShip(t *testing.T) {
 	// ===== --dry-run =====
 
 	t.Run("ship_dry_run", func(t *testing.T) {
-		issue := bdCreate(t, bd, dir, "Ship dry-run test", "--type", "task")
-		cmd := exec.Command(bd, "label", "add", issue.ID, "export:dry-cap")
+		issue := issuegraphCreate(t, issuegraph, dir, "Ship dry-run test", "--type", "task")
+		cmd := exec.Command(issuegraph, "label", "add", issue.ID, "export:dry-cap")
 		cmd.Dir = dir
-		cmd.Env = bdEnv(dir)
+		cmd.Env = issuegraphEnv(dir)
 		if out, err := cmd.CombinedOutput(); err != nil {
 			t.Fatalf("label add failed: %v\n%s", err, out)
 		}
-		cmd = exec.Command(bd, "close", issue.ID)
+		cmd = exec.Command(issuegraph, "close", issue.ID)
 		cmd.Dir = dir
-		cmd.Env = bdEnv(dir)
+		cmd.Env = issuegraphEnv(dir)
 		if out, err := cmd.CombinedOutput(); err != nil {
 			t.Fatalf("close failed: %v\n%s", err, out)
 		}
 
-		out := bdShip(t, bd, dir, "dry-cap", "--dry-run")
+		out := issuegraphShip(t, issuegraph, dir, "dry-cap", "--dry-run")
 		if !strings.Contains(out, "dry run") && !strings.Contains(out, "Would ship") {
 			t.Errorf("expected dry-run message: %s", out)
 		}
 
 		// Verify label was NOT added
-		cmd = exec.Command(bd, "label", "list", issue.ID, "--json")
+		cmd = exec.Command(issuegraph, "label", "list", issue.ID, "--json")
 		cmd.Dir = dir
-		cmd.Env = bdEnv(dir)
+		cmd.Env = issuegraphEnv(dir)
 		labelOut, labelErr := cmd.CombinedOutput()
 		if labelErr != nil {
 			t.Fatalf("label list failed: %v\n%s", labelErr, labelOut)
@@ -136,24 +136,24 @@ func TestEmbeddedShip(t *testing.T) {
 	// ===== Already Shipped =====
 
 	t.Run("ship_already_shipped", func(t *testing.T) {
-		issue := bdCreate(t, bd, dir, "Ship already test", "--type", "task")
-		cmd := exec.Command(bd, "label", "add", issue.ID, "export:already-cap")
+		issue := issuegraphCreate(t, issuegraph, dir, "Ship already test", "--type", "task")
+		cmd := exec.Command(issuegraph, "label", "add", issue.ID, "export:already-cap")
 		cmd.Dir = dir
-		cmd.Env = bdEnv(dir)
+		cmd.Env = issuegraphEnv(dir)
 		if out, err := cmd.CombinedOutput(); err != nil {
 			t.Fatalf("label add failed: %v\n%s", err, out)
 		}
-		cmd = exec.Command(bd, "close", issue.ID)
+		cmd = exec.Command(issuegraph, "close", issue.ID)
 		cmd.Dir = dir
-		cmd.Env = bdEnv(dir)
+		cmd.Env = issuegraphEnv(dir)
 		if out, err := cmd.CombinedOutput(); err != nil {
 			t.Fatalf("close failed: %v\n%s", err, out)
 		}
 
 		// Ship once
-		bdShip(t, bd, dir, "already-cap")
+		issuegraphShip(t, issuegraph, dir, "already-cap")
 		// Ship again — should report already shipped
-		out := bdShip(t, bd, dir, "already-cap")
+		out := issuegraphShip(t, issuegraph, dir, "already-cap")
 		if !strings.Contains(out, "already shipped") && !strings.Contains(out, "already_shipped") {
 			t.Errorf("expected 'already shipped' message: %s", out)
 		}
@@ -162,33 +162,33 @@ func TestEmbeddedShip(t *testing.T) {
 	// ===== No Export Label =====
 
 	t.Run("ship_no_export_label", func(t *testing.T) {
-		bdShipFail(t, bd, dir, "nonexistent-capability-xyz")
+		issuegraphShipFail(t, issuegraph, dir, "nonexistent-capability-xyz")
 	})
 }
 
 // TestEmbeddedShipConcurrent exercises ship --dry-run concurrently.
 func TestEmbeddedShipConcurrent(t *testing.T) {
-	if os.Getenv("BEADS_TEST_EMBEDDED_DOLT") != "1" {
-		t.Skip("set BEADS_TEST_EMBEDDED_DOLT=1 to run embedded dolt integration tests")
+	if os.Getenv("ISSUEGRAPH_TEST_EMBEDDED_DOLT") != "1" {
+		t.Skip("set ISSUEGRAPH_TEST_EMBEDDED_DOLT=1 to run embedded dolt integration tests")
 	}
 	t.Parallel()
 
-	bd := buildEmbeddedBD(t)
-	dir, _, _ := bdInit(t, bd, "--prefix", "sx")
+	issuegraph := buildEmbeddedBD(t)
+	dir, _, _ := issuegraphInit(t, issuegraph, "--prefix", "sx")
 
 	// Pre-create issues with export labels
 	for i := 0; i < 8; i++ {
-		issue := bdCreate(t, bd, dir, fmt.Sprintf("ship-concurrent-%d", i), "--type", "task")
+		issue := issuegraphCreate(t, issuegraph, dir, fmt.Sprintf("ship-concurrent-%d", i), "--type", "task")
 		cap := fmt.Sprintf("cap-%d", i)
-		cmd := exec.Command(bd, "label", "add", issue.ID, "export:"+cap)
+		cmd := exec.Command(issuegraph, "label", "add", issue.ID, "export:"+cap)
 		cmd.Dir = dir
-		cmd.Env = bdEnv(dir)
+		cmd.Env = issuegraphEnv(dir)
 		if out, err := cmd.CombinedOutput(); err != nil {
 			t.Fatalf("label add failed: %v\n%s", err, out)
 		}
-		cmd = exec.Command(bd, "close", issue.ID)
+		cmd = exec.Command(issuegraph, "close", issue.ID)
 		cmd.Dir = dir
-		cmd.Env = bdEnv(dir)
+		cmd.Env = issuegraphEnv(dir)
 		if out, err := cmd.CombinedOutput(); err != nil {
 			t.Fatalf("close failed: %v\n%s", err, out)
 		}
@@ -209,9 +209,9 @@ func TestEmbeddedShipConcurrent(t *testing.T) {
 			r := workerResult{worker: worker}
 			cap := fmt.Sprintf("cap-%d", worker)
 
-			cmd := exec.Command(bd, "ship", cap, "--dry-run")
+			cmd := exec.Command(issuegraph, "ship", cap, "--dry-run")
 			cmd.Dir = dir
-			cmd.Env = bdEnv(dir)
+			cmd.Env = issuegraphEnv(dir)
 			out, err := cmd.CombinedOutput()
 			if err != nil {
 				r.err = fmt.Errorf("ship --dry-run %s (worker %d): %v\n%s", cap, worker, err, out)
@@ -229,30 +229,30 @@ func TestEmbeddedShipConcurrent(t *testing.T) {
 }
 
 func TestEmbeddedExternalCapabilityReadyAfterShip(t *testing.T) {
-	if os.Getenv("BEADS_TEST_EMBEDDED_DOLT") != "1" {
-		t.Skip("set BEADS_TEST_EMBEDDED_DOLT=1 to run embedded dolt integration tests")
+	if os.Getenv("ISSUEGRAPH_TEST_EMBEDDED_DOLT") != "1" {
+		t.Skip("set ISSUEGRAPH_TEST_EMBEDDED_DOLT=1 to run embedded dolt integration tests")
 	}
 	t.Parallel()
 
-	bd := buildEmbeddedBD(t)
-	localDir, _, _ := bdInit(t, bd, "--prefix", "xl")
-	remoteDir, _, _ := bdInit(t, bd, "--prefix", "xr")
+	issuegraph := buildEmbeddedBD(t)
+	localDir, _, _ := issuegraphInit(t, issuegraph, "--prefix", "xl")
+	remoteDir, _, _ := issuegraphInit(t, issuegraph, "--prefix", "xr")
 
 	config := fmt.Sprintf("external_projects:\n  remote: %q\n", remoteDir)
-	if err := os.WriteFile(filepath.Join(localDir, ".beads", "config.local.yaml"), []byte(config), 0o600); err != nil {
+	if err := os.WriteFile(filepath.Join(localDir, ".issuegraph", "config.local.yaml"), []byte(config), 0o600); err != nil {
 		t.Fatalf("write external project config: %v", err)
 	}
 
-	dependent := bdCreate(t, bd, localDir, "Wait for payments capability", "--type", "task")
-	provider := bdCreate(t, bd, remoteDir, "Export payments capability", "--type", "task")
+	dependent := issuegraphCreate(t, issuegraph, localDir, "Wait for payments capability", "--type", "task")
+	provider := issuegraphCreate(t, issuegraph, remoteDir, "Export payments capability", "--type", "task")
 	run := func(dir string, args ...string) string {
 		t.Helper()
-		cmd := exec.Command(bd, args...)
+		cmd := exec.Command(issuegraph, args...)
 		cmd.Dir = dir
-		cmd.Env = bdEnv(dir)
+		cmd.Env = issuegraphEnv(dir)
 		out, err := cmd.CombinedOutput()
 		if err != nil {
-			t.Fatalf("bd %s failed: %v: %s", strings.Join(args, " "), err, out)
+			t.Fatalf("issuegraph %s failed: %v: %s", strings.Join(args, " "), err, out)
 		}
 		return string(out)
 	}
@@ -263,8 +263,8 @@ func TestEmbeddedExternalCapabilityReadyAfterShip(t *testing.T) {
 	if out := run(localDir, "ready", "--json", "--limit", "0"); strings.Contains(out, dependent.ID) {
 		t.Fatalf("dependent became ready before capability publication: %s", out)
 	}
-	bdShip(t, bd, remoteDir, "payments")
+	issuegraphShip(t, issuegraph, remoteDir, "payments")
 	if out := run(localDir, "ready", "--json", "--limit", "0"); !strings.Contains(out, dependent.ID) {
-		t.Fatalf("dependent did not become ready after bd ship: %s", out)
+		t.Fatalf("dependent did not become ready after issuegraph ship: %s", out)
 	}
 }

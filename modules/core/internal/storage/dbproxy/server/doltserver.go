@@ -21,12 +21,12 @@ import (
 	_ "github.com/go-sql-driver/mysql"
 	"golang.org/x/sync/errgroup"
 
-	"github.com/steveyegge/beads/internal/doltserver"
-	"github.com/steveyegge/beads/internal/procid"
-	"github.com/steveyegge/beads/internal/storage/dbproxy/identity"
-	"github.com/steveyegge/beads/internal/storage/dbproxy/pidfile"
-	"github.com/steveyegge/beads/internal/storage/dbproxy/util"
-	"github.com/steveyegge/beads/internal/storage/versioncontrolops"
+	"github.com/borg0ai/dx-issuegraph/internal/doltserver"
+	"github.com/borg0ai/dx-issuegraph/internal/procid"
+	"github.com/borg0ai/dx-issuegraph/internal/storage/dbproxy/identity"
+	"github.com/borg0ai/dx-issuegraph/internal/storage/dbproxy/pidfile"
+	"github.com/borg0ai/dx-issuegraph/internal/storage/dbproxy/util"
+	"github.com/borg0ai/dx-issuegraph/internal/storage/versioncontrolops"
 )
 
 const defaultKeepAlivePeriod = 30 * time.Second
@@ -140,7 +140,7 @@ func (s *DoltServer) doltConfigure(ctx context.Context) error {
 	if out, err := probe.Output(); err == nil && strings.TrimSpace(string(out)) != "" {
 		return nil
 	}
-	name, email := "beads", "beads@localhost"
+	name, email := "issuegraph", "issuegraph@localhost"
 	if out, err := exec.CommandContext(ctx, "git", "config", "user.name").Output(); err == nil {
 		if v := strings.TrimSpace(string(out)); v != "" {
 			name = v

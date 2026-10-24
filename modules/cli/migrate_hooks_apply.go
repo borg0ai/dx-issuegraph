@@ -8,7 +8,7 @@ import (
 	"os"
 	"strings"
 
-	"github.com/steveyegge/beads/modules/cli/doctor"
+	"github.com/borg0ai/dx-issuegraph/modules/cli/doctor"
 )
 
 type hookMigrationMode struct {
@@ -155,7 +155,7 @@ func buildHookMigrationExecutionPlan(plan doctor.HookMigrationPlan) hookMigratio
 		// For legacy hooks with sidecars, the migration discards the current hook
 		// file in favor of sidecar content. Check that the user hasn't added custom
 		// logic to the shim — if they have, block migration to avoid silent data loss.
-		if hook.LegacyBDHook && (hook.HasOldSidecar || hook.HasBackupSidecar) {
+		if hook.LegacyIssueGraphHook && (hook.HasOldSidecar || hook.HasBackupSidecar) {
 			content, readErr := os.ReadFile(hook.HookPath) // #nosec G304 -- path from migration planner
 			if readErr == nil && !doctor.IsUnmodifiedLegacyHook(string(content)) {
 				execPlan.BlockingErrors = append(execPlan.BlockingErrors,

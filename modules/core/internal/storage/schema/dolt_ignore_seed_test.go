@@ -16,9 +16,9 @@ import (
 // expected, which is exactly the shape the fence produces at the wire: the
 // old unconditional `INSERT IGNORE` died here with
 //
-//	command denied to user 'bd_lego_pilot_op'@'%'
+//	command denied to user 'issuegraph_lego_pilot_op'@'%'
 //
-// and took `bd init --server --external` with it.
+// and took `issuegraph init --server --external` with it.
 func TestSeedDoltIgnorePatternsWritesNothingWhenAllPatternsPresent(t *testing.T) {
 	db, mock, err := sqlmock.New()
 	if err != nil {

@@ -8,23 +8,23 @@ import (
 	"path/filepath"
 	"strings"
 
-	"github.com/steveyegge/beads/modules/cli/doctor"
-	"github.com/steveyegge/beads/internal/beads"
-	"github.com/steveyegge/beads/internal/configfile"
-	"github.com/steveyegge/beads/internal/debug"
-	"github.com/steveyegge/beads/internal/doltserver"
-	"github.com/steveyegge/beads/internal/storage"
-	"github.com/steveyegge/beads/internal/storage/dolt"
-	"github.com/steveyegge/beads/internal/storage/schema"
-	"github.com/steveyegge/beads/issueops"
+	"github.com/borg0ai/dx-issuegraph/internal/configfile"
+	"github.com/borg0ai/dx-issuegraph/internal/debug"
+	"github.com/borg0ai/dx-issuegraph/internal/doltserver"
+	"github.com/borg0ai/dx-issuegraph/internal/issuegraph"
+	"github.com/borg0ai/dx-issuegraph/internal/storage"
+	"github.com/borg0ai/dx-issuegraph/internal/storage/dolt"
+	"github.com/borg0ai/dx-issuegraph/internal/storage/schema"
+	"github.com/borg0ai/dx-issuegraph/issueops"
+	"github.com/borg0ai/dx-issuegraph/modules/cli/doctor"
 )
 
-// localVersionFile is the gitignored file that stores the last bd version used locally.
+// localVersionFile is the gitignored file that stores the last issuegraph version used locally.
 // This prevents the upgrade notification from firing repeatedly when git operations
 // reset the tracked metadata.json file.
 const localVersionFile = ".local_version"
 
-// trackBdVersion checks if bd version has changed since last run and updates the local version file.
+// trackBdVersion checks if issuegraph version has changed since last run and updates the local version file.
 // This function is best-effort - failures are silent to avoid disrupting commands.
 // Sets global variables versionUpgradeDetected and previousVersion if upgrade detected.
 func trackBdVersion() {
@@ -50,15 +50,15 @@ func trackBdVersionPreview() {
 }
 
 func trackBdVersionFile(persist bool) {
-	// Find the beads directory
-	beadsDir := beads.FindBeadsDir()
-	if beadsDir == "" {
-		// No .beads directory found - this is fine (e.g., bd init, bd version, etc.)
+	// Find the issuegraph directory
+	issuegraphDir := issuegraph.FindIssueGraphDir()
+	if issuegraphDir == "" {
+		// No .issuegraph directory found - this is fine (e.g., issuegraph init, issuegraph version, etc.)
 		return
 	}
 
 	// Read last version from local (gitignored) file
-	localVersionPath := filepath.Join(beadsDir, localVersionFile)
+	localVersionPath := filepath.Join(issuegraphDir, localVersionFile)
 	lastVersion := readLocalVersion(localVersionPath)
 
 	// Check if version changed (only flag actual upgrades, not downgrades).
@@ -90,10 +90,10 @@ func trackBdVersionFile(persist bool) {
 
 }
 
-// readLocalVersion reads the last bd version from the local version file.
+// readLocalVersion reads the last issuegraph version from the local version file.
 // Returns empty string if file doesn't exist or can't be read.
 func readLocalVersion(path string) string {
-	// #nosec G304 - path is constructed from beadsDir + constant
+	// #nosec G304 - path is constructed from issuegraphDir + constant
 	data, err := os.ReadFile(path)
 	if err != nil {
 		return ""
@@ -173,7 +173,7 @@ func displayVersion(version string) string {
 }
 
 // maybeShowUpgradeNotification displays a one-time upgrade notification if version changed.
-// This is called by commands like 'bd ready' and 'bd list' to inform users of upgrades.
+// This is called by commands like 'issuegraph ready' and 'issuegraph list' to inform users of upgrades.
 func maybeShowUpgradeNotification() {
 	// Only show if upgrade detected and not yet acknowledged
 	if !versionUpgradeDetected || upgradeAcknowledged {
@@ -184,10 +184,10 @@ func maybeShowUpgradeNotification() {
 	upgradeAcknowledged = true
 
 	// Display notification
-	fmt.Printf("🔄 bd upgraded from %s to %s since last use\n", displayVersion(previousVersion), displayVersion(Version))
-	fmt.Println("💡 Run 'bd upgrade review' to see what changed")
+	fmt.Printf("🔄 issuegraph upgraded from %s to %s since last use\n", displayVersion(previousVersion), displayVersion(Version))
+	fmt.Println("💡 Run 'issuegraph upgrade review' to see what changed")
 	if usesSQLServer() {
-		fmt.Println("💊 Run 'bd doctor' to verify upgrade completed cleanly")
+		fmt.Println("💊 Run 'issuegraph doctor' to verify upgrade completed cleanly")
 	}
 
 	fmt.Println()
@@ -199,21 +199,21 @@ func maybeShowUpgradeNotification() {
 //
 // IMPORTANT: This must be called BEFORE opening the database to avoid opening DB twice.
 //
-// beadsDir is the path to the .beads directory.
-func autoMigrateOnVersionBump(beadsDir string) {
+// issuegraphDir is the path to the .issuegraph directory.
+func autoMigrateOnVersionBump(issuegraphDir string) {
 	// Only migrate if version upgrade was detected
 	if !versionUpgradeDetected {
 		return
 	}
 
-	// Validate beadsDir
-	if beadsDir == "" {
-		debug.Logf("auto-migrate: skipping migration, no beads directory")
+	// Validate issuegraphDir
+	if issuegraphDir == "" {
+		debug.Logf("auto-migrate: skipping migration, no issuegraph directory")
 		return
 	}
 
 	// Load config to determine the correct database path for this backend
-	cfg, err := configfile.Load(beadsDir)
+	cfg, err := configfile.Load(issuegraphDir)
 	if err != nil {
 		debug.Logf("auto-migrate: failed to load config: %v", err)
 		return
@@ -232,7 +232,7 @@ func autoMigrateOnVersionBump(beadsDir string) {
 	}
 
 	// Check if database exists at the backend-appropriate path
-	dbPath := cfg.DatabasePath(beadsDir)
+	dbPath := cfg.DatabasePath(issuegraphDir)
 	if _, err := os.Stat(dbPath); os.IsNotExist(err) {
 		// No database - nothing to migrate
 		debug.Logf("auto-migrate: skipping migration, database does not exist: %s", dbPath)
@@ -258,7 +258,7 @@ func autoMigrateOnVersionBump(beadsDir string) {
 	//
 	// The probe asks the ROLE for the marker rather than reading the metadata
 	// key itself: a store opened read-only can answer it.
-	if roStore, roErr := dolt.NewFromConfigWithOptions(ctx, beadsDir, &dolt.Config{ReadOnly: true}); roErr == nil {
+	if roStore, roErr := dolt.NewFromConfigWithOptions(ctx, issuegraphDir, &dolt.Config{ReadOnly: true}); roErr == nil {
 		recorded, probeErr := recordedWorkspaceVersion(ctx, roStore)
 		_ = roStore.Close()
 		if probeErr == nil && recorded == Version {
@@ -267,7 +267,7 @@ func autoMigrateOnVersionBump(beadsDir string) {
 		}
 	}
 
-	store, err := dolt.NewFromConfig(ctx, beadsDir)
+	store, err := dolt.NewFromConfig(ctx, issuegraphDir)
 	if err != nil {
 		// Failed to open database - skip migration
 		debug.Logf("auto-migrate: failed to open database: %v", err)
@@ -316,7 +316,7 @@ func autoMigrateOnVersionBump(beadsDir string) {
 // 0, so any non-semver string writeLocalVersion has recorded compares as
 // pre-0.56 and routes a current workspace into this destructive path:
 // Homebrew's "HEAD-<shortsha>" from a --HEAD install (#5603), and the
-// v-prefixed Go pseudo-version a `go install`-built bd stamps (#5650). Neither
+// v-prefixed Go pseudo-version a `go install`-built issuegraph stamps (#5650). Neither
 // is a pre-0.56 workspace; both would lose their database.
 //
 // IsValidSemver rejects exactly the shapes CompareVersions misreads, so this
@@ -347,7 +347,7 @@ func recoverPreV56IfNeeded(previousVersion, dbPath string) {
 // open will report anything that matters. A gate refusal is different: it is
 // the whole point of the version bump (there ARE pending migrations), it will
 // not be reported by a read command's own open (read-only opens never touch
-// the schema), and it is the moment gastownhall/beads#5920 used to silently
+// the schema), and it is the moment borg0ai/dx-issuegraph#5920 used to silently
 // promote the cursor for every co-resident client. Now nothing is promoted, so
 // say what happened and what to do about it.
 //
@@ -381,18 +381,18 @@ func noticeSharedMigrateRefusal(err error) {
 	case "adopt", "adopt-ff":
 		// The remote is already migrated: migrating here would fork it, and
 		// the verb consent deliberately does not unlock this arm.
-		remedy = "Another clone has already migrated this database — adopt it with 'bd bootstrap' rather than migrating here; reads keep working meanwhile."
+		remedy = "Another clone has already migrated this database — adopt it with 'issuegraph bootstrap' rather than migrating here; reads keep working meanwhile."
 	case "fork-skew":
-		remedy = "This database and its remote already applied different content for the same migration (#4259) — run 'bd doctor' and follow its migration-content-skew guidance; do not migrate."
+		remedy = "This database and its remote already applied different content for the same migration (#4259) — run 'issuegraph doctor' and follow its migration-content-skew guidance; do not migrate."
 	default:
 		// The blunt remote-backed stop, including the shared-store
 		// first-mover suppression. Its full block names the designated-
 		// migrator and adopt paths with their preconditions, and picking one
 		// here would be guessing.
-		remedy = "This database has a remote — run 'bd migrate' to see the migrate-or-adopt options before choosing; reads keep working meanwhile."
+		remedy = "This database has a remote — run 'issuegraph migrate' to see the migrate-or-adopt options before choosing; reads keep working meanwhile."
 	}
 	fmt.Fprintf(os.Stderr,
-		"bd upgraded to %s: %d schema migration(s) pending on this database — not auto-applying (#5920).\n%s\n",
+		"issuegraph upgraded to %s: %d schema migration(s) pending on this database — not auto-applying (#5920).\n%s\n",
 		displayVersion(Version), gateErr.Pending, remedy)
 }
 

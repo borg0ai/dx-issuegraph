@@ -1,21 +1,21 @@
 ---
-title: "bd undefer"
+title: "issuegraph undefer"
 description: "Undefer issues to restore them to open status."
 ---
 
 {/* AUTO-GENERATED: do not edit manually */}
 
-Generated from `bd help --doc undefer`.
+Generated from `issuegraph help --doc undefer`.
 
 Undefer issues to restore them to open status.
 
 This brings issues back from the icebox so they can be worked on again.
-Issues will appear in 'bd ready' if they have no blockers.
+Issues will appear in 'issuegraph ready' if they have no blockers.
 
 Examples:
-  bd undefer bd-abc        # Undefer a single issue
-  bd undefer bd-abc bd-def # Undefer multiple issues
+  issuegraph undefer issuegraph-abc        # Undefer a single issue
+  issuegraph undefer issuegraph-abc issuegraph-def # Undefer multiple issues
 
 ```
-bd undefer [id...] [flags]
+issuegraph undefer [id...] [flags]
 ```

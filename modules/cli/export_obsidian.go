@@ -8,10 +8,10 @@ import (
 	"strings"
 	"time"
 
-	"github.com/steveyegge/beads/internal/types"
+	"github.com/borg0ai/dx-issuegraph/internal/types"
 )
 
-// obsidianCheckbox maps bd status to Obsidian Tasks checkbox syntax
+// obsidianCheckbox maps issuegraph status to Obsidian Tasks checkbox syntax
 var obsidianCheckbox = map[types.Status]string{
 	types.StatusOpen:       "- [ ]",
 	types.StatusInProgress: "- [/]",
@@ -22,7 +22,7 @@ var obsidianCheckbox = map[types.Status]string{
 	types.StatusHooked:     "- [/]", // Treat as in-progress
 }
 
-// obsidianPriority maps bd priority (0-4) to Obsidian priority emoji
+// obsidianPriority maps issuegraph priority (0-4) to Obsidian priority emoji
 var obsidianPriority = []string{
 	"🔺", // 0 = critical/highest
 	"⏫", // 1 = high
@@ -31,7 +31,7 @@ var obsidianPriority = []string{
 	"⏬", // 4 = backlog/lowest
 }
 
-// obsidianTypeTag maps bd issue type to Obsidian tag (core types only)
+// obsidianTypeTag maps issuegraph issue type to Obsidian tag (core types only)
 // Custom types (e.g. orchestrator-specific) will use their issue_type value as a tag.
 var obsidianTypeTag = map[types.IssueType]string{
 	types.TypeBug:     "#Bug",

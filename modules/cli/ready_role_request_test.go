@@ -5,11 +5,11 @@ import (
 	"slices"
 	"testing"
 
-	"github.com/steveyegge/beads/internal/workapi"
+	"github.com/borg0ai/dx-issuegraph/internal/workapi"
 )
 
 // TestReadyRoleRequestDropsThePage pins what both role-taking questions of
-// `bd ready` share: the claim and the count are asked over the LISTING's
+// `issuegraph ready` share: the claim and the count are asked over the LISTING's
 // request with the page removed.
 //
 // Both roles refuse a Limit and an Offset (ErrValidation). For the count,

@@ -7,11 +7,11 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/steveyegge/beads/internal/git"
+	"github.com/borg0ai/dx-issuegraph/internal/git"
 )
 
-func TestFindBeadsRepoRoot_WorktreeFallback(t *testing.T) {
-	tmpDir, err := os.MkdirTemp("", "beads-worktree-cfg-test-*")
+func TestFindIssueGraphRepoRoot_WorktreeFallback(t *testing.T) {
+	tmpDir, err := os.MkdirTemp("", "issuegraph-worktree-cfg-test-*")
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -52,19 +52,19 @@ func TestFindBeadsRepoRoot_WorktreeFallback(t *testing.T) {
 		_ = cleanupCmd.Run()
 	})
 
-	if err := os.MkdirAll(filepath.Join(mainRepoDir, ".beads"), 0755); err != nil {
+	if err := os.MkdirAll(filepath.Join(mainRepoDir, ".issuegraph"), 0755); err != nil {
 		t.Fatal(err)
 	}
 
-	worktreeBeads := filepath.Join(worktreeDir, ".beads")
-	os.RemoveAll(worktreeBeads)
+	worktreeIssueGraph := filepath.Join(worktreeDir, ".issuegraph")
+	os.RemoveAll(worktreeIssueGraph)
 
 	t.Chdir(worktreeDir)
 	git.ResetCaches()
 
-	got := findBeadsRepoRoot(worktreeDir)
+	got := findIssueGraphRepoRoot(worktreeDir)
 	if got == "" {
-		t.Fatal("findBeadsRepoRoot returned empty string; expected main repo dir")
+		t.Fatal("findIssueGraphRepoRoot returned empty string; expected main repo dir")
 	}
 
 	gotClean := filepath.Clean(strings.TrimSpace(got))
@@ -80,12 +80,12 @@ func TestFindBeadsRepoRoot_WorktreeFallback(t *testing.T) {
 	}
 
 	if gotEval != wantEval {
-		t.Errorf("findBeadsRepoRoot = %q, want %q", gotEval, wantEval)
+		t.Errorf("findIssueGraphRepoRoot = %q, want %q", gotEval, wantEval)
 	}
 }
 
-func TestBeadsPollutionCheck_WorktreeSkips(t *testing.T) {
-	tmpDir, err := os.MkdirTemp("", "beads-worktree-preflight-test-*")
+func TestIssueGraphPollutionCheck_WorktreeSkips(t *testing.T) {
+	tmpDir, err := os.MkdirTemp("", "issuegraph-worktree-preflight-test-*")
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -126,16 +126,16 @@ func TestBeadsPollutionCheck_WorktreeSkips(t *testing.T) {
 		_ = cleanupCmd.Run()
 	})
 
-	if err := os.MkdirAll(filepath.Join(mainRepoDir, ".beads"), 0755); err != nil {
+	if err := os.MkdirAll(filepath.Join(mainRepoDir, ".issuegraph"), 0755); err != nil {
 		t.Fatal(err)
 	}
-	os.RemoveAll(filepath.Join(worktreeDir, ".beads"))
+	os.RemoveAll(filepath.Join(worktreeDir, ".issuegraph"))
 
 	t.Chdir(worktreeDir)
 	git.ResetCaches()
 
-	result := runBeadsPollutionCheck()
+	result := runIssueGraphPollutionCheck()
 	if !result.Passed {
-		t.Errorf("runBeadsPollutionCheck() in worktree: Passed=%v, want true (should skip when .beads is outside worktree)", result.Passed)
+		t.Errorf("runIssueGraphPollutionCheck() in worktree: Passed=%v, want true (should skip when .issuegraph is outside worktree)", result.Passed)
 	}
 }

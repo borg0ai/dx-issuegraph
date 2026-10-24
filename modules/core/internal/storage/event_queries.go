@@ -4,7 +4,7 @@ import (
 	"context"
 	"time"
 
-	"github.com/steveyegge/beads/internal/types"
+	"github.com/borg0ai/dx-issuegraph/internal/types"
 )
 
 // EventCursor is a keyset position in the durable events stream, ordered by
@@ -24,8 +24,8 @@ type EventQueryStore interface {
 	// capped). It reads the durable events table only — wisp events are not
 	// included — so a change feed built on it stays durable-only.
 	//
-	// issueID scopes the feed to a single bead's history ("" = all issues),
-	// serving a per-bead drawer read off the same keyset primitive. The scan
+	// issueID scopes the feed to a single issue's history ("" = all issues),
+	// serving a per-issue drawer read off the same keyset primitive. The scan
 	// seeks idx_events_created_at on the created_at lower bound; with issueID
 	// set the planner may instead seek idx_events_issue and filter on the
 	// cursor (a composite (issue_id, created_at, id) index does not exist).

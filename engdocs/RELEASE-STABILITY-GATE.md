@@ -19,7 +19,7 @@ Every release candidate must pass upgrade smoke tests from these starting points
 
 1. **Data preservation**: issues created before upgrade are visible after upgrade
 2. **Mode preservation**: `embedded` stays `embedded`, `shared-server` stays `shared-server`
-3. **Role preservation**: `beads.role` git config is not cleared or changed
+3. **Role preservation**: `issuegraph.role` git config is not cleared or changed
 4. **Config continuity**: `issuegraph doctor quick` passes after upgrade
 5. **No silent errors**: upgrade path produces no unexpected warnings or errors
 
@@ -34,7 +34,7 @@ make test-upgrade
 ```
 
 The script:
-1. Downloads the previous release binary (cached in `~/.cache/beads-regression/`)
+1. Downloads the previous release binary (cached in `~/.cache/issuegraph-regression/`)
 2. Creates isolated workspaces for each scenario
 3. Initialises with the old binary, creates test data
 4. Runs `issuegraph init` with the candidate binary (simulating upgrade)
@@ -61,7 +61,7 @@ document the breaking change with explicit migration steps before shipping.
 
 ## Related Issues
 
-- [#2764](https://github.com/gastownhall/beads/issues/2764) — Test gap: upgrade paths
-- [#2765](https://github.com/gastownhall/beads/issues/2765) — Test gap: mode preservation
-- [#2949](https://github.com/gastownhall/beads/issues/2949) — v0.63.3 silent mode switch
-- [#2950](https://github.com/gastownhall/beads/issues/2950) — beads.role left unset
+- [#2764](https://github.com/borg0ai/dx-issuegraph/issues/2764) — Test gap: upgrade paths
+- [#2765](https://github.com/borg0ai/dx-issuegraph/issues/2765) — Test gap: mode preservation
+- [#2949](https://github.com/borg0ai/dx-issuegraph/issues/2949) — v0.63.3 silent mode switch
+- [#2950](https://github.com/borg0ai/dx-issuegraph/issues/2950) — issuegraph.role left unset

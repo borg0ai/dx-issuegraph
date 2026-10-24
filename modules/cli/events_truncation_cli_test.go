@@ -13,7 +13,7 @@ import (
 	"testing"
 	"time"
 
-	"github.com/steveyegge/beads/internal/storage"
+	"github.com/borg0ai/dx-issuegraph/internal/storage"
 )
 
 // TestEventsTailReportsTruncationToTheCLI is the end-to-end guard for the
@@ -22,30 +22,30 @@ import (
 //
 // It exists because the store returning a typed error is only half the
 // contract — the CLI has two read call sites (the one-shot read and the
-// --follow poll) and wiring only one of them still lets `bd events export`
+// --follow poll) and wiring only one of them still lets `issuegraph events export`
 // present a pruned journal as a complete history. A store-level test cannot see
 // that; this one fails if either path regresses. It also proves the whole
-// config chain end to end: BD_EVENTS_JOURNAL turns the journal on, and the two
-// BD_EVENTS_JOURNAL_RETAIN_* floors reach the prune.
+// config chain end to end: ISSUEGRAPH_EVENTS_JOURNAL turns the journal on, and the two
+// ISSUEGRAPH_EVENTS_JOURNAL_RETAIN_* floors reach the prune.
 func TestEventsTailReportsTruncationToTheCLI(t *testing.T) {
-	if os.Getenv("BEADS_TEST_EMBEDDED_DOLT") != "1" {
-		t.Skip("set BEADS_TEST_EMBEDDED_DOLT=1 to run embedded dolt integration tests")
+	if os.Getenv("ISSUEGRAPH_TEST_EMBEDDED_DOLT") != "1" {
+		t.Skip("set ISSUEGRAPH_TEST_EMBEDDED_DOLT=1 to run embedded dolt integration tests")
 	}
 	t.Parallel()
 
-	bd := buildEmbeddedBD(t)
-	dir, _, _ := bdInit(t, bd, "--prefix", "evt", "--skip-hooks", "--skip-agents")
+	issuegraph := buildEmbeddedBD(t)
+	dir, _, _ := issuegraphInit(t, issuegraph, "--prefix", "evt", "--skip-hooks", "--skip-agents")
 
 	// Disable both retention floors so the prune can actually reach the rows;
 	// the shipped defaults are non-zero precisely to prevent this by accident.
-	env := append(bdEnv(dir),
-		"BD_EVENTS_JOURNAL=1",
-		"BD_EVENTS_JOURNAL_RETAIN_DAYS=0",
-		"BD_EVENTS_JOURNAL_RETAIN_ROWS=0",
+	env := append(issuegraphEnv(dir),
+		"ISSUEGRAPH_EVENTS_JOURNAL=1",
+		"ISSUEGRAPH_EVENTS_JOURNAL_RETAIN_DAYS=0",
+		"ISSUEGRAPH_EVENTS_JOURNAL_RETAIN_ROWS=0",
 	)
 	run := func(args ...string) (string, error) {
 		t.Helper()
-		cmd := exec.Command(bd, args...)
+		cmd := exec.Command(issuegraph, args...)
 		cmd.Dir = dir
 		cmd.Env = env
 		out, err := cmd.CombinedOutput()
@@ -113,7 +113,7 @@ func TestEventsTailReportsTruncationToTheCLI(t *testing.T) {
 // site: the --follow poll, which the one-shot test above cannot reach.
 //
 // A follower is the consumer most exposed to a prune — it is the one sitting
-// idle at a checkpoint while an operator runs `bd events prune`. Two things
+// idle at a checkpoint while an operator runs `issuegraph events prune`. Two things
 // have to hold when that happens mid-stream, and neither is implied by the
 // one-shot path: the poll must FAIL rather than silently skip to the new floor,
 // and the failure must arrive as ONE JSON object on a line of the JSONL stream
@@ -121,21 +121,21 @@ func TestEventsTailReportsTruncationToTheCLI(t *testing.T) {
 // pretty-printed multi-line object in the middle of its input is unparseable,
 // and it would see the stream stop with garbage after the last good record.
 func TestEventsTailFollowReportsTruncationOnTheStream(t *testing.T) {
-	if os.Getenv("BEADS_TEST_EMBEDDED_DOLT") != "1" {
-		t.Skip("set BEADS_TEST_EMBEDDED_DOLT=1 to run embedded dolt integration tests")
+	if os.Getenv("ISSUEGRAPH_TEST_EMBEDDED_DOLT") != "1" {
+		t.Skip("set ISSUEGRAPH_TEST_EMBEDDED_DOLT=1 to run embedded dolt integration tests")
 	}
 	t.Parallel()
 
-	bd := buildEmbeddedBD(t)
-	dir, _, _ := bdInit(t, bd, "--prefix", "flw", "--skip-hooks", "--skip-agents")
-	env := append(bdEnv(dir),
-		"BD_EVENTS_JOURNAL=1",
-		"BD_EVENTS_JOURNAL_RETAIN_DAYS=0",
-		"BD_EVENTS_JOURNAL_RETAIN_ROWS=0",
+	issuegraph := buildEmbeddedBD(t)
+	dir, _, _ := issuegraphInit(t, issuegraph, "--prefix", "flw", "--skip-hooks", "--skip-agents")
+	env := append(issuegraphEnv(dir),
+		"ISSUEGRAPH_EVENTS_JOURNAL=1",
+		"ISSUEGRAPH_EVENTS_JOURNAL_RETAIN_DAYS=0",
+		"ISSUEGRAPH_EVENTS_JOURNAL_RETAIN_ROWS=0",
 	)
 	run := func(args ...string) (string, error) {
 		t.Helper()
-		cmd := exec.Command(bd, args...)
+		cmd := exec.Command(issuegraph, args...)
 		cmd.Dir = dir
 		cmd.Env = env
 		out, err := cmd.CombinedOutput()
@@ -160,7 +160,7 @@ func TestEventsTailFollowReportsTruncationOnTheStream(t *testing.T) {
 
 	// --limit 1: one record per poll, so the follower advances at ~1 seq/second
 	// and the prune below has the whole backlog as slack.
-	follow := exec.Command(bd, "events", "tail", "--since", "0", "--limit", "1", "--follow", "--json")
+	follow := exec.Command(issuegraph, "events", "tail", "--since", "0", "--limit", "1", "--follow", "--json")
 	follow.Dir = dir
 	follow.Env = env
 	var stdout, stderr bytes.Buffer
@@ -231,21 +231,21 @@ func TestEventsTailFollowReportsTruncationOnTheStream(t *testing.T) {
 // floors of its own must be stopped by the built-in retain-rows floor rather
 // than deleting the whole journal and stranding its consumer.
 func TestEventsPruneHonorsRetainRowsFloorFromConfig(t *testing.T) {
-	if os.Getenv("BEADS_TEST_EMBEDDED_DOLT") != "1" {
-		t.Skip("set BEADS_TEST_EMBEDDED_DOLT=1 to run embedded dolt integration tests")
+	if os.Getenv("ISSUEGRAPH_TEST_EMBEDDED_DOLT") != "1" {
+		t.Skip("set ISSUEGRAPH_TEST_EMBEDDED_DOLT=1 to run embedded dolt integration tests")
 	}
 	t.Parallel()
 
-	bd := buildEmbeddedBD(t)
-	dir, _, _ := bdInit(t, bd, "--prefix", "flr", "--skip-hooks", "--skip-agents")
+	issuegraph := buildEmbeddedBD(t)
+	dir, _, _ := issuegraphInit(t, issuegraph, "--prefix", "flr", "--skip-hooks", "--skip-agents")
 
-	// Enable the journal through `bd config set` rather than the environment:
+	// Enable the journal through `issuegraph config set` rather than the environment:
 	// this is review blocker 6, where the key was accepted and silently ignored
 	// because it is read from yaml at startup, not from the database.
-	env := bdEnv(dir)
+	env := issuegraphEnv(dir)
 	run := func(args ...string) (string, error) {
 		t.Helper()
-		cmd := exec.Command(bd, args...)
+		cmd := exec.Command(issuegraph, args...)
 		cmd.Dir = dir
 		cmd.Env = env
 		out, err := cmd.CombinedOutput()
@@ -262,10 +262,10 @@ func TestEventsPruneHonorsRetainRowsFloorFromConfig(t *testing.T) {
 	}
 	out, err := run("events", "export", "--json")
 	if err != nil {
-		t.Fatalf("export after `bd config set events-journal true`: %v\n%s", err, out)
+		t.Fatalf("export after `issuegraph config set events-journal true`: %v\n%s", err, out)
 	}
 	if lines := strings.Count(strings.TrimSpace(out), "\n") + 1; lines != 3 {
-		t.Fatalf("`bd config set events-journal true` journaled %d records, want 3 — the key was accepted and ignored\n%s", lines, out)
+		t.Fatalf("`issuegraph config set events-journal true` journaled %d records, want 3 — the key was accepted and ignored\n%s", lines, out)
 	}
 
 	if out, err := run("events", "prune", "--before", "1000000", "--json"); err != nil {

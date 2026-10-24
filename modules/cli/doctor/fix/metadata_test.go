@@ -10,17 +10,17 @@ import (
 	"strings"
 	"testing"
 
+	"github.com/borg0ai/dx-issuegraph/internal/configfile"
 	mysql "github.com/go-sql-driver/mysql"
-	"github.com/steveyegge/beads/internal/configfile"
 )
 
-// TestFixMissingMetadata_NotBeadsWorkspace verifies that FixMissingMetadata
-// returns an error for paths without a .beads directory.
-func TestFixMissingMetadata_NotBeadsWorkspace(t *testing.T) {
+// TestFixMissingMetadata_NotIssueGraphWorkspace verifies that FixMissingMetadata
+// returns an error for paths without a .issuegraph directory.
+func TestFixMissingMetadata_NotIssueGraphWorkspace(t *testing.T) {
 	dir := t.TempDir()
 	err := FixMissingMetadata(dir, "1.0.0")
 	if err == nil {
-		t.Error("expected error for non-beads workspace")
+		t.Error("expected error for non-issuegraph workspace")
 	}
 }
 
@@ -38,13 +38,13 @@ func TestFixMissingMetadata_NoConfig(t *testing.T) {
 // handles an empty backend field (defaults to dolt).
 func TestFixMissingMetadata_EmptyBackend(t *testing.T) {
 	dir := setupTestWorkspace(t)
-	beadsDir := filepath.Join(dir, ".beads")
+	issuegraphDir := filepath.Join(dir, ".issuegraph")
 
 	// Create a config with empty backend (defaults to dolt)
 	cfg := &configfile.Config{
 		Database: "dolt",
 	}
-	if err := cfg.Save(beadsDir); err != nil {
+	if err := cfg.Save(issuegraphDir); err != nil {
 		t.Fatalf("failed to save config: %v", err)
 	}
 
@@ -59,7 +59,7 @@ func TestFixMissingMetadata_EmptyBackend(t *testing.T) {
 // is not registered so we get an error. Both outcomes are acceptable.
 func TestFixMissingMetadata_DoltConfigExists(t *testing.T) {
 	dir := setupTestWorkspace(t)
-	beadsDir := filepath.Join(dir, ".beads")
+	issuegraphDir := filepath.Join(dir, ".issuegraph")
 
 	// Set up git repo so repo_id can be computed
 	setupGitRepoInDir(t, dir)
@@ -69,12 +69,12 @@ func TestFixMissingMetadata_DoltConfigExists(t *testing.T) {
 		Database: "dolt",
 		Backend:  configfile.BackendDolt,
 	}
-	if err := cfg.Save(beadsDir); err != nil {
+	if err := cfg.Save(issuegraphDir); err != nil {
 		t.Fatalf("failed to save config: %v", err)
 	}
 
 	// Create the dolt directory
-	if err := os.MkdirAll(filepath.Join(beadsDir, "dolt"), 0755); err != nil {
+	if err := os.MkdirAll(filepath.Join(issuegraphDir, "dolt"), 0755); err != nil {
 		t.Fatalf("failed to create dolt dir: %v", err)
 	}
 
@@ -85,24 +85,24 @@ func TestFixMissingMetadata_DoltConfigExists(t *testing.T) {
 	t.Logf("FixMissingMetadata result: %v", err)
 }
 
-func TestFixProjectIdentity_NotBeadsWorkspace(t *testing.T) {
+func TestFixProjectIdentity_NotIssueGraphWorkspace(t *testing.T) {
 	if err := FixProjectIdentity(t.TempDir()); err == nil {
-		t.Fatal("expected error for non-beads workspace")
+		t.Fatal("expected error for non-issuegraph workspace")
 	}
 }
 
-func TestFixMissingDoltDatabase_NotBeadsWorkspace(t *testing.T) {
+func TestFixMissingDoltDatabase_NotIssueGraphWorkspace(t *testing.T) {
 	if err := FixMissingDoltDatabase(t.TempDir()); err == nil {
-		t.Fatal("expected error for non-beads workspace")
+		t.Fatal("expected error for non-issuegraph workspace")
 	}
 }
 
 // TestFixMissingMetadataJSON_Regenerates verifies that FixMissingMetadataJSON
-// creates a metadata.json file when it's missing but .beads/ exists (GH#2478).
+// creates a metadata.json file when it's missing but .issuegraph/ exists (GH#2478).
 func TestFixMissingMetadataJSON_Regenerates(t *testing.T) {
 	dir := setupTestWorkspace(t)
-	beadsDir := filepath.Join(dir, ".beads")
-	configPath := filepath.Join(beadsDir, "metadata.json")
+	issuegraphDir := filepath.Join(dir, ".issuegraph")
+	configPath := filepath.Join(issuegraphDir, "metadata.json")
 
 	// Verify metadata.json does not exist
 	if _, err := os.Stat(configPath); !os.IsNotExist(err) {
@@ -120,7 +120,7 @@ func TestFixMissingMetadataJSON_Regenerates(t *testing.T) {
 	}
 
 	// Verify it contains valid config
-	cfg, err := configfile.Load(beadsDir)
+	cfg, err := configfile.Load(issuegraphDir)
 	if err != nil {
 		t.Fatalf("Failed to load regenerated config: %v", err)
 	}
@@ -136,7 +136,7 @@ func TestFixMissingMetadataJSON_Regenerates(t *testing.T) {
 // does nothing when metadata.json already exists.
 func TestFixMissingMetadataJSON_NoOpWhenPresent(t *testing.T) {
 	dir := setupTestWorkspace(t)
-	beadsDir := filepath.Join(dir, ".beads")
+	issuegraphDir := filepath.Join(dir, ".issuegraph")
 
 	// Create metadata.json with custom content
 	cfg := &configfile.Config{
@@ -145,7 +145,7 @@ func TestFixMissingMetadataJSON_NoOpWhenPresent(t *testing.T) {
 		DoltMode:  "embedded",
 		ProjectID: "test-project-123",
 	}
-	if err := cfg.Save(beadsDir); err != nil {
+	if err := cfg.Save(issuegraphDir); err != nil {
 		t.Fatalf("failed to save config: %v", err)
 	}
 
@@ -155,7 +155,7 @@ func TestFixMissingMetadataJSON_NoOpWhenPresent(t *testing.T) {
 	}
 
 	// Verify original config is preserved (not overwritten with defaults)
-	loaded, err := configfile.Load(beadsDir)
+	loaded, err := configfile.Load(issuegraphDir)
 	if err != nil {
 		t.Fatalf("Failed to load config: %v", err)
 	}
@@ -166,12 +166,12 @@ func TestFixMissingMetadataJSON_NoOpWhenPresent(t *testing.T) {
 
 func TestFixMissingMetadataJSON_SharedWorktreeFallback(t *testing.T) {
 	mainRepoDir, worktreeDir := setupSharedWorktreeWorkspace(t)
-	sharedBeadsDir := filepath.Join(mainRepoDir, ".beads")
-	if err := os.MkdirAll(sharedBeadsDir, 0o755); err != nil {
-		t.Fatalf("failed to create shared .beads dir: %v", err)
+	sharedIssueGraphDir := filepath.Join(mainRepoDir, ".issuegraph")
+	if err := os.MkdirAll(sharedIssueGraphDir, 0o755); err != nil {
+		t.Fatalf("failed to create shared .issuegraph dir: %v", err)
 	}
 
-	configPath := filepath.Join(sharedBeadsDir, "metadata.json")
+	configPath := filepath.Join(sharedIssueGraphDir, "metadata.json")
 	if _, err := os.Stat(configPath); !os.IsNotExist(err) {
 		t.Fatal("metadata.json should not exist before fix")
 	}
@@ -181,20 +181,20 @@ func TestFixMissingMetadataJSON_SharedWorktreeFallback(t *testing.T) {
 	}
 
 	if _, err := os.Stat(configPath); os.IsNotExist(err) {
-		t.Fatal("metadata.json should exist in shared .beads after fix")
+		t.Fatal("metadata.json should exist in shared .issuegraph after fix")
 	}
-	if _, err := os.Stat(filepath.Join(worktreeDir, ".beads", "metadata.json")); !os.IsNotExist(err) {
+	if _, err := os.Stat(filepath.Join(worktreeDir, ".issuegraph", "metadata.json")); !os.IsNotExist(err) {
 		t.Fatalf("expected no worktree-local metadata.json, got err=%v", err)
 	}
 }
 
-// TestFixMissingMetadataJSON_NotBeadsWorkspace verifies that FixMissingMetadataJSON
-// returns an error for paths without a .beads directory.
-func TestFixMissingMetadataJSON_NotBeadsWorkspace(t *testing.T) {
+// TestFixMissingMetadataJSON_NotIssueGraphWorkspace verifies that FixMissingMetadataJSON
+// returns an error for paths without a .issuegraph directory.
+func TestFixMissingMetadataJSON_NotIssueGraphWorkspace(t *testing.T) {
 	dir := t.TempDir()
 	err := FixMissingMetadataJSON(dir)
 	if err == nil {
-		t.Error("expected error for non-beads workspace")
+		t.Error("expected error for non-issuegraph workspace")
 	}
 }
 
@@ -350,7 +350,7 @@ func TestReconcileAuthoritativeServerMetadata_SoleCandidateFallback(t *testing.T
 }
 
 func TestReconcileAuthoritativeServerMetadata_DoesNotAdoptSoleCandidateInSharedServerMode(t *testing.T) {
-	t.Setenv("BEADS_DOLT_SHARED_SERVER", "1")
+	t.Setenv("ISSUEGRAPH_DOLT_SHARED_SERVER", "1")
 
 	cfg := &configfile.Config{
 		DoltMode:     configfile.DoltModeServer,
@@ -423,13 +423,13 @@ func TestReconcileAuthoritativeServerMetadata_BackfillsEmptyProjectID(t *testing
 
 func TestResolveAuthoritativeServerMetadata_DryRunDoesNotSave(t *testing.T) {
 	dir := setupTestWorkspace(t)
-	beadsDir := filepath.Join(dir, ".beads")
+	issuegraphDir := filepath.Join(dir, ".issuegraph")
 	cfg := &configfile.Config{
 		DoltMode:     configfile.DoltModeServer,
 		DoltDatabase: "wrong_db",
 		ProjectID:    "proj-123",
 	}
-	if err := cfg.Save(beadsDir); err != nil {
+	if err := cfg.Save(issuegraphDir); err != nil {
 		t.Fatalf("failed to save config: %v", err)
 	}
 
@@ -441,7 +441,7 @@ func TestResolveAuthoritativeServerMetadata_DryRunDoesNotSave(t *testing.T) {
 	}
 	defer func() { listServerMetadataDatabases = origList }()
 
-	t.Setenv("BEADS_DOLT_SHARED_SERVER", "1")
+	t.Setenv("ISSUEGRAPH_DOLT_SHARED_SERVER", "1")
 
 	resultCfg, msg, err := ResolveAuthoritativeServerMetadata(dir, false)
 	if err != nil {
@@ -452,7 +452,7 @@ func TestResolveAuthoritativeServerMetadata_DryRunDoesNotSave(t *testing.T) {
 	}
 
 	// Verify the on-disk config was NOT changed
-	loaded, err := configfile.Load(beadsDir)
+	loaded, err := configfile.Load(issuegraphDir)
 	if err != nil {
 		t.Fatalf("failed to reload config: %v", err)
 	}
@@ -467,16 +467,16 @@ func TestResolveAuthoritativeServerMetadata_DryRunDoesNotSave(t *testing.T) {
 
 func TestResolveAuthoritativeServerMetadata_RunsInSharedServerModeWithoutServerDoltMode(t *testing.T) {
 	dir := setupTestWorkspace(t)
-	beadsDir := filepath.Join(dir, ".beads")
+	issuegraphDir := filepath.Join(dir, ".issuegraph")
 	cfg := configfile.DefaultConfig()
-	if err := cfg.Save(beadsDir); err != nil {
+	if err := cfg.Save(issuegraphDir); err != nil {
 		t.Fatalf("failed to save config: %v", err)
 	}
 
-	t.Setenv("BEADS_DOLT_SHARED_SERVER", "1")
+	t.Setenv("ISSUEGRAPH_DOLT_SHARED_SERVER", "1")
 	origList := listServerMetadataDatabases
 	called := false
-	listServerMetadataDatabases = func(beadsDir string, cfg *configfile.Config) ([]serverDatabaseMetadata, error) {
+	listServerMetadataDatabases = func(issuegraphDir string, cfg *configfile.Config) ([]serverDatabaseMetadata, error) {
 		called = true
 		return nil, nil
 	}
@@ -504,8 +504,8 @@ func TestIsExpectedProbeError(t *testing.T) {
 		// GH#4931: unreadable peer DBs on a shared server must not abort bootstrap
 		{"access denied table (1142)", &mysql.MySQLError{Number: 1142, Message: "Access denied for user to table"}, true},
 		{"access denied for db (1044)", &mysql.MySQLError{Number: 1044, Message: "Access denied for user"}, true},
-		{"dolt HY000 access denied (1105)", &mysql.MySQLError{Number: 1105, Message: "Access denied for user 'beads_rw'@'%' to table 'issues'"}, true},
-		{"access denied string", errors.New("Error 1105 (HY000): Access denied for user 'beads_rw'@'%' to table 'issues'"), true},
+		{"dolt HY000 access denied (1105)", &mysql.MySQLError{Number: 1105, Message: "Access denied for user 'issuegraph_rw'@'%' to table 'issues'"}, true},
+		{"access denied string", errors.New("Error 1105 (HY000): Access denied for user 'issuegraph_rw'@'%' to table 'issues'"), true},
 		{"generic error", errors.New("connection reset"), false},
 		{"wrapped ErrNoRows", fmt.Errorf("wrapped: %w", sql.ErrNoRows), true},
 		{"wrapped access denied 1044", fmt.Errorf("wrapped: %w", &mysql.MySQLError{Number: 1044, Message: "Access denied"}), true},

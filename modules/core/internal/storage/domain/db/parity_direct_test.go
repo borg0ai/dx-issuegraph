@@ -16,10 +16,10 @@ import (
 	"fmt"
 	"time"
 
-	"github.com/steveyegge/beads/internal/storage/dberrors"
-	"github.com/steveyegge/beads/internal/storage/domain"
-	"github.com/steveyegge/beads/internal/storage/issueops"
-	"github.com/steveyegge/beads/internal/types"
+	"github.com/borg0ai/dx-issuegraph/internal/storage/dberrors"
+	"github.com/borg0ai/dx-issuegraph/internal/storage/domain"
+	"github.com/borg0ai/dx-issuegraph/internal/storage/issueops"
+	"github.com/borg0ai/dx-issuegraph/internal/types"
 )
 
 func (s *testSuite) parityBase() time.Time {
@@ -220,7 +220,7 @@ func (s *testSuite) TestParityListLimit() {
 }
 
 // Case 4: ready with a blocked dependency graph — the case the proxied CLI
-// cannot express end-to-end (bd dep add has no proxied dispatch). The b<-a
+// cannot express end-to-end (issuegraph dep add has no proxied dispatch). The b<-a
 // edge is written through the DOMAIN dependency use case, pinning is_blocked
 // maintenance in DependencySQLRepository.Insert (bd-6dnrw.44 item 3); the
 // f<-g edge goes through the direct stack as the ground truth control.

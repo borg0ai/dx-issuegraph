@@ -1,5 +1,5 @@
 #!/bin/bash
-# gen-winres.sh - Generate Windows PE resource files (.syso) for bd.exe
+# gen-winres.sh - Generate Windows PE resource files (.syso) for issuegraph.exe
 #
 # Embeds version info, application manifest, and metadata into Windows binaries.
 # This helps reduce antivirus false positives by making the binary look like
@@ -25,7 +25,7 @@ else
     VERSION=$(grep 'Version = ' "$REPO_ROOT/modules/cli/version.go" | sed 's/.*"\(.*\)".*/\1/')
 fi
 
-echo "[winres] Generating Windows PE resources for bd v${VERSION}"
+echo "[winres] Generating Windows PE resources for issuegraph v${VERSION}"
 PE_VERSION="${VERSION%%-*}"
 
 # Check for go-winres

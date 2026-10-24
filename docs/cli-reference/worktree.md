@@ -1,32 +1,32 @@
 ---
-title: "bd worktree"
-description: "Manage git worktrees with proper beads configuration."
+title: "issuegraph worktree"
+description: "Manage git worktrees with proper issuegraph configuration."
 ---
 
 {/* AUTO-GENERATED: do not edit manually */}
 
-Generated from `bd help --doc worktree`.
+Generated from `issuegraph help --doc worktree`.
 
-Manage git worktrees with proper beads configuration.
+Manage git worktrees with proper issuegraph configuration.
 
 Worktrees allow multiple working directories sharing the same git repository,
 enabling parallel development (e.g., multiple agents or features).
 
-Worktrees automatically share the same beads database as the main repository
+Worktrees automatically share the same issuegraph database as the main repository
 via git common directory discovery — no manual redirect configuration needed.
 
 Examples:
-  bd worktree create feature-auth           # Create worktree
-  bd worktree create bugfix --branch fix-1  # Create with specific branch name
-  bd worktree list                          # List all worktrees
-  bd worktree remove feature-auth           # Remove worktree (with safety checks)
-  bd worktree info                          # Show info about current worktree
+  issuegraph worktree create feature-auth           # Create worktree
+  issuegraph worktree create bugfix --branch fix-1  # Create with specific branch name
+  issuegraph worktree list                          # List all worktrees
+  issuegraph worktree remove feature-auth           # Remove worktree (with safety checks)
+  issuegraph worktree info                          # Show info about current worktree
 
 ```
-bd worktree [flags]
+issuegraph worktree [flags]
 ```
 
-## bd worktree create
+## issuegraph worktree create
 
 Create a git worktree for parallel development.
 
@@ -34,16 +34,16 @@ This command:
 1. Creates a git worktree at ./&lt;name&gt; (or specified path)
 2. Adds the worktree path to .gitignore (if inside repo root)
 
-The worktree automatically shares the same beads database as the main
+The worktree automatically shares the same issuegraph database as the main
 repository via git common directory discovery — no redirect file needed.
 
 Examples:
-  bd worktree create feature-auth           # Create at ./feature-auth
-  bd worktree create bugfix --branch fix-1  # Create with branch name
-  bd worktree create ../agents/worker-1     # Create at relative path
+  issuegraph worktree create feature-auth           # Create at ./feature-auth
+  issuegraph worktree create bugfix --branch fix-1  # Create with branch name
+  issuegraph worktree create ../agents/worker-1     # Create at relative path
 
 ```
-bd worktree create <name> [--branch=<branch>] [flags]
+issuegraph worktree create <name> [--branch=<branch>] [flags]
 ```
 
 **Flags:**
@@ -52,43 +52,43 @@ bd worktree create <name> [--branch=<branch>] [flags]
       --branch string   Branch name for the worktree (default: same as name)
 ```
 
-## bd worktree info
+## issuegraph worktree info
 
 Show information about the current worktree.
 
 If the current directory is in a git worktree, shows:
 - Worktree path and name
 - Branch
-- Beads configuration (redirect or main)
+- IssueGraph configuration (redirect or main)
 - Main repository location
 
 Examples:
-  bd worktree info          # Show current worktree info
-  bd worktree info --json   # JSON output
+  issuegraph worktree info          # Show current worktree info
+  issuegraph worktree info --json   # JSON output
 
 ```
-bd worktree info [flags]
+issuegraph worktree info [flags]
 ```
 
-## bd worktree list
+## issuegraph worktree list
 
-List all git worktrees and their beads configuration state.
+List all git worktrees and their issuegraph configuration state.
 
 Shows each worktree with:
 - Name (directory name)
 - Path (full path)
 - Branch
-- Beads state: "redirect" (uses shared db), "shared" (is main), "none" (no beads)
+- IssueGraph state: "redirect" (uses shared db), "shared" (is main), "none" (no issuegraph)
 
 Examples:
-  bd worktree list          # List all worktrees
-  bd worktree list --json   # JSON output
+  issuegraph worktree list          # List all worktrees
+  issuegraph worktree list --json   # JSON output
 
 ```
-bd worktree list [flags]
+issuegraph worktree list [flags]
 ```
 
-## bd worktree remove
+## issuegraph worktree remove
 
 Remove a git worktree with safety checks.
 
@@ -100,11 +100,11 @@ Before removing, this command checks for:
 Use --force to skip safety checks (not recommended).
 
 Examples:
-  bd worktree remove feature-auth         # Remove with safety checks
-  bd worktree remove feature-auth --force # Skip safety checks
+  issuegraph worktree remove feature-auth         # Remove with safety checks
+  issuegraph worktree remove feature-auth --force # Skip safety checks
 
 ```
-bd worktree remove <name> [flags]
+issuegraph worktree remove <name> [flags]
 ```
 
 **Flags:**

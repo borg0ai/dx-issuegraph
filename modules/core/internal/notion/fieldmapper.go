@@ -1,8 +1,8 @@
 package notion
 
 import (
-	"github.com/steveyegge/beads/internal/tracker"
-	"github.com/steveyegge/beads/internal/types"
+	"github.com/borg0ai/dx-issuegraph/internal/tracker"
+	"github.com/borg0ai/dx-issuegraph/internal/types"
 )
 
 // FieldMapper implements tracker.FieldMapper for Notion.
@@ -18,56 +18,56 @@ func NewFieldMapper(config *MappingConfig) *FieldMapper {
 	return &FieldMapper{config: config}
 }
 
-func (m *FieldMapper) PriorityToBeads(trackerPriority interface{}) int {
+func (m *FieldMapper) PriorityToIssueGraph(trackerPriority interface{}) int {
 	value, ok := trackerPriority.(string)
 	if !ok {
 		return 2
 	}
-	return priorityToBeads(value, m.config)
+	return priorityToIssueGraph(value, m.config)
 }
 
-func (m *FieldMapper) PriorityToTracker(beadsPriority int) interface{} {
-	return priorityToNotion(beadsPriority, m.config)
+func (m *FieldMapper) PriorityToTracker(issuegraphPriority int) interface{} {
+	return priorityToNotion(issuegraphPriority, m.config)
 }
 
-func (m *FieldMapper) StatusToBeads(trackerState interface{}) types.Status {
+func (m *FieldMapper) StatusToIssueGraph(trackerState interface{}) types.Status {
 	value, ok := trackerState.(string)
 	if !ok {
 		return types.StatusOpen
 	}
-	return statusToBeads(value, m.config)
+	return statusToIssueGraph(value, m.config)
 }
 
-func (m *FieldMapper) StatusToTracker(beadsStatus types.Status) interface{} {
-	return statusToNotion(beadsStatus, m.config)
+func (m *FieldMapper) StatusToTracker(issuegraphStatus types.Status) interface{} {
+	return statusToNotion(issuegraphStatus, m.config)
 }
 
-func (m *FieldMapper) TypeToBeads(trackerType interface{}) types.IssueType {
+func (m *FieldMapper) TypeToIssueGraph(trackerType interface{}) types.IssueType {
 	value, ok := trackerType.(string)
 	if !ok {
 		return types.TypeTask
 	}
-	return typeToBeads(value, m.config)
+	return typeToIssueGraph(value, m.config)
 }
 
-func (m *FieldMapper) TypeToTracker(beadsType types.IssueType) interface{} {
-	return typeToNotion(beadsType, m.config)
+func (m *FieldMapper) TypeToTracker(issuegraphType types.IssueType) interface{} {
+	return typeToNotion(issuegraphType, m.config)
 }
 
-func (m *FieldMapper) IssueToBeads(ti *tracker.TrackerIssue) *tracker.IssueConversion {
+func (m *FieldMapper) IssueToIssueGraph(ti *tracker.TrackerIssue) *tracker.IssueConversion {
 	if ti == nil {
 		return nil
 	}
 
 	switch raw := ti.Raw.(type) {
 	case *PulledIssue:
-		issue, err := BeadsIssueFromPullIssue(*raw, m.config)
+		issue, err := IssueGraphIssueFromPullIssue(*raw, m.config)
 		if err != nil {
 			return nil
 		}
 		return &tracker.IssueConversion{Issue: issue}
 	case PulledIssue:
-		issue, err := BeadsIssueFromPullIssue(raw, m.config)
+		issue, err := IssueGraphIssueFromPullIssue(raw, m.config)
 		if err != nil {
 			return nil
 		}

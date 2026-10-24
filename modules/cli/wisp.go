@@ -8,12 +8,12 @@ import (
 	"strings"
 	"time"
 
+	"github.com/borg0ai/dx-issuegraph/internal/formula"
+	"github.com/borg0ai/dx-issuegraph/internal/metrics"
+	"github.com/borg0ai/dx-issuegraph/internal/storage"
+	"github.com/borg0ai/dx-issuegraph/internal/types"
+	"github.com/borg0ai/dx-issuegraph/internal/ui"
 	"github.com/spf13/cobra"
-	"github.com/steveyegge/beads/internal/formula"
-	"github.com/steveyegge/beads/internal/metrics"
-	"github.com/steveyegge/beads/internal/storage"
-	"github.com/steveyegge/beads/internal/types"
-	"github.com/steveyegge/beads/internal/ui"
 )
 
 // Wisp commands - manage ephemeral molecules
@@ -23,8 +23,8 @@ import (
 // be synced via git.
 //
 // Commands:
-//   bd mol wisp list    - List all wisps in current context
-//   bd mol wisp gc      - Garbage collect orphaned wisps
+//   issuegraph mol wisp list    - List all wisps in current context
+//   issuegraph mol wisp gc      - Garbage collect orphaned wisps
 
 var wispCmd = &cobra.Command{
 	Use:   "wisp [proto-id]",
@@ -53,16 +53,16 @@ TIP: Formulas can specify phase:"vapor" to recommend wisp usage.
      If you use pour on a vapor-phase formula, you'll get a warning.
 
 The wisp lifecycle:
-  1. Create: bd mol wisp <proto> or bd create --ephemeral
-  2. Execute: Normal bd operations work on wisp issues
-  3. Squash: bd mol squash <id> (clears Ephemeral flag, promotes to persistent)
-  4. Or burn: bd mol burn <id> (deletes without creating digest)
+  1. Create: issuegraph mol wisp <proto> or issuegraph create --ephemeral
+  2. Execute: Normal issuegraph operations work on wisp issues
+  3. Squash: issuegraph mol squash <id> (clears Ephemeral flag, promotes to persistent)
+  4. Or burn: issuegraph mol burn <id> (deletes without creating digest)
 
 Examples:
-  bd mol wisp beads-release --var version=1.0  # Release workflow
-  bd mol wisp mol-my-workflow                  # Ephemeral operational cycle
-  bd mol wisp list                             # List all wisps
-  bd mol wisp gc                               # Garbage collect old wisps
+  issuegraph mol wisp issuegraph-release --var version=1.0  # Release workflow
+  issuegraph mol wisp mol-my-workflow                  # Ephemeral operational cycle
+  issuegraph mol wisp list                             # List all wisps
+  issuegraph mol wisp gc                               # Garbage collect old wisps
 
 Subcommands:
   list  List all wisps in current context
@@ -108,7 +108,7 @@ func runWisp(cmd *cobra.Command, args []string) error {
 		_ = cmd.Help()
 		return nil
 	}
-	// Delegate to the non-emitting core so `bd wisp <name>` records exactly one
+	// Delegate to the non-emitting core so `issuegraph wisp <name>` records exactly one
 	// cli_command event ("wisp"), not also "wisp-create".
 	return runWispCreateCore(cmd, args)
 }
@@ -136,9 +136,9 @@ The wisp will:
   - Either evaporate (burn) or condense to digest (squash)
 
 Examples:
-  bd mol wisp create mol-patrol                    # Ephemeral patrol cycle
-  bd mol wisp create mol-health-check              # One-time health check
-  bd mol wisp create mol-diagnostics --var target=db  # Diagnostic run`,
+  issuegraph mol wisp create mol-patrol                    # Ephemeral patrol cycle
+  issuegraph mol wisp create mol-health-check              # One-time health check
+  issuegraph mol wisp create mol-diagnostics --var target=db  # Diagnostic run`,
 	Args:          cobra.ExactArgs(1),
 	SilenceUsage:  true,
 	SilenceErrors: true,
@@ -157,8 +157,8 @@ func runWispCreate(cmd *cobra.Command, args []string) error {
 }
 
 // runWispCreateCore instantiates a proto as a wisp without emitting a metrics
-// event, so the caller owns emission: the standalone `bd mol wisp create`
-// entrypoint records "wisp-create", while the bare `bd wisp <name>` alias records
+// event, so the caller owns emission: the standalone `issuegraph mol wisp create`
+// entrypoint records "wisp-create", while the bare `issuegraph wisp <name>` alias records
 // "wisp". This keeps each invocation to exactly one cli_command event.
 type wispCreateInput struct {
 	protoArg string
@@ -199,7 +199,7 @@ func runWispCreateCore(cmd *cobra.Command, args []string) error {
 	rootOnly := in.rootOnly
 
 	// Try to load as formula first (ephemeral proto)
-	// If that fails, fall back to loading from DB (legacy proto beads)
+	// If that fails, fall back to loading from DB (legacy proto issuegraph)
 	var subgraph *TemplateSubgraph
 	var protoID string
 
@@ -245,7 +245,7 @@ func runWispCreateCore(cmd *cobra.Command, args []string) error {
 				}
 			}
 			if !found {
-				return HandleErrorWithHint(fmt.Sprintf("'%s' not found as formula or proto", args[0]), "run 'bd formula list' to see available formulas")
+				return HandleErrorWithHint(fmt.Sprintf("'%s' not found as formula or proto", args[0]), "run 'issuegraph formula list' to see available formulas")
 			}
 		}
 
@@ -347,9 +347,9 @@ func renderWispCreateResult(result *InstantiateResult) error {
 	fmt.Printf("  Root issue: %s\n", result.NewEpicID)
 	fmt.Printf("  Phase: vapor (ephemeral, not synced via git)\n")
 	fmt.Printf("\nNext steps:\n")
-	fmt.Printf("  bd close %s.<step>       # Complete steps\n", result.NewEpicID)
-	fmt.Printf("  bd mol squash %s         # Condense to digest (promotes to persistent)\n", result.NewEpicID)
-	fmt.Printf("  bd mol burn %s           # Discard without creating digest\n", result.NewEpicID)
+	fmt.Printf("  issuegraph close %s.<step>       # Complete steps\n", result.NewEpicID)
+	fmt.Printf("  issuegraph mol squash %s         # Condense to digest (promotes to persistent)\n", result.NewEpicID)
+	fmt.Printf("  issuegraph mol burn %s           # Discard without creating digest\n", result.NewEpicID)
 	return nil
 }
 
@@ -402,12 +402,12 @@ The list shows:
 
 Old wisp detection:
   - Old wisps haven't been updated in 24+ hours
-  - Use 'bd mol wisp gc' to clean up old/abandoned wisps
+  - Use 'issuegraph mol wisp gc' to clean up old/abandoned wisps
 
 Examples:
-  bd mol wisp list              # List all wisps
-  bd mol wisp list --json       # JSON output for programmatic use
-  bd mol wisp list --all        # Include closed wisps`,
+  issuegraph mol wisp list              # List all wisps
+  issuegraph mol wisp list --json       # JSON output for programmatic use
+  issuegraph mol wisp list --all        # Include closed wisps`,
 	SilenceUsage:  true,
 	SilenceErrors: true,
 	RunE:          runWispList,
@@ -502,7 +502,7 @@ func renderWispListResult(result WispListResult) error {
 	if result.OldCount > 0 {
 		fmt.Printf("\n%s %d old wisp(s) (not updated in 24+ hours)\n",
 			ui.RenderWarn("⚠"), result.OldCount)
-		fmt.Println("  Hint: Use 'bd mol wisp gc' to clean up old wisps")
+		fmt.Println("  Hint: Use 'issuegraph mol wisp gc' to clean up old wisps")
 	}
 	return nil
 }
@@ -574,7 +574,7 @@ func formatTimeAgo(t time.Time) string {
 }
 
 // formatTimeUntil returns a human-readable relative time for a future instant,
-// the forward-looking mirror of formatTimeAgo. Used for lease expiry in bd show.
+// the forward-looking mirror of formatTimeAgo. Used for lease expiry in issuegraph show.
 // A past (or present) instant renders as "expired".
 func formatTimeUntil(t time.Time) string {
 	d := time.Until(t)
@@ -613,14 +613,14 @@ var wispGCCmd = &cobra.Command{
 A wisp is considered abandoned if:
   - It hasn't been updated in --age duration and is not closed
   - AND it is not live work: blocked steps (waiting on a dependency), pinned
-    beads, and any step whose status category is wip (in_progress, blocked,
+    issuegraph, and any step whose status category is wip (in_progress, blocked,
     hooked) or frozen (deferred, pinned) are never reclaimed by age, no matter
     how long they have been waiting (GH#4394). Custom statuses count by their
     configured category, so only plain open (active) and closed (done) steps
     are age-reclaimable. If the blocked set or the custom-status list cannot be
     read, the GC aborts rather than risk reclaiming live steps.
 
-Abandoned wisps are deleted without creating a digest. Use 'bd mol squash'
+Abandoned wisps are deleted without creating a digest. Use 'issuegraph mol squash'
 if you want to preserve a summary before garbage collection.
 
 Use --closed to purge ALL closed wisps (regardless of age). This is the
@@ -628,18 +628,18 @@ fastest way to reclaim space from accumulated wisp bloat. Safe by default:
 requires --force to actually delete.
 
 Note: This uses time-based cleanup, appropriate for ephemeral wisps.
-For graph-pressure staleness detection (blocking other work), see 'bd mol stale'.
+For graph-pressure staleness detection (blocking other work), see 'issuegraph mol stale'.
 
 Examples:
-  bd mol wisp gc                                    # Clean abandoned wisps (default: 1h threshold)
-  bd mol wisp gc --dry-run                          # Preview what would be cleaned
-  bd mol wisp gc --age 24h                          # Custom age threshold
-  bd mol wisp gc --all                              # Also clean closed wisps older than threshold
-  bd mol wisp gc --closed                           # Preview closed wisp deletion
-  bd mol wisp gc --closed --force                   # Delete all closed wisps
-  bd mol wisp gc --closed --dry-run                 # Explicit dry-run (same as no --force)
-  bd mol wisp gc --exclude-type agent,rig           # Protect agent and rig wisps from GC
-  bd mol wisp gc --closed --force --exclude-type mol # Delete closed wisps except mol type`,
+  issuegraph mol wisp gc                                    # Clean abandoned wisps (default: 1h threshold)
+  issuegraph mol wisp gc --dry-run                          # Preview what would be cleaned
+  issuegraph mol wisp gc --age 24h                          # Custom age threshold
+  issuegraph mol wisp gc --all                              # Also clean closed wisps older than threshold
+  issuegraph mol wisp gc --closed                           # Preview closed wisp deletion
+  issuegraph mol wisp gc --closed --force                   # Delete all closed wisps
+  issuegraph mol wisp gc --closed --dry-run                 # Explicit dry-run (same as no --force)
+  issuegraph mol wisp gc --exclude-type agent,rig           # Protect agent and rig wisps from GC
+  issuegraph mol wisp gc --closed --force --exclude-type mol # Delete closed wisps except mol type`,
 	SilenceUsage:  true,
 	SilenceErrors: true,
 	RunE:          runWispGC,
@@ -984,24 +984,24 @@ func runWispPurgeClosed(ctx context.Context, dryRun bool, force bool, excludeTyp
 	// (wisp gc --closed --force self-destructed the deacon patrol).
 	// Without cascade, closed wisps are deleted and live dependents are
 	// orphaned (edges dropped, is_blocked recomputed) — the same semantics as
-	// a plain `bd delete`.
+	// a plain `issuegraph delete`.
 	if err := deleteBatch(nil, ids, force, dryRun, false, jsonOutput, false, "wisp gc --closed"); err != nil {
 		return HandleError("%v", err)
 	}
 
 	if !dryRun && force && !jsonOutput {
-		fmt.Printf("\nHint: Run 'bd compact --dolt' to reclaim disk space\n")
+		fmt.Printf("\nHint: Run 'issuegraph compact --dolt' to reclaim disk space\n")
 	}
 	return nil
 }
 
 func init() {
-	// Wisp command flags (for direct create: bd mol wisp <proto>)
+	// Wisp command flags (for direct create: issuegraph mol wisp <proto>)
 	wispCmd.Flags().StringArray("var", []string{}, "Variable substitution (key=value)")
 	wispCmd.Flags().Bool("dry-run", false, "Preview what would be created")
 	wispCmd.Flags().Bool("root-only", false, "Create only the root issue (no child step issues)")
 
-	// Wisp create command flags (kept for backwards compat: bd mol wisp create <proto>)
+	// Wisp create command flags (kept for backwards compat: issuegraph mol wisp create <proto>)
 	wispCreateCmd.Flags().StringArray("var", []string{}, "Variable substitution (key=value)")
 	wispCreateCmd.Flags().Bool("dry-run", false, "Preview what would be created")
 	wispCreateCmd.Flags().Bool("root-only", false, "Create only the root issue (no child step issues)")

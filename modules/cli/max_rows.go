@@ -6,14 +6,14 @@ import (
 	"os"
 	"strconv"
 
+	"github.com/borg0ai/dx-issuegraph/internal/storage/issueops"
 	"github.com/spf13/cobra"
-	"github.com/steveyegge/beads/internal/storage/issueops"
 )
 
 // maxRowsEnvVar names the environment variable that opts in to the defensive
 // row cap. Used as both the lookup key and the source attribution string in
 // error messages.
-const maxRowsEnvVar = "BEADS_MAX_ROWS"
+const maxRowsEnvVar = "ISSUEGRAPH_MAX_ROWS"
 
 // maxRowsFlagName is the --max-rows flag name. Declared as a constant so the
 // flag lookup and the source attribution string stay in sync.
@@ -26,9 +26,9 @@ func addMaxRowsFlag(cmd *cobra.Command) {
 	cmd.Flags().Int(maxRowsFlagName, 0,
 		"Hard upper bound on rows fetched from storage. Returns a non-zero exit (code 2) "+
 			"and an error to stderr if exceeded. 0 disables (the default). Overrides "+
-			"BEADS_MAX_ROWS for this invocation. Useful in CI/agent rigs that want a "+
+			"ISSUEGRAPH_MAX_ROWS for this invocation. Useful in CI/agent rigs that want a "+
 			"circuit breaker against pathological queries. Not supported under "+
-			"--proxied-server: an explicit --max-rows or BEADS_MAX_ROWS cap errors out "+
+			"--proxied-server: an explicit --max-rows or ISSUEGRAPH_MAX_ROWS cap errors out "+
 			"rather than silently going unenforced.")
 }
 
@@ -37,7 +37,7 @@ func addMaxRowsFlag(cmd *cobra.Command) {
 //
 // It exists because that refusal is a fact about a command's implementation
 // rather than about the flag: a command whose cap reaches a query path that
-// threads one is honored on both routes. `bd dep tree` was the first and `bd
+// threads one is honored on both routes. `issuegraph dep tree` was the first and `issuegraph
 // list` the second — its cap used to be rejected under --proxied-server because
 // the unit-of-work query path read no MaxRows at all. The next command to move
 // onto a role that threads it calls this instead of the function above and
@@ -46,13 +46,13 @@ func addRoutedMaxRowsFlag(cmd *cobra.Command) {
 	cmd.Flags().Int(maxRowsFlagName, 0,
 		"Hard upper bound on rows returned. Returns a non-zero exit (code 2) "+
 			"and an error to stderr if exceeded. 0 disables (the default). Overrides "+
-			"BEADS_MAX_ROWS for this invocation. Useful in CI/agent rigs that want a "+
+			"ISSUEGRAPH_MAX_ROWS for this invocation. Useful in CI/agent rigs that want a "+
 			"circuit breaker against pathological queries. Honored on both the direct "+
 			"and the --proxied-server route.")
 }
 
 // rejectMaxRowsUnderProxiedServer errors out when an explicit --max-rows
-// flag or BEADS_MAX_ROWS env cap resolves to a nonzero cap but the command
+// flag or ISSUEGRAPH_MAX_ROWS env cap resolves to a nonzero cap but the command
 // is about to divert to proxied-server mode. The proxied repository path
 // (internal/storage/domain/db) doesn't thread MaxRows through the UOW
 // pipeline, so silently ignoring the cap there would be the worst outcome
@@ -71,7 +71,7 @@ func rejectMaxRowsUnderProxiedServer(cmd *cobra.Command) error {
 // split out for callers that have already resolved the cap for their own
 // purposes (e.g. to build a filter) and would otherwise call resolveMaxRows
 // a second time — resolveMaxRowsEnvOnly emits a stderr warning on a
-// malformed BEADS_MAX_ROWS every time it runs, so a second resolve doubles
+// malformed ISSUEGRAPH_MAX_ROWS every time it runs, so a second resolve doubles
 // that warning under proxied mode (be-x42v.4 round-4 follow-up).
 func rejectResolvedMaxRowsUnderProxiedServer(maxRows int) error {
 	if maxRows > 0 {
@@ -80,9 +80,9 @@ func rejectResolvedMaxRowsUnderProxiedServer(maxRows int) error {
 	return nil
 }
 
-// resolveMaxRows picks the effective cap from --max-rows then BEADS_MAX_ROWS.
+// resolveMaxRows picks the effective cap from --max-rows then ISSUEGRAPH_MAX_ROWS.
 // Returns (cap, source, err) where cap == 0 disables the cap and source is
-// one of "--max-rows", "BEADS_MAX_ROWS", or "". A negative flag or bad int
+// one of "--max-rows", "ISSUEGRAPH_MAX_ROWS", or "". A negative flag or bad int
 // is a usage error: err is non-nil (exit code 1, main.go's
 // exitCodeFromError convention — see HandleErrorRespectJSON) and the
 // caller must propagate it immediately (`if err != nil { return err }`),
@@ -93,10 +93,10 @@ func rejectResolvedMaxRowsUnderProxiedServer(maxRows int) error {
 // Precedence (designer §2.1):
 //
 //  1. --max-rows N            (flag changed, highest)
-//  2. BEADS_MAX_ROWS=N        (env var)
+//  2. ISSUEGRAPH_MAX_ROWS=N        (env var)
 //  3. disabled                (default; cap == 0)
 //
-// --max-rows 0 explicitly disables the cap even when BEADS_MAX_ROWS=N is set.
+// --max-rows 0 explicitly disables the cap even when ISSUEGRAPH_MAX_ROWS=N is set.
 // This is intentional: ops shells with a global env can run a known-unbounded
 // query without unsetting the env first.
 func resolveMaxRows(cmd *cobra.Command) (int, string, error) {
@@ -114,15 +114,15 @@ func resolveMaxRows(cmd *cobra.Command) (int, string, error) {
 	return maxRows, source, nil
 }
 
-// resolveMaxRowsEnvOnly reads BEADS_MAX_ROWS without consulting any flag.
-// Used by the doctor family of commands (designer §4): bd doctor, bd lint,
-// bd doctor-conventions, bd doctor-pollution. These are internal sweeps
+// resolveMaxRowsEnvOnly reads ISSUEGRAPH_MAX_ROWS without consulting any flag.
+// Used by the doctor family of commands (designer §4): issuegraph doctor, issuegraph lint,
+// issuegraph doctor-conventions, issuegraph doctor-pollution. These are internal sweeps
 // where the operator may want a guardrail via env var but no per-invocation
 // flag is needed.
 //
 // On a bad env value, emits a warning to stderr and returns (0, ""). The
 // command proceeds with the cap disabled rather than aborting — failing
-// closed here would break automation that has a global BEADS_MAX_ROWS set
+// closed here would break automation that has a global ISSUEGRAPH_MAX_ROWS set
 // but accidentally got a typo.
 func resolveMaxRowsEnvOnly() (int, string) {
 	n, source, raw, ok := parseMaxRowsEnv()
@@ -135,7 +135,7 @@ func resolveMaxRowsEnvOnly() (int, string) {
 	return n, source
 }
 
-// parseMaxRowsEnv reads BEADS_MAX_ROWS without warning about a malformed
+// parseMaxRowsEnv reads ISSUEGRAPH_MAX_ROWS without warning about a malformed
 // value. Returns (cap, source, raw, ok); ok is false only for a value that is
 // present but unusable, in which case the cap is disabled exactly as
 // resolveMaxRowsEnvOnly disables it. An unset or empty variable is a valid
@@ -153,7 +153,7 @@ func parseMaxRowsEnv() (int, string, string, bool) {
 }
 
 // resolveMaxRowsQuiet resolves the effective cap like resolveMaxRows but never
-// emits the malformed-BEADS_MAX_ROWS advisory.
+// emits the malformed-ISSUEGRAPH_MAX_ROWS advisory.
 //
 // It exists for the proxied capability front door, which resolves the cap in
 // PersistentPreRunE to decide a refusal before the provider is constructed.
@@ -223,6 +223,6 @@ func handleMaxRowsError(err error) error {
 	fmt.Fprintln(os.Stderr,
 		"       Refine the query (add filters, set --limit), or raise the cap with")
 	fmt.Fprintln(os.Stderr,
-		"       --max-rows N or BEADS_MAX_ROWS=N.")
+		"       --max-rows N or ISSUEGRAPH_MAX_ROWS=N.")
 	return &exitError{Code: 2}
 }

@@ -6,8 +6,8 @@ import (
 	"testing"
 	"time"
 
-	"github.com/steveyegge/beads/internal/storage"
-	"github.com/steveyegge/beads/internal/types"
+	"github.com/borg0ai/dx-issuegraph/internal/storage"
+	"github.com/borg0ai/dx-issuegraph/internal/types"
 )
 
 type pullTestTransaction struct {
@@ -148,7 +148,7 @@ func TestEngineSyncFailedPullIsNotPushed(t *testing.T) {
 			mock.issues = []TrackerIssue{{
 				ID: test.identifier, Identifier: test.identifier, Title: "remote", UpdatedAt: remoteUpdated,
 			}}
-			mock.fieldMapper = &mockMapper{issueToBeads: func(*TrackerIssue) *IssueConversion {
+			mock.fieldMapper = &mockMapper{issueToIssueGraph: func(*TrackerIssue) *IssueConversion {
 				return &IssueConversion{Issue: &types.Issue{
 					ID: test.localID, Title: "remote", Status: types.StatusClosed,
 					Priority: 2, IssueType: types.TypeTask, Labels: []string{"remote"},
@@ -197,7 +197,7 @@ func TestReimportIssuePreservesLabels(t *testing.T) {
 	}
 	mock := newMockTracker("test")
 	mock.issues = []TrackerIssue{{ID: "EXT-2", Identifier: "EXT-2", Title: "remote"}}
-	mock.fieldMapper = &mockMapper{issueToBeads: func(*TrackerIssue) *IssueConversion {
+	mock.fieldMapper = &mockMapper{issueToIssueGraph: func(*TrackerIssue) *IssueConversion {
 		return &IssueConversion{Issue: &types.Issue{
 			Title: "remote", Status: types.StatusClosed, Priority: 1, IssueType: types.TypeTask,
 		}}

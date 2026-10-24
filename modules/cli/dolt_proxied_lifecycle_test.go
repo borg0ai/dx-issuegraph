@@ -7,7 +7,7 @@ import (
 	"testing"
 	"time"
 
-	"github.com/steveyegge/beads/internal/configfile"
+	"github.com/borg0ai/dx-issuegraph/internal/configfile"
 )
 
 // TestProxiedDoltStartRefusalContract pins the parts downstream consumers
@@ -26,7 +26,7 @@ func TestProxiedDoltStartRefusalContract(t *testing.T) {
 	if err.Mutates {
 		t.Error("mutates = true; a refused start changes nothing")
 	}
-	for _, want := range []string{"proxied-server mode", "bd dolt status", "bd dolt stop"} {
+	for _, want := range []string{"proxied-server mode", "issuegraph dolt status", "issuegraph dolt stop"} {
 		if !strings.Contains(err.Message, want) {
 			t.Errorf("message does not mention %q: %q", want, err.Message)
 		}
@@ -56,11 +56,11 @@ func TestExternalDoltEndpoint(t *testing.T) {
 // starting anything — a status command that spawns the topology it is
 // reporting on would defeat the idle reaper it is reporting about.
 func TestCollectProxiedDoltStatusQuiescentRoot(t *testing.T) {
-	beadsDir := t.TempDir()
-	root := filepath.Join(beadsDir, "dolt")
-	t.Setenv("BEADS_PROXIED_SERVER_ROOT_PATH", root)
+	issuegraphDir := t.TempDir()
+	root := filepath.Join(issuegraphDir, "dolt")
+	t.Setenv("ISSUEGRAPH_PROXIED_SERVER_ROOT_PATH", root)
 
-	status, err := collectProxiedDoltStatus(beadsDir)
+	status, err := collectProxiedDoltStatus(issuegraphDir)
 	if err != nil {
 		t.Fatalf("collectProxiedDoltStatus: %v", err)
 	}
@@ -82,22 +82,22 @@ func TestCollectProxiedDoltStatusQuiescentRoot(t *testing.T) {
 }
 
 func TestCollectProxiedDoltStatusExternalTopology(t *testing.T) {
-	beadsDir := t.TempDir()
-	root := filepath.Join(beadsDir, "dolt")
-	t.Setenv("BEADS_PROXIED_SERVER_ROOT_PATH", root)
-	if err := configfile.SaveProxiedServerClientInfo(beadsDir, &configfile.ProxiedServerClientInfo{
+	issuegraphDir := t.TempDir()
+	root := filepath.Join(issuegraphDir, "dolt")
+	t.Setenv("ISSUEGRAPH_PROXIED_SERVER_ROOT_PATH", root)
+	if err := configfile.SaveProxiedServerClientInfo(issuegraphDir, &configfile.ProxiedServerClientInfo{
 		IdleTimeout: 45 * time.Second,
 		External:    &configfile.ExternalDoltConfig{Host: "10.0.0.5", Port: 3306},
 	}); err != nil {
 		t.Fatalf("SaveProxiedServerClientInfo: %v", err)
 	}
 
-	status, err := collectProxiedDoltStatus(beadsDir)
+	status, err := collectProxiedDoltStatus(issuegraphDir)
 	if err != nil {
 		t.Fatalf("collectProxiedDoltStatus: %v", err)
 	}
 	if status.BackendManaged {
-		t.Error("backend_managed = true for an external topology; bd spawns no dolt there")
+		t.Error("backend_managed = true for an external topology; issuegraph spawns no dolt there")
 	}
 	if status.BackendEndpoint != "10.0.0.5:3306" {
 		t.Errorf("backend_endpoint = %q, want %q", status.BackendEndpoint, "10.0.0.5:3306")
@@ -109,7 +109,7 @@ func TestCollectProxiedDoltStatusExternalTopology(t *testing.T) {
 
 func TestRenderProxiedDoltStatus(t *testing.T) {
 	running := proxiedDoltStatus{
-		Mode: "proxied-server", Root: "/w/.beads/dolt", Running: true,
+		Mode: "proxied-server", Root: "/w/.issuegraph/dolt", Running: true,
 		ProxyPID: 111, ProxyPort: 40001,
 		BackendManaged: true, BackendRunning: true, BackendPID: 222, BackendPort: 40002,
 		IdleTimeout: "30s",
@@ -123,7 +123,7 @@ func TestRenderProxiedDoltStatus(t *testing.T) {
 			"Dolt server: running (proxied-server)",
 			"Proxy PID:  111",
 			"Proxy port: 40001",
-			"Root:       /w/.beads/dolt",
+			"Root:       /w/.issuegraph/dolt",
 			"Backend:    running (dolt PID 222, port 40002)",
 			"Idle timeout: 30s",
 		} {
@@ -158,11 +158,11 @@ func TestRenderProxiedDoltStatus(t *testing.T) {
 		external.BackendManaged, external.BackendRunning = false, false
 		external.BackendEndpoint = "10.0.0.5:3306"
 		out := captureStdout(t, func() error { renderProxiedDoltStatus(external); return nil })
-		if !strings.Contains(out, "Backend:    external at 10.0.0.5:3306 (not managed by bd)") {
+		if !strings.Contains(out, "Backend:    external at 10.0.0.5:3306 (not managed by issuegraph)") {
 			t.Errorf("external backend not described:\n%s", out)
 		}
 		if strings.Contains(out, "Backend:    not running") {
-			t.Errorf("external backend reported as down; bd has no record to say that from:\n%s", out)
+			t.Errorf("external backend reported as down; issuegraph has no record to say that from:\n%s", out)
 		}
 	})
 

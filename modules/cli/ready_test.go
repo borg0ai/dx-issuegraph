@@ -8,13 +8,13 @@ import (
 	"testing"
 	"time"
 
-	"github.com/steveyegge/beads/internal/types"
+	"github.com/borg0ai/dx-issuegraph/internal/types"
 )
 
 func TestReadySuite(t *testing.T) {
 	t.Parallel()
 	tmpDir := t.TempDir()
-	testDB := filepath.Join(tmpDir, ".beads", "beads.db")
+	testDB := filepath.Join(tmpDir, ".issuegraph", "issuegraph.db")
 	s := newTestStore(t, testDB)
 	ctx := context.Background()
 
@@ -434,13 +434,13 @@ func TestReadySuite(t *testing.T) {
 // -mol- in their IDs) appear in GetReadyWork results when they have no active
 // blockers. Regression test for GH#1359: the old SQLite backend filtered out
 // issues whose IDs contained "-mol-" or "-wisp-", hiding poured molecule steps
-// from `bd ready`. The Dolt backend should not have this filtering.
+// from `issuegraph ready`. The Dolt backend should not have this filtering.
 // TestGetReadyWork_ExcludeLabels verifies that WorkFilter.ExcludeLabels filters
 // out issues that carry any of the specified labels.
 func TestGetReadyWork_ExcludeLabels(t *testing.T) {
 	t.Parallel()
 	tmpDir := t.TempDir()
-	s := newTestStore(t, filepath.Join(tmpDir, ".beads", "beads.db"))
+	s := newTestStore(t, filepath.Join(tmpDir, ".issuegraph", "issuegraph.db"))
 	ctx := context.Background()
 
 	issues := []*types.Issue{
@@ -517,7 +517,7 @@ func TestGetReadyWork_ExcludeLabels(t *testing.T) {
 func TestReadyWorkIncludesMoleculeSteps(t *testing.T) {
 	t.Parallel()
 	tmpDir := t.TempDir()
-	testDB := filepath.Join(tmpDir, ".beads", "beads.db")
+	testDB := filepath.Join(tmpDir, ".issuegraph", "issuegraph.db")
 	s := newTestStore(t, testDB)
 	ctx := context.Background()
 
@@ -560,7 +560,7 @@ func TestReadyWorkIncludesMoleculeSteps(t *testing.T) {
 		}
 	}
 
-	// GetReadyWork with Status="open" (same as bd ready CLI)
+	// GetReadyWork with Status="open" (same as issuegraph ready CLI)
 	ready, err := s.GetReadyWork(ctx, types.WorkFilter{Status: "open"})
 	if err != nil {
 		t.Fatalf("GetReadyWork failed: %v", err)

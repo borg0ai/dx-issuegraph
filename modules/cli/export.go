@@ -10,13 +10,13 @@ import (
 	"strings"
 	"time"
 
+	"github.com/borg0ai/dx-issuegraph/internal/atomicfile"
+	"github.com/borg0ai/dx-issuegraph/internal/config"
+	"github.com/borg0ai/dx-issuegraph/internal/metrics"
+	"github.com/borg0ai/dx-issuegraph/internal/storage/domain"
+	"github.com/borg0ai/dx-issuegraph/internal/storage/uow"
+	"github.com/borg0ai/dx-issuegraph/internal/types"
 	"github.com/spf13/cobra"
-	"github.com/steveyegge/beads/internal/atomicfile"
-	"github.com/steveyegge/beads/internal/config"
-	"github.com/steveyegge/beads/internal/metrics"
-	"github.com/steveyegge/beads/internal/storage/domain"
-	"github.com/steveyegge/beads/internal/storage/uow"
-	"github.com/steveyegge/beads/internal/types"
 )
 
 var exportCmd = &cobra.Command{
@@ -30,22 +30,22 @@ labels, dependencies, and comments.
 This command is for issue export, migration, and interoperability. It exports
 records from the issues table; it is not a full database backup and does not
 capture Dolt branches, commit history, working-set state, or non-issue tables.
-For supported full backup/restore flows, use 'bd backup init', 'bd backup sync',
-and 'bd backup restore'.
+For supported full backup/restore flows, use 'issuegraph backup init', 'issuegraph backup sync',
+and 'issuegraph backup restore'.
 
-By default, exports only regular issues (excluding infrastructure beads
+By default, exports only regular issues (excluding infrastructure issuegraph
 like agents, roles, and messages). Use --all to include everything.
 
-Memories (from 'bd remember') are excluded by default because they may
+Memories (from 'issuegraph remember') are excluded by default because they may
 contain sensitive agent context. Use --include-memories or --all to
 include them.
 
 EXAMPLES:
-  bd export                              # Export issues to stdout
-  bd export -o issues.jsonl              # Export issues to file
-  bd export --include-memories           # Export issues + memories
-  bd export --all -o full.jsonl          # Include infra + templates + gates + memories
-  bd export --scrub -o clean.jsonl       # Exclude test/pollution records`,
+  issuegraph export                              # Export issues to stdout
+  issuegraph export -o issues.jsonl              # Export issues to file
+  issuegraph export --include-memories           # Export issues + memories
+  issuegraph export --all -o full.jsonl          # Include infra + templates + gates + memories
+  issuegraph export --scrub -o clean.jsonl       # Exclude test/pollution records`,
 	GroupID:       "sync",
 	SilenceUsage:  true,
 	SilenceErrors: true,
@@ -66,9 +66,9 @@ var (
 func init() {
 	exportCmd.Flags().StringVarP(&exportOutput, "output", "o", "", "Output file path (default: stdout)")
 	exportCmd.Flags().BoolVar(&exportAll, "all", false, "Include all records (infra, templates, gates, memories)")
-	exportCmd.Flags().BoolVar(&exportIncludeInfra, "include-infra", false, "Include infrastructure beads (agents, roles, messages)")
+	exportCmd.Flags().BoolVar(&exportIncludeInfra, "include-infra", false, "Include infrastructure issuegraph (agents, roles, messages)")
 	exportCmd.Flags().BoolVar(&exportScrub, "scrub", false, "Exclude test/pollution records")
-	exportCmd.Flags().BoolVar(&exportIncludeMemories, "include-memories", false, "Include persistent memories (from 'bd remember') in the export")
+	exportCmd.Flags().BoolVar(&exportIncludeMemories, "include-memories", false, "Include persistent memories (from 'issuegraph remember') in the export")
 	exportCmd.Flags().BoolVar(&exportNoMemories, "no-memories", false, "Exclude persistent memories (deprecated: now the default)")
 	_ = exportCmd.Flags().MarkHidden("no-memories")
 	exportCmd.Flags().StringArrayVar(&exportExcludeOwners, "exclude-owner", nil, "Exclude issues created by this identity (repeatable; also reads export.exclude_owners config)")
@@ -130,7 +130,7 @@ func runExportFromSource(ctx context.Context, src exportSource) error {
 	}
 
 	// Build filter for issues table. Export all statuses by default.
-	// Opt out of BEADS_MAX_ROWS (designer §4.1) — export is a data-integrity
+	// Opt out of ISSUEGRAPH_MAX_ROWS (designer §4.1) — export is a data-integrity
 	// path and must never abort partway through an export run.
 	filter := types.IssueFilter{
 		Limit:         0,
@@ -383,7 +383,7 @@ func buildOwnerExcludeSet(ctx context.Context, src exportSource, flagOwners []st
 		}
 	}
 	// export.* keys are YAML-only (config.IsYamlOnlyKey returns true for the
-	// "export." prefix), so bd config set stores them in config.yaml rather than
+	// "export." prefix), so issuegraph config set stores them in config.yaml rather than
 	// the database. Read from YAML first, then fall back to the database for any
 	// instance that was written directly to the store.
 	addOwners := func(val string) {

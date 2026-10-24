@@ -1,28 +1,28 @@
 ---
-title: "bd upgrade"
-description: "Commands for checking bd version upgrades and reviewing changes."
+title: "issuegraph upgrade"
+description: "Commands for checking issuegraph version upgrades and reviewing changes."
 ---
 
 {/* AUTO-GENERATED: do not edit manually */}
 
-Generated from `bd help --doc upgrade`.
+Generated from `issuegraph help --doc upgrade`.
 
-Commands for checking bd version upgrades and reviewing changes.
+Commands for checking issuegraph version upgrades and reviewing changes.
 
-The upgrade command helps you stay aware of bd version changes:
-  - bd upgrade status: Check if bd version changed since last use
-  - bd upgrade review: Show what's new since your last version
-  - bd upgrade ack: Acknowledge the current version
+The upgrade command helps you stay aware of issuegraph version changes:
+  - issuegraph upgrade status: Check if issuegraph version changed since last use
+  - issuegraph upgrade review: Show what's new since your last version
+  - issuegraph upgrade ack: Acknowledge the current version
 
-Version tracking is automatic - bd updates metadata.json on every run.
+Version tracking is automatic - issuegraph updates metadata.json on every run.
 
 ```
-bd upgrade [flags]
+issuegraph upgrade [flags]
 ```
 
-## bd upgrade ack
+## issuegraph upgrade ack
 
-Mark the current bd version as acknowledged.
+Mark the current issuegraph version as acknowledged.
 
 This updates metadata.json to record that you've seen the current
 version. Mainly useful after reviewing upgrade changes to suppress
@@ -32,42 +32,42 @@ Note: Version tracking happens automatically, so you don't need to
 run this command unless you want to explicitly mark acknowledgement.
 
 Examples:
-  bd upgrade ack
-  bd upgrade ack --json
+  issuegraph upgrade ack
+  issuegraph upgrade ack --json
 
 ```
-bd upgrade ack [flags]
+issuegraph upgrade ack [flags]
 ```
 
-## bd upgrade review
+## issuegraph upgrade review
 
-Show what's new in bd since the last version you used.
+Show what's new in issuegraph since the last version you used.
 
-Unlike 'bd info --whats-new' which shows the last 3 versions,
+Unlike 'issuegraph info --whats-new' which shows the last 3 versions,
 this command shows ALL changes since your specific last version.
 
 If you're upgrading from an old version, you'll see the complete
 changelog of everything that changed since then.
 
 Examples:
-  bd upgrade review
-  bd upgrade review --json
+  issuegraph upgrade review
+  issuegraph upgrade review --json
 
 ```
-bd upgrade review [flags]
+issuegraph upgrade review [flags]
 ```
 
-## bd upgrade status
+## issuegraph upgrade status
 
-Check if bd has been upgraded since you last used it.
+Check if issuegraph has been upgraded since you last used it.
 
 This command uses the version tracking that happens automatically
-at startup to detect if bd was upgraded.
+at startup to detect if issuegraph was upgraded.
 
 Examples:
-  bd upgrade status
-  bd upgrade status --json
+  issuegraph upgrade status
+  issuegraph upgrade status --json
 
 ```
-bd upgrade status [flags]
+issuegraph upgrade status [flags]
 ```

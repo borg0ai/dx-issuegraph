@@ -4,10 +4,10 @@ import (
 	"context"
 	"testing"
 
-	"github.com/steveyegge/beads/internal/hooks"
-	"github.com/steveyegge/beads/internal/storage"
-	"github.com/steveyegge/beads/internal/storage/externaldeps"
-	"github.com/steveyegge/beads/internal/telemetry"
+	"github.com/borg0ai/dx-issuegraph/internal/hooks"
+	"github.com/borg0ai/dx-issuegraph/internal/storage"
+	"github.com/borg0ai/dx-issuegraph/internal/storage/externaldeps"
+	"github.com/borg0ai/dx-issuegraph/internal/telemetry"
 )
 
 // recomputingStore stands in for a concrete store (dolt.DoltStore /
@@ -60,7 +60,7 @@ func assertRecomputeReachesRaw(t *testing.T, decorated storage.DoltStorage, raw 
 // silently skipped on every rig carrying a hook layer.
 func TestBlockedAfterMergeRecomputerFor_PeelsHookAndTelemetryLayers(t *testing.T) {
 	clearTelemetryEnv(t)
-	t.Setenv("BD_OTEL_STDOUT", "true")
+	t.Setenv("ISSUEGRAPH_OTEL_STDOUT", "true")
 
 	raw := &recomputingStore{}
 	decorated := wireStorageDecorators(raw, hooks.NewRunner("/nonexistent"), false)
@@ -127,7 +127,7 @@ func TestBlockedAfterMergeRecomputerFor_UndecoratedStore(t *testing.T) {
 // the call site turns that into a warning instead of a silent skip.
 func TestBlockedAfterMergeRecomputerFor_UnsupportedBackend(t *testing.T) {
 	clearTelemetryEnv(t)
-	t.Setenv("BD_OTEL_STDOUT", "true")
+	t.Setenv("ISSUEGRAPH_OTEL_STDOUT", "true")
 
 	decorated := wireStorageDecorators(&plainRecomputeStore{}, hooks.NewRunner("/nonexistent"), false)
 	if rs, ok := blockedAfterMergeRecomputerFor(decorated); ok {

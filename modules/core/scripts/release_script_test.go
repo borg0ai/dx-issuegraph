@@ -9,13 +9,13 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/steveyegge/beads/internal/formula"
+	"github.com/borg0ai/dx-issuegraph/internal/formula"
 )
 
-func TestReleaseScriptUsesVerifiedInstalledBDBeforeStaleRepoBD(t *testing.T) {
+func TestReleaseScriptUsesVerifiedInstalledIssueGraphBeforeStaleRepoBD(t *testing.T) {
 	repo := copyReleaseScriptFixture(t)
-	writeExecutable(t, filepath.Join(repo, "bd"), `#!/bin/sh
-echo "stale repo bd should not run" >&2
+	writeExecutable(t, filepath.Join(repo, "issuegraph"), `#!/bin/sh
+echo "stale repo issuegraph should not run" >&2
 exit 42
 `)
 
@@ -33,15 +33,15 @@ exit 99
 	if err != nil {
 		t.Fatalf("release.sh failed: %v\n%s", err, output)
 	}
-	if strings.Contains(output, "stale repo bd should not run") {
-		t.Fatalf("release.sh used stale repo-root bd:\n%s", output)
+	if strings.Contains(output, "stale repo issuegraph should not run") {
+		t.Fatalf("release.sh used stale repo-root issuegraph:\n%s", output)
 	}
-	if !strings.Contains(output, "bd mol wisp beads-release --var version=1.2.3") {
-		t.Fatalf("release.sh did not use installed bd command:\n%s", output)
+	if !strings.Contains(output, "issuegraph mol wisp issuegraph-release --var version=1.2.3") {
+		t.Fatalf("release.sh did not use installed issuegraph command:\n%s", output)
 	}
 }
 
-func TestReleaseScriptInstalledBDSelectionDoesNotRequireJQ(t *testing.T) {
+func TestReleaseScriptInstalledIssueGraphSelectionDoesNotRequireJQ(t *testing.T) {
 	repo := copyReleaseScriptFixture(t)
 
 	bin := filepath.Join(repo, "bin")
@@ -59,11 +59,11 @@ exit 99
 		t.Fatalf("release.sh failed without jq: %v\n%s", err, output)
 	}
 	if strings.Contains(output, "jq should not be called") {
-		t.Fatalf("release.sh invoked jq during bd selection:\n%s", output)
+		t.Fatalf("release.sh invoked jq during issuegraph selection:\n%s", output)
 	}
 }
 
-func TestReleaseScriptRejectsExplicitBDThatDoesNotResolveRepoFormula(t *testing.T) {
+func TestReleaseScriptRejectsExplicitIssueGraphThatDoesNotResolveRepoFormula(t *testing.T) {
 	repo := copyReleaseScriptFixture(t)
 	bin := filepath.Join(repo, "bin")
 	if err := os.MkdirAll(bin, 0o755); err != nil {
@@ -74,20 +74,20 @@ func TestReleaseScriptRejectsExplicitBDThatDoesNotResolveRepoFormula(t *testing.
 echo '{"source":"/tmp/stale.formula.toml"}'
 `)
 
-	output, err := runReleaseDryRunWithEnv(t, repo, bin, "BD="+staleBD)
+	output, err := runReleaseDryRunWithEnv(t, repo, bin, "ISSUEGRAPH="+staleBD)
 	if err == nil {
-		t.Fatalf("release.sh succeeded with stale explicit BD:\n%s", output)
+		t.Fatalf("release.sh succeeded with stale explicit ISSUEGRAPH:\n%s", output)
 	}
-	if !strings.Contains(output, "BD is set but does not resolve the checked-in beads-release formula") {
-		t.Fatalf("release.sh did not explain stale explicit BD:\n%s", output)
+	if !strings.Contains(output, "ISSUEGRAPH is set but does not resolve the checked-in issuegraph-release formula") {
+		t.Fatalf("release.sh did not explain stale explicit ISSUEGRAPH:\n%s", output)
 	}
 }
 
 func TestReleaseFormulaCleanupStaleDoltOrphansHandlesLocalModeWithoutJQ(t *testing.T) {
 	repoRoot := sourceRepoRoot(t)
-	formulaPath := filepath.Join(repoRoot, ".beads", "formulas", "beads-release.formula.toml")
+	formulaPath := filepath.Join(repoRoot, ".issuegraph", "formulas", "issuegraph-release.formula.toml")
 	if _, err := formula.NewParser().ParseFile(formulaPath); err != nil {
-		t.Fatalf("beads-release formula does not parse: %v", err)
+		t.Fatalf("issuegraph-release formula does not parse: %v", err)
 	}
 
 	data, err := os.ReadFile(formulaPath)
@@ -109,7 +109,7 @@ func TestReleaseFormulaCleanupStaleDoltOrphansHandlesLocalModeWithoutJQ(t *testi
 			t.Fatalf("cleanup-stale-dolt-orphans still contains %q:\n%s", unwanted, step)
 		}
 	}
-	for _, want := range []string{`case "$MODE" in`, "embedded)", "external)", "running|data_dir", `bd dolt killall`} {
+	for _, want := range []string{`case "$MODE" in`, "embedded)", "external)", "running|data_dir", `issuegraph dolt killall`} {
 		if !strings.Contains(step, want) {
 			t.Fatalf("cleanup-stale-dolt-orphans missing %q:\n%s", want, step)
 		}
@@ -118,19 +118,19 @@ func TestReleaseFormulaCleanupStaleDoltOrphansHandlesLocalModeWithoutJQ(t *testi
 
 func TestReleaseFormulaHomebrewCoreProcedureCoversTemplateAndBottles(t *testing.T) {
 	repoRoot := sourceRepoRoot(t)
-	formulaPath := filepath.Join(repoRoot, ".beads", "formulas", "beads-release.formula.toml")
+	formulaPath := filepath.Join(repoRoot, ".issuegraph", "formulas", "issuegraph-release.formula.toml")
 	if _, err := formula.NewParser().ParseFile(formulaPath); err != nil {
-		t.Fatalf("beads-release formula does not parse: %v", err)
+		t.Fatalf("issuegraph-release formula does not parse: %v", err)
 	}
 
 	homebrewStep := releaseFormulaStep(t, formulaPath, `id = "verify-homebrew-core"`)
 	for _, want := range []string{
 		"brew bump-formula-pr",
-		"--url=\"https://github.com/gastownhall/beads/archive/refs/tags/v{{version}}.tar.gz\"",
+		"--url=\"https://github.com/borg0ai/dx-issuegraph/archive/refs/tags/v{{version}}.tar.gz\"",
 		"Homebrew's current PR template",
 		"Do not remove or hand-edit the bottle block.",
 		"Do not open a duplicate manual PR.",
-		"homepage \"https://github.com/gastownhall/beads\"",
+		"homepage \"https://github.com/borg0ai/dx-issuegraph\"",
 		"Homebrew/homebrew-core@main",
 	} {
 		if !strings.Contains(homebrewStep, want) {
@@ -141,13 +141,13 @@ func TestReleaseFormulaHomebrewCoreProcedureCoversTemplateAndBottles(t *testing.
 	localInstallStep := releaseFormulaStep(t, formulaPath, `id = "local-install"`)
 	for _, want := range []string{
 		`needs = ["verify-github", "verify-npm", "verify-pypi", "verify-homebrew-core"]`,
-		"brew upgrade beads",
+		"brew upgrade issuegraph",
 	} {
 		if !strings.Contains(localInstallStep, want) {
 			t.Fatalf("local-install step missing %q:\n%s", want, localInstallStep)
 		}
 	}
-	if strings.Contains(localInstallStep, "brew upgrade bd") {
+	if strings.Contains(localInstallStep, "brew upgrade issuegraph") {
 		t.Fatalf("local-install step still references old Homebrew formula name:\n%s", localInstallStep)
 	}
 }
@@ -183,13 +183,13 @@ func copyReleaseScriptFixture(t *testing.T) string {
 	if err := os.MkdirAll(filepath.Join(repo, "scripts"), 0o755); err != nil {
 		t.Fatal(err)
 	}
-	if err := os.MkdirAll(filepath.Join(repo, ".beads", "formulas"), 0o755); err != nil {
+	if err := os.MkdirAll(filepath.Join(repo, ".issuegraph", "formulas"), 0o755); err != nil {
 		t.Fatal(err)
 	}
 	if err := os.WriteFile(filepath.Join(repo, "scripts", "release.sh"), data, 0o755); err != nil {
 		t.Fatal(err)
 	}
-	if err := os.WriteFile(filepath.Join(repo, ".beads", "formulas", "beads-release.formula.toml"), []byte("formula = \"beads-release\"\n"), 0o644); err != nil {
+	if err := os.WriteFile(filepath.Join(repo, ".issuegraph", "formulas", "issuegraph-release.formula.toml"), []byte("formula = \"issuegraph-release\"\n"), 0o644); err != nil {
 		t.Fatal(err)
 	}
 	return repo
@@ -214,7 +214,7 @@ func sourceRepoRoot(t *testing.T) string {
 
 func runReleaseDryRun(t *testing.T, repo, bin string) (string, error) {
 	t.Helper()
-	return runReleaseDryRunWithEnv(t, repo, bin, "BD=")
+	return runReleaseDryRunWithEnv(t, repo, bin, "ISSUEGRAPH=")
 }
 
 func runReleaseDryRunWithEnv(t *testing.T, repo, bin string, extraEnv ...string) (string, error) {
@@ -224,14 +224,14 @@ func runReleaseDryRunWithEnv(t *testing.T, repo, bin string, extraEnv ...string)
 		// /usr/bin:/bin baseline: on Windows git-bash the coreutils release.sh
 		// needs live there but are absent from the Go process's PATH.
 		"PATH=" + shSingleQuote(shellPath(t, bin)+":"+bashPathList(t, os.Getenv("PATH"))+":/usr/bin:/bin"),
-		"BD_FAKE_FORMULA_SOURCE=" + shSingleQuote(shellPath(t, filepath.Join(repo, ".beads", "formulas", "beads-release.formula.toml"))),
+		"ISSUEGRAPH_FAKE_FORMULA_SOURCE=" + shSingleQuote(shellPath(t, filepath.Join(repo, ".issuegraph", "formulas", "issuegraph-release.formula.toml"))),
 	}
 	for _, env := range extraEnv {
 		key, value, ok := strings.Cut(env, "=")
 		if !ok {
 			continue
 		}
-		if key == "BD" && value != "" {
+		if key == "ISSUEGRAPH" && value != "" {
 			value = shellPath(t, value)
 		}
 		assignments = append(assignments, key+"="+shSingleQuote(value))
@@ -329,7 +329,7 @@ func shellPathEnv() []string {
 
 func requireShellCommandPath(t *testing.T, bash, dir string, env []string, name, want string) {
 	t.Helper()
-	cmd := exec.Command(bash, "--noprofile", "--norc", "-c", `PATH="$BEADS_TEST_COMMAND_PATH"; export PATH; printf '%s\n' "$PATH"; command -v -- "$1"`, "shim-path-check", name)
+	cmd := exec.Command(bash, "--noprofile", "--norc", "-c", `PATH="$ISSUEGRAPH_TEST_COMMAND_PATH"; export PATH; printf '%s\n' "$PATH"; command -v -- "$1"`, "shim-path-check", name)
 	cmd.Dir = dir
 	cmd.Env = env
 	out, err := cmd.CombinedOutput()
@@ -344,13 +344,13 @@ func requireShellCommandPath(t *testing.T, bash, dir string, env []string, name,
 }
 
 func bashScriptCommand(bash, script string) *exec.Cmd {
-	return exec.Command(bash, "--noprofile", "--norc", "-c", `PATH="$BEADS_TEST_COMMAND_PATH"; export PATH; exec "$BASH" --noprofile --norc "$1"`, "script-test", script)
+	return exec.Command(bash, "--noprofile", "--norc", "-c", `PATH="$ISSUEGRAPH_TEST_COMMAND_PATH"; export PATH; exec "$BASH" --noprofile --norc "$1"`, "script-test", script)
 }
 
 // bashPathList converts a host-style PATH value (entries separated by
 // os.PathListSeparator) into a Bash-visible, colon-separated PATH so the
 // caller's PATH is preserved (not just /usr/bin:/bin) when it is prepended
-// with the fake bd directory. This matters on systems such as Nix/Guix
+// with the fake issuegraph directory. This matters on systems such as Nix/Guix
 // where bash and core utilities live outside /usr/bin and /bin.
 func bashPathList(t *testing.T, hostPath string) string {
 	t.Helper()
@@ -373,29 +373,29 @@ func writeFakeBD(t *testing.T, bin, repo string) {
 	t.Helper()
 	// Let bash itself canonicalize the formula path. release.sh derives
 	// FORMULA_PATH from `pwd`, which on Windows under Git Bash/MSYS produces
-	// mount-aware forms. Keep the fake bd path repo-relative so bash can
+	// mount-aware forms. Keep the fake issuegraph path repo-relative so bash can
 	// `cd` there portably, then let `pwd` resolve it to the exact form that
 	// release.sh will compare against.
-	formulaDir := ".beads/formulas"
+	formulaDir := ".issuegraph/formulas"
 	body := fmt.Sprintf(`#!/bin/sh
-if [ -n "${BD_FAKE_FORMULA_SOURCE:-}" ]; then
-  SOURCE="$BD_FAKE_FORMULA_SOURCE"
+if [ -n "${ISSUEGRAPH_FAKE_FORMULA_SOURCE:-}" ]; then
+  SOURCE="$ISSUEGRAPH_FAKE_FORMULA_SOURCE"
 else
-  SOURCE="$(cd %q && pwd)/beads-release.formula.toml"
+  SOURCE="$(cd %q && pwd)/issuegraph-release.formula.toml"
 fi
-if [ "$1 $2 $3 $4" = "formula show beads-release --json" ]; then
+if [ "$1 $2 $3 $4" = "formula show issuegraph-release --json" ]; then
   printf '%%s\n' "{\"source\":\"$SOURCE\"}"
   exit 0
 fi
-if [ "$1 $2 $3" = "formula show beads-release" ]; then
+if [ "$1 $2 $3" = "formula show issuegraph-release" ]; then
   printf '   ├── preflight\n'
   printf '   └── release-complete\n'
   exit 0
 fi
-echo "unexpected fake bd invocation: $*" >&2
+echo "unexpected fake issuegraph invocation: $*" >&2
 exit 64
 `, formulaDir)
-	writeExecutable(t, filepath.Join(bin, "bd"), body)
+	writeExecutable(t, filepath.Join(bin, "issuegraph"), body)
 }
 
 func writeExecutable(t *testing.T, path, body string) {

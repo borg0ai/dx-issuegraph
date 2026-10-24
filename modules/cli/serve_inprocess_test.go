@@ -10,10 +10,10 @@ import (
 	"github.com/spf13/pflag"
 )
 
-// Shared plumbing for the tests that run `bd serve` IN-PROCESS.
+// Shared plumbing for the tests that run `issuegraph serve` IN-PROCESS.
 //
 // In-process is not a convenience here: a registered backend is init-time Go
-// wiring and OSS registers none, so a spawned `bd` has nothing to register and
+// wiring and OSS registers none, so a spawned `issuegraph` has nothing to register and
 // could not reach that arm at all. What that costs is a bound server and a set
 // of package globals inside the test binary every other test shares, which is
 // what the snapshot-and-restore below exists for.
@@ -27,7 +27,7 @@ import (
 //
 // The flag set is part of that state and the least obvious part of it: cobra
 // merges every inherited persistent flag into serveCmd's own FlagSet the first
-// time it parses one, so a run through rootCmd.Execute leaves `bd serve`
+// time it parses one, so a run through rootCmd.Execute leaves `issuegraph serve`
 // carrying --json, --db and the rest of the root's surface. That is what
 // TestServeFlags reads. ResetFlags plus the command's own registration function
 // is the un-merge cobra does not offer.
@@ -90,7 +90,7 @@ func resetRootPersistentFlags(t *testing.T) {
 	})
 }
 
-// captureStdoutLines redirects os.Stdout and streams its lines. bd serve prints
+// captureStdoutLines redirects os.Stdout and streams its lines. issuegraph serve prints
 // the address it bound — the only way to discover an ephemeral port — to
 // stdout, and the server is running by the time it does.
 func captureStdoutLines(t *testing.T) (<-chan string, func()) {
@@ -127,7 +127,7 @@ func captureStdoutLines(t *testing.T) (<-chan string, func()) {
 	return lines, stop
 }
 
-// waitForBoundAddress reads the address `bd serve` printed on stdout, which is
+// waitForBoundAddress reads the address `issuegraph serve` printed on stdout, which is
 // the only way to discover the port under the ephemeral default. The server is
 // already accepting by the time that line is written.
 //
@@ -140,14 +140,14 @@ func waitForBoundAddress(t *testing.T, lines <-chan string, done <-chan error) s
 		select {
 		case line, ok := <-lines:
 			if !ok {
-				t.Fatalf("bd serve exited before it bound: %v", <-done)
+				t.Fatalf("issuegraph serve exited before it bound: %v", <-done)
 			}
-			const prefix = "bd serve: listening on http://"
+			const prefix = "issuegraph serve: listening on http://"
 			if addr, found := strings.CutPrefix(strings.TrimSpace(line), prefix); found {
 				return addr
 			}
 		case <-deadline:
-			t.Fatal("bd serve did not print a bound address")
+			t.Fatal("issuegraph serve did not print a bound address")
 		}
 	}
 }

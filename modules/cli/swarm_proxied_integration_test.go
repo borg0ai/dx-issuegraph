@@ -10,7 +10,7 @@ import (
 	"testing"
 )
 
-// swarmModeRunner runs the same bd binary against one project in one mode
+// swarmModeRunner runs the same issuegraph binary against one project in one mode
 // (classic embedded or proxied-server), so the cross-mode parity checks below
 // exercise identical commands against identical fixtures and diff the output.
 type swarmModeRunner struct {
@@ -19,30 +19,30 @@ type swarmModeRunner struct {
 	env  func(dir string) []string
 }
 
-func (m swarmModeRunner) run(t *testing.T, bd string, args ...string) (string, string, error) {
+func (m swarmModeRunner) run(t *testing.T, issuegraph string, args ...string) (string, string, error) {
 	t.Helper()
-	cmd := exec.Command(bd, args...)
+	cmd := exec.Command(issuegraph, args...)
 	cmd.Dir = m.dir
 	cmd.Env = m.env(m.dir)
 	stdout, stderr, err := runCommandBuffers(t, cmd)
 	return stdout.String(), stderr.String(), err
 }
 
-func (m swarmModeRunner) mustRun(t *testing.T, bd string, args ...string) string {
+func (m swarmModeRunner) mustRun(t *testing.T, issuegraph string, args ...string) string {
 	t.Helper()
-	stdout, stderr, err := m.run(t, bd, args...)
+	stdout, stderr, err := m.run(t, issuegraph, args...)
 	if err != nil {
-		t.Fatalf("[%s] bd %s failed: %v\nstdout:\n%s\nstderr:\n%s",
+		t.Fatalf("[%s] issuegraph %s failed: %v\nstdout:\n%s\nstderr:\n%s",
 			m.name, strings.Join(args, " "), err, stdout, stderr)
 	}
 	return stdout
 }
 
-func (m swarmModeRunner) mustFail(t *testing.T, bd string, args ...string) string {
+func (m swarmModeRunner) mustFail(t *testing.T, issuegraph string, args ...string) string {
 	t.Helper()
-	stdout, stderr, err := m.run(t, bd, args...)
+	stdout, stderr, err := m.run(t, issuegraph, args...)
 	if err == nil {
-		t.Fatalf("[%s] expected bd %s to fail, but it succeeded:\nstdout:\n%s\nstderr:\n%s",
+		t.Fatalf("[%s] expected issuegraph %s to fail, but it succeeded:\nstdout:\n%s\nstderr:\n%s",
 			m.name, strings.Join(args, " "), stdout, stderr)
 	}
 	return stdout + stderr
@@ -56,40 +56,40 @@ func (m swarmModeRunner) mustFail(t *testing.T, bd string, args ...string) strin
 //	├─ psw-c2  in_progress, assignee worker1
 //	├─ psw-c3  open, no blockers          (ready)
 //	└─ psw-c4  open, blocks-dep on psw-c3 (blocked)
-func buildSwarmParityFixture(t *testing.T, bd string, m swarmModeRunner) {
+func buildSwarmParityFixture(t *testing.T, issuegraph string, m swarmModeRunner) {
 	t.Helper()
 	// --id and --parent cannot be combined at create, so children get their
 	// parent-child edge via dep add.
-	m.mustRun(t, bd, "create", "Swarm port epic", "--type", "epic", "--id", "psw-epic1")
-	m.mustRun(t, bd, "create", "Child done", "--type", "task", "--id", "psw-c1")
-	m.mustRun(t, bd, "create", "Child active", "--type", "task", "--id", "psw-c2")
-	m.mustRun(t, bd, "create", "Child ready", "--type", "task", "--id", "psw-c3")
-	m.mustRun(t, bd, "create", "Child waiting", "--type", "task", "--id", "psw-c4")
+	m.mustRun(t, issuegraph, "create", "Swarm port epic", "--type", "epic", "--id", "psw-epic1")
+	m.mustRun(t, issuegraph, "create", "Child done", "--type", "task", "--id", "psw-c1")
+	m.mustRun(t, issuegraph, "create", "Child active", "--type", "task", "--id", "psw-c2")
+	m.mustRun(t, issuegraph, "create", "Child ready", "--type", "task", "--id", "psw-c3")
+	m.mustRun(t, issuegraph, "create", "Child waiting", "--type", "task", "--id", "psw-c4")
 	for _, child := range []string{"psw-c1", "psw-c2", "psw-c3", "psw-c4"} {
-		m.mustRun(t, bd, "dep", "add", child, "psw-epic1", "--type", "parent-child")
+		m.mustRun(t, issuegraph, "dep", "add", child, "psw-epic1", "--type", "parent-child")
 	}
-	m.mustRun(t, bd, "dep", "add", "psw-c4", "psw-c3")
-	m.mustRun(t, bd, "close", "psw-c1", "-r", "fixture: pre-closed child")
-	m.mustRun(t, bd, "update", "psw-c2", "--status", "in_progress", "--assignee", "worker1")
+	m.mustRun(t, issuegraph, "dep", "add", "psw-c4", "psw-c3")
+	m.mustRun(t, issuegraph, "close", "psw-c1", "-r", "fixture: pre-closed child")
+	m.mustRun(t, issuegraph, "update", "psw-c2", "--status", "in_progress", "--assignee", "worker1")
 }
 
 // buildSwarmCycleFixture creates a second epic whose two children form a
-// blocking cycle. `bd dep add` refuses to create the closing edge (the cycle
+// blocking cycle. `issuegraph dep add` refuses to create the closing edge (the cycle
 // gate is upstream of both modes), so the reverse edge is planted with raw
-// SQL via `bd sql`. Proxied-only: classic embedded mode has no `bd sql`
+// SQL via `issuegraph sql`. Proxied-only: classic embedded mode has no `issuegraph sql`
 // ("not yet supported in embedded mode") and no other CLI door past the
 // cycle gate, so there is no classic run to diff against — the detector
 // itself (detectStructuralIssues) is the same shared code on both routes.
-func buildSwarmCycleFixture(t *testing.T, bd string, m swarmModeRunner) {
+func buildSwarmCycleFixture(t *testing.T, issuegraph string, m swarmModeRunner) {
 	t.Helper()
-	m.mustRun(t, bd, "create", "Cycle epic", "--type", "epic", "--id", "psw-epic2")
-	m.mustRun(t, bd, "create", "Cycle A", "--type", "task", "--id", "psw-c5")
-	m.mustRun(t, bd, "create", "Cycle B", "--type", "task", "--id", "psw-c6")
+	m.mustRun(t, issuegraph, "create", "Cycle epic", "--type", "epic", "--id", "psw-epic2")
+	m.mustRun(t, issuegraph, "create", "Cycle A", "--type", "task", "--id", "psw-c5")
+	m.mustRun(t, issuegraph, "create", "Cycle B", "--type", "task", "--id", "psw-c6")
 	for _, child := range []string{"psw-c5", "psw-c6"} {
-		m.mustRun(t, bd, "dep", "add", child, "psw-epic2", "--type", "parent-child")
+		m.mustRun(t, issuegraph, "dep", "add", child, "psw-epic2", "--type", "parent-child")
 	}
-	m.mustRun(t, bd, "dep", "add", "psw-c5", "psw-c6")
-	m.mustRun(t, bd, "sql",
+	m.mustRun(t, issuegraph, "dep", "add", "psw-c5", "psw-c6")
+	m.mustRun(t, issuegraph, "sql",
 		"INSERT INTO dependencies (id, issue_id, depends_on_issue_id, type, created_at, created_by, metadata) "+
 			"VALUES (UUID(), 'psw-c6', 'psw-c5', 'blocks', NOW(), 'tester', '{}')")
 }
@@ -128,21 +128,21 @@ func stripSwarmStatusTimestamps(t *testing.T, doc map[string]interface{}) {
 func TestProxiedServerSwarm(t *testing.T) {
 	requireSharedProxiedServer(t)
 	t.Parallel()
-	bd := buildEmbeddedBD(t)
+	issuegraph := buildEmbeddedBD(t)
 
 	// One journey: identical fixture in a proxied-server project and a classic
 	// embedded project (same binary), then every read compared across modes.
-	p := newSharedProxiedProject(t, bd, "psw")
-	classicDir, _, _ := bdInit(t, bd, "--prefix", "psw")
+	p := newSharedProxiedProject(t, issuegraph, "psw")
+	classicDir, _, _ := issuegraphInit(t, issuegraph, "--prefix", "psw")
 
-	proxied := swarmModeRunner{name: "proxied", dir: p.dir, env: bdProxiedEnv}
-	classic := swarmModeRunner{name: "classic", dir: classicDir, env: bdEnv}
+	proxied := swarmModeRunner{name: "proxied", dir: p.dir, env: issuegraphProxiedEnv}
+	classic := swarmModeRunner{name: "classic", dir: classicDir, env: issuegraphEnv}
 	modes := []swarmModeRunner{proxied, classic}
 
 	for _, m := range modes {
-		buildSwarmParityFixture(t, bd, m)
+		buildSwarmParityFixture(t, issuegraph, m)
 	}
-	buildSwarmCycleFixture(t, bd, proxied)
+	buildSwarmCycleFixture(t, issuegraph, proxied)
 
 	// Read-only invariant: neither swarm status nor swarm validate may write a
 	// Dolt commit. Capture HEAD before the reads and re-check at the end.
@@ -150,7 +150,7 @@ func TestProxiedServerSwarm(t *testing.T) {
 	headBefore := proxiedDoltHead(t, db)
 
 	t.Run("status_fields", func(t *testing.T) {
-		out := proxied.mustRun(t, bd, "swarm", "status", "psw-epic1")
+		out := proxied.mustRun(t, issuegraph, "swarm", "status", "psw-epic1")
 		for _, want := range []string{
 			"psw-c1",
 			"⟳ psw-c2 [worker1]",
@@ -165,16 +165,16 @@ func TestProxiedServerSwarm(t *testing.T) {
 	})
 
 	t.Run("status_matches_classic", func(t *testing.T) {
-		proxiedOut := proxied.mustRun(t, bd, "swarm", "status", "psw-epic1")
-		classicOut := classic.mustRun(t, bd, "swarm", "status", "psw-epic1")
+		proxiedOut := proxied.mustRun(t, issuegraph, "swarm", "status", "psw-epic1")
+		classicOut := classic.mustRun(t, issuegraph, "swarm", "status", "psw-epic1")
 		if proxiedOut != classicOut {
 			t.Errorf("swarm status output diverged from classic:\nproxied:\n%s\nclassic:\n%s", proxiedOut, classicOut)
 		}
 	})
 
 	t.Run("status_json_matches_classic", func(t *testing.T) {
-		proxiedDoc := parseSwarmJSON(t, "proxied", proxied.mustRun(t, bd, "swarm", "status", "psw-epic1", "--json"))
-		classicDoc := parseSwarmJSON(t, "classic", classic.mustRun(t, bd, "swarm", "status", "psw-epic1", "--json"))
+		proxiedDoc := parseSwarmJSON(t, "proxied", proxied.mustRun(t, issuegraph, "swarm", "status", "psw-epic1", "--json"))
+		classicDoc := parseSwarmJSON(t, "classic", classic.mustRun(t, issuegraph, "swarm", "status", "psw-epic1", "--json"))
 		// closed_at is the run's wall clock; everything else must be identical.
 		stripSwarmStatusTimestamps(t, proxiedDoc)
 		stripSwarmStatusTimestamps(t, classicDoc)
@@ -190,7 +190,7 @@ func TestProxiedServerSwarm(t *testing.T) {
 	})
 
 	t.Run("validate_clean_dag", func(t *testing.T) {
-		out := proxied.mustRun(t, bd, "swarm", "validate", "psw-epic1")
+		out := proxied.mustRun(t, issuegraph, "swarm", "validate", "psw-epic1")
 		for _, want := range []string{
 			"psw-epic1",
 			"Total issues: 4 (1 closed)",
@@ -203,16 +203,16 @@ func TestProxiedServerSwarm(t *testing.T) {
 	})
 
 	t.Run("validate_matches_classic", func(t *testing.T) {
-		proxiedOut := proxied.mustRun(t, bd, "swarm", "validate", "psw-epic1")
-		classicOut := classic.mustRun(t, bd, "swarm", "validate", "psw-epic1")
+		proxiedOut := proxied.mustRun(t, issuegraph, "swarm", "validate", "psw-epic1")
+		classicOut := classic.mustRun(t, issuegraph, "swarm", "validate", "psw-epic1")
 		if proxiedOut != classicOut {
 			t.Errorf("swarm validate output diverged from classic:\nproxied:\n%s\nclassic:\n%s", proxiedOut, classicOut)
 		}
 	})
 
 	t.Run("validate_json_matches_classic", func(t *testing.T) {
-		proxiedDoc := parseSwarmJSON(t, "proxied", proxied.mustRun(t, bd, "swarm", "validate", "psw-epic1", "--json"))
-		classicDoc := parseSwarmJSON(t, "classic", classic.mustRun(t, bd, "swarm", "validate", "psw-epic1", "--json"))
+		proxiedDoc := parseSwarmJSON(t, "proxied", proxied.mustRun(t, issuegraph, "swarm", "validate", "psw-epic1", "--json"))
+		classicDoc := parseSwarmJSON(t, "classic", classic.mustRun(t, issuegraph, "swarm", "validate", "psw-epic1", "--json"))
 		if !reflect.DeepEqual(proxiedDoc, classicDoc) {
 			t.Errorf("swarm validate --json diverged from classic:\nproxied: %v\nclassic: %v", proxiedDoc, classicDoc)
 		}
@@ -229,7 +229,7 @@ func TestProxiedServerSwarm(t *testing.T) {
 		// this asserts the verdict, not the bytes: nonzero exit (classic's
 		// SilentExit on !Swarmable), the cycle error, and the NO verdict —
 		// all produced by the same shared code the classic route runs.
-		out := proxied.mustFail(t, bd, "swarm", "validate", "psw-epic2")
+		out := proxied.mustFail(t, issuegraph, "swarm", "validate", "psw-epic2")
 		if !strings.Contains(out, "Dependency cycle detected") {
 			t.Errorf("expected cycle error, got:\n%s", out)
 		}
@@ -239,11 +239,11 @@ func TestProxiedServerSwarm(t *testing.T) {
 	})
 
 	t.Run("create_and_list_still_refused", func(t *testing.T) {
-		out := proxied.mustFail(t, bd, "swarm", "create", "psw-epic1")
+		out := proxied.mustFail(t, issuegraph, "swarm", "create", "psw-epic1")
 		if !strings.Contains(out, "swarm create is not supported in proxied-server mode") {
 			t.Errorf("expected swarm create refusal, got:\n%s", out)
 		}
-		out = proxied.mustFail(t, bd, "swarm", "list")
+		out = proxied.mustFail(t, issuegraph, "swarm", "list")
 		if !strings.Contains(out, "swarm list is not supported in proxied-server mode") {
 			t.Errorf("expected swarm list refusal, got:\n%s", out)
 		}

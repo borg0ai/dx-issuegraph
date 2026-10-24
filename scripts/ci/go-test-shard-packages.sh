@@ -5,7 +5,7 @@
 #   go-test-shard-packages.sh <shard_number> <total_shards> [go list patterns...]
 #
 # Environment:
-#   GO_TEST_SHARD_TAGS           build tags for go list, default: BEADS_BUILD_TAGS
+#   GO_TEST_SHARD_TAGS           build tags for go list, default: ISSUEGRAPH_BUILD_TAGS
 #   GO_TEST_SHARD_EXCLUDE_REGEX  optional regex for package paths to exclude
 
 set -euo pipefail
@@ -32,11 +32,11 @@ source "$REPO_ROOT/modules/core/.buildflags"
 cd "$REPO_ROOT"
 
 if (($# == 0)); then
-    set -- github.com/steveyegge/beads/...
+    set -- github.com/borg0ai/dx-issuegraph/...
 fi
 
 SHARD_INDEX=$((SHARD_NUMBER - 1))
-GO_TEST_SHARD_TAGS="${GO_TEST_SHARD_TAGS:-$BEADS_BUILD_TAGS}"
+GO_TEST_SHARD_TAGS="${GO_TEST_SHARD_TAGS:-$ISSUEGRAPH_BUILD_TAGS}"
 
 GO_TEST_SHARD_EXCLUDE_REGEX="${GO_TEST_SHARD_EXCLUDE_REGEX:-}"
 

@@ -13,61 +13,61 @@ import (
 	"testing"
 )
 
-// bdBackup runs "bd backup" with extra args. Returns combined output.
-func bdBackup(t *testing.T, bd, dir string, args ...string) string {
+// issuegraphBackup runs "issuegraph backup" with extra args. Returns combined output.
+func issuegraphBackup(t *testing.T, issuegraph, dir string, args ...string) string {
 	t.Helper()
 	fullArgs := append([]string{"backup"}, args...)
-	cmd := exec.Command(bd, fullArgs...)
+	cmd := exec.Command(issuegraph, fullArgs...)
 	cmd.Dir = dir
-	cmd.Env = bdEnv(dir)
+	cmd.Env = issuegraphEnv(dir)
 	stdout, stderr, err := runCommandBuffers(t, cmd)
 	if err != nil {
-		t.Fatalf("bd backup %s failed: %v\nstdout:\n%s\nstderr:\n%s", strings.Join(args, " "), err, stdout.String(), stderr.String())
+		t.Fatalf("issuegraph backup %s failed: %v\nstdout:\n%s\nstderr:\n%s", strings.Join(args, " "), err, stdout.String(), stderr.String())
 	}
 	return stdout.String()
 }
 
-// bdBackupFail runs "bd backup" expecting failure. Returns combined output.
-func bdBackupFail(t *testing.T, bd, dir string, args ...string) string {
+// issuegraphBackupFail runs "issuegraph backup" expecting failure. Returns combined output.
+func issuegraphBackupFail(t *testing.T, issuegraph, dir string, args ...string) string {
 	t.Helper()
 	fullArgs := append([]string{"backup"}, args...)
-	cmd := exec.Command(bd, fullArgs...)
+	cmd := exec.Command(issuegraph, fullArgs...)
 	cmd.Dir = dir
-	cmd.Env = bdEnv(dir)
+	cmd.Env = issuegraphEnv(dir)
 	out, err := cmd.CombinedOutput()
 	if err == nil {
-		t.Fatalf("bd backup %s should have failed, got: %s", strings.Join(args, " "), out)
+		t.Fatalf("issuegraph backup %s should have failed, got: %s", strings.Join(args, " "), out)
 	}
 	return string(out)
 }
 
 func TestEmbeddedBackup(t *testing.T) {
-	if os.Getenv("BEADS_TEST_EMBEDDED_DOLT") != "1" {
-		t.Skip("set BEADS_TEST_EMBEDDED_DOLT=1 to run embedded dolt backup tests")
+	if os.Getenv("ISSUEGRAPH_TEST_EMBEDDED_DOLT") != "1" {
+		t.Skip("set ISSUEGRAPH_TEST_EMBEDDED_DOLT=1 to run embedded dolt backup tests")
 	}
 	t.Parallel()
 
-	bd := buildEmbeddedBD(t)
+	issuegraph := buildEmbeddedBD(t)
 
 	t.Run("status_no_backup", func(t *testing.T) {
-		dir, _, _ := bdInit(t, bd, "--prefix", "bkstat0")
+		dir, _, _ := issuegraphInit(t, issuegraph, "--prefix", "bkstat0")
 
-		out := bdBackup(t, bd, dir, "status")
+		out := issuegraphBackup(t, issuegraph, dir, "status")
 		if !strings.Contains(out, "No backup has been performed") {
 			t.Errorf("expected 'No backup has been performed', got: %s", out)
 		}
 	})
 
 	t.Run("status_after_init_sync", func(t *testing.T) {
-		dir, _, _ := bdInit(t, bd, "--prefix", "bkstat1")
-		bdCreateSilent(t, bd, dir, "status test issue")
+		dir, _, _ := issuegraphInit(t, issuegraph, "--prefix", "bkstat1")
+		issuegraphCreateSilent(t, issuegraph, dir, "status test issue")
 
 		backupDest := filepath.Join(t.TempDir(), "dolt-backup-status")
 		backupURL := "file://" + backupDest
-		bdBackup(t, bd, dir, "init", backupURL)
-		bdBackup(t, bd, dir, "sync")
+		issuegraphBackup(t, issuegraph, dir, "init", backupURL)
+		issuegraphBackup(t, issuegraph, dir, "sync")
 
-		out := bdBackup(t, bd, dir, "status")
+		out := issuegraphBackup(t, issuegraph, dir, "status")
 		if out == "" {
 			t.Error("expected non-empty status output")
 		}
@@ -75,7 +75,7 @@ func TestEmbeddedBackup(t *testing.T) {
 			t.Errorf("embedded backup status reported an empty database: %s", out)
 		}
 
-		jsonOut := bdBackup(t, bd, dir, "status", "--json")
+		jsonOut := issuegraphBackup(t, issuegraph, dir, "status", "--json")
 		var status struct {
 			DatabaseSize struct {
 				Bytes int64 `json:"bytes"`
@@ -90,21 +90,21 @@ func TestEmbeddedBackup(t *testing.T) {
 	})
 
 	t.Run("init_and_sync", func(t *testing.T) {
-		dir, _, _ := bdInit(t, bd, "--prefix", "bkinit")
-		bdCreateSilent(t, bd, dir, "init sync test issue")
+		dir, _, _ := issuegraphInit(t, issuegraph, "--prefix", "bkinit")
+		issuegraphCreateSilent(t, issuegraph, dir, "init sync test issue")
 
 		// Create a backup destination directory
 		backupDest := filepath.Join(t.TempDir(), "dolt-backup")
 		backupURL := "file://" + backupDest
 
 		// Init backup destination
-		out := bdBackup(t, bd, dir, "init", backupURL)
+		out := issuegraphBackup(t, issuegraph, dir, "init", backupURL)
 		if !strings.Contains(out, "Backup destination configured") {
 			t.Errorf("expected 'Backup destination configured', got: %s", out)
 		}
 
 		// Sync to backup
-		out = bdBackup(t, bd, dir, "sync")
+		out = issuegraphBackup(t, issuegraph, dir, "sync")
 		if !strings.Contains(out, "Backup synced") {
 			t.Errorf("expected 'Backup synced', got: %s", out)
 		}
@@ -116,9 +116,9 @@ func TestEmbeddedBackup(t *testing.T) {
 	})
 
 	t.Run("sync_without_init", func(t *testing.T) {
-		dir, _, _ := bdInit(t, bd, "--prefix", "bksync0")
+		dir, _, _ := issuegraphInit(t, issuegraph, "--prefix", "bksync0")
 
-		out := bdBackupFail(t, bd, dir, "sync")
+		out := issuegraphBackupFail(t, issuegraph, dir, "sync")
 		if !strings.Contains(out, "no backup") && !strings.Contains(out, "not found") &&
 			!strings.Contains(out, "No backup") {
 			t.Errorf("expected backup-not-configured error, got: %s", out)
@@ -126,9 +126,9 @@ func TestEmbeddedBackup(t *testing.T) {
 	})
 
 	t.Run("restore_from_backup", func(t *testing.T) {
-		dir, _, _ := bdInit(t, bd, "--prefix", "bksrc")
-		bdCreateSilent(t, bd, dir, "restore test issue A")
-		bdCreateSilent(t, bd, dir, "restore test issue B")
+		dir, _, _ := issuegraphInit(t, issuegraph, "--prefix", "bksrc")
+		issuegraphCreateSilent(t, issuegraph, dir, "restore test issue A")
+		issuegraphCreateSilent(t, issuegraph, dir, "restore test issue B")
 
 		// Create a Dolt backup via init + sync
 		backupDest := filepath.Join(t.TempDir(), "dolt-backup-restore")
@@ -136,18 +136,18 @@ func TestEmbeddedBackup(t *testing.T) {
 			t.Fatal(err)
 		}
 		backupURL := "file://" + backupDest
-		bdBackup(t, bd, dir, "init", backupURL)
-		bdBackup(t, bd, dir, "sync")
+		issuegraphBackup(t, issuegraph, dir, "init", backupURL)
+		issuegraphBackup(t, issuegraph, dir, "sync")
 
 		// Restore into a fresh environment. Use a prefix that differs
 		// from the source ("bksrc") so the restored database name
 		// doesn't collide with the target's own database.
-		dir2, _, _ := bdInit(t, bd, "--prefix", "bkdst")
+		dir2, _, _ := issuegraphInit(t, issuegraph, "--prefix", "bkdst")
 
 		// The restore will create a database named "bkdst" from the
-		// backup, but "bkdst" already exists from bd init. Use
-		// bdBackupFail to confirm the expected "already exists" error.
-		out := bdBackupFail(t, bd, dir2, "restore", backupDest)
+		// backup, but "bkdst" already exists from issuegraph init. Use
+		// issuegraphBackupFail to confirm the expected "already exists" error.
+		out := issuegraphBackupFail(t, issuegraph, dir2, "restore", backupDest)
 		if !strings.Contains(out, "already exists") {
 			t.Errorf("expected 'already exists' error, got: %s", out)
 		}
@@ -155,23 +155,23 @@ func TestEmbeddedBackup(t *testing.T) {
 }
 
 func TestEmbeddedBackupConcurrent(t *testing.T) {
-	if os.Getenv("BEADS_TEST_EMBEDDED_DOLT") != "1" {
-		t.Skip("set BEADS_TEST_EMBEDDED_DOLT=1 to run embedded dolt backup tests")
+	if os.Getenv("ISSUEGRAPH_TEST_EMBEDDED_DOLT") != "1" {
+		t.Skip("set ISSUEGRAPH_TEST_EMBEDDED_DOLT=1 to run embedded dolt backup tests")
 	}
 	t.Parallel()
 
-	bd := buildEmbeddedBD(t)
-	dir, _, _ := bdInit(t, bd, "--prefix", "bkconc")
+	issuegraph := buildEmbeddedBD(t)
+	dir, _, _ := issuegraphInit(t, issuegraph, "--prefix", "bkconc")
 
 	// Seed some data
 	for i := 0; i < 5; i++ {
-		bdCreateSilent(t, bd, dir, fmt.Sprintf("concurrent backup issue %d", i))
+		issuegraphCreateSilent(t, issuegraph, dir, fmt.Sprintf("concurrent backup issue %d", i))
 	}
 
 	// Set up a backup destination for sync
 	backupDest := filepath.Join(t.TempDir(), "dolt-backup-concurrent")
 	backupURL := "file://" + backupDest
-	bdBackup(t, bd, dir, "init", backupURL)
+	issuegraphBackup(t, issuegraph, dir, "init", backupURL)
 
 	const numWorkers = 5
 
@@ -188,9 +188,9 @@ func TestEmbeddedBackupConcurrent(t *testing.T) {
 	for w := 0; w < numWorkers; w++ {
 		go func(worker int) {
 			defer wg.Done()
-			cmd := exec.Command(bd, "backup", "sync")
+			cmd := exec.Command(issuegraph, "backup", "sync")
 			cmd.Dir = dir
-			cmd.Env = bdEnv(dir)
+			cmd.Env = issuegraphEnv(dir)
 			out, err := cmd.CombinedOutput()
 			results[worker] = result{worker: worker, out: string(out), err: err}
 		}(w)

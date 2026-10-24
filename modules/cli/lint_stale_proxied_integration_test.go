@@ -13,28 +13,28 @@ import (
 func TestProxiedServerLint(t *testing.T) {
 	requireSharedProxiedServer(t)
 	t.Parallel()
-	bd := buildEmbeddedBD(t)
-	p := newSharedProxiedProject(t, bd, "lnt")
+	issuegraph := buildEmbeddedBD(t)
+	p := newSharedProxiedProject(t, issuegraph, "lnt")
 
 	// Seed mirrors modules/cli/lint_embedded_test.go.
 	// Bug without template sections -> warning.
-	bugBare := bdProxiedCreate(t, bd, p.dir, "Bug without template", "--type", "bug",
+	bugBare := issuegraphProxiedCreate(t, issuegraph, p.dir, "Bug without template", "--type", "bug",
 		"--description", "Something is broken")
 	// Bug with the required sections -> no warning.
-	bugGood := bdProxiedCreate(t, bd, p.dir, "Bug with template", "--type", "bug",
+	bugGood := issuegraphProxiedCreate(t, issuegraph, p.dir, "Bug with template", "--type", "bug",
 		"--description", "## Steps to Reproduce\n1. Do X\n2. See Y\n\n## Acceptance Criteria\nShould not crash")
 	// Task without acceptance criteria -> warning.
-	taskBare := bdProxiedCreate(t, bd, p.dir, "Task without AC", "--type", "task",
+	taskBare := issuegraphProxiedCreate(t, issuegraph, p.dir, "Task without AC", "--type", "task",
 		"--description", "Just do it")
 	// Chore -> never warns.
-	bdProxiedCreate(t, bd, p.dir, "Chore is fine", "--type", "chore")
+	issuegraphProxiedCreate(t, issuegraph, p.dir, "Chore is fine", "--type", "chore")
 	// Feature without AC -> warning.
-	bdProxiedCreate(t, bd, p.dir, "Feature no AC", "--type", "feature",
+	issuegraphProxiedCreate(t, issuegraph, p.dir, "Feature no AC", "--type", "feature",
 		"--description", "Add dark mode")
 	// Closed bare bug for --status all coverage.
-	closedBug := bdProxiedCreate(t, bd, p.dir, "Closed bug bare", "--type", "bug",
+	closedBug := issuegraphProxiedCreate(t, issuegraph, p.dir, "Closed bug bare", "--type", "bug",
 		"--description", "Old bug")
-	if out, err := bdProxiedRun(t, bd, p.dir, "close", closedBug.ID); err != nil {
+	if out, err := issuegraphProxiedRun(t, issuegraph, p.dir, "close", closedBug.ID); err != nil {
 		t.Fatalf("close %s: %v\n%s", closedBug.ID, err, out)
 	}
 
@@ -45,7 +45,7 @@ func TestProxiedServerLint(t *testing.T) {
 	}
 	lintJSON := func(t *testing.T, args ...string) lintOutput {
 		t.Helper()
-		out, err := bdProxiedRun(t, bd, p.dir, append([]string{"lint", "--json"}, args...)...)
+		out, err := issuegraphProxiedRun(t, issuegraph, p.dir, append([]string{"lint", "--json"}, args...)...)
 		if err != nil {
 			t.Fatalf("lint %v: %v\n%s", args, err, out)
 		}
@@ -138,14 +138,14 @@ func TestProxiedServerLint(t *testing.T) {
 
 	t.Run("exit_code_1_on_warnings", func(t *testing.T) {
 		// Non-JSON lint returns SilentExit (exit 1) when warnings exist.
-		out, err := bdProxiedRun(t, bd, p.dir, "lint")
+		out, err := issuegraphProxiedRun(t, issuegraph, p.dir, "lint")
 		if err == nil {
 			t.Errorf("expected non-zero exit when warnings exist, got success:\n%s", out)
 		}
 	})
 
 	t.Run("exit_code_0_when_clean", func(t *testing.T) {
-		out, err := bdProxiedRun(t, bd, p.dir, "lint", "--type", "chore")
+		out, err := issuegraphProxiedRun(t, issuegraph, p.dir, "lint", "--type", "chore")
 		if err != nil {
 			t.Errorf("expected exit 0 for chores, got err %v:\n%s", err, out)
 		}
@@ -161,14 +161,14 @@ func TestProxiedServerLint(t *testing.T) {
 	})
 
 	t.Run("human_readable_warnings", func(t *testing.T) {
-		out, _ := bdProxiedRun(t, bd, p.dir, "lint")
+		out, _ := issuegraphProxiedRun(t, issuegraph, p.dir, "lint")
 		if !strings.Contains(string(out), "Missing:") {
 			t.Errorf("expected 'Missing:' in human output: %s", out)
 		}
 	})
 
 	t.Run("human_readable_clean", func(t *testing.T) {
-		out, err := bdProxiedRun(t, bd, p.dir, "lint", "--type", "chore")
+		out, err := issuegraphProxiedRun(t, issuegraph, p.dir, "lint", "--type", "chore")
 		if err != nil {
 			t.Fatalf("lint --type chore: %v\n%s", err, out)
 		}
@@ -181,17 +181,17 @@ func TestProxiedServerLint(t *testing.T) {
 func TestProxiedServerStale(t *testing.T) {
 	requireSharedProxiedServer(t)
 	t.Parallel()
-	bd := buildEmbeddedBD(t)
-	p := newSharedProxiedProject(t, bd, "stl")
+	issuegraph := buildEmbeddedBD(t)
+	p := newSharedProxiedProject(t, issuegraph, "stl")
 
 	// Seed mirrors modules/cli/stale_embedded_test.go.
-	stale1 := bdProxiedCreate(t, bd, p.dir, "Stale open issue", "--type", "task")
-	stale2 := bdProxiedCreate(t, bd, p.dir, "Stale in_progress issue", "--type", "task")
-	bdProxiedUpdate(t, bd, p.dir, stale2.ID, "--status", "in_progress")
-	stale3 := bdProxiedCreate(t, bd, p.dir, "Stale bug", "--type", "bug", "--assignee", "alice")
-	fresh1 := bdProxiedCreate(t, bd, p.dir, "Fresh issue", "--type", "task")
-	closedIssue := bdProxiedCreate(t, bd, p.dir, "Closed issue", "--type", "task")
-	if out, err := bdProxiedRun(t, bd, p.dir, "close", closedIssue.ID); err != nil {
+	stale1 := issuegraphProxiedCreate(t, issuegraph, p.dir, "Stale open issue", "--type", "task")
+	stale2 := issuegraphProxiedCreate(t, issuegraph, p.dir, "Stale in_progress issue", "--type", "task")
+	issuegraphProxiedUpdate(t, issuegraph, p.dir, stale2.ID, "--status", "in_progress")
+	stale3 := issuegraphProxiedCreate(t, issuegraph, p.dir, "Stale bug", "--type", "bug", "--assignee", "alice")
+	fresh1 := issuegraphProxiedCreate(t, issuegraph, p.dir, "Fresh issue", "--type", "task")
+	closedIssue := issuegraphProxiedCreate(t, issuegraph, p.dir, "Closed issue", "--type", "task")
+	if out, err := issuegraphProxiedRun(t, issuegraph, p.dir, "close", closedIssue.ID); err != nil {
 		t.Fatalf("close %s: %v\n%s", closedIssue.ID, err, out)
 	}
 
@@ -210,7 +210,7 @@ func TestProxiedServerStale(t *testing.T) {
 
 	staleEntries := func(t *testing.T, args ...string) []map[string]interface{} {
 		t.Helper()
-		out, err := bdProxiedRun(t, bd, p.dir, append([]string{"stale", "--json"}, args...)...)
+		out, err := issuegraphProxiedRun(t, issuegraph, p.dir, append([]string{"stale", "--json"}, args...)...)
 		if err != nil {
 			t.Fatalf("stale %v: %v\n%s", args, err, out)
 		}
@@ -296,7 +296,7 @@ func TestProxiedServerStale(t *testing.T) {
 	})
 
 	t.Run("no_stale_issues_message", func(t *testing.T) {
-		out, err := bdProxiedRun(t, bd, p.dir, "stale", "--days", "90")
+		out, err := issuegraphProxiedRun(t, issuegraph, p.dir, "stale", "--days", "90")
 		if err != nil {
 			t.Fatalf("stale --days 90: %v\n%s", err, out)
 		}
@@ -306,7 +306,7 @@ func TestProxiedServerStale(t *testing.T) {
 	})
 
 	t.Run("invalid_days_zero", func(t *testing.T) {
-		out, err := bdProxiedRun(t, bd, p.dir, "stale", "--days", "0")
+		out, err := issuegraphProxiedRun(t, issuegraph, p.dir, "stale", "--days", "0")
 		if err == nil {
 			t.Fatalf("expected error for --days 0, got success: %s", out)
 		}
@@ -316,7 +316,7 @@ func TestProxiedServerStale(t *testing.T) {
 	})
 
 	t.Run("invalid_status", func(t *testing.T) {
-		out, err := bdProxiedRun(t, bd, p.dir, "stale", "--status", "bogus")
+		out, err := issuegraphProxiedRun(t, issuegraph, p.dir, "stale", "--status", "bogus")
 		if err == nil {
 			t.Fatalf("expected error for --status bogus, got success: %s", out)
 		}
@@ -334,7 +334,7 @@ func TestProxiedServerStale(t *testing.T) {
 	})
 
 	t.Run("human_readable_format", func(t *testing.T) {
-		out, err := bdProxiedRun(t, bd, p.dir, "stale")
+		out, err := issuegraphProxiedRun(t, issuegraph, p.dir, "stale")
 		if err != nil {
 			t.Fatalf("stale: %v\n%s", err, out)
 		}

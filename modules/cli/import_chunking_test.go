@@ -9,8 +9,8 @@ import (
 	"testing"
 	"time"
 
-	"github.com/steveyegge/beads/internal/storage"
-	"github.com/steveyegge/beads/internal/types"
+	"github.com/borg0ai/dx-issuegraph/internal/storage"
+	"github.com/borg0ai/dx-issuegraph/internal/types"
 )
 
 // chunkRecordingStore records every CreateIssuesWithFullOptions call as a
@@ -20,7 +20,7 @@ import (
 //
 // Tests that need a real, persisting engine (durable committed prefixes,
 // readiness recomputation, event dedup) live in import_chunking_embedded_test.go
-// and run against embedded Dolt behind BEADS_TEST_EMBEDDED_DOLT; the shared
+// and run against embedded Dolt behind ISSUEGRAPH_TEST_EMBEDDED_DOLT; the shared
 // helpers below are reused by both files.
 type chunkRecordingStore struct {
 	storage.DoltStorage
@@ -288,7 +288,7 @@ func TestImportIssuesCoreChunkedMidFailureLeavesCommittedPrefix(t *testing.T) {
 
 // The bounded transactions must not run back-to-back: a chunked import that
 // re-takes the write lock microseconds after each commit starves every
-// concurrent bd operation for the whole import (SQLite busy-polling has no
+// concurrent issuegraph operation for the whole import (SQLite busy-polling has no
 // fairness queue). A pause must separate every adjacent pair of import
 // transactions, including the boundary into the deferred-dependency pass.
 func TestImportChunkedPausesBetweenChunkTransactions(t *testing.T) {

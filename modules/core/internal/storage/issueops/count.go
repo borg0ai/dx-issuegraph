@@ -5,7 +5,7 @@ import (
 	"fmt"
 	"strings"
 
-	"github.com/steveyegge/beads/internal/types"
+	"github.com/borg0ai/dx-issuegraph/internal/types"
 )
 
 // CountIssuesInTx counts issues matching the query and filter within a
@@ -28,7 +28,7 @@ func CountIssuesInTx(ctx context.Context, tx DBTX, query string, filter types.Is
 		// returned no results"). Mirroring it keeps the GH#4387 count/list parity
 		// contract for an infra-type filter that matches only a durable
 		// issues-table row flagged ephemeral=1 — a defensive parity state that
-		// normal creation never produces (ephemeral/infra beads route to the
+		// normal creation never produces (ephemeral/infra issuegraph route to the
 		// wisps table on insert), but which would otherwise be reported as 0 by
 		// count while list returns it.
 		count, err := countTableInTx(ctx, tx, query, filter, IssuesFilterTables)
@@ -56,7 +56,7 @@ func CountIssuesInTx(ctx context.Context, tx DBTX, query string, filter types.Is
 	// it is not one — it collapses a cross-table duplicate to the canonical wisp
 	// row and answers (be-iabdi), as the union seam now does too. So a store
 	// holding one dual-resident id counts it TWICE here while the listing shows
-	// it once. `bd doctor`'s Cross-Table Duplicates check is the detector, and
+	// it once. `issuegraph doctor`'s Cross-Table Duplicates check is the detector, and
 	// `--check=validate --fix` the repair. (There is no `--check=cross-table`
 	// selector: the four the flag accepts are artifacts, conventions, pollution
 	// and validate, and the cross-table check runs in the default sweep.)
@@ -69,7 +69,7 @@ func CountIssuesInTx(ctx context.Context, tx DBTX, query string, filter types.Is
 
 // CountIssuesByGroupInTx counts issues grouped by a field within a transaction.
 // groupBy must be one of: status, priority, type, assignee, label.
-// Returns a map of group value → count, using the same display format as bd count.
+// Returns a map of group value → count, using the same display format as issuegraph count.
 //
 // Mirrors CountIssuesInTx's wisps-merge semantics: ephemeral-only filters
 // route to the wisps table, SkipWisps=true counts the durable issues table
@@ -92,7 +92,7 @@ func CountIssuesByGroupInTx(ctx context.Context, tx DBTX, filter types.IssueFilt
 		// so grouped counts also report a durable issues-table row flagged
 		// ephemeral=1. Without this the scalar Total (which falls through) would
 		// disagree with the sum of the grouped buckets (wisps-only), breaking
-		// the GH#4387 count/list cardinality parity for `bd count
+		// the GH#4387 count/list cardinality parity for `issuegraph count
 		// --include-infra --by-*`.
 		counts, err := countGroupForTablesInTx(ctx, tx, filter, groupBy, IssuesFilterTables)
 		if err != nil {
@@ -123,7 +123,7 @@ func CountIssuesByGroupInTx(ctx context.Context, tx DBTX, filter types.IssueFilt
 }
 
 // countGroupForTablesInTx runs a grouped count against one table set
-// (issues or wisps) and normalizes keys to bd count's display format.
+// (issues or wisps) and normalizes keys to issuegraph count's display format.
 func countGroupForTablesInTx(ctx context.Context, tx DBTX, filter types.IssueFilter, groupBy string, tables FilterTables) (map[string]int, error) {
 	if groupBy == "label" {
 		return countByLabelInTx(ctx, tx, filter, tables)
@@ -146,7 +146,7 @@ func countGroupForTablesInTx(ctx context.Context, tx DBTX, filter types.IssueFil
 		return nil, err
 	}
 
-	// Normalize keys to match bd count display format.
+	// Normalize keys to match issuegraph count display format.
 	counts := make(map[string]int, len(rawCounts))
 	for k, v := range rawCounts {
 		switch groupBy {

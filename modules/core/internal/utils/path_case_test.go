@@ -107,7 +107,7 @@ func TestResolveCanonicalCase_FastPathMatchesWalk(t *testing.T) {
 }
 
 // TestCanonicalizePath_DoesNotScanAncestorDirectories is the regression test
-// for wy-9ai3u: CanonicalizePath sits on the hot path of FindBeadsDir, so its
+// for wy-9ai3u: CanonicalizePath sits on the hot path of FindIssueGraphDir, so its
 // cost must not grow with the number of entries in an ancestor directory. The
 // pre-fix component walk did an os.ReadDir of every ancestor on every call,
 // which on a $TMPDIR holding ~100k leftover test directories cost ~640ms per

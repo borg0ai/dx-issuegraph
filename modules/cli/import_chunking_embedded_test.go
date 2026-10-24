@@ -10,9 +10,9 @@ import (
 	"testing"
 	"time"
 
-	"github.com/steveyegge/beads/internal/storage"
-	"github.com/steveyegge/beads/internal/storage/embeddeddolt"
-	"github.com/steveyegge/beads/internal/types"
+	"github.com/borg0ai/dx-issuegraph/internal/storage"
+	"github.com/borg0ai/dx-issuegraph/internal/storage/embeddeddolt"
+	"github.com/borg0ai/dx-issuegraph/internal/types"
 )
 
 // These tests exercise the chunked-import logic against a real, persisting
@@ -23,7 +23,7 @@ import (
 // not drop the import's deferred edges — invariants the mock cannot answer
 // because it never actually stores rows or computes readiness.
 //
-// They require cgo and are skipped unless BEADS_TEST_EMBEDDED_DOLT=1, following
+// They require cgo and are skipped unless ISSUEGRAPH_TEST_EMBEDDED_DOLT=1, following
 // the modules/cli embedded-test convention (see import_embedded_test.go,
 // create_embedded_test.go). The shared helpers (setImportChunkSize,
 // recordImportPauses, setImportProgressBuffer, chunkTestIssues) live in
@@ -42,8 +42,8 @@ import (
 
 func requireEmbeddedDolt(t *testing.T) {
 	t.Helper()
-	if os.Getenv("BEADS_TEST_EMBEDDED_DOLT") != "1" {
-		t.Skip("set BEADS_TEST_EMBEDDED_DOLT=1 to run embedded dolt chunked-import tests")
+	if os.Getenv("ISSUEGRAPH_TEST_EMBEDDED_DOLT") != "1" {
+		t.Skip("set ISSUEGRAPH_TEST_EMBEDDED_DOLT=1 to run embedded dolt chunked-import tests")
 	}
 }
 
@@ -64,18 +64,18 @@ func (f *failNthCreateStore) CreateIssuesWithFullOptions(ctx context.Context, is
 }
 
 // provisionChunkStore opens a fresh embedded Dolt store in a temp data dir. The
-// store auto-provisions its schema, so no subprocess `bd init` is needed; each
+// store auto-provisions its schema, so no subprocess `issuegraph init` is needed; each
 // call uses a distinct t.TempDir() so the per-dir refcount cache never aliases
 // two stores together.
 func provisionChunkStore(t *testing.T) storage.DoltStorage {
 	t.Helper()
 	ctx := context.Background()
-	store, err := embeddeddolt.Open(ctx, t.TempDir(), "beads", "main")
+	store, err := embeddeddolt.Open(ctx, t.TempDir(), "issuegraph", "main")
 	if err != nil {
 		t.Fatalf("provision embedded dolt store: %v", err)
 	}
 	t.Cleanup(func() { _ = store.Close() })
-	if err := store.SetConfig(ctx, "issue_prefix", "bd"); err != nil {
+	if err := store.SetConfig(ctx, "issue_prefix", "issuegraph"); err != nil {
 		t.Fatalf("seed issue_prefix: %v", err)
 	}
 	return store
@@ -128,7 +128,7 @@ func TestImportChunkedRealStoreResumeConverges(t *testing.T) {
 	// label, comment and dependency already stored — so those rows leave the
 	// write set and are reported as Unchanged instead (wy-sbgucn). "All 12
 	// rows accounted for" is therefore Created+Unchanged, which is exactly
-	// the total `bd import` reports as its issue count (ImportData sets
+	// the total `issuegraph import` reports as its issue count (ImportData sets
 	// result.Issues = Created + Unchanged). Counting the skipped prefix as
 	// Created again would report rows the import never wrote and would put
 	// the real run out of step with --dry-run, which classifies the same
@@ -174,11 +174,11 @@ func TestImportChunkedRealStoreResumeConverges(t *testing.T) {
 	}
 }
 
-// No freeze point of a chunked import may expose a blocked bead as ready:
+// No freeze point of a chunked import may expose a blocked issue as ready:
 // whenever an imported row is visible to a concurrent reader, the blocking
 // edges its import file declares must be visible too. This is the red-team
 // ready-window finding: the previous two-phase layout committed every row
-// dep-less first, so `bd ready` mid-import offered blocked work for dispatch.
+// dep-less first, so `issuegraph ready` mid-import offered blocked work for dispatch.
 func TestImportChunkedNoReadyWindowAtAnyFreezePoint(t *testing.T) {
 	requireEmbeddedDolt(t)
 	setImportChunkSize(t, 5)
@@ -237,7 +237,7 @@ func TestImportChunkedNoReadyWindowAtAnyFreezePoint(t *testing.T) {
 		}
 		for _, issue := range ready {
 			if issue.ID == "bd-chunk01" {
-				t.Fatalf("freeze point %d: blocked bead bd-chunk01 offered as ready work mid-import", failAt)
+				t.Fatalf("freeze point %d: blocked issue bd-chunk01 offered as ready work mid-import", failAt)
 			}
 		}
 	}
@@ -323,7 +323,7 @@ func TestImportChunkedNoReadyWindowWithReadinessEdgeIntoCycle(t *testing.T) {
 		}
 		for _, issue := range ready {
 			if issue.ID == "bd-chunk01" {
-				t.Fatalf("freeze point %d: blocked bead bd-chunk01 offered as ready work mid-import", failAt)
+				t.Fatalf("freeze point %d: blocked issue bd-chunk01 offered as ready work mid-import", failAt)
 			}
 		}
 	}
@@ -392,7 +392,7 @@ func TestImportChunkedWaitsForChildImportedLaterStaysBlocked(t *testing.T) {
 // raceInjectingStore simulates a concurrent writer landing between import
 // transactions: before the Nth CreateIssuesWithFullOptions call it updates an
 // issue directly, bumping its updated_at — exactly what a concurrent
-// `bd update` or a gc claim does in the windows the chunking opens up.
+// `issuegraph update` or a gc claim does in the windows the chunking opens up.
 type raceInjectingStore struct {
 	storage.DoltStorage
 	calls        int

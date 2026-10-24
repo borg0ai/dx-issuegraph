@@ -7,12 +7,12 @@ import (
 	"sort"
 	"strings"
 
+	"github.com/borg0ai/dx-issuegraph/internal/config"
+	"github.com/borg0ai/dx-issuegraph/internal/configfile"
+	"github.com/borg0ai/dx-issuegraph/internal/issuegraph"
+	"github.com/borg0ai/dx-issuegraph/internal/metrics"
+	"github.com/borg0ai/dx-issuegraph/internal/workapi"
 	"github.com/spf13/cobra"
-	"github.com/steveyegge/beads/internal/beads"
-	"github.com/steveyegge/beads/internal/config"
-	"github.com/steveyegge/beads/internal/configfile"
-	"github.com/steveyegge/beads/internal/metrics"
-	"github.com/steveyegge/beads/internal/workapi"
 )
 
 // configEntry represents a single configuration key with its effective value and source.
@@ -29,19 +29,19 @@ var configShowCmd = &cobra.Command{
 with annotations showing where each value comes from.
 
 Sources (by precedence for Viper-managed keys):
-  - env          Environment variable (BD_* or BEADS_*)
-  - config.yaml  Project config file (.beads/config.yaml)
+  - env          Environment variable (ISSUEGRAPH_* or ISSUEGRAPH_*)
+  - config.yaml  Project config file (.issuegraph/config.yaml)
   - default      Built-in default value
 
 Additional sources:
-  - metadata     Connection settings from .beads/metadata.json
+  - metadata     Connection settings from .issuegraph/metadata.json
   - database     Integration config stored in the Dolt database
-  - git          Git config (e.g., beads.role)
+  - git          Git config (e.g., issuegraph.role)
 
 Examples:
-  bd config show
-  bd config show --json
-  bd config show --source config.yaml`,
+  issuegraph config show
+  issuegraph config show --json
+  issuegraph config show --source config.yaml`,
 	SilenceUsage:  true,
 	SilenceErrors: true,
 	RunE: func(cmd *cobra.Command, _ []string) error {
@@ -92,7 +92,7 @@ func collectConfigEntries() []configEntry {
 	// 3. Database-stored config (best-effort)
 	entries = append(entries, collectDatabaseEntries()...)
 
-	// 4. Git config (beads.role)
+	// 4. Git config (issuegraph.role)
 	entries = append(entries, collectGitConfigEntries()...)
 
 	// 5. Standalone env vars not bound to Viper keys
@@ -106,17 +106,17 @@ func collectConfigEntries() []configEntry {
 	return entries
 }
 
-// collectStandaloneEnvEntries returns entries for env vars that bd reads
+// collectStandaloneEnvEntries returns entries for env vars that issuegraph reads
 // directly (without going through Viper). Keeping these out of Viper avoids
 // polluting the default-value table for opt-in operator knobs.
 func collectStandaloneEnvEntries() []configEntry {
 	var entries []configEntry
-	// BEADS_MAX_ROWS (be-x42v): defensive row cap for SearchIssues.
-	if raw, ok := os.LookupEnv("BEADS_MAX_ROWS"); ok && raw != "" {
+	// ISSUEGRAPH_MAX_ROWS (be-x42v): defensive row cap for SearchIssues.
+	if raw, ok := os.LookupEnv("ISSUEGRAPH_MAX_ROWS"); ok && raw != "" {
 		entries = append(entries, configEntry{
-			Key:    "BEADS_MAX_ROWS",
+			Key:    "ISSUEGRAPH_MAX_ROWS",
 			Value:  raw,
-			Source: "env: BEADS_MAX_ROWS",
+			Source: "env: ISSUEGRAPH_MAX_ROWS",
 		})
 	}
 	return entries
@@ -152,26 +152,20 @@ func collectViperEntries() []configEntry {
 		source := config.GetValueSource(key)
 		sourceLabel := viperSourceLabel(key, source)
 
-		// The "actor" key gets the same BEADS_ACTOR > BD_ACTOR precedence as
-		// the runtime path (resolveConfiguredActor in main.go): viper's
-		// AutomaticEnv binds the deprecated BD_ACTOR ahead of any explicit
-		// binding, so config.GetString("actor")/viperSourceLabel alone would
-		// report BD_ACTOR's value and provenance even when BEADS_ACTOR is
-		// also set — contradicting the actor that mutations actually use
-		// (GH#4645). Recompute both here so `config show` matches reality.
+		// Recompute actor value and source so `config show` matches runtime behavior.
 		if key == "actor" {
 			value = formatViperValue(resolveConfiguredActor())
-			if beadsActor := os.Getenv("BEADS_ACTOR"); beadsActor != "" {
-				sourceLabel = "env: BEADS_ACTOR"
+			if issuegraphActor := os.Getenv("ISSUEGRAPH_ACTOR"); issuegraphActor != "" {
+				sourceLabel = "env: ISSUEGRAPH_ACTOR"
 			}
 		}
 
 		// User-global keys (metrics.*) are honored at runtime from the user-global
 		// config.yaml only, never merged project config; report that authoritative
-		// value AND its user-global source so the listing matches what bd actually
-		// uses (and `bd config get`), not a project value/source that has no
+		// value AND its user-global source so the listing matches what issuegraph actually
+		// uses (and `issuegraph config get`), not a project value/source that has no
 		// runtime effect. The viper source label alone is ambiguous: a project
-		// .beads/config.yaml that also sets a metrics key makes GetValueSource
+		// .issuegraph/config.yaml that also sets a metrics key makes GetValueSource
 		// report SourceConfigFile ("config.yaml"), which would attribute the
 		// displayed user-global value to the project file the runtime ignores.
 		if config.IsUserGlobalKey(key) {
@@ -232,14 +226,14 @@ func viperSourceLabel(key string, source config.ConfigSource) string {
 	}
 }
 
-// collectMetadataEntries reads .beads/metadata.json and returns entries for its fields.
+// collectMetadataEntries reads .issuegraph/metadata.json and returns entries for its fields.
 func collectMetadataEntries() []configEntry {
-	beadsDir := beads.FindBeadsDir()
-	if beadsDir == "" {
+	issuegraphDir := issuegraph.FindIssueGraphDir()
+	if issuegraphDir == "" {
 		return nil
 	}
 
-	cfg, err := configfile.Load(beadsDir)
+	cfg, err := configfile.Load(issuegraphDir)
 	if err != nil || cfg == nil {
 		return nil
 	}
@@ -303,8 +297,8 @@ func collectDatabaseEntries() []configEntry {
 //
 // The store's GetAllConfig hands back one table holding two planes, and this
 // command prints values in FULL — it is the operator's provenance view, so
-// redaction would defeat it. Every `bd remember` memory therefore went into
-// every terminal, transcript and pasted bug report that ran `bd config show`,
+// redaction would defeat it. Every `issuegraph remember` memory therefore went into
+// every terminal, transcript and pasted bug report that ran `issuegraph config show`,
 // which is the same disclosure the settings enumeration was closed for
 // (issueops/workspaceconfig.go, "KEYS THIS PLANE DOES NOT OWN"). This route
 // reads the store raw rather than through issueops.WorkspaceConfig, so it
@@ -314,7 +308,7 @@ func collectDatabaseEntries() []configEntry {
 // the fourth copy of the plane boundary and the first to drift.
 //
 // NOTHING REPLACES THE VIEW. An operator who wants those rows asks the surfaces
-// that own them — `bd kv list`, `bd memories` — which is where they were always
+// that own them — `issuegraph kv list`, `issuegraph memories` — which is where they were always
 // meant to be read.
 func databaseConfigEntries(dbConfig map[string]string) []configEntry {
 	var entries []configEntry
@@ -328,17 +322,17 @@ func databaseConfigEntries(dbConfig map[string]string) []configEntry {
 	return entries
 }
 
-// collectGitConfigEntries reads beads-related values from git config.
+// collectGitConfigEntries reads issuegraph-related values from git config.
 func collectGitConfigEntries() []configEntry {
 	var entries []configEntry
 
-	// beads.role is the only git config key currently
-	cmd := exec.Command("git", "config", "--get", "beads.role")
+	// issuegraph.role is the only git config key currently
+	cmd := exec.Command("git", "config", "--get", "issuegraph.role")
 	output, err := cmd.Output()
 	if err == nil {
 		value := strings.TrimSpace(string(output))
 		if value != "" {
-			entries = append(entries, configEntry{Key: "beads.role", Value: value, Source: "git"})
+			entries = append(entries, configEntry{Key: "issuegraph.role", Value: value, Source: "git"})
 		}
 	}
 

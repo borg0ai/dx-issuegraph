@@ -10,8 +10,8 @@ import (
 	"testing"
 	"time"
 
+	"github.com/borg0ai/dx-issuegraph/internal/types"
 	"github.com/spf13/cobra"
-	"github.com/steveyegge/beads/internal/types"
 )
 
 // TestSearchCommand_HelpErrorHandling verifies that the search command handles
@@ -162,11 +162,11 @@ func TestSearchCommand_MissingQueryShowsHelp(t *testing.T) {
 	_ = cmd.Execute()
 }
 
-// TestSearchWithDateAndPriorityFilters tests bd search with date range and priority filters
+// TestSearchWithDateAndPriorityFilters tests issuegraph search with date range and priority filters
 func TestSearchWithDateAndPriorityFilters(t *testing.T) {
 	t.Parallel()
 	tmpDir := t.TempDir()
-	testDB := filepath.Join(tmpDir, ".beads", "beads.db")
+	testDB := filepath.Join(tmpDir, ".issuegraph", "issuegraph.db")
 	s := newTestStore(t, testDB)
 	ctx := context.Background()
 

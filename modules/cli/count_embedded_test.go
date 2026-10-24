@@ -12,47 +12,47 @@ import (
 	"testing"
 )
 
-// bdCount runs "bd count" with the given args and returns raw stdout.
+// issuegraphCount runs "issuegraph count" with the given args and returns raw stdout.
 // Stderr (warnings, tips) is captured separately so it does not pollute
 // callers that parse stdout.
-func bdCount(t *testing.T, bd, dir string, args ...string) string {
+func issuegraphCount(t *testing.T, issuegraph, dir string, args ...string) string {
 	t.Helper()
 	fullArgs := append([]string{"count"}, args...)
-	cmd := exec.Command(bd, fullArgs...)
+	cmd := exec.Command(issuegraph, fullArgs...)
 	cmd.Dir = dir
-	cmd.Env = bdEnv(dir)
+	cmd.Env = issuegraphEnv(dir)
 	stdout, stderr, err := runCommandBuffers(t, cmd)
 	if err != nil {
-		t.Fatalf("bd count %s failed: %v\nstdout:\n%s\nstderr:\n%s", strings.Join(args, " "), err, stdout.String(), stderr.String())
+		t.Fatalf("issuegraph count %s failed: %v\nstdout:\n%s\nstderr:\n%s", strings.Join(args, " "), err, stdout.String(), stderr.String())
 	}
 	return stdout.String()
 }
 
-// bdCountFail runs "bd count" expecting failure.
-func bdCountFail(t *testing.T, bd, dir string, args ...string) string {
+// issuegraphCountFail runs "issuegraph count" expecting failure.
+func issuegraphCountFail(t *testing.T, issuegraph, dir string, args ...string) string {
 	t.Helper()
 	fullArgs := append([]string{"count"}, args...)
-	cmd := exec.Command(bd, fullArgs...)
+	cmd := exec.Command(issuegraph, fullArgs...)
 	cmd.Dir = dir
-	cmd.Env = bdEnv(dir)
+	cmd.Env = issuegraphEnv(dir)
 	out, err := cmd.CombinedOutput()
 	if err == nil {
-		t.Fatalf("expected bd count %s to fail, but succeeded:\n%s", strings.Join(args, " "), out)
+		t.Fatalf("expected issuegraph count %s to fail, but succeeded:\n%s", strings.Join(args, " "), out)
 	}
 	return string(out)
 }
 
-// bdCountJSON runs "bd count --json" and parses the result.
+// issuegraphCountJSON runs "issuegraph count --json" and parses the result.
 // Stderr is captured separately so warnings do not corrupt JSON parsing.
-func bdCountJSON(t *testing.T, bd, dir string, args ...string) map[string]interface{} {
+func issuegraphCountJSON(t *testing.T, issuegraph, dir string, args ...string) map[string]interface{} {
 	t.Helper()
 	fullArgs := append([]string{"count", "--json"}, args...)
-	cmd := exec.Command(bd, fullArgs...)
+	cmd := exec.Command(issuegraph, fullArgs...)
 	cmd.Dir = dir
-	cmd.Env = bdEnv(dir)
+	cmd.Env = issuegraphEnv(dir)
 	stdout, stderr, err := runCommandBuffers(t, cmd)
 	if err != nil {
-		t.Fatalf("bd count --json %s failed: %v\nstdout:\n%s\nstderr:\n%s", strings.Join(args, " "), err, stdout.String(), stderr.String())
+		t.Fatalf("issuegraph count --json %s failed: %v\nstdout:\n%s\nstderr:\n%s", strings.Join(args, " "), err, stdout.String(), stderr.String())
 	}
 	s := strings.TrimSpace(stdout.String())
 	start := strings.IndexAny(s, "{")
@@ -67,34 +67,34 @@ func bdCountJSON(t *testing.T, bd, dir string, args ...string) map[string]interf
 }
 
 func TestEmbeddedCount(t *testing.T) {
-	if os.Getenv("BEADS_TEST_EMBEDDED_DOLT") != "1" {
-		t.Skip("set BEADS_TEST_EMBEDDED_DOLT=1 to run embedded dolt integration tests")
+	if os.Getenv("ISSUEGRAPH_TEST_EMBEDDED_DOLT") != "1" {
+		t.Skip("set ISSUEGRAPH_TEST_EMBEDDED_DOLT=1 to run embedded dolt integration tests")
 	}
 	t.Parallel()
 
-	bd := buildEmbeddedBD(t)
-	dir, _, _ := bdInit(t, bd, "--prefix", "ct")
+	issuegraph := buildEmbeddedBD(t)
+	dir, _, _ := issuegraphInit(t, issuegraph, "--prefix", "ct")
 
 	// Pre-create a varied set of issues for filter testing.
-	bdCreate(t, bd, dir, "Count bug one", "--type", "bug", "--priority", "1", "--assignee", "alice")
-	bdCreate(t, bd, dir, "Count bug two", "--type", "bug", "--priority", "2", "--assignee", "bob", "--description", "has a description")
-	bdCreate(t, bd, dir, "Count task one", "--type", "task", "--priority", "3", "--assignee", "alice")
-	bdCreate(t, bd, dir, "Count feature one", "--type", "feature", "--priority", "1")
-	closedIssue := bdCreate(t, bd, dir, "Count closed one", "--type", "task", "--priority", "2", "--assignee", "alice")
+	issuegraphCreate(t, issuegraph, dir, "Count bug one", "--type", "bug", "--priority", "1", "--assignee", "alice")
+	issuegraphCreate(t, issuegraph, dir, "Count bug two", "--type", "bug", "--priority", "2", "--assignee", "bob", "--description", "has a description")
+	issuegraphCreate(t, issuegraph, dir, "Count task one", "--type", "task", "--priority", "3", "--assignee", "alice")
+	issuegraphCreate(t, issuegraph, dir, "Count feature one", "--type", "feature", "--priority", "1")
+	closedIssue := issuegraphCreate(t, issuegraph, dir, "Count closed one", "--type", "task", "--priority", "2", "--assignee", "alice")
 	// --force: closedIssue is assigned to alice, so the be-035 close-authority
 	// guard refuses this cross-actor close (test actor != alice) without it.
 	// The fixture must stay assigned to alice for the --assignee alice count
 	// assertion below (expects >=3), so we override rather than drop the assignee.
-	bdClose(t, bd, dir, closedIssue.ID, "--force")
-	bdCreate(t, bd, dir, "Count labeled", "--type", "task", "--label", "frontend", "--label", "urgent")
-	bdCreate(t, bd, dir, "Count labeled two", "--type", "task", "--label", "backend")
-	bdCreate(t, bd, dir, "Count notes issue", "--type", "task", "--description", "notes keyword here")
-	bdCreate(t, bd, dir, "Count metadata issue", "--type", "task", "--metadata", `{"count_scope":"matching"}`)
+	issuegraphClose(t, issuegraph, dir, closedIssue.ID, "--force")
+	issuegraphCreate(t, issuegraph, dir, "Count labeled", "--type", "task", "--label", "frontend", "--label", "urgent")
+	issuegraphCreate(t, issuegraph, dir, "Count labeled two", "--type", "task", "--label", "backend")
+	issuegraphCreate(t, issuegraph, dir, "Count notes issue", "--type", "task", "--description", "notes keyword here")
+	issuegraphCreate(t, issuegraph, dir, "Count metadata issue", "--type", "task", "--metadata", `{"count_scope":"matching"}`)
 
 	// ===== Basic count =====
 
 	t.Run("basic_count_no_filters", func(t *testing.T) {
-		out := strings.TrimSpace(bdCount(t, bd, dir))
+		out := strings.TrimSpace(issuegraphCount(t, issuegraph, dir))
 		// Should return a number >= 9 (we created 9 issues)
 		if out == "0" {
 			t.Error("expected non-zero count")
@@ -104,7 +104,7 @@ func TestEmbeddedCount(t *testing.T) {
 	// ===== Status filter =====
 
 	t.Run("filter_by_status_open", func(t *testing.T) {
-		m := bdCountJSON(t, bd, dir, "--status", "open")
+		m := issuegraphCountJSON(t, issuegraph, dir, "--status", "open")
 		count := int(m["count"].(float64))
 		if count < 7 {
 			t.Errorf("expected at least 7 open issues, got %d", count)
@@ -112,7 +112,7 @@ func TestEmbeddedCount(t *testing.T) {
 	})
 
 	t.Run("filter_by_status_closed", func(t *testing.T) {
-		m := bdCountJSON(t, bd, dir, "--status", "closed")
+		m := issuegraphCountJSON(t, issuegraph, dir, "--status", "closed")
 		count := int(m["count"].(float64))
 		if count < 1 {
 			t.Errorf("expected at least 1 closed issue, got %d", count)
@@ -122,7 +122,7 @@ func TestEmbeddedCount(t *testing.T) {
 	// ===== Priority filter =====
 
 	t.Run("filter_by_priority", func(t *testing.T) {
-		m := bdCountJSON(t, bd, dir, "--priority", "1")
+		m := issuegraphCountJSON(t, issuegraph, dir, "--priority", "1")
 		count := int(m["count"].(float64))
 		if count < 2 {
 			t.Errorf("expected at least 2 priority-1 issues, got %d", count)
@@ -132,7 +132,7 @@ func TestEmbeddedCount(t *testing.T) {
 	// ===== Assignee filter =====
 
 	t.Run("filter_by_assignee", func(t *testing.T) {
-		m := bdCountJSON(t, bd, dir, "--assignee", "alice")
+		m := issuegraphCountJSON(t, issuegraph, dir, "--assignee", "alice")
 		count := int(m["count"].(float64))
 		if count < 3 {
 			t.Errorf("expected at least 3 issues assigned to alice, got %d", count)
@@ -142,7 +142,7 @@ func TestEmbeddedCount(t *testing.T) {
 	// ===== Type filter =====
 
 	t.Run("filter_by_type", func(t *testing.T) {
-		m := bdCountJSON(t, bd, dir, "--type", "bug")
+		m := issuegraphCountJSON(t, issuegraph, dir, "--type", "bug")
 		count := int(m["count"].(float64))
 		if count < 2 {
 			t.Errorf("expected at least 2 bugs, got %d", count)
@@ -152,7 +152,7 @@ func TestEmbeddedCount(t *testing.T) {
 	// ===== Label filter (AND) =====
 
 	t.Run("filter_by_label_and", func(t *testing.T) {
-		m := bdCountJSON(t, bd, dir, "--label", "frontend", "--label", "urgent")
+		m := issuegraphCountJSON(t, issuegraph, dir, "--label", "frontend", "--label", "urgent")
 		count := int(m["count"].(float64))
 		if count < 1 {
 			t.Errorf("expected at least 1 issue with both labels, got %d", count)
@@ -162,7 +162,7 @@ func TestEmbeddedCount(t *testing.T) {
 	// ===== Label filter (OR) =====
 
 	t.Run("filter_by_label_any", func(t *testing.T) {
-		m := bdCountJSON(t, bd, dir, "--label-any", "frontend", "--label-any", "backend")
+		m := issuegraphCountJSON(t, issuegraph, dir, "--label-any", "frontend", "--label-any", "backend")
 		count := int(m["count"].(float64))
 		if count < 2 {
 			t.Errorf("expected at least 2 issues with either label, got %d", count)
@@ -172,8 +172,8 @@ func TestEmbeddedCount(t *testing.T) {
 	// ===== Metadata filter =====
 
 	t.Run("filter_by_metadata_field", func(t *testing.T) {
-		got := int(bdCountJSON(t, bd, dir, "--metadata-field", "count_scope=matching")["count"].(float64))
-		want := len(bdListJSON(t, bd, dir, "--all", "--limit", "0", "--metadata-field", "count_scope=matching"))
+		got := int(issuegraphCountJSON(t, issuegraph, dir, "--metadata-field", "count_scope=matching")["count"].(float64))
+		want := len(issuegraphListJSON(t, issuegraph, dir, "--all", "--limit", "0", "--metadata-field", "count_scope=matching"))
 		if got != want || got != 1 {
 			t.Errorf("count --metadata-field = %d, want list cardinality %d and fixture count 1", got, want)
 		}
@@ -182,7 +182,7 @@ func TestEmbeddedCount(t *testing.T) {
 	// ===== Title filter =====
 
 	t.Run("filter_by_title", func(t *testing.T) {
-		m := bdCountJSON(t, bd, dir, "--title", "bug")
+		m := issuegraphCountJSON(t, issuegraph, dir, "--title", "bug")
 		count := int(m["count"].(float64))
 		if count >= 2 {
 			// "Count bug one" and "Count bug two" contain "bug"
@@ -194,7 +194,7 @@ func TestEmbeddedCount(t *testing.T) {
 	// ===== Title-contains =====
 
 	t.Run("filter_by_title_contains", func(t *testing.T) {
-		m := bdCountJSON(t, bd, dir, "--title-contains", "feature")
+		m := issuegraphCountJSON(t, issuegraph, dir, "--title-contains", "feature")
 		count := int(m["count"].(float64))
 		if count < 1 {
 			t.Errorf("expected at least 1 issue with 'feature' in title, got %d", count)
@@ -204,7 +204,7 @@ func TestEmbeddedCount(t *testing.T) {
 	// ===== Desc-contains =====
 
 	t.Run("filter_by_desc_contains", func(t *testing.T) {
-		m := bdCountJSON(t, bd, dir, "--desc-contains", "notes keyword")
+		m := issuegraphCountJSON(t, issuegraph, dir, "--desc-contains", "notes keyword")
 		count := int(m["count"].(float64))
 		if count < 1 {
 			t.Errorf("expected at least 1 issue with 'notes keyword' in description, got %d", count)
@@ -215,7 +215,7 @@ func TestEmbeddedCount(t *testing.T) {
 
 	t.Run("filter_by_created_after", func(t *testing.T) {
 		// All issues were just created, so created-after yesterday should match all
-		m := bdCountJSON(t, bd, dir, "--created-after", "2000-01-01")
+		m := issuegraphCountJSON(t, issuegraph, dir, "--created-after", "2000-01-01")
 		count := int(m["count"].(float64))
 		if count < 8 {
 			t.Errorf("expected at least 8 issues created after 2000-01-01, got %d", count)
@@ -224,7 +224,7 @@ func TestEmbeddedCount(t *testing.T) {
 
 	t.Run("filter_by_created_before", func(t *testing.T) {
 		// created-before a past date should return 0
-		m := bdCountJSON(t, bd, dir, "--created-before", "2000-01-01")
+		m := issuegraphCountJSON(t, issuegraph, dir, "--created-before", "2000-01-01")
 		count := int(m["count"].(float64))
 		if count != 0 {
 			t.Errorf("expected 0 issues created before 2000-01-01, got %d", count)
@@ -232,7 +232,7 @@ func TestEmbeddedCount(t *testing.T) {
 	})
 
 	t.Run("filter_by_updated_after", func(t *testing.T) {
-		m := bdCountJSON(t, bd, dir, "--updated-after", "2000-01-01")
+		m := issuegraphCountJSON(t, issuegraph, dir, "--updated-after", "2000-01-01")
 		count := int(m["count"].(float64))
 		if count < 8 {
 			t.Errorf("expected at least 8 issues updated after 2000-01-01, got %d", count)
@@ -240,7 +240,7 @@ func TestEmbeddedCount(t *testing.T) {
 	})
 
 	t.Run("filter_by_closed_after", func(t *testing.T) {
-		m := bdCountJSON(t, bd, dir, "--closed-after", "2000-01-01")
+		m := issuegraphCountJSON(t, issuegraph, dir, "--closed-after", "2000-01-01")
 		count := int(m["count"].(float64))
 		if count < 1 {
 			t.Errorf("expected at least 1 closed issue after 2000-01-01, got %d", count)
@@ -250,7 +250,7 @@ func TestEmbeddedCount(t *testing.T) {
 	// ===== Empty description filter =====
 
 	t.Run("filter_empty_description", func(t *testing.T) {
-		m := bdCountJSON(t, bd, dir, "--empty-description")
+		m := issuegraphCountJSON(t, issuegraph, dir, "--empty-description")
 		count := int(m["count"].(float64))
 		// Several issues were created without --description
 		if count < 1 {
@@ -261,7 +261,7 @@ func TestEmbeddedCount(t *testing.T) {
 	// ===== No assignee filter =====
 
 	t.Run("filter_no_assignee", func(t *testing.T) {
-		m := bdCountJSON(t, bd, dir, "--no-assignee")
+		m := issuegraphCountJSON(t, issuegraph, dir, "--no-assignee")
 		count := int(m["count"].(float64))
 		if count < 1 {
 			t.Errorf("expected at least 1 issue with no assignee, got %d", count)
@@ -271,7 +271,7 @@ func TestEmbeddedCount(t *testing.T) {
 	// ===== No labels filter =====
 
 	t.Run("filter_no_labels", func(t *testing.T) {
-		m := bdCountJSON(t, bd, dir, "--no-labels")
+		m := issuegraphCountJSON(t, issuegraph, dir, "--no-labels")
 		count := int(m["count"].(float64))
 		if count < 1 {
 			t.Errorf("expected at least 1 issue with no labels, got %d", count)
@@ -281,7 +281,7 @@ func TestEmbeddedCount(t *testing.T) {
 	// ===== Priority range filter =====
 
 	t.Run("filter_priority_min_max", func(t *testing.T) {
-		m := bdCountJSON(t, bd, dir, "--priority-min", "1", "--priority-max", "2")
+		m := issuegraphCountJSON(t, issuegraph, dir, "--priority-min", "1", "--priority-max", "2")
 		count := int(m["count"].(float64))
 		if count < 3 {
 			t.Errorf("expected at least 3 issues with priority 1-2, got %d", count)
@@ -291,7 +291,7 @@ func TestEmbeddedCount(t *testing.T) {
 	// ===== Group by status =====
 
 	t.Run("group_by_status", func(t *testing.T) {
-		m := bdCountJSON(t, bd, dir, "--by-status")
+		m := issuegraphCountJSON(t, issuegraph, dir, "--by-status")
 		total := int(m["total"].(float64))
 		if total < 8 {
 			t.Errorf("expected total >= 8, got %d", total)
@@ -323,7 +323,7 @@ func TestEmbeddedCount(t *testing.T) {
 	// ===== Group by priority =====
 
 	t.Run("group_by_priority", func(t *testing.T) {
-		m := bdCountJSON(t, bd, dir, "--by-priority")
+		m := issuegraphCountJSON(t, issuegraph, dir, "--by-priority")
 		groups, ok := m["groups"].([]interface{})
 		if !ok || len(groups) == 0 {
 			t.Fatal("expected groups array")
@@ -342,7 +342,7 @@ func TestEmbeddedCount(t *testing.T) {
 	// ===== Group by type =====
 
 	t.Run("group_by_type", func(t *testing.T) {
-		m := bdCountJSON(t, bd, dir, "--by-type")
+		m := issuegraphCountJSON(t, issuegraph, dir, "--by-type")
 		groups, ok := m["groups"].([]interface{})
 		if !ok || len(groups) == 0 {
 			t.Fatal("expected groups array")
@@ -363,7 +363,7 @@ func TestEmbeddedCount(t *testing.T) {
 	// ===== Group by assignee =====
 
 	t.Run("group_by_assignee", func(t *testing.T) {
-		m := bdCountJSON(t, bd, dir, "--by-assignee")
+		m := issuegraphCountJSON(t, issuegraph, dir, "--by-assignee")
 		groups, ok := m["groups"].([]interface{})
 		if !ok || len(groups) == 0 {
 			t.Fatal("expected groups array")
@@ -384,7 +384,7 @@ func TestEmbeddedCount(t *testing.T) {
 	// ===== Group by label =====
 
 	t.Run("group_by_label", func(t *testing.T) {
-		m := bdCountJSON(t, bd, dir, "--by-label")
+		m := issuegraphCountJSON(t, issuegraph, dir, "--by-label")
 		groups, ok := m["groups"].([]interface{})
 		if !ok || len(groups) == 0 {
 			t.Fatal("expected groups array")
@@ -405,7 +405,7 @@ func TestEmbeddedCount(t *testing.T) {
 	// ===== JSON plain count =====
 
 	t.Run("json_plain_count", func(t *testing.T) {
-		m := bdCountJSON(t, bd, dir)
+		m := issuegraphCountJSON(t, issuegraph, dir)
 		if _, ok := m["count"]; !ok {
 			t.Error("expected 'count' key in JSON output")
 		}
@@ -414,7 +414,7 @@ func TestEmbeddedCount(t *testing.T) {
 	// ===== JSON grouped count =====
 
 	t.Run("json_grouped_count", func(t *testing.T) {
-		m := bdCountJSON(t, bd, dir, "--by-status")
+		m := issuegraphCountJSON(t, issuegraph, dir, "--by-status")
 		if _, ok := m["total"]; !ok {
 			t.Error("expected 'total' key in grouped JSON output")
 		}
@@ -426,7 +426,7 @@ func TestEmbeddedCount(t *testing.T) {
 	// ===== Error: multiple --by-* flags =====
 
 	t.Run("error_multiple_by_flags", func(t *testing.T) {
-		out := bdCountFail(t, bd, dir, "--by-status", "--by-priority")
+		out := issuegraphCountFail(t, issuegraph, dir, "--by-status", "--by-priority")
 		if !strings.Contains(out, "only one") {
 			t.Errorf("expected 'only one' error, got: %s", out)
 		}
@@ -435,7 +435,7 @@ func TestEmbeddedCount(t *testing.T) {
 	// ===== Combined filters =====
 
 	t.Run("combined_filters", func(t *testing.T) {
-		m := bdCountJSON(t, bd, dir, "--status", "open", "--type", "bug", "--assignee", "alice")
+		m := issuegraphCountJSON(t, issuegraph, dir, "--status", "open", "--type", "bug", "--assignee", "alice")
 		count := int(m["count"].(float64))
 		if count < 1 {
 			t.Errorf("expected at least 1 open bug assigned to alice, got %d", count)
@@ -445,7 +445,7 @@ func TestEmbeddedCount(t *testing.T) {
 	// ===== Plain text output =====
 
 	t.Run("plain_text_output", func(t *testing.T) {
-		out := strings.TrimSpace(bdCount(t, bd, dir, "--status", "open"))
+		out := strings.TrimSpace(issuegraphCount(t, issuegraph, dir, "--status", "open"))
 		// Should be a plain integer
 		if len(out) == 0 {
 			t.Error("expected non-empty output")
@@ -459,7 +459,7 @@ func TestEmbeddedCount(t *testing.T) {
 	})
 
 	t.Run("plain_text_grouped_output", func(t *testing.T) {
-		out := bdCount(t, bd, dir, "--by-status")
+		out := issuegraphCount(t, issuegraph, dir, "--by-status")
 		if !strings.Contains(out, "Total:") {
 			t.Errorf("expected 'Total:' in grouped text output, got: %s", out)
 		}
@@ -471,8 +471,8 @@ func TestEmbeddedCount(t *testing.T) {
 	// ===== ID filter =====
 
 	t.Run("filter_by_id", func(t *testing.T) {
-		issue := bdCreate(t, bd, dir, "ID filter target", "--type", "task")
-		m := bdCountJSON(t, bd, dir, "--id", issue.ID)
+		issue := issuegraphCreate(t, issuegraph, dir, "ID filter target", "--type", "task")
+		m := issuegraphCountJSON(t, issuegraph, dir, "--id", issue.ID)
 		count := int(m["count"].(float64))
 		if count != 1 {
 			t.Errorf("expected exactly 1 issue matching ID, got %d", count)
@@ -481,53 +481,53 @@ func TestEmbeddedCount(t *testing.T) {
 }
 
 // TestEmbeddedCountIncludeInfra is the CLI-level guard for GH#4387:
-// `bd count --include-infra <filters>` must return exactly the cardinality of
-// `bd list --include-infra <filters> --all` (modulo list's --limit), including
-// the wisps tier (no_history + ephemeral beads) and honoring list's default
-// template exclusion. Without the flag, bd count keeps today's durable-only
+// `issuegraph count --include-infra <filters>` must return exactly the cardinality of
+// `issuegraph list --include-infra <filters> --all` (modulo list's --limit), including
+// the wisps tier (no_history + ephemeral issuegraph) and honoring list's default
+// template exclusion. Without the flag, issuegraph count keeps today's durable-only
 // semantics.
 func TestEmbeddedCountIncludeInfra(t *testing.T) {
-	if os.Getenv("BEADS_TEST_EMBEDDED_DOLT") != "1" {
-		t.Skip("set BEADS_TEST_EMBEDDED_DOLT=1 to run embedded dolt integration tests")
+	if os.Getenv("ISSUEGRAPH_TEST_EMBEDDED_DOLT") != "1" {
+		t.Skip("set ISSUEGRAPH_TEST_EMBEDDED_DOLT=1 to run embedded dolt integration tests")
 	}
 	t.Parallel()
 
-	bd := buildEmbeddedBD(t)
-	dir, _, _ := bdInit(t, bd, "--prefix", "ci")
+	issuegraph := buildEmbeddedBD(t)
+	dir, _, _ := issuegraphInit(t, issuegraph, "--prefix", "ci")
 
 	// Durable issues tier.
-	bdCreate(t, bd, dir, "Infra durable task one", "--type", "task")
-	bdCreate(t, bd, dir, "Infra durable task two", "--type", "task")
-	bdCreate(t, bd, dir, "Infra durable bug", "--type", "bug")
-	closedIssue := bdCreate(t, bd, dir, "Infra durable task closed", "--type", "task")
-	bdClose(t, bd, dir, closedIssue.ID)
-	// Wisps tier: no_history beads are durable work that bd list --include-infra
-	// returns; ephemeral beads are GC-eligible wisps.
-	bdCreate(t, bd, dir, "Infra nohistory task one", "--type", "task", "--no-history")
-	bdCreate(t, bd, dir, "Infra nohistory task two", "--type", "task", "--no-history")
-	bdCreate(t, bd, dir, "Infra ephemeral task", "--type", "task", "--ephemeral")
+	issuegraphCreate(t, issuegraph, dir, "Infra durable task one", "--type", "task")
+	issuegraphCreate(t, issuegraph, dir, "Infra durable task two", "--type", "task")
+	issuegraphCreate(t, issuegraph, dir, "Infra durable bug", "--type", "bug")
+	closedIssue := issuegraphCreate(t, issuegraph, dir, "Infra durable task closed", "--type", "task")
+	issuegraphClose(t, issuegraph, dir, closedIssue.ID)
+	// Wisps tier: no_history issuegraph are durable work that issuegraph list --include-infra
+	// returns; ephemeral issuegraph are GC-eligible wisps.
+	issuegraphCreate(t, issuegraph, dir, "Infra nohistory task one", "--type", "task", "--no-history")
+	issuegraphCreate(t, issuegraph, dir, "Infra nohistory task two", "--type", "task", "--no-history")
+	issuegraphCreate(t, issuegraph, dir, "Infra ephemeral task", "--type", "task", "--ephemeral")
 
 	countOf := func(args ...string) int {
 		t.Helper()
-		m := bdCountJSON(t, bd, dir, args...)
+		m := issuegraphCountJSON(t, issuegraph, dir, args...)
 		return int(m["count"].(float64))
 	}
 	listCardinality := func(args ...string) int {
 		t.Helper()
 		fullArgs := append([]string{"--include-infra", "--all", "--limit", "0"}, args...)
-		return len(bdListJSON(t, bd, dir, fullArgs...))
+		return len(issuegraphListJSON(t, issuegraph, dir, fullArgs...))
 	}
 
 	t.Run("default_stays_durable_only", func(t *testing.T) {
 		if got := countOf("--type", "task"); got != 3 {
-			t.Errorf("bd count --type task = %d, want 3 (durable tasks only; default must stay byte-identical)", got)
+			t.Errorf("issuegraph count --type task = %d, want 3 (durable tasks only; default must stay byte-identical)", got)
 		}
 	})
 
 	t.Run("include_infra_counts_wisps_tier", func(t *testing.T) {
 		// 3 durable tasks + 2 no_history tasks + 1 ephemeral task.
 		if got := countOf("--include-infra", "--type", "task"); got != 6 {
-			t.Errorf("bd count --include-infra --type task = %d, want 6", got)
+			t.Errorf("issuegraph count --include-infra --type task = %d, want 6", got)
 		}
 	})
 
@@ -542,16 +542,16 @@ func TestEmbeddedCountIncludeInfra(t *testing.T) {
 			want := listCardinality(filters...)
 			got := countOf(append([]string{"--include-infra"}, filters...)...)
 			if got != want {
-				t.Errorf("bd count --include-infra %v = %d, but bd list --include-infra --all %v returned %d rows", filters, got, filters, want)
+				t.Errorf("issuegraph count --include-infra %v = %d, but issuegraph list --include-infra --all %v returned %d rows", filters, got, filters, want)
 			}
 		}
 	})
 
 	t.Run("include_infra_grouped_by_type", func(t *testing.T) {
-		m := bdCountJSON(t, bd, dir, "--include-infra", "--by-type")
+		m := issuegraphCountJSON(t, issuegraph, dir, "--include-infra", "--by-type")
 		total := int(m["total"].(float64))
 		if want := listCardinality(); total != want {
-			t.Errorf("bd count --include-infra --by-type total = %d, want list cardinality %d", total, want)
+			t.Errorf("issuegraph count --include-infra --by-type total = %d, want list cardinality %d", total, want)
 		}
 		groups, ok := m["groups"].([]interface{})
 		if !ok {
@@ -571,7 +571,7 @@ func TestEmbeddedCountIncludeInfra(t *testing.T) {
 	})
 
 	t.Run("grouped_without_flag_stays_durable_only", func(t *testing.T) {
-		m := bdCountJSON(t, bd, dir, "--by-type")
+		m := issuegraphCountJSON(t, issuegraph, dir, "--by-type")
 		groups, ok := m["groups"].([]interface{})
 		if !ok {
 			t.Fatal("expected groups array")
@@ -580,7 +580,7 @@ func TestEmbeddedCountIncludeInfra(t *testing.T) {
 			gm := g.(map[string]interface{})
 			if gm["group"] == "task" {
 				if got := int(gm["count"].(float64)); got != 3 {
-					t.Errorf("bd count --by-type task = %d, want 3 (durable only)", got)
+					t.Errorf("issuegraph count --by-type task = %d, want 3 (durable only)", got)
 				}
 			}
 		}
@@ -589,13 +589,13 @@ func TestEmbeddedCountIncludeInfra(t *testing.T) {
 
 // TestEmbeddedCountConcurrent exercises count operations concurrently.
 func TestEmbeddedCountConcurrent(t *testing.T) {
-	if os.Getenv("BEADS_TEST_EMBEDDED_DOLT") != "1" {
-		t.Skip("set BEADS_TEST_EMBEDDED_DOLT=1 to run embedded dolt integration tests")
+	if os.Getenv("ISSUEGRAPH_TEST_EMBEDDED_DOLT") != "1" {
+		t.Skip("set ISSUEGRAPH_TEST_EMBEDDED_DOLT=1 to run embedded dolt integration tests")
 	}
 	t.Parallel()
 
-	bd := buildEmbeddedBD(t)
-	dir, _, _ := bdInit(t, bd, "--prefix", "cc")
+	issuegraph := buildEmbeddedBD(t)
+	dir, _, _ := issuegraphInit(t, issuegraph, "--prefix", "cc")
 
 	// Pre-create issues with varied attributes
 	for i := 0; i < 20; i++ {
@@ -608,7 +608,7 @@ func TestEmbeddedCountConcurrent(t *testing.T) {
 		if i%3 == 0 {
 			args = append(args, "--priority", "1")
 		}
-		bdCreate(t, bd, dir, args...)
+		issuegraphCreate(t, issuegraph, dir, args...)
 	}
 
 	const numWorkers = 8
@@ -641,9 +641,9 @@ func TestEmbeddedCountConcurrent(t *testing.T) {
 			q := queries[worker%len(queries)]
 
 			args := append([]string{"count", "--json"}, q...)
-			cmd := exec.Command(bd, args...)
+			cmd := exec.Command(issuegraph, args...)
 			cmd.Dir = dir
-			cmd.Env = bdEnv(dir)
+			cmd.Env = issuegraphEnv(dir)
 			stdout, stderr, err := runCommandBuffers(t, cmd)
 			if err != nil {
 				r.err = fmt.Errorf("worker %d count %v: %v\nstdout:\n%s\nstderr:\n%s", worker, q, err, stdout.String(), stderr.String())

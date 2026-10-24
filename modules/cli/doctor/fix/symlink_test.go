@@ -15,29 +15,29 @@ func skipOnWindows(t *testing.T) {
 	}
 }
 
-// TestPermissions_SkipsSymlinkedBeadsDir verifies that permission fixes are skipped
-// when .beads directory is a symlink (common on NixOS with home-manager).
+// TestPermissions_SkipsSymlinkedIssueGraphDir verifies that permission fixes are skipped
+// when .issuegraph directory is a symlink (common on NixOS with home-manager).
 //
 // Behavior being tested:
-// - When .beads is a symlink, Permissions() should return nil without changing anything
+// - When .issuegraph is a symlink, Permissions() should return nil without changing anything
 // - This prevents attempts to chmod symlink targets (which may be read-only like /nix/store)
-func TestPermissions_SkipsSymlinkedBeadsDir(t *testing.T) {
+func TestPermissions_SkipsSymlinkedIssueGraphDir(t *testing.T) {
 	skipOnWindows(t)
 	tmpDir := t.TempDir()
 
-	// Create target .beads directory with wrong permissions
-	targetDir := filepath.Join(tmpDir, "target-beads")
+	// Create target .issuegraph directory with wrong permissions
+	targetDir := filepath.Join(tmpDir, "target-issuegraph")
 	if err := os.MkdirAll(targetDir, 0777); err != nil { // intentionally wrong permissions
 		t.Fatal(err)
 	}
 
-	// Create workspace with symlinked .beads
+	// Create workspace with symlinked .issuegraph
 	workspaceDir := filepath.Join(tmpDir, "workspace")
 	if err := os.MkdirAll(workspaceDir, 0755); err != nil {
 		t.Fatal(err)
 	}
 
-	symlinkPath := filepath.Join(workspaceDir, ".beads")
+	symlinkPath := filepath.Join(workspaceDir, ".issuegraph")
 	if err := os.Symlink(targetDir, symlinkPath); err != nil {
 		t.Fatal(err)
 	}
@@ -52,7 +52,7 @@ func TestPermissions_SkipsSymlinkedBeadsDir(t *testing.T) {
 	// Run Permissions fix
 	err = Permissions(workspaceDir)
 	if err != nil {
-		t.Fatalf("Permissions() returned error for symlinked .beads: %v", err)
+		t.Fatalf("Permissions() returned error for symlinked .issuegraph: %v", err)
 	}
 
 	// Verify target's permissions were NOT changed
@@ -70,14 +70,14 @@ func TestPermissions_SkipsSymlinkedBeadsDir(t *testing.T) {
 }
 
 // TestPermissions_SkipsSymlinkedDatabase verifies that chmod is skipped for
-// symlinked database files, but .beads directory permissions are still fixed.
+// symlinked database files, but .issuegraph directory permissions are still fixed.
 func TestPermissions_SkipsSymlinkedDatabase(t *testing.T) {
 	skipOnWindows(t)
 	tmpDir := t.TempDir()
 
-	// Create real .beads directory with wrong permissions
-	beadsDir := filepath.Join(tmpDir, ".beads")
-	if err := os.MkdirAll(beadsDir, 0777); err != nil { // intentionally wrong
+	// Create real .issuegraph directory with wrong permissions
+	issuegraphDir := filepath.Join(tmpDir, ".issuegraph")
+	if err := os.MkdirAll(issuegraphDir, 0777); err != nil { // intentionally wrong
 		t.Fatal(err)
 	}
 
@@ -86,13 +86,13 @@ func TestPermissions_SkipsSymlinkedDatabase(t *testing.T) {
 	if err := os.MkdirAll(targetDir, 0755); err != nil {
 		t.Fatal(err)
 	}
-	targetDB := filepath.Join(targetDir, "beads.db")
+	targetDB := filepath.Join(targetDir, "issuegraph.db")
 	if err := os.WriteFile(targetDB, []byte("test"), 0644); err != nil { // intentionally world-readable
 		t.Fatal(err)
 	}
 
 	// Create symlink to database
-	symlinkPath := filepath.Join(beadsDir, "beads.db")
+	symlinkPath := filepath.Join(issuegraphDir, "issuegraph.db")
 	if err := os.Symlink(targetDB, symlinkPath); err != nil {
 		t.Fatal(err)
 	}
@@ -110,13 +110,13 @@ func TestPermissions_SkipsSymlinkedDatabase(t *testing.T) {
 		t.Fatalf("Permissions() returned error for symlinked database: %v", err)
 	}
 
-	// Verify .beads directory permissions WERE fixed (not a symlink)
-	beadsInfo, err := os.Stat(beadsDir)
+	// Verify .issuegraph directory permissions WERE fixed (not a symlink)
+	issuegraphInfo, err := os.Stat(issuegraphDir)
 	if err != nil {
 		t.Fatal(err)
 	}
-	if beadsInfo.Mode().Perm() != 0700 {
-		t.Errorf("Expected .beads to have 0700 permissions, got %o", beadsInfo.Mode().Perm())
+	if issuegraphInfo.Mode().Perm() != 0700 {
+		t.Errorf("Expected .issuegraph to have 0700 permissions, got %o", issuegraphInfo.Mode().Perm())
 	}
 
 	// Verify target database permissions were NOT changed (it's a symlink)
@@ -139,14 +139,14 @@ func TestPermissions_FixesRegularFiles(t *testing.T) {
 	skipOnWindows(t)
 	tmpDir := t.TempDir()
 
-	// Create .beads directory with wrong permissions
-	beadsDir := filepath.Join(tmpDir, ".beads")
-	if err := os.MkdirAll(beadsDir, 0777); err != nil { // intentionally wrong
+	// Create .issuegraph directory with wrong permissions
+	issuegraphDir := filepath.Join(tmpDir, ".issuegraph")
+	if err := os.MkdirAll(issuegraphDir, 0777); err != nil { // intentionally wrong
 		t.Fatal(err)
 	}
 
 	// Create database with wrong permissions
-	dbPath := filepath.Join(beadsDir, "beads.db")
+	dbPath := filepath.Join(issuegraphDir, "issuegraph.db")
 	if err := os.WriteFile(dbPath, []byte("test"), 0644); err != nil { // intentionally world-readable
 		t.Fatal(err)
 	}
@@ -157,13 +157,13 @@ func TestPermissions_FixesRegularFiles(t *testing.T) {
 		t.Fatalf("Permissions() failed: %v", err)
 	}
 
-	// Verify .beads directory now has 0700
-	beadsInfo, err := os.Stat(beadsDir)
+	// Verify .issuegraph directory now has 0700
+	issuegraphInfo, err := os.Stat(issuegraphDir)
 	if err != nil {
 		t.Fatal(err)
 	}
-	if beadsInfo.Mode().Perm() != 0700 {
-		t.Errorf("Expected .beads to have 0700 permissions, got %o", beadsInfo.Mode().Perm())
+	if issuegraphInfo.Mode().Perm() != 0700 {
+		t.Errorf("Expected .issuegraph to have 0700 permissions, got %o", issuegraphInfo.Mode().Perm())
 	}
 
 	// Verify database now has at least 0600 (read/write for owner)
@@ -176,11 +176,11 @@ func TestPermissions_FixesRegularFiles(t *testing.T) {
 	}
 }
 
-func TestPermissions_FixesSharedWorktreeBeadsDir(t *testing.T) {
+func TestPermissions_FixesSharedWorktreeIssueGraphDir(t *testing.T) {
 	skipOnWindows(t)
 	mainRepoDir, worktreeDir := setupSharedWorktreeWorkspace(t)
-	sharedBeadsDir := filepath.Join(mainRepoDir, ".beads")
-	if err := os.MkdirAll(sharedBeadsDir, 0o777); err != nil {
+	sharedIssueGraphDir := filepath.Join(mainRepoDir, ".issuegraph")
+	if err := os.MkdirAll(sharedIssueGraphDir, 0o777); err != nil {
 		t.Fatal(err)
 	}
 
@@ -188,14 +188,14 @@ func TestPermissions_FixesSharedWorktreeBeadsDir(t *testing.T) {
 		t.Fatalf("Permissions() failed for shared worktree: %v", err)
 	}
 
-	sharedInfo, err := os.Stat(sharedBeadsDir)
+	sharedInfo, err := os.Stat(sharedIssueGraphDir)
 	if err != nil {
 		t.Fatal(err)
 	}
 	if sharedInfo.Mode().Perm() != 0700 {
-		t.Errorf("Expected shared .beads to have 0700 permissions, got %o", sharedInfo.Mode().Perm())
+		t.Errorf("Expected shared .issuegraph to have 0700 permissions, got %o", sharedInfo.Mode().Perm())
 	}
-	if _, err := os.Stat(filepath.Join(worktreeDir, ".beads")); !os.IsNotExist(err) {
-		t.Fatalf("expected no worktree-local .beads directory, got err=%v", err)
+	if _, err := os.Stat(filepath.Join(worktreeDir, ".issuegraph")); !os.IsNotExist(err) {
+		t.Fatalf("expected no worktree-local .issuegraph directory, got err=%v", err)
 	}
 }

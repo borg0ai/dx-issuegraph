@@ -7,7 +7,7 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/steveyegge/beads/internal/templates"
+	"github.com/borg0ai/dx-issuegraph/internal/templates"
 )
 
 // inTempDir chdir's into a fresh temp directory for the duration of the test.
@@ -93,7 +93,7 @@ func TestInstallCursorInstallsSkill(t *testing.T) {
 	if err != nil {
 		t.Fatalf("read skill: %v", err)
 	}
-	if string(data) != templates.BeadsAgentSkill() {
+	if string(data) != templates.IssueGraphAgentSkill() {
 		t.Error("installed skill content does not match managed template")
 	}
 }
@@ -116,7 +116,7 @@ func TestRemoveCursorKeepsSkillWhenCodexPresent(t *testing.T) {
 	inTempDir(t)
 	InstallCursor(false)
 
-	// Simulate a Codex install that shares the .agents/skills/beads skill by
+	// Simulate a Codex install that shares the .agents/skills/issuegraph skill by
 	// writing its managed AGENTS.md section.
 	if err := os.WriteFile(codexInstructionsFile, []byte(codexManagedSection()+"\n"), 0o644); err != nil {
 		t.Fatal(err)
@@ -133,13 +133,13 @@ func TestRemoveCursorKeepsSkillWhenCodexHooksPresent(t *testing.T) {
 	inTempDir(t)
 	InstallCursor(false)
 
-	// Simulate a Codex install that shares the .agents/skills/beads skill but is
+	// Simulate a Codex install that shares the .agents/skills/issuegraph skill but is
 	// visible only via .codex/hooks.json (no AGENTS.md section). codexIntegrationInstalled
 	// must detect this too, symmetric with cursorIntegrationInstalledAt's hooks check.
 	if err := os.MkdirAll(codexConfigDir, 0o755); err != nil {
 		t.Fatal(err)
 	}
-	codexHooks := `{"version":1,"hooks":{"SessionStart":[{"hooks":[{"type":"command","command":"bd codex-hook SessionStart"}]}]}}`
+	codexHooks := `{"version":1,"hooks":{"SessionStart":[{"hooks":[{"type":"command","command":"issuegraph codex-hook SessionStart"}]}]}}`
 	if err := os.WriteFile(filepath.Join(codexConfigDir, codexHooksFile), []byte(codexHooks), 0o644); err != nil {
 		t.Fatal(err)
 	}
@@ -193,7 +193,7 @@ func TestRemoveCursorRemovesManagedHooks(t *testing.T) {
 	RemoveCursor(false)
 
 	if FileExists(cursorHooksPath) {
-		t.Errorf("hooks file should be removed when only bd hooks were present")
+		t.Errorf("hooks file should be removed when only issuegraph hooks were present")
 	}
 	if FileExists(cursorRulesPath) {
 		t.Errorf("rules file should be removed")
@@ -231,13 +231,13 @@ func TestRemoveCursorPreservesUserHooks(t *testing.T) {
 func TestCursorRulesTemplate(t *testing.T) {
 	// Verify template contains required content
 	requiredContent := []string{
-		"bd prime",
-		"bd ready",
-		"bd create",
-		"bd update",
-		"bd close",
-		"bd dolt push",
-		"BEADS INTEGRATION",
+		"issuegraph prime",
+		"issuegraph ready",
+		"issuegraph create",
+		"issuegraph update",
+		"issuegraph close",
+		"issuegraph dolt push",
+		"ISSUEGRAPH INTEGRATION",
 	}
 
 	for _, req := range requiredContent {
@@ -250,7 +250,7 @@ func TestCursorRulesTemplate(t *testing.T) {
 func TestCursorRulesTemplate_AlwaysApplyFrontmatter(t *testing.T) {
 	// Cursor .mdc files without alwaysApply frontmatter default to Manual mode,
 	// requiring users to @-reference the rule. The template must include
-	// alwaysApply: true so beads context loads automatically every session.
+	// alwaysApply: true so issuegraph context loads automatically every session.
 	if !strings.HasPrefix(cursorRulesTemplate, "---\nalwaysApply: true\n---\n") {
 		t.Error("cursorRulesTemplate must start with alwaysApply: true frontmatter")
 	}
@@ -275,7 +275,7 @@ func TestInstallCursor(t *testing.T) {
 	InstallCursor(false)
 
 	// Verify file was created
-	rulesPath := ".cursor/rules/beads.mdc"
+	rulesPath := ".cursor/rules/issuegraph.mdc"
 	if !FileExists(rulesPath) {
 		t.Fatal("Cursor rules file was not created")
 	}
@@ -316,7 +316,7 @@ func TestInstallCursor_ExistingDirectory(t *testing.T) {
 	InstallCursor(false)
 
 	// Verify file was created
-	if !FileExists(".cursor/rules/beads.mdc") {
+	if !FileExists(".cursor/rules/issuegraph.mdc") {
 		t.Fatal("Cursor rules file was not created")
 	}
 }
@@ -338,7 +338,7 @@ func TestInstallCursor_OverwriteExisting(t *testing.T) {
 	}()
 
 	// Create existing file with different content
-	rulesPath := ".cursor/rules/beads.mdc"
+	rulesPath := ".cursor/rules/issuegraph.mdc"
 	if err := os.MkdirAll(filepath.Dir(rulesPath), 0755); err != nil {
 		t.Fatalf("failed to create directory: %v", err)
 	}
@@ -380,10 +380,10 @@ func TestInstallCursorIdempotent(t *testing.T) {
 
 	// Run twice
 	InstallCursor(false)
-	firstData, _ := os.ReadFile(".cursor/rules/beads.mdc")
+	firstData, _ := os.ReadFile(".cursor/rules/issuegraph.mdc")
 
 	InstallCursor(false)
-	secondData, _ := os.ReadFile(".cursor/rules/beads.mdc")
+	secondData, _ := os.ReadFile(".cursor/rules/issuegraph.mdc")
 
 	if string(firstData) != string(secondData) {
 		t.Error("InstallCursor should be idempotent")
@@ -410,7 +410,7 @@ func TestRemoveCursor(t *testing.T) {
 	InstallCursor(false)
 
 	// Verify file exists
-	rulesPath := ".cursor/rules/beads.mdc"
+	rulesPath := ".cursor/rules/issuegraph.mdc"
 	if !FileExists(rulesPath) {
 		t.Fatal("File should exist before removal")
 	}
@@ -490,7 +490,7 @@ func TestCheckCursor_Installed(t *testing.T) {
 
 func TestCursorRulesPath(t *testing.T) {
 	// Verify the path is correct for Cursor IDE
-	expectedPath := ".cursor/rules/beads.mdc"
+	expectedPath := ".cursor/rules/issuegraph.mdc"
 
 	// These are the paths used in the implementation
 	origDir, err := os.Getwd()
@@ -568,7 +568,7 @@ func TestRemoveCursorGlobal(t *testing.T) {
 
 	globalHooks := filepath.Join(home, ".cursor", "hooks.json")
 	if FileExists(globalHooks) {
-		t.Errorf("global hooks file should be removed when only bd hooks present")
+		t.Errorf("global hooks file should be removed when only issuegraph hooks present")
 	}
 }
 
@@ -577,10 +577,10 @@ func TestCursorTemplateFormatting(t *testing.T) {
 	template := cursorRulesTemplate
 
 	// Should have both markers
-	if !strings.Contains(template, "BEGIN BEADS INTEGRATION") {
+	if !strings.Contains(template, "BEGIN ISSUEGRAPH INTEGRATION") {
 		t.Error("Missing BEGIN marker")
 	}
-	if !strings.Contains(template, "END BEADS INTEGRATION") {
+	if !strings.Contains(template, "END ISSUEGRAPH INTEGRATION") {
 		t.Error("Missing END marker")
 	}
 

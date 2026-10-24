@@ -279,7 +279,7 @@ func TestPRPreflightFixtureIgnoresHostShellAndGitHubState(t *testing.T) {
 // A head SHA whose earlier check suites were cancelled or failed keeps those
 // stale entries in statusCheckRollup next to the fresh green re-runs of the
 // same checks. GitHub's mergeability is latest-per-name; preflight must be
-// too, or green PRs stay blocked forever (gastownhall/beads#5073-5076).
+// too, or green PRs stay blocked forever (borg0ai/dx-issuegraph#5073-5076).
 func TestPRPreflightChecksUseLatestRunPerName(t *testing.T) {
 	staleGreenRollup := `[` +
 		`{"name":"CI Gate / Required","status":"COMPLETED","conclusion":"FAILURE","completedAt":"2026-07-27T10:00:00Z"},` +

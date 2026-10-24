@@ -14,16 +14,16 @@ import (
 	"github.com/spf13/cobra"
 	"github.com/spf13/pflag"
 
-	"github.com/steveyegge/beads/internal/config"
-	"github.com/steveyegge/beads/internal/types"
-	"github.com/steveyegge/beads/internal/workapi"
-	"github.com/steveyegge/beads/issueops"
+	"github.com/borg0ai/dx-issuegraph/internal/config"
+	"github.com/borg0ai/dx-issuegraph/internal/types"
+	"github.com/borg0ai/dx-issuegraph/internal/workapi"
+	"github.com/borg0ai/dx-issuegraph/issueops"
 )
 
 // newReadyFlagsCommand clones readyCmd's flag definitions onto a fresh command
 // and parses args against them, so each case starts from pristine defaults.
 // Cloning beats re-declaring the flags here: a hand-copied default would be a
-// second place for `bd ready` to drift, which is the very thing gatherReadyInput
+// second place for `issuegraph ready` to drift, which is the very thing gatherReadyInput
 // exists to stop. The clone is by value, not AddFlagSet, so a flag set here
 // cannot leak into readyCmd.
 func newReadyFlagsCommand(t *testing.T, args ...string) *cobra.Command {
@@ -61,7 +61,7 @@ func newReadyFlagsCommand(t *testing.T, args ...string) *cobra.Command {
 	return cmd
 }
 
-// gatherOutcome is everything a `bd ready` invocation would have shown the user
+// gatherOutcome is everything a `issuegraph ready` invocation would have shown the user
 // before the query runs: the input, the error, and both streams. Usage errors
 // go to stderr, or to stdout as a JSON object under --json, and the cap warning
 // only ever goes to stderr - so a test that pins where a message goes, or in
@@ -158,8 +158,8 @@ func configureDirectoryLabel(t *testing.T, label string) {
 }
 
 // TestGatherReadyInputResolvesCapWhereTheDirectBuilderDid pins where in the
-// sequence of checks --max-rows / BEADS_MAX_ROWS is resolved. That is not
-// decoration: resolveMaxRowsEnvOnly warns about a malformed BEADS_MAX_ROWS as a
+// sequence of checks --max-rows / ISSUEGRAPH_MAX_ROWS is resolved. That is not
+// decoration: resolveMaxRowsEnvOnly warns about a malformed ISSUEGRAPH_MAX_ROWS as a
 // side effect of resolving, so moving the resolution past another check
 // silently drops the warning for every command line that trips that check.
 func TestGatherReadyInputResolvesCapWhereTheDirectBuilderDid(t *testing.T) {
@@ -181,7 +181,7 @@ func TestGatherReadyInputResolvesCapWhereTheDirectBuilderDid(t *testing.T) {
 		sortErr := strings.Index(got.stderr, "invalid sort policy")
 		switch {
 		case warning < 0:
-			t.Errorf("BEADS_MAX_ROWS warning missing; stderr was:\n%s", got.stderr)
+			t.Errorf("ISSUEGRAPH_MAX_ROWS warning missing; stderr was:\n%s", got.stderr)
 		case sortErr < 0:
 			t.Errorf("sort-policy error missing; stderr was:\n%s", got.stderr)
 		case warning > sortErr:
@@ -436,7 +436,7 @@ func TestGatherReadyInputUsageErrorsRespectJSON(t *testing.T) {
 }
 
 // jsonErrorMessage pulls the message out of whichever error shape
-// buildJSONError produced - bare or BD_JSON_ENVELOPE-wrapped.
+// buildJSONError produced - bare or ISSUEGRAPH_JSON_ENVELOPE-wrapped.
 func jsonErrorMessage(t *testing.T, stdout string) string {
 	t.Helper()
 	var payload map[string]any
@@ -454,7 +454,7 @@ func jsonErrorMessage(t *testing.T, stdout string) string {
 }
 
 // TestGatherReadyInputIgnoresNegativeOffset pins the direct route's oldest
-// answer to `bd ready --offset -1`: print ready work. Its RunE rejects
+// answer to `issuegraph ready --offset -1`: print ready work. Its RunE rejects
 // --offset > 0 as proxied-only and never looked at the flag again, so a
 // negative value has always been a no-op there. The shared gatherer must not
 // turn it into an exit-1 usage error; the proxied route, which is the only one
@@ -470,7 +470,7 @@ func TestGatherReadyInputIgnoresNegativeOffset(t *testing.T) {
 }
 
 // TestGatherReadyInputFlatAliasesPlain pins the flag-name parity with
-// `bd list --flat`. Both spellings have to land on plainFormat, because that
+// `issuegraph list --flat`. Both spellings have to land on plainFormat, because that
 // one field is where the direct route and the proxied route each build their
 // usePlain choice.
 func TestGatherReadyInputFlatAliasesPlain(t *testing.T) {
@@ -497,7 +497,7 @@ func TestGatherReadyInputFlatAliasesPlain(t *testing.T) {
 }
 
 // TestGatherReadyInputKeepsDirectoryLabelVerbatim pins GH#541's label against
-// the collapse into workapi. The configured label is not user input: `bd ready`
+// the collapse into workapi. The configured label is not user input: `issuegraph ready`
 // has always put it on the filter exactly as configured, so it must not be
 // routed through issueops.ReadyRequest, whose label sets BuildReadyFilter
 // normalizes.

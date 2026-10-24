@@ -241,7 +241,7 @@ func Render(prims []Primitive) ([]byte, error) {
 	buf.WriteString("package formula\n")
 	buf.WriteString("\n")
 	buf.WriteString("// Primitives is the discoverability index of every exported struct in\n")
-	buf.WriteString("// types.go. Surfaced via `bd formula schema`. Regenerate with `go generate ./...`.\n")
+	buf.WriteString("// types.go. Surfaced via `issuegraph formula schema`. Regenerate with `go generate ./...`.\n")
 	buf.WriteString("var Primitives = []PrimitiveDoc{\n")
 	for _, p := range prims {
 		buf.WriteString("\t{\n")

@@ -9,9 +9,9 @@ import (
 	"testing"
 	"time"
 
-	"github.com/steveyegge/beads/internal/storage"
-	"github.com/steveyegge/beads/internal/tracker"
-	"github.com/steveyegge/beads/internal/types"
+	"github.com/borg0ai/dx-issuegraph/internal/storage"
+	"github.com/borg0ai/dx-issuegraph/internal/tracker"
+	"github.com/borg0ai/dx-issuegraph/internal/types"
 )
 
 func TestRunWithEngineAndUOWFixture(t *testing.T) {
@@ -140,13 +140,13 @@ func (*mockTracker) BuildExternalRef(issue *tracker.TrackerIssue) string { retur
 
 type mockMapper struct{}
 
-func (mockMapper) PriorityToBeads(interface{}) int           { return 2 }
-func (mockMapper) PriorityToTracker(int) interface{}         { return 2 }
-func (mockMapper) StatusToBeads(interface{}) types.Status    { return types.StatusOpen }
-func (mockMapper) StatusToTracker(types.Status) interface{}  { return "open" }
-func (mockMapper) TypeToBeads(interface{}) types.IssueType   { return types.TypeTask }
-func (mockMapper) TypeToTracker(types.IssueType) interface{} { return "task" }
-func (mockMapper) IssueToBeads(issue *tracker.TrackerIssue) *tracker.IssueConversion {
+func (mockMapper) PriorityToIssueGraph(interface{}) int         { return 2 }
+func (mockMapper) PriorityToTracker(int) interface{}            { return 2 }
+func (mockMapper) StatusToIssueGraph(interface{}) types.Status  { return types.StatusOpen }
+func (mockMapper) StatusToTracker(types.Status) interface{}     { return "open" }
+func (mockMapper) TypeToIssueGraph(interface{}) types.IssueType { return types.TypeTask }
+func (mockMapper) TypeToTracker(types.IssueType) interface{}    { return "task" }
+func (mockMapper) IssueToIssueGraph(issue *tracker.TrackerIssue) *tracker.IssueConversion {
 	id := "bd-2"
 	if issue.Identifier == "EXT-1" {
 		id = "bd-1"

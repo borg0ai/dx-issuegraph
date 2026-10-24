@@ -1,15 +1,15 @@
 ---
-title: "bd github"
-description: "Commands for syncing issues between beads and GitHub."
+title: "issuegraph github"
+description: "Commands for syncing issues between issuegraph and GitHub."
 ---
 
 {/* AUTO-GENERATED: do not edit manually */}
 
-Generated from `bd help --doc github`.
+Generated from `issuegraph help --doc github`.
 
-Commands for syncing issues between beads and GitHub.
+Commands for syncing issues between issuegraph and GitHub.
 
-Configuration can be set via 'bd config' or environment variables:
+Configuration can be set via 'issuegraph config' or environment variables:
   github.token / GITHUB_TOKEN           - Personal access token
   github.owner / GITHUB_OWNER           - Repository owner
   github.repo / GITHUB_REPO             - Repository name
@@ -17,18 +17,18 @@ Configuration can be set via 'bd config' or environment variables:
   github.url / GITHUB_API_URL           - Custom API URL (GitHub Enterprise)
 
 ```
-bd github [flags]
+issuegraph github [flags]
 ```
 
-## bd github pull
+## issuegraph github pull
 
 Pull one or more items from GitHub.
 
-Accepts bead IDs or external references as positional arguments.
-Equivalent to: bd github sync --pull-only --issues &lt;refs&gt;
+Accepts issue IDs or external references as positional arguments.
+Equivalent to: issuegraph github sync --pull-only --issues &lt;refs&gt;
 
 ```
-bd github pull [refs...] [flags]
+issuegraph github pull [refs...] [flags]
 ```
 
 **Flags:**
@@ -37,15 +37,15 @@ bd github pull [refs...] [flags]
       --dry-run   Preview pull without making changes
 ```
 
-## bd github push
+## issuegraph github push
 
-Push one or more beads issues to GitHub.
+Push one or more issuegraph issues to GitHub.
 
-Accepts bead IDs as positional arguments.
-Equivalent to: bd github sync --push-only --issues &lt;ids&gt;
+Accepts issue IDs as positional arguments.
+Equivalent to: issuegraph github sync --push-only --issues &lt;ids&gt;
 
 ```
-bd github push [bead-ids...] [flags]
+issuegraph github push [issue-ids...] [flags]
 ```
 
 **Flags:**
@@ -54,44 +54,44 @@ bd github push [bead-ids...] [flags]
       --dry-run   Preview push without making changes
 ```
 
-## bd github repos
+## issuegraph github repos
 
 List GitHub repositories that the configured token has access to.
 
 ```
-bd github repos [flags]
+issuegraph github repos [flags]
 ```
 
-## bd github status
+## issuegraph github status
 
 Display current GitHub configuration and sync status.
 
 ```
-bd github status [flags]
+issuegraph github status [flags]
 ```
 
-## bd github sync
+## issuegraph github sync
 
-Synchronize issues between beads and GitHub.
+Synchronize issues between issuegraph and GitHub.
 
 By default, performs bidirectional sync:
-- Pulls new/updated issues from GitHub to beads
-- Pushes local beads issues to GitHub
+- Pulls new/updated issues from GitHub to issuegraph
+- Pushes local issuegraph issues to GitHub
 
 Use --pull-only or --push-only to limit direction.
 
 ```
-bd github sync [flags]
+issuegraph github sync [flags]
 ```
 
 **Flags:**
 
 ```
       --dry-run         Show what would be synced without making changes
-      --issues string   Comma-separated bead IDs to sync selectively (e.g., bd-abc,bd-def). Mutually exclusive with --parent.
-      --parent string   Limit push to this bead and its descendants (push only). Mutually exclusive with --issues.
+      --issues string   Comma-separated issue IDs to sync selectively (e.g., issuegraph-abc,issuegraph-def). Mutually exclusive with --parent.
+      --parent string   Limit push to this issue and its descendants (push only). Mutually exclusive with --issues.
       --prefer-github   On conflict, use GitHub version
-      --prefer-local    On conflict, keep local beads version
+      --prefer-local    On conflict, keep local issuegraph version
       --prefer-newer    On conflict, use most recent version (default)
       --pull-only       Only pull issues from GitHub
       --push-only       Only push issues to GitHub

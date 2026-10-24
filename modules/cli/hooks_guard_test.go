@@ -7,7 +7,7 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/steveyegge/beads/internal/git"
+	"github.com/borg0ai/dx-issuegraph/internal/git"
 )
 
 // setupGuardTestRepo creates a git repo with one tracked script and chdirs
@@ -122,8 +122,8 @@ func TestInstallHooksRefusesTrackedHook(t *testing.T) {
 	}
 }
 
-// A tracked hook that bd OWNS (section markers) must still be maintainable:
-// teams commit .beads/hooks/ like shared .beads-hooks/, and refusing would
+// A tracked hook that issuegraph OWNS (section markers) must still be maintainable:
+// teams commit .issuegraph/hooks/ like shared .issuegraph-hooks/, and refusing would
 // break reinstall/upgrade for them (caught by TestEmbeddedHooks in CI).
 func TestInstallHooksAllowsTrackedBdOwnedHook(t *testing.T) {
 	repoDir := setupGuardTestRepo(t)
@@ -132,8 +132,8 @@ func TestInstallHooksAllowsTrackedBdOwnedHook(t *testing.T) {
 	if err := os.MkdirAll(hooksDir, 0755); err != nil {
 		t.Fatal(err)
 	}
-	bdHook := "#!/usr/bin/env sh\n" + generateHookSection("pre-commit")
-	if err := os.WriteFile(filepath.Join(hooksDir, "pre-commit"), []byte(bdHook), 0755); err != nil {
+	issuegraphHook := "#!/usr/bin/env sh\n" + generateHookSection("pre-commit")
+	if err := os.WriteFile(filepath.Join(hooksDir, "pre-commit"), []byte(issuegraphHook), 0755); err != nil {
 		t.Fatal(err)
 	}
 	for _, args := range [][]string{
@@ -154,7 +154,7 @@ func TestInstallHooksAllowsTrackedBdOwnedHook(t *testing.T) {
 	}
 }
 
-// bd-5vdt8: injecting the bd section into a hook bd does not own must
+// bd-5vdt8: injecting the issuegraph section into a hook issuegraph does not own must
 // preserve the original as a .backup sidecar.
 func TestInstallHooksBacksUpForeignHook(t *testing.T) {
 	repoDir := setupGuardTestRepo(t)
@@ -188,7 +188,7 @@ func TestInstallHooksBacksUpForeignHook(t *testing.T) {
 		t.Fatal("user content lost from hook after injection")
 	}
 	if !strings.Contains(string(merged), hookSectionBeginPrefix) {
-		t.Fatal("bd section not injected into hook")
+		t.Fatal("issuegraph section not injected into hook")
 	}
 
 	// Reinstall must not overwrite the backup with the merged content.
@@ -204,7 +204,7 @@ func TestInstallHooksBacksUpForeignHook(t *testing.T) {
 	}
 }
 
-// Shared installs (.beads-hooks/) are deliberately committed, so the
+// Shared installs (.issuegraph-hooks/) are deliberately committed, so the
 // tracked-file guard must not fire for them.
 func TestGuardHookWritePathAllowsTrackedWhenShared(t *testing.T) {
 	repoDir := setupGuardTestRepo(t)

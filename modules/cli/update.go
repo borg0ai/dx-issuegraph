@@ -9,18 +9,18 @@ import (
 	"strings"
 	"time"
 
+	"github.com/borg0ai/dx-issuegraph/internal/audit"
+	"github.com/borg0ai/dx-issuegraph/internal/debug"
+	"github.com/borg0ai/dx-issuegraph/internal/metrics"
+	"github.com/borg0ai/dx-issuegraph/internal/storage"
+	storageissueops "github.com/borg0ai/dx-issuegraph/internal/storage/issueops"
+	"github.com/borg0ai/dx-issuegraph/internal/timeparsing"
+	"github.com/borg0ai/dx-issuegraph/internal/types"
+	"github.com/borg0ai/dx-issuegraph/internal/ui"
+	"github.com/borg0ai/dx-issuegraph/internal/utils"
+	"github.com/borg0ai/dx-issuegraph/internal/validation"
+	"github.com/borg0ai/dx-issuegraph/issueops"
 	"github.com/spf13/cobra"
-	"github.com/steveyegge/beads/internal/audit"
-	"github.com/steveyegge/beads/internal/debug"
-	"github.com/steveyegge/beads/internal/metrics"
-	"github.com/steveyegge/beads/internal/storage"
-	storageissueops "github.com/steveyegge/beads/internal/storage/issueops"
-	"github.com/steveyegge/beads/internal/timeparsing"
-	"github.com/steveyegge/beads/internal/types"
-	"github.com/steveyegge/beads/internal/ui"
-	"github.com/steveyegge/beads/internal/utils"
-	"github.com/steveyegge/beads/internal/validation"
-	"github.com/steveyegge/beads/issueops"
 )
 
 // commandIssueUpdater is the lifecycle capability the update command needs.
@@ -30,7 +30,7 @@ type commandIssueUpdater interface {
 }
 
 // commandUpdateMutation contains the command-derived values for one lifecycle
-// update. Both routes of `bd update` fill it in: the direct one below, and the
+// update. Both routes of `issuegraph update` fill it in: the direct one below, and the
 // proxied-server claim path in update_proxied_server.go.
 type commandUpdateMutation struct {
 	actor            string
@@ -74,7 +74,7 @@ If no issue ID is provided, updates the last touched issue (from most recent
 create, update, show, or close operation). This fallback only applies in
 interactive sessions (stdin is a terminal); in scripts and agent sessions a
 missing ID is an error, so a command built from an empty variable cannot
-silently mutate an unrelated issue. Set BD_LAST_TOUCHED_FALLBACK=1 to allow
+silently mutate an unrelated issue. Set ISSUEGRAPH_LAST_TOUCHED_FALLBACK=1 to allow
 the fallback anywhere, or =0 to disable it entirely.
 
 Updates are applied per issue ID, not atomically across IDs: when some IDs
@@ -86,13 +86,13 @@ Exit codes: 1 for general failures; 13 when every failure is a stale
 written — another actor won the race, so retrying the same guard is
 pointless).`,
 	// The non-interactive no-ID refusal lives in argument validation, which
-	// cobra runs before root's PersistentPreRunE — so a scripted `bd update
+	// cobra runs before root's PersistentPreRunE — so a scripted `issuegraph update
 	// $ID ...` with an empty $ID fails fast, before the pre-run hooks can
 	// open the store, run a version-bump migration, or auto-import JSONL
 	// (bd-m00pb). The interactive fallback itself is resolved in RunE.
 	Args: func(cmd *cobra.Command, args []string) error {
 		if len(args) == 0 && !AllowLastTouchedFallback() {
-			return HandleErrorRespectJSON("no issue ID provided (the last-touched fallback only applies in interactive sessions; pass an explicit issue ID or set BD_LAST_TOUCHED_FALLBACK=1)")
+			return HandleErrorRespectJSON("no issue ID provided (the last-touched fallback only applies in interactive sessions; pass an explicit issue ID or set ISSUEGRAPH_LAST_TOUCHED_FALLBACK=1)")
 		}
 		return nil
 	},
@@ -132,7 +132,7 @@ pointless).`,
 		updates := make(map[string]interface{})
 		// clearDeferStatus: set per-issue in the update loop when --defer=""
 		// was given without an explicit --status, to flip status=deferred back
-		// to open (matches the help text's "show in bd ready immediately").
+		// to open (matches the help text's "show in issuegraph ready immediately").
 		var clearDeferStatus bool
 
 		if cmd.Flags().Changed("status") {
@@ -149,7 +149,7 @@ pointless).`,
 				}
 			}
 			if !types.Status(status).IsValidWithCustom(customStatuses) {
-				return HandleErrorRespectJSON("invalid status %q (built-in: open, in_progress, blocked, deferred, closed, pinned, hooked; or configure custom statuses via 'bd config set status.custom')", status)
+				return HandleErrorRespectJSON("invalid status %q (built-in: open, in_progress, blocked, deferred, closed, pinned, hooked; or configure custom statuses via 'issuegraph config set status.custom')", status)
 			}
 			updates["status"] = status
 
@@ -307,14 +307,14 @@ pointless).`,
 				// Warn if defer date is in the past (user probably meant future)
 				inPast := t.Before(time.Now())
 				if inPast && !jsonOutput {
-					fmt.Fprintf(os.Stderr, "%s Defer date %q is in the past. Issue will appear in bd ready immediately.\n",
+					fmt.Fprintf(os.Stderr, "%s Defer date %q is in the past. Issue will appear in issuegraph ready immediately.\n",
 						ui.RenderWarn("!"), t.Local().Format("2006-01-02 15:04"))
 					fmt.Fprintf(os.Stderr, "  Did you mean a future date? Use --defer=+1h or --defer=tomorrow\n")
 				}
 				updates["defer_until"] = t
-				// Align with `bd defer`: set status=deferred so the ❄ icon
+				// Align with `issuegraph defer`: set status=deferred so the ❄ icon
 				// shows and the issue leaves the ready queue (GH#3233).
-				// Skip for past dates so the "appears in bd ready immediately"
+				// Skip for past dates so the "appears in issuegraph ready immediately"
 				// warning stays truthful, and skip if --status was set explicitly.
 				if _, ok := updates["status"]; !ok && !inPast {
 					updates["status"] = string(types.StatusDeferred)
@@ -563,7 +563,7 @@ pointless).`,
 			}
 
 			// The operation's own post-state snapshot replaces the re-read.
-			// Dependency records are dropped from it because `bd update` has
+			// Dependency records are dropped from it because `issuegraph update` has
 			// never printed them: GetIssue did not hydrate them either.
 			if updatedIssue != nil {
 				updatedIssue.Dependencies = nil
@@ -800,7 +800,7 @@ func warnNotesReplacement(id string) {
 	fmt.Fprintf(os.Stderr, "warning: %s: --notes replaced existing notes (use --append-notes to preserve history)\n", id) //nolint:gosec // G705: stderr, not a browser context
 }
 
-// ExitGuardMismatch is the exit code when a `bd update` run failed solely
+// ExitGuardMismatch is the exit code when a `issuegraph update` run failed solely
 // because --if-assignee/--if-status guards did not match: the precondition no
 // longer held, nothing was written, and retrying is pointless — another actor
 // won the race. Scripts branch on it to tell "racer won, skip gracefully"
@@ -937,7 +937,7 @@ func updateGuardsFromFlags(cmd *cobra.Command, claimFlag bool, updates map[strin
 			}
 		}
 		if !types.Status(v).IsValidWithCustom(customStatuses) {
-			return nil, nil, HandleErrorRespectJSON("invalid --if-status %q (built-in: open, in_progress, blocked, deferred, closed, pinned, hooked; or configure custom statuses via 'bd config set status.custom')", v)
+			return nil, nil, HandleErrorRespectJSON("invalid --if-status %q (built-in: open, in_progress, blocked, deferred, closed, pinned, hooked; or configure custom statuses via 'issuegraph config set status.custom')", v)
 		}
 		ifStatus = &v
 	}
@@ -979,7 +979,7 @@ func init() {
 	updateCmd.Flags().String("parent", "", "New parent issue ID (reparents the issue, use empty string to remove parent)")
 	updateCmd.Flags().Bool("claim", false, "Atomically claim the issue (sets assignee to you, status to in_progress; idempotent if already claimed by you; issues assigned to a pool alias listed in the claim.pools config are claimable too)")
 	// Overrides the live-claim reassign fence (bd-98s5c) and close policy.
-	updateCmd.Flags().Bool("force", false, "Override two refusals: let -a/--assignee overwrite another actor's live in_progress claim (use only for abandoned claims — crashed agent, expired lease; prefer bd reclaim), and let -s/--status move the issue into closed (or a configured done status) despite open children or a live blocker (same as bd close --force)")
+	updateCmd.Flags().Bool("force", false, "Override two refusals: let -a/--assignee overwrite another actor's live in_progress claim (use only for abandoned claims — crashed agent, expired lease; prefer issuegraph reclaim), and let -s/--status move the issue into closed (or a configured done status) despite open children or a live blocker (same as issuegraph close --force)")
 	// Conditional (compare-and-set) update guards (bd-wsqvw)
 	updateCmd.Flags().String("if-assignee", "", "Apply the update only if the current assignee equals this value (--if-assignee '' requires unassigned); a mismatch writes nothing and exits 13 (vs 1 for other failures). Requires a field update; cannot combine with --claim")
 	updateCmd.Flags().String("if-status", "", "Apply the update only if the current status equals this value; a mismatch writes nothing and exits 13 (vs 1 for other failures). Requires a field update; cannot combine with --claim")
@@ -997,10 +997,10 @@ func init() {
 	//   --due="next monday" Due next Monday
 	//   --due=2025-01-15    Due on specific date
 	//   --due=""            Clear due date
-	//   --defer=+1h         Hidden from bd ready for 1 hour
-	//   --defer=""          Clear defer (show in bd ready immediately)
+	//   --defer=+1h         Hidden from issuegraph ready for 1 hour
+	//   --defer=""          Clear defer (show in issuegraph ready immediately)
 	updateCmd.Flags().String("due", "", "Due date/time (empty to clear). Formats: +6h, +1d, +2w, tomorrow, next monday, 2025-01-15")
-	updateCmd.Flags().String("defer", "", "Defer until date (empty to clear). Issue hidden from bd ready until then, then auto-wakes to open")
+	updateCmd.Flags().String("defer", "", "Defer until date (empty to clear). Issue hidden from issuegraph ready until then, then auto-wakes to open")
 	// Gate fields (bd-z6kw)
 	updateCmd.Flags().String("await-id", "", "Set gate await_id (e.g., GitHub run ID for gh:run gates)")
 	// Ephemeral/persistent flags

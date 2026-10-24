@@ -9,17 +9,17 @@ import (
 
 func TestExportSubprocessDirUsesProjectRoot(t *testing.T) {
 	repo := t.TempDir()
-	beadsDir := filepath.Join(repo, ".beads")
+	issuegraphDir := filepath.Join(repo, ".issuegraph")
 
-	got := exportSubprocessDir(beadsDir)
+	got := exportSubprocessDir(issuegraphDir)
 	if got != repo {
-		t.Fatalf("exportSubprocessDir(%q) = %q, want project root %q", beadsDir, got, repo)
+		t.Fatalf("exportSubprocessDir(%q) = %q, want project root %q", issuegraphDir, got, repo)
 	}
 }
 
 // TestSanitizeHuskyHook_V8 verifies that husky v8's `_/husky.sh` source line
 // is stripped and replaced with a PATH export, so the hook runs standalone
-// without needing `.beads/hooks/_/husky.sh` to exist. (GH#3132)
+// without needing `.issuegraph/hooks/_/husky.sh` to exist. (GH#3132)
 func TestSanitizeHuskyHook_V8(t *testing.T) {
 	in := `#!/usr/bin/env sh
 . "$(dirname -- "$0")/_/husky.sh"
@@ -120,7 +120,7 @@ func TestIsHuskyDir(t *testing.T) {
 		{"/repo/.husky/_", true},
 		{".husky", true},
 		{"/repo/.git/hooks", false},
-		{"/repo/.beads/hooks", false},
+		{"/repo/.issuegraph/hooks", false},
 		{"", false},
 	}
 	for _, tc := range tests {
@@ -163,7 +163,7 @@ npx --no-install lint-staged
 		sanitized = []byte(sanitizeHuskyHook(string(content)))
 	}
 
-	targetDir := filepath.Join(tmp, ".beads", "hooks")
+	targetDir := filepath.Join(tmp, ".issuegraph", "hooks")
 	if err := os.MkdirAll(targetDir, 0755); err != nil {
 		t.Fatal(err)
 	}

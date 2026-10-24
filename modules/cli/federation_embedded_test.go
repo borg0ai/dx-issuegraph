@@ -11,33 +11,33 @@ import (
 	"sync"
 	"testing"
 
-	"github.com/steveyegge/beads/internal/storage"
+	"github.com/borg0ai/dx-issuegraph/internal/storage"
 )
 
-// bdFederation runs "bd federation" with extra args. Returns combined output.
-func bdFederation(t *testing.T, bd, dir string, args ...string) string {
+// issuegraphFederation runs "issuegraph federation" with extra args. Returns combined output.
+func issuegraphFederation(t *testing.T, issuegraph, dir string, args ...string) string {
 	t.Helper()
 	fullArgs := append([]string{"federation"}, args...)
-	cmd := exec.Command(bd, fullArgs...)
+	cmd := exec.Command(issuegraph, fullArgs...)
 	cmd.Dir = dir
-	cmd.Env = bdEnv(dir)
+	cmd.Env = issuegraphEnv(dir)
 	stdout, stderr, err := runCommandBuffers(t, cmd)
 	if err != nil {
-		t.Fatalf("bd federation %s failed: %v\nstdout:\n%s\nstderr:\n%s", strings.Join(args, " "), err, stdout.String(), stderr.String())
+		t.Fatalf("issuegraph federation %s failed: %v\nstdout:\n%s\nstderr:\n%s", strings.Join(args, " "), err, stdout.String(), stderr.String())
 	}
 	return stdout.String()
 }
 
-// bdFederationFail runs "bd federation" expecting failure.
-func bdFederationFail(t *testing.T, bd, dir string, args ...string) string {
+// issuegraphFederationFail runs "issuegraph federation" expecting failure.
+func issuegraphFederationFail(t *testing.T, issuegraph, dir string, args ...string) string {
 	t.Helper()
 	fullArgs := append([]string{"federation"}, args...)
-	cmd := exec.Command(bd, fullArgs...)
+	cmd := exec.Command(issuegraph, fullArgs...)
 	cmd.Dir = dir
-	cmd.Env = bdEnv(dir)
+	cmd.Env = issuegraphEnv(dir)
 	out, err := cmd.CombinedOutput()
 	if err == nil {
-		t.Fatalf("bd federation %s should have failed, got: %s", strings.Join(args, " "), out)
+		t.Fatalf("issuegraph federation %s should have failed, got: %s", strings.Join(args, " "), out)
 	}
 	return string(out)
 }
@@ -62,26 +62,26 @@ func TestFormatFederationPeerListJSONPreservesLegacyKeys(t *testing.T) {
 }
 
 func TestEmbeddedFederation(t *testing.T) {
-	if os.Getenv("BEADS_TEST_EMBEDDED_DOLT") != "1" {
-		t.Skip("set BEADS_TEST_EMBEDDED_DOLT=1 to run embedded dolt federation tests")
+	if os.Getenv("ISSUEGRAPH_TEST_EMBEDDED_DOLT") != "1" {
+		t.Skip("set ISSUEGRAPH_TEST_EMBEDDED_DOLT=1 to run embedded dolt federation tests")
 	}
 	t.Parallel()
 
-	bd := buildEmbeddedBD(t)
+	issuegraph := buildEmbeddedBD(t)
 
 	t.Run("list_peers_empty", func(t *testing.T) {
-		dir, _, _ := bdInit(t, bd, "--prefix", "fdlst0")
+		dir, _, _ := issuegraphInit(t, issuegraph, "--prefix", "fdlst0")
 
-		out := bdFederation(t, bd, dir, "list-peers")
+		out := issuegraphFederation(t, issuegraph, dir, "list-peers")
 		if !strings.Contains(out, "No federation peers") {
 			t.Errorf("expected 'No federation peers', got: %s", out)
 		}
 	})
 
 	t.Run("list_peers_empty_json", func(t *testing.T) {
-		dir, _, _ := bdInit(t, bd, "--prefix", "fdlstj")
+		dir, _, _ := issuegraphInit(t, issuegraph, "--prefix", "fdlstj")
 
-		out := bdFederation(t, bd, dir, "list-peers", "--json")
+		out := issuegraphFederation(t, issuegraph, dir, "list-peers", "--json")
 		// Should be valid JSON (empty array or null)
 		out = strings.TrimSpace(out)
 		if out != "null" && out != "[]" {
@@ -94,24 +94,24 @@ func TestEmbeddedFederation(t *testing.T) {
 	})
 
 	t.Run("add_peer_simple", func(t *testing.T) {
-		dir, _, _ := bdInit(t, bd, "--prefix", "fdadd")
+		dir, _, _ := issuegraphInit(t, issuegraph, "--prefix", "fdadd")
 
-		out := bdFederation(t, bd, dir, "add-peer", "test-peer", "file:///tmp/fake-peer")
+		out := issuegraphFederation(t, issuegraph, dir, "add-peer", "test-peer", "file:///tmp/fake-peer")
 		if !strings.Contains(out, "test-peer") {
 			t.Errorf("expected peer name in output, got: %s", out)
 		}
 
 		// Verify it appears in list
-		listOut := bdFederation(t, bd, dir, "list-peers")
+		listOut := issuegraphFederation(t, issuegraph, dir, "list-peers")
 		if !strings.Contains(listOut, "test-peer") {
 			t.Errorf("expected 'test-peer' in list, got: %s", listOut)
 		}
 	})
 
 	t.Run("add_peer_json", func(t *testing.T) {
-		dir, _, _ := bdInit(t, bd, "--prefix", "fdaddj")
+		dir, _, _ := issuegraphInit(t, issuegraph, "--prefix", "fdaddj")
 
-		out := bdFederation(t, bd, dir, "add-peer", "json-peer", "file:///tmp/json-peer", "--json")
+		out := issuegraphFederation(t, issuegraph, dir, "add-peer", "json-peer", "file:///tmp/json-peer", "--json")
 		var result map[string]interface{}
 		if err := json.Unmarshal([]byte(out), &result); err != nil {
 			t.Fatalf("failed to parse JSON: %v\n%s", err, out)
@@ -122,9 +122,9 @@ func TestEmbeddedFederation(t *testing.T) {
 	})
 
 	t.Run("add_peer_with_credentials", func(t *testing.T) {
-		dir, _, _ := bdInit(t, bd, "--prefix", "fdcred")
+		dir, _, _ := issuegraphInit(t, issuegraph, "--prefix", "fdcred")
 
-		out := bdFederation(t, bd, dir, "add-peer", "auth-peer", "file:///tmp/auth-peer",
+		out := issuegraphFederation(t, issuegraph, dir, "add-peer", "auth-peer", "file:///tmp/auth-peer",
 			"--user", "admin", "--password", "secret", "--json")
 		var result map[string]interface{}
 		if err := json.Unmarshal([]byte(out), &result); err != nil {
@@ -136,9 +136,9 @@ func TestEmbeddedFederation(t *testing.T) {
 	})
 
 	t.Run("add_peer_with_sovereignty", func(t *testing.T) {
-		dir, _, _ := bdInit(t, bd, "--prefix", "fdsov")
+		dir, _, _ := issuegraphInit(t, issuegraph, "--prefix", "fdsov")
 
-		out := bdFederation(t, bd, dir, "add-peer", "sov-peer", "file:///tmp/sov-peer",
+		out := issuegraphFederation(t, issuegraph, dir, "add-peer", "sov-peer", "file:///tmp/sov-peer",
 			"--sovereignty", "T2", "--json")
 		var result map[string]interface{}
 		if err := json.Unmarshal([]byte(out), &result); err != nil {
@@ -150,35 +150,35 @@ func TestEmbeddedFederation(t *testing.T) {
 	})
 
 	t.Run("remove_peer", func(t *testing.T) {
-		dir, _, _ := bdInit(t, bd, "--prefix", "fdrm")
+		dir, _, _ := issuegraphInit(t, issuegraph, "--prefix", "fdrm")
 
-		bdFederation(t, bd, dir, "add-peer", "removable", "file:///tmp/removable")
+		issuegraphFederation(t, issuegraph, dir, "add-peer", "removable", "file:///tmp/removable")
 
 		// Verify it exists
-		listOut := bdFederation(t, bd, dir, "list-peers")
+		listOut := issuegraphFederation(t, issuegraph, dir, "list-peers")
 		if !strings.Contains(listOut, "removable") {
 			t.Fatalf("peer should exist before removal, got: %s", listOut)
 		}
 
 		// Remove it
-		out := bdFederation(t, bd, dir, "remove-peer", "removable")
+		out := issuegraphFederation(t, issuegraph, dir, "remove-peer", "removable")
 		if !strings.Contains(out, "removable") {
 			t.Errorf("expected peer name in removal output, got: %s", out)
 		}
 
 		// Verify it's gone
-		listOut = bdFederation(t, bd, dir, "list-peers")
+		listOut = issuegraphFederation(t, issuegraph, dir, "list-peers")
 		if strings.Contains(listOut, "removable") {
 			t.Errorf("peer should be gone after removal, got: %s", listOut)
 		}
 	})
 
 	t.Run("remove_peer_json", func(t *testing.T) {
-		dir, _, _ := bdInit(t, bd, "--prefix", "fdrmj")
+		dir, _, _ := issuegraphInit(t, issuegraph, "--prefix", "fdrmj")
 
-		bdFederation(t, bd, dir, "add-peer", "rm-json", "file:///tmp/rm-json")
+		issuegraphFederation(t, issuegraph, dir, "add-peer", "rm-json", "file:///tmp/rm-json")
 
-		out := bdFederation(t, bd, dir, "remove-peer", "rm-json", "--json")
+		out := issuegraphFederation(t, issuegraph, dir, "remove-peer", "rm-json", "--json")
 		var result map[string]interface{}
 		if err := json.Unmarshal([]byte(out), &result); err != nil {
 			t.Fatalf("failed to parse JSON: %v\n%s", err, out)
@@ -189,18 +189,18 @@ func TestEmbeddedFederation(t *testing.T) {
 	})
 
 	t.Run("status_no_peers", func(t *testing.T) {
-		dir, _, _ := bdInit(t, bd, "--prefix", "fdst0")
+		dir, _, _ := issuegraphInit(t, issuegraph, "--prefix", "fdst0")
 
-		out := bdFederation(t, bd, dir, "status")
+		out := issuegraphFederation(t, issuegraph, dir, "status")
 		if !strings.Contains(out, "No federation peers") {
 			t.Errorf("expected 'No federation peers', got: %s", out)
 		}
 	})
 
 	t.Run("status_json_no_peers", func(t *testing.T) {
-		dir, _, _ := bdInit(t, bd, "--prefix", "fdstj")
+		dir, _, _ := issuegraphInit(t, issuegraph, "--prefix", "fdstj")
 
-		out := bdFederation(t, bd, dir, "status", "--json")
+		out := issuegraphFederation(t, issuegraph, dir, "status", "--json")
 		var result map[string]interface{}
 		if err := json.Unmarshal([]byte(out), &result); err != nil {
 			t.Fatalf("failed to parse JSON: %v\n%s", err, out)
@@ -212,13 +212,13 @@ func TestEmbeddedFederation(t *testing.T) {
 }
 
 func TestEmbeddedFederationConcurrent(t *testing.T) {
-	if os.Getenv("BEADS_TEST_EMBEDDED_DOLT") != "1" {
-		t.Skip("set BEADS_TEST_EMBEDDED_DOLT=1 to run embedded dolt federation tests")
+	if os.Getenv("ISSUEGRAPH_TEST_EMBEDDED_DOLT") != "1" {
+		t.Skip("set ISSUEGRAPH_TEST_EMBEDDED_DOLT=1 to run embedded dolt federation tests")
 	}
 	t.Parallel()
 
-	bd := buildEmbeddedBD(t)
-	dir, _, _ := bdInit(t, bd, "--prefix", "fdconc")
+	issuegraph := buildEmbeddedBD(t)
+	dir, _, _ := issuegraphInit(t, issuegraph, "--prefix", "fdconc")
 
 	const numWorkers = 10
 
@@ -237,9 +237,9 @@ func TestEmbeddedFederationConcurrent(t *testing.T) {
 			defer wg.Done()
 			peerName := fmt.Sprintf("conc-peer-%d", worker)
 			peerURL := fmt.Sprintf("file:///tmp/conc-peer-%d", worker)
-			cmd := exec.Command(bd, "federation", "add-peer", peerName, peerURL)
+			cmd := exec.Command(issuegraph, "federation", "add-peer", peerName, peerURL)
 			cmd.Dir = dir
-			cmd.Env = bdEnv(dir)
+			cmd.Env = issuegraphEnv(dir)
 			out, err := cmd.CombinedOutput()
 			results[worker] = result{worker: worker, out: string(out), err: err}
 		}(w)

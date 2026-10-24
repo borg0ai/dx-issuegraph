@@ -11,9 +11,9 @@ import (
 	"strings"
 	"time"
 
-	"github.com/steveyegge/beads/internal/configfile"
-	"github.com/steveyegge/beads/internal/storage/dolt"
-	"github.com/steveyegge/beads/internal/types"
+	"github.com/borg0ai/dx-issuegraph/internal/configfile"
+	"github.com/borg0ai/dx-issuegraph/internal/storage/dolt"
+	"github.com/borg0ai/dx-issuegraph/internal/types"
 )
 
 // CheckStaleClosedIssues detects closed issues that could be cleaned up.
@@ -32,10 +32,10 @@ import (
 var largeClosedIssuesThreshold = 10000
 
 func CheckStaleClosedIssues(path string) DoctorCheck {
-	_, beadsDir := getBackendAndBeadsDir(path)
+	_, issuegraphDir := getBackendAndIssueGraphDir(path)
 
 	// Load config and check if this check is enabled
-	cfg, err := configfile.Load(beadsDir)
+	cfg, err := configfile.Load(issuegraphDir)
 	if err != nil {
 		return DoctorCheck{
 			Name:     "Stale Closed Issues",
@@ -51,7 +51,7 @@ func CheckStaleClosedIssues(path string) DoctorCheck {
 		thresholdDays = cfg.GetStaleClosedIssuesDays()
 	}
 
-	db, store, err := openStoreDB(beadsDir)
+	db, store, err := openStoreDB(issuegraphDir)
 	if err != nil {
 		return DoctorCheck{
 			Name:     "Stale Closed Issues",
@@ -86,7 +86,7 @@ func checkStaleClosedIssuesDB(db *sql.DB, thresholdDays int) DoctorCheck {
 			Status:   StatusWarning,
 			Message:  fmt.Sprintf("Disabled but %d closed issues exist", closedCount),
 			Detail:   "Consider enabling stale_closed_issues_days to manage database size",
-			Fix:      "Add \"stale_closed_issues_days\": 30 to .beads/metadata.json",
+			Fix:      "Add \"stale_closed_issues_days\": 30 to .issuegraph/metadata.json",
 			Category: CategoryMaintenance,
 		}
 	}
@@ -121,7 +121,7 @@ func checkStaleClosedIssuesDB(db *sql.DB, thresholdDays int) DoctorCheck {
 		Status:   StatusWarning,
 		Message:  fmt.Sprintf("%d closed issue(s) older than %d days", cleanable, thresholdDays),
 		Detail:   "These issues can be cleaned up to reduce database size",
-		Fix:      "Run 'bd doctor --fix' to cleanup, or 'bd admin cleanup --force' for more options",
+		Fix:      "Run 'issuegraph doctor --fix' to cleanup, or 'issuegraph admin cleanup --force' for more options",
 		Category: CategoryMaintenance,
 	}
 }
@@ -129,12 +129,12 @@ func checkStaleClosedIssuesDB(db *sql.DB, thresholdDays int) DoctorCheck {
 // CheckStaleMolecules detects complete-but-unclosed molecules.
 // A molecule is stale if all children are closed but the root is still open.
 func CheckStaleMolecules(path string) DoctorCheck {
-	_, beadsDir := getBackendAndBeadsDir(path)
+	_, issuegraphDir := getBackendAndIssueGraphDir(path)
 
 	// Open database using Dolt
 	ctx := context.Background()
-	doltPath := getDatabasePath(beadsDir)
-	store, err := dolt.New(ctx, doltServerConfig(beadsDir, doltPath))
+	doltPath := getDatabasePath(issuegraphDir)
+	store, err := dolt.New(ctx, doltServerConfig(issuegraphDir, doltPath))
 	if err != nil {
 		return DoctorCheck{
 			Name:     "Stale Molecules",
@@ -187,13 +187,13 @@ func CheckStaleMolecules(path string) DoctorCheck {
 		Status:   StatusWarning,
 		Message:  fmt.Sprintf("%d complete-but-unclosed molecule(s)", staleCount),
 		Detail:   detail,
-		Fix:      "Run 'bd mol stale' to review, then 'bd close <id>' for each",
+		Fix:      "Run 'issuegraph mol stale' to review, then 'issuegraph close <id>' for each",
 		Category: CategoryMaintenance,
 	}
 }
 
 // CheckPersistentMolIssues detects mol- prefixed issues that should have been ephemeral.
-// When users run "bd mol pour" on formulas that should use "bd mol wisp", the resulting
+// When users run "issuegraph mol pour" on formulas that should use "issuegraph mol wisp", the resulting
 // issues get the "mol-" prefix but persist in the issue store. These should be cleaned up.
 func CheckPersistentMolIssues(path string) DoctorCheck {
 	issues, err := loadMaintenanceIssues(path)
@@ -248,18 +248,18 @@ func checkPersistentMolIssuesForIssues(issues []*types.Issue) DoctorCheck {
 		Status:   StatusWarning,
 		Message:  fmt.Sprintf("%d mol- issue(s) should be ephemeral", molCount),
 		Detail:   detail,
-		Fix:      "Run 'bd delete <id> --force' to remove, or use 'bd mol wisp' instead of 'bd mol pour'",
+		Fix:      "Run 'issuegraph delete <id> --force' to remove, or use 'issuegraph mol wisp' instead of 'issuegraph mol pour'",
 		Category: CategoryMaintenance,
 	}
 }
 
-// CheckStaleMQFiles detects legacy .beads/mq/*.json files from the orchestrator.
+// CheckStaleMQFiles detects legacy .issuegraph/mq/*.json files from the orchestrator.
 // These files are LOCAL ONLY (not committed) and represent stale merge queue
 // entries from the old mrqueue implementation. They are safe to delete since
-// gt done already creates merge-request wisps in beads.
+// gt done already creates merge-request wisps in issuegraph.
 func CheckStaleMQFiles(path string) DoctorCheck {
-	beadsDir := ResolveBeadsDirForRepo(path)
-	mqDir := filepath.Join(beadsDir, "mq")
+	issuegraphDir := ResolveIssueGraphDirForRepo(path)
+	mqDir := filepath.Join(issuegraphDir, "mq")
 
 	if _, err := os.Stat(mqDir); os.IsNotExist(err) {
 		return DoctorCheck{
@@ -283,17 +283,17 @@ func CheckStaleMQFiles(path string) DoctorCheck {
 	return DoctorCheck{
 		Name:     "Legacy MQ Files",
 		Status:   StatusWarning,
-		Message:  fmt.Sprintf("%d stale .beads/mq/*.json file(s)", len(files)),
+		Message:  fmt.Sprintf("%d stale .issuegraph/mq/*.json file(s)", len(files)),
 		Detail:   "Legacy orchestrator merge queue files (local only, safe to delete)",
-		Fix:      "Run 'bd doctor --fix' to delete, or 'rm -rf .beads/mq/'",
+		Fix:      "Run 'issuegraph doctor --fix' to delete, or 'rm -rf .issuegraph/mq/'",
 		Category: CategoryMaintenance,
 	}
 }
 
-// FixStaleMQFiles removes the legacy .beads/mq/ directory and all its contents.
+// FixStaleMQFiles removes the legacy .issuegraph/mq/ directory and all its contents.
 func FixStaleMQFiles(path string) error {
-	beadsDir := ResolveBeadsDirForRepo(path)
-	mqDir := filepath.Join(beadsDir, "mq")
+	issuegraphDir := ResolveIssueGraphDirForRepo(path)
+	mqDir := filepath.Join(issuegraphDir, "mq")
 
 	if _, err := os.Stat(mqDir); os.IsNotExist(err) {
 		return nil // Nothing to do
@@ -308,7 +308,7 @@ func FixStaleMQFiles(path string) error {
 
 // checkMisclassifiedWisps detects wisp-patterned issues that lack the ephemeral flag.
 // Issues with IDs containing "-wisp-" should always have Ephemeral=true.
-// If they're in the issue store without the ephemeral flag, they'll pollute bd ready.
+// If they're in the issue store without the ephemeral flag, they'll pollute issuegraph ready.
 func checkMisclassifiedWisps(path string) DoctorCheck {
 	issues, err := loadMisclassifiedWispIssues(path)
 	if err != nil {
@@ -360,7 +360,7 @@ func checkMisclassifiedWispsForIssues(issues []*types.Issue) DoctorCheck {
 		Status:   StatusWarning,
 		Message:  fmt.Sprintf("%d wisp issue(s) missing ephemeral flag", wispCount),
 		Detail:   detail,
-		Fix:      "Run 'bd delete <id> --force' for each misclassified wisp",
+		Fix:      "Run 'issuegraph delete <id> --force' for each misclassified wisp",
 		Category: CategoryMaintenance,
 	}
 }
@@ -368,7 +368,7 @@ func checkMisclassifiedWispsForIssues(issues []*types.Issue) DoctorCheck {
 // PatrolPollutionThresholds defines when to warn about patrol pollution
 const (
 	PatrolDigestThreshold = 10 // Warn if patrol digests > 10
-	SessionBeadThreshold  = 50 // Warn if session beads > 50
+	SessionIssueThreshold = 50 // Warn if session issuegraph > 50
 )
 
 const maintenanceIssuesUnavailableMessage = "N/A (unable to load issues from database)"
@@ -381,20 +381,20 @@ const (
 	patrolIssueSessionEnded
 )
 
-// patrolPollutionResult contains counts of detected pollution beads
+// patrolPollutionResult contains counts of detected pollution issuegraph
 type patrolPollutionResult struct {
-	PatrolDigestCount int      // Count of "Digest: mol-*-patrol" beads
-	SessionBeadCount  int      // Count of "Session ended: *" beads
+	PatrolDigestCount int      // Count of "Digest: mol-*-patrol" issuegraph
+	SessionIssueCount int      // Count of "Session ended: *" issuegraph
 	PatrolDigestIDs   []string // Sample IDs for display
-	SessionBeadIDs    []string // Sample IDs for display
+	SessionIssueIDs   []string // Sample IDs for display
 }
 
-// CheckPatrolPollution detects patrol digest and session ended beads that pollute the database.
-// These beads are created during patrol operations and should not persist in the database.
+// CheckPatrolPollution detects patrol digest and session ended issuegraph that pollute the database.
+// These issuegraph are created during patrol operations and should not persist in the database.
 //
 // Patterns detected:
 // - Patrol digests: titles matching "Digest: mol-*-patrol"
-// - Session ended beads: titles matching "Session ended: *"
+// - Session ended issuegraph: titles matching "Session ended: *"
 func CheckPatrolPollution(path string) DoctorCheck {
 	issues, err := loadMaintenanceIssues(path)
 	if err != nil {
@@ -416,7 +416,7 @@ func checkPatrolPollutionForIssues(issues []*types.Issue) DoctorCheck {
 
 	// Check thresholds
 	hasPatrolPollution := result.PatrolDigestCount > PatrolDigestThreshold
-	hasSessionPollution := result.SessionBeadCount > SessionBeadThreshold
+	hasSessionPollution := result.SessionIssueCount > SessionIssueThreshold
 
 	if !hasPatrolPollution && !hasSessionPollution {
 		return DoctorCheck{
@@ -430,10 +430,10 @@ func checkPatrolPollutionForIssues(issues []*types.Issue) DoctorCheck {
 	// Build warning message
 	var warnings []string
 	if hasPatrolPollution {
-		warnings = append(warnings, fmt.Sprintf("%d patrol digest beads (should be 0)", result.PatrolDigestCount))
+		warnings = append(warnings, fmt.Sprintf("%d patrol digest issuegraph (should be 0)", result.PatrolDigestCount))
 	}
 	if hasSessionPollution {
-		warnings = append(warnings, fmt.Sprintf("%d session ended beads (should be wisps)", result.SessionBeadCount))
+		warnings = append(warnings, fmt.Sprintf("%d session ended issuegraph (should be wisps)", result.SessionIssueCount))
 	}
 
 	// Build detail with sample IDs
@@ -441,8 +441,8 @@ func checkPatrolPollutionForIssues(issues []*types.Issue) DoctorCheck {
 	if len(result.PatrolDigestIDs) > 0 {
 		details = append(details, fmt.Sprintf("Patrol digests: %v", result.PatrolDigestIDs))
 	}
-	if len(result.SessionBeadIDs) > 0 {
-		details = append(details, fmt.Sprintf("Session beads: %v", result.SessionBeadIDs))
+	if len(result.SessionIssueIDs) > 0 {
+		details = append(details, fmt.Sprintf("Session issuegraph: %v", result.SessionIssueIDs))
 	}
 
 	return DoctorCheck{
@@ -450,7 +450,7 @@ func checkPatrolPollutionForIssues(issues []*types.Issue) DoctorCheck {
 		Status:   StatusWarning,
 		Message:  strings.Join(warnings, ", "),
 		Detail:   strings.Join(details, "; "),
-		Fix:      "Run 'bd doctor --fix' to clean up patrol pollution",
+		Fix:      "Run 'issuegraph doctor --fix' to clean up patrol pollution",
 		Category: CategoryMaintenance,
 	}
 }
@@ -470,9 +470,9 @@ func detectPatrolPollution(issues []*types.Issue) patrolPollutionResult {
 				result.PatrolDigestIDs = append(result.PatrolDigestIDs, issue.ID)
 			}
 		case patrolIssueSessionEnded:
-			result.SessionBeadCount++
-			if len(result.SessionBeadIDs) < 3 {
-				result.SessionBeadIDs = append(result.SessionBeadIDs, issue.ID)
+			result.SessionIssueCount++
+			if len(result.SessionIssueIDs) < 3 {
+				result.SessionIssueIDs = append(result.SessionIssueIDs, issue.ID)
 			}
 		}
 	}
@@ -480,7 +480,7 @@ func detectPatrolPollution(issues []*types.Issue) patrolPollutionResult {
 	return result
 }
 
-// getPatrolPollutionIDs returns all IDs of patrol pollution beads for deletion
+// getPatrolPollutionIDs returns all IDs of patrol pollution issuegraph for deletion
 func getPatrolPollutionIDs(path string) ([]string, error) {
 	issues, err := loadMaintenanceIssues(path)
 	if err != nil {
@@ -505,14 +505,14 @@ func getPatrolPollutionIDs(path string) ([]string, error) {
 // It prefers Dolt (source of truth) and falls back to legacy JSONL for
 // backwards compatibility with non-Dolt installations.
 func loadMaintenanceIssues(path string) ([]*types.Issue, error) {
-	beadsDir := ResolveBeadsDirForRepo(path)
+	issuegraphDir := ResolveIssueGraphDirForRepo(path)
 
-	issues, err := loadMaintenanceIssuesFromDatabase(beadsDir)
+	issues, err := loadMaintenanceIssuesFromDatabase(issuegraphDir)
 	if err == nil {
 		return issues, nil
 	}
 
-	issues, jsonlErr := loadMaintenanceIssuesFromJSONL(beadsDir)
+	issues, jsonlErr := loadMaintenanceIssuesFromJSONL(issuegraphDir)
 	if jsonlErr == nil {
 		return issues, nil
 	}
@@ -520,9 +520,9 @@ func loadMaintenanceIssues(path string) ([]*types.Issue, error) {
 	return nil, fmt.Errorf("database read failed: %w; JSONL fallback read failed: %v", err, jsonlErr)
 }
 
-func loadMaintenanceIssuesFromDatabase(beadsDir string) ([]*types.Issue, error) {
+func loadMaintenanceIssuesFromDatabase(issuegraphDir string) ([]*types.Issue, error) {
 	ctx := context.Background()
-	store, err := dolt.NewFromConfigWithCLIOptions(ctx, beadsDir, &dolt.Config{ReadOnly: true})
+	store, err := dolt.NewFromConfigWithCLIOptions(ctx, issuegraphDir, &dolt.Config{ReadOnly: true})
 	if err != nil {
 		return nil, err
 	}
@@ -532,8 +532,8 @@ func loadMaintenanceIssuesFromDatabase(beadsDir string) ([]*types.Issue, error) 
 	return store.SearchIssues(ctx, "", types.IssueFilter{Ephemeral: &ephemeral})
 }
 
-func loadMaintenanceIssuesFromJSONL(beadsDir string) ([]*types.Issue, error) {
-	jsonlPath := filepath.Join(beadsDir, "issues.jsonl")
+func loadMaintenanceIssuesFromJSONL(issuegraphDir string) ([]*types.Issue, error) {
+	jsonlPath := filepath.Join(issuegraphDir, "issues.jsonl")
 	file, err := os.Open(jsonlPath) // #nosec G304 - path constructed safely
 	if err != nil {
 		return nil, err
@@ -557,14 +557,14 @@ func loadMaintenanceIssuesFromJSONL(beadsDir string) ([]*types.Issue, error) {
 }
 
 func loadMisclassifiedWispIssues(path string) ([]*types.Issue, error) {
-	beadsDir := ResolveBeadsDirForRepo(path)
+	issuegraphDir := ResolveIssueGraphDirForRepo(path)
 
-	issues, err := loadMisclassifiedWispIssuesFromDatabase(beadsDir)
+	issues, err := loadMisclassifiedWispIssuesFromDatabase(issuegraphDir)
 	if err == nil {
 		return issues, nil
 	}
 
-	issues, jsonlErr := loadMisclassifiedWispIssuesFromJSONL(beadsDir)
+	issues, jsonlErr := loadMisclassifiedWispIssuesFromJSONL(issuegraphDir)
 	if jsonlErr == nil {
 		return issues, nil
 	}
@@ -572,8 +572,8 @@ func loadMisclassifiedWispIssues(path string) ([]*types.Issue, error) {
 	return nil, fmt.Errorf("database read failed: %w; JSONL fallback read failed: %v", err, jsonlErr)
 }
 
-func loadMisclassifiedWispIssuesFromDatabase(beadsDir string) ([]*types.Issue, error) {
-	db, store, err := openStoreDB(beadsDir)
+func loadMisclassifiedWispIssuesFromDatabase(issuegraphDir string) ([]*types.Issue, error) {
+	db, store, err := openStoreDB(issuegraphDir)
 	if err != nil {
 		return nil, err
 	}
@@ -604,8 +604,8 @@ func loadMisclassifiedWispIssuesFromDatabase(beadsDir string) ([]*types.Issue, e
 	return issues, nil
 }
 
-func loadMisclassifiedWispIssuesFromJSONL(beadsDir string) ([]*types.Issue, error) {
-	issues, err := loadMaintenanceIssuesFromJSONL(beadsDir)
+func loadMisclassifiedWispIssuesFromJSONL(issuegraphDir string) ([]*types.Issue, error) {
+	issues, err := loadMaintenanceIssuesFromJSONL(issuegraphDir)
 	if err != nil {
 		return nil, err
 	}

@@ -4,9 +4,9 @@ import (
 	"fmt"
 	"time"
 
+	"github.com/borg0ai/dx-issuegraph/internal/metrics"
+	"github.com/borg0ai/dx-issuegraph/internal/storage"
 	"github.com/spf13/cobra"
-	"github.com/steveyegge/beads/internal/metrics"
-	"github.com/steveyegge/beads/internal/storage"
 )
 
 var (
@@ -25,8 +25,8 @@ Recent commits (within the retention window) are preserved via cherry-pick.
 This reduces Dolt storage overhead from auto-commit history while keeping
 recent change tracking intact.
 
-For semantic issue compaction (summarizing closed issues), use 'bd admin compact'.
-For full history squash, use 'bd flatten'.
+For semantic issue compaction (summarizing closed issues), use 'issuegraph admin compact'.
+For full history squash, use 'issuegraph flatten'.
 
 How it works:
   1. Identifies commits older than --days threshold
@@ -39,15 +39,15 @@ How it works:
 
 The GC pass is a full collection: Dolt storage is generational, and a default
 GC never revisits data an earlier GC moved to the old generation. On any store
-that has been GC'd before (bd gc, or a previous flatten or compact), only a
+that has been GC'd before (issuegraph gc, or a previous flatten or compact), only a
 full collection reclaims the squashed history. A full GC can take minutes on
 multi-gigabyte stores.
 
 Examples:
-  bd compact --dry-run               # Preview: show commit breakdown
-  bd compact --force                 # Squash commits older than 30 days
-  bd compact --days 7 --force        # Keep only last 7 days of history
-  bd compact --days 90 --force       # Conservative: squash 90+ day old commits`,
+  issuegraph compact --dry-run               # Preview: show commit breakdown
+  issuegraph compact --force                 # Squash commits older than 30 days
+  issuegraph compact --days 7 --force        # Keep only last 7 days of history
+  issuegraph compact --days 90 --force       # Conservative: squash 90+ day old commits`,
 	SilenceUsage:  true,
 	SilenceErrors: true,
 	RunE: func(_ *cobra.Command, _ []string) error {

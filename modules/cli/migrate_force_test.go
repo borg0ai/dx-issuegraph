@@ -3,7 +3,7 @@ package main
 import "testing"
 
 // TestIsForcedMigrate covers the root-PersistentPreRunE helpers behind
-// `bd migrate --force`: only the migrate and migrate-schema commands report
+// `issuegraph migrate --force`: only the migrate and migrate-schema commands report
 // forced, and --force conflicts with the preview flags (--dry-run/--inspect)
 // because the gate-overridden store open would apply pending migrations
 // before the preview ever ran.

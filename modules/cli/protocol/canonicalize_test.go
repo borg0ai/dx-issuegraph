@@ -151,7 +151,7 @@ func TestCanonicalizeDropsProvenance(t *testing.T) {
 }
 
 // TestCorpusDoubleRunByteIdentical proves the generator normalizes two raw
-// corpus runs that vary in the ways live bd output can vary. It deliberately
+// corpus runs that vary in the ways live issuegraph output can vary. It deliberately
 // stays pure: the golden test owns the expensive live-store boundary.
 func TestCorpusDoubleRunByteIdentical(t *testing.T) {
 	for _, envelope := range []bool{false, true} {

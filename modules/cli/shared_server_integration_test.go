@@ -16,7 +16,7 @@ import (
 	"testing"
 	"time"
 
-	"github.com/steveyegge/beads/internal/testutil"
+	"github.com/borg0ai/dx-issuegraph/internal/testutil"
 	"golang.org/x/sync/errgroup"
 )
 
@@ -37,41 +37,41 @@ func ssEnvInt(key string, def int) int {
 // TestSharedServerConcurrent
 // ---------------------------------------------------------------------------
 
-// TestSharedServerConcurrent builds the bd binary, starts a single Dolt
+// TestSharedServerConcurrent builds the issuegraph binary, starts a single Dolt
 // container via testcontainers, initializes numDirs project directories,
 // then fans out numClients concurrent workloads across those directories.
 // Multiple clients may share a directory (and therefore a database),
 // exercising concurrent multi-writer access to the same Dolt database.
 //
-// Requires BEADS_TEST_SHARED_SERVER=1 to run (skipped by default).
+// Requires ISSUEGRAPH_TEST_SHARED_SERVER=1 to run (skipped by default).
 //
 // Configuration via environment variables:
 //
-//	BEADS_TEST_SS_DIRS     — number of project directories  (default: 50)
-//	BEADS_TEST_SS_CLIENTS  — number of concurrent clients   (default: 500)
-//	BEADS_TEST_SS_MAXPROCS — max concurrent subprocesses    (default: GOMAXPROCS*4)
+//	ISSUEGRAPH_TEST_SS_DIRS     — number of project directories  (default: 50)
+//	ISSUEGRAPH_TEST_SS_CLIENTS  — number of concurrent clients   (default: 500)
+//	ISSUEGRAPH_TEST_SS_MAXPROCS — max concurrent subprocesses    (default: GOMAXPROCS*4)
 //
-// Recommended: set BEADS_TEST_EMBEDDED_DOLT=1 to skip the unrelated
+// Recommended: set ISSUEGRAPH_TEST_EMBEDDED_DOLT=1 to skip the unrelated
 // singleton Dolt container that TestMain starts for other tests in this package.
 func TestSharedServerConcurrent(t *testing.T) {
-	if os.Getenv("BEADS_TEST_SHARED_SERVER") == "" {
-		t.Skip("skipping: set BEADS_TEST_SHARED_SERVER=1 to run")
+	if os.Getenv("ISSUEGRAPH_TEST_SHARED_SERVER") == "" {
+		t.Skip("skipping: set ISSUEGRAPH_TEST_SHARED_SERVER=1 to run")
 	}
 	if runtime.GOOS == "windows" {
 		t.Skip("not supported on Windows")
 	}
 
-	numDirs := ssEnvInt("BEADS_TEST_SS_DIRS", 50)
-	numClients := ssEnvInt("BEADS_TEST_SS_CLIENTS", 500)
-	maxProcs := ssEnvInt("BEADS_TEST_SS_MAXPROCS", runtime.GOMAXPROCS(0)*4)
+	numDirs := ssEnvInt("ISSUEGRAPH_TEST_SS_DIRS", 50)
+	numClients := ssEnvInt("ISSUEGRAPH_TEST_SS_CLIENTS", 500)
+	maxProcs := ssEnvInt("ISSUEGRAPH_TEST_SS_MAXPROCS", runtime.GOMAXPROCS(0)*4)
 	t.Logf("config: dirs=%d clients=%d maxprocs=%d", numDirs, numClients, maxProcs)
 
 	testStart := time.Now()
 
-	// Build or reuse bd binary.
+	// Build or reuse issuegraph binary.
 	phase := time.Now()
-	bdBinary := buildSharedServerTestBinary(t)
-	t.Logf("build bd binary: %s", time.Since(phase))
+	issuegraphBinary := buildSharedServerTestBinary(t)
+	t.Logf("build issuegraph binary: %s", time.Since(phase))
 
 	// Start Dolt container.
 	phase = time.Now()
@@ -89,19 +89,19 @@ func TestSharedServerConcurrent(t *testing.T) {
 		t.Fatalf("write port file: %v", err)
 	}
 
-	// Base environment for every bd subprocess.
+	// Base environment for every issuegraph subprocess.
 	baseEnv := []string{
 		"PATH=" + os.Getenv("PATH"),
 		"HOME=" + t.TempDir(),
 		"GOPATH=" + os.Getenv("GOPATH"),
 		"GOROOT=" + os.Getenv("GOROOT"),
-		"BEADS_SHARED_SERVER_DIR=" + sharedDir,
-		"BEADS_DOLT_SHARED_SERVER=1",
-		"BEADS_DOLT_SERVER_PORT=" + strconv.Itoa(containerPort),
-		"BEADS_DOLT_AUTO_START=0",
-		"BEADS_TEST_MODE=1",
-		"BD_DISABLE_METRICS=1",
-		"BD_DISABLE_EVENT_FLUSH=1",
+		"ISSUEGRAPH_SHARED_SERVER_DIR=" + sharedDir,
+		"ISSUEGRAPH_DOLT_SHARED_SERVER=1",
+		"ISSUEGRAPH_DOLT_SERVER_PORT=" + strconv.Itoa(containerPort),
+		"ISSUEGRAPH_DOLT_AUTO_START=0",
+		"ISSUEGRAPH_TEST_MODE=1",
+		"ISSUEGRAPH_DISABLE_METRICS=1",
+		"ISSUEGRAPH_DISABLE_EVENT_FLUSH=1",
 		"GIT_TERMINAL_PROMPT=0",
 		"GIT_ASKPASS=",
 		"SSH_ASKPASS=",
@@ -136,7 +136,7 @@ func TestSharedServerConcurrent(t *testing.T) {
 			if err := gitInit(egCtx, dir); err != nil {
 				return fmt.Errorf("project %d git init: %w", i, err)
 			}
-			out, err := ssExec(egCtx, bdBinary, dir, baseEnv,
+			out, err := ssExec(egCtx, issuegraphBinary, dir, baseEnv,
 				"init", "--shared-server", "--external",
 				"--prefix", prefix, "--quiet", "--non-interactive")
 			if err != nil {
@@ -159,9 +159,9 @@ func TestSharedServerConcurrent(t *testing.T) {
 		c := c
 		eg.Go(func() error {
 			p := projects[c%numDirs]
-			cl := &bdClient{
+			cl := &issuegraphClient{
 				tag:    fmt.Sprintf("c%d", c),
-				binary: bdBinary,
+				binary: issuegraphBinary,
 				dir:    p.dir,
 				env:    baseEnv,
 				ctx:    egCtx,
@@ -178,10 +178,10 @@ func TestSharedServerConcurrent(t *testing.T) {
 }
 
 // ---------------------------------------------------------------------------
-// bdClient — wraps a bd subprocess invocation for one client
+// issuegraphClient — wraps a issuegraph subprocess invocation for one client
 // ---------------------------------------------------------------------------
 
-type bdClient struct {
+type issuegraphClient struct {
 	tag    string // unique client identifier (e.g. "c42")
 	binary string
 	dir    string
@@ -191,8 +191,8 @@ type bdClient struct {
 	op     int // running operation counter
 }
 
-// bd runs an arbitrary bd command and returns combined output.
-func (c *bdClient) bd(args ...string) (string, error) {
+// issuegraph runs an arbitrary issuegraph command and returns combined output.
+func (c *issuegraphClient) issuegraph(args ...string) (string, error) {
 	c.op++
 	start := time.Now()
 	out, err := ssExec(c.ctx, c.binary, c.dir, c.env, args...)
@@ -200,8 +200,8 @@ func (c *bdClient) bd(args ...string) (string, error) {
 	return out, err
 }
 
-// create runs bd create --json and returns the new issue ID.
-func (c *bdClient) create(title string, extra ...string) (string, error) {
+// create runs issuegraph create --json and returns the new issue ID.
+func (c *issuegraphClient) create(title string, extra ...string) (string, error) {
 	c.op++
 	start := time.Now()
 	args := append([]string{"create", title, "--json"}, extra...)
@@ -213,8 +213,8 @@ func (c *bdClient) create(title string, extra ...string) (string, error) {
 	return ssJSONField(out, "id")
 }
 
-// show runs bd show <id> --json and returns the parsed issue.
-func (c *bdClient) show(id string) (map[string]any, error) {
+// show runs issuegraph show <id> --json and returns the parsed issue.
+func (c *issuegraphClient) show(id string) (map[string]any, error) {
 	c.op++
 	start := time.Now()
 	out, err := ssExec(c.ctx, c.binary, c.dir, c.env, "show", id, "--json")
@@ -225,8 +225,8 @@ func (c *bdClient) show(id string) (map[string]any, error) {
 	return ssParseShowJSON(out)
 }
 
-// list runs bd list --json --flat with extra args and returns the result array.
-func (c *bdClient) list(extra ...string) ([]any, error) {
+// list runs issuegraph list --json --flat with extra args and returns the result array.
+func (c *issuegraphClient) list(extra ...string) ([]any, error) {
 	c.op++
 	start := time.Now()
 	args := append([]string{"list", "--json", "--flat"}, extra...)
@@ -243,7 +243,7 @@ func (c *bdClient) list(extra ...string) ([]any, error) {
 }
 
 // errf formats an error with the client tag and current op number.
-func (c *bdClient) errf(format string, args ...any) error {
+func (c *issuegraphClient) errf(format string, args ...any) error {
 	prefix := fmt.Sprintf("%s [op %d] ", c.tag, c.op)
 	return fmt.Errorf(prefix+format, args...)
 }
@@ -252,7 +252,7 @@ func (c *bdClient) errf(format string, args ...any) error {
 // Workload — the actual issue management workflow
 // ---------------------------------------------------------------------------
 
-func (c *bdClient) runWorkload() error {
+func (c *issuegraphClient) runWorkload() error {
 	ids, err := c.phaseCreate()
 	if err != nil {
 		return err
@@ -279,7 +279,7 @@ func (c *bdClient) runWorkload() error {
 //	15-19 features
 //	20-24 epics
 //	25-29 chores (children of epics 20-24)
-func (c *bdClient) phaseCreate() ([]string, error) {
+func (c *issuegraphClient) phaseCreate() ([]string, error) {
 	types := []string{
 		"task", "task", "task", "task", "task",
 		"task", "task", "task", "task", "task",
@@ -321,7 +321,7 @@ func (c *bdClient) phaseCreate() ([]string, error) {
 }
 
 // phaseDeps wires dependencies between issues.
-func (c *bdClient) phaseDeps(ids []string) error {
+func (c *issuegraphClient) phaseDeps(ids []string) error {
 	pairs := [][2]int{
 		{1, 0}, {2, 0}, {3, 0}, {4, 0}, {5, 0},
 		{6, 0}, {7, 0}, {8, 0}, {9, 0}, // tasks 1-9 → task 0
@@ -330,7 +330,7 @@ func (c *bdClient) phaseDeps(ids []string) error {
 	}
 	for _, p := range pairs {
 		from, to := ids[p[0]], ids[p[1]]
-		if out, err := c.bd("dep", "add", from, to, "--json"); err != nil {
+		if out, err := c.issuegraph("dep", "add", from, to, "--json"); err != nil {
 			return c.errf("dep add %s->%s: %s: %w", from, to, out, err)
 		}
 	}
@@ -338,42 +338,42 @@ func (c *bdClient) phaseDeps(ids []string) error {
 }
 
 // phaseUpdate modifies titles, statuses, labels, priorities, and descriptions.
-func (c *bdClient) phaseUpdate(ids []string) error {
+func (c *issuegraphClient) phaseUpdate(ids []string) error {
 	// Rename tasks 0-4.
 	for i := range 5 {
-		if out, err := c.bd("update", ids[i], "--title", fmt.Sprintf("%s task %d UPDATED", c.tag, i)); err != nil {
+		if out, err := c.issuegraph("update", ids[i], "--title", fmt.Sprintf("%s task %d UPDATED", c.tag, i)); err != nil {
 			return c.errf("update title %s: %s: %w", ids[i], out, err)
 		}
 	}
 	// Tasks 0-2 → in_progress.
 	for i := range 3 {
-		if out, err := c.bd("update", ids[i], "--status", "in_progress"); err != nil {
+		if out, err := c.issuegraph("update", ids[i], "--status", "in_progress"); err != nil {
 			return c.errf("update status %s: %s: %w", ids[i], out, err)
 		}
 	}
 	// Close bugs 10-14.
 	for i := 10; i <= 14; i++ {
-		if out, err := c.bd("update", ids[i], "--status", "closed"); err != nil {
+		if out, err := c.issuegraph("update", ids[i], "--status", "closed"); err != nil {
 			return c.errf("close %s: %s: %w", ids[i], out, err)
 		}
 	}
 	// Label tasks 3-6.
 	for j, i := range []int{3, 4, 5, 6} {
 		label := []string{"urgent", "backend", "frontend", "infra"}[j]
-		if out, err := c.bd("update", ids[i], "--add-label", label, "--add-label", c.tag); err != nil {
+		if out, err := c.issuegraph("update", ids[i], "--add-label", label, "--add-label", c.tag); err != nil {
 			return c.errf("add-label %s: %s: %w", ids[i], out, err)
 		}
 	}
 	// Prioritize features 15-19.
 	for j, i := range []int{15, 16, 17, 18, 19} {
 		pri := []string{"P0", "P1", "P2", "P3", "P4"}[j]
-		if out, err := c.bd("update", ids[i], "--priority", pri); err != nil {
+		if out, err := c.issuegraph("update", ids[i], "--priority", pri); err != nil {
 			return c.errf("set priority %s: %s: %w", ids[i], out, err)
 		}
 	}
 	// Describe epics 20-22.
 	for i := 20; i <= 22; i++ {
-		if out, err := c.bd("update", ids[i], "-d", fmt.Sprintf("Epic %d plan for %s", i, c.tag)); err != nil {
+		if out, err := c.issuegraph("update", ids[i], "-d", fmt.Sprintf("Epic %d plan for %s", i, c.tag)); err != nil {
 			return c.errf("update desc %s: %s: %w", ids[i], out, err)
 		}
 	}
@@ -381,7 +381,7 @@ func (c *bdClient) phaseUpdate(ids []string) error {
 }
 
 // phaseVerify reads back issues and checks that mutations took effect.
-func (c *bdClient) phaseVerify(ids []string) error {
+func (c *issuegraphClient) phaseVerify(ids []string) error {
 	// Titles on tasks 0-4.
 	for i := range 5 {
 		if err := c.expectField(ids[i], "title", fmt.Sprintf("%s task %d UPDATED", c.tag, i)); err != nil {
@@ -432,7 +432,7 @@ func (c *bdClient) phaseVerify(ids []string) error {
 
 // phaseList runs filtered list queries as spot-checks.
 // Counts use >= because multiple clients may share the same database.
-func (c *bdClient) phaseList() error {
+func (c *issuegraphClient) phaseList() error {
 	checks := []struct {
 		args []string
 		min  int
@@ -458,14 +458,14 @@ func (c *bdClient) phaseList() error {
 }
 
 // phaseDelete removes chores 25-29 and verifies they're gone.
-func (c *bdClient) phaseDelete(ids []string) error {
+func (c *issuegraphClient) phaseDelete(ids []string) error {
 	for i := 25; i <= 29; i++ {
-		if out, err := c.bd("delete", ids[i], "--force", "--json"); err != nil {
+		if out, err := c.issuegraph("delete", ids[i], "--force", "--json"); err != nil {
 			return c.errf("delete %s: %s: %w", ids[i], out, err)
 		}
 	}
 	for i := 25; i <= 29; i++ {
-		if out, err := c.bd("show", ids[i], "--json"); err == nil {
+		if out, err := c.issuegraph("show", ids[i], "--json"); err == nil {
 			return c.errf("show deleted %s should fail: %s", ids[i], out)
 		}
 	}
@@ -477,7 +477,7 @@ func (c *bdClient) phaseDelete(ids []string) error {
 // ---------------------------------------------------------------------------
 
 // expectField shows an issue and asserts a string field matches exactly.
-func (c *bdClient) expectField(id, field, want string) error {
+func (c *issuegraphClient) expectField(id, field, want string) error {
 	issue, err := c.show(id)
 	if err != nil {
 		return c.errf("show %s: %w", id, err)
@@ -489,7 +489,7 @@ func (c *bdClient) expectField(id, field, want string) error {
 }
 
 // expectFieldFloat shows an issue and asserts a numeric field matches.
-func (c *bdClient) expectFieldFloat(id, field string, want float64) error {
+func (c *issuegraphClient) expectFieldFloat(id, field string, want float64) error {
 	issue, err := c.show(id)
 	if err != nil {
 		return c.errf("show %s: %w", id, err)
@@ -553,7 +553,7 @@ func ssJSONField(output, field string) (string, error) {
 	return v, nil
 }
 
-// ssParseShowJSON parses bd show --json output (an array) into a single object.
+// ssParseShowJSON parses issuegraph show --json output (an array) into a single object.
 func ssParseShowJSON(output string) (map[string]any, error) {
 	jsonStr := ssFirstJSON(output)
 	var arr []map[string]any
@@ -566,7 +566,7 @@ func ssParseShowJSON(output string) (map[string]any, error) {
 		return m, nil
 	}
 	if len(arr) == 0 {
-		return nil, fmt.Errorf("bd show returned empty array")
+		return nil, fmt.Errorf("issuegraph show returned empty array")
 	}
 	return arr[0], nil
 }
@@ -596,15 +596,15 @@ var (
 	sharedServerBuildErr  error
 )
 
-// buildSharedServerTestBinary returns the path to a bd binary.
-// If BEADS_TEST_BD_BINARY is set, uses that pre-built binary.
+// buildSharedServerTestBinary returns the path to a issuegraph binary.
+// If ISSUEGRAPH_TEST_ISSUEGRAPH_BINARY is set, uses that pre-built binary.
 // Otherwise builds one from source (cached across tests via sync.Once).
 func buildSharedServerTestBinary(t *testing.T) string {
 	t.Helper()
 	sharedServerBuildOnce.Do(func() {
-		if prebuilt := os.Getenv("BEADS_TEST_BD_BINARY"); prebuilt != "" {
+		if prebuilt := os.Getenv("ISSUEGRAPH_TEST_ISSUEGRAPH_BINARY"); prebuilt != "" {
 			if _, err := os.Stat(prebuilt); err != nil {
-				sharedServerBuildErr = fmt.Errorf("BEADS_TEST_BD_BINARY=%q not found: %w", prebuilt, err)
+				sharedServerBuildErr = fmt.Errorf("ISSUEGRAPH_TEST_ISSUEGRAPH_BINARY=%q not found: %w", prebuilt, err)
 				return
 			}
 			sharedServerBdBinary = prebuilt
@@ -615,13 +615,13 @@ func buildSharedServerTestBinary(t *testing.T) string {
 			sharedServerBuildErr = fmt.Errorf("getwd: %w", err)
 			return
 		}
-		buildDir, err := testTempDir("beads-shared-server-bd-*")
+		buildDir, err := testTempDir("issuegraph-shared-server-*")
 		if err != nil {
 			sharedServerBuildErr = fmt.Errorf("mkdirtemp: %w", err)
 			return
 		}
-		bdBin := filepath.Join(buildDir, "bd")
-		cmd := exec.Command("go", "build", "-tags", "gms_pure_go", "-o", bdBin, ".")
+		issuegraphBin := filepath.Join(buildDir, "issuegraph")
+		cmd := exec.Command("go", "build", "-tags", "gms_pure_go", "-o", issuegraphBin, ".")
 		cmd.Dir = pkgDir
 		cmd.Env = append(os.Environ(), "CGO_ENABLED=1")
 		out, err := cmd.CombinedOutput()
@@ -630,10 +630,10 @@ func buildSharedServerTestBinary(t *testing.T) string {
 			sharedServerBuildErr = fmt.Errorf("go build: %s: %w", string(out), err)
 			return
 		}
-		sharedServerBdBinary = bdBin
+		sharedServerBdBinary = issuegraphBin
 	})
 	if sharedServerBuildErr != nil {
-		t.Fatalf("build bd: %v", sharedServerBuildErr)
+		t.Fatalf("build issuegraph: %v", sharedServerBuildErr)
 	}
 	return sharedServerBdBinary
 }

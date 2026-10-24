@@ -1,26 +1,26 @@
-# Test bd config command
+# Test issuegraph config command
 
-bd init --prefix test
+issuegraph init --prefix test
 
 # Set a config value
-bd config set jira.url 'https://example.atlassian.net'
+issuegraph config set jira.url 'https://example.atlassian.net'
 stdout 'Set jira.url'
 
 # Get the config value
-bd config get jira.url
+issuegraph config get jira.url
 stdout 'https://example.atlassian.net'
 
 # List all config
-bd config list
+issuegraph config list
 stdout 'jira.url'
 
 # Set another value
-bd config set jira.project 'TEST'
+issuegraph config set jira.project 'TEST'
 
 # Unset a value
-bd config unset jira.url
+issuegraph config unset jira.url
 
 # Verify it's gone - list should not show the URL
-bd config list
+issuegraph config list
 ! stdout 'example.atlassian.net'
 stdout 'jira.project'

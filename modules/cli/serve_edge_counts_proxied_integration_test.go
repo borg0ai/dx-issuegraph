@@ -9,7 +9,7 @@ import (
 	"testing"
 )
 
-// End-to-end for the edge count, against real Dolt through a real `bd serve`
+// End-to-end for the edge count, against real Dolt through a real `issuegraph serve`
 // subprocess.
 //
 // The pure tests in internal/httpapi cover the wire edge on a fake role — the
@@ -50,7 +50,7 @@ type anchorCount struct {
 // nothing downstream can tell.
 func (sp *serveProcess) countEdges(t *testing.T, query string) (int, []anchorCount) {
 	t.Helper()
-	resp, err := sp.client.Get(sp.url("/v0/beads/dependencies:count" + query))
+	resp, err := sp.client.Get(sp.url("/v0/issuegraph/dependencies:count" + query))
 	if err != nil {
 		t.Fatalf("GET dependencies:count%s: %v\nstderr:\n%s", query, err, sp.stderr.String())
 	}
@@ -97,9 +97,9 @@ func (sp *serveProcess) countEdgesOf(t *testing.T, id, query string) anchorCount
 func TestProxiedServerServeEdgeCounts(t *testing.T) {
 	requireSharedProxiedServer(t)
 	t.Parallel()
-	bd := buildEmbeddedBD(t)
-	p := newSharedProxiedProject(t, bd, "srvedgecnt")
-	sp := startServe(t, bd, p.dir, bdProxiedEnv(p.dir))
+	issuegraph := buildEmbeddedBD(t)
+	p := newSharedProxiedProject(t, issuegraph, "srvedgecnt")
+	sp := startServe(t, issuegraph, p.dir, issuegraphProxiedEnv(p.dir))
 
 	// THE TWO DIRECTIONS ARE DIFFERENT EDGE SETS, and this is the shape that
 	// shows it: a hub that depends on two issues and is depended on by three,
@@ -107,21 +107,21 @@ func TestProxiedServerServeEdgeCounts(t *testing.T) {
 	// could pass by coincidence. A symmetric fixture would have made the
 	// required `direction` parameter unfalsifiable.
 	t.Run("out and in count different edges", func(t *testing.T) {
-		hub := bdProxiedCreate(t, bd, p.dir, "the hub", "-p", "2")
+		hub := issuegraphProxiedCreate(t, issuegraph, p.dir, "the hub", "-p", "2")
 		var dependsOn, dependents []string
 		for i := 0; i < 2; i++ {
-			dependsOn = append(dependsOn, bdProxiedCreate(t, bd, p.dir, "a dependency", "-p", "2").ID)
+			dependsOn = append(dependsOn, issuegraphProxiedCreate(t, issuegraph, p.dir, "a dependency", "-p", "2").ID)
 		}
 		for i := 0; i < 3; i++ {
-			dependents = append(dependents, bdProxiedCreate(t, bd, p.dir, "a dependent", "-p", "2").ID)
+			dependents = append(dependents, issuegraphProxiedCreate(t, issuegraph, p.dir, "a dependent", "-p", "2").ID)
 		}
 		for _, target := range dependsOn {
-			if out, err := bdProxiedRun(t, bd, p.dir, "dep", "add", hub.ID, target); err != nil {
+			if out, err := issuegraphProxiedRun(t, issuegraph, p.dir, "dep", "add", hub.ID, target); err != nil {
 				t.Fatalf("dep add %s -> %s: %v\n%s", hub.ID, target, err, out)
 			}
 		}
 		for _, source := range dependents {
-			if out, err := bdProxiedRun(t, bd, p.dir, "dep", "add", source, hub.ID); err != nil {
+			if out, err := issuegraphProxiedRun(t, issuegraph, p.dir, "dep", "add", source, hub.ID); err != nil {
 				t.Fatalf("dep add %s -> %s: %v\n%s", source, hub.ID, err, out)
 			}
 		}
@@ -137,7 +137,7 @@ func TestProxiedServerServeEdgeCounts(t *testing.T) {
 		// outbound-only and returns the rows themselves; if the two disagreed,
 		// one of them would be counting a different graph.
 		if rows := len(sp.storedEdges(t, hub.ID)); int64(rows) != *sp.countEdgesOf(t, hub.ID, "&direction=out").Count {
-			t.Errorf("the outbound count and GET /v0/beads/dependencies disagree: %d rows", rows)
+			t.Errorf("the outbound count and GET /v0/issuegraph/dependencies disagree: %d rows", rows)
 		}
 
 		// The type filter narrows EDGES and never anchors: the hub's outbound
@@ -156,13 +156,13 @@ func TestProxiedServerServeEdgeCounts(t *testing.T) {
 	// a durable issue depended on by a wisp has an inbound edge in the OTHER
 	// table — and the count is the sum across both.
 	t.Run("the count spans both dependency planes", func(t *testing.T) {
-		durable := bdProxiedCreate(t, bd, p.dir, "a durable anchor", "-p", "2")
-		durableDependent := bdProxiedCreate(t, bd, p.dir, "a durable dependent", "-p", "2")
-		wisp := bdProxiedCreate(t, bd, p.dir, "an ephemeral dependent", "-p", "2",
+		durable := issuegraphProxiedCreate(t, issuegraph, p.dir, "a durable anchor", "-p", "2")
+		durableDependent := issuegraphProxiedCreate(t, issuegraph, p.dir, "a durable dependent", "-p", "2")
+		wisp := issuegraphProxiedCreate(t, issuegraph, p.dir, "an ephemeral dependent", "-p", "2",
 			"--ephemeral", "--wisp-type", "heartbeat")
 
 		for _, source := range []string{durableDependent.ID, wisp.ID} {
-			if out, err := bdProxiedRun(t, bd, p.dir, "dep", "add", source, durable.ID); err != nil {
+			if out, err := issuegraphProxiedRun(t, issuegraph, p.dir, "dep", "add", source, durable.ID); err != nil {
 				t.Fatalf("dep add %s -> %s: %v\n%s", source, durable.ID, err, out)
 			}
 		}
@@ -186,15 +186,15 @@ func TestProxiedServerServeEdgeCounts(t *testing.T) {
 	// for: both entries here carry a count of 0, and only the flag tells the
 	// typo from the issue that genuinely has no inbound edges.
 	t.Run("a missing anchor rides beside the answers that were found", func(t *testing.T) {
-		found := bdProxiedCreate(t, bd, p.dir, "found, with no dependents", "-p", "2")
-		withEdges := bdProxiedCreate(t, bd, p.dir, "found, with a dependent", "-p", "2")
-		dependent := bdProxiedCreate(t, bd, p.dir, "the dependent", "-p", "2")
-		if out, err := bdProxiedRun(t, bd, p.dir, "dep", "add", dependent.ID, withEdges.ID); err != nil {
+		found := issuegraphProxiedCreate(t, issuegraph, p.dir, "found, with no dependents", "-p", "2")
+		withEdges := issuegraphProxiedCreate(t, issuegraph, p.dir, "found, with a dependent", "-p", "2")
+		dependent := issuegraphProxiedCreate(t, issuegraph, p.dir, "the dependent", "-p", "2")
+		if out, err := issuegraphProxiedRun(t, issuegraph, p.dir, "dep", "add", dependent.ID, withEdges.ID); err != nil {
 			t.Fatalf("dep add: %v\n%s", err, out)
 		}
 
 		status, anchors := sp.countEdges(t,
-			"?issue_id="+withEdges.ID+"&issue_id=bd-nosuchbead&issue_id="+found.ID+"&direction=in")
+			"?issue_id="+withEdges.ID+"&issue_id=bd-nosuchissue&issue_id="+found.ID+"&direction=in")
 		if status != http.StatusOK {
 			t.Fatalf("status = %d, want 200 — an absent id is not a 404 on this operation", status)
 		}
@@ -207,7 +207,7 @@ func TestProxiedServerServeEdgeCounts(t *testing.T) {
 			missing bool
 		}{
 			{withEdges.ID, 1, false},
-			{"bd-nosuchbead", 0, true},
+			{"bd-nosuchissue", 0, true},
 			{found.ID, 0, false},
 		} {
 			got := anchors[i]
@@ -226,12 +226,12 @@ func TestProxiedServerServeEdgeCounts(t *testing.T) {
 	// dependent's own plane; and it is refused beside `direction=out`, because
 	// an outbound edge's far end may be a row this database does not hold.
 	t.Run("status narrows inbound edges and is refused outbound", func(t *testing.T) {
-		anchor := bdProxiedCreate(t, bd, p.dir, "status-filtered anchor", "-p", "2")
-		open1 := bdProxiedCreate(t, bd, p.dir, "an open dependent", "-p", "2")
-		open2 := bdProxiedCreate(t, bd, p.dir, "another open dependent", "-p", "2")
-		closed := bdProxiedCreate(t, bd, p.dir, "a dependent to close", "-p", "2")
+		anchor := issuegraphProxiedCreate(t, issuegraph, p.dir, "status-filtered anchor", "-p", "2")
+		open1 := issuegraphProxiedCreate(t, issuegraph, p.dir, "an open dependent", "-p", "2")
+		open2 := issuegraphProxiedCreate(t, issuegraph, p.dir, "another open dependent", "-p", "2")
+		closed := issuegraphProxiedCreate(t, issuegraph, p.dir, "a dependent to close", "-p", "2")
 		for _, source := range []string{open1.ID, open2.ID, closed.ID} {
-			if out, err := bdProxiedRun(t, bd, p.dir, "dep", "add", source, anchor.ID); err != nil {
+			if out, err := issuegraphProxiedRun(t, issuegraph, p.dir, "dep", "add", source, anchor.ID); err != nil {
 				t.Fatalf("dep add: %v\n%s", err, out)
 			}
 		}
@@ -240,7 +240,7 @@ func TestProxiedServerServeEdgeCounts(t *testing.T) {
 		// count's status filter, not about the close gate: what it needs is a
 		// dependent in a different stored status, and forcing is the shortest
 		// honest way to get one without giving the edge a second meaning.
-		if out, err := bdProxiedRun(t, bd, p.dir, "close", closed.ID, "--reason", "done", "--force"); err != nil {
+		if out, err := issuegraphProxiedRun(t, issuegraph, p.dir, "close", closed.ID, "--reason", "done", "--force"); err != nil {
 			t.Fatalf("close: %v\n%s", err, out)
 		}
 
@@ -262,7 +262,7 @@ func TestProxiedServerServeEdgeCounts(t *testing.T) {
 
 		// The asymmetry, over the wire: the ROLE raises it and the handler
 		// names the member the caller has to move.
-		resp, err := sp.client.Get(sp.url("/v0/beads/dependencies:count?issue_id=" + anchor.ID + "&direction=out&status=open"))
+		resp, err := sp.client.Get(sp.url("/v0/issuegraph/dependencies:count?issue_id=" + anchor.ID + "&direction=out&status=open"))
 		if err != nil {
 			t.Fatalf("GET: %v", err)
 		}
@@ -285,9 +285,9 @@ func TestProxiedServerServeEdgeCounts(t *testing.T) {
 	// does not do it, so this is the case that shows the promise is kept by
 	// something.
 	t.Run("a repeated anchor is answered once", func(t *testing.T) {
-		anchor := bdProxiedCreate(t, bd, p.dir, "named twice", "-p", "2")
-		dependent := bdProxiedCreate(t, bd, p.dir, "its dependent", "-p", "2")
-		if out, err := bdProxiedRun(t, bd, p.dir, "dep", "add", dependent.ID, anchor.ID); err != nil {
+		anchor := issuegraphProxiedCreate(t, issuegraph, p.dir, "named twice", "-p", "2")
+		dependent := issuegraphProxiedCreate(t, issuegraph, p.dir, "its dependent", "-p", "2")
+		if out, err := issuegraphProxiedRun(t, issuegraph, p.dir, "dep", "add", dependent.ID, anchor.ID); err != nil {
 			t.Fatalf("dep add: %v\n%s", err, out)
 		}
 

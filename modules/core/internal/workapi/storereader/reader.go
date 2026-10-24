@@ -17,10 +17,10 @@ package storereader
 import (
 	"context"
 
-	"github.com/steveyegge/beads/internal/storage"
-	"github.com/steveyegge/beads/internal/types"
-	"github.com/steveyegge/beads/internal/workapi"
-	"github.com/steveyegge/beads/issueops"
+	"github.com/borg0ai/dx-issuegraph/internal/storage"
+	"github.com/borg0ai/dx-issuegraph/internal/types"
+	"github.com/borg0ai/dx-issuegraph/internal/workapi"
+	"github.com/borg0ai/dx-issuegraph/issueops"
 )
 
 // New returns the issue-query surface backed by a store handle. *DoltStore and
@@ -32,13 +32,13 @@ import (
 // execute" ritual: it has no way to reach the pieces.
 //
 // THE BOUNDARY, stated once here because this is where the constructor lives:
-// the store-backed role answers `bd show --json` and `bd list` on the DIRECT
+// the store-backed role answers `issuegraph show --json` and `issuegraph list` on the DIRECT
 // route, and the HTTP surface and both commands' proxied routes reach the
 // uow-backed one. List below is therefore a traveled path on the most-run
-// command in the tree, which it was not before: `bd list` used to build the
+// command in the tree, which it was not before: `issuegraph list` used to build the
 // filter and run this body's steps longhand.
 //
-// Ready below is still reached only by tests and by the HTTP surface. `bd
+// Ready below is still reached only by tests and by the HTTP surface. `issuegraph
 // ready` calls the workapi builders directly because it consumes the FILTER
 // for --claim, --gated, --explain and --mol; see issueops.Reader's doc comment
 // for why routing only its JSON path through the role would be worse.
@@ -121,7 +121,7 @@ func (r *storeReader) List(ctx context.Context, req issueops.ListRequest) (issue
 	}
 
 	// The sort, the skip, the trim and the HasMore verdict are
-	// workapi.FinishPageAt's, not this implementation's: `bd list` on both its
+	// workapi.FinishPageAt's, not this implementation's: `issuegraph list` on both its
 	// routes and the uow-backed sibling of this method call the same function,
 	// so the only thing left that can differ between a CLI listing and an HTTP
 	// one is presentation. This seam reports no HasMore of its own, so the

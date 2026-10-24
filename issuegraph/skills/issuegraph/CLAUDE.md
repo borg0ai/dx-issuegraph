@@ -6,7 +6,7 @@ ADRs in `adr/` document key decisions. These are NOT loaded during skill invocat
 
 | ADR | Decision |
 |-----|----------|
-| [ADR-0001](adr/0001-bd-prime-as-source-of-truth.md) | Use `issuegraph prime` as CLI reference source of truth |
+| [ADR-0001](adr/0001-issuegraph-prime-as-source-of-truth.md) | Use `issuegraph prime` as CLI reference source of truth |
 
 ## Key Principle: DRY via issuegraph prime
 

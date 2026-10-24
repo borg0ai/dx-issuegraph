@@ -7,11 +7,11 @@ import (
 	"testing"
 	"time"
 
+	"github.com/borg0ai/dx-issuegraph/issueops"
 	"github.com/spf13/cobra"
-	"github.com/steveyegge/beads/issueops"
 )
 
-// The filter semantics of `bd count` live in the Counter role now, built once
+// The filter semantics of `issuegraph count` live in the Counter role now, built once
 // in workapi.BuildCountFilter, with the cardinality-parity assertions in
 // internal/workapi/count_test.go. What is left here is turning flags into the
 // role's request and refusing a combination the request cannot express.
@@ -23,7 +23,7 @@ import (
 func TestCountIncludeInfraFlagShape(t *testing.T) {
 	flag := countCmd.Flags().Lookup("include-infra")
 	if flag == nil {
-		t.Fatal("bd count must expose an --include-infra flag (GH#4387)")
+		t.Fatal("issuegraph count must expose an --include-infra flag (GH#4387)")
 	}
 	if flag.DefValue != "false" {
 		t.Fatalf("--include-infra must default to false, got %q", flag.DefValue)
@@ -187,7 +187,7 @@ func TestParseCountRequestRejectsAnUnparseableDate(t *testing.T) {
 	}
 }
 
-// newCountFlagSet returns a command carrying `bd count`'s flags at their
+// newCountFlagSet returns a command carrying `issuegraph count`'s flags at their
 // defaults. It REGISTERS them rather than copying countCmd's set: cobra's
 // AddFlagSet shares the underlying *Flag values, so a case that set a flag on
 // the copy would leak it into the real command and into every later case.

@@ -5,7 +5,7 @@ import "testing"
 // TestProtocol_CyclePreventionBlocks asserts that adding a dependency that
 // would create a cycle is rejected with an error.
 //
-// Invariant: bd dep add C A --type blocks MUST fail when A→B→C chain exists.
+// Invariant: issuegraph dep add C A --type blocks MUST fail when A→B→C chain exists.
 func TestProtocol_CyclePreventionBlocks(t *testing.T) {
 	t.Parallel()
 	w := newWorkspace(t)
@@ -26,7 +26,7 @@ func TestProtocol_CyclePreventionBlocks(t *testing.T) {
 // TestProtocol_SelfDependencyPrevention asserts that an issue cannot depend
 // on itself.
 //
-// Invariant: bd dep add A A MUST fail.
+// Invariant: issuegraph dep add A A MUST fail.
 func TestProtocol_SelfDependencyPrevention(t *testing.T) {
 	t.Parallel()
 	w := newWorkspace(t)
@@ -41,7 +41,7 @@ func TestProtocol_SelfDependencyPrevention(t *testing.T) {
 // TestProtocol_CloseGuardRespectsDepType asserts that close guard only blocks
 // for blocking dep types (blocks), not non-blocking types (caused-by).
 //
-// Invariant: bd close A succeeds when A has only caused-by deps on open issues.
+// Invariant: issuegraph close A succeeds when A has only caused-by deps on open issues.
 func TestProtocol_CloseGuardRespectsDepType(t *testing.T) {
 	t.Parallel()
 	w := newWorkspace(t)
@@ -84,7 +84,7 @@ func TestProtocol_CloseGuardBlocksForBlocksDep(t *testing.T) {
 
 // TestProtocol_CloseForceOverridesGuard asserts that --force bypasses close guard.
 //
-// Invariant: bd close A --force MUST succeed even with open blockers.
+// Invariant: issuegraph close A --force MUST succeed even with open blockers.
 func TestProtocol_CloseForceOverridesGuard(t *testing.T) {
 	t.Parallel()
 	w := newWorkspace(t)
@@ -107,7 +107,7 @@ func TestProtocol_CloseForceOverridesGuard(t *testing.T) {
 	}
 }
 
-// TestProtocol_SupersedeClosesAndCreatesDep asserts that bd supersede A --with B
+// TestProtocol_SupersedeClosesAndCreatesDep asserts that issuegraph supersede A --with B
 // closes A and creates a supersedes dependency.
 //
 // Invariant: superseded issue is closed and has dependency on replacement.

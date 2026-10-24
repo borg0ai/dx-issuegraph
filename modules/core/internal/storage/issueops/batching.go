@@ -1,6 +1,6 @@
 package issueops
 
-import "github.com/steveyegge/beads/internal/storage/dberrors"
+import "github.com/borg0ai/dx-issuegraph/internal/storage/dberrors"
 
 const queryBatchSize = 200
 

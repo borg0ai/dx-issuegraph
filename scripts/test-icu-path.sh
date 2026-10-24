@@ -2,7 +2,7 @@
 set -euo pipefail
 
 # Run the opt-in ICU regex path tests.
-# This is intentionally NOT the normal validation path for beads. The shipped
+# This is intentionally NOT the normal validation path for issuegraph. The shipped
 # and CI-tested configuration uses -tags gms_pure_go instead.
 
 echo "WARNING: scripts/test-icu-path.sh intentionally exercises the ICU-only regex path." >&2

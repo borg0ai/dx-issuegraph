@@ -9,9 +9,9 @@ import (
 	"fmt"
 	"os"
 
-	"github.com/steveyegge/beads/internal/storage"
-	"github.com/steveyegge/beads/internal/storage/issueops"
-	"github.com/steveyegge/beads/internal/storage/versioncontrolops"
+	"github.com/borg0ai/dx-issuegraph/internal/storage"
+	"github.com/borg0ai/dx-issuegraph/internal/storage/issueops"
+	"github.com/borg0ai/dx-issuegraph/internal/storage/versioncontrolops"
 )
 
 // withDBConn opens a short-lived database connection configured for the
@@ -122,7 +122,7 @@ func (s *EmbeddedDoltStore) commitAll(ctx context.Context, message string, toler
 // CommitAll commits the entire working set (config included) with the given
 // message and reports whether a commit actually landed — the
 // storage.VersionControl entry point for the explicit operator commands
-// (bd vc commit, bd dolt commit). Embedded commits already stage everything
+// (issuegraph vc commit, issuegraph dolt commit). Embedded commits already stage everything
 // via DOLT_COMMIT('-Am'); what the explicit commands need from this store is
 // the committed bool, which replaces their HEAD-before/HEAD-after comparison
 // (racy against concurrent writers, and two extra engine opens per call —
@@ -156,7 +156,7 @@ func stageAndCommitAfterSQLCommit(ctx context.Context, db versioncontrolops.DBCo
 // Commit stages and commits the full working set. A clean working set is not
 // an error here: the server store (DoltStore.Commit et al., via
 // isDoltNothingToCommit) has always tolerated Dolt's "nothing to commit"
-// response, but this embedded path wrapped it as a hard failure — so `bd
+// response, but this embedded path wrapped it as a hard failure — so `issuegraph
 // bootstrap`, which builds an embedded store unconditionally and calls
 // CommitWithConfig (below) right after SetConfig on a pristine, otherwise-clean
 // store, died on it (GH#3886). Tolerating it here brings embedded to parity.
@@ -318,7 +318,7 @@ func (s *EmbeddedDoltStore) Merge(ctx context.Context, branch string) ([]storage
 	// bd-578h9.11: like every pull path, a branch merge brings in writes that
 	// bypassed the local is_blocked hooks; recompute after a conflict-free
 	// merge. Conflicted merges defer to the caller's post-resolution hook
-	// (Sync, bd vc merge --strategy) — recomputing over unresolved rows would
+	// (Sync, issuegraph vc merge --strategy) — recomputing over unresolved rows would
 	// read garbage.
 	preHead := ""
 	if !s.readOnly {
@@ -338,7 +338,7 @@ func (s *EmbeddedDoltStore) Merge(ctx context.Context, branch string) ([]storage
 	return conflicts, err
 }
 
-// MergeWithStrategy implements storage.StrategicMerger for `bd vc merge
+// MergeWithStrategy implements storage.StrategicMerger for `issuegraph vc merge
 // --strategy` (#4992). Unlike Merge, it runs on a PINNED session
 // (withMutatingPinnedDBConn, not withMutatingDBConn): the conflict-tolerant
 // session flags versioncontrolops.MergeWithStrategy sets are session state
@@ -433,7 +433,7 @@ func (s *EmbeddedDoltStore) ResolveConflicts(ctx context.Context, table string, 
 var _ storage.ConflictInspector = (*EmbeddedDoltStore)(nil)
 
 // GetConflictRows returns the live conflicted rows of table, per field.
-// Implements storage.ConflictInspector (backs `bd conflicts list|show`).
+// Implements storage.ConflictInspector (backs `issuegraph conflicts list|show`).
 func (s *EmbeddedDoltStore) GetConflictRows(ctx context.Context, table string) ([]storage.ConflictRow, error) {
 	var rows []storage.ConflictRow
 	err := s.withDBConn(ctx, func(db versioncontrolops.DBConn) error {
@@ -460,7 +460,7 @@ func (s *EmbeddedDoltStore) GetMergeBlockers(ctx context.Context) (storage.Merge
 }
 
 // ResolveConflictRows resolves individual conflicted rows of table by key.
-// Implements storage.ConflictInspector (backs `bd conflicts resolve <id>`).
+// Implements storage.ConflictInspector (backs `issuegraph conflicts resolve <id>`).
 // It runs on a PINNED connection: the resolution sets dolt's
 // conflict-tolerance session flags, which the writes that follow must see.
 func (s *EmbeddedDoltStore) ResolveConflictRows(ctx context.Context, table string, keys []string, strategy string) (int, error) {
@@ -524,8 +524,8 @@ func (s *EmbeddedDoltStore) ListRemotes(ctx context.Context) ([]storage.RemoteIn
 
 // GH#5080 follow-up: the verbs below resolve credentials through withPeerAuth
 // rather than the environment alone, so a remote registered as a federation
-// peer presents its stored credentials however it is reached (`bd sync
-// --remote`, `bd dolt push|pull --remote`, or as the default remote). A remote
+// peer presents its stored credentials however it is reached (`issuegraph sync
+// --remote`, `issuegraph dolt push|pull --remote`, or as the default remote). A remote
 // with no peer entry keeps the DOLT_REMOTE_USER/DOLT_REMOTE_PASSWORD fallback
 // unchanged. Routing every verb through the one resolver also narrows the
 // window around withPeerAuth's mutation of that process-wide pair: a verb
@@ -544,7 +544,7 @@ func (s *EmbeddedDoltStore) Pull(ctx context.Context) error {
 	// GH#2474 / bd-578h9.2: auto-commit pending changes before pull, matching
 	// server-mode pullFromRemote and PullFrom. Leftovers from a crashed
 	// command would otherwise make the merge refuse to start.
-	if _, err := s.CommitPending(ctx, "beads"); err != nil {
+	if _, err := s.CommitPending(ctx, "issuegraph"); err != nil {
 		return fmt.Errorf("commit pending before pull: %w", err)
 	}
 	preHead := s.preMergeHead(ctx)
@@ -559,12 +559,12 @@ func (s *EmbeddedDoltStore) Pull(ctx context.Context) error {
 	return s.recomputeBlockedAfterPull(ctx, preHead)
 }
 
-// PullWithStrategy implements storage.StrategicPuller for `bd dolt pull
+// PullWithStrategy implements storage.StrategicPuller for `issuegraph dolt pull
 // --strategy` (#4992 part 2). Identical to Pull except conflicts the
 // auto-resolver declines are resolved with strategy instead of aborting the
 // merge for the operator; see versioncontrolops.PullWithStrategy.
 func (s *EmbeddedDoltStore) PullWithStrategy(ctx context.Context, strategy string) error {
-	if _, err := s.CommitPending(ctx, "beads"); err != nil {
+	if _, err := s.CommitPending(ctx, "issuegraph"); err != nil {
 		return fmt.Errorf("commit pending before pull: %w", err)
 	}
 	preHead := s.preMergeHead(ctx)
@@ -582,7 +582,7 @@ func (s *EmbeddedDoltStore) PullWithStrategy(ctx context.Context, strategy strin
 // PullRemoteWithStrategy implements storage.StrategicPuller for a named
 // remote; see PullWithStrategy.
 func (s *EmbeddedDoltStore) PullRemoteWithStrategy(ctx context.Context, remote, strategy string) error {
-	if _, err := s.CommitPending(ctx, "beads"); err != nil {
+	if _, err := s.CommitPending(ctx, "issuegraph"); err != nil {
 		return fmt.Errorf("commit pending before pull: %w", err)
 	}
 	preHead := s.preMergeHead(ctx)
@@ -618,7 +618,7 @@ func (s *EmbeddedDoltStore) PushRemote(ctx context.Context, remote string, force
 
 func (s *EmbeddedDoltStore) PullRemote(ctx context.Context, remote string) error {
 	// GH#2474 / bd-578h9.2: see Pull.
-	if _, err := s.CommitPending(ctx, "beads"); err != nil {
+	if _, err := s.CommitPending(ctx, "issuegraph"); err != nil {
 		return fmt.Errorf("commit pending before pull: %w", err)
 	}
 	preHead := s.preMergeHead(ctx)
@@ -652,7 +652,7 @@ func (s *EmbeddedDoltStore) PushTo(ctx context.Context, peer string) error {
 func (s *EmbeddedDoltStore) PullFrom(ctx context.Context, peer string) ([]storage.Conflict, error) {
 	// Auto-commit pending changes before pull to prevent
 	// "cannot merge with uncommitted changes" errors.
-	if _, err := s.CommitPending(ctx, "beads"); err != nil {
+	if _, err := s.CommitPending(ctx, "issuegraph"); err != nil {
 		return nil, fmt.Errorf("commit pending before pull: %w", err)
 	}
 
@@ -701,7 +701,7 @@ func (s *EmbeddedDoltStore) preMergeHead(ctx context.Context) string {
 // the rows a pull's merge changed (bd-6dnrw.3) and creates a Dolt commit for
 // the result. is_blocked is otherwise maintained only by local write paths, so
 // a merge that brings in another clone's status or dependency changes leaves
-// it stale and `bd ready` trusts it. A pull that merged nothing (HEAD
+// it stale and `issuegraph ready` trusts it. A pull that merged nothing (HEAD
 // unchanged) is a no-op; derived state converges, so committing it on every
 // clone is merge-safe.
 func (s *EmbeddedDoltStore) recomputeBlockedAfterPull(ctx context.Context, preHead string) error {
@@ -719,7 +719,7 @@ func (s *EmbeddedDoltStore) recomputeBlockedAfterPull(ctx context.Context, preHe
 	}
 	return s.withMutatingDBConn(ctx, func(db versioncontrolops.DBConn) error {
 		return stageAndCommitAfterSQLCommit(ctx, db,
-			map[string]bool{"issues": true}, "bd: recompute is_blocked after pull", commitAuthor)
+			map[string]bool{"issues": true}, "issuegraph: recompute is_blocked after pull", commitAuthor)
 	})
 }
 
@@ -767,7 +767,7 @@ func (s *EmbeddedDoltStore) BackupDatabase(ctx context.Context, dir string) erro
 		// Register as a backup remote (idempotent — remove first if exists).
 		_ = versioncontrolops.BackupRemove(ctx, db, backupName)
 		if err := versioncontrolops.BackupAdd(ctx, db, backupName, backupURL); err != nil {
-			// Another backup (e.g. "default" registered by `bd backup init`) may
+			// Another backup (e.g. "default" registered by `issuegraph backup init`) may
 			// already point to this URL. In that case, sync using the existing
 			// remote name rather than failing.
 			if conflict := versioncontrolops.ExtractAddressConflictName(err); conflict != "" {

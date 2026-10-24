@@ -5,14 +5,14 @@ import (
 	"sort"
 	"strings"
 
-	"github.com/steveyegge/beads/issueops"
+	"github.com/borg0ai/dx-issuegraph/issueops"
 )
 
 // The shared, DATABASE-FREE half of issueops.Deleter: what a delete request
 // means before anything is read, and how the two answers that name rows —
 // the orphan list and the dependents refusal — are ordered.
 //
-// Every implementation runs these, so `bd delete` has one definition of a
+// Every implementation runs these, so `issuegraph delete` has one definition of a
 // malformed request rather than one per backend.
 //
 // What is NOT here is the deletion. The existence probe, the guard and the

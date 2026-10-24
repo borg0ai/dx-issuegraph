@@ -14,7 +14,7 @@ import (
 // Linux exposes /proc/self/fd; darwin exposes /dev/fd (on Linux /dev/fd is a
 // symlink to the same place, so listing it twice is harmless). BSDs without
 // fdescfs mounted list only 0-2 under /dev/fd, which would make the scan a
-// silent no-op there — acceptable, since bd's supported platforms are
+// silent no-op there — acceptable, since issuegraph's supported platforms are
 // linux/darwin/windows.
 var fdDirCandidates = []string{"/proc/self/fd", "/dev/fd"}
 
@@ -29,8 +29,8 @@ func markInheritedCloexec() []int {
 	for fd := range openFDs() {
 		if fd <= 2 {
 			// Leaving stdio alone is deliberate: os/exec rewires 0/1/2 for the
-			// child from Cmd.Stdin/Stdout/Stderr, and marking bd's own stdio
-			// CLOEXEC would affect every other exec bd makes.
+			// child from Cmd.Stdin/Stdout/Stderr, and marking issuegraph's own stdio
+			// CLOEXEC would affect every other exec issuegraph makes.
 			continue
 		}
 		flags, err := unix.FcntlInt(uintptr(fd), unix.F_GETFD, 0)

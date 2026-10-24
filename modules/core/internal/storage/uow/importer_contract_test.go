@@ -4,13 +4,13 @@ import (
 	"context"
 	"testing"
 
-	"github.com/steveyegge/beads/backend/conformance"
+	"github.com/borg0ai/dx-issuegraph/backend/conformance"
 )
 
 // TestImporterContract runs the Importer contract against the unit-of-work
 // provider, which is the ONLY implementation there is: ImporterSource is the
 // one capability accessor in this package with no storage.DoltStorage
-// counterpart, so the two store backends serve `bd import` through the raw
+// counterpart, so the two store backends serve `issuegraph import` through the raw
 // CreateIssuesWithFullOptions seam and have no role for the contract to hold.
 // That is stated at length in the contract file's header.
 //

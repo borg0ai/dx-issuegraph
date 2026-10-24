@@ -4,8 +4,8 @@ import (
 	"fmt"
 	"strings"
 
-	"github.com/steveyegge/beads/internal/config"
-	"github.com/steveyegge/beads/internal/types"
+	"github.com/borg0ai/dx-issuegraph/internal/config"
+	"github.com/borg0ai/dx-issuegraph/internal/types"
 )
 
 // MissingSection describes a section that should be present but isn't.
@@ -37,7 +37,7 @@ func (e *TemplateError) Error() string {
 // additional lint sections (G4): lint.sections.<type> holds a
 // comma-separated list of section headings, e.g.
 //
-//	bd config set lint.sections.epic "Standards scorecard, Cost"
+//	issuegraph config set lint.sections.epic "Standards scorecard, Cost"
 //
 // The list is ADDITIVE to the built-in sections in
 // types.IssueType.RequiredSections: built-in requirements are never relaxed.
@@ -139,7 +139,7 @@ func ValidateTemplate(issueType types.IssueType, description string) error {
 		// Epics canonically require "Success Criteria", but "Acceptance Criteria"
 		// is equally acceptable so epics aren't a special case agents have to
 		// remember (GH#3834). Success Criteria remains canonical for new epics
-		// (see RequiredSections); this only widens what bd lint accepts.
+		// (see RequiredSections); this only widens what issuegraph lint accepts.
 		if issueType == types.TypeEpic && headingLower == "success criteria" &&
 			strings.Contains(descLower, "acceptance criteria") {
 			continue

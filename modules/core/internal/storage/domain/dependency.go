@@ -6,14 +6,14 @@ import (
 	"fmt"
 	"sort"
 
-	"github.com/steveyegge/beads/internal/storage"
-	"github.com/steveyegge/beads/internal/storage/dberrors"
-	"github.com/steveyegge/beads/internal/types"
-	"github.com/steveyegge/beads/issueops"
+	"github.com/borg0ai/dx-issuegraph/internal/storage"
+	"github.com/borg0ai/dx-issuegraph/internal/storage/dberrors"
+	"github.com/borg0ai/dx-issuegraph/internal/types"
+	"github.com/borg0ai/dx-issuegraph/issueops"
 )
 
 // The dependency-edge refusals are declared and documented by the public
-// contract package, github.com/steveyegge/beads/issueops. These are the same
+// contract package, github.com/borg0ai/dx-issuegraph/issueops. These are the same
 // values, so every domain.ErrX reference and every errors.Is site keeps
 // matching the identical error.
 var (
@@ -87,7 +87,7 @@ type DepInsertOpts struct {
 	// The embedded plumbing matches edge-for-edge: its structural paths
 	// wire edges through the plain AddDependency/tx.AddDependency, whose
 	// issueops.AddDependencyInTx EmitEvent gate is unset, while only the explicit
-	// bd dep add / bd link / bd dep remove verbs pass EmitEvent.
+	// issuegraph dep add / issuegraph link / issuegraph dep remove verbs pass EmitEvent.
 	EmitEvent bool
 }
 
@@ -190,7 +190,7 @@ type DependencyUseCase interface {
 	RemoveDependency(ctx context.Context, issueID, dependsOnID, actor string) error
 	// RemoveDependencyBySource removes one edge from the plane its SOURCE
 	// lives in, the way AddDependencies writes one. There is deliberately no
-	// plane flag: `bd dep remove` names an id, not a table, and a removal
+	// plane flag: `issuegraph dep remove` names an id, not a table, and a removal
 	// cannot put an edge anywhere, so reading the plane is always safer than
 	// pinning it.
 	RemoveDependencyBySource(ctx context.Context, sourceID, dependsOnID, actor string) (bool, error)
@@ -217,7 +217,7 @@ type DependencyUseCase interface {
 	CountEdges(ctx context.Context, req issueops.EdgeCountRequest) (issueops.EdgeCountResult, error)
 	// AddDependencies asserts a batch of edges, each landing in the plane its
 	// own SOURCE lives in. There is deliberately no plane-pinned variant:
-	// `bd dep add` takes whatever ids the caller names and one request may
+	// `issuegraph dep add` takes whatever ids the caller names and one request may
 	// legitimately mix them, so routing the whole batch by a flag would put an
 	// edge on a row the target table does not have. It is ONE pass, not one
 	// pass per plane: the parent-child-first ordering and the whole-graph
@@ -343,7 +343,7 @@ func (u *dependencyUseCaseImpl) RemoveWispDependency(ctx context.Context, wispID
 // and reports whether there was an edge to remove.
 //
 // It is the source-routed twin of AddDependencies, and exists for the same
-// reason: `bd dep remove` takes whatever id the caller names, and pinning the
+// reason: `issuegraph dep remove` takes whatever id the caller names, and pinning the
 // removal to the durable table means failing to remove an edge whose source is
 // a wisp while reporting that it was never there (bd-yby99.17). The delete IS
 // the verdict, the way the store-backed body reads it off RemoveDependencyInTx
@@ -702,7 +702,7 @@ func (u *dependencyUseCaseImpl) AddDependencies(ctx context.Context, deps []*typ
 		// typed as ErrSelfDependency instead of tripping HasCycle (or the final
 		// CycleThroughEdges gate) and surfacing as a cycle. The message is
 		// byte-identical to every other self-dep site so the proxied bulk CLI
-		// (bd dep add / bd link) shows one consistent self-dependency error.
+		// (issuegraph dep add / issuegraph link) shows one consistent self-dependency error.
 		if dep.IssueID == dep.DependsOnID {
 			return BulkAddDepsResult{}, fmt.Errorf("%w: %s cannot depend on itself", ErrSelfDependency, dep.IssueID)
 		}
@@ -743,7 +743,7 @@ func (u *dependencyUseCaseImpl) AddDependencies(ctx context.Context, deps []*typ
 					return BulkAddDepsResult{}, cycleErrorf("add deps[%d]: adding %s -> %s would create a cycle", i, dep.IssueID, dep.DependsOnID)
 				}
 			}
-			// The explicit `bd dep add` / `bd link` verb on the proxied server
+			// The explicit `issuegraph dep add` / `issuegraph link` verb on the proxied server
 			// (modules/cli/dep_proxied_server.go, link_proxied_server.go) records a
 			// dependency_added event for each genuine new edge — unlike
 			// create-with-deps, which calls depRepo.Insert directly without

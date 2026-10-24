@@ -5,15 +5,15 @@ import (
 	"errors"
 	"testing"
 
-	"github.com/steveyegge/beads/internal/storage"
-	"github.com/steveyegge/beads/internal/types"
+	"github.com/borg0ai/dx-issuegraph/internal/storage"
+	"github.com/borg0ai/dx-issuegraph/internal/types"
 )
 
 // TestEventsJournalAccessor_ServerMode guards the OTHER store's journal
 // capability. The embedded store reads through a per-operation connection; this
 // one reads through withReadTx and prunes through withRetryTx, so the two can
 // regress independently even though the query bodies are shared at the issueops
-// seam. `bd events` against a server-mode workspace takes only this path.
+// seam. `issuegraph events` against a server-mode workspace takes only this path.
 func TestEventsJournalAccessor_ServerMode(t *testing.T) {
 	store, cleanup := setupTestStore(t)
 	defer cleanup()
@@ -57,7 +57,7 @@ func TestEventsJournalAccessor_ServerMode(t *testing.T) {
 		t.Error("journal row carries no timestamp; consumers order and age records by it")
 	}
 
-	// since + limit are the two knobs `bd events tail` drives.
+	// since + limit are the two knobs `issuegraph events tail` drives.
 	sinceRows, err := store.ReadEventsJournal(ctx, rows[1].Seq, 0)
 	must(err, "read since")
 	if len(sinceRows) != 2 {

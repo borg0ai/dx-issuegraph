@@ -5,11 +5,11 @@ import (
 	"fmt"
 	"testing"
 
-	"github.com/steveyegge/beads/internal/types"
-	"github.com/steveyegge/beads/issueops"
+	"github.com/borg0ai/dx-issuegraph/internal/types"
+	"github.com/borg0ai/dx-issuegraph/issueops"
 )
 
-// oldQueryWindow is the row bound both `bd query` routes used to put on a
+// oldQueryWindow is the row bound both `issuegraph query` routes used to put on a
 // predicate query's fetch: max(3*limit, 100), which for any limit below 34 was
 // the flat 100 below.
 const oldQueryWindow = 100

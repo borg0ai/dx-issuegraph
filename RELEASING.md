@@ -13,7 +13,7 @@ This document describes the complete release process for issuegraph, including G
 - [3. Homebrew Update](#3-homebrew-update)
 - [4. PyPI Release (MCP Server)](#4-pypi-release-mcp-server)
 - [5. Plugin Marketplace Update](#5-plugin-marketplace-update)
-- [6. npm Package Release](#6-npm-package-release)
+- [6. npm Package Release](#6-apps/cli-release)
 - [7. Verify Release](#7-verify-release)
 - [Version Numbering](#version-numbering)
 - [Prerelease / Release Candidate (RC) Workflow](#prerelease--release-candidate-rc-workflow)
@@ -26,18 +26,18 @@ An issuegraph release involves multiple distribution channels:
 
 1. **GitHub Release** - Binary downloads for all platforms
 2. **Homebrew** - macOS/Linux package manager
-3. **PyPI** - Python MCP server (`beads-mcp`)
-4. **npm** - Node.js package for Claude Code for Web (`@beads/bd`)
+3. **PyPI** - Python MCP server (`issuegraph-mcp`)
+4. **npm** - Node.js package for Claude Code for Web (`@borg0ai/issuegraph`)
 
 ### The Easy Way (Recommended)
 
 For routine releases, run the release molecule:
 
 ```bash
-issuegraph mol wisp beads-release --var version=1.3.0
+issuegraph mol wisp issuegraph-release --var version=1.3.0
 ```
 
-`.beads/formulas/beads-release.formula.toml` defines the whole flow as
+`.issuegraph/formulas/issuegraph-release.formula.toml` defines the whole flow as
 resumable steps with a CI gate: preflight → CHANGELOG/`info.go` →
 version bump → commit/tag/push → gate on `release.yml` → verify
 GitHub/npm/PyPI/Homebrew → local install. `./scripts/release.sh 1.3.0` is a
@@ -51,7 +51,7 @@ rollbacks, manual PyPI/npm publishes).
 
 ### Required Tools
 
-- `git` with push access to gastownhall/beads
+- `git` with push access to borg0ai/dx-issuegraph
 - `goreleaser` for building binaries
 - `npm` with authentication (for npm releases)
 - `python3` and `twine` (for PyPI releases)
@@ -63,14 +63,14 @@ rollbacks, manual PyPI/npm publishes).
 - GitHub: Ability to create protected `v*` release tags. The repository should
   restrict `refs/tags/v*` creation, updates, and deletion to trusted release
   maintainers.
-- PyPI: Maintainer access to `beads-mcp` package
-- npm: Member of `@beads` organization
+- PyPI: Maintainer access to `issuegraph-mcp` package
+- npm: Member of `@issuegraph` organization
 
 ### Verify Setup
 
 ```bash
 # Check git
-git remote -v  # Should show gastownhall/beads
+git remote -v  # Should show borg0ai/dx-issuegraph
 
 # Check goreleaser
 goreleaser --version
@@ -139,12 +139,12 @@ Before starting a release:
 - [ ] `release/x.y.z` branch cut from a SHA green on `Main` **and**
       `Nightly Full Tests` (see [Release Branches](#release-branches))
 - [ ] All tests passing (`go test ./...`)
-- [ ] npm package tests passing (`cd npm-package && npm run test:all`)
+- [ ] npm package tests passing (`cd apps/cli && npm run test:all`)
 - [ ] **Upgrade smoke tests pass** (`make test-upgrade`) — see [Release Stability Gate](engdocs/RELEASE-STABILITY-GATE.md)
 - [ ] **Regression tests pass** (`make test-regression`)
 - [ ] **Every release target cross-compiles** — see
       [Cross-compile before tagging](#cross-compile-before-tagging). PR CI does
-      not build them ([#5662](https://github.com/gastownhall/beads/issues/5662)),
+      not build them ([#5662](https://github.com/borg0ai/dx-issuegraph/issues/5662)),
       and a target that fails at tag time burns the tag.
 - [ ] **CHANGELOG.md updated with release notes** (see format below)
 - [ ] **CHANGELOG rollup checked** — nothing left under `[Unreleased]` that
@@ -166,8 +166,8 @@ Before starting a release:
 `.goreleaser.yml` builds darwin, linux, windows **and freebsd**, but PR CI
 builds none of the cross targets — the v1.2.0 tag burned on a freebsd
 compilation failure that no pre-tag gate could have caught
-([#5661](https://github.com/gastownhall/beads/pull/5661) fixed the break,
-[#5662](https://github.com/gastownhall/beads/issues/5662) tracks the CI gap).
+([#5661](https://github.com/borg0ai/dx-issuegraph/pull/5661) fixed the break,
+[#5662](https://github.com/borg0ai/dx-issuegraph/issues/5662) tracks the CI gap).
 Until that gap is closed, build them by hand before tagging:
 
 ```bash
@@ -234,18 +234,18 @@ This updates:
   `check-versions.sh` reads it and compares the gated files against it. Note
   that "gated" is narrower than "updated" — `default.nix` and `README.md` are
   bumped here but checked by nothing, so eyeball them.
-- `integrations/beads-mcp/pyproject.toml` — MCP server version
-- `integrations/beads-mcp/src/beads_mcp/__init__.py` — MCP Python version
-- `integrations/beads-mcp/uv.lock` — the `beads-mcp` pin, via `uv lock`. A
+- `integrations/issuegraph-mcp/pyproject.toml` — MCP server version
+- `integrations/issuegraph-mcp/src/issuegraph_mcp/__init__.py` — MCP Python version
+- `integrations/issuegraph-mcp/uv.lock` — the `issuegraph-mcp` pin, via `uv lock`. A
   stale lock fails the release workflow's MCP gate *after* the tag exists and
   can no longer be rewritten; that burned the v1.1.1 tag. Install `uv` before
   bumping, or the script warns and skips it.
-- `plugins/beads/.claude-plugin/plugin.json` — Claude plugin version
-- `plugins/beads/.codex-plugin/plugin.json` — Codex plugin version
-- `plugins/beads/.copilot-plugin/plugin.json` — Copilot plugin version
+- `plugins/issuegraph/.claude-plugin/plugin.json` — Claude plugin version
+- `plugins/issuegraph/.codex-plugin/plugin.json` — Codex plugin version
+- `plugins/issuegraph/.copilot-plugin/plugin.json` — Copilot plugin version
 - `.claude-plugin/marketplace.json` — Claude marketplace version
-- `npm-package/package.json` — npm package version
-- `.githooks/*` — the `BEGIN`/`END BEADS INTEGRATION v<version>` markers on the
+- `apps/cli/package.json` — npm package version
+- `.githooks/*` — the `BEGIN`/`END ISSUEGRAPH INTEGRATION v<version>` markers on the
   tracked managed hook sections, held byte-equal to the `modules/cli/hooks.go`
   generator by `TestTrackedManagedHookSectionsMatchGenerator`. Skipping them
   reddens the branch only after the push (that was the v1.2.0 bump).
@@ -364,39 +364,34 @@ gh release create v0.22.0 \
 
 ### Verify GitHub Release
 
-1. Visit https://github.com/gastownhall/beads/releases
+1. Visit https://github.com/borg0ai/dx-issuegraph/releases
 2. Verify v0.22.0 is marked as "Latest"
 3. Check all platform binaries are present:
-   - `beads_0.22.0_darwin_amd64.tar.gz`
-   - `beads_0.22.0_darwin_arm64.tar.gz`
-   - `beads_0.22.0_linux_amd64.tar.gz`
-   - `beads_0.22.0_linux_arm64.tar.gz`
-   - `beads_0.22.0_windows_amd64.zip`
+   - `issuegraph_0.22.0_darwin_amd64.tar.gz`
+   - `issuegraph_0.22.0_darwin_arm64.tar.gz`
+   - `issuegraph_0.22.0_linux_amd64.tar.gz`
+   - `issuegraph_0.22.0_linux_arm64.tar.gz`
+   - `issuegraph_0.22.0_windows_amd64.zip`
    - `checksums.txt`
 
-## 3. Homebrew Update
+## 3. Homebrew Tap Update
 
-Homebrew uses the `beads` formula in homebrew-core. Do not publish or revive
-the old `bd` formula in `gastownhall/homebrew-beads`; having two independently
-updated Homebrew formulas causes version drift and installs the wrong binary for
-some users.
-
-Updates to the supported Homebrew formula are handled through Homebrew core
-after GitHub Release artifacts are available.
+After GitHub Release assets and `checksums.txt` are available, update
+[`systembugtj/luban-homebrew`](https://github.com/systembugtj/luban-homebrew)
+on a release-specific branch. Point its `issuegraph` formula at the macOS
+Apple Silicon (`darwin_arm64`) and Intel (`darwin_amd64`) archives. Use each
+archive's SHA-256 from `checksums.txt`, run the tap's documented checks, then
+open a PR against the tap's default branch. Do not push formula changes to its
+default branch.
 
 ### Verify Homebrew
 
-After the GitHub Release is published, verify the Homebrew package:
+After that tap PR merges, verify the package:
 
 ```bash
-# Update Homebrew
 brew update
-
-# Install/upgrade
-brew upgrade beads  # or: brew install beads
-
-# Verify
-bd version  # Should show 0.22.0
+brew install systembugtj/luban-homebrew/issuegraph
+issuegraph version
 ```
 
 ## 4. PyPI Release (MCP Server)
@@ -429,13 +424,13 @@ rm -rf dist/ build/ *.egg-info
 python -m build
 
 # Verify contents
-tar -tzf dist/beads-mcp-0.22.0.tar.gz
+tar -tzf dist/issuegraph-mcp-0.22.0.tar.gz
 
 # Upload to PyPI (test first)
 twine upload --repository testpypi dist/*
 
 # Verify on test PyPI
-pip install --index-url https://test.pypi.org/simple/ beads-mcp==0.22.0
+pip install --index-url https://test.pypi.org/simple/ issuegraph-mcp==0.22.0
 
 # Upload to production PyPI
 twine upload dist/*
@@ -445,11 +440,11 @@ twine upload dist/*
 
 ```bash
 # Check package page
-open https://pypi.org/project/beads-mcp/
+open https://pypi.org/project/issuegraph-mcp/
 
 # Install and test
-pip install beads-mcp==0.22.0
-python -m beads_mcp --version
+pip install issuegraph-mcp==0.22.0
+python -m issuegraph_mcp --version
 ```
 
 ## 5. Plugin Marketplace Update
@@ -461,18 +456,18 @@ Update the plugin marketplace metadata files:
 # Change version to match current release
 vim .claude-plugin/marketplace.json
 
-# Update plugins/beads/.claude-plugin/plugin.json if needed
-vim plugins/beads/.claude-plugin/plugin.json
+# Update plugins/issuegraph/.claude-plugin/plugin.json if needed
+vim plugins/issuegraph/.claude-plugin/plugin.json
 
-# Update plugins/beads/.codex-plugin/plugin.json if needed
-vim plugins/beads/.codex-plugin/plugin.json
+# Update plugins/issuegraph/.codex-plugin/plugin.json if needed
+vim plugins/issuegraph/.codex-plugin/plugin.json
 
 # Commit changes
-git add .claude-plugin/ plugins/beads/.claude-plugin/ plugins/beads/.codex-plugin/
+git add .claude-plugin/ plugins/issuegraph/.claude-plugin/ plugins/issuegraph/.codex-plugin/
 git commit -m "chore: Update plugin marketplaces to v0.22.0"
 ```
 
-**Note:** These files define how beads appears in Claude Code and Codex plugin marketplaces. Version should match the release version.
+**Note:** These files define how issuegraph appears in Claude Code and Codex plugin marketplaces. Version should match the release version.
 
 ### Documentation Site (Mintlify)
 
@@ -529,15 +524,15 @@ The npm package wraps the native binary for Node.js environments.
 # Verify npm authentication
 npm whoami  # Should show your username
 
-# Verify you're in @beads org
-npm org ls beads
+# Verify you're in @issuegraph org
+npm org ls issuegraph
 ```
 
 ### Update and Test
 
 ```bash
 # Navigate to npm package
-cd npm-package
+cd apps/cli
 
 # Version should already be updated by update-versions.sh
 cat package.json | grep version
@@ -557,24 +552,24 @@ npm run test:all
 npm pack
 
 # Install globally from tarball
-npm install -g ./beads-bd-0.22.0.tgz
+npm install -g ./issuegraph-issuegraph-0.22.0.tgz
 
 # Verify binary downloads correctly
-bd version  # Should show 0.22.0
+issuegraph version  # Should show 0.22.0
 
 # Test in a project
-mkdir /tmp/test-npm-bd
-cd /tmp/test-npm-bd
+mkdir /tmp/test-npm-issuegraph
+cd /tmp/test-npm-issuegraph
 git init
-bd init
-bd create "Test issue" -p 1
-bd list
+issuegraph init
+issuegraph create "Test issue" -p 1
+issuegraph list
 
 # Cleanup
-npm uninstall -g @beads/bd
-rm -rf /tmp/test-npm-bd
+npm uninstall -g @borg0ai/issuegraph
+rm -rf /tmp/test-npm-issuegraph
 cd -
-rm beads-bd-0.22.0.tgz
+rm issuegraph-issuegraph-0.22.0.tgz
 ```
 
 ### Publish to npm
@@ -594,15 +589,15 @@ npm publish
 
 ```bash
 # Check package page
-open https://www.npmjs.com/package/@beads/bd
+open https://www.npmjs.com/package/@borg0ai/issuegraph
 
 # Install and test
-npm install -g @beads/bd
-bd version  # Should show 0.22.0
+npm install -g @borg0ai/issuegraph
+issuegraph version  # Should show 0.22.0
 
 # Test postinstall downloaded correct binary
-which bd
-bd --help
+which issuegraph
+issuegraph --help
 ```
 
 ## 7. Verify Release
@@ -613,39 +608,39 @@ After all distribution channels are updated, verify each one:
 
 ```bash
 # Download and test binary
-wget https://github.com/gastownhall/beads/releases/download/v0.22.0/beads_0.22.0_darwin_arm64.tar.gz
-tar -xzf beads_0.22.0_darwin_arm64.tar.gz
-./bd version
+wget https://github.com/borg0ai/dx-issuegraph/releases/download/v0.22.0/issuegraph_0.22.0_darwin_arm64.tar.gz
+tar -xzf issuegraph_0.22.0_darwin_arm64.tar.gz
+./issuegraph version
 ```
 
 ### Homebrew
 
 ```bash
 brew update
-brew upgrade beads
-bd version
+brew upgrade issuegraph
+issuegraph version
 ```
 
 ### PyPI
 
 ```bash
-pip install --upgrade beads-mcp
-python -m beads_mcp --version
+pip install --upgrade issuegraph-mcp
+python -m issuegraph_mcp --version
 ```
 
 ### npm
 
 ```bash
-npm install -g @beads/bd
-bd version
+npm install -g @borg0ai/issuegraph
+issuegraph version
 ```
 
 ### Installation Script
 
 ```bash
 # Test quick install script
-curl -fsSL https://raw.githubusercontent.com/gastownhall/beads/main/scripts/install.sh | bash
-bd version
+curl -fsSL https://raw.githubusercontent.com/borg0ai/dx-issuegraph/main/scripts/install.sh | bash
+issuegraph version
 ```
 
 ### Docs Cutover
@@ -795,7 +790,7 @@ Follow hotfix procedure above to release 0.22.1.
 ### 3. Deprecate npm Package (If Needed)
 
 ```bash
-npm deprecate @beads/bd@0.22.0 "Critical bug, please upgrade to 0.22.1"
+npm deprecate @borg0ai/issuegraph@0.22.0 "Critical bug, please upgrade to 0.22.1"
 ```
 
 ### 4. Yank PyPI Release (If Needed)
@@ -840,7 +835,7 @@ jobs:
         with:
           node-version: '18'
           registry-url: 'https://registry.npmjs.org'
-      - run: cd npm-package && npm publish --access public
+      - run: cd apps/cli && npm publish --access public
         env:
           NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
 
@@ -864,16 +859,16 @@ jobs:
 
 After a successful release:
 
-1. **Upgrade local beads-mcp installation** to the new version:
+1. **Upgrade local issuegraph-mcp installation** to the new version:
    ```bash
    # If installed globally
-   pip install --upgrade beads-mcp
+   pip install --upgrade issuegraph-mcp
 
    # If installed as a uv tool
-   uv tool upgrade beads-mcp
+   uv tool upgrade issuegraph-mcp
 
    # Verify the new version
-   pip show beads-mcp | grep Version
+   pip show issuegraph-mcp | grep Version
 
    # Restart Claude Code or MCP session to pick up the new version
    # The MCP server will load the newly installed version
@@ -961,7 +956,7 @@ not a minor bump.
 `issuegraph update --status <done-status>` enforcing close policy, `issuegraph search`
 including closed issues, the interactive-only last-touched fallback, `issuegraph human
 list` status handling, `issuegraph dolt push` remote-adoption consent, Dolt port
-precedence over `BEADS_DOLT_PORT`, and actor `--` decoding — plus a schema
+precedence over `ISSUEGRAPH_DOLT_PORT`, and actor `--` decoding — plus a schema
 migration and a flag rename (`--profile` → `--cpu-profile`). Every one has a
 CHANGELOG entry with its override, and the release is a MINOR bump.
 
@@ -985,5 +980,5 @@ off the stable Homebrew/PyPI/npm channels — see
 
 ## Questions?
 
-- Open an issue: https://github.com/gastownhall/beads/issues
-- Check existing releases: https://github.com/gastownhall/beads/releases
+- Open an issue: https://github.com/borg0ai/dx-issuegraph/issues
+- Check existing releases: https://github.com/borg0ai/dx-issuegraph/releases

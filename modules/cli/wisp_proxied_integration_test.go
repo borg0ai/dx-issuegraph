@@ -12,18 +12,18 @@ import (
 func TestProxiedServerWispCreate(t *testing.T) {
 	requireSharedProxiedServer(t)
 	t.Parallel()
-	bd := buildEmbeddedBD(t)
+	issuegraph := buildEmbeddedBD(t)
 
 	t.Run("bare_wisp_and_wisp_create_materialize_same_dag", func(t *testing.T) {
 		t.Parallel()
-		p := newSharedProxiedProject(t, bd, "wcd")
-		proto := bdProxiedCreate(t, bd, p.dir, "DAG proto", "--type", "epic", "--label", "template")
-		bdProxiedCreate(t, bd, p.dir, "DAG step one", "--type", "task", "--parent", proto.ID)
-		bdProxiedCreate(t, bd, p.dir, "DAG step two", "--type", "task", "--parent", proto.ID)
+		p := newSharedProxiedProject(t, issuegraph, "wcd")
+		proto := issuegraphProxiedCreate(t, issuegraph, p.dir, "DAG proto", "--type", "epic", "--label", "template")
+		issuegraphProxiedCreate(t, issuegraph, p.dir, "DAG step one", "--type", "task", "--parent", proto.ID)
+		issuegraphProxiedCreate(t, issuegraph, p.dir, "DAG step two", "--type", "task", "--parent", proto.ID)
 
-		out, err := bdProxiedRun(t, bd, p.dir, "mol", "wisp", proto.ID, "--json")
+		out, err := issuegraphProxiedRun(t, issuegraph, p.dir, "mol", "wisp", proto.ID, "--json")
 		if err != nil {
-			t.Fatalf("bd mol wisp --json: %v\n%s", err, out)
+			t.Fatalf("issuegraph mol wisp --json: %v\n%s", err, out)
 		}
 		var got struct {
 			Created int    `json:"created"`
@@ -39,9 +39,9 @@ func TestProxiedServerWispCreate(t *testing.T) {
 			t.Errorf("phase = %s, want vapor", got.Phase)
 		}
 
-		out2, err := bdProxiedRun(t, bd, p.dir, "mol", "wisp", "create", proto.ID, "--json")
+		out2, err := issuegraphProxiedRun(t, issuegraph, p.dir, "mol", "wisp", "create", proto.ID, "--json")
 		if err != nil {
-			t.Fatalf("bd mol wisp create --json: %v\n%s", err, out2)
+			t.Fatalf("issuegraph mol wisp create --json: %v\n%s", err, out2)
 		}
 		var got2 struct {
 			Created int `json:"created"`
@@ -50,19 +50,19 @@ func TestProxiedServerWispCreate(t *testing.T) {
 			t.Fatalf("unmarshal: %v\n%s", err, out2)
 		}
 		if got2.Created != got.Created {
-			t.Errorf("bd mol wisp create --json created %d, want %d (parity with bare wisp)", got2.Created, got.Created)
+			t.Errorf("issuegraph mol wisp create --json created %d, want %d (parity with bare wisp)", got2.Created, got.Created)
 		}
 	})
 
 	t.Run("root_only_skips_children", func(t *testing.T) {
 		t.Parallel()
-		p := newSharedProxiedProject(t, bd, "wcr")
-		proto := bdProxiedCreate(t, bd, p.dir, "Root-only proto", "--type", "epic", "--label", "template")
-		bdProxiedCreate(t, bd, p.dir, "Skipped step", "--type", "task", "--parent", proto.ID)
+		p := newSharedProxiedProject(t, issuegraph, "wcr")
+		proto := issuegraphProxiedCreate(t, issuegraph, p.dir, "Root-only proto", "--type", "epic", "--label", "template")
+		issuegraphProxiedCreate(t, issuegraph, p.dir, "Skipped step", "--type", "task", "--parent", proto.ID)
 
-		out, err := bdProxiedRun(t, bd, p.dir, "mol", "wisp", "create", proto.ID, "--root-only", "--json")
+		out, err := issuegraphProxiedRun(t, issuegraph, p.dir, "mol", "wisp", "create", proto.ID, "--root-only", "--json")
 		if err != nil {
-			t.Fatalf("bd mol wisp create --root-only --json: %v\n%s", err, out)
+			t.Fatalf("issuegraph mol wisp create --root-only --json: %v\n%s", err, out)
 		}
 		var got struct {
 			Created int `json:"created"`
@@ -77,13 +77,13 @@ func TestProxiedServerWispCreate(t *testing.T) {
 
 	t.Run("dry_run_creates_nothing", func(t *testing.T) {
 		t.Parallel()
-		p := newSharedProxiedProject(t, bd, "wcdr")
-		proto := bdProxiedCreate(t, bd, p.dir, "Dry wisp proto", "--type", "epic", "--label", "template")
-		bdProxiedCreate(t, bd, p.dir, "Dry wisp step", "--type", "task", "--parent", proto.ID)
+		p := newSharedProxiedProject(t, issuegraph, "wcdr")
+		proto := issuegraphProxiedCreate(t, issuegraph, p.dir, "Dry wisp proto", "--type", "epic", "--label", "template")
+		issuegraphProxiedCreate(t, issuegraph, p.dir, "Dry wisp step", "--type", "task", "--parent", proto.ID)
 
-		stdout, _, err := bdProxiedRunBuffers(t, bd, p.dir, "mol", "wisp", "create", proto.ID, "--dry-run")
+		stdout, _, err := issuegraphProxiedRunBuffers(t, issuegraph, p.dir, "mol", "wisp", "create", proto.ID, "--dry-run")
 		if err != nil {
-			t.Fatalf("bd mol wisp create --dry-run: %v\n%s", err, stdout)
+			t.Fatalf("issuegraph mol wisp create --dry-run: %v\n%s", err, stdout)
 		}
 		if !strings.Contains(stdout, "Dry run") {
 			t.Errorf("expected dry-run message, got: %s", stdout)
@@ -103,20 +103,20 @@ func TestProxiedServerWispCreate(t *testing.T) {
 func TestProxiedServerWispList(t *testing.T) {
 	requireSharedProxiedServer(t)
 	t.Parallel()
-	bd := buildEmbeddedBD(t)
+	issuegraph := buildEmbeddedBD(t)
 
 	t.Run("default_excludes_closed_all_includes", func(t *testing.T) {
 		t.Parallel()
-		p := newSharedProxiedProject(t, bd, "wl")
-		openWisp := bdProxiedCreate(t, bd, p.dir, "Open wisp", "--ephemeral")
-		closedWisp := bdProxiedCreate(t, bd, p.dir, "Closed wisp", "--ephemeral")
-		if out, err := bdProxiedRun(t, bd, p.dir, "close", closedWisp.ID); err != nil {
-			t.Fatalf("bd close: %v\n%s", err, out)
+		p := newSharedProxiedProject(t, issuegraph, "wl")
+		openWisp := issuegraphProxiedCreate(t, issuegraph, p.dir, "Open wisp", "--ephemeral")
+		closedWisp := issuegraphProxiedCreate(t, issuegraph, p.dir, "Closed wisp", "--ephemeral")
+		if out, err := issuegraphProxiedRun(t, issuegraph, p.dir, "close", closedWisp.ID); err != nil {
+			t.Fatalf("issuegraph close: %v\n%s", err, out)
 		}
 
-		out, err := bdProxiedRun(t, bd, p.dir, "mol", "wisp", "list", "--json")
+		out, err := issuegraphProxiedRun(t, issuegraph, p.dir, "mol", "wisp", "list", "--json")
 		if err != nil {
-			t.Fatalf("bd mol wisp list --json: %v\n%s", err, out)
+			t.Fatalf("issuegraph mol wisp list --json: %v\n%s", err, out)
 		}
 		var got struct {
 			Wisps []struct {
@@ -137,9 +137,9 @@ func TestProxiedServerWispList(t *testing.T) {
 			t.Errorf("closed wisp %s should be excluded by default", closedWisp.ID)
 		}
 
-		outAll, err := bdProxiedRun(t, bd, p.dir, "mol", "wisp", "list", "--all", "--json")
+		outAll, err := issuegraphProxiedRun(t, issuegraph, p.dir, "mol", "wisp", "list", "--all", "--json")
 		if err != nil {
-			t.Fatalf("bd mol wisp list --all --json: %v\n%s", err, outAll)
+			t.Fatalf("issuegraph mol wisp list --all --json: %v\n%s", err, outAll)
 		}
 		var gotAll struct {
 			Wisps []struct {
@@ -160,13 +160,13 @@ func TestProxiedServerWispList(t *testing.T) {
 
 	t.Run("type_filter", func(t *testing.T) {
 		t.Parallel()
-		p := newSharedProxiedProject(t, bd, "wlt")
-		taskWisp := bdProxiedCreate(t, bd, p.dir, "Task wisp", "--ephemeral", "--type", "task")
-		bdProxiedCreate(t, bd, p.dir, "Chore wisp", "--ephemeral", "--type", "chore")
+		p := newSharedProxiedProject(t, issuegraph, "wlt")
+		taskWisp := issuegraphProxiedCreate(t, issuegraph, p.dir, "Task wisp", "--ephemeral", "--type", "task")
+		issuegraphProxiedCreate(t, issuegraph, p.dir, "Chore wisp", "--ephemeral", "--type", "chore")
 
-		out, err := bdProxiedRun(t, bd, p.dir, "mol", "wisp", "list", "--type", "task", "--json")
+		out, err := issuegraphProxiedRun(t, issuegraph, p.dir, "mol", "wisp", "list", "--type", "task", "--json")
 		if err != nil {
-			t.Fatalf("bd mol wisp list --type task --json: %v\n%s", err, out)
+			t.Fatalf("issuegraph mol wisp list --type task --json: %v\n%s", err, out)
 		}
 		var got struct {
 			Wisps []struct {
@@ -184,8 +184,8 @@ func TestProxiedServerWispList(t *testing.T) {
 
 	t.Run("old_wisp_flagged", func(t *testing.T) {
 		t.Parallel()
-		p := newSharedProxiedProject(t, bd, "wlo")
-		oldWisp := bdProxiedCreate(t, bd, p.dir, "Old wisp", "--ephemeral")
+		p := newSharedProxiedProject(t, issuegraph, "wlo")
+		oldWisp := issuegraphProxiedCreate(t, issuegraph, p.dir, "Old wisp", "--ephemeral")
 
 		db := openProxiedDB(t, p)
 		if _, err := db.Exec("UPDATE wisps SET updated_at = ? WHERE id = ?",
@@ -193,9 +193,9 @@ func TestProxiedServerWispList(t *testing.T) {
 			t.Fatalf("backdate wisp: %v", err)
 		}
 
-		out, err := bdProxiedRun(t, bd, p.dir, "mol", "wisp", "list", "--json")
+		out, err := issuegraphProxiedRun(t, issuegraph, p.dir, "mol", "wisp", "list", "--json")
 		if err != nil {
-			t.Fatalf("bd mol wisp list --json: %v\n%s", err, out)
+			t.Fatalf("issuegraph mol wisp list --json: %v\n%s", err, out)
 		}
 		var got struct {
 			Wisps []struct {
@@ -225,13 +225,13 @@ func TestProxiedServerWispList(t *testing.T) {
 func TestProxiedServerWispGC(t *testing.T) {
 	requireSharedProxiedServer(t)
 	t.Parallel()
-	bd := buildEmbeddedBD(t)
+	issuegraph := buildEmbeddedBD(t)
 
 	t.Run("age_threshold_cleans_abandoned_wisps", func(t *testing.T) {
 		t.Parallel()
-		p := newSharedProxiedProject(t, bd, "wg")
-		fresh := bdProxiedCreate(t, bd, p.dir, "Fresh wisp", "--ephemeral")
-		abandoned := bdProxiedCreate(t, bd, p.dir, "Abandoned wisp", "--ephemeral")
+		p := newSharedProxiedProject(t, issuegraph, "wg")
+		fresh := issuegraphProxiedCreate(t, issuegraph, p.dir, "Fresh wisp", "--ephemeral")
+		abandoned := issuegraphProxiedCreate(t, issuegraph, p.dir, "Abandoned wisp", "--ephemeral")
 
 		db := openProxiedDB(t, p)
 		if _, err := db.Exec("UPDATE wisps SET updated_at = ? WHERE id = ?",
@@ -239,9 +239,9 @@ func TestProxiedServerWispGC(t *testing.T) {
 			t.Fatalf("backdate wisp: %v", err)
 		}
 
-		out, err := bdProxiedRun(t, bd, p.dir, "mol", "wisp", "gc", "--age", "1h", "--json")
+		out, err := issuegraphProxiedRun(t, issuegraph, p.dir, "mol", "wisp", "gc", "--age", "1h", "--json")
 		if err != nil {
-			t.Fatalf("bd mol wisp gc --age 1h --json: %v\n%s", err, out)
+			t.Fatalf("issuegraph mol wisp gc --age 1h --json: %v\n%s", err, out)
 		}
 		var got struct {
 			Deleted      []string `json:"deleted"`
@@ -265,9 +265,9 @@ func TestProxiedServerWispGC(t *testing.T) {
 
 	t.Run("cascade_sweeps_dependent_step_wisps", func(t *testing.T) {
 		t.Parallel()
-		p := newSharedProxiedProject(t, bd, "wgc")
-		parentWisp := bdProxiedCreate(t, bd, p.dir, "Abandoned parent wisp", "--ephemeral")
-		childWisp := bdProxiedCreate(t, bd, p.dir, "Fresh child wisp", "--ephemeral")
+		p := newSharedProxiedProject(t, issuegraph, "wgc")
+		parentWisp := issuegraphProxiedCreate(t, issuegraph, p.dir, "Abandoned parent wisp", "--ephemeral")
+		childWisp := issuegraphProxiedCreate(t, issuegraph, p.dir, "Fresh child wisp", "--ephemeral")
 
 		db := openProxiedDB(t, p)
 		if _, err := db.Exec(
@@ -280,9 +280,9 @@ func TestProxiedServerWispGC(t *testing.T) {
 			t.Fatalf("backdate parent wisp: %v", err)
 		}
 
-		out, err := bdProxiedRun(t, bd, p.dir, "mol", "wisp", "gc", "--age", "1h", "--json")
+		out, err := issuegraphProxiedRun(t, issuegraph, p.dir, "mol", "wisp", "gc", "--age", "1h", "--json")
 		if err != nil {
-			t.Fatalf("bd mol wisp gc --age 1h --json: %v\n%s", err, out)
+			t.Fatalf("issuegraph mol wisp gc --age 1h --json: %v\n%s", err, out)
 		}
 		var got struct {
 			Deleted []string `json:"deleted"`
@@ -304,12 +304,12 @@ func TestProxiedServerWispGC(t *testing.T) {
 
 	t.Run("exclude_type_protects_wisps", func(t *testing.T) {
 		t.Parallel()
-		p := newSharedProxiedProject(t, bd, "wge")
-		if out, err := bdProxiedRun(t, bd, p.dir, "config", "set", "types.custom", "agent"); err != nil {
-			t.Fatalf("bd config set types.custom agent: %v\n%s", err, out)
+		p := newSharedProxiedProject(t, issuegraph, "wge")
+		if out, err := issuegraphProxiedRun(t, issuegraph, p.dir, "config", "set", "types.custom", "agent"); err != nil {
+			t.Fatalf("issuegraph config set types.custom agent: %v\n%s", err, out)
 		}
-		protected := bdProxiedCreate(t, bd, p.dir, "Protected agent wisp", "--ephemeral", "--type", "agent")
-		unprotected := bdProxiedCreate(t, bd, p.dir, "Unprotected wisp", "--ephemeral")
+		protected := issuegraphProxiedCreate(t, issuegraph, p.dir, "Protected agent wisp", "--ephemeral", "--type", "agent")
+		unprotected := issuegraphProxiedCreate(t, issuegraph, p.dir, "Unprotected wisp", "--ephemeral")
 
 		db := openProxiedDB(t, p)
 		old := time.Now().UTC().Add(-2 * time.Hour)
@@ -317,9 +317,9 @@ func TestProxiedServerWispGC(t *testing.T) {
 			t.Fatalf("backdate wisps: %v", err)
 		}
 
-		out, err := bdProxiedRun(t, bd, p.dir, "mol", "wisp", "gc", "--age", "1h", "--exclude-type", "agent", "--json")
+		out, err := issuegraphProxiedRun(t, issuegraph, p.dir, "mol", "wisp", "gc", "--age", "1h", "--exclude-type", "agent", "--json")
 		if err != nil {
-			t.Fatalf("bd mol wisp gc --exclude-type agent --json: %v\n%s", err, out)
+			t.Fatalf("issuegraph mol wisp gc --exclude-type agent --json: %v\n%s", err, out)
 		}
 		var got struct {
 			Deleted []string `json:"deleted"`
@@ -341,15 +341,15 @@ func TestProxiedServerWispGC(t *testing.T) {
 
 	t.Run("closed_force_purges_regardless_of_age", func(t *testing.T) {
 		t.Parallel()
-		p := newSharedProxiedProject(t, bd, "wgcl")
-		closedWisp := bdProxiedCreate(t, bd, p.dir, "Just-closed wisp", "--ephemeral")
-		if out, err := bdProxiedRun(t, bd, p.dir, "close", closedWisp.ID); err != nil {
-			t.Fatalf("bd close: %v\n%s", err, out)
+		p := newSharedProxiedProject(t, issuegraph, "wgcl")
+		closedWisp := issuegraphProxiedCreate(t, issuegraph, p.dir, "Just-closed wisp", "--ephemeral")
+		if out, err := issuegraphProxiedRun(t, issuegraph, p.dir, "close", closedWisp.ID); err != nil {
+			t.Fatalf("issuegraph close: %v\n%s", err, out)
 		}
 
-		out, err := bdProxiedRun(t, bd, p.dir, "mol", "wisp", "gc", "--closed", "--force", "--json")
+		out, err := issuegraphProxiedRun(t, issuegraph, p.dir, "mol", "wisp", "gc", "--closed", "--force", "--json")
 		if err != nil {
-			t.Fatalf("bd mol wisp gc --closed --force --json: %v\n%s", err, out)
+			t.Fatalf("issuegraph mol wisp gc --closed --force --json: %v\n%s", err, out)
 		}
 		var got struct {
 			DeletedCount int `json:"deleted_count"`

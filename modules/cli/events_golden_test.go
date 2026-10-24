@@ -8,22 +8,22 @@ import (
 	"testing"
 	"time"
 
-	"github.com/steveyegge/beads/internal/eventsjournal"
-	"github.com/steveyegge/beads/internal/storage"
-	"github.com/steveyegge/beads/internal/storage/issueops"
-	"github.com/steveyegge/beads/internal/types"
+	"github.com/borg0ai/dx-issuegraph/internal/eventsjournal"
+	"github.com/borg0ai/dx-issuegraph/internal/storage"
+	"github.com/borg0ai/dx-issuegraph/internal/storage/issueops"
+	"github.com/borg0ai/dx-issuegraph/internal/types"
 )
 
 // goldenPath is the committed consumer contract: one journal line per record, in
-// the exact shape `bd events tail`/`export` emit. Regenerate with
-// BD_UPDATE_GOLDEN=1 go test ./modules/cli/ -run TestEventsJournalGolden.
+// the exact shape `issuegraph events tail`/`export` emit. Regenerate with
+// ISSUEGRAPH_UPDATE_GOLDEN=1 go test ./modules/cli/ -run TestEventsJournalGolden.
 const goldenPath = "testdata/events_journal_records.jsonl"
 
 // TestEventsJournalGolden pins the external record contract for the durable
-// events journal. It marshals REAL beads types.Issue, EventDep and EventComment
-// values through the same eventsjournal.NewRecord projection `bd events tail`
-// and GET /v0/beads/events both serve from, so the golden
-// captures bd's actual field marshaling — issue_type, omitempty elision, the
+// events journal. It marshals REAL issuegraph types.Issue, EventDep and EventComment
+// values through the same eventsjournal.NewRecord projection `issuegraph events tail`
+// and GET /v0/issuegraph/events both serve from, so the golden
+// captures issuegraph's actual field marshaling — issue_type, omitempty elision, the
 // top-level dep edge (kind/target/metadata), and the replayable comment payload
 // — that external consumers parse. A change to the wire shape (a renamed/added/
 // removed field, a lost omitempty) fails this test until the golden is
@@ -35,11 +35,11 @@ func TestEventsJournalGolden(t *testing.T) {
 	// the issue row and its labels only — never its Dependencies. So no journal
 	// record can carry an inline "dependencies" array; dependency edges surface
 	// solely through the top-level "dep" field on dep_add / dep_remove records.
-	// Enforce that here so the golden pins what bd actually writes.
+	// Enforce that here so the golden pins what issuegraph actually writes.
 	assertNoInlineDependencies(t, got)
 	assertCommentSourcesAreEmittable(t, got)
 
-	if os.Getenv("BD_UPDATE_GOLDEN") == "1" {
+	if os.Getenv("ISSUEGRAPH_UPDATE_GOLDEN") == "1" {
 		if err := os.MkdirAll(filepath.Dir(goldenPath), 0o755); err != nil {
 			t.Fatalf("mkdir testdata: %v", err)
 		}
@@ -52,10 +52,10 @@ func TestEventsJournalGolden(t *testing.T) {
 
 	want, err := os.ReadFile(goldenPath)
 	if err != nil {
-		t.Fatalf("read golden (regenerate with BD_UPDATE_GOLDEN=1): %v", err)
+		t.Fatalf("read golden (regenerate with ISSUEGRAPH_UPDATE_GOLDEN=1): %v", err)
 	}
 	if !bytes.Equal(got, want) {
-		t.Errorf("journal record contract drifted from %s.\n--- got ---\n%s\n--- want ---\n%s\nregenerate with BD_UPDATE_GOLDEN=1 if intended", goldenPath, got, want)
+		t.Errorf("journal record contract drifted from %s.\n--- got ---\n%s\n--- want ---\n%s\nregenerate with ISSUEGRAPH_UPDATE_GOLDEN=1 if intended", goldenPath, got, want)
 	}
 }
 
@@ -69,7 +69,7 @@ func TestEventsJournalGolden(t *testing.T) {
 // Golden on the run that regenerated it and fail on every run afterwards, which
 // reads as flake rather than as the fixture bug it is. Every fixture below is
 // therefore constructed with FIXED timestamps, including the lease pair on the
-// claimed issue: the golden pins the shape a consumer of a claimed bead really
+// claimed issue: the golden pins the shape a consumer of a claimed issue really
 // sees rather than pretending leases do not exist, and stays reproducible.
 func TestEventsJournalGoldenIsDeterministic(t *testing.T) {
 	if !bytes.Equal(renderGoldenLines(t), renderGoldenLines(t)) {
@@ -133,7 +133,7 @@ func renderGoldenLines(t *testing.T) []byte {
 	}
 	// An ephemeral wisp — exercises the ephemeral/wisp_type fields.
 	wisp := &types.Issue{
-		ID: "bd-wisp-1", Title: "convoy member", Status: types.StatusOpen,
+		ID: "issuegraph-wisp-1", Title: "convoy member", Status: types.StatusOpen,
 		IssueType: types.TypeTask, Priority: 2, CreatedAt: created, UpdatedAt: updated,
 		Ephemeral: true, WispType: types.WispType("convoy"),
 	}
@@ -156,9 +156,9 @@ func renderGoldenLines(t *testing.T) []byte {
 	// and an actorless row — derived maintenance, the system delete surfaces,
 	// records from before the column existed — omits the member entirely.
 	//
-	// A `delete` appears on BOTH sides on purpose. A user's `bd delete --actor A`
+	// A `delete` appears on BOTH sides on purpose. A user's `issuegraph delete --actor A`
 	// is attributed to A, cascade rows included; the actorless surfaces (gc,
-	// molecule cleanup, `bd repo remove`) still emit none. A consumer that read
+	// molecule cleanup, `issuegraph repo remove`) still emit none. A consumer that read
 	// the empty case as "deletes are never attributed" — which the fixture used
 	// to be the only evidence for — would mis-resolve every delete conflict.
 	records := []eventsjournal.Record{
@@ -178,8 +178,8 @@ func renderGoldenLines(t *testing.T) []byte {
 		// The cascade edge removal a delete emits, attributed to the requester.
 		goldenRecord(11, ts, string(issueops.EventDepRemove), "bd-101", "deleter-1", mustJSON(t, full),
 			mustJSON(t, &issueops.EventDep{Kind: string(types.DepBlocks), Target: "bd-100"}), ""),
-		goldenRecord(12, ts, string(issueops.EventDelete), "bd-100", "deleter-1", "", "", ""), // null issue on delete; requested delete
-		goldenRecord(13, ts, string(issueops.EventDelete), "bd-wisp-1", "", "", "", ""),       // actorless system delete surface
+		goldenRecord(12, ts, string(issueops.EventDelete), "bd-100", "deleter-1", "", "", ""),   // null issue on delete; requested delete
+		goldenRecord(13, ts, string(issueops.EventDelete), "issuegraph-wisp-1", "", "", "", ""), // actorless system delete surface
 	}
 
 	var buf bytes.Buffer
@@ -211,7 +211,7 @@ func goldenRecord(seq int64, ts, op, issueID, actor, issueJS, depJS, commentJS s
 // assertNoInlineDependencies fails if any record's issue snapshot carries a
 // "dependencies" array. The runtime snapshot (issue + labels only) never
 // populates Dependencies, so a real record cannot contain one; a fixture that
-// does would pin a shape bd never emits.
+// does would pin a shape issuegraph never emits.
 func assertNoInlineDependencies(t *testing.T, jsonl []byte) {
 	t.Helper()
 	for _, line := range bytes.Split(bytes.TrimSpace(jsonl), []byte("\n")) {
@@ -244,7 +244,7 @@ func assertNoInlineDependencies(t *testing.T, jsonl []byte) {
 // The golden shipped for one revision with source "comment", a value invented
 // for the fixture: the engine only ever writes "structured" or "audit". A
 // golden's whole job is to be the thing downstream consumers pin against, so a
-// value bd cannot emit is worse than no fixture at all — it teaches a consumer
+// value issuegraph cannot emit is worse than no fixture at all — it teaches a consumer
 // to handle a case that will never arrive and, worse, to trust the file. The
 // closed set comes from issueops rather than being restated here.
 func assertCommentSourcesAreEmittable(t *testing.T, jsonl []byte) {

@@ -10,8 +10,8 @@ Advanced issuegraph functionality.
 Rename issues while preserving references:
 
 ```bash
-issuegraph rename bd-42 bd-new-id
-issuegraph rename bd-42 bd-new-id --dry-run  # Preview
+issuegraph rename issuegraph-42 issuegraph-new-id
+issuegraph rename issuegraph-42 issuegraph-new-id --dry-run  # Preview
 ```
 
 Updates:
@@ -57,11 +57,11 @@ in each group, falling back to the smallest ID. For each group, `--auto-merge`:
 To mark a single known duplicate manually:
 
 ```bash
-issuegraph duplicate bd-42 --of bd-41  # Close bd-42 as a duplicate of bd-41
+issuegraph duplicate issuegraph-42 --of issuegraph-41  # Close issuegraph-42 as a duplicate of issuegraph-41
 ```
 
 Closing is permanent, but Dolt version history preserves the original state.
-Verify results with `issuegraph show bd-41` and `issuegraph dep tree bd-41`.
+Verify results with `issuegraph show issuegraph-41` and `issuegraph dep tree issuegraph-41`.
 
 ## Database Compaction
 
@@ -75,7 +75,7 @@ issuegraph admin compact --stats
 issuegraph admin compact --analyze --json
 
 # Apply agent-generated summary
-issuegraph admin compact --apply --id bd-42 --summary summary.txt
+issuegraph admin compact --apply --id issuegraph-42 --summary summary.txt
 
 # Immediate deletion (CAUTION!)
 issuegraph admin cleanup --force
@@ -91,8 +91,8 @@ issuegraph admin cleanup --force
 Recover the pre-compaction content of a compacted issue:
 
 ```bash
-issuegraph restore bd-42          # Display the archived original content
-issuegraph restore bd-42 --apply  # Write the original content back into the issue
+issuegraph restore issuegraph-42          # Display the archived original content
+issuegraph restore issuegraph-42 --apply  # Write the original content back into the issue
 ```
 
 If no archived snapshot exists, `issuegraph restore` falls back to a best-effort
@@ -115,32 +115,32 @@ issuegraph sql "SELECT * FROM issues LIMIT 5"
 ## Database Redirects
 
 Multiple git clones can share one issuegraph database — useful when several agents
-or checkout directories work the same issues. Create a `.beads/redirect` file
+or checkout directories work the same issues. Create a `.issuegraph/redirect` file
 in the secondary clone containing a single path (relative or absolute) to the
-target `.beads` directory:
+target `.issuegraph` directory:
 
 ```bash
 # In the secondary clone
-mkdir -p .beads
-echo "../main-clone/.beads" > .beads/redirect
+mkdir -p .issuegraph
+echo "../main-clone/.issuegraph" > .issuegraph/redirect
 ```
 
 Check which database is actually in use:
 
 ```bash
-issuegraph where          # Active .beads location, including redirect info
+issuegraph where          # Active .issuegraph location, including redirect info
 issuegraph where --json
 ```
 
 Limitations and guidance:
 
 - Redirect chains are not followed — only a single level works, so a redirect
-  must point directly at the real `.beads` directory.
+  must point directly at the real `.issuegraph` directory.
 - The target directory must exist and contain a valid database.
 - Give separate projects and long-lived forks their own databases instead of
   redirects.
 - Git worktrees don't need redirects — linked worktrees discover the
-  repository's `.beads` workspace automatically. See
+  repository's `.issuegraph` workspace automatically. See
   [Git Worktrees](/reference/worktrees).
 
 ## Extensible Database
@@ -158,7 +158,7 @@ issuegraph sql "SELECT id, title, status FROM issues LIMIT 5"
 ```
 
 Custom tables through direct storage access are a legacy SQLite-only pattern.
-See the [bd-example-extension-go example](https://github.com/gastownhall/beads/blob/main/examples/bd-example-extension-go/README.md)
+See the [issuegraph-example-extension-go example](https://github.com/borg0ai/dx-issuegraph/blob/main/examples/issuegraph-example-extension-go/README.md)
 only if you are maintaining a SQLite-backed extension.
 
 ## Audit Data
@@ -171,10 +171,10 @@ directly when needed:
 
 ```bash
 # Current issue state
-issuegraph show bd-a1b2 --json
+issuegraph show issuegraph-a1b2 --json
 
 # Recent stored events for one issue (server mode only)
-issuegraph sql "SELECT event_type, actor, created_at FROM events WHERE issue_id = 'bd-a1b2' ORDER BY created_at DESC LIMIT 20"
+issuegraph sql "SELECT event_type, actor, created_at FROM events WHERE issue_id = 'issuegraph-a1b2' ORDER BY created_at DESC LIMIT 20"
 ```
 
 Events:
@@ -194,7 +194,7 @@ Bootstrap a new database from a JSONL export:
 # In the source project
 issuegraph export -o issues.jsonl
 
-# In the new project: place the export at .beads/issues.jsonl
+# In the new project: place the export at .issuegraph/issues.jsonl
 # (or the configured import.path), then initialize from it
 issuegraph init --from-jsonl
 ```
@@ -225,7 +225,7 @@ Use the CLI as the supported integration boundary:
 
 ```bash
 # Machine-readable issue data
-issuegraph show bd-a1b2 --json
+issuegraph show issuegraph-a1b2 --json
 
 # Ready-work queue for automation
 issuegraph ready --json
@@ -238,7 +238,7 @@ The storage packages under `internal/` are not a public Go API.
 
 The [MCP server](/integrations/mcp-server) is a stateless adapter over the
 same boundary: it translates MCP calls into `issuegraph` CLI invocations and routes
-each call to the correct `.beads` workspace based on the working directory.
+each call to the correct `.issuegraph` workspace based on the working directory.
 It never caches or stores issue data itself.
 
 ## Performance Tuning

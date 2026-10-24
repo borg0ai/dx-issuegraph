@@ -10,8 +10,8 @@ import (
 	"testing"
 	"time"
 
-	"github.com/steveyegge/beads/internal/storage"
-	"github.com/steveyegge/beads/internal/types"
+	"github.com/borg0ai/dx-issuegraph/internal/storage"
+	"github.com/borg0ai/dx-issuegraph/internal/types"
 )
 
 type dependencySkipCapturingStore struct {
@@ -108,8 +108,8 @@ func TestImportFromLocalJSONL(t *testing.T) {
 		}
 	})
 
-	t.Run("skips beads-jsonl metadata header line", func(t *testing.T) {
-		// Canonical beads-jsonl exports prepend a schema/provenance
+	t.Run("skips issuegraph-jsonl metadata header line", func(t *testing.T) {
+		// Canonical issuegraph-jsonl exports prepend a schema/provenance
 		// header record (no _type, no issue fields). Without the
 		// header-skip guard it falls through to the issue path and
 		// aborts the whole import with
@@ -119,7 +119,7 @@ func TestImportFromLocalJSONL(t *testing.T) {
 		dbPath := filepath.Join(tmpDir, "dolt")
 		store := newTestStore(t, dbPath)
 
-		jsonlContent := `{"_dolt_branch":"main","_dolt_commit":"abc123","_project_id":"p1","_schema":"beads-jsonl/1","_sort":"stable-v1"}
+		jsonlContent := `{"_dolt_branch":"main","_dolt_commit":"abc123","_project_id":"p1","_schema":"issuegraph-jsonl/1","_sort":"stable-v1"}
 {"id":"test-hdr1","title":"After header","type":"bug","status":"open","priority":2,"created_at":"2025-01-01T00:00:00Z","updated_at":"2025-01-01T00:00:00Z"}
 `
 		jsonlPath := filepath.Join(tmpDir, "issues.jsonl")
@@ -264,7 +264,7 @@ func TestImportFromLocalJSONL(t *testing.T) {
 	})
 
 	t.Run("child counter reconciled after JSONL import prevents overwrites", func(t *testing.T) {
-		// Regression test for GH#2166: bd create --parent after bd init --from-jsonl
+		// Regression test for GH#2166: issuegraph create --parent after issuegraph init --from-jsonl
 		// must not overwrite existing child issues. The child_counters table
 		// must be reconciled from imported hierarchical IDs.
 		tmpDir := t.TempDir()
@@ -659,16 +659,16 @@ func TestImportFromLocalJSONL(t *testing.T) {
 
 	t.Run("no_history flag survives JSONL import roundtrip", func(t *testing.T) {
 		// Regression test for GH#2619: ImportFromLocalJSONL must preserve no_history=true.
-		// NoHistory beads are stored in the wisps table with no_history=1. The issueops
+		// NoHistory issuegraph are stored in the wisps table with no_history=1. The issueops
 		// InsertIssueIntoTable function must include no_history in the INSERT or the flag
-		// is silently dropped and the bead becomes GC-eligible after restore.
+		// is silently dropped and the issue becomes GC-eligible after restore.
 		tmpDir := t.TempDir()
 		dbPath := filepath.Join(tmpDir, "dolt")
 		store := newTestStore(t, dbPath)
 
 		// JSONL line with no_history=true (and ephemeral=false).
-		// This represents a NoHistory bead exported from a live database.
-		jsonlContent := `{"id":"test-nh1","title":"NoHistory bead","type":"task","status":"open","priority":2,"created_at":"2025-01-01T00:00:00Z","updated_at":"2025-01-01T00:00:00Z","no_history":true}
+		// This represents a NoHistory issue exported from a live database.
+		jsonlContent := `{"id":"test-nh1","title":"NoHistory issue","type":"task","status":"open","priority":2,"created_at":"2025-01-01T00:00:00Z","updated_at":"2025-01-01T00:00:00Z","no_history":true}
 `
 		jsonlPath := filepath.Join(tmpDir, "issues.jsonl")
 		if err := os.WriteFile(jsonlPath, []byte(jsonlContent), 0644); err != nil {
@@ -684,20 +684,20 @@ func TestImportFromLocalJSONL(t *testing.T) {
 			t.Errorf("Expected 1 issue imported, got %d", count)
 		}
 
-		// Verify the bead was imported with no_history=true preserved.
+		// Verify the issue was imported with no_history=true preserved.
 		issue, err := store.GetIssue(ctx, "test-nh1")
 		if err != nil {
-			t.Fatalf("Failed to get NoHistory bead after import: %v", err)
+			t.Fatalf("Failed to get NoHistory issue after import: %v", err)
 		}
-		if issue.Title != "NoHistory bead" {
-			t.Errorf("Expected title 'NoHistory bead', got %q", issue.Title)
+		if issue.Title != "NoHistory issue" {
+			t.Errorf("Expected title 'NoHistory issue', got %q", issue.Title)
 		}
 		if !issue.NoHistory {
-			t.Error("no_history=true was lost during JSONL import: bead is now GC-eligible (would be incorrectly collected by wisp GC)")
+			t.Error("no_history=true was lost during JSONL import: issue is now GC-eligible (would be incorrectly collected by wisp GC)")
 		}
-		// NoHistory beads must NOT have ephemeral=true (they're not GC-eligible)
+		// NoHistory issuegraph must NOT have ephemeral=true (they're not GC-eligible)
 		if issue.Ephemeral {
-			t.Error("NoHistory bead must not be ephemeral=true after import")
+			t.Error("NoHistory issue must not be ephemeral=true after import")
 		}
 	})
 }

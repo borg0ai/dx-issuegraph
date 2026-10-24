@@ -4,7 +4,7 @@ import (
 	"testing"
 )
 
-// TestWarnNotesReplacement is the D2 guard test: a `bd update --notes` that
+// TestWarnNotesReplacement is the D2 guard test: a `issuegraph update --notes` that
 // replaces a non-empty notes field warns on stderr, naming --append-notes as
 // the history-preserving alternative (the warning itself shipped on main via
 // #4743). The predicate deciding WHEN the warning fires is covered by

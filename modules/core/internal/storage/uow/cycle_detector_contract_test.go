@@ -5,7 +5,7 @@ import (
 	"fmt"
 	"testing"
 
-	"github.com/steveyegge/beads/backend/conformance"
+	"github.com/borg0ai/dx-issuegraph/backend/conformance"
 )
 
 // TestCycleDetectorContract runs the CycleDetector contract against the

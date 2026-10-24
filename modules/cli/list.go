@@ -6,12 +6,12 @@ import (
 	"os"
 	"strings"
 
+	"github.com/borg0ai/dx-issuegraph/internal/metrics"
+	"github.com/borg0ai/dx-issuegraph/internal/storage"
+	"github.com/borg0ai/dx-issuegraph/internal/types"
+	"github.com/borg0ai/dx-issuegraph/internal/ui"
+	"github.com/borg0ai/dx-issuegraph/internal/workapi"
 	"github.com/spf13/cobra"
-	"github.com/steveyegge/beads/internal/metrics"
-	"github.com/steveyegge/beads/internal/storage"
-	"github.com/steveyegge/beads/internal/types"
-	"github.com/steveyegge/beads/internal/ui"
-	"github.com/steveyegge/beads/internal/workapi"
 )
 
 // storageExecutor handles operations that need a store connection
@@ -160,10 +160,10 @@ var listCmd = &cobra.Command{
 		}
 		for _, arg := range args {
 			if hint, ok := knownListFlags[arg]; ok {
-				return fmt.Errorf("unknown argument %q; did you mean %q or 'bd %s'?", arg, hint, arg)
+				return fmt.Errorf("unknown argument %q; did you mean %q or 'issuegraph %s'?", arg, hint, arg)
 			}
 		}
-		return fmt.Errorf("bd list does not accept positional arguments; use flags instead (see bd list --help)")
+		return fmt.Errorf("issuegraph list does not accept positional arguments; use flags instead (see issuegraph list --help)")
 	},
 	SilenceUsage:  true,
 	SilenceErrors: true,
@@ -180,8 +180,8 @@ var listCmd = &cobra.Command{
 }
 
 // runListCore runs the list query and rendering without emitting a metrics
-// event, so the caller owns emission: `bd list` emits "list" exactly once, and
-// the `bd children` alias emits "children" exactly once. children sets listCmd's
+// event, so the caller owns emission: `issuegraph list` emits "list" exactly once, and
+// the `issuegraph children` alias emits "children" exactly once. children sets listCmd's
 // flags and calls this core directly rather than listCmd.RunE, which would emit
 // a second "list" event for a single user command.
 func runListCore(cmd *cobra.Command, _ []string) error {
@@ -218,7 +218,7 @@ func runListCore(cmd *cobra.Command, _ []string) error {
 		return HandleError("--offset is only supported under --proxied-server")
 	}
 
-	// `bd list`'s PAGE is on issueops.Reader. The filter is still built here
+	// `issuegraph list`'s PAGE is on issueops.Reader. The filter is still built here
 	// because --watch and the hierarchical --parent tree consume it as a VALUE:
 	// the poll loop re-runs it on a ticker and the tree walk re-parents a copy
 	// of it at every level, neither of which a page can express. Building it
@@ -458,7 +458,7 @@ func init() {
 			"payload, waiters) from each row. Filters that read those fields, such as "+
 			"--desc-contains, still select on them. An omitted field is"+
 			" indistinguishable from an empty one in --json; fetch a whole issue"+
-			" with bd show.")
+			" with issuegraph show.")
 
 	// Priority ranges
 	listCmd.Flags().String("priority-min", "", "Filter by minimum priority (inclusive, 0-4 or P0-P4)")
@@ -475,7 +475,7 @@ func init() {
 	listCmd.Flags().Bool("include-gates", false, "Include gate issues in output (normally hidden)")
 
 	// Infra type filtering: exclude agent/role/message by default
-	listCmd.Flags().Bool("include-infra", false, "Include infrastructure beads (agent/role/message) in output")
+	listCmd.Flags().Bool("include-infra", false, "Include infrastructure issuegraph (agent/role/message) in output")
 
 	// Ephemeral plane: the wisps table is suppressed by default. This is the
 	// PLANE knob on its own — ListRequest.IncludeEphemeral — as distinct from
@@ -528,7 +528,7 @@ func init() {
 	listCmd.Flags().Bool("no-pager", false, "Disable pager output")
 
 	// Ready filter: show only issues ready to be worked on (bd-ihu31)
-	listCmd.Flags().Bool("ready", false, "Show only ready issues (no active blockers, same semantics as bd ready)")
+	listCmd.Flags().Bool("ready", false, "Show only ready issues (no active blockers, same semantics as issuegraph ready)")
 
 	// Defensive row cap (be-x42v): exits 2 on overage, default disabled.
 	// ROUTED, not direct-only: both routes thread the cap now.

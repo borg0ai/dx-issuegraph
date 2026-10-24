@@ -29,9 +29,9 @@ func TestSplitIDSegments(t *testing.T) {
 		input string
 		want  []string
 	}{
-		{"bd-1", []string{"bd", "1"}},
-		{"bd-E.10", []string{"bd", "E", "10"}},
-		{"bd-1.2.3", []string{"bd", "1", "2", "3"}},
+		{"bd-1", []string{"issuegraph", "1"}},
+		{"bd-E.10", []string{"issuegraph", "E", "10"}},
+		{"bd-1.2.3", []string{"issuegraph", "1", "2", "3"}},
 	}
 	for _, tt := range tests {
 		got := splitIDSegments(tt.input)

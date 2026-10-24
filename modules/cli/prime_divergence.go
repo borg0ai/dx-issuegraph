@@ -6,13 +6,13 @@ import (
 	"strings"
 )
 
-// beadsIntegrationMarker is the substring present in agent instruction files
-// (AGENTS.md / CLAUDE.md) that bd manages via its integration block.
-const beadsIntegrationMarker = "BEGIN BEADS INTEGRATION"
+// issuegraphIntegrationMarker is the substring present in agent instruction files
+// (AGENTS.md / CLAUDE.md) that issuegraph manages via its integration block.
+const issuegraphIntegrationMarker = "BEGIN ISSUEGRAPH INTEGRATION"
 
 // primeDivergenceReminder returns a one-line reminder when both AGENTS.md and
 // CLAUDE.md in workspaceDir exist as independent regular files (not symlinks,
-// not sharing an inode) that each contain the bd integration marker.
+// not sharing an inode) that each contain the issuegraph integration marker.
 //
 // In every other case it returns the empty string and performs no work beyond
 // a couple of cheap Lstat calls, so the common case (the condition does not
@@ -59,7 +59,7 @@ func primeDivergenceReminder(workspaceDir string) string {
 	return "\n> **Note**: AGENTS.md and CLAUDE.md are independent files (not symlinked and not sharing an inode). Mirror substantive edits across both, or symlink one to the other.\n"
 }
 
-// fileContainsMarker reports whether the file at path contains the bd
+// fileContainsMarker reports whether the file at path contains the issuegraph
 // integration marker. Any read error yields false (treated as "no marker").
 func fileContainsMarker(path string) bool {
 	// #nosec G304 -- path is composed from a caller-controlled workspace dir
@@ -67,5 +67,5 @@ func fileContainsMarker(path string) bool {
 	if err != nil {
 		return false
 	}
-	return strings.Contains(string(data), beadsIntegrationMarker)
+	return strings.Contains(string(data), issuegraphIntegrationMarker)
 }

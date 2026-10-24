@@ -3,17 +3,17 @@ package main
 // Init-safety decision logic.
 //
 // See engdocs/adr/0002-init-safety-invariants.md for the ADR this encodes.
-// The invariant: every `bd init` resolves `project_id` from exactly one
+// The invariant: every `issuegraph init` resolves `project_id` from exactly one
 // explicitly-named source; ambiguous sources refuse. `--force` (or its
 // replacement `--reinit-local`) bypasses the local data-safety guard only;
 // it never authorizes silent divergence of remote history. When origin
-// advertises `refs/dolt/data`, `bd init` refuses unless the caller
+// advertises `refs/dolt/data`, `issuegraph init` refuses unless the caller
 // authorizes the cross-boundary operation via `--discard-remote` + a
 // destroy-token.
 //
 // Error-message contract: no runtime error may emit a complete destructive
 // invocation. Flag identifiers and safe-tool names are permitted; token
-// values and other friction-bearing arguments live in `bd help init-safety`
+// values and other friction-bearing arguments live in `issuegraph help init-safety`
 // and `docs/recovery/init-safety.md` only.
 
 import "fmt"
@@ -30,14 +30,14 @@ const (
 	// for a destructive re-init over existing local data was declined at
 	// the prompt. That TTY-only path is its sole source: the same guard's
 	// non-interactive branch returns ExitDestroyTokenMissing instead, and
-	// a plain `bd init` over an initialized workspace is refused by the
+	// a plain `issuegraph init` over an initialized workspace is refused by the
 	// local-safety guard with an ordinary error, not this code.
 	ExitLocalExistsRefused = 11
 
 	// ExitDestroyTokenMissing signals a destructive re-init was requested
 	// in non-interactive mode without a valid `--destroy-token`: either
 	// `--discard-remote`, or `--reinit-local` over existing local issues.
-	// The caller must look up the token format via `bd help init-safety`.
+	// The caller must look up the token format via `issuegraph help init-safety`.
 	// It is also returned when the interactive `--discard-remote` typed-token
 	// confirmation is declined at the prompt, so a 12 does not on its own
 	// prove the caller was non-interactive. Supplying the token is the
@@ -121,7 +121,7 @@ type RemoteSafetyDecision struct {
 }
 
 // CheckRemoteSafety is the chokepoint the ADR names. Every future flag on
-// `bd init` that can interact with remote history must go through this
+// `issuegraph init` that can interact with remote history must go through this
 // function — never add a new `&& !someFlag` at the call site. See the
 // guard matrix test in init_safety_test.go.
 func CheckRemoteSafety(in RemoteSafetyInput) RemoteSafetyDecision {
@@ -177,7 +177,7 @@ func CheckRemoteSafety(in RemoteSafetyInput) RemoteSafetyDecision {
 // complete destructive invocation — the ADR invariant bars runtime error
 // output from constructing a copy-pasteable override.
 func refusalMessageDivergence() string {
-	return `bd init refuses: remote 'origin' already has Dolt history (refs/dolt/data).
+	return `issuegraph init refuses: remote 'origin' already has Dolt history (refs/dolt/data).
 
   Why: this init mode would create or reuse local history instead of
        adopting the remote. --force / --reinit-local bypasses only the
@@ -186,33 +186,33 @@ func refusalMessageDivergence() string {
 
   Next:
     Adopt the remote (recommended):
-      bd bootstrap
+      issuegraph bootstrap
 
     Diagnose first:
-      bd doctor
+      issuegraph doctor
 
     Overwrite the remote intentionally (destructive):
-      See 'bd help init-safety' for the --discard-remote workflow.`
+      See 'issuegraph help init-safety' for the --discard-remote workflow.`
 }
 
 // refusalMessageTokenMissing returns the What/Why/Next refusal text for
 // the `--discard-remote` + missing/wrong destroy-token case. Deliberately
 // does not echo the token value.
 func refusalMessageTokenMissing() string {
-	return `bd init refuses: --discard-remote requires an explicit destroy-token in non-interactive mode.
+	return `issuegraph init refuses: --discard-remote requires an explicit destroy-token in non-interactive mode.
 
   Why: Destructive cross-boundary operations cannot be authorized
        silently. The token exists so automation has to make a
        deliberate, project-specific choice.
 
   Next:
-    See 'bd help init-safety' for the destroy-token format.
+    See 'issuegraph help init-safety' for the destroy-token format.
     Or re-run interactively (attached to a TTY) and confirm at the prompt.`
 }
 
 // FormatDestroyToken returns the destroy-token the caller should supply
 // for a given issue prefix. Callers that need to surface this to users
-// should do so via `bd help init-safety` or `docs/recovery/init-safety.md` — NOT via
+// should do so via `issuegraph help init-safety` or `docs/recovery/init-safety.md` — NOT via
 // runtime error text (see the ADR invariant).
 func FormatDestroyToken(prefix string) string {
 	return fmt.Sprintf("DESTROY-%s", prefix)

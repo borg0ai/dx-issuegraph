@@ -3,15 +3,15 @@ package main
 import (
 	"path/filepath"
 
-	"github.com/steveyegge/beads/internal/config"
+	"github.com/borg0ai/dx-issuegraph/internal/config"
 )
 
 const defaultImportJSONLPath = "issues.jsonl"
 
-func configuredImportJSONLPath(beadsDir string) string {
+func configuredImportJSONLPath(issuegraphDir string) string {
 	importPath := config.GetString("import.path")
 	if importPath == "" {
 		importPath = defaultImportJSONLPath
 	}
-	return filepath.Join(beadsDir, importPath)
+	return filepath.Join(issuegraphDir, importPath)
 }

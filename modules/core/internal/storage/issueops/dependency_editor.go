@@ -5,10 +5,10 @@ import (
 	"database/sql"
 	"fmt"
 
-	"github.com/steveyegge/beads/internal/storage"
-	"github.com/steveyegge/beads/internal/storage/domain"
-	"github.com/steveyegge/beads/internal/types"
-	publicops "github.com/steveyegge/beads/issueops"
+	"github.com/borg0ai/dx-issuegraph/internal/storage"
+	"github.com/borg0ai/dx-issuegraph/internal/storage/domain"
+	"github.com/borg0ai/dx-issuegraph/internal/types"
+	publicops "github.com/borg0ai/dx-issuegraph/issueops"
 )
 
 // ValidateAddDependenciesRequest applies the request rules every
@@ -67,22 +67,22 @@ func ValidateRemoveDependencyRequest(request publicops.RemoveDependencyRequest) 
 // A batch close has to name what landed because it can skip an id; this cannot.
 //
 // The two spellings are the two the CLI already wrote — one edge names both
-// endpoints, several name their count — because the role is what both `bd dep
-// add <a> <b>` and `bd dep add --file` now go through, and `bd dolt log` should
+// endpoints, several name their count — because the role is what both `issuegraph dep
+// add <a> <b>` and `issuegraph dep add --file` now go through, and `issuegraph dolt log` should
 // keep reading the way it did. The count spelling is keyed on the EDGE COUNT
 // and not on which flag was used, so a one-line bulk file now names its edge
 // instead of reading "add 1 edges": one edge is one edge however it was
 // spelled.
 func AddDependenciesCommitMessage(request publicops.AddDependenciesRequest) string {
 	if len(request.Edges) == 1 {
-		return "bd: dep add " + request.Edges[0].IssueID + " " + request.Edges[0].DependsOnID
+		return "issuegraph: dep add " + request.Edges[0].IssueID + " " + request.Edges[0].DependsOnID
 	}
 	return fmt.Sprintf("dependency: add %d edges", len(request.Edges))
 }
 
 // RemoveDependencyCommitMessage is the history entry a removal records.
 func RemoveDependencyCommitMessage(issueID, dependsOnID string) string {
-	return "bd: dep remove " + issueID + " " + dependsOnID
+	return "issuegraph: dep remove " + issueID + " " + dependsOnID
 }
 
 // ExecuteAddDependencies asserts every requested edge in tx and reports the
@@ -109,7 +109,7 @@ func RemoveDependencyCommitMessage(issueID, dependsOnID string) string {
 // and the plane is decided per edge, one level down.
 func ExecuteAddDependencies(ctx context.Context, tx *sql.Tx, request publicops.AddDependenciesRequest) (publicops.AddDependenciesResult, ChangedTables, error) {
 	// One scoped query for the whole request instead of a probe per edge: a
-	// bulk `bd dep add --file` against a remote Dolt pays WAN latency per
+	// bulk `issuegraph dep add --file` against a remote Dolt pays WAN latency per
 	// round-trip (GH#3414). Nothing an edge write does moves a source between
 	// planes, so a set read once up front stays true for the transaction.
 	sources := make([]string, 0, len(request.Edges))
@@ -150,7 +150,7 @@ func ExecuteAddDependencies(ctx context.Context, tx *sql.Tx, request publicops.A
 // The edge FOLLOWS ITS SOURCE, the same rule the removal reads and the same
 // one the stores' own dependency verb applied before this role existed: a wisp
 // has no row in the issues plane, so pinning the source there refused every
-// `bd dep add <wisp-id> <target>` with "issue not found". Source class decides
+// `issuegraph dep add <wisp-id> <target>` with "issue not found". Source class decides
 // the dependency table and, with it, the event table. The target's routing
 // stays independently detected: either class may legitimately depend on the
 // other.
@@ -194,7 +194,7 @@ func addDependencyEdgeInTx(ctx context.Context, tx *sql.Tx, request publicops.Ad
 	// the same {dependencies, events} pair. Tracked as bd-2y9ke; fixing it
 	// changes what every dep-add commit contains and belongs in its own change
 	// with its own tests, so do not widen the set here without reading that
-	// bead first.
+	// issue first.
 	tables := ChangedTables{}
 	tables.Add(depTable)
 	if eventWritten {
@@ -227,7 +227,7 @@ func checkAddedEdgesForCycles(ctx context.Context, tx *sql.Tx, edges []publicops
 		return fmt.Errorf("final cycle check failed (no edges added): %w", err)
 	}
 	if cyclePath := CycleThroughEdgesInGraph(graph, pairs); cyclePath != "" {
-		return domain.NewCycleError("dependency cycle would be created: %s (no edges added; run 'bd dep cycles' for analysis)", cyclePath)
+		return domain.NewCycleError("dependency cycle would be created: %s (no edges added; run 'issuegraph dep cycles' for analysis)", cyclePath)
 	}
 	return nil
 }

@@ -16,7 +16,7 @@ zero issues in its own scope.
 - **The PR lane reports only what the PR introduces.** Both of its jobs are
   scoped to the diff against the merge base with `main`: the `lint` job passes
   `only-new-issues`, and `pr-lint-wrapper` runs the repository-owned
-  `ci-pr-lint` wrapper with `BD_LINT_NEW_FROM_MERGE_BASE`. A finding in code the
+  `ci-pr-lint` wrapper with `ISSUEGRAPH_LINT_NEW_FROM_MERGE_BASE`. A finding in code the
   PR did not touch does not block it.
 - **The main lane sweeps the whole tree.** Both jobs run unscoped on every push
   to `main`, so a finding that lands there reds main's own run rather than every
@@ -29,7 +29,7 @@ make ci-pr-lint
 ```
 
 That is the MAIN lane's contract, not the PR lane's: with
-`BD_LINT_NEW_FROM_MERGE_BASE` unset it sweeps the whole tree, so it is
+`ISSUEGRAPH_LINT_NEW_FROM_MERGE_BASE` unset it sweeps the whole tree, so it is
 deliberately STRICTER than the gate your PR has to clear and may report findings
 you are not required to fix. Fix the ones that are yours; the PR gate is the
 authority on what blocks a merge, and main's own run is where the rest is
@@ -40,7 +40,7 @@ The wrapper runs:
 - `make fmt-check`;
 - golangci-lint with `.golangci.yml`, readonly module downloads, a five-minute
   timeout, the `gms_pure_go` build tag, and `--new-from-merge-base` when
-  `BD_LINT_NEW_FROM_MERGE_BASE` names a ref; and
+  `ISSUEGRAPH_LINT_NEW_FROM_MERGE_BASE` names a ref; and
 - a second non-CGO Windows cross-lint pass, on the same scope, when the native
   host does not already cover that target.
 

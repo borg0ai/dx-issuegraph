@@ -30,7 +30,7 @@ func TestCheckOpenCodeMissingFile(t *testing.T) {
 	if err == nil {
 		t.Fatal("expected error for missing AGENTS.md")
 	}
-	if !strings.Contains(stdout.String(), "bd setup opencode") {
+	if !strings.Contains(stdout.String(), "issuegraph setup opencode") {
 		t.Error("expected setup guidance for opencode")
 	}
 }

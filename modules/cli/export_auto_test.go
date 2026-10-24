@@ -15,19 +15,19 @@ import (
 	"testing"
 	"time"
 
+	"github.com/borg0ai/dx-issuegraph/internal/config"
+	"github.com/borg0ai/dx-issuegraph/internal/storage"
+	"github.com/borg0ai/dx-issuegraph/internal/testutil"
+	"github.com/borg0ai/dx-issuegraph/internal/types"
 	"github.com/spf13/cobra"
-	"github.com/steveyegge/beads/internal/config"
-	"github.com/steveyegge/beads/internal/storage"
-	"github.com/steveyegge/beads/internal/testutil"
-	"github.com/steveyegge/beads/internal/types"
 )
 
 // TestGitAddFile_InWorktreeHook_StagesCorrectPath is a regression test for
-// GH#3311: when bd's pre-commit hook calls git add with GIT_DIR inherited
+// GH#3311: when issuegraph's pre-commit hook calls git add with GIT_DIR inherited
 // from the parent hook invocation, git defaults the work-tree to cwd and
-// mis-stages the file at the root of the repo instead of under .beads/.
+// mis-stages the file at the root of the repo instead of under .issuegraph/.
 //
-// This test verifies the file ends up staged at .beads/issues.jsonl, not
+// This test verifies the file ends up staged at .issuegraph/issues.jsonl, not
 // at repo-root "issues.jsonl".
 func TestGitAddFile_InWorktreeHook_StagesCorrectPath(t *testing.T) {
 	if _, err := exec.LookPath("git"); err != nil {
@@ -76,11 +76,11 @@ func TestGitAddFile_InWorktreeHook_StagesCorrectPath(t *testing.T) {
 		_ = c.Run()
 	})
 
-	beadsDir := filepath.Join(worktree, ".beads")
-	if err := os.MkdirAll(beadsDir, 0o755); err != nil {
+	issuegraphDir := filepath.Join(worktree, ".issuegraph")
+	if err := os.MkdirAll(issuegraphDir, 0o755); err != nil {
 		t.Fatal(err)
 	}
-	jsonlPath := filepath.Join(beadsDir, "issues.jsonl")
+	jsonlPath := filepath.Join(issuegraphDir, "issues.jsonl")
 	if err := os.WriteFile(jsonlPath, []byte(`{"id":"x"}`+"\n"), 0o644); err != nil {
 		t.Fatal(err)
 	}
@@ -109,7 +109,7 @@ func TestGitAddFile_InWorktreeHook_StagesCorrectPath(t *testing.T) {
 		t.Fatalf("gitAddFile: %v", err)
 	}
 
-	// Inspect the worktree's index: the staged path must be ".beads/issues.jsonl",
+	// Inspect the worktree's index: the staged path must be ".issuegraph/issues.jsonl",
 	// NOT bare "issues.jsonl" at repo root.
 	lsFiles := exec.Command("git", "ls-files", "--stage")
 	lsFiles.Dir = worktree
@@ -118,8 +118,8 @@ func TestGitAddFile_InWorktreeHook_StagesCorrectPath(t *testing.T) {
 		t.Fatalf("git ls-files: %v\n%s", err, data)
 	}
 	staged := string(data)
-	if !strings.Contains(staged, ".beads/issues.jsonl") {
-		t.Errorf("expected .beads/issues.jsonl to be staged, got:\n%s", staged)
+	if !strings.Contains(staged, ".issuegraph/issues.jsonl") {
+		t.Errorf("expected .issuegraph/issues.jsonl to be staged, got:\n%s", staged)
 	}
 	// Regression guard: the pre-fix bug stages bare "issues.jsonl" at the root.
 	for _, line := range strings.Split(strings.TrimSpace(staged), "\n") {
@@ -329,15 +329,15 @@ func (s *spyDiffStore) HistoricalIssueIDs(ctx context.Context, ids []string) (ma
 func autoExportTestDir(t *testing.T) string {
 	t.Helper()
 	dir := t.TempDir()
-	beadsDir := filepath.Join(dir, ".beads")
-	if err := os.MkdirAll(beadsDir, 0o755); err != nil {
+	issuegraphDir := filepath.Join(dir, ".issuegraph")
+	if err := os.MkdirAll(issuegraphDir, 0o755); err != nil {
 		t.Fatal(err)
 	}
-	if err := os.WriteFile(filepath.Join(beadsDir, "metadata.json"), []byte(`{"database":"beads","backend":"dolt"}`), 0o600); err != nil {
+	if err := os.WriteFile(filepath.Join(issuegraphDir, "metadata.json"), []byte(`{"database":"issuegraph","backend":"dolt"}`), 0o600); err != nil {
 		t.Fatal(err)
 	}
 	t.Chdir(dir)
-	t.Setenv("BEADS_DIR", beadsDir)
+	t.Setenv("ISSUEGRAPH_DIR", issuegraphDir)
 	return dir
 }
 
@@ -355,7 +355,7 @@ func TestMaybeAutoExportUsesStateHashForChangeDetection(t *testing.T) {
 	store = fake
 
 	dir := autoExportTestDir(t)
-	saveExportAutoState(filepath.Join(dir, ".beads"), &exportAutoState{
+	saveExportAutoState(filepath.Join(dir, ".issuegraph"), &exportAutoState{
 		LastDoltCommit: "working-set-hash",
 		Timestamp:      time.Now(),
 	})
@@ -370,7 +370,7 @@ func TestMaybeAutoExportUsesStateHashForChangeDetection(t *testing.T) {
 	if fake.currentCommitCalls != 0 {
 		t.Fatalf("GetCurrentCommit calls = %d, want 0 (StateHasher must take precedence)", fake.currentCommitCalls)
 	}
-	if _, err := os.Stat(filepath.Join(dir, ".beads", "issues.jsonl")); !os.IsNotExist(err) {
+	if _, err := os.Stat(filepath.Join(dir, ".issuegraph", "issues.jsonl")); !os.IsNotExist(err) {
 		t.Fatalf("unchanged state hash must not export, stat err=%v", err)
 	}
 }
@@ -384,7 +384,7 @@ func TestMaybeAutoExportExportsOnStateHashChange(t *testing.T) {
 	store = fake
 
 	dir := autoExportTestDir(t)
-	saveExportAutoState(filepath.Join(dir, ".beads"), &exportAutoState{
+	saveExportAutoState(filepath.Join(dir, ".issuegraph"), &exportAutoState{
 		LastDoltCommit: "hash-before-write",
 		Timestamp:      time.Time{}, // zero: throttle window open
 	})
@@ -393,7 +393,7 @@ func TestMaybeAutoExportExportsOnStateHashChange(t *testing.T) {
 		t.Fatalf("maybeAutoExport: %v", err)
 	}
 
-	state := loadExportAutoState(filepath.Join(dir, ".beads"))
+	state := loadExportAutoState(filepath.Join(dir, ".issuegraph"))
 	if state.LastDoltCommit != "hash-after-write" {
 		t.Fatalf("state LastDoltCommit = %q, want %q (export must run when the state hash moves)",
 			state.LastDoltCommit, "hash-after-write")
@@ -409,7 +409,7 @@ func TestMaybeAutoExportFallsBackToHeadCommit(t *testing.T) {
 	store = fake
 
 	dir := autoExportTestDir(t)
-	saveExportAutoState(filepath.Join(dir, ".beads"), &exportAutoState{
+	saveExportAutoState(filepath.Join(dir, ".issuegraph"), &exportAutoState{
 		LastDoltCommit: "head-commit-hash",
 		Timestamp:      time.Now(),
 	})
@@ -668,7 +668,7 @@ func TestHookWorkTreeRoot(t *testing.T) {
 }
 
 // TestGitAddFile_NonHookContext_GuardDoesNotFire verifies the worktree
-// guard is a no-op when GIT_DIR is not set (normal bd invocation, not
+// guard is a no-op when GIT_DIR is not set (normal issuegraph invocation, not
 // inside a git hook). Regression guard so a future tightening of
 // hookWorkTreeRoot does not silently break the common path.
 func TestGitAddFile_NonHookContext_GuardDoesNotFire(t *testing.T) {
@@ -702,7 +702,7 @@ func TestGitAddFile_NonHookContext_GuardDoesNotFire(t *testing.T) {
 	runGit("config", "user.email", "t@t")
 	runGit("config", "user.name", "t")
 
-	target := filepath.Join(repo, ".beads", "issues.jsonl")
+	target := filepath.Join(repo, ".issuegraph", "issues.jsonl")
 	if err := os.MkdirAll(filepath.Dir(target), 0o755); err != nil {
 		t.Fatal(err)
 	}
@@ -724,15 +724,15 @@ func TestGitAddFile_NonHookContext_GuardDoesNotFire(t *testing.T) {
 	if err != nil {
 		t.Fatalf("ls-files: %v\n%s", err, data)
 	}
-	if !strings.Contains(string(data), ".beads/issues.jsonl") {
-		t.Errorf("non-hook path did not stage .beads/issues.jsonl:\n%s", data)
+	if !strings.Contains(string(data), ".issuegraph/issues.jsonl") {
+		t.Errorf("non-hook path did not stage .issuegraph/issues.jsonl:\n%s", data)
 	}
 }
 
 // TestGitAddFile_RelativePathDoesNotDoubleRoot is a regression test for
 // GH#4351: gitAddFile sets cmd.Dir to filepath.Dir(path). When path is
-// relative (e.g. ".beads/issues.jsonl"), passing that full path as the
-// git-add argument becomes `cd .beads && git add .beads/issues.jsonl`,
+// relative (e.g. ".issuegraph/issues.jsonl"), passing that full path as the
+// git-add argument becomes `cd .issuegraph && git add .issuegraph/issues.jsonl`,
 // which looks for a non-existent nested path and exits 128. The fix is
 // to pass filepath.Base(path) so the pathspec is relative to cmd.Dir.
 func TestGitAddFile_RelativePathDoesNotDoubleRoot(t *testing.T) {
@@ -771,10 +771,10 @@ func TestGitAddFile_RelativePathDoesNotDoubleRoot(t *testing.T) {
 	runGit("add", "README.md")
 	runGit("commit", "-qm", "init")
 
-	if err := os.MkdirAll(filepath.Join(repo, ".beads"), 0o755); err != nil {
+	if err := os.MkdirAll(filepath.Join(repo, ".issuegraph"), 0o755); err != nil {
 		t.Fatal(err)
 	}
-	if err := os.WriteFile(filepath.Join(repo, ".beads", "issues.jsonl"), []byte(`{"id":"x"}`+"\n"), 0o644); err != nil {
+	if err := os.WriteFile(filepath.Join(repo, ".issuegraph", "issues.jsonl"), []byte(`{"id":"x"}`+"\n"), 0o644); err != nil {
 		t.Fatal(err)
 	}
 
@@ -783,7 +783,7 @@ func TestGitAddFile_RelativePathDoesNotDoubleRoot(t *testing.T) {
 	}
 	// Repo-relative path — the double-root trigger. Must stage successfully.
 	t.Chdir(repo)
-	relPath := filepath.Join(".beads", "issues.jsonl")
+	relPath := filepath.Join(".issuegraph", "issues.jsonl")
 	if err := gitAddFile(relPath); err != nil {
 		t.Fatalf("gitAddFile(%q): %v", relPath, err)
 	}
@@ -795,8 +795,8 @@ func TestGitAddFile_RelativePathDoesNotDoubleRoot(t *testing.T) {
 		t.Fatalf("git diff --cached: %v\n%s", err, data)
 	}
 	staged := strings.TrimSpace(string(data))
-	if !strings.Contains(staged, ".beads/issues.jsonl") && !strings.Contains(staged, filepath.ToSlash(relPath)) {
-		t.Errorf("expected .beads/issues.jsonl staged, got: %q", staged)
+	if !strings.Contains(staged, ".issuegraph/issues.jsonl") && !strings.Contains(staged, filepath.ToSlash(relPath)) {
+		t.Errorf("expected .issuegraph/issues.jsonl staged, got: %q", staged)
 	}
 }
 
@@ -836,13 +836,13 @@ func TestGitAddFile_CapturesStderrOnFailure(t *testing.T) {
 	runGit("config", "user.name", "t")
 
 	// Force git add to fail by gitignoring the target. Common real-world
-	// trigger: a parent .gitignore excluding .beads/ that the user is
+	// trigger: a parent .gitignore excluding .issuegraph/ that the user is
 	// unaware of.
-	if err := os.WriteFile(filepath.Join(repo, ".gitignore"), []byte(".beads/\n"), 0o644); err != nil {
+	if err := os.WriteFile(filepath.Join(repo, ".gitignore"), []byte(".issuegraph/\n"), 0o644); err != nil {
 		t.Fatal(err)
 	}
 
-	target := filepath.Join(repo, ".beads", "issues.jsonl")
+	target := filepath.Join(repo, ".issuegraph", "issues.jsonl")
 	if err := os.MkdirAll(filepath.Dir(target), 0o755); err != nil {
 		t.Fatal(err)
 	}
@@ -900,7 +900,7 @@ func TestGitAddFile_CapturesLockedIndexFailure(t *testing.T) {
 	runGit("config", "user.email", "t@t")
 	runGit("config", "user.name", "t")
 
-	target := filepath.Join(repo, ".beads", "issues.jsonl")
+	target := filepath.Join(repo, ".issuegraph", "issues.jsonl")
 	if err := os.MkdirAll(filepath.Dir(target), 0o755); err != nil {
 		t.Fatal(err)
 	}
@@ -932,7 +932,7 @@ func TestGitAddFile_CapturesLockedIndexFailure(t *testing.T) {
 	if err != nil {
 		t.Fatalf("ls-files: %v\n%s", err, data)
 	}
-	if strings.Contains(string(data), ".beads/issues.jsonl") {
+	if strings.Contains(string(data), ".issuegraph/issues.jsonl") {
 		t.Fatalf("gitAddFile staged target despite index.lock:\n%s", data)
 	}
 }
@@ -942,9 +942,9 @@ func TestAutoExportGitAddFailureExitsNonZero(t *testing.T) {
 		t.Skip("git not available")
 	}
 
-	bd := buildBDForInitTests(t)
+	issuegraph := buildIssueGraphForInitTests(t)
 	dir := t.TempDir()
-	env := append(autoExportDataLossTestEnv(dir), "BD_NON_INTERACTIVE=1")
+	env := append(autoExportDataLossTestEnv(dir), "ISSUEGRAPH_NON_INTERACTIVE=1")
 
 	runGit := func(args ...string) {
 		t.Helper()
@@ -958,34 +958,34 @@ func TestAutoExportGitAddFailureExitsNonZero(t *testing.T) {
 
 	run := func(args ...string) string {
 		t.Helper()
-		cmd := exec.Command(bd, args...)
+		cmd := exec.Command(issuegraph, args...)
 		cmd.Dir = dir
 		cmd.Env = env
 		out, err := cmd.CombinedOutput()
 		if err != nil {
-			t.Fatalf("bd %v failed: %v\n%s", args, err, out)
+			t.Fatalf("issuegraph %v failed: %v\n%s", args, err, out)
 		}
 		return string(out)
 	}
 
 	run("init", "--prefix", "agf", "--quiet", "--non-interactive", "--skip-hooks", "--skip-agents")
-	if err := os.WriteFile(filepath.Join(dir, ".gitignore"), []byte(".beads/\n"), 0o644); err != nil {
+	if err := os.WriteFile(filepath.Join(dir, ".gitignore"), []byte(".issuegraph/\n"), 0o644); err != nil {
 		t.Fatal(err)
 	}
 	run("config", "set", "export.interval", "1ms")
 	run("config", "set", "export.auto", "true")
 	run("config", "set", "export.git-add", "true")
-	if err := os.Remove(filepath.Join(dir, ".beads", exportAutoStateFile)); err != nil && !os.IsNotExist(err) {
+	if err := os.Remove(filepath.Join(dir, ".issuegraph", exportAutoStateFile)); err != nil && !os.IsNotExist(err) {
 		t.Fatal(err)
 	}
 	time.Sleep(10 * time.Millisecond)
 
-	cmd := exec.Command(bd, "create", "caller visible git add failure", "-p", "2")
+	cmd := exec.Command(issuegraph, "create", "caller visible git add failure", "-p", "2")
 	cmd.Dir = dir
 	cmd.Env = env
 	out, err := cmd.CombinedOutput()
 	if err == nil {
-		t.Fatalf("bd create succeeded despite auto-export git add failure:\n%s", out)
+		t.Fatalf("issuegraph create succeeded despite auto-export git add failure:\n%s", out)
 	}
 	output := string(out)
 	if !strings.Contains(output, "Error: auto-export: git add failed") {
@@ -994,14 +994,14 @@ func TestAutoExportGitAddFailureExitsNonZero(t *testing.T) {
 	if !strings.Contains(strings.ToLower(output), "ignored") {
 		t.Fatalf("expected git add stderr to explain ignored path, got:\n%s", output)
 	}
-	if _, err := os.Stat(filepath.Join(dir, ".beads", exportAutoStateFile)); !os.IsNotExist(err) {
+	if _, err := os.Stat(filepath.Join(dir, ".issuegraph", exportAutoStateFile)); !os.IsNotExist(err) {
 		t.Fatalf("git-add failure should not save export state, stat err=%v", err)
 	}
 }
 
 // TestGitAddFile_RedirectCase_DoesNotStageInMainRepo regresses the
 // silent-stage-in-main follow-up from the GH#3311 review: when a worktree
-// has .beads/redirect -> main/.beads, the worktree's pre-commit hook must
+// has .issuegraph/redirect -> main/.issuegraph, the worktree's pre-commit hook must
 // NOT stage the redirected path into main's index. That would silently
 // pollute a repo the user did not tell us to touch. Expected behavior is
 // to skip staging entirely (the file content on disk is still correct).
@@ -1041,13 +1041,13 @@ func TestGitAddFile_RedirectCase_DoesNotStageInMainRepo(t *testing.T) {
 	runGit(mainRepo, "add", "README.md")
 	runGit(mainRepo, "commit", "-qm", "init")
 
-	// Create main's .beads directory with an issues.jsonl the hook would
+	// Create main's .issuegraph directory with an issues.jsonl the hook would
 	// target via the redirect.
-	mainBeads := filepath.Join(mainRepo, ".beads")
-	if err := os.MkdirAll(mainBeads, 0o755); err != nil {
+	mainIssueGraph := filepath.Join(mainRepo, ".issuegraph")
+	if err := os.MkdirAll(mainIssueGraph, 0o755); err != nil {
 		t.Fatal(err)
 	}
-	mainJSONL := filepath.Join(mainBeads, "issues.jsonl")
+	mainJSONL := filepath.Join(mainIssueGraph, "issues.jsonl")
 	if err := os.WriteFile(mainJSONL, []byte(`{"id":"from-redirect"}`+"\n"), 0o644); err != nil {
 		t.Fatal(err)
 	}
@@ -1113,12 +1113,12 @@ func TestGitAddFile_RedirectCase_DoesNotStageInMainRepo(t *testing.T) {
 	checkNoStage("main", mainRepo)
 }
 
-func TestPreCommitHasStagedBeadsFiles(t *testing.T) {
+func TestPreCommitHasStagedIssueGraphFiles(t *testing.T) {
 	if _, err := exec.LookPath("git"); err != nil {
 		t.Skip("git not available")
 	}
 
-	tmpDir, err := os.MkdirTemp("", "bd-staged-beads-*")
+	tmpDir, err := os.MkdirTemp("", "bd-staged-issuegraph-*")
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -1129,7 +1129,7 @@ func TestPreCommitHasStagedBeadsFiles(t *testing.T) {
 	}
 
 	repo := filepath.Join(tmpDir, "repo")
-	if err := os.MkdirAll(filepath.Join(repo, ".beads"), 0o755); err != nil {
+	if err := os.MkdirAll(filepath.Join(repo, ".issuegraph"), 0o755); err != nil {
 		t.Fatal(err)
 	}
 	runGit := func(args ...string) {
@@ -1149,17 +1149,17 @@ func TestPreCommitHasStagedBeadsFiles(t *testing.T) {
 		t.Fatal(err)
 	}
 	runGit("add", "README.md")
-	if preCommitHasStagedBeadsFiles(filepath.Join(repo, ".beads")) {
-		t.Fatal("staged non-.beads file should not trigger pre-commit JSONL export")
+	if preCommitHasStagedIssueGraphFiles(filepath.Join(repo, ".issuegraph")) {
+		t.Fatal("staged non-.issuegraph file should not trigger pre-commit JSONL export")
 	}
 
-	configPath := filepath.Join(repo, ".beads", "config.yaml")
+	configPath := filepath.Join(repo, ".issuegraph", "config.yaml")
 	if err := os.WriteFile(configPath, []byte("export:\n  auto: true\n"), 0o644); err != nil {
 		t.Fatal(err)
 	}
-	runGit("add", ".beads/config.yaml")
-	if !preCommitHasStagedBeadsFiles(filepath.Join(repo, ".beads")) {
-		t.Fatal("staged .beads file should trigger pre-commit JSONL export")
+	runGit("add", ".issuegraph/config.yaml")
+	if !preCommitHasStagedIssueGraphFiles(filepath.Join(repo, ".issuegraph")) {
+		t.Fatal("staged .issuegraph file should trigger pre-commit JSONL export")
 	}
 }
 
@@ -1271,18 +1271,18 @@ func TestIssueRecordsInJSONL_CountsAndOrdersInScopeIDs(t *testing.T) {
 }
 
 func TestAutoExportSkipsEmptyExportOverPopulatedJSONL(t *testing.T) {
-	bd := buildBDForInitTests(t)
+	issuegraph := buildIssueGraphForInitTests(t)
 	dir := t.TempDir()
 	env := autoExportDataLossTestEnv(dir)
 
 	run := func(args ...string) string {
 		t.Helper()
-		cmd := exec.Command(bd, args...)
+		cmd := exec.Command(issuegraph, args...)
 		cmd.Dir = dir
 		cmd.Env = env
 		out, err := cmd.CombinedOutput()
 		if err != nil {
-			t.Fatalf("bd %v failed: %v\n%s", args, err, out)
+			t.Fatalf("issuegraph %v failed: %v\n%s", args, err, out)
 		}
 		return string(out)
 	}
@@ -1290,7 +1290,7 @@ func TestAutoExportSkipsEmptyExportOverPopulatedJSONL(t *testing.T) {
 	run("init", "--prefix", "dl", "--non-interactive")
 	run("config", "set", "export.path", "custom.jsonl")
 
-	jsonlPath := filepath.Join(dir, ".beads", "custom.jsonl")
+	jsonlPath := filepath.Join(dir, ".issuegraph", "custom.jsonl")
 	original := []byte(`{"_type":"issue","id":"dl-1","title":"Recovered issue","priority":1,"created_at":"2026-01-01T00:00:00Z","updated_at":"2026-01-01T00:00:00Z"}` + "\n")
 	if err := os.WriteFile(jsonlPath, original, 0o644); err != nil {
 		t.Fatal(err)
@@ -1309,24 +1309,24 @@ func TestAutoExportSkipsEmptyExportOverPopulatedJSONL(t *testing.T) {
 	if string(got) != string(original) {
 		t.Fatalf("populated JSONL was modified:\n%s", got)
 	}
-	if _, err := os.Stat(filepath.Join(dir, ".beads", exportAutoStateFile)); !os.IsNotExist(err) {
+	if _, err := os.Stat(filepath.Join(dir, ".issuegraph", exportAutoStateFile)); !os.IsNotExist(err) {
 		t.Fatalf("empty skipped auto-export should not save export state, stat err=%v", err)
 	}
 }
 
 func TestAutoExportSkipsWhenExistingJSONLHasIDsMissingFromStore(t *testing.T) {
-	bd := buildBDForInitTests(t)
+	issuegraph := buildIssueGraphForInitTests(t)
 	dir := t.TempDir()
 	env := autoExportDataLossTestEnv(dir)
 
 	run := func(args ...string) string {
 		t.Helper()
-		cmd := exec.Command(bd, args...)
+		cmd := exec.Command(issuegraph, args...)
 		cmd.Dir = dir
 		cmd.Env = env
 		out, err := cmd.CombinedOutput()
 		if err != nil {
-			t.Fatalf("bd %v failed: %v\n%s", args, err, out)
+			t.Fatalf("issuegraph %v failed: %v\n%s", args, err, out)
 		}
 		return string(out)
 	}
@@ -1335,7 +1335,7 @@ func TestAutoExportSkipsWhenExistingJSONLHasIDsMissingFromStore(t *testing.T) {
 	run("config", "set", "export.path", "custom.jsonl")
 	run("create", "local issue", "-p", "2")
 
-	jsonlPath := filepath.Join(dir, ".beads", "custom.jsonl")
+	jsonlPath := filepath.Join(dir, ".issuegraph", "custom.jsonl")
 	original := []byte(strings.Join([]string{
 		`{"_type":"issue","id":"dl-1","title":"Local issue","priority":2,"created_at":"2026-01-01T00:00:00Z","updated_at":"2026-01-01T00:00:00Z"}`,
 		`{"_type":"issue","id":"dl-jsonl-only","title":"Only in JSONL","priority":1,"created_at":"2026-01-01T00:00:00Z","updated_at":"2026-01-01T00:00:00Z"}`,
@@ -1359,7 +1359,7 @@ func TestAutoExportSkipsWhenExistingJSONLHasIDsMissingFromStore(t *testing.T) {
 	if string(got) != string(original) {
 		t.Fatalf("JSONL-only records were overwritten:\n%s", got)
 	}
-	if _, err := os.Stat(filepath.Join(dir, ".beads", exportAutoStateFile)); !os.IsNotExist(err) {
+	if _, err := os.Stat(filepath.Join(dir, ".issuegraph", exportAutoStateFile)); !os.IsNotExist(err) {
 		t.Fatalf("skipped auto-export should not save export state, stat err=%v", err)
 	}
 }
@@ -1367,12 +1367,12 @@ func TestAutoExportSkipsWhenExistingJSONLHasIDsMissingFromStore(t *testing.T) {
 func autoExportDataLossTestEnv(home string) []string {
 	env := make([]string, 0, len(os.Environ())+3)
 	for _, e := range os.Environ() {
-		if strings.HasPrefix(e, "BEADS_") {
+		if strings.HasPrefix(e, "ISSUEGRAPH_") {
 			continue
 		}
 		env = append(env, e)
 	}
-	return append(env, "HOME="+home, "BEADS_DOLT_AUTO_START=0", "BEADS_NO_DAEMON=1", "BD_DISABLE_METRICS=1", "BD_DISABLE_EVENT_FLUSH=1")
+	return append(env, "HOME="+home, "ISSUEGRAPH_DOLT_AUTO_START=0", "ISSUEGRAPH_NO_DAEMON=1", "ISSUEGRAPH_DISABLE_METRICS=1", "ISSUEGRAPH_DISABLE_EVENT_FLUSH=1")
 }
 
 // ---------------------------------------------------------------------------
@@ -1496,7 +1496,7 @@ func TestLoadExistingIssueLines_MissingFileReturnsEmpty(t *testing.T) {
 // ---------------------------------------------------------------------------
 
 // setupIncrementalExportTest wires a fresh store, puts the cwd in a temp
-// beads dir, and registers cleanup. Returns the store, beads dir, and ctx.
+// issuegraph dir, and registers cleanup. Returns the store, issuegraph dir, and ctx.
 func setupIncrementalExportTest(t *testing.T) (*testHarness, context.Context) {
 	t.Helper()
 	return setupIncrementalExportTestWithReadTimeout(t, 0)
@@ -1535,8 +1535,8 @@ func setupIncrementalExportTestWithReadTimeout(t *testing.T, readTimeout time.Du
 	saveAndRestoreGlobals(t)
 
 	tmpDir := t.TempDir()
-	beadsDir := filepath.Join(tmpDir, ".beads")
-	if err := os.MkdirAll(beadsDir, 0o755); err != nil {
+	issuegraphDir := filepath.Join(tmpDir, ".issuegraph")
+	if err := os.MkdirAll(issuegraphDir, 0o755); err != nil {
 		t.Fatal(err)
 	}
 
@@ -1547,7 +1547,7 @@ func setupIncrementalExportTestWithReadTimeout(t *testing.T, readTimeout time.Du
 	t.Cleanup(func() { _ = os.Chdir(origWd) })
 
 	dbName := uniqueTestDBName(t)
-	testDBPath := filepath.Join(beadsDir, "dolt")
+	testDBPath := filepath.Join(issuegraphDir, "dolt")
 	writeTestMetadata(t, testDBPath, dbName)
 	s := newTestStoreWithPrefixAndReadTimeout(t, testDBPath, "test", readTimeout)
 	store = s
@@ -1564,12 +1564,12 @@ func setupIncrementalExportTestWithReadTimeout(t *testing.T, readTimeout time.Du
 	ctx := context.Background()
 	rootCtx = ctx
 
-	return &testHarness{store: s, beadsDir: beadsDir}, ctx
+	return &testHarness{store: s, issuegraphDir: issuegraphDir}, ctx
 }
 
 type testHarness struct {
-	store    storage.DoltStorage
-	beadsDir string
+	store         storage.DoltStorage
+	issuegraphDir string
 }
 
 func (h *testHarness) mustCreate(t *testing.T, ctx context.Context, id, title string) {
@@ -1684,7 +1684,7 @@ func TestTryIncrementalExport_PatchesChangedIssuesAndDropsRemoved(t *testing.T) 
 	h.mustCreate(t, ctx, "inc-e", "E")
 	c1 := h.mustCommit(t, ctx, "baseline")
 
-	exportPath := filepath.Join(h.beadsDir, "issues.jsonl")
+	exportPath := filepath.Join(h.issuegraphDir, "issues.jsonl")
 	if _, _, err := exportToFile(ctx, exportPath, true); err != nil {
 		t.Fatalf("exportToFile: %v", err)
 	}
@@ -1735,7 +1735,7 @@ func TestTryIncrementalExport_DropsIssueWhenFlippedToTemplate(t *testing.T) {
 	h.mustCreate(t, ctx, "flip-b", "Beta")
 	c1 := h.mustCommit(t, ctx, "baseline")
 
-	exportPath := filepath.Join(h.beadsDir, "issues.jsonl")
+	exportPath := filepath.Join(h.issuegraphDir, "issues.jsonl")
 	if _, _, err := exportToFile(ctx, exportPath, true); err != nil {
 		t.Fatalf("exportToFile: %v", err)
 	}
@@ -1745,7 +1745,7 @@ func TestTryIncrementalExport_DropsIssueWhenFlippedToTemplate(t *testing.T) {
 
 	// Flip flip-a to a template in place. UpdateIssue doesn't toggle
 	// is_template directly, so go through raw SQL — that mirrors what
-	// bd's template-promotion flow eventually writes anyway.
+	// issuegraph's template-promotion flow eventually writes anyway.
 	doltStore, ok := h.store.(interface {
 		DB() *sql.DB
 	})
@@ -1784,7 +1784,7 @@ func TestTryIncrementalExport_FallsBackWhenFileMissing(t *testing.T) {
 
 	// No existing file → must return didIncremental=false and leave the
 	// disk untouched so the caller falls back to the full-export path.
-	exportPath := filepath.Join(h.beadsDir, "issues.jsonl")
+	exportPath := filepath.Join(h.issuegraphDir, "issues.jsonl")
 	issueCount, _, _, didIncremental, err := tryIncrementalExport(ctx, exportPath, c1, c2, nil, nil)
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
@@ -1807,7 +1807,7 @@ func TestTryIncrementalExport_ThresholdExceededFallsBack(t *testing.T) {
 	h.mustCreate(t, ctx, "thr-0", "seed")
 	c1 := h.mustCommit(t, ctx, "seed")
 
-	exportPath := filepath.Join(h.beadsDir, "issues.jsonl")
+	exportPath := filepath.Join(h.issuegraphDir, "issues.jsonl")
 	if _, _, err := exportToFile(ctx, exportPath, true); err != nil {
 		t.Fatalf("exportToFile: %v", err)
 	}
@@ -1869,7 +1869,7 @@ func TestMaybeAutoExport_SecondRunTakesIncrementalPath_ServerMode(t *testing.T) 
 	if err := maybeAutoExport(ctx, false); err != nil {
 		t.Fatalf("first maybeAutoExport: %v", err)
 	}
-	exportPath := filepath.Join(h.beadsDir, "issues.jsonl")
+	exportPath := filepath.Join(h.issuegraphDir, "issues.jsonl")
 	if got := countIssueLines(t, exportPath); got != 3 {
 		t.Fatalf("after first export, %d issue lines, want 3", got)
 	}
@@ -1906,7 +1906,7 @@ func TestMaybeAutoExport_SecondRunTakesIncrementalPath_ServerMode(t *testing.T) 
 	// here proves the export WAS incremental, not merely that a diff was
 	// reached. e2e-a is the only upserted id: e2e-b was removed (not
 	// upserted) and e2e-c was untouched.
-	if got, want := loadExportAutoState(h.beadsDir).LastDirtyIDs, []string{"e2e-a"}; !reflect.DeepEqual(got, want) {
+	if got, want := loadExportAutoState(h.issuegraphDir).LastDirtyIDs, []string{"e2e-a"}; !reflect.DeepEqual(got, want) {
 		t.Errorf("LastDirtyIDs = %v, want %v — a nil/empty value means the export fell back to a full rewrite instead of taking the incremental path", got, want)
 	}
 
@@ -1948,7 +1948,7 @@ func TestMaybeAutoExport_SecondRunTakesIncrementalPath_ServerMode(t *testing.T) 
 
 // TestMaybeAutoExport_HistoryRewindDoesNotProveDeletion is the PR #5806
 // round-5 regression test for review ask 2: "removed since anchor" is not the
-// same claim as "deleted by `bd delete`". dolt_diff(anchor, WORKING) reports a
+// same claim as "deleted by `issuegraph delete`". dolt_diff(anchor, WORKING) reports a
 // row as removed whenever it is absent at WORKING, which is equally true after
 // the history is rewound out from under the anchor. Without an ancestry
 // precondition the orphan guard accepted that as proof of deletion and let the
@@ -1965,7 +1965,7 @@ func TestMaybeAutoExport_HistoryRewindDoesNotProveDeletion(t *testing.T) {
 	if err := maybeAutoExport(ctx, false); err != nil {
 		t.Fatalf("first maybeAutoExport: %v", err)
 	}
-	exportPath := filepath.Join(h.beadsDir, "issues.jsonl")
+	exportPath := filepath.Join(h.issuegraphDir, "issues.jsonl")
 
 	// Second cycle: rw-x lands in both the store and issues.jsonl, and the
 	// diff anchor advances past c1 to the commit that added it.
@@ -1980,7 +1980,7 @@ func TestMaybeAutoExport_HistoryRewindDoesNotProveDeletion(t *testing.T) {
 
 	// Rewind the data dir underneath the anchor. rw-x is now absent from the
 	// store but still present in issues.jsonl — indistinguishable from a real
-	// `bd delete` if you only consult dolt_diff(anchor, WORKING).
+	// `issuegraph delete` if you only consult dolt_diff(anchor, WORKING).
 	raw, ok := storage.UnwrapStore(h.store).(storage.RawDBAccessor)
 	if !ok {
 		t.Skip("store does not expose raw DB access")
@@ -2008,7 +2008,7 @@ func TestMaybeAutoExport_HistoryRewindDoesNotProveDeletion(t *testing.T) {
 // back to a full export cleanly, rather than silently producing nothing.
 // This is deliberately a fake-store unit test, not a real embedded-mode
 // integration test: exercising a genuine EmbeddedDoltStore end-to-end is
-// out of scope (the bead explicitly excludes implementing DiffStore/
+// out of scope (the issue explicitly excludes implementing DiffStore/
 // StateHasher on it), and fakeHeadOnlyStore already models exactly the
 // capability gap that matters here — no StateHasher, no DiffStore.
 func TestMaybeAutoExport_EmbeddedModeFallsBackToFullExportCleanly(t *testing.T) {
@@ -2024,7 +2024,7 @@ func TestMaybeAutoExport_EmbeddedModeFallsBackToFullExportCleanly(t *testing.T) 
 	store = fake
 
 	dir := autoExportTestDir(t)
-	saveExportAutoState(filepath.Join(dir, ".beads"), &exportAutoState{
+	saveExportAutoState(filepath.Join(dir, ".issuegraph"), &exportAutoState{
 		LastDoltCommit: "stale-hash",
 		Timestamp:      time.Time{}, // zero: throttle window open
 	})
@@ -2033,13 +2033,13 @@ func TestMaybeAutoExport_EmbeddedModeFallsBackToFullExportCleanly(t *testing.T) 
 		t.Fatalf("maybeAutoExport: %v", err)
 	}
 
-	exportPath := filepath.Join(dir, ".beads", "issues.jsonl")
+	exportPath := filepath.Join(dir, ".issuegraph", "issues.jsonl")
 	titles := loadIssueTitles(t, exportPath)
 	if titles["emb-a"] != "Embedded Alpha" {
 		t.Errorf("emb-a title = %q, want %q (embedded mode must still produce a full export, not silently no-op)", titles["emb-a"], "Embedded Alpha")
 	}
 
-	state := loadExportAutoState(filepath.Join(dir, ".beads"))
+	state := loadExportAutoState(filepath.Join(dir, ".issuegraph"))
 	if state.LastDoltCommit != "head-commit-hash" {
 		t.Errorf("state LastDoltCommit = %q, want %q (anchor must advance on a successful fallback export)", state.LastDoltCommit, "head-commit-hash")
 	}
@@ -2051,7 +2051,7 @@ func TestTryIncrementalExport_NeverLeaksMemoriesIntoAutoExport(t *testing.T) {
 	h.mustCreate(t, ctx, "mem-a", "Alpha")
 	c1 := h.mustCommit(t, ctx, "baseline")
 
-	exportPath := filepath.Join(h.beadsDir, "issues.jsonl")
+	exportPath := filepath.Join(h.issuegraphDir, "issues.jsonl")
 	// Baseline matches real auto-export usage: includeMemories=false.
 	if _, memCount, err := exportToFile(ctx, exportPath, false); err != nil {
 		t.Fatalf("exportToFile: %v", err)
@@ -2102,12 +2102,12 @@ func TestTryIncrementalExport_PreservesPreExistingMemoryAcrossPatch(t *testing.T
 	h.mustCreate(t, ctx, "mem-b", "Beta")
 	c1 := h.mustCommit(t, ctx, "baseline")
 
-	exportPath := filepath.Join(h.beadsDir, "issues.jsonl")
+	exportPath := filepath.Join(h.issuegraphDir, "issues.jsonl")
 	if err := h.store.SetConfig(ctx, kvPrefix+memoryPrefix+"kept-key", "kept context"); err != nil {
 		t.Fatalf("SetConfig: %v", err)
 	}
 	// A memory already exists in the file BEFORE any incremental patching —
-	// e.g. from an explicit `bd export --include-memories` the user ran by
+	// e.g. from an explicit `issuegraph export --include-memories` the user ran by
 	// hand. Auto-export's incremental path must not destroy it.
 	if _, memCount, err := exportToFile(ctx, exportPath, true); err != nil {
 		t.Fatalf("exportToFile: %v", err)
@@ -2156,7 +2156,7 @@ func TestMaybeAutoExport_WorkingSetRevertIsCorrected(t *testing.T) {
 	if err := maybeAutoExport(ctx, false); err != nil {
 		t.Fatalf("baseline maybeAutoExport: %v", err)
 	}
-	exportPath := filepath.Join(h.beadsDir, "issues.jsonl")
+	exportPath := filepath.Join(h.issuegraphDir, "issues.jsonl")
 	if got := loadIssueTitles(t, exportPath)["revert-a"]; got != "Original title" {
 		t.Fatalf("baseline title = %q, want %q", got, "Original title")
 	}
@@ -2205,7 +2205,7 @@ func TestTryIncrementalExport_ExcludesConfiguredOwnerFromPatchedIssues(t *testin
 	// Baseline full export: exportToFile already applies owner-exclusion, so
 	// own-b is correctly absent from the start — this test is about the
 	// INCREMENTAL patch path, not the baseline.
-	exportPath := filepath.Join(h.beadsDir, "issues.jsonl")
+	exportPath := filepath.Join(h.issuegraphDir, "issues.jsonl")
 	if _, _, err := exportToFile(ctx, exportPath, true); err != nil {
 		t.Fatalf("exportToFile: %v", err)
 	}
@@ -2244,7 +2244,7 @@ func TestTryIncrementalExport_PatchedLinesIncludeTypeField(t *testing.T) {
 	h.mustCreate(t, ctx, "typ-a", "Alpha")
 	c1 := h.mustCommit(t, ctx, "baseline")
 
-	exportPath := filepath.Join(h.beadsDir, "issues.jsonl")
+	exportPath := filepath.Join(h.issuegraphDir, "issues.jsonl")
 	if _, _, err := exportToFile(ctx, exportPath, true); err != nil {
 		t.Fatalf("exportToFile: %v", err)
 	}
@@ -2314,7 +2314,7 @@ func TestNewTestStoreWithReadTimeout_AppliesConfiguredTimeout(t *testing.T) {
 	ensureTestMode(t)
 
 	tmpDir := t.TempDir()
-	dbPath := filepath.Join(tmpDir, ".beads", "dolt")
+	dbPath := filepath.Join(tmpDir, ".issuegraph", "dolt")
 	// 1ns can never survive a real handshake/query round trip — this is
 	// not a race with a slow-but-real server, it's a guaranteed trip.
 	s, err := tryNewTestStoreWithReadTimeout(t, dbPath, 1*time.Nanosecond)
@@ -2325,7 +2325,7 @@ func TestNewTestStoreWithReadTimeout_AppliesConfiguredTimeout(t *testing.T) {
 
 	t.Run("normal timeout still succeeds", func(t *testing.T) {
 		tmpDir := t.TempDir()
-		dbPath := filepath.Join(tmpDir, ".beads", "dolt")
+		dbPath := filepath.Join(tmpDir, ".issuegraph", "dolt")
 		s := newTestStoreWithPrefixAndReadTimeout(t, dbPath, "test", bulkSeedPoolReadTimeout)
 		if s == nil {
 			t.Fatal("expected non-nil store")

@@ -6,17 +6,17 @@ import (
 	"os"
 	"strings"
 
+	"github.com/borg0ai/dx-issuegraph/internal/configfile"
+	"github.com/borg0ai/dx-issuegraph/internal/debug"
+	"github.com/borg0ai/dx-issuegraph/internal/issuegraph"
+	"github.com/borg0ai/dx-issuegraph/internal/metrics"
+	"github.com/borg0ai/dx-issuegraph/internal/storage"
+	"github.com/borg0ai/dx-issuegraph/internal/storage/schema"
+	"github.com/borg0ai/dx-issuegraph/internal/types"
+	"github.com/borg0ai/dx-issuegraph/internal/ui"
+	"github.com/borg0ai/dx-issuegraph/internal/utils"
+	"github.com/borg0ai/dx-issuegraph/issueops"
 	"github.com/spf13/cobra"
-	"github.com/steveyegge/beads/internal/beads"
-	"github.com/steveyegge/beads/internal/configfile"
-	"github.com/steveyegge/beads/internal/debug"
-	"github.com/steveyegge/beads/internal/metrics"
-	"github.com/steveyegge/beads/internal/storage"
-	"github.com/steveyegge/beads/internal/storage/schema"
-	"github.com/steveyegge/beads/internal/types"
-	"github.com/steveyegge/beads/internal/ui"
-	"github.com/steveyegge/beads/internal/utils"
-	"github.com/steveyegge/beads/issueops"
 )
 
 var migrateCmd = &cobra.Command{
@@ -37,12 +37,12 @@ Subcommands:
   from-shared-server-to-proxied-server    [EXPERIMENTAL] Switch shared-server mode to proxied-server mode
   from-proxied-server-to-shared-server    [EXPERIMENTAL] Switch proxied-server mode to shared-server mode
 
-On a remote-backed database with pending schema migrations bd refuses to
+On a remote-backed database with pending schema migrations issuegraph refuses to
 migrate in place (#4259): migrating two clones independently forks the schema
-so bd dolt pull can no longer merge — the break is silent and unrecoverable.
+so issuegraph dolt pull can no longer merge — the break is silent and unrecoverable.
 Use --force to confirm you are the single designated migrator, after which you
-should publish the migrated schema with 'bd dolt push'. The env-var equivalent
-BD_ALLOW_REMOTE_MIGRATE=1 remains supported for scripted/CI use.
+should publish the migrated schema with 'issuegraph dolt push'. The env-var equivalent
+ISSUEGRAPH_ALLOW_REMOTE_MIGRATE=1 remains supported for scripted/CI use.
 `,
 	SilenceUsage:  true,
 	SilenceErrors: true,
@@ -74,11 +74,11 @@ BD_ALLOW_REMOTE_MIGRATE=1 remains supported for scripted/CI use.
 			return handleInspect()
 		}
 
-		beadsDir := beads.FindBeadsDir()
-		if beadsDir == "" {
+		issuegraphDir := issuegraph.FindIssueGraphDir()
+		if issuegraphDir == "" {
 			if jsonOutput {
 				if jerr := outputJSON(map[string]interface{}{
-					"error":   "no_beads_directory",
+					"error":   "no_issuegraph_directory",
 					"message": activeWorkspaceNotFoundMessage() + " " + diagHint() + ".",
 				}); jerr != nil {
 					return jerr
@@ -88,7 +88,7 @@ BD_ALLOW_REMOTE_MIGRATE=1 remains supported for scripted/CI use.
 			return HandleErrorWithHint(activeWorkspaceNotFoundError(), diagHint())
 		}
 
-		cfg, err := loadOrCreateConfig(beadsDir)
+		cfg, err := loadOrCreateConfig(issuegraphDir)
 		if err != nil {
 			if jsonOutput {
 				if jerr := outputJSON(map[string]interface{}{
@@ -102,29 +102,29 @@ BD_ALLOW_REMOTE_MIGRATE=1 remains supported for scripted/CI use.
 			return HandleError("failed to load config: %v", err)
 		}
 
-		return handleDoltMetadataUpdate(cfg, beadsDir, dryRun)
+		return handleDoltMetadataUpdate(cfg, issuegraphDir, dryRun)
 	},
 }
 
 // handleDoltMetadataUpdate handles version metadata updates for Dolt backends.
-// beadsDir is the resolved .beads directory (honoring -C); repo-derived metadata
-// is computed from it rather than the process cwd so `bd -C <dir> migrate`
+// issuegraphDir is the resolved .issuegraph directory (honoring -C); repo-derived metadata
+// is computed from it rather than the process cwd so `issuegraph -C <dir> migrate`
 // fingerprints the target repo, not the caller's (GH#4361).
-func handleDoltMetadataUpdate(cfg *configfile.Config, beadsDir string, dryRun bool) error {
+func handleDoltMetadataUpdate(cfg *configfile.Config, issuegraphDir string, dryRun bool) error {
 	ctx := rootCtx
 	store := getStore()
 	if store == nil {
 		if jsonOutput {
 			return outputJSON(map[string]interface{}{
 				"status":  "no_databases",
-				"message": "No Dolt database found in .beads/",
+				"message": "No Dolt database found in .issuegraph/",
 			})
 		}
-		fmt.Fprintf(os.Stderr, "No Dolt database found. Run 'bd init' to create a new database.\n")
+		fmt.Fprintf(os.Stderr, "No Dolt database found. Run 'issuegraph init' to create a new database.\n")
 		return nil
 	}
 
-	currentVersion, _ := store.GetLocalMetadata(ctx, "bd_version")
+	currentVersion, _ := store.GetLocalMetadata(ctx, "issuegraph_version")
 	currentRepoID, _ := store.GetMetadata(ctx, "repo_id")
 	currentCloneID, _ := store.GetMetadata(ctx, "clone_id")
 
@@ -176,7 +176,7 @@ func handleDoltMetadataUpdate(cfg *configfile.Config, beadsDir string, dryRun bo
 	repoIDSet := false
 	cloneIDSet := false
 
-	// Update bd_version if needed
+	// Update issuegraph_version if needed
 	if needsVersionUpdate {
 		if !jsonOutput {
 			fmt.Printf("Updating Dolt schema version: %s → %s\n", currentVersion, Version)
@@ -200,7 +200,7 @@ func handleDoltMetadataUpdate(cfg *configfile.Config, beadsDir string, dryRun bo
 			}
 		}
 
-		if err := store.SetLocalMetadata(ctx, "bd_version", Version); err != nil {
+		if err := store.SetLocalMetadata(ctx, "issuegraph_version", Version); err != nil {
 			if jsonOutput {
 				if jerr := outputJSON(map[string]interface{}{
 					"error":   "version_update_failed",
@@ -221,7 +221,7 @@ func handleDoltMetadataUpdate(cfg *configfile.Config, beadsDir string, dryRun bo
 
 	// Set repo_id if missing (non-fatal — may fail in non-git environments)
 	if needsRepoID {
-		computed, err := beads.ComputeRepoIDForPath(beadsDir)
+		computed, err := issuegraph.ComputeRepoIDForPath(issuegraphDir)
 		if err != nil {
 			if !jsonOutput {
 				fmt.Fprintf(os.Stderr, "Warning: could not compute repo_id: %v\n", err)
@@ -242,7 +242,7 @@ func handleDoltMetadataUpdate(cfg *configfile.Config, beadsDir string, dryRun bo
 
 	// Set clone_id if missing (non-fatal — may fail in non-git environments)
 	if needsCloneID {
-		computed, err := beads.GetCloneIDForPath(beadsDir)
+		computed, err := issuegraph.GetCloneIDForPath(issuegraphDir)
 		if err != nil {
 			if !jsonOutput {
 				fmt.Fprintf(os.Stderr, "Warning: could not compute clone_id: %v\n", err)
@@ -289,8 +289,8 @@ func truncateID(id string, maxLen int) string {
 }
 
 // loadOrCreateConfig loads metadata.json or creates default if not found
-func loadOrCreateConfig(beadsDir string) (*configfile.Config, error) {
-	cfg, err := configfile.Load(beadsDir)
+func loadOrCreateConfig(issuegraphDir string) (*configfile.Config, error) {
+	cfg, err := configfile.Load(issuegraphDir)
 	if err != nil {
 		return nil, err
 	}
@@ -306,35 +306,35 @@ func loadOrCreateConfig(beadsDir string) (*configfile.Config, error) {
 // pathHashRepoIDStampNotice returns the propagation warning for replacing an
 // existing repository ID with a path-derived one, or "" when none applies
 // (no stored id, no change, or a remote-derived new id).
-func pathHashRepoIDStampNotice(oldRepoID, newRepoID string, source beads.RepoIDSource) string {
-	if oldRepoID == "" || oldRepoID == newRepoID || source != beads.RepoIDSourcePath {
+func pathHashRepoIDStampNotice(oldRepoID, newRepoID string, source issuegraph.RepoIDSource) string {
+	if oldRepoID == "" || oldRepoID == newRepoID || source != issuegraph.RepoIDSourcePath {
 		return ""
 	}
 	return "Warning: stamping a path-hash repository ID (this checkout has no origin remote).\n" +
 		"It is local to this host but will propagate to every clone on the next sync.\n" +
-		"On a synced clone, keep the stored ID instead (see 'bd doctor').\n"
+		"On a synced clone, keep the stored ID instead (see 'issuegraph doctor').\n"
 }
 
 func handleUpdateRepoID(dryRun bool, autoYes bool) error {
-	beadsDir := beads.FindBeadsDir()
-	if beadsDir == "" {
+	issuegraphDir := issuegraph.FindIssueGraphDir()
+	if issuegraphDir == "" {
 		if jsonOutput {
 			if jerr := outputJSON(map[string]interface{}{
 				"error":   "no_database",
-				"message": "No beads database found. " + diagHint() + ".",
+				"message": "No issuegraph database found. " + diagHint() + ".",
 			}); jerr != nil {
 				return jerr
 			}
 			return SilentExit()
 		}
-		return HandleErrorWithHint("no beads database found", diagHint())
+		return HandleErrorWithHint("no issuegraph database found", diagHint())
 	}
 
-	// Compute new repo ID from the resolved .beads directory (honoring -C),
-	// not the process cwd. Otherwise `bd -C <dir> migrate --update-repo-id`
+	// Compute new repo ID from the resolved .issuegraph directory (honoring -C),
+	// not the process cwd. Otherwise `issuegraph -C <dir> migrate --update-repo-id`
 	// stamps the target DB with the caller repo's fingerprint and the bad
 	// value propagates to every clone on the next sync (GH#4361).
-	newRepoID, newRepoIDSource, err := beads.ComputeRepoIDForPathWithSource(beadsDir)
+	newRepoID, newRepoIDSource, err := issuegraph.ComputeRepoIDForPathWithSource(issuegraphDir)
 	if err != nil {
 		if jsonOutput {
 			if jerr := outputJSON(map[string]interface{}{
@@ -350,7 +350,7 @@ func handleUpdateRepoID(dryRun bool, autoYes bool) error {
 
 	store := getStore()
 	if store == nil {
-		return HandleError("no database — run 'bd init' first")
+		return HandleError("no database — run 'issuegraph init' first")
 	}
 
 	ctx := rootCtx
@@ -394,10 +394,10 @@ func handleUpdateRepoID(dryRun bool, autoYes bool) error {
 		// value propagates to every clone on the next sync. A path-fallback id
 		// (no origin remote here) is host-local — stamping it into shared
 		// state is almost never right on a synced clone.
-		if newRepoIDSource == beads.RepoIDSourcePath {
+		if newRepoIDSource == issuegraph.RepoIDSourcePath {
 			fmt.Printf("The new ID is a path hash (this checkout has no origin remote); it is\n")
 			fmt.Printf("local to this host but will propagate to every clone on the next sync.\n")
-			fmt.Printf("On a synced clone, keep the stored ID instead (see 'bd doctor').\n")
+			fmt.Printf("On a synced clone, keep the stored ID instead (see 'issuegraph doctor').\n")
 		}
 		fmt.Printf("\n")
 		fmt.Printf("Current repo ID: %s\n", oldDisplay)
@@ -454,11 +454,11 @@ func handleUpdateRepoID(dryRun bool, autoYes bool) error {
 }
 
 func handleInspect() error {
-	beadsDir := beads.FindBeadsDir()
-	if beadsDir == "" {
+	issuegraphDir := issuegraph.FindIssueGraphDir()
+	if issuegraphDir == "" {
 		if jsonOutput {
 			if jerr := outputJSON(map[string]interface{}{
-				"error":   "no_beads_directory",
+				"error":   "no_issuegraph_directory",
 				"message": activeWorkspaceNotFoundMessage() + " " + diagHint() + ".",
 			}); jerr != nil {
 				return jerr
@@ -496,13 +496,13 @@ func handleInspect() error {
 
 	store := getStore()
 	if store == nil {
-		return HandleError("no database — run 'bd init' first")
+		return HandleError("no database — run 'issuegraph init' first")
 	}
 
 	ctx := rootCtx
 
 	// Get current schema version
-	schemaVersion, err := store.GetLocalMetadata(ctx, "bd_version")
+	schemaVersion, err := store.GetLocalMetadata(ctx, "issuegraph_version")
 	if err != nil {
 		schemaVersion = "unknown"
 	}
@@ -583,11 +583,11 @@ func handleInspect() error {
 }
 
 func handleSchemaMigrate() error {
-	beadsDir := beads.FindBeadsDir()
-	if beadsDir == "" {
+	issuegraphDir := issuegraph.FindIssueGraphDir()
+	if issuegraphDir == "" {
 		if jsonOutput {
 			if jerr := outputJSON(map[string]interface{}{
-				"error":   "no_beads_directory",
+				"error":   "no_issuegraph_directory",
 				"message": activeWorkspaceNotFoundMessage() + " " + diagHint() + ".",
 			}); jerr != nil {
 				return jerr
@@ -602,13 +602,13 @@ func handleSchemaMigrate() error {
 		if jsonOutput {
 			if jerr := outputJSON(map[string]interface{}{
 				"error":   "no_database",
-				"message": "No database found. Run 'bd init' to create a new database.",
+				"message": "No database found. Run 'issuegraph init' to create a new database.",
 			}); jerr != nil {
 				return jerr
 			}
 			return SilentExit()
 		}
-		return HandleErrorWithHint("no database", "Run 'bd init' to create a new database")
+		return HandleErrorWithHint("no database", "Run 'issuegraph init' to create a new database")
 	}
 
 	migrator, ok := storage.UnwrapStore(store).(storage.SchemaMigrator)
@@ -638,16 +638,16 @@ func handleSchemaMigrate() error {
 		}
 		var dirtyErr *schema.DirtyTablesError
 		if errors.As(err, &dirtyErr) {
-			// The dirty guard's own remedy is `bd dolt commit`, which on a
+			// The dirty guard's own remedy is `issuegraph dolt commit`, which on a
 			// shared server opens writably, hits the migrate gate, and is told
 			// to run this command — the two messages point at each other and
-			// the operator loops (gastownhall/beads#5920 review). Name the
+			// the operator loops (borg0ai/dx-issuegraph#5920 review). Name the
 			// sequence that actually terminates.
 			return HandleErrorWithHint(
 				fmt.Sprintf("schema migration failed: %v", err),
-				"in server mode `bd dolt commit` is itself gated, so commit the working set on the server first "+
+				"in server mode `issuegraph dolt commit` is itself gated, so commit the working set on the server first "+
 					"(`CALL DOLT_COMMIT('-Am', 'pre-migration working set')` over the sql-server, or "+
-					schema.AllowRemoteMigrateEnv+"=1 bd dolt commit), then re-run this command")
+					schema.AllowRemoteMigrateEnv+"=1 issuegraph dolt commit), then re-run this command")
 		}
 		return HandleError("schema migration failed: %v", err)
 	}
@@ -658,10 +658,10 @@ func handleSchemaMigrate() error {
 		status = "applied"
 		commandDidWrite.Store(true)
 		// Stamp the version markers the refused version-bump reconciliation
-		// could not (gastownhall/beads#5920 review). autoMigrateOnVersionBump
-		// is the only automatic writer of bd_version, it was refused by the
+		// could not (borg0ai/dx-issuegraph#5920 review). autoMigrateOnVersionBump
+		// is the only automatic writer of issuegraph_version, it was refused by the
 		// gate this command just satisfied, and its one-shot .local_version
-		// signal is already consumed — so without this, `bd doctor` and the
+		// signal is already consumed — so without this, `issuegraph doctor` and the
 		// git-hook health check keep reporting a version mismatch after the
 		// operator has done everything the refusal told them to.
 		stampWorkspaceVersionAfterMigrate(store)
@@ -701,7 +701,7 @@ func stampWorkspaceVersionAfterMigrate(store storage.DoltStorage) {
 	}
 }
 
-// reportProxiedSchemaMigrate is `bd migrate schema`'s proxied-server arm. The
+// reportProxiedSchemaMigrate is `issuegraph migrate schema`'s proxied-server arm. The
 // provider open already reconciled the schema under this verb's consent, so
 // there is nothing left to do but say so — and say it in the same shape the
 // direct path uses, since a caller parsing --json should not have to branch on
@@ -746,11 +746,11 @@ func handleToSeparateBranch(branch string, dryRun bool) error {
 		return HandleErrorWithHint(fmt.Sprintf("invalid branch name '%s'", branch), "branch name cannot be empty or contain whitespace")
 	}
 
-	beadsDir := beads.FindBeadsDir()
-	if beadsDir == "" {
+	issuegraphDir := issuegraph.FindIssueGraphDir()
+	if issuegraphDir == "" {
 		if jsonOutput {
 			if jerr := outputJSON(map[string]interface{}{
-				"error":   "no_beads_directory",
+				"error":   "no_issuegraph_directory",
 				"message": activeWorkspaceNotFoundMessage() + " " + diagHint() + ".",
 			}); jerr != nil {
 				return jerr
@@ -762,7 +762,7 @@ func handleToSeparateBranch(branch string, dryRun bool) error {
 
 	store := getStore()
 	if store == nil {
-		return HandleError("no database — run 'bd init' first")
+		return HandleError("no database — run 'issuegraph init' first")
 	}
 
 	ctx := rootCtx
@@ -826,7 +826,7 @@ func handleToSeparateBranch(branch string, dryRun bool) error {
 	fmt.Printf("Set sync.branch to '%s'\n\n", b)
 	fmt.Println("Next steps:")
 	fmt.Println("  1. No restart required. sync.branch is active immediately.")
-	fmt.Printf("     bd dolt push\n\n")
+	fmt.Printf("     issuegraph dolt push\n\n")
 	fmt.Println("  2. Your existing data is preserved - no changes to git history")
 	fmt.Println("  3. Future issue updates are stored in Dolt directly")
 	return nil
@@ -834,15 +834,15 @@ func handleToSeparateBranch(branch string, dryRun bool) error {
 
 // listMigrations returns registered Dolt schema migrations. The compat runner
 // was retired once all historical migrations had SQL equivalents; this is
-// kept as a stable hook for `bd migrate --inspect` output.
+// kept as a stable hook for `issuegraph migrate --inspect` output.
 func listMigrations() []string {
 	return nil
 }
 
-// migrateSyncCmd is the "bd migrate sync <branch>" subcommand that
+// migrateSyncCmd is the "issuegraph migrate sync <branch>" subcommand that
 // configures the separate-branch workflow for multi-clone setups.
 // Previously this was documented but never wired as an actual subcommand,
-// so bd doctor's recommendation to run "bd migrate sync beads-sync" would fail.
+// so issuegraph doctor's recommendation to run "issuegraph migrate sync issuegraph-sync" would fail.
 var migrateSyncCmd = &cobra.Command{
 	Use:   "sync <branch>",
 	Short: "Set up sync.branch workflow for multi-clone setups",
@@ -852,7 +852,7 @@ This sets the sync.branch config value so that issue data is committed
 to a dedicated branch, keeping your main branch clean.
 
 Example:
-  bd migrate sync beads-sync`,
+  issuegraph migrate sync issuegraph-sync`,
 	Args:          cobra.ExactArgs(1),
 	SilenceUsage:  true,
 	SilenceErrors: true,
@@ -885,8 +885,8 @@ is typically a no-op. It exists to make migration explicit and observable
 in CI, release gates, and recovery scenarios.
 
 Example:
-  bd migrate schema
-  bd migrate schema --json`,
+  issuegraph migrate schema
+  issuegraph migrate schema --json`,
 	Args:          cobra.NoArgs,
 	SilenceUsage:  true,
 	SilenceErrors: true,
@@ -920,7 +920,7 @@ func init() {
 	migrateCmd.Flags().BoolVar(&jsonOutput, "json", false, "Output migration statistics in JSON format")
 	// --force bypasses the remote-migrate gate (#4259) as the single designated
 	// migrator. No -f shorthand: deliberate typing for a fork-risk bypass.
-	migrateCmd.Flags().Bool("force", false, "Bypass the remote-migrate gate as the single designated migrator (equivalent to BD_ALLOW_REMOTE_MIGRATE=1)")
+	migrateCmd.Flags().Bool("force", false, "Bypass the remote-migrate gate as the single designated migrator (equivalent to ISSUEGRAPH_ALLOW_REMOTE_MIGRATE=1)")
 
 	migrateSyncCmd.Flags().Bool("dry-run", false, "Show what would be done without making changes")
 	migrateSyncCmd.Flags().BoolVar(&jsonOutput, "json", false, "Output in JSON format")
@@ -935,7 +935,7 @@ func init() {
 	migrateSchemaCmd.Flags().BoolVar(&jsonOutput, "json", false, "Output in JSON format")
 	// --force on migrate schema mirrors the parent command's flag; both trip the
 	// same isForcedMigrate check in main.go's PersistentPreRunE.
-	migrateSchemaCmd.Flags().Bool("force", false, "Bypass the remote-migrate gate as the single designated migrator (equivalent to BD_ALLOW_REMOTE_MIGRATE=1)")
+	migrateSchemaCmd.Flags().Bool("force", false, "Bypass the remote-migrate gate as the single designated migrator (equivalent to ISSUEGRAPH_ALLOW_REMOTE_MIGRATE=1)")
 	migrateCmd.AddCommand(migrateSchemaCmd)
 
 	migrateToProxiedServerCmd.Flags().Bool("dry-run", false, "Show what would be done without making changes")

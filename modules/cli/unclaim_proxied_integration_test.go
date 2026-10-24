@@ -9,29 +9,29 @@ import (
 	"testing"
 	"time"
 
-	"github.com/steveyegge/beads/internal/types"
+	"github.com/borg0ai/dx-issuegraph/internal/types"
 )
 
 func TestProxiedServerUnclaim(t *testing.T) {
 	requireSharedProxiedServer(t)
 	t.Parallel()
-	bd := buildEmbeddedBD(t)
-	p := newSharedProxiedProject(t, bd, "unc")
+	issuegraph := buildEmbeddedBD(t)
+	p := newSharedProxiedProject(t, issuegraph, "unc")
 
 	statusAssignee := func(t *testing.T, id string) (string, string) {
 		t.Helper()
-		iss := bdProxiedShow(t, bd, p.dir, id)
+		iss := issuegraphProxiedShow(t, issuegraph, p.dir, id)
 		return string(iss.Status), iss.Assignee
 	}
 
 	t.Run("unclaim_own_claim", func(t *testing.T) {
-		a := bdProxiedCreate(t, bd, p.dir, "Unclaim target", "--type", "task")
-		bdProxiedUpdate(t, bd, p.dir, a.ID, "--claim")
+		a := issuegraphProxiedCreate(t, issuegraph, p.dir, "Unclaim target", "--type", "task")
+		issuegraphProxiedUpdate(t, issuegraph, p.dir, a.ID, "--claim")
 		if st, as := statusAssignee(t, a.ID); st != string(types.StatusInProgress) || as == "" {
 			t.Fatalf("expected in_progress+assignee after claim, got status=%s assignee=%q", st, as)
 		}
 
-		if out, err := bdProxiedRun(t, bd, p.dir, "unclaim", a.ID, "--reason", "abandoning"); err != nil {
+		if out, err := issuegraphProxiedRun(t, issuegraph, p.dir, "unclaim", a.ID, "--reason", "abandoning"); err != nil {
 			t.Fatalf("unclaim: %v\n%s", err, out)
 		}
 		st, as := statusAssignee(t, a.ID)
@@ -43,7 +43,7 @@ func TestProxiedServerUnclaim(t *testing.T) {
 		}
 
 		// The --reason should have been added as a comment.
-		out, err := bdProxiedRun(t, bd, p.dir, "comments", a.ID, "--json")
+		out, err := issuegraphProxiedRun(t, issuegraph, p.dir, "comments", a.ID, "--json")
 		if err != nil {
 			t.Fatalf("comments: %v\n%s", err, out)
 		}
@@ -53,17 +53,17 @@ func TestProxiedServerUnclaim(t *testing.T) {
 	})
 
 	t.Run("unclaim_unassigned_errors", func(t *testing.T) {
-		b := bdProxiedCreate(t, bd, p.dir, "Never claimed", "--type", "task")
-		stdout, stderr, _ := bdProxiedRunBuffers(t, bd, p.dir, "unclaim", b.ID)
+		b := issuegraphProxiedCreate(t, issuegraph, p.dir, "Never claimed", "--type", "task")
+		stdout, stderr, _ := issuegraphProxiedRunBuffers(t, issuegraph, p.dir, "unclaim", b.ID)
 		if !strings.Contains(stdout+stderr, "not assigned") {
 			t.Errorf("expected 'not assigned' error, got stdout=%q stderr=%q", stdout, stderr)
 		}
 	})
 
 	t.Run("unclaim_reason_in_output", func(t *testing.T) {
-		c := bdProxiedCreate(t, bd, p.dir, "Reason output", "--type", "task")
-		bdProxiedUpdate(t, bd, p.dir, c.ID, "--claim")
-		out, err := bdProxiedRun(t, bd, p.dir, "unclaim", c.ID, "--reason", "Agent crashed")
+		c := issuegraphProxiedCreate(t, issuegraph, p.dir, "Reason output", "--type", "task")
+		issuegraphProxiedUpdate(t, issuegraph, p.dir, c.ID, "--claim")
+		out, err := issuegraphProxiedRun(t, issuegraph, p.dir, "unclaim", c.ID, "--reason", "Agent crashed")
 		if err != nil {
 			t.Fatalf("unclaim --reason: %v\n%s", err, out)
 		}
@@ -76,9 +76,9 @@ func TestProxiedServerUnclaim(t *testing.T) {
 	})
 
 	t.Run("unclaim_json_output", func(t *testing.T) {
-		d := bdProxiedCreate(t, bd, p.dir, "JSON output", "--type", "task")
-		bdProxiedUpdate(t, bd, p.dir, d.ID, "--claim")
-		out, err := bdProxiedRun(t, bd, p.dir, "unclaim", d.ID, "--json")
+		d := issuegraphProxiedCreate(t, issuegraph, p.dir, "JSON output", "--type", "task")
+		issuegraphProxiedUpdate(t, issuegraph, p.dir, d.ID, "--claim")
+		out, err := issuegraphProxiedRun(t, issuegraph, p.dir, "unclaim", d.ID, "--json")
 		if err != nil {
 			t.Fatalf("unclaim --json: %v\n%s", err, out)
 		}
@@ -101,11 +101,11 @@ func TestProxiedServerUnclaim(t *testing.T) {
 	})
 
 	t.Run("unclaim_multiple_ids", func(t *testing.T) {
-		e := bdProxiedCreate(t, bd, p.dir, "Multi 1", "--type", "task")
-		f := bdProxiedCreate(t, bd, p.dir, "Multi 2", "--type", "task")
-		bdProxiedUpdate(t, bd, p.dir, e.ID, "--claim")
-		bdProxiedUpdate(t, bd, p.dir, f.ID, "--claim")
-		if out, err := bdProxiedRun(t, bd, p.dir, "unclaim", e.ID, f.ID); err != nil {
+		e := issuegraphProxiedCreate(t, issuegraph, p.dir, "Multi 1", "--type", "task")
+		f := issuegraphProxiedCreate(t, issuegraph, p.dir, "Multi 2", "--type", "task")
+		issuegraphProxiedUpdate(t, issuegraph, p.dir, e.ID, "--claim")
+		issuegraphProxiedUpdate(t, issuegraph, p.dir, f.ID, "--claim")
+		if out, err := issuegraphProxiedRun(t, issuegraph, p.dir, "unclaim", e.ID, f.ID); err != nil {
 			t.Fatalf("unclaim multiple: %v\n%s", err, out)
 		}
 		for _, id := range []string{e.ID, f.ID} {
@@ -116,7 +116,7 @@ func TestProxiedServerUnclaim(t *testing.T) {
 	})
 
 	t.Run("unclaim_nonexistent_errors", func(t *testing.T) {
-		stdout, stderr, err := bdProxiedRunBuffers(t, bd, p.dir, "unclaim", "nonexistent")
+		stdout, stderr, err := issuegraphProxiedRunBuffers(t, issuegraph, p.dir, "unclaim", "nonexistent")
 		if err == nil {
 			t.Fatalf("expected failure for nonexistent id, got success:\n%s", stdout)
 		}
@@ -126,12 +126,12 @@ func TestProxiedServerUnclaim(t *testing.T) {
 	})
 
 	t.Run("unclaim_closed_errors", func(t *testing.T) {
-		g := bdProxiedCreate(t, bd, p.dir, "Closed target", "--type", "task")
-		bdProxiedUpdate(t, bd, p.dir, g.ID, "--claim")
-		if out, err := bdProxiedRun(t, bd, p.dir, "close", g.ID); err != nil {
+		g := issuegraphProxiedCreate(t, issuegraph, p.dir, "Closed target", "--type", "task")
+		issuegraphProxiedUpdate(t, issuegraph, p.dir, g.ID, "--claim")
+		if out, err := issuegraphProxiedRun(t, issuegraph, p.dir, "close", g.ID); err != nil {
 			t.Fatalf("close: %v\n%s", err, out)
 		}
-		stdout, stderr, err := bdProxiedRunBuffers(t, bd, p.dir, "unclaim", g.ID)
+		stdout, stderr, err := issuegraphProxiedRunBuffers(t, issuegraph, p.dir, "unclaim", g.ID)
 		if err == nil {
 			t.Fatalf("expected failure unclaiming closed issue, got success:\n%s", stdout)
 		}
@@ -144,11 +144,11 @@ func TestProxiedServerUnclaim(t *testing.T) {
 func TestProxiedServerReclaim(t *testing.T) {
 	requireSharedProxiedServer(t)
 	t.Parallel()
-	bd := buildEmbeddedBD(t)
-	p := newSharedProxiedProject(t, bd, "rcl")
+	issuegraph := buildEmbeddedBD(t)
+	p := newSharedProxiedProject(t, issuegraph, "rcl")
 
-	issue := bdProxiedCreate(t, bd, p.dir, "Reclaim target", "--type", "task")
-	bdProxiedUpdate(t, bd, p.dir, issue.ID, "--claim")
+	issue := issuegraphProxiedCreate(t, issuegraph, p.dir, "Reclaim target", "--type", "task")
+	issuegraphProxiedUpdate(t, issuegraph, p.dir, issue.ID, "--claim")
 
 	// Backdate the lease so it is expired well in the past.
 	db := openProxiedDB(t, p)
@@ -165,7 +165,7 @@ func TestProxiedServerReclaim(t *testing.T) {
 	}
 
 	t.Run("reclaims_stale_lease", func(t *testing.T) {
-		out, err := bdProxiedRun(t, bd, p.dir, "reclaim", "--older-than", "0s", "--json")
+		out, err := issuegraphProxiedRun(t, issuegraph, p.dir, "reclaim", "--older-than", "0s", "--json")
 		if err != nil {
 			t.Fatalf("reclaim: %v\n%s", err, out)
 		}
@@ -193,7 +193,7 @@ func TestProxiedServerReclaim(t *testing.T) {
 		}
 
 		// Issue must now be open with the assignee cleared.
-		iss := bdProxiedShow(t, bd, p.dir, issue.ID)
+		iss := issuegraphProxiedShow(t, issuegraph, p.dir, issue.ID)
 		if iss.Status != types.StatusOpen {
 			t.Errorf("status = %s, want open after reclaim", iss.Status)
 		}
@@ -203,7 +203,7 @@ func TestProxiedServerReclaim(t *testing.T) {
 	})
 
 	t.Run("nothing_to_reclaim", func(t *testing.T) {
-		out, err := bdProxiedRun(t, bd, p.dir, "reclaim", "--older-than", "0s", "--json")
+		out, err := issuegraphProxiedRun(t, issuegraph, p.dir, "reclaim", "--older-than", "0s", "--json")
 		if err != nil {
 			t.Fatalf("reclaim: %v\n%s", err, out)
 		}

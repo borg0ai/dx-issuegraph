@@ -11,7 +11,7 @@ import (
 )
 
 // End-to-end for the DELETE's row-version guard, against real Dolt through a
-// real `bd serve` subprocess.
+// real `issuegraph serve` subprocess.
 //
 // The pure tests in internal/httpapi cover the wire edge on a fake role — the
 // arity rule, the member projection, the 409's shape. What only this level can
@@ -27,7 +27,7 @@ import (
 // deleteIssues posts a delete and returns the status and the UNDECODED body.
 func (sp *serveProcess) deleteIssues(t *testing.T, body string) (int, []byte) {
 	t.Helper()
-	req, err := http.NewRequest(http.MethodPost, sp.url("/v0/beads/issues:delete"), strings.NewReader(body))
+	req, err := http.NewRequest(http.MethodPost, sp.url("/v0/issuegraph/issues:delete"), strings.NewReader(body))
 	if err != nil {
 		t.Fatalf("new delete request: %v", err)
 	}
@@ -54,28 +54,28 @@ func deleteProblem(t *testing.T, raw []byte) map[string]any {
 	return m
 }
 
-// stillThere fails unless the bead is readable, which is the assertion every
+// stillThere fails unless the issue is readable, which is the assertion every
 // refusal case here ends on. A delete that refused and erased anyway is the
 // failure this whole slice exists to make impossible.
-func stillThere(t *testing.T, bd, dir, id string) {
+func stillThere(t *testing.T, issuegraph, dir, id string) {
 	t.Helper()
-	if shown := bdProxiedShow(t, bd, dir, id); shown.ID != id {
-		t.Fatalf("bd show %s answered with %q; the refused delete erased it", id, shown.ID)
+	if shown := issuegraphProxiedShow(t, issuegraph, dir, id); shown.ID != id {
+		t.Fatalf("issuegraph show %s answered with %q; the refused delete erased it", id, shown.ID)
 	}
 }
 
 func TestProxiedServerServeDelete(t *testing.T) {
 	requireSharedProxiedServer(t)
 	t.Parallel()
-	bd := buildEmbeddedBD(t)
-	p := newSharedProxiedProject(t, bd, "srvdel")
-	sp := startServe(t, bd, p.dir, bdProxiedEnv(p.dir))
+	issuegraph := buildEmbeddedBD(t)
+	p := newSharedProxiedProject(t, issuegraph, "srvdel")
+	sp := startServe(t, issuegraph, p.dir, issuegraphProxiedEnv(p.dir))
 
 	// The guard's whole loop on the operation where being wrong cannot be
 	// undone: a token minted by a write, invalidated by another actor, refused
-	// while the bead survives, and then honored.
-	t.Run("a stale guard refuses and the bead survives", func(t *testing.T) {
-		issue := bdProxiedCreate(t, bd, p.dir, "guarded delete", "-p", "2")
+	// while the issue survives, and then honored.
+	t.Run("a stale guard refuses and the issue survives", func(t *testing.T) {
+		issue := issuegraphProxiedCreate(t, issuegraph, p.dir, "guarded delete", "-p", "2")
 
 		status, raw := sp.updateIssueRaw(t, issue.ID, `{"actor":"http-agent","patch":{"notes":"seeded"}}`)
 		if status != http.StatusOK {
@@ -101,17 +101,17 @@ func TestProxiedServerServeDelete(t *testing.T) {
 			t.Errorf("stale delete: code = %v param = %v, want precondition_failed / expected_version",
 				problem["code"], problem["param"])
 		}
-		stillThere(t, bd, p.dir, issue.ID)
+		stillThere(t, issuegraph, p.dir, issue.ID)
 
 		// FORCE AND CASCADE BYPASS POLICY, NEVER THE PRECONDITION. Both say what
-		// to do about OTHER beads; neither says the bead named is still the one
+		// to do about OTHER issuegraph; neither says the issue named is still the one
 		// the caller read.
 		for _, flags := range []string{`"force":true`, `"cascade":true`, `"force":true,"cascade":true`} {
 			status, raw = sp.deleteIssues(t, `{"ids":["`+issue.ID+`"],`+flags+`,"expected_version":`+revisionGuard(first)+`}`)
 			if status != http.StatusConflict {
 				t.Fatalf("stale delete with %s: status = %d, want 409: %s", flags, status, raw)
 			}
-			stillThere(t, bd, p.dir, issue.ID)
+			stillThere(t, issuegraph, p.dir, issue.ID)
 		}
 
 		// A DRY RUN REFUSES WHERE THE REAL RUN WOULD, which is the whole value
@@ -121,7 +121,7 @@ func TestProxiedServerServeDelete(t *testing.T) {
 		if status != http.StatusConflict {
 			t.Fatalf("stale dry run: status = %d, want 409: %s", status, raw)
 		}
-		stillThere(t, bd, p.dir, issue.ID)
+		stillThere(t, issuegraph, p.dir, issue.ID)
 
 		// And the fresh token lands.
 		status, raw = sp.deleteIssues(t, `{"ids":["`+issue.ID+`"],"actor":"http-agent","expected_version":`+revisionGuard(second)+`}`)
@@ -137,16 +137,16 @@ func TestProxiedServerServeDelete(t *testing.T) {
 		if result.Deleted != 1 {
 			t.Errorf("deleted = %d, want 1: %s", result.Deleted, raw)
 		}
-		bdProxiedShowFail(t, bd, p.dir, issue.ID, "--json")
+		issuegraphProxiedShowFail(t, issuegraph, p.dir, issue.ID, "--json")
 	})
 
 	// The arity rule, over the wire and against a store: refused before
-	// anything is read, so BOTH beads are still there. The role refuses the
+	// anything is read, so BOTH issuegraph are still there. The role refuses the
 	// same pair, but with no `param` — the member name is what this refusal
 	// adds, and it is the whole recovery.
-	t.Run("a guard beside two beads is refused and neither is erased", func(t *testing.T) {
-		a := bdProxiedCreate(t, bd, p.dir, "arity a", "-p", "2")
-		b := bdProxiedCreate(t, bd, p.dir, "arity b", "-p", "2")
+	t.Run("a guard beside two issuegraph is refused and neither is erased", func(t *testing.T) {
+		a := issuegraphProxiedCreate(t, issuegraph, p.dir, "arity a", "-p", "2")
+		b := issuegraphProxiedCreate(t, issuegraph, p.dir, "arity b", "-p", "2")
 
 		status, raw := sp.deleteIssues(t, `{"ids":["`+a.ID+`","`+b.ID+`"],"expected_version":"41"}`)
 		if status != http.StatusBadRequest {
@@ -156,8 +156,8 @@ func TestProxiedServerServeDelete(t *testing.T) {
 		if problem["code"] != "invalid_argument" || problem["param"] != "expected_version" {
 			t.Errorf("code = %v param = %v, want invalid_argument / expected_version", problem["code"], problem["param"])
 		}
-		stillThere(t, bd, p.dir, a.ID)
-		stillThere(t, bd, p.dir, b.ID)
+		stillThere(t, issuegraph, p.dir, a.ID)
+		stillThere(t, issuegraph, p.dir, b.ID)
 
 		// The same two ids WITHOUT the guard are an ordinary delete, which is
 		// what makes the refusal above a statement about the guard rather than
@@ -169,11 +169,11 @@ func TestProxiedServerServeDelete(t *testing.T) {
 	})
 
 	// DUPLICATES COLLAPSE FIRST, so repeating one id beside a guard names one
-	// bead and is legal — the rule the handler respells because the transport
+	// issue and is legal — the rule the handler respells because the transport
 	// boundary keeps the library's normalizer out of it. This is the case that
 	// would go red if the wire's counting ever drifted from the library's.
-	t.Run("a repeated id beside a guard is one bead", func(t *testing.T) {
-		issue := bdProxiedCreate(t, bd, p.dir, "repeated id", "-p", "2")
+	t.Run("a repeated id beside a guard is one issue", func(t *testing.T) {
+		issue := issuegraphProxiedCreate(t, issuegraph, p.dir, "repeated id", "-p", "2")
 
 		status, raw := sp.updateIssueRaw(t, issue.ID, `{"actor":"http-agent","patch":{"notes":"seeded"}}`)
 		if status != http.StatusOK {
@@ -184,16 +184,16 @@ func TestProxiedServerServeDelete(t *testing.T) {
 		status, raw = sp.deleteIssues(t,
 			`{"ids":["`+issue.ID+`","`+issue.ID+`"],"actor":"http-agent","expected_version":`+revisionGuard(token)+`}`)
 		if status != http.StatusOK {
-			t.Fatalf("status = %d, want 200 — duplicates collapse to one bead: %s", status, raw)
+			t.Fatalf("status = %d, want 200 — duplicates collapse to one issue: %s", status, raw)
 		}
-		bdProxiedShowFail(t, bd, p.dir, issue.ID, "--json")
+		issuegraphProxiedShowFail(t, issuegraph, p.dir, issue.ID, "--json")
 	})
 
-	// The 404 outranks the guard: a request that named no bead has nothing to
+	// The 404 outranks the guard: a request that named no issue has nothing to
 	// be stale about, so the caller is told about the typo rather than about a
 	// version it cannot check.
 	t.Run("an absent id outranks the guard", func(t *testing.T) {
-		status, raw := sp.deleteIssues(t, `{"ids":["bd-nosuchbead"],"expected_version":"41"}`)
+		status, raw := sp.deleteIssues(t, `{"ids":["bd-nosuchissue"],"expected_version":"41"}`)
 		if status != http.StatusNotFound {
 			t.Fatalf("status = %d, want 404: %s", status, raw)
 		}

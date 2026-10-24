@@ -4,9 +4,9 @@ import (
 	"context"
 	"fmt"
 
-	"github.com/steveyegge/beads/internal/storage"
-	storageissueops "github.com/steveyegge/beads/internal/storage/issueops"
-	publicops "github.com/steveyegge/beads/issueops"
+	"github.com/borg0ai/dx-issuegraph/internal/storage"
+	storageissueops "github.com/borg0ai/dx-issuegraph/internal/storage/issueops"
+	publicops "github.com/borg0ai/dx-issuegraph/issueops"
 )
 
 // ImporterSource is the capability accessor a unit-of-work provider offers
@@ -114,20 +114,20 @@ func (o *importer) ImportBatch(ctx context.Context, request publicops.ImportBatc
 }
 
 // importBatchCommitMessage names what LANDED, in the exact shape the classic
-// `bd import` has always committed. A batch that landed no issue rows and no
+// `issuegraph import` has always committed. A batch that landed no issue rows and no
 // memories but did reconcile the prefix commits under the sync message the
 // classic path used for its separate config commit; a batch that landed
 // nothing at all returns "" and commits nothing.
 func importBatchCommitMessage(request publicops.ImportBatchRequest, result publicops.ImportBatchResult) string {
 	if result.Created > 0 || result.MemoriesImported > 0 {
-		msg := fmt.Sprintf("bd import: %d issues", result.Created)
+		msg := fmt.Sprintf("issuegraph import: %d issues", result.Created)
 		if result.MemoriesImported > 0 {
 			msg += fmt.Sprintf(", %d memories", result.MemoriesImported)
 		}
 		return msg + fmt.Sprintf(" from %s", request.Source)
 	}
 	if result.PrefixSynced {
-		return "bd import: sync issue_prefix from config.yaml"
+		return "issuegraph import: sync issue_prefix from config.yaml"
 	}
 	return ""
 }

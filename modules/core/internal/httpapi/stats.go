@@ -5,8 +5,8 @@ import (
 	"net/http"
 	"strings"
 
-	"github.com/steveyegge/beads/internal/httpapi/apigen"
-	"github.com/steveyegge/beads/issueops"
+	"github.com/borg0ai/dx-issuegraph/internal/httpapi/apigen"
+	"github.com/borg0ai/dx-issuegraph/issueops"
 )
 
 // The summary operation. It decodes two parameters, hands the whole request to
@@ -28,7 +28,7 @@ import (
 // raw comparison let `?assignee=%20` reach a role refusal this file had no
 // classifier for, and out it went as a 500 with an operator alert attached.
 
-// handleStats answers GET /v0/beads/stats.
+// handleStats answers GET /v0/issuegraph/stats.
 func (s *Server) handleStats(w http.ResponseWriter, r *http.Request) {
 	q := newQuery(r.URL.Query())
 

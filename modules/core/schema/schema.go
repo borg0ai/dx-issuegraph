@@ -1,19 +1,19 @@
-// Package schema is the public wrapper around bd's schema migration engine,
+// Package schema is the public wrapper around issuegraph's schema migration engine,
 // re-exporting the minimal surface external tools need to create or upgrade a
-// beads database over a standard database/sql connection.
+// issuegraph database over a standard database/sql connection.
 //
 // # Stability
 //
 // EXPERIMENTAL. This package is not yet covered by the project's compatibility
 // promise and may change in a minor release. The migration set it wraps grows
-// every release; pin an exact beads version.
+// every release; pin an exact issuegraph version.
 package schema
 
 import (
 	"context"
 	"database/sql"
 
-	ischema "github.com/steveyegge/beads/internal/storage/schema"
+	ischema "github.com/borg0ai/dx-issuegraph/internal/storage/schema"
 )
 
 // DBConn is the minimal query interface satisfied by *sql.DB, *sql.Tx, and

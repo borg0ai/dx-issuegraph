@@ -110,12 +110,12 @@ func TestUpgradeCommandForPath(t *testing.T) {
 		execPath string
 		expected string
 	}{
-		{"homebrew apple silicon", "/opt/homebrew/Cellar/beads/0.49.4/bin/bd", "brew upgrade beads"},
-		{"homebrew intel mac", "/usr/local/Cellar/beads/0.49.4/bin/bd", "brew upgrade beads"},
-		{"homebrew linux", "/home/linuxbrew/.linuxbrew/Cellar/beads/0.49.4/bin/bd", "brew upgrade beads"},
-		{"legacy tap formula", "/opt/homebrew/Cellar/bd/0.49.0/bin/bd", "brew upgrade beads"},
-		{"usr local bin symlink", "/usr/local/bin/bd", installScriptCommand},
-		{"go install", "/home/user/go/bin/bd", installScriptCommand},
+		{"homebrew apple silicon", "/opt/homebrew/Cellar/issuegraph/0.49.4/bin/issuegraph", "brew upgrade issuegraph"},
+		{"homebrew intel mac", "/usr/local/Cellar/issuegraph/0.49.4/bin/issuegraph", "brew upgrade issuegraph"},
+		{"homebrew linux", "/home/linuxbrew/.linuxbrew/Cellar/issuegraph/0.49.4/bin/issuegraph", "brew upgrade issuegraph"},
+		{"legacy tap formula", "/opt/homebrew/Cellar/issuegraph/0.49.0/bin/issuegraph", "brew upgrade issuegraph"},
+		{"usr local bin symlink", "/usr/local/bin/issuegraph", installScriptCommand},
+		{"go install", "/home/user/go/bin/issuegraph", installScriptCommand},
 	}
 
 	for _, tt := range tests {
@@ -155,7 +155,7 @@ func TestCheckCLIVersionUsesFetcher(t *testing.T) {
 }
 
 // TestCheckCLIVersionBrewHeadBuild verifies that a --HEAD build is not told to
-// run `brew upgrade beads`. CompareVersions reads the stamp as 0.0.0, so every
+// run `brew upgrade issuegraph`. CompareVersions reads the stamp as 0.0.0, so every
 // release looks newer forever, and taking the advice would move the user off
 // HEAD entirely.
 func TestCheckCLIVersionBrewHeadBuild(t *testing.T) {
@@ -222,8 +222,8 @@ func TestParseVersionParts(t *testing.T) {
 // .local_version file doesn't exist.
 func TestCheckMetadataVersionTracking_FileNotFound(t *testing.T) {
 	tmpDir := t.TempDir()
-	beadsDir := filepath.Join(tmpDir, ".beads")
-	if err := os.MkdirAll(beadsDir, 0755); err != nil {
+	issuegraphDir := filepath.Join(tmpDir, ".issuegraph")
+	if err := os.MkdirAll(issuegraphDir, 0755); err != nil {
 		t.Fatal(err)
 	}
 
@@ -241,11 +241,11 @@ func TestCheckMetadataVersionTracking_FileNotFound(t *testing.T) {
 // .local_version exists but is empty.
 func TestCheckMetadataVersionTracking_EmptyFile(t *testing.T) {
 	tmpDir := t.TempDir()
-	beadsDir := filepath.Join(tmpDir, ".beads")
-	if err := os.MkdirAll(beadsDir, 0755); err != nil {
+	issuegraphDir := filepath.Join(tmpDir, ".issuegraph")
+	if err := os.MkdirAll(issuegraphDir, 0755); err != nil {
 		t.Fatal(err)
 	}
-	if err := os.WriteFile(filepath.Join(beadsDir, ".local_version"), []byte(""), 0644); err != nil {
+	if err := os.WriteFile(filepath.Join(issuegraphDir, ".local_version"), []byte(""), 0644); err != nil {
 		t.Fatal(err)
 	}
 
@@ -262,16 +262,16 @@ func TestCheckMetadataVersionTracking_EmptyFile(t *testing.T) {
 // TestCheckMetadataVersionTracking_BrewHeadStamp verifies that the version
 // stamp a Homebrew --HEAD install writes is reported as healthy rather than
 // permanently warning as an invalid format the user cannot fix: the offered
-// fix, running any bd command, writes the same stamp straight back.
+// fix, running any issuegraph command, writes the same stamp straight back.
 func TestCheckMetadataVersionTracking_BrewHeadStamp(t *testing.T) {
 	for _, stamp := range []string{"HEAD-f925f3f", "HEAD", "HEAD-f925f3f_1"} {
 		t.Run(stamp, func(t *testing.T) {
 			tmpDir := t.TempDir()
-			beadsDir := filepath.Join(tmpDir, ".beads")
-			if err := os.MkdirAll(beadsDir, 0755); err != nil {
+			issuegraphDir := filepath.Join(tmpDir, ".issuegraph")
+			if err := os.MkdirAll(issuegraphDir, 0755); err != nil {
 				t.Fatal(err)
 			}
-			if err := os.WriteFile(filepath.Join(beadsDir, ".local_version"), []byte(stamp+"\n"), 0644); err != nil {
+			if err := os.WriteFile(filepath.Join(issuegraphDir, ".local_version"), []byte(stamp+"\n"), 0644); err != nil {
 				t.Fatal(err)
 			}
 
@@ -291,11 +291,11 @@ func TestCheckMetadataVersionTracking_BrewHeadStamp(t *testing.T) {
 // malformed version strings in .local_version.
 func TestCheckMetadataVersionTracking_InvalidVersion(t *testing.T) {
 	tmpDir := t.TempDir()
-	beadsDir := filepath.Join(tmpDir, ".beads")
-	if err := os.MkdirAll(beadsDir, 0755); err != nil {
+	issuegraphDir := filepath.Join(tmpDir, ".issuegraph")
+	if err := os.MkdirAll(issuegraphDir, 0755); err != nil {
 		t.Fatal(err)
 	}
-	if err := os.WriteFile(filepath.Join(beadsDir, ".local_version"), []byte("not-a-version"), 0644); err != nil {
+	if err := os.WriteFile(filepath.Join(issuegraphDir, ".local_version"), []byte("not-a-version"), 0644); err != nil {
 		t.Fatal(err)
 	}
 
@@ -313,11 +313,11 @@ func TestCheckMetadataVersionTracking_InvalidVersion(t *testing.T) {
 // stored version matches current.
 func TestCheckMetadataVersionTracking_CurrentVersion(t *testing.T) {
 	tmpDir := t.TempDir()
-	beadsDir := filepath.Join(tmpDir, ".beads")
-	if err := os.MkdirAll(beadsDir, 0755); err != nil {
+	issuegraphDir := filepath.Join(tmpDir, ".issuegraph")
+	if err := os.MkdirAll(issuegraphDir, 0755); err != nil {
 		t.Fatal(err)
 	}
-	if err := os.WriteFile(filepath.Join(beadsDir, ".local_version"), []byte("1.2.3"), 0644); err != nil {
+	if err := os.WriteFile(filepath.Join(issuegraphDir, ".local_version"), []byte("1.2.3"), 0644); err != nil {
 		t.Fatal(err)
 	}
 
@@ -332,11 +332,11 @@ func TestCheckMetadataVersionTracking_CurrentVersion(t *testing.T) {
 // stored version is behind current but not too old.
 func TestCheckMetadataVersionTracking_SlightlyBehind(t *testing.T) {
 	tmpDir := t.TempDir()
-	beadsDir := filepath.Join(tmpDir, ".beads")
-	if err := os.MkdirAll(beadsDir, 0755); err != nil {
+	issuegraphDir := filepath.Join(tmpDir, ".issuegraph")
+	if err := os.MkdirAll(issuegraphDir, 0755); err != nil {
 		t.Fatal(err)
 	}
-	if err := os.WriteFile(filepath.Join(beadsDir, ".local_version"), []byte("0.50.0"), 0644); err != nil {
+	if err := os.WriteFile(filepath.Join(issuegraphDir, ".local_version"), []byte("0.50.0"), 0644); err != nil {
 		t.Fatal(err)
 	}
 
@@ -354,11 +354,11 @@ func TestCheckMetadataVersionTracking_SlightlyBehind(t *testing.T) {
 // stored version is 10+ minor versions behind.
 func TestCheckMetadataVersionTracking_VeryOldMinor(t *testing.T) {
 	tmpDir := t.TempDir()
-	beadsDir := filepath.Join(tmpDir, ".beads")
-	if err := os.MkdirAll(beadsDir, 0755); err != nil {
+	issuegraphDir := filepath.Join(tmpDir, ".issuegraph")
+	if err := os.MkdirAll(issuegraphDir, 0755); err != nil {
 		t.Fatal(err)
 	}
-	if err := os.WriteFile(filepath.Join(beadsDir, ".local_version"), []byte("0.20.0"), 0644); err != nil {
+	if err := os.WriteFile(filepath.Join(issuegraphDir, ".local_version"), []byte("0.20.0"), 0644); err != nil {
 		t.Fatal(err)
 	}
 
@@ -376,11 +376,11 @@ func TestCheckMetadataVersionTracking_VeryOldMinor(t *testing.T) {
 // stored version has a different major version.
 func TestCheckMetadataVersionTracking_VeryOldMajor(t *testing.T) {
 	tmpDir := t.TempDir()
-	beadsDir := filepath.Join(tmpDir, ".beads")
-	if err := os.MkdirAll(beadsDir, 0755); err != nil {
+	issuegraphDir := filepath.Join(tmpDir, ".issuegraph")
+	if err := os.MkdirAll(issuegraphDir, 0755); err != nil {
 		t.Fatal(err)
 	}
-	if err := os.WriteFile(filepath.Join(beadsDir, ".local_version"), []byte("0.55.0"), 0644); err != nil {
+	if err := os.WriteFile(filepath.Join(issuegraphDir, ".local_version"), []byte("0.55.0"), 0644); err != nil {
 		t.Fatal(err)
 	}
 
@@ -399,8 +399,8 @@ func TestCheckMetadataVersionTracking_VeryOldMajor(t *testing.T) {
 // Regression test for known index-out-of-bounds in version.go:160-161.
 func TestCheckMetadataVersionTracking_SinglePartVersion(t *testing.T) {
 	tmpDir := t.TempDir()
-	beadsDir := filepath.Join(tmpDir, ".beads")
-	if err := os.MkdirAll(beadsDir, 0755); err != nil {
+	issuegraphDir := filepath.Join(tmpDir, ".issuegraph")
+	if err := os.MkdirAll(issuegraphDir, 0755); err != nil {
 		t.Fatal(err)
 	}
 
@@ -418,7 +418,7 @@ func TestCheckMetadataVersionTracking_SinglePartVersion(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			if err := os.WriteFile(filepath.Join(beadsDir, ".local_version"), []byte(tt.storedVersion), 0644); err != nil {
+			if err := os.WriteFile(filepath.Join(issuegraphDir, ".local_version"), []byte(tt.storedVersion), 0644); err != nil {
 				t.Fatal(err)
 			}
 

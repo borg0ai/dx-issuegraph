@@ -25,9 +25,9 @@ func TestFixGitignore_FilePermissions(t *testing.T) {
 		{
 			name: "creates new file with 0600 permissions",
 			setupFunc: func(t *testing.T, tmpDir string) {
-				// Create .beads directory but no .gitignore
-				beadsDir := filepath.Join(tmpDir, ".beads")
-				if err := os.Mkdir(beadsDir, 0750); err != nil {
+				// Create .issuegraph directory but no .gitignore
+				issuegraphDir := filepath.Join(tmpDir, ".issuegraph")
+				if err := os.Mkdir(issuegraphDir, 0750); err != nil {
 					t.Fatal(err)
 				}
 			},
@@ -37,12 +37,12 @@ func TestFixGitignore_FilePermissions(t *testing.T) {
 		{
 			name: "tightens existing file with insecure permissions",
 			setupFunc: func(t *testing.T, tmpDir string) {
-				beadsDir := filepath.Join(tmpDir, ".beads")
-				if err := os.Mkdir(beadsDir, 0750); err != nil {
+				issuegraphDir := filepath.Join(tmpDir, ".issuegraph")
+				if err := os.Mkdir(issuegraphDir, 0750); err != nil {
 					t.Fatal(err)
 				}
 				// Create file with too-permissive permissions (0644)
-				gitignorePath := filepath.Join(beadsDir, ".gitignore")
+				gitignorePath := filepath.Join(issuegraphDir, ".gitignore")
 				if err := os.WriteFile(gitignorePath, []byte("old content"), 0644); err != nil {
 					t.Fatal(err)
 				}
@@ -54,12 +54,12 @@ func TestFixGitignore_FilePermissions(t *testing.T) {
 		{
 			name: "updates existing file with secure permissions",
 			setupFunc: func(t *testing.T, tmpDir string) {
-				beadsDir := filepath.Join(tmpDir, ".beads")
-				if err := os.Mkdir(beadsDir, 0750); err != nil {
+				issuegraphDir := filepath.Join(tmpDir, ".issuegraph")
+				if err := os.Mkdir(issuegraphDir, 0750); err != nil {
 					t.Fatal(err)
 				}
 				// Create file with already-secure permissions (0400)
-				gitignorePath := filepath.Join(beadsDir, ".gitignore")
+				gitignorePath := filepath.Join(issuegraphDir, ".gitignore")
 				if err := os.WriteFile(gitignorePath, []byte("old content"), 0400); err != nil {
 					t.Fatal(err)
 				}
@@ -69,9 +69,9 @@ func TestFixGitignore_FilePermissions(t *testing.T) {
 			hadOldContent: true,
 		},
 		{
-			name: "fails gracefully when .beads directory doesn't exist",
+			name: "fails gracefully when .issuegraph directory doesn't exist",
 			setupFunc: func(t *testing.T, tmpDir string) {
-				// Don't create .beads directory
+				// Don't create .issuegraph directory
 			},
 			expectedPerms: 0,
 			expectError:   true,
@@ -115,7 +115,7 @@ func TestFixGitignore_FilePermissions(t *testing.T) {
 			}
 
 			// Verify file permissions
-			gitignorePath := filepath.Join(".beads", ".gitignore")
+			gitignorePath := filepath.Join(".issuegraph", ".gitignore")
 			info, err := os.Stat(gitignorePath)
 			if err != nil {
 				t.Fatalf("Failed to stat .gitignore: %v", err)
@@ -174,9 +174,9 @@ func TestFixGitignore_FileOwnership(t *testing.T) {
 		}
 	}()
 
-	// Create .beads directory
-	beadsDir := filepath.Join(tmpDir, ".beads")
-	if err := os.Mkdir(beadsDir, 0750); err != nil {
+	// Create .issuegraph directory
+	issuegraphDir := filepath.Join(tmpDir, ".issuegraph")
+	if err := os.Mkdir(issuegraphDir, 0750); err != nil {
 		t.Fatal(err)
 	}
 
@@ -186,16 +186,16 @@ func TestFixGitignore_FileOwnership(t *testing.T) {
 	}
 
 	// Verify file ownership matches current user
-	gitignorePath := filepath.Join(".beads", ".gitignore")
+	gitignorePath := filepath.Join(".issuegraph", ".gitignore")
 	info, err := os.Stat(gitignorePath)
 	if err != nil {
 		t.Fatalf("Failed to stat .gitignore: %v", err)
 	}
 
 	// Get expected UID from the test directory
-	dirInfo, err := os.Stat(beadsDir)
+	dirInfo, err := os.Stat(issuegraphDir)
 	if err != nil {
-		t.Fatalf("Failed to stat .beads: %v", err)
+		t.Fatalf("Failed to stat .issuegraph: %v", err)
 	}
 
 	// On Unix systems, verify the file has the same ownership as the directory
@@ -208,7 +208,7 @@ func TestFixGitignore_FileOwnership(t *testing.T) {
 
 	// Verify the directory is still accessible
 	if !dirInfo.IsDir() {
-		t.Error(".beads should be a directory")
+		t.Error(".issuegraph should be a directory")
 	}
 }
 
@@ -234,14 +234,14 @@ func TestFixGitignore_DoesNotLoosenPermissions(t *testing.T) {
 		}
 	}()
 
-	// Create .beads directory
-	beadsDir := filepath.Join(tmpDir, ".beads")
-	if err := os.Mkdir(beadsDir, 0750); err != nil {
+	// Create .issuegraph directory
+	issuegraphDir := filepath.Join(tmpDir, ".issuegraph")
+	if err := os.Mkdir(issuegraphDir, 0750); err != nil {
 		t.Fatal(err)
 	}
 
 	// Create file with very restrictive permissions (0400 - read-only)
-	gitignorePath := filepath.Join(".beads", ".gitignore")
+	gitignorePath := filepath.Join(".issuegraph", ".gitignore")
 	if err := os.WriteFile(gitignorePath, []byte("old content"), 0400); err != nil {
 		t.Fatal(err)
 	}
@@ -288,8 +288,8 @@ func TestCheckGitignore(t *testing.T) {
 		{
 			name: "missing .gitignore file",
 			setupFunc: func(t *testing.T, tmpDir string) {
-				beadsDir := filepath.Join(tmpDir, ".beads")
-				if err := os.Mkdir(beadsDir, 0750); err != nil {
+				issuegraphDir := filepath.Join(tmpDir, ".issuegraph")
+				if err := os.Mkdir(issuegraphDir, 0750); err != nil {
 					t.Fatal(err)
 				}
 			},
@@ -299,11 +299,11 @@ func TestCheckGitignore(t *testing.T) {
 		{
 			name: "up-to-date .gitignore",
 			setupFunc: func(t *testing.T, tmpDir string) {
-				beadsDir := filepath.Join(tmpDir, ".beads")
-				if err := os.Mkdir(beadsDir, 0750); err != nil {
+				issuegraphDir := filepath.Join(tmpDir, ".issuegraph")
+				if err := os.Mkdir(issuegraphDir, 0750); err != nil {
 					t.Fatal(err)
 				}
-				gitignorePath := filepath.Join(beadsDir, ".gitignore")
+				gitignorePath := filepath.Join(issuegraphDir, ".gitignore")
 				if err := os.WriteFile(gitignorePath, []byte(GitignoreTemplate), 0600); err != nil {
 					t.Fatal(err)
 				}
@@ -314,11 +314,11 @@ func TestCheckGitignore(t *testing.T) {
 		{
 			name: "outdated .gitignore missing required patterns",
 			setupFunc: func(t *testing.T, tmpDir string) {
-				beadsDir := filepath.Join(tmpDir, ".beads")
-				if err := os.Mkdir(beadsDir, 0750); err != nil {
+				issuegraphDir := filepath.Join(tmpDir, ".issuegraph")
+				if err := os.Mkdir(issuegraphDir, 0750); err != nil {
 					t.Fatal(err)
 				}
-				gitignorePath := filepath.Join(beadsDir, ".gitignore")
+				gitignorePath := filepath.Join(issuegraphDir, ".gitignore")
 				// Write old content missing merge artifact patterns
 				oldContent := `*.db
 daemon.log
@@ -369,10 +369,10 @@ daemon.log
 	}
 }
 
-func TestEnsureGitignoreForBeadsDir_AppendsMissingRuntimePatterns(t *testing.T) {
+func TestEnsureGitignoreForIssueGraphDir_AppendsMissingRuntimePatterns(t *testing.T) {
 	tmpDir := t.TempDir()
-	beadsDir := filepath.Join(tmpDir, ".beads")
-	if err := os.Mkdir(beadsDir, 0750); err != nil {
+	issuegraphDir := filepath.Join(tmpDir, ".issuegraph")
+	if err := os.Mkdir(issuegraphDir, 0750); err != nil {
 		t.Fatal(err)
 	}
 
@@ -384,18 +384,18 @@ func TestEnsureGitignoreForBeadsDir_AppendsMissingRuntimePatterns(t *testing.T) 
 		stalePatterns = append(stalePatterns, pattern)
 	}
 	initialContent := "# Local additions\ncustom-local/\n" + strings.Join(stalePatterns, "\n") + "\n"
-	gitignorePath := filepath.Join(beadsDir, ".gitignore")
+	gitignorePath := filepath.Join(issuegraphDir, ".gitignore")
 	if err := os.WriteFile(gitignorePath, []byte(initialContent), 0600); err != nil {
 		t.Fatal(err)
 	}
 
-	if err := EnsureGitignoreForBeadsDir(beadsDir); err != nil {
-		t.Fatalf("EnsureGitignoreForBeadsDir failed: %v", err)
+	if err := EnsureGitignoreForIssueGraphDir(issuegraphDir); err != nil {
+		t.Fatalf("EnsureGitignoreForIssueGraphDir failed: %v", err)
 	}
 
 	content, err := os.ReadFile(gitignorePath)
 	if err != nil {
-		t.Fatalf("read .beads/.gitignore: %v", err)
+		t.Fatalf("read .issuegraph/.gitignore: %v", err)
 	}
 	contentStr := string(content)
 	if !strings.HasPrefix(contentStr, initialContent) {
@@ -403,11 +403,11 @@ func TestEnsureGitignoreForBeadsDir_AppendsMissingRuntimePatterns(t *testing.T) 
 	}
 	for _, pattern := range []string{".local_version", "backup/"} {
 		if !containsGitignorePattern(contentStr, pattern) {
-			t.Errorf("expected appended pattern %q in .beads/.gitignore:\n%s", pattern, contentStr)
+			t.Errorf("expected appended pattern %q in .issuegraph/.gitignore:\n%s", pattern, contentStr)
 		}
 	}
 	if missing := missingGitignorePatterns(contentStr); len(missing) > 0 {
-		t.Fatalf("expected .beads/.gitignore to be complete after ensure, missing: %s", strings.Join(missing, ", "))
+		t.Fatalf("expected .issuegraph/.gitignore to be complete after ensure, missing: %s", strings.Join(missing, ", "))
 	}
 }
 
@@ -426,8 +426,8 @@ func TestFixGitignore_PartialPatterns(t *testing.T) {
 daemon.log
 
 # Has some merge artifacts but not all
-beads.base.jsonl
-beads.left.jsonl
+issuegraph.base.jsonl
+issuegraph.left.jsonl
 `,
 			expectAllPatterns: true,
 			description:       "should add missing merge artifact patterns",
@@ -436,12 +436,12 @@ beads.left.jsonl
 			name: "partial patterns - has db wildcards but missing specific ones",
 			initialContent: `*.db
 daemon.log
-beads.base.jsonl
-beads.left.jsonl
-beads.right.jsonl
-beads.base.meta.json
-beads.left.meta.json
-beads.right.meta.json
+issuegraph.base.jsonl
+issuegraph.left.jsonl
+issuegraph.right.jsonl
+issuegraph.base.meta.json
+issuegraph.left.meta.json
+issuegraph.right.meta.json
 `,
 			expectAllPatterns: true,
 			description:       "should add missing *.db?* pattern",
@@ -487,12 +487,12 @@ daemon.log
 *.db?*
 *.db-journal
 daemon.log
-beads.base.jsonl
-beads.left.jsonl
-beads.right.jsonl
-beads.base.meta.json
-beads.left.meta.json
-beads.right.meta.json
+issuegraph.base.jsonl
+issuegraph.left.jsonl
+issuegraph.right.jsonl
+issuegraph.base.meta.json
+issuegraph.left.meta.json
+issuegraph.right.meta.json
 `,
 			expectAllPatterns: true,
 			description:       "should append the missing required patterns",
@@ -528,12 +528,12 @@ custom-pattern.txt
 				}
 			}()
 
-			beadsDir := filepath.Join(tmpDir, ".beads")
-			if err := os.Mkdir(beadsDir, 0750); err != nil {
+			issuegraphDir := filepath.Join(tmpDir, ".issuegraph")
+			if err := os.Mkdir(issuegraphDir, 0750); err != nil {
 				t.Fatal(err)
 			}
 
-			gitignorePath := filepath.Join(".beads", ".gitignore")
+			gitignorePath := filepath.Join(".issuegraph", ".gitignore")
 			if err := os.WriteFile(gitignorePath, []byte(tt.initialContent), 0600); err != nil {
 				t.Fatal(err)
 			}
@@ -588,8 +588,8 @@ func TestFixGitignore_PreservesLocalContent(t *testing.T) {
 		}
 	}()
 
-	beadsDir := filepath.Join(tmpDir, ".beads")
-	if err := os.Mkdir(beadsDir, 0750); err != nil {
+	issuegraphDir := filepath.Join(tmpDir, ".issuegraph")
+	if err := os.Mkdir(issuegraphDir, 0750); err != nil {
 		t.Fatal(err)
 	}
 
@@ -601,15 +601,15 @@ custom-file.txt
 *.db
 *.db?*
 daemon.log
-beads.base.jsonl
-beads.left.jsonl
-beads.right.jsonl
-beads.base.meta.json
-beads.left.meta.json
-beads.right.meta.json
+issuegraph.base.jsonl
+issuegraph.left.jsonl
+issuegraph.right.jsonl
+issuegraph.base.meta.json
+issuegraph.left.meta.json
+issuegraph.right.meta.json
 `
 
-	gitignorePath := filepath.Join(".beads", ".gitignore")
+	gitignorePath := filepath.Join(".issuegraph", ".gitignore")
 	if err := os.WriteFile(gitignorePath, []byte(customContent), 0600); err != nil {
 		t.Fatal(err)
 	}
@@ -661,8 +661,8 @@ func TestFixGitignore_Symlink(t *testing.T) {
 		}
 	}()
 
-	beadsDir := filepath.Join(tmpDir, ".beads")
-	if err := os.Mkdir(beadsDir, 0750); err != nil {
+	issuegraphDir := filepath.Join(tmpDir, ".issuegraph")
+	if err := os.Mkdir(issuegraphDir, 0750); err != nil {
 		t.Fatal(err)
 	}
 
@@ -672,8 +672,8 @@ func TestFixGitignore_Symlink(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	// Create symlink at .beads/.gitignore pointing to target
-	gitignorePath := filepath.Join(".beads", ".gitignore")
+	// Create symlink at .issuegraph/.gitignore pointing to target
+	gitignorePath := filepath.Join(".issuegraph", ".gitignore")
 	if err := os.Symlink(targetPath, gitignorePath); err != nil {
 		t.Fatal(err)
 	}
@@ -765,12 +765,12 @@ daemon.log
 *.db
 *.db?*
 daemon.log
-beads.base.jsonl
-beads.left.jsonl
-beads.right.jsonl
-beads.base.meta.json
-beads.left.meta.json
-beads.right.meta.json
+issuegraph.base.jsonl
+issuegraph.left.jsonl
+issuegraph.right.jsonl
+issuegraph.base.meta.json
+issuegraph.left.meta.json
+issuegraph.right.meta.json
 `,
 			description: "preserves unicode content while appending missing patterns",
 		},
@@ -793,12 +793,12 @@ beads.right.meta.json
 				}
 			}()
 
-			beadsDir := filepath.Join(tmpDir, ".beads")
-			if err := os.Mkdir(beadsDir, 0750); err != nil {
+			issuegraphDir := filepath.Join(tmpDir, ".issuegraph")
+			if err := os.Mkdir(issuegraphDir, 0750); err != nil {
 				t.Fatal(err)
 			}
 
-			gitignorePath := filepath.Join(".beads", ".gitignore")
+			gitignorePath := filepath.Join(".issuegraph", ".gitignore")
 			if err := os.WriteFile(gitignorePath, []byte(tt.initialContent), 0600); err != nil {
 				t.Fatal(err)
 			}
@@ -897,13 +897,13 @@ func TestFixGitignore_VeryLongLines(t *testing.T) {
 				}
 			}()
 
-			beadsDir := filepath.Join(tmpDir, ".beads")
-			if err := os.Mkdir(beadsDir, 0750); err != nil {
+			issuegraphDir := filepath.Join(tmpDir, ".issuegraph")
+			if err := os.Mkdir(issuegraphDir, 0750); err != nil {
 				t.Fatal(err)
 			}
 
 			initialContent := tt.setupFunc(t, tmpDir)
-			gitignorePath := filepath.Join(".beads", ".gitignore")
+			gitignorePath := filepath.Join(".issuegraph", ".gitignore")
 			if err := os.WriteFile(gitignorePath, []byte(initialContent), 0600); err != nil {
 				t.Fatal(err)
 			}
@@ -946,34 +946,34 @@ func TestCheckGitignore_VariousStatuses(t *testing.T) {
 		description    string
 	}{
 		{
-			name: "missing .beads directory",
+			name: "missing .issuegraph directory",
 			setupFunc: func(t *testing.T, tmpDir string) {
-				// Don't create .beads directory
+				// Don't create .issuegraph directory
 			},
 			expectedStatus: StatusWarning,
-			expectedFix:    "Run: bd init (safe to re-run) or bd doctor --fix",
-			description:    "returns warning when .beads directory doesn't exist",
+			expectedFix:    "Run: issuegraph init (safe to re-run) or issuegraph doctor --fix",
+			description:    "returns warning when .issuegraph directory doesn't exist",
 		},
 		{
 			name: "missing .gitignore file",
 			setupFunc: func(t *testing.T, tmpDir string) {
-				beadsDir := filepath.Join(tmpDir, ".beads")
-				if err := os.Mkdir(beadsDir, 0750); err != nil {
+				issuegraphDir := filepath.Join(tmpDir, ".issuegraph")
+				if err := os.Mkdir(issuegraphDir, 0750); err != nil {
 					t.Fatal(err)
 				}
 			},
 			expectedStatus: StatusWarning,
-			expectedFix:    "Run: bd init (safe to re-run) or bd doctor --fix",
+			expectedFix:    "Run: issuegraph init (safe to re-run) or issuegraph doctor --fix",
 			description:    "returns warning when .gitignore doesn't exist",
 		},
 		{
 			name: "perfect gitignore",
 			setupFunc: func(t *testing.T, tmpDir string) {
-				beadsDir := filepath.Join(tmpDir, ".beads")
-				if err := os.Mkdir(beadsDir, 0750); err != nil {
+				issuegraphDir := filepath.Join(tmpDir, ".issuegraph")
+				if err := os.Mkdir(issuegraphDir, 0750); err != nil {
 					t.Fatal(err)
 				}
-				gitignorePath := filepath.Join(beadsDir, ".gitignore")
+				gitignorePath := filepath.Join(issuegraphDir, ".gitignore")
 				if err := os.WriteFile(gitignorePath, []byte(GitignoreTemplate), 0600); err != nil {
 					t.Fatal(err)
 				}
@@ -985,76 +985,76 @@ func TestCheckGitignore_VariousStatuses(t *testing.T) {
 		{
 			name: "missing required patterns",
 			setupFunc: func(t *testing.T, tmpDir string) {
-				beadsDir := filepath.Join(tmpDir, ".beads")
-				if err := os.Mkdir(beadsDir, 0750); err != nil {
+				issuegraphDir := filepath.Join(tmpDir, ".issuegraph")
+				if err := os.Mkdir(issuegraphDir, 0750); err != nil {
 					t.Fatal(err)
 				}
 				content := `*.db
 *.db?*
 daemon.log
 `
-				gitignorePath := filepath.Join(beadsDir, ".gitignore")
+				gitignorePath := filepath.Join(issuegraphDir, ".gitignore")
 				if err := os.WriteFile(gitignorePath, []byte(content), 0600); err != nil {
 					t.Fatal(err)
 				}
 			},
 			expectedStatus: StatusWarning,
-			expectedFix:    "Run: bd doctor --fix or bd init (safe to re-run)",
+			expectedFix:    "Run: issuegraph doctor --fix or issuegraph init (safe to re-run)",
 			description:    "returns warning when missing required patterns like dolt/ and redirect",
 		},
 		{
 			name: "missing multiple required patterns",
 			setupFunc: func(t *testing.T, tmpDir string) {
-				beadsDir := filepath.Join(tmpDir, ".beads")
-				if err := os.Mkdir(beadsDir, 0750); err != nil {
+				issuegraphDir := filepath.Join(tmpDir, ".issuegraph")
+				if err := os.Mkdir(issuegraphDir, 0750); err != nil {
 					t.Fatal(err)
 				}
 				content := `*.db
 daemon.log
 `
-				gitignorePath := filepath.Join(beadsDir, ".gitignore")
+				gitignorePath := filepath.Join(issuegraphDir, ".gitignore")
 				if err := os.WriteFile(gitignorePath, []byte(content), 0600); err != nil {
 					t.Fatal(err)
 				}
 			},
 			expectedStatus: StatusWarning,
-			expectedFix:    "Run: bd doctor --fix or bd init (safe to re-run)",
+			expectedFix:    "Run: issuegraph doctor --fix or issuegraph init (safe to re-run)",
 			description:    "returns warning when missing multiple patterns",
 		},
 		{
 			name: "empty gitignore file",
 			setupFunc: func(t *testing.T, tmpDir string) {
-				beadsDir := filepath.Join(tmpDir, ".beads")
-				if err := os.Mkdir(beadsDir, 0750); err != nil {
+				issuegraphDir := filepath.Join(tmpDir, ".issuegraph")
+				if err := os.Mkdir(issuegraphDir, 0750); err != nil {
 					t.Fatal(err)
 				}
-				gitignorePath := filepath.Join(beadsDir, ".gitignore")
+				gitignorePath := filepath.Join(issuegraphDir, ".gitignore")
 				if err := os.WriteFile(gitignorePath, []byte(""), 0600); err != nil {
 					t.Fatal(err)
 				}
 			},
 			expectedStatus: StatusWarning,
-			expectedFix:    "Run: bd doctor --fix or bd init (safe to re-run)",
+			expectedFix:    "Run: issuegraph doctor --fix or issuegraph init (safe to re-run)",
 			description:    "returns warning for empty file",
 		},
 		{
 			name: "gitignore with only comments",
 			setupFunc: func(t *testing.T, tmpDir string) {
-				beadsDir := filepath.Join(tmpDir, ".beads")
-				if err := os.Mkdir(beadsDir, 0750); err != nil {
+				issuegraphDir := filepath.Join(tmpDir, ".issuegraph")
+				if err := os.Mkdir(issuegraphDir, 0750); err != nil {
 					t.Fatal(err)
 				}
 				content := `# Comment 1
 # Comment 2
 # Comment 3
 `
-				gitignorePath := filepath.Join(beadsDir, ".gitignore")
+				gitignorePath := filepath.Join(issuegraphDir, ".gitignore")
 				if err := os.WriteFile(gitignorePath, []byte(content), 0600); err != nil {
 					t.Fatal(err)
 				}
 			},
 			expectedStatus: StatusWarning,
-			expectedFix:    "Run: bd doctor --fix or bd init (safe to re-run)",
+			expectedFix:    "Run: issuegraph doctor --fix or issuegraph init (safe to re-run)",
 			description:    "returns warning for comments-only file",
 		},
 		{
@@ -1063,15 +1063,15 @@ daemon.log
 				if runtime.GOOS == "windows" {
 					t.Skip("Skipping symlink test on Windows")
 				}
-				beadsDir := filepath.Join(tmpDir, ".beads")
-				if err := os.Mkdir(beadsDir, 0750); err != nil {
+				issuegraphDir := filepath.Join(tmpDir, ".issuegraph")
+				if err := os.Mkdir(issuegraphDir, 0750); err != nil {
 					t.Fatal(err)
 				}
 				targetPath := filepath.Join(tmpDir, "target_gitignore")
 				if err := os.WriteFile(targetPath, []byte(GitignoreTemplate), 0600); err != nil {
 					t.Fatal(err)
 				}
-				gitignorePath := filepath.Join(beadsDir, ".gitignore")
+				gitignorePath := filepath.Join(issuegraphDir, ".gitignore")
 				if err := os.Symlink(targetPath, gitignorePath); err != nil {
 					t.Fatal(err)
 				}
@@ -1119,7 +1119,7 @@ daemon.log
 }
 
 func TestFixGitignore_SubdirectoryGitignore(t *testing.T) {
-	// This test verifies that FixGitignore only operates on .beads/.gitignore
+	// This test verifies that FixGitignore only operates on .issuegraph/.gitignore
 	// and doesn't touch other .gitignore files
 
 	tmpDir := t.TempDir()
@@ -1137,16 +1137,16 @@ func TestFixGitignore_SubdirectoryGitignore(t *testing.T) {
 		}
 	}()
 
-	// Create .beads directory and gitignore
-	beadsDir := filepath.Join(tmpDir, ".beads")
-	if err := os.Mkdir(beadsDir, 0750); err != nil {
+	// Create .issuegraph directory and gitignore
+	issuegraphDir := filepath.Join(tmpDir, ".issuegraph")
+	if err := os.Mkdir(issuegraphDir, 0750); err != nil {
 		t.Fatal(err)
 	}
 
-	// Create .beads/.gitignore with old content
-	beadsGitignorePath := filepath.Join(".beads", ".gitignore")
-	oldBeadsContent := "old beads content"
-	if err := os.WriteFile(beadsGitignorePath, []byte(oldBeadsContent), 0600); err != nil {
+	// Create .issuegraph/.gitignore with old content
+	issuegraphGitignorePath := filepath.Join(".issuegraph", ".gitignore")
+	oldIssueGraphContent := "old issuegraph content"
+	if err := os.WriteFile(issuegraphGitignorePath, []byte(oldIssueGraphContent), 0600); err != nil {
 		t.Fatal(err)
 	}
 
@@ -1174,17 +1174,17 @@ func TestFixGitignore_SubdirectoryGitignore(t *testing.T) {
 		t.Fatalf("FixGitignore failed: %v", err)
 	}
 
-	// Verify .beads/.gitignore was updated append-only: old content kept,
+	// Verify .issuegraph/.gitignore was updated append-only: old content kept,
 	// required patterns added (bd-kaaz3)
-	beadsContent, err := os.ReadFile(beadsGitignorePath)
+	issuegraphContent, err := os.ReadFile(issuegraphGitignorePath)
 	if err != nil {
-		t.Fatalf("Failed to read .beads/.gitignore: %v", err)
+		t.Fatalf("Failed to read .issuegraph/.gitignore: %v", err)
 	}
-	if !strings.HasPrefix(string(beadsContent), oldBeadsContent) {
-		t.Error(".beads/.gitignore pre-existing content should be preserved")
+	if !strings.HasPrefix(string(issuegraphContent), oldIssueGraphContent) {
+		t.Error(".issuegraph/.gitignore pre-existing content should be preserved")
 	}
-	if missing := missingGitignorePatterns(string(beadsContent)); len(missing) != 0 {
-		t.Errorf(".beads/.gitignore still missing required patterns: %v", missing)
+	if missing := missingGitignorePatterns(string(issuegraphContent)); len(missing) != 0 {
+		t.Errorf(".issuegraph/.gitignore still missing required patterns: %v", missing)
 	}
 
 	// Verify subdirectory .gitignore was NOT touched
@@ -1222,9 +1222,9 @@ func TestCheckRedirectNotTracked_NoFile(t *testing.T) {
 		}
 	}()
 
-	// Create .beads directory but no redirect file
-	beadsDir := filepath.Join(tmpDir, ".beads")
-	if err := os.Mkdir(beadsDir, 0750); err != nil {
+	// Create .issuegraph directory but no redirect file
+	issuegraphDir := filepath.Join(tmpDir, ".issuegraph")
+	if err := os.Mkdir(issuegraphDir, 0750); err != nil {
 		t.Fatal(err)
 	}
 
@@ -1268,13 +1268,13 @@ func TestCheckRedirectNotTracked_FileExistsNotTracked(t *testing.T) {
 		t.Fatalf("failed to copy git template: %v", err)
 	}
 
-	// Create .beads directory with redirect file
-	beadsDir := filepath.Join(tmpDir, ".beads")
-	if err := os.Mkdir(beadsDir, 0750); err != nil {
+	// Create .issuegraph directory with redirect file
+	issuegraphDir := filepath.Join(tmpDir, ".issuegraph")
+	if err := os.Mkdir(issuegraphDir, 0750); err != nil {
 		t.Fatal(err)
 	}
-	redirectPath := filepath.Join(beadsDir, "redirect")
-	if err := os.WriteFile(redirectPath, []byte("../../../.beads"), 0600); err != nil {
+	redirectPath := filepath.Join(issuegraphDir, "redirect")
+	if err := os.WriteFile(redirectPath, []byte("../../../.issuegraph"), 0600); err != nil {
 		t.Fatal(err)
 	}
 
@@ -1318,13 +1318,13 @@ func TestCheckRedirectNotTracked_FileTracked(t *testing.T) {
 		t.Fatalf("failed to copy git template: %v", err)
 	}
 
-	// Create .beads directory with redirect file
-	beadsDir := filepath.Join(tmpDir, ".beads")
-	if err := os.Mkdir(beadsDir, 0750); err != nil {
+	// Create .issuegraph directory with redirect file
+	issuegraphDir := filepath.Join(tmpDir, ".issuegraph")
+	if err := os.Mkdir(issuegraphDir, 0750); err != nil {
 		t.Fatal(err)
 	}
-	redirectPath := filepath.Join(beadsDir, "redirect")
-	if err := os.WriteFile(redirectPath, []byte("../../../.beads"), 0600); err != nil {
+	redirectPath := filepath.Join(issuegraphDir, "redirect")
+	if err := os.WriteFile(redirectPath, []byte("../../../.issuegraph"), 0600); err != nil {
 		t.Fatal(err)
 	}
 
@@ -1377,13 +1377,13 @@ func TestFixRedirectTracking(t *testing.T) {
 		t.Fatalf("failed to copy git template: %v", err)
 	}
 
-	// Create .beads directory with redirect file
-	beadsDir := filepath.Join(tmpDir, ".beads")
-	if err := os.Mkdir(beadsDir, 0750); err != nil {
+	// Create .issuegraph directory with redirect file
+	issuegraphDir := filepath.Join(tmpDir, ".issuegraph")
+	if err := os.Mkdir(issuegraphDir, 0750); err != nil {
 		t.Fatal(err)
 	}
-	redirectPath := filepath.Join(beadsDir, "redirect")
-	if err := os.WriteFile(redirectPath, []byte("../../../.beads"), 0600); err != nil {
+	redirectPath := filepath.Join(issuegraphDir, "redirect")
+	if err := os.WriteFile(redirectPath, []byte("../../../.issuegraph"), 0600); err != nil {
 		t.Fatal(err)
 	}
 
@@ -1422,22 +1422,22 @@ func TestCheckRedirectTargetValid_AbsolutePath(t *testing.T) {
 	tmpDir := t.TempDir()
 
 	targetRoot := filepath.Join(tmpDir, "target")
-	targetBeads := filepath.Join(targetRoot, ".beads")
-	if err := os.MkdirAll(targetBeads, 0750); err != nil {
+	targetIssueGraph := filepath.Join(targetRoot, ".issuegraph")
+	if err := os.MkdirAll(targetIssueGraph, 0750); err != nil {
 		t.Fatal(err)
 	}
-	if err := os.WriteFile(filepath.Join(targetBeads, "metadata.json"), []byte(`{"backend":"dolt"}`), 0600); err != nil {
+	if err := os.WriteFile(filepath.Join(targetIssueGraph, "metadata.json"), []byte(`{"backend":"dolt"}`), 0600); err != nil {
 		t.Fatal(err)
 	}
 
 	workRoot := filepath.Join(tmpDir, "work")
-	workBeads := filepath.Join(workRoot, ".beads")
-	if err := os.MkdirAll(workBeads, 0750); err != nil {
+	workIssueGraph := filepath.Join(workRoot, ".issuegraph")
+	if err := os.MkdirAll(workIssueGraph, 0750); err != nil {
 		t.Fatal(err)
 	}
 
-	redirectPath := filepath.Join(workBeads, "redirect")
-	if err := os.WriteFile(redirectPath, []byte(targetBeads+"\n"), 0600); err != nil {
+	redirectPath := filepath.Join(workIssueGraph, "redirect")
+	if err := os.WriteFile(redirectPath, []byte(targetIssueGraph+"\n"), 0600); err != nil {
 		t.Fatal(err)
 	}
 
@@ -1458,7 +1458,7 @@ func TestCheckRedirectTargetValid_AbsolutePath(t *testing.T) {
 	if check.Status != StatusOK {
 		t.Fatalf("expected status %s, got %s (detail: %s)", StatusOK, check.Status, check.Detail)
 	}
-	if !strings.Contains(check.Message, targetBeads) {
+	if !strings.Contains(check.Message, targetIssueGraph) {
 		t.Errorf("expected message to include target path, got: %s", check.Message)
 	}
 }
@@ -1500,8 +1500,8 @@ func TestGitignoreTemplate_ContainsSyncStateFiles(t *testing.T) {
 	}
 }
 
-// TestRequiredPatterns_ContainsSyncStatePatterns verifies that bd doctor
-// validates the presence of sync state patterns in .beads/.gitignore.
+// TestRequiredPatterns_ContainsSyncStatePatterns verifies that issuegraph doctor
+// validates the presence of sync state patterns in .issuegraph/.gitignore.
 // GH#974
 func TestRequiredPatterns_ContainsSyncStatePatterns(t *testing.T) {
 	syncStatePatterns := []string{
@@ -1524,15 +1524,15 @@ func TestRequiredPatterns_ContainsSyncStatePatterns(t *testing.T) {
 
 // TestGitignore_ContainsDoltServerConfig verifies that the generated Dolt
 // server config is ignored like the other dolt-server.* runtime state files
-// it sits beside. doltserver.Start() writes .beads/dolt-server-config.yaml
+// it sits beside. doltserver.Start() writes .issuegraph/dolt-server-config.yaml
 // when the resolved dolt binary supports auto_gc_behavior.archive_level, and
 // it holds an absolute cfg_dir plus a per-machine port, so committing it
 // would break every other clone.
 //
 // The hyphenated name falls outside the "dolt-server." prefix shared by the
 // other five entries, so it was missed by both lists. It must be in
-// requiredPatterns too, otherwise bd doctor --fix cannot heal an existing
-// .beads/.gitignore.
+// requiredPatterns too, otherwise issuegraph doctor --fix cannot heal an existing
+// .issuegraph/.gitignore.
 func TestGitignore_ContainsDoltServerConfig(t *testing.T) {
 	// Keep this in sync with doltserver.doltServerConfigFileName. It is not
 	// imported here because modules/cli/doctor must not depend on the server
@@ -1572,9 +1572,9 @@ func TestCheckLastTouchedNotTracked_NoFile(t *testing.T) {
 		}
 	}()
 
-	// Create .beads directory but no last-touched file
-	beadsDir := filepath.Join(tmpDir, ".beads")
-	if err := os.Mkdir(beadsDir, 0750); err != nil {
+	// Create .issuegraph directory but no last-touched file
+	issuegraphDir := filepath.Join(tmpDir, ".issuegraph")
+	if err := os.Mkdir(issuegraphDir, 0750); err != nil {
 		t.Fatal(err)
 	}
 
@@ -1618,12 +1618,12 @@ func TestCheckLastTouchedNotTracked_FileExistsNotTracked(t *testing.T) {
 		t.Fatalf("failed to copy git template: %v", err)
 	}
 
-	// Create .beads directory with last-touched file
-	beadsDir := filepath.Join(tmpDir, ".beads")
-	if err := os.Mkdir(beadsDir, 0750); err != nil {
+	// Create .issuegraph directory with last-touched file
+	issuegraphDir := filepath.Join(tmpDir, ".issuegraph")
+	if err := os.Mkdir(issuegraphDir, 0750); err != nil {
 		t.Fatal(err)
 	}
-	lastTouchedPath := filepath.Join(beadsDir, "last-touched")
+	lastTouchedPath := filepath.Join(issuegraphDir, "last-touched")
 	if err := os.WriteFile(lastTouchedPath, []byte("bd-test1"), 0600); err != nil {
 		t.Fatal(err)
 	}
@@ -1668,12 +1668,12 @@ func TestCheckLastTouchedNotTracked_FileTracked(t *testing.T) {
 		t.Fatalf("failed to copy git template: %v", err)
 	}
 
-	// Create .beads directory with last-touched file
-	beadsDir := filepath.Join(tmpDir, ".beads")
-	if err := os.Mkdir(beadsDir, 0750); err != nil {
+	// Create .issuegraph directory with last-touched file
+	issuegraphDir := filepath.Join(tmpDir, ".issuegraph")
+	if err := os.Mkdir(issuegraphDir, 0750); err != nil {
 		t.Fatal(err)
 	}
-	lastTouchedPath := filepath.Join(beadsDir, "last-touched")
+	lastTouchedPath := filepath.Join(issuegraphDir, "last-touched")
 	if err := os.WriteFile(lastTouchedPath, []byte("bd-test1"), 0600); err != nil {
 		t.Fatal(err)
 	}
@@ -1727,12 +1727,12 @@ func TestFixLastTouchedTracking(t *testing.T) {
 		t.Fatalf("failed to copy git template: %v", err)
 	}
 
-	// Create .beads directory with last-touched file
-	beadsDir := filepath.Join(tmpDir, ".beads")
-	if err := os.Mkdir(beadsDir, 0750); err != nil {
+	// Create .issuegraph directory with last-touched file
+	issuegraphDir := filepath.Join(tmpDir, ".issuegraph")
+	if err := os.Mkdir(issuegraphDir, 0750); err != nil {
 		t.Fatal(err)
 	}
-	lastTouchedPath := filepath.Join(beadsDir, "last-touched")
+	lastTouchedPath := filepath.Join(issuegraphDir, "last-touched")
 	if err := os.WriteFile(lastTouchedPath, []byte("bd-test1"), 0600); err != nil {
 		t.Fatal(err)
 	}
@@ -1766,7 +1766,7 @@ func TestFixLastTouchedTracking(t *testing.T) {
 	}
 }
 
-// TestGitignoreTemplate_ContainsLastTouched verifies that the .beads/.gitignore template
+// TestGitignoreTemplate_ContainsLastTouched verifies that the .issuegraph/.gitignore template
 // includes last-touched to prevent it from being tracked.
 func TestGitignoreTemplate_ContainsLastTouched(t *testing.T) {
 	if !strings.Contains(GitignoreTemplate, "last-touched") {
@@ -1774,8 +1774,8 @@ func TestGitignoreTemplate_ContainsLastTouched(t *testing.T) {
 	}
 }
 
-// TestRequiredPatterns_ContainsLastTouched verifies that bd doctor validates
-// the presence of the last-touched pattern in .beads/.gitignore.
+// TestRequiredPatterns_ContainsLastTouched verifies that issuegraph doctor validates
+// the presence of the last-touched pattern in .issuegraph/.gitignore.
 func TestRequiredPatterns_ContainsLastTouched(t *testing.T) {
 	found := false
 	for _, pattern := range requiredPatterns {
@@ -1789,7 +1789,7 @@ func TestRequiredPatterns_ContainsLastTouched(t *testing.T) {
 	}
 }
 
-// TestGitignoreTemplate_ContainsDolt verifies that the .beads/.gitignore template
+// TestGitignoreTemplate_ContainsDolt verifies that the .issuegraph/.gitignore template
 // includes dolt/ to prevent the Dolt database directory from being committed.
 func TestGitignoreTemplate_ContainsDolt(t *testing.T) {
 	if !strings.Contains(GitignoreTemplate, "dolt/") {
@@ -1797,8 +1797,8 @@ func TestGitignoreTemplate_ContainsDolt(t *testing.T) {
 	}
 }
 
-// TestRequiredPatterns_ContainsDolt verifies that bd doctor validates
-// the presence of the dolt/ pattern in .beads/.gitignore.
+// TestRequiredPatterns_ContainsDolt verifies that issuegraph doctor validates
+// the presence of the dolt/ pattern in .issuegraph/.gitignore.
 func TestRequiredPatterns_ContainsDolt(t *testing.T) {
 	found := false
 	for _, pattern := range requiredPatterns {
@@ -1877,7 +1877,7 @@ func TestCheckProjectGitignore_AllPresent(t *testing.T) {
 		}
 	}()
 
-	content := "node_modules/\n.dolt/\n*.db\n.beads-credential-key\n.beads/proxieddb/\n*.gate.lock*\n"
+	content := "node_modules/\n.dolt/\n*.db\n.issuegraph-credential-key\n.issuegraph/proxieddb/\n*.gate.lock*\n"
 	if err := os.WriteFile(".gitignore", []byte(content), 0644); err != nil {
 		t.Fatal(err)
 	}
@@ -2064,38 +2064,38 @@ func TestFixGitignore_FollowsRedirect(t *testing.T) {
 
 	// Simulate a rig layout:
 	//   tmpDir/
-	//     mayor/rig/.beads/          ← canonical beads dir (redirect target)
-	//     crew/worker/.beads/redirect ← redirect-only dir (cwd context)
-	rigBeads := filepath.Join(tmpDir, "mayor", "rig", ".beads")
-	if err := os.MkdirAll(rigBeads, 0750); err != nil {
+	//     mayor/rig/.issuegraph/          ← canonical issuegraph dir (redirect target)
+	//     crew/worker/.issuegraph/redirect ← redirect-only dir (cwd context)
+	rigIssueGraph := filepath.Join(tmpDir, "mayor", "rig", ".issuegraph")
+	if err := os.MkdirAll(rigIssueGraph, 0750); err != nil {
 		t.Fatal(err)
 	}
 	// The redirect target must have a metadata.json or database for
-	// FollowRedirect to honor the redirect (gastownhall/beads#4692 guard).
-	if err := os.WriteFile(filepath.Join(rigBeads, "metadata.json"), []byte(`{"database":"beads.db"}`), 0600); err != nil {
+	// FollowRedirect to honor the redirect (borg0ai/dx-issuegraph#4692 guard).
+	if err := os.WriteFile(filepath.Join(rigIssueGraph, "metadata.json"), []byte(`{"database":"issuegraph.db"}`), 0600); err != nil {
 		t.Fatal(err)
 	}
 
-	// Create the local redirect-only .beads dir
-	localBeads := filepath.Join(tmpDir, ".beads")
-	if err := os.Mkdir(localBeads, 0750); err != nil {
+	// Create the local redirect-only .issuegraph dir
+	localIssueGraph := filepath.Join(tmpDir, ".issuegraph")
+	if err := os.Mkdir(localIssueGraph, 0750); err != nil {
 		t.Fatal(err)
 	}
 
-	// Write redirect file pointing to the rig's .beads
-	// Redirect is resolved relative to the project root (parent of .beads)
-	redirectContent := "mayor/rig/.beads"
-	if err := os.WriteFile(filepath.Join(localBeads, "redirect"), []byte(redirectContent), 0600); err != nil {
+	// Write redirect file pointing to the rig's .issuegraph
+	// Redirect is resolved relative to the project root (parent of .issuegraph)
+	redirectContent := "mayor/rig/.issuegraph"
+	if err := os.WriteFile(filepath.Join(localIssueGraph, "redirect"), []byte(redirectContent), 0600); err != nil {
 		t.Fatal(err)
 	}
 
-	// Run FixGitignore - should write to the rig's .beads, NOT the local one
+	// Run FixGitignore - should write to the rig's .issuegraph, NOT the local one
 	if err := FixGitignore("."); err != nil {
 		t.Fatalf("FixGitignore failed: %v", err)
 	}
 
 	// Verify: .gitignore was written at the redirect target
-	targetGitignore := filepath.Join(rigBeads, ".gitignore")
+	targetGitignore := filepath.Join(rigIssueGraph, ".gitignore")
 	content, err := os.ReadFile(targetGitignore)
 	if err != nil {
 		t.Fatalf("Expected .gitignore at redirect target %s, got error: %v", targetGitignore, err)
@@ -2105,9 +2105,9 @@ func TestFixGitignore_FollowsRedirect(t *testing.T) {
 	}
 
 	// Verify: NO .gitignore was created in the local redirect-only dir
-	localGitignore := filepath.Join(localBeads, ".gitignore")
+	localGitignore := filepath.Join(localIssueGraph, ".gitignore")
 	if _, err := os.Stat(localGitignore); !os.IsNotExist(err) {
-		t.Errorf("FixGitignore should NOT have created .gitignore in the redirect-only .beads dir at %s", localGitignore)
+		t.Errorf("FixGitignore should NOT have created .gitignore in the redirect-only .issuegraph dir at %s", localGitignore)
 	}
 }
 
@@ -2127,26 +2127,26 @@ func TestCheckGitignore_FollowsRedirect(t *testing.T) {
 		}
 	}()
 
-	// Set up rig with canonical .beads containing an up-to-date .gitignore
-	rigBeads := filepath.Join(tmpDir, "mayor", "rig", ".beads")
-	if err := os.MkdirAll(rigBeads, 0750); err != nil {
+	// Set up rig with canonical .issuegraph containing an up-to-date .gitignore
+	rigIssueGraph := filepath.Join(tmpDir, "mayor", "rig", ".issuegraph")
+	if err := os.MkdirAll(rigIssueGraph, 0750); err != nil {
 		t.Fatal(err)
 	}
 	// The redirect target must have a metadata.json or database for
-	// FollowRedirect to honor the redirect (gastownhall/beads#4692 guard).
-	if err := os.WriteFile(filepath.Join(rigBeads, "metadata.json"), []byte(`{"database":"beads.db"}`), 0600); err != nil {
+	// FollowRedirect to honor the redirect (borg0ai/dx-issuegraph#4692 guard).
+	if err := os.WriteFile(filepath.Join(rigIssueGraph, "metadata.json"), []byte(`{"database":"issuegraph.db"}`), 0600); err != nil {
 		t.Fatal(err)
 	}
-	if err := os.WriteFile(filepath.Join(rigBeads, ".gitignore"), []byte(GitignoreTemplate), 0600); err != nil {
+	if err := os.WriteFile(filepath.Join(rigIssueGraph, ".gitignore"), []byte(GitignoreTemplate), 0600); err != nil {
 		t.Fatal(err)
 	}
 
-	// Set up local redirect-only .beads
-	localBeads := filepath.Join(tmpDir, ".beads")
-	if err := os.Mkdir(localBeads, 0750); err != nil {
+	// Set up local redirect-only .issuegraph
+	localIssueGraph := filepath.Join(tmpDir, ".issuegraph")
+	if err := os.Mkdir(localIssueGraph, 0750); err != nil {
 		t.Fatal(err)
 	}
-	if err := os.WriteFile(filepath.Join(localBeads, "redirect"), []byte("mayor/rig/.beads"), 0600); err != nil {
+	if err := os.WriteFile(filepath.Join(localIssueGraph, "redirect"), []byte("mayor/rig/.issuegraph"), 0600); err != nil {
 		t.Fatal(err)
 	}
 
@@ -2176,26 +2176,26 @@ func TestFixGitignore_RedirectRoundTrip(t *testing.T) {
 	}()
 
 	// Set up rig with outdated .gitignore (missing required patterns)
-	rigBeads := filepath.Join(tmpDir, "mayor", "rig", ".beads")
-	if err := os.MkdirAll(rigBeads, 0750); err != nil {
+	rigIssueGraph := filepath.Join(tmpDir, "mayor", "rig", ".issuegraph")
+	if err := os.MkdirAll(rigIssueGraph, 0750); err != nil {
 		t.Fatal(err)
 	}
 	// The redirect target must have a metadata.json or database for
-	// FollowRedirect to honor the redirect (gastownhall/beads#4692 guard).
-	if err := os.WriteFile(filepath.Join(rigBeads, "metadata.json"), []byte(`{"database":"beads.db"}`), 0600); err != nil {
+	// FollowRedirect to honor the redirect (borg0ai/dx-issuegraph#4692 guard).
+	if err := os.WriteFile(filepath.Join(rigIssueGraph, "metadata.json"), []byte(`{"database":"issuegraph.db"}`), 0600); err != nil {
 		t.Fatal(err)
 	}
 	oldContent := "*.db\ndaemon.log\n"
-	if err := os.WriteFile(filepath.Join(rigBeads, ".gitignore"), []byte(oldContent), 0600); err != nil {
+	if err := os.WriteFile(filepath.Join(rigIssueGraph, ".gitignore"), []byte(oldContent), 0600); err != nil {
 		t.Fatal(err)
 	}
 
-	// Set up local redirect-only .beads
-	localBeads := filepath.Join(tmpDir, ".beads")
-	if err := os.Mkdir(localBeads, 0750); err != nil {
+	// Set up local redirect-only .issuegraph
+	localIssueGraph := filepath.Join(tmpDir, ".issuegraph")
+	if err := os.Mkdir(localIssueGraph, 0750); err != nil {
 		t.Fatal(err)
 	}
-	if err := os.WriteFile(filepath.Join(localBeads, "redirect"), []byte("mayor/rig/.beads"), 0600); err != nil {
+	if err := os.WriteFile(filepath.Join(localIssueGraph, "redirect"), []byte("mayor/rig/.issuegraph"), 0600); err != nil {
 		t.Fatal(err)
 	}
 
@@ -2217,53 +2217,53 @@ func TestFixGitignore_RedirectRoundTrip(t *testing.T) {
 	}
 
 	// Step 4: No .gitignore in redirect-only dir (the original bug)
-	localGitignore := filepath.Join(localBeads, ".gitignore")
+	localGitignore := filepath.Join(localIssueGraph, ".gitignore")
 	if _, err := os.Stat(localGitignore); !os.IsNotExist(err) {
-		t.Errorf("FixGitignore must NOT create .gitignore in redirect-only .beads dir (the original bug)")
+		t.Errorf("FixGitignore must NOT create .gitignore in redirect-only .issuegraph dir (the original bug)")
 	}
 }
 
 func TestFixGitignore_BareParentWorktreeFallback(t *testing.T) {
 	bareDir, featureWorktreeDir := setupBareParentWorktreeForGitignoreTest(t)
-	bareBeadsDir := filepath.Join(bareDir, ".beads")
-	if err := os.MkdirAll(bareBeadsDir, 0750); err != nil {
+	bareIssueGraphDir := filepath.Join(bareDir, ".issuegraph")
+	if err := os.MkdirAll(bareIssueGraphDir, 0750); err != nil {
 		t.Fatal(err)
 	}
-	featureBeadsDir := filepath.Join(featureWorktreeDir, ".beads")
-	if _, err := os.Stat(featureBeadsDir); !os.IsNotExist(err) {
-		t.Fatalf("expected no local .beads in worktree, got err=%v", err)
+	featureIssueGraphDir := filepath.Join(featureWorktreeDir, ".issuegraph")
+	if _, err := os.Stat(featureIssueGraphDir); !os.IsNotExist(err) {
+		t.Fatalf("expected no local .issuegraph in worktree, got err=%v", err)
 	}
 
 	if err := FixGitignore(featureWorktreeDir); err != nil {
 		t.Fatalf("FixGitignore failed: %v", err)
 	}
 
-	targetGitignore := filepath.Join(bareBeadsDir, ".gitignore")
+	targetGitignore := filepath.Join(bareIssueGraphDir, ".gitignore")
 	content, err := os.ReadFile(targetGitignore)
 	if err != nil {
-		t.Fatalf("expected .gitignore in bare-parent .beads, got error: %v", err)
+		t.Fatalf("expected .gitignore in bare-parent .issuegraph, got error: %v", err)
 	}
 	if string(content) != GitignoreTemplate {
 		t.Errorf("expected canonical template at bare-parent target, got:\n%s", string(content))
 	}
-	if _, err := os.Stat(filepath.Join(featureBeadsDir, ".gitignore")); !os.IsNotExist(err) {
-		t.Errorf("FixGitignore should not create a local worktree .beads/.gitignore")
+	if _, err := os.Stat(filepath.Join(featureIssueGraphDir, ".gitignore")); !os.IsNotExist(err) {
+		t.Errorf("FixGitignore should not create a local worktree .issuegraph/.gitignore")
 	}
 }
 
 func TestCheckGitignore_BareParentWorktreeFallback(t *testing.T) {
 	bareDir, featureWorktreeDir := setupBareParentWorktreeForGitignoreTest(t)
-	bareBeadsDir := filepath.Join(bareDir, ".beads")
-	if err := os.MkdirAll(bareBeadsDir, 0750); err != nil {
+	bareIssueGraphDir := filepath.Join(bareDir, ".issuegraph")
+	if err := os.MkdirAll(bareIssueGraphDir, 0750); err != nil {
 		t.Fatal(err)
 	}
-	if err := os.WriteFile(filepath.Join(bareBeadsDir, ".gitignore"), []byte(GitignoreTemplate), 0600); err != nil {
+	if err := os.WriteFile(filepath.Join(bareIssueGraphDir, ".gitignore"), []byte(GitignoreTemplate), 0600); err != nil {
 		t.Fatal(err)
 	}
 
 	check := CheckGitignore(featureWorktreeDir)
 	if check.Status != "ok" {
-		t.Errorf("expected status ok when bare-parent .beads has valid .gitignore, got %s: %s", check.Status, check.Message)
+		t.Errorf("expected status ok when bare-parent .issuegraph has valid .gitignore, got %s: %s", check.Status, check.Message)
 	}
 }
 
@@ -2304,7 +2304,7 @@ func runGitInDirForGitignoreTest(t *testing.T, dir string, args ...string) strin
 
 func TestEnsureProjectGitignore_FilePermissions(t *testing.T) {
 	// Verify that project .gitignore is created with 0644 permissions.
-	// Unlike .beads/.gitignore (0600), the project .gitignore must be
+	// Unlike .issuegraph/.gitignore (0600), the project .gitignore must be
 	// readable by git and collaborators — this justifies the #nosec G306.
 	if runtime.GOOS == "windows" {
 		t.Skip("Skipping file permissions test on Windows")
@@ -2430,10 +2430,10 @@ func TestGitignoreTemplate_NoSensitivePatterns(t *testing.T) {
 		"api_key",
 	}
 
-	// .beads-credential-key is intentionally in the template to prevent the
+	// .issuegraph-credential-key is intentionally in the template to prevent the
 	// encryption key from being committed. Strip it before checking for
 	// accidental credential-related patterns.
-	stripped := strings.ReplaceAll(strings.ToLower(GitignoreTemplate), ".beads-credential-key", "")
+	stripped := strings.ReplaceAll(strings.ToLower(GitignoreTemplate), ".issuegraph-credential-key", "")
 
 	for _, keyword := range sensitiveKeywords {
 		if strings.Contains(stripped, keyword) {
@@ -2442,42 +2442,42 @@ func TestGitignoreTemplate_NoSensitivePatterns(t *testing.T) {
 	}
 }
 
-// TestGitignoreTemplate_ContainsCredentialKey verifies that the .beads/.gitignore template
-// includes .beads-credential-key to prevent the encryption key from being committed.
+// TestGitignoreTemplate_ContainsCredentialKey verifies that the .issuegraph/.gitignore template
+// includes .issuegraph-credential-key to prevent the encryption key from being committed.
 func TestGitignoreTemplate_ContainsCredentialKey(t *testing.T) {
-	if !strings.Contains(GitignoreTemplate, ".beads-credential-key") {
-		t.Error("GitignoreTemplate should contain '.beads-credential-key' pattern")
+	if !strings.Contains(GitignoreTemplate, ".issuegraph-credential-key") {
+		t.Error("GitignoreTemplate should contain '.issuegraph-credential-key' pattern")
 	}
 }
 
-// TestRequiredPatterns_ContainsCredentialKey verifies that bd doctor validates
-// the presence of the .beads-credential-key pattern in .beads/.gitignore.
+// TestRequiredPatterns_ContainsCredentialKey verifies that issuegraph doctor validates
+// the presence of the .issuegraph-credential-key pattern in .issuegraph/.gitignore.
 func TestRequiredPatterns_ContainsCredentialKey(t *testing.T) {
 	found := false
 	for _, pattern := range requiredPatterns {
-		if pattern == ".beads-credential-key" {
+		if pattern == ".issuegraph-credential-key" {
 			found = true
 			break
 		}
 	}
 	if !found {
-		t.Error("requiredPatterns should include '.beads-credential-key'")
+		t.Error("requiredPatterns should include '.issuegraph-credential-key'")
 	}
 }
 
 // TestProjectGitignorePatterns_ContainsCredentialKey verifies that the
-// project-root .gitignore patterns include .beads-credential-key to prevent
-// the credential encryption key from being committed even outside .beads/.
+// project-root .gitignore patterns include .issuegraph-credential-key to prevent
+// the credential encryption key from being committed even outside .issuegraph/.
 func TestProjectGitignorePatterns_ContainsCredentialKey(t *testing.T) {
 	found := false
 	for _, pattern := range ProjectGitignorePatterns {
-		if pattern == ".beads-credential-key" {
+		if pattern == ".issuegraph-credential-key" {
 			found = true
 			break
 		}
 	}
 	if !found {
-		t.Error("ProjectGitignorePatterns should include '.beads-credential-key'")
+		t.Error("ProjectGitignorePatterns should include '.issuegraph-credential-key'")
 	}
 }
 
@@ -2513,15 +2513,15 @@ func TestParseRedirectTarget(t *testing.T) {
 		data     string
 		expected string
 	}{
-		{"simple path", "../main-repo/.beads", "../main-repo/.beads"},
-		{"absolute path", "/home/user/project/.beads", "/home/user/project/.beads"},
-		{"with whitespace", "  ../main-repo/.beads  \n", "../main-repo/.beads"},
-		{"with comment", "# redirect target\n../main-repo/.beads", "../main-repo/.beads"},
-		{"multiple comments", "# comment1\n# comment2\n../main/.beads", "../main/.beads"},
+		{"simple path", "../main-repo/.issuegraph", "../main-repo/.issuegraph"},
+		{"absolute path", "/home/user/project/.issuegraph", "/home/user/project/.issuegraph"},
+		{"with whitespace", "  ../main-repo/.issuegraph  \n", "../main-repo/.issuegraph"},
+		{"with comment", "# redirect target\n../main-repo/.issuegraph", "../main-repo/.issuegraph"},
+		{"multiple comments", "# comment1\n# comment2\n../main/.issuegraph", "../main/.issuegraph"},
 		{"empty", "", ""},
 		{"only comments", "# comment\n# another", ""},
 		{"only whitespace", "   \n  \n", ""},
-		{"with BOM", "\ufeff../main-repo/.beads", "../main-repo/.beads"},
+		{"with BOM", "\ufeff../main-repo/.issuegraph", "../main-repo/.issuegraph"},
 		{"BOM in middle line", "# comment\n\ufeff../path", "../path"},
 	}
 
@@ -2538,27 +2538,27 @@ func TestParseRedirectTarget(t *testing.T) {
 // TestResolveRedirectTarget verifies redirect target path resolution.
 func TestResolveRedirectTarget(t *testing.T) {
 	tests := []struct {
-		name     string
-		beadsDir string
-		target   string
-		wantAbs  bool
+		name          string
+		issuegraphDir string
+		target        string
+		wantAbs       bool
 	}{
-		{"empty target", "/project/.beads", "", false},
-		{"relative path", "/project/.beads", "../other-repo/.beads", true},
-		{"absolute path", "/project/.beads", "/absolute/path/.beads", true},
+		{"empty target", "/project/.issuegraph", "", false},
+		{"relative path", "/project/.issuegraph", "../other-repo/.issuegraph", true},
+		{"absolute path", "/project/.issuegraph", "/absolute/path/.issuegraph", true},
 	}
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			result := resolveRedirectTarget(tt.beadsDir, tt.target)
+			result := resolveRedirectTarget(tt.issuegraphDir, tt.target)
 			if tt.target == "" {
 				if result != "" {
-					t.Errorf("resolveRedirectTarget(%q, %q) = %q, want empty", tt.beadsDir, tt.target, result)
+					t.Errorf("resolveRedirectTarget(%q, %q) = %q, want empty", tt.issuegraphDir, tt.target, result)
 				}
 				return
 			}
 			if tt.wantAbs && !filepath.IsAbs(result) {
-				t.Errorf("resolveRedirectTarget(%q, %q) = %q, want absolute path", tt.beadsDir, tt.target, result)
+				t.Errorf("resolveRedirectTarget(%q, %q) = %q, want absolute path", tt.issuegraphDir, tt.target, result)
 			}
 		})
 	}
@@ -2578,8 +2578,8 @@ func TestCheckRedirectTargetValid_NoRedirect(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	// Create .beads dir but no redirect file
-	if err := os.MkdirAll(filepath.Join(tmpDir, ".beads"), 0755); err != nil {
+	// Create .issuegraph dir but no redirect file
+	if err := os.MkdirAll(filepath.Join(tmpDir, ".issuegraph"), 0755); err != nil {
 		t.Fatal(err)
 	}
 
@@ -2606,11 +2606,11 @@ func TestCheckRedirectTargetValid_EmptyRedirect(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	beadsDir := filepath.Join(tmpDir, ".beads")
-	if err := os.MkdirAll(beadsDir, 0755); err != nil {
+	issuegraphDir := filepath.Join(tmpDir, ".issuegraph")
+	if err := os.MkdirAll(issuegraphDir, 0755); err != nil {
 		t.Fatal(err)
 	}
-	if err := os.WriteFile(filepath.Join(beadsDir, "redirect"), []byte(""), 0644); err != nil {
+	if err := os.WriteFile(filepath.Join(issuegraphDir, "redirect"), []byte(""), 0644); err != nil {
 		t.Fatal(err)
 	}
 
@@ -2638,11 +2638,11 @@ func TestCheckRedirectTargetValid_NonExistentTarget(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	beadsDir := filepath.Join(tmpDir, ".beads")
-	if err := os.MkdirAll(beadsDir, 0755); err != nil {
+	issuegraphDir := filepath.Join(tmpDir, ".issuegraph")
+	if err := os.MkdirAll(issuegraphDir, 0755); err != nil {
 		t.Fatal(err)
 	}
-	if err := os.WriteFile(filepath.Join(beadsDir, "redirect"), []byte("/nonexistent/path/.beads"), 0644); err != nil {
+	if err := os.WriteFile(filepath.Join(issuegraphDir, "redirect"), []byte("/nonexistent/path/.issuegraph"), 0644); err != nil {
 		t.Fatal(err)
 	}
 
@@ -2670,8 +2670,8 @@ func TestCheckRedirectTargetValid_TargetIsFile(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	beadsDir := filepath.Join(tmpDir, ".beads")
-	if err := os.MkdirAll(beadsDir, 0755); err != nil {
+	issuegraphDir := filepath.Join(tmpDir, ".issuegraph")
+	if err := os.MkdirAll(issuegraphDir, 0755); err != nil {
 		t.Fatal(err)
 	}
 	// Create a file (not a directory) as the target
@@ -2679,7 +2679,7 @@ func TestCheckRedirectTargetValid_TargetIsFile(t *testing.T) {
 	if err := os.WriteFile(targetFile, []byte("not a dir"), 0644); err != nil {
 		t.Fatal(err)
 	}
-	if err := os.WriteFile(filepath.Join(beadsDir, "redirect"), []byte(targetFile), 0644); err != nil {
+	if err := os.WriteFile(filepath.Join(issuegraphDir, "redirect"), []byte(targetFile), 0644); err != nil {
 		t.Fatal(err)
 	}
 
@@ -2706,7 +2706,7 @@ func TestCheckRedirectTargetSyncWorktree_NoRedirect(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	if err := os.MkdirAll(filepath.Join(tmpDir, ".beads"), 0755); err != nil {
+	if err := os.MkdirAll(filepath.Join(tmpDir, ".issuegraph"), 0755); err != nil {
 		t.Fatal(err)
 	}
 
@@ -2734,7 +2734,7 @@ func TestCheckNoVestigialSyncWorktrees_NoRedirect(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	if err := os.MkdirAll(filepath.Join(tmpDir, ".beads"), 0755); err != nil {
+	if err := os.MkdirAll(filepath.Join(tmpDir, ".issuegraph"), 0755); err != nil {
 		t.Fatal(err)
 	}
 
@@ -2748,7 +2748,7 @@ func TestCheckNoVestigialSyncWorktrees_NoRedirect(t *testing.T) {
 }
 
 // TestCheckNoVestigialSyncWorktrees_WithRedirectNoWorktree verifies OK
-// when redirect exists but no vestigial .beads-sync worktree.
+// when redirect exists but no vestigial .issuegraph-sync worktree.
 func TestCheckNoVestigialSyncWorktrees_WithRedirectNoWorktree(t *testing.T) {
 	tmpDir := t.TempDir()
 
@@ -2768,12 +2768,12 @@ func TestCheckNoVestigialSyncWorktrees_WithRedirectNoWorktree(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	beadsDir := filepath.Join(tmpDir, ".beads")
-	if err := os.MkdirAll(beadsDir, 0755); err != nil {
+	issuegraphDir := filepath.Join(tmpDir, ".issuegraph")
+	if err := os.MkdirAll(issuegraphDir, 0755); err != nil {
 		t.Fatal(err)
 	}
 	// Create redirect file
-	if err := os.WriteFile(filepath.Join(beadsDir, "redirect"), []byte("../other/.beads"), 0644); err != nil {
+	if err := os.WriteFile(filepath.Join(issuegraphDir, "redirect"), []byte("../other/.issuegraph"), 0644); err != nil {
 		t.Fatal(err)
 	}
 
@@ -2787,7 +2787,7 @@ func TestCheckNoVestigialSyncWorktrees_WithRedirectNoWorktree(t *testing.T) {
 }
 
 // TestCheckNoVestigialSyncWorktrees_VestigialDetected verifies warning
-// when redirect exists AND a .beads-sync worktree exists locally.
+// when redirect exists AND a .issuegraph-sync worktree exists locally.
 func TestCheckNoVestigialSyncWorktrees_VestigialDetected(t *testing.T) {
 	tmpDir := t.TempDir()
 
@@ -2807,16 +2807,16 @@ func TestCheckNoVestigialSyncWorktrees_VestigialDetected(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	beadsDir := filepath.Join(tmpDir, ".beads")
-	if err := os.MkdirAll(beadsDir, 0755); err != nil {
+	issuegraphDir := filepath.Join(tmpDir, ".issuegraph")
+	if err := os.MkdirAll(issuegraphDir, 0755); err != nil {
 		t.Fatal(err)
 	}
 	// Create redirect file
-	if err := os.WriteFile(filepath.Join(beadsDir, "redirect"), []byte("../other/.beads"), 0644); err != nil {
+	if err := os.WriteFile(filepath.Join(issuegraphDir, "redirect"), []byte("../other/.issuegraph"), 0644); err != nil {
 		t.Fatal(err)
 	}
-	// Create vestigial .beads-sync directory
-	if err := os.MkdirAll(filepath.Join(tmpDir, ".beads-sync"), 0755); err != nil {
+	// Create vestigial .issuegraph-sync directory
+	if err := os.MkdirAll(filepath.Join(tmpDir, ".issuegraph-sync"), 0755); err != nil {
 		t.Fatal(err)
 	}
 

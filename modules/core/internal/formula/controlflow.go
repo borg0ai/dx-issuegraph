@@ -6,7 +6,7 @@
 //   - gate: Conditional waits before steps proceed
 //
 // These operators are applied during formula cooking to transform
-// the step graph before creating the proto bead.
+// the step graph before creating the proto issue.
 package formula
 
 import (

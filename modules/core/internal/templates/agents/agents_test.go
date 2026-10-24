@@ -15,9 +15,9 @@ func TestEmbeddedDefault(t *testing.T) {
 	required := []string{
 		"# Agent Instructions",
 		"## Quick Reference",
-		"bd prime",
-		"BEGIN BEADS INTEGRATION",
-		"END BEADS INTEGRATION",
+		"issuegraph prime",
+		"BEGIN ISSUEGRAPH INTEGRATION",
+		"END ISSUEGRAPH INTEGRATION",
 		"## Session Completion",
 		"git push",
 	}
@@ -31,7 +31,7 @@ func TestEmbeddedDefault(t *testing.T) {
 // TestEmbeddedDefaultArchitectureSummary guards GH#3683: agents reading the
 // generated AGENTS.md need an architecture statement at the top so they don't
 // build wrong mental models (treating JSONL as source of truth, manually
-// running bd import, etc.) and have to discover the four deeper architecture
+// running issuegraph import, etc.) and have to discover the four deeper architecture
 // docs the hard way. The summary must appear before the Quick Reference and
 // link to the canonical sync-concepts entry-point.
 func TestEmbeddedDefaultArchitectureSummary(t *testing.T) {
@@ -59,64 +59,64 @@ func TestEmbeddedDefaultArchitectureSummary(t *testing.T) {
 	}
 }
 
-func TestEmbeddedBeadsSection(t *testing.T) {
-	section := EmbeddedBeadsSection()
+func TestEmbeddedIssueGraphSection(t *testing.T) {
+	section := EmbeddedIssueGraphSection()
 
 	if section == "" {
-		t.Fatal("EmbeddedBeadsSection() returned empty string")
+		t.Fatal("EmbeddedIssueGraphSection() returned empty string")
 	}
 
-	if !strings.HasPrefix(section, "<!-- BEGIN BEADS INTEGRATION -->") {
-		t.Error("beads section should start with begin marker")
+	if !strings.HasPrefix(section, "<!-- BEGIN ISSUEGRAPH INTEGRATION -->") {
+		t.Error("issuegraph section should start with begin marker")
 	}
 
 	trimmed := strings.TrimSpace(section)
-	if !strings.HasSuffix(trimmed, "<!-- END BEADS INTEGRATION -->") {
-		t.Error("beads section should end with end marker")
+	if !strings.HasSuffix(trimmed, "<!-- END ISSUEGRAPH INTEGRATION -->") {
+		t.Error("issuegraph section should end with end marker")
 	}
 
 	required := []string{
-		"bd create",
-		"bd update",
-		"bd close",
-		"bd ready",
+		"issuegraph create",
+		"issuegraph update",
+		"issuegraph close",
+		"issuegraph ready",
 		"discovered-from",
 	}
 	for _, want := range required {
 		if !strings.Contains(section, want) {
-			t.Errorf("EmbeddedBeadsSection() missing %q", want)
+			t.Errorf("EmbeddedIssueGraphSection() missing %q", want)
 		}
 	}
 }
 
-func TestBeadsSectionContainsLanding(t *testing.T) {
-	section := EmbeddedBeadsSection()
+func TestIssueGraphSectionContainsLanding(t *testing.T) {
+	section := EmbeddedIssueGraphSection()
 	if !strings.Contains(section, "Session Completion") {
-		t.Error("beads section should contain session completion content within markers")
+		t.Error("issuegraph section should contain session completion content within markers")
 	}
 }
 
 func TestDefaultContainsBothSections(t *testing.T) {
 	content := EmbeddedDefault()
 
-	beadsIdx := strings.Index(content, "BEGIN BEADS INTEGRATION")
+	issuegraphIdx := strings.Index(content, "BEGIN ISSUEGRAPH INTEGRATION")
 	completionIdx := strings.Index(content, "Session Completion")
 
-	if beadsIdx == -1 {
-		t.Fatal("missing beads integration section")
+	if issuegraphIdx == -1 {
+		t.Fatal("missing issuegraph integration section")
 	}
 	if completionIdx == -1 {
 		t.Fatal("missing session completion section")
 	}
-	if beadsIdx > completionIdx {
-		t.Error("beads section should come before session completion section")
+	if issuegraphIdx > completionIdx {
+		t.Error("issuegraph section should come before session completion section")
 	}
 }
 
 func TestEmbeddedDefaultManagedMarkerIsCurrent(t *testing.T) {
 	content := EmbeddedDefault()
 
-	idx := strings.Index(content, "<!-- BEGIN BEADS INTEGRATION")
+	idx := strings.Index(content, "<!-- BEGIN ISSUEGRAPH INTEGRATION")
 	if idx == -1 {
 		t.Fatal("missing managed section marker")
 	}

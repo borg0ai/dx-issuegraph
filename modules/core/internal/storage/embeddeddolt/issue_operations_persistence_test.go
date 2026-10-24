@@ -7,13 +7,13 @@ import (
 	"path/filepath"
 	"testing"
 
-	"github.com/steveyegge/beads/internal/storage/issueops"
-	"github.com/steveyegge/beads/internal/types"
+	"github.com/borg0ai/dx-issuegraph/internal/storage/issueops"
+	"github.com/borg0ai/dx-issuegraph/internal/types"
 )
 
 func TestEmbeddedMoveIssuePersistenceEphemeralNoHistorySmoke(t *testing.T) {
 	ctx := context.Background()
-	store, err := Open(ctx, filepath.Join(t.TempDir(), ".beads"), "persist", "main")
+	store, err := Open(ctx, filepath.Join(t.TempDir(), ".issuegraph"), "persist", "main")
 	if err != nil {
 		t.Fatal(err)
 	}

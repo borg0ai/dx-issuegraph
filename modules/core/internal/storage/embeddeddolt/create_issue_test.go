@@ -14,10 +14,10 @@ import (
 	"testing"
 	"time"
 
-	"github.com/steveyegge/beads/internal/hooks"
-	"github.com/steveyegge/beads/internal/storage"
-	"github.com/steveyegge/beads/internal/storage/embeddeddolt"
-	"github.com/steveyegge/beads/internal/types"
+	"github.com/borg0ai/dx-issuegraph/internal/hooks"
+	"github.com/borg0ai/dx-issuegraph/internal/storage"
+	"github.com/borg0ai/dx-issuegraph/internal/storage/embeddeddolt"
+	"github.com/borg0ai/dx-issuegraph/internal/types"
 )
 
 // testEnv bundles a store with the paths needed to open raw SQL connections.
@@ -159,8 +159,8 @@ func (te *testEnv) assertNoChildCounterRow(t *testing.T, ctx context.Context, ta
 
 func skipUnlessEmbeddedDolt(t *testing.T) {
 	t.Helper()
-	if os.Getenv("BEADS_TEST_EMBEDDED_DOLT") != "1" {
-		t.Skip("set BEADS_TEST_EMBEDDED_DOLT=1 to run embedded dolt tests")
+	if os.Getenv("ISSUEGRAPH_TEST_EMBEDDED_DOLT") != "1" {
+		t.Skip("set ISSUEGRAPH_TEST_EMBEDDED_DOLT=1 to run embedded dolt tests")
 	}
 }
 
@@ -230,8 +230,8 @@ func TestCreateIssue(t *testing.T) {
 
 	t.Run("missing_prefix_errors", func(t *testing.T) {
 		ctx := t.Context()
-		beadsDir := filepath.Join(t.TempDir(), ".beads")
-		store, err := embeddeddolt.Open(ctx, beadsDir, "noprefix", "main")
+		issuegraphDir := filepath.Join(t.TempDir(), ".issuegraph")
+		store, err := embeddeddolt.Open(ctx, issuegraphDir, "noprefix", "main")
 		if err != nil {
 			t.Fatalf("Open: %v", err)
 		}
@@ -1261,7 +1261,7 @@ func TestHookFiringStoreCreateIssuesFiresDependencyUpdatesFromEmbeddedStore(t *t
 		// which has no shebang dispatch. The extensionless #!/bin/sh hook written by
 		// newEmbeddedHookStore cannot be executed as a shell script, so no payload is
 		// ever logged and the assertions fail. Same limitation already skipped in
-		// internal/hooks/hooks_test.go. See: https://github.com/gastownhall/beads/issues/3800
+		// internal/hooks/hooks_test.go. See: https://github.com/borg0ai/dx-issuegraph/issues/3800
 		t.Skip("hook script execution not supported on Windows - see GH#3800")
 	}
 	t.Run("non_transactional", func(t *testing.T) {

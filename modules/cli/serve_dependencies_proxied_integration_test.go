@@ -12,7 +12,7 @@ import (
 )
 
 // End-to-end for the dependency-graph writes, against real Dolt through a real
-// `bd serve` subprocess. The pure tests in internal/httpapi cover the wire edge
+// `issuegraph serve` subprocess. The pure tests in internal/httpapi cover the wire edge
 // against a fake role; what only this level can prove is what the STORAGE
 // TRANSACTION did — that a removal really removed, and that a refused batch
 // left the graph exactly as it found it.
@@ -49,7 +49,7 @@ func (sp *serveProcess) postJSON(t *testing.T, path, body string) (int, map[stri
 // made against: what the graph holds after a write, not what the write said.
 func (sp *serveProcess) storedEdges(t *testing.T, id string) []map[string]any {
 	t.Helper()
-	status, body, _ := sp.get(t, "/v0/beads/dependencies?issue_id="+id)
+	status, body, _ := sp.get(t, "/v0/issuegraph/dependencies?issue_id="+id)
 	if status != http.StatusOK {
 		t.Fatalf("GET the stored edges of %s: status = %d: %v", id, status, body)
 	}
@@ -74,13 +74,13 @@ func (sp *serveProcess) storedEdges(t *testing.T, id string) []map[string]any {
 
 func (sp *serveProcess) removeDependency(t *testing.T, issueID, dependsOnID, actor string) (int, map[string]any) {
 	t.Helper()
-	return sp.postJSON(t, "/v0/beads/dependencies:remove",
+	return sp.postJSON(t, "/v0/issuegraph/dependencies:remove",
 		fmt.Sprintf(`{"actor":%q,"issue_id":%q,"depends_on_id":%q}`, actor, issueID, dependsOnID))
 }
 
 func (sp *serveProcess) addDependencies(t *testing.T, actor string, edges ...string) (int, map[string]any) {
 	t.Helper()
-	return sp.postJSON(t, "/v0/beads/dependencies:add",
+	return sp.postJSON(t, "/v0/issuegraph/dependencies:add",
 		fmt.Sprintf(`{"actor":%q,"edges":[%s]}`, actor, strings.Join(edges, ",")))
 }
 
@@ -91,9 +91,9 @@ func edgeJSON(issueID, dependsOnID, edgeType string) string {
 func TestProxiedServerServeAddDependencies(t *testing.T) {
 	requireSharedProxiedServer(t)
 	t.Parallel()
-	bd := buildEmbeddedBD(t)
-	p := newSharedProxiedProject(t, bd, "srvdepadd")
-	sp := startServe(t, bd, p.dir, bdProxiedEnv(p.dir))
+	issuegraph := buildEmbeddedBD(t)
+	p := newSharedProxiedProject(t, issuegraph, "srvdepadd")
+	sp := startServe(t, issuegraph, p.dir, issuegraphProxiedEnv(p.dir))
 
 	// THE ATOMICITY PROOF, and the thing a fake role structurally cannot own.
 	// A batch whose LATER edge closes a cycle is refused, and the earlier edges
@@ -102,9 +102,9 @@ func TestProxiedServerServeAddDependencies(t *testing.T) {
 	// forwarded the batch to a role committing per edge would pass every pure
 	// test in internal/httpapi and leave half a graph here.
 	t.Run("a mid-batch refusal leaves zero edges", func(t *testing.T) {
-		a := bdProxiedCreate(t, bd, p.dir, "atomicity a", "-p", "1")
-		b := bdProxiedCreate(t, bd, p.dir, "atomicity b", "-p", "1")
-		c := bdProxiedCreate(t, bd, p.dir, "atomicity c", "-p", "1")
+		a := issuegraphProxiedCreate(t, issuegraph, p.dir, "atomicity a", "-p", "1")
+		b := issuegraphProxiedCreate(t, issuegraph, p.dir, "atomicity b", "-p", "1")
+		c := issuegraphProxiedCreate(t, issuegraph, p.dir, "atomicity c", "-p", "1")
 
 		status, body := sp.addDependencies(t, "http-agent",
 			edgeJSON(a.ID, b.ID, "blocks"),
@@ -128,15 +128,15 @@ func TestProxiedServerServeAddDependencies(t *testing.T) {
 			}
 		}
 		// And the CLI reads the same empty graph through its own path.
-		if out := bdProxiedDep(t, bd, p.dir, "list", a.ID); strings.Contains(out, b.ID) {
-			t.Errorf("`bd dep list` shows an edge from the refused batch:\n%s", out)
+		if out := issuegraphProxiedDep(t, issuegraph, p.dir, "list", a.ID); strings.Contains(out, b.ID) {
+			t.Errorf("`issuegraph dep list` shows an edge from the refused batch:\n%s", out)
 		}
 	})
 
 	t.Run("every edge of an accepted batch lands", func(t *testing.T) {
-		a := bdProxiedCreate(t, bd, p.dir, "batch source", "-p", "1")
-		b := bdProxiedCreate(t, bd, p.dir, "batch target", "-p", "1")
-		c := bdProxiedCreate(t, bd, p.dir, "batch other target", "-p", "1")
+		a := issuegraphProxiedCreate(t, issuegraph, p.dir, "batch source", "-p", "1")
+		b := issuegraphProxiedCreate(t, issuegraph, p.dir, "batch target", "-p", "1")
+		c := issuegraphProxiedCreate(t, issuegraph, p.dir, "batch other target", "-p", "1")
 
 		status, body := sp.addDependencies(t, "http-agent",
 			edgeJSON(a.ID, b.ID, "blocks"),
@@ -174,8 +174,8 @@ func TestProxiedServerServeAddDependencies(t *testing.T) {
 	// the real role against real Dolt: the members must arrive from the
 	// transaction that refused, not from a fake that was told what to say.
 	t.Run("a retype is dependency_exists carrying both types", func(t *testing.T) {
-		a := bdProxiedCreate(t, bd, p.dir, "retype source", "-p", "1")
-		b := bdProxiedCreate(t, bd, p.dir, "retype target", "-p", "1")
+		a := issuegraphProxiedCreate(t, issuegraph, p.dir, "retype source", "-p", "1")
+		b := issuegraphProxiedCreate(t, issuegraph, p.dir, "retype target", "-p", "1")
 		if status, body := sp.addDependencies(t, "http-agent", edgeJSON(a.ID, b.ID, "related")); status != http.StatusOK {
 			t.Fatalf("seed: status = %d, want 200: %v", status, body)
 		}
@@ -202,9 +202,9 @@ func TestProxiedServerServeAddDependencies(t *testing.T) {
 	// the PRESENCE of its three members. Only a real store can build the
 	// parent-child hierarchy the role walks.
 	t.Run("a blocker that is an ancestor carries the hierarchy members", func(t *testing.T) {
-		parent := bdProxiedCreate(t, bd, p.dir, "hierarchy parent", "-p", "1")
-		child := bdProxiedCreate(t, bd, p.dir, "hierarchy child", "-p", "1")
-		bdProxiedDep(t, bd, p.dir, "add", child.ID, parent.ID, "--type", "parent-child")
+		parent := issuegraphProxiedCreate(t, issuegraph, p.dir, "hierarchy parent", "-p", "1")
+		child := issuegraphProxiedCreate(t, issuegraph, p.dir, "hierarchy child", "-p", "1")
+		issuegraphProxiedDep(t, issuegraph, p.dir, "add", child.ID, parent.ID, "--type", "parent-child")
 
 		status, body := sp.addDependencies(t, "http-agent", edgeJSON(child.ID, parent.ID, "blocks"))
 		if status != http.StatusConflict {
@@ -227,8 +227,8 @@ func TestProxiedServerServeAddDependencies(t *testing.T) {
 	// legitimate external target and is accepted. A blanket unknown-target rule
 	// would break every cross-repo edge, so both halves are pinned together.
 	t.Run("a locally-absent target is a 400 and writes nothing", func(t *testing.T) {
-		a := bdProxiedCreate(t, bd, p.dir, "ghost endpoint source", "-p", "2")
-		b := bdProxiedCreate(t, bd, p.dir, "ghost endpoint target", "-p", "2")
+		a := issuegraphProxiedCreate(t, issuegraph, p.dir, "ghost endpoint source", "-p", "2")
+		b := issuegraphProxiedCreate(t, issuegraph, p.dir, "ghost endpoint target", "-p", "2")
 
 		status, body := sp.addDependencies(t, "http-agent",
 			edgeJSON(a.ID, b.ID, "blocks"),
@@ -250,7 +250,7 @@ func TestProxiedServerServeAddDependencies(t *testing.T) {
 	})
 
 	t.Run("a ghost source is a 400 whatever its prefix", func(t *testing.T) {
-		b := bdProxiedCreate(t, bd, p.dir, "ghost source target", "-p", "2")
+		b := issuegraphProxiedCreate(t, issuegraph, p.dir, "ghost source target", "-p", "2")
 
 		status, body := sp.addDependencies(t, "http-agent", edgeJSON(p.prefix+"-nosuchsource", b.ID, "blocks"))
 		if status != http.StatusBadRequest {
@@ -262,7 +262,7 @@ func TestProxiedServerServeAddDependencies(t *testing.T) {
 	})
 
 	t.Run("an external or foreign target is accepted", func(t *testing.T) {
-		a := bdProxiedCreate(t, bd, p.dir, "external target source", "-p", "2")
+		a := issuegraphProxiedCreate(t, issuegraph, p.dir, "external target source", "-p", "2")
 
 		status, body := sp.addDependencies(t, "http-agent",
 			edgeJSON(a.ID, "external:JIRA-9", "blocks"),
@@ -284,18 +284,18 @@ func TestProxiedServerServeAddDependencies(t *testing.T) {
 func TestProxiedServerServeRemoveDependency(t *testing.T) {
 	requireSharedProxiedServer(t)
 	t.Parallel()
-	bd := buildEmbeddedBD(t)
-	p := newSharedProxiedProject(t, bd, "srvdeprm")
-	sp := startServe(t, bd, p.dir, bdProxiedEnv(p.dir))
+	issuegraph := buildEmbeddedBD(t)
+	p := newSharedProxiedProject(t, issuegraph, "srvdeprm")
+	sp := startServe(t, issuegraph, p.dir, issuegraphProxiedEnv(p.dir))
 
 	// The retained proof for this operation: the idempotent re-remove, read
 	// back out of the database between the calls. A fake role can report
 	// `removed: false` for any reason at all; only a real store proves that the
 	// second call found nothing because the first call had already taken it.
 	t.Run("the second removal finds nothing and changes nothing", func(t *testing.T) {
-		source := bdProxiedCreate(t, bd, p.dir, "removal source", "-p", "1")
-		target := bdProxiedCreate(t, bd, p.dir, "removal target", "-p", "1")
-		bdProxiedDep(t, bd, p.dir, "add", source.ID, target.ID)
+		source := issuegraphProxiedCreate(t, issuegraph, p.dir, "removal source", "-p", "1")
+		target := issuegraphProxiedCreate(t, issuegraph, p.dir, "removal target", "-p", "1")
+		issuegraphProxiedDep(t, issuegraph, p.dir, "add", source.ID, target.ID)
 
 		if edges := sp.storedEdges(t, source.ID); len(edges) != 1 {
 			t.Fatalf("the CLI-written edge is not in the graph: %v", edges)
@@ -312,8 +312,8 @@ func TestProxiedServerServeRemoveDependency(t *testing.T) {
 			t.Fatalf("the edge survived a removal that reported success: %v", edges)
 		}
 		// And the CLI reads the same graph through its own path.
-		if out := bdProxiedDep(t, bd, p.dir, "list", source.ID); strings.Contains(out, target.ID) {
-			t.Errorf("`bd dep list` still shows the removed edge:\n%s", out)
+		if out := issuegraphProxiedDep(t, issuegraph, p.dir, "list", source.ID); strings.Contains(out, target.ID) {
+			t.Errorf("`issuegraph dep list` still shows the removed edge:\n%s", out)
 		}
 
 		status, body = sp.removeDependency(t, source.ID, target.ID, "http-agent")
@@ -332,7 +332,7 @@ func TestProxiedServerServeRemoveDependency(t *testing.T) {
 	// 404. This is the operation's absent-code row proved against a real
 	// database rather than against a fake that could not have looked.
 	t.Run("an endpoint that names nothing is not a 404", func(t *testing.T) {
-		source := bdProxiedCreate(t, bd, p.dir, "no edges at all", "-p", "2")
+		source := issuegraphProxiedCreate(t, issuegraph, p.dir, "no edges at all", "-p", "2")
 
 		status, body := sp.removeDependency(t, source.ID, "bd-nosuchissue", "http-agent")
 		if status != http.StatusOK {
@@ -352,9 +352,9 @@ func TestProxiedServerServeRemoveDependency(t *testing.T) {
 	})
 
 	t.Run("a refused request writes nothing", func(t *testing.T) {
-		source := bdProxiedCreate(t, bd, p.dir, "refusals keep the edge", "-p", "2")
-		target := bdProxiedCreate(t, bd, p.dir, "refusals keep the target", "-p", "2")
-		bdProxiedDep(t, bd, p.dir, "add", source.ID, target.ID)
+		source := issuegraphProxiedCreate(t, issuegraph, p.dir, "refusals keep the edge", "-p", "2")
+		target := issuegraphProxiedCreate(t, issuegraph, p.dir, "refusals keep the target", "-p", "2")
+		issuegraphProxiedDep(t, issuegraph, p.dir, "add", source.ID, target.ID)
 
 		for _, body := range []string{
 			fmt.Sprintf(`{"actor":"   ","issue_id":%q,"depends_on_id":%q}`, source.ID, target.ID),
@@ -362,7 +362,7 @@ func TestProxiedServerServeRemoveDependency(t *testing.T) {
 			fmt.Sprintf(`{"actor":"agent","issue_id":%q}`, source.ID),
 			fmt.Sprintf(`{"actor":"agent","issue_id":%q,"depends_on_id":%q,"force":true}`, source.ID, target.ID),
 		} {
-			status, problem := sp.postJSON(t, "/v0/beads/dependencies:remove", body)
+			status, problem := sp.postJSON(t, "/v0/issuegraph/dependencies:remove", body)
 			if status != http.StatusBadRequest {
 				t.Fatalf("body %.50q: status = %d, want 400: %v", body, status, problem)
 			}

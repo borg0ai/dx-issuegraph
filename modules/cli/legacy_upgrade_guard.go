@@ -8,12 +8,12 @@ import (
 	"strconv"
 	"strings"
 
-	"github.com/steveyegge/beads/internal/beads"
-	"github.com/steveyegge/beads/internal/configfile"
-	"github.com/steveyegge/beads/internal/doltserver"
-	"github.com/steveyegge/beads/internal/git"
-	"github.com/steveyegge/beads/internal/storage/embeddeddolt"
-	"github.com/steveyegge/beads/internal/utils"
+	"github.com/borg0ai/dx-issuegraph/internal/configfile"
+	"github.com/borg0ai/dx-issuegraph/internal/doltserver"
+	"github.com/borg0ai/dx-issuegraph/internal/git"
+	"github.com/borg0ai/dx-issuegraph/internal/issuegraph"
+	"github.com/borg0ai/dx-issuegraph/internal/storage/embeddeddolt"
+	"github.com/borg0ai/dx-issuegraph/internal/utils"
 	"golang.org/x/mod/semver"
 )
 
@@ -22,32 +22,32 @@ import (
 // or construct a store. It intentionally classifies only metadata, regular
 // SQLite files, and the bounded local version witness; storage internals stay
 // behind the driver boundary.
-func guardLegacyUpgradeWorkspace(beadsDir string) error {
-	if beadsDir == "" {
+func guardLegacyUpgradeWorkspace(issuegraphDir string) error {
+	if issuegraphDir == "" {
 		return nil
 	}
-	cfg, err := configfile.LoadForDiscovery(beadsDir)
+	cfg, err := configfile.LoadForDiscovery(issuegraphDir)
 	if err != nil {
 		return fmt.Errorf("loading config: %w", err)
 	}
-	if isHistoricalSQLiteWorkspace(beadsDir, cfg) {
+	if isHistoricalSQLiteWorkspace(issuegraphDir, cfg) {
 		return legacyUpgradeRefusal("historical SQLite workspace")
 	}
 	// Validate read-only discovery metadata before any caller can use Load,
 	// which migrates legacy config.json to metadata.json. Removed and unknown
 	// backends must fail without changing the only pointer to their data.
-	if err := validateConfiguredBackend(cfg, beadsDir); err != nil {
+	if err := validateConfiguredBackend(cfg, issuegraphDir); err != nil {
 		return err
 	}
 	serverMode := workspaceSelectsServerMode(cfg)
-	if embeddeddolt.HasRepository(beadsDir) && !serverMode {
+	if embeddeddolt.HasRepository(issuegraphDir) && !serverMode {
 		return nil
 	}
-	version, present := legacyUpgradeVersionWitness(beadsDir)
+	version, present := legacyUpgradeVersionWitness(issuegraphDir)
 	if serverMode && present && legacyServerVersion(version) {
-		return legacyUpgradeRefusal(fmt.Sprintf("legacy Dolt server workspace from bd %s", version))
+		return legacyUpgradeRefusal(fmt.Sprintf("legacy Dolt server workspace from issuegraph %s", version))
 	}
-	hasLocalDoltRoot := hasLegacyDoltRoot(beadsDir)
+	hasLocalDoltRoot := hasLegacyDoltRoot(issuegraphDir)
 	if !hasLocalDoltRoot {
 		return nil
 	}
@@ -55,7 +55,7 @@ func guardLegacyUpgradeWorkspace(beadsDir string) error {
 	// it for every mode. Only the ambiguity that remains after these is
 	// mode-specific, so the refusals below are the only part that branches.
 	if classifyVersionWitness(version) == witnessEraCurrent {
-		// A witness naming bd 1.0 or later can only have been written by a
+		// A witness naming issuegraph 1.0 or later can only have been written by a
 		// current-era binary, and only after this same guard admitted the
 		// workspace (PersistentPreRunE runs the guard before trackBdVersion,
 		// and doctor runs it before its own copy of that call). No legacy
@@ -65,11 +65,11 @@ func guardLegacyUpgradeWorkspace(beadsDir string) error {
 		return nil
 	}
 	if doltserver.IsSharedServerMode() && !(present && legacyServerVersion(version)) {
-		// A shared Dolt sql-server owns .beads/dolt, so there is no embedded
+		// A shared Dolt sql-server owns .issuegraph/dolt, so there is no embedded
 		// historical schema to protect — unless the witness affirmatively names
 		// the 0.55–0.62 server era. This admission used to sit inside the
 		// embedded arm below. Leaving it there while config.yaml started
-		// selecting server mode would have moved shared-server workspaces bd
+		// selecting server mode would have moved shared-server workspaces issuegraph
 		// admits today onto the refusing arm: the mode changed, the evidence
 		// did not.
 		return nil
@@ -79,14 +79,14 @@ func guardLegacyUpgradeWorkspace(beadsDir string) error {
 			// A witness that is present but unreadable — including one left
 			// blank or whitespace-only by an interrupted or disk-full
 			// best-effort write — is not evidence of a legacy workspace: every
-			// pre-1.0 bd wrote a plain X.Y.Z through the same writer, so no
+			// pre-1.0 issuegraph wrote a plain X.Y.Z through the same writer, so no
 			// legacy release could have produced a witness this parse rejects.
 			// Report the ambiguity and open the workspace so the admitted
 			// command can self-heal the witness, instead of refusing every
 			// command over an advisory, gitignored file. A genuinely absent
 			// witness is not present and still refuses below, preserving the
 			// pre-1.0 guard invariant.
-			warnUnreadableVersionWitness(beadsDir, version)
+			warnUnreadableVersionWitness(issuegraphDir, version)
 			return nil
 		}
 		return legacyUpgradeRefusal("legacy Dolt server workspace")
@@ -95,24 +95,24 @@ func guardLegacyUpgradeWorkspace(beadsDir string) error {
 		strings.EqualFold(cfg.DoltMode, configfile.DoltModeEmbedded) {
 		reason := "legacy Dolt workspace"
 		if _, validVersion := legacyVersionMinor(version); present && validVersion {
-			reason = fmt.Sprintf("legacy Dolt workspace from bd %s", version)
+			reason = fmt.Sprintf("legacy Dolt workspace from issuegraph %s", version)
 		}
 		return legacyUpgradeRefusal(reason)
 	}
 	return nil
 }
 
-// workspaceSelectsServerMode reports whether bd will open beadsDir through a
+// workspaceSelectsServerMode reports whether issuegraph will open issuegraphDir through a
 // Dolt sql-server rather than as an embedded database.
 //
 // It asks configfile's own resolver instead of reading metadata.json's
 // dolt_mode directly. That field is only the highest-priority layer of the
-// decision: a workspace that declares `dolt.mode: server` in .beads/config.yaml
+// decision: a workspace that declares `dolt.mode: server` in .issuegraph/config.yaml
 // and has no metadata.json at all — the shape gc provisions — is just as much a
 // server workspace, and IsDoltServerMode documents the full precedence chain
 // that store selection then uses. Reading the top layer alone classified those
-// as embedded, and an embedded workspace owning a .beads/dolt root is precisely
-// what this guard refuses, so bd rejected server workspaces it had created
+// as embedded, and an embedded workspace owning a .issuegraph/dolt root is precisely
+// what this guard refuses, so issuegraph rejected server workspaces it had created
 // itself moments earlier.
 //
 // On the PersistentPreRunE and doctor paths the config.yaml layer resolves
@@ -129,25 +129,25 @@ func workspaceSelectsServerMode(cfg *configfile.Config) bool {
 	return normalizeLoadedConfig(cfg).IsDoltServerMode()
 }
 
-func isHistoricalSQLiteWorkspace(beadsDir string, cfg *configfile.Config) bool {
-	if beadsDir == "" {
+func isHistoricalSQLiteWorkspace(issuegraphDir string, cfg *configfile.Config) bool {
+	if issuegraphDir == "" {
 		return false
 	}
-	if embeddeddolt.HasRepository(beadsDir) {
+	if embeddeddolt.HasRepository(issuegraphDir) {
 		return false
 	}
 	if cfg != nil {
-		return configuredHistoricalSQLiteWorkspace(beadsDir, cfg)
+		return configuredHistoricalSQLiteWorkspace(issuegraphDir, cfg)
 	}
-	return discoveredHistoricalSQLiteWorkspace(beadsDir)
+	return discoveredHistoricalSQLiteWorkspace(issuegraphDir)
 }
 
 // configuredHistoricalSQLiteWorkspace classifies a metadata-backed workspace
 // whose config names a bare on-disk SQLite database. It selects the database
-// name from the config exactly as legacy bd did and confirms the file exists
-// beneath beadsDir; a non-SQLite backend, any Dolt configuration, or a database
+// name from the config exactly as legacy issuegraph did and confirms the file exists
+// beneath issuegraphDir; a non-SQLite backend, any Dolt configuration, or a database
 // path that is not a plain basename all disqualify it.
-func configuredHistoricalSQLiteWorkspace(beadsDir string, cfg *configfile.Config) bool {
+func configuredHistoricalSQLiteWorkspace(issuegraphDir string, cfg *configfile.Config) bool {
 	if cfg.Backend != "" && cfg.Backend != configfile.BackendSQLite {
 		return false
 	}
@@ -159,37 +159,37 @@ func configuredHistoricalSQLiteWorkspace(beadsDir string, cfg *configfile.Config
 		databaseName = cfg.Database
 	}
 	if databaseName == "" {
-		databaseName = "beads.db"
+		databaseName = "issuegraph.db"
 	}
 	if filepath.Base(databaseName) != databaseName {
 		return false
 	}
-	return isNonEmptyRegularFile(filepath.Join(beadsDir, databaseName))
+	return isNonEmptyRegularFile(filepath.Join(issuegraphDir, databaseName))
 }
 
 // discoveredHistoricalSQLiteWorkspace classifies a metadata-less workspace by
 // its on-disk layout: exactly one non-empty regular .db file carrying a real
 // SQLite header, and no entries beyond that database, its WAL/SHM sidecars, an
 // optional issues.jsonl export, and an embeddeddolt directory.
-func discoveredHistoricalSQLiteWorkspace(beadsDir string) bool {
-	entries, err := os.ReadDir(beadsDir)
+func discoveredHistoricalSQLiteWorkspace(issuegraphDir string) bool {
+	entries, err := os.ReadDir(issuegraphDir)
 	if err != nil {
 		return false
 	}
-	databaseName, ok := soleLegacySQLiteDatabase(beadsDir, entries)
+	databaseName, ok := soleLegacySQLiteDatabase(issuegraphDir, entries)
 	if !ok {
 		return false
 	}
-	if !hasSQLiteHeader(filepath.Join(beadsDir, databaseName)) {
+	if !hasSQLiteHeader(filepath.Join(issuegraphDir, databaseName)) {
 		return false
 	}
-	return onlyLegacySQLiteEntries(beadsDir, entries, databaseName)
+	return onlyLegacySQLiteEntries(issuegraphDir, entries, databaseName)
 }
 
 // soleLegacySQLiteDatabase returns the single .db filename directly beneath a
 // metadata-less workspace. It fails closed if any entry is a symlink, if a .db
 // file is empty or not a regular file, or if more than one .db file is present.
-func soleLegacySQLiteDatabase(beadsDir string, entries []os.DirEntry) (string, bool) {
+func soleLegacySQLiteDatabase(issuegraphDir string, entries []os.DirEntry) (string, bool) {
 	databaseName := ""
 	for _, entry := range entries {
 		if entry.Type()&os.ModeSymlink != 0 {
@@ -199,7 +199,7 @@ func soleLegacySQLiteDatabase(beadsDir string, entries []os.DirEntry) (string, b
 		if !strings.HasSuffix(name, ".db") {
 			continue
 		}
-		if !isNonEmptyRegularFile(filepath.Join(beadsDir, name)) || databaseName != "" {
+		if !isNonEmptyRegularFile(filepath.Join(issuegraphDir, name)) || databaseName != "" {
 			return "", false
 		}
 		databaseName = name
@@ -212,14 +212,14 @@ func soleLegacySQLiteDatabase(beadsDir string, entries []os.DirEntry) (string, b
 // its WAL/SHM sidecars, an optional issues.jsonl export, and an embeddeddolt
 // directory. Any other entry, or an expected entry that is not a regular file,
 // disqualifies the workspace.
-func onlyLegacySQLiteEntries(beadsDir string, entries []os.DirEntry, databaseName string) bool {
+func onlyLegacySQLiteEntries(issuegraphDir string, entries []os.DirEntry, databaseName string) bool {
 	for _, entry := range entries {
 		name := entry.Name()
 		if name == "embeddeddolt" && entry.IsDir() {
 			continue
 		}
 		if name == databaseName || name == "issues.jsonl" || name == databaseName+"-wal" || name == databaseName+"-shm" {
-			if !isRegularFile(filepath.Join(beadsDir, name)) {
+			if !isRegularFile(filepath.Join(issuegraphDir, name)) {
 				return false
 			}
 			continue
@@ -230,13 +230,13 @@ func onlyLegacySQLiteEntries(beadsDir string, entries []os.DirEntry, databaseNam
 }
 
 // guardUndiscoveredLegacyWorkspace covers metadata-less SQLite workspaces such
-// as v0.9.1's sole .beads/vc.db. Normal workspace discovery intentionally
+// as v0.9.1's sole .issuegraph/vc.db. Normal workspace discovery intentionally
 // excludes vc.db, so this bounded fallback runs only after that discovery found
 // no current workspace.
 func guardUndiscoveredLegacyWorkspace() error {
-	if explicit := os.Getenv("BEADS_DIR"); explicit != "" {
-		beadsDir := beads.FollowRedirect(utils.CanonicalizePath(explicit))
-		return guardLegacyUpgradeWorkspace(beadsDir)
+	if explicit := os.Getenv("ISSUEGRAPH_DIR"); explicit != "" {
+		issuegraphDir := issuegraph.FollowRedirect(utils.CanonicalizePath(explicit))
+		return guardLegacyUpgradeWorkspace(issuegraphDir)
 	}
 
 	cwd, err := os.Getwd()
@@ -246,7 +246,7 @@ func guardUndiscoveredLegacyWorkspace() error {
 	dir := utils.CanonicalizePath(cwd)
 	boundary := utils.CanonicalizePath(git.GetRepoRoot())
 	for {
-		if err := guardLegacyUpgradeWorkspace(filepath.Join(dir, ".beads")); err != nil {
+		if err := guardLegacyUpgradeWorkspace(filepath.Join(dir, ".issuegraph")); err != nil {
 			return err
 		}
 		if boundary != "" && utils.PathsEqual(dir, boundary) {
@@ -260,8 +260,8 @@ func guardUndiscoveredLegacyWorkspace() error {
 	}
 }
 
-func hasLegacyDoltRoot(beadsDir string) bool {
-	info, err := os.Lstat(filepath.Join(beadsDir, "dolt"))
+func hasLegacyDoltRoot(issuegraphDir string) bool {
+	info, err := os.Lstat(filepath.Join(issuegraphDir, "dolt"))
 	return err == nil && info.IsDir() && info.Mode()&os.ModeSymlink == 0
 }
 
@@ -292,7 +292,7 @@ func isRegularFile(path string) bool {
 }
 
 // legacyUpgradeVersionWitness reads the advisory local version witness beneath
-// beadsDir. The returned bool reports whether a witness file is present as a
+// issuegraphDir. The returned bool reports whether a witness file is present as a
 // bounded regular file, independent of whether its trimmed contents name a
 // version. A present but blank or whitespace-only witness — the shape an
 // interrupted or disk-full best-effort writeLocalVersion leaves behind — is
@@ -300,8 +300,8 @@ func isRegularFile(path string) bool {
 // a genuinely absent witness, which is ("", false). Only a present witness is
 // ever admitted as an unknown-era workspace; a missing, non-regular, or
 // oversized witness stays absent so the pre-1.0 refusal cannot relax.
-func legacyUpgradeVersionWitness(beadsDir string) (string, bool) {
-	path := filepath.Join(beadsDir, localVersionFile)
+func legacyUpgradeVersionWitness(issuegraphDir string) (string, bool) {
+	path := filepath.Join(issuegraphDir, localVersionFile)
 	info, err := os.Lstat(path)
 	if err != nil || !info.Mode().IsRegular() || info.Size() > 64 {
 		return "", false
@@ -325,15 +325,15 @@ const (
 	// witnessEraUnknown means the witness is missing or cannot be read as a
 	// version. It is an absence of evidence, not evidence of a legacy layout.
 	witnessEraUnknown witnessEra = iota
-	// witnessEraLegacy means the witness names a pre-1.0 bd.
+	// witnessEraLegacy means the witness names a pre-1.0 issuegraph.
 	witnessEraLegacy
-	// witnessEraCurrent means the witness names bd 1.0 or later.
+	// witnessEraCurrent means the witness names issuegraph 1.0 or later.
 	witnessEraCurrent
 )
 
 // classifyVersionWitness places a local version witness in a release era.
 //
-// The witness is whatever string the bd that last touched the workspace held
+// The witness is whatever string the issuegraph that last touched the workspace held
 // in main.Version, which release tooling injects verbatim: a plain release
 // ("1.1.0"), a release candidate ("v1.2.0-rc.1"), a build carrying metadata,
 // or a Go pseudo-version ("v1.1.1-0.20260805093327-bf97b73749ac"). All of
@@ -378,13 +378,13 @@ func legacyVersionMinor(version string) (int, bool) {
 // legacyUpgradeWarnWriter receives guard warnings; tests redirect it.
 var legacyUpgradeWarnWriter io.Writer = os.Stderr
 
-// warnUnreadableVersionWitness reports a workspace bd opened despite being
+// warnUnreadableVersionWitness reports a workspace issuegraph opened despite being
 // unable to read its version witness, so an operator can still see that the
 // era check was inconclusive.
-func warnUnreadableVersionWitness(beadsDir, version string) {
+func warnUnreadableVersionWitness(issuegraphDir, version string) {
 	fmt.Fprintf(legacyUpgradeWarnWriter,
-		"Warning: unreadable version witness %q in %s; assuming a current workspace. Run 'bd doctor' to reset version tracking.\n",
-		version, filepath.Join(beadsDir, localVersionFile))
+		"Warning: unreadable version witness %q in %s; assuming a current workspace. Run 'issuegraph doctor' to reset version tracking.\n",
+		version, filepath.Join(issuegraphDir, localVersionFile))
 }
 
 func legacyUpgradeRefusal(reason string) error {
@@ -394,7 +394,7 @@ func legacyUpgradeRefusal(reason string) error {
 type legacyUpgradeRefusalError struct{ reason string }
 
 func (err legacyUpgradeRefusalError) Error() string {
-	return fmt.Sprintf("%s detected; explicit migration is required before this bd version can open or modify the workspace. Preserve .beads unchanged and follow docs/getting-started/upgrading.md#cross-era-upgrades", err.reason)
+	return fmt.Sprintf("%s detected; explicit migration is required before this issuegraph version can open or modify the workspace. Preserve .issuegraph unchanged and follow docs/getting-started/upgrading.md#cross-era-upgrades", err.reason)
 }
 
 func isLegacyUpgradeRefusal(err error) bool {

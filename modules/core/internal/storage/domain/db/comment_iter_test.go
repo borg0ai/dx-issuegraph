@@ -4,8 +4,8 @@ import (
 	"context"
 	"time"
 
-	"github.com/steveyegge/beads/internal/storage/domain"
-	"github.com/steveyegge/beads/internal/types"
+	"github.com/borg0ai/dx-issuegraph/internal/storage/domain"
+	"github.com/borg0ai/dx-issuegraph/internal/types"
 )
 
 func (s *testSuite) TestCommentSQLRepositoryIter() {

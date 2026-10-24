@@ -4,10 +4,10 @@ import (
 	"context"
 	"testing"
 
-	"github.com/steveyegge/beads/internal/hooks"
-	"github.com/steveyegge/beads/internal/storage/domain"
-	"github.com/steveyegge/beads/internal/types"
-	publicops "github.com/steveyegge/beads/issueops"
+	"github.com/borg0ai/dx-issuegraph/internal/hooks"
+	"github.com/borg0ai/dx-issuegraph/internal/storage/domain"
+	"github.com/borg0ai/dx-issuegraph/internal/types"
+	publicops "github.com/borg0ai/dx-issuegraph/issueops"
 )
 
 // The notifying wrapper over a REAL provider.
@@ -31,7 +31,7 @@ func TestNotifyingProviderOverARealProvider(t *testing.T) {
 		t.Helper()
 		if err := RunTx(ctx, provider, func(ctx context.Context, uw UnitOfWork) (string, error) {
 			_, err := uw.IssueUseCase().CreateIssue(ctx, params, "notify-test")
-			return "bd: create issue", err
+			return "issuegraph: create issue", err
 		}); err != nil {
 			t.Fatalf("create %s: %v", params.Issue.ID, err)
 		}
@@ -46,7 +46,7 @@ func TestNotifyingProviderOverARealProvider(t *testing.T) {
 
 		runner.reset()
 		if err := RunTx(ctx, provider, func(ctx context.Context, uw UnitOfWork) (string, error) {
-			return "bd: label issue", uw.LabelUseCase().AddLabel(ctx, "nfy-labels", "lane:hooks", "notify-test")
+			return "issuegraph: label issue", uw.LabelUseCase().AddLabel(ctx, "nfy-labels", "lane:hooks", "notify-test")
 		}); err != nil {
 			t.Fatalf("add label: %v", err)
 		}
@@ -98,7 +98,7 @@ func TestNotifyingProviderOverARealProvider(t *testing.T) {
 			Issue:      &types.Issue{ID: "nfy-source", Title: "New", Status: types.StatusOpen, IssueType: types.TypeTask, Priority: 2},
 			ExplicitID: "nfy-source",
 			CreateOnly: true,
-			// `bd create --blocks nfy-target`: the edge LEAVES the existing
+			// `issuegraph create --blocks nfy-target`: the edge LEAVES the existing
 			// issue, so the create changed a row it did not create.
 			Dependencies: []domain.DependencySpec{
 				{Type: types.DepBlocks, TargetID: "nfy-target", SwapDirection: true},
@@ -125,7 +125,7 @@ func TestNotifyingProviderOverARealProvider(t *testing.T) {
 			Issue:      &types.Issue{ID: "nfy-child", Title: "Child", Status: types.StatusOpen, IssueType: types.TypeTask, Priority: 2},
 			ExplicitID: "nfy-child",
 			CreateOnly: true,
-			// `bd create --parent nfy-parent`: the edge leaves the NEW row.
+			// `issuegraph create --parent nfy-parent`: the edge leaves the NEW row.
 			ParentID: "nfy-parent",
 		})
 
@@ -151,7 +151,7 @@ func TestNotifyingProviderOverARealProvider(t *testing.T) {
 				ExplicitID: "nfy-wisp-target",
 				CreateOnly: true,
 			}, "notify-test")
-			return "bd: create wisp", err
+			return "issuegraph: create wisp", err
 		}); err != nil {
 			t.Fatalf("create wisp: %v", err)
 		}
@@ -192,7 +192,7 @@ func TestNotifyingProviderOverARealProvider(t *testing.T) {
 		}
 		if err := RunTx(ctx, provider, func(ctx context.Context, uw UnitOfWork) (string, error) {
 			_, err := uw.IssueUseCase().ApplyIssueGraph(ctx, plan, "notify-test")
-			return "bd: apply graph", err
+			return "issuegraph: apply graph", err
 		}); err != nil {
 			t.Fatalf("ApplyIssueGraph: %v", err)
 		}

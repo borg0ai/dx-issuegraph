@@ -1,5 +1,5 @@
-# Test bd quickstart command
-bd quickstart
+# Test issuegraph quickstart command
+issuegraph quickstart
 stdout 'Dependency-Aware'
-stdout 'bd init'
-stdout 'bd create'
+stdout 'issuegraph init'
+stdout 'issuegraph create'

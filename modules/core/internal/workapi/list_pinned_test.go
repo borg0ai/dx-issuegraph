@@ -3,27 +3,27 @@ package workapi
 import (
 	"testing"
 
-	"github.com/steveyegge/beads/internal/types"
-	"github.com/steveyegge/beads/issueops"
+	"github.com/borg0ai/dx-issuegraph/internal/types"
+	"github.com/borg0ai/dx-issuegraph/issueops"
 )
 
 // TestPinnedDefaultBySelector owns the rule that decides whether a listing
-// forces Pinned=false: a selector that ASKS for pinned-carrying beads must not
+// forces Pinned=false: a selector that ASKS for pinned-carrying issuegraph must not
 // then have them filtered back out.
 //
 // The old builder compared the raw --status string to "pinned"/"hooked", so
-// two selectors that do ask for those beads were still getting the exclusion:
+// two selectors that do ask for those issuegraph were still getting the exclusion:
 // "all", which promises every status, and any multi-status set containing
 // pinned or hooked ("pinned,closed"), which never matched the two string
 // equalities. Both now lift the default. This is the observable behavior
 // change riding on this filter work — scripts that relied on --status=all
-// hiding pinned beads will see them appear — so it is pinned HERE, not left to
+// hiding pinned issuegraph will see them appear — so it is pinned HERE, not left to
 // the golden table.
 func TestPinnedDefaultBySelector(t *testing.T) {
 	var cfg ListConfig
 
 	// pinnedDefault reports filter.Pinned as a tri-state: nil (no constraint,
-	// i.e. pinned beads are admitted) or the forced value.
+	// i.e. pinned issuegraph are admitted) or the forced value.
 	pinnedDefault := func(t *testing.T, in issueops.ListRequest) *bool {
 		t.Helper()
 		filter, err := BuildListFilter(in, cfg)
@@ -33,7 +33,7 @@ func TestPinnedDefaultBySelector(t *testing.T) {
 		return filter.Pinned
 	}
 
-	t.Run("selectors that ask for pinned beads lift the default", func(t *testing.T) {
+	t.Run("selectors that ask for pinned issuegraph lift the default", func(t *testing.T) {
 		for _, status := range []string{"pinned", "hooked", "all", "pinned,closed", "closed,hooked", " all "} {
 			if got := pinnedDefault(t, issueops.ListRequest{Status: status}); got != nil {
 				t.Errorf("--status=%q: Pinned = %v, want nil (no pinned exclusion)", status, *got)
@@ -68,8 +68,8 @@ func TestPinnedDefaultBySelector(t *testing.T) {
 
 	// `--status all` is the no-filter spelling, so --ready still pins open.
 	// An "all" that the query never applies must not have a pinned side effect
-	// either. Without this, `bd list --ready --status=all` would admit pinned
-	// beads into a ready listing that is filtered to open.
+	// either. Without this, `issuegraph list --ready --status=all` would admit pinned
+	// issuegraph into a ready listing that is filtered to open.
 	t.Run("--ready --status=all does not admit pinned", func(t *testing.T) {
 		got := pinnedDefault(t, issueops.ListRequest{Status: "all", ReadyFlag: true})
 		if got == nil || *got {
@@ -80,7 +80,7 @@ func TestPinnedDefaultBySelector(t *testing.T) {
 
 // TestIncludeAllTypesLiftsEverySuppression pins IncludeAllTypes as the union of
 // the type knobs AND the plane knob: nothing is hidden for being a template, a
-// gate, an infra type, or a wisp. It is the guarantee `bd human list` rests on.
+// gate, an infra type, or a wisp. It is the guarantee `issuegraph human list` rests on.
 func TestIncludeAllTypesLiftsEverySuppression(t *testing.T) {
 	cfg := ListConfig{}
 

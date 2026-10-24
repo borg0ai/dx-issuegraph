@@ -16,14 +16,14 @@ import (
 	"github.com/cenkalti/backoff/v4"
 	"github.com/go-sql-driver/mysql"
 
-	"github.com/steveyegge/beads/internal/configfile"
-	"github.com/steveyegge/beads/internal/debug"
-	"github.com/steveyegge/beads/internal/storage"
-	"github.com/steveyegge/beads/internal/storage/dbproxy/proxy"
-	"github.com/steveyegge/beads/internal/storage/dbproxy/util"
-	db "github.com/steveyegge/beads/internal/storage/domain/db"
-	"github.com/steveyegge/beads/internal/storage/issueops"
-	"github.com/steveyegge/beads/internal/storage/schema"
+	"github.com/borg0ai/dx-issuegraph/internal/configfile"
+	"github.com/borg0ai/dx-issuegraph/internal/debug"
+	"github.com/borg0ai/dx-issuegraph/internal/storage"
+	"github.com/borg0ai/dx-issuegraph/internal/storage/dbproxy/proxy"
+	"github.com/borg0ai/dx-issuegraph/internal/storage/dbproxy/util"
+	db "github.com/borg0ai/dx-issuegraph/internal/storage/domain/db"
+	"github.com/borg0ai/dx-issuegraph/internal/storage/issueops"
+	"github.com/borg0ai/dx-issuegraph/internal/storage/schema"
 )
 
 const (
@@ -38,12 +38,12 @@ type doltSQLProvider struct {
 	// connection. Fresh-bootstrap reset authority is bound to it together with
 	// the Dolt server UUID, database name, and initial HEAD.
 	serverEndpoint string
-	// teamServer: schema is owned by beads-team-server (bts) — bd never
+	// teamServer: schema is owned by issuegraph-team-server (bts) — issuegraph never
 	// creates the database or migrates, only verifies the schema version.
 	teamServer bool
 	// expectedProjectID is the calling workspace's project identity, asserted
 	// against the team-server database on open. Empty means "no assertion
-	// available" (bd init, which adopts; server-wide maintenance; a workspace
+	// available" (issuegraph init, which adopts; server-wide maintenance; a workspace
 	// predating project identity) and skips the check.
 	expectedProjectID string
 	// preview: the command that opened this provider is an explicitly
@@ -115,7 +115,7 @@ type providerOptions struct {
 	// the same contract embeddeddolt.OpenForPreviewCommand gives the embedded
 	// path.
 	preview bool
-	// readOnly opens for a command that only reads (bd list, show, …). It is
+	// readOnly opens for a command that only reads (issuegraph list, show, …). It is
 	// deliberately weaker than preview: the open still creates and migrates as
 	// usual, because a read command on a fresh or behind workspace has always
 	// been served by the ordinary open. It changes exactly one thing — when
@@ -261,8 +261,8 @@ func (p *doltSQLProvider) initSchemaAttempt(ctx context.Context, database string
 		schema.WithDatabaseSelector(selectProbeDatabase),
 		schema.WithLockedPreparation(p.serverEndpoint, preparer.prepare),
 		// This provider serves a shared database by definition — an external
-		// or proxied sql-server, or `bd serve`'s own daemon — so the same
-		// refusal server mode gets applies here (gastownhall/beads#5920,
+		// or proxied sql-server, or `issuegraph serve`'s own daemon — so the same
+		// refusal server mode gets applies here (borg0ai/dx-issuegraph#5920,
 		// #5043). Passing it as a lock option rather than calling the gate
 		// before MigrateUpWithLock is what keeps the steady-state open free:
 		// the converged fast path returns before the lock, and the gate, are
@@ -322,7 +322,7 @@ func readThroughRefusedMigration(ctx context.Context, conn *sql.Conn, database s
 }
 
 // verifyTeamServerSchema is the team-server open path: the schema is owned by
-// beads-team-server (bts), so bd never creates the database or migrates. It
+// issuegraph-team-server (bts), so issuegraph never creates the database or migrates. It
 // attaches to the existing database and verifies the schema version, then the
 // project identity — identity is checked only after the schema check proves the
 // metadata table exists at this binary's version.
@@ -387,11 +387,11 @@ type useDatabaseRemedy struct {
 
 var (
 	// teamServerUseDatabaseRemedy: the schema on this path is owned by the team
-	// server, so bd never creates the database — an absent one is a
+	// server, so issuegraph never creates the database — an absent one is a
 	// provisioning request, not something a retry can fix.
 	teamServerUseDatabaseRemedy = useDatabaseRemedy{
 		missing:      "it must be provisioned on the server; ask the server administrator to create it, then re-run init",
-		unclassified: "the schema is managed by beads-team-server; ask your operator to run 'bts init' first",
+		unclassified: "the schema is managed by issuegraph-team-server; ask your operator to run 'bts init' first",
 	}
 	// previewUseDatabaseRemedy: a preview open promised not to mutate anything,
 	// so it neither creates nor migrates where the ordinary open would. That
@@ -409,7 +409,7 @@ const previewRemedyText = "preview commands (--dry-run, --inspect) never create 
 // including the access-denied errors a scoped credential gets — which sent
 // operators off to provision a database that already existed and only needed a
 // grant. A server hides existence from a credential it has not granted the
-// database (see isDatabaseNotFoundError), so on a denial bd must name both
+// database (see isDatabaseNotFoundError), so on a denial issuegraph must name both
 // possibilities instead of picking one.
 func classifyUseDatabaseError(err error, database string, remedy useDatabaseRemedy) error {
 	switch {
@@ -431,14 +431,14 @@ type rowQuerier interface {
 }
 
 // assertSessionDatabase verifies the server actually placed this session on the
-// database bd asked for.
+// database issuegraph asked for.
 //
 // A front door that scopes connections by credential — a gateway, a proxy that
 // rewrites routing — can accept a foreign database name in the handshake or a
 // USE for it and serve its own database anyway. Nothing later on the open path
-// notices: bd's identity reads are unqualified, so they return the SESSION's
-// database while bd attributes them to the REQUESTED one. That is how
-// `bd init --database=<other>` ends up reporting a prefix conflict against a
+// notices: issuegraph's identity reads are unqualified, so they return the SESSION's
+// database while issuegraph attributes them to the REQUESTED one. That is how
+// `issuegraph init --database=<other>` ends up reporting a prefix conflict against a
 // database it never reached, and — with no --prefix to disagree — how a
 // workspace silently adopts another project's identity and then reads and
 // writes that project's data.
@@ -470,7 +470,7 @@ func assertSessionDatabase(ctx context.Context, q rowQuerier, want string) error
 // locked-preparation callback (see prepare).
 //
 // Fresh-bootstrap ownership proof for the #4566 guard self-heal
-// (gastownhall/beads#5012): the first attempt issues a bare CREATE DATABASE (no
+// (borg0ai/dx-issuegraph#5012): the first attempt issues a bare CREATE DATABASE (no
 // IF NOT EXISTS), so the server arbitrates creation atomically — success proves
 // THIS init created the database, and an already-exists refusal (1007) proves it
 // did not. Only the proven creator captures and passes a one-shot
@@ -528,7 +528,7 @@ func (b *bootstrapPreparer) prepare(ctx context.Context, conn *sql.Conn) (*schem
 		case isAccessDeniedError(err):
 			// A server that provisions databases itself denies CREATE to the
 			// credentials it hands out. Say so instead of surfacing the raw
-			// driver error, and do not retry or fall back: bd must not go
+			// driver error, and do not retry or fall back: issuegraph must not go
 			// looking for another way to create a database it was refused.
 			return nil, &bootstrapPreparationError{err: fmt.Errorf(
 				"uow: creating database %q was denied for this credential — this server provisions databases server-side; ask the server administrator to provision it, then re-run init: %w",
@@ -778,7 +778,7 @@ func openAndInitSchema(ctx context.Context, ep proxy.Endpoint, database, rootUse
 
 	// Advisory only: the fall-through below is the historical open, so this is
 	// never fatal. But a silently discarded error is a fast path that has
-	// quietly stopped firing — here that means every bd invocation is back to
+	// quietly stopped firing — here that means every issuegraph invocation is back to
 	// burning two MySQL sessions, the exact cost this path exists to remove,
 	// with nothing to say so. Same reasoning as the convergence probe in
 	// internal/storage/schema/lock.go.

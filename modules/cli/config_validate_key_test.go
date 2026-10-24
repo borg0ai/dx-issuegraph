@@ -4,13 +4,13 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/steveyegge/beads/internal/tracker"
+	"github.com/borg0ai/dx-issuegraph/internal/tracker"
 )
 
 func TestIsRecognizedConfigKey(t *testing.T) {
 	recognized := []string{
 		"export.auto", "dolt.auto-push", "jira.url", "custom.anything",
-		"doctor.suppress.git-hooks", "no-git-ops", "beads.role",
+		"doctor.suppress.git-hooks", "no-git-ops", "issuegraph.role",
 		"status.custom", "types.custom", "types.infra", "ai.model",
 		"backup.enabled", "import.path", "dolt.local-only", "agent.profile",
 		"claim.pools",
@@ -52,7 +52,7 @@ func TestTrackerConfigPrefixesRecognized(t *testing.T) {
 }
 
 func TestConfigHelpMentionsDoltLocalOnly(t *testing.T) {
-	if !strings.Contains(configCmd.Long, "bd config set dolt.local-only true") {
+	if !strings.Contains(configCmd.Long, "issuegraph config set dolt.local-only true") {
 		t.Fatalf("config help missing dolt.local-only example:\n%s", configCmd.Long)
 	}
 }
@@ -86,7 +86,7 @@ func TestRejectProtectedConfigKey(t *testing.T) {
 			continue
 		}
 		// Error message must surface the three lifecycle alternatives.
-		wantSubstrings := []string{"bd init --prefix", "bd bootstrap", "bd rename-prefix"}
+		wantSubstrings := []string{"issuegraph init --prefix", "issuegraph bootstrap", "issuegraph rename-prefix"}
 		for _, want := range wantSubstrings {
 			if !strings.Contains(msg, want) {
 				t.Errorf("rejectProtectedConfigKey(%q) message missing %q; got:\n%s", key, want, msg)

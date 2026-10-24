@@ -5,13 +5,13 @@ import (
 	"errors"
 	"fmt"
 
-	"github.com/steveyegge/beads/internal/storage"
-	"github.com/steveyegge/beads/internal/storage/dberrors"
-	"github.com/steveyegge/beads/internal/storage/uow"
-	"github.com/steveyegge/beads/internal/types"
+	"github.com/borg0ai/dx-issuegraph/internal/storage"
+	"github.com/borg0ai/dx-issuegraph/internal/storage/dberrors"
+	"github.com/borg0ai/dx-issuegraph/internal/storage/uow"
+	"github.com/borg0ai/dx-issuegraph/internal/types"
 )
 
-// exportSource abstracts the storage reads `bd export` performs, so the one
+// exportSource abstracts the storage reads `issuegraph export` performs, so the one
 // export body (runExportFromSource) serves both storage stacks:
 //
 //   - storeExportSource reads through the classic `store` global

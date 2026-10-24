@@ -3,10 +3,10 @@ package main
 import (
 	"testing"
 
-	"github.com/steveyegge/beads/internal/types"
+	"github.com/borg0ai/dx-issuegraph/internal/types"
 )
 
-// The bug this guards: bd show used to group every type it did not name
+// The bug this guards: issuegraph show used to group every type it did not name
 // explicitly into the blocks bucket, so a supersedes edge printed under
 // "DEPENDS ON" one way and "BLOCKS" the other — a blocking claim that is false
 // for every non-blocking type.
@@ -26,7 +26,7 @@ func TestDepRelation_OnlyBlocksClaimsBlocking(t *testing.T) {
 }
 
 func TestDepRelation_Supersedes(t *testing.T) {
-	// `bd supersede old --with new` stores (old, new, supersedes), so the
+	// `issuegraph supersede old --with new` stores (old, new, supersedes), so the
 	// source end is the replaced issue and the target end is the replacement.
 	rel := depRelationFor(types.DepSupersedes)
 	if rel.outHeading != "SUPERSEDED BY" || rel.inHeading != "SUPERSEDES" {
@@ -81,7 +81,7 @@ func TestGroupDepSections(t *testing.T) {
 		}
 	})
 
-	// bd show --refs reads one direction only, so it takes RELATED in place
+	// issuegraph show --refs reads one direction only, so it takes RELATED in place
 	// rather than deduplicating it against a second pass.
 	t.Run("nil relatedSeen keeps RELATED as a trailing section", func(t *testing.T) {
 		got := groupDepSections([]*types.IssueWithDependencyMetadata{

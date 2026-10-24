@@ -69,15 +69,15 @@ intentionally have different contracts in some cases.
 ### Test Environment and Readiness
 
 The runner isolates `HOME`, Git configuration, and Dolt state. By default its
-test environment adds `dolt` to `BEADS_TEST_SKIP`; set
-`BEADS_TEST_ENV_RUN_DOLT=1` only when deliberately exercising the Dolt path
+test environment adds `dolt` to `ISSUEGRAPH_TEST_SKIP`; set
+`ISSUEGRAPH_TEST_ENV_RUN_DOLT=1` only when deliberately exercising the Dolt path
 and its prerequisites are available. Do not make ordinary tests depend on a
 developer's database, daemon, global Git configuration, or filesystem state.
 
 To skip an optional service explicitly, use the existing skip mechanism:
 
 ```bash
-BEADS_TEST_SKIP=dolt ./scripts/test.sh ./...
+ISSUEGRAPH_TEST_SKIP=dolt ./scripts/test.sh ./...
 ```
 
 Tests that need a temporary repository or store should use `t.TempDir()` and
@@ -88,19 +88,19 @@ For manual CLI experiments, run both initialization and subsequent commands
 from a disposable working directory:
 
 ```bash
-beads_manual_dir="$(mktemp -d)"
+issuegraph_manual_dir="$(mktemp -d)"
 (
   set -e
-  cd "$beads_manual_dir"
+  cd "$issuegraph_manual_dir"
   issuegraph init --quiet --prefix test --skip-hooks --skip-agents
   issuegraph create "Test issue" -p 1
 )
-rm -rf -- "$beads_manual_dir"
+rm -rf -- "$issuegraph_manual_dir"
 ```
 
-`BEADS_DB` selects a database for database-opening commands, but it does not by
+`ISSUEGRAPH_DB` selects a database for database-opening commands, but it does not by
 itself redirect `issuegraph init` workspace setup. Never run a manual `issuegraph init` from a
-production workspace merely because `BEADS_DB` points elsewhere.
+production workspace merely because `ISSUEGRAPH_DB` points elsewhere.
 
 `testing.Short()` is for genuine runtime, stress, or large-fixture skips. It
 is not a substitute for declaring an integration, end-to-end, API, Docker, or

@@ -3,11 +3,11 @@ package main
 import (
 	"fmt"
 
+	"github.com/borg0ai/dx-issuegraph/internal/metrics"
+	"github.com/borg0ai/dx-issuegraph/internal/storage"
+	"github.com/borg0ai/dx-issuegraph/internal/types"
+	"github.com/borg0ai/dx-issuegraph/internal/ui"
 	"github.com/spf13/cobra"
-	"github.com/steveyegge/beads/internal/metrics"
-	"github.com/steveyegge/beads/internal/storage"
-	"github.com/steveyegge/beads/internal/types"
-	"github.com/steveyegge/beads/internal/ui"
 )
 
 var linkCmd = &cobra.Command{
@@ -16,13 +16,13 @@ var linkCmd = &cobra.Command{
 	Short:   "Link two issues with a dependency",
 	Long: `Link two issues with a dependency.
 
-Shorthand for 'bd dep add <id1> <id2>'. By default creates a "blocks"
+Shorthand for 'issuegraph dep add <id1> <id2>'. By default creates a "blocks"
 dependency (id2 blocks id1). Use --type to specify a different relationship.
 
 Examples:
-  bd link bd-123 bd-456                    # bd-456 blocks bd-123
-  bd link bd-123 bd-456 --type related     # bd-123 related to bd-456
-  bd link bd-123 bd-456 --type parent-child`,
+  issuegraph link bd-123 bd-456                    # bd-456 blocks bd-123
+  issuegraph link bd-123 bd-456 --type related     # bd-123 related to bd-456
+  issuegraph link bd-123 bd-456 --type parent-child`,
 	Args:          cobra.ExactArgs(2),
 	SilenceUsage:  true,
 	SilenceErrors: true,

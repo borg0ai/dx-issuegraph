@@ -20,7 +20,7 @@ concurrency:
 
 jobs:
   deploy:
-    if: ${{ github.repository == 'gastownhall/beads' }}
+    if: ${{ github.repository == 'borg0ai/dx-issuegraph' }}
     environment:
       name: github-pages
       url: ${{ steps.deployment.outputs.page_url }}

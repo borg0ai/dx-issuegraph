@@ -20,9 +20,9 @@ Practical patterns for using issuegraph effectively across different scenarios.
 **What you see**:
 ```bash
 $ issuegraph ready
-# Returns: bd-42 "Research analytics platform expansion proposal" (in_progress)
+# Returns: issuegraph-42 "Research analytics platform expansion proposal" (in_progress)
 
-$ issuegraph show bd-42
+$ issuegraph show issuegraph-42
 Notes: "COMPLETED: Reviewed current stack (Mixpanel, Amplitude)
 IN PROGRESS: Drafting cost-benefit analysis section
 NEXT: Need user input on budget constraints before finalizing recommendations"
@@ -39,7 +39,7 @@ NEXT: Need user input on budget constraints before finalizing recommendations"
 3. Work on tasks, mark TodoWrite items completed
 4. At milestone, update issuegraph notes:
    ```bash
-   issuegraph update bd-42 --notes "COMPLETED: Cost-benefit analysis drafted.
+   issuegraph update issuegraph-42 --notes "COMPLETED: Cost-benefit analysis drafted.
    KEY DECISION: User confirmed $50k budget cap - ruled out enterprise options.
    IN PROGRESS: Finalizing recommendations (Posthog + custom ETL).
    NEXT: Get user review of draft before closing issue."
@@ -74,10 +74,10 @@ NEXT: Need user input on budget constraints before finalizing recommendations"
 
 Working on "Implement checkout flow" (checkout-1), discover payment validation security hole:
 
-1. Create bug issue: `mcp__plugin_beads_beads__create` with `{title: "Fix: payment validation bypasses card expiry check", type: "bug", priority: 0}`
-2. Link discovery: `mcp__plugin_beads_beads__dep` with `{from_issue: "checkout-1", to_issue: "payment-bug-2", type: "discovered-from"}`
-3. Block current work: `mcp__plugin_beads_beads__update` with `{issue_id: "checkout-1", status: "blocked", notes: "Blocked by payment-bug-2: security hole in validation"}`
-4. Start new work atomically: `mcp__plugin_beads_beads__claim` with `{issue_id: "payment-bug-2"}`
+1. Create bug issue: `mcp__plugin_issuegraph_issuegraph__create` with `{title: "Fix: payment validation bypasses card expiry check", type: "bug", priority: 0}`
+2. Link discovery: `mcp__plugin_issuegraph_issuegraph__dep` with `{from_issue: "checkout-1", to_issue: "payment-bug-2", type: "discovered-from"}`
+3. Block current work: `mcp__plugin_issuegraph_issuegraph__update` with `{issue_id: "checkout-1", status: "blocked", notes: "Blocked by payment-bug-2: security hole in validation"}`
+4. Start new work atomically: `mcp__plugin_issuegraph_issuegraph__claim` with `{issue_id: "payment-bug-2"}`
 
 (CLI: `issuegraph create "Fix: payment validation..." -t bug -p 0` then `issuegraph dep add` and `issuegraph update` commands)
 
@@ -88,11 +88,11 @@ Working on "Implement checkout flow" (checkout-1), discover payment validation s
 **Scenario**: Starting work after days or weeks away from a project.
 
 **Pattern (with MCP)**:
-1. **Check what's ready**: Use `mcp__plugin_beads_beads__ready` to see available work
-2. **Check what's stuck**: Use `mcp__plugin_beads_beads__blocked` to understand blockers
-3. **Check recent progress**: Use `mcp__plugin_beads_beads__list` with `status:"closed"` to see completions
-4. **Read detailed context**: Use `mcp__plugin_beads_beads__show` for the issue you'll work on
-5. **Claim issue**: Use `mcp__plugin_beads_beads__claim` (or CLI `issuegraph update <id> --claim`) for atomic start
+1. **Check what's ready**: Use `mcp__plugin_issuegraph_issuegraph__ready` to see available work
+2. **Check what's stuck**: Use `mcp__plugin_issuegraph_issuegraph__blocked` to understand blockers
+3. **Check recent progress**: Use `mcp__plugin_issuegraph_issuegraph__list` with `status:"closed"` to see completions
+4. **Read detailed context**: Use `mcp__plugin_issuegraph_issuegraph__show` for the issue you'll work on
+5. **Claim issue**: Use `mcp__plugin_issuegraph_issuegraph__claim` (or CLI `issuegraph update <id> --claim`) for atomic start
 6. **Begin work**: Create TodoWrite from notes field's NEXT section
 
 (CLI: `issuegraph ready`, `issuegraph blocked`, `issuegraph list --status closed`, `issuegraph show <id>`, `issuegraph update <id> --claim`)
@@ -238,7 +238,7 @@ issuegraph close auth-5 --reason "Implemented OAuth refresh with 7-day rotation.
 
 **issuegraph show returns**:
 ```
-Issue: bd-42 "OAuth refresh token implementation"
+Issue: issuegraph-42 "OAuth refresh token implementation"
 Status: in_progress
 Notes:
 COMPLETED: Basic JWT validation working (RS256, 1hr access tokens)

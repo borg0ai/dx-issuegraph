@@ -9,24 +9,24 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/steveyegge/beads/internal/storage/depid"
-	"github.com/steveyegge/beads/internal/types"
+	"github.com/borg0ai/dx-issuegraph/internal/storage/depid"
+	"github.com/borg0ai/dx-issuegraph/internal/types"
 )
 
 func TestProxiedServerReadyWisp(t *testing.T) {
 	requireSharedProxiedServer(t)
 	t.Parallel()
-	bd := buildEmbeddedBD(t)
+	issuegraph := buildEmbeddedBD(t)
 
 	t.Run("claim_include_ephemeral_claims_wisp", func(t *testing.T) {
 		t.Parallel()
-		p := newSharedProxiedProject(t, bd, "rwc")
-		wisp := bdProxiedCreate(t, bd, p.dir, "Wisp to claim", "--ephemeral", "--label", "wclaim")
+		p := newSharedProxiedProject(t, issuegraph, "rwc")
+		wisp := issuegraphProxiedCreate(t, issuegraph, p.dir, "Wisp to claim", "--ephemeral", "--label", "wclaim")
 
-		out, err := bdProxiedRun(t, bd, p.dir,
+		out, err := issuegraphProxiedRun(t, issuegraph, p.dir,
 			"ready", "--claim", "--json", "--include-ephemeral", "--label", "wclaim")
 		if err != nil {
-			t.Fatalf("bd ready --claim --include-ephemeral failed: %v\n%s", err, out)
+			t.Fatalf("issuegraph ready --claim --include-ephemeral failed: %v\n%s", err, out)
 		}
 		var claimed []types.IssueWithCounts
 		if err := json.Unmarshal(bytes.TrimSpace(out), &claimed); err != nil {
@@ -61,10 +61,10 @@ func TestProxiedServerReadyWisp(t *testing.T) {
 
 	t.Run("mol_on_wisp_molecule_currently_errors", func(t *testing.T) {
 		t.Parallel()
-		p := newSharedProxiedProject(t, bd, "rwm")
-		mol := bdProxiedCreate(t, bd, p.dir, "Wisp mol", "--ephemeral", "--type", "molecule")
-		bdProxiedCreate(t, bd, p.dir, "Wisp step", "--ephemeral", "--parent", mol.ID)
-		stdout, stderr, err := bdProxiedRunBuffers(t, bd, p.dir, "ready", "--mol", mol.ID, "--json")
+		p := newSharedProxiedProject(t, issuegraph, "rwm")
+		mol := issuegraphProxiedCreate(t, issuegraph, p.dir, "Wisp mol", "--ephemeral", "--type", "molecule")
+		issuegraphProxiedCreate(t, issuegraph, p.dir, "Wisp step", "--ephemeral", "--parent", mol.ID)
+		stdout, stderr, err := issuegraphProxiedRunBuffers(t, issuegraph, p.dir, "ready", "--mol", mol.ID, "--json")
 		if err == nil {
 			t.Skipf("--mol on wisp molecule succeeded — implementation may now support this. stdout: %s", stdout)
 		}
@@ -76,9 +76,9 @@ func TestProxiedServerReadyWisp(t *testing.T) {
 
 	t.Run("wisp_blocked_by_wisp_hidden_and_listed_in_blocked", func(t *testing.T) {
 		t.Parallel()
-		p := newSharedProxiedProject(t, bd, "rwwb")
-		blocker := bdProxiedCreate(t, bd, p.dir, "Wisp blocker", "--ephemeral")
-		dependent := bdProxiedCreate(t, bd, p.dir, "Wisp dependent", "--ephemeral")
+		p := newSharedProxiedProject(t, issuegraph, "rwwb")
+		blocker := issuegraphProxiedCreate(t, issuegraph, p.dir, "Wisp blocker", "--ephemeral")
+		dependent := issuegraphProxiedCreate(t, issuegraph, p.dir, "Wisp dependent", "--ephemeral")
 
 		db := openProxiedDB(t, p)
 		ctx := context.Background()
@@ -92,7 +92,7 @@ func TestProxiedServerReadyWisp(t *testing.T) {
 			t.Fatalf("mark wisp is_blocked: %v", err)
 		}
 
-		ready := bdProxiedReadyJSON(t, bd, p, "--include-ephemeral")
+		ready := issuegraphProxiedReadyJSON(t, issuegraph, p, "--include-ephemeral")
 		ids := map[string]bool{}
 		for _, r := range ready {
 			ids[r.ID] = true
@@ -104,21 +104,21 @@ func TestProxiedServerReadyWisp(t *testing.T) {
 			t.Errorf("blocked wisp %s must not appear in ready --include-ephemeral", dependent.ID)
 		}
 
-		blocked := bdProxiedBlockedJSON(t, bd, p)
+		blocked := issuegraphProxiedBlockedJSON(t, issuegraph, p)
 		blockedIDs := map[string]bool{}
 		for _, bi := range blocked {
 			blockedIDs[bi.ID] = true
 		}
 		if !blockedIDs[dependent.ID] {
-			t.Errorf("expected wisp %s in bd blocked output, got: %+v", dependent.ID, blockedIDs)
+			t.Errorf("expected wisp %s in issuegraph blocked output, got: %+v", dependent.ID, blockedIDs)
 		}
 	})
 
 	t.Run("cross_table_issue_blocked_by_wisp", func(t *testing.T) {
 		t.Parallel()
-		p := newSharedProxiedProject(t, bd, "rwci")
-		wispBlocker := bdProxiedCreate(t, bd, p.dir, "Wisp blocker for issue", "--ephemeral")
-		issue := bdProxiedCreate(t, bd, p.dir, "Issue blocked by wisp")
+		p := newSharedProxiedProject(t, issuegraph, "rwci")
+		wispBlocker := issuegraphProxiedCreate(t, issuegraph, p.dir, "Wisp blocker for issue", "--ephemeral")
+		issue := issuegraphProxiedCreate(t, issuegraph, p.dir, "Issue blocked by wisp")
 
 		db := openProxiedDB(t, p)
 		ctx := context.Background()
@@ -132,14 +132,14 @@ func TestProxiedServerReadyWisp(t *testing.T) {
 			t.Fatalf("mark issue is_blocked: %v", err)
 		}
 
-		ready := bdProxiedReadyJSON(t, bd, p)
+		ready := issuegraphProxiedReadyJSON(t, issuegraph, p)
 		for _, r := range ready {
 			if r.ID == issue.ID {
 				t.Errorf("issue %s should be hidden (blocked by wisp)", issue.ID)
 			}
 		}
 
-		blocked := bdProxiedBlockedJSON(t, bd, p)
+		blocked := issuegraphProxiedBlockedJSON(t, issuegraph, p)
 		var entry *types.BlockedIssue
 		for _, bi := range blocked {
 			if bi.ID == issue.ID {
@@ -148,7 +148,7 @@ func TestProxiedServerReadyWisp(t *testing.T) {
 			}
 		}
 		if entry == nil {
-			t.Fatalf("expected issue %s in bd blocked output", issue.ID)
+			t.Fatalf("expected issue %s in issuegraph blocked output", issue.ID)
 		}
 		foundBlocker := false
 		for _, b := range entry.BlockedBy {
@@ -164,9 +164,9 @@ func TestProxiedServerReadyWisp(t *testing.T) {
 
 	t.Run("cross_table_wisp_blocked_by_issue", func(t *testing.T) {
 		t.Parallel()
-		p := newSharedProxiedProject(t, bd, "rwcw")
-		issueBlocker := bdProxiedCreate(t, bd, p.dir, "Issue blocker for wisp")
-		wisp := bdProxiedCreate(t, bd, p.dir, "Wisp blocked by issue", "--ephemeral")
+		p := newSharedProxiedProject(t, issuegraph, "rwcw")
+		issueBlocker := issuegraphProxiedCreate(t, issuegraph, p.dir, "Issue blocker for wisp")
+		wisp := issuegraphProxiedCreate(t, issuegraph, p.dir, "Wisp blocked by issue", "--ephemeral")
 
 		db := openProxiedDB(t, p)
 		ctx := context.Background()
@@ -180,14 +180,14 @@ func TestProxiedServerReadyWisp(t *testing.T) {
 			t.Fatalf("mark wisp is_blocked: %v", err)
 		}
 
-		ready := bdProxiedReadyJSON(t, bd, p, "--include-ephemeral")
+		ready := issuegraphProxiedReadyJSON(t, issuegraph, p, "--include-ephemeral")
 		for _, r := range ready {
 			if r.ID == wisp.ID {
 				t.Errorf("wisp %s should be hidden (blocked by issue)", wisp.ID)
 			}
 		}
 
-		blocked := bdProxiedBlockedJSON(t, bd, p)
+		blocked := issuegraphProxiedBlockedJSON(t, issuegraph, p)
 		var entry *types.BlockedIssue
 		for _, bi := range blocked {
 			if bi.ID == wisp.ID {
@@ -196,7 +196,7 @@ func TestProxiedServerReadyWisp(t *testing.T) {
 			}
 		}
 		if entry == nil {
-			t.Fatalf("expected wisp %s in bd blocked output", wisp.ID)
+			t.Fatalf("expected wisp %s in issuegraph blocked output", wisp.ID)
 		}
 		foundBlocker := false
 		for _, b := range entry.BlockedBy {
@@ -212,9 +212,9 @@ func TestProxiedServerReadyWisp(t *testing.T) {
 
 	t.Run("blocked_lists_blocked_wisp", func(t *testing.T) {
 		t.Parallel()
-		p := newSharedProxiedProject(t, bd, "rwbl")
-		blocker := bdProxiedCreate(t, bd, p.dir, "Blocker wisp", "--ephemeral")
-		dependent := bdProxiedCreate(t, bd, p.dir, "Dependent wisp", "--ephemeral")
+		p := newSharedProxiedProject(t, issuegraph, "rwbl")
+		blocker := issuegraphProxiedCreate(t, issuegraph, p.dir, "Blocker wisp", "--ephemeral")
+		dependent := issuegraphProxiedCreate(t, issuegraph, p.dir, "Dependent wisp", "--ephemeral")
 
 		db := openProxiedDB(t, p)
 		ctx := context.Background()
@@ -228,7 +228,7 @@ func TestProxiedServerReadyWisp(t *testing.T) {
 			t.Fatalf("mark wisp is_blocked: %v", err)
 		}
 
-		blocked := bdProxiedBlockedJSON(t, bd, p)
+		blocked := issuegraphProxiedBlockedJSON(t, issuegraph, p)
 		var entry *types.BlockedIssue
 		for _, bi := range blocked {
 			if bi.ID == dependent.ID {
@@ -237,7 +237,7 @@ func TestProxiedServerReadyWisp(t *testing.T) {
 			}
 		}
 		if entry == nil {
-			t.Fatalf("expected wisp %s in bd blocked output", dependent.ID)
+			t.Fatalf("expected wisp %s in issuegraph blocked output", dependent.ID)
 		}
 		if entry.BlockedByCount != 1 || len(entry.BlockedBy) != 1 || entry.BlockedBy[0] != blocker.ID {
 			t.Errorf("BlockedBy = %v (count=%d), want [%s]", entry.BlockedBy, entry.BlockedByCount, blocker.ID)
@@ -246,10 +246,10 @@ func TestProxiedServerReadyWisp(t *testing.T) {
 
 	t.Run("explain_enriches_wisp_blocker_details", func(t *testing.T) {
 		t.Parallel()
-		p := newSharedProxiedProject(t, bd, "rwexb")
-		wispBlocker := bdProxiedCreate(t, bd, p.dir,
+		p := newSharedProxiedProject(t, issuegraph, "rwexb")
+		wispBlocker := issuegraphProxiedCreate(t, issuegraph, p.dir,
 			"Wisp blocker title", "--ephemeral", "-p", "1")
-		issue := bdProxiedCreate(t, bd, p.dir, "Blocked issue")
+		issue := issuegraphProxiedCreate(t, issuegraph, p.dir, "Blocked issue")
 
 		db := openProxiedDB(t, p)
 		ctx := context.Background()
@@ -263,9 +263,9 @@ func TestProxiedServerReadyWisp(t *testing.T) {
 			t.Fatalf("mark issue is_blocked: %v", err)
 		}
 
-		stdout, _, err := bdProxiedRunBuffers(t, bd, p.dir, "ready", "--explain", "--json")
+		stdout, _, err := issuegraphProxiedRunBuffers(t, issuegraph, p.dir, "ready", "--explain", "--json")
 		if err != nil {
-			t.Fatalf("bd ready --explain --json failed: %v\n%s", err, stdout)
+			t.Fatalf("issuegraph ready --explain --json failed: %v\n%s", err, stdout)
 		}
 		s := strings.TrimSpace(stdout)
 		start := strings.Index(s, "{")
@@ -312,9 +312,9 @@ func TestProxiedServerReadyWisp(t *testing.T) {
 
 	t.Run("explain_detects_cycle_in_wisp_dependencies", func(t *testing.T) {
 		t.Parallel()
-		p := newSharedProxiedProject(t, bd, "rwcy")
-		a := bdProxiedCreate(t, bd, p.dir, "Wisp cycle A", "--ephemeral")
-		b := bdProxiedCreate(t, bd, p.dir, "Wisp cycle B", "--ephemeral")
+		p := newSharedProxiedProject(t, issuegraph, "rwcy")
+		a := issuegraphProxiedCreate(t, issuegraph, p.dir, "Wisp cycle A", "--ephemeral")
+		b := issuegraphProxiedCreate(t, issuegraph, p.dir, "Wisp cycle B", "--ephemeral")
 
 		db := openProxiedDB(t, p)
 		ctx := context.Background()
@@ -329,9 +329,9 @@ func TestProxiedServerReadyWisp(t *testing.T) {
 			t.Fatalf("plant b->a wisp edge: %v", err)
 		}
 
-		stdout, _, err := bdProxiedRunBuffers(t, bd, p.dir, "ready", "--explain", "--json")
+		stdout, _, err := issuegraphProxiedRunBuffers(t, issuegraph, p.dir, "ready", "--explain", "--json")
 		if err != nil {
-			t.Fatalf("bd ready --explain --json failed: %v\n%s", err, stdout)
+			t.Fatalf("issuegraph ready --explain --json failed: %v\n%s", err, stdout)
 		}
 		s := strings.TrimSpace(stdout)
 		start := strings.Index(s, "{")
@@ -363,9 +363,9 @@ func TestProxiedServerReadyWisp(t *testing.T) {
 
 	t.Run("empty_state_hint_when_only_wisps_exist", func(t *testing.T) {
 		t.Parallel()
-		p := newSharedProxiedProject(t, bd, "rwes")
-		bdProxiedCreate(t, bd, p.dir, "Lonely wisp", "--ephemeral")
-		stdout, _ := bdProxiedReadyCapture(t, bd, p)
+		p := newSharedProxiedProject(t, issuegraph, "rwes")
+		issuegraphProxiedCreate(t, issuegraph, p.dir, "Lonely wisp", "--ephemeral")
+		stdout, _ := issuegraphProxiedReadyCapture(t, issuegraph, p)
 		if !strings.Contains(stdout, "No open issues") {
 			t.Errorf("expected 'No open issues' (stats ignores wisps), got: %s", stdout)
 		}

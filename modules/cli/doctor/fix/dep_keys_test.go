@@ -10,11 +10,11 @@ import (
 	"path/filepath"
 	"testing"
 
-	"github.com/steveyegge/beads/internal/configfile"
-	"github.com/steveyegge/beads/internal/storage/depid"
-	"github.com/steveyegge/beads/internal/storage/dolt"
-	"github.com/steveyegge/beads/internal/testutil"
-	"github.com/steveyegge/beads/internal/types"
+	"github.com/borg0ai/dx-issuegraph/internal/configfile"
+	"github.com/borg0ai/dx-issuegraph/internal/storage/depid"
+	"github.com/borg0ai/dx-issuegraph/internal/storage/dolt"
+	"github.com/borg0ai/dx-issuegraph/internal/testutil"
+	"github.com/borg0ai/dx-issuegraph/internal/types"
 )
 
 // TestDependencyKeys_RekeysAndRemovesLeftovers exercises the bd-6dnrw.17
@@ -25,21 +25,21 @@ import (
 func TestDependencyKeys_RekeysAndRemovesLeftovers(t *testing.T) {
 	testutil.RequireDoltBinary(t)
 	// The dolt binary being installed does not mean a server is listening:
-	// dolt.New below reaches the container via BEADS_DOLT_PORT, which
+	// dolt.New below reaches the container via ISSUEGRAPH_DOLT_PORT, which
 	// TestMain only sets when it actually started one. Without this guard
 	// the test t.Fatals on 127.0.0.1:1 wherever Docker is unavailable.
 	requireFixDoltContainer(t)
 
 	dir := t.TempDir()
-	beadsDir := filepath.Join(dir, ".beads")
-	if err := os.MkdirAll(beadsDir, 0755); err != nil {
-		t.Fatalf("create .beads: %v", err)
+	issuegraphDir := filepath.Join(dir, ".issuegraph")
+	if err := os.MkdirAll(issuegraphDir, 0755); err != nil {
+		t.Fatalf("create .issuegraph: %v", err)
 	}
 	cfg := &configfile.Config{
 		Database: "dolt",
 		Backend:  configfile.BackendDolt,
 	}
-	if err := cfg.Save(beadsDir); err != nil {
+	if err := cfg.Save(issuegraphDir); err != nil {
 		t.Fatalf("save config: %v", err)
 	}
 
@@ -52,7 +52,7 @@ func TestDependencyKeys_RekeysAndRemovesLeftovers(t *testing.T) {
 
 	ctx := context.Background()
 	store, err := dolt.New(ctx, &dolt.Config{
-		Path:            filepath.Join(beadsDir, "dolt"),
+		Path:            filepath.Join(issuegraphDir, "dolt"),
 		Database:        dbName,
 		CreateIfMissing: true,
 		MaxOpenConns:    1,

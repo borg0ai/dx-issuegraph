@@ -10,7 +10,7 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/steveyegge/beads/internal/storage/schema"
+	"github.com/borg0ai/dx-issuegraph/internal/storage/schema"
 )
 
 // TestHandleRemoteMigrateGateJSON_Shape verifies the JSON written to stderr has
@@ -112,7 +112,7 @@ func TestHandleRemoteMigrateGateJSON_Shape(t *testing.T) {
 }
 
 // TestHandleRemoteMigrateGateJSON_FallbackReason verifies the blunt-block JSON
-// carries the machine-readable fallback_reason field (gastownhall/beads#4551
+// carries the machine-readable fallback_reason field (borg0ai/dx-issuegraph#4551
 // follow-up), and that the smart-tailored adopt/fork-skew decisions never gain
 // it — those already explain themselves via "decision".
 func TestHandleRemoteMigrateGateJSON_FallbackReason(t *testing.T) {
@@ -171,7 +171,7 @@ func TestHandleRemoteMigrateGateJSON_FallbackReason(t *testing.T) {
 }
 
 // TestHandleRemoteMigrateGateJSON_SharedNoRemote covers the shared-store
-// refusal's agent-facing block (gastownhall/beads#5920). It is deliberately
+// refusal's agent-facing block (borg0ai/dx-issuegraph#5920). It is deliberately
 // NOT the migrate-or-adopt shape: with no remote there is nothing to adopt
 // from, so the only option is "migrate once the fleet is upgraded", and the
 // runnable command stays inside that conditional option.
@@ -215,7 +215,7 @@ func TestHandleRemoteMigrateGateJSON_SharedNoRemote(t *testing.T) {
 	if got, _ := obj["observed"].(string); !strings.Contains(got, "shared server database") {
 		t.Errorf("observed = %q, want the shared-server framing", got)
 	}
-	if got, _ := obj["expected"].(string); !strings.Contains(got, "bd migrate schema") {
+	if got, _ := obj["expected"].(string); !strings.Contains(got, "issuegraph migrate schema") {
 		t.Errorf("expected = %q, want the consent verb", got)
 	}
 	if _, ok := obj["fallback_reason"]; ok {
@@ -234,18 +234,18 @@ func TestHandleRemoteMigrateGateJSON_SharedNoRemote(t *testing.T) {
 		t.Errorf("migrate-shared option missing when/risk: %v", o)
 	}
 	cmds, _ := o["commands"].([]interface{})
-	if len(cmds) != 1 || cmds[0] != "bd migrate schema" {
-		t.Errorf("commands = %v, want [\"bd migrate schema\"]", cmds)
+	if len(cmds) != 1 || cmds[0] != "issuegraph migrate schema" {
+		t.Errorf("commands = %v, want [\"issuegraph migrate schema\"]", cmds)
 	}
 }
 
 // TestHandleRemoteMigrateGateJSON_SharedNoRemoteGlobal covers the shared-store
 // refusal's agent-facing block when the refused open targeted the global
 // database (--global). The consent verb is target-scoped: the project-scoped
-// `bd migrate schema` would consent the WRONG database and leave the refusal in
+// `issuegraph migrate schema` would consent the WRONG database and leave the refusal in
 // place, so both the top-level "expected" directive and the runnable
-// migrate-shared option command must name `bd migrate schema --global`
-// (gastownhall/beads#5920), at parity with the human/text path
+// migrate-shared option command must name `issuegraph migrate schema --global`
+// (borg0ai/dx-issuegraph#5920), at parity with the human/text path
 // (TestPrintGlobalDatabaseConsentHint). The --json notice self-suppresses, so
 // this block is the sole channel for a --json consumer.
 func TestHandleRemoteMigrateGateJSON_SharedNoRemoteGlobal(t *testing.T) {
@@ -309,8 +309,8 @@ func TestHandleRemoteMigrateGateJSON_SharedNoRemoteGlobal(t *testing.T) {
 
 // TestRenderTypedOpenError pins the rendering every store-open path depends
 // on: the Dolt store open, the proxied unit-of-work provider open, and
-// `bd serve`'s startup all call it, and all three must produce the whole
-// actionable block rather than a one-line `%v`. A gate refusal at `bd serve`
+// `issuegraph serve`'s startup all call it, and all three must produce the whole
+// actionable block rather than a one-line `%v`. A gate refusal at `issuegraph serve`
 // startup is the case with no operator watching, so the daemon's log is the
 // only place the remediation can appear.
 func TestRenderTypedOpenError(t *testing.T) {
@@ -347,7 +347,7 @@ func TestRenderTypedOpenError(t *testing.T) {
 		if out != gate.UserMessage() {
 			t.Errorf("rendered output is not the full UserMessage:\n%s", out)
 		}
-		for _, want := range []string{"co-resident", "bd migrate schema", "Read commands keep working"} {
+		for _, want := range []string{"co-resident", "issuegraph migrate schema", "Read commands keep working"} {
 			if !strings.Contains(out, want) {
 				t.Errorf("output missing %q:\n%s", want, out)
 			}

@@ -22,7 +22,7 @@ type BatchCreateItem struct {
 	// already names a row is ErrAlreadyExists and never a silent full-row
 	// upsert. It refuses the WHOLE BATCH rather than that item, because this
 	// role is all or nothing (see BatchCreator). The documented upsert surface
-	// is `bd import`.
+	// is `issuegraph import`.
 	//
 	// Ephemeral and NoHistory are read PER ITEM, so one request may create
 	// durable issues and ephemeral ones together. The two planes hold their
@@ -73,7 +73,7 @@ type CreateBatchRequest struct {
 	// which is UpdateRequest.Provenance's rule, inherited whole. It is HERE
 	// rather than absent, unlike on CreateRequest, because the surface this
 	// role serves has always named its source file in the entry
-	// (`bd: create 3 issue(s) from plan.md`) and a label composed from the
+	// (`issuegraph: create 3 issue(s) from plan.md`) and a label composed from the
 	// result could not spell a file the result does not carry.
 	Provenance string
 	// ForceIDPrefix permits an explicit ID outside the configured prefix, for
@@ -99,7 +99,7 @@ type CreateBatchResult struct {
 }
 
 // BatchCreator describes creating many issues as ONE durable act: the write
-// side of `bd create --file`, and — like Lifecycle, BatchCloser and
+// side of `issuegraph create --file`, and — like Lifecycle, BatchCloser and
 // DependencyEditor — a role with its own accessor. A new capability gets a new
 // role interface and its own accessor; never append a method here.
 //
@@ -135,7 +135,7 @@ type CreateBatchResult struct {
 // references, and so does this role — a plan naming work in a sibling rig
 // creates its issues and its edges, exactly as it does one at a time.
 //
-// `bd create --graph` IS NOT THIS ROLE. A graph plan is an UPSERT over a
+// `issuegraph create --graph` IS NOT THIS ROLE. A graph plan is an UPSERT over a
 // declared shape and may adopt rows that already exist, where every item here
 // is a create that refuses an occupied id. Two contracts, so two roles, and the
 // second one is not written yet.

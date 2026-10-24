@@ -7,7 +7,7 @@ import (
 	"path/filepath"
 	"testing"
 
-	"github.com/steveyegge/beads/internal/git"
+	"github.com/borg0ai/dx-issuegraph/internal/git"
 )
 
 func TestGetVersionsSince(t *testing.T) {
@@ -130,7 +130,7 @@ func TestGetVersionsSinceOrder(t *testing.T) {
 	}
 }
 
-func TestTrackBdVersion_NoBeadsDir(t *testing.T) {
+func TestTrackBdVersion_NoIssueGraphDir(t *testing.T) {
 	// Reset global state for test isolation
 	ensureCleanGlobalState(t)
 
@@ -146,23 +146,23 @@ func TestTrackBdVersion_NoBeadsDir(t *testing.T) {
 	versionUpgradeDetected = false
 	previousVersion = ""
 
-	// Change to temp directory with no .beads
+	// Change to temp directory with no .issuegraph
 	tmpDir := t.TempDir()
 	t.Chdir(tmpDir)
 
 	// Reset git caches so IsWorktree() returns fresh results for the temp dir
 	git.ResetCaches()
 
-	// Set BEADS_DIR to temp directory to prevent FindBeadsDir from walking up
-	// or finding the worktree's main repository .beads directory
-	t.Setenv("BEADS_DIR", tmpDir)
+	// Set ISSUEGRAPH_DIR to temp directory to prevent FindIssueGraphDir from walking up
+	// or finding the worktree's main repository .issuegraph directory
+	t.Setenv("ISSUEGRAPH_DIR", tmpDir)
 
 	// trackBdVersion should silently succeed
 	trackBdVersion()
 
-	// Should not detect upgrade when no .beads dir exists
+	// Should not detect upgrade when no .issuegraph dir exists
 	if versionUpgradeDetected {
-		t.Error("Expected no upgrade detection when .beads directory doesn't exist")
+		t.Error("Expected no upgrade detection when .issuegraph directory doesn't exist")
 	}
 }
 
@@ -170,22 +170,22 @@ func TestTrackBdVersion_FirstRun(t *testing.T) {
 	// Reset global state for test isolation
 	ensureCleanGlobalState(t)
 
-	// Create temp .beads directory with a project file (bd-420)
-	// FindBeadsDir now requires actual project files, not just directory existence
+	// Create temp .issuegraph directory with a project file (bd-420)
+	// FindIssueGraphDir now requires actual project files, not just directory existence
 	tmpDir := t.TempDir()
-	beadsDir := filepath.Join(tmpDir, ".beads")
-	if err := os.MkdirAll(beadsDir, 0755); err != nil {
-		t.Fatalf("Failed to create .beads: %v", err)
+	issuegraphDir := filepath.Join(tmpDir, ".issuegraph")
+	if err := os.MkdirAll(issuegraphDir, 0755); err != nil {
+		t.Fatalf("Failed to create .issuegraph: %v", err)
 	}
-	// Create a database file so FindBeadsDir finds this directory
-	dbPath := filepath.Join(beadsDir, "beads.db")
+	// Create a database file so FindIssueGraphDir finds this directory
+	dbPath := filepath.Join(issuegraphDir, "issuegraph.db")
 	if err := os.WriteFile(dbPath, []byte{}, 0644); err != nil {
 		t.Fatalf("Failed to create db file: %v", err)
 	}
 
-	// Set BEADS_DIR to force FindBeadsDir to use our temp directory
-	// This prevents finding the actual .beads in a git worktree
-	t.Setenv("BEADS_DIR", beadsDir)
+	// Set ISSUEGRAPH_DIR to force FindIssueGraphDir to use our temp directory
+	// This prevents finding the actual .issuegraph in a git worktree
+	t.Setenv("ISSUEGRAPH_DIR", issuegraphDir)
 
 	// Change to temp directory
 	t.Chdir(tmpDir)
@@ -211,7 +211,7 @@ func TestTrackBdVersion_FirstRun(t *testing.T) {
 	}
 
 	// Should have created .local_version with current version
-	localVersionPath := filepath.Join(beadsDir, localVersionFile)
+	localVersionPath := filepath.Join(issuegraphDir, localVersionFile)
 	localVersion := readLocalVersion(localVersionPath)
 	if localVersion != Version {
 		t.Errorf(".local_version = %q, want %q", localVersion, Version)
@@ -222,28 +222,28 @@ func TestTrackBdVersion_UpgradeDetection(t *testing.T) {
 	// Reset global state for test isolation
 	ensureCleanGlobalState(t)
 
-	// Create temp .beads directory
+	// Create temp .issuegraph directory
 	tmpDir := t.TempDir()
-	beadsDir := filepath.Join(tmpDir, ".beads")
-	if err := os.MkdirAll(beadsDir, 0755); err != nil {
-		t.Fatalf("Failed to create .beads: %v", err)
+	issuegraphDir := filepath.Join(tmpDir, ".issuegraph")
+	if err := os.MkdirAll(issuegraphDir, 0755); err != nil {
+		t.Fatalf("Failed to create .issuegraph: %v", err)
 	}
 
-	// Set BEADS_DIR to force FindBeadsDir to use our temp directory
-	// This prevents finding the actual .beads in a git worktree
-	t.Setenv("BEADS_DIR", beadsDir)
+	// Set ISSUEGRAPH_DIR to force FindIssueGraphDir to use our temp directory
+	// This prevents finding the actual .issuegraph in a git worktree
+	t.Setenv("ISSUEGRAPH_DIR", issuegraphDir)
 
 	// Change to temp directory
 	t.Chdir(tmpDir)
 
-	// Create minimal metadata.json so FindBeadsDir can find the directory (bd-420)
-	metadataPath := filepath.Join(beadsDir, "metadata.json")
-	if err := os.WriteFile(metadataPath, []byte(`{"database":"beads.db"}`), 0600); err != nil {
+	// Create minimal metadata.json so FindIssueGraphDir can find the directory (bd-420)
+	metadataPath := filepath.Join(issuegraphDir, "metadata.json")
+	if err := os.WriteFile(metadataPath, []byte(`{"database":"issuegraph.db"}`), 0600); err != nil {
 		t.Fatalf("Failed to create metadata.json: %v", err)
 	}
 
-	// Create .local_version with old version (simulating previous bd run)
-	localVersionPath := filepath.Join(beadsDir, localVersionFile)
+	// Create .local_version with old version (simulating previous issuegraph run)
+	localVersionPath := filepath.Join(issuegraphDir, localVersionFile)
 	if err := writeLocalVersion(localVersionPath, "0.22.0"); err != nil {
 		t.Fatalf("Failed to write local version: %v", err)
 	}
@@ -283,27 +283,27 @@ func TestTrackBdVersion_DowngradeIgnored(t *testing.T) {
 	// Reset global state for test isolation
 	ensureCleanGlobalState(t)
 
-	// Create temp .beads directory
+	// Create temp .issuegraph directory
 	tmpDir := t.TempDir()
-	beadsDir := filepath.Join(tmpDir, ".beads")
-	if err := os.MkdirAll(beadsDir, 0755); err != nil {
-		t.Fatalf("Failed to create .beads: %v", err)
+	issuegraphDir := filepath.Join(tmpDir, ".issuegraph")
+	if err := os.MkdirAll(issuegraphDir, 0755); err != nil {
+		t.Fatalf("Failed to create .issuegraph: %v", err)
 	}
 
-	// Set BEADS_DIR to force FindBeadsDir to use our temp directory
-	t.Setenv("BEADS_DIR", beadsDir)
+	// Set ISSUEGRAPH_DIR to force FindIssueGraphDir to use our temp directory
+	t.Setenv("ISSUEGRAPH_DIR", issuegraphDir)
 
 	// Change to temp directory
 	t.Chdir(tmpDir)
 
-	// Create minimal metadata.json so FindBeadsDir can find the directory
-	metadataPath := filepath.Join(beadsDir, "metadata.json")
-	if err := os.WriteFile(metadataPath, []byte(`{"database":"beads.db"}`), 0600); err != nil {
+	// Create minimal metadata.json so FindIssueGraphDir can find the directory
+	metadataPath := filepath.Join(issuegraphDir, "metadata.json")
+	if err := os.WriteFile(metadataPath, []byte(`{"database":"issuegraph.db"}`), 0600); err != nil {
 		t.Fatalf("Failed to create metadata.json: %v", err)
 	}
 
 	// Create .local_version with a NEWER version than current (simulating downgrade)
-	localVersionPath := filepath.Join(beadsDir, localVersionFile)
+	localVersionPath := filepath.Join(issuegraphDir, localVersionFile)
 	if err := writeLocalVersion(localVersionPath, "99.99.99"); err != nil {
 		t.Fatalf("Failed to write local version: %v", err)
 	}
@@ -338,26 +338,26 @@ func TestTrackBdVersion_DowngradeIgnored(t *testing.T) {
 	}
 }
 
-// newTrackingWorkspace prepares the minimal .beads a trackBdVersion call needs
+// newTrackingWorkspace prepares the minimal .issuegraph a trackBdVersion call needs
 // and pins the globals it mutates, returning the .local_version path.
 func newTrackingWorkspace(t *testing.T, lastVersion, binVersion string) string {
 	t.Helper()
 	ensureCleanGlobalState(t)
 
 	tmpDir := t.TempDir()
-	beadsDir := filepath.Join(tmpDir, ".beads")
-	if err := os.MkdirAll(beadsDir, 0755); err != nil {
-		t.Fatalf("Failed to create .beads: %v", err)
+	issuegraphDir := filepath.Join(tmpDir, ".issuegraph")
+	if err := os.MkdirAll(issuegraphDir, 0755); err != nil {
+		t.Fatalf("Failed to create .issuegraph: %v", err)
 	}
-	t.Setenv("BEADS_DIR", beadsDir)
+	t.Setenv("ISSUEGRAPH_DIR", issuegraphDir)
 	t.Chdir(tmpDir)
 
-	metadataPath := filepath.Join(beadsDir, "metadata.json")
-	if err := os.WriteFile(metadataPath, []byte(`{"database":"beads.db"}`), 0600); err != nil {
+	metadataPath := filepath.Join(issuegraphDir, "metadata.json")
+	if err := os.WriteFile(metadataPath, []byte(`{"database":"issuegraph.db"}`), 0600); err != nil {
 		t.Fatalf("Failed to create metadata.json: %v", err)
 	}
 
-	localVersionPath := filepath.Join(beadsDir, localVersionFile)
+	localVersionPath := filepath.Join(issuegraphDir, localVersionFile)
 	if err := writeLocalVersion(localVersionPath, lastVersion); err != nil {
 		t.Fatalf("Failed to write local version: %v", err)
 	}
@@ -440,22 +440,22 @@ func TestTrackBdVersion_HeadStampNeverReachesPreV56Recovery(t *testing.T) {
 }
 
 func TestTrackBdVersion_SameVersion(t *testing.T) {
-	// Create temp .beads directory
+	// Create temp .issuegraph directory
 	tmpDir := t.TempDir()
-	beadsDir := filepath.Join(tmpDir, ".beads")
-	if err := os.MkdirAll(beadsDir, 0755); err != nil {
-		t.Fatalf("Failed to create .beads: %v", err)
+	issuegraphDir := filepath.Join(tmpDir, ".issuegraph")
+	if err := os.MkdirAll(issuegraphDir, 0755); err != nil {
+		t.Fatalf("Failed to create .issuegraph: %v", err)
 	}
 
-	// Override BEADS_DIR so FindBeadsDir() returns our temp .beads,
-	// not the rig's .beads (which happens in worktree environments).
-	t.Setenv("BEADS_DIR", beadsDir)
+	// Override ISSUEGRAPH_DIR so FindIssueGraphDir() returns our temp .issuegraph,
+	// not the rig's .issuegraph (which happens in worktree environments).
+	t.Setenv("ISSUEGRAPH_DIR", issuegraphDir)
 
 	// Change to temp directory
 	t.Chdir(tmpDir)
 
 	// Create .local_version with current version
-	localVersionPath := filepath.Join(beadsDir, localVersionFile)
+	localVersionPath := filepath.Join(issuegraphDir, localVersionFile)
 	if err := writeLocalVersion(localVersionPath, Version); err != nil {
 		t.Fatalf("Failed to write local version: %v", err)
 	}

@@ -1,8 +1,8 @@
 package gitlab
 
 import (
-	"github.com/steveyegge/beads/internal/tracker"
-	"github.com/steveyegge/beads/internal/types"
+	"github.com/borg0ai/dx-issuegraph/internal/tracker"
+	"github.com/borg0ai/dx-issuegraph/internal/types"
 )
 
 // gitlabFieldMapper implements tracker.FieldMapper for GitLab.
@@ -10,7 +10,7 @@ type gitlabFieldMapper struct {
 	config *MappingConfig
 }
 
-func (m *gitlabFieldMapper) PriorityToBeads(trackerPriority interface{}) int {
+func (m *gitlabFieldMapper) PriorityToIssueGraph(trackerPriority interface{}) int {
 	// GitLab uses label-based priority (string), not numeric
 	if label, ok := trackerPriority.(string); ok {
 		if p, exists := m.config.PriorityMap[label]; exists {
@@ -20,17 +20,17 @@ func (m *gitlabFieldMapper) PriorityToBeads(trackerPriority interface{}) int {
 	return 2
 }
 
-func (m *gitlabFieldMapper) PriorityToTracker(beadsPriority int) interface{} {
+func (m *gitlabFieldMapper) PriorityToTracker(issuegraphPriority int) interface{} {
 	// Inverse lookup: find the label for this priority
 	for label, p := range m.config.PriorityMap {
-		if p == beadsPriority {
+		if p == issuegraphPriority {
 			return label
 		}
 	}
 	return "medium"
 }
 
-func (m *gitlabFieldMapper) StatusToBeads(trackerState interface{}) types.Status {
+func (m *gitlabFieldMapper) StatusToIssueGraph(trackerState interface{}) types.Status {
 	if state, ok := trackerState.(string); ok {
 		if status, exists := m.config.StateMap[state]; exists {
 			return types.Status(status)
@@ -46,8 +46,8 @@ func (m *gitlabFieldMapper) StatusToBeads(trackerState interface{}) types.Status
 	return types.StatusOpen
 }
 
-func (m *gitlabFieldMapper) StatusToTracker(beadsStatus types.Status) interface{} {
-	switch beadsStatus {
+func (m *gitlabFieldMapper) StatusToTracker(issuegraphStatus types.Status) interface{} {
+	switch issuegraphStatus {
 	case types.StatusClosed:
 		return "closed"
 	default:
@@ -55,7 +55,7 @@ func (m *gitlabFieldMapper) StatusToTracker(beadsStatus types.Status) interface{
 	}
 }
 
-func (m *gitlabFieldMapper) TypeToBeads(trackerType interface{}) types.IssueType {
+func (m *gitlabFieldMapper) TypeToIssueGraph(trackerType interface{}) types.IssueType {
 	if t, ok := trackerType.(string); ok {
 		if issueType, exists := m.config.LabelTypeMap[t]; exists {
 			return types.IssueType(issueType)
@@ -64,17 +64,17 @@ func (m *gitlabFieldMapper) TypeToBeads(trackerType interface{}) types.IssueType
 	return types.TypeTask
 }
 
-func (m *gitlabFieldMapper) TypeToTracker(beadsType types.IssueType) interface{} {
-	return string(beadsType)
+func (m *gitlabFieldMapper) TypeToTracker(issuegraphType types.IssueType) interface{} {
+	return string(issuegraphType)
 }
 
-func (m *gitlabFieldMapper) IssueToBeads(ti *tracker.TrackerIssue) *tracker.IssueConversion {
+func (m *gitlabFieldMapper) IssueToIssueGraph(ti *tracker.TrackerIssue) *tracker.IssueConversion {
 	gl, ok := ti.Raw.(*Issue)
 	if !ok {
 		return nil
 	}
 
-	conv := GitLabIssueToBeads(gl, m.config)
+	conv := GitLabIssueToIssueGraph(gl, m.config)
 	if conv == nil {
 		return nil
 	}
@@ -92,5 +92,5 @@ func (m *gitlabFieldMapper) IssueToBeads(ti *tracker.TrackerIssue) *tracker.Issu
 }
 
 func (m *gitlabFieldMapper) IssueToTracker(issue *types.Issue) map[string]interface{} {
-	return BeadsIssueToGitLabFields(issue, m.config)
+	return IssueGraphIssueToGitLabFields(issue, m.config)
 }

@@ -1,4 +1,4 @@
-// Package main provides the bd command-line interface.
+// Package main provides the issuegraph command-line interface.
 // This file implements markdown file parsing for bulk issue creation from structured markdown documents.
 package main
 
@@ -11,10 +11,10 @@ import (
 	"regexp"
 	"strings"
 
-	"github.com/steveyegge/beads/internal/types"
-	"github.com/steveyegge/beads/internal/ui"
-	"github.com/steveyegge/beads/internal/validation"
-	"github.com/steveyegge/beads/issueops"
+	"github.com/borg0ai/dx-issuegraph/internal/types"
+	"github.com/borg0ai/dx-issuegraph/internal/ui"
+	"github.com/borg0ai/dx-issuegraph/internal/validation"
+	"github.com/borg0ai/dx-issuegraph/issueops"
 )
 
 var (
@@ -403,13 +403,13 @@ func buildMarkdownBatchRequest(templates []*IssueTemplate, in createInput) (issu
 		Items: items,
 		// The entry both routes have always written, spelled once. The role's
 		// own default would name a count and lose the file, which is the thing
-		// `bd dolt log` is read for after a bulk create.
-		Provenance: fmt.Sprintf("bd: create %d issue(s) from %s", len(templates), in.markdownFile),
+		// `issuegraph dolt log` is read for after a bulk create.
+		Provenance: fmt.Sprintf("issuegraph: create %d issue(s) from %s", len(templates), in.markdownFile),
 	}, nil
 }
 
 // markdownBatchActor is the actor a `--file` create is attributed to. The role
-// refuses an empty one, and "bd" is the fallback this command has always used
+// refuses an empty one, and "issuegraph" is the fallback this command has always used
 // when nothing named a person.
 func markdownBatchActor(in createInput) string {
 	if in.createdBy != "" {
@@ -418,7 +418,7 @@ func markdownBatchActor(in createInput) string {
 	if actor != "" {
 		return actor
 	}
-	return "bd"
+	return "issuegraph"
 }
 
 // lintMarkdownTemplates applies the workspace's validation.on-create policy to

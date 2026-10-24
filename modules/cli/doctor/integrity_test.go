@@ -6,12 +6,12 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/steveyegge/beads/internal/beads"
+	"github.com/borg0ai/dx-issuegraph/internal/issuegraph"
 )
 
-// TestIntegrityChecks_NoBeadsDir verifies all integrity check functions handle
-// missing .beads directories gracefully. This replaces 4 individual subtests.
-func TestIntegrityChecks_NoBeadsDir(t *testing.T) {
+// TestIntegrityChecks_NoIssueGraphDir verifies all integrity check functions handle
+// missing .issuegraph directories gracefully. This replaces 4 individual subtests.
+func TestIntegrityChecks_NoIssueGraphDir(t *testing.T) {
 	checks := []struct {
 		name     string
 		fn       func(string) DoctorCheck
@@ -34,9 +34,9 @@ func TestIntegrityChecks_NoBeadsDir(t *testing.T) {
 	}
 }
 
-// TestIntegrityChecks_EmptyBeadsDir verifies all integrity check functions return OK
-// when .beads directory exists but is empty (no database/files to check).
-func TestIntegrityChecks_EmptyBeadsDir(t *testing.T) {
+// TestIntegrityChecks_EmptyIssueGraphDir verifies all integrity check functions return OK
+// when .issuegraph directory exists but is empty (no database/files to check).
+func TestIntegrityChecks_EmptyIssueGraphDir(t *testing.T) {
 	checks := []struct {
 		name string
 		fn   func(string) DoctorCheck
@@ -49,8 +49,8 @@ func TestIntegrityChecks_EmptyBeadsDir(t *testing.T) {
 	for _, tc := range checks {
 		t.Run(tc.name, func(t *testing.T) {
 			tmpDir := t.TempDir()
-			beadsDir := filepath.Join(tmpDir, ".beads")
-			if err := os.Mkdir(beadsDir, 0755); err != nil {
+			issuegraphDir := filepath.Join(tmpDir, ".issuegraph")
+			if err := os.Mkdir(issuegraphDir, 0755); err != nil {
 				t.Fatal(err)
 			}
 
@@ -67,13 +67,13 @@ func TestIntegrityChecks_EmptyBeadsDir(t *testing.T) {
 // deletions.jsonl file exists and should trigger a warning.
 func TestCheckDeletionsManifest_LegacyFile(t *testing.T) {
 	tmpDir := t.TempDir()
-	beadsDir := filepath.Join(tmpDir, ".beads")
-	if err := os.Mkdir(beadsDir, 0755); err != nil {
+	issuegraphDir := filepath.Join(tmpDir, ".issuegraph")
+	if err := os.Mkdir(issuegraphDir, 0755); err != nil {
 		t.Fatal(err)
 	}
 
 	// Create a deletions.jsonl file
-	deletionsPath := filepath.Join(beadsDir, "deletions.jsonl")
+	deletionsPath := filepath.Join(issuegraphDir, "deletions.jsonl")
 	if err := os.WriteFile(deletionsPath, []byte(`{"id":"test-1"}`), 0644); err != nil {
 		t.Fatal(err)
 	}
@@ -126,7 +126,7 @@ func TestCheckIDFormat_DeadBranch(t *testing.T) {
 	// code paths (lines 78-84 and 86-90) produce identical output.
 	// This test documents the bug for future fix.
 
-	// Verify the function returns "Issue IDs" check name for no-beads-dir case
+	// Verify the function returns "Issue IDs" check name for no-issuegraph-dir case
 	tmpDir := t.TempDir()
 	check := CheckIDFormat(tmpDir)
 	if check.Name != "Issue IDs" {
@@ -137,8 +137,8 @@ func TestCheckIDFormat_DeadBranch(t *testing.T) {
 // TestCheckRepoFingerprint_NoDatabase verifies graceful handling when no database exists.
 func TestCheckRepoFingerprint_NoDatabase(t *testing.T) {
 	tmpDir := t.TempDir()
-	beadsDir := filepath.Join(tmpDir, ".beads")
-	if err := os.MkdirAll(beadsDir, 0755); err != nil {
+	issuegraphDir := filepath.Join(tmpDir, ".issuegraph")
+	if err := os.MkdirAll(issuegraphDir, 0755); err != nil {
 		t.Fatal(err)
 	}
 
@@ -184,8 +184,8 @@ func TestTruncateID(t *testing.T) {
 // TestCheckDependencyCycles_NoDatabase verifies graceful handling when no database exists.
 func TestCheckDependencyCycles_NoDatabase(t *testing.T) {
 	tmpDir := t.TempDir()
-	beadsDir := filepath.Join(tmpDir, ".beads")
-	if err := os.MkdirAll(beadsDir, 0755); err != nil {
+	issuegraphDir := filepath.Join(tmpDir, ".issuegraph")
+	if err := os.MkdirAll(issuegraphDir, 0755); err != nil {
 		t.Fatal(err)
 	}
 
@@ -202,28 +202,28 @@ func TestCheckDependencyCycles_NoDatabase(t *testing.T) {
 // bd-46vla: a fingerprint mismatch where the current id is a path-fallback
 // hash (no origin remote on this host) is the synced-clone signature — the
 // stored id is the canonical shared value, and stamping the local one via
-// 'bd migrate --update-repo-id' would propagate it to every clone. That case
+// 'issuegraph migrate --update-repo-id' would propagate it to every clone. That case
 // must warn-and-advise-leaving-it, not present as "wrong database".
 func TestClassifyRepoFingerprint(t *testing.T) {
 	t.Run("match is OK regardless of source", func(t *testing.T) {
-		check := classifyRepoFingerprint("aaaa1111bbbb2222", "aaaa1111bbbb2222", beads.RepoIDSourcePath)
+		check := classifyRepoFingerprint("aaaa1111bbbb2222", "aaaa1111bbbb2222", issuegraph.RepoIDSourcePath)
 		if check.Status != StatusOK {
 			t.Fatalf("Status = %q, want %q (message=%q)", check.Status, StatusOK, check.Message)
 		}
 	})
 
 	t.Run("mismatch with remote-derived current id is an error", func(t *testing.T) {
-		check := classifyRepoFingerprint("aaaa1111bbbb2222", "cccc3333dddd4444", beads.RepoIDSourceRemote)
+		check := classifyRepoFingerprint("aaaa1111bbbb2222", "cccc3333dddd4444", issuegraph.RepoIDSourceRemote)
 		if check.Status != StatusError {
 			t.Fatalf("Status = %q, want %q (message=%q)", check.Status, StatusError, check.Message)
 		}
-		if !strings.Contains(check.Fix, "bd migrate --update-repo-id") {
+		if !strings.Contains(check.Fix, "issuegraph migrate --update-repo-id") {
 			t.Fatalf("Fix = %q, want the update-repo-id repair offered", check.Fix)
 		}
 	})
 
 	t.Run("mismatch with path-fallback current id warns and advises leaving it", func(t *testing.T) {
-		check := classifyRepoFingerprint("aaaa1111bbbb2222", "cccc3333dddd4444", beads.RepoIDSourcePath)
+		check := classifyRepoFingerprint("aaaa1111bbbb2222", "cccc3333dddd4444", issuegraph.RepoIDSourcePath)
 		if check.Status != StatusWarning {
 			t.Fatalf("Status = %q, want %q (message=%q)", check.Status, StatusWarning, check.Message)
 		}

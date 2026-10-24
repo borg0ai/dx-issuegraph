@@ -25,7 +25,7 @@ not download or run them.**
 How to stay safe:
 
 - **Official builds and releases come only from this repository's
-  [Releases](https://github.com/gastownhall/beads/releases) page** and the project's documented install
+  [Releases](https://github.com/borg0ai/dx-issuegraph/releases) page** and the project's documented install
   instructions. Maintainers will never ask you to download a zip or executable
   posted in an issue, pull request, or discussion comment.
 - A link that points to `github.com/user-attachments/files/...` is a file
@@ -44,13 +44,13 @@ the attachment to GitHub Support so it can be taken down.
 
 ### Database Security
 
-issuegraph stores issue data locally in a Dolt database (`.beads/dolt/`), which is gitignored.
+issuegraph stores issue data locally in a Dolt database (`.issuegraph/dolt/`), which is gitignored.
 
 **Important**:
 - Do not store sensitive information (passwords, API keys, secrets) in issue descriptions or metadata
 - Issue data is committed to git and will be visible to anyone with repository access
 - issuegraph does not encrypt data at rest (it's a local development tool)
-- The `.beads/` directory contains server state files (PID, port) and should have restrictive permissions (0700) to prevent other local users from tampering with process lifecycle
+- The `.issuegraph/` directory contains server state files (PID, port) and should have restrictive permissions (0700) to prevent other local users from tampering with process lifecycle
 
 ### Git Workflow Security
 

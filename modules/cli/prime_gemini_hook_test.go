@@ -14,7 +14,7 @@ import (
 	"time"
 )
 
-// runPrimeBinary runs the bd binary built by buildBDUnderTest in the given
+// runPrimeBinary runs the issuegraph binary built by buildIssueGraphUnderTest in the given
 // working directory with a clean env (HOME isolated), capturing stdout.
 // stderr is captured separately so JSON-validity checks aren't polluted by
 // auto-pull or warning lines.
@@ -29,26 +29,26 @@ func runPrimeBinary(t *testing.T, binPath, workDir string, args ...string) (stdo
 	cmd.Env = append(os.Environ(),
 		"HOME="+t.TempDir(),
 		"XDG_CONFIG_HOME="+t.TempDir(),
-		"BEADS_TEST_IGNORE_REPO_CONFIG=1",
-		"BEADS_DIR=",
-		"BEADS_DB=",
+		"ISSUEGRAPH_TEST_IGNORE_REPO_CONFIG=1",
+		"ISSUEGRAPH_DIR=",
+		"ISSUEGRAPH_DB=",
 		"LINEAR_API_KEY=", // Suppress Linear auto-pull noise
 	)
 	var outBuf, errBuf bytes.Buffer
 	cmd.Stdout = &outBuf
 	cmd.Stderr = &errBuf
 	if err := cmd.Run(); err != nil {
-		// bd prime exits 0 on every path we care about (silent-success
+		// issuegraph prime exits 0 on every path we care about (silent-success
 		// contract). A non-zero exit is itself a failure.
-		t.Fatalf("bd %v in %s: %v\nstdout: %s\nstderr: %s", full, workDir, err, outBuf.String(), errBuf.String())
+		t.Fatalf("issuegraph %v in %s: %v\nstdout: %s\nstderr: %s", full, workDir, err, outBuf.String(), errBuf.String())
 	}
 	return outBuf.Bytes(), errBuf.Bytes()
 }
 
-// initBeadsWorkspace creates a minimal beads workspace at workDir using `bd
+// initIssueGraphWorkspace creates a minimal issuegraph workspace at workDir using `issuegraph
 // init --prefix`. We don't need a Dolt server or any issues — just the
-// .beads/ directory so FindBeadsDir succeeds.
-func initBeadsWorkspace(t *testing.T, binPath, workDir string) {
+// .issuegraph/ directory so FindIssueGraphDir succeeds.
+func initIssueGraphWorkspace(t *testing.T, binPath, workDir string) {
 	t.Helper()
 	ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
 	defer cancel()
@@ -57,12 +57,12 @@ func initBeadsWorkspace(t *testing.T, binPath, workDir string) {
 	cmd.Env = append(os.Environ(),
 		"HOME="+t.TempDir(),
 		"XDG_CONFIG_HOME="+t.TempDir(),
-		"BEADS_TEST_IGNORE_REPO_CONFIG=1",
-		"BEADS_DIR=",
-		"BEADS_DB=",
+		"ISSUEGRAPH_TEST_IGNORE_REPO_CONFIG=1",
+		"ISSUEGRAPH_DIR=",
+		"ISSUEGRAPH_DB=",
 	)
 	if out, err := cmd.CombinedOutput(); err != nil {
-		t.Fatalf("bd init in %s: %v\n%s", workDir, err, out)
+		t.Fatalf("issuegraph init in %s: %v\n%s", workDir, err, out)
 	}
 }
 
@@ -102,12 +102,12 @@ func writePrimeFile(t *testing.T, path, content string) {
 // against shared workspaces. The scenarios retain their individual names as
 // subtests because each remains an independently observable CLI contract.
 func TestPrimeBinaryPortfolio(t *testing.T) {
-	binPath := buildBDUnderTest(t)
+	binPath := buildIssueGraphUnderTest(t)
 	localWorkDir := t.TempDir()
-	initBeadsWorkspace(t, binPath, localWorkDir)
+	initIssueGraphWorkspace(t, binPath, localWorkDir)
 	redirectedRoot := t.TempDir()
-	initBeadsWorkspace(t, binPath, redirectedRoot)
-	redirectedBeads := filepath.Join(redirectedRoot, ".beads")
+	initIssueGraphWorkspace(t, binPath, redirectedRoot)
+	redirectedIssueGraph := filepath.Join(redirectedRoot, ".issuegraph")
 	noWorkspaceWorkDir := t.TempDir()
 
 	t.Run("TestPrime_HookJSON_DefaultPath", func(t *testing.T) {
@@ -120,8 +120,8 @@ func TestPrimeBinaryPortfolio(t *testing.T) {
 		// Sanity-check that the generated content actually flowed through.
 		// The CLI/MCP variants both lead with one of these phrases.
 		ctx := env.HookSpecificOutput.AdditionalContext
-		if !strings.Contains(ctx, "Beads") {
-			t.Errorf("additionalContext should contain generated bd prime markdown, got: %q", firstN(ctx, 200))
+		if !strings.Contains(ctx, "IssueGraph") {
+			t.Errorf("additionalContext should contain generated issuegraph prime markdown, got: %q", firstN(ctx, 200))
 		}
 	})
 
@@ -138,10 +138,10 @@ func TestPrimeBinaryPortfolio(t *testing.T) {
 		primeScenarioHookJSONGlobalPrimeOverride(t, binPath, localWorkDir)
 	})
 	t.Run("TestPrime_HookJSON_RedirectedPrimeOverride", func(t *testing.T) {
-		primeScenarioHookJSONRedirectedPrimeOverride(t, binPath, noWorkspaceWorkDir, redirectedBeads)
+		primeScenarioHookJSONRedirectedPrimeOverride(t, binPath, noWorkspaceWorkDir, redirectedIssueGraph)
 	})
-	t.Run("TestPrime_HookJSON_NoBeadsWorkspace", func(t *testing.T) {
-		primeScenarioHookJSONNoBeadsWorkspace(t, binPath, noWorkspaceWorkDir)
+	t.Run("TestPrime_HookJSON_NoIssueGraphWorkspace", func(t *testing.T) {
+		primeScenarioHookJSONNoIssueGraphWorkspace(t, binPath, noWorkspaceWorkDir)
 	})
 	t.Run("TestPrime_NoTelemetryInIsolatedHome", func(t *testing.T) {
 		primeScenarioNoTelemetryInIsolatedHome(t, binPath, localWorkDir)
@@ -167,11 +167,11 @@ func TestPrimeBinaryPortfolio(t *testing.T) {
 }
 
 // TestPrime_HookJSON_LocalPrimeOverride: with --hook-json and a
-// .beads/PRIME.md file present, output is the JSON envelope with that file's
+// .issuegraph/PRIME.md file present, output is the JSON envelope with that file's
 // contents in additionalContext (verbatim).
 func primeScenarioHookJSONLocalPrimeOverride(t *testing.T, binPath, workDir string) {
 	const custom = "# Custom local PRIME.md override\nBe excellent.\n"
-	primePath := filepath.Join(workDir, ".beads", "PRIME.md")
+	primePath := filepath.Join(workDir, ".issuegraph", "PRIME.md")
 	writePrimeFile(t, primePath, custom)
 
 	stdout, _ := runPrimeBinary(t, binPath, workDir, "--hook-json")
@@ -190,11 +190,11 @@ func primeScenarioHookJSONNotJSONWithoutFlag(t *testing.T, binPath, workDir stri
 	stdout, _ := runPrimeBinary(t, binPath, workDir)
 	out := strings.TrimSpace(string(stdout))
 	if strings.HasPrefix(out, "{") {
-		t.Fatalf("bd prime (no flag) emitted JSON-looking content; raw markdown expected: %q", firstN(out, 200))
+		t.Fatalf("issuegraph prime (no flag) emitted JSON-looking content; raw markdown expected: %q", firstN(out, 200))
 	}
 	var any map[string]interface{}
 	if err := json.Unmarshal([]byte(out), &any); err == nil {
-		t.Fatal("bd prime (no flag) output should not be valid JSON")
+		t.Fatal("issuegraph prime (no flag) output should not be valid JSON")
 	}
 }
 
@@ -216,13 +216,13 @@ func primeScenarioHookJSONStealthCompose(t *testing.T, binPath, workDir string) 
 		t.Errorf("stealth mode should not include 'git push' in additionalContext, got snippet: %q", firstN(ctx, 400))
 	}
 	// And the close-protocol section must still exist.
-	if !strings.Contains(ctx, "bd close") {
-		t.Errorf("stealth mode should still teach 'bd close', got snippet: %q", firstN(ctx, 400))
+	if !strings.Contains(ctx, "issuegraph close") {
+		t.Errorf("stealth mode should still teach 'issuegraph close', got snippet: %q", firstN(ctx, 400))
 	}
 }
 
 // TestPrime_HookJSON_GlobalPrimeOverride: with --hook-json and a
-// ~/.config/beads/PRIME.md file present (XDG path), output is the JSON
+// ~/.config/issuegraph/PRIME.md file present (XDG path), output is the JSON
 // envelope wrapping that file's contents. This exercises the third
 // custom-PRIME.md path through the wrapper.
 func primeScenarioHookJSONGlobalPrimeOverride(t *testing.T, binPath, workDir string) {
@@ -235,13 +235,13 @@ func primeScenarioHookJSONGlobalPrimeOverride(t *testing.T, binPath, workDir str
 	xdg := t.TempDir()
 	home := t.TempDir()
 
-	xdgBeadsDir := filepath.Join(xdg, "beads")
-	if err := os.MkdirAll(xdgBeadsDir, 0o755); err != nil {
-		t.Fatalf("mkdir xdg beads dir: %v", err)
+	xdgIssueGraphDir := filepath.Join(xdg, "issuegraph")
+	if err := os.MkdirAll(xdgIssueGraphDir, 0o755); err != nil {
+		t.Fatalf("mkdir xdg issuegraph dir: %v", err)
 	}
-	writePrimeFile(t, filepath.Join(xdgBeadsDir, "PRIME.md"), custom)
+	writePrimeFile(t, filepath.Join(xdgIssueGraphDir, "PRIME.md"), custom)
 	// Cross-platform staging for macOS UserConfigDir.
-	macConfigDir := filepath.Join(home, "Library", "Application Support", "beads")
+	macConfigDir := filepath.Join(home, "Library", "Application Support", "issuegraph")
 	if err := os.MkdirAll(macConfigDir, 0o755); err != nil {
 		t.Fatalf("mkdir mac config dir: %v", err)
 	}
@@ -254,16 +254,16 @@ func primeScenarioHookJSONGlobalPrimeOverride(t *testing.T, binPath, workDir str
 	cmd.Env = append(os.Environ(),
 		"HOME="+home,
 		"XDG_CONFIG_HOME="+xdg,
-		"BEADS_TEST_IGNORE_REPO_CONFIG=1",
-		"BEADS_DIR=",
-		"BEADS_DB=",
+		"ISSUEGRAPH_TEST_IGNORE_REPO_CONFIG=1",
+		"ISSUEGRAPH_DIR=",
+		"ISSUEGRAPH_DB=",
 		"LINEAR_API_KEY=",
 	)
 	var outBuf, errBuf bytes.Buffer
 	cmd.Stdout = &outBuf
 	cmd.Stderr = &errBuf
 	if err := cmd.Run(); err != nil {
-		t.Fatalf("bd prime --hook-json: %v\nstdout: %s\nstderr: %s", err, outBuf.String(), errBuf.String())
+		t.Fatalf("issuegraph prime --hook-json: %v\nstdout: %s\nstderr: %s", err, outBuf.String(), errBuf.String())
 	}
 
 	env := parseEnvelope(t, outBuf.Bytes())
@@ -273,14 +273,14 @@ func primeScenarioHookJSONGlobalPrimeOverride(t *testing.T, binPath, workDir str
 }
 
 // TestPrime_HookJSON_RedirectedPrimeOverride: with --hook-json and a
-// PRIME.md staged at <beadsDir>/PRIME.md where <beadsDir> is NOT the local
-// .beads directory (i.e. relocated via BEADS_DIR), the output is the JSON
+// PRIME.md staged at <issuegraphDir>/PRIME.md where <issuegraphDir> is NOT the local
+// .issuegraph directory (i.e. relocated via ISSUEGRAPH_DIR), the output is the JSON
 // envelope wrapping that file's contents. This exercises the redirected
 // path independently from the local path so DoD #2 ("ALL FOUR output paths
 // wrap correctly") is fully covered end-to-end.
-func primeScenarioHookJSONRedirectedPrimeOverride(t *testing.T, binPath, workDir, relocatedBeads string) {
-	const custom = "# Redirected PRIME override\nFrom a relocated beadsDir.\n"
-	writePrimeFile(t, filepath.Join(relocatedBeads, "PRIME.md"), custom)
+func primeScenarioHookJSONRedirectedPrimeOverride(t *testing.T, binPath, workDir, relocatedIssueGraph string) {
+	const custom = "# Redirected PRIME override\nFrom a relocated issuegraphDir.\n"
+	writePrimeFile(t, filepath.Join(relocatedIssueGraph, "PRIME.md"), custom)
 
 	ctx, cancel := context.WithTimeout(context.Background(), 15*time.Second)
 	defer cancel()
@@ -289,16 +289,16 @@ func primeScenarioHookJSONRedirectedPrimeOverride(t *testing.T, binPath, workDir
 	cmd.Env = append(os.Environ(),
 		"HOME="+t.TempDir(),
 		"XDG_CONFIG_HOME="+t.TempDir(),
-		"BEADS_TEST_IGNORE_REPO_CONFIG=1",
-		"BEADS_DIR="+relocatedBeads, // forces FindBeadsDir to return this absolute path
-		"BEADS_DB=",
+		"ISSUEGRAPH_TEST_IGNORE_REPO_CONFIG=1",
+		"ISSUEGRAPH_DIR="+relocatedIssueGraph, // forces FindIssueGraphDir to return this absolute path
+		"ISSUEGRAPH_DB=",
 		"LINEAR_API_KEY=",
 	)
 	var outBuf, errBuf bytes.Buffer
 	cmd.Stdout = &outBuf
 	cmd.Stderr = &errBuf
 	if err := cmd.Run(); err != nil {
-		t.Fatalf("bd prime --hook-json: %v\nstdout: %s\nstderr: %s", err, outBuf.String(), errBuf.String())
+		t.Fatalf("issuegraph prime --hook-json: %v\nstdout: %s\nstderr: %s", err, outBuf.String(), errBuf.String())
 	}
 
 	env := parseEnvelope(t, outBuf.Bytes())
@@ -307,12 +307,12 @@ func primeScenarioHookJSONRedirectedPrimeOverride(t *testing.T, binPath, workDir
 	}
 }
 
-// TestPrime_HookJSON_NoBeadsWorkspace: when bd prime would otherwise emit
-// nothing (no beads workspace resolved), --hook-json still emits the empty
+// TestPrime_HookJSON_NoIssueGraphWorkspace: when issuegraph prime would otherwise emit
+// nothing (no issuegraph workspace resolved), --hook-json still emits the empty
 // JSON envelope so Gemini's strict stdout-must-be-JSON contract is honored.
-func primeScenarioHookJSONNoBeadsWorkspace(t *testing.T, binPath, workDir string) {
-	// workDir is a freshly created tmpdir with NO beads workspace, so
-	// FindBeadsDir cannot walk up into the test repo.
+func primeScenarioHookJSONNoIssueGraphWorkspace(t *testing.T, binPath, workDir string) {
+	// workDir is a freshly created tmpdir with NO issuegraph workspace, so
+	// FindIssueGraphDir cannot walk up into the test repo.
 	home := t.TempDir()
 
 	ctx, cancel := context.WithTimeout(context.Background(), 15*time.Second)
@@ -322,28 +322,28 @@ func primeScenarioHookJSONNoBeadsWorkspace(t *testing.T, binPath, workDir string
 	cmd.Env = append(os.Environ(),
 		"HOME="+home,
 		"XDG_CONFIG_HOME="+t.TempDir(),
-		"BEADS_TEST_IGNORE_REPO_CONFIG=1",
-		"BEADS_DIR=",
-		"BEADS_DB=",
+		"ISSUEGRAPH_TEST_IGNORE_REPO_CONFIG=1",
+		"ISSUEGRAPH_DIR=",
+		"ISSUEGRAPH_DB=",
 		"LINEAR_API_KEY=",
 	)
 	var outBuf, errBuf bytes.Buffer
 	cmd.Stdout = &outBuf
 	cmd.Stderr = &errBuf
 	if err := cmd.Run(); err != nil {
-		t.Fatalf("bd prime --hook-json: %v\nstdout: %s\nstderr: %s", err, outBuf.String(), errBuf.String())
+		t.Fatalf("issuegraph prime --hook-json: %v\nstdout: %s\nstderr: %s", err, outBuf.String(), errBuf.String())
 	}
 
 	env := parseEnvelope(t, outBuf.Bytes())
 	if env.HookSpecificOutput.AdditionalContext != "" {
-		t.Errorf("additionalContext should be empty when no beads workspace, got: %q",
+		t.Errorf("additionalContext should be empty when no issuegraph workspace, got: %q",
 			firstN(env.HookSpecificOutput.AdditionalContext, 200))
 	}
 }
 
-// rememberInWorkspace stores a persistent memory via `bd remember` so prime can
+// rememberInWorkspace stores a persistent memory via `issuegraph remember` so prime can
 // inject it. Memories live in the workspace store, so the same isolated env as
-// initBeadsWorkspace/runPrimeBinary resolves the same database.
+// initIssueGraphWorkspace/runPrimeBinary resolves the same database.
 func rememberInWorkspace(t *testing.T, binPath, workDir, key, content string) {
 	t.Helper()
 	ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
@@ -353,22 +353,22 @@ func rememberInWorkspace(t *testing.T, binPath, workDir, key, content string) {
 	cmd.Env = append(os.Environ(),
 		"HOME="+t.TempDir(),
 		"XDG_CONFIG_HOME="+t.TempDir(),
-		"BEADS_TEST_IGNORE_REPO_CONFIG=1",
-		"BEADS_DIR=",
-		"BEADS_DB=",
+		"ISSUEGRAPH_TEST_IGNORE_REPO_CONFIG=1",
+		"ISSUEGRAPH_DIR=",
+		"ISSUEGRAPH_DB=",
 		"LINEAR_API_KEY=",
 	)
 	if out, err := cmd.CombinedOutput(); err != nil {
-		t.Fatalf("bd remember in %s: %v\n%s", workDir, err, out)
+		t.Fatalf("issuegraph remember in %s: %v\n%s", workDir, err, out)
 	}
 }
 
-// TestPrime_CustomPrimeMd_AppendsMemories: a custom .beads/PRIME.md replaces the
+// TestPrime_CustomPrimeMd_AppendsMemories: a custom .issuegraph/PRIME.md replaces the
 // default workflow text, but persistent memories must still be appended so
-// `bd remember` keeps working under a custom template (GH#3941).
+// `issuegraph remember` keeps working under a custom template (GH#3941).
 func primeScenarioCustomPrimeMdAppendsMemories(t *testing.T, binPath, workDir string) {
 	const custom = "# Custom local PRIME.md override\nBe excellent.\n"
-	primePath := filepath.Join(workDir, ".beads", "PRIME.md")
+	primePath := filepath.Join(workDir, ".issuegraph", "PRIME.md")
 	writePrimeFile(t, primePath, custom)
 
 	stdout, _ := runPrimeBinary(t, binPath, workDir)
@@ -391,7 +391,7 @@ func primeScenarioCustomPrimeMdAppendsMemories(t *testing.T, binPath, workDir st
 // for PreCompact hooks, which a custom PRIME.md previously broke.
 func primeScenarioMemoriesOnlyWithCustomPrimeMd(t *testing.T, binPath, workDir string) {
 	const custom = "# Custom local PRIME.md override\nBe excellent.\n"
-	primePath := filepath.Join(workDir, ".beads", "PRIME.md")
+	primePath := filepath.Join(workDir, ".issuegraph", "PRIME.md")
 	writePrimeFile(t, primePath, custom)
 
 	stdout, _ := runPrimeBinary(t, binPath, workDir, "--memories-only")
@@ -425,7 +425,7 @@ func primeScenarioNoMemoriesDefaultPath(t *testing.T, binPath, workDir string) {
 		t.Errorf("--no-memories should omit the Persistent Memories section, got: %q", firstN(out, 400))
 	}
 	// The generated workflow context should still be present.
-	if !strings.Contains(out, "Beads") {
+	if !strings.Contains(out, "IssueGraph") {
 		t.Errorf("--no-memories should still emit workflow context, got: %q", firstN(out, 400))
 	}
 }
@@ -434,7 +434,7 @@ func primeScenarioNoMemoriesDefaultPath(t *testing.T, binPath, workDir string) {
 // GH#3941 appends under a custom PRIME.md; the custom content itself is unaffected.
 func primeScenarioNoMemoriesCustomPrimeMd(t *testing.T, binPath, workDir string) {
 	const custom = "# Custom local PRIME.md override\nBe excellent.\n"
-	writePrimeFile(t, filepath.Join(workDir, ".beads", "PRIME.md"), custom)
+	writePrimeFile(t, filepath.Join(workDir, ".issuegraph", "PRIME.md"), custom)
 
 	stdout, _ := runPrimeBinary(t, binPath, workDir, "--no-memories")
 	out := string(stdout)
@@ -457,11 +457,11 @@ func primeScenarioNoMemoriesMemoriesOnlyWins(t *testing.T, binPath, workDir stri
 }
 
 // TestPrime_NoTelemetryInIsolatedHome is the regression guard for wy-12x1p:
-// a `bd` subprocess launched by this suite must not write a telemetry queue
+// a `issuegraph` subprocess launched by this suite must not write a telemetry queue
 // into its isolated HOME. That queue is the visible half of the real problem —
-// the other half is the DETACHED `bd send-metrics` child metrics.CloseAndFlush
+// the other half is the DETACHED `issuegraph send-metrics` child metrics.CloseAndFlush
 // spawns alongside it, which outlives its parent and keeps mutating
-// $HOME/.beads/eventsData while Go's t.TempDir cleanup is trying to delete the
+// $HOME/.issuegraph/eventsData while Go's t.TempDir cleanup is trying to delete the
 // tree. The result was an intermittent, assertion-free
 // "TempDir RemoveAll cleanup: ... directory not empty" that reddened the whole
 // modules/cli package (the TestPrime_HookJSON_* tests were the observed victims).
@@ -482,27 +482,27 @@ func primeScenarioNoTelemetryInIsolatedHome(t *testing.T, binPath, workDir strin
 	cmd.Env = append(os.Environ(),
 		"HOME="+home,
 		"XDG_CONFIG_HOME="+t.TempDir(),
-		"BEADS_TEST_IGNORE_REPO_CONFIG=1",
-		"BEADS_DIR=",
-		"BEADS_DB=",
+		"ISSUEGRAPH_TEST_IGNORE_REPO_CONFIG=1",
+		"ISSUEGRAPH_DIR=",
+		"ISSUEGRAPH_DB=",
 		"LINEAR_API_KEY=",
 	)
 	var outBuf, errBuf bytes.Buffer
 	cmd.Stdout = &outBuf
 	cmd.Stderr = &errBuf
 	if err := cmd.Run(); err != nil {
-		t.Fatalf("bd prime --hook-json: %v\nstdout: %s\nstderr: %s", err, outBuf.String(), errBuf.String())
+		t.Fatalf("issuegraph prime --hook-json: %v\nstdout: %s\nstderr: %s", err, outBuf.String(), errBuf.String())
 	}
 
-	eventsData := filepath.Join(home, ".beads", "eventsData")
+	eventsData := filepath.Join(home, ".issuegraph", "eventsData")
 	if _, err := os.Stat(eventsData); !os.IsNotExist(err) {
 		entries, _ := os.ReadDir(eventsData)
 		names := make([]string, 0, len(entries))
 		for _, e := range entries {
 			names = append(names, e.Name())
 		}
-		t.Fatalf("telemetry queue %s exists after a suite-launched bd run (stat err: %v, entries: %v); "+
-			"metrics are enabled for this subprocess, so a detached `bd send-metrics` child is racing t.TempDir cleanup — "+
+		t.Fatalf("telemetry queue %s exists after a suite-launched issuegraph run (stat err: %v, entries: %v); "+
+			"metrics are enabled for this subprocess, so a detached `issuegraph send-metrics` child is racing t.TempDir cleanup — "+
 			"see the metrics opt-out in testMainInner (wy-12x1p)", eventsData, err, names)
 	}
 }

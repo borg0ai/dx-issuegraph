@@ -6,7 +6,7 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/steveyegge/beads/internal/storage"
+	"github.com/borg0ai/dx-issuegraph/internal/storage"
 )
 
 // configDirty reports whether the config table has uncommitted changes in the
@@ -36,7 +36,7 @@ func TestCommitBeforePullIncludesConfig(t *testing.T) {
 
 	db := store.db
 
-	// Simulate `bd remember`: a kv.memory.* row in the synced config table.
+	// Simulate `issuegraph remember`: a kv.memory.* row in the synced config table.
 	if _, err := db.ExecContext(ctx,
 		"INSERT INTO config (`key`, value) VALUES ('kv.memory.test-wedge', 'v1')"); err != nil {
 		t.Fatalf("insert config memory row: %v", err)
@@ -61,7 +61,7 @@ func TestCommitBeforePullIncludesConfig(t *testing.T) {
 	}
 }
 
-// TestFederationSyncCommitsConfigBeforeFetch is the `bd federation sync`
+// TestFederationSyncCommitsConfigBeforeFetch is the `issuegraph federation sync`
 // analogue of the pull config wedge: Sync auto-commits the working set before
 // its merge, and that pre-merge commit must include config. Plain Commit
 // (GH#2455) excludes config, so a dirty kv.memory.* row used to survive Sync's
@@ -81,14 +81,14 @@ func TestFederationSyncCommitsConfigBeforeFetch(t *testing.T) {
 	// auto-commit, then fails at fetch — far enough to prove config was staged.
 	peer := &storage.FederationPeer{
 		Name:        "peer-config-wedge",
-		RemoteURL:   "file:///tmp/beads-no-such-federation-peer",
+		RemoteURL:   "file:///tmp/issuegraph-no-such-federation-peer",
 		Sovereignty: "T2",
 	}
 	if err := store.AddFederationPeer(ctx, peer); err != nil {
 		t.Fatalf("add federation peer: %v", err)
 	}
 
-	// Simulate `bd remember`: a kv.memory.* row dirties the synced config table.
+	// Simulate `issuegraph remember`: a kv.memory.* row dirties the synced config table.
 	if _, err := db.ExecContext(ctx,
 		"INSERT INTO config (`key`, value) VALUES ('kv.memory.sync-wedge', 'v1')"); err != nil {
 		t.Fatalf("insert config memory row: %v", err)
@@ -101,7 +101,7 @@ func TestFederationSyncCommitsConfigBeforeFetch(t *testing.T) {
 		t.Fatal("expected sync to fail for nonexistent file remote")
 	}
 	if configDirty(t, ctx, db) {
-		t.Fatal("Sync left config dirty before merge; bd federation sync would wedge DOLT_MERGE (GH#2474)")
+		t.Fatal("Sync left config dirty before merge; issuegraph federation sync would wedge DOLT_MERGE (GH#2474)")
 	}
 }
 
@@ -326,7 +326,7 @@ func TestCommitBeforePullRefusesUnsafeConfig(t *testing.T) {
 	}
 }
 
-// TestCommitMergeResolutionIncludesConfig proves the bd federation sync
+// TestCommitMergeResolutionIncludesConfig proves the issuegraph federation sync
 // --strategy resolution commit includes config where plain Commit drops it.
 // A config-only resolution is routine now that kv.memory.* memories sync through
 // config; if it is not committed the merge stays unconcluded and re-wedges the
@@ -366,7 +366,7 @@ func TestCommitMergeResolutionIncludesConfig(t *testing.T) {
 }
 
 // TestStrategyResolutionCommitsConfigConflict drives an actual config merge
-// conflict through the resolution sequence bd federation sync --strategy runs —
+// conflict through the resolution sequence issuegraph federation sync --strategy runs —
 // ResolveConflicts(theirs) then the resolution commit — and asserts config is
 // committed. Before the fix the resolution committed through config-excluding
 // Commit (GH#2455), so a config-only resolution returned success without
@@ -479,12 +479,12 @@ func TestStrategyResolutionCommitsConfigConflict(t *testing.T) {
 }
 
 // TestCommitBeforePullCommitsGenericKV is the regression for the generic kv.*
-// pre-pull gap (PR #4412 review attempt 4): `bd kv set foo bar` writes a kv.foo
+// pre-pull gap (PR #4412 review attempt 4): `issuegraph kv set foo bar` writes a kv.foo
 // row into the synced config table without committing it (SetConfig does not
 // commit), and plain Commit excludes config (GH#2455), so the row sits dirty and
 // the next server-mode pull/sync would refuse to start. The pre-pull auto-commit
 // must include the whole user kv.* namespace — not just kv.memory.* memories — so
-// an ordinary `bd kv set` no longer wedges DOLT_MERGE. (The narrower auto-resolve
+// an ordinary `issuegraph kv set` no longer wedges DOLT_MERGE. (The narrower auto-resolve
 // policy stays kv.memory.*-only; see TestPullAutoResolveSkipsNonMemoryConfigConflicts.)
 func TestCommitBeforePullCommitsGenericKV(t *testing.T) {
 	store, cleanup := setupTestStore(t)
@@ -500,7 +500,7 @@ func TestCommitBeforePullCommitsGenericKV(t *testing.T) {
 		t.Fatalf("get HEAD before: %v", err)
 	}
 
-	// Simulate `bd kv set custom.setting v1`: a generic (non-memory) kv.* row.
+	// Simulate `issuegraph kv set custom.setting v1`: a generic (non-memory) kv.* row.
 	if _, err := db.ExecContext(ctx,
 		"INSERT INTO config (`key`, value) VALUES ('kv.custom.setting', 'v1')"); err != nil {
 		t.Fatalf("insert generic kv config row: %v", err)
@@ -512,7 +512,7 @@ func TestCommitBeforePullCommitsGenericKV(t *testing.T) {
 	// commitBeforePull must stage the kv.* row and leave config clean — the same
 	// un-wedge it already does for memories — instead of refusing it.
 	if err := store.commitBeforePull(ctx, "auto-commit before pull"); err != nil {
-		t.Fatalf("commitBeforePull refused a generic kv.* row; `bd kv set` still wedges pull/sync: %v", err)
+		t.Fatalf("commitBeforePull refused a generic kv.* row; `issuegraph kv set` still wedges pull/sync: %v", err)
 	}
 	if configDirty(t, ctx, db) {
 		t.Fatalf("commitBeforePull left a generic kv.* row dirty; DOLT_MERGE would still refuse to start")
@@ -527,7 +527,7 @@ func TestCommitBeforePullCommitsGenericKV(t *testing.T) {
 }
 
 // TestVCMergeStrategyCommitsConfigResolution is the server-mode regression for
-// the `bd vc merge --strategy` config-resolution gap (PR #4412 review attempt 4):
+// the `issuegraph vc merge --strategy` config-resolution gap (PR #4412 review attempt 4):
 // modules/cli/vc.go concluded the resolution with config-excluding Commit (GH#2455), so
 // a resolved INTERNAL config key — issue_prefix is the exact re-wedge the finding
 // names, since unlike a kv.memory.* key it does not self-heal on the next pull —
@@ -634,7 +634,7 @@ func TestVCMergeStrategyCommitsConfigResolution(t *testing.T) {
 	}
 
 	if configDirty(t, ctx, db) {
-		t.Fatalf("config left dirty after bd vc merge --strategy resolution of %q; the merge is unconcluded and re-wedges the next pull (GH#2474)", key)
+		t.Fatalf("config left dirty after issuegraph vc merge --strategy resolution of %q; the merge is unconcluded and re-wedges the next pull (GH#2474)", key)
 	}
 	var value string
 	if err := db.QueryRowContext(ctx, "SELECT value FROM config WHERE `key` = ?", key).Scan(&value); err != nil {

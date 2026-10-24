@@ -5,9 +5,9 @@ import (
 	"strings"
 	"testing"
 
+	"github.com/borg0ai/dx-issuegraph/internal/types"
+	"github.com/borg0ai/dx-issuegraph/internal/uimd"
 	"github.com/charmbracelet/x/ansi"
-	"github.com/steveyegge/beads/internal/types"
-	"github.com/steveyegge/beads/internal/uimd"
 )
 
 // closedWithReason builds a closed issue whose remaining metadata lines — the
@@ -42,7 +42,7 @@ func metadataLine(out, prefix string) string {
 func TestFormatIssueMetadata_CloseReason(t *testing.T) {
 	// Force non-agent mode so the width test is live and deterministic;
 	// in agent mode nothing wraps and WrapWidth reports 0.
-	t.Setenv("BD_AGENT_MODE", "0")
+	t.Setenv("ISSUEGRAPH_AGENT_MODE", "0")
 	t.Setenv("CLAUDE_CODE", "")
 
 	// Surrounding whitespace is not structure. --reason-file and heredoc
@@ -97,7 +97,7 @@ func TestFormatIssueMetadata_CloseReason(t *testing.T) {
 	// Agent mode emits body text verbatim, so promotion there is about
 	// getting the reason out of the metadata block, not about wrapping.
 	t.Run("agent mode", func(t *testing.T) {
-		t.Setenv("BD_AGENT_MODE", "1")
+		t.Setenv("ISSUEGRAPH_AGENT_MODE", "1")
 		reason := "Fixed the leak.\n\n- reverted the cache\n- added a regression test"
 
 		out := formatIssueMetadata(closedWithReason(reason))

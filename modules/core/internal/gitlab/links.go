@@ -7,8 +7,8 @@ import (
 	"strconv"
 	"strings"
 
-	"github.com/steveyegge/beads/internal/tracker"
-	"github.com/steveyegge/beads/internal/types"
+	"github.com/borg0ai/dx-issuegraph/internal/tracker"
+	"github.com/borg0ai/dx-issuegraph/internal/types"
 )
 
 const (
@@ -17,16 +17,16 @@ const (
 	gitLabLinkRelatesTo   = "relates_to"
 )
 
-// DependencyLink is a GitLab issue-link operation derived from a beads
+// DependencyLink is a GitLab issue-link operation derived from a issuegraph
 // dependency. SourceIID and TargetIID are GitLab project-scoped issue/work-item
 // IIDs in the direction expected by GitLab's issue-links API.
 type DependencyLink struct {
-	SourceIID      int
-	TargetIID      int
-	LinkType       string
-	FromBeadsID    string
-	ToBeadsID      string
-	DependencyType types.DependencyType
+	SourceIID        int
+	TargetIID        int
+	LinkType         string
+	FromIssueGraphID string
+	ToIssueGraphID   string
+	DependencyType   types.DependencyType
 }
 
 // PushLinkOptions configures dependency link push behavior.
@@ -81,10 +81,10 @@ func IssueIIDFromRef(ref string) (int, bool) {
 	return 0, false
 }
 
-// LinkFromBeadsDependency converts one local dependency record to the GitLab
-// issue-link direction. For a beads blocks edge A -> B, GitLab stores the
+// LinkFromIssueGraphDependency converts one local dependency record to the GitLab
+// issue-link direction. For a issuegraph blocks edge A -> B, GitLab stores the
 // inverse API relation: B --blocks--> A.
-func LinkFromBeadsDependency(issue *types.Issue, dep *types.IssueWithDependencyMetadata) (DependencyLink, bool) {
+func LinkFromIssueGraphDependency(issue *types.Issue, dep *types.IssueWithDependencyMetadata) (DependencyLink, bool) {
 	if issue == nil || dep == nil || issue.ExternalRef == nil || dep.ExternalRef == nil {
 		return DependencyLink{}, false
 	}
@@ -98,9 +98,9 @@ func LinkFromBeadsDependency(issue *types.Issue, dep *types.IssueWithDependencyM
 	}
 
 	link := DependencyLink{
-		FromBeadsID:    issue.ID,
-		ToBeadsID:      dep.ID,
-		DependencyType: dep.DependencyType,
+		FromIssueGraphID: issue.ID,
+		ToIssueGraphID:   dep.ID,
+		DependencyType:   dep.DependencyType,
 	}
 	switch dep.DependencyType {
 	case types.DepBlocks:
@@ -222,7 +222,7 @@ func isGitLabLicenseError(err error) bool {
 	return strings.Contains(msg, "status 403") && strings.Contains(msg, "license")
 }
 
-// PushEpicMilestones ensures non-epic GitLab issues under synced epic beads
+// PushEpicMilestones ensures non-epic GitLab issues under synced epic issuegraph
 // carry the epic's GitLab milestone. This runs during the dependency push pass
 // so milestone hierarchy stays correct even when issue content was unchanged
 // and the main push loop skipped the issue update.
@@ -281,7 +281,7 @@ func (t *Tracker) PushEpicMilestones(ctx context.Context, issues []*types.Issue,
 	return updated, errs
 }
 
-// issueLinksToDependencies converts GitLab issue links to normalized beads
+// issueLinksToDependencies converts GitLab issue links to normalized issuegraph
 // dependencies. Both "B blocks A" and "A is_blocked_by B" become A -> B blocks.
 func issueLinksToDependencies(sourceIID int, links []IssueLink, _ *MappingConfig) []DependencyInfo {
 	var deps []DependencyInfo

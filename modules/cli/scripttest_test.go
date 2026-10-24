@@ -22,26 +22,26 @@ func TestScripts(t *testing.T) {
 		t.Skip("scripttest uses Unix shell commands (sh -c), skipping on Windows")
 	}
 
-	// Locate or build the bd binary. Prebuilt fast path (scripts/test.sh and
-	// CI export BEADS_TEST_BD_BINARY, wy-4mtr0); the scripts invoke plain
-	// `bd` via `sh -c`, so the prebuilt is only usable when its basename is
+	// Locate or build the issuegraph binary. Prebuilt fast path (scripts/test.sh and
+	// CI export ISSUEGRAPH_TEST_ISSUEGRAPH_BINARY, wy-4mtr0); the scripts invoke plain
+	// `issuegraph` via `sh -c`, so the prebuilt is only usable when its basename is
 	// exactly the expected executable name.
-	exeName := "bd"
+	exeName := "issuegraph"
 	binDir := t.TempDir()
 	exe := filepath.Join(binDir, exeName)
-	if prebuilt, err := findPrebuiltBDBinary(); err == nil && prebuilt != "" && filepath.Base(prebuilt) == exeName {
+	if prebuilt, err := findPrebuiltIssueGraphBinary(); err == nil && prebuilt != "" && filepath.Base(prebuilt) == exeName {
 		exe = prebuilt
 		binDir = filepath.Dir(prebuilt)
 	} else if err := exec.Command("go", "build", "-tags", "gms_pure_go", "-o", exe, ".").Run(); err != nil {
 		t.Fatal(err)
 	}
 
-	// Create minimal engine with default commands plus bd
+	// Create minimal engine with default commands plus issuegraph
 	timeout := 2 * time.Second
 	engine := script.NewEngine()
-	engine.Cmds["bd"] = script.Program(exe, nil, timeout)
+	engine.Cmds["issuegraph"] = script.Program(exe, nil, timeout)
 
-	// Add binDir to PATH so 'sh -c bd ...' works in test scripts
+	// Add binDir to PATH so 'sh -c issuegraph ...' works in test scripts
 	currentPath := os.Getenv("PATH")
 	env := []string{"PATH=" + binDir + ":" + currentPath}
 

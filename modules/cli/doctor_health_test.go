@@ -13,7 +13,7 @@ func TestHintsDisabledDB_UsesQuotedConfigKey(t *testing.T) {
 	saveAndRestoreGlobals(t)
 
 	tmpDir := t.TempDir()
-	dbPath := filepath.Join(tmpDir, ".beads", "beads.db")
+	dbPath := filepath.Join(tmpDir, ".issuegraph", "issuegraph.db")
 	store := newTestStoreIsolatedDB(t, dbPath, "test")
 
 	ctx := context.Background()
@@ -30,12 +30,12 @@ func TestCheckVersionMismatchDB_UsesQuotedMetadataKey(t *testing.T) {
 	saveAndRestoreGlobals(t)
 
 	tmpDir := t.TempDir()
-	dbPath := filepath.Join(tmpDir, ".beads", "beads.db")
+	dbPath := filepath.Join(tmpDir, ".issuegraph", "issuegraph.db")
 	store := newTestStoreIsolatedDB(t, dbPath, "test")
 
 	ctx := context.Background()
-	if err := store.SetLocalMetadata(ctx, "bd_version", "0.0.0"); err != nil {
-		t.Fatalf("SetLocalMetadata(bd_version): %v", err)
+	if err := store.SetLocalMetadata(ctx, "issuegraph_version", "0.0.0"); err != nil {
+		t.Fatalf("SetLocalMetadata(issuegraph_version): %v", err)
 	}
 
 	issue := checkVersionMismatchDB(store.DB())

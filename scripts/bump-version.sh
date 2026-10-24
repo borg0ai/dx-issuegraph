@@ -3,12 +3,12 @@
 # DEPRECATED: Use the release molecule instead
 # =============================================================================
 #
-# This script has been replaced by the beads-release formula, which provides
+# This script has been replaced by the issuegraph-release formula, which provides
 # guided, step-by-step release workflows with proper handoffs and CI gates.
 #
 # To cut a release:
 #
-#   bd mol wisp beads-release --var version=X.Y.Z
+#   issuegraph mol wisp issuegraph-release --var version=X.Y.Z
 #
 # The molecule will guide you through:
 #   1. Preflight checks (clean git, up to date)
@@ -29,7 +29,7 @@ echo "This script is deprecated."
 echo ""
 echo "Use the release molecule instead:"
 echo ""
-echo "  bd mol wisp beads-release --var version=X.Y.Z"
+echo "  issuegraph mol wisp issuegraph-release --var version=X.Y.Z"
 echo ""
 echo "For quick local version bumps only:"
 echo ""

@@ -27,7 +27,7 @@ freshness source.
 | Doc | Freshness path |
 |---|---|
 | `CLI_REFERENCE.md` | Generated from `issuegraph help --all`. |
-| `plugins/beads/skills/beads/resources/CLI_REFERENCE.md` | Pointer-only doc: must link to live CLI help and canonical generated `docs/CLI_REFERENCE.md`; do not duplicate generated command tables. |
+| `plugins/issuegraph/skills/issuegraph/resources/CLI_REFERENCE.md` | Pointer-only doc: must link to live CLI help and canonical generated `docs/CLI_REFERENCE.md`; do not duplicate generated command tables. |
 | `reference/configuration.md` | `Last reviewed:` marker tied to `modules/cli/main.go`, `modules/cli/config.go`, and `internal/configfile/`. (Mintlify port: absorbed `CONFIG.md`.) |
 | `getting-started/ide-setup.md` | `Last reviewed:` marker tied to `modules/cli/setup*.go` and `internal/recipes/`. (Mintlify port: absorbed `SETUP.md`.) |
 | `integrations/azure-devops.md` | `Last reviewed:` marker tied to `modules/cli/ado*.go` and `internal/ado/`. (Mintlify port: was `ADO_CONFIG.md`.) |
@@ -63,12 +63,12 @@ Follow-up automation should replace marker-only checks with generated or
 | `CI_CLEANUP_PLAN.md` | Keep as maintainer context | Dated CI policy, measurements, and implementation roadmap; current commands live in workflows and the `Makefile`. |
 | `CI_REQUIRED_CHECK_TOPOLOGY.md` | Keep as maintainer context | Implemented workflow design record for aggregate-gate policy; branch-protection and ruleset adoption remain pending. Live job membership and display names come from `.github/workflows/*.yml` and their structural tests; copied wiring and rollout steps are historical snapshots. |
 | `CI_TEST_SURFACE_AUDIT.md` | Keep as historical snapshot | Dated test-surface inventory; current commands live in workflows and the `Makefile`. |
-| `plugins/beads/skills/beads/resources/CLI_REFERENCE.md` | Keep pointer | Plugin skill resource intentionally points at live CLI sources to avoid duplicate generated command snapshots. |
+| `plugins/issuegraph/skills/issuegraph/resources/CLI_REFERENCE.md` | Keep pointer | Plugin skill resource intentionally points at live CLI sources to avoid duplicate generated command snapshots. |
 | `CODEX_INTEGRATION.md` | Keep | User-facing Codex integration guide. |
 | `COLLISION_MATH.md` | Keep | Mathematical background; low product drift. |
 | `COMMUNITY_TOOLS.md` | Keep | Curated external tools list; external links need periodic review. |
 | `CONFIG.md` | Keep with freshness | Reference doc; reviewed against config and env-var code. |
-| `CONTRIBUTOR_NAMESPACE_ISOLATION.md` | Keep | Design/user guide for contributor routing and `BEADS_DIR` behaviour. |
+| `CONTRIBUTOR_NAMESPACE_ISOLATION.md` | Keep | Design/user guide for contributor routing and `ISSUEGRAPH_DIR` behaviour. |
 | `COPILOT_CLI_INTEGRATION.md` | Keep | Design doc for GitHub Copilot CLI integration; paired with `COPILOT_INTEGRATION.md` (VS Code + MCP). |
 | `COPILOT_INTEGRATION.md` | Keep | User-facing integration guide. |
 | `DEPENDENCIES.md` | Keep | Behaviour doc for graph semantics. |

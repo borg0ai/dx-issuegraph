@@ -1,15 +1,15 @@
 ---
-title: "bd ado"
-description: "Commands for syncing issues between beads and Azure DevOps."
+title: "issuegraph ado"
+description: "Commands for syncing issues between issuegraph and Azure DevOps."
 ---
 
 {/* AUTO-GENERATED: do not edit manually */}
 
-Generated from `bd help --doc ado`.
+Generated from `issuegraph help --doc ado`.
 
-Commands for syncing issues between beads and Azure DevOps.
+Commands for syncing issues between issuegraph and Azure DevOps.
 
-Configuration can be set via 'bd config' or environment variables:
+Configuration can be set via 'issuegraph config' or environment variables:
   ado.org / AZURE_DEVOPS_ORG              - Organization name
   ado.project / AZURE_DEVOPS_PROJECT      - Project name (single)
   ado.projects / AZURE_DEVOPS_PROJECTS    - Project names (comma-separated)
@@ -17,26 +17,26 @@ Configuration can be set via 'bd config' or environment variables:
   ado.url / AZURE_DEVOPS_URL              - Custom base URL (on-prem)
 
 ```
-bd ado [flags]
+issuegraph ado [flags]
 ```
 
-## bd ado projects
+## issuegraph ado projects
 
 List Azure DevOps projects that the configured token has access to.
 
 ```
-bd ado projects [flags]
+issuegraph ado projects [flags]
 ```
 
-## bd ado pull
+## issuegraph ado pull
 
 Pull one or more items from Azure DevOps.
 
-Accepts bead IDs or external references as positional arguments.
-Equivalent to: bd ado sync --pull-only --issues &lt;refs&gt;
+Accepts issue IDs or external references as positional arguments.
+Equivalent to: issuegraph ado sync --pull-only --issues &lt;refs&gt;
 
 ```
-bd ado pull [refs...] [flags]
+issuegraph ado pull [refs...] [flags]
 ```
 
 **Flags:**
@@ -45,15 +45,15 @@ bd ado pull [refs...] [flags]
       --dry-run   Preview pull without making changes
 ```
 
-## bd ado push
+## issuegraph ado push
 
-Push one or more beads issues to Azure DevOps.
+Push one or more issuegraph issues to Azure DevOps.
 
-Accepts bead IDs as positional arguments.
-Equivalent to: bd ado sync --push-only --issues &lt;ids&gt;
+Accepts issue IDs as positional arguments.
+Equivalent to: issuegraph ado sync --push-only --issues &lt;ids&gt;
 
 ```
-bd ado push [bead-ids...] [flags]
+issuegraph ado push [issue-ids...] [flags]
 ```
 
 **Flags:**
@@ -62,27 +62,27 @@ bd ado push [bead-ids...] [flags]
       --dry-run   Preview push without making changes
 ```
 
-## bd ado status
+## issuegraph ado status
 
 Display current Azure DevOps configuration and sync status.
 
 ```
-bd ado status [flags]
+issuegraph ado status [flags]
 ```
 
-## bd ado sync
+## issuegraph ado sync
 
-Synchronize issues between beads and Azure DevOps.
+Synchronize issues between issuegraph and Azure DevOps.
 
 By default, performs bidirectional sync:
-- Pulls new/updated work items from Azure DevOps to beads
-- Pushes local beads issues to Azure DevOps
+- Pulls new/updated work items from Azure DevOps to issuegraph
+- Pushes local issuegraph issues to Azure DevOps
 
 Use --pull-only or --push-only to limit direction.
 
 Filters (--area-path, --iteration-path, --types, --states) restrict
 which work items are synced. On pull, they limit the WIQL query. On push,
---types and --states filter local beads before pushing to ADO. Use
+--types and --states filter local issuegraph before pushing to ADO. Use
 --no-create with push to skip creating new ADO work items (only update
 existing linked items). Filters can also be persisted via config:
   ado.filter.area_path, ado.filter.iteration_path,
@@ -90,7 +90,7 @@ existing linked items). Filters can also be persisted via config:
 CLI flags override config values when both are set.
 
 ```
-bd ado sync [flags]
+issuegraph ado sync [flags]
 ```
 
 **Flags:**
@@ -99,12 +99,12 @@ bd ado sync [flags]
       --area-path string        Filter to ADO area path (e.g., "Project\Team")
       --bootstrap-match         Enable heuristic matching for first sync
       --dry-run                 Show what would be synced without making changes
-      --issues string           Comma-separated bead IDs to sync selectively (e.g., bd-abc,bd-def). Mutually exclusive with --parent.
+      --issues string           Comma-separated issue IDs to sync selectively (e.g., issuegraph-abc,issuegraph-def). Mutually exclusive with --parent.
       --iteration-path string   Filter to ADO iteration path (e.g., "Project\Sprint 1")
       --no-create               Never create new items in either direction (pull or push)
-      --parent string           Limit push to this bead and its descendants (push only). Mutually exclusive with --issues.
+      --parent string           Limit push to this issue and its descendants (push only). Mutually exclusive with --issues.
       --prefer-ado              On conflict, use Azure DevOps version
-      --prefer-local            On conflict, keep local beads version
+      --prefer-local            On conflict, keep local issuegraph version
       --prefer-newer            On conflict, use most recent version (default)
       --project strings         Project name(s) to sync (overrides configured project/projects)
       --pull-only               Only pull issues from Azure DevOps

@@ -7,8 +7,8 @@ import (
 	"testing"
 	"time"
 
-	"github.com/steveyegge/beads/internal/storage"
-	"github.com/steveyegge/beads/internal/types"
+	"github.com/borg0ai/dx-issuegraph/internal/storage"
+	"github.com/borg0ai/dx-issuegraph/internal/types"
 )
 
 // This file encodes strange/undertested dependency-and-readiness behaviors of the
@@ -385,14 +385,14 @@ func testAuditReadyTypeAndPinnedExclusions(t *testing.T, f Factory) {
 // Statuses, the legacy open/in_progress default when both are empty, and a
 // custom (non-built-in) status flowing through the same IN clause.
 //
-// THE OR-SET ARM IS REACHABLE FROM `bd list --status a,b --ready`.
+// THE OR-SET ARM IS REACHABLE FROM `issuegraph list --status a,b --ready`.
 // ReadyFilterFromIssueFilter copies IssueFilter.Statuses onto the ready-work
 // filter instead of dropping it, and BuildListFilter no longer always
 // resolves --ready to open: an explicit selector is the intersection
 // (GH#5832; issueops/reader_ready_scope.go states the honor path).
 // publicops.ReadyRequest still carries no status field of any kind, which
 // RunReadyCounterCountsOnlyTheOpenRowsItsListingLists says from the other
-// side, so `bd ready` — workapi.BuildReadyFilter and BuildReadyCountFilter —
+// side, so `issuegraph ready` — workapi.BuildReadyFilter and BuildReadyCountFilter —
 // still send the SINGULAR StatusOpen. The list --ready path is the in-tree
 // caller that sets Statuses. This file remains the storage-seam observer
 // for the OR-set arm against backend.DoltStorage, which publishes the field
@@ -404,7 +404,7 @@ func testAuditReadyTypeAndPinnedExclusions(t *testing.T, f Factory) {
 // issues where the classic stack projects the wisp plane onto a types.IssueFilter
 // instead. Its copy is deliberately unpinned rather than overlooked: that provider
 // is not a storage.DoltStorage, so no external caller reaches it. A status set on
-// ReadyRequest would additionally make `bd ready` vote on this case, and would
+// ReadyRequest would additionally make `issuegraph ready` vote on this case, and would
 // move it to reader_contract.go beside
 // RunReaderReadySetOwnsItsStatusPinnedAndTemplateDecisions, where the ready-role
 // wirings would vote on it.

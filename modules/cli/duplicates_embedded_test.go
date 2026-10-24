@@ -12,30 +12,30 @@ import (
 	"testing"
 )
 
-// bdDuplicates runs "bd duplicates" with the given args and returns raw stdout.
-func bdDuplicates(t *testing.T, bd, dir string, args ...string) string {
+// issuegraphDuplicates runs "issuegraph duplicates" with the given args and returns raw stdout.
+func issuegraphDuplicates(t *testing.T, issuegraph, dir string, args ...string) string {
 	t.Helper()
 	fullArgs := append([]string{"duplicates"}, args...)
-	cmd := exec.Command(bd, fullArgs...)
+	cmd := exec.Command(issuegraph, fullArgs...)
 	cmd.Dir = dir
-	cmd.Env = bdEnv(dir)
+	cmd.Env = issuegraphEnv(dir)
 	stdout, stderr, err := runCommandBuffers(t, cmd)
 	if err != nil {
-		t.Fatalf("bd duplicates %s failed: %v\nstdout:\n%s\nstderr:\n%s", strings.Join(args, " "), err, stdout.String(), stderr.String())
+		t.Fatalf("issuegraph duplicates %s failed: %v\nstdout:\n%s\nstderr:\n%s", strings.Join(args, " "), err, stdout.String(), stderr.String())
 	}
 	return stdout.String()
 }
 
-// bdDuplicatesJSON runs "bd duplicates --json" and parses the result.
-func bdDuplicatesJSON(t *testing.T, bd, dir string, args ...string) map[string]interface{} {
+// issuegraphDuplicatesJSON runs "issuegraph duplicates --json" and parses the result.
+func issuegraphDuplicatesJSON(t *testing.T, issuegraph, dir string, args ...string) map[string]interface{} {
 	t.Helper()
 	fullArgs := append([]string{"duplicates", "--json"}, args...)
-	cmd := exec.Command(bd, fullArgs...)
+	cmd := exec.Command(issuegraph, fullArgs...)
 	cmd.Dir = dir
-	cmd.Env = bdEnv(dir)
+	cmd.Env = issuegraphEnv(dir)
 	stdout, stderr, err := runCommandBuffers(t, cmd)
 	if err != nil {
-		t.Fatalf("bd duplicates --json %s failed: %v\nstdout:\n%s\nstderr:\n%s", strings.Join(args, " "), err, stdout.String(), stderr.String())
+		t.Fatalf("issuegraph duplicates --json %s failed: %v\nstdout:\n%s\nstderr:\n%s", strings.Join(args, " "), err, stdout.String(), stderr.String())
 	}
 	s := strings.TrimSpace(stdout.String())
 	start := strings.Index(s, "{")
@@ -50,26 +50,26 @@ func bdDuplicatesJSON(t *testing.T, bd, dir string, args ...string) map[string]i
 }
 
 func TestEmbeddedDuplicates(t *testing.T) {
-	if os.Getenv("BEADS_TEST_EMBEDDED_DOLT") != "1" {
-		t.Skip("set BEADS_TEST_EMBEDDED_DOLT=1 to run embedded dolt integration tests")
+	if os.Getenv("ISSUEGRAPH_TEST_EMBEDDED_DOLT") != "1" {
+		t.Skip("set ISSUEGRAPH_TEST_EMBEDDED_DOLT=1 to run embedded dolt integration tests")
 	}
 	t.Parallel()
 
-	bd := buildEmbeddedBD(t)
-	dir, _, _ := bdInit(t, bd, "--prefix", "ds")
+	issuegraph := buildEmbeddedBD(t)
+	dir, _, _ := issuegraphInit(t, issuegraph, "--prefix", "ds")
 
 	// Create exact duplicate pairs (same title+description).
-	bdCreate(t, bd, dir, "Exact dup issue", "--type", "task", "--description", "Same content here")
-	bdCreate(t, bd, dir, "Exact dup issue", "--type", "task", "--description", "Same content here")
+	issuegraphCreate(t, issuegraph, dir, "Exact dup issue", "--type", "task", "--description", "Same content here")
+	issuegraphCreate(t, issuegraph, dir, "Exact dup issue", "--type", "task", "--description", "Same content here")
 
 	// Create unique issues.
-	bdCreate(t, bd, dir, "Unique issue A", "--type", "task", "--description", "Completely different A")
-	bdCreate(t, bd, dir, "Unique issue B", "--type", "bug", "--description", "Completely different B")
+	issuegraphCreate(t, issuegraph, dir, "Unique issue A", "--type", "task", "--description", "Completely different A")
+	issuegraphCreate(t, issuegraph, dir, "Unique issue B", "--type", "bug", "--description", "Completely different B")
 
 	// ===== Find exact content duplicates =====
 
 	t.Run("find_exact_duplicates", func(t *testing.T) {
-		m := bdDuplicatesJSON(t, bd, dir)
+		m := issuegraphDuplicatesJSON(t, issuegraph, dir)
 		groups := int(m["duplicate_groups"].(float64))
 		if groups < 1 {
 			t.Errorf("expected at least 1 duplicate group, got %d", groups)
@@ -79,10 +79,10 @@ func TestEmbeddedDuplicates(t *testing.T) {
 	// ===== No duplicates when all unique =====
 
 	t.Run("no_duplicates", func(t *testing.T) {
-		dir2, _, _ := bdInit(t, bd, "--prefix", "ds2")
-		bdCreate(t, bd, dir2, "Unique 1", "--type", "task", "--description", "A")
-		bdCreate(t, bd, dir2, "Unique 2", "--type", "task", "--description", "B")
-		m := bdDuplicatesJSON(t, bd, dir2)
+		dir2, _, _ := issuegraphInit(t, issuegraph, "--prefix", "ds2")
+		issuegraphCreate(t, issuegraph, dir2, "Unique 1", "--type", "task", "--description", "A")
+		issuegraphCreate(t, issuegraph, dir2, "Unique 2", "--type", "task", "--description", "B")
+		m := issuegraphDuplicatesJSON(t, issuegraph, dir2)
 		groups := int(m["duplicate_groups"].(float64))
 		if groups != 0 {
 			t.Errorf("expected 0 duplicate groups, got %d", groups)
@@ -92,7 +92,7 @@ func TestEmbeddedDuplicates(t *testing.T) {
 	// ===== JSON output =====
 
 	t.Run("json_output_structure", func(t *testing.T) {
-		m := bdDuplicatesJSON(t, bd, dir)
+		m := issuegraphDuplicatesJSON(t, issuegraph, dir)
 		if _, ok := m["duplicate_groups"]; !ok {
 			t.Error("expected 'duplicate_groups' key")
 		}
@@ -104,38 +104,38 @@ func TestEmbeddedDuplicates(t *testing.T) {
 	// ===== Auto-merge =====
 
 	t.Run("auto_merge", func(t *testing.T) {
-		dir3, beadsDir3, _ := bdInit(t, bd, "--prefix", "ds3")
-		a := bdCreate(t, bd, dir3, "Merge dup A", "--type", "task", "--description", "Merge me")
-		b := bdCreate(t, bd, dir3, "Merge dup A", "--type", "task", "--description", "Merge me")
+		dir3, issuegraphDir3, _ := issuegraphInit(t, issuegraph, "--prefix", "ds3")
+		a := issuegraphCreate(t, issuegraph, dir3, "Merge dup A", "--type", "task", "--description", "Merge me")
+		b := issuegraphCreate(t, issuegraph, dir3, "Merge dup A", "--type", "task", "--description", "Merge me")
 		_ = b
 
-		m := bdDuplicatesJSON(t, bd, dir3, "--auto-merge")
+		m := issuegraphDuplicatesJSON(t, issuegraph, dir3, "--auto-merge")
 		if _, ok := m["merge_results"]; !ok {
 			t.Error("expected 'merge_results' key with --auto-merge")
 		}
 
 		// Verify one of them was closed
-		s := openStore(t, beadsDir3, "ds3")
+		s := openStore(t, issuegraphDir3, "ds3")
 		issueA, _ := s.GetIssue(t.Context(), a.ID)
 		if issueA != nil && issueA.Status == "closed" {
 			// A was the source that got closed — expected
 		}
-		_ = beadsDir3
+		_ = issuegraphDir3
 	})
 
 	// ===== Auto-merge re-parents children =====
 
 	t.Run("auto_merge_reparents", func(t *testing.T) {
-		dir4, _, _ := bdInit(t, bd, "--prefix", "ds4")
-		parent1 := bdCreate(t, bd, dir4, "Parent dup", "--type", "epic", "--description", "Same")
-		parent2 := bdCreate(t, bd, dir4, "Parent dup", "--type", "epic", "--description", "Same")
-		child := bdCreate(t, bd, dir4, "Child of dup", "--type", "task")
-		bdDep(t, bd, dir4, "add", child.ID, parent2.ID, "--type", "parent-child")
+		dir4, _, _ := issuegraphInit(t, issuegraph, "--prefix", "ds4")
+		parent1 := issuegraphCreate(t, issuegraph, dir4, "Parent dup", "--type", "epic", "--description", "Same")
+		parent2 := issuegraphCreate(t, issuegraph, dir4, "Parent dup", "--type", "epic", "--description", "Same")
+		child := issuegraphCreate(t, issuegraph, dir4, "Child of dup", "--type", "task")
+		issuegraphDep(t, issuegraph, dir4, "add", child.ID, parent2.ID, "--type", "parent-child")
 
-		bdDuplicates(t, bd, dir4, "--auto-merge")
+		issuegraphDuplicates(t, issuegraph, dir4, "--auto-merge")
 
 		// Verify child was reparented (dep list should show the merge target)
-		out := bdDep(t, bd, dir4, "list", child.ID)
+		out := issuegraphDep(t, issuegraph, dir4, "list", child.ID)
 		// Should contain either parent1 or parent2 (the target)
 		if !strings.Contains(out, parent1.ID) && !strings.Contains(out, parent2.ID) {
 			t.Logf("expected reparented dep in child's list: %s", out)
@@ -145,7 +145,7 @@ func TestEmbeddedDuplicates(t *testing.T) {
 	// ===== Dry run =====
 
 	t.Run("dry_run", func(t *testing.T) {
-		m := bdDuplicatesJSON(t, bd, dir, "--dry-run")
+		m := issuegraphDuplicatesJSON(t, issuegraph, dir, "--dry-run")
 		if _, ok := m["merge_commands"]; !ok {
 			t.Error("expected 'merge_commands' key with --dry-run")
 		}
@@ -158,12 +158,12 @@ func TestEmbeddedDuplicates(t *testing.T) {
 	// ===== Excludes closed issues =====
 
 	t.Run("excludes_closed", func(t *testing.T) {
-		dir5, _, _ := bdInit(t, bd, "--prefix", "ds5")
-		a := bdCreate(t, bd, dir5, "Closed dup", "--type", "task", "--description", "Same closed")
-		bdCreate(t, bd, dir5, "Closed dup", "--type", "task", "--description", "Same closed")
-		bdClose(t, bd, dir5, a.ID)
+		dir5, _, _ := issuegraphInit(t, issuegraph, "--prefix", "ds5")
+		a := issuegraphCreate(t, issuegraph, dir5, "Closed dup", "--type", "task", "--description", "Same closed")
+		issuegraphCreate(t, issuegraph, dir5, "Closed dup", "--type", "task", "--description", "Same closed")
+		issuegraphClose(t, issuegraph, dir5, a.ID)
 
-		m := bdDuplicatesJSON(t, bd, dir5)
+		m := issuegraphDuplicatesJSON(t, issuegraph, dir5)
 		// With one closed, they shouldn't match (different status groups)
 		groups := int(m["duplicate_groups"].(float64))
 		if groups > 0 {
@@ -174,7 +174,7 @@ func TestEmbeddedDuplicates(t *testing.T) {
 	// ===== Human-readable output =====
 
 	t.Run("human_readable", func(t *testing.T) {
-		out := bdDuplicates(t, bd, dir)
+		out := issuegraphDuplicates(t, issuegraph, dir)
 		if !strings.Contains(out, "duplicate") && !strings.Contains(out, "Duplicate") && !strings.Contains(out, "No duplicates") {
 			t.Errorf("expected duplicate info in output: %s", out)
 		}
@@ -183,16 +183,16 @@ func TestEmbeddedDuplicates(t *testing.T) {
 
 // TestEmbeddedDuplicatesConcurrent exercises duplicates operations concurrently.
 func TestEmbeddedDuplicatesConcurrent(t *testing.T) {
-	if os.Getenv("BEADS_TEST_EMBEDDED_DOLT") != "1" {
-		t.Skip("set BEADS_TEST_EMBEDDED_DOLT=1 to run embedded dolt integration tests")
+	if os.Getenv("ISSUEGRAPH_TEST_EMBEDDED_DOLT") != "1" {
+		t.Skip("set ISSUEGRAPH_TEST_EMBEDDED_DOLT=1 to run embedded dolt integration tests")
 	}
 	t.Parallel()
 
-	bd := buildEmbeddedBD(t)
-	dir, _, _ := bdInit(t, bd, "--prefix", "dsc")
+	issuegraph := buildEmbeddedBD(t)
+	dir, _, _ := issuegraphInit(t, issuegraph, "--prefix", "dsc")
 
 	for i := 0; i < 10; i++ {
-		bdCreate(t, bd, dir, fmt.Sprintf("concurrent-dups-%d", i), "--type", "task",
+		issuegraphCreate(t, issuegraph, dir, fmt.Sprintf("concurrent-dups-%d", i), "--type", "task",
 			"--description", fmt.Sprintf("Content %d", i%3))
 	}
 
@@ -211,9 +211,9 @@ func TestEmbeddedDuplicatesConcurrent(t *testing.T) {
 			r := workerResult{worker: worker}
 
 			args := []string{"duplicates", "--json"}
-			cmd := exec.Command(bd, args...)
+			cmd := exec.Command(issuegraph, args...)
 			cmd.Dir = dir
-			cmd.Env = bdEnv(dir)
+			cmd.Env = issuegraphEnv(dir)
 			out, err := cmd.CombinedOutput()
 			if err != nil {
 				r.err = fmt.Errorf("worker %d: %v\n%s", worker, err, out)

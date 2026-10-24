@@ -7,8 +7,8 @@ import (
 	"regexp"
 	"strings"
 
-	"github.com/steveyegge/beads/internal/git"
-	"github.com/steveyegge/beads/internal/ui"
+	"github.com/borg0ai/dx-issuegraph/internal/git"
+	"github.com/borg0ai/dx-issuegraph/internal/ui"
 )
 
 // preCommitFrameworkPattern matches pre-commit or prek framework hooks.
@@ -16,7 +16,7 @@ import (
 // Includes all detection patterns: pre-commit run, prek run/hook-impl, config file refs, and pre-commit env vars.
 var preCommitFrameworkPattern = regexp.MustCompile(`(?i)(pre-commit\s+run|prek\s+run|prek\s+hook-impl|\.pre-commit-config|INSTALL_PYTHON|PRE_COMMIT)`)
 
-// hooksInstalled checks if bd git hooks are installed
+// hooksInstalled checks if issuegraph git hooks are installed
 func hooksInstalled() bool {
 	hooksDir, err := git.GetGitHooksDir()
 	if err != nil {
@@ -33,14 +33,14 @@ func hooksInstalled() bool {
 		return false
 	}
 
-	// Verify they're bd hooks by checking for signature comment or section marker
+	// Verify they're issuegraph hooks by checking for signature comment or section marker
 	// #nosec G304 - controlled path from git directory
 	preCommitContent, err := os.ReadFile(preCommit)
 	if err != nil {
 		return false
 	}
 	preCommitStr := string(preCommitContent)
-	if !strings.Contains(preCommitStr, "bd (beads) pre-commit hook") &&
+	if !strings.Contains(preCommitStr, "issuegraph (issuegraph) pre-commit hook") &&
 		!strings.Contains(preCommitStr, hookSectionBeginPrefix) {
 		return false
 	}
@@ -51,7 +51,7 @@ func hooksInstalled() bool {
 		return false
 	}
 	postMergeStr := string(postMergeContent)
-	if !strings.Contains(postMergeStr, "bd (beads) post-merge hook") &&
+	if !strings.Contains(postMergeStr, "issuegraph (issuegraph) post-merge hook") &&
 		!strings.Contains(postMergeStr, hookSectionBeginPrefix) {
 		return false
 	}
@@ -76,7 +76,7 @@ func hooksInstalled() bool {
 	return true
 }
 
-// hooksNeedUpdate checks if installed bd hooks are outdated and need updating.
+// hooksNeedUpdate checks if installed issuegraph hooks are outdated and need updating.
 // Delegates to CheckGitHooks() which handles version comparison, shim detection,
 // and inline hook detection consistently.
 func hooksNeedUpdate() bool {
@@ -115,9 +115,9 @@ func detectExistingHooks() []hookInfo {
 		if err == nil {
 			hooks[i].exists = true
 			hooks[i].content = string(content)
-			hooks[i].isBdHook = strings.Contains(hooks[i].content, "bd (beads)") ||
+			hooks[i].isBdHook = strings.Contains(hooks[i].content, "issuegraph (issuegraph)") ||
 				strings.Contains(hooks[i].content, hookSectionBeginPrefix)
-			// Only detect pre-commit/prek framework if not a bd hook
+			// Only detect pre-commit/prek framework if not a issuegraph hook
 			// Use regex for consistency with DetectActiveHookManager patterns
 			if !hooks[i].isBdHook {
 				hooks[i].isPreCommitFramework = preCommitFrameworkPattern.MatchString(hooks[i].content)
@@ -143,7 +143,7 @@ func installGitHooks() error {
 	// Detect existing hooks
 	existingHooks := detectExistingHooks()
 
-	// Check if any non-bd hooks exist
+	// Check if any non-issuegraph hooks exist
 	hasExistingHooks := false
 	for _, hook := range existingHooks {
 		if hook.exists && !hook.isBdHook {
@@ -162,7 +162,7 @@ func installGitHooks() error {
 				if err := os.Rename(hook.path, oldPath); err != nil {
 					fmt.Fprintf(os.Stderr, "%s Failed to chain with existing %s hook: %v\n", ui.RenderWarn("⚠"), hook.name, err)
 					if usesSQLServer() {
-						fmt.Fprintf(os.Stderr, "You can resolve this with: %s\n", ui.RenderAccent("bd doctor --fix"))
+						fmt.Fprintf(os.Stderr, "You can resolve this with: %s\n", ui.RenderAccent("issuegraph doctor --fix"))
 					}
 					continue
 				}
@@ -198,14 +198,14 @@ func installGitHooks() error {
 	}
 
 	if chainHooks {
-		fmt.Printf("%s Chained bd hooks with existing hooks\n", ui.RenderPass("✓"))
+		fmt.Printf("%s Chained issuegraph hooks with existing hooks\n", ui.RenderPass("✓"))
 	}
 
 	return nil
 }
 
 // buildPreCommitHook generates the pre-commit hook content using section markers (GH#1380).
-// If chainHooks is true, chained hooks (.old) are called before the beads section.
+// If chainHooks is true, chained hooks (.old) are called before the issuegraph section.
 func buildPreCommitHook(chainHooks bool, existingHooks []hookInfo) string {
 	section := generateHookSection("pre-commit")
 
@@ -272,7 +272,7 @@ func installJJHooks() error {
 
 // buildJJPreCommitHook generates the pre-commit hook for jujutsu repos using section markers (GH#1380).
 func buildJJPreCommitHook(chainHooks bool, existingHooks []hookInfo) string {
-	// jj uses the same shim as git — bd hooks run handles the differences internally
+	// jj uses the same shim as git — issuegraph hooks run handles the differences internally
 	section := generateHookSection("pre-commit")
 
 	if chainHooks {
@@ -303,10 +303,10 @@ func buildJJPreCommitHook(chainHooks bool, existingHooks []hookInfo) string {
 // Since jj doesn't have native hooks yet, users need to set up aliases.
 func printJJAliasInstructions() {
 	fmt.Printf("\n%s Jujutsu repository detected (not colocated with git)\n\n", ui.RenderWarn("⚠"))
-	fmt.Printf("Jujutsu doesn't support hooks yet. To auto-export beads on push,\n")
+	fmt.Printf("Jujutsu doesn't support hooks yet. To auto-export issuegraph on push,\n")
 	fmt.Printf("add this alias to your jj config (~/.config/jj/config.toml):\n\n")
 	fmt.Printf("  %s\n", ui.RenderAccent("[aliases]"))
-	fmt.Printf("  %s\n", ui.RenderAccent(`push = ["util", "exec", "--", "sh", "-c", "bd dolt commit && bd dolt push && jj git push \"$@\"", ""]`))
+	fmt.Printf("  %s\n", ui.RenderAccent(`push = ["util", "exec", "--", "sh", "-c", "issuegraph dolt commit && issuegraph dolt push && jj git push \"$@\"", ""]`))
 	fmt.Printf("\nThen use %s instead of %s\n\n", ui.RenderAccent("jj push"), ui.RenderAccent("jj git push"))
-	fmt.Printf("For more details, see: https://github.com/gastownhall/beads/blob/main/docs/reference/git-integration.md#branchless-workflows-jujutsu--jj\n\n")
+	fmt.Printf("For more details, see: https://github.com/borg0ai/dx-issuegraph/blob/main/docs/reference/git-integration.md#branchless-workflows-jujutsu--jj\n\n")
 }

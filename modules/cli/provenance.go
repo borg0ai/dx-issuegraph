@@ -1,15 +1,15 @@
-// Package main implements the bd CLI provenance event-log commands.
+// Package main implements the issuegraph CLI provenance event-log commands.
 package main
 
 import (
 	"fmt"
 	"time"
 
+	"github.com/borg0ai/dx-issuegraph/internal/storage/issueops"
+	"github.com/borg0ai/dx-issuegraph/internal/types"
+	"github.com/borg0ai/dx-issuegraph/internal/ui"
+	"github.com/borg0ai/dx-issuegraph/internal/utils"
 	"github.com/spf13/cobra"
-	"github.com/steveyegge/beads/internal/storage/issueops"
-	"github.com/steveyegge/beads/internal/types"
-	"github.com/steveyegge/beads/internal/ui"
-	"github.com/steveyegge/beads/internal/utils"
 )
 
 var provenanceCmd = &cobra.Command{
@@ -21,7 +21,7 @@ var provenanceCmd = &cobra.Command{
 	Long: `Record and read provenance events: typed bindings from an issue to an
 opaque external artifact (a git SHA, PR, work-id, transcript, or branch).
 
-The log is append-only — there is no update or delete. bd never interprets the
+The log is append-only — there is no update or delete. issuegraph never interprets the
 actor or ref; only kind and ref-kind are structurally validated. Recording is
 idempotent on a deterministic id, so a producer firing twice is harmless.`,
 }

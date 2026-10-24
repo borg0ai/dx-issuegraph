@@ -39,7 +39,7 @@ func ResolveForWrite(path string) (string, error) {
 // - If absolute path conversion fails, returns original path
 //
 // This function is used to ensure consistent path handling across the codebase,
-// particularly for BEADS_DIR environment variable processing and git worktree
+// particularly for ISSUEGRAPH_DIR environment variable processing and git worktree
 // paths which require exact case matching.
 func CanonicalizePath(path string) string {
 	// Try to get absolute path
@@ -82,7 +82,7 @@ func resolveCanonicalCase(path string) string {
 	// size of the ancestor directories; the component walk below is O(entries)
 	// in EVERY ancestor, which collapses on a machine whose $TMPDIR holds tens
 	// of thousands of leftover test directories — CanonicalizePath is called
-	// once per FindBeadsDir, i.e. on the hot path of every audit Append and
+	// once per FindIssueGraphDir, i.e. on the hot path of every audit Append and
 	// every store open, so the walk turned whole test packages into apparent
 	// hangs (wy-9ai3u: 640ms/call at 97k $TMPDIR entries, 8000 calls).
 	switch resolved, err := canonicalCaseFast(path); {

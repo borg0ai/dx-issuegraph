@@ -9,10 +9,10 @@ import (
 	"fmt"
 	"strings"
 
-	"github.com/steveyegge/beads/internal/types"
+	"github.com/borg0ai/dx-issuegraph/internal/types"
 )
 
-// mergeSlotLabel is the label attached to every merge slot bead so that
+// mergeSlotLabel is the label attached to every merge slot issue so that
 // tooling can find it without knowing the exact ID.
 const mergeSlotLabel = "gt:slot"
 
@@ -22,11 +22,11 @@ type slotMeta struct {
 	Waiters []string `json:"waiters,omitempty"`
 }
 
-// MergeSlotID returns the canonical merge slot bead ID for the store,
+// MergeSlotID returns the canonical merge slot issue ID for the store,
 // derived from the issue_prefix config key (e.g. "gt" → "gt-merge-slot").
 // Falls back to "bd-merge-slot" when the prefix is not configured.
 func MergeSlotID(ctx context.Context, s Storage) string {
-	prefix := "bd"
+	prefix := "issuegraph"
 	if p, err := s.GetConfig(ctx, "issue_prefix"); err == nil && p != "" {
 		prefix = strings.TrimSuffix(p, "-")
 	}
@@ -65,7 +65,7 @@ func MergeSlotCheckImpl(ctx context.Context, s Storage) (*MergeSlotStatus, error
 	slotID := MergeSlotID(ctx, s)
 	slot, err := s.GetIssue(ctx, slotID)
 	if err != nil || slot == nil {
-		return nil, fmt.Errorf("merge slot not found: %s (run 'bd merge-slot create' first): %w",
+		return nil, fmt.Errorf("merge slot not found: %s (run 'issuegraph merge-slot create' first): %w",
 			slotID, ErrNotFound)
 	}
 	meta := parseSlotMeta(slot)
@@ -90,11 +90,11 @@ func MergeSlotAcquireImpl(ctx context.Context, s Storage, holder, actor string, 
 	result.SlotID = slotID
 
 	err := s.RunInTransaction(ctx,
-		fmt.Sprintf("bd: acquire merge slot %s for %s", slotID, holder),
+		fmt.Sprintf("issuegraph: acquire merge slot %s for %s", slotID, holder),
 		func(tx Transaction) error {
 			slot, err := tx.GetIssue(ctx, slotID)
 			if err != nil || slot == nil {
-				return fmt.Errorf("merge slot not found: %s (run 'bd merge-slot create' first)", slotID)
+				return fmt.Errorf("merge slot not found: %s (run 'issuegraph merge-slot create' first)", slotID)
 			}
 
 			meta := parseSlotMeta(slot)
@@ -154,7 +154,7 @@ func MergeSlotReleaseImpl(ctx context.Context, s Storage, holder, actor string) 
 	slotID := MergeSlotID(ctx, s)
 
 	return s.RunInTransaction(ctx,
-		fmt.Sprintf("bd: release merge slot %s", slotID),
+		fmt.Sprintf("issuegraph: release merge slot %s", slotID),
 		func(tx Transaction) error {
 			slot, err := tx.GetIssue(ctx, slotID)
 			if err != nil || slot == nil {

@@ -9,11 +9,11 @@ import (
 
 	"github.com/spf13/cobra"
 
-	"github.com/steveyegge/beads/internal/memoryapi"
-	"github.com/steveyegge/beads/internal/metrics"
-	"github.com/steveyegge/beads/internal/storage/kvkeys"
-	"github.com/steveyegge/beads/internal/storage/uow"
-	"github.com/steveyegge/beads/memoryops"
+	"github.com/borg0ai/dx-issuegraph/internal/memoryapi"
+	"github.com/borg0ai/dx-issuegraph/internal/metrics"
+	"github.com/borg0ai/dx-issuegraph/internal/storage/kvkeys"
+	"github.com/borg0ai/dx-issuegraph/internal/storage/uow"
+	"github.com/borg0ai/dx-issuegraph/memoryops"
 )
 
 // openMemories hands back the persistent-memory role for whichever route this
@@ -45,7 +45,7 @@ func proxiedMemories() (memoryops.Memories, error) {
 
 // memoriesFromProvider is that accessor step for a provider the caller names.
 //
-// It takes the provider rather than reading the global one because `bd prime`
+// It takes the provider rather than reading the global one because `issuegraph prime`
 // opens a provider SCOPED to its read — prime is in noDbCommands, so the root
 // pre-run opens nothing — and one spelling of "ask this provider for the memory
 // surface" is the whole point of having an accessor at all.
@@ -80,12 +80,12 @@ func noteDirectMemoryWrite() {
 // memoryPrefix is prepended (after kvPrefix) to all memory keys.
 const memoryPrefix = kvkeys.MemoryPrefix
 
-// memoryKeyFlag allows explicit key override for bd remember.
+// memoryKeyFlag allows explicit key override for issuegraph remember.
 var memoryKeyFlag string
 
 // matchesKnownCommand reports whether insight is a single bare word that
-// matches the name or an alias of a top-level bd command. It is used to catch
-// `bd remember <subcommand>` mistakes before they become accidental memories.
+// matches the name or an alias of a top-level issuegraph command. It is used to catch
+// `issuegraph remember <subcommand>` mistakes before they become accidental memories.
 // Multi-word insights (the normal case) always pass, since they contain
 // whitespace and so cannot be a single command token.
 func matchesKnownCommand(cmd *cobra.Command, insight string) (string, bool) {
@@ -107,7 +107,7 @@ func matchesKnownCommand(cmd *cobra.Command, insight string) (string, bool) {
 }
 
 // rememberBareKeyPath implements the desire-path / footgun guard for
-// `bd remember <bare-slug>` (no --key): a bare slug naming an EXISTING memory
+// `issuegraph remember <bare-slug>` (no --key): a bare slug naming an EXISTING memory
 // is recalled instead of stored; a bare slug naming nothing is refused. The
 // caller only invokes it when memoryKeyFlag == "" and the insight round-trips
 // through memoryapi.DeriveKey unchanged, having already read the key.
@@ -122,19 +122,19 @@ func rememberBareKeyPath(key, insight, existing string) error {
 			})
 		}
 		fmt.Fprintf(os.Stderr,
-			"(recalled %q -- a bare existing key READS. To overwrite: `bd remember \"<new content>\" --key %s`)\n",
+			"(recalled %q -- a bare existing key READS. To overwrite: `issuegraph remember \"<new content>\" --key %s`)\n",
 			key, key)
 		fmt.Printf("%s\n", existing)
 		return nil
 	}
 	return HandleErrorRespectJSON(
 		"no memory named %q to recall -- and refusing to store a bare key-like token as its own content. "+
-			"`bd remember` WRITES (its positional arg is CONTENT, not a key). "+
-			"To store it anyway: `bd remember %q --key %s`. To browse keys: `bd memories`",
+			"`issuegraph remember` WRITES (its positional arg is CONTENT, not a key). "+
+			"To store it anyway: `issuegraph remember %q --key %s`. To browse keys: `issuegraph memories`",
 		key, insight, key)
 }
 
-// printRememberResult renders the `bd remember` success output.
+// printRememberResult renders the `issuegraph remember` success output.
 func printRememberResult(verb, key, insight string) error {
 	if jsonOutput {
 		return outputJSON(map[string]string{
@@ -147,7 +147,7 @@ func printRememberResult(verb, key, insight string) error {
 	return nil
 }
 
-// printMemoriesResult renders the `bd memories` output.
+// printMemoriesResult renders the `issuegraph memories` output.
 func printMemoriesResult(memories map[string]string, search string) error {
 	if jsonOutput {
 		return outputJSON(memories)
@@ -157,7 +157,7 @@ func printMemoriesResult(memories map[string]string, search string) error {
 		if search != "" {
 			fmt.Printf("No memories matching %q\n", search)
 		} else {
-			fmt.Println("No memories stored. Use 'bd remember \"insight\"' to add one.")
+			fmt.Println("No memories stored. Use 'issuegraph remember \"insight\"' to add one.")
 		}
 		return nil
 	}
@@ -181,7 +181,7 @@ func printMemoriesResult(memories map[string]string, search string) error {
 	return nil
 }
 
-// printForgetNotFound renders the `bd forget` missing-key output (including
+// printForgetNotFound renders the `issuegraph forget` missing-key output (including
 // the SilentExit contract).
 func printForgetNotFound(key string) error {
 	if jsonOutput {
@@ -197,7 +197,7 @@ func printForgetNotFound(key string) error {
 	return SilentExit()
 }
 
-// printForgetResult renders the `bd forget` success output.
+// printForgetResult renders the `issuegraph forget` success output.
 func printForgetResult(key, existing string) error {
 	if jsonOutput {
 		return outputJSON(map[string]string{
@@ -209,7 +209,7 @@ func printForgetResult(key, existing string) error {
 	return nil
 }
 
-// printRecallResult renders the `bd recall` output (including the not-found
+// printRecallResult renders the `issuegraph recall` output (including the not-found
 // SilentExit contract).
 func printRecallResult(key, value string) error {
 	if jsonOutput {
@@ -239,19 +239,19 @@ var rememberCmd = &cobra.Command{
 	Short: "Store a persistent memory",
 	Long: `Store a memory that persists across sessions and account rotations.
 
-Memories are injected at prime time (bd prime) so you have them
+Memories are injected at prime time (issuegraph prime) so you have them
 in every session without manual loading.
 
 The positional arg is the memory CONTENT (the key is auto-generated from it
 unless --key is given). As a convenience, if the arg is a bare key naming an
-existing memory, it is RECALLED instead of stored (same as 'bd recall');
+existing memory, it is RECALLED instead of stored (same as 'issuegraph recall');
 a bare key naming nothing is refused. Use --key to store slug-like content.
 
 Examples:
-  bd remember "always run tests with -race flag"
-  bd remember "Dolt phantom DBs hide in three places" --key dolt-phantoms
-  bd remember "auth module uses JWT not sessions" --key auth-jwt
-  bd remember dolt-phantoms        # bare existing key: reads it (= bd recall)`,
+  issuegraph remember "always run tests with -race flag"
+  issuegraph remember "Dolt phantom DBs hide in three places" --key dolt-phantoms
+  issuegraph remember "auth module uses JWT not sessions" --key auth-jwt
+  issuegraph remember dolt-phantoms        # bare existing key: reads it (= issuegraph recall)`,
 	GroupID:       "setup",
 	Args:          cobra.ExactArgs(1),
 	SilenceUsage:  true,
@@ -269,8 +269,8 @@ Examples:
 		insight := args[0]
 
 		// Guard against a subcommand-like first argument being silently stored
-		// as memory content. `bd remember` is a leaf command, so a mistaken
-		// `bd remember recall` (or any bare bd command name) would otherwise
+		// as memory content. `issuegraph remember` is a leaf command, so a mistaken
+		// `issuegraph remember recall` (or any bare issuegraph command name) would otherwise
 		// store the word "recall" as a memory instead of doing what the user
 		// intended (GH#4401). A genuine insight is a phrase, so only a single
 		// bare word that matches a known command is treated as suspect, and an
@@ -278,13 +278,13 @@ Examples:
 		//
 		// It stays at the FRONT DOOR and stays FIRST: it reads the cobra command
 		// tree, which no role can see, and it must answer before any storage is
-		// opened so that `bd remember list` in a directory with no workspace
+		// opened so that `issuegraph remember list` in a directory with no workspace
 		// still says "looks like a command".
 		if memoryKeyFlag == "" {
 			if name, ok := matchesKnownCommand(cmd, insight); ok {
 				return HandleErrorWithHintRespectJSON(
 					fmt.Sprintf("%q looks like a command, not something to remember", insight),
-					fmt.Sprintf("Did you mean 'bd %s'? To store %q as a memory anyway, give it an explicit key: bd remember %q --key <key>", name, insight, insight),
+					fmt.Sprintf("Did you mean 'issuegraph %s'? To store %q as a memory anyway, give it an explicit key: issuegraph remember %q --key <key>", name, insight, insight),
 				)
 			}
 		}
@@ -294,9 +294,9 @@ Examples:
 			return HandleError("%v", err)
 		}
 
-		// Desire path + footgun guard: `bd remember <x>` is a WRITE whose positional arg is
+		// Desire path + footgun guard: `issuegraph remember <x>` is a WRITE whose positional arg is
 		// the CONTENT, not a key -- but "remember X" reads as a getter in English, so agents
-		// routinely type `bd remember some-key` meaning "do you remember X?". The tell-tale of
+		// routinely type `issuegraph remember some-key` meaning "do you remember X?". The tell-tale of
 		// a mistyped read is content that round-trips through the key derivation unchanged (a
 		// bare slug); real prose insights never do. When that happens and no explicit --key was
 		// given:
@@ -356,9 +356,9 @@ var memoriesCmd = &cobra.Command{
 	Long: `List all memories, or search by keyword.
 
 Examples:
-  bd memories              # list all memories
-  bd memories dolt         # search for memories about dolt
-  bd memories "race flag"  # search for a phrase`,
+  issuegraph memories              # list all memories
+  issuegraph memories dolt         # search for memories about dolt
+  issuegraph memories "race flag"  # search for a phrase`,
 	GroupID:       "setup",
 	Args:          cobra.MaximumNArgs(1),
 	SilenceUsage:  true,
@@ -388,7 +388,7 @@ Examples:
 			return HandleErrorRespectJSON("listing memories: %v", err)
 		}
 
-		// The ECHO, on the other hand, has always been lowercased: `bd memories
+		// The ECHO, on the other hand, has always been lowercased: `issuegraph memories
 		// FOO` prints `No memories matching "foo"`. It is a wart — a front door
 		// should say back what the user typed — but it is shipped output, and
 		// this commit is a convergence, not a change. Fixing it is a one-liner
@@ -403,11 +403,11 @@ var forgetCmd = &cobra.Command{
 	Short: "Remove a persistent memory",
 	Long: `Remove a memory by its key.
 
-Use 'bd memories' to see available keys.
+Use 'issuegraph memories' to see available keys.
 
 Examples:
-  bd forget dolt-phantoms
-  bd forget auth-jwt`,
+  issuegraph forget dolt-phantoms
+  issuegraph forget auth-jwt`,
 	GroupID:       "setup",
 	Args:          cobra.ExactArgs(1),
 	SilenceUsage:  true,
@@ -449,8 +449,8 @@ var recallCmd = &cobra.Command{
 	Long: `Retrieve the full content of a memory by its key.
 
 Examples:
-  bd recall dolt-phantoms
-  bd recall auth-jwt`,
+  issuegraph recall dolt-phantoms
+  issuegraph recall auth-jwt`,
 	GroupID:       "setup",
 	Args:          cobra.ExactArgs(1),
 	SilenceUsage:  true,

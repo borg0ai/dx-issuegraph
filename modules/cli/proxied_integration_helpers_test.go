@@ -20,42 +20,42 @@ import (
 
 	_ "github.com/go-sql-driver/mysql"
 
-	"github.com/steveyegge/beads/internal/storage/dbproxy/pidfile"
-	"github.com/steveyegge/beads/internal/storage/dbproxy/proxy"
-	"github.com/steveyegge/beads/internal/testutil"
-	"github.com/steveyegge/beads/internal/types"
+	"github.com/borg0ai/dx-issuegraph/internal/storage/dbproxy/pidfile"
+	"github.com/borg0ai/dx-issuegraph/internal/storage/dbproxy/proxy"
+	"github.com/borg0ai/dx-issuegraph/internal/testutil"
+	"github.com/borg0ai/dx-issuegraph/internal/types"
 )
 
 func requireProxiedServerEnv(t *testing.T) {
 	t.Helper()
-	if os.Getenv("BEADS_TEST_PROXIED_SERVER") != "1" {
-		t.Skip("set BEADS_TEST_PROXIED_SERVER=1 to run proxied-server integration tests")
+	if os.Getenv("ISSUEGRAPH_TEST_PROXIED_SERVER") != "1" {
+		t.Skip("set ISSUEGRAPH_TEST_PROXIED_SERVER=1 to run proxied-server integration tests")
 	}
 	testutil.RequireDoltBinary(t)
 }
 
-func bdProxiedEnv(dir string) []string {
+func issuegraphProxiedEnv(dir string) []string {
 	var env []string
 	for _, e := range os.Environ() {
-		if strings.HasPrefix(e, "BEADS_") {
+		if strings.HasPrefix(e, "ISSUEGRAPH_") {
 			continue
 		}
 		env = append(env, e)
 	}
 	return append(env,
 		"HOME="+dir,
-		"BEADS_DOLT_PROXIED_SERVER=1",
-		"BEADS_NO_DAEMON=1",
-		"BD_DISABLE_METRICS=1",
-		"BD_DISABLE_EVENT_FLUSH=1",
+		"ISSUEGRAPH_DOLT_PROXIED_SERVER=1",
+		"ISSUEGRAPH_NO_DAEMON=1",
+		"ISSUEGRAPH_DISABLE_METRICS=1",
+		"ISSUEGRAPH_DISABLE_EVENT_FLUSH=1",
 	)
 }
 
-func bdProxiedRun(t *testing.T, bd, dir string, args ...string) ([]byte, error) {
+func issuegraphProxiedRun(t *testing.T, issuegraph, dir string, args ...string) ([]byte, error) {
 	t.Helper()
-	cmd := exec.Command(bd, args...)
+	cmd := exec.Command(issuegraph, args...)
 	cmd.Dir = dir
-	cmd.Env = bdProxiedEnv(dir)
+	cmd.Env = issuegraphProxiedEnv(dir)
 	stdout, stderr, err := runCommandBuffers(t, cmd)
 	if err != nil {
 		return append(stdout.Bytes(), stderr.Bytes()...), err
@@ -63,48 +63,48 @@ func bdProxiedRun(t *testing.T, bd, dir string, args ...string) ([]byte, error) 
 	return stdout.Bytes(), nil
 }
 
-func bdProxiedCreate(t *testing.T, bd, dir string, args ...string) *types.Issue {
+func issuegraphProxiedCreate(t *testing.T, issuegraph, dir string, args ...string) *types.Issue {
 	t.Helper()
 	fullArgs := append([]string{"create", "--json"}, args...)
-	out, err := bdProxiedRun(t, bd, dir, fullArgs...)
+	out, err := issuegraphProxiedRun(t, issuegraph, dir, fullArgs...)
 	if err != nil {
-		t.Fatalf("bd create %s failed: %v\n%s", strings.Join(args, " "), err, out)
+		t.Fatalf("issuegraph create %s failed: %v\n%s", strings.Join(args, " "), err, out)
 	}
 	return parseIssueJSON(t, out)
 }
 
-func bdProxiedCreateSilent(t *testing.T, bd, dir string, args ...string) string {
+func issuegraphProxiedCreateSilent(t *testing.T, issuegraph, dir string, args ...string) string {
 	t.Helper()
 	fullArgs := append([]string{"create", "--silent"}, args...)
-	out, err := bdProxiedRun(t, bd, dir, fullArgs...)
+	out, err := issuegraphProxiedRun(t, issuegraph, dir, fullArgs...)
 	if err != nil {
-		t.Fatalf("bd create --silent %s failed: %v\n%s", strings.Join(args, " "), err, out)
+		t.Fatalf("issuegraph create --silent %s failed: %v\n%s", strings.Join(args, " "), err, out)
 	}
 	return strings.TrimSpace(string(out))
 }
 
-func bdProxiedCreateFail(t *testing.T, bd, dir string, args ...string) string {
+func issuegraphProxiedCreateFail(t *testing.T, issuegraph, dir string, args ...string) string {
 	t.Helper()
 	fullArgs := append([]string{"create"}, args...)
-	out, err := bdProxiedRun(t, bd, dir, fullArgs...)
+	out, err := issuegraphProxiedRun(t, issuegraph, dir, fullArgs...)
 	if err == nil {
-		t.Fatalf("bd create %s should have failed; got:\n%s", strings.Join(args, " "), out)
+		t.Fatalf("issuegraph create %s should have failed; got:\n%s", strings.Join(args, " "), out)
 	}
 	return string(out)
 }
 
-func bdProxiedList(t *testing.T, bd string, p proxiedProject, args ...string) string {
+func issuegraphProxiedList(t *testing.T, issuegraph string, p proxiedProject, args ...string) string {
 	t.Helper()
-	stdout, _ := bdProxiedListCapture(t, bd, p, args...)
+	stdout, _ := issuegraphProxiedListCapture(t, issuegraph, p, args...)
 	return stdout
 }
 
-func bdProxiedListJSON(t *testing.T, bd string, p proxiedProject, args ...string) []*types.IssueWithCounts {
+func issuegraphProxiedListJSON(t *testing.T, issuegraph string, p proxiedProject, args ...string) []*types.IssueWithCounts {
 	t.Helper()
 	fullArgs := append([]string{"list", "--json"}, args...)
-	stdout, stderr, err := bdProxiedRunBuffers(t, bd, p.dir, fullArgs...)
+	stdout, stderr, err := issuegraphProxiedRunBuffers(t, issuegraph, p.dir, fullArgs...)
 	if err != nil {
-		t.Fatalf("bd list --json %s failed: %v\nstdout:\n%s\nstderr:\n%s",
+		t.Fatalf("issuegraph list --json %s failed: %v\nstdout:\n%s\nstderr:\n%s",
 			strings.Join(args, " "), err, stdout, stderr)
 	}
 	start := strings.Index(stdout, "[")
@@ -121,41 +121,41 @@ func bdProxiedListJSON(t *testing.T, bd string, p proxiedProject, args ...string
 	return issues
 }
 
-func bdProxiedListCapture(t *testing.T, bd string, p proxiedProject, args ...string) (string, string) {
+func issuegraphProxiedListCapture(t *testing.T, issuegraph string, p proxiedProject, args ...string) (string, string) {
 	t.Helper()
 	fullArgs := append([]string{"list"}, args...)
-	stdout, stderr, err := bdProxiedRunBuffers(t, bd, p.dir, fullArgs...)
+	stdout, stderr, err := issuegraphProxiedRunBuffers(t, issuegraph, p.dir, fullArgs...)
 	if err != nil {
-		t.Fatalf("bd list %s failed: %v\nstdout:\n%s\nstderr:\n%s",
+		t.Fatalf("issuegraph list %s failed: %v\nstdout:\n%s\nstderr:\n%s",
 			strings.Join(args, " "), err, stdout, stderr)
 	}
 	return stdout, stderr
 }
 
-func bdProxiedListFail(t *testing.T, bd string, p proxiedProject, args ...string) string {
+func issuegraphProxiedListFail(t *testing.T, issuegraph string, p proxiedProject, args ...string) string {
 	t.Helper()
 	fullArgs := append([]string{"list"}, args...)
-	stdout, stderr, err := bdProxiedRunBuffers(t, bd, p.dir, fullArgs...)
+	stdout, stderr, err := issuegraphProxiedRunBuffers(t, issuegraph, p.dir, fullArgs...)
 	if err == nil {
-		t.Fatalf("expected bd list %s to fail, but it succeeded:\nstdout:\n%s\nstderr:\n%s",
+		t.Fatalf("expected issuegraph list %s to fail, but it succeeded:\nstdout:\n%s\nstderr:\n%s",
 			strings.Join(args, " "), stdout, stderr)
 	}
 	return stdout + stderr
 }
 
-func bdProxiedRunBuffers(t *testing.T, bd, dir string, args ...string) (string, string, error) {
+func issuegraphProxiedRunBuffers(t *testing.T, issuegraph, dir string, args ...string) (string, string, error) {
 	t.Helper()
-	return bdProxiedRunBuffersWithEnv(t, bd, dir, nil, args...)
+	return issuegraphProxiedRunBuffersWithEnv(t, issuegraph, dir, nil, args...)
 }
 
-// bdProxiedRunBuffersWithEnv is bdProxiedRunBuffers with extra environment
+// issuegraphProxiedRunBuffersWithEnv is issuegraphProxiedRunBuffers with extra environment
 // variables appended after the standard proxied env (so they can override
-// it, e.g. BEADS_MAX_ROWS for the proxied-server MaxRows-rejection tests).
-func bdProxiedRunBuffersWithEnv(t *testing.T, bd, dir string, envExtras []string, args ...string) (string, string, error) {
+// it, e.g. ISSUEGRAPH_MAX_ROWS for the proxied-server MaxRows-rejection tests).
+func issuegraphProxiedRunBuffersWithEnv(t *testing.T, issuegraph, dir string, envExtras []string, args ...string) (string, string, error) {
 	t.Helper()
-	cmd := exec.Command(bd, args...)
+	cmd := exec.Command(issuegraph, args...)
 	cmd.Dir = dir
-	cmd.Env = append(bdProxiedEnv(dir), envExtras...)
+	cmd.Env = append(issuegraphProxiedEnv(dir), envExtras...)
 	var stdout, stderr bytes.Buffer
 	cmd.Stdout = &stdout
 	cmd.Stderr = &stderr
@@ -163,17 +163,17 @@ func bdProxiedRunBuffersWithEnv(t *testing.T, bd, dir string, envExtras []string
 	return stdout.String(), stderr.String(), err
 }
 
-// bdProxiedRunDeadline is bdProxiedRunBuffers for a command that may never exit
-// on its own — `bd list --watch` polls until it is interrupted. It reports
+// issuegraphProxiedRunDeadline is issuegraphProxiedRunBuffers for a command that may never exit
+// on its own — `issuegraph list --watch` polls until it is interrupted. It reports
 // whether the deadline was what stopped it, so a case can tell "kept running"
 // from "exited" instead of hanging the suite to find out.
-func bdProxiedRunDeadline(t *testing.T, bd, dir string, timeout time.Duration, args ...string) (stdout, stderr string, err error, timedOut bool) {
+func issuegraphProxiedRunDeadline(t *testing.T, issuegraph, dir string, timeout time.Duration, args ...string) (stdout, stderr string, err error, timedOut bool) {
 	t.Helper()
 	ctx, cancel := context.WithTimeout(context.Background(), timeout)
 	defer cancel()
-	cmd := exec.CommandContext(ctx, bd, args...)
+	cmd := exec.CommandContext(ctx, issuegraph, args...)
 	cmd.Dir = dir
-	cmd.Env = bdProxiedEnv(dir)
+	cmd.Env = issuegraphProxiedEnv(dir)
 	var out, errOut bytes.Buffer
 	cmd.Stdout = &out
 	cmd.Stderr = &errOut
@@ -181,7 +181,7 @@ func bdProxiedRunDeadline(t *testing.T, bd, dir string, timeout time.Duration, a
 	return out.String(), errOut.String(), err, ctx.Err() != nil
 }
 
-// bdProxiedRunUntilStderr starts a bd command that is NOT expected to exit and
+// issuegraphProxiedRunUntilStderr starts a issuegraph command that is NOT expected to exit and
 // stops it the moment marker appears on stderr. reached is false when the
 // command exited, or the timeout elapsed, before it got there.
 //
@@ -189,17 +189,17 @@ func bdProxiedRunDeadline(t *testing.T, bd, dir string, timeout time.Duration, a
 // whole thing out, which costs the deadline on every green run and fails on a
 // machine slow enough to render late. This waits for the state instead, so the
 // timeout is only a bound on a hang.
-func bdProxiedRunUntilStderr(t *testing.T, bd, dir, marker string, timeout time.Duration, args ...string) (stdout, stderr string, reached bool) {
+func issuegraphProxiedRunUntilStderr(t *testing.T, issuegraph, dir, marker string, timeout time.Duration, args ...string) (stdout, stderr string, reached bool) {
 	t.Helper()
 	w := &markerWriter{marker: marker, seen: make(chan struct{})}
 	var out bytes.Buffer
-	cmd := exec.Command(bd, args...)
+	cmd := exec.Command(issuegraph, args...)
 	cmd.Dir = dir
-	cmd.Env = bdProxiedEnv(dir)
+	cmd.Env = issuegraphProxiedEnv(dir)
 	cmd.Stdout = &out
 	cmd.Stderr = w
 	if err := cmd.Start(); err != nil {
-		t.Fatalf("start bd %s: %v", strings.Join(args, " "), err)
+		t.Fatalf("start issuegraph %s: %v", strings.Join(args, " "), err)
 	}
 	exited := make(chan struct{})
 	go func() {
@@ -244,12 +244,12 @@ func (w *markerWriter) String() string {
 	return w.buf.String()
 }
 
-func bdProxiedUpdate(t *testing.T, bd, dir string, args ...string) []*types.Issue {
+func issuegraphProxiedUpdate(t *testing.T, issuegraph, dir string, args ...string) []*types.Issue {
 	t.Helper()
 	fullArgs := append([]string{"update", "--json"}, args...)
-	out, err := bdProxiedRun(t, bd, dir, fullArgs...)
+	out, err := issuegraphProxiedRun(t, issuegraph, dir, fullArgs...)
 	if err != nil {
-		t.Fatalf("bd update %s failed: %v\n%s", strings.Join(args, " "), err, out)
+		t.Fatalf("issuegraph update %s failed: %v\n%s", strings.Join(args, " "), err, out)
 	}
 	s := string(out)
 	start := strings.Index(s, "[")
@@ -266,67 +266,67 @@ func bdProxiedUpdate(t *testing.T, bd, dir string, args ...string) []*types.Issu
 	return issues
 }
 
-func bdProxiedUpdateOne(t *testing.T, bd, dir string, args ...string) *types.Issue {
+func issuegraphProxiedUpdateOne(t *testing.T, issuegraph, dir string, args ...string) *types.Issue {
 	t.Helper()
-	issues := bdProxiedUpdate(t, bd, dir, args...)
+	issues := issuegraphProxiedUpdate(t, issuegraph, dir, args...)
 	if len(issues) != 1 {
 		t.Fatalf("expected 1 issue in update output, got %d", len(issues))
 	}
 	return issues[0]
 }
 
-func bdProxiedUpdateRaw(t *testing.T, bd, dir string, args ...string) (string, string, error) {
+func issuegraphProxiedUpdateRaw(t *testing.T, issuegraph, dir string, args ...string) (string, string, error) {
 	t.Helper()
 	fullArgs := append([]string{"update"}, args...)
-	return bdProxiedRunBuffers(t, bd, dir, fullArgs...)
+	return issuegraphProxiedRunBuffers(t, issuegraph, dir, fullArgs...)
 }
 
-func bdProxiedUpdateFail(t *testing.T, bd, dir string, args ...string) string {
+func issuegraphProxiedUpdateFail(t *testing.T, issuegraph, dir string, args ...string) string {
 	t.Helper()
-	stdout, stderr, err := bdProxiedUpdateRaw(t, bd, dir, args...)
+	stdout, stderr, err := issuegraphProxiedUpdateRaw(t, issuegraph, dir, args...)
 	if err == nil {
-		t.Fatalf("bd update %s should have failed; got:\nstdout:\n%s\nstderr:\n%s",
+		t.Fatalf("issuegraph update %s should have failed; got:\nstdout:\n%s\nstderr:\n%s",
 			strings.Join(args, " "), stdout, stderr)
 	}
 	return stdout + stderr
 }
 
-func bdProxiedShow(t *testing.T, bd, dir, id string) *types.Issue {
+func issuegraphProxiedShow(t *testing.T, issuegraph, dir, id string) *types.Issue {
 	t.Helper()
-	out, err := bdProxiedRun(t, bd, dir, "show", id, "--json")
+	out, err := issuegraphProxiedRun(t, issuegraph, dir, "show", id, "--json")
 	if err != nil {
-		t.Fatalf("bd show %s --json failed: %v\n%s", id, err, out)
+		t.Fatalf("issuegraph show %s --json failed: %v\n%s", id, err, out)
 	}
 	return parseIssueJSON(t, out)
 }
 
-func bdProxiedShowRaw(t *testing.T, bd, dir string, args ...string) string {
+func issuegraphProxiedShowRaw(t *testing.T, issuegraph, dir string, args ...string) string {
 	t.Helper()
 	fullArgs := append([]string{"show"}, args...)
-	out, err := bdProxiedRun(t, bd, dir, fullArgs...)
+	out, err := issuegraphProxiedRun(t, issuegraph, dir, fullArgs...)
 	if err != nil {
-		t.Fatalf("bd show %s failed: %v\n%s", strings.Join(args, " "), err, out)
+		t.Fatalf("issuegraph show %s failed: %v\n%s", strings.Join(args, " "), err, out)
 	}
 	return string(out)
 }
 
-func bdProxiedShowFail(t *testing.T, bd, dir string, args ...string) (string, string) {
+func issuegraphProxiedShowFail(t *testing.T, issuegraph, dir string, args ...string) (string, string) {
 	t.Helper()
 	fullArgs := append([]string{"show"}, args...)
-	stdout, stderr, err := bdProxiedRunBuffers(t, bd, dir, fullArgs...)
+	stdout, stderr, err := issuegraphProxiedRunBuffers(t, issuegraph, dir, fullArgs...)
 	if err == nil {
-		t.Fatalf("bd show %s should have failed; got stdout:\n%s\nstderr:\n%s",
+		t.Fatalf("issuegraph show %s should have failed; got stdout:\n%s\nstderr:\n%s",
 			strings.Join(args, " "), stdout, stderr)
 	}
 	return stdout, stderr
 }
 
-func bdProxiedShowDetailsAll(t *testing.T, bd, dir string, args ...string) []map[string]interface{} {
+func issuegraphProxiedShowDetailsAll(t *testing.T, issuegraph, dir string, args ...string) []map[string]interface{} {
 	t.Helper()
 	fullArgs := append([]string{"show", "--json"}, args...)
-	out, err := bdProxiedRun(t, bd, dir, fullArgs...)
+	out, err := issuegraphProxiedRun(t, issuegraph, dir, fullArgs...)
 	if err != nil {
-		t.Fatalf("bd show --json %s failed: %v\n%s", strings.Join(args, " "), err, out)
+		t.Fatalf("issuegraph show --json %s failed: %v\n%s", strings.Join(args, " "), err, out)
 	}
 	s := strings.TrimSpace(string(out))
 	start := strings.IndexAny(s, "[{")
@@ -348,27 +348,27 @@ func bdProxiedShowDetailsAll(t *testing.T, bd, dir string, args ...string) []map
 	return []map[string]interface{}{m}
 }
 
-func bdProxiedShowDetailsFirst(t *testing.T, bd, dir string, args ...string) map[string]interface{} {
+func issuegraphProxiedShowDetailsFirst(t *testing.T, issuegraph, dir string, args ...string) map[string]interface{} {
 	t.Helper()
-	arr := bdProxiedShowDetailsAll(t, bd, dir, args...)
+	arr := issuegraphProxiedShowDetailsAll(t, issuegraph, dir, args...)
 	if len(arr) == 0 {
-		t.Fatalf("bd show --json %s returned empty array", strings.Join(args, " "))
+		t.Fatalf("issuegraph show --json %s returned empty array", strings.Join(args, " "))
 	}
 	return arr[0]
 }
 
 type proxiedProject struct {
-	dir       string
-	beadsDir  string
-	proxyRoot string
-	database  string
-	prefix    string
+	dir           string
+	issuegraphDir string
+	proxyRoot     string
+	database      string
+	prefix        string
 }
 
-func bdProxiedInitWithHooks(t *testing.T, bd, prefix string, hooks map[string]string, extraInitArgs ...string) proxiedProject {
+func issuegraphProxiedInitWithHooks(t *testing.T, issuegraph, prefix string, hooks map[string]string, extraInitArgs ...string) proxiedProject {
 	t.Helper()
-	p := bdProxiedInitInternal(t, bd, prefix, false, extraInitArgs...)
-	hooksDir := filepath.Join(p.beadsDir, "hooks")
+	p := issuegraphProxiedInitInternal(t, issuegraph, prefix, false, extraInitArgs...)
+	hooksDir := filepath.Join(p.issuegraphDir, "hooks")
 	if err := os.MkdirAll(hooksDir, 0o755); err != nil {
 		t.Fatalf("mkdir hooks dir: %v", err)
 	}
@@ -381,18 +381,18 @@ func bdProxiedInitWithHooks(t *testing.T, bd, prefix string, hooks map[string]st
 	return p
 }
 
-func bdProxiedInit(t *testing.T, bd, prefix string, extraInitArgs ...string) proxiedProject {
+func issuegraphProxiedInit(t *testing.T, issuegraph, prefix string, extraInitArgs ...string) proxiedProject {
 	t.Helper()
-	return bdProxiedInitInternal(t, bd, prefix, true, extraInitArgs...)
+	return issuegraphProxiedInitInternal(t, issuegraph, prefix, true, extraInitArgs...)
 }
 
-func bdProxiedInitInternal(t *testing.T, bd, prefix string, skipHooks bool, extraInitArgs ...string) proxiedProject {
+func issuegraphProxiedInitInternal(t *testing.T, issuegraph, prefix string, skipHooks bool, extraInitArgs ...string) proxiedProject {
 	t.Helper()
 
 	dir := t.TempDir()
 	initGitRepoAt(t, dir)
-	beadsDir := filepath.Join(dir, ".beads")
-	proxyRoot := filepath.Join(beadsDir, "dolt")
+	issuegraphDir := filepath.Join(dir, ".issuegraph")
+	proxyRoot := filepath.Join(issuegraphDir, "dolt")
 	t.Cleanup(func() {
 		if err := proxy.Shutdown(proxyRoot); err != nil {
 			t.Logf("proxy.Shutdown(%s): %v", proxyRoot, err)
@@ -413,23 +413,23 @@ func bdProxiedInitInternal(t *testing.T, bd, prefix string, skipHooks bool, extr
 	}
 	args := append(baseArgs, extraInitArgs...)
 
-	cmd := exec.Command(bd, args...)
+	cmd := exec.Command(issuegraph, args...)
 	cmd.Dir = dir
-	cmd.Env = bdProxiedEnv(dir)
+	cmd.Env = issuegraphProxiedEnv(dir)
 	stdout, stderr, err := runCommandBuffers(t, cmd)
 	if err != nil {
-		t.Fatalf("bd init --proxied-server failed: %v\nstdout:\n%s\nstderr:\n%s",
+		t.Fatalf("issuegraph init --proxied-server failed: %v\nstdout:\n%s\nstderr:\n%s",
 			err, stdout.String(), stderr.String())
 	}
 
 	database := sanitizePrefixForDB(prefix)
 
 	return proxiedProject{
-		dir:       dir,
-		beadsDir:  beadsDir,
-		proxyRoot: proxyRoot,
-		database:  database,
-		prefix:    prefix,
+		dir:           dir,
+		issuegraphDir: issuegraphDir,
+		proxyRoot:     proxyRoot,
+		database:      database,
+		prefix:        prefix,
 	}
 }
 
@@ -438,11 +438,11 @@ func sanitizePrefixForDB(p string) string {
 	p = strings.TrimRight(p, "-")
 	p = strings.ReplaceAll(p, ".", "_")
 	if len(p) == 0 {
-		return "bd"
+		return "issuegraph"
 	}
 	c := p[0]
 	if !((c >= 'a' && c <= 'z') || (c >= 'A' && c <= 'Z') || c == '_') {
-		p = "bd_" + p
+		p = "issuegraph_" + p
 	}
 	return p
 }

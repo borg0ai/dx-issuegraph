@@ -10,12 +10,12 @@ import (
 	"strings"
 	"time"
 
-	"github.com/steveyegge/beads/internal/config"
-	"github.com/steveyegge/beads/internal/formula"
-	"github.com/steveyegge/beads/internal/storage"
-	"github.com/steveyegge/beads/internal/storage/issueops"
-	"github.com/steveyegge/beads/internal/types"
-	"github.com/steveyegge/beads/internal/utils"
+	"github.com/borg0ai/dx-issuegraph/internal/config"
+	"github.com/borg0ai/dx-issuegraph/internal/formula"
+	"github.com/borg0ai/dx-issuegraph/internal/storage"
+	"github.com/borg0ai/dx-issuegraph/internal/storage/issueops"
+	"github.com/borg0ai/dx-issuegraph/internal/types"
+	"github.com/borg0ai/dx-issuegraph/internal/utils"
 )
 
 // configReader is the minimal slice of storage.Storage that config-reading
@@ -26,8 +26,8 @@ type configReader interface {
 	GetConfig(ctx context.Context, key string) (string, error)
 }
 
-// BeadsTemplateLabel is the label used to identify Beads-based templates
-const BeadsTemplateLabel = "template"
+// IssueGraphTemplateLabel is the label used to identify IssueGraph-based templates
+const IssueGraphTemplateLabel = "template"
 
 // variablePattern matches {{variable}} placeholders
 var variablePattern = regexp.MustCompile(`\{\{([a-zA-Z_][a-zA-Z0-9_]*)\}\}`)
@@ -68,7 +68,7 @@ type CloneOptions struct {
 	AttachDepType types.DependencyType // Dependency type for the attachment
 
 	// RootOnly: if true, only create the root issue (no child step issues).
-	// Used by patrol wisps where steps are inlined at prime time, not tracked as beads.
+	// Used by patrol wisps where steps are inlined at prime time, not tracked as issuegraph.
 	RootOnly bool
 }
 
@@ -76,7 +76,7 @@ type CloneOptions struct {
 var bondedIDPattern = regexp.MustCompile(`^[a-zA-Z0-9_.-]+$`)
 
 // =============================================================================
-// Beads Template Functions
+// IssueGraph Template Functions
 // =============================================================================
 
 // loadTemplateSubgraph loads a template epic and all its descendants
@@ -260,7 +260,7 @@ func resolveProtoIDOrTitle(ctx context.Context, s molReader, input string) (stri
 		if getErr == nil && issue != nil {
 			labels, _ := s.GetLabels(ctx, protoID)
 			for _, label := range labels {
-				if label == BeadsTemplateLabel {
+				if label == IssueGraphTemplateLabel {
 					return protoID, nil // Found a valid proto by ID
 				}
 			}
@@ -269,7 +269,7 @@ func resolveProtoIDOrTitle(ctx context.Context, s molReader, input string) (stri
 	}
 
 	// Strategy 2: Search for protos by title
-	protos, err := s.GetIssuesByLabel(ctx, BeadsTemplateLabel)
+	protos, err := s.GetIssuesByLabel(ctx, IssueGraphTemplateLabel)
 	if err != nil {
 		return "", fmt.Errorf("failed to search protos: %w", err)
 	}
@@ -418,14 +418,14 @@ func substituteVariables(text string, vars map[string]string) string {
 // substituteMetadataRepo substitutes {{variable}} placeholders in an issue's
 // metadata.repo value (SF2 follow-up). A formula gate step's `repo` selector
 // (e.g. repo = "{{gate_repo}}") is stored literally on the persisted proto's
-// metadata by createGateIssue/persistCookFormula - `bd cook --persist` keeps
+// metadata by createGateIssue/persistCookFormula - `issuegraph cook --persist` keeps
 // the proto reusable across pours rather than substituting at compile time.
 // Substitution instead needs to happen at the same point as every other
 // var-bearing issue field (Title, Description, AwaitID, ...): here, in
 // cloneSubgraphInto, when a proto is poured/spawned into real issues.
 //
 // Restricted to gh:* gate types (SF4), matching createGateIssue's write-side
-// rule: `repo` on a human/timer/bead gate is unrelated, ordinary metadata,
+// rule: `repo` on a human/timer/issue gate is unrelated, ordinary metadata,
 // not a GitHub repo selector, so it must not be touched here either.
 //
 // Metadata is arbitrary JSON on any issue, so this only touches a top-level
@@ -576,9 +576,9 @@ func getRelativeID(oldID, rootID string) string {
 // undeclared parent step types — and leaves flatten to task.
 // Materializing a formula must not silently grow the type whitelist — a
 // typo'd step type would become a permanently registered custom type — so
-// unregistered types degrade instead; operators opt in with bd config set
+// unregistered types degrade instead; operators opt in with issuegraph config set
 // types.custom before pouring. Without the flatten, issue creation fails
-// with "invalid issue type" on the first unregistered bead.
+// with "invalid issue type" on the first unregistered issue.
 // (GH#3213, GH#5443)
 func flattenUnregisteredIssueTypes(ctx context.Context, s configReader, issues []*types.Issue, deps []*types.Dependency) error {
 	// Seed with every non-built-in type used by the issues, then remove the
@@ -623,7 +623,7 @@ func flattenUnregisteredIssueTypes(ctx context.Context, s configReader, issues [
 		names = append(names, string(t))
 	}
 	sort.Strings(names)
-	WarnError("flattening unregistered issue type(s) to task (epic for steps with children): %s (register with bd config set types.custom to keep them)", strings.Join(names, ", "))
+	WarnError("flattening unregistered issue type(s) to task (epic for steps with children): %s (register with issuegraph config set types.custom to keep them)", strings.Join(names, ", "))
 
 	hasChildren := make(map[string]bool)
 	for _, dep := range deps {
@@ -651,7 +651,7 @@ func cloneSubgraph(ctx context.Context, s storage.DoltStorage, subgraph *Templat
 	}
 
 	var result *InstantiateResult
-	err := transact(ctx, s, "bd: clone template subgraph", func(tx storage.Transaction) error {
+	err := transact(ctx, s, "issuegraph: clone template subgraph", func(tx storage.Transaction) error {
 		r, err := cloneSubgraphInto(ctx, storeMolWriter{DoltStorage: s, tx: tx}, subgraph, opts)
 		if err != nil {
 			return err

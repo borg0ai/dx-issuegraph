@@ -13,21 +13,21 @@ import (
 func TestRunCheckHealth_UnreachableServer(t *testing.T) {
 	// Force the resolved port to 1 (guaranteed unreachable) so we don't
 	// depend on any real server.
-	t.Setenv("BEADS_DOLT_SERVER_PORT", "1")
+	t.Setenv("ISSUEGRAPH_DOLT_SERVER_PORT", "1")
 
 	tmpDir := t.TempDir()
-	beadsDir := filepath.Join(tmpDir, ".beads")
-	if err := os.MkdirAll(beadsDir, 0o755); err != nil {
+	issuegraphDir := filepath.Join(tmpDir, ".issuegraph")
+	if err := os.MkdirAll(issuegraphDir, 0o755); err != nil {
 		t.Fatal(err)
 	}
 	meta := `{
-  "database": "beads.db",
+  "database": "issuegraph.db",
   "dolt_mode": "server",
   "dolt_server_host": "127.0.0.1",
   "dolt_server_user": "root",
-  "dolt_database": "beads"
+  "dolt_database": "issuegraph"
 }`
-	if err := os.WriteFile(filepath.Join(beadsDir, "metadata.json"), []byte(meta), 0o644); err != nil {
+	if err := os.WriteFile(filepath.Join(issuegraphDir, "metadata.json"), []byte(meta), 0o644); err != nil {
 		t.Fatal(err)
 	}
 

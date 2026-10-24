@@ -12,30 +12,30 @@ import (
 	"testing"
 	"time"
 
-	"github.com/steveyegge/beads/internal/configfile"
-	"github.com/steveyegge/beads/internal/storage/dolt"
-	"github.com/steveyegge/beads/internal/types"
+	"github.com/borg0ai/dx-issuegraph/internal/configfile"
+	"github.com/borg0ai/dx-issuegraph/internal/storage/dolt"
+	"github.com/borg0ai/dx-issuegraph/internal/types"
 )
 
-// TestBeadMutatingFixJournalsIntoTheWorkspace is the guard for a claim that was
-// wrong: the events-journal construction guard exempted all of bd doctor with
-// the reason "workspace repairs, not bead mutations", and three repair handlers
-// do mutate beads — StaleClosedIssues and PatrolPollution DELETE issues, and
+// TestIssueMutatingFixJournalsIntoTheWorkspace is the guard for a claim that was
+// wrong: the events-journal construction guard exempted all of issuegraph doctor with
+// the reason "workspace repairs, not issue mutations", and three repair handlers
+// do mutate issuegraph — StaleClosedIssues and PatrolPollution DELETE issues, and
 // the two fresh-clone import paths CREATE them.
 //
 // A repair is the LAST place a silent divergence is acceptable: it runs
 // unattended, often on a workspace someone is already worried about, and a
 // consumer whose mirror quietly disagrees afterwards has no event to explain
-// why. So a bead-mutating fix journals like any other mutation, and this proves
+// why. So a issue-mutating fix journals like any other mutation, and this proves
 // it end to end against a real store rather than trusting the exemption text.
-func TestBeadMutatingFixJournalsIntoTheWorkspace(t *testing.T) {
+func TestIssueMutatingFixJournalsIntoTheWorkspace(t *testing.T) {
 	requireFixDoltContainer(t)
 	port := fixTestServerPort()
 
 	tmpDir := t.TempDir()
-	beadsDir := filepath.Join(tmpDir, ".beads")
-	if err := os.MkdirAll(beadsDir, 0o755); err != nil {
-		t.Fatalf("create .beads: %v", err)
+	issuegraphDir := filepath.Join(tmpDir, ".issuegraph")
+	if err := os.MkdirAll(issuegraphDir, 0o755); err != nil {
+		t.Fatalf("create .issuegraph: %v", err)
 	}
 
 	cfg := configfile.DefaultConfig()
@@ -45,22 +45,22 @@ func TestBeadMutatingFixJournalsIntoTheWorkspace(t *testing.T) {
 	cfg.DoltServerPort = port
 	h := sha256.Sum256([]byte(t.Name() + fmt.Sprintf("%d", time.Now().UnixNano())))
 	cfg.DoltDatabase = "jrnfix_" + hex.EncodeToString(h[:6])
-	if err := cfg.Save(beadsDir); err != nil {
+	if err := cfg.Save(issuegraphDir); err != nil {
 		t.Fatalf("save metadata.json: %v", err)
 	}
 	// The workspace asks for a journal, the way an operator would. Activation
 	// is resolved from THIS file by the factory the handler opens through.
-	if err := os.WriteFile(filepath.Join(beadsDir, "config.yaml"),
+	if err := os.WriteFile(filepath.Join(issuegraphDir, "config.yaml"),
 		[]byte("events-journal: true\n"), 0o644); err != nil {
 		t.Fatalf("write config.yaml: %v", err)
 	}
 
 	ctx := context.Background()
-	setup, err := dolt.NewFromConfigWithOptions(ctx, beadsDir, &dolt.Config{CreateIfMissing: true})
+	setup, err := dolt.NewFromConfigWithOptions(ctx, issuegraphDir, &dolt.Config{CreateIfMissing: true})
 	if err != nil {
 		t.Fatalf("open setup store: %v", err)
 	}
-	if err := setup.SetConfig(ctx, "issue_prefix", "bd"); err != nil {
+	if err := setup.SetConfig(ctx, "issue_prefix", "issuegraph"); err != nil {
 		_ = setup.Close()
 		t.Fatalf("set issue_prefix: %v", err)
 	}
@@ -82,7 +82,7 @@ func TestBeadMutatingFixJournalsIntoTheWorkspace(t *testing.T) {
 		t.Fatalf("PatrolPollution: %v", err)
 	}
 
-	verify, err := dolt.NewFromConfig(ctx, beadsDir)
+	verify, err := dolt.NewFromConfig(ctx, issuegraphDir)
 	if err != nil {
 		t.Fatalf("reopen for verification: %v", err)
 	}
@@ -99,7 +99,7 @@ func TestBeadMutatingFixJournalsIntoTheWorkspace(t *testing.T) {
 		}
 	}
 	if deletes != 2 {
-		t.Fatalf("a bead-mutating `bd doctor --fix` journaled %d delete records (of %d rows), want 2 — "+
+		t.Fatalf("a issue-mutating `issuegraph doctor --fix` journaled %d delete records (of %d rows), want 2 — "+
 			"the repair opened a store that was never activated, so its deletes are invisible to every consumer of this workspace",
 			deletes, len(rows))
 	}

@@ -1,12 +1,12 @@
 #!/usr/bin/env node
 
 /**
- * Integration tests for @beads/bd npm package
+ * Integration tests for @borg0ai/issuegraph npm package
  *
  * Tests:
  * 1. Package installation in clean environment
  * 2. Binary download and extraction
- * 3. Basic bd commands (version, init, create, list, etc.)
+ * 3. Basic issuegraph commands (version, init, create, list, etc.)
  * 4. Claude Code for Web simulation
  */
 
@@ -106,21 +106,21 @@ async function testPackageInstallation() {
     logSuccess('Package installed successfully');
 
     // Verify binary exists
-    const bdPath = path.join(npmPrefix, 'bin', 'bd');
-    if (!fs.existsSync(bdPath) && !fs.existsSync(bdPath + '.cmd')) {
-      // On Windows, might be bd.cmd
-      const windowsPath = path.join(npmPrefix, 'bd.cmd');
+    const issuegraphPath = path.join(npmPrefix, 'bin', 'issuegraph');
+    if (!fs.existsSync(issuegraphPath) && !fs.existsSync(issuegraphPath + '.cmd')) {
+      // On Windows, might be issuegraph.cmd
+      const windowsPath = path.join(npmPrefix, 'issuegraph.cmd');
       if (!fs.existsSync(windowsPath)) {
-        throw new Error(`bd binary not found at ${bdPath}`);
+        throw new Error(`issuegraph binary not found at ${issuegraphPath}`);
       }
     }
 
-    logSuccess('bd binary installed');
+    logSuccess('issuegraph binary installed');
 
     // Cleanup tarball
     fs.unlinkSync(tarballPath);
 
-    return { npmPrefix, bdPath };
+    return { npmPrefix, issuegraphPath };
   } catch (err) {
     logError(`Package installation failed: ${err.message}`);
     throw err;
@@ -131,21 +131,21 @@ async function testPackageInstallation() {
 async function testBinaryFunctionality(npmPrefix) {
   logTest('Test 2: Binary Functionality');
 
-  const bdCmd = path.join(npmPrefix, 'bin', 'bd');
+  const issuegraphCmd = path.join(npmPrefix, 'bin', 'issuegraph');
   const env = { ...process.env, PATH: `${path.join(npmPrefix, 'bin')}:${process.env.PATH}` };
 
   try {
     // Test version command
     logInfo('Testing version command...');
-    const version = exec(`"${bdCmd}" version`, { env });
-    if (!version.includes('bd version')) {
+    const version = exec(`"${issuegraphCmd}" version`, { env });
+    if (!version.includes('issuegraph version')) {
       throw new Error(`Unexpected version output: ${version}`);
     }
     logSuccess(`Version: ${version.trim()}`);
 
     // Test help command
     logInfo('Testing help command...');
-    const help = exec(`"${bdCmd}" --help`, { env });
+    const help = exec(`"${issuegraphCmd}" --help`, { env });
     if (!help.includes('Usage:') || !help.includes('Working With Issues')) {
       throw new Error('Help command did not return expected output');
     }
@@ -158,9 +158,9 @@ async function testBinaryFunctionality(npmPrefix) {
   }
 }
 
-// Test 3: Basic bd workflow
+// Test 3: Basic issuegraph workflow
 async function testBasicWorkflow(npmPrefix) {
-  logTest('Test 3: Basic bd Workflow');
+  logTest('Test 3: Basic issuegraph Workflow');
 
   const projectDir = path.join(TEST_DIR, 'test-project');
   fs.mkdirSync(projectDir, { recursive: true });
@@ -170,26 +170,26 @@ async function testBasicWorkflow(npmPrefix) {
   exec('git config user.email "test@example.com"', { cwd: projectDir });
   exec('git config user.name "Test User"', { cwd: projectDir });
 
-  const bdCmd = path.join(npmPrefix, 'bin', 'bd');
+  const issuegraphCmd = path.join(npmPrefix, 'bin', 'issuegraph');
   const env = {
     ...process.env,
     PATH: `${path.join(npmPrefix, 'bin')}:${process.env.PATH}`,
-    BEADS_ACTOR: 'integration-test'
+    ISSUEGRAPH_ACTOR: 'integration-test'
   };
 
   try {
-    // Test bd init
-    logInfo('Testing bd init...');
-    exec(`"${bdCmd}" init --quiet`, { cwd: projectDir, env });
+    // Test issuegraph init
+    logInfo('Testing issuegraph init...');
+    exec(`"${issuegraphCmd}" init --quiet`, { cwd: projectDir, env });
 
-    if (!fs.existsSync(path.join(projectDir, '.beads'))) {
-      throw new Error('.beads directory not created');
+    if (!fs.existsSync(path.join(projectDir, '.issuegraph'))) {
+      throw new Error('.issuegraph directory not created');
     }
-    logSuccess('bd init successful');
+    logSuccess('issuegraph init successful');
 
-    // Test bd create
-    logInfo('Testing bd create...');
-    const createOutput = exec(`"${bdCmd}" create "Test issue" -t task -p 1 --json`, {
+    // Test issuegraph create
+    logInfo('Testing issuegraph create...');
+    const createOutput = exec(`"${issuegraphCmd}" create "Test issue" -t task -p 1 --json`, {
       cwd: projectDir,
       env
     });
@@ -200,55 +200,55 @@ async function testBasicWorkflow(npmPrefix) {
     // ID format can be bd-xxxx or projectname-xxxx depending on configuration
     logSuccess(`Created issue: ${issue.id}`);
 
-    // Test bd list
-    logInfo('Testing bd list...');
-    const listOutput = exec(`"${bdCmd}" list --json`, { cwd: projectDir, env });
+    // Test issuegraph list
+    logInfo('Testing issuegraph list...');
+    const listOutput = exec(`"${issuegraphCmd}" list --json`, { cwd: projectDir, env });
     const issues = JSON.parse(listOutput);
     if (!Array.isArray(issues) || issues.length !== 1) {
-      throw new Error('bd list did not return expected issues');
+      throw new Error('issuegraph list did not return expected issues');
     }
     logSuccess(`Listed ${issues.length} issue(s)`);
 
-    // Test bd show
-    logInfo('Testing bd show...');
-    const showOutput = exec(`"${bdCmd}" show ${issue.id} --json`, { cwd: projectDir, env });
+    // Test issuegraph show
+    logInfo('Testing issuegraph show...');
+    const showOutput = exec(`"${issuegraphCmd}" show ${issue.id} --json`, { cwd: projectDir, env });
     const showResult = JSON.parse(showOutput);
-    // bd show --json returns an array with one element
+    // issuegraph show --json returns an array with one element
     const showIssue = Array.isArray(showResult) ? showResult[0] : showResult;
     // Compare IDs - both should be present and match
     if (!showIssue.id || showIssue.id !== issue.id) {
-      throw new Error(`bd show returned wrong issue: expected ${issue.id}, got ${showIssue.id}`);
+      throw new Error(`issuegraph show returned wrong issue: expected ${issue.id}, got ${showIssue.id}`);
     }
     logSuccess(`Show issue: ${showIssue.title}`);
 
-    // Test bd update
-    logInfo('Testing bd update...');
-    exec(`"${bdCmd}" update ${issue.id} --claim`, { cwd: projectDir, env });
-    const updatedOutput = exec(`"${bdCmd}" show ${issue.id} --json`, { cwd: projectDir, env });
+    // Test issuegraph update
+    logInfo('Testing issuegraph update...');
+    exec(`"${issuegraphCmd}" update ${issue.id} --claim`, { cwd: projectDir, env });
+    const updatedOutput = exec(`"${issuegraphCmd}" show ${issue.id} --json`, { cwd: projectDir, env });
     const updatedResult = JSON.parse(updatedOutput);
     const updatedIssue = Array.isArray(updatedResult) ? updatedResult[0] : updatedResult;
     if (updatedIssue.status !== 'in_progress') {
-      throw new Error(`bd update did not change status: expected 'in_progress', got '${updatedIssue.status}'`);
+      throw new Error(`issuegraph update did not change status: expected 'in_progress', got '${updatedIssue.status}'`);
     }
     logSuccess('Updated issue status');
 
-    // Test bd close
-    logInfo('Testing bd close...');
-    exec(`"${bdCmd}" close ${issue.id} --reason "Test completed"`, { cwd: projectDir, env });
-    const closedOutput = exec(`"${bdCmd}" show ${issue.id} --json`, { cwd: projectDir, env });
+    // Test issuegraph close
+    logInfo('Testing issuegraph close...');
+    exec(`"${issuegraphCmd}" close ${issue.id} --reason "Test completed"`, { cwd: projectDir, env });
+    const closedOutput = exec(`"${issuegraphCmd}" show ${issue.id} --json`, { cwd: projectDir, env });
     const closedResult = JSON.parse(closedOutput);
     const closedIssue = Array.isArray(closedResult) ? closedResult[0] : closedResult;
     if (closedIssue.status !== 'closed') {
-      throw new Error(`bd close did not close issue: expected 'closed', got '${closedIssue.status}'`);
+      throw new Error(`issuegraph close did not close issue: expected 'closed', got '${closedIssue.status}'`);
     }
     logSuccess('Closed issue');
 
-    // Test bd ready (should be empty after closing)
-    logInfo('Testing bd ready...');
-    const readyOutput = exec(`"${bdCmd}" ready --json`, { cwd: projectDir, env });
+    // Test issuegraph ready (should be empty after closing)
+    logInfo('Testing issuegraph ready...');
+    const readyOutput = exec(`"${issuegraphCmd}" ready --json`, { cwd: projectDir, env });
     const readyIssues = JSON.parse(readyOutput);
     if (readyIssues.length !== 0) {
-      throw new Error('bd ready should return no issues after closing all');
+      throw new Error('issuegraph ready should return no issues after closing all');
     }
     logSuccess('Ready work detection works');
 
@@ -272,19 +272,19 @@ async function testClaudeCodeWebSimulation(npmPrefix) {
     exec('git config user.email "agent@example.com"', { cwd: sessionDir });
     exec('git config user.name "Claude Agent"', { cwd: sessionDir });
 
-    const bdCmd = path.join(npmPrefix, 'bin', 'bd');
+    const issuegraphCmd = path.join(npmPrefix, 'bin', 'issuegraph');
     const env = {
       ...process.env,
       PATH: `${path.join(npmPrefix, 'bin')}:${process.env.PATH}`,
-      BEADS_ACTOR: 'claude-agent'
+      ISSUEGRAPH_ACTOR: 'claude-agent'
     };
 
     // First session: initialize and create an issue
     logInfo('Session 1: Initialize and create issue...');
-    exec(`"${bdCmd}" init --quiet`, { cwd: sessionDir, env });
+    exec(`"${issuegraphCmd}" init --quiet`, { cwd: sessionDir, env });
 
     const createOutput = exec(
-      `"${bdCmd}" create "Existing issue from previous session" -t task -p 1 --json`,
+      `"${issuegraphCmd}" create "Existing issue from previous session" -t task -p 1 --json`,
       { cwd: sessionDir, env }
     );
     const existingIssue = JSON.parse(createOutput);
@@ -292,9 +292,9 @@ async function testClaudeCodeWebSimulation(npmPrefix) {
 
     // Simulate sync to git. The default auto-export policy is intentionally
     // disabled, so make the package workflow's JSONL handoff explicit.
-    const beadsDir = path.join(sessionDir, '.beads');
-    const jsonlPath = path.join(beadsDir, 'issues.jsonl');
-    exec(`"${bdCmd}" export -o "${jsonlPath}"`, { cwd: sessionDir, env });
+    const issuegraphDir = path.join(sessionDir, '.issuegraph');
+    const jsonlPath = path.join(issuegraphDir, 'issues.jsonl');
+    exec(`"${issuegraphCmd}" export -o "${jsonlPath}"`, { cwd: sessionDir, env });
 
     // Verify JSONL exists
     if (!fs.existsSync(jsonlPath)) {
@@ -303,20 +303,20 @@ async function testClaudeCodeWebSimulation(npmPrefix) {
 
     // Remove local-only database state to simulate a fresh clone that kept the
     // committed JSONL export but not the gitignored embedded Dolt database.
-    for (const entry of fs.readdirSync(beadsDir)) {
+    for (const entry of fs.readdirSync(issuegraphDir)) {
       if (entry === 'issues.jsonl') {
         continue;
       }
-      fs.rmSync(path.join(beadsDir, entry), { recursive: true, force: true });
+      fs.rmSync(path.join(issuegraphDir, entry), { recursive: true, force: true });
     }
 
     // Session 2: Re-initialize (simulating SessionStart hook in new session)
     logInfo('Session 2: Re-initialize from JSONL...');
-    exec(`"${bdCmd}" init --quiet --from-jsonl`, { cwd: sessionDir, env });
-    logSuccess('bd init re-imported from JSONL');
+    exec(`"${issuegraphCmd}" init --quiet --from-jsonl`, { cwd: sessionDir, env });
+    logSuccess('issuegraph init re-imported from JSONL');
 
     // Verify issue was imported
-    const listOutput = exec(`"${bdCmd}" list --json`, { cwd: sessionDir, env });
+    const listOutput = exec(`"${issuegraphCmd}" list --json`, { cwd: sessionDir, env });
     const issues = JSON.parse(listOutput);
 
     if (!issues.some(i => i.id === existingIssue.id)) {
@@ -325,7 +325,7 @@ async function testClaudeCodeWebSimulation(npmPrefix) {
     logSuccess('Existing issues imported successfully');
 
     // Simulate agent finding ready work
-    const readyOutput = exec(`"${bdCmd}" ready --json`, { cwd: sessionDir, env });
+    const readyOutput = exec(`"${issuegraphCmd}" ready --json`, { cwd: sessionDir, env });
     const readyIssues = JSON.parse(readyOutput);
 
     if (readyIssues.length === 0) {
@@ -335,20 +335,20 @@ async function testClaudeCodeWebSimulation(npmPrefix) {
 
     // The default auto-export interval is throttled for normal use. Disable
     // the interval so this test can assert the next write updates JSONL.
-    exec(`"${bdCmd}" config set export.interval 0s`, { cwd: sessionDir, env });
+    exec(`"${issuegraphCmd}" config set export.interval 0s`, { cwd: sessionDir, env });
 
     // Simulate agent creating a new issue
     const newCreateOutput = exec(
-      `"${bdCmd}" create "Bug discovered during session" -t bug -p 0 --json`,
+      `"${issuegraphCmd}" create "Bug discovered during session" -t bug -p 0 --json`,
       { cwd: sessionDir, env }
     );
     const newIssue = JSON.parse(newCreateOutput);
     logSuccess(`Agent created new issue: ${newIssue.id}`);
 
     // Verify JSONL export works after the imported session creates more work.
-    exec(`"${bdCmd}" export -o "${jsonlPath}"`, { cwd: sessionDir, env });
+    exec(`"${issuegraphCmd}" export -o "${jsonlPath}"`, { cwd: sessionDir, env });
     const jsonlContent = fs.readFileSync(
-      path.join(beadsDir, 'issues.jsonl'),
+      path.join(issuegraphDir, 'issues.jsonl'),
       'utf8'
     );
     const jsonlLines = jsonlContent.trim().split('\n');
@@ -400,7 +400,7 @@ async function testPlatformDetection() {
     // Check if GitHub release has this binary
     const version = require(path.join(PACKAGE_DIR, 'package.json')).version;
     const ext = platform === 'win32' ? 'zip' : 'tar.gz';
-    const binaryUrl = `https://github.com/gastownhall/beads/releases/download/v${version}/beads_${version}_${platform}_${mappedArch}.${ext}`;
+    const binaryUrl = `https://github.com/borg0ai/dx-issuegraph/releases/download/v${version}/issuegraph_${version}_${platform}_${mappedArch}.${ext}`;
 
     logInfo(`Expected binary URL: ${binaryUrl}`);
     logSuccess('Platform detection logic validated');
@@ -415,7 +415,7 @@ async function testPlatformDetection() {
 // Main test runner
 async function runTests() {
   log('\n╔════════════════════════════════════════╗', 'blue');
-  log('║  @beads/bd Integration Tests          ║', 'blue');
+  log('║  @borg0ai/issuegraph Integration Tests          ║', 'blue');
   log('╚════════════════════════════════════════╝', 'blue');
 
   let npmPrefix;

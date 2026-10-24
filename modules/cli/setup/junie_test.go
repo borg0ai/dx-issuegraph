@@ -9,14 +9,14 @@ import (
 
 func TestJunieGuidelinesTemplate(t *testing.T) {
 	requiredContent := []string{
-		"bd ready",
-		"bd create",
-		"bd update",
-		"bd close",
-		"bd dolt push",
-		"mcp_beads_ready",
-		"mcp_beads_list",
-		"mcp_beads_create",
+		"issuegraph ready",
+		"issuegraph create",
+		"issuegraph update",
+		"issuegraph close",
+		"issuegraph dolt push",
+		"mcp_issuegraph_ready",
+		"mcp_issuegraph_list",
+		"mcp_issuegraph_create",
 		"bug",
 		"feature",
 		"task",
@@ -39,19 +39,19 @@ func TestJunieMCPConfig(t *testing.T) {
 		t.Fatal("mcpServers key missing or wrong type")
 	}
 
-	beads, ok := mcpServers["beads"].(map[string]interface{})
+	issuegraph, ok := mcpServers["issuegraph"].(map[string]interface{})
 	if !ok {
-		t.Fatal("beads server config missing or wrong type")
+		t.Fatal("issuegraph server config missing or wrong type")
 	}
 
-	command, ok := beads["command"].(string)
-	if !ok || command != "bd" {
-		t.Errorf("Expected command 'bd', got %v", beads["command"])
+	command, ok := issuegraph["command"].(string)
+	if !ok || command != "issuegraph" {
+		t.Errorf("Expected command 'issuegraph', got %v", issuegraph["command"])
 	}
 
-	args, ok := beads["args"].([]string)
+	args, ok := issuegraph["args"].([]string)
 	if !ok || len(args) != 1 || args[0] != "mcp" {
-		t.Errorf("Expected args ['mcp'], got %v", beads["args"])
+		t.Errorf("Expected args ['mcp'], got %v", issuegraph["args"])
 	}
 
 	// Verify it's valid JSON
@@ -117,8 +117,8 @@ func TestInstallJunie(t *testing.T) {
 			mcpServers, ok := parsed["mcpServers"].(map[string]interface{})
 			if !ok {
 				t.Error("mcpServers key missing or wrong type")
-			} else if _, ok := mcpServers["beads"]; !ok {
-				t.Error("beads server config missing")
+			} else if _, ok := mcpServers["issuegraph"]; !ok {
+				t.Error("issuegraph server config missing")
 			}
 		}
 	}
@@ -490,11 +490,11 @@ func TestJunieGuidelinesWorkflowPattern(t *testing.T) {
 	guidelines := junieGuidelinesTemplate
 
 	// Should mention core workflow commands
-	if !strings.Contains(guidelines, "bd ready") {
-		t.Error("Should mention bd ready")
+	if !strings.Contains(guidelines, "issuegraph ready") {
+		t.Error("Should mention issuegraph ready")
 	}
-	if !strings.Contains(guidelines, "bd dolt push") {
-		t.Error("Should mention bd dolt push")
+	if !strings.Contains(guidelines, "issuegraph dolt push") {
+		t.Error("Should mention issuegraph dolt push")
 	}
 
 	// Should explain MCP tools

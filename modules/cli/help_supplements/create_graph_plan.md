@@ -23,10 +23,10 @@ which `issuegraph create` has no flags for:
       "estimated_minutes": 45,
       "due_at": "2030-01-02T15:04:05Z",
       "defer_until": "2030-01-01T00:00:00Z",
-      "spec_id": "bd-spec1", "external_ref": "gh-42",
+      "spec_id": "issuegraph-spec1", "external_ref": "gh-42",
       "metadata": {"any": "json", "count": 3},
       "metadata_refs": {"tracker": "impl"},
-      "id": "bd-a1b2c3",
+      "id": "issuegraph-a1b2c3",
       "ephemeral": false, "no_history": false,
       "wisp_type": "heartbeat", "mol_type": "swarm",
       "pinned": false
@@ -34,7 +34,7 @@ which `issuegraph create` has no flags for:
     { "key": "impl", "title": "Implement it", "parent_key": "api" },
     { "key": "gate", "title": "Fanout gate" },
     { "key": "launch", "title": "Launch announced", "type": "event",
-      "event_kind": "agent.started", "actor": "agent://a", "target": "bead://b", "payload": "{}" }
+      "event_kind": "agent.started", "actor": "agent://a", "target": "issue://b", "payload": "{}" }
   ],
   "edges": [
     { "from_key": "gate", "to_key": "api", "type": "blocks" },

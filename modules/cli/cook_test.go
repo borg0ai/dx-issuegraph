@@ -10,8 +10,8 @@ import (
 
 	"github.com/spf13/cobra"
 
-	"github.com/steveyegge/beads/internal/formula"
-	"github.com/steveyegge/beads/internal/types"
+	"github.com/borg0ai/dx-issuegraph/internal/formula"
+	"github.com/borg0ai/dx-issuegraph/internal/types"
 )
 
 // =============================================================================
@@ -377,7 +377,7 @@ func TestCompileTimeVsRuntimeMode(t *testing.T) {
 }
 
 // =============================================================================
-// Gate Bead Tests (bd-4k3c: Gate beads created during cook)
+// Gate Issue Tests (bd-4k3c: Gate issuegraph created during cook)
 // =============================================================================
 
 // TestCreateGateIssue tests that createGateIssue creates proper gate issues
@@ -552,7 +552,7 @@ func TestCreateGateIssue_Repo(t *testing.T) {
 		}
 	})
 
-	// Non-gh:* gate types (SF4): `repo` on a human/timer/bead gate step is
+	// Non-gh:* gate types (SF4): `repo` on a human/timer/issue gate step is
 	// unrelated, ordinary metadata, not a GitHub repo selector - it must not
 	// be written to gateIssue.Metadata, matching repoMetadataForGate's
 	// isGitHubGateType restriction for ad-hoc gate creation.
@@ -625,8 +625,8 @@ func TestCreateGateIssue_Timeout(t *testing.T) {
 	}
 }
 
-// TestCookFormulaToSubgraph_GateBeads tests that gate beads are created in subgraph
-func TestCookFormulaToSubgraph_GateBeads(t *testing.T) {
+// TestCookFormulaToSubgraph_GateIssueGraph tests that gate issuegraph are created in subgraph
+func TestCookFormulaToSubgraph_GateIssueGraph(t *testing.T) {
 	f := &formula.Formula{
 		Formula:     "mol-test-gate",
 		Description: "Test gate creation",
@@ -925,7 +925,7 @@ func TestCookFormulaToSubgraph_StandaloneExpansionWithWorkflowVars(t *testing.T)
 
 // TestCookFormulaToSubgraph_StepMetadata verifies that a step's Metadata flows
 // through cook onto the resulting Issue.Metadata as a JSON object. Regression
-// for gastownhall/beads#3341.
+// for borg0ai/dx-issuegraph#3341.
 func TestCookFormulaToSubgraph_StepMetadata(t *testing.T) {
 	f := &formula.Formula{
 		Formula: "repro",

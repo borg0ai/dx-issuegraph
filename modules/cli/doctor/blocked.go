@@ -4,8 +4,8 @@ import (
 	"context"
 	"fmt"
 
-	"github.com/steveyegge/beads/internal/storage/dolt"
-	"github.com/steveyegge/beads/internal/storage/issueops"
+	"github.com/borg0ai/dx-issuegraph/internal/storage/dolt"
+	"github.com/borg0ai/dx-issuegraph/internal/storage/issueops"
 )
 
 // BlockedConsistencyCheckName is the doctor check name; applyFixList dispatches
@@ -17,9 +17,9 @@ const BlockedConsistencyCheckName = "Blocked State"
 // is derived state maintained by the local write paths and by a post-pull
 // recompute scoped to the merge diff; a recompute that failed after its merge
 // committed, or a conflicted pull resolved by hand, can leave it stale, and a
-// re-pull that merges nothing will not refresh it. `bd ready` trusts the
+// re-pull that merges nothing will not refresh it. `issuegraph ready` trusts the
 // column, so stale values silently hide ready work or surface blocked work. The
-// repair is 'bd doctor --fix', which runs a full recompute.
+// repair is 'issuegraph doctor --fix', which runs a full recompute.
 func CheckBlockedConsistencyWithStore(ss *SharedStore) DoctorCheck {
 	store := ss.Store()
 	if store == nil {
@@ -52,8 +52,8 @@ func checkBlockedConsistencyWithStore(ctx context.Context, store *dolt.DoltStore
 	return DoctorCheck{
 		Name:    BlockedConsistencyCheckName,
 		Status:  StatusWarning,
-		Message: fmt.Sprintf("%d issue/wisp row(s) have a stale is_blocked flag — 'bd ready' may hide ready work or show blocked work", stale),
+		Message: fmt.Sprintf("%d issue/wisp row(s) have a stale is_blocked flag — 'issuegraph ready' may hide ready work or show blocked work", stale),
 		Detail:  "is_blocked is derived from the dependency graph; a skipped post-pull recompute can leave it stale",
-		Fix:     "Run: bd doctor --fix (or 'bd recompute-blocked', which also works in embedded mode)",
+		Fix:     "Run: issuegraph doctor --fix (or 'issuegraph recompute-blocked', which also works in embedded mode)",
 	}
 }

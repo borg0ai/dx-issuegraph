@@ -18,8 +18,8 @@ import (
 // git gc (maybeRunGC, gated to once per 24h) either never runs or cannot
 // keep up with the accumulation rate.
 //
-// On a real machine with normal beads usage, this leak consumed 102 GB
-// (412 files) in 7 days. See https://github.com/gastownhall/beads/issues/3354
+// On a real machine with normal issuegraph usage, this leak consumed 102 GB
+// (412 files) in 7 days. See https://github.com/borg0ai/dx-issuegraph/issues/3354
 //
 // This function is safe to call concurrently and is rate-limited to avoid
 // unnecessary filesystem walks on hot paths.
@@ -57,7 +57,7 @@ func (s *EmbeddedDoltStore) cleanGitRemoteCacheGarbage() {
 		}
 		if info.ModTime().Before(cutoff) {
 			// #nosec G122 -- path is under .dolt/git-remote-cache/ which is
-			// owned by the user running bd. A TOCTOU symlink swap would
+			// owned by the user running issuegraph. A TOCTOU symlink swap would
 			// require write access to that directory; in that case the
 			// attacker already controls the Dolt data. The tmp_pack_/tmp_idx_
 			// prefix check further narrows the scope to files Dolt itself writes.

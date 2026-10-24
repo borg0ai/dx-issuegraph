@@ -7,19 +7,19 @@ import (
 
 func TestFormatDoltAutoCommitMessage(t *testing.T) {
 	msg := formatDoltAutoCommitMessage("update", "alice", []string{"bd-2", "bd-1", "bd-2", "", "bd-3"})
-	if msg != "bd: update (auto-commit) by alice [bd-1, bd-2, bd-3]" {
+	if msg != "issuegraph: update (auto-commit) by alice [bd-1, bd-2, bd-3]" {
 		t.Fatalf("unexpected message: %q", msg)
 	}
 
 	// Caps IDs (max 5) and sorts
 	msg = formatDoltAutoCommitMessage("create", "bob", []string{"z-9", "a-1", "m-3", "b-2", "c-4", "d-5", "e-6"})
-	if msg != "bd: create (auto-commit) by bob [a-1, b-2, c-4, d-5, e-6]" {
+	if msg != "issuegraph: create (auto-commit) by bob [a-1, b-2, c-4, d-5, e-6]" {
 		t.Fatalf("unexpected capped message: %q", msg)
 	}
 
 	// Empty command/actor fallbacks
 	msg = formatDoltAutoCommitMessage("", "", nil)
-	if msg != "bd: write (auto-commit) by unknown" {
+	if msg != "issuegraph: write (auto-commit) by unknown" {
 		t.Fatalf("unexpected fallback message: %q", msg)
 	}
 }

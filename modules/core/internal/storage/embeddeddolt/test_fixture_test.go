@@ -14,9 +14,9 @@ import (
 	"sync"
 	"testing"
 
-	"github.com/steveyegge/beads/internal/storage"
-	"github.com/steveyegge/beads/internal/storage/embeddeddolt"
-	"github.com/steveyegge/beads/internal/types"
+	"github.com/borg0ai/dx-issuegraph/internal/storage"
+	"github.com/borg0ai/dx-issuegraph/internal/storage/embeddeddolt"
+	"github.com/borg0ai/dx-issuegraph/internal/types"
 )
 
 var embeddedDoltFixtureRoot string
@@ -30,15 +30,15 @@ var (
 )
 
 type pristineEmbeddedDoltTemplate struct {
-	beadsDir string
-	dataDir  string
+	issuegraphDir string
+	dataDir       string
 }
 
 type pristineEmbeddedDoltFixture struct {
-	store    *embeddeddolt.EmbeddedDoltStore
-	beadsDir string
-	dataDir  string
-	database string
+	store         *embeddeddolt.EmbeddedDoltStore
+	issuegraphDir string
+	dataDir       string
+	database      string
 }
 
 func TestMain(m *testing.M) {
@@ -60,8 +60,8 @@ func TestMain(m *testing.M) {
 func pristineEmbeddedDoltTemplateForTest(t *testing.T) pristineEmbeddedDoltTemplate {
 	t.Helper()
 	pristineEmbeddedDoltTemplateOnce.Do(func() {
-		beadsDir := filepath.Join(embeddedDoltFixtureRoot, ".beads")
-		store, err := embeddeddolt.Open(context.Background(), beadsDir, pristineEmbeddedDoltDatabase, "main")
+		issuegraphDir := filepath.Join(embeddedDoltFixtureRoot, ".issuegraph")
+		store, err := embeddeddolt.Open(context.Background(), issuegraphDir, pristineEmbeddedDoltDatabase, "main")
 		if err != nil {
 			pristineEmbeddedDoltTemplateErr = fmt.Errorf("open pristine embedded Dolt template: %w", err)
 			return
@@ -74,7 +74,7 @@ func pristineEmbeddedDoltTemplateForTest(t *testing.T) pristineEmbeddedDoltTempl
 			pristineEmbeddedDoltTemplateErr = fmt.Errorf("configure pristine embedded Dolt template: %w", err)
 			return
 		}
-		if err := store.Commit(context.Background(), "bd init"); err != nil {
+		if err := store.Commit(context.Background(), "issuegraph init"); err != nil {
 			if closeErr := store.Close(); closeErr != nil {
 				pristineEmbeddedDoltTemplateErr = fmt.Errorf("commit pristine embedded Dolt template: %w", errors.Join(err, closeErr))
 				return
@@ -87,8 +87,8 @@ func pristineEmbeddedDoltTemplateForTest(t *testing.T) pristineEmbeddedDoltTempl
 			return
 		}
 		pristineEmbeddedDoltTemplateValue = pristineEmbeddedDoltTemplate{
-			beadsDir: beadsDir,
-			dataDir:  filepath.Join(beadsDir, "embeddeddolt"),
+			issuegraphDir: issuegraphDir,
+			dataDir:       filepath.Join(issuegraphDir, "embeddeddolt"),
 		}
 	})
 	if pristineEmbeddedDoltTemplateErr != nil {
@@ -101,7 +101,7 @@ func clonePristineEmbeddedDoltTemplate(template pristineEmbeddedDoltTemplate, de
 	if err := os.Mkdir(destination, 0o700); err != nil {
 		return fmt.Errorf("reserve clone destination %q: %w", destination, err)
 	}
-	if err := os.CopyFS(destination, os.DirFS(template.beadsDir)); err != nil {
+	if err := os.CopyFS(destination, os.DirFS(template.issuegraphDir)); err != nil {
 		return fmt.Errorf("copy pristine embedded Dolt template to %q: %w", destination, err)
 	}
 	return nil
@@ -110,21 +110,21 @@ func clonePristineEmbeddedDoltTemplate(template pristineEmbeddedDoltTemplate, de
 func newPristineEmbeddedDoltFixture(t *testing.T, database string) *pristineEmbeddedDoltFixture {
 	t.Helper()
 	template := pristineEmbeddedDoltTemplateForTest(t)
-	beadsDir := filepath.Join(t.TempDir(), ".beads")
-	if err := clonePristineEmbeddedDoltTemplate(template, beadsDir); err != nil {
+	issuegraphDir := filepath.Join(t.TempDir(), ".issuegraph")
+	if err := clonePristineEmbeddedDoltTemplate(template, issuegraphDir); err != nil {
 		t.Fatalf("clone pristine embedded Dolt template: %v", err)
 	}
 	fixture := &pristineEmbeddedDoltFixture{
-		beadsDir: beadsDir,
-		dataDir:  filepath.Join(beadsDir, "embeddeddolt"),
-		database: database,
+		issuegraphDir: issuegraphDir,
+		dataDir:       filepath.Join(issuegraphDir, "embeddeddolt"),
+		database:      database,
 	}
 	if database != pristineEmbeddedDoltDatabase {
 		if err := relocatePristineEmbeddedDoltDatabase(fixture.dataDir, database); err != nil {
 			t.Fatalf("relocate pristine embedded Dolt database to %q: %v", database, err)
 		}
 	}
-	store, err := embeddeddolt.Open(t.Context(), fixture.beadsDir, database, "main")
+	store, err := embeddeddolt.Open(t.Context(), fixture.issuegraphDir, database, "main")
 	if err != nil {
 		t.Fatalf("open pristine embedded Dolt clone: %v", err)
 	}
@@ -136,7 +136,7 @@ func newPristineEmbeddedDoltFixture(t *testing.T, database string) *pristineEmbe
 			}
 			t.Fatalf("configure relocated embedded Dolt clone: %v", err)
 		}
-		if err := store.Commit(t.Context(), "bd init"); err != nil {
+		if err := store.Commit(t.Context(), "issuegraph init"); err != nil {
 			if closeErr := store.Close(); closeErr != nil {
 				t.Fatalf("commit relocated embedded Dolt clone: %v; close: %v", err, closeErr)
 			}
@@ -199,10 +199,10 @@ func directoryDigest(t *testing.T, root string) string {
 
 func TestPristineEmbeddedDoltFixtureRelocatesPrefixes(t *testing.T) {
 	template := pristineEmbeddedDoltTemplateForTest(t)
-	templateDigest := directoryDigest(t, template.beadsDir)
+	templateDigest := directoryDigest(t, template.issuegraphDir)
 
 	fast := newPristineEmbeddedDoltFixture(t, "test")
-	if got := directoryDigest(t, fast.beadsDir); got != templateDigest {
+	if got := directoryDigest(t, fast.issuegraphDir); got != templateDigest {
 		t.Fatalf("test-prefix clone digest = %s, want pristine template %s", got, templateDigest)
 	}
 	closeEmbeddedDoltStore(t, fast.store)
@@ -250,7 +250,7 @@ func TestPristineEmbeddedDoltFixtureRelocatesPrefixes(t *testing.T) {
 	closeEmbeddedDoltStore(t, alpha.store)
 	closeEmbeddedDoltStore(t, beta.store)
 
-	alphaReopened, err := embeddeddolt.Open(context.Background(), alpha.beadsDir, "alpha", "main")
+	alphaReopened, err := embeddeddolt.Open(context.Background(), alpha.issuegraphDir, "alpha", "main")
 	if err != nil {
 		t.Fatalf("reopen alpha: %v", err)
 	}
@@ -259,7 +259,7 @@ func TestPristineEmbeddedDoltFixtureRelocatesPrefixes(t *testing.T) {
 	}
 	closeEmbeddedDoltStore(t, alphaReopened)
 
-	betaReopened, err := embeddeddolt.Open(context.Background(), beta.beadsDir, "beta", "main")
+	betaReopened, err := embeddeddolt.Open(context.Background(), beta.issuegraphDir, "beta", "main")
 	if err != nil {
 		t.Fatalf("reopen beta: %v", err)
 	}
@@ -268,11 +268,11 @@ func TestPristineEmbeddedDoltFixtureRelocatesPrefixes(t *testing.T) {
 	}
 	closeEmbeddedDoltStore(t, betaReopened)
 
-	if got := directoryDigest(t, template.beadsDir); got != templateDigest {
+	if got := directoryDigest(t, template.issuegraphDir); got != templateDigest {
 		t.Fatalf("template digest changed after relocated clone mutations: got %s, want %s", got, templateDigest)
 	}
 
-	reusedDestination := filepath.Join(t.TempDir(), ".beads")
+	reusedDestination := filepath.Join(t.TempDir(), ".issuegraph")
 	if err := clonePristineEmbeddedDoltTemplate(template, reusedDestination); err != nil {
 		t.Fatalf("first clone into reusable destination: %v", err)
 	}

@@ -9,11 +9,11 @@ import (
 	"strings"
 	"time"
 
+	"github.com/borg0ai/dx-issuegraph/internal/configfile"
+	"github.com/borg0ai/dx-issuegraph/internal/metrics"
+	"github.com/borg0ai/dx-issuegraph/internal/ui"
+	"github.com/borg0ai/dx-issuegraph/modules/cli/doctor"
 	"github.com/spf13/cobra"
-	"github.com/steveyegge/beads/modules/cli/doctor"
-	"github.com/steveyegge/beads/internal/configfile"
-	"github.com/steveyegge/beads/internal/metrics"
-	"github.com/steveyegge/beads/internal/ui"
 )
 
 // Status constants for doctor checks
@@ -72,11 +72,11 @@ var doctorCmd = &cobra.Command{
 	// store. It opts out of store init via the annotation seam rather than the
 	// noDbCommands list (see commandOptsOutOfStore in main.go).
 	Annotations: map[string]string{skipStoreAnnotation: "1"},
-	Short:       "Check and fix beads installation health (start here)",
-	Long: `Sanity check the beads installation for the current directory or specified path.
+	Short:       "Check and fix issuegraph installation health (start here)",
+	Long: `Sanity check the issuegraph installation for the current directory or specified path.
 
 This command checks:
-  - If .beads/ directory exists
+  - If .issuegraph/ directory exists
   - Database version and migration status
   - Schema compatibility (all required tables and columns present)
   - Whether using hash-based vs sequential IDs
@@ -85,7 +85,7 @@ This command checks:
   - File permissions
   - Circular dependencies
   - Git hooks (pre-commit, post-merge, pre-push)
-  - .beads/.gitignore up to date
+  - .issuegraph/.gitignore up to date
   - Metadata.json version tracking (LastBdVersion field)
 
 Storage Availability:
@@ -97,7 +97,7 @@ Storage Availability:
 
 Performance Mode (--perf):
   Run performance diagnostics on your database:
-  - Times key operations (bd ready, bd list, bd show, etc.)
+  - Times key operations (issuegraph ready, issuegraph list, issuegraph show, etc.)
   - Collects system info (OS, arch, database stats)
   - Generates CPU profile for analysis
   - Outputs shareable report for bug reports
@@ -108,8 +108,8 @@ Export Mode (--output):
 
 Specific Check Mode (--check):
   Run a specific check in detail. Available checks:
-  - artifacts: Detect and optionally clean beads classic artifacts
-    (stale JSONL, SQLite files, cruft .beads dirs). Use with --clean.
+  - artifacts: Detect and optionally clean issuegraph classic artifacts
+    (stale JSONL, SQLite files, cruft .issuegraph dirs). Use with --clean.
   - conventions: Check for convention drift (lint warnings, stale
     issues, orphaned issues). Advisory only - warns, never blocks.
   - pollution: Detect and optionally clean test issues from database
@@ -122,7 +122,7 @@ Deep Validation Mode (--deep):
   - Parent consistency: All parent-child deps point to existing issues
   - Dependency integrity: All deps reference valid issues
   - Epic completeness: Find epics ready to close (all children closed)
-  - Agent bead integrity: Agent beads have valid state values
+  - Agent issue integrity: Agent issuegraph have valid state values
   - Mail thread integrity: Thread IDs reference existing issues
   - Molecule integrity: Molecules have valid parent-child structures
 
@@ -130,8 +130,8 @@ Server Mode (--server):
   Run health checks for Dolt server mode connections (bd-dolt.2.3):
   - Server reachable: Can connect to configured host:port?
   - Dolt version: Is it a Dolt server (not vanilla MySQL)?
-  - Database exists: Does the 'beads' database exist?
-  - Schema compatible: Can query beads tables?
+  - Database exists: Does the 'issuegraph' database exist?
+  - Schema compatible: Can query issuegraph tables?
   - Connection pool: Pool health metrics
 
 Legacy Dolt Migration Validation Mode (--migration):
@@ -156,39 +156,39 @@ Agent Mode (--agent):
 
 Suppressing Warnings:
   Suppress specific warnings by setting doctor.suppress.<check-slug> config:
-    bd config set doctor.suppress.pending-migrations true
-    bd config set doctor.suppress.git-hooks true
+    issuegraph config set doctor.suppress.pending-migrations true
+    issuegraph config set doctor.suppress.git-hooks true
   Check names are converted to slugs: "Git Hooks" → "git-hooks".
   Only warnings are suppressed; errors and passing checks always show.
-  To unsuppress: bd config unset doctor.suppress.<slug>
+  To unsuppress: issuegraph config unset doctor.suppress.<slug>
 
 Examples:
-  bd doctor              # Check current directory
-  bd doctor /path/to/repo # Check specific repository
-  bd doctor --json       # Machine-readable output
-  bd doctor --agent      # Agent-facing diagnostic output
-  bd doctor --agent --json  # Structured agent diagnostics (JSON)
-  bd doctor --fix        # Automatically fix issues (with confirmation)
-  bd doctor --fix --yes  # Automatically fix issues (no confirmation)
-  bd doctor --fix -i     # Confirm each fix individually
-  bd doctor --fix --fix-child-parent  # Also fix child→parent deps (opt-in)
-  bd doctor --fix --force # Force repair even when database can't be opened
-  bd doctor --fix --source=jsonl # Rebuild database from a JSONL export
-  bd doctor --dry-run    # Preview what --fix would do without making changes
-  bd doctor --perf       # Performance diagnostics
-  bd doctor --output diagnostics.json  # Export diagnostics to file
-  bd doctor --check=artifacts           # Show classic artifacts (JSONL, SQLite, cruft dirs)
-  bd doctor --check=artifacts --clean  # Delete safe-to-delete artifacts (with confirmation)
-  bd doctor --check=conventions        # Convention drift check (lint, stale, orphans)
-  bd doctor --check=pollution          # Show potential test issues
-  bd doctor --check=pollution --clean  # Delete test issues (with confirmation)
-  bd doctor --check=validate         # Data-integrity checks only
-  bd doctor --check=validate --fix   # Auto-fix data-integrity issues
-  bd doctor --deep             # Full graph integrity validation
-  bd doctor --server           # Dolt server mode health checks
-  bd doctor --migration=pre    # Legacy Dolt-server migration diagnostic
-  bd doctor --migration=post   # Legacy Dolt-server completion diagnostic
-  bd doctor --migration=pre --json  # Machine-parseable legacy diagnostic`,
+  issuegraph doctor              # Check current directory
+  issuegraph doctor /path/to/repo # Check specific repository
+  issuegraph doctor --json       # Machine-readable output
+  issuegraph doctor --agent      # Agent-facing diagnostic output
+  issuegraph doctor --agent --json  # Structured agent diagnostics (JSON)
+  issuegraph doctor --fix        # Automatically fix issues (with confirmation)
+  issuegraph doctor --fix --yes  # Automatically fix issues (no confirmation)
+  issuegraph doctor --fix -i     # Confirm each fix individually
+  issuegraph doctor --fix --fix-child-parent  # Also fix child→parent deps (opt-in)
+  issuegraph doctor --fix --force # Force repair even when database can't be opened
+  issuegraph doctor --fix --source=jsonl # Rebuild database from a JSONL export
+  issuegraph doctor --dry-run    # Preview what --fix would do without making changes
+  issuegraph doctor --perf       # Performance diagnostics
+  issuegraph doctor --output diagnostics.json  # Export diagnostics to file
+  issuegraph doctor --check=artifacts           # Show classic artifacts (JSONL, SQLite, cruft dirs)
+  issuegraph doctor --check=artifacts --clean  # Delete safe-to-delete artifacts (with confirmation)
+  issuegraph doctor --check=conventions        # Convention drift check (lint, stale, orphans)
+  issuegraph doctor --check=pollution          # Show potential test issues
+  issuegraph doctor --check=pollution --clean  # Delete test issues (with confirmation)
+  issuegraph doctor --check=validate         # Data-integrity checks only
+  issuegraph doctor --check=validate --fix   # Auto-fix data-integrity issues
+  issuegraph doctor --deep             # Full graph integrity validation
+  issuegraph doctor --server           # Dolt server mode health checks
+  issuegraph doctor --migration=pre    # Legacy Dolt-server migration diagnostic
+  issuegraph doctor --migration=post   # Legacy Dolt-server completion diagnostic
+  issuegraph doctor --migration=pre --json  # Machine-parseable legacy diagnostic`,
 	SilenceUsage:  true,
 	SilenceErrors: true,
 	RunE: func(cmd *cobra.Command, args []string) error {
@@ -202,8 +202,8 @@ Examples:
 		var checkPath string
 		if len(args) > 0 {
 			checkPath = args[0]
-		} else if beadsDir := os.Getenv("BEADS_DIR"); beadsDir != "" {
-			checkPath = filepath.Dir(beadsDir)
+		} else if issuegraphDir := os.Getenv("ISSUEGRAPH_DIR"); issuegraphDir != "" {
+			checkPath = filepath.Dir(issuegraphDir)
 		} else {
 			checkPath = "."
 		}
@@ -223,8 +223,8 @@ Examples:
 
 		if doctorFix && isOrchestratorRoot(absPath) {
 			return HandleErrorWithHint(
-				"refusing to run 'bd doctor --fix' at orchestrator workspace root",
-				"Run the orchestrator's doctor command from workspace root, or run 'bd doctor --fix' inside a specific project clone",
+				"refusing to run 'issuegraph doctor --fix' at orchestrator workspace root",
+				"Run the orchestrator's doctor command from workspace root, or run 'issuegraph doctor --fix' inside a specific project clone",
 			)
 		}
 
@@ -269,7 +269,7 @@ Examples:
 			}
 		}
 
-		// Bare `bd doctor` and the remaining mode-specific flags (--deep,
+		// Bare `issuegraph doctor` and the remaining mode-specific flags (--deep,
 		// --server, --migration) aren't wired up for embedded mode yet.
 		// Policy (GH#3794): embedded support is enabled one subcommand at a
 		// time, each human-vetted — do not lift this gate wholesale. Checks
@@ -379,7 +379,7 @@ func doctorMutationOp() string {
 // refused run never half-executes and never needs a store to refuse.
 //
 // There is deliberately no doctor-side override. A migration freeze is exactly
-// when a shared store has mixed-version clients and `bd doctor --fix` is the
+// when a shared store has mixed-version clients and `issuegraph doctor --fix` is the
 // mid-incident reflex command; the operator clears the freeze first.
 func checkDoctorMutationGate(absPath string) error {
 	op := doctorMutationOp()
@@ -395,7 +395,7 @@ func checkDoctorMutationGate(absPath string) error {
 	}
 	// Doctor is the one write-capable command that takes a target path, so the
 	// freeze has to be looked up against that target as well as against the
-	// directory bd was launched in: `bd doctor /frozen/repo --fix` from an
+	// directory issuegraph was launched in: `issuegraph doctor /frozen/repo --fix` from an
 	// unfrozen cwd would otherwise walk the wrong tree entirely. ...ErrorFor
 	// covers both (FindFrom(absPath) alone would miss a freeze in the caller's
 	// own cwd), and doctorCmd already sets SilenceErrors/SilenceUsage
@@ -412,15 +412,15 @@ func shouldSkipDoctorNetworkChecks() bool {
 // direct diagnostic store paths and may run under shared-server mode, so corrupt
 // metadata must be rejected before version tracking or any database check begins.
 func validateDoctorWorkspaceBackend(path string) error {
-	beadsDir := doctor.ResolveBeadsDirForRepo(path)
-	if err := guardLegacyUpgradeWorkspace(beadsDir); err != nil {
+	issuegraphDir := doctor.ResolveIssueGraphDirForRepo(path)
+	if err := guardLegacyUpgradeWorkspace(issuegraphDir); err != nil {
 		return err
 	}
-	cfg, err := configfile.LoadForDiscovery(beadsDir)
+	cfg, err := configfile.LoadForDiscovery(issuegraphDir)
 	if err != nil {
-		return fmt.Errorf("failed to load %s: %w; no storage database was opened or modified; fix or restore metadata.json and retry", configfile.ConfigPath(beadsDir), err)
+		return fmt.Errorf("failed to load %s: %w; no storage database was opened or modified; fix or restore metadata.json and retry", configfile.ConfigPath(issuegraphDir), err)
 	}
-	return validateConfiguredBackend(cfg, beadsDir)
+	return validateConfiguredBackend(cfg, issuegraphDir)
 }
 
 // printLegacyUpgradeDiagnostic preserves doctor as a store-free repair path:
@@ -444,22 +444,22 @@ func printLegacyUpgradeDiagnostic(err error) error {
 // --agent is set so downstream tooling can detect the gap without parsing
 // prose, and the existing prose stub otherwise (GH#3597).
 //
-// Follows the bd error-JSON contract (docs/JSON_SCHEMA.md): stderr, includes
+// Follows the issuegraph error-JSON contract (docs/JSON_SCHEMA.md): stderr, includes
 // a `code` field, and is wrapped with schema_version. Exit code stays 0 - a
 // benign refusal, not a failure.
 func printEmbeddedUnsupported(commandLabel string) {
 	hints := []string{
-		"Verify database exists:  ls -la .beads/embeddeddolt/",
-		"Check bd version:        bd version",
-		"Reinitialize if needed:  bd init --reinit-local",
-		"Switch to server mode:   bd init --server",
+		"Verify database exists:  ls -la .issuegraph/embeddeddolt/",
+		"Check issuegraph version:        issuegraph version",
+		"Reinitialize if needed:  issuegraph init --reinit-local",
+		"Switch to server mode:   issuegraph init --server",
 	}
 	supported := []string{"artifacts", "conventions", "pollution"}
 	unsupported := []string{"validate"}
 
 	if jsonOutput || doctorAgent {
 		payload := map[string]interface{}{
-			"error":                               fmt.Sprintf("'bd %s' is not yet supported in embedded mode", commandLabel),
+			"error":                               fmt.Sprintf("'issuegraph %s' is not yet supported in embedded mode", commandLabel),
 			"code":                                "embedded_unsupported",
 			"unsupported":                         true,
 			"mode":                                "embedded",
@@ -474,16 +474,16 @@ func printEmbeddedUnsupported(commandLabel string) {
 		return
 	}
 
-	fmt.Fprintf(os.Stderr, "Note: 'bd %s' is not yet supported in embedded mode.\n\n", commandLabel)
+	fmt.Fprintf(os.Stderr, "Note: 'issuegraph %s' is not yet supported in embedded mode.\n\n", commandLabel)
 	fmt.Fprintln(os.Stderr, "For embedded mode troubleshooting:")
 	for _, h := range hints {
 		fmt.Fprintf(os.Stderr, "  • %s\n", h)
 	}
 	fmt.Fprintln(os.Stderr, "")
 	fmt.Fprintln(os.Stderr, "Checks available in embedded mode:")
-	fmt.Fprintln(os.Stderr, "  • bd doctor --check=artifacts")
-	fmt.Fprintln(os.Stderr, "  • bd doctor --check=conventions")
-	fmt.Fprintln(os.Stderr, "  • bd doctor --check=pollution")
+	fmt.Fprintln(os.Stderr, "  • issuegraph doctor --check=artifacts")
+	fmt.Fprintln(os.Stderr, "  • issuegraph doctor --check=conventions")
+	fmt.Fprintln(os.Stderr, "  • issuegraph doctor --check=pollution")
 }
 
 func runDiagnostics(path string) doctorResult {
@@ -495,26 +495,26 @@ func runDiagnostics(path string) doctorResult {
 
 	// Auto-detect orchestrator mode: routes.jsonl is only created by orchestrator workspaces
 	if !doctorOrchestrator {
-		resolvedBeadsDir := doctor.ResolveBeadsDirForRepo(path)
-		routesFile := filepath.Join(resolvedBeadsDir, "routes.jsonl")
+		resolvedIssueGraphDir := doctor.ResolveIssueGraphDirForRepo(path)
+		routesFile := filepath.Join(resolvedIssueGraphDir, "routes.jsonl")
 		if _, err := os.Stat(routesFile); err == nil {
 			doctorOrchestrator = true
 		}
 	}
 
-	// Check 1: Installation (.beads/ directory)
+	// Check 1: Installation (.issuegraph/ directory)
 	installCheck := convertWithCategory(doctor.CheckInstallation(path), doctor.CategoryCore)
 	result.Checks = append(result.Checks, installCheck)
 	if installCheck.Status != statusOK {
 		result.OverallOK = false
 	}
 
-	// Check Git Hooks early (even if .beads/ doesn't exist yet)
+	// Check Git Hooks early (even if .issuegraph/ doesn't exist yet)
 	hooksCheck := convertWithCategory(doctor.CheckGitHooks(Version), doctor.CategoryGit)
 	result.Checks = append(result.Checks, hooksCheck)
 	// Don't fail overall check for missing hooks, just warn
 
-	// Check for stale .legacy hook sidecars calling removed "bd hook" command (GH#2398)
+	// Check for stale .legacy hook sidecars calling removed "issuegraph hook" command (GH#2398)
 	legacyCheck := convertWithCategory(doctor.CheckStaleLegacyHooks(), doctor.CategoryGit)
 	result.Checks = append(result.Checks, legacyCheck)
 
@@ -530,7 +530,7 @@ func runDiagnostics(path string) doctorResult {
 		result.OverallOK = false
 	}
 
-	// If no .beads/, skip remaining checks
+	// If no .issuegraph/, skip remaining checks
 	if installCheck.Status != statusOK {
 		return result
 	}
@@ -545,14 +545,14 @@ func runDiagnostics(path string) doctorResult {
 
 	// Check 1b: Metadata config file (GH#2478)
 	// Must come before database checks since they depend on metadata.json.
-	beadsDir := doctor.ResolveBeadsDirForRepo(path)
-	configPath := configfile.ConfigPath(beadsDir)
+	issuegraphDir := doctor.ResolveIssueGraphDirForRepo(path)
+	configPath := configfile.ConfigPath(issuegraphDir)
 	if _, err := os.Stat(configPath); os.IsNotExist(err) {
 		metaCheck := doctorCheck{
 			Name:     "Metadata Config",
 			Status:   statusError,
 			Message:  "metadata.json is missing",
-			Fix:      "Run 'bd doctor --fix' to regenerate with defaults, or 'bd init --force'",
+			Fix:      "Run 'issuegraph doctor --fix' to regenerate with defaults, or 'issuegraph init --force'",
 			Category: doctor.CategoryCore,
 		}
 		result.Checks = append(result.Checks, metaCheck)
@@ -580,28 +580,28 @@ func runDiagnostics(path string) doctorResult {
 	// #6028: skipping that hook also skipped its guards on these exact two
 	// calls — main.go runs them only when policy.runMaintenance is set and the
 	// workspace is not frozen for maintenance. Doctor replicates the calls, so
-	// it must replicate the guard, or plain `bd doctor` (no --fix needed)
-	// rewrites .beads/.local_version and silently applies a schema migration to
+	// it must replicate the guard, or plain `issuegraph doctor` (no --fix needed)
+	// rewrites .issuegraph/.local_version and silently applies a schema migration to
 	// a read-only or mid-freeze store: precisely the torn-upgrade write the
 	// freeze exists to prevent. Under either gate doctor now *reports* the
 	// version/migration mismatch in the checks below instead of healing it.
 	//
-	// The probe takes beadsDir for the same reason the mutation gate takes
+	// The probe takes issuegraphDir for the same reason the mutation gate takes
 	// absPath: these writes land in the doctor target, so a freeze on that tree
-	// must stop them even when bd was launched somewhere unfrozen.
-	if !readonlyMode && !migrationFreezeActiveFor(beadsDir) {
-		// Scope version tracking to the doctor target. Without this, `bd doctor <path>`
-		// can accidentally touch the caller's current repo .beads state.
-		origBeadsDir, hadBeadsDir := os.LookupEnv("BEADS_DIR")
-		_ = os.Setenv("BEADS_DIR", beadsDir)
+	// must stop them even when issuegraph was launched somewhere unfrozen.
+	if !readonlyMode && !migrationFreezeActiveFor(issuegraphDir) {
+		// Scope version tracking to the doctor target. Without this, `issuegraph doctor <path>`
+		// can accidentally touch the caller's current repo .issuegraph state.
+		origIssueGraphDir, hadIssueGraphDir := os.LookupEnv("ISSUEGRAPH_DIR")
+		_ = os.Setenv("ISSUEGRAPH_DIR", issuegraphDir)
 		trackBdVersion()
-		if hadBeadsDir {
-			_ = os.Setenv("BEADS_DIR", origBeadsDir)
+		if hadIssueGraphDir {
+			_ = os.Setenv("ISSUEGRAPH_DIR", origIssueGraphDir)
 		} else {
-			_ = os.Unsetenv("BEADS_DIR")
+			_ = os.Unsetenv("ISSUEGRAPH_DIR")
 		}
 
-		autoMigrateOnVersionBump(beadsDir)
+		autoMigrateOnVersionBump(issuegraphDir)
 	}
 
 	// Check 1b: Dolt format compatibility (GH#2137)
@@ -697,8 +697,8 @@ func runDiagnostics(path string) doctorResult {
 	result.Checks = append(result.Checks, multiRepoTypesCheck)
 	// Don't fail overall check for multi-repo types, just informational
 
-	// Check 7c: Role configuration (beads.role)
-	roleCheck := convertDoctorCheck(doctor.CheckBeadsRoleWithStore(path, sharedStore))
+	// Check 7c: Role configuration (issuegraph.role)
+	roleCheck := convertDoctorCheck(doctor.CheckIssueGraphRoleWithStore(path, sharedStore))
 	result.Checks = append(result.Checks, roleCheck)
 	// Don't fail overall check for role config, just warn - URL heuristic fallback still works
 
@@ -788,16 +788,16 @@ func runDiagnostics(path string) doctorResult {
 	}
 
 	// Check 10c: is_blocked consistency — derived flags a skipped post-pull
-	// recompute can leave stale (bd-6dnrw.37). `bd ready` trusts is_blocked, so
+	// recompute can leave stale (bd-6dnrw.37). `issuegraph ready` trusts is_blocked, so
 	// staleness silently hides ready work; the full recompute repairs it.
 	// Warn-only (does not fail OverallOK): this is a new check shipping in a
-	// patch, and is_blocked is self-healing via 'bd doctor --fix' / the next
+	// patch, and is_blocked is self-healing via 'issuegraph doctor --fix' / the next
 	// pull's recompute — surface it as actionable without turning doctor red
 	// across the fleet if an unforeseen dependency shape trips the predicate.
 	blockedConsistencyCheck := convertWithCategory(doctor.CheckBlockedConsistencyWithStore(sharedStore), doctor.CategoryData)
 	result.Checks = append(result.Checks, blockedConsistencyCheck)
 
-	// Check 10d: label whitespace damage (#5812) — labels written by a bd that
+	// Check 10d: label whitespace damage (#5812) — labels written by a issuegraph that
 	// normalized on read but not on write, which no filter can match.
 	// Warn-only (does not fail OverallOK), same reasoning as the check above:
 	// this ships into databases that already carry the damage, and turning
@@ -823,15 +823,15 @@ func runDiagnostics(path string) doctorResult {
 	result.Checks = append(result.Checks, claudeHookCheck)
 	// Don't fail overall check for incomplete hooks, just warn
 
-	// Check 11c: bd prime output verification
-	bdPrimeOutputCheck := convertWithCategory(doctor.VerifyPrimeOutput(path), doctor.CategoryIntegration)
-	result.Checks = append(result.Checks, bdPrimeOutputCheck)
+	// Check 11c: issuegraph prime output verification
+	issuegraphPrimeOutputCheck := convertWithCategory(doctor.VerifyPrimeOutput(path), doctor.CategoryIntegration)
+	result.Checks = append(result.Checks, issuegraphPrimeOutputCheck)
 	// Don't fail overall check for prime output issues, just warn
 
-	// Check 11d: bd in PATH (needed for Claude hooks and other integrations)
-	bdPathCheck := convertWithCategory(doctor.CheckBdInPath(), doctor.CategoryIntegration)
-	result.Checks = append(result.Checks, bdPathCheck)
-	// Don't fail overall check for missing bd in PATH, just warn
+	// Check 11d: issuegraph in PATH (needed for Claude hooks and other integrations)
+	issuegraphPathCheck := convertWithCategory(doctor.CheckBdInPath(), doctor.CategoryIntegration)
+	result.Checks = append(result.Checks, issuegraphPathCheck)
+	// Don't fail overall check for missing issuegraph in PATH, just warn
 
 	// Check 11e: Cursor integration (agent hooks)
 	cursorCheck := convertWithCategory(doctor.CheckCursor(path), doctor.CategoryIntegration)
@@ -850,9 +850,9 @@ func runDiagnostics(path string) doctorResult {
 	result.Checks = append(result.Checks, cursorHookCheck)
 	// Don't fail overall check for incomplete hooks, just warn
 
-	// Check 11h: Documentation bd prime references match installed version
-	bdPrimeDocsCheck := convertWithCategory(doctor.CheckDocumentationBdPrimeReference(path), doctor.CategoryIntegration)
-	result.Checks = append(result.Checks, bdPrimeDocsCheck)
+	// Check 11h: Documentation issuegraph prime references match installed version
+	issuegraphPrimeDocsCheck := convertWithCategory(doctor.CheckDocumentationBdPrimeReference(path), doctor.CategoryIntegration)
+	result.Checks = append(result.Checks, issuegraphPrimeDocsCheck)
 	// Don't fail overall check for doc mismatch, just warn
 
 	// Check 12: Agent documentation presence
@@ -865,8 +865,8 @@ func runDiagnostics(path string) doctorResult {
 	result.Checks = append(result.Checks, agentDocDivergenceCheck)
 	// Don't fail overall check for divergence, just warn
 
-	// Check 13: Legacy beads slash commands in documentation
-	legacyDocsCheck := convertWithCategory(doctor.CheckLegacyBeadsSlashCommands(path), doctor.CategoryMetadata)
+	// Check 13: Legacy issuegraph slash commands in documentation
+	legacyDocsCheck := convertWithCategory(doctor.CheckLegacyIssueGraphSlashCommands(path), doctor.CategoryMetadata)
 	result.Checks = append(result.Checks, legacyDocsCheck)
 	// Don't fail overall check for legacy docs, just warn
 
@@ -900,7 +900,7 @@ func runDiagnostics(path string) doctorResult {
 	result.Checks = append(result.Checks, redirectTargetCheck)
 	// Don't fail overall check for redirect target, just warn
 
-	// Check 14d: redirect target sync worktree (target has beads-sync if needed)
+	// Check 14d: redirect target sync worktree (target has issuegraph-sync if needed)
 	redirectTargetSyncCheck := convertWithCategory(doctor.CheckRedirectTargetSyncWorktree(path), doctor.CategoryGit)
 	result.Checks = append(result.Checks, redirectTargetSyncCheck)
 	// Don't fail overall check for redirect target sync, just warn
@@ -947,12 +947,12 @@ func runDiagnostics(path string) doctorResult {
 	result.Checks = append(result.Checks, deletionsCheck)
 	// Don't fail overall check for missing deletions manifest, just warn
 
-	// Check 20: Untracked .beads/*.jsonl files
-	untrackedCheck := convertWithCategory(doctor.CheckUntrackedBeadsFiles(path), doctor.CategoryData)
+	// Check 20: Untracked .issuegraph/*.jsonl files
+	untrackedCheck := convertWithCategory(doctor.CheckUntrackedIssueGraphFiles(path), doctor.CategoryData)
 	result.Checks = append(result.Checks, untrackedCheck)
 	// Don't fail overall check for untracked files, just warn
 
-	// Check 21: Orphaned dependencies (from bd repair-deps, bd validate)
+	// Check 21: Orphaned dependencies (from issuegraph repair-deps, issuegraph validate)
 	orphanedDepsCheck := convertDoctorCheck(doctor.CheckOrphanedDependencies(path))
 	result.Checks = append(result.Checks, orphanedDepsCheck)
 	// Don't fail overall check for orphaned deps, just warn
@@ -967,12 +967,12 @@ func runDiagnostics(path string) doctorResult {
 	result.Checks = append(result.Checks, childParentDepsCheck)
 	// Don't fail overall check for child→parent deps, just warn
 
-	// Check 23: Duplicate issues (from bd validate)
+	// Check 23: Duplicate issues (from issuegraph validate)
 	duplicatesCheck := convertDoctorCheck(doctor.CheckDuplicateIssues(path, doctorOrchestrator, orchestratorDuplicatesThreshold))
 	result.Checks = append(result.Checks, duplicatesCheck)
 	// Don't fail overall check for duplicates, just warn
 
-	// Check 24: Test pollution (from bd validate)
+	// Check 24: Test pollution (from issuegraph validate)
 	pollutionCheck := convertDoctorCheck(doctor.CheckTestPollution(path))
 	result.Checks = append(result.Checks, pollutionCheck)
 	// Don't fail overall check for test pollution, just warn
@@ -997,7 +997,7 @@ func runDiagnostics(path string) doctorResult {
 	result.Checks = append(result.Checks, staleMQFilesCheck)
 	// Don't fail overall check for legacy MQ files, just warn
 
-	// Check 26d: Patrol pollution (patrol digests, session beads)
+	// Check 26d: Patrol pollution (patrol digests, session issuegraph)
 	patrolPollutionCheck := convertDoctorCheck(doctor.CheckPatrolPollution(path))
 	result.Checks = append(result.Checks, patrolPollutionCheck)
 	// Don't fail overall check for patrol pollution, just warn
@@ -1031,7 +1031,7 @@ func runDiagnostics(path string) doctorResult {
 	result.Checks = append(result.Checks, classicArtifactsCheck)
 	// Don't fail overall check for classic artifacts, just warn
 
-	// Check 34: Linux btrfs NoCOW on .beads/ (GH nocow-beads-dolt-init)
+	// Check 34: Linux btrfs NoCOW on .issuegraph/ (GH nocow-issuegraph-dolt-init)
 	// Warns when the dolt data directory sits on btrfs without FS_NOCOW_FL,
 	// which causes kworker thrashing on the hot append-only write path. Safe
 	// no-op on non-Linux and non-btrfs filesystems.
@@ -1077,7 +1077,7 @@ func runDiagnostics(path string) doctorResult {
 
 // runInitDiagnostics runs a limited subset of diagnostics appropriate for a
 // freshly-initialized project. Unlike runDiagnostics (which checks everything),
-// this only validates that the init itself succeeded: the .beads directory exists,
+// this only validates that the init itself succeeded: the .issuegraph directory exists,
 // the database is openable with correct schema, and permissions are correct.
 // Checks that require git, federation remotes, or other post-setup configuration
 // are skipped since they cannot be satisfied in a fresh project.
@@ -1088,7 +1088,7 @@ func runInitDiagnostics(path string) doctorResult {
 		OverallOK:  true,
 	}
 
-	// Check 1: Installation (.beads/ directory)
+	// Check 1: Installation (.issuegraph/ directory)
 	installCheck := convertWithCategory(doctor.CheckInstallation(path), doctor.CategoryCore)
 	result.Checks = append(result.Checks, installCheck)
 	if installCheck.Status != statusOK {
@@ -1104,7 +1104,7 @@ func runInitDiagnostics(path string) doctorResult {
 	}
 
 	// Open one shared store for the database-backed init checks. Server-mode
-	// workspaces may not have a local .beads/dolt directory, so the path-only
+	// workspaces may not have a local .issuegraph/dolt directory, so the path-only
 	// checks would otherwise report a false missing database.
 	sharedStore := doctor.NewSharedStore(path)
 	defer sharedStore.Close()

@@ -6,9 +6,9 @@ import (
 	"context"
 	"database/sql"
 
-	"github.com/steveyegge/beads/internal/storage"
-	"github.com/steveyegge/beads/internal/storage/issueops"
-	"github.com/steveyegge/beads/internal/types"
+	"github.com/borg0ai/dx-issuegraph/internal/storage"
+	"github.com/borg0ai/dx-issuegraph/internal/storage/issueops"
+	"github.com/borg0ai/dx-issuegraph/internal/types"
 )
 
 // AddDependency adds a dependency without recording a dependency_added event —
@@ -33,7 +33,7 @@ func (s *EmbeddedDoltStore) AddDependencyWithOptions(ctx context.Context, dep *t
 
 // RemoveDependency removes a dependency without recording a dependency_removed
 // event — the no-event default for structural callers (issue delete, reparent,
-// batch, duplicate cleanup). The explicit bd dep remove verb calls
+// batch, duplicate cleanup). The explicit issuegraph dep remove verb calls
 // RemoveDependencyWithOptions with EmitEvent set.
 func (s *EmbeddedDoltStore) RemoveDependency(ctx context.Context, issueID, dependsOnID string, actor string) error {
 	return s.RemoveDependencyWithOptions(ctx, issueID, dependsOnID, actor, storage.DependencyRemoveOptions{})

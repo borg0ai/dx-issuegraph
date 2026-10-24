@@ -6,7 +6,7 @@ import (
 	"reflect"
 	"testing"
 
-	"github.com/steveyegge/beads/internal/types"
+	"github.com/borg0ai/dx-issuegraph/internal/types"
 )
 
 // searchOnlyStore records the SearchIssues calls countLabelsAcrossIssues
@@ -113,7 +113,7 @@ func TestCountLabelsAcrossIssues_SearchError(t *testing.T) {
 }
 
 // TestLabelListAllSearcherExposesNoPerIssueLookup is the regression gate for
-// GH#5325. bd label list-all used to call store.GetLabels once per issue on
+// GH#5325. issuegraph label list-all used to call store.GetLabels once per issue on
 // top of a SearchIssues result that already carried hydrated labels; in
 // embedded Dolt mode that is a fresh connector plus transaction per issue.
 // Keeping the command's storage surface to SearchIssues alone makes that
@@ -125,7 +125,7 @@ func TestLabelListAllSearcherExposesNoPerIssueLookup(t *testing.T) {
 	iface := reflect.TypeOf((*labelListAllSearcher)(nil)).Elem()
 	for i := 0; i < iface.NumMethod(); i++ {
 		if name := iface.Method(i).Name; name != "SearchIssues" {
-			t.Errorf("labelListAllSearcher exposes %q; bd label list-all must read labels only from the bulk-hydrated SearchIssues result (GH#5325)", name)
+			t.Errorf("labelListAllSearcher exposes %q; issuegraph label list-all must read labels only from the bulk-hydrated SearchIssues result (GH#5325)", name)
 		}
 	}
 }

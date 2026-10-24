@@ -1,12 +1,12 @@
 #!/usr/bin/env bash
-# migrate-jsonl-to-dolt.sh — Import bd export JSONL files into a Dolt database
+# migrate-jsonl-to-dolt.sh — Import issuegraph export JSONL files into a Dolt database
 #
 # Usage:
-#   ./scripts/migrate-jsonl-to-dolt.sh .beads/backup/
-#   ./scripts/migrate-jsonl-to-dolt.sh --port 3307 --db beads .beads/backup/
-#   ./scripts/migrate-jsonl-to-dolt.sh --dry-run .beads/backup/
+#   ./scripts/migrate-jsonl-to-dolt.sh .issuegraph/backup/
+#   ./scripts/migrate-jsonl-to-dolt.sh --port 3307 --db issuegraph .issuegraph/backup/
+#   ./scripts/migrate-jsonl-to-dolt.sh --dry-run .issuegraph/backup/
 #
-# Reads JSONL files produced by `bd export` and loads them into Dolt via
+# Reads JSONL files produced by `issuegraph export` and loads them into Dolt via
 # MySQL protocol. Requires: jq, mysql CLI (or dolt sql-client).
 #
 # Fixes GH#2276.
@@ -16,7 +16,7 @@ set -euo pipefail
 # Defaults
 HOST="127.0.0.1"
 PORT=3307
-DB="beads"
+DB="issuegraph"
 USER="root"
 DRY_RUN=false
 BACKUP_DIR=""
@@ -37,24 +37,24 @@ usage() {
     cat <<EOF
 Usage: $0 [OPTIONS] BACKUP_DIR
 
-Import bd export JSONL files into a Dolt database via MySQL protocol.
+Import issuegraph export JSONL files into a Dolt database via MySQL protocol.
 
 Arguments:
-  BACKUP_DIR        Directory containing JSONL files from 'bd export'
+  BACKUP_DIR        Directory containing JSONL files from 'issuegraph export'
 
 Options:
   --host HOST       Dolt server host (default: 127.0.0.1)
   --port PORT       Dolt server port (default: 3307)
-  --db DATABASE     Target database name (default: beads)
+  --db DATABASE     Target database name (default: issuegraph)
   --user USER       MySQL user (default: root)
   --dry-run         Show generated SQL without executing
   -h, --help        Show this help message
 
 Example:
-  bd export                                          # produces .beads/backup/*.jsonl
-  $0 .beads/backup/                                  # import into Dolt
-  $0 --port 3307 --db beads .beads/backup/           # explicit connection params
-  $0 --dry-run .beads/backup/                        # preview SQL only
+  issuegraph export                                          # produces .issuegraph/backup/*.jsonl
+  $0 .issuegraph/backup/                                  # import into Dolt
+  $0 --port 3307 --db issuegraph .issuegraph/backup/           # explicit connection params
+  $0 --dry-run .issuegraph/backup/                        # preview SQL only
 EOF
     exit 0
 }
@@ -386,7 +386,7 @@ if ! $DRY_RUN; then
     if ! echo "SELECT 1;" | pipe_sql &>/dev/null; then
         echo -e " ${RED}✗${NC}"
         echo "Error: cannot connect to Dolt at $HOST:$PORT (database: $DB)"
-        echo "Is the Dolt server running? Try: bd dolt start"
+        echo "Is the Dolt server running? Try: issuegraph dolt start"
         exit 1
     fi
     echo -e " ${GREEN}✓${NC}"

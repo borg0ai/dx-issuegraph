@@ -10,14 +10,14 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/steveyegge/beads/internal/types"
+	"github.com/borg0ai/dx-issuegraph/internal/types"
 )
 
-func bdProxiedComment(t *testing.T, bd, dir string, args ...string) string {
+func issuegraphProxiedComment(t *testing.T, issuegraph, dir string, args ...string) string {
 	t.Helper()
-	stdout, stderr, err := bdProxiedRunBuffers(t, bd, dir, append([]string{"comment"}, args...)...)
+	stdout, stderr, err := issuegraphProxiedRunBuffers(t, issuegraph, dir, append([]string{"comment"}, args...)...)
 	if err != nil {
-		t.Fatalf("bd comment %s failed: %v\nstdout:\n%s\nstderr:\n%s", strings.Join(args, " "), err, stdout, stderr)
+		t.Fatalf("issuegraph comment %s failed: %v\nstdout:\n%s\nstderr:\n%s", strings.Join(args, " "), err, stdout, stderr)
 	}
 	return stdout
 }
@@ -26,30 +26,30 @@ func TestProxiedServerComment(t *testing.T) {
 	requireSharedProxiedServer(t)
 	t.Parallel()
 
-	bd := buildEmbeddedBD(t)
+	issuegraph := buildEmbeddedBD(t)
 
 	t.Run("permanent_comment_round_trip_and_not_found", func(t *testing.T) {
 		t.Parallel()
-		p := newSharedProxiedProject(t, bd, "cm")
-		issue := bdProxiedCreate(t, bd, p.dir, "Needs a comment")
+		p := newSharedProxiedProject(t, issuegraph, "cm")
+		issue := issuegraphProxiedCreate(t, issuegraph, p.dir, "Needs a comment")
 
-		stdout, stderr, err := bdProxiedRunBuffers(t, bd, p.dir, "comment", issue.ID, "first thoughts")
+		stdout, stderr, err := issuegraphProxiedRunBuffers(t, issuegraph, p.dir, "comment", issue.ID, "first thoughts")
 		if err != nil {
-			t.Fatalf("bd comment failed: %v\nstdout:\n%s\nstderr:\n%s", err, stdout, stderr)
+			t.Fatalf("issuegraph comment failed: %v\nstdout:\n%s\nstderr:\n%s", err, stdout, stderr)
 		}
 		if stderr != "" {
-			t.Errorf("bd comment stderr = %q, want empty", stderr)
+			t.Errorf("issuegraph comment stderr = %q, want empty", stderr)
 		}
 		if !strings.Contains(stdout, "Comment added to "+issue.ID) {
-			t.Errorf("bd comment confirmation = %q, want exact issue ID %q", stdout, issue.ID)
+			t.Errorf("issuegraph comment confirmation = %q, want exact issue ID %q", stdout, issue.ID)
 		}
 
-		stdout, stderr, err = bdProxiedRunBuffers(t, bd, p.dir, "comments", "--json", issue.ID)
+		stdout, stderr, err = issuegraphProxiedRunBuffers(t, issuegraph, p.dir, "comments", "--json", issue.ID)
 		if err != nil {
-			t.Fatalf("bd comments --json failed: %v\nstdout:\n%s\nstderr:\n%s", err, stdout, stderr)
+			t.Fatalf("issuegraph comments --json failed: %v\nstdout:\n%s\nstderr:\n%s", err, stdout, stderr)
 		}
 		if stderr != "" {
-			t.Errorf("bd comments --json stderr = %q, want empty", stderr)
+			t.Errorf("issuegraph comments --json stderr = %q, want empty", stderr)
 		}
 		var comments []types.Comment
 		if err := json.Unmarshal([]byte(stdout), &comments); err != nil {
@@ -75,12 +75,12 @@ func TestProxiedServerComment(t *testing.T) {
 			t.Errorf("comment created_at = %v, want nonzero whole-second timestamp", comment.CreatedAt)
 		}
 
-		stdout, stderr, err = bdProxiedRunBuffers(t, bd, p.dir, "comment", "--json", issue.ID, "json body")
+		stdout, stderr, err = issuegraphProxiedRunBuffers(t, issuegraph, p.dir, "comment", "--json", issue.ID, "json body")
 		if err != nil {
-			t.Fatalf("bd comment --json failed: %v\nstdout:\n%s\nstderr:\n%s", err, stdout, stderr)
+			t.Fatalf("issuegraph comment --json failed: %v\nstdout:\n%s\nstderr:\n%s", err, stdout, stderr)
 		}
 		if stderr != "" {
-			t.Errorf("bd comment --json stderr = %q, want empty", stderr)
+			t.Errorf("issuegraph comment --json stderr = %q, want empty", stderr)
 		}
 		var jsonComment types.Comment
 		if err := json.Unmarshal([]byte(stdout), &jsonComment); err != nil {
@@ -107,29 +107,29 @@ func TestProxiedServerComment(t *testing.T) {
 		if err := os.WriteFile(commentFile, []byte("body from a file"), 0o600); err != nil {
 			t.Fatalf("write comment file: %v", err)
 		}
-		stdout, stderr, err = bdProxiedRunBuffers(t, bd, p.dir, "comment", issue.ID, "--file", commentFile)
+		stdout, stderr, err = issuegraphProxiedRunBuffers(t, issuegraph, p.dir, "comment", issue.ID, "--file", commentFile)
 		if err != nil {
-			t.Fatalf("bd comment --file failed: %v\nstdout:\n%s\nstderr:\n%s", err, stdout, stderr)
+			t.Fatalf("issuegraph comment --file failed: %v\nstdout:\n%s\nstderr:\n%s", err, stdout, stderr)
 		}
 		if stderr != "" {
-			t.Errorf("bd comment --file stderr = %q, want empty", stderr)
+			t.Errorf("issuegraph comment --file stderr = %q, want empty", stderr)
 		}
 
 		addFile := filepath.Join(fileDir, "add.txt")
 		if err := os.WriteFile(addFile, []byte("note from file"), 0o600); err != nil {
 			t.Fatalf("write comments add file: %v", err)
 		}
-		stdout, stderr, err = bdProxiedRunBuffers(t, bd, p.dir, "comments", "add", issue.ID, "--file", addFile)
+		stdout, stderr, err = issuegraphProxiedRunBuffers(t, issuegraph, p.dir, "comments", "add", issue.ID, "--file", addFile)
 		if err != nil {
-			t.Fatalf("bd comments add --file failed: %v\nstdout:\n%s\nstderr:\n%s", err, stdout, stderr)
+			t.Fatalf("issuegraph comments add --file failed: %v\nstdout:\n%s\nstderr:\n%s", err, stdout, stderr)
 		}
 		if stderr != "" {
-			t.Errorf("bd comments add --file stderr = %q, want empty", stderr)
+			t.Errorf("issuegraph comments add --file stderr = %q, want empty", stderr)
 		}
 
-		stdout, stderr, err = bdProxiedRunBuffers(t, bd, p.dir, "comment", issue.ID, "   ")
+		stdout, stderr, err = issuegraphProxiedRunBuffers(t, issuegraph, p.dir, "comment", issue.ID, "   ")
 		if err == nil {
-			t.Fatalf("bd comment with whitespace text unexpectedly succeeded\nstdout:\n%s\nstderr:\n%s", stdout, stderr)
+			t.Fatalf("issuegraph comment with whitespace text unexpectedly succeeded\nstdout:\n%s\nstderr:\n%s", stdout, stderr)
 		}
 		if stdout != "" {
 			t.Errorf("whitespace-comment stdout = %q, want empty", stdout)
@@ -138,35 +138,35 @@ func TestProxiedServerComment(t *testing.T) {
 			t.Errorf("whitespace-comment stderr = %q, want %q", got, want)
 		}
 
-		uncommented := bdProxiedCreate(t, bd, p.dir, "Uncommented")
-		stdout, stderr, err = bdProxiedRunBuffers(t, bd, p.dir, "comments", uncommented.ID)
+		uncommented := issuegraphProxiedCreate(t, issuegraph, p.dir, "Uncommented")
+		stdout, stderr, err = issuegraphProxiedRunBuffers(t, issuegraph, p.dir, "comments", uncommented.ID)
 		if err != nil {
-			t.Fatalf("bd comments on uncommented issue failed: %v\nstdout:\n%s\nstderr:\n%s", err, stdout, stderr)
+			t.Fatalf("issuegraph comments on uncommented issue failed: %v\nstdout:\n%s\nstderr:\n%s", err, stdout, stderr)
 		}
 		if stderr != "" {
-			t.Errorf("bd comments on uncommented issue stderr = %q, want empty", stderr)
+			t.Errorf("issuegraph comments on uncommented issue stderr = %q, want empty", stderr)
 		}
 		if got, want := stdout, "No comments on "+uncommented.ID+"\n"; got != want {
 			t.Errorf("empty comments output = %q, want %q", got, want)
 		}
 
-		stdout, stderr, err = bdProxiedRunBuffers(t, bd, p.dir, "comments", "--local-time", issue.ID)
+		stdout, stderr, err = issuegraphProxiedRunBuffers(t, issuegraph, p.dir, "comments", "--local-time", issue.ID)
 		if err != nil {
-			t.Fatalf("bd comments --local-time failed: %v\nstdout:\n%s\nstderr:\n%s", err, stdout, stderr)
+			t.Fatalf("issuegraph comments --local-time failed: %v\nstdout:\n%s\nstderr:\n%s", err, stdout, stderr)
 		}
 		if stderr != "" {
-			t.Errorf("bd comments --local-time stderr = %q, want empty", stderr)
+			t.Errorf("issuegraph comments --local-time stderr = %q, want empty", stderr)
 		}
 		if stdout == "" || !strings.Contains(stdout, "first thoughts") {
-			t.Errorf("bd comments --local-time output = %q, want rendered comment text", stdout)
+			t.Errorf("issuegraph comments --local-time output = %q, want rendered comment text", stdout)
 		}
 
-		stdout, stderr, err = bdProxiedRunBuffers(t, bd, p.dir, "comments", "--json", issue.ID)
+		stdout, stderr, err = issuegraphProxiedRunBuffers(t, issuegraph, p.dir, "comments", "--json", issue.ID)
 		if err != nil {
-			t.Fatalf("final bd comments --json failed: %v\nstdout:\n%s\nstderr:\n%s", err, stdout, stderr)
+			t.Fatalf("final issuegraph comments --json failed: %v\nstdout:\n%s\nstderr:\n%s", err, stdout, stderr)
 		}
 		if stderr != "" {
-			t.Errorf("final bd comments --json stderr = %q, want empty", stderr)
+			t.Errorf("final issuegraph comments --json stderr = %q, want empty", stderr)
 		}
 		if err := json.Unmarshal([]byte(stdout), &comments); err != nil {
 			t.Fatalf("decode final comments JSON: %v\nraw: %q", err, stdout)
@@ -204,9 +204,9 @@ func TestProxiedServerComment(t *testing.T) {
 		}
 
 		missingID := "cm-99999"
-		stdout, stderr, err = bdProxiedRunBuffers(t, bd, p.dir, "comment", missingID, "orphan comment")
+		stdout, stderr, err = issuegraphProxiedRunBuffers(t, issuegraph, p.dir, "comment", missingID, "orphan comment")
 		if err == nil {
-			t.Fatalf("bd comment %s unexpectedly succeeded\nstdout:\n%s\nstderr:\n%s", missingID, stdout, stderr)
+			t.Fatalf("issuegraph comment %s unexpectedly succeeded\nstdout:\n%s\nstderr:\n%s", missingID, stdout, stderr)
 		}
 		if stdout != "" {
 			t.Errorf("missing-ID stdout = %q, want empty", stdout)
@@ -218,15 +218,15 @@ func TestProxiedServerComment(t *testing.T) {
 
 	t.Run("wisp_comments_add_round_trip_and_physical_routing", func(t *testing.T) {
 		t.Parallel()
-		p := newSharedProxiedProject(t, bd, "wa")
-		wisp := bdProxiedCreate(t, bd, p.dir, "Wisp target", "--ephemeral")
+		p := newSharedProxiedProject(t, issuegraph, "wa")
+		wisp := issuegraphProxiedCreate(t, issuegraph, p.dir, "Wisp target", "--ephemeral")
 
-		stdout, stderr, err := bdProxiedRunBuffers(t, bd, p.dir, "comments", "add", wisp.ID, "wisp", "via", "add", "--author", "contract-author", "--json")
+		stdout, stderr, err := issuegraphProxiedRunBuffers(t, issuegraph, p.dir, "comments", "add", wisp.ID, "wisp", "via", "add", "--author", "contract-author", "--json")
 		if err != nil {
-			t.Fatalf("bd comments add --json failed: %v\nstdout:\n%s\nstderr:\n%s", err, stdout, stderr)
+			t.Fatalf("issuegraph comments add --json failed: %v\nstdout:\n%s\nstderr:\n%s", err, stdout, stderr)
 		}
 		if stderr != "" {
-			t.Errorf("bd comments add --json stderr = %q, want empty", stderr)
+			t.Errorf("issuegraph comments add --json stderr = %q, want empty", stderr)
 		}
 		var added types.Comment
 		if err := json.Unmarshal([]byte(stdout), &added); err != nil {
@@ -248,12 +248,12 @@ func TestProxiedServerComment(t *testing.T) {
 			t.Errorf("added comment created_at = %v, want nonzero whole-second timestamp", added.CreatedAt)
 		}
 
-		stdout, stderr, err = bdProxiedRunBuffers(t, bd, p.dir, "comments", "--json", wisp.ID)
+		stdout, stderr, err = issuegraphProxiedRunBuffers(t, issuegraph, p.dir, "comments", "--json", wisp.ID)
 		if err != nil {
-			t.Fatalf("bd comments --json failed: %v\nstdout:\n%s\nstderr:\n%s", err, stdout, stderr)
+			t.Fatalf("issuegraph comments --json failed: %v\nstdout:\n%s\nstderr:\n%s", err, stdout, stderr)
 		}
 		if stderr != "" {
-			t.Errorf("bd comments --json stderr = %q, want empty", stderr)
+			t.Errorf("issuegraph comments --json stderr = %q, want empty", stderr)
 		}
 		var comments []types.Comment
 		if err := json.Unmarshal([]byte(stdout), &comments); err != nil {

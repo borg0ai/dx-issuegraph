@@ -1,4 +1,4 @@
-package beads_test
+package issuegraph_test
 
 import (
 	"errors"
@@ -11,13 +11,13 @@ import (
 	"testing"
 	"time"
 
-	"github.com/steveyegge/beads"
-	"github.com/steveyegge/beads/internal/hooks"
-	"github.com/steveyegge/beads/internal/storage"
-	"github.com/steveyegge/beads/internal/storage/dolt"
-	"github.com/steveyegge/beads/internal/telemetry"
-	"github.com/steveyegge/beads/internal/types"
-	"github.com/steveyegge/beads/issueops"
+	"github.com/borg0ai/dx-issuegraph"
+	"github.com/borg0ai/dx-issuegraph/internal/hooks"
+	"github.com/borg0ai/dx-issuegraph/internal/storage"
+	"github.com/borg0ai/dx-issuegraph/internal/storage/dolt"
+	"github.com/borg0ai/dx-issuegraph/internal/telemetry"
+	"github.com/borg0ai/dx-issuegraph/internal/types"
+	"github.com/borg0ai/dx-issuegraph/issueops"
 )
 
 // TestIssueLifecycleLayersHooksOutsideTelemetry pins the decorator order the
@@ -26,7 +26,7 @@ import (
 // itself onto the inner result, so the lifecycle comes back stacked the same
 // way the store is.
 func TestIssueLifecycleLayersHooksOutsideTelemetry(t *testing.T) {
-	t.Setenv("BD_OTEL_STDOUT", "true")
+	t.Setenv("ISSUEGRAPH_OTEL_STDOUT", "true")
 	instrumented, ok := telemetry.WrapStorage(&dolt.DoltStore{}).(*telemetry.InstrumentedStorage)
 	if !ok {
 		t.Fatal("WrapStorage() did not create InstrumentedStorage")
@@ -49,9 +49,9 @@ func TestIssueLifecycleExposesTypedUnsupportedError(t *testing.T) {
 	if lifecycle != nil {
 		t.Fatalf("IssueLifecycle() lifecycle = %T, want nil", lifecycle)
 	}
-	var unsupported *beads.ErrUnsupported
+	var unsupported *issuegraph.ErrUnsupported
 	if !errors.As(err, &unsupported) {
-		t.Fatalf("IssueLifecycle() error = %v, want *beads.ErrUnsupported", err)
+		t.Fatalf("IssueLifecycle() error = %v, want *issuegraph.ErrUnsupported", err)
 	}
 }
 
@@ -62,7 +62,7 @@ func TestHookDecoratedIssueOperationsCreateFiresReverseDependencyUpdate(t *testi
 	skipIfNoDoltServer(t)
 	ctx := t.Context()
 	root := t.TempDir()
-	store, err := beads.Open(ctx, filepath.Join(root, "store"))
+	store, err := issuegraph.Open(ctx, filepath.Join(root, "store"))
 	if err != nil {
 		t.Fatal(err)
 	}

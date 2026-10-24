@@ -1,16 +1,16 @@
-# Test bd init command
-bd init --prefix test
+# Test issuegraph init command
+issuegraph init --prefix test
 stdout 'initialized successfully'
-exists .beads/beads.db
-exists .beads/metadata.json
-exists .beads/.gitignore
-grep '^\*\.db$' .beads/.gitignore
-grep '^\*\.db-journal$' .beads/.gitignore
-grep '^\*\.db-wal$' .beads/.gitignore
-grep '^\*\.db-shm$' .beads/.gitignore
-grep '^daemon\.log$' .beads/.gitignore
-grep '^daemon\.pid$' .beads/.gitignore
-grep '^bd\.sock$' .beads/.gitignore
-grep '^!\*\.jsonl$' .beads/.gitignore
-grep '^!metadata\.json$' .beads/.gitignore
-grep '^!config\.json$' .beads/.gitignore
+exists .issuegraph/issuegraph.db
+exists .issuegraph/metadata.json
+exists .issuegraph/.gitignore
+grep '^\*\.db$' .issuegraph/.gitignore
+grep '^\*\.db-journal$' .issuegraph/.gitignore
+grep '^\*\.db-wal$' .issuegraph/.gitignore
+grep '^\*\.db-shm$' .issuegraph/.gitignore
+grep '^daemon\.log$' .issuegraph/.gitignore
+grep '^daemon\.pid$' .issuegraph/.gitignore
+grep '^issuegraph\.sock$' .issuegraph/.gitignore
+grep '^!\*\.jsonl$' .issuegraph/.gitignore
+grep '^!metadata\.json$' .issuegraph/.gitignore
+grep '^!config\.json$' .issuegraph/.gitignore

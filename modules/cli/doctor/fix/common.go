@@ -7,24 +7,24 @@ import (
 	"path/filepath"
 	"strings"
 
-	"github.com/steveyegge/beads/internal/beads"
+	"github.com/borg0ai/dx-issuegraph/internal/issuegraph"
 )
 
 // ErrTestBinary is returned when getBdBinary detects it's running as a test binary.
-// This prevents fork bombs when tests call functions that execute bd subcommands.
-var ErrTestBinary = fmt.Errorf("running as test binary - cannot execute bd subcommands")
+// This prevents fork bombs when tests call functions that execute issuegraph subcommands.
+var ErrTestBinary = fmt.Errorf("running as test binary - cannot execute issuegraph subcommands")
 
-type workspaceBeadsDirs struct {
+type workspaceIssueGraphDirs struct {
 	local    string
 	resolved string
 }
 
-func newBdCmd(bdBinary string, args ...string) *exec.Cmd {
-	cmd := exec.Command(bdBinary, args...) // #nosec G204 -- bdBinary from validated executable path
+func newBdCmd(issuegraphBinary string, args ...string) *exec.Cmd {
+	cmd := exec.Command(issuegraphBinary, args...) // #nosec G204 -- issuegraphBinary from validated executable path
 	return cmd
 }
 
-// getBdBinary returns the path to the bd binary to use for fix operations.
+// getBdBinary returns the path to the issuegraph binary to use for fix operations.
 // It prefers the current executable to avoid command injection attacks.
 // Returns ErrTestBinary if running as a test binary to prevent fork bombs.
 func getBdBinary() (string, error) {
@@ -38,7 +38,7 @@ func getBdBinary() (string, error) {
 		}
 
 		// Check if we're running as a test binary - this prevents fork bombs
-		// when tests call functions that execute bd subcommands
+		// when tests call functions that execute issuegraph subcommands
 		baseName := filepath.Base(exe)
 		if strings.HasSuffix(baseName, ".test") || strings.Contains(baseName, ".test.") {
 			return "", ErrTestBinary
@@ -48,41 +48,41 @@ func getBdBinary() (string, error) {
 	}
 
 	// Fallback to PATH lookup with validation
-	bdPath, err := exec.LookPath("bd")
+	issuegraphPath, err := exec.LookPath("issuegraph")
 	if err != nil {
-		return "", fmt.Errorf("bd binary not found in PATH: %w", err)
+		return "", fmt.Errorf("issuegraph binary not found in PATH: %w", err)
 	}
 
-	return bdPath, nil
+	return issuegraphPath, nil
 }
 
-// validateBeadsWorkspace ensures the path is a valid beads workspace before
+// validateIssueGraphWorkspace ensures the path is a valid issuegraph workspace before
 // attempting any fix operations. This prevents path traversal attacks.
-func validateBeadsWorkspace(path string) error {
-	_, err := resolveWorkspaceBeadsDirs(path)
+func validateIssueGraphWorkspace(path string) error {
+	_, err := resolveWorkspaceIssueGraphDirs(path)
 	return err
 }
 
-func resolveWorkspaceBeadsDirs(path string) (workspaceBeadsDirs, error) {
+func resolveWorkspaceIssueGraphDirs(path string) (workspaceIssueGraphDirs, error) {
 	absPath, err := filepath.Abs(path)
 	if err != nil {
-		return workspaceBeadsDirs{}, fmt.Errorf("invalid path: %w", err)
+		return workspaceIssueGraphDirs{}, fmt.Errorf("invalid path: %w", err)
 	}
 
-	dirs := workspaceBeadsDirs{
-		local:    filepath.Join(absPath, ".beads"),
-		resolved: beads.ResolveBeadsDirForRepo(absPath),
+	dirs := workspaceIssueGraphDirs{
+		local:    filepath.Join(absPath, ".issuegraph"),
+		resolved: issuegraph.ResolveIssueGraphDirForRepo(absPath),
 	}
 
 	if info, err := os.Stat(dirs.resolved); err != nil || !info.IsDir() {
-		return workspaceBeadsDirs{}, fmt.Errorf("not a beads workspace: .beads directory not found for %s", absPath)
+		return workspaceIssueGraphDirs{}, fmt.Errorf("not a issuegraph workspace: .issuegraph directory not found for %s", absPath)
 	}
 
 	return dirs, nil
 }
 
-func resolvedWorkspaceBeadsDir(path string) (string, error) {
-	dirs, err := resolveWorkspaceBeadsDirs(path)
+func resolvedWorkspaceIssueGraphDir(path string) (string, error) {
+	dirs, err := resolveWorkspaceIssueGraphDirs(path)
 	if err != nil {
 		return "", err
 	}
@@ -90,12 +90,12 @@ func resolvedWorkspaceBeadsDir(path string) (string, error) {
 	return dirs.resolved, nil
 }
 
-func localWorkspaceBeadsDir(path string) (string, error) {
+func localWorkspaceIssueGraphDir(path string) (string, error) {
 	absPath, err := filepath.Abs(path)
 	if err != nil {
 		return "", fmt.Errorf("invalid path: %w", err)
 	}
-	return filepath.Join(absPath, ".beads"), nil
+	return filepath.Join(absPath, ".issuegraph"), nil
 }
 
 // safeWorkspacePath resolves relPath within the workspace root and ensures it
@@ -138,9 +138,9 @@ func isWithinWorkspace(root, candidate string) bool {
 	return rel == "." || (rel != ".." && !strings.HasPrefix(rel, ".."+string(os.PathSeparator)))
 }
 
-// resolveBeadsDir follows .beads/redirect files to find the actual beads directory.
+// resolveIssueGraphDir follows .issuegraph/redirect files to find the actual issuegraph directory.
 // If no redirect exists, returns the original path unchanged.
-// This is a wrapper around beads.FollowRedirect for use within the fix package.
-func resolveBeadsDir(beadsDir string) string {
-	return beads.FollowRedirect(beadsDir)
+// This is a wrapper around issuegraph.FollowRedirect for use within the fix package.
+func resolveIssueGraphDir(issuegraphDir string) string {
+	return issuegraph.FollowRedirect(issuegraphDir)
 }

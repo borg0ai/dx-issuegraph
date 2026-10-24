@@ -6,40 +6,40 @@ import (
 	"os"
 	"path/filepath"
 
-	"github.com/steveyegge/beads/internal/beads"
-	"github.com/steveyegge/beads/internal/configfile"
-	"github.com/steveyegge/beads/internal/storage"
-	"github.com/steveyegge/beads/internal/utils"
+	"github.com/borg0ai/dx-issuegraph/internal/configfile"
+	"github.com/borg0ai/dx-issuegraph/internal/issuegraph"
+	"github.com/borg0ai/dx-issuegraph/internal/storage"
+	"github.com/borg0ai/dx-issuegraph/internal/utils"
 )
 
 // openReadOnlyStoreForDBPath reopens a read-only store from an existing dbPath
 // while preserving repo-local metadata such as dolt_database and the resolved
-// Dolt server port. Falls back to deriving the beads directory from the dbPath
+// Dolt server port. Falls back to deriving the issuegraph directory from the dbPath
 // parent when no matching metadata.json can be found.
 func openReadOnlyStoreForDBPath(ctx context.Context, dbPath string) (storage.DoltStorage, error) {
 	if dbPath == "" {
 		return nil, fmt.Errorf("no database path available")
 	}
 
-	if beadsDir := resolveBeadsDirForDBPath(dbPath); beadsDir != "" {
-		return newReadOnlyStoreFromConfig(ctx, beadsDir)
+	if issuegraphDir := resolveIssueGraphDirForDBPath(dbPath); issuegraphDir != "" {
+		return newReadOnlyStoreFromConfig(ctx, issuegraphDir)
 	}
 
-	// Fallback: derive beads dir from dbPath parent directory.
+	// Fallback: derive issuegraph dir from dbPath parent directory.
 	return newReadOnlyStoreFromConfig(ctx, filepath.Dir(dbPath))
 }
 
-// resolveBeadsDirForDBPath maps a database path back to its owning .beads
+// resolveIssueGraphDirForDBPath maps a database path back to its owning .issuegraph
 // directory when metadata.json is available. This is needed for repos that use
 // non-default dolt_database names or custom dolt_data_dir locations.
-func resolveBeadsDirForDBPath(dbPath string) string {
+func resolveIssueGraphDirForDBPath(dbPath string) string {
 	actualDBPath := utils.CanonicalizePath(dbPath)
-	if parent := filepath.Dir(dbPath); filepath.Base(parent) == ".beads" {
+	if parent := filepath.Dir(dbPath); filepath.Base(parent) == ".issuegraph" {
 		if _, err := os.Stat(filepath.Join(parent, "metadata.json")); err == nil {
 			return parent
 		}
 	}
-	if parent := filepath.Dir(actualDBPath); filepath.Base(parent) == ".beads" {
+	if parent := filepath.Dir(actualDBPath); filepath.Base(parent) == ".issuegraph" {
 		if _, err := os.Stat(filepath.Join(parent, "metadata.json")); err == nil {
 			return parent
 		}
@@ -64,8 +64,8 @@ func resolveBeadsDirForDBPath(dbPath string) string {
 
 	addAncestorCandidates := func(path string) {
 		for dir := path; dir != "" && dir != filepath.Dir(dir); dir = filepath.Dir(dir) {
-			addCandidate(filepath.Join(dir, ".beads"))
-			if filepath.Base(dir) == ".beads" {
+			addCandidate(filepath.Join(dir, ".issuegraph"))
+			if filepath.Base(dir) == ".issuegraph" {
 				addCandidate(dir)
 			}
 		}
@@ -83,29 +83,29 @@ func resolveBeadsDirForDBPath(dbPath string) string {
 	addAncestorCandidates(filepath.Dir(dbPath))
 	addAncestorCandidates(filepath.Dir(actualDBPath))
 
-	if found := beads.FindBeadsDir(); found != "" {
+	if found := issuegraph.FindIssueGraphDir(); found != "" {
 		addCandidate(found)
 		addCandidate(utils.CanonicalizePath(found))
 	}
 
-	for _, beadsDir := range candidates {
-		cfg, err := configfile.Load(beadsDir)
+	for _, issuegraphDir := range candidates {
+		cfg, err := configfile.Load(issuegraphDir)
 		if err != nil || cfg == nil {
 			continue
 		}
-		if utils.PathsEqual(beadsDir, dbPath) || utils.PathsEqual(beadsDir, actualDBPath) {
-			return beadsDir
+		if utils.PathsEqual(issuegraphDir, dbPath) || utils.PathsEqual(issuegraphDir, actualDBPath) {
+			return issuegraphDir
 		}
-		// dbPath is the data directory living directly inside beadsDir
-		// (<beadsDir>/embeddeddolt for embedded, <beadsDir>/dolt for server).
+		// dbPath is the data directory living directly inside issuegraphDir
+		// (<issuegraphDir>/embeddeddolt for embedded, <issuegraphDir>/dolt for server).
 		// Match on that parent relationship so resolution works for embedded
-		// stores regardless of the beads dir name; Config.DatabasePath alone
+		// stores regardless of the issuegraph dir name; Config.DatabasePath alone
 		// returns the "dolt" name and misses embeddeddolt/ (GH#4574).
-		if utils.PathsEqual(filepath.Dir(dbPath), beadsDir) || utils.PathsEqual(filepath.Dir(actualDBPath), beadsDir) {
-			return beadsDir
+		if utils.PathsEqual(filepath.Dir(dbPath), issuegraphDir) || utils.PathsEqual(filepath.Dir(actualDBPath), issuegraphDir) {
+			return issuegraphDir
 		}
-		if utils.PathsEqual(cfg.DatabasePath(beadsDir), dbPath) || utils.PathsEqual(cfg.DatabasePath(beadsDir), actualDBPath) {
-			return beadsDir
+		if utils.PathsEqual(cfg.DatabasePath(issuegraphDir), dbPath) || utils.PathsEqual(cfg.DatabasePath(issuegraphDir), actualDBPath) {
+			return issuegraphDir
 		}
 	}
 

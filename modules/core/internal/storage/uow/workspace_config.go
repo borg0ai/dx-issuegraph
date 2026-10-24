@@ -4,8 +4,8 @@ import (
 	"context"
 	"fmt"
 
-	"github.com/steveyegge/beads/internal/workapi"
-	publicops "github.com/steveyegge/beads/issueops"
+	"github.com/borg0ai/dx-issuegraph/internal/workapi"
+	publicops "github.com/borg0ai/dx-issuegraph/issueops"
 )
 
 // WorkspaceConfigSource is the capability accessor a unit-of-work provider
@@ -80,7 +80,7 @@ func (c *workspaceConfig) ListSettings(ctx context.Context, _ publicops.ListSett
 // tables happens in the config repository this use case sits on
 // (internal/storage/domain/db/config.go), so the row and its table land in
 // THIS transaction and commit together. Before this role existed a proxied
-// `bd config set types.custom` wrote the string, left custom_types holding the
+// `issuegraph config set types.custom` wrote the string, left custom_types holding the
 // previous set, and the table-first read kept answering with it forever.
 //
 // VALIDATION HAPPENS BEFORE THE UNIT OF WORK IS OPENED: a validation failure
@@ -92,7 +92,7 @@ func (c *workspaceConfig) SetSetting(ctx context.Context, req publicops.SetSetti
 		return publicops.SetSettingResult{}, err
 	}
 	if err := RunTx(ctx, c.provider, func(ctx context.Context, uw UnitOfWork) (string, error) {
-		return "bd: config set " + req.Key, uw.ConfigUseCase().SetConfig(ctx, req.Key, value)
+		return "issuegraph: config set " + req.Key, uw.ConfigUseCase().SetConfig(ctx, req.Key, value)
 	}); err != nil {
 		return publicops.SetSettingResult{}, err
 	}
@@ -105,7 +105,7 @@ func (c *workspaceConfig) UnsetSetting(ctx context.Context, req publicops.UnsetS
 		return publicops.UnsetSettingResult{}, err
 	}
 	if err := RunTx(ctx, c.provider, func(ctx context.Context, uw UnitOfWork) (string, error) {
-		return "bd: config unset " + key, uw.ConfigUseCase().DeleteConfig(ctx, key)
+		return "issuegraph: config unset " + key, uw.ConfigUseCase().DeleteConfig(ctx, key)
 	}); err != nil {
 		return publicops.UnsetSettingResult{}, err
 	}

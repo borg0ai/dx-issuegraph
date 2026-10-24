@@ -254,8 +254,8 @@ ci-package-npm:
 	@./scripts/ci/package-npm.sh
 
 # Run differential regression tests (baseline v0.49.6 vs current worktree).
-# Downloads baseline binary on first run; cached in ~/Library/Caches/beads-regression/.
-# Override baseline: BD_REGRESSION_BASELINE_BIN=/path/to/bd make test-regression
+# Downloads baseline binary on first run; cached in ~/Library/Caches/issuegraph-regression/.
+# Override baseline: ISSUEGRAPH_REGRESSION_BASELINE_BIN=/path/to/issuegraph make test-regression
 test-regression:
 	@echo "Running regression tests (baseline vs candidate)..."
 	go -C $(GO_DIR) test -tags=regression,$(BUILD_TAGS) -timeout=$(REGRESSION_TIMEOUT) -v ./tests/regression/...
@@ -265,7 +265,7 @@ test-regression:
 # Override version: ./scripts/upgrade-smoke-test.sh v0.62.0
 test-upgrade: build
 	@echo "Running upgrade smoke tests..."
-	@CANDIDATE_BIN=./apps/cli/bin/cli ./scripts/upgrade-smoke-test.sh
+	@CANDIDATE_BIN=./apps/cli/bin/issuegraph ./scripts/upgrade-smoke-test.sh
 
 
 # Run cross-version smoke tests (last 30 tags → candidate).
@@ -274,17 +274,17 @@ test-upgrade: build
 # All from v0.30.0: ./scripts/cross-version-smoke-test.sh --from v0.30.0
 test-cross-version: build
 	@echo "Running cross-version smoke tests..."
-	@CANDIDATE_BIN=./apps/cli/bin/cli ./scripts/cross-version-smoke-test.sh
+	@CANDIDATE_BIN=./apps/cli/bin/issuegraph ./scripts/cross-version-smoke-test.sh
 
 # Run the authenticated historical upgrade corpus with strict fidelity checks.
 # All qualified versions: ./scripts/migration-test/run.sh
 # Single version: ./scripts/migration-test/run.sh --version v0.49.6
 test-migration: build
 	@echo "Running migration test harness..."
-	@CANDIDATE_BIN=./apps/cli/bin/cli ./scripts/migration-test/run.sh
+	@CANDIDATE_BIN=./apps/cli/bin/issuegraph ./scripts/migration-test/run.sh
 
 # Regenerate the golden-JSON contract corpus (modules/cli/protocol/testdata/corpus/).
-# Run after any deliberate bd --json wire change; review the diff, then commit.
+# Run after any deliberate issuegraph --json wire change; review the diff, then commit.
 # A downstream consumer vendors this corpus to detect cross-version drift. Needs Docker (Dolt).
 corpus-regen:
 	@echo "Regenerating contract corpus..."
@@ -365,7 +365,7 @@ fmt-check:
 check-docs:
 	@echo "Building CLI for docs checks..."
 	@CGO_ENABLED=0 go -C $(CLI_DIR) build -tags "$(BUILD_TAGS)" -ldflags="-X main.Build=$(GIT_BUILD)" -o $(abspath $(BUILD_DIR))/cli .
-	@./scripts/check-doc-flags.sh ./apps/cli/bin/cli
+	@./scripts/check-doc-flags.sh ./apps/cli/bin/issuegraph
 	@./scripts/check-doc-freshness.sh
 	@go -C $(GO_DIR) test -tags=gms_pure_go ./test/docsync
 
@@ -407,7 +407,7 @@ clean:
 	rm -f cli
 	rm -f cli.exe
 	rm -f internal/storage/dolt/bench-cpu-*.prof
-	rm -f beads-perf-*.prof
+	rm -f issuegraph-perf-*.prof
 
 # Sweep orphaned modules/cli test temp dirs (e.g. when a test run was SIGKILLed
 # before its TestMain cleanup ran). Safe to run between test runs; will

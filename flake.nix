@@ -1,5 +1,5 @@
 {
-  description = "beads (bd) - An issue tracker designed for AI-supervised coding workflows";
+  description = "issuegraph (issuegraph) - An issue tracker designed for AI-supervised coding workflows";
 
   inputs = {
     nixpkgs.url = "github:NixOS/nixpkgs/nixos-25.11";
@@ -41,11 +41,11 @@
       apps = nixpkgs.lib.genAttrs systems (
         system:
         rec {
-          bd = {
+          issuegraph = {
             type = "app";
-            program = "${self.packages.${system}.default}/bin/bd";
+            program = "${self.packages.${system}.default}/bin/issuegraph";
           };
-          default = bd;
+          default = issuegraph;
         }
       );
 
@@ -61,7 +61,7 @@
               golangci-lint
             ];
             shellHook = ''
-              echo "beads development shell"
+              echo "issuegraph development shell"
               echo "Go version: $(go version)"
             '';
           };

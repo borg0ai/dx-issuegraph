@@ -3,7 +3,7 @@ package storage
 import (
 	"context"
 
-	"github.com/steveyegge/beads/issueops"
+	"github.com/borg0ai/dx-issuegraph/issueops"
 )
 
 // BatchApplier returns the inner store's apply-many surface with this

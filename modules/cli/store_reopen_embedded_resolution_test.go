@@ -5,23 +5,23 @@ import (
 	"path/filepath"
 	"testing"
 
-	"github.com/steveyegge/beads/internal/configfile"
-	"github.com/steveyegge/beads/internal/utils"
+	"github.com/borg0ai/dx-issuegraph/internal/configfile"
+	"github.com/borg0ai/dx-issuegraph/internal/utils"
 )
 
-// TestResolveBeadsDirForDBPath_EmbeddedNonDotBeads guards GH#4574: an embedded
-// store stores its data under <beadsDir>/embeddeddolt/, but Config.DatabasePath
-// returns <beadsDir>/dolt. When the beads dir is not literally named ".beads"
-// the early-return in resolveBeadsDirForDBPath does not fire, so resolution
-// must still map <beadsDir>/embeddeddolt back to <beadsDir> via the parent
-// relationship — otherwise commands silently fall back to an ancestor ~/.beads
+// TestResolveIssueGraphDirForDBPath_EmbeddedNonDotIssueGraph guards GH#4574: an embedded
+// store stores its data under <issuegraphDir>/embeddeddolt/, but Config.DatabasePath
+// returns <issuegraphDir>/dolt. When the issuegraph dir is not literally named ".issuegraph"
+// the early-return in resolveIssueGraphDirForDBPath does not fire, so resolution
+// must still map <issuegraphDir>/embeddeddolt back to <issuegraphDir> via the parent
+// relationship — otherwise commands silently fall back to an ancestor ~/.issuegraph
 // and report zero issues.
-func TestResolveBeadsDirForDBPath_EmbeddedNonDotBeads(t *testing.T) {
+func TestResolveIssueGraphDirForDBPath_EmbeddedNonDotIssueGraph(t *testing.T) {
 	root := t.TempDir()
-	// leaf is intentionally NOT ".beads" (mirrors an embedding tool that keeps
-	// its store at e.g. ~/.local/state/<app>/beads).
-	beadsDir := filepath.Join(root, "beads")
-	dbPath := filepath.Join(beadsDir, "embeddeddolt")
+	// leaf is intentionally NOT ".issuegraph" (mirrors an embedding tool that keeps
+	// its store at e.g. ~/.local/state/<app>/issuegraph).
+	issuegraphDir := filepath.Join(root, "issuegraph")
+	dbPath := filepath.Join(issuegraphDir, "embeddeddolt")
 	if err := os.MkdirAll(dbPath, 0o755); err != nil {
 		t.Fatalf("mkdir embeddeddolt dir: %v", err)
 	}
@@ -32,11 +32,11 @@ func TestResolveBeadsDirForDBPath_EmbeddedNonDotBeads(t *testing.T) {
 		DoltMode:     "embedded",
 		DoltDatabase: "mystore",
 	}
-	if err := cfg.Save(beadsDir); err != nil {
+	if err := cfg.Save(issuegraphDir); err != nil {
 		t.Fatalf("save metadata: %v", err)
 	}
 
-	if got := resolveBeadsDirForDBPath(dbPath); !utils.PathsEqual(got, beadsDir) {
-		t.Fatalf("resolveBeadsDirForDBPath(%q) = %q, want %q", dbPath, got, beadsDir)
+	if got := resolveIssueGraphDirForDBPath(dbPath); !utils.PathsEqual(got, issuegraphDir) {
+		t.Fatalf("resolveIssueGraphDirForDBPath(%q) = %q, want %q", dbPath, got, issuegraphDir)
 	}
 }

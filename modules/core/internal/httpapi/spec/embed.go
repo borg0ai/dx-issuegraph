@@ -1,4 +1,4 @@
-// Package spec holds the hand-written OpenAPI document for the bd serve HTTP
+// Package spec holds the hand-written OpenAPI document for the issuegraph serve HTTP
 // API and embeds it into the binary.
 //
 // The document is the source of truth for the wire contract. The Go types in

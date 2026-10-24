@@ -10,7 +10,7 @@ import (
 	"sync"
 	"time"
 
-	"github.com/steveyegge/beads/internal/debug"
+	"github.com/borg0ai/dx-issuegraph/internal/debug"
 )
 
 const (

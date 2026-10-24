@@ -76,12 +76,12 @@ func TestIsRetryableError(t *testing.T) {
 		},
 		{
 			name:     "unknown database - retryable (catalog race GH-1851)",
-			err:      errors.New("Error 1049 (42000): Unknown database 'beads_test'"),
+			err:      errors.New("Error 1049 (42000): Unknown database 'issuegraph_test'"),
 			expected: true,
 		},
 		{
 			name:     "Unknown Database (case insensitive)",
-			err:      errors.New("Unknown Database 'beads_test'"),
+			err:      errors.New("Unknown Database 'issuegraph_test'"),
 			expected: true,
 		},
 		{
@@ -116,7 +116,7 @@ func TestIsRetryableError(t *testing.T) {
 		},
 		{
 			name:     "table not found - not retryable",
-			err:      errors.New("Error 1146: Table 'beads.foo' doesn't exist"),
+			err:      errors.New("Error 1146: Table 'issuegraph.foo' doesn't exist"),
 			expected: false,
 		},
 	}
@@ -176,7 +176,7 @@ func TestWithRetry_RetryOnUnknownDatabase(t *testing.T) {
 	err := store.withRetry(context.Background(), func() error {
 		callCount++
 		if callCount < 3 {
-			return errors.New("Error 1049 (42000): Unknown database 'beads_test'")
+			return errors.New("Error 1049 (42000): Unknown database 'issuegraph_test'")
 		}
 		return nil // Catalog caught up on 3rd attempt
 	})

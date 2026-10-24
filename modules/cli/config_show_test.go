@@ -7,7 +7,7 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/steveyegge/beads/internal/config"
+	"github.com/borg0ai/dx-issuegraph/internal/config"
 )
 
 // TestViperSourceLabel verifies source label formatting for different config sources.
@@ -44,11 +44,11 @@ func TestViperSourceLabel(t *testing.T) {
 
 // TestViperSourceLabelEnvVar verifies env var source includes the variable name.
 func TestViperSourceLabelEnvVar(t *testing.T) {
-	t.Setenv("BD_ACTOR", "test-bot")
+	t.Setenv("ISSUEGRAPH_ACTOR", "test-bot")
 
 	got := viperSourceLabel("actor", config.SourceEnvVar)
-	if got != "env: BD_ACTOR" {
-		t.Errorf("viperSourceLabel with env var = %q, want %q", got, "env: BD_ACTOR")
+	if got != "env: ISSUEGRAPH_ACTOR" {
+		t.Errorf("viperSourceLabel with env var = %q, want %q", got, "env: ISSUEGRAPH_ACTOR")
 	}
 }
 
@@ -81,7 +81,7 @@ func TestFilterBySource(t *testing.T) {
 		{Key: "a", Value: "1", Source: "config.yaml"},
 		{Key: "b", Value: "2", Source: "default"},
 		{Key: "c", Value: "3", Source: "database"},
-		{Key: "d", Value: "4", Source: "env: BD_ACTOR"},
+		{Key: "d", Value: "4", Source: "env: ISSUEGRAPH_ACTOR"},
 		{Key: "e", Value: "5", Source: "config.yaml"},
 		{Key: "f", Value: "6", Source: "metadata"},
 		{Key: "g", Value: "7", Source: "git"},
@@ -114,24 +114,24 @@ func TestFilterBySource(t *testing.T) {
 func TestCollectMetadataEntries(t *testing.T) {
 	// Create a temp directory with a metadata.json
 	tmpDir := t.TempDir()
-	beadsDir := filepath.Join(tmpDir, ".beads")
-	if err := os.MkdirAll(beadsDir, 0755); err != nil {
-		t.Fatalf("Failed to create .beads dir: %v", err)
+	issuegraphDir := filepath.Join(tmpDir, ".issuegraph")
+	if err := os.MkdirAll(issuegraphDir, 0755); err != nil {
+		t.Fatalf("Failed to create .issuegraph dir: %v", err)
 	}
 
 	metadataJSON := `{
-  "database": "beads.db",
+  "database": "issuegraph.db",
   "dolt_mode": "embedded",
   "project_id": "abc-123",
   "dolt_server_port": 3307,
   "dolt_server_tls": true
 }`
-	metadataPath := filepath.Join(beadsDir, "metadata.json")
+	metadataPath := filepath.Join(issuegraphDir, "metadata.json")
 	if err := os.WriteFile(metadataPath, []byte(metadataJSON), 0600); err != nil {
 		t.Fatalf("Failed to write metadata.json: %v", err)
 	}
 
-	// Change to temp dir so FindBeadsDir can find it
+	// Change to temp dir so FindIssueGraphDir can find it
 	origDir, _ := os.Getwd()
 	if err := os.Chdir(tmpDir); err != nil {
 		t.Fatalf("Failed to chdir: %v", err)
@@ -173,8 +173,8 @@ func TestCollectMetadataEntries(t *testing.T) {
 	}
 }
 
-// TestCollectMetadataEntriesNoBeadsDir verifies graceful handling when no .beads exists.
-func TestCollectMetadataEntriesNoBeadsDir(t *testing.T) {
+// TestCollectMetadataEntriesNoIssueGraphDir verifies graceful handling when no .issuegraph exists.
+func TestCollectMetadataEntriesNoIssueGraphDir(t *testing.T) {
 	tmpDir := t.TempDir()
 	origDir, _ := os.Getwd()
 	if err := os.Chdir(tmpDir); err != nil {
@@ -184,7 +184,7 @@ func TestCollectMetadataEntriesNoBeadsDir(t *testing.T) {
 
 	entries := collectMetadataEntries()
 	if len(entries) != 0 {
-		t.Errorf("expected no metadata entries without .beads dir, got %d", len(entries))
+		t.Errorf("expected no metadata entries without .issuegraph dir, got %d", len(entries))
 	}
 }
 
@@ -192,11 +192,11 @@ func TestCollectMetadataEntriesNoBeadsDir(t *testing.T) {
 func TestCollectViperEntries(t *testing.T) {
 	// Create a temp dir with config.yaml
 	tmpDir := t.TempDir()
-	beadsDir := filepath.Join(tmpDir, ".beads")
-	if err := os.MkdirAll(beadsDir, 0755); err != nil {
-		t.Fatalf("Failed to create .beads dir: %v", err)
+	issuegraphDir := filepath.Join(tmpDir, ".issuegraph")
+	if err := os.MkdirAll(issuegraphDir, 0755); err != nil {
+		t.Fatalf("Failed to create .issuegraph dir: %v", err)
 	}
-	configPath := filepath.Join(beadsDir, "config.yaml")
+	configPath := filepath.Join(issuegraphDir, "config.yaml")
 	if err := os.WriteFile(configPath, []byte("git-remote: \"https://example.com/repo\"\n"), 0600); err != nil {
 		t.Fatalf("Failed to write config.yaml: %v", err)
 	}
@@ -208,7 +208,7 @@ func TestCollectViperEntries(t *testing.T) {
 	defer os.Chdir(origDir) //nolint:errcheck
 
 	// Re-initialize config to pick up our test config.yaml
-	t.Setenv("BEADS_TEST_IGNORE_REPO_CONFIG", "1")
+	t.Setenv("ISSUEGRAPH_TEST_IGNORE_REPO_CONFIG", "1")
 	config.ResetForTesting()
 	if err := config.Initialize(); err != nil {
 		t.Fatalf("config.Initialize() failed: %v", err)
@@ -268,11 +268,11 @@ func TestCollectViperEntries(t *testing.T) {
 // TestCollectViperEntriesWithEnvOverride verifies env var source detection.
 func TestCollectViperEntriesWithEnvOverride(t *testing.T) {
 	tmpDir := t.TempDir()
-	beadsDir := filepath.Join(tmpDir, ".beads")
-	if err := os.MkdirAll(beadsDir, 0755); err != nil {
-		t.Fatalf("Failed to create .beads dir: %v", err)
+	issuegraphDir := filepath.Join(tmpDir, ".issuegraph")
+	if err := os.MkdirAll(issuegraphDir, 0755); err != nil {
+		t.Fatalf("Failed to create .issuegraph dir: %v", err)
 	}
-	configPath := filepath.Join(beadsDir, "config.yaml")
+	configPath := filepath.Join(issuegraphDir, "config.yaml")
 	if err := os.WriteFile(configPath, []byte("actor: from-config\n"), 0600); err != nil {
 		t.Fatalf("Failed to write config.yaml: %v", err)
 	}
@@ -283,11 +283,8 @@ func TestCollectViperEntriesWithEnvOverride(t *testing.T) {
 	}
 	defer os.Chdir(origDir) //nolint:errcheck
 
-	t.Setenv("BD_ACTOR", "env-bot")
-	// BEADS_ACTOR outranks BD_ACTOR on purpose (GH#4645), so one exported in
-	// the developer's shell would be reported as the source instead (GH#6560).
-	t.Setenv("BEADS_ACTOR", "")
-	t.Setenv("BEADS_TEST_IGNORE_REPO_CONFIG", "1")
+	t.Setenv("ISSUEGRAPH_ACTOR", "env-bot")
+	t.Setenv("ISSUEGRAPH_TEST_IGNORE_REPO_CONFIG", "1")
 	config.ResetForTesting()
 	if err := config.Initialize(); err != nil {
 		t.Fatalf("config.Initialize() failed: %v", err)
@@ -302,8 +299,8 @@ func TestCollectViperEntriesWithEnvOverride(t *testing.T) {
 
 	for _, e := range entries {
 		if e.Key == "actor" {
-			if e.Source != "env: BD_ACTOR" {
-				t.Errorf("actor source = %q, want %q", e.Source, "env: BD_ACTOR")
+			if e.Source != "env: ISSUEGRAPH_ACTOR" {
+				t.Errorf("actor source = %q, want %q", e.Source, "env: ISSUEGRAPH_ACTOR")
 			}
 			return
 		}
@@ -311,16 +308,11 @@ func TestCollectViperEntriesWithEnvOverride(t *testing.T) {
 	t.Error("expected actor key in Viper entries")
 }
 
-// TestCollectViperEntriesActorPrecedenceOverBDActor is a regression test for
-// GH#4645: `bd config show` must report the same actor value AND provenance
-// that mutations actually use (resolveConfiguredActor in main.go), not the
-// deprecated BD_ACTOR that viper's AutomaticEnv binds ahead of any explicit
-// binding. With both env vars set, the entry must show BEADS_ACTOR's value
-// with "env: BEADS_ACTOR" provenance, never BD_ACTOR's.
-func TestCollectViperEntriesActorPrecedenceOverBDActor(t *testing.T) {
-	t.Setenv("BD_ACTOR", "from-bd-actor")
-	t.Setenv("BEADS_ACTOR", "from-beads-actor")
-	t.Setenv("BEADS_TEST_IGNORE_REPO_CONFIG", "1")
+// TestCollectViperEntriesCurrentActorEnvironment verifies config provenance for
+// the current actor environment variable.
+func TestCollectViperEntriesCurrentActorEnvironment(t *testing.T) {
+	t.Setenv("ISSUEGRAPH_ACTOR", "from-issuegraph-actor")
+	t.Setenv("ISSUEGRAPH_TEST_IGNORE_REPO_CONFIG", "1")
 	config.ResetForTesting()
 	if err := config.Initialize(); err != nil {
 		t.Fatalf("config.Initialize() failed: %v", err)
@@ -334,11 +326,11 @@ func TestCollectViperEntriesActorPrecedenceOverBDActor(t *testing.T) {
 
 	for _, e := range entries {
 		if e.Key == "actor" {
-			if e.Value != "from-beads-actor" {
-				t.Errorf("actor value = %q, want %q (BEADS_ACTOR must win)", e.Value, "from-beads-actor")
+			if e.Value != "from-issuegraph-actor" {
+				t.Errorf("actor value = %q, want %q", e.Value, "from-issuegraph-actor")
 			}
-			if e.Source != "env: BEADS_ACTOR" {
-				t.Errorf("actor source = %q, want %q", e.Source, "env: BEADS_ACTOR")
+			if e.Source != "env: ISSUEGRAPH_ACTOR" {
+				t.Errorf("actor source = %q, want %q", e.Source, "env: ISSUEGRAPH_ACTOR")
 			}
 			return
 		}
@@ -348,9 +340,9 @@ func TestCollectViperEntriesActorPrecedenceOverBDActor(t *testing.T) {
 
 // TestCollectViperEntriesMetricsUserGlobalProvenance verifies that user-global
 // metrics.* keys report the user-global value AND the user-global config path as
-// their source, even when a project .beads/config.yaml sets a conflicting value
-// that the runtime ignores. This is the provenance contract `bd config show`
-// shares with `bd config get`: metrics consent/endpoint live in the user-global
+// their source, even when a project .issuegraph/config.yaml sets a conflicting value
+// that the runtime ignores. This is the provenance contract `issuegraph config show`
+// shares with `issuegraph config get`: metrics consent/endpoint live in the user-global
 // config only, so the displayed value must never be attributed to a project file.
 func TestCollectViperEntriesMetricsUserGlobalProvenance(t *testing.T) {
 	home := t.TempDir()
@@ -359,7 +351,7 @@ func TestCollectViperEntriesMetricsUserGlobalProvenance(t *testing.T) {
 	t.Setenv("XDG_CONFIG_HOME", filepath.Join(home, ".config"))
 
 	// User-global config opts out of metrics; this is the value the runtime honors.
-	userCfgDir := filepath.Join(home, ".config", "bd")
+	userCfgDir := filepath.Join(home, ".config", "issuegraph")
 	if err := os.MkdirAll(userCfgDir, 0o755); err != nil {
 		t.Fatalf("mkdir user config dir: %v", err)
 	}
@@ -368,16 +360,16 @@ func TestCollectViperEntriesMetricsUserGlobalProvenance(t *testing.T) {
 	}
 
 	// A project config tries to flip metrics back on through the highest-precedence
-	// BEADS_DIR config. The runtime ignores it, but it makes GetValueSource report
+	// ISSUEGRAPH_DIR config. The runtime ignores it, but it makes GetValueSource report
 	// SourceConfigFile so the regression covers the misattribution case.
-	projectBeadsDir := filepath.Join(t.TempDir(), ".beads")
-	if err := os.MkdirAll(projectBeadsDir, 0o755); err != nil {
-		t.Fatalf("mkdir project .beads: %v", err)
+	projectIssueGraphDir := filepath.Join(t.TempDir(), ".issuegraph")
+	if err := os.MkdirAll(projectIssueGraphDir, 0o755); err != nil {
+		t.Fatalf("mkdir project .issuegraph: %v", err)
 	}
-	if err := os.WriteFile(filepath.Join(projectBeadsDir, "config.yaml"), []byte("metrics.disabled: false\n"), 0o644); err != nil {
+	if err := os.WriteFile(filepath.Join(projectIssueGraphDir, "config.yaml"), []byte("metrics.disabled: false\n"), 0o644); err != nil {
 		t.Fatalf("write project config: %v", err)
 	}
-	t.Setenv("BEADS_DIR", projectBeadsDir)
+	t.Setenv("ISSUEGRAPH_DIR", projectIssueGraphDir)
 
 	config.ResetForTesting()
 	if err := config.Initialize(); err != nil {
@@ -410,7 +402,7 @@ func TestCollectViperEntriesMetricsUserGlobalProvenance(t *testing.T) {
 	if entry.Value != "true" {
 		t.Errorf("metrics.disabled value = %q, want %q (user-global, not project override)", entry.Value, "true")
 	}
-	// Source is the explicit user-global path, matching `bd config get`, not the
+	// Source is the explicit user-global path, matching `issuegraph config get`, not the
 	// generic project "config.yaml" label.
 	wantSource, err := config.UserConfigYamlPath()
 	if err != nil {

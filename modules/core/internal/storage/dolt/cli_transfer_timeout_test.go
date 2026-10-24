@@ -11,7 +11,7 @@ import (
 	"time"
 )
 
-// TestCLIExecTimeoutDuration verifies BEADS_CLI_TRANSFER_TIMEOUT parsing:
+// TestCLIExecTimeoutDuration verifies ISSUEGRAPH_CLI_TRANSFER_TIMEOUT parsing:
 // valid durations and bare seconds are honored, unset/invalid/non-positive
 // values fall back to the compiled-in default.
 func TestCLIExecTimeoutDuration(t *testing.T) {

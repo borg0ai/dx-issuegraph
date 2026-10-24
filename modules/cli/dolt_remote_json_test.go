@@ -4,12 +4,12 @@ import (
 	"encoding/json"
 	"testing"
 
-	"github.com/steveyegge/beads/internal/storage"
+	"github.com/borg0ai/dx-issuegraph/internal/storage"
 )
 
 func TestFormatDoltRemoteListJSONPreservesCompatibilityShape(t *testing.T) {
 	remotes := []storage.RemoteInfo{
-		{Name: "origin", URL: "dolthub://example/beads"},
+		{Name: "origin", URL: "dolthub://example/issuegraph"},
 	}
 
 	payload, err := json.Marshal(formatDoltRemoteListJSON(remotes))
@@ -28,10 +28,10 @@ func TestFormatDoltRemoteListJSONPreservesCompatibilityShape(t *testing.T) {
 	if entry["name"] != "origin" {
 		t.Fatalf("name = %v, want origin", entry["name"])
 	}
-	if entry["url"] != "dolthub://example/beads" {
+	if entry["url"] != "dolthub://example/issuegraph" {
 		t.Fatalf("url = %v, want remote URL", entry["url"])
 	}
-	if entry["sql_url"] != "dolthub://example/beads" {
+	if entry["sql_url"] != "dolthub://example/issuegraph" {
 		t.Fatalf("sql_url = %v, want remote URL", entry["sql_url"])
 	}
 	if entry["status"] != "ok" {

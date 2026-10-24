@@ -1,5 +1,5 @@
 -- Ignored migration 0026: clone-local marker that forces one dependency-id
--- re-key pass with the duplicate-edge merge (gastownhall/beads#5268).
+-- re-key pass with the duplicate-edge merge (borg0ai/dx-issuegraph#5268).
 --
 -- rekeyDependencyIDs (internal/storage/schema/dep_id_backfill.go) converges the
 -- per-clone-random dependency ids that migration 0043's DEFAULT (UUID()) minted,

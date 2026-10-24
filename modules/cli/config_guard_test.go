@@ -7,12 +7,12 @@ import (
 	"path/filepath"
 	"testing"
 
-	"github.com/steveyegge/beads/internal/configfile"
+	"github.com/borg0ai/dx-issuegraph/internal/configfile"
 )
 
 // TestConfigWinsOverConvention verifies SC-003: when metadata.json already
 // has a non-empty dolt_database value, the init guard logic uses it instead
-// of deriving beads_{prefix}.
+// of deriving issuegraph_{prefix}.
 func TestConfigWinsOverConvention(t *testing.T) {
 	tests := map[string]struct {
 		configJSON string
@@ -20,55 +20,55 @@ func TestConfigWinsOverConvention(t *testing.T) {
 		wantDB     string
 	}{
 		"existing config wins over prefix": {
-			configJSON: `{"backend":"dolt","dolt_database":"custom_beads"}`,
+			configJSON: `{"backend":"dolt","dolt_database":"custom_issuegraph"}`,
 			prefix:     "test",
-			wantDB:     "custom_beads",
+			wantDB:     "custom_issuegraph",
 		},
 		"empty config falls through to prefix": {
 			configJSON: `{"backend":"dolt"}`,
 			prefix:     "test",
-			wantDB:     "beads_test",
+			wantDB:     "issuegraph_test",
 		},
 		"no prefix uses default": {
 			configJSON: `{"backend":"dolt"}`,
 			prefix:     "",
-			wantDB:     "beads",
+			wantDB:     "issuegraph",
 		},
 		"no config file falls through to prefix": {
 			configJSON: "", // don't create file
 			prefix:     "myrig",
-			wantDB:     "beads_myrig",
+			wantDB:     "issuegraph_myrig",
 		},
 		"existing config with no prefix still wins": {
-			configJSON: `{"backend":"dolt","dolt_database":"acf_beads"}`,
+			configJSON: `{"backend":"dolt","dolt_database":"acf_issuegraph"}`,
 			prefix:     "",
-			wantDB:     "acf_beads",
+			wantDB:     "acf_issuegraph",
 		},
 	}
 
 	for name, tt := range tests {
 		t.Run(name, func(t *testing.T) {
 			tmpDir := t.TempDir()
-			beadsDir := filepath.Join(tmpDir, ".beads")
-			if err := os.MkdirAll(beadsDir, 0755); err != nil {
-				t.Fatalf("failed to create beads dir: %v", err)
+			issuegraphDir := filepath.Join(tmpDir, ".issuegraph")
+			if err := os.MkdirAll(issuegraphDir, 0755); err != nil {
+				t.Fatalf("failed to create issuegraph dir: %v", err)
 			}
 
 			// Write metadata.json if provided
 			if tt.configJSON != "" {
-				configPath := filepath.Join(beadsDir, "metadata.json")
+				configPath := filepath.Join(issuegraphDir, "metadata.json")
 				if err := os.WriteFile(configPath, []byte(tt.configJSON), 0644); err != nil {
 					t.Fatalf("failed to write config: %v", err)
 				}
 			}
 
 			// Simulate the guard logic from init.go:248-258
-			dbName := "beads"
+			dbName := "issuegraph"
 			if tt.prefix != "" {
-				dbName = "beads_" + tt.prefix
+				dbName = "issuegraph_" + tt.prefix
 			}
 			// Guard: config wins over convention
-			if existingCfg, loadErr := configfile.Load(beadsDir); loadErr == nil && existingCfg != nil {
+			if existingCfg, loadErr := configfile.Load(issuegraphDir); loadErr == nil && existingCfg != nil {
 				if existingCfg.DoltDatabase != "" {
 					dbName = existingCfg.DoltDatabase
 				}
@@ -83,7 +83,7 @@ func TestConfigWinsOverConvention(t *testing.T) {
 
 // TestMetadataSavePreservesExistingDoltDatabase verifies FR-022: when
 // metadata.json save path encounters an existing DoltDatabase value,
-// it does not overwrite it with beads_{prefix}.
+// it does not overwrite it with issuegraph_{prefix}.
 func TestMetadataSavePreservesExistingDoltDatabase(t *testing.T) {
 	tests := map[string]struct {
 		existingDB string
@@ -91,14 +91,14 @@ func TestMetadataSavePreservesExistingDoltDatabase(t *testing.T) {
 		wantDB     string
 	}{
 		"existing value preserved": {
-			existingDB: "custom_beads",
+			existingDB: "custom_issuegraph",
 			prefix:     "test",
-			wantDB:     "custom_beads",
+			wantDB:     "custom_issuegraph",
 		},
 		"empty value gets prefix": {
 			existingDB: "",
 			prefix:     "test",
-			wantDB:     "beads_test",
+			wantDB:     "issuegraph_test",
 		},
 		"no prefix no overwrite": {
 			existingDB: "",
@@ -115,7 +115,7 @@ func TestMetadataSavePreservesExistingDoltDatabase(t *testing.T) {
 
 			// Simulate the guard logic from init.go:361
 			if tt.prefix != "" && cfg.DoltDatabase == "" {
-				cfg.DoltDatabase = "beads_" + tt.prefix
+				cfg.DoltDatabase = "issuegraph_" + tt.prefix
 			}
 
 			if cfg.DoltDatabase != tt.wantDB {

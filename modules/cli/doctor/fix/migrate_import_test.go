@@ -13,9 +13,9 @@ import (
 	"testing"
 	"time"
 
-	"github.com/steveyegge/beads/internal/configfile"
-	"github.com/steveyegge/beads/internal/storage/dolt"
-	"github.com/steveyegge/beads/internal/types"
+	"github.com/borg0ai/dx-issuegraph/internal/configfile"
+	"github.com/borg0ai/dx-issuegraph/internal/storage/dolt"
+	"github.com/borg0ai/dx-issuegraph/internal/types"
 )
 
 // uniqueDBName generates a unique database name for test isolation.
@@ -25,11 +25,11 @@ func uniqueDBName(t *testing.T) string {
 	return "mig_" + hex.EncodeToString(h[:6])
 }
 
-// setupTestBeadsDir creates a .beads dir with Dolt config pointing at the test server.
-func setupTestBeadsDir(t *testing.T, tmpDir string) string {
+// setupTestIssueGraphDir creates a .issuegraph dir with Dolt config pointing at the test server.
+func setupTestIssueGraphDir(t *testing.T, tmpDir string) string {
 	t.Helper()
-	beadsDir := filepath.Join(tmpDir, ".beads")
-	if err := os.MkdirAll(beadsDir, 0o755); err != nil {
+	issuegraphDir := filepath.Join(tmpDir, ".issuegraph")
+	if err := os.MkdirAll(issuegraphDir, 0o755); err != nil {
 		t.Fatal(err)
 	}
 
@@ -45,16 +45,16 @@ func setupTestBeadsDir(t *testing.T, tmpDir string) string {
 		DoltServerPort: port,
 		DoltDatabase:   dbName,
 	}
-	if err := cfg.Save(beadsDir); err != nil {
+	if err := cfg.Save(issuegraphDir); err != nil {
 		t.Fatal(err)
 	}
-	return beadsDir
+	return issuegraphDir
 }
 
-// writeTestJSONL writes issues to a JSONL file in the beads dir.
-func writeTestJSONL(t *testing.T, beadsDir string, issues []types.Issue) string {
+// writeTestJSONL writes issues to a JSONL file in the issuegraph dir.
+func writeTestJSONL(t *testing.T, issuegraphDir string, issues []types.Issue) string {
 	t.Helper()
-	jsonlPath := filepath.Join(beadsDir, "issues.jsonl")
+	jsonlPath := filepath.Join(issuegraphDir, "issues.jsonl")
 	f, err := os.Create(jsonlPath)
 	if err != nil {
 		t.Fatal(err)
@@ -73,12 +73,12 @@ func writeTestJSONL(t *testing.T, beadsDir string, issues []types.Issue) string 
 func TestImportJSONLIntoStore(t *testing.T) {
 	ctx := context.Background()
 	tmpDir := t.TempDir()
-	beadsDir := setupTestBeadsDir(t, tmpDir)
+	issuegraphDir := setupTestIssueGraphDir(t, tmpDir)
 
 	// Create Dolt store. CreateIfMissing: the per-test database does not
 	// exist yet and the dolt.New create-guard refuses to create it
 	// implicitly (bd-nxt5e).
-	store, err := dolt.NewFromConfigWithOptions(ctx, beadsDir, &dolt.Config{CreateIfMissing: true})
+	store, err := dolt.NewFromConfigWithOptions(ctx, issuegraphDir, &dolt.Config{CreateIfMissing: true})
 	if err != nil {
 		t.Fatalf("dolt.NewFromConfigWithOptions against running test container: %v", err)
 	}
@@ -90,7 +90,7 @@ func TestImportJSONLIntoStore(t *testing.T) {
 		{ID: "test-2", Title: "Second issue", Status: "closed", IssueType: "bug", Priority: 1},
 		{ID: "test-3", Title: "Third issue", Status: "open", IssueType: "feature", Priority: 3},
 	}
-	jsonlPath := writeTestJSONL(t, beadsDir, issues)
+	jsonlPath := writeTestJSONL(t, issuegraphDir, issues)
 
 	// Import
 	count, err := importJSONLIntoStore(ctx, store, jsonlPath)
@@ -124,15 +124,15 @@ func TestImportJSONLIntoStore(t *testing.T) {
 func TestImportJSONLIntoStore_EmptyFile(t *testing.T) {
 	ctx := context.Background()
 	tmpDir := t.TempDir()
-	beadsDir := setupTestBeadsDir(t, tmpDir)
+	issuegraphDir := setupTestIssueGraphDir(t, tmpDir)
 
-	store, err := dolt.NewFromConfigWithOptions(ctx, beadsDir, &dolt.Config{CreateIfMissing: true})
+	store, err := dolt.NewFromConfigWithOptions(ctx, issuegraphDir, &dolt.Config{CreateIfMissing: true})
 	if err != nil {
 		t.Fatalf("dolt.NewFromConfigWithOptions against running test container: %v", err)
 	}
 	defer func() { _ = store.Close() }()
 
-	jsonlPath := filepath.Join(beadsDir, "issues.jsonl")
+	jsonlPath := filepath.Join(issuegraphDir, "issues.jsonl")
 	if err := os.WriteFile(jsonlPath, []byte(""), 0o644); err != nil {
 		t.Fatal(err)
 	}
@@ -151,14 +151,14 @@ func TestImportJSONLIntoStore_EmptyFile(t *testing.T) {
 func TestDatabaseVersionWithBdVersion_ImportsJSONL(t *testing.T) {
 	ctx := context.Background()
 
-	// Create project with .beads dir, config, and JSONL but no Dolt store
+	// Create project with .issuegraph dir, config, and JSONL but no Dolt store
 	tmpDir := t.TempDir()
-	beadsDir := filepath.Join(tmpDir, ".beads")
-	if err := os.MkdirAll(beadsDir, 0o755); err != nil {
+	issuegraphDir := filepath.Join(tmpDir, ".issuegraph")
+	if err := os.MkdirAll(issuegraphDir, 0o755); err != nil {
 		t.Fatal(err)
 	}
 
-	// Initialize git repo (needed for validateBeadsWorkspace)
+	// Initialize git repo (needed for validateIssueGraphWorkspace)
 	gitDir := filepath.Join(tmpDir, ".git")
 	if err := os.MkdirAll(gitDir, 0o755); err != nil {
 		t.Fatal(err)
@@ -176,7 +176,7 @@ func TestDatabaseVersionWithBdVersion_ImportsJSONL(t *testing.T) {
 		DoltServerPort: port,
 		DoltDatabase:   dbName,
 	}
-	if err := cfg.Save(beadsDir); err != nil {
+	if err := cfg.Save(issuegraphDir); err != nil {
 		t.Fatal(err)
 	}
 	// No connect probe here: the database must not exist yet (creating it is
@@ -189,7 +189,7 @@ func TestDatabaseVersionWithBdVersion_ImportsJSONL(t *testing.T) {
 		{ID: "mdp-1", Title: "Test migration", Status: "open", IssueType: "task", Priority: 2},
 		{ID: "mdp-2", Title: "Another issue", Status: "closed", IssueType: "bug", Priority: 1},
 	}
-	writeTestJSONL(t, beadsDir, issues)
+	writeTestJSONL(t, issuegraphDir, issues)
 
 	// Run the Database fix — should create store AND import
 	if err := DatabaseVersionWithBdVersion(tmpDir, "0.56.1"); err != nil {
@@ -197,7 +197,7 @@ func TestDatabaseVersionWithBdVersion_ImportsJSONL(t *testing.T) {
 	}
 
 	// Verify Dolt store was created and has issues
-	store, err := dolt.NewFromConfig(ctx, beadsDir)
+	store, err := dolt.NewFromConfig(ctx, issuegraphDir)
 	if err != nil {
 		t.Fatalf("failed to open store: %v", err)
 	}

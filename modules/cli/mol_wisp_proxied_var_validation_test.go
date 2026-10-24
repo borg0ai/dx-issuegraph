@@ -6,7 +6,7 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/steveyegge/beads/internal/formula"
+	"github.com/borg0ai/dx-issuegraph/internal/formula"
 )
 
 // Regression coverage for mybd-u2r6 on the proxied-server pour/wisp paths
@@ -39,12 +39,12 @@ func varValidationFixtureFormula(name string) *formula.Formula {
 func TestProxiedServerPourRejectsEnumViolatingVar(t *testing.T) {
 	requireSharedProxiedServer(t)
 	t.Parallel()
-	bd := buildEmbeddedBD(t)
+	issuegraph := buildEmbeddedBD(t)
 
-	p := newSharedProxiedProject(t, bd, "ppvv")
+	p := newSharedProxiedProject(t, issuegraph, "ppvv")
 	writeFormulaFixture(t, p, varValidationFixtureFormula("proxied-pour-var-validation-test"))
 
-	stdout, stderr, err := bdProxiedRunBuffers(t, bd, p.dir, "mol", "pour", "proxied-pour-var-validation-test", "--var", "policy=bogus")
+	stdout, stderr, err := issuegraphProxiedRunBuffers(t, issuegraph, p.dir, "mol", "pour", "proxied-pour-var-validation-test", "--var", "policy=bogus")
 	if err == nil {
 		t.Fatalf("expected an enum-violation error, got stdout:%s stderr:%s", stdout, stderr)
 	}
@@ -60,12 +60,12 @@ func TestProxiedServerPourRejectsEnumViolatingVar(t *testing.T) {
 func TestProxiedServerWispCreateRejectsEnumViolatingVar(t *testing.T) {
 	requireSharedProxiedServer(t)
 	t.Parallel()
-	bd := buildEmbeddedBD(t)
+	issuegraph := buildEmbeddedBD(t)
 
-	p := newSharedProxiedProject(t, bd, "pwvv")
+	p := newSharedProxiedProject(t, issuegraph, "pwvv")
 	writeFormulaFixture(t, p, varValidationFixtureFormula("proxied-wisp-var-validation-test"))
 
-	stdout, stderr, err := bdProxiedRunBuffers(t, bd, p.dir, "mol", "wisp", "create", "proxied-wisp-var-validation-test", "--var", "policy=bogus")
+	stdout, stderr, err := issuegraphProxiedRunBuffers(t, issuegraph, p.dir, "mol", "wisp", "create", "proxied-wisp-var-validation-test", "--var", "policy=bogus")
 	if err == nil {
 		t.Fatalf("expected an enum-violation error, got stdout:%s stderr:%s", stdout, stderr)
 	}

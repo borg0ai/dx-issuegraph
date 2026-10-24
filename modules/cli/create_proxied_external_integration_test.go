@@ -12,27 +12,27 @@ import (
 
 	_ "github.com/go-sql-driver/mysql"
 
-	"github.com/steveyegge/beads/internal/configfile"
-	"github.com/steveyegge/beads/internal/testutil"
-	"github.com/steveyegge/beads/internal/types"
+	"github.com/borg0ai/dx-issuegraph/internal/configfile"
+	"github.com/borg0ai/dx-issuegraph/internal/testutil"
+	"github.com/borg0ai/dx-issuegraph/internal/types"
 )
 
 func TestProxiedServerExternalCreate(t *testing.T) {
 	requireProxiedServerEnv(t)
 
-	bd := buildEmbeddedBD(t)
+	issuegraph := buildEmbeddedBD(t)
 	port := testutil.StartIsolatedDoltContainer(t)
 	portInt, err := strconv.Atoi(port)
 	if err != nil {
 		t.Fatalf("parse mapped port %q: %v", port, err)
 	}
 
-	p := bdProxiedInit(t, bd, "ext",
+	p := issuegraphProxiedInit(t, issuegraph, "ext",
 		"--proxied-server-external-host", "127.0.0.1",
 		"--proxied-server-external-port", port,
 	)
 
-	info, err := configfile.LoadProxiedServerClientInfo(p.beadsDir)
+	info, err := configfile.LoadProxiedServerClientInfo(p.issuegraphDir)
 	if err != nil {
 		t.Fatalf("LoadProxiedServerClientInfo: %v", err)
 	}
@@ -46,7 +46,7 @@ func TestProxiedServerExternalCreate(t *testing.T) {
 		t.Errorf("external port: got %d, want %d", info.External.Port, portInt)
 	}
 
-	issue := bdProxiedCreate(t, bd, p.dir, "External proxied issue")
+	issue := issuegraphProxiedCreate(t, issuegraph, p.dir, "External proxied issue")
 	if issue.ID == "" {
 		t.Fatal("expected issue ID")
 	}

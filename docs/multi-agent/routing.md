@@ -1,26 +1,26 @@
 ---
 title: Multi-Repo Routing
-description: How issuegraph create decides which repository each new bead lands in, with role detection and multi-repo hydration
+description: How issuegraph create decides which repository each new issue lands in, with role detection and multi-repo hydration
 ---
 
 One agent often works across more than one repository: an OSS fork plus a
 private planning repo, a planning repo feeding an implementation repo, several
 project checkouts on one machine. **Routing** decides which repository's
-database receives each new bead, so a contributor's planning never pollutes
-upstream PRs while a maintainer's beads land straight in the project.
+database receives each new issue, so a contributor's planning never pollutes
+upstream PRs while a maintainer's issuegraph land straight in the project.
 
-Routing is opt-in. With no routing configuration, every bead lands in the
+Routing is opt-in. With no routing configuration, every issue lands in the
 current repository — nothing on this page changes single-repo workflows.
 
 ## The contributor problem
 
-You fork an OSS project that uses issuegraph. Every planning bead you create writes
-to the fork's `.beads/` data, and your fork's issue database now diverges from
+You fork an OSS project that uses issuegraph. Every planning issue you create writes
+to the fork's `.issuegraph/` data, and your fork's issue database now diverges from
 upstream in every PR you open. What you want is to plan freely *about* the
 project without planning *in* the project.
 
 Routing solves this by detecting your role and redirecting `issuegraph create` to a
-separate planning repository (`~/.beads-planning` by default) that is never
+separate planning repository (`~/.issuegraph-planning` by default) that is never
 pushed upstream.
 
 ## How routing decides
@@ -40,24 +40,24 @@ flowchart TD
     D -- "no" --> E["routing.default target<br/>(default: current repo)"]
     D -- "yes" --> F{"Detected role"}
     F -- "maintainer" --> G["routing.maintainer target<br/>(default: current repo)"]
-    F -- "contributor" --> H["routing.contributor target<br/>(default: ~/.beads-planning)"]
+    F -- "contributor" --> H["routing.contributor target<br/>(default: ~/.issuegraph-planning)"]
 ```
 
 Reads follow the same routing: with routing active, `issuegraph list` and `issuegraph ready`
 read from the routed repository, and ID lookups like `issuegraph show` fall back to
-the routed repository when a bead isn't found locally.
+the routed repository when a issue isn't found locally.
 
 ## Role detection
 
-The role that drives auto mode comes from git config — `beads.role` is the
+The role that drives auto mode comes from git config — `issuegraph.role` is the
 source of truth:
 
 ```bash
-issuegraph config set beads.role contributor   # stored in git config, not the database
-issuegraph config get beads.role
+issuegraph config set issuegraph.role contributor   # stored in git config, not the database
+issuegraph config get issuegraph.role
 ```
 
-When `beads.role` is unset, `issuegraph` prints a warning and falls back to a
+When `issuegraph.role` is unset, `issuegraph` prints a warning and falls back to a
 deprecated remote-URL heuristic:
 
 | Git remote situation | Detected role |
@@ -69,7 +69,7 @@ deprecated remote-URL heuristic:
 
 <Note>
 SSH does not reliably indicate push access — fork contributors often clone
-over SSH. Set `beads.role` explicitly and the heuristic (and its warning)
+over SSH. Set `issuegraph.role` explicitly and the heuristic (and its warning)
 never runs.
 </Note>
 
@@ -84,10 +84,10 @@ issuegraph init --contributor
 
 The interactive wizard:
 
-1. Creates the planning repository (`~/.beads-planning` by default) as its
-   own git repo with a `.beads/` directory
+1. Creates the planning repository (`~/.issuegraph-planning` by default) as its
+   own git repo with a `.issuegraph/` directory
 2. Sets `routing.mode: auto` and `routing.contributor` to the planning repo
-3. Adds the planning repo to `repos.additional` so routed beads stay visible
+3. Adds the planning repo to `repos.additional` so routed issuegraph stay visible
    (see [hydration](#multi-repo-hydration))
 4. On forks, points sync at the `upstream` remote so `issuegraph dolt pull` fetches
    issue data from the source repo rather than your fork
@@ -103,13 +103,13 @@ issuegraph init --team
 ```
 
 Teams sharing one repository usually need no routing: with routing unset,
-every bead lands in the shared repo. The team wizard configures the rest of
+every issue lands in the shared repo. The team wizard configures the rest of
 the shared workflow — team mode and, for protected-main setups, a separate
 sync branch for issue commits. Team members who want a private scratch space
 route experiments explicitly:
 
 ```bash
-issuegraph create "Try alternative approach" --repo ~/.beads-planning-personal
+issuegraph create "Try alternative approach" --repo ~/.issuegraph-planning-personal
 ```
 
 Full step-by-step walkthroughs for both scenarios (plus multi-phase and
@@ -126,10 +126,10 @@ Set these with `issuegraph config set <key> <value>`; see the
 | `routing.mode` | (unset) | `auto` routes by role; `explicit` (or unset) sends everything to `routing.default` |
 | `routing.default` | `.` | Target when auto mode is off |
 | `routing.maintainer` | `.` | Target for maintainers in auto mode |
-| `routing.contributor` | `~/.beads-planning` | Target for contributors in auto mode |
+| `routing.contributor` | `~/.issuegraph-planning` | Target for contributors in auto mode |
 | `repos.primary` | (unset) | Primary repo for multi-repo hydration |
-| `repos.additional` | (unset) | Repos to hydrate beads from |
-| `beads.role` | (unset) | Explicit role: `maintainer` or `contributor` (stored in git config) |
+| `repos.additional` | (unset) | Repos to hydrate issuegraph from |
+| `issuegraph.role` | (unset) | Explicit role: `maintainer` or `contributor` (stored in git config) |
 
 Verify the effective configuration and where each value comes from:
 
@@ -139,9 +139,9 @@ issuegraph config validate        # checks routing.mode value and related settin
 issuegraph where                  # which database this directory actually uses
 ```
 
-## Overriding per bead
+## Overriding per issue
 
-`--repo` bypasses routing entirely for one bead:
+`--repo` bypasses routing entirely for one issue:
 
 ```bash
 issuegraph create "Fix upstream bug" --repo .              # force current repo
@@ -150,49 +150,49 @@ issuegraph create "Private experiment" --repo ~/scratch    # force another repo
 
 ## Discovered work stays with its parent
 
-A bead created with a `discovered-from` dependency inherits its parent's
+A issue created with a `discovered-from` dependency inherits its parent's
 `source_repo`, so work discovered while executing a task stays attributed to
 the same repository as that task — regardless of your role:
 
 ```bash
-issuegraph create "Found race in auth" --deps discovered-from:bd-abc
-# inherits bd-abc's source_repo
+issuegraph create "Found race in auth" --deps discovered-from:issuegraph-abc
+# inherits issuegraph-abc's source_repo
 ```
 
 Add `--repo` to override the inheritance.
 
 ## Multi-repo hydration
 
-Routing writes beads to another repository — which means your current
-database doesn't contain them. **Hydration** imports beads from other repos
+Routing writes issuegraph to another repository — which means your current
+database doesn't contain them. **Hydration** imports issuegraph from other repos
 into your database, each tagged with its `source_repo`, so `issuegraph list` and
 `issuegraph ready` show one unified view.
 
 Configure it by listing the other repos in `repos.additional`:
 
 ```bash
-issuegraph repo add ~/.beads-planning    # add a repo to hydrate from
+issuegraph repo add ~/.issuegraph-planning    # add a repo to hydrate from
 issuegraph repo list                     # show primary + additional repos
-issuegraph repo sync                     # import beads from all additional repos
-issuegraph repo remove ~/.beads-planning # remove, deleting its hydrated beads
+issuegraph repo sync                     # import issuegraph from all additional repos
+issuegraph repo remove ~/.issuegraph-planning # remove, deleting its hydrated issuegraph
 ```
 
-`issuegraph repo sync` reads each additional repo's `.beads/issues.jsonl` export and
-imports the beads with their original prefixes and `source_repo` set,
+`issuegraph repo sync` reads each additional repo's `.issuegraph/issues.jsonl` export and
+imports the issuegraph with their original prefixes and `source_repo` set,
 skipping repos whose export hasn't changed. `issuegraph init --contributor` wires
 hydration up automatically; `issuegraph doctor` warns when routing targets are
 missing from `repos.additional`.
 
-Once hydrated, beads from other repos are ordinary rows in your database —
+Once hydrated, issuegraph from other repos are ordinary rows in your database —
 filter by provenance or link them with normal dependencies:
 
 ```bash
-issuegraph list --json | jq '.[] | select(.source_repo == "~/.beads-planning")'
+issuegraph list --json | jq '.[] | select(.source_repo == "~/.issuegraph-planning")'
 issuegraph dep add impl-42 plan-10 --type blocks
 ```
 
 For dependencies on *capabilities* of another project rather than specific
-beads, `issuegraph dep add` also accepts `external:<project>:<capability>` targets —
+issuegraph, `issuegraph dep add` also accepts `external:<project>:<capability>` targets —
 see [`issuegraph dep`](/cli-reference/dep).
 
 ## One agent, many projects
@@ -202,8 +202,8 @@ MCP server instance:
 
 ```json
 {
-  "beads": {
-    "command": "beads-mcp",
+  "issuegraph": {
+    "command": "issuegraph-mcp",
     "args": []
   }
 }
@@ -211,54 +211,54 @@ MCP server instance:
 
 The server resolves the issuegraph workspace from each request's working
 directory, so one configuration serves every project while each project keeps
-its own isolated database (embedded Dolt at `.beads/embeddeddolt/` by
-default; server mode uses `.beads/dolt/`). Running one MCP instance per
+its own isolated database (embedded Dolt at `.issuegraph/embeddeddolt/` by
+default; server mode uses `.issuegraph/dolt/`). Running one MCP instance per
 project invites operations landing in the wrong database.
 
 To share one Dolt server across all projects instead of embedded per-project
 storage, initialize with `issuegraph init --shared-server` (or set
-`BEADS_DOLT_SHARED_SERVER=1`): projects share a server at
-`~/.beads/shared-server/` while staying isolated in per-project databases
+`ISSUEGRAPH_DOLT_SHARED_SERVER=1`): projects share a server at
+`~/.issuegraph/shared-server/` while staying isolated in per-project databases
 named after their issue prefixes. See [MCP Server](/integrations/mcp-server)
 for installation and client configuration.
 
 ## Troubleshooting
 
-### Beads land in the wrong repository
+### IssueGraph land in the wrong repository
 
 ```bash
 issuegraph config get routing.mode         # auto?
-issuegraph config get beads.role           # explicit role set?
+issuegraph config get issuegraph.role           # explicit role set?
 issuegraph config show --source git        # what git config contributes
 ```
 
-Fix by setting the role explicitly (`issuegraph config set beads.role maintainer`),
-forcing the target for one bead (`--repo .`), or disabling role detection
+Fix by setting the role explicitly (`issuegraph config set issuegraph.role maintainer`),
+forcing the target for one issue (`--repo .`), or disabling role detection
 entirely (`issuegraph config set routing.mode explicit`).
 
-### Routed beads don't appear in issuegraph list
+### Routed issuegraph don't appear in issuegraph list
 
 The routing target isn't being hydrated. Add it and sync:
 
 ```bash
-issuegraph repo add ~/.beads-planning
+issuegraph repo add ~/.issuegraph-planning
 issuegraph repo sync
 ```
 
 `issuegraph doctor` catches this misconfiguration.
 
-### Discovered beads appear in the "wrong" repo
+### Discovered issuegraph appear in the "wrong" repo
 
-Intentional — beads with a `discovered-from` dependency inherit the parent's
+Intentional — issuegraph with a `discovered-from` dependency inherit the parent's
 `source_repo`. Override with `--repo` at creation time.
 
-### Planning beads show up in upstream PRs
+### Planning issuegraph show up in upstream PRs
 
 The planning repo must be a separate git repository, never committed to the
 fork:
 
 ```bash
-ls ~/.beads-planning/.git              # should exist
+ls ~/.issuegraph-planning/.git              # should exist
 issuegraph config get routing.contributor      # should point at the planning repo
 ```
 
@@ -267,7 +267,7 @@ issuegraph config get routing.contributor      # should point at the planning re
 `issuegraph` warns when it falls back to the URL heuristic. Silence it permanently:
 
 ```bash
-issuegraph config set beads.role maintainer    # or contributor
+issuegraph config set issuegraph.role maintainer    # or contributor
 ```
 
 ## Related pages
@@ -276,7 +276,7 @@ issuegraph config set beads.role maintainer    # or contributor
   walkthroughs for contributor, team, and multi-phase workflows
 - [Agent Coordination](/multi-agent/coordination) — assigning and claiming
   work between agents
-- [Federation](/multi-agent/federation) — peer-to-peer sharing of beads
+- [Federation](/multi-agent/federation) — peer-to-peer sharing of issuegraph
   across repos and organizations
 - [`issuegraph init`](/cli-reference/init), [`issuegraph config`](/cli-reference/config),
   [`issuegraph repo`](/cli-reference/repo), [`issuegraph create`](/cli-reference/create) —

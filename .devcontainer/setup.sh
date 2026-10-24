@@ -25,21 +25,21 @@ fi
 # shellcheck source=../.buildflags
 source "$(dirname "$0")/../.buildflags"
 
-echo "🔧 Building bd from source..."
-go build -o bd ./modules/cli
+echo "🔧 Building issuegraph from source..."
+go build -o issuegraph ./modules/cli
 
-echo "📦 Installing bd globally..."
-sudo mv bd /usr/local/bin/bd
-sudo chmod +x /usr/local/bin/bd
+echo "📦 Installing issuegraph globally..."
+sudo mv issuegraph /usr/local/bin/issuegraph
+sudo chmod +x /usr/local/bin/issuegraph
 
-echo "✅ Verifying bd installation..."
-bd version
+echo "✅ Verifying issuegraph installation..."
+issuegraph version
 
-echo "🎯 Initializing bd (non-interactive)..."
-if [ ! -f .beads/beads.db ]; then
-  bd init --quiet
+echo "🎯 Initializing issuegraph (non-interactive)..."
+if [ ! -f .issuegraph/issuegraph.db ]; then
+  issuegraph init --quiet
 else
-  echo "bd already initialized"
+  echo "issuegraph already initialized"
 fi
 
 echo "🪝 Installing git hooks..."
@@ -54,4 +54,4 @@ echo "📚 Installing Go dependencies..."
 go mod download
 
 echo "✨ Development environment ready!"
-echo "Run 'bd ready' to see available tasks"
+echo "Run 'issuegraph ready' to see available tasks"

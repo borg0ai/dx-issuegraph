@@ -9,11 +9,11 @@ import (
 )
 
 func TestCheckStaleClosedIssues_NoDatabase(t *testing.T) {
-	// Create temp directory with .beads but no database
+	// Create temp directory with .issuegraph but no database
 	tmpDir := t.TempDir()
-	beadsDir := filepath.Join(tmpDir, ".beads")
-	if err := os.MkdirAll(beadsDir, 0755); err != nil {
-		t.Fatalf("failed to create .beads dir: %v", err)
+	issuegraphDir := filepath.Join(tmpDir, ".issuegraph")
+	if err := os.MkdirAll(issuegraphDir, 0755); err != nil {
+		t.Fatalf("failed to create .issuegraph dir: %v", err)
 	}
 
 	check := CheckStaleClosedIssues(tmpDir)
@@ -30,11 +30,11 @@ func TestCheckStaleClosedIssues_NoDatabase(t *testing.T) {
 }
 
 func TestCheckStaleMQFiles_NoMQDirectory(t *testing.T) {
-	// Create temp directory with .beads but no mq subdirectory
+	// Create temp directory with .issuegraph but no mq subdirectory
 	tmpDir := t.TempDir()
-	beadsDir := filepath.Join(tmpDir, ".beads")
-	if err := os.MkdirAll(beadsDir, 0755); err != nil {
-		t.Fatalf("failed to create .beads dir: %v", err)
+	issuegraphDir := filepath.Join(tmpDir, ".issuegraph")
+	if err := os.MkdirAll(issuegraphDir, 0755); err != nil {
+		t.Fatalf("failed to create .issuegraph dir: %v", err)
 	}
 
 	check := CheckStaleMQFiles(tmpDir)
@@ -54,11 +54,11 @@ func TestCheckStaleMQFiles_NoMQDirectory(t *testing.T) {
 }
 
 func TestCheckStaleMQFiles_EmptyMQDirectory(t *testing.T) {
-	// Create temp directory with .beads/mq but no JSON files
+	// Create temp directory with .issuegraph/mq but no JSON files
 	tmpDir := t.TempDir()
-	mqDir := filepath.Join(tmpDir, ".beads", "mq")
+	mqDir := filepath.Join(tmpDir, ".issuegraph", "mq")
 	if err := os.MkdirAll(mqDir, 0755); err != nil {
-		t.Fatalf("failed to create .beads/mq dir: %v", err)
+		t.Fatalf("failed to create .issuegraph/mq dir: %v", err)
 	}
 
 	check := CheckStaleMQFiles(tmpDir)
@@ -69,11 +69,11 @@ func TestCheckStaleMQFiles_EmptyMQDirectory(t *testing.T) {
 }
 
 func TestCheckStaleMQFiles_WithJSONFiles(t *testing.T) {
-	// Create temp directory with .beads/mq containing JSON files
+	// Create temp directory with .issuegraph/mq containing JSON files
 	tmpDir := t.TempDir()
-	mqDir := filepath.Join(tmpDir, ".beads", "mq")
+	mqDir := filepath.Join(tmpDir, ".issuegraph", "mq")
 	if err := os.MkdirAll(mqDir, 0755); err != nil {
-		t.Fatalf("failed to create .beads/mq dir: %v", err)
+		t.Fatalf("failed to create .issuegraph/mq dir: %v", err)
 	}
 
 	// Create some stale MQ files
@@ -92,7 +92,7 @@ func TestCheckStaleMQFiles_WithJSONFiles(t *testing.T) {
 	if check.Status != StatusWarning {
 		t.Errorf("expected status Warning for mq dir with files, got %q", check.Status)
 	}
-	if check.Message != "2 stale .beads/mq/*.json file(s)" {
+	if check.Message != "2 stale .issuegraph/mq/*.json file(s)" {
 		t.Errorf("expected message about 2 stale files, got %q", check.Message)
 	}
 	if check.Fix == "" {
@@ -101,11 +101,11 @@ func TestCheckStaleMQFiles_WithJSONFiles(t *testing.T) {
 }
 
 func TestFixStaleMQFiles_RemovesDirectory(t *testing.T) {
-	// Create temp directory with .beads/mq containing JSON files
+	// Create temp directory with .issuegraph/mq containing JSON files
 	tmpDir := t.TempDir()
-	mqDir := filepath.Join(tmpDir, ".beads", "mq")
+	mqDir := filepath.Join(tmpDir, ".issuegraph", "mq")
 	if err := os.MkdirAll(mqDir, 0755); err != nil {
-		t.Fatalf("failed to create .beads/mq dir: %v", err)
+		t.Fatalf("failed to create .issuegraph/mq dir: %v", err)
 	}
 
 	// Create a stale MQ file
@@ -137,11 +137,11 @@ func TestFixStaleMQFiles_RemovesDirectory(t *testing.T) {
 }
 
 func TestFixStaleMQFiles_NoDirectory(t *testing.T) {
-	// Create temp directory with .beads but no mq subdirectory
+	// Create temp directory with .issuegraph but no mq subdirectory
 	tmpDir := t.TempDir()
-	beadsDir := filepath.Join(tmpDir, ".beads")
-	if err := os.MkdirAll(beadsDir, 0755); err != nil {
-		t.Fatalf("failed to create .beads dir: %v", err)
+	issuegraphDir := filepath.Join(tmpDir, ".issuegraph")
+	if err := os.MkdirAll(issuegraphDir, 0755); err != nil {
+		t.Fatalf("failed to create .issuegraph dir: %v", err)
 	}
 
 	// Fix should succeed even if directory doesn't exist
@@ -151,11 +151,11 @@ func TestFixStaleMQFiles_NoDirectory(t *testing.T) {
 }
 
 func TestCheckAndFixStaleMQFiles_WorktreeFallback(t *testing.T) {
-	clearResolveBeadsDirCache()
-	t.Cleanup(clearResolveBeadsDirCache)
+	clearResolveIssueGraphDirCache()
+	t.Cleanup(clearResolveIssueGraphDirCache)
 
 	mainRepoDir, worktreeDir := setupWorktreeRepo(t)
-	mqDir := filepath.Join(mainRepoDir, ".beads", "mq")
+	mqDir := filepath.Join(mainRepoDir, ".issuegraph", "mq")
 	if err := os.MkdirAll(mqDir, 0755); err != nil {
 		t.Fatalf("failed to create shared mq dir: %v", err)
 	}

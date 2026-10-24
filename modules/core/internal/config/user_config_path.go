@@ -7,15 +7,15 @@ import (
 	"path/filepath"
 )
 
-const userConfigYamlDisplayFallback = "~/.config/bd/config.yaml"
+const userConfigYamlDisplayFallback = "~/.config/issuegraph/config.yaml"
 
 // userConfigYamlCandidates contains only cleaned, absolute paths suitable for
 // the current operating system's filesystem APIs. A missing candidate means
 // its source could not be resolved safely.
 type userConfigYamlCandidates struct {
-	legacy     string // <home>/.beads/config.yaml
-	native     string // <os.UserConfigDir()>/bd/config.yaml
-	documented string // <home>/.config/bd/config.yaml
+	legacy     string // <home>/.issuegraph/config.yaml
+	native     string // <os.UserConfigDir()>/issuegraph/config.yaml
+	documented string // <home>/.config/issuegraph/config.yaml
 
 	homeErr   error
 	nativeErr error
@@ -33,14 +33,14 @@ func buildUserConfigYamlCandidates(homeDir string, homeErr error, nativeConfigDi
 	if home, err := cleanAbsoluteUserDirectory("user home directory", homeDir, homeErr); err != nil {
 		candidates.homeErr = err
 	} else {
-		candidates.legacy = filepath.Clean(filepath.Join(home, ".beads", "config.yaml"))
-		candidates.documented = filepath.Clean(filepath.Join(home, ".config", "bd", "config.yaml"))
+		candidates.legacy = filepath.Clean(filepath.Join(home, ".issuegraph", "config.yaml"))
+		candidates.documented = filepath.Clean(filepath.Join(home, ".config", "issuegraph", "config.yaml"))
 	}
 
 	if nativeDir, err := cleanAbsoluteUserDirectory("native user config directory", nativeConfigDir, nativeErr); err != nil {
 		candidates.nativeErr = err
 	} else {
-		candidates.native = filepath.Clean(filepath.Join(nativeDir, "bd", "config.yaml"))
+		candidates.native = filepath.Clean(filepath.Join(nativeDir, "issuegraph", "config.yaml"))
 	}
 
 	return candidates
@@ -59,7 +59,7 @@ func cleanAbsoluteUserDirectory(label, path string, resolutionErr error) (string
 
 // UserConfigYamlPath resolves the user-level config.yaml to a cleaned,
 // absolute path suitable for native filesystem APIs. It prefers the documented
-// <home>/.config/bd location when that file exists, then an existing native
+// <home>/.config/issuegraph location when that file exists, then an existing native
 // os.UserConfigDir location. For a new file it keeps the documented location
 // as the creation target when possible, falling back to the native location
 // only when the home directory itself cannot be resolved safely.

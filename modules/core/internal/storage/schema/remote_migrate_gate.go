@@ -8,14 +8,14 @@ import (
 	"strconv"
 	"strings"
 
-	"github.com/steveyegge/beads/internal/storage/dberrors"
+	"github.com/borg0ai/dx-issuegraph/internal/storage/dberrors"
 )
 
 // AllowRemoteMigrateEnv, when set to a boolean true ("1", "true", ...), lets
 // the designated migrator apply pending schema migrations to a remote-backed
 // database despite the gate below. It is consulted only when the gate would
 // otherwise fire, so exporting it permanently does not warn on every store open.
-// The CLI-flag twin `bd migrate --force` is the preferred interactive form;
+// The CLI-flag twin `issuegraph migrate --force` is the preferred interactive form;
 // this env var remains supported for scripted/CI use.
 //
 // It also unlocks the shared-store arm below, where a shared database has NO
@@ -24,7 +24,7 @@ import (
 // semantic ("I am the designated migrator; apply pending migrations to a
 // database other clients depend on"), and a second variable would multiply
 // the escape-hatch surface for no new meaning.
-const AllowRemoteMigrateEnv = "BD_ALLOW_REMOTE_MIGRATE"
+const AllowRemoteMigrateEnv = "ISSUEGRAPH_ALLOW_REMOTE_MIGRATE"
 
 // forceAllowRemoteMigrate is the programmatic (in-process) twin of
 // AllowRemoteMigrateEnv. Set by SetForceAllowRemoteMigrate before the store
@@ -34,7 +34,7 @@ var forceAllowRemoteMigrate bool
 
 // SetForceAllowRemoteMigrate sets (or clears) the programmatic override that
 // allows a pending schema migration on a remote-backed database. It is called
-// by `bd migrate --force` / `bd migrate schema --force` in the root
+// by `issuegraph migrate --force` / `issuegraph migrate schema --force` in the root
 // PersistentPreRunE, before both autoMigrateOnVersionBump and the main store
 // open. External test packages may reset it to false after each test case.
 func SetForceAllowRemoteMigrate(v bool) { forceAllowRemoteMigrate = v }
@@ -55,20 +55,20 @@ var sharedMigrateConsent bool
 // test packages may reset it to false after each test case.
 func SetSharedMigrateConsent(v bool) { sharedMigrateConsent = v }
 
-// RemoteMigrateGateError is returned when bd is about to auto-apply pending
+// RemoteMigrateGateError is returned when issuegraph is about to auto-apply pending
 // schema migrations to an existing database that has a remote configured.
 //
-// gastownhall/beads#4259: bd auto-runs pending migrations the first time a new
+// borg0ai/dx-issuegraph#4259: issuegraph auto-runs pending migrations the first time a new
 // binary opens an existing database. If two clones that sync through a shared
 // remote each upgrade independently, both migrate in place and the schema forks
-// — `bd dolt pull` then fails to merge with no bd-level recovery. The supported
+// — `issuegraph dolt pull` then fails to merge with no bd-level recovery. The supported
 // flow is "only ONE machine migrates the database; every other client adopts the
 // migrated database from the remote". This gate refuses the silent in-place
 // migration and makes the operator choose migrate vs. adopt. It applies to both
 // server mode and embedded mode (the mode the original report was filed against).
 //
 // The type also carries the shared-store refusal (Decision "shared-no-remote",
-// gastownhall/beads#5920), where there is no remote at all and the hazard is
+// borg0ai/dx-issuegraph#5920), where there is no remote at all and the hazard is
 // co-resident clients of one server rather than forked clones. The name is
 // imperfect for that arm; every consumer — the server retry loop's permanence
 // classification, embedded's lenient handling, the CLI text and JSON
@@ -78,7 +78,7 @@ type RemoteMigrateGateError struct {
 	CurrentVersion int
 	LatestVersion  int
 	Pending        int
-	// UnrecognizedEnv carries a BD_ALLOW_REMOTE_MIGRATE value that was set but
+	// UnrecognizedEnv carries a ISSUEGRAPH_ALLOW_REMOTE_MIGRATE value that was set but
 	// not understood (only boolean values unlock, e.g. "1"/"true"), so a
 	// typo'd escape hatch fails with a hint instead of silently staying locked
 	// (bd-6dnrw.34).
@@ -98,30 +98,30 @@ type RemoteMigrateGateError struct {
 	SkewVersions []int
 
 	// FallbackReason names why the smart gate (#4516) could not do better than
-	// this blunt stop, when Decision is empty (gastownhall/beads#4551
+	// this blunt stop, when Decision is empty (borg0ai/dx-issuegraph#4551
 	// follow-up: every fallback path used to produce the byte-identical #4515
 	// block with no way to tell them apart). See the fallbackReason* constants
 	// for the recognized values. Always empty when Decision is "adopt",
 	// "adopt-ff", or "fork-skew" — those stops already explain themselves.
 	FallbackReason string
 	// Shared marks a refusal that came from a database served to co-resident
-	// bd clients (gastownhall/beads#5920). It is set on EVERY arm of the
+	// issuegraph clients (borg0ai/dx-issuegraph#5920). It is set on EVERY arm of the
 	// shared gate, not just "shared-no-remote": the remote-backed arms keep
 	// their #4259 decisions, but their remedies carry an extra consequence
 	// there — adopting or migrating promotes the schema for every client of
 	// the server at once — so the guidance has to say so.
 	Shared bool
-	// UnrecognizedSmartGateEnv carries a BD_SMART_GATE value that was set but
+	// UnrecognizedSmartGateEnv carries a ISSUEGRAPH_SMART_GATE value that was set but
 	// not understood (only boolean values are recognized), mirroring
 	// UnrecognizedEnv above but for the smart gate's own opt-out variable, so
-	// a typo'd BD_SMART_GATE is surfaced instead of only its silent effect
+	// a typo'd ISSUEGRAPH_SMART_GATE is surfaced instead of only its silent effect
 	// (the gate staying enabled by default). Set only when
 	// FallbackReason == fallbackReasonUnparseableEnv.
 	UnrecognizedSmartGateEnv string
 
 	// DataDiverged distinguishes the two shapes of the data-behind stop
-	// (gastownhall/beads#6575). Both are "this clone is missing commits the
-	// remote has", and both take the same remedy COMMAND — `bd dolt pull` —
+	// (borg0ai/dx-issuegraph#6575). Both are "this clone is missing commits the
+	// remote has", and both take the same remedy COMMAND — `issuegraph dolt pull` —
 	// but false means the clone has no commits of its own so the pull is a
 	// pure fast-forward, and true means it has both, so the pull MERGES and
 	// can report conflicts to resolve first. Set only when
@@ -137,8 +137,8 @@ const (
 	// working set — adopting is loss-free, unlike a plain adopt.
 	gateDecisionAdoptFastForward = "adopt-ff"
 	gateDecisionForkSkew         = "fork-skew"
-	// gateDecisionSharedNoRemote (gastownhall/beads#5920): the database is
-	// shared with co-resident bd clients (a dolt sql-server, directly or
+	// gateDecisionSharedNoRemote (borg0ai/dx-issuegraph#5920): the database is
+	// shared with co-resident issuegraph clients (a dolt sql-server, directly or
 	// through proxied-server mode) and has NO remote, so there is no fork to
 	// reason about — but migrating still promotes the schema cursor for every
 	// client at once and locks out each one still on an older binary. Unlocked
@@ -148,7 +148,7 @@ const (
 
 // fallbackReason* enumerates why the smart gate (#4516) fell back to the
 // blunt #4515 stop instead of resolving or tailoring it. Exactly one applies
-// per blunt stop (gastownhall/beads#4551 follow-up).
+// per blunt stop (borg0ai/dx-issuegraph#4551 follow-up).
 const (
 	// fallbackReasonUnreadableState: the remote's cached schema state could
 	// not be read (no cached ref, a stale/pre-content_hash one, or the cached
@@ -159,23 +159,23 @@ const (
 	// floor the smart gate trusts for an unattended first-mover migrate).
 	fallbackReasonBelowFloor = "below-convergence-floor"
 	// fallbackReasonOptedOut: the operator disabled the smart gate outright
-	// (BD_SMART_GATE=0).
+	// (ISSUEGRAPH_SMART_GATE=0).
 	fallbackReasonOptedOut = "opted-out"
-	// fallbackReasonUnparseableEnv: BD_SMART_GATE was set but not a
+	// fallbackReasonUnparseableEnv: ISSUEGRAPH_SMART_GATE was set but not a
 	// recognized boolean, so the gate stayed enabled by default (same as
 	// unset) but still could not resolve this particular stop.
 	fallbackReasonUnparseableEnv = "unparseable-env"
-	// fallbackReasonSharedStore (gastownhall/beads#5920): the smart gate
+	// fallbackReasonSharedStore (borg0ai/dx-issuegraph#5920): the smart gate
 	// resolved a safe first-mover migrate, but this store is shared, so
 	// auto-executing it would promote the schema for every co-resident client.
 	// Structural, not a routing outcome — it outranks the other reasons.
 	fallbackReasonSharedStore = "shared-store"
-	// fallbackReasonDataBehind (gastownhall/beads#6575): schema parity with
+	// fallbackReasonDataBehind (borg0ai/dx-issuegraph#6575): schema parity with
 	// the cached remote ref held, but this clone's local HEAD is a strict
 	// ancestor of that ref — it is behind the remote in data commits it has
 	// not pulled, so it is not the first-mover the smart gate may
 	// auto-resolve. Unlike the reasons above, this one has a one-command
-	// remedy the operator can run right now (`bd dolt pull`), after which the
+	// remedy the operator can run right now (`issuegraph dolt pull`), after which the
 	// migrate is a true first-mover.
 	fallbackReasonDataBehind = "data-behind"
 )
@@ -184,10 +184,10 @@ const (
 // forward, and the single source for every surface that names it: the human
 // body and note, the agent directive, the JSON option, and the store-open
 // classification that has to let this command through the very refusal that
-// prescribes it (gastownhall/beads#6575 F1 — a refusal whose documented
+// prescribes it (borg0ai/dx-issuegraph#6575 F1 — a refusal whose documented
 // recovery is blocked by the refusal is a fence with no gate; the #4566
-// precedent for `bd dolt commit` is the same shape).
-const DataBehindRemedyCommand = "bd dolt pull"
+// precedent for `issuegraph dolt commit` is the same shape).
+const DataBehindRemedyCommand = "issuegraph dolt pull"
 
 // IsDataBehind reports whether this refusal is the #6575 data-behind stop:
 // the clone is level with the cached remote ref on schema but missing commits
@@ -217,7 +217,7 @@ func (e *RemoteMigrateGateError) Error() string {
 		return fmt.Sprintf("refusing to migrate a remote-backed database (v%d -> v%d): this clone and the remote applied different content for migration(s) %s — the schema has already forked (#4259)",
 			e.CurrentVersion, e.LatestVersion, FormatMigrationVersions(e.SkewVersions))
 	case gateDecisionSharedNoRemote:
-		return fmt.Sprintf("refusing to auto-apply %d pending schema %s to a shared server database (v%d -> v%d): migrating would lock out every co-resident bd client still on the old schema (#5920)",
+		return fmt.Sprintf("refusing to auto-apply %d pending schema %s to a shared server database (v%d -> v%d): migrating would lock out every co-resident issuegraph client still on the old schema (#5920)",
 			e.Pending, unit, e.CurrentVersion, e.LatestVersion)
 	default:
 		return fmt.Sprintf("refusing to auto-apply %d pending schema %s to a remote-backed database (v%d -> v%d): migrating clones independently forks the schema (#4259)",
@@ -251,7 +251,7 @@ func (e *RemoteMigrateGateError) UserMessage() string {
 
 // fallbackReasonNote returns the self-explaining line naming why the smart
 // gate (#4516) fell back to this blunt stop instead of resolving or
-// tailoring it (gastownhall/beads#4551 follow-up). Empty when FallbackReason
+// tailoring it (borg0ai/dx-issuegraph#4551 follow-up). Empty when FallbackReason
 // is unset — the smart-tailored adopt and fork-skew stops never set it and
 // already explain themselves in userBody.
 func (e *RemoteMigrateGateError) fallbackReasonNote() string {
@@ -268,7 +268,7 @@ func (e *RemoteMigrateGateError) fallbackReasonNote() string {
 	case fallbackReasonSharedStore:
 		why = "this store is shared (dolt sql-server); the first-mover auto-migrate is disabled here because it would lock out co-resident clients (#5920)"
 	case fallbackReasonDataBehind:
-		why = "this clone is behind the remote in data commits it has not pulled, so it is not the first-mover it looks like on schema alone — migrating in place would diverge from those commits, and can leave every later `bd dolt pull` refusing to merge (#6575, #6368). Run `" + DataBehindRemedyCommand + "` first, then retry: this clone is then the true first-mover it looked like"
+		why = "this clone is behind the remote in data commits it has not pulled, so it is not the first-mover it looks like on schema alone — migrating in place would diverge from those commits, and can leave every later `issuegraph dolt pull` refusing to merge (#6575, #6368). Run `" + DataBehindRemedyCommand + "` first, then retry: this clone is then the true first-mover it looked like"
 		// Only promise the retry resolves itself where it actually does. On a
 		// shared store the first-mover auto-migrate is suppressed regardless
 		// (fallbackReasonSharedStore, #5920), so pulling clears THIS stop but
@@ -282,8 +282,8 @@ func (e *RemoteMigrateGateError) fallbackReasonNote() string {
 			// fallbackReasonSharedStore, whose note names the co-resident
 			// lockout; data-behind now outranks it, so without this clause the
 			// operator loses the warning that promoting the schema on a shared
-			// server locks out every co-resident client still on an older bd.
-			why += " — but on this shared store the migrate still needs explicit consent (`" + SharedConsentCommandForced + "`), because it promotes the schema for every co-resident bd client at once and clients still on an older binary will refuse this database until they are upgraded (#5920)"
+			// server locks out every co-resident client still on an older issuegraph.
+			why += " — but on this shared store the migrate still needs explicit consent (`" + SharedConsentCommandForced + "`), because it promotes the schema for every co-resident issuegraph client at once and clients still on an older binary will refuse this database until they are upgraded (#5920)"
 		}
 	default:
 		return ""
@@ -294,9 +294,9 @@ func (e *RemoteMigrateGateError) fallbackReasonNote() string {
 // dataBehindBody is the guidance block for the #6575 data-behind stop. It
 // REPLACES the blunt migrate-or-adopt body rather than decorating it, because
 // in this state both of that body's options are wrong and were measured wrong:
-// `bd migrate --force` is exactly the migration this stop exists to prevent
-// (and the `bd dolt push` that follows it is rejected as a non-fast-forward,
-// since the clone is still behind), and `bd bootstrap` against an existing
+// `issuegraph migrate --force` is exactly the migration this stop exists to prevent
+// (and the `issuegraph dolt push` that follows it is rejected as a non-fast-forward,
+// since the clone is still behind), and `issuegraph bootstrap` against an existing
 // workspace reports "Database already exists … Nothing to do." and exits 0.
 // The one command that moves this clone forward is the pull.
 func (e *RemoteMigrateGateError) dataBehindBody() string {
@@ -316,7 +316,7 @@ func (e *RemoteMigrateGateError) dataBehindBody() string {
 			"  This clone also has commits of its own, so the pull MERGES rather than\n" +
 			"  fast-forwards. If it reports conflicts, resolve them and let the pull\n" +
 			"  finish before retrying (`" + DataBehindRemedyCommand + " --strategy ours|theirs` decides them\n" +
-			"  in bulk on embedded storage; `bd conflicts resolve` on a server store).\n"
+			"  in bulk on embedded storage; `issuegraph conflicts resolve` on a server store).\n"
 	} else {
 		body += "" +
 			"  This clone has no commits of its own, so the pull is a pure fast-forward:\n" +
@@ -334,9 +334,9 @@ func (e *RemoteMigrateGateError) dataBehindBody() string {
 		// verb's consent is only read on the no-remote arm — see
 		// SharedConsentCommandForced.
 		body += "" +
-			"  This database is served to co-resident bd clients, so the migration itself\n" +
+			"  This database is served to co-resident issuegraph clients, so the migration itself\n" +
 			"  still needs explicit consent afterwards — it promotes the schema for EVERY\n" +
-			"  client at once, and clients still on an older bd will refuse this database\n" +
+			"  client at once, and clients still on an older issuegraph will refuse this database\n" +
 			"  until they are upgraded (#5920). Once the pull above has completed:\n" +
 			"        " + SharedConsentCommandForced + "\n" +
 			"        (" + SharedConsentCommandForcedGlobal + " for the shared global database)\n"
@@ -347,9 +347,9 @@ func (e *RemoteMigrateGateError) dataBehindBody() string {
 	}
 	body += "" +
 		"\n" +
-		"  Do NOT use `bd migrate --force` to get past this. It applies the migration\n" +
+		"  Do NOT use `issuegraph migrate --force` to get past this. It applies the migration\n" +
 		"  while this clone is still behind — the exact state this stop exists to\n" +
-		"  prevent — and the `bd dolt push` that would follow is rejected as a\n" +
+		"  prevent — and the `issuegraph dolt push` that would follow is rejected as a\n" +
 		"  non-fast-forward, because the clone is still missing the remote's commits.\n"
 	if e.Shared {
 		// The consent command this arm prescribes is itself a forced migrate,
@@ -375,33 +375,33 @@ func (e *RemoteMigrateGateError) userBody() string {
 		return "\n" +
 			"  The remote has already been migrated by another clone. Do NOT migrate here —\n" +
 			"  adopt the remote's migrated database instead:\n" +
-			"        bd bootstrap\n" +
+			"        issuegraph bootstrap\n" +
 			"  Re-cloning replaces your local database: any local issues you have not pushed\n" +
-			"  are LOST. Push first (`bd dolt push`) or save a copy\n" +
-			"  (`bd export --all -o backup.jsonl`) before re-cloning.\n"
+			"  are LOST. Push first (`issuegraph dolt push`) or save a copy\n" +
+			"  (`issuegraph export --all -o backup.jsonl`) before re-cloning.\n"
 	case gateDecisionAdoptFastForward:
 		return "\n" +
 			"  The remote has already been migrated by another clone, and this clone's local\n" +
 			"  history is a strict ancestor of the remote's with a clean working set — nothing\n" +
 			"  local would be lost by adopting it (unlike a typical adopt):\n" +
-			"        bd bootstrap\n" +
+			"        issuegraph bootstrap\n" +
 			"  Unlike the usual re-clone, this clone has no unpushed commits and no\n" +
 			"  uncommitted local changes to discard.\n"
 	case gateDecisionSharedNoRemote:
 		return "\n" +
 			"  This database is served to multiple clients (dolt sql-server /\n" +
 			"  proxied-server mode). Applying schema migrations promotes the schema\n" +
-			"  version for EVERY client at once: bd clients still running an older\n" +
+			"  version for EVERY client at once: issuegraph clients still running an older\n" +
 			"  version will refuse this database until they are upgraded.\n" +
 			"\n" +
 			"  To migrate (explicit consent):\n" +
-			"    1. Upgrade bd on every client of this server first (or accept that\n" +
+			"    1. Upgrade issuegraph on every client of this server first (or accept that\n" +
 			"       older clients refuse until they are upgraded).\n" +
 			"    2. Then run, once, from a workspace already set up against this\n" +
 			"       server:\n" +
 			"        " + SharedConsentCommand + "\n" +
 			"        (" + SharedConsentCommandGlobal + " for the shared global database;\n" +
-			"        " + AllowRemoteMigrateEnv + "=1 bd <cmd> in scripted/CI use)\n" +
+			"        " + AllowRemoteMigrateEnv + "=1 issuegraph <cmd> in scripted/CI use)\n" +
 			"\n" +
 			"  Read commands keep working against the current schema in the meantime;\n" +
 			"  writes stay refused until the schema is migrated.\n" +
@@ -413,35 +413,35 @@ func (e *RemoteMigrateGateError) userBody() string {
 		return "\n" +
 			"  This clone and the remote already applied DIFFERENT content for migration(s) " +
 			FormatMigrationVersions(e.SkewVersions) + ".\n" +
-			"  The schema has forked (#4259); `bd dolt pull` can no longer merge. Migrating\n" +
+			"  The schema has forked (#4259); `issuegraph dolt pull` can no longer merge. Migrating\n" +
 			"  cannot un-fork it. This is a data-loss decision, not an auto-fix:\n" +
 			"    • Pick ONE clone as canonical, then re-bootstrap every other clone from it —\n" +
 			"      unpushed work on the discarded clones is LOST. Export it first\n" +
-			"      (`bd export --all -o backup.jsonl`) if you need it.\n" +
-			"        bd bootstrap\n"
+			"      (`issuegraph export --all -o backup.jsonl`) if you need it.\n" +
+			"        issuegraph bootstrap\n"
 	default:
 		return "\n" +
 			"  This database syncs with a remote. Applying schema migrations on more than\n" +
-			"  one clone independently forks the schema so `bd dolt pull` can no longer\n" +
+			"  one clone independently forks the schema so `issuegraph dolt pull` can no longer\n" +
 			"  merge — the break is silent and unrecoverable.\n" +
 			"\n" +
 			"  Choose one:\n" +
 			"    • You are the designated migrator (only ONE machine should be): migrate,\n" +
 			"      then publish the migrated database to the remote:\n" +
-			"        bd migrate --force\n" +
-			"        (or " + AllowRemoteMigrateEnv + "=1 bd migrate in scripted/CI use)\n" +
-			"        bd dolt push\n" +
+			"        issuegraph migrate --force\n" +
+			"        (or " + AllowRemoteMigrateEnv + "=1 issuegraph migrate in scripted/CI use)\n" +
+			"        issuegraph dolt push\n" +
 			"    • Another machine has already migrated: adopt its database instead of\n" +
 			"      migrating here — re-clone from the remote so you receive the migrated\n" +
 			"      schema:\n" +
-			"        bd bootstrap\n" +
+			"        issuegraph bootstrap\n" +
 			"      Re-cloning replaces your local database: any local issues you have not\n" +
-			"      pushed are LOST. Push first (`bd dolt push`) or save a copy\n" +
-			"      (`bd export --all -o backup.jsonl`) before re-cloning.\n" +
+			"      pushed are LOST. Push first (`issuegraph dolt push`) or save a copy\n" +
+			"      (`issuegraph export --all -o backup.jsonl`) before re-cloning.\n" +
 			"\n" +
 			"  Several machines on one remote? Only ONE migrates. Get every other clone\n" +
 			"  fully in sync on its current binary, then after the migrator pushes run\n" +
-			"  `bd dolt pull` on each before upgrading it — its upgrade then has nothing\n" +
+			"  `issuegraph dolt pull` on each before upgrading it — its upgrade then has nothing\n" +
 			"  to migrate and needs no re-clone.\n"
 	}
 }
@@ -453,13 +453,13 @@ func (e *RemoteMigrateGateError) EscapeHint() string {
 		// past: typing the verb IS the consent.
 		return SharedConsentCommand
 	}
-	return "bd migrate --force"
+	return "issuegraph migrate --force"
 }
 
 // AgentDirective is the non-runnable instruction surfaced to agents in place of
 // a ready-to-run migrate command. Migrating a shared remote is a coordination
 // decision — only ONE clone may migrate, and a second clone migrating
-// independently forks the schema unrecoverably (#4259) — so bd deliberately does
+// independently forks the schema unrecoverably (#4259) — so issuegraph deliberately does
 // NOT hand an agent an auto-runnable "fix". The agent should surface the options
 // to the operator and let them choose, per the AgentDiagnostic contract ("Go
 // observes and reports, the agent decides and acts").
@@ -487,7 +487,7 @@ func (e *RemoteMigrateGateError) AgentDirective() string {
 		if e.Shared {
 			d += " After the pull the migration still needs the operator's explicit consent (" + SharedConsentCommandForced +
 				" — this store is remote-backed, so the bare verb does not unlock it; see SharedConsentCommandForced): " +
-				"this database is shared with co-resident bd clients and migrating promotes the schema for all of " +
+				"this database is shared with co-resident issuegraph clients and migrating promotes the schema for all of " +
 				"them at once (#5920). Do NOT auto-run it, and do NOT run it before the pull has completed."
 		} else {
 			d += " After the pull, re-running the original command migrates on its own; nothing else is needed."
@@ -498,12 +498,12 @@ func (e *RemoteMigrateGateError) AgentDirective() string {
 	case gateDecisionAdopt:
 		return "Adopt, do NOT migrate: the remote is already migrated, so migrating here would fork it (#4259). " +
 			"Adoption re-clones and replaces the local database (unpushed local work is lost), so it is a destructive " +
-			"operator decision — surface remote_migrate_gate.options to the operator, do NOT auto-run bd bootstrap."
+			"operator decision — surface remote_migrate_gate.options to the operator, do NOT auto-run issuegraph bootstrap."
 	case gateDecisionAdoptFastForward:
 		return "Adopt, do NOT migrate: the remote is already migrated, and this clone's local history is a strict " +
 			"ancestor of the remote's with a clean working set, so adopting is loss-free (no unpushed commits, no " +
 			"uncommitted changes discarded) — unlike a typical adopt. Still surface remote_migrate_gate.options to " +
-			"the operator rather than auto-running bd bootstrap; the current adopt mechanism is unchanged until an " +
+			"the operator rather than auto-running issuegraph bootstrap; the current adopt mechanism is unchanged until an " +
 			"automatic fast-forward lands (#4259 follow-up)."
 	case gateDecisionForkSkew:
 		return "Do NOT migrate: this clone and the remote already applied different content for migration(s) " +
@@ -511,8 +511,8 @@ func (e *RemoteMigrateGateError) AgentDirective() string {
 			"Resolving requires picking a canonical clone and re-bootstrapping the others, discarding their unpushed " +
 			"work — a data-loss decision. Surface remote_migrate_gate.options to the operator; do NOT auto-run anything."
 	case gateDecisionSharedNoRemote:
-		return "Coordination decision required: this database is shared with co-resident bd clients, and migrating " +
-			"promotes the schema for all of them at once — every client still on an older bd refuses the database " +
+		return "Coordination decision required: this database is shared with co-resident issuegraph clients, and migrating " +
+			"promotes the schema for all of them at once — every client still on an older issuegraph refuses the database " +
 			"until it is upgraded (#5920). Other clients' binary versions are not observable from this process, so " +
 			"do NOT auto-run the migration: surface remote_migrate_gate.options to the operator and let them confirm " +
 			"the fleet is upgraded first. Reads keep working on the current schema meanwhile."
@@ -541,23 +541,23 @@ type GateOption struct {
 func (e *RemoteMigrateGateError) Options() []GateOption {
 	// On a shared store every remedy below lands on the database the whole
 	// server is serving, so each one's risk gains a consequence that has
-	// nothing to do with local data (gastownhall/beads#5920). Adopting is the
+	// nothing to do with local data (borg0ai/dx-issuegraph#5920). Adopting is the
 	// case that reads most wrong without it: its risk is otherwise annotated
 	// purely in terms of what this machine loses.
 	sharedRisk := ""
 	if e.Shared {
-		sharedRisk = "; on this shared server it also promotes the schema for every co-resident client, and clients still on an older bd will refuse the database until upgraded"
+		sharedRisk = "; on this shared server it also promotes the schema for every co-resident client, and clients still on an older issuegraph will refuse the database until upgraded"
 	}
 	adopt := GateOption{
 		ID:       "adopt",
 		When:     "another machine has already migrated and pushed",
-		Commands: []string{"bd bootstrap"},
+		Commands: []string{"issuegraph bootstrap"},
 		Risk:     "re-clones and replaces the local database; push or export unpushed work first or it is lost" + sharedRisk,
 	}
 	// #6575: exactly ONE option, and it is the pull. The blunt pair below is
-	// actively wrong in this state — `bd migrate --force` is the bug, its
-	// `bd dolt push` is rejected non-fast-forward while the clone is still
-	// behind, and `bd bootstrap` no-ops against an existing workspace — so
+	// actively wrong in this state — `issuegraph migrate --force` is the bug, its
+	// `issuegraph dolt push` is rejected non-fast-forward while the clone is still
+	// behind, and `issuegraph bootstrap` no-ops against an existing workspace — so
 	// offering them here would hand an agent two dead ends and no exit.
 	// Unlike every other option in this type it carries no precondition the
 	// operator has to confirm: pulling commits this clone is already behind on
@@ -566,7 +566,7 @@ func (e *RemoteMigrateGateError) Options() []GateOption {
 		risk := "none — a pure fast-forward; this clone has no commits of its own, so nothing local is merged or discarded"
 		when := "always, for this stop: this clone is behind the remote and must pull before it may migrate"
 		if e.DataDiverged {
-			risk = "this clone also has commits of its own, so the pull MERGES; it can report conflicts that must be resolved before it completes (bd dolt pull --strategy ours|theirs on embedded storage, bd conflicts resolve on a server store). Nothing is discarded without that resolution"
+			risk = "this clone also has commits of its own, so the pull MERGES; it can report conflicts that must be resolved before it completes (issuegraph dolt pull --strategy ours|theirs on embedded storage, issuegraph conflicts resolve on a server store). Nothing is discarded without that resolution"
 		}
 		pull := GateOption{
 			ID:       "pull-first",
@@ -584,9 +584,9 @@ func (e *RemoteMigrateGateError) Options() []GateOption {
 			// is worse than no option (see SharedConsentCommandForced).
 			return []GateOption{pull, {
 				ID:       "migrate-shared-after-pulling",
-				When:     "the pull above has completed AND every co-resident bd client of this server is upgraded to this binary (confirmed with the operator)",
+				When:     "the pull above has completed AND every co-resident issuegraph client of this server is upgraded to this binary (confirmed with the operator)",
 				Commands: []string{SharedConsentCommandForced},
-				Risk:     "co-resident clients still on an older bd will refuse this database until upgraded; running it before the pull completes is the wedge this stop prevents. Its --force consents to migrating a remote-backed shared store (the bare verb's consent is read only with no remote configured); it does not make migrating while behind safe",
+				Risk:     "co-resident clients still on an older issuegraph will refuse this database until upgraded; running it before the pull completes is the wedge this stop prevents. Its --force consents to migrating a remote-backed shared store (the bare verb's consent is read only with no remote configured); it does not make migrating while behind safe",
 			}}
 		}
 		return []GateOption{pull}
@@ -604,12 +604,12 @@ func (e *RemoteMigrateGateError) Options() []GateOption {
 		// only this field would treat the adopt as free.
 		ffRisk := "none — this clone's local history is a strict ancestor of the remote's, so nothing local is discarded"
 		if e.Shared {
-			ffRisk = "nothing local is discarded (this clone's history is a strict ancestor of the remote's), but on this shared server the adopted schema is promoted for every co-resident client, and clients still on an older bd will refuse the database until upgraded"
+			ffRisk = "nothing local is discarded (this clone's history is a strict ancestor of the remote's), but on this shared server the adopted schema is promoted for every co-resident client, and clients still on an older issuegraph will refuse the database until upgraded"
 		}
 		return []GateOption{{
 			ID:       "adopt-fast-forward",
 			When:     "the remote is already migrated and this clone can fast-forward to it losslessly (no unpushed commits, clean working set)",
-			Commands: []string{"bd bootstrap"},
+			Commands: []string{"issuegraph bootstrap"},
 			Risk:     ffRisk,
 		}}
 	case gateDecisionForkSkew:
@@ -618,7 +618,7 @@ func (e *RemoteMigrateGateError) Options() []GateOption {
 		return []GateOption{{
 			ID:       "reconcile-fork",
 			When:     "the schema has already forked (different content for migration(s) " + FormatMigrationVersions(e.SkewVersions) + "); choose ONE clone as canonical",
-			Commands: []string{"bd export --all -o backup.jsonl", "bd bootstrap"},
+			Commands: []string{"issuegraph export --all -o backup.jsonl", "issuegraph bootstrap"},
 			Risk:     "re-bootstrapping the non-canonical clones discards their unpushed work; export it first",
 		}}
 	case gateDecisionSharedNoRemote:
@@ -626,16 +626,16 @@ func (e *RemoteMigrateGateError) Options() []GateOption {
 		// client shares. The only question is whether the fleet is ready.
 		return []GateOption{{
 			ID:       "migrate-shared",
-			When:     "every co-resident bd client of this server is upgraded to this binary (confirmed with the operator), run from a workspace already set up against this server",
+			When:     "every co-resident issuegraph client of this server is upgraded to this binary (confirmed with the operator), run from a workspace already set up against this server",
 			Commands: []string{SharedConsentCommand},
-			Risk:     "co-resident clients still on an older bd will refuse this database until upgraded",
+			Risk:     "co-resident clients still on an older issuegraph will refuse this database until upgraded",
 		}}
 	default:
 		return []GateOption{
 			{
 				ID:       "migrate",
 				When:     "you are the single designated migrator (only ONE machine, confirmed with the operator) and no other clone has migrated yet",
-				Commands: []string{"bd migrate --force", "bd dolt push"},
+				Commands: []string{"issuegraph migrate --force", "issuegraph dolt push"},
 				Risk:     "if another clone also migrates independently, the schema forks unrecoverably (#4259)",
 			},
 			adopt,
@@ -697,14 +697,14 @@ func CheckRemoteMigrateGateForRemoteWithRemoteCheckAndAdopt(ctx context.Context,
 }
 
 // CheckSharedStoreMigrateGate is the gate for a database that is served to
-// co-resident bd clients — an internal/storage/dolt sql-server store, or the
-// proxied/`bd serve` unit-of-work provider. It adds two refusals on top of the
-// remote-backed #4259 flow (gastownhall/beads#5920):
+// co-resident issuegraph clients — an internal/storage/dolt sql-server store, or the
+// proxied/`issuegraph serve` unit-of-work provider. It adds two refusals on top of the
+// remote-backed #4259 flow (borg0ai/dx-issuegraph#5920):
 //
 //   - With NO remote, where the ordinary gate allows a silent in-place
 //     migration, it refuses unless the operator consented (the migrate verb,
 //     --force, or AllowRemoteMigrateEnv). Promoting the schema cursor on a
-//     shared server locks out every co-resident client still on an older bd.
+//     shared server locks out every co-resident client still on an older issuegraph.
 //   - With a remote, it suppresses the smart gate's two auto-EXECUTE arms
 //     (first-mover auto-migrate and auto-fast-forward). Both were written for
 //     a clone this process owns; on a shared server neither can observe the
@@ -752,14 +752,14 @@ func checkRemoteMigrateGate(ctx context.Context, db DBConn, remoteName string, e
 		}
 		// A shared store has co-resident clients whether or not it has a
 		// remote, and migrating promotes the schema cursor for all of them at
-		// once (gastownhall/beads#5920).
+		// once (borg0ai/dx-issuegraph#5920).
 		return sharedNoRemoteGate(current, len(pending))
 	}
 
 	consent := forceOrEnvConsent()
 	if consent.allowed {
 		fmt.Fprintf(os.Stderr,
-			"Warning: applying %d pending schema migration(s) to a remote-backed database (%s); only one clone should migrate, then `bd dolt push`\n",
+			"Warning: applying %d pending schema migration(s) to a remote-backed database (%s); only one clone should migrate, then `issuegraph dolt push`\n",
 			len(pending), consent.how)
 		return nil
 	}
@@ -767,7 +767,7 @@ func checkRemoteMigrateGate(ctx context.Context, db DBConn, remoteName string, e
 
 	latest := LatestVersion()
 
-	// Smart gate (#4516): on by default, BD_SMART_GATE=0 opts out. Once the
+	// Smart gate (#4516): on by default, ISSUEGRAPH_SMART_GATE=0 opts out. Once the
 	// blunt gate would fire and the designated-migrator escape hatch is not
 	// set, consult the remote's cached schema state and auto-resolve the one
 	// provably-safe case (first-mover migrate). The undetermined/below-floor
@@ -778,8 +778,8 @@ func checkRemoteMigrateGate(ctx context.Context, db DBConn, remoteName string, e
 	// fallbackReason/unrecognizedSmartGateEnv record WHY, for the blunt block
 	// below: an operator hitting it otherwise cannot tell "couldn't read the
 	// remote's cached state" apart from "below the convergence floor" apart
-	// from "opted out" apart from "unparseable BD_SMART_GATE value" — every
-	// path used to produce the byte-identical #4515 text (gastownhall/beads#4551
+	// from "opted out" apart from "unparseable ISSUEGRAPH_SMART_GATE value" — every
+	// path used to produce the byte-identical #4515 text (borg0ai/dx-issuegraph#4551
 	// follow-up).
 	fallbackReason := ""
 	unrecognizedSmartGateEnv := ""
@@ -792,7 +792,7 @@ func checkRemoteMigrateGate(ctx context.Context, db DBConn, remoteName string, e
 		switch decision {
 		case smartAutoMigrate:
 			// The safe-first-mover argument is about clones, not clients: it
-			// proves nothing about the co-resident bd processes attached to
+			// proves nothing about the co-resident issuegraph processes attached to
 			// this same server, and auto-executing it here IS the #5920
 			// mechanism. Fall through to the blunt stop, naming why.
 			if shared {
@@ -873,7 +873,7 @@ func checkRemoteMigrateGate(ctx context.Context, db DBConn, remoteName string, e
 				SkewVersions:    skew,
 			}
 		case smartDataBehind, smartDataDiverged:
-			// gastownhall/beads#6575: schema parity held but this clone is
+			// borg0ai/dx-issuegraph#6575: schema parity held but this clone is
 			// missing commits the cached remote ref has. Stop, and carry the
 			// pull-first remedy on every surface (body, note, agent directive,
 			// options) — the blunt migrate-or-adopt guidance is wrong here,
@@ -896,14 +896,14 @@ func checkRemoteMigrateGate(ctx context.Context, db DBConn, remoteName string, e
 		case smartUndetermined:
 			fallbackReason = fallbackReasonUnreadableState
 		}
-		// An unparseable BD_SMART_GATE value defaults to enabled (same as
+		// An unparseable ISSUEGRAPH_SMART_GATE value defaults to enabled (same as
 		// unset), so routing above still ran — but it is a more actionable
 		// fact for the operator than the technical routing outcome, so it
 		// takes priority as the surfaced reason. Not over shared-store: that
 		// one is structural (the gate WOULD have resolved, and was overruled),
 		// so fixing the env value would not change the outcome. Not over
-		// data-behind either, for the same reason (gastownhall/beads#6575):
-		// that stop stands whatever BD_SMART_GATE says, and it is the one
+		// data-behind either, for the same reason (borg0ai/dx-issuegraph#6575):
+		// that stop stands whatever ISSUEGRAPH_SMART_GATE says, and it is the one
 		// reason carrying a remedy the operator can act on right now, so
 		// burying it behind an env-value complaint would cost them the fix.
 		envState, envValue := smartGateEnvValue()
@@ -954,10 +954,10 @@ type migrateConsent struct {
 func forceOrEnvConsent() migrateConsent {
 	// Process-local by design: unlike os.Setenv(AllowRemoteMigrateEnv), the
 	// programmatic twin cannot leak into child processes (git hooks, dolt
-	// subprocesses). Set by `bd migrate --force` in the root PersistentPreRunE
+	// subprocesses). Set by `issuegraph migrate --force` in the root PersistentPreRunE
 	// before both autoMigrateOnVersionBump and the main store open.
 	if forceAllowRemoteMigrate {
-		return migrateConsent{allowed: true, how: "bd migrate --force"}
+		return migrateConsent{allowed: true, how: "issuegraph migrate --force"}
 	}
 	v := os.Getenv(AllowRemoteMigrateEnv)
 	if v == "" {
@@ -981,12 +981,12 @@ func forceOrEnvConsent() migrateConsent {
 // hint, its remediation option, and the warning it prints once consent is
 // given, so those three can never name different commands.
 //
-// On the shared GLOBAL database (`beads_global`) the same command needs
+// On the shared GLOBAL database (`issuegraph_global`) the same command needs
 // `--global` to route there; see SharedConsentCommandGlobal.
-const SharedConsentCommand = "bd migrate schema"
+const SharedConsentCommand = "issuegraph migrate schema"
 
 // SharedConsentCommandGlobal is SharedConsentCommand aimed at the shared
-// global database. `bd init` and any `--global` invocation refuse against
+// global database. `issuegraph init` and any `--global` invocation refuse against
 // their own database, so the remedy they print must carry the flag or it
 // migrates the wrong one.
 const SharedConsentCommandGlobal = SharedConsentCommand + " --global"
@@ -999,7 +999,7 @@ const SharedConsentCommandGlobal = SharedConsentCommand + " --global"
 // checkRemoteMigrateGate reaches only on the !hasRemote branch. With a remote
 // configured the retry routes through forceOrEnvConsent instead, so typing the
 // bare verb sets a consent nothing reads and the operator lands on the blunt
-// shared-store refusal, whose body prescribes the `bd migrate --force` this
+// shared-store refusal, whose body prescribes the `issuegraph migrate --force` this
 // stop's own body tells them not to use.
 //
 // The fix is deliberately the command, not the gate: widening
@@ -1008,7 +1008,7 @@ const SharedConsentCommandGlobal = SharedConsentCommand + " --global"
 // whenever a remote exists, which is the very thing sharedNoRemoteGate's
 // comment says is intentional. `--force` is what forceOrEnvConsent honors, and
 // the CLI accepts it on this verb (modules/cli.isForcedMigrate covers both
-// `bd migrate` and `bd migrate schema`), so this is the narrowest command that
+// `issuegraph migrate` and `issuegraph migrate schema`), so this is the narrowest command that
 // still names the schema migration AND actually unlocks the retry.
 const SharedConsentCommandForced = SharedConsentCommand + " --force"
 
@@ -1018,7 +1018,7 @@ const SharedConsentCommandForced = SharedConsentCommand + " --force"
 const SharedConsentCommandForcedGlobal = SharedConsentCommandGlobal + " --force"
 
 // sharedNoRemoteGate decides the shared-store-without-a-remote arm
-// (gastownhall/beads#5920). There is no remote, so none of the #4259
+// (borg0ai/dx-issuegraph#5920). There is no remote, so none of the #4259
 // migrate-vs-adopt machinery applies: the only question is whether the
 // operator consented to promoting the schema for every co-resident client.
 func sharedNoRemoteGate(current, pending int) error {
@@ -1031,7 +1031,7 @@ func sharedNoRemoteGate(current, pending int) error {
 	}
 	if consent.allowed {
 		fmt.Fprintf(os.Stderr,
-			"Warning: applying %d pending schema migration(s) to a shared server database (%s); co-resident bd clients still on an older binary will refuse this database until they are upgraded (#5920)\n",
+			"Warning: applying %d pending schema migration(s) to a shared server database (%s); co-resident issuegraph clients still on an older binary will refuse this database until they are upgraded (#5920)\n",
 			pending, consent.how)
 		return nil
 	}

@@ -11,7 +11,7 @@ import (
 	"testing"
 )
 
-// TestJSONContract_ListOutputIsValidJSON verifies bd list --json always
+// TestJSONContract_ListOutputIsValidJSON verifies issuegraph list --json always
 // produces valid JSON (not mixed with tree-renderer text).
 func TestJSONContract_ListOutputIsValidJSON(t *testing.T) {
 	t.Parallel()
@@ -21,11 +21,11 @@ func TestJSONContract_ListOutputIsValidJSON(t *testing.T) {
 	out := w.run("list", "--json")
 	items := parseJSONOutput(t, out)
 	if len(items) == 0 {
-		t.Fatal("bd list --json returned no items")
+		t.Fatal("issuegraph list --json returned no items")
 	}
 }
 
-// TestJSONContract_ShowOutputHasRequiredFields verifies bd show --json
+// TestJSONContract_ShowOutputHasRequiredFields verifies issuegraph show --json
 // includes all required issue fields, including the relational counts that
 // stand in for the opt-in comment and dependent payloads.
 //
@@ -40,7 +40,7 @@ func TestJSONContract_ShowOutputHasRequiredFields(t *testing.T) {
 	out := w.run("show", id, "--json")
 	items := parseJSONOutput(t, out)
 	if len(items) == 0 {
-		t.Fatal("bd show --json returned no items")
+		t.Fatal("issuegraph show --json returned no items")
 	}
 
 	issue := items[0]
@@ -50,20 +50,20 @@ func TestJSONContract_ShowOutputHasRequiredFields(t *testing.T) {
 	}
 	for _, field := range requiredFields {
 		if _, ok := issue[field]; !ok {
-			t.Errorf("bd show --json missing required field %q", field)
+			t.Errorf("issuegraph show --json missing required field %q", field)
 		}
 	}
 }
 
 // TestJSONContract_ShowOmitsOptInPayloadsByDefault pins the NEGATIVE half of the
-// count-only contract (be-ijck6q): by default, bd show --json must OMIT the
+// count-only contract (be-ijck6q): by default, issuegraph show --json must OMIT the
 // "comments" and "dependents" arrays entirely, and each --include-* flag must
 // populate its own array and only its own.
 //
 // Every other test that touches comments or dependents asks for them with
 // showJSONFull, so all of them would stay green if the default silently went
 // back to materializing both lists eagerly — which is precisely the pathological
-// hub-bead slowness cfcc95799 removed. Omission is the invariant with no other
+// hub-issue slowness cfcc95799 removed. Omission is the invariant with no other
 // witness, so it needs one of its own: a perf contract that nothing asserts is a
 // perf contract that will be regressed.
 func TestJSONContract_ShowOmitsOptInPayloadsByDefault(t *testing.T) {
@@ -79,7 +79,7 @@ func TestJSONContract_ShowOmitsOptInPayloadsByDefault(t *testing.T) {
 		out := w.run(append([]string{"show", parent, "--json"}, flags...)...)
 		items := parseJSONOutput(t, out)
 		if len(items) == 0 {
-			t.Fatalf("bd show %s --json %v returned no items", parent, flags)
+			t.Fatalf("issuegraph show %s --json %v returned no items", parent, flags)
 		}
 		return items[0]
 	}
@@ -147,7 +147,7 @@ func TestJSONContract_ShowCommentsOmittedFlag(t *testing.T) {
 		out := w.run(append([]string{"show", id, "--json"}, flags...)...)
 		items := parseJSONOutput(t, out)
 		if len(items) == 0 {
-			t.Fatalf("bd show %s --json %v returned no items", id, flags)
+			t.Fatalf("issuegraph show %s --json %v returned no items", id, flags)
 		}
 		return items[0]
 	}
@@ -186,7 +186,7 @@ func TestJSONContract_ShowCommentsOmittedFlag(t *testing.T) {
 	})
 }
 
-// TestJSONContract_ShowOutputIsArray pins the shape of bd show --json: a
+// TestJSONContract_ShowOutputIsArray pins the shape of issuegraph show --json: a
 // top-level JSON array with one element per requested ID, NOT a schema_version
 // envelope. This is what the golden corpus commits (CATALOG.md: show =
 // "array-of-one") and what wrapWithSchemaVersion does with a slice — it returns
@@ -204,10 +204,10 @@ func TestJSONContract_ShowOutputIsArray(t *testing.T) {
 
 	var arr []map[string]any
 	if err := json.Unmarshal([]byte(out), &arr); err != nil {
-		t.Fatalf("bd show --json is not a top-level JSON array: %v\nOutput:\n%s", err, out)
+		t.Fatalf("issuegraph show --json is not a top-level JSON array: %v\nOutput:\n%s", err, out)
 	}
 	if len(arr) != 2 {
-		t.Fatalf("bd show <id1> <id2> --json returned %d items, want 2\nOutput:\n%s", len(arr), out)
+		t.Fatalf("issuegraph show <id1> <id2> --json returned %d items, want 2\nOutput:\n%s", len(arr), out)
 	}
 
 	gotIDs := make([]string, 0, len(arr))
@@ -215,13 +215,13 @@ func TestJSONContract_ShowOutputIsArray(t *testing.T) {
 		id, _ := item["id"].(string)
 		gotIDs = append(gotIDs, id)
 		if _, ok := item["schema_version"]; ok {
-			t.Errorf("bd show --json item %s carries schema_version; array-returning commands do not", id)
+			t.Errorf("issuegraph show --json item %s carries schema_version; array-returning commands do not", id)
 		}
 	}
-	requireStringSetEqual(t, gotIDs, []string{id1, id2}, "bd show <id1> <id2> --json ids")
+	requireStringSetEqual(t, gotIDs, []string{id1, id2}, "issuegraph show <id1> <id2> --json ids")
 }
 
-// TestJSONContract_ReadyOutputIsValidJSON verifies bd ready --json produces
+// TestJSONContract_ReadyOutputIsValidJSON verifies issuegraph ready --json produces
 // valid JSON even when no issues are ready.
 func TestJSONContract_ReadyOutputIsValidJSON(t *testing.T) {
 	t.Parallel()
@@ -230,11 +230,11 @@ func TestJSONContract_ReadyOutputIsValidJSON(t *testing.T) {
 	out := w.run("ready", "--json")
 	var arr []map[string]any
 	if err := json.Unmarshal([]byte(out), &arr); err != nil {
-		t.Fatalf("bd ready --json produced invalid JSON: %v\nOutput:\n%s", err, out)
+		t.Fatalf("issuegraph ready --json produced invalid JSON: %v\nOutput:\n%s", err, out)
 	}
 }
 
-// TestJSONContract_CreateOutputHasID verifies bd create --json returns
+// TestJSONContract_CreateOutputHasID verifies issuegraph create --json returns
 // the created issue with its ID.
 func TestJSONContract_CreateOutputHasID(t *testing.T) {
 	t.Parallel()
@@ -244,12 +244,12 @@ func TestJSONContract_CreateOutputHasID(t *testing.T) {
 
 	var issue map[string]any
 	if err := json.Unmarshal([]byte(out), &issue); err != nil {
-		t.Fatalf("bd create --json produced invalid JSON: %v\nOutput:\n%s", err, out)
+		t.Fatalf("issuegraph create --json produced invalid JSON: %v\nOutput:\n%s", err, out)
 	}
 
-	assertSchemaVersion(t, issue, "bd create --json")
+	assertSchemaVersion(t, issue, "issuegraph create --json")
 	if _, ok := issue["id"]; !ok {
-		t.Error("bd create --json output missing 'id' field")
+		t.Error("issuegraph create --json output missing 'id' field")
 	}
 }
 
@@ -280,7 +280,7 @@ func TestJSONContract_ErrorOutputIsValidJSON(t *testing.T) {
 			var lineObj map[string]any
 			if json.Unmarshal([]byte(line), &lineObj) == nil {
 				if _, hasError := lineObj["error"]; hasError {
-					assertSchemaVersion(t, lineObj, "bd error JSON line")
+					assertSchemaVersion(t, lineObj, "issuegraph error JSON line")
 					return
 				}
 			}
@@ -288,12 +288,12 @@ func TestJSONContract_ErrorOutputIsValidJSON(t *testing.T) {
 		t.Logf("Note: error output not fully JSON — this is acceptable for some error paths")
 	} else {
 		if _, hasError := errObj["error"]; hasError {
-			assertSchemaVersion(t, errObj, "bd show error --json")
+			assertSchemaVersion(t, errObj, "issuegraph show error --json")
 		}
 	}
 }
 
-// TestJSONContract_CloseOutputHasStatus verifies bd close --json returns
+// TestJSONContract_CloseOutputHasStatus verifies issuegraph close --json returns
 // the updated issue with closed status.
 func TestJSONContract_CloseOutputHasStatus(t *testing.T) {
 	t.Parallel()
@@ -303,14 +303,14 @@ func TestJSONContract_CloseOutputHasStatus(t *testing.T) {
 	out := w.run("close", id, "--json")
 	items := parseJSONOutput(t, out)
 	if len(items) == 0 {
-		t.Fatal("bd close --json returned no items")
+		t.Fatal("issuegraph close --json returned no items")
 	}
 
 	assertField(t, items[0], "status", "closed")
 }
 
-// TestJSONContract_ReadyOutputHasFullObjects verifies bd ready --json returns
-// full issue objects with dependency counts, not just IDs (beads-clt).
+// TestJSONContract_ReadyOutputHasFullObjects verifies issuegraph ready --json returns
+// full issue objects with dependency counts, not just IDs (issuegraph-clt).
 func TestJSONContract_ReadyOutputHasFullObjects(t *testing.T) {
 	t.Parallel()
 	w := newWorkspace(t)
@@ -325,13 +325,13 @@ func TestJSONContract_ReadyOutputHasFullObjects(t *testing.T) {
 	requiredFields := []string{"id", "title", "status", "priority", "dependency_count", "dependent_count"}
 	for _, field := range requiredFields {
 		if _, ok := issue[field]; !ok {
-			t.Errorf("bd ready --json item missing required field %q", field)
+			t.Errorf("issuegraph ready --json item missing required field %q", field)
 		}
 	}
 }
 
-// TestJSONContract_BlockedOutputHasBlockedBy verifies bd blocked --json returns
-// full issue objects with blocked_by field (beads-clt).
+// TestJSONContract_BlockedOutputHasBlockedBy verifies issuegraph blocked --json returns
+// full issue objects with blocked_by field (issuegraph-clt).
 func TestJSONContract_BlockedOutputHasBlockedBy(t *testing.T) {
 	t.Parallel()
 	w := newWorkspace(t)
@@ -351,18 +351,18 @@ func TestJSONContract_BlockedOutputHasBlockedBy(t *testing.T) {
 		}
 	}
 	if found == nil {
-		t.Fatalf("blocked issue %s not found in bd blocked --json output", blocked)
+		t.Fatalf("blocked issue %s not found in issuegraph blocked --json output", blocked)
 	}
 
 	requiredFields := []string{"id", "title", "status", "blocked_by_count", "blocked_by"}
 	for _, field := range requiredFields {
 		if _, ok := found[field]; !ok {
-			t.Errorf("bd blocked --json item missing required field %q", field)
+			t.Errorf("issuegraph blocked --json item missing required field %q", field)
 		}
 	}
 }
 
-// TestJSONContract_PingOutputIsValidJSON verifies bd ping --json returns
+// TestJSONContract_PingOutputIsValidJSON verifies issuegraph ping --json returns
 // structured health check output with timing info.
 func TestJSONContract_PingOutputIsValidJSON(t *testing.T) {
 	t.Parallel()
@@ -371,14 +371,14 @@ func TestJSONContract_PingOutputIsValidJSON(t *testing.T) {
 	out := w.run("ping", "--json")
 	var obj map[string]any
 	if err := json.Unmarshal([]byte(out), &obj); err != nil {
-		t.Fatalf("bd ping --json produced invalid JSON: %v\nOutput:\n%s", err, out)
+		t.Fatalf("issuegraph ping --json produced invalid JSON: %v\nOutput:\n%s", err, out)
 	}
-	assertSchemaVersion(t, obj, "bd ping --json")
+	assertSchemaVersion(t, obj, "issuegraph ping --json")
 	if status, ok := obj["status"].(string); !ok || status != "ok" {
-		t.Errorf("bd ping --json status = %v, want ok", obj["status"])
+		t.Errorf("issuegraph ping --json status = %v, want ok", obj["status"])
 	}
 	if _, ok := obj["total_ms"]; !ok {
-		t.Error("bd ping --json missing total_ms field")
+		t.Error("issuegraph ping --json missing total_ms field")
 	}
 }
 
@@ -403,10 +403,10 @@ func TestJSONContract_SchemaVersionPresent(t *testing.T) {
 			out := w.run(tt.args...)
 			var obj map[string]any
 			if err := json.Unmarshal([]byte(out), &obj); err != nil {
-				t.Fatalf("bd %s produced invalid JSON: %v\nOutput:\n%s",
+				t.Fatalf("issuegraph %s produced invalid JSON: %v\nOutput:\n%s",
 					tt.name, err, out)
 			}
-			assertSchemaVersion(t, obj, "bd "+tt.name+" --json")
+			assertSchemaVersion(t, obj, "issuegraph "+tt.name+" --json")
 		})
 	}
 }

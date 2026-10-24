@@ -8,13 +8,13 @@ import (
 
 	"github.com/spf13/cobra"
 
-	"github.com/steveyegge/beads/internal/storage"
-	"github.com/steveyegge/beads/internal/storage/uow"
-	"github.com/steveyegge/beads/internal/types"
-	"github.com/steveyegge/beads/internal/ui"
-	"github.com/steveyegge/beads/internal/uimd"
-	"github.com/steveyegge/beads/internal/workapi"
-	"github.com/steveyegge/beads/issueops"
+	"github.com/borg0ai/dx-issuegraph/internal/storage"
+	"github.com/borg0ai/dx-issuegraph/internal/storage/uow"
+	"github.com/borg0ai/dx-issuegraph/internal/types"
+	"github.com/borg0ai/dx-issuegraph/internal/ui"
+	"github.com/borg0ai/dx-issuegraph/internal/uimd"
+	"github.com/borg0ai/dx-issuegraph/internal/workapi"
+	"github.com/borg0ai/dx-issuegraph/issueops"
 )
 
 func runCommentsProxiedServer(cmd *cobra.Command, ctx context.Context, args []string) error {
@@ -116,12 +116,12 @@ func proxiedCommenter() (issueops.Commenter, error) {
 // it with the issue it landed on.
 //
 // The RESOLVE stays here, in a read-only pre-flight, for the reason the
-// proxied close keeps its own policy pre-flight: `bd comment` refuses a
+// proxied close keeps its own policy pre-flight: `issuegraph comment` refuses a
 // template, and refusing a template is not library policy. The pre-flight is
 // also where the TITLE comes from — the confirmation line prints it, and a
 // result type carrying presentation for one front door is a result type that
 // grows one field per front door. The role is handed the canonical id the
-// pre-flight resolved, exactly as `bd show` hands Reader.Get one.
+// pre-flight resolved, exactly as `issuegraph show` hands Reader.Get one.
 func addCommentProxied(ctx context.Context, id, author, text string) (*types.Comment, *types.Issue, error) {
 	issue, err := resolveCommentTargetProxied(ctx, id)
 	if err != nil {

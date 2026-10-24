@@ -1,4 +1,4 @@
-// Package main provides the bd CLI commands.
+// Package main provides the issuegraph CLI commands.
 package main
 
 import (
@@ -8,12 +8,12 @@ import (
 	"strconv"
 	"strings"
 
+	"github.com/borg0ai/dx-issuegraph/internal/config"
+	"github.com/borg0ai/dx-issuegraph/internal/github"
+	"github.com/borg0ai/dx-issuegraph/internal/metrics"
+	"github.com/borg0ai/dx-issuegraph/internal/tracker"
+	"github.com/borg0ai/dx-issuegraph/internal/types"
 	"github.com/spf13/cobra"
-	"github.com/steveyegge/beads/internal/config"
-	"github.com/steveyegge/beads/internal/github"
-	"github.com/steveyegge/beads/internal/metrics"
-	"github.com/steveyegge/beads/internal/tracker"
-	"github.com/steveyegge/beads/internal/types"
 )
 
 // GitHubConfig holds GitHub connection configuration.
@@ -29,9 +29,9 @@ type GitHubConfig struct {
 var githubCmd = &cobra.Command{
 	Use:   "github",
 	Short: "GitHub integration commands",
-	Long: `Commands for syncing issues between beads and GitHub.
+	Long: `Commands for syncing issues between issuegraph and GitHub.
 
-Configuration can be set via 'bd config' or environment variables:
+Configuration can be set via 'issuegraph config' or environment variables:
   github.token / GITHUB_TOKEN           - Personal access token
   github.owner / GITHUB_OWNER           - Repository owner
   github.repo / GITHUB_REPO             - Repository name
@@ -39,15 +39,15 @@ Configuration can be set via 'bd config' or environment variables:
   github.url / GITHUB_API_URL           - Custom API URL (GitHub Enterprise)`,
 }
 
-// githubSyncCmd synchronizes issues between beads and GitHub.
+// githubSyncCmd synchronizes issues between issuegraph and GitHub.
 var githubSyncCmd = &cobra.Command{
 	Use:   "sync",
 	Short: "Sync issues with GitHub",
-	Long: `Synchronize issues between beads and GitHub.
+	Long: `Synchronize issues between issuegraph and GitHub.
 
 By default, performs bidirectional sync:
-- Pulls new/updated issues from GitHub to beads
-- Pushes local beads issues to GitHub
+- Pulls new/updated issues from GitHub to issuegraph
+- Pushes local issuegraph issues to GitHub
 
 Use --pull-only or --push-only to limit direction.`,
 	SilenceUsage:  true,
@@ -90,7 +90,7 @@ type GitHubConflictStrategy string
 const (
 	// GitHubConflictPreferNewer uses the most recently updated version (default).
 	GitHubConflictPreferNewer GitHubConflictStrategy = "prefer-newer"
-	// GitHubConflictPreferLocal always keeps the local beads version.
+	// GitHubConflictPreferLocal always keeps the local issuegraph version.
 	GitHubConflictPreferLocal GitHubConflictStrategy = "prefer-local"
 	// GitHubConflictPreferGitHub always uses the GitHub version.
 	GitHubConflictPreferGitHub GitHubConflictStrategy = "prefer-github"
@@ -156,7 +156,7 @@ func init() {
 	githubSyncCmd.Flags().BoolVar(&githubSyncPushOnly, "push-only", false, "Only push issues to GitHub")
 
 	// Conflict resolution flags (mutually exclusive)
-	githubSyncCmd.Flags().BoolVar(&githubPreferLocal, "prefer-local", false, "On conflict, keep local beads version")
+	githubSyncCmd.Flags().BoolVar(&githubPreferLocal, "prefer-local", false, "On conflict, keep local issuegraph version")
 	githubSyncCmd.Flags().BoolVar(&githubPreferGitHub, "prefer-github", false, "On conflict, use GitHub version")
 	githubSyncCmd.Flags().BoolVar(&githubPreferNewer, "prefer-newer", false, "On conflict, use most recent version (default)")
 	registerSelectiveSyncFlags(githubSyncCmd)
@@ -165,7 +165,7 @@ func init() {
 	rootCmd.AddCommand(githubCmd)
 }
 
-// getGitHubConfig returns GitHub configuration from bd config or environment.
+// getGitHubConfig returns GitHub configuration from issuegraph config or environment.
 func getGitHubConfig() GitHubConfig {
 	ctx := context.Background()
 	config := GitHubConfig{}
@@ -259,13 +259,13 @@ func githubConfigToEnvVar(key string) string {
 // validateGitHubConfig checks that required configuration is present.
 func validateGitHubConfig(config GitHubConfig) error {
 	if config.Token == "" {
-		return fmt.Errorf("github.token is not configured. Set via 'bd config set github.token <token>' or GITHUB_TOKEN environment variable")
+		return fmt.Errorf("github.token is not configured. Set via 'issuegraph config set github.token <token>' or GITHUB_TOKEN environment variable")
 	}
 	if config.Owner == "" {
-		return fmt.Errorf("github.owner is not configured. Set via 'bd config set github.owner <owner>' or GITHUB_OWNER environment variable")
+		return fmt.Errorf("github.owner is not configured. Set via 'issuegraph config set github.owner <owner>' or GITHUB_OWNER environment variable")
 	}
 	if config.Repo == "" {
-		return fmt.Errorf("github.repo is not configured. Set via 'bd config set github.repo <repo>' or GITHUB_REPO environment variable")
+		return fmt.Errorf("github.repo is not configured. Set via 'issuegraph config set github.repo <repo>' or GITHUB_REPO environment variable")
 	}
 	return nil
 }
@@ -341,7 +341,7 @@ func runGitHubRepos(cmd *cobra.Command, args []string) error {
 
 	config := getGitHubConfig()
 	if config.Token == "" {
-		return HandleError("github.token is not configured. Set via 'bd config set github.token <token>' or GITHUB_TOKEN environment variable")
+		return HandleError("github.token is not configured. Set via 'issuegraph config set github.token <token>' or GITHUB_TOKEN environment variable")
 	}
 
 	out := cmd.OutOrStdout()
@@ -481,7 +481,7 @@ func runGitHubSync(cmd *cobra.Command, args []string) error {
 // buildGitHubPushHooks creates PushHooks for GitHub-specific push behavior.
 // The ContentEqual hook lets the engine skip issues whose pushable fields
 // already match GitHub, so repeated `github sync --push-only` / `github push`
-// runs don't re-PATCH unchanged issues (gastownhall/beads#4214).
+// runs don't re-PATCH unchanged issues (borg0ai/dx-issuegraph#4214).
 func buildGitHubPushHooks(gt *github.Tracker) *tracker.PushHooks {
 	config := gt.MappingConfig()
 	if config == nil {
@@ -501,7 +501,7 @@ func buildGitHubPushHooks(gt *github.Tracker) *tracker.PushHooks {
 		// ContentHash lets the engine skip the per-issue GitHub fetch entirely
 		// when an issue is unchanged since its last push, so a no-op
 		// `github sync --push-only` makes ~zero REST calls instead of one GET
-		// per linked issue (gastownhall/beads#4214).
+		// per linked issue (borg0ai/dx-issuegraph#4214).
 		ContentHash: func(local *types.Issue) string {
 			return github.PushContentHash(local, config)
 		},
@@ -514,7 +514,7 @@ func buildGitHubPushHooks(gt *github.Tracker) *tracker.PushHooks {
 
 // buildGitHubPullHooks creates PullHooks for GitHub-specific pull behavior.
 func buildGitHubPullHooks(ctx context.Context) *tracker.PullHooks {
-	prefix := "bd"
+	prefix := "issuegraph"
 	// YAML config takes precedence — in shared-server mode the DB
 	// may belong to a different project (GH#2469).
 	if p := config.GetString("issue-prefix"); p != "" {

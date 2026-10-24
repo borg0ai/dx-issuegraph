@@ -10,7 +10,7 @@ import (
 	"testing"
 	"time"
 
-	"github.com/steveyegge/beads/internal/storage/doltutil"
+	"github.com/borg0ai/dx-issuegraph/internal/storage/doltutil"
 )
 
 // TestShouldPurgeDroppedDatabasesGatesOnFlagAlone pins the --purge-dropped
@@ -134,7 +134,7 @@ func TestPurgeDroppedDatabasesRemovesUndropRecovery(t *testing.T) {
 }
 
 // TestCleanDatabasesPurgeDroppedReclaimsResidue is the CLI-level regression
-// gate for the residue P1: it drives the real `bd dolt clean-databases
+// gate for the residue P1: it drives the real `issuegraph dolt clean-databases
 // --purge-dropped` command (not just the extracted helpers) against a
 // database that was already dropped — but not purged — before the command
 // runs, so this invocation's own SHOW DATABASES scan finds nothing stale
@@ -143,24 +143,24 @@ func TestPurgeDroppedDatabasesRemovesUndropRecovery(t *testing.T) {
 // residue was never reclaimed despite --purge-dropped being passed.
 //
 // The shared test Dolt server container is itself bootstrapped with a
-// "beads_test" database (internal/testutil/container_provider.go), which
+// "issuegraph_test" database (internal/testutil/container_provider.go), which
 // matches a stale prefix — so a single clean-databases invocation against a
 // fresh container always finds at least one stale entry (dropped > 0),
 // which would mask this exact bug under the old dropped>0 gate. This test
 // primes the server with an unconditional --purge-dropped run first (drops
-// and purges "beads_test" and any other ambient residue), then creates its
+// and purges "issuegraph_test" and any other ambient residue), then creates its
 // own residue database and runs clean-databases --purge-dropped a second
 // time, by which point SHOW DATABASES genuinely has nothing stale to drop.
 //
-// Reuses the buildBDUnderTest/writeServerRepo/runBDCommand harness from
-// explicit_db_nodb_test.go, which already exercises `bd dolt <subcommand>`
+// Reuses the buildIssueGraphUnderTest/writeServerRepo/runIssueGraphCommand harness from
+// explicit_db_nodb_test.go, which already exercises `issuegraph dolt <subcommand>`
 // against this package's shared test Dolt server the same way.
 func TestCleanDatabasesPurgeDroppedReclaimsResidue(t *testing.T) {
 	if testDoltServerPort == 0 {
 		t.Skip("no test Dolt server running")
 	}
 
-	binPath := buildBDUnderTest(t)
+	binPath := buildIssueGraphUnderTest(t)
 	repoDir := t.TempDir()
 	writeServerRepo(t, repoDir, "purge_residue_test_db", "127.0.0.1", "purge-residue-test-origin", testDoltServerPort)
 
@@ -173,9 +173,9 @@ func TestCleanDatabasesPurgeDroppedReclaimsResidue(t *testing.T) {
 	ctx := context.Background()
 
 	// Prime: clear any ambient stale/residue databases (notably the
-	// container's own "beads_test" bootstrap DB) so the second, assertive
+	// container's own "issuegraph_test" bootstrap DB) so the second, assertive
 	// run below starts from a genuinely clean SHOW DATABASES.
-	_ = runBDCommand(t, binPath, repoDir, nil, "dolt", "clean-databases", "--purge-dropped")
+	_ = runIssueGraphCommand(t, binPath, repoDir, nil, "dolt", "clean-databases", "--purge-dropped")
 
 	// Simulate residue from a prior clean-databases run: drop a stale
 	// database directly, without purging. Once dropped it no longer shows
@@ -186,7 +186,7 @@ func TestCleanDatabasesPurgeDroppedReclaimsResidue(t *testing.T) {
 	mustExec(t, ctx, db, fmt.Sprintf("CREATE DATABASE `%s`", residue))
 	mustExec(t, ctx, db, fmt.Sprintf("DROP DATABASE `%s`", residue))
 
-	out := string(runBDCommand(t, binPath, repoDir, nil, "dolt", "clean-databases", "--purge-dropped"))
+	out := string(runIssueGraphCommand(t, binPath, repoDir, nil, "dolt", "clean-databases", "--purge-dropped"))
 
 	if !strings.Contains(out, "No stale databases found.") {
 		t.Fatalf("expected this run to find no stale databases (residue is already dropped, not in SHOW DATABASES), got:\n%s", out)
@@ -200,7 +200,7 @@ func TestCleanDatabasesPurgeDroppedReclaimsResidue(t *testing.T) {
 	_, undropErr := db.ExecContext(undropCtx, fmt.Sprintf("CALL DOLT_UNDROP('%s')", residue))
 	if undropErr == nil {
 		mustExec(t, ctx, db, fmt.Sprintf("DROP DATABASE IF EXISTS `%s`", residue))
-		t.Fatalf("DOLT_UNDROP(%q) succeeded after `bd dolt clean-databases --purge-dropped` with stale == 0; residue was not purged", residue)
+		t.Fatalf("DOLT_UNDROP(%q) succeeded after `issuegraph dolt clean-databases --purge-dropped` with stale == 0; residue was not purged", residue)
 	}
 }
 

@@ -12,13 +12,13 @@ func TestEnrichFreshClone_UsesBootstrapFirstGuidance(t *testing.T) {
 	if enrichment.severity != "blocking" {
 		t.Fatalf("expected blocking severity, got %q", enrichment.severity)
 	}
-	if !strings.Contains(enrichment.explanation, "bd bootstrap") {
+	if !strings.Contains(enrichment.explanation, "issuegraph bootstrap") {
 		t.Fatalf("expected bootstrap guidance, got: %s", enrichment.explanation)
 	}
-	if len(enrichment.commands) != 1 || enrichment.commands[0] != "bd bootstrap" {
+	if len(enrichment.commands) != 1 || enrichment.commands[0] != "issuegraph bootstrap" {
 		t.Fatalf("expected bootstrap-first commands, got %#v", enrichment.commands)
 	}
-	if strings.Contains(enrichment.explanation, "run bd init") {
+	if strings.Contains(enrichment.explanation, "run issuegraph init") {
 		t.Fatalf("did not expect init-first guidance, got: %s", enrichment.explanation)
 	}
 }
@@ -27,10 +27,10 @@ func TestEnrichFreshClone_WithSyncRemoteMentionsBootstrapAndFallback(t *testing.
 	dc := DoctorCheck{Name: "Fresh Clone", Message: "sync.remote is configured but database not found"}
 	enrichment := enrichFreshClone(dc)
 
-	if !strings.Contains(enrichment.explanation, "bd bootstrap") {
+	if !strings.Contains(enrichment.explanation, "issuegraph bootstrap") {
 		t.Fatalf("expected bootstrap guidance, got: %s", enrichment.explanation)
 	}
-	if len(enrichment.commands) != 2 || enrichment.commands[0] != "bd bootstrap" {
+	if len(enrichment.commands) != 2 || enrichment.commands[0] != "issuegraph bootstrap" {
 		t.Fatalf("expected bootstrap-first command list, got %#v", enrichment.commands)
 	}
 	if !strings.Contains(enrichment.commands[1], "sync.remote") {
@@ -40,8 +40,8 @@ func TestEnrichFreshClone_WithSyncRemoteMentionsBootstrapAndFallback(t *testing.
 
 // TestPruneEnrichmentsRecommendRealCommand pins the agent-facing pruning
 // advice to a command that exists: these enrichments used to suggest
-// 'bd cleanup', which is not a root-level command in this build (cleanup
-// lives under 'bd admin cleanup'). 'bd prune --older-than 90d' previews by
+// 'issuegraph cleanup', which is not a root-level command in this build (cleanup
+// lives under 'issuegraph admin cleanup'). 'issuegraph prune --older-than 90d' previews by
 // default, matching the "optional and destructive" framing.
 func TestPruneEnrichmentsRecommendRealCommand(t *testing.T) {
 	enrichments := map[string]agentEnrichment{
@@ -54,12 +54,12 @@ func TestPruneEnrichmentsRecommendRealCommand(t *testing.T) {
 			continue
 		}
 		for _, cmd := range enrichment.commands {
-			if strings.Contains(cmd, "bd cleanup") {
-				t.Errorf("%s enrichment recommends nonexistent 'bd cleanup': %q", name, cmd)
+			if strings.Contains(cmd, "issuegraph cleanup") {
+				t.Errorf("%s enrichment recommends nonexistent 'issuegraph cleanup': %q", name, cmd)
 			}
 		}
-		if !strings.HasPrefix(enrichment.commands[0], "bd prune") {
-			t.Errorf("%s enrichment should recommend 'bd prune', got %#v", name, enrichment.commands)
+		if !strings.HasPrefix(enrichment.commands[0], "issuegraph prune") {
+			t.Errorf("%s enrichment should recommend 'issuegraph prune', got %#v", name, enrichment.commands)
 		}
 	}
 }

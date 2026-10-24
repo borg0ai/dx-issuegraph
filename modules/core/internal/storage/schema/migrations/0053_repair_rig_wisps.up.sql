@@ -1,5 +1,5 @@
--- Repair rig identity beads that earlier defaults routed into the ephemeral
--- wisps tier. Rig beads are durable issue state: keep type=rig hidden from
+-- Repair rig identity issuegraph that earlier defaults routed into the ephemeral
+-- wisps tier. Rig issuegraph are durable issue state: keep type=rig hidden from
 -- ready work in application code, but promote existing rows back to issues.
 --
 -- Main migrations can run before clone-local ignored migrations have
@@ -54,7 +54,7 @@ SET @has_wisp_child_counters = (
 );
 
 SET @sql = IF(@has_wisps > 0,
-    'INSERT IGNORE INTO issues (id, content_hash, title, description, design, acceptance_criteria, notes, status, priority, issue_type, assignee, estimated_minutes, created_at, created_by, owner, updated_at, closed_at, closed_by_session, external_ref, spec_id, compaction_level, compacted_at, compacted_at_commit, original_size, sender, ephemeral, wisp_type, pinned, is_template, mol_type, work_type, source_system, metadata, source_repo, close_reason, event_kind, actor, target, payload, await_type, await_id, timeout_ns, waiters, hook_bead, role_bead, agent_state, last_activity, role_type, rig, due_at, defer_until, no_history, started_at) SELECT id, content_hash, title, description, design, acceptance_criteria, notes, status, priority, issue_type, assignee, estimated_minutes, created_at, created_by, owner, updated_at, closed_at, closed_by_session, external_ref, spec_id, compaction_level, compacted_at, compacted_at_commit, original_size, sender, ephemeral, wisp_type, pinned, is_template, mol_type, work_type, source_system, metadata, source_repo, close_reason, event_kind, actor, target, payload, await_type, await_id, timeout_ns, waiters, hook_bead, role_bead, agent_state, last_activity, role_type, rig, due_at, defer_until, no_history, started_at FROM wisps WHERE issue_type = ''rig''',
+    'INSERT IGNORE INTO issues (id, content_hash, title, description, design, acceptance_criteria, notes, status, priority, issue_type, assignee, estimated_minutes, created_at, created_by, owner, updated_at, closed_at, closed_by_session, external_ref, spec_id, compaction_level, compacted_at, compacted_at_commit, original_size, sender, ephemeral, wisp_type, pinned, is_template, mol_type, work_type, source_system, metadata, source_repo, close_reason, event_kind, actor, target, payload, await_type, await_id, timeout_ns, waiters, hook_issue, role_issue, agent_state, last_activity, role_type, rig, due_at, defer_until, no_history, started_at) SELECT id, content_hash, title, description, design, acceptance_criteria, notes, status, priority, issue_type, assignee, estimated_minutes, created_at, created_by, owner, updated_at, closed_at, closed_by_session, external_ref, spec_id, compaction_level, compacted_at, compacted_at_commit, original_size, sender, ephemeral, wisp_type, pinned, is_template, mol_type, work_type, source_system, metadata, source_repo, close_reason, event_kind, actor, target, payload, await_type, await_id, timeout_ns, waiters, hook_issue, role_issue, agent_state, last_activity, role_type, rig, due_at, defer_until, no_history, started_at FROM wisps WHERE issue_type = ''rig''',
     'SELECT 1');
 PREPARE stmt FROM @sql; EXECUTE stmt; DEALLOCATE PREPARE stmt;
 

@@ -519,7 +519,7 @@ func TestIssueTypeIsValid(t *testing.T) {
 		{TypeMessage, true},
 		// Molecule is a core type (used by swarm create)
 		{IssueType("molecule"), true},
-		// Gate is a core type (used by bd gate, formula gates — GH#3213)
+		// Gate is a core type (used by issuegraph gate, formula gates — GH#3213)
 		{IssueType("gate"), true},
 		// Remaining orchestrator types are custom types (not built-in)
 		{IssueType("merge-request"), false},
@@ -544,7 +544,7 @@ func TestIssueTypeIsValid(t *testing.T) {
 }
 
 // TestEventTypeValidation verifies that event type is accepted by validation
-// even without being in types.custom, since set-state creates event beads
+// even without being in types.custom, since set-state creates event issuegraph
 // internally for audit trail (GH#1356).
 func TestEventTypeValidation(t *testing.T) {
 	now := time.Now()
@@ -586,7 +586,7 @@ func TestEventTypeValidation(t *testing.T) {
 	if !IssueType("molecule").IsBuiltIn() {
 		t.Error("IssueType(molecule).IsBuiltIn() = false, want true")
 	}
-	// gate is now a built-in type (used by bd gate, formula gates — GH#3213)
+	// gate is now a built-in type (used by issuegraph gate, formula gates — GH#3213)
 	if !IssueType("gate").IsBuiltIn() {
 		t.Error("IssueType(gate).IsBuiltIn() = false, want true")
 	}
@@ -902,7 +902,7 @@ func TestIssueStructFields(t *testing.T) {
 
 // TestIssueLeaseJSONSerialization verifies the leasing columns (migration 0054)
 // are surfaced in JSON when present and omitted when absent, while the internal
-// row_lock is never exposed. Backs `bd show <id> --json` (wy-9cdw).
+// row_lock is never exposed. Backs `issuegraph show <id> --json` (wy-9cdw).
 func TestIssueLeaseJSONSerialization(t *testing.T) {
 	now := time.Now().UTC()
 	expires := now.Add(15 * time.Minute)
@@ -950,7 +950,7 @@ func TestIssueLeaseJSONSerialization(t *testing.T) {
 // TestRowVersionNeverSerialized locks in the storage/interchange boundary:
 // RowVersion stays absent from generic Issue JSON and from the LIST/INTERCHANGE
 // wrapper, whatever the detail view publishes. IssueWithCounts is the row
-// `bd export` writes to JSONL, so a token there would put a per-write-random
+// `issuegraph export` writes to JSONL, so a token there would put a per-write-random
 // value into a git-tracked file; the detail view neither lists nor
 // interchanges, which is why it is the one shape allowed to project the token
 // (see TestNewIssueDetailsProjectsTheRevisionToken).

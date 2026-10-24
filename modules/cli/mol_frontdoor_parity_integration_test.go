@@ -11,11 +11,11 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/steveyegge/beads/internal/formula"
+	"github.com/borg0ai/dx-issuegraph/internal/formula"
 )
 
 // moleculeFrontDoorRunner is deliberately a thin command runner.  The
-// fixture and assertions below must exercise the real bd front door in both
+// fixture and assertions below must exercise the real issuegraph front door in both
 // direct SQL-server and proxied-server workspaces; neither side is allowed to
 // call a store implementation directly.
 type moleculeFrontDoorRunner struct {
@@ -24,20 +24,20 @@ type moleculeFrontDoorRunner struct {
 	env  func(string) []string
 }
 
-func (r moleculeFrontDoorRunner) run(t *testing.T, bd string, args ...string) (string, string, error) {
+func (r moleculeFrontDoorRunner) run(t *testing.T, issuegraph string, args ...string) (string, string, error) {
 	t.Helper()
-	cmd := exec.Command(bd, args...)
+	cmd := exec.Command(issuegraph, args...)
 	cmd.Dir = r.dir
 	cmd.Env = r.env(r.dir)
 	stdout, stderr, err := runCommandBuffers(t, cmd)
 	return stdout.String(), stderr.String(), err
 }
 
-func (r moleculeFrontDoorRunner) mustRun(t *testing.T, bd string, args ...string) string {
+func (r moleculeFrontDoorRunner) mustRun(t *testing.T, issuegraph string, args ...string) string {
 	t.Helper()
-	stdout, stderr, err := r.run(t, bd, args...)
+	stdout, stderr, err := r.run(t, issuegraph, args...)
 	if err != nil {
-		t.Fatalf("[%s] bd %s failed: %v\nstdout:\n%s\nstderr:\n%s",
+		t.Fatalf("[%s] issuegraph %s failed: %v\nstdout:\n%s\nstderr:\n%s",
 			r.name, strings.Join(args, " "), err, stdout, stderr)
 	}
 	return stdout
@@ -46,9 +46,9 @@ func (r moleculeFrontDoorRunner) mustRun(t *testing.T, bd string, args ...string
 // buildMoleculeFrontDoorFixture creates the same explicit-ID graph in each
 // workspace.  Explicit IDs make the JSON comparison useful even though the
 // two databases have independent Dolt histories and timestamps.
-func buildMoleculeFrontDoorFixture(t *testing.T, bd string, r moleculeFrontDoorRunner) {
+func buildMoleculeFrontDoorFixture(t *testing.T, issuegraph string, r moleculeFrontDoorRunner) {
 	t.Helper()
-	r.mustRun(t, bd, "create", "Parity molecule", "--type", "epic", "--id", "mf-root")
+	r.mustRun(t, issuegraph, "create", "Parity molecule", "--type", "epic", "--id", "mf-root")
 	for _, issue := range []struct {
 		id    string
 		title string
@@ -57,24 +57,24 @@ func buildMoleculeFrontDoorFixture(t *testing.T, bd string, r moleculeFrontDoorR
 		{id: "mf-active", title: "Active step"},
 		{id: "mf-ready", title: "Ready step"},
 	} {
-		r.mustRun(t, bd, "create", issue.title, "--type", "task", "--id", issue.id)
-		r.mustRun(t, bd, "dep", "add", issue.id, "mf-root", "--type", "parent-child")
+		r.mustRun(t, issuegraph, "create", issue.title, "--type", "task", "--id", issue.id)
+		r.mustRun(t, issuegraph, "dep", "add", issue.id, "mf-root", "--type", "parent-child")
 	}
 	// A closed gate blocks a step in a second molecule. `mol ready --gated`
 	// must discover that molecule after the gate closes, not just return an
 	// empty result that would hide an unwired ready surface.
-	r.mustRun(t, bd, "config", "set", "types.custom", "gate")
-	r.mustRun(t, bd, "create", "Ready molecule", "--type", "epic", "--id", "mf-ready-root")
-	r.mustRun(t, bd, "create", "Ready molecule step", "--type", "task", "--id", "mf-ready-root-step")
-	r.mustRun(t, bd, "create", "Ready molecule gate", "--type", "gate", "--id", "mf-ready-gate")
-	r.mustRun(t, bd, "dep", "add", "mf-ready-root-step", "mf-ready-root", "--type", "parent-child")
-	r.mustRun(t, bd, "dep", "add", "mf-ready-gate", "mf-ready-root", "--type", "parent-child")
-	r.mustRun(t, bd, "dep", "add", "mf-ready-root-step", "mf-ready-gate")
-	r.mustRun(t, bd, "close", "mf-ready-gate", "--reason", "ready discovery fixture")
-	r.mustRun(t, bd, "close", "mf-done", "--reason", "front-door parity fixture")
-	r.mustRun(t, bd, "update", "mf-active", "--status", "in_progress", "--assignee", "worker1")
+	r.mustRun(t, issuegraph, "config", "set", "types.custom", "gate")
+	r.mustRun(t, issuegraph, "create", "Ready molecule", "--type", "epic", "--id", "mf-ready-root")
+	r.mustRun(t, issuegraph, "create", "Ready molecule step", "--type", "task", "--id", "mf-ready-root-step")
+	r.mustRun(t, issuegraph, "create", "Ready molecule gate", "--type", "gate", "--id", "mf-ready-gate")
+	r.mustRun(t, issuegraph, "dep", "add", "mf-ready-root-step", "mf-ready-root", "--type", "parent-child")
+	r.mustRun(t, issuegraph, "dep", "add", "mf-ready-gate", "mf-ready-root", "--type", "parent-child")
+	r.mustRun(t, issuegraph, "dep", "add", "mf-ready-root-step", "mf-ready-gate")
+	r.mustRun(t, issuegraph, "close", "mf-ready-gate", "--reason", "ready discovery fixture")
+	r.mustRun(t, issuegraph, "close", "mf-done", "--reason", "front-door parity fixture")
+	r.mustRun(t, issuegraph, "update", "mf-active", "--status", "in_progress", "--assignee", "worker1")
 	// This edge gives mol show/progress/ready a non-trivial dependency graph.
-	r.mustRun(t, bd, "dep", "add", "mf-ready", "mf-active")
+	r.mustRun(t, issuegraph, "dep", "add", "mf-ready", "mf-active")
 }
 
 // normalizedMoleculeJSON removes only wall-clock fields.  IDs, statuses,
@@ -165,16 +165,16 @@ func TestNormalizeMoleculeMetadataPreservesNonEmpty(t *testing.T) {
 
 func TestProxiedServerMoleculeFrontDoorDirectServerProxyParity(t *testing.T) {
 	requireSharedProxiedServer(t)
-	bd := buildEmbeddedBD(t)
+	issuegraph := buildEmbeddedBD(t)
 
 	// Keep the configured issue prefix identical so explicit IDs are accepted
 	// by both databases; each helper still allocates an independent database.
-	directProject := newServerModeProject(t, bd, "mf")
-	proxiedProject := newSharedProxiedProject(t, bd, "mf")
+	directProject := newServerModeProject(t, issuegraph, "mf")
+	proxiedProject := newSharedProxiedProject(t, issuegraph, "mf")
 	direct := moleculeFrontDoorRunner{name: "direct-sql", dir: directProject.dir, env: func(string) []string { return directProject.env }}
-	proxied := moleculeFrontDoorRunner{name: "proxied", dir: proxiedProject.dir, env: bdProxiedEnv}
+	proxied := moleculeFrontDoorRunner{name: "proxied", dir: proxiedProject.dir, env: issuegraphProxiedEnv}
 	for _, r := range []moleculeFrontDoorRunner{direct, proxied} {
-		buildMoleculeFrontDoorFixture(t, bd, r)
+		buildMoleculeFrontDoorFixture(t, issuegraph, r)
 	}
 
 	// Read-only molecule surfaces must return the same graph and lifecycle
@@ -190,8 +190,8 @@ func TestProxiedServerMoleculeFrontDoorDirectServerProxyParity(t *testing.T) {
 		{name: "ready", args: []string{"mol", "ready", "--gated", "--json"}},
 	} {
 		t.Run(tc.name, func(t *testing.T) {
-			directRaw := direct.mustRun(t, bd, tc.args...)
-			proxiedRaw := proxied.mustRun(t, bd, tc.args...)
+			directRaw := direct.mustRun(t, issuegraph, tc.args...)
+			proxiedRaw := proxied.mustRun(t, issuegraph, tc.args...)
 			assertMoleculeFrontDoorRead(t, tc.name, directRaw)
 			assertMoleculeFrontDoorRead(t, tc.name, proxiedRaw)
 			directJSON := normalizedMoleculeJSON(t, directRaw)
@@ -210,7 +210,7 @@ func TestProxiedServerMoleculeFrontDoorDirectServerProxyParity(t *testing.T) {
 			Source       string `json:"source"`
 			SourceStepID string `json:"source_step_id"`
 		}
-		if err := json.Unmarshal([]byte(r.mustRun(t, bd, "mol", "last-activity", "mf-root", "--json")), &got); err != nil {
+		if err := json.Unmarshal([]byte(r.mustRun(t, issuegraph, "mol", "last-activity", "mf-root", "--json")), &got); err != nil {
 			t.Fatalf("[%s] parse mol last-activity: %v", r.name, err)
 		}
 		if got.MoleculeID != "mf-root" || got.Source != "step_updated" || got.SourceStepID != "mf-active" {
@@ -220,8 +220,8 @@ func TestProxiedServerMoleculeFrontDoorDirectServerProxyParity(t *testing.T) {
 
 	// The graph and lifecycle mutations above must be visible through the
 	// ordinary issue reader too, including every explicit ID and status.
-	directListRaw := direct.mustRun(t, bd, "list", "--all", "--json")
-	proxiedListRaw := proxied.mustRun(t, bd, "list", "--all", "--json")
+	directListRaw := direct.mustRun(t, issuegraph, "list", "--all", "--json")
+	proxiedListRaw := proxied.mustRun(t, issuegraph, "list", "--all", "--json")
 	assertMoleculeFrontDoorList(t, "direct-sql", directListRaw)
 	assertMoleculeFrontDoorList(t, "proxied", proxiedListRaw)
 	if !reflect.DeepEqual(normalizedMoleculeIssueSet(t, directListRaw), normalizedMoleculeIssueSet(t, proxiedListRaw)) {
@@ -349,7 +349,7 @@ func writeMoleculeFormulaFixture(t *testing.T, r moleculeFrontDoorRunner, f *for
 	if err != nil {
 		t.Fatalf("marshal formula %s: %v", f.Formula, err)
 	}
-	dir := filepath.Join(r.dir, ".beads", "formulas")
+	dir := filepath.Join(r.dir, ".issuegraph", "formulas")
 	if err := os.MkdirAll(dir, 0o755); err != nil {
 		t.Fatalf("mkdir formulas dir: %v", err)
 	}
@@ -360,25 +360,25 @@ func writeMoleculeFormulaFixture(t *testing.T, r moleculeFrontDoorRunner, f *for
 
 func TestProxiedServerMoleculeFrontDoorWriteParity(t *testing.T) {
 	requireSharedProxiedServer(t)
-	bd := buildEmbeddedBD(t)
-	directProject := newServerModeProject(t, bd, "mw")
-	proxiedProject := newSharedProxiedProject(t, bd, "mw")
+	issuegraph := buildEmbeddedBD(t)
+	directProject := newServerModeProject(t, issuegraph, "mw")
+	proxiedProject := newSharedProxiedProject(t, issuegraph, "mw")
 	direct := moleculeFrontDoorRunner{name: "direct-sql", dir: directProject.dir, env: func(string) []string { return directProject.env }}
-	proxied := moleculeFrontDoorRunner{name: "proxied", dir: proxiedProject.dir, env: bdProxiedEnv}
+	proxied := moleculeFrontDoorRunner{name: "proxied", dir: proxiedProject.dir, env: issuegraphProxiedEnv}
 	modes := []moleculeFrontDoorRunner{direct, proxied}
 
 	// mol bond is a transactional graph write. Explicit IDs let us compare
 	// the result and the resulting dependency through the two front doors.
 	for _, r := range modes {
-		r.mustRun(t, bd, "create", "Bond A", "--type", "epic", "--id", "mw-a")
-		r.mustRun(t, bd, "create", "Bond B", "--type", "epic", "--id", "mw-b")
+		r.mustRun(t, issuegraph, "create", "Bond A", "--type", "epic", "--id", "mw-a")
+		r.mustRun(t, issuegraph, "create", "Bond B", "--type", "epic", "--id", "mw-b")
 	}
 	for _, r := range modes {
 		var got struct {
 			ResultID   string `json:"result_id"`
 			ResultType string `json:"result_type"`
 		}
-		if err := json.Unmarshal([]byte(r.mustRun(t, bd, "mol", "bond", "mw-a", "mw-b", "--type", "sequential", "--json")), &got); err != nil {
+		if err := json.Unmarshal([]byte(r.mustRun(t, issuegraph, "mol", "bond", "mw-a", "mw-b", "--type", "sequential", "--json")), &got); err != nil {
 			t.Fatalf("[%s] parse mol bond: %v", r.name, err)
 		}
 		if got.ResultID != "mw-a" || got.ResultType != "compound_molecule" {
@@ -387,8 +387,8 @@ func TestProxiedServerMoleculeFrontDoorWriteParity(t *testing.T) {
 	}
 	var bondedMolecules []any
 	for _, r := range modes {
-		show := normalizedMoleculeJSON(t, r.mustRun(t, bd, "mol", "show", "mw-a", "--json"))
-		if !strings.Contains(strings.TrimSpace(r.mustRun(t, bd, "dep", "list", "mw-b", "--json")), "mw-a") {
+		show := normalizedMoleculeJSON(t, r.mustRun(t, issuegraph, "mol", "show", "mw-a", "--json"))
+		if !strings.Contains(strings.TrimSpace(r.mustRun(t, issuegraph, "dep", "list", "mw-b", "--json")), "mw-a") {
 			t.Errorf("[%s] bond dependency does not point at mw-a", r.name)
 		}
 		if show == nil {
@@ -412,7 +412,7 @@ func TestProxiedServerMoleculeFrontDoorWriteParity(t *testing.T) {
 			Created int    `json:"created"`
 			Phase   string `json:"phase"`
 		}
-		if err := json.Unmarshal([]byte(r.mustRun(t, bd, "mol", "pour", f.Formula, "--json")), &pour); err != nil {
+		if err := json.Unmarshal([]byte(r.mustRun(t, issuegraph, "mol", "pour", f.Formula, "--json")), &pour); err != nil {
 			t.Fatalf("[%s] parse mol pour: %v", r.name, err)
 		}
 		if pour.Created != 2 || pour.Phase != "liquid" {
@@ -422,7 +422,7 @@ func TestProxiedServerMoleculeFrontDoorWriteParity(t *testing.T) {
 			Created int    `json:"created"`
 			Phase   string `json:"phase"`
 		}
-		if err := json.Unmarshal([]byte(r.mustRun(t, bd, "mol", "wisp", "create", f.Formula, "--json")), &wisp); err != nil {
+		if err := json.Unmarshal([]byte(r.mustRun(t, issuegraph, "mol", "wisp", "create", f.Formula, "--json")), &wisp); err != nil {
 			t.Fatalf("[%s] parse mol wisp create: %v", r.name, err)
 		}
 		if wisp.Created != 2 || wisp.Phase != "vapor" {
@@ -441,29 +441,29 @@ func TestProxiedServerMoleculeFrontDoorWriteParity(t *testing.T) {
 	var squashResults []squashSummary
 	var burnResults []int
 	for _, r := range modes {
-		r.mustRun(t, bd, "create", "Squash root", "--type", "epic", "--id", "mw-squash", "--ephemeral")
-		r.mustRun(t, bd, "create", "Squash child", "--type", "task", "--id", "mw-squash-child", "--ephemeral")
-		r.mustRun(t, bd, "dep", "add", "mw-squash-child", "mw-squash", "--type", "parent-child")
+		r.mustRun(t, issuegraph, "create", "Squash root", "--type", "epic", "--id", "mw-squash", "--ephemeral")
+		r.mustRun(t, issuegraph, "create", "Squash child", "--type", "task", "--id", "mw-squash-child", "--ephemeral")
+		r.mustRun(t, issuegraph, "dep", "add", "mw-squash-child", "mw-squash", "--type", "parent-child")
 		var squash struct {
 			SquashedCount int  `json:"squashed_count"`
 			DeletedCount  int  `json:"deleted_count"`
 			WispSquash    bool `json:"wisp_squash"`
 		}
-		if err := json.Unmarshal([]byte(r.mustRun(t, bd, "mol", "squash", "mw-squash", "--json")), &squash); err != nil {
+		if err := json.Unmarshal([]byte(r.mustRun(t, issuegraph, "mol", "squash", "mw-squash", "--json")), &squash); err != nil {
 			t.Fatalf("[%s] parse mol squash: %v", r.name, err)
 		}
 		if squash.SquashedCount != 1 || squash.DeletedCount != 1 || !squash.WispSquash {
 			t.Errorf("[%s] mol squash = %+v, want 1/1/wisp", r.name, squash)
 		}
 		squashResults = append(squashResults, squashSummary{squash.SquashedCount, squash.DeletedCount, squash.WispSquash})
-		r.mustRun(t, bd, "create", "Burn root", "--type", "epic", "--id", "mw-burn")
-		r.mustRun(t, bd, "create", "Burn child", "--type", "task", "--id", "mw-burn-child")
-		r.mustRun(t, bd, "dep", "add", "mw-burn-child", "mw-burn", "--type", "parent-child")
+		r.mustRun(t, issuegraph, "create", "Burn root", "--type", "epic", "--id", "mw-burn")
+		r.mustRun(t, issuegraph, "create", "Burn child", "--type", "task", "--id", "mw-burn-child")
+		r.mustRun(t, issuegraph, "dep", "add", "mw-burn-child", "mw-burn", "--type", "parent-child")
 		var burn struct {
 			TotalDeleted int `json:"total_deleted"`
 			DeletedCount int `json:"deleted_count"`
 		}
-		if err := json.Unmarshal([]byte(r.mustRun(t, bd, "mol", "burn", "mw-burn", "--force", "--json")), &burn); err != nil {
+		if err := json.Unmarshal([]byte(r.mustRun(t, issuegraph, "mol", "burn", "mw-burn", "--force", "--json")), &burn); err != nil {
 			t.Fatalf("[%s] parse mol burn: %v", r.name, err)
 		}
 		deleted := burn.TotalDeleted

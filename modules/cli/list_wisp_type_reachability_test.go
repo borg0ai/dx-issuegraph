@@ -25,12 +25,12 @@ func newWispTypeInputCmd() *cobra.Command {
 //
 // It is the load-bearing half of this change: ListRequest.IncludeEphemeral is
 // the plane knob its own doc names as the combination that answers with rows,
-// and `bd list` did not register a flag for it. Without this the advice the
+// and `issuegraph list` did not register a flag for it. Without this the advice the
 // guard prints names a flag that does not exist, which is worse than the
 // silence it replaces.
 func TestListRegistersIncludeEphemeral(t *testing.T) {
 	if listCmd.Flags().Lookup("include-ephemeral") == nil {
-		t.Fatal("bd list must register --include-ephemeral: it is the only narrow way to admit the wisp plane, and --wisp-type's error message tells callers to use it")
+		t.Fatal("issuegraph list must register --include-ephemeral: it is the only narrow way to admit the wisp plane, and --wisp-type's error message tells callers to use it")
 	}
 }
 

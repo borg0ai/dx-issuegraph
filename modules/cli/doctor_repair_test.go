@@ -8,16 +8,16 @@ import (
 	"testing"
 )
 
-func buildBDForTest(t *testing.T) string {
+func buildIssueGraphForTest(t *testing.T) string {
 	t.Helper()
-	if prebuilt, err := findPrebuiltBDBinary(); err != nil {
+	if prebuilt, err := findPrebuiltIssueGraphBinary(); err != nil {
 		t.Fatal(err)
 	} else if prebuilt != "" {
 		return prebuilt
 	}
-	exeName := "bd"
+	exeName := "issuegraph"
 	if runtime.GOOS == "windows" {
-		exeName = "bd.exe"
+		exeName = "issuegraph.exe"
 	}
 
 	binDir := t.TempDir()
@@ -44,7 +44,7 @@ func mkTmpDirInTmp(t *testing.T, prefix string) string {
 	return dir
 }
 
-func runBDSideDB(t *testing.T, exe, dir, dbPath string, args ...string) (string, error) {
+func runIssueGraphSideDB(t *testing.T, exe, dir, dbPath string, args ...string) (string, error) {
 	t.Helper()
 	fullArgs := []string{"--db", dbPath}
 	fullArgs = append(fullArgs, args...)
@@ -52,7 +52,7 @@ func runBDSideDB(t *testing.T, exe, dir, dbPath string, args ...string) (string,
 	cmd := exec.Command(exe, fullArgs...)
 	cmd.Dir = dir
 	cmd.Env = append(os.Environ(),
-		"BEADS_DIR="+filepath.Join(dir, ".beads"),
+		"ISSUEGRAPH_DIR="+filepath.Join(dir, ".issuegraph"),
 	)
 	out, err := cmd.CombinedOutput()
 	return string(out), err

@@ -11,7 +11,7 @@ import (
 // warnRepeatInterval is how long a shown advisory suppresses identical
 // advisories from later processes. One day keeps the warning present enough
 // that an operator on an old dolt is reminded it is still old, without
-// repeating on every single bd invocation, which review found trains
+// repeating on every single issuegraph invocation, which review found trains
 // operators to ignore it entirely.
 const warnRepeatInterval = 24 * time.Hour
 
@@ -53,7 +53,7 @@ type CachedProbeResult struct {
 }
 
 // ProbeWithPolicyCached is ProbeWithPolicy with a cross-process cache in
-// front of the fork. Every bd command in managed proxied-server mode runs
+// front of the fork. Every issuegraph command in managed proxied-server mode runs
 // this on its hot path, and each command is a fresh process, so an
 // in-process memo cannot help — the cache lives in a small JSON file at
 // cachePath, keyed by the binary's (real path, size, mtime) fingerprint.
@@ -81,7 +81,7 @@ func ProbeWithPolicyCached(ctx context.Context, path, cachePath string, now time
 				ver, err := ParseVersion(cached.RawOutput)
 				if err != nil {
 					// Cache content no longer parses (e.g. written by a
-					// different beads version) — treat as a miss.
+					// different issuegraph version) — treat as a miss.
 					return probeAndStore(ctx, path, cachePath, cached.LastWarnedUnix, now)
 				}
 				res.Identity.Version = ver

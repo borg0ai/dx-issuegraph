@@ -13,27 +13,27 @@ import (
 	"testing"
 	"time"
 
-	"github.com/steveyegge/beads/internal/storage"
-	"github.com/steveyegge/beads/internal/storage/domain"
-	"github.com/steveyegge/beads/internal/storage/uow"
-	"github.com/steveyegge/beads/internal/tracker"
-	trackerconformance "github.com/steveyegge/beads/internal/tracker/conformance"
-	"github.com/steveyegge/beads/internal/types"
+	"github.com/borg0ai/dx-issuegraph/internal/storage"
+	"github.com/borg0ai/dx-issuegraph/internal/storage/domain"
+	"github.com/borg0ai/dx-issuegraph/internal/storage/uow"
+	"github.com/borg0ai/dx-issuegraph/internal/tracker"
+	trackerconformance "github.com/borg0ai/dx-issuegraph/internal/tracker/conformance"
+	"github.com/borg0ai/dx-issuegraph/internal/types"
 )
 
 // TestDirectTrackerConformance is the direct-storage leg of the same shared
 // scenario used by the managed-local proxy test below. Keeping both legs on
 // Run prevents the proxy assertion from becoming a one-sided contract.
 func TestDirectTrackerConformance(t *testing.T) {
-	bd := buildBDForInitTests(t)
+	issuegraph := buildIssueGraphForInitTests(t)
 	trackerconformance.Run(t, func(t *testing.T, f *trackerconformance.Fixture) trackerconformance.Setup {
-		dir, beadsDir, _ := bdInit(t, bd, "--prefix", "trkpx", "--non-interactive", "--skip-hooks", "--skip-agents")
-		cmd := exec.Command(bd, "config", "set", "test.project", "PROJ")
-		cmd.Dir, cmd.Env = dir, bdEnv(dir)
+		dir, issuegraphDir, _ := issuegraphInit(t, issuegraph, "--prefix", "trkpx", "--non-interactive", "--skip-hooks", "--skip-agents")
+		cmd := exec.Command(issuegraph, "config", "set", "test.project", "PROJ")
+		cmd.Dir, cmd.Env = dir, issuegraphEnv(dir)
 		if out, err := cmd.CombinedOutput(); err != nil {
-			t.Fatalf("set tracker config through bd front door: %v\n%s", err, out)
+			t.Fatalf("set tracker config through issuegraph front door: %v\n%s", err, out)
 		}
-		raw, err := newDoltStoreFromConfig(context.Background(), beadsDir)
+		raw, err := newDoltStoreFromConfig(context.Background(), issuegraphDir)
 		if err != nil {
 			t.Fatalf("open direct tracker store: %v", err)
 		}
@@ -50,15 +50,15 @@ func TestDirectTrackerConformance(t *testing.T) {
 // persistence and proxy boundary risk.
 func TestManagedLocalProxiedTrackerUOWConformance(t *testing.T) {
 	requireManagedLocalProxiedEnv(t)
-	bd := buildBDForInitTests(t)
+	issuegraph := buildIssueGraphForInitTests(t)
 
 	trackerconformance.Run(t, func(t *testing.T, f *trackerconformance.Fixture) trackerconformance.Setup {
-		p := bdManagedLocalInit(t, bd, "trkpx", 5*time.Minute)
-		if out, err := bdProxiedRun(t, bd, p.dir, "config", "set", "test.project", "PROJ"); err != nil {
-			t.Fatalf("set tracker config through bd front door: %v\n%s", err, out)
+		p := issuegraphManagedLocalInit(t, issuegraph, "trkpx", 5*time.Minute)
+		if out, err := issuegraphProxiedRun(t, issuegraph, p.dir, "config", "set", "test.project", "PROJ"); err != nil {
+			t.Fatalf("set tracker config through issuegraph front door: %v\n%s", err, out)
 		}
 
-		provider, err := newProxiedServerUOWProvider(context.Background(), p.beadsDir, "")
+		provider, err := newProxiedServerUOWProvider(context.Background(), p.issuegraphDir, "")
 		if err != nil {
 			t.Fatalf("open managed-local proxy UOW provider: %v", err)
 		}
@@ -68,7 +68,7 @@ func TestManagedLocalProxiedTrackerUOWConformance(t *testing.T) {
 		return trackerConformanceSetup(store, func(ctx context.Context, wisp *types.Issue) error {
 			if err := uow.RunTx(ctx, provider, func(ctx context.Context, uw uow.UnitOfWork) (string, error) {
 				_, err := uw.IssueUseCase().CreateWisp(ctx, domain.CreateIssueParams{Issue: wisp}, "conformance")
-				return "bd: tracker conformance wisp", err
+				return "issuegraph: tracker conformance wisp", err
 			}); err != nil {
 				return err
 			}
@@ -237,13 +237,13 @@ func (*proxyConformanceTracker) BuildExternalRef(issue *tracker.TrackerIssue) st
 
 type proxyConformanceMapper struct{}
 
-func (proxyConformanceMapper) PriorityToBeads(interface{}) int           { return 2 }
-func (proxyConformanceMapper) PriorityToTracker(int) interface{}         { return 2 }
-func (proxyConformanceMapper) StatusToBeads(interface{}) types.Status    { return types.StatusOpen }
-func (proxyConformanceMapper) StatusToTracker(types.Status) interface{}  { return "open" }
-func (proxyConformanceMapper) TypeToBeads(interface{}) types.IssueType   { return types.TypeTask }
-func (proxyConformanceMapper) TypeToTracker(types.IssueType) interface{} { return "task" }
-func (proxyConformanceMapper) IssueToBeads(issue *tracker.TrackerIssue) *tracker.IssueConversion {
+func (proxyConformanceMapper) PriorityToIssueGraph(interface{}) int         { return 2 }
+func (proxyConformanceMapper) PriorityToTracker(int) interface{}            { return 2 }
+func (proxyConformanceMapper) StatusToIssueGraph(interface{}) types.Status  { return types.StatusOpen }
+func (proxyConformanceMapper) StatusToTracker(types.Status) interface{}     { return "open" }
+func (proxyConformanceMapper) TypeToIssueGraph(interface{}) types.IssueType { return types.TypeTask }
+func (proxyConformanceMapper) TypeToTracker(types.IssueType) interface{}    { return "task" }
+func (proxyConformanceMapper) IssueToIssueGraph(issue *tracker.TrackerIssue) *tracker.IssueConversion {
 	id := "trkpx-2"
 	if issue.Identifier == "EXT-1" {
 		id = "trkpx-1"

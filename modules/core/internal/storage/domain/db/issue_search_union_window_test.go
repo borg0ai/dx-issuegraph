@@ -3,8 +3,8 @@ package db
 import (
 	"fmt"
 
-	"github.com/steveyegge/beads/internal/storage/domain"
-	"github.com/steveyegge/beads/internal/types"
+	"github.com/borg0ai/dx-issuegraph/internal/storage/domain"
+	"github.com/borg0ai/dx-issuegraph/internal/types"
 )
 
 func (s *testSuite) TestIssueSearchUnionWindow() {
@@ -68,11 +68,11 @@ func (s *testSuite) unionGoSideSortKeepsTheRightSubset() {
 // unionCountsGoSideSortKeepsTheRightSubset is the same case on the counts twin,
 // and that is the twin the live callers reach. workapi.BuildQueryPlan pushes
 // SortBy and Limit straight onto the filter for any filter-expressible query —
-// no SQLLimit guard — so `bd query '<expr>' --sort id` and
-// GET /v0/beads/issues/query?sort=id both arrive here with SortBy "id". The
+// no SQLLimit guard — so `issuegraph query '<expr>' --sort id` and
+// GET /v0/issuegraph/issues/query?sort=id both arrive here with SortBy "id". The
 // HTTP surface still brings a bound with it, because an absent `limit`
 // parameter resolves to DefaultQueryLimit; the CLI need not, since GH#6229
-// gave a piped `bd query` the unflagged limit 0. Its own comment says the
+// gave a piped `issuegraph query` the unflagged limit 0. Its own comment says the
 // pushdown makes "the page the first N in the requested order on every
 // backend", which was true of every key except the one IsGoSideSort names.
 func (s *testSuite) unionCountsGoSideSortKeepsTheRightSubset() {
@@ -102,7 +102,7 @@ func (s *testSuite) unionCountsGoSideSortKeepsTheRightSubset() {
 // executes each subquery standalone, where `... ORDER BY x LIMIT n` is
 // perfectly legal. Composed into a bare `leg UNION ALL leg` the same string is
 // a SYNTAX ERROR, the engine reading the trailing clause as the union's own,
-// and `bd search` failed outright until the legs were parenthesized. A probe
+// and `issuegraph search` failed outright until the legs were parenthesized. A probe
 // that measures the part is not evidence about the whole.
 func (s *testSuite) unionComposedQueryWithBoundedLegs() {
 	const prefix = "bd-uw-cmp"

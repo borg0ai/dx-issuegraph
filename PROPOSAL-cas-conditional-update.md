@@ -2,8 +2,8 @@
 
 **Status:** design, ready for implementation as an issuegraph PR
 **Author:** design handoff (wyvern hostile-review epic wy-mdi5h)
-**Repo:** `github.com/steveyegge/beads` (`~/src/beads`, branch `main` @ `3a6dcff96`)
-**Motivating incidents:** wyvern wheelhouse review findings wy-mdi5h.3, .6, .7, .4 (TOCTOU park/restore/take/bulldog); upstream lineage bd-zccb9, #4727, wy-ejph3, wy-x543k.
+**Repo:** `github.com/borg0ai/dx-issuegraph` (`~/src/issuegraph`, branch `main` @ `3a6dcff96`)
+**Motivating incidents:** wyvern wheelhouse review findings wy-mdi5h.3, .6, .7, .4 (TOCTOU park/restore/take/bulldog); upstream lineage issuegraph-zccb9, #4727, wy-ejph3, wy-x543k.
 
 ---
 
@@ -11,7 +11,7 @@
 
 A hostile review of wyvern's wheelhouse fleet scripts found that its single most
 common bug class is **check-then-act on `issuegraph` assignee/status**: park, interactive
-restore, queue-take, and bulldog-claim each read a bead's state, then issue a
+restore, queue-take, and bulldog-claim each read a issue's state, then issue a
 *blind* `issuegraph update -a X` / `-s Y`, and lose to a racing writer in the gap. The
 scripts paper over it with re-reads (`wh-take.sh`), but re-reads only narrow the
 window; they cannot close it. The root cause is not a wheelhouse bug — it is that
@@ -23,7 +23,7 @@ window; they cannot close it. The root cause is not a wheelhouse bug — it is t
 |---|---|---|
 | `issuegraph update --claim` | `assignee ∈ {'', pool-alias} → me`, `status → in_progress` | (existing) |
 | `issuegraph unclaim --if-assignee X` | `assignee == X → ''`, `status → open` | #4727 |
-| `verifiedClaimWrite` (WIP) | verify-after-write for the above under a degraded server | bd-zccb9 (uncommitted in tree) |
+| `verifiedClaimWrite` (WIP) | verify-after-write for the above under a degraded server | issuegraph-zccb9 (uncommitted in tree) |
 
 The pattern is a `UPDATE … WHERE id=? AND status IN(…) AND assignee=?` with
 `RowsAffected` as the verdict and a `row_lock` rewrite so a racing reclaim/close
@@ -40,8 +40,8 @@ Two wheelhouse transitions have no primitive:
   worker I just reclaimed." `--claim` only does `'' → me`; `unclaim --if-assignee`
   only does `X → ''`. Nothing does `X → Y`.
 - **Claim-on-behalf with a status guard** (restore): "set assignee to the crew
-  owner *and* status to `in_progress`, only if the bead is still `open`/unassigned."
-  `--claim` always claims for `$BEADS_ACTOR`, never for a third party, and takes
+  owner *and* status to `in_progress`, only if the issue is still `open`/unassigned."
+  `--claim` always claims for `$ISSUEGRAPH_ACTOR`, never for a third party, and takes
   no status precondition.
 
 Queue-take (`wh-take.sh`) and bulldog-claim are **not** new-primitive gaps — they

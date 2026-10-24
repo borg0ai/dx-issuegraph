@@ -11,7 +11,7 @@ import (
 // A migration that relies on one therefore never reaches the fresh-schema
 // bundle, and the bundle drifts from the runtime committed schema.
 //
-// Two instances shipped before anyone noticed — 0060 (gastownhall/beads#5903)
+// Two instances shipped before anyone noticed — 0060 (borg0ai/dx-issuegraph#5903)
 // and 0065 (this file's change) — six days apart in authorship, both found by
 // accident. TestBundleMigrationsWithPreparedALTERAreOverriddenOrJustified
 // turns "found by accident" into "cannot be added without a decision":
@@ -231,7 +231,7 @@ func sqlStringLiterals(text string) []string {
 //	    measured split in this file's header).
 //
 // A migration that fits neither needs a direct-DDL override in
-// cliCompatibleMigrationSQL. That is what 0060 (gastownhall/beads#5903) and
+// cliCompatibleMigrationSQL. That is what 0060 (borg0ai/dx-issuegraph#5903) and
 // 0065 needed, and neither is listed here.
 //
 // Every entry below was measured on 2026-08-21, not argued: build the bundle

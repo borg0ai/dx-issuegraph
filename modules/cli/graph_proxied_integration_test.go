@@ -11,21 +11,21 @@ import (
 func TestProxiedServerGraph(t *testing.T) {
 	requireSharedProxiedServer(t)
 	t.Parallel()
-	bd := buildEmbeddedBD(t)
-	p := newSharedProxiedProject(t, bd, "grp")
+	issuegraph := buildEmbeddedBD(t)
+	p := newSharedProxiedProject(t, issuegraph, "grp")
 
-	epic := bdProxiedCreate(t, bd, p.dir, "Graph epic", "--type", "epic")
-	c1 := bdProxiedCreate(t, bd, p.dir, "Child one", "--type", "task", "--parent", epic.ID)
-	c2 := bdProxiedCreate(t, bd, p.dir, "Child two", "--type", "task", "--parent", epic.ID)
+	epic := issuegraphProxiedCreate(t, issuegraph, p.dir, "Graph epic", "--type", "epic")
+	c1 := issuegraphProxiedCreate(t, issuegraph, p.dir, "Child one", "--type", "task", "--parent", epic.ID)
+	c2 := issuegraphProxiedCreate(t, issuegraph, p.dir, "Child two", "--type", "task", "--parent", epic.ID)
 	// c2 depends on c1 (c1 blocks c2).
-	if out, err := bdProxiedRun(t, bd, p.dir, "dep", "add", c2.ID, c1.ID); err != nil {
+	if out, err := issuegraphProxiedRun(t, issuegraph, p.dir, "dep", "add", c2.ID, c1.ID); err != nil {
 		t.Fatalf("dep add: %v\n%s", err, out)
 	}
-	standalone := bdProxiedCreate(t, bd, p.dir, "Standalone issue", "--type", "task")
+	standalone := issuegraphProxiedCreate(t, issuegraph, p.dir, "Standalone issue", "--type", "task")
 
 	singleGraphIDs := func(t *testing.T, id string) map[string]bool {
 		t.Helper()
-		out, err := bdProxiedRun(t, bd, p.dir, "graph", id, "--json")
+		out, err := issuegraphProxiedRun(t, issuegraph, p.dir, "graph", id, "--json")
 		if err != nil {
 			t.Fatalf("graph %s --json: %v\n%s", id, err, out)
 		}
@@ -46,7 +46,7 @@ func TestProxiedServerGraph(t *testing.T) {
 	}
 
 	t.Run("single_issue_human", func(t *testing.T) {
-		out, err := bdProxiedRun(t, bd, p.dir, "graph", epic.ID)
+		out, err := issuegraphProxiedRun(t, issuegraph, p.dir, "graph", epic.ID)
 		if err != nil {
 			t.Fatalf("graph %s: %v\n%s", epic.ID, err, out)
 		}
@@ -80,7 +80,7 @@ func TestProxiedServerGraph(t *testing.T) {
 	})
 
 	t.Run("compact_format", func(t *testing.T) {
-		out, err := bdProxiedRun(t, bd, p.dir, "graph", "--compact", epic.ID)
+		out, err := issuegraphProxiedRun(t, issuegraph, p.dir, "graph", "--compact", epic.ID)
 		if err != nil {
 			t.Fatalf("graph --compact: %v\n%s", err, out)
 		}
@@ -90,7 +90,7 @@ func TestProxiedServerGraph(t *testing.T) {
 	})
 
 	t.Run("box_format", func(t *testing.T) {
-		out, err := bdProxiedRun(t, bd, p.dir, "graph", "--box", epic.ID)
+		out, err := issuegraphProxiedRun(t, issuegraph, p.dir, "graph", "--box", epic.ID)
 		if err != nil {
 			t.Fatalf("graph --box: %v\n%s", err, out)
 		}
@@ -100,7 +100,7 @@ func TestProxiedServerGraph(t *testing.T) {
 	})
 
 	t.Run("dot_format", func(t *testing.T) {
-		out, err := bdProxiedRun(t, bd, p.dir, "graph", "--dot", epic.ID)
+		out, err := issuegraphProxiedRun(t, issuegraph, p.dir, "graph", "--dot", epic.ID)
 		if err != nil {
 			t.Fatalf("graph --dot: %v\n%s", err, out)
 		}
@@ -110,7 +110,7 @@ func TestProxiedServerGraph(t *testing.T) {
 	})
 
 	t.Run("html_format", func(t *testing.T) {
-		out, err := bdProxiedRun(t, bd, p.dir, "graph", "--html", epic.ID)
+		out, err := issuegraphProxiedRun(t, issuegraph, p.dir, "graph", "--html", epic.ID)
 		if err != nil {
 			t.Fatalf("graph --html: %v\n%s", err, out)
 		}
@@ -121,7 +121,7 @@ func TestProxiedServerGraph(t *testing.T) {
 	})
 
 	t.Run("html_output_error", func(t *testing.T) {
-		stderr, err := runWithReadOnlyStdout(t, bd, p.dir, bdProxiedEnv(p.dir), "graph", "--html", epic.ID)
+		stderr, err := runWithReadOnlyStdout(t, issuegraph, p.dir, issuegraphProxiedEnv(p.dir), "graph", "--html", epic.ID)
 		if err == nil {
 			t.Fatalf("proxied graph --html succeeded with read-only stdout; stderr:\n%s", stderr)
 		}
@@ -131,7 +131,7 @@ func TestProxiedServerGraph(t *testing.T) {
 	})
 
 	t.Run("json_output_contains_root", func(t *testing.T) {
-		out, err := bdProxiedRun(t, bd, p.dir, "graph", epic.ID, "--json")
+		out, err := issuegraphProxiedRun(t, issuegraph, p.dir, "graph", epic.ID, "--json")
 		if err != nil {
 			t.Fatalf("graph --json: %v\n%s", err, out)
 		}
@@ -141,7 +141,7 @@ func TestProxiedServerGraph(t *testing.T) {
 	})
 
 	t.Run("all_has_component", func(t *testing.T) {
-		out, err := bdProxiedRun(t, bd, p.dir, "graph", "--all", "--json")
+		out, err := issuegraphProxiedRun(t, issuegraph, p.dir, "graph", "--all", "--json")
 		if err != nil {
 			t.Fatalf("graph --all --json: %v\n%s", err, out)
 		}
@@ -164,7 +164,7 @@ func TestProxiedServerGraph(t *testing.T) {
 	})
 
 	t.Run("all_human", func(t *testing.T) {
-		out, err := bdProxiedRun(t, bd, p.dir, "graph", "--all")
+		out, err := issuegraphProxiedRun(t, issuegraph, p.dir, "graph", "--all")
 		if err != nil {
 			t.Fatalf("graph --all: %v\n%s", err, out)
 		}
@@ -174,7 +174,7 @@ func TestProxiedServerGraph(t *testing.T) {
 	})
 
 	t.Run("all_compact", func(t *testing.T) {
-		out, err := bdProxiedRun(t, bd, p.dir, "graph", "--all", "--compact")
+		out, err := issuegraphProxiedRun(t, issuegraph, p.dir, "graph", "--all", "--compact")
 		if err != nil {
 			t.Fatalf("graph --all --compact: %v\n%s", err, out)
 		}
@@ -184,7 +184,7 @@ func TestProxiedServerGraph(t *testing.T) {
 	})
 
 	t.Run("all_dot", func(t *testing.T) {
-		out, err := bdProxiedRun(t, bd, p.dir, "graph", "--all", "--dot")
+		out, err := issuegraphProxiedRun(t, issuegraph, p.dir, "graph", "--all", "--dot")
 		if err != nil {
 			t.Fatalf("graph --all --dot: %v\n%s", err, out)
 		}
@@ -194,7 +194,7 @@ func TestProxiedServerGraph(t *testing.T) {
 	})
 
 	t.Run("nonexistent_id_errors", func(t *testing.T) {
-		out, err := bdProxiedRun(t, bd, p.dir, "graph", "grp-999999", "--json")
+		out, err := issuegraphProxiedRun(t, issuegraph, p.dir, "graph", "grp-999999", "--json")
 		if err == nil {
 			t.Fatalf("expected error for nonexistent id, got success: %s", out)
 		}
@@ -204,7 +204,7 @@ func TestProxiedServerGraph(t *testing.T) {
 	})
 
 	t.Run("all_with_id_conflict", func(t *testing.T) {
-		out, err := bdProxiedRun(t, bd, p.dir, "graph", "--all", epic.ID)
+		out, err := issuegraphProxiedRun(t, issuegraph, p.dir, "graph", "--all", epic.ID)
 		if err == nil {
 			t.Fatalf("expected conflict error for --all with id, got success: %s", out)
 		}
@@ -214,7 +214,7 @@ func TestProxiedServerGraph(t *testing.T) {
 	})
 
 	t.Run("check_clean", func(t *testing.T) {
-		out, err := bdProxiedRun(t, bd, p.dir, "graph", "check", "--json")
+		out, err := issuegraphProxiedRun(t, issuegraph, p.dir, "graph", "check", "--json")
 		if err != nil {
 			t.Fatalf("graph check --json: %v\n%s", err, out)
 		}
@@ -231,7 +231,7 @@ func TestProxiedServerGraph(t *testing.T) {
 	})
 
 	// NOTE: cycle-detection (graph check on a cyclic graph) is not ported here.
-	// The embedded graph test does not cover it, and `bd dep add` refuses to
+	// The embedded graph test does not cover it, and `issuegraph dep add` refuses to
 	// create a cycle, so one can't be built through supported commands. The
 	// DetectCycles path is exercised by the dep/link/ready proxied duals.
 }

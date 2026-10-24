@@ -9,15 +9,15 @@ import (
 func TestHasRepository(t *testing.T) {
 	tests := []struct {
 		name  string
-		setup func(t *testing.T, beadsDir string)
+		setup func(t *testing.T, issuegraphDir string)
 		want  bool
 	}{
 		{name: "missing root", want: false},
 		{
 			name: "empty root",
-			setup: func(t *testing.T, beadsDir string) {
+			setup: func(t *testing.T, issuegraphDir string) {
 				t.Helper()
-				if err := os.Mkdir(filepath.Join(beadsDir, "embeddeddolt"), 0o700); err != nil {
+				if err := os.Mkdir(filepath.Join(issuegraphDir, "embeddeddolt"), 0o700); err != nil {
 					t.Fatal(err)
 				}
 			},
@@ -25,9 +25,9 @@ func TestHasRepository(t *testing.T) {
 		},
 		{
 			name: "empty repository marker",
-			setup: func(t *testing.T, beadsDir string) {
+			setup: func(t *testing.T, issuegraphDir string) {
 				t.Helper()
-				if err := os.MkdirAll(filepath.Join(beadsDir, "embeddeddolt", "beads", ".dolt"), 0o700); err != nil {
+				if err := os.MkdirAll(filepath.Join(issuegraphDir, "embeddeddolt", "issuegraph", ".dolt"), 0o700); err != nil {
 					t.Fatal(err)
 				}
 			},
@@ -35,9 +35,9 @@ func TestHasRepository(t *testing.T) {
 		},
 		{
 			name: "nonempty repository marker",
-			setup: func(t *testing.T, beadsDir string) {
+			setup: func(t *testing.T, issuegraphDir string) {
 				t.Helper()
-				marker := filepath.Join(beadsDir, "embeddeddolt", "beads", ".dolt")
+				marker := filepath.Join(issuegraphDir, "embeddeddolt", "issuegraph", ".dolt")
 				if err := os.MkdirAll(marker, 0o700); err != nil {
 					t.Fatal(err)
 				}
@@ -49,13 +49,13 @@ func TestHasRepository(t *testing.T) {
 		},
 		{
 			name: "symlink marker is refused",
-			setup: func(t *testing.T, beadsDir string) {
+			setup: func(t *testing.T, issuegraphDir string) {
 				t.Helper()
-				databaseDir := filepath.Join(beadsDir, "embeddeddolt", "beads")
+				databaseDir := filepath.Join(issuegraphDir, "embeddeddolt", "issuegraph")
 				if err := os.MkdirAll(databaseDir, 0o700); err != nil {
 					t.Fatal(err)
 				}
-				if err := os.Symlink(beadsDir, filepath.Join(databaseDir, ".dolt")); err != nil {
+				if err := os.Symlink(issuegraphDir, filepath.Join(databaseDir, ".dolt")); err != nil {
 					t.Fatal(err)
 				}
 			},
@@ -65,11 +65,11 @@ func TestHasRepository(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			beadsDir := t.TempDir()
+			issuegraphDir := t.TempDir()
 			if tt.setup != nil {
-				tt.setup(t, beadsDir)
+				tt.setup(t, issuegraphDir)
 			}
-			if got := HasRepository(beadsDir); got != tt.want {
+			if got := HasRepository(issuegraphDir); got != tt.want {
 				t.Fatalf("HasRepository() = %v, want %v", got, tt.want)
 			}
 		})

@@ -5,8 +5,8 @@ import (
 	"testing"
 	"time"
 
-	"github.com/steveyegge/beads/internal/storage/sqlbuild"
-	"github.com/steveyegge/beads/internal/types"
+	"github.com/borg0ai/dx-issuegraph/internal/storage/sqlbuild"
+	"github.com/borg0ai/dx-issuegraph/internal/types"
 )
 
 // The observable keyset behavior this file used to assert now belongs to the
@@ -67,7 +67,7 @@ func TestSearchIssuesKeysetPlanIsIndexed(t *testing.T) {
 // spelling — which Dolt's DDL accepts — leave the plan byte-identical. The
 // planner keeps the single-column priority seek and the TopN in all three
 // cases. A migration would therefore have bought one more btree's worth of
-// write amplification, on every insert and every `bd update --priority`, for no
+// write amplification, on every insert and every `issuegraph update --priority`, for no
 // measured change to any plan. It is not shipped, and this comment is why; if a
 // later Dolt learns to stream the composite, the measurement to redo is this
 // one.

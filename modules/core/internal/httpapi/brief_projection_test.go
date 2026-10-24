@@ -5,7 +5,7 @@ import (
 	"testing"
 )
 
-// TestListBriefReachesTheFilter is the HTTP half of the `bd list --brief`
+// TestListBriefReachesTheFilter is the HTTP half of the `issuegraph list --brief`
 // wiring. The CLI and this handler build issueops.ListRequest separately, so a
 // field wired into one is unreachable from the other.
 //
@@ -19,9 +19,9 @@ func TestListBriefReachesTheFilter(t *testing.T) {
 		path     string
 		wantLite bool
 	}{
-		{"absent leaves the payload whole", "/v0/beads/issues", false},
-		{"brief projects", "/v0/beads/issues?brief=true", true},
-		{"brief=false is explicit and whole", "/v0/beads/issues?brief=false", false},
+		{"absent leaves the payload whole", "/v0/issuegraph/issues", false},
+		{"brief projects", "/v0/issuegraph/issues?brief=true", true},
+		{"brief=false is explicit and whole", "/v0/issuegraph/issues?brief=false", false},
 	} {
 		t.Run(tc.name, func(t *testing.T) {
 			ts, rec := newReadServer(t, Config{})
@@ -46,9 +46,9 @@ func TestReadyBriefReachesTheFilter(t *testing.T) {
 		path     string
 		wantLite bool
 	}{
-		{"absent leaves the payload whole", "/v0/beads/ready", false},
-		{"brief projects", "/v0/beads/ready?brief=true", true},
-		{"brief=false is explicit and whole", "/v0/beads/ready?brief=false", false},
+		{"absent leaves the payload whole", "/v0/issuegraph/ready", false},
+		{"brief projects", "/v0/issuegraph/ready?brief=true", true},
+		{"brief=false is explicit and whole", "/v0/issuegraph/ready?brief=false", false},
 	} {
 		t.Run(tc.name, func(t *testing.T) {
 			ts, rec := newReadServer(t, Config{})
@@ -84,7 +84,7 @@ func TestReadyBriefReachesTheFilter(t *testing.T) {
 func TestReadyCountDoesNotTakeTheProjection(t *testing.T) {
 	ts, _ := newReadServer(t, Config{})
 
-	resp := ts.get(t, "/v0/beads/ready:count?brief=true")
+	resp := ts.get(t, "/v0/issuegraph/ready:count?brief=true")
 	if resp.StatusCode != http.StatusBadRequest {
 		t.Fatalf("status = %d, want 400: a count has no rows to project, so the parameter is not in its vocabulary", resp.StatusCode)
 	}

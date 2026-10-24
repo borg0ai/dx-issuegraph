@@ -12,9 +12,9 @@ import (
 	"sync"
 	"time"
 
-	"github.com/steveyegge/beads/internal/doltremote"
-	"github.com/steveyegge/beads/internal/remotecache"
-	"github.com/steveyegge/beads/internal/storage"
+	"github.com/borg0ai/dx-issuegraph/internal/doltremote"
+	"github.com/borg0ai/dx-issuegraph/internal/remotecache"
+	"github.com/borg0ai/dx-issuegraph/internal/storage"
 )
 
 var cliRemoteLocks sync.Map

@@ -9,10 +9,10 @@ import (
 	"path/filepath"
 	"testing"
 
-	"github.com/steveyegge/beads/internal/configfile"
-	"github.com/steveyegge/beads/internal/storage"
-	"github.com/steveyegge/beads/internal/storage/embeddeddolt"
-	"github.com/steveyegge/beads/internal/utils"
+	"github.com/borg0ai/dx-issuegraph/internal/configfile"
+	"github.com/borg0ai/dx-issuegraph/internal/storage"
+	"github.com/borg0ai/dx-issuegraph/internal/storage/embeddeddolt"
+	"github.com/borg0ai/dx-issuegraph/internal/utils"
 )
 
 func TestWhereCommand_ReadsPrefixFromEmbeddedStore(t *testing.T) {
@@ -32,9 +32,9 @@ func TestWhereCommand_ReadsPrefixFromEmbeddedStore(t *testing.T) {
 	resetCommandContext()
 
 	repoDir := t.TempDir()
-	beadsDir := filepath.Join(repoDir, ".beads")
-	if err := os.MkdirAll(beadsDir, 0o755); err != nil {
-		t.Fatalf("mkdir beads dir: %v", err)
+	issuegraphDir := filepath.Join(repoDir, ".issuegraph")
+	if err := os.MkdirAll(issuegraphDir, 0o755); err != nil {
+		t.Fatalf("mkdir issuegraph dir: %v", err)
 	}
 
 	cfg := &configfile.Config{
@@ -43,11 +43,11 @@ func TestWhereCommand_ReadsPrefixFromEmbeddedStore(t *testing.T) {
 		DoltMode:     configfile.DoltModeEmbedded,
 		DoltDatabase: "embedcfg",
 	}
-	if err := cfg.Save(beadsDir); err != nil {
+	if err := cfg.Save(issuegraphDir); err != nil {
 		t.Fatalf("save metadata: %v", err)
 	}
 
-	store, err := embeddeddolt.Open(context.Background(), beadsDir, "embedcfg", "main")
+	store, err := embeddeddolt.Open(context.Background(), issuegraphDir, "embedcfg", "main")
 	if err != nil {
 		t.Fatalf("embeddeddolt.Open: %v", err)
 	}
@@ -59,12 +59,12 @@ func TestWhereCommand_ReadsPrefixFromEmbeddedStore(t *testing.T) {
 		t.Fatalf("Close(): %v", err)
 	}
 
-	dbDir := filepath.Join(beadsDir, "dolt")
-	t.Setenv("BEADS_DIR", "")
-	t.Setenv("BEADS_DB", dbDir)
-	t.Setenv("BD_DB", "")
-	t.Setenv("BEADS_DOLT_SERVER_MODE", "")
-	t.Setenv("BEADS_DOLT_SHARED_SERVER", "")
+	dbDir := filepath.Join(issuegraphDir, "dolt")
+	t.Setenv("ISSUEGRAPH_DIR", "")
+	t.Setenv("ISSUEGRAPH_DB", dbDir)
+	t.Setenv("ISSUEGRAPH_DB", "")
+	t.Setenv("ISSUEGRAPH_DOLT_SERVER_MODE", "")
+	t.Setenv("ISSUEGRAPH_DOLT_SHARED_SERVER", "")
 
 	dbFlag := rootCmd.PersistentFlags().Lookup("db")
 	originalFlagValue := dbFlag.Value.String()
@@ -103,8 +103,8 @@ func TestWhereCommand_ReadsPrefixFromEmbeddedStore(t *testing.T) {
 		t.Fatalf("json.Unmarshal(%q): %v", output, err)
 	}
 
-	if !utils.PathsEqual(result.Path, beadsDir) {
-		t.Fatalf("Path = %q, want %q", result.Path, beadsDir)
+	if !utils.PathsEqual(result.Path, issuegraphDir) {
+		t.Fatalf("Path = %q, want %q", result.Path, issuegraphDir)
 	}
 	if result.DatabasePath == "" {
 		t.Fatal("DatabasePath = empty, want resolved dolt path")

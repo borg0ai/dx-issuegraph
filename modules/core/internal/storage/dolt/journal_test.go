@@ -5,8 +5,8 @@ import (
 	"testing"
 	"time"
 
-	"github.com/steveyegge/beads/internal/storage"
-	"github.com/steveyegge/beads/internal/types"
+	"github.com/borg0ai/dx-issuegraph/internal/storage"
+	"github.com/borg0ai/dx-issuegraph/internal/types"
 )
 
 // TestEventsJournal_EmbeddedPlumbing drives mutations through the DoltStore
@@ -105,7 +105,7 @@ func TestEventsJournal_NoPhantomDeletes(t *testing.T) {
 // RunInTransaction callback can journal both a durable issue and a wisp. That
 // plumbing normally uses separate regular and ignored SQL transactions, so both
 // mutations must still share one ordered journal without contending with each
-// other on bd_events_seq.
+// other on issuegraph_events_seq.
 func TestEventsJournal_RunInTransactionMixedBuckets(t *testing.T) {
 	store, cleanup := setupTestStore(t)
 	defer cleanup()
@@ -172,7 +172,7 @@ func TestEventsJournal_RunInTransactionWispOnly(t *testing.T) {
 
 // TestEventsJournal_StaleSeqCounterSelfHeals proves an instance cannot be
 // permanently wedged by a counter that has fallen BEHIND the journal — the
-// state a restored, hand-edited, or cross-workspace-copied bd_events_seq row
+// state a restored, hand-edited, or cross-workspace-copied issuegraph_events_seq row
 // leaves. Left unhealed, every later mutation re-mints an already-taken seq,
 // the primary key rejects it, and because the journal row shares the mutation's
 // transaction the user's write fails with it: the store stops accepting writes
@@ -199,7 +199,7 @@ func TestEventsJournal_StaleSeqCounterSelfHeals(t *testing.T) {
 
 	// Drive the counter back to zero: the next allocation now collides with an
 	// existing seq instead of extending past it.
-	if _, err := store.db.ExecContext(ctx, "UPDATE bd_events_seq SET next_seq = 0 WHERE id = 0"); err != nil {
+	if _, err := store.db.ExecContext(ctx, "UPDATE issuegraph_events_seq SET next_seq = 0 WHERE id = 0"); err != nil {
 		t.Fatalf("corrupt seq counter: %v", err)
 	}
 

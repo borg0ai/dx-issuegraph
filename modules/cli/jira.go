@@ -6,27 +6,27 @@ import (
 	"os"
 	"strings"
 
+	"github.com/borg0ai/dx-issuegraph/internal/jira"
+	"github.com/borg0ai/dx-issuegraph/internal/metrics"
+	"github.com/borg0ai/dx-issuegraph/internal/tracker"
+	"github.com/borg0ai/dx-issuegraph/internal/types"
 	"github.com/spf13/cobra"
-	"github.com/steveyegge/beads/internal/jira"
-	"github.com/steveyegge/beads/internal/metrics"
-	"github.com/steveyegge/beads/internal/tracker"
-	"github.com/steveyegge/beads/internal/types"
 )
 
 var jiraCmd = &cobra.Command{
 	Use:     "jira",
 	GroupID: "advanced",
 	Short:   "Jira integration commands",
-	Long: `Synchronize issues between beads and Jira.
+	Long: `Synchronize issues between issuegraph and Jira.
 
 Configuration:
-  bd config set jira.url "https://company.atlassian.net"
-  bd config set jira.project "PROJ"
-  bd config set jira.projects "PROJ1,PROJ2"   # Multiple projects
-  bd config set jira.api_token "YOUR_TOKEN"
-  bd config set jira.username "your_email@company.com"  # For Jira Cloud
-  bd config set jira.push_prefix "hippo"       # Only push hippo-* issues to Jira
-  bd config set jira.push_prefix "proj1,proj2" # Multiple prefixes (comma-separated)
+  issuegraph config set jira.url "https://company.atlassian.net"
+  issuegraph config set jira.project "PROJ"
+  issuegraph config set jira.projects "PROJ1,PROJ2"   # Multiple projects
+  issuegraph config set jira.api_token "YOUR_TOKEN"
+  issuegraph config set jira.username "your_email@company.com"  # For Jira Cloud
+  issuegraph config set jira.push_prefix "hippo"       # Only push hippo-* issues to Jira
+  issuegraph config set jira.push_prefix "proj1,proj2" # Multiple prefixes (comma-separated)
 
 Environment variables (alternative to config):
   JIRA_API_TOKEN  - Jira API token
@@ -34,33 +34,33 @@ Environment variables (alternative to config):
   JIRA_PROJECTS   - Comma-separated project keys
 
 Examples:
-  bd jira sync --pull         # Import issues from Jira
-  bd jira sync --push         # Export issues to Jira
-  bd jira sync                # Bidirectional sync (pull then push)
-  bd jira sync --dry-run      # Preview sync without changes
-  bd jira status              # Show sync status`,
+  issuegraph jira sync --pull         # Import issues from Jira
+  issuegraph jira sync --push         # Export issues to Jira
+  issuegraph jira sync                # Bidirectional sync (pull then push)
+  issuegraph jira sync --dry-run      # Preview sync without changes
+  issuegraph jira status              # Show sync status`,
 }
 
 var jiraSyncCmd = &cobra.Command{
 	Use:   "sync",
 	Short: "Synchronize issues with Jira",
-	Long: `Synchronize issues between beads and Jira.
+	Long: `Synchronize issues between issuegraph and Jira.
 
 Modes:
-  --pull         Import issues from Jira into beads
-  --push         Export issues from beads to Jira
+  --pull         Import issues from Jira into issuegraph
+  --push         Export issues from issuegraph to Jira
   (no flags)     Bidirectional sync: pull then push, with conflict resolution
 
 Conflict Resolution:
   By default, newer timestamp wins. Override with:
-  --prefer-local   Always prefer local beads version
+  --prefer-local   Always prefer local issuegraph version
   --prefer-jira    Always prefer Jira version
 
 Examples:
-  bd jira sync --pull                # Import from Jira
-  bd jira sync --push --create-only  # Push new issues only
-  bd jira sync --dry-run             # Preview without changes
-  bd jira sync --prefer-local        # Bidirectional, local wins`,
+  issuegraph jira sync --pull                # Import from Jira
+  issuegraph jira sync --push --create-only  # Push new issues only
+  issuegraph jira sync --dry-run             # Preview without changes
+  issuegraph jira sync --prefer-local        # Bidirectional, local wins`,
 	SilenceUsage:  true,
 	SilenceErrors: true,
 	RunE:          runJiraSync,
@@ -251,7 +251,7 @@ func runJiraStatus(cmd *cobra.Command, args []string) error {
 
 	configured := jiraURL != "" && len(projectKeys) > 0
 
-	// jira sync is a round-trip path — opt out of BEADS_MAX_ROWS
+	// jira sync is a round-trip path — opt out of ISSUEGRAPH_MAX_ROWS
 	// (designer §4.1) so a misconfigured env doesn't abort partway.
 	allIssues, err := trackerStore.SearchIssues(ctx, "", types.IssueFilter{
 		MaxRows:       0,
@@ -296,11 +296,11 @@ func runJiraStatus(cmd *cobra.Command, args []string) error {
 		fmt.Println("Status: Not configured")
 		fmt.Println()
 		fmt.Println("To configure Jira integration:")
-		fmt.Println("  bd config set jira.url \"https://company.atlassian.net\"")
-		fmt.Println("  bd config set jira.project \"PROJ\"")
-		fmt.Println("  bd config set jira.projects \"PROJ1,PROJ2\"  # multiple projects")
-		fmt.Println("  bd config set jira.api_token \"YOUR_TOKEN\"")
-		fmt.Println("  bd config set jira.username \"your@email.com\"")
+		fmt.Println("  issuegraph config set jira.url \"https://company.atlassian.net\"")
+		fmt.Println("  issuegraph config set jira.project \"PROJ\"")
+		fmt.Println("  issuegraph config set jira.projects \"PROJ1,PROJ2\"  # multiple projects")
+		fmt.Println("  issuegraph config set jira.api_token \"YOUR_TOKEN\"")
+		fmt.Println("  issuegraph config set jira.username \"your@email.com\"")
 		return nil
 	}
 
@@ -322,7 +322,7 @@ func runJiraStatus(cmd *cobra.Command, args []string) error {
 
 	if pendingPush > 0 {
 		fmt.Println()
-		fmt.Printf("Run 'bd jira sync --push' to push %d local issue(s) to Jira\n", pendingPush)
+		fmt.Printf("Run 'issuegraph jira sync --push' to push %d local issue(s) to Jira\n", pendingPush)
 	}
 	return nil
 }
@@ -340,7 +340,7 @@ func validateJiraConfigForStore(st tracker.Store) error {
 	jiraURL, _ := st.GetConfig(ctx, "jira.url")
 
 	if jiraURL == "" {
-		return fmt.Errorf("jira.url not configured\nRun: bd config set jira.url \"https://company.atlassian.net\"")
+		return fmt.Errorf("jira.url not configured\nRun: issuegraph config set jira.url \"https://company.atlassian.net\"")
 	}
 
 	// Check for project configuration (singular or plural).
@@ -348,12 +348,12 @@ func validateJiraConfigForStore(st tracker.Store) error {
 	singularProject, _ := st.GetConfig(ctx, "jira.project")
 	projectKeys := tracker.ResolveProjectIDs(nil, pluralProjects, singularProject)
 	if len(projectKeys) == 0 {
-		return fmt.Errorf("no Jira project configured\nRun: bd config set jira.project \"PROJ\"\nOr:  bd config set jira.projects \"PROJ1,PROJ2\"")
+		return fmt.Errorf("no Jira project configured\nRun: issuegraph config set jira.project \"PROJ\"\nOr:  issuegraph config set jira.projects \"PROJ1,PROJ2\"")
 	}
 
 	apiToken, _ := st.GetConfig(ctx, "jira.api_token")
 	if apiToken == "" && os.Getenv("JIRA_API_TOKEN") == "" {
-		return fmt.Errorf("Jira API token not configured\nRun: bd config set jira.api_token \"YOUR_TOKEN\"\nOr: export JIRA_API_TOKEN=YOUR_TOKEN")
+		return fmt.Errorf("Jira API token not configured\nRun: issuegraph config set jira.api_token \"YOUR_TOKEN\"\nOr: export JIRA_API_TOKEN=YOUR_TOKEN")
 	}
 
 	return nil

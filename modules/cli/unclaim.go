@@ -4,9 +4,9 @@ import (
 	"fmt"
 	"os"
 
+	"github.com/borg0ai/dx-issuegraph/internal/types"
+	"github.com/borg0ai/dx-issuegraph/internal/ui"
 	"github.com/spf13/cobra"
-	"github.com/steveyegge/beads/internal/types"
-	"github.com/steveyegge/beads/internal/ui"
 )
 
 var unclaimCmd = &cobra.Command{
@@ -28,7 +28,7 @@ letting lease expiry reclaim genuinely abandoned work.
 With --if-assignee, the release is an atomic compare-and-swap (the inverse of
 claim): the issue is released only while it is still assigned to the given
 assignee. If the holder differs — e.g. the claim was already reclaimed and
-re-taken by another worker — nothing is changed and bd exits nonzero with an
+re-taken by another worker — nothing is changed and issuegraph exits nonzero with an
 error naming the current holder. Use this from supervisors that must return a
 specific worker's issue without ever clobbering someone else's live claim.
 --if-assignee requires a non-empty assignee and cannot be combined with --force
@@ -38,10 +38,10 @@ Exit status: 0 when every issue was released; 1 when any release failed
 (including an --if-assignee mismatch).
 
 Examples:
-  bd unclaim bd-123
-  bd unclaim bd-123 --reason "Agent crashed"
-  bd unclaim bd-123 bd-456
-  bd unclaim bd-123 --if-assignee worker-7   # only if still held by worker-7`,
+  issuegraph unclaim bd-123
+  issuegraph unclaim bd-123 --reason "Agent crashed"
+  issuegraph unclaim bd-123 bd-456
+  issuegraph unclaim bd-123 --if-assignee worker-7   # only if still held by worker-7`,
 	Args: cobra.MinimumNArgs(1),
 	RunE: func(cmd *cobra.Command, args []string) error {
 		reason, _ := cmd.Flags().GetString("reason")

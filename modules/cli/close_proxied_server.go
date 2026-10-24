@@ -9,14 +9,14 @@ import (
 
 	"github.com/spf13/cobra"
 
-	"github.com/steveyegge/beads/internal/audit"
-	"github.com/steveyegge/beads/internal/storage"
-	"github.com/steveyegge/beads/internal/storage/domain"
-	"github.com/steveyegge/beads/internal/storage/uow"
-	"github.com/steveyegge/beads/internal/types"
-	"github.com/steveyegge/beads/internal/ui"
-	"github.com/steveyegge/beads/internal/workapi"
-	"github.com/steveyegge/beads/issueops"
+	"github.com/borg0ai/dx-issuegraph/internal/audit"
+	"github.com/borg0ai/dx-issuegraph/internal/storage"
+	"github.com/borg0ai/dx-issuegraph/internal/storage/domain"
+	"github.com/borg0ai/dx-issuegraph/internal/storage/uow"
+	"github.com/borg0ai/dx-issuegraph/internal/types"
+	"github.com/borg0ai/dx-issuegraph/internal/ui"
+	"github.com/borg0ai/dx-issuegraph/internal/workapi"
+	"github.com/borg0ai/dx-issuegraph/issueops"
 )
 
 type closeProxiedInput struct {
@@ -32,7 +32,7 @@ type closeProxiedInput struct {
 // closeProxiedPreflight is the CLI's own close policy, decided before the
 // batch runs: the template/pin/assignee fence, the epic open-children refusal
 // and machine-checkable gates. None of the three is library policy — they are
-// `bd close`'s, they read the issue and nothing else, and the role has no
+// `issuegraph close`'s, they read the issue and nothing else, and the role has no
 // vocabulary for them — so they stay here and the batch is handed only the
 // items that survived them.
 //
@@ -55,7 +55,7 @@ type closeProxiedOutcome struct {
 	auditReason string
 }
 
-// closeProxiedPostClose is the work `bd close` does AFTER the closes have
+// closeProxiedPostClose is the work `issuegraph close` does AFTER the closes have
 // landed: molecule auto-close, --suggest-next and --continue.
 type closeProxiedPostClose struct {
 	unblocked      []*types.Issue
@@ -301,7 +301,7 @@ func closeProxiedOutcomes(pre *closeProxiedPreflight, result issueops.CloseBatch
 		}
 		after := outcome.Issue
 		if after != nil {
-			// `bd close` has never printed dependency records, on either
+			// `issuegraph close` has never printed dependency records, on either
 			// route: the direct route drops them from the operation's own
 			// snapshot for exactly this reason.
 			after.Dependencies = nil
@@ -391,7 +391,7 @@ func closeProxiedRunPostClose(ctx context.Context, args []string, in closeProxie
 		if len(wrote) == 0 {
 			return out, "", nil
 		}
-		return out, "bd: " + strings.Join(wrote, "; "), nil
+		return out, "issuegraph: " + strings.Join(wrote, "; "), nil
 	})
 	if err != nil {
 		post.warnings = append(post.warnings, fmt.Sprintf("post-close work failed: %v", err))

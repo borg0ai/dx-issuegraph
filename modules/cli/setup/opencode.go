@@ -1,10 +1,10 @@
 package setup
 
-import "github.com/steveyegge/beads/internal/templates/agents"
+import "github.com/borg0ai/dx-issuegraph/internal/templates/agents"
 
 var opencodeIntegration = agentsIntegration{
 	name:         "OpenCode",
-	setupCommand: "bd setup opencode",
+	setupCommand: "issuegraph setup opencode",
 	readHint:     "OpenCode reads AGENTS.md at the start of each session. Restart OpenCode if it is already running.",
 	profile:      agents.ProfileFull,
 }

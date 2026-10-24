@@ -8,9 +8,9 @@ import (
 	"testing"
 	"time"
 
-	"github.com/steveyegge/beads/internal/config"
-	"github.com/steveyegge/beads/internal/tracker"
-	"github.com/steveyegge/beads/internal/types"
+	"github.com/borg0ai/dx-issuegraph/internal/config"
+	"github.com/borg0ai/dx-issuegraph/internal/tracker"
+	"github.com/borg0ai/dx-issuegraph/internal/types"
 )
 
 func TestRegistered(t *testing.T) {
@@ -145,28 +145,28 @@ func TestBuildExternalRef(t *testing.T) {
 func TestFieldMapperStatus(t *testing.T) {
 	m := &gitlabFieldMapper{config: DefaultMappingConfig()}
 
-	if got := m.StatusToBeads("opened"); got != types.StatusOpen {
-		t.Errorf("StatusToBeads(opened) = %q, want %q", got, types.StatusOpen)
+	if got := m.StatusToIssueGraph("opened"); got != types.StatusOpen {
+		t.Errorf("StatusToIssueGraph(opened) = %q, want %q", got, types.StatusOpen)
 	}
-	if got := m.StatusToBeads("closed"); got != types.StatusClosed {
-		t.Errorf("StatusToBeads(closed) = %q, want %q", got, types.StatusClosed)
+	if got := m.StatusToIssueGraph("closed"); got != types.StatusClosed {
+		t.Errorf("StatusToIssueGraph(closed) = %q, want %q", got, types.StatusClosed)
 	}
-	if got := m.StatusToBeads("reopened"); got != types.StatusOpen {
-		t.Errorf("StatusToBeads(reopened) = %q, want %q", got, types.StatusOpen)
+	if got := m.StatusToIssueGraph("reopened"); got != types.StatusOpen {
+		t.Errorf("StatusToIssueGraph(reopened) = %q, want %q", got, types.StatusOpen)
 	}
 }
 
 func TestFieldMapperPriority(t *testing.T) {
 	m := &gitlabFieldMapper{config: DefaultMappingConfig()}
 
-	if got := m.PriorityToBeads("critical"); got != 0 {
-		t.Errorf("PriorityToBeads(critical) = %d, want 0", got)
+	if got := m.PriorityToIssueGraph("critical"); got != 0 {
+		t.Errorf("PriorityToIssueGraph(critical) = %d, want 0", got)
 	}
-	if got := m.PriorityToBeads("high"); got != 1 {
-		t.Errorf("PriorityToBeads(high) = %d, want 1", got)
+	if got := m.PriorityToIssueGraph("high"); got != 1 {
+		t.Errorf("PriorityToIssueGraph(high) = %d, want 1", got)
 	}
-	if got := m.PriorityToBeads("low"); got != 3 {
-		t.Errorf("PriorityToBeads(low) = %d, want 3", got)
+	if got := m.PriorityToIssueGraph("low"); got != 3 {
+		t.Errorf("PriorityToIssueGraph(low) = %d, want 3", got)
 	}
 }
 
@@ -238,24 +238,24 @@ func TestGetConfig_YamlOnlyKeyBypassesStore(t *testing.T) {
 }
 
 // TestGetConfig_YamlOnlyKeyReadsFromYaml verifies that gitlab.token is
-// read from .beads/config.yaml when set there, without depending on the
+// read from .issuegraph/config.yaml when set there, without depending on the
 // GITLAB_TOKEN env var.
 func TestGetConfig_YamlOnlyKeyReadsFromYaml(t *testing.T) {
 	const wantToken = "yaml-config-token-value"
 
 	tmpDir := t.TempDir()
-	beadsDir := filepath.Join(tmpDir, ".beads")
-	if err := os.MkdirAll(beadsDir, 0o750); err != nil {
-		t.Fatalf("mkdir .beads: %v", err)
+	issuegraphDir := filepath.Join(tmpDir, ".issuegraph")
+	if err := os.MkdirAll(issuegraphDir, 0o750); err != nil {
+		t.Fatalf("mkdir .issuegraph: %v", err)
 	}
 	yamlBody := "gitlab.token: \"" + wantToken + "\"\n"
-	if err := os.WriteFile(filepath.Join(beadsDir, "config.yaml"), []byte(yamlBody), 0o600); err != nil {
+	if err := os.WriteFile(filepath.Join(issuegraphDir, "config.yaml"), []byte(yamlBody), 0o600); err != nil {
 		t.Fatalf("write config.yaml: %v", err)
 	}
 
 	t.Setenv("GITLAB_TOKEN", "")
-	t.Setenv("BEADS_DIR", "")
-	t.Setenv("BEADS_TEST_IGNORE_REPO_CONFIG", "1")
+	t.Setenv("ISSUEGRAPH_DIR", "")
+	t.Setenv("ISSUEGRAPH_TEST_IGNORE_REPO_CONFIG", "1")
 	t.Setenv("HOME", filepath.Join(tmpDir, "home"))
 	t.Setenv("XDG_CONFIG_HOME", filepath.Join(tmpDir, "xdg"))
 	t.Chdir(tmpDir)

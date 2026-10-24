@@ -1,16 +1,16 @@
 ---
-title: "bd list"
+title: "issuegraph list"
 description: "List issues"
 ---
 
 {/* AUTO-GENERATED: do not edit manually */}
 
-Generated from `bd help --doc list`.
+Generated from `issuegraph help --doc list`.
 
 List issues
 
 ```
-bd list [flags]
+issuegraph list [flags]
 ```
 
 **Flags:**
@@ -34,9 +34,9 @@ bd list [flags]
       --flat                         Disable tree format and use legacy flat list output
       --format string                Output format: 'digraph' (for golang.org/x/tools/cmd/digraph), 'dot' (Graphviz), or Go template
       --has-metadata-key string      Filter issues that have this metadata key set
-      --id string                    Filter by specific issue IDs (comma-separated, e.g., bd-1,bd-5,bd-10)
+      --id string                    Filter by specific issue IDs (comma-separated, e.g., issuegraph-1,issuegraph-5,issuegraph-10)
       --include-gates                Include gate issues in output (normally hidden)
-      --include-infra                Include infrastructure beads (agent/role/message) in output
+      --include-infra                Include infrastructure issuegraph (agent/role/message) in output
       --include-templates            Include template molecules in output
   -l, --label strings                Filter by labels (AND: must have ALL). Can combine with --label-any
       --label-any strings            Filter by labels (OR: must have AT LEAST ONE). Can combine with --label
@@ -60,7 +60,7 @@ bd list [flags]
   -p, --priority string              Priority (0-4 or P0-P4, 0=highest)
       --priority-max string          Filter by maximum priority (inclusive, 0-4 or P0-P4)
       --priority-min string          Filter by minimum priority (inclusive, 0-4 or P0-P4)
-      --ready                        Show only ready issues (no active blockers, same semantics as bd ready)
+      --ready                        Show only ready issues (no active blockers, same semantics as issuegraph ready)
   -r, --reverse                      Reverse sort order
       --skip-labels                  Skip label hydration. The labels field in output will be empty regardless of actual labels. Use only when the caller does not depend on label data. Cannot combine with --label, --label-any, --label-pattern, --label-regex, --exclude-label, or --no-labels.
       --sort string                  Sort by field: priority, created, updated, closed, status, id, title, type, assignee

@@ -1,6 +1,6 @@
 ---
 title: Hash-based IDs
-description: Why issuegraph uses collision-resistant hash IDs like bd-a1b2 so agents and branches never clash
+description: Why issuegraph uses collision-resistant hash IDs like issuegraph-a1b2 so agents and branches never clash
 ---
 
 Understanding issuegraph's collision-resistant ID system.
@@ -19,8 +19,8 @@ flowchart TD
         b1["agent B creates #7"] --> m1
     end
     subgraph hash["Hash IDs — no coordination needed"]
-        a2["agent A creates bd-a1b2"] --> m2["merge: both IDs survive ✓"]
-        b2["agent B creates bd-f14c"] --> m2
+        a2["agent A creates issuegraph-a1b2"] --> m2["merge: both IDs survive ✓"]
+        b2["agent B creates issuegraph-f14c"] --> m2
     end
 ```
 
@@ -29,9 +29,9 @@ flowchart TD
 IssueGraph uses hash-based IDs:
 
 ```
-bd-a1b2c3    # Short hash
-bd-f14c      # Even shorter
-bd-a3f8e9.1  # Hierarchical (child of bd-a3f8e9)
+issuegraph-a1b2c3    # Short hash
+issuegraph-f14c      # Even shorter
+issuegraph-a3f8e9.1  # Hierarchical (child of issuegraph-a3f8e9)
 ```
 
 **Properties:**
@@ -50,7 +50,7 @@ IDs are generated from:
 ```bash
 # Create issue - ID assigned automatically
 issuegraph create "Fix authentication bug"
-# Returns: bd-7x2f
+# Returns: issuegraph-7x2f
 
 # The ID is deterministic for same content+timestamp
 ```
@@ -62,12 +62,12 @@ For epics and subtasks:
 ```bash
 # Parent epic
 issuegraph create "Auth System" -t epic
-# Returns: bd-a3f8e9
+# Returns: issuegraph-a3f8e9
 
 # Children auto-increment
-issuegraph create "Design UI" --parent bd-a3f8e9    # bd-a3f8e9.1
-issuegraph create "Backend" --parent bd-a3f8e9      # bd-a3f8e9.2
-issuegraph create "Tests" --parent bd-a3f8e9        # bd-a3f8e9.3
+issuegraph create "Design UI" --parent issuegraph-a3f8e9    # issuegraph-a3f8e9.1
+issuegraph create "Backend" --parent issuegraph-a3f8e9      # issuegraph-a3f8e9.2
+issuegraph create "Tests" --parent issuegraph-a3f8e9        # issuegraph-a3f8e9.3
 ```
 
 Benefits:
@@ -80,7 +80,7 @@ Benefits:
 Configure ID prefix and length:
 
 ```bash
-# Set prefix (default: bd)
+# Set prefix (default: issuegraph)
 issuegraph config set id.prefix myproject
 
 # Set hash length (default: 4)
@@ -108,11 +108,11 @@ issuegraph info --schema --json | jq '.collision_count'
 
 ```bash
 # Partial ID matching
-issuegraph show a1b2     # Finds bd-a1b2...
+issuegraph show a1b2     # Finds issuegraph-a1b2...
 issuegraph show auth     # Fuzzy match by title
 
 # Full ID required for ambiguous cases
-issuegraph show bd-a1b2c3d4
+issuegraph show issuegraph-a1b2c3d4
 
 # List with full IDs
 issuegraph list --full-ids
@@ -127,12 +127,12 @@ If migrating from a system with sequential IDs:
 issuegraph init --from-jsonl old-issues.jsonl
 
 # View original ID
-issuegraph show bd-new --json | jq '.original_id'
+issuegraph show issuegraph-new --json | jq '.original_id'
 ```
 
 ## Best Practices
 
-1. **Use short references** - `bd-a1b2` is usually unique enough
+1. **Use short references** - `issuegraph-a1b2` is usually unique enough
 2. **Use `--json` for scripts** - Parse full ID programmatically
-3. **Reference by hash in commits** - `Fixed bd-a1b2` in commit messages
+3. **Reference by hash in commits** - `Fixed issuegraph-a1b2` in commit messages
 4. **Let hierarchies form naturally** - Create epics, add children as needed

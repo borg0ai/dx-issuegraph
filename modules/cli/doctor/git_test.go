@@ -13,10 +13,10 @@ func setupGitRepo(t *testing.T) string {
 	t.Helper()
 	dir := t.TempDir()
 
-	// Create .beads directory
-	beadsDir := filepath.Join(dir, ".beads")
-	if err := os.MkdirAll(beadsDir, 0755); err != nil {
-		t.Fatalf("failed to create .beads directory: %v", err)
+	// Create .issuegraph directory
+	issuegraphDir := filepath.Join(dir, ".issuegraph")
+	if err := os.MkdirAll(issuegraphDir, 0755); err != nil {
+		t.Fatalf("failed to create .issuegraph directory: %v", err)
 	}
 
 	// Use cached git template instead of spawning git init per test
@@ -49,14 +49,14 @@ func TestCheckGitHooks(t *testing.T) {
 	})
 }
 
-// setupGitRepoInDir initializes a git repo in the given directory with .beads
+// setupGitRepoInDir initializes a git repo in the given directory with .issuegraph
 func setupGitRepoInDir(t *testing.T, dir string) {
 	t.Helper()
 
-	// Create .beads directory
-	beadsDir := filepath.Join(dir, ".beads")
-	if err := os.MkdirAll(beadsDir, 0755); err != nil {
-		t.Fatalf("failed to create .beads directory: %v", err)
+	// Create .issuegraph directory
+	issuegraphDir := filepath.Join(dir, ".issuegraph")
+	if err := os.MkdirAll(issuegraphDir, 0755); err != nil {
+		t.Fatalf("failed to create .issuegraph directory: %v", err)
 	}
 
 	// Use cached git template instead of spawning git init per test
@@ -150,7 +150,7 @@ func TestCheckGitHooks_CorruptedHookFiles(t *testing.T) {
 			expectInMsg:    "All recommended hooks installed",
 		},
 		{
-			name: "outdated bd hook versions are flagged",
+			name: "outdated issuegraph hook versions are flagged",
 			setup: func(t *testing.T, dir string) {
 				setupGitRepoInDir(t, dir)
 				gitDir := filepath.Join(dir, ".git")
@@ -165,7 +165,7 @@ func TestCheckGitHooks_CorruptedHookFiles(t *testing.T) {
 			expectInMsg:    "outdated",
 		},
 		{
-			name: "current bd hook versions are accepted",
+			name: "current issuegraph hook versions are accepted",
 			setup: func(t *testing.T, dir string) {
 				setupGitRepoInDir(t, dir)
 				gitDir := filepath.Join(dir, ".git")
@@ -186,14 +186,14 @@ func TestCheckGitHooks_CorruptedHookFiles(t *testing.T) {
 				gitDir := filepath.Join(dir, ".git")
 				hooksDir := filepath.Join(gitDir, "hooks")
 				os.MkdirAll(hooksDir, 0755)
-				markerHook := "#!/bin/sh\n# --- BEGIN BEADS INTEGRATION v0.57.0 ---\n" +
-					"# This section is managed by beads. Do not remove these markers.\n" +
-					"if command -v bd >/dev/null 2>&1; then\n" +
-					"  export BD_GIT_HOOK=1\n" +
-					"  bd hooks run pre-commit \"$@\"\n" +
-					"  _bd_exit=$?; if [ $_bd_exit -ne 0 ]; then exit $_bd_exit; fi\n" +
+				markerHook := "#!/bin/sh\n# --- BEGIN ISSUEGRAPH INTEGRATION v0.57.0 ---\n" +
+					"# This section is managed by issuegraph. Do not remove these markers.\n" +
+					"if command -v issuegraph >/dev/null 2>&1; then\n" +
+					"  export ISSUEGRAPH_GIT_HOOK=1\n" +
+					"  issuegraph hooks run pre-commit \"$@\"\n" +
+					"  _issuegraph_exit=$?; if [ $_issuegraph_exit -ne 0 ]; then exit $_issuegraph_exit; fi\n" +
 					"fi\n" +
-					"# --- END BEADS INTEGRATION ---\n"
+					"# --- END ISSUEGRAPH INTEGRATION ---\n"
 				os.WriteFile(filepath.Join(hooksDir, "pre-commit"), []byte(markerHook), 0755)
 				os.WriteFile(filepath.Join(hooksDir, "post-merge"), []byte(markerHook), 0755)
 				os.WriteFile(filepath.Join(hooksDir, "pre-push"), []byte(markerHook), 0755)
@@ -208,11 +208,11 @@ func TestCheckGitHooks_CorruptedHookFiles(t *testing.T) {
 				gitDir := filepath.Join(dir, ".git")
 				hooksDir := filepath.Join(gitDir, "hooks")
 				os.MkdirAll(hooksDir, 0755)
-				markerHook := "#!/bin/sh\n# --- BEGIN BEADS INTEGRATION v0.49.1 ---\n" +
-					"if command -v bd >/dev/null 2>&1; then\n" +
-					"  bd hooks run pre-commit \"$@\"\n" +
+				markerHook := "#!/bin/sh\n# --- BEGIN ISSUEGRAPH INTEGRATION v0.49.1 ---\n" +
+					"if command -v issuegraph >/dev/null 2>&1; then\n" +
+					"  issuegraph hooks run pre-commit \"$@\"\n" +
 					"fi\n" +
-					"# --- END BEADS INTEGRATION ---\n"
+					"# --- END ISSUEGRAPH INTEGRATION ---\n"
 				os.WriteFile(filepath.Join(hooksDir, "pre-commit"), []byte(markerHook), 0755)
 				os.WriteFile(filepath.Join(hooksDir, "post-merge"), []byte(markerHook), 0755)
 				os.WriteFile(filepath.Join(hooksDir, "pre-push"), []byte(markerHook), 0755)
@@ -243,8 +243,8 @@ func TestCheckGitHooks_CorruptedHookFiles(t *testing.T) {
 
 // Tests for CheckOrphanedIssues
 
-// TestParseBDHookVersion verifies version extraction from all hook formats (GH#2244).
-func TestParseBDHookVersion(t *testing.T) {
+// TestParseIssueGraphHookVersion verifies version extraction from all hook formats (GH#2244).
+func TestParseIssueGraphHookVersion(t *testing.T) {
 	tests := []struct {
 		name        string
 		content     string
@@ -259,13 +259,13 @@ func TestParseBDHookVersion(t *testing.T) {
 		},
 		{
 			name:        "section marker format",
-			content:     "#!/bin/sh\n# --- BEGIN BEADS INTEGRATION v0.57.0 ---\nbd hooks run pre-commit\n# --- END BEADS INTEGRATION ---\n",
+			content:     "#!/bin/sh\n# --- BEGIN ISSUEGRAPH INTEGRATION v0.57.0 ---\nbd hooks run pre-commit\n# --- END ISSUEGRAPH INTEGRATION ---\n",
 			wantVersion: "0.57.0",
 			wantOK:      true,
 		},
 		{
 			name:        "section marker with user content before",
-			content:     "#!/bin/sh\n# my custom stuff\necho hello\n# --- BEGIN BEADS INTEGRATION v0.56.1 ---\nbd hooks run pre-commit\n# --- END BEADS INTEGRATION ---\n",
+			content:     "#!/bin/sh\n# my custom stuff\necho hello\n# --- BEGIN ISSUEGRAPH INTEGRATION v0.56.1 ---\nbd hooks run pre-commit\n# --- END ISSUEGRAPH INTEGRATION ---\n",
 			wantVersion: "0.56.1",
 			wantOK:      true,
 		},
@@ -283,18 +283,18 @@ func TestParseBDHookVersion(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			version, ok := parseBDHookVersion(tt.content)
+			version, ok := parseIssueGraphHookVersion(tt.content)
 			if ok != tt.wantOK {
-				t.Errorf("parseBDHookVersion() ok = %v, want %v", ok, tt.wantOK)
+				t.Errorf("parseIssueGraphHookVersion() ok = %v, want %v", ok, tt.wantOK)
 			}
 			if ok && version != tt.wantVersion {
-				t.Errorf("parseBDHookVersion() version = %q, want %q", version, tt.wantVersion)
+				t.Errorf("parseIssueGraphHookVersion() version = %q, want %q", version, tt.wantVersion)
 			}
 		})
 	}
 }
 
-// TestIsBdHookContent verifies detection of all bd hook formats (GH#2244).
+// TestIsBdHookContent verifies detection of all issuegraph hook formats (GH#2244).
 func TestIsBdHookContent(t *testing.T) {
 	tests := []struct {
 		name    string
@@ -302,10 +302,10 @@ func TestIsBdHookContent(t *testing.T) {
 		want    bool
 	}{
 		{"shim marker", "#!/bin/sh\n# bd-shim 0.55.0\nbd hooks run pre-commit\n", true},
-		{"inline marker", "#!/bin/sh\n# bd (beads)\nbd sync\n", true},
-		{"section marker", "#!/bin/sh\n# --- BEGIN BEADS INTEGRATION v0.57.0 ---\nbd hooks run pre-commit\n# --- END BEADS INTEGRATION ---\n", true},
-		{"bd hooks run call", "#!/bin/sh\nbd hooks run pre-commit\n", true},
-		{"not a bd hook", "#!/bin/sh\necho hello\n", false},
+		{"inline marker", "#!/bin/sh\n# issuegraph (issuegraph)\nbd sync\n", true},
+		{"section marker", "#!/bin/sh\n# --- BEGIN ISSUEGRAPH INTEGRATION v0.57.0 ---\nbd hooks run pre-commit\n# --- END ISSUEGRAPH INTEGRATION ---\n", true},
+		{"issuegraph hooks run call", "#!/bin/sh\nbd hooks run pre-commit\n", true},
+		{"not a issuegraph hook", "#!/bin/sh\necho hello\n", false},
 		{"empty", "", false},
 	}
 
@@ -344,12 +344,12 @@ func TestCheckStaleLegacyHooks(t *testing.T) {
 		})
 	})
 
-	t.Run("stale legacy hook with removed bd hook command", func(t *testing.T) {
+	t.Run("stale legacy hook with removed issuegraph hook command", func(t *testing.T) {
 		dir := t.TempDir()
 		setupGitRepoInDir(t, dir)
 		hooksDir := filepath.Join(dir, ".git", "hooks")
 		writeHookFile(t, filepath.Join(hooksDir, "pre-commit.legacy"),
-			"#!/bin/sh\nexec bd hook pre-commit \"$@\"\n")
+			"#!/bin/sh\nexec issuegraph hook pre-commit \"$@\"\n")
 		runInDir(t, dir, func() {
 			check := CheckStaleLegacyHooks()
 			if check.Status != StatusWarning {
@@ -361,7 +361,7 @@ func TestCheckStaleLegacyHooks(t *testing.T) {
 		})
 	})
 
-	t.Run("legacy hook with current bd hooks run command is OK", func(t *testing.T) {
+	t.Run("legacy hook with current issuegraph hooks run command is OK", func(t *testing.T) {
 		dir := t.TempDir()
 		setupGitRepoInDir(t, dir)
 		hooksDir := filepath.Join(dir, ".git", "hooks")

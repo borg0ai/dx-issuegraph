@@ -1,6 +1,6 @@
 # Chemistry Patterns
 
-> Adapted from ACF beads skill
+> Adapted from ACF issuegraph skill
 
 IssueGraph uses a chemistry metaphor for work templates. This guide covers when and how to use each phase.
 
@@ -10,7 +10,7 @@ IssueGraph uses a chemistry metaphor for work templates. This guide covers when 
 ┌─────────────────────────────────────────────────────────────┐
 │                    PROTO (Solid)                            │
 │              Frozen template, reusable pattern              │
-│                    .beads/ with template label              │
+│                    .issuegraph/ with template label              │
 └─────────────────────────┬───────────────────────────────────┘
                           │
           ┌───────────────┼───────────────┐
@@ -21,7 +21,7 @@ IssueGraph uses a chemistry metaphor for work templates. This guide covers when 
 │   issuegraph pour       │       │       │  issuegraph wisp create │
 │                 │       │       │                 │
 │  Persistent     │       │       │  Ephemeral      │
-│  .beads/        │       │       │  .beads-wisp/   │
+│  .issuegraph/        │       │       │  .issuegraph-wisp/   │
 │  Git synced     │       │       │  Gitignored     │
 └────────┬────────┘       │       └────────┬────────┘
          │                │                │
@@ -178,9 +178,9 @@ issuegraph mol catalog
 
 | Type | Location | Git Behavior |
 |------|----------|--------------|
-| Proto | `.beads/` | Synced (template label) |
-| Mol | `.beads/` | Synced |
-| Wisp | `.beads-wisp/` | Gitignored |
+| Proto | `.issuegraph/` | Synced (template label) |
+| Mol | `.issuegraph/` | Synced |
+| Wisp | `.issuegraph-wisp/` | Gitignored |
 
 ## Anti-Patterns
 

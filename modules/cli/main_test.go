@@ -13,9 +13,9 @@ import (
 	"testing"
 	"time"
 
-	"github.com/steveyegge/beads/internal/configfile"
-	"github.com/steveyegge/beads/internal/storage/dolt"
-	"github.com/steveyegge/beads/internal/types"
+	"github.com/borg0ai/dx-issuegraph/internal/configfile"
+	"github.com/borg0ai/dx-issuegraph/internal/storage/dolt"
+	"github.com/borg0ai/dx-issuegraph/internal/types"
 )
 
 // TestCloseIssueSetsClosedAt verifies the dedicated close operation owns its lifecycle metadata.
@@ -24,7 +24,7 @@ func TestCloseIssueSetsClosedAt(t *testing.T) {
 
 	dbPath := filepath.Join(tmpDir, "test.db")
 
-	testStore := newTestStoreWithPrefix(t, dbPath, "bd")
+	testStore := newTestStoreWithPrefix(t, dbPath, "issuegraph")
 
 	ctx := context.Background()
 
@@ -71,7 +71,7 @@ func TestReopenIssueClearsClosedAt(t *testing.T) {
 
 	dbPath := filepath.Join(tmpDir, "test.db")
 
-	testStore := newTestStoreWithPrefix(t, dbPath, "bd")
+	testStore := newTestStoreWithPrefix(t, dbPath, "issuegraph")
 
 	ctx := context.Background()
 
@@ -113,15 +113,15 @@ func TestReopenIssueClearsClosedAt(t *testing.T) {
 	}
 }
 
-// TestBlockedEnvVars tests that BD_BACKEND and BD_DATABASE_BACKEND are blocked (bd-hevyw).
+// TestBlockedEnvVars tests that ISSUEGRAPH_BACKEND and ISSUEGRAPH_DATABASE_BACKEND are blocked (bd-hevyw).
 func TestBlockedEnvVars(t *testing.T) {
 	tests := []struct {
 		name   string
 		envVar string
 		value  string
 	}{
-		{"BD_BACKEND blocked", "BD_BACKEND", "sqlite"},
-		{"BD_DATABASE_BACKEND blocked", "BD_DATABASE_BACKEND", "sqlite"},
+		{"ISSUEGRAPH_BACKEND blocked", "ISSUEGRAPH_BACKEND", "sqlite"},
+		{"ISSUEGRAPH_DATABASE_BACKEND blocked", "ISSUEGRAPH_DATABASE_BACKEND", "sqlite"},
 	}
 
 	for _, tt := range tests {
@@ -134,10 +134,10 @@ func TestBlockedEnvVars(t *testing.T) {
 			if err != nil && !strings.Contains(err.Error(), tt.envVar) {
 				t.Errorf("expected error to mention %s, got: %v", tt.envVar, err)
 			}
-			if err != nil && !strings.Contains(err.Error(), "bd help init-safety") {
+			if err != nil && !strings.Contains(err.Error(), "issuegraph help init-safety") {
 				t.Errorf("expected error to point to safe reinitialization guidance, got: %v", err)
 			}
-			if err != nil && strings.Contains(err.Error(), "bd migrate dolt") {
+			if err != nil && strings.Contains(err.Error(), "issuegraph migrate dolt") {
 				t.Errorf("error must not recommend the removed backend-conversion command: %v", err)
 			}
 		})
@@ -145,11 +145,11 @@ func TestBlockedEnvVars(t *testing.T) {
 
 	// Verify no error when env vars are unset
 	t.Run("no env vars set", func(t *testing.T) {
-		t.Setenv("BD_BACKEND", "")
-		t.Setenv("BD_DATABASE_BACKEND", "")
+		t.Setenv("ISSUEGRAPH_BACKEND", "")
+		t.Setenv("ISSUEGRAPH_DATABASE_BACKEND", "")
 		// Unset them (t.Setenv("", "") sets to empty which Getenv returns as "")
-		os.Unsetenv("BD_BACKEND")
-		os.Unsetenv("BD_DATABASE_BACKEND")
+		os.Unsetenv("ISSUEGRAPH_BACKEND")
+		os.Unsetenv("ISSUEGRAPH_DATABASE_BACKEND")
 		err := checkBlockedEnvVars()
 		if err != nil {
 			t.Errorf("expected no error when env vars are unset, got: %v", err)
@@ -157,7 +157,7 @@ func TestBlockedEnvVars(t *testing.T) {
 	})
 }
 
-func TestListUsesRepoBeadsDirWhenDoltDataDirEscapesDotBeads(t *testing.T) {
+func TestListUsesRepoIssueGraphDirWhenDoltDataDirEscapesDotIssueGraph(t *testing.T) {
 	if testDoltServerPort == 0 {
 		t.Skip("Dolt test server not available, skipping")
 	}
@@ -167,13 +167,13 @@ func TestListUsesRepoBeadsDirWhenDoltDataDirEscapesDotBeads(t *testing.T) {
 
 	tmpDir := t.TempDir()
 	repoDir := filepath.Join(tmpDir, "repo")
-	beadsDir := filepath.Join(repoDir, ".beads")
-	if err := os.MkdirAll(beadsDir, 0o755); err != nil {
-		t.Fatalf("mkdir beads dir: %v", err)
+	issuegraphDir := filepath.Join(repoDir, ".issuegraph")
+	if err := os.MkdirAll(issuegraphDir, 0o755); err != nil {
+		t.Fatalf("mkdir issuegraph dir: %v", err)
 	}
 
 	relativeDoltDir := "../external-dolt"
-	externalDoltDir := filepath.Join(beadsDir, relativeDoltDir)
+	externalDoltDir := filepath.Join(issuegraphDir, relativeDoltDir)
 	if err := os.MkdirAll(filepath.Dir(externalDoltDir), 0o755); err != nil {
 		t.Fatalf("mkdir external dolt parent: %v", err)
 	}
@@ -187,17 +187,17 @@ func TestListUsesRepoBeadsDirWhenDoltDataDirEscapesDotBeads(t *testing.T) {
 		DoltDatabase:   database,
 		DoltDataDir:    relativeDoltDir,
 	}
-	if err := cfg.Save(beadsDir); err != nil {
+	if err := cfg.Save(issuegraphDir); err != nil {
 		t.Fatalf("save metadata: %v", err)
 	}
-	if err := os.WriteFile(filepath.Join(beadsDir, "dolt-server.port"), []byte(strconv.Itoa(testDoltServerPort)), 0o600); err != nil {
+	if err := os.WriteFile(filepath.Join(issuegraphDir, "dolt-server.port"), []byte(strconv.Itoa(testDoltServerPort)), 0o600); err != nil {
 		t.Fatalf("write port file: %v", err)
 	}
 
 	ctx := context.Background()
 	testStore, err := dolt.New(ctx, &dolt.Config{
 		Path:            externalDoltDir,
-		BeadsDir:        beadsDir,
+		IssueGraphDir:   issuegraphDir,
 		ServerHost:      "127.0.0.1",
 		ServerPort:      testDoltServerPort,
 		Database:        database,
@@ -222,7 +222,7 @@ func TestListUsesRepoBeadsDirWhenDoltDataDirEscapesDotBeads(t *testing.T) {
 	issue := &types.Issue{
 		ID:          "test-port-proof-1",
 		Title:       "Port-proof issue",
-		Description: "Verifies bd list uses the repo's .beads config even with external dolt data",
+		Description: "Verifies issuegraph list uses the repo's .issuegraph config even with external dolt data",
 		Status:      types.StatusOpen,
 		Priority:    1,
 		IssueType:   types.TypeBug,
@@ -233,28 +233,28 @@ func TestListUsesRepoBeadsDirWhenDoltDataDirEscapesDotBeads(t *testing.T) {
 		t.Fatalf("create issue: %v", err)
 	}
 
-	t.Setenv("BEADS_DIR", beadsDir)
-	t.Setenv("BEADS_DB", "")
-	t.Setenv("BEADS_DOLT_SERVER_PORT", "")
-	t.Setenv("BEADS_DOLT_PORT", "")
+	t.Setenv("ISSUEGRAPH_DIR", issuegraphDir)
+	t.Setenv("ISSUEGRAPH_DB", "")
+	t.Setenv("ISSUEGRAPH_DOLT_SERVER_PORT", "")
+	t.Setenv("ISSUEGRAPH_DOLT_PORT", "")
 
-	// Shared once-per-process binary (honors BEADS_TEST_BD_BINARY) instead of
+	// Shared once-per-process binary (honors ISSUEGRAPH_TEST_ISSUEGRAPH_BINARY) instead of
 	// a per-test go build — the in-test link steps dominated modules/cli's wall
 	// clock (wy-4mtr0).
-	binPath := buildBDForInitTests(t)
+	binPath := buildIssueGraphForInitTests(t)
 
 	listCmd := exec.Command(binPath, "list", "--json")
 	listCmd.Dir = repoDir
 	listCmd.Env = append(os.Environ(),
-		"BEADS_TEST_MODE=1",
-		"BEADS_DIR="+beadsDir,
-		"BEADS_DB=",
-		"BEADS_DOLT_SERVER_PORT=",
-		"BEADS_DOLT_PORT=",
+		"ISSUEGRAPH_TEST_MODE=1",
+		"ISSUEGRAPH_DIR="+issuegraphDir,
+		"ISSUEGRAPH_DB=",
+		"ISSUEGRAPH_DOLT_SERVER_PORT=",
+		"ISSUEGRAPH_DOLT_PORT=",
 	)
 	output, err := listCmd.CombinedOutput()
 	if err != nil {
-		t.Fatalf("bd list failed: %v\n%s", err, output)
+		t.Fatalf("issuegraph list failed: %v\n%s", err, output)
 	}
 	if !strings.Contains(string(output), "Port-proof issue") {
 		t.Fatalf("expected list output to include created issue\n%s", output)
@@ -265,23 +265,23 @@ func TestListUsesRepoBeadsDirWhenDoltDataDirEscapesDotBeads(t *testing.T) {
 // warn and win for the session, but must never rewrite the committed
 // metadata.json (per-machine env must not leak into shared config).
 func TestSharedServerEmbeddedMismatchDoesNotRewriteMetadata(t *testing.T) {
-	beadsDir := filepath.Join(t.TempDir(), ".beads")
-	if err := os.MkdirAll(beadsDir, 0o755); err != nil {
+	issuegraphDir := filepath.Join(t.TempDir(), ".issuegraph")
+	if err := os.MkdirAll(issuegraphDir, 0o755); err != nil {
 		t.Fatalf("mkdir: %v", err)
 	}
 	cfg := configfile.DefaultConfig()
 	cfg.Backend = configfile.BackendDolt
 	cfg.DoltMode = configfile.DoltModeEmbedded
-	if err := cfg.Save(beadsDir); err != nil {
+	if err := cfg.Save(issuegraphDir); err != nil {
 		t.Fatalf("save metadata.json: %v", err)
 	}
-	before, err := os.ReadFile(configfile.ConfigPath(beadsDir))
+	before, err := os.ReadFile(configfile.ConfigPath(issuegraphDir))
 	if err != nil {
 		t.Fatalf("read metadata.json: %v", err)
 	}
 
-	t.Setenv("BEADS_DOLT_SHARED_SERVER", "1")
-	t.Setenv("BEADS_DOLT_SERVER_MODE", "")
+	t.Setenv("ISSUEGRAPH_DOLT_SHARED_SERVER", "1")
+	t.Setenv("ISSUEGRAPH_DOLT_SERVER_MODE", "")
 
 	oldServerMode, oldWarned := serverMode, sharedServerEmbeddedMismatchWarned
 	defer func() {
@@ -307,7 +307,7 @@ func TestSharedServerEmbeddedMismatchDoesNotRewriteMetadata(t *testing.T) {
 		return string(out)
 	}
 
-	stderr := captureStderr(func() { loadServerModeFromBeadsDir(beadsDir) })
+	stderr := captureStderr(func() { loadServerModeFromIssueGraphDir(issuegraphDir) })
 
 	if !serverMode {
 		t.Error("expected shared-server env to win for the session (serverMode=true)")
@@ -315,7 +315,7 @@ func TestSharedServerEmbeddedMismatchDoesNotRewriteMetadata(t *testing.T) {
 	if !strings.Contains(stderr, "dolt_mode=\"embedded\"") {
 		t.Errorf("expected mismatch notice on stderr, got: %q", stderr)
 	}
-	after, err := os.ReadFile(configfile.ConfigPath(beadsDir))
+	after, err := os.ReadFile(configfile.ConfigPath(issuegraphDir))
 	if err != nil {
 		t.Fatalf("re-read metadata.json: %v", err)
 	}
@@ -324,7 +324,7 @@ func TestSharedServerEmbeddedMismatchDoesNotRewriteMetadata(t *testing.T) {
 	}
 
 	// The notice is once-per-process: a second load must stay quiet.
-	stderr = captureStderr(func() { loadServerModeFromBeadsDir(beadsDir) })
+	stderr = captureStderr(func() { loadServerModeFromIssueGraphDir(issuegraphDir) })
 	if strings.Contains(stderr, "dolt_mode") {
 		t.Errorf("expected no repeat notice, got: %q", stderr)
 	}

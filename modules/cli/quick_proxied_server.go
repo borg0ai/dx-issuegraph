@@ -7,11 +7,11 @@ import (
 
 	"github.com/spf13/cobra"
 
-	"github.com/steveyegge/beads/internal/storage/domain"
-	"github.com/steveyegge/beads/internal/storage/uow"
-	"github.com/steveyegge/beads/internal/types"
-	"github.com/steveyegge/beads/internal/utils"
-	"github.com/steveyegge/beads/internal/validation"
+	"github.com/borg0ai/dx-issuegraph/internal/storage/domain"
+	"github.com/borg0ai/dx-issuegraph/internal/storage/uow"
+	"github.com/borg0ai/dx-issuegraph/internal/types"
+	"github.com/borg0ai/dx-issuegraph/internal/utils"
+	"github.com/borg0ai/dx-issuegraph/internal/validation"
 )
 
 func runQuickProxiedServer(cmd *cobra.Command, ctx context.Context, args []string) error {
@@ -51,7 +51,7 @@ func runQuickProxiedServer(cmd *cobra.Command, ctx context.Context, args []strin
 		if err != nil {
 			return nil, "", err
 		}
-		return result.Issue, fmt.Sprintf("bd: create %s", result.Issue.ID), nil
+		return result.Issue, fmt.Sprintf("issuegraph: create %s", result.Issue.ID), nil
 	})
 	if err != nil {
 		return HandleError("%v", err)

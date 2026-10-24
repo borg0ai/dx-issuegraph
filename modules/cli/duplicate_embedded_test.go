@@ -12,49 +12,49 @@ import (
 	"testing"
 )
 
-// bdDuplicate runs "bd duplicate" with the given args and returns raw stdout.
-func bdDuplicate(t *testing.T, bd, dir string, args ...string) string {
+// issuegraphDuplicate runs "issuegraph duplicate" with the given args and returns raw stdout.
+func issuegraphDuplicate(t *testing.T, issuegraph, dir string, args ...string) string {
 	t.Helper()
 	fullArgs := append([]string{"duplicate"}, args...)
-	cmd := exec.Command(bd, fullArgs...)
+	cmd := exec.Command(issuegraph, fullArgs...)
 	cmd.Dir = dir
-	cmd.Env = bdEnv(dir)
+	cmd.Env = issuegraphEnv(dir)
 	stdout, stderr, err := runCommandBuffers(t, cmd)
 	if err != nil {
-		t.Fatalf("bd duplicate %s failed: %v\nstdout:\n%s\nstderr:\n%s", strings.Join(args, " "), err, stdout.String(), stderr.String())
+		t.Fatalf("issuegraph duplicate %s failed: %v\nstdout:\n%s\nstderr:\n%s", strings.Join(args, " "), err, stdout.String(), stderr.String())
 	}
 	return stdout.String()
 }
 
-// bdDuplicateFail runs "bd duplicate" expecting failure.
-func bdDuplicateFail(t *testing.T, bd, dir string, args ...string) string {
+// issuegraphDuplicateFail runs "issuegraph duplicate" expecting failure.
+func issuegraphDuplicateFail(t *testing.T, issuegraph, dir string, args ...string) string {
 	t.Helper()
 	fullArgs := append([]string{"duplicate"}, args...)
-	cmd := exec.Command(bd, fullArgs...)
+	cmd := exec.Command(issuegraph, fullArgs...)
 	cmd.Dir = dir
-	cmd.Env = bdEnv(dir)
+	cmd.Env = issuegraphEnv(dir)
 	out, err := cmd.CombinedOutput()
 	if err == nil {
-		t.Fatalf("expected bd duplicate %s to fail, but succeeded:\n%s", strings.Join(args, " "), out)
+		t.Fatalf("expected issuegraph duplicate %s to fail, but succeeded:\n%s", strings.Join(args, " "), out)
 	}
 	return string(out)
 }
 
 func TestEmbeddedDuplicate(t *testing.T) {
-	if os.Getenv("BEADS_TEST_EMBEDDED_DOLT") != "1" {
-		t.Skip("set BEADS_TEST_EMBEDDED_DOLT=1 to run embedded dolt integration tests")
+	if os.Getenv("ISSUEGRAPH_TEST_EMBEDDED_DOLT") != "1" {
+		t.Skip("set ISSUEGRAPH_TEST_EMBEDDED_DOLT=1 to run embedded dolt integration tests")
 	}
 	t.Parallel()
 
-	bd := buildEmbeddedBD(t)
-	dir, beadsDir, _ := bdInit(t, bd, "--prefix", "du")
+	issuegraph := buildEmbeddedBD(t)
+	dir, issuegraphDir, _ := issuegraphInit(t, issuegraph, "--prefix", "du")
 
 	// ===== Mark as duplicate =====
 
 	t.Run("mark_duplicate", func(t *testing.T) {
-		canonical := bdCreate(t, bd, dir, "Canonical issue", "--type", "bug")
-		dupe := bdCreate(t, bd, dir, "Duplicate issue", "--type", "bug")
-		out := bdDuplicate(t, bd, dir, dupe.ID, "--of", canonical.ID)
+		canonical := issuegraphCreate(t, issuegraph, dir, "Canonical issue", "--type", "bug")
+		dupe := issuegraphCreate(t, issuegraph, dir, "Duplicate issue", "--type", "bug")
+		out := issuegraphDuplicate(t, issuegraph, dir, dupe.ID, "--of", canonical.ID)
 		if !strings.Contains(out, "duplicate") {
 			t.Errorf("expected 'duplicate' in output: %s", out)
 		}
@@ -63,11 +63,11 @@ func TestEmbeddedDuplicate(t *testing.T) {
 	// ===== Verify closure =====
 
 	t.Run("duplicate_is_closed", func(t *testing.T) {
-		canonical := bdCreate(t, bd, dir, "Canon closed", "--type", "task")
-		dupe := bdCreate(t, bd, dir, "Dupe closed", "--type", "task")
-		bdDuplicate(t, bd, dir, dupe.ID, "--of", canonical.ID)
+		canonical := issuegraphCreate(t, issuegraph, dir, "Canon closed", "--type", "task")
+		dupe := issuegraphCreate(t, issuegraph, dir, "Dupe closed", "--type", "task")
+		issuegraphDuplicate(t, issuegraph, dir, dupe.ID, "--of", canonical.ID)
 
-		s := openStore(t, beadsDir, "du")
+		s := openStore(t, issuegraphDir, "du")
 		issue, err := s.GetIssue(t.Context(), dupe.ID)
 		if err != nil {
 			t.Fatalf("GetIssue: %v", err)
@@ -83,12 +83,12 @@ func TestEmbeddedDuplicate(t *testing.T) {
 	// ===== Creates dependency link =====
 
 	t.Run("creates_dep_link", func(t *testing.T) {
-		canonical := bdCreate(t, bd, dir, "Canon link", "--type", "task")
-		dupe := bdCreate(t, bd, dir, "Dupe link", "--type", "task")
-		bdDuplicate(t, bd, dir, dupe.ID, "--of", canonical.ID)
+		canonical := issuegraphCreate(t, issuegraph, dir, "Canon link", "--type", "task")
+		dupe := issuegraphCreate(t, issuegraph, dir, "Dupe link", "--type", "task")
+		issuegraphDuplicate(t, issuegraph, dir, dupe.ID, "--of", canonical.ID)
 
 		// Check via dep list
-		out := bdDep(t, bd, dir, "list", dupe.ID)
+		out := issuegraphDep(t, issuegraph, dir, "list", dupe.ID)
 		if !strings.Contains(out, canonical.ID) {
 			t.Errorf("expected canonical in dep list: %s", out)
 		}
@@ -97,12 +97,12 @@ func TestEmbeddedDuplicate(t *testing.T) {
 	// ===== JSON output =====
 
 	t.Run("json_output", func(t *testing.T) {
-		canonical := bdCreate(t, bd, dir, "Canon JSON", "--type", "task")
-		dupe := bdCreate(t, bd, dir, "Dupe JSON", "--type", "task")
+		canonical := issuegraphCreate(t, issuegraph, dir, "Canon JSON", "--type", "task")
+		dupe := issuegraphCreate(t, issuegraph, dir, "Dupe JSON", "--type", "task")
 		fullArgs := []string{"duplicate", dupe.ID, "--of", canonical.ID, "--json"}
-		cmd := exec.Command(bd, fullArgs...)
+		cmd := exec.Command(issuegraph, fullArgs...)
 		cmd.Dir = dir
-		cmd.Env = bdEnv(dir)
+		cmd.Env = issuegraphEnv(dir)
 		stdout, stderr, err := runCommandBuffers(t, cmd)
 		if err != nil {
 			t.Fatalf("duplicate --json failed: %v\nstdout:\n%s\nstderr:\n%s", err, stdout.String(), stderr.String())
@@ -127,32 +127,32 @@ func TestEmbeddedDuplicate(t *testing.T) {
 	// ===== Error: same ID =====
 
 	t.Run("error_same_id", func(t *testing.T) {
-		issue := bdCreate(t, bd, dir, "Same ID", "--type", "task")
-		bdDuplicateFail(t, bd, dir, issue.ID, "--of", issue.ID)
+		issue := issuegraphCreate(t, issuegraph, dir, "Same ID", "--type", "task")
+		issuegraphDuplicateFail(t, issuegraph, dir, issue.ID, "--of", issue.ID)
 	})
 
 	// ===== Error: nonexistent canonical =====
 
 	t.Run("error_nonexistent_canonical", func(t *testing.T) {
-		issue := bdCreate(t, bd, dir, "No canon", "--type", "task")
-		bdDuplicateFail(t, bd, dir, issue.ID, "--of", "du-nonexistent999")
+		issue := issuegraphCreate(t, issuegraph, dir, "No canon", "--type", "task")
+		issuegraphDuplicateFail(t, issuegraph, dir, issue.ID, "--of", "du-nonexistent999")
 	})
 }
 
 // TestEmbeddedDuplicateConcurrent exercises duplicate operations concurrently.
 func TestEmbeddedDuplicateConcurrent(t *testing.T) {
-	if os.Getenv("BEADS_TEST_EMBEDDED_DOLT") != "1" {
-		t.Skip("set BEADS_TEST_EMBEDDED_DOLT=1 to run embedded dolt integration tests")
+	if os.Getenv("ISSUEGRAPH_TEST_EMBEDDED_DOLT") != "1" {
+		t.Skip("set ISSUEGRAPH_TEST_EMBEDDED_DOLT=1 to run embedded dolt integration tests")
 	}
 	t.Parallel()
 
-	bd := buildEmbeddedBD(t)
-	dir, _, _ := bdInit(t, bd, "--prefix", "duc")
+	issuegraph := buildEmbeddedBD(t)
+	dir, _, _ := issuegraphInit(t, issuegraph, "--prefix", "duc")
 
-	canonical := bdCreate(t, bd, dir, "Concurrent canonical", "--type", "task")
+	canonical := issuegraphCreate(t, issuegraph, dir, "Concurrent canonical", "--type", "task")
 	var dupeIDs []string
 	for i := 0; i < 8; i++ {
-		d := bdCreate(t, bd, dir, fmt.Sprintf("concurrent-dupe-%d", i), "--type", "task")
+		d := issuegraphCreate(t, issuegraph, dir, fmt.Sprintf("concurrent-dupe-%d", i), "--type", "task")
 		dupeIDs = append(dupeIDs, d.ID)
 	}
 
@@ -171,9 +171,9 @@ func TestEmbeddedDuplicateConcurrent(t *testing.T) {
 			r := workerResult{worker: worker}
 
 			args := []string{"duplicate", dupeIDs[worker], "--of", canonical.ID}
-			cmd := exec.Command(bd, args...)
+			cmd := exec.Command(issuegraph, args...)
 			cmd.Dir = dir
-			cmd.Env = bdEnv(dir)
+			cmd.Env = issuegraphEnv(dir)
 			out, err := cmd.CombinedOutput()
 			if err != nil {
 				r.err = fmt.Errorf("worker %d: %v\n%s", worker, err, out)

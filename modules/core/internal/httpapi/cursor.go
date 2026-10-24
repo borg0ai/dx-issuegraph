@@ -6,7 +6,7 @@ import (
 	"strings"
 	"time"
 
-	"github.com/steveyegge/beads/internal/types"
+	"github.com/borg0ai/dx-issuegraph/internal/types"
 )
 
 // listOrder names one of the total orders the issue listing serves. It is the
@@ -26,7 +26,7 @@ const (
 	// always served, and what an absent `sort` means. Permanently.
 	orderCreated listOrder = "created"
 	// orderPriority is (priority ASC, created_at DESC, id ASC): the order
-	// `bd list` renders with no flags, which is also what `bd list --sort
+	// `issuegraph list` renders with no flags, which is also what `issuegraph list --sort
 	// priority` produces — a pure priority comparator applied STABLY over the
 	// created order is the same sequence. One served order therefore answers
 	// both, in one request instead of a walk.

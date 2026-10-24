@@ -8,7 +8,7 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/steveyegge/beads/internal/templates/agents"
+	"github.com/borg0ai/dx-issuegraph/internal/templates/agents"
 )
 
 func newGeminiTestEnv(t *testing.T) (geminiEnv, *bytes.Buffer, *bytes.Buffer) {
@@ -97,7 +97,7 @@ func TestInstallGemini_Global(t *testing.T) {
 
 	// Check SessionStart hook is registered with the --hook-json variant.
 	// Gemini's hook contract requires JSON-on-stdout; --hook-json wraps
-	// bd prime's markdown in the SessionStart envelope shape.
+	// issuegraph prime's markdown in the SessionStart envelope shape.
 	sessionStart, ok := hooks["SessionStart"].([]interface{})
 	if !ok || len(sessionStart) == 0 {
 		t.Fatal("expected SessionStart hooks")
@@ -105,8 +105,8 @@ func TestInstallGemini_Global(t *testing.T) {
 	hook := sessionStart[0].(map[string]interface{})
 	cmds := hook["hooks"].([]interface{})
 	cmd := cmds[0].(map[string]interface{})
-	if cmd["command"] != "bd prime --hook-json" {
-		t.Errorf("expected SessionStart command 'bd prime --hook-json', got: %v", cmd["command"])
+	if cmd["command"] != "issuegraph prime --hook-json" {
+		t.Errorf("expected SessionStart command 'issuegraph prime --hook-json', got: %v", cmd["command"])
 	}
 
 	// PreCompress must NOT be registered: per Gemini docs it's advisory-only
@@ -174,8 +174,8 @@ func TestInstallGemini_Stealth(t *testing.T) {
 	cmds := hook["hooks"].([]interface{})
 	cmd := cmds[0].(map[string]interface{})
 
-	if cmd["command"] != "bd prime --stealth --hook-json" {
-		t.Errorf("expected stealth command 'bd prime --stealth --hook-json', got: %v", cmd["command"])
+	if cmd["command"] != "issuegraph prime --stealth --hook-json" {
+		t.Errorf("expected stealth command 'issuegraph prime --stealth --hook-json', got: %v", cmd["command"])
 	}
 }
 
@@ -201,9 +201,9 @@ func TestInstallGemini_Idempotent(t *testing.T) {
 	}
 }
 
-// TestInstallGemini_MigratesLegacyHooks verifies that re-running bd setup gemini
-// on a pre-fix installation (which had bare "bd prime" on SessionStart and/or
-// PreCompress) results in exactly one canonical "bd prime --hook-json" entry
+// TestInstallGemini_MigratesLegacyHooks verifies that re-running issuegraph setup gemini
+// on a pre-fix installation (which had bare "issuegraph prime" on SessionStart and/or
+// PreCompress) results in exactly one canonical "issuegraph prime --hook-json" entry
 // on SessionStart and no PreCompress entries. Leaving stale entries alongside
 // the new one would cause Gemini to invoke both, and the legacy command emits
 // raw markdown that violates Gemini's strict stdout-must-be-JSON contract.
@@ -218,7 +218,7 @@ func TestInstallGemini_MigratesLegacyHooks(t *testing.T) {
 				map[string]interface{}{
 					"matcher": "",
 					"hooks": []interface{}{
-						map[string]interface{}{"type": "command", "command": "bd prime"},
+						map[string]interface{}{"type": "command", "command": "issuegraph prime"},
 					},
 				},
 			},
@@ -226,7 +226,7 @@ func TestInstallGemini_MigratesLegacyHooks(t *testing.T) {
 				map[string]interface{}{
 					"matcher": "",
 					"hooks": []interface{}{
-						map[string]interface{}{"type": "command", "command": "bd prime"},
+						map[string]interface{}{"type": "command", "command": "issuegraph prime"},
 					},
 				},
 			},
@@ -250,8 +250,8 @@ func TestInstallGemini_MigratesLegacyHooks(t *testing.T) {
 	hook := sessionStart[0].(map[string]interface{})
 	cmds := hook["hooks"].([]interface{})
 	cmd := cmds[0].(map[string]interface{})
-	if cmd["command"] != "bd prime --hook-json" {
-		t.Errorf("SessionStart command = %q, want 'bd prime --hook-json'", cmd["command"])
+	if cmd["command"] != "issuegraph prime --hook-json" {
+		t.Errorf("SessionStart command = %q, want 'issuegraph prime --hook-json'", cmd["command"])
 	}
 
 	// PreCompress: must be absent or empty.
@@ -294,13 +294,13 @@ func TestInstallGemini_PreservesExistingSettings(t *testing.T) {
 
 // TestCheckGemini_LegacyInstall verifies that checkGemini returns
 // errGeminiHooksLegacy and emits an upgrade advisory when the settings file
-// contains a pre-fix "bd prime" registration (without --hook-json).
+// contains a pre-fix "issuegraph prime" registration (without --hook-json).
 // Legacy hooks emit raw markdown that violates Gemini's JSON stdout contract,
 // so --check must distinguish them from a working current install.
 func TestCheckGemini_LegacyInstall(t *testing.T) {
 	env, stdout, _ := newGeminiTestEnv(t)
 
-	// Seed a pre-fix installation: bare "bd prime" on SessionStart.
+	// Seed a pre-fix installation: bare "issuegraph prime" on SessionStart.
 	settingsPath := geminiGlobalSettingsPath(env.homeDir)
 	legacy := map[string]interface{}{
 		"hooks": map[string]interface{}{
@@ -308,7 +308,7 @@ func TestCheckGemini_LegacyInstall(t *testing.T) {
 				map[string]interface{}{
 					"matcher": "",
 					"hooks": []interface{}{
-						map[string]interface{}{"type": "command", "command": "bd prime"},
+						map[string]interface{}{"type": "command", "command": "issuegraph prime"},
 					},
 				},
 			},
@@ -325,7 +325,7 @@ func TestCheckGemini_LegacyInstall(t *testing.T) {
 	if !strings.Contains(out, "legacy") {
 		t.Errorf("expected 'legacy' in output, got: %s", out)
 	}
-	if !strings.Contains(out, "bd setup gemini") {
+	if !strings.Contains(out, "issuegraph setup gemini") {
 		t.Errorf("expected upgrade instruction in output, got: %s", out)
 	}
 }
@@ -443,8 +443,8 @@ func TestRemoveGemini_Global(t *testing.T) {
 	if err != nil {
 		t.Fatalf("read %s: %v", geminiInstructionsFile, err)
 	}
-	if strings.Contains(string(instructions), "BEGIN BEADS INTEGRATION") {
-		t.Fatalf("expected beads section removed from %s", geminiInstructionsFile)
+	if strings.Contains(string(instructions), "BEGIN ISSUEGRAPH INTEGRATION") {
+		t.Fatalf("expected issuegraph section removed from %s", geminiInstructionsFile)
 	}
 
 	out := stdout.String()
@@ -479,7 +479,7 @@ func TestRemoveGemini_PreservesOtherHooks(t *testing.T) {
 				map[string]interface{}{
 					"matcher": "",
 					"hooks": []interface{}{
-						map[string]interface{}{"type": "command", "command": "bd prime"},
+						map[string]interface{}{"type": "command", "command": "issuegraph prime"},
 					},
 				},
 				map[string]interface{}{
@@ -493,7 +493,7 @@ func TestRemoveGemini_PreservesOtherHooks(t *testing.T) {
 	}
 	writeGeminiSettings(t, settingsPath, existingSettings)
 
-	// Remove bd prime hooks
+	// Remove issuegraph prime hooks
 	if err := removeGemini(env, false); err != nil {
 		t.Fatalf("removeGemini: %v", err)
 	}
@@ -507,16 +507,16 @@ func TestRemoveGemini_PreservesOtherHooks(t *testing.T) {
 		t.Errorf("expected 1 remaining hook, got %d", len(sessionStart))
 	}
 
-	// Verify it's the other command, not bd prime
+	// Verify it's the other command, not issuegraph prime
 	hook := sessionStart[0].(map[string]interface{})
 	cmds := hook["hooks"].([]interface{})
 	cmd := cmds[0].(map[string]interface{})
-	if cmd["command"] == "bd prime" || cmd["command"] == "bd prime --stealth" {
-		t.Error("bd prime hook should have been removed")
+	if cmd["command"] == "issuegraph prime" || cmd["command"] == "issuegraph prime --stealth" {
+		t.Error("issuegraph prime hook should have been removed")
 	}
 }
 
-func TestHasGeminiBeadsHooks(t *testing.T) {
+func TestHasGeminiIssueGraphHooks(t *testing.T) {
 	makeSessionStart := func(command string) map[string]interface{} {
 		return map[string]interface{}{
 			"hooks": map[string]interface{}{
@@ -552,18 +552,18 @@ func TestHasGeminiBeadsHooks(t *testing.T) {
 		want     bool
 	}{
 		// Current canonical commands (--hook-json)
-		{"current bd prime --hook-json on SessionStart", makeSessionStart("bd prime --hook-json"), true},
-		{"current bd prime --stealth --hook-json on SessionStart", makeSessionStart("bd prime --stealth --hook-json"), true},
+		{"current issuegraph prime --hook-json on SessionStart", makeSessionStart("issuegraph prime --hook-json"), true},
+		{"current issuegraph prime --stealth --hook-json on SessionStart", makeSessionStart("issuegraph prime --stealth --hook-json"), true},
 
 		// Legacy commands — still detected so pre-hook-json installations show
 		// the upgrade advisory rather than "not installed".
-		{"legacy bd prime on SessionStart", makeSessionStart("bd prime"), true},
-		{"legacy bd prime --stealth on SessionStart", makeSessionStart("bd prime --stealth"), true},
+		{"legacy issuegraph prime on SessionStart", makeSessionStart("issuegraph prime"), true},
+		{"legacy issuegraph prime --stealth on SessionStart", makeSessionStart("issuegraph prime --stealth"), true},
 
 		// PreCompress is no longer in scope — even legacy installations there
 		// must NOT be reported as installed (we want users to re-run setup).
-		{"bd prime on PreCompress only — not detected", makePreCompress("bd prime"), false},
-		{"bd prime --hook-json on PreCompress only — not detected", makePreCompress("bd prime --hook-json"), false},
+		{"issuegraph prime on PreCompress only — not detected", makePreCompress("issuegraph prime"), false},
+		{"issuegraph prime --hook-json on PreCompress only — not detected", makePreCompress("issuegraph prime --hook-json"), false},
 
 		// Unrelated commands
 		{"unrelated command", makeSessionStart("some-other-command"), false},
@@ -580,8 +580,8 @@ func TestHasGeminiBeadsHooks(t *testing.T) {
 			if err := os.WriteFile(settingsPath, data, 0o644); err != nil {
 				t.Fatalf("write: %v", err)
 			}
-			if got := hasGeminiBeadsHooks(settingsPath); got != tt.want {
-				t.Errorf("hasGeminiBeadsHooks(%s) = %v, want %v", tt.name, got, tt.want)
+			if got := hasGeminiIssueGraphHooks(settingsPath); got != tt.want {
+				t.Errorf("hasGeminiIssueGraphHooks(%s) = %v, want %v", tt.name, got, tt.want)
 			}
 		})
 	}
@@ -589,7 +589,7 @@ func TestHasGeminiBeadsHooks(t *testing.T) {
 	// Edge cases: missing file and empty settings
 	t.Run("missing file", func(t *testing.T) {
 		tmpDir := t.TempDir()
-		if hasGeminiBeadsHooks(filepath.Join(tmpDir, "missing.json")) {
+		if hasGeminiIssueGraphHooks(filepath.Join(tmpDir, "missing.json")) {
 			t.Error("expected false for missing file")
 		}
 	})
@@ -599,7 +599,7 @@ func TestHasGeminiBeadsHooks(t *testing.T) {
 		if err := os.WriteFile(settingsPath, []byte("{}"), 0o644); err != nil {
 			t.Fatal(err)
 		}
-		if hasGeminiBeadsHooks(settingsPath) {
+		if hasGeminiIssueGraphHooks(settingsPath) {
 			t.Error("expected false for empty settings")
 		}
 	})
@@ -621,7 +621,7 @@ func TestRemoveGemini_CleansAllVariants(t *testing.T) {
 				map[string]interface{}{
 					"matcher": "",
 					"hooks": []interface{}{
-						map[string]interface{}{"type": "command", "command": "bd prime --hook-json"},
+						map[string]interface{}{"type": "command", "command": "issuegraph prime --hook-json"},
 					},
 				},
 			},
@@ -629,13 +629,13 @@ func TestRemoveGemini_CleansAllVariants(t *testing.T) {
 				map[string]interface{}{
 					"matcher": "",
 					"hooks": []interface{}{
-						map[string]interface{}{"type": "command", "command": "bd prime"},
+						map[string]interface{}{"type": "command", "command": "issuegraph prime"},
 					},
 				},
 				map[string]interface{}{
 					"matcher": "",
 					"hooks": []interface{}{
-						map[string]interface{}{"type": "command", "command": "bd prime --stealth"},
+						map[string]interface{}{"type": "command", "command": "issuegraph prime --stealth"},
 					},
 				},
 			},

@@ -4,8 +4,8 @@ import (
 	"context"
 	"fmt"
 
-	"github.com/steveyegge/beads/internal/workapi"
-	publicops "github.com/steveyegge/beads/issueops"
+	"github.com/borg0ai/dx-issuegraph/internal/workapi"
+	publicops "github.com/borg0ai/dx-issuegraph/issueops"
 )
 
 // VersionReconcilerSource is the capability accessor a unit-of-work provider
@@ -50,7 +50,7 @@ func (r *versionReconciler) RecordedVersion(ctx context.Context, _ publicops.Rec
 // ReconcileVersion reads the markers, plans and writes inside ONE unit of work.
 //
 // The whole decision is inside the transaction on purpose. This backend serves
-// a workspace several clients share, so two bd processes can start at the same
+// a workspace several clients share, so two issuegraph processes can start at the same
 // moment against one database; a plan made from a read outside the transaction
 // could be written after another process had already moved the marker past it,
 // which is the one way this role could ever lower the high-water mark.
@@ -86,7 +86,7 @@ func (r *versionReconciler) ReconcileVersion(ctx context.Context, req publicops.
 				return publicops.VersionReconcileResult{}, "", err
 			}
 		}
-		return plan.Result, "bd: reconcile version -> " + plan.Result.Current, nil
+		return plan.Result, "issuegraph: reconcile version -> " + plan.Result.Current, nil
 	})
 }
 

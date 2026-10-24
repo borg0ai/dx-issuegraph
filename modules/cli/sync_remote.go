@@ -7,9 +7,9 @@ import (
 	"regexp"
 	"strings"
 
-	"github.com/steveyegge/beads/internal/beads"
-	"github.com/steveyegge/beads/internal/config"
-	"github.com/steveyegge/beads/internal/doltremote"
+	"github.com/borg0ai/dx-issuegraph/internal/config"
+	"github.com/borg0ai/dx-issuegraph/internal/doltremote"
+	"github.com/borg0ai/dx-issuegraph/internal/issuegraph"
 )
 
 // resolveSyncRemote returns the effective sync remote URL.
@@ -25,29 +25,29 @@ func resolveSyncRemote() string {
 }
 
 // resolveSyncRemoteFromDir is like resolveSyncRemote but reads from a
-// specific beads directory's config.yaml. Used by context_cmd, doctor,
-// and other paths that operate on a resolved beads dir rather than CWD.
-func resolveSyncRemoteFromDir(beadsDir string) string {
-	if v := config.GetStringFromDir(beadsDir, "sync.remote"); v != "" {
+// specific issuegraph directory's config.yaml. Used by context_cmd, doctor,
+// and other paths that operate on a resolved issuegraph dir rather than CWD.
+func resolveSyncRemoteFromDir(issuegraphDir string) string {
+	if v := config.GetStringFromDir(issuegraphDir, "sync.remote"); v != "" {
 		return v
 	}
-	return config.GetStringFromDir(beadsDir, "sync.git-remote")
+	return config.GetStringFromDir(issuegraphDir, "sync.git-remote")
 }
 
-// commitBeadsConfig stages .beads/config.yaml and commits it.
+// commitIssueGraphConfig stages .issuegraph/config.yaml and commits it.
 // Silently no-ops if the file is clean or the commit fails (e.g. hooks,
-// nothing to commit). Used by bd dolt remote add/remove to keep the
+// nothing to commit). Used by issuegraph dolt remote add/remove to keep the
 // working tree clean after persisting sync.remote.
-func commitBeadsConfig(msg string) {
-	commitBeadsConfigForActiveRepo(context.Background(), msg)
+func commitIssueGraphConfig(msg string) {
+	commitIssueGraphConfigForActiveRepo(context.Background(), msg)
 }
 
-func commitBeadsConfigForActiveRepo(ctx context.Context, msg string) {
-	rc, err := beads.GetRepoContext()
+func commitIssueGraphConfigForActiveRepo(ctx context.Context, msg string) {
+	rc, err := issuegraph.GetRepoContext()
 	if err != nil {
 		return
 	}
-	addCmd := rc.GitCmd(ctx, "add", ".beads/config.yaml")
+	addCmd := rc.GitCmd(ctx, "add", ".issuegraph/config.yaml")
 	if err := addCmd.Run(); err != nil {
 		return
 	}
@@ -68,7 +68,7 @@ func normalizeRemoteURL(url string) string {
 	return doltremote.Normalize(url)
 }
 
-// doltRemoteURL returns the form of remote that bd hands to Dolt — for
+// doltRemoteURL returns the form of remote that issuegraph hands to Dolt — for
 // DOLT_CLONE, for DOLT_REMOTE('add', ...), and therefore for DOLT_PUSH.
 //
 // A git-forge URL must reach Dolt in its git+ form. Dolt's dbfactory routes by
@@ -81,7 +81,7 @@ func normalizeRemoteURL(url string) string {
 // user-configured Dolt remotesapi endpoint (http://myserver:7007/mydb) must
 // never be rewritten to git+http://, and it never classifies as a forge URL.
 //
-// This is the single owner of that routing rule. bd init and bd bootstrap must
+// This is the single owner of that routing rule. issuegraph init and issuegraph bootstrap must
 // both call it: if they disagree about the URL derived from one committed
 // sync.remote, that is the #5743 class of skew all over again.
 func doltRemoteURL(remote string) string {

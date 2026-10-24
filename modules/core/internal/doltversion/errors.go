@@ -5,7 +5,7 @@ import "errors"
 // Canonical error sentinels for this package. All errors returned by
 // Resolve/Probe/ProbeWithPolicy wrap one of these with %w, so callers can
 // use errors.Is to branch on failure category (e.g. to decide whether to
-// print an install hint vs a "check your BEADS_DOLT_BIN setting" hint)
+// print an install hint vs a "check your ISSUEGRAPH_DOLT_BIN setting" hint)
 // without parsing message text.
 var (
 	// ErrNotFound means no candidate dolt binary could be located at all:

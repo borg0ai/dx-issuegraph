@@ -8,7 +8,7 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/steveyegge/beads/internal/templates"
+	"github.com/borg0ai/dx-issuegraph/internal/templates"
 )
 
 func newCodexTestEnv(t *testing.T) (codexEnv, *bytes.Buffer, *bytes.Buffer) {
@@ -47,21 +47,21 @@ func TestInstallCodexCreatesProjectSkillAndInstructions(t *testing.T) {
 	if err := installCodex(env, false); err != nil {
 		t.Fatalf("installCodex returned error: %v", err)
 	}
-	if !strings.Contains(stdout.String(), "Beads agent skill installed") {
+	if !strings.Contains(stdout.String(), "IssueGraph agent skill installed") {
 		t.Error("expected agent skill install success message")
 	}
 	data, err := os.ReadFile(agentSkillPath(env.projectDir))
 	if err != nil {
 		t.Fatalf("read agent skill: %v", err)
 	}
-	if string(data) != templates.BeadsAgentSkill() {
+	if string(data) != templates.IssueGraphAgentSkill() {
 		t.Fatal("expected managed agent skill content")
 	}
 	data, err = os.ReadFile(agentSkillOpenAIYAMLPath(env.projectDir))
 	if err != nil {
 		t.Fatalf("read agent skill metadata: %v", err)
 	}
-	if string(data) != templates.BeadsAgentSkillOpenAIYAML() {
+	if string(data) != templates.IssueGraphAgentSkillOpenAIYAML() {
 		t.Fatal("expected managed agent skill metadata")
 	}
 
@@ -71,11 +71,11 @@ func TestInstallCodexCreatesProjectSkillAndInstructions(t *testing.T) {
 		t.Fatalf("read Codex instructions: %v", err)
 	}
 	content := string(data)
-	if !strings.Contains(content, codexBeginMarker) || !strings.Contains(content, "`beads` skill") {
+	if !strings.Contains(content, codexBeginMarker) || !strings.Contains(content, "`issuegraph` skill") {
 		t.Fatalf("expected managed Codex skill guidance in %s", instructionsPath)
 	}
-	if !strings.Contains(content, "bd ready") || !strings.Contains(content, "bd remember") {
-		t.Fatalf("expected managed Codex guidance to include Beads workflow reminders")
+	if !strings.Contains(content, "issuegraph ready") || !strings.Contains(content, "issuegraph remember") {
+		t.Fatalf("expected managed Codex guidance to include IssueGraph workflow reminders")
 	}
 	if instructionsPath != filepath.Join(env.projectDir, "AGENTS.md") {
 		t.Fatalf("project instructions path = %s, want root AGENTS.md", instructionsPath)
@@ -184,7 +184,7 @@ func TestCheckCodexMissingPieces(t *testing.T) {
 	if !errors.Is(err, errAgentSkillMissing) {
 		t.Fatalf("expected errAgentSkillMissing, got %v", err)
 	}
-	if !strings.Contains(stdout.String(), "bd setup codex") {
+	if !strings.Contains(stdout.String(), "issuegraph setup codex") {
 		t.Error("expected setup guidance for codex")
 	}
 
@@ -229,7 +229,7 @@ func TestCheckCodexDetectsStaleInstructions(t *testing.T) {
 	if err != nil {
 		t.Fatalf("read instructions: %v", err)
 	}
-	stale := strings.Replace(string(data), "Use the `beads` skill", "Use something else", 1)
+	stale := strings.Replace(string(data), "Use the `issuegraph` skill", "Use something else", 1)
 	if err := os.WriteFile(path, []byte(stale), 0o644); err != nil {
 		t.Fatalf("write stale instructions: %v", err)
 	}
@@ -269,13 +269,13 @@ func TestRemoveCodexKeepsSkillWhenCursorPresent(t *testing.T) {
 		t.Fatalf("installCodex returned error: %v", err)
 	}
 
-	// Simulate a Cursor install that shares the .agents/skills/beads skill by
+	// Simulate a Cursor install that shares the .agents/skills/issuegraph skill by
 	// writing a bd-managed cursor hooks file under the same root.
 	cursorDir := filepath.Join(env.projectDir, ".cursor")
 	if err := os.MkdirAll(cursorDir, 0o755); err != nil {
 		t.Fatalf("mkdir .cursor: %v", err)
 	}
-	hooks := `{"version":1,"hooks":{"sessionStart":[{"command":"bd cursor-hook sessionStart"}]}}`
+	hooks := `{"version":1,"hooks":{"sessionStart":[{"command":"issuegraph cursor-hook sessionStart"}]}}`
 	if err := os.WriteFile(filepath.Join(cursorDir, "hooks.json"), []byte(hooks), 0o644); err != nil {
 		t.Fatalf("write cursor hooks: %v", err)
 	}
@@ -324,7 +324,7 @@ func TestCodexHooksConfigMergeIsIdempotent(t *testing.T) {
 	if !strings.Contains(string(secondConfig), "other = true") || !strings.Contains(string(secondConfig), "hooks = true") {
 		t.Fatalf("expected existing feature and hooks flag preserved:\n%s", string(secondConfig))
 	}
-	if !strings.Contains(string(secondHooks), "echo keep") || !strings.Contains(string(secondHooks), "bd codex-hook SessionStart") {
+	if !strings.Contains(string(secondHooks), "echo keep") || !strings.Contains(string(secondHooks), "issuegraph codex-hook SessionStart") {
 		t.Fatalf("expected existing and managed hooks preserved:\n%s", string(secondHooks))
 	}
 }
@@ -354,7 +354,7 @@ func TestInstallCodexNativeHooksSkipsFallbackWhenPluginEnabled(t *testing.T) {
 	if err := os.MkdirAll(filepath.Dir(configPath), 0o755); err != nil {
 		t.Fatalf("mkdir config: %v", err)
 	}
-	seedConfig := "[plugins.\"beads@local\"]\nenabled = true\n"
+	seedConfig := "[plugins.\"issuegraph@local\"]\nenabled = true\n"
 	if err := os.WriteFile(configPath, []byte(seedConfig), 0o644); err != nil {
 		t.Fatalf("write seed config: %v", err)
 	}
@@ -375,54 +375,54 @@ func TestInstallCodexNativeHooksSkipsFallbackWhenPluginEnabled(t *testing.T) {
 	}
 }
 
-func TestCodexConfigEnablesBeadsPlugin(t *testing.T) {
+func TestCodexConfigEnablesIssueGraphPlugin(t *testing.T) {
 	cases := []struct {
 		name    string
 		content string
 		want    bool
 	}{
 		{
-			// GH#4244: a plugin whose name merely contains "beads" (here
-			// design-to-beads) must NOT be taken for the beads hook plugin, or
+			// GH#4244: a plugin whose name merely contains "issuegraph" (here
+			// design-to-issuegraph) must NOT be taken for the issuegraph hook plugin, or
 			// the hooks fallback write is wrongly skipped.
-			name:    "design-to-beads not mistaken for beads plugin",
-			content: "[plugins.\"design-to-beads@xexr-marketplace\"]\nenabled = true\n",
+			name:    "design-to-issuegraph not mistaken for issuegraph plugin",
+			content: "[plugins.\"design-to-issuegraph@xexr-marketplace\"]\nenabled = true\n",
 			want:    false,
 		},
 		{
-			name:    "bare design-to-beads not mistaken for beads plugin",
-			content: "[plugins.design-to-beads]\nenabled = true\n",
+			name:    "bare design-to-issuegraph not mistaken for issuegraph plugin",
+			content: "[plugins.design-to-issuegraph]\nenabled = true\n",
 			want:    false,
 		},
 		{
-			// The exact-name match must still find a real beads@<marketplace>;
-			// this is the quoted form bd setup codex actually writes.
-			name:    "real quoted beads plugin detected",
-			content: "[plugins.\"beads@local\"]\nenabled = true\n",
+			// The exact-name match must still find a real issuegraph@<marketplace>;
+			// this is the quoted form issuegraph setup codex actually writes.
+			name:    "real quoted issuegraph plugin detected",
+			content: "[plugins.\"issuegraph@local\"]\nenabled = true\n",
 			want:    true,
 		},
 		{
-			name:    "bare beads plugin detected",
-			content: "[plugins.beads]\nenabled = true\n",
+			name:    "bare issuegraph plugin detected",
+			content: "[plugins.issuegraph]\nenabled = true\n",
 			want:    true,
 		},
 		{
-			// GH#3192 preserved: a real beads plugin is still found alongside a
-			// *beads*-named decoy.
-			name:    "real beads plugin detected past a decoy",
-			content: "[plugins.\"design-to-beads@xexr-marketplace\"]\nenabled = true\n[plugins.\"beads@local\"]\nenabled = true\n",
+			// GH#3192 preserved: a real issuegraph plugin is still found alongside a
+			// *issuegraph*-named decoy.
+			name:    "real issuegraph plugin detected past a decoy",
+			content: "[plugins.\"design-to-issuegraph@xexr-marketplace\"]\nenabled = true\n[plugins.\"issuegraph@local\"]\nenabled = true\n",
 			want:    true,
 		},
 		{
-			name:    "beads plugin present but disabled",
-			content: "[plugins.\"beads@local\"]\nenabled = false\n",
+			name:    "issuegraph plugin present but disabled",
+			content: "[plugins.\"issuegraph@local\"]\nenabled = false\n",
 			want:    false,
 		},
 	}
 	for _, tc := range cases {
 		t.Run(tc.name, func(t *testing.T) {
-			if got := codexConfigEnablesBeadsPlugin(tc.content); got != tc.want {
-				t.Errorf("codexConfigEnablesBeadsPlugin() = %v, want %v", got, tc.want)
+			if got := codexConfigEnablesIssueGraphPlugin(tc.content); got != tc.want {
+				t.Errorf("codexConfigEnablesIssueGraphPlugin() = %v, want %v", got, tc.want)
 			}
 		})
 	}
@@ -469,7 +469,7 @@ func TestCodexHooksMigratesExactLegacySessionStart(t *testing.T) {
 			"SessionStart": []interface{}{codexTestHookEntry("  " + codexLegacySessionStartCommand + "\n")},
 		},
 	}
-	if !codexBeadsHooksPresent(config) {
+	if !codexIssueGraphHooksPresent(config) {
 		t.Fatal("expected exact legacy SessionStart hook to count as Codex integration")
 	}
 
@@ -481,7 +481,7 @@ func TestCodexHooksMigratesExactLegacySessionStart(t *testing.T) {
 		t.Fatalf("SessionStart entries = %d, want one canonical entry", len(entries))
 	}
 	commands := codexTestEventCommands(config, "SessionStart")
-	if !codexTestCommandsContain(commands, "bd codex-hook SessionStart") {
+	if !codexTestCommandsContain(commands, "issuegraph codex-hook SessionStart") {
 		t.Fatalf("canonical SessionStart hook missing: %v", commands)
 	}
 	for _, command := range commands {
@@ -527,7 +527,7 @@ func TestCodexManagedHooksCurrentRejectsCanonicalPlusLegacy(t *testing.T) {
 }
 
 func TestCodexHooksLegacyMigrationPreservesUnrelatedEntries(t *testing.T) {
-	nearLegacy := "bd prime --stealth | jq ."
+	nearLegacy := "issuegraph prime --stealth | jq ."
 	config := map[string]interface{}{
 		"hooks": map[string]interface{}{
 			"SessionStart": []interface{}{
@@ -541,7 +541,7 @@ func TestCodexHooksLegacyMigrationPreservesUnrelatedEntries(t *testing.T) {
 	upsertCodexManagedHooks(config)
 
 	commands := codexTestEventCommands(config, "SessionStart")
-	for _, want := range []string{"echo keep", nearLegacy, "bd codex-hook SessionStart"} {
+	for _, want := range []string{"echo keep", nearLegacy, "issuegraph codex-hook SessionStart"} {
 		if !codexTestCommandsContain(commands, want) {
 			t.Fatalf("command %q was not preserved/installed: %v", want, commands)
 		}
@@ -560,7 +560,7 @@ func TestCodexHooksLegacyMigrationPreservesMixedEntryCommands(t *testing.T) {
 	upsertCodexManagedHooks(config)
 
 	commands := codexTestEventCommands(config, "SessionStart")
-	if !codexTestCommandsContain(commands, "echo keep") || !codexTestCommandsContain(commands, "bd codex-hook SessionStart") {
+	if !codexTestCommandsContain(commands, "echo keep") || !codexTestCommandsContain(commands, "issuegraph codex-hook SessionStart") {
 		t.Fatalf("mixed entry command or canonical hook missing: %v", commands)
 	}
 	for _, command := range commands {
@@ -571,14 +571,14 @@ func TestCodexHooksLegacyMigrationPreservesMixedEntryCommands(t *testing.T) {
 }
 
 func TestRemoveCodexHooksRemovesLegacyAndPreservesUnrelated(t *testing.T) {
-	nearLegacy := "bd prime --stealth"
+	nearLegacy := "issuegraph prime --stealth"
 	config := map[string]interface{}{
 		"hooks": map[string]interface{}{
 			"SessionStart": []interface{}{
 				codexTestHookEntry(codexLegacySessionStartCommand),
 				codexTestHookEntry(codexLegacySessionStartCommand, "echo keep"),
 				codexTestHookEntry(nearLegacy),
-				codexHookEntry("startup|resume|clear", "bd codex-hook SessionStart", "Loading Beads context"),
+				codexHookEntry("startup|resume|clear", "issuegraph codex-hook SessionStart", "Loading IssueGraph context"),
 			},
 		},
 	}
@@ -590,11 +590,11 @@ func TestRemoveCodexHooksRemovesLegacyAndPreservesUnrelated(t *testing.T) {
 		t.Fatalf("unrelated commands not preserved: %v", commands)
 	}
 	for _, command := range commands {
-		if strings.TrimSpace(command) == codexLegacySessionStartCommand || strings.HasPrefix(command, "bd codex-hook ") {
+		if strings.TrimSpace(command) == codexLegacySessionStartCommand || strings.HasPrefix(command, "issuegraph codex-hook ") {
 			t.Fatalf("managed command remains after removal: %v", commands)
 		}
 	}
-	if codexBeadsHooksPresent(config) {
-		t.Fatal("removed config should no longer be detected as a Codex Beads integration")
+	if codexIssueGraphHooksPresent(config) {
+		t.Fatal("removed config should no longer be detected as a Codex IssueGraph integration")
 	}
 }

@@ -11,15 +11,15 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
-	"github.com/steveyegge/beads/internal/procid"
-	"github.com/steveyegge/beads/internal/storage/dbproxy/identity"
-	"github.com/steveyegge/beads/internal/storage/dbproxy/pidfile"
+	"github.com/borg0ai/dx-issuegraph/internal/procid"
+	"github.com/borg0ai/dx-issuegraph/internal/storage/dbproxy/identity"
+	"github.com/borg0ai/dx-issuegraph/internal/storage/dbproxy/pidfile"
 )
 
 // Adoption must be proven by the authenticated control-port identity reply
 // alone. A dial-and-close probe of the DATA port is not free: the proxy dials
 // its backend for every accepted client connection before any bytes flow, so
-// such a probe burns one full MySQL session on the shared dolt server per bd
+// such a probe burns one full MySQL session on the shared dolt server per issuegraph
 // invocation (wy-s8ytnw). This pins that readAndDial adopts a live proxy
 // without ever connecting to its data port.
 func TestReadAndDialAdoptsWithoutDialingDataPort(t *testing.T) {

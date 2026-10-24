@@ -5,8 +5,8 @@ import (
 	"errors"
 	"testing"
 
-	"github.com/steveyegge/beads/internal/storage"
-	"github.com/steveyegge/beads/issueops"
+	"github.com/borg0ai/dx-issuegraph/internal/storage"
+	"github.com/borg0ai/dx-issuegraph/issueops"
 )
 
 type fakeIssueOperations struct {
@@ -47,7 +47,7 @@ func (s *lifecycleDoltStore) IssueLifecycle() (issueops.Lifecycle, error) {
 // delegating to the inner store would compile and return an unspanned,
 // untimed lifecycle.
 func TestInstrumentedStorageIssueLifecycleInstrumentsInner(t *testing.T) {
-	t.Setenv("BD_OTEL_STDOUT", "true")
+	t.Setenv("ISSUEGRAPH_OTEL_STDOUT", "true")
 	inner := &fakeIssueOperations{}
 	wrapped := WrapStorage(&lifecycleDoltStore{lifecycle: inner}).(*InstrumentedStorage)
 
@@ -65,7 +65,7 @@ func TestInstrumentedStorageIssueLifecycleInstrumentsInner(t *testing.T) {
 }
 
 func TestInstrumentedStorageIssueLifecyclePropagatesInnerError(t *testing.T) {
-	t.Setenv("BD_OTEL_STDOUT", "true")
+	t.Setenv("ISSUEGRAPH_OTEL_STDOUT", "true")
 	want := errors.New("inner refused")
 	wrapped := WrapStorage(&lifecycleDoltStore{err: want}).(*InstrumentedStorage)
 
@@ -79,7 +79,7 @@ func TestInstrumentedStorageIssueLifecyclePropagatesInnerError(t *testing.T) {
 }
 
 func TestInstrumentedIssueOperationsForwardsEveryAttemptOnce(t *testing.T) {
-	t.Setenv("BD_OTEL_STDOUT", "true")
+	t.Setenv("ISSUEGRAPH_OTEL_STDOUT", "true")
 	base := WrapStorage(&fakeDoltStore{}).(*InstrumentedStorage)
 	for _, test := range []struct {
 		name string

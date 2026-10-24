@@ -8,48 +8,48 @@ import (
 	"testing"
 	"time"
 
+	"github.com/borg0ai/dx-issuegraph/internal/workspacegate"
 	"github.com/spf13/cobra"
-	"github.com/steveyegge/beads/internal/workspacegate"
 )
 
 // resetGateTestEnv pins every env var the physical-root resolver consults so
-// a developer machine's beads setup (shared-server mode, custom data dirs,
+// a developer machine's issuegraph setup (shared-server mode, custom data dirs,
 // central config) cannot change which gates these tests acquire.
 func resetGateTestEnv(t *testing.T) {
 	t.Helper()
 	for _, k := range []string{
-		"BEADS_DOLT_SERVER_MODE",
-		"BEADS_DOLT_SHARED_SERVER",
-		"BEADS_DOLT_DATA_DIR",
-		"BEADS_DOLT_SERVER_HOST",
-		"BEADS_PROXIED_SERVER_ROOT_PATH",
-		"BEADS_SHARED_SERVER_DIR",
+		"ISSUEGRAPH_DOLT_SERVER_MODE",
+		"ISSUEGRAPH_DOLT_SHARED_SERVER",
+		"ISSUEGRAPH_DOLT_DATA_DIR",
+		"ISSUEGRAPH_DOLT_SERVER_HOST",
+		"ISSUEGRAPH_PROXIED_SERVER_ROOT_PATH",
+		"ISSUEGRAPH_SHARED_SERVER_DIR",
 	} {
 		t.Setenv(k, "")
 	}
-	t.Setenv("BEADS_CENTRAL_CONFIG", filepath.Join(t.TempDir(), "no-central.json"))
+	t.Setenv("ISSUEGRAPH_CENTRAL_CONFIG", filepath.Join(t.TempDir(), "no-central.json"))
 }
 
 func newGateTestWorkspace(t *testing.T) string {
 	t.Helper()
-	beadsDir := filepath.Join(t.TempDir(), ".beads")
-	if err := os.MkdirAll(beadsDir, 0o755); err != nil {
+	issuegraphDir := filepath.Join(t.TempDir(), ".issuegraph")
+	if err := os.MkdirAll(issuegraphDir, 0o755); err != nil {
 		t.Fatal(err)
 	}
-	meta := `{"backend":"dolt","database":"beads.db","dolt_mode":"embedded"}`
-	if err := os.WriteFile(filepath.Join(beadsDir, "metadata.json"), []byte(meta), 0o600); err != nil {
+	meta := `{"backend":"dolt","database":"issuegraph.db","dolt_mode":"embedded"}`
+	if err := os.WriteFile(filepath.Join(issuegraphDir, "metadata.json"), []byte(meta), 0o600); err != nil {
 		t.Fatal(err)
 	}
-	return beadsDir
+	return issuegraphDir
 }
 
 func TestCommandNeedsExclusiveGate(t *testing.T) {
-	root := &cobra.Command{Use: "bd"}
+	root := &cobra.Command{Use: "issuegraph"}
 	backup := &cobra.Command{Use: "backup"}
 	backupRestore := &cobra.Command{Use: "restore [path]"}
 	backup.AddCommand(backupRestore)
 	root.AddCommand(backup)
-	// Top-level `bd restore <issue-id>` is an ISSUE restore
+	// Top-level `issuegraph restore <issue-id>` is an ISSUE restore
 	// (modules/cli/restore.go), not a database restore: it must stay SHARED.
 	issueRestore := &cobra.Command{Use: "restore [issue-id]"}
 	root.AddCommand(issueRestore)
@@ -81,21 +81,21 @@ func TestAcquireCommandWorkspaceGatesAbsentWorkspace(t *testing.T) {
 	t.Cleanup(releaseWorkspaceGates)
 
 	list := &cobra.Command{Use: "list"}
-	missing := filepath.Join(t.TempDir(), "nope", ".beads")
+	missing := filepath.Join(t.TempDir(), "nope", ".issuegraph")
 	if err := acquireCommandWorkspaceGates(context.Background(), list, missing); err != nil {
-		t.Fatalf("absent beadsDir must be silently ungated, got %v", err)
+		t.Fatalf("absent issuegraphDir must be silently ungated, got %v", err)
 	}
 	if workspaceGateHandle != nil {
-		t.Error("absent beadsDir must leave no gate handle")
+		t.Error("absent issuegraphDir must leave no gate handle")
 	}
 }
 
 func TestAcquireCommandWorkspaceGatesBlockedByExclusiveHolder(t *testing.T) {
 	resetGateTestEnv(t)
 	t.Cleanup(releaseWorkspaceGates)
-	beadsDir := newGateTestWorkspace(t)
+	issuegraphDir := newGateTestWorkspace(t)
 
-	gate, err := workspacegate.ForWorkspace(beadsDir)
+	gate, err := workspacegate.ForWorkspace(issuegraphDir)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -107,7 +107,7 @@ func TestAcquireCommandWorkspaceGatesBlockedByExclusiveHolder(t *testing.T) {
 	defer func() { _ = holder.Release() }()
 
 	list := &cobra.Command{Use: "list"}
-	if err := acquireCommandWorkspaceGates(context.Background(), list, beadsDir); err == nil {
+	if err := acquireCommandWorkspaceGates(context.Background(), list, issuegraphDir); err == nil {
 		t.Fatal("SHARED acquisition under a foreign exclusive holder must abort, got nil error")
 	}
 	if workspaceGateHandle != nil {
@@ -117,8 +117,8 @@ func TestAcquireCommandWorkspaceGatesBlockedByExclusiveHolder(t *testing.T) {
 
 func TestAcquireInitMutationGateKeepsReplacementExclusiveDuringPreflight(t *testing.T) {
 	resetGateTestEnv(t)
-	beadsDir := newGateTestWorkspace(t)
-	physicalRoot := filepath.Join(filepath.Dir(beadsDir), "dolt-data")
+	issuegraphDir := newGateTestWorkspace(t)
+	physicalRoot := filepath.Join(filepath.Dir(issuegraphDir), "dolt-data")
 
 	oldOnWait := exclusiveGateOnWait
 	secondWaited := make(chan struct{}, 1)
@@ -138,7 +138,7 @@ func TestAcquireInitMutationGateKeepsReplacementExclusiveDuringPreflight(t *test
 	}
 	firstResult := make(chan result, 1)
 	go func() {
-		h, err := acquireInitMutationGate(context.Background(), beadsDir, physicalRoot, func() error {
+		h, err := acquireInitMutationGate(context.Background(), issuegraphDir, physicalRoot, func() error {
 			close(firstPreflightEntered)
 			<-allowFirstPreflight
 			return nil
@@ -150,7 +150,7 @@ func TestAcquireInitMutationGateKeepsReplacementExclusiveDuringPreflight(t *test
 	secondPreflightEntered := make(chan struct{})
 	secondResult := make(chan result, 1)
 	go func() {
-		h, err := acquireInitMutationGate(context.Background(), beadsDir, physicalRoot, func() error {
+		h, err := acquireInitMutationGate(context.Background(), issuegraphDir, physicalRoot, func() error {
 			close(secondPreflightEntered)
 			return nil
 		})
@@ -184,18 +184,18 @@ func TestAcquireInitMutationGateKeepsReplacementExclusiveDuringPreflight(t *test
 
 func TestAcquireInitMutationGateReleasesOnPreflightError(t *testing.T) {
 	resetGateTestEnv(t)
-	beadsDir := newGateTestWorkspace(t)
-	physicalRoot := filepath.Join(filepath.Dir(beadsDir), "dolt-data")
+	issuegraphDir := newGateTestWorkspace(t)
+	physicalRoot := filepath.Join(filepath.Dir(issuegraphDir), "dolt-data")
 	refusal := errors.New("destroy token rejected")
 
-	_, err := acquireInitMutationGate(context.Background(), beadsDir, physicalRoot, func() error {
+	_, err := acquireInitMutationGate(context.Background(), issuegraphDir, physicalRoot, func() error {
 		return refusal
 	})
 	if !errors.Is(err, refusal) {
 		t.Fatalf("init mutation gate error = %v, want preflight refusal", err)
 	}
 
-	h, err := acquireInitMutationGate(context.Background(), beadsDir, physicalRoot, nil)
+	h, err := acquireInitMutationGate(context.Background(), issuegraphDir, physicalRoot, nil)
 	if err != nil {
 		t.Fatalf("init mutation gate remained held after refusal: %v", err)
 	}
@@ -206,10 +206,10 @@ func TestAcquireInitMutationGateReleasesOnPreflightError(t *testing.T) {
 
 func TestReleaseWorkspaceGatesIdempotent(t *testing.T) {
 	resetGateTestEnv(t)
-	beadsDir := newGateTestWorkspace(t)
+	issuegraphDir := newGateTestWorkspace(t)
 
 	list := &cobra.Command{Use: "list"}
-	if err := acquireCommandWorkspaceGates(context.Background(), list, beadsDir); err != nil {
+	if err := acquireCommandWorkspaceGates(context.Background(), list, issuegraphDir); err != nil {
 		t.Fatal(err)
 	}
 	if workspaceGateHandle == nil {
@@ -224,7 +224,7 @@ func TestReleaseWorkspaceGatesIdempotent(t *testing.T) {
 
 	// And the gate must actually be free again: an exclusive acquisition
 	// succeeds after release.
-	gate, err := workspacegate.ForWorkspace(beadsDir)
+	gate, err := workspacegate.ForWorkspace(issuegraphDir)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -243,7 +243,7 @@ func TestReleaseWorkspaceGatesIdempotent(t *testing.T) {
 func TestChokepointSharedExcludesMigrateExclusive(t *testing.T) {
 	resetGateTestEnv(t)
 	t.Cleanup(releaseWorkspaceGates)
-	beadsDir := newGateTestWorkspace(t)
+	issuegraphDir := newGateTestWorkspace(t)
 
 	// rootCtx is a package global that production sets via
 	// setupGracefulShutdown() in PersistentPreRunE and cancels via
@@ -264,14 +264,14 @@ func TestChokepointSharedExcludesMigrateExclusive(t *testing.T) {
 	t.Cleanup(func() { exclusiveGateWait = oldWait })
 
 	list := &cobra.Command{Use: "list"}
-	if err := acquireCommandWorkspaceGates(context.Background(), list, beadsDir); err != nil {
+	if err := acquireCommandWorkspaceGates(context.Background(), list, issuegraphDir); err != nil {
 		t.Fatal(err)
 	}
 	if workspaceGateHandle == nil {
 		t.Fatal("expected a held shared gate handle")
 	}
 
-	release, err := acquireMigrateGates(beadsDir, false, "test migrate")
+	release, err := acquireMigrateGates(issuegraphDir, false, "test migrate")
 	if err == nil {
 		release()
 		t.Fatal("migrate EXCLUSIVE acquisition must fail while the chokepoint holds SHARED")
@@ -279,7 +279,7 @@ func TestChokepointSharedExcludesMigrateExclusive(t *testing.T) {
 
 	// After the shared holder releases, the migration proceeds.
 	releaseWorkspaceGates()
-	release, err = acquireMigrateGates(beadsDir, false, "test migrate")
+	release, err = acquireMigrateGates(issuegraphDir, false, "test migrate")
 	if err != nil {
 		t.Fatalf("migrate acquisition after shared release: %v", err)
 	}

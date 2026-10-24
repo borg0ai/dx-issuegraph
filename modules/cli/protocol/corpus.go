@@ -1,15 +1,15 @@
-// corpus.go — producer-side logic for the Beads↔consumer cross-version
+// corpus.go — producer-side logic for the IssueGraph↔consumer cross-version
 // contract-test system (Phase 2).
 //
 // This file is the dependency-free, unit-testable core: it defines the
-// deterministic command PLAN that exercises bd's stable CLI/JSON surface,
+// deterministic command PLAN that exercises issuegraph's stable CLI/JSON surface,
 // a canonicalizer that strips nondeterminism (timestamps, ordering) so two
 // independent runs produce byte-identical output, and the manifest that
 // records the corpus's provenance.
 //
 // A downstream consumer vendors the generated corpus (testdata/corpus/) and replays it
 // against its own consumer to detect cross-version drift without needing a
-// live bd. Everything here must stay free of test-only and bd-internal
+// live issuegraph. Everything here must stay free of test-only and bd-internal
 // imports so it can be reasoned about (and reused) in isolation.
 package protocol
 
@@ -27,8 +27,8 @@ import (
 )
 
 // Capture is a single named command in the corpus PLAN. Name is the stable
-// blob filename (without extension); Args is the exact bd argument vector
-// (excluding the bd binary itself and the global --json flag, which the
+// blob filename (without extension); Args is the exact issuegraph argument vector
+// (excluding the issuegraph binary itself and the global --json flag, which the
 // runner appends where appropriate).
 type Capture struct {
 	Name string
@@ -57,14 +57,14 @@ const errorCaptureName = "error"
 // matters: create steps must run before the read steps that observe them,
 // and the dependency must be added before dep_list is captured.
 //
-// Each Capture's Args are passed verbatim to bd. Read commands include
+// Each Capture's Args are passed verbatim to issuegraph. Read commands include
 // --json so the output is the structured contract surface; the "error"
 // capture deliberately targets a missing issue to pin the error envelope.
 func CorpusPlan() []Capture {
 	return []Capture{
-		// CREATE: --force lets us pin custom IDs despite bd's per-database random
+		// CREATE: --force lets us pin custom IDs despite issuegraph's per-database random
 		// ID prefix; pinned IDs make every downstream read deterministic. Four
-		// beads: root + dep exercise reads/dependencies; closed + deleted are
+		// issuegraph: root + dep exercise reads/dependencies; closed + deleted are
 		// created here so the close/reopen and delete mutations below have stable
 		// subjects without disturbing root/dep.
 		{
@@ -124,8 +124,8 @@ func CorpusPlan() []Capture {
 			Args: []string{"delete", "--force", "--json", CorpusDeletedID},
 		},
 		// READS captured after the mutations, so list/ready/count reflect the
-		// full post-mutation state (updated root, reopened bead, removed edge,
-		// deleted bead gone).
+		// full post-mutation state (updated root, reopened issue, removed edge,
+		// deleted issue gone).
 		{
 			Name: "list",
 			Args: []string{"list", "--all", "--json"},
@@ -142,9 +142,9 @@ func CorpusPlan() []Capture {
 			Name: "version",
 			Args: []string{"version", "--json"},
 		},
-		// The error capture pins the {error, schema_version} envelope bd emits on
+		// The error capture pins the {error, schema_version} envelope issuegraph emits on
 		// stdout for a missing issue — a downstream consumer's isBdNotFound classifier depends on
-		// it — plus the non-zero exit status bd returns (see checkCaptureExit).
+		// it — plus the non-zero exit status issuegraph returns (see checkCaptureExit).
 		{
 			Name: errorCaptureName,
 			Args: []string{"show", "nonexistent-xyz-corpus", "--json"},
@@ -163,18 +163,18 @@ var timestampRE = regexp.MustCompile(
 const tsPlaceholder = "<TS>"
 
 // provenanceDropKeys are removed entirely during canonicalization: they vary in
-// both value AND presence across builds. `bd version --json` embeds "commit"
+// both value AND presence across builds. `issuegraph version --json` embeds "commit"
 // from Go's VCS stamping, which a local worktree build may omit while a CI
 // clean-clone build includes — so it must be dropped, not just normalized.
 var provenanceDropKeys = map[string]bool{"commit": true}
 
 // provenanceValueKeys have a stable presence but a release/build-specific value
-// (the bd version number, git branch, and build tag from `bd version --json`).
+// (the issuegraph version number, git branch, and build tag from `issuegraph version --json`).
 // The corpus pins the SHAPE of the version command — that these fields exist and
 // schema_version is present — not the release identity, which changes every time
-// beads bumps its version. Their values are replaced with a placeholder so the
+// issuegraph bumps its version. Their values are replaced with a placeholder so the
 // corpus stays reproducible across versions; gc's actual version parsing/gating
-// is covered by the cross-version matrix and bd_version_pin_test, not here.
+// is covered by the cross-version matrix and issuegraph_version_pin_test, not here.
 var provenanceValueKeys = map[string]string{
 	"version": "<VERSION>",
 	"branch":  "<BRANCH>",
@@ -187,20 +187,20 @@ const revisionPlaceholder = "<REVISION>"
 
 // volatileValueKeys have a stable presence but a per-write-random value, so the
 // corpus pins that the field EXISTS (its wire shape) while replacing its value
-// with a placeholder — exactly as it does for timestamps. `bd show --json`
+// with a placeholder — exactly as it does for timestamps. `issuegraph show --json`
 // exposes the guarded-write revision (the row_lock optimistic-concurrency
 // token), which the engine rewrites to a fresh random value on every
 // lifecycle/ownership write; pinning its literal value would break both the
 // golden byte-comparison and the double-run determinism check. Same bare-key-
 // name scope caveat as the provenance transforms below: `revision` is currently
-// emitted only by `bd show --json`. If a future command ever emits a
+// emitted only by `issuegraph show --json`. If a future command ever emits a
 // deterministic field named `revision`, scope this to the show capture (thread
 // Capture.Name through generation) before relying on it.
 var volatileValueKeys = map[string]string{
 	"revision": revisionPlaceholder,
 }
 
-// CanonicalizeJSON normalizes a bd JSON blob so that two independent runs
+// CanonicalizeJSON normalizes a issuegraph JSON blob so that two independent runs
 // produce byte-identical output:
 //
 //  1. Any string value that is an RFC3339/RFC3339Nano timestamp is replaced
@@ -224,7 +224,7 @@ func CanonicalizeJSON(raw []byte) ([]byte, error) {
 	if err := dec.Decode(&v); err != nil {
 		return nil, fmt.Errorf("canonicalize: decode: %w", err)
 	}
-	// A corpus capture must be exactly one JSON document. bd could print a
+	// A corpus capture must be exactly one JSON document. issuegraph could print a
 	// warning line (or, on a bug, a second JSON value) after the payload; that
 	// trailing stdout would otherwise be silently dropped here and canonicalized
 	// as if the command emitted clean JSON, while a real consumer decoding the
@@ -264,7 +264,7 @@ func canonValue(v any) any {
 			// level only" because envelope mode nests these under "data".
 			//
 			// Drop build-provenance keys entirely so the canonical corpus does
-			// not depend on how (or where) bd was built.
+			// not depend on how (or where) issuegraph was built.
 			if provenanceDropKeys[k] {
 				delete(t, k)
 				continue
@@ -278,7 +278,7 @@ func canonValue(v any) any {
 				}
 			}
 			// Replace per-write-random token values (the guarded-write revision /
-			// row_lock) with a placeholder: pin that bd show exposes a revision
+			// row_lock) with a placeholder: pin that issuegraph show exposes a revision
 			// field, not its nondeterministic value. Unlike the provenance keys
 			// above this is unconditional — the value is replaced whatever its
 			// JSON type, so the placeholder held when the token was a number and
@@ -356,7 +356,7 @@ func marshalCanonical(v any) ([]byte, error) {
 	return buf.Bytes(), nil
 }
 
-// BlobMeta records a single corpus blob's provenance: the bd command that
+// BlobMeta records a single corpus blob's provenance: the issuegraph command that
 // produced it and the SHA-256 of its canonicalized bytes.
 type BlobMeta struct {
 	Cmd    string `json:"cmd"`
@@ -366,15 +366,15 @@ type BlobMeta struct {
 // Manifest is the corpus index. It pins the schema version (the coordination
 // canary), the generator identity, and a per-blob SHA-256 checksum so consumers
 // can detect tampering or partial vendoring. It deliberately does not
-// pin the live bd version/commit — see the field comment below for why the
+// pin the live issuegraph version/commit — see the field comment below for why the
 // corpus stays version-agnostic.
 type Manifest struct {
 	SchemaVersion int `json:"schema_version"`
-	// bd_version and bd_commit are intentionally omitted: both vary by build
+	// issuegraph_version and issuegraph_commit are intentionally omitted: both vary by build
 	// environment / release and would make the committed manifest
 	// non-reproducible. The corpus is version-agnostic (it pins wire SHAPES, not
 	// a release identity); schema_version is the coordination canary and the
-	// per-blob checksums are the integrity anchor. The generating bd version/
+	// per-blob checksums are the integrity anchor. The generating issuegraph version/
 	// commit lives in the PR that updates the corpus.
 	GeneratedBy   string              `json:"generated_by"`
 	Canonicalized bool                `json:"canonicalized"`
@@ -383,13 +383,13 @@ type Manifest struct {
 
 // NewManifest builds a Manifest from the captured (mode → name → bytes)
 // corpus. The blob key is "<mode>/<name>" (e.g. "flat/show",
-// "envelope/show") and cmd is the joined bd argument vector for that
+// "envelope/show") and cmd is the joined issuegraph argument vector for that
 // capture. bytes are the already-canonicalized blob contents; the SHA is
 // computed over them so the manifest validates exactly what's on disk.
 func NewManifest(schemaVersion int, generatedBy string, plan []Capture, blobs map[string]map[string][]byte) Manifest {
 	cmdByName := make(map[string]string, len(plan))
 	for _, c := range plan {
-		cmdByName[c.Name] = "bd " + joinArgs(c.Args)
+		cmdByName[c.Name] = "issuegraph " + joinArgs(c.Args)
 	}
 
 	out := make(map[string]BlobMeta)

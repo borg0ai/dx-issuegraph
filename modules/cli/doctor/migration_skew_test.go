@@ -26,7 +26,7 @@ func expectRemoteAndBranch(mock sqlmock.Sqlmock, branch string) {
 
 func expectRemoteMigrationShape(mock sqlmock.Sqlmock, ref string) {
 	mock.ExpectQuery(`SHOW TABLES AS OF '` + ref + `' LIKE 'schema_migrations'`).
-		WillReturnRows(sqlmock.NewRows([]string{"Tables_in_beads"}).AddRow("schema_migrations"))
+		WillReturnRows(sqlmock.NewRows([]string{"Tables_in_issuegraph"}).AddRow("schema_migrations"))
 	mock.ExpectQuery(`SHOW COLUMNS FROM schema_migrations AS OF '` + ref + `' LIKE 'content_hash'`).
 		WillReturnRows(sqlmock.NewRows([]string{"Field"}).AddRow("content_hash"))
 }
@@ -108,7 +108,7 @@ func TestCheckMigrationContentSkew_CachedRemotePredatesContentHashes(t *testing.
 	mock.ExpectQuery(`SELECT version, content_hash FROM schema_migrations$`).
 		WillReturnRows(sqlmock.NewRows([]string{"version", "content_hash"}).AddRow(1, "a"))
 	mock.ExpectQuery(`SHOW TABLES AS OF 'remotes/origin/main' LIKE 'schema_migrations'`).
-		WillReturnRows(sqlmock.NewRows([]string{"Tables_in_beads"}).AddRow("schema_migrations"))
+		WillReturnRows(sqlmock.NewRows([]string{"Tables_in_issuegraph"}).AddRow("schema_migrations"))
 	mock.ExpectQuery(`SHOW COLUMNS FROM schema_migrations AS OF 'remotes/origin/main' LIKE 'content_hash'`).
 		WillReturnRows(sqlmock.NewRows([]string{"Field"}))
 

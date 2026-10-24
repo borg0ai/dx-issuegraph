@@ -6,7 +6,7 @@
   ...
 }:
 buildGoModule {
-  pname = "beads";
+  pname = "issuegraph";
   version = "1.3.0";
 
   src = self;
@@ -35,10 +35,10 @@ buildGoModule {
   nativeBuildInputs = [ git ];
 
   meta = with lib; {
-    description = "beads (bd) - An issue tracker designed for AI-supervised coding workflows";
-    homepage = "https://github.com/gastownhall/beads";
+    description = "issuegraph (issuegraph) - An issue tracker designed for AI-supervised coding workflows";
+    homepage = "https://github.com/borg0ai/dx-issuegraph";
     license = licenses.mit;
-    mainProgram = "bd";
+    mainProgram = "issuegraph";
     maintainers = [ ];
   };
 }

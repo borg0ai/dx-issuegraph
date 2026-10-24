@@ -52,7 +52,7 @@ const (
 	doltNoDocker     doltReadiness = iota // Docker daemon not reachable
 	doltNoImage                           // no Dolt image at all
 	doltWrongVersion                      // image exists but wrong tag
-	doltSkipped                           // explicit opt-out via BEADS_TEST_SKIP
+	doltSkipped                           // explicit opt-out via ISSUEGRAPH_TEST_SKIP
 	doltReady                             // ready to start containers
 )
 
@@ -65,7 +65,7 @@ func (d doltReadiness) String() string {
 	case doltWrongVersion:
 		return fmt.Sprintf("Docker image %s cached but wrong version (run 'docker pull %s')", doltDockerRepo, DoltDockerImage)
 	case doltSkipped:
-		return "Dolt tests skipped (BEADS_TEST_SKIP=dolt)"
+		return "Dolt tests skipped (ISSUEGRAPH_TEST_SKIP=dolt)"
 	case doltReady:
 		return "Dolt ready"
 	default:
@@ -82,10 +82,10 @@ func isDockerAvailable() bool {
 	return dockerAvail
 }
 
-// hasTestSkip returns true if the given service appears in the BEADS_TEST_SKIP
-// env var (comma-separated list). Example: BEADS_TEST_SKIP=dolt,slow
+// hasTestSkip returns true if the given service appears in the ISSUEGRAPH_TEST_SKIP
+// env var (comma-separated list). Example: ISSUEGRAPH_TEST_SKIP=dolt,slow
 func hasTestSkip(service string) bool {
-	val := os.Getenv("BEADS_TEST_SKIP")
+	val := os.Getenv("ISSUEGRAPH_TEST_SKIP")
 	if val == "" {
 		return false
 	}
@@ -142,7 +142,7 @@ func startDoltContainer() error {
 	defer cancel()
 
 	ctr, err := dolt.Run(ctx, DoltDockerImage,
-		dolt.WithDatabase("beads_test"),
+		dolt.WithDatabase("issuegraph_test"),
 		// Docker port-forwarding makes connections appear as non-localhost
 		// (e.g., 172.17.0.1). The entrypoint defaults DOLT_ROOT_HOST to
 		// "localhost", so root@localhost won't match external connections.
@@ -285,8 +285,8 @@ func (c *IsolatedDoltContainer) Exec(ctx context.Context, cmd []string) (int, st
 // returns a handle to it. The container is terminated automatically when the
 // test finishes.
 //
-// Unlike StartIsolatedDoltContainer this does NOT touch BEADS_DOLT_PORT or
-// BEADS_DOLT_SERVER_PORT: those are process-wide, so a test that only wants
+// Unlike StartIsolatedDoltContainer this does NOT touch ISSUEGRAPH_DOLT_PORT or
+// ISSUEGRAPH_DOLT_SERVER_PORT: those are process-wide, so a test that only wants
 // its own server should not perturb sibling tests sharing the process.
 func StartIsolatedDoltContainerHandle(t *testing.T) *IsolatedDoltContainer {
 	t.Helper()
@@ -297,7 +297,7 @@ func StartIsolatedDoltContainerHandle(t *testing.T) *IsolatedDoltContainer {
 	ctx, cancel := context.WithTimeout(context.Background(), serverStartTimeout)
 	defer cancel()
 	ctr, err := dolt.Run(ctx, DoltDockerImage,
-		dolt.WithDatabase("beads_test"),
+		dolt.WithDatabase("issuegraph_test"),
 		testcontainers.WithEnv(map[string]string{"DOLT_ROOT_HOST": "%"}),
 	)
 	if err != nil {
@@ -318,26 +318,26 @@ func StartIsolatedDoltContainerHandle(t *testing.T) *IsolatedDoltContainer {
 }
 
 // StartIsolatedDoltContainer starts a per-test Dolt container and returns the
-// mapped host port, additionally pointing BEADS_DOLT_PORT and
-// BEADS_DOLT_SERVER_PORT at it for the duration of the test.
+// mapped host port, additionally pointing ISSUEGRAPH_DOLT_PORT and
+// ISSUEGRAPH_DOLT_SERVER_PORT at it for the duration of the test.
 func StartIsolatedDoltContainer(t *testing.T) string {
 	t.Helper()
 	c := StartIsolatedDoltContainerHandle(t)
-	t.Setenv("BEADS_DOLT_PORT", c.Port)
-	t.Setenv("BEADS_DOLT_SERVER_PORT", c.Port)
+	t.Setenv("ISSUEGRAPH_DOLT_PORT", c.Port)
+	t.Setenv("ISSUEGRAPH_DOLT_SERVER_PORT", c.Port)
 	return c.Port
 }
 
 // ensureSharedContainer starts the singleton container and sets
-// BEADS_DOLT_PORT and BEADS_DOLT_SERVER_PORT.
+// ISSUEGRAPH_DOLT_PORT and ISSUEGRAPH_DOLT_SERVER_PORT.
 func ensureSharedContainer() {
 	doltServerOnce.Do(func() {
 		doltServerErr = startDoltContainer()
 		if doltServerErr == nil && doltTestPort != "" {
-			if err := os.Setenv("BEADS_DOLT_PORT", doltTestPort); err != nil {
-				doltServerErr = fmt.Errorf("set BEADS_DOLT_PORT: %w", err)
-			} else if err := os.Setenv("BEADS_DOLT_SERVER_PORT", doltTestPort); err != nil {
-				doltServerErr = fmt.Errorf("set BEADS_DOLT_SERVER_PORT: %w", err)
+			if err := os.Setenv("ISSUEGRAPH_DOLT_PORT", doltTestPort); err != nil {
+				doltServerErr = fmt.Errorf("set ISSUEGRAPH_DOLT_PORT: %w", err)
+			} else if err := os.Setenv("ISSUEGRAPH_DOLT_SERVER_PORT", doltTestPort); err != nil {
+				doltServerErr = fmt.Errorf("set ISSUEGRAPH_DOLT_SERVER_PORT: %w", err)
 			}
 		}
 	})
@@ -345,7 +345,7 @@ func ensureSharedContainer() {
 
 // EnsureDoltContainerForTestMain starts a shared Dolt container for use in
 // TestMain functions. Call TerminateDoltContainer() after m.Run() to clean up.
-// Sets BEADS_DOLT_PORT and BEADS_DOLT_SERVER_PORT process-wide.
+// Sets ISSUEGRAPH_DOLT_PORT and ISSUEGRAPH_DOLT_SERVER_PORT process-wide.
 func EnsureDoltContainerForTestMain() error {
 	if state := checkDolt(); state != doltReady {
 		return fmt.Errorf("%s", state)

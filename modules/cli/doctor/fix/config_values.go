@@ -4,18 +4,18 @@ import (
 	"fmt"
 	"strings"
 
-	"github.com/steveyegge/beads/internal/configfile"
+	"github.com/borg0ai/dx-issuegraph/internal/configfile"
 )
 
 // ConfigValues fixes invalid configuration values in metadata.json.
 // Currently handles: database field pointing to SQLite name when backend is Dolt.
 func ConfigValues(path string) error {
-	beadsDir, err := resolvedWorkspaceBeadsDir(path)
+	issuegraphDir, err := resolvedWorkspaceIssueGraphDir(path)
 	if err != nil {
 		return err
 	}
 
-	cfg, err := configfile.Load(beadsDir)
+	cfg, err := configfile.Load(issuegraphDir)
 	if err != nil {
 		return fmt.Errorf("failed to load config: %w", err)
 	}
@@ -25,7 +25,7 @@ func ConfigValues(path string) error {
 
 	fixed := false
 
-	// Fix database field: when backend is Dolt, database should be "dolt" not "beads.db"
+	// Fix database field: when backend is Dolt, database should be "dolt" not "issuegraph.db"
 	if cfg.GetBackend() == configfile.BackendDolt {
 		if strings.HasSuffix(cfg.Database, ".db") || strings.HasSuffix(cfg.Database, ".sqlite") || strings.HasSuffix(cfg.Database, ".sqlite3") {
 			fmt.Printf("  Updating database: %q → %q (Dolt backend uses directory)\n", cfg.Database, "dolt")
@@ -39,7 +39,7 @@ func ConfigValues(path string) error {
 		return nil
 	}
 
-	if err := cfg.Save(beadsDir); err != nil {
+	if err := cfg.Save(issuegraphDir); err != nil {
 		return fmt.Errorf("failed to save config: %w", err)
 	}
 

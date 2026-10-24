@@ -2,14 +2,14 @@
 
 package main
 
-// Front-door lifecycle coverage for `bd dolt status` and `bd dolt start` on a
+// Front-door lifecycle coverage for `issuegraph dolt status` and `issuegraph dolt start` on a
 // MANAGED-LOCAL proxied workspace, plus the direct/embedded control that keeps
-// the proxied guard from leaking into topologies bd really does manage.
+// the proxied guard from leaking into topologies issuegraph really does manage.
 //
 // These live in the managed-local lane (TestManagedLocalProxied* runs under
 // proxied-local-smoke.yml) because they are the only lane with a real proxy
 // supervising a real dolt child: the defects being covered are about which
-// process record bd reads and which process bd spawns, and neither is
+// process record issuegraph reads and which process issuegraph spawns, and neither is
 // observable against an external testcontainer.
 
 import (
@@ -21,14 +21,14 @@ import (
 	"testing"
 	"time"
 
-	"github.com/steveyegge/beads/internal/doltserver"
-	"github.com/steveyegge/beads/internal/storage/dbproxy/proxy"
-	"github.com/steveyegge/beads/internal/storage/dbproxy/server"
+	"github.com/borg0ai/dx-issuegraph/internal/doltserver"
+	"github.com/borg0ai/dx-issuegraph/internal/storage/dbproxy/proxy"
+	"github.com/borg0ai/dx-issuegraph/internal/storage/dbproxy/server"
 )
 
-// classicServerArtifacts are the files bd writes when IT owns a dolt
+// classicServerArtifacts are the files issuegraph writes when IT owns a dolt
 // sql-server. On a proxied workspace their appearance is the signature of the
-// second-writer hazard: bd has spawned or adopted a server over the root the
+// second-writer hazard: issuegraph has spawned or adopted a server over the root the
 // proxy serves, and now holds lifecycle state for a process it does not own.
 var classicServerArtifacts = []string{
 	doltserver.PIDFileName,
@@ -37,13 +37,13 @@ var classicServerArtifacts = []string{
 }
 
 // stopStrayClassicServer tears down a classic sql-server if one was recorded
-// for beadsDir. It exists so that a RED run of these tests — where `bd dolt
+// for issuegraphDir. It exists so that a RED run of these tests — where `issuegraph dolt
 // start` still spawns its own server over the proxied root — cannot leak that
 // process past the test. Teardown goes through doltserver.Stop, which signals
-// only the PID bd itself recorded.
-func stopStrayClassicServer(t *testing.T, beadsDir string) {
+// only the PID issuegraph itself recorded.
+func stopStrayClassicServer(t *testing.T, issuegraphDir string) {
 	t.Helper()
-	serverDir := doltserver.ResolveServerDir(beadsDir)
+	serverDir := doltserver.ResolveServerDir(issuegraphDir)
 	if _, err := os.Stat(filepath.Join(serverDir, doltserver.PIDFileName)); err != nil {
 		return
 	}
@@ -53,36 +53,36 @@ func stopStrayClassicServer(t *testing.T, beadsDir string) {
 	}
 }
 
-func assertNoClassicServerArtifacts(t *testing.T, beadsDir, when string) {
+func assertNoClassicServerArtifacts(t *testing.T, issuegraphDir, when string) {
 	t.Helper()
 	for _, name := range classicServerArtifacts {
-		path := filepath.Join(beadsDir, name)
+		path := filepath.Join(issuegraphDir, name)
 		if _, err := os.Stat(path); err == nil {
 			body, _ := os.ReadFile(path) // #nosec G304 - test-owned temp path
-			t.Errorf("%s: %s exists on a proxied workspace (contents %q); bd took ownership of a server over the proxied root",
+			t.Errorf("%s: %s exists on a proxied workspace (contents %q); issuegraph took ownership of a server over the proxied root",
 				when, name, strings.TrimSpace(string(body)))
 		}
 	}
 }
 
 // TestManagedLocalProxiedDoltStatusReportsLiveTopology pins the truthfulness
-// half of the fix: with a proxy and its dolt child both live, `bd dolt status`
+// half of the fix: with a proxy and its dolt child both live, `issuegraph dolt status`
 // must report them. Before the fix it read the classic pidfile, which a
 // proxied workspace never writes, and answered "not running" — a confident
-// lie, and the reason an operator would reach for `bd dolt start` next.
+// lie, and the reason an operator would reach for `issuegraph dolt start` next.
 func TestManagedLocalProxiedDoltStatusReportsLiveTopology(t *testing.T) {
 	requireManagedLocalProxiedEnv(t)
-	bd := buildEmbeddedBD(t)
-	p := bdManagedLocalInit(t, bd, "mlstat", 5*time.Minute)
+	issuegraph := buildEmbeddedBD(t)
+	p := issuegraphManagedLocalInit(t, issuegraph, "mlstat", 5*time.Minute)
 	// Exercise the symlinked temporary paths used on macOS on every Unix host.
 	linkedWorkspace := filepath.Join(t.TempDir(), "linked-workspace")
 	if err := os.Symlink(p.dir, linkedWorkspace); err != nil {
 		t.Fatalf("symlink workspace directory: %v", err)
 	}
 	p.dir = linkedWorkspace
-	p.beadsDir = filepath.Join(p.dir, ".beads")
-	p.proxyRoot = filepath.Join(p.beadsDir, "dolt")
-	bdProxiedCreate(t, bd, p.dir, "status sentinel")
+	p.issuegraphDir = filepath.Join(p.dir, ".issuegraph")
+	p.proxyRoot = filepath.Join(p.issuegraphDir, "dolt")
+	issuegraphProxiedCreate(t, issuegraph, p.dir, "status sentinel")
 
 	proxyPid := readManagedProxyPidFile(t, p)
 	if proxyPid == nil || !processAlive(proxyPid.Pid) {
@@ -93,9 +93,9 @@ func TestManagedLocalProxiedDoltStatusReportsLiveTopology(t *testing.T) {
 		t.Fatalf("expected a live dolt backend after a create; pidfile=%+v", backendPid)
 	}
 
-	stdout, stderr, err := bdProxiedRunBuffersWithEnv(t, bd, p.dir, []string{"BEADS_JSON=1"}, "--json", "dolt", "status")
+	stdout, stderr, err := issuegraphProxiedRunBuffersWithEnv(t, issuegraph, p.dir, []string{"ISSUEGRAPH_JSON=1"}, "--json", "dolt", "status")
 	if err != nil {
-		t.Fatalf("bd dolt status failed: %v\nstdout:\n%s\nstderr:\n%s", err, stdout, stderr)
+		t.Fatalf("issuegraph dolt status failed: %v\nstdout:\n%s\nstderr:\n%s", err, stdout, stderr)
 	}
 	var got struct {
 		Mode           string `json:"mode"`
@@ -143,9 +143,9 @@ func TestManagedLocalProxiedDoltStatusReportsLiveTopology(t *testing.T) {
 		t.Errorf("root=%q, want %q", got.Root, p.proxyRoot)
 	}
 
-	textOut, textErr, err := bdProxiedRunBuffers(t, bd, p.dir, "dolt", "status")
+	textOut, textErr, err := issuegraphProxiedRunBuffers(t, issuegraph, p.dir, "dolt", "status")
 	if err != nil {
-		t.Fatalf("bd dolt status (text) failed: %v\nstdout:\n%s\nstderr:\n%s", err, textOut, textErr)
+		t.Fatalf("issuegraph dolt status (text) failed: %v\nstdout:\n%s\nstderr:\n%s", err, textOut, textErr)
 	}
 	if strings.Contains(textOut, "Dolt server: not running") {
 		t.Errorf("text status still claims the server is not running:\n%s", textOut)
@@ -160,19 +160,19 @@ func TestManagedLocalProxiedDoltStatusReportsLiveTopology(t *testing.T) {
 	if after := readManagedProxyPidFile(t, p); after == nil || after.Pid != proxyPid.Pid {
 		t.Errorf("proxy pidfile changed across a status read: before=%+v after=%+v", proxyPid, after)
 	}
-	assertNoClassicServerArtifacts(t, p.beadsDir, "after bd dolt status")
+	assertNoClassicServerArtifacts(t, p.issuegraphDir, "after issuegraph dolt status")
 }
 
 // TestManagedLocalProxiedDoltStartRefusesOverLiveProxy covers the hazard in
-// its live-topology shape: with the proxy up, `bd dolt start` used to adopt
-// the proxy's own dolt child into bd's classic server bookkeeping, leaving two
+// its live-topology shape: with the proxy up, `issuegraph dolt start` used to adopt
+// the proxy's own dolt child into issuegraph's classic server bookkeeping, leaving two
 // managers for one process.
 func TestManagedLocalProxiedDoltStartRefusesOverLiveProxy(t *testing.T) {
 	requireManagedLocalProxiedEnv(t)
-	bd := buildEmbeddedBD(t)
-	p := bdManagedLocalInit(t, bd, "mlstart", 5*time.Minute)
-	t.Cleanup(func() { stopStrayClassicServer(t, p.beadsDir) })
-	bdProxiedCreate(t, bd, p.dir, "start sentinel")
+	issuegraph := buildEmbeddedBD(t)
+	p := issuegraphManagedLocalInit(t, issuegraph, "mlstart", 5*time.Minute)
+	t.Cleanup(func() { stopStrayClassicServer(t, p.issuegraphDir) })
+	issuegraphProxiedCreate(t, issuegraph, p.dir, "start sentinel")
 
 	proxyBefore := readManagedProxyPidFile(t, p)
 	backendBefore := readManagedBackendPidFile(t, p)
@@ -180,12 +180,12 @@ func TestManagedLocalProxiedDoltStartRefusesOverLiveProxy(t *testing.T) {
 		t.Fatalf("expected a live proxy and backend; proxy=%+v backend=%+v", proxyBefore, backendBefore)
 	}
 
-	stdout, stderr, err := bdProxiedRunBuffersWithEnv(t, bd, p.dir, []string{"BEADS_JSON=1"}, "--json", "dolt", "start")
+	stdout, stderr, err := issuegraphProxiedRunBuffersWithEnv(t, issuegraph, p.dir, []string{"ISSUEGRAPH_JSON=1"}, "--json", "dolt", "start")
 	if err == nil {
-		t.Errorf("bd dolt start succeeded on a live proxied workspace:\nstdout:\n%s\nstderr:\n%s", stdout, stderr)
+		t.Errorf("issuegraph dolt start succeeded on a live proxied workspace:\nstdout:\n%s\nstderr:\n%s", stdout, stderr)
 	}
 	assertProxyStartRefusal(t, stdout, stderr)
-	assertNoClassicServerArtifacts(t, p.beadsDir, "after bd dolt start")
+	assertNoClassicServerArtifacts(t, p.issuegraphDir, "after issuegraph dolt start")
 
 	proxyAfter := readManagedProxyPidFile(t, p)
 	backendAfter := readManagedBackendPidFile(t, p)
@@ -200,33 +200,33 @@ func TestManagedLocalProxiedDoltStartRefusesOverLiveProxy(t *testing.T) {
 // TestManagedLocalProxiedDoltStartRefusesWithProxyDown covers the same hazard
 // in its damaging shape. A proxied workspace whose proxy has idled out still
 // has a proxied ROOT, and the classic start path resolves that root's port
-// from its config.yaml: `bd dolt start` used to launch a real, unmanaged dolt
-// sql-server directly over the proxy's data directory. The next ordinary bd
+// from its config.yaml: `issuegraph dolt start` used to launch a real, unmanaged dolt
+// sql-server directly over the proxy's data directory. The next ordinary issuegraph
 // command then failed, because the proxy came up and found a foreign server on
 // its port. The workspace staying usable afterwards is the assertion that
 // matters most here.
 func TestManagedLocalProxiedDoltStartRefusesWithProxyDown(t *testing.T) {
 	requireManagedLocalProxiedEnv(t)
-	bd := buildEmbeddedBD(t)
-	p := bdManagedLocalInit(t, bd, "mldown", 5*time.Minute)
-	t.Cleanup(func() { stopStrayClassicServer(t, p.beadsDir) })
-	bdProxiedCreate(t, bd, p.dir, "down sentinel")
+	issuegraph := buildEmbeddedBD(t)
+	p := issuegraphManagedLocalInit(t, issuegraph, "mldown", 5*time.Minute)
+	t.Cleanup(func() { stopStrayClassicServer(t, p.issuegraphDir) })
+	issuegraphProxiedCreate(t, issuegraph, p.dir, "down sentinel")
 
 	if err := proxy.Shutdown(p.proxyRoot); err != nil {
 		t.Fatalf("proxy.Shutdown(%s): %v", p.proxyRoot, err)
 	}
 
-	stdout, stderr, err := bdProxiedRunBuffersWithEnv(t, bd, p.dir, []string{"BEADS_JSON=1"}, "--json", "dolt", "start")
+	stdout, stderr, err := issuegraphProxiedRunBuffersWithEnv(t, issuegraph, p.dir, []string{"ISSUEGRAPH_JSON=1"}, "--json", "dolt", "start")
 	if err == nil {
-		t.Errorf("bd dolt start succeeded against a quiesced proxied root:\nstdout:\n%s\nstderr:\n%s", stdout, stderr)
+		t.Errorf("issuegraph dolt start succeeded against a quiesced proxied root:\nstdout:\n%s\nstderr:\n%s", stdout, stderr)
 	}
 	assertProxyStartRefusal(t, stdout, stderr)
-	assertNoClassicServerArtifacts(t, p.beadsDir, "after bd dolt start with the proxy down")
+	assertNoClassicServerArtifacts(t, p.issuegraphDir, "after issuegraph dolt start with the proxy down")
 
 	// The workspace must still work. Pre-fix this create failed with
 	// "invalid connection": the proxy relaunched and adopted the foreign
-	// server `bd dolt start` had left on its port.
-	out, createErr := bdProxiedRun(t, bd, p.dir, "create", "--json", "post-refusal write")
+	// server `issuegraph dolt start` had left on its port.
+	out, createErr := issuegraphProxiedRun(t, issuegraph, p.dir, "create", "--json", "post-refusal write")
 	if createErr != nil {
 		t.Fatalf("workspace unusable after a refused dolt start: %v\n%s", createErr, out)
 	}
@@ -262,24 +262,24 @@ func assertProxyStartRefusal(t *testing.T, stdout, stderr string) {
 // dolt CLI the direct case needs.
 func TestManagedLocalProxiedDoltLifecycleLeavesOtherTopologiesAlone(t *testing.T) {
 	requireManagedLocalProxiedEnv(t)
-	bd := buildEmbeddedBD(t)
+	issuegraph := buildEmbeddedBD(t)
 
 	t.Run("embedded", func(t *testing.T) {
-		dir, _, _ := bdInit(t, bd)
+		dir, _, _ := issuegraphInit(t, issuegraph)
 
-		statusOut, statusErr, err := runDirectBD(t, bd, dir, false, "dolt", "status")
+		statusOut, statusErr, err := runDirectBD(t, issuegraph, dir, false, "dolt", "status")
 		if err != nil {
-			t.Fatalf("bd dolt status failed on embedded: %v\nstdout:\n%s\nstderr:\n%s", err, statusOut, statusErr)
+			t.Fatalf("issuegraph dolt status failed on embedded: %v\nstdout:\n%s\nstderr:\n%s", err, statusOut, statusErr)
 		}
 		if !strings.Contains(statusOut, "Dolt engine: embedded (in-process, no server)") {
 			t.Errorf("embedded status changed:\n%s", statusOut)
 		}
 
-		startOut, startErr, err := runDirectBD(t, bd, dir, false, "dolt", "start")
+		startOut, startErr, err := runDirectBD(t, issuegraph, dir, false, "dolt", "start")
 		if err == nil {
-			t.Fatalf("bd dolt start unexpectedly succeeded on embedded:\n%s", startOut)
+			t.Fatalf("issuegraph dolt start unexpectedly succeeded on embedded:\n%s", startOut)
 		}
-		if !strings.Contains(startErr, "'bd dolt start' is not supported in embedded mode (no Dolt server)") {
+		if !strings.Contains(startErr, "'issuegraph dolt start' is not supported in embedded mode (no Dolt server)") {
 			t.Errorf("embedded start refusal changed:\nstdout:\n%s\nstderr:\n%s", startOut, startErr)
 		}
 	})
@@ -287,31 +287,31 @@ func TestManagedLocalProxiedDoltLifecycleLeavesOtherTopologiesAlone(t *testing.T
 	t.Run("direct-local-server", func(t *testing.T) {
 		dir := t.TempDir()
 		initGitRepoAt(t, dir)
-		if out, errOut, err := runDirectBD(t, bd, dir, true, "init", "--quiet", "--server", "--prefix", "dls"); err != nil {
-			t.Fatalf("bd init --server failed: %v\nstdout:\n%s\nstderr:\n%s", err, out, errOut)
+		if out, errOut, err := runDirectBD(t, issuegraph, dir, true, "init", "--quiet", "--server", "--prefix", "dls"); err != nil {
+			t.Fatalf("issuegraph init --server failed: %v\nstdout:\n%s\nstderr:\n%s", err, out, errOut)
 		}
-		beadsDir := filepath.Join(dir, ".beads")
-		t.Cleanup(func() { stopStrayClassicServer(t, beadsDir) })
+		issuegraphDir := filepath.Join(dir, ".issuegraph")
+		t.Cleanup(func() { stopStrayClassicServer(t, issuegraphDir) })
 
-		startOut, startErr, err := runDirectBD(t, bd, dir, true, "dolt", "start")
+		startOut, startErr, err := runDirectBD(t, issuegraph, dir, true, "dolt", "start")
 		if err != nil {
-			t.Fatalf("bd dolt start failed on a direct local server: %v\nstdout:\n%s\nstderr:\n%s", err, startOut, startErr)
+			t.Fatalf("issuegraph dolt start failed on a direct local server: %v\nstdout:\n%s\nstderr:\n%s", err, startOut, startErr)
 		}
 		if !strings.Contains(startOut, "Dolt server started (PID ") {
 			t.Fatalf("direct start output changed:\n%s", startOut)
 		}
 
-		statusOut, statusErr, err := runDirectBD(t, bd, dir, true, "dolt", "status")
+		statusOut, statusErr, err := runDirectBD(t, issuegraph, dir, true, "dolt", "status")
 		if err != nil {
-			t.Fatalf("bd dolt status failed on a direct local server: %v\nstdout:\n%s\nstderr:\n%s", err, statusOut, statusErr)
+			t.Fatalf("issuegraph dolt status failed on a direct local server: %v\nstdout:\n%s\nstderr:\n%s", err, statusOut, statusErr)
 		}
 		if !strings.Contains(statusOut, "Dolt server: running") {
-			t.Errorf("direct status did not report the server bd just started:\n%s", statusOut)
+			t.Errorf("direct status did not report the server issuegraph just started:\n%s", statusOut)
 		}
 
-		stopOut, stopErr, err := runDirectBD(t, bd, dir, true, "dolt", "stop")
+		stopOut, stopErr, err := runDirectBD(t, issuegraph, dir, true, "dolt", "stop")
 		if err != nil {
-			t.Fatalf("bd dolt stop failed on a direct local server: %v\nstdout:\n%s\nstderr:\n%s", err, stopOut, stopErr)
+			t.Fatalf("issuegraph dolt stop failed on a direct local server: %v\nstdout:\n%s\nstderr:\n%s", err, stopOut, stopErr)
 		}
 		if !strings.Contains(stopOut, "Dolt server stopped.") {
 			t.Errorf("direct stop output changed:\n%s", stopOut)
@@ -319,17 +319,17 @@ func TestManagedLocalProxiedDoltLifecycleLeavesOtherTopologiesAlone(t *testing.T
 	})
 }
 
-// runDirectBD runs bd against a NON-proxied workspace. autoStart controls
-// BEADS_DOLT_AUTO_START: the direct-server case needs it on, because
-// bd dolt status routes a local server with auto-start disabled to the
+// runDirectBD runs issuegraph against a NON-proxied workspace. autoStart controls
+// ISSUEGRAPH_DOLT_AUTO_START: the direct-server case needs it on, because
+// issuegraph dolt status routes a local server with auto-start disabled to the
 // external SQL-probe path instead of the pidfile path under test.
-func runDirectBD(t *testing.T, bd, dir string, autoStart bool, args ...string) (string, string, error) {
+func runDirectBD(t *testing.T, issuegraph, dir string, autoStart bool, args ...string) (string, string, error) {
 	t.Helper()
-	env := bdEnv(dir)
+	env := issuegraphEnv(dir)
 	if autoStart {
-		env = append(envWithout(env, "BEADS_DOLT_AUTO_START"), "BEADS_DOLT_AUTO_START=1")
+		env = append(envWithout(env, "ISSUEGRAPH_DOLT_AUTO_START"), "ISSUEGRAPH_DOLT_AUTO_START=1")
 	}
-	cmd := exec.Command(bd, args...)
+	cmd := exec.Command(issuegraph, args...)
 	cmd.Dir = dir
 	cmd.Env = env
 	stdout, stderr, err := runCommandBuffers(t, cmd)

@@ -11,18 +11,18 @@ func TestAiderConfigTemplate(t *testing.T) {
 	if !strings.Contains(aiderConfigTemplate, "read:") {
 		t.Error("aiderConfigTemplate missing 'read:' directive")
 	}
-	if !strings.Contains(aiderConfigTemplate, ".aider/BEADS.md") {
-		t.Error("aiderConfigTemplate missing reference to BEADS.md")
+	if !strings.Contains(aiderConfigTemplate, ".aider/ISSUEGRAPH.md") {
+		t.Error("aiderConfigTemplate missing reference to ISSUEGRAPH.md")
 	}
 }
 
-func TestAiderBeadsInstructions(t *testing.T) {
+func TestAiderIssueGraphInstructions(t *testing.T) {
 	requiredContent := []string{
-		"bd ready",
-		"bd create",
-		"bd update",
-		"bd close",
-		"bd dolt push",
+		"issuegraph ready",
+		"issuegraph create",
+		"issuegraph update",
+		"issuegraph close",
+		"issuegraph dolt push",
 		"/run",
 		"bug",
 		"feature",
@@ -31,20 +31,20 @@ func TestAiderBeadsInstructions(t *testing.T) {
 	}
 
 	for _, req := range requiredContent {
-		if !strings.Contains(aiderBeadsInstructions, req) {
-			t.Errorf("aiderBeadsInstructions missing required content: %q", req)
+		if !strings.Contains(aiderIssueGraphInstructions, req) {
+			t.Errorf("aiderIssueGraphInstructions missing required content: %q", req)
 		}
 	}
 }
 
 func TestAiderReadmeTemplate(t *testing.T) {
 	requiredContent := []string{
-		"Aider + Beads Integration",
+		"Aider + IssueGraph Integration",
 		"/run",
-		"bd ready",
-		"bd create",
-		"bd close",
-		"bd dolt push",
+		"issuegraph ready",
+		"issuegraph create",
+		"issuegraph close",
+		"issuegraph dolt push",
 	}
 
 	for _, req := range requiredContent {
@@ -78,7 +78,7 @@ func TestInstallAider(t *testing.T) {
 		content string
 	}{
 		{".aider.conf.yml", aiderConfigTemplate},
-		{".aider/BEADS.md", aiderBeadsInstructions},
+		{".aider/ISSUEGRAPH.md", aiderIssueGraphInstructions},
 		{".aider/README.md", aiderReadmeTemplate},
 	}
 
@@ -125,8 +125,8 @@ func TestInstallAider_ExistingDirectory(t *testing.T) {
 	InstallAider()
 
 	// Verify files were created
-	if !FileExists(".aider/BEADS.md") {
-		t.Error("BEADS.md not created")
+	if !FileExists(".aider/ISSUEGRAPH.md") {
+		t.Error("ISSUEGRAPH.md not created")
 	}
 }
 
@@ -178,7 +178,7 @@ func TestRemoveAider(t *testing.T) {
 	InstallAider()
 
 	// Verify files exist
-	files := []string{".aider.conf.yml", ".aider/BEADS.md", ".aider/README.md"}
+	files := []string{".aider.conf.yml", ".aider/ISSUEGRAPH.md", ".aider/README.md"}
 	for _, f := range files {
 		if !FileExists(f) {
 			t.Fatalf("File should exist before removal: %s", f)
@@ -360,14 +360,14 @@ func TestCheckAider_Installed(t *testing.T) {
 
 func TestAiderInstructionsWorkflowPattern(t *testing.T) {
 	// Verify instructions contain the workflow pattern Aider users need
-	instructions := aiderBeadsInstructions
+	instructions := aiderIssueGraphInstructions
 
 	// Should mention the /run command pattern
-	if !strings.Contains(instructions, "/run bd ready") {
-		t.Error("Should mention /run bd ready")
+	if !strings.Contains(instructions, "/run issuegraph ready") {
+		t.Error("Should mention /run issuegraph ready")
 	}
-	if !strings.Contains(instructions, "/run bd dolt push") {
-		t.Error("Should mention /run bd dolt push")
+	if !strings.Contains(instructions, "/run issuegraph dolt push") {
+		t.Error("Should mention /run issuegraph dolt push")
 	}
 
 	// Should explain that Aider requires explicit commands
@@ -411,7 +411,7 @@ func TestAiderFilePaths(t *testing.T) {
 	// Check expected file paths
 	expectedPaths := []string{
 		".aider.conf.yml",
-		".aider/BEADS.md",
+		".aider/ISSUEGRAPH.md",
 		".aider/README.md",
 	}
 

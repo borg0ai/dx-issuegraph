@@ -1,21 +1,21 @@
 ---
-title: "bd completion"
-description: "Generate the autocompletion script for bd for the specified shell."
+title: "issuegraph completion"
+description: "Generate the autocompletion script for issuegraph for the specified shell."
 ---
 
 {/* AUTO-GENERATED: do not edit manually */}
 
-Generated from `bd help --doc completion`.
+Generated from `issuegraph help --doc completion`.
 
-Generate the autocompletion script for bd for the specified shell.
+Generate the autocompletion script for issuegraph for the specified shell.
 See each sub-command's help for details on how to use the generated script.
 
 
 ```
-bd completion [flags]
+issuegraph completion [flags]
 ```
 
-## bd completion bash
+## issuegraph completion bash
 
 Generate the autocompletion script for the bash shell.
 
@@ -24,23 +24,23 @@ If it is not installed already, you can install it via your OS's package manager
 
 To load completions in your current shell session:
 
-	source &lt;(bd completion bash)
+	source &lt;(issuegraph completion bash)
 
 To load completions for every new session, execute once:
 
 ### Linux:
 
-	bd completion bash &gt; /etc/bash_completion.d/bd
+	issuegraph completion bash &gt; /etc/bash_completion.d/issuegraph
 
 ### macOS:
 
-	bd completion bash &gt; $(brew --prefix)/etc/bash_completion.d/bd
+	issuegraph completion bash &gt; $(brew --prefix)/etc/bash_completion.d/issuegraph
 
 You will need to start a new shell for this setup to take effect.
 
 
 ```
-bd completion bash
+issuegraph completion bash
 ```
 
 **Flags:**
@@ -49,23 +49,23 @@ bd completion bash
       --no-descriptions   disable completion descriptions
 ```
 
-## bd completion fish
+## issuegraph completion fish
 
 Generate the autocompletion script for the fish shell.
 
 To load completions in your current shell session:
 
-	bd completion fish | source
+	issuegraph completion fish | source
 
 To load completions for every new session, execute once:
 
-	bd completion fish &gt; ~/.config/fish/completions/bd.fish
+	issuegraph completion fish &gt; ~/.config/fish/completions/issuegraph.fish
 
 You will need to start a new shell for this setup to take effect.
 
 
 ```
-bd completion fish [flags]
+issuegraph completion fish [flags]
 ```
 
 **Flags:**
@@ -74,20 +74,20 @@ bd completion fish [flags]
       --no-descriptions   disable completion descriptions
 ```
 
-## bd completion powershell
+## issuegraph completion powershell
 
 Generate the autocompletion script for powershell.
 
 To load completions in your current shell session:
 
-	bd completion powershell | Out-String | Invoke-Expression
+	issuegraph completion powershell | Out-String | Invoke-Expression
 
 To load completions for every new session, add the output of the above command
 to your powershell profile.
 
 
 ```
-bd completion powershell [flags]
+issuegraph completion powershell [flags]
 ```
 
 **Flags:**
@@ -96,7 +96,7 @@ bd completion powershell [flags]
       --no-descriptions   disable completion descriptions
 ```
 
-## bd completion zsh
+## issuegraph completion zsh
 
 Generate the autocompletion script for the zsh shell.
 
@@ -107,23 +107,23 @@ to enable it.  You can execute the following once:
 
 To load completions in your current shell session:
 
-	source &lt;(bd completion zsh)
+	source &lt;(issuegraph completion zsh)
 
 To load completions for every new session, execute once:
 
 ### Linux:
 
-	bd completion zsh &gt; "$&#123;fpath[1]&#125;/_bd"
+	issuegraph completion zsh &gt; "$&#123;fpath[1]&#125;/_bd"
 
 ### macOS:
 
-	bd completion zsh &gt; $(brew --prefix)/share/zsh/site-functions/_bd
+	issuegraph completion zsh &gt; $(brew --prefix)/share/zsh/site-functions/_bd
 
 You will need to start a new shell for this setup to take effect.
 
 
 ```
-bd completion zsh [flags]
+issuegraph completion zsh [flags]
 ```
 
 **Flags:**

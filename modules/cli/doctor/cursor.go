@@ -8,21 +8,21 @@ import (
 	"path/filepath"
 	"strings"
 
-	"github.com/steveyegge/beads/modules/cli/setup"
+	"github.com/borg0ai/dx-issuegraph/modules/cli/setup"
 )
 
-// CheckCursor reports whether beads-managed Cursor agent hooks are installed.
+// CheckCursor reports whether issuegraph-managed Cursor agent hooks are installed.
 // It mirrors CheckClaude: Go observes and reports; the agent/user decides. The
-// hooks (sessionStart/preCompact/postToolUse calling `bd cursor-hook`) are what
-// keep beads context alive across compaction in Cursor.
+// hooks (sessionStart/preCompact/postToolUse calling `issuegraph cursor-hook`) are what
+// keep issuegraph context alive across compaction in Cursor.
 // repoPath is the project root directory.
 func CheckCursor(repoPath string) DoctorCheck {
 	projectHooks := filepath.Join(repoPath, ".cursor", "hooks.json")
-	hasProject := hasBeadsCursorHooks(projectHooks)
+	hasProject := hasIssueGraphCursorHooks(projectHooks)
 
 	hasGlobal := false
 	if home, err := os.UserHomeDir(); err == nil {
-		hasGlobal = hasBeadsCursorHooks(filepath.Join(home, ".cursor", "hooks.json"))
+		hasGlobal = hasIssueGraphCursorHooks(filepath.Join(home, ".cursor", "hooks.json"))
 	}
 
 	if hasProject || hasGlobal {
@@ -34,7 +34,7 @@ func CheckCursor(repoPath string) DoctorCheck {
 			Name:    "Cursor Integration",
 			Status:  StatusOK,
 			Message: "Hooks installed",
-			Detail:  "bd prime auto-injected on sessionStart and recovered after compaction (" + loc + ")",
+			Detail:  "issuegraph prime auto-injected on sessionStart and recovered after compaction (" + loc + ")",
 		}
 	}
 
@@ -53,24 +53,24 @@ func CheckCursor(repoPath string) DoctorCheck {
 		Status:  StatusWarning,
 		Message: "Hooks not installed",
 		Detail: "Cursor will only see the static rule (if any) and won't auto-recover\n" +
-			"  beads context after a context compaction.",
-		Fix: "Run 'bd setup cursor' to install sessionStart/preCompact/postToolUse hooks\n" +
-			"  (or 'bd setup cursor --global' for ~/.cursor/hooks.json across all projects).",
+			"  issuegraph context after a context compaction.",
+		Fix: "Run 'issuegraph setup cursor' to install sessionStart/preCompact/postToolUse hooks\n" +
+			"  (or 'issuegraph setup cursor --global' for ~/.cursor/hooks.json across all projects).",
 	}
 }
 
-// hasBeadsCursorHooks reports whether a hooks.json contains a bd-managed hook
-// (a command starting with "bd cursor-hook") for any managed event.
-func hasBeadsCursorHooks(path string) bool {
-	return len(cursorBeadsHookEvents(path)) > 0
+// hasIssueGraphCursorHooks reports whether a hooks.json contains a bd-managed hook
+// (a command starting with "issuegraph cursor-hook") for any managed event.
+func hasIssueGraphCursorHooks(path string) bool {
+	return len(cursorIssueGraphHookEvents(path)) > 0
 }
 
-// cursorBeadsHookEvents returns the managed events in a hooks.json that have a
-// bd-managed hook (a "bd cursor-hook " command). It returns nil if the file is
+// cursorIssueGraphHookEvents returns the managed events in a hooks.json that have a
+// bd-managed hook (a "issuegraph cursor-hook " command). It returns nil if the file is
 // absent or malformed (see CheckCursorSettingsHealth for that case). Detection
 // delegates to the setup package so the installer and doctor agree on which
-// events bd manages and what a bd-managed entry looks like.
-func cursorBeadsHookEvents(path string) []string {
+// events issuegraph manages and what a bd-managed entry looks like.
+func cursorIssueGraphHookEvents(path string) []string {
 	data, err := os.ReadFile(path) // #nosec G304 -- path is constructed from known safe locations (repo root / home .cursor), not user input
 	if err != nil {
 		return nil
@@ -135,7 +135,7 @@ func CheckCursorSettingsHealth(repoPath string) DoctorCheck {
 }
 
 // CheckCursorHookCompleteness verifies that when bd-managed Cursor hooks are
-// installed, all three lifecycle events are present. bd's compaction recovery
+// installed, all three lifecycle events are present. issuegraph's compaction recovery
 // needs sessionStart (prime on start/after compaction), preCompact (arm
 // recovery), and postToolUse (re-inject after compaction); a partial install
 // (e.g. a hand-edited hooks.json) silently degrades recovery. Mirrors
@@ -148,7 +148,7 @@ func CheckCursorHookCompleteness(repoPath string) DoctorCheck {
 
 	present := map[string]bool{}
 	for _, p := range paths {
-		for _, ev := range cursorBeadsHookEvents(p) {
+		for _, ev := range cursorIssueGraphHookEvents(p) {
 			present[ev] = true
 		}
 	}
@@ -178,8 +178,8 @@ func CheckCursorHookCompleteness(repoPath string) DoctorCheck {
 		Name:    "Cursor Hook Completeness",
 		Status:  StatusWarning,
 		Message: "Missing hook event(s): " + strings.Join(missing, ", "),
-		Detail:  "sessionStart primes context; preCompact + postToolUse recover beads context after a compaction.",
-		Fix:     "Run 'bd setup cursor' to reinstall the full hook set.",
+		Detail:  "sessionStart primes context; preCompact + postToolUse recover issuegraph context after a compaction.",
+		Fix:     "Run 'issuegraph setup cursor' to reinstall the full hook set.",
 	}
 }
 

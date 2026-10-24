@@ -5,8 +5,8 @@ import (
 	"fmt"
 	"strings"
 
-	"github.com/steveyegge/beads/modules/cli/doctor/fix"
-	"github.com/steveyegge/beads/internal/storage/dolt"
+	"github.com/borg0ai/dx-issuegraph/internal/storage/dolt"
+	"github.com/borg0ai/dx-issuegraph/modules/cli/doctor/fix"
 )
 
 // maxLabelExamples caps how many damaged labels the detail line names, so a
@@ -17,9 +17,9 @@ const maxLabelExamples = 5
 // (#5812): labels with leading/trailing whitespace, blank labels, and labels
 // containing a space.
 //
-// bd normalizes labels on every filter path but historically did not on any
+// issuegraph normalizes labels on every filter path but historically did not on any
 // write path, so `--labels 'a, b'` stored " b" — a label that can never match
-// its own filter. Databases written by an older bd still carry that damage
+// its own filter. Databases written by an older issuegraph still carry that damage
 // after the write paths are fixed, and nothing surfaces it: a filtered list
 // that is silently short is indistinguishable from a complete one.
 func CheckLabelWhitespaceWithStore(ss *SharedStore) DoctorCheck {
@@ -85,13 +85,13 @@ func checkLabelWhitespaceWithStore(store *dolt.DoltStore) DoctorCheck {
 
 	// Deliberately not auto-fixable. Trimming a damaged label can collide with a
 	// correct label already on the same issue, and a label containing a space may
-	// have been meant — bd cannot tell "good first issue" from a missed comma.
+	// have been meant — issuegraph cannot tell "good first issue" from a missed comma.
 	// Both need a human.
 	return DoctorCheck{
 		Name:    "Label Whitespace",
 		Status:  StatusWarning,
 		Message: fmt.Sprintf("%s — these may not match the filters meant to find them", strings.Join(parts, ", ")),
 		Detail:  detail,
-		Fix:     "Repair with: bd update <id> --remove-label '<damaged>' --add-label <replacement>. A label containing a space is often a missed comma; bd now warns when one is written.",
+		Fix:     "Repair with: issuegraph update <id> --remove-label '<damaged>' --add-label <replacement>. A label containing a space is often a missed comma; issuegraph now warns when one is written.",
 	}
 }

@@ -7,38 +7,38 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/steveyegge/beads/internal/utils"
+	"github.com/borg0ai/dx-issuegraph/internal/utils"
 )
 
-func TestResolveBeadsDirForRepo_BareParentWorktreeFallback(t *testing.T) {
-	clearResolveBeadsDirCache()
-	t.Cleanup(clearResolveBeadsDirCache)
+func TestResolveIssueGraphDirForRepo_BareParentWorktreeFallback(t *testing.T) {
+	clearResolveIssueGraphDirCache()
+	t.Cleanup(clearResolveIssueGraphDirCache)
 
 	bareDir, featureWorktreeDir := setupBareParentWorktreeForDoctorTest(t)
-	bareBeadsDir := filepath.Join(bareDir, ".beads")
-	if err := os.MkdirAll(bareBeadsDir, 0o750); err != nil {
+	bareIssueGraphDir := filepath.Join(bareDir, ".issuegraph")
+	if err := os.MkdirAll(bareIssueGraphDir, 0o750); err != nil {
 		t.Fatal(err)
 	}
 
-	resolved := ResolveBeadsDirForRepo(featureWorktreeDir)
-	if resolved != utils.CanonicalizePath(bareBeadsDir) {
-		t.Fatalf("ResolveBeadsDirForRepo() = %q, want %q", resolved, utils.CanonicalizePath(bareBeadsDir))
+	resolved := ResolveIssueGraphDirForRepo(featureWorktreeDir)
+	if resolved != utils.CanonicalizePath(bareIssueGraphDir) {
+		t.Fatalf("ResolveIssueGraphDirForRepo() = %q, want %q", resolved, utils.CanonicalizePath(bareIssueGraphDir))
 	}
 }
 
-func TestResolveBeadsDirForRepo_CachesFallbackResult(t *testing.T) {
-	clearResolveBeadsDirCache()
-	t.Cleanup(clearResolveBeadsDirCache)
+func TestResolveIssueGraphDirForRepo_CachesFallbackResult(t *testing.T) {
+	clearResolveIssueGraphDirCache()
+	t.Cleanup(clearResolveIssueGraphDirCache)
 
 	tmpDir := t.TempDir()
 	repoPath := filepath.Join(tmpDir, "feature")
 	bareDir := filepath.Join(tmpDir, "repo.git")
-	bareBeadsDir := filepath.Join(bareDir, ".beads")
+	bareIssueGraphDir := filepath.Join(bareDir, ".issuegraph")
 	gitBinDir := filepath.Join(tmpDir, "bin")
 	gitLogPath := filepath.Join(tmpDir, "git.log")
 	gitScriptPath := filepath.Join(gitBinDir, "git")
 
-	for _, dir := range []string{repoPath, bareBeadsDir, gitBinDir} {
+	for _, dir := range []string{repoPath, bareIssueGraphDir, gitBinDir} {
 		if err := os.MkdirAll(dir, 0o750); err != nil {
 			t.Fatal(err)
 		}
@@ -59,18 +59,18 @@ func TestResolveBeadsDirForRepo_CachesFallbackResult(t *testing.T) {
 	t.Setenv("FAKE_GIT_DIR", filepath.Join(bareDir, "worktrees", "feature"))
 	t.Setenv("FAKE_GIT_COMMON_DIR", bareDir)
 
-	first := ResolveBeadsDirForRepo(repoPath)
-	if first != utils.CanonicalizePath(bareBeadsDir) {
-		t.Fatalf("first ResolveBeadsDirForRepo() = %q, want %q", first, utils.CanonicalizePath(bareBeadsDir))
+	first := ResolveIssueGraphDirForRepo(repoPath)
+	if first != utils.CanonicalizePath(bareIssueGraphDir) {
+		t.Fatalf("first ResolveIssueGraphDirForRepo() = %q, want %q", first, utils.CanonicalizePath(bareIssueGraphDir))
 	}
 
 	if err := os.Remove(gitScriptPath); err != nil {
 		t.Fatal(err)
 	}
 
-	second := ResolveBeadsDirForRepo(repoPath)
+	second := ResolveIssueGraphDirForRepo(repoPath)
 	if second != first {
-		t.Fatalf("second ResolveBeadsDirForRepo() = %q, want cached %q", second, first)
+		t.Fatalf("second ResolveIssueGraphDirForRepo() = %q, want cached %q", second, first)
 	}
 
 	logData, err := os.ReadFile(gitLogPath)
@@ -83,15 +83,15 @@ func TestResolveBeadsDirForRepo_CachesFallbackResult(t *testing.T) {
 }
 
 func TestCheckMetadataVersionTracking_BareParentWorktreeFallback(t *testing.T) {
-	clearResolveBeadsDirCache()
-	t.Cleanup(clearResolveBeadsDirCache)
+	clearResolveIssueGraphDirCache()
+	t.Cleanup(clearResolveIssueGraphDirCache)
 
 	bareDir, featureWorktreeDir := setupBareParentWorktreeForDoctorTest(t)
-	bareBeadsDir := filepath.Join(bareDir, ".beads")
-	if err := os.MkdirAll(bareBeadsDir, 0o750); err != nil {
+	bareIssueGraphDir := filepath.Join(bareDir, ".issuegraph")
+	if err := os.MkdirAll(bareIssueGraphDir, 0o750); err != nil {
 		t.Fatal(err)
 	}
-	if err := os.WriteFile(filepath.Join(bareBeadsDir, ".local_version"), []byte("0.60.0\n"), 0o600); err != nil {
+	if err := os.WriteFile(filepath.Join(bareIssueGraphDir, ".local_version"), []byte("0.60.0\n"), 0o600); err != nil {
 		t.Fatal(err)
 	}
 
@@ -102,22 +102,22 @@ func TestCheckMetadataVersionTracking_BareParentWorktreeFallback(t *testing.T) {
 }
 
 func TestCheckDoltLocks_BareParentWorktreeFallback(t *testing.T) {
-	clearResolveBeadsDirCache()
-	t.Cleanup(clearResolveBeadsDirCache)
+	clearResolveIssueGraphDirCache()
+	t.Cleanup(clearResolveIssueGraphDirCache)
 
 	bareDir, featureWorktreeDir := setupBareParentWorktreeForDoctorTest(t)
-	bareBeadsDir := filepath.Join(bareDir, ".beads")
-	if err := os.MkdirAll(bareBeadsDir, 0o750); err != nil {
+	bareIssueGraphDir := filepath.Join(bareDir, ".issuegraph")
+	if err := os.MkdirAll(bareIssueGraphDir, 0o750); err != nil {
 		t.Fatal(err)
 	}
-	if err := os.WriteFile(filepath.Join(bareBeadsDir, "metadata.json"), []byte(`{"backend":"dolt"}`), 0o600); err != nil {
+	if err := os.WriteFile(filepath.Join(bareIssueGraphDir, "metadata.json"), []byte(`{"backend":"dolt"}`), 0o600); err != nil {
 		t.Fatal(err)
 	}
 
-	t.Setenv("BEADS_DOLT_SERVER_PORT", "59999")
+	t.Setenv("ISSUEGRAPH_DOLT_SERVER_PORT", "59999")
 	check := CheckDoltLocks(featureWorktreeDir)
 	if check.Message == "N/A (not Dolt backend)" {
-		t.Fatalf("expected fallback to parent beads dir, got %s", check.Message)
+		t.Fatalf("expected fallback to parent issuegraph dir, got %s", check.Message)
 	}
 }
 

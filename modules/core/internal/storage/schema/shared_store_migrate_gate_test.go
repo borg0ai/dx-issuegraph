@@ -39,7 +39,7 @@ func resetConsent(t *testing.T) {
 	})
 }
 
-// TestSharedStoreGateNoRemote covers the gastownhall/beads#5920 arm: a shared
+// TestSharedStoreGateNoRemote covers the borg0ai/dx-issuegraph#5920 arm: a shared
 // database with NO remote, where the ordinary (embedded) gate allows a silent
 // in-place migration. On a shared store that promotes the schema cursor for
 // every co-resident client at once, so it refuses without explicit consent.
@@ -67,8 +67,8 @@ func TestSharedStoreGateNoRemote(t *testing.T) {
 
 		msg := gateErr.UserMessage()
 		for _, want := range []string{
-			"lock out every co-resident bd client",
-			"bd migrate schema",
+			"lock out every co-resident issuegraph client",
+			"issuegraph migrate schema",
 			"Read commands keep working",
 			AllowRemoteMigrateEnv + "=1",
 		} {
@@ -78,14 +78,14 @@ func TestSharedStoreGateNoRemote(t *testing.T) {
 		}
 		// The #4259 remedies do not apply with no remote: there is one copy of
 		// the database, so there is nothing to adopt and nothing to push.
-		for _, absent := range []string{"bd bootstrap", "bd dolt push"} {
+		for _, absent := range []string{"issuegraph bootstrap", "issuegraph dolt push"} {
 			if strings.Contains(msg, absent) {
 				t.Errorf("UserMessage must not offer %q with no remote:\n%s", absent, msg)
 			}
 		}
 
-		if hint := gateErr.EscapeHint(); hint != "bd migrate schema" {
-			t.Errorf("EscapeHint = %q, want %q", hint, "bd migrate schema")
+		if hint := gateErr.EscapeHint(); hint != "issuegraph migrate schema" {
+			t.Errorf("EscapeHint = %q, want %q", hint, "issuegraph migrate schema")
 		}
 		opts := gateErr.Options()
 		if len(opts) != 1 || opts[0].ID != "migrate-shared" {
@@ -135,9 +135,9 @@ func TestSharedStoreGateNoRemote(t *testing.T) {
 		var err error
 		stderr := captureStderr(t, func() { err = sharedGate(t, mock, db) })
 		if err != nil {
-			t.Fatalf("bd migrate schema consent must unlock, got %v", err)
+			t.Fatalf("issuegraph migrate schema consent must unlock, got %v", err)
 		}
-		if !strings.Contains(stderr, "bd migrate schema") || !strings.Contains(stderr, "#5920") {
+		if !strings.Contains(stderr, "issuegraph migrate schema") || !strings.Contains(stderr, "#5920") {
 			t.Errorf("expected a shared-store warning naming the verb, got %q", stderr)
 		}
 	})
@@ -155,7 +155,7 @@ func TestSharedStoreGateNoRemote(t *testing.T) {
 		if err != nil {
 			t.Fatalf("--force must unlock, got %v", err)
 		}
-		if !strings.Contains(stderr, "bd migrate --force") {
+		if !strings.Contains(stderr, "issuegraph migrate --force") {
 			t.Errorf("expected a warning naming --force, got %q", stderr)
 		}
 	})

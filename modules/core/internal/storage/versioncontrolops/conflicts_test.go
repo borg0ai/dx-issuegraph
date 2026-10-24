@@ -129,7 +129,7 @@ func TestBuildConflictRowDeleteModify(t *testing.T) {
 	}
 }
 
-// A table with no registered key column still has to render, so `bd conflicts
+// A table with no registered key column still has to render, so `issuegraph conflicts
 // show` works for dependencies/config rows the resolver could not settle.
 func TestConflictRowKeyFallbackForUnkeyedTable(t *testing.T) {
 	cols := []string{"base_key", "our_key", "their_key", "base_value", "our_value", "their_value"}
@@ -210,7 +210,7 @@ func TestSupportsRowResolve(t *testing.T) {
 }
 
 // TestResolveOneConflictRowZeroAffectedRows pins the operator path's half of
-// the matched-rows fix: `bd conflicts resolve --theirs <id>` writes their
+// the matched-rows fix: `issuegraph conflicts resolve --theirs <id>` writes their
 // values, and an UPDATE that changes nothing because the stored bytes already
 // match must not be reported to the operator as a concurrent deletion of the
 // very row they named. A row that really is gone is still refused, with no

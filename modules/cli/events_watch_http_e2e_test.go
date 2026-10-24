@@ -13,7 +13,7 @@ import (
 	"time"
 )
 
-// The journal STREAM, end to end through a real `bd serve`.
+// The journal STREAM, end to end through a real `issuegraph serve`.
 //
 // The handler tests in internal/httpapi drive a fake journal a case can write
 // to, which is the right shape for the framing and the refusal vocabulary and
@@ -31,7 +31,7 @@ type watchConn struct {
 	cancel context.CancelFunc
 }
 
-// openWatchStream connects to GET /v0/beads/events:watch and consumes the
+// openWatchStream connects to GET /v0/issuegraph/events:watch and consumes the
 // leading `retry:` frame, so the caller's next read is a record.
 func openWatchStream(t *testing.T, sp *serveProcess, path string, lastEventID string) *watchConn {
 	t.Helper()
@@ -131,15 +131,15 @@ func (wc *watchConn) record(t *testing.T) (int64, map[string]any) {
 func TestServeStreamsTheJournalItIsWriting(t *testing.T) {
 	requireSharedProxiedServer(t)
 	t.Parallel()
-	bd := buildEmbeddedBD(t)
-	p := newServerModeProject(t, bd, "hjw")
-	p.env = append(p.env, "BD_EVENTS_JOURNAL=1")
+	issuegraph := buildEmbeddedBD(t)
+	p := newServerModeProject(t, issuegraph, "hjw")
+	p.env = append(p.env, "ISSUEGRAPH_EVENTS_JOURNAL=1")
 
-	sp := startServe(t, bd, p.dir, p.env)
+	sp := startServe(t, issuegraph, p.dir, p.env)
 
 	create := func(title string) {
 		t.Helper()
-		status, body := sp.postJSON(t, "/v0/beads/issues:batchCreate",
+		status, body := sp.postJSON(t, "/v0/issuegraph/issues:batchCreate",
 			fmt.Sprintf(`{"actor":"tester","items":[{"title":%q,"issue_type":"task"}]}`, title))
 		if status != http.StatusOK {
 			t.Fatalf("POST batchCreate %q = %d: %v\nstderr:\n%s", title, status, body, sp.stderr.String())
@@ -149,7 +149,7 @@ func TestServeStreamsTheJournalItIsWriting(t *testing.T) {
 	// OPEN FIRST, MUTATE SECOND. The records this asserts on did not exist when
 	// the stream connected, which is the difference between this operation and
 	// the paged read.
-	stream := openWatchStream(t, sp, "/v0/beads/events:watch?since=0", "")
+	stream := openWatchStream(t, sp, "/v0/issuegraph/events:watch?since=0", "")
 	mutated := time.Now()
 	create("streamed mutation 1")
 	create("streamed mutation 2")
@@ -185,7 +185,7 @@ func TestServeStreamsTheJournalItIsWriting(t *testing.T) {
 	// The paged read answers the same records from the same checkpoint while the
 	// stream is open, which is the fallback the 503 for a saturated cap points
 	// at — and proof the stream is not holding the server's read capacity.
-	status, body, _ := sp.get(t, "/v0/beads/events?since=0")
+	status, body, _ := sp.get(t, "/v0/issuegraph/events?since=0")
 	if status != http.StatusOK {
 		t.Fatalf("paged read alongside an open stream = %d: %v", status, body)
 	}
@@ -198,7 +198,7 @@ func TestServeStreamsTheJournalItIsWriting(t *testing.T) {
 	// EventSource would re-send. The header has to win, or every reconnect
 	// replays the whole journal.
 	stream.cancel()
-	resumed := openWatchStream(t, sp, "/v0/beads/events:watch?since=0", "1")
+	resumed := openWatchStream(t, sp, "/v0/issuegraph/events:watch?since=0", "1")
 
 	id, _ := resumed.record(t)
 	if id != 2 {
@@ -232,15 +232,15 @@ func TestServeStreamsTheJournalItIsWriting(t *testing.T) {
 func TestServeRefusesAStreamOnADisabledJournal(t *testing.T) {
 	requireSharedProxiedServer(t)
 	t.Parallel()
-	bd := buildEmbeddedBD(t)
-	p := newServerModeProject(t, bd, "hjx")
+	issuegraph := buildEmbeddedBD(t)
+	p := newServerModeProject(t, issuegraph, "hjx")
 	// Deliberately NOT enabling the journal. The default is off.
 
-	sp := startServe(t, bd, p.dir, p.env)
+	sp := startServe(t, issuegraph, p.dir, p.env)
 
-	status, body, header := sp.get(t, "/v0/beads/events:watch?since=0")
+	status, body, header := sp.get(t, "/v0/issuegraph/events:watch?since=0")
 	if status != http.StatusConflict {
-		t.Fatalf("GET /v0/beads/events:watch on a disabled workspace = %d, want 409: %v\nstderr:\n%s",
+		t.Fatalf("GET /v0/issuegraph/events:watch on a disabled workspace = %d, want 409: %v\nstderr:\n%s",
 			status, body, sp.stderr.String())
 	}
 	if got := header.Get("Content-Type"); !strings.HasPrefix(got, "application/problem+json") {

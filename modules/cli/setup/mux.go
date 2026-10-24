@@ -7,23 +7,23 @@ import (
 	"path/filepath"
 	"strings"
 
-	"github.com/steveyegge/beads/internal/templates/agents"
+	"github.com/borg0ai/dx-issuegraph/internal/templates/agents"
 )
 
 const (
-	muxHookMarkerBegin = "# BEGIN BEADS MUX HOOK"
-	muxHookMarkerEnd   = "# END BEADS MUX HOOK"
+	muxHookMarkerBegin = "# BEGIN ISSUEGRAPH MUX HOOK"
+	muxHookMarkerEnd   = "# END ISSUEGRAPH MUX HOOK"
 )
 
 const muxInitHookTemplate = `#!/usr/bin/env bash
 set -euo pipefail
 
 ` + muxHookMarkerBegin + `
-# Claude SessionStart equivalent for Mux: prime beads context when workspace initializes.
-if command -v bd >/dev/null 2>&1; then
-  bd prime --stealth >/dev/null 2>&1 || true
-elif [ -x "$HOME/bin/bd" ]; then
-  "$HOME/bin/bd" prime --stealth >/dev/null 2>&1 || true
+# Claude SessionStart equivalent for Mux: prime issuegraph context when workspace initializes.
+if command -v issuegraph >/dev/null 2>&1; then
+  issuegraph prime --stealth >/dev/null 2>&1 || true
+elif [ -x "$HOME/bin/issuegraph" ]; then
+  "$HOME/bin/issuegraph" prime --stealth >/dev/null 2>&1 || true
 fi
 ` + muxHookMarkerEnd + `
 `
@@ -32,12 +32,12 @@ const muxToolPostHookTemplate = `#!/usr/bin/env bash
 set -euo pipefail
 
 ` + muxHookMarkerBegin + `
-# Claude PreCompact approximation for Mux: keep beads metadata synced after file edits.
+# Claude PreCompact approximation for Mux: keep issuegraph metadata synced after file edits.
 if [ "${MUX_TOOL:-}" = "file_edit_replace_string" ] || [ "${MUX_TOOL:-}" = "file_edit_insert" ]; then
-  if command -v bd >/dev/null 2>&1; then
-    bd dolt push >/dev/null 2>&1 || true
-  elif [ -x "$HOME/bin/bd" ]; then
-    "$HOME/bin/bd" dolt push >/dev/null 2>&1 || true
+  if command -v issuegraph >/dev/null 2>&1; then
+    issuegraph dolt push >/dev/null 2>&1 || true
+  elif [ -x "$HOME/bin/issuegraph" ]; then
+    "$HOME/bin/issuegraph" dolt push >/dev/null 2>&1 || true
   fi
 fi
 ` + muxHookMarkerEnd + `
@@ -45,7 +45,7 @@ fi
 
 const muxToolEnvHookTemplate = `# Mux tool_env (sourced before bash tool calls)
 ` + muxHookMarkerBegin + `
-# Ensure bd installed in ~/bin is discoverable.
+# Ensure issuegraph installed in ~/bin is discoverable.
 export PATH="$HOME/bin:$PATH"
 ` + muxHookMarkerEnd + `
 `
@@ -53,7 +53,7 @@ export PATH="$HOME/bin:$PATH"
 var (
 	muxIntegration = agentsIntegration{
 		name:         "Mux",
-		setupCommand: "bd setup mux",
+		setupCommand: "issuegraph setup mux",
 		readHint:     "Mux reads AGENTS.md in workspace and global contexts. Restart the workspace session if it is already running.",
 		docsURL:      muxAgentInstructionsURL,
 		profile:      agents.ProfileFull,
@@ -61,7 +61,7 @@ var (
 
 	muxProjectIntegration = agentsIntegration{
 		name:         "Mux (workspace layer)",
-		setupCommand: "bd setup mux --project",
+		setupCommand: "issuegraph setup mux --project",
 		readHint:     "Mux also supports layered workspace instructions via .mux/AGENTS.md.",
 		docsURL:      muxAgentInstructionsURL,
 		profile:      agents.ProfileFull,
@@ -69,7 +69,7 @@ var (
 
 	muxGlobalIntegration = agentsIntegration{
 		name:         "Mux (global layer)",
-		setupCommand: "bd setup mux --global",
+		setupCommand: "issuegraph setup mux --global",
 		readHint:     "Mux global defaults can be stored in ~/.mux/AGENTS.md.",
 		docsURL:      muxAgentInstructionsURL,
 		profile:      agents.ProfileFull,
@@ -117,7 +117,7 @@ func installMuxHook(env agentsEnv, path, content string, mode os.FileMode) error
 	switch {
 	case err == nil:
 		if !strings.Contains(string(data), muxHookMarkerBegin) {
-			_, _ = fmt.Fprintf(env.stdout, "ℹ Existing hook kept (not managed by bd setup mux): %s\n", path)
+			_, _ = fmt.Fprintf(env.stdout, "ℹ Existing hook kept (not managed by issuegraph setup mux): %s\n", path)
 			return nil
 		}
 		if err := writeMuxHook(path, content, mode); err != nil {
@@ -167,7 +167,7 @@ func checkMuxProjectHooks(env agentsEnv) error {
 		return nil
 	}
 	_, _ = fmt.Fprintf(env.stdout, "✗ Missing Mux hooks: %s\n", strings.Join(missing, ", "))
-	_, _ = fmt.Fprintln(env.stdout, "  Run: bd setup mux")
+	_, _ = fmt.Fprintln(env.stdout, "  Run: issuegraph setup mux")
 	return errMuxHooksMissing
 }
 

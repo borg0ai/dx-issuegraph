@@ -12,7 +12,7 @@ import (
 
 	mysql "github.com/go-sql-driver/mysql"
 
-	"github.com/steveyegge/beads/internal/storage"
+	"github.com/borg0ai/dx-issuegraph/internal/storage"
 )
 
 func TestIsIndeterminateCommitResponse(t *testing.T) {
@@ -125,7 +125,7 @@ func TestWrapExecError(t *testing.T) {
 
 func TestDatabaseNotFoundHint(t *testing.T) {
 	baseCfg := Config{
-		Database:   "beads_test",
+		Database:   "issuegraph_test",
 		ServerHost: "127.0.0.1",
 		ServerPort: 3309,
 	}
@@ -140,12 +140,12 @@ func TestDatabaseNotFoundHint(t *testing.T) {
 		if !strings.Contains(msg, "set sync.remote") {
 			t.Errorf("expected hint to set sync.remote, got:\n%s", msg)
 		}
-		if !strings.Contains(msg, ".beads/config.yaml") {
-			t.Errorf("expected .beads/config.yaml reference, got:\n%s", msg)
+		if !strings.Contains(msg, ".issuegraph/config.yaml") {
+			t.Errorf("expected .issuegraph/config.yaml reference, got:\n%s", msg)
 		}
 
 		// Must still contain the original error context
-		if !strings.Contains(msg, `"beads_test"`) {
+		if !strings.Contains(msg, `"issuegraph_test"`) {
 			t.Errorf("expected database name in error, got:\n%s", msg)
 		}
 		if !strings.Contains(msg, "127.0.0.1:3309") {
@@ -153,20 +153,20 @@ func TestDatabaseNotFoundHint(t *testing.T) {
 		}
 
 		// Must contain recovery suggestions
-		if !strings.Contains(msg, "bd bootstrap") {
-			t.Errorf("expected bd bootstrap suggestion, got:\n%s", msg)
+		if !strings.Contains(msg, "issuegraph bootstrap") {
+			t.Errorf("expected issuegraph bootstrap suggestion, got:\n%s", msg)
 		}
-		if !strings.Contains(msg, "bd doctor") {
-			t.Errorf("expected bd doctor suggestion, got:\n%s", msg)
+		if !strings.Contains(msg, "issuegraph doctor") {
+			t.Errorf("expected issuegraph doctor suggestion, got:\n%s", msg)
 		}
-		if strings.Contains(msg, "re-run bd init") {
+		if strings.Contains(msg, "re-run issuegraph init") {
 			t.Errorf("did not expect init-first recovery guidance, got:\n%s", msg)
 		}
 	})
 
 	t.Run("hint mentions configured sync.remote when set", func(t *testing.T) {
 		cfg := baseCfg
-		cfg.SyncRemote = "https://doltremoteapi.dolthub.com/myorg/beads"
+		cfg.SyncRemote = "https://doltremoteapi.dolthub.com/myorg/issuegraph"
 		err := databaseNotFoundError(&cfg)
 
 		msg := err.Error()
@@ -175,16 +175,16 @@ func TestDatabaseNotFoundHint(t *testing.T) {
 		if !strings.Contains(msg, "sync.remote is configured") {
 			t.Errorf("expected configured hint, got:\n%s", msg)
 		}
-		if !strings.Contains(msg, "https://doltremoteapi.dolthub.com/myorg/beads") {
+		if !strings.Contains(msg, "https://doltremoteapi.dolthub.com/myorg/issuegraph") {
 			t.Errorf("expected remote URL in hint, got:\n%s", msg)
 		}
-		if !strings.Contains(msg, "bd bootstrap") {
-			t.Errorf("expected bd bootstrap suggestion, got:\n%s", msg)
+		if !strings.Contains(msg, "issuegraph bootstrap") {
+			t.Errorf("expected issuegraph bootstrap suggestion, got:\n%s", msg)
 		}
 	})
 
-	t.Run("hint detects backup files in beads dir (GH#2327)", func(t *testing.T) {
-		// Create a temp .beads/backup/ with a JSONL file
+	t.Run("hint detects backup files in issuegraph dir (GH#2327)", func(t *testing.T) {
+		// Create a temp .issuegraph/backup/ with a JSONL file
 		tmpDir := t.TempDir()
 		backupDir := filepath.Join(tmpDir, "backup")
 		if err := os.MkdirAll(backupDir, 0700); err != nil {
@@ -195,18 +195,18 @@ func TestDatabaseNotFoundHint(t *testing.T) {
 		}
 
 		cfg := baseCfg
-		cfg.BeadsDir = tmpDir
+		cfg.IssueGraphDir = tmpDir
 		err := databaseNotFoundError(&cfg)
 		msg := err.Error()
 
 		if !strings.Contains(msg, "Backup files found") {
 			t.Errorf("expected backup detection hint, got:\n%s", msg)
 		}
-		if !strings.Contains(msg, "bd backup restore") {
-			t.Errorf("expected bd backup restore suggestion, got:\n%s", msg)
+		if !strings.Contains(msg, "issuegraph backup restore") {
+			t.Errorf("expected issuegraph backup restore suggestion, got:\n%s", msg)
 		}
-		if !strings.Contains(msg, "bd bootstrap") {
-			t.Errorf("expected bd bootstrap suggestion, got:\n%s", msg)
+		if !strings.Contains(msg, "issuegraph bootstrap") {
+			t.Errorf("expected issuegraph bootstrap suggestion, got:\n%s", msg)
 		}
 		// Should still mention branch switching as a common cause
 		if !strings.Contains(msg, "branch") {
@@ -218,7 +218,7 @@ func TestDatabaseNotFoundHint(t *testing.T) {
 		tmpDir := t.TempDir()
 
 		cfg := baseCfg
-		cfg.BeadsDir = tmpDir
+		cfg.IssueGraphDir = tmpDir
 		err := databaseNotFoundError(&cfg)
 		msg := err.Error()
 
@@ -229,9 +229,9 @@ func TestDatabaseNotFoundHint(t *testing.T) {
 }
 
 func TestHasBackupFiles(t *testing.T) {
-	t.Run("returns false for empty beadsDir", func(t *testing.T) {
+	t.Run("returns false for empty issuegraphDir", func(t *testing.T) {
 		if HasBackupFiles("") {
-			t.Error("expected false for empty beadsDir")
+			t.Error("expected false for empty issuegraphDir")
 		}
 	})
 

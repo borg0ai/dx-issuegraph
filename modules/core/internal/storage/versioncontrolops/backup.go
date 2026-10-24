@@ -53,7 +53,7 @@ func BackupRestore(ctx context.Context, db DBConn, url, dbName string, force boo
 // filepath.Abs would happily turn "https://doltremoteapi.dolthub.com/u/r" into
 // "file:///cwd/https:/doltremoteapi.dolthub.com/u/r" — a syntactically valid
 // URL naming a local directory that does not exist, which DOLT_BACKUP would
-// then fail on, or worse create. No caller can reach that today (`bd backup
+// then fail on, or worse create. No caller can reach that today (`issuegraph backup
 // restore` os.Stats its argument first, so a URL never gets here), but every
 // caller is a restore path and restore-from-a-remote is an open capability
 // question — see backupRemoteSchemeTracking in modules/cli/capability_registry.go.
@@ -77,7 +77,7 @@ func DirToFileURL(dir string) (string, error) {
 //	Error 1105: address conflict with a remote: 'name' -> url
 //
 // When BackupAdd fails because another remote (e.g. "default", registered by
-// `bd backup init`) already points to the same URL, the caller can use the
+// `issuegraph backup init`) already points to the same URL, the caller can use the
 // conflicting name to sync directly rather than treating it as a hard error.
 // Returns "" if the error is not an address conflict.
 func ExtractAddressConflictName(err error) string {

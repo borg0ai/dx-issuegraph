@@ -8,12 +8,12 @@ import (
 
 	"github.com/spf13/cobra"
 
-	"github.com/steveyegge/beads/internal/storage/uow"
-	"github.com/steveyegge/beads/issueops"
+	"github.com/borg0ai/dx-issuegraph/internal/storage/uow"
+	"github.com/borg0ai/dx-issuegraph/issueops"
 )
 
 // readerProvider is lookupOnlyProvider plus the capability accessor, which is
-// the door `bd show --json` now reaches the detail view through on this route.
+// the door `issuegraph show --json` now reaches the detail view through on this route.
 // The reader it hands back is the REAL one, over the same failing lookup, so
 // what these tests observe is the role's own error vocabulary reaching the
 // command — not a stub's imitation of it.
@@ -56,8 +56,8 @@ func TestShowProxiedJSONMissingIDKeepsItsContract(t *testing.T) {
 	if got, want := strings.SplitN(stderr, "\n", 2)[0], "Issue "+stubMissingID+" not found"; got != want {
 		t.Errorf("stderr first line = %q, want %q", got, want)
 	}
-	if !strings.Contains(stderr, "bd history "+stubMissingID) {
-		t.Errorf("expected stderr to hint at checking 'bd history %s', got: %q", stubMissingID, stderr)
+	if !strings.Contains(stderr, "issuegraph history "+stubMissingID) {
+		t.Errorf("expected stderr to hint at checking 'issuegraph history %s', got: %q", stubMissingID, stderr)
 	}
 	if strings.Contains(stderr, stubRawNoRows) {
 		t.Errorf("stderr leaks the raw driver sentinel: %q", stderr)
@@ -105,7 +105,7 @@ func TestShowProxiedTextRouteDoesNotOpenAReader(t *testing.T) {
 	if got, want := strings.SplitN(stderr, "\n", 2)[0], "Issue "+stubMissingID+" not found"; got != want {
 		t.Errorf("stderr first line = %q, want %q", got, want)
 	}
-	if !strings.Contains(stderr, "bd history "+stubMissingID) {
-		t.Errorf("expected stderr to hint at checking 'bd history %s', got: %q", stubMissingID, stderr)
+	if !strings.Contains(stderr, "issuegraph history "+stubMissingID) {
+		t.Errorf("expected stderr to hint at checking 'issuegraph history %s', got: %q", stubMissingID, stderr)
 	}
 }

@@ -7,20 +7,20 @@ import (
 	"strings"
 	"time"
 
-	"github.com/steveyegge/beads/internal/configfile"
-	"github.com/steveyegge/beads/internal/doltremote"
-	"github.com/steveyegge/beads/internal/storage"
+	"github.com/borg0ai/dx-issuegraph/internal/configfile"
+	"github.com/borg0ai/dx-issuegraph/internal/doltremote"
+	"github.com/borg0ai/dx-issuegraph/internal/storage"
 )
 
 var querySQLRemotesForDoctor = querySQLRemotes
 
 // CheckDoltRemoteGitOrigin warns when any configured Dolt remote URL matches
-// the git origin — a likely misconfiguration since beads syncs via Dolt, not git.
+// the git origin — a likely misconfiguration since issuegraph syncs via Dolt, not git.
 func CheckDoltRemoteGitOrigin(repoPath string) DoctorCheck {
 	name := "Dolt Remote vs Git Origin"
-	beadsDir := ResolveBeadsDirForRepo(repoPath)
+	issuegraphDir := ResolveIssueGraphDirForRepo(repoPath)
 
-	cfg, err := configfile.Load(beadsDir)
+	cfg, err := configfile.Load(issuegraphDir)
 	if err != nil || cfg == nil || cfg.GetBackend() != configfile.BackendDolt {
 		return DoctorCheck{
 			Name:     name,
@@ -40,7 +40,7 @@ func CheckDoltRemoteGitOrigin(repoPath string) DoctorCheck {
 		}
 	}
 
-	sqlRemotes, sqlErr := querySQLRemotesForDoctor(beadsDir)
+	sqlRemotes, sqlErr := querySQLRemotesForDoctor(issuegraphDir)
 	if sqlErr != nil {
 		// Can't check; skip silently.
 		return DoctorCheck{
@@ -73,7 +73,7 @@ func CheckDoltRemoteGitOrigin(repoPath string) DoctorCheck {
 		Status:   StatusWarning,
 		Message:  fmt.Sprintf("%d Dolt remote(s) match the git origin URL: %s", len(colliding), strings.Join(colliding, ", ")),
 		Detail:   "Using the git origin as a Dolt remote causes git and Dolt sync to share the same endpoint, which can cause conflicts.",
-		Fix:      "Remove the conflicting remote(s) with 'bd dolt remote remove <name>', or set dolt.local-only=true to disable remote sync.",
+		Fix:      "Remove the conflicting remote(s) with 'issuegraph dolt remote remove <name>', or set dolt.local-only=true to disable remote sync.",
 		Category: CategoryDolt,
 	}
 }
@@ -90,8 +90,8 @@ func gitOriginRemoteURL(repoPath string) string {
 }
 
 // querySQLRemotes gets remotes from the SQL server.
-func querySQLRemotes(beadsDir string) ([]storage.RemoteInfo, error) {
-	db, _, err := openDoltDB(beadsDir)
+func querySQLRemotes(issuegraphDir string) ([]storage.RemoteInfo, error) {
+	db, _, err := openDoltDB(issuegraphDir)
 	if err != nil {
 		return nil, err
 	}

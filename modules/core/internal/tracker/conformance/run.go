@@ -6,9 +6,9 @@ import (
 	"reflect"
 	"testing"
 
-	"github.com/steveyegge/beads/internal/storage"
-	"github.com/steveyegge/beads/internal/tracker"
-	"github.com/steveyegge/beads/internal/types"
+	"github.com/borg0ai/dx-issuegraph/internal/storage"
+	"github.com/borg0ai/dx-issuegraph/internal/tracker"
+	"github.com/borg0ai/dx-issuegraph/internal/types"
 )
 
 // Snapshot is the normalized local state inspected by the shared suite.
@@ -208,7 +208,7 @@ func Run(t *testing.T, build func(*testing.T, *Fixture) Setup) {
 			t.Fatalf("resolve %q: %v", s.Expected.ExternalRef, err)
 		}
 		// Resolving to the wisp would make the pull dedup update the ephemeral
-		// row instead of the durable bead — a silent write to the wrong issue.
+		// row instead of the durable issue — a silent write to the wrong issue.
 		if got == nil || got.ID != want {
 			t.Fatalf("external_ref %q resolved to %v, want issues-plane %q: the issues plane must win over the wisp plane", s.Expected.ExternalRef, got, want)
 		}

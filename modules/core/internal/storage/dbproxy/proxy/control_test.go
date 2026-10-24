@@ -10,8 +10,8 @@ import (
 	"testing"
 	"time"
 
-	"github.com/steveyegge/beads/internal/storage/dbproxy/identity"
-	"github.com/steveyegge/beads/internal/storage/dbproxy/pidfile"
+	"github.com/borg0ai/dx-issuegraph/internal/storage/dbproxy/identity"
+	"github.com/borg0ai/dx-issuegraph/internal/storage/dbproxy/pidfile"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )

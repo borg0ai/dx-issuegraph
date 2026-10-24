@@ -4,26 +4,26 @@ import (
 	"strconv"
 	"strings"
 
-	"github.com/steveyegge/beads/internal/tracker"
-	"github.com/steveyegge/beads/internal/types"
+	"github.com/borg0ai/dx-issuegraph/internal/tracker"
+	"github.com/borg0ai/dx-issuegraph/internal/types"
 )
 
 // jiraFieldMapper implements tracker.FieldMapper for Jira.
 type jiraFieldMapper struct {
 	apiVersion       string                            // "2" or "3" (default: "3")
-	statusMap        map[string]string                 // beads status → Jira status name (from jira.status_map.* config)
-	typeMap          map[string]string                 // beads type → Jira type (from jira.type_map.* config)
-	priorityMap      map[string]string                 // beads priority (as string "0"-"4") → Jira priority name (from jira.priority_map.* config)
+	statusMap        map[string]string                 // issuegraph status → Jira status name (from jira.status_map.* config)
+	typeMap          map[string]string                 // issuegraph type → Jira type (from jira.type_map.* config)
+	priorityMap      map[string]string                 // issuegraph priority (as string "0"-"4") → Jira priority name (from jira.priority_map.* config)
 	customFields     map[string]interface{}            // Jira field name/id → value (from jira.custom_fields.* config)
 	typeCustomFields map[string]map[string]interface{} // Jira issue type → field name/id → value
 }
 
-func (m *jiraFieldMapper) PriorityToBeads(trackerPriority interface{}) int {
+func (m *jiraFieldMapper) PriorityToIssueGraph(trackerPriority interface{}) int {
 	if name, ok := trackerPriority.(string); ok {
-		// Check custom map first (inverted: Jira name → beads priority).
-		for beadsPri, jiraName := range m.priorityMap {
+		// Check custom map first (inverted: Jira name → issuegraph priority).
+		for issuegraphPri, jiraName := range m.priorityMap {
 			if strings.EqualFold(name, jiraName) {
-				if v, err := strconv.Atoi(beadsPri); err == nil && v >= 0 && v <= 4 {
+				if v, err := strconv.Atoi(issuegraphPri); err == nil && v >= 0 && v <= 4 {
 					return v
 				}
 			}
@@ -45,16 +45,16 @@ func (m *jiraFieldMapper) PriorityToBeads(trackerPriority interface{}) int {
 	return 2
 }
 
-func (m *jiraFieldMapper) PriorityToTracker(beadsPriority int) interface{} {
-	// Check custom map first (beads priority as string key → Jira name).
+func (m *jiraFieldMapper) PriorityToTracker(issuegraphPriority int) interface{} {
+	// Check custom map first (issuegraph priority as string key → Jira name).
 	if m.priorityMap != nil {
-		key := strconv.Itoa(beadsPriority)
+		key := strconv.Itoa(issuegraphPriority)
 		if name, ok := m.priorityMap[key]; ok {
 			return name
 		}
 	}
 	// Jira defaults.
-	switch beadsPriority {
+	switch issuegraphPriority {
 	case 0:
 		return "Highest"
 	case 1:
@@ -70,12 +70,12 @@ func (m *jiraFieldMapper) PriorityToTracker(beadsPriority int) interface{} {
 	}
 }
 
-func (m *jiraFieldMapper) StatusToBeads(trackerState interface{}) types.Status {
+func (m *jiraFieldMapper) StatusToIssueGraph(trackerState interface{}) types.Status {
 	if state, ok := trackerState.(string); ok {
-		// Check custom map first (inverted: jira name → beads status).
-		for beadsStatus, jiraName := range m.statusMap {
+		// Check custom map first (inverted: jira name → issuegraph status).
+		for issuegraphStatus, jiraName := range m.statusMap {
 			if strings.EqualFold(state, jiraName) {
-				return types.Status(beadsStatus)
+				return types.Status(issuegraphStatus)
 			}
 		}
 		switch state {
@@ -92,12 +92,12 @@ func (m *jiraFieldMapper) StatusToBeads(trackerState interface{}) types.Status {
 	return types.StatusOpen
 }
 
-func (m *jiraFieldMapper) StatusToTracker(beadsStatus types.Status) interface{} {
+func (m *jiraFieldMapper) StatusToTracker(issuegraphStatus types.Status) interface{} {
 	// Check custom map first.
-	if name, ok := m.statusMap[string(beadsStatus)]; ok {
+	if name, ok := m.statusMap[string(issuegraphStatus)]; ok {
 		return name
 	}
-	switch beadsStatus {
+	switch issuegraphStatus {
 	case types.StatusOpen:
 		return "To Do"
 	case types.StatusInProgress:
@@ -111,16 +111,16 @@ func (m *jiraFieldMapper) StatusToTracker(beadsStatus types.Status) interface{} 
 	}
 }
 
-func (m *jiraFieldMapper) TypeToBeads(trackerType interface{}) types.IssueType {
+func (m *jiraFieldMapper) TypeToIssueGraph(trackerType interface{}) types.IssueType {
 	t, ok := trackerType.(string)
 	if !ok {
 		return types.TypeTask
 	}
 
-	// Check custom map first (inverted: Jira type → beads type).
-	for beadsType, jiraType := range m.typeMap {
+	// Check custom map first (inverted: Jira type → issuegraph type).
+	for issuegraphType, jiraType := range m.typeMap {
 		if strings.EqualFold(t, jiraType) {
-			return types.IssueType(beadsType)
+			return types.IssueType(issuegraphType)
 		}
 	}
 
@@ -138,11 +138,11 @@ func (m *jiraFieldMapper) TypeToBeads(trackerType interface{}) types.IssueType {
 	return types.TypeTask
 }
 
-func (m *jiraFieldMapper) TypeToTracker(beadsType types.IssueType) interface{} {
-	if name, ok := m.typeMap[string(beadsType)]; ok {
+func (m *jiraFieldMapper) TypeToTracker(issuegraphType types.IssueType) interface{} {
+	if name, ok := m.typeMap[string(issuegraphType)]; ok {
 		return name
 	}
-	switch beadsType {
+	switch issuegraphType {
 	case types.TypeBug:
 		return "Bug"
 	case types.TypeFeature:
@@ -154,7 +154,7 @@ func (m *jiraFieldMapper) TypeToTracker(beadsType types.IssueType) interface{} {
 	}
 }
 
-func (m *jiraFieldMapper) IssueToBeads(ti *tracker.TrackerIssue) *tracker.IssueConversion {
+func (m *jiraFieldMapper) IssueToIssueGraph(ti *tracker.TrackerIssue) *tracker.IssueConversion {
 	ji, ok := ti.Raw.(*Issue)
 	if !ok || ji == nil {
 		return nil
@@ -163,9 +163,9 @@ func (m *jiraFieldMapper) IssueToBeads(ti *tracker.TrackerIssue) *tracker.IssueC
 	issue := &types.Issue{
 		Title:       ji.Fields.Summary,
 		Description: DescriptionToPlainText(ji.Fields.Description),
-		Priority:    m.PriorityToBeads(priorityName(ji)),
-		Status:      m.StatusToBeads(statusName(ji)),
-		IssueType:   m.TypeToBeads(typeName(ji)),
+		Priority:    m.PriorityToIssueGraph(priorityName(ji)),
+		Status:      m.StatusToIssueGraph(statusName(ji)),
+		IssueType:   m.TypeToIssueGraph(typeName(ji)),
 	}
 
 	if ji.Fields.Assignee != nil {

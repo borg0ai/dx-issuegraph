@@ -9,9 +9,9 @@ import (
 	"fmt"
 	"os"
 
-	"github.com/steveyegge/beads/internal/storage"
-	"github.com/steveyegge/beads/internal/storage/issueops"
-	"github.com/steveyegge/beads/internal/types"
+	"github.com/borg0ai/dx-issuegraph/internal/storage"
+	"github.com/borg0ai/dx-issuegraph/internal/storage/issueops"
+	"github.com/borg0ai/dx-issuegraph/internal/types"
 )
 
 // WakeExpiredDefersAdvisory preserves the backend wake contract for decorators.
@@ -72,7 +72,7 @@ func (s *EmbeddedDoltStore) GetReadyWorkWithCounts(ctx context.Context, filter t
 
 // GetReadyWorkWithCountsAndTotal returns the ready page and the size of the
 // whole ready set in one read transaction (and one defer-wake sweep), so a
-// capped `bd ready` needs no separate count pass.
+// capped `issuegraph ready` needs no separate count pass.
 func (s *EmbeddedDoltStore) GetReadyWorkWithCountsAndTotal(ctx context.Context, filter types.WorkFilter) ([]*types.IssueWithCounts, int, error) {
 	s.wakeExpiredDefers(ctx)
 	var result []*types.IssueWithCounts

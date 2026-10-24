@@ -5,7 +5,7 @@ import (
 	"database/sql"
 	"fmt"
 
-	"github.com/steveyegge/beads/internal/storage/dberrors"
+	"github.com/borg0ai/dx-issuegraph/internal/storage/dberrors"
 )
 
 // alreadyConverged reports whether databaseName is already at this binary's
@@ -16,7 +16,7 @@ import (
 // and return (0, nil).
 //
 // Why it exists: the whole schema-init probe ran INSIDE the database-scoped
-// GET_LOCK, so every bd invocation against a shared Dolt server serialized on
+// GET_LOCK, so every issuegraph invocation against a shared Dolt server serialized on
 // it even though the probe is a no-op in the steady state. Measured on an
 // 18-seat rig, the lock was held 96.7% of a 14s sampling window, held runs had
 // a 673ms median and a 4.2s max, and free gaps had a 0ms median — handed
@@ -87,7 +87,7 @@ func alreadyConverged(ctx context.Context, db DBConn, databaseName string, selec
 	// The pattern being present does not mean it is in EFFECT. On a legacy
 	// lineage the ignored-lane cursor table is committed at HEAD, where
 	// dolt_ignore's add-delta semantics make the pattern inert and every pull
-	// wedges (gastownhall/beads#4356). MigrateUp reconciles that, and also
+	// wedges (borg0ai/dx-issuegraph#4356). MigrateUp reconciles that, and also
 	// cleans up after a reconcile some earlier open was killed midway
 	// through, so a database in either shape is not converged no matter how
 	// at-latest its cursors read.

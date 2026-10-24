@@ -25,36 +25,36 @@ func TestExistingDoltDataDir(t *testing.T) {
 	// directory detection must find ("" for none).
 	tests := []struct {
 		name  string
-		setup func(t *testing.T, beadsDir string) (*Config, string)
+		setup func(t *testing.T, issuegraphDir string) (*Config, string)
 	}{
 		{
 			name: "embedded layout, database one level down",
-			setup: func(t *testing.T, beadsDir string) (*Config, string) {
-				return &Config{}, plantDoltRepository(t, filepath.Join(beadsDir, "embeddeddolt", "beads"))
+			setup: func(t *testing.T, issuegraphDir string) (*Config, string) {
+				return &Config{}, plantDoltRepository(t, filepath.Join(issuegraphDir, "embeddeddolt", "issuegraph"))
 			},
 		},
 		{
 			name: "embedded layout, database at the root",
-			setup: func(t *testing.T, beadsDir string) (*Config, string) {
-				return &Config{}, plantDoltRepository(t, filepath.Join(beadsDir, "embeddeddolt"))
+			setup: func(t *testing.T, issuegraphDir string) (*Config, string) {
+				return &Config{}, plantDoltRepository(t, filepath.Join(issuegraphDir, "embeddeddolt"))
 			},
 		},
 		{
 			name: "server layout at the root",
-			setup: func(t *testing.T, beadsDir string) (*Config, string) {
-				return &Config{}, plantDoltRepository(t, filepath.Join(beadsDir, "dolt"))
+			setup: func(t *testing.T, issuegraphDir string) (*Config, string) {
+				return &Config{}, plantDoltRepository(t, filepath.Join(issuegraphDir, "dolt"))
 			},
 		},
 		{
 			name: "server layout, database one level down",
-			setup: func(t *testing.T, beadsDir string) (*Config, string) {
-				return &Config{}, plantDoltRepository(t, filepath.Join(beadsDir, "dolt", "beads"))
+			setup: func(t *testing.T, issuegraphDir string) (*Config, string) {
+				return &Config{}, plantDoltRepository(t, filepath.Join(issuegraphDir, "dolt", "issuegraph"))
 			},
 		},
 		{
 			name: "relative dolt_data_dir",
-			setup: func(t *testing.T, beadsDir string) (*Config, string) {
-				return &Config{DoltDataDir: "custom-data"}, plantDoltRepository(t, filepath.Join(beadsDir, "custom-data", "beads"))
+			setup: func(t *testing.T, issuegraphDir string) (*Config, string) {
+				return &Config{DoltDataDir: "custom-data"}, plantDoltRepository(t, filepath.Join(issuegraphDir, "custom-data", "issuegraph"))
 			},
 		},
 		{
@@ -65,32 +65,32 @@ func TestExistingDoltDataDir(t *testing.T) {
 			},
 		},
 		{
-			name: "BEADS_DOLT_DATA_DIR overrides the configured data dir",
+			name: "ISSUEGRAPH_DOLT_DATA_DIR overrides the configured data dir",
 			setup: func(t *testing.T, _ string) (*Config, string) {
 				dir := plantDoltRepository(t, filepath.Join(t.TempDir(), "env-data"))
-				t.Setenv("BEADS_DOLT_DATA_DIR", dir)
+				t.Setenv("ISSUEGRAPH_DOLT_DATA_DIR", dir)
 				return &Config{DoltDataDir: "ignored-when-env-is-set"}, dir
 			},
 		},
 		{
 			name: "nil config still finds the default layouts",
-			setup: func(t *testing.T, beadsDir string) (*Config, string) {
-				return nil, plantDoltRepository(t, filepath.Join(beadsDir, "dolt"))
+			setup: func(t *testing.T, issuegraphDir string) (*Config, string) {
+				return nil, plantDoltRepository(t, filepath.Join(issuegraphDir, "dolt"))
 			},
 		},
 		{
 			name: "nothing present",
-			setup: func(t *testing.T, beadsDir string) (*Config, string) {
+			setup: func(t *testing.T, issuegraphDir string) (*Config, string) {
 				// A directory without a .dolt marker is not a database, a .dolt
 				// that is a regular file is not one either, and neither is a
 				// data-dir root that is itself a file.
-				if err := os.MkdirAll(filepath.Join(beadsDir, "embeddeddolt", "beads"), 0o755); err != nil {
+				if err := os.MkdirAll(filepath.Join(issuegraphDir, "embeddeddolt", "issuegraph"), 0o755); err != nil {
 					t.Fatalf("create decoy database dir: %v", err)
 				}
-				if err := os.WriteFile(filepath.Join(beadsDir, "embeddeddolt", "beads", ".dolt"), []byte("not a dir"), 0o600); err != nil {
+				if err := os.WriteFile(filepath.Join(issuegraphDir, "embeddeddolt", "issuegraph", ".dolt"), []byte("not a dir"), 0o600); err != nil {
 					t.Fatalf("create decoy .dolt file: %v", err)
 				}
-				if err := os.WriteFile(filepath.Join(beadsDir, "dolt"), []byte("not a dir"), 0o600); err != nil {
+				if err := os.WriteFile(filepath.Join(issuegraphDir, "dolt"), []byte("not a dir"), 0o600); err != nil {
 					t.Fatalf("create decoy data dir file: %v", err)
 				}
 				return &Config{}, ""
@@ -100,19 +100,19 @@ func TestExistingDoltDataDir(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			beadsDir := t.TempDir()
-			cfg, want := tt.setup(t, beadsDir)
-			if got := ExistingDoltDataDir(beadsDir, cfg); got != want {
+			issuegraphDir := t.TempDir()
+			cfg, want := tt.setup(t, issuegraphDir)
+			if got := ExistingDoltDataDir(issuegraphDir, cfg); got != want {
 				t.Errorf("ExistingDoltDataDir() = %q, want %q", got, want)
 			}
 		})
 	}
 }
 
-// TestExistingDoltDataDirWithoutBeadsDir pins the degradation contract: a caller
+// TestExistingDoltDataDirWithoutIssueGraphDir pins the degradation contract: a caller
 // with no workspace directory gets "" (and so the generic message) rather than
 // a guess rooted at the process working directory.
-func TestExistingDoltDataDirWithoutBeadsDir(t *testing.T) {
+func TestExistingDoltDataDirWithoutIssueGraphDir(t *testing.T) {
 	if got := ExistingDoltDataDir("", &Config{}); got != "" {
 		t.Errorf("ExistingDoltDataDir(\"\") = %q, want \"\"", got)
 	}
@@ -128,15 +128,15 @@ func TestExistingDoltDataDirWithoutBeadsDir(t *testing.T) {
 func TestRemovedBackendErrorHealBranch(t *testing.T) {
 	for _, backend := range []string{BackendSQLite, BackendPostgres, BackendMySQL} {
 		t.Run(backend, func(t *testing.T) {
-			beadsDir := t.TempDir()
-			doltDir := plantDoltRepository(t, filepath.Join(beadsDir, "embeddeddolt", "beads"))
+			issuegraphDir := t.TempDir()
+			doltDir := plantDoltRepository(t, filepath.Join(issuegraphDir, "embeddeddolt", "issuegraph"))
 
-			message := RemovedBackendErrorAt(backend, beadsDir, &Config{Backend: backend}).Error()
+			message := RemovedBackendErrorAt(backend, issuegraphDir, &Config{Backend: backend}).Error()
 			for _, want := range []string{
 				"no longer supported",
 				removedBackendRationale(backend),
 				doltDir,
-				ConfigPath(beadsDir),
+				ConfigPath(issuegraphDir),
 				`"backend": "` + backend + `"`,
 				`"backend": "dolt"`,
 				BackendNotOpenedGuarantee,
@@ -158,10 +158,10 @@ func TestRemovedBackendErrorHealBranch(t *testing.T) {
 func TestRemovedBackendErrorRecoveryBranch(t *testing.T) {
 	for _, backend := range []string{BackendSQLite, BackendPostgres, BackendMySQL} {
 		t.Run(backend, func(t *testing.T) {
-			beadsDir := t.TempDir()
-			message := RemovedBackendErrorAt(backend, beadsDir, &Config{Backend: backend}).Error()
+			issuegraphDir := t.TempDir()
+			message := RemovedBackendErrorAt(backend, issuegraphDir, &Config{Backend: backend}).Error()
 
-			wants := []string{"no longer supported", "was not opened", "export", "dolt", beadsDir, "no Dolt database was found"}
+			wants := []string{"no longer supported", "was not opened", "export", "dolt", issuegraphDir, "no Dolt database was found"}
 			if backend == BackendSQLite {
 				wants = append(wants, "single engine")
 			} else {
@@ -180,7 +180,7 @@ func TestRemovedBackendErrorRecoveryBranch(t *testing.T) {
 	}
 }
 
-// TestRemovedBackendErrorWithoutWorkspace pins the beadsDir-less fallback: the
+// TestRemovedBackendErrorWithoutWorkspace pins the issuegraphDir-less fallback: the
 // recovery branch without the "no Dolt database was found" clause, which is what
 // the old RemovedBackendError said and what callers with no directory still get.
 func TestRemovedBackendErrorWithoutWorkspace(t *testing.T) {
@@ -195,14 +195,14 @@ func TestRemovedBackendErrorWithoutWorkspace(t *testing.T) {
 	}
 }
 
-// TestUnknownBackendErrorHealBranch covers the same enrichment for a value bd
+// TestUnknownBackendErrorHealBranch covers the same enrichment for a value issuegraph
 // never recognized at all: with Dolt data present, say so and name the edit.
 func TestUnknownBackendErrorHealBranch(t *testing.T) {
-	beadsDir := t.TempDir()
-	doltDir := plantDoltRepository(t, filepath.Join(beadsDir, "dolt"))
+	issuegraphDir := t.TempDir()
+	doltDir := plantDoltRepository(t, filepath.Join(issuegraphDir, "dolt"))
 
-	message := UnknownBackendErrorAt("mystery", beadsDir, &Config{Backend: "mystery"}).Error()
-	for _, want := range []string{"not recognized", BackendNotOpenedGuarantee, doltDir, ConfigPath(beadsDir), `"backend": "dolt"`} {
+	message := UnknownBackendErrorAt("mystery", issuegraphDir, &Config{Backend: "mystery"}).Error()
+	for _, want := range []string{"not recognized", BackendNotOpenedGuarantee, doltDir, ConfigPath(issuegraphDir), `"backend": "dolt"`} {
 		if !strings.Contains(message, want) {
 			t.Errorf("unknown-backend heal message missing %q:\n%s", want, message)
 		}

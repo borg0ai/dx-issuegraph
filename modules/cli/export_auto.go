@@ -14,13 +14,13 @@ import (
 	"sync"
 	"time"
 
-	"github.com/steveyegge/beads/internal/atomicfile"
-	"github.com/steveyegge/beads/internal/beads"
-	"github.com/steveyegge/beads/internal/config"
-	"github.com/steveyegge/beads/internal/debug"
-	"github.com/steveyegge/beads/internal/storage"
-	"github.com/steveyegge/beads/internal/storage/dolt"
-	"github.com/steveyegge/beads/internal/types"
+	"github.com/borg0ai/dx-issuegraph/internal/atomicfile"
+	"github.com/borg0ai/dx-issuegraph/internal/config"
+	"github.com/borg0ai/dx-issuegraph/internal/debug"
+	"github.com/borg0ai/dx-issuegraph/internal/issuegraph"
+	"github.com/borg0ai/dx-issuegraph/internal/storage"
+	"github.com/borg0ai/dx-issuegraph/internal/storage/dolt"
+	"github.com/borg0ai/dx-issuegraph/internal/types"
 )
 
 // incrementalExportThreshold caps the number of changed issue IDs we'll
@@ -41,7 +41,7 @@ const doltWorkingRef = "WORKING"
 const slowExportWarnThreshold = 3 * time.Second
 
 // exportAutoStateVersion is the format version stamped into
-// .beads/export-state.json. BUMP IT whenever the MEANING of a persisted
+// .issuegraph/export-state.json. BUMP IT whenever the MEANING of a persisted
 // field changes — LastDiffAnchor's semantics above all — so a newer binary's
 // state file is discarded by an older one instead of being reinterpreted.
 // Adding a purely additive optional field does not need a bump.
@@ -91,7 +91,7 @@ const gitAddTimeout = 5 * time.Second
 // made `git push` silently publish stale issue state (wy-4ope).
 func maybeAutoExport(ctx context.Context, allowEmptyOverwrite bool) error {
 	// Skip when running as a git hook to avoid re-export during pre-commit.
-	if os.Getenv("BD_GIT_HOOK") == "1" {
+	if os.Getenv("ISSUEGRAPH_GIT_HOOK") == "1" {
 		debug.Logf("auto-export: skipping — running as git hook\n")
 		return nil
 	}
@@ -106,8 +106,8 @@ func maybeAutoExport(ctx context.Context, allowEmptyOverwrite bool) error {
 		return nil
 	}
 
-	beadsDir := beads.FindBeadsDir()
-	if beadsDir == "" {
+	issuegraphDir := issuegraph.FindIssueGraphDir()
+	if issuegraphDir == "" {
 		return nil
 	}
 
@@ -121,10 +121,10 @@ func maybeAutoExport(ctx context.Context, allowEmptyOverwrite bool) error {
 			exportPath = "issues.jsonl"
 		}
 	}
-	fullPath := filepath.Join(beadsDir, exportPath)
+	fullPath := filepath.Join(issuegraphDir, exportPath)
 
 	// Load state + interval.
-	state := loadExportAutoState(beadsDir)
+	state := loadExportAutoState(issuegraphDir)
 	interval := config.GetDuration("export.interval")
 	if interval == 0 {
 		interval = 60 * time.Second
@@ -151,7 +151,7 @@ func maybeAutoExport(ctx context.Context, allowEmptyOverwrite bool) error {
 	// Reconcile the existing JSONL against the store ONCE, and let BOTH
 	// fail-safe guards below read the same answer. A deletion this store can
 	// prove is not divergence for either of them: the empty-overwrite guard
-	// fires first, so without a shared verdict `bd delete <last issue>`
+	// fires first, so without a shared verdict `issuegraph delete <last issue>`
 	// wedges there before the orphan guard ever gets to prove anything
 	// (GH#5896).
 	var provenDeleted []string
@@ -167,12 +167,12 @@ func maybeAutoExport(ctx context.Context, allowEmptyOverwrite bool) error {
 			fmt.Fprintf(os.Stderr, "Warning: auto-export skipped: failed to check existing JSONL: %v\n", err)
 			return nil
 		} else if skip {
-			fmt.Fprintf(os.Stderr, "Warning: auto-export skipped: current database would export 0 issues, but %s already contains %d issue(s); refusing to overwrite. Run `bd init --from-jsonl` to import the JSONL file, or move it aside and retry.\n", fullPath, existingCount)
+			fmt.Fprintf(os.Stderr, "Warning: auto-export skipped: current database would export 0 issues, but %s already contains %d issue(s); refusing to overwrite. Run `issuegraph init --from-jsonl` to import the JSONL file, or move it aside and retry.\n", fullPath, existingCount)
 			return nil
 		}
 
 		if len(rec.unproven) > 0 {
-			fmt.Fprintf(os.Stderr, "Warning: auto-export skipped: %s contains %d JSONL-only issue record(s) absent from the local Dolt store (%s); refusing to overwrite. Run `bd init --from-jsonl` to import the JSONL file, or move it aside and retry.\n", fullPath, len(rec.unproven), strings.Join(sampleStrings(rec.unproven, 5), ", "))
+			fmt.Fprintf(os.Stderr, "Warning: auto-export skipped: %s contains %d JSONL-only issue record(s) absent from the local Dolt store (%s); refusing to overwrite. Run `issuegraph init --from-jsonl` to import the JSONL file, or move it aside and retry.\n", fullPath, len(rec.unproven), strings.Join(sampleStrings(rec.unproven, 5), ", "))
 			return nil
 		}
 	}
@@ -229,11 +229,11 @@ func maybeAutoExport(ctx context.Context, allowEmptyOverwrite bool) error {
 		// Only warn on full exports — the whole point of incremental is to
 		// get us under the threshold, so a slow incremental is noise.
 		fmt.Fprintf(os.Stderr,
-			"Warning: auto-export wrote %d issues in %s (runs after every bd command that changes state).\n"+
+			"Warning: auto-export wrote %d issues in %s (runs after every issuegraph command that changes state).\n"+
 				"  Large closed-issue backlogs make this expensive. Levers:\n"+
-				"    bd purge --force                         remove closed wisps (ephemeral beads)\n"+
-				"    bd config set export.interval 10m        reduce auto-export frequency\n"+
-				"    bd config set export.auto false          disable auto-export entirely\n",
+				"    issuegraph purge --force                         remove closed wisps (ephemeral issuegraph)\n"+
+				"    issuegraph config set export.interval 10m        reduce auto-export frequency\n"+
+				"    issuegraph config set export.auto false          disable auto-export entirely\n",
 			issueCount, dur.Round(time.Second))
 	}
 
@@ -245,13 +245,13 @@ func maybeAutoExport(ctx context.Context, allowEmptyOverwrite bool) error {
 		issueCount, memoryCount, fullPath, mode, time.Since(exportStart).Round(time.Millisecond))
 
 	// Don't prime the throttle on an empty export (e.g. immediately after
-	// `bd init`). Saving state here would block the first real `bd create`
+	// `issuegraph init`). Saving state here would block the first real `issuegraph create`
 	// from exporting for up to export.interval seconds even though the data
 	// has changed. Remove the empty file too so users don't see a stale 0-byte
 	// issues.jsonl before any issues exist.
 	if issueCount == 0 && memoryCount == 0 {
 		_ = os.Remove(fullPath)
-		saveExportAutoState(beadsDir, &exportAutoState{
+		saveExportAutoState(issuegraphDir, &exportAutoState{
 			LastDoltCommit: currentCommit,
 			LastDiffAnchor: anchorCommit,
 			LastDirtyIDs:   dirtyIDs,
@@ -264,7 +264,7 @@ func maybeAutoExport(ctx context.Context, allowEmptyOverwrite bool) error {
 	warnJSONLWithoutDoltRemote("auto-export")
 
 	// Optional git add — skip when no-git-ops is set (GH#3314), when not in a
-	// git repo (standalone BEADS_DIR flow), or when export.git-add is false.
+	// git repo (standalone ISSUEGRAPH_DIR flow), or when export.git-add is false.
 	if config.GetBool("export.git-add") && !config.GetBool("no-git-ops") && isGitRepo() {
 		if err := gitAddFile(fullPath); err != nil {
 			return fmt.Errorf("auto-export: git add failed: %w", err)
@@ -280,7 +280,7 @@ func maybeAutoExport(ctx context.Context, allowEmptyOverwrite bool) error {
 		Issues:         issueCount,
 		Memories:       memoryCount,
 	}
-	saveExportAutoState(beadsDir, &newState)
+	saveExportAutoState(issuegraphDir, &newState)
 	return nil
 }
 
@@ -374,7 +374,7 @@ func reconcileAutoExportJSONL(ctx context.Context, path, fromCommit string) (*au
 	}
 
 	// Store-side query stays unfiltered and MaxRows: 0 (opts out of
-	// BEADS_MAX_ROWS). This guard's failure mode is a permanent wedge, so a
+	// ISSUEGRAPH_MAX_ROWS). This guard's failure mode is a permanent wedge, so a
 	// narrower filter here — or a row cap — can only ever manufacture
 	// phantom "missing" ids, never fewer (maphew review, GH#4988 follow-up).
 	// buildAutoExportFilter is still consulted for infraTypeSet, which
@@ -558,7 +558,7 @@ type commitHistoryChecker interface {
 
 // diffAnchorOnCurrentHistory reports whether anchor is still reachable from
 // the current HEAD. It is the ancestry precondition on trusting a dolt_diff
-// "removed" verdict as proof of a real `bd delete` rather than a history
+// "removed" verdict as proof of a real `issuegraph delete` rather than a history
 // rewind — see reconcileAutoExportJSONL. Fails closed: a store that
 // cannot answer, or an error while asking, yields false so the caller keeps
 // refusing to overwrite.
@@ -677,7 +677,7 @@ func autoExportFilter(ctx context.Context) types.IssueFilter {
 }
 
 func buildAutoExportFilter(ctx context.Context) (types.IssueFilter, map[string]bool) {
-	// MaxRows: 0 opts out of BEADS_MAX_ROWS — auto-export is a data-integrity
+	// MaxRows: 0 opts out of ISSUEGRAPH_MAX_ROWS — auto-export is a data-integrity
 	// sweep and must not be capped (designer §4.1).
 	filter := types.IssueFilter{Limit: 0, MaxRows: 0}
 	var infraTypes []string
@@ -713,7 +713,7 @@ func buildAutoExportFilter(ctx context.Context) (types.IssueFilter, map[string]b
 
 // exportToFile atomically exports issues + memories to the given file path.
 // Writes to a temp file first, then renames into place so readers never see
-// a partial or truncated export. Used by both `bd export -o` and auto-export.
+// a partial or truncated export. Used by both `issuegraph export -o` and auto-export.
 func exportToFile(ctx context.Context, path string, includeMemories bool) (issueCount, memoryCount int, err error) {
 	w, err := atomicfile.Create(path, 0o644)
 	if err != nil {
@@ -732,9 +732,9 @@ func exportToFile(ctx context.Context, path string, includeMemories bool) (issue
 	}
 
 	// Owner-exclusion safety net: auto-export writes the git-committed
-	// .beads/issues.jsonl, so the export.exclude_owners config (and legacy
+	// .issuegraph/issues.jsonl, so the export.exclude_owners config (and legacy
 	// export.exclude_owner) must filter here too. Otherwise contributor/personal
-	// issues that the manual `bd export` path excludes can still leak into git
+	// issues that the manual `issuegraph export` path excludes can still leak into git
 	// history and PRs via auto-export (maphew review, be-e2nb). Auto-export has
 	// no --exclude-owner flag, so only config-sourced owners apply here.
 	if ownerExcludes := buildOwnerExcludeSet(ctx, storeExportSource{}, nil); len(ownerExcludes) > 0 {
@@ -951,8 +951,8 @@ func classifyExistingAutoExportRecord(line []byte, infraTypes map[string]bool, i
 	}
 }
 
-func loadExportAutoState(beadsDir string) *exportAutoState {
-	path := filepath.Join(beadsDir, exportAutoStateFile)
+func loadExportAutoState(issuegraphDir string) *exportAutoState {
+	path := filepath.Join(issuegraphDir, exportAutoStateFile)
 	data, err := os.ReadFile(path) //nolint:gosec
 	if err != nil {
 		debug.Logf("auto-export: state-load miss (%s): %v\n", path, err)
@@ -972,8 +972,8 @@ func loadExportAutoState(beadsDir string) *exportAutoState {
 	return &state
 }
 
-func saveExportAutoState(beadsDir string, state *exportAutoState) {
-	path := filepath.Join(beadsDir, exportAutoStateFile)
+func saveExportAutoState(issuegraphDir string, state *exportAutoState) {
+	path := filepath.Join(issuegraphDir, exportAutoStateFile)
 	// Stamped here rather than at the call sites so there is exactly one
 	// place that decides what version a written file claims to be.
 	state.FormatVersion = exportAutoStateVersion
@@ -982,7 +982,7 @@ func saveExportAutoState(beadsDir string, state *exportAutoState) {
 		fmt.Fprintf(os.Stderr, "Warning: auto-export: failed to marshal state: %v\n", err)
 		return
 	}
-	// Write atomically — concurrent bd invocations read this file in
+	// Write atomically — concurrent issuegraph invocations read this file in
 	// maybeAutoExport, and a plain os.WriteFile leaves a brief window
 	// after O_TRUNC but before the data lands where readers see an empty
 	// file. An empty state looks like "no prior commit" to the rest of
@@ -997,7 +997,7 @@ func saveExportAutoState(beadsDir string, state *exportAutoState) {
 // inside a git hook, it scrubs inherited GIT_* env vars (so git
 // rediscovers the repo from cwd rather than treating cmd.Dir as the
 // worktree root) and skips staging when the target is outside the hook's
-// worktree (the .beads/redirect case, where staging would pollute the
+// worktree (the .issuegraph/redirect case, where staging would pollute the
 // main repo's index). See GH#3311, scrubGitHookEnv, hookWorkTreeRoot.
 func gitAddFile(path string) error {
 	if wt := hookWorkTreeRoot(); wt != "" && !pathInsideDir(path, wt) {
@@ -1020,8 +1020,8 @@ func gitAddFile(path string) error {
 	ctx, cancel := context.WithTimeout(context.Background(), gitAddTimeout)
 	defer cancel()
 	// Pass the basename only, defensively: cmd.Dir is the parent of path, so
-	// a full path argument would double-root (cd .beads && git add
-	// .beads/issues.jsonl → pathspec looks under .beads/.beads/) if a caller
+	// a full path argument would double-root (cd .issuegraph && git add
+	// .issuegraph/issues.jsonl → pathspec looks under .issuegraph/.issuegraph/) if a caller
 	// ever passed a relative path here. Both current callers pass absolute
 	// paths, so this guards against a regression rather than fixing a live
 	// failure. See GH#4351.
@@ -1077,7 +1077,7 @@ func gitIndexLockPath(path string, env []string) (string, error) {
 // so git falls back to auto-discovery from cwd. The scrub is
 // unconditional: if a user has intentionally exported any of these vars
 // for scripting purposes, they will be stripped from the git-add child
-// process. That is the correct trade-off here; we never want beads'
+// process. That is the correct trade-off here; we never want issuegraph'
 // auto-stage to honor a GIT_DIR pointing at an unrelated repo.
 //
 // Covered vars:
@@ -1169,7 +1169,7 @@ func hookWorkTreeRoot() string {
 // symlink to /private/tmp, so asymmetric EvalSymlinks on a nonexistent
 // file vs its existing parent would otherwise produce a spurious false.
 // Callers (gitAddFile) always pass a path whose parent exists (either
-// beadsDir, which FindBeadsDir verified, or a directory just created by
+// issuegraphDir, which FindIssueGraphDir verified, or a directory just created by
 // the export write), so this single-level resolution is sufficient.
 func pathInsideDir(path, dir string) bool {
 	absPath, err := filepath.Abs(path)
@@ -1404,7 +1404,7 @@ func rewriteExportFile(path string, upserts map[string][]byte, removed map[strin
 	// unchanged — auto-export never reads live config for memories (that
 	// would leak private agent context into git history, GH#3650). A file
 	// with no prior memory section (the auto-export-only common case) stays
-	// that way; a file seeded by a manual `bd export --include-memories`
+	// that way; a file seeded by a manual `issuegraph export --include-memories`
 	// keeps its memories across every subsequent incremental patch.
 	for _, memLine := range lines.memoryLines {
 		if _, werr := w.Write(memLine); werr != nil {
@@ -1430,7 +1430,7 @@ func rewriteExportFile(path string, upserts map[string][]byte, removed map[strin
 // memoryLines carries forward any pre-existing memory records verbatim.
 // Auto-export never regenerates memories from live config (GH#3650 — that
 // would leak private agent context into git history), so a file seeded by a
-// manual `bd export --include-memories` must have its memory lines preserved
+// manual `issuegraph export --include-memories` must have its memory lines preserved
 // byte-for-byte across every subsequent incremental patch.
 type orderedIssueLines struct {
 	order       []string

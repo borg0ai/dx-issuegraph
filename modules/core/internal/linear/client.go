@@ -15,8 +15,8 @@ import (
 	"sync"
 	"time"
 
-	"github.com/steveyegge/beads/internal/debug"
-	"github.com/steveyegge/beads/internal/types"
+	"github.com/borg0ai/dx-issuegraph/internal/debug"
+	"github.com/borg0ai/dx-issuegraph/internal/types"
 )
 
 // projectsQuery is the GraphQL query for fetching projects.
@@ -1345,8 +1345,8 @@ func BuildStateCache(ctx context.Context, client *Client) (*StateCache, error) {
 	return cache, nil
 }
 
-// FindStateForBeadsStatus returns the best Linear state ID for a Beads status.
-func (sc *StateCache) FindStateForBeadsStatus(status types.Status) string {
+// FindStateForIssueGraphStatus returns the best Linear state ID for a IssueGraph status.
+func (sc *StateCache) FindStateForIssueGraphStatus(status types.Status) string {
 	targetType := StatusToLinearStateType(status)
 
 	for _, s := range sc.States {

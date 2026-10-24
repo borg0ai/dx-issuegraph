@@ -8,10 +8,10 @@ import (
 
 	"github.com/spf13/cobra"
 
-	"github.com/steveyegge/beads/internal/storage/uow"
-	"github.com/steveyegge/beads/internal/types"
-	"github.com/steveyegge/beads/internal/ui"
-	"github.com/steveyegge/beads/issueops"
+	"github.com/borg0ai/dx-issuegraph/internal/storage/uow"
+	"github.com/borg0ai/dx-issuegraph/internal/types"
+	"github.com/borg0ai/dx-issuegraph/internal/ui"
+	"github.com/borg0ai/dx-issuegraph/issueops"
 )
 
 type depAddResult struct {
@@ -426,7 +426,7 @@ func runDepListProxiedServer(cmd *cobra.Command, ctx context.Context, args []str
 	// `len(args) > 1 && direction == "down"` branch above already uses the
 	// (non-dropping) EdgeReader role for batch mode — so this loop only runs
 	// for "down" with exactly one arg. Warn on stderr so a cross-database
-	// `bd link` isn't indistinguishable from no link at all (bd-mtla); never
+	// `issuegraph link` isn't indistinguishable from no link at all (bd-mtla); never
 	// touches stdout/--json.
 	if direction == "down" && len(args) == 1 {
 		if reader, err := proxiedEdgeReader(); err == nil {
@@ -476,7 +476,7 @@ func runDepListProxiedServer(cmd *cobra.Command, ctx context.Context, args []str
 	return nil
 }
 
-// runDepListRecordsProxiedServer answers `bd dep list a b c` with raw edge
+// runDepListRecordsProxiedServer answers `issuegraph dep list a b c` with raw edge
 // records grouped by source, on the EdgeReader role.
 //
 // THIS ROUTE NOW REPORTS GHOST ANCHORS. It used to have no entry for an id

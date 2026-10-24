@@ -7,10 +7,10 @@ import (
 	"path/filepath"
 	"strings"
 
-	"github.com/steveyegge/beads/modules/cli/doctor/fix"
-	"github.com/steveyegge/beads/internal/configfile"
-	"github.com/steveyegge/beads/internal/doltserver"
-	"github.com/steveyegge/beads/internal/storage/dolt"
+	"github.com/borg0ai/dx-issuegraph/internal/configfile"
+	"github.com/borg0ai/dx-issuegraph/internal/doltserver"
+	"github.com/borg0ai/dx-issuegraph/internal/storage/dolt"
+	"github.com/borg0ai/dx-issuegraph/modules/cli/doctor/fix"
 	"gopkg.in/yaml.v3"
 )
 
@@ -21,13 +21,13 @@ type localConfig struct {
 	PreferDolt bool   `yaml:"prefer-dolt"`
 }
 
-// CheckDoltFormat detects old dolt databases created by pre-0.56 bd versions
+// CheckDoltFormat detects old dolt databases created by pre-0.56 issuegraph versions
 // (GH#2137). Those databases used embedded Dolt mode and may be incompatible
 // with the current server-only architecture. The ensureDoltInit function
 // auto-recovers these at server start; this check provides early detection.
 func CheckDoltFormat(path string) DoctorCheck {
-	_, beadsDir := getBackendAndBeadsDir(path)
-	doltDir := filepath.Join(beadsDir, "dolt")
+	_, issuegraphDir := getBackendAndIssueGraphDir(path)
+	doltDir := filepath.Join(issuegraphDir, "dolt")
 
 	if _, err := os.Stat(filepath.Join(doltDir, ".dolt")); os.IsNotExist(err) {
 		return DoctorCheck{
@@ -42,9 +42,9 @@ func CheckDoltFormat(path string) DoctorCheck {
 		return DoctorCheck{
 			Name:     "Dolt Format",
 			Status:   StatusWarning,
-			Message:  "Dolt database from pre-0.56 bd version (missing .bd-dolt-ok marker)",
+			Message:  "Dolt database from pre-0.56 issuegraph version (missing .bd-dolt-ok marker)",
 			Detail:   fmt.Sprintf("Path: %s", doltDir),
-			Fix:      "Delete .beads/dolt/.dolt/ and re-run, or restart the Dolt server (auto-recovery will rebuild it)",
+			Fix:      "Delete .issuegraph/dolt/.dolt/ and re-run, or restart the Dolt server (auto-recovery will rebuild it)",
 			Category: CategoryCore,
 		}
 	}
@@ -60,28 +60,28 @@ func CheckDoltFormat(path string) DoctorCheck {
 // CheckDatabaseVersion checks the database version and migration status.
 // Opens its own store; prefer CheckDatabaseVersionWithStore when a shared store is available.
 func CheckDatabaseVersion(path string, cliVersion string) DoctorCheck {
-	_, beadsDir := getBackendAndBeadsDir(path)
+	_, issuegraphDir := getBackendAndIssueGraphDir(path)
 
-	doltPath := getDatabasePath(beadsDir)
+	doltPath := getDatabasePath(issuegraphDir)
 	if _, err := os.Stat(doltPath); os.IsNotExist(err) {
 		return DoctorCheck{
 			Name:    "Database",
 			Status:  StatusError,
 			Message: "No dolt database found",
 			Detail:  "Storage: Dolt",
-			Fix:     "Run 'bd bootstrap' as the safe existing-project recovery entry point. Use '--dry-run' to inspect the plan first, and use 'bd init' only for brand-new projects.",
+			Fix:     "Run 'issuegraph bootstrap' as the safe existing-project recovery entry point. Use '--dry-run' to inspect the plan first, and use 'issuegraph init' only for brand-new projects.",
 		}
 	}
 
 	ctx := context.Background()
-	store, err := dolt.NewFromConfigWithCLIOptions(ctx, beadsDir, &dolt.Config{ReadOnly: true})
+	store, err := dolt.NewFromConfigWithCLIOptions(ctx, issuegraphDir, &dolt.Config{ReadOnly: true})
 	if err != nil {
 		return DoctorCheck{
 			Name:    "Database",
 			Status:  StatusError,
 			Message: "Unable to open database",
 			Detail:  fmt.Sprintf("Storage: Dolt\n\nError: %v", err),
-			Fix:     "Run 'bd doctor --fix' to attempt repair. Check 'bd dolt status' for server configuration issues",
+			Fix:     "Run 'issuegraph doctor --fix' to attempt repair. Check 'issuegraph dolt status' for server configuration issues",
 		}
 	}
 	defer func() { _ = store.Close() }()
@@ -91,27 +91,27 @@ func CheckDatabaseVersion(path string, cliVersion string) DoctorCheck {
 
 // CheckDatabaseVersionWithStore checks the database version using a shared store (GH#2636).
 func CheckDatabaseVersionWithStore(ss *SharedStore, cliVersion string) DoctorCheck {
-	beadsDir := sharedStoreBeadsDir(ss)
+	issuegraphDir := sharedStoreIssueGraphDir(ss)
 	store := ss.Store()
 	if store == nil {
-		if !sharedStoreNeedsLocalDoltDir(beadsDir) {
+		if !sharedStoreNeedsLocalDoltDir(issuegraphDir) {
 			return DoctorCheck{
 				Name:    "Database",
 				Status:  StatusError,
 				Message: "Unable to open database",
 				Detail:  "Storage: Dolt",
-				Fix:     "Check 'bd dolt status' for server availability and configured database name, then re-run 'bd doctor'",
+				Fix:     "Check 'issuegraph dolt status' for server availability and configured database name, then re-run 'issuegraph doctor'",
 			}
 		}
 
-		doltPath := getDatabasePath(beadsDir)
+		doltPath := getDatabasePath(issuegraphDir)
 		if _, err := os.Stat(doltPath); os.IsNotExist(err) {
 			return DoctorCheck{
 				Name:    "Database",
 				Status:  StatusError,
 				Message: "No dolt database found",
 				Detail:  "Storage: Dolt",
-				Fix:     "Run 'bd bootstrap' as the safe existing-project recovery entry point. Use '--dry-run' to inspect the plan first, and use 'bd init' only for brand-new projects.",
+				Fix:     "Run 'issuegraph bootstrap' as the safe existing-project recovery entry point. Use '--dry-run' to inspect the plan first, and use 'issuegraph init' only for brand-new projects.",
 			}
 		}
 		return DoctorCheck{
@@ -119,7 +119,7 @@ func CheckDatabaseVersionWithStore(ss *SharedStore, cliVersion string) DoctorChe
 			Status:  StatusError,
 			Message: "Unable to open database",
 			Detail:  "Storage: Dolt",
-			Fix:     "Run 'bd doctor --fix' to attempt repair. Check 'bd dolt status' for server configuration issues",
+			Fix:     "Run 'issuegraph doctor --fix' to attempt repair. Check 'issuegraph dolt status' for server configuration issues",
 		}
 	}
 	return checkDatabaseVersionWithStore(store, cliVersion)
@@ -127,23 +127,23 @@ func CheckDatabaseVersionWithStore(ss *SharedStore, cliVersion string) DoctorChe
 
 func checkDatabaseVersionWithStore(store *dolt.DoltStore, cliVersion string) DoctorCheck {
 	ctx := context.Background()
-	dbVersion, err := store.GetLocalMetadata(ctx, "bd_version")
+	dbVersion, err := store.GetLocalMetadata(ctx, "issuegraph_version")
 	if err != nil {
 		return DoctorCheck{
 			Name:    "Database",
 			Status:  StatusError,
 			Message: "Unable to read database version",
 			Detail:  fmt.Sprintf("Storage: Dolt\n\nError: %v", err),
-			Fix:     "Database may be corrupted. Run 'bd doctor --fix' to recover",
+			Fix:     "Database may be corrupted. Run 'issuegraph doctor --fix' to recover",
 		}
 	}
 	if dbVersion == "" {
-		// bd_version is in local_metadata (dolt-ignored), so it's expected to be
+		// issuegraph_version is in local_metadata (dolt-ignored), so it's expected to be
 		// empty after a working-set reset. It self-heals on next startup.
 		return DoctorCheck{
 			Name:    "Database",
 			Status:  StatusOK,
-			Message: "bd_version not yet stamped (will self-heal on next startup)",
+			Message: "issuegraph_version not yet stamped (will self-heal on next startup)",
 			Detail:  "Storage: Dolt",
 		}
 	}
@@ -154,7 +154,7 @@ func checkDatabaseVersionWithStore(store *dolt.DoltStore, cliVersion string) Doc
 			Status:  StatusWarning,
 			Message: fmt.Sprintf("version %s (CLI: %s)", dbVersion, cliVersion),
 			Detail:  "Storage: Dolt",
-			Fix:     "Update bd CLI and re-run (dolt metadata will be updated automatically)",
+			Fix:     "Update issuegraph CLI and re-run (dolt metadata will be updated automatically)",
 		}
 	}
 
@@ -169,9 +169,9 @@ func checkDatabaseVersionWithStore(store *dolt.DoltStore, cliVersion string) Doc
 // CheckSchemaCompatibility checks if all required tables and columns are present.
 // Opens its own store; prefer CheckSchemaCompatibilityWithStore when a shared store is available.
 func CheckSchemaCompatibility(path string) DoctorCheck {
-	_, beadsDir := getBackendAndBeadsDir(path)
+	_, issuegraphDir := getBackendAndIssueGraphDir(path)
 
-	if info, err := os.Stat(getDatabasePath(beadsDir)); err != nil || !info.IsDir() {
+	if info, err := os.Stat(getDatabasePath(issuegraphDir)); err != nil || !info.IsDir() {
 		return DoctorCheck{
 			Name:    "Schema Compatibility",
 			Status:  StatusOK,
@@ -180,7 +180,7 @@ func CheckSchemaCompatibility(path string) DoctorCheck {
 	}
 
 	ctx := context.Background()
-	store, err := dolt.NewFromConfigWithCLIOptions(ctx, beadsDir, &dolt.Config{ReadOnly: true})
+	store, err := dolt.NewFromConfigWithCLIOptions(ctx, issuegraphDir, &dolt.Config{ReadOnly: true})
 	if err != nil {
 		return DoctorCheck{
 			Name:    "Schema Compatibility",
@@ -216,7 +216,7 @@ func checkSchemaCompatibilityWithStore(store *dolt.DoltStore) DoctorCheck {
 			Status:  StatusError,
 			Message: "Database schema is incomplete or incompatible",
 			Detail:  fmt.Sprintf("Storage: Dolt\n\nError: %v", err),
-			Fix:     "Run 'bd doctor --fix' to attempt repair. If schema is incompatible, export data first with 'bd export'",
+			Fix:     "Run 'issuegraph doctor --fix' to attempt repair. If schema is incompatible, export data first with 'issuegraph export'",
 		}
 	}
 
@@ -231,9 +231,9 @@ func checkSchemaCompatibilityWithStore(store *dolt.DoltStore) DoctorCheck {
 // CheckDatabaseIntegrity runs a basic integrity check on the database.
 // Opens its own store; prefer CheckDatabaseIntegrityWithStore when a shared store is available.
 func CheckDatabaseIntegrity(path string) DoctorCheck {
-	_, beadsDir := getBackendAndBeadsDir(path)
+	_, issuegraphDir := getBackendAndIssueGraphDir(path)
 
-	if info, err := os.Stat(getDatabasePath(beadsDir)); err != nil || !info.IsDir() {
+	if info, err := os.Stat(getDatabasePath(issuegraphDir)); err != nil || !info.IsDir() {
 		return DoctorCheck{
 			Name:    "Database Integrity",
 			Status:  StatusOK,
@@ -242,9 +242,9 @@ func CheckDatabaseIntegrity(path string) DoctorCheck {
 	}
 
 	ctx := context.Background()
-	store, err := dolt.NewFromConfigWithCLIOptions(ctx, beadsDir, &dolt.Config{ReadOnly: true})
+	store, err := dolt.NewFromConfigWithCLIOptions(ctx, issuegraphDir, &dolt.Config{ReadOnly: true})
 	if err != nil {
-		if manualDetail := serverModeIntegrityManualRecoveryDetail(beadsDir); manualDetail != "" {
+		if manualDetail := serverModeIntegrityManualRecoveryDetail(issuegraphDir); manualDetail != "" {
 			return DoctorCheck{
 				Name:    "Database Integrity",
 				Status:  StatusError,
@@ -257,7 +257,7 @@ func CheckDatabaseIntegrity(path string) DoctorCheck {
 			Status:  StatusError,
 			Message: "Failed to open database",
 			Detail:  fmt.Sprintf("Storage: Dolt\n\nError: %v", err),
-			Fix:     "Run 'bd doctor --fix' to attempt repair. Check 'bd dolt status' for server issues",
+			Fix:     "Run 'issuegraph doctor --fix' to attempt repair. Check 'issuegraph dolt status' for server issues",
 		}
 	}
 	defer func() { _ = store.Close() }()
@@ -281,7 +281,7 @@ func CheckDatabaseIntegrityWithStore(ss *SharedStore) DoctorCheck {
 func checkDatabaseIntegrityWithStore(store *dolt.DoltStore) DoctorCheck {
 	ctx := context.Background()
 	// Minimal checks: metadata + statistics. If these work, the store is at least readable.
-	if _, err := store.GetLocalMetadata(ctx, "bd_version"); err != nil {
+	if _, err := store.GetLocalMetadata(ctx, "issuegraph_version"); err != nil {
 		return DoctorCheck{
 			Name:    "Database Integrity",
 			Status:  StatusError,
@@ -306,8 +306,8 @@ func checkDatabaseIntegrityWithStore(store *dolt.DoltStore) DoctorCheck {
 	}
 }
 
-func serverModeIntegrityManualRecoveryDetail(beadsDir string) string {
-	cfg, err := configfile.Load(beadsDir)
+func serverModeIntegrityManualRecoveryDetail(issuegraphDir string) string {
+	cfg, err := configfile.Load(issuegraphDir)
 	if err != nil || cfg == nil || !cfg.IsDoltServerMode() {
 		return ""
 	}
@@ -319,7 +319,7 @@ func serverModeIntegrityManualRecoveryDetail(beadsDir string) string {
 
 	return fmt.Sprintf(
 		"Automatic integrity recovery is disabled for server-mode repos because it can replace the wrong Dolt root.\nPreserve the Dolt root at %s and verify the configured database %q manually before any reinitialization.",
-		getDatabasePath(beadsDir),
+		getDatabasePath(issuegraphDir),
 		dbName,
 	)
 }
@@ -329,9 +329,9 @@ func serverModeIntegrityManualRecoveryDetail(beadsDir string) string {
 // fields and are unprotected against cross-project data leakage.
 // Opens its own store; prefer CheckProjectIdentityWithStore when a shared store is available.
 func CheckProjectIdentity(path string) DoctorCheck {
-	_, beadsDir := getBackendAndBeadsDir(path)
+	_, issuegraphDir := getBackendAndIssueGraphDir(path)
 
-	cfg, err := configfile.Load(beadsDir)
+	cfg, err := configfile.Load(issuegraphDir)
 	if err != nil || cfg == nil {
 		return DoctorCheck{
 			Name:     "Project Identity",
@@ -341,7 +341,7 @@ func CheckProjectIdentity(path string) DoctorCheck {
 		}
 	}
 
-	doltPath := getDatabasePath(beadsDir)
+	doltPath := getDatabasePath(issuegraphDir)
 	if _, err := os.Stat(doltPath); os.IsNotExist(err) {
 		return DoctorCheck{
 			Name:     "Project Identity",
@@ -355,7 +355,7 @@ func CheckProjectIdentity(path string) DoctorCheck {
 
 	// Check database for _project_id
 	ctx := context.Background()
-	store, err := dolt.NewFromConfigWithCLIOptions(ctx, beadsDir, &dolt.Config{ReadOnly: true})
+	store, err := dolt.NewFromConfigWithCLIOptions(ctx, issuegraphDir, &dolt.Config{ReadOnly: true})
 	if err != nil {
 		// Can't open DB — report based on metadata.json alone
 		return checkProjectIdentityNoStore(cfg, hasLocalID)
@@ -367,9 +367,9 @@ func CheckProjectIdentity(path string) DoctorCheck {
 
 // CheckProjectIdentityWithStore checks project identity using a shared store (GH#2636).
 func CheckProjectIdentityWithStore(ss *SharedStore, path string) DoctorCheck {
-	_, beadsDir := getBackendAndBeadsDir(path)
+	_, issuegraphDir := getBackendAndIssueGraphDir(path)
 
-	cfg, err := configfile.Load(beadsDir)
+	cfg, err := configfile.Load(issuegraphDir)
 	if err != nil || cfg == nil {
 		return DoctorCheck{
 			Name:     "Project Identity",
@@ -383,7 +383,7 @@ func CheckProjectIdentityWithStore(ss *SharedStore, path string) DoctorCheck {
 
 	store := ss.Store()
 	if store == nil {
-		doltPath := getDatabasePath(beadsDir)
+		doltPath := getDatabasePath(issuegraphDir)
 		if _, err := os.Stat(doltPath); os.IsNotExist(err) {
 			return DoctorCheck{
 				Name:     "Project Identity",
@@ -404,7 +404,7 @@ func checkProjectIdentityNoStore(_ *configfile.Config, hasLocalID bool) DoctorCh
 			Name:     "Project Identity",
 			Status:   StatusWarning,
 			Message:  "Missing project_id in metadata.json (unable to check database)",
-			Fix:      "Run 'bd doctor --fix' to generate and backfill project identity",
+			Fix:      "Run 'issuegraph doctor --fix' to generate and backfill project identity",
 			Category: CategoryData,
 		}
 	}
@@ -430,7 +430,7 @@ func checkProjectIdentityWithStore(store *dolt.DoltStore, cfg *configfile.Config
 				Status:   StatusError,
 				Message:  fmt.Sprintf("Project ID mismatch: metadata.json=%s, database=%s", cfg.ProjectID, dbID),
 				Detail:   "This may indicate cross-project data leakage (GH#2372)",
-				Fix:      "Run 'bd doctor --fix' or 'bd bootstrap' to reconcile metadata.json with the authoritative database. If unexpected, run 'bd dolt status' first. Do NOT run 'bd init'",
+				Fix:      "Run 'issuegraph doctor --fix' or 'issuegraph bootstrap' to reconcile metadata.json with the authoritative database. If unexpected, run 'issuegraph dolt status' first. Do NOT run 'issuegraph init'",
 				Category: CategoryData,
 			}
 		}
@@ -456,7 +456,7 @@ func checkProjectIdentityWithStore(store *dolt.DoltStore, cfg *configfile.Config
 		Status:   StatusWarning,
 		Message:  fmt.Sprintf("Missing project_id in: %s (pre-GH#2372 project)", strings.Join(missing, ", ")),
 		Detail:   "Without project identity, cross-project data leakage cannot be detected",
-		Fix:      "Run 'bd doctor --fix' to generate and backfill project identity",
+		Fix:      "Run 'issuegraph doctor --fix' to generate and backfill project identity",
 		Category: CategoryData,
 	}
 }
@@ -470,20 +470,20 @@ func FixDatabaseConfig(path string) error {
 
 // getDatabasePath returns the actual database directory path, respecting dolt_data_dir.
 // When dolt_data_dir is configured (e.g. ext4 redirect for WSL), the database lives
-// outside .beads/dolt/ — this function resolves the correct location.
-func getDatabasePath(beadsDir string) string {
-	cfg, err := configfile.Load(beadsDir)
+// outside .issuegraph/dolt/ — this function resolves the correct location.
+func getDatabasePath(issuegraphDir string) string {
+	cfg, err := configfile.Load(issuegraphDir)
 	if err != nil || cfg == nil {
-		return filepath.Join(beadsDir, "dolt") // fallback to default
+		return filepath.Join(issuegraphDir, "dolt") // fallback to default
 	}
-	return cfg.DatabasePath(beadsDir)
+	return cfg.DatabasePath(issuegraphDir)
 }
 
 // isNoDbModeConfigured checks if no-db: true is set in config.yaml
 // Uses proper YAML parsing to avoid false matches in comments or nested keys
-func isNoDbModeConfigured(beadsDir string) bool {
-	configPath := filepath.Join(beadsDir, "config.yaml")
-	data, err := os.ReadFile(configPath) // #nosec G304 - config file path from beadsDir
+func isNoDbModeConfigured(issuegraphDir string) bool {
+	configPath := filepath.Join(issuegraphDir, "config.yaml")
+	data, err := os.ReadFile(configPath) // #nosec G304 - config file path from issuegraphDir
 	if err != nil {
 		return false
 	}
@@ -498,7 +498,7 @@ func isNoDbModeConfigured(beadsDir string) bool {
 
 // CheckDatabaseSize warns when the database has accumulated many closed issues.
 // This is purely informational - pruning is NEVER auto-fixed because it
-// permanently deletes data. Users must explicitly run 'bd prune' to prune.
+// permanently deletes data. Users must explicitly run 'issuegraph prune' to prune.
 //
 // Config: doctor.suggest_pruning_issue_count (default: 5000, 0 = disabled)
 //
@@ -509,9 +509,9 @@ func isNoDbModeConfigured(beadsDir string) bool {
 // CheckDatabaseSize warns when the database has accumulated many closed issues.
 // Opens its own store; prefer CheckDatabaseSizeWithStore when a shared store is available.
 func CheckDatabaseSize(path string) DoctorCheck {
-	_, beadsDir := getBackendAndBeadsDir(path)
+	_, issuegraphDir := getBackendAndIssueGraphDir(path)
 
-	doltPath := getDatabasePath(beadsDir)
+	doltPath := getDatabasePath(issuegraphDir)
 	if _, err := os.Stat(doltPath); os.IsNotExist(err) {
 		return DoctorCheck{
 			Name:    "Large Database",
@@ -521,7 +521,7 @@ func CheckDatabaseSize(path string) DoctorCheck {
 	}
 
 	ctx := context.Background()
-	store, err := dolt.NewFromConfigWithCLIOptions(ctx, beadsDir, &dolt.Config{ReadOnly: true})
+	store, err := dolt.NewFromConfigWithCLIOptions(ctx, issuegraphDir, &dolt.Config{ReadOnly: true})
 	if err != nil {
 		return DoctorCheck{
 			Name:    "Large Database",
@@ -589,14 +589,14 @@ func checkDatabaseSizeWithStore(store *dolt.DoltStore) DoctorCheck {
 
 // largeDatabaseWarning builds the over-threshold Large Database check. Split
 // out so tests can pin the recommended remedy to a command that actually
-// exists: 'bd prune' is the root-level lifecycle command ('cleanup' only
-// exists as 'bd admin cleanup').
+// exists: 'issuegraph prune' is the root-level lifecycle command ('cleanup' only
+// exists as 'issuegraph admin cleanup').
 func largeDatabaseWarning(closedIssues, threshold int) DoctorCheck {
 	return DoctorCheck{
 		Name:    "Large Database",
 		Status:  StatusWarning,
 		Message: fmt.Sprintf("%d closed issues (threshold: %d)", closedIssues, threshold),
 		Detail:  "Large number of closed issues may impact performance",
-		Fix:     "Consider running 'bd prune --older-than 90d' to prune old closed issues (preview; add --force to delete)",
+		Fix:     "Consider running 'issuegraph prune --older-than 90d' to prune old closed issues (preview; add --force to delete)",
 	}
 }

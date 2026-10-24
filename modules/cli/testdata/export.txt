@@ -1,10 +1,10 @@
-# Test bd export command
-bd init --prefix test
-bd create 'Test issue'
-bd export -o export.jsonl
+# Test issuegraph export command
+issuegraph init --prefix test
+issuegraph create 'Test issue'
+issuegraph export -o export.jsonl
 exists export.jsonl
 
 # Verify the exported file contains the issue
-bd import export.jsonl
-bd list
+issuegraph import export.jsonl
+issuegraph list
 stdout 'Test issue'

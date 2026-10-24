@@ -7,11 +7,11 @@ import (
 	"strings"
 	"time"
 
-	"github.com/steveyegge/beads/internal/lockfile"
-	"github.com/steveyegge/beads/internal/storage/dbproxy/identity"
-	"github.com/steveyegge/beads/internal/storage/dbproxy/pidfile"
-	"github.com/steveyegge/beads/internal/storage/dbproxy/server"
-	"github.com/steveyegge/beads/internal/storage/dbproxy/util"
+	"github.com/borg0ai/dx-issuegraph/internal/lockfile"
+	"github.com/borg0ai/dx-issuegraph/internal/storage/dbproxy/identity"
+	"github.com/borg0ai/dx-issuegraph/internal/storage/dbproxy/pidfile"
+	"github.com/borg0ai/dx-issuegraph/internal/storage/dbproxy/server"
+	"github.com/borg0ai/dx-issuegraph/internal/storage/dbproxy/util"
 )
 
 // ForceStopOptions configures ForceStopUnverified.
@@ -36,7 +36,7 @@ type ForceStopReport struct {
 }
 
 // ForceStopUnverified is the narrow recovery primitive used by
-// `bd dolt stop --force` after an ordinary verified Shutdown refuses an
+// `issuegraph dolt stop --force` after an ordinary verified Shutdown refuses an
 // unverifiable proxy or backend record. It applies the same procedure to the
 // proxy record (proxy.pid) and the backend record (proxy-child.pid): a
 // pre-v2 managed-local deployment leaves BOTH as legacy records, so covering
@@ -49,7 +49,7 @@ type ForceStopReport struct {
 // the live PID, waits for the lock to become free, then quarantines only if
 // the record is unchanged. Both flows accept an already-gone recorded
 // process. An unverified live PID is never signaled unless its executable
-// basename is exactly bd or dolt (with an optional .exe suffix) AND its
+// basename is exactly issuegraph or dolt (with an optional .exe suffix) AND its
 // command line scopes it to this workspace; where the platform cannot
 // establish that scope, force-stop refuses rather than guessing.
 func ForceStopUnverified(rootDir string, opts ...ForceStopOptions) (ForceStopReport, error) {
@@ -213,16 +213,16 @@ func inspectAndStopUnverifiedPID(rootDir string, pid int, deadline time.Time, re
 	}
 	executable = normalizeForceStopExecutable(executable)
 	report.Executable = executable
-	if executable != "bd" && executable != "dolt" {
+	if executable != "issuegraph" && executable != "dolt" {
 		return fmt.Errorf(
-			"proxy.ForceStopUnverified: refusing to signal pid %d from %s: executable basename is %q, want bd or dolt",
+			"proxy.ForceStopUnverified: refusing to signal pid %d from %s: executable basename is %q, want issuegraph or dolt",
 			pid,
 			report.RecordPath,
 			executable,
 		)
 	}
 
-	// Basename alone would let a recycled PID now running an unrelated bd or
+	// Basename alone would let a recycled PID now running an unrelated issuegraph or
 	// dolt be killed; require the command line to tie the process to THIS
 	// workspace, and refuse when that scope cannot be established.
 	scoped, gone, err := proc.commandLineContains(rootDir)

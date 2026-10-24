@@ -4,8 +4,8 @@ import (
 	"context"
 	"testing"
 
-	"github.com/steveyegge/beads/backend/conformance"
-	"github.com/steveyegge/beads/internal/types"
+	"github.com/borg0ai/dx-issuegraph/backend/conformance"
+	"github.com/borg0ai/dx-issuegraph/internal/types"
 )
 
 // TestWorkspaceConfigContract runs the WorkspaceConfig contract against the
@@ -15,7 +15,7 @@ import (
 //
 // It is also the wiring the projection cases were written for: this backend
 // stored status.custom and types.custom without rewriting the tables that reads
-// consult first, so a proxied `bd config set types.custom` reported success and
+// consult first, so a proxied `issuegraph config set types.custom` reported success and
 // never took effect.
 //
 // One provider for the whole suite (each newUOWRoleFixtureProvider boots a real

@@ -4,10 +4,10 @@ import (
 	"context"
 	"fmt"
 
+	"github.com/borg0ai/dx-issuegraph/internal/metrics"
+	"github.com/borg0ai/dx-issuegraph/internal/types"
+	"github.com/borg0ai/dx-issuegraph/internal/ui"
 	"github.com/spf13/cobra"
-	"github.com/steveyegge/beads/internal/metrics"
-	"github.com/steveyegge/beads/internal/types"
-	"github.com/steveyegge/beads/internal/ui"
 )
 
 var molStaleCmd = &cobra.Command{
@@ -24,11 +24,11 @@ A molecule is considered stale if:
 By default, shows all complete-but-unclosed molecules.
 
 Examples:
-  bd mol stale              # List all stale molecules
-  bd mol stale --json       # Machine-readable output
-  bd mol stale --blocking   # Only show those blocking other work
-  bd mol stale --unassigned # Only show unassigned molecules
-  bd mol stale --all        # Include molecules with 0 children`,
+  issuegraph mol stale              # List all stale molecules
+  issuegraph mol stale --json       # Machine-readable output
+  issuegraph mol stale --blocking   # Only show those blocking other work
+  issuegraph mol stale --unassigned # Only show unassigned molecules
+  issuegraph mol stale --all        # Include molecules with 0 children`,
 	SilenceUsage:  true,
 	SilenceErrors: true,
 	RunE:          runMolStale,
@@ -109,14 +109,14 @@ func renderStaleResult(result *StaleResult, blockingOnly bool) {
 		if mol.BlockingCount > 0 {
 			fmt.Printf("  %s  %s  (%s) [blocking %d]\n",
 				ui.RenderID(mol.ID), mol.Title, progress, mol.BlockingCount)
-			fmt.Printf("       → Close with: bd close %s\n", mol.ID)
+			fmt.Printf("       → Close with: issuegraph close %s\n", mol.ID)
 			if mol.BlockingCount <= 3 {
 				fmt.Printf("       → Blocking: %v\n", mol.BlockingIssues)
 			}
 		} else {
 			fmt.Printf("  %s  %s  (%s)\n",
 				ui.RenderID(mol.ID), mol.Title, progress)
-			fmt.Printf("       → Close with: bd close %s\n", mol.ID)
+			fmt.Printf("       → Close with: issuegraph close %s\n", mol.ID)
 		}
 		fmt.Println()
 	}

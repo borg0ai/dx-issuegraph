@@ -3,9 +3,9 @@ package main
 import (
 	"fmt"
 
-	"github.com/steveyegge/beads/internal/types"
-	"github.com/steveyegge/beads/internal/ui"
-	"github.com/steveyegge/beads/internal/validation"
+	"github.com/borg0ai/dx-issuegraph/internal/types"
+	"github.com/borg0ai/dx-issuegraph/internal/ui"
+	"github.com/borg0ai/dx-issuegraph/internal/validation"
 )
 
 // runConventionsCheck runs a composite conventions check: lint, stale, and orphans.
@@ -110,7 +110,7 @@ func runConventionsLint() ([]doctorCheck, error) {
 
 	ctx := rootCtx
 	openStatus := types.StatusOpen
-	// Env-only cap (designer §4): operator opt-in via BEADS_MAX_ROWS.
+	// Env-only cap (designer §4): operator opt-in via ISSUEGRAPH_MAX_ROWS.
 	maxRows, maxRowsSource := resolveMaxRowsEnvOnly()
 	issues, err := store.SearchIssues(ctx, "", types.IssueFilter{
 		Status:        &openStatus,
@@ -149,7 +149,7 @@ func runConventionsLint() ([]doctorCheck, error) {
 		Name:     "conventions.lint",
 		Status:   statusWarning,
 		Message:  fmt.Sprintf("%d of %d open issues missing recommended sections", warningCount, len(issues)),
-		Fix:      "bd lint",
+		Fix:      "issuegraph lint",
 		Category: "Conventions",
 	}}, nil
 }
@@ -190,7 +190,7 @@ func runConventionsStale() []doctorCheck {
 		Name:     "conventions.stale",
 		Status:   statusWarning,
 		Message:  fmt.Sprintf("%d issues inactive for 14+ days", len(staleIssues)),
-		Fix:      "bd stale",
+		Fix:      "issuegraph stale",
 		Category: "Conventions",
 	}}
 }
@@ -221,7 +221,7 @@ func runConventionsOrphans(path string) []doctorCheck {
 		Name:     "conventions.orphans",
 		Status:   statusWarning,
 		Message:  fmt.Sprintf("%d issues referenced in commits but still open", len(orphans)),
-		Fix:      "bd orphans",
+		Fix:      "issuegraph orphans",
 		Category: "Conventions",
 	}}
 }

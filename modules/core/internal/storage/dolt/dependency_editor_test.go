@@ -3,8 +3,8 @@ package dolt
 import (
 	"testing"
 
-	"github.com/steveyegge/beads/internal/types"
-	publicops "github.com/steveyegge/beads/issueops"
+	"github.com/borg0ai/dx-issuegraph/internal/types"
+	publicops "github.com/borg0ai/dx-issuegraph/issueops"
 )
 
 // What is left here is the DependencyEditor's PERSISTENCE tier: how a history
@@ -69,7 +69,7 @@ func TestDoltStoreDependencyEditorSingleEdgeNamesTheHistoryEntry(t *testing.T) {
 	}); err != nil {
 		t.Fatalf("AddDependencies single: %v", err)
 	}
-	if !doltHasCommitMessage(ctx, t, store, "bd: dep add test-dep-msg-a test-dep-msg-b") {
+	if !doltHasCommitMessage(ctx, t, store, "issuegraph: dep add test-dep-msg-a test-dep-msg-b") {
 		t.Fatal("a single edge did not name both endpoints in history")
 	}
 }
@@ -99,7 +99,7 @@ func TestDoltStoreDependencyEditorRemoveNamesTheHistoryEntry(t *testing.T) {
 		t.Fatalf("RemoveDependency: %v", err)
 	}
 
-	if !doltHasCommitMessage(ctx, t, store, "bd: dep remove test-dep-rm-a test-dep-rm-b") {
+	if !doltHasCommitMessage(ctx, t, store, "issuegraph: dep remove test-dep-rm-a test-dep-rm-b") {
 		t.Fatal("the removal did not name the edge in history")
 	}
 	requireCleanTables(ctx, t, store, "dependencies")

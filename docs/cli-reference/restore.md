@@ -1,11 +1,11 @@
 ---
-title: "bd restore"
+title: "issuegraph restore"
 description: "Restore the pre-compaction content of a compacted issue."
 ---
 
 {/* AUTO-GENERATED: do not edit manually */}
 
-Generated from `bd help --doc restore`.
+Generated from `issuegraph help --doc restore`.
 
 Restore the pre-compaction content of a compacted issue.
 
@@ -17,12 +17,12 @@ By default it is read-only: it displays the archived content without modifying
 the database. Pass --apply to write the original content back into the issue
 and step its compaction level back down.
 
-If no archived snapshot exists (e.g. the issue was compacted by an older bd
+If no archived snapshot exists (e.g. the issue was compacted by an older issuegraph
 before snapshot archiving), restore falls back to a best-effort reconstruction
 from Dolt version history, which can only be displayed, not applied.
 
 ```
-bd restore <issue-id> [flags]
+issuegraph restore <issue-id> [flags]
 ```
 
 **Flags:**

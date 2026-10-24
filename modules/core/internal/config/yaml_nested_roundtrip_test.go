@@ -35,7 +35,7 @@ func TestDottedKeysRoundTripThroughEveryConfigShape(t *testing.T) {
 		{name: "flat dotted keys", seed: "dolt.host: 10.0.0.1\ndolt.port: 3307\n", present: true},
 		{name: "flat commented key", seed: "# dolt.host: 10.0.0.1\n", present: true},
 		{name: "existing dolt section", seed: "dolt:\n    host: 10.0.0.1\n", present: true},
-		{name: "unrelated nested section", seed: "sync:\n    branch: beads-sync\n", present: true},
+		{name: "unrelated nested section", seed: "sync:\n    branch: issuegraph-sync\n", present: true},
 		{name: "unrelated flat key", seed: "node_id: somewhere\n", present: true},
 		{name: "mixed flat and nested", seed: "dolt.host: 10.0.0.1\ndolt:\n    port: 3307\n", present: true},
 	}
@@ -93,7 +93,7 @@ func TestDottedKeysRoundTripThroughEveryConfigShape(t *testing.T) {
 				}
 			}
 			// Comments the file arrived with are the operator's, and a write that
-			// drops them is a committed diff nobody asked for. `bd init` writes a
+			// drops them is a committed diff nobody asked for. `issuegraph init` writes a
 			// template that is nothing BUT comments, so this is the common case,
 			// not an exotic one.
 			for _, line := range strings.Split(tc.seed, "\n") {
@@ -120,7 +120,7 @@ func hasLiveFlatKey(content, key string) bool {
 }
 
 // Keys the caller does not own are left exactly as written. Rewriting the whole
-// file would be bd deciding how someone else's config should look.
+// file would be issuegraph deciding how someone else's config should look.
 func TestDottedWriteLeavesOtherKeysAlone(t *testing.T) {
 	dir := t.TempDir()
 	seed := "# keep this comment\nsync.branch: keep-me\ndolt.host: 10.0.0.1\nnode_id: mini\n"
@@ -178,7 +178,7 @@ func TestDottedWritePreservesExistingFlatSpelling(t *testing.T) {
 
 // Updating an existing flat key must change that key's line and nothing else.
 // The branch exists to leave a file other writers share alone, so rewriting the
-// rest of it to bd's taste defeats the point: config.yaml is git-tracked, and a
+// rest of it to issuegraph's taste defeats the point: config.yaml is git-tracked, and a
 // one-key set that re-indents unrelated sections and drops blank separators is a
 // whole-file diff nobody asked for (bd-zj95 review, Finding 2).
 //
@@ -268,7 +268,7 @@ func TestDottedSetKeepsTheTrailingCommentOnTheKeyItRewrites(t *testing.T) {
 }
 
 // Rewriting the key's line means rewriting the line the key is ACTUALLY on,
-// whatever it looks like. A quoted flat key is still that key — bd never writes
+// whatever it looks like. A quoted flat key is still that key — issuegraph never writes
 // one, but a shared config.yaml can arrive with one, and a writer that matches
 // the unquoted spelling by text finds nothing and appends a second flat key
 // beside the first, leaving the value it just "set" unreadable.
@@ -324,7 +324,7 @@ func TestDottedSetOnAMultiLineFlatKeyStillWrites(t *testing.T) {
 }
 
 // A single-segment key has no nesting to do and must keep working exactly as it
-// did: this is the shape most of bd's config keys have.
+// did: this is the shape most of issuegraph's config keys have.
 func TestUndottedKeysAreUnaffected(t *testing.T) {
 	dir := t.TempDir()
 	if err := os.WriteFile(filepath.Join(dir, "config.yaml"), []byte("# seed\n"), 0o600); err != nil {
@@ -343,7 +343,7 @@ func TestUndottedKeysAreUnaffected(t *testing.T) {
 // round-trip break in the other direction: UnsetYamlConfig comments out the
 // line matching the key, and its pattern only ever matched a FLAT
 // `sync.remote:` line. Once the writer nests, an unset silently does nothing
-// and the value stays live — which for sync.remote means bd keeps a remote the
+// and the value stays live — which for sync.remote means issuegraph keeps a remote the
 // operator asked it to forget.
 // The over-match cases matter as much as the removal cases, and the first
 // version of this table could not express them: every case put the leaf exactly
@@ -364,9 +364,9 @@ func TestUnsetRemovesADottedKeyInEveryShape(t *testing.T) {
 		{name: "nested", seed: "sync:\n    remote: \"file:///origin.git\"\n", key: "sync.remote"},
 		{
 			name:      "nested among siblings",
-			seed:      "sync:\n    branch: beads-sync\n    remote: \"file:///origin.git\"\n",
+			seed:      "sync:\n    branch: issuegraph-sync\n    remote: \"file:///origin.git\"\n",
 			key:       "sync.remote",
-			survivors: map[string]string{"sync.branch": "beads-sync"},
+			survivors: map[string]string{"sync.branch": "issuegraph-sync"},
 		},
 		{name: "legacy flat", seed: "sync.remote: \"file:///origin.git\"\n", key: "sync.remote"},
 		{
@@ -423,7 +423,7 @@ func TestUnsetRemovesADottedKeyInEveryShape(t *testing.T) {
 			// there is a no-op, not a removal.
 			wasSet := GetStringFromDir(dir, tc.key) != ""
 
-			t.Setenv("BEADS_DIR", dir)
+			t.Setenv("ISSUEGRAPH_DIR", dir)
 			if err := UnsetYamlConfig(tc.key); err != nil {
 				t.Fatalf("UnsetYamlConfig: %v", err)
 			}
@@ -452,9 +452,9 @@ func TestUnsetRemovesADottedKeyInEveryShape(t *testing.T) {
 	}
 }
 
-// bd cannot comment out a key it cannot find by line, and it used to pretend
+// issuegraph cannot comment out a key it cannot find by line, and it used to pretend
 // otherwise in both directions: a flow-style mapping came back unchanged with a
-// success exit, leaving live the value the operator asked bd to forget — the
+// success exit, leaving live the value the operator asked issuegraph to forget — the
 // PR's own headline symptom — and a block scalar had its key line commented
 // while the body stayed behind, re-parsing as a plain multi-line value of the
 // PARENT. Say so instead, and leave the file alone (bd-zj95 review, Finding 3).
@@ -484,7 +484,7 @@ func TestUnsetRefusesShapesItCannotEdit(t *testing.T) {
 				t.Fatalf("seed: %v", err)
 			}
 
-			t.Setenv("BEADS_DIR", dir)
+			t.Setenv("ISSUEGRAPH_DIR", dir)
 			err := UnsetYamlConfig(tc.key)
 			if err == nil {
 				body, _ := os.ReadFile(path) //nolint:errcheck // diagnostic
@@ -505,18 +505,18 @@ func TestUnsetRefusesShapesItCannotEdit(t *testing.T) {
 	}
 }
 
-// A shape bd cannot edit is only worth refusing when the key is actually there.
+// A shape issuegraph cannot edit is only worth refusing when the key is actually there.
 // Unsetting a key that was never set has always been a successful no-op, and a
 // flow-style mapping elsewhere in the file is not the operator's problem.
 func TestUnsetOfAnAbsentKeyStillSucceeds(t *testing.T) {
 	dir := t.TempDir()
 	path := filepath.Join(dir, "config.yaml")
-	seed := "sync: {branch: beads-sync}\ndolt:\n    port: 3307\n"
+	seed := "sync: {branch: issuegraph-sync}\ndolt:\n    port: 3307\n"
 	if err := os.WriteFile(path, []byte(seed), 0o600); err != nil {
 		t.Fatalf("seed: %v", err)
 	}
 
-	t.Setenv("BEADS_DIR", dir)
+	t.Setenv("ISSUEGRAPH_DIR", dir)
 	if err := UnsetYamlConfig("sync.remote"); err != nil {
 		t.Fatalf("UnsetYamlConfig on an unset key: %v", err)
 	}
@@ -524,7 +524,7 @@ func TestUnsetOfAnAbsentKeyStillSucceeds(t *testing.T) {
 	if err != nil {
 		t.Fatalf("read: %v", err)
 	}
-	if got := GetStringFromDir(dir, "sync.branch"); got != "beads-sync" {
+	if got := GetStringFromDir(dir, "sync.branch"); got != "issuegraph-sync" {
 		t.Errorf("the no-op unset changed sync.branch to %q:\n%s", got, body)
 	}
 }
@@ -534,7 +534,7 @@ func TestUnsetOfAnAbsentKeyStillSucceeds(t *testing.T) {
 // the section behind holding nothing — `sync:` and no more. The writer used to
 // refuse that section, because a null is not a mapping, and fell through to the
 // flat writer, which put a literal `sync.remote:` key back into the file: the
-// unreadable shape, re-created one command after being fixed. bd said "Set
+// unreadable shape, re-created one command after being fixed. issuegraph said "Set
 // sync.remote = ..." while GetStringFromDir saw nothing.
 func TestSettingADottedKeyAgainAfterUnsetStaysNested(t *testing.T) {
 	cases := []struct {
@@ -546,7 +546,7 @@ func TestSettingADottedKeyAgainAfterUnsetStaysNested(t *testing.T) {
 		{name: "section empties out", seed: "node_id: mini\n"},
 		// A sibling keeps the section a mapping, so this shape always worked.
 		// Pin it anyway: the fix must not trade one for the other.
-		{name: "sibling keeps the section", seed: "sync:\n    branch: beads-sync\n"},
+		{name: "sibling keeps the section", seed: "sync:\n    branch: issuegraph-sync\n"},
 	}
 
 	for _, tc := range cases {
@@ -556,7 +556,7 @@ func TestSettingADottedKeyAgainAfterUnsetStaysNested(t *testing.T) {
 			if err := os.WriteFile(path, []byte(tc.seed), 0o600); err != nil {
 				t.Fatalf("seed: %v", err)
 			}
-			t.Setenv("BEADS_DIR", dir)
+			t.Setenv("ISSUEGRAPH_DIR", dir)
 
 			if err := SetYamlConfigInDir(dir, "sync.remote", "file:///a.git"); err != nil {
 				t.Fatalf("first set: %v", err)
@@ -585,7 +585,7 @@ func TestSettingADottedKeyAgainAfterUnsetStaysNested(t *testing.T) {
 				}
 			}
 			if tc.name == "sibling keeps the section" {
-				if got := GetStringFromDir(dir, "sync.branch"); got != "beads-sync" {
+				if got := GetStringFromDir(dir, "sync.branch"); got != "issuegraph-sync" {
 					t.Errorf("the sibling was lost: sync.branch = %q\n%s", got, body)
 				}
 			}
@@ -594,7 +594,7 @@ func TestSettingADottedKeyAgainAfterUnsetStaysNested(t *testing.T) {
 }
 
 // A config.yaml that is nothing but comments is not an edge case: it is what
-// `bd init` writes, so it is the shape every fresh workspace's FIRST dotted
+// `issuegraph init` writes, so it is the shape every fresh workspace's FIRST dotted
 // write lands on — and config.yaml is git-tracked, so losing it is a committed
 // diff the operator never asked for.
 //
@@ -603,16 +603,16 @@ func TestSettingADottedKeyAgainAfterUnsetStaysNested(t *testing.T) {
 // just added. Asserting the value reads back is not enough to catch that; the
 // file is only correct if everything that was in it is still in it.
 func TestFirstDottedWriteKeepsACommentOnlyFile(t *testing.T) {
-	seed := `# Beads Configuration File
-# This file configures default behavior for all bd commands in this repository
+	seed := `# IssueGraph Configuration File
+# This file configures default behavior for all issuegraph commands in this repository
 
-# Issue prefix for this repository (used by bd init)
+# Issue prefix for this repository (used by issuegraph init)
 # issue-prefix: ""
 
 # Use no-db mode: JSONL-only, no Dolt database
 # no-db: false
 
-# Default actor for audit trails (overridden by BEADS_ACTOR or --actor)
+# Default actor for audit trails (overridden by ISSUEGRAPH_ACTOR or --actor)
 # actor: ""
 `
 
@@ -653,7 +653,7 @@ func TestFirstDottedWriteKeepsACommentOnlyFile(t *testing.T) {
 }
 
 // When a key's own parent already holds a value there is no section to nest
-// under it, and bd has nothing correct to write. It used to write the flat
+// under it, and issuegraph has nothing correct to write. It used to write the flat
 // `sync.remote:` spelling and report success, so the operator was told the
 // value was set and every reader that splits on the dot saw nothing. Say so
 // instead, and leave the file alone.
@@ -695,7 +695,7 @@ func TestUnsetLeavesBlockScalarTextAlone(t *testing.T) {
 		t.Fatalf("seed: %v", err)
 	}
 
-	t.Setenv("BEADS_DIR", dir)
+	t.Setenv("ISSUEGRAPH_DIR", dir)
 	if err := UnsetYamlConfig("sync.remote"); err != nil {
 		t.Fatalf("UnsetYamlConfig: %v", err)
 	}

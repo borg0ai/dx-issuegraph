@@ -5,37 +5,37 @@ import (
 	"fmt"
 	"path/filepath"
 
+	"github.com/borg0ai/dx-issuegraph/internal/configfile"
 	_ "github.com/go-sql-driver/mysql"
-	"github.com/steveyegge/beads/internal/configfile"
 )
 
 // getDatabasePath returns the actual database directory path, respecting dolt_data_dir.
 // When dolt_data_dir is configured (e.g. ext4 redirect for WSL), the database lives
-// outside .beads/dolt/ — this function resolves the correct location.
-func getDatabasePath(beadsDir string) string {
-	cfg, err := configfile.Load(beadsDir)
+// outside .issuegraph/dolt/ — this function resolves the correct location.
+func getDatabasePath(issuegraphDir string) string {
+	cfg, err := configfile.Load(issuegraphDir)
 	if err != nil || cfg == nil {
-		return filepath.Join(beadsDir, "dolt") // fallback to default
+		return filepath.Join(issuegraphDir, "dolt") // fallback to default
 	}
-	return cfg.DatabasePath(beadsDir)
+	return cfg.DatabasePath(issuegraphDir)
 }
 
 // OrphanedDependencies removes dependencies pointing to non-existent issues.
 // If verbose is true, prints each removed dependency; otherwise shows only summary.
 func OrphanedDependencies(path string, verbose bool) error {
-	beadsDir, err := resolvedWorkspaceBeadsDir(path)
+	issuegraphDir, err := resolvedWorkspaceIssueGraphDir(path)
 	if err != nil {
 		return err
 	}
 
-	db, cfg, err := openDoltDB(beadsDir)
+	db, cfg, err := openDoltDB(issuegraphDir)
 	if err != nil {
 		fmt.Printf("  Orphaned dependencies fix skipped (%v)\n", err)
 		return nil
 	}
 	defer db.Close()
 
-	if skip, err := guardFixTarget("Orphaned dependencies fix", db, beadsDir, cfg); skip {
+	if skip, err := guardFixTarget("Orphaned dependencies fix", db, issuegraphDir, cfg); skip {
 		return err
 	}
 
@@ -121,19 +121,19 @@ func OrphanedDependencies(path string, verbose bool) error {
 // Requires explicit opt-in via --fix-child-parent flag since some workflows may use these intentionally.
 // If verbose is true, prints each removed dependency; otherwise shows only summary.
 func ChildParentDependencies(path string, verbose bool) error {
-	beadsDir, err := resolvedWorkspaceBeadsDir(path)
+	issuegraphDir, err := resolvedWorkspaceIssueGraphDir(path)
 	if err != nil {
 		return err
 	}
 
-	db, cfg, err := openDoltDB(beadsDir)
+	db, cfg, err := openDoltDB(issuegraphDir)
 	if err != nil {
 		fmt.Printf("  Child-parent dependencies fix skipped (%v)\n", err)
 		return nil
 	}
 	defer db.Close()
 
-	if skip, err := guardFixTarget("Child-parent dependencies fix", db, beadsDir, cfg); skip {
+	if skip, err := guardFixTarget("Child-parent dependencies fix", db, issuegraphDir, cfg); skip {
 		return err
 	}
 
@@ -220,19 +220,19 @@ func ChildParentDependencies(path string, verbose bool) error {
 // wisps table. The wisps copy is canonical (be-iabdi); stale issues rows are
 // deleted along with their child rows (labels, events, dependencies, comments).
 func CrossTableDuplicates(path string, verbose bool) error {
-	beadsDir, err := resolvedWorkspaceBeadsDir(path)
+	issuegraphDir, err := resolvedWorkspaceIssueGraphDir(path)
 	if err != nil {
 		return err
 	}
 
-	db, cfg, err := openDoltDB(beadsDir)
+	db, cfg, err := openDoltDB(issuegraphDir)
 	if err != nil {
 		fmt.Printf("  Cross-table duplicates fix skipped (%v)\n", err)
 		return nil
 	}
 	defer db.Close()
 
-	if skip, err := guardFixTarget("Cross-table duplicates fix", db, beadsDir, cfg); skip {
+	if skip, err := guardFixTarget("Cross-table duplicates fix", db, issuegraphDir, cfg); skip {
 		return err
 	}
 
@@ -298,12 +298,12 @@ func CrossTableDuplicates(path string, verbose bool) error {
 // issues and wisps tables. Returns 0 and an error if the database is
 // unreachable. Used by CheckCrossTableDuplicates in the doctor package.
 func CountCrossTableDuplicates(path string) (int, error) {
-	beadsDir, err := resolvedWorkspaceBeadsDir(path)
+	issuegraphDir, err := resolvedWorkspaceIssueGraphDir(path)
 	if err != nil {
 		return 0, err
 	}
 
-	db, _, err := openDoltDB(beadsDir)
+	db, _, err := openDoltDB(issuegraphDir)
 	if err != nil {
 		return 0, err
 	}
@@ -321,13 +321,13 @@ func CountCrossTableDuplicates(path string) (int, error) {
 // Also returns the loaded config so callers that need it afterward (e.g. to
 // verify the connection's target identity) don't have to load it a second
 // time and risk it disagreeing with what was actually dialed.
-func openDoltDB(beadsDir string) (*sql.DB, *configfile.Config, error) {
-	cfg, err := configfile.Load(beadsDir)
+func openDoltDB(issuegraphDir string) (*sql.DB, *configfile.Config, error) {
+	cfg, err := configfile.Load(issuegraphDir)
 	if err != nil || cfg == nil {
 		return nil, nil, fmt.Errorf("no database configuration found")
 	}
 
-	db, err := openFixDB(beadsDir, cfg)
+	db, err := openFixDB(issuegraphDir, cfg)
 	if err != nil {
 		return nil, nil, fmt.Errorf("dolt server connection failed: %w", err)
 	}

@@ -5,7 +5,7 @@ import (
 	"testing"
 	"time"
 
-	"github.com/steveyegge/beads/internal/types"
+	"github.com/borg0ai/dx-issuegraph/internal/types"
 )
 
 // TestDefaultGitHubMappingConfig verifies the default configuration has proper mappings.
@@ -224,8 +224,8 @@ func TestTypeFromLabels(t *testing.T) {
 	}
 }
 
-// TestGitHubIssueToBeads verifies full conversion from GitHub Issue to beads Issue.
-func TestGitHubIssueToBeads(t *testing.T) {
+// TestGitHubIssueToIssueGraph verifies full conversion from GitHub Issue to issuegraph Issue.
+func TestGitHubIssueToIssueGraph(t *testing.T) {
 	config := DefaultMappingConfig()
 
 	createdAt := time.Date(2024, 1, 15, 10, 0, 0, 0, time.UTC)
@@ -257,9 +257,9 @@ func TestGitHubIssueToBeads(t *testing.T) {
 		HTMLURL: "https://github.com/org/repo/issues/42",
 	}
 
-	conversion := GitHubIssueToBeads(ghIssue, config)
+	conversion := GitHubIssueToIssueGraph(ghIssue, config)
 	if conversion == nil {
-		t.Fatal("GitHubIssueToBeads returned nil")
+		t.Fatal("GitHubIssueToIssueGraph returned nil")
 	}
 
 	issue := conversion.Issue
@@ -297,8 +297,8 @@ func TestGitHubIssueToBeads(t *testing.T) {
 	}
 }
 
-// TestGitHubIssueToBeads_ClosedIssue verifies closed issues are converted correctly.
-func TestGitHubIssueToBeads_ClosedIssue(t *testing.T) {
+// TestGitHubIssueToIssueGraph_ClosedIssue verifies closed issues are converted correctly.
+func TestGitHubIssueToIssueGraph_ClosedIssue(t *testing.T) {
 	config := DefaultMappingConfig()
 
 	closedAt := time.Date(2024, 1, 17, 10, 0, 0, 0, time.UTC)
@@ -312,7 +312,7 @@ func TestGitHubIssueToBeads_ClosedIssue(t *testing.T) {
 		HTMLURL:  "https://github.com/org/repo/issues/10",
 	}
 
-	conversion := GitHubIssueToBeads(ghIssue, config)
+	conversion := GitHubIssueToIssueGraph(ghIssue, config)
 	issue := conversion.Issue
 	if issue == nil {
 		t.Fatal("conversion.Issue is nil")
@@ -323,11 +323,11 @@ func TestGitHubIssueToBeads_ClosedIssue(t *testing.T) {
 	}
 }
 
-// TestBeadsIssueToGitHubFields verifies conversion from beads Issue to GitHub update fields.
-func TestBeadsIssueToGitHubFields(t *testing.T) {
+// TestIssueGraphIssueToGitHubFields verifies conversion from issuegraph Issue to GitHub update fields.
+func TestIssueGraphIssueToGitHubFields(t *testing.T) {
 	config := DefaultMappingConfig()
 
-	beadsIssue := &types.Issue{
+	issuegraphIssue := &types.Issue{
 		Title:       "New feature request",
 		Description: "Add dark mode support",
 		IssueType:   types.TypeFeature,
@@ -336,7 +336,7 @@ func TestBeadsIssueToGitHubFields(t *testing.T) {
 		Assignee:    "jdoe",
 	}
 
-	fields := BeadsIssueToGitHubFields(beadsIssue, config)
+	fields := IssueGraphIssueToGitHubFields(issuegraphIssue, config)
 
 	// Verify title and body
 	if fields["title"] != "New feature request" {
@@ -382,8 +382,8 @@ func TestBeadsIssueToGitHubFields(t *testing.T) {
 	}
 }
 
-// TestBeadsIssueToGitHubFields_ClosedState verifies state is set for closed issues.
-func TestBeadsIssueToGitHubFields_ClosedState(t *testing.T) {
+// TestIssueGraphIssueToGitHubFields_ClosedState verifies state is set for closed issues.
+func TestIssueGraphIssueToGitHubFields_ClosedState(t *testing.T) {
 	config := DefaultMappingConfig()
 
 	closedIssue := &types.Issue{
@@ -391,7 +391,7 @@ func TestBeadsIssueToGitHubFields_ClosedState(t *testing.T) {
 		Status: types.StatusClosed,
 	}
 
-	fields := BeadsIssueToGitHubFields(closedIssue, config)
+	fields := IssueGraphIssueToGitHubFields(closedIssue, config)
 
 	if fields["state"] != "closed" {
 		t.Errorf("fields[\"state\"] = %v, want \"closed\"", fields["state"])
@@ -423,7 +423,7 @@ func TestFilterNonScopedLabels(t *testing.T) {
 	}
 }
 
-// TestPriorityToLabel verifies conversion from beads priority to GitHub label value.
+// TestPriorityToLabel verifies conversion from issuegraph priority to GitHub label value.
 func TestPriorityToLabel(t *testing.T) {
 	tests := []struct {
 		priority int

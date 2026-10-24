@@ -9,8 +9,8 @@ import (
 	"strings"
 	"testing"
 
+	"github.com/borg0ai/dx-issuegraph/internal/configfile"
 	"github.com/spf13/cobra"
-	"github.com/steveyegge/beads/internal/configfile"
 )
 
 func TestBackupStatusSizeErrorRespectsOutputMode(t *testing.T) {
@@ -161,7 +161,7 @@ func TestBackupStatusIncludesAvailableDatabaseSize(t *testing.T) {
 }
 
 // TestBackupStatusProxiedGuardFollowsLocality replaces a test that asserted a
-// blanket proxied refusal. Since slice S3 the guard is scoped to locality: bd
+// blanket proxied refusal. Since slice S3 the guard is scoped to locality: issuegraph
 // owns the dolt process on a managed-local workspace and can honor the command
 // there, while an external one is still refused — and a refused command must
 // not go on to measure anything, because the directory it would measure belongs
@@ -184,9 +184,9 @@ func TestBackupStatusProxiedGuardFollowsLocality(t *testing.T) {
 		},
 	} {
 		t.Run(tc.name, func(t *testing.T) {
-			beadsDir := prepareBackupStatusTest(t)
+			issuegraphDir := prepareBackupStatusTest(t)
 			proxiedServerMode = true
-			if err := os.WriteFile(configfile.ProxiedServerClientInfoPath(beadsDir), []byte(tc.sidecar), 0o600); err != nil {
+			if err := os.WriteFile(configfile.ProxiedServerClientInfoPath(issuegraphDir), []byte(tc.sidecar), 0o600); err != nil {
 				t.Fatalf("write proxied sidecar: %v", err)
 			}
 
@@ -213,17 +213,17 @@ func TestBackupStatusProxiedGuardFollowsLocality(t *testing.T) {
 	}
 }
 
-// prepareBackupStatusTest builds a throwaway workspace and returns its .beads
+// prepareBackupStatusTest builds a throwaway workspace and returns its .issuegraph
 // directory, so a caller can drop workspace files (the proxied sidecar) into it.
 func prepareBackupStatusTest(t *testing.T) string {
 	t.Helper()
 
-	beadsDir := filepath.Join(t.TempDir(), ".beads")
-	if err := os.MkdirAll(filepath.Join(beadsDir, "embeddeddolt"), 0o700); err != nil {
+	issuegraphDir := filepath.Join(t.TempDir(), ".issuegraph")
+	if err := os.MkdirAll(filepath.Join(issuegraphDir, "embeddeddolt"), 0o700); err != nil {
 		t.Fatalf("create workspace marker: %v", err)
 	}
-	t.Setenv("BEADS_DIR", beadsDir)
-	t.Setenv("BD_JSON_ENVELOPE", "0")
+	t.Setenv("ISSUEGRAPH_DIR", issuegraphDir)
+	t.Setenv("ISSUEGRAPH_JSON_ENVELOPE", "0")
 	initConfigForTest(t)
 
 	oldJSONOutput := jsonOutput
@@ -236,11 +236,11 @@ func prepareBackupStatusTest(t *testing.T) string {
 		proxiedServerMode = oldProxiedServerMode
 		resetCommandContext()
 	})
-	return beadsDir
+	return issuegraphDir
 }
 
 func newBackupStatusTestRoot(sizeDatabase backupSizeFunc) *cobra.Command {
-	root := &cobra.Command{Use: "bd"}
+	root := &cobra.Command{Use: "issuegraph"}
 	root.PersistentFlags().BoolVar(&jsonOutput, "json", false, "output JSON")
 	backup := &cobra.Command{Use: "backup"}
 	backup.AddCommand(newBackupStatusCommand(sizeDatabase))

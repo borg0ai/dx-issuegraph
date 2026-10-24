@@ -28,8 +28,8 @@ type cacheEntry struct {
 //
 // This prevents redundant engine initializations when multiple code paths open
 // connectors against the same data directory in the same process.
-func Open(ctx context.Context, beadsDir, database, branch string) (*EmbeddedDoltStore, error) {
-	return openCached(ctx, beadsDir, database, branch, openStrict)
+func Open(ctx context.Context, issuegraphDir, database, branch string) (*EmbeddedDoltStore, error) {
+	return openCached(ctx, issuegraphDir, database, branch, openStrict)
 }
 
 // OpenForReadOnlyCommand opens like Open, except that a #4259 remote-migrate
@@ -38,37 +38,37 @@ func Open(ctx context.Context, beadsDir, database, branch string) (*EmbeddedDolt
 // not reads, and server mode's read-only opens already skip migration. The
 // returned store is otherwise a normal writable store (read-only commands
 // can still write incidentally, e.g. the post-command autocommit net).
-func OpenForReadOnlyCommand(ctx context.Context, beadsDir, database, branch string) (*EmbeddedDoltStore, error) {
-	return openCached(ctx, beadsDir, database, branch, openReadOnlyCommand)
+func OpenForReadOnlyCommand(ctx context.Context, issuegraphDir, database, branch string) (*EmbeddedDoltStore, error) {
+	return openCached(ctx, issuegraphDir, database, branch, openReadOnlyCommand)
 }
 
 // OpenForWorkingSetReconcile opens like Open, except that a schema.
 // DirtyTablesError refusal skips the pending migrations with a stderr
 // warning instead of failing the open (#4566): commands whose entire purpose
-// is to reconcile the Dolt working set (bd dolt commit, bd vc commit) must be
+// is to reconcile the Dolt working set (issuegraph dolt commit, issuegraph vc commit) must be
 // able to open the store even when pending migrations touch dirty tables -
 // otherwise the commit that would clear the dirty state and unblock the
 // migration can never run. The returned store is otherwise a normal writable
 // store.
-func OpenForWorkingSetReconcile(ctx context.Context, beadsDir, database, branch string) (*EmbeddedDoltStore, error) {
-	return openCached(ctx, beadsDir, database, branch, openWorkingSetReconcile)
+func OpenForWorkingSetReconcile(ctx context.Context, issuegraphDir, database, branch string) (*EmbeddedDoltStore, error) {
+	return openCached(ctx, issuegraphDir, database, branch, openWorkingSetReconcile)
 }
 
 // OpenForRemoteSync opens like Open, except that the #6575 data-behind
 // remote-migrate gate refusal — and only that one — skips the pending
 // migrations with a stderr warning instead of failing the open: that refusal's
-// entire remedy is `bd dolt pull`, which opens the store itself and so hit the
+// entire remedy is `issuegraph dolt pull`, which opens the store itself and so hit the
 // refusal that prescribed it, leaving the refused clone with no in-band exit at
-// all (the same deadlock #4566 broke for `bd dolt commit`). Every other gate
+// all (the same deadlock #4566 broke for `issuegraph dolt commit`). Every other gate
 // refusal, the dirty-table guard and the dependency re-key still fail this open
 // exactly as they fail a strict one. The returned store is otherwise a normal
 // writable store.
-func OpenForRemoteSync(ctx context.Context, beadsDir, database, branch string) (*EmbeddedDoltStore, error) {
-	return openCached(ctx, beadsDir, database, branch, openRemoteSync)
+func OpenForRemoteSync(ctx context.Context, issuegraphDir, database, branch string) (*EmbeddedDoltStore, error) {
+	return openCached(ctx, issuegraphDir, database, branch, openRemoteSync)
 }
 
-func openCached(ctx context.Context, beadsDir, database, branch string, intent openIntent) (*EmbeddedDoltStore, error) {
-	key, err := cacheKey(beadsDir)
+func openCached(ctx context.Context, issuegraphDir, database, branch string, intent openIntent) (*EmbeddedDoltStore, error) {
+	key, err := cacheKey(issuegraphDir)
 	if err != nil {
 		return nil, err
 	}
@@ -95,7 +95,7 @@ func openCached(ctx context.Context, beadsDir, database, branch string, intent o
 	cacheMu.Unlock()
 
 	// Slow path: create a new store outside the lock.
-	s, err := newStore(ctx, beadsDir, database, branch, intent)
+	s, err := newStore(ctx, issuegraphDir, database, branch, intent)
 	if err != nil {
 		return nil, err
 	}
@@ -138,11 +138,11 @@ func closeCached(s *EmbeddedDoltStore) bool {
 	return false
 }
 
-// cacheKey resolves beadsDir to an absolute dataDir path for use as a cache key.
-func cacheKey(beadsDir string) (string, error) {
-	absBeadsDir, err := filepath.Abs(beadsDir)
+// cacheKey resolves issuegraphDir to an absolute dataDir path for use as a cache key.
+func cacheKey(issuegraphDir string) (string, error) {
+	absIssueGraphDir, err := filepath.Abs(issuegraphDir)
 	if err != nil {
-		return "", fmt.Errorf("embeddeddolt: resolving beads dir for cache key: %w", err)
+		return "", fmt.Errorf("embeddeddolt: resolving issuegraph dir for cache key: %w", err)
 	}
-	return filepath.Join(absBeadsDir, "embeddeddolt"), nil
+	return filepath.Join(absIssueGraphDir, "embeddeddolt"), nil
 }

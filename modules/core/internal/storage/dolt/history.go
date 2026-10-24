@@ -7,9 +7,9 @@ import (
 	"regexp"
 	"time"
 
-	"github.com/steveyegge/beads/internal/storage/issueops"
-	"github.com/steveyegge/beads/internal/storage/versioncontrolops"
-	"github.com/steveyegge/beads/internal/types"
+	"github.com/borg0ai/dx-issuegraph/internal/storage/issueops"
+	"github.com/borg0ai/dx-issuegraph/internal/storage/versioncontrolops"
+	"github.com/borg0ai/dx-issuegraph/internal/types"
 )
 
 // validTablePattern matches valid table names

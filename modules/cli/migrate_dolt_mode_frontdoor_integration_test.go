@@ -15,19 +15,19 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/steveyegge/beads/internal/config"
-	"github.com/steveyegge/beads/internal/configfile"
-	"github.com/steveyegge/beads/internal/doltserver"
-	"github.com/steveyegge/beads/internal/storage/dbproxy/proxy"
-	"github.com/steveyegge/beads/internal/storage/dbproxy/server"
-	"github.com/steveyegge/beads/internal/storage/dbproxy/util"
+	"github.com/borg0ai/dx-issuegraph/internal/config"
+	"github.com/borg0ai/dx-issuegraph/internal/configfile"
+	"github.com/borg0ai/dx-issuegraph/internal/doltserver"
+	"github.com/borg0ai/dx-issuegraph/internal/storage/dbproxy/proxy"
+	"github.com/borg0ai/dx-issuegraph/internal/storage/dbproxy/server"
+	"github.com/borg0ai/dx-issuegraph/internal/storage/dbproxy/util"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
 
-func runBDExecSeparated(t *testing.T, bd, dir string, env []string, args ...string) (string, string, error) {
+func runIssueGraphExecSeparated(t *testing.T, issuegraph, dir string, env []string, args ...string) (string, string, error) {
 	t.Helper()
-	cmd := exec.Command(bd, args...)
+	cmd := exec.Command(issuegraph, args...)
 	cmd.Dir, cmd.Env = dir, env
 	var stdout, stderr bytes.Buffer
 	cmd.Stdout, cmd.Stderr = &stdout, &stderr
@@ -35,23 +35,23 @@ func runBDExecSeparated(t *testing.T, bd, dir string, env []string, args ...stri
 	return stdout.String(), stderr.String(), err
 }
 
-func createDependencyPair(t *testing.T, bd, dir string, env []string, sentinelID string) string {
+func createDependencyPair(t *testing.T, issuegraph, dir string, env []string, sentinelID string) string {
 	t.Helper()
-	blockerOut, err := runBDExecWithBinary(t, bd, dir, env, "create", "migration blocker", "--json")
+	blockerOut, err := runIssueGraphExecWithBinary(t, issuegraph, dir, env, "create", "migration blocker", "--json")
 	require.NoError(t, err, "create blocker: %s", blockerOut)
 	var blocker struct {
 		ID string `json:"id"`
 	}
 	require.NoError(t, json.Unmarshal([]byte(blockerOut), &blocker))
 	require.NotEmpty(t, blocker.ID)
-	depOut, depErr := runBDExecWithBinary(t, bd, dir, env, "dep", "add", sentinelID, blocker.ID)
+	depOut, depErr := runIssueGraphExecWithBinary(t, issuegraph, dir, env, "dep", "add", sentinelID, blocker.ID)
 	require.NoError(t, depErr, "dep add: %s", depOut)
 	return blocker.ID
 }
 
-func assertDependencyPair(t *testing.T, bd, dir string, env []string, sentinelID, blockerID string) {
+func assertDependencyPair(t *testing.T, issuegraph, dir string, env []string, sentinelID, blockerID string) {
 	t.Helper()
-	out, err := runBDExecWithBinary(t, bd, dir, env, "dep", "list", sentinelID, blockerID, "--json")
+	out, err := runIssueGraphExecWithBinary(t, issuegraph, dir, env, "dep", "list", sentinelID, blockerID, "--json")
 	require.NoError(t, err, "dep list: %s", out)
 	var edges []struct {
 		IssueID     string `json:"issue_id"`
@@ -69,14 +69,14 @@ func assertDependencyPair(t *testing.T, bd, dir string, env []string, sentinelID
 }
 
 func migrationFrontDoorBinary(t *testing.T) string {
-	if p := os.Getenv("BEADS_TEST_BD_BINARY"); p != "" {
+	if p := os.Getenv("ISSUEGRAPH_TEST_ISSUEGRAPH_BINARY"); p != "" {
 		return p
 	}
-	out := filepath.Join(t.TempDir(), "bd")
+	out := filepath.Join(t.TempDir(), "issuegraph")
 	cmd := exec.Command("go", "build", "-o", out, ".")
 	cmd.Dir = "."
 	if b, err := cmd.CombinedOutput(); err != nil {
-		t.Fatalf("build cgo bd: %v\n%s", err, b)
+		t.Fatalf("build cgo issuegraph: %v\n%s", err, b)
 	}
 	return out
 }
@@ -88,11 +88,11 @@ func migrationFrontDoorEnv(home string) []string {
 		if i := strings.IndexByte(kv, '='); i >= 0 {
 			key = kv[:i]
 		}
-		// The modules/cli package TestMain sets BEADS_TEST_MODE and related
+		// The modules/cli package TestMain sets ISSUEGRAPH_TEST_MODE and related
 		// controls for its in-process tests. Never inherit those into the
-		// real front-door subprocess: BEADS_TEST_MODE disables auto-start
+		// real front-door subprocess: ISSUEGRAPH_TEST_MODE disables auto-start
 		// and makes a freshly initialized server resolve to port 1.
-		if strings.HasPrefix(key, "BEADS_") || strings.HasPrefix(key, "BD_") || key == "HOME" || key == "USERPROFILE" {
+		if strings.HasPrefix(key, "ISSUEGRAPH_") || strings.HasPrefix(key, "ISSUEGRAPH_") || key == "HOME" || key == "USERPROFILE" {
 			continue
 		}
 		env = append(env, kv)
@@ -100,27 +100,27 @@ func migrationFrontDoorEnv(home string) []string {
 	return append(env, "HOME="+home, "USERPROFILE="+home)
 }
 
-// TestMigrateDoltModeFrontDoor exercises migration through the real bd
+// TestMigrateDoltModeFrontDoor exercises migration through the real issuegraph
 // executable. It is opt-in because it requires a local Dolt installation.
 func TestMigrateDoltModeFrontDoor(t *testing.T) {
-	if os.Getenv("BEADS_TEST_MIGRATION_FRONTDOOR") != "1" {
-		t.Skip("set BEADS_TEST_MIGRATION_FRONTDOOR=1")
+	if os.Getenv("ISSUEGRAPH_TEST_MIGRATION_FRONTDOOR") != "1" {
+		t.Skip("set ISSUEGRAPH_TEST_MIGRATION_FRONTDOOR=1")
 	}
-	bd := migrationFrontDoorBinary(t)
+	issuegraph := migrationFrontDoorBinary(t)
 	dir := t.TempDir()
 	home := t.TempDir()
 	env := migrationFrontDoorEnv(home)
-	out, err := runBDExecWithBinary(t, bd, dir, env, "init", "--backend", "dolt", "--server", "--prefix", "fd", "--quiet")
+	out, err := runIssueGraphExecWithBinary(t, issuegraph, dir, env, "init", "--backend", "dolt", "--server", "--prefix", "fd", "--quiet")
 	if err != nil {
 		t.Fatalf("init: %v\n%s", err, out)
 	}
-	createOut, err := runBDExecWithBinary(t, bd, dir, env, "create", "front-door sentinel", "--json")
+	createOut, err := runIssueGraphExecWithBinary(t, issuegraph, dir, env, "create", "front-door sentinel", "--json")
 	if err != nil {
 		t.Fatalf("create sentinel: %v\n%s", err, createOut)
 	}
-	statusOut, _ := runBDExecWithBinary(t, bd, dir, env, "dolt", "status")
+	statusOut, _ := runIssueGraphExecWithBinary(t, issuegraph, dir, env, "dolt", "status")
 	if strings.Contains(statusOut, "Dolt server: running") {
-		if out, err = runBDExecWithBinary(t, bd, dir, env, "dolt", "stop"); err != nil {
+		if out, err = runIssueGraphExecWithBinary(t, issuegraph, dir, env, "dolt", "stop"); err != nil {
 			t.Fatalf("stop running server: %v\n%s", err, out)
 		}
 	}
@@ -130,29 +130,29 @@ func TestMigrateDoltModeFrontDoor(t *testing.T) {
 	if err := json.Unmarshal([]byte(createOut), &created); err != nil || created.ID == "" {
 		t.Fatalf("invalid create JSON: %s", createOut)
 	}
-	if out, err = runBDExecWithBinary(t, bd, dir, env, "migrate", "from-server-to-proxied-server"); err != nil {
+	if out, err = runIssueGraphExecWithBinary(t, issuegraph, dir, env, "migrate", "from-server-to-proxied-server"); err != nil {
 		t.Fatalf("forward migration: %v\n%s", err, out)
 	}
-	metaProxy, _ := os.ReadFile(filepath.Join(dir, ".beads", "metadata.json"))
+	metaProxy, _ := os.ReadFile(filepath.Join(dir, ".issuegraph", "metadata.json"))
 	var proxyMetadata map[string]any
 	if err := json.Unmarshal(metaProxy, &proxyMetadata); err != nil || proxyMetadata["dolt_mode"] != "proxied-server" {
 		t.Fatalf("forward did not persist proxied mode: %s", metaProxy)
 	}
-	info, err := os.ReadFile(filepath.Join(dir, ".beads", "proxied_server_client_info.json"))
+	info, err := os.ReadFile(filepath.Join(dir, ".issuegraph", "proxied_server_client_info.json"))
 	if err != nil || len(info) == 0 {
 		t.Fatalf("missing proxied sidecar: %v", err)
 	}
 	if !strings.Contains(out, "Switched to proxied-server mode") {
 		t.Fatalf("unexpected forward output: %s", out)
 	}
-	list, err := runBDExecWithBinary(t, bd, dir, env, "list", "--json")
+	list, err := runIssueGraphExecWithBinary(t, issuegraph, dir, env, "list", "--json")
 	if err != nil || !json.Valid([]byte(list)) || !strings.Contains(list, created.ID) {
 		t.Fatalf("proxied list JSON: %v\n%s", err, list)
 	}
 	// A completed forward migration must refuse while its proxy process still
-	// owns the target. This is exercised through the actual bd front door,
+	// owns the target. This is exercised through the actual issuegraph front door,
 	// before provider startup can hide the ownership conflict.
-	runningOut, runningErr := runBDExecWithBinary(t, bd, dir, env, "--json", "migrate", "from-server-to-proxied-server")
+	runningOut, runningErr := runIssueGraphExecWithBinary(t, issuegraph, dir, env, "--json", "migrate", "from-server-to-proxied-server")
 	if runningErr == nil {
 		t.Fatalf("forward no-op unexpectedly succeeded while proxy was running: %s", runningOut)
 	}
@@ -166,97 +166,97 @@ func TestMigrateDoltModeFrontDoor(t *testing.T) {
 	if runningRefusal["code"] != "proxy.migrate.invalid_state" || runningRefusal["mutates"] != false {
 		t.Fatalf("running-proxy refusal = %s", runningOut)
 	}
-	if out, err = runBDExecWithBinary(t, bd, dir, env, "update", created.ID, "--title", "front-door sentinel updated"); err != nil {
+	if out, err = runIssueGraphExecWithBinary(t, issuegraph, dir, env, "update", created.ID, "--title", "front-door sentinel updated"); err != nil {
 		t.Fatalf("proxied update: %v\n%s", err, out)
 	}
-	statusOut, _ = runBDExecWithBinary(t, bd, dir, env, "dolt", "status")
+	statusOut, _ = runIssueGraphExecWithBinary(t, issuegraph, dir, env, "dolt", "status")
 	if strings.Contains(statusOut, "Dolt server: running") {
-		if out, err = runBDExecWithBinary(t, bd, dir, env, "dolt", "stop"); err != nil {
+		if out, err = runIssueGraphExecWithBinary(t, issuegraph, dir, env, "dolt", "stop"); err != nil {
 			t.Fatalf("stop proxied server: %v\n%s", err, out)
 		}
 	}
 	// The proxy can supervise a Dolt child whose status text is stale; stop is
 	// idempotent and its "not running" result is safe to ignore.
-	if out, err = runBDExecWithBinary(t, bd, dir, env, "dolt", "stop"); err != nil && !strings.Contains(strings.ToLower(out), "not running") {
+	if out, err = runIssueGraphExecWithBinary(t, issuegraph, dir, env, "dolt", "stop"); err != nil && !strings.Contains(strings.ToLower(out), "not running") {
 		t.Fatalf("stop before reverse: %v\n%s", err, out)
 	}
-	sidecarBefore, err := os.ReadFile(filepath.Join(dir, ".beads", "proxied_server_client_info.json"))
+	sidecarBefore, err := os.ReadFile(filepath.Join(dir, ".issuegraph", "proxied_server_client_info.json"))
 	if err != nil {
 		t.Fatal(err)
 	}
-	metaBefore, err := os.ReadFile(filepath.Join(dir, ".beads", "metadata.json"))
+	metaBefore, err := os.ReadFile(filepath.Join(dir, ".issuegraph", "metadata.json"))
 	if err != nil {
 		t.Fatal(err)
 	}
-	if out, err = runBDExecWithBinary(t, bd, dir, env, "--json", "migrate", "from-proxied-server-to-server", "--dry-run"); err != nil {
+	if out, err = runIssueGraphExecWithBinary(t, issuegraph, dir, env, "--json", "migrate", "from-proxied-server-to-server", "--dry-run"); err != nil {
 		t.Fatalf("reverse dry-run: %v\n%s", err, out)
 	}
-	if _, err = os.Stat(filepath.Join(dir, ".beads", "proxied_server_client_info.json")); err != nil {
+	if _, err = os.Stat(filepath.Join(dir, ".issuegraph", "proxied_server_client_info.json")); err != nil {
 		t.Fatalf("dry-run removed sidecar: %v", err)
 	}
-	if got, _ := os.ReadFile(filepath.Join(dir, ".beads", "proxied_server_client_info.json")); string(got) != string(sidecarBefore) {
+	if got, _ := os.ReadFile(filepath.Join(dir, ".issuegraph", "proxied_server_client_info.json")); string(got) != string(sidecarBefore) {
 		t.Fatal("dry-run changed sidecar")
 	}
-	if got, _ := os.ReadFile(filepath.Join(dir, ".beads", "metadata.json")); string(got) != string(metaBefore) {
+	if got, _ := os.ReadFile(filepath.Join(dir, ".issuegraph", "metadata.json")); string(got) != string(metaBefore) {
 		t.Fatal("dry-run changed metadata")
 	}
-	if out, err = runBDExecWithBinary(t, bd, dir, env, "migrate", "from-proxied-server-to-server"); err != nil {
+	if out, err = runIssueGraphExecWithBinary(t, issuegraph, dir, env, "migrate", "from-proxied-server-to-server"); err != nil {
 		t.Fatalf("reverse migration: %v\n%s", err, out)
 	}
-	show, err := runBDExecWithBinary(t, bd, dir, env, "show", created.ID, "--json")
+	show, err := runIssueGraphExecWithBinary(t, issuegraph, dir, env, "show", created.ID, "--json")
 	if err != nil {
 		t.Fatalf("show sentinel: %v\n%s", err, show)
 	}
 	if !json.Valid([]byte(show)) || !strings.Contains(show, "front-door sentinel updated") {
 		t.Fatalf("sentinel missing or invalid JSON: %s", show)
 	}
-	meta, err := os.ReadFile(filepath.Join(dir, ".beads", "metadata.json"))
+	meta, err := os.ReadFile(filepath.Join(dir, ".issuegraph", "metadata.json"))
 	var serverMetadata map[string]any
 	if err != nil || json.Unmarshal(meta, &serverMetadata) != nil || serverMetadata["dolt_mode"] != "server" {
 		t.Fatalf("metadata mode not restored: %s", meta)
 	}
-	if _, err = os.Stat(filepath.Join(dir, ".beads", "proxied_server_client_info.json")); !os.IsNotExist(err) {
+	if _, err = os.Stat(filepath.Join(dir, ".issuegraph", "proxied_server_client_info.json")); !os.IsNotExist(err) {
 		t.Fatal("sidecar remains after reverse")
 	}
-	list, err = runBDExecWithBinary(t, bd, dir, env, "list", "--json")
+	list, err = runIssueGraphExecWithBinary(t, issuegraph, dir, env, "list", "--json")
 	if err != nil || !json.Valid([]byte(list)) || !strings.Contains(list, "front-door sentinel updated") {
 		t.Fatalf("direct list JSON: %v\n%s", err, list)
 	}
 }
 
 func TestMigrateDoltModeFrontDoorRefusesMalformedSidecar(t *testing.T) {
-	if os.Getenv("BEADS_TEST_MIGRATION_FRONTDOOR") != "1" {
-		t.Skip("set BEADS_TEST_MIGRATION_FRONTDOOR=1")
+	if os.Getenv("ISSUEGRAPH_TEST_MIGRATION_FRONTDOOR") != "1" {
+		t.Skip("set ISSUEGRAPH_TEST_MIGRATION_FRONTDOOR=1")
 	}
-	bd := migrationFrontDoorBinary(t)
+	issuegraph := migrationFrontDoorBinary(t)
 	dir, home := t.TempDir(), t.TempDir()
 	env := migrationFrontDoorEnv(home)
-	if out, err := runBDExecWithBinary(t, bd, dir, env, "init", "--backend", "dolt", "--proxied-server", "--quiet"); err != nil {
+	if out, err := runIssueGraphExecWithBinary(t, issuegraph, dir, env, "init", "--backend", "dolt", "--proxied-server", "--quiet"); err != nil {
 		t.Fatalf("init: %v\n%s", err, out)
 	}
-	path := filepath.Join(dir, ".beads", "proxied_server_client_info.json")
+	path := filepath.Join(dir, ".issuegraph", "proxied_server_client_info.json")
 	if err := os.WriteFile(path, []byte("{malformed"), 0o600); err != nil {
 		t.Fatal(err)
 	}
-	before, _ := os.ReadFile(filepath.Join(dir, ".beads", "metadata.json"))
-	out, err := runBDExecWithBinary(t, bd, dir, env, "--json", "migrate", "from-proxied-server-to-server")
+	before, _ := os.ReadFile(filepath.Join(dir, ".issuegraph", "metadata.json"))
+	out, err := runIssueGraphExecWithBinary(t, issuegraph, dir, env, "--json", "migrate", "from-proxied-server-to-server")
 	if err == nil {
 		t.Fatal("malformed sidecar unexpectedly succeeded")
 	}
 	if !json.Valid([]byte(out)) {
 		t.Fatalf("expected JSON error output, got %s", out)
 	}
-	after, _ := os.ReadFile(filepath.Join(dir, ".beads", "metadata.json"))
+	after, _ := os.ReadFile(filepath.Join(dir, ".issuegraph", "metadata.json"))
 	if string(before) != string(after) {
 		t.Fatal("refusal mutated metadata")
 	}
 }
 
 func TestMigrateDoltModeFrontDoorRefusesExternalEndpoint(t *testing.T) {
-	if os.Getenv("BEADS_TEST_MIGRATION_FRONTDOOR") != "1" {
-		t.Skip("set BEADS_TEST_MIGRATION_FRONTDOOR=1")
+	if os.Getenv("ISSUEGRAPH_TEST_MIGRATION_FRONTDOOR") != "1" {
+		t.Skip("set ISSUEGRAPH_TEST_MIGRATION_FRONTDOOR=1")
 	}
-	bd := migrationFrontDoorBinary(t)
+	issuegraph := migrationFrontDoorBinary(t)
 	for _, tc := range []struct {
 		name string
 		want string
@@ -267,33 +267,33 @@ func TestMigrateDoltModeFrontDoorRefusesExternalEndpoint(t *testing.T) {
 		t.Run(tc.name, func(t *testing.T) {
 			dir, home := t.TempDir(), t.TempDir()
 			env := migrationFrontDoorEnv(home)
-			beadsDir := filepath.Join(dir, ".beads")
-			root := filepath.Join(beadsDir, "dolt")
+			issuegraphDir := filepath.Join(dir, ".issuegraph")
+			root := filepath.Join(issuegraphDir, "dolt")
 			if err := os.MkdirAll(filepath.Join(root, ".dolt"), 0o755); err != nil {
 				t.Fatal(err)
 			}
 			if err := os.WriteFile(filepath.Join(root, ".dolt", "repo_state.json"), []byte(`{"head":"refs/heads/main","remotes":{},"backups":{},"branches":{}}`), 0o600); err != nil {
 				t.Fatal(err)
 			}
-			if err := os.WriteFile(filepath.Join(beadsDir, "metadata.json"), []byte(`{"database":"myproj","backend":"dolt","dolt_mode":"proxied-server"}`), 0o600); err != nil {
+			if err := os.WriteFile(filepath.Join(issuegraphDir, "metadata.json"), []byte(`{"database":"myproj","backend":"dolt","dolt_mode":"proxied-server"}`), 0o600); err != nil {
 				t.Fatal(err)
 			}
-			if err := os.Chmod(beadsDir, 0o700); err != nil {
+			if err := os.Chmod(issuegraphDir, 0o700); err != nil {
 				t.Fatal(err)
 			}
-			metaBefore, err := os.ReadFile(filepath.Join(beadsDir, "metadata.json"))
+			metaBefore, err := os.ReadFile(filepath.Join(issuegraphDir, "metadata.json"))
 			if err != nil {
 				t.Fatal(err)
 			}
-			sidecarPath := filepath.Join(beadsDir, "proxied_server_client_info.json")
+			sidecarPath := filepath.Join(issuegraphDir, "proxied_server_client_info.json")
 			// Replace the managed sidecar with an externally-owned endpoint.
 			// This exercises migration refusal without attempting a network
 			// connection to an unreachable host/socket during init.
-			external := map[string]any{"root_path": filepath.Join(beadsDir, "dolt"), "external": map[string]any{}}
+			external := map[string]any{"root_path": filepath.Join(issuegraphDir, "dolt"), "external": map[string]any{}}
 			if tc.name == "tcp" {
 				external["external"] = map[string]any{"host": "db.example", "port": 3307}
 			} else {
-				external["external"] = map[string]any{"socket": "/tmp/beads-front-door.sock"}
+				external["external"] = map[string]any{"socket": "/tmp/issuegraph-front-door.sock"}
 			}
 			sidecarData, _ := json.Marshal(external)
 			if err := os.WriteFile(sidecarPath, sidecarData, 0o600); err != nil {
@@ -303,8 +303,8 @@ func TestMigrateDoltModeFrontDoorRefusesExternalEndpoint(t *testing.T) {
 			if err != nil {
 				t.Fatal(err)
 			}
-			treeBefore := snapshotMigrationTree(t, beadsDir)
-			out, err := runBDExecWithBinary(t, bd, dir, env, "--json", "migrate", "from-proxied-server-to-server")
+			treeBefore := snapshotMigrationTree(t, issuegraphDir)
+			out, err := runIssueGraphExecWithBinary(t, issuegraph, dir, env, "--json", "migrate", "from-proxied-server-to-server")
 			if err == nil {
 				t.Fatal("external endpoint migration unexpectedly succeeded")
 			}
@@ -329,16 +329,16 @@ func TestMigrateDoltModeFrontDoorRefusesExternalEndpoint(t *testing.T) {
 			if processOut, probeErr := probe.CombinedOutput(); probeErr == nil && len(strings.TrimSpace(string(processOut))) > 0 {
 				t.Fatalf("external refusal started a proxy process: %s", processOut)
 			}
-			if got, _ := os.ReadFile(filepath.Join(beadsDir, "metadata.json")); string(got) != string(metaBefore) {
+			if got, _ := os.ReadFile(filepath.Join(issuegraphDir, "metadata.json")); string(got) != string(metaBefore) {
 				t.Fatal("external refusal mutated metadata")
 			}
 			if got, _ := os.ReadFile(sidecarPath); string(got) != string(sidecarBefore) {
 				t.Fatal("external refusal mutated sidecar")
 			}
-			if _, err := os.Stat(filepath.Join(beadsDir, "dolt-mode-migration.json")); !os.IsNotExist(err) {
+			if _, err := os.Stat(filepath.Join(issuegraphDir, "dolt-mode-migration.json")); !os.IsNotExist(err) {
 				t.Fatal("external refusal created a migration journal")
 			}
-			if got := snapshotMigrationTree(t, beadsDir); !reflect.DeepEqual(treeBefore, got) {
+			if got := snapshotMigrationTree(t, issuegraphDir); !reflect.DeepEqual(treeBefore, got) {
 				t.Fatal("external refusal mutated migration artifacts")
 			}
 		})
@@ -346,10 +346,10 @@ func TestMigrateDoltModeFrontDoorRefusesExternalEndpoint(t *testing.T) {
 }
 
 func TestMigrateDoltModeFrontDoorExternalJournalMatrix(t *testing.T) {
-	if os.Getenv("BEADS_TEST_MIGRATION_FRONTDOOR") != "1" {
-		t.Skip("set BEADS_TEST_MIGRATION_FRONTDOOR=1")
+	if os.Getenv("ISSUEGRAPH_TEST_MIGRATION_FRONTDOOR") != "1" {
+		t.Skip("set ISSUEGRAPH_TEST_MIGRATION_FRONTDOOR=1")
 	}
-	bd := migrationFrontDoorBinary(t)
+	issuegraph := migrationFrontDoorBinary(t)
 	phases := []string{"prepared", "target_configured", "old_controls_retired", "verified", "committed"}
 	for _, reverse := range []bool{false, true} {
 		for _, phase := range phases {
@@ -357,7 +357,7 @@ func TestMigrateDoltModeFrontDoorExternalJournalMatrix(t *testing.T) {
 				t.Run(fmt.Sprintf("%s/%s/%s", map[bool]string{false: "forward", true: "reverse"}[reverse], phase, map[bool]string{false: "tcp", true: "unix"}[unix]), func(t *testing.T) {
 					dir, home := t.TempDir(), t.TempDir()
 					env := migrationFrontDoorEnv(home)
-					beadsDir, root := filepath.Join(dir, ".beads"), filepath.Join(dir, ".beads", "dolt")
+					issuegraphDir, root := filepath.Join(dir, ".issuegraph"), filepath.Join(dir, ".issuegraph", "dolt")
 					require.NoError(t, os.MkdirAll(filepath.Join(root, ".dolt"), 0o755))
 					require.NoError(t, os.WriteFile(filepath.Join(root, ".dolt", "repo_state.json"), []byte(`{"head":"refs/heads/main","remotes":{},"backups":{},"branches":{}}`), 0o600))
 					src, target := "server", "proxied-server"
@@ -369,23 +369,23 @@ func TestMigrateDoltModeFrontDoorExternalJournalMatrix(t *testing.T) {
 					if phase != "prepared" {
 						mode = target
 					}
-					require.NoError(t, os.WriteFile(filepath.Join(beadsDir, "metadata.json"), []byte(fmt.Sprintf(`{"database":"myproj","backend":"dolt","dolt_mode":%q}`, mode)), 0o600))
-					require.NoError(t, os.WriteFile(filepath.Join(beadsDir, ".local_version"), []byte(Version), 0o600))
-					require.NoError(t, os.Chmod(beadsDir, 0o700))
+					require.NoError(t, os.WriteFile(filepath.Join(issuegraphDir, "metadata.json"), []byte(fmt.Sprintf(`{"database":"myproj","backend":"dolt","dolt_mode":%q}`, mode)), 0o600))
+					require.NoError(t, os.WriteFile(filepath.Join(issuegraphDir, ".local_version"), []byte(Version), 0o600))
+					require.NoError(t, os.Chmod(issuegraphDir, 0o700))
 					ext := map[string]any{"host": "db.example", "port": 3307}
 					if unix {
-						ext = map[string]any{"socket": "/tmp/beads-front-door.sock"}
+						ext = map[string]any{"socket": "/tmp/issuegraph-front-door.sock"}
 					}
 					sidecar, _ := json.Marshal(map[string]any{"root_path": root, "external": ext})
-					require.NoError(t, os.WriteFile(filepath.Join(beadsDir, "proxied_server_client_info.json"), sidecar, 0o600))
+					require.NoError(t, os.WriteFile(filepath.Join(issuegraphDir, "proxied_server_client_info.json"), sidecar, 0o600))
 					journal, _ := json.Marshal(map[string]any{"version": 1, "source_mode": src, "target_mode": target, "root_path": root, "external": ext, "sidecar": map[string]any{"root_path": root, "external": ext}, "ownership": "external", "attempt": 1, "phase": phase})
-					require.NoError(t, os.WriteFile(filepath.Join(beadsDir, migrateJournalFileName), journal, 0o600))
-					gatePath := filepath.Join(beadsDir, "dolt.gate.lock")
+					require.NoError(t, os.WriteFile(filepath.Join(issuegraphDir, migrateJournalFileName), journal, 0o600))
+					gatePath := filepath.Join(issuegraphDir, "dolt.gate.lock")
 					require.NoError(t, os.WriteFile(gatePath, []byte("preseeded-gate-lock"), 0o600))
 					gateBefore, gateErr := os.ReadFile(gatePath)
 					gateExists := gateErr == nil
-					tree := snapshotMigrationTree(t, beadsDir)
-					out, err := runBDExecWithBinary(t, bd, dir, env, append([]string{"--json", "migrate"}, command...)...)
+					tree := snapshotMigrationTree(t, issuegraphDir)
+					out, err := runIssueGraphExecWithBinary(t, issuegraph, dir, env, append([]string{"--json", "migrate"}, command...)...)
 					require.Error(t, err)
 					exitErr, ok := err.(*exec.ExitError)
 					require.True(t, ok)
@@ -398,9 +398,9 @@ func TestMigrateDoltModeFrontDoorExternalJournalMatrix(t *testing.T) {
 					assert.Equal(t, "proxy.migrate.external_endpoint", payload["code"])
 					assert.Equal(t, false, payload["mutates"])
 					assert.Contains(t, payload["error"], "externally hosted proxied Dolt endpoint")
-					assert.Equal(t, tree, snapshotMigrationTree(t, beadsDir))
+					assert.Equal(t, tree, snapshotMigrationTree(t, issuegraphDir))
 					for _, p := range append([]string{migrateLockFileName}, serverAssetNames()...) {
-						_, statErr := os.Stat(filepath.Join(beadsDir, p))
+						_, statErr := os.Stat(filepath.Join(issuegraphDir, p))
 						assert.True(t, os.IsNotExist(statErr), "unexpected artifact %s", p)
 					}
 					gateAfter, gateAfterErr := os.ReadFile(gatePath)
@@ -422,10 +422,10 @@ func TestMigrateDoltModeFrontDoorExternalJournalMatrix(t *testing.T) {
 }
 
 func TestMigrateDoltModeFrontDoorMalformedStateRefuses(t *testing.T) {
-	if os.Getenv("BEADS_TEST_MIGRATION_FRONTDOOR") != "1" {
-		t.Skip("set BEADS_TEST_MIGRATION_FRONTDOOR=1")
+	if os.Getenv("ISSUEGRAPH_TEST_MIGRATION_FRONTDOOR") != "1" {
+		t.Skip("set ISSUEGRAPH_TEST_MIGRATION_FRONTDOOR=1")
 	}
-	bd := migrationFrontDoorBinary(t)
+	issuegraph := migrationFrontDoorBinary(t)
 	for _, tc := range []struct {
 		name string
 		file string
@@ -437,15 +437,15 @@ func TestMigrateDoltModeFrontDoorMalformedStateRefuses(t *testing.T) {
 		t.Run(tc.name, func(t *testing.T) {
 			dir, home := t.TempDir(), t.TempDir()
 			env := migrationFrontDoorEnv(home)
-			beadsDir := filepath.Join(dir, ".beads")
-			require.NoError(t, os.MkdirAll(beadsDir, 0o700))
-			require.NoError(t, os.WriteFile(filepath.Join(beadsDir, ".local_version"), []byte(Version), 0o600))
+			issuegraphDir := filepath.Join(dir, ".issuegraph")
+			require.NoError(t, os.MkdirAll(issuegraphDir, 0o700))
+			require.NoError(t, os.WriteFile(filepath.Join(issuegraphDir, ".local_version"), []byte(Version), 0o600))
 			if tc.name == "journal" {
-				require.NoError(t, os.WriteFile(filepath.Join(beadsDir, "metadata.json"), []byte(`{"database":"myproj","backend":"dolt","dolt_mode":"proxied-server"}`), 0o600))
+				require.NoError(t, os.WriteFile(filepath.Join(issuegraphDir, "metadata.json"), []byte(`{"database":"myproj","backend":"dolt","dolt_mode":"proxied-server"}`), 0o600))
 			}
-			require.NoError(t, os.WriteFile(filepath.Join(beadsDir, tc.file), []byte(tc.body), 0o600))
-			before := snapshotMigrationTree(t, beadsDir)
-			out, _, err := runBDExecSeparated(t, bd, dir, env, "--json", "migrate", "from-proxied-server-to-server")
+			require.NoError(t, os.WriteFile(filepath.Join(issuegraphDir, tc.file), []byte(tc.body), 0o600))
+			before := snapshotMigrationTree(t, issuegraphDir)
+			out, _, err := runIssueGraphExecSeparated(t, issuegraph, dir, env, "--json", "migrate", "from-proxied-server-to-server")
 			require.Error(t, err)
 			exitErr, ok := err.(*exec.ExitError)
 			require.True(t, ok)
@@ -457,7 +457,7 @@ func TestMigrateDoltModeFrontDoorMalformedStateRefuses(t *testing.T) {
 			}
 			assert.Equal(t, "proxy.migrate.invalid_state", payload["code"])
 			assert.Equal(t, false, payload["mutates"])
-			assert.Equal(t, before, snapshotMigrationTree(t, beadsDir))
+			assert.Equal(t, before, snapshotMigrationTree(t, issuegraphDir))
 		})
 	}
 }
@@ -466,10 +466,10 @@ func TestMigrateDoltModeFrontDoorMalformedStateRefuses(t *testing.T) {
 // path fail-closed at the real CLI boundary. Both output modes must preserve
 // the workspace byte-for-byte while refusing ambiguous ownership/artifacts.
 func TestMigrateDoltModeForwardNoopRefusalsFrontDoor(t *testing.T) {
-	if os.Getenv("BEADS_TEST_MIGRATION_FRONTDOOR") != "1" {
-		t.Skip("set BEADS_TEST_MIGRATION_FRONTDOOR=1")
+	if os.Getenv("ISSUEGRAPH_TEST_MIGRATION_FRONTDOOR") != "1" {
+		t.Skip("set ISSUEGRAPH_TEST_MIGRATION_FRONTDOOR=1")
 	}
-	bd := migrationFrontDoorBinary(t)
+	issuegraph := migrationFrontDoorBinary(t)
 	cases := []struct {
 		name   string
 		shared bool
@@ -488,20 +488,20 @@ func TestMigrateDoltModeForwardNoopRefusalsFrontDoor(t *testing.T) {
 		t.Run(tc.name, func(t *testing.T) {
 			dir, home := t.TempDir(), t.TempDir()
 			env := migrationFrontDoorEnv(home)
-			beadsDir := filepath.Join(dir, ".beads")
-			root := filepath.Join(beadsDir, "dolt")
+			issuegraphDir := filepath.Join(dir, ".issuegraph")
+			root := filepath.Join(issuegraphDir, "dolt")
 			if tc.shared {
 				shared := filepath.Join(home, "shared-server")
-				env = append(env, "BEADS_SHARED_SERVER_DIR="+shared, "BEADS_DOLT_SHARED_SERVER=1")
+				env = append(env, "ISSUEGRAPH_SHARED_SERVER_DIR="+shared, "ISSUEGRAPH_DOLT_SHARED_SERVER=1")
 				root = filepath.Join(shared, "dolt")
 			}
 			require.NoError(t, os.MkdirAll(filepath.Join(root, ".dolt"), 0o755))
 			require.NoError(t, os.WriteFile(filepath.Join(root, ".dolt", "repo_state.json"), []byte(`{"head":"refs/heads/main","remotes":{},"backups":{},"branches":{}}`), 0o600))
-			require.NoError(t, os.MkdirAll(beadsDir, 0o700))
-			require.NoError(t, os.WriteFile(filepath.Join(beadsDir, "metadata.json"), []byte(`{"database":"myproj","backend":"dolt","dolt_mode":"proxied-server"}`), 0o600))
-			require.NoError(t, os.WriteFile(filepath.Join(beadsDir, ".local_version"), []byte(Version), 0o600))
+			require.NoError(t, os.MkdirAll(issuegraphDir, 0o700))
+			require.NoError(t, os.WriteFile(filepath.Join(issuegraphDir, "metadata.json"), []byte(`{"database":"myproj","backend":"dolt","dolt_mode":"proxied-server"}`), 0o600))
+			require.NoError(t, os.WriteFile(filepath.Join(issuegraphDir, ".local_version"), []byte(Version), 0o600))
 			if tc.shared {
-				require.NoError(t, os.WriteFile(filepath.Join(beadsDir, "config.yaml"), []byte("dolt:\n  shared-server: false\n"), 0o600))
+				require.NoError(t, os.WriteFile(filepath.Join(issuegraphDir, "config.yaml"), []byte("dolt:\n  shared-server: false\n"), 0o600))
 			}
 			if tc.info == nil {
 				tc.info = map[string]any{"root_path": root}
@@ -511,12 +511,12 @@ func TestMigrateDoltModeForwardNoopRefusalsFrontDoor(t *testing.T) {
 			}
 			b, err := json.Marshal(tc.info)
 			require.NoError(t, err)
-			sidecar := filepath.Join(beadsDir, "proxied_server_client_info.json")
+			sidecar := filepath.Join(issuegraphDir, "proxied_server_client_info.json")
 			require.NoError(t, os.WriteFile(sidecar, b, 0o600))
 			if tc.asset != "" {
 				require.NoError(t, os.WriteFile(filepath.Join(root, tc.asset), []byte("stale"), 0o600))
 			}
-			before := snapshotMigrationTree(t, beadsDir, root)
+			before := snapshotMigrationTree(t, issuegraphDir, root)
 			for _, jsonMode := range []bool{false, true} {
 				args := []string{"migrate", "from-server-to-proxied-server"}
 				if tc.shared {
@@ -525,7 +525,7 @@ func TestMigrateDoltModeForwardNoopRefusalsFrontDoor(t *testing.T) {
 				if jsonMode {
 					args = append([]string{"--json"}, args...)
 				}
-				stdout, stderr, runErr := runBDExecSeparated(t, bd, dir, env, args...)
+				stdout, stderr, runErr := runIssueGraphExecSeparated(t, issuegraph, dir, env, args...)
 				require.Error(t, runErr)
 				exitErr, ok := runErr.(*exec.ExitError)
 				require.True(t, ok)
@@ -541,67 +541,67 @@ func TestMigrateDoltModeForwardNoopRefusalsFrontDoor(t *testing.T) {
 				} else {
 					assert.Contains(t, strings.ToLower(stderr), strings.ToLower(tc.want))
 				}
-				assert.Equal(t, before, snapshotMigrationTree(t, beadsDir, root))
+				assert.Equal(t, before, snapshotMigrationTree(t, issuegraphDir, root))
 			}
 		})
 	}
 }
 
 // TestMigrateDoltModeDirectForwardFaultsFrontDoor runs every checkpoint fault
-// through a real managed-local bd process, then retries twice. The issue row
+// through a real managed-local issuegraph process, then retries twice. The issue row
 // proves the physical Dolt data survived the journal repair and idempotent
 // second invocation.
 func TestMigrateDoltModeDirectForwardFaultsFrontDoor(t *testing.T) {
-	if os.Getenv("BEADS_TEST_MIGRATION_FRONTDOOR") != "1" {
-		t.Skip("set BEADS_TEST_MIGRATION_FRONTDOOR=1")
+	if os.Getenv("ISSUEGRAPH_TEST_MIGRATION_FRONTDOOR") != "1" {
+		t.Skip("set ISSUEGRAPH_TEST_MIGRATION_FRONTDOOR=1")
 	}
-	bd := migrationFrontDoorBinary(t)
+	issuegraph := migrationFrontDoorBinary(t)
 	for _, phase := range []string{"prepared", "target_configured", "old_controls_retired", "verified", "committed"} {
 		t.Run(phase, func(t *testing.T) {
 			dir, home := t.TempDir(), t.TempDir()
 			env := migrationFrontDoorEnv(home)
-			out, err := runBDExecWithBinary(t, bd, dir, env, "init", "--backend", "dolt", "--server", "--prefix", "fault", "--quiet")
+			out, err := runIssueGraphExecWithBinary(t, issuegraph, dir, env, "init", "--backend", "dolt", "--server", "--prefix", "fault", "--quiet")
 			require.NoError(t, err, "init: %s", out)
-			created, err := runBDExecWithBinary(t, bd, dir, env, "create", "migration sentinel", "--json")
+			created, err := runIssueGraphExecWithBinary(t, issuegraph, dir, env, "create", "migration sentinel", "--json")
 			require.NoError(t, err, "create: %s", created)
 			var row struct {
 				ID string `json:"id"`
 			}
 			require.NoError(t, json.Unmarshal([]byte(created), &row))
-			blockerID := createDependencyPair(t, bd, dir, env, row.ID)
-			_, _ = runBDExecWithBinary(t, bd, dir, env, "dolt", "stop")
-			beadsDir := filepath.Join(dir, ".beads")
-			root := filepath.Join(beadsDir, "dolt")
+			blockerID := createDependencyPair(t, issuegraph, dir, env, row.ID)
+			_, _ = runIssueGraphExecWithBinary(t, issuegraph, dir, env, "dolt", "stop")
+			issuegraphDir := filepath.Join(dir, ".issuegraph")
+			root := filepath.Join(issuegraphDir, "dolt")
 			touchFile(t, filepath.Join(root, "migration-sentinel"))
-			sentinelBefore := snapshotMigrationTree(t, beadsDir, root)
-			faultEnv := append(append([]string(nil), env...), "BEADS_MIGRATION_FAIL_PHASE="+phase)
-			out, err = runBDExecWithBinary(t, bd, dir, faultEnv, "migrate", "from-server-to-proxied-server")
+			sentinelBefore := snapshotMigrationTree(t, issuegraphDir, root)
+			faultEnv := append(append([]string(nil), env...), "ISSUEGRAPH_MIGRATION_FAIL_PHASE="+phase)
+			out, err = runIssueGraphExecWithBinary(t, issuegraph, dir, faultEnv, "migrate", "from-server-to-proxied-server")
 			require.Error(t, err, "fault phase unexpectedly succeeded: %s", out)
 			exitErr, ok := err.(*exec.ExitError)
 			require.True(t, ok)
 			require.Equal(t, 1, exitErr.ExitCode())
-			j, jErr := os.Stat(filepath.Join(beadsDir, migrateJournalFileName))
+			j, jErr := os.Stat(filepath.Join(issuegraphDir, migrateJournalFileName))
 			require.NoError(t, jErr)
 			require.False(t, j.IsDir())
-			afterFailure := snapshotMigrationTree(t, beadsDir, root)
+			afterFailure := snapshotMigrationTree(t, issuegraphDir, root)
 			require.Equal(t, sentinelBefore[filepath.Join(root, "migration-sentinel")], afterFailure[filepath.Join(root, "migration-sentinel")])
-			retryEnv := append(append([]string(nil), env...), "BEADS_MIGRATION_FAIL_PHASE=")
+			retryEnv := append(append([]string(nil), env...), "ISSUEGRAPH_MIGRATION_FAIL_PHASE=")
 			require.NoError(t, func() error {
-				_, e := runBDExecWithBinary(t, bd, dir, retryEnv, "migrate", "from-server-to-proxied-server")
+				_, e := runIssueGraphExecWithBinary(t, issuegraph, dir, retryEnv, "migrate", "from-server-to-proxied-server")
 				return e
 			}())
-			after := snapshotMigrationTree(t, beadsDir, root)
+			after := snapshotMigrationTree(t, issuegraphDir, root)
 			require.NoError(t, func() error {
-				_, e := runBDExecWithBinary(t, bd, dir, retryEnv, "migrate", "from-server-to-proxied-server")
+				_, e := runIssueGraphExecWithBinary(t, issuegraph, dir, retryEnv, "migrate", "from-server-to-proxied-server")
 				return e
 			}())
-			assert.Equal(t, after, snapshotMigrationTree(t, beadsDir, root))
-			assertDirectMigrationFinal(t, beadsDir, root, false, filepath.Join(root, "migration-sentinel"))
-			assertDependencyPair(t, bd, dir, retryEnv, row.ID, blockerID)
-			show, showErr := runBDExecWithBinary(t, bd, dir, retryEnv, "show", row.ID, "--json")
+			assert.Equal(t, after, snapshotMigrationTree(t, issuegraphDir, root))
+			assertDirectMigrationFinal(t, issuegraphDir, root, false, filepath.Join(root, "migration-sentinel"))
+			assertDependencyPair(t, issuegraph, dir, retryEnv, row.ID, blockerID)
+			show, showErr := runIssueGraphExecWithBinary(t, issuegraph, dir, retryEnv, "show", row.ID, "--json")
 			require.NoError(t, showErr, "show sentinel: %s", show)
 			assert.Contains(t, show, "migration sentinel")
-			_, _ = runBDExecWithBinary(t, bd, dir, retryEnv, "dolt", "stop")
+			_, _ = runIssueGraphExecWithBinary(t, issuegraph, dir, retryEnv, "dolt", "stop")
 		})
 	}
 }
@@ -609,66 +609,66 @@ func TestMigrateDoltModeDirectForwardFaultsFrontDoor(t *testing.T) {
 // TestMigrateDoltModeDirectReverseFaultsFrontDoor covers the reverse
 // managed-local transition through the executable for every checkpoint.
 func TestMigrateDoltModeDirectReverseFaultsFrontDoor(t *testing.T) {
-	if os.Getenv("BEADS_TEST_MIGRATION_FRONTDOOR") != "1" {
-		t.Skip("set BEADS_TEST_MIGRATION_FRONTDOOR=1")
+	if os.Getenv("ISSUEGRAPH_TEST_MIGRATION_FRONTDOOR") != "1" {
+		t.Skip("set ISSUEGRAPH_TEST_MIGRATION_FRONTDOOR=1")
 	}
-	bd := migrationFrontDoorBinary(t)
+	issuegraph := migrationFrontDoorBinary(t)
 	for _, phase := range []string{"prepared", "target_configured", "old_controls_retired", "verified", "committed"} {
 		t.Run(phase, func(t *testing.T) {
 			dir, home := t.TempDir(), t.TempDir()
 			env := migrationFrontDoorEnv(home)
-			out, err := runBDExecWithBinary(t, bd, dir, env, "init", "--backend", "dolt", "--server", "--prefix", "reverse", "--quiet")
+			out, err := runIssueGraphExecWithBinary(t, issuegraph, dir, env, "init", "--backend", "dolt", "--server", "--prefix", "reverse", "--quiet")
 			require.NoError(t, err, "init: %s", out)
-			created, err := runBDExecWithBinary(t, bd, dir, env, "create", "reverse migration sentinel", "--json")
+			created, err := runIssueGraphExecWithBinary(t, issuegraph, dir, env, "create", "reverse migration sentinel", "--json")
 			require.NoError(t, err, "create: %s", created)
 			var row struct {
 				ID string `json:"id"`
 			}
 			require.NoError(t, json.Unmarshal([]byte(created), &row))
-			blockerID := createDependencyPair(t, bd, dir, env, row.ID)
-			_, _ = runBDExecWithBinary(t, bd, dir, env, "dolt", "stop")
-			_, err = runBDExecWithBinary(t, bd, dir, env, "migrate", "from-server-to-proxied-server")
+			blockerID := createDependencyPair(t, issuegraph, dir, env, row.ID)
+			_, _ = runIssueGraphExecWithBinary(t, issuegraph, dir, env, "dolt", "stop")
+			_, err = runIssueGraphExecWithBinary(t, issuegraph, dir, env, "migrate", "from-server-to-proxied-server")
 			require.NoError(t, err)
-			_, _ = runBDExecWithBinary(t, bd, dir, env, "dolt", "stop")
-			beadsDir := filepath.Join(dir, ".beads")
-			root := filepath.Join(beadsDir, "dolt")
+			_, _ = runIssueGraphExecWithBinary(t, issuegraph, dir, env, "dolt", "stop")
+			issuegraphDir := filepath.Join(dir, ".issuegraph")
+			root := filepath.Join(issuegraphDir, "dolt")
 			touchFile(t, filepath.Join(root, "migration-sentinel"))
-			before := snapshotMigrationTree(t, beadsDir, root)
-			faultEnv := append(append([]string(nil), env...), "BEADS_MIGRATION_FAIL_PHASE="+phase)
-			out, err = runBDExecWithBinary(t, bd, dir, faultEnv, "migrate", "from-proxied-server-to-server")
+			before := snapshotMigrationTree(t, issuegraphDir, root)
+			faultEnv := append(append([]string(nil), env...), "ISSUEGRAPH_MIGRATION_FAIL_PHASE="+phase)
+			out, err = runIssueGraphExecWithBinary(t, issuegraph, dir, faultEnv, "migrate", "from-proxied-server-to-server")
 			require.Error(t, err, "fault phase unexpectedly succeeded: %s", out)
 			exitErr, ok := err.(*exec.ExitError)
 			require.True(t, ok)
 			require.Equal(t, 1, exitErr.ExitCode())
-			require.Equal(t, before[filepath.Join(root, "migration-sentinel")], snapshotMigrationTree(t, beadsDir, root)[filepath.Join(root, "migration-sentinel")])
-			retryEnv := append(append([]string(nil), env...), "BEADS_MIGRATION_FAIL_PHASE=")
-			out, err = runBDExecWithBinary(t, bd, dir, retryEnv, "migrate", "from-proxied-server-to-server")
+			require.Equal(t, before[filepath.Join(root, "migration-sentinel")], snapshotMigrationTree(t, issuegraphDir, root)[filepath.Join(root, "migration-sentinel")])
+			retryEnv := append(append([]string(nil), env...), "ISSUEGRAPH_MIGRATION_FAIL_PHASE=")
+			out, err = runIssueGraphExecWithBinary(t, issuegraph, dir, retryEnv, "migrate", "from-proxied-server-to-server")
 			require.NoError(t, err, "retry: %s", out)
-			after := snapshotMigrationTree(t, beadsDir, root)
-			_, err = runBDExecWithBinary(t, bd, dir, retryEnv, "migrate", "from-proxied-server-to-server")
+			after := snapshotMigrationTree(t, issuegraphDir, root)
+			_, err = runIssueGraphExecWithBinary(t, issuegraph, dir, retryEnv, "migrate", "from-proxied-server-to-server")
 			require.NoError(t, err)
-			assert.Equal(t, after, snapshotMigrationTree(t, beadsDir, root))
-			assertDirectMigrationFinal(t, beadsDir, root, true, filepath.Join(root, "migration-sentinel"))
-			assertDependencyPair(t, bd, dir, retryEnv, row.ID, blockerID)
-			show, err := runBDExecWithBinary(t, bd, dir, retryEnv, "show", row.ID, "--json")
+			assert.Equal(t, after, snapshotMigrationTree(t, issuegraphDir, root))
+			assertDirectMigrationFinal(t, issuegraphDir, root, true, filepath.Join(root, "migration-sentinel"))
+			assertDependencyPair(t, issuegraph, dir, retryEnv, row.ID, blockerID)
+			show, err := runIssueGraphExecWithBinary(t, issuegraph, dir, retryEnv, "show", row.ID, "--json")
 			require.NoError(t, err, "show: %s", show)
 			assert.Contains(t, show, "reverse migration sentinel")
-			_, _ = runBDExecWithBinary(t, bd, dir, retryEnv, "dolt", "stop")
+			_, _ = runIssueGraphExecWithBinary(t, issuegraph, dir, retryEnv, "dolt", "stop")
 		})
 	}
 }
 
-func assertDirectMigrationFinal(t *testing.T, beadsDir, root string, reverse bool, sentinel string) {
+func assertDirectMigrationFinal(t *testing.T, issuegraphDir, root string, reverse bool, sentinel string) {
 	t.Helper()
-	meta, err := os.ReadFile(filepath.Join(beadsDir, "metadata.json"))
+	meta, err := os.ReadFile(filepath.Join(issuegraphDir, "metadata.json"))
 	require.NoError(t, err)
 	var got map[string]any
 	require.NoError(t, json.Unmarshal(meta, &got))
 	if reverse {
 		assert.Equal(t, "server", got["dolt_mode"])
-		_, err = os.Stat(filepath.Join(beadsDir, configfile.ProxiedServerClientInfoFileName))
+		_, err = os.Stat(filepath.Join(issuegraphDir, configfile.ProxiedServerClientInfoFileName))
 		assert.True(t, os.IsNotExist(err), "reverse sidecar remains")
-		if value, ok := config.WorkspaceYamlValue(beadsDir, "dolt.shared-server"); ok {
+		if value, ok := config.WorkspaceYamlValue(issuegraphDir, "dolt.shared-server"); ok {
 			assert.Equal(t, "false", strings.ToLower(value), "direct reverse must not enable shared topology")
 		}
 		for _, path := range proxy.ControlFilePaths(root) {
@@ -684,23 +684,23 @@ func assertDirectMigrationFinal(t *testing.T, beadsDir, root string, reverse boo
 		}
 	} else {
 		assert.Equal(t, "proxied-server", got["dolt_mode"])
-		info, infoErr := configfile.LoadProxiedServerClientInfo(beadsDir)
+		info, infoErr := configfile.LoadProxiedServerClientInfo(issuegraphDir)
 		require.NoError(t, infoErr)
 		require.NotNil(t, info)
-		assert.Equal(t, filepath.Clean(root), filepath.Clean(info.ResolvedRootPath(beadsDir)))
+		assert.Equal(t, filepath.Clean(root), filepath.Clean(info.ResolvedRootPath(issuegraphDir)))
 		for _, path := range serverAssetNames() {
-			_, statErr := os.Stat(filepath.Join(beadsDir, path))
+			_, statErr := os.Stat(filepath.Join(issuegraphDir, path))
 			assert.True(t, os.IsNotExist(statErr), "stale server control %s", path)
 		}
 	}
-	for _, path := range []string{filepath.Join(beadsDir, migrateJournalFileName), filepath.Join(beadsDir, migrateLockFileName)} {
+	for _, path := range []string{filepath.Join(issuegraphDir, migrateJournalFileName), filepath.Join(issuegraphDir, migrateLockFileName)} {
 		_, statErr := os.Stat(path)
 		assert.True(t, os.IsNotExist(statErr), "stale migration artifact %s", path)
 	}
 	sentinelBytes, sentinelErr := os.ReadFile(sentinel)
 	require.NoError(t, sentinelErr)
 	assert.Equal(t, []byte("x"), sentinelBytes, "migration changed Dolt root sentinel")
-	doltState, _ := doltserver.IsRunning(beadsDir)
+	doltState, _ := doltserver.IsRunning(issuegraphDir)
 	assert.False(t, doltState != nil && doltState.Running, "direct Dolt process still running")
 	proxyRunning, _ := proxy.IsRunning(root)
 	assert.False(t, proxyRunning, "direct proxy process still running")
@@ -718,7 +718,7 @@ type sharedMigrationFrontDoorSnapshot struct {
 	ProxyRunning bool
 }
 
-func snapshotSharedMigrationFrontDoor(t *testing.T, beadsDir, sharedDir, root string) sharedMigrationFrontDoorSnapshot {
+func snapshotSharedMigrationFrontDoor(t *testing.T, issuegraphDir, sharedDir, root string) sharedMigrationFrontDoorSnapshot {
 	t.Helper()
 	doltState, _ := doltserver.IsRunning(sharedDir)
 	doltRunning := doltState != nil && doltState.Running
@@ -729,12 +729,12 @@ func snapshotSharedMigrationFrontDoor(t *testing.T, beadsDir, sharedDir, root st
 	proxyRunning, _ := proxy.IsRunning(root)
 	controls := map[string]string{}
 	paths := append([]string{
-		filepath.Join(beadsDir, "metadata.json"),
-		filepath.Join(beadsDir, "config.yaml"),
-		filepath.Join(beadsDir, configfile.ProxiedServerClientInfoFileName),
-		filepath.Join(beadsDir, migrateJournalFileName),
-		filepath.Join(beadsDir, migrateLockFileName),
-		filepath.Join(beadsDir, "dolt.gate.lock"),
+		filepath.Join(issuegraphDir, "metadata.json"),
+		filepath.Join(issuegraphDir, "config.yaml"),
+		filepath.Join(issuegraphDir, configfile.ProxiedServerClientInfoFileName),
+		filepath.Join(issuegraphDir, migrateJournalFileName),
+		filepath.Join(issuegraphDir, migrateLockFileName),
+		filepath.Join(issuegraphDir, "dolt.gate.lock"),
 	}, doltserver.StateFilePaths(sharedDir)...)
 	paths = append(paths, proxy.ControlFilePaths(root)...)
 	for _, path := range paths {
@@ -746,7 +746,7 @@ func snapshotSharedMigrationFrontDoor(t *testing.T, beadsDir, sharedDir, root st
 		controls[path] = string(contents)
 	}
 	return sharedMigrationFrontDoorSnapshot{
-		Tree:         snapshotMigrationTree(t, beadsDir, sharedDir),
+		Tree:         snapshotMigrationTree(t, issuegraphDir, sharedDir),
 		Controls:     controls,
 		DoltRunning:  doltRunning,
 		DoltPID:      doltPID,
@@ -755,7 +755,7 @@ func snapshotSharedMigrationFrontDoor(t *testing.T, beadsDir, sharedDir, root st
 	}
 }
 
-func setupSharedMigrationFrontDoor(t *testing.T, bd string) (dir, home, sharedDir, sharedRoot, issueID, blockerID string, env []string) {
+func setupSharedMigrationFrontDoor(t *testing.T, issuegraph string) (dir, home, sharedDir, sharedRoot, issueID, blockerID string, env []string) {
 	t.Helper()
 	dir, home = t.TempDir(), t.TempDir()
 	sharedDir = filepath.Join(home, "shared-server")
@@ -765,30 +765,30 @@ func setupSharedMigrationFrontDoor(t *testing.T, bd string) (dir, home, sharedDi
 	require.NoError(t, err)
 	port := portProbe.Addr().(*net.TCPAddr).Port
 	require.NoError(t, portProbe.Close())
-	env = append(env, "BEADS_SHARED_SERVER_DIR="+sharedDir, "BEADS_DOLT_SHARED_SERVER=1", "BEADS_DOLT_SERVER_PORT="+strconv.Itoa(port))
-	out, err := runBDExecWithBinary(t, bd, dir, env, "init", "--backend", "dolt", "--shared-server", "--prefix", "shared", "--quiet")
+	env = append(env, "ISSUEGRAPH_SHARED_SERVER_DIR="+sharedDir, "ISSUEGRAPH_DOLT_SHARED_SERVER=1", "ISSUEGRAPH_DOLT_SERVER_PORT="+strconv.Itoa(port))
+	out, err := runIssueGraphExecWithBinary(t, issuegraph, dir, env, "init", "--backend", "dolt", "--shared-server", "--prefix", "shared", "--quiet")
 	require.NoError(t, err, "shared init: %s", out)
-	created, err := runBDExecWithBinary(t, bd, dir, env, "create", "shared migration sentinel", "--json")
+	created, err := runIssueGraphExecWithBinary(t, issuegraph, dir, env, "create", "shared migration sentinel", "--json")
 	require.NoError(t, err, "shared create: %s", created)
 	var row struct {
 		ID string `json:"id"`
 	}
 	require.NoError(t, json.Unmarshal([]byte(created), &row))
-	blockerID = createDependencyPair(t, bd, dir, env, row.ID)
+	blockerID = createDependencyPair(t, issuegraph, dir, env, row.ID)
 	require.NotEmpty(t, row.ID)
 	// Migrations require exclusive ownership. Stop the real shared Dolt
 	// process before taking the baseline snapshot.
-	status, _ := runBDExecWithBinary(t, bd, dir, env, "dolt", "status")
+	status, _ := runIssueGraphExecWithBinary(t, issuegraph, dir, env, "dolt", "status")
 	if strings.Contains(status, "Dolt server: running") {
-		stop, stopErr := runBDExecWithBinary(t, bd, dir, env, "dolt", "stop")
+		stop, stopErr := runIssueGraphExecWithBinary(t, issuegraph, dir, env, "dolt", "stop")
 		require.NoError(t, stopErr, "stop shared server: %s", stop)
 	}
 	return dir, home, sharedDir, sharedRoot, row.ID, blockerID, env
 }
 
-func assertSharedMigrationResult(t *testing.T, bd, dir string, env []string, beadsDir, sharedDir, sharedRoot, issueID, blockerID string, wantShared bool) {
+func assertSharedMigrationResult(t *testing.T, issuegraph, dir string, env []string, issuegraphDir, sharedDir, sharedRoot, issueID, blockerID string, wantShared bool) {
 	t.Helper()
-	meta, err := os.ReadFile(filepath.Join(beadsDir, "metadata.json"))
+	meta, err := os.ReadFile(filepath.Join(issuegraphDir, "metadata.json"))
 	require.NoError(t, err)
 	var metadata map[string]any
 	require.NoError(t, json.Unmarshal(meta, &metadata))
@@ -797,10 +797,10 @@ func assertSharedMigrationResult(t *testing.T, bd, dir string, env []string, bea
 		wantMode = "server"
 	}
 	assert.Equal(t, wantMode, metadata["dolt_mode"])
-	yamlValue, yamlSet := readWorkspaceYamlValueForFrontDoor(t, beadsDir, "dolt.shared-server")
+	yamlValue, yamlSet := readWorkspaceYamlValueForFrontDoor(t, issuegraphDir, "dolt.shared-server")
 	assert.True(t, yamlSet)
 	assert.Equal(t, fmt.Sprintf("%t", wantShared), strings.ToLower(yamlValue))
-	sidecarPath := filepath.Join(beadsDir, "proxied_server_client_info.json")
+	sidecarPath := filepath.Join(issuegraphDir, "proxied_server_client_info.json")
 	if wantShared {
 		_, statErr := os.Stat(sidecarPath)
 		assert.True(t, os.IsNotExist(statErr), "reverse migration must remove sidecar")
@@ -809,7 +809,7 @@ func assertSharedMigrationResult(t *testing.T, bd, dir string, env []string, bea
 		require.NoError(t, sidecarErr)
 		assert.Contains(t, string(sidecar), sharedRoot)
 	}
-	_, journalErr := os.Stat(filepath.Join(beadsDir, migrateJournalFileName))
+	_, journalErr := os.Stat(filepath.Join(issuegraphDir, migrateJournalFileName))
 	assert.True(t, os.IsNotExist(journalErr), "migration journal must be finalized")
 	// Probe ownership before `show`, because opening a shared workspace can
 	// legitimately auto-start its managed server.
@@ -821,18 +821,18 @@ func assertSharedMigrationResult(t *testing.T, bd, dir string, env []string, bea
 		// Shared-server mode is an externally addressed managed server and does
 		// not auto-start on read paths. Start it explicitly to prove the real
 		// issue row remains readable after reverse migration.
-		start, startErr := runBDExecWithBinary(t, bd, dir, env, "dolt", "start")
+		start, startErr := runIssueGraphExecWithBinary(t, issuegraph, dir, env, "dolt", "start")
 		require.NoError(t, startErr, "start shared server for verification: %s", start)
 	}
-	show, showErr := runBDExecWithBinary(t, bd, dir, env, "show", issueID, "--json")
+	show, showErr := runIssueGraphExecWithBinary(t, issuegraph, dir, env, "show", issueID, "--json")
 	require.NoError(t, showErr, "show migrated issue: %s", show)
 	assert.Contains(t, show, "shared migration sentinel")
 	if blockerID != "" {
-		assertDependencyPair(t, bd, dir, env, issueID, blockerID)
+		assertDependencyPair(t, issuegraph, dir, env, issueID, blockerID)
 	}
 	// `show` may auto-start the managed shared server. Stop it before probing
 	// final ownership so the idempotence assertion covers the migration itself.
-	_, _ = runBDExecWithBinary(t, bd, dir, env, "dolt", "stop")
+	_, _ = runIssueGraphExecWithBinary(t, issuegraph, dir, env, "dolt", "stop")
 	// Neither migration direction may leave a managed child alive.
 	doltState, _ = doltserver.IsRunning(sharedDir)
 	assert.False(t, doltState != nil && doltState.Running, "shared Dolt process still running")
@@ -840,41 +840,41 @@ func assertSharedMigrationResult(t *testing.T, bd, dir string, env []string, bea
 	assert.False(t, proxyRunning, "proxy process still running")
 }
 
-func readWorkspaceYamlValueForFrontDoor(t *testing.T, beadsDir, key string) (string, bool) {
+func readWorkspaceYamlValueForFrontDoor(t *testing.T, issuegraphDir, key string) (string, bool) {
 	t.Helper()
-	value, ok := config.WorkspaceYamlValue(beadsDir, key)
+	value, ok := config.WorkspaceYamlValue(issuegraphDir, key)
 	return value, ok
 }
 
 // TestMigrateDoltModeSharedForwardFaultsFrontDoor exercises all five
-// checkpoints through the real cgo bd subprocess using a disposable managed
+// checkpoints through the real cgo issuegraph subprocess using a disposable managed
 // shared-server root. Each injected fault is repaired by a retry and a second
 // successful invocation proves idempotence without changing durable state.
 func TestMigrateDoltModeSharedForwardFaultsFrontDoor(t *testing.T) {
-	if os.Getenv("BEADS_TEST_MIGRATION_FRONTDOOR") != "1" {
-		t.Skip("set BEADS_TEST_MIGRATION_FRONTDOOR=1")
+	if os.Getenv("ISSUEGRAPH_TEST_MIGRATION_FRONTDOOR") != "1" {
+		t.Skip("set ISSUEGRAPH_TEST_MIGRATION_FRONTDOOR=1")
 	}
-	bd := migrationFrontDoorBinary(t)
+	issuegraph := migrationFrontDoorBinary(t)
 	for _, phase := range []string{"prepared", "target_configured", "old_controls_retired", "verified", "committed"} {
 		t.Run(phase, func(t *testing.T) {
-			dir, _, sharedDir, sharedRoot, issueID, blockerID, env := setupSharedMigrationFrontDoor(t, bd)
-			beadsDir := filepath.Join(dir, ".beads")
+			dir, _, sharedDir, sharedRoot, issueID, blockerID, env := setupSharedMigrationFrontDoor(t, issuegraph)
+			issuegraphDir := filepath.Join(dir, ".issuegraph")
 			touchFile(t, filepath.Join(sharedRoot, "migration-sentinel"))
-			before := snapshotSharedMigrationFrontDoor(t, beadsDir, sharedDir, sharedRoot)
-			faultEnv := append(append([]string(nil), env...), "BEADS_MIGRATION_FAIL_PHASE="+phase)
-			out, err := runBDExecWithBinary(t, bd, dir, faultEnv, "migrate", "from-shared-server-to-proxied-server")
+			before := snapshotSharedMigrationFrontDoor(t, issuegraphDir, sharedDir, sharedRoot)
+			faultEnv := append(append([]string(nil), env...), "ISSUEGRAPH_MIGRATION_FAIL_PHASE="+phase)
+			out, err := runIssueGraphExecWithBinary(t, issuegraph, dir, faultEnv, "migrate", "from-shared-server-to-proxied-server")
 			require.Error(t, err, "fault phase unexpectedly succeeded: %s", out)
-			require.FileExists(t, filepath.Join(beadsDir, migrateJournalFileName))
-			failed := snapshotSharedMigrationFrontDoor(t, beadsDir, sharedDir, sharedRoot)
+			require.FileExists(t, filepath.Join(issuegraphDir, migrateJournalFileName))
+			failed := snapshotSharedMigrationFrontDoor(t, issuegraphDir, sharedDir, sharedRoot)
 			assert.Equal(t, before.Tree[filepath.Join(sharedRoot, "migration-sentinel")], failed.Tree[filepath.Join(sharedRoot, "migration-sentinel")])
-			retryEnv := append(append([]string(nil), env...), "BEADS_MIGRATION_FAIL_PHASE=")
-			out, err = runBDExecWithBinary(t, bd, dir, retryEnv, "migrate", "from-shared-server-to-proxied-server")
+			retryEnv := append(append([]string(nil), env...), "ISSUEGRAPH_MIGRATION_FAIL_PHASE=")
+			out, err = runIssueGraphExecWithBinary(t, issuegraph, dir, retryEnv, "migrate", "from-shared-server-to-proxied-server")
 			require.NoError(t, err, "retry: %s", out)
-			after := snapshotSharedMigrationFrontDoor(t, beadsDir, sharedDir, sharedRoot)
-			out, err = runBDExecWithBinary(t, bd, dir, retryEnv, "migrate", "from-shared-server-to-proxied-server")
+			after := snapshotSharedMigrationFrontDoor(t, issuegraphDir, sharedDir, sharedRoot)
+			out, err = runIssueGraphExecWithBinary(t, issuegraph, dir, retryEnv, "migrate", "from-shared-server-to-proxied-server")
 			require.NoError(t, err, "second success: %s", out)
-			assert.Equal(t, after, snapshotSharedMigrationFrontDoor(t, beadsDir, sharedDir, sharedRoot))
-			assertSharedMigrationResult(t, bd, dir, retryEnv, beadsDir, sharedDir, sharedRoot, issueID, blockerID, false)
+			assert.Equal(t, after, snapshotSharedMigrationFrontDoor(t, issuegraphDir, sharedDir, sharedRoot))
+			assertSharedMigrationResult(t, issuegraph, dir, retryEnv, issuegraphDir, sharedDir, sharedRoot, issueID, blockerID, false)
 		})
 	}
 }
@@ -882,35 +882,35 @@ func TestMigrateDoltModeSharedForwardFaultsFrontDoor(t *testing.T) {
 // TestMigrateDoltModeSharedReverseFaultsFrontDoor is the reverse-direction
 // counterpart of TestMigrateDoltModeSharedForwardFaultsFrontDoor.
 func TestMigrateDoltModeSharedReverseFaultsFrontDoor(t *testing.T) {
-	if os.Getenv("BEADS_TEST_MIGRATION_FRONTDOOR") != "1" {
-		t.Skip("set BEADS_TEST_MIGRATION_FRONTDOOR=1")
+	if os.Getenv("ISSUEGRAPH_TEST_MIGRATION_FRONTDOOR") != "1" {
+		t.Skip("set ISSUEGRAPH_TEST_MIGRATION_FRONTDOOR=1")
 	}
-	bd := migrationFrontDoorBinary(t)
+	issuegraph := migrationFrontDoorBinary(t)
 	for _, phase := range []string{"prepared", "target_configured", "old_controls_retired", "verified", "committed"} {
 		t.Run(phase, func(t *testing.T) {
-			dir, _, sharedDir, sharedRoot, issueID, blockerID, env := setupSharedMigrationFrontDoor(t, bd)
-			beadsDir := filepath.Join(dir, ".beads")
-			_, err := runBDExecWithBinary(t, bd, dir, env, "migrate", "from-shared-server-to-proxied-server")
+			dir, _, sharedDir, sharedRoot, issueID, blockerID, env := setupSharedMigrationFrontDoor(t, issuegraph)
+			issuegraphDir := filepath.Join(dir, ".issuegraph")
+			_, err := runIssueGraphExecWithBinary(t, issuegraph, dir, env, "migrate", "from-shared-server-to-proxied-server")
 			require.NoError(t, err)
 			// Forward migration leaves the proxy stopped; keep this explicit so
 			// the reverse matrix never races a child process from auto-start.
-			_, _ = runBDExecWithBinary(t, bd, dir, env, "dolt", "stop")
+			_, _ = runIssueGraphExecWithBinary(t, issuegraph, dir, env, "dolt", "stop")
 			touchFile(t, filepath.Join(sharedRoot, "migration-sentinel"))
-			before := snapshotSharedMigrationFrontDoor(t, beadsDir, sharedDir, sharedRoot)
-			faultEnv := append(append([]string(nil), env...), "BEADS_MIGRATION_FAIL_PHASE="+phase)
-			out, err := runBDExecWithBinary(t, bd, dir, faultEnv, "migrate", "from-proxied-server-to-shared-server")
+			before := snapshotSharedMigrationFrontDoor(t, issuegraphDir, sharedDir, sharedRoot)
+			faultEnv := append(append([]string(nil), env...), "ISSUEGRAPH_MIGRATION_FAIL_PHASE="+phase)
+			out, err := runIssueGraphExecWithBinary(t, issuegraph, dir, faultEnv, "migrate", "from-proxied-server-to-shared-server")
 			require.Error(t, err, "fault phase unexpectedly succeeded: %s", out)
-			require.FileExists(t, filepath.Join(beadsDir, migrateJournalFileName))
-			failed := snapshotSharedMigrationFrontDoor(t, beadsDir, sharedDir, sharedRoot)
+			require.FileExists(t, filepath.Join(issuegraphDir, migrateJournalFileName))
+			failed := snapshotSharedMigrationFrontDoor(t, issuegraphDir, sharedDir, sharedRoot)
 			assert.Equal(t, before.Tree[filepath.Join(sharedRoot, "migration-sentinel")], failed.Tree[filepath.Join(sharedRoot, "migration-sentinel")])
-			retryEnv := append(append([]string(nil), env...), "BEADS_MIGRATION_FAIL_PHASE=")
-			out, err = runBDExecWithBinary(t, bd, dir, retryEnv, "migrate", "from-proxied-server-to-shared-server")
+			retryEnv := append(append([]string(nil), env...), "ISSUEGRAPH_MIGRATION_FAIL_PHASE=")
+			out, err = runIssueGraphExecWithBinary(t, issuegraph, dir, retryEnv, "migrate", "from-proxied-server-to-shared-server")
 			require.NoError(t, err, "retry: %s", out)
-			after := snapshotSharedMigrationFrontDoor(t, beadsDir, sharedDir, sharedRoot)
-			out, err = runBDExecWithBinary(t, bd, dir, retryEnv, "migrate", "from-proxied-server-to-shared-server")
+			after := snapshotSharedMigrationFrontDoor(t, issuegraphDir, sharedDir, sharedRoot)
+			out, err = runIssueGraphExecWithBinary(t, issuegraph, dir, retryEnv, "migrate", "from-proxied-server-to-shared-server")
 			require.NoError(t, err, "second success: %s", out)
-			assert.Equal(t, after, snapshotSharedMigrationFrontDoor(t, beadsDir, sharedDir, sharedRoot))
-			assertSharedMigrationResult(t, bd, dir, retryEnv, beadsDir, sharedDir, sharedRoot, issueID, blockerID, true)
+			assert.Equal(t, after, snapshotSharedMigrationFrontDoor(t, issuegraphDir, sharedDir, sharedRoot))
+			assertSharedMigrationResult(t, issuegraph, dir, retryEnv, issuegraphDir, sharedDir, sharedRoot, issueID, blockerID, true)
 		})
 	}
 }

@@ -12,14 +12,14 @@ import (
 	"testing"
 	"time"
 
-	"github.com/steveyegge/beads/internal/storage"
+	"github.com/borg0ai/dx-issuegraph/internal/storage"
 )
 
 func newPeerAuthTestStore(t *testing.T) *EmbeddedDoltStore {
 	t.Helper()
 	ctx := t.Context()
-	beadsDir := filepath.Join(t.TempDir(), ".beads")
-	store, err := Open(ctx, beadsDir, "fedauth", "main")
+	issuegraphDir := filepath.Join(t.TempDir(), ".issuegraph")
+	store, err := Open(ctx, issuegraphDir, "fedauth", "main")
 	if err != nil {
 		t.Fatalf("Open: %v", err)
 	}

@@ -4,8 +4,8 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/steveyegge/beads/internal/config"
-	"github.com/steveyegge/beads/internal/types"
+	"github.com/borg0ai/dx-issuegraph/internal/config"
+	"github.com/borg0ai/dx-issuegraph/internal/types"
 )
 
 // TestConfigSetManyArgParsing tests argument parsing for the set-many command.
@@ -79,7 +79,7 @@ func TestConfigSetManyMixedKeyRouting(t *testing.T) {
 	args := []string{
 		"no-db=true",                  // yaml-only
 		"routing.mode=direct",         // yaml-only
-		"beads.role=maintainer",       // git config
+		"issuegraph.role=maintainer",  // git config
 		"jira.url=https://j.test",     // database
 		"ado.state_map.open=New",      // database
 		"ado.state_map.closed=Closed", // database
@@ -100,7 +100,7 @@ func TestConfigSetManyMixedKeyRouting(t *testing.T) {
 	for _, p := range pairs {
 		if config.IsYamlOnlyKey(p.key) {
 			yamlPairs = append(yamlPairs, p)
-		} else if p.key == "beads.role" {
+		} else if p.key == "issuegraph.role" {
 			gitPairs = append(gitPairs, p)
 		} else {
 			dbPairs = append(dbPairs, p)
@@ -127,8 +127,8 @@ func TestConfigSetManyMixedKeyRouting(t *testing.T) {
 	}
 
 	// Verify git key
-	if len(gitPairs) > 0 && gitPairs[0].key != "beads.role" {
-		t.Errorf("expected git pair key 'beads.role', got %q", gitPairs[0].key)
+	if len(gitPairs) > 0 && gitPairs[0].key != "issuegraph.role" {
+		t.Errorf("expected git pair key 'issuegraph.role', got %q", gitPairs[0].key)
 	}
 
 	// Verify DB keys
@@ -147,21 +147,21 @@ func TestConfigSetManyMixedKeyRouting(t *testing.T) {
 // catches errors before any writes would occur. This tests the upfront
 // validation pass that prevents partial writes.
 func TestConfigSetManyValidationBeforeWrite(t *testing.T) {
-	t.Run("invalid beads.role rejected upfront", func(t *testing.T) {
+	t.Run("invalid issuegraph.role rejected upfront", func(t *testing.T) {
 		// Simulate the Phase 2 validation logic from the command handler
 		type kvPair struct {
 			key, value string
 		}
 		pairs := []kvPair{
-			{"jira.url", "https://j.test"}, // valid DB key (would succeed)
-			{"beads.role", "superadmin"},   // invalid role (should fail validation)
-			{"ado.state_map.open", "New"},  // valid DB key (would succeed)
+			{"jira.url", "https://j.test"},    // valid DB key (would succeed)
+			{"issuegraph.role", "superadmin"}, // invalid role (should fail validation)
+			{"ado.state_map.open", "New"},     // valid DB key (would succeed)
 		}
 
 		validRoles := map[string]bool{"maintainer": true, "contributor": true}
 		var validationErr string
 		for _, p := range pairs {
-			if p.key == "beads.role" && !validRoles[p.value] {
+			if p.key == "issuegraph.role" && !validRoles[p.value] {
 				validationErr = p.value
 				break
 			}
@@ -200,18 +200,18 @@ func TestConfigSetManyValidationBeforeWrite(t *testing.T) {
 		_ = validationFailed
 	})
 
-	t.Run("valid beads.role passes validation", func(t *testing.T) {
+	t.Run("valid issuegraph.role passes validation", func(t *testing.T) {
 		type kvPair struct {
 			key, value string
 		}
 		pairs := []kvPair{
-			{"beads.role", "contributor"},
+			{"issuegraph.role", "contributor"},
 			{"jira.url", "https://j.test"},
 		}
 
 		validRoles := map[string]bool{"maintainer": true, "contributor": true}
 		for _, p := range pairs {
-			if p.key == "beads.role" && !validRoles[p.value] {
+			if p.key == "issuegraph.role" && !validRoles[p.value] {
 				t.Errorf("expected valid role %q to pass validation", p.value)
 			}
 		}
@@ -245,7 +245,7 @@ func TestConfigSetManyOutputLocationMapping(t *testing.T) {
 	pairs := []kvPair{
 		{"no-db", "true"},
 		{"routing.mode", "direct"},
-		{"beads.role", "maintainer"},
+		{"issuegraph.role", "maintainer"},
 		{"jira.url", "https://j.test"},
 		{"ado.state_map.open", "New"},
 	}
@@ -253,7 +253,7 @@ func TestConfigSetManyOutputLocationMapping(t *testing.T) {
 	expectedLocations := map[string]string{
 		"no-db":              "config.yaml",
 		"routing.mode":       "config.yaml",
-		"beads.role":         "git config",
+		"issuegraph.role":    "git config",
 		"jira.url":           "database",
 		"ado.state_map.open": "database",
 	}
@@ -262,7 +262,7 @@ func TestConfigSetManyOutputLocationMapping(t *testing.T) {
 		location := "database"
 		if config.IsYamlOnlyKey(p.key) {
 			location = "config.yaml"
-		} else if p.key == "beads.role" {
+		} else if p.key == "issuegraph.role" {
 			location = "git config"
 		}
 
@@ -275,7 +275,7 @@ func TestConfigSetManyOutputLocationMapping(t *testing.T) {
 
 // TestConfigSetManyParseMultipleArgs tests parsing a full batch of arguments,
 // including edge cases like values containing equals signs and empty values,
-// as would happen with a real 'bd config set-many' invocation.
+// as would happen with a real 'issuegraph config set-many' invocation.
 func TestConfigSetManyParseMultipleArgs(t *testing.T) {
 	args := []string{
 		"jira.url=https://example.atlassian.net",

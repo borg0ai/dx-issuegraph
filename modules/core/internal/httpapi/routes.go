@@ -5,7 +5,7 @@ import (
 	"slices"
 	"strings"
 
-	"github.com/steveyegge/beads/internal/types"
+	"github.com/borg0ai/dx-issuegraph/internal/types"
 )
 
 const (
@@ -17,7 +17,7 @@ const (
 	// customMethodPattern is that one registration. Every row carrying a
 	// customMethod declares it, and s.handler collapses them into a single
 	// ServeMux entry.
-	customMethodPattern = "/v0/beads/issues/{" + customMethodPathValue + "}"
+	customMethodPattern = "/v0/issuegraph/issues/{" + customMethodPathValue + "}"
 	// customMethodIDValue is where the dispatcher leaves the id it split out,
 	// so a handler reads its target exactly as one on a literal `{id}` pattern
 	// does rather than re-deriving the split.
@@ -101,7 +101,7 @@ type route struct {
 	//
 	// ServeMux wildcards match a whole segment, so `{id}:close` is not
 	// expressible as a pattern — and the single-resource custom methods
-	// COLLIDE: three rows cannot each register POST /v0/beads/issues/{idop}.
+	// COLLIDE: three rows cannot each register POST /v0/issuegraph/issues/{idop}.
 	// Rows carrying this field share one registration; the dispatcher splits
 	// the trailing suffix off the matched segment and hands the request to the
 	// row that claims it (see customMethodTarget).
@@ -134,8 +134,8 @@ type route struct {
 	// authExempt serves an operation with no bearer credential on a server
 	// that was configured with one. Only legitimate for liveness: the probe
 	// must answer with no credential, and it discloses nothing but that the
-	// process is up. Identity is NOT exempt — GET /v0/beads/context reveals the
-	// repo root, the beads directory and the database name.
+	// process is up. Identity is NOT exempt — GET /v0/issuegraph/context reveals the
+	// repo root, the issuegraph directory and the database name.
 	//
 	// It is a column rather than a middleware rule for the same reason
 	// bypassSemaphore is: the exemption is a property of the operation, so it
@@ -189,7 +189,7 @@ var routeTable = []route{
 	{
 		op:      OpGetContext,
 		method:  http.MethodGet,
-		pattern: "/v0/beads/context",
+		pattern: "/v0/issuegraph/context",
 		// A startup snapshot, so it touches no database either — and identity
 		// staying observable under saturation is half of how an operator
 		// tells one wedged server from another.
@@ -204,7 +204,7 @@ var routeTable = []route{
 	{
 		op:          OpListReadyWork,
 		method:      http.MethodGet,
-		pattern:     "/v0/beads/ready",
+		pattern:     "/v0/issuegraph/ready",
 		capability:  "ready.list",
 		implemented: true,
 		handler:     (*Server).handleReady,
@@ -215,7 +215,7 @@ var routeTable = []route{
 		// `stats`, not `status`: on an HTTP surface `status` reads as the
 		// server's own condition, which is /healthz. This one answers about the
 		// workspace and takes a database slot to do it.
-		pattern:     "/v0/beads/stats",
+		pattern:     "/v0/issuegraph/stats",
 		capability:  "stats.get",
 		implemented: true,
 		handler:     (*Server).handleStats,
@@ -223,7 +223,7 @@ var routeTable = []route{
 	{
 		op:          OpListDependencyCycles,
 		method:      http.MethodGet,
-		pattern:     "/v0/beads/dependencies/cycles",
+		pattern:     "/v0/issuegraph/dependencies/cycles",
 		capability:  "dependencies.cycles",
 		implemented: true,
 		handler:     (*Server).handleDependencyCycles,
@@ -235,7 +235,7 @@ var routeTable = []route{
 		// is. Unlike that one it needs no specPath declaration: the segment is
 		// a LITERAL, and only a wildcard segment is inexpressible as a ServeMux
 		// pattern, so the router registers the documented path itself.
-		pattern:     "/v0/beads/ready:count",
+		pattern:     "/v0/issuegraph/ready:count",
 		capability:  "ready.count",
 		implemented: true,
 		handler:     (*Server).handleCountReady,
@@ -243,7 +243,7 @@ var routeTable = []route{
 	{
 		op:          OpListIssues,
 		method:      http.MethodGet,
-		pattern:     "/v0/beads/issues",
+		pattern:     "/v0/issuegraph/issues",
 		capability:  "issues.list",
 		implemented: true,
 		handler:     (*Server).handleListIssues,
@@ -252,7 +252,7 @@ var routeTable = []route{
 		op:     OpQueryIssues,
 		method: http.MethodGet,
 		// A collection-level custom method, spelled as ready:count is.
-		pattern:     "/v0/beads/issues:query",
+		pattern:     "/v0/issuegraph/issues:query",
 		capability:  "issues.query",
 		implemented: true,
 		handler:     (*Server).handleQueryIssues,
@@ -268,7 +268,7 @@ var routeTable = []route{
 		// registered under POST and requires the separating slash this path has
 		// none of — nor with the plain collection GET, which ServeMux matches
 		// whole.
-		pattern:     "/v0/beads/issues:count",
+		pattern:     "/v0/issuegraph/issues:count",
 		capability:  "issues.count",
 		implemented: true,
 		handler:     (*Server).handleCountIssues,
@@ -276,7 +276,7 @@ var routeTable = []route{
 	{
 		op:          OpGetIssue,
 		method:      http.MethodGet,
-		pattern:     "/v0/beads/issues/{id}",
+		pattern:     "/v0/issuegraph/issues/{id}",
 		capability:  "issues.get",
 		implemented: true,
 		handler:     (*Server).handleGetIssue,
@@ -292,7 +292,7 @@ var routeTable = []route{
 		// cannot collide with the POST dispatcher above — ServeMux registers
 		// method and pattern together — and it leaves the custom-method
 		// namespace for the operations that are not CRUD.
-		pattern:     "/v0/beads/issues/{id}",
+		pattern:     "/v0/issuegraph/issues/{id}",
 		capability:  "issues.update",
 		implemented: true,
 		handler:     (*Server).handleUpdate,
@@ -305,11 +305,11 @@ var routeTable = []route{
 		// specPath agree and the router registers the documented path itself —
 		// no declaration is needed and the claim row's exception does not apply.
 		//
-		// It collides with nothing. `/v0/beads/issues/{id}` is a different whole
+		// It collides with nothing. `/v0/issuegraph/issues/{id}` is a different whole
 		// path, which is what ServeMux matches on, and the custom-method
-		// dispatcher's `/v0/beads/issues/{idop}` is registered under POST and is
+		// dispatcher's `/v0/issuegraph/issues/{idop}` is registered under POST and is
 		// one segment shorter besides.
-		pattern:     "/v0/beads/issues/{id}/related",
+		pattern:     "/v0/issuegraph/issues/{id}/related",
 		capability:  "issues.related",
 		implemented: true,
 		handler:     (*Server).handleListRelatedIssues,
@@ -327,16 +327,16 @@ var routeTable = []route{
 		// names. It is the one place a sub-resource earns the method outright.
 		//
 		// It collides with nothing, and the POST wildcard is the collision worth
-		// checking rather than assuming: `/v0/beads/issues/{idop}` matches ONE
+		// checking rather than assuming: `/v0/issuegraph/issues/{idop}` matches ONE
 		// segment after `/issues/`, and this path has two, so the dispatcher
 		// never sees a request for it. TestCustomMethodsNarrowThePOSTSurface and
 		// TestAddCommentPathReachesItsHandler pin the two halves.
 		//
 		// The collection has no GET row and must not grow one by reflex: no role
 		// answers a comment page, and the thread is read through
-		// `GET /v0/beads/issues/{id}?include_comments=true`. A GET here lands on
+		// `GET /v0/issuegraph/issues/{id}?include_comments=true`. A GET here lands on
 		// the catch-all, which answers 404 — this surface has no 405.
-		pattern:     "/v0/beads/issues/{id}/comments",
+		pattern:     "/v0/issuegraph/issues/{id}/comments",
 		capability:  "issues.addComment",
 		implemented: true,
 		handler:     (*Server).handleAddComment,
@@ -344,7 +344,7 @@ var routeTable = []route{
 	{
 		op:          OpListSettings,
 		method:      http.MethodGet,
-		pattern:     "/v0/beads/config",
+		pattern:     "/v0/issuegraph/config",
 		capability:  "config.list",
 		implemented: true,
 		handler:     (*Server).handleListSettings,
@@ -352,7 +352,7 @@ var routeTable = []route{
 	{
 		op:          OpGetSetting,
 		method:      http.MethodGet,
-		pattern:     "/v0/beads/config/{key}",
+		pattern:     "/v0/issuegraph/config/{key}",
 		capability:  "config.get",
 		implemented: true,
 		handler:     (*Server).handleGetSetting,
@@ -369,7 +369,7 @@ var routeTable = []route{
 		// differs only in method, which ServeMux registers together — the same
 		// arrangement the memory key already has, so the three rows cannot
 		// collide.
-		pattern:     "/v0/beads/config/{key}",
+		pattern:     "/v0/issuegraph/config/{key}",
 		capability:  "config.set",
 		implemented: true,
 		handler:     (*Server).handleSetSetting,
@@ -379,7 +379,7 @@ var routeTable = []route{
 		method: http.MethodDelete,
 		// The surface's second DELETE, and forgetMemory's argument unchanged:
 		// one named resource, no body, no flags.
-		pattern:     "/v0/beads/config/{key}",
+		pattern:     "/v0/issuegraph/config/{key}",
 		capability:  "config.unset",
 		implemented: true,
 		handler:     (*Server).handleUnsetSetting,
@@ -387,7 +387,7 @@ var routeTable = []route{
 	{
 		op:          OpListDependencies,
 		method:      http.MethodGet,
-		pattern:     "/v0/beads/dependencies",
+		pattern:     "/v0/issuegraph/dependencies",
 		capability:  "dependencies.list",
 		implemented: true,
 		handler:     (*Server).handleListDependencies,
@@ -404,7 +404,7 @@ var routeTable = []route{
 		// collection — /cycles, /blocking, /tree — all carry a separating
 		// slash, and the plain collection GET is a different whole segment,
 		// which is what ServeMux matches on.
-		pattern:     "/v0/beads/dependencies:count",
+		pattern:     "/v0/issuegraph/dependencies:count",
 		capability:  "dependencies.count",
 		implemented: true,
 		handler:     (*Server).handleCountDependencyEdges,
@@ -413,9 +413,9 @@ var routeTable = []route{
 		op:     OpListBlockingAnnotations,
 		method: http.MethodGet,
 		// A literal path under the same collection as the stored-edge read. No
-		// wildcard is involved, so it cannot collide with /v0/beads/dependencies
-		// or /v0/beads/dependencies/cycles, both of which are literals too.
-		pattern:     "/v0/beads/dependencies/blocking",
+		// wildcard is involved, so it cannot collide with /v0/issuegraph/dependencies
+		// or /v0/issuegraph/dependencies/cycles, both of which are literals too.
+		pattern:     "/v0/issuegraph/dependencies/blocking",
 		capability:  "dependencies.blocking",
 		implemented: true,
 		handler:     (*Server).handleBlockingAnnotations,
@@ -426,7 +426,7 @@ var routeTable = []route{
 		// A sibling path under /dependencies rather than a mode of the row
 		// above: ServeMux matches the literal segment exactly, and the two
 		// operations answer different shapes from different roles.
-		pattern:     "/v0/beads/dependencies/tree",
+		pattern:     "/v0/issuegraph/dependencies/tree",
 		capability:  "dependencies.tree",
 		implemented: true,
 		handler:     (*Server).handleDependencyTree,
@@ -441,10 +441,10 @@ var routeTable = []route{
 		// operation unnameable.
 		//
 		// It shares its pattern with no other row. The claim's wide
-		// /v0/beads/issues/{idop} wildcard requires the separating slash this
+		// /v0/issuegraph/issues/{idop} wildcard requires the separating slash this
 		// path has none of, and every batch beside it is a literal `:verb`
 		// segment ServeMux matches whole.
-		pattern:     "/v0/beads/issues",
+		pattern:     "/v0/issuegraph/issues",
 		capability:  "issues.create",
 		implemented: true,
 		handler:     (*Server).handleCreateIssue,
@@ -455,14 +455,14 @@ var routeTable = []route{
 		// A collection-level custom method, spelled the way ready:count's is.
 		//
 		// It does not collide with the claim row's wide POST wildcard below.
-		// That pattern is /v0/beads/issues/{idop} and requires the separating
+		// That pattern is /v0/issuegraph/issues/{idop} and requires the separating
 		// slash; this path has none, so the two never match the same request.
 		//
 		// Nor with the single create above, which took the plain collection
 		// POST this row was spelled as a custom method to leave free: ServeMux
 		// prefers the literal `:batchCreate` segment, and the two paths differ
 		// in any case.
-		pattern:     "/v0/beads/issues:batchCreate",
+		pattern:     "/v0/issuegraph/issues:batchCreate",
 		capability:  "issues.batchCreate",
 		implemented: true,
 		handler:     (*Server).handleBatchCreate,
@@ -480,7 +480,7 @@ var routeTable = []route{
 		// ordered plan of four verbs whose items may reference each other — and a
 		// flag on that operation would have made one operationId carrying two
 		// contracts, two request schemas and two result shapes.
-		pattern:     "/v0/beads/issues:batchApply",
+		pattern:     "/v0/issuegraph/issues:batchApply",
 		capability:  "issues.batchApply",
 		implemented: true,
 		handler:     (*Server).handleApplyBatch,
@@ -498,7 +498,7 @@ var routeTable = []route{
 		// bounds the exception's shape and TestClaimPathReachesItsHandler
 		// drives the documented path.
 		//
-		// The wildcard therefore matches every POST under /v0/beads/issues/,
+		// The wildcard therefore matches every POST under /v0/issuegraph/issues/,
 		// including the issue-detail path, which this document publishes under
 		// GET and PATCH and under no other method. The dispatcher answers 404 —
 		// the same answer the catch-all gives any other unrouted path — for a
@@ -513,7 +513,7 @@ var routeTable = []route{
 		// nothing the document does not already publish;
 		// TestUnroutedPathsStayUnauthenticated pins both halves so neither gets
 		// "fixed" into the other.
-		specPath:     "/v0/beads/issues/{id}:claim",
+		specPath:     "/v0/issuegraph/issues/{id}:claim",
 		customMethod: ":claim",
 		capability:   "issues.claim",
 		implemented:  true,
@@ -526,7 +526,7 @@ var routeTable = []route{
 		// this pattern is a row; everything the claim row says about the
 		// wildcard's width holds here unchanged.
 		pattern:      customMethodPattern,
-		specPath:     "/v0/beads/issues/{id}:release",
+		specPath:     "/v0/issuegraph/issues/{id}:release",
 		customMethod: ":release",
 		capability:   "issues.release",
 		implemented:  true,
@@ -539,7 +539,7 @@ var routeTable = []route{
 		// exists: two rows cannot each register this pattern. Everything the
 		// claim row says about the wildcard's width holds here unchanged.
 		pattern:      customMethodPattern,
-		specPath:     "/v0/beads/issues/{id}:close",
+		specPath:     "/v0/issuegraph/issues/{id}:close",
 		customMethod: ":close",
 		capability:   "issues.close",
 		implemented:  true,
@@ -551,7 +551,7 @@ var routeTable = []route{
 		// A fourth row on the shared single-resource dispatcher, spelled the way
 		// the reopen's is.
 		pattern:      customMethodPattern,
-		specPath:     "/v0/beads/issues/{id}:casMetadata",
+		specPath:     "/v0/issuegraph/issues/{id}:casMetadata",
 		customMethod: ":casMetadata",
 		capability:   "issues.casMetadata",
 		implemented:  true,
@@ -563,7 +563,7 @@ var routeTable = []route{
 		// The close's mirror, on the dispatcher the close built. Nothing new is
 		// needed here: a third row on this pattern is a row.
 		pattern:      customMethodPattern,
-		specPath:     "/v0/beads/issues/{id}:reopen",
+		specPath:     "/v0/issuegraph/issues/{id}:reopen",
 		customMethod: ":reopen",
 		capability:   "issues.reopen",
 		implemented:  true,
@@ -575,7 +575,7 @@ var routeTable = []route{
 		// A collection-level custom method, spelled the way issues:batchCreate
 		// is — and this operation is that one's deliberate opposite: it is not
 		// all-or-nothing, so its 200 carries per-item refusals.
-		pattern:     "/v0/beads/issues:batchClose",
+		pattern:     "/v0/issuegraph/issues:batchClose",
 		capability:  "issues.batchClose",
 		implemented: true,
 		handler:     (*Server).handleBatchClose,
@@ -591,7 +591,7 @@ var routeTable = []route{
 		// It names no id BECAUSE IT NAMES NO ROW. The caller asks a question and
 		// the role picks the answer, which is what makes this a sibling of
 		// issues/{id}:claim rather than a mode of it.
-		pattern:     "/v0/beads/issues:claimNext",
+		pattern:     "/v0/issuegraph/issues:claimNext",
 		capability:  "issues.claimNext",
 		implemented: true,
 		handler:     (*Server).handleClaimNext,
@@ -601,12 +601,12 @@ var routeTable = []route{
 		method: http.MethodPost,
 		// A collection-level custom method, spelled the way countReadyWork's is.
 		//
-		// It is registered AFTER the claim's `/v0/beads/issues/{idop}`, and
+		// It is registered AFTER the claim's `/v0/issuegraph/issues/{idop}`, and
 		// ServeMux precedence is by specificity rather than by order, so the
 		// literal wins over the wildcard for this exact path. That is what
 		// keeps a sweep from being parsed as a claim of an issue called
 		// ":sweep"; TestSweepPathReachesItsHandler drives the documented path.
-		pattern:     "/v0/beads/issues:sweep",
+		pattern:     "/v0/issuegraph/issues:sweep",
 		capability:  "issues.sweep",
 		implemented: true,
 		handler:     (*Server).handleSweep,
@@ -618,7 +618,7 @@ var routeTable = []route{
 		// over the claim's wildcard for exactly the reason the sweep row above
 		// spells out; TestDeletePathReachesItsHandler drives the documented
 		// path.
-		pattern:     "/v0/beads/issues:delete",
+		pattern:     "/v0/issuegraph/issues:delete",
 		capability:  "issues.delete",
 		implemented: true,
 		handler:     (*Server).handleDelete,
@@ -629,7 +629,7 @@ var routeTable = []route{
 		// A collection-level custom method beside :remove below, and a LITERAL
 		// for the same reason: pattern and specPath agree, so no declaration is
 		// needed and the router registers the documented path itself.
-		pattern:     "/v0/beads/dependencies:add",
+		pattern:     "/v0/issuegraph/dependencies:add",
 		capability:  "dependencies.add",
 		implemented: true,
 		handler:     (*Server).handleAddDependencies,
@@ -644,9 +644,9 @@ var routeTable = []route{
 		// claim row's declaration.
 		//
 		// It cannot collide with the three literal paths UNDER
-		// /v0/beads/dependencies (cycles, blocking, tree): ServeMux requires the
+		// /v0/issuegraph/dependencies (cycles, blocking, tree): ServeMux requires the
 		// separating slash, and this path has none.
-		pattern:     "/v0/beads/dependencies:remove",
+		pattern:     "/v0/issuegraph/dependencies:remove",
 		capability:  "dependencies.remove",
 		implemented: true,
 		handler:     (*Server).handleRemoveDependency,
@@ -654,7 +654,7 @@ var routeTable = []route{
 	{
 		op:          OpListMemories,
 		method:      http.MethodGet,
-		pattern:     "/v0/beads/memories",
+		pattern:     "/v0/issuegraph/memories",
 		capability:  "memories.list",
 		implemented: true,
 		handler:     (*Server).handleListMemories,
@@ -666,7 +666,7 @@ var routeTable = []route{
 		// of the collection the path names, which is what POST already means.
 		// The two destructive issue operations above are custom methods because
 		// they act on a SET the request describes; nothing here does.
-		pattern:     "/v0/beads/memories",
+		pattern:     "/v0/issuegraph/memories",
 		capability:  "memories.remember",
 		implemented: true,
 		handler:     (*Server).handleRememberMemory,
@@ -678,7 +678,7 @@ var routeTable = []route{
 		// declaration is needed. It cannot collide with the collection read
 		// above: ServeMux requires the separating slash, so `/memories` and
 		// `/memories/{key}` never match the same request.
-		pattern:     "/v0/beads/memories/{key}",
+		pattern:     "/v0/issuegraph/memories/{key}",
 		capability:  "memories.get",
 		implemented: true,
 		handler:     (*Server).handleGetMemory,
@@ -689,9 +689,9 @@ var routeTable = []route{
 		// A plain collection read, not a custom method and not a sub-resource of
 		// issues: the journal is its own collection whose members happen to
 		// describe issue mutations. `since` and `limit` are ordinary query
-		// parameters, exactly as they are on /v0/beads/issues, so pattern and
+		// parameters, exactly as they are on /v0/issuegraph/issues, so pattern and
 		// specPath agree and no declaration is needed.
-		pattern:     "/v0/beads/events",
+		pattern:     "/v0/issuegraph/events",
 		capability:  "events.list",
 		implemented: true,
 		handler:     (*Server).handleListEvents,
@@ -708,7 +708,7 @@ var routeTable = []route{
 		// than a mode of it deliberately: the two answer different media types
 		// with different lifetimes and different limits, and a `follow=true`
 		// parameter would have made one operation that is two contracts.
-		pattern:    "/v0/beads/events:watch",
+		pattern:    "/v0/issuegraph/events:watch",
 		capability: "events.watch",
 		// The stream lives until the client leaves, so the request deadline
 		// does not apply and the database slot moves to the individual reads.
@@ -725,7 +725,7 @@ var routeTable = []route{
 		// and differs only in method, which is the whole argument for the
 		// method: one named resource, no body, no flags. ServeMux registers
 		// method and pattern together, so the two rows cannot collide.
-		pattern:     "/v0/beads/memories/{key}",
+		pattern:     "/v0/issuegraph/memories/{key}",
 		capability:  "memories.forget",
 		implemented: true,
 		handler:     (*Server).handleForgetMemory,

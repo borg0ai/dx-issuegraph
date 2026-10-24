@@ -13,7 +13,7 @@ A simple Python script demonstrating how an AI agent can use issuegraph to manag
 ## Prerequisites
 
 - Python 3.7+
-- issuegraph installed: `curl -fsSL https://raw.githubusercontent.com/gastownhall/beads/main/scripts/install.sh | bash`
+- issuegraph installed: `curl -fsSL https://raw.githubusercontent.com/borg0ai/dx-issuegraph/main/scripts/install.sh | bash`
 - An issuegraph database initialized: `issuegraph init`
 
 ## Usage
@@ -45,14 +45,14 @@ chmod +x agent.py
 Iteration 1/10
 ============================================================
 
-📋 Claiming task: bd-1
-🤖 Working on: Implement user authentication (bd-1)
+📋 Claiming task: issuegraph-1
+🤖 Working on: Implement user authentication (issuegraph-1)
    Priority: 1, Type: feature
 
 💡 Discovered: Missing test coverage for this feature
 ✨ Creating issue: Add tests for Implement user authentication
-🔗 Linking bd-2 ← discovered-from ← bd-1
-✅ Completing task: bd-1 - Implemented successfully
+🔗 Linking issuegraph-2 ← discovered-from ← issuegraph-1
+✅ Completing task: issuegraph-1 - Implemented successfully
 
 🔄 New work discovered and linked. Running another cycle...
 ```
@@ -70,7 +70,7 @@ To integrate with a real LLM-based agent:
 
 ```python
 # Create an agent with custom behavior
-agent = BeadsAgent()
+agent = IssueGraphAgent()
 
 # Find specific types of work
 ready = agent.run_bd("ready", "--priority", "1", "--assignee", "bot")
@@ -79,7 +79,7 @@ ready = agent.run_bd("ready", "--priority", "1", "--assignee", "bot")
 agent.run_bd("create", "New task", "-l", "urgent,backend")
 
 # Query dependency tree
-tree = agent.run_bd("dep", "tree", "bd-1")
+tree = agent.run_bd("dep", "tree", "issuegraph-1")
 ```
 
 ## See Also

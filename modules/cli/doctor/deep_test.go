@@ -10,12 +10,12 @@ import (
 	"testing"
 	"time"
 
-	"github.com/steveyegge/beads/internal/configfile"
-	"github.com/steveyegge/beads/internal/types"
+	"github.com/borg0ai/dx-issuegraph/internal/configfile"
+	"github.com/borg0ai/dx-issuegraph/internal/types"
 )
 
-// TestRunDeepValidation_NoBeadsDir verifies deep validation handles missing .beads directory
-func TestRunDeepValidation_NoBeadsDir(t *testing.T) {
+// TestRunDeepValidation_NoIssueGraphDir verifies deep validation handles missing .issuegraph directory
+func TestRunDeepValidation_NoIssueGraphDir(t *testing.T) {
 	tmpDir := t.TempDir()
 	result := RunDeepValidation(tmpDir)
 
@@ -27,11 +27,11 @@ func TestRunDeepValidation_NoBeadsDir(t *testing.T) {
 	}
 }
 
-// TestRunDeepValidation_EmptyBeadsDir verifies deep validation with empty .beads directory
-func TestRunDeepValidation_EmptyBeadsDir(t *testing.T) {
+// TestRunDeepValidation_EmptyIssueGraphDir verifies deep validation with empty .issuegraph directory
+func TestRunDeepValidation_EmptyIssueGraphDir(t *testing.T) {
 	tmpDir := t.TempDir()
-	beadsDir := filepath.Join(tmpDir, ".beads")
-	if err := os.Mkdir(beadsDir, 0755); err != nil {
+	issuegraphDir := filepath.Join(tmpDir, ".issuegraph")
+	if err := os.Mkdir(issuegraphDir, 0755); err != nil {
 		t.Fatal(err)
 	}
 
@@ -48,11 +48,11 @@ func TestRunDeepValidation_EmptyBeadsDir(t *testing.T) {
 
 func TestRunDeepValidationSQLiteIsNotAMigrationWarning(t *testing.T) {
 	tmpDir := t.TempDir()
-	beadsDir := filepath.Join(tmpDir, ".beads")
-	if err := os.MkdirAll(beadsDir, 0o750); err != nil {
+	issuegraphDir := filepath.Join(tmpDir, ".issuegraph")
+	if err := os.MkdirAll(issuegraphDir, 0o750); err != nil {
 		t.Fatal(err)
 	}
-	if err := (&configfile.Config{Backend: configfile.BackendSQLite, SQLitePath: "beads.db"}).Save(beadsDir); err != nil {
+	if err := (&configfile.Config{Backend: configfile.BackendSQLite, SQLitePath: "issuegraph.db"}).Save(issuegraphDir); err != nil {
 		t.Fatalf("save SQLite config: %v", err)
 	}
 
@@ -68,7 +68,7 @@ func TestRunDeepValidationSQLiteIsNotAMigrationWarning(t *testing.T) {
 
 // TestCheckParentConsistency_OrphanedDeps verifies detection of orphaned parent-child deps
 func TestCheckParentConsistency_OrphanedDeps(t *testing.T) {
-	store := newTestDoltStore(t, "bd")
+	store := newTestDoltStore(t, "issuegraph")
 	ctx := context.Background()
 
 	// Create an issue

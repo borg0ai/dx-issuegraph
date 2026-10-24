@@ -1,32 +1,32 @@
 ---
-title: "bd ready"
+title: "issuegraph ready"
 description: "Show ready work (open issues with no active blockers)."
 ---
 
 {/* AUTO-GENERATED: do not edit manually */}
 
-Generated from `bd help --doc ready`.
+Generated from `issuegraph help --doc ready`.
 
 Show ready work (open issues with no active blockers).
 
 Excludes in_progress, blocked, deferred, and hooked issues. This uses the
 GetReadyWork API which applies blocker-aware semantics to find truly claimable work.
 
-Note: 'bd list --ready' uses the same blocker-aware ready-work semantics.
+Note: 'issuegraph list --ready' uses the same blocker-aware ready-work semantics.
 
 Use --mol to filter to a specific molecule's steps:
-  bd ready --mol bd-patrol   # Show ready steps within molecule
+  issuegraph ready --mol issuegraph-patrol   # Show ready steps within molecule
 
 Use --gated to find molecules ready for gate-resume dispatch:
-  bd ready --gated           # Find molecules where a gate closed
+  issuegraph ready --gated           # Find molecules where a gate closed
 
 Use --claim to atomically claim the first ready issue matching the filters:
-  bd ready --claim --json
+  issuegraph ready --claim --json
 
 This is useful for agents executing molecules to see which steps can run next.
 
 ```
-bd ready [flags]
+issuegraph ready [flags]
 ```
 
 **Flags:**
@@ -48,7 +48,7 @@ bd ready [flags]
       --mol string                   Filter to steps within a specific molecule
       --mol-type string              Filter by molecule type: swarm, patrol, or work
       --offset int                   Skip the first N matching results (0-based). Only supported under --proxied-server.
-      --parent string                Filter to descendants of this bead/epic
+      --parent string                Filter to descendants of this issue/epic
       --plain                        Display issues as a plain numbered list
       --pretty                       Display issues in a tree format with status/priority symbols (default true)
   -p, --priority int                 Filter by priority

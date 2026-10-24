@@ -10,7 +10,7 @@ import (
 	"gopkg.in/yaml.v3"
 )
 
-func TestPluginLayoutUsesSharedBeadsRoot(t *testing.T) {
+func TestPluginLayoutUsesSharedIssueGraphRoot(t *testing.T) {
 	root := filepath.Join("..", "..", "..")
 
 	var claudeMarketplace struct {
@@ -22,8 +22,8 @@ func TestPluginLayoutUsesSharedBeadsRoot(t *testing.T) {
 	if len(claudeMarketplace.Plugins) != 1 {
 		t.Fatalf("expected one Claude marketplace plugin, got %d", len(claudeMarketplace.Plugins))
 	}
-	if got := claudeMarketplace.Plugins[0].Source; got != "./plugins/beads" {
-		t.Fatalf("Claude marketplace source = %q, want ./plugins/beads", got)
+	if got := claudeMarketplace.Plugins[0].Source; got != "./plugins/issuegraph" {
+		t.Fatalf("Claude marketplace source = %q, want ./plugins/issuegraph", got)
 	}
 
 	var claudeManifest struct {
@@ -31,12 +31,12 @@ func TestPluginLayoutUsesSharedBeadsRoot(t *testing.T) {
 		Commands string  `json:"commands"`
 		Agents   *string `json:"agents"`
 	}
-	readJSONFile(t, filepath.Join(root, "plugins", "beads", ".claude-plugin", "plugin.json"), &claudeManifest)
+	readJSONFile(t, filepath.Join(root, "plugins", "issuegraph", ".claude-plugin", "plugin.json"), &claudeManifest)
 	if claudeManifest.Skills != "./skills/" {
 		t.Fatalf("Claude skills path = %q, want ./skills/", claudeManifest.Skills)
 	}
-	if claudeManifest.Commands != "./skills/beads/commands/" {
-		t.Fatalf("Claude commands path = %q, want ./skills/beads/commands/", claudeManifest.Commands)
+	if claudeManifest.Commands != "./skills/issuegraph/commands/" {
+		t.Fatalf("Claude commands path = %q, want ./skills/issuegraph/commands/", claudeManifest.Commands)
 	}
 	if claudeManifest.Agents != nil {
 		t.Fatalf("Claude agents path = %q, want unset (default ./agents/) so the loader does not scan codex yaml as agents", *claudeManifest.Agents)
@@ -46,7 +46,7 @@ func TestPluginLayoutUsesSharedBeadsRoot(t *testing.T) {
 		Skills string `json:"skills"`
 		Hooks  string `json:"hooks"`
 	}
-	readJSONFile(t, filepath.Join(root, "plugins", "beads", ".codex-plugin", "plugin.json"), &codexManifest)
+	readJSONFile(t, filepath.Join(root, "plugins", "issuegraph", ".codex-plugin", "plugin.json"), &codexManifest)
 	if codexManifest.Skills != "./skills/" {
 		t.Fatalf("Codex manifest skills path = %q, want ./skills/", codexManifest.Skills)
 	}
@@ -54,17 +54,17 @@ func TestPluginLayoutUsesSharedBeadsRoot(t *testing.T) {
 		t.Fatalf("Codex manifest hooks path = %q, want ./.codex-plugin/hooks/hooks.json", codexManifest.Hooks)
 	}
 
-	requireRepoFile(t, root, "plugins", "beads", "skills", "beads", "SKILL.md")
-	requireRepoFile(t, root, "plugins", "beads", "skills", "beads", "agents", "openai.yaml")
-	requireRepoFile(t, root, "plugins", "beads", "agents", "task-agent.md")
-	requireRepoFile(t, root, "plugins", "beads", "skills", "beads", "commands", "ready.md")
-	requireRepoFile(t, root, "plugins", "beads", ".codex-plugin", "hooks", "hooks.json")
-	requireNoRepoPath(t, root, "plugins", "beads", "hooks", "hooks.json")
+	requireRepoFile(t, root, "plugins", "issuegraph", "skills", "issuegraph", "SKILL.md")
+	requireRepoFile(t, root, "plugins", "issuegraph", "skills", "issuegraph", "agents", "openai.yaml")
+	requireRepoFile(t, root, "plugins", "issuegraph", "agents", "task-agent.md")
+	requireRepoFile(t, root, "plugins", "issuegraph", "skills", "issuegraph", "commands", "ready.md")
+	requireRepoFile(t, root, "plugins", "issuegraph", ".codex-plugin", "hooks", "hooks.json")
+	requireNoRepoPath(t, root, "plugins", "issuegraph", "hooks", "hooks.json")
 }
 
 func TestPluginCommandArgumentHintsAreStrings(t *testing.T) {
 	root := filepath.Join("..", "..", "..")
-	commandsDir := filepath.Join(root, "plugins", "beads", "skills", "beads", "commands")
+	commandsDir := filepath.Join(root, "plugins", "issuegraph", "skills", "issuegraph", "commands")
 	entries, err := os.ReadDir(commandsDir)
 	if err != nil {
 		t.Fatalf("read commands directory %s: %v", commandsDir, err)

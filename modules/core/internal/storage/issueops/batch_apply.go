@@ -8,9 +8,9 @@ import (
 	"sort"
 	"strings"
 
-	"github.com/steveyegge/beads/internal/storage"
-	"github.com/steveyegge/beads/internal/types"
-	publicops "github.com/steveyegge/beads/issueops"
+	"github.com/borg0ai/dx-issuegraph/internal/storage"
+	"github.com/borg0ai/dx-issuegraph/internal/types"
+	publicops "github.com/borg0ai/dx-issuegraph/issueops"
 )
 
 // ApplyBatchInTx is the body behind issueops.BatchApplier: apply a
@@ -152,9 +152,9 @@ func ApplyBatchCommitMessage(plan storage.ApplyBatchPlan, result publicops.Apply
 		// The request wrote, but nothing it wrote is a landing a caller asked
 		// about. Naming the act plainly is the honest entry; naming a count of
 		// zero would not be.
-		return HistoryEntry(plan.Provenance, "bd: apply batch")
+		return HistoryEntry(plan.Provenance, "issuegraph: apply batch")
 	}
-	return HistoryEntry(plan.Provenance, "bd: apply "+strings.Join(parts, ", "))
+	return HistoryEntry(plan.Provenance, "issuegraph: apply "+strings.Join(parts, ", "))
 }
 
 func plural(n int) string {

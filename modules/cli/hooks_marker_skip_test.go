@@ -6,7 +6,7 @@ import (
 )
 
 // TestIsOnlyShebangOrEmpty_TableDriven exercises the helper used by
-// shouldPreserveHookContent to decide, after stripping a BEADS INTEGRATION
+// shouldPreserveHookContent to decide, after stripping a ISSUEGRAPH INTEGRATION
 // block, whether anything user-owned remains worth preserving. (GH#3536)
 func TestIsOnlyShebangOrEmpty_TableDriven(t *testing.T) {
 	tests := []struct {
@@ -36,12 +36,12 @@ func TestIsOnlyShebangOrEmpty_TableDriven(t *testing.T) {
 // pure-function decision used by preservePreexistingHooks. Each case mirrors
 // a real situation the migration path encounters. (GH#3536)
 func TestShouldPreserveHookContent_TableDriven(t *testing.T) {
-	const v062Marker = "# --- BEGIN BEADS INTEGRATION v0.62.0 ---\n" +
-		"# This section is managed by beads. Do not remove these markers.\n" +
-		"if command -v bd >/dev/null 2>&1; then\n" +
-		"  bd hook pre-commit \"$@\"\n" +
+	const v062Marker = "# --- BEGIN ISSUEGRAPH INTEGRATION v0.62.0 ---\n" +
+		"# This section is managed by issuegraph. Do not remove these markers.\n" +
+		"if command -v issuegraph >/dev/null 2>&1; then\n" +
+		"  issuegraph hook pre-commit \"$@\"\n" +
 		"fi\n" +
-		"# --- END BEADS INTEGRATION v0.62.0 ---\n"
+		"# --- END ISSUEGRAPH INTEGRATION v0.62.0 ---\n"
 
 	tests := []struct {
 		name      string
@@ -53,11 +53,11 @@ func TestShouldPreserveHookContent_TableDriven(t *testing.T) {
 	}{
 		{
 			name:     "inline marker — wholly bd-managed, skip",
-			content:  "#!/bin/sh\n# bd (beads)\nbd hook pre-commit \"$@\"\n",
+			content:  "#!/bin/sh\n# issuegraph (issuegraph)\nbd hook pre-commit \"$@\"\n",
 			wantKeep: false,
 		},
 		{
-			name: "v0.62.x style: dispatcher above + bd marker block — strip and preserve",
+			name: "v0.62.x style: dispatcher above + issuegraph marker block — strip and preserve",
 			content: "#!/bin/sh\nset -e\n" +
 				"# user dispatcher\n" +
 				"if [ -f .pre-commit-config.yaml ] && command -v pre-commit >/dev/null 2>&1; then\n" +
@@ -65,7 +65,7 @@ func TestShouldPreserveHookContent_TableDriven(t *testing.T) {
 				"fi\n\n" +
 				v062Marker,
 			wantKeep: true,
-			wantNot:  "BEADS INTEGRATION",
+			wantNot:  "ISSUEGRAPH INTEGRATION",
 		},
 		{
 			name:     "marker block + only shebang — strip leaves nothing, skip",
@@ -90,7 +90,7 @@ func TestShouldPreserveHookContent_TableDriven(t *testing.T) {
 			content:   "#!/usr/bin/env sh\n. \"$(dirname -- \"$0\")/_/husky.sh\"\n\nnpx lint-staged\n\n" + v062Marker,
 			fromHusky: true,
 			wantKeep:  true,
-			wantNot:   "BEADS INTEGRATION",
+			wantNot:   "ISSUEGRAPH INTEGRATION",
 		},
 	}
 
@@ -114,7 +114,7 @@ func TestShouldPreserveHookContent_TableDriven(t *testing.T) {
 }
 
 // TestShouldPreserveHookContent_TwoBlankLinesBeforeMarker exercises the
-// boundary where user content ends in two blank lines before the bd marker
+// boundary where user content ends in two blank lines before the issuegraph marker
 // block. removeHookSection collapses runs of `\n\n\n` to `\n\n`, so this
 // fixture confirms the strip doesn't over-trim user content.
 func TestShouldPreserveHookContent_TwoBlankLinesBeforeMarker(t *testing.T) {
@@ -124,9 +124,9 @@ func TestShouldPreserveHookContent_TwoBlankLinesBeforeMarker(t *testing.T) {
 		"echo 'user line 2'\n" +
 		"\n" +
 		"\n" +
-		"# --- BEGIN BEADS INTEGRATION v0.62.0 ---\n" +
-		"if command -v bd >/dev/null 2>&1; then bd hook pre-commit \"$@\"; fi\n" +
-		"# --- END BEADS INTEGRATION v0.62.0 ---\n"
+		"# --- BEGIN ISSUEGRAPH INTEGRATION v0.62.0 ---\n" +
+		"if command -v issuegraph >/dev/null 2>&1; then issuegraph hook pre-commit \"$@\"; fi\n" +
+		"# --- END ISSUEGRAPH INTEGRATION v0.62.0 ---\n"
 
 	body, keep := shouldPreserveHookContent(in, false)
 	if !keep {
@@ -135,8 +135,8 @@ func TestShouldPreserveHookContent_TwoBlankLinesBeforeMarker(t *testing.T) {
 	if !strings.Contains(body, "echo 'user line 1'") || !strings.Contains(body, "echo 'user line 2'") {
 		t.Errorf("user content lost across two-blank-line boundary:\n%q", body)
 	}
-	if strings.Contains(body, "BEADS INTEGRATION") {
-		t.Errorf("bd markers leaked through:\n%q", body)
+	if strings.Contains(body, "ISSUEGRAPH INTEGRATION") {
+		t.Errorf("issuegraph markers leaked through:\n%q", body)
 	}
 }
 
@@ -149,9 +149,9 @@ func TestShouldPreserveHookContent_CRLFNormalised(t *testing.T) {
 		"set -e\r\n" +
 		"echo 'user'\r\n" +
 		"\r\n" +
-		"# --- BEGIN BEADS INTEGRATION v0.62.0 ---\r\n" +
-		"if command -v bd >/dev/null 2>&1; then bd hook pre-commit \"$@\"; fi\r\n" +
-		"# --- END BEADS INTEGRATION v0.62.0 ---\r\n"
+		"# --- BEGIN ISSUEGRAPH INTEGRATION v0.62.0 ---\r\n" +
+		"if command -v issuegraph >/dev/null 2>&1; then issuegraph hook pre-commit \"$@\"; fi\r\n" +
+		"# --- END ISSUEGRAPH INTEGRATION v0.62.0 ---\r\n"
 
 	body, keep := shouldPreserveHookContent(in, false)
 	if !keep {
@@ -166,9 +166,9 @@ func TestShouldPreserveHookContent_CRLFNormalised(t *testing.T) {
 }
 
 // TestShouldPreserveHookContent_StrippedDispatcherSurvives is the explicit
-// GH#3536 regression: the user dispatcher above the bd marker block must
+// GH#3536 regression: the user dispatcher above the issuegraph marker block must
 // remain in the returned body so preservePreexistingHooks writes it into
-// .beads/hooks/<name>.
+// .issuegraph/hooks/<name>.
 func TestShouldPreserveHookContent_StrippedDispatcherSurvives(t *testing.T) {
 	in := `#!/bin/sh
 set -e
@@ -176,12 +176,12 @@ if [ -f .pre-commit-config.yaml ] && command -v pre-commit >/dev/null 2>&1; then
     pre-commit run --hook-stage pre-commit "$@"
 fi
 
-# --- BEGIN BEADS INTEGRATION v0.62.0 ---
-# This section is managed by beads. Do not remove these markers.
-if command -v bd >/dev/null 2>&1; then
-  bd hook pre-commit "$@"
+# --- BEGIN ISSUEGRAPH INTEGRATION v0.62.0 ---
+# This section is managed by issuegraph. Do not remove these markers.
+if command -v issuegraph >/dev/null 2>&1; then
+  issuegraph hook pre-commit "$@"
 fi
-# --- END BEADS INTEGRATION v0.62.0 ---
+# --- END ISSUEGRAPH INTEGRATION v0.62.0 ---
 `
 	body, keep := shouldPreserveHookContent(in, false)
 	if !keep {
@@ -190,11 +190,11 @@ fi
 	if !strings.Contains(body, "pre-commit run --hook-stage") {
 		t.Errorf("dispatcher line lost:\n%s", body)
 	}
-	if strings.Contains(body, "BEGIN BEADS INTEGRATION") ||
-		strings.Contains(body, "END BEADS INTEGRATION") {
-		t.Errorf("bd markers leaked through:\n%s", body)
+	if strings.Contains(body, "BEGIN ISSUEGRAPH INTEGRATION") ||
+		strings.Contains(body, "END ISSUEGRAPH INTEGRATION") {
+		t.Errorf("issuegraph markers leaked through:\n%s", body)
 	}
-	if strings.Contains(body, "bd hook pre-commit") {
-		t.Errorf("legacy 'bd hook' invocation should have been stripped with the marker block:\n%s", body)
+	if strings.Contains(body, "issuegraph hook pre-commit") {
+		t.Errorf("legacy 'issuegraph hook' invocation should have been stripped with the marker block:\n%s", body)
 	}
 }

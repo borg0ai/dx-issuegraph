@@ -31,18 +31,18 @@ import (
 // sized payloads, which is guaranteed by O_APPEND semantics on POSIX for
 // writes under PIPE_BUF).
 func TestAppend_ConcurrentWritersUniqueIDs(t *testing.T) {
-	// Set up an isolated .beads directory that FindBeadsDir will accept.
+	// Set up an isolated .issuegraph directory that FindIssueGraphDir will accept.
 	tmp := t.TempDir()
-	beadsDir := filepath.Join(tmp, ".beads")
-	if err := os.MkdirAll(beadsDir, 0750); err != nil {
+	issuegraphDir := filepath.Join(tmp, ".issuegraph")
+	if err := os.MkdirAll(issuegraphDir, 0750); err != nil {
 		t.Fatalf("mkdir: %v", err)
 	}
-	metadataPath := filepath.Join(beadsDir, "metadata.json")
+	metadataPath := filepath.Join(issuegraphDir, "metadata.json")
 	if err := os.WriteFile(metadataPath, []byte(`{"backend":"dolt"}`), 0644); err != nil {
 		t.Fatalf("write metadata.json: %v", err)
 	}
-	t.Setenv("BEADS_DIR", beadsDir)
-	t.Setenv("BD_AUDIT_ENABLED", "1")
+	t.Setenv("ISSUEGRAPH_DIR", issuegraphDir)
+	t.Setenv("ISSUEGRAPH_AUDIT_ENABLED", "1")
 
 	const (
 		writers          = 8
@@ -108,7 +108,7 @@ func TestAppend_ConcurrentWritersUniqueIDs(t *testing.T) {
 
 	// Verify the on-disk file is well-formed: every line parses as an Entry,
 	// and every ID in the file is unique and matches a returned ID.
-	p := filepath.Join(beadsDir, FileName)
+	p := filepath.Join(issuegraphDir, FileName)
 	f, err := os.Open(p)
 	if err != nil {
 		t.Fatalf("open: %v", err)

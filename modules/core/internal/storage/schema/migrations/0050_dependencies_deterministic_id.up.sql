@@ -1,12 +1,12 @@
 -- Migration 0050: make dependencies.id a clone-stable, merge-safe primary key.
 --
--- gastownhall/beads#4259. Migration 0043 gave the dependencies table a surrogate
+-- borg0ai/dx-issuegraph#4259. Migration 0043 gave the dependencies table a surrogate
 -- primary key `id CHAR(36) NOT NULL DEFAULT (UUID())`. UUID() is per-clone-random,
 -- so two clones that create the same logical edge -- or that apply 0043
 -- independently -- end up with the same row under two different primary keys.
 -- Dolt then either refuses the merge ("cannot merge because table dependencies
 -- has different primary keys in its common ancestor") or pulls in both rows and
--- trips the uk_dep_* unique keys. Either way `bd dolt pull` breaks with no
+-- trips the uk_dep_* unique keys. Either way `issuegraph dolt pull` breaks with no
 -- bd-level recovery.
 --
 -- The application now derives id deterministically from the natural edge key

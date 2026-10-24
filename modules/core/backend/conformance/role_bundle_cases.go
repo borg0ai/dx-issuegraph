@@ -132,7 +132,7 @@ var roleContractCases = []roleContract{
 		RunBootstrapperRefusesAnInvalidRequestWithoutWriting,
 		RunBootstrapperLeavesTheSubstrateUntouchedWhenItCannotComplete,
 		// The bootstrap history pair is a ratified per-leg split (#5455): the
-		// store legs record no entry of their own because `bd init` commits the
+		// store legs record no entry of their own because `issuegraph init` commits the
 		// identity itself, and the proxied route records exactly one because it
 		// has no other commit point. Both halves are listed because every case
 		// in this package must be dispatched exactly once; a supplier that can
@@ -365,7 +365,7 @@ var roleContractCases = []roleContract{
 
 	// The accessor named here is not an accessor at all, alone among these
 	// rows. journalops.Journal is reached by TYPE ASSERTION on a store —
-	// `bd serve` does exactly that (modules/cli/serve.go, serveJournalCursor) — or
+	// `issuegraph serve` does exactly that (modules/cli/serve.go, serveJournalCursor) — or
 	// through uow.EventsJournalCursorSource on a unit-of-work provider, because
 	// the journal is engine state on a dolt_ignored table that
 	// storage.DoltStorage does not publish. A backend that cannot read it
@@ -628,7 +628,7 @@ var roleContractCases = []roleContract{
 		RunSweeperRefusesAMalformedRequest,
 		RunSweeperClearsOneTierAndLeavesTheOther,
 		RunSweeperTreatsALegacyTypedWispAsEphemeralTier,
-		RunSweeperLeavesNoHistoryBeadsToTheDurableTier,
+		RunSweeperLeavesNoHistoryIssueGraphToTheDurableTier,
 		RunSweeperProtectsPinnedRows,
 		RunSweeperHonorsTheCutoffAndThePattern,
 		RunSweeperDryRunChangesNothing,

@@ -5,14 +5,14 @@ import (
 
 	"github.com/spf13/cobra"
 
-	"github.com/steveyegge/beads/internal/config"
-	"github.com/steveyegge/beads/internal/storage"
-	"github.com/steveyegge/beads/internal/types"
-	"github.com/steveyegge/beads/internal/workapi"
-	"github.com/steveyegge/beads/issueops"
+	"github.com/borg0ai/dx-issuegraph/internal/config"
+	"github.com/borg0ai/dx-issuegraph/internal/storage"
+	"github.com/borg0ai/dx-issuegraph/internal/types"
+	"github.com/borg0ai/dx-issuegraph/internal/workapi"
+	"github.com/borg0ai/dx-issuegraph/issueops"
 )
 
-// readyInput is everything `bd ready` parsed off the command line: the
+// readyInput is everything `issuegraph ready` parsed off the command line: the
 // frontend-independent query knobs (issueops.ReadyRequest, the request the
 // reader role takes and the filter is built from), the filter itself, and the
 // mode and presentation choices that never leave the CLI.
@@ -36,7 +36,7 @@ type readyInput struct {
 	jsonOut      bool
 }
 
-// gatherReadyInput parses `bd ready`'s flags and builds the work filter. Both
+// gatherReadyInput parses `issuegraph ready`'s flags and builds the work filter. Both
 // routes call it - the direct one in ready.go and the proxied one in
 // ready_proxied_server.go - so there is one definition of what the command
 // accepts. Usage errors are reported through HandleErrorRespectJSON, which is
@@ -45,13 +45,13 @@ type readyInput struct {
 // collapsed, so TestGatherReadyInputUsageErrorsRespectJSON pins the unified
 // behavior that replaced them.
 //
-// resolveCap resolves --max-rows / BEADS_MAX_ROWS and is passed in rather than
+// resolveCap resolves --max-rows / ISSUEGRAPH_MAX_ROWS and is passed in rather than
 // called directly because only the direct route has a cap to enforce: the
 // proxied route rejects a live one in its own RunE and ignores it for --claim,
 // and resolving a second time here would repeat resolveMaxRowsEnvOnly's
 // malformed-value warning. It runs where the direct route's inline builder ran
 // it, ahead of the metadata and sort checks, so a doubly-invalid command line
-// still reports the cap first and a malformed BEADS_MAX_ROWS still warns even
+// still reports the cap first and a malformed ISSUEGRAPH_MAX_ROWS still warns even
 // when a later check aborts the command.
 func gatherReadyInput(cmd *cobra.Command, resolveCap func(*cobra.Command) (int, string, error)) (readyInput, error) {
 	in := readyInput{}
@@ -164,7 +164,7 @@ func gatherReadyInput(cmd *cobra.Command, resolveCap func(*cobra.Command) (int, 
 		in.HasMetadataKey = k
 	}
 
-	// `bd ready` builds the filter rather than calling IssueReader(): its
+	// `issuegraph ready` builds the filter rather than calling IssueReader(): its
 	// routes hand this filter to --claim, --gated, --explain and --mol, none
 	// of which the Reader role expresses, and they stamp the --max-rows cap
 	// onto it below. Routing only the plain listing through the role would
@@ -178,7 +178,7 @@ func gatherReadyInput(cmd *cobra.Command, resolveCap func(*cobra.Command) (int, 
 	// workapi.FinishPage the role's two implementations run. It is NOT shared
 	// on the direct route, and that is a real and remaining difference: the
 	// role answers "did the limit hide anything" by fetching one row past the
-	// page, while `bd ready --json` answers the strictly larger question "how
+	// page, while `issuegraph ready --json` answers the strictly larger question "how
 	// many were hidden" with a second counting query and reports the total in
 	// its pagination meta. That total is the CLI's published output, so the
 	// two epilogues cannot be collapsed without changing one surface's answer.
@@ -196,7 +196,7 @@ func gatherReadyInput(cmd *cobra.Command, resolveCap func(*cobra.Command) (int, 
 	// Directory-aware label scoping (GH#541). It is applied to the built
 	// filter rather than passed in as a parameter for two reasons: it is
 	// derived from the client's cwd, which a server process does not share,
-	// and `bd ready` has always put the configured label on the filter
+	// and `issuegraph ready` has always put the configured label on the filter
 	// verbatim. Routing it through issueops.ReadyRequest would run it through
 	// NormalizeLabels, so a directory.labels value with stray whitespace
 	// would start matching a different label than it does today.
@@ -218,7 +218,7 @@ func gatherReadyInput(cmd *cobra.Command, resolveCap func(*cobra.Command) (int, 
 	return in, nil
 }
 
-// readyRoleRequest is the request `bd ready` hands the two roles that take a
+// readyRoleRequest is the request `issuegraph ready` hands the two roles that take a
 // whole ready question rather than a filter: ReadyClaimer, which claims one
 // row out of it, and ReadyCounter, which sizes it. Both routes of both
 // operations build it here, so a claim, a count and the listing beside them
@@ -240,8 +240,8 @@ func gatherReadyInput(cmd *cobra.Command, resolveCap func(*cobra.Command) (int, 
 //     IT IS READ OFF readyInput.dirLabels, NEVER RECOMPUTED FROM in.filter.
 //     The gatherer has already written the default INTO that filter, so
 //     re-running its emptiness test here sees a non-empty label set and skips.
-//     That is what made `bd ready --claim` in a scoped directory claim from
-//     the WHOLE ready front while `bd ready` beside it listed only the
+//     That is what made `issuegraph ready --claim` in a scoped directory claim from
+//     the WHOLE ready front while `issuegraph ready` beside it listed only the
 //     configured scope — the one thing ReadyClaimer's contract says a claim
 //     must never do (issueops/readyclaimer.go:9-14).
 //
@@ -257,7 +257,7 @@ func readyRoleRequest(in readyInput) issueops.ReadyRequest {
 	return req
 }
 
-// claimNextRequest is `bd ready --claim`'s request to the ReadyClaimer role:
+// claimNextRequest is `issuegraph ready --claim`'s request to the ReadyClaimer role:
 // the shared ready question above, plus the claimant.
 func claimNextRequest(in readyInput) issueops.ClaimNextRequest {
 	return issueops.ClaimNextRequest{Actor: actor, Filter: readyRoleRequest(in)}
@@ -268,7 +268,7 @@ func claimNextRequest(in readyInput) issueops.ClaimNextRequest {
 //
 // THE PROJECTION IS REFUSED WHEREVER IT CANNOT BE HONORED, rather than accepted
 // and dropped. types.WorkFilter.Lite reaches the driver through one query, the
-// counts mega-query behind GetReadyWorkWithCounts, and `bd ready` only runs
+// counts mega-query behind GetReadyWorkWithCounts, and `issuegraph ready` only runs
 // that query for --json. Everything else reaches a different one: the text
 // routes call the bare GetReadyWork, and --gated, --mol and --explain answer
 // with shapes of their own. A flag those routes take and ignore is exactly the

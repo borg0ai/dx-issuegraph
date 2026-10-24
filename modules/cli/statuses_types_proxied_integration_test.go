@@ -7,14 +7,14 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/steveyegge/beads/internal/types"
+	"github.com/borg0ai/dx-issuegraph/internal/types"
 )
 
 func TestProxiedServerStatuses(t *testing.T) {
 	requireSharedProxiedServer(t)
 	t.Parallel()
-	bd := buildEmbeddedBD(t)
-	p := newSharedProxiedProject(t, bd, "sta")
+	issuegraph := buildEmbeddedBD(t)
+	p := newSharedProxiedProject(t, issuegraph, "sta")
 
 	type statusesResult struct {
 		BuiltInStatuses []statusInfo         `json:"built_in_statuses"`
@@ -22,7 +22,7 @@ func TestProxiedServerStatuses(t *testing.T) {
 	}
 	get := func(t *testing.T) statusesResult {
 		t.Helper()
-		out, err := bdProxiedRun(t, bd, p.dir, "statuses", "--json")
+		out, err := issuegraphProxiedRun(t, issuegraph, p.dir, "statuses", "--json")
 		if err != nil {
 			t.Fatalf("statuses --json: %v\n%s", err, out)
 		}
@@ -48,7 +48,7 @@ func TestProxiedServerStatuses(t *testing.T) {
 	})
 
 	t.Run("default_output_text", func(t *testing.T) {
-		out, err := bdProxiedRun(t, bd, p.dir, "statuses")
+		out, err := issuegraphProxiedRun(t, issuegraph, p.dir, "statuses")
 		if err != nil {
 			t.Fatalf("statuses: %v\n%s", err, out)
 		}
@@ -85,7 +85,7 @@ func TestProxiedServerStatuses(t *testing.T) {
 	})
 
 	t.Run("custom_from_config_fallback", func(t *testing.T) {
-		out, err := bdProxiedRun(t, bd, p.dir, "config", "set", "status.custom", "in_review:active")
+		out, err := issuegraphProxiedRun(t, issuegraph, p.dir, "config", "set", "status.custom", "in_review:active")
 		if err != nil {
 			t.Fatalf("config set status.custom: %v\n%s", err, out)
 		}
@@ -105,7 +105,7 @@ func TestProxiedServerStatuses(t *testing.T) {
 	})
 
 	t.Run("custom_in_text_output", func(t *testing.T) {
-		out, err := bdProxiedRun(t, bd, p.dir, "statuses")
+		out, err := issuegraphProxiedRun(t, issuegraph, p.dir, "statuses")
 		if err != nil {
 			t.Fatalf("statuses: %v\n%s", err, out)
 		}
@@ -122,8 +122,8 @@ func TestProxiedServerStatuses(t *testing.T) {
 func TestProxiedServerTypes(t *testing.T) {
 	requireSharedProxiedServer(t)
 	t.Parallel()
-	bd := buildEmbeddedBD(t)
-	p := newSharedProxiedProject(t, bd, "typ")
+	issuegraph := buildEmbeddedBD(t)
+	p := newSharedProxiedProject(t, issuegraph, "typ")
 
 	type typesResult struct {
 		CoreTypes   []typeInfo `json:"core_types"`
@@ -131,7 +131,7 @@ func TestProxiedServerTypes(t *testing.T) {
 	}
 	get := func(t *testing.T) typesResult {
 		t.Helper()
-		out, err := bdProxiedRun(t, bd, p.dir, "types", "--json")
+		out, err := issuegraphProxiedRun(t, issuegraph, p.dir, "types", "--json")
 		if err != nil {
 			t.Fatalf("types --json: %v\n%s", err, out)
 		}
@@ -156,7 +156,7 @@ func TestProxiedServerTypes(t *testing.T) {
 	})
 
 	t.Run("default_output_text", func(t *testing.T) {
-		out, err := bdProxiedRun(t, bd, p.dir, "types")
+		out, err := issuegraphProxiedRun(t, issuegraph, p.dir, "types")
 		if err != nil {
 			t.Fatalf("types: %v\n%s", err, out)
 		}
@@ -172,7 +172,7 @@ func TestProxiedServerTypes(t *testing.T) {
 	})
 
 	t.Run("default_output_descriptions", func(t *testing.T) {
-		out, err := bdProxiedRun(t, bd, p.dir, "types")
+		out, err := issuegraphProxiedRun(t, issuegraph, p.dir, "types")
 		if err != nil {
 			t.Fatalf("types: %v\n%s", err, out)
 		}
@@ -211,7 +211,7 @@ func TestProxiedServerTypes(t *testing.T) {
 	})
 
 	t.Run("sections_static", func(t *testing.T) {
-		out, err := bdProxiedRun(t, bd, p.dir, "types", "--sections", "--json")
+		out, err := issuegraphProxiedRun(t, issuegraph, p.dir, "types", "--sections", "--json")
 		if err != nil {
 			t.Fatalf("types --sections --json: %v\n%s", err, out)
 		}
@@ -225,7 +225,7 @@ func TestProxiedServerTypes(t *testing.T) {
 	})
 
 	t.Run("no_custom_types_message", func(t *testing.T) {
-		out, err := bdProxiedRun(t, bd, p.dir, "types")
+		out, err := issuegraphProxiedRun(t, issuegraph, p.dir, "types")
 		if err != nil {
 			t.Fatalf("types: %v\n%s", err, out)
 		}
@@ -235,7 +235,7 @@ func TestProxiedServerTypes(t *testing.T) {
 	})
 
 	t.Run("custom_from_config_fallback", func(t *testing.T) {
-		out, err := bdProxiedRun(t, bd, p.dir, "config", "set", "types.custom", "spike_x,research,ops")
+		out, err := issuegraphProxiedRun(t, issuegraph, p.dir, "config", "set", "types.custom", "spike_x,research,ops")
 		if err != nil {
 			t.Fatalf("config set types.custom: %v\n%s", err, out)
 		}
@@ -252,7 +252,7 @@ func TestProxiedServerTypes(t *testing.T) {
 	})
 
 	t.Run("custom_types_in_text_output", func(t *testing.T) {
-		out, err := bdProxiedRun(t, bd, p.dir, "types")
+		out, err := issuegraphProxiedRun(t, issuegraph, p.dir, "types")
 		if err != nil {
 			t.Fatalf("types: %v\n%s", err, out)
 		}

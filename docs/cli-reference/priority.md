@@ -1,15 +1,15 @@
 ---
-title: "bd priority"
+title: "issuegraph priority"
 description: "Set the priority of an issue."
 ---
 
 {/* AUTO-GENERATED: do not edit manually */}
 
-Generated from `bd help --doc priority`.
+Generated from `issuegraph help --doc priority`.
 
 Set the priority of an issue.
 
-Shorthand for 'bd update &lt;id&gt; --priority &lt;n&gt;'.
+Shorthand for 'issuegraph update &lt;id&gt; --priority &lt;n&gt;'.
 
 Priority levels:
   0 - Critical (security, data loss, broken builds)
@@ -19,9 +19,9 @@ Priority levels:
   4 - Backlog (future ideas)
 
 Examples:
-  bd priority bd-123 0    # Critical
-  bd priority bd-123 2    # Medium
+  issuegraph priority issuegraph-123 0    # Critical
+  issuegraph priority issuegraph-123 2    # Medium
 
 ```
-bd priority <id> <n> [flags]
+issuegraph priority <id> <n> [flags]
 ```

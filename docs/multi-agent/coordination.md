@@ -13,17 +13,17 @@ Assign work to a specific agent, or claim it atomically for yourself:
 
 ```bash
 # Assign issue to an agent
-issuegraph assign bd-42 agent-1
+issuegraph assign issuegraph-42 agent-1
 
 # Atomically claim an issue (sets assignee to you, status to in_progress)
-issuegraph update bd-42 --claim
+issuegraph update issuegraph-42 --claim
 
 # Claim the first ready issue matching your filters
 issuegraph ready --claim --json
 
 # Release a claimed issue
-issuegraph assign bd-42 ""              # clear the assignee
-issuegraph update bd-42 --status open   # make it claimable again
+issuegraph assign issuegraph-42 ""              # clear the assignee
+issuegraph update issuegraph-42 --status open   # make it claimable again
 ```
 
 ### Checking Assigned Work
@@ -47,12 +47,12 @@ Agent A completes work, hands off to Agent B:
 
 ```bash
 # Agent A
-issuegraph comment bd-42 "API complete, ready for review"
-issuegraph assign bd-42 agent-b
+issuegraph comment issuegraph-42 "API complete, ready for review"
+issuegraph assign issuegraph-42 agent-b
 
 # Agent B picks up
-issuegraph list --assignee agent-b  # Sees bd-42
-issuegraph update bd-42 --claim
+issuegraph list --assignee agent-b  # Sees issuegraph-42
+issuegraph update issuegraph-42 --claim
 ```
 
 ### Parallel Work
@@ -61,12 +61,12 @@ Multiple agents work on different issues:
 
 ```bash
 # Coordinator
-issuegraph assign bd-42 agent-a
-issuegraph assign bd-43 agent-b
-issuegraph assign bd-44 agent-c
+issuegraph assign issuegraph-42 agent-a
+issuegraph assign issuegraph-43 agent-b
+issuegraph assign issuegraph-44 agent-c
 
 # Each agent claims its issue and works independently
-issuegraph update bd-42 --claim
+issuegraph update issuegraph-42 --claim
 
 # Coordinator monitors progress
 issuegraph list --status in_progress --json
@@ -78,21 +78,21 @@ Split work, then merge:
 
 ```bash
 # Fan-out
-issuegraph create "Part A" --parent bd-epic
-issuegraph create "Part B" --parent bd-epic
-issuegraph create "Part C" --parent bd-epic
+issuegraph create "Part A" --parent issuegraph-epic
+issuegraph create "Part B" --parent issuegraph-epic
+issuegraph create "Part C" --parent issuegraph-epic
 
-issuegraph assign bd-epic.1 agent-a
-issuegraph assign bd-epic.2 agent-b
-issuegraph assign bd-epic.3 agent-c
+issuegraph assign issuegraph-epic.1 agent-a
+issuegraph assign issuegraph-epic.2 agent-b
+issuegraph assign issuegraph-epic.3 agent-c
 
 # Fan-in: wait for all parts (one dependency per call)
-issuegraph dep add bd-merge bd-epic.1
-issuegraph dep add bd-merge bd-epic.2
-issuegraph dep add bd-merge bd-epic.3
+issuegraph dep add issuegraph-merge issuegraph-epic.1
+issuegraph dep add issuegraph-merge issuegraph-epic.2
+issuegraph dep add issuegraph-merge issuegraph-epic.3
 ```
 
-If `bd-epic` carries a size/effort label, see [Labels](/core-concepts/labels) for keeping it off the parts.
+If `issuegraph-epic` carries a size/effort label, see [Labels](/core-concepts/labels) for keeping it off the parts.
 
 <Tip>
 For structured epic fan-out, `issuegraph swarm` creates and tracks a swarm molecule
@@ -124,8 +124,8 @@ issuegraph ready --claim --json
 
 Serialize conflict-prone work (such as merge-queue conflict resolution) with
 a merge slot — an exclusive-access primitive only one agent can hold at a
-time. Each project has one merge slot bead, named from the issue prefix
-(e.g. `bd-merge-slot`):
+time. Each project has one merge slot issue, named from the issue prefix
+(e.g. `issuegraph-merge-slot`):
 
 ```bash
 # Create the merge slot for this project
@@ -145,17 +145,17 @@ issuegraph merge-slot release
 
 ```bash
 # Agent A leaves note
-issuegraph comment bd-42 "Completed API, needs frontend integration"
+issuegraph comment issuegraph-42 "Completed API, needs frontend integration"
 
 # Agent B reads
-issuegraph comments bd-42
+issuegraph comments issuegraph-42
 ```
 
 ### Via Labels
 
 ```bash
 # Mark for review
-issuegraph update bd-42 --add-label "needs-review"
+issuegraph update issuegraph-42 --add-label "needs-review"
 
 # Agent B filters
 issuegraph list --label-any needs-review
@@ -167,7 +167,7 @@ Agents can coordinate work that spans repositories:
 
 ```bash
 # Depend on a capability delivered by another project
-issuegraph dep add bd-42 external:backend:api-ready
+issuegraph dep add issuegraph-42 external:backend:api-ready
 ```
 
 Multi-repo routing, aggregated views, and contributor/team workflows are

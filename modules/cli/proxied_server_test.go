@@ -10,9 +10,9 @@ import (
 	"strings"
 	"testing"
 
+	"github.com/borg0ai/dx-issuegraph/internal/configfile"
 	"github.com/dolthub/dolt/go/libraries/doltcore/servercfg"
 	"github.com/dolthub/dolt/go/libraries/utils/filesys"
-	"github.com/steveyegge/beads/internal/configfile"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
@@ -43,11 +43,11 @@ func TestRenderProxiedServerConfig_ArchiveLevel(t *testing.T) {
 }
 
 func TestEnsureProxiedServerConfig_CreatesAndIsIdempotent(t *testing.T) {
-	beadsDir := t.TempDir()
+	issuegraphDir := t.TempDir()
 
-	path1, err := ensureProxiedServerConfig(beadsDir)
+	path1, err := ensureProxiedServerConfig(issuegraphDir)
 	require.NoError(t, err)
-	assert.Equal(t, filepath.Join(beadsDir, "dolt", "config.yaml"), path1)
+	assert.Equal(t, filepath.Join(issuegraphDir, "dolt", "config.yaml"), path1)
 
 	body1, err := os.ReadFile(path1)
 	require.NoError(t, err)
@@ -55,7 +55,7 @@ func TestEnsureProxiedServerConfig_CreatesAndIsIdempotent(t *testing.T) {
 	require.True(t, strings.Contains(string(body1), proxiedServerListenerHost))
 
 	// Second call must NOT rewrite — running daemon is bound to the existing port.
-	path2, err := ensureProxiedServerConfig(beadsDir)
+	path2, err := ensureProxiedServerConfig(issuegraphDir)
 	require.NoError(t, err)
 	assert.Equal(t, path1, path2)
 
@@ -71,8 +71,8 @@ func TestEnsureProxiedServerConfig_CreatesAndIsIdempotent(t *testing.T) {
 }
 
 func TestEnsureProxiedServerConfig_ReusesExistingConfig(t *testing.T) {
-	beadsDir := t.TempDir()
-	root := filepath.Join(beadsDir, "dolt")
+	issuegraphDir := t.TempDir()
+	root := filepath.Join(issuegraphDir, "dolt")
 	require.NoError(t, os.MkdirAll(root, 0o755))
 
 	existing, err := renderProxiedServerConfig(45678)
@@ -80,7 +80,7 @@ func TestEnsureProxiedServerConfig_ReusesExistingConfig(t *testing.T) {
 	cfgPath := filepath.Join(root, "config.yaml")
 	require.NoError(t, os.WriteFile(cfgPath, existing, 0o600))
 
-	path, err := ensureProxiedServerConfig(beadsDir)
+	path, err := ensureProxiedServerConfig(issuegraphDir)
 	require.NoError(t, err)
 	assert.Equal(t, cfgPath, path)
 
@@ -113,10 +113,10 @@ func TestEnsureProxiedServerConfig_NeverForksDolt(t *testing.T) {
 	require.FileExists(t, sentinel, "stub dolt must record its invocations, else this test cannot fail")
 	require.NoError(t, os.Remove(sentinel))
 
-	beadsDir := t.TempDir()
-	_, err := ensureProxiedServerConfig(beadsDir) // fresh bootstrap
+	issuegraphDir := t.TempDir()
+	_, err := ensureProxiedServerConfig(issuegraphDir) // fresh bootstrap
 	require.NoError(t, err)
-	_, err = ensureProxiedServerConfig(beadsDir) // steady state
+	_, err = ensureProxiedServerConfig(issuegraphDir) // steady state
 	require.NoError(t, err)
 
 	if body, rerr := os.ReadFile(sentinel); rerr == nil {
@@ -125,20 +125,20 @@ func TestEnsureProxiedServerConfig_NeverForksDolt(t *testing.T) {
 }
 
 func TestEnsureProxiedServerConfig_CustomConfigUntouched(t *testing.T) {
-	t.Setenv("BEADS_PROXIED_SERVER_CONFIG", "")
-	bd := t.TempDir()
+	t.Setenv("ISSUEGRAPH_PROXIED_SERVER_CONFIG", "")
+	issuegraph := t.TempDir()
 
 	customDir := t.TempDir()
 	customPath := filepath.Join(customDir, "my-server.yaml")
 	const before = "listener:\n  host: 127.0.0.1\n  port: 54321\n"
 	require.NoError(t, os.WriteFile(customPath, []byte(before), 0o600))
 
-	writeProxiedClientInfo(t, bd, &configfile.ProxiedServerClientInfo{ConfigPath: customPath})
+	writeProxiedClientInfo(t, issuegraph, &configfile.ProxiedServerClientInfo{ConfigPath: customPath})
 
 	var err error
 	var path string
 	got := captureStderr(t, func() {
-		path, err = ensureProxiedServerConfig(bd)
+		path, err = ensureProxiedServerConfig(issuegraph)
 	})
 	require.NoError(t, err)
 	assert.Equal(t, customPath, path)
@@ -150,8 +150,8 @@ func TestEnsureProxiedServerConfig_CustomConfigUntouched(t *testing.T) {
 }
 
 func TestEnsureProxiedServerConfig_PreMarkerDefaultConfigUntouched(t *testing.T) {
-	beadsDir := t.TempDir()
-	root := filepath.Join(beadsDir, "dolt")
+	issuegraphDir := t.TempDir()
+	root := filepath.Join(issuegraphDir, "dolt")
 	require.NoError(t, os.MkdirAll(root, 0o755))
 	cfgPath := filepath.Join(root, "config.yaml")
 
@@ -161,7 +161,7 @@ func TestEnsureProxiedServerConfig_PreMarkerDefaultConfigUntouched(t *testing.T)
 	var err error
 	var path string
 	got := captureStderr(t, func() {
-		path, err = ensureProxiedServerConfig(beadsDir)
+		path, err = ensureProxiedServerConfig(issuegraphDir)
 	})
 	require.NoError(t, err)
 	assert.Equal(t, cfgPath, path)
@@ -173,18 +173,18 @@ func TestEnsureProxiedServerConfig_PreMarkerDefaultConfigUntouched(t *testing.T)
 }
 
 func TestEnsureProxiedServerConfig_CustomConfigEnvVarInterpolation(t *testing.T) {
-	t.Setenv("BEADS_PROXIED_SERVER_CONFIG", "")
-	t.Setenv("BEADS_TEST_PROXIED_SERVER_PORT", "54321")
-	bd := t.TempDir()
+	t.Setenv("ISSUEGRAPH_PROXIED_SERVER_CONFIG", "")
+	t.Setenv("ISSUEGRAPH_TEST_PROXIED_SERVER_PORT", "54321")
+	issuegraph := t.TempDir()
 
 	customDir := t.TempDir()
 	customPath := filepath.Join(customDir, "my-server.yaml")
-	const tmpl = "listener:\n  host: 127.0.0.1\n  port: ${BEADS_TEST_PROXIED_SERVER_PORT}\n"
+	const tmpl = "listener:\n  host: 127.0.0.1\n  port: ${ISSUEGRAPH_TEST_PROXIED_SERVER_PORT}\n"
 	require.NoError(t, os.WriteFile(customPath, []byte(tmpl), 0o600))
 
-	writeProxiedClientInfo(t, bd, &configfile.ProxiedServerClientInfo{ConfigPath: customPath})
+	writeProxiedClientInfo(t, issuegraph, &configfile.ProxiedServerClientInfo{ConfigPath: customPath})
 
-	path, err := ensureProxiedServerConfig(bd)
+	path, err := ensureProxiedServerConfig(issuegraph)
 	require.NoError(t, err, "a valid ${VAR} custom config must not be rejected pre-start")
 	assert.Equal(t, customPath, path)
 
@@ -194,19 +194,19 @@ func TestEnsureProxiedServerConfig_CustomConfigEnvVarInterpolation(t *testing.T)
 }
 
 func TestEnsureProxiedServerConfig_HandEditedManagedFileWithPlaceholder(t *testing.T) {
-	t.Setenv("BEADS_TEST_PROXIED_SERVER_PORT2", "54321")
-	beadsDir := t.TempDir()
-	root := filepath.Join(beadsDir, "dolt")
+	t.Setenv("ISSUEGRAPH_TEST_PROXIED_SERVER_PORT2", "54321")
+	issuegraphDir := t.TempDir()
+	root := filepath.Join(issuegraphDir, "dolt")
 	require.NoError(t, os.MkdirAll(root, 0o755))
 	cfgPath := filepath.Join(root, "config.yaml")
 
-	seed := managedProxiedServerConfigMarker + "listener:\n  host: 127.0.0.1\n  port: ${BEADS_TEST_PROXIED_SERVER_PORT2}\n"
+	seed := managedProxiedServerConfigMarker + "listener:\n  host: 127.0.0.1\n  port: ${ISSUEGRAPH_TEST_PROXIED_SERVER_PORT2}\n"
 	require.NoError(t, os.WriteFile(cfgPath, []byte(seed), 0o600))
 
 	var path string
 	var err error
 	got := captureStderr(t, func() {
-		path, err = ensureProxiedServerConfig(beadsDir)
+		path, err = ensureProxiedServerConfig(issuegraphDir)
 	})
 	require.NoError(t, err)
 	assert.Equal(t, cfgPath, path)
@@ -218,8 +218,8 @@ func TestEnsureProxiedServerConfig_HandEditedManagedFileWithPlaceholder(t *testi
 }
 
 func TestEnsureProxiedServerConfig_DanglingSymlinkSelfHeals(t *testing.T) {
-	beadsDir := t.TempDir()
-	root := filepath.Join(beadsDir, "dolt")
+	issuegraphDir := t.TempDir()
+	root := filepath.Join(issuegraphDir, "dolt")
 	require.NoError(t, os.MkdirAll(root, 0o755))
 
 	cfgPath := filepath.Join(root, "config.yaml")
@@ -227,7 +227,7 @@ func TestEnsureProxiedServerConfig_DanglingSymlinkSelfHeals(t *testing.T) {
 		t.Skipf("symlink not supported on this platform: %v", err)
 	}
 
-	path, err := ensureProxiedServerConfig(beadsDir)
+	path, err := ensureProxiedServerConfig(issuegraphDir)
 	require.NoError(t, err)
 	assert.Equal(t, cfgPath, path)
 
@@ -241,10 +241,10 @@ func TestEnsureProxiedServerConfig_DanglingSymlinkSelfHeals(t *testing.T) {
 }
 
 func TestProxiedServerPathHelpers(t *testing.T) {
-	bd := "/tmp/some/.beads"
-	assert.Equal(t, "/tmp/some/.beads/dolt", proxiedServerRoot(bd))
-	assert.Equal(t, "/tmp/some/.beads/dolt/config.yaml", proxiedServerConfigPath(bd))
-	assert.Equal(t, "/tmp/some/.beads/dolt/server.log", proxiedServerLogPath(bd))
+	issuegraph := "/tmp/some/.issuegraph"
+	assert.Equal(t, "/tmp/some/.issuegraph/dolt", proxiedServerRoot(issuegraph))
+	assert.Equal(t, "/tmp/some/.issuegraph/dolt/config.yaml", proxiedServerConfigPath(issuegraph))
+	assert.Equal(t, "/tmp/some/.issuegraph/dolt/server.log", proxiedServerLogPath(issuegraph))
 }
 
 // TestInitCommandRegistersProxiedServerFlag verifies the --proxied-server flag
@@ -263,65 +263,65 @@ func TestInitCommandRegistersServerConfigFlag(t *testing.T) {
 	assert.Equal(t, "", flag.DefValue, "--proxied-server-config-path should default to empty")
 }
 
-func writeProxiedClientInfo(t *testing.T, beadsDir string, info *configfile.ProxiedServerClientInfo) {
+func writeProxiedClientInfo(t *testing.T, issuegraphDir string, info *configfile.ProxiedServerClientInfo) {
 	t.Helper()
-	require.NoError(t, configfile.SaveProxiedServerClientInfo(beadsDir, info))
+	require.NoError(t, configfile.SaveProxiedServerClientInfo(issuegraphDir, info))
 }
 
 func TestResolveProxiedServerConfigPath(t *testing.T) {
 	t.Run("no sidecar, no env, returns default and !isCustom", func(t *testing.T) {
-		t.Setenv("BEADS_PROXIED_SERVER_CONFIG", "")
-		bd := t.TempDir()
-		path, isCustom, err := resolveProxiedServerConfigPath(bd)
+		t.Setenv("ISSUEGRAPH_PROXIED_SERVER_CONFIG", "")
+		issuegraph := t.TempDir()
+		path, isCustom, err := resolveProxiedServerConfigPath(issuegraph)
 		require.NoError(t, err)
-		assert.Equal(t, proxiedServerConfigPath(bd), path)
+		assert.Equal(t, proxiedServerConfigPath(issuegraph), path)
 		assert.False(t, isCustom)
 	})
 
 	t.Run("empty sidecar, no env, returns default and !isCustom", func(t *testing.T) {
-		t.Setenv("BEADS_PROXIED_SERVER_CONFIG", "")
-		bd := t.TempDir()
-		writeProxiedClientInfo(t, bd, &configfile.ProxiedServerClientInfo{})
-		path, isCustom, err := resolveProxiedServerConfigPath(bd)
+		t.Setenv("ISSUEGRAPH_PROXIED_SERVER_CONFIG", "")
+		issuegraph := t.TempDir()
+		writeProxiedClientInfo(t, issuegraph, &configfile.ProxiedServerClientInfo{})
+		path, isCustom, err := resolveProxiedServerConfigPath(issuegraph)
 		require.NoError(t, err)
-		assert.Equal(t, proxiedServerConfigPath(bd), path)
+		assert.Equal(t, proxiedServerConfigPath(issuegraph), path)
 		assert.False(t, isCustom)
 	})
 
-	t.Run("sidecar relative joins beadsDir and isCustom", func(t *testing.T) {
-		t.Setenv("BEADS_PROXIED_SERVER_CONFIG", "")
-		bd := t.TempDir()
-		writeProxiedClientInfo(t, bd, &configfile.ProxiedServerClientInfo{ConfigPath: "configs/server.yaml"})
-		path, isCustom, err := resolveProxiedServerConfigPath(bd)
+	t.Run("sidecar relative joins issuegraphDir and isCustom", func(t *testing.T) {
+		t.Setenv("ISSUEGRAPH_PROXIED_SERVER_CONFIG", "")
+		issuegraph := t.TempDir()
+		writeProxiedClientInfo(t, issuegraph, &configfile.ProxiedServerClientInfo{ConfigPath: "configs/server.yaml"})
+		path, isCustom, err := resolveProxiedServerConfigPath(issuegraph)
 		require.NoError(t, err)
-		assert.Equal(t, filepath.Join(bd, "configs/server.yaml"), path)
+		assert.Equal(t, filepath.Join(issuegraph, "configs/server.yaml"), path)
 		assert.True(t, isCustom)
 	})
 
 	t.Run("sidecar absolute returned as-is and isCustom", func(t *testing.T) {
-		t.Setenv("BEADS_PROXIED_SERVER_CONFIG", "")
-		bd := t.TempDir()
-		writeProxiedClientInfo(t, bd, &configfile.ProxiedServerClientInfo{ConfigPath: "/etc/dolt/server.yaml"})
-		path, isCustom, err := resolveProxiedServerConfigPath(bd)
+		t.Setenv("ISSUEGRAPH_PROXIED_SERVER_CONFIG", "")
+		issuegraph := t.TempDir()
+		writeProxiedClientInfo(t, issuegraph, &configfile.ProxiedServerClientInfo{ConfigPath: "/etc/dolt/server.yaml"})
+		path, isCustom, err := resolveProxiedServerConfigPath(issuegraph)
 		require.NoError(t, err)
 		assert.Equal(t, "/etc/dolt/server.yaml", path)
 		assert.True(t, isCustom)
 	})
 
 	t.Run("env beats sidecar and isCustom", func(t *testing.T) {
-		t.Setenv("BEADS_PROXIED_SERVER_CONFIG", "/from/env.yaml")
-		bd := t.TempDir()
-		writeProxiedClientInfo(t, bd, &configfile.ProxiedServerClientInfo{ConfigPath: "configs/from-meta.yaml"})
-		path, isCustom, err := resolveProxiedServerConfigPath(bd)
+		t.Setenv("ISSUEGRAPH_PROXIED_SERVER_CONFIG", "/from/env.yaml")
+		issuegraph := t.TempDir()
+		writeProxiedClientInfo(t, issuegraph, &configfile.ProxiedServerClientInfo{ConfigPath: "configs/from-meta.yaml"})
+		path, isCustom, err := resolveProxiedServerConfigPath(issuegraph)
 		require.NoError(t, err)
 		assert.Equal(t, "/from/env.yaml", path)
 		assert.True(t, isCustom)
 	})
 
 	t.Run("env with no sidecar still wins", func(t *testing.T) {
-		t.Setenv("BEADS_PROXIED_SERVER_CONFIG", "/from/env.yaml")
-		bd := t.TempDir()
-		path, isCustom, err := resolveProxiedServerConfigPath(bd)
+		t.Setenv("ISSUEGRAPH_PROXIED_SERVER_CONFIG", "/from/env.yaml")
+		issuegraph := t.TempDir()
+		path, isCustom, err := resolveProxiedServerConfigPath(issuegraph)
 		require.NoError(t, err)
 		assert.Equal(t, "/from/env.yaml", path)
 		assert.True(t, isCustom)
@@ -340,33 +340,33 @@ func writeValidServerYAML(t *testing.T, path string) string {
 
 // TestEnsureProxiedServerConfig_CustomPathExists asserts that when a custom
 // path is configured, ensureProxiedServerConfig returns it unchanged AND does
-// not auto-create the default <beadsDir>/proxieddb/config.yaml.
+// not auto-create the default <issuegraphDir>/proxieddb/config.yaml.
 func TestEnsureProxiedServerConfig_CustomPathExists(t *testing.T) {
-	t.Setenv("BEADS_PROXIED_SERVER_CONFIG", "")
-	bd := t.TempDir()
+	t.Setenv("ISSUEGRAPH_PROXIED_SERVER_CONFIG", "")
+	issuegraph := t.TempDir()
 
 	customDir := t.TempDir()
 	customPath := writeValidServerYAML(t, filepath.Join(customDir, "my-server.yaml"))
 
-	writeProxiedClientInfo(t, bd, &configfile.ProxiedServerClientInfo{ConfigPath: customPath})
-	got, err := ensureProxiedServerConfig(bd)
+	writeProxiedClientInfo(t, issuegraph, &configfile.ProxiedServerClientInfo{ConfigPath: customPath})
+	got, err := ensureProxiedServerConfig(issuegraph)
 	require.NoError(t, err)
 	assert.Equal(t, customPath, got)
 
-	defaultPath := proxiedServerConfigPath(bd)
+	defaultPath := proxiedServerConfigPath(issuegraph)
 	_, statErr := os.Stat(defaultPath)
 	assert.True(t, os.IsNotExist(statErr), "default config must not be auto-created when a custom path is configured (got err=%v)", statErr)
 }
 
 // TestEnsureProxiedServerConfig_CustomPathMissing asserts a clear error when
-// the user-supplied path doesn't exist. bd never auto-creates user files.
+// the user-supplied path doesn't exist. issuegraph never auto-creates user files.
 func TestEnsureProxiedServerConfig_CustomPathMissing(t *testing.T) {
-	t.Setenv("BEADS_PROXIED_SERVER_CONFIG", "")
-	bd := t.TempDir()
+	t.Setenv("ISSUEGRAPH_PROXIED_SERVER_CONFIG", "")
+	issuegraph := t.TempDir()
 	missing := filepath.Join(t.TempDir(), "does-not-exist.yaml")
 
-	writeProxiedClientInfo(t, bd, &configfile.ProxiedServerClientInfo{ConfigPath: missing})
-	_, err := ensureProxiedServerConfig(bd)
+	writeProxiedClientInfo(t, issuegraph, &configfile.ProxiedServerClientInfo{ConfigPath: missing})
+	_, err := ensureProxiedServerConfig(issuegraph)
 	require.Error(t, err)
 	assert.Contains(t, err.Error(), missing)
 }
@@ -375,14 +375,14 @@ func TestEnsureProxiedServerConfig_CustomPathMissing(t *testing.T) {
 // non-parsable YAML at the custom path is rejected up front rather than
 // crashing the daemon downstream.
 func TestEnsureProxiedServerConfig_CustomPathInvalidYAML(t *testing.T) {
-	t.Setenv("BEADS_PROXIED_SERVER_CONFIG", "")
-	bd := t.TempDir()
+	t.Setenv("ISSUEGRAPH_PROXIED_SERVER_CONFIG", "")
+	issuegraph := t.TempDir()
 	bad := filepath.Join(t.TempDir(), "bad.yaml")
 	// Unclosed flow sequence — guaranteed YAML parse error.
 	require.NoError(t, os.WriteFile(bad, []byte("listener: [host: 127.0.0.1\n"), 0o600))
 
-	writeProxiedClientInfo(t, bd, &configfile.ProxiedServerClientInfo{ConfigPath: bad})
-	_, err := ensureProxiedServerConfig(bd)
+	writeProxiedClientInfo(t, issuegraph, &configfile.ProxiedServerClientInfo{ConfigPath: bad})
+	_, err := ensureProxiedServerConfig(issuegraph)
 	require.Error(t, err)
 	assert.Contains(t, err.Error(), bad)
 	assert.Contains(t, strings.ToLower(err.Error()), "parse")
@@ -391,12 +391,12 @@ func TestEnsureProxiedServerConfig_CustomPathInvalidYAML(t *testing.T) {
 // TestEnsureProxiedServerConfig_CustomPathIsDirectory asserts that pointing
 // the custom path at a directory (or other non-regular file) is rejected.
 func TestEnsureProxiedServerConfig_CustomPathIsDirectory(t *testing.T) {
-	t.Setenv("BEADS_PROXIED_SERVER_CONFIG", "")
-	bd := t.TempDir()
+	t.Setenv("ISSUEGRAPH_PROXIED_SERVER_CONFIG", "")
+	issuegraph := t.TempDir()
 	dir := t.TempDir()
 
-	writeProxiedClientInfo(t, bd, &configfile.ProxiedServerClientInfo{ConfigPath: dir})
-	_, err := ensureProxiedServerConfig(bd)
+	writeProxiedClientInfo(t, issuegraph, &configfile.ProxiedServerClientInfo{ConfigPath: dir})
+	_, err := ensureProxiedServerConfig(issuegraph)
 	require.Error(t, err)
 	assert.Contains(t, err.Error(), dir)
 	assert.Contains(t, err.Error(), "not a regular file")
@@ -414,58 +414,58 @@ func TestInitCommandRegistersServerLogPathFlag(t *testing.T) {
 // for the log-path resolver.
 func TestResolveProxiedServerLogPath(t *testing.T) {
 	t.Run("no sidecar, no env, returns default and !isCustom", func(t *testing.T) {
-		t.Setenv("BEADS_PROXIED_SERVER_LOG", "")
-		bd := t.TempDir()
-		path, isCustom, err := resolveProxiedServerLogPath(bd)
+		t.Setenv("ISSUEGRAPH_PROXIED_SERVER_LOG", "")
+		issuegraph := t.TempDir()
+		path, isCustom, err := resolveProxiedServerLogPath(issuegraph)
 		require.NoError(t, err)
-		assert.Equal(t, proxiedServerLogPath(bd), path)
+		assert.Equal(t, proxiedServerLogPath(issuegraph), path)
 		assert.False(t, isCustom)
 	})
 
 	t.Run("empty sidecar, no env, returns default and !isCustom", func(t *testing.T) {
-		t.Setenv("BEADS_PROXIED_SERVER_LOG", "")
-		bd := t.TempDir()
-		writeProxiedClientInfo(t, bd, &configfile.ProxiedServerClientInfo{})
-		path, isCustom, err := resolveProxiedServerLogPath(bd)
+		t.Setenv("ISSUEGRAPH_PROXIED_SERVER_LOG", "")
+		issuegraph := t.TempDir()
+		writeProxiedClientInfo(t, issuegraph, &configfile.ProxiedServerClientInfo{})
+		path, isCustom, err := resolveProxiedServerLogPath(issuegraph)
 		require.NoError(t, err)
-		assert.Equal(t, proxiedServerLogPath(bd), path)
+		assert.Equal(t, proxiedServerLogPath(issuegraph), path)
 		assert.False(t, isCustom)
 	})
 
-	t.Run("sidecar relative joins beadsDir and isCustom", func(t *testing.T) {
-		t.Setenv("BEADS_PROXIED_SERVER_LOG", "")
-		bd := t.TempDir()
-		writeProxiedClientInfo(t, bd, &configfile.ProxiedServerClientInfo{LogPath: "logs/server.log"})
-		path, isCustom, err := resolveProxiedServerLogPath(bd)
+	t.Run("sidecar relative joins issuegraphDir and isCustom", func(t *testing.T) {
+		t.Setenv("ISSUEGRAPH_PROXIED_SERVER_LOG", "")
+		issuegraph := t.TempDir()
+		writeProxiedClientInfo(t, issuegraph, &configfile.ProxiedServerClientInfo{LogPath: "logs/server.log"})
+		path, isCustom, err := resolveProxiedServerLogPath(issuegraph)
 		require.NoError(t, err)
-		assert.Equal(t, filepath.Join(bd, "logs/server.log"), path)
+		assert.Equal(t, filepath.Join(issuegraph, "logs/server.log"), path)
 		assert.True(t, isCustom)
 	})
 
 	t.Run("sidecar absolute returned as-is and isCustom", func(t *testing.T) {
-		t.Setenv("BEADS_PROXIED_SERVER_LOG", "")
-		bd := t.TempDir()
-		writeProxiedClientInfo(t, bd, &configfile.ProxiedServerClientInfo{LogPath: "/var/log/beads/server.log"})
-		path, isCustom, err := resolveProxiedServerLogPath(bd)
+		t.Setenv("ISSUEGRAPH_PROXIED_SERVER_LOG", "")
+		issuegraph := t.TempDir()
+		writeProxiedClientInfo(t, issuegraph, &configfile.ProxiedServerClientInfo{LogPath: "/var/log/issuegraph/server.log"})
+		path, isCustom, err := resolveProxiedServerLogPath(issuegraph)
 		require.NoError(t, err)
-		assert.Equal(t, "/var/log/beads/server.log", path)
+		assert.Equal(t, "/var/log/issuegraph/server.log", path)
 		assert.True(t, isCustom)
 	})
 
 	t.Run("env beats sidecar and isCustom", func(t *testing.T) {
-		t.Setenv("BEADS_PROXIED_SERVER_LOG", "/from/env.log")
-		bd := t.TempDir()
-		writeProxiedClientInfo(t, bd, &configfile.ProxiedServerClientInfo{LogPath: "logs/from-meta.log"})
-		path, isCustom, err := resolveProxiedServerLogPath(bd)
+		t.Setenv("ISSUEGRAPH_PROXIED_SERVER_LOG", "/from/env.log")
+		issuegraph := t.TempDir()
+		writeProxiedClientInfo(t, issuegraph, &configfile.ProxiedServerClientInfo{LogPath: "logs/from-meta.log"})
+		path, isCustom, err := resolveProxiedServerLogPath(issuegraph)
 		require.NoError(t, err)
 		assert.Equal(t, "/from/env.log", path)
 		assert.True(t, isCustom)
 	})
 
 	t.Run("env with no sidecar still wins", func(t *testing.T) {
-		t.Setenv("BEADS_PROXIED_SERVER_LOG", "/from/env.log")
-		bd := t.TempDir()
-		path, isCustom, err := resolveProxiedServerLogPath(bd)
+		t.Setenv("ISSUEGRAPH_PROXIED_SERVER_LOG", "/from/env.log")
+		issuegraph := t.TempDir()
+		path, isCustom, err := resolveProxiedServerLogPath(issuegraph)
 		require.NoError(t, err)
 		assert.Equal(t, "/from/env.log", path)
 		assert.True(t, isCustom)
@@ -532,7 +532,7 @@ func TestValidateProxiedServerLogPath(t *testing.T) {
 // init.go uses for early proxied-server-config-path validation.
 //
 // The validator deliberately emits source-neutral errors (just the path)
-// because the value may come from a CLI flag, BEADS_PROXIED_SERVER_CONFIG,
+// because the value may come from a CLI flag, ISSUEGRAPH_PROXIED_SERVER_CONFIG,
 // or the proxied_server_client_info.json sidecar. Callers prepend their
 // own label.
 func TestValidateProxiedServerConfig(t *testing.T) {
@@ -676,52 +676,52 @@ func TestValidateManagedServerConfigPolicy(t *testing.T) {
 }
 
 func TestManagedListenerPolicyEveryConfigPathAtInitAndRuntime(t *testing.T) {
-	type setupFn func(t *testing.T, beadsDir string) string
+	type setupFn func(t *testing.T, issuegraphDir string) string
 	tests := []struct {
 		name  string
 		setup setupFn
 	}{
 		{
 			name: "environment custom",
-			setup: func(t *testing.T, beadsDir string) string {
+			setup: func(t *testing.T, issuegraphDir string) string {
 				path := writeListenerConfig(t, filepath.Join(t.TempDir(), "env.yaml"), "0.0.0.0", false, false)
-				t.Setenv("BEADS_PROXIED_SERVER_CONFIG", path)
+				t.Setenv("ISSUEGRAPH_PROXIED_SERVER_CONFIG", path)
 				return ""
 			},
 		},
 		{
 			name: "sidecar custom",
-			setup: func(t *testing.T, beadsDir string) string {
-				t.Setenv("BEADS_PROXIED_SERVER_CONFIG", "")
+			setup: func(t *testing.T, issuegraphDir string) string {
+				t.Setenv("ISSUEGRAPH_PROXIED_SERVER_CONFIG", "")
 				path := writeListenerConfig(t, filepath.Join(t.TempDir(), "sidecar.yaml"), "0.0.0.0", false, false)
-				writeProxiedClientInfo(t, beadsDir, &configfile.ProxiedServerClientInfo{ConfigPath: path})
+				writeProxiedClientInfo(t, issuegraphDir, &configfile.ProxiedServerClientInfo{ConfigPath: path})
 				return ""
 			},
 		},
 		{
 			name: "pre-marker default path",
-			setup: func(t *testing.T, beadsDir string) string {
-				t.Setenv("BEADS_PROXIED_SERVER_CONFIG", "")
-				path := proxiedServerConfigPath(beadsDir)
+			setup: func(t *testing.T, issuegraphDir string) string {
+				t.Setenv("ISSUEGRAPH_PROXIED_SERVER_CONFIG", "")
+				path := proxiedServerConfigPath(issuegraphDir)
 				writeListenerConfig(t, path, "0.0.0.0", false, false)
 				return ""
 			},
 		},
 		{
 			name: "marker file hand edit",
-			setup: func(t *testing.T, beadsDir string) string {
-				t.Setenv("BEADS_PROXIED_SERVER_CONFIG", "")
-				path := proxiedServerConfigPath(beadsDir)
+			setup: func(t *testing.T, issuegraphDir string) string {
+				t.Setenv("ISSUEGRAPH_PROXIED_SERVER_CONFIG", "")
+				path := proxiedServerConfigPath(issuegraphDir)
 				writeListenerConfig(t, path, "0.0.0.0", true, false)
 				return ""
 			},
 		},
 		{
 			name: "marker parse fallback with interpolation",
-			setup: func(t *testing.T, beadsDir string) string {
-				t.Setenv("BEADS_PROXIED_SERVER_CONFIG", "")
-				t.Setenv("BEADS_TEST_MANAGED_LISTENER_PORT", "54321")
-				path := proxiedServerConfigPath(beadsDir)
+			setup: func(t *testing.T, issuegraphDir string) string {
+				t.Setenv("ISSUEGRAPH_PROXIED_SERVER_CONFIG", "")
+				t.Setenv("ISSUEGRAPH_TEST_MANAGED_LISTENER_PORT", "54321")
+				path := proxiedServerConfigPath(issuegraphDir)
 				writeListenerConfig(t, path, "0.0.0.0", true, true)
 				return ""
 			},
@@ -730,26 +730,26 @@ func TestManagedListenerPolicyEveryConfigPathAtInitAndRuntime(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			beadsDir := t.TempDir()
-			explicitPath := tt.setup(t, beadsDir)
+			issuegraphDir := t.TempDir()
+			explicitPath := tt.setup(t, issuegraphDir)
 
-			initErr := validateManagedProxiedServerConfigAtInit(beadsDir, explicitPath, "")
+			initErr := validateManagedProxiedServerConfigAtInit(issuegraphDir, explicitPath, "")
 			assertManagedListenerPolicyError(t, initErr)
 
-			_, runtimeErr := ensureProxiedServerConfig(beadsDir)
+			_, runtimeErr := ensureProxiedServerConfig(issuegraphDir)
 			assertManagedListenerPolicyError(t, runtimeErr)
 		})
 	}
 }
 
 func TestManagedListenerPolicyLoopbackCustomConfigPassesInitAndRuntime(t *testing.T) {
-	t.Setenv("BEADS_PROXIED_SERVER_CONFIG", "")
-	beadsDir := t.TempDir()
+	t.Setenv("ISSUEGRAPH_PROXIED_SERVER_CONFIG", "")
+	issuegraphDir := t.TempDir()
 	path := writeListenerConfig(t, filepath.Join(t.TempDir(), "loopback.yaml"), "127.0.0.1", false, false)
-	writeProxiedClientInfo(t, beadsDir, &configfile.ProxiedServerClientInfo{ConfigPath: path})
+	writeProxiedClientInfo(t, issuegraphDir, &configfile.ProxiedServerClientInfo{ConfigPath: path})
 
-	require.NoError(t, validateManagedProxiedServerConfigAtInit(beadsDir, "", ""))
-	got, err := ensureProxiedServerConfig(beadsDir)
+	require.NoError(t, validateManagedProxiedServerConfigAtInit(issuegraphDir, "", ""))
+	got, err := ensureProxiedServerConfig(issuegraphDir)
 	require.NoError(t, err)
 	assert.Equal(t, path, got)
 }
@@ -759,17 +759,17 @@ func TestManagedListenerPolicyLoopbackCustomConfigPassesInitAndRuntime(t *testin
 // "localhost", which CheckForUnixSocket also treats as license to open the
 // shared-namespace default unix socket.
 func TestManagedListenerPolicyOmittedHostRejected(t *testing.T) {
-	t.Setenv("BEADS_PROXIED_SERVER_CONFIG", "")
-	beadsDir := t.TempDir()
+	t.Setenv("ISSUEGRAPH_PROXIED_SERVER_CONFIG", "")
+	issuegraphDir := t.TempDir()
 	path := filepath.Join(t.TempDir(), "omitted.yaml")
 	require.NoError(t, os.WriteFile(path, []byte("listener:\n  port: 54321\n"), 0o600))
-	writeProxiedClientInfo(t, beadsDir, &configfile.ProxiedServerClientInfo{ConfigPath: path})
+	writeProxiedClientInfo(t, issuegraphDir, &configfile.ProxiedServerClientInfo{ConfigPath: path})
 
-	initErr := validateManagedProxiedServerConfigAtInit(beadsDir, "", "")
+	initErr := validateManagedProxiedServerConfigAtInit(issuegraphDir, "", "")
 	require.Error(t, initErr)
 	assert.Contains(t, initErr.Error(), "listener.host is omitted")
 
-	_, runtimeErr := ensureProxiedServerConfig(beadsDir)
+	_, runtimeErr := ensureProxiedServerConfig(issuegraphDir)
 	require.Error(t, runtimeErr)
 	assert.Contains(t, runtimeErr.Error(), "listener.host is omitted")
 }
@@ -778,34 +778,34 @@ func TestManagedListenerPolicyOmittedHostRejected(t *testing.T) {
 // contract: a marker config whose listener.host is a ${VAR} placeholder is
 // judged on what the placeholder expands to, not on the raw text.
 func TestManagedListenerPolicyMarkerInterpolatedHost(t *testing.T) {
-	writeInterpolatedHostConfig := func(t *testing.T, beadsDir string) string {
+	writeInterpolatedHostConfig := func(t *testing.T, issuegraphDir string) string {
 		t.Helper()
-		path := proxiedServerConfigPath(beadsDir)
+		path := proxiedServerConfigPath(issuegraphDir)
 		require.NoError(t, os.MkdirAll(filepath.Dir(path), 0o700))
 		body := managedProxiedServerConfigMarker +
-			"listener:\n  host: \"${BEADS_TEST_MANAGED_LISTENER_HOST}\"\n  port: 54321\n"
+			"listener:\n  host: \"${ISSUEGRAPH_TEST_MANAGED_LISTENER_HOST}\"\n  port: 54321\n"
 		require.NoError(t, os.WriteFile(path, []byte(body), 0o600))
 		return path
 	}
 
 	t.Run("expands to loopback, accepted", func(t *testing.T) {
-		t.Setenv("BEADS_PROXIED_SERVER_CONFIG", "")
-		t.Setenv("BEADS_TEST_MANAGED_LISTENER_HOST", "127.0.0.1")
-		beadsDir := t.TempDir()
-		want := writeInterpolatedHostConfig(t, beadsDir)
+		t.Setenv("ISSUEGRAPH_PROXIED_SERVER_CONFIG", "")
+		t.Setenv("ISSUEGRAPH_TEST_MANAGED_LISTENER_HOST", "127.0.0.1")
+		issuegraphDir := t.TempDir()
+		want := writeInterpolatedHostConfig(t, issuegraphDir)
 
-		got, err := ensureProxiedServerConfig(beadsDir)
+		got, err := ensureProxiedServerConfig(issuegraphDir)
 		require.NoError(t, err)
 		assert.Equal(t, want, got)
 	})
 
 	t.Run("expands to wildcard, rejected", func(t *testing.T) {
-		t.Setenv("BEADS_PROXIED_SERVER_CONFIG", "")
-		t.Setenv("BEADS_TEST_MANAGED_LISTENER_HOST", "0.0.0.0")
-		beadsDir := t.TempDir()
-		writeInterpolatedHostConfig(t, beadsDir)
+		t.Setenv("ISSUEGRAPH_PROXIED_SERVER_CONFIG", "")
+		t.Setenv("ISSUEGRAPH_TEST_MANAGED_LISTENER_HOST", "0.0.0.0")
+		issuegraphDir := t.TempDir()
+		writeInterpolatedHostConfig(t, issuegraphDir)
 
-		_, err := ensureProxiedServerConfig(beadsDir)
+		_, err := ensureProxiedServerConfig(issuegraphDir)
 		assertManagedListenerPolicyError(t, err)
 	})
 }
@@ -815,20 +815,20 @@ func TestManagedListenerPolicyMarkerInterpolatedHost(t *testing.T) {
 // value must be threaded into the validator explicitly for a pre-existing
 // config.yaml under that root to be policy-checked.
 func TestManagedListenerPolicyRootPathFlagAtInit(t *testing.T) {
-	t.Setenv("BEADS_PROXIED_SERVER_CONFIG", "")
-	t.Setenv("BEADS_PROXIED_SERVER_ROOT_PATH", "")
-	beadsDir := t.TempDir()
+	t.Setenv("ISSUEGRAPH_PROXIED_SERVER_CONFIG", "")
+	t.Setenv("ISSUEGRAPH_PROXIED_SERVER_ROOT_PATH", "")
+	issuegraphDir := t.TempDir()
 	rootDir := t.TempDir()
 
 	t.Run("bad config under flagged root rejected", func(t *testing.T) {
 		writeListenerConfig(t, filepath.Join(rootDir, proxiedServerConfigName), "0.0.0.0", false, false)
-		err := validateManagedProxiedServerConfigAtInit(beadsDir, "", rootDir)
+		err := validateManagedProxiedServerConfigAtInit(issuegraphDir, "", rootDir)
 		assertManagedListenerPolicyError(t, err)
 	})
 
 	t.Run("missing config under flagged root allowed", func(t *testing.T) {
 		emptyRoot := t.TempDir()
-		require.NoError(t, validateManagedProxiedServerConfigAtInit(beadsDir, "", emptyRoot))
+		require.NoError(t, validateManagedProxiedServerConfigAtInit(issuegraphDir, "", emptyRoot))
 	})
 }
 
@@ -845,7 +845,7 @@ func writeListenerConfig(t *testing.T, path, host string, marker, interpolatedPo
 	}
 	port := "54321"
 	if interpolatedPort {
-		port = "${BEADS_TEST_MANAGED_LISTENER_PORT}"
+		port = "${ISSUEGRAPH_TEST_MANAGED_LISTENER_PORT}"
 	}
 	body += fmt.Sprintf("listener:\n  host: %q\n  port: %s\n", host, port)
 	require.NoError(t, os.WriteFile(path, []byte(body), 0o600))
@@ -863,13 +863,13 @@ func assertManagedListenerPolicyError(t *testing.T, err error) {
 	assert.NotContains(t, err.Error(), "--server-")
 }
 
-// TestCheckExistingBeadsDataAt_ProxiedServerNoData asserts that a proxied
-// workspace with metadata.json but no actual <beadsDir>/proxieddb/<dbName>/.dolt
+// TestCheckExistingIssueGraphDataAt_ProxiedServerNoData asserts that a proxied
+// workspace with metadata.json but no actual <issuegraphDir>/proxieddb/<dbName>/.dolt
 // directory is treated as a fresh clone — init is allowed to proceed so the
 // caller can bootstrap.
-func TestCheckExistingBeadsDataAt_ProxiedServerNoData(t *testing.T) {
-	beadsDir := filepath.Join(t.TempDir(), ".beads")
-	require.NoError(t, os.MkdirAll(beadsDir, 0o755))
+func TestCheckExistingIssueGraphDataAt_ProxiedServerNoData(t *testing.T) {
+	issuegraphDir := filepath.Join(t.TempDir(), ".issuegraph")
+	require.NoError(t, os.MkdirAll(issuegraphDir, 0o755))
 
 	metadata := map[string]interface{}{
 		"database":      "dolt",
@@ -879,15 +879,15 @@ func TestCheckExistingBeadsDataAt_ProxiedServerNoData(t *testing.T) {
 	}
 	data, err := json.Marshal(metadata)
 	require.NoError(t, err)
-	require.NoError(t, os.WriteFile(filepath.Join(beadsDir, "metadata.json"), data, 0o644))
+	require.NoError(t, os.WriteFile(filepath.Join(issuegraphDir, "metadata.json"), data, 0o644))
 
-	// No <beadsDir>/proxieddb/myproj/.dolt — fresh-clone scenario.
-	if err := checkExistingBeadsDataAt(beadsDir, "myproj"); err != nil {
+	// No <issuegraphDir>/proxieddb/myproj/.dolt — fresh-clone scenario.
+	if err := checkExistingIssueGraphDataAt(issuegraphDir, "myproj"); err != nil {
 		t.Fatalf("fresh proxied workspace should allow init, got: %v", err)
 	}
 }
 
-// TestCheckExistingBeadsDataAt_ProxiedServerWithExistingDB asserts that the
+// TestCheckExistingIssueGraphDataAt_ProxiedServerWithExistingDB asserts that the
 // mere existence of the resolved proxied-server root blocks re-init in
 // proxied-server mode. We deliberately don't peek deeper than the directory
 // itself — the internal layout (wrapper db dir, per-db subdirs) is an
@@ -895,10 +895,10 @@ func TestCheckExistingBeadsDataAt_ProxiedServerNoData(t *testing.T) {
 // asserts that a workspace pointed at a custom root via metadata.json's
 // dolt_proxied_server_root_path is also caught — otherwise re-init would
 // silently bypass the safety check.
-func TestCheckExistingBeadsDataAt_ProxiedServerWithExistingDB(t *testing.T) {
+func TestCheckExistingIssueGraphDataAt_ProxiedServerWithExistingDB(t *testing.T) {
 	t.Run("default root", func(t *testing.T) {
-		beadsDir := filepath.Join(t.TempDir(), ".beads")
-		require.NoError(t, os.MkdirAll(beadsDir, 0o755))
+		issuegraphDir := filepath.Join(t.TempDir(), ".issuegraph")
+		require.NoError(t, os.MkdirAll(issuegraphDir, 0o755))
 
 		metadata := map[string]interface{}{
 			"database":      "dolt",
@@ -908,14 +908,14 @@ func TestCheckExistingBeadsDataAt_ProxiedServerWithExistingDB(t *testing.T) {
 		}
 		data, err := json.Marshal(metadata)
 		require.NoError(t, err)
-		require.NoError(t, os.WriteFile(filepath.Join(beadsDir, "metadata.json"), data, 0o644))
+		require.NoError(t, os.WriteFile(filepath.Join(issuegraphDir, "metadata.json"), data, 0o644))
 
-		// Materialize <beadsDir>/dolt/ — that alone should be enough to
+		// Materialize <issuegraphDir>/dolt/ — that alone should be enough to
 		// trip the guard, regardless of what's inside.
-		proxiedRoot := filepath.Join(beadsDir, "dolt")
+		proxiedRoot := filepath.Join(issuegraphDir, "dolt")
 		require.NoError(t, os.MkdirAll(proxiedRoot, 0o755))
 
-		err = checkExistingBeadsDataAt(beadsDir, "myproj")
+		err = checkExistingIssueGraphDataAt(issuegraphDir, "myproj")
 		require.Error(t, err, "existing proxied-server root directory should block init")
 		assert.Contains(t, err.Error(), "already initialized")
 		assert.Contains(t, err.Error(), proxiedRoot)
@@ -923,14 +923,14 @@ func TestCheckExistingBeadsDataAt_ProxiedServerWithExistingDB(t *testing.T) {
 
 	t.Run("custom root via proxied_server_client_info.json", func(t *testing.T) {
 		// Ensure no env override leaks across tests — the resolver checks
-		// BEADS_PROXIED_SERVER_ROOT_PATH before the sidecar.
-		t.Setenv("BEADS_PROXIED_SERVER_ROOT_PATH", "")
+		// ISSUEGRAPH_PROXIED_SERVER_ROOT_PATH before the sidecar.
+		t.Setenv("ISSUEGRAPH_PROXIED_SERVER_ROOT_PATH", "")
 
 		base := t.TempDir()
-		beadsDir := filepath.Join(base, ".beads")
-		require.NoError(t, os.MkdirAll(beadsDir, 0o755))
+		issuegraphDir := filepath.Join(base, ".issuegraph")
+		require.NoError(t, os.MkdirAll(issuegraphDir, 0o755))
 
-		// Custom root well outside <beadsDir>/proxieddb so the test fails
+		// Custom root well outside <issuegraphDir>/proxieddb so the test fails
 		// loudly if the safety check still hardcodes the default location.
 		customRoot := filepath.Join(base, "custom-root")
 		require.NoError(t, os.MkdirAll(customRoot, 0o755))
@@ -943,20 +943,20 @@ func TestCheckExistingBeadsDataAt_ProxiedServerWithExistingDB(t *testing.T) {
 		}
 		data, err := json.Marshal(metadata)
 		require.NoError(t, err)
-		require.NoError(t, os.WriteFile(filepath.Join(beadsDir, "metadata.json"), data, 0o644))
-		writeProxiedClientInfo(t, beadsDir, &configfile.ProxiedServerClientInfo{RootPath: customRoot})
+		require.NoError(t, os.WriteFile(filepath.Join(issuegraphDir, "metadata.json"), data, 0o644))
+		writeProxiedClientInfo(t, issuegraphDir, &configfile.ProxiedServerClientInfo{RootPath: customRoot})
 
 		// Sanity: the default location should NOT exist — proves the guard
 		// fired off the resolved root, not the default.
-		defaultRoot := filepath.Join(beadsDir, "dolt")
+		defaultRoot := filepath.Join(issuegraphDir, "dolt")
 		_, statErr := os.Stat(defaultRoot)
-		require.True(t, os.IsNotExist(statErr), "default <beadsDir>/dolt must not exist for this test to be meaningful")
+		require.True(t, os.IsNotExist(statErr), "default <issuegraphDir>/dolt must not exist for this test to be meaningful")
 
-		err = checkExistingBeadsDataAt(beadsDir, "myproj")
+		err = checkExistingIssueGraphDataAt(issuegraphDir, "myproj")
 		require.Error(t, err, "existing custom root should block init")
 		assert.Contains(t, err.Error(), "already initialized")
 		assert.Contains(t, err.Error(), customRoot, "error must cite the custom root, not the default")
-		assert.NotContains(t, err.Error(), defaultRoot, "error must not cite a default location bd never used")
+		assert.NotContains(t, err.Error(), defaultRoot, "error must not cite a default location issuegraph never used")
 	})
 }
 
@@ -998,66 +998,66 @@ func TestInitCommandRegistersProxiedServerExternalFlags(t *testing.T) {
 // TestResolveProxiedServerConfigPath for the root-path resolver.
 func TestResolveProxiedServerRootPath(t *testing.T) {
 	t.Run("no sidecar, no env, returns default", func(t *testing.T) {
-		t.Setenv("BEADS_PROXIED_SERVER_ROOT_PATH", "")
-		bd := t.TempDir()
-		got, err := resolveProxiedServerRootPath(bd)
+		t.Setenv("ISSUEGRAPH_PROXIED_SERVER_ROOT_PATH", "")
+		issuegraph := t.TempDir()
+		got, err := resolveProxiedServerRootPath(issuegraph)
 		require.NoError(t, err)
-		assert.Equal(t, proxiedServerRoot(bd), got)
+		assert.Equal(t, proxiedServerRoot(issuegraph), got)
 	})
 
 	t.Run("empty sidecar, no env, returns default", func(t *testing.T) {
-		t.Setenv("BEADS_PROXIED_SERVER_ROOT_PATH", "")
-		bd := t.TempDir()
-		writeProxiedClientInfo(t, bd, &configfile.ProxiedServerClientInfo{})
-		got, err := resolveProxiedServerRootPath(bd)
+		t.Setenv("ISSUEGRAPH_PROXIED_SERVER_ROOT_PATH", "")
+		issuegraph := t.TempDir()
+		writeProxiedClientInfo(t, issuegraph, &configfile.ProxiedServerClientInfo{})
+		got, err := resolveProxiedServerRootPath(issuegraph)
 		require.NoError(t, err)
-		assert.Equal(t, proxiedServerRoot(bd), got)
+		assert.Equal(t, proxiedServerRoot(issuegraph), got)
 	})
 
-	t.Run("sidecar relative joins beadsDir", func(t *testing.T) {
-		t.Setenv("BEADS_PROXIED_SERVER_ROOT_PATH", "")
-		bd := t.TempDir()
-		writeProxiedClientInfo(t, bd, &configfile.ProxiedServerClientInfo{RootPath: "alt-proxieddb"})
-		got, err := resolveProxiedServerRootPath(bd)
+	t.Run("sidecar relative joins issuegraphDir", func(t *testing.T) {
+		t.Setenv("ISSUEGRAPH_PROXIED_SERVER_ROOT_PATH", "")
+		issuegraph := t.TempDir()
+		writeProxiedClientInfo(t, issuegraph, &configfile.ProxiedServerClientInfo{RootPath: "alt-proxieddb"})
+		got, err := resolveProxiedServerRootPath(issuegraph)
 		require.NoError(t, err)
-		assert.Equal(t, filepath.Join(bd, "alt-proxieddb"), got)
+		assert.Equal(t, filepath.Join(issuegraph, "alt-proxieddb"), got)
 	})
 
 	t.Run("sidecar absolute returned as-is", func(t *testing.T) {
-		t.Setenv("BEADS_PROXIED_SERVER_ROOT_PATH", "")
-		bd := t.TempDir()
-		writeProxiedClientInfo(t, bd, &configfile.ProxiedServerClientInfo{RootPath: "/var/lib/beads/proxieddb"})
-		got, err := resolveProxiedServerRootPath(bd)
+		t.Setenv("ISSUEGRAPH_PROXIED_SERVER_ROOT_PATH", "")
+		issuegraph := t.TempDir()
+		writeProxiedClientInfo(t, issuegraph, &configfile.ProxiedServerClientInfo{RootPath: "/var/lib/issuegraph/proxieddb"})
+		got, err := resolveProxiedServerRootPath(issuegraph)
 		require.NoError(t, err)
-		assert.Equal(t, "/var/lib/beads/proxieddb", got)
+		assert.Equal(t, "/var/lib/issuegraph/proxieddb", got)
 	})
 
 	t.Run("env beats sidecar", func(t *testing.T) {
-		t.Setenv("BEADS_PROXIED_SERVER_ROOT_PATH", "/from/env-root")
-		bd := t.TempDir()
-		writeProxiedClientInfo(t, bd, &configfile.ProxiedServerClientInfo{RootPath: "alt-from-meta"})
-		got, err := resolveProxiedServerRootPath(bd)
+		t.Setenv("ISSUEGRAPH_PROXIED_SERVER_ROOT_PATH", "/from/env-root")
+		issuegraph := t.TempDir()
+		writeProxiedClientInfo(t, issuegraph, &configfile.ProxiedServerClientInfo{RootPath: "alt-from-meta"})
+		got, err := resolveProxiedServerRootPath(issuegraph)
 		require.NoError(t, err)
 		assert.Equal(t, "/from/env-root", got)
 	})
 
 	t.Run("env with no sidecar still wins", func(t *testing.T) {
-		t.Setenv("BEADS_PROXIED_SERVER_ROOT_PATH", "/from/env-root")
-		bd := t.TempDir()
-		got, err := resolveProxiedServerRootPath(bd)
+		t.Setenv("ISSUEGRAPH_PROXIED_SERVER_ROOT_PATH", "/from/env-root")
+		issuegraph := t.TempDir()
+		got, err := resolveProxiedServerRootPath(issuegraph)
 		require.NoError(t, err)
 		assert.Equal(t, "/from/env-root", got)
 	})
 
 	t.Run("corrupt sidecar surfaces error", func(t *testing.T) {
-		t.Setenv("BEADS_PROXIED_SERVER_ROOT_PATH", "")
-		bd := t.TempDir()
+		t.Setenv("ISSUEGRAPH_PROXIED_SERVER_ROOT_PATH", "")
+		issuegraph := t.TempDir()
 		require.NoError(t, os.WriteFile(
-			configfile.ProxiedServerClientInfoPath(bd),
+			configfile.ProxiedServerClientInfoPath(issuegraph),
 			[]byte("not json{"),
 			0o600,
 		))
-		_, err := resolveProxiedServerRootPath(bd)
+		_, err := resolveProxiedServerRootPath(issuegraph)
 		require.Error(t, err)
 	})
 }
@@ -1124,53 +1124,53 @@ func TestValidateProxiedServerRootPath(t *testing.T) {
 // cascade: with no per-flag override, the config path's default fallback
 // must compute against the resolved root, so --proxied-server-root-path
 // alone moves config.yaml. The cascaded default is still NOT marked
-// isCustom — bd still owns the YAML's lifecycle, just under a custom root.
+// isCustom — issuegraph still owns the YAML's lifecycle, just under a custom root.
 // When the per-flag override IS set, it wins regardless of the root.
 func TestResolveProxiedServerConfigPath_FollowsCustomRoot(t *testing.T) {
 	t.Run("custom root cascades into default config path", func(t *testing.T) {
-		t.Setenv("BEADS_PROXIED_SERVER_CONFIG", "")
-		t.Setenv("BEADS_PROXIED_SERVER_ROOT_PATH", "")
-		bd := t.TempDir()
-		customRoot := filepath.Join(bd, "alt-root")
-		writeProxiedClientInfo(t, bd, &configfile.ProxiedServerClientInfo{RootPath: customRoot})
-		path, isCustom, err := resolveProxiedServerConfigPath(bd)
+		t.Setenv("ISSUEGRAPH_PROXIED_SERVER_CONFIG", "")
+		t.Setenv("ISSUEGRAPH_PROXIED_SERVER_ROOT_PATH", "")
+		issuegraph := t.TempDir()
+		customRoot := filepath.Join(issuegraph, "alt-root")
+		writeProxiedClientInfo(t, issuegraph, &configfile.ProxiedServerClientInfo{RootPath: customRoot})
+		path, isCustom, err := resolveProxiedServerConfigPath(issuegraph)
 		require.NoError(t, err)
 		assert.Equal(t, filepath.Join(customRoot, "config.yaml"), path)
 		assert.False(t, isCustom, "cascaded default is NOT user-owned")
 	})
 
 	t.Run("custom root via env cascades", func(t *testing.T) {
-		t.Setenv("BEADS_PROXIED_SERVER_CONFIG", "")
-		bd := t.TempDir()
-		envRoot := filepath.Join(bd, "env-root")
-		t.Setenv("BEADS_PROXIED_SERVER_ROOT_PATH", envRoot)
-		path, isCustom, err := resolveProxiedServerConfigPath(bd)
+		t.Setenv("ISSUEGRAPH_PROXIED_SERVER_CONFIG", "")
+		issuegraph := t.TempDir()
+		envRoot := filepath.Join(issuegraph, "env-root")
+		t.Setenv("ISSUEGRAPH_PROXIED_SERVER_ROOT_PATH", envRoot)
+		path, isCustom, err := resolveProxiedServerConfigPath(issuegraph)
 		require.NoError(t, err)
 		assert.Equal(t, filepath.Join(envRoot, "config.yaml"), path)
 		assert.False(t, isCustom)
 	})
 
 	t.Run("per-flag config override wins over root cascade", func(t *testing.T) {
-		t.Setenv("BEADS_PROXIED_SERVER_CONFIG", "")
-		t.Setenv("BEADS_PROXIED_SERVER_ROOT_PATH", "")
-		bd := t.TempDir()
-		writeProxiedClientInfo(t, bd, &configfile.ProxiedServerClientInfo{
-			RootPath:   filepath.Join(bd, "alt-root"),
+		t.Setenv("ISSUEGRAPH_PROXIED_SERVER_CONFIG", "")
+		t.Setenv("ISSUEGRAPH_PROXIED_SERVER_ROOT_PATH", "")
+		issuegraph := t.TempDir()
+		writeProxiedClientInfo(t, issuegraph, &configfile.ProxiedServerClientInfo{
+			RootPath:   filepath.Join(issuegraph, "alt-root"),
 			ConfigPath: "/etc/dolt/explicit.yaml",
 		})
-		path, isCustom, err := resolveProxiedServerConfigPath(bd)
+		path, isCustom, err := resolveProxiedServerConfigPath(issuegraph)
 		require.NoError(t, err)
 		assert.Equal(t, "/etc/dolt/explicit.yaml", path)
 		assert.True(t, isCustom, "explicit override is user-owned")
 	})
 
-	t.Run("no overrides falls back to <beadsDir>/dolt (preserves pre-cascade default)", func(t *testing.T) {
-		t.Setenv("BEADS_PROXIED_SERVER_CONFIG", "")
-		t.Setenv("BEADS_PROXIED_SERVER_ROOT_PATH", "")
-		bd := t.TempDir()
-		path, isCustom, err := resolveProxiedServerConfigPath(bd)
+	t.Run("no overrides falls back to <issuegraphDir>/dolt (preserves pre-cascade default)", func(t *testing.T) {
+		t.Setenv("ISSUEGRAPH_PROXIED_SERVER_CONFIG", "")
+		t.Setenv("ISSUEGRAPH_PROXIED_SERVER_ROOT_PATH", "")
+		issuegraph := t.TempDir()
+		path, isCustom, err := resolveProxiedServerConfigPath(issuegraph)
 		require.NoError(t, err)
-		assert.Equal(t, filepath.Join(bd, "dolt", "config.yaml"), path)
+		assert.Equal(t, filepath.Join(issuegraph, "dolt", "config.yaml"), path)
 		assert.False(t, isCustom)
 	})
 }
@@ -1179,49 +1179,49 @@ func TestResolveProxiedServerConfigPath_FollowsCustomRoot(t *testing.T) {
 // cascade test for the log resolver.
 func TestResolveProxiedServerLogPath_FollowsCustomRoot(t *testing.T) {
 	t.Run("custom root cascades into default log path", func(t *testing.T) {
-		t.Setenv("BEADS_PROXIED_SERVER_LOG", "")
-		t.Setenv("BEADS_PROXIED_SERVER_ROOT_PATH", "")
-		bd := t.TempDir()
-		customRoot := filepath.Join(bd, "alt-root")
-		writeProxiedClientInfo(t, bd, &configfile.ProxiedServerClientInfo{RootPath: customRoot})
-		path, isCustom, err := resolveProxiedServerLogPath(bd)
+		t.Setenv("ISSUEGRAPH_PROXIED_SERVER_LOG", "")
+		t.Setenv("ISSUEGRAPH_PROXIED_SERVER_ROOT_PATH", "")
+		issuegraph := t.TempDir()
+		customRoot := filepath.Join(issuegraph, "alt-root")
+		writeProxiedClientInfo(t, issuegraph, &configfile.ProxiedServerClientInfo{RootPath: customRoot})
+		path, isCustom, err := resolveProxiedServerLogPath(issuegraph)
 		require.NoError(t, err)
 		assert.Equal(t, filepath.Join(customRoot, "server.log"), path)
 		assert.False(t, isCustom, "cascaded default is NOT user-owned")
 	})
 
 	t.Run("custom root via env cascades", func(t *testing.T) {
-		t.Setenv("BEADS_PROXIED_SERVER_LOG", "")
-		bd := t.TempDir()
-		envRoot := filepath.Join(bd, "env-root")
-		t.Setenv("BEADS_PROXIED_SERVER_ROOT_PATH", envRoot)
-		path, isCustom, err := resolveProxiedServerLogPath(bd)
+		t.Setenv("ISSUEGRAPH_PROXIED_SERVER_LOG", "")
+		issuegraph := t.TempDir()
+		envRoot := filepath.Join(issuegraph, "env-root")
+		t.Setenv("ISSUEGRAPH_PROXIED_SERVER_ROOT_PATH", envRoot)
+		path, isCustom, err := resolveProxiedServerLogPath(issuegraph)
 		require.NoError(t, err)
 		assert.Equal(t, filepath.Join(envRoot, "server.log"), path)
 		assert.False(t, isCustom)
 	})
 
 	t.Run("per-flag log override wins over root cascade", func(t *testing.T) {
-		t.Setenv("BEADS_PROXIED_SERVER_LOG", "")
-		t.Setenv("BEADS_PROXIED_SERVER_ROOT_PATH", "")
-		bd := t.TempDir()
-		writeProxiedClientInfo(t, bd, &configfile.ProxiedServerClientInfo{
-			RootPath: filepath.Join(bd, "alt-root"),
+		t.Setenv("ISSUEGRAPH_PROXIED_SERVER_LOG", "")
+		t.Setenv("ISSUEGRAPH_PROXIED_SERVER_ROOT_PATH", "")
+		issuegraph := t.TempDir()
+		writeProxiedClientInfo(t, issuegraph, &configfile.ProxiedServerClientInfo{
+			RootPath: filepath.Join(issuegraph, "alt-root"),
 			LogPath:  "/var/log/explicit.log",
 		})
-		path, isCustom, err := resolveProxiedServerLogPath(bd)
+		path, isCustom, err := resolveProxiedServerLogPath(issuegraph)
 		require.NoError(t, err)
 		assert.Equal(t, "/var/log/explicit.log", path)
 		assert.True(t, isCustom)
 	})
 
-	t.Run("no overrides falls back to <beadsDir>/dolt (preserves pre-cascade default)", func(t *testing.T) {
-		t.Setenv("BEADS_PROXIED_SERVER_LOG", "")
-		t.Setenv("BEADS_PROXIED_SERVER_ROOT_PATH", "")
-		bd := t.TempDir()
-		path, isCustom, err := resolveProxiedServerLogPath(bd)
+	t.Run("no overrides falls back to <issuegraphDir>/dolt (preserves pre-cascade default)", func(t *testing.T) {
+		t.Setenv("ISSUEGRAPH_PROXIED_SERVER_LOG", "")
+		t.Setenv("ISSUEGRAPH_PROXIED_SERVER_ROOT_PATH", "")
+		issuegraph := t.TempDir()
+		path, isCustom, err := resolveProxiedServerLogPath(issuegraph)
 		require.NoError(t, err)
-		assert.Equal(t, filepath.Join(bd, "dolt", "server.log"), path)
+		assert.Equal(t, filepath.Join(issuegraph, "dolt", "server.log"), path)
 		assert.False(t, isCustom)
 	})
 }

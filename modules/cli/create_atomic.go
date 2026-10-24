@@ -5,9 +5,9 @@ import (
 	"encoding/json"
 	"fmt"
 
-	"github.com/steveyegge/beads/internal/storage"
-	"github.com/steveyegge/beads/internal/storage/domain"
-	"github.com/steveyegge/beads/internal/types"
+	"github.com/borg0ai/dx-issuegraph/internal/storage"
+	"github.com/borg0ai/dx-issuegraph/internal/storage/domain"
+	"github.com/borg0ai/dx-issuegraph/internal/types"
 )
 
 // createDepEdges describes the dependency edges attached to a new issue at
@@ -26,7 +26,7 @@ func (e createDepEdges) empty() bool {
 // dependency edges in one transaction. The previous shape — commit the issue
 // first, then add each edge in its own transaction with warn-only error
 // handling — meant a failed dep-add still exited 0 and left a dep-less,
-// permanently-ready bead behind for orchestrators to dispatch prematurely.
+// permanently-ready issue behind for orchestrators to dispatch prematurely.
 // Here any edge failure rolls back the create and is returned as a fatal
 // error naming the failing edge.
 //
@@ -57,9 +57,9 @@ func createIssueWithDeps(ctx context.Context, st storage.DoltStorage, issue *typ
 	// Auto-minted IDs are only known after tx.CreateIssue runs, so the Dolt
 	// commit message can name the issue only when the ID is already reserved
 	// (explicit --id or a parent-child child ID).
-	commitMsg := "bd: create"
+	commitMsg := "issuegraph: create"
 	if issue.ID != "" {
-		commitMsg = "bd: create " + issue.ID
+		commitMsg = "issuegraph: create " + issue.ID
 	}
 
 	return transactHonoringAutoCommit(ctx, st, commitMsg, func(tx storage.Transaction) error {

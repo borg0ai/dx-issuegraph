@@ -10,32 +10,32 @@ import (
 	"testing"
 )
 
-// The two halves of #5985 at the front door: what `bd delete --actor` records,
-// and what `bd events export` tells you when there is nothing to record into.
+// The two halves of #5985 at the front door: what `issuegraph delete --actor` records,
+// and what `issuegraph events export` tells you when there is nothing to record into.
 // Both are end-to-end because both failures are invisible from inside the
 // process — the command succeeds either way, and only a later read shows the
 // attribution missing or the reader polling a journal that was never on.
 
-// runBDOut runs bd in dir and returns stdout and stderr separately. The notice
+// runIssueGraphOut runs issuegraph in dir and returns stdout and stderr separately. The notice
 // under test is on stderr precisely so it does not corrupt the JSONL on stdout,
 // so a CombinedOutput helper cannot check it.
-func runBDOut(t *testing.T, bd, dir string, env []string, args ...string) (string, string) {
+func runIssueGraphOut(t *testing.T, issuegraph, dir string, env []string, args ...string) (string, string) {
 	t.Helper()
-	cmd := exec.Command(bd, args...)
+	cmd := exec.Command(issuegraph, args...)
 	cmd.Dir = dir
 	cmd.Env = env
 	var stdout, stderr bytes.Buffer
 	cmd.Stdout = &stdout
 	cmd.Stderr = &stderr
 	if err := cmd.Run(); err != nil {
-		t.Fatalf("bd %s in %s: %v\nstdout:\n%s\nstderr:\n%s",
+		t.Fatalf("issuegraph %s in %s: %v\nstdout:\n%s\nstderr:\n%s",
 			strings.Join(args, " "), dir, err, stdout.String(), stderr.String())
 	}
 	return stdout.String(), stderr.String()
 }
 
 // TestDeleteJournalsTheRequestingActor is #5985's repro, verbatim: create two
-// beads with an edge between them, delete the blocker with an explicit --actor,
+// issuegraph with an edge between them, delete the blocker with an explicit --actor,
 // and read the journal back. Both the delete record and the cascade dep_remove
 // record must name that actor.
 //
@@ -43,17 +43,17 @@ func runBDOut(t *testing.T, bd, dir string, env []string, args ...string) (strin
 // actor is resolved, threaded through the role, and written by the storage
 // seam, and a unit test at any one of those cannot see the drop at the next.
 func TestDeleteJournalsTheRequestingActor(t *testing.T) {
-	if os.Getenv("BEADS_TEST_EMBEDDED_DOLT") != "1" {
-		t.Skip("set BEADS_TEST_EMBEDDED_DOLT=1 to run embedded dolt integration tests")
+	if os.Getenv("ISSUEGRAPH_TEST_EMBEDDED_DOLT") != "1" {
+		t.Skip("set ISSUEGRAPH_TEST_EMBEDDED_DOLT=1 to run embedded dolt integration tests")
 	}
 	t.Parallel()
-	bd := buildEmbeddedBD(t)
-	dir, _, _ := bdInit(t, bd, "--prefix", "dja", "--skip-hooks", "--skip-agents")
-	env := append(envWithout(bdEnv(dir), "BD_EVENTS_JOURNAL"), "BD_EVENTS_JOURNAL=1")
+	issuegraph := buildEmbeddedBD(t)
+	dir, _, _ := issuegraphInit(t, issuegraph, "--prefix", "dja", "--skip-hooks", "--skip-agents")
+	env := append(envWithout(issuegraphEnv(dir), "ISSUEGRAPH_EVENTS_JOURNAL"), "ISSUEGRAPH_EVENTS_JOURNAL=1")
 
 	run := func(args ...string) string {
 		t.Helper()
-		stdout, _ := runBDOut(t, bd, dir, env, args...)
+		stdout, _ := runIssueGraphOut(t, issuegraph, dir, env, args...)
 		return stdout
 	}
 
@@ -99,31 +99,31 @@ func TestDeleteJournalsTheRequestingActor(t *testing.T) {
 // because exporting a historical ledger from a now-disabled workspace is
 // legitimate.
 func TestEventsReadNoticesADisabledJournal(t *testing.T) {
-	if os.Getenv("BEADS_TEST_EMBEDDED_DOLT") != "1" {
-		t.Skip("set BEADS_TEST_EMBEDDED_DOLT=1 to run embedded dolt integration tests")
+	if os.Getenv("ISSUEGRAPH_TEST_EMBEDDED_DOLT") != "1" {
+		t.Skip("set ISSUEGRAPH_TEST_EMBEDDED_DOLT=1 to run embedded dolt integration tests")
 	}
 	t.Parallel()
-	bd := buildEmbeddedBD(t)
-	dir, _, _ := bdInit(t, bd, "--prefix", "dnn", "--skip-hooks", "--skip-agents")
-	off := envWithout(bdEnv(dir), "BD_EVENTS_JOURNAL")
+	issuegraph := buildEmbeddedBD(t)
+	dir, _, _ := issuegraphInit(t, issuegraph, "--prefix", "dnn", "--skip-hooks", "--skip-agents")
+	off := envWithout(issuegraphEnv(dir), "ISSUEGRAPH_EVENTS_JOURNAL")
 
 	for _, sub := range []string{"export", "tail"} {
-		stdout, stderr := runBDOut(t, bd, dir, off, "events", sub)
+		stdout, stderr := runIssueGraphOut(t, issuegraph, dir, off, "events", sub)
 		if !strings.Contains(stderr, "events journal is disabled") {
-			t.Errorf("bd events %s on a disabled workspace printed no notice\nstderr:\n%s", sub, stderr)
+			t.Errorf("issuegraph events %s on a disabled workspace printed no notice\nstderr:\n%s", sub, stderr)
 		}
 		if !strings.Contains(stderr, "events-journal") {
-			t.Errorf("bd events %s notice does not name the setting to flip\nstderr:\n%s", sub, stderr)
+			t.Errorf("issuegraph events %s notice does not name the setting to flip\nstderr:\n%s", sub, stderr)
 		}
 		if strings.TrimSpace(stdout) != "" {
-			t.Errorf("bd events %s put the notice on stdout, which carries the JSONL stream:\n%s", sub, stdout)
+			t.Errorf("issuegraph events %s put the notice on stdout, which carries the JSONL stream:\n%s", sub, stdout)
 		}
 	}
 
 	// Enabled: no notice, so the message stays a signal rather than noise every
 	// consumer learns to filter out.
-	on := append(envWithout(bdEnv(dir), "BD_EVENTS_JOURNAL"), "BD_EVENTS_JOURNAL=1")
-	if _, stderr := runBDOut(t, bd, dir, on, "events", "export"); strings.Contains(stderr, "events journal is disabled") {
+	on := append(envWithout(issuegraphEnv(dir), "ISSUEGRAPH_EVENTS_JOURNAL"), "ISSUEGRAPH_EVENTS_JOURNAL=1")
+	if _, stderr := runIssueGraphOut(t, issuegraph, dir, on, "events", "export"); strings.Contains(stderr, "events journal is disabled") {
 		t.Errorf("an enabled workspace still printed the disabled notice:\n%s", stderr)
 	}
 }

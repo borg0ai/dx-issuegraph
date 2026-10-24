@@ -11,19 +11,19 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/steveyegge/beads/internal/storage/journalscan"
+	"github.com/borg0ai/dx-issuegraph/internal/storage/journalscan"
 )
 
 // Journal coverage has three halves, and this is the third. The issueops guards
 // prove the mutation seam EMITS. The dolt scope guard proves the store binds
 // activation to the transaction a mutation runs in. This one proves the
 // activation setting reaches the plumbing at all — that every store and
-// unit-of-work provider bd builds is built by something that turns the journal
+// unit-of-work provider issuegraph builds is built by something that turns the journal
 // on according to its workspace's config.
 //
 // It exists because that half was enumerated by hand and was wrong three times
 // running. First the setting was process-global. Then it was applied at the two
-// root pre-run call sites, which missed `bd serve` (which builds its own
+// root pre-run call sites, which missed `issuegraph serve` (which builds its own
 // provider for server-mode workspaces), routed creates and remote-cache
 // hydration (which open a SECOND store for another workspace), the pluggable
 // backend registry arm, and the personal-migration planning store. Every one of
@@ -46,13 +46,13 @@ import (
 // is the worst failure mode a guard like this can have, because it reports
 // success while checking nothing.
 var storeConstructors = map[string]map[string]bool{
-	"github.com/steveyegge/beads/internal/storage/dolt": {
+	"github.com/borg0ai/dx-issuegraph/internal/storage/dolt": {
 		"New":                         true,
 		"NewFromConfig":               true,
 		"NewFromConfigWithOptions":    true,
 		"NewFromConfigWithCLIOptions": true,
 	},
-	"github.com/steveyegge/beads/internal/storage/embeddeddolt": {
+	"github.com/borg0ai/dx-issuegraph/internal/storage/embeddeddolt": {
 		"Open":                       true,
 		"OpenReadOnly":               true,
 		"OpenForReadOnlyCommand":     true,
@@ -60,19 +60,19 @@ var storeConstructors = map[string]map[string]bool{
 		"OpenForWorkingSetReconcile": true,
 		"OpenForRemoteSync":          true,
 	},
-	"github.com/steveyegge/beads/internal/storage/uow": {
+	"github.com/borg0ai/dx-issuegraph/internal/storage/uow": {
 		"NewDoltServerUOWProvider":         true,
 		"NewExternalDoltServerUOWProvider": true,
 	},
 	// The pluggable backend registry: Lookup is what turns a configured backend
 	// name into something that can Open, so a function that calls it is
 	// constructing a store just as much as the direct opens above.
-	"github.com/steveyegge/beads/internal/storage/backends": {"Lookup": true},
+	"github.com/borg0ai/dx-issuegraph/internal/storage/backends": {"Lookup": true},
 }
 
 // activationCalls are the helpers that apply a workspace's configured
 // activation to the thing just constructed. Both the local modules/cli wrappers and
-// the shared package they delegate to count, because bd doctor's repair
+// the shared package they delegate to count, because issuegraph doctor's repair
 // handlers cannot import package main and call the package directly.
 var activationCalls = map[string]bool{
 	"activateEventsJournalStore":    true,
@@ -81,14 +81,14 @@ var activationCalls = map[string]bool{
 
 // qualifiedActivationCalls are the same, keyed by import path and function.
 var qualifiedActivationCalls = map[string]map[string]bool{
-	"github.com/steveyegge/beads/internal/eventsjournal": {
+	"github.com/borg0ai/dx-issuegraph/internal/eventsjournal": {
 		"ActivateStore": true,
 		"Apply":         true,
 	},
 }
 
 // scannedPackages are the directories searched for construction sites: every
-// package that builds a store or provider for the bd binary, plus the standalone
+// package that builds a store or provider for the issuegraph binary, plus the standalone
 // embedded-Dolt utility so it is accounted for rather than merely unnoticed.
 // Each maps to the prefix its sites are keyed under.
 var scannedPackages = map[string]string{
@@ -104,10 +104,10 @@ var scannedPackages = map[string]string{
 // checked separately — a divergence between the CGO and non-CGO paths is
 // exactly the kind of gap a name-keyed list would hide.
 //
-// A key ending in "/" exempts a whole package. That is used once, for bd
+// A key ending in "/" exempts a whole package. That is used once, for issuegraph
 // doctor's CHECK half, where ~30 read-only sites share one true reason. It is
 // deliberately NOT used for the repair half: a blanket there was how a false
-// reason ("workspace repairs, not bead mutations") covered three handlers that
+// reason ("workspace repairs, not issue mutations") covered three handlers that
 // delete and create issues.
 //
 // The staleness check below fails if an exemption stops matching a real
@@ -122,43 +122,43 @@ var constructionExemptions = map[string]string{
 	// Store-open-time reconciliation, which runs BEFORE the command's own store
 	// exists and therefore before any workspace config could be applied to it.
 	// It writes only local_metadata, which is dolt-ignored working-set state and
-	// not a bead mutation. Journaling it would record a row for something a
-	// replay consumer has no bead to apply it to.
-	"version_tracking.go:autoMigrateOnVersionBump": "store-open-time version reconciliation: writes only dolt-ignored local_metadata, never a bead, and runs before the command's own store is configured",
+	// not a issue mutation. Journaling it would record a row for something a
+	// replay consumer has no issue to apply it to.
+	"version_tracking.go:autoMigrateOnVersionBump": "store-open-time version reconciliation: writes only dolt-ignored local_metadata, never a issue, and runs before the command's own store is configured",
 
 	// Config reads through a throwaway store. GetConfig only; nothing here
-	// mutates a bead.
-	"ado.go:getADOConfigValue": "throwaway store used for a single GetConfig read; no bead mutation is possible through it",
+	// mutates a issue.
+	"ado.go:getADOConfigValue": "throwaway store used for a single GetConfig read; no issue mutation is possible through it",
 
-	// `bd config apply` / drift detection open a store to read and reconcile the
-	// workspace's Dolt REMOTE configuration. That is workspace state, not bead
+	// `issuegraph config apply` / drift detection open a store to read and reconcile the
+	// workspace's Dolt REMOTE configuration. That is workspace state, not issue
 	// rows, so there is nothing for a replay consumer to apply.
-	"config_apply.go:applyRemote":      "reconciles the Dolt remote configuration, not beads: workspace state a replay consumer has no bead to apply it to",
-	"config_drift.go:checkRemoteDrift": "reads the Dolt remote configuration to report drift; no bead mutation",
+	"config_apply.go:applyRemote":      "reconciles the Dolt remote configuration, not issuegraph: workspace state a replay consumer has no issue to apply it to",
+	"config_drift.go:checkRemoteDrift": "reads the Dolt remote configuration to report drift; no issue mutation",
 
-	// bd doctor's CHECKS: read-only inspection of workspace and bead state.
+	// issuegraph doctor's CHECKS: read-only inspection of workspace and issue state.
 	// They report, they never write.
 	//
-	// This blanket once covered the repair half too, with the same "not bead
+	// This blanket once covered the repair half too, with the same "not issue
 	// mutations" reason — and that reason was FALSE. Three repair handlers
-	// delete or create issues (see openBeadMutatingStore in doctor/fix), and
+	// delete or create issues (see openIssueMutatingStore in doctor/fix), and
 	// they now open through an activating factory instead of inheriting an
 	// exemption that was never true of them. That is the failure mode a
 	// package-wide exemption invites, so this one states what it covers rather
 	// than which directory it lives in: a check that grows a WRITE path must
 	// leave it.
-	"doctor/": "bd doctor checks: read-only inspection; they report state and never write it",
+	"doctor/": "issuegraph doctor checks: read-only inspection; they report state and never write it",
 
-	// bd doctor's REPAIRS that remain exempt: they write WORKSPACE state, and
+	// issuegraph doctor's REPAIRS that remain exempt: they write WORKSPACE state, and
 	// each is named individually so the reason can be checked against the
-	// handler rather than assumed from its directory. The three bead-mutating
+	// handler rather than assumed from its directory. The three issue-mutating
 	// handlers are not here — StaleClosedIssues and PatrolPollution (which
 	// DELETE issues) and the two fresh-clone import paths (which CREATE them)
-	// open through openBeadMutatingStore and journal like any other mutation.
-	"doctor/fix/metadata.go:FixMissingMetadata":            "writes bd_version / repo_id / clone_id workspace metadata, never a bead",
-	"doctor/fix/metadata.go:FixProjectIdentity":            "writes the workspace's _project_id, never a bead",
-	"doctor/fix/repo_fingerprint.go:RepoFingerprint":       "rewrites the workspace repo_id fingerprint, never a bead",
-	"doctor/fix/repo_fingerprint.go:updateRepoIDInProcess": "rewrites the workspace repo_id fingerprint in-process, never a bead",
+	// open through openIssueMutatingStore and journal like any other mutation.
+	"doctor/fix/metadata.go:FixMissingMetadata":            "writes issuegraph_version / repo_id / clone_id workspace metadata, never a issue",
+	"doctor/fix/metadata.go:FixProjectIdentity":            "writes the workspace's _project_id, never a issue",
+	"doctor/fix/repo_fingerprint.go:RepoFingerprint":       "rewrites the workspace repo_id fingerprint, never a issue",
+	"doctor/fix/repo_fingerprint.go:updateRepoIDInProcess": "rewrites the workspace repo_id fingerprint in-process, never a issue",
 
 	// The root pre-run probes the backend registry to choose WHICH factory to
 	// call; the construction itself is delegated to newRegisteredBackendStore,
@@ -167,9 +167,9 @@ var constructionExemptions = map[string]string{
 	// branch rather than opening anything.
 	"main.go:var rootCmd": "probes backends.Lookup to select a factory; the store is constructed by newRegisteredBackendStore, which activates",
 
-	// A standalone developer utility binary, not bd. It has no workspace config
-	// to read and never runs as part of a bd command.
-	"embeddeddolt-cmd/main.go:main": "standalone embeddeddolt debug utility, not the bd binary; no workspace config and no bd command context",
+	// A standalone developer utility binary, not issuegraph. It has no workspace config
+	// to read and never runs as part of a issuegraph command.
+	"embeddeddolt-cmd/main.go:main": "standalone embeddeddolt debug utility, not the issuegraph binary; no workspace config and no issuegraph command context",
 }
 
 func TestEveryStoreConstructionActivatesTheEventsJournal(t *testing.T) {

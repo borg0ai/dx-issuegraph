@@ -16,12 +16,12 @@ var labelTables = []string{"labels", "wisp_labels"}
 // LabelWhitespaceAnomalies summarizes one table's labels carrying whitespace
 // damage (#5812).
 //
-// Untrimmed and Blank are unambiguous corruption: bd normalizes labels on every
+// Untrimmed and Blank are unambiguous corruption: issuegraph normalizes labels on every
 // FILTER path but historically did not on any WRITE path, so a stored " a" can
 // never match its own `--label a` filter and a filtered list is silently short.
 //
 // Internal — a trimmed label that still contains a space — is reported
-// SEPARATELY and is not called corruption. bd honors the shell's word
+// SEPARATELY and is not called corruption. issuegraph honors the shell's word
 // boundaries, so `--labels 'one two'` legitimately means one label, exactly as
 // it means one filename. But it is also what someone typed when they meant a
 // comma, which is how #5812's 150 corrupt rows were made. New writes now warn

@@ -6,14 +6,14 @@ import (
 	"path/filepath"
 	"time"
 
-	"github.com/steveyegge/beads/internal/configfile"
+	"github.com/borg0ai/dx-issuegraph/internal/configfile"
 )
 
 // DatabaseIntegrity attempts to recover from database corruption by:
 //  1. Backing up the corrupt database
-//  2. Re-initializing via bd init (which will clone from remote if configured)
+//  2. Re-initializing via issuegraph init (which will clone from remote if configured)
 func DatabaseIntegrity(path string) error {
-	beadsDir, err := resolvedWorkspaceBeadsDir(path)
+	issuegraphDir, err := resolvedWorkspaceIssueGraphDir(path)
 	if err != nil {
 		return err
 	}
@@ -23,16 +23,16 @@ func DatabaseIntegrity(path string) error {
 		return fmt.Errorf("failed to resolve path: %w", err)
 	}
 
-	return doltIntegrityRecovery(absPath, beadsDir)
+	return doltIntegrityRecovery(absPath, issuegraphDir)
 }
 
 // doltIntegrityRecovery backs up the corrupted Dolt database and reinitializes.
-func doltIntegrityRecovery(path, beadsDir string) error {
-	if err := serverModeIntegrityRecoveryGuard(beadsDir); err != nil {
+func doltIntegrityRecovery(path, issuegraphDir string) error {
+	if err := serverModeIntegrityRecoveryGuard(issuegraphDir); err != nil {
 		return err
 	}
 
-	doltPath := getDatabasePath(beadsDir)
+	doltPath := getDatabasePath(issuegraphDir)
 
 	// Check if dolt directory exists
 	if _, err := os.Stat(doltPath); os.IsNotExist(err) {
@@ -47,18 +47,18 @@ func doltIntegrityRecovery(path, beadsDir string) error {
 		return fmt.Errorf("failed to backup corrupted Dolt database: %w", err)
 	}
 
-	// Get bd binary path
-	bdBinary, err := getBdBinary()
+	// Get issuegraph binary path
+	issuegraphBinary, err := getBdBinary()
 	if err != nil {
 		// Restore corrupted database on failure
 		_ = os.Rename(backupPath, doltPath)
 		return err
 	}
 
-	// Reinitialize: bd init --force -q
-	// bd init will clone from remote if sync.remote is configured.
+	// Reinitialize: issuegraph init --force -q
+	// issuegraph init will clone from remote if sync.remote is configured.
 	fmt.Printf("  Reinitializing Dolt database (will clone from remote if configured)\n")
-	initCmd := newBdCmd(bdBinary, "init", "--force", "-q", "--skip-hooks")
+	initCmd := newBdCmd(issuegraphBinary, "init", "--force", "-q", "--skip-hooks")
 	initCmd.Dir = path
 	initCmd.Stdout = os.Stdout
 	initCmd.Stderr = os.Stderr
@@ -76,8 +76,8 @@ func doltIntegrityRecovery(path, beadsDir string) error {
 	return nil
 }
 
-func serverModeIntegrityRecoveryGuard(beadsDir string) error {
-	cfg, err := configfile.Load(beadsDir)
+func serverModeIntegrityRecoveryGuard(issuegraphDir string) error {
+	cfg, err := configfile.Load(issuegraphDir)
 	if err != nil || cfg == nil || !cfg.IsDoltServerMode() {
 		return nil
 	}
@@ -89,7 +89,7 @@ func serverModeIntegrityRecoveryGuard(beadsDir string) error {
 
 	return fmt.Errorf(
 		"automatic integrity recovery is disabled for server-mode repos because it can replace the wrong Dolt root; preserve %s and verify the configured database %q manually before reinitializing",
-		getDatabasePath(beadsDir),
+		getDatabasePath(issuegraphDir),
 		dbName,
 	)
 }

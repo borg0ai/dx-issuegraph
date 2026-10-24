@@ -1,6 +1,6 @@
 // Package memoryops describes the workspace's PERSISTENT MEMORY PLANE: the
-// keyed notes `bd remember`, `bd recall`, `bd forget` and `bd memories` store
-// and read, and that `bd prime` injects into a session.
+// keyed notes `issuegraph remember`, `issuegraph recall`, `issuegraph forget` and `issuegraph memories` store
+// and read, and that `issuegraph prime` injects into a session.
 //
 // It is a sibling of issueops rather than more verbs on
 // issueops.WorkspaceConfig, and the reason is not that the rule forbids
@@ -25,19 +25,19 @@
 // and a setting does not — not because a caller has to construct it.
 //
 // WHAT THIS PACKAGE IMPORTS: stdlib, plus
-// github.com/steveyegge/beads/beadserrors for the error sentinel and nothing
+// github.com/borg0ai/dx-issuegraph/issuegrapherrors for the error sentinel and nothing
 // else. That is narrower than the issueops leaf rule ("internal/types and
 // stdlib"): a memory is a string under a string key, so nothing in
 // internal/types is needed here and importing it would only invite issue-shaped
 // types into a plane that has none. The sentinel is ALIASED rather than
 // redeclared — see errors.go.
 //
-// It aliases through beadserrors rather than through issueops, which is where
+// It aliases through issuegrapherrors rather than through issueops, which is where
 // that value used to live. Reaching into the issue package for it worked and
 // kept errors.Is identity, but it put issueops in this leaf's dependency graph
 // and internal/types behind it — a claim that the memory plane sits downstream
 // of the issue plane, when the two are siblings over one config table. The
-// shared vocabulary moved down instead. beadserrors imports stdlib only, and a
+// shared vocabulary moved down instead. issuegrapherrors imports stdlib only, and a
 // depguard rule keeps it that way.
 //
 // THERE IS NO PAGE HERE. Memories are a keyed namespace a workspace holds tens
@@ -49,5 +49,5 @@
 // # Stability
 //
 // EXPERIMENTAL. This package is not yet covered by the project's compatibility
-// promise and may change in a minor release. Pin an exact beads version.
+// promise and may change in a minor release. Pin an exact issuegraph version.
 package memoryops

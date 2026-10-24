@@ -6,7 +6,7 @@ on:
 jobs:
   test-publish:
     # Guard: only allow test PyPI publish runs in the canonical repository
-    if: ${{ github.repository == 'gastownhall/beads' }}
+    if: ${{ github.repository == 'borg0ai/dx-issuegraph' }}
     runs-on: ubuntu-latest
     steps:
       - name: Checkout
@@ -22,7 +22,7 @@ jobs:
 
       - name: Build package
         run: |
-          cd integrations/beads-mcp
+          cd integrations/issuegraph-mcp
           uv build
 
       - name: Publish to TestPyPI
@@ -30,5 +30,5 @@ jobs:
           TWINE_USERNAME: __token__
           TWINE_PASSWORD: ${{ secrets.TEST_PYPI_API_TOKEN }}
         run: |
-          cd integrations/beads-mcp
+          cd integrations/issuegraph-mcp
           uv tool run twine upload --repository testpypi dist/*

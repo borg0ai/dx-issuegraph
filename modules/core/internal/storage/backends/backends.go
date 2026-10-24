@@ -1,14 +1,14 @@
 // Package backends provides the extension seam for storage backends that
 // return storage.DoltStorage directly.
 //
-// OSS Beads registers no alternate backend. A downstream distribution adds a
+// OSS IssueGraph registers no alternate backend. A downstream distribution adds a
 // registrant package and blank-imports it from modules/cli; shared validation,
 // discovery, and store dispatch then recognize the name without modification.
 // The Dolt family remains hand-wired because proxied mode returns a unit of
 // work provider rather than a store.
 //
 // The seam covers opening and discovering an existing registered workspace, not
-// provisioning one: bd init and bd bootstrap create or import Dolt only and
+// provisioning one: issuegraph init and issuegraph bootstrap create or import Dolt only and
 // reject registered names, so a downstream registrant supplies its own
 // workspace-creation path.
 //
@@ -26,21 +26,21 @@ import (
 	"fmt"
 	"sync"
 
-	"github.com/steveyegge/beads/internal/storage"
-	"github.com/steveyegge/beads/internal/storage/backendnames"
+	"github.com/borg0ai/dx-issuegraph/internal/storage"
+	"github.com/borg0ai/dx-issuegraph/internal/storage/backendnames"
 )
 
 // Backend describes a registered storage backend.
 type Backend struct {
 	// Open opens the workspace store read-write.
-	Open func(ctx context.Context, beadsDir string) (storage.DoltStorage, error)
+	Open func(ctx context.Context, issuegraphDir string) (storage.DoltStorage, error)
 
 	// OpenReadOnly opens the workspace for a read-only command.
-	OpenReadOnly func(ctx context.Context, beadsDir string) (storage.DoltStorage, error)
+	OpenReadOnly func(ctx context.Context, issuegraphDir string) (storage.DoltStorage, error)
 
-	// WorkspaceIsBeadsDir means metadata.json and the remote store are enough
+	// WorkspaceIsIssueGraphDir means metadata.json and the remote store are enough
 	// to identify the workspace; no separately discoverable local DB exists.
-	WorkspaceIsBeadsDir bool
+	WorkspaceIsIssueGraphDir bool
 }
 
 var (
@@ -98,14 +98,14 @@ func Registered(name string) bool {
 	return ok
 }
 
-// WorkspaceIsBeadsDir reports whether name is a registered backend whose
-// workspace is identified by the .beads directory alone — metadata.json plus a
+// WorkspaceIsIssueGraphDir reports whether name is a registered backend whose
+// workspace is identified by the .issuegraph directory alone — metadata.json plus a
 // remote store — with no separately discoverable local database. It is the
 // single authority for that classification so CLI and library discovery route
-// such workspaces to the .beads directory instead of returning "no database".
-func WorkspaceIsBeadsDir(name string) bool {
+// such workspaces to the .issuegraph directory instead of returning "no database".
+func WorkspaceIsIssueGraphDir(name string) bool {
 	mu.RLock()
 	defer mu.RUnlock()
 	backend, ok := registry[name]
-	return ok && backend.WorkspaceIsBeadsDir
+	return ok && backend.WorkspaceIsIssueGraphDir
 }

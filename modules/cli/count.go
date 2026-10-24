@@ -8,10 +8,10 @@ import (
 	"strings"
 	"time"
 
+	"github.com/borg0ai/dx-issuegraph/internal/metrics"
+	"github.com/borg0ai/dx-issuegraph/internal/storage"
+	"github.com/borg0ai/dx-issuegraph/issueops"
 	"github.com/spf13/cobra"
-	"github.com/steveyegge/beads/internal/metrics"
-	"github.com/steveyegge/beads/internal/storage"
-	"github.com/steveyegge/beads/issueops"
 )
 
 var countCmd = &cobra.Command{
@@ -24,15 +24,15 @@ By default, returns the total count of issues matching the filters.
 Use --by-* flags to group counts by different attributes.
 
 Examples:
-  bd count                          # Count all issues
-  bd count --status open            # Count open issues
-  bd count --by-status              # Group count by status
-  bd count --by-priority            # Group count by priority
-  bd count --by-type                # Group count by issue type
-  bd count --by-assignee            # Group count by assignee
-  bd count --by-label               # Group count by label
-  bd count --assignee alice --by-status  # Count alice's issues by status
-  bd count --include-infra          # Count issues + wisps tier (matches 'bd list --include-infra --all' cardinality)
+  issuegraph count                          # Count all issues
+  issuegraph count --status open            # Count open issues
+  issuegraph count --by-status              # Group count by status
+  issuegraph count --by-priority            # Group count by priority
+  issuegraph count --by-type                # Group count by issue type
+  issuegraph count --by-assignee            # Group count by assignee
+  issuegraph count --by-label               # Group count by label
+  issuegraph count --assignee alice --by-status  # Count alice's issues by status
+  issuegraph count --include-infra          # Count issues + wisps tier (matches 'issuegraph list --include-infra --all' cardinality)
 `,
 	SilenceUsage:  true,
 	SilenceErrors: true,
@@ -245,14 +245,14 @@ func init() {
 	rootCmd.AddCommand(countCmd)
 }
 
-// registerCountFlags declares `bd count`'s flag set on cmd. It is a function
+// registerCountFlags declares `issuegraph count`'s flag set on cmd. It is a function
 // rather than a block inside init so a test can stand up an INDEPENDENT
 // command carrying the same flags: cobra's AddFlagSet shares the underlying
 // *Flag values, so a test that set a flag on a copy would leak it into the
 // real command and into the next test.
 func registerCountFlags(cmd *cobra.Command) {
 	// Filter flags (same as list command)
-	cmd.Flags().StringP("status", "s", "", "Filter by stored status (open, in_progress, blocked, deferred, closed). Note: dependency-blocked issues use 'bd blocked'")
+	cmd.Flags().StringP("status", "s", "", "Filter by stored status (open, in_progress, blocked, deferred, closed). Note: dependency-blocked issues use 'issuegraph blocked'")
 	cmd.Flags().IntP("priority", "p", 0, "Filter by priority (0-4: 0=critical, 1=high, 2=medium, 3=low, 4=backlog)")
 	cmd.Flags().StringP("assignee", "a", "", "Filter by assignee")
 	cmd.Flags().StringP("type", "t", "", "Filter by type (bug, feature, task, epic, chore, decision, merge-request, molecule, gate)")
@@ -284,10 +284,10 @@ func registerCountFlags(cmd *cobra.Command) {
 	cmd.Flags().Int("priority-min", 0, "Filter by minimum priority (inclusive)")
 	cmd.Flags().Int("priority-max", 0, "Filter by maximum priority (inclusive)")
 
-	// Wisps tier (GH#4387): mirrors bd list's flag of the same name so
-	// `bd count --include-infra <filters>` returns exactly the cardinality of
-	// `bd list --include-infra <filters> --all`.
-	cmd.Flags().Bool("include-infra", false, "Include infrastructure beads and the wisps tier (matches 'bd list --include-infra --all' cardinality)")
+	// Wisps tier (GH#4387): mirrors issuegraph list's flag of the same name so
+	// `issuegraph count --include-infra <filters>` returns exactly the cardinality of
+	// `issuegraph list --include-infra <filters> --all`.
+	cmd.Flags().Bool("include-infra", false, "Include infrastructure issuegraph and the wisps tier (matches 'issuegraph list --include-infra --all' cardinality)")
 
 	// Grouping flags
 	cmd.Flags().Bool("by-status", false, "Group count by status")

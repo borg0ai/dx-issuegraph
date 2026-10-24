@@ -5,16 +5,16 @@ import (
 	"fmt"
 	"os"
 
+	"github.com/borg0ai/dx-issuegraph/internal/ado"
+	"github.com/borg0ai/dx-issuegraph/internal/github"
+	"github.com/borg0ai/dx-issuegraph/internal/gitlab"
+	"github.com/borg0ai/dx-issuegraph/internal/issuegraph"
+	"github.com/borg0ai/dx-issuegraph/internal/jira"
+	"github.com/borg0ai/dx-issuegraph/internal/linear"
+	"github.com/borg0ai/dx-issuegraph/internal/metrics"
+	"github.com/borg0ai/dx-issuegraph/internal/notion"
+	"github.com/borg0ai/dx-issuegraph/internal/tracker"
 	"github.com/spf13/cobra"
-	"github.com/steveyegge/beads/internal/ado"
-	"github.com/steveyegge/beads/internal/beads"
-	"github.com/steveyegge/beads/internal/github"
-	"github.com/steveyegge/beads/internal/gitlab"
-	"github.com/steveyegge/beads/internal/jira"
-	"github.com/steveyegge/beads/internal/linear"
-	"github.com/steveyegge/beads/internal/metrics"
-	"github.com/steveyegge/beads/internal/notion"
-	"github.com/steveyegge/beads/internal/tracker"
 )
 
 // trackerPushPullFlags holds shared flags for push/pull subcommands.
@@ -25,12 +25,12 @@ type trackerPushPullFlags struct {
 // --- ADO push/pull ---
 
 var adoPushCmd = &cobra.Command{
-	Use:   "push [bead-ids...]",
-	Short: "Push specific beads to Azure DevOps",
-	Long: `Push one or more beads issues to Azure DevOps.
+	Use:   "push [issue-ids...]",
+	Short: "Push specific issuegraph to Azure DevOps",
+	Long: `Push one or more issuegraph issues to Azure DevOps.
 
-Accepts bead IDs as positional arguments.
-Equivalent to: bd ado sync --push-only --issues <ids>`,
+Accepts issue IDs as positional arguments.
+Equivalent to: issuegraph ado sync --push-only --issues <ids>`,
 	SilenceUsage:  true,
 	SilenceErrors: true,
 	RunE:          runADOPush,
@@ -41,8 +41,8 @@ var adoPullCmd = &cobra.Command{
 	Short: "Pull specific items from Azure DevOps",
 	Long: `Pull one or more items from Azure DevOps.
 
-Accepts bead IDs or external references as positional arguments.
-Equivalent to: bd ado sync --pull-only --issues <refs>`,
+Accepts issue IDs or external references as positional arguments.
+Equivalent to: issuegraph ado sync --pull-only --issues <refs>`,
 	SilenceUsage:  true,
 	SilenceErrors: true,
 	RunE:          runADOPull,
@@ -51,12 +51,12 @@ Equivalent to: bd ado sync --pull-only --issues <refs>`,
 // --- Jira push/pull ---
 
 var jiraPushCmd = &cobra.Command{
-	Use:   "push [bead-ids...]",
-	Short: "Push specific beads to Jira",
-	Long: `Push one or more beads issues to Jira.
+	Use:   "push [issue-ids...]",
+	Short: "Push specific issuegraph to Jira",
+	Long: `Push one or more issuegraph issues to Jira.
 
-Accepts bead IDs as positional arguments.
-Equivalent to: bd jira sync --push --issues <ids>`,
+Accepts issue IDs as positional arguments.
+Equivalent to: issuegraph jira sync --push --issues <ids>`,
 	SilenceUsage:  true,
 	SilenceErrors: true,
 	RunE:          runJiraPush,
@@ -67,8 +67,8 @@ var jiraPullCmd = &cobra.Command{
 	Short: "Pull specific items from Jira",
 	Long: `Pull one or more items from Jira.
 
-Accepts bead IDs or external references as positional arguments.
-Equivalent to: bd jira sync --pull --issues <refs>`,
+Accepts issue IDs or external references as positional arguments.
+Equivalent to: issuegraph jira sync --pull --issues <refs>`,
 	SilenceUsage:  true,
 	SilenceErrors: true,
 	RunE:          runJiraPull,
@@ -77,12 +77,12 @@ Equivalent to: bd jira sync --pull --issues <refs>`,
 // --- Linear push/pull ---
 
 var linearPushCmd = &cobra.Command{
-	Use:   "push [bead-ids...]",
-	Short: "Push specific beads to Linear",
-	Long: `Push one or more beads issues to Linear.
+	Use:   "push [issue-ids...]",
+	Short: "Push specific issuegraph to Linear",
+	Long: `Push one or more issuegraph issues to Linear.
 
-Accepts bead IDs as positional arguments.
-Equivalent to: bd linear sync --push --issues <ids>`,
+Accepts issue IDs as positional arguments.
+Equivalent to: issuegraph linear sync --push --issues <ids>`,
 	SilenceUsage:  true,
 	SilenceErrors: true,
 	RunE:          runLinearPush,
@@ -93,8 +93,8 @@ var linearPullCmd = &cobra.Command{
 	Short: "Pull specific items from Linear",
 	Long: `Pull one or more items from Linear.
 
-Accepts bead IDs or external references as positional arguments.
-Equivalent to: bd linear sync --pull --issues <refs>`,
+Accepts issue IDs or external references as positional arguments.
+Equivalent to: issuegraph linear sync --pull --issues <refs>`,
 	SilenceUsage:  true,
 	SilenceErrors: true,
 	RunE:          runLinearPull,
@@ -103,12 +103,12 @@ Equivalent to: bd linear sync --pull --issues <refs>`,
 // --- GitHub push/pull ---
 
 var githubPushCmd = &cobra.Command{
-	Use:   "push [bead-ids...]",
-	Short: "Push specific beads to GitHub",
-	Long: `Push one or more beads issues to GitHub.
+	Use:   "push [issue-ids...]",
+	Short: "Push specific issuegraph to GitHub",
+	Long: `Push one or more issuegraph issues to GitHub.
 
-Accepts bead IDs as positional arguments.
-Equivalent to: bd github sync --push-only --issues <ids>`,
+Accepts issue IDs as positional arguments.
+Equivalent to: issuegraph github sync --push-only --issues <ids>`,
 	SilenceUsage:  true,
 	SilenceErrors: true,
 	RunE:          runGitHubPush,
@@ -119,8 +119,8 @@ var githubPullCmd = &cobra.Command{
 	Short: "Pull specific items from GitHub",
 	Long: `Pull one or more items from GitHub.
 
-Accepts bead IDs or external references as positional arguments.
-Equivalent to: bd github sync --pull-only --issues <refs>`,
+Accepts issue IDs or external references as positional arguments.
+Equivalent to: issuegraph github sync --pull-only --issues <refs>`,
 	SilenceUsage:  true,
 	SilenceErrors: true,
 	RunE:          runGitHubPull,
@@ -129,12 +129,12 @@ Equivalent to: bd github sync --pull-only --issues <refs>`,
 // --- GitLab push/pull ---
 
 var gitlabPushCmd = &cobra.Command{
-	Use:   "push [bead-ids...]",
-	Short: "Push specific beads to GitLab",
-	Long: `Push one or more beads issues to GitLab.
+	Use:   "push [issue-ids...]",
+	Short: "Push specific issuegraph to GitLab",
+	Long: `Push one or more issuegraph issues to GitLab.
 
-Accepts bead IDs as positional arguments.
-Equivalent to: bd gitlab sync --push-only --issues <ids>`,
+Accepts issue IDs as positional arguments.
+Equivalent to: issuegraph gitlab sync --push-only --issues <ids>`,
 	SilenceUsage:  true,
 	SilenceErrors: true,
 	RunE:          runGitLabPush,
@@ -145,8 +145,8 @@ var gitlabPullCmd = &cobra.Command{
 	Short: "Pull specific items from GitLab",
 	Long: `Pull one or more items from GitLab.
 
-Accepts bead IDs or external references as positional arguments.
-Equivalent to: bd gitlab sync --pull-only --issues <refs>`,
+Accepts issue IDs or external references as positional arguments.
+Equivalent to: issuegraph gitlab sync --pull-only --issues <refs>`,
 	SilenceUsage:  true,
 	SilenceErrors: true,
 	RunE:          runGitLabPull,
@@ -155,12 +155,12 @@ Equivalent to: bd gitlab sync --pull-only --issues <refs>`,
 // --- Notion push/pull ---
 
 var notionPushCmd = &cobra.Command{
-	Use:   "push [bead-ids...]",
-	Short: "Push specific beads to Notion",
-	Long: `Push one or more beads issues to Notion.
+	Use:   "push [issue-ids...]",
+	Short: "Push specific issuegraph to Notion",
+	Long: `Push one or more issuegraph issues to Notion.
 
-Accepts bead IDs as positional arguments.
-Equivalent to: bd notion sync --push --issues <ids>`,
+Accepts issue IDs as positional arguments.
+Equivalent to: issuegraph notion sync --push --issues <ids>`,
 	SilenceUsage:  true,
 	SilenceErrors: true,
 	RunE:          runNotionPush,
@@ -171,8 +171,8 @@ var notionPullCmd = &cobra.Command{
 	Short: "Pull specific items from Notion",
 	Long: `Pull one or more items from Notion.
 
-Accepts bead IDs or external references as positional arguments.
-Equivalent to: bd notion sync --pull --issues <refs>`,
+Accepts issue IDs or external references as positional arguments.
+Equivalent to: issuegraph notion sync --pull --issues <refs>`,
 	SilenceUsage:  true,
 	SilenceErrors: true,
 	RunE:          runNotionPull,
@@ -194,7 +194,7 @@ func init() {
 	// Linear push/pull
 	linearPushCmd.Flags().Bool("dry-run", false, "Preview push without making changes")
 	linearPullCmd.Flags().Bool("dry-run", false, "Preview pull without making changes")
-	linearPullCmd.Flags().Bool("relations", false, "Import Linear relations as bd dependencies when pulling")
+	linearPullCmd.Flags().Bool("relations", false, "Import Linear relations as issuegraph dependencies when pulling")
 	linearCmd.AddCommand(linearPushCmd)
 	linearCmd.AddCommand(linearPullCmd)
 
@@ -251,7 +251,7 @@ func runADOPush(cmd *cobra.Command, args []string) error {
 	}()
 
 	if len(args) == 0 {
-		return fmt.Errorf("at least one bead ID is required")
+		return fmt.Errorf("at least one issue ID is required")
 	}
 	dryRun, _ := cmd.Flags().GetBool("dry-run")
 	if !dryRun {
@@ -298,7 +298,7 @@ func runADOPull(cmd *cobra.Command, args []string) error {
 	}()
 
 	if len(args) == 0 {
-		return fmt.Errorf("at least one bead ID or external reference is required")
+		return fmt.Errorf("at least one issue ID or external reference is required")
 	}
 	dryRun, _ := cmd.Flags().GetBool("dry-run")
 	if !dryRun {
@@ -348,7 +348,7 @@ func runJiraPush(cmd *cobra.Command, args []string) error {
 	}()
 
 	if len(args) == 0 {
-		return HandleError("at least one bead ID is required")
+		return HandleError("at least one issue ID is required")
 	}
 	dryRun, _ := cmd.Flags().GetBool("dry-run")
 	if !dryRun {
@@ -396,7 +396,7 @@ func runJiraPull(cmd *cobra.Command, args []string) error {
 	}()
 
 	if len(args) == 0 {
-		return HandleError("at least one bead ID or external reference is required")
+		return HandleError("at least one issue ID or external reference is required")
 	}
 	dryRun, _ := cmd.Flags().GetBool("dry-run")
 	if !dryRun {
@@ -445,14 +445,14 @@ func runLinearPush(cmd *cobra.Command, args []string) error {
 	}()
 
 	if len(args) == 0 {
-		return HandleError("at least one bead ID is required")
+		return HandleError("at least one issue ID is required")
 	}
 	dryRun, _ := cmd.Flags().GetBool("dry-run")
 	if !dryRun {
 		CheckReadonly("linear push")
 	}
 
-	if lockDir := beads.FindBeadsDir(); lockDir != "" {
+	if lockDir := issuegraph.FindIssueGraphDir(); lockDir != "" {
 		syncLock, err := linear.AcquireSyncLock(lockDir, true)
 		if err != nil {
 			return HandleError("acquiring sync lock: %v", err)
@@ -475,7 +475,7 @@ func runLinearPush(cmd *cobra.Command, args []string) error {
 	ctx := rootCtx
 	teamIDs := getLinearTeamIDsForStore(ctx, trackerStore, nil)
 	if len(teamIDs) > 1 {
-		return HandleError("linear push does not support multiple configured teams\nUse: bd linear sync --push --team <TEAM_ID>")
+		return HandleError("linear push does not support multiple configured teams\nUse: issuegraph linear sync --push --team <TEAM_ID>")
 	}
 
 	lt := &linear.Tracker{}
@@ -515,7 +515,7 @@ func runLinearPull(cmd *cobra.Command, args []string) error {
 	}()
 
 	if len(args) == 0 {
-		return HandleError("at least one bead ID or external reference is required")
+		return HandleError("at least one issue ID or external reference is required")
 	}
 	dryRun, _ := cmd.Flags().GetBool("dry-run")
 	relations, _ := cmd.Flags().GetBool("relations")
@@ -523,7 +523,7 @@ func runLinearPull(cmd *cobra.Command, args []string) error {
 		CheckReadonly("linear pull")
 	}
 
-	if lockDir := beads.FindBeadsDir(); lockDir != "" {
+	if lockDir := issuegraph.FindIssueGraphDir(); lockDir != "" {
 		syncLock, err := linear.AcquireSyncLock(lockDir, true)
 		if err != nil {
 			return HandleError("acquiring sync lock: %v", err)
@@ -585,7 +585,7 @@ func runGitHubPush(cmd *cobra.Command, args []string) error {
 	}()
 
 	if len(args) == 0 {
-		return fmt.Errorf("at least one bead ID is required")
+		return fmt.Errorf("at least one issue ID is required")
 	}
 	dryRun, _ := cmd.Flags().GetBool("dry-run")
 	if !dryRun {
@@ -633,7 +633,7 @@ func runGitHubPull(cmd *cobra.Command, args []string) error {
 	}()
 
 	if len(args) == 0 {
-		return fmt.Errorf("at least one bead ID or external reference is required")
+		return fmt.Errorf("at least one issue ID or external reference is required")
 	}
 	dryRun, _ := cmd.Flags().GetBool("dry-run")
 	if !dryRun {
@@ -683,7 +683,7 @@ func runGitLabPush(cmd *cobra.Command, args []string) error {
 	}()
 
 	if len(args) == 0 {
-		return fmt.Errorf("at least one bead ID is required")
+		return fmt.Errorf("at least one issue ID is required")
 	}
 	dryRun, _ := cmd.Flags().GetBool("dry-run")
 	if !dryRun {
@@ -730,13 +730,13 @@ func runGitLabPush(cmd *cobra.Command, args []string) error {
 		return err
 	}
 
-	// Dependency-link push parity with `bd gitlab sync`: converge beads
+	// Dependency-link push parity with `issuegraph gitlab sync`: converge issuegraph
 	// dependencies among the requested issues into GitLab issue links (and
-	// repair epic-child milestones). Without this, `bd gitlab push <ids>`
+	// repair epic-child milestones). Without this, `issuegraph gitlab push <ids>`
 	// would sync content but silently omit dependency links. Output is
 	// rendered here (rather than via outputSyncResult) so the link pass runs
 	// before the summary and the --json payload carries the link counts,
-	// matching bd gitlab sync.
+	// matching issuegraph gitlab sync.
 	var linkWarnings []string
 	warnLink := func(msg string) {
 		linkWarnings = append(linkWarnings, msg)
@@ -786,7 +786,7 @@ func runGitLabPull(cmd *cobra.Command, args []string) error {
 	}()
 
 	if len(args) == 0 {
-		return fmt.Errorf("at least one bead ID or external reference is required")
+		return fmt.Errorf("at least one issue ID or external reference is required")
 	}
 	dryRun, _ := cmd.Flags().GetBool("dry-run")
 	if !dryRun {
@@ -836,7 +836,7 @@ func runNotionPush(cmd *cobra.Command, args []string) error {
 	}()
 
 	if len(args) == 0 {
-		return fmt.Errorf("at least one bead ID is required")
+		return fmt.Errorf("at least one issue ID is required")
 	}
 	dryRun, _ := cmd.Flags().GetBool("dry-run")
 	if !dryRun {
@@ -890,7 +890,7 @@ func runNotionPull(cmd *cobra.Command, args []string) error {
 	}()
 
 	if len(args) == 0 {
-		return fmt.Errorf("at least one bead ID or external reference is required")
+		return fmt.Errorf("at least one issue ID or external reference is required")
 	}
 	dryRun, _ := cmd.Flags().GetBool("dry-run")
 	if !dryRun {

@@ -7,7 +7,7 @@ import (
 	"path/filepath"
 	"testing"
 
-	"github.com/steveyegge/beads/internal/config"
+	"github.com/borg0ai/dx-issuegraph/internal/config"
 )
 
 func TestIsBackupAutoEnabled(t *testing.T) {
@@ -17,7 +17,7 @@ func TestIsBackupAutoEnabled(t *testing.T) {
 		name         string
 		envVal       string // "\x00" = not set, "" = set to empty, "true"/"false"/"0" = explicit
 		hasRemote    bool
-		sharedServer bool // BEADS_DOLT_SHARED_SERVER=1 → usesSQLServer() true
+		sharedServer bool // ISSUEGRAPH_DOLT_SHARED_SERVER=1 → usesSQLServer() true
 		wantResult   bool
 	}{
 		{
@@ -79,15 +79,15 @@ func TestIsBackupAutoEnabled(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			// Isolate CWD and BEADS_DIR before config.Initialize() below.
-			// Without this, a leaked BEADS_DIR (or cwd left inside the repo
+			// Isolate CWD and ISSUEGRAPH_DIR before config.Initialize() below.
+			// Without this, a leaked ISSUEGRAPH_DIR (or cwd left inside the repo
 			// tree by an earlier no-DB command in the same test binary) lets
 			// Initialize() load a real ambient config.yaml with an explicit
 			// backup.enabled value, which wins over the computed default
 			// these cases assert on (be-yjp4z).
 			t.Chdir(t.TempDir())
-			t.Setenv("BEADS_DIR", "")
-			t.Setenv("BEADS_TEST_IGNORE_REPO_CONFIG", "1")
+			t.Setenv("ISSUEGRAPH_DIR", "")
+			t.Setenv("ISSUEGRAPH_TEST_IGNORE_REPO_CONFIG", "1")
 
 			// Stub primeHasGitRemote
 			orig := primeHasGitRemote
@@ -95,18 +95,18 @@ func TestIsBackupAutoEnabled(t *testing.T) {
 			t.Cleanup(func() { primeHasGitRemote = orig })
 
 			if tt.sharedServer {
-				t.Setenv("BEADS_DOLT_SHARED_SERVER", "1")
+				t.Setenv("ISSUEGRAPH_DOLT_SHARED_SERVER", "1")
 			} else {
-				os.Unsetenv("BEADS_DOLT_SHARED_SERVER")
-				t.Cleanup(func() { os.Unsetenv("BEADS_DOLT_SHARED_SERVER") })
+				os.Unsetenv("ISSUEGRAPH_DOLT_SHARED_SERVER")
+				t.Cleanup(func() { os.Unsetenv("ISSUEGRAPH_DOLT_SHARED_SERVER") })
 			}
 
 			// Set env var: "\x00" = unset, anything else = set to that value
 			if tt.envVal == "\x00" {
-				os.Unsetenv("BD_BACKUP_ENABLED")
-				t.Cleanup(func() { os.Unsetenv("BD_BACKUP_ENABLED") })
+				os.Unsetenv("ISSUEGRAPH_BACKUP_ENABLED")
+				t.Cleanup(func() { os.Unsetenv("ISSUEGRAPH_BACKUP_ENABLED") })
 			} else {
-				t.Setenv("BD_BACKUP_ENABLED", tt.envVal)
+				t.Setenv("ISSUEGRAPH_BACKUP_ENABLED", tt.envVal)
 			}
 
 			config.ResetForTesting()
@@ -123,13 +123,13 @@ func TestIsBackupAutoEnabled(t *testing.T) {
 	}
 }
 
-// TestBackupAutoStatusNote pins the reason `bd backup status` prints beside
+// TestBackupAutoStatusNote pins the reason `issuegraph backup status` prints beside
 // the effective backup.enabled value against the reason isBackupAutoEnabled
 // actually used — the two are computed in different files and drifted apart
 // once already.
 //
 // The regression this locks down arrived with the proxied-parity S3 slice
-// (PR #6584): honoring the backup family on managed-local made `bd backup
+// (PR #6584): honoring the backup family on managed-local made `issuegraph backup
 // status` reachable on a proxied server for the first time, where it rendered
 // the embedded-mode footnote "(auto: no git remote)". On any sql-server shape
 // the value is false because usesSQLServer() short-circuits, whether or not a
@@ -144,7 +144,7 @@ func TestBackupAutoStatusNote(t *testing.T) {
 		name         string
 		envVal       string // "\x00" = not set, otherwise explicit backup.enabled
 		hasRemote    bool
-		sharedServer bool // BEADS_DOLT_SHARED_SERVER=1 → usesSQLServer() true
+		sharedServer bool // ISSUEGRAPH_DOLT_SHARED_SERVER=1 → usesSQLServer() true
 		proxied      bool // proxiedServerMode → usesProxiedServer() true
 		wantEnabled  bool
 		wantNote     string
@@ -196,7 +196,7 @@ func TestBackupAutoStatusNote(t *testing.T) {
 			hasRemote:   true,
 			proxied:     true,
 			wantEnabled: false,
-			wantNote:    "auto-backup does not run on proxied-server; use 'bd backup sync'",
+			wantNote:    "auto-backup does not run on proxied-server; use 'issuegraph backup sync'",
 		},
 		{
 			// The dead opt-in: enabled=true with nothing to run it. The note
@@ -207,19 +207,19 @@ func TestBackupAutoStatusNote(t *testing.T) {
 			hasRemote:   false,
 			proxied:     true,
 			wantEnabled: true,
-			wantNote:    "auto-backup does not run on proxied-server; use 'bd backup sync'",
+			wantNote:    "auto-backup does not run on proxied-server; use 'issuegraph backup sync'",
 		},
 	}
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			// Same isolation as TestIsBackupAutoEnabled: a leaked BEADS_DIR or
+			// Same isolation as TestIsBackupAutoEnabled: a leaked ISSUEGRAPH_DIR or
 			// a cwd inside the repo tree lets Initialize() load an ambient
 			// config.yaml whose explicit backup.enabled wins over the computed
 			// default these cases assert on (be-yjp4z).
 			t.Chdir(t.TempDir())
-			t.Setenv("BEADS_DIR", "")
-			t.Setenv("BEADS_TEST_IGNORE_REPO_CONFIG", "1")
+			t.Setenv("ISSUEGRAPH_DIR", "")
+			t.Setenv("ISSUEGRAPH_TEST_IGNORE_REPO_CONFIG", "1")
 
 			orig := primeHasGitRemote
 			primeHasGitRemote = func() bool { return tt.hasRemote }
@@ -230,17 +230,17 @@ func TestBackupAutoStatusNote(t *testing.T) {
 			t.Cleanup(func() { proxiedServerMode = origProxied })
 
 			if tt.sharedServer {
-				t.Setenv("BEADS_DOLT_SHARED_SERVER", "1")
+				t.Setenv("ISSUEGRAPH_DOLT_SHARED_SERVER", "1")
 			} else {
-				os.Unsetenv("BEADS_DOLT_SHARED_SERVER")
-				t.Cleanup(func() { os.Unsetenv("BEADS_DOLT_SHARED_SERVER") })
+				os.Unsetenv("ISSUEGRAPH_DOLT_SHARED_SERVER")
+				t.Cleanup(func() { os.Unsetenv("ISSUEGRAPH_DOLT_SHARED_SERVER") })
 			}
 
 			if tt.envVal == "\x00" {
-				os.Unsetenv("BD_BACKUP_ENABLED")
-				t.Cleanup(func() { os.Unsetenv("BD_BACKUP_ENABLED") })
+				os.Unsetenv("ISSUEGRAPH_BACKUP_ENABLED")
+				t.Cleanup(func() { os.Unsetenv("ISSUEGRAPH_BACKUP_ENABLED") })
 			} else {
-				t.Setenv("BD_BACKUP_ENABLED", tt.envVal)
+				t.Setenv("ISSUEGRAPH_BACKUP_ENABLED", tt.envVal)
 			}
 
 			config.ResetForTesting()
@@ -328,9 +328,9 @@ func TestClientServerShareFilesystem_GH3523(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			if tt.envHost == "\x00" {
-				os.Unsetenv("BEADS_DOLT_SERVER_HOST")
+				os.Unsetenv("ISSUEGRAPH_DOLT_SERVER_HOST")
 			} else {
-				t.Setenv("BEADS_DOLT_SERVER_HOST", tt.envHost)
+				t.Setenv("ISSUEGRAPH_DOLT_SERVER_HOST", tt.envHost)
 			}
 
 			// Construct a fresh config.yaml for the dolt.host case.
@@ -342,7 +342,7 @@ func TestClientServerShareFilesystem_GH3523(t *testing.T) {
 					t.Fatal(err)
 				}
 			}
-			t.Setenv("BEADS_DIR", configDir)
+			t.Setenv("ISSUEGRAPH_DIR", configDir)
 			config.ResetForTesting()
 			t.Cleanup(config.ResetForTesting)
 			if err := config.Initialize(); err != nil {

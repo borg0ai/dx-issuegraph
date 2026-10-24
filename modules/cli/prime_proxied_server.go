@@ -4,13 +4,13 @@ import (
 	"context"
 	"errors"
 
-	"github.com/steveyegge/beads/internal/beads"
-	"github.com/steveyegge/beads/internal/storage/uow"
-	"github.com/steveyegge/beads/memoryops"
+	"github.com/borg0ai/dx-issuegraph/internal/issuegraph"
+	"github.com/borg0ai/dx-issuegraph/internal/storage/uow"
+	"github.com/borg0ai/dx-issuegraph/memoryops"
 )
 
 // Proxied-server dual of prime's memory read (bd-mm8wf, from lion's #5361
-// review). `bd prime` sits in noDbCommands, so the root pre-run opens neither
+// review). `issuegraph prime` sits in noDbCommands, so the root pre-run opens neither
 // a store nor a UOW provider; formatMemoriesForPrime therefore lazily
 // initialized storage via ensureStoreActiveForPrime — which in a
 // proxied-server workspace meant a DIRECT dolt open against sidecar-owned
@@ -19,7 +19,7 @@ import (
 //
 // The read rides the proxied plane: memoryops.Memories.List through the
 // provider's own capability accessor, on a provider opened scoped to this read.
-// It is the same call `bd memories` makes, which is what stopped prime from
+// It is the same call `issuegraph memories` makes, which is what stopped prime from
 // being a fifth front door with its own copy of the kv.memory. prefix rule.
 // Prime's contract is preserved on every failure edge: the unavailable banner
 // when the plane cannot be read, the timeout banner on a deadline, a silent
@@ -30,8 +30,8 @@ import (
 // memory read; a var so unit tests can stub the plane. Production opens the
 // standard identity-asserting provider, exactly as the root pre-run would for
 // a data command in this workspace.
-var primeProxiedProviderOpen = func(ctx context.Context, beadsDir string) (uow.UnitOfWorkProvider, error) {
-	return newProxiedServerUOWProvider(ctx, beadsDir, "")
+var primeProxiedProviderOpen = func(ctx context.Context, issuegraphDir string) (uow.UnitOfWorkProvider, error) {
+	return newProxiedServerUOWProvider(ctx, issuegraphDir, "")
 }
 
 // formatMemoriesForPrimeProxied is the proxied-mode branch of
@@ -52,7 +52,7 @@ func formatMemoriesForPrimeProxied(compact bool) string {
 		if errors.Is(err, context.DeadlineExceeded) || errors.Is(ctx.Err(), context.DeadlineExceeded) {
 			return formatPrimeMemoryTimeout(compact, timeout)
 		}
-		if errors.Is(err, ErrNoBeadsDatabase) {
+		if errors.Is(err, ErrNoIssueGraphDatabase) {
 			return "" // No workspace here — genuinely nothing to inject.
 		}
 		return formatPrimeMemoryUnavailable(compact, err)
@@ -69,11 +69,11 @@ func formatMemoriesForPrimeProxied(compact bool) string {
 func primeProxiedMemoryPlane(ctx context.Context) (map[string]string, error) {
 	provider := uowProvider
 	if provider == nil {
-		beadsDir := beads.FindBeadsDir()
-		if beadsDir == "" {
-			return nil, ErrNoBeadsDatabase
+		issuegraphDir := issuegraph.FindIssueGraphDir()
+		if issuegraphDir == "" {
+			return nil, ErrNoIssueGraphDatabase
 		}
-		p, err := primeProxiedProviderOpen(ctx, beadsDir)
+		p, err := primeProxiedProviderOpen(ctx, issuegraphDir)
 		if err != nil {
 			return nil, err
 		}

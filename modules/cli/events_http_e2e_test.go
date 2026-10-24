@@ -8,7 +8,7 @@ import (
 	"testing"
 )
 
-// The events journal over HTTP, end to end through a real `bd serve`.
+// The events journal over HTTP, end to end through a real `issuegraph serve`.
 //
 // The handler tests in internal/httpapi drive fakes, which is the right shape
 // for the refusal vocabulary and cannot answer the question this file exists
@@ -29,18 +29,18 @@ import (
 func TestServeReadsTheJournalItJustWrote(t *testing.T) {
 	requireSharedProxiedServer(t)
 	t.Parallel()
-	bd := buildEmbeddedBD(t)
-	p := newServerModeProject(t, bd, "hje")
-	p.env = append(p.env, "BD_EVENTS_JOURNAL=1")
+	issuegraph := buildEmbeddedBD(t)
+	p := newServerModeProject(t, issuegraph, "hje")
+	p.env = append(p.env, "ISSUEGRAPH_EVENTS_JOURNAL=1")
 
-	sp := startServe(t, bd, p.dir, p.env)
+	sp := startServe(t, issuegraph, p.dir, p.env)
 
 	// Nothing has been mutated yet: an ENABLED but untouched journal is a 200
 	// with an empty page and a head of zero, which is the answer a disabled
 	// workspace must never give.
-	status, body, _ := sp.get(t, "/v0/beads/events?since=0")
+	status, body, _ := sp.get(t, "/v0/issuegraph/events?since=0")
 	if status != http.StatusOK {
-		t.Fatalf("GET /v0/beads/events on a fresh workspace = %d: %v\nstderr:\n%s", status, body, sp.stderr.String())
+		t.Fatalf("GET /v0/issuegraph/events on a fresh workspace = %d: %v\nstderr:\n%s", status, body, sp.stderr.String())
 	}
 	if head, _ := body["head"].(float64); head != 0 {
 		t.Errorf("head on a fresh workspace = %v, want 0", body["head"])
@@ -51,16 +51,16 @@ func TestServeReadsTheJournalItJustWrote(t *testing.T) {
 
 	const created = 4
 	for i := range created {
-		status, body := sp.postJSON(t, "/v0/beads/issues:batchCreate",
+		status, body := sp.postJSON(t, "/v0/issuegraph/issues:batchCreate",
 			fmt.Sprintf(`{"actor":"tester","items":[{"title":"served mutation %d","issue_type":"task"}]}`, i))
 		if status != http.StatusOK {
 			t.Fatalf("POST batchCreate %d = %d: %v\nstderr:\n%s", i, status, body, sp.stderr.String())
 		}
 	}
 
-	status, body, _ = sp.get(t, "/v0/beads/events?since=0")
+	status, body, _ = sp.get(t, "/v0/issuegraph/events?since=0")
 	if status != http.StatusOK {
-		t.Fatalf("GET /v0/beads/events = %d: %v\nstderr:\n%s", status, body, sp.stderr.String())
+		t.Fatalf("GET /v0/issuegraph/events = %d: %v\nstderr:\n%s", status, body, sp.stderr.String())
 	}
 	records, _ := body["records"].([]any)
 	if len(records) != created {
@@ -100,7 +100,7 @@ func TestServeReadsTheJournalItJustWrote(t *testing.T) {
 
 	// Resuming from the head is the steady state of a poller, and it must be an
 	// ordinary empty 200 rather than any kind of miss.
-	status, body, _ = sp.get(t, fmt.Sprintf("/v0/beads/events?since=%d", int(head)))
+	status, body, _ = sp.get(t, fmt.Sprintf("/v0/issuegraph/events?since=%d", int(head)))
 	if status != http.StatusOK {
 		t.Fatalf("caught-up GET = %d: %v", status, body)
 	}
@@ -110,7 +110,7 @@ func TestServeReadsTheJournalItJustWrote(t *testing.T) {
 
 	// A bounded page still reports the JOURNAL's head, not the page's — that is
 	// how the consumer knows to keep reading.
-	status, body, _ = sp.get(t, "/v0/beads/events?since=0&limit=2")
+	status, body, _ = sp.get(t, "/v0/issuegraph/events?since=0&limit=2")
 	if status != http.StatusOK {
 		t.Fatalf("bounded GET = %d: %v", status, body)
 	}
@@ -125,11 +125,11 @@ func TestServeReadsTheJournalItJustWrote(t *testing.T) {
 
 	// The same records, through the CLI, on the same workspace. This is the
 	// claim the shared record projection makes and the reason it is shared: an
-	// operator debugging a consumer must be able to reach for `bd events export`
+	// operator debugging a consumer must be able to reach for `issuegraph events export`
 	// and see what the consumer saw.
-	exported := decodeEventRecords(t, p.run(t, bd, "events", "export"))
+	exported := decodeEventRecords(t, p.run(t, issuegraph, "events", "export"))
 	if len(exported) != created {
-		t.Fatalf("bd events export returned %d records, want %d — the CLI and HTTP reads disagree", len(exported), created)
+		t.Fatalf("issuegraph events export returned %d records, want %d — the CLI and HTTP reads disagree", len(exported), created)
 	}
 	for i, rec := range exported {
 		if rec.Seq != int64(i+1) {
@@ -150,22 +150,22 @@ func TestServeReadsTheJournalItJustWrote(t *testing.T) {
 func TestServeRefusesAStaleCheckpointWithGone(t *testing.T) {
 	requireSharedProxiedServer(t)
 	t.Parallel()
-	bd := buildEmbeddedBD(t)
-	p := newServerModeProject(t, bd, "hjt")
+	issuegraph := buildEmbeddedBD(t)
+	p := newServerModeProject(t, issuegraph, "hjt")
 	p.env = append(p.env,
-		"BD_EVENTS_JOURNAL=1",
-		"BD_EVENTS_JOURNAL_RETAIN_DAYS=0",
-		"BD_EVENTS_JOURNAL_RETAIN_ROWS=0",
+		"ISSUEGRAPH_EVENTS_JOURNAL=1",
+		"ISSUEGRAPH_EVENTS_JOURNAL_RETAIN_DAYS=0",
+		"ISSUEGRAPH_EVENTS_JOURNAL_RETAIN_ROWS=0",
 		// The prune below is the one this test performs. A maintenance ticker
 		// cutting on its own schedule would make the window nondeterministic.
-		"BD_EVENTS_JOURNAL_AUTO_PRUNE=0",
+		"ISSUEGRAPH_EVENTS_JOURNAL_AUTO_PRUNE=0",
 	)
 
-	sp := startServe(t, bd, p.dir, p.env)
+	sp := startServe(t, issuegraph, p.dir, p.env)
 
 	const created = 5
 	for i := range created {
-		status, body := sp.postJSON(t, "/v0/beads/issues:batchCreate",
+		status, body := sp.postJSON(t, "/v0/issuegraph/issues:batchCreate",
 			fmt.Sprintf(`{"actor":"tester","items":[{"title":"pruned mutation %d","issue_type":"task"}]}`, i))
 		if status != http.StatusOK {
 			t.Fatalf("POST batchCreate %d = %d: %v\nstderr:\n%s", i, status, body, sp.stderr.String())
@@ -173,11 +173,11 @@ func TestServeRefusesAStaleCheckpointWithGone(t *testing.T) {
 	}
 
 	// Cut the first three records out from under a consumer sitting at 0.
-	p.run(t, bd, "events", "prune", "--before", "4")
+	p.run(t, issuegraph, "events", "prune", "--before", "4")
 
-	status, body, _ := sp.get(t, "/v0/beads/events?since=0")
+	status, body, _ := sp.get(t, "/v0/issuegraph/events?since=0")
 	if status != http.StatusGone {
-		t.Fatalf("GET /v0/beads/events?since=0 after a prune = %d, want 410: %v\nstderr:\n%s",
+		t.Fatalf("GET /v0/issuegraph/events?since=0 after a prune = %d, want 410: %v\nstderr:\n%s",
 			status, body, sp.stderr.String())
 	}
 	if code, _ := body["code"].(string); code != "events_journal_truncated" {
@@ -198,7 +198,7 @@ func TestServeRefusesAStaleCheckpointWithGone(t *testing.T) {
 	// The documented recovery actually works: resume from floor-1 and the read
 	// succeeds with the surviving suffix, gap explicitly accepted.
 	floor, _ := body["floor"].(float64)
-	status, body, _ = sp.get(t, fmt.Sprintf("/v0/beads/events?since=%d", int(floor)-1))
+	status, body, _ = sp.get(t, fmt.Sprintf("/v0/issuegraph/events?since=%d", int(floor)-1))
 	if status != http.StatusOK {
 		t.Fatalf("resume from floor-1 = %d, want 200: %v", status, body)
 	}
@@ -222,22 +222,22 @@ func TestServeRefusesAStaleCheckpointWithGone(t *testing.T) {
 func TestServeRefusesTheJournalWhenItIsDisabled(t *testing.T) {
 	requireSharedProxiedServer(t)
 	t.Parallel()
-	bd := buildEmbeddedBD(t)
-	p := newServerModeProject(t, bd, "hjd")
+	issuegraph := buildEmbeddedBD(t)
+	p := newServerModeProject(t, issuegraph, "hjd")
 	// Deliberately NOT enabling the journal. The default is off.
 
-	sp := startServe(t, bd, p.dir, p.env)
+	sp := startServe(t, issuegraph, p.dir, p.env)
 
 	// A mutation lands, and is not journaled, because nothing is journaling.
-	status, postBody := sp.postJSON(t, "/v0/beads/issues:batchCreate",
+	status, postBody := sp.postJSON(t, "/v0/issuegraph/issues:batchCreate",
 		`{"actor":"tester","items":[{"title":"unjournaled","issue_type":"task"}]}`)
 	if status != http.StatusOK {
 		t.Fatalf("POST batchCreate = %d: %v\nstderr:\n%s", status, postBody, sp.stderr.String())
 	}
 
-	status, body, _ := sp.get(t, "/v0/beads/events?since=0")
+	status, body, _ := sp.get(t, "/v0/issuegraph/events?since=0")
 	if status != http.StatusConflict {
-		t.Fatalf("GET /v0/beads/events on a disabled workspace = %d, want 409: %v\nstderr:\n%s",
+		t.Fatalf("GET /v0/issuegraph/events on a disabled workspace = %d, want 409: %v\nstderr:\n%s",
 			status, body, sp.stderr.String())
 	}
 	if code, _ := body["code"].(string); code != "events_journal_disabled" {

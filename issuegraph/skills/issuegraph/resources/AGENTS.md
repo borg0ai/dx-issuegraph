@@ -1,19 +1,19 @@
-# Agent Beads
+# Agent IssueGraph
 
-> Adapted from ACF beads skill
+> Adapted from ACF issuegraph skill
 
-**v0.40+**: First-class support for agent tracking via `type=agent` beads.
+**v0.40+**: First-class support for agent tracking via `type=agent` issuegraph.
 
-## When to Use Agent Beads
+## When to Use Agent IssueGraph
 
-| Scenario | Agent Bead? | Why |
+| Scenario | Agent Issue? | Why |
 |----------|-------------|-----|
 | Multi-agent orchestration | Yes | Track state, assign work via slots |
-| Single Claude session | No | Overkill—just use regular beads |
+| Single Claude session | No | Overkill—just use regular issuegraph |
 | Long-running background agents | Yes | Heartbeats enable liveness detection |
-| Role-based agent systems | Yes | Role beads define agent capabilities |
+| Role-based agent systems | Yes | Role issuegraph define agent capabilities |
 
-## Bead Types
+## Issue Types
 
 | Type | Purpose | Has Slots? |
 |------|---------|------------|
@@ -24,7 +24,7 @@ Other types (`task`, `bug`, `feature`, `epic`) remain unchanged.
 
 ## State Machine
 
-Agent beads track state for coordination:
+Agent issuegraph track state for coordination:
 
 ```
 idle → spawning → running/working → done → idle
@@ -38,18 +38,18 @@ The `dead` state is set by Witness (monitoring system) via heartbeat timeout—a
 
 ## Slot Architecture
 
-Slots are named references from agent beads to other beads:
+Slots are named references from agent issuegraph to other issuegraph:
 
 | Slot | Cardinality | Purpose |
 |------|-------------|---------|
 | `hook` | 0..1 | Current work attached to agent |
-| `role` | 1 | Role definition bead (required) |
+| `role` | 1 | Role definition issue (required) |
 
 **Why slots?** They enforce constraints (one work item at a time) and enable queries like "what is agent X working on?" or "which agent has this work?"
 
 ## Monitoring Integration
 
-Agent beads enable:
+Agent issuegraph enable:
 
 - **Witness System**: Monitors agent health via heartbeats
 - **State Coordination**: ZFC-compliant state machine for multi-agent systems

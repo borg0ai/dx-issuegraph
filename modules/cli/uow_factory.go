@@ -9,22 +9,22 @@ import (
 	"sync"
 	"time"
 
-	"github.com/steveyegge/beads/internal/config"
-	"github.com/steveyegge/beads/internal/configfile"
-	"github.com/steveyegge/beads/internal/doltserver"
-	"github.com/steveyegge/beads/internal/doltversion"
-	"github.com/steveyegge/beads/internal/storage/dbproxy/proxy"
-	"github.com/steveyegge/beads/internal/storage/dolt"
-	"github.com/steveyegge/beads/internal/storage/uow"
+	"github.com/borg0ai/dx-issuegraph/internal/config"
+	"github.com/borg0ai/dx-issuegraph/internal/configfile"
+	"github.com/borg0ai/dx-issuegraph/internal/doltserver"
+	"github.com/borg0ai/dx-issuegraph/internal/doltversion"
+	"github.com/borg0ai/dx-issuegraph/internal/storage/dbproxy/proxy"
+	"github.com/borg0ai/dx-issuegraph/internal/storage/dolt"
+	"github.com/borg0ai/dx-issuegraph/internal/storage/uow"
 )
 
 // doltVersionWarnOnce ensures the dolt-version advisory (old/unverifiable
 // version) is printed at most once per process, even though
 // resolveAndProbeDolt can run repeatedly against the same resolved binary
-// (retries, multiple UOW providers opened in one command, or bd init
+// (retries, multiple UOW providers opened in one command, or issuegraph init
 // --proxied-server's own preflight followed by the UOW provider it opens a
 // few lines later). Repeating the same advisory on every call would just be
-// noise once the operator has seen it. Cross-process dedup (each bd
+// noise once the operator has seen it. Cross-process dedup (each issuegraph
 // invocation is a new process) is handled separately by the probe cache's
 // warn stamp — see doltversion.ProbeWithPolicyCached / MarkWarned.
 var doltVersionWarnOnce sync.Once
@@ -38,7 +38,7 @@ func doltProbeCachePath() string {
 	if err != nil {
 		return ""
 	}
-	return filepath.Join(dir, "beads", "dolt-probe.json")
+	return filepath.Join(dir, "issuegraph", "dolt-probe.json")
 }
 
 // resolveAndProbeDolt resolves the external dolt binary (env override >
@@ -46,18 +46,18 @@ func doltProbeCachePath() string {
 // advisory (if any) at most once per process via doltVersionWarnOnce.
 //
 // quiet suppresses the advisory (errors still return). It is a parameter
-// rather than a read of the global quietFlag because bd init defines its own
+// rather than a read of the global quietFlag because issuegraph init defines its own
 // local --quiet flag that shadows the persistent one: during
-// `bd init --proxied-server -q` the global quietFlag is false while the
+// `issuegraph init --proxied-server -q` the global quietFlag is false while the
 // user very much asked for quiet.
 //
-// bd init --proxied-server's own preflight (init_proxied_server.go) and
+// issuegraph init --proxied-server's own preflight (init_proxied_server.go) and
 // newManagedProxiedServerUOWProvider both need exactly this
-// resolve+probe+warn sequence. A single non-quiet `bd init --proxied-server`
+// resolve+probe+warn sequence. A single non-quiet `issuegraph init --proxied-server`
 // invocation runs the preflight and then opens a UOW provider a few lines
 // later, so before this was shared, an old/unverifiable dolt printed the
 // identical advisory twice and forked `dolt version` twice. errPrefix is
-// used to keep call-site-specific error context (e.g. "bd init
+// used to keep call-site-specific error context (e.g. "issuegraph init
 // --proxied-server" vs "newProxiedServerUOWProvider") in the wrapped error.
 // The probed identity is deliberately not returned: its only consumer (the
 // auto_gc_behavior.archive_level gate) was removed upstream from
@@ -79,7 +79,7 @@ func resolveAndProbeDolt(ctx context.Context, errPrefix string, quiet bool) (dol
 	// Cached: a fingerprint hit (same real path, size, mtime as the last
 	// successful probe) replays the result for the cost of a stat instead of
 	// forking `dolt version` on every command — this call sits on the
-	// store-open hot path of essentially every bd command in managed
+	// store-open hot path of essentially every issuegraph command in managed
 	// proxied-server mode.
 	cachePath := doltProbeCachePath()
 	res, err := doltversion.ProbeWithPolicyCached(ctx, doltBin, cachePath, time.Now())
@@ -102,7 +102,7 @@ func resolveAndProbeDolt(ctx context.Context, errPrefix string, quiet bool) (dol
 	// convention of keeping JSON-mode stdout/stderr free of advisory chatter
 	// (see e.g. tips.go, metrics.go). WarnDue adds the cross-process gate:
 	// the advisory repeats at most once per day (per the probe cache's
-	// stamp), not on every bd invocation.
+	// stamp), not on every issuegraph invocation.
 	if res.Warning != nil && !quiet && !jsonOutput && res.WarnDue {
 		doltVersionWarnOnce.Do(func() {
 			fmt.Fprintf(os.Stderr, "Warning: %s\n", res.Warning.Message())
@@ -114,7 +114,7 @@ func resolveAndProbeDolt(ctx context.Context, errPrefix string, quiet bool) (dol
 
 // sqlServerUOWTopology is everything the two unit-of-work providers need that
 // differs between workspaces: which database, whose schema, where the proxy
-// listens, and — when the Dolt SQL server is not one Beads starts itself —
+// listens, and — when the Dolt SQL server is not one IssueGraph starts itself —
 // how to reach it.
 //
 // It exists so the two ways a workspace can describe its SQL server (the
@@ -160,21 +160,21 @@ func rootProviderOptions(preview, readOnly bool) []uow.ProviderOption {
 
 // newProxiedServerUOWProvider opens the proxied-server provider and, in
 // team-server mode, asserts that the shared bts-managed database is serving
-// THIS workspace's project (gastownhall/beads: the proxied-path sibling of the
+// THIS workspace's project (borg0ai/dx-issuegraph: the proxied-path sibling of the
 // gateway's DoltStore.verifyProjectIdentity guard).
 //
 // opts carry the open's posture that is not workspace topology — today only
 // uow.WithPreview(), which the root pre-run passes for --dry-run/--inspect so
 // a proxied preview does not create or migrate the database before the
 // command's own RunE runs.
-func newProxiedServerUOWProvider(ctx context.Context, beadsDir, databaseOverride string, opts ...uow.ProviderOption) (uow.UnitOfWorkProvider, error) {
-	return openProxiedServerUOWProvider(ctx, beadsDir, databaseOverride, assertWorkspaceIdentity, opts...)
+func newProxiedServerUOWProvider(ctx context.Context, issuegraphDir, databaseOverride string, opts ...uow.ProviderOption) (uow.UnitOfWorkProvider, error) {
+	return openProxiedServerUOWProvider(ctx, issuegraphDir, databaseOverride, assertWorkspaceIdentity, opts...)
 }
 
 // newProxiedServerUOWProviderAdopting skips that assertion. Three callers
 // legitimately have no workspace identity to assert:
 //
-//   - `bd init --team-server`, which ADOPTS the identity the shared database
+//   - `issuegraph init --team-server`, which ADOPTS the identity the shared database
 //     already carries (asserting the locally-minted placeholder would reject
 //     every correct init);
 //   - server-wide database maintenance, which is not scoped to one project's
@@ -189,8 +189,8 @@ func newProxiedServerUOWProvider(ctx context.Context, beadsDir, databaseOverride
 // Anything else reaching this constructor is bypassing an identity assertion
 // that exists to stop a workspace writing into another project's database. Add
 // a fourth entry here, with its reason, or use newProxiedServerUOWProvider.
-func newProxiedServerUOWProviderAdopting(ctx context.Context, beadsDir, databaseOverride string, opts ...uow.ProviderOption) (uow.UnitOfWorkProvider, error) {
-	return openProxiedServerUOWProvider(ctx, beadsDir, databaseOverride, adoptWorkspaceIdentity, opts...)
+func newProxiedServerUOWProviderAdopting(ctx context.Context, issuegraphDir, databaseOverride string, opts ...uow.ProviderOption) (uow.UnitOfWorkProvider, error) {
+	return openProxiedServerUOWProvider(ctx, issuegraphDir, databaseOverride, adoptWorkspaceIdentity, opts...)
 }
 
 // identityPosture selects whether a proxied open asserts the workspace's
@@ -202,28 +202,28 @@ const (
 	adoptWorkspaceIdentity  identityPosture = true
 )
 
-func openProxiedServerUOWProvider(ctx context.Context, beadsDir, databaseOverride string, posture identityPosture, opts ...uow.ProviderOption) (uow.UnitOfWorkProvider, error) {
-	if beadsDir == "" {
-		return nil, fmt.Errorf("newProxiedServerUOWProvider: beadsDir must be set")
+func openProxiedServerUOWProvider(ctx context.Context, issuegraphDir, databaseOverride string, posture identityPosture, opts ...uow.ProviderOption) (uow.UnitOfWorkProvider, error) {
+	if issuegraphDir == "" {
+		return nil, fmt.Errorf("newProxiedServerUOWProvider: issuegraphDir must be set")
 	}
-	topology, err := resolveProxiedServerUOWTopology(beadsDir, databaseOverride, posture)
+	topology, err := resolveProxiedServerUOWTopology(issuegraphDir, databaseOverride, posture)
 	if err != nil {
 		return nil, err
 	}
-	return newSQLServerUOWProvider(ctx, beadsDir, topology, opts...)
+	return newSQLServerUOWProvider(ctx, issuegraphDir, topology, opts...)
 }
 
-// newSQLServerUOWProvider is the single funnel every unit-of-work provider bd
-// builds passes through — the proxied CLI path AND `bd serve`'s own provider
+// newSQLServerUOWProvider is the single funnel every unit-of-work provider issuegraph
+// builds passes through — the proxied CLI path AND `issuegraph serve`'s own provider
 // for server-mode workspaces. Activation is applied by the two constructors it
 // dispatches to, each alongside its own open; doing it at the CALL SITES
-// instead is what left `bd serve` writing mutations into an empty journal while
+// instead is what left `issuegraph serve` writing mutations into an empty journal while
 // reporting success. See the note at the top of events_journal.go.
-func newSQLServerUOWProvider(ctx context.Context, beadsDir string, topology sqlServerUOWTopology, opts ...uow.ProviderOption) (uow.UnitOfWorkProvider, error) {
+func newSQLServerUOWProvider(ctx context.Context, issuegraphDir string, topology sqlServerUOWTopology, opts ...uow.ProviderOption) (uow.UnitOfWorkProvider, error) {
 	if topology.external != nil {
-		return newExternalProxiedServerUOWProvider(ctx, beadsDir, topology, opts...)
+		return newExternalProxiedServerUOWProvider(ctx, issuegraphDir, topology, opts...)
 	}
-	return newManagedProxiedServerUOWProvider(ctx, beadsDir, topology, opts...)
+	return newManagedProxiedServerUOWProvider(ctx, issuegraphDir, topology, opts...)
 }
 
 // resolveProxiedServerUOWTopology reads a proxied-server workspace's topology
@@ -235,12 +235,12 @@ func newSQLServerUOWProvider(ctx context.Context, beadsDir string, topology sqlS
 // falls back to a fresh managed local database — reads return zero issues and
 // writes land in the wrong database (split-brain) — and the identity assertion
 // below silently degrades to no assertion at all.
-func resolveProxiedServerUOWTopology(beadsDir, databaseOverride string, posture identityPosture) (sqlServerUOWTopology, error) {
-	persisted, err := configfile.Load(beadsDir)
+func resolveProxiedServerUOWTopology(issuegraphDir, databaseOverride string, posture identityPosture) (sqlServerUOWTopology, error) {
+	persisted, err := configfile.Load(issuegraphDir)
 	if err != nil {
 		return sqlServerUOWTopology{}, fmt.Errorf(
 			"corrupt workspace config %s: %w — refusing to fall back to a fresh database; repair or remove the file to proceed",
-			configfile.ConfigPath(beadsDir), err)
+			configfile.ConfigPath(issuegraphDir), err)
 	}
 	topology := sqlServerUOWTopology{database: configfile.DefaultDoltDatabase}
 	if persisted != nil {
@@ -255,7 +255,7 @@ func resolveProxiedServerUOWTopology(beadsDir, databaseOverride string, posture 
 			// empty one here is a broken workspace, not a legacy one.
 			if topology.teamServer && topology.expectedProjectID == "" {
 				return sqlServerUOWTopology{}, fmt.Errorf(
-					"newProxiedServerUOWProvider: this team-server workspace has no project identity in %s; re-run 'bd init --team-server' to adopt the identity provisioned in the shared database (it never writes to that database)",
+					"newProxiedServerUOWProvider: this team-server workspace has no project identity in %s; re-run 'issuegraph init --team-server' to adopt the identity provisioned in the shared database (it never writes to that database)",
 					configfile.ConfigFileName)
 			}
 		}
@@ -264,11 +264,11 @@ func resolveProxiedServerUOWTopology(beadsDir, databaseOverride string, posture 
 		topology.database = databaseOverride
 	}
 
-	info, err := configfile.LoadProxiedServerClientInfo(beadsDir)
+	info, err := configfile.LoadProxiedServerClientInfo(issuegraphDir)
 	if err != nil {
 		return sqlServerUOWTopology{}, fmt.Errorf(
 			"corrupt proxied-server sidecar %s: %w — refusing to fall back to a fresh database; repair or remove the file to proceed",
-			configfile.ProxiedServerClientInfoPath(beadsDir), err)
+			configfile.ProxiedServerClientInfoPath(issuegraphDir), err)
 	}
 	if info != nil {
 		topology.proxyPort = info.Port
@@ -298,18 +298,18 @@ type socketTransportResolver func(socket, host string, port int, timeout time.Du
 //
 // It is deliberately a plain error, not a storage.ErrUnsupported like the
 // embedded refusal: that type names a BACKEND, and the backend here is plain
-// dolt, which bd serve supports. Typing this as "serve is unsupported on dolt"
+// dolt, which issuegraph serve supports. Typing this as "serve is unsupported on dolt"
 // would be a worse lie than an untyped error.
 func errServeGatewayCredential() error {
 	return fmt.Errorf(
-		"this workspace authenticates to Dolt with a credential command (BEADS_DOLT_CREDENTIAL_COMMAND), " +
-			"which mints a short-lived token; bd serve holds one connection identity for the life of the " +
+		"this workspace authenticates to Dolt with a credential command (ISSUEGRAPH_DOLT_CREDENTIAL_COMMAND), " +
+			"which mints a short-lived token; issuegraph serve holds one connection identity for the life of the " +
 			"process and cannot refresh it")
 }
 
 // resolveServerModeUOWTopology reads the topology for a workspace whose Dolt
-// SQL server Beads does not front with a proxy of its own: `bd init --server`
-// (whether the server is one Beads auto-starts or one the operator runs), and
+// SQL server IssueGraph does not front with a proxy of its own: `issuegraph init --server`
+// (whether the server is one IssueGraph auto-starts or one the operator runs), and
 // shared-server mode.
 //
 // Such a workspace has no proxied-server sidecar to read the topology from, so
@@ -320,7 +320,7 @@ func errServeGatewayCredential() error {
 // metadata.json, where main.go resolves nothing and leaves the connection to
 // dolt.applyResolvedConfig; the ladders agree, but they are not the same call.
 //
-// The server is ALWAYS described as external, including when Beads started it:
+// The server is ALWAYS described as external, including when IssueGraph started it:
 // the local-server provider would spawn a second `dolt sql-server` on the data
 // directory the first one already holds an exclusive write lock on, which Dolt
 // refuses outright ("database is locked by another dolt process"). One server,
@@ -329,17 +329,17 @@ func errServeGatewayCredential() error {
 // The caller is responsible for reporting topology.database as the served
 // workspace's database: it is the one place --global is applied, and the
 // handshake must not name a database the provider did not open.
-func resolveServerModeUOWTopology(ctx context.Context, beadsDir string) (sqlServerUOWTopology, error) {
-	return resolveServerModeUOWTopologyWithTransportResolver(ctx, beadsDir, dolt.ResolveSocketTransport)
+func resolveServerModeUOWTopology(ctx context.Context, issuegraphDir string) (sqlServerUOWTopology, error) {
+	return resolveServerModeUOWTopologyWithTransportResolver(ctx, issuegraphDir, dolt.ResolveSocketTransport)
 }
 
-func resolveServerModeUOWTopologyWithTransportResolver(ctx context.Context, beadsDir string, resolveTransport socketTransportResolver) (sqlServerUOWTopology, error) {
-	if beadsDir == "" {
-		return sqlServerUOWTopology{}, fmt.Errorf("resolveServerModeUOWTopology: beadsDir must be set")
+func resolveServerModeUOWTopologyWithTransportResolver(ctx context.Context, issuegraphDir string, resolveTransport socketTransportResolver) (sqlServerUOWTopology, error) {
+	if issuegraphDir == "" {
+		return sqlServerUOWTopology{}, fmt.Errorf("resolveServerModeUOWTopology: issuegraphDir must be set")
 	}
-	fileCfg, err := configfile.Load(beadsDir)
+	fileCfg, err := configfile.Load(issuegraphDir)
 	if err != nil {
-		return sqlServerUOWTopology{}, fmt.Errorf("load %s: %w", configfile.ConfigPath(beadsDir), err)
+		return sqlServerUOWTopology{}, fmt.Errorf("load %s: %w", configfile.ConfigPath(issuegraphDir), err)
 	}
 	// The database is resolved here rather than from the connection because the
 	// no-metadata.json corner below has to answer it differently.
@@ -349,7 +349,7 @@ func resolveServerModeUOWTopologyWithTransportResolver(ctx context.Context, bead
 		// defaults and carries on (shared-server mode reaches exactly that), so
 		// refusing here would refuse a workspace the CLI just opened — and it
 		// takes the LITERAL default database name (main.go's cfg == nil branch),
-		// not GetDoltDatabase, so BEADS_DOLT_SERVER_DATABASE is ignored there.
+		// not GetDoltDatabase, so ISSUEGRAPH_DOLT_SERVER_DATABASE is ignored there.
 		// Matching that is the point: honoring the env var on this side alone
 		// would have one process serving two different databases over HTTP and
 		// over the CLI, silently. The env var not reaching the CLI's branch is a
@@ -364,14 +364,14 @@ func resolveServerModeUOWTopologyWithTransportResolver(ctx context.Context, bead
 	// execute it — spawning a subprocess, minting a token, and spending
 	// whatever the credential endpoint rate-limits or audits — only for the
 	// refusal below to throw the result away. PersistentPreRunE already ran it
-	// once for the DoltStore serve never touches; a refused `bd serve` must not
+	// once for the DoltStore serve never touches; a refused `issuegraph serve` must not
 	// make that twice.
 	if fileCfg.GetDoltCredentialCommand() != "" {
 		return sqlServerUOWTopology{}, errServeGatewayCredential()
 	}
 
-	conn := &dolt.Config{BeadsDir: beadsDir, ServerMode: true}
-	if err := resolveDoltServerConnection(ctx, beadsDir, fileCfg, conn); err != nil {
+	conn := &dolt.Config{IssueGraphDir: issuegraphDir, ServerMode: true}
+	if err := resolveDoltServerConnection(ctx, issuegraphDir, fileCfg, conn); err != nil {
 		return sqlServerUOWTopology{}, err
 	}
 	if conn.Gateway {
@@ -397,12 +397,12 @@ func resolveServerModeUOWTopologyWithTransportResolver(ctx context.Context, bead
 		external.Host = conn.ServerHost
 		external.Port = conn.ServerPort
 	default:
-		// Port 0 means no source resolved one — for a Beads-managed server that
+		// Port 0 means no source resolved one — for a IssueGraph-managed server that
 		// is the case where nothing has started it yet, and the port file it
 		// would write does not exist.
 		return sqlServerUOWTopology{}, fmt.Errorf(
-			"cannot determine the Dolt server port for %s; start the server with `bd dolt start`, "+
-				"or set the port explicitly (BEADS_DOLT_SERVER_PORT or dolt.port in config.yaml)", beadsDir)
+			"cannot determine the Dolt server port for %s; start the server with `issuegraph dolt start`, "+
+				"or set the port explicitly (ISSUEGRAPH_DOLT_SERVER_PORT or dolt.port in config.yaml)", issuegraphDir)
 	}
 	external.TLSRequired = conn.ServerTLS
 
@@ -421,7 +421,7 @@ func resolveServerModeUOWTopologyWithTransportResolver(ctx context.Context, bead
 		// process it serves can have, so it gets no idle timeout at all.
 		//
 		// The 30s default cannot work here. The only client this proxy will
-		// ever have is bd serve, whose pool releases its last connection after
+		// ever have is issuegraph serve, whose pool releases its last connection after
 		// ConnMaxIdleTime (20s, servePoolLimits) of no requests; a finite-idle
 		// proxy then sees zero clients and exits, taking with it the
 		// OS-assigned port the provider's DSN pinned at construction. Nothing
@@ -432,12 +432,12 @@ func resolveServerModeUOWTopologyWithTransportResolver(ctx context.Context, bead
 		//
 		// The tradeoff is a child that outlives serve, and it is deliberate: a
 		// never-idle proxy is already a supported configuration
-		// (`bd init --proxied-server --proxied-server-idle-timeout 0`), it is
+		// (`issuegraph init --proxied-server --proxied-server-idle-timeout 0`), it is
 		// reused rather than duplicated by the next serve, and reaping it here
 		// would be worse — the endpoint API reports neither whether this
 		// process spawned the proxy nor whether another serve has since adopted
 		// it, so a shutdown reap could take the database out from under a
-		// concurrent serve. `bd dolt stop` does not reap it in these modes.
+		// concurrent serve. `issuegraph dolt stop` does not reap it in these modes.
 		proxyIdle:    proxy.IdleTimeoutNever,
 		rootPassword: conn.ServerPassword,
 	}, nil
@@ -448,9 +448,9 @@ func resolveServerModeUOWTopologyWithTransportResolver(ctx context.Context, bead
 // the workspace mode: since bd-emv a server-mode workspace lands here too, and
 // the paths it resolves (root, log) are the same ones proxied mode uses because
 // both modes root their server at the same directory.
-func newExternalProxiedServerUOWProvider(ctx context.Context, beadsDir string, topology sqlServerUOWTopology, opts ...uow.ProviderOption) (p uow.UnitOfWorkProvider, err error) {
-	defer func() { p, err = activateEventsJournalProvider(ctx, beadsDir, p, err) }()
-	rootPath, err := resolveProxiedServerRootPath(beadsDir)
+func newExternalProxiedServerUOWProvider(ctx context.Context, issuegraphDir string, topology sqlServerUOWTopology, opts ...uow.ProviderOption) (p uow.UnitOfWorkProvider, err error) {
+	defer func() { p, err = activateEventsJournalProvider(ctx, issuegraphDir, p, err) }()
+	rootPath, err := resolveProxiedServerRootPath(issuegraphDir)
 	if err != nil {
 		return nil, fmt.Errorf("newExternalProxiedServerUOWProvider: resolve root path: %w", err)
 	}
@@ -458,7 +458,7 @@ func newExternalProxiedServerUOWProvider(ctx context.Context, beadsDir string, t
 		return nil, fmt.Errorf("newExternalProxiedServerUOWProvider: proxied server root (from env or %s): %w", configfile.ProxiedServerClientInfoFileName, err)
 	}
 
-	logPath, isCustomLog, err := resolveProxiedServerLogPath(beadsDir)
+	logPath, isCustomLog, err := resolveProxiedServerLogPath(issuegraphDir)
 	if err != nil {
 		return nil, fmt.Errorf("newExternalProxiedServerUOWProvider: resolve log path: %w", err)
 	}
@@ -468,7 +468,7 @@ func newExternalProxiedServerUOWProvider(ctx context.Context, beadsDir string, t
 		}
 	}
 
-	if err := os.MkdirAll(rootPath, config.BeadsDirPerm); err != nil {
+	if err := os.MkdirAll(rootPath, config.IssueGraphDirPerm); err != nil {
 		return nil, fmt.Errorf("newExternalProxiedServerUOWProvider: mkdir %s: %w", rootPath, err)
 	}
 
@@ -488,8 +488,8 @@ func newExternalProxiedServerUOWProvider(ctx context.Context, beadsDir string, t
 	)
 }
 
-func newManagedProxiedServerUOWProvider(ctx context.Context, beadsDir string, topology sqlServerUOWTopology, opts ...uow.ProviderOption) (p uow.UnitOfWorkProvider, err error) {
-	defer func() { p, err = activateEventsJournalProvider(ctx, beadsDir, p, err) }()
+func newManagedProxiedServerUOWProvider(ctx context.Context, issuegraphDir string, topology sqlServerUOWTopology, opts ...uow.ProviderOption) (p uow.UnitOfWorkProvider, err error) {
+	defer func() { p, err = activateEventsJournalProvider(ctx, issuegraphDir, p, err) }()
 	// Resolve and hardened-probe the external dolt binary before spawning
 	// it: an env/sidecar override that is explicitly named but broken
 	// should fail loudly here rather than surface as a confusing spawn
@@ -498,16 +498,16 @@ func newManagedProxiedServerUOWProvider(ctx context.Context, beadsDir string, to
 	// output cap, pre-exec validation).
 	//
 	// The error label names this function rather than the proxied-server
-	// entry point: since upstream's server-mode path (bd serve ->
+	// entry point: since upstream's server-mode path (issuegraph serve ->
 	// newSQLServerUOWProvider) also lands here, a hardcoded
-	// "newProxiedServerUOWProvider" would mislabel a `bd serve` failure as a
+	// "newProxiedServerUOWProvider" would mislabel a `issuegraph serve` failure as a
 	// proxied-server one.
 	doltBin, err := resolveAndProbeDolt(ctx, "newManagedProxiedServerUOWProvider", quietFlag)
 	if err != nil {
 		return nil, err
 	}
 
-	rootPath, err := resolveProxiedServerRootPath(beadsDir)
+	rootPath, err := resolveProxiedServerRootPath(issuegraphDir)
 	if err != nil {
 		return nil, fmt.Errorf("newProxiedServerUOWProvider: resolve root path: %w", err)
 	}
@@ -515,12 +515,12 @@ func newManagedProxiedServerUOWProvider(ctx context.Context, beadsDir string, to
 		return nil, fmt.Errorf("newProxiedServerUOWProvider: proxied server root (from env or %s): %w", configfile.ProxiedServerClientInfoFileName, err)
 	}
 
-	configPath, err := ensureProxiedServerConfig(beadsDir)
+	configPath, err := ensureProxiedServerConfig(issuegraphDir)
 	if err != nil {
 		return nil, err
 	}
 
-	logPath, isCustomLog, err := resolveProxiedServerLogPath(beadsDir)
+	logPath, isCustomLog, err := resolveProxiedServerLogPath(issuegraphDir)
 	if err != nil {
 		return nil, fmt.Errorf("newProxiedServerUOWProvider: resolve log path: %w", err)
 	}

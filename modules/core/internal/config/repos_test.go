@@ -33,7 +33,7 @@ func TestGetReposFromYAML_WithRepos(t *testing.T) {
 	config := `repos:
   primary: "."
   additional:
-    - ~/beads-planning
+    - ~/issuegraph-planning
     - /path/to/other
 `
 	if err := os.WriteFile(configPath, []byte(config), 0600); err != nil {
@@ -51,8 +51,8 @@ func TestGetReposFromYAML_WithRepos(t *testing.T) {
 	if len(repos.Additional) != 2 {
 		t.Fatalf("expected 2 additional repos, got %d", len(repos.Additional))
 	}
-	if repos.Additional[0] != "~/beads-planning" {
-		t.Errorf("expected first additional='~/beads-planning', got %q", repos.Additional[0])
+	if repos.Additional[0] != "~/issuegraph-planning" {
+		t.Errorf("expected first additional='~/issuegraph-planning', got %q", repos.Additional[0])
 	}
 	if repos.Additional[1] != "/path/to/other" {
 		t.Errorf("expected second additional='/path/to/other', got %q", repos.Additional[1])
@@ -92,7 +92,7 @@ func TestSetReposInYAML_PreservesOtherConfig(t *testing.T) {
 
 	// Write initial config with other settings
 	initial := `issue-prefix: "test"
-sync-branch: "beads-sync"
+sync-branch: "issuegraph-sync"
 json: false
 `
 	if err := os.WriteFile(configPath, []byte(initial), 0600); err != nil {
@@ -245,13 +245,13 @@ func TestRemoveRepo_NotFound(t *testing.T) {
 }
 
 func TestFindConfigYAMLPath(t *testing.T) {
-	// Create temp dir with .beads/config.yaml
+	// Create temp dir with .issuegraph/config.yaml
 	tmpDir := t.TempDir()
-	beadsDir := filepath.Join(tmpDir, ".beads")
-	if err := os.MkdirAll(beadsDir, 0755); err != nil {
+	issuegraphDir := filepath.Join(tmpDir, ".issuegraph")
+	if err := os.MkdirAll(issuegraphDir, 0755); err != nil {
 		t.Fatal(err)
 	}
-	configPath := filepath.Join(beadsDir, "config.yaml")
+	configPath := filepath.Join(issuegraphDir, "config.yaml")
 	if err := os.WriteFile(configPath, []byte("# config\n"), 0600); err != nil {
 		t.Fatal(err)
 	}
@@ -272,12 +272,12 @@ func TestFindConfigYAMLPath(t *testing.T) {
 		t.Fatalf("FindConfigYAMLPath failed: %v", err)
 	}
 
-	// Verify path ends with .beads/config.yaml
+	// Verify path ends with .issuegraph/config.yaml
 	if filepath.Base(found) != "config.yaml" {
 		t.Errorf("expected path ending with config.yaml, got %s", found)
 	}
-	if filepath.Base(filepath.Dir(found)) != ".beads" {
-		t.Errorf("expected path in .beads dir, got %s", found)
+	if filepath.Base(filepath.Dir(found)) != ".issuegraph" {
+		t.Errorf("expected path in .issuegraph dir, got %s", found)
 	}
 }
 

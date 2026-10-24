@@ -8,7 +8,7 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
-	"github.com/steveyegge/beads/issueops"
+	"github.com/borg0ai/dx-issuegraph/issueops"
 )
 
 // fakeIdentityReader stands in for issueops.InitVerifier, which is what
@@ -35,7 +35,7 @@ func TestAdoptTeamServerIdentity(t *testing.T) {
 
 	t.Run("adopts provisioned identity", func(t *testing.T) {
 		reader := &fakeIdentityReader{prefix: "gc", projectID: "bts-id"}
-		prefix, projectID, err := adoptTeamServerIdentity(ctx, reader, "beads_gc", "local_guess", false, "local-id")
+		prefix, projectID, err := adoptTeamServerIdentity(ctx, reader, "issuegraph_gc", "local_guess", false, "local-id")
 		require.NoError(t, err)
 		assert.Equal(t, "gc", prefix)
 		assert.Equal(t, "bts-id", projectID)
@@ -43,14 +43,14 @@ func TestAdoptTeamServerIdentity(t *testing.T) {
 
 	t.Run("matching explicit prefix adopts", func(t *testing.T) {
 		reader := &fakeIdentityReader{prefix: "gc", projectID: "bts-id"}
-		prefix, _, err := adoptTeamServerIdentity(ctx, reader, "beads_gc", "gc", true, "local-id")
+		prefix, _, err := adoptTeamServerIdentity(ctx, reader, "issuegraph_gc", "gc", true, "local-id")
 		require.NoError(t, err)
 		assert.Equal(t, "gc", prefix)
 	})
 
 	t.Run("conflicting explicit prefix is a hard error naming both", func(t *testing.T) {
 		reader := &fakeIdentityReader{prefix: "gc", projectID: "bts-id"}
-		_, _, err := adoptTeamServerIdentity(ctx, reader, "beads_gc", "other", true, "local-id")
+		_, _, err := adoptTeamServerIdentity(ctx, reader, "issuegraph_gc", "other", true, "local-id")
 		require.Error(t, err)
 		assert.Contains(t, err.Error(), `"other"`)
 		assert.Contains(t, err.Error(), `"gc"`)
@@ -58,14 +58,14 @@ func TestAdoptTeamServerIdentity(t *testing.T) {
 
 	t.Run("conflicting derived prefix adopts silently", func(t *testing.T) {
 		reader := &fakeIdentityReader{prefix: "gc", projectID: "bts-id"}
-		prefix, _, err := adoptTeamServerIdentity(ctx, reader, "beads_gc", "cwd_basename", false, "local-id")
+		prefix, _, err := adoptTeamServerIdentity(ctx, reader, "issuegraph_gc", "cwd_basename", false, "local-id")
 		require.NoError(t, err)
 		assert.Equal(t, "gc", prefix)
 	})
 
 	t.Run("missing prefix names bts init", func(t *testing.T) {
 		reader := &fakeIdentityReader{prefix: "", projectID: "bts-id"}
-		_, _, err := adoptTeamServerIdentity(ctx, reader, "beads_gc", "gc", false, "local-id")
+		_, _, err := adoptTeamServerIdentity(ctx, reader, "issuegraph_gc", "gc", false, "local-id")
 		require.Error(t, err)
 		assert.Contains(t, err.Error(), "bts init")
 		assert.Contains(t, err.Error(), "bts migrate")
@@ -73,7 +73,7 @@ func TestAdoptTeamServerIdentity(t *testing.T) {
 
 	t.Run("missing project id names bts init", func(t *testing.T) {
 		reader := &fakeIdentityReader{prefix: "gc", projectID: ""}
-		_, _, err := adoptTeamServerIdentity(ctx, reader, "beads_gc", "gc", false, "local-id")
+		_, _, err := adoptTeamServerIdentity(ctx, reader, "issuegraph_gc", "gc", false, "local-id")
 		require.Error(t, err)
 		assert.Contains(t, err.Error(), "bts init")
 		assert.Contains(t, err.Error(), "_project_id")
@@ -85,7 +85,7 @@ func TestAdoptTeamServerIdentity(t *testing.T) {
 	// first is how a flaky link gets a shared database re-provisioned.
 	t.Run("read error surfaces as transient, not unprovisioned", func(t *testing.T) {
 		reader := &fakeIdentityReader{readErr: errors.New("connection reset")}
-		_, _, err := adoptTeamServerIdentity(ctx, reader, "beads_gc", "gc", false, "local-id")
+		_, _, err := adoptTeamServerIdentity(ctx, reader, "issuegraph_gc", "gc", false, "local-id")
 		require.Error(t, err)
 		assert.Contains(t, err.Error(), "connection reset")
 		assert.NotContains(t, err.Error(), "bts init")
@@ -93,7 +93,7 @@ func TestAdoptTeamServerIdentity(t *testing.T) {
 
 	t.Run("stale local project id is replaced by the provisioned one", func(t *testing.T) {
 		reader := &fakeIdentityReader{prefix: "gc", projectID: "bts-id"}
-		_, projectID, err := adoptTeamServerIdentity(ctx, reader, "beads_gc", "gc", false, "stale-local-id")
+		_, projectID, err := adoptTeamServerIdentity(ctx, reader, "issuegraph_gc", "gc", false, "stale-local-id")
 		require.NoError(t, err)
 		assert.Equal(t, "bts-id", projectID)
 	})

@@ -12,43 +12,43 @@ import (
 	"testing"
 )
 
-// bdConfig runs "bd config" with the given args and returns stdout.
-func bdConfig(t *testing.T, bd, dir string, args ...string) string {
+// issuegraphConfig runs "issuegraph config" with the given args and returns stdout.
+func issuegraphConfig(t *testing.T, issuegraph, dir string, args ...string) string {
 	t.Helper()
 	fullArgs := append([]string{"config"}, args...)
-	cmd := exec.Command(bd, fullArgs...)
+	cmd := exec.Command(issuegraph, fullArgs...)
 	cmd.Dir = dir
-	cmd.Env = bdEnv(dir)
+	cmd.Env = issuegraphEnv(dir)
 	stdout, stderr, err := runCommandBuffers(t, cmd)
 	if err != nil {
-		t.Fatalf("bd config %s failed: %v\nstdout:\n%s\nstderr:\n%s", strings.Join(args, " "), err, stdout.String(), stderr.String())
+		t.Fatalf("issuegraph config %s failed: %v\nstdout:\n%s\nstderr:\n%s", strings.Join(args, " "), err, stdout.String(), stderr.String())
 	}
 	return stdout.String()
 }
 
-// bdConfigFail runs "bd config" expecting failure.
-func bdConfigFail(t *testing.T, bd, dir string, args ...string) string {
+// issuegraphConfigFail runs "issuegraph config" expecting failure.
+func issuegraphConfigFail(t *testing.T, issuegraph, dir string, args ...string) string {
 	t.Helper()
 	fullArgs := append([]string{"config"}, args...)
-	cmd := exec.Command(bd, fullArgs...)
+	cmd := exec.Command(issuegraph, fullArgs...)
 	cmd.Dir = dir
-	cmd.Env = bdEnv(dir)
+	cmd.Env = issuegraphEnv(dir)
 	out, err := cmd.CombinedOutput()
 	if err == nil {
-		t.Fatalf("expected bd config %s to fail, but succeeded:\n%s", strings.Join(args, " "), out)
+		t.Fatalf("expected issuegraph config %s to fail, but succeeded:\n%s", strings.Join(args, " "), out)
 	}
 	return string(out)
 }
 
-// bdConfigListJSON runs "bd config list --json" and returns parsed map.
-func bdConfigListJSON(t *testing.T, bd, dir string) map[string]string {
+// issuegraphConfigListJSON runs "issuegraph config list --json" and returns parsed map.
+func issuegraphConfigListJSON(t *testing.T, issuegraph, dir string) map[string]string {
 	t.Helper()
-	cmd := exec.Command(bd, "config", "list", "--json")
+	cmd := exec.Command(issuegraph, "config", "list", "--json")
 	cmd.Dir = dir
-	cmd.Env = bdEnv(dir)
+	cmd.Env = issuegraphEnv(dir)
 	stdout, stderr, err := runCommandBuffers(t, cmd)
 	if err != nil {
-		t.Fatalf("bd config list --json failed: %v\nstdout:\n%s\nstderr:\n%s", err, stdout.String(), stderr.String())
+		t.Fatalf("issuegraph config list --json failed: %v\nstdout:\n%s\nstderr:\n%s", err, stdout.String(), stderr.String())
 	}
 	s := strings.TrimSpace(stdout.String())
 	start := strings.Index(s, "{")
@@ -72,44 +72,44 @@ func bdConfigListJSON(t *testing.T, bd, dir string) map[string]string {
 }
 
 func TestEmbeddedConfig(t *testing.T) {
-	if os.Getenv("BEADS_TEST_EMBEDDED_DOLT") != "1" {
-		t.Skip("set BEADS_TEST_EMBEDDED_DOLT=1 to run embedded dolt integration tests")
+	if os.Getenv("ISSUEGRAPH_TEST_EMBEDDED_DOLT") != "1" {
+		t.Skip("set ISSUEGRAPH_TEST_EMBEDDED_DOLT=1 to run embedded dolt integration tests")
 	}
 	t.Parallel()
 
-	bd := buildEmbeddedBD(t)
-	dir, _, _ := bdInit(t, bd, "--prefix", "tc")
+	issuegraph := buildEmbeddedBD(t)
+	dir, _, _ := issuegraphInit(t, issuegraph, "--prefix", "tc")
 
 	// ===== Set and Get =====
 
 	t.Run("config_set_and_get", func(t *testing.T) {
-		bdConfig(t, bd, dir, "set", "test.key1", "hello")
-		out := bdConfig(t, bd, dir, "get", "test.key1")
+		issuegraphConfig(t, issuegraph, dir, "set", "test.key1", "hello")
+		out := issuegraphConfig(t, issuegraph, dir, "get", "test.key1")
 		if !strings.Contains(out, "hello") {
 			t.Errorf("expected 'hello' in get output: %s", out)
 		}
 	})
 
 	t.Run("config_set_overwrite", func(t *testing.T) {
-		bdConfig(t, bd, dir, "set", "test.overwrite", "first")
-		bdConfig(t, bd, dir, "set", "test.overwrite", "second")
-		out := bdConfig(t, bd, dir, "get", "test.overwrite")
+		issuegraphConfig(t, issuegraph, dir, "set", "test.overwrite", "first")
+		issuegraphConfig(t, issuegraph, dir, "set", "test.overwrite", "second")
+		out := issuegraphConfig(t, issuegraph, dir, "get", "test.overwrite")
 		if !strings.Contains(out, "second") {
 			t.Errorf("expected 'second' after overwrite: %s", out)
 		}
 	})
 
 	t.Run("config_set_namespaced", func(t *testing.T) {
-		bdConfig(t, bd, dir, "set", "jira.url", "https://example.atlassian.net")
-		out := bdConfig(t, bd, dir, "get", "jira.url")
+		issuegraphConfig(t, issuegraph, dir, "set", "jira.url", "https://example.atlassian.net")
+		out := issuegraphConfig(t, issuegraph, dir, "get", "jira.url")
 		if !strings.Contains(out, "https://example.atlassian.net") {
 			t.Errorf("expected jira URL in output: %s", out)
 		}
 	})
 
 	t.Run("config_set_and_get_linear_state_map_dotted_key", func(t *testing.T) {
-		bdConfig(t, bd, dir, "set", "linear.state_map.closed", "Done")
-		out := bdConfig(t, bd, dir, "get", "linear.state_map.closed")
+		issuegraphConfig(t, issuegraph, dir, "set", "linear.state_map.closed", "Done")
+		out := issuegraphConfig(t, issuegraph, dir, "get", "linear.state_map.closed")
 		if strings.TrimSpace(out) != "Done" {
 			t.Errorf("expected exact state_map value, got: %s", out)
 		}
@@ -118,7 +118,7 @@ func TestEmbeddedConfig(t *testing.T) {
 	// ===== List =====
 
 	t.Run("config_list", func(t *testing.T) {
-		out := bdConfig(t, bd, dir, "list")
+		out := issuegraphConfig(t, issuegraph, dir, "list")
 		// issue_prefix is always set by init
 		if !strings.Contains(out, "issue_prefix") {
 			t.Errorf("expected issue_prefix in list output: %s", out)
@@ -126,7 +126,7 @@ func TestEmbeddedConfig(t *testing.T) {
 	})
 
 	t.Run("config_list_json", func(t *testing.T) {
-		m := bdConfigListJSON(t, bd, dir)
+		m := issuegraphConfigListJSON(t, issuegraph, dir)
 		if _, ok := m["issue_prefix"]; !ok {
 			t.Error("expected issue_prefix in JSON config list")
 		}
@@ -139,21 +139,21 @@ func TestEmbeddedConfig(t *testing.T) {
 	// ===== Unset =====
 
 	t.Run("config_unset", func(t *testing.T) {
-		bdConfig(t, bd, dir, "set", "test.removeme", "temp")
+		issuegraphConfig(t, issuegraph, dir, "set", "test.removeme", "temp")
 		// Verify it exists
-		out := bdConfig(t, bd, dir, "get", "test.removeme")
+		out := issuegraphConfig(t, issuegraph, dir, "get", "test.removeme")
 		if !strings.Contains(out, "temp") {
 			t.Fatalf("expected 'temp' before unset: %s", out)
 		}
 		// Unset it
-		bdConfig(t, bd, dir, "unset", "test.removeme")
+		issuegraphConfig(t, issuegraph, dir, "unset", "test.removeme")
 		// Verify it's gone — get returns "(not set)" with exit 0
-		out = bdConfig(t, bd, dir, "get", "test.removeme")
+		out = issuegraphConfig(t, issuegraph, dir, "get", "test.removeme")
 		if !strings.Contains(out, "not set") {
 			t.Errorf("expected 'not set' after unset: %s", out)
 		}
 		// Verify it's gone from list
-		m := bdConfigListJSON(t, bd, dir)
+		m := issuegraphConfigListJSON(t, issuegraph, dir)
 		if _, ok := m["test.removeme"]; ok {
 			t.Error("expected test.removeme to be absent from config list after unset")
 		}
@@ -167,30 +167,30 @@ func TestEmbeddedConfig(t *testing.T) {
 
 	t.Run("config_get_missing_key", func(t *testing.T) {
 		// get on missing key returns "(not set)" with exit 0
-		out := bdConfig(t, bd, dir, "get", "nonexistent.key.xyz")
+		out := issuegraphConfig(t, issuegraph, dir, "get", "nonexistent.key.xyz")
 		if !strings.Contains(out, "not set") {
 			t.Errorf("expected 'not set' for missing key: %s", out)
 		}
 	})
 
 	t.Run("config_set_no_args", func(t *testing.T) {
-		bdConfigFail(t, bd, dir, "set")
+		issuegraphConfigFail(t, issuegraph, dir, "set")
 	})
 
 	t.Run("config_unset_no_args", func(t *testing.T) {
-		bdConfigFail(t, bd, dir, "unset")
+		issuegraphConfigFail(t, issuegraph, dir, "unset")
 	})
 }
 
 // TestEmbeddedConfigConcurrent exercises config operations concurrently.
 func TestEmbeddedConfigConcurrent(t *testing.T) {
-	if os.Getenv("BEADS_TEST_EMBEDDED_DOLT") != "1" {
-		t.Skip("set BEADS_TEST_EMBEDDED_DOLT=1 to run embedded dolt integration tests")
+	if os.Getenv("ISSUEGRAPH_TEST_EMBEDDED_DOLT") != "1" {
+		t.Skip("set ISSUEGRAPH_TEST_EMBEDDED_DOLT=1 to run embedded dolt integration tests")
 	}
 	t.Parallel()
 
-	bd := buildEmbeddedBD(t)
-	dir, _, _ := bdInit(t, bd, "--prefix", "cx")
+	issuegraph := buildEmbeddedBD(t)
+	dir, _, _ := issuegraphInit(t, issuegraph, "--prefix", "cx")
 
 	const numWorkers = 8
 
@@ -213,9 +213,9 @@ func TestEmbeddedConfigConcurrent(t *testing.T) {
 				key := fmt.Sprintf("worker%d.key%d", worker, i)
 				value := fmt.Sprintf("value-%d-%d", worker, i)
 
-				cmd := exec.Command(bd, "config", "set", key, value)
+				cmd := exec.Command(issuegraph, "config", "set", key, value)
 				cmd.Dir = dir
-				cmd.Env = bdEnv(dir)
+				cmd.Env = issuegraphEnv(dir)
 				out, err := cmd.CombinedOutput()
 				if err != nil {
 					r.err = fmt.Errorf("set %s: %v\n%s", key, err, out)
@@ -229,9 +229,9 @@ func TestEmbeddedConfigConcurrent(t *testing.T) {
 				key := fmt.Sprintf("worker%d.key%d", worker, i)
 				expected := fmt.Sprintf("value-%d-%d", worker, i)
 
-				cmd := exec.Command(bd, "config", "get", key)
+				cmd := exec.Command(issuegraph, "config", "get", key)
 				cmd.Dir = dir
-				cmd.Env = bdEnv(dir)
+				cmd.Env = issuegraphEnv(dir)
 				out, err := cmd.CombinedOutput()
 				if err != nil {
 					r.err = fmt.Errorf("get %s: %v\n%s", key, err, out)
@@ -246,9 +246,9 @@ func TestEmbeddedConfigConcurrent(t *testing.T) {
 			}
 
 			// List all config
-			cmd := exec.Command(bd, "config", "list", "--json")
+			cmd := exec.Command(issuegraph, "config", "list", "--json")
 			cmd.Dir = dir
-			cmd.Env = bdEnv(dir)
+			cmd.Env = issuegraphEnv(dir)
 			out, err := cmd.CombinedOutput()
 			if err != nil {
 				r.err = fmt.Errorf("list --json: %v\n%s", err, out)
@@ -269,7 +269,7 @@ func TestEmbeddedConfigConcurrent(t *testing.T) {
 
 	// Verify keys only for workers that succeeded (err==nil).
 	// With exclusive flock, some workers may fail with "one writer at a time".
-	m := bdConfigListJSON(t, bd, dir)
+	m := issuegraphConfigListJSON(t, issuegraph, dir)
 	var successCount int
 	for _, r := range results {
 		if r.err != nil {

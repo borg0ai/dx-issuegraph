@@ -10,11 +10,11 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/steveyegge/beads/internal/storage/embeddeddolt"
-	"github.com/steveyegge/beads/internal/storage/schema"
+	"github.com/borg0ai/dx-issuegraph/internal/storage/embeddeddolt"
+	"github.com/borg0ai/dx-issuegraph/internal/storage/schema"
 )
 
-// buildDataBehindEmbedded leaves the embedded database at beadsDir in the
+// buildDataBehindEmbedded leaves the embedded database at issuegraphDir in the
 // #6575 state: level with its own cached remotes/origin/main on SCHEMA (both
 // at latest-1, so the smart gate takes its equal-version first-mover path) and
 // BEHIND it by one pure DATA commit. extraLocalCommits > 0 additionally gives
@@ -26,12 +26,12 @@ import (
 // C1 and then rewinding local HEAD to C0 leaves the remote-tracking ref ahead
 // of the branch, which is exactly what a fetch-without-merge produces on a
 // clone; no second engine is needed.
-func buildDataBehindEmbedded(t *testing.T, beadsDir string, extraLocalCommits int) {
+func buildDataBehindEmbedded(t *testing.T, issuegraphDir string, extraLocalCommits int) {
 	t.Helper()
 	ctx := t.Context()
-	dataDir := filepath.Join(beadsDir, "embeddeddolt")
+	dataDir := filepath.Join(issuegraphDir, "embeddeddolt")
 
-	store, err := embeddeddolt.Open(ctx, beadsDir, "testdb", "main")
+	store, err := embeddeddolt.Open(ctx, issuegraphDir, "testdb", "main")
 	if err != nil {
 		t.Fatalf("Open (create): %v", err)
 	}
@@ -106,9 +106,9 @@ func assertAheadBehind(t *testing.T, db *sql.DB, wantAhead, wantBehind int) {
 
 // pendingMigrationStillPending fails unless the binary's latest migration is
 // still unapplied — i.e. the open under test did NOT migrate.
-func pendingMigrationStillPending(t *testing.T, beadsDir string) {
+func pendingMigrationStillPending(t *testing.T, issuegraphDir string) {
 	t.Helper()
-	db, cleanup, err := embeddeddolt.OpenSQL(t.Context(), filepath.Join(beadsDir, "embeddeddolt"), "testdb", "main")
+	db, cleanup, err := embeddeddolt.OpenSQL(t.Context(), filepath.Join(issuegraphDir, "embeddeddolt"), "testdb", "main")
 	if err != nil {
 		t.Fatalf("OpenSQL (verify): %v", err)
 	}
@@ -125,21 +125,21 @@ func pendingMigrationStillPending(t *testing.T, beadsDir string) {
 }
 
 // TestEmbeddedOpenForRemoteSync_DataBehind is the F1 regression test for
-// gastownhall/beads#6575: the refusal must not block its own prescribed
+// borg0ai/dx-issuegraph#6575: the refusal must not block its own prescribed
 // remedy.
 //
-// The data-behind stop tells the operator to run `bd dolt pull`. That command
+// The data-behind stop tells the operator to run `issuegraph dolt pull`. That command
 // opens the store, and a strict open re-hits the refusal that prescribed it, so
 // before this the refused clone had no in-band exit at all — on embedded there
 // is no external `dolt` binary either, leaving only
-// BD_ALLOW_REMOTE_MIGRATE=1, i.e. performing the migration the refusal exists
-// to prevent. This is the same deadlock #4566 broke for `bd dolt commit`, and
+// ISSUEGRAPH_ALLOW_REMOTE_MIGRATE=1, i.e. performing the migration the refusal exists
+// to prevent. This is the same deadlock #4566 broke for `issuegraph dolt commit`, and
 // the remote-sync open is its narrow twin.
 //
 // Both shapes are covered: strict-ancestor (ahead 0) and diverged (ahead 1).
 func TestEmbeddedOpenForRemoteSync_DataBehind(t *testing.T) {
-	if os.Getenv("BEADS_TEST_EMBEDDED_DOLT") != "1" {
-		t.Skip("set BEADS_TEST_EMBEDDED_DOLT=1 to run embedded dolt tests")
+	if os.Getenv("ISSUEGRAPH_TEST_EMBEDDED_DOLT") != "1" {
+		t.Skip("set ISSUEGRAPH_TEST_EMBEDDED_DOLT=1 to run embedded dolt tests")
 	}
 
 	for _, tc := range []struct {
@@ -156,12 +156,12 @@ func TestEmbeddedOpenForRemoteSync_DataBehind(t *testing.T) {
 			schema.SetForceAllowRemoteMigrate(false)
 
 			ctx := t.Context()
-			beadsDir := filepath.Join(t.TempDir(), ".beads")
-			buildDataBehindEmbedded(t, beadsDir, tc.extraLocalCommits)
+			issuegraphDir := filepath.Join(t.TempDir(), ".issuegraph")
+			buildDataBehindEmbedded(t, issuegraphDir, tc.extraLocalCommits)
 
 			// A strict open still refuses, and refuses for the data-behind
 			// reason (not some other fixture artifact).
-			gated, gateErr := embeddeddolt.Open(ctx, beadsDir, "testdb", "main")
+			gated, gateErr := embeddeddolt.Open(ctx, issuegraphDir, "testdb", "main")
 			if gateErr == nil {
 				gated.Close()
 				t.Fatal("Open of a data-behind, remote-backed DB = nil error, want the #6575 refusal")
@@ -177,14 +177,14 @@ func TestEmbeddedOpenForRemoteSync_DataBehind(t *testing.T) {
 				t.Errorf("DataDiverged = %v, want %v", rmErr.DataDiverged, tc.wantDiverged)
 			}
 
-			// ...and the remote-sync open — what `bd dolt pull` uses — gets
+			// ...and the remote-sync open — what `issuegraph dolt pull` uses — gets
 			// through it, without migrating.
-			syncStore, syncErr := embeddeddolt.OpenForRemoteSync(ctx, beadsDir, "testdb", "main")
+			syncStore, syncErr := embeddeddolt.OpenForRemoteSync(ctx, issuegraphDir, "testdb", "main")
 			if syncErr != nil {
 				t.Fatalf("OpenForRemoteSync of a data-behind DB = %v; the refusal must not block the pull it prescribes (#6575)", syncErr)
 			}
 			syncStore.Close()
-			pendingMigrationStillPending(t, beadsDir)
+			pendingMigrationStillPending(t, issuegraphDir)
 		})
 	}
 }
@@ -193,29 +193,29 @@ func TestEmbeddedOpenForRemoteSync_DataBehind(t *testing.T) {
 // the exemption above, which is the whole reason it is keyed on the gate's
 // REASON rather than being another blanket lenient open: a pull cannot resolve
 // a fork skew, a below-floor database or an opted-out blunt block, so it must
-// not be waved through them. Here BD_SMART_GATE=0 produces the blunt
+// not be waved through them. Here ISSUEGRAPH_SMART_GATE=0 produces the blunt
 // opted-out stop on the very same fixture that the data-behind case above
 // opens successfully.
 func TestEmbeddedOpenForRemoteSync_OtherRefusalsStayFatal(t *testing.T) {
-	if os.Getenv("BEADS_TEST_EMBEDDED_DOLT") != "1" {
-		t.Skip("set BEADS_TEST_EMBEDDED_DOLT=1 to run embedded dolt tests")
+	if os.Getenv("ISSUEGRAPH_TEST_EMBEDDED_DOLT") != "1" {
+		t.Skip("set ISSUEGRAPH_TEST_EMBEDDED_DOLT=1 to run embedded dolt tests")
 	}
 	t.Setenv(schema.AllowRemoteMigrateEnv, "0")
 	schema.SetForceAllowRemoteMigrate(false)
 
 	ctx := t.Context()
-	beadsDir := filepath.Join(t.TempDir(), ".beads")
+	issuegraphDir := filepath.Join(t.TempDir(), ".issuegraph")
 	// Build the fixture with the smart gate ON (the fixture helper's own
 	// Open must not be the thing that is opted out), then opt out for the
 	// probe below.
 	t.Setenv(schema.SmartGateEnv, "1")
-	buildDataBehindEmbedded(t, beadsDir, 0)
+	buildDataBehindEmbedded(t, issuegraphDir, 0)
 	t.Setenv(schema.SmartGateEnv, "0")
 
-	store, err := embeddeddolt.OpenForRemoteSync(ctx, beadsDir, "testdb", "main")
+	store, err := embeddeddolt.OpenForRemoteSync(ctx, issuegraphDir, "testdb", "main")
 	if err == nil {
 		store.Close()
-		t.Fatal("OpenForRemoteSync = nil error with BD_SMART_GATE=0; the exemption must apply to the data-behind reason only")
+		t.Fatal("OpenForRemoteSync = nil error with ISSUEGRAPH_SMART_GATE=0; the exemption must apply to the data-behind reason only")
 	}
 	var rmErr *schema.RemoteMigrateGateError
 	if !errors.As(err, &rmErr) {
@@ -227,16 +227,16 @@ func TestEmbeddedOpenForRemoteSync_OtherRefusalsStayFatal(t *testing.T) {
 }
 
 // TestEmbeddedLenientOpenWarning_DataBehind is the READ-path half of
-// gastownhall/beads#6575, and the half the write-path fix missed.
+// borg0ai/dx-issuegraph#6575, and the half the write-path fix missed.
 //
 // The lenient embedded opens do not fail on this refusal — they warn and carry
-// on — so the warning IS the entire user-facing contract for `bd list`,
-// `bd ready`, `bd show` (openReadOnlyCommand) and `bd dolt commit`
+// on — so the warning IS the entire user-facing contract for `issuegraph list`,
+// `issuegraph ready`, `issuegraph show` (openReadOnlyCommand) and `issuegraph dolt commit`
 // (openWorkingSetReconcile). Those are the first commands a 1.1-era upgrader
 // runs and the ones agents run constantly, and they printed the blunt #4259
-// coordination bullets: `bd migrate --force && bd dolt push`, which on a
+// coordination bullets: `issuegraph migrate --force && issuegraph dolt push`, which on a
 // data-behind clone applies the migration this stop exists to prevent and then
-// fails the push non-fast-forward, and `bd bootstrap`, which no-ops against an
+// fails the push non-fast-forward, and `issuegraph bootstrap`, which no-ops against an
 // existing workspace. A fence whose own signage pointed into the wedge.
 //
 // The assertions are deliberately two-sided — the pull must be present AND the
@@ -244,8 +244,8 @@ func TestEmbeddedOpenForRemoteSync_OtherRefusalsStayFatal(t *testing.T) {
 // "mentions the remedy somewhere" while still printing the bullets underneath
 // it.
 func TestEmbeddedLenientOpenWarning_DataBehind(t *testing.T) {
-	if os.Getenv("BEADS_TEST_EMBEDDED_DOLT") != "1" {
-		t.Skip("set BEADS_TEST_EMBEDDED_DOLT=1 to run embedded dolt tests")
+	if os.Getenv("ISSUEGRAPH_TEST_EMBEDDED_DOLT") != "1" {
+		t.Skip("set ISSUEGRAPH_TEST_EMBEDDED_DOLT=1 to run embedded dolt tests")
 	}
 
 	shapes := []struct {
@@ -268,20 +268,20 @@ func TestEmbeddedLenientOpenWarning_DataBehind(t *testing.T) {
 	}
 	intents := []struct {
 		name     string
-		open     func(t *testing.T, beadsDir string) (*embeddeddolt.EmbeddedDoltStore, error)
+		open     func(t *testing.T, issuegraphDir string) (*embeddeddolt.EmbeddedDoltStore, error)
 		modeText string
 	}{
 		{
-			name: "openReadOnlyCommand (bd list)",
-			open: func(t *testing.T, beadsDir string) (*embeddeddolt.EmbeddedDoltStore, error) {
-				return embeddeddolt.OpenForReadOnlyCommand(t.Context(), beadsDir, "testdb", "main")
+			name: "openReadOnlyCommand (issuegraph list)",
+			open: func(t *testing.T, issuegraphDir string) (*embeddeddolt.EmbeddedDoltStore, error) {
+				return embeddeddolt.OpenForReadOnlyCommand(t.Context(), issuegraphDir, "testdb", "main")
 			},
 			modeText: "Read-only command: continuing on schema v",
 		},
 		{
-			name: "openWorkingSetReconcile (bd dolt commit)",
-			open: func(t *testing.T, beadsDir string) (*embeddeddolt.EmbeddedDoltStore, error) {
-				return embeddeddolt.OpenForWorkingSetReconcile(t.Context(), beadsDir, "testdb", "main")
+			name: "openWorkingSetReconcile (issuegraph dolt commit)",
+			open: func(t *testing.T, issuegraphDir string) (*embeddeddolt.EmbeddedDoltStore, error) {
+				return embeddeddolt.OpenForWorkingSetReconcile(t.Context(), issuegraphDir, "testdb", "main")
 			},
 			modeText: "Working-set reconcile command: continuing on schema v",
 		},
@@ -294,24 +294,24 @@ func TestEmbeddedLenientOpenWarning_DataBehind(t *testing.T) {
 				t.Setenv(schema.SmartGateEnv, "1")
 				schema.SetForceAllowRemoteMigrate(false)
 
-				beadsDir := filepath.Join(t.TempDir(), ".beads")
-				buildDataBehindEmbedded(t, beadsDir, shape.extraLocalCommits)
+				issuegraphDir := filepath.Join(t.TempDir(), ".issuegraph")
+				buildDataBehindEmbedded(t, issuegraphDir, shape.extraLocalCommits)
 
 				var store *embeddeddolt.EmbeddedDoltStore
 				var openErr error
 				warning := captureStderr(t, func() {
-					store, openErr = intent.open(t, beadsDir)
+					store, openErr = intent.open(t, issuegraphDir)
 				})
 				if openErr != nil {
 					t.Fatalf("lenient open of a data-behind DB = %v; it must warn and continue", openErr)
 				}
 				store.Close()
-				pendingMigrationStillPending(t, beadsDir)
+				pendingMigrationStillPending(t, issuegraphDir)
 
 				for _, want := range []string{
 					schema.DataBehindRemedyCommand,
 					"This clone is BEHIND the remote",
-					"Do NOT use `bd migrate --force` to get past this",
+					"Do NOT use `issuegraph migrate --force` to get past this",
 					shape.wantShapeText,
 					intent.modeText,
 				} {
@@ -326,9 +326,9 @@ func TestEmbeddedLenientOpenWarning_DataBehind(t *testing.T) {
 				// The blunt #4259 coordination bullets, which ARE the #6575
 				// wedge when this is the refusal.
 				for _, unwanted := range []string{
-					"bd migrate --force && bd dolt push",
+					"issuegraph migrate --force && issuegraph dolt push",
 					"designated migrator (only ONE machine)",
-					"bd bootstrap",
+					"issuegraph bootstrap",
 				} {
 					if strings.Contains(warning, unwanted) {
 						t.Errorf("warning still prescribes %q on a data-behind clone; got:\n%s", unwanted, warning)
@@ -342,24 +342,24 @@ func TestEmbeddedLenientOpenWarning_DataBehind(t *testing.T) {
 // TestEmbeddedLenientOpenWarning_OtherRefusalsKeepBluntGuidance is the other
 // side of that fence. The data-behind body REPLACES the blunt coordination
 // bullets rather than decorating them, so it must not swallow them for the
-// refusals they are right for. BD_SMART_GATE=0 turns the same fixture into the
+// refusals they are right for. ISSUEGRAPH_SMART_GATE=0 turns the same fixture into the
 // blunt opted-out stop, where migrate-or-adopt genuinely is the decision.
 func TestEmbeddedLenientOpenWarning_OtherRefusalsKeepBluntGuidance(t *testing.T) {
-	if os.Getenv("BEADS_TEST_EMBEDDED_DOLT") != "1" {
-		t.Skip("set BEADS_TEST_EMBEDDED_DOLT=1 to run embedded dolt tests")
+	if os.Getenv("ISSUEGRAPH_TEST_EMBEDDED_DOLT") != "1" {
+		t.Skip("set ISSUEGRAPH_TEST_EMBEDDED_DOLT=1 to run embedded dolt tests")
 	}
 	t.Setenv(schema.AllowRemoteMigrateEnv, "0")
 	schema.SetForceAllowRemoteMigrate(false)
 
-	beadsDir := filepath.Join(t.TempDir(), ".beads")
+	issuegraphDir := filepath.Join(t.TempDir(), ".issuegraph")
 	t.Setenv(schema.SmartGateEnv, "1")
-	buildDataBehindEmbedded(t, beadsDir, 0)
+	buildDataBehindEmbedded(t, issuegraphDir, 0)
 	t.Setenv(schema.SmartGateEnv, "0")
 
 	var store *embeddeddolt.EmbeddedDoltStore
 	var openErr error
 	warning := captureStderr(t, func() {
-		store, openErr = embeddeddolt.OpenForReadOnlyCommand(t.Context(), beadsDir, "testdb", "main")
+		store, openErr = embeddeddolt.OpenForReadOnlyCommand(t.Context(), issuegraphDir, "testdb", "main")
 	})
 	if openErr != nil {
 		t.Fatalf("lenient open with the smart gate off = %v; it must warn and continue", openErr)
@@ -367,8 +367,8 @@ func TestEmbeddedLenientOpenWarning_OtherRefusalsKeepBluntGuidance(t *testing.T)
 	store.Close()
 
 	for _, want := range []string{
-		"designated migrator (only ONE machine): bd migrate --force && bd dolt push",
-		"every other clone (another already migrated): bd bootstrap",
+		"designated migrator (only ONE machine): issuegraph migrate --force && issuegraph dolt push",
+		"every other clone (another already migrated): issuegraph bootstrap",
 		"Read-only command: continuing on schema v",
 	} {
 		if !strings.Contains(warning, want) {

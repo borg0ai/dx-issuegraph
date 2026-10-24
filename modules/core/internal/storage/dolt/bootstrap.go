@@ -8,11 +8,11 @@ import (
 	"path/filepath"
 	"time"
 
-	"github.com/steveyegge/beads/internal/configfile"
-	"github.com/steveyegge/beads/internal/githooksenv"
-	"github.com/steveyegge/beads/internal/gittraceenv"
-	"github.com/steveyegge/beads/internal/lockfile"
-	"github.com/steveyegge/beads/internal/remotecache"
+	"github.com/borg0ai/dx-issuegraph/internal/configfile"
+	"github.com/borg0ai/dx-issuegraph/internal/githooksenv"
+	"github.com/borg0ai/dx-issuegraph/internal/gittraceenv"
+	"github.com/borg0ai/dx-issuegraph/internal/lockfile"
+	"github.com/borg0ai/dx-issuegraph/internal/remotecache"
 )
 
 // staleLockAge is the maximum age of a lock file before it's considered stale.
@@ -20,14 +20,14 @@ import (
 const staleLockAge = 5 * time.Minute
 
 // BootstrapFromRemote clones a Dolt database from a remote URL.
-// This is used when no local .beads/dolt/ exists but config.yaml has
+// This is used when no local .issuegraph/dolt/ exists but config.yaml has
 // sync.remote configured, enabling cold-start from any Dolt-compatible
 // remote (git, DoltHub, S3, GCS, file, etc.).
 //
 // dolt clone creates <target>/.dolt/ directly (no database subdirectory),
 // but the embedded driver expects <doltDir>/<database>/.dolt/. To reconcile,
 // we clone into <doltDir>/<database>/ so the embedded driver finds it.
-// Uses the default database name ("beads"). Prefer BootstrapFromRemoteWithDB
+// Uses the default database name ("issuegraph"). Prefer BootstrapFromRemoteWithDB
 // when a configured database name is available.
 //
 // Returns true if the clone was performed, false if skipped (dolt dir already exists).
@@ -133,15 +133,15 @@ func removeFailedCloneTargetWithRetry(path string) (bool, error) {
 
 func formatFailedCloneTargetError(cloneErr error, output []byte, cloneTarget string, cleaned bool, cleanupErr error) error {
 	if cleanupErr == nil && cleaned {
-		return fmt.Errorf("dolt clone failed: %w\nOutput: %s\nCleaned up failed clone target %q; fix the clone error above and retry `bd bootstrap`", cloneErr, output, cloneTarget)
+		return fmt.Errorf("dolt clone failed: %w\nOutput: %s\nCleaned up failed clone target %q; fix the clone error above and retry `issuegraph bootstrap`", cloneErr, output, cloneTarget)
 	}
 	if cleanupErr == nil {
 		return fmt.Errorf("dolt clone failed: %w\nOutput: %s", cloneErr, output)
 	}
 	if !cleaned {
-		return fmt.Errorf("dolt clone failed: %w\nOutput: %s\nCould not inspect failed clone target %q before cleanup: %v\nOn Windows this usually means a dolt or bd process, or antivirus scanner, still has a file handle open under `.dolt/noms/LOCK`. Stop stuck dolt/bd processes, wait a moment, delete the directory manually if it remains, then retry `bd bootstrap`", cloneErr, output, cloneTarget, cleanupErr)
+		return fmt.Errorf("dolt clone failed: %w\nOutput: %s\nCould not inspect failed clone target %q before cleanup: %v\nOn Windows this usually means a dolt or issuegraph process, or antivirus scanner, still has a file handle open under `.dolt/noms/LOCK`. Stop stuck dolt/issuegraph processes, wait a moment, delete the directory manually if it remains, then retry `issuegraph bootstrap`", cloneErr, output, cloneTarget, cleanupErr)
 	}
-	return fmt.Errorf("dolt clone failed: %w\nOutput: %s\nCould not clean up failed clone target %q after retrying: %v\nOn Windows this usually means a dolt or bd process, or antivirus scanner, still has a file handle open under `.dolt/noms/LOCK`. Stop stuck dolt/bd processes, wait a moment, delete the directory manually if it remains, then retry `bd bootstrap`", cloneErr, output, cloneTarget, cleanupErr)
+	return fmt.Errorf("dolt clone failed: %w\nOutput: %s\nCould not clean up failed clone target %q after retrying: %v\nOn Windows this usually means a dolt or issuegraph process, or antivirus scanner, still has a file handle open under `.dolt/noms/LOCK`. Stop stuck dolt/issuegraph processes, wait a moment, delete the directory manually if it remains, then retry `issuegraph bootstrap`", cloneErr, output, cloneTarget, cleanupErr)
 }
 
 func doltCloneArgs(remoteURL, target string) []string {
@@ -169,7 +169,7 @@ func pathExists(path string) bool {
 // doltExists checks if a Dolt database directory exists
 func doltExists(doltPath string) bool {
 	// The embedded Dolt driver creates the database in a subdirectory
-	// named after the database (default: "beads"), with .dolt inside that.
+	// named after the database (default: "issuegraph"), with .dolt inside that.
 	// So we check for any subdirectory containing a .dolt directory.
 	entries, err := os.ReadDir(doltPath)
 	if err != nil {

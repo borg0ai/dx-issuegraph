@@ -2,7 +2,7 @@
 // for the external `dolt` CLI executable that managed proxied-server mode
 // spawns. It exists as a stdlib-only leaf package (no dependency on
 // internal/doltserver or internal/config) so it can be imported early — from
-// preflight checks that must run before any beads state is written — without
+// preflight checks that must run before any issuegraph state is written — without
 // dragging in the rest of the storage stack.
 //
 // The package intentionally separates three concerns that used to be

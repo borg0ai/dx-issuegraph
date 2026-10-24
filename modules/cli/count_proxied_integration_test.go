@@ -12,30 +12,30 @@ import (
 func TestProxiedServerCount(t *testing.T) {
 	requireSharedProxiedServer(t)
 	t.Parallel()
-	bd := buildEmbeddedBD(t)
-	p := newSharedProxiedProject(t, bd, "cnt")
+	issuegraph := buildEmbeddedBD(t)
+	p := newSharedProxiedProject(t, issuegraph, "cnt")
 
 	// Seed the same fixture set as TestEmbeddedCount so counts line up with the
 	// proxied list cardinality parity checks below.
-	bdProxiedCreate(t, bd, p.dir, "Count bug one", "--type", "bug", "--priority", "1", "--assignee", "alice")
-	bdProxiedCreate(t, bd, p.dir, "Count bug two", "--type", "bug", "--priority", "2", "--assignee", "bob", "--description", "has a description")
-	bdProxiedCreate(t, bd, p.dir, "Count task one", "--type", "task", "--priority", "3", "--assignee", "alice")
-	bdProxiedCreate(t, bd, p.dir, "Count feature one", "--type", "feature", "--priority", "1")
-	closedIssue := bdProxiedCreate(t, bd, p.dir, "Count closed one", "--type", "task", "--priority", "2", "--assignee", "alice")
+	issuegraphProxiedCreate(t, issuegraph, p.dir, "Count bug one", "--type", "bug", "--priority", "1", "--assignee", "alice")
+	issuegraphProxiedCreate(t, issuegraph, p.dir, "Count bug two", "--type", "bug", "--priority", "2", "--assignee", "bob", "--description", "has a description")
+	issuegraphProxiedCreate(t, issuegraph, p.dir, "Count task one", "--type", "task", "--priority", "3", "--assignee", "alice")
+	issuegraphProxiedCreate(t, issuegraph, p.dir, "Count feature one", "--type", "feature", "--priority", "1")
+	closedIssue := issuegraphProxiedCreate(t, issuegraph, p.dir, "Count closed one", "--type", "task", "--priority", "2", "--assignee", "alice")
 	// --force: closedIssue is assigned to alice, and the close-authority guard
 	// refuses a cross-actor close (test actor != alice) without it.
-	if out, err := bdProxiedRun(t, bd, p.dir, "close", closedIssue.ID, "--force"); err != nil {
+	if out, err := issuegraphProxiedRun(t, issuegraph, p.dir, "close", closedIssue.ID, "--force"); err != nil {
 		t.Fatalf("close %s: %v\n%s", closedIssue.ID, err, out)
 	}
-	bdProxiedCreate(t, bd, p.dir, "Count labeled", "--type", "task", "--label", "frontend", "--label", "urgent")
-	bdProxiedCreate(t, bd, p.dir, "Count labeled two", "--type", "task", "--label", "backend")
-	bdProxiedCreate(t, bd, p.dir, "Count notes issue", "--type", "task", "--description", "notes keyword here")
-	bdProxiedCreate(t, bd, p.dir, "Count metadata issue", "--type", "task", "--metadata", `{"count_scope":"matching"}`)
+	issuegraphProxiedCreate(t, issuegraph, p.dir, "Count labeled", "--type", "task", "--label", "frontend", "--label", "urgent")
+	issuegraphProxiedCreate(t, issuegraph, p.dir, "Count labeled two", "--type", "task", "--label", "backend")
+	issuegraphProxiedCreate(t, issuegraph, p.dir, "Count notes issue", "--type", "task", "--description", "notes keyword here")
+	issuegraphProxiedCreate(t, issuegraph, p.dir, "Count metadata issue", "--type", "task", "--metadata", `{"count_scope":"matching"}`)
 
 	// countInt runs "count <args>" and parses the plain integer stdout.
 	countInt := func(t *testing.T, args ...string) int {
 		t.Helper()
-		out, err := bdProxiedRun(t, bd, p.dir, append([]string{"count"}, args...)...)
+		out, err := issuegraphProxiedRun(t, issuegraph, p.dir, append([]string{"count"}, args...)...)
 		if err != nil {
 			t.Fatalf("count %v: %v\n%s", args, err, out)
 		}
@@ -49,7 +49,7 @@ func TestProxiedServerCount(t *testing.T) {
 	// countJSON runs "count --json <args>" and parses the object.
 	countJSON := func(t *testing.T, args ...string) map[string]interface{} {
 		t.Helper()
-		out, err := bdProxiedRun(t, bd, p.dir, append([]string{"count", "--json"}, args...)...)
+		out, err := issuegraphProxiedRun(t, issuegraph, p.dir, append([]string{"count", "--json"}, args...)...)
 		if err != nil {
 			t.Fatalf("count --json %v: %v\n%s", args, err, out)
 		}
@@ -73,7 +73,7 @@ func TestProxiedServerCount(t *testing.T) {
 	// listCount returns the cardinality of "list --all --limit 0 <filters>",
 	// the durable-only tier that "count" (without --include-infra) counts.
 	listCount := func(filters ...string) int {
-		return len(bdProxiedListJSON(t, bd, p, append([]string{"--all", "--limit", "0"}, filters...)...))
+		return len(issuegraphProxiedListJSON(t, issuegraph, p, append([]string{"--all", "--limit", "0"}, filters...)...))
 	}
 
 	// group names present in a "count --by-* --json" result.
@@ -378,7 +378,7 @@ func TestProxiedServerCount(t *testing.T) {
 	// ===== Error: multiple --by-* flags =====
 
 	t.Run("error_multiple_by_flags", func(t *testing.T) {
-		out, err := bdProxiedRun(t, bd, p.dir, "count", "--by-status", "--by-priority")
+		out, err := issuegraphProxiedRun(t, issuegraph, p.dir, "count", "--by-status", "--by-priority")
 		if err == nil {
 			t.Fatalf("expected error, got success: %s", out)
 		}
@@ -402,7 +402,7 @@ func TestProxiedServerCount(t *testing.T) {
 	// ===== Plain text output =====
 
 	t.Run("plain_text_output", func(t *testing.T) {
-		out, err := bdProxiedRun(t, bd, p.dir, "count", "--status", "open")
+		out, err := issuegraphProxiedRun(t, issuegraph, p.dir, "count", "--status", "open")
 		if err != nil {
 			t.Fatalf("count --status open: %v\n%s", err, out)
 		}
@@ -419,7 +419,7 @@ func TestProxiedServerCount(t *testing.T) {
 	})
 
 	t.Run("plain_text_grouped_output", func(t *testing.T) {
-		out, err := bdProxiedRun(t, bd, p.dir, "count", "--by-status")
+		out, err := issuegraphProxiedRun(t, issuegraph, p.dir, "count", "--by-status")
 		if err != nil {
 			t.Fatalf("count --by-status: %v\n%s", err, out)
 		}
@@ -435,7 +435,7 @@ func TestProxiedServerCount(t *testing.T) {
 	// ===== ID filter =====
 
 	t.Run("filter_by_id", func(t *testing.T) {
-		issue := bdProxiedCreate(t, bd, p.dir, "ID filter target", "--type", "task")
+		issue := issuegraphProxiedCreate(t, issuegraph, p.dir, "ID filter target", "--type", "task")
 		if got := countJSONInt(t, "--id", issue.ID); got != 1 {
 			t.Errorf("expected exactly 1 issue matching ID, got %d", got)
 		}
@@ -443,32 +443,32 @@ func TestProxiedServerCount(t *testing.T) {
 }
 
 // TestProxiedServerCountIncludeInfra is the proxied-server parity for GH#4387:
-// `bd count --include-infra <filters>` must return exactly the cardinality of
-// `bd list --include-infra <filters> --all`, including the wisps tier (no_history
-// + ephemeral beads). Without the flag, count keeps durable-only semantics.
+// `issuegraph count --include-infra <filters>` must return exactly the cardinality of
+// `issuegraph list --include-infra <filters> --all`, including the wisps tier (no_history
+// + ephemeral issuegraph). Without the flag, count keeps durable-only semantics.
 func TestProxiedServerCountIncludeInfra(t *testing.T) {
 	requireSharedProxiedServer(t)
 	t.Parallel()
-	bd := buildEmbeddedBD(t)
-	p := newSharedProxiedProject(t, bd, "cci")
+	issuegraph := buildEmbeddedBD(t)
+	p := newSharedProxiedProject(t, issuegraph, "cci")
 
 	// Durable issues tier.
-	bdProxiedCreate(t, bd, p.dir, "Infra durable task one", "--type", "task")
-	bdProxiedCreate(t, bd, p.dir, "Infra durable task two", "--type", "task")
-	bdProxiedCreate(t, bd, p.dir, "Infra durable bug", "--type", "bug")
-	closedIssue := bdProxiedCreate(t, bd, p.dir, "Infra durable task closed", "--type", "task")
-	if out, err := bdProxiedRun(t, bd, p.dir, "close", closedIssue.ID, "--force"); err != nil {
+	issuegraphProxiedCreate(t, issuegraph, p.dir, "Infra durable task one", "--type", "task")
+	issuegraphProxiedCreate(t, issuegraph, p.dir, "Infra durable task two", "--type", "task")
+	issuegraphProxiedCreate(t, issuegraph, p.dir, "Infra durable bug", "--type", "bug")
+	closedIssue := issuegraphProxiedCreate(t, issuegraph, p.dir, "Infra durable task closed", "--type", "task")
+	if out, err := issuegraphProxiedRun(t, issuegraph, p.dir, "close", closedIssue.ID, "--force"); err != nil {
 		t.Fatalf("close %s: %v\n%s", closedIssue.ID, err, out)
 	}
-	// Wisps tier: no_history beads are durable work that list --include-infra
-	// returns; ephemeral beads are GC-eligible wisps.
-	bdProxiedCreate(t, bd, p.dir, "Infra nohistory task one", "--type", "task", "--no-history")
-	bdProxiedCreate(t, bd, p.dir, "Infra nohistory task two", "--type", "task", "--no-history")
-	bdProxiedCreate(t, bd, p.dir, "Infra ephemeral task", "--type", "task", "--ephemeral")
+	// Wisps tier: no_history issuegraph are durable work that list --include-infra
+	// returns; ephemeral issuegraph are GC-eligible wisps.
+	issuegraphProxiedCreate(t, issuegraph, p.dir, "Infra nohistory task one", "--type", "task", "--no-history")
+	issuegraphProxiedCreate(t, issuegraph, p.dir, "Infra nohistory task two", "--type", "task", "--no-history")
+	issuegraphProxiedCreate(t, issuegraph, p.dir, "Infra ephemeral task", "--type", "task", "--ephemeral")
 
 	countOf := func(t *testing.T, args ...string) int {
 		t.Helper()
-		out, err := bdProxiedRun(t, bd, p.dir, append([]string{"count", "--json"}, args...)...)
+		out, err := issuegraphProxiedRun(t, issuegraph, p.dir, append([]string{"count", "--json"}, args...)...)
 		if err != nil {
 			t.Fatalf("count --json %v: %v\n%s", args, err, out)
 		}
@@ -480,7 +480,7 @@ func TestProxiedServerCountIncludeInfra(t *testing.T) {
 	}
 	listCardinality := func(filters ...string) int {
 		full := append([]string{"--include-infra", "--all", "--limit", "0"}, filters...)
-		return len(bdProxiedListJSON(t, bd, p, full...))
+		return len(issuegraphProxiedListJSON(t, issuegraph, p, full...))
 	}
 
 	t.Run("default_stays_durable_only", func(t *testing.T) {
@@ -513,7 +513,7 @@ func TestProxiedServerCountIncludeInfra(t *testing.T) {
 	})
 
 	t.Run("include_infra_grouped_by_type", func(t *testing.T) {
-		out, err := bdProxiedRun(t, bd, p.dir, "count", "--json", "--include-infra", "--by-type")
+		out, err := issuegraphProxiedRun(t, issuegraph, p.dir, "count", "--json", "--include-infra", "--by-type")
 		if err != nil {
 			t.Fatalf("count --include-infra --by-type: %v\n%s", err, out)
 		}
@@ -539,7 +539,7 @@ func TestProxiedServerCountIncludeInfra(t *testing.T) {
 	})
 
 	t.Run("grouped_without_flag_stays_durable_only", func(t *testing.T) {
-		out, err := bdProxiedRun(t, bd, p.dir, "count", "--json", "--by-type")
+		out, err := issuegraphProxiedRun(t, issuegraph, p.dir, "count", "--json", "--by-type")
 		if err != nil {
 			t.Fatalf("count --by-type: %v\n%s", err, out)
 		}

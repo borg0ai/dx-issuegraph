@@ -8,10 +8,10 @@ import (
 	"path/filepath"
 	"strings"
 
-	"github.com/steveyegge/beads/internal/beads"
-	"github.com/steveyegge/beads/internal/config"
-	"github.com/steveyegge/beads/internal/configfile"
-	"github.com/steveyegge/beads/internal/doltserver"
+	"github.com/borg0ai/dx-issuegraph/internal/config"
+	"github.com/borg0ai/dx-issuegraph/internal/configfile"
+	"github.com/borg0ai/dx-issuegraph/internal/doltserver"
+	"github.com/borg0ai/dx-issuegraph/internal/issuegraph"
 )
 
 // agentDocFiles returns the list of documentation files to check, including
@@ -35,16 +35,16 @@ func agentDocFiles(repoPath string) []string {
 	return files
 }
 
-// CheckLegacyBeadsSlashCommands detects old /beads:* slash commands in documentation
-// and recommends migration to bd prime hooks for better token efficiency.
+// CheckLegacyIssueGraphSlashCommands detects old /issuegraph:* slash commands in documentation
+// and recommends migration to issuegraph prime hooks for better token efficiency.
 //
-// Old pattern: /beads:quickstart, /beads:ready (~10.5k tokens per session)
-// New pattern: bd prime hooks (~50-2k tokens per session)
-func CheckLegacyBeadsSlashCommands(repoPath string) DoctorCheck {
+// Old pattern: /issuegraph:quickstart, /issuegraph:ready (~10.5k tokens per session)
+// New pattern: issuegraph prime hooks (~50-2k tokens per session)
+func CheckLegacyIssueGraphSlashCommands(repoPath string) DoctorCheck {
 	docFiles := agentDocFiles(repoPath)
 
 	var filesWithLegacyCommands []string
-	legacyPattern := "/beads:"
+	legacyPattern := "/issuegraph:"
 
 	for _, docFile := range docFiles {
 		content, err := os.ReadFile(docFile) // #nosec G304 - controlled paths from repoPath
@@ -61,46 +61,46 @@ func CheckLegacyBeadsSlashCommands(repoPath string) DoctorCheck {
 		return DoctorCheck{
 			Name:    "Legacy Commands",
 			Status:  StatusOK,
-			Message: "No legacy beads slash commands detected",
+			Message: "No legacy issuegraph slash commands detected",
 		}
 	}
 
 	return DoctorCheck{
 		Name:    "Legacy Commands",
 		Status:  StatusWarning,
-		Message: fmt.Sprintf("Old beads integration detected in %s", strings.Join(filesWithLegacyCommands, ", ")),
-		Detail: "Found: /beads:* slash command references (deprecated)\n" +
+		Message: fmt.Sprintf("Old issuegraph integration detected in %s", strings.Join(filesWithLegacyCommands, ", ")),
+		Detail: "Found: /issuegraph:* slash command references (deprecated)\n" +
 			"  These commands are token-inefficient (~10.5k tokens per session)",
-		Fix: "Migrate to bd prime hooks for better token efficiency:\n" +
+		Fix: "Migrate to issuegraph prime hooks for better token efficiency:\n" +
 			"\n" +
 			"Migration Steps:\n" +
-			"  1. Run 'bd setup claude' to add SessionStart hooks\n" +
+			"  1. Run 'issuegraph setup claude' to add SessionStart hooks\n" +
 			"  2. Update " + config.AgentsFile() + "/CLAUDE.md:\n" +
-			"     - Remove /beads:* slash command references\n" +
-			"     - Add: \"Run 'bd prime' for workflow context\" (for users without hooks)\n" +
+			"     - Remove /issuegraph:* slash command references\n" +
+			"     - Add: \"Run 'issuegraph prime' for workflow context\" (for users without hooks)\n" +
 			"\n" +
 			"Benefits:\n" +
 			"  • MCP mode: ~50 tokens vs ~10.5k for full MCP scan (99% reduction)\n" +
 			"  • CLI mode: ~1-2k tokens with automatic context recovery\n" +
 			"  • Hooks auto-refresh context on session start and before compaction\n" +
 			"\n" +
-			"See: bd setup claude --help",
+			"See: issuegraph setup claude --help",
 	}
 }
 
 // CheckLegacyMCPToolReferences detects direct MCP tool name references in documentation
-// (e.g., mcp__beads_beads__list, mcp__plugin_beads_beads__show) and recommends
-// migration to bd prime hooks for better token efficiency.
+// (e.g., mcp__issuegraph_issuegraph__list, mcp__plugin_issuegraph_issuegraph__show) and recommends
+// migration to issuegraph prime hooks for better token efficiency.
 //
 // Old pattern: Document MCP tool names for direct tool calls (~10.5k tokens per scan)
-// New pattern: bd prime hooks with CLI commands (~50-2k tokens)
+// New pattern: issuegraph prime hooks with CLI commands (~50-2k tokens)
 func CheckLegacyMCPToolReferences(repoPath string) DoctorCheck {
 	docFiles := agentDocFiles(repoPath)
 
 	mcpPatterns := []string{
-		"mcp__beads_beads__",
-		"mcp__plugin_beads_beads__",
-		"mcp_beads_",
+		"mcp__issuegraph_issuegraph__",
+		"mcp__plugin_issuegraph_issuegraph__",
+		"mcp_issuegraph_",
 	}
 
 	var filesWithMCPRefs []string
@@ -131,28 +131,28 @@ func CheckLegacyMCPToolReferences(repoPath string) DoctorCheck {
 		Name:    "MCP Tool References",
 		Status:  StatusWarning,
 		Message: fmt.Sprintf("MCP tool references found in %s", strings.Join(filesWithMCPRefs, ", ")),
-		Detail: "Found: Direct MCP tool name references (e.g., mcp__beads_beads__list)\n" +
+		Detail: "Found: Direct MCP tool name references (e.g., mcp__issuegraph_issuegraph__list)\n" +
 			"  MCP tool calls consume ~10.5k tokens per session for tool scanning",
-		Fix: "Migrate to bd prime hooks for better token efficiency:\n" +
+		Fix: "Migrate to issuegraph prime hooks for better token efficiency:\n" +
 			"\n" +
 			"Migration Steps:\n" +
-			"  1. Run 'bd setup claude' to add SessionStart hooks\n" +
+			"  1. Run 'issuegraph setup claude' to add SessionStart hooks\n" +
 			"  2. Replace MCP tool references with CLI commands:\n" +
-			"     - mcp__beads_beads__list  → bd list\n" +
-			"     - mcp__beads_beads__show  → bd show <id>\n" +
-			"     - mcp__beads_beads__ready → bd ready\n" +
-			"  3. bd prime hooks auto-inject context on session start\n" +
+			"     - mcp__issuegraph_issuegraph__list  → issuegraph list\n" +
+			"     - mcp__issuegraph_issuegraph__show  → issuegraph show <id>\n" +
+			"     - mcp__issuegraph_issuegraph__ready → issuegraph ready\n" +
+			"  3. issuegraph prime hooks auto-inject context on session start\n" +
 			"\n" +
 			"Benefits:\n" +
-			"  • bd prime + hooks: ~50-2k tokens vs ~10.5k for MCP tool scan\n" +
+			"  • issuegraph prime + hooks: ~50-2k tokens vs ~10.5k for MCP tool scan\n" +
 			"  • Automatic context recovery on session start and compaction\n" +
 			"\n" +
-			"See: bd setup claude --help",
+			"See: issuegraph setup claude --help",
 	}
 }
 
 // CheckAgentDocumentation checks if agent documentation (AGENTS.md or CLAUDE.md) exists
-// and recommends adding it if missing, suggesting bd onboard or bd setup claude.
+// and recommends adding it if missing, suggesting issuegraph onboard or issuegraph setup claude.
 // Also supports local-only variants (claude.local.md) that are gitignored.
 func CheckAgentDocumentation(repoPath string) DoctorCheck {
 	docFiles := agentDocFiles(repoPath)
@@ -179,25 +179,25 @@ func CheckAgentDocumentation(repoPath string) DoctorCheck {
 		Detail: "Missing: " + config.AgentsFile() + " or CLAUDE.md\n" +
 			"  Documenting workflow helps AI agents work more effectively",
 		Fix: "Add agent documentation:\n" +
-			"  • Run 'bd onboard' to create " + config.AgentsFile() + " with workflow guidance\n" +
-			"  • Or run 'bd setup claude' to add Claude-specific documentation\n" +
+			"  • Run 'issuegraph onboard' to create " + config.AgentsFile() + " with workflow guidance\n" +
+			"  • Or run 'issuegraph setup claude' to add Claude-specific documentation\n" +
 			"\n" +
 			"For local-only documentation (not committed to repo):\n" +
 			"  • Create claude.local.md or .claude/claude.local.md\n" +
 			"  • Add 'claude.local.md' to your .gitignore\n" +
 			"\n" +
-			"Recommended: Include bd workflow in your project documentation so\n" +
+			"Recommended: Include issuegraph workflow in your project documentation so\n" +
 			"AI agents understand how to track issues and manage dependencies",
 	}
 }
 
-// stripBeadsIntegrationSection removes the <!-- BEGIN BEADS INTEGRATION ... -->
-// ... <!-- END BEADS INTEGRATION --> block (plus an optional trailing newline)
+// stripIssueGraphIntegrationSection removes the <!-- BEGIN ISSUEGRAPH INTEGRATION ... -->
+// ... <!-- END ISSUEGRAPH INTEGRATION --> block (plus an optional trailing newline)
 // so the remaining content represents user-authored material. Returns the input
 // unchanged if no well-formed marker pair is found.
-func stripBeadsIntegrationSection(content string) string {
-	const beginPrefix = "<!-- BEGIN BEADS INTEGRATION"
-	const endMarker = "<!-- END BEADS INTEGRATION -->"
+func stripIssueGraphIntegrationSection(content string) string {
+	const beginPrefix = "<!-- BEGIN ISSUEGRAPH INTEGRATION"
+	const endMarker = "<!-- END ISSUEGRAPH INTEGRATION -->"
 
 	beginIdx := strings.Index(content, beginPrefix)
 	if beginIdx == -1 {
@@ -215,12 +215,12 @@ func stripBeadsIntegrationSection(content string) string {
 }
 
 // normalizeUserAuthored canonicalizes content for divergence comparison:
-// strips the managed beads section, normalizes line endings, and collapses
+// strips the managed issuegraph section, normalizes line endings, and collapses
 // trailing whitespace. Leading/trailing blank lines are removed so cosmetic
 // reformatting (e.g. an extra newline at EOF) does not flag as divergence.
 func normalizeUserAuthored(content string) string {
 	content = strings.ReplaceAll(content, "\r\n", "\n")
-	content = stripBeadsIntegrationSection(content)
+	content = stripIssueGraphIntegrationSection(content)
 	lines := strings.Split(content, "\n")
 	for i, ln := range lines {
 		lines[i] = strings.TrimRight(ln, " \t")
@@ -256,9 +256,9 @@ func sameInode(a, b string) (bool, error) {
 
 // CheckAgentDocDivergence detects when AGENTS.md and CLAUDE.md exist as
 // independent regular files whose user-authored regions (everything outside
-// the BEGIN/END BEADS INTEGRATION markers) have drifted apart. Hand-edits to
+// the BEGIN/END ISSUEGRAPH INTEGRATION markers) have drifted apart. Hand-edits to
 // only one of the pair are a common source of inconsistency; the warning
-// recommends symlinking, regenerating via bd setup, or reconciling manually.
+// recommends symlinking, regenerating via issuegraph setup, or reconciling manually.
 //
 // Skipped when:
 //   - Either file is missing
@@ -341,7 +341,7 @@ func CheckAgentDocDivergence(repoPath string) DoctorCheck {
 		Status:  StatusWarning,
 		Message: fmt.Sprintf("%s and CLAUDE.md user-authored content has diverged", agentsFile),
 		Detail: "Both files exist as independent regular files (not symlinked, different inodes),\n" +
-			"  but their content outside the <!-- BEGIN/END BEADS INTEGRATION --> markers differs.\n" +
+			"  but their content outside the <!-- BEGIN/END ISSUEGRAPH INTEGRATION --> markers differs.\n" +
 			"  Hand-edits to only one of the pair are a common cause.",
 		Fix: "Reconcile the two files using one of:\n" +
 			"\n" +
@@ -350,7 +350,7 @@ func CheckAgentDocDivergence(repoPath string) DoctorCheck {
 			"\n" +
 			"  (b) Regenerate the managed sections (preserves user-authored content\n" +
 			"      from AGENTS.md as the source of truth):\n" +
-			"      bd setup claude && bd setup codex\n" +
+			"      issuegraph setup claude && issuegraph setup codex\n" +
 			"\n" +
 			"  (c) Reconcile manually — diff the files and copy the intended\n" +
 			"      user-authored content into both:\n" +
@@ -367,10 +367,10 @@ func CheckAgentDocDivergence(repoPath string) DoctorCheck {
 // actually exists on disk. For Dolt backends, data is on the server. For legacy
 // backends, this checks that .db files match the configuration.
 func CheckDatabaseConfig(repoPath string) DoctorCheck {
-	beadsDir := ResolveBeadsDirForRepo(repoPath)
+	issuegraphDir := ResolveIssueGraphDirForRepo(repoPath)
 
 	// Load config
-	cfg, err := configfile.Load(beadsDir)
+	cfg, err := configfile.Load(issuegraphDir)
 	if err != nil || cfg == nil {
 		// No config or error reading - use defaults
 		return DoctorCheck{
@@ -393,10 +393,10 @@ func CheckDatabaseConfig(repoPath string) DoctorCheck {
 
 	// Check if configured database exists
 	if cfg.Database != "" {
-		dbPath := cfg.DatabasePath(beadsDir)
+		dbPath := cfg.DatabasePath(issuegraphDir)
 		if _, err := os.Stat(dbPath); os.IsNotExist(err) {
 			// Check if other .db files exist
-			entries, _ := os.ReadDir(beadsDir) // Best effort: nil entries means no legacy files to check
+			entries, _ := os.ReadDir(issuegraphDir) // Best effort: nil entries means no legacy files to check
 			var otherDBs []string
 			for _, entry := range entries {
 				if !entry.IsDir() && strings.HasSuffix(entry.Name(), ".db") {
@@ -423,32 +423,32 @@ func CheckDatabaseConfig(repoPath string) DoctorCheck {
 		Status:  StatusWarning,
 		Message: "Configuration mismatch detected",
 		Detail:  strings.Join(issues, "\n  "),
-		Fix: "Run 'bd doctor --fix' to auto-detect and fix mismatches, or manually:\n" +
+		Fix: "Run 'issuegraph doctor --fix' to auto-detect and fix mismatches, or manually:\n" +
 			"  1. Check which files are actually being used\n" +
 			"  2. Update metadata.json to match the actual filenames\n" +
 			"  3. Or rename the files to match the configuration",
 	}
 }
 
-// CheckFreshClone detects if this is a fresh clone that needs 'bd init'.
+// CheckFreshClone detects if this is a fresh clone that needs 'issuegraph init'.
 // A fresh clone has legacy JSONL with issues but no database (Dolt or SQLite).
 func CheckFreshClone(repoPath string) DoctorCheck {
-	backend, beadsDir := getBackendAndBeadsDir(repoPath)
+	backend, issuegraphDir := getBackendAndIssueGraphDir(repoPath)
 
-	// Check if .beads/ exists
-	if _, err := os.Stat(beadsDir); os.IsNotExist(err) {
+	// Check if .issuegraph/ exists
+	if _, err := os.Stat(issuegraphDir); os.IsNotExist(err) {
 		return DoctorCheck{
 			Name:    "Fresh Clone",
 			Status:  StatusOK,
-			Message: "N/A (no .beads directory)",
+			Message: "N/A (no .issuegraph directory)",
 		}
 	}
 
 	// Find the JSONL file
 	var jsonlPath string
 	var jsonlName string
-	for _, name := range []string{"issues.jsonl", "beads.jsonl"} {
-		testPath := filepath.Join(beadsDir, name)
+	for _, name := range []string{"issues.jsonl", "issuegraph.jsonl"} {
+		testPath := filepath.Join(issuegraphDir, name)
 		if _, err := os.Stat(testPath); err == nil {
 			jsonlPath = testPath
 			jsonlName = name
@@ -468,8 +468,8 @@ func CheckFreshClone(repoPath string) DoctorCheck {
 	// Check if database exists (backend-aware)
 	switch backend {
 	case configfile.BackendDolt:
-		// Dolt is directory-backed: treat .beads/dolt as the DB existence signal.
-		if info, err := os.Stat(getDatabasePath(beadsDir)); err == nil && info.IsDir() {
+		// Dolt is directory-backed: treat .issuegraph/dolt as the DB existence signal.
+		if info, err := os.Stat(getDatabasePath(issuegraphDir)); err == nil && info.IsDir() {
 			return DoctorCheck{
 				Name:    "Fresh Clone",
 				Status:  StatusOK,
@@ -477,11 +477,11 @@ func CheckFreshClone(repoPath string) DoctorCheck {
 			}
 		}
 		// No local dolt directory — check server mode (FR-020, FR-021).
-		if cfg, err := configfile.Load(beadsDir); err == nil && cfg != nil && cfg.IsDoltServerMode() {
+		if cfg, err := configfile.Load(issuegraphDir); err == nil && cfg != nil && cfg.IsDoltServerMode() {
 			host := cfg.GetDoltServerHost()
 			// Use DefaultConfig (not deprecated GetDoltServerPort) to resolve
 			// the correct port for standalone server mode (ephemeral).
-			port := doltserver.DefaultConfig(beadsDir).Port
+			port := doltserver.DefaultConfig(issuegraphDir).Port
 			user := cfg.GetDoltServerUser()
 			// Look up the password by the resolved runtime port — cfg.GetDoltServerPassword
 			// uses cfg.GetDoltServerPort() which falls back to the 3307 default when
@@ -493,9 +493,9 @@ func CheckFreshClone(repoPath string) DoctorCheck {
 			dbName := cfg.GetDoltDatabase()
 			result := checkFreshCloneDB(host, port, user, password, dbName, cfg.GetDoltServerTLS())
 			if result.Reachable {
-				syncRemote := config.GetStringFromDir(beadsDir, "sync.remote")
+				syncRemote := config.GetStringFromDir(issuegraphDir, "sync.remote")
 				if syncRemote == "" {
-					syncRemote = config.GetStringFromDir(beadsDir, "sync.git-remote")
+					syncRemote = config.GetStringFromDir(issuegraphDir, "sync.git-remote")
 				}
 				return freshCloneServerResult(result.Exists, dbName, host, port, syncRemote)
 			}
@@ -510,11 +510,11 @@ func CheckFreshClone(repoPath string) DoctorCheck {
 	default:
 		// Non-Dolt (legacy sqlite-era metadata): check configured .db file path.
 		var dbPath string
-		if cfg, err := configfile.Load(beadsDir); err == nil && cfg != nil && cfg.Database != "" {
-			dbPath = cfg.DatabasePath(beadsDir)
+		if cfg, err := configfile.Load(issuegraphDir); err == nil && cfg != nil && cfg.Database != "" {
+			dbPath = cfg.DatabasePath(issuegraphDir)
 		} else {
 			// Fall back to canonical database name
-			dbPath = filepath.Join(beadsDir, beads.CanonicalDatabaseName)
+			dbPath = filepath.Join(issuegraphDir, issuegraph.CanonicalDatabaseName)
 		}
 		if _, err := os.Stat(dbPath); err == nil {
 			return DoctorCheck{
@@ -536,7 +536,7 @@ func CheckFreshClone(repoPath string) DoctorCheck {
 	}
 
 	// This is a fresh clone! JSONL has issues but no database.
-	fixCmd := "bd bootstrap"
+	fixCmd := "issuegraph bootstrap"
 
 	return DoctorCheck{
 		Name:    "Fresh Clone",
@@ -544,9 +544,9 @@ func CheckFreshClone(repoPath string) DoctorCheck {
 		Message: fmt.Sprintf("Fresh clone detected (%d issues in %s, no database)", issueCount, jsonlName),
 		Detail: "This appears to be a freshly cloned repository.\n" +
 			"  The JSONL file contains issues but no local database exists.\n" +
-			"  Run 'bd bootstrap' as the safe entry point for recovering existing state.\n" +
+			"  Run 'issuegraph bootstrap' as the safe entry point for recovering existing state.\n" +
 			"  Use '--dry-run' first if you need to inspect whether bootstrap will recover or initialize.\n" +
-			"  Use 'bd init' only when creating a brand-new project with no existing .beads data.",
+			"  Use 'issuegraph init' only when creating a brand-new project with no existing .issuegraph data.",
 		Fix: fmt.Sprintf("Run '%s' to recover the existing database and import tracked issues", fixCmd),
 	}
 }

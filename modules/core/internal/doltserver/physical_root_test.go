@@ -8,41 +8,41 @@ import (
 
 // resetPhysicalRootEnv neutralizes every env var ResolvePhysicalRoots (and
 // the helpers under it) consults, so tests describe the mode themselves
-// rather than inheriting the developer machine's beads setup. The central
+// rather than inheriting the developer machine's issuegraph setup. The central
 // config is pointed at a nonexistent file for the same reason — a real
-// ~/.config/beads/server.json on the host must not leak modes into tests.
+// ~/.config/issuegraph/server.json on the host must not leak modes into tests.
 func resetPhysicalRootEnv(t *testing.T) {
 	t.Helper()
 	for _, k := range []string{
-		"BEADS_DOLT_SERVER_MODE",
-		"BEADS_DOLT_SHARED_SERVER",
-		"BEADS_DOLT_DATA_DIR",
-		"BEADS_DOLT_SERVER_HOST",
-		"BEADS_PROXIED_SERVER_ROOT_PATH",
-		"BEADS_SHARED_SERVER_DIR",
+		"ISSUEGRAPH_DOLT_SERVER_MODE",
+		"ISSUEGRAPH_DOLT_SHARED_SERVER",
+		"ISSUEGRAPH_DOLT_DATA_DIR",
+		"ISSUEGRAPH_DOLT_SERVER_HOST",
+		"ISSUEGRAPH_PROXIED_SERVER_ROOT_PATH",
+		"ISSUEGRAPH_SHARED_SERVER_DIR",
 	} {
 		t.Setenv(k, "")
 	}
-	t.Setenv("BEADS_CENTRAL_CONFIG", filepath.Join(t.TempDir(), "no-such-central.json"))
+	t.Setenv("ISSUEGRAPH_CENTRAL_CONFIG", filepath.Join(t.TempDir(), "no-such-central.json"))
 }
 
-func writeBeadsMetadata(t *testing.T, beadsDir, body string) {
+func writeIssueGraphMetadata(t *testing.T, issuegraphDir, body string) {
 	t.Helper()
-	if err := os.MkdirAll(beadsDir, 0o755); err != nil {
+	if err := os.MkdirAll(issuegraphDir, 0o755); err != nil {
 		t.Fatal(err)
 	}
-	if err := os.WriteFile(filepath.Join(beadsDir, "metadata.json"), []byte(body), 0o600); err != nil {
+	if err := os.WriteFile(filepath.Join(issuegraphDir, "metadata.json"), []byte(body), 0o600); err != nil {
 		t.Fatal(err)
 	}
 }
 
-func newTestBeadsDir(t *testing.T) string {
+func newTestIssueGraphDir(t *testing.T) string {
 	t.Helper()
-	beadsDir := filepath.Join(t.TempDir(), ".beads")
-	if err := os.MkdirAll(beadsDir, 0o755); err != nil {
+	issuegraphDir := filepath.Join(t.TempDir(), ".issuegraph")
+	if err := os.MkdirAll(issuegraphDir, 0o755); err != nil {
 		t.Fatal(err)
 	}
-	return beadsDir
+	return issuegraphDir
 }
 
 func assertSingleRoot(t *testing.T, pr PhysicalRoots, wantMode, wantRoot string) {
@@ -63,29 +63,29 @@ func assertSingleRoot(t *testing.T, pr PhysicalRoots, wantMode, wantRoot string)
 
 func TestResolvePhysicalRootsEmbeddedMetadata(t *testing.T) {
 	resetPhysicalRootEnv(t)
-	beadsDir := newTestBeadsDir(t)
-	writeBeadsMetadata(t, beadsDir, `{"database":"beads.db","dolt_mode":"embedded"}`)
+	issuegraphDir := newTestIssueGraphDir(t)
+	writeIssueGraphMetadata(t, issuegraphDir, `{"database":"issuegraph.db","dolt_mode":"embedded"}`)
 
-	pr, err := ResolvePhysicalRoots(beadsDir)
+	pr, err := ResolvePhysicalRoots(issuegraphDir)
 	if err != nil {
 		t.Fatal(err)
 	}
 	// The embedded engine hardcodes embeddeddolt — NOT the dolt/ dir that
 	// ResolveDoltDir reports for the same workspace. This divergence is the
 	// original review blocker the resolver exists to fix.
-	assertSingleRoot(t, pr, "embedded", filepath.Join(beadsDir, "embeddeddolt"))
+	assertSingleRoot(t, pr, "embedded", filepath.Join(issuegraphDir, "embeddeddolt"))
 }
 
 func TestResolvePhysicalRootsServerMetadata(t *testing.T) {
 	resetPhysicalRootEnv(t)
-	beadsDir := newTestBeadsDir(t)
-	writeBeadsMetadata(t, beadsDir, `{"database":"beads.db","dolt_mode":"server"}`)
+	issuegraphDir := newTestIssueGraphDir(t)
+	writeIssueGraphMetadata(t, issuegraphDir, `{"database":"issuegraph.db","dolt_mode":"server"}`)
 
-	pr, err := ResolvePhysicalRoots(beadsDir)
+	pr, err := ResolvePhysicalRoots(issuegraphDir)
 	if err != nil {
 		t.Fatal(err)
 	}
-	assertSingleRoot(t, pr, "server", filepath.Join(beadsDir, "dolt"))
+	assertSingleRoot(t, pr, "server", filepath.Join(issuegraphDir, "dolt"))
 }
 
 func TestResolvePhysicalRootsServerDataDirConfig(t *testing.T) {
@@ -93,19 +93,19 @@ func TestResolvePhysicalRootsServerDataDirConfig(t *testing.T) {
 	absData := filepath.Join(t.TempDir(), "fast-disk")
 
 	t.Run("relative", func(t *testing.T) {
-		beadsDir := newTestBeadsDir(t)
-		writeBeadsMetadata(t, beadsDir, `{"database":"beads.db","dolt_mode":"server","dolt_data_dir":"mydata"}`)
-		pr, err := ResolvePhysicalRoots(beadsDir)
+		issuegraphDir := newTestIssueGraphDir(t)
+		writeIssueGraphMetadata(t, issuegraphDir, `{"database":"issuegraph.db","dolt_mode":"server","dolt_data_dir":"mydata"}`)
+		pr, err := ResolvePhysicalRoots(issuegraphDir)
 		if err != nil {
 			t.Fatal(err)
 		}
-		assertSingleRoot(t, pr, "server", filepath.Join(beadsDir, "mydata"))
+		assertSingleRoot(t, pr, "server", filepath.Join(issuegraphDir, "mydata"))
 	})
 
 	t.Run("absolute", func(t *testing.T) {
-		beadsDir := newTestBeadsDir(t)
-		writeBeadsMetadata(t, beadsDir, `{"database":"beads.db","dolt_mode":"server","dolt_data_dir":"`+jsonEscapePath(absData)+`"}`)
-		pr, err := ResolvePhysicalRoots(beadsDir)
+		issuegraphDir := newTestIssueGraphDir(t)
+		writeIssueGraphMetadata(t, issuegraphDir, `{"database":"issuegraph.db","dolt_mode":"server","dolt_data_dir":"`+jsonEscapePath(absData)+`"}`)
+		pr, err := ResolvePhysicalRoots(issuegraphDir)
 		if err != nil {
 			t.Fatal(err)
 		}
@@ -117,22 +117,22 @@ func TestResolvePhysicalRootsServerDataDirEnv(t *testing.T) {
 	resetPhysicalRootEnv(t)
 
 	t.Run("relative", func(t *testing.T) {
-		beadsDir := newTestBeadsDir(t)
-		writeBeadsMetadata(t, beadsDir, `{"database":"beads.db","dolt_mode":"server"}`)
-		t.Setenv("BEADS_DOLT_DATA_DIR", "envdata")
-		pr, err := ResolvePhysicalRoots(beadsDir)
+		issuegraphDir := newTestIssueGraphDir(t)
+		writeIssueGraphMetadata(t, issuegraphDir, `{"database":"issuegraph.db","dolt_mode":"server"}`)
+		t.Setenv("ISSUEGRAPH_DOLT_DATA_DIR", "envdata")
+		pr, err := ResolvePhysicalRoots(issuegraphDir)
 		if err != nil {
 			t.Fatal(err)
 		}
-		assertSingleRoot(t, pr, "server", filepath.Join(beadsDir, "envdata"))
+		assertSingleRoot(t, pr, "server", filepath.Join(issuegraphDir, "envdata"))
 	})
 
 	t.Run("absolute", func(t *testing.T) {
-		beadsDir := newTestBeadsDir(t)
-		writeBeadsMetadata(t, beadsDir, `{"database":"beads.db","dolt_mode":"server"}`)
+		issuegraphDir := newTestIssueGraphDir(t)
+		writeIssueGraphMetadata(t, issuegraphDir, `{"database":"issuegraph.db","dolt_mode":"server"}`)
 		absData := filepath.Join(t.TempDir(), "env-abs")
-		t.Setenv("BEADS_DOLT_DATA_DIR", absData)
-		pr, err := ResolvePhysicalRoots(beadsDir)
+		t.Setenv("ISSUEGRAPH_DOLT_DATA_DIR", absData)
+		pr, err := ResolvePhysicalRoots(issuegraphDir)
 		if err != nil {
 			t.Fatal(err)
 		}
@@ -142,24 +142,24 @@ func TestResolvePhysicalRootsServerDataDirEnv(t *testing.T) {
 
 func TestResolvePhysicalRootsServerModeEnvOverridesEmbeddedMetadata(t *testing.T) {
 	resetPhysicalRootEnv(t)
-	beadsDir := newTestBeadsDir(t)
+	issuegraphDir := newTestIssueGraphDir(t)
 	// Runtime env wins over stale persisted mode (GH#2949 semantics).
-	writeBeadsMetadata(t, beadsDir, `{"database":"beads.db","dolt_mode":"embedded"}`)
-	t.Setenv("BEADS_DOLT_SERVER_MODE", "1")
+	writeIssueGraphMetadata(t, issuegraphDir, `{"database":"issuegraph.db","dolt_mode":"embedded"}`)
+	t.Setenv("ISSUEGRAPH_DOLT_SERVER_MODE", "1")
 
-	pr, err := ResolvePhysicalRoots(beadsDir)
+	pr, err := ResolvePhysicalRoots(issuegraphDir)
 	if err != nil {
 		t.Fatal(err)
 	}
-	assertSingleRoot(t, pr, "server", filepath.Join(beadsDir, "dolt"))
+	assertSingleRoot(t, pr, "server", filepath.Join(issuegraphDir, "dolt"))
 }
 
 func TestResolvePhysicalRootsRemoteServer(t *testing.T) {
 	resetPhysicalRootEnv(t)
-	beadsDir := newTestBeadsDir(t)
-	writeBeadsMetadata(t, beadsDir, `{"database":"beads.db","dolt_mode":"server","dolt_server_host":"db.example.com"}`)
+	issuegraphDir := newTestIssueGraphDir(t)
+	writeIssueGraphMetadata(t, issuegraphDir, `{"database":"issuegraph.db","dolt_mode":"server","dolt_server_host":"db.example.com"}`)
 
-	pr, err := ResolvePhysicalRoots(beadsDir)
+	pr, err := ResolvePhysicalRoots(issuegraphDir)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -176,16 +176,16 @@ func TestResolvePhysicalRootsRemoteServer(t *testing.T) {
 
 func TestResolvePhysicalRootsSharedServerWinsOverMetadata(t *testing.T) {
 	resetPhysicalRootEnv(t)
-	beadsDir := newTestBeadsDir(t)
+	issuegraphDir := newTestIssueGraphDir(t)
 	// Stale dolt_mode=embedded must NOT override active shared intent
 	// (mirrors ResolveDoltDir and the main.go no-config rescue, GH#3817).
-	writeBeadsMetadata(t, beadsDir, `{"database":"beads.db","dolt_mode":"embedded"}`)
+	writeIssueGraphMetadata(t, issuegraphDir, `{"database":"issuegraph.db","dolt_mode":"embedded"}`)
 
 	sharedParent := filepath.Join(t.TempDir(), "shared-server")
-	t.Setenv("BEADS_DOLT_SHARED_SERVER", "1")
-	t.Setenv("BEADS_SHARED_SERVER_DIR", sharedParent)
+	t.Setenv("ISSUEGRAPH_DOLT_SHARED_SERVER", "1")
+	t.Setenv("ISSUEGRAPH_SHARED_SERVER_DIR", sharedParent)
 
-	pr, err := ResolvePhysicalRoots(beadsDir)
+	pr, err := ResolvePhysicalRoots(issuegraphDir)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -201,14 +201,14 @@ func TestResolvePhysicalRootsSharedServerWinsOverMetadata(t *testing.T) {
 
 func TestResolvePhysicalRootsProxied(t *testing.T) {
 	resetPhysicalRootEnv(t)
-	meta := `{"database":"beads.db","dolt_mode":"proxied-server"}`
+	meta := `{"database":"issuegraph.db","dolt_mode":"proxied-server"}`
 
 	t.Run("env absolute", func(t *testing.T) {
-		beadsDir := newTestBeadsDir(t)
-		writeBeadsMetadata(t, beadsDir, meta)
+		issuegraphDir := newTestIssueGraphDir(t)
+		writeIssueGraphMetadata(t, issuegraphDir, meta)
 		absRoot := filepath.Join(t.TempDir(), "proxy-root")
-		t.Setenv("BEADS_PROXIED_SERVER_ROOT_PATH", absRoot)
-		pr, err := ResolvePhysicalRoots(beadsDir)
+		t.Setenv("ISSUEGRAPH_PROXIED_SERVER_ROOT_PATH", absRoot)
+		pr, err := ResolvePhysicalRoots(issuegraphDir)
 		if err != nil {
 			t.Fatal(err)
 		}
@@ -216,25 +216,25 @@ func TestResolvePhysicalRootsProxied(t *testing.T) {
 	})
 
 	t.Run("env relative", func(t *testing.T) {
-		beadsDir := newTestBeadsDir(t)
-		writeBeadsMetadata(t, beadsDir, meta)
-		t.Setenv("BEADS_PROXIED_SERVER_ROOT_PATH", "relroot")
-		pr, err := ResolvePhysicalRoots(beadsDir)
+		issuegraphDir := newTestIssueGraphDir(t)
+		writeIssueGraphMetadata(t, issuegraphDir, meta)
+		t.Setenv("ISSUEGRAPH_PROXIED_SERVER_ROOT_PATH", "relroot")
+		pr, err := ResolvePhysicalRoots(issuegraphDir)
 		if err != nil {
 			t.Fatal(err)
 		}
-		assertSingleRoot(t, pr, "proxied-server", filepath.Join(beadsDir, "relroot"))
+		assertSingleRoot(t, pr, "proxied-server", filepath.Join(issuegraphDir, "relroot"))
 	})
 
 	t.Run("client info sidecar", func(t *testing.T) {
-		beadsDir := newTestBeadsDir(t)
-		writeBeadsMetadata(t, beadsDir, meta)
+		issuegraphDir := newTestIssueGraphDir(t)
+		writeIssueGraphMetadata(t, issuegraphDir, meta)
 		sidecarRoot := filepath.Join(t.TempDir(), "sidecar-root")
 		body := `{"root_path":"` + jsonEscapePath(sidecarRoot) + `"}`
-		if err := os.WriteFile(filepath.Join(beadsDir, "proxied_server_client_info.json"), []byte(body), 0o600); err != nil {
+		if err := os.WriteFile(filepath.Join(issuegraphDir, "proxied_server_client_info.json"), []byte(body), 0o600); err != nil {
 			t.Fatal(err)
 		}
-		pr, err := ResolvePhysicalRoots(beadsDir)
+		pr, err := ResolvePhysicalRoots(issuegraphDir)
 		if err != nil {
 			t.Fatal(err)
 		}
@@ -242,13 +242,13 @@ func TestResolvePhysicalRootsProxied(t *testing.T) {
 	})
 
 	t.Run("fallback default data dir", func(t *testing.T) {
-		beadsDir := newTestBeadsDir(t)
-		writeBeadsMetadata(t, beadsDir, meta)
-		pr, err := ResolvePhysicalRoots(beadsDir)
+		issuegraphDir := newTestIssueGraphDir(t)
+		writeIssueGraphMetadata(t, issuegraphDir, meta)
+		pr, err := ResolvePhysicalRoots(issuegraphDir)
 		if err != nil {
 			t.Fatal(err)
 		}
-		assertSingleRoot(t, pr, "proxied-server", filepath.Join(beadsDir, "dolt"))
+		assertSingleRoot(t, pr, "proxied-server", filepath.Join(issuegraphDir, "dolt"))
 	})
 }
 
@@ -259,36 +259,36 @@ func TestResolvePhysicalRootsIgnoresCentralConfig(t *testing.T) {
 	// central-config defaults, so the resolver must not either — a central
 	// dolt_mode=server must NOT promote a mode-less project workspace. The
 	// LIBRARY path is broader; that side is covered by LibraryOpenRootPath.
-	beadsDir := newTestBeadsDir(t)
-	writeBeadsMetadata(t, beadsDir, `{"database":"beads.db"}`)
+	issuegraphDir := newTestIssueGraphDir(t)
+	writeIssueGraphMetadata(t, issuegraphDir, `{"database":"issuegraph.db"}`)
 	centralPath := filepath.Join(t.TempDir(), "server.json")
 	if err := os.WriteFile(centralPath, []byte(`{"dolt_mode":"server"}`), 0o600); err != nil {
 		t.Fatal(err)
 	}
-	t.Setenv("BEADS_CENTRAL_CONFIG", centralPath)
+	t.Setenv("ISSUEGRAPH_CENTRAL_CONFIG", centralPath)
 
-	pr, err := ResolvePhysicalRoots(beadsDir)
+	pr, err := ResolvePhysicalRoots(issuegraphDir)
 	if err != nil {
 		t.Fatal(err)
 	}
-	assertSingleRoot(t, pr, "embedded", filepath.Join(beadsDir, "embeddeddolt"))
+	assertSingleRoot(t, pr, "embedded", filepath.Join(issuegraphDir, "embeddeddolt"))
 }
 
 func TestResolvePhysicalRootsPortDoesNotPromoteEmbedded(t *testing.T) {
 	resetPhysicalRootEnv(t)
 
-	// `bd init --server-port N` without --server writes dolt_mode=embedded
+	// `issuegraph init --server-port N` without --server writes dolt_mode=embedded
 	// AND a port; the CLI opens embeddeddolt, and ResolveServerMode gives
 	// an explicit dolt_mode=embedded precedence over the port heuristic.
 	// The resolver must agree: no port>0 promotion.
-	beadsDir := newTestBeadsDir(t)
-	writeBeadsMetadata(t, beadsDir, `{"database":"beads.db","dolt_mode":"embedded","dolt_server_port":3307}`)
+	issuegraphDir := newTestIssueGraphDir(t)
+	writeIssueGraphMetadata(t, issuegraphDir, `{"database":"issuegraph.db","dolt_mode":"embedded","dolt_server_port":3307}`)
 
-	pr, err := ResolvePhysicalRoots(beadsDir)
+	pr, err := ResolvePhysicalRoots(issuegraphDir)
 	if err != nil {
 		t.Fatal(err)
 	}
-	assertSingleRoot(t, pr, "embedded", filepath.Join(beadsDir, "embeddeddolt"))
+	assertSingleRoot(t, pr, "embedded", filepath.Join(issuegraphDir, "embeddeddolt"))
 }
 
 func TestResolvePhysicalRootsBracketedIPv6LoopbackIsLocal(t *testing.T) {
@@ -297,14 +297,14 @@ func TestResolvePhysicalRootsBracketedIPv6LoopbackIsLocal(t *testing.T) {
 	// "[::1]" is what a host:port split leaves behind for IPv6 loopback;
 	// treating it as remote would silently drop the physical gate. The
 	// local set mirrors the storage layer's isLocalHost.
-	beadsDir := newTestBeadsDir(t)
-	writeBeadsMetadata(t, beadsDir, `{"database":"beads.db","dolt_mode":"server","dolt_server_host":"[::1]"}`)
+	issuegraphDir := newTestIssueGraphDir(t)
+	writeIssueGraphMetadata(t, issuegraphDir, `{"database":"issuegraph.db","dolt_mode":"server","dolt_server_host":"[::1]"}`)
 
-	pr, err := ResolvePhysicalRoots(beadsDir)
+	pr, err := ResolvePhysicalRoots(issuegraphDir)
 	if err != nil {
 		t.Fatal(err)
 	}
-	assertSingleRoot(t, pr, "server", filepath.Join(beadsDir, "dolt"))
+	assertSingleRoot(t, pr, "server", filepath.Join(issuegraphDir, "dolt"))
 }
 
 func TestLibraryOpenRootPath(t *testing.T) {
@@ -314,24 +314,24 @@ func TestLibraryOpenRootPath(t *testing.T) {
 		// The library open path (dolt.NewFromConfigWithOptions) is
 		// server-only and derives its root from DatabasePath even for
 		// embedded-metadata workspaces — the exact under-gating the union
-		// in beads.OpenGated exists to cover.
-		beadsDir := newTestBeadsDir(t)
-		writeBeadsMetadata(t, beadsDir, `{"database":"beads.db","dolt_mode":"embedded"}`)
-		if got, want := LibraryOpenRootPath(beadsDir), filepath.Join(beadsDir, "dolt"); got != want {
+		// in issuegraph.OpenGated exists to cover.
+		issuegraphDir := newTestIssueGraphDir(t)
+		writeIssueGraphMetadata(t, issuegraphDir, `{"database":"issuegraph.db","dolt_mode":"embedded"}`)
+		if got, want := LibraryOpenRootPath(issuegraphDir), filepath.Join(issuegraphDir, "dolt"); got != want {
 			t.Errorf("LibraryOpenRootPath = %q, want %q", got, want)
 		}
 	})
 
 	t.Run("absent metadata uses DefaultConfig without migration", func(t *testing.T) {
-		beadsDir := newTestBeadsDir(t)
-		legacyPath := filepath.Join(beadsDir, "config.json")
-		if err := os.WriteFile(legacyPath, []byte(`{"database":"beads.db"}`), 0o600); err != nil {
+		issuegraphDir := newTestIssueGraphDir(t)
+		legacyPath := filepath.Join(issuegraphDir, "config.json")
+		if err := os.WriteFile(legacyPath, []byte(`{"database":"issuegraph.db"}`), 0o600); err != nil {
 			t.Fatal(err)
 		}
-		if got, want := LibraryOpenRootPath(beadsDir), filepath.Join(beadsDir, "dolt"); got != want {
+		if got, want := LibraryOpenRootPath(issuegraphDir), filepath.Join(issuegraphDir, "dolt"); got != want {
 			t.Errorf("LibraryOpenRootPath = %q, want %q", got, want)
 		}
-		if _, statErr := os.Stat(filepath.Join(beadsDir, "metadata.json")); !os.IsNotExist(statErr) {
+		if _, statErr := os.Stat(filepath.Join(issuegraphDir, "metadata.json")); !os.IsNotExist(statErr) {
 			t.Errorf("metadata.json was created by pure resolution (stat err = %v)", statErr)
 		}
 		if _, statErr := os.Stat(legacyPath); statErr != nil {
@@ -340,9 +340,9 @@ func TestLibraryOpenRootPath(t *testing.T) {
 	})
 
 	t.Run("data dir config honored", func(t *testing.T) {
-		beadsDir := newTestBeadsDir(t)
-		writeBeadsMetadata(t, beadsDir, `{"database":"beads.db","dolt_data_dir":"fast"}`)
-		if got, want := LibraryOpenRootPath(beadsDir), filepath.Join(beadsDir, "fast"); got != want {
+		issuegraphDir := newTestIssueGraphDir(t)
+		writeIssueGraphMetadata(t, issuegraphDir, `{"database":"issuegraph.db","dolt_data_dir":"fast"}`)
+		if got, want := LibraryOpenRootPath(issuegraphDir), filepath.Join(issuegraphDir, "fast"); got != want {
 			t.Errorf("LibraryOpenRootPath = %q, want %q", got, want)
 		}
 	})
@@ -352,71 +352,71 @@ func TestResolvePhysicalRootsNoMetadataFallbacks(t *testing.T) {
 	resetPhysicalRootEnv(t)
 
 	t.Run("embeddeddolt dir present", func(t *testing.T) {
-		beadsDir := newTestBeadsDir(t)
-		if err := os.MkdirAll(filepath.Join(beadsDir, "embeddeddolt"), 0o755); err != nil {
+		issuegraphDir := newTestIssueGraphDir(t)
+		if err := os.MkdirAll(filepath.Join(issuegraphDir, "embeddeddolt"), 0o755); err != nil {
 			t.Fatal(err)
 		}
-		pr, err := ResolvePhysicalRoots(beadsDir)
+		pr, err := ResolvePhysicalRoots(issuegraphDir)
 		if err != nil {
 			t.Fatal(err)
 		}
-		assertSingleRoot(t, pr, "embedded", filepath.Join(beadsDir, "embeddeddolt"))
+		assertSingleRoot(t, pr, "embedded", filepath.Join(issuegraphDir, "embeddeddolt"))
 	})
 
 	t.Run("dolt server-layout dir present", func(t *testing.T) {
-		beadsDir := newTestBeadsDir(t)
-		if err := os.MkdirAll(filepath.Join(beadsDir, "dolt"), 0o755); err != nil {
+		issuegraphDir := newTestIssueGraphDir(t)
+		if err := os.MkdirAll(filepath.Join(issuegraphDir, "dolt"), 0o755); err != nil {
 			t.Fatal(err)
 		}
-		pr, err := ResolvePhysicalRoots(beadsDir)
+		pr, err := ResolvePhysicalRoots(issuegraphDir)
 		if err != nil {
 			t.Fatal(err)
 		}
-		assertSingleRoot(t, pr, "server", filepath.Join(beadsDir, "dolt"))
+		assertSingleRoot(t, pr, "server", filepath.Join(issuegraphDir, "dolt"))
 	})
 
 	t.Run("nothing on disk defaults to embedded", func(t *testing.T) {
-		beadsDir := newTestBeadsDir(t)
-		pr, err := ResolvePhysicalRoots(beadsDir)
+		issuegraphDir := newTestIssueGraphDir(t)
+		pr, err := ResolvePhysicalRoots(issuegraphDir)
 		if err != nil {
 			t.Fatal(err)
 		}
 		// The root may not exist yet; gating a not-yet-existing root is
-		// fine (the gate file lives beside it in .beads).
-		assertSingleRoot(t, pr, "embedded", filepath.Join(beadsDir, "embeddeddolt"))
+		// fine (the gate file lives beside it in .issuegraph).
+		assertSingleRoot(t, pr, "embedded", filepath.Join(issuegraphDir, "embeddeddolt"))
 	})
 
 	t.Run("env server mode without metadata stays embedded", func(t *testing.T) {
 		// CLI parity: the nil-config branch in modules/cli/main.go rescues ONLY
-		// shared-server mode; BEADS_DOLT_SERVER_MODE without metadata does
+		// shared-server mode; ISSUEGRAPH_DOLT_SERVER_MODE without metadata does
 		// not change what the CLI opens, so it must not change the gate.
-		beadsDir := newTestBeadsDir(t)
-		t.Setenv("BEADS_DOLT_SERVER_MODE", "1")
-		pr, err := ResolvePhysicalRoots(beadsDir)
+		issuegraphDir := newTestIssueGraphDir(t)
+		t.Setenv("ISSUEGRAPH_DOLT_SERVER_MODE", "1")
+		pr, err := ResolvePhysicalRoots(issuegraphDir)
 		if err != nil {
 			t.Fatal(err)
 		}
-		assertSingleRoot(t, pr, "embedded", filepath.Join(beadsDir, "embeddeddolt"))
+		assertSingleRoot(t, pr, "embedded", filepath.Join(issuegraphDir, "embeddeddolt"))
 	})
 }
 
 func TestResolvePhysicalRootsSideEffectFree(t *testing.T) {
 	resetPhysicalRootEnv(t)
-	beadsDir := newTestBeadsDir(t)
+	issuegraphDir := newTestIssueGraphDir(t)
 	// Legacy layout: config.json present, metadata.json absent. An
 	// unguarded configfile.Load would MIGRATE (write metadata.json, delete
 	// config.json); pure resolution must not.
-	legacyPath := filepath.Join(beadsDir, "config.json")
-	if err := os.WriteFile(legacyPath, []byte(`{"database":"beads.db","dolt_mode":"server"}`), 0o600); err != nil {
+	legacyPath := filepath.Join(issuegraphDir, "config.json")
+	if err := os.WriteFile(legacyPath, []byte(`{"database":"issuegraph.db","dolt_mode":"server"}`), 0o600); err != nil {
 		t.Fatal(err)
 	}
 
-	pr, err := ResolvePhysicalRoots(beadsDir)
+	pr, err := ResolvePhysicalRoots(issuegraphDir)
 	if err != nil {
 		t.Fatal(err)
 	}
 
-	if _, statErr := os.Stat(filepath.Join(beadsDir, "metadata.json")); !os.IsNotExist(statErr) {
+	if _, statErr := os.Stat(filepath.Join(issuegraphDir, "metadata.json")); !os.IsNotExist(statErr) {
 		t.Errorf("metadata.json was created by pure resolution (stat err = %v)", statErr)
 	}
 	if _, statErr := os.Stat(legacyPath); statErr != nil {
@@ -424,17 +424,17 @@ func TestResolvePhysicalRootsSideEffectFree(t *testing.T) {
 	}
 	// With the migration correctly NOT triggered, the legacy config is
 	// invisible and the no-metadata stat fallback applies.
-	assertSingleRoot(t, pr, "embedded", filepath.Join(beadsDir, "embeddeddolt"))
+	assertSingleRoot(t, pr, "embedded", filepath.Join(issuegraphDir, "embeddeddolt"))
 }
 
 func TestResolveProxiedServerRootPath(t *testing.T) {
 	resetPhysicalRootEnv(t)
 
 	t.Run("env absolute wins", func(t *testing.T) {
-		beadsDir := newTestBeadsDir(t)
+		issuegraphDir := newTestIssueGraphDir(t)
 		absRoot := filepath.Join(t.TempDir(), "abs-root")
-		t.Setenv("BEADS_PROXIED_SERVER_ROOT_PATH", absRoot)
-		got, err := ResolveProxiedServerRootPath(beadsDir)
+		t.Setenv("ISSUEGRAPH_PROXIED_SERVER_ROOT_PATH", absRoot)
+		got, err := ResolveProxiedServerRootPath(issuegraphDir)
 		if err != nil {
 			t.Fatal(err)
 		}
@@ -443,34 +443,34 @@ func TestResolveProxiedServerRootPath(t *testing.T) {
 		}
 	})
 
-	t.Run("env relative joins beadsDir", func(t *testing.T) {
-		beadsDir := newTestBeadsDir(t)
-		t.Setenv("BEADS_PROXIED_SERVER_ROOT_PATH", "rel-root")
-		got, err := ResolveProxiedServerRootPath(beadsDir)
+	t.Run("env relative joins issuegraphDir", func(t *testing.T) {
+		issuegraphDir := newTestIssueGraphDir(t)
+		t.Setenv("ISSUEGRAPH_PROXIED_SERVER_ROOT_PATH", "rel-root")
+		got, err := ResolveProxiedServerRootPath(issuegraphDir)
 		if err != nil {
 			t.Fatal(err)
 		}
-		if want := filepath.Join(beadsDir, "rel-root"); got != want {
+		if want := filepath.Join(issuegraphDir, "rel-root"); got != want {
 			t.Errorf("root = %q, want %q", got, want)
 		}
 	})
 
 	t.Run("sidecar then default", func(t *testing.T) {
-		beadsDir := newTestBeadsDir(t)
-		got, err := ResolveProxiedServerRootPath(beadsDir)
+		issuegraphDir := newTestIssueGraphDir(t)
+		got, err := ResolveProxiedServerRootPath(issuegraphDir)
 		if err != nil {
 			t.Fatal(err)
 		}
-		if want := filepath.Join(beadsDir, "dolt"); got != want {
+		if want := filepath.Join(issuegraphDir, "dolt"); got != want {
 			t.Errorf("default root = %q, want %q", got, want)
 		}
 
 		sidecarRoot := filepath.Join(t.TempDir(), "side-root")
 		body := `{"root_path":"` + jsonEscapePath(sidecarRoot) + `"}`
-		if err := os.WriteFile(filepath.Join(beadsDir, "proxied_server_client_info.json"), []byte(body), 0o600); err != nil {
+		if err := os.WriteFile(filepath.Join(issuegraphDir, "proxied_server_client_info.json"), []byte(body), 0o600); err != nil {
 			t.Fatal(err)
 		}
-		got, err = ResolveProxiedServerRootPath(beadsDir)
+		got, err = ResolveProxiedServerRootPath(issuegraphDir)
 		if err != nil {
 			t.Fatal(err)
 		}

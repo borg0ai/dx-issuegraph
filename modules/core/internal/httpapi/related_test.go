@@ -9,12 +9,12 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/steveyegge/beads/internal/storage"
-	"github.com/steveyegge/beads/internal/types"
-	"github.com/steveyegge/beads/issueops"
+	"github.com/borg0ai/dx-issuegraph/internal/storage"
+	"github.com/borg0ai/dx-issuegraph/internal/types"
+	"github.com/borg0ai/dx-issuegraph/issueops"
 )
 
-// The wire edge of GET /v0/beads/issues/{id}/related, on a fake role.
+// The wire edge of GET /v0/issuegraph/issues/{id}/related, on a fake role.
 //
 // The handler is a decoder, a path bound and a projection — which planes the
 // anchor is resolved against, which dependency tables the neighbors come from,
@@ -86,15 +86,15 @@ func TestListRelatedIssuesProjectsTheWholeRequest(t *testing.T) {
 			// carrying a character the URL grammar reserves reaches the role
 			// spelled as the caller meant it, not as the wire carried it.
 			name:  "a percent-escaped anchor is decoded once",
-			path:  "bd%2Fslash",
+			path:  "issuegraph%2Fslash",
 			query: "?direction=in",
-			want:  issueops.RelatedRequest{ID: "bd/slash", Direction: issueops.RelationIn},
+			want:  issueops.RelatedRequest{ID: "issuegraph/slash", Direction: issueops.RelationIn},
 		},
 	} {
 		t.Run(tc.name, func(t *testing.T) {
 			ts, rel := newRelatedServer(t, nil)
 
-			resp := ts.get(t, "/v0/beads/issues/"+tc.path+"/related"+tc.query)
+			resp := ts.get(t, "/v0/issuegraph/issues/"+tc.path+"/related"+tc.query)
 			if resp.StatusCode != http.StatusOK {
 				t.Fatalf("status = %d, want 200: %s", resp.StatusCode, readAll(t, resp))
 			}
@@ -124,7 +124,7 @@ func TestListRelatedIssuesAnswersTheRolesRowsInOrder(t *testing.T) {
 		relatedNeighbor("bd-c", types.DepRelated),
 	})
 
-	resp := ts.get(t, "/v0/beads/issues/bd-anchor/related?direction=in")
+	resp := ts.get(t, "/v0/issuegraph/issues/bd-anchor/related?direction=in")
 	if resp.StatusCode != http.StatusOK {
 		t.Fatalf("status = %d, want 200: %s", resp.StatusCode, readAll(t, resp))
 	}
@@ -172,7 +172,7 @@ func TestListRelatedIssuesAnswersTheRolesRowsInOrder(t *testing.T) {
 // TestListRelatedIssuesCarriesNoRevision pins the element-shape rule this
 // operation inherits: the optimistic-concurrency token lives on the detail read
 // and nowhere else, and the elements here are the pinned Go struct
-// GET /v0/beads/issues/{id} already carries under `dependencies` and
+// GET /v0/issuegraph/issues/{id} already carries under `dependencies` and
 // `dependents`.
 //
 // It is asserted on the BYTES rather than through a decode, because the failure
@@ -194,7 +194,7 @@ func TestListRelatedIssuesCarriesNoRevision(t *testing.T) {
 	neighbor.RowVersion = 918273645
 	ts, _ := newRelatedServer(t, []*issueops.RelatedIssue{neighbor})
 
-	resp := ts.get(t, "/v0/beads/issues/bd-anchor/related?direction=out")
+	resp := ts.get(t, "/v0/issuegraph/issues/bd-anchor/related?direction=out")
 	if resp.StatusCode != http.StatusOK {
 		t.Fatalf("status = %d, want 200: %s", resp.StatusCode, readAll(t, resp))
 	}
@@ -214,7 +214,7 @@ func TestListRelatedIssuesCarriesNoRevision(t *testing.T) {
 func TestListRelatedIssuesAnswersAnEmptyArrayNotNull(t *testing.T) {
 	ts, _ := newRelatedServer(t, nil)
 
-	resp := ts.get(t, "/v0/beads/issues/bd-anchor/related?direction=out")
+	resp := ts.get(t, "/v0/issuegraph/issues/bd-anchor/related?direction=out")
 	if resp.StatusCode != http.StatusOK {
 		t.Fatalf("status = %d, want 200: %s", resp.StatusCode, readAll(t, resp))
 	}
@@ -240,7 +240,7 @@ func TestListRelatedIssuesAnswersAnAbsentAnchorWithNotFound(t *testing.T) {
 	rel := &roleRelations{err: storage.ErrNotFound}
 	ts := newTestServer(t, rolesConfig(Config{Relations: rel}))
 
-	resp := ts.get(t, "/v0/beads/issues/bd-gone/related?direction=out")
+	resp := ts.get(t, "/v0/issuegraph/issues/bd-gone/related?direction=out")
 	if resp.StatusCode != http.StatusNotFound {
 		t.Fatalf("status = %d, want 404: %s", resp.StatusCode, readAll(t, resp))
 	}
@@ -290,7 +290,7 @@ func TestListRelatedIssuesNamesTheRefusedParameter(t *testing.T) {
 			rel := &roleRelations{err: issueops.ErrValidation}
 			ts := newTestServer(t, rolesConfig(Config{Relations: rel}))
 
-			resp := ts.get(t, "/v0/beads/issues/bd-1/related"+tc.query)
+			resp := ts.get(t, "/v0/issuegraph/issues/bd-1/related"+tc.query)
 			if resp.StatusCode != http.StatusBadRequest {
 				t.Fatalf("status = %d, want 400: %s", resp.StatusCode, readAll(t, resp))
 			}
@@ -321,7 +321,7 @@ func TestListRelatedIssuesRefusesAnImpossibleAnchorFromTheEdge(t *testing.T) {
 	for _, id := range []string{long, "bd-%01"} {
 		ts, rel := newRelatedServer(t, nil)
 
-		resp := ts.get(t, "/v0/beads/issues/"+id+"/related?direction=out")
+		resp := ts.get(t, "/v0/issuegraph/issues/"+id+"/related?direction=out")
 		if resp.StatusCode != http.StatusNotFound {
 			t.Errorf("anchor %q: status = %d, want 404", id, resp.StatusCode)
 			continue
@@ -342,7 +342,7 @@ func TestListRelatedIssuesRefusesAnImpossibleAnchorFromTheEdge(t *testing.T) {
 func TestListRelatedIssuesAnswersAQueryRefusalBeforeTheAnchorBound(t *testing.T) {
 	ts, rel := newRelatedServer(t, nil)
 
-	resp := ts.get(t, "/v0/beads/issues/bd-%01/related?direction=out&bogus=1")
+	resp := ts.get(t, "/v0/issuegraph/issues/bd-%01/related?direction=out&bogus=1")
 	if resp.StatusCode != http.StatusBadRequest {
 		t.Fatalf("status = %d, want 400: %s", resp.StatusCode, readAll(t, resp))
 	}
@@ -386,7 +386,7 @@ func TestListRelatedIssuesStaysStrictAboutParameters(t *testing.T) {
 		t.Run(tc.name, func(t *testing.T) {
 			ts, rel := newRelatedServer(t, nil)
 
-			resp := ts.get(t, "/v0/beads/issues/bd-1/related"+tc.query)
+			resp := ts.get(t, "/v0/issuegraph/issues/bd-1/related"+tc.query)
 			if resp.StatusCode != http.StatusBadRequest {
 				t.Fatalf("status = %d, want 400: %s", resp.StatusCode, readAll(t, resp))
 			}
@@ -409,7 +409,7 @@ func TestListRelatedIssuesStaysStrictAboutParameters(t *testing.T) {
 // must be asked nothing.
 //
 // The sub-resource path is the other half of the same question: it sits one
-// segment past GET /v0/beads/issues/{id}, so a route that matched too widely
+// segment past GET /v0/issuegraph/issues/{id}, so a route that matched too widely
 // would answer this request from the detail read.
 func TestListRelatedIssuesReachesItsOwnRole(t *testing.T) {
 	rel := &roleRelations{}
@@ -417,7 +417,7 @@ func TestListRelatedIssuesReachesItsOwnRole(t *testing.T) {
 	rd := &roleReader{}
 	ts := newTestServer(t, rolesConfig(Config{Relations: rel, EdgeReader: edges, Reader: rd}))
 
-	resp := ts.get(t, "/v0/beads/issues/bd-1/related?direction=out")
+	resp := ts.get(t, "/v0/issuegraph/issues/bd-1/related?direction=out")
 	if resp.StatusCode != http.StatusOK {
 		t.Fatalf("status = %d, want 200: %s", resp.StatusCode, readAll(t, resp))
 	}
@@ -440,7 +440,7 @@ func TestListRelatedIssuesKeepsANonValidationFailureAtFiveHundred(t *testing.T) 
 	rel := &roleRelations{err: errors.New("backend is unreachable")}
 	ts := newTestServer(t, rolesConfig(Config{Relations: rel}))
 
-	resp := ts.get(t, "/v0/beads/issues/bd-1/related?direction=out")
+	resp := ts.get(t, "/v0/issuegraph/issues/bd-1/related?direction=out")
 	if resp.StatusCode != http.StatusInternalServerError {
 		t.Fatalf("status = %d, want 500: %s", resp.StatusCode, readAll(t, resp))
 	}
@@ -461,7 +461,7 @@ func TestListRelatedIssuesSurvivesANilNeighbor(t *testing.T) {
 		relatedNeighbor("bd-c", types.DepRelated),
 	})
 
-	resp := ts.get(t, "/v0/beads/issues/bd-anchor/related?direction=out")
+	resp := ts.get(t, "/v0/issuegraph/issues/bd-anchor/related?direction=out")
 	if resp.StatusCode != http.StatusOK {
 		t.Fatalf("status = %d, want 200: %s", resp.StatusCode, readAll(t, resp))
 	}

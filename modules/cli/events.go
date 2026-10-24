@@ -10,52 +10,52 @@ import (
 
 	"github.com/spf13/cobra"
 
-	"github.com/steveyegge/beads/internal/beads"
-	"github.com/steveyegge/beads/internal/config"
-	"github.com/steveyegge/beads/internal/eventsjournal"
-	"github.com/steveyegge/beads/internal/storage"
-	"github.com/steveyegge/beads/internal/storage/uow"
+	"github.com/borg0ai/dx-issuegraph/internal/config"
+	"github.com/borg0ai/dx-issuegraph/internal/eventsjournal"
+	"github.com/borg0ai/dx-issuegraph/internal/issuegraph"
+	"github.com/borg0ai/dx-issuegraph/internal/storage"
+	"github.com/borg0ai/dx-issuegraph/internal/storage/uow"
 )
 
-// eventFollowPollInterval is how often `bd events tail --follow` polls the
+// eventFollowPollInterval is how often `issuegraph events tail --follow` polls the
 // journal table for new rows. The journal is a local table read, so polling is
 // cheap; a one-second cadence keeps a live consumer responsive without busy-waiting.
 const eventFollowPollInterval = time.Second
 
-// bd events reads and manages the durable events journal
-// (bd_events_journal). The journal is an append-only, seq-ordered record of
+// issuegraph events reads and manages the durable events journal
+// (issuegraph_events_journal). The journal is an append-only, seq-ordered record of
 // every committed issue mutation, written in the same transaction as the
 // mutation. Scripts and integrations tail it to replay the exact history of a
-// workspace. It is OFF by default; enable with `bd config set events-journal
-// true` (or BD_EVENTS_JOURNAL=1).
+// workspace. It is OFF by default; enable with `issuegraph config set events-journal
+// true` (or ISSUEGRAPH_EVENTS_JOURNAL=1).
 
 var eventsCmd = &cobra.Command{
 	Use:     "events",
 	GroupID: "maint",
 	Short:   "Read and manage the durable events journal",
-	Long: `Read and manage the durable events journal (bd_events_journal).
+	Long: `Read and manage the durable events journal (issuegraph_events_journal).
 
 The journal records every committed issue mutation as an ordered, replayable
-row. Enable it with 'bd config set events-journal true' (or
-BD_EVENTS_JOURNAL=1). Records are emitted only while it is enabled.
+row. Enable it with 'issuegraph config set events-journal true' (or
+ISSUEGRAPH_EVENTS_JOURNAL=1). Records are emitted only while it is enabled.
 
 Retention is automatic: an enabled journal is bounded to the retention floors
 (events-journal-retain-days / -rows, 7 days / 100k rows by default) without
 anyone running a command. Disable both floors for an unbounded ledger, or
-events-journal-auto-prune for manual control; 'bd events prune' remains for an
+events-journal-auto-prune for manual control; 'issuegraph events prune' remains for an
 earlier, on-demand cut below the floors.
 
 Coverage and scope:
-  - Every mutation through bd's normal write paths (create, update, close,
+  - Every mutation through issuegraph's normal write paths (create, update, close,
     reopen, delete, claim, dependency add/remove, label add/remove, comment) is
     journaled in the same transaction as the change. Raw DML run through
-    'bd sql' bypasses those paths and is NOT journaled — a known non-coverage.
+    'issuegraph sql' bypasses those paths and is NOT journaled — a known non-coverage.
   - The journal is per-branch working-set state (dolt_ignored): it records the
     mutations committed on the writer's active branch. Rows arrive by direct
     write, not by merge, so a consumer must read the journal on the same branch
     the writer commits to; a branch checkout or merge does not carry journal
     rows across branches.
-  - For the same reason the journal is per REPLICA. 'bd dolt pull' and the
+  - For the same reason the journal is per REPLICA. 'issuegraph dolt pull' and the
     changes a merge settles into this clone are not journaled: those rows
     arrived as data, not as local mutations, and nothing on this clone wrote
     them through the mutation seam. A consumer that mirrors a synced workspace
@@ -69,7 +69,7 @@ Coverage and scope:
   - A few writes that happen while a store is being OPENED are unjournaled by
     design: schema migrations and the version reconciliation that runs before
     the workspace's configuration has been applied to the store. They touch
-    schema and clone-local metadata, never a bead, so a replaying consumer has
+    schema and clone-local metadata, never a issue, so a replaying consumer has
     nothing to apply them to.
   - Dependency records are not symmetric, in two ways.
     Count: a dep_add is emitted for every accepted add, INCLUDING an idempotent
@@ -82,7 +82,7 @@ Coverage and scope:
     the raw stored column read back just before the delete. The two can differ
     byte for byte while meaning the same thing, so compare parsed values.
 
-Structural dependency edits — the ones bd wires up itself rather than a 'bd dep'
+Structural dependency edits — the ones issuegraph wires up itself rather than a 'issuegraph dep'
 verb — write no audit event but DO journal, by design: a replaying consumer
 needs the edge either way.`,
 }
@@ -144,7 +144,7 @@ var eventsExportCmd = &cobra.Command{
 	Short: "Print the entire journal from the beginning (JSON lines)",
 	Long: `Print every events journal record from seq 1, in order, as JSON lines.
 
-Equivalent to 'bd events tail --since 0'. Like tail, it FAILS rather than
+Equivalent to 'issuegraph events tail --since 0'. Like tail, it FAILS rather than
 present a pruned journal's surviving suffix as a complete history.`,
 	SilenceUsage:  true,
 	SilenceErrors: true,
@@ -160,7 +160,7 @@ var eventsPruneCmd = &cobra.Command{
 	Long: `Delete events journal records with seq less than --before.
 
 Retention is already enforced automatically: after a mutating command commits,
-and on a timer in 'bd serve', bd deletes everything the floors below do not
+and on a timer in 'issuegraph serve', issuegraph deletes everything the floors below do not
 protect. This command is for an EARLIER, on-demand cut BELOW the floors — after
 a consumer has durably processed a span you do not want to wait out. It cannot
 cut deeper than the floors: shrinking the retained window itself means lowering
@@ -263,18 +263,18 @@ func reportEventsTruncated(err error, streaming bool) error {
 // stderr, not stdout, and not the JSON envelope: stdout is a JSONL stream a
 // line reader consumes, and a notice about the reader's own configuration is
 // not a record. Exit status is unchanged.
-func noticeEventsJournalDisabled(beadsDir string) {
-	if eventsjournal.EnabledFor(beadsDir) {
+func noticeEventsJournalDisabled(issuegraphDir string) {
+	if eventsjournal.EnabledFor(issuegraphDir) {
 		return
 	}
 	fmt.Fprintf(os.Stderr,
-		"note: the events journal is disabled for this workspace (enable with 'bd config set %s true'); "+
+		"note: the events journal is disabled for this workspace (enable with 'issuegraph config set %s true'); "+
 			"any records shown were written while it was enabled, and new mutations are not being recorded\n",
 		eventsjournal.ConfigKey)
 }
 
 func runEventsTail(ctx context.Context, since int64, limit int, follow bool) error {
-	noticeEventsJournalDisabled(beads.FindBeadsDir())
+	noticeEventsJournalDisabled(issuegraph.FindIssueGraphDir())
 	enc := json.NewEncoder(os.Stdout)
 	emit := func(from int64) (int64, error) {
 		rows, err := readJournal(ctx, from, limit)
@@ -353,7 +353,7 @@ func journalAccessor() (storage.EventsJournalAccessor, error) {
 // capability; direct stores use EventsJournalAccessor.
 //
 // The projection onto the published envelope is eventsjournal.Records, the same
-// one GET /v0/beads/events serves from — see the note on eventsjournal.Record
+// one GET /v0/issuegraph/events serves from — see the note on eventsjournal.Record
 // for why there is exactly one.
 func readJournal(ctx context.Context, since int64, limit int) ([]eventsjournal.Record, error) {
 	var rows []storage.EventsJournalRow

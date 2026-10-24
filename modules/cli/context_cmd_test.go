@@ -6,7 +6,7 @@ import (
 	"path/filepath"
 	"testing"
 
-	"github.com/steveyegge/beads/internal/configfile"
+	"github.com/borg0ai/dx-issuegraph/internal/configfile"
 )
 
 // TestContextInfo_ServerModeIdentity verifies that loading a server-mode
@@ -14,13 +14,13 @@ import (
 // mode) match what was persisted. Drift scenario: GH#2438.
 func TestContextInfo_ServerModeIdentity(t *testing.T) {
 	// Unset env vars that override config port values
-	t.Setenv("BEADS_DOLT_SERVER_PORT", "")
-	t.Setenv("BEADS_DOLT_PORT", "")
-	t.Setenv("BEADS_DOLT_SERVER_HOST", "")
-	t.Setenv("BEADS_DOLT_SERVER_DATABASE", "")
+	t.Setenv("ISSUEGRAPH_DOLT_SERVER_PORT", "")
+	t.Setenv("ISSUEGRAPH_DOLT_PORT", "")
+	t.Setenv("ISSUEGRAPH_DOLT_SERVER_HOST", "")
+	t.Setenv("ISSUEGRAPH_DOLT_SERVER_DATABASE", "")
 	tmpDir := t.TempDir()
-	beadsDir := filepath.Join(tmpDir, ".beads")
-	if err := os.MkdirAll(beadsDir, 0755); err != nil {
+	issuegraphDir := filepath.Join(tmpDir, ".issuegraph")
+	if err := os.MkdirAll(issuegraphDir, 0755); err != nil {
 		t.Fatalf("mkdir: %v", err)
 	}
 
@@ -29,14 +29,14 @@ func TestContextInfo_ServerModeIdentity(t *testing.T) {
 		DoltMode:       "server",
 		DoltServerHost: "192.168.1.50",
 		DoltServerPort: 3309,
-		DoltDatabase:   "project_beads",
+		DoltDatabase:   "project_issuegraph",
 		ProjectID:      "proj-abc123",
 	}
-	if err := cfg.Save(beadsDir); err != nil {
+	if err := cfg.Save(issuegraphDir); err != nil {
 		t.Fatalf("save config: %v", err)
 	}
 
-	loaded, err := configfile.Load(beadsDir)
+	loaded, err := configfile.Load(issuegraphDir)
 	if err != nil {
 		t.Fatalf("load config: %v", err)
 	}
@@ -56,8 +56,8 @@ func TestContextInfo_ServerModeIdentity(t *testing.T) {
 	if got := loaded.GetDoltServerPort(); got != 3309 {
 		t.Errorf("ServerPort: got %d, want %d", got, 3309)
 	}
-	if got := loaded.GetDoltDatabase(); got != "project_beads" {
-		t.Errorf("Database: got %q, want %q", got, "project_beads")
+	if got := loaded.GetDoltDatabase(); got != "project_issuegraph" {
+		t.Errorf("Database: got %q, want %q", got, "project_issuegraph")
 	}
 }
 
@@ -65,19 +65,19 @@ func TestContextInfo_ServerModeIdentity(t *testing.T) {
 // mode config reports embedded mode with no server host/port overrides.
 func TestContextInfo_EmbeddedModeIdentity(t *testing.T) {
 	tmpDir := t.TempDir()
-	beadsDir := filepath.Join(tmpDir, ".beads")
-	if err := os.MkdirAll(beadsDir, 0755); err != nil {
+	issuegraphDir := filepath.Join(tmpDir, ".issuegraph")
+	if err := os.MkdirAll(issuegraphDir, 0755); err != nil {
 		t.Fatalf("mkdir: %v", err)
 	}
 
 	cfg := &configfile.Config{
 		Database: "dolt",
 	}
-	if err := cfg.Save(beadsDir); err != nil {
+	if err := cfg.Save(issuegraphDir); err != nil {
 		t.Fatalf("save config: %v", err)
 	}
 
-	loaded, err := configfile.Load(beadsDir)
+	loaded, err := configfile.Load(issuegraphDir)
 	if err != nil {
 		t.Fatalf("load config: %v", err)
 	}
@@ -105,8 +105,8 @@ func TestContextInfo_EmbeddedModeIdentity(t *testing.T) {
 // strips absolute paths (GH#2251).
 func TestContextInfo_DataDirOverride(t *testing.T) {
 	tmpDir := t.TempDir()
-	beadsDir := filepath.Join(tmpDir, ".beads")
-	if err := os.MkdirAll(beadsDir, 0755); err != nil {
+	issuegraphDir := filepath.Join(tmpDir, ".issuegraph")
+	if err := os.MkdirAll(issuegraphDir, 0755); err != nil {
 		t.Fatalf("mkdir: %v", err)
 	}
 
@@ -116,11 +116,11 @@ func TestContextInfo_DataDirOverride(t *testing.T) {
 		Database:    "dolt",
 		DoltDataDir: "custom-data",
 	}
-	if err := cfg.Save(beadsDir); err != nil {
+	if err := cfg.Save(issuegraphDir); err != nil {
 		t.Fatalf("save config: %v", err)
 	}
 
-	loaded, err := configfile.Load(beadsDir)
+	loaded, err := configfile.Load(issuegraphDir)
 	if err != nil {
 		t.Fatalf("load config: %v", err)
 	}
@@ -134,7 +134,7 @@ func TestContextInfo_DataDirOverride(t *testing.T) {
 
 	// Also verify that an absolute path set via env var overrides the config
 	t.Run("AbsoluteViaEnv", func(t *testing.T) {
-		t.Setenv("BEADS_DOLT_DATA_DIR", "/mnt/fast-ssd/dolt-data")
+		t.Setenv("ISSUEGRAPH_DOLT_DATA_DIR", "/mnt/fast-ssd/dolt-data")
 		if got := loaded.GetDoltDataDir(); got != "/mnt/fast-ssd/dolt-data" {
 			t.Errorf("DoltDataDir with env override: got %q, want %q", got, "/mnt/fast-ssd/dolt-data")
 		}
@@ -145,8 +145,8 @@ func TestContextInfo_DataDirOverride(t *testing.T) {
 // appears in the loaded config and would be surfaced in ContextInfo.
 func TestContextInfo_ProjectIDPresent(t *testing.T) {
 	tmpDir := t.TempDir()
-	beadsDir := filepath.Join(tmpDir, ".beads")
-	if err := os.MkdirAll(beadsDir, 0755); err != nil {
+	issuegraphDir := filepath.Join(tmpDir, ".issuegraph")
+	if err := os.MkdirAll(issuegraphDir, 0755); err != nil {
 		t.Fatalf("mkdir: %v", err)
 	}
 
@@ -154,11 +154,11 @@ func TestContextInfo_ProjectIDPresent(t *testing.T) {
 		Database:  "dolt",
 		ProjectID: "proj-deadbeef-1234",
 	}
-	if err := cfg.Save(beadsDir); err != nil {
+	if err := cfg.Save(issuegraphDir); err != nil {
 		t.Fatalf("save config: %v", err)
 	}
 
-	loaded, err := configfile.Load(beadsDir)
+	loaded, err := configfile.Load(issuegraphDir)
 	if err != nil {
 		t.Fatalf("load config: %v", err)
 	}
@@ -182,13 +182,13 @@ func TestContextInfo_ProjectIDPresent(t *testing.T) {
 	}
 }
 
-// TestContextInfo_EnvVarOverrides verifies that BEADS_DOLT_SERVER_HOST env var
+// TestContextInfo_EnvVarOverrides verifies that ISSUEGRAPH_DOLT_SERVER_HOST env var
 // overrides the value from metadata.json. This is the drift vector from
 // GH#2438: env vars and config can diverge silently.
 func TestContextInfo_EnvVarOverrides(t *testing.T) {
 	tmpDir := t.TempDir()
-	beadsDir := filepath.Join(tmpDir, ".beads")
-	if err := os.MkdirAll(beadsDir, 0755); err != nil {
+	issuegraphDir := filepath.Join(tmpDir, ".issuegraph")
+	if err := os.MkdirAll(issuegraphDir, 0755); err != nil {
 		t.Fatalf("mkdir: %v", err)
 	}
 
@@ -197,13 +197,13 @@ func TestContextInfo_EnvVarOverrides(t *testing.T) {
 		DoltMode:       "server",
 		DoltServerHost: "192.168.1.50",
 		DoltServerPort: 3309,
-		DoltDatabase:   "project_beads",
+		DoltDatabase:   "project_issuegraph",
 	}
-	if err := cfg.Save(beadsDir); err != nil {
+	if err := cfg.Save(issuegraphDir); err != nil {
 		t.Fatalf("save config: %v", err)
 	}
 
-	loaded, err := configfile.Load(beadsDir)
+	loaded, err := configfile.Load(issuegraphDir)
 	if err != nil {
 		t.Fatalf("load config: %v", err)
 	}
@@ -214,10 +214,10 @@ func TestContextInfo_EnvVarOverrides(t *testing.T) {
 	}
 
 	// Set env var override — simulates drift between config file and runtime
-	t.Setenv("BEADS_DOLT_SERVER_HOST", "10.0.0.99")
+	t.Setenv("ISSUEGRAPH_DOLT_SERVER_HOST", "10.0.0.99")
 
 	if got := loaded.GetDoltServerHost(); got != "10.0.0.99" {
-		t.Errorf("after BEADS_DOLT_SERVER_HOST override: got %q, want %q", got, "10.0.0.99")
+		t.Errorf("after ISSUEGRAPH_DOLT_SERVER_HOST override: got %q, want %q", got, "10.0.0.99")
 	}
 
 	// The config struct still has the original value — this is the drift
@@ -226,15 +226,15 @@ func TestContextInfo_EnvVarOverrides(t *testing.T) {
 	}
 
 	// Verify port override works similarly
-	t.Setenv("BEADS_DOLT_SERVER_PORT", "3310")
+	t.Setenv("ISSUEGRAPH_DOLT_SERVER_PORT", "3310")
 	if got := loaded.GetDoltServerPort(); got != 3310 {
-		t.Errorf("after BEADS_DOLT_SERVER_PORT override: got %d, want %d", got, 3310)
+		t.Errorf("after ISSUEGRAPH_DOLT_SERVER_PORT override: got %d, want %d", got, 3310)
 	}
 
 	// Verify database override works similarly
-	t.Setenv("BEADS_DOLT_SERVER_DATABASE", "other_db")
+	t.Setenv("ISSUEGRAPH_DOLT_SERVER_DATABASE", "other_db")
 	if got := loaded.GetDoltDatabase(); got != "other_db" {
-		t.Errorf("after BEADS_DOLT_SERVER_DATABASE override: got %q, want %q", got, "other_db")
+		t.Errorf("after ISSUEGRAPH_DOLT_SERVER_DATABASE override: got %q, want %q", got, "other_db")
 	}
 
 	// Build a ContextInfo the same way context_cmd.go does and verify
@@ -263,8 +263,8 @@ func TestContextInfo_EnvVarOverrides(t *testing.T) {
 // data loss.
 func TestContextInfo_SaveStripAbsoluteDataDir(t *testing.T) {
 	tmpDir := t.TempDir()
-	beadsDir := filepath.Join(tmpDir, ".beads")
-	if err := os.MkdirAll(beadsDir, 0755); err != nil {
+	issuegraphDir := filepath.Join(tmpDir, ".issuegraph")
+	if err := os.MkdirAll(issuegraphDir, 0755); err != nil {
 		t.Fatalf("mkdir: %v", err)
 	}
 
@@ -277,12 +277,12 @@ func TestContextInfo_SaveStripAbsoluteDataDir(t *testing.T) {
 		Database:    "dolt",
 		DoltDataDir: absDataDir,
 	}
-	if err := cfg.Save(beadsDir); err != nil {
+	if err := cfg.Save(issuegraphDir); err != nil {
 		t.Fatalf("save config: %v", err)
 	}
 
 	// Read raw JSON to verify absolute path was stripped
-	data, err := os.ReadFile(filepath.Join(beadsDir, configfile.ConfigFileName))
+	data, err := os.ReadFile(filepath.Join(issuegraphDir, configfile.ConfigFileName))
 	if err != nil {
 		t.Fatalf("read config: %v", err)
 	}

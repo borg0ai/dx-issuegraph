@@ -1,21 +1,21 @@
 ---
-title: "bd history"
+title: "issuegraph history"
 description: "Show the complete version history of an issue, including all commits"
 ---
 
 {/* AUTO-GENERATED: do not edit manually */}
 
-Generated from `bd help --doc history`.
+Generated from `issuegraph help --doc history`.
 
 Show the complete version history of an issue, including all commits
 where the issue was modified.
 
 Examples:
-  bd history bd-123           # Show all history for issue bd-123
-  bd history bd-123 --limit 5 # Show last 5 changes
+  issuegraph history issuegraph-123           # Show all history for issue issuegraph-123
+  issuegraph history issuegraph-123 --limit 5 # Show last 5 changes
 
 ```
-bd history <id> [flags]
+issuegraph history <id> [flags]
 ```
 
 **Flags:**

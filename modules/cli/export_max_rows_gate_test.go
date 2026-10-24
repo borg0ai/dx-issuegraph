@@ -9,13 +9,13 @@ import (
 	"strconv"
 	"testing"
 
-	"github.com/steveyegge/beads/internal/testutil"
+	"github.com/borg0ai/dx-issuegraph/internal/testutil"
 )
 
 // TestExport_FilterHasZeroMaxRows is the be-x42v.4 opt-out gate for
-// `bd export`. Asserts that runExport never constructs an IssueFilter
+// `issuegraph export`. Asserts that runExport never constructs an IssueFilter
 // with MaxRows>0 or a non-empty MaxRowsSource — both would let an
-// inherited BEADS_MAX_ROWS env var abort the export mid-run and leave
+// inherited ISSUEGRAPH_MAX_ROWS env var abort the export mid-run and leave
 // an incomplete JSONL backup on disk.
 //
 // Today's filter construction lives at modules/cli/export.go:94-98:
@@ -28,13 +28,13 @@ import (
 //
 // The two MaxRows fields are explicitly initialized to the zero values
 // per the designer §4.1 opt-out rule for data-integrity paths. A future
-// refactor that removes them — or pipes BEADS_MAX_ROWS through some
+// refactor that removes them — or pipes ISSUEGRAPH_MAX_ROWS through some
 // shared resolver — would silently break round-trip integrity. This
 // gate prevents that regression at SearchIssues call time.
 //
 // Failure modes this gate prevents:
 //
-//   - A future "smart export" change starts honoring BEADS_MAX_ROWS to
+//   - A future "smart export" change starts honoring ISSUEGRAPH_MAX_ROWS to
 //     "warn the user on huge backups," silently corrupting backups when
 //     the env var is set in CI.
 //   - A future shared `IssueFilter` builder helper defaults MaxRows to
@@ -57,8 +57,8 @@ func TestExport_FilterHasZeroMaxRows(t *testing.T) {
 	_ = saved
 
 	tmpDir := t.TempDir()
-	beadsDir := filepath.Join(tmpDir, ".beads")
-	if err := os.MkdirAll(beadsDir, 0755); err != nil {
+	issuegraphDir := filepath.Join(tmpDir, ".issuegraph")
+	if err := os.MkdirAll(issuegraphDir, 0755); err != nil {
 		t.Fatal(err)
 	}
 	origWd, _ := os.Getwd()
@@ -68,7 +68,7 @@ func TestExport_FilterHasZeroMaxRows(t *testing.T) {
 	t.Cleanup(func() { _ = os.Chdir(origWd) })
 
 	dbName := uniqueTestDBName(t)
-	testDBPath := filepath.Join(beadsDir, "dolt")
+	testDBPath := filepath.Join(issuegraphDir, "dolt")
 	writeTestMetadata(t, testDBPath, dbName)
 	inner := newTestStore(t, testDBPath)
 	spy := newFilterCapturingStore(inner)
@@ -111,17 +111,17 @@ func TestExport_FilterHasZeroMaxRows(t *testing.T) {
 
 	for i, f := range spy.AllFilters() {
 		if f.MaxRows != 0 {
-			t.Errorf("be-x42v.4 gate: SearchIssues call %d had filter.MaxRows=%d; bd export must opt out (MaxRows=0) — designer §4.1 round-trip integrity", i, f.MaxRows)
+			t.Errorf("be-x42v.4 gate: SearchIssues call %d had filter.MaxRows=%d; issuegraph export must opt out (MaxRows=0) — designer §4.1 round-trip integrity", i, f.MaxRows)
 		}
 		if f.MaxRowsSource != "" {
-			t.Errorf("be-x42v.4 gate: SearchIssues call %d had filter.MaxRowsSource=%q; bd export must opt out (MaxRowsSource=\"\") — a non-empty source would tip ErrTooManyRows into the cap-fired branch", i, f.MaxRowsSource)
+			t.Errorf("be-x42v.4 gate: SearchIssues call %d had filter.MaxRowsSource=%q; issuegraph export must opt out (MaxRowsSource=\"\") — a non-empty source would tip ErrTooManyRows into the cap-fired branch", i, f.MaxRowsSource)
 		}
 	}
 }
 
-// TestExport_BypassesBeadsMaxRows is the be-x42v.4 end-to-end behavioral
-// test (designer §6.4) that verifies BEADS_MAX_ROWS=1 in the process
-// environment does NOT limit the row count of `bd export`. Belt-and-
+// TestExport_BypassesIssueGraphMaxRows is the be-x42v.4 end-to-end behavioral
+// test (designer §6.4) that verifies ISSUEGRAPH_MAX_ROWS=1 in the process
+// environment does NOT limit the row count of `issuegraph export`. Belt-and-
 // suspenders alongside the filter spy above: the spy asserts on the
 // internal filter construction; this test asserts on the observable
 // output line count, catching any path where a shared resolver or an
@@ -130,7 +130,7 @@ func TestExport_FilterHasZeroMaxRows(t *testing.T) {
 //
 // The env var is set via t.Setenv so it is automatically restored after
 // the test; it does NOT bleed into other tests in the suite.
-func TestExport_BypassesBeadsMaxRows(t *testing.T) {
+func TestExport_BypassesIssueGraphMaxRows(t *testing.T) {
 	if testDoltServerPort == 0 {
 		t.Skip("Dolt test server not available")
 	}
@@ -138,15 +138,15 @@ func TestExport_BypassesBeadsMaxRows(t *testing.T) {
 		t.Skipf("Dolt test server crashed: %v", testutil.DoltContainerCrashError())
 	}
 
-	t.Setenv("BEADS_MAX_ROWS", "1")
+	t.Setenv("ISSUEGRAPH_MAX_ROWS", "1")
 
 	ensureTestMode(t)
 	saved := saveAndRestoreGlobals(t)
 	_ = saved
 
 	tmpDir := t.TempDir()
-	beadsDir := filepath.Join(tmpDir, ".beads")
-	if err := os.MkdirAll(beadsDir, 0755); err != nil {
+	issuegraphDir := filepath.Join(tmpDir, ".issuegraph")
+	if err := os.MkdirAll(issuegraphDir, 0755); err != nil {
 		t.Fatal(err)
 	}
 	origWd, _ := os.Getwd()
@@ -156,7 +156,7 @@ func TestExport_BypassesBeadsMaxRows(t *testing.T) {
 	t.Cleanup(func() { _ = os.Chdir(origWd) })
 
 	dbName := uniqueTestDBName(t)
-	testDBPath := filepath.Join(beadsDir, "dolt")
+	testDBPath := filepath.Join(issuegraphDir, "dolt")
 	writeTestMetadata(t, testDBPath, dbName)
 	s := newTestStore(t, testDBPath)
 	store = s
@@ -173,7 +173,7 @@ func TestExport_BypassesBeadsMaxRows(t *testing.T) {
 	ctx := context.Background()
 	rootCtx = ctx
 
-	// Seed 5 regular task issues. bd export excludes infra types,
+	// Seed 5 regular task issues. issuegraph export excludes infra types,
 	// templates, and ephemeral wisps by default — "task" rows pass all
 	// three filters and will appear in the JSONL output.
 	const wantRows = 5
@@ -206,6 +206,6 @@ func TestExport_BypassesBeadsMaxRows(t *testing.T) {
 	}
 	lines := splitJSONL(data)
 	if len(lines) != wantRows {
-		t.Errorf("be-x42v.4 bypass: BEADS_MAX_ROWS=1 truncated export: got %d JSONL lines, want %d — bd export must ignore the env cap (designer §4.1 opt-out)", len(lines), wantRows)
+		t.Errorf("be-x42v.4 bypass: ISSUEGRAPH_MAX_ROWS=1 truncated export: got %d JSONL lines, want %d — issuegraph export must ignore the env cap (designer §4.1 opt-out)", len(lines), wantRows)
 	}
 }

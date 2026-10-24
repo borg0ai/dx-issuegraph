@@ -6,7 +6,7 @@ import (
 	"path/filepath"
 	"testing"
 
-	"github.com/steveyegge/beads/internal/configfile"
+	"github.com/borg0ai/dx-issuegraph/internal/configfile"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
@@ -48,14 +48,14 @@ func TestRootProviderOptions(t *testing.T) {
 }
 
 func TestNewProxiedServerUOWProvider_RoutesExternalConfigToExternalProvider(t *testing.T) {
-	beadsDir := t.TempDir()
-	require.NoError(t, configfile.SaveProxiedServerClientInfo(beadsDir, &configfile.ProxiedServerClientInfo{
+	issuegraphDir := t.TempDir()
+	require.NoError(t, configfile.SaveProxiedServerClientInfo(issuegraphDir, &configfile.ProxiedServerClientInfo{
 		External: &configfile.ExternalDoltConfig{
 			Host: "db.invalid",
 		},
 	}))
 
-	_, err := newProxiedServerUOWProvider(context.Background(), beadsDir, "")
+	_, err := newProxiedServerUOWProvider(context.Background(), issuegraphDir, "")
 	require.Error(t, err)
 	assert.Contains(t, err.Error(), "Host requires Port",
 		"expected external validation error proving the external code path was taken; got: %v", err)
@@ -65,14 +65,14 @@ func TestNewProxiedServerUOWProvider_RoutesExternalConfigToExternalProvider(t *t
 // back to a fresh managed local database (bd-aj3g5, restoring f880a985b;
 // split-brain: reads return zero issues, writes land in the wrong database).
 func TestNewProxiedServerUOWProvider_CorruptSidecarErrorsInsteadOfManagedFallback(t *testing.T) {
-	beadsDir := t.TempDir()
+	issuegraphDir := t.TempDir()
 	require.NoError(t, os.WriteFile(
-		filepath.Join(beadsDir, configfile.ProxiedServerClientInfoFileName),
+		filepath.Join(issuegraphDir, configfile.ProxiedServerClientInfoFileName),
 		[]byte("{not json"), 0o600))
 
-	_, err := newProxiedServerUOWProvider(context.Background(), beadsDir, "")
+	_, err := newProxiedServerUOWProvider(context.Background(), issuegraphDir, "")
 	require.Error(t, err)
-	assert.Contains(t, err.Error(), configfile.ProxiedServerClientInfoPath(beadsDir),
+	assert.Contains(t, err.Error(), configfile.ProxiedServerClientInfoPath(issuegraphDir),
 		"error must name the unreadable sidecar path; got: %v", err)
 	assert.Contains(t, err.Error(), "refusing to fall back",
 		"must refuse the managed-local fallback; got: %v", err)
@@ -82,14 +82,14 @@ func TestNewProxiedServerUOWProvider_CorruptSidecarErrorsInsteadOfManagedFallbac
 // name sends writes to the wrong database, and the team-server identity
 // assertion silently degrades to no assertion at all.
 func TestNewProxiedServerUOWProvider_CorruptWorkspaceConfigErrors(t *testing.T) {
-	beadsDir := t.TempDir()
+	issuegraphDir := t.TempDir()
 	require.NoError(t, os.WriteFile(
-		filepath.Join(beadsDir, configfile.ConfigFileName),
+		filepath.Join(issuegraphDir, configfile.ConfigFileName),
 		[]byte("{not json"), 0o600))
 
-	_, err := newProxiedServerUOWProvider(context.Background(), beadsDir, "")
+	_, err := newProxiedServerUOWProvider(context.Background(), issuegraphDir, "")
 	require.Error(t, err)
-	assert.Contains(t, err.Error(), configfile.ConfigPath(beadsDir),
+	assert.Contains(t, err.Error(), configfile.ConfigPath(issuegraphDir),
 		"error must name the unreadable workspace config path; got: %v", err)
 	assert.Contains(t, err.Error(), "refusing to fall back",
 		"must refuse the fresh-database fallback; got: %v", err)
@@ -102,15 +102,15 @@ func TestNewProxiedServerUOWProvider_UnreadableSidecarErrors(t *testing.T) {
 	if os.Geteuid() == 0 {
 		t.Skip("running as root; chmod 000 does not deny reads")
 	}
-	beadsDir := t.TempDir()
-	sidecar := filepath.Join(beadsDir, configfile.ProxiedServerClientInfoFileName)
+	issuegraphDir := t.TempDir()
+	sidecar := filepath.Join(issuegraphDir, configfile.ProxiedServerClientInfoFileName)
 	require.NoError(t, os.WriteFile(sidecar, []byte("{}"), 0o600))
 	require.NoError(t, os.Chmod(sidecar, 0o000))
 	t.Cleanup(func() { _ = os.Chmod(sidecar, 0o600) })
 
-	_, err := newProxiedServerUOWProvider(context.Background(), beadsDir, "")
+	_, err := newProxiedServerUOWProvider(context.Background(), issuegraphDir, "")
 	require.Error(t, err)
-	assert.Contains(t, err.Error(), configfile.ProxiedServerClientInfoPath(beadsDir),
+	assert.Contains(t, err.Error(), configfile.ProxiedServerClientInfoPath(issuegraphDir),
 		"error must name the unreadable sidecar path; got: %v", err)
 	assert.Contains(t, err.Error(), "refusing to fall back",
 		"must refuse the managed-local fallback; got: %v", err)
@@ -121,9 +121,9 @@ func TestNewProxiedServerUOWProvider_UnreadableSidecarErrors(t *testing.T) {
 // at the resolver level because the full provider would go on to start a
 // managed dolt server.
 func TestResolveProxiedServerUOWTopology_AbsentFilesResolveDefaults(t *testing.T) {
-	beadsDir := t.TempDir()
+	issuegraphDir := t.TempDir()
 
-	topology, err := resolveProxiedServerUOWTopology(beadsDir, "", assertWorkspaceIdentity)
+	topology, err := resolveProxiedServerUOWTopology(issuegraphDir, "", assertWorkspaceIdentity)
 	require.NoError(t, err, "absent metadata.json and sidecar must not be an error")
 	assert.Equal(t, configfile.DefaultDoltDatabase, topology.database)
 	assert.False(t, topology.teamServer)
@@ -131,46 +131,46 @@ func TestResolveProxiedServerUOWTopology_AbsentFilesResolveDefaults(t *testing.T
 }
 
 func TestNewExternalProxiedServerUOWProvider_CreatesRootDir(t *testing.T) {
-	beadsDir := t.TempDir()
+	issuegraphDir := t.TempDir()
 	external := &configfile.ExternalDoltConfig{Host: "db.invalid"}
 
-	_, err := newExternalProxiedServerUOWProvider(context.Background(), beadsDir, sqlServerUOWTopology{
-		database: "beads_test",
+	_, err := newExternalProxiedServerUOWProvider(context.Background(), issuegraphDir, sqlServerUOWTopology{
+		database: "issuegraph_test",
 		external: external,
 	})
 	require.Error(t, err, "invalid external config must surface a validation error")
 
-	wantRoot := proxiedServerRoot(beadsDir)
+	wantRoot := proxiedServerRoot(issuegraphDir)
 	assert.DirExists(t, wantRoot, "external provider should create the proxied server root dir before validating")
 }
 
 func TestNewExternalProxiedServerUOWProvider_HonorsCustomRootPath(t *testing.T) {
-	beadsDir := t.TempDir()
+	issuegraphDir := t.TempDir()
 	customRoot := filepath.Join(t.TempDir(), "custom-proxy-root")
 
-	require.NoError(t, configfile.SaveProxiedServerClientInfo(beadsDir, &configfile.ProxiedServerClientInfo{
+	require.NoError(t, configfile.SaveProxiedServerClientInfo(issuegraphDir, &configfile.ProxiedServerClientInfo{
 		RootPath: customRoot,
 		External: &configfile.ExternalDoltConfig{Host: "db.invalid"},
 	}))
 
-	_, err := newProxiedServerUOWProvider(context.Background(), beadsDir, "")
+	_, err := newProxiedServerUOWProvider(context.Background(), issuegraphDir, "")
 	require.Error(t, err, "invalid external config must surface a validation error")
 
 	assert.DirExists(t, customRoot, "external provider should create the custom root dir, not the default")
-	assert.NoDirExists(t, proxiedServerRoot(beadsDir), "default root must not be created when a custom RootPath is set")
+	assert.NoDirExists(t, proxiedServerRoot(issuegraphDir), "default root must not be created when a custom RootPath is set")
 }
 
 func TestNewExternalProxiedServerUOWProvider_HonorsCustomLogPath(t *testing.T) {
-	beadsDir := t.TempDir()
+	issuegraphDir := t.TempDir()
 	customLogDir := t.TempDir()
 	customLog := filepath.Join(customLogDir, "external.log")
 
-	require.NoError(t, configfile.SaveProxiedServerClientInfo(beadsDir, &configfile.ProxiedServerClientInfo{
+	require.NoError(t, configfile.SaveProxiedServerClientInfo(issuegraphDir, &configfile.ProxiedServerClientInfo{
 		LogPath:  customLog,
 		External: &configfile.ExternalDoltConfig{Host: "db.invalid"},
 	}))
 
-	_, err := newProxiedServerUOWProvider(context.Background(), beadsDir, "")
+	_, err := newProxiedServerUOWProvider(context.Background(), issuegraphDir, "")
 	require.Error(t, err, "invalid external config must surface a validation error")
 	assert.Contains(t, err.Error(), "Host requires Port",
 		"external code path must be the one reached; got: %v", err)

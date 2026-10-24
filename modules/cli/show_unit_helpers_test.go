@@ -7,7 +7,7 @@ import (
 	"path/filepath"
 	"testing"
 
-	"github.com/steveyegge/beads/internal/types"
+	"github.com/borg0ai/dx-issuegraph/internal/types"
 )
 
 func TestValidateIssueUpdatable(t *testing.T) {
@@ -36,8 +36,8 @@ func TestValidateIssueClosable(t *testing.T) {
 		t.Fatalf("expected pinned close to succeed with force, got %v", err)
 	}
 
-	// ga-z3vht: pinned=true protects the bead independently of status, so
-	// `bd close` refuses it without --force on both the direct and proxied path.
+	// ga-z3vht: pinned=true protects the issue independently of status, so
+	// `issuegraph close` refuses it without --force on both the direct and proxied path.
 	booleanPinned := &types.Issue{Status: types.StatusOpen, Pinned: true}
 	if err := validateIssueClosable("bd-6", booleanPinned, "alice", false); err == nil {
 		t.Fatalf("expected boolean-pinned close error")
@@ -74,8 +74,8 @@ func TestValidateIssueClosable(t *testing.T) {
 	if err := validateIssueClosable("bd-4", &types.Issue{Assignee: "alice"}, "alice", false); err != nil {
 		t.Fatalf("expected matching-assignee close to succeed, got %v", err)
 	}
-	// Unassigned beads can be closed by anyone (lots of bd's flow involves
-	// closing beads nobody claimed).
+	// Unassigned issuegraph can be closed by anyone (lots of issuegraph's flow involves
+	// closing issuegraph nobody claimed).
 	if err := validateIssueClosable("bd-5", &types.Issue{Assignee: ""}, "alice", false); err != nil {
 		t.Fatalf("expected unassigned close to succeed, got %v", err)
 	}

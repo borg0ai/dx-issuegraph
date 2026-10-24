@@ -10,15 +10,15 @@ import (
 	"strconv"
 	"strings"
 
+	"github.com/borg0ai/dx-issuegraph/internal/metrics"
+	"github.com/borg0ai/dx-issuegraph/internal/storage"
+	"github.com/borg0ai/dx-issuegraph/internal/storage/issueops"
+	"github.com/borg0ai/dx-issuegraph/internal/types"
 	"github.com/spf13/cobra"
-	"github.com/steveyegge/beads/internal/metrics"
-	"github.com/steveyegge/beads/internal/storage"
-	"github.com/steveyegge/beads/internal/storage/issueops"
-	"github.com/steveyegge/beads/internal/types"
 )
 
 // Scope note:
-// `bd batch` is intentionally a narrow, write-oriented command runner. It does
+// `issuegraph batch` is intentionally a narrow, write-oriented command runner. It does
 // NOT re-use the top-level cobra handlers (close/update/create/dep) because
 // those handlers read the global `store` and perform a full connection-
 // per-operation workflow. Instead, batch parses a simple line-oriented grammar
@@ -40,7 +40,7 @@ Commands are read from stdin (one per line) or from a file via -f/--file.
 All operations execute inside a single dolt transaction: on any error the
 whole batch is rolled back, otherwise it is committed with one DOLT_COMMIT.
 
-This is intended for shell scripts that currently invoke 'bd' many times in
+This is intended for shell scripts that currently invoke 'issuegraph' many times in
 a loop, which causes severe write amplification on a dolt sql-server backed
 by btrfs+compression. Batching collapses N invocations into one transaction
 and one dolt commit.
@@ -54,11 +54,11 @@ Grammar (one command per line):
   #comment  (blank lines and '# ...' comments are ignored)
 
 Supported 'update' keys: status, priority, title, assignee, force
-Supported dependency types: see 'bd dep add --help' (default: blocks)
+Supported dependency types: see 'issuegraph dep add --help' (default: blocks)
 
 'force' is not a field. An update whose status moves the issue into closed
 (or a configured done status) is refused when it still has open children or
-a live blocker, the same as 'bd close'; 'force=true' overrides that refusal.
+a live blocker, the same as 'issuegraph close'; 'force=true' overrides that refusal.
 Because the batch is one transaction, an unforced refusal rolls back EVERY
 operation in the batch, not just the offending line. Note the asymmetry with
 'close <id>', which does not apply that policy at all.
@@ -68,20 +68,20 @@ contain spaces; use \" to embed a quote and \\ for a backslash.
 
 Examples:
   # From a pipe
-  bd list --status stale -q | awk '{print "close",$1," stale"}' | bd batch
+  issuegraph list --status stale -q | awk '{print "close",$1," stale"}' | issuegraph batch
 
   # From a file
-  bd batch -f operations.txt
+  issuegraph batch -f operations.txt
 
   # Inline
-  printf 'close bd-1 done\nupdate bd-2 status=in_progress\n' | bd batch
+  printf 'close bd-1 done\nupdate bd-2 status=in_progress\n' | issuegraph batch
 
 On success, exits 0 and prints a summary (or JSON with --json). On any error,
 rolls back the entire transaction and exits non-zero with the failing line.
 
 NOTE: This is a narrow subset. Commands like 'show', 'list', 'ready', 'sync',
 complex create flows, or any flag not listed above are NOT accepted. Use
-normal 'bd' subcommands for interactive/read operations.`,
+normal 'issuegraph' subcommands for interactive/read operations.`,
 	Args:          cobra.NoArgs,
 	SilenceUsage:  true,
 	SilenceErrors: false,
@@ -141,7 +141,7 @@ normal 'bd' subcommands for interactive/read operations.`,
 		}
 
 		if len(ops) == 0 {
-			// Empty input is a no-op success, matching 'bd list | bd batch' on
+			// Empty input is a no-op success, matching 'issuegraph list | issuegraph batch' on
 			// an empty list.
 			if jsonOutput {
 				if err := outputJSON(map[string]interface{}{
@@ -157,7 +157,7 @@ normal 'bd' subcommands for interactive/read operations.`,
 		}
 
 		if strings.TrimSpace(commitMsg) == "" {
-			commitMsg = fmt.Sprintf("bd: batch %d ops by %s", len(ops), getActor())
+			commitMsg = fmt.Sprintf("issuegraph: batch %d ops by %s", len(ops), getActor())
 		}
 
 		ctx := rootCtx
@@ -217,7 +217,7 @@ normal 'bd' subcommands for interactive/read operations.`,
 func init() {
 	batchCmd.Flags().StringP("file", "f", "", "Read commands from file instead of stdin")
 	batchCmd.Flags().Bool("dry-run", false, "Parse input and echo commands without executing")
-	batchCmd.Flags().StringP("message", "m", "", "DOLT_COMMIT message (default: 'bd: batch N ops by <actor>')")
+	batchCmd.Flags().StringP("message", "m", "", "DOLT_COMMIT message (default: 'issuegraph: batch N ops by <actor>')")
 	rootCmd.AddCommand(batchCmd)
 }
 

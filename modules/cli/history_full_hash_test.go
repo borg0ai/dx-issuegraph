@@ -6,8 +6,8 @@ import (
 	"testing"
 	"time"
 
-	"github.com/steveyegge/beads/internal/storage"
-	"github.com/steveyegge/beads/internal/types"
+	"github.com/borg0ai/dx-issuegraph/internal/storage"
+	"github.com/borg0ai/dx-issuegraph/internal/types"
 )
 
 // fakeHistoryBackend is a minimal historyBackend for exercising runHistory
@@ -25,8 +25,8 @@ func (f *fakeHistoryBackend) IterEvents(_ context.Context, _ string, _ int) (sto
 }
 
 // TestHistoryTextOutputShowsFullCommitHash covers be-95c0y FIX A: text-mode
-// `bd history` output must print the full Dolt commit hash, not just its
-// first 8 characters -- an 8-char prefix is not valid input to `bd show
+// `issuegraph history` output must print the full Dolt commit hash, not just its
+// first 8 characters -- an 8-char prefix is not valid input to `issuegraph show
 // --as-of` (Dolt's AS OF does not resolve hash prefixes), so truncating it
 // here hands the user a value that looks copyable but always fails.
 func TestHistoryTextOutputShowsFullCommitHash(t *testing.T) {
@@ -60,9 +60,9 @@ func TestHistoryTextOutputShowsFullCommitHash(t *testing.T) {
 	})
 
 	if !strings.Contains(out, fullHash) {
-		t.Errorf("bd history text output does not contain the full commit hash %q; got:\n%s", fullHash, out)
+		t.Errorf("issuegraph history text output does not contain the full commit hash %q; got:\n%s", fullHash, out)
 	}
 	if strings.Contains(out, fullHash[:8]) && !strings.Contains(out, fullHash) {
-		t.Errorf("bd history text output contains only the truncated 8-char hash %q, not the full hash", fullHash[:8])
+		t.Errorf("issuegraph history text output contains only the truncated 8-char hash %q, not the full hash", fullHash[:8])
 	}
 }

@@ -7,10 +7,10 @@ import (
 	"database/sql"
 	"fmt"
 
-	"github.com/steveyegge/beads/internal/storage"
-	storeops "github.com/steveyegge/beads/internal/storage/issueops"
-	"github.com/steveyegge/beads/internal/workapi"
-	"github.com/steveyegge/beads/issueops"
+	"github.com/borg0ai/dx-issuegraph/internal/storage"
+	storeops "github.com/borg0ai/dx-issuegraph/internal/storage/issueops"
+	"github.com/borg0ai/dx-issuegraph/internal/workapi"
+	"github.com/borg0ai/dx-issuegraph/issueops"
 )
 
 // Deleter returns the named-row erasure surface for this store.
@@ -43,7 +43,7 @@ var _ issueops.Deleter = (*deleter)(nil)
 //
 // THE VERSION-CONTROL ENTRY IS ONE PER DELETION, published through
 // runIssueOperationTx like this store's other guarded writes. It was not
-// always: the port of `bd delete` onto this role reached its transaction
+// always: the port of `issuegraph delete` onto this role reached its transaction
 // through withConn, which mints no Dolt commit, so embedded deletes stopped
 // being versioned and were compensated for at the CLI instead. A deletion
 // confined to dolt-ignored tables — a wisp with no sync-plane edges — leaves
@@ -83,7 +83,7 @@ func (s *deleter) Delete(ctx context.Context, req issueops.DeleteRequest) (issue
 		}
 		// The same tables a sweep stages; the neighbor rewrite lands in
 		// `issues` and `events`, which are already on the list.
-		return sweptTables(), fmt.Sprintf("bd: delete %d issue(s)", result.Deleted), nil
+		return sweptTables(), fmt.Sprintf("issuegraph: delete %d issue(s)", result.Deleted), nil
 	}); err != nil {
 		return issueops.DeleteResult{}, err
 	}

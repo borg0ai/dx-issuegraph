@@ -1,18 +1,18 @@
 //go:build cgo
 
-// be-u8z9: CLI-layer behavioral tests for BEADS_MAX_ROWS / --max-rows on the
-// command paths beyond `bd list`. Each subtest:
+// be-u8z9: CLI-layer behavioral tests for ISSUEGRAPH_MAX_ROWS / --max-rows on the
+// command paths beyond `issuegraph list`. Each subtest:
 //   - inits a fresh rig (own DB so the row counts are exact)
-//   - exercises the command via exec.Command(bd, ...)
+//   - exercises the command via exec.Command(issuegraph, ...)
 //   - asserts the process exited with code 2 (cap exceeded) and that stderr
-//     names the source ("--max-rows=N" or "BEADS_MAX_ROWS=N").
+//     names the source ("--max-rows=N" or "ISSUEGRAPH_MAX_ROWS=N").
 //
 // The doctor-family commands (lint, doctor-conventions, doctor-pollution)
 // are env-only by design (designer §4); they do NOT register --max-rows
 // as a flag. A separate subtest asserts cobra rejects the flag.
 //
 // Gating matches the other embedded-dolt CLI tests: requires
-// BEADS_TEST_EMBEDDED_DOLT=1 to opt in.
+// ISSUEGRAPH_TEST_EMBEDDED_DOLT=1 to opt in.
 
 package main
 
@@ -23,19 +23,19 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/steveyegge/beads/internal/types"
-	"github.com/steveyegge/beads/internal/workapi"
+	"github.com/borg0ai/dx-issuegraph/internal/types"
+	"github.com/borg0ai/dx-issuegraph/internal/workapi"
 )
 
-// bdRunRaw runs bd with the given args and env extras (appended to bdEnv(dir)).
+// issuegraphRunRaw runs issuegraph with the given args and env extras (appended to issuegraphEnv(dir)).
 // Returns combined stdout+stderr and the process exit code. Unlike the other
 // helpers in this package it does not call t.Fatal on non-zero exits — that's
 // the success case for the max-rows tests.
-func bdRunRaw(t *testing.T, bd, dir string, envExtras []string, args ...string) (string, int) {
+func issuegraphRunRaw(t *testing.T, issuegraph, dir string, envExtras []string, args ...string) (string, int) {
 	t.Helper()
-	cmd := exec.Command(bd, args...)
+	cmd := exec.Command(issuegraph, args...)
 	cmd.Dir = dir
-	env := bdEnv(dir)
+	env := issuegraphEnv(dir)
 	env = append(env, envExtras...)
 	cmd.Env = env
 	out, err := cmd.CombinedOutput()
@@ -45,17 +45,17 @@ func bdRunRaw(t *testing.T, bd, dir string, envExtras []string, args ...string) 
 	if exitErr, ok := err.(*exec.ExitError); ok {
 		return string(out), exitErr.ExitCode()
 	}
-	t.Fatalf("bd %s unexpected non-exit error: %v\n%s", strings.Join(args, " "), err, out)
+	t.Fatalf("issuegraph %s unexpected non-exit error: %v\n%s", strings.Join(args, " "), err, out)
 	return string(out), -1
 }
 
 // seedReadyIssues creates n top-level (no-dep, no-blocker) issues that all
-// appear in `bd ready`. Useful for tests that need exactly n ready rows.
-func seedReadyIssues(t *testing.T, bd, dir string, n int) []string {
+// appear in `issuegraph ready`. Useful for tests that need exactly n ready rows.
+func seedReadyIssues(t *testing.T, issuegraph, dir string, n int) []string {
 	t.Helper()
 	ids := make([]string, n)
 	for i := 0; i < n; i++ {
-		iss := bdCreate(t, bd, dir, fmt.Sprintf("max-rows seed %d", i), "--type", "task")
+		iss := issuegraphCreate(t, issuegraph, dir, fmt.Sprintf("max-rows seed %d", i), "--type", "task")
 		ids[i] = iss.ID
 	}
 	return ids
@@ -64,22 +64,22 @@ func seedReadyIssues(t *testing.T, bd, dir string, n int) []string {
 // TestEmbeddedMaxRowsNonListPaths covers the non-list CLI paths wired up in
 // be-x42v.2: ready, dep tree, find-duplicates, graph --all, plus the env-only
 // doctor family (lint, doctor --check=conventions, doctor --check=pollution),
-// and config show emission of BEADS_MAX_ROWS.
+// and config show emission of ISSUEGRAPH_MAX_ROWS.
 func TestEmbeddedMaxRowsNonListPaths(t *testing.T) {
-	if os.Getenv("BEADS_TEST_EMBEDDED_DOLT") != "1" {
-		t.Skip("set BEADS_TEST_EMBEDDED_DOLT=1 to run embedded dolt integration tests")
+	if os.Getenv("ISSUEGRAPH_TEST_EMBEDDED_DOLT") != "1" {
+		t.Skip("set ISSUEGRAPH_TEST_EMBEDDED_DOLT=1 to run embedded dolt integration tests")
 	}
 	t.Parallel()
 
-	bd := buildEmbeddedBD(t)
+	issuegraph := buildEmbeddedBD(t)
 
-	// ----------- bd ready -----------
+	// ----------- issuegraph ready -----------
 
 	t.Run("ReadyMaxRows_FlagOverCap_Exits2", func(t *testing.T) {
-		dir, _, _ := bdInit(t, bd, "--prefix", "mrrdf")
-		seedReadyIssues(t, bd, dir, 6)
+		dir, _, _ := issuegraphInit(t, issuegraph, "--prefix", "mrrdf")
+		seedReadyIssues(t, issuegraph, dir, 6)
 
-		out, code := bdRunRaw(t, bd, dir, nil, "ready", "--max-rows", "3")
+		out, code := issuegraphRunRaw(t, issuegraph, dir, nil, "ready", "--max-rows", "3")
 		if code != 2 {
 			t.Fatalf("expected exit 2 (cap exceeded), got %d\n%s", code, out)
 		}
@@ -92,27 +92,27 @@ func TestEmbeddedMaxRowsNonListPaths(t *testing.T) {
 	})
 
 	t.Run("ReadyMaxRows_EnvOverCap_Exits2", func(t *testing.T) {
-		dir, _, _ := bdInit(t, bd, "--prefix", "mrrde")
-		seedReadyIssues(t, bd, dir, 6)
+		dir, _, _ := issuegraphInit(t, issuegraph, "--prefix", "mrrde")
+		seedReadyIssues(t, issuegraph, dir, 6)
 
-		out, code := bdRunRaw(t, bd, dir, []string{"BEADS_MAX_ROWS=3"}, "ready")
+		out, code := issuegraphRunRaw(t, issuegraph, dir, []string{"ISSUEGRAPH_MAX_ROWS=3"}, "ready")
 		if code != 2 {
 			t.Fatalf("expected exit 2 (cap exceeded), got %d\n%s", code, out)
 		}
-		if !strings.Contains(out, "BEADS_MAX_ROWS=3") {
-			t.Errorf("stderr missing source BEADS_MAX_ROWS=3:\n%s", out)
+		if !strings.Contains(out, "ISSUEGRAPH_MAX_ROWS=3") {
+			t.Errorf("stderr missing source ISSUEGRAPH_MAX_ROWS=3:\n%s", out)
 		}
 	})
 
-	// `bd ready --json` and `bd list --ready --json` route through
+	// `issuegraph ready --json` and `issuegraph list --ready --json` route through
 	// GetReadyWorkWithCountsInTx, a separate query path from the plain
-	// `bd ready` above (GetReadyWorkInTx). Mirrors
-	// TestEmbeddedMaxRowsList/Flag_OverCap's --json coverage for `bd list`.
+	// `issuegraph ready` above (GetReadyWorkInTx). Mirrors
+	// TestEmbeddedMaxRowsList/Flag_OverCap's --json coverage for `issuegraph list`.
 	t.Run("ReadyMaxRowsJSON_FlagOverCap_Exits2", func(t *testing.T) {
-		dir, _, _ := bdInit(t, bd, "--prefix", "mrrjf")
-		seedReadyIssues(t, bd, dir, 6)
+		dir, _, _ := issuegraphInit(t, issuegraph, "--prefix", "mrrjf")
+		seedReadyIssues(t, issuegraph, dir, 6)
 
-		out, code := bdRunRaw(t, bd, dir, nil, "ready", "--json", "--max-rows", "3")
+		out, code := issuegraphRunRaw(t, issuegraph, dir, nil, "ready", "--json", "--max-rows", "3")
 		if code != 2 {
 			t.Fatalf("expected exit 2 (cap exceeded), got %d\n%s", code, out)
 		}
@@ -130,10 +130,10 @@ func TestEmbeddedMaxRowsNonListPaths(t *testing.T) {
 	})
 
 	t.Run("ListReadyMaxRowsJSON_FlagOverCap_Exits2", func(t *testing.T) {
-		dir, _, _ := bdInit(t, bd, "--prefix", "mrrjl")
-		seedReadyIssues(t, bd, dir, 6)
+		dir, _, _ := issuegraphInit(t, issuegraph, "--prefix", "mrrjl")
+		seedReadyIssues(t, issuegraph, dir, 6)
 
-		out, code := bdRunRaw(t, bd, dir, nil, "list", "--ready", "--json", "--max-rows", "3")
+		out, code := issuegraphRunRaw(t, issuegraph, dir, nil, "list", "--ready", "--json", "--max-rows", "3")
 		if code != 2 {
 			t.Fatalf("expected exit 2 (cap exceeded), got %d\n%s", code, out)
 		}
@@ -151,12 +151,12 @@ func TestEmbeddedMaxRowsNonListPaths(t *testing.T) {
 	// ready_work.go) — that change bounds the query itself but must not
 	// change whether the post-merge cap check in GetReadyWorkInTx trips.
 	t.Run("ReadyIncludeEphemeralMaxRows_FlagOverCap_Exits2", func(t *testing.T) {
-		dir, _, _ := bdInit(t, bd, "--prefix", "mrre")
+		dir, _, _ := issuegraphInit(t, issuegraph, "--prefix", "mrre")
 		for i := 0; i < 6; i++ {
-			bdCreate(t, bd, dir, fmt.Sprintf("Ephemeral ready %d", i), "--type", "task", "--ephemeral")
+			issuegraphCreate(t, issuegraph, dir, fmt.Sprintf("Ephemeral ready %d", i), "--type", "task", "--ephemeral")
 		}
 
-		out, code := bdRunRaw(t, bd, dir, nil, "ready", "--include-ephemeral", "--max-rows", "3")
+		out, code := issuegraphRunRaw(t, issuegraph, dir, nil, "ready", "--include-ephemeral", "--max-rows", "3")
 		if code != 2 {
 			t.Fatalf("expected exit 2 (cap exceeded), got %d\n%s", code, out)
 		}
@@ -179,15 +179,15 @@ func TestEmbeddedMaxRowsNonListPaths(t *testing.T) {
 	// but the page actually handed back to the caller is trimmed to 2<=cap.
 	// Must exit 0, not trip the cap on the untrimmed merge.
 	t.Run("ReadyIncludeEphemeralMaxRowsJSON_MergedUnderLimit_NoError", func(t *testing.T) {
-		dir, _, _ := bdInit(t, bd, "--prefix", "mrrm")
+		dir, _, _ := issuegraphInit(t, issuegraph, "--prefix", "mrrm")
 		for i := 0; i < 2; i++ {
-			bdCreate(t, bd, dir, fmt.Sprintf("Plain ready %d", i), "--type", "task")
+			issuegraphCreate(t, issuegraph, dir, fmt.Sprintf("Plain ready %d", i), "--type", "task")
 		}
 		for i := 0; i < 2; i++ {
-			bdCreate(t, bd, dir, fmt.Sprintf("Ephemeral ready %d", i), "--type", "task", "--ephemeral")
+			issuegraphCreate(t, issuegraph, dir, fmt.Sprintf("Ephemeral ready %d", i), "--type", "task", "--ephemeral")
 		}
 
-		out, code := bdRunRaw(t, bd, dir, nil, "ready", "--json", "--include-ephemeral",
+		out, code := issuegraphRunRaw(t, issuegraph, dir, nil, "ready", "--json", "--include-ephemeral",
 			"--limit", "2", "--max-rows", "3")
 		if code != 0 {
 			t.Fatalf("expected exit 0 (delivered page under cap despite pre-trim merge overage), got %d\n%s", code, out)
@@ -197,22 +197,22 @@ func TestEmbeddedMaxRowsNonListPaths(t *testing.T) {
 		}
 	})
 
-	// ----------- bd dep tree -----------
+	// ----------- issuegraph dep tree -----------
 
 	t.Run("DepTreeMaxRows_TreeNodes_Exits2", func(t *testing.T) {
-		dir, _, _ := bdInit(t, bd, "--prefix", "mrdt")
+		dir, _, _ := issuegraphInit(t, issuegraph, "--prefix", "mrdt")
 		// All tasks: default "blocks" dep type rejects epic→task, but task→task
 		// is fine and produces a tree with the same shape for cap purposes.
-		root := bdCreate(t, bd, dir, "Tree root", "--type", "task")
+		root := issuegraphCreate(t, issuegraph, dir, "Tree root", "--type", "task")
 		// Add 5 children so the dep tree has 6 nodes total (root + 5).
 		for i := 0; i < 5; i++ {
-			child := bdCreate(t, bd, dir, fmt.Sprintf("Tree dep %d", i), "--type", "task")
-			// `bd dep add A B` makes A depend on B (default dep type is "blocks").
-			bdDepAdd(t, bd, dir, root.ID, child.ID)
+			child := issuegraphCreate(t, issuegraph, dir, fmt.Sprintf("Tree dep %d", i), "--type", "task")
+			// `issuegraph dep add A B` makes A depend on B (default dep type is "blocks").
+			issuegraphDepAdd(t, issuegraph, dir, root.ID, child.ID)
 		}
 
 		// Sanity: tree of size 6, cap of 2 → must exit 2 with source attribution.
-		out, code := bdRunRaw(t, bd, dir, nil, "dep", "tree", root.ID, "--max-rows", "2")
+		out, code := issuegraphRunRaw(t, issuegraph, dir, nil, "dep", "tree", root.ID, "--max-rows", "2")
 		if code != 2 {
 			t.Fatalf("expected exit 2 (tree size > cap), got %d\n%s", code, out)
 		}
@@ -224,13 +224,13 @@ func TestEmbeddedMaxRowsNonListPaths(t *testing.T) {
 		}
 	})
 
-	// ----------- bd find-duplicates -----------
+	// ----------- issuegraph find-duplicates -----------
 
 	t.Run("FindDuplicatesMaxRows_Exits2", func(t *testing.T) {
-		dir, _, _ := bdInit(t, bd, "--prefix", "mrfd")
-		seedReadyIssues(t, bd, dir, 6)
+		dir, _, _ := issuegraphInit(t, issuegraph, "--prefix", "mrfd")
+		seedReadyIssues(t, issuegraph, dir, 6)
 
-		out, code := bdRunRaw(t, bd, dir, nil, "find-duplicates", "--max-rows", "3")
+		out, code := issuegraphRunRaw(t, issuegraph, dir, nil, "find-duplicates", "--max-rows", "3")
 		if code != 2 {
 			t.Fatalf("expected exit 2 (cap exceeded), got %d\n%s", code, out)
 		}
@@ -239,13 +239,13 @@ func TestEmbeddedMaxRowsNonListPaths(t *testing.T) {
 		}
 	})
 
-	// ----------- bd graph --all -----------
+	// ----------- issuegraph graph --all -----------
 
 	t.Run("GraphAllMaxRows_Exits2", func(t *testing.T) {
-		dir, _, _ := bdInit(t, bd, "--prefix", "mrgr")
-		seedReadyIssues(t, bd, dir, 6)
+		dir, _, _ := issuegraphInit(t, issuegraph, "--prefix", "mrgr")
+		seedReadyIssues(t, issuegraph, dir, 6)
 
-		out, code := bdRunRaw(t, bd, dir, nil, "graph", "--all", "--max-rows", "3")
+		out, code := issuegraphRunRaw(t, issuegraph, dir, nil, "graph", "--all", "--max-rows", "3")
 		if code != 2 {
 			t.Fatalf("expected exit 2 (cap exceeded), got %d\n%s", code, out)
 		}
@@ -254,21 +254,21 @@ func TestEmbeddedMaxRowsNonListPaths(t *testing.T) {
 		}
 	})
 
-	// be-x42v.4 follow-up (review SHOULD-FIX 7): `bd graph <issue>` without
+	// be-x42v.4 follow-up (review SHOULD-FIX 7): `issuegraph graph <issue>` without
 	// --all never resolved the cap at all before the fix — loadGraphSubgraph
 	// is a BFS over per-ID GetDependents/GetDependencies lookups with no
 	// IssueFilter to thread MaxRows through, so this checks the final
 	// connected-component node count post-hoc, mirroring dep tree.
 	t.Run("GraphSingleIssueMaxRows_NodeCount_Exits2", func(t *testing.T) {
-		dir, _, _ := bdInit(t, bd, "--prefix", "mrgs")
-		root := bdCreate(t, bd, dir, "Graph root", "--type", "task")
+		dir, _, _ := issuegraphInit(t, issuegraph, "--prefix", "mrgs")
+		root := issuegraphCreate(t, issuegraph, dir, "Graph root", "--type", "task")
 		for i := 0; i < 5; i++ {
-			child := bdCreate(t, bd, dir, fmt.Sprintf("Graph dep %d", i), "--type", "task")
-			bdDepAdd(t, bd, dir, root.ID, child.ID)
+			child := issuegraphCreate(t, issuegraph, dir, fmt.Sprintf("Graph dep %d", i), "--type", "task")
+			issuegraphDepAdd(t, issuegraph, dir, root.ID, child.ID)
 		}
 
 		// Connected component of size 6 (root + 5), cap of 2 → exit 2.
-		out, code := bdRunRaw(t, bd, dir, nil, "graph", root.ID, "--max-rows", "2")
+		out, code := issuegraphRunRaw(t, issuegraph, dir, nil, "graph", root.ID, "--max-rows", "2")
 		if code != 2 {
 			t.Fatalf("expected exit 2 (subgraph size > cap), got %d\n%s", code, out)
 		}
@@ -281,10 +281,10 @@ func TestEmbeddedMaxRowsNonListPaths(t *testing.T) {
 	})
 
 	t.Run("GraphSingleIssueMaxRows_UnderCap_NoError", func(t *testing.T) {
-		dir, _, _ := bdInit(t, bd, "--prefix", "mrgu")
-		root := bdCreate(t, bd, dir, "Graph root under cap", "--type", "task")
+		dir, _, _ := issuegraphInit(t, issuegraph, "--prefix", "mrgu")
+		root := issuegraphCreate(t, issuegraph, dir, "Graph root under cap", "--type", "task")
 
-		out, code := bdRunRaw(t, bd, dir, nil, "graph", root.ID, "--max-rows", "5")
+		out, code := issuegraphRunRaw(t, issuegraph, dir, nil, "graph", root.ID, "--max-rows", "5")
 		if code != 0 {
 			t.Fatalf("expected exit 0 (single-node subgraph under cap), got %d\n%s", code, out)
 		}
@@ -293,28 +293,28 @@ func TestEmbeddedMaxRowsNonListPaths(t *testing.T) {
 		}
 	})
 
-	// ----------- bd lint (env-only) -----------
+	// ----------- issuegraph lint (env-only) -----------
 
 	t.Run("LintMaxRows_EnvOnly_Exits2", func(t *testing.T) {
-		dir, _, _ := bdInit(t, bd, "--prefix", "mrln")
-		seedReadyIssues(t, bd, dir, 6)
+		dir, _, _ := issuegraphInit(t, issuegraph, "--prefix", "mrln")
+		seedReadyIssues(t, issuegraph, dir, 6)
 
-		out, code := bdRunRaw(t, bd, dir, []string{"BEADS_MAX_ROWS=3"}, "lint")
+		out, code := issuegraphRunRaw(t, issuegraph, dir, []string{"ISSUEGRAPH_MAX_ROWS=3"}, "lint")
 		if code != 2 {
 			t.Fatalf("expected exit 2 (cap exceeded via env), got %d\n%s", code, out)
 		}
-		if !strings.Contains(out, "BEADS_MAX_ROWS=3") {
-			t.Errorf("stderr missing source BEADS_MAX_ROWS=3:\n%s", out)
+		if !strings.Contains(out, "ISSUEGRAPH_MAX_ROWS=3") {
+			t.Errorf("stderr missing source ISSUEGRAPH_MAX_ROWS=3:\n%s", out)
 		}
 	})
 
 	t.Run("LintMaxRows_NoFlagAccepted", func(t *testing.T) {
 		// Designer §4: doctor family is env-opt-in only. The --max-rows
-		// flag must NOT be registered on `bd lint`; cobra should reject
+		// flag must NOT be registered on `issuegraph lint`; cobra should reject
 		// it as unknown.
-		dir, _, _ := bdInit(t, bd, "--prefix", "mrlnf")
+		dir, _, _ := issuegraphInit(t, issuegraph, "--prefix", "mrlnf")
 
-		out, code := bdRunRaw(t, bd, dir, nil, "lint", "--max-rows", "1")
+		out, code := issuegraphRunRaw(t, issuegraph, dir, nil, "lint", "--max-rows", "1")
 		if code == 0 {
 			t.Fatalf("expected non-zero exit (cobra rejects unknown flag), got 0\n%s", out)
 		}
@@ -326,16 +326,16 @@ func TestEmbeddedMaxRowsNonListPaths(t *testing.T) {
 		// check above already covers it.
 	})
 
-	// ----------- bd doctor --check=conventions (env-only) -----------
+	// ----------- issuegraph doctor --check=conventions (env-only) -----------
 	//
-	// bd doctor is hard-gated to server mode (doctor.go:188 prints "not yet
+	// issuegraph doctor is hard-gated to server mode (doctor.go:188 prints "not yet
 	// supported in embedded mode" and exits 0 before reaching the check
 	// dispatch). The embedded-Dolt test rig used here cannot exercise those
 	// code paths. The cap logic itself runs through the shared SearchIssues +
 	// EnforceMaxRowsCap path already covered by:
 	//   - TestEnforceMaxRowsCap_* (internal/storage/issueops/search_test.go)
 	//   - TestGetReadyWork_MaxRowsSuite (modules/cli/ready_max_rows_test.go)
-	//   - be-x42v.3 storage parity tests (bd list/search backend matrix)
+	//   - be-x42v.3 storage parity tests (issuegraph list/search backend matrix)
 	// What's _not_ covered without server mode is the env-only resolver
 	// (resolveMaxRowsEnvOnly) on these specific commands. doctor_conventions.go
 	// and doctor_pollution.go both call it and pipe through handleMaxRowsError
@@ -343,46 +343,46 @@ func TestEmbeddedMaxRowsNonListPaths(t *testing.T) {
 	// A server-mode follow-up should add behavioral coverage here.
 
 	t.Run("ConventionsMaxRows_EnvOnly_Exits2", func(t *testing.T) {
-		t.Skip("bd doctor requires server mode (doctor.go:188); server-mode parity covered by separate validator bead")
+		t.Skip("issuegraph doctor requires server mode (doctor.go:188); server-mode parity covered by separate validator issue")
 	})
 
 	t.Run("PollutionMaxRows_EnvOnly_Exits2", func(t *testing.T) {
-		t.Skip("bd doctor requires server mode (doctor.go:188); server-mode parity covered by separate validator bead")
+		t.Skip("issuegraph doctor requires server mode (doctor.go:188); server-mode parity covered by separate validator issue")
 	})
 
-	// ----------- bd config show -----------
+	// ----------- issuegraph config show -----------
 
-	t.Run("ConfigShow_ListsBeadsMaxRows", func(t *testing.T) {
-		dir, _, _ := bdInit(t, bd, "--prefix", "mrcs")
+	t.Run("ConfigShow_ListsIssueGraphMaxRows", func(t *testing.T) {
+		dir, _, _ := issuegraphInit(t, issuegraph, "--prefix", "mrcs")
 
-		// When BEADS_MAX_ROWS is set in the environment, `bd config show`
+		// When ISSUEGRAPH_MAX_ROWS is set in the environment, `issuegraph config show`
 		// must surface it in the standalone-env entries (config_show.go
 		// collectStandaloneEnvEntries).
-		out, code := bdRunRaw(t, bd, dir, []string{"BEADS_MAX_ROWS=42"}, "config", "show")
+		out, code := issuegraphRunRaw(t, issuegraph, dir, []string{"ISSUEGRAPH_MAX_ROWS=42"}, "config", "show")
 		if code != 0 {
-			t.Fatalf("expected exit 0 from `bd config show`, got %d\n%s", code, out)
+			t.Fatalf("expected exit 0 from `issuegraph config show`, got %d\n%s", code, out)
 		}
-		if !strings.Contains(out, "BEADS_MAX_ROWS") {
-			t.Errorf("expected `bd config show` to list BEADS_MAX_ROWS in output:\n%s", out)
+		if !strings.Contains(out, "ISSUEGRAPH_MAX_ROWS") {
+			t.Errorf("expected `issuegraph config show` to list ISSUEGRAPH_MAX_ROWS in output:\n%s", out)
 		}
 		if !strings.Contains(out, "42") {
-			t.Errorf("expected `bd config show` to display the value 42:\n%s", out)
+			t.Errorf("expected `issuegraph config show` to display the value 42:\n%s", out)
 		}
 
 		// When the env var is unset, the entry must be absent (designer §4:
 		// opt-in only; default-disabled).
-		out2, code2 := bdRunRaw(t, bd, dir, nil, "config", "show")
+		out2, code2 := issuegraphRunRaw(t, issuegraph, dir, nil, "config", "show")
 		if code2 != 0 {
-			t.Fatalf("expected exit 0 from `bd config show` (unset), got %d\n%s", code2, out2)
+			t.Fatalf("expected exit 0 from `issuegraph config show` (unset), got %d\n%s", code2, out2)
 		}
-		if strings.Contains(out2, "BEADS_MAX_ROWS") {
-			t.Errorf("expected BEADS_MAX_ROWS to be absent when env is unset:\n%s", out2)
+		if strings.Contains(out2, "ISSUEGRAPH_MAX_ROWS") {
+			t.Errorf("expected ISSUEGRAPH_MAX_ROWS to be absent when env is unset:\n%s", out2)
 		}
 	})
 }
 
 // countListIDs returns the number of issue IDs of the form "<prefix>-<n>"
-// observed in the combined `bd list` output. Used to verify that --limit
+// observed in the combined `issuegraph list` output. Used to verify that --limit
 // actually clipped the result set without depending on JSON parsing of the
 // pretty-printed array (which spans many lines).
 func countListIDs(out, prefix string) int {
@@ -392,31 +392,31 @@ func countListIDs(out, prefix string) int {
 }
 
 // TestEmbeddedMaxRowsList covers the 10 designer §6.1 behavioral scenarios
-// for `bd list`. Builder bead: be-x42v.2 (CLI wiring). All subtests share a
+// for `issuegraph list`. Builder issue: be-x42v.2 (CLI wiring). All subtests share a
 // single rig of 21 open task issues — the dataset size from the designer's
 // fixture.
 func TestEmbeddedMaxRowsList(t *testing.T) {
-	if os.Getenv("BEADS_TEST_EMBEDDED_DOLT") != "1" {
-		t.Skip("set BEADS_TEST_EMBEDDED_DOLT=1 to run embedded dolt integration tests")
+	if os.Getenv("ISSUEGRAPH_TEST_EMBEDDED_DOLT") != "1" {
+		t.Skip("set ISSUEGRAPH_TEST_EMBEDDED_DOLT=1 to run embedded dolt integration tests")
 	}
 	t.Parallel()
 
-	bd := buildEmbeddedBD(t)
-	dir, _, _ := bdInit(t, bd, "--prefix", "mrl")
+	issuegraph := buildEmbeddedBD(t)
+	dir, _, _ := issuegraphInit(t, issuegraph, "--prefix", "mrl")
 
 	const totalRows = 21
 	for i := 0; i < totalRows; i++ {
-		bdCreate(t, bd, dir, fmt.Sprintf("List max-rows %d", i), "--type", "task")
+		issuegraphCreate(t, issuegraph, dir, fmt.Sprintf("List max-rows %d", i), "--type", "task")
 	}
 
 	t.Run("Disabled_NoEnv", func(t *testing.T) {
-		// Baseline: with no flag and no env var, `bd list` returns all rows.
-		out, code := bdRunRaw(t, bd, dir, nil, "list")
+		// Baseline: with no flag and no env var, `issuegraph list` returns all rows.
+		out, code := issuegraphRunRaw(t, issuegraph, dir, nil, "list")
 		if code != 0 {
 			t.Fatalf("expected exit 0 (no cap), got %d\n%s", code, out)
 		}
 		if strings.Contains(out, "too many rows") {
-			t.Errorf("baseline `bd list` should not emit cap error:\n%s", out)
+			t.Errorf("baseline `issuegraph list` should not emit cap error:\n%s", out)
 		}
 		if got := countListIDs(out, "mrl"); got < totalRows {
 			t.Errorf("expected at least %d rows in output, got %d", totalRows, got)
@@ -425,12 +425,12 @@ func TestEmbeddedMaxRowsList(t *testing.T) {
 
 	t.Run("Flag_UnderCap", func(t *testing.T) {
 		// 21 rows under cap=100: success.
-		out, code := bdRunRaw(t, bd, dir, nil, "list", "--max-rows", "100")
+		out, code := issuegraphRunRaw(t, issuegraph, dir, nil, "list", "--max-rows", "100")
 		if code != 0 {
 			t.Fatalf("expected exit 0 (under cap), got %d\n%s", code, out)
 		}
 		if strings.Contains(out, "too many rows") {
-			t.Errorf("under-cap `bd list` should not emit cap error:\n%s", out)
+			t.Errorf("under-cap `issuegraph list` should not emit cap error:\n%s", out)
 		}
 	})
 
@@ -438,7 +438,7 @@ func TestEmbeddedMaxRowsList(t *testing.T) {
 		// 21 rows over cap=5: exit 2, stderr includes --max-rows=5, stdout
 		// empty (designer §2.3: stdout is suppressed so `jq` downstream
 		// doesn't trip on partial JSON).
-		out, code := bdRunRaw(t, bd, dir, nil, "list", "--json", "--max-rows", "5")
+		out, code := issuegraphRunRaw(t, issuegraph, dir, nil, "list", "--json", "--max-rows", "5")
 		if code != 2 {
 			t.Fatalf("expected exit 2 (cap exceeded), got %d\n%s", code, out)
 		}
@@ -460,18 +460,18 @@ func TestEmbeddedMaxRowsList(t *testing.T) {
 	})
 
 	t.Run("Env_OverCap", func(t *testing.T) {
-		out, code := bdRunRaw(t, bd, dir, []string{"BEADS_MAX_ROWS=5"}, "list")
+		out, code := issuegraphRunRaw(t, issuegraph, dir, []string{"ISSUEGRAPH_MAX_ROWS=5"}, "list")
 		if code != 2 {
 			t.Fatalf("expected exit 2 (cap exceeded via env), got %d\n%s", code, out)
 		}
-		if !strings.Contains(out, "BEADS_MAX_ROWS=5") {
-			t.Errorf("expected source `BEADS_MAX_ROWS=5` in stderr:\n%s", out)
+		if !strings.Contains(out, "ISSUEGRAPH_MAX_ROWS=5") {
+			t.Errorf("expected source `ISSUEGRAPH_MAX_ROWS=5` in stderr:\n%s", out)
 		}
 	})
 
 	t.Run("Flag_OverridesEnv", func(t *testing.T) {
 		// env says cap=5, flag says cap=100 — flag wins, expect success.
-		out, code := bdRunRaw(t, bd, dir, []string{"BEADS_MAX_ROWS=5"},
+		out, code := issuegraphRunRaw(t, issuegraph, dir, []string{"ISSUEGRAPH_MAX_ROWS=5"},
 			"list", "--max-rows", "100")
 		if code != 0 {
 			t.Fatalf("expected exit 0 (flag overrides env), got %d\n%s", code, out)
@@ -485,7 +485,7 @@ func TestEmbeddedMaxRowsList(t *testing.T) {
 		// Explicit `--max-rows 0` disables the cap even when env is set
 		// (designer §2.1: ops shells with a global env can run a known-
 		// unbounded query without unsetting).
-		out, code := bdRunRaw(t, bd, dir, []string{"BEADS_MAX_ROWS=5"},
+		out, code := issuegraphRunRaw(t, issuegraph, dir, []string{"ISSUEGRAPH_MAX_ROWS=5"},
 			"list", "--max-rows", "0")
 		if code != 0 {
 			t.Fatalf("expected exit 0 (--max-rows 0 disables), got %d\n%s", code, out)
@@ -499,13 +499,13 @@ func TestEmbeddedMaxRowsList(t *testing.T) {
 		// env=banana → warning to stderr, normal output, exit 0
 		// (designer §2.1: fail-open on bad env so a typo in a global shell
 		// doesn't break automation).
-		out, code := bdRunRaw(t, bd, dir, []string{"BEADS_MAX_ROWS=banana"}, "list")
+		out, code := issuegraphRunRaw(t, issuegraph, dir, []string{"ISSUEGRAPH_MAX_ROWS=banana"}, "list")
 		if code != 0 {
 			t.Fatalf("expected exit 0 (bad env ignored), got %d\n%s", code, out)
 		}
-		// max_rows.go:79 emits a "Warning: BEADS_MAX_ROWS=\"banana\" is not
+		// max_rows.go:79 emits a "Warning: ISSUEGRAPH_MAX_ROWS=\"banana\" is not
 		// a non-negative integer; ignoring." line.
-		if !strings.Contains(out, "Warning") || !strings.Contains(out, "BEADS_MAX_ROWS") {
+		if !strings.Contains(out, "Warning") || !strings.Contains(out, "ISSUEGRAPH_MAX_ROWS") {
 			t.Errorf("expected warning about bad env in stderr:\n%s", out)
 		}
 		if strings.Contains(out, "too many rows") {
@@ -515,7 +515,7 @@ func TestEmbeddedMaxRowsList(t *testing.T) {
 
 	t.Run("Negative_FlagRejected", func(t *testing.T) {
 		// max_rows.go:55 calls FatalError on negative — exit 1 with message.
-		out, code := bdRunRaw(t, bd, dir, nil, "list", "--max-rows", "-1")
+		out, code := issuegraphRunRaw(t, issuegraph, dir, nil, "list", "--max-rows", "-1")
 		if code != 1 {
 			t.Fatalf("expected exit 1 (usage error), got %d\n%s", code, out)
 		}
@@ -528,7 +528,7 @@ func TestEmbeddedMaxRowsList(t *testing.T) {
 		// limit=100, cap=5: 21 rows are scanned (LIMIT cap+1=6 sniffs
 		// overage), cap fires, exit 2. The --limit flag does not protect
 		// callers who set a generous limit but also opt into the cap.
-		out, code := bdRunRaw(t, bd, dir, nil, "list",
+		out, code := issuegraphRunRaw(t, issuegraph, dir, nil, "list",
 			"--limit", "100", "--max-rows", "5")
 		if code != 2 {
 			t.Fatalf("expected exit 2 (cap tighter than limit), got %d\n%s", code, out)
@@ -541,7 +541,7 @@ func TestEmbeddedMaxRowsList(t *testing.T) {
 	t.Run("LimitSet_CapLooser", func(t *testing.T) {
 		// limit=5, cap=100: EffectiveSearchLimit returns 5 (limit wins when
 		// under cap), no overage detection, 5 rows returned, exit 0.
-		out, code := bdRunRaw(t, bd, dir, nil, "list",
+		out, code := issuegraphRunRaw(t, issuegraph, dir, nil, "list",
 			"--limit", "5", "--max-rows", "100")
 		if code != 0 {
 			t.Fatalf("expected exit 0 (limit under cap), got %d\n%s", code, out)
@@ -579,7 +579,7 @@ func TestEmbeddedMaxRowsList(t *testing.T) {
 	// limit_truncation_hint subtest) — these end-to-end subtests can only
 	// assert the absence of the false cap error and the delivered count.
 	t.Run("LimitEqualsCap_TruncatesNotErrors", func(t *testing.T) {
-		out, code := bdRunRaw(t, bd, dir, nil, "list",
+		out, code := issuegraphRunRaw(t, issuegraph, dir, nil, "list",
 			"--limit", "5", "--max-rows", "5")
 		if code != 0 {
 			t.Fatalf("expected exit 0 (limit==cap truncates, does not error), got %d\n%s", code, out)
@@ -593,7 +593,7 @@ func TestEmbeddedMaxRowsList(t *testing.T) {
 	})
 
 	t.Run("LimitEqualsCap_JSON_TruncatesNotErrors", func(t *testing.T) {
-		out, code := bdRunRaw(t, bd, dir, nil, "list", "--json",
+		out, code := issuegraphRunRaw(t, issuegraph, dir, nil, "list", "--json",
 			"--limit", "5", "--max-rows", "5")
 		if code != 0 {
 			t.Fatalf("expected exit 0 (limit==cap truncates under --json), got %d\n%s", code, out)
@@ -605,7 +605,7 @@ func TestEmbeddedMaxRowsList(t *testing.T) {
 
 	// be-x42v.4 round-4 follow-up: the round-3 fix to
 	// finishReadyWorkWithCounts (trim to Limit before EnforceMaxRowsCap)
-	// wasn't mirrored onto the sibling bd list search paths
+	// wasn't mirrored onto the sibling issuegraph list search paths
 	// (searchInTx in search.go, finishSearchIssuesWithCounts in
 	// search_counts.go), which still capped the pre-trim merged
 	// issues+wisps set. `--include-infra` disables the default SkipWisps
@@ -613,18 +613,18 @@ func TestEmbeddedMaxRowsList(t *testing.T) {
 	// durable + 3 wisp issues: each leg's query is independently bounded
 	// by EffectiveSearchLimit, so the merge can produce up to 6 rows
 	// pre-trim (>cap=5) even though the delivered page (trimmed to 2) is
-	// well within the cap. Covers both bd list output modes (opus's live
+	// well within the cap. Covers both issuegraph list output modes (opus's live
 	// repro found both non-JSON and --json tripping the false cap error).
 	t.Run("IncludeInfraMergedUnderLimit_NoError", func(t *testing.T) {
-		mDir, _, _ := bdInit(t, bd, "--prefix", "mrii")
+		mDir, _, _ := issuegraphInit(t, issuegraph, "--prefix", "mrii")
 		for i := 0; i < 3; i++ {
-			bdCreate(t, bd, mDir, fmt.Sprintf("Durable infra %d", i), "--type", "task")
+			issuegraphCreate(t, issuegraph, mDir, fmt.Sprintf("Durable infra %d", i), "--type", "task")
 		}
 		for i := 0; i < 3; i++ {
-			bdCreate(t, bd, mDir, fmt.Sprintf("Wisp infra %d", i), "--type", "task", "--ephemeral")
+			issuegraphCreate(t, issuegraph, mDir, fmt.Sprintf("Wisp infra %d", i), "--type", "task", "--ephemeral")
 		}
 
-		out, code := bdRunRaw(t, bd, mDir, nil, "list", "--include-infra",
+		out, code := issuegraphRunRaw(t, issuegraph, mDir, nil, "list", "--include-infra",
 			"--limit", "2", "--max-rows", "5")
 		if code != 0 {
 			t.Fatalf("expected exit 0 (delivered page under cap despite pre-trim merge overage), got %d\n%s", code, out)
@@ -633,7 +633,7 @@ func TestEmbeddedMaxRowsList(t *testing.T) {
 			t.Errorf("delivered-page-under-cap should not emit cap error:\n%s", out)
 		}
 
-		outJSON, codeJSON := bdRunRaw(t, bd, mDir, nil, "list", "--include-infra", "--json",
+		outJSON, codeJSON := issuegraphRunRaw(t, issuegraph, mDir, nil, "list", "--include-infra", "--json",
 			"--limit", "2", "--max-rows", "5")
 		if codeJSON != 0 {
 			t.Fatalf("expected exit 0 under --json (delivered page under cap despite pre-trim merge overage), got %d\n%s", codeJSON, outJSON)
@@ -655,13 +655,13 @@ func TestEmbeddedMaxRowsList(t *testing.T) {
 	// of the P2 durable rows the unsorted concatenation happened to put
 	// first. Must fail against 77227aa67.
 	t.Run("IncludeInfraMerged_WispOutranksDurable_InDeliveredPage", func(t *testing.T) {
-		mDir, _, _ := bdInit(t, bd, "--prefix", "mrwo")
+		mDir, _, _ := issuegraphInit(t, issuegraph, "--prefix", "mrwo")
 		for i := 0; i < 3; i++ {
-			bdCreate(t, bd, mDir, fmt.Sprintf("Durable p2 %d", i), "--type", "task", "--priority", "2")
+			issuegraphCreate(t, issuegraph, mDir, fmt.Sprintf("Durable p2 %d", i), "--type", "task", "--priority", "2")
 		}
-		wisp := bdCreate(t, bd, mDir, "Wisp p0 outranks", "--type", "task", "--priority", "0", "--ephemeral")
+		wisp := issuegraphCreate(t, issuegraph, mDir, "Wisp p0 outranks", "--type", "task", "--priority", "0", "--ephemeral")
 
-		out, code := bdRunRaw(t, bd, mDir, nil, "list", "--include-infra", "--limit", "1")
+		out, code := issuegraphRunRaw(t, issuegraph, mDir, nil, "list", "--include-infra", "--limit", "1")
 		if code != 0 {
 			t.Fatalf("expected exit 0, got %d\n%s", code, out)
 		}
@@ -669,7 +669,7 @@ func TestEmbeddedMaxRowsList(t *testing.T) {
 			t.Errorf("P0 wisp %s must be the sole row in a --limit 1 page (default sort is priority ASC), got:\n%s", wisp.ID, out)
 		}
 
-		outJSON, codeJSON := bdRunRaw(t, bd, mDir, nil, "list", "--include-infra", "--json", "--limit", "1")
+		outJSON, codeJSON := issuegraphRunRaw(t, issuegraph, mDir, nil, "list", "--include-infra", "--json", "--limit", "1")
 		if codeJSON != 0 {
 			t.Fatalf("expected exit 0 under --json, got %d\n%s", codeJSON, outJSON)
 		}
@@ -679,14 +679,14 @@ func TestEmbeddedMaxRowsList(t *testing.T) {
 	})
 
 	// be-x42v.4 follow-up (review MUST-FIX 5): the initial query under
-	// `bd list --watch` must surface a cap violation with exit 2, same as
-	// non-watch `bd list`. Before the fix, watchIssues logged the error to
+	// `issuegraph list --watch` must surface a cap violation with exit 2, same as
+	// non-watch `issuegraph list`. Before the fix, watchIssues logged the error to
 	// stderr itself and returned void, so the process always exited 0 —
 	// the failure never reached RunE/handleMaxRowsError. This subprocess
 	// exercises only the initial-query failure path (returns before
 	// entering the polling loop), so it terminates without needing Ctrl+C.
 	t.Run("Watch_FlagOverCap_Exits2", func(t *testing.T) {
-		out, code := bdRunRaw(t, bd, dir, nil, "list", "--watch", "--max-rows", "5")
+		out, code := issuegraphRunRaw(t, issuegraph, dir, nil, "list", "--watch", "--max-rows", "5")
 		if code != 2 {
 			t.Fatalf("expected exit 2 (cap exceeded under --watch), got %d\n%s", code, out)
 		}

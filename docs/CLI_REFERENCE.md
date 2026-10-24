@@ -1,293 +1,293 @@
-# bd — Complete Command Reference
+# issuegraph — Complete Command Reference
 
-Reference for bd Latest. Generated from `bd help --all`.
+Reference for issuegraph Latest. Generated from `issuegraph help --all`.
 
 ## Table of Contents
 
 ### Working With Issues:
 
-- [bd assign](#bd-assign) — Assign an issue to someone
-- [bd children](#bd-children) — List child beads of a parent
-- [bd close](#bd-close) — Close one or more issues
-- [bd comment](#bd-comment) — Add a comment to an issue
-- [bd comments](#bd-comments) — View or manage comments on an issue
-  - [bd comments add](#bd-comments-add) — Add a comment to an issue
-  - [bd comments list](#bd-comments-list) — Invalid — use bd comments &lt;issue-id&gt; to list comments
-- [bd create](#bd-create) — Create a new issue (or batch from markdown/graph JSON)
-- [bd create-form](#bd-create-form) — Create a new issue using an interactive form
-- [bd delete](#bd-delete) — Delete one or more issues and clean up references
-- [bd edit](#bd-edit) — Edit an issue field in $EDITOR
-- [bd gate](#bd-gate) — Manage async coordination gates
-  - [bd gate add-waiter](#bd-gate-add-waiter) — Add a waiter to a gate
-  - [bd gate check](#bd-gate-check) — Evaluate gates and close resolved ones
-  - [bd gate create](#bd-gate-create) — Create a gate that blocks an issue
-  - [bd gate discover](#bd-gate-discover) — Discover await_id for gh:run gates
-  - [bd gate list](#bd-gate-list) — List gate issues
-  - [bd gate resolve](#bd-gate-resolve) — Manually resolve (close) a gate
-  - [bd gate show](#bd-gate-show) — Show a gate issue
-- [bd label](#bd-label) — Manage issue labels
-  - [bd label add](#bd-label-add) — Add a label to one or more issues
-  - [bd label list](#bd-label-list) — List labels for an issue
-  - [bd label list-all](#bd-label-list-all) — List all unique labels in the database
-  - [bd label propagate](#bd-label-propagate) — Propagate a label from a parent issue to all its children
-  - [bd label remove](#bd-label-remove) — Remove a label from one or more issues
-- [bd link](#bd-link) — Link two issues with a dependency
-- [bd list](#bd-list) — List issues
-- [bd merge-slot](#bd-merge-slot) — Manage merge-slot gates for serialized conflict resolution
-  - [bd merge-slot acquire](#bd-merge-slot-acquire) — Acquire the merge slot
-  - [bd merge-slot check](#bd-merge-slot-check) — Check merge slot availability
-  - [bd merge-slot create](#bd-merge-slot-create) — Create a merge slot bead for the current rig
-  - [bd merge-slot release](#bd-merge-slot-release) — Release the merge slot
-- [bd note](#bd-note) — Append a note to an issue
-- [bd priority](#bd-priority) — Set the priority of an issue
-- [bd promote](#bd-promote) — Promote a wisp to a permanent bead
-- [bd q](#bd-q) — Quick capture: create issue and output only ID
-- [bd query](#bd-query) — Query issues using a simple query language
-- [bd reopen](#bd-reopen) — Reopen one or more closed issues
-- [bd search](#bd-search) — Search issues by text query
-- [bd set-state](#bd-set-state) — Set operational state (creates event + updates label)
-- [bd show](#bd-show) — Show issue details
-- [bd state](#bd-state) — Query the current value of a state dimension
-  - [bd state list](#bd-state-list) — List all state dimensions on an issue
-- [bd tag](#bd-tag) — Add a label to an issue
-- [bd todo](#bd-todo) — Manage TODO items (convenience wrapper for task issues)
-  - [bd todo add](#bd-todo-add) — Add a new TODO item
-  - [bd todo done](#bd-todo-done) — Mark TODO(s) as done
-  - [bd todo list](#bd-todo-list) — List TODO items
-- [bd update](#bd-update) — Update one or more issues
+- [issuegraph assign](#issuegraph-assign) — Assign an issue to someone
+- [issuegraph children](#issuegraph-children) — List child issuegraph of a parent
+- [issuegraph close](#issuegraph-close) — Close one or more issues
+- [issuegraph comment](#issuegraph-comment) — Add a comment to an issue
+- [issuegraph comments](#issuegraph-comments) — View or manage comments on an issue
+  - [issuegraph comments add](#issuegraph-comments-add) — Add a comment to an issue
+  - [issuegraph comments list](#issuegraph-comments-list) — Invalid — use issuegraph comments &lt;issue-id&gt; to list comments
+- [issuegraph create](#issuegraph-create) — Create a new issue (or batch from markdown/graph JSON)
+- [issuegraph create-form](#issuegraph-create-form) — Create a new issue using an interactive form
+- [issuegraph delete](#issuegraph-delete) — Delete one or more issues and clean up references
+- [issuegraph edit](#issuegraph-edit) — Edit an issue field in $EDITOR
+- [issuegraph gate](#issuegraph-gate) — Manage async coordination gates
+  - [issuegraph gate add-waiter](#issuegraph-gate-add-waiter) — Add a waiter to a gate
+  - [issuegraph gate check](#issuegraph-gate-check) — Evaluate gates and close resolved ones
+  - [issuegraph gate create](#issuegraph-gate-create) — Create a gate that blocks an issue
+  - [issuegraph gate discover](#issuegraph-gate-discover) — Discover await_id for gh:run gates
+  - [issuegraph gate list](#issuegraph-gate-list) — List gate issues
+  - [issuegraph gate resolve](#issuegraph-gate-resolve) — Manually resolve (close) a gate
+  - [issuegraph gate show](#issuegraph-gate-show) — Show a gate issue
+- [issuegraph label](#issuegraph-label) — Manage issue labels
+  - [issuegraph label add](#issuegraph-label-add) — Add a label to one or more issues
+  - [issuegraph label list](#issuegraph-label-list) — List labels for an issue
+  - [issuegraph label list-all](#issuegraph-label-list-all) — List all unique labels in the database
+  - [issuegraph label propagate](#issuegraph-label-propagate) — Propagate a label from a parent issue to all its children
+  - [issuegraph label remove](#issuegraph-label-remove) — Remove a label from one or more issues
+- [issuegraph link](#issuegraph-link) — Link two issues with a dependency
+- [issuegraph list](#issuegraph-list) — List issues
+- [issuegraph merge-slot](#issuegraph-merge-slot) — Manage merge-slot gates for serialized conflict resolution
+  - [issuegraph merge-slot acquire](#issuegraph-merge-slot-acquire) — Acquire the merge slot
+  - [issuegraph merge-slot check](#issuegraph-merge-slot-check) — Check merge slot availability
+  - [issuegraph merge-slot create](#issuegraph-merge-slot-create) — Create a merge slot issue for the current rig
+  - [issuegraph merge-slot release](#issuegraph-merge-slot-release) — Release the merge slot
+- [issuegraph note](#issuegraph-note) — Append a note to an issue
+- [issuegraph priority](#issuegraph-priority) — Set the priority of an issue
+- [issuegraph promote](#issuegraph-promote) — Promote a wisp to a permanent issue
+- [issuegraph q](#issuegraph-q) — Quick capture: create issue and output only ID
+- [issuegraph query](#issuegraph-query) — Query issues using a simple query language
+- [issuegraph reopen](#issuegraph-reopen) — Reopen one or more closed issues
+- [issuegraph search](#issuegraph-search) — Search issues by text query
+- [issuegraph set-state](#issuegraph-set-state) — Set operational state (creates event + updates label)
+- [issuegraph show](#issuegraph-show) — Show issue details
+- [issuegraph state](#issuegraph-state) — Query the current value of a state dimension
+  - [issuegraph state list](#issuegraph-state-list) — List all state dimensions on an issue
+- [issuegraph tag](#issuegraph-tag) — Add a label to an issue
+- [issuegraph todo](#issuegraph-todo) — Manage TODO items (convenience wrapper for task issues)
+  - [issuegraph todo add](#issuegraph-todo-add) — Add a new TODO item
+  - [issuegraph todo done](#issuegraph-todo-done) — Mark TODO(s) as done
+  - [issuegraph todo list](#issuegraph-todo-list) — List TODO items
+- [issuegraph update](#issuegraph-update) — Update one or more issues
 
 ### Views & Reports:
 
-- [bd count](#bd-count) — Count issues matching filters
-- [bd diff](#bd-diff) — Show changes between two commits or branches
-- [bd find-duplicates](#bd-find-duplicates) — Find semantically similar issues using text analysis or AI
-- [bd history](#bd-history) — Show version history for an issue
-- [bd lint](#bd-lint) — Check issues for missing template sections
-- [bd stale](#bd-stale) — Show stale issues (not updated recently)
-- [bd status](#bd-status) — Show issue database overview and statistics
-- [bd statuses](#bd-statuses) — List valid issue statuses
-- [bd types](#bd-types) — List valid issue types
+- [issuegraph count](#issuegraph-count) — Count issues matching filters
+- [issuegraph diff](#issuegraph-diff) — Show changes between two commits or branches
+- [issuegraph find-duplicates](#issuegraph-find-duplicates) — Find semantically similar issues using text analysis or AI
+- [issuegraph history](#issuegraph-history) — Show version history for an issue
+- [issuegraph lint](#issuegraph-lint) — Check issues for missing template sections
+- [issuegraph stale](#issuegraph-stale) — Show stale issues (not updated recently)
+- [issuegraph status](#issuegraph-status) — Show issue database overview and statistics
+- [issuegraph statuses](#issuegraph-statuses) — List valid issue statuses
+- [issuegraph types](#issuegraph-types) — List valid issue types
 
 ### Dependencies & Structure:
 
-- [bd dep](#bd-dep) — Manage dependencies
-  - [bd dep add](#bd-dep-add) — Add a dependency
-  - [bd dep cycles](#bd-dep-cycles) — Detect dependency cycles
-  - [bd dep list](#bd-dep-list) — List dependencies or dependents of one or more issues
-  - [bd dep relate](#bd-dep-relate) — Create a bidirectional relates_to link between issues
-  - [bd dep remove](#bd-dep-remove) — Remove a dependency
-  - [bd dep tree](#bd-dep-tree) — Show dependency tree
-  - [bd dep unrelate](#bd-dep-unrelate) — Remove a relates_to link between issues
-- [bd duplicate](#bd-duplicate) — Mark an issue as a duplicate of another
-- [bd duplicates](#bd-duplicates) — Find and optionally merge duplicate issues
-- [bd epic](#bd-epic) — Epic management commands
-  - [bd epic close-eligible](#bd-epic-close-eligible) — Close epics where all children are complete
-  - [bd epic status](#bd-epic-status) — Show epic completion status
-- [bd graph](#bd-graph) — Display issue dependency graph
-  - [bd graph check](#bd-graph-check) — Check dependency graph integrity
-- [bd supersede](#bd-supersede) — Mark an issue as superseded by a newer one
-- [bd swarm](#bd-swarm) — Swarm management for structured epics
-  - [bd swarm create](#bd-swarm-create) — Create a swarm molecule from an epic
-  - [bd swarm list](#bd-swarm-list) — List all swarm molecules
-  - [bd swarm status](#bd-swarm-status) — Show current swarm status
-  - [bd swarm validate](#bd-swarm-validate) — Validate epic structure for swarming
+- [issuegraph dep](#issuegraph-dep) — Manage dependencies
+  - [issuegraph dep add](#issuegraph-dep-add) — Add a dependency
+  - [issuegraph dep cycles](#issuegraph-dep-cycles) — Detect dependency cycles
+  - [issuegraph dep list](#issuegraph-dep-list) — List dependencies or dependents of one or more issues
+  - [issuegraph dep relate](#issuegraph-dep-relate) — Create a bidirectional relates_to link between issues
+  - [issuegraph dep remove](#issuegraph-dep-remove) — Remove a dependency
+  - [issuegraph dep tree](#issuegraph-dep-tree) — Show dependency tree
+  - [issuegraph dep unrelate](#issuegraph-dep-unrelate) — Remove a relates_to link between issues
+- [issuegraph duplicate](#issuegraph-duplicate) — Mark an issue as a duplicate of another
+- [issuegraph duplicates](#issuegraph-duplicates) — Find and optionally merge duplicate issues
+- [issuegraph epic](#issuegraph-epic) — Epic management commands
+  - [issuegraph epic close-eligible](#issuegraph-epic-close-eligible) — Close epics where all children are complete
+  - [issuegraph epic status](#issuegraph-epic-status) — Show epic completion status
+- [issuegraph graph](#issuegraph-graph) — Display issue dependency graph
+  - [issuegraph graph check](#issuegraph-graph-check) — Check dependency graph integrity
+- [issuegraph supersede](#issuegraph-supersede) — Mark an issue as superseded by a newer one
+- [issuegraph swarm](#issuegraph-swarm) — Swarm management for structured epics
+  - [issuegraph swarm create](#issuegraph-swarm-create) — Create a swarm molecule from an epic
+  - [issuegraph swarm list](#issuegraph-swarm-list) — List all swarm molecules
+  - [issuegraph swarm status](#issuegraph-swarm-status) — Show current swarm status
+  - [issuegraph swarm validate](#issuegraph-swarm-validate) — Validate epic structure for swarming
 
 ### Sync & Data:
 
-- [bd backup](#bd-backup) — Back up your beads database
-  - [bd backup init](#bd-backup-init) — Set up a Dolt backup destination
-  - [bd backup remove](#bd-backup-remove) — Remove the configured backup destination
-  - [bd backup restore](#bd-backup-restore) — Restore database from a Dolt backup
-  - [bd backup status](#bd-backup-status) — Show last backup status
-  - [bd backup sync](#bd-backup-sync) — Push database to configured Dolt backup
-- [bd branch](#bd-branch) — List or create branches
-- [bd export](#bd-export) — Export issues to JSONL format
-- [bd federation](#bd-federation) — Manage peer-to-peer federation (requires CGO)
-- [bd import](#bd-import) — Import issues from a JSONL file or stdin into the database
-- [bd restore](#bd-restore) — Restore the pre-compaction content of a compacted issue
-- [bd vc](#bd-vc) — Version control operations
-  - [bd vc commit](#bd-vc-commit) — Create a commit with all staged changes
-  - [bd vc merge](#bd-vc-merge) — Merge a branch into the current branch
-  - [bd vc status](#bd-vc-status) — Show current branch and uncommitted changes
+- [issuegraph backup](#issuegraph-backup) — Back up your issuegraph database
+  - [issuegraph backup init](#issuegraph-backup-init) — Set up a Dolt backup destination
+  - [issuegraph backup remove](#issuegraph-backup-remove) — Remove the configured backup destination
+  - [issuegraph backup restore](#issuegraph-backup-restore) — Restore database from a Dolt backup
+  - [issuegraph backup status](#issuegraph-backup-status) — Show last backup status
+  - [issuegraph backup sync](#issuegraph-backup-sync) — Push database to configured Dolt backup
+- [issuegraph branch](#issuegraph-branch) — List or create branches
+- [issuegraph export](#issuegraph-export) — Export issues to JSONL format
+- [issuegraph federation](#issuegraph-federation) — Manage peer-to-peer federation (requires CGO)
+- [issuegraph import](#issuegraph-import) — Import issues from a JSONL file or stdin into the database
+- [issuegraph restore](#issuegraph-restore) — Restore the pre-compaction content of a compacted issue
+- [issuegraph vc](#issuegraph-vc) — Version control operations
+  - [issuegraph vc commit](#issuegraph-vc-commit) — Create a commit with all staged changes
+  - [issuegraph vc merge](#issuegraph-vc-merge) — Merge a branch into the current branch
+  - [issuegraph vc status](#issuegraph-vc-status) — Show current branch and uncommitted changes
 
 ### Setup & Configuration:
 
-- [bd bootstrap](#bd-bootstrap) — Non-destructive database setup for fresh clones and recovery
-- [bd config](#bd-config) — Manage configuration settings
-  - [bd config apply](#bd-config-apply) — Reconcile system state to match configuration
-  - [bd config drift](#bd-config-drift) — Detect config-vs-reality inconsistencies
-  - [bd config get](#bd-config-get) — Get a configuration value
-  - [bd config list](#bd-config-list) — List all configuration
-  - [bd config set](#bd-config-set) — Set a configuration value
-  - [bd config set-many](#bd-config-set-many) — Set multiple configuration values in one operation
-  - [bd config show](#bd-config-show) — Show all effective configuration with provenance
-  - [bd config unset](#bd-config-unset) — Delete a configuration value
-  - [bd config validate](#bd-config-validate) — Validate sync-related configuration
-- [bd context](#bd-context) — Show effective backend identity and repository context
-- [bd dolt](#bd-dolt) — Configure Dolt database settings
-  - [bd dolt clean-databases](#bd-dolt-clean-databases) — Drop stale test databases from the Dolt server
-  - [bd dolt commit](#bd-dolt-commit) — Create a Dolt commit from pending changes
-  - [bd dolt killall](#bd-dolt-killall) — Kill all orphan Dolt server processes
-  - [bd dolt pull](#bd-dolt-pull) — Pull commits from Dolt remote
-  - [bd dolt push](#bd-dolt-push) — Push commits to Dolt remote
-  - [bd dolt remote](#bd-dolt-remote) — Manage Dolt remotes
-  - [bd dolt set](#bd-dolt-set) — Set a Dolt configuration value
-  - [bd dolt show](#bd-dolt-show) — Show current Dolt configuration with connection status
-  - [bd dolt start](#bd-dolt-start) — Start the Dolt SQL server for this project
-  - [bd dolt status](#bd-dolt-status) — Show Dolt engine status
-  - [bd dolt stop](#bd-dolt-stop) — Stop the Dolt SQL server for this project
-  - [bd dolt test](#bd-dolt-test) — Test connection to Dolt server
-- [bd forget](#bd-forget) — Remove a persistent memory
-- [bd hooks](#bd-hooks) — Manage git hooks for beads integration
-  - [bd hooks install](#bd-hooks-install) — Install bd git hooks
-  - [bd hooks list](#bd-hooks-list) — List installed git hooks status
-  - [bd hooks run](#bd-hooks-run) — Execute a git hook (called by thin shims)
-  - [bd hooks uninstall](#bd-hooks-uninstall) — Uninstall bd git hooks
-- [bd human](#bd-human) — Show essential commands for human users
-  - [bd human dismiss](#bd-human-dismiss) — Dismiss a human-needed bead
-  - [bd human list](#bd-human-list) — List all human-needed beads
-  - [bd human respond](#bd-human-respond) — Respond to a human-needed bead
-  - [bd human stats](#bd-human-stats) — Show summary statistics for human-needed beads
-- [bd info](#bd-info) — Show database information
-- [bd init](#bd-init) — Initialize bd in the current directory
-- [bd kv](#bd-kv) — Key-value store commands
-  - [bd kv clear](#bd-kv-clear) — Delete a key-value pair
-  - [bd kv get](#bd-kv-get) — Get a value by key
-  - [bd kv list](#bd-kv-list) — List all key-value pairs
-  - [bd kv set](#bd-kv-set) — Set a key-value pair
-- [bd memories](#bd-memories) — List or search persistent memories
-- [bd onboard](#bd-onboard) — Display minimal snippet for agent instructions file
-- [bd prime](#bd-prime) — Output AI-optimized workflow context
-- [bd quickstart](#bd-quickstart) — Quick start guide for bd
-- [bd recall](#bd-recall) — Retrieve a specific memory
-- [bd remember](#bd-remember) — Store a persistent memory
-- [bd setup](#bd-setup) — Setup integration with AI editors
-- [bd where](#bd-where) — Show active beads location
+- [issuegraph bootstrap](#issuegraph-bootstrap) — Non-destructive database setup for fresh clones and recovery
+- [issuegraph config](#issuegraph-config) — Manage configuration settings
+  - [issuegraph config apply](#issuegraph-config-apply) — Reconcile system state to match configuration
+  - [issuegraph config drift](#issuegraph-config-drift) — Detect config-vs-reality inconsistencies
+  - [issuegraph config get](#issuegraph-config-get) — Get a configuration value
+  - [issuegraph config list](#issuegraph-config-list) — List all configuration
+  - [issuegraph config set](#issuegraph-config-set) — Set a configuration value
+  - [issuegraph config set-many](#issuegraph-config-set-many) — Set multiple configuration values in one operation
+  - [issuegraph config show](#issuegraph-config-show) — Show all effective configuration with provenance
+  - [issuegraph config unset](#issuegraph-config-unset) — Delete a configuration value
+  - [issuegraph config validate](#issuegraph-config-validate) — Validate sync-related configuration
+- [issuegraph context](#issuegraph-context) — Show effective backend identity and repository context
+- [issuegraph dolt](#issuegraph-dolt) — Configure Dolt database settings
+  - [issuegraph dolt clean-databases](#issuegraph-dolt-clean-databases) — Drop stale test databases from the Dolt server
+  - [issuegraph dolt commit](#issuegraph-dolt-commit) — Create a Dolt commit from pending changes
+  - [issuegraph dolt killall](#issuegraph-dolt-killall) — Kill all orphan Dolt server processes
+  - [issuegraph dolt pull](#issuegraph-dolt-pull) — Pull commits from Dolt remote
+  - [issuegraph dolt push](#issuegraph-dolt-push) — Push commits to Dolt remote
+  - [issuegraph dolt remote](#issuegraph-dolt-remote) — Manage Dolt remotes
+  - [issuegraph dolt set](#issuegraph-dolt-set) — Set a Dolt configuration value
+  - [issuegraph dolt show](#issuegraph-dolt-show) — Show current Dolt configuration with connection status
+  - [issuegraph dolt start](#issuegraph-dolt-start) — Start the Dolt SQL server for this project
+  - [issuegraph dolt status](#issuegraph-dolt-status) — Show Dolt engine status
+  - [issuegraph dolt stop](#issuegraph-dolt-stop) — Stop the Dolt SQL server for this project
+  - [issuegraph dolt test](#issuegraph-dolt-test) — Test connection to Dolt server
+- [issuegraph forget](#issuegraph-forget) — Remove a persistent memory
+- [issuegraph hooks](#issuegraph-hooks) — Manage git hooks for issuegraph integration
+  - [issuegraph hooks install](#issuegraph-hooks-install) — Install issuegraph git hooks
+  - [issuegraph hooks list](#issuegraph-hooks-list) — List installed git hooks status
+  - [issuegraph hooks run](#issuegraph-hooks-run) — Execute a git hook (called by thin shims)
+  - [issuegraph hooks uninstall](#issuegraph-hooks-uninstall) — Uninstall issuegraph git hooks
+- [issuegraph human](#issuegraph-human) — Show essential commands for human users
+  - [issuegraph human dismiss](#issuegraph-human-dismiss) — Dismiss a human-needed issue
+  - [issuegraph human list](#issuegraph-human-list) — List all human-needed issuegraph
+  - [issuegraph human respond](#issuegraph-human-respond) — Respond to a human-needed issue
+  - [issuegraph human stats](#issuegraph-human-stats) — Show summary statistics for human-needed issuegraph
+- [issuegraph info](#issuegraph-info) — Show database information
+- [issuegraph init](#issuegraph-init) — Initialize issuegraph in the current directory
+- [issuegraph kv](#issuegraph-kv) — Key-value store commands
+  - [issuegraph kv clear](#issuegraph-kv-clear) — Delete a key-value pair
+  - [issuegraph kv get](#issuegraph-kv-get) — Get a value by key
+  - [issuegraph kv list](#issuegraph-kv-list) — List all key-value pairs
+  - [issuegraph kv set](#issuegraph-kv-set) — Set a key-value pair
+- [issuegraph memories](#issuegraph-memories) — List or search persistent memories
+- [issuegraph onboard](#issuegraph-onboard) — Display minimal snippet for agent instructions file
+- [issuegraph prime](#issuegraph-prime) — Output AI-optimized workflow context
+- [issuegraph quickstart](#issuegraph-quickstart) — Quick start guide for issuegraph
+- [issuegraph recall](#issuegraph-recall) — Retrieve a specific memory
+- [issuegraph remember](#issuegraph-remember) — Store a persistent memory
+- [issuegraph setup](#issuegraph-setup) — Setup integration with AI editors
+- [issuegraph where](#issuegraph-where) — Show active issuegraph location
 
 ### Maintenance:
 
-- [bd batch](#bd-batch) — Run multiple write operations in a single database transaction
-- [bd compact](#bd-compact) — Squash old Dolt commits to reduce history size
-- [bd doctor](#bd-doctor) — Check and fix beads installation health (start here)
-- [bd flatten](#bd-flatten) — Squash all Dolt history into a single commit
-- [bd gc](#bd-gc) — Garbage collect: decay old issues, compact Dolt commits, run Dolt GC
-- [bd migrate](#bd-migrate) — Database migration commands
-  - [bd migrate hooks](#bd-migrate-hooks) — Plan or apply git hook migration to marker-managed format
-  - [bd migrate issues](#bd-migrate-issues) — Move issues between repositories
-  - [bd migrate schema](#bd-migrate-schema) — Apply pending schema migrations (idempotent)
-  - [bd migrate sync](#bd-migrate-sync) — Set up sync.branch workflow for multi-clone setups
-- [bd ping](#bd-ping) — Check database connectivity
-- [bd preflight](#bd-preflight) — Show PR readiness checklist
-- [bd prune](#bd-prune) — Delete old closed beads to reclaim space and shrink exports
-- [bd purge](#bd-purge) — Delete closed ephemeral beads to reclaim space
-- [bd recompute-blocked](#bd-recompute-blocked) — Recompute is_blocked for all issues (repairs stale flags after a pull)
-- [bd rename-prefix](#bd-rename-prefix) — Rename the issue prefix for all issues in the database
-- [bd rules](#bd-rules) — Audit and compact Claude rules
-  - [bd rules audit](#bd-rules-audit) — Scan rules for contradictions and merge opportunities
-  - [bd rules compact](#bd-rules-compact) — Merge related rules into composites
-- [bd sql](#bd-sql) — Execute raw SQL against the beads database
-- [bd upgrade](#bd-upgrade) — Check and manage bd version upgrades
-  - [bd upgrade ack](#bd-upgrade-ack) — Acknowledge the current bd version
-  - [bd upgrade review](#bd-upgrade-review) — Review changes since last bd version
-  - [bd upgrade status](#bd-upgrade-status) — Check if bd version has changed
-- [bd worktree](#bd-worktree) — Manage git worktrees for parallel development
-  - [bd worktree create](#bd-worktree-create) — Create a worktree
-  - [bd worktree info](#bd-worktree-info) — Show worktree info for current directory
-  - [bd worktree list](#bd-worktree-list) — List all git worktrees
-  - [bd worktree remove](#bd-worktree-remove) — Remove a worktree with safety checks
+- [issuegraph batch](#issuegraph-batch) — Run multiple write operations in a single database transaction
+- [issuegraph compact](#issuegraph-compact) — Squash old Dolt commits to reduce history size
+- [issuegraph doctor](#issuegraph-doctor) — Check and fix issuegraph installation health (start here)
+- [issuegraph flatten](#issuegraph-flatten) — Squash all Dolt history into a single commit
+- [issuegraph gc](#issuegraph-gc) — Garbage collect: decay old issues, compact Dolt commits, run Dolt GC
+- [issuegraph migrate](#issuegraph-migrate) — Database migration commands
+  - [issuegraph migrate hooks](#issuegraph-migrate-hooks) — Plan or apply git hook migration to marker-managed format
+  - [issuegraph migrate issues](#issuegraph-migrate-issues) — Move issues between repositories
+  - [issuegraph migrate schema](#issuegraph-migrate-schema) — Apply pending schema migrations (idempotent)
+  - [issuegraph migrate sync](#issuegraph-migrate-sync) — Set up sync.branch workflow for multi-clone setups
+- [issuegraph ping](#issuegraph-ping) — Check database connectivity
+- [issuegraph preflight](#issuegraph-preflight) — Show PR readiness checklist
+- [issuegraph prune](#issuegraph-prune) — Delete old closed issuegraph to reclaim space and shrink exports
+- [issuegraph purge](#issuegraph-purge) — Delete closed ephemeral issuegraph to reclaim space
+- [issuegraph recompute-blocked](#issuegraph-recompute-blocked) — Recompute is_blocked for all issues (repairs stale flags after a pull)
+- [issuegraph rename-prefix](#issuegraph-rename-prefix) — Rename the issue prefix for all issues in the database
+- [issuegraph rules](#issuegraph-rules) — Audit and compact Claude rules
+  - [issuegraph rules audit](#issuegraph-rules-audit) — Scan rules for contradictions and merge opportunities
+  - [issuegraph rules compact](#issuegraph-rules-compact) — Merge related rules into composites
+- [issuegraph sql](#issuegraph-sql) — Execute raw SQL against the issuegraph database
+- [issuegraph upgrade](#issuegraph-upgrade) — Check and manage issuegraph version upgrades
+  - [issuegraph upgrade ack](#issuegraph-upgrade-ack) — Acknowledge the current issuegraph version
+  - [issuegraph upgrade review](#issuegraph-upgrade-review) — Review changes since last issuegraph version
+  - [issuegraph upgrade status](#issuegraph-upgrade-status) — Check if issuegraph version has changed
+- [issuegraph worktree](#issuegraph-worktree) — Manage git worktrees for parallel development
+  - [issuegraph worktree create](#issuegraph-worktree-create) — Create a worktree
+  - [issuegraph worktree info](#issuegraph-worktree-info) — Show worktree info for current directory
+  - [issuegraph worktree list](#issuegraph-worktree-list) — List all git worktrees
+  - [issuegraph worktree remove](#issuegraph-worktree-remove) — Remove a worktree with safety checks
 
 ### Integrations & Advanced:
 
-- [bd admin](#bd-admin) — Administrative commands for database maintenance
-  - [bd admin cleanup](#bd-admin-cleanup) — Delete closed issues to reduce database size
-  - [bd admin compact](#bd-admin-compact) — Compact old closed issues to save space
-  - [bd admin reset](#bd-admin-reset) — Remove all beads data and configuration
-- [bd jira](#bd-jira) — Jira integration commands
-  - [bd jira pull](#bd-jira-pull) — Pull specific items from Jira
-  - [bd jira push](#bd-jira-push) — Push specific beads to Jira
-  - [bd jira status](#bd-jira-status) — Show Jira sync status
-  - [bd jira sync](#bd-jira-sync) — Synchronize issues with Jira
-- [bd linear](#bd-linear) — Linear integration commands
-  - [bd linear pull](#bd-linear-pull) — Pull specific items from Linear
-  - [bd linear push](#bd-linear-push) — Push specific beads to Linear
-  - [bd linear status](#bd-linear-status) — Show Linear sync status
-  - [bd linear sync](#bd-linear-sync) — Synchronize issues with Linear
-  - [bd linear teams](#bd-linear-teams) — List available Linear teams
-- [bd repo](#bd-repo) — Manage multiple repository configuration
-  - [bd repo add](#bd-repo-add) — Add an additional repository to sync
-  - [bd repo list](#bd-repo-list) — List all configured repositories
-  - [bd repo remove](#bd-repo-remove) — Remove a repository from sync configuration
-  - [bd repo sync](#bd-repo-sync) — Manually trigger multi-repo sync
+- [issuegraph admin](#issuegraph-admin) — Administrative commands for database maintenance
+  - [issuegraph admin cleanup](#issuegraph-admin-cleanup) — Delete closed issues to reduce database size
+  - [issuegraph admin compact](#issuegraph-admin-compact) — Compact old closed issues to save space
+  - [issuegraph admin reset](#issuegraph-admin-reset) — Remove all issuegraph data and configuration
+- [issuegraph jira](#issuegraph-jira) — Jira integration commands
+  - [issuegraph jira pull](#issuegraph-jira-pull) — Pull specific items from Jira
+  - [issuegraph jira push](#issuegraph-jira-push) — Push specific issuegraph to Jira
+  - [issuegraph jira status](#issuegraph-jira-status) — Show Jira sync status
+  - [issuegraph jira sync](#issuegraph-jira-sync) — Synchronize issues with Jira
+- [issuegraph linear](#issuegraph-linear) — Linear integration commands
+  - [issuegraph linear pull](#issuegraph-linear-pull) — Pull specific items from Linear
+  - [issuegraph linear push](#issuegraph-linear-push) — Push specific issuegraph to Linear
+  - [issuegraph linear status](#issuegraph-linear-status) — Show Linear sync status
+  - [issuegraph linear sync](#issuegraph-linear-sync) — Synchronize issues with Linear
+  - [issuegraph linear teams](#issuegraph-linear-teams) — List available Linear teams
+- [issuegraph repo](#issuegraph-repo) — Manage multiple repository configuration
+  - [issuegraph repo add](#issuegraph-repo-add) — Add an additional repository to sync
+  - [issuegraph repo list](#issuegraph-repo-list) — List all configured repositories
+  - [issuegraph repo remove](#issuegraph-repo-remove) — Remove a repository from sync configuration
+  - [issuegraph repo sync](#issuegraph-repo-sync) — Manually trigger multi-repo sync
 
 ### Other Commands:
 
-- [bd ado](#bd-ado) — Azure DevOps integration commands
-  - [bd ado projects](#bd-ado-projects) — List accessible Azure DevOps projects
-  - [bd ado pull](#bd-ado-pull) — Pull specific items from Azure DevOps
-  - [bd ado push](#bd-ado-push) — Push specific beads to Azure DevOps
-  - [bd ado status](#bd-ado-status) — Show Azure DevOps sync status
-  - [bd ado sync](#bd-ado-sync) — Sync issues with Azure DevOps
-- [bd audit](#bd-audit) — Record and label agent interactions (append-only JSONL)
-  - [bd audit label](#bd-audit-label) — Append a label entry referencing an existing interaction
-  - [bd audit record](#bd-audit-record) — Append an audit interaction entry
-- [bd blocked](#bd-blocked) — Show blocked issues
-- [bd completion](#bd-completion) — Generate the autocompletion script for the specified shell
-  - [bd completion bash](#bd-completion-bash) — Generate the autocompletion script for bash
-  - [bd completion fish](#bd-completion-fish) — Generate the autocompletion script for fish
-  - [bd completion powershell](#bd-completion-powershell) — Generate the autocompletion script for powershell
-  - [bd completion zsh](#bd-completion-zsh) — Generate the autocompletion script for zsh
-- [bd cook](#bd-cook) — Compile a formula into a proto (ephemeral by default)
-- [bd defer](#bd-defer) — Defer one or more issues for later
-- [bd formula](#bd-formula) — Manage workflow formulas
-  - [bd formula convert](#bd-formula-convert) — Convert formula from JSON to TOML
-  - [bd formula list](#bd-formula-list) — List available formulas
-  - [bd formula show](#bd-formula-show) — Show formula details
-- [bd github](#bd-github) — GitHub integration commands
-  - [bd github pull](#bd-github-pull) — Pull specific items from GitHub
-  - [bd github push](#bd-github-push) — Push specific beads to GitHub
-  - [bd github repos](#bd-github-repos) — List accessible GitHub repositories
-  - [bd github status](#bd-github-status) — Show GitHub sync status
-  - [bd github sync](#bd-github-sync) — Sync issues with GitHub
-- [bd gitlab](#bd-gitlab) — GitLab integration commands
-  - [bd gitlab projects](#bd-gitlab-projects) — List accessible GitLab projects
-  - [bd gitlab pull](#bd-gitlab-pull) — Pull specific items from GitLab
-  - [bd gitlab push](#bd-gitlab-push) — Push specific beads to GitLab
-  - [bd gitlab status](#bd-gitlab-status) — Show GitLab sync status
-  - [bd gitlab sync](#bd-gitlab-sync) — Sync issues with GitLab
-- [bd help](#bd-help) — Help about any command
-- [bd init-safety](#bd-init-safety) — Explain bd init flag semantics and the destroy-token format
-- [bd mail](#bd-mail) — Delegate to mail provider (e.g., gt mail)
-- [bd metrics](#bd-metrics) — Show or change anonymous usage-metrics settings
-  - [bd metrics example](#bd-metrics-example) — Show real examples of the anonymous metrics bd sends
-  - [bd metrics off](#bd-metrics-off) — Turn anonymous usage metrics off
-  - [bd metrics on](#bd-metrics-on) — Turn anonymous usage metrics on
-- [bd mol](#bd-mol) — Molecule commands (work templates)
-  - [bd mol bond](#bd-mol-bond) — Bond two protos or molecules together
-  - [bd mol burn](#bd-mol-burn) — Delete a molecule without creating a digest
-  - [bd mol current](#bd-mol-current) — Show current position in molecule workflow
-  - [bd mol distill](#bd-mol-distill) — Extract a formula from an existing epic
-  - [bd mol last-activity](#bd-mol-last-activity) — Show last activity timestamp for a molecule
-  - [bd mol pour](#bd-mol-pour) — Instantiate a proto as a persistent mol (solid -&gt; liquid)
-  - [bd mol progress](#bd-mol-progress) — Show molecule progress summary
-  - [bd mol ready](#bd-mol-ready) — Find molecules ready for gate-resume dispatch
-  - [bd mol seed](#bd-mol-seed) — Verify formula accessibility
-  - [bd mol show](#bd-mol-show) — Show molecule details
-  - [bd mol squash](#bd-mol-squash) — Compress molecule execution into a digest
-  - [bd mol stale](#bd-mol-stale) — Detect complete-but-unclosed molecules
-  - [bd mol wisp](#bd-mol-wisp) — Create or manage wisps (ephemeral molecules)
-- [bd notion](#bd-notion) — Notion integration commands
-  - [bd notion connect](#bd-notion-connect) — Connect bd to an existing Notion database or data source
-  - [bd notion init](#bd-notion-init) — Create a dedicated Beads database in Notion
-  - [bd notion pull](#bd-notion-pull) — Pull specific items from Notion
-  - [bd notion push](#bd-notion-push) — Push specific beads to Notion
-  - [bd notion status](#bd-notion-status) — Show Notion sync status
-  - [bd notion sync](#bd-notion-sync) — Sync issues with Notion
-- [bd orphans](#bd-orphans) — Identify orphaned issues (referenced in commits but still open)
-- [bd ready](#bd-ready) — Show ready work (open, no active blockers)
-- [bd rename](#bd-rename) — Rename an issue ID
-- [bd ship](#bd-ship) — Publish a capability for cross-project dependencies
-- [bd undefer](#bd-undefer) — Undefer one or more issues (restore to open)
-- [bd version](#bd-version) — Print version information
+- [issuegraph ado](#issuegraph-ado) — Azure DevOps integration commands
+  - [issuegraph ado projects](#issuegraph-ado-projects) — List accessible Azure DevOps projects
+  - [issuegraph ado pull](#issuegraph-ado-pull) — Pull specific items from Azure DevOps
+  - [issuegraph ado push](#issuegraph-ado-push) — Push specific issuegraph to Azure DevOps
+  - [issuegraph ado status](#issuegraph-ado-status) — Show Azure DevOps sync status
+  - [issuegraph ado sync](#issuegraph-ado-sync) — Sync issues with Azure DevOps
+- [issuegraph audit](#issuegraph-audit) — Record and label agent interactions (append-only JSONL)
+  - [issuegraph audit label](#issuegraph-audit-label) — Append a label entry referencing an existing interaction
+  - [issuegraph audit record](#issuegraph-audit-record) — Append an audit interaction entry
+- [issuegraph blocked](#issuegraph-blocked) — Show blocked issues
+- [issuegraph completion](#issuegraph-completion) — Generate the autocompletion script for the specified shell
+  - [issuegraph completion bash](#issuegraph-completion-bash) — Generate the autocompletion script for bash
+  - [issuegraph completion fish](#issuegraph-completion-fish) — Generate the autocompletion script for fish
+  - [issuegraph completion powershell](#issuegraph-completion-powershell) — Generate the autocompletion script for powershell
+  - [issuegraph completion zsh](#issuegraph-completion-zsh) — Generate the autocompletion script for zsh
+- [issuegraph cook](#issuegraph-cook) — Compile a formula into a proto (ephemeral by default)
+- [issuegraph defer](#issuegraph-defer) — Defer one or more issues for later
+- [issuegraph formula](#issuegraph-formula) — Manage workflow formulas
+  - [issuegraph formula convert](#issuegraph-formula-convert) — Convert formula from JSON to TOML
+  - [issuegraph formula list](#issuegraph-formula-list) — List available formulas
+  - [issuegraph formula show](#issuegraph-formula-show) — Show formula details
+- [issuegraph github](#issuegraph-github) — GitHub integration commands
+  - [issuegraph github pull](#issuegraph-github-pull) — Pull specific items from GitHub
+  - [issuegraph github push](#issuegraph-github-push) — Push specific issuegraph to GitHub
+  - [issuegraph github repos](#issuegraph-github-repos) — List accessible GitHub repositories
+  - [issuegraph github status](#issuegraph-github-status) — Show GitHub sync status
+  - [issuegraph github sync](#issuegraph-github-sync) — Sync issues with GitHub
+- [issuegraph gitlab](#issuegraph-gitlab) — GitLab integration commands
+  - [issuegraph gitlab projects](#issuegraph-gitlab-projects) — List accessible GitLab projects
+  - [issuegraph gitlab pull](#issuegraph-gitlab-pull) — Pull specific items from GitLab
+  - [issuegraph gitlab push](#issuegraph-gitlab-push) — Push specific issuegraph to GitLab
+  - [issuegraph gitlab status](#issuegraph-gitlab-status) — Show GitLab sync status
+  - [issuegraph gitlab sync](#issuegraph-gitlab-sync) — Sync issues with GitLab
+- [issuegraph help](#issuegraph-help) — Help about any command
+- [issuegraph init-safety](#issuegraph-init-safety) — Explain issuegraph init flag semantics and the destroy-token format
+- [issuegraph mail](#issuegraph-mail) — Delegate to mail provider (e.g., gt mail)
+- [issuegraph metrics](#issuegraph-metrics) — Show or change anonymous usage-metrics settings
+  - [issuegraph metrics example](#issuegraph-metrics-example) — Show real examples of the anonymous metrics issuegraph sends
+  - [issuegraph metrics off](#issuegraph-metrics-off) — Turn anonymous usage metrics off
+  - [issuegraph metrics on](#issuegraph-metrics-on) — Turn anonymous usage metrics on
+- [issuegraph mol](#issuegraph-mol) — Molecule commands (work templates)
+  - [issuegraph mol bond](#issuegraph-mol-bond) — Bond two protos or molecules together
+  - [issuegraph mol burn](#issuegraph-mol-burn) — Delete a molecule without creating a digest
+  - [issuegraph mol current](#issuegraph-mol-current) — Show current position in molecule workflow
+  - [issuegraph mol distill](#issuegraph-mol-distill) — Extract a formula from an existing epic
+  - [issuegraph mol last-activity](#issuegraph-mol-last-activity) — Show last activity timestamp for a molecule
+  - [issuegraph mol pour](#issuegraph-mol-pour) — Instantiate a proto as a persistent mol (solid -&gt; liquid)
+  - [issuegraph mol progress](#issuegraph-mol-progress) — Show molecule progress summary
+  - [issuegraph mol ready](#issuegraph-mol-ready) — Find molecules ready for gate-resume dispatch
+  - [issuegraph mol seed](#issuegraph-mol-seed) — Verify formula accessibility
+  - [issuegraph mol show](#issuegraph-mol-show) — Show molecule details
+  - [issuegraph mol squash](#issuegraph-mol-squash) — Compress molecule execution into a digest
+  - [issuegraph mol stale](#issuegraph-mol-stale) — Detect complete-but-unclosed molecules
+  - [issuegraph mol wisp](#issuegraph-mol-wisp) — Create or manage wisps (ephemeral molecules)
+- [issuegraph notion](#issuegraph-notion) — Notion integration commands
+  - [issuegraph notion connect](#issuegraph-notion-connect) — Connect issuegraph to an existing Notion database or data source
+  - [issuegraph notion init](#issuegraph-notion-init) — Create a dedicated IssueGraph database in Notion
+  - [issuegraph notion pull](#issuegraph-notion-pull) — Pull specific items from Notion
+  - [issuegraph notion push](#issuegraph-notion-push) — Push specific issuegraph to Notion
+  - [issuegraph notion status](#issuegraph-notion-status) — Show Notion sync status
+  - [issuegraph notion sync](#issuegraph-notion-sync) — Sync issues with Notion
+- [issuegraph orphans](#issuegraph-orphans) — Identify orphaned issues (referenced in commits but still open)
+- [issuegraph ready](#issuegraph-ready) — Show ready work (open, no active blockers)
+- [issuegraph rename](#issuegraph-rename) — Rename an issue ID
+- [issuegraph ship](#issuegraph-ship) — Publish a capability for cross-project dependencies
+- [issuegraph undefer](#issuegraph-undefer) — Undefer one or more issues (restore to open)
+- [issuegraph version](#issuegraph-version) — Print version information
 
 ---
 
@@ -296,11 +296,11 @@ Reference for bd Latest. Generated from `bd help --all`.
 These flags apply to all commands:
 
 ```
-      --actor string              Actor name for audit trail (default: $BEADS_ACTOR, git user.name, $USER)
-      --db string                 Database path (default: auto-discover .beads/*.db)
+      --actor string              Actor name for audit trail (default: $ISSUEGRAPH_ACTOR, git user.name, $USER)
+      --db string                 Database path (default: auto-discover .issuegraph/*.db)
   -C, --directory string          Change to this directory before running the command (like git -C)
-      --dolt-auto-commit string   Dolt auto-commit policy (off|on|batch). 'on': commit after each write. 'batch': defer commits to bd dolt commit; uncommitted changes persist in the working set until then. SIGTERM/SIGHUP flush pending batch commits. Default: off. Override via config key dolt.auto-commit
-      --global                    Use the global shared-server database (beads_global)
+      --dolt-auto-commit string   Dolt auto-commit policy (off|on|batch). 'on': commit after each write. 'batch': defer commits to issuegraph dolt commit; uncommitted changes persist in the working set until then. SIGTERM/SIGHUP flush pending batch commits. Default: off. Override via config key dolt.auto-commit
+      --global                    Use the global shared-server database (issuegraph_global)
       --ignore-schema-skew        Proceed despite forward schema drift (some queries may fail)
       --json                      Output in JSON format
       --profile                   Generate CPU profile for performance analysis
@@ -314,35 +314,35 @@ These flags apply to all commands:
 
 ## Working With Issues:
 
-### bd assign
+### issuegraph assign
 
 Assign an issue to someone.
 
-Shorthand for 'bd update &lt;id&gt; --assignee &lt;name&gt;'.
+Shorthand for 'issuegraph update &lt;id&gt; --assignee &lt;name&gt;'.
 
 Examples:
-  bd assign bd-123 alice
-  bd assign bd-123 ""      # unassign
+  issuegraph assign issuegraph-123 alice
+  issuegraph assign issuegraph-123 ""      # unassign
 
 ```
-bd assign <id> <name>
+issuegraph assign <id> <name>
 ```
 
-### bd children
+### issuegraph children
 
-List all beads that are children of the specified parent bead.
+List all issuegraph that are children of the specified parent issue.
 
-This is a convenience alias for 'bd list --parent &lt;id&gt; --status all'.
-Unlike plain 'bd list', children includes closed issues by default,
+This is a convenience alias for 'issuegraph list --parent &lt;id&gt; --status all'.
+Unlike plain 'issuegraph list', children includes closed issues by default,
 since the primary use case is inspecting all work under a parent.
 
 Examples:
-  bd children hq-abc123        # List all children of hq-abc123
-  bd children hq-abc123 --json # List children in JSON format
-  bd children hq-abc123 --pretty # Show children in tree format
+  issuegraph children hq-abc123        # List all children of hq-abc123
+  issuegraph children hq-abc123 --json # List children in JSON format
+  issuegraph children hq-abc123 --pretty # Show children in tree format
 
 ```
-bd children <parent-id> [flags]
+issuegraph children <parent-id> [flags]
 ```
 
 **Flags:**
@@ -351,7 +351,7 @@ bd children <parent-id> [flags]
       --pretty   Show children in tree format
 ```
 
-### bd close
+### issuegraph close
 
 Close one or more issues.
 
@@ -364,7 +364,7 @@ to the first ID, the second --reason to the second ID, regardless of where
 the flags appear in the command line.
 
 ```
-bd close [id...] [flags]
+issuegraph close [id...] [flags]
 ```
 
 **Aliases:** done
@@ -382,20 +382,20 @@ bd close [id...] [flags]
       --suggest-next         Show newly unblocked issues after closing
 ```
 
-### bd comment
+### issuegraph comment
 
 Add a comment to an issue.
 
-Shorthand for 'bd comments add &lt;id&gt; "text"'.
+Shorthand for 'issuegraph comments add &lt;id&gt; "text"'.
 
 Examples:
-  bd comment bd-123 "Working on this now"
-  bd comment bd-123 Working on this now
-  echo "comment from pipe" | bd comment bd-123 --stdin
-  bd comment bd-123 --file notes.txt
+  issuegraph comment issuegraph-123 "Working on this now"
+  issuegraph comment issuegraph-123 Working on this now
+  echo "comment from pipe" | issuegraph comment issuegraph-123 --stdin
+  issuegraph comment issuegraph-123 --file notes.txt
 
 ```
-bd comment <id> [text...] [flags]
+issuegraph comment <id> [text...] [flags]
 ```
 
 **Flags:**
@@ -405,25 +405,25 @@ bd comment <id> [text...] [flags]
       --stdin         Read comment text from stdin
 ```
 
-### bd comments
+### issuegraph comments
 
 View or manage comments on an issue.
 
 Examples:
   # List all comments on an issue (issue id is required — there is no "comments list")
-  bd comments bd-123
+  issuegraph comments issuegraph-123
 
   # List comments in JSON format
-  bd comments bd-123 --json
+  issuegraph comments issuegraph-123 --json
 
   # Add a comment
-  bd comments add bd-123 "This is a comment"
+  issuegraph comments add issuegraph-123 "This is a comment"
 
   # Add a comment from a file
-  bd comments add bd-123 -f notes.txt
+  issuegraph comments add issuegraph-123 -f notes.txt
 
 ```
-bd comments [issue-id] [flags]
+issuegraph comments [issue-id] [flags]
 ```
 
 **Flags:**
@@ -432,19 +432,19 @@ bd comments [issue-id] [flags]
       --local-time   Show timestamps in local time instead of UTC
 ```
 
-#### bd comments add
+#### issuegraph comments add
 
 Add a comment to an issue.
 
 Examples:
   # Add a comment
-  bd comments add bd-123 "Working on this now"
+  issuegraph comments add issuegraph-123 "Working on this now"
 
   # Add a comment from a file
-  bd comments add bd-123 -f notes.txt
+  issuegraph comments add issuegraph-123 -f notes.txt
 
 ```
-bd comments add [issue-id] [text] [flags]
+issuegraph comments add [issue-id] [text] [flags]
 ```
 
 **Flags:**
@@ -454,20 +454,20 @@ bd comments add [issue-id] [text] [flags]
   -f, --file string     Read comment text from file
 ```
 
-#### bd comments list
+#### issuegraph comments list
 
-Invalid — use bd comments &lt;issue-id&gt; to list comments
+Invalid — use issuegraph comments &lt;issue-id&gt; to list comments
 
 ```
-bd comments list
+issuegraph comments list
 ```
 
-### bd create
+### issuegraph create
 
 Create a new issue (or batch from markdown/graph JSON)
 
 ```
-bd create [title] [flags]
+issuegraph create [title] [flags]
 ```
 
 **Aliases:** new
@@ -480,8 +480,8 @@ bd create [title] [flags]
   -a, --assignee string         Assignee
       --body-file string        Read description from file (use - for stdin)
       --context string          Additional context for the issue
-      --defer string            Defer until date (issue hidden from bd ready until then). Same formats as --due
-      --deps strings            Dependencies in format 'type:id' or 'id' (e.g., 'discovered-from:bd-20,blocks:bd-15' or 'bd-20')
+      --defer string            Defer until date (issue hidden from issuegraph ready until then). Same formats as --due
+      --deps strings            Dependencies in format 'type:id' or 'id' (e.g., 'discovered-from:issuegraph-20,blocks:issuegraph-15' or 'issuegraph-20')
   -d, --description string      Issue description
       --design string           Design notes
       --design-file string      Read design from file (use - for stdin)
@@ -492,19 +492,19 @@ bd create [title] [flags]
       --event-actor string      Entity URI who caused this event (requires --type=event)
       --event-category string   Event category (e.g., patrol.muted, agent.started) (requires --type=event)
       --event-payload string    Event-specific JSON data (requires --type=event)
-      --event-target string     Entity URI or bead ID affected (requires --type=event)
+      --event-target string     Entity URI or issue ID affected (requires --type=event)
       --external-ref string     External reference (e.g., 'gh-9', 'jira-ABC', Linear URL)
   -f, --file string             Create multiple issues from markdown file
       --force                   Force creation even if prefix doesn't match database prefix
       --graph string            Create a graph of issues with dependencies from JSON plan file
-      --id string               Explicit issue ID (e.g., 'bd-42' for partitioning)
+      --id string               Explicit issue ID (e.g., 'issuegraph-42' for partitioning)
   -l, --labels strings          Labels (comma-separated)
       --metadata string         Set custom metadata (JSON string or @file.json to read from file)
       --mol-type string         Molecule type: swarm (multi-agent), patrol (recurring ops), work (default)
-      --no-history              Skip Dolt commit history without making GC-eligible (for permanent agent beads)
+      --no-history              Skip Dolt commit history without making GC-eligible (for permanent agent issuegraph)
       --no-inherit-labels       Don't inherit labels from parent issue
       --notes string            Additional notes
-      --parent string           Parent issue ID for hierarchical child (e.g., 'bd-a3f8e9')
+      --parent string           Parent issue ID for hierarchical child (e.g., 'issuegraph-a3f8e9')
   -p, --priority string         Priority (0-4 or P0-P4, 0=highest) (default "2")
       --repo string             Target repository for issue (overrides auto-routing)
       --silent                  Output only the issue ID (for scripting)
@@ -519,7 +519,7 @@ bd create [title] [flags]
       --wisp-type string        Wisp type for TTL-based compaction: heartbeat, ping, patrol, gc_report, recovery, error, escalation
 ```
 
-### bd create-form
+### issuegraph create-form
 
 Create a new issue using an interactive terminal form.
 
@@ -536,16 +536,16 @@ The form uses keyboard navigation:
   - Arrow keys: Navigate within select fields
 
 ```
-bd create-form [flags]
+issuegraph create-form [flags]
 ```
 
 **Flags:**
 
 ```
-      --parent string   Parent issue ID for creating a hierarchical child (e.g., 'bd-a3f8e9')
+      --parent string   Parent issue ID for creating a hierarchical child (e.g., 'issuegraph-a3f8e9')
 ```
 
-### bd delete
+### issuegraph delete
 
 Delete one or more issues and clean up all references to them.
 This command will:
@@ -557,26 +557,26 @@ This is a destructive operation that cannot be undone. Use with caution.
 
 BATCH DELETION:
 Delete multiple issues at once:
-  bd delete bd-1 bd-2 bd-3 --force
+  issuegraph delete issuegraph-1 issuegraph-2 issuegraph-3 --force
 
 Delete from file (one ID per line):
-  bd delete --from-file deletions.txt --force
+  issuegraph delete --from-file deletions.txt --force
 
 Preview before deleting:
-  bd delete --from-file deletions.txt --dry-run
+  issuegraph delete --from-file deletions.txt --dry-run
 
 DEPENDENCY HANDLING:
 Default: Fails if any issue has dependents not in deletion set
-  bd delete bd-1 bd-2
+  issuegraph delete issuegraph-1 issuegraph-2
 
 Cascade: Recursively delete all dependents
-  bd delete bd-1 --cascade --force
+  issuegraph delete issuegraph-1 --cascade --force
 
 Force: Delete and orphan dependents
-  bd delete bd-1 --force
+  issuegraph delete issuegraph-1 --force
 
 ```
-bd delete <issue-id> [issue-id...] [flags]
+issuegraph delete <issue-id> [issue-id...] [flags]
 ```
 
 **Flags:**
@@ -588,21 +588,21 @@ bd delete <issue-id> [issue-id...] [flags]
       --from-file string   Read issue IDs from file (one per line)
 ```
 
-### bd edit
+### issuegraph edit
 
 Edit an issue field using your configured $EDITOR.
 
 By default, edits the description. Use flags to edit other fields.
 
 Examples:
-  bd edit bd-42                    # Edit description
-  bd edit bd-42 --title            # Edit title
-  bd edit bd-42 --design           # Edit design notes
-  bd edit bd-42 --notes            # Edit notes
-  bd edit bd-42 --acceptance       # Edit acceptance criteria
+  issuegraph edit issuegraph-42                    # Edit description
+  issuegraph edit issuegraph-42 --title            # Edit title
+  issuegraph edit issuegraph-42 --design           # Edit design notes
+  issuegraph edit issuegraph-42 --notes            # Edit notes
+  issuegraph edit issuegraph-42 --acceptance       # Edit acceptance criteria
 
 ```
-bd edit [id] [flags]
+issuegraph edit [id] [flags]
 ```
 
 **Flags:**
@@ -615,7 +615,7 @@ bd edit [id] [flags]
       --title         Edit the title
 ```
 
-### bd gate
+### issuegraph gate
 
 Gates are async wait conditions that block workflow steps.
 
@@ -623,39 +623,39 @@ Gates are created automatically when a formula step has a gate field.
 They must be closed (manually or via watchers) for the blocked step to proceed.
 
 Gate types:
-  human   - Requires manual bd close (Phase 1)
+  human   - Requires manual issuegraph close (Phase 1)
   timer   - Expires after timeout (Phase 2)
   gh:run  - Waits for GitHub workflow (Phase 3)
   gh:pr   - Waits for PR merge (Phase 3)
-  bead    - Waits for cross-rig bead to close (Phase 4)
+  issue    - Waits for cross-rig issue to close (Phase 4)
 
-For bead gates, await_id format is &lt;rig&gt;:&lt;bead-id&gt; (e.g., "other-project:op-abc123").
+For issue gates, await_id format is &lt;rig&gt;:&lt;issue-id&gt; (e.g., "other-project:op-abc123").
 
 Examples:
-  bd gate list           # Show all open gates
-  bd gate list --all     # Show all gates including closed
-  bd gate check          # Evaluate all open gates
-  bd gate check --type=bead  # Evaluate only bead gates
-  bd gate resolve &lt;id&gt;   # Close a gate manually
+  issuegraph gate list           # Show all open gates
+  issuegraph gate list --all     # Show all gates including closed
+  issuegraph gate check          # Evaluate all open gates
+  issuegraph gate check --type=issue  # Evaluate only issue gates
+  issuegraph gate resolve &lt;id&gt;   # Close a gate manually
 
 ```
-bd gate
+issuegraph gate
 ```
 
-#### bd gate add-waiter
+#### issuegraph gate add-waiter
 
-Register an agent as a waiter on a gate bead.
+Register an agent as a waiter on a gate issue.
 
-When the gate closes, the waiter will receive a wake notification via 'bd gate wake'.
+When the gate closes, the waiter will receive a wake notification via 'issuegraph gate wake'.
 The waiter is typically the worker's address (e.g., "my-project/workers/agent-1").
 
-This is used by 'bd done --phase-complete' to register for gate wake notifications.
+This is used by 'issuegraph done --phase-complete' to register for gate wake notifications.
 
 ```
-bd gate add-waiter <gate-id> <waiter>
+issuegraph gate add-waiter <gate-id> <waiter>
 ```
 
-#### bd gate check
+#### issuegraph gate check
 
 Evaluate gate conditions and automatically close resolved gates.
 
@@ -666,7 +666,7 @@ Gate types:
   gh:run   - Check GitHub Actions workflow runs
   gh:pr    - Check pull request merge status
   timer    - Check timer gates (auto-expire based on timeout)
-  bead     - Check cross-rig bead gates
+  issue     - Check cross-rig issue gates
   all      - Check all gate types
 
 GitHub gates use the 'gh' CLI to query status:
@@ -677,23 +677,23 @@ A gate is resolved when:
   - gh:run: status=completed AND conclusion=success
   - gh:pr: state=MERGED
   - timer: current time &gt; created_at + timeout
-  - bead: target bead status=closed
+  - issue: target issue status=closed
 
 A gate is escalated when:
   - gh:run: status=completed AND conclusion in (failure, canceled)
   - gh:pr: state=CLOSED
 
 Examples:
-  bd gate check              # Check all gates
-  bd gate check --type=gh    # Check only GitHub gates
-  bd gate check --type=gh:run # Check only workflow run gates
-  bd gate check --type=timer # Check only timer gates
-  bd gate check --type=bead  # Check only cross-rig bead gates
-  bd gate check --dry-run    # Show what would happen without changes
-  bd gate check --escalate   # Escalate expired/failed gates
+  issuegraph gate check              # Check all gates
+  issuegraph gate check --type=gh    # Check only GitHub gates
+  issuegraph gate check --type=gh:run # Check only workflow run gates
+  issuegraph gate check --type=timer # Check only timer gates
+  issuegraph gate check --type=issue  # Check only cross-rig issue gates
+  issuegraph gate check --dry-run    # Show what would happen without changes
+  issuegraph gate check --escalate   # Escalate expired/failed gates
 
 ```
-bd gate check [flags]
+issuegraph gate check [flags]
 ```
 
 **Flags:**
@@ -702,30 +702,30 @@ bd gate check [flags]
       --dry-run       Show what would happen without making changes
   -e, --escalate      Escalate failed/expired gates
   -l, --limit int     Limit results (default 100) (default 100)
-  -t, --type string   Gate type to check (gh, gh:run, gh:pr, timer, bead, all)
+  -t, --type string   Gate type to check (gh, gh:run, gh:pr, timer, issue, all)
 ```
 
-#### bd gate create
+#### issuegraph gate create
 
 Create an ad-hoc gate issue that blocks another issue until resolved.
 
-The blocked issue will not appear in 'bd ready' until the gate is resolved
-via 'bd gate resolve'.
+The blocked issue will not appear in 'issuegraph ready' until the gate is resolved
+via 'issuegraph gate resolve'.
 
 Gate types:
-  human   - Requires manual 'bd gate resolve' (default)
+  human   - Requires manual 'issuegraph gate resolve' (default)
   timer   - Auto-resolves after --timeout duration
   gh:run  - Waits for GitHub Actions workflow
   gh:pr   - Waits for PR merge
 
 Examples:
-  bd gate create --blocks bd-abc
-  bd gate create --type=human --blocks bd-abc --reason="Need design review"
-  bd gate create --type=timer --blocks bd-abc --timeout=2h
-  bd gate create --type=gh:pr --blocks bd-abc --await-id=42
+  issuegraph gate create --blocks issuegraph-abc
+  issuegraph gate create --type=human --blocks issuegraph-abc --reason="Need design review"
+  issuegraph gate create --type=timer --blocks issuegraph-abc --timeout=2h
+  issuegraph gate create --type=gh:pr --blocks issuegraph-abc --await-id=42
 
 ```
-bd gate create [flags]
+issuegraph gate create [flags]
 ```
 
 **Flags:**
@@ -738,7 +738,7 @@ bd gate create [flags]
   -t, --type string       Gate type (human, timer, gh:run, gh:pr) (default "human")
 ```
 
-#### bd gate discover
+#### issuegraph gate discover
 
 Discovers GitHub workflow run IDs for gates awaiting CI/CD completion.
 
@@ -752,12 +752,12 @@ Once matched, the gate's await_id is updated with the GitHub run ID, enabling
 subsequent polling to check the run's status.
 
 Examples:
-  bd gate discover           # Auto-discover run IDs for all matching gates
-  bd gate discover --dry-run # Preview what would be matched (no updates)
-  bd gate discover --branch main --limit 10  # Only match runs on 'main' branch
+  issuegraph gate discover           # Auto-discover run IDs for all matching gates
+  issuegraph gate discover --dry-run # Preview what would be matched (no updates)
+  issuegraph gate discover --branch main --limit 10  # Only match runs on 'main' branch
 
 ```
-bd gate discover [flags]
+issuegraph gate discover [flags]
 ```
 
 **Flags:**
@@ -769,14 +769,14 @@ bd gate discover [flags]
   -a, --max-age duration   Max age for gate/run matching (default 30m0s)
 ```
 
-#### bd gate list
+#### issuegraph gate list
 
-List all gate issues in the current beads database.
+List all gate issues in the current issuegraph database.
 
 By default, shows only open gates. Use --all to include closed gates.
 
 ```
-bd gate list [flags]
+issuegraph gate list [flags]
 ```
 
 **Flags:**
@@ -786,15 +786,15 @@ bd gate list [flags]
   -n, --limit int   Limit results (default 50) (default 50)
 ```
 
-#### bd gate resolve
+#### issuegraph gate resolve
 
 Close a gate issue to unblock the step waiting on it.
 
-This is equivalent to 'bd close &lt;gate-id&gt;' but with a more explicit name.
+This is equivalent to 'issuegraph close &lt;gate-id&gt;' but with a more explicit name.
 Use --reason to provide context for why the gate was resolved.
 
 ```
-bd gate resolve <gate-id> [flags]
+issuegraph gate resolve <gate-id> [flags]
 ```
 
 **Flags:**
@@ -803,78 +803,78 @@ bd gate resolve <gate-id> [flags]
   -r, --reason string   Reason for resolving the gate
 ```
 
-#### bd gate show
+#### issuegraph gate show
 
 Display details of a gate issue including its waiters.
 
-This is similar to 'bd show' but validates that the issue is a gate.
+This is similar to 'issuegraph show' but validates that the issue is a gate.
 
 ```
-bd gate show <gate-id>
+issuegraph gate show <gate-id>
 ```
 
-### bd label
+### issuegraph label
 
 Manage issue labels
 
 ```
-bd label
+issuegraph label
 ```
 
-#### bd label add
+#### issuegraph label add
 
 Add a label to one or more issues
 
 ```
-bd label add [issue-id...] [label]
+issuegraph label add [issue-id...] [label]
 ```
 
-#### bd label list
+#### issuegraph label list
 
 List labels for an issue
 
 ```
-bd label list [issue-id]
+issuegraph label list [issue-id]
 ```
 
-#### bd label list-all
+#### issuegraph label list-all
 
 List all unique labels in the database
 
 ```
-bd label list-all
+issuegraph label list-all
 ```
 
-#### bd label propagate
+#### issuegraph label propagate
 
 Push a label from a parent down to all direct children that don't already have it. Useful for applying branch: labels across an epic's subtasks.
 
 ```
-bd label propagate [parent-id] [label]
+issuegraph label propagate [parent-id] [label]
 ```
 
-#### bd label remove
+#### issuegraph label remove
 
 Remove a label from one or more issues
 
 ```
-bd label remove [issue-id...] [label]
+issuegraph label remove [issue-id...] [label]
 ```
 
-### bd link
+### issuegraph link
 
 Link two issues with a dependency.
 
-Shorthand for 'bd dep add &lt;id1&gt; &lt;id2&gt;'. By default creates a "blocks"
+Shorthand for 'issuegraph dep add &lt;id1&gt; &lt;id2&gt;'. By default creates a "blocks"
 dependency (id2 blocks id1). Use --type to specify a different relationship.
 
 Examples:
-  bd link bd-123 bd-456                    # bd-456 blocks bd-123
-  bd link bd-123 bd-456 --type related     # bd-123 related to bd-456
-  bd link bd-123 bd-456 --type parent-child
+  issuegraph link issuegraph-123 issuegraph-456                    # issuegraph-456 blocks issuegraph-123
+  issuegraph link issuegraph-123 issuegraph-456 --type related     # issuegraph-123 related to issuegraph-456
+  issuegraph link issuegraph-123 issuegraph-456 --type parent-child
 
 ```
-bd link <id1> <id2> [flags]
+issuegraph link <id1> <id2> [flags]
 ```
 
 **Flags:**
@@ -883,12 +883,12 @@ bd link <id1> <id2> [flags]
   -t, --type string   Dependency type (blocks|tracks|related|parent-child|discovered-from) (default "blocks")
 ```
 
-### bd list
+### issuegraph list
 
 List issues
 
 ```
-bd list [flags]
+issuegraph list [flags]
 ```
 
 **Flags:**
@@ -912,9 +912,9 @@ bd list [flags]
       --flat                         Disable tree format and use legacy flat list output
       --format string                Output format: 'digraph' (for golang.org/x/tools/cmd/digraph), 'dot' (Graphviz), or Go template
       --has-metadata-key string      Filter issues that have this metadata key set
-      --id string                    Filter by specific issue IDs (comma-separated, e.g., bd-1,bd-5,bd-10)
+      --id string                    Filter by specific issue IDs (comma-separated, e.g., issuegraph-1,issuegraph-5,issuegraph-10)
       --include-gates                Include gate issues in output (normally hidden)
-      --include-infra                Include infrastructure beads (agent/role/message) in output
+      --include-infra                Include infrastructure issuegraph (agent/role/message) in output
       --include-templates            Include template molecules in output
   -l, --label strings                Filter by labels (AND: must have ALL). Can combine with --label-any
       --label-any strings            Filter by labels (OR: must have AT LEAST ONE). Can combine with --label
@@ -938,7 +938,7 @@ bd list [flags]
   -p, --priority string              Priority (0-4 or P0-P4, 0=highest)
       --priority-max string          Filter by maximum priority (inclusive, 0-4 or P0-P4)
       --priority-min string          Filter by minimum priority (inclusive, 0-4 or P0-P4)
-      --ready                        Show only ready issues (no active blockers, same semantics as bd ready)
+      --ready                        Show only ready issues (no active blockers, same semantics as issuegraph ready)
   -r, --reverse                      Reverse sort order
       --skip-labels                  Skip label hydration. The labels field in output will be empty regardless of actual labels. Use only when the caller does not depend on label data. Cannot combine with --label, --label-any, --label-pattern, --label-regex, --exclude-label, or --no-labels.
       --sort string                  Sort by field: priority, created, updated, closed, status, id, title, type, assignee
@@ -954,7 +954,7 @@ bd list [flags]
       --wisp-type string             Filter by wisp type: heartbeat, ping, patrol, gc_report, recovery, error, escalation
 ```
 
-### bd merge-slot
+### issuegraph merge-slot
 
 Merge-slot gates serialize conflict resolution in the merge queue.
 
@@ -962,7 +962,7 @@ A merge slot is an exclusive access primitive: only one agent can hold it at a t
 This prevents "monkey knife fights" where multiple polecats race to resolve conflicts
 and create cascading conflicts.
 
-Each rig has one merge slot bead: &lt;prefix&gt;-merge-slot (labeled gt:slot).
+Each rig has one merge slot issue: &lt;prefix&gt;-merge-slot (labeled gt:slot).
 The slot uses:
   - status=open: slot is available
   - status=in_progress: slot is held
@@ -970,16 +970,16 @@ The slot uses:
   - metadata.waiters: priority-ordered queue of waiters
 
 Examples:
-  bd merge-slot create              # Create merge slot for current rig
-  bd merge-slot check               # Check if slot is available
-  bd merge-slot acquire             # Try to acquire the slot
-  bd merge-slot release             # Release the slot
+  issuegraph merge-slot create              # Create merge slot for current rig
+  issuegraph merge-slot check               # Check if slot is available
+  issuegraph merge-slot acquire             # Try to acquire the slot
+  issuegraph merge-slot release             # Release the slot
 
 ```
-bd merge-slot
+issuegraph merge-slot
 ```
 
-#### bd merge-slot acquire
+#### issuegraph merge-slot acquire
 
 Attempt to acquire the merge slot for exclusive access.
 
@@ -990,20 +990,20 @@ If the slot is available (status=open), it will be acquired:
 If the slot is held (status=in_progress), the command fails unless
 --wait is passed, which adds the requester to the waiters queue.
 
-Use --holder to specify who is acquiring (default: BEADS_ACTOR env var).
+Use --holder to specify who is acquiring (default: ISSUEGRAPH_ACTOR env var).
 
 ```
-bd merge-slot acquire [flags]
+issuegraph merge-slot acquire [flags]
 ```
 
 **Flags:**
 
 ```
-      --holder string   Who is acquiring the slot (default: BEADS_ACTOR)
+      --holder string   Who is acquiring the slot (default: ISSUEGRAPH_ACTOR)
       --wait            Add to waiters list if slot is held
 ```
 
-#### bd merge-slot check
+#### issuegraph merge-slot check
 
 Check if the merge slot is available or held.
 
@@ -1013,21 +1013,21 @@ Returns:
   - not found: no merge slot exists for this rig
 
 ```
-bd merge-slot check
+issuegraph merge-slot check
 ```
 
-#### bd merge-slot create
+#### issuegraph merge-slot create
 
-Create a merge slot bead for serialized conflict resolution.
+Create a merge slot issue for serialized conflict resolution.
 
-The slot ID is automatically generated based on the beads prefix (e.g., gt-merge-slot).
+The slot ID is automatically generated based on the issuegraph prefix (e.g., gt-merge-slot).
 The slot is created with status=open (available).
 
 ```
-bd merge-slot create
+issuegraph merge-slot create
 ```
 
-#### bd merge-slot release
+#### issuegraph merge-slot release
 
 Release the merge slot after conflict resolution is complete.
 
@@ -1035,7 +1035,7 @@ Sets status back to open and clears the holder field.
 If there are waiters, the highest-priority waiter should then acquire.
 
 ```
-bd merge-slot release [flags]
+issuegraph merge-slot release [flags]
 ```
 
 **Flags:**
@@ -1044,20 +1044,20 @@ bd merge-slot release [flags]
       --holder string   Who is releasing the slot (for verification)
 ```
 
-### bd note
+### issuegraph note
 
 Append a note to an issue's notes field.
 
-Shorthand for 'bd update &lt;id&gt; --append-notes "text"'.
+Shorthand for 'issuegraph update &lt;id&gt; --append-notes "text"'.
 
 Examples:
-  bd note gt-abc "Fixed the flaky test"
-  bd note gt-abc Fixed the flaky test
-  echo "note from pipe" | bd note gt-abc --stdin
-  bd note gt-abc --file notes.txt
+  issuegraph note gt-abc "Fixed the flaky test"
+  issuegraph note gt-abc Fixed the flaky test
+  echo "note from pipe" | issuegraph note gt-abc --stdin
+  issuegraph note gt-abc --file notes.txt
 
 ```
-bd note <id> [text...] [flags]
+issuegraph note <id> [text...] [flags]
 ```
 
 **Flags:**
@@ -1067,11 +1067,11 @@ bd note <id> [text...] [flags]
       --stdin         Read note text from stdin
 ```
 
-### bd priority
+### issuegraph priority
 
 Set the priority of an issue.
 
-Shorthand for 'bd update &lt;id&gt; --priority &lt;n&gt;'.
+Shorthand for 'issuegraph update &lt;id&gt; --priority &lt;n&gt;'.
 
 Priority levels:
   0 - Critical (security, data loss, broken builds)
@@ -1081,16 +1081,16 @@ Priority levels:
   4 - Backlog (future ideas)
 
 Examples:
-  bd priority bd-123 0    # Critical
-  bd priority bd-123 2    # Medium
+  issuegraph priority issuegraph-123 0    # Critical
+  issuegraph priority issuegraph-123 2    # Medium
 
 ```
-bd priority <id> <n>
+issuegraph priority <id> <n>
 ```
 
-### bd promote
+### issuegraph promote
 
-Promote a wisp (ephemeral issue) to a permanent bead.
+Promote a wisp (ephemeral issue) to a permanent issue.
 
 This copies the issue from the wisps table (dolt_ignored) to the permanent
 issues table (Dolt-versioned), preserving labels, dependencies, events, and
@@ -1099,11 +1099,11 @@ comments. The original ID is preserved so all links keep working.
 A comment is added recording the promotion and optional reason.
 
 Examples:
-  bd promote bd-wisp-abc123
-  bd promote bd-wisp-abc123 --reason "Worth tracking long-term"
+  issuegraph promote issuegraph-wisp-abc123
+  issuegraph promote issuegraph-wisp-abc123 --reason "Worth tracking long-term"
 
 ```
-bd promote <wisp-id> [flags]
+issuegraph promote <wisp-id> [flags]
 ```
 
 **Flags:**
@@ -1112,18 +1112,18 @@ bd promote <wisp-id> [flags]
   -r, --reason string   Reason for promotion
 ```
 
-### bd q
+### issuegraph q
 
 Quick capture creates an issue and outputs only the issue ID.
 Designed for scripting and AI agent integration.
 
 Example:
-  bd q "Fix login bug"           # Outputs: bd-a1b2
-  ISSUE=$(bd q "New feature")    # Capture ID in variable
-  bd q "Task" | xargs bd show    # Pipe to other commands
+  issuegraph q "Fix login bug"           # Outputs: issuegraph-a1b2
+  ISSUE=$(issuegraph q "New feature")    # Capture ID in variable
+  issuegraph q "Task" | xargs issuegraph show    # Pipe to other commands
 
 ```
-bd q [title] [flags]
+issuegraph q [title] [flags]
 ```
 
 **Flags:**
@@ -1134,7 +1134,7 @@ bd q [title] [flags]
   -t, --type string       Issue type (default "task")
 ```
 
-### bd query
+### issuegraph query
 
 Query issues using a simple query language that supports compound filters,
 boolean operators, and date-relative expressions.
@@ -1157,7 +1157,7 @@ Boolean operators (case-insensitive):
   (expr)            Grouping with parentheses
 
 Supported fields:
-  status            Stored status (open, in_progress, blocked, deferred, closed). Note: dependency-blocked issues stay "open"; use 'bd blocked' to find them
+  status            Stored status (open, in_progress, blocked, deferred, closed). Note: dependency-blocked issues stay "open"; use 'issuegraph blocked' to find them
   priority          Priority level (0-4)
   type              Issue type (bug, feature, task, epic, chore, decision)
   assignee          Assigned user (use "none" for unassigned)
@@ -1170,7 +1170,7 @@ Supported fields:
   updated           Last update date/time
   started           Date/time issue first transitioned to in_progress
   closed            Close date/time
-  id                Issue ID (supports wildcards: bd-*)
+  id                Issue ID (supports wildcards: issuegraph-*)
   spec              Spec ID (supports wildcards)
   pinned            Boolean (true/false)
   ephemeral         Boolean (true/false)
@@ -1184,18 +1184,18 @@ Date values:
   Natural language: tomorrow, "next monday", "in 3 days"
 
 Examples:
-  bd query "status=open AND priority&gt;1"
-  bd query "status=open AND priority&lt;=2 AND updated&gt;7d"
-  bd query "(status=open OR status=blocked) AND priority&lt;2"
-  bd query "type=bug AND label=urgent"
-  bd query "NOT status=closed"
-  bd query "assignee=none AND type=task"
-  bd query "created&gt;30d AND status!=closed"
-  bd query "label=frontend OR label=backend"
-  bd query "title=authentication AND priority=0"
+  issuegraph query "status=open AND priority&gt;1"
+  issuegraph query "status=open AND priority&lt;=2 AND updated&gt;7d"
+  issuegraph query "(status=open OR status=blocked) AND priority&lt;2"
+  issuegraph query "type=bug AND label=urgent"
+  issuegraph query "NOT status=closed"
+  issuegraph query "assignee=none AND type=task"
+  issuegraph query "created&gt;30d AND status!=closed"
+  issuegraph query "label=frontend OR label=backend"
+  issuegraph query "title=authentication AND priority=0"
 
 ```
-bd query [expression] [flags]
+issuegraph query [expression] [flags]
 ```
 
 **Flags:**
@@ -1210,13 +1210,13 @@ bd query [expression] [flags]
       --sort string   Sort by field: priority, created, updated, closed, status, id, title, type, assignee
 ```
 
-### bd reopen
+### issuegraph reopen
 
 Reopen closed issues by setting status to 'open' and clearing the closed_at timestamp.
-This is more explicit than 'bd update --status open' and emits a Reopened event.
+This is more explicit than 'issuegraph update --status open' and emits a Reopened event.
 
 ```
-bd reopen [id...] [flags]
+issuegraph reopen [id...] [flags]
 ```
 
 **Flags:**
@@ -1225,30 +1225,30 @@ bd reopen [id...] [flags]
   -r, --reason string   Reason for reopening
 ```
 
-### bd search
+### issuegraph search
 
 Search issues across title and ID (excludes closed issues by default).
 
-ID-like queries (e.g., "bd-123", "hq-319") use fast exact/prefix matching.
+ID-like queries (e.g., "issuegraph-123", "hq-319") use fast exact/prefix matching.
 Text queries search titles. Use --desc-contains for description search.
 Use --status all to include closed issues.
 
 Examples:
-  bd search "authentication bug"
-  bd search "login" --status open
-  bd search "database" --label backend --limit 10
-  bd search --query "performance" --assignee alice
-  bd search "bd-5q" # Search by partial ID (fast prefix match)
-  bd search "security" --priority-min 0 --priority-max 2
-  bd search "bug" --created-after 2025-01-01
-  bd search "refactor" --status all  # Include closed issues
-  bd search "bug" --sort priority
-  bd search "task" --sort created --reverse
-  bd search "api" --desc-contains "endpoint"
-  bd search "cleanup" --no-assignee --no-labels
+  issuegraph search "authentication bug"
+  issuegraph search "login" --status open
+  issuegraph search "database" --label backend --limit 10
+  issuegraph search --query "performance" --assignee alice
+  issuegraph search "issuegraph-5q" # Search by partial ID (fast prefix match)
+  issuegraph search "security" --priority-min 0 --priority-max 2
+  issuegraph search "bug" --created-after 2025-01-01
+  issuegraph search "refactor" --status all  # Include closed issues
+  issuegraph search "bug" --sort priority
+  issuegraph search "task" --sort created --reverse
+  issuegraph search "api" --desc-contains "endpoint"
+  issuegraph search "cleanup" --no-assignee --no-labels
 
 ```
-bd search [query] [flags]
+issuegraph search [query] [flags]
 ```
 
 **Flags:**
@@ -1276,18 +1276,18 @@ bd search [query] [flags]
       --query string                 Search query (alternative to positional argument)
   -r, --reverse                      Reverse sort order
       --sort string                  Sort by field: priority, created, updated, closed, status, id, title, type, assignee
-  -s, --status string                Filter by stored status (open, in_progress, blocked, deferred, closed, all). Default excludes closed; use 'all' to include closed. Note: dependency-blocked issues use 'bd blocked'
+  -s, --status string                Filter by stored status (open, in_progress, blocked, deferred, closed, all). Default excludes closed; use 'all' to include closed. Note: dependency-blocked issues use 'issuegraph blocked'
   -t, --type string                  Filter by type (bug, feature, task, epic, chore, decision, merge-request, molecule, gate)
       --updated-after string         Filter issues updated after date (YYYY-MM-DD or RFC3339)
       --updated-before string        Filter issues updated before date (YYYY-MM-DD or RFC3339)
 ```
 
-### bd set-state
+### issuegraph set-state
 
 Atomically set operational state on an issue.
 
 This command:
-1. Creates an event bead recording the state change (source of truth)
+1. Creates an event issue recording the state change (source of truth)
 2. Removes any existing label for the dimension
 3. Adds the new dimension:value label (fast lookup cache)
 
@@ -1297,14 +1297,14 @@ State labels follow the convention &lt;dimension&gt;:&lt;value&gt;, for example:
   health:healthy, health:failing
 
 Examples:
-  bd set-state agent-abc patrol=muted --reason "Investigating stuck worker"
-  bd set-state agent-abc mode=degraded --reason "High error rate detected"
-  bd set-state agent-abc health=healthy
+  issuegraph set-state agent-abc patrol=muted --reason "Investigating stuck worker"
+  issuegraph set-state agent-abc mode=degraded --reason "High error rate detected"
+  issuegraph set-state agent-abc health=healthy
 
-The --reason flag provides context for the event bead (recommended).
+The --reason flag provides context for the event issue (recommended).
 
 ```
-bd set-state <issue-id> <dimension>=<value> [flags]
+issuegraph set-state <issue-id> <dimension>=<value> [flags]
 ```
 
 **Flags:**
@@ -1313,12 +1313,12 @@ bd set-state <issue-id> <dimension>=<value> [flags]
       --reason string   Reason for the state change (recorded in event)
 ```
 
-### bd show
+### issuegraph show
 
 Show issue details
 
 ```
-bd show [id...] [--id=<id>...] [--current] [flags]
+issuegraph show [id...] [--id=<id>...] [--current] [flags]
 ```
 
 **Aliases:** view
@@ -1331,7 +1331,7 @@ bd show [id...] [--id=<id>...] [--current] [flags]
       --current              Show the currently active issue (in-progress, hooked, or last touched)
       --id stringArray       Issue ID (use for IDs that look like flags, e.g., --id=gt--xyz)
       --include-comments     Stream full comment bodies in JSON output (--json only; may be slow on issues with many comments)
-      --include-dependents   Stream full dependent issues in JSON output (--json only; may be slow on hub beads)
+      --include-dependents   Stream full dependent issues in JSON output (--json only; may be slow on hub issuegraph)
       --local-time           Show timestamps in local time instead of UTC
       --long                 Show all available fields (extended metadata, agent identity, gate fields, etc.)
       --refs                 Show issues that reference this issue (reverse lookup)
@@ -1340,7 +1340,7 @@ bd show [id...] [--id=<id>...] [--current] [flags]
   -w, --watch                Watch for changes and auto-refresh display
 ```
 
-### bd state
+### issuegraph state
 
 Query the current value of a state dimension from an issue's labels.
 
@@ -1352,67 +1352,67 @@ State labels follow the convention &lt;dimension&gt;:&lt;value&gt;, for example:
 This command extracts the value for a given dimension.
 
 Examples:
-  bd state witness-abc patrol     # Output: active
-  bd state witness-abc mode       # Output: normal
-  bd state witness-abc health     # Output: healthy
+  issuegraph state witness-abc patrol     # Output: active
+  issuegraph state witness-abc mode       # Output: normal
+  issuegraph state witness-abc health     # Output: healthy
 
 ```
-bd state <issue-id> <dimension>
+issuegraph state <issue-id> <dimension>
 ```
 
-#### bd state list
+#### issuegraph state list
 
 List all state labels (dimension:value format) on an issue.
 
 This filters labels to only show those following the state convention.
 
 Example:
-  bd state list witness-abc
+  issuegraph state list witness-abc
   # Output:
   #   patrol: active
   #   mode: normal
   #   health: healthy
 
 ```
-bd state list <issue-id>
+issuegraph state list <issue-id>
 ```
 
-### bd tag
+### issuegraph tag
 
 Add a label to an issue.
 
-Shorthand for 'bd update &lt;id&gt; --add-label &lt;label&gt;'.
+Shorthand for 'issuegraph update &lt;id&gt; --add-label &lt;label&gt;'.
 
 Examples:
-  bd tag bd-123 bug
-  bd tag bd-123 needs-review
+  issuegraph tag issuegraph-123 bug
+  issuegraph tag issuegraph-123 needs-review
 
 ```
-bd tag <id> <label>
+issuegraph tag <id> <label>
 ```
 
-### bd todo
+### issuegraph todo
 
 Manage TODO items as lightweight task issues.
 
 TODOs are regular task-type issues with convenient shortcuts:
-  bd todo add "Title"    -&gt; bd create "Title" -t task -p 2
-  bd todo                -&gt; bd list --type task --status open
-  bd todo done &lt;id&gt;      -&gt; bd close &lt;id&gt;
+  issuegraph todo add "Title"    -&gt; issuegraph create "Title" -t task -p 2
+  issuegraph todo                -&gt; issuegraph list --type task --status open
+  issuegraph todo done &lt;id&gt;      -&gt; issuegraph close &lt;id&gt;
 
 TODOs can be promoted to full issues by changing type or priority:
-  bd update todo-123 --type bug --priority 0
+  issuegraph update todo-123 --type bug --priority 0
 
 ```
-bd todo
+issuegraph todo
 ```
 
-#### bd todo add
+#### issuegraph todo add
 
 Add a new TODO item
 
 ```
-bd todo add <title> [flags]
+issuegraph todo add <title> [flags]
 ```
 
 **Flags:**
@@ -1422,12 +1422,12 @@ bd todo add <title> [flags]
   -p, --priority int         Priority (0-4, default 2) (default 2)
 ```
 
-#### bd todo done
+#### issuegraph todo done
 
 Mark TODO(s) as done
 
 ```
-bd todo done <id> [<id>...] [flags]
+issuegraph todo done <id> [<id>...] [flags]
 ```
 
 **Flags:**
@@ -1436,12 +1436,12 @@ bd todo done <id> [<id>...] [flags]
       --reason string   Reason for closing (default: Completed)
 ```
 
-#### bd todo list
+#### issuegraph todo list
 
 List TODO items
 
 ```
-bd todo list [flags]
+issuegraph todo list [flags]
 ```
 
 **Flags:**
@@ -1450,7 +1450,7 @@ bd todo list [flags]
       --all   Show all TODOs including completed
 ```
 
-### bd update
+### issuegraph update
 
 Update one or more issues.
 
@@ -1458,7 +1458,7 @@ If no issue ID is provided, updates the last touched issue (from most recent
 create, update, show, or close operation).
 
 ```
-bd update [id...] [flags]
+issuegraph update [id...] [flags]
 ```
 
 **Flags:**
@@ -1472,7 +1472,7 @@ bd update [id...] [flags]
       --await-id string              Set gate await_id (e.g., GitHub run ID for gh:run gates)
       --body-file string             Read description from file (use - for stdin)
       --claim                        Atomically claim the issue (sets assignee to you, status to in_progress; idempotent if already claimed by you)
-      --defer string                 Defer until date (empty to clear). Issue hidden from bd ready until then
+      --defer string                 Defer until date (empty to clear). Issue hidden from issuegraph ready until then
   -d, --description string           Issue description
       --design string                Design notes
       --design-file string           Read design from file (use - for stdin)
@@ -1501,7 +1501,7 @@ bd update [id...] [flags]
 
 ## Views & Reports:
 
-### bd count
+### issuegraph count
 
 Count issues matching the specified filters.
 
@@ -1509,19 +1509,19 @@ By default, returns the total count of issues matching the filters.
 Use --by-* flags to group counts by different attributes.
 
 Examples:
-  bd count                          # Count all issues
-  bd count --status open            # Count open issues
-  bd count --by-status              # Group count by status
-  bd count --by-priority            # Group count by priority
-  bd count --by-type                # Group count by issue type
-  bd count --by-assignee            # Group count by assignee
-  bd count --by-label               # Group count by label
-  bd count --assignee alice --by-status  # Count alice's issues by status
-  bd count --include-infra          # Count issues + wisps tier (matches 'bd list --include-infra --all' cardinality)
+  issuegraph count                          # Count all issues
+  issuegraph count --status open            # Count open issues
+  issuegraph count --by-status              # Group count by status
+  issuegraph count --by-priority            # Group count by priority
+  issuegraph count --by-type                # Group count by issue type
+  issuegraph count --by-assignee            # Group count by assignee
+  issuegraph count --by-label               # Group count by label
+  issuegraph count --assignee alice --by-status  # Count alice's issues by status
+  issuegraph count --include-infra          # Count issues + wisps tier (matches 'issuegraph list --include-infra --all' cardinality)
 
 
 ```
-bd count [flags]
+issuegraph count [flags]
 ```
 
 **Flags:**
@@ -1540,7 +1540,7 @@ bd count [flags]
       --desc-contains string    Filter by description substring
       --empty-description       Filter issues with empty description
       --id string               Filter by specific issue IDs (comma-separated)
-      --include-infra           Include infrastructure beads and the wisps tier (matches 'bd list --include-infra --all' cardinality)
+      --include-infra           Include infrastructure issuegraph and the wisps tier (matches 'issuegraph list --include-infra --all' cardinality)
   -l, --label strings           Filter by labels (AND: must have ALL)
       --label-any strings       Filter by labels (OR: must have AT LEAST ONE)
       --no-assignee             Filter issues with no assignee
@@ -1549,7 +1549,7 @@ bd count [flags]
   -p, --priority int            Filter by priority (0-4: 0=critical, 1=high, 2=medium, 3=low, 4=backlog)
       --priority-max int        Filter by maximum priority (inclusive)
       --priority-min int        Filter by minimum priority (inclusive)
-  -s, --status string           Filter by stored status (open, in_progress, blocked, deferred, closed). Note: dependency-blocked issues use 'bd blocked'
+  -s, --status string           Filter by stored status (open, in_progress, blocked, deferred, closed). Note: dependency-blocked issues use 'issuegraph blocked'
       --title string            Filter by title text (case-insensitive substring match)
       --title-contains string   Filter by title substring
   -t, --type string             Filter by type (bug, feature, task, epic, chore, decision, merge-request, molecule, gate)
@@ -1557,7 +1557,7 @@ bd count [flags]
       --updated-before string   Filter issues updated before date (YYYY-MM-DD or RFC3339)
 ```
 
-### bd diff
+### issuegraph diff
 
 Show the differences in issues between two commits or branches.
 
@@ -1567,19 +1567,19 @@ The refs can be:
 - Special refs like HEAD, HEAD~1
 
 Examples:
-  bd diff main feature-branch   # Compare main to feature branch
-  bd diff HEAD~5 HEAD           # Show changes in last 5 commits
-  bd diff abc123 def456         # Compare two specific commits
+  issuegraph diff main feature-branch   # Compare main to feature branch
+  issuegraph diff HEAD~5 HEAD           # Show changes in last 5 commits
+  issuegraph diff abc123 def456         # Compare two specific commits
 
 ```
-bd diff <from-ref> <to-ref>
+issuegraph diff <from-ref> <to-ref>
 ```
 
-### bd find-duplicates
+### issuegraph find-duplicates
 
 Find issues that are semantically similar but not exact duplicates.
 
-Unlike 'bd duplicates' which finds exact content matches, find-duplicates
+Unlike 'issuegraph duplicates' which finds exact content matches, find-duplicates
 uses text similarity or AI to find issues that discuss the same topic
 with different wording.
 
@@ -1596,15 +1596,15 @@ It first uses mechanical pre-filtering to reduce the number of API calls,
 then asks the LLM to judge whether the remaining pairs are true duplicates.
 
 Examples:
-  bd find-duplicates                       # Mechanical similarity (default)
-  bd find-duplicates --threshold 0.4       # Lower threshold = more results
-  bd find-duplicates --method ai           # Use AI for semantic comparison
-  bd find-duplicates --status open         # Only check open issues
-  bd find-duplicates --limit 20            # Show top 20 pairs
-  bd find-duplicates --json                # JSON output
+  issuegraph find-duplicates                       # Mechanical similarity (default)
+  issuegraph find-duplicates --threshold 0.4       # Lower threshold = more results
+  issuegraph find-duplicates --method ai           # Use AI for semantic comparison
+  issuegraph find-duplicates --status open         # Only check open issues
+  issuegraph find-duplicates --limit 20            # Show top 20 pairs
+  issuegraph find-duplicates --json                # JSON output
 
 ```
-bd find-duplicates [flags]
+issuegraph find-duplicates [flags]
 ```
 
 **Aliases:** find-dups
@@ -1619,17 +1619,17 @@ bd find-duplicates [flags]
       --threshold float   Similarity threshold (0.0-1.0, lower = more results) (default 0.5)
 ```
 
-### bd history
+### issuegraph history
 
 Show the complete version history of an issue, including all commits
 where the issue was modified.
 
 Examples:
-  bd history bd-123           # Show all history for issue bd-123
-  bd history bd-123 --limit 5 # Show last 5 changes
+  issuegraph history issuegraph-123           # Show all history for issue issuegraph-123
+  issuegraph history issuegraph-123 --limit 5 # Show last 5 changes
 
 ```
-bd history <id> [flags]
+issuegraph history <id> [flags]
 ```
 
 **Flags:**
@@ -1638,7 +1638,7 @@ bd history <id> [flags]
       --limit int   Limit number of history entries (0 = all)
 ```
 
-### bd lint
+### issuegraph lint
 
 Check issues for missing recommended sections based on issue type.
 
@@ -1652,15 +1652,15 @@ Section requirements by type:
   chore:    (none)
 
 Examples:
-  bd lint                    # Lint all open issues
-  bd lint bd-abc             # Lint specific issue
-  bd lint bd-abc bd-def      # Lint multiple issues
-  bd lint --type bug         # Lint only bugs
-  bd lint --status all       # Lint all issues (including closed)
+  issuegraph lint                    # Lint all open issues
+  issuegraph lint issuegraph-abc             # Lint specific issue
+  issuegraph lint issuegraph-abc issuegraph-def      # Lint multiple issues
+  issuegraph lint --type bug         # Lint only bugs
+  issuegraph lint --status all       # Lint all issues (including closed)
 
 
 ```
-bd lint [issue-id...] [flags]
+issuegraph lint [issue-id...] [flags]
 ```
 
 **Flags:**
@@ -1670,7 +1670,7 @@ bd lint [issue-id...] [flags]
   -t, --type string     Filter by issue type (bug, task, feature, epic)
 ```
 
-### bd stale
+### issuegraph stale
 
 Show issues that haven't been updated recently and may need attention.
 This helps identify:
@@ -1679,7 +1679,7 @@ This helps identify:
 - Issues that might be outdated or no longer relevant
 
 ```
-bd stale [flags]
+issuegraph stale [flags]
 ```
 
 **Flags:**
@@ -1690,7 +1690,7 @@ bd stale [flags]
   -s, --status string   Filter by status (open|in_progress|blocked|deferred)
 ```
 
-### bd status
+### issuegraph status
 
 Show a quick snapshot of the issue database state and statistics.
 
@@ -1698,7 +1698,7 @@ This command provides a summary of issue counts by state (open, in_progress,
 blocked, closed), ready work, extended statistics (pinned issues,
 average lead time), and recent activity over the last 24 hours from git history.
 
-Similar to how 'git status' shows working tree state, 'bd status' gives you
+Similar to how 'git status' shows working tree state, 'issuegraph status' gives you
 a quick overview of your issue database without needing multiple queries.
 
 Use cases:
@@ -1708,14 +1708,14 @@ Use cases:
   - Daily standup reference
 
 Examples:
-  bd status                    # Show summary with activity
-  bd status --no-activity      # Skip git activity (faster)
-  bd status --json             # JSON format output
-  bd status --assigned         # Show issues assigned to current user
-  bd stats                     # Alias for bd status
+  issuegraph status                    # Show summary with activity
+  issuegraph status --no-activity      # Skip git activity (faster)
+  issuegraph status --json             # JSON format output
+  issuegraph status --assigned         # Show issues assigned to current user
+  issuegraph stats                     # Alias for issuegraph status
 
 ```
-bd status [flags]
+issuegraph status [flags]
 ```
 
 **Aliases:** stats
@@ -1728,89 +1728,89 @@ bd status [flags]
       --no-activity   Skip git activity tracking (faster)
 ```
 
-### bd statuses
+### issuegraph statuses
 
 List all valid issue statuses and their categories.
 
 Built-in statuses (open, in_progress, blocked, etc.) are always valid.
 Additional statuses can be configured via status.custom:
 
-  bd config set status.custom "in_review:active,qa_testing:wip,on_hold:frozen"
+  issuegraph config set status.custom "in_review:active,qa_testing:wip,on_hold:frozen"
 
 Categories control behavior:
-  active  — appears in 'bd ready' and default 'bd list'
-  wip     — excluded from 'bd ready', visible in default 'bd list'
-  done    — excluded from 'bd ready' and default 'bd list'
-  frozen  — excluded from 'bd ready' and default 'bd list'
+  active  — appears in 'issuegraph ready' and default 'issuegraph list'
+  wip     — excluded from 'issuegraph ready', visible in default 'issuegraph list'
+  done    — excluded from 'issuegraph ready' and default 'issuegraph list'
+  frozen  — excluded from 'issuegraph ready' and default 'issuegraph list'
 
-Statuses without a category (legacy format) are valid but excluded from 'bd ready'.
+Statuses without a category (legacy format) are valid but excluded from 'issuegraph ready'.
 
 Examples:
-  bd statuses            # List all statuses with icons and categories
-  bd statuses --json     # Output as JSON
+  issuegraph statuses            # List all statuses with icons and categories
+  issuegraph statuses --json     # Output as JSON
 
 
 ```
-bd statuses
+issuegraph statuses
 ```
 
-### bd types
+### issuegraph types
 
-List all valid issue types that can be used with bd create --type.
+List all valid issue types that can be used with issuegraph create --type.
 
 Core work types (bug, task, feature, chore, epic, decision) are always valid.
-Additional types require configuration via types.custom in .beads/config.yaml.
+Additional types require configuration via types.custom in .issuegraph/config.yaml.
 
 Examples:
-  bd types              # List all types with descriptions
-  bd types --json       # Output as JSON
+  issuegraph types              # List all types with descriptions
+  issuegraph types --json       # Output as JSON
 
 
 ```
-bd types
+issuegraph types
 ```
 
 ## Dependencies & Structure:
 
-### bd dep
+### issuegraph dep
 
 Manage dependencies between issues.
 
 When called with an issue ID and --blocks flag, creates a blocking dependency:
-  bd dep &lt;blocker-id&gt; --blocks &lt;blocked-id&gt;
+  issuegraph dep &lt;blocker-id&gt; --blocks &lt;blocked-id&gt;
 
 This is equivalent to:
-  bd dep add &lt;blocked-id&gt; &lt;blocker-id&gt;
+  issuegraph dep add &lt;blocked-id&gt; &lt;blocker-id&gt;
 
 Examples:
-  bd dep bd-xyz --blocks bd-abc    # bd-xyz blocks bd-abc
-  bd dep add bd-abc bd-xyz         # Same as above (bd-abc depends on bd-xyz)
+  issuegraph dep issuegraph-xyz --blocks issuegraph-abc    # issuegraph-xyz blocks issuegraph-abc
+  issuegraph dep add issuegraph-abc issuegraph-xyz         # Same as above (issuegraph-abc depends on issuegraph-xyz)
 
 ```
-bd dep [issue-id] [flags]
+issuegraph dep [issue-id] [flags]
 ```
 
 **Flags:**
 
 ```
-  -b, --blocks string    Issue ID that this issue blocks (shorthand for: bd dep add <blocked> <blocker>)
+  -b, --blocks string    Issue ID that this issue blocks (shorthand for: issuegraph dep add <blocked> <blocker>)
       --no-cycle-check   Skip per-edge cycle checks for speed (bulk wiring); bulk --file adds still run one final whole-graph check before commit
 ```
 
-#### bd dep add
+#### issuegraph dep add
 
 Add a dependency between two issues.
 
 The depends-on-id can be provided as:
-  - A positional argument: bd dep add issue-123 issue-456
-  - A flag: bd dep add issue-123 --blocked-by issue-456
-  - A flag: bd dep add issue-123 --depends-on issue-456
+  - A positional argument: issuegraph dep add issue-123 issue-456
+  - A flag: issuegraph dep add issue-123 --blocked-by issue-456
+  - A flag: issuegraph dep add issue-123 --depends-on issue-456
 
 The --blocked-by and --depends-on flags are aliases and both mean "issue-123
 depends on (is blocked by) the specified issue."
 
 The depends-on-id can be:
-  - A local issue ID (e.g., bd-xyz)
+  - A local issue ID (e.g., issuegraph-xyz)
   - An external reference: external:&lt;project&gt;:&lt;capability&gt;
 
 For bulk wiring, pass newline-delimited JSON with --file. Each line must be an
@@ -1822,15 +1822,15 @@ the external_projects config. They block the issue until the capability
 is "shipped" in the target project.
 
 Examples:
-  bd dep add bd-42 bd-41                              # Positional args
-  bd dep add bd-42 --blocked-by bd-41                 # Flag syntax (same effect)
-  bd dep add bd-42 --depends-on bd-41                 # Alias (same effect)
-  bd dep add gt-xyz external:beads:mol-run-assignee   # Cross-project dependency
-  bd dep add bd-42 bd-41 --no-cycle-check             # Skip cycle check (bulk wiring)
-  bd dep add --file deps.jsonl                        # Bulk JSONL: &#123;"from":"bd-42","to":"bd-41"&#125;
+  issuegraph dep add issuegraph-42 issuegraph-41                              # Positional args
+  issuegraph dep add issuegraph-42 --blocked-by issuegraph-41                 # Flag syntax (same effect)
+  issuegraph dep add issuegraph-42 --depends-on issuegraph-41                 # Alias (same effect)
+  issuegraph dep add gt-xyz external:issuegraph:mol-run-assignee   # Cross-project dependency
+  issuegraph dep add issuegraph-42 issuegraph-41 --no-cycle-check             # Skip cycle check (bulk wiring)
+  issuegraph dep add --file deps.jsonl                        # Bulk JSONL: &#123;"from":"issuegraph-42","to":"issuegraph-41"&#125;
 
 ```
-bd dep add [issue-id] [depends-on-id] [flags]
+issuegraph dep add [issue-id] [depends-on-id] [flags]
 ```
 
 **Flags:**
@@ -1843,15 +1843,15 @@ bd dep add [issue-id] [depends-on-id] [flags]
   -t, --type string         Dependency type (blocks|tracks|related|parent-child|discovered-from|until|caused-by|validates|relates-to|supersedes) (default "blocks")
 ```
 
-#### bd dep cycles
+#### issuegraph dep cycles
 
 Detect dependency cycles
 
 ```
-bd dep cycles
+issuegraph dep cycles
 ```
 
-#### bd dep list
+#### issuegraph dep list
 
 List dependencies or dependents of one or more issues with optional type filtering.
 
@@ -1865,13 +1865,13 @@ is a flat array of dependency records across all requested issues.
 Use --type to filter by dependency type (e.g., tracks, blocks, parent-child).
 
 Examples:
-  bd dep list gt-abc                     # Show what gt-abc depends on
-  bd dep list gt-abc gt-def              # Batch: deps for both issues
-  bd dep list gt-abc --direction=up      # Show what depends on gt-abc
-  bd dep list gt-abc --direction=up -t tracks  # Show what tracks gt-abc (convoy tracking)
+  issuegraph dep list gt-abc                     # Show what gt-abc depends on
+  issuegraph dep list gt-abc gt-def              # Batch: deps for both issues
+  issuegraph dep list gt-abc --direction=up      # Show what depends on gt-abc
+  issuegraph dep list gt-abc --direction=up -t tracks  # Show what tracks gt-abc (convoy tracking)
 
 ```
-bd dep list [issue-id...] [flags]
+issuegraph dep list [issue-id...] [flags]
 ```
 
 **Flags:**
@@ -1881,7 +1881,7 @@ bd dep list [issue-id...] [flags]
   -t, --type string        Filter by dependency type (e.g., tracks, blocks, parent-child)
 ```
 
-#### bd dep relate
+#### issuegraph dep relate
 
 Create a loose 'see also' relationship between two issues.
 
@@ -1889,24 +1889,24 @@ The relates_to link is bidirectional - both issues will reference each other.
 This enables knowledge graph connections without blocking or hierarchy.
 
 Examples:
-  bd relate bd-abc bd-xyz    # Link two related issues
-  bd relate bd-123 bd-456    # Create see-also connection
+  issuegraph relate issuegraph-abc issuegraph-xyz    # Link two related issues
+  issuegraph relate issuegraph-123 issuegraph-456    # Create see-also connection
 
 ```
-bd dep relate <id1> <id2>
+issuegraph dep relate <id1> <id2>
 ```
 
-#### bd dep remove
+#### issuegraph dep remove
 
 Remove a dependency
 
 ```
-bd dep remove [issue-id] [depends-on-id]
+issuegraph dep remove [issue-id] [depends-on-id]
 ```
 
 **Aliases:** rm
 
-#### bd dep tree
+#### issuegraph dep tree
 
 Show dependency tree rooted at the given issue.
 
@@ -1916,13 +1916,13 @@ By default, shows dependencies (what blocks this issue). Use --direction to cont
   - both: Show full graph in both directions
 
 Examples:
-  bd dep tree gt-0iqq                    # Show what blocks gt-0iqq
-  bd dep tree gt-0iqq --direction=up     # Show what gt-0iqq blocks
-  bd dep tree gt-0iqq --status=open      # Only show open issues
-  bd dep tree gt-0iqq --depth=3          # Limit to 3 levels deep
+  issuegraph dep tree gt-0iqq                    # Show what blocks gt-0iqq
+  issuegraph dep tree gt-0iqq --direction=up     # Show what gt-0iqq blocks
+  issuegraph dep tree gt-0iqq --status=open      # Only show open issues
+  issuegraph dep tree gt-0iqq --depth=3          # Limit to 3 levels deep
 
 ```
-bd dep tree [issue-id] [flags]
+issuegraph dep tree [issue-id] [flags]
 ```
 
 **Flags:**
@@ -1936,20 +1936,20 @@ bd dep tree [issue-id] [flags]
       --status string      Filter to only show issues with this status (open, in_progress, blocked, deferred, closed)
 ```
 
-#### bd dep unrelate
+#### issuegraph dep unrelate
 
 Remove a relates_to relationship between two issues.
 
 Removes the link in both directions.
 
 Example:
-  bd unrelate bd-abc bd-xyz
+  issuegraph unrelate issuegraph-abc issuegraph-xyz
 
 ```
-bd dep unrelate <id1> <id2>
+issuegraph dep unrelate <id1> <id2>
 ```
 
-### bd duplicate
+### issuegraph duplicate
 
 Mark an issue as a duplicate of a canonical issue.
 
@@ -1957,10 +1957,10 @@ The duplicate issue is automatically closed with a reference to the canonical.
 This is essential for large issue databases with many similar reports.
 
 Examples:
-  bd duplicate bd-abc --of bd-xyz    # Mark bd-abc as duplicate of bd-xyz
+  issuegraph duplicate issuegraph-abc --of issuegraph-xyz    # Mark issuegraph-abc as duplicate of issuegraph-xyz
 
 ```
-bd duplicate <id> --of <canonical> [flags]
+issuegraph duplicate <id> --of <canonical> [flags]
 ```
 
 **Flags:**
@@ -1969,7 +1969,7 @@ bd duplicate <id> --of <canonical> [flags]
       --of string   Canonical issue ID (required)
 ```
 
-### bd duplicates
+### issuegraph duplicates
 
 Find issues with identical content (title, description, design, acceptance criteria).
 Groups issues by content hash and reports duplicates with suggested merge targets.
@@ -1978,12 +1978,12 @@ The merge target is chosen by:
 2. Lexicographically smallest ID if reference counts are equal
 Only groups issues with matching status (open with open, closed with closed).
 Example:
-  bd duplicates                    # Show all duplicate groups
-  bd duplicates --auto-merge       # Automatically merge all duplicates
-  bd duplicates --dry-run          # Show what would be merged
+  issuegraph duplicates                    # Show all duplicate groups
+  issuegraph duplicates --auto-merge       # Automatically merge all duplicates
+  issuegraph duplicates --dry-run          # Show what would be merged
 
 ```
-bd duplicates [flags]
+issuegraph duplicates [flags]
 ```
 
 **Flags:**
@@ -1993,20 +1993,20 @@ bd duplicates [flags]
       --dry-run      Show what would be merged without making changes
 ```
 
-### bd epic
+### issuegraph epic
 
 Epic management commands
 
 ```
-bd epic
+issuegraph epic
 ```
 
-#### bd epic close-eligible
+#### issuegraph epic close-eligible
 
 Close epics where all children are complete
 
 ```
-bd epic close-eligible [flags]
+issuegraph epic close-eligible [flags]
 ```
 
 **Flags:**
@@ -2015,12 +2015,12 @@ bd epic close-eligible [flags]
       --dry-run   Preview what would be closed without making changes
 ```
 
-#### bd epic status
+#### issuegraph epic status
 
 Show epic completion status
 
 ```
-bd epic status [flags]
+issuegraph epic status [flags]
 ```
 
 **Flags:**
@@ -2029,7 +2029,7 @@ bd epic status [flags]
       --eligible-only   Show only epics eligible for closure
 ```
 
-### bd graph
+### issuegraph graph
 
 Display a visualization of an issue's dependency graph.
 
@@ -2053,15 +2053,15 @@ The graph shows execution order:
 Status icons: ○ open  ◐ in_progress  ● blocked  ✓ closed  ❄ deferred
 
 Examples:
-  bd graph issue-id              # Terminal DAG visualization (default)
-  bd graph --box issue-id        # ASCII boxes with layer grouping
-  bd graph --dot issue-id | dot -Tsvg &gt; graph.svg  # SVG via Graphviz
-  bd graph --dot issue-id | dot -Tpng &gt; graph.png  # PNG via Graphviz
-  bd graph --html issue-id &gt; graph.html  # Interactive browser view
-  bd graph --all --html &gt; all.html       # All issues, interactive
+  issuegraph graph issue-id              # Terminal DAG visualization (default)
+  issuegraph graph --box issue-id        # ASCII boxes with layer grouping
+  issuegraph graph --dot issue-id | dot -Tsvg &gt; graph.svg  # SVG via Graphviz
+  issuegraph graph --dot issue-id | dot -Tpng &gt; graph.png  # PNG via Graphviz
+  issuegraph graph --html issue-id &gt; graph.html  # Interactive browser view
+  issuegraph graph --all --html &gt; all.html       # All issues, interactive
 
 ```
-bd graph [issue-id] [flags]
+issuegraph graph [issue-id] [flags]
 ```
 
 **Flags:**
@@ -2074,17 +2074,17 @@ bd graph [issue-id] [flags]
       --html      Output self-contained interactive HTML (redirect to file)
 ```
 
-#### bd graph check
+#### issuegraph graph check
 
 Check the dependency graph for cycles, orphans, and other integrity issues.
 
 Returns exit code 0 if the graph is clean, 1 if issues are found.
 
 ```
-bd graph check
+issuegraph graph check
 ```
 
-### bd supersede
+### issuegraph supersede
 
 Mark an issue as superseded by a newer version.
 
@@ -2092,10 +2092,10 @@ The superseded issue is automatically closed with a reference to the replacement
 Useful for design docs, specs, and evolving artifacts.
 
 Examples:
-  bd supersede bd-old --with bd-new    # Mark bd-old as superseded by bd-new
+  issuegraph supersede issuegraph-old --with issuegraph-new    # Mark issuegraph-old as superseded by issuegraph-new
 
 ```
-bd supersede <id> --with <new> [flags]
+issuegraph supersede <id> --with <new> [flags]
 ```
 
 **Flags:**
@@ -2104,7 +2104,7 @@ bd supersede <id> --with <new> [flags]
       --with string   Replacement issue ID (required)
 ```
 
-### bd swarm
+### issuegraph swarm
 
 Swarm management commands for coordinating parallel work on epics.
 
@@ -2112,10 +2112,10 @@ A swarm is a structured body of work defined by an epic and its children,
 with dependencies forming a DAG (directed acyclic graph) of work.
 
 ```
-bd swarm
+issuegraph swarm
 ```
 
-#### bd swarm create
+#### issuegraph swarm create
 
 Create a swarm molecule to orchestrate parallel work on an epic.
 
@@ -2130,12 +2130,12 @@ If given a single issue (not an epic), it will be auto-wrapped:
 - Then creates the swarm molecule for that epic
 
 Examples:
-  bd swarm create bd-epic-123                          # Create swarm for epic
-  bd swarm create bd-epic-123 --coordinator=observer/   # With specific coordinator
-  bd swarm create bd-task-456                          # Auto-wrap single issue
+  issuegraph swarm create issuegraph-epic-123                          # Create swarm for epic
+  issuegraph swarm create issuegraph-epic-123 --coordinator=observer/   # With specific coordinator
+  issuegraph swarm create issuegraph-task-456                          # Auto-wrap single issue
 
 ```
-bd swarm create [epic-id] [flags]
+issuegraph swarm create [epic-id] [flags]
 ```
 
 **Flags:**
@@ -2145,7 +2145,7 @@ bd swarm create [epic-id] [flags]
       --force                Create new swarm even if one already exists
 ```
 
-#### bd swarm list
+#### issuegraph swarm list
 
 List all swarm molecules with their status.
 
@@ -2155,16 +2155,16 @@ Shows each swarm molecule with:
 - Epic ID and title
 
 Examples:
-  bd swarm list         # List all swarms
-  bd swarm list --json  # Machine-readable output
+  issuegraph swarm list         # List all swarms
+  issuegraph swarm list --json  # Machine-readable output
 
 ```
-bd swarm list
+issuegraph swarm list
 ```
 
-#### bd swarm status
+#### issuegraph swarm status
 
-Show the current status of a swarm, computed from beads.
+Show the current status of a swarm, computed from issuegraph.
 
 Accepts either:
 - An epic ID (shows status for that epic's children)
@@ -2176,19 +2176,19 @@ Displays issues grouped by state:
 - Ready: Open issues with all dependencies satisfied
 - Blocked: Open issues waiting on dependencies
 
-The status is COMPUTED from beads, not stored separately.
-If beads changes, status changes.
+The status is COMPUTED from issuegraph, not stored separately.
+If issuegraph changes, status changes.
 
 Examples:
-  bd swarm status gt-epic-123       # Show swarm status by epic
-  bd swarm status gt-swarm-456      # Show status via swarm molecule
-  bd swarm status gt-epic-123 --json  # Machine-readable output
+  issuegraph swarm status gt-epic-123       # Show swarm status by epic
+  issuegraph swarm status gt-swarm-456      # Show status via swarm molecule
+  issuegraph swarm status gt-epic-123 --json  # Machine-readable output
 
 ```
-bd swarm status [epic-or-swarm-id]
+issuegraph swarm status [epic-or-swarm-id]
 ```
 
-#### bd swarm validate
+#### issuegraph swarm validate
 
 Validate an epic's structure to ensure it's ready for swarm execution.
 
@@ -2206,11 +2206,11 @@ Reports:
 - Warnings for potential issues
 
 Examples:
-  bd swarm validate gt-epic-123           # Validate epic structure
-  bd swarm validate gt-epic-123 --verbose # Include detailed issue graph
+  issuegraph swarm validate gt-epic-123           # Validate epic structure
+  issuegraph swarm validate gt-epic-123 --verbose # Include detailed issue graph
 
 ```
-bd swarm validate [epic-id] [flags]
+issuegraph swarm validate [epic-id] [flags]
 ```
 
 **Flags:**
@@ -2221,31 +2221,31 @@ bd swarm validate [epic-id] [flags]
 
 ## Sync & Data:
 
-### bd backup
+### issuegraph backup
 
-Back up your beads database for off-machine recovery.
+Back up your issuegraph database for off-machine recovery.
 
 This is a Dolt-native database backup. It preserves the database state,
 including tables, branches, commit history, and working-set data. This is
-different from 'bd export', which writes issue records to JSONL for migration
+different from 'issuegraph export', which writes issue records to JSONL for migration
 and interoperability.
 
 Commands:
-  bd backup init &lt;path&gt;    Set up a backup destination (filesystem or DoltHub)
-  bd backup sync           Push to configured backup destination
-  bd backup restore [path] Restore from a backup directory
-  bd backup remove         Remove backup destination
-  bd backup status         Show backup status
+  issuegraph backup init &lt;path&gt;    Set up a backup destination (filesystem or DoltHub)
+  issuegraph backup sync           Push to configured backup destination
+  issuegraph backup restore [path] Restore from a backup directory
+  issuegraph backup remove         Remove backup destination
+  issuegraph backup status         Show backup status
 
 DoltHub is recommended for cloud backup:
-  bd backup init https://doltremoteapi.dolthub.com/&lt;user&gt;/&lt;repo&gt;
+  issuegraph backup init https://doltremoteapi.dolthub.com/&lt;user&gt;/&lt;repo&gt;
   Set DOLT_REMOTE_USER and DOLT_REMOTE_PASSWORD for authentication.
 
 ```
-bd backup
+issuegraph backup
 ```
 
-#### bd backup init
+#### issuegraph backup init
 
 Configure a filesystem path or URL as a backup destination.
 
@@ -2254,21 +2254,21 @@ DoltHub remote URL. If the destination was previously configured, it is
 updated to the new path.
 
 Filesystem examples:
-  bd backup add /mnt/usb/beads-backup
-  bd backup add ~/Dropbox/beads-backup
+  issuegraph backup add /mnt/usb/issuegraph-backup
+  issuegraph backup add ~/Dropbox/issuegraph-backup
 
 DoltHub (recommended for cloud backup):
-  bd backup add https://doltremoteapi.dolthub.com/myuser/beads-backup
+  issuegraph backup add https://doltremoteapi.dolthub.com/myuser/issuegraph-backup
 
-After adding, run 'bd backup sync' to push your data.
+After adding, run 'issuegraph backup sync' to push your data.
 
 ```
-bd backup init <path>
+issuegraph backup init <path>
 ```
 
 **Aliases:** add
 
-#### bd backup remove
+#### issuegraph backup remove
 
 Remove the configured backup destination.
 
@@ -2276,29 +2276,29 @@ This unregisters the backup remote from Dolt and removes the local
 backup configuration. The backup data at the destination is not deleted.
 
 ```
-bd backup remove
+issuegraph backup remove
 ```
 
 **Aliases:** rm
 
-#### bd backup restore
+#### issuegraph backup restore
 
-Restore the beads database from a Dolt-native backup.
+Restore the issuegraph database from a Dolt-native backup.
 
-By default, reads from .beads/backup/ (or the configured backup directory).
+By default, reads from .issuegraph/backup/ (or the configured backup directory).
 Optionally specify a path to a directory containing a Dolt backup.
 
-This restores a full database backup created by 'bd backup sync' or an
-equivalent Dolt backup. JSONL files produced by 'bd export' are issue exports,
+This restores a full database backup created by 'issuegraph backup sync' or an
+equivalent Dolt backup. JSONL files produced by 'issuegraph export' are issue exports,
 not restore targets for this command.
 
 Use --force to overwrite an existing database with the backup contents.
 
-The database must already be initialized (run 'bd init' first if needed).
-To initialize and restore in one step, use: bd init &amp;&amp; bd backup restore
+The database must already be initialized (run 'issuegraph init' first if needed).
+To initialize and restore in one step, use: issuegraph init &amp;&amp; issuegraph backup restore
 
 ```
-bd backup restore [path] [flags]
+issuegraph backup restore [path] [flags]
 ```
 
 **Flags:**
@@ -2307,30 +2307,30 @@ bd backup restore [path] [flags]
       --force   Overwrite existing database with backup contents
 ```
 
-#### bd backup status
+#### issuegraph backup status
 
 Show last backup status
 
 ```
-bd backup status
+issuegraph backup status
 ```
 
-#### bd backup sync
+#### issuegraph backup sync
 
-Sync the current beads database to the configured Dolt backup destination.
+Sync the current issuegraph database to the configured Dolt backup destination.
 
 This pushes the entire database state (all branches, full history) to the
-backup location configured with 'bd backup init'.
+backup location configured with 'issuegraph backup init'.
 
 The backup is atomic — if the sync fails, the previous backup state is preserved.
 
-Run 'bd backup init &lt;path&gt;' first to configure a destination.
+Run 'issuegraph backup init &lt;path&gt;' first to configure a destination.
 
 ```
-bd backup sync
+issuegraph backup sync
 ```
 
-### bd branch
+### issuegraph branch
 
 List all branches or create a new branch.
 
@@ -2338,14 +2338,14 @@ This command requires the Dolt storage backend. Without arguments,
 it lists all branches. With an argument, it creates a new branch.
 
 Examples:
-  bd branch                    # List all branches
-  bd branch feature-xyz        # Create a new branch named feature-xyz
+  issuegraph branch                    # List all branches
+  issuegraph branch feature-xyz        # Create a new branch named feature-xyz
 
 ```
-bd branch [name]
+issuegraph branch [name]
 ```
 
-### bd export
+### issuegraph export
 
 Export all issues to JSONL (newline-delimited JSON) format.
 
@@ -2355,38 +2355,38 @@ labels, dependencies, and comments.
 This command is for issue export, migration, and interoperability. It exports
 records from the issues table; it is not a full database backup and does not
 capture Dolt branches, commit history, working-set state, or non-issue tables.
-For supported full backup/restore flows, use 'bd backup init', 'bd backup sync',
-and 'bd backup restore'.
+For supported full backup/restore flows, use 'issuegraph backup init', 'issuegraph backup sync',
+and 'issuegraph backup restore'.
 
-By default, exports only regular issues (excluding infrastructure beads
+By default, exports only regular issues (excluding infrastructure issuegraph
 like agents, roles, and messages). Use --all to include everything.
 
-Memories (from 'bd remember') are excluded by default because they may
+Memories (from 'issuegraph remember') are excluded by default because they may
 contain sensitive agent context. Use --include-memories or --all to
 include them.
 
 EXAMPLES:
-  bd export                              # Export issues to stdout
-  bd export -o issues.jsonl              # Export issues to file
-  bd export --include-memories           # Export issues + memories
-  bd export --all -o full.jsonl          # Include infra + templates + gates + memories
-  bd export --scrub -o clean.jsonl       # Exclude test/pollution records
+  issuegraph export                              # Export issues to stdout
+  issuegraph export -o issues.jsonl              # Export issues to file
+  issuegraph export --include-memories           # Export issues + memories
+  issuegraph export --all -o full.jsonl          # Include infra + templates + gates + memories
+  issuegraph export --scrub -o clean.jsonl       # Exclude test/pollution records
 
 ```
-bd export [flags]
+issuegraph export [flags]
 ```
 
 **Flags:**
 
 ```
       --all                Include all records (infra, templates, gates, memories)
-      --include-infra      Include infrastructure beads (agents, roles, messages)
-      --include-memories   Include persistent memories (from 'bd remember') in the export
+      --include-infra      Include infrastructure issuegraph (agents, roles, messages)
+      --include-memories   Include persistent memories (from 'issuegraph remember') in the export
   -o, --output string      Output file path (default: stdout)
       --scrub              Exclude test/pollution records
 ```
 
-### bd federation
+### issuegraph federation
 
 Federation commands require CGO and the Dolt storage backend.
 
@@ -2398,24 +2398,24 @@ Federation enables synchronized issue tracking across multiple workspaces,
 each maintaining their own Dolt database while sharing updates via remotes.
 
 ```
-bd federation
+issuegraph federation
 ```
 
-### bd import
+### issuegraph import
 
 Import issues from a JSONL file (newline-delimited JSON) into the database.
 
-If no file is specified, imports from the configured import.path under .beads/
+If no file is specified, imports from the configured import.path under .issuegraph/
 (default: issues.jsonl). Use "-" to read from stdin. This is the incremental counterpart to
-'bd export': new issues are created and existing issues are updated (upsert
+'issuegraph export': new issues are created and existing issues are updated (upsert
 semantics).
 
 Memory records (lines with "_type":"memory") are automatically detected and
-imported as persistent memories (equivalent to 'bd remember'). This makes
-'bd export | bd import' a full round-trip for both issues and memories.
+imported as persistent memories (equivalent to 'issuegraph remember'). This makes
+'issuegraph export | issuegraph import' a full round-trip for both issues and memories.
 
 Each JSONL line should map to an issue. The importer accepts every field
-'bd export' emits — see 'bd export' output for the canonical schema. Only
+'issuegraph export' emits — see 'issuegraph export' output for the canonical schema. Only
 "title" is required; everything else is optional.
 
 Common fields:
@@ -2456,18 +2456,18 @@ an import is visible. To deliberately restore an older snapshot, pass
 local state.
 
 EXAMPLES:
-  bd import                        # Import from configured import.path
-  bd import backup.jsonl           # Import from a specific file
-  bd import -i backup.jsonl        # Legacy alias for a specific file
-  bd import -                      # Read JSONL from stdin
-  cat issues.jsonl | bd import -   # Pipe JSONL from another tool
-  bd import --dry-run              # Show what would be imported
-  bd import --dedup                # Skip issues with duplicate titles
-  bd import --allow-stale old.jsonl # Restore an older snapshot (overwrites newer local rows)
-  bd import --json                 # Structured output with created and skipped IDs
+  issuegraph import                        # Import from configured import.path
+  issuegraph import backup.jsonl           # Import from a specific file
+  issuegraph import -i backup.jsonl        # Legacy alias for a specific file
+  issuegraph import -                      # Read JSONL from stdin
+  cat issues.jsonl | issuegraph import -   # Pipe JSONL from another tool
+  issuegraph import --dry-run              # Show what would be imported
+  issuegraph import --dedup                # Skip issues with duplicate titles
+  issuegraph import --allow-stale old.jsonl # Restore an older snapshot (overwrites newer local rows)
+  issuegraph import --json                 # Structured output with created and skipped IDs
 
 ```
-bd import [file|-] [flags]
+issuegraph import [file|-] [flags]
 ```
 
 **Flags:**
@@ -2479,7 +2479,7 @@ bd import [file|-] [flags]
   -i, --input string   Read JSONL from a specific file
 ```
 
-### bd restore
+### issuegraph restore
 
 Restore the pre-compaction content of a compacted issue.
 
@@ -2491,12 +2491,12 @@ By default it is read-only: it displays the archived content without modifying
 the database. Pass --apply to write the original content back into the issue
 and step its compaction level back down.
 
-If no archived snapshot exists (e.g. the issue was compacted by an older bd
+If no archived snapshot exists (e.g. the issue was compacted by an older issuegraph
 before snapshot archiving), restore falls back to a best-effort reconstruction
 from Dolt version history, which can only be displayed, not applied.
 
 ```
-bd restore <issue-id> [flags]
+issuegraph restore <issue-id> [flags]
 ```
 
 **Flags:**
@@ -2506,31 +2506,31 @@ bd restore <issue-id> [flags]
       --json    Output restore results in JSON format
 ```
 
-### bd vc
+### issuegraph vc
 
-Version control operations for the beads database.
+Version control operations for the issuegraph database.
 
 These commands provide git-like version control for your issue data, including branching, merging, and
 viewing history.
 
-Note: 'bd history', 'bd diff', and 'bd branch' also work for quick access.
+Note: 'issuegraph history', 'issuegraph diff', and 'issuegraph branch' also work for quick access.
 This subcommand provides additional operations like merge and commit.
 
 ```
-bd vc
+issuegraph vc
 ```
 
-#### bd vc commit
+#### issuegraph vc commit
 
 Create a new Dolt commit with all current changes.
 
 Examples:
-  bd vc commit -m "Added new feature issues"
-  bd vc commit --message "Fixed priority on several issues"
-  echo "Multi-line message" | bd vc commit --stdin
+  issuegraph vc commit -m "Added new feature issues"
+  issuegraph vc commit --message "Fixed priority on several issues"
+  echo "Multi-line message" | issuegraph vc commit --stdin
 
 ```
-bd vc commit [flags]
+issuegraph vc commit [flags]
 ```
 
 **Flags:**
@@ -2540,7 +2540,7 @@ bd vc commit [flags]
       --stdin            Read commit message from stdin
 ```
 
-#### bd vc merge
+#### issuegraph vc merge
 
 Merge the specified branch into the current branch.
 
@@ -2548,12 +2548,12 @@ If there are merge conflicts, they will be reported. You can resolve
 conflicts with --strategy.
 
 Examples:
-  bd vc merge feature-xyz                    # Merge feature-xyz into current branch
-  bd vc merge feature-xyz --strategy ours    # Merge, preferring our changes on conflict
-  bd vc merge feature-xyz --strategy theirs  # Merge, preferring their changes on conflict
+  issuegraph vc merge feature-xyz                    # Merge feature-xyz into current branch
+  issuegraph vc merge feature-xyz --strategy ours    # Merge, preferring our changes on conflict
+  issuegraph vc merge feature-xyz --strategy theirs  # Merge, preferring their changes on conflict
 
 ```
-bd vc merge <branch> [flags]
+issuegraph vc merge <branch> [flags]
 ```
 
 **Flags:**
@@ -2562,50 +2562,50 @@ bd vc merge <branch> [flags]
       --strategy string   Conflict resolution strategy: 'ours' or 'theirs'
 ```
 
-#### bd vc status
+#### issuegraph vc status
 
 Show the current branch, commit hash, and any uncommitted changes.
 
 Examples:
-  bd vc status
+  issuegraph vc status
 
 ```
-bd vc status
+issuegraph vc status
 ```
 
 ## Setup & Configuration:
 
-### bd bootstrap
+### issuegraph bootstrap
 
-Bootstrap sets up the beads database without destroying existing data.
-Unlike 'bd init --force', bootstrap will never delete existing issues.
+Bootstrap sets up the issuegraph database without destroying existing data.
+Unlike 'issuegraph init --force', bootstrap will never delete existing issues.
 
 Bootstrap auto-detects the right action:
   • If sync.remote is configured: clones from the remote
   • If git origin has Dolt data (refs/dolt/data): clones from git and wires origin for future push/pull
-  • If .beads/backup/*.jsonl exists: restores from backup
-  • If .beads/issues.jsonl exists: imports from git-tracked JSONL
+  • If .issuegraph/backup/*.jsonl exists: restores from backup
+  • If .issuegraph/issues.jsonl exists: imports from git-tracked JSONL
   • If no database exists: creates a fresh one
   • If database already exists: validates and reports status
 
 This is the recommended command for:
-  • Setting up beads on a fresh clone
+  • Setting up issuegraph on a fresh clone
   • Recovering after moving to a new machine
   • Repairing a broken database configuration
 
-Non-interactive mode (--non-interactive, --yes/-y, or BD_NON_INTERACTIVE=1):
+Non-interactive mode (--non-interactive, --yes/-y, or ISSUEGRAPH_NON_INTERACTIVE=1):
   Skips the confirmation prompt before executing the bootstrap plan.
   Also auto-detected when stdin is not a terminal or CI=true is set.
 
 Examples:
-  bd bootstrap              # Auto-detect and set up
-  bd bootstrap --dry-run    # Show what would be done
-  bd bootstrap --json       # Output plan as JSON
-  bd bootstrap --yes        # Skip confirmation prompt
+  issuegraph bootstrap              # Auto-detect and set up
+  issuegraph bootstrap --dry-run    # Show what would be done
+  issuegraph bootstrap --json       # Output plan as JSON
+  issuegraph bootstrap --yes        # Skip confirmation prompt
 
 
 ```
-bd bootstrap [flags]
+issuegraph bootstrap [flags]
 ```
 
 **Flags:**
@@ -2616,11 +2616,11 @@ bd bootstrap [flags]
   -y, --yes               Skip confirmation prompts (for CI/automation)
 ```
 
-### bd config
+### issuegraph config
 
 Manage configuration settings for external integrations and preferences.
 
-Configuration is stored per-project in the beads database and is version-control-friendly.
+Configuration is stored per-project in the issuegraph database and is version-control-friendly.
 
 Common namespaces:
   - export.*          Auto-export settings (stored in config.yaml)
@@ -2630,67 +2630,67 @@ Common namespaces:
   - github.*          GitHub integration settings
   - custom.*          Custom integration settings
   - status.*          Issue status configuration
-  - doctor.suppress.* Suppress specific bd doctor warnings (GH#1095)
+  - doctor.suppress.* Suppress specific issuegraph doctor warnings (GH#1095)
 
 Auto-Export (config.yaml):
-  Optional JSONL export to .beads/issues.jsonl after write commands (throttled).
+  Optional JSONL export to .issuegraph/issues.jsonl after write commands (throttled).
   Useful for viewers (bv), interchange, and issue-level migration; not a backup.
-  It is not cross-machine sync; use bd dolt push/pull with a Dolt remote.
+  It is not cross-machine sync; use issuegraph dolt push/pull with a Dolt remote.
   Disabled by default. Enable only for integrations that need fresh JSONL.
   Auto-staging is separate and disabled by default.
 
   Keys:
     export.auto       Enable/disable auto-export (default: false)
-    export.path       Output filename relative to .beads/ (default: issues.jsonl)
+    export.path       Output filename relative to .issuegraph/ (default: issues.jsonl)
     export.interval   Minimum time between exports (default: 60s)
     export.git-add    Auto-stage the export file (default: false)
 
 Auto-Import (config.yaml):
-  Reads .beads/issues.jsonl by default when a JSONL import path is implied.
-  Use a relative filename/path so the import stays within the project .beads/
+  Reads .issuegraph/issues.jsonl by default when a JSONL import path is implied.
+  Use a relative filename/path so the import stays within the project .issuegraph/
   directory and remains portable across machines.
 
   Keys:
-    import.path       Input filename relative to .beads/ (default: issues.jsonl)
+    import.path       Input filename relative to .issuegraph/ (default: issues.jsonl)
 
 Custom Status States:
   You can define custom status states for multi-step pipelines using the
   status.custom config key. Statuses should be comma-separated.
 
   Example:
-    bd config set status.custom "awaiting_review,awaiting_testing,awaiting_docs"
+    issuegraph config set status.custom "awaiting_review,awaiting_testing,awaiting_docs"
 
   This enables issues to use statuses like 'awaiting_review' in addition to
   the built-in statuses (open, in_progress, blocked, deferred, closed).
 
 Suppressing Doctor Warnings:
-  Suppress specific bd doctor warnings by check name slug:
-    bd config set doctor.suppress.pending-migrations true
-    bd config set doctor.suppress.git-hooks true
+  Suppress specific issuegraph doctor warnings by check name slug:
+    issuegraph config set doctor.suppress.pending-migrations true
+    issuegraph config set doctor.suppress.git-hooks true
   Check names are converted to slugs: "Git Hooks" → "git-hooks".
   Only warnings are suppressed (errors and passing checks always show).
-  To unsuppress: bd config unset doctor.suppress.&lt;slug&gt;
+  To unsuppress: issuegraph config unset doctor.suppress.&lt;slug&gt;
 
 Examples:
-  bd config set export.auto true                       # Enable auto-export for viewer integrations
-  bd config set export.path "beads.jsonl"              # Custom export filename
-  bd config set import.path "beads.jsonl"              # Custom import filename
-  bd config set export.git-add true                    # Also stage the export file
-  bd config set jira.url "https://company.atlassian.net"
-  bd config set jira.project "PROJ"
-  bd config set status.custom "awaiting_review,awaiting_testing"
-  bd config set doctor.suppress.pending-migrations true
-  bd config set dolt.debug true                        # Enable Dolt sql-server debug mode (loglevel=debug, --prof cpu)
-  bd config set dolt.local-only true                   # Skip wiring a Dolt sync remote during bd init
-  bd config get export.auto
-  bd config list
-  bd config unset jira.url
+  issuegraph config set export.auto true                       # Enable auto-export for viewer integrations
+  issuegraph config set export.path "issuegraph.jsonl"              # Custom export filename
+  issuegraph config set import.path "issuegraph.jsonl"              # Custom import filename
+  issuegraph config set export.git-add true                    # Also stage the export file
+  issuegraph config set jira.url "https://company.atlassian.net"
+  issuegraph config set jira.project "PROJ"
+  issuegraph config set status.custom "awaiting_review,awaiting_testing"
+  issuegraph config set doctor.suppress.pending-migrations true
+  issuegraph config set dolt.debug true                        # Enable Dolt sql-server debug mode (loglevel=debug, --prof cpu)
+  issuegraph config set dolt.local-only true                   # Skip wiring a Dolt sync remote during issuegraph init
+  issuegraph config get export.auto
+  issuegraph config list
+  issuegraph config unset jira.url
 
 ```
-bd config
+issuegraph config
 ```
 
-#### bd config apply
+#### issuegraph config apply
 
 Reconcile actual system state to match declared configuration.
 
@@ -2704,12 +2704,12 @@ This command is idempotent — safe to run multiple times. Use --dry-run
 to preview what would change without making modifications.
 
 Examples:
-  bd config apply
-  bd config apply --dry-run
-  bd config apply --json
+  issuegraph config apply
+  issuegraph config apply --dry-run
+  issuegraph config apply --json
 
 ```
-bd config apply [flags]
+issuegraph config apply [flags]
 ```
 
 **Flags:**
@@ -2718,7 +2718,7 @@ bd config apply [flags]
       --dry-run   Show what would change without making modifications
 ```
 
-#### bd config drift
+#### issuegraph config drift
 
 Detect drift between declared configuration and actual system state.
 
@@ -2735,35 +2735,35 @@ Exit codes:
   1  Drift detected (at least one check has status "drift")
 
 Examples:
-  bd config drift
-  bd config drift --json
+  issuegraph config drift
+  issuegraph config drift --json
 
 ```
-bd config drift
+issuegraph config drift
 ```
 
-#### bd config get
+#### issuegraph config get
 
 Get a configuration value
 
 ```
-bd config get <key>
+issuegraph config get <key>
 ```
 
-#### bd config list
+#### issuegraph config list
 
 List all configuration
 
 ```
-bd config list
+issuegraph config list
 ```
 
-#### bd config set
+#### issuegraph config set
 
 Set a configuration value
 
 ```
-bd config set <key> <value> [flags]
+issuegraph config set <key> <value> [flags]
 ```
 
 **Flags:**
@@ -2772,20 +2772,20 @@ bd config set <key> <value> [flags]
       --force-git-tracked   Allow writing secret keys to git-tracked config files (use with caution)
 ```
 
-#### bd config set-many
+#### issuegraph config set-many
 
 Set multiple configuration values at once with a single auto-commit and auto-push.
 
 Each argument must be in key=value format. All values are validated before
-any writes occur. This is faster and less noisy than separate 'bd config set'
+any writes occur. This is faster and less noisy than separate 'issuegraph config set'
 calls, especially in CI.
 
 Examples:
-  bd config set-many ado.state_map.open=New ado.state_map.closed=Closed
-  bd config set-many jira.url=https://example.atlassian.net jira.project=PROJ
+  issuegraph config set-many ado.state_map.open=New ado.state_map.closed=Closed
+  issuegraph config set-many jira.url=https://example.atlassian.net jira.project=PROJ
 
 ```
-bd config set-many <key=value>... [flags]
+issuegraph config set-many <key=value>... [flags]
 ```
 
 **Flags:**
@@ -2794,28 +2794,28 @@ bd config set-many <key=value>... [flags]
       --force-git-tracked   Allow writing secret keys to git-tracked config files (use with caution)
 ```
 
-#### bd config show
+#### issuegraph config show
 
 Display a unified view of all effective configuration across all sources
 with annotations showing where each value comes from.
 
 Sources (by precedence for Viper-managed keys):
-  - env          Environment variable (BD_* or BEADS_*)
-  - config.yaml  Project config file (.beads/config.yaml)
+  - env          Environment variable (ISSUEGRAPH_* or ISSUEGRAPH_*)
+  - config.yaml  Project config file (.issuegraph/config.yaml)
   - default      Built-in default value
 
 Additional sources:
-  - metadata     Connection settings from .beads/metadata.json
+  - metadata     Connection settings from .issuegraph/metadata.json
   - database     Integration config stored in the Dolt database
-  - git          Git config (e.g., beads.role)
+  - git          Git config (e.g., issuegraph.role)
 
 Examples:
-  bd config show
-  bd config show --json
-  bd config show --source config.yaml
+  issuegraph config show
+  issuegraph config show --json
+  issuegraph config show --source config.yaml
 
 ```
-bd config show [flags]
+issuegraph config show [flags]
 ```
 
 **Flags:**
@@ -2824,15 +2824,15 @@ bd config show [flags]
       --source string   Filter by source (e.g., config.yaml, env, default, metadata, database, git)
 ```
 
-#### bd config unset
+#### issuegraph config unset
 
 Delete a configuration value
 
 ```
-bd config unset <key>
+issuegraph config unset <key>
 ```
 
-#### bd config validate
+#### issuegraph config validate
 
 Validate sync-related configuration settings.
 
@@ -2843,14 +2843,14 @@ Checks:
   - routing.mode is valid (auto, maintainer, contributor, explicit)
 
 	Examples:
-	  bd config validate
-	  bd config validate --json
+	  issuegraph config validate
+	  issuegraph config validate --json
 
 ```
-bd config validate
+issuegraph config validate
 ```
 
-### bd context
+### issuegraph context
 
 Show the effective backend identity information including repository paths,
 backend configuration, and sync settings.
@@ -2859,74 +2859,74 @@ This command reads directly from config files and does not require the
 database to be open, making it useful for diagnostics in degraded states.
 
 Examples:
-  bd context           # Show context information
-  bd context --json    # Output in JSON format
+  issuegraph context           # Show context information
+  issuegraph context --json    # Output in JSON format
 
 
 ```
-bd context
+issuegraph context
 ```
 
-### bd dolt
+### issuegraph dolt
 
 Configure and manage Dolt database settings and server lifecycle.
 
-Beads uses a dolt sql-server for all database operations. The server is
+IssueGraph uses a dolt sql-server for all database operations. The server is
 auto-started transparently when needed. Use these commands for explicit
 control or diagnostics.
 
 Server lifecycle:
-  bd dolt start        Start the Dolt server for this project
-  bd dolt stop         Stop the Dolt server for this project
-  bd dolt status       Show Dolt server status
+  issuegraph dolt start        Start the Dolt server for this project
+  issuegraph dolt stop         Stop the Dolt server for this project
+  issuegraph dolt status       Show Dolt server status
 
 Configuration:
-  bd dolt show         Show current Dolt configuration with connection test
-  bd dolt set &lt;k&gt; &lt;v&gt;  Set a configuration value
-  bd dolt test         Test server connection
+  issuegraph dolt show         Show current Dolt configuration with connection test
+  issuegraph dolt set &lt;k&gt; &lt;v&gt;  Set a configuration value
+  issuegraph dolt test         Test server connection
 
 Version control:
-  bd dolt commit       Commit pending changes
-  bd dolt push         Push commits to Dolt remote
-  bd dolt pull         Pull commits from Dolt remote
+  issuegraph dolt commit       Commit pending changes
+  issuegraph dolt push         Push commits to Dolt remote
+  issuegraph dolt pull         Pull commits from Dolt remote
 
 Remote management:
-  bd dolt remote add &lt;name&gt; &lt;url&gt;   Add a Dolt remote
-  bd dolt remote list                List configured remotes
-  bd dolt remote remove &lt;name&gt;       Remove a Dolt remote
+  issuegraph dolt remote add &lt;name&gt; &lt;url&gt;   Add a Dolt remote
+  issuegraph dolt remote list                List configured remotes
+  issuegraph dolt remote remove &lt;name&gt;       Remove a Dolt remote
 
-Configuration keys for 'bd dolt set':
-  database  Database name (default: issue prefix or "beads")
+Configuration keys for 'issuegraph dolt set':
+  database  Database name (default: issue prefix or "issuegraph")
   host      Server host (default: 127.0.0.1)
-  port      Server port (auto-detected; override with bd dolt set port &lt;N&gt;)
+  port      Server port (auto-detected; override with issuegraph dolt set port &lt;N&gt;)
   user      MySQL user (default: root)
-  data-dir  Custom dolt data directory (absolute path; default: .beads/dolt)
+  data-dir  Custom dolt data directory (absolute path; default: .issuegraph/dolt)
 
-Flags for 'bd dolt set':
+Flags for 'issuegraph dolt set':
   --update-config  Also write to config.yaml for team-wide defaults
 
 Examples:
-  bd dolt set database myproject
-  bd dolt set host 192.168.1.100 --update-config
-  bd dolt set data-dir /home/user/.beads-dolt/myproject
-  bd dolt test
+  issuegraph dolt set database myproject
+  issuegraph dolt set host 192.168.1.100 --update-config
+  issuegraph dolt set data-dir /home/user/.issuegraph-dolt/myproject
+  issuegraph dolt test
 
 ```
-bd dolt
+issuegraph dolt
 ```
 
-#### bd dolt clean-databases
+#### issuegraph dolt clean-databases
 
 Identify and drop leftover test and agent databases that accumulate
 on the shared Dolt server from interrupted test runs and terminated agents.
 
-Stale database prefixes: testdb_*, doctest_*, doctortest_*, beads_pt*, beads_vr*, beads_t*
+Stale database prefixes: testdb_*, doctest_*, doctortest_*, issuegraph_pt*, issuegraph_vr*, issuegraph_t*
 
 These waste server memory and can degrade performance under concurrent load.
 Use --dry-run to see what would be dropped without actually dropping.
 
 ```
-bd dolt clean-databases [flags]
+issuegraph dolt clean-databases [flags]
 ```
 
 **Flags:**
@@ -2935,21 +2935,21 @@ bd dolt clean-databases [flags]
       --dry-run   Show what would be dropped without dropping
 ```
 
-#### bd dolt commit
+#### issuegraph dolt commit
 
 Create a Dolt commit from any uncommitted changes in the working set.
 
 This is the primary commit point for batch mode. When auto-commit is set to
-"batch", changes accumulate in the working set across multiple bd commands and
+"batch", changes accumulate in the working set across multiple issuegraph commands and
 are committed together here with a descriptive summary message.
 
 Also useful before push operations that require a clean working set, or when
 auto-commit was off or changes were made externally.
 
-For more options (--stdin, custom messages), see: bd vc commit
+For more options (--stdin, custom messages), see: issuegraph vc commit
 
 ```
-bd dolt commit [flags]
+issuegraph dolt commit [flags]
 ```
 
 **Flags:**
@@ -2958,12 +2958,12 @@ bd dolt commit [flags]
   -m, --message string   Commit message (default: auto-generated)
 ```
 
-#### bd dolt killall
+#### issuegraph dolt killall
 
 Find and kill orphan dolt sql-server processes not tracked by the
 canonical PID file for the current repo's Dolt data directory.
 
-Under an orchestrator, the canonical server lives at $GT_ROOT/.beads/. Any other
+Under an orchestrator, the canonical server lives at $GT_ROOT/.issuegraph/. Any other
 dolt sql-server processes using that shared data directory are considered
 orphans and will be killed.
 
@@ -2972,10 +2972,10 @@ project's Dolt data directory are eligible for cleanup. Other projects'
 servers are preserved.
 
 ```
-bd dolt killall
+issuegraph dolt killall
 ```
 
-#### bd dolt pull
+#### issuegraph dolt pull
 
 Pull commits from the configured Dolt remote into the local database.
 
@@ -2984,10 +2984,10 @@ For Hosted Dolt, set DOLT_REMOTE_USER and DOLT_REMOTE_PASSWORD environment
 variables for authentication.
 
 Use --remote to pull from a specific named remote instead of the default.
-The remote must already exist (see 'bd dolt remote add').
+The remote must already exist (see 'issuegraph dolt remote add').
 
 ```
-bd dolt pull [flags]
+issuegraph dolt pull [flags]
 ```
 
 **Flags:**
@@ -2996,7 +2996,7 @@ bd dolt pull [flags]
       --remote string   Pull from a specific named remote instead of the default
 ```
 
-#### bd dolt push
+#### issuegraph dolt push
 
 Push local Dolt commits to the configured remote.
 
@@ -3008,10 +3008,10 @@ Use --force to overwrite remote changes (e.g., when the remote has
 uncommitted changes in its working set).
 
 Use --remote to push to a specific named remote instead of the default.
-The remote must already exist (see 'bd dolt remote add').
+The remote must already exist (see 'issuegraph dolt remote add').
 
 ```
-bd dolt push [flags]
+issuegraph dolt push [flags]
 ```
 
 **Flags:**
@@ -3021,7 +3021,7 @@ bd dolt push [flags]
       --remote string   Push to a specific named remote instead of the default
 ```
 
-#### bd dolt remote
+#### issuegraph dolt remote
 
 Manage Dolt remotes for push/pull replication.
 
@@ -3031,54 +3031,54 @@ Subcommands:
   remove &lt;name&gt;      Remove a remote
 
 ```
-bd dolt remote
+issuegraph dolt remote
 ```
 
-##### bd dolt remote add
+##### issuegraph dolt remote add
 
 Add a Dolt remote
 
 ```
-bd dolt remote add <name> <url>
+issuegraph dolt remote add <name> <url>
 ```
 
-##### bd dolt remote list
+##### issuegraph dolt remote list
 
 List configured Dolt remotes
 
 ```
-bd dolt remote list
+issuegraph dolt remote list
 ```
 
-##### bd dolt remote remove
+##### issuegraph dolt remote remove
 
 Remove a Dolt remote
 
 ```
-bd dolt remote remove <name>
+issuegraph dolt remote remove <name>
 ```
 
-#### bd dolt set
+#### issuegraph dolt set
 
 Set a Dolt configuration value in metadata.json.
 
 Keys:
-  database  Database name (default: issue prefix or "beads")
+  database  Database name (default: issue prefix or "issuegraph")
   host      Server host (default: 127.0.0.1)
-  port      Server port (auto-detected; override with bd dolt set port &lt;N&gt;)
+  port      Server port (auto-detected; override with issuegraph dolt set port &lt;N&gt;)
   user      MySQL user (default: root)
-  data-dir  Custom dolt data directory (absolute path; default: .beads/dolt)
+  data-dir  Custom dolt data directory (absolute path; default: .issuegraph/dolt)
 
 Use --update-config to also write to config.yaml for team-wide defaults.
 
 Examples:
-  bd dolt set database myproject
-  bd dolt set host 192.168.1.100
-  bd dolt set port 3307 --update-config
-  bd dolt set data-dir /home/user/.beads-dolt/myproject
+  issuegraph dolt set database myproject
+  issuegraph dolt set host 192.168.1.100
+  issuegraph dolt set port 3307 --update-config
+  issuegraph dolt set data-dir /home/user/.issuegraph-dolt/myproject
 
 ```
-bd dolt set <key> <value> [flags]
+issuegraph dolt set <key> <value> [flags]
 ```
 
 **Flags:**
@@ -3087,53 +3087,53 @@ bd dolt set <key> <value> [flags]
       --update-config   Also write to config.yaml for team-wide defaults
 ```
 
-#### bd dolt show
+#### issuegraph dolt show
 
 Show current Dolt configuration with connection status
 
 ```
-bd dolt show
+issuegraph dolt show
 ```
 
-#### bd dolt start
+#### issuegraph dolt start
 
-Start a dolt sql-server for the current beads project.
+Start a dolt sql-server for the current issuegraph project.
 
 The server runs in the background on a per-project port derived from the
-project path. PID and logs are stored in .beads/.
+project path. PID and logs are stored in .issuegraph/.
 
 The server auto-starts transparently when needed, so manual start is rarely
 required. Use this command for explicit control or diagnostics.
 
 ```
-bd dolt start
+issuegraph dolt start
 ```
 
-#### bd dolt status
+#### issuegraph dolt status
 
 Show the status of the Dolt engine for the current project.
 
 In embedded mode, reports that the Dolt engine runs in-process and shows
-the on-disk data directory. For beads-managed (local) servers, displays
+the on-disk data directory. For issuegraph-managed (local) servers, displays
 PID, port, and data directory from the local PID file. For externally-
 managed servers — either a remote dolt_server_host or a local server
-managed outside bd (dolt.auto-start: false, e.g. an orchestrator-shared
+managed outside issuegraph (dolt.auto-start: false, e.g. an orchestrator-shared
 sql-server) — pings the configured endpoint via SQL and reports
 reachability, server version, and database.
 
 ```
-bd dolt status
+issuegraph dolt status
 ```
 
-#### bd dolt stop
+#### issuegraph dolt stop
 
-Stop the dolt sql-server managed by beads for the current project.
+Stop the dolt sql-server managed by issuegraph for the current project.
 
 This sends a graceful shutdown signal. The server will restart automatically
-on the next bd command unless auto-start is disabled.
+on the next issuegraph command unless auto-start is disabled.
 
 ```
-bd dolt stop [flags]
+issuegraph dolt stop [flags]
 ```
 
 **Flags:**
@@ -3142,7 +3142,7 @@ bd dolt stop [flags]
       --force   Force stop the server
 ```
 
-#### bd dolt test
+#### issuegraph dolt test
 
 Test the connection to the configured Dolt server.
 
@@ -3153,26 +3153,26 @@ This verifies that:
 Use this before switching to server mode to ensure the server is running.
 
 ```
-bd dolt test
+issuegraph dolt test
 ```
 
-### bd forget
+### issuegraph forget
 
 Remove a memory by its key.
 
-Use 'bd memories' to see available keys.
+Use 'issuegraph memories' to see available keys.
 
 Examples:
-  bd forget dolt-phantoms
-  bd forget auth-jwt
+  issuegraph forget dolt-phantoms
+  issuegraph forget auth-jwt
 
 ```
-bd forget <key>
+issuegraph forget <key>
 ```
 
-### bd hooks
+### issuegraph hooks
 
-Install, uninstall, or list git hooks for beads integration.
+Install, uninstall, or list git hooks for issuegraph integration.
 
 The hooks provide:
 - pre-commit: Run chained hooks before commit
@@ -3182,16 +3182,16 @@ The hooks provide:
 - prepare-commit-msg: Add agent identity trailers for forensics
 
 ```
-bd hooks
+issuegraph hooks
 ```
 
-#### bd hooks install
+#### issuegraph hooks install
 
-Install git hooks for beads integration.
+Install git hooks for issuegraph integration.
 
 By default, hooks are installed to .git/hooks/ in the current repository.
-Use --beads to install to .beads/hooks/ (recommended for Dolt backend).
-Use --shared to install to a versioned directory (.beads-hooks/) that can be
+Use --issuegraph to install to .issuegraph/hooks/ (recommended for Dolt backend).
+Use --shared to install to a versioned directory (.issuegraph-hooks/) that can be
 committed to git and shared with team members.
 
 Hooks use section markers to coexist with existing hooks — any user content
@@ -3205,27 +3205,27 @@ Installed hooks:
   - prepare-commit-msg: Add agent identity trailers (for orchestrator agents)
 
 ```
-bd hooks install [flags]
+issuegraph hooks install [flags]
 ```
 
 **Flags:**
 
 ```
-      --beads    Install hooks to .beads/hooks/ (recommended for Dolt backend)
-      --chain    Chain with existing hooks (run them before bd hooks)
+      --issuegraph    Install hooks to .issuegraph/hooks/ (recommended for Dolt backend)
+      --chain    Chain with existing hooks (run them before issuegraph hooks)
       --force    Overwrite existing hooks without backup
-      --shared   Install hooks to .beads-hooks/ (versioned) instead of .git/hooks/
+      --shared   Install hooks to .issuegraph-hooks/ (versioned) instead of .git/hooks/
 ```
 
-#### bd hooks list
+#### issuegraph hooks list
 
-Show the status of bd git hooks (installed, outdated, missing).
+Show the status of issuegraph git hooks (installed, outdated, missing).
 
 ```
-bd hooks list
+issuegraph hooks list
 ```
 
-#### bd hooks run
+#### issuegraph hooks run
 
 Execute the logic for a git hook. This command is typically called by
 thin shim scripts installed in .git/hooks/.
@@ -3238,51 +3238,51 @@ Supported hooks:
   - prepare-commit-msg: Add agent identity trailers for forensics
 
 The thin shim pattern ensures hook logic is always in sync with the
-installed bd version - upgrading bd automatically updates hook behavior.
+installed issuegraph version - upgrading issuegraph automatically updates hook behavior.
 
 ```
-bd hooks run <hook-name> [args...]
+issuegraph hooks run <hook-name> [args...]
 ```
 
-#### bd hooks uninstall
+#### issuegraph hooks uninstall
 
-Remove bd git hooks from .git/hooks/ directory.
+Remove issuegraph git hooks from .git/hooks/ directory.
 
 ```
-bd hooks uninstall
+issuegraph hooks uninstall
 ```
 
-### bd human
+### issuegraph human
 
 Display a focused help menu showing only the most common commands.
 
-bd has 70+ commands - many for AI agents, integrations, and advanced workflows.
+issuegraph has 70+ commands - many for AI agents, integrations, and advanced workflows.
 This command shows the ~15 essential commands that human users need most often.
 
-For the full command list, run: bd --help
+For the full command list, run: issuegraph --help
 
 SUBCOMMANDS:
-  human list              List all human-needed beads (issues with 'human' label)
-  human respond &lt;id&gt;      Respond to a human-needed bead (adds comment and closes)
-  human dismiss &lt;id&gt;      Dismiss a human-needed bead permanently
-  human stats             Show summary statistics for human-needed beads
+  human list              List all human-needed issuegraph (issues with 'human' label)
+  human respond &lt;id&gt;      Respond to a human-needed issue (adds comment and closes)
+  human dismiss &lt;id&gt;      Dismiss a human-needed issue permanently
+  human stats             Show summary statistics for human-needed issuegraph
 
 ```
-bd human
+issuegraph human
 ```
 
-#### bd human dismiss
+#### issuegraph human dismiss
 
-Dismiss a human-needed bead permanently without responding.
+Dismiss a human-needed issue permanently without responding.
 
 The issue is closed with a "Dismissed" reason and optional note.
 
 Examples:
-  bd human dismiss bd-123
-  bd human dismiss bd-123 --reason "No longer applicable"
+  issuegraph human dismiss issuegraph-123
+  issuegraph human dismiss issuegraph-123 --reason "No longer applicable"
 
 ```
-bd human dismiss <issue-id> [flags]
+issuegraph human dismiss <issue-id> [flags]
 ```
 
 **Flags:**
@@ -3291,19 +3291,19 @@ bd human dismiss <issue-id> [flags]
       --reason string   Reason for dismissal (optional)
 ```
 
-#### bd human list
+#### issuegraph human list
 
 List all issues labeled with 'human' tag.
 
 These are issues that require human intervention or input.
 
 Examples:
-  bd human list
-  bd human list --status=open
-  bd human list --json
+  issuegraph human list
+  issuegraph human list --status=open
+  issuegraph human list --json
 
 ```
-bd human list [flags]
+issuegraph human list [flags]
 ```
 
 **Flags:**
@@ -3312,18 +3312,18 @@ bd human list [flags]
   -s, --status string   Filter by status (open, closed, etc.)
 ```
 
-#### bd human respond
+#### issuegraph human respond
 
-Respond to a human-needed bead by adding a comment and closing it.
+Respond to a human-needed issue by adding a comment and closing it.
 
 The response is added as a comment and the issue is closed with reason "Responded".
 
 Examples:
-  bd human respond bd-123 --response "Use OAuth2 for authentication"
-  bd human respond bd-123 -r "Approved, proceed with implementation"
+  issuegraph human respond issuegraph-123 --response "Use OAuth2 for authentication"
+  issuegraph human respond issuegraph-123 -r "Approved, proceed with implementation"
 
 ```
-bd human respond <issue-id> [flags]
+issuegraph human respond <issue-id> [flags]
 ```
 
 **Flags:**
@@ -3332,40 +3332,40 @@ bd human respond <issue-id> [flags]
   -r, --response string   Response text (required)
 ```
 
-#### bd human stats
+#### issuegraph human stats
 
-Display summary statistics for human-needed beads.
+Display summary statistics for human-needed issuegraph.
 
 Shows counts for total, pending (open), responded (closed without dismiss),
-and dismissed beads.
+and dismissed issuegraph.
 
 Example:
-  bd human stats
+  issuegraph human stats
 
 ```
-bd human stats
+issuegraph human stats
 ```
 
-### bd info
+### issuegraph info
 
 Display information about the current database.
 
-This command helps debug issues where bd is using an unexpected database. It shows:
+This command helps debug issues where issuegraph is using an unexpected database. It shows:
   - The absolute path to the database file
   - Database statistics (issue count)
   - Schema information (with --schema flag)
   - What's new in recent versions (with --whats-new flag)
 
 Examples:
-  bd info
-  bd info --json
-  bd info --schema --json
-  bd info --whats-new
-  bd info --whats-new --json
-  bd info --thanks
+  issuegraph info
+  issuegraph info --json
+  issuegraph info --schema --json
+  issuegraph info --whats-new
+  issuegraph info --whats-new --json
+  issuegraph info --thanks
 
 ```
-bd info [flags]
+issuegraph info [flags]
 ```
 
 **Flags:**
@@ -3377,9 +3377,9 @@ bd info [flags]
       --whats-new   Show agent-relevant changes from recent versions
 ```
 
-### bd init
+### issuegraph init
 
-Initialize bd in the current directory by creating a .beads/ directory
+Initialize issuegraph in the current directory by creating a .issuegraph/ directory
 and Dolt database. Optionally specify a custom issue prefix.
 
 Dolt is the default (and only supported) storage backend. The legacy SQLite
@@ -3389,23 +3389,23 @@ Use --database to specify an existing server database name, overriding the
 default prefix-based naming. This is useful when an external tool (e.g. an orchestrator)
 has already created the database.
 
-With --stealth: configures per-repository git settings for invisible beads usage:
-  • .git/info/exclude to prevent beads files from being committed
+With --stealth: configures per-repository git settings for invisible issuegraph usage:
+  • .git/info/exclude to prevent issuegraph files from being committed
   Perfect for personal use without affecting repo collaborators.
-  To set up a specific AI tool, run: bd setup &lt;claude|cursor|aider|...&gt; --stealth
+  To set up a specific AI tool, run: issuegraph setup &lt;claude|cursor|aider|...&gt; --stealth
 
-By default, beads uses an embedded Dolt engine (no external server needed).
+By default, issuegraph uses an embedded Dolt engine (no external server needed).
 Pass --server to use an external dolt sql-server instead. In server mode,
 set connection details with --server-host, --server-port, and --server-user.
-Password should be set via BEADS_DOLT_PASSWORD environment variable.
+Password should be set via ISSUEGRAPH_DOLT_PASSWORD environment variable.
 
-Auto-export is optional. When enabled, bd exports issues to
-.beads/issues.jsonl after write commands (throttled to once per 60s). This is
+Auto-export is optional. When enabled, issuegraph exports issues to
+.issuegraph/issues.jsonl after write commands (throttled to once per 60s). This is
 for viewers (bv), interchange, and issue-level migration; not backup.
 Cross-machine sync and backups use Dolt remotes/backups, not JSONL import/export.
-To enable: bd config set export.auto true
+To enable: issuegraph config set export.auto true
 
-Non-interactive mode (--non-interactive or BD_NON_INTERACTIVE=1):
+Non-interactive mode (--non-interactive or ISSUEGRAPH_NON_INTERACTIVE=1):
   Skips all interactive prompts, using sensible defaults:
   • Role defaults to "maintainer" (override with --role)
   • Fork exclude auto-configured when fork detected
@@ -3414,29 +3414,29 @@ Non-interactive mode (--non-interactive or BD_NON_INTERACTIVE=1):
   Also auto-detected when stdin is not a terminal or CI=true is set.
 
 ```
-bd init [flags]
+issuegraph init [flags]
 ```
 
 **Flags:**
 
 ```
       --agents-file string                             Custom filename for agent instructions (default: AGENTS.md)
-      --agents-profile string                          AGENTS.md profile: 'minimal' (default, pointer to bd prime) or 'full' (complete command reference)
+      --agents-profile string                          AGENTS.md profile: 'minimal' (default, pointer to issuegraph prime) or 'full' (complete command reference)
       --agents-template string                         Path to custom AGENTS.md template (overrides embedded default)
       --backend string                                 Storage backend (default: dolt). --backend=sqlite prints deprecation notice.
       --contributor                                    Run OSS contributor setup wizard
       --database string                                Use existing server database name (overrides prefix-based naming)
       --debug                                          Run the managed Dolt sql-server with --loglevel=debug and CPU profiling (--prof cpu). Persisted to config.yaml as dolt.debug. No effect on externally-managed servers.
       --destroy-token string                           Explicit confirmation token for destructive re-init in non-interactive mode (format: 'DESTROY-<prefix>')
-      --discard-remote                                 Authorize discarding the configured remote's Dolt history when re-initializing. Requires --destroy-token in non-interactive mode; see 'bd help init-safety'.
+      --discard-remote                                 Authorize discarding the configured remote's Dolt history when re-initializing. Requires --destroy-token in non-interactive mode; see 'issuegraph help init-safety'.
       --external                                       Server is externally managed (skip server startup); use with --shared-server or --server
-      --force                                          Deprecated alias for --reinit-local. Bypasses only the LOCAL data-safety guard; does NOT authorize remote divergence (see 'bd help init-safety').
+      --force                                          Deprecated alias for --reinit-local. Bypasses only the LOCAL data-safety guard; does NOT authorize remote divergence (see 'issuegraph help init-safety').
       --from-jsonl                                     Import issues from configured import.path; refuses remote history unless --discard-remote authorizes replacement
       --init-if-missing                                If the workspace is already initialized, skip init and exit 0 instead of failing (idempotent init for scaffolds)
       --non-interactive                                Skip all interactive prompts (auto-detected in CI or non-TTY environments)
   -p, --prefix string                                  Issue prefix (default: current directory name)
-      --proxied-server                                 [EXPERIMENTAL] Use a per-workspace proxied dolt sql-server (proxy + child dolt) rooted at .beads/proxieddb
-      --proxied-server-config-path string              [EXPERIMENTAL] Absolute path to an existing dolt sql-server YAML config (proxied-server mode only). When set, bd uses this file instead of auto-generating one. Relative paths are rejected.
+      --proxied-server                                 [EXPERIMENTAL] Use a per-workspace proxied dolt sql-server (proxy + child dolt) rooted at .issuegraph/proxieddb
+      --proxied-server-config-path string              [EXPERIMENTAL] Absolute path to an existing dolt sql-server YAML config (proxied-server mode only). When set, issuegraph uses this file instead of auto-generating one. Relative paths are rejected.
       --proxied-server-external-host string            [EXPERIMENTAL] Hostname or IP of an externally-managed dolt sql-server the proxy should front (proxied-server mode only). Mutually exclusive with --proxied-server-external-socket-path.
       --proxied-server-external-keep-alive duration    [EXPERIMENTAL] TCP keepalive period for the proxy→external connection. Zero uses the package default (30s).
       --proxied-server-external-port int               [EXPERIMENTAL] TCP port of the externally-managed dolt sql-server (proxied-server mode only). Required when --proxied-server-external-host is set.
@@ -3444,153 +3444,153 @@ bd init [flags]
       --proxied-server-external-tls                    [EXPERIMENTAL] Require TLS when connecting to the externally-managed dolt sql-server (proxied-server mode only).
       --proxied-server-external-tls-cert-path string   [EXPERIMENTAL] Absolute path to a client TLS certificate (for mTLS to the externally-managed dolt sql-server). Must be paired with --proxied-server-external-tls-key-path. Relative paths are rejected.
       --proxied-server-external-tls-key-path string    [EXPERIMENTAL] Absolute path to the client TLS private key (for mTLS to the externally-managed dolt sql-server). Must be paired with --proxied-server-external-tls-cert-path. Relative paths are rejected.
-      --proxied-server-external-user string            [EXPERIMENTAL] MySQL user for the externally-managed dolt sql-server (proxied-server mode only). Defaults to "root" when empty. Password is read at runtime from $BEADS_PROXIED_SERVER_EXTERNAL_PASSWORD and is never persisted to disk.
-      --proxied-server-log-path string                 [EXPERIMENTAL] Absolute path to the proxied dolt sql-server log file (proxied-server mode only). Default: <beadsDir>/proxieddb/server.log. Relative paths are rejected.
-      --proxied-server-root-path string                [EXPERIMENTAL] Absolute directory holding the proxied dolt sql-server's lockfiles, pidfiles, and child .dolt repository (proxied-server mode only). Default: <beadsDir>/proxieddb. May not exist yet — bd will create it. Relative paths are rejected.
+      --proxied-server-external-user string            [EXPERIMENTAL] MySQL user for the externally-managed dolt sql-server (proxied-server mode only). Defaults to "root" when empty. Password is read at runtime from $ISSUEGRAPH_PROXIED_SERVER_EXTERNAL_PASSWORD and is never persisted to disk.
+      --proxied-server-log-path string                 [EXPERIMENTAL] Absolute path to the proxied dolt sql-server log file (proxied-server mode only). Default: <issuegraphDir>/proxieddb/server.log. Relative paths are rejected.
+      --proxied-server-root-path string                [EXPERIMENTAL] Absolute directory holding the proxied dolt sql-server's lockfiles, pidfiles, and child .dolt repository (proxied-server mode only). Default: <issuegraphDir>/proxieddb. May not exist yet — issuegraph will create it. Relative paths are rejected.
   -q, --quiet                                          Suppress output (quiet mode)
-      --reinit-local                                   Re-initialize local .beads/ over existing local data. Does NOT authorize remote divergence; see --discard-remote.
+      --reinit-local                                   Re-initialize local .issuegraph/ over existing local data. Does NOT authorize remote divergence; see --discard-remote.
       --remote string                                  Dolt remote URL to clone from and persist as sync.remote
-      --role string                                    Set beads role without prompting: "maintainer" or "contributor"
+      --role string                                    Set issuegraph role without prompting: "maintainer" or "contributor"
       --server                                         Use external dolt sql-server instead of embedded engine
       --server-host string                             Dolt server host (default: 127.0.0.1)
       --server-port int                                Dolt server port (default: 3307)
       --server-socket string                           Unix domain socket path (overrides host/port)
       --server-user string                             Dolt server MySQL user (default: root)
-      --setup-exclude                                  Configure .git/info/exclude to keep beads files local (for forks)
-      --shared-server                                  Enable shared Dolt server mode (all projects share one server at ~/.beads/shared-server/)
+      --setup-exclude                                  Configure .git/info/exclude to keep issuegraph files local (for forks)
+      --shared-server                                  Enable shared Dolt server mode (all projects share one server at ~/.issuegraph/shared-server/)
       --skip-agents                                    Skip AGENTS.md and Claude/Codex setup generation
       --skip-hooks                                     Skip git hooks installation
       --stealth                                        Enable stealth mode: global gitattributes and gitignore, no local repo tracking
       --team                                           Run team workflow setup wizard
 ```
 
-### bd kv
+### issuegraph kv
 
-Commands for working with the beads key-value store.
+Commands for working with the issuegraph key-value store.
 
 The key-value store is useful for storing flags, environment variables,
 or other user-defined data that persists across sessions.
 
 Examples:
-  bd kv set mykey myvalue    # Set a value
-  bd kv get mykey            # Get a value
-  bd kv clear mykey          # Delete a key
-  bd kv list                 # List all key-value pairs
+  issuegraph kv set mykey myvalue    # Set a value
+  issuegraph kv get mykey            # Get a value
+  issuegraph kv clear mykey          # Delete a key
+  issuegraph kv list                 # List all key-value pairs
 
 ```
-bd kv
+issuegraph kv
 ```
 
-#### bd kv clear
+#### issuegraph kv clear
 
-Delete a key from the beads key-value store.
+Delete a key from the issuegraph key-value store.
 
 Examples:
-  bd kv clear feature_flag
-  bd kv clear api_endpoint
+  issuegraph kv clear feature_flag
+  issuegraph kv clear api_endpoint
 
 ```
-bd kv clear <key>
+issuegraph kv clear <key>
 ```
 
-#### bd kv get
+#### issuegraph kv get
 
-Get a value from the beads key-value store.
+Get a value from the issuegraph key-value store.
 
 Examples:
-  bd kv get feature_flag
-  bd kv get api_endpoint
+  issuegraph kv get feature_flag
+  issuegraph kv get api_endpoint
 
 ```
-bd kv get <key>
+issuegraph kv get <key>
 ```
 
-#### bd kv list
+#### issuegraph kv list
 
-List all key-value pairs in the beads key-value store.
+List all key-value pairs in the issuegraph key-value store.
 
 Examples:
-  bd kv list
-  bd kv list --json
+  issuegraph kv list
+  issuegraph kv list --json
 
 ```
-bd kv list
+issuegraph kv list
 ```
 
-#### bd kv set
+#### issuegraph kv set
 
-Set a key-value pair in the beads key-value store.
+Set a key-value pair in the issuegraph key-value store.
 
 This is useful for storing flags, environment variables, or other
 user-defined data that persists across sessions.
 
 Examples:
-  bd kv set feature_flag true
-  bd kv set api_endpoint https://api.example.com
-  bd kv set max_retries 3
+  issuegraph kv set feature_flag true
+  issuegraph kv set api_endpoint https://api.example.com
+  issuegraph kv set max_retries 3
 
 ```
-bd kv set <key> <value>
+issuegraph kv set <key> <value>
 ```
 
-### bd memories
+### issuegraph memories
 
 List all memories, or search by keyword.
 
 Examples:
-  bd memories              # list all memories
-  bd memories dolt         # search for memories about dolt
-  bd memories "race flag"  # search for a phrase
+  issuegraph memories              # list all memories
+  issuegraph memories dolt         # search for memories about dolt
+  issuegraph memories "race flag"  # search for a phrase
 
 ```
-bd memories [search]
+issuegraph memories [search]
 ```
 
-### bd onboard
+### issuegraph onboard
 
-Display a minimal snippet to add to your agent instructions file for bd integration.
+Display a minimal snippet to add to your agent instructions file for issuegraph integration.
 
-By default, the agent instructions file is AGENTS.md. Use 'bd init --agents-file'
-to configure a different filename (e.g. BEADS.md).
+By default, the agent instructions file is AGENTS.md. Use 'issuegraph init --agents-file'
+to configure a different filename (e.g. ISSUEGRAPH.md).
 
-This outputs a small (~10 line) snippet that points to 'bd prime' for full
-workflow context. This is the same minimal profile that 'bd init' generates
+This outputs a small (~10 line) snippet that points to 'issuegraph prime' for full
+workflow context. This is the same minimal profile that 'issuegraph init' generates
 by default. This approach:
 
   • Keeps your agent file lean (doesn't bloat with instructions)
-  • bd prime provides dynamic, always-current workflow details
-  • Hooks auto-inject bd prime at session start
+  • issuegraph prime provides dynamic, always-current workflow details
+  • Hooks auto-inject issuegraph prime at session start
 
 For agents or environments that do not auto-inject hook output, use
-'bd init --agents-profile=full' to embed the complete command reference.
+'issuegraph init --agents-profile=full' to embed the complete command reference.
 
 ```
-bd onboard
+issuegraph onboard
 ```
 
-### bd prime
+### issuegraph prime
 
-Output essential Beads workflow context in AI-optimized markdown format.
+Output essential IssueGraph workflow context in AI-optimized markdown format.
 
 Automatically detects if MCP server is active and adapts output:
 - MCP mode: Brief workflow reminders (~50 tokens)
 - CLI mode: Full command reference (~1-2k tokens)
 
 Designed for Claude Code, Gemini CLI, and Codex SessionStart hooks to prevent
-agents from forgetting bd workflow after context compaction.
+agents from forgetting issuegraph workflow after context compaction.
 
 Config options:
 - no-git-ops: When true, outputs stealth mode (no git commands in session close protocol).
-  Set via: bd config set no-git-ops true
+  Set via: issuegraph config set no-git-ops true
   Useful when you want to control when commits happen manually.
 
 	Workflow customization:
-	- Place a .beads/PRIME.md file in the local clone or resolved workspace to override the default output entirely.
+	- Place a .issuegraph/PRIME.md file in the local clone or resolved workspace to override the default output entirely.
 	- Use --export to dump the default content for customization.
 	- Use --memories-only for hook contexts that should inject only persistent memories.
 
 ```
-bd prime [flags]
+issuegraph prime [flags]
 ```
 
 **Flags:**
@@ -3604,46 +3604,46 @@ bd prime [flags]
       --stealth         Stealth mode (no git operations, flush only)
 ```
 
-### bd quickstart
+### issuegraph quickstart
 
-Display a quick start guide showing common bd workflows and patterns.
+Display a quick start guide showing common issuegraph workflows and patterns.
 
 ```
-bd quickstart
+issuegraph quickstart
 ```
 
-### bd recall
+### issuegraph recall
 
 Retrieve the full content of a memory by its key.
 
 Examples:
-  bd recall dolt-phantoms
-  bd recall auth-jwt
+  issuegraph recall dolt-phantoms
+  issuegraph recall auth-jwt
 
 ```
-bd recall <key>
+issuegraph recall <key>
 ```
 
-### bd remember
+### issuegraph remember
 
 Store a memory that persists across sessions and account rotations.
 
-Memories are injected at prime time (bd prime) so you have them
+Memories are injected at prime time (issuegraph prime) so you have them
 in every session without manual loading.
 
 The positional arg is the memory CONTENT (the key is auto-generated from it
 unless --key is given). As a convenience, if the arg is a bare key naming an
-existing memory, it is RECALLED instead of stored (same as 'bd recall');
+existing memory, it is RECALLED instead of stored (same as 'issuegraph recall');
 a bare key naming nothing is refused. Use --key to store slug-like content.
 
 Examples:
-  bd remember "always run tests with -race flag"
-  bd remember "Dolt phantom DBs hide in three places" --key dolt-phantoms
-  bd remember "auth module uses JWT not sessions" --key auth-jwt
-  bd remember dolt-phantoms        # bare existing key: reads it (= bd recall)
+  issuegraph remember "always run tests with -race flag"
+  issuegraph remember "Dolt phantom DBs hide in three places" --key dolt-phantoms
+  issuegraph remember "auth module uses JWT not sessions" --key auth-jwt
+  issuegraph remember dolt-phantoms        # bare existing key: reads it (= issuegraph recall)
 
 ```
-bd remember "<insight>" [flags]
+issuegraph remember "<insight>" [flags]
 ```
 
 **Flags:**
@@ -3652,31 +3652,31 @@ bd remember "<insight>" [flags]
       --key string   Explicit key for the memory (auto-generated from content if not set). If a memory with this key already exists, it will be updated in place
 ```
 
-### bd setup
+### issuegraph setup
 
 Setup integration files for AI editors and coding assistants.
 
-Recipes define where beads workflow instructions are written. Built-in recipes
+Recipes define where issuegraph workflow instructions are written. Built-in recipes
 include cursor, claude, copilot, gemini, aider, factory, codex, mux, opencode, junie, windsurf, cody, and kilocode.
 
 Examples:
-  bd setup cursor          # Install Cursor IDE integration
-  bd setup codex           # Install Codex skill + AGENTS.md guidance + native hooks
-  bd setup codex --global  # Install global Codex skill + guidance + native hooks
-  bd setup copilot         # Install Copilot CLI plugin + repository instructions
-  bd setup mux --project   # Install Mux workspace layer (.mux/AGENTS.md)
-  bd setup mux --global    # Install Mux global layer (~/.mux/AGENTS.md)
-  bd setup mux --project --global  # Install both Mux layers
-  bd setup --list          # Show all available recipes
-  bd setup --print         # Print the template to stdout
-  bd setup -o rules.md     # Write template to custom path
-  bd setup --add myeditor .myeditor/rules.md  # Add custom recipe
+  issuegraph setup cursor          # Install Cursor IDE integration
+  issuegraph setup codex           # Install Codex skill + AGENTS.md guidance + native hooks
+  issuegraph setup codex --global  # Install global Codex skill + guidance + native hooks
+  issuegraph setup copilot         # Install Copilot CLI plugin + repository instructions
+  issuegraph setup mux --project   # Install Mux workspace layer (.mux/AGENTS.md)
+  issuegraph setup mux --global    # Install Mux global layer (~/.mux/AGENTS.md)
+  issuegraph setup mux --project --global  # Install both Mux layers
+  issuegraph setup --list          # Show all available recipes
+  issuegraph setup --print         # Print the template to stdout
+  issuegraph setup -o rules.md     # Write template to custom path
+  issuegraph setup --add myeditor .myeditor/rules.md  # Add custom recipe
 
-Use 'bd setup &lt;recipe&gt; --check' to verify installation status.
-Use 'bd setup &lt;recipe&gt; --remove' to uninstall.
+Use 'issuegraph setup &lt;recipe&gt; --check' to verify installation status.
+Use 'issuegraph setup &lt;recipe&gt; --remove' to uninstall.
 
 ```
-bd setup [recipe] [flags]
+issuegraph setup [recipe] [flags]
 ```
 
 **Flags:**
@@ -3693,25 +3693,25 @@ bd setup [recipe] [flags]
       --stealth         Use stealth mode (claude/gemini)
 ```
 
-### bd where
+### issuegraph where
 
-Show the active beads database location, including redirect information.
+Show the active issuegraph database location, including redirect information.
 
 	This command is useful for debugging when using redirects, to understand
-	which beads workspace is actually being used.
+	which issuegraph workspace is actually being used.
 
 Examples:
-  bd where           # Show active beads location
-  bd where --json    # Output in JSON format
+  issuegraph where           # Show active issuegraph location
+  issuegraph where --json    # Output in JSON format
 
 
 ```
-bd where
+issuegraph where
 ```
 
 ## Maintenance:
 
-### bd batch
+### issuegraph batch
 
 Run multiple write operations in a single database transaction.
 
@@ -3719,7 +3719,7 @@ Commands are read from stdin (one per line) or from a file via -f/--file.
 All operations execute inside a single dolt transaction: on any error the
 whole batch is rolled back, otherwise it is committed with one DOLT_COMMIT.
 
-This is intended for shell scripts that currently invoke 'bd' many times in
+This is intended for shell scripts that currently invoke 'issuegraph' many times in
 a loop, which causes severe write amplification on a dolt sql-server backed
 by btrfs+compression. Batching collapses N invocations into one transaction
 and one dolt commit.
@@ -3733,30 +3733,30 @@ Grammar (one command per line):
   #comment  (blank lines and '# ...' comments are ignored)
 
 Supported 'update' keys: status, priority, title, assignee
-Supported dependency types: see 'bd dep add --help' (default: blocks)
+Supported dependency types: see 'issuegraph dep add --help' (default: blocks)
 
 Tokens are whitespace-separated. Double-quoted strings ("like this") may
 contain spaces; use \" to embed a quote and \\ for a backslash.
 
 Examples:
   # From a pipe
-  bd list --status stale -q | awk '&#123;print "close",$1," stale"&#125;' | bd batch
+  issuegraph list --status stale -q | awk '&#123;print "close",$1," stale"&#125;' | issuegraph batch
 
   # From a file
-  bd batch -f operations.txt
+  issuegraph batch -f operations.txt
 
   # Inline
-  printf 'close bd-1 done\nupdate bd-2 status=in_progress\n' | bd batch
+  printf 'close issuegraph-1 done\nupdate issuegraph-2 status=in_progress\n' | issuegraph batch
 
 On success, exits 0 and prints a summary (or JSON with --json). On any error,
 rolls back the entire transaction and exits non-zero with the failing line.
 
 NOTE: This is a narrow subset. Commands like 'show', 'list', 'ready', 'sync',
 complex create flows, or any flag not listed above are NOT accepted. Use
-normal 'bd' subcommands for interactive/read operations.
+normal 'issuegraph' subcommands for interactive/read operations.
 
 ```
-bd batch [flags]
+issuegraph batch [flags]
 ```
 
 **Flags:**
@@ -3764,10 +3764,10 @@ bd batch [flags]
 ```
       --dry-run          Parse input and echo commands without executing
   -f, --file string      Read commands from file instead of stdin
-  -m, --message string   DOLT_COMMIT message (default: 'bd: batch N ops by <actor>')
+  -m, --message string   DOLT_COMMIT message (default: 'issuegraph: batch N ops by <actor>')
 ```
 
-### bd compact
+### issuegraph compact
 
 Squash Dolt commits older than N days into a single commit.
 
@@ -3775,8 +3775,8 @@ Recent commits (within the retention window) are preserved via cherry-pick.
 This reduces Dolt storage overhead from auto-commit history while keeping
 recent change tracking intact.
 
-For semantic issue compaction (summarizing closed issues), use 'bd admin compact'.
-For full history squash, use 'bd flatten'.
+For semantic issue compaction (summarizing closed issues), use 'issuegraph admin compact'.
+For full history squash, use 'issuegraph flatten'.
 
 How it works:
   1. Identifies commits older than --days threshold
@@ -3786,13 +3786,13 @@ How it works:
   5. Runs Dolt GC to reclaim space
 
 Examples:
-  bd compact --dry-run               # Preview: show commit breakdown
-  bd compact --force                 # Squash commits older than 30 days
-  bd compact --days 7 --force        # Keep only last 7 days of history
-  bd compact --days 90 --force       # Conservative: squash 90+ day old commits
+  issuegraph compact --dry-run               # Preview: show commit breakdown
+  issuegraph compact --force                 # Squash commits older than 30 days
+  issuegraph compact --days 7 --force        # Keep only last 7 days of history
+  issuegraph compact --days 90 --force       # Conservative: squash 90+ day old commits
 
 ```
-bd compact [flags]
+issuegraph compact [flags]
 ```
 
 **Flags:**
@@ -3803,12 +3803,12 @@ bd compact [flags]
   -f, --force      Confirm commit squash
 ```
 
-### bd doctor
+### issuegraph doctor
 
-Sanity check the beads installation for the current directory or specified path.
+Sanity check the issuegraph installation for the current directory or specified path.
 
 This command checks:
-  - If .beads/ directory exists
+  - If .issuegraph/ directory exists
   - Database version and migration status
   - Schema compatibility (all required tables and columns present)
   - Whether using hash-based vs sequential IDs
@@ -3817,12 +3817,12 @@ This command checks:
   - File permissions
   - Circular dependencies
   - Git hooks (pre-commit, post-merge, pre-push)
-  - .beads/.gitignore up to date
+  - .issuegraph/.gitignore up to date
   - Metadata.json version tracking (LastBdVersion field)
 
 Performance Mode (--perf):
   Run performance diagnostics on your database:
-  - Times key operations (bd ready, bd list, bd show, etc.)
+  - Times key operations (issuegraph ready, issuegraph list, issuegraph show, etc.)
   - Collects system info (OS, arch, SQLite version, database stats)
   - Generates CPU profile for analysis
   - Outputs shareable report for bug reports
@@ -3833,8 +3833,8 @@ Export Mode (--output):
 
 Specific Check Mode (--check):
   Run a specific check in detail. Available checks:
-  - artifacts: Detect and optionally clean beads classic artifacts
-    (stale JSONL, SQLite files, cruft .beads dirs). Use with --clean.
+  - artifacts: Detect and optionally clean issuegraph classic artifacts
+    (stale JSONL, SQLite files, cruft .issuegraph dirs). Use with --clean.
   - conventions: Check for convention drift (lint warnings, stale
     issues, orphaned issues). Advisory only - warns, never blocks.
   - pollution: Detect and optionally clean test issues from database
@@ -3847,16 +3847,16 @@ Deep Validation Mode (--deep):
   - Parent consistency: All parent-child deps point to existing issues
   - Dependency integrity: All deps reference valid issues
   - Epic completeness: Find epics ready to close (all children closed)
-  - Agent bead integrity: Agent beads have valid state values
+  - Agent issue integrity: Agent issuegraph have valid state values
   - Mail thread integrity: Thread IDs reference existing issues
   - Molecule integrity: Molecules have valid parent-child structures
 
 Server Mode (--server):
-  Run health checks for Dolt server mode connections (bd-dolt.2.3):
+  Run health checks for Dolt server mode connections (issuegraph-dolt.2.3):
   - Server reachable: Can connect to configured host:port?
   - Dolt version: Is it a Dolt server (not vanilla MySQL)?
-  - Database exists: Does the 'beads' database exist?
-  - Schema compatible: Can query beads tables?
+  - Database exists: Does the 'issuegraph' database exist?
+  - Schema compatible: Can query issuegraph tables?
   - Connection pool: Pool health metrics
 
 Migration Validation Mode (--migration):
@@ -3887,42 +3887,42 @@ Agent Mode (--agent):
 
 Suppressing Warnings:
   Suppress specific warnings by setting doctor.suppress.&lt;check-slug&gt; config:
-    bd config set doctor.suppress.pending-migrations true
-    bd config set doctor.suppress.git-hooks true
+    issuegraph config set doctor.suppress.pending-migrations true
+    issuegraph config set doctor.suppress.git-hooks true
   Check names are converted to slugs: "Git Hooks" → "git-hooks".
   Only warnings are suppressed; errors and passing checks always show.
-  To unsuppress: bd config unset doctor.suppress.&lt;slug&gt;
+  To unsuppress: issuegraph config unset doctor.suppress.&lt;slug&gt;
 
 Examples:
-  bd doctor              # Check current directory
-  bd doctor /path/to/repo # Check specific repository
-  bd doctor --json       # Machine-readable output
-  bd doctor --agent      # Agent-facing diagnostic output
-  bd doctor --agent --json  # Structured agent diagnostics (JSON)
-  bd doctor --fix        # Automatically fix issues (with confirmation)
-  bd doctor --fix --yes  # Automatically fix issues (no confirmation)
-  bd doctor --fix -i     # Confirm each fix individually
-  bd doctor --fix --fix-child-parent  # Also fix child→parent deps (opt-in)
-  bd doctor --fix --force # Force repair even when database can't be opened
-  bd doctor --fix --source=jsonl # Rebuild database from a JSONL export
-  bd doctor --dry-run    # Preview what --fix would do without making changes
-  bd doctor --perf       # Performance diagnostics
-  bd doctor --output diagnostics.json  # Export diagnostics to file
-  bd doctor --check=artifacts           # Show classic artifacts (JSONL, SQLite, cruft dirs)
-  bd doctor --check=artifacts --clean  # Delete safe-to-delete artifacts (with confirmation)
-  bd doctor --check=conventions        # Convention drift check (lint, stale, orphans)
-  bd doctor --check=pollution          # Show potential test issues
-  bd doctor --check=pollution --clean  # Delete test issues (with confirmation)
-  bd doctor --check=validate         # Data-integrity checks only
-  bd doctor --check=validate --fix   # Auto-fix data-integrity issues
-  bd doctor --deep             # Full graph integrity validation
-  bd doctor --server           # Dolt server mode health checks
-  bd doctor --migration=pre    # Validate readiness for Dolt migration
-  bd doctor --migration=post   # Validate Dolt migration completed
-  bd doctor --migration=pre --json  # Machine-parseable migration validation
+  issuegraph doctor              # Check current directory
+  issuegraph doctor /path/to/repo # Check specific repository
+  issuegraph doctor --json       # Machine-readable output
+  issuegraph doctor --agent      # Agent-facing diagnostic output
+  issuegraph doctor --agent --json  # Structured agent diagnostics (JSON)
+  issuegraph doctor --fix        # Automatically fix issues (with confirmation)
+  issuegraph doctor --fix --yes  # Automatically fix issues (no confirmation)
+  issuegraph doctor --fix -i     # Confirm each fix individually
+  issuegraph doctor --fix --fix-child-parent  # Also fix child→parent deps (opt-in)
+  issuegraph doctor --fix --force # Force repair even when database can't be opened
+  issuegraph doctor --fix --source=jsonl # Rebuild database from a JSONL export
+  issuegraph doctor --dry-run    # Preview what --fix would do without making changes
+  issuegraph doctor --perf       # Performance diagnostics
+  issuegraph doctor --output diagnostics.json  # Export diagnostics to file
+  issuegraph doctor --check=artifacts           # Show classic artifacts (JSONL, SQLite, cruft dirs)
+  issuegraph doctor --check=artifacts --clean  # Delete safe-to-delete artifacts (with confirmation)
+  issuegraph doctor --check=conventions        # Convention drift check (lint, stale, orphans)
+  issuegraph doctor --check=pollution          # Show potential test issues
+  issuegraph doctor --check=pollution --clean  # Delete test issues (with confirmation)
+  issuegraph doctor --check=validate         # Data-integrity checks only
+  issuegraph doctor --check=validate --fix   # Auto-fix data-integrity issues
+  issuegraph doctor --deep             # Full graph integrity validation
+  issuegraph doctor --server           # Dolt server mode health checks
+  issuegraph doctor --migration=pre    # Validate readiness for Dolt migration
+  issuegraph doctor --migration=post   # Validate Dolt migration completed
+  issuegraph doctor --migration=pre --json  # Machine-parseable migration validation
 
 ```
-bd doctor [path] [flags]
+issuegraph doctor [path] [flags]
 ```
 
 **Flags:**
@@ -3947,7 +3947,7 @@ bd doctor [path] [flags]
   -y, --yes                                     Skip confirmation prompt (for non-interactive use)
 ```
 
-### bd flatten
+### issuegraph flatten
 
 Nuclear option: squash ALL Dolt commit history into a single commit.
 
@@ -3962,17 +3962,17 @@ This is irreversible — all commit history is lost. The resulting database
 has exactly one commit containing all current data.
 
 Use this when:
-  - Your .beads/dolt directory has grown very large
+  - Your .issuegraph/dolt directory has grown very large
   - You don't need commit-level history (time travel)
   - You want to start fresh with minimal storage
 
 Examples:
-  bd flatten --dry-run               # Preview: show commit count and disk usage
-  bd flatten --force                 # Actually squash all history
-  bd flatten --force --json          # JSON output
+  issuegraph flatten --dry-run               # Preview: show commit count and disk usage
+  issuegraph flatten --force                 # Actually squash all history
+  issuegraph flatten --force --json          # JSON output
 
 ```
-bd flatten [flags]
+issuegraph flatten [flags]
 ```
 
 **Flags:**
@@ -3982,28 +3982,28 @@ bd flatten [flags]
   -f, --force     Confirm irreversible history squash
 ```
 
-### bd gc
+### issuegraph gc
 
-Full lifecycle garbage collection for standalone Beads databases.
+Full lifecycle garbage collection for standalone IssueGraph databases.
 
 Runs three phases in sequence:
   1. DECAY   — Delete closed issues older than N days (default 90)
-  2. COMPACT — Squash old Dolt commits into fewer commits (bd compact)
+  2. COMPACT — Squash old Dolt commits into fewer commits (issuegraph compact)
   3. GC      — Run Dolt garbage collection to reclaim disk space
 
 Each phase can be skipped individually. Use --dry-run to preview all phases
 without making changes.
 
 Examples:
-  bd gc                              # Full GC with defaults (90 day decay)
-  bd gc --dry-run                    # Preview what would happen
-  bd gc --older-than 30              # Decay issues closed 30+ days ago
-  bd gc --skip-decay                 # Skip issue deletion, just compact+GC
-  bd gc --skip-dolt                  # Skip Dolt GC, just decay+compact
-  bd gc --force                      # Skip confirmation prompt
+  issuegraph gc                              # Full GC with defaults (90 day decay)
+  issuegraph gc --dry-run                    # Preview what would happen
+  issuegraph gc --older-than 30              # Decay issues closed 30+ days ago
+  issuegraph gc --skip-decay                 # Skip issue deletion, just compact+GC
+  issuegraph gc --skip-dolt                  # Skip Dolt GC, just decay+compact
+  issuegraph gc --force                      # Skip confirmation prompt
 
 ```
-bd gc [flags]
+issuegraph gc [flags]
 ```
 
 **Flags:**
@@ -4016,7 +4016,7 @@ bd gc [flags]
       --skip-dolt        Skip Dolt garbage collection phase
 ```
 
-### bd migrate
+### issuegraph migrate
 
 Database migration and data transformation commands.
 
@@ -4030,7 +4030,7 @@ Subcommands:
 
 
 ```
-bd migrate [flags]
+issuegraph migrate [flags]
 ```
 
 **Flags:**
@@ -4043,7 +4043,7 @@ bd migrate [flags]
       --yes              Auto-confirm prompts
 ```
 
-#### bd migrate hooks
+#### issuegraph migrate hooks
 
 Analyze git hook files and sidecar artifacts for migration to marker-managed format.
 
@@ -4052,13 +4052,13 @@ Modes:
   --apply    Apply migration operations
 
 Examples:
-  bd migrate hooks --dry-run
-  bd migrate hooks --apply
-  bd migrate hooks --apply --yes
-  bd migrate hooks --dry-run --json
+  issuegraph migrate hooks --dry-run
+  issuegraph migrate hooks --apply
+  issuegraph migrate hooks --apply --yes
+  issuegraph migrate hooks --dry-run --json
 
 ```
-bd migrate hooks [path] [flags]
+issuegraph migrate hooks [path] [flags]
 ```
 
 **Flags:**
@@ -4070,7 +4070,7 @@ bd migrate hooks [path] [flags]
       --yes       Skip confirmation prompt for --apply
 ```
 
-#### bd migrate issues
+#### issuegraph migrate issues
 
 Move issues from one source repository to another with filtering and dependency preservation.
 
@@ -4081,19 +4081,19 @@ This command updates the source_repo field for selected issues, allowing you to:
 
 Examples:
   # Preview migration from planning repo to current repo
-  bd migrate-issues --from ~/.beads-planning --to . --dry-run
+  issuegraph migrate-issues --from ~/.issuegraph-planning --to . --dry-run
 
   # Move all open P1 bugs
-  bd migrate-issues --from ~/repo1 --to ~/repo2 --priority 1 --type bug --status open
+  issuegraph migrate-issues --from ~/repo1 --to ~/repo2 --priority 1 --type bug --status open
 
   # Move specific issues with their dependencies
-  bd migrate-issues --from . --to ~/archive --id bd-abc --id bd-xyz --include closure
+  issuegraph migrate-issues --from . --to ~/archive --id issuegraph-abc --id issuegraph-xyz --include closure
 
   # Move issues with label filter
-  bd migrate-issues --from . --to ~/feature-work --label frontend --label urgent
+  issuegraph migrate-issues --from . --to ~/feature-work --label frontend --label urgent
 
 ```
-bd migrate issues [flags]
+issuegraph migrate issues [flags]
 ```
 
 **Flags:**
@@ -4114,7 +4114,7 @@ bd migrate issues [flags]
       --yes                Skip confirmation prompt
 ```
 
-#### bd migrate schema
+#### issuegraph migrate schema
 
 Apply pending schema migrations idempotently.
 
@@ -4123,11 +4123,11 @@ is typically a no-op. It exists to make migration explicit and observable
 in CI, release gates, and recovery scenarios.
 
 Example:
-  bd migrate schema
-  bd migrate schema --json
+  issuegraph migrate schema
+  issuegraph migrate schema --json
 
 ```
-bd migrate schema [flags]
+issuegraph migrate schema [flags]
 ```
 
 **Flags:**
@@ -4136,7 +4136,7 @@ bd migrate schema [flags]
       --json   Output in JSON format
 ```
 
-#### bd migrate sync
+#### issuegraph migrate sync
 
 Configure separate branch workflow for multi-clone setups.
 
@@ -4144,10 +4144,10 @@ This sets the sync.branch config value so that issue data is committed
 to a dedicated branch, keeping your main branch clean.
 
 Example:
-  bd migrate sync beads-sync
+  issuegraph migrate sync issuegraph-sync
 
 ```
-bd migrate sync <branch> [flags]
+issuegraph migrate sync <branch> [flags]
 ```
 
 **Flags:**
@@ -4157,12 +4157,12 @@ bd migrate sync <branch> [flags]
       --json      Output in JSON format
 ```
 
-### bd ping
+### issuegraph ping
 
-Lightweight health check that confirms bd can reach its database.
+Lightweight health check that confirms issuegraph can reach its database.
 
 Steps:
-  1. Resolve the .beads workspace
+  1. Resolve the .issuegraph workspace
   2. Open the store (embedded or server)
   3. Run a trivial query (issue count)
   4. Report timing
@@ -4170,14 +4170,14 @@ Steps:
 Exit 0 on success, exit 1 on failure.
 
 Examples:
-  bd ping              # Quick connectivity check
-  bd ping --json       # Structured output for automation
+  issuegraph ping              # Quick connectivity check
+  issuegraph ping --json       # Structured output for automation
 
 ```
-bd ping
+issuegraph ping
 ```
 
-### bd preflight
+### issuegraph preflight
 
 Display a checklist of common pre-PR checks for contributors.
 
@@ -4185,19 +4185,19 @@ This command helps catch common issues before pushing to CI:
 - Tests not run locally
 - Lint errors
 - Unformatted Go files
-- .beads/issues.jsonl pollution
+- .issuegraph/issues.jsonl pollution
 - Stale nix vendorHash
 - Version mismatches
 
 Examples:
-  bd preflight              # Show checklist
-  bd preflight --check      # Run checks automatically
-  bd preflight --check --json  # JSON output for programmatic use
-  bd preflight --check --skip-lint  # Explicitly skip lint check
+  issuegraph preflight              # Show checklist
+  issuegraph preflight --check      # Run checks automatically
+  issuegraph preflight --check --json  # JSON output for programmatic use
+  issuegraph preflight --check --skip-lint  # Explicitly skip lint check
 
 
 ```
-bd preflight [flags]
+issuegraph preflight [flags]
 ```
 
 **Flags:**
@@ -4209,36 +4209,36 @@ bd preflight [flags]
       --skip-lint   Skip lint check explicitly
 ```
 
-### bd prune
+### issuegraph prune
 
-Permanently delete closed non-ephemeral beads and their associated data.
+Permanently delete closed non-ephemeral issuegraph and their associated data.
 
-Use this to trim closed regular beads (tasks, features, bugs, chores, etc.)
+Use this to trim closed regular issuegraph (tasks, features, bugs, chores, etc.)
 that are no longer useful. The common case is a long-lived repo where
 closed work has piled up and is bloating auto-export or slowing queries.
 
 Requires --older-than or --pattern. The flag is a safety gate — without
-it, a muscle-memory `--force` could wipe every closed bead in the repo.
+it, a muscle-memory `--force` could wipe every closed issue in the repo.
 Use `--pattern '*'` if you really do want to sweep everything closed.
 
-Deletes: issues, dependencies, labels, events, and comments for matching beads.
-Skips: pinned beads (protected), open/in-progress beads, and ephemeral beads.
+Deletes: issues, dependencies, labels, events, and comments for matching issuegraph.
+Skips: pinned issuegraph (protected), open/in-progress issuegraph, and ephemeral issuegraph.
 
-To delete closed ephemeral beads (wisps, transient molecules) use
-`bd purge` instead.
+To delete closed ephemeral issuegraph (wisps, transient molecules) use
+`issuegraph purge` instead.
 
-For full Dolt storage reclaim after deleting many rows, follow with `bd flatten`
+For full Dolt storage reclaim after deleting many rows, follow with `issuegraph flatten`
 so history can be collapsed and old chunks can be garbage-collected.
 
 EXAMPLES:
-  bd prune --older-than 30d              # Preview closed beads &gt;30d old
-  bd prune --older-than 30d --force      # Delete them
-  bd prune --older-than 90d --dry-run    # Detailed preview with stats
-  bd prune --pattern "*" --force         # Delete all closed regular beads
-  bd prune --pattern "gm-temp-*" --force # Scope to a pattern
+  issuegraph prune --older-than 30d              # Preview closed issuegraph &gt;30d old
+  issuegraph prune --older-than 30d --force      # Delete them
+  issuegraph prune --older-than 90d --dry-run    # Detailed preview with stats
+  issuegraph prune --pattern "*" --force         # Delete all closed regular issuegraph
+  issuegraph prune --pattern "gm-temp-*" --force # Scope to a pattern
 
 ```
-bd prune [flags]
+issuegraph prune [flags]
 ```
 
 **Flags:**
@@ -4246,35 +4246,35 @@ bd prune [flags]
 ```
       --dry-run             Preview what would be pruned with stats
   -f, --force               Actually prune (without this, shows preview)
-      --older-than string   Only prune beads closed more than N ago (e.g., 30d, 2w, 60)
-      --pattern string      Only prune beads matching ID glob pattern (e.g., 'gm-old-*')
+      --older-than string   Only prune issuegraph closed more than N ago (e.g., 30d, 2w, 60)
+      --pattern string      Only prune issuegraph matching ID glob pattern (e.g., 'gm-old-*')
 ```
 
-### bd purge
+### issuegraph purge
 
-Permanently delete closed ephemeral beads and their associated data.
+Permanently delete closed ephemeral issuegraph and their associated data.
 
-Closed ephemeral beads (wisps, transient molecules) accumulate rapidly and
+Closed ephemeral issuegraph (wisps, transient molecules) accumulate rapidly and
 have no value once closed. This command removes them to reclaim storage.
 
-Deletes: issues, dependencies, labels, events, and comments for matching beads.
-Skips: pinned beads (protected).
+Deletes: issues, dependencies, labels, events, and comments for matching issuegraph.
+Skips: pinned issuegraph (protected).
 
-To delete closed non-ephemeral beads (regular tasks, features, bugs, etc.)
-use `bd prune` instead.
+To delete closed non-ephemeral issuegraph (regular tasks, features, bugs, etc.)
+use `issuegraph prune` instead.
 
-For full Dolt storage reclaim after deleting many rows, follow with `bd flatten`
+For full Dolt storage reclaim after deleting many rows, follow with `issuegraph flatten`
 so history can be collapsed and old chunks can be garbage-collected.
 
 EXAMPLES:
-  bd purge                           # Preview what would be purged
-  bd purge --force                   # Delete all closed ephemeral beads
-  bd purge --older-than 7d --force   # Only purge items closed 7+ days ago
-  bd purge --pattern "*-wisp-*"      # Only purge matching ID pattern
-  bd purge --dry-run                 # Detailed preview with stats
+  issuegraph purge                           # Preview what would be purged
+  issuegraph purge --force                   # Delete all closed ephemeral issuegraph
+  issuegraph purge --older-than 7d --force   # Only purge items closed 7+ days ago
+  issuegraph purge --pattern "*-wisp-*"      # Only purge matching ID pattern
+  issuegraph purge --dry-run                 # Detailed preview with stats
 
 ```
-bd purge [flags]
+issuegraph purge [flags]
 ```
 
 **Flags:**
@@ -4282,11 +4282,11 @@ bd purge [flags]
 ```
       --dry-run             Preview what would be purged with stats
   -f, --force               Actually purge (without this, shows preview)
-      --older-than string   Only purge beads closed more than N ago (e.g., 7d, 2w, 30)
-      --pattern string      Only purge beads matching ID glob pattern (e.g., *-wisp-*)
+      --older-than string   Only purge issuegraph closed more than N ago (e.g., 7d, 2w, 30)
+      --pattern string      Only purge issuegraph matching ID glob pattern (e.g., *-wisp-*)
 ```
 
-### bd recompute-blocked
+### issuegraph recompute-blocked
 
 Recompute the denormalized is_blocked flag for every issue and wisp.
 
@@ -4294,23 +4294,23 @@ is_blocked is derived from the dependency graph and maintained automatically by
 local writes and by a post-pull recompute scoped to what the merge changed. If
 that scoped recompute is skipped — a recompute that failed after its merge
 committed, or a conflicted pull resolved by hand — the flag can go stale, and a
-later pull that merges nothing will not refresh it (bd-6dnrw.37). 'bd ready'
+later pull that merges nothing will not refresh it (issuegraph-6dnrw.37). 'issuegraph ready'
 trusts the flag, so stale values silently hide ready work or surface blocked
 work.
 
 This command runs the full recompute unconditionally and commits the result.
 It is idempotent: on a consistent database it changes nothing. Works in both
-embedded and server mode (unlike 'bd doctor', which is server-mode only).
+embedded and server mode (unlike 'issuegraph doctor', which is server-mode only).
 
 Examples:
-  bd recompute-blocked          # Repair stale is_blocked flags
-  bd recompute-blocked --json   # Machine-parseable &#123;"rows_corrected": N&#125;
+  issuegraph recompute-blocked          # Repair stale is_blocked flags
+  issuegraph recompute-blocked --json   # Machine-parseable &#123;"rows_corrected": N&#125;
 
 ```
-bd recompute-blocked
+issuegraph recompute-blocked
 ```
 
-### bd rename-prefix
+### issuegraph rename-prefix
 
 Rename the issue prefix for all issues in the database.
 This will update all issue IDs and all text references across all fields.
@@ -4334,14 +4334,14 @@ The --repair flag will rename all issues with incorrect prefixes to the new pref
 preserving issues that already have the correct prefix.
 
 EXAMPLES:
-  bd rename-prefix kw-                # Rename from 'knowledge-work-' to 'kw-'
-  bd rename-prefix mtg- --repair      # Consolidate multiple prefixes into 'mtg-'
-  bd rename-prefix team- --dry-run    # Preview changes without applying
+  issuegraph rename-prefix kw-                # Rename from 'knowledge-work-' to 'kw-'
+  issuegraph rename-prefix mtg- --repair      # Consolidate multiple prefixes into 'mtg-'
+  issuegraph rename-prefix team- --dry-run    # Preview changes without applying
 
 NOTE: This is a rare operation. Most users never need this command.
 
 ```
-bd rename-prefix <new-prefix> [flags]
+issuegraph rename-prefix <new-prefix> [flags]
 ```
 
 **Flags:**
@@ -4351,20 +4351,20 @@ bd rename-prefix <new-prefix> [flags]
       --repair    Repair database with multiple prefixes by consolidating them
 ```
 
-### bd rules
+### issuegraph rules
 
 Audit and compact Claude rules
 
 ```
-bd rules
+issuegraph rules
 ```
 
-#### bd rules audit
+#### issuegraph rules audit
 
 Scan rules for contradictions and merge opportunities
 
 ```
-bd rules audit [flags]
+issuegraph rules audit [flags]
 ```
 
 **Flags:**
@@ -4374,12 +4374,12 @@ bd rules audit [flags]
       --threshold float   Jaccard similarity threshold (default 0.6)
 ```
 
-#### bd rules compact
+#### issuegraph rules compact
 
 Merge related rules into composites
 
 ```
-bd rules compact [flags]
+issuegraph rules compact [flags]
 ```
 
 **Flags:**
@@ -4391,17 +4391,17 @@ bd rules compact [flags]
       --path string     Path to rules directory (default ".claude/rules/")
 ```
 
-### bd sql
+### issuegraph sql
 
 Execute a raw SQL query against the underlying database (SQLite or Dolt).
 
 Useful for debugging, maintenance, and working around bugs in higher-level commands.
 
 Examples:
-  bd sql 'SELECT COUNT(*) FROM issues'
-  bd sql 'SELECT id, title FROM issues WHERE status = "open" LIMIT 5'
-  bd sql 'DELETE FROM dirty_issues WHERE issue_id = "bd-abc123"'
-  bd sql --csv 'SELECT id, title, status FROM issues'
+  issuegraph sql 'SELECT COUNT(*) FROM issues'
+  issuegraph sql 'SELECT id, title FROM issues WHERE status = "open" LIMIT 5'
+  issuegraph sql 'DELETE FROM dirty_issues WHERE issue_id = "issuegraph-abc123"'
+  issuegraph sql --csv 'SELECT id, title, status FROM issues'
 
 The query is passed directly to the database. SELECT queries return results as a
 table (or JSON/CSV with --json/--csv). Non-SELECT queries (INSERT, UPDATE, DELETE)
@@ -4410,7 +4410,7 @@ report the number of rows affected.
 WARNING: Direct database access bypasses the storage layer. Use with caution.
 
 ```
-bd sql <query> [flags]
+issuegraph sql <query> [flags]
 ```
 
 **Flags:**
@@ -4419,24 +4419,24 @@ bd sql <query> [flags]
       --csv   Output results in CSV format
 ```
 
-### bd upgrade
+### issuegraph upgrade
 
-Commands for checking bd version upgrades and reviewing changes.
+Commands for checking issuegraph version upgrades and reviewing changes.
 
-The upgrade command helps you stay aware of bd version changes:
-  - bd upgrade status: Check if bd version changed since last use
-  - bd upgrade review: Show what's new since your last version
-  - bd upgrade ack: Acknowledge the current version
+The upgrade command helps you stay aware of issuegraph version changes:
+  - issuegraph upgrade status: Check if issuegraph version changed since last use
+  - issuegraph upgrade review: Show what's new since your last version
+  - issuegraph upgrade ack: Acknowledge the current version
 
-Version tracking is automatic - bd updates metadata.json on every run.
+Version tracking is automatic - issuegraph updates metadata.json on every run.
 
 ```
-bd upgrade
+issuegraph upgrade
 ```
 
-#### bd upgrade ack
+#### issuegraph upgrade ack
 
-Mark the current bd version as acknowledged.
+Mark the current issuegraph version as acknowledged.
 
 This updates metadata.json to record that you've seen the current
 version. Mainly useful after reviewing upgrade changes to suppress
@@ -4446,68 +4446,68 @@ Note: Version tracking happens automatically, so you don't need to
 run this command unless you want to explicitly mark acknowledgement.
 
 Examples:
-  bd upgrade ack
-  bd upgrade ack --json
+  issuegraph upgrade ack
+  issuegraph upgrade ack --json
 
 ```
-bd upgrade ack
+issuegraph upgrade ack
 ```
 
-#### bd upgrade review
+#### issuegraph upgrade review
 
-Show what's new in bd since the last version you used.
+Show what's new in issuegraph since the last version you used.
 
-Unlike 'bd info --whats-new' which shows the last 3 versions,
+Unlike 'issuegraph info --whats-new' which shows the last 3 versions,
 this command shows ALL changes since your specific last version.
 
 If you're upgrading from an old version, you'll see the complete
 changelog of everything that changed since then.
 
 Examples:
-  bd upgrade review
-  bd upgrade review --json
+  issuegraph upgrade review
+  issuegraph upgrade review --json
 
 ```
-bd upgrade review
+issuegraph upgrade review
 ```
 
-#### bd upgrade status
+#### issuegraph upgrade status
 
-Check if bd has been upgraded since you last used it.
+Check if issuegraph has been upgraded since you last used it.
 
 This command uses the version tracking that happens automatically
-at startup to detect if bd was upgraded.
+at startup to detect if issuegraph was upgraded.
 
 Examples:
-  bd upgrade status
-  bd upgrade status --json
+  issuegraph upgrade status
+  issuegraph upgrade status --json
 
 ```
-bd upgrade status
+issuegraph upgrade status
 ```
 
-### bd worktree
+### issuegraph worktree
 
-Manage git worktrees with proper beads configuration.
+Manage git worktrees with proper issuegraph configuration.
 
 Worktrees allow multiple working directories sharing the same git repository,
 enabling parallel development (e.g., multiple agents or features).
 
-Worktrees automatically share the same beads database as the main repository
+Worktrees automatically share the same issuegraph database as the main repository
 via git common directory discovery — no manual redirect configuration needed.
 
 Examples:
-  bd worktree create feature-auth           # Create worktree
-  bd worktree create bugfix --branch fix-1  # Create with specific branch name
-  bd worktree list                          # List all worktrees
-  bd worktree remove feature-auth           # Remove worktree (with safety checks)
-  bd worktree info                          # Show info about current worktree
+  issuegraph worktree create feature-auth           # Create worktree
+  issuegraph worktree create bugfix --branch fix-1  # Create with specific branch name
+  issuegraph worktree list                          # List all worktrees
+  issuegraph worktree remove feature-auth           # Remove worktree (with safety checks)
+  issuegraph worktree info                          # Show info about current worktree
 
 ```
-bd worktree
+issuegraph worktree
 ```
 
-#### bd worktree create
+#### issuegraph worktree create
 
 Create a git worktree for parallel development.
 
@@ -4515,16 +4515,16 @@ This command:
 1. Creates a git worktree at ./&lt;name&gt; (or specified path)
 2. Adds the worktree path to .gitignore (if inside repo root)
 
-The worktree automatically shares the same beads database as the main
+The worktree automatically shares the same issuegraph database as the main
 repository via git common directory discovery — no redirect file needed.
 
 Examples:
-  bd worktree create feature-auth           # Create at ./feature-auth
-  bd worktree create bugfix --branch fix-1  # Create with branch name
-  bd worktree create ../agents/worker-1     # Create at relative path
+  issuegraph worktree create feature-auth           # Create at ./feature-auth
+  issuegraph worktree create bugfix --branch fix-1  # Create with branch name
+  issuegraph worktree create ../agents/worker-1     # Create at relative path
 
 ```
-bd worktree create <name> [--branch=<branch>] [flags]
+issuegraph worktree create <name> [--branch=<branch>] [flags]
 ```
 
 **Flags:**
@@ -4533,43 +4533,43 @@ bd worktree create <name> [--branch=<branch>] [flags]
       --branch string   Branch name for the worktree (default: same as name)
 ```
 
-#### bd worktree info
+#### issuegraph worktree info
 
 Show information about the current worktree.
 
 If the current directory is in a git worktree, shows:
 - Worktree path and name
 - Branch
-- Beads configuration (redirect or main)
+- IssueGraph configuration (redirect or main)
 - Main repository location
 
 Examples:
-  bd worktree info          # Show current worktree info
-  bd worktree info --json   # JSON output
+  issuegraph worktree info          # Show current worktree info
+  issuegraph worktree info --json   # JSON output
 
 ```
-bd worktree info
+issuegraph worktree info
 ```
 
-#### bd worktree list
+#### issuegraph worktree list
 
-List all git worktrees and their beads configuration state.
+List all git worktrees and their issuegraph configuration state.
 
 Shows each worktree with:
 - Name (directory name)
 - Path (full path)
 - Branch
-- Beads state: "redirect" (uses shared db), "shared" (is main), "none" (no beads)
+- IssueGraph state: "redirect" (uses shared db), "shared" (is main), "none" (no issuegraph)
 
 Examples:
-  bd worktree list          # List all worktrees
-  bd worktree list --json   # JSON output
+  issuegraph worktree list          # List all worktrees
+  issuegraph worktree list --json   # JSON output
 
 ```
-bd worktree list
+issuegraph worktree list
 ```
 
-#### bd worktree remove
+#### issuegraph worktree remove
 
 Remove a git worktree with safety checks.
 
@@ -4581,11 +4581,11 @@ Before removing, this command checks for:
 Use --force to skip safety checks (not recommended).
 
 Examples:
-  bd worktree remove feature-auth         # Remove with safety checks
-  bd worktree remove feature-auth --force # Skip safety checks
+  issuegraph worktree remove feature-auth         # Remove with safety checks
+  issuegraph worktree remove feature-auth --force # Skip safety checks
 
 ```
-bd worktree remove <name> [flags]
+issuegraph worktree remove <name> [flags]
 ```
 
 **Flags:**
@@ -4596,39 +4596,39 @@ bd worktree remove <name> [flags]
 
 ## Integrations & Advanced:
 
-### bd admin
+### issuegraph admin
 
-Administrative commands for beads database maintenance.
+Administrative commands for issuegraph database maintenance.
 
 These commands are for advanced users and should be used carefully:
   cleanup   Delete closed issues (issue lifecycle)
   compact   Compact old closed issues to save space (storage optimization)
-  reset     Remove all beads data and configuration (full reset)
+  reset     Remove all issuegraph data and configuration (full reset)
 
-For routine maintenance, prefer 'bd doctor --fix' which handles common repairs
+For routine maintenance, prefer 'issuegraph doctor --fix' which handles common repairs
 automatically. Use these admin commands for targeted database operations.
 
 ```
-bd admin
+issuegraph admin
 ```
 
-#### bd admin cleanup
+#### issuegraph admin cleanup
 
 Delete closed issues to reduce database size.
 
 This command permanently removes closed issues from the database.
 
 NOTE: This command only manages issue lifecycle (closed -&gt; deleted). For general
-health checks and automatic repairs, use 'bd doctor --fix' instead.
+health checks and automatic repairs, use 'issuegraph doctor --fix' instead.
 
 By default, deletes ALL closed issues. Use --older-than to only delete
 issues closed before a certain date.
 
 EXAMPLES:
-  bd admin cleanup --force                          # Delete all closed issues
-  bd admin cleanup --older-than 30 --force          # Only issues closed 30+ days ago
-  bd admin cleanup --ephemeral --force              # Only closed wisps (transient molecules)
-  bd admin cleanup --dry-run                        # Preview what would be deleted
+  issuegraph admin cleanup --force                          # Delete all closed issues
+  issuegraph admin cleanup --older-than 30 --force          # Only issues closed 30+ days ago
+  issuegraph admin cleanup --ephemeral --force              # Only closed wisps (transient molecules)
+  issuegraph admin cleanup --dry-run                        # Preview what would be deleted
 
 SAFETY:
 - Requires --force flag to actually delete (unless --dry-run)
@@ -4637,11 +4637,11 @@ SAFETY:
 - Use --json for programmatic output
 
 SEE ALSO:
-  bd doctor --fix    Automatic health checks and repairs (recommended for routine maintenance)
-  bd admin compact   Compact old closed issues to save space
+  issuegraph doctor --fix    Automatic health checks and repairs (recommended for routine maintenance)
+  issuegraph admin compact   Compact old closed issues to save space
 
 ```
-bd admin cleanup [flags]
+issuegraph admin cleanup [flags]
 ```
 
 **Flags:**
@@ -4654,7 +4654,7 @@ bd admin cleanup [flags]
       --older-than int   Only delete issues closed more than N days ago (0 = all closed issues)
 ```
 
-#### bd admin compact
+#### issuegraph admin compact
 
 Compact old closed issues using semantic summarization.
 
@@ -4675,30 +4675,30 @@ Dolt Garbage Collection:
   With auto-commit per mutation, Dolt commit history grows over time. Use
   --dolt to run Dolt garbage collection and reclaim disk space.
 
-  --dolt: Run Dolt GC on .beads/dolt directory to free disk space.
+  --dolt: Run Dolt GC on .issuegraph/dolt directory to free disk space.
           This removes unreachable commits and compacts storage.
 
 Examples:
   # Dolt garbage collection
-  bd compact --dolt                        # Run Dolt GC
-  bd compact --dolt --dry-run              # Preview without running GC
+  issuegraph compact --dolt                        # Run Dolt GC
+  issuegraph compact --dolt --dry-run              # Preview without running GC
 
   # Agent-driven workflow (recommended)
-  bd compact --analyze --json              # Get candidates with full content
-  bd compact --apply --id bd-42 --summary summary.txt
-  bd compact --apply --id bd-42 --summary - &lt; summary.txt
+  issuegraph compact --analyze --json              # Get candidates with full content
+  issuegraph compact --apply --id issuegraph-42 --summary summary.txt
+  issuegraph compact --apply --id issuegraph-42 --summary - &lt; summary.txt
 
   # Legacy AI-powered workflow
-  bd compact --auto --dry-run              # Preview candidates
-  bd compact --auto --all                  # Compact all eligible issues
-  bd compact --auto --id bd-42             # Compact specific issue
+  issuegraph compact --auto --dry-run              # Preview candidates
+  issuegraph compact --auto --all                  # Compact all eligible issues
+  issuegraph compact --auto --id issuegraph-42             # Compact specific issue
 
   # Statistics
-  bd compact --stats                       # Show statistics
+  issuegraph compact --stats                       # Show statistics
 
 
 ```
-bd admin compact [flags]
+issuegraph admin compact [flags]
 ```
 
 **Flags:**
@@ -4710,7 +4710,7 @@ bd admin compact [flags]
       --apply            Apply mode: accept agent-provided summary
       --auto             Auto mode: AI-powered compaction (legacy)
       --batch-size int   Issues per batch (default 10)
-      --dolt             Dolt mode: run Dolt garbage collection on .beads/dolt
+      --dolt             Dolt mode: run Dolt garbage collection on .issuegraph/dolt
       --dry-run          Preview without compacting
       --force            Force compact (bypass checks, requires --id)
       --id string        Compact specific issue
@@ -4722,24 +4722,24 @@ bd admin compact [flags]
       --workers int      Parallel workers (default 5)
 ```
 
-#### bd admin reset
+#### issuegraph admin reset
 
-Reset beads to an uninitialized state, removing all local data.
+Reset issuegraph to an uninitialized state, removing all local data.
 
 This command removes:
-  - The .beads directory (database, JSONL, config)
-  - Git hooks installed by bd
+  - The .issuegraph directory (database, JSONL, config)
+  - Git hooks installed by issuegraph
   - Sync branch worktrees
 
 By default, shows what would be deleted (dry-run mode).
 Use --force to actually perform the reset.
 
 Examples:
-  bd reset              # Show what would be deleted
-  bd reset --force      # Actually delete everything
+  issuegraph reset              # Show what would be deleted
+  issuegraph reset --force      # Actually delete everything
 
 ```
-bd admin reset [flags]
+issuegraph admin reset [flags]
 ```
 
 **Flags:**
@@ -4748,18 +4748,18 @@ bd admin reset [flags]
       --force   Actually perform the reset (required)
 ```
 
-### bd jira
+### issuegraph jira
 
-Synchronize issues between beads and Jira.
+Synchronize issues between issuegraph and Jira.
 
 Configuration:
-  bd config set jira.url "https://company.atlassian.net"
-  bd config set jira.project "PROJ"
-  bd config set jira.projects "PROJ1,PROJ2"   # Multiple projects
-  bd config set jira.api_token "YOUR_TOKEN"
-  bd config set jira.username "your_email@company.com"  # For Jira Cloud
-  bd config set jira.push_prefix "hippo"       # Only push hippo-* issues to Jira
-  bd config set jira.push_prefix "proj1,proj2" # Multiple prefixes (comma-separated)
+  issuegraph config set jira.url "https://company.atlassian.net"
+  issuegraph config set jira.project "PROJ"
+  issuegraph config set jira.projects "PROJ1,PROJ2"   # Multiple projects
+  issuegraph config set jira.api_token "YOUR_TOKEN"
+  issuegraph config set jira.username "your_email@company.com"  # For Jira Cloud
+  issuegraph config set jira.push_prefix "hippo"       # Only push hippo-* issues to Jira
+  issuegraph config set jira.push_prefix "proj1,proj2" # Multiple prefixes (comma-separated)
 
 Environment variables (alternative to config):
   JIRA_API_TOKEN  - Jira API token
@@ -4767,25 +4767,25 @@ Environment variables (alternative to config):
   JIRA_PROJECTS   - Comma-separated project keys
 
 Examples:
-  bd jira sync --pull         # Import issues from Jira
-  bd jira sync --push         # Export issues to Jira
-  bd jira sync                # Bidirectional sync (pull then push)
-  bd jira sync --dry-run      # Preview sync without changes
-  bd jira status              # Show sync status
+  issuegraph jira sync --pull         # Import issues from Jira
+  issuegraph jira sync --push         # Export issues to Jira
+  issuegraph jira sync                # Bidirectional sync (pull then push)
+  issuegraph jira sync --dry-run      # Preview sync without changes
+  issuegraph jira status              # Show sync status
 
 ```
-bd jira
+issuegraph jira
 ```
 
-#### bd jira pull
+#### issuegraph jira pull
 
 Pull one or more items from Jira.
 
-Accepts bead IDs or external references as positional arguments.
-Equivalent to: bd jira sync --pull --issues &lt;refs&gt;
+Accepts issue IDs or external references as positional arguments.
+Equivalent to: issuegraph jira sync --pull --issues &lt;refs&gt;
 
 ```
-bd jira pull [refs...] [flags]
+issuegraph jira pull [refs...] [flags]
 ```
 
 **Flags:**
@@ -4794,15 +4794,15 @@ bd jira pull [refs...] [flags]
       --dry-run   Preview pull without making changes
 ```
 
-#### bd jira push
+#### issuegraph jira push
 
-Push one or more beads issues to Jira.
+Push one or more issuegraph issues to Jira.
 
-Accepts bead IDs as positional arguments.
-Equivalent to: bd jira sync --push --issues &lt;ids&gt;
+Accepts issue IDs as positional arguments.
+Equivalent to: issuegraph jira sync --push --issues &lt;ids&gt;
 
 ```
-bd jira push [bead-ids...] [flags]
+issuegraph jira push [issue-ids...] [flags]
 ```
 
 **Flags:**
@@ -4811,7 +4811,7 @@ bd jira push [bead-ids...] [flags]
       --dry-run   Preview push without making changes
 ```
 
-#### bd jira status
+#### issuegraph jira status
 
 Show the current Jira sync status, including:
   - Last sync timestamp
@@ -4820,31 +4820,31 @@ Show the current Jira sync status, including:
   - Issues pending push (no external_ref)
 
 ```
-bd jira status
+issuegraph jira status
 ```
 
-#### bd jira sync
+#### issuegraph jira sync
 
-Synchronize issues between beads and Jira.
+Synchronize issues between issuegraph and Jira.
 
 Modes:
-  --pull         Import issues from Jira into beads
-  --push         Export issues from beads to Jira
+  --pull         Import issues from Jira into issuegraph
+  --push         Export issues from issuegraph to Jira
   (no flags)     Bidirectional sync: pull then push, with conflict resolution
 
 Conflict Resolution:
   By default, newer timestamp wins. Override with:
-  --prefer-local   Always prefer local beads version
+  --prefer-local   Always prefer local issuegraph version
   --prefer-jira    Always prefer Jira version
 
 Examples:
-  bd jira sync --pull                # Import from Jira
-  bd jira sync --push --create-only  # Push new issues only
-  bd jira sync --dry-run             # Preview without changes
-  bd jira sync --prefer-local        # Bidirectional, local wins
+  issuegraph jira sync --pull                # Import from Jira
+  issuegraph jira sync --push --create-only  # Push new issues only
+  issuegraph jira sync --dry-run             # Preview without changes
+  issuegraph jira sync --prefer-local        # Bidirectional, local wins
 
 ```
-bd jira sync [flags]
+issuegraph jira sync [flags]
 ```
 
 **Flags:**
@@ -4852,8 +4852,8 @@ bd jira sync [flags]
 ```
       --create-only       Only create new issues, don't update existing
       --dry-run           Preview sync without making changes
-      --issues string     Comma-separated bead IDs to sync selectively (e.g., bd-abc,bd-def). Mutually exclusive with --parent.
-      --parent string     Limit push to this bead and its descendants (push only). Mutually exclusive with --issues.
+      --issues string     Comma-separated issue IDs to sync selectively (e.g., issuegraph-abc,issuegraph-def). Mutually exclusive with --parent.
+      --parent string     Limit push to this issue and its descendants (push only). Mutually exclusive with --issues.
       --prefer-jira       Prefer Jira version on conflicts
       --prefer-local      Prefer local version on conflicts
       --project strings   Project key(s) to sync (overrides configured project/projects)
@@ -4862,15 +4862,15 @@ bd jira sync [flags]
       --state string      Issue state to sync: open, closed, all (default "all")
 ```
 
-### bd linear
+### issuegraph linear
 
-Synchronize issues between beads and Linear.
+Synchronize issues between issuegraph and Linear.
 
 Configuration:
-  bd config set linear.api_key "YOUR_API_KEY"
-  bd config set linear.team_id "TEAM_ID"
-  bd config set linear.team_ids "TEAM_ID1,TEAM_ID2"  # Multiple teams (comma-separated)
-  bd config set linear.project_id "PROJECT_ID"  # Optional: sync only this project
+  issuegraph config set linear.api_key "YOUR_API_KEY"
+  issuegraph config set linear.team_id "TEAM_ID"
+  issuegraph config set linear.team_ids "TEAM_ID1,TEAM_ID2"  # Multiple teams (comma-separated)
+  issuegraph config set linear.project_id "PROJECT_ID"  # Optional: sync only this project
 
 Environment variables (alternative to config):
   LINEAR_API_KEY  - Linear API key (for individual developers)
@@ -4887,76 +4887,76 @@ OAuth (for CI workers / automated sync):
   Precedence: OAuth &gt; LINEAR_API_KEY &gt; config file.
 
 Data Mapping (optional, sensible defaults provided):
-  Priority mapping (Linear 0-4 to Beads 0-4):
-    bd config set linear.priority_map.0 4    # No priority -&gt; Backlog
-    bd config set linear.priority_map.1 0    # Urgent -&gt; Critical
-    bd config set linear.priority_map.2 1    # High -&gt; High
-    bd config set linear.priority_map.3 2    # Medium -&gt; Medium
-    bd config set linear.priority_map.4 3    # Low -&gt; Low
+  Priority mapping (Linear 0-4 to IssueGraph 0-4):
+    issuegraph config set linear.priority_map.0 4    # No priority -&gt; Backlog
+    issuegraph config set linear.priority_map.1 0    # Urgent -&gt; Critical
+    issuegraph config set linear.priority_map.2 1    # High -&gt; High
+    issuegraph config set linear.priority_map.3 2    # Medium -&gt; Medium
+    issuegraph config set linear.priority_map.4 3    # Low -&gt; Low
 
-  State mapping (Linear state type to Beads status):
-    bd config set linear.state_map.backlog open
-    bd config set linear.state_map.unstarted open
-    bd config set linear.state_map.started in_progress
-    bd config set linear.state_map.completed closed
-    bd config set linear.state_map.canceled closed
-    bd config set linear.state_map.my_custom_state in_progress  # Custom state names
+  State mapping (Linear state type to IssueGraph status):
+    issuegraph config set linear.state_map.backlog open
+    issuegraph config set linear.state_map.unstarted open
+    issuegraph config set linear.state_map.started in_progress
+    issuegraph config set linear.state_map.completed closed
+    issuegraph config set linear.state_map.canceled closed
+    issuegraph config set linear.state_map.my_custom_state in_progress  # Custom state names
 
   Label to issue type mapping:
-    bd config set linear.label_type_map.bug bug
-    bd config set linear.label_type_map.feature feature
-    bd config set linear.label_type_map.epic epic
+    issuegraph config set linear.label_type_map.bug bug
+    issuegraph config set linear.label_type_map.feature feature
+    issuegraph config set linear.label_type_map.epic epic
 
-  Relation type mapping (Linear relations to Beads dependencies):
-    bd config set linear.relation_map.blocks blocks
-    bd config set linear.relation_map.blockedBy blocks
-    bd config set linear.relation_map.duplicate duplicates
-    bd config set linear.relation_map.related related
+  Relation type mapping (Linear relations to IssueGraph dependencies):
+    issuegraph config set linear.relation_map.blocks blocks
+    issuegraph config set linear.relation_map.blockedBy blocks
+    issuegraph config set linear.relation_map.duplicate duplicates
+    issuegraph config set linear.relation_map.related related
 
-  ID generation (optional, hash IDs to match bd/Jira hash mode):
-    bd config set linear.id_mode "hash"      # hash (default)
-    bd config set linear.hash_length "6"     # hash length 3-8 (default: 6)
+  ID generation (optional, hash IDs to match issuegraph/Jira hash mode):
+    issuegraph config set linear.id_mode "hash"      # hash (default)
+    issuegraph config set linear.hash_length "6"     # hash length 3-8 (default: 6)
 
 Examples:
-  bd linear sync --pull         # Import issues from Linear
-  bd linear sync --push         # Export issues to Linear
-  bd linear sync                # Bidirectional sync (pull then push)
-  bd linear sync --dry-run      # Preview sync without changes
-  bd create "Fix login" --external-ref https://linear.app/team/issue/TEAM-123
+  issuegraph linear sync --pull         # Import issues from Linear
+  issuegraph linear sync --push         # Export issues to Linear
+  issuegraph linear sync                # Bidirectional sync (pull then push)
+  issuegraph linear sync --dry-run      # Preview sync without changes
+  issuegraph create "Fix login" --external-ref https://linear.app/team/issue/TEAM-123
                               # Link a local issue to an existing Linear issue
-  bd linear status              # Show sync status
+  issuegraph linear status              # Show sync status
 
 ```
-bd linear
+issuegraph linear
 ```
 
-#### bd linear pull
+#### issuegraph linear pull
 
 Pull one or more items from Linear.
 
-Accepts bead IDs or external references as positional arguments.
-Equivalent to: bd linear sync --pull --issues &lt;refs&gt;
+Accepts issue IDs or external references as positional arguments.
+Equivalent to: issuegraph linear sync --pull --issues &lt;refs&gt;
 
 ```
-bd linear pull [refs...] [flags]
+issuegraph linear pull [refs...] [flags]
 ```
 
 **Flags:**
 
 ```
       --dry-run     Preview pull without making changes
-      --relations   Import Linear relations as bd dependencies when pulling
+      --relations   Import Linear relations as issuegraph dependencies when pulling
 ```
 
-#### bd linear push
+#### issuegraph linear push
 
-Push one or more beads issues to Linear.
+Push one or more issuegraph issues to Linear.
 
-Accepts bead IDs as positional arguments.
-Equivalent to: bd linear sync --push --issues &lt;ids&gt;
+Accepts issue IDs as positional arguments.
+Equivalent to: issuegraph linear sync --push --issues &lt;ids&gt;
 
 ```
-bd linear push [bead-ids...] [flags]
+issuegraph linear push [issue-ids...] [flags]
 ```
 
 **Flags:**
@@ -4965,7 +4965,7 @@ bd linear push [bead-ids...] [flags]
       --dry-run   Preview push without making changes
 ```
 
-#### bd linear status
+#### issuegraph linear status
 
 Show the current Linear sync status, including:
   - Last sync timestamp
@@ -4974,16 +4974,16 @@ Show the current Linear sync status, including:
   - Issues pending push (no external_ref)
 
 ```
-bd linear status
+issuegraph linear status
 ```
 
-#### bd linear sync
+#### issuegraph linear sync
 
-Synchronize issues between beads and Linear.
+Synchronize issues between issuegraph and Linear.
 
 Modes:
-  --pull              Import issues from Linear into beads
-  --push              Export issues from beads to Linear
+  --pull              Import issues from Linear into issuegraph
+  --push              Export issues from issuegraph to Linear
   --pull-if-stale     Pull only if data is stale (skip if fresh)
   (no flags)          Bidirectional sync: pull then push, with conflict resolution
 
@@ -5006,27 +5006,27 @@ Type Filtering (--push only):
   --exclude-type wisp       Exclude issues of these types
   --include-ephemeral       Include ephemeral issues (wisps, etc.); default is to exclude
   --parent TICKET           Only push this ticket and its descendants
-  --relations               Import Linear relations as bd dependencies on pull
+  --relations               Import Linear relations as issuegraph dependencies on pull
 
 Conflict Resolution:
   By default, newer timestamp wins. Override with:
-  --prefer-local    Always prefer local beads version
+  --prefer-local    Always prefer local issuegraph version
   --prefer-linear   Always prefer Linear version
 
 Examples:
-  bd linear sync --pull                         # Import from Linear
-  bd linear sync --pull-if-stale                # Pull only if data is stale
-  bd linear sync --pull-if-stale --threshold 5m # Pull if older than 5 minutes
-  bd linear sync --pull --relations             # Import Linear blocking relations as bd deps
-  bd linear sync --push --create-only           # Push new issues only
-  bd linear sync --push --type=task,feature     # Push only tasks and features
-  bd linear sync --push --exclude-type=wisp     # Push all except wisps
-  bd linear sync --push --parent=bd-abc123      # Push one ticket tree
-  bd linear sync --dry-run                      # Preview without changes
-  bd linear sync --prefer-local                 # Bidirectional, local wins
+  issuegraph linear sync --pull                         # Import from Linear
+  issuegraph linear sync --pull-if-stale                # Pull only if data is stale
+  issuegraph linear sync --pull-if-stale --threshold 5m # Pull if older than 5 minutes
+  issuegraph linear sync --pull --relations             # Import Linear blocking relations as issuegraph deps
+  issuegraph linear sync --push --create-only           # Push new issues only
+  issuegraph linear sync --push --type=task,feature     # Push only tasks and features
+  issuegraph linear sync --push --exclude-type=wisp     # Push all except wisps
+  issuegraph linear sync --push --parent=issuegraph-abc123      # Push one ticket tree
+  issuegraph linear sync --dry-run                      # Preview without changes
+  issuegraph linear sync --prefer-local                 # Bidirectional, local wins
 
 ```
-bd linear sync [flags]
+issuegraph linear sync [flags]
 ```
 
 **Flags:**
@@ -5036,16 +5036,16 @@ bd linear sync [flags]
       --dry-run                Preview sync without making changes
       --exclude-type strings   Exclude issues of these types (can be repeated)
       --include-ephemeral      Include ephemeral issues (wisps, etc.) when pushing to Linear
-      --issues string          Comma-separated bead IDs to sync selectively (e.g., bd-abc,bd-def). Mutually exclusive with --parent.
+      --issues string          Comma-separated issue IDs to sync selectively (e.g., issuegraph-abc,issuegraph-def). Mutually exclusive with --parent.
       --milestones             Reconstruct Linear project milestones as local epic parents when pulling
       --no-wait                Fail immediately if another sync is running instead of waiting
-      --parent string          Limit push to this beads ticket and its descendants
+      --parent string          Limit push to this issuegraph ticket and its descendants
       --prefer-linear          Prefer Linear version on conflicts
       --prefer-local           Prefer local version on conflicts
       --pull                   Pull issues from Linear
       --pull-if-stale          Pull only if Linear data is stale (skip if fresh)
       --push                   Push issues to Linear
-      --relations              Import Linear relations as bd dependencies when pulling
+      --relations              Import Linear relations as issuegraph dependencies when pulling
       --state string           Issue state to sync: open, closed, all (default "all")
       --team strings           Team ID(s) to sync (overrides configured team_id/team_ids)
       --threshold duration     Staleness threshold for --pull-if-stale (default 20m) (default 20m0s)
@@ -5053,58 +5053,58 @@ bd linear sync [flags]
       --update-refs            Update external_ref after creating Linear issues (default true)
 ```
 
-#### bd linear teams
+#### issuegraph linear teams
 
 List all teams accessible with your Linear API key.
 
 Use this to find the team ID (UUID) needed for configuration.
 
 Example:
-  bd linear teams
-  bd config set linear.team_id "12345678-1234-1234-1234-123456789abc"
+  issuegraph linear teams
+  issuegraph config set linear.team_id "12345678-1234-1234-1234-123456789abc"
 
 ```
-bd linear teams
+issuegraph linear teams
 ```
 
-### bd repo
+### issuegraph repo
 
 Configure and manage multiple repository support for multi-repo hydration.
 
-Multi-repo support allows hydrating issues from multiple beads repositories
+Multi-repo support allows hydrating issues from multiple issuegraph repositories
 into a single database for unified cross-repo issue tracking.
 
-Configuration is stored in .beads/config.yaml under the 'repos' section:
+Configuration is stored in .issuegraph/config.yaml under the 'repos' section:
 
   repos:
     primary: "."
     additional:
-      - ~/beads-planning
+      - ~/issuegraph-planning
       - ~/work-repo
 
 Examples:
-  bd repo add ~/beads-planning       # Add planning repo
-  bd repo add ../other-repo          # Add relative path repo
-  bd repo list                       # Show all configured repos
-  bd repo remove ~/beads-planning    # Remove by path
-  bd repo sync                       # Sync from all configured repos
+  issuegraph repo add ~/issuegraph-planning       # Add planning repo
+  issuegraph repo add ../other-repo          # Add relative path repo
+  issuegraph repo list                       # Show all configured repos
+  issuegraph repo remove ~/issuegraph-planning    # Remove by path
+  issuegraph repo sync                       # Sync from all configured repos
 
 ```
-bd repo
+issuegraph repo
 ```
 
-#### bd repo add
+#### issuegraph repo add
 
 Add a repository path to the repos.additional list in config.yaml.
 
-The path should point to a directory containing a .beads folder.
+The path should point to a directory containing a .issuegraph folder.
 Paths can be absolute or relative (they are stored as-is).
 
-This modifies .beads/config.yaml, which is version-controlled and
+This modifies .issuegraph/config.yaml, which is version-controlled and
 shared across all clones of this repository.
 
 ```
-bd repo add <path> [flags]
+issuegraph repo add <path> [flags]
 ```
 
 **Flags:**
@@ -5113,15 +5113,15 @@ bd repo add <path> [flags]
       --json   Output JSON
 ```
 
-#### bd repo list
+#### issuegraph repo list
 
-List all repositories configured in .beads/config.yaml.
+List all repositories configured in .issuegraph/config.yaml.
 
 Shows the primary repository (always ".") and any additional
 repositories configured for hydration.
 
 ```
-bd repo list [flags]
+issuegraph repo list [flags]
 ```
 
 **Flags:**
@@ -5130,7 +5130,7 @@ bd repo list [flags]
       --json   Output JSON
 ```
 
-#### bd repo remove
+#### issuegraph repo remove
 
 Remove a repository path from the repos.additional list in config.yaml.
 
@@ -5141,7 +5141,7 @@ This command also removes any previously-hydrated issues from the database
 that came from the removed repository.
 
 ```
-bd repo remove <path> [flags]
+issuegraph repo remove <path> [flags]
 ```
 
 **Flags:**
@@ -5150,7 +5150,7 @@ bd repo remove <path> [flags]
       --json   Output JSON
 ```
 
-#### bd repo sync
+#### issuegraph repo sync
 
 Synchronize issues from all configured additional repositories.
 
@@ -5161,7 +5161,7 @@ Uses mtime caching to skip repos whose JSONL hasn't changed.
 Also triggers Dolt push/pull if a remote is configured.
 
 ```
-bd repo sync [flags]
+issuegraph repo sync [flags]
 ```
 
 **Flags:**
@@ -5173,11 +5173,11 @@ bd repo sync [flags]
 
 ## Other Commands:
 
-### bd ado
+### issuegraph ado
 
-Commands for syncing issues between beads and Azure DevOps.
+Commands for syncing issues between issuegraph and Azure DevOps.
 
-Configuration can be set via 'bd config' or environment variables:
+Configuration can be set via 'issuegraph config' or environment variables:
   ado.org / AZURE_DEVOPS_ORG              - Organization name
   ado.project / AZURE_DEVOPS_PROJECT      - Project name (single)
   ado.projects / AZURE_DEVOPS_PROJECTS    - Project names (comma-separated)
@@ -5185,26 +5185,26 @@ Configuration can be set via 'bd config' or environment variables:
   ado.url / AZURE_DEVOPS_URL              - Custom base URL (on-prem)
 
 ```
-bd ado
+issuegraph ado
 ```
 
-#### bd ado projects
+#### issuegraph ado projects
 
 List Azure DevOps projects that the configured token has access to.
 
 ```
-bd ado projects
+issuegraph ado projects
 ```
 
-#### bd ado pull
+#### issuegraph ado pull
 
 Pull one or more items from Azure DevOps.
 
-Accepts bead IDs or external references as positional arguments.
-Equivalent to: bd ado sync --pull-only --issues &lt;refs&gt;
+Accepts issue IDs or external references as positional arguments.
+Equivalent to: issuegraph ado sync --pull-only --issues &lt;refs&gt;
 
 ```
-bd ado pull [refs...] [flags]
+issuegraph ado pull [refs...] [flags]
 ```
 
 **Flags:**
@@ -5213,15 +5213,15 @@ bd ado pull [refs...] [flags]
       --dry-run   Preview pull without making changes
 ```
 
-#### bd ado push
+#### issuegraph ado push
 
-Push one or more beads issues to Azure DevOps.
+Push one or more issuegraph issues to Azure DevOps.
 
-Accepts bead IDs as positional arguments.
-Equivalent to: bd ado sync --push-only --issues &lt;ids&gt;
+Accepts issue IDs as positional arguments.
+Equivalent to: issuegraph ado sync --push-only --issues &lt;ids&gt;
 
 ```
-bd ado push [bead-ids...] [flags]
+issuegraph ado push [issue-ids...] [flags]
 ```
 
 **Flags:**
@@ -5230,27 +5230,27 @@ bd ado push [bead-ids...] [flags]
       --dry-run   Preview push without making changes
 ```
 
-#### bd ado status
+#### issuegraph ado status
 
 Display current Azure DevOps configuration and sync status.
 
 ```
-bd ado status
+issuegraph ado status
 ```
 
-#### bd ado sync
+#### issuegraph ado sync
 
-Synchronize issues between beads and Azure DevOps.
+Synchronize issues between issuegraph and Azure DevOps.
 
 By default, performs bidirectional sync:
-- Pulls new/updated work items from Azure DevOps to beads
-- Pushes local beads issues to Azure DevOps
+- Pulls new/updated work items from Azure DevOps to issuegraph
+- Pushes local issuegraph issues to Azure DevOps
 
 Use --pull-only or --push-only to limit direction.
 
 Filters (--area-path, --iteration-path, --types, --states) restrict
 which work items are synced. On pull, they limit the WIQL query. On push,
---types and --states filter local beads before pushing to ADO. Use
+--types and --states filter local issuegraph before pushing to ADO. Use
 --no-create with push to skip creating new ADO work items (only update
 existing linked items). Filters can also be persisted via config:
   ado.filter.area_path, ado.filter.iteration_path,
@@ -5258,7 +5258,7 @@ existing linked items). Filters can also be persisted via config:
 CLI flags override config values when both are set.
 
 ```
-bd ado sync [flags]
+issuegraph ado sync [flags]
 ```
 
 **Flags:**
@@ -5267,12 +5267,12 @@ bd ado sync [flags]
       --area-path string        Filter to ADO area path (e.g., "Project\Team")
       --bootstrap-match         Enable heuristic matching for first sync
       --dry-run                 Show what would be synced without making changes
-      --issues string           Comma-separated bead IDs to sync selectively (e.g., bd-abc,bd-def). Mutually exclusive with --parent.
+      --issues string           Comma-separated issue IDs to sync selectively (e.g., issuegraph-abc,issuegraph-def). Mutually exclusive with --parent.
       --iteration-path string   Filter to ADO iteration path (e.g., "Project\Sprint 1")
       --no-create               Never create new items in either direction (pull or push)
-      --parent string           Limit push to this bead and its descendants (push only). Mutually exclusive with --issues.
+      --parent string           Limit push to this issue and its descendants (push only). Mutually exclusive with --issues.
       --prefer-ado              On conflict, use Azure DevOps version
-      --prefer-local            On conflict, keep local beads version
+      --prefer-local            On conflict, keep local issuegraph version
       --prefer-newer            On conflict, use most recent version (default)
       --project strings         Project name(s) to sync (overrides configured project/projects)
       --pull-only               Only pull issues from Azure DevOps
@@ -5282,9 +5282,9 @@ bd ado sync [flags]
       --types string            Filter to work item types, comma-separated (e.g., "Bug,Task,User Story")
 ```
 
-### bd audit
+### issuegraph audit
 
-Audit log entries are appended to .beads/interactions.jsonl.
+Audit log entries are appended to .issuegraph/interactions.jsonl.
 
 Each line is one event. This file is intended to be versioned in git and used for:
 - auditing ("why did the agent do that?")
@@ -5293,15 +5293,15 @@ Each line is one event. This file is intended to be versioned in git and used fo
 Entries are append-only. Labeling creates a new "label" entry that references a parent entry.
 
 ```
-bd audit
+issuegraph audit
 ```
 
-#### bd audit label
+#### issuegraph audit label
 
 Append a label entry referencing an existing interaction
 
 ```
-bd audit label <entry-id> [flags]
+issuegraph audit label <entry-id> [flags]
 ```
 
 **Flags:**
@@ -5311,12 +5311,12 @@ bd audit label <entry-id> [flags]
       --reason string   Reason for label
 ```
 
-#### bd audit record
+#### issuegraph audit record
 
 Append an audit interaction entry
 
 ```
-bd audit record [flags]
+issuegraph audit record [flags]
 ```
 
 **Flags:**
@@ -5324,7 +5324,7 @@ bd audit record [flags]
 ```
       --error string       Error string (llm_call/tool_call)
       --exit-code int      Exit code (tool_call) (default -1)
-      --issue-id string    Related issue id (bd-...)
+      --issue-id string    Related issue id (issuegraph-...)
       --kind string        Entry kind (e.g. llm_call, tool_call, label)
       --model string       Model name (llm_call)
       --prompt string      Prompt text (llm_call)
@@ -5333,31 +5333,31 @@ bd audit record [flags]
       --tool-name string   Tool name (tool_call)
 ```
 
-### bd blocked
+### issuegraph blocked
 
 Show blocked issues
 
 ```
-bd blocked [flags]
+issuegraph blocked [flags]
 ```
 
 **Flags:**
 
 ```
-      --parent string   Filter to descendants of this bead/epic
+      --parent string   Filter to descendants of this issue/epic
 ```
 
-### bd completion
+### issuegraph completion
 
-Generate the autocompletion script for bd for the specified shell.
+Generate the autocompletion script for issuegraph for the specified shell.
 See each sub-command's help for details on how to use the generated script.
 
 
 ```
-bd completion
+issuegraph completion
 ```
 
-#### bd completion bash
+#### issuegraph completion bash
 
 Generate the autocompletion script for the bash shell.
 
@@ -5366,23 +5366,23 @@ If it is not installed already, you can install it via your OS's package manager
 
 To load completions in your current shell session:
 
-	source &lt;(bd completion bash)
+	source &lt;(issuegraph completion bash)
 
 To load completions for every new session, execute once:
 
 #### Linux:
 
-	bd completion bash &gt; /etc/bash_completion.d/bd
+	issuegraph completion bash &gt; /etc/bash_completion.d/issuegraph
 
 #### macOS:
 
-	bd completion bash &gt; $(brew --prefix)/etc/bash_completion.d/bd
+	issuegraph completion bash &gt; $(brew --prefix)/etc/bash_completion.d/issuegraph
 
 You will need to start a new shell for this setup to take effect.
 
 
 ```
-bd completion bash
+issuegraph completion bash
 ```
 
 **Flags:**
@@ -5391,23 +5391,23 @@ bd completion bash
       --no-descriptions   disable completion descriptions
 ```
 
-#### bd completion fish
+#### issuegraph completion fish
 
 Generate the autocompletion script for the fish shell.
 
 To load completions in your current shell session:
 
-	bd completion fish | source
+	issuegraph completion fish | source
 
 To load completions for every new session, execute once:
 
-	bd completion fish &gt; ~/.config/fish/completions/bd.fish
+	issuegraph completion fish &gt; ~/.config/fish/completions/issuegraph.fish
 
 You will need to start a new shell for this setup to take effect.
 
 
 ```
-bd completion fish [flags]
+issuegraph completion fish [flags]
 ```
 
 **Flags:**
@@ -5416,20 +5416,20 @@ bd completion fish [flags]
       --no-descriptions   disable completion descriptions
 ```
 
-#### bd completion powershell
+#### issuegraph completion powershell
 
 Generate the autocompletion script for powershell.
 
 To load completions in your current shell session:
 
-	bd completion powershell | Out-String | Invoke-Expression
+	issuegraph completion powershell | Out-String | Invoke-Expression
 
 To load completions for every new session, add the output of the above command
 to your powershell profile.
 
 
 ```
-bd completion powershell [flags]
+issuegraph completion powershell [flags]
 ```
 
 **Flags:**
@@ -5438,7 +5438,7 @@ bd completion powershell [flags]
       --no-descriptions   disable completion descriptions
 ```
 
-#### bd completion zsh
+#### issuegraph completion zsh
 
 Generate the autocompletion script for the zsh shell.
 
@@ -5449,23 +5449,23 @@ to enable it.  You can execute the following once:
 
 To load completions in your current shell session:
 
-	source &lt;(bd completion zsh)
+	source &lt;(issuegraph completion zsh)
 
 To load completions for every new session, execute once:
 
 #### Linux:
 
-	bd completion zsh &gt; "$&#123;fpath[1]&#125;/_bd"
+	issuegraph completion zsh &gt; "$&#123;fpath[1]&#125;/_bd"
 
 #### macOS:
 
-	bd completion zsh &gt; $(brew --prefix)/share/zsh/site-functions/_bd
+	issuegraph completion zsh &gt; $(brew --prefix)/share/zsh/site-functions/_bd
 
 You will need to start a new shell for this setup to take effect.
 
 
 ```
-bd completion zsh [flags]
+issuegraph completion zsh [flags]
 ```
 
 **Flags:**
@@ -5474,7 +5474,7 @@ bd completion zsh [flags]
       --no-descriptions   disable completion descriptions
 ```
 
-### bd cook
+### issuegraph cook
 
 Cook transforms a .formula.json file into a proto.
 
@@ -5507,25 +5507,25 @@ For most workflows, prefer ephemeral protos: pour and wisp commands
 accept formula names directly and cook inline.
 
 Examples:
-  bd cook mol-feature.formula.json                    # Compile-time: keep &#123;&#123;vars&#125;&#125;
-  bd cook mol-feature --var name=auth                 # Runtime: substitute vars
-  bd cook mol-feature --mode=runtime --var name=auth  # Explicit runtime mode
-  bd cook mol-feature --dry-run                       # Preview steps
-  bd cook mol-release.formula.json --persist          # Write to database
-  bd cook mol-release.formula.json --persist --force  # Replace existing
+  issuegraph cook mol-feature.formula.json                    # Compile-time: keep &#123;&#123;vars&#125;&#125;
+  issuegraph cook mol-feature --var name=auth                 # Runtime: substitute vars
+  issuegraph cook mol-feature --mode=runtime --var name=auth  # Explicit runtime mode
+  issuegraph cook mol-feature --dry-run                       # Preview steps
+  issuegraph cook mol-release.formula.json --persist          # Write to database
+  issuegraph cook mol-release.formula.json --persist --force  # Replace existing
 
 Output (default):
   JSON representation of the resolved formula with all steps.
 
 Output (--persist):
-  Creates a proto bead in the database with:
+  Creates a proto issue in the database with:
   - ID matching the formula name (e.g., mol-feature)
   - The "template" label for proto identification
   - Child issues for each step
   - Dependencies matching depends_on relationships
 
 ```
-bd cook <formula-file> [flags]
+issuegraph cook <formula-file> [flags]
 ```
 
 **Flags:**
@@ -5540,7 +5540,7 @@ bd cook <formula-file> [flags]
       --var stringArray       Variable substitution (key=value), enables runtime mode
 ```
 
-### bd defer
+### issuegraph defer
 
 Defer issues to put them on ice for later.
 
@@ -5549,16 +5549,16 @@ just postponed for future consideration. Unlike blocked issues, there's no
 dependency keeping them from being worked. Unlike closed issues, they will
 be revisited.
 
-Deferred issues don't show in 'bd ready' but remain visible in 'bd list'.
+Deferred issues don't show in 'issuegraph ready' but remain visible in 'issuegraph list'.
 
 Examples:
-  bd defer bd-abc                  # Defer a single issue (status-based)
-  bd defer bd-abc --until=tomorrow # Defer until specific time
-  bd defer bd-abc --reason="waiting on API access"
-  bd defer bd-abc bd-def           # Defer multiple issues
+  issuegraph defer issuegraph-abc                  # Defer a single issue (status-based)
+  issuegraph defer issuegraph-abc --until=tomorrow # Defer until specific time
+  issuegraph defer issuegraph-abc --reason="waiting on API access"
+  issuegraph defer issuegraph-abc issuegraph-def           # Defer multiple issues
 
 ```
-bd defer [id...] [flags]
+issuegraph defer [id...] [flags]
 ```
 
 **Flags:**
@@ -5568,7 +5568,7 @@ bd defer [id...] [flags]
       --until string    Defer until specific time (e.g., +1h, tomorrow, next monday)
 ```
 
-### bd formula
+### issuegraph formula
 
 Manage workflow formulas - the source layer for molecule templates.
 
@@ -5576,20 +5576,20 @@ Formulas are TOML/JSON files that define workflows with composition rules.
 Define formulas, cook them into protos, then pour or wisp them into work.
 
 Search paths (in order):
-  1. &lt;resolved-beads-dir&gt;/formulas/ (active project)
-  2. &lt;checkout-root&gt;/.beads/formulas/ (repo-local formulas)
-  3. ~/.beads/formulas/ (user)
-  4. $GT_ROOT/.beads/formulas/ (shared workspace root, if GT_ROOT set)
+  1. &lt;resolved-issuegraph-dir&gt;/formulas/ (active project)
+  2. &lt;checkout-root&gt;/.issuegraph/formulas/ (repo-local formulas)
+  3. ~/.issuegraph/formulas/ (user)
+  4. $GT_ROOT/.issuegraph/formulas/ (shared workspace root, if GT_ROOT set)
 
 Commands:
   list   List available formulas from all search paths
   show   Show formula details, steps, and composition rules
 
 ```
-bd formula
+issuegraph formula
 ```
 
-#### bd formula convert
+#### issuegraph formula convert
 
 Convert formula files from JSON to TOML format.
 
@@ -5602,14 +5602,14 @@ The convert command reads a .formula.json file and outputs .formula.toml.
 The original JSON file is preserved (use --delete to remove it).
 
 Examples:
-  bd formula convert shiny              # Convert shiny.formula.json to .toml
-  bd formula convert ./my.formula.json  # Convert specific file
-  bd formula convert --all              # Convert all JSON formulas
-  bd formula convert shiny --delete     # Convert and remove JSON file
-  bd formula convert shiny --stdout     # Print TOML to stdout
+  issuegraph formula convert shiny              # Convert shiny.formula.json to .toml
+  issuegraph formula convert ./my.formula.json  # Convert specific file
+  issuegraph formula convert --all              # Convert all JSON formulas
+  issuegraph formula convert shiny --delete     # Convert and remove JSON file
+  issuegraph formula convert shiny --stdout     # Print TOML to stdout
 
 ```
-bd formula convert <formula-name|path> [--all] [flags]
+issuegraph formula convert <formula-name|path> [--all] [flags]
 ```
 
 **Flags:**
@@ -5620,26 +5620,26 @@ bd formula convert <formula-name|path> [--all] [flags]
       --stdout   Print TOML to stdout instead of file
 ```
 
-#### bd formula list
+#### issuegraph formula list
 
 List all formulas from search paths.
 
 Search paths (in order of priority):
-  1. &lt;resolved-beads-dir&gt;/formulas/ (active project - highest priority)
-  2. &lt;checkout-root&gt;/.beads/formulas/ (repo-local formulas)
-  3. ~/.beads/formulas/ (user)
-  4. $GT_ROOT/.beads/formulas/ (shared workspace root, if GT_ROOT set)
+  1. &lt;resolved-issuegraph-dir&gt;/formulas/ (active project - highest priority)
+  2. &lt;checkout-root&gt;/.issuegraph/formulas/ (repo-local formulas)
+  3. ~/.issuegraph/formulas/ (user)
+  4. $GT_ROOT/.issuegraph/formulas/ (shared workspace root, if GT_ROOT set)
 
 Formulas in earlier paths shadow those with the same name in later paths.
 
 Examples:
-  bd formula list
-  bd formula list --json
-  bd formula list --type workflow
-  bd formula list --type convoy
+  issuegraph formula list
+  issuegraph formula list --json
+  issuegraph formula list --type workflow
+  issuegraph formula list --type convoy
 
 ```
-bd formula list [flags]
+issuegraph formula list [flags]
 ```
 
 **Flags:**
@@ -5648,7 +5648,7 @@ bd formula list [flags]
       --type string   Filter by type (workflow, expansion, aspect, convoy)
 ```
 
-#### bd formula show
+#### issuegraph formula show
 
 Show detailed information about a formula.
 
@@ -5660,19 +5660,19 @@ Displays:
   - Bond points for external composition
 
 Examples:
-  bd formula show shiny
-  bd formula show rule-of-five
-  bd formula show security-audit --json
+  issuegraph formula show shiny
+  issuegraph formula show rule-of-five
+  issuegraph formula show security-audit --json
 
 ```
-bd formula show <formula-name>
+issuegraph formula show <formula-name>
 ```
 
-### bd github
+### issuegraph github
 
-Commands for syncing issues between beads and GitHub.
+Commands for syncing issues between issuegraph and GitHub.
 
-Configuration can be set via 'bd config' or environment variables:
+Configuration can be set via 'issuegraph config' or environment variables:
   github.token / GITHUB_TOKEN           - Personal access token
   github.owner / GITHUB_OWNER           - Repository owner
   github.repo / GITHUB_REPO             - Repository name
@@ -5680,18 +5680,18 @@ Configuration can be set via 'bd config' or environment variables:
   github.url / GITHUB_API_URL           - Custom API URL (GitHub Enterprise)
 
 ```
-bd github
+issuegraph github
 ```
 
-#### bd github pull
+#### issuegraph github pull
 
 Pull one or more items from GitHub.
 
-Accepts bead IDs or external references as positional arguments.
-Equivalent to: bd github sync --pull-only --issues &lt;refs&gt;
+Accepts issue IDs or external references as positional arguments.
+Equivalent to: issuegraph github sync --pull-only --issues &lt;refs&gt;
 
 ```
-bd github pull [refs...] [flags]
+issuegraph github pull [refs...] [flags]
 ```
 
 **Flags:**
@@ -5700,15 +5700,15 @@ bd github pull [refs...] [flags]
       --dry-run   Preview pull without making changes
 ```
 
-#### bd github push
+#### issuegraph github push
 
-Push one or more beads issues to GitHub.
+Push one or more issuegraph issues to GitHub.
 
-Accepts bead IDs as positional arguments.
-Equivalent to: bd github sync --push-only --issues &lt;ids&gt;
+Accepts issue IDs as positional arguments.
+Equivalent to: issuegraph github sync --push-only --issues &lt;ids&gt;
 
 ```
-bd github push [bead-ids...] [flags]
+issuegraph github push [issue-ids...] [flags]
 ```
 
 **Flags:**
@@ -5717,54 +5717,54 @@ bd github push [bead-ids...] [flags]
       --dry-run   Preview push without making changes
 ```
 
-#### bd github repos
+#### issuegraph github repos
 
 List GitHub repositories that the configured token has access to.
 
 ```
-bd github repos
+issuegraph github repos
 ```
 
-#### bd github status
+#### issuegraph github status
 
 Display current GitHub configuration and sync status.
 
 ```
-bd github status
+issuegraph github status
 ```
 
-#### bd github sync
+#### issuegraph github sync
 
-Synchronize issues between beads and GitHub.
+Synchronize issues between issuegraph and GitHub.
 
 By default, performs bidirectional sync:
-- Pulls new/updated issues from GitHub to beads
-- Pushes local beads issues to GitHub
+- Pulls new/updated issues from GitHub to issuegraph
+- Pushes local issuegraph issues to GitHub
 
 Use --pull-only or --push-only to limit direction.
 
 ```
-bd github sync [flags]
+issuegraph github sync [flags]
 ```
 
 **Flags:**
 
 ```
       --dry-run         Show what would be synced without making changes
-      --issues string   Comma-separated bead IDs to sync selectively (e.g., bd-abc,bd-def). Mutually exclusive with --parent.
-      --parent string   Limit push to this bead and its descendants (push only). Mutually exclusive with --issues.
+      --issues string   Comma-separated issue IDs to sync selectively (e.g., issuegraph-abc,issuegraph-def). Mutually exclusive with --parent.
+      --parent string   Limit push to this issue and its descendants (push only). Mutually exclusive with --issues.
       --prefer-github   On conflict, use GitHub version
-      --prefer-local    On conflict, keep local beads version
+      --prefer-local    On conflict, keep local issuegraph version
       --prefer-newer    On conflict, use most recent version (default)
       --pull-only       Only pull issues from GitHub
       --push-only       Only push issues to GitHub
 ```
 
-### bd gitlab
+### issuegraph gitlab
 
-Commands for syncing issues between beads and GitLab.
+Commands for syncing issues between issuegraph and GitLab.
 
-Configuration can be set via 'bd config' or environment variables:
+Configuration can be set via 'issuegraph config' or environment variables:
   gitlab.url / GITLAB_URL                         - GitLab instance URL
   gitlab.token / GITLAB_TOKEN                     - Personal access token
   gitlab.project_id / GITLAB_PROJECT_ID           - Project ID or path
@@ -5772,26 +5772,26 @@ Configuration can be set via 'bd config' or environment variables:
   gitlab.default_project_id / GITLAB_DEFAULT_PROJECT_ID - Project for creating issues in group mode
 
 ```
-bd gitlab
+issuegraph gitlab
 ```
 
-#### bd gitlab projects
+#### issuegraph gitlab projects
 
 List GitLab projects that the configured token has access to.
 
 ```
-bd gitlab projects
+issuegraph gitlab projects
 ```
 
-#### bd gitlab pull
+#### issuegraph gitlab pull
 
 Pull one or more items from GitLab.
 
-Accepts bead IDs or external references as positional arguments.
-Equivalent to: bd gitlab sync --pull-only --issues &lt;refs&gt;
+Accepts issue IDs or external references as positional arguments.
+Equivalent to: issuegraph gitlab sync --pull-only --issues &lt;refs&gt;
 
 ```
-bd gitlab pull [refs...] [flags]
+issuegraph gitlab pull [refs...] [flags]
 ```
 
 **Flags:**
@@ -5800,15 +5800,15 @@ bd gitlab pull [refs...] [flags]
       --dry-run   Preview pull without making changes
 ```
 
-#### bd gitlab push
+#### issuegraph gitlab push
 
-Push one or more beads issues to GitLab.
+Push one or more issuegraph issues to GitLab.
 
-Accepts bead IDs as positional arguments.
-Equivalent to: bd gitlab sync --push-only --issues &lt;ids&gt;
+Accepts issue IDs as positional arguments.
+Equivalent to: issuegraph gitlab sync --push-only --issues &lt;ids&gt;
 
 ```
-bd gitlab push [bead-ids...] [flags]
+issuegraph gitlab push [issue-ids...] [flags]
 ```
 
 **Flags:**
@@ -5817,26 +5817,26 @@ bd gitlab push [bead-ids...] [flags]
       --dry-run   Preview push without making changes
 ```
 
-#### bd gitlab status
+#### issuegraph gitlab status
 
 Display current GitLab configuration and sync status.
 
 ```
-bd gitlab status
+issuegraph gitlab status
 ```
 
-#### bd gitlab sync
+#### issuegraph gitlab sync
 
-Synchronize issues between beads and GitLab.
+Synchronize issues between issuegraph and GitLab.
 
 By default, performs bidirectional sync:
-- Pulls new/updated issues from GitLab to beads
-- Pushes local beads issues to GitLab
+- Pulls new/updated issues from GitLab to issuegraph
+- Pushes local issuegraph issues to GitLab
 
 Use --pull-only or --push-only to limit direction.
 
 ```
-bd gitlab sync [flags]
+issuegraph gitlab sync [flags]
 ```
 
 **Flags:**
@@ -5845,13 +5845,13 @@ bd gitlab sync [flags]
       --assignee string       Filter by assignee username
       --dry-run               Show what would be synced without making changes
       --exclude-type string   Exclude these issue types from sync (comma-separated)
-      --issues string         Comma-separated bead IDs to sync selectively (e.g., bd-abc,bd-def). Mutually exclusive with --parent.
+      --issues string         Comma-separated issue IDs to sync selectively (e.g., issuegraph-abc,issuegraph-def). Mutually exclusive with --parent.
       --label string          Filter by labels (comma-separated, AND logic)
       --milestone string      Filter by milestone title
       --no-ephemeral          Exclude ephemeral/wisp issues from push (default: true) (default true)
-      --parent string         Limit push to this bead and its descendants (push only). Mutually exclusive with --issues.
+      --parent string         Limit push to this issue and its descendants (push only). Mutually exclusive with --issues.
       --prefer-gitlab         On conflict, use GitLab version
-      --prefer-local          On conflict, keep local beads version
+      --prefer-local          On conflict, keep local issuegraph version
       --prefer-newer          On conflict, use most recent version (default)
       --project string        Filter to issues from this project ID (group mode)
       --pull-only             Only pull issues from GitLab
@@ -5859,13 +5859,13 @@ bd gitlab sync [flags]
       --type string           Only sync these issue types (comma-separated, e.g. 'epic,feature,task')
 ```
 
-### bd help
+### issuegraph help
 
 Help provides help for any command in the application.
-Simply type bd help [path to command] for full details.
+Simply type issuegraph help [path to command] for full details.
 
 ```
-bd help [command] [flags]
+issuegraph help [command] [flags]
 ```
 
 **Flags:**
@@ -5879,34 +5879,34 @@ bd help [command] [flags]
       --list                  List all available commands
 ```
 
-### bd init-safety
+### issuegraph init-safety
 
-bd init flag safety contract.
+issuegraph init flag safety contract.
 
-Every bd init invocation resolves project_id from exactly one explicitly
+Every issuegraph init invocation resolves project_id from exactly one explicitly
 named source (local reinit, remote adoption, or a fresh mint). When the
-source is ambiguous, bd init refuses.
+source is ambiguous, issuegraph init refuses.
 
 FLAG SURFACE
 
-  bd init                       Mint a new identity. Bootstraps from
+  issuegraph init                       Mint a new identity. Bootstraps from
                                 origin if it has refs/dolt/data.
 
-  bd init --reinit-local        Re-initialize local .beads/ over existing
+  issuegraph init --reinit-local        Re-initialize local .issuegraph/ over existing
                                 local data. Does NOT authorize discarding
                                 remote history. If origin has Dolt data
                                 this will refuse — pair with
                                 --discard-remote to override.
 
-  bd init --reinit-local \      Discard the remote's Dolt history and
+  issuegraph init --reinit-local \      Discard the remote's Dolt history and
       --discard-remote          replace it with the local reinit. First
-                                bd dolt push after this will be a
+                                issuegraph dolt push after this will be a
                                 history-replacing force-push.
 
-  bd init --force               Deprecated alias for --reinit-local.
+  issuegraph init --force               Deprecated alias for --reinit-local.
                                 Kept working for ≥2 releases.
 
-  bd init --from-jsonl          Import from configured import.path. If
+  issuegraph init --from-jsonl          Import from configured import.path. If
                                 origin has Dolt data, this refuses unless
                                 --discard-remote authorizes replacing that
                                 remote history.
@@ -5915,9 +5915,9 @@ ADOPTING A REMOTE
 
   If you want to use the remote's existing history, use:
 
-      bd bootstrap
+      issuegraph bootstrap
 
-  bd init will automatically suggest this when a remote is detected.
+  issuegraph init will automatically suggest this when a remote is detected.
 
 DESTROY-TOKEN (non-interactive only)
 
@@ -5926,12 +5926,12 @@ DESTROY-TOKEN (non-interactive only)
 
       DESTROY-&lt;issue-prefix&gt;
 
-  For example, if your issue prefix is "bd", the token is "DESTROY-bd":
+  For example, if your issue prefix is "issuegraph", the token is "DESTROY-issuegraph":
 
-      bd init --reinit-local --discard-remote --destroy-token=DESTROY-bd
+      issuegraph init --reinit-local --discard-remote --destroy-token=DESTROY-issuegraph
 
   In interactive (TTY) mode you confirm via a typed prompt instead. The
-  token is not echoed by bd's runtime error messages — this is a
+  token is not echoed by issuegraph's runtime error messages — this is a
   deliberate guard against pattern-matched one-liners (see
   docs/adr/0002-init-safety-invariants.md).
 
@@ -5950,80 +5950,80 @@ RECOVERY
 
 
 ```
-bd init-safety
+issuegraph init-safety
 ```
 
-### bd mail
+### issuegraph mail
 
 Delegates mail operations to an external mail provider.
 
-Agents often type 'bd mail' when working with beads, but mail functionality
+Agents often type 'issuegraph mail' when working with issuegraph, but mail functionality
 is typically provided by the orchestrator. This command bridges that gap
 by delegating to the configured mail provider.
 
 Configuration (checked in order):
-  1. BEADS_MAIL_DELEGATE or BD_MAIL_DELEGATE environment variable
-  2. 'mail.delegate' config setting (bd config set mail.delegate "gt mail")
+  1. ISSUEGRAPH_MAIL_DELEGATE or ISSUEGRAPH_MAIL_DELEGATE environment variable
+  2. 'mail.delegate' config setting (issuegraph config set mail.delegate "gt mail")
 
 Examples:
   # Configure delegation (one-time setup)
-  `export BEADS_MAIL_DELEGATE="gt mail"`
+  `export ISSUEGRAPH_MAIL_DELEGATE="gt mail"`
   # or
-  bd config set mail.delegate "gt mail"
+  issuegraph config set mail.delegate "gt mail"
 
-  # Then use bd mail as if it were gt mail
-  bd mail inbox                    # Lists inbox
-  bd mail send mayor/ -s "Hi"      # Sends mail
-  bd mail read msg-123             # Reads a message
+  # Then use issuegraph mail as if it were gt mail
+  issuegraph mail inbox                    # Lists inbox
+  issuegraph mail send mayor/ -s "Hi"      # Sends mail
+  issuegraph mail read msg-123             # Reads a message
 
 ```
-bd mail [subcommand] [args...]
+issuegraph mail [subcommand] [args...]
 ```
 
-### bd metrics
+### issuegraph metrics
 
 Show whether anonymous usage metrics are on, see exactly what is sent, and
 turn them on or off.
 
-bd shares anonymous usage metrics to learn how people actually use it — just
-which commands get run, plus the bd version and OS platform. That's how we decide
+issuegraph shares anonymous usage metrics to learn how people actually use it — just
+which commands get run, plus the issuegraph version and OS platform. That's how we decide
 what to polish next. We never collect your issues, paths, remotes, identity, or
 any user-supplied text.
 
-  bd metrics            show the current status and what is collected
-  bd metrics on         turn metrics on
-  bd metrics off        turn metrics off
-  bd metrics example    show real examples of the events bd sends
+  issuegraph metrics            show the current status and what is collected
+  issuegraph metrics on         turn metrics on
+  issuegraph metrics off        turn metrics off
+  issuegraph metrics example    show real examples of the events issuegraph sends
 
 ```
-bd metrics
+issuegraph metrics
 ```
 
-#### bd metrics example
+#### issuegraph metrics example
 
-Show real examples of the anonymous metrics bd sends
+Show real examples of the anonymous metrics issuegraph sends
 
 ```
-bd metrics example
+issuegraph metrics example
 ```
 
-#### bd metrics off
+#### issuegraph metrics off
 
 Turn anonymous usage metrics off
 
 ```
-bd metrics off
+issuegraph metrics off
 ```
 
-#### bd metrics on
+#### issuegraph metrics on
 
 Turn anonymous usage metrics on
 
 ```
-bd metrics on
+issuegraph metrics on
 ```
 
-### bd mol
+### issuegraph mol
 
 Manage molecules - work templates for agent workflows.
 
@@ -6046,15 +6046,15 @@ Commands:
   burn       Discard wisp
   distill    Extract proto from ad-hoc epic
 
-Use "bd formula list" to list available formulas.
+Use "issuegraph formula list" to list available formulas.
 
 ```
-bd mol
+issuegraph mol
 ```
 
 **Aliases:** protomolecule
 
-#### bd mol bond
+#### issuegraph mol bond
 
 Bond two protos or molecules to create a compound.
 
@@ -6069,7 +6069,7 @@ The bond command is polymorphic - it handles different operand types:
   mol + mol         → join into compound molecule
 
 Formula names (e.g., mol-polecat-arm) are cooked inline as ephemeral protos.
-This avoids needing pre-cooked proto beads in the database.
+This avoids needing pre-cooked proto issuegraph in the database.
 
 Bond types:
   sequential (default) - B runs after A completes
@@ -6090,8 +6090,8 @@ Dynamic bonding (Christmas Ornament pattern):
   This creates IDs like "parent.child-ref" instead of random hashes.
 
   Example:
-    bd mol bond mol-worker-arm bd-patrol --ref arm-&#123;&#123;worker_name&#125;&#125; --var worker_name=ace
-    # Creates: bd-patrol.arm-ace (and children like bd-patrol.arm-ace.capture)
+    issuegraph mol bond mol-worker-arm issuegraph-patrol --ref arm-&#123;&#123;worker_name&#125;&#125; --var worker_name=ace
+    # Creates: issuegraph-patrol.arm-ace (and children like issuegraph-patrol.arm-ace.capture)
 
 Use cases:
   - Found important bug during patrol? Use --pour to persist it
@@ -6099,16 +6099,16 @@ Use cases:
   - Spawning per-worker arms on a patrol? Use --ref for readable IDs
 
 Examples:
-  bd mol bond mol-feature mol-deploy                    # Compound proto
-  bd mol bond mol-feature mol-deploy --type parallel    # Run in parallel
-  bd mol bond mol-feature bd-abc123                     # Attach proto to molecule
-  bd mol bond bd-abc123 bd-def456                       # Join two molecules
-  bd mol bond mol-critical-bug wisp-patrol --pour       # Persist found bug
-  bd mol bond mol-temp-check bd-feature --ephemeral          # Ephemeral diagnostic
-  bd mol bond mol-arm bd-patrol --ref arm-&#123;&#123;name&#125;&#125; --var name=ace  # Dynamic child ID
+  issuegraph mol bond mol-feature mol-deploy                    # Compound proto
+  issuegraph mol bond mol-feature mol-deploy --type parallel    # Run in parallel
+  issuegraph mol bond mol-feature issuegraph-abc123                     # Attach proto to molecule
+  issuegraph mol bond issuegraph-abc123 issuegraph-def456                       # Join two molecules
+  issuegraph mol bond mol-critical-bug wisp-patrol --pour       # Persist found bug
+  issuegraph mol bond mol-temp-check issuegraph-feature --ephemeral          # Ephemeral diagnostic
+  issuegraph mol bond mol-arm issuegraph-patrol --ref arm-&#123;&#123;name&#125;&#125; --var name=ace  # Dynamic child ID
 
 ```
-bd mol bond <A> <B> [flags]
+issuegraph mol bond <A> <B> [flags]
 ```
 
 **Aliases:** fart
@@ -6125,7 +6125,7 @@ bd mol bond <A> <B> [flags]
       --var stringArray   Variable substitution for spawned protos (key=value)
 ```
 
-#### bd mol burn
+#### issuegraph mol burn
 
 Burn a molecule, deleting it without creating a digest.
 
@@ -6140,16 +6140,16 @@ The burn operation differs based on molecule phase:
   - Mol (persistent): Cascade delete (syncs to remotes)
 
 CAUTION: This is a destructive operation. The molecule's data will be
-permanently lost. If you want to preserve a summary, use 'bd mol squash'.
+permanently lost. If you want to preserve a summary, use 'issuegraph mol squash'.
 
 Example:
-  bd mol burn bd-abc123              # Delete molecule with no trace
-  bd mol burn bd-abc123 --dry-run    # Preview what would be deleted
-  bd mol burn bd-abc123 --force      # Skip confirmation
-  bd mol burn bd-a1 bd-b2 bd-c3      # Batch delete multiple wisps
+  issuegraph mol burn issuegraph-abc123              # Delete molecule with no trace
+  issuegraph mol burn issuegraph-abc123 --dry-run    # Preview what would be deleted
+  issuegraph mol burn issuegraph-abc123 --force      # Skip confirmation
+  issuegraph mol burn issuegraph-a1 issuegraph-b2 issuegraph-c3      # Batch delete multiple wisps
 
 ```
-bd mol burn <molecule-id> [molecule-id...] [flags]
+issuegraph mol burn <molecule-id> [molecule-id...] [flags]
 ```
 
 **Flags:**
@@ -6159,7 +6159,7 @@ bd mol burn <molecule-id> [molecule-id...] [flags]
       --force     Skip confirmation prompt
 ```
 
-#### bd mol current
+#### issuegraph mol current
 
 Show where you are in a molecule workflow.
 
@@ -6175,11 +6175,11 @@ The output shows all steps with status indicators:
 
 For large molecules (&gt;100 steps), a summary is shown instead.
 Use --limit or --range to view specific steps:
-  bd mol current &lt;id&gt; --limit 50       # Show first 50 steps
-  bd mol current &lt;id&gt; --range 100-150  # Show steps 100-150
+  issuegraph mol current &lt;id&gt; --limit 50       # Show first 50 steps
+  issuegraph mol current &lt;id&gt; --range 100-150  # Show steps 100-150
 
 ```
-bd mol current [molecule-id] [flags]
+issuegraph mol current [molecule-id] [flags]
 ```
 
 **Flags:**
@@ -6190,7 +6190,7 @@ bd mol current [molecule-id] [flags]
       --range string   Display specific step range (e.g., '1-50', '100-150')
 ```
 
-#### bd mol distill
+#### issuegraph mol distill
 
 Distill a molecule by extracting a reusable formula from an existing epic.
 
@@ -6211,16 +6211,16 @@ Variable syntax (both work - we detect which side is the concrete value):
   --var feature-auth=branch    Substitution-style: value=variable
 
 Output locations (first writable wins):
-  1. &lt;resolved-beads-dir&gt;/formulas/ (project-level, default)
-  2. &lt;checkout-root&gt;/.beads/formulas/ (repo-local formulas)
-  3. ~/.beads/formulas/     (user-level, if project not writable)
+  1. &lt;resolved-issuegraph-dir&gt;/formulas/ (project-level, default)
+  2. &lt;checkout-root&gt;/.issuegraph/formulas/ (repo-local formulas)
+  3. ~/.issuegraph/formulas/     (user-level, if project not writable)
 
 Examples:
-  bd mol distill bd-o5xe my-workflow
-  bd mol distill bd-abc release-workflow --var feature_name=auth-refactor
+  issuegraph mol distill issuegraph-o5xe my-workflow
+  issuegraph mol distill issuegraph-abc release-workflow --var feature_name=auth-refactor
 
 ```
-bd mol distill <epic-id> [formula-name] [flags]
+issuegraph mol distill <epic-id> [formula-name] [flags]
 ```
 
 **Flags:**
@@ -6231,7 +6231,7 @@ bd mol distill <epic-id> [formula-name] [flags]
       --var stringArray   Replace value with {{variable}} placeholder (variable=value)
 ```
 
-#### bd mol last-activity
+#### issuegraph mol last-activity
 
 Show the most recent activity timestamp for a molecule.
 
@@ -6244,19 +6244,19 @@ Activity sources:
   molecule_updated - The molecule root itself was updated
 
 Examples:
-  bd mol last-activity hq-wisp-0laki
-  bd mol last-activity hq-wisp-0laki --json
+  issuegraph mol last-activity hq-wisp-0laki
+  issuegraph mol last-activity hq-wisp-0laki --json
 
 ```
-bd mol last-activity <molecule-id>
+issuegraph mol last-activity <molecule-id>
 ```
 
-#### bd mol pour
+#### issuegraph mol pour
 
 Pour a proto into a persistent mol - like pouring molten metal into a mold.
 
 This is the chemistry-inspired command for creating PERSISTENT work from templates.
-The resulting mol lives in .beads/ (permanent storage) and is synced with git.
+The resulting mol lives in .issuegraph/ (permanent storage) and is synced with git.
 
 Phase transition: Proto (solid) -&gt; pour -&gt; Mol (liquid)
 
@@ -6276,11 +6276,11 @@ TIP: Formulas can specify phase:"vapor" to recommend wisp usage.
      If you pour a vapor-phase formula, you'll get a warning.
 
 Examples:
-  bd mol pour mol-feature --var name=auth    # Persistent feature work
-  bd mol pour mol-review --var pr=123        # Persistent code review
+  issuegraph mol pour mol-feature --var name=auth    # Persistent feature work
+  issuegraph mol pour mol-review --var pr=123        # Persistent code review
 
 ```
-bd mol pour <proto-id> [flags]
+issuegraph mol pour <proto-id> [flags]
 ```
 
 **Flags:**
@@ -6293,7 +6293,7 @@ bd mol pour <proto-id> [flags]
       --var stringArray      Variable substitution (key=value)
 ```
 
-#### bd mol progress
+#### issuegraph mol progress
 
 Show efficient progress summary for a molecule.
 
@@ -6309,19 +6309,19 @@ Output includes:
   - ETA: estimated time to completion
 
 Example:
-  bd mol progress bd-hanoi-xyz
+  issuegraph mol progress issuegraph-hanoi-xyz
 
 ```
-bd mol progress [molecule-id]
+issuegraph mol progress [molecule-id]
 ```
 
-#### bd mol ready
+#### issuegraph mol ready
 
 Find molecules where a gate has closed and the workflow is ready to resume.
 
 This command discovers molecules waiting at a gate step where:
-1. The molecule has a gate bead that blocks a step
-2. The gate bead is now closed (condition satisfied)
+1. The molecule has a gate issue that blocks a step
+2. The gate issue is now closed (condition satisfied)
 3. The blocked step is now ready to proceed
 4. No agent currently has this molecule hooked
 
@@ -6329,14 +6329,14 @@ This enables discovery-based resume without explicit waiter tracking.
 The patrol system uses this to find and dispatch gate-ready molecules.
 
 Examples:
-  bd mol ready --gated           # Find all gate-ready molecules
-  bd mol ready --gated --json    # JSON output for automation
+  issuegraph mol ready --gated           # Find all gate-ready molecules
+  issuegraph mol ready --gated --json    # JSON output for automation
 
 ```
-bd mol ready --gated
+issuegraph mol ready --gated
 ```
 
-#### bd mol seed
+#### issuegraph mol seed
 
 Verify that a formula is accessible and can be cooked.
 
@@ -6345,17 +6345,17 @@ and can be loaded. This is useful for verifying system health before
 attempting to spawn work from a formula.
 
 Formula search paths (checked in order):
-  1. &lt;resolved-beads-dir&gt;/formulas/ (active project)
-  2. &lt;checkout-root&gt;/.beads/formulas/ (repo-local formulas)
-  3. ~/.beads/formulas/ (user level)
-  4. $GT_ROOT/.beads/formulas/ (shared workspace root, if GT_ROOT set)
+  1. &lt;resolved-issuegraph-dir&gt;/formulas/ (active project)
+  2. &lt;checkout-root&gt;/.issuegraph/formulas/ (repo-local formulas)
+  3. ~/.issuegraph/formulas/ (user level)
+  4. $GT_ROOT/.issuegraph/formulas/ (shared workspace root, if GT_ROOT set)
 
 Examples:
-  bd mol seed mol-feature                 # Verify specific formula
-  bd mol seed mol-review --var name=test  # Verify with variable substitution
+  issuegraph mol seed mol-feature                 # Verify specific formula
+  issuegraph mol seed mol-review --var name=test  # Verify with variable substitution
 
 ```
-bd mol seed <formula-name> [flags]
+issuegraph mol seed <formula-name> [flags]
 ```
 
 **Flags:**
@@ -6364,7 +6364,7 @@ bd mol seed <formula-name> [flags]
       --var stringArray   Variable substitution for condition filtering (key=value)
 ```
 
-#### bd mol show
+#### issuegraph mol show
 
 Show molecule structure and details.
 
@@ -6374,10 +6374,10 @@ The --parallel flag highlights parallelizable steps:
   - Identifies parallel groups (steps that can run concurrently)
 
 Example:
-  bd mol show bd-patrol --parallel
+  issuegraph mol show issuegraph-patrol --parallel
 
 ```
-bd mol show <molecule-id> [flags]
+issuegraph mol show <molecule-id> [flags]
 ```
 
 **Flags:**
@@ -6386,7 +6386,7 @@ bd mol show <molecule-id> [flags]
   -p, --parallel   Show parallel step analysis
 ```
 
-#### bd mol squash
+#### issuegraph mol squash
 
 Squash a molecule's ephemeral children into a single digest issue.
 
@@ -6403,7 +6403,7 @@ The squash operation:
      OR keeps them with --keep-children (default: delete)
 
 AGENT INTEGRATION:
-Use --summary to provide an AI-generated summary. This keeps bd as a pure
+Use --summary to provide an AI-generated summary. This keeps issuegraph as a pure
 tool - the calling agent (orchestrator worker, Claude Code, etc.) is responsible
 for generating intelligent summaries. Without --summary, a basic concatenation
 of child issue content is used.
@@ -6412,13 +6412,13 @@ This is part of the wisp workflow: spawn creates wisps,
 execution happens, squash compresses the trace into an outcome (digest).
 
 Example:
-  bd mol squash bd-abc123                    # Squash and promote children
-  bd mol squash bd-abc123 --dry-run          # Preview what would be squashed
-  bd mol squash bd-abc123 --keep-children    # Keep wisps after digest
-  bd mol squash bd-abc123 --summary "Agent-generated summary of work done"
+  issuegraph mol squash issuegraph-abc123                    # Squash and promote children
+  issuegraph mol squash issuegraph-abc123 --dry-run          # Preview what would be squashed
+  issuegraph mol squash issuegraph-abc123 --keep-children    # Keep wisps after digest
+  issuegraph mol squash issuegraph-abc123 --summary "Agent-generated summary of work done"
 
 ```
-bd mol squash <molecule-id> [flags]
+issuegraph mol squash <molecule-id> [flags]
 ```
 
 **Flags:**
@@ -6429,7 +6429,7 @@ bd mol squash <molecule-id> [flags]
       --summary string   Agent-provided summary (bypasses auto-generation)
 ```
 
-#### bd mol stale
+#### issuegraph mol stale
 
 Detect molecules (epics with children) that are complete but still open.
 
@@ -6442,14 +6442,14 @@ A molecule is considered stale if:
 By default, shows all complete-but-unclosed molecules.
 
 Examples:
-  bd mol stale              # List all stale molecules
-  bd mol stale --json       # Machine-readable output
-  bd mol stale --blocking   # Only show those blocking other work
-  bd mol stale --unassigned # Only show unassigned molecules
-  bd mol stale --all        # Include molecules with 0 children
+  issuegraph mol stale              # List all stale molecules
+  issuegraph mol stale --json       # Machine-readable output
+  issuegraph mol stale --blocking   # Only show those blocking other work
+  issuegraph mol stale --unassigned # Only show unassigned molecules
+  issuegraph mol stale --all        # Include molecules with 0 children
 
 ```
-bd mol stale [flags]
+issuegraph mol stale [flags]
 ```
 
 **Flags:**
@@ -6460,7 +6460,7 @@ bd mol stale [flags]
       --unassigned   Only show unassigned molecules
 ```
 
-#### bd mol wisp
+#### issuegraph mol wisp
 
 Create or manage wisps - EPHEMERAL molecules for operational workflows.
 
@@ -6486,23 +6486,23 @@ TIP: Formulas can specify phase:"vapor" to recommend wisp usage.
      If you use pour on a vapor-phase formula, you'll get a warning.
 
 The wisp lifecycle:
-  1. Create: bd mol wisp &lt;proto&gt; or bd create --ephemeral
-  2. Execute: Normal bd operations work on wisp issues
-  3. Squash: bd mol squash &lt;id&gt; (clears Ephemeral flag, promotes to persistent)
-  4. Or burn: bd mol burn &lt;id&gt; (deletes without creating digest)
+  1. Create: issuegraph mol wisp &lt;proto&gt; or issuegraph create --ephemeral
+  2. Execute: Normal issuegraph operations work on wisp issues
+  3. Squash: issuegraph mol squash &lt;id&gt; (clears Ephemeral flag, promotes to persistent)
+  4. Or burn: issuegraph mol burn &lt;id&gt; (deletes without creating digest)
 
 Examples:
-  bd mol wisp beads-release --var version=1.0  # Release workflow
-  bd mol wisp mol-my-workflow                  # Ephemeral operational cycle
-  bd mol wisp list                             # List all wisps
-  bd mol wisp gc                               # Garbage collect old wisps
+  issuegraph mol wisp issuegraph-release --var version=1.0  # Release workflow
+  issuegraph mol wisp mol-my-workflow                  # Ephemeral operational cycle
+  issuegraph mol wisp list                             # List all wisps
+  issuegraph mol wisp gc                               # Garbage collect old wisps
 
 Subcommands:
   list  List all wisps in current context
   gc    Garbage collect orphaned wisps
 
 ```
-bd mol wisp [proto-id] [flags]
+issuegraph mol wisp [proto-id] [flags]
 ```
 
 **Flags:**
@@ -6513,7 +6513,7 @@ bd mol wisp [proto-id] [flags]
       --var stringArray   Variable substitution (key=value)
 ```
 
-##### bd mol wisp create
+##### issuegraph mol wisp create
 
 Create a wisp from a proto - sublimation from solid to vapor.
 
@@ -6534,12 +6534,12 @@ The wisp will:
   - Either evaporate (burn) or condense to digest (squash)
 
 Examples:
-  bd mol wisp create mol-patrol                    # Ephemeral patrol cycle
-  bd mol wisp create mol-health-check              # One-time health check
-  bd mol wisp create mol-diagnostics --var target=db  # Diagnostic run
+  issuegraph mol wisp create mol-patrol                    # Ephemeral patrol cycle
+  issuegraph mol wisp create mol-health-check              # One-time health check
+  issuegraph mol wisp create mol-diagnostics --var target=db  # Diagnostic run
 
 ```
-bd mol wisp create <proto-id> [flags]
+issuegraph mol wisp create <proto-id> [flags]
 ```
 
 **Flags:**
@@ -6550,14 +6550,14 @@ bd mol wisp create <proto-id> [flags]
       --var stringArray   Variable substitution (key=value)
 ```
 
-##### bd mol wisp gc
+##### issuegraph mol wisp gc
 
 Garbage collect old or abandoned wisps from the database.
 
 A wisp is considered abandoned if:
   - It hasn't been updated in --age duration and is not closed
 
-Abandoned wisps are deleted without creating a digest. Use 'bd mol squash'
+Abandoned wisps are deleted without creating a digest. Use 'issuegraph mol squash'
 if you want to preserve a summary before garbage collection.
 
 Use --closed to purge ALL closed wisps (regardless of age). This is the
@@ -6565,21 +6565,21 @@ fastest way to reclaim space from accumulated wisp bloat. Safe by default:
 requires --force to actually delete.
 
 Note: This uses time-based cleanup, appropriate for ephemeral wisps.
-For graph-pressure staleness detection (blocking other work), see 'bd mol stale'.
+For graph-pressure staleness detection (blocking other work), see 'issuegraph mol stale'.
 
 Examples:
-  bd mol wisp gc                                    # Clean abandoned wisps (default: 1h threshold)
-  bd mol wisp gc --dry-run                          # Preview what would be cleaned
-  bd mol wisp gc --age 24h                          # Custom age threshold
-  bd mol wisp gc --all                              # Also clean closed wisps older than threshold
-  bd mol wisp gc --closed                           # Preview closed wisp deletion
-  bd mol wisp gc --closed --force                   # Delete all closed wisps
-  bd mol wisp gc --closed --dry-run                 # Explicit dry-run (same as no --force)
-  bd mol wisp gc --exclude-type agent,rig           # Protect agent and rig wisps from GC
-  bd mol wisp gc --closed --force --exclude-type mol # Delete closed wisps except mol type
+  issuegraph mol wisp gc                                    # Clean abandoned wisps (default: 1h threshold)
+  issuegraph mol wisp gc --dry-run                          # Preview what would be cleaned
+  issuegraph mol wisp gc --age 24h                          # Custom age threshold
+  issuegraph mol wisp gc --all                              # Also clean closed wisps older than threshold
+  issuegraph mol wisp gc --closed                           # Preview closed wisp deletion
+  issuegraph mol wisp gc --closed --force                   # Delete all closed wisps
+  issuegraph mol wisp gc --closed --dry-run                 # Explicit dry-run (same as no --force)
+  issuegraph mol wisp gc --exclude-type agent,rig           # Protect agent and rig wisps from GC
+  issuegraph mol wisp gc --closed --force --exclude-type mol # Delete closed wisps except mol type
 
 ```
-bd mol wisp gc [flags]
+issuegraph mol wisp gc [flags]
 ```
 
 **Flags:**
@@ -6593,7 +6593,7 @@ bd mol wisp gc [flags]
   -f, --force                  Actually delete (default: preview only)
 ```
 
-##### bd mol wisp list
+##### issuegraph mol wisp list
 
 List all wisps (ephemeral molecules) in the current context.
 
@@ -6609,15 +6609,15 @@ The list shows:
 
 Old wisp detection:
   - Old wisps haven't been updated in 24+ hours
-  - Use 'bd mol wisp gc' to clean up old/abandoned wisps
+  - Use 'issuegraph mol wisp gc' to clean up old/abandoned wisps
 
 Examples:
-  bd mol wisp list              # List all wisps
-  bd mol wisp list --json       # JSON output for programmatic use
-  bd mol wisp list --all        # Include closed wisps
+  issuegraph mol wisp list              # List all wisps
+  issuegraph mol wisp list --json       # JSON output for programmatic use
+  issuegraph mol wisp list --all        # Include closed wisps
 
 ```
-bd mol wisp list [flags]
+issuegraph mol wisp list [flags]
 ```
 
 **Flags:**
@@ -6627,20 +6627,20 @@ bd mol wisp list [flags]
       --type string   Filter by issue type (e.g., agent, task, patrol)
 ```
 
-### bd notion
+### issuegraph notion
 
-Commands for syncing issues between beads and Notion.
-
-```
-bd notion
-```
-
-#### bd notion connect
-
-Connect bd to an existing Notion database or data source
+Commands for syncing issues between issuegraph and Notion.
 
 ```
-bd notion connect [flags]
+issuegraph notion
+```
+
+#### issuegraph notion connect
+
+Connect issuegraph to an existing Notion database or data source
+
+```
+issuegraph notion connect [flags]
 ```
 
 **Flags:**
@@ -6649,30 +6649,30 @@ bd notion connect [flags]
       --url string   Existing Notion database or data source URL
 ```
 
-#### bd notion init
+#### issuegraph notion init
 
-Create a dedicated Beads database in Notion
+Create a dedicated IssueGraph database in Notion
 
 ```
-bd notion init [flags]
+issuegraph notion init [flags]
 ```
 
 **Flags:**
 
 ```
       --parent string   Parent page ID
-      --title string    Database title (default "Beads Issues")
+      --title string    Database title (default "IssueGraph Issues")
 ```
 
-#### bd notion pull
+#### issuegraph notion pull
 
 Pull one or more items from Notion.
 
-Accepts bead IDs or external references as positional arguments.
-Equivalent to: bd notion sync --pull --issues &lt;refs&gt;
+Accepts issue IDs or external references as positional arguments.
+Equivalent to: issuegraph notion sync --pull --issues &lt;refs&gt;
 
 ```
-bd notion pull [refs...] [flags]
+issuegraph notion pull [refs...] [flags]
 ```
 
 **Flags:**
@@ -6681,15 +6681,15 @@ bd notion pull [refs...] [flags]
       --dry-run   Preview pull without making changes
 ```
 
-#### bd notion push
+#### issuegraph notion push
 
-Push one or more beads issues to Notion.
+Push one or more issuegraph issues to Notion.
 
-Accepts bead IDs as positional arguments.
-Equivalent to: bd notion sync --push --issues &lt;ids&gt;
+Accepts issue IDs as positional arguments.
+Equivalent to: issuegraph notion sync --push --issues &lt;ids&gt;
 
 ```
-bd notion push [bead-ids...] [flags]
+issuegraph notion push [issue-ids...] [flags]
 ```
 
 **Flags:**
@@ -6698,22 +6698,22 @@ bd notion push [bead-ids...] [flags]
       --dry-run   Preview push without making changes
 ```
 
-#### bd notion status
+#### issuegraph notion status
 
 Show Notion sync status
 
 ```
-bd notion status
+issuegraph notion status
 ```
 
-#### bd notion sync
+#### issuegraph notion sync
 
-Synchronize issues between beads and Notion.
+Synchronize issues between issuegraph and Notion.
 
 By default this performs bidirectional sync. Use --pull or --push to limit direction.
 
 ```
-bd notion sync [flags]
+issuegraph notion sync [flags]
 ```
 
 **Flags:**
@@ -6721,31 +6721,31 @@ bd notion sync [flags]
 ```
       --create-only     Only create missing remote pages, do not update existing ones
       --dry-run         Preview changes without making mutations
-      --issues string   Comma-separated bead IDs to sync selectively (e.g., bd-abc,bd-def). Mutually exclusive with --parent.
-      --parent string   Limit push to this bead and its descendants (push only). Mutually exclusive with --issues.
-      --prefer-local    On conflict, keep the local beads version
+      --issues string   Comma-separated issue IDs to sync selectively (e.g., issuegraph-abc,issuegraph-def). Mutually exclusive with --parent.
+      --parent string   Limit push to this issue and its descendants (push only). Mutually exclusive with --issues.
+      --prefer-local    On conflict, keep the local issuegraph version
       --prefer-notion   On conflict, use the Notion version
       --pull            Only pull issues from Notion
       --push            Only push issues to Notion
       --state string    Issue state to sync: open, closed, or all (default "all")
 ```
 
-### bd orphans
+### issuegraph orphans
 
 Identify orphaned issues - issues that are referenced in commit messages but remain open or in_progress in the database.
 
 This helps identify work that has been implemented but not formally closed.
 
 Examples:
-  bd orphans              # Show orphaned issues
-  bd orphans --json       # Machine-readable output
-  bd orphans --details    # Show full commit information
-  bd orphans --fix        # Close orphaned issues with confirmation
-  bd orphans --label theme:personal             # Only orphans with this label
-  bd orphans --label-any theme:personal,theme:ventures  # Orphans with either label
+  issuegraph orphans              # Show orphaned issues
+  issuegraph orphans --json       # Machine-readable output
+  issuegraph orphans --details    # Show full commit information
+  issuegraph orphans --fix        # Close orphaned issues with confirmation
+  issuegraph orphans --label theme:personal             # Only orphans with this label
+  issuegraph orphans --label-any theme:personal,theme:ventures  # Orphans with either label
 
 ```
-bd orphans [flags]
+issuegraph orphans [flags]
 ```
 
 **Flags:**
@@ -6757,28 +6757,28 @@ bd orphans [flags]
       --label-any strings   Filter by labels (OR: must have AT LEAST ONE). Can combine with --label
 ```
 
-### bd ready
+### issuegraph ready
 
 Show ready work (open issues with no active blockers).
 
 Excludes in_progress, blocked, deferred, and hooked issues. This uses the
 GetReadyWork API which applies blocker-aware semantics to find truly claimable work.
 
-Note: 'bd list --ready' uses the same blocker-aware ready-work semantics.
+Note: 'issuegraph list --ready' uses the same blocker-aware ready-work semantics.
 
 Use --mol to filter to a specific molecule's steps:
-  bd ready --mol bd-patrol   # Show ready steps within molecule
+  issuegraph ready --mol issuegraph-patrol   # Show ready steps within molecule
 
 Use --gated to find molecules ready for gate-resume dispatch:
-  bd ready --gated           # Find molecules where a gate closed
+  issuegraph ready --gated           # Find molecules where a gate closed
 
 Use --claim to atomically claim the first ready issue matching the filters:
-  bd ready --claim --json
+  issuegraph ready --claim --json
 
 This is useful for agents executing molecules to see which steps can run next.
 
 ```
-bd ready [flags]
+issuegraph ready [flags]
 ```
 
 **Flags:**
@@ -6800,7 +6800,7 @@ bd ready [flags]
       --mol string                   Filter to steps within a specific molecule
       --mol-type string              Filter by molecule type: swarm, patrol, or work
       --offset int                   Skip the first N matching results (0-based). Only supported under --proxied-server.
-      --parent string                Filter to descendants of this bead/epic
+      --parent string                Filter to descendants of this issue/epic
       --plain                        Display issues as a plain numbered list
       --pretty                       Display issues in a tree format with status/priority symbols (default true)
   -p, --priority int                 Filter by priority
@@ -6809,7 +6809,7 @@ bd ready [flags]
   -u, --unassigned                   Show only unassigned issues
 ```
 
-### bd rename
+### issuegraph rename
 
 Rename an issue from one ID to another.
 
@@ -6820,16 +6820,16 @@ This updates:
 - Labels, comments, and events
 
 Examples:
-  bd rename bd-w382l bd-dolt     # Rename to memorable ID
-  bd rename gt-abc123 gt-auth    # Use descriptive ID
+  issuegraph rename issuegraph-w382l issuegraph-dolt     # Rename to memorable ID
+  issuegraph rename gt-abc123 gt-auth    # Use descriptive ID
 
 Note: The new ID must use a valid prefix for this database.
 
 ```
-bd rename <old-id> <new-id>
+issuegraph rename <old-id> <new-id>
 ```
 
-### bd ship
+### issuegraph ship
 
 Ship a capability to satisfy cross-project dependencies.
 
@@ -6839,18 +6839,18 @@ This command:
   3. Adds provides:&lt;capability&gt; label
 
 External projects can depend on this capability using:
-  bd dep add &lt;issue&gt; external:&lt;project&gt;:&lt;capability&gt;
+  issuegraph dep add &lt;issue&gt; external:&lt;project&gt;:&lt;capability&gt;
 
 The capability is resolved when the external project has a closed issue
 with the provides:&lt;capability&gt; label.
 
 Examples:
-  bd ship mol-run-assignee              # Ship the mol-run-assignee capability
-  bd ship mol-run-assignee --force      # Ship even if issue is not closed
-  bd ship mol-run-assignee --dry-run    # Preview without making changes
+  issuegraph ship mol-run-assignee              # Ship the mol-run-assignee capability
+  issuegraph ship mol-run-assignee --force      # Ship even if issue is not closed
+  issuegraph ship mol-run-assignee --dry-run    # Preview without making changes
 
 ```
-bd ship <capability> [flags]
+issuegraph ship <capability> [flags]
 ```
 
 **Flags:**
@@ -6860,25 +6860,25 @@ bd ship <capability> [flags]
       --force     Ship even if issue is not closed
 ```
 
-### bd undefer
+### issuegraph undefer
 
 Undefer issues to restore them to open status.
 
 This brings issues back from the icebox so they can be worked on again.
-Issues will appear in 'bd ready' if they have no blockers.
+Issues will appear in 'issuegraph ready' if they have no blockers.
 
 Examples:
-  bd undefer bd-abc        # Undefer a single issue
-  bd undefer bd-abc bd-def # Undefer multiple issues
+  issuegraph undefer issuegraph-abc        # Undefer a single issue
+  issuegraph undefer issuegraph-abc issuegraph-def # Undefer multiple issues
 
 ```
-bd undefer [id...]
+issuegraph undefer [id...]
 ```
 
-### bd version
+### issuegraph version
 
 Print version information
 
 ```
-bd version
+issuegraph version
 ```

@@ -2,13 +2,13 @@
 
 package main
 
-// The external-tcp half of the `bd dolt status` / `bd dolt start` coverage.
+// The external-tcp half of the `issuegraph dolt status` / `issuegraph dolt start` coverage.
 // It lives in the TestProxiedServer* lane, which runs on every PR, so the
 // corruption guard is enforced there and not only in the path-filtered
 // managed-local lane.
 //
-// The distinction this topology exercises: bd runs a proxy but spawns no dolt,
-// so "the backend is not running" is a claim bd has no standing to make.
+// The distinction this topology exercises: issuegraph runs a proxy but spawns no dolt,
+// so "the backend is not running" is a claim issuegraph has no standing to make.
 
 import (
 	"encoding/json"
@@ -17,15 +17,15 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/steveyegge/beads/internal/doltserver"
-	"github.com/steveyegge/beads/internal/storage/dbproxy/proxy"
+	"github.com/borg0ai/dx-issuegraph/internal/doltserver"
+	"github.com/borg0ai/dx-issuegraph/internal/storage/dbproxy/proxy"
 )
 
 func TestProxiedServerDoltLifecycle(t *testing.T) {
-	bd := buildEmbeddedBD(t)
-	p := newSharedProxiedProject(t, bd, "extdolt")
+	issuegraph := buildEmbeddedBD(t)
+	p := newSharedProxiedProject(t, issuegraph, "extdolt")
 	t.Cleanup(func() {
-		serverDir := doltserver.ResolveServerDir(p.beadsDir)
+		serverDir := doltserver.ResolveServerDir(p.issuegraphDir)
 		if _, err := os.Stat(filepath.Join(serverDir, doltserver.PIDFileName)); err != nil {
 			return
 		}
@@ -34,14 +34,14 @@ func TestProxiedServerDoltLifecycle(t *testing.T) {
 			t.Logf("doltserver.Stop(%s): %v", serverDir, err)
 		}
 	})
-	bdProxiedCreate(t, bd, p.dir, "external lifecycle sentinel")
+	issuegraphProxiedCreate(t, issuegraph, p.dir, "external lifecycle sentinel")
 
 	proxyPid := readProxyPidFileOrFail(t, p)
 
 	t.Run("status reports the proxy and disclaims the backend", func(t *testing.T) {
-		stdout, stderr, err := bdProxiedRunBuffersWithEnv(t, bd, p.dir, []string{"BEADS_JSON=1"}, "--json", "dolt", "status")
+		stdout, stderr, err := issuegraphProxiedRunBuffersWithEnv(t, issuegraph, p.dir, []string{"ISSUEGRAPH_JSON=1"}, "--json", "dolt", "status")
 		if err != nil {
-			t.Fatalf("bd dolt status failed: %v\nstdout:\n%s\nstderr:\n%s", err, stdout, stderr)
+			t.Fatalf("issuegraph dolt status failed: %v\nstdout:\n%s\nstderr:\n%s", err, stdout, stderr)
 		}
 		var got struct {
 			Mode            string `json:"mode"`
@@ -61,10 +61,10 @@ func TestProxiedServerDoltLifecycle(t *testing.T) {
 			t.Errorf("proxy_pid=%d, want %d", got.ProxyPID, proxyPid)
 		}
 		if got.BackendManaged {
-			t.Error("backend_managed=true on an external topology; bd spawns no dolt there")
+			t.Error("backend_managed=true on an external topology; issuegraph spawns no dolt there")
 		}
 		if got.BackendRunning {
-			t.Error("backend_running=true on an external topology; bd has no record to claim that from")
+			t.Error("backend_running=true on an external topology; issuegraph has no record to claim that from")
 		}
 		if !strings.HasPrefix(got.BackendEndpoint, "127.0.0.1:") {
 			t.Errorf("backend_endpoint=%q, want the configured external endpoint", got.BackendEndpoint)
@@ -72,9 +72,9 @@ func TestProxiedServerDoltLifecycle(t *testing.T) {
 	})
 
 	t.Run("start is refused", func(t *testing.T) {
-		stdout, stderr, err := bdProxiedRunBuffersWithEnv(t, bd, p.dir, []string{"BEADS_JSON=1"}, "--json", "dolt", "start")
+		stdout, stderr, err := issuegraphProxiedRunBuffersWithEnv(t, issuegraph, p.dir, []string{"ISSUEGRAPH_JSON=1"}, "--json", "dolt", "start")
 		if err == nil {
-			t.Errorf("bd dolt start succeeded on an external proxied workspace:\nstdout:\n%s\nstderr:\n%s", stdout, stderr)
+			t.Errorf("issuegraph dolt start succeeded on an external proxied workspace:\nstdout:\n%s\nstderr:\n%s", stdout, stderr)
 		}
 		var got struct {
 			Code    string `json:"code"`
@@ -87,13 +87,13 @@ func TestProxiedServerDoltLifecycle(t *testing.T) {
 			t.Errorf("refusal=%+v, want code=%q mutates=false", got, proxyDoltStartConflictCode)
 		}
 		for _, name := range []string{doltserver.PIDFileName, doltserver.PortFileName} {
-			if _, statErr := os.Stat(filepath.Join(p.beadsDir, name)); statErr == nil {
+			if _, statErr := os.Stat(filepath.Join(p.issuegraphDir, name)); statErr == nil {
 				t.Errorf("%s exists after a refused start", name)
 			}
 		}
 	})
 
-	if out, err := bdProxiedRun(t, bd, p.dir, "create", "--json", "post-refusal write"); err != nil {
+	if out, err := issuegraphProxiedRun(t, issuegraph, p.dir, "create", "--json", "post-refusal write"); err != nil {
 		t.Fatalf("workspace unusable after the lifecycle probes: %v\n%s", err, out)
 	}
 }

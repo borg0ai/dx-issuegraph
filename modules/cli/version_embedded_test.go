@@ -12,18 +12,18 @@ import (
 )
 
 func TestEmbeddedVersion(t *testing.T) {
-	if os.Getenv("BEADS_TEST_EMBEDDED_DOLT") != "1" {
-		t.Skip("set BEADS_TEST_EMBEDDED_DOLT=1 to run embedded dolt integration tests")
+	if os.Getenv("ISSUEGRAPH_TEST_EMBEDDED_DOLT") != "1" {
+		t.Skip("set ISSUEGRAPH_TEST_EMBEDDED_DOLT=1 to run embedded dolt integration tests")
 	}
 	t.Parallel()
 
-	bd := buildEmbeddedBD(t)
+	issuegraph := buildEmbeddedBD(t)
 
 	t.Run("version_output", func(t *testing.T) {
-		cmd := exec.Command(bd, "version")
+		cmd := exec.Command(issuegraph, "version")
 		stdout, stderr, err := runCommandBuffers(t, cmd)
 		if err != nil {
-			t.Fatalf("bd version failed: %v\nstdout:\n%s\nstderr:\n%s", err, stdout.String(), stderr.String())
+			t.Fatalf("issuegraph version failed: %v\nstdout:\n%s\nstderr:\n%s", err, stdout.String(), stderr.String())
 		}
 		s := stdout.String()
 		if len(strings.TrimSpace(s)) == 0 {
@@ -37,12 +37,12 @@ func TestEmbeddedVersion(t *testing.T) {
 }
 
 func TestEmbeddedVersionConcurrent(t *testing.T) {
-	if os.Getenv("BEADS_TEST_EMBEDDED_DOLT") != "1" {
-		t.Skip("set BEADS_TEST_EMBEDDED_DOLT=1 to run embedded dolt integration tests")
+	if os.Getenv("ISSUEGRAPH_TEST_EMBEDDED_DOLT") != "1" {
+		t.Skip("set ISSUEGRAPH_TEST_EMBEDDED_DOLT=1 to run embedded dolt integration tests")
 	}
 	t.Parallel()
 
-	bd := buildEmbeddedBD(t)
+	issuegraph := buildEmbeddedBD(t)
 
 	const numWorkers = 8
 	type workerResult struct {
@@ -57,7 +57,7 @@ func TestEmbeddedVersionConcurrent(t *testing.T) {
 		go func(worker int) {
 			defer wg.Done()
 			r := workerResult{worker: worker}
-			cmd := exec.Command(bd, "version")
+			cmd := exec.Command(issuegraph, "version")
 			out, err := cmd.CombinedOutput()
 			if err != nil {
 				r.err = fmt.Errorf("version (worker %d): %v\n%s", worker, err, out)

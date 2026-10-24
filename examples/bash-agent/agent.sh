@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 #
-# Simple AI agent workflow using bd (Beads issue tracker).
+# Simple AI agent workflow using issuegraph (IssueGraph issue tracker).
 #
 # This demonstrates the full lifecycle of an agent managing tasks:
 # - Find ready work
@@ -34,25 +34,25 @@ log_error() {
     echo -e "${RED}✗${NC} $1"
 }
 
-AGENT_NAME="${BEADS_AGENT_NAME:-bash-agent-$$}"
+AGENT_NAME="${ISSUEGRAPH_AGENT_NAME:-bash-agent-$$}"
 
-# Check if bd is installed
-if ! command -v bd &> /dev/null; then
-    log_error "bd is not installed"
-    echo "Install with: curl -fsSL https://raw.githubusercontent.com/gastownhall/beads/main/scripts/install.sh | bash"
+# Check if issuegraph is installed
+if ! command -v issuegraph &> /dev/null; then
+    log_error "issuegraph is not installed"
+    echo "Install with: curl -fsSL https://raw.githubusercontent.com/borg0ai/dx-issuegraph/main/scripts/install.sh | bash"
     exit 1
 fi
 
-# Check if we're in a beads-initialized directory
-if ! bd list &> /dev/null; then
-    log_error "Not in a beads-initialized directory"
-    echo "Run: bd init"
+# Check if we're in a issuegraph-initialized directory
+if ! issuegraph list &> /dev/null; then
+    log_error "Not in a issuegraph-initialized directory"
+    echo "Run: issuegraph init"
     exit 1
 fi
 
 # Find ready work
 find_ready_work() {
-    bd ready --json --limit 1 2>/dev/null | jq -r '.[0] // empty'
+    issuegraph ready --json --limit 1 2>/dev/null | jq -r '.[0] // empty'
 }
 
 # Extract field from JSON
@@ -67,7 +67,7 @@ claim_task() {
     local issue_id="$1"
 
     log_info "Claiming task: $issue_id"
-    bd update "$issue_id" --claim --json > /dev/null
+    issuegraph update "$issue_id" --claim --json > /dev/null
 
     log_success "Task claimed"
     return 0
@@ -92,7 +92,7 @@ do_work() {
         log_warning "Discovered issue while working!"
 
         # Create new issue
-        local new_issue=$(bd create "Follow-up: $title" \
+        local new_issue=$(issuegraph create "Follow-up: $title" \
             -d "Discovered while working on $issue_id" \
             -p 2 \
             -t task \
@@ -102,7 +102,7 @@ do_work() {
         log_success "Created issue: $new_id"
 
         # Link it back to parent
-        bd dep add "$new_id" "$issue_id" --type discovered-from
+        issuegraph dep add "$new_id" "$issue_id" --type discovered-from
         log_success "Linked $new_id ← discovered-from ← $issue_id"
 
         return 0 # Discovered new work
@@ -117,7 +117,7 @@ complete_task() {
     local reason="${2:-Completed successfully}"
 
     log_info "Completing task: $issue_id"
-    bd close "$issue_id" --reason "$reason" --json > /dev/null
+    issuegraph close "$issue_id" --reason "$reason" --json > /dev/null
 
     log_success "Task completed: $issue_id"
 }
@@ -126,9 +126,9 @@ complete_task() {
 show_stats() {
     echo ""
     echo "═══════════════════════════════════════════════════"
-    echo "  Beads Statistics"
+    echo "  IssueGraph Statistics"
     echo "═══════════════════════════════════════════════════"
-    bd stats
+    issuegraph stats
     echo ""
 }
 
@@ -138,7 +138,7 @@ run_agent() {
     local iteration=0
 
     echo ""
-    echo "🚀 Beads Agent starting..."
+    echo "🚀 IssueGraph Agent starting..."
     echo "   Max iterations: $max_iterations"
     show_stats
 

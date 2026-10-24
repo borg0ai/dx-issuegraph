@@ -7,36 +7,36 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/steveyegge/beads/internal/types"
+	"github.com/borg0ai/dx-issuegraph/internal/types"
 )
 
 func TestProxiedServerEpic(t *testing.T) {
 	requireSharedProxiedServer(t)
 	t.Parallel()
-	bd := buildEmbeddedBD(t)
-	p := newSharedProxiedProject(t, bd, "epc")
+	issuegraph := buildEmbeddedBD(t)
+	p := newSharedProxiedProject(t, issuegraph, "epc")
 
 	// An epic with all children closed becomes eligible for closure.
-	epic := bdProxiedCreate(t, bd, p.dir, "Shipping epic", "--type", "epic")
-	c1 := bdProxiedCreate(t, bd, p.dir, "Child one", "--type", "task", "--parent", epic.ID)
-	c2 := bdProxiedCreate(t, bd, p.dir, "Child two", "--type", "task", "--parent", epic.ID)
+	epic := issuegraphProxiedCreate(t, issuegraph, p.dir, "Shipping epic", "--type", "epic")
+	c1 := issuegraphProxiedCreate(t, issuegraph, p.dir, "Child one", "--type", "task", "--parent", epic.ID)
+	c2 := issuegraphProxiedCreate(t, issuegraph, p.dir, "Child two", "--type", "task", "--parent", epic.ID)
 
 	// A second epic that stays incomplete (one open child).
-	openEpic := bdProxiedCreate(t, bd, p.dir, "Incomplete epic", "--type", "epic")
-	bdProxiedCreate(t, bd, p.dir, "Open child", "--type", "task", "--parent", openEpic.ID)
+	openEpic := issuegraphProxiedCreate(t, issuegraph, p.dir, "Incomplete epic", "--type", "epic")
+	issuegraphProxiedCreate(t, issuegraph, p.dir, "Open child", "--type", "task", "--parent", openEpic.ID)
 
 	// A partially-done epic: two children, one closed. It shows progress but is
 	// never eligible for closure (one child stays open the whole test).
-	partialEpic := bdProxiedCreate(t, bd, p.dir, "Partial epic", "--type", "epic")
-	pc1 := bdProxiedCreate(t, bd, p.dir, "Partial child one", "--type", "task", "--parent", partialEpic.ID)
-	bdProxiedCreate(t, bd, p.dir, "Partial child two", "--type", "task", "--parent", partialEpic.ID)
-	if out, err := bdProxiedRun(t, bd, p.dir, "close", pc1.ID); err != nil {
+	partialEpic := issuegraphProxiedCreate(t, issuegraph, p.dir, "Partial epic", "--type", "epic")
+	pc1 := issuegraphProxiedCreate(t, issuegraph, p.dir, "Partial child one", "--type", "task", "--parent", partialEpic.ID)
+	issuegraphProxiedCreate(t, issuegraph, p.dir, "Partial child two", "--type", "task", "--parent", partialEpic.ID)
+	if out, err := issuegraphProxiedRun(t, issuegraph, p.dir, "close", pc1.ID); err != nil {
 		t.Fatalf("close partial child: %v\n%s", err, out)
 	}
 
 	epicStatus := func(t *testing.T, args ...string) []*types.EpicStatus {
 		t.Helper()
-		out, err := bdProxiedRun(t, bd, p.dir, append([]string{"epic", "status", "--json"}, args...)...)
+		out, err := issuegraphProxiedRun(t, issuegraph, p.dir, append([]string{"epic", "status", "--json"}, args...)...)
 		if err != nil {
 			t.Fatalf("epic status %v: %v\n%s", args, err, out)
 		}
@@ -48,7 +48,7 @@ func TestProxiedServerEpic(t *testing.T) {
 	}
 
 	t.Run("status_shows_progress", func(t *testing.T) {
-		out, err := bdProxiedRun(t, bd, p.dir, "epic", "status")
+		out, err := issuegraphProxiedRun(t, issuegraph, p.dir, "epic", "status")
 		if err != nil {
 			t.Fatalf("epic status: %v\n%s", err, out)
 		}
@@ -70,7 +70,7 @@ func TestProxiedServerEpic(t *testing.T) {
 
 	t.Run("status_eligible_only_excludes_incomplete", func(t *testing.T) {
 		// Neither the partially-done epic nor the fully-open epic is eligible.
-		out, err := bdProxiedRun(t, bd, p.dir, "epic", "status", "--eligible-only")
+		out, err := issuegraphProxiedRun(t, issuegraph, p.dir, "epic", "status", "--eligible-only")
 		if err != nil {
 			t.Fatalf("epic status --eligible-only: %v\n%s", err, out)
 		}
@@ -84,8 +84,8 @@ func TestProxiedServerEpic(t *testing.T) {
 	})
 
 	t.Run("status_no_open_epics", func(t *testing.T) {
-		p2 := newSharedProxiedProject(t, bd, "epq")
-		out, err := bdProxiedRun(t, bd, p2.dir, "epic", "status")
+		p2 := newSharedProxiedProject(t, issuegraph, "epq")
+		out, err := issuegraphProxiedRun(t, issuegraph, p2.dir, "epic", "status")
 		if err != nil {
 			t.Fatalf("epic status: %v\n%s", err, out)
 		}
@@ -103,8 +103,8 @@ func TestProxiedServerEpic(t *testing.T) {
 	})
 
 	// Close both children of the first epic.
-	bdProxiedRun(t, bd, p.dir, "close", c1.ID)
-	bdProxiedRun(t, bd, p.dir, "close", c2.ID)
+	issuegraphProxiedRun(t, issuegraph, p.dir, "close", c1.ID)
+	issuegraphProxiedRun(t, issuegraph, p.dir, "close", c2.ID)
 
 	t.Run("status_eligible_after_children_closed", func(t *testing.T) {
 		var found bool
@@ -125,7 +125,7 @@ func TestProxiedServerEpic(t *testing.T) {
 	})
 
 	t.Run("dry_run_lists_without_closing", func(t *testing.T) {
-		out, err := bdProxiedRun(t, bd, p.dir, "epic", "close-eligible", "--dry-run", "--json")
+		out, err := issuegraphProxiedRun(t, issuegraph, p.dir, "epic", "close-eligible", "--dry-run", "--json")
 		if err != nil {
 			t.Fatalf("dry-run: %v\n%s", err, out)
 		}
@@ -146,14 +146,14 @@ func TestProxiedServerEpic(t *testing.T) {
 			t.Errorf("dry-run should list eligible epic %s, got %+v", epic.ID, eligible)
 		}
 		// Confirm it was NOT closed.
-		show := bdProxiedShow(t, bd, p.dir, epic.ID)
+		show := issuegraphProxiedShow(t, issuegraph, p.dir, epic.ID)
 		if show.Status == types.StatusClosed {
 			t.Errorf("dry-run must not close the epic")
 		}
 	})
 
 	t.Run("write_closes_eligible", func(t *testing.T) {
-		out, err := bdProxiedRun(t, bd, p.dir, "epic", "close-eligible", "--json")
+		out, err := issuegraphProxiedRun(t, issuegraph, p.dir, "epic", "close-eligible", "--json")
 		if err != nil {
 			t.Fatalf("close-eligible: %v\n%s", err, out)
 		}
@@ -173,21 +173,21 @@ func TestProxiedServerEpic(t *testing.T) {
 		if !closedIt {
 			t.Errorf("expected %s in closed list, got %+v", epic.ID, res.Closed)
 		}
-		show := bdProxiedShow(t, bd, p.dir, epic.ID)
+		show := issuegraphProxiedShow(t, issuegraph, p.dir, epic.ID)
 		if show.Status != types.StatusClosed {
 			t.Errorf("epic %s should be closed after close-eligible, got %s", epic.ID, show.Status)
 		}
 	})
 
 	t.Run("write_closes_with_reason", func(t *testing.T) {
-		p2 := newSharedProxiedProject(t, bd, "epr")
-		e2 := bdProxiedCreate(t, bd, p2.dir, "Reason epic", "--type", "epic")
-		c2a := bdProxiedCreate(t, bd, p2.dir, "Reason child", "--type", "task", "--parent", e2.ID)
-		if out, err := bdProxiedRun(t, bd, p2.dir, "close", c2a.ID); err != nil {
+		p2 := newSharedProxiedProject(t, issuegraph, "epr")
+		e2 := issuegraphProxiedCreate(t, issuegraph, p2.dir, "Reason epic", "--type", "epic")
+		c2a := issuegraphProxiedCreate(t, issuegraph, p2.dir, "Reason child", "--type", "task", "--parent", e2.ID)
+		if out, err := issuegraphProxiedRun(t, issuegraph, p2.dir, "close", c2a.ID); err != nil {
 			t.Fatalf("close child: %v\n%s", err, out)
 		}
 
-		out, err := bdProxiedRun(t, bd, p2.dir, "epic", "close-eligible", "--reason", "Sprint goal met", "--json")
+		out, err := issuegraphProxiedRun(t, issuegraph, p2.dir, "epic", "close-eligible", "--reason", "Sprint goal met", "--json")
 		if err != nil {
 			t.Fatalf("close-eligible --reason: %v\n%s", err, out)
 		}
@@ -202,7 +202,7 @@ func TestProxiedServerEpic(t *testing.T) {
 		if res.Reason != "Sprint goal met" {
 			t.Errorf("reason = %q, want %q", res.Reason, "Sprint goal met")
 		}
-		show := bdProxiedShow(t, bd, p2.dir, e2.ID)
+		show := issuegraphProxiedShow(t, issuegraph, p2.dir, e2.ID)
 		if show.Status != types.StatusClosed {
 			t.Errorf("epic should be closed, got %s", show.Status)
 		}

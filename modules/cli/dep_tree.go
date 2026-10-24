@@ -8,14 +8,14 @@ import (
 
 	"github.com/spf13/cobra"
 
-	"github.com/steveyegge/beads/internal/storage/uow"
-	"github.com/steveyegge/beads/internal/types"
-	"github.com/steveyegge/beads/internal/ui"
-	"github.com/steveyegge/beads/internal/utils"
-	"github.com/steveyegge/beads/issueops"
+	"github.com/borg0ai/dx-issuegraph/internal/storage/uow"
+	"github.com/borg0ai/dx-issuegraph/internal/types"
+	"github.com/borg0ai/dx-issuegraph/internal/ui"
+	"github.com/borg0ai/dx-issuegraph/internal/utils"
+	"github.com/borg0ai/dx-issuegraph/issueops"
 )
 
-// `bd dep tree` on ONE role and ONE body. What is left here is the front door's
+// `issuegraph dep tree` on ONE role and ONE body. What is left here is the front door's
 // own work: flag vocabulary, id resolution, and rendering.
 
 // treeTarget is a resolved root and the walker that can answer about it. The two
@@ -54,7 +54,7 @@ func resolveTreeTarget(ctx context.Context, arg string) (treeTarget, error) {
 // back the provider's tree surface.
 //
 // THIS ROUTE GAINS PARTIAL-ID RESOLUTION, which it has never had: it passed the
-// argument to the use case verbatim, so `bd dep tree a1b2` worked on a direct
+// argument to the use case verbatim, so `issuegraph dep tree a1b2` worked on a direct
 // workspace and failed on a team server.
 func proxiedTreeTarget(ctx context.Context, arg string) (treeTarget, error) {
 	uw, err := proxiedOpenReadUOW(ctx)
@@ -85,7 +85,7 @@ func isMermaidTreeFormat(formatStr string) bool {
 	return strings.EqualFold(formatStr, "mermaid")
 }
 
-// runDepTree is the whole of `bd dep tree` on both routes.
+// runDepTree is the whole of `issuegraph dep tree` on both routes.
 func runDepTree(cmd *cobra.Command, ctx context.Context, args []string) error {
 	maxDepth, _ := cmd.Flags().GetInt("max-depth")
 	reverse, _ := cmd.Flags().GetBool("reverse")

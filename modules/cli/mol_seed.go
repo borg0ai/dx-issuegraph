@@ -7,8 +7,8 @@ import (
 
 	"github.com/spf13/cobra"
 
-	"github.com/steveyegge/beads/internal/formula"
-	"github.com/steveyegge/beads/internal/metrics"
+	"github.com/borg0ai/dx-issuegraph/internal/formula"
+	"github.com/borg0ai/dx-issuegraph/internal/metrics"
 )
 
 var molSeedCmd = &cobra.Command{
@@ -21,14 +21,14 @@ and can be loaded. This is useful for verifying system health before
 attempting to spawn work from a formula.
 
 Formula search paths (checked in order):
-  1. <resolved-beads-dir>/formulas/ (active project)
-  2. <checkout-root>/.beads/formulas/ (repo-local formulas)
-  3. ~/.beads/formulas/ (user level)
-  4. $GT_ROOT/.beads/formulas/ (shared workspace root, if GT_ROOT set)
+  1. <resolved-issuegraph-dir>/formulas/ (active project)
+  2. <checkout-root>/.issuegraph/formulas/ (repo-local formulas)
+  3. ~/.issuegraph/formulas/ (user level)
+  4. $GT_ROOT/.issuegraph/formulas/ (shared workspace root, if GT_ROOT set)
 
 Examples:
-  bd mol seed mol-feature                 # Verify specific formula
-  bd mol seed mol-review --var name=test  # Verify with variable substitution`,
+  issuegraph mol seed mol-feature                 # Verify specific formula
+  issuegraph mol seed mol-review --var name=test  # Verify with variable substitution`,
 	Args:          cobra.ExactArgs(1),
 	SilenceUsage:  true,
 	SilenceErrors: true,

@@ -11,25 +11,25 @@ import (
 type PendingMigration struct {
 	Name        string // e.g., "sync"
 	Description string // e.g., "Configure sync branch for multi-clone setup"
-	Command     string // e.g., "bd migrate sync beads-sync"
+	Command     string // e.g., "issuegraph migrate sync issuegraph-sync"
 	Priority    int    // 1 = critical, 2 = recommended, 3 = optional
 }
 
-// DetectPendingMigrations detects all pending migrations for a beads directory
+// DetectPendingMigrations detects all pending migrations for a issuegraph directory
 func DetectPendingMigrations(path string) []PendingMigration {
 	var pending []PendingMigration
 
-	beadsDir := ResolveBeadsDirForRepo(path)
+	issuegraphDir := ResolveIssueGraphDirForRepo(path)
 
-	// Skip if .beads doesn't exist
-	if _, err := os.Stat(beadsDir); os.IsNotExist(err) {
+	// Skip if .issuegraph doesn't exist
+	if _, err := os.Stat(issuegraphDir); os.IsNotExist(err) {
 		return pending
 	}
 
 	hookPlan, err := PlanHookMigration(path)
 	if err == nil && hookPlan.IsGitRepo && hookPlan.NeedsMigrationCount > 0 {
 		description := fmt.Sprintf("Git hook migration needed for %d hook(s)", hookPlan.NeedsMigrationCount)
-		command := "bd doctor --fix"
+		command := "issuegraph doctor --fix"
 		priority := 2
 		if hookPlan.BrokenMarkerCount > 0 {
 			description = fmt.Sprintf(

@@ -183,7 +183,7 @@ func TestRotateLogIfOversized_DisabledWhenMaxBytesZero(t *testing.T) {
 }
 
 // TestMaybeRotateLog_EndToEnd exercises the higher-level wrapper used by
-// Start(), ensuring it consults logPath() under the given beadsDir and
+// Start(), ensuring it consults logPath() under the given issuegraphDir and
 // rotates correctly. The env-var override path is also covered.
 func TestMaybeRotateLog_EndToEnd(t *testing.T) {
 	dir := t.TempDir()

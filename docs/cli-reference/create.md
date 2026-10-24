@@ -1,16 +1,16 @@
 ---
-title: "bd create"
+title: "issuegraph create"
 description: "Create a new issue (or batch from markdown/graph JSON)"
 ---
 
 {/* AUTO-GENERATED: do not edit manually */}
 
-Generated from `bd help --doc create`.
+Generated from `issuegraph help --doc create`.
 
 Create a new issue (or batch from markdown/graph JSON)
 
 ```
-bd create [title] [flags]
+issuegraph create [title] [flags]
 ```
 
 **Aliases:** new
@@ -23,8 +23,8 @@ bd create [title] [flags]
   -a, --assignee string         Assignee
       --body-file string        Read description from file (use - for stdin)
       --context string          Additional context for the issue
-      --defer string            Defer until date (issue hidden from bd ready until then). Same formats as --due
-      --deps strings            Dependencies in format 'type:id' or 'id' (e.g., 'discovered-from:bd-20,blocks:bd-15' or 'bd-20')
+      --defer string            Defer until date (issue hidden from issuegraph ready until then). Same formats as --due
+      --deps strings            Dependencies in format 'type:id' or 'id' (e.g., 'discovered-from:issuegraph-20,blocks:issuegraph-15' or 'issuegraph-20')
   -d, --description string      Issue description
       --design string           Design notes
       --design-file string      Read design from file (use - for stdin)
@@ -35,19 +35,19 @@ bd create [title] [flags]
       --event-actor string      Entity URI who caused this event (requires --type=event)
       --event-category string   Event category (e.g., patrol.muted, agent.started) (requires --type=event)
       --event-payload string    Event-specific JSON data (requires --type=event)
-      --event-target string     Entity URI or bead ID affected (requires --type=event)
+      --event-target string     Entity URI or issue ID affected (requires --type=event)
       --external-ref string     External reference (e.g., 'gh-9', 'jira-ABC', Linear URL)
   -f, --file string             Create multiple issues from markdown file
       --force                   Force creation even if prefix doesn't match database prefix
       --graph string            Create a graph of issues with dependencies from JSON plan file
-      --id string               Explicit issue ID (e.g., 'bd-42' for partitioning)
+      --id string               Explicit issue ID (e.g., 'issuegraph-42' for partitioning)
   -l, --labels strings          Labels (comma-separated)
       --metadata string         Set custom metadata (JSON string or @file.json to read from file)
       --mol-type string         Molecule type: swarm (multi-agent), patrol (recurring ops), work (default)
-      --no-history              Skip Dolt commit history without making GC-eligible (for permanent agent beads)
+      --no-history              Skip Dolt commit history without making GC-eligible (for permanent agent issuegraph)
       --no-inherit-labels       Don't inherit labels from parent issue
       --notes string            Additional notes
-      --parent string           Parent issue ID for hierarchical child (e.g., 'bd-a3f8e9')
+      --parent string           Parent issue ID for hierarchical child (e.g., 'issuegraph-a3f8e9')
   -p, --priority string         Priority (0-4 or P0-P4, 0=highest) (default "2")
       --repo string             Target repository for issue (overrides auto-routing)
       --silent                  Output only the issue ID (for scripting)

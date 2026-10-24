@@ -13,9 +13,9 @@ import (
 	"github.com/spf13/cobra"
 	"golang.org/x/term"
 
-	"github.com/steveyegge/beads/internal/githooksenv"
-	"github.com/steveyegge/beads/internal/storage"
-	"github.com/steveyegge/beads/internal/storage/doltutil"
+	"github.com/borg0ai/dx-issuegraph/internal/githooksenv"
+	"github.com/borg0ai/dx-issuegraph/internal/storage"
+	"github.com/borg0ai/dx-issuegraph/internal/storage/doltutil"
 )
 
 // Ref names anchoring a git-backed Dolt remote's data plane, as published by
@@ -41,7 +41,7 @@ const (
 	// resetDataFileAbsent: the file target is missing or empty — nothing
 	// anchors old data; force-push alone rebuilds it.
 	resetDataFileAbsent
-	// resetDataUnsupported: a cloud or hosted store whose contents bd cannot
+	// resetDataUnsupported: a cloud or hosted store whose contents issuegraph cannot
 	// safely clear — replace the remote with a fresh URL/prefix instead.
 	resetDataUnsupported
 )
@@ -136,9 +136,9 @@ func lsRemoteDoltDataRefs(ctx context.Context, gitURL string) ([]string, error) 
 }
 
 // deleteGitDoltDataRefs deletes refs on the git remote at gitURL. Git
-// client-side hooks are disabled for the push, same as bd's other internal
+// client-side hooks are disabled for the push, same as issuegraph's other internal
 // git invocations (GH#3724 class: a user's templated pre-push hook must not
-// break — or observe — bd's data-plane plumbing).
+// break — or observe — issuegraph's data-plane plumbing).
 func deleteGitDoltDataRefs(ctx context.Context, gitURL string, refs []string) error {
 	args := []string{"push", gitURL}
 	for _, ref := range refs {
@@ -193,7 +193,7 @@ var doltRemoteResetDataCmd = &cobra.Command{
 	Long: `Replace a Dolt remote's stored data with a fresh copy of local HEAD.
 
 After a history squash (see the History Bloat recovery runbook), a plain
-'bd dolt push --force' re-points the remote's refs but deletes nothing:
+'issuegraph dolt push --force' re-points the remote's refs but deletes nothing:
 Dolt remotes accumulate chunks monotonically, so the remote keeps the full
 pre-squash store. This command rebuilds the remote's data plane so it holds
 only live chunks:
@@ -203,11 +203,11 @@ only live chunks:
     rebuild a fresh store. Code branches are untouched.
   - Native file remotes (file:// paths): clears the store directory, then
     force-pushes to rebuild it.
-  - Cloud/hosted remotes (aws://, gs://, dolthub://, ...): bd cannot clear
+  - Cloud/hosted remotes (aws://, gs://, dolthub://, ...): issuegraph cannot clear
     the stored data safely — replace the remote with a fresh URL or prefix:
-      bd dolt remote remove <name>
-      bd dolt remote add <name> <fresh-url>
-      bd dolt push --force
+      issuegraph dolt remote remove <name>
+      issuegraph dolt remote add <name> <fresh-url>
+      issuegraph dolt push --force
 
 This rewrites the remote's data plane. Every other clone must re-clone from
 the reset remote (that is already true after the squash itself). Refuses to
@@ -215,8 +215,8 @@ run with uncommitted working-set changes: the rebuilt remote holds exactly
 HEAD, and anything uncommitted would not be part of it.
 
 Examples:
-  bd dolt remote reset-data origin          # prompts for confirmation
-  bd dolt remote reset-data origin --yes    # no prompt (scripts, agents)`,
+  issuegraph dolt remote reset-data origin          # prompts for confirmation
+  issuegraph dolt remote reset-data origin --yes    # no prompt (scripts, agents)`,
 	SilenceUsage:  true,
 	SilenceErrors: true,
 	Args:          cobra.ExactArgs(1),
@@ -225,11 +225,11 @@ Examples:
 		name := args[0]
 
 		if usesProxiedServer() {
-			return HandleErrorRespectJSON("bd dolt remote reset-data is not supported over a proxied bd server; run it from the workspace that hosts the Dolt database")
+			return HandleErrorRespectJSON("issuegraph dolt remote reset-data is not supported over a proxied issuegraph server; run it from the workspace that hosts the Dolt database")
 		}
 		if isDoltLocalOnly() {
 			fmt.Fprintln(os.Stderr, "Error: cannot reset remote data: remote sync is disabled (dolt.local-only=true).")
-			fmt.Fprintln(os.Stderr, "To re-enable remote sync: bd config unset dolt.local-only")
+			fmt.Fprintln(os.Stderr, "To re-enable remote sync: issuegraph config unset dolt.local-only")
 			return SilentExit()
 		}
 
@@ -253,7 +253,7 @@ Examples:
 		if url == "" {
 			return HandleErrorWithHint(
 				fmt.Sprintf("remote %q is not configured", name),
-				"Use 'bd dolt remote list' to see configured remotes.")
+				"Use 'issuegraph dolt remote list' to see configured remotes.")
 		}
 
 		// The rebuilt remote holds exactly HEAD; refuse while anything
@@ -266,7 +266,7 @@ Examples:
 			if dirty {
 				return HandleErrorWithHint(
 					"working set has uncommitted changes; refusing to reset remote data",
-					"Run 'bd dolt commit' first — the rebuilt remote holds exactly HEAD.")
+					"Run 'issuegraph dolt commit' first — the rebuilt remote holds exactly HEAD.")
 			}
 		}
 
@@ -278,9 +278,9 @@ Examples:
 			return HandleErrorWithHint(
 				fmt.Sprintf("cannot clear stored data on remote %q (%s)", name, url),
 				fmt.Sprintf("Replace the remote with a fresh URL or prefix instead:\n"+
-					"  bd dolt remote remove %s\n"+
-					"  bd dolt remote add %s <fresh-url>\n"+
-					"  bd dolt push --force", name, name))
+					"  issuegraph dolt remote remove %s\n"+
+					"  issuegraph dolt remote add %s <fresh-url>\n"+
+					"  issuegraph dolt push --force", name, name))
 		}
 
 		if !doltRemoteResetDataYes {
@@ -336,7 +336,7 @@ Examples:
 
 		fmt.Printf("Force-pushing to remote %q...\n", name)
 		if perr := st.PushRemote(ctx, name, true); perr != nil {
-			return HandleError("push after reset failed (the remote's data refs were already removed — re-run 'bd dolt push --force --remote %s' once the cause is fixed): %v", name, perr)
+			return HandleError("push after reset failed (the remote's data refs were already removed — re-run 'issuegraph dolt push --force --remote %s' once the cause is fixed): %v", name, perr)
 		}
 
 		if jsonOutput {

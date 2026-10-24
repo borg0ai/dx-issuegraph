@@ -4,7 +4,7 @@ import (
 	"errors"
 	"testing"
 
-	"github.com/steveyegge/beads/internal/storage"
+	"github.com/borg0ai/dx-issuegraph/internal/storage"
 )
 
 func TestPublicDirectWritesRejectOpenCircuitBeforeTransaction(t *testing.T) {
@@ -37,7 +37,7 @@ func TestPublicDirectWritesRejectOpenCircuitBeforeTransaction(t *testing.T) {
 		}},
 	} {
 		t.Run(tc.name, func(t *testing.T) {
-			t.Setenv("BEADS_TEST_MODE", "")
+			t.Setenv("ISSUEGRAPH_TEST_MODE", "")
 			breaker := newTestCircuitBreaker(t)
 			for range circuitFailureThreshold {
 				breaker.RecordFailure()
@@ -61,7 +61,7 @@ func TestPublicDirectWritesRejectOpenCircuitBeforeTransaction(t *testing.T) {
 }
 
 func TestExplicitIDWispUpdateTerminalSuccessResetsCircuit(t *testing.T) {
-	t.Setenv("BEADS_TEST_MODE", "")
+	t.Setenv("ISSUEGRAPH_TEST_MODE", "")
 	breaker := newTestCircuitBreaker(t)
 	for range circuitFailureThreshold - 1 {
 		breaker.RecordFailure()
@@ -81,7 +81,7 @@ func TestExplicitIDWispUpdateTerminalSuccessResetsCircuit(t *testing.T) {
 }
 
 func TestExplicitIDWispUpdateIndeterminateCommitTripsCircuit(t *testing.T) {
-	t.Setenv("BEADS_TEST_MODE", "")
+	t.Setenv("ISSUEGRAPH_TEST_MODE", "")
 	breaker := newTestCircuitBreaker(t)
 	for range circuitFailureThreshold - 1 {
 		breaker.RecordFailure()
@@ -114,7 +114,7 @@ func TestExplicitIDWispUpdateIndeterminateCommitTripsCircuit(t *testing.T) {
 }
 
 func TestDeleteIssueIndeterminateCommitTripsCircuit(t *testing.T) {
-	t.Setenv("BEADS_TEST_MODE", "")
+	t.Setenv("ISSUEGRAPH_TEST_MODE", "")
 	breaker := newTestCircuitBreaker(t)
 	for range circuitFailureThreshold - 1 {
 		breaker.RecordFailure()
@@ -159,7 +159,7 @@ func TestPublicPullsRejectOpenCircuitBeforeRouting(t *testing.T) {
 		}},
 	} {
 		t.Run(tc.name, func(t *testing.T) {
-			t.Setenv("BEADS_TEST_MODE", "")
+			t.Setenv("ISSUEGRAPH_TEST_MODE", "")
 			breaker := newTestCircuitBreaker(t)
 			for range circuitFailureThreshold {
 				breaker.RecordFailure()

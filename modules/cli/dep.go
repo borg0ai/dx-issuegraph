@@ -1,4 +1,4 @@
-// Package main implements the bd CLI dependency management commands.
+// Package main implements the issuegraph CLI dependency management commands.
 package main
 
 import (
@@ -11,12 +11,12 @@ import (
 	"path/filepath"
 	"strings"
 
+	"github.com/borg0ai/dx-issuegraph/internal/metrics"
+	"github.com/borg0ai/dx-issuegraph/internal/storage"
+	"github.com/borg0ai/dx-issuegraph/internal/types"
+	"github.com/borg0ai/dx-issuegraph/internal/ui"
+	"github.com/borg0ai/dx-issuegraph/issueops"
 	"github.com/spf13/cobra"
-	"github.com/steveyegge/beads/internal/metrics"
-	"github.com/steveyegge/beads/internal/storage"
-	"github.com/steveyegge/beads/internal/types"
-	"github.com/steveyegge/beads/internal/ui"
-	"github.com/steveyegge/beads/issueops"
 )
 
 // addDependencyEdgesDirect asserts edges through the DependencyEditor role on
@@ -45,7 +45,7 @@ func addDependencyEdgesDirect(ctx context.Context, st storage.DoltStorage, edges
 }
 
 // exactDependencyTarget returns the depends_on_id of a raw dependency edge on
-// issueID that equals rawTarget exactly. Used by `bd dep remove` so a bare
+// issueID that equals rawTarget exactly. Used by `issuegraph dep remove` so a bare
 // slug that was stored verbatim (pre-GH#5005 create --deps bug) is removed
 // instead of being resolved to a different, fully-qualified good edge.
 func exactDependencyTarget(ctx context.Context, st storage.DependencyQueryStore, issueID, rawTarget string) (string, bool) {
@@ -149,14 +149,14 @@ var depCmd = &cobra.Command{
 	Long: `Manage dependencies between issues.
 
 When called with an issue ID and --blocks flag, creates a blocking dependency:
-  bd dep <blocker-id> --blocks <blocked-id>
+  issuegraph dep <blocker-id> --blocks <blocked-id>
 
 This is equivalent to:
-  bd dep add <blocked-id> <blocker-id>
+  issuegraph dep add <blocked-id> <blocker-id>
 
 Examples:
-  bd dep bd-xyz --blocks bd-abc    # bd-xyz blocks bd-abc
-  bd dep add bd-abc bd-xyz         # Same as above (bd-abc depends on bd-xyz)`,
+  issuegraph dep bd-xyz --blocks bd-abc    # bd-xyz blocks bd-abc
+  issuegraph dep add bd-abc bd-xyz         # Same as above (bd-abc depends on bd-xyz)`,
 	Args:          cobra.MaximumNArgs(1),
 	SilenceUsage:  true,
 	SilenceErrors: true,
@@ -256,9 +256,9 @@ var depAddCmd = &cobra.Command{
 	Long: `Add a dependency between two issues.
 
 The depends-on-id can be provided as:
-  - A positional argument: bd dep add issue-123 issue-456
-  - A flag: bd dep add issue-123 --blocked-by issue-456
-  - A flag: bd dep add issue-123 --depends-on issue-456
+  - A positional argument: issuegraph dep add issue-123 issue-456
+  - A flag: issuegraph dep add issue-123 --blocked-by issue-456
+  - A flag: issuegraph dep add issue-123 --depends-on issue-456
 
 The --blocked-by and --depends-on flags are aliases and both mean "issue-123
 depends on (is blocked by) the specified issue."
@@ -276,17 +276,17 @@ the external_projects config. They block the issue until the capability
 is "shipped" in the target project.
 
 With no -t/--type the edge is created as type=blocks, which excludes the
-dependent from bd ready. When stderr is an interactive terminal, an advisory
+dependent from issuegraph ready. When stderr is an interactive terminal, an advisory
 note says so once per command; it is silent for scripted and agent callers
-(non-TTY stderr) and can be turned off with --quiet or BD_NO_DEP_TYPE_WARNING=1.
+(non-TTY stderr) and can be turned off with --quiet or ISSUEGRAPH_NO_DEP_TYPE_WARNING=1.
 
 Examples:
-  bd dep add bd-42 bd-41                              # Positional args
-  bd dep add bd-42 --blocked-by bd-41                 # Flag syntax (same effect)
-  bd dep add bd-42 --depends-on bd-41                 # Alias (same effect)
-  bd dep add gt-xyz external:beads:mol-run-assignee   # Cross-project dependency
-  bd dep add bd-42 bd-41 --no-cycle-check             # Skip the post-add cycle warning
-  bd dep add --file deps.jsonl                        # Bulk JSONL: {"from":"bd-42","to":"bd-41"}`,
+  issuegraph dep add bd-42 bd-41                              # Positional args
+  issuegraph dep add bd-42 --blocked-by bd-41                 # Flag syntax (same effect)
+  issuegraph dep add bd-42 --depends-on bd-41                 # Alias (same effect)
+  issuegraph dep add gt-xyz external:issuegraph:mol-run-assignee   # Cross-project dependency
+  issuegraph dep add bd-42 bd-41 --no-cycle-check             # Skip the post-add cycle warning
+  issuegraph dep add --file deps.jsonl                        # Bulk JSONL: {"from":"bd-42","to":"bd-41"}`,
 	Args: func(cmd *cobra.Command, args []string) error {
 		file, _ := cmd.Flags().GetString("file")
 		blockedBy, _ := cmd.Flags().GetString("blocked-by")
@@ -444,7 +444,7 @@ Examples:
 
 // warnImplicitBlocksDefault is the D1 guard: when a dep add edge is created
 // with the implicit type=blocks default it warns on stderr. A silent blocks
-// edge drops the dependent from bd ready, which is not what an operator
+// edge drops the dependent from issuegraph ready, which is not what an operator
 // usually means when wiring a structural parent/child link. An explicit
 // choice never warns: -t (including an explicit -t blocks), and the
 // --blocked-by/--depends-on aliases, whose names already express the
@@ -452,11 +452,11 @@ Examples:
 //
 // The warning is advisory and fires on the documented-default majority path,
 // so it is scoped to an interactive operator: it is emitted only when stderr
-// is a TTY, and it honors the global --quiet flag and BD_NO_DEP_TYPE_WARNING.
+// is a TTY, and it honors the global --quiet flag and ISSUEGRAPH_NO_DEP_TYPE_WARNING.
 // Scripted and agent callers — whose stderr is a pipe or a log file — never
 // see it, so it cannot train them to ignore stderr.
 func warnImplicitBlocksDefault(dt types.DependencyType, explicit bool) {
-	if !shouldWarnImplicitBlocksDefault(dt, explicit, quietFlag, os.Getenv("BD_NO_DEP_TYPE_WARNING"), ui.IsStderrTerminal()) {
+	if !shouldWarnImplicitBlocksDefault(dt, explicit, quietFlag, os.Getenv("ISSUEGRAPH_NO_DEP_TYPE_WARNING"), ui.IsStderrTerminal()) {
 		return
 	}
 	emitImplicitBlocksDefaultWarning()
@@ -478,7 +478,7 @@ func shouldWarnImplicitBlocksDefault(dt types.DependencyType, explicit, quiet bo
 		return false
 	}
 	// Explicit opt-out for operators who have internalized the default,
-	// following the BD_NO_EMOJI / BD_NO_COLOR precedent.
+	// following the ISSUEGRAPH_NO_EMOJI / ISSUEGRAPH_NO_COLOR precedent.
 	if noWarnEnv != "" {
 		return false
 	}
@@ -488,7 +488,7 @@ func shouldWarnImplicitBlocksDefault(dt types.DependencyType, explicit, quiet bo
 // emitImplicitBlocksDefaultWarning writes the D1 warning. Split from the gate
 // so the message text can be asserted under a captured (non-TTY) stderr.
 func emitImplicitBlocksDefaultWarning() {
-	fmt.Fprintf(os.Stderr, "warning: no -t/--type given; edge created as type=blocks — the dependent is excluded from bd ready until the edge resolves. Use -t parent-child for structural parent/child linkage (silence with --quiet or BD_NO_DEP_TYPE_WARNING=1)\n") //nolint:gosec // G705: stderr, not a browser context
+	fmt.Fprintf(os.Stderr, "warning: no -t/--type given; edge created as type=blocks — the dependent is excluded from issuegraph ready until the edge resolves. Use -t parent-child for structural parent/child linkage (silence with --quiet or ISSUEGRAPH_NO_DEP_TYPE_WARNING=1)\n") //nolint:gosec // G705: stderr, not a browser context
 }
 
 type bulkDepInput struct {
@@ -759,7 +759,7 @@ func dependencyStoreKey(s storage.DoltStorage) string {
 	return fmt.Sprintf("instance:%p", s)
 }
 
-// depListAnchor is one resolved `bd dep list` argument: the canonical id, the
+// depListAnchor is one resolved `issuegraph dep list` argument: the canonical id, the
 // store that actually holds it, and the routing handle that has to be closed.
 type depListAnchor struct {
 	fullID string
@@ -772,7 +772,7 @@ type depListAnchor struct {
 //
 // The grouping is what keeps the answer on ONE shape: a failure is a failure, a
 // split batch is N role calls merged back into one answer, and the caller's
-// argument count picks the shape (see batchMode at the call site). `bd dep list
+// argument count picks the shape (see batchMode at the call site). `issuegraph dep list
 // a b c --json` documents an array of dependency records, not of issues.
 func readDepListEdges(ctx context.Context, anchors []depListAnchor, typeFilter string) ([]issueops.AnchorEdges, error) {
 	var depTypes []types.DependencyType
@@ -858,11 +858,11 @@ func printDepListEdges(anchors []issueops.AnchorEdges) error {
 // warnDroppedDepEdges prints a stderr-only notice for every stored "down"
 // dependency edge of anchorID that shown (the Relations role's answer) left
 // out because its target has no row in this database — i.e. a cross-repo or
-// `external:` target (bd-mtla: `bd link` across databases reports success
-// and writes the row, but the single-id `bd dep list <id>` a caller runs
+// `external:` target (bd-mtla: `issuegraph link` across databases reports success
+// and writes the row, but the single-id `issuegraph dep list <id>` a caller runs
 // right after has no way to tell that from no dependency existing at all).
 //
-// It never writes to stdout, so the documented `bd dep list <id>` and
+// It never writes to stdout, so the documented `issuegraph dep list <id>` and
 // `--json` shapes for the common (fully-local) case are unchanged; a script
 // parsing stdout sees nothing new. A best-effort read: an error here is
 // swallowed rather than surfaced, since the command's actual answer was
@@ -893,7 +893,7 @@ func warnDroppedDepEdges(ctx context.Context, reader issueops.EdgeReader, anchor
 	for _, dep := range dropped {
 		fmt.Fprintf(os.Stderr, "  %s via %s\n", dep.DependsOnID, dep.Type)
 	}
-	fmt.Fprintf(os.Stderr, "For raw edge records, run: bd dep list %s %s\n", anchorID, anchorID)
+	fmt.Fprintf(os.Stderr, "For raw edge records, run: issuegraph dep list %s %s\n", anchorID, anchorID)
 }
 
 var depListCmd = &cobra.Command{
@@ -911,10 +911,10 @@ is a flat array of dependency records across all requested issues.
 Use --type to filter by dependency type (e.g., tracks, blocks, parent-child).
 
 Examples:
-  bd dep list gt-abc                     # Show what gt-abc depends on
-  bd dep list gt-abc gt-def              # Batch: deps for both issues
-  bd dep list gt-abc --direction=up      # Show what depends on gt-abc
-  bd dep list gt-abc --direction=up -t tracks  # Show what tracks gt-abc (convoy tracking)`,
+  issuegraph dep list gt-abc                     # Show what gt-abc depends on
+  issuegraph dep list gt-abc gt-def              # Batch: deps for both issues
+  issuegraph dep list gt-abc --direction=up      # Show what depends on gt-abc
+  issuegraph dep list gt-abc --direction=up -t tracks  # Show what tracks gt-abc (convoy tracking)`,
 	Args:          cobra.MinimumNArgs(1),
 	SilenceUsage:  true,
 	SilenceErrors: true,
@@ -1035,7 +1035,7 @@ Examples:
 		// used it above, so this is reached for "down" only when there is
 		// exactly one resolved anchor — warn on stderr (never stdout/--json,
 		// so the documented single-id shape and any script parsing it are
-		// untouched) naming any edge Relations left out, so a `bd link`
+		// untouched) naming any edge Relations left out, so a `issuegraph link`
 		// across databases doesn't look indistinguishable from no link at
 		// all (bd-mtla). "up" has the same gap but no inbound EdgeReader
 		// role exists to detect it from here — tracked separately.
@@ -1131,7 +1131,7 @@ var depRemoveCmd = &cobra.Command{
 		} else if exact, ok := exactDependencyTarget(ctx, fromStore, fromID, args[1]); ok {
 			// Prefer an exact depends_on_id match against raw edge records
 			// before partial-ID resolution (GH#5005). Otherwise
-			// `bd dep remove X 8vezf` resolves to the qualified good edge and
+			// `issuegraph dep remove X 8vezf` resolves to the qualified good edge and
 			// deletes it while leaving a dangling bare-id row behind.
 			toID = exact
 		} else {
@@ -1154,8 +1154,8 @@ var depRemoveCmd = &cobra.Command{
 		fullToID := toID
 
 		// Explicit dep verb: the role records a dependency_removed history entry
-		// for a genuine removal, matching bd dep add's edge event and the
-		// proxied bd dep remove path.
+		// for a genuine removal, matching issuegraph dep add's edge event and the
+		// proxied issuegraph dep remove path.
 		//
 		editor, err := fromStore.DependencyEditor()
 		if err != nil {
@@ -1216,16 +1216,16 @@ By default, shows dependencies (what blocks this issue). Use --direction to cont
   - both: Show full graph in both directions
 
 Examples:
-  bd dep tree gt-0iqq                    # Show what blocks gt-0iqq
-  bd dep tree gt-0iqq --direction=up     # Show what gt-0iqq blocks
-  bd dep tree gt-0iqq --status=open      # Only show open issues
-  bd dep tree gt-0iqq --depth=3          # Limit to 3 levels deep
+  issuegraph dep tree gt-0iqq                    # Show what blocks gt-0iqq
+  issuegraph dep tree gt-0iqq --direction=up     # Show what gt-0iqq blocks
+  issuegraph dep tree gt-0iqq --status=open      # Only show open issues
+  issuegraph dep tree gt-0iqq --depth=3          # Limit to 3 levels deep
 
 A node reached by two paths is shown ONCE, under the first path that got
 there, and a cycle simply ends the descent. --show-all-paths is a deprecated
-no-op; use 'bd dep cycles' to find circular dependencies.
+no-op; use 'issuegraph dep cycles' to find circular dependencies.
 
---max-rows / BEADS_MAX_ROWS caveat: the tree walk has no query filter to
+--max-rows / ISSUEGRAPH_MAX_ROWS caveat: the tree walk has no query filter to
 thread the cap through, so the full tree is always built first and the
 node count is checked afterward (post-hoc), not during the walk. The cap is
 honored on the --proxied-server route too, which it was not before.`,
@@ -1535,7 +1535,7 @@ func ParseExternalRef(ref string) (project, capability string) {
 
 func init() {
 	// dep command shorthand flag
-	depCmd.Flags().StringP("blocks", "b", "", "Issue ID that this issue blocks (shorthand for: bd dep add <blocked> <blocker>)")
+	depCmd.Flags().StringP("blocks", "b", "", "Issue ID that this issue blocks (shorthand for: issuegraph dep add <blocked> <blocker>)")
 	depCmd.Flags().Bool("no-cycle-check", false, "Skip the post-add cycle warning (the per-edge cycle check still runs)")
 
 	depAddCmd.Flags().StringP("type", "t", "blocks", "Dependency type (blocks|tracks|related|parent-child|discovered-from|until|caused-by|validates|relates-to|supersedes); 'blocked-by' and 'depends-on' are accepted as aliases for 'blocks'")
@@ -1559,7 +1559,7 @@ func init() {
 	// the role, on BOTH routes — hence the routed variant of the flag.
 	addRoutedMaxRowsFlag(depTreeCmd)
 	// Note: --type flag intentionally omitted from depTreeCmd — TreeNode lacks
-	// dependency type info so filtering is not possible. Use 'bd dep list --type' instead.
+	// dependency type info so filtering is not possible. Use 'issuegraph dep list --type' instead.
 
 	depListCmd.Flags().String("direction", "down", "Direction: 'down' (dependencies), 'up' (dependents)")
 	depListCmd.Flags().StringP("type", "t", "", "Filter by dependency type (e.g., tracks, blocks, parent-child)")

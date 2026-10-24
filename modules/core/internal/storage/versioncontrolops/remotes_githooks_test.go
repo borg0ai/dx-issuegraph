@@ -8,7 +8,7 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/steveyegge/beads/internal/githooksenv"
+	"github.com/borg0ai/dx-issuegraph/internal/githooksenv"
 )
 
 // envRecordingConn records the GIT_CONFIG_PARAMETERS value visible at the
@@ -55,10 +55,10 @@ func TestRemoteCallsDisableGitHooks(t *testing.T) {
 		{"ForcePush", func(db DBConn) error { return ForcePush(context.Background(), db, "origin", "main", "") }},
 		{"Fetch", func(db DBConn) error { return Fetch(context.Background(), db, "peer", "") }},
 		{"Clone", func(db DBConn) error {
-			return DoltClone(context.Background(), db, "https://example.com/r.git", "beads", "")
+			return DoltClone(context.Background(), db, "https://example.com/r.git", "issuegraph", "")
 		}},
 		{"Clone with user", func(db DBConn) error {
-			return DoltClone(context.Background(), db, "https://example.com/r.git", "beads", "u")
+			return DoltClone(context.Background(), db, "https://example.com/r.git", "issuegraph", "u")
 		}},
 	}
 	for _, tt := range tests {

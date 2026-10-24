@@ -72,12 +72,12 @@ esac
 while IFS= read -r path; do
     [[ -n "$path" ]] || continue
     case "$path" in
-        integrations/beads-mcp/*|scripts/ci/package-mcp.sh|scripts/ci/detect-package-gates.sh|.github/workflows/pr.yml|.github/workflows/main.yml|.github/workflows/pr-risk.yml|.github/workflows/ci-measurements.yml|.github/workflows/release.yml|Makefile)
+        integrations/issuegraph-mcp/*|scripts/ci/package-mcp.sh|scripts/ci/detect-package-gates.sh|.github/workflows/pr.yml|.github/workflows/main.yml|.github/workflows/pr-risk.yml|.github/workflows/ci-measurements.yml|.github/workflows/release.yml|Makefile)
             mcp_package=true
             ;;
     esac
     case "$path" in
-        npm-package/*|scripts/ci/package-npm.sh|scripts/ci/detect-package-gates.sh|.github/workflows/pr.yml|.github/workflows/main.yml|.github/workflows/pr-risk.yml|.github/workflows/ci-measurements.yml|.github/workflows/release.yml|Makefile)
+        apps/cli/*|scripts/ci/package-npm.sh|scripts/ci/detect-package-gates.sh|.github/workflows/pr.yml|.github/workflows/main.yml|.github/workflows/pr-risk.yml|.github/workflows/ci-measurements.yml|.github/workflows/release.yml|Makefile)
             npm_package=true
             ;;
     esac

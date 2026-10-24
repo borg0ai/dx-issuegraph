@@ -11,7 +11,7 @@ import (
 	"testing"
 )
 
-// End-to-end for the field update, against real Dolt through a real `bd serve`
+// End-to-end for the field update, against real Dolt through a real `issuegraph serve`
 // subprocess. The pure tests in internal/httpapi cover the wire edge on a fake
 // role and assert the projection onto issueops.IssuePatch field by field; what
 // only this level can prove is that the projection LANDS — that a set member, a
@@ -24,7 +24,7 @@ import (
 // encoding/json's default for `any`.
 func (sp *serveProcess) updateIssueRaw(t *testing.T, id, body string) (int, []byte) {
 	t.Helper()
-	req, err := http.NewRequest(http.MethodPatch, sp.url("/v0/beads/issues/"+id), strings.NewReader(body))
+	req, err := http.NewRequest(http.MethodPatch, sp.url("/v0/issuegraph/issues/"+id), strings.NewReader(body))
 	if err != nil {
 		t.Fatalf("new update request: %v", err)
 	}
@@ -91,9 +91,9 @@ func revisionGuard(token string) string { return strconv.Quote(token) }
 func TestProxiedServerServeUpdate(t *testing.T) {
 	requireSharedProxiedServer(t)
 	t.Parallel()
-	bd := buildEmbeddedBD(t)
-	p := newSharedProxiedProject(t, bd, "srvupd")
-	sp := startServe(t, bd, p.dir, bdProxiedEnv(p.dir))
+	issuegraph := buildEmbeddedBD(t)
+	p := newSharedProxiedProject(t, issuegraph, "srvupd")
+	sp := startServe(t, issuegraph, p.dir, issuegraphProxiedEnv(p.dir))
 
 	// THE THREE-WAY PROOF the spec names: one issue carrying a SET member, a
 	// NULL-CLEARED member and an UNTOUCHED member, read back after the PATCH.
@@ -101,14 +101,14 @@ func TestProxiedServerServeUpdate(t *testing.T) {
 	// "absent means untouched" is a property of the write rather than of the
 	// handler's bookkeeping.
 	t.Run("a set member, a cleared member and an untouched member", func(t *testing.T) {
-		issue := bdProxiedCreate(t, bd, p.dir, "before", "-p", "3",
+		issue := issuegraphProxiedCreate(t, issuegraph, p.dir, "before", "-p", "3",
 			"-d", "the original description", "--acceptance", "the original criteria")
 
 		// Give it something to clear and something to leave alone.
-		if _, err := bdProxiedRun(t, bd, p.dir, "update", issue.ID, "--external-ref", "JIRA-1"); err != nil {
-			t.Fatalf("bd update --external-ref: %v", err)
+		if _, err := issuegraphProxiedRun(t, issuegraph, p.dir, "update", issue.ID, "--external-ref", "JIRA-1"); err != nil {
+			t.Fatalf("issuegraph update --external-ref: %v", err)
 		}
-		seeded := bdProxiedShow(t, bd, p.dir, issue.ID)
+		seeded := issuegraphProxiedShow(t, issuegraph, p.dir, issue.ID)
 		if seeded.ExternalRef == nil || *seeded.ExternalRef != "JIRA-1" {
 			t.Fatalf("external_ref did not seed: %v", seeded.ExternalRef)
 		}
@@ -125,7 +125,7 @@ func TestProxiedServerServeUpdate(t *testing.T) {
 			t.Errorf("changed = %v, want true", body["changed"])
 		}
 
-		after := bdProxiedShow(t, bd, p.dir, issue.ID)
+		after := issuegraphProxiedShow(t, issuegraph, p.dir, issue.ID)
 		// SET: the two members the patch carried.
 		if after.Title != "after" {
 			t.Errorf("title = %q, want the patched value", after.Title)
@@ -153,7 +153,7 @@ func TestProxiedServerServeUpdate(t *testing.T) {
 	// The idempotency half: a same-value resend is a 200 with changed:false, and
 	// the row is unchanged.
 	t.Run("a same-value resend reports changed false", func(t *testing.T) {
-		issue := bdProxiedCreate(t, bd, p.dir, "idempotent", "-p", "2")
+		issue := issuegraphProxiedCreate(t, issuegraph, p.dir, "idempotent", "-p", "2")
 
 		status, body := sp.updateIssue(t, issue.ID, `{"actor":"http-agent","patch":{"title":"renamed"}}`)
 		if status != http.StatusOK {
@@ -170,7 +170,7 @@ func TestProxiedServerServeUpdate(t *testing.T) {
 		if body["changed"] != false {
 			t.Errorf("changed = %v, want false for a same-value patch", body["changed"])
 		}
-		if shown := bdProxiedShow(t, bd, p.dir, issue.ID); shown.Title != "renamed" {
+		if shown := issuegraphProxiedShow(t, issuegraph, p.dir, issue.ID); shown.Title != "renamed" {
 			t.Errorf("title = %q after the resend", shown.Title)
 		}
 	})
@@ -178,13 +178,13 @@ func TestProxiedServerServeUpdate(t *testing.T) {
 	// Labels are COMPLETE REPLACEMENT, which is the one member whose semantics a
 	// client cannot infer from the field name.
 	t.Run("labels are replaced wholesale", func(t *testing.T) {
-		issue := bdProxiedCreate(t, bd, p.dir, "labelled", "-p", "2", "--label", "keep", "--label", "drop")
+		issue := issuegraphProxiedCreate(t, issuegraph, p.dir, "labelled", "-p", "2", "--label", "keep", "--label", "drop")
 
 		status, body := sp.updateIssue(t, issue.ID, `{"actor":"http-agent","patch":{"labels":["keep","added"]}}`)
 		if status != http.StatusOK {
 			t.Fatalf("status = %d, want 200: %v", status, body)
 		}
-		after := bdProxiedShow(t, bd, p.dir, issue.ID)
+		after := issuegraphProxiedShow(t, issuegraph, p.dir, issue.ID)
 		got := map[string]bool{}
 		for _, l := range after.Labels {
 			got[l] = true
@@ -204,7 +204,7 @@ func TestProxiedServerServeUpdate(t *testing.T) {
 	// writer's label, because a replacement can only be composed safely by a
 	// writer that knows it is alone.
 	t.Run("concurrent additions do not drop each other's labels", func(t *testing.T) {
-		issue := bdProxiedCreate(t, bd, p.dir, "incrementally labelled", "-p", "2", "--label", "original")
+		issue := issuegraphProxiedCreate(t, issuegraph, p.dir, "incrementally labelled", "-p", "2", "--label", "original")
 
 		// Each writer read the row BEFORE the other wrote, so each knows only
 		// {original} plus its own label. Under a replacement that is a lost
@@ -217,7 +217,7 @@ func TestProxiedServerServeUpdate(t *testing.T) {
 			}
 		}
 
-		after := bdProxiedShow(t, bd, p.dir, issue.ID)
+		after := issuegraphProxiedShow(t, issuegraph, p.dir, issue.ID)
 		got := map[string]bool{}
 		for _, l := range after.Labels {
 			got[l] = true
@@ -234,7 +234,7 @@ func TestProxiedServerServeUpdate(t *testing.T) {
 		if status != http.StatusOK {
 			t.Fatalf("remove: status = %d, want 200: %v", status, body)
 		}
-		after = bdProxiedShow(t, bd, p.dir, issue.ID)
+		after = issuegraphProxiedShow(t, issuegraph, p.dir, issue.ID)
 		got = map[string]bool{}
 		for _, l := range after.Labels {
 			got[l] = true
@@ -263,7 +263,7 @@ func TestProxiedServerServeUpdate(t *testing.T) {
 		if status != http.StatusOK {
 			t.Fatalf("ordered edit: status = %d, want 200: %v", status, body)
 		}
-		after = bdProxiedShow(t, bd, p.dir, issue.ID)
+		after = issuegraphProxiedShow(t, issuegraph, p.dir, issue.ID)
 		got = map[string]bool{}
 		for _, l := range after.Labels {
 			got[l] = true
@@ -279,10 +279,10 @@ func TestProxiedServerServeUpdate(t *testing.T) {
 		}
 	})
 
-	// The rule-8 oracle against `bd update --json`[0], the claim's device: both
+	// The rule-8 oracle against `issuegraph update --json`[0], the claim's device: both
 	// surfaces marshal the same canonical struct, so the allowlist is empty.
-	t.Run("the updated issue matches bd update --json element 0", func(t *testing.T) {
-		issue := bdProxiedCreate(t, bd, p.dir, "parity oracle", "-p", "1",
+	t.Run("the updated issue matches issuegraph update --json element 0", func(t *testing.T) {
+		issue := issuegraphProxiedCreate(t, issuegraph, p.dir, "parity oracle", "-p", "1",
 			"-d", "described", "--acceptance", "accepted", "--label", "oracle")
 
 		status, body := sp.updateIssue(t, issue.ID, `{"actor":"parity-agent","patch":{"title":"patched by http"}}`)
@@ -296,9 +296,9 @@ func TestProxiedServerServeUpdate(t *testing.T) {
 
 		// A same-value update through the CLI writes nothing and reports the
 		// same row, so both sides describe one post-state snapshot.
-		fromCLI := bdProxiedUpdateOneRaw(t, bd, p.dir, issue.ID, "--title", "patched by http")
+		fromCLI := issuegraphProxiedUpdateOneRaw(t, issuegraph, p.dir, issue.ID, "--title", "patched by http")
 		if diff := diffJSONObjects(fromHTTP, fromCLI, nil); diff != "" {
-			t.Errorf("UpdateIssueResponse.issue and `bd update --json`[0] disagree:\n%s", diff)
+			t.Errorf("UpdateIssueResponse.issue and `issuegraph update --json`[0] disagree:\n%s", diff)
 		}
 	})
 
@@ -311,7 +311,7 @@ func TestProxiedServerServeUpdate(t *testing.T) {
 			t.Errorf("code = %v, want not_found", body["code"])
 		}
 
-		issue := bdProxiedCreate(t, bd, p.dir, "never patched", "-p", "2", "-d", "untouched")
+		issue := issuegraphProxiedCreate(t, issuegraph, p.dir, "never patched", "-p", "2", "-d", "untouched")
 		// `status` and `assignee` used to be here, refused by name. They are
 		// published now, so what stands in their place is the refusal each of
 		// the new members BROUGHT: a self-parent, and the two spellings of the
@@ -337,7 +337,7 @@ func TestProxiedServerServeUpdate(t *testing.T) {
 		}
 
 		// The refusals are wire-edge refusals: nothing reached the database.
-		after := bdProxiedShow(t, bd, p.dir, issue.ID)
+		after := issuegraphProxiedShow(t, issuegraph, p.dir, issue.ID)
 		if after.Title != "never patched" || after.Description != "untouched" ||
 			string(after.Status) != "open" || after.Assignee != "" {
 			t.Errorf("a refused update wrote to the row: %+v", after)
@@ -350,7 +350,7 @@ func TestProxiedServerServeUpdate(t *testing.T) {
 	// land in one transaction — the capability two calls cannot give a caller —
 	// and that the guard token this write mints really guards the next one.
 	//
-	// `parent_id` is deliberately NOT read back here. `bd show --json` answers a
+	// `parent_id` is deliberately NOT read back here. `issuegraph show --json` answers a
 	// detail view whose `dependencies` are IssueWithDependencyMetadata rather
 	// than the edge rows types.Issue carries, so a read-back through this helper
 	// could not fail on a reparent that never landed. Its projection is pinned
@@ -358,7 +358,7 @@ func TestProxiedServerServeUpdate(t *testing.T) {
 	// MembersEarned, and its one edge-decided-here rule — a self-parent — in the
 	// refused-bodies table above.
 	t.Run("status, assignee and metadata land together", func(t *testing.T) {
-		issue := bdProxiedCreate(t, bd, p.dir, "the child", "-p", "2")
+		issue := issuegraphProxiedCreate(t, issuegraph, p.dir, "the child", "-p", "2")
 
 		status, raw := sp.updateIssueRaw(t, issue.ID, `{"actor":"http-agent","patch":{
 			"status":"in_progress",
@@ -381,7 +381,7 @@ func TestProxiedServerServeUpdate(t *testing.T) {
 		// guarded follow-up without it, which is why the member exists.
 		first := revisionOf(t, raw)
 
-		after := bdProxiedShow(t, bd, p.dir, issue.ID)
+		after := issuegraphProxiedShow(t, issuegraph, p.dir, issue.ID)
 		if string(after.Status) != "in_progress" || after.Assignee != "http-agent" {
 			t.Errorf("status/assignee did not land: %q/%q", after.Status, after.Assignee)
 		}
@@ -415,7 +415,7 @@ func TestProxiedServerServeUpdate(t *testing.T) {
 		if problem["param"] != "expected_version" {
 			t.Errorf("param = %v, want expected_version", problem["param"])
 		}
-		if shown := bdProxiedShow(t, bd, p.dir, issue.ID); shown.Title == "never" {
+		if shown := issuegraphProxiedShow(t, issuegraph, p.dir, issue.ID); shown.Title == "never" {
 			t.Error("a refused guard wrote to the row")
 		}
 
@@ -426,7 +426,7 @@ func TestProxiedServerServeUpdate(t *testing.T) {
 		if freshStatus != http.StatusOK {
 			t.Fatalf("guarded update: status = %d, want 200: %v", freshStatus, fresh)
 		}
-		if shown := bdProxiedShow(t, bd, p.dir, issue.ID); shown.Title != "guarded" {
+		if shown := issuegraphProxiedShow(t, issuegraph, p.dir, issue.ID); shown.Title != "guarded" {
 			t.Errorf("title = %q, want the guarded write to have landed", shown.Title)
 		}
 	})
@@ -437,8 +437,8 @@ func TestProxiedServerServeUpdate(t *testing.T) {
 	// closes a parent-child cycle, which CheckDependencyCycleInTx refuses on the
 	// store legs and depRepo.Insert's HasCycle refuses on the unit-of-work leg.
 	t.Run("a reparent that closes a cycle is a 409 over the wire", func(t *testing.T) {
-		a := bdProxiedCreate(t, bd, p.dir, "cycle a", "-p", "2")
-		b := bdProxiedCreate(t, bd, p.dir, "cycle b", "-p", "2")
+		a := issuegraphProxiedCreate(t, issuegraph, p.dir, "cycle a", "-p", "2")
+		b := issuegraphProxiedCreate(t, issuegraph, p.dir, "cycle b", "-p", "2")
 
 		status, body := sp.updateIssue(t, a.ID, `{"actor":"http-agent","patch":{"parent_id":"`+b.ID+`"}}`)
 		if status != http.StatusOK {
@@ -469,7 +469,7 @@ func TestProxiedServerServeUpdate(t *testing.T) {
 	// The workspace's own vocabulary is the role's question, and the document
 	// promises its refusal as a 400 rather than letting it fall through to a 500.
 	t.Run("a value this workspace refuses is a 400", func(t *testing.T) {
-		issue := bdProxiedCreate(t, bd, p.dir, "typed", "-p", "2")
+		issue := issuegraphProxiedCreate(t, issuegraph, p.dir, "typed", "-p", "2")
 
 		status, body := sp.updateIssue(t, issue.ID,
 			`{"actor":"http-agent","patch":{"issue_type":"not-a-configured-type"}}`)
@@ -479,7 +479,7 @@ func TestProxiedServerServeUpdate(t *testing.T) {
 		if body["code"] != "invalid_argument" {
 			t.Errorf("code = %v, want invalid_argument", body["code"])
 		}
-		if shown := bdProxiedShow(t, bd, p.dir, issue.ID); string(shown.IssueType) == "not-a-configured-type" {
+		if shown := issuegraphProxiedShow(t, issuegraph, p.dir, issue.ID); string(shown.IssueType) == "not-a-configured-type" {
 			t.Error("the refused issue_type was written anyway")
 		}
 	})
@@ -487,7 +487,7 @@ func TestProxiedServerServeUpdate(t *testing.T) {
 	// The lifecycle operations and the patch share one path under different
 	// methods. A PATCH must never execute as one of them.
 	t.Run("a patch is never a lifecycle verb", func(t *testing.T) {
-		issue := bdProxiedCreate(t, bd, p.dir, "not a close", "-p", "2")
+		issue := issuegraphProxiedCreate(t, issuegraph, p.dir, "not a close", "-p", "2")
 
 		// The custom-method segment under PATCH addresses an issue whose id is
 		// literally "<id>:close", which no row holds.
@@ -495,7 +495,7 @@ func TestProxiedServerServeUpdate(t *testing.T) {
 		if status != http.StatusNotFound {
 			t.Fatalf("PATCH a custom-method segment: status = %d, want 404: %v", status, body)
 		}
-		if shown := bdProxiedShow(t, bd, p.dir, issue.ID); string(shown.Status) != "open" {
+		if shown := issuegraphProxiedShow(t, issuegraph, p.dir, issue.ID); string(shown.Status) != "open" {
 			t.Errorf("a PATCH executed as a close: status %q", shown.Status)
 		}
 	})

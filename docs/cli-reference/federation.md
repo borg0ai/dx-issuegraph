@@ -1,11 +1,11 @@
 ---
-title: "bd federation"
+title: "issuegraph federation"
 description: "Federation commands require CGO and the Dolt storage backend."
 ---
 
 {/* AUTO-GENERATED: do not edit manually */}
 
-Generated from `bd help --doc federation`.
+Generated from `issuegraph help --doc federation`.
 
 Federation commands require CGO and the Dolt storage backend.
 
@@ -17,5 +17,5 @@ Federation enables synchronized issue tracking across multiple workspaces,
 each maintaining their own Dolt database while sharing updates via remotes.
 
 ```
-bd federation [flags]
+issuegraph federation [flags]
 ```

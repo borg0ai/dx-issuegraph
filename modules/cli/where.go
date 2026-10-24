@@ -5,18 +5,18 @@ import (
 	"os"
 	"path/filepath"
 
+	"github.com/borg0ai/dx-issuegraph/internal/config"
+	"github.com/borg0ai/dx-issuegraph/internal/configfile"
+	"github.com/borg0ai/dx-issuegraph/internal/issuegraph"
+	"github.com/borg0ai/dx-issuegraph/internal/metrics"
+	"github.com/borg0ai/dx-issuegraph/internal/storage"
+	"github.com/borg0ai/dx-issuegraph/internal/utils"
 	"github.com/spf13/cobra"
-	"github.com/steveyegge/beads/internal/beads"
-	"github.com/steveyegge/beads/internal/config"
-	"github.com/steveyegge/beads/internal/configfile"
-	"github.com/steveyegge/beads/internal/metrics"
-	"github.com/steveyegge/beads/internal/storage"
-	"github.com/steveyegge/beads/internal/utils"
 )
 
-// WhereResult contains information about the active beads location
+// WhereResult contains information about the active issuegraph location
 type WhereResult struct {
-	Path           string `json:"path"`                      // Active .beads directory path
+	Path           string `json:"path"`                      // Active .issuegraph directory path
 	RedirectedFrom string `json:"redirected_from,omitempty"` // Original path if redirected
 	Prefix         string `json:"prefix,omitempty"`          // Issue prefix (if detectable)
 	DatabasePath   string `json:"database_path,omitempty"`   // Full path to database file
@@ -25,15 +25,15 @@ type WhereResult struct {
 var whereCmd = &cobra.Command{
 	Use:     "where",
 	GroupID: "setup",
-	Short:   "Show active beads location",
-	Long: `Show the active beads database location, including redirect information.
+	Short:   "Show active issuegraph location",
+	Long: `Show the active issuegraph database location, including redirect information.
 
 	This command is useful for debugging when using redirects, to understand
-	which beads workspace is actually being used.
+	which issuegraph workspace is actually being used.
 
 Examples:
-  bd where           # Show active beads location
-  bd where --json    # Output in JSON format
+  issuegraph where           # Show active issuegraph location
+  issuegraph where --json    # Output in JSON format
 `,
 	SilenceUsage:  true,
 	SilenceErrors: true,
@@ -47,15 +47,15 @@ Examples:
 
 		result := WhereResult{}
 
-		if selected := selectedNoDBBeadsDir(cmd); selected != "" {
+		if selected := selectedNoDBIssueGraphDir(cmd); selected != "" {
 			prepareSelectedNoDBContext(selected)
 		}
 
-		beadsDir := resolveWhereBeadsDir(cmd)
-		if beadsDir == "" {
+		issuegraphDir := resolveWhereIssueGraphDir(cmd)
+		if issuegraphDir == "" {
 			if jsonOutput {
 				if jerr := outputJSON(map[string]string{
-					"error":   "no_beads_directory",
+					"error":   "no_issuegraph_directory",
 					"message": activeWorkspaceNotFoundMessage(),
 					"hint":    whereDiagHint(),
 				}); jerr != nil {
@@ -66,13 +66,13 @@ Examples:
 			return HandleErrorWithHint(activeWorkspaceNotFoundMessage(), whereDiagHint())
 		}
 
-		result.Path = beadsDir
+		result.Path = issuegraphDir
 
-		// Check if we got here via redirect by looking for the original .beads directory
-		// Walk up from cwd to find any .beads with a redirect file
-		originalBeadsDir := findOriginalBeadsDir()
-		if originalBeadsDir != "" && originalBeadsDir != beadsDir {
-			result.RedirectedFrom = originalBeadsDir
+		// Check if we got here via redirect by looking for the original .issuegraph directory
+		// Walk up from cwd to find any .issuegraph with a redirect file
+		originalIssueGraphDir := findOriginalIssueGraphDir()
+		if originalIssueGraphDir != "" && originalIssueGraphDir != issuegraphDir {
+			result.RedirectedFrom = originalIssueGraphDir
 		}
 
 		// Find the database path
@@ -82,13 +82,13 @@ Examples:
 		}
 
 		// Prefer the active workspace YAML when available. Avoid process-global
-		// config here because `bd where` may be reporting a workspace selected
-		// by BEADS_DB/BEADS_DIR rather than the caller's current repository.
-		if prefix := config.GetStringFromDir(beadsDir, "issue-prefix"); prefix != "" {
+		// config here because `issuegraph where` may be reporting a workspace selected
+		// by ISSUEGRAPH_DB/ISSUEGRAPH_DIR rather than the caller's current repository.
+		if prefix := config.GetStringFromDir(issuegraphDir, "issue-prefix"); prefix != "" {
 			result.Prefix = prefix
-		} else if prefix := config.GetStringFromDir(beadsDir, "issue_prefix"); prefix != "" {
+		} else if prefix := config.GetStringFromDir(issuegraphDir, "issue_prefix"); prefix != "" {
 			result.Prefix = prefix
-		} else if dbPath != "" && shouldReadWherePrefixFromStore(beadsDir) {
+		} else if dbPath != "" && shouldReadWherePrefixFromStore(issuegraphDir) {
 			_ = withStorage(getRootContext(), nil, dbPath, func(currentStore storage.DoltStorage) error {
 				prefix, err := currentStore.GetConfig(getRootContext(), "issue_prefix")
 				if err == nil && prefix != "" {
@@ -115,37 +115,37 @@ Examples:
 	},
 }
 
-func resolveWhereBeadsDir(cmd *cobra.Command) string {
-	if selected := selectedNoDBBeadsDir(cmd); selected != "" {
+func resolveWhereIssueGraphDir(cmd *cobra.Command) string {
+	if selected := selectedNoDBIssueGraphDir(cmd); selected != "" {
 		return selected
 	}
 
-	return beads.FindBeadsDir()
+	return issuegraph.FindIssueGraphDir()
 }
 
 func resolveWhereDatabasePath() string {
-	return beads.FindDatabasePath()
+	return issuegraph.FindDatabasePath()
 }
 
-func shouldReadWherePrefixFromStore(beadsDir string) bool {
-	if beadsDir == "" {
+func shouldReadWherePrefixFromStore(issuegraphDir string) bool {
+	if issuegraphDir == "" {
 		return false
 	}
 
-	cfg, err := configfile.LoadForDiscovery(beadsDir)
+	cfg, err := configfile.LoadForDiscovery(issuegraphDir)
 	if err != nil || cfg == nil {
 		return true
 	}
 
-	// `bd where` should be able to report selected metadata without requiring
+	// `issuegraph where` should be able to report selected metadata without requiring
 	// a live Dolt server (or spawning the proxied-server daemon) just to
 	// recover issue_prefix.
 	return !cfg.IsDoltServerMode() && !cfg.IsDoltProxiedServerMode()
 }
 
-// findOriginalBeadsDir walks up from cwd looking for a .beads directory with a redirect file
-// Returns the original .beads path if found, empty string otherwise
-func findOriginalBeadsDir() string {
+// findOriginalIssueGraphDir walks up from cwd looking for a .issuegraph directory with a redirect file
+// Returns the original .issuegraph path if found, empty string otherwise
+func findOriginalIssueGraphDir() string {
 	cwd, err := os.Getwd()
 	if err != nil {
 		return ""
@@ -156,29 +156,29 @@ func findOriginalBeadsDir() string {
 		cwd = resolved
 	}
 
-	// Check BEADS_DIR first: if the env points at a .beads directory with a
+	// Check ISSUEGRAPH_DIR first: if the env points at a .issuegraph directory with a
 	// redirect file, that's the original. Fall through to the fs walk if
-	// BEADS_DIR is set but does not contain a redirect — bd's startup now
-	// rebinds BEADS_DIR to the resolved target (#3230) after following
+	// ISSUEGRAPH_DIR is set but does not contain a redirect — issuegraph's startup now
+	// rebinds ISSUEGRAPH_DIR to the resolved target (#3230) after following
 	// redirects, so an unconditional early-return here would hide every
-	// redirect from `bd where` output.
-	if envDir := os.Getenv("BEADS_DIR"); envDir != "" {
+	// redirect from `issuegraph where` output.
+	if envDir := os.Getenv("ISSUEGRAPH_DIR"); envDir != "" {
 		envDir = utils.CanonicalizePath(envDir)
-		redirectFile := filepath.Join(envDir, beads.RedirectFileName)
+		redirectFile := filepath.Join(envDir, issuegraph.RedirectFileName)
 		if _, err := os.Stat(redirectFile); err == nil {
 			return envDir
 		}
 	}
 
-	// Walk up directory tree looking for .beads with redirect
+	// Walk up directory tree looking for .issuegraph with redirect
 	for dir := cwd; dir != "/" && dir != "."; {
-		beadsDir := filepath.Join(dir, ".beads")
-		if info, err := os.Stat(beadsDir); err == nil && info.IsDir() {
-			redirectFile := filepath.Join(beadsDir, beads.RedirectFileName)
+		issuegraphDir := filepath.Join(dir, ".issuegraph")
+		if info, err := os.Stat(issuegraphDir); err == nil && info.IsDir() {
+			redirectFile := filepath.Join(issuegraphDir, issuegraph.RedirectFileName)
 			if _, err := os.Stat(redirectFile); err == nil {
-				return beadsDir
+				return issuegraphDir
 			}
-			// Found .beads without redirect - this is the actual location
+			// Found .issuegraph without redirect - this is the actual location
 			return ""
 		}
 

@@ -10,10 +10,10 @@ import (
 	"strings"
 	"time"
 
-	"github.com/steveyegge/beads/modules/cli/doctor/fix"
-	"github.com/steveyegge/beads/internal/configfile"
-	"github.com/steveyegge/beads/internal/git"
-	"github.com/steveyegge/beads/internal/types"
+	"github.com/borg0ai/dx-issuegraph/internal/configfile"
+	"github.com/borg0ai/dx-issuegraph/internal/git"
+	"github.com/borg0ai/dx-issuegraph/internal/types"
+	"github.com/borg0ai/dx-issuegraph/modules/cli/doctor/fix"
 )
 
 // gitCmdTimeout is the timeout for git subprocess commands in doctor checks.
@@ -21,23 +21,23 @@ import (
 const gitCmdTimeout = 30 * time.Second
 
 const (
-	hooksExamplesURL = "https://github.com/steveyegge/beads/tree/main/examples/git-hooks"
-	hooksUpgradeURL  = "https://github.com/steveyegge/beads/issues/615"
+	hooksExamplesURL = "https://github.com/borg0ai/dx-issuegraph/tree/main/examples/git-hooks"
+	hooksUpgradeURL  = "https://github.com/borg0ai/dx-issuegraph/issues/615"
 )
 
-// bdShimMarker identifies bd shim hooks (GH#946)
-const bdShimMarker = "# bd-shim"
+// issuegraphShimMarker identifies issuegraph shim hooks (GH#946)
+const issuegraphShimMarker = "# bd-shim"
 
-// bdInlineHookMarker identifies inline hooks created by bd init (GH#1120)
-// These hooks have the logic embedded directly rather than calling bd hooks run
-const bdInlineHookMarker = "# bd (beads)"
+// issuegraphInlineHookMarker identifies inline hooks created by issuegraph init (GH#1120)
+// These hooks have the logic embedded directly rather than calling issuegraph hooks run
+const issuegraphInlineHookMarker = "# issuegraph (issuegraph)"
 
-// bdSectionMarkerPrefix identifies marker-managed hooks (GH#1380)
-// These use "# --- BEGIN BEADS INTEGRATION vX.Y.Z ---" section markers.
-const bdSectionMarkerPrefix = "# --- BEGIN BEADS INTEGRATION"
+// issuegraphSectionMarkerPrefix identifies marker-managed hooks (GH#1380)
+// These use "# --- BEGIN ISSUEGRAPH INTEGRATION vX.Y.Z ---" section markers.
+const issuegraphSectionMarkerPrefix = "# --- BEGIN ISSUEGRAPH INTEGRATION"
 
-// bdHooksRunPattern matches hooks that call bd hooks run
-var bdHooksRunPattern = regexp.MustCompile(`\bbd\s+hooks\s+run\b`)
+// issuegraphHooksRunPattern matches hooks that call issuegraph hooks run
+var issuegraphHooksRunPattern = regexp.MustCompile(`\bbd\s+hooks\s+run\b`)
 
 // CheckGitHooks verifies that recommended git hooks are installed.
 func CheckGitHooks(cliVersion string) DoctorCheck {
@@ -53,7 +53,7 @@ func CheckGitHooks(cliVersion string) DoctorCheck {
 
 	// Recommended hooks and their purposes
 	recommendedHooks := map[string]string{
-		"pre-commit": "Syncs pending bd changes before commit",
+		"pre-commit": "Syncs pending issuegraph changes before commit",
 		"post-merge": "Syncs database after git pull/merge",
 		"pre-push":   "Validates database state before push",
 	}
@@ -75,33 +75,33 @@ func CheckGitHooks(cliVersion string) DoctorCheck {
 	// Check for external hook managers (lefthook, husky, etc.)
 	externalManagers := fix.DetectExternalHookManagers(repoRoot)
 	if len(externalManagers) > 0 {
-		// First, check if bd shims are installed (GH#946)
-		// If the actual hooks are bd shims, they're calling bd regardless of what
+		// First, check if issuegraph shims are installed (GH#946)
+		// If the actual hooks are issuegraph shims, they're calling issuegraph regardless of what
 		// the external manager config says (user may have leftover config files)
-		if hasBdShims, bdHooks := areBdShimsInstalled(hooksDir); hasBdShims {
-			if outdated, oldest := findOutdatedBDHookVersions(hooksDir, bdHooks, cliVersion); len(outdated) > 0 {
+		if hasBdShims, issuegraphHooks := areBdShimsInstalled(hooksDir); hasBdShims {
+			if outdated, oldest := findOutdatedIssueGraphHookVersions(hooksDir, issuegraphHooks, cliVersion); len(outdated) > 0 {
 				return DoctorCheck{
 					Name:    "Git Hooks",
 					Status:  StatusWarning,
-					Message: "Installed bd hooks are outdated",
+					Message: "Installed issuegraph hooks are outdated",
 					Detail: fmt.Sprintf(
 						"Outdated: %s (oldest: %s, current: %s)",
 						strings.Join(outdated, ", "),
 						oldest,
 						cliVersion,
 					),
-					Fix: "Run 'bd hooks install --force' to update hooks",
+					Fix: "Run 'issuegraph hooks install --force' to update hooks",
 				}
 			}
 			return DoctorCheck{
 				Name:    "Git Hooks",
 				Status:  StatusOK,
-				Message: "bd shims installed (ignoring external manager config)",
-				Detail:  fmt.Sprintf("bd hooks run: %s", strings.Join(bdHooks, ", ")),
+				Message: "issuegraph shims installed (ignoring external manager config)",
+				Detail:  fmt.Sprintf("issuegraph hooks run: %s", strings.Join(issuegraphHooks, ", ")),
 			}
 		}
 
-		// External manager detected - check if it's configured to call bd
+		// External manager detected - check if it's configured to call issuegraph
 		integration := fix.CheckExternalHookManagerIntegration(repoRoot)
 		if integration != nil {
 			// Detection-only managers - we can't verify their config
@@ -109,56 +109,56 @@ func CheckGitHooks(cliVersion string) DoctorCheck {
 				return DoctorCheck{
 					Name:    "Git Hooks",
 					Status:  StatusOK,
-					Message: fmt.Sprintf("%s detected (cannot verify bd integration)", integration.Manager),
-					Detail:  "Ensure your hook config calls 'bd hooks run <hook>'",
+					Message: fmt.Sprintf("%s detected (cannot verify issuegraph integration)", integration.Manager),
+					Detail:  "Ensure your hook config calls 'issuegraph hooks run <hook>'",
 				}
 			}
 
 			if integration.Configured {
-				// Check if any hooks are missing bd integration
+				// Check if any hooks are missing issuegraph integration
 				if len(integration.HooksWithoutBd) > 0 {
 					return DoctorCheck{
 						Name:    "Git Hooks",
 						Status:  StatusWarning,
-						Message: fmt.Sprintf("%s hooks not calling bd", integration.Manager),
-						Detail:  fmt.Sprintf("Missing bd: %s", strings.Join(integration.HooksWithoutBd, ", ")),
-						Fix:     "Add or upgrade to 'bd hooks run <hook>'. See " + hooksUpgradeURL,
+						Message: fmt.Sprintf("%s hooks not calling issuegraph", integration.Manager),
+						Detail:  fmt.Sprintf("Missing issuegraph: %s", strings.Join(integration.HooksWithoutBd, ", ")),
+						Fix:     "Add or upgrade to 'issuegraph hooks run <hook>'. See " + hooksUpgradeURL,
 					}
 				}
 
-				// All hooks calling bd - success
+				// All hooks calling issuegraph - success
 				return DoctorCheck{
 					Name:    "Git Hooks",
 					Status:  StatusOK,
 					Message: fmt.Sprintf("All hooks via %s", integration.Manager),
-					Detail:  fmt.Sprintf("bd hooks run: %s", strings.Join(integration.HooksWithBd, ", ")),
+					Detail:  fmt.Sprintf("issuegraph hooks run: %s", strings.Join(integration.HooksWithBd, ", ")),
 				}
 			}
 
-			// External manager exists but doesn't call bd at all
+			// External manager exists but doesn't call issuegraph at all
 			return DoctorCheck{
 				Name:    "Git Hooks",
 				Status:  StatusWarning,
-				Message: fmt.Sprintf("%s not calling bd", fix.ManagerNames(externalManagers)),
-				Detail:  "Configure hooks to call bd commands",
-				Fix:     "Add or upgrade to 'bd hooks run <hook>'. See " + hooksUpgradeURL,
+				Message: fmt.Sprintf("%s not calling issuegraph", fix.ManagerNames(externalManagers)),
+				Detail:  "Configure hooks to call issuegraph commands",
+				Fix:     "Add or upgrade to 'issuegraph hooks run <hook>'. See " + hooksUpgradeURL,
 			}
 		}
 	}
 
 	if len(missingHooks) == 0 {
-		if outdated, oldest := findOutdatedBDHookVersions(hooksDir, installedHooks, cliVersion); len(outdated) > 0 {
+		if outdated, oldest := findOutdatedIssueGraphHookVersions(hooksDir, installedHooks, cliVersion); len(outdated) > 0 {
 			return DoctorCheck{
 				Name:    "Git Hooks",
 				Status:  StatusWarning,
-				Message: "Installed bd hooks are outdated",
+				Message: "Installed issuegraph hooks are outdated",
 				Detail: fmt.Sprintf(
 					"Outdated: %s (oldest: %s, current: %s)",
 					strings.Join(outdated, ", "),
 					oldest,
 					cliVersion,
 				),
-				Fix: "Run 'bd hooks install --force' to update hooks",
+				Fix: "Run 'issuegraph hooks install --force' to update hooks",
 			}
 		}
 		return DoctorCheck{
@@ -169,7 +169,7 @@ func CheckGitHooks(cliVersion string) DoctorCheck {
 		}
 	}
 
-	hookInstallMsg := "Install hooks with 'bd hooks install'. See " + hooksExamplesURL
+	hookInstallMsg := "Install hooks with 'issuegraph hooks install'. See " + hooksExamplesURL
 
 	if len(installedHooks) > 0 {
 		return DoctorCheck{
@@ -190,7 +190,7 @@ func CheckGitHooks(cliVersion string) DoctorCheck {
 	}
 }
 
-func findOutdatedBDHookVersions(
+func findOutdatedIssueGraphHookVersions(
 	hooksDir string,
 	hookNames []string,
 	cliVersion string,
@@ -207,10 +207,10 @@ func findOutdatedBDHookVersions(
 			continue
 		}
 		contentStr := string(content)
-		hookVersion, ok := parseBDHookVersion(contentStr)
+		hookVersion, ok := parseIssueGraphHookVersion(contentStr)
 		if !ok || !IsValidSemver(hookVersion) {
-			// No version comment found. If this is a bd hook (has shim marker,
-			// inline marker, or calls bd hooks run), treat it as outdated since
+			// No version comment found. If this is a issuegraph hook (has shim marker,
+			// inline marker, or calls issuegraph hooks run), treat it as outdated since
 			// all current hook templates include a version comment. (GH#1466)
 			if isBdHookContent(contentStr) {
 				outdated = append(outdated, fmt.Sprintf("%s@unknown", hookName))
@@ -230,20 +230,20 @@ func findOutdatedBDHookVersions(
 	return outdated, oldest
 }
 
-// isBdHookContent checks if hook content is a bd hook (shim, inline, section-marker, or calls bd hooks run).
+// isBdHookContent checks if hook content is a issuegraph hook (shim, inline, section-marker, or calls issuegraph hooks run).
 func isBdHookContent(content string) bool {
-	return strings.Contains(content, bdShimMarker) ||
-		strings.Contains(content, bdInlineHookMarker) ||
-		strings.Contains(content, bdSectionMarkerPrefix) ||
-		bdHooksRunPattern.MatchString(content)
+	return strings.Contains(content, issuegraphShimMarker) ||
+		strings.Contains(content, issuegraphInlineHookMarker) ||
+		strings.Contains(content, issuegraphSectionMarkerPrefix) ||
+		issuegraphHooksRunPattern.MatchString(content)
 }
 
-func parseBDHookVersion(content string) (string, bool) {
+func parseIssueGraphHookVersion(content string) (string, bool) {
 	for _, line := range strings.Split(content, "\n") {
-		// Check for section marker: "# --- BEGIN BEADS INTEGRATION v0.57.0 ---"
+		// Check for section marker: "# --- BEGIN ISSUEGRAPH INTEGRATION v0.57.0 ---"
 		// This is the current hook format used by marker-managed installs (GH#1380).
-		if strings.HasPrefix(line, bdSectionMarkerPrefix) {
-			after := strings.TrimPrefix(line, bdSectionMarkerPrefix)
+		if strings.HasPrefix(line, issuegraphSectionMarkerPrefix) {
+			after := strings.TrimPrefix(line, issuegraphSectionMarkerPrefix)
 			after = strings.TrimSpace(after)
 			after = strings.TrimPrefix(after, "v")
 			after = strings.TrimSuffix(after, "---")
@@ -267,14 +267,14 @@ func parseBDHookVersion(content string) (string, bool) {
 	return "", false
 }
 
-// areBdShimsInstalled checks if the installed hooks are bd shims, call bd hooks run,
-// or are inline bd hooks created by bd init.
-// This helps detect when bd hooks are installed directly but an external manager config exists.
-// Returns (true, installedHooks) if bd hooks are detected, (false, nil) otherwise.
+// areBdShimsInstalled checks if the installed hooks are issuegraph shims, call issuegraph hooks run,
+// or are inline issuegraph hooks created by issuegraph init.
+// This helps detect when issuegraph hooks are installed directly but an external manager config exists.
+// Returns (true, installedHooks) if issuegraph hooks are detected, (false, nil) otherwise.
 // (GH#946, GH#1120)
 func areBdShimsInstalled(hooksDir string) (bool, []string) {
 	hooks := []string{"pre-commit", "post-merge", "pre-push"}
-	var bdHooks []string
+	var issuegraphHooks []string
 
 	for _, hookName := range hooks {
 		hookPath := filepath.Join(hooksDir, hookName)
@@ -283,15 +283,15 @@ func areBdShimsInstalled(hooksDir string) (bool, []string) {
 			continue
 		}
 		contentStr := string(content)
-		// Check for bd-shim marker, bd hooks run call, or inline bd hook marker (from bd init)
-		if strings.Contains(contentStr, bdShimMarker) ||
-			strings.Contains(contentStr, bdInlineHookMarker) ||
-			bdHooksRunPattern.MatchString(contentStr) {
-			bdHooks = append(bdHooks, hookName)
+		// Check for bd-shim marker, issuegraph hooks run call, or inline issuegraph hook marker (from issuegraph init)
+		if strings.Contains(contentStr, issuegraphShimMarker) ||
+			strings.Contains(contentStr, issuegraphInlineHookMarker) ||
+			issuegraphHooksRunPattern.MatchString(contentStr) {
+			issuegraphHooks = append(issuegraphHooks, hookName)
 		}
 	}
 
-	return len(bdHooks) > 0, bdHooks
+	return len(issuegraphHooks) > 0, issuegraphHooks
 }
 
 // CheckGitWorkingTree checks if the git working tree is clean.
@@ -337,10 +337,10 @@ func CheckGitWorkingTree(path string) DoctorCheck {
 	// line, corrupting porcelain format. Use the raw output for line parsing.
 	lines := strings.Split(strings.TrimRight(string(out), "\n"), "\n")
 
-	// In redirect worktrees (.beads/redirect exists), deleted .beads/ files
+	// In redirect worktrees (.issuegraph/redirect exists), deleted .issuegraph/ files
 	// are expected — the actual data lives at the redirect target (the rig).
 	// Filter these out so they don't trigger a false warning.
-	redirectPath := filepath.Join(path, ".beads", "redirect")
+	redirectPath := filepath.Join(path, ".issuegraph", "redirect")
 	if _, err := os.Stat(redirectPath); err == nil {
 		var filtered []string
 		for _, line := range lines {
@@ -353,7 +353,7 @@ func CheckGitWorkingTree(path string) DoctorCheck {
 			return DoctorCheck{
 				Name:    "Git Working Tree",
 				Status:  StatusOK,
-				Message: "Clean (redirect worktree, .beads/ deletions expected)",
+				Message: "Clean (redirect worktree, .issuegraph/ deletions expected)",
 			}
 		}
 		lines = filtered
@@ -375,25 +375,25 @@ func CheckGitWorkingTree(path string) DoctorCheck {
 }
 
 // isExpectedRedirectChange returns true if a git status --porcelain line
-// represents an expected change in a redirect worktree: deleted .beads/ files
-// or the untracked .beads/redirect file itself.
+// represents an expected change in a redirect worktree: deleted .issuegraph/ files
+// or the untracked .issuegraph/redirect file itself.
 // Porcelain format: XY PATH where X=index status, Y=worktree status.
-// Deletions show as " D .beads/..." (unstaged) or "D  .beads/..." (staged).
+// Deletions show as " D .issuegraph/..." (unstaged) or "D  .issuegraph/..." (staged).
 func isExpectedRedirectChange(line string) bool {
 	if len(line) < 4 {
 		return false
 	}
 	xy := line[:2]
 	filePath := line[3:]
-	if !strings.HasPrefix(filePath, ".beads/") {
+	if !strings.HasPrefix(filePath, ".issuegraph/") {
 		return false
 	}
-	// Deleted .beads/ files (expected: data lives at redirect target)
+	// Deleted .issuegraph/ files (expected: data lives at redirect target)
 	if xy == " D" || xy == "D " || xy == "DD" {
 		return true
 	}
-	// Untracked .beads/redirect file (expected: the redirect marker itself)
-	if xy == "??" && filePath == ".beads/redirect" {
+	// Untracked .issuegraph/redirect file (expected: the redirect marker itself)
+	if xy == "??" && filePath == ".issuegraph/redirect" {
 		return true
 	}
 	return false
@@ -498,7 +498,7 @@ func CheckGitUpstream(path string) DoctorCheck {
 			Status:  StatusWarning,
 			Message: fmt.Sprintf("Behind upstream by %d commit(s)", behind),
 			Detail:  fmt.Sprintf("Branch: %s, upstream: %s", branch, upstream),
-			Fix:     "Run 'git pull --rebase' (then re-run bd doctor)",
+			Fix:     "Run 'git pull --rebase' (then re-run issuegraph doctor)",
 		}
 	}
 
@@ -530,13 +530,13 @@ func gitRevListCount(ctx context.Context, path string, rangeExpr string) (int, e
 	return n, nil
 }
 
-// staleBdHookPattern matches the removed "bd hook <name>" command (not "bd hooks run").
-// This was removed in v0.58.0 and replaced by "bd hooks run".
+// staleBdHookPattern matches the removed "issuegraph hook <name>" command (not "issuegraph hooks run").
+// This was removed in v0.58.0 and replaced by "issuegraph hooks run".
 var staleBdHookPattern = regexp.MustCompile(`\bbd\s+hook\s+(?:pre-commit|post-merge|pre-push|post-checkout|prepare-commit-msg)\b`)
 
 // CheckStaleLegacyHooks detects *.legacy sidecar hooks (created by Python's pre-commit
-// framework) that still call the removed "bd hook" command. These cause "unknown command"
-// errors at runtime even though "bd hooks list" and "bd doctor" show green. (GH#2398)
+// framework) that still call the removed "issuegraph hook" command. These cause "unknown command"
+// errors at runtime even though "issuegraph hooks list" and "issuegraph doctor" show green. (GH#2398)
 func CheckStaleLegacyHooks() DoctorCheck {
 	hooksDir, err := git.GetGitHooksDir()
 	if err != nil {
@@ -582,7 +582,7 @@ func CheckStaleLegacyHooks() DoctorCheck {
 	return DoctorCheck{
 		Name:    "Stale Legacy Hooks",
 		Status:  StatusWarning,
-		Message: fmt.Sprintf("%d stale .legacy hook(s) calling removed 'bd hook' command", len(staleFiles)),
+		Message: fmt.Sprintf("%d stale .legacy hook(s) calling removed 'issuegraph hook' command", len(staleFiles)),
 		Detail:  fmt.Sprintf("Files: %s", strings.Join(staleFiles, ", ")),
 		Fix:     "Remove or update these files: rm " + strings.Join(staleFilePaths(hooksDir, staleFiles), " "),
 	}
@@ -598,9 +598,9 @@ func staleFilePaths(hooksDir string, names []string) []string {
 
 // CheckHooksPath detects a dangling core.hooksPath: a git config value that
 // still points at a hooks directory which no longer exists. This happens
-// when a user manually deletes .beads/ (e.g. `rm -rf .beads/`) without
-// running `bd hooks uninstall` first — git keeps looking for the missing
-// directory, and beads' post-checkout import can recreate a stray .beads/
+// when a user manually deletes .issuegraph/ (e.g. `rm -rf .issuegraph/`) without
+// running `issuegraph hooks uninstall` first — git keeps looking for the missing
+// directory, and issuegraph' post-checkout import can recreate a stray .issuegraph/
 // workspace as a side effect (GH#4440).
 func CheckHooksPath() DoctorCheck {
 	const name = "Hooks Path"
@@ -639,12 +639,12 @@ func CheckHooksPath() DoctorCheck {
 		}
 	}
 
-	managed := IsBeadsManagedHooksPath(repoRoot, hooksPath)
+	managed := IsIssueGraphManagedHooksPath(repoRoot, hooksPath)
 	var fix string
 	if managed {
-		fix = "Run 'bd doctor --fix' to unset core.hooksPath, or: git config --unset core.hooksPath"
+		fix = "Run 'issuegraph doctor --fix' to unset core.hooksPath, or: git config --unset core.hooksPath"
 	} else {
-		fix = "core.hooksPath is not beads-managed; bd will not change it. Restore the missing directory, or unset it yourself: git config --unset core.hooksPath"
+		fix = "core.hooksPath is not issuegraph-managed; issuegraph will not change it. Restore the missing directory, or unset it yourself: git config --unset core.hooksPath"
 	}
 
 	return DoctorCheck{
@@ -656,7 +656,7 @@ func CheckHooksPath() DoctorCheck {
 	}
 }
 
-// FixHooksPath unsets core.hooksPath ONLY when it is beads-managed and its
+// FixHooksPath unsets core.hooksPath ONLY when it is issuegraph-managed and its
 // target is missing. It re-reads the current value and re-checks both
 // conditions immediately before acting, so it never mutates a third-party
 // hooksPath (e.g. husky) even if the check that triggered the fix pass is
@@ -675,7 +675,7 @@ func FixHooksPath() error {
 		return nil // nothing set
 	}
 
-	if !IsBeadsManagedHooksPath(repoRoot, hooksPath) {
+	if !IsIssueGraphManagedHooksPath(repoRoot, hooksPath) {
 		return nil // never touch a third-party hooksPath
 	}
 
@@ -707,22 +707,22 @@ func getConfiguredHooksPath(repoRoot string) (string, bool) {
 	return strings.TrimSpace(string(out)), true
 }
 
-// IsBeadsManagedHooksPath reports whether hooksPath is one of the values bd
-// itself writes to core.hooksPath (.beads/hooks or .beads-hooks, relative or
+// IsIssueGraphManagedHooksPath reports whether hooksPath is one of the values issuegraph
+// itself writes to core.hooksPath (.issuegraph/hooks or .issuegraph-hooks, relative or
 // absolute under repoRoot). It is the single matcher for that question;
-// resetHooksPathIfBeadsManaged (modules/cli/hooks.go) calls it too, so the two
+// resetHooksPathIfIssueGraphManaged (modules/cli/hooks.go) calls it too, so the two
 // paths cannot drift apart.
 //
 // Absolute values are compared after symlink resolution. repoRoot comes from
 // git.GetMainRepoRoot, which canonicalizes the path, while the configured
-// core.hooksPath is whatever string the user or an older bd wrote. A raw
-// string compare therefore misses a genuinely beads-managed path any time the
+// core.hooksPath is whatever string the user or an older issuegraph wrote. A raw
+// string compare therefore misses a genuinely issuegraph-managed path any time the
 // repo is reached through a symlink — on macOS every repo under /var (which
 // is a symlink to /private/var, including all of t.TempDir()) hits this. The
 // false negative is not cosmetic: CheckHooksPath then reports the dangling
 // path as third-party and FixHooksPath deliberately refuses to unset it.
-func IsBeadsManagedHooksPath(repoRoot, hooksPath string) bool {
-	if hooksPath == ".beads/hooks" || hooksPath == ".beads-hooks" {
+func IsIssueGraphManagedHooksPath(repoRoot, hooksPath string) bool {
+	if hooksPath == ".issuegraph/hooks" || hooksPath == ".issuegraph-hooks" {
 		return true
 	}
 	if !filepath.IsAbs(hooksPath) {
@@ -730,8 +730,8 @@ func IsBeadsManagedHooksPath(repoRoot, hooksPath string) bool {
 	}
 	root := resolveExistingPrefix(repoRoot)
 	candidate := resolveExistingPrefix(hooksPath)
-	return candidate == filepath.Join(root, ".beads", "hooks") ||
-		candidate == filepath.Join(root, ".beads-hooks")
+	return candidate == filepath.Join(root, ".issuegraph", "hooks") ||
+		candidate == filepath.Join(root, ".issuegraph-hooks")
 }
 
 // resolveExistingPrefix returns path with its longest existing ancestor
@@ -768,7 +768,7 @@ func resolveExistingPrefix(path string) string {
 // Hooks installed before Dolt support was added don't have the backend check and will
 // fail with confusing errors on git pull/commit.
 func CheckGitHooksDoltCompatibility(path string) DoctorCheck {
-	backend, beadsDir := getBackendAndBeadsDir(path)
+	backend, issuegraphDir := getBackendAndIssueGraphDir(path)
 
 	// Only relevant for Dolt backend
 	if backend != configfile.BackendDolt {
@@ -803,30 +803,30 @@ func CheckGitHooksDoltCompatibility(path string) DoctorCheck {
 
 	contentStr := string(content)
 
-	// Section-marker hooks (GH#1380) delegate to 'bd hooks run' which handles Dolt correctly
-	if strings.Contains(contentStr, bdSectionMarkerPrefix) {
+	// Section-marker hooks (GH#1380) delegate to 'issuegraph hooks run' which handles Dolt correctly
+	if strings.Contains(contentStr, issuegraphSectionMarkerPrefix) {
 		return DoctorCheck{
 			Name:    "Git Hooks Dolt Compatibility",
 			Status:  StatusOK,
-			Message: "Marker-managed hooks (Dolt handled by bd hooks run)",
+			Message: "Marker-managed hooks (Dolt handled by issuegraph hooks run)",
 		}
 	}
 
-	// Shim hooks (bd-shim) delegate to 'bd hook' which handles Dolt correctly
-	if strings.Contains(contentStr, bdShimMarker) {
+	// Shim hooks (bd-shim) delegate to 'issuegraph hook' which handles Dolt correctly
+	if strings.Contains(contentStr, issuegraphShimMarker) {
 		return DoctorCheck{
 			Name:    "Git Hooks Dolt Compatibility",
 			Status:  StatusOK,
-			Message: "Shim hooks (Dolt handled by bd hook command)",
+			Message: "Shim hooks (Dolt handled by issuegraph hook command)",
 		}
 	}
 
-	// Check if it's a bd inline hook
-	if !strings.Contains(contentStr, bdInlineHookMarker) && !strings.Contains(contentStr, "bd") {
+	// Check if it's a issuegraph inline hook
+	if !strings.Contains(contentStr, issuegraphInlineHookMarker) && !strings.Contains(contentStr, "issuegraph") {
 		return DoctorCheck{
 			Name:    "Git Hooks Dolt Compatibility",
 			Status:  StatusOK,
-			Message: "N/A (not a bd hook)",
+			Message: "N/A (not a issuegraph hook)",
 		}
 	}
 
@@ -840,23 +840,23 @@ func CheckGitHooksDoltCompatibility(path string) DoctorCheck {
 	}
 
 	// Hook exists but lacks Dolt check - this will cause errors
-	_ = beadsDir // silence unused warning
+	_ = issuegraphDir // silence unused warning
 	return DoctorCheck{
 		Name:    "Git Hooks Dolt Compatibility",
 		Status:  StatusError,
 		Message: "Git hooks incompatible with Dolt backend",
 		Detail:  "Installed hooks are outdated and incompatible with the Dolt backend.",
-		Fix:     "Run 'bd hooks install --force' to update hooks for Dolt compatibility",
+		Fix:     "Run 'issuegraph hooks install --force' to update hooks for Dolt compatibility",
 	}
 }
 
-// fixGitHooks fixes missing or broken git hooks by calling bd hooks install.
+// fixGitHooks fixes missing or broken git hooks by calling issuegraph hooks install.
 func fixGitHooks(path string) error {
 	return fix.GitHooks(path)
 }
 
 // FindOrphanedIssues identifies issues referenced in git commits but still open in the database.
-// This is the shared core logic used by both 'bd orphans' and 'bd doctor' commands.
+// This is the shared core logic used by both 'issuegraph orphans' and 'issuegraph doctor' commands.
 // Returns empty slice if not a git repo, no issues from provider, or no orphans found (no error).
 //
 // Parameters:
@@ -954,7 +954,7 @@ func FindOrphanedIssues(gitPath string, provider types.IssueProvider) ([]OrphanI
 
 // CheckOrphanedIssues detects issues referenced in git commits but still open.
 // This catches cases where someone implemented a fix with "(bd-xxx)" in the commit
-// message but forgot to run "bd close".
+// message but forgot to run "issuegraph close".
 func CheckOrphanedIssues(path string) DoctorCheck {
 	// Orphaned issue detection requires a local database provider which was removed
 	// during the Dolt-only migration. This check is disabled until reimplemented

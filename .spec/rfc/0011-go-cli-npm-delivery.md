@@ -41,6 +41,9 @@ cannot run.
 - Derive release version from the triggering `vMAJOR.MINOR.PATCH` tag and use
   it consistently for GitHub Release metadata, Go binaries, asset names,
   checksums, and the npm installer package.
+- Orchestrate version bump, tag, and npm publish with the `qingniao-release`
+  workflow in the existing pnpm + turbo workspace, ordered so npm never
+  exposes a version whose GitHub Release assets do not exist yet.
 
 ## Non-goals
 
@@ -96,6 +99,28 @@ it cannot substitute that candidate for versioned release assets during
 publication. No platform is advertised by the installer unless matching
 GitHub Release asset exists.
 
+`checksums.txt` uses `<sha256>  <asset name>` lines. The installer requires an
+entry for the exact archive it downloaded; a missing entry fails installation
+the same way a mismatch does, and the downloaded archive is deleted before the
+error is reported.
+
+Workspace and release orchestration follow the `packagify` guide. The
+repository is already a pnpm + turbo workspace with `apps/cli` under `apps/*`.
+`qingniao` operates on it and needs `qingniao.config.json` (JSON only; `.ts`
+and `.js` configs are ignored), the root scripts `lint`, `format`,
+`format:check`, `typecheck`, `test`, and `build`, and a `packageManager` field.
+Releasing has two phases. Phase 1: after `qingniao plan`, `doctor`, and a dry
+run, `qingniao --skip-publish` bumps package versions, commits, and tags
+`vMAJOR.MINOR.PATCH`; the tag triggers the release workflow, which builds the
+assets and checksums. Phase 2: only after the GitHub Release lists every
+advertised asset and `checksums.txt`, the npm package is published, either by
+`qingniao --skip-version` or by the workflow's `publish-npm` job, which already
+depends on the release jobs. Each mutating phase runs only on explicit
+maintainer instruction. The Go `Version` in `modules/cli/version.go` and the
+docs snapshot are not npm package versions, so they are synced before tagging;
+the existing `verify-version-consistency` job fails the release if they
+disagree with the tag.
+
 Alternatives considered:
 
 1. Put every OS/architecture binary in one npm tarball. This avoids install-time
@@ -136,3 +161,7 @@ one native binary per machine rather than a bundle of every platform binary.
   not Go source or all platform binaries.
 - GitHub Release contains native Go CLI assets and checksums; npm installer is
   published only to npm.
+- A `checksums.txt` without an entry for the downloaded archive fails
+  installation and leaves no archive behind.
+- `qingniao.config.json` exists, `qingniao doctor` reports no errors for the
+  workspace, and npm publication never precedes the release asset check.

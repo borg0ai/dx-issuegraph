@@ -8,7 +8,7 @@ import "context"
 // read the same string.
 //
 // The dashed spelling is refused too, and for a different reason than the
-// underscored one: nothing reads it. `bd create` resolves the prefix from YAML
+// underscored one: nothing reads it. `issuegraph create` resolves the prefix from YAML
 // "issue-prefix" and then from stored "issue_prefix", so a write of
 // "issue-prefix" through this plane lands in a third place no reader consults
 // — a write that reports success and can never be observed.
@@ -45,7 +45,7 @@ type SettingResult struct {
 	// nothing set it, and a caller polling for configuration would otherwise
 	// have to classify an error to read "unconfigured".
 	//
-	// That conflation is the shipped behavior of both `bd config get` routes
+	// That conflation is the shipped behavior of both `issuegraph config get` routes
 	// and it is stated rather than quietly repaired, because repairing it means
 	// a present/absent flag that every reader of this role would have to start
 	// handling to learn nothing it does not already assume.
@@ -66,10 +66,10 @@ type ListSettingsResult struct {
 	//
 	// Rows of the KV plane are not settings and are not here; see ListSettings.
 	//
-	// It is the DURABLE plane only: values that reach a running bd from
+	// It is the DURABLE plane only: values that reach a running issuegraph from
 	// config.yaml, from the environment or from git config are not here and
 	// cannot be, because this role reaches the workspace database and those
-	// three live on the client's filesystem. `bd config show` is the
+	// three live on the client's filesystem. `issuegraph config show` is the
 	// multi-source view and it is deliberately not on this role.
 	Settings map[string]string
 }
@@ -118,8 +118,8 @@ type UnsetSettingResult struct {
 }
 
 // WorkspaceConfig describes the workspace's DURABLE SETTINGS PLANE: the
-// key-value rows stored in the workspace database, which is what `bd config
-// get`, `bd config set`, `bd config unset` and `bd config list` read and write.
+// key-value rows stored in the workspace database, which is what `issuegraph config
+// get`, `issuegraph config set`, `issuegraph config unset` and `issuegraph config list` read and write.
 // Like Lifecycle, Reader, ReadyClaimer, BatchCloser, DependencyEditor,
 // Commenter, Counter and Relations it is a role with its own accessor, and a
 // new capability gets a new role interface; never append a method here.
@@ -135,7 +135,7 @@ type UnsetSettingResult struct {
 // would put one role's promise inside another role's result.
 //
 // WHAT IS NOT HERE, and this is the deliberate half of the role's scope.
-// `bd config show`, `bd config drift`, `bd config apply` and `bd config
+// `issuegraph config show`, `issuegraph config drift`, `issuegraph config apply` and `issuegraph config
 // validate` are MULTI-SOURCE diagnostics over config.yaml, environment
 // variables, git config, this plane and the server's own state at once. Three
 // of those five sources are files on the CLIENT's filesystem, which a server
@@ -153,7 +153,7 @@ type UnsetSettingResult struct {
 // before a front door reaches this role, and they are named here so that the
 // absence is legible rather than surprising: the yaml-only keys (`export.*`,
 // `dolt.*`, `federation.*`, `storage-class.*`, the tracker credentials and the
-// rest of internal/config's list) live in config.yaml, and `beads.role` lives
+// rest of internal/config's list) live in config.yaml, and `issuegraph.role` lives
 // in git config. A write of one of those through this role would land a row no
 // reader consults. This role does not police that routing — the front door
 // that knows where the client's files are does — with the ONE exception the
@@ -161,12 +161,12 @@ type UnsetSettingResult struct {
 // not a dead row but a workspace whose ids stop agreeing with each other.
 //
 // THE THIRD FAMILY IS NOT ROUTED ELSEWHERE — IT RIDES IN THIS PLANE'S TABLE.
-// Everything under `kv.` is USER DATA: the generic keys `bd kv set` writes, and
-// nested inside them the `bd remember` memories under `kv.memory.`, which have
+// Everything under `kv.` is USER DATA: the generic keys `issuegraph kv set` writes, and
+// nested inside them the `issuegraph remember` memories under `kv.memory.`, which have
 // their own merge semantics (a config conflict auto-resolves --theirs only when
 // every conflicted key is a memory) and their own front doors. They are stored
 // as config rows because there is one table, not because they are settings.
-// `bd kv` and the memory surface are their views; this role is not. So NEITHER
+// `issuegraph kv` and the memory surface are their views; this role is not. So NEITHER
 // READ ANSWERS THEM: ListSettings omits them and GetSetting answers a `kv.` key
 // exactly as it answers a key nothing ever stored — see each one's own doc.
 //
@@ -175,15 +175,15 @@ type UnsetSettingResult struct {
 // wedged memory, and a write discloses nothing.
 //
 // THE READ HALF USED TO STOP AT THE ENUMERATION, and stopping there was the
-// bug. The disclosure is a stored memory's CONTENT — `bd config list` and an
-// unauthenticated GET /v0/beads/config both handed it over, and the latter's
+// bug. The disclosure is a stored memory's CONTENT — `issuegraph config list` and an
+// unauthenticated GET /v0/issuegraph/config both handed it over, and the latter's
 // redaction decides on the key NAME while a memory's secret is in the value.
 // The exclusion was argued as "a caller naming one exact key is a different
-// question", which holds only while the key is hard to name: `bd remember`
+// question", which holds only while the key is hard to name: `issuegraph remember`
 // derives its key from the content it stores, so the names are guessable and a
-// point read walked around the wall. What a caller loses is `bd config get
-// kv.foo`, which was never the door for those rows — `bd kv get` and
-// `bd recall` are, and they read the store directly.
+// point read walked around the wall. What a caller loses is `issuegraph config get
+// kv.foo`, which was never the door for those rows — `issuegraph kv get` and
+// `issuegraph recall` are, and they read the store directly.
 //
 // Deterministic request-validation failures match ErrValidation; result values
 // are unspecified when error is non-nil. Implementations never mutate
@@ -211,7 +211,7 @@ type WorkspaceConfig interface {
 	// ListSettings returns every stored setting.
 	//
 	// EXCEPT THE KV PLANE. No key under `kv.` appears here — not the generic
-	// `bd kv` keys and not the `bd remember` memories nested under them —
+	// `issuegraph kv` keys and not the `issuegraph remember` memories nested under them —
 	// though those rows live in the same table. Naming one exactly does not get
 	// it either: GetSetting answers a `kv.` key as absent. See "KEYS THIS PLANE
 	// DOES NOT OWN" above for what that plane is and which doors do read it.
@@ -230,11 +230,11 @@ type WorkspaceConfig interface {
 	//
 	//   - a Key that is empty after trimming is ErrValidation;
 	//   - a Key naming the issue prefix, in either spelling, is ErrValidation.
-	//     The prefix is owned by `bd init --prefix`, `bd bootstrap` and
-	//     `bd rename-prefix`, each of which does work this plane cannot:
+	//     The prefix is owned by `issuegraph init --prefix`, `issuegraph bootstrap` and
+	//     `issuegraph rename-prefix`, each of which does work this plane cannot:
 	//     rewriting existing ids, or seeding a workspace that has none.
-	//     Storing a new prefix here instead leaves the beads created before
-	//     the write and the beads created after it disagreeing about their own
+	//     Storing a new prefix here instead leaves the issuegraph created before
+	//     the write and the issuegraph created after it disagreeing about their own
 	//     namespace, with nothing to reconcile them;
 	//   - a status.custom value that does not parse is ErrValidation, and
 	//     NOTHING is written. The parse is here rather than at a front door

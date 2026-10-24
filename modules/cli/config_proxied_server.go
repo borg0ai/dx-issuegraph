@@ -5,18 +5,18 @@ import (
 	"errors"
 	"fmt"
 
-	"github.com/steveyegge/beads/internal/storage/uow"
-	"github.com/steveyegge/beads/issueops"
+	"github.com/borg0ai/dx-issuegraph/internal/storage/uow"
+	"github.com/borg0ai/dx-issuegraph/issueops"
 )
 
 // proxiedWorkspaceConfig hands back the guarded workspace-settings surface for
 // the proxied-server provider, through the provider's OWN capability accessor —
 // the same two-step proxiedCounter performs.
 //
-// Routing the four single-key `bd config` verbs through the role fixed a copy
+// Routing the four single-key `issuegraph config` verbs through the role fixed a copy
 // that had drifted: the proxied `set` stored `status.custom` without
 // re-synchronizing the custom_statuses and custom_types tables that reads
-// consult FIRST, so a proxied `bd config set types.custom` reported success and
+// consult FIRST, so a proxied `issuegraph config set types.custom` reported success and
 // never took effect.
 func proxiedWorkspaceConfig() (issueops.WorkspaceConfig, error) {
 	if uowProvider == nil {
@@ -32,7 +32,7 @@ func proxiedWorkspaceConfig() (issueops.WorkspaceConfig, error) {
 // runConfigSetManyProxiedServer writes a whole batch of settings in ONE unit of
 // work, which is the fifth verb and the one that stays off the role.
 //
-// The batch is the point of `bd config set-many` — one Dolt commit for N keys
+// The batch is the point of `issuegraph config set-many` — one Dolt commit for N keys
 // rather than N, which is what makes it usable in CI — and
 // TestProxiedServerConfigSetMany pins it. issueops.WorkspaceConfig writes one
 // setting per call and commits each, as its contract says, so routing this
@@ -55,6 +55,6 @@ func runConfigSetManyProxiedServer(ctx context.Context, keys, values []string) e
 				return "", fmt.Errorf("setting config %s: %w", k, err)
 			}
 		}
-		return fmt.Sprintf("bd: config set-many (%d keys)", len(keys)), nil
+		return fmt.Sprintf("issuegraph: config set-many (%d keys)", len(keys)), nil
 	})
 }

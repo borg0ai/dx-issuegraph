@@ -14,21 +14,21 @@ import (
 	"strings"
 	"time"
 
+	"github.com/borg0ai/dx-issuegraph/internal/config"
+	"github.com/borg0ai/dx-issuegraph/internal/configfile"
+	"github.com/borg0ai/dx-issuegraph/internal/doltserver"
+	"github.com/borg0ai/dx-issuegraph/internal/issuegraph"
+	"github.com/borg0ai/dx-issuegraph/internal/metrics"
+	"github.com/borg0ai/dx-issuegraph/internal/storage"
+	"github.com/borg0ai/dx-issuegraph/internal/storage/dolt"
+	"github.com/borg0ai/dx-issuegraph/internal/storage/doltutil"
+	"github.com/borg0ai/dx-issuegraph/internal/storage/embeddeddolt"
+	"github.com/borg0ai/dx-issuegraph/internal/storage/schema"
+	"github.com/borg0ai/dx-issuegraph/internal/storage/versioncontrolops"
+	"github.com/borg0ai/dx-issuegraph/modules/cli/doctor"
+	"github.com/borg0ai/dx-issuegraph/modules/cli/doctor/fix"
 	_ "github.com/go-sql-driver/mysql"
 	"github.com/spf13/cobra"
-	"github.com/steveyegge/beads/modules/cli/doctor"
-	"github.com/steveyegge/beads/modules/cli/doctor/fix"
-	"github.com/steveyegge/beads/internal/beads"
-	"github.com/steveyegge/beads/internal/config"
-	"github.com/steveyegge/beads/internal/configfile"
-	"github.com/steveyegge/beads/internal/doltserver"
-	"github.com/steveyegge/beads/internal/metrics"
-	"github.com/steveyegge/beads/internal/storage"
-	"github.com/steveyegge/beads/internal/storage/dolt"
-	"github.com/steveyegge/beads/internal/storage/doltutil"
-	"github.com/steveyegge/beads/internal/storage/embeddeddolt"
-	"github.com/steveyegge/beads/internal/storage/schema"
-	"github.com/steveyegge/beads/internal/storage/versioncontrolops"
 	"golang.org/x/term"
 )
 
@@ -110,14 +110,14 @@ var bootstrapCmd = &cobra.Command{
 	Use:     "bootstrap",
 	GroupID: "setup",
 	Short:   "Non-destructive database setup for fresh clones and recovery",
-	Long: `Bootstrap sets up the beads database without destroying existing data.
-Unlike 'bd init --force', bootstrap will never delete existing issues.
+	Long: `Bootstrap sets up the issuegraph database without destroying existing data.
+Unlike 'issuegraph init --force', bootstrap will never delete existing issues.
 
 Bootstrap auto-detects the right action:
   • If sync.remote is configured: clones from the remote
   • If git origin has Dolt data (refs/dolt/data): clones from git and wires origin for future push/pull
-  • If .beads/backup/*.jsonl exists: restores from backup
-  • If .beads/issues.jsonl exists: imports from git-tracked JSONL
+  • If .issuegraph/backup/*.jsonl exists: restores from backup
+  • If .issuegraph/issues.jsonl exists: imports from git-tracked JSONL
   • If no database exists: creates a fresh one
   • If database already exists: validates and reports status
 
@@ -125,19 +125,19 @@ If sync.remote points at a git repository, bootstrap verifies refs/dolt/data
 before cloning. Bootstrap exits non-zero when it cannot set up a database.
 
 This is the recommended command for:
-  • Setting up beads on a fresh clone
+  • Setting up issuegraph on a fresh clone
   • Recovering after moving to a new machine
   • Repairing a broken database configuration
 
-Non-interactive mode (--non-interactive, --yes/-y, or BD_NON_INTERACTIVE=1):
+Non-interactive mode (--non-interactive, --yes/-y, or ISSUEGRAPH_NON_INTERACTIVE=1):
   Skips the confirmation prompt before executing the bootstrap plan.
   Also auto-detected when stdin is not a terminal or CI=true is set.
 
 Examples:
-  bd bootstrap              # Auto-detect and set up
-  bd bootstrap --dry-run    # Show what would be done
-  bd bootstrap --json       # Output plan as JSON
-  bd bootstrap --yes        # Skip confirmation prompt
+  issuegraph bootstrap              # Auto-detect and set up
+  issuegraph bootstrap --dry-run    # Show what would be done
+  issuegraph bootstrap --json       # Output plan as JSON
+  issuegraph bootstrap --yes        # Skip confirmation prompt
 `,
 	SilenceUsage:  true,
 	SilenceErrors: true,
@@ -169,38 +169,38 @@ Examples:
 			}
 		}
 
-		// Find beads directory
-		beadsDir := beads.FindBeadsDir()
-		if beadsDir == "" {
-			// No .beads directory exists yet. Before giving up, probe the
+		// Find issuegraph directory
+		issuegraphDir := issuegraph.FindIssueGraphDir()
+		if issuegraphDir == "" {
+			// No .issuegraph directory exists yet. Before giving up, probe the
 			// git remote for Dolt data stored in git (refs/dolt/data). This
-			// is the "fresh second clone" case: clone1 pushed Beads state
+			// is the "fresh second clone" case: clone1 pushed IssueGraph state
 			// to a git remote, and clone2 needs to bootstrap from it.
 			// Only applies to git remotes — Dolt-native remotes (DoltHub,
 			// S3, etc.) should be configured via sync.remote. (GH#2792)
 			//
-			// If found, synthesize the theoretical .beads path and fall
+			// If found, synthesize the theoretical .issuegraph path and fall
 			// through to the normal detectBootstrapAction + executeBootstrapPlan
 			// flow. Actual directory creation is deferred to executeSyncAction
 			// to preserve --dry-run semantics.
 			if isGitRepo() && !isBareGitRepo() {
 				if originURL, err := gitOriginGetURL(); err == nil && originURL != "" {
 					if gitOriginHasDoltDataRef() {
-						if fallbackDir := beads.GetWorktreeFallbackBeadsDir(); fallbackDir != "" {
-							beadsDir = fallbackDir
+						if fallbackDir := issuegraph.GetWorktreeFallbackIssueGraphDir(); fallbackDir != "" {
+							issuegraphDir = fallbackDir
 						} else {
 							cwd, err := os.Getwd()
 							if err != nil {
 								return HandleError("failed to get working directory: %v", err)
 							}
-							beadsDir = filepath.Join(cwd, ".beads")
+							issuegraphDir = filepath.Join(cwd, ".issuegraph")
 						}
 					}
 				}
 			}
 		}
 
-		if beadsDir == "" {
+		if issuegraphDir == "" {
 			if jsonOutput {
 				if err := outputJSON(noWorkspaceBootstrapPayload()); err != nil {
 					return err
@@ -212,22 +212,22 @@ Examples:
 			return HandleError("%s", activeWorkspaceNotFoundMessage())
 		}
 
-		if err := guardLegacyUpgradeWorkspace(beadsDir); err != nil {
+		if err := guardLegacyUpgradeWorkspace(issuegraphDir); err != nil {
 			return HandleError("%v", err)
 		}
 
-		// Load config from .beads/metadata.json. When the beadsDir was
-		// synthesized (fresh clone or rig with no local .beads), the file
+		// Load config from .issuegraph/metadata.json. When the issuegraphDir was
+		// synthesized (fresh clone or rig with no local .issuegraph), the file
 		// won't exist. In that case, walk up parent directories to find a
 		// workspace-level metadata.json that contains the correct database
 		// name (e.g. dolt_database). Without this, server-mode rigs get the
-		// default name "beads" instead of their configured name. (GH#3029)
-		cfg, err := configfile.Load(beadsDir)
+		// default name "issuegraph" instead of their configured name. (GH#3029)
+		cfg, err := configfile.Load(issuegraphDir)
 		if err != nil {
-			return HandleError("failed to load %s: %v; no storage database was opened or modified; fix or restore metadata.json and retry", configfile.ConfigPath(beadsDir), err)
+			return HandleError("failed to load %s: %v; no storage database was opened or modified; fix or restore metadata.json and retry", configfile.ConfigPath(issuegraphDir), err)
 		}
 		if cfg == nil {
-			cfg, err = findParentConfig(beadsDir)
+			cfg, err = findParentConfig(issuegraphDir)
 			if err != nil {
 				return HandleError("failed to load ancestor storage metadata: %v; no storage database was opened or modified; fix or restore metadata.json and retry", err)
 			}
@@ -235,11 +235,11 @@ Examples:
 		if cfg == nil {
 			cfg = configfile.DefaultConfig()
 		}
-		if err := requireBootstrapDoltBackend(cfg, beadsDir); err != nil {
+		if err := requireBootstrapDoltBackend(cfg, issuegraphDir); err != nil {
 			return HandleError("%v", err)
 		}
 
-		resolvedCfg, repairMsg, err := applyBootstrapMetadataRepair(beadsDir, cfg, !dryRun)
+		resolvedCfg, repairMsg, err := applyBootstrapMetadataRepair(issuegraphDir, cfg, !dryRun)
 		if err != nil {
 			return HandleError("failed to reconcile shared-server metadata: %v", err)
 		}
@@ -248,7 +248,7 @@ Examples:
 		}
 
 		// Determine action based on state
-		plan := detectBootstrapAction(beadsDir, cfg)
+		plan := detectBootstrapAction(issuegraphDir, cfg)
 
 		if jsonOutput {
 			if err := outputJSON(plan); err != nil {
@@ -274,14 +274,14 @@ Examples:
 	},
 }
 
-func applyBootstrapMetadataRepair(beadsDir string, cfg *configfile.Config, apply bool) (*configfile.Config, string, error) {
-	if beadsDir == "" {
+func applyBootstrapMetadataRepair(issuegraphDir string, cfg *configfile.Config, apply bool) (*configfile.Config, string, error) {
+	if issuegraphDir == "" {
 		return cfg, "", nil
 	}
-	if _, err := os.Stat(beadsDir); err != nil {
+	if _, err := os.Stat(issuegraphDir); err != nil {
 		return cfg, "", nil
 	}
-	resolved, msg, err := resolveBootstrapAuthoritativeMetadata(filepath.Dir(beadsDir), apply)
+	resolved, msg, err := resolveBootstrapAuthoritativeMetadata(filepath.Dir(issuegraphDir), apply)
 	if err != nil {
 		return nil, "", err
 	}
@@ -293,13 +293,13 @@ func applyBootstrapMetadataRepair(beadsDir string, cfg *configfile.Config, apply
 
 // BootstrapPlan describes what bootstrap will do.
 type BootstrapPlan struct {
-	Action   string `json:"action"` // "sync", "restore", "jsonl-import", "init", "none"
-	Reason   string `json:"reason"` // Human-readable explanation
-	BeadsDir string `json:"beads_dir"`
-	Database string `json:"database"`
+	Action        string `json:"action"` // "sync", "restore", "jsonl-import", "init", "none"
+	Reason        string `json:"reason"` // Human-readable explanation
+	IssueGraphDir string `json:"issuegraph_dir"`
+	Database      string `json:"database"`
 	// SyncRemote is the remote this workspace syncs with. For Action=="sync"
 	// it is the clone source; for the provisioning actions it is the remote to
-	// register as Dolt "origin" so the first `bd dolt push` has somewhere to
+	// register as Dolt "origin" so the first `issuegraph dolt push` has somewhere to
 	// go. Always the routed (doltRemoteURL) form for forge URLs, and empty on
 	// a Blocked plan — nothing may be cloned from or pushed to a remote
 	// bootstrap could not verify.
@@ -324,7 +324,7 @@ type BootstrapPlan struct {
 	HasExisting   bool   `json:"has_existing"`
 }
 
-// MarshalJSON renders the plan for `bd bootstrap --json` (and `--dry-run --json`)
+// MarshalJSON renders the plan for `issuegraph bootstrap --json` (and `--dry-run --json`)
 // with the credential-bearing SyncRemote redacted, mirroring the human path
 // (printBootstrapPlan runs it through redactRemoteURL). SyncRemote keeps whatever
 // credentials the user configured — see the field comment — and `--json` writes
@@ -348,7 +348,7 @@ func (p BootstrapPlan) MarshalJSON() ([]byte, error) {
 // success tick and exited 0 with no database (#5743). Blocked is the
 // discriminator.
 //
-// --dry-run always succeeds. bd doctor documents `bd bootstrap --dry-run` as
+// --dry-run always succeeds. issuegraph doctor documents `issuegraph bootstrap --dry-run` as
 // the safe inspection step, and a preview that aborts a `set -e` provisioning
 // script is a worse contract than a preview that merely reports. The blocked
 // state is still printed (and still in the JSON), so the preview does predict
@@ -370,19 +370,19 @@ func noWorkspaceBootstrapPayload() map[string]interface{} {
 	}
 }
 
-func requireBootstrapDoltBackend(cfg *configfile.Config, beadsDir string) error {
-	if err := validateConfiguredBackend(cfg, beadsDir); err != nil {
+func requireBootstrapDoltBackend(cfg *configfile.Config, issuegraphDir string) error {
+	if err := validateConfiguredBackend(cfg, issuegraphDir); err != nil {
 		return err
 	}
 	// A registered extension backend passes validateConfiguredBackend so its
-	// existing workspaces can be opened, but every bd bootstrap action
+	// existing workspaces can be opened, but every issuegraph bootstrap action
 	// (sync, restore, jsonl-import, init) provisions or imports Dolt. Registered
 	// backends are open/discover-only, so reject them here — before
-	// detectBootstrapAction or executeBootstrapPlan — mirroring bd init's
+	// detectBootstrapAction or executeBootstrapPlan — mirroring issuegraph init's
 	// fail-closed gate. Downstream registrants supply their own workspace
 	// provisioning path.
 	if cfg != nil && cfg.GetBackend() != configfile.BackendDolt {
-		return fmt.Errorf("backend %q cannot be bootstrapped by bd bootstrap; it can only open an existing workspace (bd bootstrap provisions %q, the default)", cfg.GetBackend(), configfile.BackendDolt)
+		return fmt.Errorf("backend %q cannot be bootstrapped by issuegraph bootstrap; it can only open an existing workspace (issuegraph bootstrap provisions %q, the default)", cfg.GetBackend(), configfile.BackendDolt)
 	}
 	return nil
 }
@@ -391,8 +391,8 @@ func requireBootstrapDoltBackend(cfg *configfile.Config, beadsDir string) error 
 // exactly one place. Blocked is never hand-set by a detection branch: it is a
 // function of the finished plan ("took no action AND found no database"), so no
 // branch can leave a stale flag behind for a later branch to inherit.
-func detectBootstrapAction(beadsDir string, cfg *configfile.Config) BootstrapPlan {
-	plan := detectBootstrapPlan(beadsDir, cfg)
+func detectBootstrapAction(issuegraphDir string, cfg *configfile.Config) BootstrapPlan {
+	plan := detectBootstrapPlan(issuegraphDir, cfg)
 	plan.Blocked = plan.Action == "none" && !plan.HasExisting
 	if !plan.Blocked {
 		plan.BlockedRemote = ""
@@ -400,43 +400,43 @@ func detectBootstrapAction(beadsDir string, cfg *configfile.Config) BootstrapPla
 	return plan
 }
 
-func detectBootstrapPlan(beadsDir string, cfg *configfile.Config) BootstrapPlan {
+func detectBootstrapPlan(issuegraphDir string, cfg *configfile.Config) BootstrapPlan {
 	plan := BootstrapPlan{
-		BeadsDir: beadsDir,
-		Database: cfg.GetDoltDatabase(),
+		IssueGraphDir: issuegraphDir,
+		Database:      cfg.GetDoltDatabase(),
 	}
 
-	// When bootstrap synthesized a fallback beadsDir for a fresh clone or
+	// When bootstrap synthesized a fallback issuegraphDir for a fresh clone or
 	// worktree recovery, the path may not exist yet. In that case we must let
 	// sync.remote / refs/dolt/data detection run before treating an existing
 	// shared-server database as "nothing to do", otherwise an unrelated default
-	// "beads" database can mask the real recovery path.
-	info, statErr := os.Stat(beadsDir)
-	beadsDirExists := statErr == nil && info.IsDir()
+	// "issuegraph" database can mask the real recovery path.
+	info, statErr := os.Stat(issuegraphDir)
+	issuegraphDirExists := statErr == nil && info.IsDir()
 
 	// Check for existing database (path differs between server and embedded mode).
 	// Determine server/shared-server mode from the target workspace itself
 	// (metadata.json, env vars, and the target config.yaml when present) rather
 	// than unrelated global config loaded from the caller's current repo.
-	isSharedServer := bootstrapSharedServerMode(beadsDir)
+	isSharedServer := bootstrapSharedServerMode(issuegraphDir)
 	isServer := cfg.IsDoltServerMode() || isSharedServer
 
 	// Prefer an existing local database over re-clone (GH#5037). Previously
 	// sync.remote returned Action=sync unconditionally, so a second
-	// `bd bootstrap` on an already-cloned workspace ran DOLT_CLONE into the
+	// `issuegraph bootstrap` on an already-cloned workspace ran DOLT_CLONE into the
 	// existing dir and failed with Error 1007 (database exists) — contradicting
 	// help text ("If database already exists: validates and reports status")
-	// and the multi-clone upgrade guide. If the local beadsDir does not exist
+	// and the multi-clone upgrade guide. If the local issuegraphDir does not exist
 	// yet, still prefer sync recovery first for Action=="none" so a default
-	// shared-server "beads" DB from another project cannot mask a real clone.
+	// shared-server "issuegraph" DB from another project cannot mask a real clone.
 	// Held aside rather than merged into plan: a "none" verdict here is only a
 	// fallback for when nothing else matches, and copying it into plan leaked
 	// its HasExisting/Blocked/Reason into every branch below — including the
 	// probe-error branch, which then inherited HasExisting=true and printed the
 	// #5743 success tick again.
 	var deferredExistingPlan *BootstrapPlan
-	if dbAction, ok := existingBootstrapDBPlan(beadsDir, cfg, isServer, isSharedServer); ok {
-		if beadsDirExists || dbAction.Action != "none" {
+	if dbAction, ok := existingBootstrapDBPlan(issuegraphDir, cfg, isServer, isSharedServer); ok {
+		if issuegraphDirExists || dbAction.Action != "none" {
 			return dbAction
 		}
 		deferredExistingPlan = &dbAction
@@ -463,7 +463,7 @@ func detectBootstrapPlan(beadsDir string, cfg *configfile.Config) BootstrapPlan 
 	// On-disk recovery sources: a non-empty backup JSONL, then a git-tracked
 	// issues.jsonl. When a forge sync.remote had no Dolt data yet, plan already
 	// carries its SyncRemote so the restored/imported workspace stays wired to it.
-	if recoveryPlan, ok := localFileRecoveryPlan(plan, beadsDir); ok {
+	if recoveryPlan, ok := localFileRecoveryPlan(plan, issuegraphDir); ok {
 		return recoveryPlan
 	}
 
@@ -508,8 +508,8 @@ func planConfiguredSyncRemote(plan *BootstrapPlan, syncRemote string) (done bool
 		return true, "", ""
 	}
 
-	// A git-forge URL is a *supported* Dolt remote: `bd init` and `bd dolt
-	// remote add` both persist one, and `bd dolt push` stores the database under
+	// A git-forge URL is a *supported* Dolt remote: `issuegraph init` and `issuegraph dolt
+	// remote add` both persist one, and `issuegraph dolt push` stores the database under
 	// refs/dolt/data on it. What must never happen is cloning it blind, or in a
 	// form that reaches Dolt's remotesapi client. doltRemoteURL owns that routing
 	// rule; probe first, and clone only what the probe actually confirmed
@@ -533,8 +533,8 @@ func planConfiguredSyncRemote(plan *BootstrapPlan, syncRemote string) (done bool
 		plan.Reason = "sync.remote git repo has Dolt data (refs/dolt/data) — will clone from " + redactRemoteURL(routed)
 		return true, "", ""
 	default:
-		// Definitively no Dolt data: the repo was wired before the first `bd
-		// dolt push`. Say so and keep looking, the same way bd init falls back
+		// Definitively no Dolt data: the repo was wired before the first `issuegraph
+		// dolt push`. Say so and keep looking, the same way issuegraph init falls back
 		// to a fresh local database. Carry the URL so the workspace we create
 		// still gets wired to it.
 		plan.SyncRemote = routed
@@ -554,7 +554,7 @@ func planConfiguredSyncRemote(plan *BootstrapPlan, syncRemote string) (done bool
 // dedicated-data-repo pattern) is not recovery — and finalizeSyncedBootstrap would
 // then rewrite the team's committed sync.remote to point at it. Skipping it also
 // spares the second identical ls-remote in the common case where sync.remote IS
-// the git origin, which is what bd init persists.
+// the git origin, which is what issuegraph init persists.
 func gitOriginSyncPlan(plan BootstrapPlan) (BootstrapPlan, bool) {
 	if !isGitRepo() || isBareGitRepo() {
 		return BootstrapPlan{}, false
@@ -573,13 +573,13 @@ func gitOriginSyncPlan(plan BootstrapPlan) (BootstrapPlan, bool) {
 }
 
 // localFileRecoveryPlan returns a restore or jsonl-import plan built from on-disk
-// recovery sources under beadsDir — a non-empty backup/issues.jsonl (restore),
+// recovery sources under issuegraphDir — a non-empty backup/issues.jsonl (restore),
 // else a git-tracked issues.jsonl (the portable export format) — or ok==false
 // when neither is present. plan is taken by value so its already-populated fields
 // (e.g. a forge SyncRemote with no Dolt data yet) ride into the returned plan.
-func localFileRecoveryPlan(plan BootstrapPlan, beadsDir string) (BootstrapPlan, bool) {
+func localFileRecoveryPlan(plan BootstrapPlan, issuegraphDir string) (BootstrapPlan, bool) {
 	// Backup JSONL must be non-empty to be useful.
-	backupDir := filepath.Join(beadsDir, "backup")
+	backupDir := filepath.Join(issuegraphDir, "backup")
 	issuesFile := filepath.Join(backupDir, "issues.jsonl")
 	if info, err := os.Stat(issuesFile); err == nil && info.Size() > 0 {
 		plan.BackupDir = backupDir
@@ -588,7 +588,7 @@ func localFileRecoveryPlan(plan BootstrapPlan, beadsDir string) (BootstrapPlan, 
 		return plan, true
 	}
 
-	gitJSONL := filepath.Join(beadsDir, "issues.jsonl")
+	gitJSONL := filepath.Join(issuegraphDir, "issues.jsonl")
 	if _, err := os.Stat(gitJSONL); err == nil {
 		plan.JSONLFile = gitJSONL
 		plan.Action = "jsonl-import"
@@ -599,17 +599,17 @@ func localFileRecoveryPlan(plan BootstrapPlan, beadsDir string) (BootstrapPlan, 
 	return BootstrapPlan{}, false
 }
 
-func existingBootstrapDBPlan(beadsDir string, cfg *configfile.Config, isServer, isSharedServer bool) (BootstrapPlan, bool) {
+func existingBootstrapDBPlan(issuegraphDir string, cfg *configfile.Config, isServer, isSharedServer bool) (BootstrapPlan, bool) {
 	plan := BootstrapPlan{
-		BeadsDir: beadsDir,
-		Database: cfg.GetDoltDatabase(),
+		IssueGraphDir: issuegraphDir,
+		Database:      cfg.GetDoltDatabase(),
 	}
 
 	var dbPath string
 	if isServer {
-		dbPath = bootstrapServerDoltDir(beadsDir, cfg, isSharedServer)
+		dbPath = bootstrapServerDoltDir(issuegraphDir, cfg, isSharedServer)
 	} else {
-		dbPath = filepath.Join(beadsDir, "embeddeddolt")
+		dbPath = filepath.Join(issuegraphDir, "embeddeddolt")
 	}
 	if info, err := os.Stat(dbPath); err != nil || !info.IsDir() {
 		return BootstrapPlan{}, false
@@ -623,7 +623,7 @@ func existingBootstrapDBPlan(beadsDir string, cfg *configfile.Config, isServer, 
 	if isServer {
 		probeCfg := bootstrapServerProbeConfig{
 			host:     cfg.GetDoltServerHost(),
-			port:     bootstrapServerPort(beadsDir, cfg, isSharedServer),
+			port:     bootstrapServerPort(issuegraphDir, cfg, isSharedServer),
 			user:     cfg.GetDoltServerUser(),
 			pass:     cfg.GetDoltServerPassword(),
 			database: cfg.GetDoltDatabase(),
@@ -672,14 +672,14 @@ func existingBootstrapDBPlan(beadsDir string, cfg *configfile.Config, isServer, 
 	return plan, true
 }
 
-func bootstrapSharedServerMode(beadsDir string) bool {
-	if v := os.Getenv("BEADS_DOLT_SHARED_SERVER"); v == "1" || strings.EqualFold(v, "true") {
+func bootstrapSharedServerMode(issuegraphDir string) bool {
+	if v := os.Getenv("ISSUEGRAPH_DOLT_SHARED_SERVER"); v == "1" || strings.EqualFold(v, "true") {
 		return true
 	}
-	return strings.EqualFold(config.GetStringFromDir(beadsDir, "dolt.shared-server"), "true")
+	return strings.EqualFold(config.GetStringFromDir(issuegraphDir, "dolt.shared-server"), "true")
 }
 
-func bootstrapServerDoltDir(beadsDir string, cfg *configfile.Config, isSharedServer bool) string {
+func bootstrapServerDoltDir(issuegraphDir string, cfg *configfile.Config, isSharedServer bool) string {
 	if isSharedServer {
 		if dir, err := doltserver.SharedDoltDir(); err == nil {
 			return dir
@@ -690,14 +690,14 @@ func bootstrapServerDoltDir(beadsDir string, cfg *configfile.Config, isSharedSer
 		if filepath.IsAbs(d) {
 			return d
 		}
-		return filepath.Join(beadsDir, d)
+		return filepath.Join(issuegraphDir, d)
 	}
 
-	return filepath.Join(beadsDir, "dolt")
+	return filepath.Join(issuegraphDir, "dolt")
 }
 
-func bootstrapServerPort(beadsDir string, cfg *configfile.Config, isSharedServer bool) int {
-	if p := os.Getenv("BEADS_DOLT_SERVER_PORT"); p != "" {
+func bootstrapServerPort(issuegraphDir string, cfg *configfile.Config, isSharedServer bool) int {
+	if p := os.Getenv("ISSUEGRAPH_DOLT_SERVER_PORT"); p != "" {
 		if port, err := strconv.Atoi(p); err == nil && port > 0 {
 			return port
 		}
@@ -712,11 +712,11 @@ func bootstrapServerPort(beadsDir string, cfg *configfile.Config, isSharedServer
 		return doltserver.DefaultSharedServerPort
 	}
 
-	if port := doltserver.ReadPortFile(beadsDir); port > 0 {
+	if port := doltserver.ReadPortFile(issuegraphDir); port > 0 {
 		return port
 	}
 
-	if p := config.GetStringFromDir(beadsDir, "dolt.port"); p != "" {
+	if p := config.GetStringFromDir(issuegraphDir, "dolt.port"); p != "" {
 		if port, err := strconv.Atoi(p); err == nil && port > 0 {
 			return port
 		}
@@ -743,16 +743,16 @@ func printBootstrapPlan(plan BootstrapPlan) {
 				// fresh database that has diverged from the team's history.
 				fmt.Fprintf(os.Stderr, "  Reproduce: git ls-remote %s refs/dolt/data\n",
 					gitRemoteURLForLsRemote(plan.BlockedRemote))
-				fmt.Fprintf(os.Stderr, "  If the remote is right, fix access (credentials, network, VPN) and re-run 'bd bootstrap'.\n")
-				fmt.Fprintf(os.Stderr, "  If it is wrong, point sync.remote at the Dolt remote: bd dolt remote add origin <url>\n")
+				fmt.Fprintf(os.Stderr, "  If the remote is right, fix access (credentials, network, VPN) and re-run 'issuegraph bootstrap'.\n")
+				fmt.Fprintf(os.Stderr, "  If it is wrong, point sync.remote at the Dolt remote: issuegraph dolt remote add origin <url>\n")
 			}
 			return
 		}
-		fmt.Printf("✓ Database already exists: %s\n", plan.BeadsDir)
+		fmt.Printf("✓ Database already exists: %s\n", plan.IssueGraphDir)
 		if !usesSQLServer() {
 			fmt.Printf("  Nothing to do.\n")
 		} else {
-			fmt.Printf("  Nothing to do. Use 'bd doctor' to check health.\n")
+			fmt.Printf("  Nothing to do. Use 'issuegraph doctor' to check health.\n")
 		}
 	case "sync":
 		fmt.Printf("Bootstrap plan: clone from remote\n")
@@ -788,7 +788,7 @@ func confirmPrompt(message string, nonInteractive bool) bool {
 }
 
 func executeBootstrapPlan(plan BootstrapPlan, cfg *configfile.Config, nonInteractive bool) error {
-	if err := requireBootstrapDoltBackend(cfg, plan.BeadsDir); err != nil {
+	if err := requireBootstrapDoltBackend(cfg, plan.IssueGraphDir); err != nil {
 		return err
 	}
 	if !confirmPrompt("Proceed?", nonInteractive) {
@@ -805,19 +805,19 @@ func executeBootstrapPlan(plan BootstrapPlan, cfg *configfile.Config, nonInterac
 	// workspace is known and no state has been touched yet, so acquire the
 	// workspace + physical-root gates EXCLUSIVELY here for the rest of the
 	// plan execution. Exclusive failures are hard errors: bootstrap
-	// refuses to run over live bd activity rather than pretend.
+	// refuses to run over live issuegraph activity rather than pretend.
 	//
-	// The resolved PhysicalRoots for plan.BeadsDir do not necessarily cover
+	// The resolved PhysicalRoots for plan.IssueGraphDir do not necessarily cover
 	// the directory the actions below actually open — executeInitAction,
 	// executeRestoreAction, and executeJSONLImportAction all open
-	// doltserver.ResolveDoltDir(plan.BeadsDir) directly (e.g. .beads/dolt
+	// doltserver.ResolveDoltDir(plan.IssueGraphDir) directly (e.g. .issuegraph/dolt
 	// for an embedded-metadata workspace). Pass it as an extraRoot,
-	// mirroring how bd init passes its own resolved db path, so the
+	// mirroring how issuegraph init passes its own resolved db path, so the
 	// physical directory bootstrap writes is actually gated.
-	gateHandle, gateErr := acquireExclusiveWorkspaceGates(ctx, plan.BeadsDir, "bd bootstrap "+plan.Action,
-		doltserver.ResolveDoltDir(plan.BeadsDir))
+	gateHandle, gateErr := acquireExclusiveWorkspaceGates(ctx, plan.IssueGraphDir, "issuegraph bootstrap "+plan.Action,
+		doltserver.ResolveDoltDir(plan.IssueGraphDir))
 	if gateErr != nil {
-		return fmt.Errorf("bd bootstrap refuses to run over live bd activity on this workspace: %w", gateErr)
+		return fmt.Errorf("issuegraph bootstrap refuses to run over live issuegraph activity on this workspace: %w", gateErr)
 	}
 	defer func() { _ = gateHandle.Release() }()
 
@@ -839,11 +839,11 @@ func executeInitAction(ctx context.Context, plan BootstrapPlan, cfg *configfile.
 	dbName := cfg.GetDoltDatabase()
 
 	s, err := newDoltStore(ctx, &dolt.Config{
-		Path:            doltserver.ResolveDoltDir(plan.BeadsDir),
+		Path:            doltserver.ResolveDoltDir(plan.IssueGraphDir),
 		Database:        dbName,
 		CreateIfMissing: true,
 		AutoStart:       true,
-		BeadsDir:        plan.BeadsDir,
+		IssueGraphDir:   plan.IssueGraphDir,
 	})
 	if err != nil {
 		return fmt.Errorf("create database: %w", err)
@@ -853,7 +853,7 @@ func executeInitAction(ctx context.Context, plan BootstrapPlan, cfg *configfile.
 	if err := s.SetConfig(ctx, "issue_prefix", prefix); err != nil {
 		return fmt.Errorf("set issue prefix: %w", err)
 	}
-	if err := s.CommitWithConfig(ctx, "bd bootstrap"); err != nil {
+	if err := s.CommitWithConfig(ctx, "issuegraph bootstrap"); err != nil {
 		return fmt.Errorf("commit: %w", err)
 	}
 
@@ -866,10 +866,10 @@ func executeInitAction(ctx context.Context, plan BootstrapPlan, cfg *configfile.
 // a workspace bootstrap just provisioned locally.
 //
 // The sync action has always done this (via configureInitDoltRemote after the
-// clone) and bd init does it too, but the local actions never did, because a
+// clone) and issuegraph init does it too, but the local actions never did, because a
 // configured sync.remote used to short-circuit to "sync" before they could be
 // reached. The refs/dolt/data fall-through makes them reachable, and without
-// the remote the promise that "the first bd dolt push creates refs/dolt/data
+// the remote the promise that "the first issuegraph dolt push creates refs/dolt/data
 // on that same git remote" breaks: push either refuses to adopt a remote
 // without consent, or adopts the git origin — a different repository under the
 // dedicated-data-repo pattern — and rewrites the committed sync.remote to
@@ -888,11 +888,11 @@ func executeRestoreAction(ctx context.Context, plan BootstrapPlan, cfg *configfi
 	dbName := cfg.GetDoltDatabase()
 
 	s, err := newDoltStore(ctx, &dolt.Config{
-		Path:            doltserver.ResolveDoltDir(plan.BeadsDir),
+		Path:            doltserver.ResolveDoltDir(plan.IssueGraphDir),
 		Database:        dbName,
 		CreateIfMissing: true,
 		AutoStart:       true,
-		BeadsDir:        plan.BeadsDir,
+		IssueGraphDir:   plan.IssueGraphDir,
 	})
 	if err != nil {
 		return fmt.Errorf("create database: %w", err)
@@ -902,7 +902,7 @@ func executeRestoreAction(ctx context.Context, plan BootstrapPlan, cfg *configfi
 	if err := s.SetConfig(ctx, "issue_prefix", prefix); err != nil {
 		return fmt.Errorf("set issue prefix: %w", err)
 	}
-	if err := s.CommitWithConfig(ctx, "bd bootstrap: init"); err != nil {
+	if err := s.CommitWithConfig(ctx, "issuegraph bootstrap: init"); err != nil {
 		return fmt.Errorf("commit init: %w", err)
 	}
 
@@ -920,11 +920,11 @@ func executeJSONLImportAction(ctx context.Context, plan BootstrapPlan, cfg *conf
 	dbName := cfg.GetDoltDatabase()
 
 	s, err := newDoltStore(ctx, &dolt.Config{
-		Path:            doltserver.ResolveDoltDir(plan.BeadsDir),
+		Path:            doltserver.ResolveDoltDir(plan.IssueGraphDir),
 		Database:        dbName,
 		CreateIfMissing: true,
 		AutoStart:       true,
-		BeadsDir:        plan.BeadsDir,
+		IssueGraphDir:   plan.IssueGraphDir,
 	})
 	if err != nil {
 		return fmt.Errorf("create database: %w", err)
@@ -934,7 +934,7 @@ func executeJSONLImportAction(ctx context.Context, plan BootstrapPlan, cfg *conf
 	if err := s.SetConfig(ctx, "issue_prefix", prefix); err != nil {
 		return fmt.Errorf("set issue prefix: %w", err)
 	}
-	if err := s.CommitWithConfig(ctx, "bd bootstrap: init"); err != nil {
+	if err := s.CommitWithConfig(ctx, "issuegraph bootstrap: init"); err != nil {
 		return fmt.Errorf("commit init: %w", err)
 	}
 
@@ -943,7 +943,7 @@ func executeJSONLImportAction(ctx context.Context, plan BootstrapPlan, cfg *conf
 		return fmt.Errorf("import from JSONL: %w", err)
 	}
 
-	if err := s.Commit(ctx, "bd bootstrap: import from issues.jsonl"); err != nil {
+	if err := s.Commit(ctx, "issuegraph bootstrap: import from issues.jsonl"); err != nil {
 		return fmt.Errorf("commit import: %w", err)
 	}
 
@@ -953,28 +953,28 @@ func executeJSONLImportAction(ctx context.Context, plan BootstrapPlan, cfg *conf
 }
 
 func executeSyncAction(ctx context.Context, plan BootstrapPlan, cfg *configfile.Config) error {
-	// Ensure .beads directory exists — it may not in the "fresh clone"
-	// bootstrap path where we detected remote data before .beads was
+	// Ensure .issuegraph directory exists — it may not in the "fresh clone"
+	// bootstrap path where we detected remote data before .issuegraph was
 	// created. Deferred here to preserve --dry-run semantics. (GH#2792)
-	if err := os.MkdirAll(plan.BeadsDir, 0o750); err != nil {
-		return fmt.Errorf("create beads directory: %w", err)
+	if err := os.MkdirAll(plan.IssueGraphDir, 0o750); err != nil {
+		return fmt.Errorf("create issuegraph directory: %w", err)
 	}
 
 	dbName := cfg.GetDoltDatabase()
-	if err := cloneFromRemote(ctx, plan.BeadsDir, plan.SyncRemote, dbName, cfg); err != nil {
+	if err := cloneFromRemote(ctx, plan.IssueGraphDir, plan.SyncRemote, dbName, cfg); err != nil {
 		return err
 	}
 
-	// Finalize the bootstrapped workspace so subsequent bd commands can open
+	// Finalize the bootstrapped workspace so subsequent issuegraph commands can open
 	// the cloned database. Without metadata.json and config.yaml,
 	// configfile.Load() returns nil, callers fall back to the default
-	// dolt_database name, and bd loses track of the cloned database —
-	// producing "no beads configuration found" and "Error 1105: no database
-	// selected" on bd status / bd dolt push in fresh clones. Every other
+	// dolt_database name, and issuegraph loses track of the cloned database —
+	// producing "no issuegraph configuration found" and "Error 1105: no database
+	// selected" on issuegraph status / issuegraph dolt push in fresh clones. Every other
 	// bootstrap action (init, restore, jsonl-import) writes these files via
 	// newDoltStore + createConfigYaml; the sync path historically did not.
 	// (GH#3201)
-	if err := finalizeSyncedBootstrap(plan.BeadsDir, plan.SyncRemote, cfg, dbName); err != nil {
+	if err := finalizeSyncedBootstrap(plan.IssueGraphDir, plan.SyncRemote, cfg, dbName); err != nil {
 		return err
 	}
 
@@ -982,25 +982,25 @@ func executeSyncAction(ctx context.Context, plan BootstrapPlan, cfg *configfile.
 	// created in the working set. Clone does not include these tables
 	// (they are never committed), so they must be recreated after clone.
 	// Both embedded and server mode handle this in their store init paths.
-	warmupStore, err := newDoltStoreFromConfig(ctx, plan.BeadsDir)
+	warmupStore, err := newDoltStoreFromConfig(ctx, plan.IssueGraphDir)
 	if err != nil {
 		// #4259: the cloned remote is behind this binary, so the remote-migrate
 		// gate held migration for an explicit operator decision. Surface that
 		// now with bootstrap-specific guidance and a non-zero exit. Returning
 		// silent success here (as this path once did) sent operators in a
 		// loop: the first real command failed with the gate message, whose
-		// generic "adopt" remedy is `bd bootstrap` — which re-clones the same
+		// generic "adopt" remedy is `issuegraph bootstrap` — which re-clones the same
 		// behind database and silently "succeeds" again (bd-6dnrw.31).
 		var gateErr *schema.RemoteMigrateGateError
 		if errors.As(err, &gateErr) {
 			if !jsonOutput {
-				printBootstrapRemoteBehindGuidance(os.Stderr, gateErr, plan.SyncRemote, "bd bootstrap")
+				printBootstrapRemoteBehindGuidance(os.Stderr, gateErr, plan.SyncRemote, "issuegraph bootstrap")
 			}
 			unit := "migrations"
 			if gateErr.Pending == 1 {
 				unit = "migration"
 			}
-			return fmt.Errorf("clone from %s succeeded, but the database needs %d schema %s (v%d -> v%d) that bd will not auto-apply to a remote-backed database (#4259)",
+			return fmt.Errorf("clone from %s succeeded, but the database needs %d schema %s (v%d -> v%d) that issuegraph will not auto-apply to a remote-backed database (#4259)",
 				plan.SyncRemote, gateErr.Pending, unit, gateErr.CurrentVersion, gateErr.LatestVersion)
 		}
 		// Non-fatal: wisp tables will be created on the next command that
@@ -1016,9 +1016,9 @@ func executeSyncAction(ctx context.Context, plan BootstrapPlan, cfg *configfile.
 }
 
 // printInitJoinGuidance corrects the one thing the gate's shared-store block
-// gets wrong when `bd init` is the caller: it says to run `bd migrate schema`,
+// gets wrong when `issuegraph init` is the caller: it says to run `issuegraph migrate schema`,
 // but this init failed before writing metadata.json, so there is no workspace
-// here to run it from (gastownhall/beads#5920). A client JOINING an existing,
+// here to run it from (borg0ai/dx-issuegraph#5920). A client JOINING an existing,
 // behind shared server has to be told where the command actually works.
 //
 // Only the shared-store arm needs this. The remote-backed refusals from init
@@ -1029,21 +1029,21 @@ func printInitJoinGuidance(w io.Writer, e *schema.RemoteMigrateGateError) {
 		return
 	}
 	fmt.Fprintf(w,
-		"\n  This workspace was NOT created — bd init stopped before writing\n"+
-			"  .beads/metadata.json, so `%s` cannot be run from here yet.\n"+
+		"\n  This workspace was NOT created — issuegraph init stopped before writing\n"+
+			"  .issuegraph/metadata.json, so `%s` cannot be run from here yet.\n"+
 			"  Either run it from a workspace already set up against this server, or\n"+
 			"  join and migrate in one step once every client is upgraded:\n"+
-			"        %s=1 bd init …\n",
+			"        %s=1 issuegraph init …\n",
 		schema.SharedConsentCommand, schema.AllowRemoteMigrateEnv)
 }
 
 // printBootstrapRemoteBehindGuidance explains a remote-migrate gate refusal in
 // bootstrap terms. The gate's generic remedy ("adopt the migrated database:
-// bd bootstrap") is wrong from inside a bootstrap-style clone — the database
+// issuegraph bootstrap") is wrong from inside a bootstrap-style clone — the database
 // was just cloned from the remote, so the REMOTE is what is behind this binary
 // and re-cloning can never help. The way out is exactly one designated machine
-// migrating and pushing. rerunCmd is the command the operator just ran ("bd
-// bootstrap", "bd init") so the don't-bother-retrying line names it.
+// migrating and pushing. rerunCmd is the command the operator just ran ("issuegraph
+// bootstrap", "issuegraph init") so the don't-bother-retrying line names it.
 func printBootstrapRemoteBehindGuidance(w io.Writer, e *schema.RemoteMigrateGateError, syncRemote, rerunCmd string) {
 	unit := "migrations"
 	if e.Pending == 1 {
@@ -1052,25 +1052,25 @@ func printBootstrapRemoteBehindGuidance(w io.Writer, e *schema.RemoteMigrateGate
 	fmt.Fprintf(w, "\nThe database cloned from %s needs %d schema %s (v%d -> v%d).\n",
 		syncRemote, e.Pending, unit, e.CurrentVersion, e.LatestVersion)
 	fmt.Fprint(w,
-		"  bd will not migrate it automatically: migrating clones independently forks\n"+
-			"  the schema so `bd dolt pull` can no longer merge (#4259).\n"+
+		"  issuegraph will not migrate it automatically: migrating clones independently forks\n"+
+			"  the schema so `issuegraph dolt pull` can no longer merge (#4259).\n"+
 			"\n"+
 			"  Re-running `"+rerunCmd+"` will NOT fix this — the remote itself is behind.\n"+
 			"  Choose one:\n"+
 			"    • This machine is the designated migrator (exactly ONE machine should be):\n"+
-			"        bd migrate --force\n"+
-			"        bd dolt push\n"+
-			"      then other machines re-run `bd bootstrap` to adopt the migrated database.\n"+
+			"        issuegraph migrate --force\n"+
+			"        issuegraph dolt push\n"+
+			"      then other machines re-run `issuegraph bootstrap` to adopt the migrated database.\n"+
 			"    • Another machine is the designated migrator: wait for it to push, then\n"+
-			"      re-run `bd bootstrap`, or keep using a bd version that matches the remote.\n\n")
+			"      re-run `issuegraph bootstrap`, or keep using a issuegraph version that matches the remote.\n\n")
 }
 
 // finalizeSyncedBootstrap writes metadata.json and config.yaml after a
-// successful sync clone, matching the on-disk layout that bd init produces.
+// successful sync clone, matching the on-disk layout that issuegraph init produces.
 // It is idempotent: re-running over an already-finalized workspace leaves
 // existing files intact (createConfigYaml skips if config.yaml exists; the
 // metadata.json write is a full rewrite that preserves caller fields).
-func finalizeSyncedBootstrap(beadsDir, syncRemote string, cfg *configfile.Config, dbName string) error {
+func finalizeSyncedBootstrap(issuegraphDir, syncRemote string, cfg *configfile.Config, dbName string) error {
 	// Preserve whatever upstream fields were already set in cfg (which may
 	// be DefaultConfig when metadata.json was absent, or a parent workspace
 	// config propagated by findParentConfig), then fill in the bits
@@ -1086,26 +1086,26 @@ func finalizeSyncedBootstrap(beadsDir, syncRemote string, cfg *configfile.Config
 		cfg.DoltMode = configfile.DoltModeEmbedded
 	}
 	// Mirror init's convention: metadata.json database points at the Dolt
-	// directory rather than the legacy "beads.db" placeholder.
-	if cfg.Database == "" || cfg.Database == beads.CanonicalDatabaseName {
+	// directory rather than the legacy "issuegraph.db" placeholder.
+	if cfg.Database == "" || cfg.Database == issuegraph.CanonicalDatabaseName {
 		cfg.Database = "dolt"
 	}
 
-	if err := cfg.Save(beadsDir); err != nil {
+	if err := cfg.Save(issuegraphDir); err != nil {
 		return fmt.Errorf("write metadata.json: %w", err)
 	}
 
-	if err := createConfigYaml(beadsDir, false, ""); err != nil {
+	if err := createConfigYaml(issuegraphDir, false, ""); err != nil {
 		return fmt.Errorf("create config.yaml: %w", err)
 	}
-	if err := doctor.EnsureGitignoreForBeadsDir(beadsDir); err != nil {
-		return fmt.Errorf("ensure .beads/.gitignore: %w", err)
+	if err := doctor.EnsureGitignoreForIssueGraphDir(issuegraphDir); err != nil {
+		return fmt.Errorf("ensure .issuegraph/.gitignore: %w", err)
 	}
 
-	// Persist sync.remote so subsequent fresh clones (and bd bootstrap
+	// Persist sync.remote so subsequent fresh clones (and issuegraph bootstrap
 	// retries) can rediscover the remote without re-probing origin refs.
 	if syncRemote != "" {
-		if err := config.SetYamlConfigInDir(beadsDir, "sync.remote", syncRemote); err != nil {
+		if err := config.SetYamlConfigInDir(issuegraphDir, "sync.remote", syncRemote); err != nil {
 			return fmt.Errorf("persist sync.remote to config.yaml: %w", err)
 		}
 	}
@@ -1128,50 +1128,50 @@ const (
 // executes DOLT_CLONE so the server places the database in its own data
 // directory. In owned-server mode, shells out to dolt clone via
 // BootstrapFromRemoteWithDB.
-// Shared by bd init and bd bootstrap to keep clone logic in one place.
-func cloneFromRemote(ctx context.Context, beadsDir, remoteURL, dbName string, cfg *configfile.Config) error {
-	return cloneFromRemoteWithMode(ctx, beadsDir, remoteURL, dbName, cfg, remoteCloneAuto)
+// Shared by issuegraph init and issuegraph bootstrap to keep clone logic in one place.
+func cloneFromRemote(ctx context.Context, issuegraphDir, remoteURL, dbName string, cfg *configfile.Config) error {
+	return cloneFromRemoteWithMode(ctx, issuegraphDir, remoteURL, dbName, cfg, remoteCloneAuto)
 }
 
-func cloneFromRemoteWithMode(ctx context.Context, beadsDir, remoteURL, dbName string, cfg *configfile.Config, cloneMode remoteCloneMode) error {
-	mode := resolveRemoteCloneMode(beadsDir, cfg, cloneMode)
+func cloneFromRemoteWithMode(ctx context.Context, issuegraphDir, remoteURL, dbName string, cfg *configfile.Config, cloneMode remoteCloneMode) error {
+	mode := resolveRemoteCloneMode(issuegraphDir, cfg, cloneMode)
 
 	switch mode {
 	case remoteCloneEmbedded:
-		return cloneViaEmbedded(ctx, beadsDir, remoteURL, dbName)
+		return cloneViaEmbedded(ctx, issuegraphDir, remoteURL, dbName)
 
 	case remoteCloneExternalServer:
 		if cfg == nil {
 			// Caller didn't provide config; fall back to loading from disk.
-			if loaded, err := configfile.Load(beadsDir); err == nil && loaded != nil {
+			if loaded, err := configfile.Load(issuegraphDir); err == nil && loaded != nil {
 				cfg = loaded
 			}
 		}
 		if cfg != nil {
-			return cloneViaServer(ctx, beadsDir, remoteURL, dbName, cfg)
+			return cloneViaServer(ctx, issuegraphDir, remoteURL, dbName, cfg)
 		}
 		// No config available — fall through to CLI clone.
 		fmt.Fprintf(os.Stderr, "Warning: server mode detected but no config available, falling back to CLI clone\n")
-		return cloneViaCLI(ctx, beadsDir, remoteURL, dbName)
+		return cloneViaCLI(ctx, issuegraphDir, remoteURL, dbName)
 
 	default:
-		return cloneViaCLI(ctx, beadsDir, remoteURL, dbName)
+		return cloneViaCLI(ctx, issuegraphDir, remoteURL, dbName)
 	}
 }
 
-func resolveRemoteCloneMode(beadsDir string, cfg *configfile.Config, cloneMode remoteCloneMode) remoteCloneMode {
+func resolveRemoteCloneMode(issuegraphDir string, cfg *configfile.Config, cloneMode remoteCloneMode) remoteCloneMode {
 	if cloneMode != remoteCloneAuto {
 		return cloneMode
 	}
 
 	if cfg != nil {
-		if cfg.IsDoltServerMode() || doltserver.IsSharedServerMode() || os.Getenv("BEADS_DOLT_SERVER_MODE") == "1" {
+		if cfg.IsDoltServerMode() || doltserver.IsSharedServerMode() || os.Getenv("ISSUEGRAPH_DOLT_SERVER_MODE") == "1" {
 			return remoteCloneExternalServer
 		}
 		return remoteCloneEmbedded
 	}
 
-	switch doltserver.ResolveServerMode(beadsDir) {
+	switch doltserver.ResolveServerMode(issuegraphDir) {
 	case doltserver.ServerModeEmbedded:
 		return remoteCloneEmbedded
 	case doltserver.ServerModeExternal:
@@ -1182,8 +1182,8 @@ func resolveRemoteCloneMode(beadsDir string, cfg *configfile.Config, cloneMode r
 }
 
 // cloneViaEmbedded clones using the embedded Dolt engine (CGO required).
-func cloneViaEmbedded(ctx context.Context, beadsDir, remoteURL, dbName string) error {
-	dataDir := filepath.Join(beadsDir, "embeddeddolt")
+func cloneViaEmbedded(ctx context.Context, issuegraphDir, remoteURL, dbName string) error {
+	dataDir := filepath.Join(issuegraphDir, "embeddeddolt")
 	if err := os.MkdirAll(dataDir, 0o750); err != nil {
 		return fmt.Errorf("create embeddeddolt directory: %w", err)
 	}
@@ -1203,9 +1203,9 @@ func cloneViaEmbedded(ctx context.Context, beadsDir, remoteURL, dbName string) e
 // cloneViaServer clones by connecting to the external Dolt server and
 // executing CALL DOLT_CLONE. The server places the database in its own
 // data directory, which is the correct behavior for externally managed
-// servers where bd does not know the filesystem layout.
-func cloneViaServer(ctx context.Context, beadsDir, remoteURL, dbName string, cfg *configfile.Config) error {
-	port := serverClonePort(beadsDir, cfg)
+// servers where issuegraph does not know the filesystem layout.
+func cloneViaServer(ctx context.Context, issuegraphDir, remoteURL, dbName string, cfg *configfile.Config) error {
+	port := serverClonePort(issuegraphDir, cfg)
 	dsn := doltutil.ServerDSN{
 		Socket:   cfg.GetDoltServerSocket(),
 		Host:     cfg.GetDoltServerHost(),
@@ -1238,21 +1238,21 @@ func cloneViaServer(ctx context.Context, beadsDir, remoteURL, dbName string, cfg
 	return nil
 }
 
-func serverClonePort(beadsDir string, cfg *configfile.Config) int {
+func serverClonePort(issuegraphDir string, cfg *configfile.Config) int {
 	if cfg != nil && cfg.DoltServerPort > 0 {
 		return cfg.DoltServerPort
 	}
-	if p := os.Getenv("BEADS_DOLT_SERVER_PORT"); p != "" {
+	if p := os.Getenv("ISSUEGRAPH_DOLT_SERVER_PORT"); p != "" {
 		if port, err := strconv.Atoi(p); err == nil && port > 0 {
 			return port
 		}
 	}
-	if p := os.Getenv("BEADS_DOLT_PORT"); p != "" {
+	if p := os.Getenv("ISSUEGRAPH_DOLT_PORT"); p != "" {
 		if port, err := strconv.Atoi(p); err == nil && port > 0 {
 			return port
 		}
 	}
-	if resolved := doltserver.DefaultConfig(beadsDir); resolved.Port > 0 {
+	if resolved := doltserver.DefaultConfig(issuegraphDir); resolved.Port > 0 {
 		return resolved.Port
 	}
 	if cfg != nil {
@@ -1262,9 +1262,9 @@ func serverClonePort(beadsDir string, cfg *configfile.Config) int {
 }
 
 // cloneViaCLI clones by shelling out to the dolt CLI.
-// Used for owned-server mode where bd manages the server lifecycle.
-func cloneViaCLI(ctx context.Context, beadsDir, remoteURL, dbName string) error {
-	doltDir := doltserver.ResolveDoltDir(beadsDir)
+// Used for owned-server mode where issuegraph manages the server lifecycle.
+func cloneViaCLI(ctx context.Context, issuegraphDir, remoteURL, dbName string) error {
+	doltDir := doltserver.ResolveDoltDir(issuegraphDir)
 	synced, err := dolt.BootstrapFromRemoteWithDB(ctx, doltDir, remoteURL, dbName)
 	if err != nil {
 		return fmt.Errorf("sync from remote: %w", err)
@@ -1277,7 +1277,7 @@ func cloneViaCLI(ctx context.Context, beadsDir, remoteURL, dbName string) error 
 
 func inferPrefix(cfg *configfile.Config) string {
 	db := cfg.GetDoltDatabase()
-	if db != "" && db != "beads" {
+	if db != "" && db != "issuegraph" {
 		return db
 	}
 	cwd, _ := os.Getwd()
@@ -1285,12 +1285,12 @@ func inferPrefix(cfg *configfile.Config) string {
 }
 
 // isNonInteractiveBootstrap returns true if bootstrap should skip confirmation prompts.
-// Precedence: explicit flag > BD_NON_INTERACTIVE env > CI env > terminal detection.
+// Precedence: explicit flag > ISSUEGRAPH_NON_INTERACTIVE env > CI env > terminal detection.
 func isNonInteractiveBootstrap(flagValue bool) bool {
 	if flagValue {
 		return true
 	}
-	if v := os.Getenv("BD_NON_INTERACTIVE"); v == "1" || v == "true" {
+	if v := os.Getenv("ISSUEGRAPH_NON_INTERACTIVE"); v == "1" || v == "true" {
 		return true
 	}
 	if v := os.Getenv("CI"); v == "true" || v == "1" {
@@ -1299,20 +1299,20 @@ func isNonInteractiveBootstrap(flagValue bool) bool {
 	return !term.IsTerminal(int(os.Stdin.Fd()))
 }
 
-// findParentConfig walks up from beadsDir's parent looking for a
-// .beads/metadata.json in ancestor directories. This handles the case where a
-// rig subdirectory (its own git repo) doesn't have a local .beads but its
+// findParentConfig walks up from issuegraphDir's parent looking for a
+// .issuegraph/metadata.json in ancestor directories. This handles the case where a
+// rig subdirectory (its own git repo) doesn't have a local .issuegraph but its
 // parent workspace does. Returns nil if no parent config is found. A malformed
 // or unreadable ancestor metadata file is authoritative and returned as an error;
 // bootstrap must not skip it and select a more distant workspace or defaults.
-func findParentConfig(beadsDir string) (*configfile.Config, error) {
-	// Start from the parent of beadsDir's enclosing directory.
-	// beadsDir is typically "<project>/.beads", so we start from <project>'s parent.
-	start := filepath.Dir(filepath.Dir(beadsDir))
+func findParentConfig(issuegraphDir string) (*configfile.Config, error) {
+	// Start from the parent of issuegraphDir's enclosing directory.
+	// issuegraphDir is typically "<project>/.issuegraph", so we start from <project>'s parent.
+	start := filepath.Dir(filepath.Dir(issuegraphDir))
 	homeDir, _ := os.UserHomeDir()
 
 	for dir := start; dir != "/" && dir != "."; {
-		candidate := filepath.Join(dir, ".beads")
+		candidate := filepath.Join(dir, ".issuegraph")
 		cfg, err := configfile.LoadForDiscovery(candidate)
 		if err != nil {
 			return nil, fmt.Errorf("%s: %w", configfile.ConfigPath(candidate), err)

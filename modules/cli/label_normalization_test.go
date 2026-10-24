@@ -10,7 +10,7 @@ import (
 
 // Write paths must normalize labels the same way read paths already do.
 //
-// bd applies utils.NormalizeLabels (trim, drop empty, dedupe) to every label
+// issuegraph applies utils.NormalizeLabels (trim, drop empty, dedupe) to every label
 // FILTER path (list, search, ready, orphans, count, workapi) but to no label
 // WRITE path. The asymmetry means `--labels 'a, b'` stores " b" with a leading
 // space, while `--label ' b'` on a filter is trimmed to "b" — so the stored
@@ -106,7 +106,7 @@ func TestGatherUpdateInputNormalizesLabels(t *testing.T) {
 	assertLabels(t, *in.setLabels, []string{"theme:d"})
 }
 
-// `bd tag` calls itself "Shorthand for 'bd update <id> --add-label <label>'",
+// `issuegraph tag` calls itself "Shorthand for 'issuegraph update <id> --add-label <label>'",
 // so it must normalize identically. It took the positional verbatim, which made
 // it the one CLI label write that could still store an unfilterable label.
 //
@@ -137,7 +137,7 @@ func TestNormalizeLabelForTag(t *testing.T) {
 	}
 
 	// The plural flags can drop an empty element and still honor the rest of
-	// the request. `bd tag` has one label to add, so dropping it would report
+	// the request. `issuegraph tag` has one label to add, so dropping it would report
 	// success having written nothing.
 	for _, raw := range []string{"", "   ", "\t"} {
 		t.Run("rejects empty "+fmt.Sprintf("%q", raw), func(t *testing.T) {

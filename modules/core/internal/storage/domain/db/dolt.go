@@ -56,7 +56,7 @@ func (i *doltVersionControlSQLRepository) Remote(ctx context.Context, args ...st
 // Fetch/Push/Pull/Clone run remote-touching statements. The Runner behind
 // this repository is a connection to the dolt sql-server, so the git-protocol
 // env guards live where the git plumbing actually spawns: in the server's
-// environment (doltserver.ServerSpawnEnv) — not on bd's process env. If a
+// environment (doltserver.ServerSpawnEnv) — not on issuegraph's process env. If a
 // caller is ever wired against an in-process engine, route it through
 // withRemoteEnvGuards in internal/storage/versioncontrolops instead.
 

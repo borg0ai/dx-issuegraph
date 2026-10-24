@@ -22,7 +22,7 @@ func TestRenderSectionFull(t *testing.T) {
 	}
 
 	// Must start with begin marker containing profile and hash metadata
-	if !strings.HasPrefix(section, "<!-- BEGIN BEADS INTEGRATION") {
+	if !strings.HasPrefix(section, "<!-- BEGIN ISSUEGRAPH INTEGRATION") {
 		t.Error("section should start with begin marker")
 	}
 
@@ -38,19 +38,19 @@ func TestRenderSectionFull(t *testing.T) {
 
 	// Must end with end marker
 	trimmed := strings.TrimSpace(section)
-	if !strings.HasSuffix(trimmed, "<!-- END BEADS INTEGRATION -->") {
+	if !strings.HasSuffix(trimmed, "<!-- END ISSUEGRAPH INTEGRATION -->") {
 		t.Error("section should end with end marker")
 	}
 
 	// Full profile must contain command references
-	for _, want := range []string{"bd create", "bd update", "bd close", "bd ready", "discovered-from"} {
+	for _, want := range []string{"issuegraph create", "issuegraph update", "issuegraph close", "issuegraph ready", "discovered-from"} {
 		if !strings.Contains(section, want) {
 			t.Errorf("full profile missing %q", want)
 		}
 	}
 }
 
-// TestRenderSectionFullSingleMarkers guards against #3552: when bd is built
+// TestRenderSectionFullSingleMarkers guards against #3552: when issuegraph is built
 // from a Windows checkout, //go:embed picks up CRLF bytes from the working
 // tree, and templateBody()'s LF-only marker stripping previously left the
 // legacy markers inside the body. RenderSection then wrapped them in fresh
@@ -58,19 +58,19 @@ func TestRenderSectionFull(t *testing.T) {
 // exactly one of each — regardless of the embedded file's line endings.
 func TestRenderSectionFullSingleMarkers(t *testing.T) {
 	section := RenderSection(ProfileFull)
-	if got := strings.Count(section, "<!-- BEGIN BEADS INTEGRATION"); got != 1 {
+	if got := strings.Count(section, "<!-- BEGIN ISSUEGRAPH INTEGRATION"); got != 1 {
 		t.Errorf("expected exactly 1 BEGIN marker, got %d", got)
 	}
-	if got := strings.Count(section, "<!-- END BEADS INTEGRATION -->"); got != 1 {
+	if got := strings.Count(section, "<!-- END ISSUEGRAPH INTEGRATION -->"); got != 1 {
 		t.Errorf("expected exactly 1 END marker, got %d", got)
 	}
 }
 
 // TestRenderSectionFullIncludesArchPointer guards GH#3683: the rich
 // architecture blockquote in agents.md.tmpl only reaches greenfield
-// AGENTS.md files. For users running `bd init` over an existing AGENTS.md,
+// AGENTS.md files. For users running `issuegraph init` over an existing AGENTS.md,
 // ReplaceSection only swaps content between the BEGIN/END markers — so a
-// one-line architecture pointer must live inside beads-section.md too, so
+// one-line architecture pointer must live inside issuegraph-section.md too, so
 // hash-freshness re-renders propagate it on subsequent runs.
 func TestRenderSectionFullIncludesArchPointer(t *testing.T) {
 	section := RenderSection(ProfileFull)
@@ -101,7 +101,7 @@ func TestRenderSectionMinimal(t *testing.T) {
 	}
 
 	// Must start with begin marker containing profile and hash metadata
-	if !strings.HasPrefix(section, "<!-- BEGIN BEADS INTEGRATION") {
+	if !strings.HasPrefix(section, "<!-- BEGIN ISSUEGRAPH INTEGRATION") {
 		t.Error("section should start with begin marker")
 	}
 	if !strings.Contains(section, "profile:minimal") {
@@ -111,9 +111,9 @@ func TestRenderSectionMinimal(t *testing.T) {
 		t.Error("begin marker should contain hash:")
 	}
 
-	// Minimal should reference bd prime
-	if !strings.Contains(section, "bd prime") {
-		t.Error("minimal profile should reference bd prime")
+	// Minimal should reference issuegraph prime
+	if !strings.Contains(section, "issuegraph prime") {
+		t.Error("minimal profile should reference issuegraph prime")
 	}
 
 	// Minimal should NOT contain full command references
@@ -131,11 +131,11 @@ func TestCodexSectionBody(t *testing.T) {
 		t.Fatal("CodexSectionBody returned empty string")
 	}
 	for _, want := range []string{
-		"## Beads Issue Tracker",
-		"`beads` skill",
-		"bd ready",
-		"bd prime",
-		"bd remember",
+		"## IssueGraph Issue Tracker",
+		"`issuegraph` skill",
+		"issuegraph ready",
+		"issuegraph prime",
+		"issuegraph remember",
 		"refs/dolt/data",
 		"docs/core-concepts/sync-concepts.md",
 	} {
@@ -143,7 +143,7 @@ func TestCodexSectionBody(t *testing.T) {
 			t.Errorf("CodexSectionBody missing %q", want)
 		}
 	}
-	if strings.Contains(body, "BEGIN BEADS") || strings.Contains(body, "END BEADS") {
+	if strings.Contains(body, "BEGIN ISSUEGRAPH") || strings.Contains(body, "END ISSUEGRAPH") {
 		t.Error("CodexSectionBody should not include managed markers")
 	}
 }
@@ -167,16 +167,16 @@ func TestRenderSectionHashStability(t *testing.T) {
 }
 
 func TestRenderSectionFullBackcompat(t *testing.T) {
-	// Full profile should contain everything the legacy EmbeddedBeadsSection had
+	// Full profile should contain everything the legacy EmbeddedIssueGraphSection had
 	section := RenderSection(ProfileFull)
-	legacy := EmbeddedBeadsSection()
+	legacy := EmbeddedIssueGraphSection()
 
 	// Check that key content pieces from legacy are present in full
 	for _, want := range []string{
-		"bd create",
-		"bd update",
-		"bd close",
-		"bd ready",
+		"issuegraph create",
+		"issuegraph update",
+		"issuegraph close",
+		"issuegraph ready",
 		"discovered-from",
 		"Session Completion",
 	} {
@@ -198,25 +198,25 @@ func TestParseMarker(t *testing.T) {
 	}{
 		{
 			name:   "versioned format with profile and hash",
-			line:   "<!-- BEGIN BEADS INTEGRATION v:1 profile:full hash:a1b2c3d4 -->",
+			line:   "<!-- BEGIN ISSUEGRAPH INTEGRATION v:1 profile:full hash:a1b2c3d4 -->",
 			want:   SectionMeta{Version: 1, Profile: ProfileFull, Hash: "a1b2c3d4"},
 			wantOK: true,
 		},
 		{
 			name:   "versioned format minimal profile",
-			line:   "<!-- BEGIN BEADS INTEGRATION v:1 profile:minimal hash:deadbeef -->",
+			line:   "<!-- BEGIN ISSUEGRAPH INTEGRATION v:1 profile:minimal hash:deadbeef -->",
 			want:   SectionMeta{Version: 1, Profile: ProfileMinimal, Hash: "deadbeef"},
 			wantOK: true,
 		},
 		{
 			name:   "pre-version format with profile and hash",
-			line:   "<!-- BEGIN BEADS INTEGRATION profile:full hash:a1b2c3d4 -->",
+			line:   "<!-- BEGIN ISSUEGRAPH INTEGRATION profile:full hash:a1b2c3d4 -->",
 			want:   SectionMeta{Version: 0, Profile: ProfileFull, Hash: "a1b2c3d4"},
 			wantOK: true,
 		},
 		{
 			name:   "legacy format (no metadata)",
-			line:   "<!-- BEGIN BEADS INTEGRATION -->",
+			line:   "<!-- BEGIN ISSUEGRAPH INTEGRATION -->",
 			want:   SectionMeta{Version: 0, Profile: "", Hash: ""},
 			wantOK: true,
 		},
@@ -227,7 +227,7 @@ func TestParseMarker(t *testing.T) {
 		},
 		{
 			name:   "end marker (not begin)",
-			line:   "<!-- END BEADS INTEGRATION -->",
+			line:   "<!-- END ISSUEGRAPH INTEGRATION -->",
 			wantOK: false,
 		},
 		{
@@ -277,7 +277,7 @@ func TestIsStaleFreshness(t *testing.T) {
 	}
 
 	// Legacy marker (no hash) should be considered stale
-	legacyMeta := ParseMarker("<!-- BEGIN BEADS INTEGRATION -->")
+	legacyMeta := ParseMarker("<!-- BEGIN ISSUEGRAPH INTEGRATION -->")
 	if legacyMeta == nil {
 		t.Fatal("ParseMarker returned nil for legacy marker")
 	}
@@ -295,7 +295,7 @@ func TestReplaceSectionNoMarkers(t *testing.T) {
 }
 
 func TestReplaceSectionMissingEnd(t *testing.T) {
-	content := "# Header\n<!-- BEGIN BEADS INTEGRATION -->\nContent without end\n"
+	content := "# Header\n<!-- BEGIN ISSUEGRAPH INTEGRATION -->\nContent without end\n"
 	_, _, err := ReplaceSection(content, ProfileFull)
 	if !errors.Is(err, ErrMalformedMarkers) {
 		t.Fatalf("expected ErrMalformedMarkers, got %v", err)
@@ -303,7 +303,7 @@ func TestReplaceSectionMissingEnd(t *testing.T) {
 }
 
 func TestReplaceSectionReversedMarkers(t *testing.T) {
-	content := "<!-- END BEADS INTEGRATION -->\nContent\n<!-- BEGIN BEADS INTEGRATION -->\n"
+	content := "<!-- END ISSUEGRAPH INTEGRATION -->\nContent\n<!-- BEGIN ISSUEGRAPH INTEGRATION -->\n"
 	_, _, err := ReplaceSection(content, ProfileFull)
 	if !errors.Is(err, ErrMalformedMarkers) {
 		t.Fatalf("expected ErrMalformedMarkers, got %v", err)
@@ -328,7 +328,7 @@ func TestReplaceSectionIdempotent(t *testing.T) {
 }
 
 func TestReplaceSectionUpgradesLegacy(t *testing.T) {
-	content := "# Header\n\n<!-- BEGIN BEADS INTEGRATION -->\nOld content\n<!-- END BEADS INTEGRATION -->\n\n# Footer\n"
+	content := "# Header\n\n<!-- BEGIN ISSUEGRAPH INTEGRATION -->\nOld content\n<!-- END ISSUEGRAPH INTEGRATION -->\n\n# Footer\n"
 
 	result, changed, err := ReplaceSection(content, ProfileFull)
 	if err != nil {
@@ -352,7 +352,7 @@ func TestReplaceSectionUpgradesLegacy(t *testing.T) {
 }
 
 func TestReplaceSectionUpgradesStaleHash(t *testing.T) {
-	content := "# Header\n\n<!-- BEGIN BEADS INTEGRATION profile:full hash:00000000 -->\nStale\n<!-- END BEADS INTEGRATION -->\n\n# Footer\n"
+	content := "# Header\n\n<!-- BEGIN ISSUEGRAPH INTEGRATION profile:full hash:00000000 -->\nStale\n<!-- END ISSUEGRAPH INTEGRATION -->\n\n# Footer\n"
 
 	result, changed, err := ReplaceSection(content, ProfileFull)
 	if err != nil {
@@ -371,7 +371,7 @@ func TestReplaceSectionUpgradesStaleHash(t *testing.T) {
 
 func TestReplaceSectionMultipleTrailingNewlines(t *testing.T) {
 	// END marker followed by multiple newlines — only one should be consumed
-	content := "# Header\n<!-- BEGIN BEADS INTEGRATION -->\nOld\n<!-- END BEADS INTEGRATION -->\n\n\n# Footer\n"
+	content := "# Header\n<!-- BEGIN ISSUEGRAPH INTEGRATION -->\nOld\n<!-- END ISSUEGRAPH INTEGRATION -->\n\n\n# Footer\n"
 
 	result, changed, err := ReplaceSection(content, ProfileFull)
 	if err != nil {
@@ -422,8 +422,8 @@ func TestRenderSectionWithOptsNoRemoteFull(t *testing.T) {
 	opts := RenderOpts{HasRemote: false}
 	section := RenderSectionWithOpts(ProfileFull, opts)
 
-	if strings.Contains(section, "bd dolt push") {
-		t.Error("full profile with HasRemote=false should not contain 'bd dolt push'")
+	if strings.Contains(section, "issuegraph dolt push") {
+		t.Error("full profile with HasRemote=false should not contain 'issuegraph dolt push'")
 	}
 
 	// Should still contain other session completion content
@@ -439,8 +439,8 @@ func TestRenderSectionWithOptsNoRemoteMinimal(t *testing.T) {
 	opts := RenderOpts{HasRemote: false}
 	section := RenderSectionWithOpts(ProfileMinimal, opts)
 
-	if strings.Contains(section, "bd dolt push") {
-		t.Error("minimal profile with HasRemote=false should not contain 'bd dolt push'")
+	if strings.Contains(section, "issuegraph dolt push") {
+		t.Error("minimal profile with HasRemote=false should not contain 'issuegraph dolt push'")
 	}
 
 	if !strings.Contains(section, "git push") {
@@ -452,8 +452,8 @@ func TestRenderSectionWithOptsHasRemoteIncludesDoltPush(t *testing.T) {
 	opts := RenderOpts{HasRemote: true}
 	for _, profile := range []Profile{ProfileFull, ProfileMinimal} {
 		section := RenderSectionWithOpts(profile, opts)
-		if !strings.Contains(section, "bd dolt push") {
-			t.Errorf("%s profile with HasRemote=true should contain 'bd dolt push'", profile)
+		if !strings.Contains(section, "issuegraph dolt push") {
+			t.Errorf("%s profile with HasRemote=true should contain 'issuegraph dolt push'", profile)
 		}
 	}
 }
@@ -462,8 +462,8 @@ func TestRenderSectionBackwardCompatIncludesDoltPush(t *testing.T) {
 	// RenderSection (no opts) should default to HasRemote=true for backward compat
 	for _, profile := range []Profile{ProfileFull, ProfileMinimal} {
 		section := RenderSection(profile)
-		if !strings.Contains(section, "bd dolt push") {
-			t.Errorf("RenderSection(%s) should include 'bd dolt push' (backward compat)", profile)
+		if !strings.Contains(section, "issuegraph dolt push") {
+			t.Errorf("RenderSection(%s) should include 'issuegraph dolt push' (backward compat)", profile)
 		}
 	}
 }
@@ -515,7 +515,7 @@ func TestReplaceSectionWithOptsDetectsRemoteChange(t *testing.T) {
 	if !changed {
 		t.Error("should detect stale hash when remote state changes")
 	}
-	if strings.Contains(result, "bd dolt push") {
-		t.Error("replaced content should not contain 'bd dolt push' with HasRemote=false")
+	if strings.Contains(result, "issuegraph dolt push") {
+		t.Error("replaced content should not contain 'issuegraph dolt push' with HasRemote=false")
 	}
 }

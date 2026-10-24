@@ -76,9 +76,9 @@ func CheckCLIVersionLocalOnly(cliVersion string) DoctorCheck {
 }
 
 // installScriptCommand is the default upgrade/install command for non-Homebrew installations.
-const installScriptCommand = "curl -fsSL https://raw.githubusercontent.com/steveyegge/beads/main/scripts/install.sh | bash"
+const installScriptCommand = "curl -fsSL https://raw.githubusercontent.com/borg0ai/issuegraph/main/scripts/install.sh | bash"
 
-// getUpgradeCommand returns the appropriate upgrade command based on how bd was installed.
+// getUpgradeCommand returns the appropriate upgrade command based on how issuegraph was installed.
 // Detects Homebrew on macOS/Linux, and falls back to the install script on all platforms.
 func getUpgradeCommand() string {
 	execPath, err := os.Executable()
@@ -96,47 +96,47 @@ func getUpgradeCommand() string {
 }
 
 // upgradeCommandForPath returns the upgrade command for a given executable path.
-// The homebrew-core formula is named "beads" (Formula/b/beads.rb), so the correct
-// command is "brew upgrade beads" — even for the legacy tap that used "bd.rb".
+// The homebrew-core formula is named "issuegraph" (Formula/b/issuegraph.rb), so the correct
+// command is "brew upgrade issuegraph" — even for the legacy tap that used "issuegraph.rb".
 func upgradeCommandForPath(execPath string) string {
 	lowerPath := strings.ToLower(execPath)
 
 	// Check for Homebrew Cellar path (macOS/Linux)
-	// Matches both homebrew-core formula "beads" and legacy tap formula "bd"
-	if strings.Contains(lowerPath, "/cellar/beads/") ||
-		strings.Contains(lowerPath, "/cellar/bd/") {
-		return "brew upgrade beads"
+	// Matches both homebrew-core formula "issuegraph" and legacy tap formula "issuegraph"
+	if strings.Contains(lowerPath, "/cellar/issuegraph/") ||
+		strings.Contains(lowerPath, "/cellar/issuegraph/") {
+		return "brew upgrade issuegraph"
 	}
 
 	// Default to install script (works on all platforms including Windows via WSL/Git Bash)
 	return installScriptCommand
 }
 
-// localVersionFile is the gitignored file that stores the last bd version used locally.
+// localVersionFile is the gitignored file that stores the last issuegraph version used locally.
 // Must match the constant in version_tracking.go.
 const localVersionFile = ".local_version"
 
 // CheckMetadataVersionTracking checks if version tracking is properly configured.
-// Version tracking uses .local_version file (gitignored) to track the last bd version used.
+// Version tracking uses .local_version file (gitignored) to track the last issuegraph version used.
 //
 // GH#662: This was updated to check .local_version instead of metadata.json:LastBdVersion,
 // which is now deprecated.
 func CheckMetadataVersionTracking(path string, currentVersion string) DoctorCheck {
-	beadsDir := ResolveBeadsDirForRepo(path)
-	localVersionPath := filepath.Join(beadsDir, localVersionFile)
+	issuegraphDir := ResolveIssueGraphDirForRepo(path)
+	localVersionPath := filepath.Join(issuegraphDir, localVersionFile)
 
 	// Read .local_version file
-	// #nosec G304 - path is constructed from controlled beadsDir + constant
+	// #nosec G304 - path is constructed from controlled issuegraphDir + constant
 	data, err := os.ReadFile(localVersionPath)
 	if err != nil {
 		if os.IsNotExist(err) {
-			// File doesn't exist yet - will be created on next bd command
+			// File doesn't exist yet - will be created on next issuegraph command
 			return DoctorCheck{
 				Name:    "Version Tracking",
 				Status:  StatusWarning,
 				Message: "Version tracking not initialized",
-				Detail:  "The .local_version file will be created on next bd command",
-				Fix:     "Run any bd command (e.g., 'bd ready') to initialize version tracking",
+				Detail:  "The .local_version file will be created on next issuegraph command",
+				Fix:     "Run any issuegraph command (e.g., 'issuegraph ready') to initialize version tracking",
 			}
 		}
 		// Other error reading file
@@ -145,7 +145,7 @@ func CheckMetadataVersionTracking(path string, currentVersion string) DoctorChec
 			Status:  StatusError,
 			Message: "Unable to read .local_version file",
 			Detail:  err.Error(),
-			Fix:     "Check file permissions on .beads/.local_version",
+			Fix:     "Check file permissions on .issuegraph/.local_version",
 		}
 	}
 
@@ -158,7 +158,7 @@ func CheckMetadataVersionTracking(path string, currentVersion string) DoctorChec
 			Status:  StatusWarning,
 			Message: ".local_version file is empty",
 			Detail:  "Version tracking will be initialized on next command",
-			Fix:     "Run any bd command to initialize version tracking",
+			Fix:     "Run any issuegraph command to initialize version tracking",
 		}
 	}
 
@@ -183,7 +183,7 @@ func CheckMetadataVersionTracking(path string, currentVersion string) DoctorChec
 			Status:  StatusWarning,
 			Message: fmt.Sprintf("Invalid version format in .local_version: %q", lastVersion),
 			Detail:  "Expected semver format like '0.24.2'",
-			Fix:     "Run any bd command to reset version tracking to current version",
+			Fix:     "Run any issuegraph command to reset version tracking to current version",
 		}
 	}
 
@@ -209,7 +209,7 @@ func CheckMetadataVersionTracking(path string, currentVersion string) DoctorChec
 				Status:  StatusWarning,
 				Message: fmt.Sprintf("Last recorded version is very old: %s (current: %s)", lastVersion, currentVersion),
 				Detail:  "You may have missed important upgrade notifications",
-				Fix:     "Run 'bd upgrade review' to see recent changes",
+				Fix:     "Run 'issuegraph upgrade review' to see recent changes",
 			}
 		}
 
@@ -227,7 +227,7 @@ func CheckMetadataVersionTracking(path string, currentVersion string) DoctorChec
 
 // fetchLatestGitHubRelease fetches the latest release version from GitHub API.
 func fetchLatestGitHubRelease() (string, error) {
-	url := "https://api.github.com/repos/steveyegge/beads/releases/latest"
+	url := "https://api.github.com/repos/borg0ai/issuegraph/releases/latest"
 
 	client := &http.Client{
 		Timeout: 5 * time.Second,
@@ -239,7 +239,7 @@ func fetchLatestGitHubRelease() (string, error) {
 	}
 
 	// Set User-Agent as required by GitHub API
-	req.Header.Set("User-Agent", "beads-cli-doctor")
+	req.Header.Set("User-Agent", "issuegraph-cli-doctor")
 
 	resp, err := client.Do(req)
 	if err != nil {
@@ -307,7 +307,7 @@ func CompareVersions(v1, v2 string) int {
 }
 
 // IsBrewHeadVersion recognizes the version Homebrew stamps into --HEAD
-// installs of the core beads formula: HEAD-<shortsha>, a bare HEAD when the
+// installs of the core issuegraph formula: HEAD-<shortsha>, a bare HEAD when the
 // head spec resolves no commit, and either shape carrying Homebrew's
 // _<revision> suffix. Such a stamp is a healthy current-era version marker,
 // not a malformed one — the binary rewrites it identically on every run, so

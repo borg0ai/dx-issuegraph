@@ -20,23 +20,23 @@ func issueRowExists(t *testing.T, db *sql.DB, id string) bool {
 	return n > 0
 }
 
-func bdProxiedPrune(t *testing.T, bd, dir string, args ...string) string {
+func issuegraphProxiedPrune(t *testing.T, issuegraph, dir string, args ...string) string {
 	t.Helper()
 	fullArgs := append([]string{"prune"}, args...)
-	stdout, stderr, err := bdProxiedRunBuffers(t, bd, dir, fullArgs...)
+	stdout, stderr, err := issuegraphProxiedRunBuffers(t, issuegraph, dir, fullArgs...)
 	if err != nil {
-		t.Fatalf("bd prune %s failed: %v\nstdout:\n%s\nstderr:\n%s",
+		t.Fatalf("issuegraph prune %s failed: %v\nstdout:\n%s\nstderr:\n%s",
 			strings.Join(args, " "), err, stdout, stderr)
 	}
 	return stdout
 }
 
-func bdProxiedPruneFail(t *testing.T, bd, dir string, args ...string) string {
+func issuegraphProxiedPruneFail(t *testing.T, issuegraph, dir string, args ...string) string {
 	t.Helper()
 	fullArgs := append([]string{"prune"}, args...)
-	stdout, stderr, err := bdProxiedRunBuffers(t, bd, dir, fullArgs...)
+	stdout, stderr, err := issuegraphProxiedRunBuffers(t, issuegraph, dir, fullArgs...)
 	if err == nil {
-		t.Fatalf("expected bd prune %s to fail, got:\nstdout:\n%s\nstderr:\n%s",
+		t.Fatalf("expected issuegraph prune %s to fail, got:\nstdout:\n%s\nstderr:\n%s",
 			strings.Join(args, " "), stdout, stderr)
 	}
 	return stdout + stderr
@@ -45,12 +45,12 @@ func bdProxiedPruneFail(t *testing.T, bd, dir string, args ...string) string {
 func TestProxiedServerPrune(t *testing.T) {
 	requireSharedProxiedServer(t)
 	t.Parallel()
-	bd := buildEmbeddedBD(t)
+	issuegraph := buildEmbeddedBD(t)
 
 	t.Run("requires_filter", func(t *testing.T) {
 		t.Parallel()
-		p := newSharedProxiedProject(t, bd, "prf")
-		out := bdProxiedPruneFail(t, bd, p.dir)
+		p := newSharedProxiedProject(t, issuegraph, "prf")
+		out := issuegraphProxiedPruneFail(t, issuegraph, p.dir)
 		if !strings.Contains(out, "requires --older-than or --pattern") {
 			t.Errorf("expected requires-filter error, got: %s", out)
 		}
@@ -58,10 +58,10 @@ func TestProxiedServerPrune(t *testing.T) {
 
 	t.Run("dry_run_deletes_nothing", func(t *testing.T) {
 		t.Parallel()
-		p := newSharedProxiedProject(t, bd, "pdr")
-		issue := bdProxiedCreate(t, bd, p.dir, "Prune me")
-		bdProxiedClose(t, bd, p.dir, issue.ID)
-		out := bdProxiedPrune(t, bd, p.dir, "--pattern", "*", "--dry-run")
+		p := newSharedProxiedProject(t, issuegraph, "pdr")
+		issue := issuegraphProxiedCreate(t, issuegraph, p.dir, "Prune me")
+		issuegraphProxiedClose(t, issuegraph, p.dir, issue.ID)
+		out := issuegraphProxiedPrune(t, issuegraph, p.dir, "--pattern", "*", "--dry-run")
 		if !strings.Contains(out, "Would prune") {
 			t.Errorf("dry-run output missing 'Would prune': %s", out)
 		}
@@ -73,78 +73,78 @@ func TestProxiedServerPrune(t *testing.T) {
 
 	t.Run("force_deletes_closed", func(t *testing.T) {
 		t.Parallel()
-		p := newSharedProxiedProject(t, bd, "pfd")
-		issue := bdProxiedCreate(t, bd, p.dir, "Delete me")
-		bdProxiedClose(t, bd, p.dir, issue.ID)
-		bdProxiedPrune(t, bd, p.dir, "--pattern", "*", "--force")
+		p := newSharedProxiedProject(t, issuegraph, "pfd")
+		issue := issuegraphProxiedCreate(t, issuegraph, p.dir, "Delete me")
+		issuegraphProxiedClose(t, issuegraph, p.dir, issue.ID)
+		issuegraphProxiedPrune(t, issuegraph, p.dir, "--pattern", "*", "--force")
 		db := openProxiedDB(t, p)
 		if issueRowExists(t, db, issue.ID) {
-			t.Errorf("closed bead %s should be pruned", issue.ID)
+			t.Errorf("closed issue %s should be pruned", issue.ID)
 		}
 	})
 
 	t.Run("skips_open", func(t *testing.T) {
 		t.Parallel()
-		p := newSharedProxiedProject(t, bd, "pso")
-		open := bdProxiedCreate(t, bd, p.dir, "Still open")
-		closed := bdProxiedCreate(t, bd, p.dir, "Now closed")
-		bdProxiedClose(t, bd, p.dir, closed.ID)
-		bdProxiedPrune(t, bd, p.dir, "--pattern", "*", "--force")
+		p := newSharedProxiedProject(t, issuegraph, "pso")
+		open := issuegraphProxiedCreate(t, issuegraph, p.dir, "Still open")
+		closed := issuegraphProxiedCreate(t, issuegraph, p.dir, "Now closed")
+		issuegraphProxiedClose(t, issuegraph, p.dir, closed.ID)
+		issuegraphProxiedPrune(t, issuegraph, p.dir, "--pattern", "*", "--force")
 		db := openProxiedDB(t, p)
 		if !issueRowExists(t, db, open.ID) {
-			t.Errorf("open bead %s must survive prune", open.ID)
+			t.Errorf("open issue %s must survive prune", open.ID)
 		}
 		if issueRowExists(t, db, closed.ID) {
-			t.Errorf("closed bead %s should be pruned", closed.ID)
+			t.Errorf("closed issue %s should be pruned", closed.ID)
 		}
 	})
 
 	t.Run("reference_aware_skip", func(t *testing.T) {
 		t.Parallel()
-		p := newSharedProxiedProject(t, bd, "pras")
-		referenced := bdProxiedCreate(t, bd, p.dir, "Cited decision")
-		_ = bdProxiedCreate(t, bd, p.dir, "Open citer",
+		p := newSharedProxiedProject(t, issuegraph, "pras")
+		referenced := issuegraphProxiedCreate(t, issuegraph, p.dir, "Cited decision")
+		_ = issuegraphProxiedCreate(t, issuegraph, p.dir, "Open citer",
 			"--description", "per "+referenced.ID+" we decided X")
-		bdProxiedClose(t, bd, p.dir, referenced.ID)
+		issuegraphProxiedClose(t, issuegraph, p.dir, referenced.ID)
 
-		out := bdProxiedPrune(t, bd, p.dir, "--pattern", "*", "--force")
-		if !strings.Contains(out, "protected by open-bead references") {
+		out := issuegraphProxiedPrune(t, issuegraph, p.dir, "--pattern", "*", "--force")
+		if !strings.Contains(out, "protected by open-issue references") {
 			t.Errorf("expected referenced-protection note, got: %s", out)
 		}
 		db := openProxiedDB(t, p)
 		if !issueRowExists(t, db, referenced.ID) {
-			t.Errorf("referenced closed bead %s must be protected from prune", referenced.ID)
+			t.Errorf("referenced closed issue %s must be protected from prune", referenced.ID)
 		}
 	})
 
 	t.Run("ignore_references_deletes_referenced", func(t *testing.T) {
 		t.Parallel()
-		p := newSharedProxiedProject(t, bd, "pir")
-		referenced := bdProxiedCreate(t, bd, p.dir, "Cited decision")
-		_ = bdProxiedCreate(t, bd, p.dir, "Open citer",
+		p := newSharedProxiedProject(t, issuegraph, "pir")
+		referenced := issuegraphProxiedCreate(t, issuegraph, p.dir, "Cited decision")
+		_ = issuegraphProxiedCreate(t, issuegraph, p.dir, "Open citer",
 			"--description", "per "+referenced.ID+" we decided X")
-		bdProxiedClose(t, bd, p.dir, referenced.ID)
+		issuegraphProxiedClose(t, issuegraph, p.dir, referenced.ID)
 
-		bdProxiedPrune(t, bd, p.dir, "--pattern", "*", "--force", "--ignore-references")
+		issuegraphProxiedPrune(t, issuegraph, p.dir, "--pattern", "*", "--force", "--ignore-references")
 		db := openProxiedDB(t, p)
 		if issueRowExists(t, db, referenced.ID) {
-			t.Errorf("--ignore-references should delete referenced bead %s", referenced.ID)
+			t.Errorf("--ignore-references should delete referenced issue %s", referenced.ID)
 		}
 	})
 
 	t.Run("json_output", func(t *testing.T) {
 		t.Parallel()
-		p := newSharedProxiedProject(t, bd, "pjo")
-		a := bdProxiedCreate(t, bd, p.dir, "JSON prune A")
-		b := bdProxiedCreate(t, bd, p.dir, "JSON prune B")
-		bdProxiedClose(t, bd, p.dir, a.ID, b.ID)
-		referenced := bdProxiedCreate(t, bd, p.dir, "JSON cited decision")
-		bdProxiedCreate(t, bd, p.dir, "JSON open citing bead",
+		p := newSharedProxiedProject(t, issuegraph, "pjo")
+		a := issuegraphProxiedCreate(t, issuegraph, p.dir, "JSON prune A")
+		b := issuegraphProxiedCreate(t, issuegraph, p.dir, "JSON prune B")
+		issuegraphProxiedClose(t, issuegraph, p.dir, a.ID, b.ID)
+		referenced := issuegraphProxiedCreate(t, issuegraph, p.dir, "JSON cited decision")
+		issuegraphProxiedCreate(t, issuegraph, p.dir, "JSON open citing issue",
 			"--description", "per "+referenced.ID+" we decided X")
-		bdProxiedClose(t, bd, p.dir, referenced.ID)
-		stdout, stderr, err := bdProxiedRunBuffers(t, bd, p.dir, "prune", "--json", "--pattern", "*", "--force")
+		issuegraphProxiedClose(t, issuegraph, p.dir, referenced.ID)
+		stdout, stderr, err := issuegraphProxiedRunBuffers(t, issuegraph, p.dir, "prune", "--json", "--pattern", "*", "--force")
 		if err != nil {
-			t.Fatalf("bd prune --json failed: %v\nstdout:\n%s\nstderr:\n%s", err, stdout, stderr)
+			t.Fatalf("issuegraph prune --json failed: %v\nstdout:\n%s\nstderr:\n%s", err, stdout, stderr)
 		}
 		start := strings.Index(stdout, "{")
 		if start < 0 {
@@ -168,23 +168,23 @@ func TestProxiedServerPrune(t *testing.T) {
 
 	t.Run("commits_deletion", func(t *testing.T) {
 		t.Parallel()
-		p := newSharedProxiedProject(t, bd, "pcd")
-		issue := bdProxiedCreate(t, bd, p.dir, "Commit prune")
-		bdProxiedClose(t, bd, p.dir, issue.ID)
+		p := newSharedProxiedProject(t, issuegraph, "pcd")
+		issue := issuegraphProxiedCreate(t, issuegraph, p.dir, "Commit prune")
+		issuegraphProxiedClose(t, issuegraph, p.dir, issue.ID)
 		db := openProxiedDB(t, p)
 		before := readDoltHead(t, db)
-		bdProxiedPrune(t, bd, p.dir, "--pattern", "*", "--force")
+		issuegraphProxiedPrune(t, issuegraph, p.dir, "--pattern", "*", "--force")
 		if got := readDoltLogCountSince(t, db, before); got < 1 {
 			t.Errorf("prune should create a dolt commit, got %d new commits", got)
 		}
 		// The label is the ROLE's, not this command's: one sweep, one entry,
 		// naming the operation and the tier it cleared. It used to read
-		// "bd: prune N bead(s)" here and "bd: delete N issue(s)" on the direct
+		// "issuegraph: prune N issue(s)" here and "issuegraph: delete N issue(s)" on the direct
 		// route, which named neither the command nor the tier — the two front
 		// doors now write the same sentence, and so does an HTTP sweep, where
-		// there is no `bd prune` to name.
+		// there is no `issuegraph prune` to name.
 		msg := readDoltLogTopMessage(t, db)
-		if !strings.HasPrefix(msg, "bd: sweep ") || !strings.Contains(msg, "durable") {
+		if !strings.HasPrefix(msg, "issuegraph: sweep ") || !strings.Contains(msg, "durable") {
 			t.Errorf("dolt commit message should name the sweep and its tier, got: %q", msg)
 		}
 	})

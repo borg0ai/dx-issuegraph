@@ -24,8 +24,8 @@ Detailed step-by-step workflows for common issuegraph usage patterns with checkl
 ## Session Start Workflow {#session-start}
 
 **issuegraph is available when**:
-- Project has `.beads/` directory (project-local), OR
-- `~/.beads/` exists (global fallback for any directory)
+- Project has `.issuegraph/` directory (project-local), OR
+- `~/.issuegraph/` exists (global fallback for any directory)
 
 **Automatic checklist at session start:**
 
@@ -33,14 +33,14 @@ Detailed step-by-step workflows for common issuegraph usage patterns with checkl
 Session Start (when issuegraph is available):
 - [ ] Run issuegraph ready --json
 - [ ] Report: "X items ready to work on: [summary]"
-- [ ] If using global ~/.beads, note this in report
+- [ ] If using global ~/.issuegraph, note this in report
 - [ ] If none ready, check issuegraph blocked --json
 - [ ] Suggest next action based on findings
 ```
 
 **Pattern**: Always run `issuegraph ready` when starting work where issuegraph is available. Report status immediately to establish shared context.
 
-**Database selection**: issuegraph auto-discovers which database to use (project-local `.beads/` takes precedence over global `~/.beads/`).
+**Database selection**: issuegraph auto-discovers which database to use (project-local `.issuegraph/` takes precedence over global `~/.issuegraph/`).
 
 ---
 
@@ -527,7 +527,7 @@ Research or investigation work:
 ### Starting Any Work Session
 
 ```
-- [ ] Check for .beads/ directory
+- [ ] Check for .issuegraph/ directory
 - [ ] If exists: issuegraph ready
 - [ ] Report status to user
 - [ ] Get user input on what to work on

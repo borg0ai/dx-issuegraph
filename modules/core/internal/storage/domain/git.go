@@ -49,8 +49,8 @@ type GitUseCase interface {
 	OriginRemoteURL(ctx context.Context) (string, error)
 	DetectFork(ctx context.Context) (isFork bool, upstreamURL string, err error)
 
-	BeadsRole(ctx context.Context) (role string, hasRole bool, err error)
-	SetBeadsRole(ctx context.Context, role string) error
+	IssueGraphRole(ctx context.Context) (role string, hasRole bool, err error)
+	SetIssueGraphRole(ctx context.Context, role string) error
 
 	HasAnyRemotes(ctx context.Context) bool
 	HasUpstream(ctx context.Context) bool
@@ -64,7 +64,7 @@ type EnsureGitRepoResult struct {
 }
 
 type CommitInitArtifactsParams struct {
-	BeadsDir      string
+	IssueGraphDir string
 	OptionalPaths []string
 	Message       string
 	NoVerify      bool
@@ -76,7 +76,7 @@ type CommitInitArtifactsResult struct {
 	DidCommit   bool
 }
 
-const beadsRoleConfigKey = "beads.role"
+const issuegraphRoleConfigKey = "issuegraph.role"
 
 func NewGitUseCase(workDir string, repo GitRepository) GitUseCase {
 	return &gitUseCaseImpl{workDir: workDir, repo: repo}
@@ -148,15 +148,15 @@ func (u *gitUseCaseImpl) DetectFork(ctx context.Context) (bool, string, error) {
 	return true, url, nil
 }
 
-func (u *gitUseCaseImpl) BeadsRole(ctx context.Context) (string, bool, error) {
-	return u.repo.GetConfig(ctx, beadsRoleConfigKey)
+func (u *gitUseCaseImpl) IssueGraphRole(ctx context.Context) (string, bool, error) {
+	return u.repo.GetConfig(ctx, issuegraphRoleConfigKey)
 }
 
-func (u *gitUseCaseImpl) SetBeadsRole(ctx context.Context, role string) error {
+func (u *gitUseCaseImpl) SetIssueGraphRole(ctx context.Context, role string) error {
 	if role == "" {
-		return fmt.Errorf("SetBeadsRole: role must not be empty")
+		return fmt.Errorf("SetIssueGraphRole: role must not be empty")
 	}
-	return u.repo.SetConfig(ctx, beadsRoleConfigKey, role)
+	return u.repo.SetConfig(ctx, issuegraphRoleConfigKey, role)
 }
 
 func (u *gitUseCaseImpl) HasAnyRemotes(ctx context.Context) bool {
@@ -180,14 +180,14 @@ func (u *gitUseCaseImpl) HasUpstream(ctx context.Context) bool {
 }
 
 func (u *gitUseCaseImpl) CommitInitArtifacts(ctx context.Context, params CommitInitArtifactsParams) (CommitInitArtifactsResult, error) {
-	if params.BeadsDir == "" {
-		return CommitInitArtifactsResult{}, fmt.Errorf("CommitInitArtifacts: BeadsDir must not be empty")
+	if params.IssueGraphDir == "" {
+		return CommitInitArtifactsResult{}, fmt.Errorf("CommitInitArtifacts: IssueGraphDir must not be empty")
 	}
 	if params.Message == "" {
 		return CommitInitArtifactsResult{}, fmt.Errorf("CommitInitArtifacts: Message must not be empty")
 	}
 
-	paths := []string{params.BeadsDir}
+	paths := []string{params.IssueGraphDir}
 	for _, p := range params.OptionalPaths {
 		if p == "" {
 			continue

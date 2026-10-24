@@ -6,15 +6,15 @@ import (
 	"strings"
 	"testing"
 
+	"github.com/borg0ai/dx-issuegraph/internal/types"
+	"github.com/borg0ai/dx-issuegraph/issueops"
 	"github.com/spf13/cobra"
 	"github.com/spf13/pflag"
-	"github.com/steveyegge/beads/internal/types"
-	"github.com/steveyegge/beads/issueops"
 )
 
 // newListFlagsCommand clones listCmd's flag definitions onto a fresh command,
 // for newReadyFlagsCommand's reason: re-declaring a default here would be a
-// second place for `bd list` to drift from itself.
+// second place for `issuegraph list` to drift from itself.
 func newListFlagsCommand(t *testing.T, args ...string) *cobra.Command {
 	t.Helper()
 	cmd := &cobra.Command{Use: "list"}
@@ -64,7 +64,7 @@ func TestBriefFlagIsRegisteredOnBothCommands(t *testing.T) {
 }
 
 // TestListBriefReachesTheRequest pins the hop from the flag onto
-// issueops.ListRequest. Both `bd list` routes hand that request to
+// issueops.ListRequest. Both `issuegraph list` routes hand that request to
 // issueops.Reader.List verbatim (list.go and list_proxied_server.go), so this
 // one assignment is what reaches them; deleting it leaves the storage suite
 // green and the flag inert, which is the failure mode #5546 is about.
@@ -91,7 +91,7 @@ func TestListBriefReachesTheRequest(t *testing.T) {
 }
 
 // runGatherListInput captures both streams around gatherListInput, the way
-// runGatherReadyInput does for `bd ready`: these usage errors are printed by
+// runGatherReadyInput does for `issuegraph ready`: these usage errors are printed by
 // HandleError rather than returned as text, so a test that only inspects the
 // error cannot tell WHICH conflict fired.
 func runGatherListInput(t *testing.T, cmd *cobra.Command) (listInput, error, string) {
@@ -133,9 +133,9 @@ func runGatherListInput(t *testing.T, cmd *cobra.Command) (listInput, error, str
 	return in, gatherErr, shown
 }
 
-// TestListBriefIsRefusedWhereItCannotBeHonored is the `bd list` half of the
+// TestListBriefIsRefusedWhereItCannotBeHonored is the `issuegraph list` half of the
 // same table. Its page routes all reach issueops.Reader.List, whose query reads
-// types.IssueFilter.Lite, so unlike `bd ready` the flag works in text mode too
+// types.IssueFilter.Lite, so unlike `issuegraph ready` the flag works in text mode too
 // and is not gated on --json. The three below leave that query:
 //
 //	--watch re-queries through loadWatchedIssues, whose --ready arm calls the
@@ -218,7 +218,7 @@ func TestListBriefIsAcceptedOnThePageRoutes(t *testing.T) {
 	}
 }
 
-// TestReadyBriefReachesTheFilter pins the hop for `bd ready`, which does NOT
+// TestReadyBriefReachesTheFilter pins the hop for `issuegraph ready`, which does NOT
 // go through issueops.Reader on either route: the direct route calls
 // GetReadyWorkWithCounts(ctx, in.filter) and the proxied one calls the same
 // through the unit of work. The filter is therefore the thing that has to
@@ -258,7 +258,7 @@ func TestReadyBriefReachesTheFilter(t *testing.T) {
 // that would otherwise take the flag and ignore it.
 //
 // types.WorkFilter.Lite reaches the driver through one query, the counts
-// mega-query behind GetReadyWorkWithCounts, and `bd ready` runs that query for
+// mega-query behind GetReadyWorkWithCounts, and `issuegraph ready` runs that query for
 // --json alone: the text routes call the bare GetReadyWork and the three
 // specialized modes answer with shapes of their own. --claim is refused for a
 // stronger reason, that no route can serve it at all
@@ -305,7 +305,7 @@ func TestReadyBriefIsRefusedWhereItCannotBeHonored(t *testing.T) {
 // --gated, --mol and --explain are dispatched by RunE BEFORE gatherReadyInput
 // runs, so the gatherer's refusals guard the proxied route only. When those
 // three checks were copies written into each dispatch branch, deleting one left
-// `bd ready --gated --brief` silently ignoring the flag on the direct route
+// `issuegraph ready --gated --brief` silently ignoring the flag on the direct route
 // with the whole package still green. They are now one hoisted call to
 // briefModeConflict, and this is what fails if that call is removed.
 //
@@ -397,11 +397,11 @@ func TestReadyBriefWithJSONIsAccepted(t *testing.T) {
 
 // TestReadyRoleRequestCarriesBrief is the other side of the refusal above, and
 // the reason the refusal lives in the gatherer rather than here. This helper
-// builds the request for BOTH roles `bd ready` talks to, and the two want
+// builds the request for BOTH roles `issuegraph ready` talks to, and the two want
 // opposite things: ReadyClaimer refuses a projection, ReadyCounter needs one,
 // because the unit-of-work counter sizes the ready set by running the unbounded
 // page (uow/ready_counter.go). Clearing Brief here to appease the claim would
-// make `bd ready --brief` hydrate every heavy column of the whole ready set to
+// make `issuegraph ready --brief` hydrate every heavy column of the whole ready set to
 // fetch the total printed beside its page.
 func TestReadyRoleRequestCarriesBrief(t *testing.T) {
 	got := readyRoleRequest(readyInput{ReadyRequest: issueops.ReadyRequest{Brief: true}})

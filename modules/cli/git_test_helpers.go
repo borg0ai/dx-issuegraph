@@ -4,7 +4,7 @@ import (
 	"os"
 	"testing"
 
-	"github.com/steveyegge/beads/internal/git"
+	"github.com/borg0ai/dx-issuegraph/internal/git"
 )
 
 // runInDir changes into dir, resets git caches before/after, and executes fn.

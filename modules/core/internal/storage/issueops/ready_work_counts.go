@@ -7,8 +7,8 @@ import (
 	"fmt"
 	"sort"
 
-	"github.com/steveyegge/beads/internal/storage/sqlbuild"
-	"github.com/steveyegge/beads/internal/types"
+	"github.com/borg0ai/dx-issuegraph/internal/storage/sqlbuild"
+	"github.com/borg0ai/dx-issuegraph/internal/types"
 )
 
 // readyHydrationFor reads a ready filter's hydration opt-outs, the twin of
@@ -40,7 +40,7 @@ func GetReadyWorkWithCountsInTx(ctx context.Context, tx DBTX, filter types.WorkF
 // len(GetReadyWorkWithCountsInTx(filter with Limit=0)) — resolved inside the
 // SAME statements that select the page.
 //
-// It exists because `bd ready --limit N` used to answer its "Showing N of M"
+// It exists because `issuegraph ready --limit N` used to answer its "Showing N of M"
 // with a second, separate pass (CountReadyWorkInTx in a new transaction,
 // behind a second defer-wake sweep) that re-ran every probe and predicate the
 // page had just run. Against a remote SQL server each statement is a
@@ -299,7 +299,7 @@ func queryReadyIDPageWithTotal(ctx context.Context, tx DBTX, query string, args 
 // Statement budget: the shared probe (one statement; plus one for the
 // deferred-parent children when a future-deferred parent exists), then both
 // family counts in ONE statement of scalar subqueries, then the overlap only
-// when the probe saw an ID present in both tables. `bd ready` itself sizes a
+// when the probe saw an ID present in both tables. `issuegraph ready` itself sizes a
 // capped --json page in-band (GetReadyWorkWithCountsAndTotalInTx); this backs
 // the ReadyCounter role and the human-readable "Showing X of N".
 func CountReadyWorkInTx(ctx context.Context, tx DBTX, filter types.WorkFilter) (int, error) {

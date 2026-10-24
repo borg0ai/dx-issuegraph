@@ -14,13 +14,13 @@ func TestIsOrchestratorRoot_TrueWhenMarkersPresent(t *testing.T) {
 	if err := os.MkdirAll(filepath.Join(root, "mayor"), 0750); err != nil {
 		t.Fatal(err)
 	}
-	if err := os.MkdirAll(filepath.Join(root, ".beads"), 0750); err != nil {
+	if err := os.MkdirAll(filepath.Join(root, ".issuegraph"), 0750); err != nil {
 		t.Fatal(err)
 	}
 	if err := os.WriteFile(filepath.Join(root, "mayor", "town.json"), []byte(`{"name":"gt"}`), 0600); err != nil {
 		t.Fatal(err)
 	}
-	if err := os.WriteFile(filepath.Join(root, ".beads", "routes.jsonl"), []byte(`{"prefix":"hq-","path":"."}`+"\n"), 0600); err != nil {
+	if err := os.WriteFile(filepath.Join(root, ".issuegraph", "routes.jsonl"), []byte(`{"prefix":"hq-","path":"."}`+"\n"), 0600); err != nil {
 		t.Fatal(err)
 	}
 
@@ -46,7 +46,7 @@ func TestIsOrchestratorRoot_FalseWhenMarkersMissing(t *testing.T) {
 			if err := os.MkdirAll(filepath.Join(root, "mayor"), 0750); err != nil {
 				t.Fatal(err)
 			}
-			if err := os.MkdirAll(filepath.Join(root, ".beads"), 0750); err != nil {
+			if err := os.MkdirAll(filepath.Join(root, ".issuegraph"), 0750); err != nil {
 				t.Fatal(err)
 			}
 
@@ -56,7 +56,7 @@ func TestIsOrchestratorRoot_FalseWhenMarkersMissing(t *testing.T) {
 				}
 			}
 			if tc.setupRoute {
-				if err := os.WriteFile(filepath.Join(root, ".beads", "routes.jsonl"), []byte(`{"prefix":"hq-","path":"."}`+"\n"), 0600); err != nil {
+				if err := os.WriteFile(filepath.Join(root, ".issuegraph", "routes.jsonl"), []byte(`{"prefix":"hq-","path":"."}`+"\n"), 0600); err != nil {
 					t.Fatal(err)
 				}
 			}

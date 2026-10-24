@@ -34,7 +34,7 @@ a running server.
 What the shape is, and will stay:
 
 - **Liveness and identity answer from the process.** `GET /healthz` and
-  `GET /v0/beads/context` touch no database, which is what keeps them
+  `GET /v0/issuegraph/context` touch no database, which is what keeps them
   answerable while every connection slot is held. They alone carry
   `bypassSemaphore`.
 - **Reads are collection reads plus one detail read per resource.** Issues,
@@ -53,7 +53,7 @@ What the shape is, and will stay:
   [No auto-commit](#no-auto-commit) and [Write throughput](#write-throughput)
   state it once for all of them.
 
-`GET /v0/beads/context` reports which operations this build actually
+`GET /v0/issuegraph/context` reports which operations this build actually
 implements, in `capabilities`. That list is derived from the registered
 handlers rather than hand-maintained, so a release cut mid-slice cannot
 advertise an operation that does not work. Clients probe `capabilities` for
@@ -148,8 +148,8 @@ conflicting edge may exist only inside the batch that was rolled back.
 
 ## The cursor contract
 
-`GET /v0/beads/issues` pages with an opaque keyset cursor.
-`GET /v0/beads/ready` does not: the ready sort policies admit no keyset
+`GET /v0/issuegraph/issues` pages with an opaque keyset cursor.
+`GET /v0/issuegraph/ready` does not: the ready sort policies admit no keyset
 predicate, and the intended usage there is snapshot-and-requery.
 
 Four properties, all normative:
@@ -214,7 +214,7 @@ can be seen twice or missed. That is the same "a cursor pins a position, not a
 snapshot" caveat reached by a second route, not a new class of error —
 unchanged data never skips or repeats under either order.
 
-`GET /v0/beads/ready` still publishes a `sort` with a wider vocabulary and no
+`GET /v0/issuegraph/ready` still publishes a `sort` with a wider vocabulary and no
 cursor at all, which is consistent rather than contradictory: without a cursor
 an order is only a display decision, and nothing has to be able to resume into
 the middle of it.
@@ -228,7 +228,7 @@ server it has always been.
 
 `--auth-token-file` turns authentication on: every operation except
 `GET /healthz` then requires `Authorization: Bearer <token>`, including
-`GET /v0/beads/context`, which reports the repo root, issuegraph directory and
+`GET /v0/issuegraph/context`, which reports the repo root, issuegraph directory and
 database name. The file holds one token per line and every line is accepted;
 it is re-read while the server runs, so rotation and revocation both take
 effect within about a second and neither needs a restart. There is
@@ -354,8 +354,8 @@ Carried across from `internal/httpapi/doc.go` and `issueops/reader.go`, which
 are the source of truth for it. Stated once and in full so it can be checked
 sentence by sentence, and deliberately not strengthened here.
 
-**SHARED.** `GET /v0/beads/ready`, `GET /v0/beads/issues` and
-`GET /v0/beads/issues/{id}` go through `issueops.Reader`, and so does
+**SHARED.** `GET /v0/issuegraph/ready`, `GET /v0/issuegraph/issues` and
+`GET /v0/issuegraph/issues/{id}` go through `issueops.Reader`, and so does
 `issuegraph show --json`'s detail view on both its routes. This says nothing about the
 surface's other reads, which are on sibling roles. `issuegraph list` and
 `issuegraph ready` are *not* on the role and share instead the request types, the two
@@ -380,7 +380,7 @@ filters in order to inspect them. `issuegraph ready`'s files are among the 64, s
 listing and `--claim` are handed the filter itself and the blocked-issue views in
 those files name one directly, so it is guarded by the builder and the golden
 files and not by the linter. `GET /healthz` and
-`GET /v0/beads/context` are not issue queries and are on no role. `issuegraph ready`'s
+`GET /v0/issuegraph/context` are not issue queries and are on no role. `issuegraph ready`'s
 direct route and `issuegraph list`'s hierarchical tree run epilogues of their own. And
 none of this is a merge gate: the rules run in `make ci-pr-lint` on every pull
 request and aggregate into the `ci-gate` job, but main carries no branch
@@ -455,29 +455,29 @@ hook-firing role rather than trusting that anyone read this paragraph.
 
 The classification consults the registry BEFORE any Dolt-mode signal, because
 the store open already resolves them in that order: a registered workspace opens
-its registered store even with `BEADS_DOLT_SHARED_SERVER=1` exported. Resolving
+its registered store even with `ISSUEGRAPH_DOLT_SHARED_SERVER=1` exported. Resolving
 it the other way would build a Dolt provider over a non-Dolt store and answer
 HTTP from a different database than the CLI reaches in the same directory.
 
 That "one store" claim is pinned as a property rather than as a shape.
 `TestServeAnswersFromTheStoreTheRootCommandOpened` wires the registered
 backend so every open hands back a store whose reader answers with one issue
-named after that open, and reads the name back off `GET /v0/beads/ready`: a
+named after that open, and reads the name back off `GET /v0/issuegraph/ready`: a
 serve that opened a handle of its own answers as `store-2`. The end-to-end test
 counts opens through the registry and requires exactly one for the whole
 process. Both are needed — the count catches the leak, the name catches the
 substitution — because a second handle is otherwise invisible: same reads, same
 claims, same handshake, same clean shutdown.
 
-**THE IDENTITY HANDSHAKE IS BACKEND-AWARE.** `GET /v0/beads/context` reported
-`backend="dolt"`, `dolt_mode="embedded"`, `database="beads"` for a registered
+**THE IDENTITY HANDSHAKE IS BACKEND-AWARE.** `GET /v0/issuegraph/context` reported
+`backend="dolt"`, `dolt_mode="embedded"`, `database="issuegraph"` for a registered
 workspace — a full description of the exact topology this command refuses to
 serve, on the one endpoint automation is told to trust for a server's identity,
 while the startup line beside it named the registered backend correctly. The
 cause was in the shared projection: `GetContextInfo` hardcoded the backend to
 `dolt` and copied the Dolt fields unconditionally, and both of those DEFAULT
 rather than fail (an absent dolt_mode reads "embedded", an absent dolt_database
-reads "beads").
+reads "issuegraph").
 
 The fix is in that projection (`domain.ContextInfo.SetBackendIdentity`), not in
 `issuegraph serve`, and the placement is the point: `issuegraph context`, `issuegraph context --json`

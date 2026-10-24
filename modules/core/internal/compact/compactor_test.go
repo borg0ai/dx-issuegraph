@@ -9,9 +9,9 @@ import (
 	"testing"
 	"time"
 
-	"github.com/steveyegge/beads/internal/storage/dolt"
-	"github.com/steveyegge/beads/internal/testutil"
-	"github.com/steveyegge/beads/internal/types"
+	"github.com/borg0ai/dx-issuegraph/internal/storage/dolt"
+	"github.com/borg0ai/dx-issuegraph/internal/testutil"
+	"github.com/borg0ai/dx-issuegraph/internal/types"
 )
 
 func setupTestStorage(t *testing.T) *dolt.DoltStore {
@@ -25,7 +25,7 @@ func setupTestStorage(t *testing.T) *dolt.DoltStore {
 
 	ctx := context.Background()
 	// CRITICAL (bd-166): Set issue_prefix to prevent "database not initialized" errors
-	if err := store.SetConfig(ctx, "issue_prefix", "bd"); err != nil {
+	if err := store.SetConfig(ctx, "issue_prefix", "issuegraph"); err != nil {
 		t.Fatalf("failed to set issue_prefix: %v", err)
 	}
 	// Use 7 days minimum for Tier 1 compaction to ensure tests check eligibility properly
@@ -47,7 +47,7 @@ func createClosedIssue(t *testing.T, store *dolt.DoltStore, id string) *types.Is
 	// Get the configured prefix to determine actor
 	prefix, err := store.GetConfig(ctx, "issue_prefix")
 	if err != nil {
-		prefix = "bd" // fallback
+		prefix = "issuegraph" // fallback
 	}
 
 	now := time.Now()
@@ -179,7 +179,7 @@ func TestCompactTier1_IneligibleIssue(t *testing.T) {
 	// Get the configured prefix to determine actor
 	prefix, err := store.GetConfig(ctx, "issue_prefix")
 	if err != nil {
-		prefix = "bd" // fallback
+		prefix = "issuegraph" // fallback
 	}
 
 	now := time.Now()
@@ -295,7 +295,7 @@ func TestCompactTier1Batch_WithIneligible(t *testing.T) {
 	// Get the configured prefix to determine actor
 	prefix, err := store.GetConfig(ctx, "issue_prefix")
 	if err != nil {
-		prefix = "bd" // fallback
+		prefix = "issuegraph" // fallback
 	}
 
 	now := time.Now()
@@ -419,7 +419,7 @@ func TestBatchOperations_ErrorHandling(t *testing.T) {
 	// Get the configured prefix to determine actor
 	prefix, err := store.GetConfig(ctx, "issue_prefix")
 	if err != nil {
-		prefix = "bd" // fallback
+		prefix = "issuegraph" // fallback
 	}
 
 	closedIssue := createClosedIssue(t, store, "bd-closed")

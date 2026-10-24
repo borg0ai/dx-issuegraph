@@ -5,7 +5,7 @@ import (
 	"fmt"
 	"strings"
 
-	"github.com/steveyegge/beads/internal/storage"
+	"github.com/borg0ai/dx-issuegraph/internal/storage"
 )
 
 // storeSizeBytes returns the approximate on-disk size of the active database,
@@ -51,7 +51,7 @@ func pruneRemoteRefsForGC(ctx context.Context) (pruned, tags []string) {
 	return pruned, tags
 }
 
-// listRemoteRefsAndTags is the read-only companion for dry runs and bd gc.
+// listRemoteRefsAndTags is the read-only companion for dry runs and issuegraph gc.
 func listRemoteRefsAndTags(ctx context.Context) (refs, tags []string) {
 	pruner, ok := storage.UnwrapStore(store).(storage.RemoteRefPruner)
 	if !ok {
@@ -142,7 +142,7 @@ func suggestFullGC(before, after int64) bool {
 // printFullGCHint explains why a default pass can reclaim nothing (text mode).
 func printFullGCHint() {
 	fmt.Println("  Tip: little space was reclaimed. A default Dolt GC never revisits data an")
-	fmt.Println("  earlier GC moved to the old generation — run 'bd gc --full' to collect all")
+	fmt.Println("  earlier GC moved to the old generation — run 'issuegraph gc --full' to collect all")
 	fmt.Println("  generations.")
 }
 

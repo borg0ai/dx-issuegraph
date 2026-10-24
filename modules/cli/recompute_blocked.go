@@ -3,9 +3,9 @@ package main
 import (
 	"fmt"
 
+	"github.com/borg0ai/dx-issuegraph/internal/metrics"
+	"github.com/borg0ai/dx-issuegraph/internal/storage"
 	"github.com/spf13/cobra"
-	"github.com/steveyegge/beads/internal/metrics"
-	"github.com/steveyegge/beads/internal/storage"
 )
 
 var recomputeBlockedCmd = &cobra.Command{
@@ -18,18 +18,18 @@ is_blocked is derived from the dependency graph and maintained automatically by
 local writes and by a post-pull recompute scoped to what the merge changed. If
 that scoped recompute is skipped — a recompute that failed after its merge
 committed, or a conflicted pull resolved by hand — the flag can go stale, and a
-later pull that merges nothing will not refresh it (bd-6dnrw.37). 'bd ready'
+later pull that merges nothing will not refresh it (bd-6dnrw.37). 'issuegraph ready'
 trusts the flag, so stale values silently hide ready work or surface blocked
 work.
 
 This command runs the full recompute unconditionally and commits the result.
 It is idempotent: on a consistent database it changes nothing. Works in every
-storage mode — embedded, server, and proxied-server (unlike 'bd doctor', which
+storage mode — embedded, server, and proxied-server (unlike 'issuegraph doctor', which
 is server-mode only).
 
 Examples:
-  bd recompute-blocked          # Repair stale is_blocked flags
-  bd recompute-blocked --json   # Machine-parseable {"rows_corrected": N}`,
+  issuegraph recompute-blocked          # Repair stale is_blocked flags
+  issuegraph recompute-blocked --json   # Machine-parseable {"rows_corrected": N}`,
 	SilenceUsage:  true,
 	SilenceErrors: true,
 	RunE: func(_ *cobra.Command, _ []string) error {

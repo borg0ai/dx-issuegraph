@@ -11,7 +11,7 @@ import (
 )
 
 func TestHelpListOutputsSortedTopLevelCommands(t *testing.T) {
-	root := &cobra.Command{Use: "bd"}
+	root := &cobra.Command{Use: "issuegraph"}
 	root.AddCommand(
 		testHelpCmd("show", "Show an issue"),
 		testHelpCmd("create", "Create an issue"),
@@ -29,7 +29,7 @@ func TestHelpListOutputsSortedTopLevelCommands(t *testing.T) {
 }
 
 func TestHelpAllIncludesTopLevelAndNestedCommands(t *testing.T) {
-	root := &cobra.Command{Use: "bd"}
+	root := &cobra.Command{Use: "issuegraph"}
 	mol := testHelpCmd("mol", "Molecule commands")
 	mol.AddCommand(testHelpCmd("pour", "Start a workflow"))
 	root.AddCommand(mol)
@@ -39,11 +39,11 @@ func TestHelpAllIncludesTopLevelAndNestedCommands(t *testing.T) {
 	got := out.String()
 
 	for _, want := range []string{
-		"# bd — Complete Command Reference",
-		"[bd mol](#bd-mol)",
-		"[bd mol pour](#bd-mol-pour)",
-		"### bd mol",
-		"#### bd mol pour",
+		"# issuegraph — Complete Command Reference",
+		"[issuegraph mol](#bd-mol)",
+		"[issuegraph mol pour](#bd-mol-pour)",
+		"### issuegraph mol",
+		"#### issuegraph mol pour",
 	} {
 		if !strings.Contains(got, want) {
 			t.Fatalf("writeAllHelp() missing %q in:\n%s", want, got)
@@ -53,9 +53,9 @@ func TestHelpAllIncludesTopLevelAndNestedCommands(t *testing.T) {
 
 // The per-command doc output is generic Markdown: title/description
 // frontmatter only. Vendor-specific formats (Docusaurus, Mintlify, ...) are
-// produced by repo post-processors, never by bd itself.
+// produced by repo post-processors, never by issuegraph itself.
 func TestHelpDocWritesGenericMarkdown(t *testing.T) {
-	root := &cobra.Command{Use: "bd"}
+	root := &cobra.Command{Use: "issuegraph"}
 	show := testHelpCmd("show <id>", "Show an issue")
 	root.AddCommand(show)
 
@@ -66,11 +66,11 @@ func TestHelpDocWritesGenericMarkdown(t *testing.T) {
 	got := out.String()
 
 	for _, want := range []string{
-		"title: \"bd show\"",
+		"title: \"issuegraph show\"",
 		"description: \"Show an issue\"",
 		"<!-- AUTO-GENERATED: do not edit manually -->",
-		"Generated from `bd help --doc show`",
-		"bd show <id>",
+		"Generated from `issuegraph help --doc show`",
+		"issuegraph show <id>",
 	} {
 		if !strings.Contains(got, want) {
 			t.Fatalf("writeSingleCommandDoc() missing %q in:\n%s", want, got)
@@ -84,7 +84,7 @@ func TestHelpDocWritesGenericMarkdown(t *testing.T) {
 }
 
 func TestHelpDocNestedCommandUsesFullCommandPath(t *testing.T) {
-	root := &cobra.Command{Use: "bd"}
+	root := &cobra.Command{Use: "issuegraph"}
 	mol := testHelpCmd("mol", "Molecule commands")
 	pour := testHelpCmd("pour <formula>", "Start a workflow")
 	mol.AddCommand(pour)
@@ -97,9 +97,9 @@ func TestHelpDocNestedCommandUsesFullCommandPath(t *testing.T) {
 	got := out.String()
 
 	for _, want := range []string{
-		"title: \"bd mol pour\"",
-		"Generated from `bd help --doc mol pour`",
-		"bd mol pour <formula>",
+		"title: \"issuegraph mol pour\"",
+		"Generated from `issuegraph help --doc mol pour`",
+		"issuegraph mol pour <formula>",
 	} {
 		if !strings.Contains(got, want) {
 			t.Fatalf("writeSingleCommandDoc() missing %q in:\n%s", want, got)
@@ -108,7 +108,7 @@ func TestHelpDocNestedCommandUsesFullCommandPath(t *testing.T) {
 }
 
 func TestHelpDocInvalidCommandReturnsError(t *testing.T) {
-	root := &cobra.Command{Use: "bd"}
+	root := &cobra.Command{Use: "issuegraph"}
 	root.AddCommand(testHelpCmd("show", "Show an issue"))
 
 	var out bytes.Buffer
@@ -133,7 +133,7 @@ func testHelpCmd(use, short string) *cobra.Command {
 }
 
 func TestHelpDocEscapesAngleBracketProse(t *testing.T) {
-	root := &cobra.Command{Use: "bd"}
+	root := &cobra.Command{Use: "issuegraph"}
 	root.AddCommand(testHelpCmd("assign <id> <name>", "Assign <id> to {name}"))
 
 	var out bytes.Buffer
@@ -145,7 +145,7 @@ func TestHelpDocEscapesAngleBracketProse(t *testing.T) {
 	if !strings.Contains(got, "Assign &lt;id&gt; to &#123;name&#125;") {
 		t.Fatalf("writeSingleCommandDoc() did not escape prose:\n%s", got)
 	}
-	if !strings.Contains(got, "bd assign <id> <name>") {
+	if !strings.Contains(got, "issuegraph assign <id> <name>") {
 		t.Fatalf("writeSingleCommandDoc() should keep usage code fences unescaped:\n%s", got)
 	}
 }
@@ -168,11 +168,11 @@ func TestHelpDocFlagTextDoesNotClaimDashMeansStdout(t *testing.T) {
 }
 
 // Parent commands must document the usage line the binary actually prints:
-// Cobra shows `bd mol [command]` for a non-runnable parent (and both lines
+// Cobra shows `issuegraph mol [command]` for a non-runnable parent (and both lines
 // for a runnable one), while UseLine() alone yields the misleading
-// `bd mol [flags]` (reproduced against the live binary on 30 pages).
+// `issuegraph mol [flags]` (reproduced against the live binary on 30 pages).
 func TestCommandBodyUsageMatchesCobraForParentCommands(t *testing.T) {
-	root := &cobra.Command{Use: "bd"}
+	root := &cobra.Command{Use: "issuegraph"}
 	mol := &cobra.Command{Use: "mol", Short: "Molecule commands"} // no Run: not runnable
 	mol.AddCommand(testHelpCmd("pour <formula>", "Start a workflow"))
 	root.AddCommand(mol)
@@ -183,15 +183,15 @@ func TestCommandBodyUsageMatchesCobraForParentCommands(t *testing.T) {
 	}
 	got := out.String()
 
-	if !strings.Contains(got, "bd mol [command]") {
-		t.Errorf("parent usage missing 'bd mol [command]':\n%s", got)
+	if !strings.Contains(got, "issuegraph mol [command]") {
+		t.Errorf("parent usage missing 'issuegraph mol [command]':\n%s", got)
 	}
-	if strings.Contains(got, "bd mol [flags]") {
-		t.Errorf("parent usage shows 'bd mol [flags]', which the binary never prints:\n%s", got)
+	if strings.Contains(got, "issuegraph mol [flags]") {
+		t.Errorf("parent usage shows 'issuegraph mol [flags]', which the binary never prints:\n%s", got)
 	}
 
 	// A runnable command with subcommands gets both lines, like Cobra help.
-	root2 := &cobra.Command{Use: "bd"}
+	root2 := &cobra.Command{Use: "issuegraph"}
 	mail := testHelpCmd("mail [subcommand]", "Mail commands")
 	mail.AddCommand(testHelpCmd("inbox", "List inbox"))
 	root2.AddCommand(mail)
@@ -201,10 +201,10 @@ func TestCommandBodyUsageMatchesCobraForParentCommands(t *testing.T) {
 		t.Fatalf("writeSingleCommandDoc() error = %v", err)
 	}
 	got = out.String()
-	if !strings.Contains(got, "bd mail [subcommand]") {
+	if !strings.Contains(got, "issuegraph mail [subcommand]") {
 		t.Errorf("runnable parent should keep its UseLine:\n%s", got)
 	}
-	if !strings.Contains(got, "bd mail [command]") {
+	if !strings.Contains(got, "issuegraph mail [command]") {
 		t.Errorf("runnable parent should also show the [command] form:\n%s", got)
 	}
 }
@@ -212,7 +212,7 @@ func TestCommandBodyUsageMatchesCobraForParentCommands(t *testing.T) {
 // The generated index must publish the global (persistent) flags — the
 // binary prints them on every --help, and no per-command page carries them.
 func TestGenericIndexIncludesGlobalFlags(t *testing.T) {
-	root := &cobra.Command{Use: "bd"}
+	root := &cobra.Command{Use: "issuegraph"}
 	root.PersistentFlags().Bool("json", false, "JSON output for scripting")
 	root.AddCommand(testHelpCmd("show <id>", "Show an issue"))
 	dir := t.TempDir()
@@ -226,7 +226,7 @@ func TestGenericIndexIncludesGlobalFlags(t *testing.T) {
 }
 
 func TestWriteGeneratedCLIDocsWritesGenericStagingTree(t *testing.T) {
-	root := &cobra.Command{Use: "bd"}
+	root := &cobra.Command{Use: "issuegraph"}
 	mol := testHelpCmd("mol", "Molecule commands")
 	mol.AddCommand(testHelpCmd("pour <formula>", "Start a workflow"))
 	root.AddCommand(
@@ -240,7 +240,7 @@ func TestWriteGeneratedCLIDocsWritesGenericStagingTree(t *testing.T) {
 		t.Fatalf("writeGeneratedCLIDocs() error = %v", err)
 	}
 
-	assertFileContains(t, filepath.Join(dir, "docs", "CLI_REFERENCE.md"), "# bd — Complete Command Reference")
+	assertFileContains(t, filepath.Join(dir, "docs", "CLI_REFERENCE.md"), "# issuegraph — Complete Command Reference")
 
 	// Staging tree: generic pages for the post-processors to consume.
 	indexPath := filepath.Join(dir, "build", "cli-docs", "index.md")
@@ -257,13 +257,13 @@ func TestWriteGeneratedCLIDocsWritesGenericStagingTree(t *testing.T) {
 	}
 
 	showPath := filepath.Join(dir, "build", "cli-docs", "show.md")
-	assertFileContains(t, showPath, "title: \"bd show\"")
+	assertFileContains(t, showPath, "title: \"issuegraph show\"")
 	assertFileContains(t, showPath, "<!-- AUTO-GENERATED: do not edit manually -->")
 
 	molPath := filepath.Join(dir, "build", "cli-docs", "mol.md")
-	assertFileContains(t, molPath, "## bd mol pour")
+	assertFileContains(t, molPath, "## issuegraph mol pour")
 
-	// bd must not write vendor trees: no website output, no docs/cli-reference.
+	// issuegraph must not write vendor trees: no website output, no docs/cli-reference.
 	if _, err := os.Stat(filepath.Join(dir, "website")); !os.IsNotExist(err) {
 		t.Errorf("writeGeneratedCLIDocs() wrote a website/ tree; vendor outputs belong to post-processors")
 	}
@@ -273,7 +273,7 @@ func TestWriteGeneratedCLIDocsWritesGenericStagingTree(t *testing.T) {
 }
 
 func TestWriteGeneratedCLIDocsReplacesStaleStagingFiles(t *testing.T) {
-	root := &cobra.Command{Use: "bd"}
+	root := &cobra.Command{Use: "issuegraph"}
 	root.AddCommand(testHelpCmd("show <id>", "Show an issue"))
 	dir := t.TempDir()
 
@@ -298,7 +298,7 @@ func TestWriteGeneratedCLIDocsReplacesStaleStagingFiles(t *testing.T) {
 // `foo-bar` and `foo_bar` map to the same page file. The emitter must fail
 // loudly instead of letting the later write silently win.
 func TestWriteGenericCLIDocsDirFailsOnDocIDCollision(t *testing.T) {
-	root := &cobra.Command{Use: "bd"}
+	root := &cobra.Command{Use: "issuegraph"}
 	root.AddCommand(
 		testHelpCmd("foo-bar", "First"),
 		testHelpCmd("foo_bar", "Second"),

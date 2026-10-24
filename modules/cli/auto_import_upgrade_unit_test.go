@@ -11,9 +11,9 @@ import (
 
 	"github.com/spf13/cobra"
 
-	"github.com/steveyegge/beads/internal/config"
-	"github.com/steveyegge/beads/internal/storage"
-	"github.com/steveyegge/beads/internal/types"
+	"github.com/borg0ai/dx-issuegraph/internal/config"
+	"github.com/borg0ai/dx-issuegraph/internal/storage"
+	"github.com/borg0ai/dx-issuegraph/internal/types"
 )
 
 // fakeFallbackStore satisfies storage.DoltStorage via an embedded nil
@@ -103,7 +103,7 @@ func TestMaybeAutoImportJSONL_FallbackImporter_SkipsWhenNonEmpty(t *testing.T) {
 // variant of SkipsWhenNonEmpty: GetStatistics ultimately reports a populated
 // store, so the fallback UPSERT path must not run.
 //
-// Scope note — this does NOT cover the gastownhall/beads#3948 root cause. #3948
+// Scope note — this does NOT cover the borg0ai/dx-issuegraph#3948 root cause. #3948
 // is the case where GetStatistics wrongly returns TotalIssues=0 on a populated
 // DB (a count/transaction-isolation defect), which defeats the guard entirely;
 // the dangerous fallback TOCTOU is empty-at-check -> concurrent writer commits
@@ -195,9 +195,9 @@ func TestShouldRunAutoImportJSONL(t *testing.T) {
 }
 
 // TestShouldRunAutoImportJSONL_RespectsImportAutoFalse is the regression test
-// for GH#4304: bd update (and any other write command) auto-imported
+// for GH#4304: issuegraph update (and any other write command) auto-imported
 // issues.jsonl into an empty database even when import.auto was explicitly
-// set to false (via config.yaml or BD_IMPORT_AUTO=false). shouldRunAutoImportJSONL
+// set to false (via config.yaml or ISSUEGRAPH_IMPORT_AUTO=false). shouldRunAutoImportJSONL
 // previously never consulted the import.auto config key at all — only the
 // separate git-hook sync path (importJSONLForSync) checked it. This test fails
 // on the buggy code (want=true) and passes once the config check is restored.
@@ -211,7 +211,7 @@ func TestShouldRunAutoImportJSONL_RespectsImportAutoFalse(t *testing.T) {
 	if got := shouldRunAutoImportJSONL(writeCmd, store, false, false, false); got {
 		t.Fatalf("regression GH#4304: shouldRunAutoImportJSONL() = %v with import.auto=false, want false", got)
 	}
-	// The explicit "bd import" command must remain unaffected either way —
+	// The explicit "issuegraph import" command must remain unaffected either way —
 	// confirm it's still gated off (for a different reason) so the config
 	// check above isn't the only thing keeping it from double-running.
 	if got := shouldRunAutoImportJSONL(importCmd, store, false, false, false); got {
@@ -225,11 +225,11 @@ func TestShouldRunAutoImportJSONL_RespectsImportAutoFalse(t *testing.T) {
 }
 
 // TestIsDisablingImportAutoViaConfigCommand is the regression test for the
-// P2 finding on gastownhall/beads#4595 (Codex cross-vendor review,
+// P2 finding on borg0ai/dx-issuegraph#4595 (Codex cross-vendor review,
 // 2026-07-07): shouldRunAutoImportJSONL runs in PersistentPreRun before
-// "bd config set import.auto false" writes the new value, so the command
+// "issuegraph config set import.auto false" writes the new value, so the command
 // meant to disable auto-import triggered it on its own invocation whenever a
-// stale .beads/issues.jsonl sat next to an empty database (GH#4304). This
+// stale .issuegraph/issues.jsonl sat next to an empty database (GH#4304). This
 // exemption must fire for "config set import.auto false"/"0" and for
 // "config set-many ... import.auto=false", but not for unrelated config
 // keys, truthy values, or commands outside the config subtree.
@@ -305,10 +305,10 @@ func TestMaybeAutoImportJSONL_FallbackImporter_RunsWhenEmpty(t *testing.T) {
 
 func TestMaybeAutoImportJSONL_UsesConfiguredImportPath(t *testing.T) {
 	initConfigForTest(t)
-	config.Set("import.path", "beads.jsonl")
+	config.Set("import.path", "issuegraph.jsonl")
 
 	dir := t.TempDir()
-	writeAutoImportFixtureJSONLNamed(t, dir, "beads.jsonl")
+	writeAutoImportFixtureJSONLNamed(t, dir, "issuegraph.jsonl")
 
 	orig := fallbackImporter
 	var gotPath string
@@ -321,7 +321,7 @@ func TestMaybeAutoImportJSONL_UsesConfiguredImportPath(t *testing.T) {
 	store := &fakeFallbackStore{statsTotalIssues: 0}
 	maybeAutoImportJSONL(context.Background(), store, dir)
 
-	wantPath := filepath.Join(dir, "beads.jsonl")
+	wantPath := filepath.Join(dir, "issuegraph.jsonl")
 	if gotPath != wantPath {
 		t.Fatalf("auto-import path = %q, want %q", gotPath, wantPath)
 	}
@@ -416,7 +416,7 @@ func (c *captureOptsStore) GetIssuesByIDs(_ context.Context, _ []string) ([]*typ
 
 // TestImportIssuesCoreThreadsConflictSkip verifies the GH#3955 plumbing:
 // ImportOptions.ConflictSkip maps onto storage.BatchCreateOptions.ConflictSkip,
-// and the default (explicit `bd import`) path keeps UPSERT semantics.
+// and the default (explicit `issuegraph import`) path keeps UPSERT semantics.
 func TestImportIssuesCoreThreadsConflictSkip(t *testing.T) {
 	issues := []*types.Issue{{ID: "unit-1", Title: "t", Status: types.StatusOpen, Priority: 2, IssueType: types.TypeTask}}
 
@@ -447,8 +447,8 @@ func TestImportIssuesCoreThreadsConflictSkip(t *testing.T) {
 // TestAutoImportFallbackSeamUsesConflictSkip verifies which importer each
 // caller is wired to: the auto-import server-mode fallback
 // (importFromLocalJSONLConflictSkip, the fallbackImporter seam) requests
-// conflict-skip, while importFromLocalJSONLFull — used by `bd bootstrap`
-// and `bd init --from-jsonl` — keeps UPSERT. This is the scope boundary
+// conflict-skip, while importFromLocalJSONLFull — used by `issuegraph bootstrap`
+// and `issuegraph init --from-jsonl` — keeps UPSERT. This is the scope boundary
 // for GH#3955.
 func TestAutoImportFallbackSeamUsesConflictSkip(t *testing.T) {
 	dir := t.TempDir()
@@ -471,7 +471,7 @@ func TestAutoImportFallbackSeamUsesConflictSkip(t *testing.T) {
 			t.Fatalf("importFromLocalJSONLFull: %v", err)
 		}
 		if s.gotOpts.ConflictSkip {
-			t.Fatalf("bd bootstrap / init --from-jsonl must keep UPSERT (ConflictSkip=false); got true")
+			t.Fatalf("issuegraph bootstrap / init --from-jsonl must keep UPSERT (ConflictSkip=false); got true")
 		}
 	})
 }

@@ -6,10 +6,10 @@ import (
 	"fmt"
 	"os"
 
+	"github.com/borg0ai/dx-issuegraph/internal/metrics"
+	"github.com/borg0ai/dx-issuegraph/internal/types"
+	"github.com/borg0ai/dx-issuegraph/internal/validation"
 	"github.com/spf13/cobra"
-	"github.com/steveyegge/beads/internal/metrics"
-	"github.com/steveyegge/beads/internal/types"
-	"github.com/steveyegge/beads/internal/validation"
 )
 
 // LintResult holds the validation result for a single issue.
@@ -39,14 +39,14 @@ Section requirements by type:
 Additional per-type sections can be required via config; they are ADDITIVE
 to the built-ins above (built-in requirements are never relaxed):
 
-  bd config set lint.sections.epic "Standards scorecard, Cost"
+  issuegraph config set lint.sections.epic "Standards scorecard, Cost"
 
 Examples:
-  bd lint                    # Lint all open issues
-  bd lint bd-abc             # Lint specific issue
-  bd lint bd-abc bd-def      # Lint multiple issues
-  bd lint --type bug         # Lint only bugs
-  bd lint --status all       # Lint all issues (including closed)
+  issuegraph lint                    # Lint all open issues
+  issuegraph lint bd-abc             # Lint specific issue
+  issuegraph lint bd-abc bd-def      # Lint multiple issues
+  issuegraph lint --type bug         # Lint only bugs
+  issuegraph lint --status all       # Lint all issues (including closed)
 `,
 	SilenceUsage:  true,
 	SilenceErrors: true,

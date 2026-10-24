@@ -1,11 +1,11 @@
 ---
-title: "bd preflight"
+title: "issuegraph preflight"
 description: "Display a checklist of common pre-PR checks for contributors."
 ---
 
 {/* AUTO-GENERATED: do not edit manually */}
 
-Generated from `bd help --doc preflight`.
+Generated from `issuegraph help --doc preflight`.
 
 Display a checklist of common pre-PR checks for contributors.
 
@@ -13,19 +13,19 @@ This command helps catch common issues before pushing to CI:
 - Tests not run locally
 - Lint errors
 - Unformatted Go files
-- .beads/issues.jsonl pollution
+- .issuegraph/issues.jsonl pollution
 - Stale nix vendorHash
 - Version mismatches
 
 Examples:
-  bd preflight              # Show checklist
-  bd preflight --check      # Run checks automatically
-  bd preflight --check --json  # JSON output for programmatic use
-  bd preflight --check --skip-lint  # Explicitly skip lint check
+  issuegraph preflight              # Show checklist
+  issuegraph preflight --check      # Run checks automatically
+  issuegraph preflight --check --json  # JSON output for programmatic use
+  issuegraph preflight --check --skip-lint  # Explicitly skip lint check
 
 
 ```
-bd preflight [flags]
+issuegraph preflight [flags]
 ```
 
 **Flags:**

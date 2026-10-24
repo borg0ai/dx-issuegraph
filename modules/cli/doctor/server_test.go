@@ -7,7 +7,7 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/steveyegge/beads/internal/configfile"
+	"github.com/borg0ai/dx-issuegraph/internal/configfile"
 )
 
 func TestIsValidIdentifier(t *testing.T) {
@@ -15,18 +15,18 @@ func TestIsValidIdentifier(t *testing.T) {
 		input string
 		want  bool
 	}{
-		{"beads", true},
-		{"beads_db", true},
-		{"Beads123", true},
+		{"issuegraph", true},
+		{"issuegraph_db", true},
+		{"IssueGraph123", true},
 		{"_private", true},
-		{"123start", false},     // Can't start with number
-		{"", false},             // Empty string
-		{"db-name", false},      // Hyphen not allowed
-		{"db.name", false},      // Dot not allowed
-		{"db name", false},      // Space not allowed
-		{"db;drop", false},      // Semicolon not allowed
-		{"db'inject", false},    // Quote not allowed
-		{"beads_test_db", true}, // Multiple underscores ok
+		{"123start", false},          // Can't start with number
+		{"", false},                  // Empty string
+		{"db-name", false},           // Hyphen not allowed
+		{"db.name", false},           // Dot not allowed
+		{"db name", false},           // Space not allowed
+		{"db;drop", false},           // Semicolon not allowed
+		{"db'inject", false},         // Quote not allowed
+		{"issuegraph_test_db", true}, // Multiple underscores ok
 	}
 
 	for _, tt := range tests {
@@ -73,17 +73,17 @@ func TestStaleDatabasePrefixes(t *testing.T) {
 		dbName  string
 		isStale bool
 	}{
-		{"production beads", "beads", false},
+		{"production issuegraph", "issuegraph", false},
 		{"information_schema", "information_schema", false},
 		{"mysql", "mysql", false},
 		{"test database", "testdb_abc123", true},
 		{"doctest database", "doctest_abc", true},
 		{"doctortest database", "doctortest_abc", true},
-		{"patrol test db", "beads_pt_abc", true},
-		{"router test db", "beads_vr_abc", true},
-		{"protocol test db", "beads_t0a1b2c3", true},
+		{"patrol test db", "issuegraph_pt_abc", true},
+		{"router test db", "issuegraph_vr_abc", true},
+		{"protocol test db", "issuegraph_t0a1b2c3", true},
 		{"user database", "my_project", false},
-		{"beads_production", "beads_production", false},
+		{"issuegraph_production", "issuegraph_production", false},
 	}
 
 	for _, tt := range tests {
@@ -144,16 +144,16 @@ func TestCheckDatabaseExists_InvalidIdentifier(t *testing.T) {
 		name  string
 		valid bool
 	}{
-		{"beads", true},
-		{"beads-db", false},   // hyphen
-		{"beads_db", true},    // underscore
-		{"123beads", false},   // starts with number
-		{"", false},           // empty
-		{"beads;drop", false}, // injection
-		{"`beads`", false},    // backticks
-		{"beads db", false},   // space
-		{"a", true},           // single char
-		{"_", true},           // underscore only
+		{"issuegraph", true},
+		{"issuegraph-db", false},   // hyphen
+		{"issuegraph_db", true},    // underscore
+		{"123issuegraph", false},   // starts with number
+		{"", false},                // empty
+		{"issuegraph;drop", false}, // injection
+		{"`issuegraph`", false},    // backticks
+		{"issuegraph db", false},   // space
+		{"a", true},                // single char
+		{"_", true},                // underscore only
 	}
 
 	for _, tt := range tests {
@@ -174,17 +174,17 @@ func TestCheckDatabaseExists_InvalidIdentifier(t *testing.T) {
 func TestCheckDoltVersion_Unreachable(t *testing.T) {
 	// Force the resolved port to 1 (guaranteed unreachable on loopback)
 	// so we don't depend on any running server.
-	t.Setenv("BEADS_DOLT_SERVER_PORT", "1")
+	t.Setenv("ISSUEGRAPH_DOLT_SERVER_PORT", "1")
 
-	beadsDir := t.TempDir()
+	issuegraphDir := t.TempDir()
 	cfg := &configfile.Config{
 		DoltMode:       "server",
 		DoltServerHost: "127.0.0.1",
 		DoltServerUser: "root",
-		DoltDatabase:   "beads",
+		DoltDatabase:   "issuegraph",
 	}
 
-	check, db := checkDoltVersion(cfg, beadsDir)
+	check, db := checkDoltVersion(cfg, issuegraphDir)
 	if db != nil {
 		_ = db.Close()
 		t.Fatal("expected nil db handle on unreachable server")
@@ -203,23 +203,23 @@ func TestCheckDoltVersion_Unreachable(t *testing.T) {
 // that user / tls / password are pulled from configfile.Load before the DSN
 // is built and the ping fails against the unreachable port.
 func TestRunDoltServerDiagnostics_Unreachable(t *testing.T) {
-	beadsDir := t.TempDir()
+	issuegraphDir := t.TempDir()
 
 	// Write a minimal metadata.json so configfile.Load returns a non-nil
 	// cfg — that's what gates the user/tls/password assignments.
 	meta := `{
-  "database": "beads.db",
+  "database": "issuegraph.db",
   "dolt_mode": "server",
   "dolt_server_host": "127.0.0.1",
   "dolt_server_user": "root",
-  "dolt_database": "beads"
+  "dolt_database": "issuegraph"
 }`
-	if err := os.WriteFile(filepath.Join(beadsDir, "metadata.json"), []byte(meta), 0o644); err != nil {
+	if err := os.WriteFile(filepath.Join(issuegraphDir, "metadata.json"), []byte(meta), 0o644); err != nil {
 		t.Fatal(err)
 	}
 
 	metrics := &DoltPerfMetrics{}
-	err := runDoltServerDiagnostics(metrics, "127.0.0.1", 1, "beads", beadsDir)
+	err := runDoltServerDiagnostics(metrics, "127.0.0.1", 1, "issuegraph", issuegraphDir)
 	if err == nil {
 		t.Fatal("expected error connecting to unreachable server")
 	}

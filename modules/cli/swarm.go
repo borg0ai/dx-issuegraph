@@ -1,4 +1,4 @@
-// Package main implements the bd CLI swarm management commands.
+// Package main implements the issuegraph CLI swarm management commands.
 package main
 
 import (
@@ -8,12 +8,12 @@ import (
 	"sort"
 	"strings"
 
+	"github.com/borg0ai/dx-issuegraph/internal/metrics"
+	"github.com/borg0ai/dx-issuegraph/internal/storage"
+	"github.com/borg0ai/dx-issuegraph/internal/types"
+	"github.com/borg0ai/dx-issuegraph/internal/ui"
+	"github.com/borg0ai/dx-issuegraph/internal/utils"
 	"github.com/spf13/cobra"
-	"github.com/steveyegge/beads/internal/metrics"
-	"github.com/steveyegge/beads/internal/storage"
-	"github.com/steveyegge/beads/internal/types"
-	"github.com/steveyegge/beads/internal/ui"
-	"github.com/steveyegge/beads/internal/utils"
 )
 
 var swarmCmd = &cobra.Command{
@@ -151,8 +151,8 @@ Reports:
 - Warnings for potential issues
 
 Examples:
-  bd swarm validate gt-epic-123           # Validate epic structure
-  bd swarm validate gt-epic-123 --verbose # Include detailed issue graph`,
+  issuegraph swarm validate gt-epic-123           # Validate epic structure
+  issuegraph swarm validate gt-epic-123 --verbose # Include detailed issue graph`,
 	Args:          cobra.ExactArgs(1),
 	SilenceUsage:  true,
 	SilenceErrors: true,
@@ -614,7 +614,7 @@ func renderSwarmAnalysis(analysis *SwarmAnalysis) {
 	}
 }
 
-// SwarmStatus holds the current status of a swarm (computed from beads).
+// SwarmStatus holds the current status of a swarm (computed from issuegraph).
 type SwarmStatus struct {
 	EpicID       string        `json:"epic_id"`
 	EpicTitle    string        `json:"epic_title"`
@@ -641,7 +641,7 @@ type StatusIssue struct {
 var swarmStatusCmd = &cobra.Command{
 	Use:   "status [epic-or-swarm-id]",
 	Short: "Show current swarm status",
-	Long: `Show the current status of a swarm, computed from beads.
+	Long: `Show the current status of a swarm, computed from issuegraph.
 
 Accepts either:
 - An epic ID (shows status for that epic's children)
@@ -653,13 +653,13 @@ Displays issues grouped by state:
 - Ready: Open issues with all dependencies satisfied
 - Blocked: Open issues waiting on dependencies
 
-The status is COMPUTED from beads, not stored separately.
-If beads changes, status changes.
+The status is COMPUTED from issuegraph, not stored separately.
+If issuegraph changes, status changes.
 
 Examples:
-  bd swarm status gt-epic-123       # Show swarm status by epic
-  bd swarm status gt-swarm-456      # Show status via swarm molecule
-  bd swarm status gt-epic-123 --json  # Machine-readable output`,
+  issuegraph swarm status gt-epic-123       # Show swarm status by epic
+  issuegraph swarm status gt-swarm-456      # Show status via swarm molecule
+  issuegraph swarm status gt-epic-123 --json  # Machine-readable output`,
 	Args:          cobra.ExactArgs(1),
 	SilenceUsage:  true,
 	SilenceErrors: true,
@@ -732,7 +732,7 @@ Examples:
 	},
 }
 
-// getSwarmStatus computes current swarm status from beads.
+// getSwarmStatus computes current swarm status from issuegraph.
 func getSwarmStatus(ctx context.Context, s SwarmStorage, epic *types.Issue) (*SwarmStatus, error) {
 	status := &SwarmStatus{
 		EpicID:    epic.ID,
@@ -944,9 +944,9 @@ If given a single issue (not an epic), it will be auto-wrapped:
 - Then creates the swarm molecule for that epic
 
 Examples:
-  bd swarm create bd-epic-123                          # Create swarm for epic
-  bd swarm create bd-epic-123 --coordinator=observer/   # With specific coordinator
-  bd swarm create bd-task-456                          # Auto-wrap single issue`,
+  issuegraph swarm create bd-epic-123                          # Create swarm for epic
+  issuegraph swarm create bd-epic-123 --coordinator=observer/   # With specific coordinator
+  issuegraph swarm create bd-task-456                          # Auto-wrap single issue`,
 	Args:          cobra.ExactArgs(1),
 	SilenceUsage:  true,
 	SilenceErrors: true,
@@ -1131,8 +1131,8 @@ Shows each swarm molecule with:
 - Epic ID and title
 
 Examples:
-  bd swarm list         # List all swarms
-  bd swarm list --json  # Machine-readable output`,
+  issuegraph swarm list         # List all swarms
+  issuegraph swarm list --json  # Machine-readable output`,
 	SilenceUsage:  true,
 	SilenceErrors: true,
 	RunE: func(cmd *cobra.Command, args []string) error {

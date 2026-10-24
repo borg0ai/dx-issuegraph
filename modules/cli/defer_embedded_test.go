@@ -12,43 +12,43 @@ import (
 	"testing"
 )
 
-// bdDefer runs "bd defer" with the given args and returns stdout.
-func bdDefer(t *testing.T, bd, dir string, args ...string) string {
+// issuegraphDefer runs "issuegraph defer" with the given args and returns stdout.
+func issuegraphDefer(t *testing.T, issuegraph, dir string, args ...string) string {
 	t.Helper()
 	fullArgs := append([]string{"defer"}, args...)
-	cmd := exec.Command(bd, fullArgs...)
+	cmd := exec.Command(issuegraph, fullArgs...)
 	cmd.Dir = dir
-	cmd.Env = bdEnv(dir)
+	cmd.Env = issuegraphEnv(dir)
 	stdout, stderr, err := runCommandBuffers(t, cmd)
 	if err != nil {
-		t.Fatalf("bd defer %s failed: %v\nstdout:\n%s\nstderr:\n%s", strings.Join(args, " "), err, stdout.String(), stderr.String())
+		t.Fatalf("issuegraph defer %s failed: %v\nstdout:\n%s\nstderr:\n%s", strings.Join(args, " "), err, stdout.String(), stderr.String())
 	}
 	return stdout.String()
 }
 
-// bdUndefer runs "bd undefer" with the given args and returns stdout.
-func bdUndefer(t *testing.T, bd, dir string, args ...string) string {
+// issuegraphUndefer runs "issuegraph undefer" with the given args and returns stdout.
+func issuegraphUndefer(t *testing.T, issuegraph, dir string, args ...string) string {
 	t.Helper()
 	fullArgs := append([]string{"undefer"}, args...)
-	cmd := exec.Command(bd, fullArgs...)
+	cmd := exec.Command(issuegraph, fullArgs...)
 	cmd.Dir = dir
-	cmd.Env = bdEnv(dir)
+	cmd.Env = issuegraphEnv(dir)
 	stdout, stderr, err := runCommandBuffers(t, cmd)
 	if err != nil {
-		t.Fatalf("bd undefer %s failed: %v\nstdout:\n%s\nstderr:\n%s", strings.Join(args, " "), err, stdout.String(), stderr.String())
+		t.Fatalf("issuegraph undefer %s failed: %v\nstdout:\n%s\nstderr:\n%s", strings.Join(args, " "), err, stdout.String(), stderr.String())
 	}
 	return stdout.String()
 }
 
-// getIssueStatus returns the status of an issue via bd show --json.
-func getIssueStatus(t *testing.T, bd, dir, id string) string {
+// getIssueStatus returns the status of an issue via issuegraph show --json.
+func getIssueStatus(t *testing.T, issuegraph, dir, id string) string {
 	t.Helper()
-	cmd := exec.Command(bd, "show", id, "--json")
+	cmd := exec.Command(issuegraph, "show", id, "--json")
 	cmd.Dir = dir
-	cmd.Env = bdEnv(dir)
+	cmd.Env = issuegraphEnv(dir)
 	stdout, stderr, err := runCommandBuffers(t, cmd)
 	if err != nil {
-		t.Fatalf("bd show %s --json failed: %v\nstdout:\n%s\nstderr:\n%s", id, err, stdout.String(), stderr.String())
+		t.Fatalf("issuegraph show %s --json failed: %v\nstdout:\n%s\nstderr:\n%s", id, err, stdout.String(), stderr.String())
 	}
 	s := strings.TrimSpace(stdout.String())
 	// show --json may return an array or object
@@ -76,23 +76,23 @@ func getIssueStatus(t *testing.T, bd, dir, id string) string {
 }
 
 func TestEmbeddedDefer(t *testing.T) {
-	if os.Getenv("BEADS_TEST_EMBEDDED_DOLT") != "1" {
-		t.Skip("set BEADS_TEST_EMBEDDED_DOLT=1 to run embedded dolt integration tests")
+	if os.Getenv("ISSUEGRAPH_TEST_EMBEDDED_DOLT") != "1" {
+		t.Skip("set ISSUEGRAPH_TEST_EMBEDDED_DOLT=1 to run embedded dolt integration tests")
 	}
 	t.Parallel()
 
-	bd := buildEmbeddedBD(t)
-	dir, _, _ := bdInit(t, bd, "--prefix", "df")
+	issuegraph := buildEmbeddedBD(t)
+	dir, _, _ := issuegraphInit(t, issuegraph, "--prefix", "df")
 
 	// ===== Single Issue =====
 
 	t.Run("defer_single", func(t *testing.T) {
-		issue := bdCreate(t, bd, dir, "Defer single test", "--type", "task")
-		out := bdDefer(t, bd, dir, issue.ID)
+		issue := issuegraphCreate(t, issuegraph, dir, "Defer single test", "--type", "task")
+		out := issuegraphDefer(t, issuegraph, dir, issue.ID)
 		if !strings.Contains(out, "Deferred") {
 			t.Errorf("expected 'Deferred' in output: %s", out)
 		}
-		status := getIssueStatus(t, bd, dir, issue.ID)
+		status := getIssueStatus(t, issuegraph, dir, issue.ID)
 		if status != "deferred" {
 			t.Errorf("expected status=deferred, got %q", status)
 		}
@@ -101,14 +101,14 @@ func TestEmbeddedDefer(t *testing.T) {
 	// ===== Multiple Issues =====
 
 	t.Run("defer_multiple", func(t *testing.T) {
-		issue1 := bdCreate(t, bd, dir, "Defer multi 1", "--type", "task")
-		issue2 := bdCreate(t, bd, dir, "Defer multi 2", "--type", "task")
-		out := bdDefer(t, bd, dir, issue1.ID, issue2.ID)
+		issue1 := issuegraphCreate(t, issuegraph, dir, "Defer multi 1", "--type", "task")
+		issue2 := issuegraphCreate(t, issuegraph, dir, "Defer multi 2", "--type", "task")
+		out := issuegraphDefer(t, issuegraph, dir, issue1.ID, issue2.ID)
 		if !strings.Contains(out, issue1.ID) || !strings.Contains(out, issue2.ID) {
 			t.Errorf("expected both IDs in output: %s", out)
 		}
 		for _, id := range []string{issue1.ID, issue2.ID} {
-			status := getIssueStatus(t, bd, dir, id)
+			status := getIssueStatus(t, issuegraph, dir, id)
 			if status != "deferred" {
 				t.Errorf("expected %s status=deferred, got %q", id, status)
 			}
@@ -118,12 +118,12 @@ func TestEmbeddedDefer(t *testing.T) {
 	// ===== With --until =====
 
 	t.Run("defer_until", func(t *testing.T) {
-		issue := bdCreate(t, bd, dir, "Defer until test", "--type", "task")
-		out := bdDefer(t, bd, dir, issue.ID, "--until", "+1h")
+		issue := issuegraphCreate(t, issuegraph, dir, "Defer until test", "--type", "task")
+		out := issuegraphDefer(t, issuegraph, dir, issue.ID, "--until", "+1h")
 		if !strings.Contains(out, "Deferred") {
 			t.Errorf("expected 'Deferred' in output: %s", out)
 		}
-		status := getIssueStatus(t, bd, dir, issue.ID)
+		status := getIssueStatus(t, issuegraph, dir, issue.ID)
 		if status != "deferred" {
 			t.Errorf("expected status=deferred, got %q", status)
 		}
@@ -132,10 +132,10 @@ func TestEmbeddedDefer(t *testing.T) {
 	// ===== Already Deferred =====
 
 	t.Run("defer_already_deferred", func(t *testing.T) {
-		issue := bdCreate(t, bd, dir, "Defer idempotent", "--type", "task")
-		bdDefer(t, bd, dir, issue.ID)
+		issue := issuegraphCreate(t, issuegraph, dir, "Defer idempotent", "--type", "task")
+		issuegraphDefer(t, issuegraph, dir, issue.ID)
 		// Defer again — should succeed
-		out := bdDefer(t, bd, dir, issue.ID)
+		out := issuegraphDefer(t, issuegraph, dir, issue.ID)
 		if !strings.Contains(out, "Deferred") {
 			t.Errorf("expected 'Deferred' on second defer: %s", out)
 		}
@@ -144,18 +144,18 @@ func TestEmbeddedDefer(t *testing.T) {
 
 // TestEmbeddedDeferConcurrent exercises defer operations concurrently.
 func TestEmbeddedDeferConcurrent(t *testing.T) {
-	if os.Getenv("BEADS_TEST_EMBEDDED_DOLT") != "1" {
-		t.Skip("set BEADS_TEST_EMBEDDED_DOLT=1 to run embedded dolt integration tests")
+	if os.Getenv("ISSUEGRAPH_TEST_EMBEDDED_DOLT") != "1" {
+		t.Skip("set ISSUEGRAPH_TEST_EMBEDDED_DOLT=1 to run embedded dolt integration tests")
 	}
 	t.Parallel()
 
-	bd := buildEmbeddedBD(t)
-	dir, _, _ := bdInit(t, bd, "--prefix", "dx")
+	issuegraph := buildEmbeddedBD(t)
+	dir, _, _ := issuegraphInit(t, issuegraph, "--prefix", "dx")
 
 	// Pre-create issues
 	var issueIDs []string
 	for i := 0; i < 8; i++ {
-		issue := bdCreate(t, bd, dir, fmt.Sprintf("defer-concurrent-%d", i), "--type", "task")
+		issue := issuegraphCreate(t, issuegraph, dir, fmt.Sprintf("defer-concurrent-%d", i), "--type", "task")
 		issueIDs = append(issueIDs, issue.ID)
 	}
 
@@ -174,9 +174,9 @@ func TestEmbeddedDeferConcurrent(t *testing.T) {
 			r := workerResult{worker: worker}
 			id := issueIDs[worker]
 
-			cmd := exec.Command(bd, "defer", id)
+			cmd := exec.Command(issuegraph, "defer", id)
 			cmd.Dir = dir
-			cmd.Env = bdEnv(dir)
+			cmd.Env = issuegraphEnv(dir)
 			out, err := cmd.CombinedOutput()
 			if err != nil {
 				r.err = fmt.Errorf("defer %s (worker %d): %v\n%s", id, worker, err, out)
@@ -207,7 +207,7 @@ func TestEmbeddedDeferConcurrent(t *testing.T) {
 			continue
 		}
 		id := issueIDs[r.worker]
-		status := getIssueStatus(t, bd, dir, id)
+		status := getIssueStatus(t, issuegraph, dir, id)
 		if status != "deferred" {
 			t.Errorf("issue %d (%s): expected status=deferred, got %q", r.worker, id, status)
 		}

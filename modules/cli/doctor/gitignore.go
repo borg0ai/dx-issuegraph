@@ -8,15 +8,15 @@ import (
 	"strings"
 )
 
-// GitignoreTemplate is the canonical .beads/.gitignore content
+// GitignoreTemplate is the canonical .issuegraph/.gitignore content
 const GitignoreTemplate = `# Dolt database (managed by Dolt, not git)
 dolt/
 embeddeddolt/
 proxieddb/
 
 # Runtime files
-bd.sock
-bd.sock.startlock
+issuegraph.sock
+issuegraph.sock.startlock
 sync-state.json
 last-touched
 .exclusive-lock
@@ -31,14 +31,14 @@ push-state.json
 *.lock
 
 # Credential key (encryption key for federation peer auth — never commit)
-.beads-credential-key
+.issuegraph-credential-key
 
 # Local version tracking (prevents upgrade notification spam after git ops)
 .local_version
 
 proxied_server_client_info.json
 
-# Worktree redirect file (contains relative path to main repo's .beads/)
+# Worktree redirect file (contains relative path to main repo's .issuegraph/)
 # Must not be committed as paths would be wrong in other clones
 redirect
 
@@ -47,7 +47,7 @@ redirect
 .sync.lock
 
 # Workspace operation gate (internal/workspacegate): physical-root gate
-# files live beside the guarded root inside .beads (e.g. dolt.gate.lock)
+# files live beside the guarded root inside .issuegraph (e.g. dolt.gate.lock)
 *.gate.lock*
 export-state/
 export-state.json
@@ -59,7 +59,7 @@ ephemeral.sqlite3-journal
 ephemeral.sqlite3-wal
 ephemeral.sqlite3-shm
 
-# Dolt server management (auto-started by bd)
+# Dolt server management (auto-started by issuegraph)
 dolt-server.pid
 dolt-server.log
 dolt-server.lock
@@ -70,7 +70,7 @@ dolt-server-config.yaml
 # Debug-mode pprof artifacts (written when dolt.debug: true in config.yaml)
 dolt-pprof/
 
-# Corrupt backup directories (created by bd doctor --fix recovery)
+# Corrupt backup directories (created by issuegraph doctor --fix recovery)
 *.corrupt.backup/
 
 # Backup data (auto-exported JSONL, local-only)
@@ -86,7 +86,7 @@ backup/
 *.db-wal
 *.db-shm
 db.sqlite
-bd.db
+issuegraph.db
 # NOTE: Do NOT add negation patterns here.
 # They would override fork protection in .git/info/exclude.
 # Config files (metadata.json, config.yaml) are tracked by git by default
@@ -98,24 +98,24 @@ bd.db
 var ProjectGitignorePatterns = []string{
 	".dolt/",
 	"*.db",
-	".beads-credential-key",
-	".beads/proxieddb/",
+	".issuegraph-credential-key",
+	".issuegraph/proxieddb/",
 	// Workspace-gate artifacts (internal/workspacegate): the workspace
-	// gate file sits BESIDE .beads in the project root, so .beads/
+	// gate file sits BESIDE .issuegraph in the project root, so .issuegraph/
 	// patterns cannot cover it.
 	"*.gate.lock*",
 }
 
 // ProjectGitignoreHeader is the section header added to the project .gitignore
-const ProjectGitignoreHeader = "# Beads / Dolt files (added by bd init)"
+const ProjectGitignoreHeader = "# IssueGraph / Dolt files (added by issuegraph init)"
 
-// requiredPatterns are patterns that MUST be in .beads/.gitignore
+// requiredPatterns are patterns that MUST be in .issuegraph/.gitignore
 var requiredPatterns = []string{
 	"*.db?*",
 	".env",
 	"redirect",
 	"last-touched",
-	"bd.sock.startlock",
+	"issuegraph.sock.startlock",
 	".sync.lock",
 	"*.gate.lock*",
 	"export-state/",
@@ -134,16 +134,16 @@ var requiredPatterns = []string{
 	"daemon.*",
 	"*.lock",
 	"*.corrupt.backup/",
-	".beads-credential-key",
+	".issuegraph-credential-key",
 	"proxied_server_client_info.json",
 	".local_version",
 	"backup/",
 }
 
-// CheckGitignore checks if .beads/.gitignore is up to date.
+// CheckGitignore checks if .issuegraph/.gitignore is up to date.
 // repoPath is the project root directory.
 func CheckGitignore(repoPath string) DoctorCheck {
-	gitignorePath := filepath.Join(ResolveBeadsDirForRepo(repoPath), ".gitignore")
+	gitignorePath := filepath.Join(ResolveIssueGraphDirForRepo(repoPath), ".gitignore")
 
 	// Check if file exists
 	content, err := os.ReadFile(gitignorePath) // #nosec G304 -- path is constructed from known parts
@@ -151,8 +151,8 @@ func CheckGitignore(repoPath string) DoctorCheck {
 		return DoctorCheck{
 			Name:    "Gitignore",
 			Status:  "warning",
-			Message: ".beads/.gitignore not found",
-			Fix:     "Run: bd init (safe to re-run) or bd doctor --fix",
+			Message: ".issuegraph/.gitignore not found",
+			Fix:     "Run: issuegraph init (safe to re-run) or issuegraph doctor --fix",
 		}
 	}
 
@@ -163,9 +163,9 @@ func CheckGitignore(repoPath string) DoctorCheck {
 		return DoctorCheck{
 			Name:    "Gitignore",
 			Status:  "warning",
-			Message: "Outdated .beads/.gitignore (missing required patterns)",
+			Message: "Outdated .issuegraph/.gitignore (missing required patterns)",
 			Detail:  "Missing: " + strings.Join(missing, ", "),
-			Fix:     "Run: bd doctor --fix or bd init (safe to re-run)",
+			Fix:     "Run: issuegraph doctor --fix or issuegraph init (safe to re-run)",
 		}
 	}
 
@@ -176,19 +176,19 @@ func CheckGitignore(repoPath string) DoctorCheck {
 	}
 }
 
-// EnsureGitignoreForBeadsDir writes the canonical .beads/.gitignore when it is
+// EnsureGitignoreForIssueGraphDir writes the canonical .issuegraph/.gitignore when it is
 // missing or outdated. If the file does not exist, it writes the full template.
 // If it exists but is outdated, it safely appends missing required patterns so
 // local additions are preserved.
-func EnsureGitignoreForBeadsDir(beadsDir string) error {
-	gitignorePath := filepath.Join(beadsDir, ".gitignore")
+func EnsureGitignoreForIssueGraphDir(issuegraphDir string) error {
+	gitignorePath := filepath.Join(issuegraphDir, ".gitignore")
 
-	content, err := os.ReadFile(gitignorePath) // #nosec G304 -- caller supplies the active .beads dir
+	content, err := os.ReadFile(gitignorePath) // #nosec G304 -- caller supplies the active .issuegraph dir
 	if os.IsNotExist(err) {
 		return writeGitignoreTemplate(gitignorePath)
 	}
 	if err != nil {
-		return fmt.Errorf("read .beads/.gitignore: %w", err)
+		return fmt.Errorf("read .issuegraph/.gitignore: %w", err)
 	}
 
 	missing := missingGitignorePatterns(string(content))
@@ -199,7 +199,7 @@ func EnsureGitignoreForBeadsDir(beadsDir string) error {
 	if info, err := os.Stat(gitignorePath); err == nil {
 		if info.Mode().Perm()&0200 == 0 {
 			if err := os.Chmod(gitignorePath, 0600); err != nil {
-				return fmt.Errorf("chmod .beads/.gitignore: %w", err)
+				return fmt.Errorf("chmod .issuegraph/.gitignore: %w", err)
 			}
 		}
 	}
@@ -210,25 +210,25 @@ func EnsureGitignoreForBeadsDir(beadsDir string) error {
 		newContent += "\n"
 	}
 
-	newContent += "\n# Added by bd (missing required patterns)\n"
+	newContent += "\n# Added by issuegraph (missing required patterns)\n"
 	for _, pattern := range missing {
 		newContent += pattern + "\n"
 	}
 
 	if err := os.WriteFile(gitignorePath, []byte(newContent), 0600); err != nil {
-		return fmt.Errorf("ensure .beads/.gitignore: %w", err)
+		return fmt.Errorf("ensure .issuegraph/.gitignore: %w", err)
 	}
 
 	// Tighten permissions on pre-existing files: os.WriteFile's mode argument
 	// only applies at creation, and the file may predate the 0600 policy.
 	if err := os.Chmod(gitignorePath, 0600); err != nil {
-		return fmt.Errorf("chmod .beads/.gitignore: %w", err)
+		return fmt.Errorf("chmod .issuegraph/.gitignore: %w", err)
 	}
 
 	return nil
 }
 
-// FixGitignore brings .beads/.gitignore up to date: the full template when
+// FixGitignore brings .issuegraph/.gitignore up to date: the full template when
 // the file is missing, append-only for missing required patterns otherwise.
 // It must never rewrite an existing file wholesale — local rules (e.g.
 // keep-exports-off-master negations) live in this file too, and the old
@@ -236,7 +236,7 @@ func EnsureGitignoreForBeadsDir(beadsDir string) error {
 // If a redirect exists, it writes to the redirect target's .gitignore instead.
 // repoPath is the project root directory.
 func FixGitignore(repoPath string) error {
-	return EnsureGitignoreForBeadsDir(ResolveBeadsDirForRepo(repoPath))
+	return EnsureGitignoreForIssueGraphDir(ResolveIssueGraphDirForRepo(repoPath))
 }
 
 func missingGitignorePatterns(content string) []string {
@@ -272,12 +272,12 @@ func writeGitignoreTemplate(gitignorePath string) error {
 	return nil
 }
 
-// CheckRedirectNotTracked verifies that .beads/redirect is NOT tracked by git.
+// CheckRedirectNotTracked verifies that .issuegraph/redirect is NOT tracked by git.
 // Redirect files contain relative paths that only work in the original worktree.
 // If committed, they cause warnings in other clones where the path is invalid.
 // repoPath is the project root directory.
 func CheckRedirectNotTracked(repoPath string) DoctorCheck {
-	redirectPath := filepath.Join(repoPath, ".beads", "redirect")
+	redirectPath := filepath.Join(repoPath, ".issuegraph", "redirect")
 
 	// First check if the file exists
 	if _, err := os.Stat(redirectPath); os.IsNotExist(err) {
@@ -317,15 +317,15 @@ func CheckRedirectNotTracked(repoPath string) DoctorCheck {
 		Name:    "Redirect Tracking",
 		Status:  StatusWarning,
 		Message: "redirect file is tracked by git",
-		Detail:  "The .beads/redirect file contains a relative path that only works in this worktree. When committed, it causes warnings in other clones.",
-		Fix:     "Run 'bd doctor --fix' to untrack, or manually: git rm --cached .beads/redirect",
+		Detail:  "The .issuegraph/redirect file contains a relative path that only works in this worktree. When committed, it causes warnings in other clones.",
+		Fix:     "Run 'issuegraph doctor --fix' to untrack, or manually: git rm --cached .issuegraph/redirect",
 	}
 }
 
-// FixRedirectTracking untracks the .beads/redirect file from git.
+// FixRedirectTracking untracks the .issuegraph/redirect file from git.
 // repoPath is the project root directory.
 func FixRedirectTracking(repoPath string) error {
-	redirectPath := filepath.Join(repoPath, ".beads", "redirect")
+	redirectPath := filepath.Join(repoPath, ".issuegraph", "redirect")
 
 	// Check if file is actually tracked first
 	cmd := exec.Command("git", "ls-files", redirectPath) // #nosec G204 - args are hardcoded paths
@@ -369,16 +369,16 @@ func parseRedirectTarget(data []byte) string {
 	return ""
 }
 
-// resolveRedirectTarget resolves a redirect target relative to the .beads parent.
+// resolveRedirectTarget resolves a redirect target relative to the .issuegraph parent.
 // Absolute targets are cleaned and returned as-is.
-func resolveRedirectTarget(beadsDir string, target string) string {
+func resolveRedirectTarget(issuegraphDir string, target string) string {
 	if target == "" {
 		return ""
 	}
 
 	resolvedTarget := target
 	if !filepath.IsAbs(target) {
-		projectRoot := filepath.Dir(beadsDir)
+		projectRoot := filepath.Dir(issuegraphDir)
 		resolvedTarget = filepath.Join(projectRoot, target)
 	}
 	resolvedTarget = filepath.Clean(resolvedTarget)
@@ -389,11 +389,11 @@ func resolveRedirectTarget(beadsDir string, target string) string {
 	return resolvedTarget
 }
 
-// CheckRedirectTargetValid verifies that the redirect target exists and has a valid beads database.
+// CheckRedirectTargetValid verifies that the redirect target exists and has a valid issuegraph database.
 // This catches cases where the redirect points to a non-existent directory or one without a database.
 // repoPath is the project root directory.
 func CheckRedirectTargetValid(repoPath string) DoctorCheck {
-	redirectPath := filepath.Join(repoPath, ".beads", "redirect")
+	redirectPath := filepath.Join(repoPath, ".issuegraph", "redirect")
 
 	// Check if redirect file exists
 	data, err := os.ReadFile(redirectPath) // #nosec G304 - path is hardcoded
@@ -424,8 +424,8 @@ func CheckRedirectTargetValid(repoPath string) DoctorCheck {
 		}
 	}
 
-	beadsDir := filepath.Dir(redirectPath)
-	resolvedTarget := resolveRedirectTarget(beadsDir, target)
+	issuegraphDir := filepath.Dir(redirectPath)
+	resolvedTarget := resolveRedirectTarget(issuegraphDir, target)
 
 	// Check if target directory exists
 	info, err := os.Stat(resolvedTarget)
@@ -455,7 +455,7 @@ func CheckRedirectTargetValid(repoPath string) DoctorCheck {
 		}
 	}
 
-	// Check for valid beads database in target
+	// Check for valid issuegraph database in target
 	// First check for Dolt backend via metadata.json — Dolt server mode has no local .db file
 	metadataPath := filepath.Join(resolvedTarget, "metadata.json")
 	metadataData, metaErr := os.ReadFile(metadataPath) // #nosec G304 -- constructed from known path
@@ -478,7 +478,7 @@ func CheckRedirectTargetValid(repoPath string) DoctorCheck {
 		}
 	}
 
-	dbPath := filepath.Join(resolvedTarget, "beads.db")
+	dbPath := filepath.Join(resolvedTarget, "issuegraph.db")
 	if _, err := os.Stat(dbPath); os.IsNotExist(err) {
 		// Also check for any .db file (legacy SQLite)
 		matches, _ := filepath.Glob(filepath.Join(resolvedTarget, "*.db"))
@@ -486,9 +486,9 @@ func CheckRedirectTargetValid(repoPath string) DoctorCheck {
 			return DoctorCheck{
 				Name:    "Redirect Target Valid",
 				Status:  StatusWarning,
-				Message: "Redirect target has no beads database",
+				Message: "Redirect target has no issuegraph database",
 				Detail:  fmt.Sprintf("Target: %s (no dolt directory or .db file found)", resolvedTarget),
-				Fix:     "Run 'bd init' in the target directory or check redirect path",
+				Fix:     "Run 'issuegraph init' in the target directory or check redirect path",
 			}
 		}
 	}
@@ -500,11 +500,11 @@ func CheckRedirectTargetValid(repoPath string) DoctorCheck {
 	}
 }
 
-// CheckRedirectTargetSyncWorktree verifies that the redirect target has a working beads-sync worktree.
+// CheckRedirectTargetSyncWorktree verifies that the redirect target has a working issuegraph-sync worktree.
 // This is important for repos using sync-branch mode with redirects.
 // repoPath is the project root directory.
 func CheckRedirectTargetSyncWorktree(repoPath string) DoctorCheck {
-	redirectPath := filepath.Join(repoPath, ".beads", "redirect")
+	redirectPath := filepath.Join(repoPath, ".issuegraph", "redirect")
 
 	// Check if redirect file exists
 	data, err := os.ReadFile(redirectPath) // #nosec G304 - path is hardcoded
@@ -533,8 +533,8 @@ func CheckRedirectTargetSyncWorktree(repoPath string) DoctorCheck {
 	}
 
 	// Resolve the target path
-	beadsDir := filepath.Dir(redirectPath)
-	resolvedTarget := resolveRedirectTarget(beadsDir, target)
+	issuegraphDir := filepath.Dir(redirectPath)
+	resolvedTarget := resolveRedirectTarget(issuegraphDir, target)
 
 	// Check if the target has a sync-branch configured in config.yaml
 	configPath := filepath.Join(resolvedTarget, "config.yaml")
@@ -557,35 +557,35 @@ func CheckRedirectTargetSyncWorktree(repoPath string) DoctorCheck {
 		}
 	}
 
-	// Target uses sync-branch - check for beads-sync worktree in the repo containing the target
-	// The target is inside a .beads dir, so the repo is the parent of .beads
+	// Target uses sync-branch - check for issuegraph-sync worktree in the repo containing the target
+	// The target is inside a .issuegraph dir, so the repo is the parent of .issuegraph
 	targetRepoRoot := filepath.Dir(resolvedTarget)
 
-	// Check for beads-sync worktree
-	worktreePath := filepath.Join(targetRepoRoot, ".beads-sync")
+	// Check for issuegraph-sync worktree
+	worktreePath := filepath.Join(targetRepoRoot, ".issuegraph-sync")
 	if _, err := os.Stat(worktreePath); os.IsNotExist(err) {
 		return DoctorCheck{
 			Name:    "Redirect Target Sync",
 			Status:  StatusWarning,
-			Message: "Redirect target missing beads-sync worktree",
+			Message: "Redirect target missing issuegraph-sync worktree",
 			Detail:  fmt.Sprintf("Expected worktree at: %s", worktreePath),
-			Fix:     fmt.Sprintf("Run 'bd init' in %s to set up beads", targetRepoRoot),
+			Fix:     fmt.Sprintf("Run 'issuegraph init' in %s to set up issuegraph", targetRepoRoot),
 		}
 	}
 
 	return DoctorCheck{
 		Name:    "Redirect Target Sync",
 		Status:  StatusOK,
-		Message: "Redirect target has beads-sync worktree",
+		Message: "Redirect target has issuegraph-sync worktree",
 	}
 }
 
-// CheckNoVestigialSyncWorktrees detects beads-sync worktrees in redirected repos that are unused.
-// When a repo uses .beads/redirect, it doesn't need its own beads-sync worktree since
+// CheckNoVestigialSyncWorktrees detects issuegraph-sync worktrees in redirected repos that are unused.
+// When a repo uses .issuegraph/redirect, it doesn't need its own issuegraph-sync worktree since
 // sync operations happen in the redirect target. These vestigial worktrees waste space.
 // repoPath is the project root directory.
 func CheckNoVestigialSyncWorktrees(repoPath string) DoctorCheck {
-	redirectPath := filepath.Join(repoPath, ".beads", "redirect")
+	redirectPath := filepath.Join(repoPath, ".issuegraph", "redirect")
 
 	// Check if redirect file exists
 	if _, err := os.Stat(redirectPath); os.IsNotExist(err) {
@@ -615,8 +615,8 @@ func CheckNoVestigialSyncWorktrees(repoPath string) DoctorCheck {
 		gitRoot = parent
 	}
 
-	// Check for .beads-sync worktree
-	syncWorktreePath := filepath.Join(gitRoot, ".beads-sync")
+	// Check for .issuegraph-sync worktree
+	syncWorktreePath := filepath.Join(gitRoot, ".issuegraph-sync")
 	if _, err := os.Stat(syncWorktreePath); os.IsNotExist(err) {
 		// No local worktree - good
 		return DoctorCheck{
@@ -626,22 +626,22 @@ func CheckNoVestigialSyncWorktrees(repoPath string) DoctorCheck {
 		}
 	}
 
-	// Found a local .beads-sync but we have a redirect - this is vestigial
+	// Found a local .issuegraph-sync but we have a redirect - this is vestigial
 	return DoctorCheck{
 		Name:    "Vestigial Sync Worktrees",
 		Status:  StatusWarning,
-		Message: "Vestigial .beads-sync worktree found",
+		Message: "Vestigial .issuegraph-sync worktree found",
 		Detail:  fmt.Sprintf("This repo uses redirect but has unused worktree at: %s", syncWorktreePath),
 		Fix:     fmt.Sprintf("Remove with: rm -rf %s", syncWorktreePath),
 	}
 }
 
-// CheckLastTouchedNotTracked verifies that .beads/last-touched is NOT tracked by git.
+// CheckLastTouchedNotTracked verifies that .issuegraph/last-touched is NOT tracked by git.
 // The last-touched file is local runtime state that should never be committed.
 // If committed, it causes spurious diffs in other clones.
 // repoPath is the project root directory.
 func CheckLastTouchedNotTracked(repoPath string) DoctorCheck {
-	lastTouchedPath := filepath.Join(repoPath, ".beads", "last-touched")
+	lastTouchedPath := filepath.Join(repoPath, ".issuegraph", "last-touched")
 
 	// First check if the file exists
 	if _, err := os.Stat(lastTouchedPath); os.IsNotExist(err) {
@@ -681,15 +681,15 @@ func CheckLastTouchedNotTracked(repoPath string) DoctorCheck {
 		Name:    "Last-Touched Tracking",
 		Status:  StatusWarning,
 		Message: "last-touched file is tracked by git",
-		Detail:  "The .beads/last-touched file is local runtime state that should never be committed.",
-		Fix:     "Run 'bd doctor --fix' to untrack, or manually: git rm --cached .beads/last-touched",
+		Detail:  "The .issuegraph/last-touched file is local runtime state that should never be committed.",
+		Fix:     "Run 'issuegraph doctor --fix' to untrack, or manually: git rm --cached .issuegraph/last-touched",
 	}
 }
 
-// FixLastTouchedTracking untracks the .beads/last-touched file from git.
+// FixLastTouchedTracking untracks the .issuegraph/last-touched file from git.
 // repoPath is the project root directory.
 func FixLastTouchedTracking(repoPath string) error {
-	lastTouchedPath := filepath.Join(repoPath, ".beads", "last-touched")
+	lastTouchedPath := filepath.Join(repoPath, ".issuegraph", "last-touched")
 
 	// Check if file is actually tracked first
 	cmd := exec.Command("git", "ls-files", lastTouchedPath) // #nosec G204 - args are hardcoded paths
@@ -725,7 +725,7 @@ func CheckProjectGitignore(repoPath string) DoctorCheck {
 				Name:    "Project Gitignore",
 				Status:  StatusWarning,
 				Message: "No project .gitignore found — Dolt/credential files may be committed accidentally",
-				Fix:     "Run: bd init (safe to re-run) or bd doctor --fix",
+				Fix:     "Run: issuegraph init (safe to re-run) or issuegraph doctor --fix",
 			}
 		}
 		return DoctorCheck{
@@ -749,7 +749,7 @@ func CheckProjectGitignore(repoPath string) DoctorCheck {
 			Status:  StatusWarning,
 			Message: "Project .gitignore missing required exclusion patterns",
 			Detail:  "Missing: " + strings.Join(missing, ", "),
-			Fix:     "Run: bd doctor --fix or bd init (safe to re-run)",
+			Fix:     "Run: issuegraph doctor --fix or issuegraph init (safe to re-run)",
 		}
 	}
 
@@ -760,7 +760,7 @@ func CheckProjectGitignore(repoPath string) DoctorCheck {
 	}
 }
 
-// EnsureProjectGitignore adds .dolt/, *.db, and .beads-credential-key patterns
+// EnsureProjectGitignore adds .dolt/, *.db, and .issuegraph-credential-key patterns
 // to the project-root .gitignore if they are not already present. Creates the
 // file if it doesn't exist. This prevents users from accidentally committing
 // Dolt database files or the credential encryption key.
@@ -805,7 +805,7 @@ func EnsureProjectGitignore(repoPath string) error {
 	return nil
 }
 
-// FixProjectGitignore is an alias for EnsureProjectGitignore, used by bd doctor --fix.
+// FixProjectGitignore is an alias for EnsureProjectGitignore, used by issuegraph doctor --fix.
 // repoPath is the project root directory.
 func FixProjectGitignore(repoPath string) error {
 	return EnsureProjectGitignore(repoPath)

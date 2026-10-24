@@ -4,7 +4,7 @@ import (
 	"context"
 	"testing"
 
-	"github.com/steveyegge/beads/backend/conformance"
+	"github.com/borg0ai/dx-issuegraph/backend/conformance"
 )
 
 // TestUOWDependencyEditorContract runs the shared DependencyEditor contract
@@ -74,12 +74,12 @@ func TestUOWDependencyEditorContract(t *testing.T) {
 // the seeding and scalar-query plumbing stays identical to the other roles'.
 func newUOWDependencyEditorFixture(t *testing.T, ctx context.Context) conformance.DependencyEditorFixture {
 	t.Helper()
-	provider := newUOWRoleFixtureProvider(t, ctx, "bd")
+	provider := newUOWRoleFixtureProvider(t, ctx, "issuegraph")
 	editor, err := NewDependencyEditor(provider)
 	if err != nil {
 		t.Fatalf("NewDependencyEditor: %v", err)
 	}
-	kit := newUOWRoleFixtureKit(provider, "bd")
+	kit := newUOWRoleFixtureKit(provider, "issuegraph")
 	return conformance.DependencyEditorFixture{
 		IssuePrefix:   kit.IssuePrefix,
 		Editor:        editor,

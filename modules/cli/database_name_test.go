@@ -14,7 +14,7 @@ func TestSanitizeDBName(t *testing.T) {
 		{"no-hyphens-here", "no_hyphens_here"},
 		{"dots.and-hyphens", "dots_and_hyphens"},
 		{"already_clean", "already_clean"},
-		{"beads", "beads"},
+		{"issuegraph", "issuegraph"},
 	}
 	for _, tt := range tests {
 		t.Run(tt.input, func(t *testing.T) {

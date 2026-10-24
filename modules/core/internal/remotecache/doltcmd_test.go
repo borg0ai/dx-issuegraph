@@ -5,7 +5,7 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/steveyegge/beads/internal/githooksenv"
+	"github.com/borg0ai/dx-issuegraph/internal/githooksenv"
 )
 
 // Cache push/clone/pull run git plumbing for a git+ remote: the spawned env

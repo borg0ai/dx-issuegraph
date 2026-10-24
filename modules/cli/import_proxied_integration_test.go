@@ -14,7 +14,7 @@ import (
 	"testing"
 	"time"
 
-	"github.com/steveyegge/beads/internal/types"
+	"github.com/borg0ai/dx-issuegraph/internal/types"
 )
 
 // importFixtureJSONL builds an export-shaped JSONL stream: an optional
@@ -24,7 +24,7 @@ import (
 func importFixtureJSONL(t *testing.T, issues []*types.Issue, extraLines ...string) string {
 	t.Helper()
 	var b strings.Builder
-	b.WriteString(`{"_schema":"beads-jsonl/1","_sort":"stable-v1"}` + "\n")
+	b.WriteString(`{"_schema":"issuegraph-jsonl/1","_sort":"stable-v1"}` + "\n")
 	for _, issue := range issues {
 		line, err := json.Marshal(issue)
 		if err != nil {
@@ -39,25 +39,25 @@ func importFixtureJSONL(t *testing.T, issues []*types.Issue, extraLines ...strin
 	return b.String()
 }
 
-// bdProxiedImport runs `bd import <args>` and returns the stderr report
+// issuegraphProxiedImport runs `issuegraph import <args>` and returns the stderr report
 // (import writes its human report to stderr), failing the test on error.
-func bdProxiedImport(t *testing.T, bd, dir string, args ...string) string {
+func issuegraphProxiedImport(t *testing.T, issuegraph, dir string, args ...string) string {
 	t.Helper()
 	fullArgs := append([]string{"import"}, args...)
-	stdout, stderr, err := bdProxiedRunBuffers(t, bd, dir, fullArgs...)
+	stdout, stderr, err := issuegraphProxiedRunBuffers(t, issuegraph, dir, fullArgs...)
 	if err != nil {
-		t.Fatalf("bd import %s failed: %v\nstdout:\n%s\nstderr:\n%s",
+		t.Fatalf("issuegraph import %s failed: %v\nstdout:\n%s\nstderr:\n%s",
 			strings.Join(args, " "), err, stdout, stderr)
 	}
 	return stderr
 }
 
-func bdProxiedImportWithInput(t *testing.T, bd, dir, input string, args ...string) (string, string, error) {
+func issuegraphProxiedImportWithInput(t *testing.T, issuegraph, dir, input string, args ...string) (string, string, error) {
 	t.Helper()
 	fullArgs := append([]string{"import"}, args...)
-	cmd := exec.Command(bd, fullArgs...)
+	cmd := exec.Command(issuegraph, fullArgs...)
 	cmd.Dir = dir
-	cmd.Env = bdProxiedEnv(dir)
+	cmd.Env = issuegraphProxiedEnv(dir)
 	cmd.Stdin = strings.NewReader(input)
 	stdout, stderr, err := runCommandBuffers(t, cmd)
 	return stdout.String(), stderr.String(), err
@@ -84,7 +84,7 @@ func proxiedImportQueryString(t *testing.T, db *sql.DB, query string, args ...an
 func TestProxiedServerImport(t *testing.T) {
 	requireSharedProxiedServer(t)
 	t.Parallel()
-	bd := buildEmbeddedBD(t)
+	issuegraph := buildEmbeddedBD(t)
 
 	when := time.Date(2026, 8, 1, 12, 0, 0, 0, time.UTC)
 
@@ -129,7 +129,7 @@ func TestProxiedServerImport(t *testing.T) {
 		}
 		marker := filepath.Join(t.TempDir(), "any_hook_marker")
 		script := "#!/bin/sh\nprintf '%s\\n' \"$1\" >> " + shellQuote(marker) + "\n"
-		p := newSharedProxiedProjectWithHooks(t, bd, "imph", map[string]string{
+		p := newSharedProxiedProjectWithHooks(t, issuegraph, "imph", map[string]string{
 			"on_create": script,
 			"on_update": script,
 			"on_close":  script,
@@ -141,7 +141,7 @@ func TestProxiedServerImport(t *testing.T) {
 			t.Fatalf("write fixture: %v", err)
 		}
 
-		report := bdProxiedImport(t, bd, p.dir, path)
+		report := issuegraphProxiedImport(t, issuegraph, p.dir, path)
 		if !strings.Contains(report, "Imported 3 issues") {
 			t.Errorf("import report = %q, want 'Imported 3 issues'", report)
 		}
@@ -155,7 +155,7 @@ func TestProxiedServerImport(t *testing.T) {
 
 	t.Run("roundtrip_one_commit_with_content", func(t *testing.T) {
 		t.Parallel()
-		p := newSharedProxiedProject(t, bd, "impa")
+		p := newSharedProxiedProject(t, issuegraph, "impa")
 		db := openProxiedDB(t, p)
 
 		fixture := importFixtureJSONL(t, fixtureIssues("impa"),
@@ -168,7 +168,7 @@ func TestProxiedServerImport(t *testing.T) {
 		}
 
 		head := proxiedDoltHead(t, db)
-		report := bdProxiedImport(t, bd, p.dir, path)
+		report := issuegraphProxiedImport(t, issuegraph, p.dir, path)
 		if !strings.Contains(report, "Imported 3 issues and 1 memories") {
 			t.Errorf("import report = %q, want 'Imported 3 issues and 1 memories'", report)
 		}
@@ -204,8 +204,8 @@ func TestProxiedServerImport(t *testing.T) {
 			t.Errorf("impa-r3 status = %q, want closed", got)
 		}
 
-		// bd's own view agrees with the raw oracle.
-		shown := bdProxiedShow(t, bd, p.dir, "impa-r1")
+		// issuegraph's own view agrees with the raw oracle.
+		shown := issuegraphProxiedShow(t, issuegraph, p.dir, "impa-r1")
 		if shown.Title != "Round-trip one" || shown.Priority != 2 {
 			t.Errorf("show impa-r1 = title %q priority %d, want the imported row", shown.Title, shown.Priority)
 		}
@@ -213,7 +213,7 @@ func TestProxiedServerImport(t *testing.T) {
 		// Re-import of the identical snapshot converges: no duplicated aux
 		// data, and nothing new to commit.
 		headBeforeReimport := proxiedDoltHead(t, db)
-		_ = bdProxiedImport(t, bd, p.dir, path)
+		_ = issuegraphProxiedImport(t, issuegraph, p.dir, path)
 		if got := proxiedImportQueryInt(t, db, "SELECT COUNT(*) FROM labels WHERE issue_id = 'impa-r1'"); got != 2 {
 			t.Errorf("labels after re-import = %d, want 2 (idempotent merge)", got)
 		}
@@ -236,7 +236,7 @@ func TestProxiedServerImport(t *testing.T) {
 	// loop and the shared issueops batch engine.
 	t.Run("promoted_no_history_routes_durable", func(t *testing.T) {
 		t.Parallel()
-		p := newSharedProxiedProject(t, bd, "impw")
+		p := newSharedProxiedProject(t, issuegraph, "impw")
 		db := openProxiedDB(t, p)
 
 		fixture := importFixtureJSONL(t, []*types.Issue{
@@ -261,7 +261,7 @@ func TestProxiedServerImport(t *testing.T) {
 			t.Fatalf("write fixture: %v", err)
 		}
 
-		report := bdProxiedImport(t, bd, p.dir, path)
+		report := issuegraphProxiedImport(t, issuegraph, p.dir, path)
 		if strings.Contains(report, "Skipped dependency") {
 			t.Errorf("import dropped a relation (promoted row re-planed into the wisps bucket?):\n%s", report)
 		}
@@ -297,7 +297,7 @@ func TestProxiedServerImport(t *testing.T) {
 	// batches, WITHIN THE SAME unit of work.
 	t.Run("cross_plane_in_batch_edges_are_wired", func(t *testing.T) {
 		t.Parallel()
-		p := newSharedProxiedProject(t, bd, "impx")
+		p := newSharedProxiedProject(t, issuegraph, "impx")
 		db := openProxiedDB(t, p)
 
 		// Edges in BOTH directions, so neither plane is only ever a target:
@@ -329,7 +329,7 @@ func TestProxiedServerImport(t *testing.T) {
 		}
 
 		head := proxiedDoltHead(t, db)
-		report := bdProxiedImport(t, bd, p.dir, path)
+		report := issuegraphProxiedImport(t, issuegraph, p.dir, path)
 		if strings.Contains(report, "Skipped dependency") {
 			t.Errorf("import skip-reported a cross-plane in-batch edge:\n%s", report)
 		}
@@ -363,7 +363,7 @@ func TestProxiedServerImport(t *testing.T) {
 		// And it converges: re-importing the same snapshot writes no second
 		// copy of either edge and commits nothing.
 		headBeforeReimport := proxiedDoltHead(t, db)
-		_ = bdProxiedImport(t, bd, p.dir, path)
+		_ = issuegraphProxiedImport(t, issuegraph, p.dir, path)
 		if got := proxiedImportQueryInt(t, db, "SELECT COUNT(*) FROM dependencies WHERE issue_id = 'impx-reg'"); got != 1 {
 			t.Errorf("regular -> wisp edges after re-import = %d, want 1", got)
 		}
@@ -377,7 +377,7 @@ func TestProxiedServerImport(t *testing.T) {
 
 	t.Run("stdin_dash_and_redirect_guard", func(t *testing.T) {
 		t.Parallel()
-		p := newSharedProxiedProject(t, bd, "impb")
+		p := newSharedProxiedProject(t, issuegraph, "impb")
 		db := openProxiedDB(t, p)
 
 		fixture := importFixtureJSONL(t, []*types.Issue{{
@@ -385,10 +385,10 @@ func TestProxiedServerImport(t *testing.T) {
 			IssueType: types.TypeTask, Priority: 2, CreatedAt: when, UpdatedAt: when,
 		}})
 
-		// bd import - reads the piped stream.
-		_, stderr, err := bdProxiedImportWithInput(t, bd, p.dir, fixture, "-")
+		// issuegraph import - reads the piped stream.
+		_, stderr, err := issuegraphProxiedImportWithInput(t, issuegraph, p.dir, fixture, "-")
 		if err != nil {
-			t.Fatalf("bd import -: %v\n%s", err, stderr)
+			t.Fatalf("issuegraph import -: %v\n%s", err, stderr)
 		}
 		if !strings.Contains(stderr, "Imported 1 issues") {
 			t.Errorf("stdin import report = %q, want 'Imported 1 issues'", stderr)
@@ -399,22 +399,22 @@ func TestProxiedServerImport(t *testing.T) {
 
 		// Redirected stdin WITHOUT "-" must refuse rather than silently
 		// importing the default JSONL (bd-axluy).
-		_, stderr, err = bdProxiedImportWithInput(t, bd, p.dir, fixture)
+		_, stderr, err = issuegraphProxiedImportWithInput(t, issuegraph, p.dir, fixture)
 		if err == nil {
-			t.Fatal("bd import with redirected stdin and no \"-\" should refuse")
+			t.Fatal("issuegraph import with redirected stdin and no \"-\" should refuse")
 		}
-		if !strings.Contains(stderr, "use 'bd import -'") {
+		if !strings.Contains(stderr, "use 'issuegraph import -'") {
 			t.Errorf("redirect-guard message = %q, want the bd-axluy hint", stderr)
 		}
 	})
 
 	t.Run("upsert_updates_and_stale_guard", func(t *testing.T) {
 		t.Parallel()
-		p := newSharedProxiedProject(t, bd, "impc")
+		p := newSharedProxiedProject(t, issuegraph, "impc")
 		db := openProxiedDB(t, p)
 
 		// Seed a live row through the ordinary create door.
-		created := bdProxiedCreate(t, bd, p.dir, "Live local row", "--type", "task", "--priority", "2")
+		created := issuegraphProxiedCreate(t, issuegraph, p.dir, "Live local row", "--type", "task", "--priority", "2")
 
 		// An older snapshot of that row is stale-skipped: local state wins.
 		old := when.Add(-30 * 24 * time.Hour)
@@ -426,7 +426,7 @@ func TestProxiedServerImport(t *testing.T) {
 		if err := os.WriteFile(stalePath, []byte(staleFixture), 0o644); err != nil {
 			t.Fatalf("write stale fixture: %v", err)
 		}
-		report := bdProxiedImport(t, bd, p.dir, stalePath)
+		report := issuegraphProxiedImport(t, issuegraph, p.dir, stalePath)
 		if !strings.Contains(report, "stale skipped") {
 			t.Errorf("stale import report = %q, want a stale-skipped notice", report)
 		}
@@ -435,7 +435,7 @@ func TestProxiedServerImport(t *testing.T) {
 		}
 
 		// --allow-stale deliberately restores the older snapshot.
-		_ = bdProxiedImport(t, bd, p.dir, "--allow-stale", stalePath)
+		_ = issuegraphProxiedImport(t, issuegraph, p.dir, "--allow-stale", stalePath)
 		if got := proxiedImportQueryString(t, db, "SELECT title FROM issues WHERE id = ?", created.ID); got != "Older snapshot title" {
 			t.Errorf("title after --allow-stale = %q, want the older snapshot restored", got)
 		}
@@ -450,7 +450,7 @@ func TestProxiedServerImport(t *testing.T) {
 		if err := os.WriteFile(newerPath, []byte(newerFixture), 0o644); err != nil {
 			t.Fatalf("write newer fixture: %v", err)
 		}
-		report = bdProxiedImport(t, bd, p.dir, newerPath)
+		report = issuegraphProxiedImport(t, issuegraph, p.dir, newerPath)
 		if !strings.Contains(report, "Updated 1 existing issue(s)") {
 			t.Errorf("newer import report = %q, want the updated-issues summary", report)
 		}
@@ -461,7 +461,7 @@ func TestProxiedServerImport(t *testing.T) {
 
 	t.Run("dry_run_classifies_and_writes_nothing", func(t *testing.T) {
 		t.Parallel()
-		p := newSharedProxiedProject(t, bd, "impd")
+		p := newSharedProxiedProject(t, issuegraph, "impd")
 		db := openProxiedDB(t, p)
 
 		fixture := importFixtureJSONL(t, fixtureIssues("impd"),
@@ -473,7 +473,7 @@ func TestProxiedServerImport(t *testing.T) {
 		}
 
 		head := proxiedDoltHead(t, db)
-		stdout, _, err := bdProxiedRunBuffers(t, bd, p.dir, "import", "--dry-run", "--json", path)
+		stdout, _, err := issuegraphProxiedRunBuffers(t, issuegraph, p.dir, "import", "--dry-run", "--json", path)
 		if err != nil {
 			t.Fatalf("dry-run import: %v\n%s", err, stdout)
 		}
@@ -504,10 +504,10 @@ func TestProxiedServerImport(t *testing.T) {
 
 	t.Run("dedup_skips_matching_open_title", func(t *testing.T) {
 		t.Parallel()
-		p := newSharedProxiedProject(t, bd, "impe")
+		p := newSharedProxiedProject(t, issuegraph, "impe")
 		db := openProxiedDB(t, p)
 
-		bdProxiedCreate(t, bd, p.dir, "Duplicate title", "--type", "task")
+		issuegraphProxiedCreate(t, issuegraph, p.dir, "Duplicate title", "--type", "task")
 
 		fixture := importFixtureJSONL(t, []*types.Issue{
 			{
@@ -523,7 +523,7 @@ func TestProxiedServerImport(t *testing.T) {
 		if err := os.WriteFile(path, []byte(fixture), 0o644); err != nil {
 			t.Fatalf("write fixture: %v", err)
 		}
-		report := bdProxiedImport(t, bd, p.dir, "--dedup", path)
+		report := issuegraphProxiedImport(t, issuegraph, p.dir, "--dedup", path)
 		if !strings.Contains(report, "(1 duplicates skipped)") {
 			t.Errorf("dedup report = %q, want '(1 duplicates skipped)'", report)
 		}
@@ -537,10 +537,10 @@ func TestProxiedServerImport(t *testing.T) {
 
 	t.Run("import_is_the_sanctioned_upsert_door", func(t *testing.T) {
 		t.Parallel()
-		p := newSharedProxiedProject(t, bd, "impf")
+		p := newSharedProxiedProject(t, issuegraph, "impf")
 		db := openProxiedDB(t, p)
 
-		created := bdProxiedCreate(t, bd, p.dir, "Occupied id", "--type", "task")
+		created := issuegraphProxiedCreate(t, issuegraph, p.dir, "Occupied id", "--type", "task")
 
 		// Import IS the sanctioned upsert door: the occupied ID upserts.
 		newer := time.Now().UTC().Add(time.Hour).Truncate(time.Second)
@@ -552,7 +552,7 @@ func TestProxiedServerImport(t *testing.T) {
 		if err := os.WriteFile(path, []byte(fixture), 0o644); err != nil {
 			t.Fatalf("write fixture: %v", err)
 		}
-		_ = bdProxiedImport(t, bd, p.dir, path)
+		_ = issuegraphProxiedImport(t, issuegraph, p.dir, path)
 		if got := proxiedImportQueryString(t, db, "SELECT title FROM issues WHERE id = ?", created.ID); got != "Upserted through the door" {
 			t.Errorf("title after upsert = %q, want the imported rewrite", got)
 		}

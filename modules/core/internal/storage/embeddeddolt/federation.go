@@ -17,27 +17,27 @@ import (
 	"sync"
 	"time"
 
-	"github.com/steveyegge/beads/internal/storage"
-	"github.com/steveyegge/beads/internal/storage/issueops"
-	"github.com/steveyegge/beads/internal/storage/versioncontrolops"
+	"github.com/borg0ai/dx-issuegraph/internal/storage"
+	"github.com/borg0ai/dx-issuegraph/internal/storage/issueops"
+	"github.com/borg0ai/dx-issuegraph/internal/storage/versioncontrolops"
 )
 
 // credentialKeyFile is the filename for the random encryption key.
-const credentialKeyFile = ".beads-credential-key" //nolint:gosec // G101: filename, not a credential
+const credentialKeyFile = ".issuegraph-credential-key" //nolint:gosec // G101: filename, not a credential
 
 // ensureCredentialKey lazily initializes the credential encryption key.
 func (s *EmbeddedDoltStore) ensureCredentialKey() error {
 	if s.credentialKey != nil {
 		return nil
 	}
-	if s.beadsDir == "" {
-		return fmt.Errorf("beads directory not set; credential encryption unavailable")
+	if s.issuegraphDir == "" {
+		return fmt.Errorf("issuegraph directory not set; credential encryption unavailable")
 	}
 
-	keyPath := filepath.Join(s.beadsDir, credentialKeyFile)
+	keyPath := filepath.Join(s.issuegraphDir, credentialKeyFile)
 
 	// Try to load existing key.
-	key, err := os.ReadFile(keyPath) //nolint:gosec // G304: keyPath derived from trusted beadsDir
+	key, err := os.ReadFile(keyPath) //nolint:gosec // G304: keyPath derived from trusted issuegraphDir
 	if err == nil && len(key) == 32 {
 		s.credentialKey = key
 		return nil
@@ -209,7 +209,7 @@ func (s *EmbeddedDoltStore) verifyPeerRemoteURL(ctx context.Context, peer, store
 		return tx.QueryRowContext(ctx, "SELECT url FROM dolt_remotes WHERE name = ?", peer).Scan(&liveURL)
 	})
 	if errors.Is(err, sql.ErrNoRows) {
-		return fmt.Errorf("federation peer %s has stored credentials but no remote named %s exists; re-run 'bd federation add-peer %s <url> --user <user>' to restore it", peer, peer, peer)
+		return fmt.Errorf("federation peer %s has stored credentials but no remote named %s exists; re-run 'issuegraph federation add-peer %s <url> --user <user>' to restore it", peer, peer, peer)
 	}
 	if err != nil {
 		return fmt.Errorf("resolve remote URL for peer %s: %w", peer, err)
@@ -298,10 +298,10 @@ func (s *EmbeddedDoltStore) Sync(ctx context.Context, peer string, strategy stri
 	// GH#2474 / bd-578h9.2: commit pending changes before the merge, matching
 	// embedded Pull/PullRemote/PullFrom and server-mode Sync. Embedded Commit is
 	// DOLT_COMMIT('-Am'), so it stages config — where kv.memory.* memories live —
-	// and a leftover dirty working set (e.g. a `bd remember` write) would
+	// and a leftover dirty working set (e.g. a `issuegraph remember` write) would
 	// otherwise make DOLT_MERGE refuse to start ("cannot merge with uncommitted
 	// changes"). CommitPending is a no-op when the working set is already clean.
-	if _, err := s.CommitPending(ctx, "beads"); err != nil {
+	if _, err := s.CommitPending(ctx, "issuegraph"); err != nil {
 		result.Error = fmt.Errorf("commit pending before sync: %w", err)
 		return result, result.Error
 	}

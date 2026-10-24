@@ -11,9 +11,9 @@ import (
 	// Import MySQL driver for server mode connections
 	_ "github.com/go-sql-driver/mysql"
 
-	"github.com/steveyegge/beads/internal/configfile"
-	"github.com/steveyegge/beads/internal/doltserver"
-	"github.com/steveyegge/beads/internal/storage/doltutil"
+	"github.com/borg0ai/dx-issuegraph/internal/configfile"
+	"github.com/borg0ai/dx-issuegraph/internal/doltserver"
+	"github.com/borg0ai/dx-issuegraph/internal/storage/doltutil"
 )
 
 // ServerHealthResult holds the results of all server health checks
@@ -23,15 +23,15 @@ type ServerHealthResult struct {
 }
 
 // RunServerHealthChecks runs all server-mode health checks and returns the result.
-// This is called when `bd doctor --server` is used.
+// This is called when `issuegraph doctor --server` is used.
 func RunServerHealthChecks(path string) ServerHealthResult {
 	result := ServerHealthResult{
 		OverallOK: true,
 	}
 
 	// Load config to check if server mode is configured
-	_, beadsDir := getBackendAndBeadsDir(path)
-	cfg, err := configfile.Load(beadsDir)
+	_, issuegraphDir := getBackendAndIssueGraphDir(path)
+	cfg, err := configfile.Load(issuegraphDir)
 	if err != nil {
 		result.Checks = append(result.Checks, DoctorCheck{
 			Name:     "Server Config",
@@ -49,7 +49,7 @@ func RunServerHealthChecks(path string) ServerHealthResult {
 			Name:     "Server Config",
 			Status:   StatusError,
 			Message:  "No metadata.json found",
-			Fix:      "Run 'bd init' to initialize beads",
+			Fix:      "Run 'issuegraph init' to initialize issuegraph",
 			Category: CategoryFederation,
 		})
 		result.OverallOK = false
@@ -85,12 +85,12 @@ func RunServerHealthChecks(path string) ServerHealthResult {
 	host := cfg.GetDoltServerHost()
 	// Use doltserver.DefaultConfig for port resolution (env > port file > config.yaml).
 	// Port 0 means server not yet started — report that clearly.
-	port := doltserver.DefaultConfig(beadsDir).Port
+	port := doltserver.DefaultConfig(issuegraphDir).Port
 	if port == 0 {
 		result.Checks = append(result.Checks, DoctorCheck{
 			Name:     "Server port",
 			Status:   StatusWarning,
-			Message:  "No Dolt server port configured and no server running. Run any bd command to auto-start.",
+			Message:  "No Dolt server port configured and no server running. Run any issuegraph command to auto-start.",
 			Category: CategoryFederation,
 		})
 		return result
@@ -106,7 +106,7 @@ func RunServerHealthChecks(path string) ServerHealthResult {
 	}
 
 	// Check 2: Connect and verify it's Dolt (get version)
-	versionCheck, db := checkDoltVersion(cfg, beadsDir)
+	versionCheck, db := checkDoltVersion(cfg, issuegraphDir)
 	result.Checks = append(result.Checks, versionCheck)
 	if versionCheck.Status == StatusError {
 		result.OverallOK = false
@@ -121,7 +121,7 @@ func RunServerHealthChecks(path string) ServerHealthResult {
 		}
 	}()
 
-	// Get database name from config (uses dolt_database field, default: "beads")
+	// Get database name from config (uses dolt_database field, default: "issuegraph")
 	database := cfg.GetDoltDatabase()
 
 	// Check 3: Database exists and is queryable
@@ -131,7 +131,7 @@ func RunServerHealthChecks(path string) ServerHealthResult {
 		result.OverallOK = false
 	}
 
-	// Check 4: Schema compatible (can query beads tables)
+	// Check 4: Schema compatible (can query issuegraph tables)
 	schemaCheck := checkSchemaCompatible(db, database)
 	result.Checks = append(result.Checks, schemaCheck)
 	if schemaCheck.Status == StatusError {
@@ -159,19 +159,19 @@ func RunServerHealthChecks(path string) ServerHealthResult {
 // should not exist on the production Dolt server. These accumulate from interrupted
 // test runs and terminated polecats, wasting server memory and potentially
 // contributing to performance degradation under concurrent load.
-// - testdb_*: BEADS_TEST_MODE=1 FNV hash of temp paths
+// - testdb_*: ISSUEGRAPH_TEST_MODE=1 FNV hash of temp paths
 // - doctest_*: doctor test helpers
 // - doctortest_*: doctor test helpers
-// - beads_pt*: orchestrator patrol_helpers_test.go random prefixes
-// - beads_vr*: orchestrator mail/router_test.go random prefixes
-// - beads_t[0-9a-f]*: protocol test random prefixes (t + 8 hex chars)
+// - issuegraph_pt*: orchestrator patrol_helpers_test.go random prefixes
+// - issuegraph_vr*: orchestrator mail/router_test.go random prefixes
+// - issuegraph_t[0-9a-f]*: protocol test random prefixes (t + 8 hex chars)
 var staleDatabasePrefixes = []string{
 	"testdb_",
 	"doctest_",
 	"doctortest_",
-	"beads_pt",
-	"beads_vr",
-	"beads_t",
+	"issuegraph_pt",
+	"issuegraph_vr",
+	"issuegraph_t",
 }
 
 // knownProductionDatabases are the databases that should exist on a production server.
@@ -254,7 +254,7 @@ func checkStaleDatabases(db *sql.DB) DoctorCheck {
 		Status:   StatusWarning,
 		Message:  fmt.Sprintf("%d stale test/polecat databases found", len(stale)),
 		Detail:   strings.TrimSpace(detail),
-		Fix:      "Run 'bd dolt clean-databases' to drop stale databases",
+		Fix:      "Run 'issuegraph dolt clean-databases' to drop stale databases",
 		Category: CategoryMaintenance,
 	}
 }
@@ -284,14 +284,14 @@ func checkServerReachable(host string, port int) DoctorCheck {
 
 // checkDoltVersion connects to the server and checks if it's a Dolt server
 // Returns the DoctorCheck and an open database connection (caller must close)
-func checkDoltVersion(cfg *configfile.Config, beadsDir string) (DoctorCheck, *sql.DB) {
+func checkDoltVersion(cfg *configfile.Config, issuegraphDir string) (DoctorCheck, *sql.DB) {
 	host := cfg.GetDoltServerHost()
-	port := doltserver.DefaultConfig(beadsDir).Port
+	port := doltserver.DefaultConfig(issuegraphDir).Port
 	user := cfg.GetDoltServerUser()
 
-	// Resolve password the same way the CRUD path does: BEADS_DOLT_PASSWORD env
+	// Resolve password the same way the CRUD path does: ISSUEGRAPH_DOLT_PASSWORD env
 	// takes precedence (checked inside GetDoltServerPasswordForPort), with a
-	// fallback to ~/.config/beads/credentials keyed by [host:port]. Using the
+	// fallback to ~/.config/issuegraph/credentials keyed by [host:port]. Using the
 	// resolved runtime port is required because the port file may differ from
 	// the metadata port (bd-h5k7).
 	password := cfg.GetDoltServerPasswordForPort(port)
@@ -372,7 +372,7 @@ func checkDoltVersion(cfg *configfile.Config, beadsDir string) (DoctorCheck, *sq
 	}, db
 }
 
-// checkDatabaseExists checks if the beads database exists
+// checkDatabaseExists checks if the issuegraph database exists
 func checkDatabaseExists(db *sql.DB, database string) DoctorCheck {
 	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
 	defer cancel()
@@ -434,7 +434,7 @@ func checkDatabaseExists(db *sql.DB, database string) DoctorCheck {
 			Name:     "Database Exists",
 			Status:   StatusError,
 			Message:  fmt.Sprintf("Database '%s' not found", database),
-			Fix:      fmt.Sprintf("Run 'bd bootstrap' to recover the existing '%s' database safely. Use 'bd init' only for brand-new projects.", database),
+			Fix:      fmt.Sprintf("Run 'issuegraph bootstrap' to recover the existing '%s' database safely. Use 'issuegraph init' only for brand-new projects.", database),
 			Category: CategoryFederation,
 		}
 	}
@@ -459,7 +459,7 @@ func checkDatabaseExists(db *sql.DB, database string) DoctorCheck {
 			Name:     "Database Exists",
 			Status:   StatusWarning,
 			Message:  fmt.Sprintf("Database '%s' uses hyphens (legacy naming)", database),
-			Detail:   "New projects use underscores. To migrate: export data, run 'bd init --force', re-import.",
+			Detail:   "New projects use underscores. To migrate: export data, run 'issuegraph init --force', re-import.",
 			Category: CategoryFederation,
 		}
 	}
@@ -489,7 +489,7 @@ func isValidIdentifier(s string) bool {
 	return true
 }
 
-// checkSchemaCompatible checks if the beads tables are queryable
+// checkSchemaCompatible checks if the issuegraph tables are queryable
 func checkSchemaCompatible(db *sql.DB, database string) DoctorCheck {
 	// Note: database parameter reserved for future use (e.g., multi-database support)
 	_ = database
@@ -505,7 +505,7 @@ func checkSchemaCompatible(db *sql.DB, database string) DoctorCheck {
 				Name:     "Schema Compatible",
 				Status:   StatusError,
 				Message:  "Issues table not found",
-				Fix:      "Run 'bd init' to create schema",
+				Fix:      "Run 'issuegraph init' to create schema",
 				Category: CategoryFederation,
 			}
 		}
@@ -518,24 +518,24 @@ func checkSchemaCompatible(db *sql.DB, database string) DoctorCheck {
 		}
 	}
 
-	// Query metadata table for bd_version
-	var bdVersion string
-	err = db.QueryRowContext(ctx, "SELECT value FROM local_metadata WHERE `key` = 'bd_version'").Scan(&bdVersion)
+	// Query metadata table for issuegraph_version
+	var issuegraphVersion string
+	err = db.QueryRowContext(ctx, "SELECT value FROM local_metadata WHERE `key` = 'issuegraph_version'").Scan(&issuegraphVersion)
 	if err != nil && err != sql.ErrNoRows {
 		if strings.Contains(err.Error(), "doesn't exist") || strings.Contains(err.Error(), "Unknown table") {
 			return DoctorCheck{
 				Name:     "Schema Compatible",
 				Status:   StatusWarning,
 				Message:  fmt.Sprintf("%d issues found (no metadata table)", count),
-				Fix:      "Run 'bd migrate' to update schema",
+				Fix:      "Run 'issuegraph migrate' to update schema",
 				Category: CategoryFederation,
 			}
 		}
 	}
 
 	detail := fmt.Sprintf("%d issues", count)
-	if bdVersion != "" {
-		detail = fmt.Sprintf("%d issues (bd %s)", count, bdVersion)
+	if issuegraphVersion != "" {
+		detail = fmt.Sprintf("%d issues (issuegraph %s)", count, issuegraphVersion)
 	}
 
 	return DoctorCheck{

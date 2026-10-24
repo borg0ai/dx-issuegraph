@@ -5,13 +5,13 @@ import (
 	"os"
 	"strings"
 
+	"github.com/borg0ai/dx-issuegraph/internal/metrics"
+	"github.com/borg0ai/dx-issuegraph/internal/storage"
+	"github.com/borg0ai/dx-issuegraph/internal/types"
+	"github.com/borg0ai/dx-issuegraph/internal/utils"
+	"github.com/borg0ai/dx-issuegraph/internal/validation"
+	"github.com/borg0ai/dx-issuegraph/internal/workapi"
 	"github.com/spf13/cobra"
-	"github.com/steveyegge/beads/internal/metrics"
-	"github.com/steveyegge/beads/internal/storage"
-	"github.com/steveyegge/beads/internal/types"
-	"github.com/steveyegge/beads/internal/utils"
-	"github.com/steveyegge/beads/internal/validation"
-	"github.com/steveyegge/beads/internal/workapi"
 )
 
 var searchCmd = &cobra.Command{
@@ -28,18 +28,18 @@ beyond --limit are dropped status-blind, so when hunting live work in a
 large DB, narrow with --status open or raise --limit.
 
 Examples:
-  bd search "authentication bug"
-  bd search "login" --status open
-  bd search "database" --label backend --limit 10
-  bd search --query "performance" --assignee alice
-  bd search "bd-5q" # Search by partial ID (fast prefix match)
-  bd search "security" --priority-min 0 --priority-max 2
-  bd search "bug" --created-after 2025-01-01
-  bd search "refactor" --status open  # Only open issues
-  bd search "bug" --sort priority
-  bd search "task" --sort created --reverse
-  bd search "api" --desc-contains "endpoint"
-  bd search "cleanup" --no-assignee --no-labels`,
+  issuegraph search "authentication bug"
+  issuegraph search "login" --status open
+  issuegraph search "database" --label backend --limit 10
+  issuegraph search --query "performance" --assignee alice
+  issuegraph search "bd-5q" # Search by partial ID (fast prefix match)
+  issuegraph search "security" --priority-min 0 --priority-max 2
+  issuegraph search "bug" --created-after 2025-01-01
+  issuegraph search "refactor" --status open  # Only open issues
+  issuegraph search "bug" --sort priority
+  issuegraph search "task" --sort created --reverse
+  issuegraph search "api" --desc-contains "endpoint"
+  issuegraph search "cleanup" --no-assignee --no-labels`,
 	SilenceUsage:  true,
 	SilenceErrors: true,
 	RunE: func(cmd *cobra.Command, args []string) error {
@@ -358,7 +358,7 @@ func outputSearchResults(issues []*types.Issue, query string, longFormat bool) {
 
 func init() {
 	searchCmd.Flags().String("query", "", "Search query (alternative to positional argument)")
-	searchCmd.Flags().StringP("status", "s", "", "Filter by stored status (comma-separated for OR; open, in_progress, blocked, deferred, closed, all). Default searches all statuses including closed. Note: dependency-blocked issues use 'bd blocked'")
+	searchCmd.Flags().StringP("status", "s", "", "Filter by stored status (comma-separated for OR; open, in_progress, blocked, deferred, closed, all). Default searches all statuses including closed. Note: dependency-blocked issues use 'issuegraph blocked'")
 	searchCmd.Flags().StringP("assignee", "a", "", "Filter by assignee")
 	searchCmd.Flags().StringP("type", "t", "", "Filter by type (bug, feature, task, epic, chore, decision, merge-request, molecule, gate)")
 	searchCmd.Flags().StringSliceP("label", "l", []string{}, "Filter by labels (AND: must have ALL)")

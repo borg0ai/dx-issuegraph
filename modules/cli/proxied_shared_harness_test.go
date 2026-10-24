@@ -10,7 +10,7 @@ import (
 	"sync/atomic"
 	"testing"
 
-	"github.com/steveyegge/beads/internal/testutil"
+	"github.com/borg0ai/dx-issuegraph/internal/testutil"
 )
 
 var (
@@ -42,8 +42,8 @@ func sharedProxiedServerPort(t *testing.T) int {
 
 func requireSharedProxiedServer(t *testing.T) int {
 	t.Helper()
-	if os.Getenv("BEADS_TEST_PROXIED_SERVER") != "1" {
-		t.Skip("set BEADS_TEST_PROXIED_SERVER=1 to run proxied-server integration tests")
+	if os.Getenv("ISSUEGRAPH_TEST_PROXIED_SERVER") != "1" {
+		t.Skip("set ISSUEGRAPH_TEST_PROXIED_SERVER=1 to run proxied-server integration tests")
 	}
 	return sharedProxiedServerPort(t)
 }
@@ -65,18 +65,18 @@ func sharedProxiedInitArgs(t *testing.T, extraInitArgs ...string) (string, []str
 	return database, args
 }
 
-func newSharedProxiedProject(t *testing.T, bd, prefix string, extraInitArgs ...string) proxiedProject {
+func newSharedProxiedProject(t *testing.T, issuegraph, prefix string, extraInitArgs ...string) proxiedProject {
 	t.Helper()
 	database, args := sharedProxiedInitArgs(t, extraInitArgs...)
-	p := bdProxiedInit(t, bd, prefix, args...)
+	p := issuegraphProxiedInit(t, issuegraph, prefix, args...)
 	p.database = database
 	return p
 }
 
-func newSharedProxiedProjectWithHooks(t *testing.T, bd, prefix string, hooks map[string]string, extraInitArgs ...string) proxiedProject {
+func newSharedProxiedProjectWithHooks(t *testing.T, issuegraph, prefix string, hooks map[string]string, extraInitArgs ...string) proxiedProject {
 	t.Helper()
 	database, args := sharedProxiedInitArgs(t, extraInitArgs...)
-	p := bdProxiedInitWithHooks(t, bd, prefix, hooks, args...)
+	p := issuegraphProxiedInitWithHooks(t, issuegraph, prefix, hooks, args...)
 	p.database = database
 	return p
 }

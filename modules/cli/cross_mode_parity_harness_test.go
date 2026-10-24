@@ -18,7 +18,7 @@ package main
 //
 // The cases are named TestProxiedServer* so the proxied CI lane's discovery
 // (.github/scripts/proxied-test-shard.sh) picks them up, and gate only on
-// BEADS_TEST_PROXIED_SERVER: the classic half needs no gate of its own, since
+// ISSUEGRAPH_TEST_PROXIED_SERVER: the classic half needs no gate of its own, since
 // the same binary runs it with the proxied env removed.
 
 import (
@@ -29,33 +29,33 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/steveyegge/beads/internal/types"
+	"github.com/borg0ai/dx-issuegraph/internal/types"
 )
 
 // crossModeEnv is one initialized workspace plus the environment that selects
 // its backend. Everything a parity case does goes through run(), so the only
 // difference between the two modes is the env and the directory.
 type crossModeEnv struct {
-	mode string
-	bd   string
-	dir  string
-	env  []string
+	mode       string
+	issuegraph string
+	dir        string
+	env        []string
 }
 
 // newCrossModeEnvs initializes one classic and one proxied workspace with
 // equivalent configuration. The prefixes differ only so the two workspaces are
 // telling apart in failure output; nothing compares ids across modes.
-func newCrossModeEnvs(t *testing.T, bd, classicPrefix, proxiedPrefix string) []crossModeEnv {
+func newCrossModeEnvs(t *testing.T, issuegraph, classicPrefix, proxiedPrefix string) []crossModeEnv {
 	t.Helper()
-	classicDir, _, _ := bdInit(t, bd, "--prefix", classicPrefix)
-	proxied := newSharedProxiedProject(t, bd, proxiedPrefix)
+	classicDir, _, _ := issuegraphInit(t, issuegraph, "--prefix", classicPrefix)
+	proxied := newSharedProxiedProject(t, issuegraph, proxiedPrefix)
 	return []crossModeEnv{
-		{mode: "classic", bd: bd, dir: classicDir, env: bdEnv(classicDir)},
-		{mode: "proxied", bd: bd, dir: proxied.dir, env: bdProxiedEnv(proxied.dir)},
+		{mode: "classic", issuegraph: issuegraph, dir: classicDir, env: issuegraphEnv(classicDir)},
+		{mode: "proxied", issuegraph: issuegraph, dir: proxied.dir, env: issuegraphProxiedEnv(proxied.dir)},
 	}
 }
 
-// run executes bd in this workspace and returns stdout, stderr and the exit
+// run executes issuegraph in this workspace and returns stdout, stderr and the exit
 // code. A command that could not be started at all is fatal — that is a broken
 // harness, not a parity verdict.
 func (e crossModeEnv) run(t *testing.T, args ...string) (string, string, int) {
@@ -65,7 +65,7 @@ func (e crossModeEnv) run(t *testing.T, args ...string) (string, string, int) {
 
 // runStdin is run() with stdin content, for the commands that read a script.
 // It always attaches a reader, including for the empty script — "no stdin at
-// all" and "an empty stdin" are different inputs to `bd batch`, and only the
+// all" and "an empty stdin" are different inputs to `issuegraph batch`, and only the
 // second is the no-op case.
 func (e crossModeEnv) runStdin(t *testing.T, stdin string, args ...string) (string, string, int) {
 	t.Helper()
@@ -74,7 +74,7 @@ func (e crossModeEnv) runStdin(t *testing.T, stdin string, args ...string) (stri
 
 func (e crossModeEnv) runWith(t *testing.T, stdin io.Reader, args ...string) (string, string, int) {
 	t.Helper()
-	cmd := exec.Command(e.bd, args...)
+	cmd := exec.Command(e.issuegraph, args...)
 	cmd.Dir = e.dir
 	cmd.Env = e.env
 	if stdin != nil {
@@ -88,7 +88,7 @@ func (e crossModeEnv) runWith(t *testing.T, stdin io.Reader, args ...string) (st
 	if err != nil {
 		var ee *exec.ExitError
 		if !errors.As(err, &ee) {
-			t.Fatalf("[%s] bd %s could not run: %v\nstdout:\n%s\nstderr:\n%s",
+			t.Fatalf("[%s] issuegraph %s could not run: %v\nstdout:\n%s\nstderr:\n%s",
 				e.mode, strings.Join(args, " "), err, stdout.String(), stderr.String())
 		}
 		code = ee.ExitCode()
@@ -102,7 +102,7 @@ func (e crossModeEnv) mustRun(t *testing.T, args ...string) string {
 	t.Helper()
 	stdout, stderr, code := e.run(t, args...)
 	if code != 0 {
-		t.Fatalf("[%s] bd %s failed with exit %d\nstdout:\n%s\nstderr:\n%s",
+		t.Fatalf("[%s] issuegraph %s failed with exit %d\nstdout:\n%s\nstderr:\n%s",
 			e.mode, strings.Join(args, " "), code, stdout, stderr)
 	}
 	return stdout

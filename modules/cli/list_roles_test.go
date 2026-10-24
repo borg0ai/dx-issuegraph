@@ -3,11 +3,11 @@ package main
 import (
 	"testing"
 
-	"github.com/steveyegge/beads/internal/types"
-	"github.com/steveyegge/beads/issueops"
+	"github.com/borg0ai/dx-issuegraph/internal/types"
+	"github.com/borg0ai/dx-issuegraph/issueops"
 )
 
-// The two projections `bd list` performs between its roles and its formatters.
+// The two projections `issuegraph list` performs between its roles and its formatters.
 // Both routes call them, so a regression here shows up on both at once.
 
 // TestListPageIssuesKeepsThePageOrder pins the one thing the projection must not

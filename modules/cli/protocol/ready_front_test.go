@@ -55,10 +55,10 @@ func TestProtocol_OpenParentDoesNotBlockChildren(t *testing.T) {
 }
 
 // TestProtocol_ReadyParentFilterIsTransitive pins protocol clause R3:
-// `bd ready --parent <id>` restricts to TRANSITIVE descendants, not just direct
+// `issuegraph ready --parent <id>` restricts to TRANSITIVE descendants, not just direct
 // children (GH#3396 — a one-hop subquery silently dropped grandchildren while
 // the help text promised recursion). A fleet draining an epic by
-// `bd ready --parent <epic>` would never see work nested one level deeper.
+// `issuegraph ready --parent <epic>` would never see work nested one level deeper.
 func TestProtocol_ReadyParentFilterIsTransitive(t *testing.T) {
 	t.Parallel()
 	w := newWorkspace(t)
@@ -87,7 +87,7 @@ func TestProtocol_ReadyParentFilterIsTransitive(t *testing.T) {
 	// epic itself and the unrelated tree are excluded.
 	requireStringSetEqual(t, got,
 		[]string{child, grandchild, greatGrandchild, adopted},
-		"R3: `bd ready --parent "+epic+"` transitive descendants")
+		"R3: `issuegraph ready --parent "+epic+"` transitive descendants")
 
 	for _, id := range got {
 		if id == other || id == otherChild {
@@ -98,7 +98,7 @@ func TestProtocol_ReadyParentFilterIsTransitive(t *testing.T) {
 
 // TestProtocol_ReadyDefaultOrdering pins protocol clause R2: the default
 // listing order is priority ASC, then created_at ASC (oldest first, FIFO),
-// then id ASC. Agents that take "the top item" of `bd ready` depend on this:
+// then id ASC. Agents that take "the top item" of `issuegraph ready` depend on this:
 // a P0 filed today must outrank a P2 filed a year ago, and the tiebreak must
 // be deterministic so two workers reading the same front see the same head.
 func TestProtocol_ReadyDefaultOrdering(t *testing.T) {
@@ -107,7 +107,7 @@ func TestProtocol_ReadyDefaultOrdering(t *testing.T) {
 
 	// Import every issue with explicit timestamps, including the same-second
 	// pair that exercises the id ASC tiebreak. This avoids depending on wall
-	// clock granularity or the duration of individual bd create invocations.
+	// clock granularity or the duration of individual issuegraph create invocations.
 	oldP2 := w.prefix + "-oldp2"
 	oldP1 := w.prefix + "-oldp1"
 	newP1 := w.prefix + "-newp1"

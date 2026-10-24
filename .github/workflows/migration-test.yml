@@ -14,8 +14,8 @@ permissions:
   contents: read
 
 env:
-  BD_DISABLE_METRICS: "1"
-  BD_DISABLE_EVENT_FLUSH: "1"
+  ISSUEGRAPH_DISABLE_METRICS: "1"
+  ISSUEGRAPH_DISABLE_EVENT_FLUSH: "1"
   DOLT_TEST_RUNTIME_VERSION: v2.1.8
   DOLT_TEST_RUNTIME_SHA256: f66318f08ed66e409fc39363ae0fff8ce6fbf6dba9f5bac632b91527b9632a74
 
@@ -105,7 +105,7 @@ jobs:
       - name: Install Dolt test runtime
         # v0.55.4-v0.62.0 host their fixture on this server; v1.0.1-v1.1.2 use
         # the same pinned binary as a read-only oracle over the wisp plane,
-        # which has no `bd dolt sql` equivalent.
+        # which has no `issuegraph dolt sql` equivalent.
         if: contains(fromJSON('["v0.55.4","v0.56.1","v0.57.0","v0.62.0","v1.0.1","v1.1.0","v1.1.2","v1.2.2"]'), matrix.version)
         run: |
           archive="$RUNNER_TEMP/dolt-linux-amd64.tar.gz"
@@ -123,12 +123,12 @@ jobs:
       - name: Configure Git
         run: |
           git config --global user.name "CI Bot"
-          git config --global user.email "ci@beads.test"
+          git config --global user.email "ci@issuegraph.test"
 
       - name: Cache pinned historical release
         uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
         with:
-          path: ~/.cache/beads-regression
+          path: ~/.cache/issuegraph-regression
           key: historical-dolt-${{ matrix.cache-identity }}-${{ runner.os }}-${{ runner.arch }}
 
       - name: Build candidate
@@ -142,7 +142,7 @@ jobs:
 
       - name: Verify explicit historical upgrade
         env:
-          CANDIDATE_BIN: ./bd
+          CANDIDATE_BIN: ./issuegraph
           GIT_CONFIG_NOSYSTEM: "1"
           DOLT_BIN: ${{ github.workspace }}/.tools/dolt/bin/dolt
           HISTORICAL_VERSION: ${{ matrix.version }}

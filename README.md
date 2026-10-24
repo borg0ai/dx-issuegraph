@@ -1,22 +1,26 @@
-# issuegraph - IssueGraph
+<p align="center">
+  <img src="docs/images/issuegraph-mark.svg" width="128" alt="IssueGraph issue graph mark">
+</p>
+
+# IssueGraph
 
 **Distributed graph issue tracker for AI agents, powered by [Dolt](https://github.com/dolthub/dolt).**
 
 **Platforms:** macOS, Linux, Windows, FreeBSD
 
-[![License](https://img.shields.io/github/license/gastownhall/beads)](LICENSE)
-[![Go Report Card](https://goreportcard.com/badge/github.com/steveyegge/beads)](https://goreportcard.com/report/github.com/steveyegge/beads)
-[![Release](https://img.shields.io/github/v/release/gastownhall/beads)](https://github.com/gastownhall/beads/releases)
-[![npm version](https://img.shields.io/npm/v/@beads/bd)](https://www.npmjs.com/package/@beads/bd)
-[![PyPI](https://img.shields.io/pypi/v/beads-mcp)](https://pypi.org/project/beads-mcp/)
+[![License](https://img.shields.io/github/license/borg0ai/dx-issuegraph)](LICENSE)
+[![Go Report Card](https://goreportcard.com/badge/github.com/borg0ai/dx-issuegraph)](https://goreportcard.com/report/github.com/borg0ai/dx-issuegraph)
+[![Release](https://img.shields.io/github/v/release/borg0ai/dx-issuegraph)](https://github.com/borg0ai/dx-issuegraph/releases)
+[![npm version](https://img.shields.io/npm/v/@borg0ai/issuegraph)](https://www.npmjs.com/package/@borg0ai/issuegraph)
+[![PyPI](https://img.shields.io/pypi/v/issuegraph-mcp)](https://pypi.org/project/issuegraph-mcp/)
 
-**Docs:** https://beads.gascity.com/
+**Docs:** https://github.com/borg0ai/dx-issuegraph/tree/main/docs/
 
 IssueGraph provides a persistent, structured memory for coding agents. It replaces messy markdown plans with a dependency-aware graph, allowing agents to handle long-horizon tasks without losing context.
 
 ```mermaid
 flowchart LR
-    create["issuegraph create<br/>new bead"] --> depgraph["dependency<br/>graph"]
+    create["issuegraph create<br/>new issue"] --> depgraph["dependency<br/>graph"]
     depgraph --> ready["issuegraph ready<br/>claimable work"]
     ready --> claim["issuegraph update --claim<br/>agent takes it"]
     claim --> close["issuegraph close<br/>work done"]
@@ -28,7 +32,7 @@ flowchart LR
 
 ```bash
 # Install issuegraph CLI (system-wide - don't clone this repo into your project)
-curl -fsSL https://raw.githubusercontent.com/gastownhall/beads/main/scripts/install.sh | bash
+curl -fsSL https://raw.githubusercontent.com/borg0ai/dx-issuegraph/main/scripts/install.sh | bash
 
 # Initialize in YOUR project
 cd your-project
@@ -61,7 +65,7 @@ This project uses issuegraph (IssueGraph) for issue tracking.
 
 * **[Dolt](https://github.com/dolthub/dolt)-Powered:** Version-controlled SQL database with cell-level merge, native branching, and built-in sync via Dolt remotes.
 * **Agent-Optimized:** JSON output, dependency tracking, and auto-ready task detection.
-* **Zero Conflict:** Hash-based IDs (`bd-a1b2`) prevent merge collisions in multi-agent/multi-branch workflows.
+* **Zero Conflict:** Hash-based IDs (`issuegraph-a1b2`) prevent merge collisions in multi-agent/multi-branch workflows.
 * **Compaction:** Semantic "memory decay" summarizes old closed tasks to save context window.
 * **Messaging:** Message issue type with threading (`--thread`), ephemeral lifecycle, and mail delegation.
 * **Graph Links:** `relates-to`, `duplicates`, `supersedes`, and `replies-to` for knowledge graphs.
@@ -82,22 +86,22 @@ This project uses issuegraph (IssueGraph) for issue tracking.
 
 IssueGraph supports hierarchical IDs for epics:
 
-* `bd-a3f8` (Epic)
-* `bd-a3f8.1` (Task)
-* `bd-a3f8.1.1` (Sub-task)
+* `issuegraph-a3f8` (Epic)
+* `issuegraph-a3f8.1` (Task)
+* `issuegraph-a3f8.1.1` (Sub-task)
 
 **Stealth Mode:** Run `issuegraph init --stealth` to use IssueGraph locally without committing files to the main repo. Perfect for personal use on shared projects. See [Git-Free Usage](#-git-free-usage) below.
 
 **Contributor vs Maintainer:** When working on open-source projects:
 
-* **Contributors** (forked repos): Run `issuegraph init --contributor` to route planning issues to a separate repo (e.g., `~/.beads-planning`). Keeps experimental work out of PRs.
-* **Maintainers** (write access): IssueGraph auto-detects maintainer role via SSH URLs or HTTPS with credentials. Only need `git config beads.role maintainer` if using GitHub HTTPS without credentials but you have write access.
+* **Contributors** (forked repos): Run `issuegraph init --contributor` to route planning issues to a separate repo (e.g., `~/.issuegraph-planning`). Keeps experimental work out of PRs.
+* **Maintainers** (write access): IssueGraph auto-detects maintainer role via SSH URLs or HTTPS with credentials. Only need `git config issuegraph.role maintainer` if using GitHub HTTPS without credentials but you have write access.
 
 ## 📦 Installation
 
 ```bash
-brew install beads           # macOS / Linux (recommended)
-npm install -g @beads/bd     # Node.js users
+brew install issuegraph           # macOS / Linux (recommended)
+npm install -g @borg0ai/issuegraph     # Node.js users
 ```
 
 **Other methods:** [install script](docs/getting-started/installation.md#quick-install-script-all-platforms) | [go install](docs/getting-started/installation.md#a-note-on-go-install-capability) | [from source](docs/getting-started/installation.md#build-dependencies-contributors-only) | [Windows](docs/getting-started/installation.md#windows-11) | [Arch AUR](docs/getting-started/installation.md#linux)
@@ -111,8 +115,8 @@ version: sync remote-backed databases with your current `issuegraph`, back up wi
 migration on a remote-backed database, exactly one designated clone runs
 `issuegraph migrate` and `issuegraph dolt push`; other clones install the new binary
 and run `issuegraph bootstrap`. See the full
-[upgrade guide](https://beads.gascity.com/getting-started/upgrading)
-or [docs/getting-started/installation.md](docs/getting-started/installation.md#updating-bd).
+[upgrade guide](https://github.com/borg0ai/dx-issuegraph/tree/main/docs/getting-started/upgrading)
+or [docs/getting-started/installation.md](docs/getting-started/installation.md#updating-issuegraph).
 
 ### Security And Verification
 
@@ -120,7 +124,7 @@ Before trusting any downloaded binary, verify its checksum against the release `
 
 The install scripts verify release checksums before install. For manual installs, do this verification yourself before first run.
 
-On macOS, `scripts/install.sh` preserves the downloaded signature by default. Local ad-hoc re-signing is explicit opt-in via `BEADS_INSTALL_RESIGN_MACOS=1`.
+On macOS, `scripts/install.sh` preserves the downloaded signature by default. Local ad-hoc re-signing is explicit opt-in via `ISSUEGRAPH_INSTALL_RESIGN_MACOS=1`.
 
 See [docs/reference/antivirus.md](docs/reference/antivirus.md) for Windows AV false-positive guidance and verification workflow.
 
@@ -129,12 +133,12 @@ See [docs/reference/antivirus.md](docs/reference/antivirus.md) for Windows AV fa
 IssueGraph uses [Dolt](https://github.com/dolthub/dolt) as its database. Two modes:
 
 - **Embedded (default)** — `issuegraph init`. Dolt runs in-process, data lives in
-  `.beads/embeddeddolt/`, single writer. Recommended for most users.
+  `.issuegraph/embeddeddolt/`, single writer. Recommended for most users.
 - **Server** — `issuegraph init --server`. Connects to an external `dolt sql-server`
-  for multiple concurrent writers; data lives in `.beads/dolt/`.
+  for multiple concurrent writers; data lives in `.issuegraph/dolt/`.
 
 Cross-machine sync uses `issuegraph dolt push` / `issuegraph dolt pull` against
-`refs/dolt/data` on your git remote; `.beads/issues.jsonl` is an export for
+`refs/dolt/data` on your git remote; `.issuegraph/issues.jsonl` is an export for
 viewers and interchange, not the source of truth or a backup. Back up and
 migrate between modes with `issuegraph backup`; reclaim space with `issuegraph prune` /
 `issuegraph purge`.
@@ -152,17 +156,17 @@ errors:
 ````
 schema version mismatch: database is at v45, binary knows up to v42 (3 migrations ahead)
 
-  Your bd binary is stale. Queries for dropped or renamed columns will fail
+  Your issuegraph binary is stale. Queries for dropped or renamed columns will fail
   with cryptic SQL errors (e.g. "column X could not be found in any table in scope").
 
   Rebuild from main:
     CGO_ENABLED=0 go build -tags gms_pure_go ./modules/cli
 
   Or install the latest release:
-    CGO_ENABLED=0 go install -tags gms_pure_go github.com/steveyegge/beads/modules/cli@latest
+    CGO_ENABLED=0 go install -tags gms_pure_go github.com/borg0ai/dx-issuegraph/modules/cli@latest
 
   To proceed despite the risk (some read commands may still work):
-    BD_IGNORE_SCHEMA_SKEW=1 issuegraph <command>
+    ISSUEGRAPH_IGNORE_SCHEMA_SKEW=1 issuegraph <command>
     issuegraph --ignore-schema-skew <command>
 ````
 
@@ -171,7 +175,7 @@ schema version mismatch: database is at v45, binary knows up to v42 (3 migration
 migrations). Normal upgrades, where the binary migrates the database forward,
 are unaffected.
 
-**Escape hatch:** `BD_IGNORE_SCHEMA_SKEW=1` (or `--ignore-schema-skew`) bypasses
+**Escape hatch:** `ISSUEGRAPH_IGNORE_SCHEMA_SKEW=1` (or `--ignore-schema-skew`) bypasses
 the guard with a warning on stderr. Use this only if you know the forward
 migrations are additive and safe for your specific workload.
 
@@ -188,28 +192,28 @@ integration (hooks, repo discovery, identity) is optional.
 
 ```bash
 # Initialize without git
-export BEADS_DIR=/path/to/your/project/.beads
+export ISSUEGRAPH_DIR=/path/to/your/project/.issuegraph
 issuegraph init --quiet --stealth
 
 # All core commands work with zero git calls
 issuegraph create "Fix auth bug" -p 1 -t bug
 issuegraph ready --json
-issuegraph update bd-a1b2 --claim
+issuegraph update issuegraph-a1b2 --claim
 issuegraph prime
-issuegraph close bd-a1b2 "Fixed"
+issuegraph close issuegraph-a1b2 "Fixed"
 ```
 
-`BEADS_DIR` tells issuegraph where to put the `.beads/` database directory,
+`ISSUEGRAPH_DIR` tells issuegraph where to put the `.issuegraph/` database directory,
 bypassing git repo discovery. `--stealth` sets `no-git-ops: true` in
 config, disabling all git hook installation and git operations.
 
 This is useful for:
 - **Non-git VCS** (Sapling, Jujutsu, Piper) — no `.git/` directory needed
-- **Monorepos** — point `BEADS_DIR` at a specific subdirectory
+- **Monorepos** — point `ISSUEGRAPH_DIR` at a specific subdirectory
 - **CI/CD** — isolated task tracking without repo-level side effects
 - **Evaluation/testing** — ephemeral databases in `/tmp`
 
 ## 📝 Documentation
 
-* [Documentation site](https://beads.gascity.com/) | [Installing](docs/getting-started/installation.md) | [Sync Concepts](docs/core-concepts/sync-concepts.md) | [Agent Workflow](AGENT_INSTRUCTIONS.md) | [Copilot CLI Setup](docs/integrations/copilot-cli.md) | [Copilot VS Code MCP](docs/integrations/github-copilot.md) | [Articles](ARTICLES.md) | [Sync Branch Mode](docs/reference/protected-branches.md) | [Troubleshooting](docs/reference/troubleshooting.md) | [FAQ](docs/reference/faq.md)
-* [![Ask DeepWiki](https://deepwiki.com/badge.svg)](https://deepwiki.com/gastownhall/beads)
+* [Documentation site](https://github.com/borg0ai/dx-issuegraph/tree/main/docs/) | [Installing](docs/getting-started/installation.md) | [Sync Concepts](docs/core-concepts/sync-concepts.md) | [Agent Workflow](AGENT_INSTRUCTIONS.md) | [Copilot CLI Setup](docs/integrations/copilot-cli.md) | [Copilot VS Code MCP](docs/integrations/github-copilot.md) | [Articles](ARTICLES.md) | [Sync Branch Mode](docs/reference/protected-branches.md) | [Troubleshooting](docs/reference/troubleshooting.md) | [FAQ](docs/reference/faq.md)
+* [![Ask DeepWiki](https://deepwiki.com/badge.svg)](https://deepwiki.com/borg0ai/dx-issuegraph)

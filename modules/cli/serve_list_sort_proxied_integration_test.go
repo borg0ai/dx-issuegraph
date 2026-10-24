@@ -13,22 +13,22 @@ import (
 	"testing"
 	"time"
 
-	"github.com/steveyegge/beads/internal/types"
+	"github.com/borg0ai/dx-issuegraph/internal/types"
 )
 
 // walkPageSize is the page an HTTP client walking this operation actually uses.
 // It is the value the enterprise httpstore client pages with, and it is the
 // denominator in the cost this test exists to measure: a listing of N rows in
-// `bd list`'s default order used to cost ceil(N/walkPageSize) requests because
+// `issuegraph list`'s default order used to cost ceil(N/walkPageSize) requests because
 // the order could not be asked for.
 const walkPageSize = 200
 
 // listSortFixtureRows is large enough that the old cost is unambiguously
 // multi-page — seven walk requests at walkPageSize, measured — and small enough
-// that a single `bd import` seeds it in one subprocess call.
+// that a single `issuegraph import` seeds it in one subprocess call.
 const listSortFixtureRows = 1400
 
-// listPage is one decoded page of GET /v0/beads/issues.
+// listPage is one decoded page of GET /v0/issuegraph/issues.
 type listPage struct {
 	Items      []map[string]any `json:"items"`
 	HasMore    bool             `json:"has_more"`
@@ -71,10 +71,10 @@ func itemPriorities(items []map[string]any) []int {
 }
 
 // TestProxiedServerListSortRetiresTheWalk is the acceptance measurement for
-// serving `bd list`'s default order, taken against real Dolt through a real
-// `bd serve` subprocess and a real `bd list`.
+// serving `issuegraph list`'s default order, taken against real Dolt through a real
+// `issuegraph serve` subprocess and a real `issuegraph list`.
 //
-// THE COST IT MEASURES. Before `sort`, an HTTP client that wanted `bd list`'s
+// THE COST IT MEASURES. Before `sort`, an HTTP client that wanted `issuegraph list`'s
 // ordering had exactly one option: page the whole result set in the served
 // created order and re-sort it locally, because the cursor was a keyset
 // position in that order and nothing else could be asked for. That is
@@ -84,13 +84,13 @@ func itemPriorities(items []map[string]any) []int {
 // counts and the delivered sequences: seven requests against one.
 //
 // WHY THE TWO SEQUENCES MUST BE IDENTICAL, and why that is the load-bearing
-// claim rather than the request count: `bd list --sort priority` is a pure
+// claim rather than the request count: `issuegraph list --sort priority` is a pure
 // priority comparator applied as a STABLE sort over the walked created order,
 // which yields priority ASC, then created DESC, then id ASC within ties — the
-// same sequence as `bd list` with no flags, and the same sequence the served
+// same sequence as `issuegraph list` with no flags, and the same sequence the served
 // `sort=priority` renders in SQL. If those three ever diverge, the parameter is
 // not retiring the walk, it is answering a different question faster. So the
-// oracle here is `bd list --json` itself: the CLI is the reference, and both
+// oracle here is `issuegraph list --json` itself: the CLI is the reference, and both
 // HTTP strategies are checked against it.
 //
 // THE FIXTURE IS BUILT TO BREAK A NAIVE IMPLEMENTATION. Priorities repeat
@@ -103,9 +103,9 @@ func itemPriorities(items []map[string]any) []int {
 func TestProxiedServerListSortRetiresTheWalk(t *testing.T) {
 	requireSharedProxiedServer(t)
 	t.Parallel()
-	bd := buildEmbeddedBD(t)
-	p := newSharedProxiedProject(t, bd, "lstsort")
-	sp := startServe(t, bd, p.dir, bdProxiedEnv(p.dir))
+	issuegraph := buildEmbeddedBD(t)
+	p := newSharedProxiedProject(t, issuegraph, "lstsort")
+	sp := startServe(t, issuegraph, p.dir, issuegraphProxiedEnv(p.dir))
 	defer sp.shutdown(t)
 
 	base := time.Date(2026, 1, 1, 0, 0, 0, 0, time.UTC)
@@ -125,22 +125,22 @@ func TestProxiedServerListSortRetiresTheWalk(t *testing.T) {
 			UpdatedAt: at,
 		})
 	}
-	if _, stderr, err := bdProxiedImportWithInput(t, bd, p.dir, importFixtureJSONL(t, issues), "-"); err != nil {
+	if _, stderr, err := issuegraphProxiedImportWithInput(t, issuegraph, p.dir, importFixtureJSONL(t, issues), "-"); err != nil {
 		t.Fatalf("seed %d issues: %v\n%s", listSortFixtureRows, err, stderr)
 	}
 
-	// THE REFERENCE. `bd list` with no sort flag, unlimited: the order this
+	// THE REFERENCE. `issuegraph list` with no sort flag, unlimited: the order this
 	// whole exercise exists to reproduce over HTTP.
-	reference := cliItems(t, bd, p.dir, "list", "--json", "--limit", "0")
+	reference := cliItems(t, issuegraph, p.dir, "list", "--json", "--limit", "0")
 	if len(reference) != listSortFixtureRows {
-		t.Fatalf("`bd list --limit 0` returned %d rows, want the %d seeded — the fixture did not land, so every comparison below would be vacuous",
+		t.Fatalf("`issuegraph list --limit 0` returned %d rows, want the %d seeded — the fixture did not land, so every comparison below would be vacuous",
 			len(reference), listSortFixtureRows)
 	}
 	// The reference has to actually be priority-first, or it is not the order
 	// under test. A fixture whose priorities happened to be uniform would make
 	// every sequence comparison below pass against a created-order server.
 	if priorities := itemPriorities(reference); !sort.IntsAreSorted(priorities) {
-		t.Fatalf("`bd list`'s default order is not priority-first in this fixture; the oracle is wrong, not the server")
+		t.Fatalf("`issuegraph list`'s default order is not priority-first in this fixture; the oracle is wrong, not the server")
 	} else if priorities[0] == priorities[len(priorities)-1] {
 		t.Fatal("every seeded row has the same priority, so a created-order answer would be indistinguishable from a priority-order one")
 	}
@@ -150,7 +150,7 @@ func TestProxiedServerListSortRetiresTheWalk(t *testing.T) {
 	// because what is being measured is its cost against the alternative's.
 	oldRequests := 0
 	var walked []map[string]any
-	path := fmt.Sprintf("/v0/beads/issues?limit=%d", walkPageSize)
+	path := fmt.Sprintf("/v0/issuegraph/issues?limit=%d", walkPageSize)
 	for {
 		page := sp.countingPage(t, path, &oldRequests)
 		walked = append(walked, page.Items...)
@@ -160,7 +160,7 @@ func TestProxiedServerListSortRetiresTheWalk(t *testing.T) {
 		if page.NextCursor == nil {
 			t.Fatal("has_more is true but next_cursor is absent; the walk cannot continue")
 		}
-		path = fmt.Sprintf("/v0/beads/issues?limit=%d&cursor=%s", walkPageSize, *page.NextCursor)
+		path = fmt.Sprintf("/v0/issuegraph/issues?limit=%d&cursor=%s", walkPageSize, *page.NextCursor)
 		if oldRequests > listSortFixtureRows {
 			t.Fatal("the created-order walk did not terminate")
 		}
@@ -170,8 +170,8 @@ func TestProxiedServerListSortRetiresTheWalk(t *testing.T) {
 	}
 	// STABLE, and by priority ALONE. That is the whole client-side comparator:
 	// stability is what preserves the walked created order inside a priority
-	// tie, and it is why one served order answers both `bd list` and
-	// `bd list --sort priority`.
+	// tie, and it is why one served order answers both `issuegraph list` and
+	// `issuegraph list --sort priority`.
 	sort.SliceStable(walked, func(i, j int) bool {
 		a, _ := walked[i]["priority"].(float64)
 		b, _ := walked[j]["priority"].(float64)
@@ -180,7 +180,7 @@ func TestProxiedServerListSortRetiresTheWalk(t *testing.T) {
 
 	// THE NEW STRATEGY: ask for the order.
 	newRequests := 0
-	served := sp.countingPage(t, "/v0/beads/issues?sort=priority&limit=0", &newRequests)
+	served := sp.countingPage(t, "/v0/issuegraph/issues?sort=priority&limit=0", &newRequests)
 	if served.HasMore {
 		t.Error("an unlimited page reported has_more; the walk is not actually retired")
 	}
@@ -201,16 +201,16 @@ func TestProxiedServerListSortRetiresTheWalk(t *testing.T) {
 	if newRequests != 1 {
 		t.Errorf("`sort=priority` cost %d requests, want 1", newRequests)
 	}
-	t.Logf("%d rows in `bd list`'s default order: walk-and-sort = %d requests, sort=priority = %d request",
+	t.Logf("%d rows in `issuegraph list`'s default order: walk-and-sort = %d requests, sort=priority = %d request",
 		listSortFixtureRows, oldRequests, newRequests)
 
 	// The three sequences, row for row.
 	refIDs := itemIDs(reference)
 	if got := itemIDs(served.Items); !reflect.DeepEqual(got, refIDs) {
-		t.Errorf("`sort=priority` does not reproduce `bd list`'s default order\nfirst divergence at %s", firstDivergence(got, refIDs))
+		t.Errorf("`sort=priority` does not reproduce `issuegraph list`'s default order\nfirst divergence at %s", firstDivergence(got, refIDs))
 	}
 	if got := itemIDs(walked); !reflect.DeepEqual(got, refIDs) {
-		t.Errorf("the walk-and-sort strategy does not reproduce `bd list`'s default order either, so the oracle is not what this test assumes\nfirst divergence at %s",
+		t.Errorf("the walk-and-sort strategy does not reproduce `issuegraph list`'s default order either, so the oracle is not what this test assumes\nfirst divergence at %s",
 			firstDivergence(got, refIDs))
 	}
 
@@ -223,7 +223,7 @@ func TestProxiedServerListSortRetiresTheWalk(t *testing.T) {
 	pagedRequests := 0
 	var paged []map[string]any
 	seen := map[string]bool{}
-	path = "/v0/beads/issues?sort=priority&limit=97"
+	path = "/v0/issuegraph/issues?sort=priority&limit=97"
 	for {
 		page := sp.countingPage(t, path, &pagedRequests)
 		for _, item := range page.Items {
@@ -244,7 +244,7 @@ func TestProxiedServerListSortRetiresTheWalk(t *testing.T) {
 		if page.NextCursor == nil {
 			t.Fatal("has_more is true but next_cursor is absent; the priority walk cannot continue")
 		}
-		path = fmt.Sprintf("/v0/beads/issues?sort=priority&limit=97&cursor=%s", *page.NextCursor)
+		path = fmt.Sprintf("/v0/issuegraph/issues?sort=priority&limit=97&cursor=%s", *page.NextCursor)
 		if pagedRequests > listSortFixtureRows {
 			t.Fatal("the priority walk did not terminate")
 		}
@@ -258,11 +258,11 @@ func TestProxiedServerListSortRetiresTheWalk(t *testing.T) {
 		// base64 and the two orders' positions are the same shape, so this is
 		// the refusal that stands between a client and a silently
 		// skipped-and-duplicated page.
-		first := sp.countingPage(t, "/v0/beads/issues?sort=priority&limit=10", new(int))
+		first := sp.countingPage(t, "/v0/issuegraph/issues?sort=priority&limit=10", new(int))
 		if first.NextCursor == nil {
 			t.Fatal("no cursor to replay")
 		}
-		status, body := sp.object(t, "/v0/beads/issues?limit=10&cursor="+*first.NextCursor)
+		status, body := sp.object(t, "/v0/issuegraph/issues?limit=10&cursor="+*first.NextCursor)
 		if status != http.StatusBadRequest {
 			t.Fatalf("a priority cursor under the default order: status = %d, want 400: %v", status, body)
 		}

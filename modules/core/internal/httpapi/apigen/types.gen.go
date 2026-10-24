@@ -7,9 +7,9 @@ import (
 	"encoding/json"
 	"time"
 
-	eventsjournal "github.com/steveyegge/beads/internal/eventsjournal"
-	types "github.com/steveyegge/beads/internal/types"
-	issueops "github.com/steveyegge/beads/issueops"
+	eventsjournal "github.com/borg0ai/dx-issuegraph/internal/eventsjournal"
+	types "github.com/borg0ai/dx-issuegraph/internal/types"
+	issueops "github.com/borg0ai/dx-issuegraph/issueops"
 )
 
 const (
@@ -362,7 +362,7 @@ type ApplyBatchRequest struct {
 	// Provenance Labels the version-control history entry this request records, under `updateIssue`'s rule: it changes how the entry READS, never whether one is recorded. Empty composes a default naming how many items of each kind landed and no ids.
 	Provenance *string `json:"provenance,omitempty"`
 
-	// SkipPerEdgeCycleCheck Drops the PER-EDGE cycle probe for a caller wiring a large graph, exactly as it does on `POST /v0/beads/dependencies:add`.
+	// SkipPerEdgeCycleCheck Drops the PER-EDGE cycle probe for a caller wiring a large graph, exactly as it does on `POST /v0/issuegraph/dependencies:add`.
 	//
 	// IT NEVER DROPS THE END GATE, which runs once after every item and re-validates the whole graph this request built, and it never drops the self-dependency refusal. It trades per-edge attribution for speed, not validation for speed.
 	SkipPerEdgeCycleCheck *bool `json:"skip_per_edge_cycle_check,omitempty"`
@@ -381,7 +381,7 @@ type ApplyBatchResponse struct {
 	Keys map[string]string `json:"keys"`
 }
 
-// ApplyCloseItem Closes one existing issue, under `POST /v0/beads/issues/{id}:close`'s rules including first-close-wins.
+// ApplyCloseItem Closes one existing issue, under `POST /v0/issuegraph/issues/{id}:close`'s rules including first-close-wins.
 type ApplyCloseItem struct {
 	// ExpectedVersion Requires the row's `revision` to equal this value, evaluated as-modified and checked before the idempotent close. A miss refuses the whole request with `409 precondition_failed`, and `ApplyUpdateItem.expected_version`'s already-written rule applies here identically.
 	//
@@ -411,7 +411,7 @@ type ApplyCloseItem struct {
 
 // ApplyCreateItem Creates one issue and optionally NAMES it, so later items can reach the row without knowing an id the request has not minted yet.
 //
-// It publishes the whole create vocabulary rather than `POST /v0/beads/issues:batchCreate`'s narrow one, and the additions are the point: `status`, `sender`, `metadata`, `ephemeral` and `no_history` are the members whose absence there makes that operation unusable for a caller composing a real plan.
+// It publishes the whole create vocabulary rather than `POST /v0/issuegraph/issues:batchCreate`'s narrow one, and the additions are the point: `status`, `sender`, `metadata`, `ephemeral` and `no_history` are the members whose absence there makes that operation unusable for a caller composing a real plan.
 //
 // THE EDGES ARE NOT HERE. An issue's dependencies and its parent are `dep_add` ITEMS, so the order of every edge in the request is total and there is exactly one spelling for an edge. An item carrying comments or dependencies on the issue is a `400`.
 //
@@ -428,7 +428,7 @@ type ApplyCreateItem struct {
 	// DueAt RFC 3339.
 	DueAt *time.Time `json:"due_at,omitempty"`
 
-	// Ephemeral Creates the issue on the EPHEMERAL plane rather than the durable one. Per item, exactly as it is for `POST /v0/beads/issues:batchCreate`, so one request may create durable issues and ephemeral ones together.
+	// Ephemeral Creates the issue on the EPHEMERAL plane rather than the durable one. Per item, exactly as it is for `POST /v0/issuegraph/issues:batchCreate`, so one request may create durable issues and ephemeral ones together.
 	//
 	// The two planes hold their edges in different tables, so a `dep_add` between two rows this request creates on OPPOSITE planes is refused with everything else the request asked for. Mutually exclusive with `no_history`.
 	Ephemeral *bool `json:"ephemeral,omitempty"`
@@ -439,7 +439,7 @@ type ApplyCreateItem struct {
 
 	// Id An explicit id for the new row, CREATE-ONLY: an id that already names a stored row is a `409` `already_exists` and the whole request is refused — never an adoption and never an overwrite. To act on a row that already exists, send an `update` item referencing it by `{"id": …}`. The id is checked against the workspace's configured issue prefix unless the request sets `force_id_prefix`.
 	//
-	// Absent is the ordinary case and the server mints one. This is the member `POST /v0/beads/issues:batchCreate` deliberately does not publish, which is why that operation can never adopt or overwrite a stored row and this one can be refused for trying.
+	// Absent is the ordinary case and the server mints one. This is the member `POST /v0/issuegraph/issues:batchCreate` deliberately does not publish, which is why that operation can never adopt or overwrite a stored row and this one can be refused for trying.
 	Id *string `json:"id,omitempty"`
 
 	// IssueType Issue type. Spelled `issue_type` rather than `type`, matching the member `Issue` carries, and validated against the built-ins plus the workspace's configured custom types by the ROLE — this server cannot read that vocabulary without a transaction, so it checks only what this schema declares and an unknown one arrives as a `400`.
@@ -483,7 +483,7 @@ type ApplyCreateItem struct {
 	Title  string  `json:"title"`
 }
 
-// ApplyDepAddItem Asserts ONE dependency edge, under `POST /v0/beads/dependencies:add`'s rules. An edge from a row to itself is a `400`.
+// ApplyDepAddItem Asserts ONE dependency edge, under `POST /v0/issuegraph/dependencies:add`'s rules. An edge from a row to itself is a `400`.
 //
 // A TARGET NEED NOT BE A ROW THIS DATABASE HOLDS: an `external:` reference and an id belonging to another repository are legitimate targets, so only an absence this database can SEE is refused. A SOURCE has no such latitude — an edge follows its source, so a source this database holds no row for has no plane to land in.
 //
@@ -524,19 +524,19 @@ type ApplyDepAddItem struct {
 //
 // READING one is the same rule from the other side: dispatch on `kind` and read only that member. The other three are absent.
 type ApplyItem struct {
-	// Close Closes one existing issue, under `POST /v0/beads/issues/{id}:close`'s rules including first-close-wins.
+	// Close Closes one existing issue, under `POST /v0/issuegraph/issues/{id}:close`'s rules including first-close-wins.
 	Close *ApplyCloseItem `json:"close,omitempty"`
 
 	// Create Creates one issue and optionally NAMES it, so later items can reach the row without knowing an id the request has not minted yet.
 	//
-	// It publishes the whole create vocabulary rather than `POST /v0/beads/issues:batchCreate`'s narrow one, and the additions are the point: `status`, `sender`, `metadata`, `ephemeral` and `no_history` are the members whose absence there makes that operation unusable for a caller composing a real plan.
+	// It publishes the whole create vocabulary rather than `POST /v0/issuegraph/issues:batchCreate`'s narrow one, and the additions are the point: `status`, `sender`, `metadata`, `ephemeral` and `no_history` are the members whose absence there makes that operation unusable for a caller composing a real plan.
 	//
 	// THE EDGES ARE NOT HERE. An issue's dependencies and its parent are `dep_add` ITEMS, so the order of every edge in the request is total and there is exactly one spelling for an edge. An item carrying comments or dependencies on the issue is a `400`.
 	//
 	// `metadata` is the issue's own metadata document and must be a JSON OBJECT where it is present at all. It is stored as sent; the resolved ids `metadata_refs` splices are written over its top-level keys after every id in the request exists.
 	Create *ApplyCreateItem `json:"create,omitempty"`
 
-	// DepAdd Asserts ONE dependency edge, under `POST /v0/beads/dependencies:add`'s rules. An edge from a row to itself is a `400`.
+	// DepAdd Asserts ONE dependency edge, under `POST /v0/issuegraph/dependencies:add`'s rules. An edge from a row to itself is a `400`.
 	//
 	// A TARGET NEED NOT BE A ROW THIS DATABASE HOLDS: an `external:` reference and an id belonging to another repository are legitimate targets, so only an absence this database can SEE is refused. A SOURCE has no such latitude — an edge follows its source, so a source this database holds no row for has no plane to land in.
 	//
@@ -550,7 +550,7 @@ type ApplyItem struct {
 	// Kind Which member below is read. A CLOSED set, unlike a dependency `type`: every value here is a verb this operation implements, and an unknown one is a request the server cannot execute rather than a workspace's own vocabulary.
 	Kind ApplyItemKind `json:"kind"`
 
-	// Update Patches one existing issue, under `PATCH /v0/beads/issues/{id}`'s rules.
+	// Update Patches one existing issue, under `PATCH /v0/issuegraph/issues/{id}`'s rules.
 	//
 	// The two carry the same preconditions and the same force flags; what is this operation's alone is that its guards evaluate AS-MODIFIED — against the row as earlier items of this same request have already changed it — and that a miss takes the whole plan down rather than one write.
 	Update *ApplyUpdateItem `json:"update,omitempty"`
@@ -629,7 +629,7 @@ type ApplyMetadataPatch struct {
 
 // ApplyPatchBody The fields an `update` item writes. Every member is optional and PRESENCE is the signal: a member present is written, a member absent is untouched. An empty object is a `400` — a write that writes nothing is a client bug.
 //
-// It mirrors `IssuePatchBody` member for member and diverges in exactly two places now that `PATCH /v0/beads/issues/{id}` publishes `status`, `assignee` and the same `metadata` algebra.
+// It mirrors `IssuePatchBody` member for member and diverges in exactly two places now that `PATCH /v0/issuegraph/issues/{id}` publishes `status`, `assignee` and the same `metadata` algebra.
 //
 // `owner` is published here and not there, which is an accident of order rather than a decision: nothing has asked for it on the single patch.
 //
@@ -688,7 +688,7 @@ type ApplyPatchBody struct {
 	Title *string `json:"title,omitempty"`
 }
 
-// ApplyUpdateItem Patches one existing issue, under `PATCH /v0/beads/issues/{id}`'s rules.
+// ApplyUpdateItem Patches one existing issue, under `PATCH /v0/issuegraph/issues/{id}`'s rules.
 //
 // The two carry the same preconditions and the same force flags; what is this operation's alone is that its guards evaluate AS-MODIFIED — against the row as earlier items of this same request have already changed it — and that a miss takes the whole plan down rather than one write.
 type ApplyUpdateItem struct {
@@ -715,7 +715,7 @@ type ApplyUpdateItem struct {
 
 	// Patch The fields an `update` item writes. Every member is optional and PRESENCE is the signal: a member present is written, a member absent is untouched. An empty object is a `400` — a write that writes nothing is a client bug.
 	//
-	// It mirrors `IssuePatchBody` member for member and diverges in exactly two places now that `PATCH /v0/beads/issues/{id}` publishes `status`, `assignee` and the same `metadata` algebra.
+	// It mirrors `IssuePatchBody` member for member and diverges in exactly two places now that `PATCH /v0/issuegraph/issues/{id}` publishes `status`, `assignee` and the same `metadata` algebra.
 	//
 	// `owner` is published here and not there, which is an accident of order rather than a decision: nothing has asked for it on the single patch.
 	//
@@ -739,7 +739,7 @@ type BatchCloseItem struct {
 	// A DUPLICATE is admissible; see the operation description.
 	Id string `json:"id"`
 
-	// Reason Why THIS issue is closed. It is per item rather than per request because `bd close a b c --reason x --reason y --reason z` has always mapped them positionally, and one request-wide reason could not express it. `CloseIssueRequest.reason`'s rules and first-close-wins.
+	// Reason Why THIS issue is closed. It is per item rather than per request because `issuegraph close a b c --reason x --reason y --reason z` has always mapped them positionally, and one request-wide reason could not express it. `CloseIssueRequest.reason`'s rules and first-close-wins.
 	Reason *string `json:"reason,omitempty"`
 }
 
@@ -830,7 +830,7 @@ type BondRef = types.BondRef
 type ClaimNextRequest struct {
 	// Actor Who is claiming. `ClaimRequest.actor`'s rules exactly: the server trims it, then refuses an empty result, anything longer than 256 BYTES (the `maxLength` above counts characters — the byte limit is the binding one), and any control character including newline. The value is persisted as the assignee and interpolated into the storage commit message, so an unvalidated newline would forge audit-trail lines.
 	//
-	// IT IS THE ONLY BODY MEMBER, and the FILTER travels in the query string instead. That split is deliberate: the filter vocabulary is `GET /v0/beads/ready`'s and is decoded by the same function, so re-spelling it as a body object would create a second expression of one predicate — and two spellings of one predicate eventually disagree. The actor cannot go the same way: it is provenance that lands in a column, and this surface has always carried that in a body.
+	// IT IS THE ONLY BODY MEMBER, and the FILTER travels in the query string instead. That split is deliberate: the filter vocabulary is `GET /v0/issuegraph/ready`'s and is decoded by the same function, so re-spelling it as a body object would create a second expression of one predicate — and two spellings of one predicate eventually disagree. The actor cannot go the same way: it is provenance that lands in a column, and this surface has always carried that in a body.
 	Actor string `json:"actor"`
 }
 
@@ -840,9 +840,9 @@ type ClaimNextRequest struct {
 //
 // IT IS ALSO THE ONLY MEMBER, deliberately. A count of what was scanned, or how many rows a racing agent had already taken, would describe a moment inside a transaction that has committed and is not a fact about the claim.
 //
-// The row is `IssueWithCounts` — the element type `GET /v0/beads/ready` returns and `bd ready --json` emits — hydrated INSIDE the transaction that committed the claim, so its counts describe the state the claim produced rather than a later one. It is not an `Issue` because the listing this replaces answers with counts, and a client swapping the composed pair for this operation should not lose a field doing it.
+// The row is `IssueWithCounts` — the element type `GET /v0/issuegraph/ready` returns and `issuegraph ready --json` emits — hydrated INSIDE the transaction that committed the claim, so its counts describe the state the claim produced rather than a later one. It is not an `Issue` because the listing this replaces answers with counts, and a client swapping the composed pair for this operation should not lose a field doing it.
 type ClaimNextResponse struct {
-	// Claimed An `Issue` plus relationship cardinalities. This is the element type of both `/v0/beads/ready` and `/v0/beads/issues`, matching what `bd ready --json` and `bd list --json` emit. Property semantics are documented on `Issue`.
+	// Claimed An `Issue` plus relationship cardinalities. This is the element type of both `/v0/issuegraph/ready` and `/v0/issuegraph/issues`, matching what `issuegraph ready --json` and `issuegraph list --json` emit. Property semantics are documented on `Issue`.
 	Claimed *IssueWithCounts `json:"claimed,omitempty"`
 }
 
@@ -872,7 +872,7 @@ type CloseIssueRequest struct {
 	//
 	// IT IS CHECKED BEFORE THE IDEMPOTENT RE-CLOSE, which is the one place this guard differs from the update's. A re-close of a row somebody else has moved since the caller read it is a `409` and not the 200-with-`already_closed` the same body earns without a guard: a replay whose premise has expired is a refusal the caller wants to see, and it is the only way `already_closed` can be trusted as "nothing has happened here since".
 	//
-	// The token is the `revision` this operation's own response carries. Compose the next expectation from the value a write ANSWERED with, never from one the client composed itself: the token is OPAQUE and compared for equality alone, so it has no predecessor a client can compute. A first guarded close seeds itself from `GET /v0/beads/issues/{id}`'s `revision` — the read that sources a guard — or, for a chain already mid-flight, from an unguarded lifecycle write or `POST /v0/beads/issues:batchApply`'s `ApplyItemResult.revision`.
+	// The token is the `revision` this operation's own response carries. Compose the next expectation from the value a write ANSWERED with, never from one the client composed itself: the token is OPAQUE and compared for equality alone, so it has no predecessor a client can compute. A first guarded close seeds itself from `GET /v0/issuegraph/issues/{id}`'s `revision` — the read that sources a guard — or, for a chain already mid-flight, from an unguarded lifecycle write or `POST /v0/issuegraph/issues:batchApply`'s `ApplyItemResult.revision`.
 	//
 	// IT IS A STRING, and it must be the `revision` string a response carried, verbatim. A JSON number — or any other type — is a `400` naming this member. The token spans the FULL 64-bit range, so a number would be rounded past 2^53 by an IEEE-754-double parser and the guard would miss a row nothing else touched; a string round-trips exactly in every consumer.
 	ExpectedVersion *string `json:"expected_version,omitempty"`
@@ -976,7 +976,7 @@ type CompareAndSetMetadataResponse struct {
 
 // ContextResponse The server's identity handshake. Every member is a deliberate, permanent choice; the field set is an allowlist frozen by a test that checks it against BOTH this document and the generated Go struct, so a field cannot arrive here as a side effect of the server's configuration growing one. In particular the workspace's sync remote is EXCLUDED, in this and every future version, because remote URLs routinely embed credentials — as are the database bind host/port (advertising them invites clients to bypass this API and dial the database directly) and the loopback/non-loopback bind mode.
 //
-// TWO MEMBERS ARE OPTIONAL, and they are the only two that describe the SERVER's filesystem rather than the workspace's logical identity: `beads_dir` and `repo_root`. A client must be able to read them as absent. Everything a remote caller identifies a workspace by is elsewhere and stays required — `project_id`, `database`, `backend`, `dolt_mode` — and an absolute host path is not something a remote caller can act on in any case: it cannot open it. `bd serve` publishes both, so a client reading a `bd serve` today sees no change; what the relaxation buys is that a deployment which does not want to disclose its filesystem layout can withhold them and still serve a body that conforms to this document.
+// TWO MEMBERS ARE OPTIONAL, and they are the only two that describe the SERVER's filesystem rather than the workspace's logical identity: `issuegraph_dir` and `repo_root`. A client must be able to read them as absent. Everything a remote caller identifies a workspace by is elsewhere and stays required — `project_id`, `database`, `backend`, `dolt_mode` — and an absolute host path is not something a remote caller can act on in any case: it cannot open it. `issuegraph serve` publishes both, so a client reading a `issuegraph serve` today sees no change; what the relaxation buys is that a deployment which does not want to disclose its filesystem layout can withhold them and still serve a body that conforms to this document.
 type ContextResponse struct {
 	// ApiVersion The path major this server serves. `v0` for this document.
 	ApiVersion string `json:"api_version"`
@@ -985,12 +985,12 @@ type ContextResponse struct {
 	Backend string `json:"backend"`
 
 	// BdVersion The release version of the serving binary. The only field a client may compare as a version, and only for behavioral changes tied to a release.
-	BdVersion string `json:"bd_version"`
+	BdVersion string `json:"issuegraph_version"`
 
-	// BeadsDir Absolute path of the served workspace's `.beads` directory, when the server discloses it. A host path: `bd serve` publishes it because it is a single-workspace server's most legible workspace-identity handshake for the operator reading it, and disclosing it to network peers is part of what that operator accepts when binding beyond loopback.
+	// IssueGraphDir Absolute path of the served workspace's `.issuegraph` directory, when the server discloses it. A host path: `issuegraph serve` publishes it because it is a single-workspace server's most legible workspace-identity handshake for the operator reading it, and disclosing it to network peers is part of what that operator accepts when binding beyond loopback.
 	//
 	// OPTIONAL, and absent means only that this server does not disclose its filesystem layout — never that it has no workspace. A client MUST NOT require it, MUST NOT treat absence as an error, and has no use for the value beyond display: it is a path on the SERVER's filesystem, which the client cannot open. Identify the workspace by `project_id` and `database`, which are required.
-	BeadsDir *string `json:"beads_dir,omitempty"`
+	IssueGraphDir *string `json:"issuegraph_dir,omitempty"`
 
 	// Capabilities The tokens this server advertises: the OPERATIONS it implements, derived from its route table, and the server-wide BEHAVIORS it enforces. v0's operation vocabulary is `ready.list`, `ready.count`, `issues.list`, `issues.query`, `issues.count`, `issues.get`, `issues.related`, `issues.create`, `issues.addComment`, `issues.batchClose`, `issues.claim`, `issues.claimNext`, `issues.release`, `issues.close`, `issues.reopen`, `issues.update`, `issues.sweep`, `issues.delete`, `issues.batchCreate`, `issues.batchApply`, `stats.get`, `config.list`, `config.get`, `config.set`, `config.unset`, `dependencies.cycles`, `dependencies.list`, `dependencies.count`, `dependencies.blocking`, `dependencies.tree`, `dependencies.add`, `dependencies.remove`, `memories.list`, `memories.get`, `memories.remember`, `memories.forget`, `events.list`, `events.watch`, `issues.casMetadata`; the one behavior token is `project.enforce`, which announces that a `Bd-Project-Id` stamp for the wrong workspace is refused here rather than silently ignored. The list grows additively, and an operation never appears here unless it is fully implemented. This is how a client checks for an operation or a behavior — never the version string.
 	//
@@ -1006,7 +1006,7 @@ type ContextResponse struct {
 	// ProjectId Logical project identifier.
 	ProjectId string `json:"project_id"`
 
-	// RepoRoot Absolute path of the served repository root, when the server discloses it. OPTIONAL on the same terms as `beads_dir`; see it.
+	// RepoRoot Absolute path of the served repository root, when the server discloses it. OPTIONAL on the same terms as `issuegraph_dir`; see it.
 	RepoRoot *string `json:"repo_root,omitempty"`
 
 	// SchemaVersion The shared JSON schema version — the same constant the CLI's stdout JSON envelope reports. Diagnostic only: it can move for CLI-only reasons with no HTTP wire change, so clients MUST NOT branch on it.
@@ -1057,7 +1057,7 @@ type CreateIssueRequest struct {
 	// DueAt RFC 3339. Not nullable, for `estimated_minutes`' reason.
 	DueAt *time.Time `json:"due_at,omitempty"`
 
-	// Ephemeral Creates the issue on the EPHEMERAL plane rather than the durable one, exactly as it does for `POST /v0/beads/issues:batchApply`. Mutually exclusive with `no_history`.
+	// Ephemeral Creates the issue on the EPHEMERAL plane rather than the durable one, exactly as it does for `POST /v0/issuegraph/issues:batchApply`. Mutually exclusive with `no_history`.
 	Ephemeral *bool `json:"ephemeral,omitempty"`
 
 	// EstimatedMinutes An estimate in minutes. Absent leaves it unset. NOT nullable, unlike `IssuePatchBody.estimated_minutes`: a create has nothing to clear, so `null` here would be a second spelling of omission and is a `400`.
@@ -1074,12 +1074,12 @@ type CreateIssueRequest struct {
 
 	// InheritLabelsFromParent Copies the parent's labels onto the new issue at creation, on top of `labels`. It has no effect without `parent_id`.
 	//
-	// The DEFAULT IS FALSE and diverges from `bd create --parent`, whose default is to inherit. A wire caller sends what it means: this operation has no `--no-inherit-labels` to turn off, and a create that silently acquired labels the request never named would be a set the caller has to read back to learn.
+	// The DEFAULT IS FALSE and diverges from `issuegraph create --parent`, whose default is to inherit. A wire caller sends what it means: this operation has no `--no-inherit-labels` to turn off, and a create that silently acquired labels the request never named would be a set the caller has to read back to learn.
 	InheritLabelsFromParent *bool `json:"inherit_labels_from_parent,omitempty"`
 
 	// IssueType Issue type. Spelled `issue_type` rather than `type`, matching the member `Issue` carries, and validated against the built-ins plus the workspace's configured custom types by the ROLE — this server cannot read that vocabulary without a transaction, so it checks only what this schema declares and an unknown one arrives as a `400`.
 	//
-	// SEND ONE. The member is optional in this schema and the role validates the EMPTY type against the same vocabulary as any other, where it is neither a built-in nor a configured type — so an omitted `issue_type` is refused with everything else the request asked for. It stays optional because the vocabulary belongs to the workspace and a deployment may configure a default this server cannot read, but it is not optional in practice on any workspace shipped today. `POST /v0/beads/issues:batchCreate` has the same property and does not say so, which is why this member does.
+	// SEND ONE. The member is optional in this schema and the role validates the EMPTY type against the same vocabulary as any other, where it is neither a built-in nor a configured type — so an omitted `issue_type` is refused with everything else the request asked for. It stays optional because the vocabulary belongs to the workspace and a deployment may configure a default this server cannot read, but it is not optional in practice on any workspace shipped today. `POST /v0/issuegraph/issues:batchCreate` has the same property and does not say so, which is why this member does.
 	IssueType *string `json:"issue_type,omitempty"`
 
 	// Labels The complete label set the issue is created with. Authoritative, not a patch — a create has nothing to add to. `inherit_labels_from_parent` adds the parent's labels on top of it.
@@ -1114,13 +1114,13 @@ type CreateIssueRequest struct {
 
 	// WaitsFor A typed `waits-for` edge from the new issue to a spawner whose children gate it. It records a readiness primitive; it does not define scheduling or execution policy.
 	//
-	// IT IS A TYPED MEMBER HERE AND A METADATA BLOB ON `POST /v0/beads/issues:batchApply`, and the difference follows the ROLE rather than taste: `CreateRequest.WaitsFor` is a typed field that gets the gate defaulted and the "must not duplicate an explicit edge" check, while that operation's `dep_add` item is one generic edge with no typed field to reach. One spelling per operation, and each is its role's.
+	// IT IS A TYPED MEMBER HERE AND A METADATA BLOB ON `POST /v0/issuegraph/issues:batchApply`, and the difference follows the ROLE rather than taste: `CreateRequest.WaitsFor` is a typed field that gets the gate defaulted and the "must not duplicate an explicit edge" check, while that operation's `dep_add` item is one generic edge with no typed field to reach. One spelling per operation, and each is its role's.
 	WaitsFor *CreateIssueWaitsFor `json:"waits_for,omitempty"`
 }
 
 // CreateIssueWaitsFor A typed `waits-for` edge from the new issue to a spawner whose children gate it. It records a readiness primitive; it does not define scheduling or execution policy.
 //
-// IT IS A TYPED MEMBER HERE AND A METADATA BLOB ON `POST /v0/beads/issues:batchApply`, and the difference follows the ROLE rather than taste: `CreateRequest.WaitsFor` is a typed field that gets the gate defaulted and the "must not duplicate an explicit edge" check, while that operation's `dep_add` item is one generic edge with no typed field to reach. One spelling per operation, and each is its role's.
+// IT IS A TYPED MEMBER HERE AND A METADATA BLOB ON `POST /v0/issuegraph/issues:batchApply`, and the difference follows the ROLE rather than taste: `CreateRequest.WaitsFor` is a typed field that gets the gate defaulted and the "must not duplicate an explicit edge" check, while that operation's `dep_add` item is one generic edge with no typed field to reach. One spelling per operation, and each is its role's.
 type CreateIssueWaitsFor struct {
 	// Gate The readiness condition: `all-children` or `any-children`. Absent or empty defaults to `all-children`. A value that is neither is refused by the ROLE and reaches the client as a `400`.
 	Gate *string `json:"gate,omitempty"`
@@ -1150,40 +1150,40 @@ type CyclesPage struct {
 	Items []Cycle `json:"items"`
 }
 
-// DeleteIssuesRequest Which beads to erase, and what to do about the beads that point at them. There is no predicate here — no status, no cutoff, no glob — and that absence is the reason this operation needs no require-a-filter gate: a caller cannot spell "everything" without typing every id.
+// DeleteIssuesRequest Which issuegraph to erase, and what to do about the issuegraph that point at them. There is no predicate here — no status, no cutoff, no glob — and that absence is the reason this operation needs no require-a-filter gate: a caller cannot spell "everything" without typing every id.
 //
 // `additionalProperties: false`, so an unknown member is a `400` naming the member. On this operation a silently ignored member is the difference between orphaning a dependent and deleting it.
 type DeleteIssuesRequest struct {
-	// Actor Caller-asserted attribution, under the same rules as `SweepRequest`'s `actor`: trimmed, refused when empty after trimming, over 256 BYTES, or carrying any control character. Optional — a deleted bead leaves no row to attribute the deletion on — but it does reach the SURVIVING beads whose text this operation rewrites, so a workspace that cares who rewrote a description sends one.
+	// Actor Caller-asserted attribution, under the same rules as `SweepRequest`'s `actor`: trimmed, refused when empty after trimming, over 256 BYTES, or carrying any control character. Optional — a deleted issue leaves no row to attribute the deletion on — but it does reach the SURVIVING issuegraph whose text this operation rewrites, so a workspace that cares who rewrote a description sends one.
 	Actor *string `json:"actor,omitempty"`
 
-	// Cascade Also delete the transitive closure of everything that depends on the named beads. With `cascade` there is nothing left outside the set to orphan, so it makes `force` moot rather than conflicting with it: a request carrying both behaves as `cascade` and `orphaned` comes back empty.
+	// Cascade Also delete the transitive closure of everything that depends on the named issuegraph. With `cascade` there is nothing left outside the set to orphan, so it makes `force` moot rather than conflicting with it: a request carrying both behaves as `cascade` and `orphaned` comes back empty.
 	Cascade *bool `json:"cascade,omitempty"`
 
 	// DryRun Report what the deletion WOULD do and change nothing. The counts and BOTH refusals are the ones the real request would produce, computed against the same snapshot, and nothing is recorded in history either.
 	DryRun *bool `json:"dry_run,omitempty"`
 
-	// ExpectedVersion Requires the named bead's revision to equal this value before anything is erased. A miss refuses the whole request with `409 precondition_failed` and deletes NOTHING — `UpdateIssueRequest.expected_version`'s contract, on the operation where being wrong about which row you are looking at cannot be undone.
+	// ExpectedVersion Requires the named issue's revision to equal this value before anything is erased. A miss refuses the whole request with `409 precondition_failed` and deletes NOTHING — `UpdateIssueRequest.expected_version`'s contract, on the operation where being wrong about which row you are looking at cannot be undone.
 	//
-	// IT REQUIRES A SINGLE-ID REQUEST. Sending it beside more than one DISTINCT id is a `400` naming this member, refused before anything is read. One token cannot describe two rows: the version space is per-row, so checking one number against a list would pass by coincidence for a list of never-written rows — every one of them holds 0 — and fail forever for a list whose rows have since diverged. A guard that passes by coincidence and a guard nobody can satisfy are one defect seen from two sides. Delete one bead per guarded request; the per-id shape a batch would need is a token PER id, which is a different request type.
+	// IT REQUIRES A SINGLE-ID REQUEST. Sending it beside more than one DISTINCT id is a `400` naming this member, refused before anything is read. One token cannot describe two rows: the version space is per-row, so checking one number against a list would pass by coincidence for a list of never-written rows — every one of them holds 0 — and fail forever for a list whose rows have since diverged. A guard that passes by coincidence and a guard nobody can satisfy are one defect seen from two sides. Delete one issue per guarded request; the per-id shape a batch would need is a token PER id, which is a different request type.
 	//
-	// DUPLICATES COLLAPSE FIRST, so `{"ids":["be-1","be-1"], "expected_version":N}` names one bead and is legal. The refusal counts DISTINCT ids, not mentions, exactly as the library surface does.
+	// DUPLICATES COLLAPSE FIRST, so `{"ids":["be-1","be-1"], "expected_version":N}` names one issue and is legal. The refusal counts DISTINCT ids, not mentions, exactly as the library surface does.
 	//
-	// NEITHER `cascade` NOR `force` BYPASSES IT. Both bypass POLICY — the dependents guard — and never a precondition. Under `cascade` the guard still covers only the NAMED bead: the closure is resolved inside the deleting transaction, so a matching token promises the row is the one you read and promises nothing about how far the closure has grown since. A caller that needs the closure itself pinned wants `dry_run` first.
+	// NEITHER `cascade` NOR `force` BYPASSES IT. Both bypass POLICY — the dependents guard — and never a precondition. Under `cascade` the guard still covers only the NAMED issue: the closure is resolved inside the deleting transaction, so a matching token promises the row is the one you read and promises nothing about how far the closure has grown since. A caller that needs the closure itself pinned wants `dry_run` first.
 	//
-	// IT GUARDS LIFECYCLE STATE, NOT THE GRAPH. The token is reminted by status, assignee and started-at writes and deliberately not by label, dependency or rename writes, so a match does not promise the bead's edges are the ones you saw.
+	// IT GUARDS LIFECYCLE STATE, NOT THE GRAPH. The token is reminted by status, assignee and started-at writes and deliberately not by label, dependency or rename writes, so a match does not promise the issue's edges are the ones you saw.
 	//
-	// The token is the `revision` a lifecycle write answers with, and the one `GET /v0/beads/issues/{id}` publishes — which is where a delete guard should seed itself, since reading the bead before erasing it is the only way to be sure it is the bead you meant.
+	// The token is the `revision` a lifecycle write answers with, and the one `GET /v0/issuegraph/issues/{id}` publishes — which is where a delete guard should seed itself, since reading the issue before erasing it is the only way to be sure it is the issue you meant.
 	//
 	// IT IS A STRING, and it must be the `revision` string a response carried, verbatim. A JSON number — or any other type — is a `400` naming this member. The token spans the FULL 64-bit range, so a number would be rounded past 2^53 by an IEEE-754-double parser and the guard would miss a row nothing else touched; a string round-trips exactly in every consumer.
 	ExpectedVersion *string `json:"expected_version,omitempty"`
 
-	// Force Delete the named beads and leave their dependents ORPHANED, reported in `orphaned`. Without it and without `cascade`, a named bead with a dependent the request did not name is refused.
+	// Force Delete the named issuegraph and leave their dependents ORPHANED, reported in `orphaned`. Without it and without `cascade`, a named issue with a dependent the request did not name is refused.
 	//
-	// It defaults FALSE, which is the guarded mode, and the default is the protection. Authentication here is a deployment posture, and where it is configured it is a single shared bearer that admits a client to the WHOLE surface — it names no principal this operation could weigh and grants no narrower right — so an omitted member must not silently choose the answer that changes another bead's graph.
+	// It defaults FALSE, which is the guarded mode, and the default is the protection. Authentication here is a deployment posture, and where it is configured it is a single shared bearer that admits a client to the WHOLE surface — it names no principal this operation could weigh and grants no narrower right — so an omitted member must not silently choose the answer that changes another issue's graph.
 	Force *bool `json:"force,omitempty"`
 
-	// Ids The beads to delete, exact ids, in either plane. DUPLICATES COLLAPSE. An empty array is a `400` rather than a no-op — a caller whose id list came out empty because its own construction broke would read "deleted 0" and conclude the workspace was already clean.
+	// Ids The issuegraph to delete, exact ids, in either plane. DUPLICATES COLLAPSE. An empty array is a `400` rather than a no-op — a caller whose id list came out empty because its own construction broke would read "deleted 0" and conclude the workspace was already clean.
 	//
 	// The cap is on the REQUEST rather than on what a cascade expands to: the whole delete is one transaction, so the practical bound is the backend's write timeout and no number here can promise it.
 	Ids []string `json:"ids"`
@@ -1191,36 +1191,36 @@ type DeleteIssuesRequest struct {
 
 // DeleteIssuesResult What one delete did. Every number describes the SAME snapshot, because the guard, the deletion and the reference rewrite ran in one transaction.
 //
-// It is NOT `x-go-type`-pinned, for the reason `SweepResult` is not: there is no canonical Go struct whose JSON encoding is this contract. `bd delete --json` publishes these numbers under its own per-shape keys (`deleted_count`, `dependencies_removed`, and a scalar `deleted` on the single-id form), which are a stdout presentation rather than a wire type, so pinning would weld this body to one of them.
+// It is NOT `x-go-type`-pinned, for the reason `SweepResult` is not: there is no canonical Go struct whose JSON encoding is this contract. `issuegraph delete --json` publishes these numbers under its own per-shape keys (`deleted_count`, `dependencies_removed`, and a scalar `deleted` on the single-id form), which are a stdout presentation rather than a wire type, so pinning would weld this body to one of them.
 type DeleteIssuesResult struct {
-	// Deleted How many beads were deleted, or under `dry_run` would be. Under `cascade` this counts the whole closure, so it is normally larger than `ids` and it — not the request length — is the number to show.
+	// Deleted How many issuegraph were deleted, or under `dry_run` would be. Under `cascade` this counts the whole closure, so it is normally larger than `ids` and it — not the request length — is the number to show.
 	Deleted int `json:"deleted"`
 
-	// Dependencies Dependency edge rows removed with them, in either direction. Reported because a delete's visible effect is much larger than its bead count.
+	// Dependencies Dependency edge rows removed with them, in either direction. Reported because a delete's visible effect is much larger than its issue count.
 	Dependencies int `json:"dependencies"`
 
-	// DryRun Echoes the request, so a result carries whether its numbers describe beads that are gone or beads that would go.
+	// DryRun Echoes the request, so a result carries whether its numbers describe issuegraph that are gone or issuegraph that would go.
 	DryRun bool `json:"dry_run"`
 
-	// Events Event rows removed with the deleted beads.
+	// Events Event rows removed with the deleted issuegraph.
 	Events int `json:"events"`
 
-	// Labels Label rows removed with the deleted beads.
+	// Labels Label rows removed with the deleted issuegraph.
 	Labels int `json:"labels"`
 
-	// Orphaned The surviving beads that depended on something this request deleted, in ascending id order. Present exactly when the request carried `force` without `cascade`, which is the only mode in which orphaning is possible; absent otherwise.
+	// Orphaned The surviving issuegraph that depended on something this request deleted, in ascending id order. Present exactly when the request carried `force` without `cascade`, which is the only mode in which orphaning is possible; absent otherwise.
 	//
-	// DIRECT dependents only. A bead two edges away lost no edge.
+	// DIRECT dependents only. A issue two edges away lost no edge.
 	Orphaned *[]string `json:"orphaned,omitempty"`
 
-	// ReferencesUpdated How many SURVIVING beads had their text rewritten — beads, not occurrences. Always 0 under `dry_run`, because a preview rewrites nothing.
+	// ReferencesUpdated How many SURVIVING issuegraph had their text rewritten — issuegraph, not occurrences. Always 0 under `dry_run`, because a preview rewrites nothing.
 	ReferencesUpdated int `json:"references_updated"`
 }
 
 // Dependency A dependency edge between two issues.
 type Dependency = types.Dependency
 
-// DependencyEdge One directed edge, as a REQUEST names it. It is not `Dependency`, which is the stored row `GET /v0/beads/dependencies` returns and carries the columns storage assigned; this is the three members a caller supplies.
+// DependencyEdge One directed edge, as a REQUEST names it. It is not `Dependency`, which is the stored row `GET /v0/issuegraph/dependencies` returns and carries the columns storage assigned; this is the three members a caller supplies.
 type DependencyEdge struct {
 	// DependsOnId The edge's TARGET — the issue depended upon. An exact canonical id, an `external:` reference, or an id belonging to another repository. Only an absence this database can SEE is refused. It must differ from `issue_id`.
 	DependsOnId string `json:"depends_on_id"`
@@ -1234,7 +1234,7 @@ type DependencyEdge struct {
 
 // DependencyEdges The stored edges of the named issues, plus the ids that named nothing. It is NOT a page: this operation has no limit and no cursor, because the number of issues asked about is what bounds it.
 type DependencyEdges struct {
-	// Items Every matching edge, flattened across the named issues rather than keyed by source — the same flat array `bd dep list a b c --json` emits, so the two surfaces are one compatibility domain. Group by `issue_id` to recover the per-source view. Empty array (never null) when nothing matches.
+	// Items Every matching edge, flattened across the named issues rather than keyed by source — the same flat array `issuegraph dep list a b c --json` emits, so the two surfaces are one compatibility domain. Group by `issue_id` to recover the per-source view. Empty array (never null) when nothing matches.
 	//
 	// The order is by the named issues in the order the request named them, and within each issue by target id.
 	Items []Dependency `json:"items"`
@@ -1256,7 +1256,7 @@ type DependencyTreePage struct {
 	Items []TreeNode `json:"items"`
 }
 
-// EdgeCounts Each anchor's edge cardinality — the body of `GET /v0/beads/dependencies:count`. It is NOT a page and carries no total: the answer is per anchor, and a sum across anchors would double-count every edge whose two ends were both named.
+// EdgeCounts Each anchor's edge cardinality — the body of `GET /v0/issuegraph/dependencies:count`. It is NOT a page and carries no total: the answer is per anchor, and a sum across anchors would double-count every edge whose two ends were both named.
 //
 // It is NOT `x-go-type`-pinned, for `IssueCount`'s reason: there is no canonical Go struct whose JSON encoding is this contract. The role answers with `issueops.EdgeCountResult`, whose members carry no JSON tags at all because nothing marshals it.
 type EdgeCounts struct {
@@ -1268,7 +1268,7 @@ type EdgeCounts struct {
 
 // EventRecord One record of the durable events journal: a single committed issue mutation, as a replaying consumer receives it.
 //
-// THIS IS THE CLI'S RECORD. It is pinned to the same Go struct `bd events tail` and `bd events export` marshal one per line, so the JSONL a consumer reads from stdout and the elements of an `EventsPage.records` array are the same bytes for the same row. A committed golden fixture pins that encoding field by field.
+// THIS IS THE CLI'S RECORD. It is pinned to the same Go struct `issuegraph events tail` and `issuegraph events export` marshal one per line, so the JSONL a consumer reads from stdout and the elements of an `EventsPage.records` array are the same bytes for the same row. A committed golden fixture pins that encoding field by field.
 //
 // `issue` is the full issue state AFTER the mutation and is ALWAYS PRESENT, carrying the literal `null` on a delete — where there is no surviving row to describe. That is the one place this document's general "treat null as absent" rule does not apply to a member's meaning: a consumer must be able to tell a delete from a payload the server failed to record, so the member is emitted rather than omitted. `dep` and `comment` are the opposite: they are ABSENT on the ops that have no such half, because their absence says the op has none, not that one was empty.
 type EventRecord = eventsjournal.Record
@@ -1304,7 +1304,7 @@ type Issue = types.Issue
 // `blocked_by` and `blocks` are ASCENDING BY ID with repeats collapsed, and both are always present — an empty array, never null and never absent, so a client reads "nothing blocks this" from the answer rather than from a missing key. `parent` is absent when the issue has none and when the parent it has is closed.
 type IssueBlocking = issueops.IssueBlocking
 
-// IssueCount The size of a matching set, and its buckets when `group_by` asked for them. It carries no items and no cursor: this is a number about a set, and the operations that return rows are `GET /v0/beads/issues` and `GET /v0/beads/issues:query`.
+// IssueCount The size of a matching set, and its buckets when `group_by` asked for them. It carries no items and no cursor: this is a number about a set, and the operations that return rows are `GET /v0/issuegraph/issues` and `GET /v0/issuegraph/issues:query`.
 //
 // ONE SCHEMA FOR BOTH SHAPES, because the grouped answer is the scalar answer plus one member rather than a different answer. See the operation's own description for why that is one operation and not two.
 //
@@ -1321,7 +1321,7 @@ type IssueCount struct {
 	Total int64 `json:"total"`
 }
 
-// IssueDetails An `Issue` with its labels, dependency edges and cardinalities — the body of `GET /v0/beads/issues/{id}`. `dependencies` and `dependents` carry FULL issue objects plus the edge type, not bare edges. Property semantics are documented on `Issue`.
+// IssueDetails An `Issue` with its labels, dependency edges and cardinalities — the body of `GET /v0/issuegraph/issues/{id}`. `dependencies` and `dependents` carry FULL issue objects plus the edge type, not bare edges. Property semantics are documented on `Issue`.
 type IssueDetails = types.IssueDetails
 
 // IssuePatchBody The fields to write. Every member is optional and PRESENCE is the signal: a member present is written, a member absent is untouched. An empty object is a `400` — a write that writes nothing is a client bug.
@@ -1336,7 +1336,7 @@ type IssuePatchBody struct {
 	//
 	// IT IS NOT MUTUALLY EXCLUSIVE WITH `labels`, and that is the difference from `append_notes`, which is. The role defines an order over all three label edits, so sending a replacement and an addition together has a defined result; notes have no such algebra, so there the two are a contradiction and are refused.
 	//
-	// IT IS WHY THIS PAIR EXISTS. A caller that reads a row, adds one label and writes the whole set back silently drops any label another writer added in between — and `bd label add` and every agent that tags work concurrently are exactly that caller. A replacement can only be composed safely by a writer that knows it is alone.
+	// IT IS WHY THIS PAIR EXISTS. A caller that reads a row, adds one label and writes the whole set back silently drops any label another writer added in between — and `issuegraph label add` and every agent that tags work concurrently are exactly that caller. A replacement can only be composed safely by a writer that knows it is alone.
 	//
 	// Repetition is free: a label named twice is applied once, and adding one the issue already carries changes no labels. (Whether the RESPONSE reports `changed: false` is a fact about the whole patch — see `remove_labels`.) An EMPTY-STRING entry is DROPPED rather than refused — a label row carrying `""` renders as nothing and matches nothing, so writing one would only store junk, and refusing the whole update would let one stray entry fail an otherwise-good edit.
 	AddLabels *[]string `json:"add_labels,omitempty"`
@@ -1403,7 +1403,7 @@ type IssuePatchBody struct {
 	Title *string `json:"title,omitempty"`
 }
 
-// IssueWithCounts An `Issue` plus relationship cardinalities. This is the element type of both `/v0/beads/ready` and `/v0/beads/issues`, matching what `bd ready --json` and `bd list --json` emit. Property semantics are documented on `Issue`.
+// IssueWithCounts An `Issue` plus relationship cardinalities. This is the element type of both `/v0/issuegraph/ready` and `/v0/issuegraph/issues`, matching what `issuegraph ready --json` and `issuegraph list --json` emit. Property semantics are documented on `Issue`.
 type IssueWithCounts = types.IssueWithCounts
 
 // IssueWithDependencyMetadata A full issue plus the type of the dependency edge that led to it. Property semantics are documented on `Issue`.
@@ -1434,7 +1434,7 @@ type MemoriesPage struct {
 
 // Memory One entry of the workspace's persistent memory plane.
 //
-// NOT `x-go-type`-PINNED, for the reason `Setting` is not: the CLI marshals an ad-hoc map per verb, so there is no canonical Go struct whose JSON encoding is this contract, and minting one to pin to would mean changing what `bd recall --json` prints in order to satisfy a rule about not changing it.
+// NOT `x-go-type`-PINNED, for the reason `Setting` is not: the CLI marshals an ad-hoc map per verb, so there is no canonical Go struct whose JSON encoding is this contract, and minting one to pin to would mean changing what `issuegraph recall --json` prints in order to satisfy a rule about not changing it.
 //
 // IT HAS NO `redacted` MEMBER, and that is the deliberate difference from `Setting`. Redaction there is a decision about the KEY NAME, which works because settings keys are configured names; memory keys are derived from the content, so the same rule would withhold a memory about credentials and serve one containing a credential under an innocuous slug. A configured bearer would not close that either — it admits a client to the whole surface rather than to particular keys — so this schema states the exposure rather than implying a protection it does not have.
 type Memory struct {
@@ -1443,7 +1443,7 @@ type Memory struct {
 
 	// Value The stored content, verbatim: newlines, surrounding space and unicode as stored, never truncated and never withheld.
 	//
-	// Always present. It is the empty string only where a row was written out of band with an empty value, which `GET /v0/beads/memories/{key}` answers as a `404` and `GET /v0/beads/memories` enumerates.
+	// Always present. It is the empty string only where a row was written out of band with an empty value, which `GET /v0/issuegraph/memories/{key}` answers as a `404` and `GET /v0/issuegraph/memories` enumerates.
 	Value string `json:"value"`
 }
 
@@ -1471,7 +1471,7 @@ type Problem struct {
 
 	// Assignee With `already_claimed`: the actor currently holding the issue, read inside the transaction that refused.
 	//
-	// IT IS OPTIONAL ON EVERY OPERATION BUT THE CLAIM. `POST /v0/beads/issues/{id}:claim` always carries it, because its conflict path reads the row it lost to. `PATCH /v0/beads/issues/{id}` and `POST /v0/beads/issues:batchApply` carry it only when the refusing transaction reported a holder, and `POST /v0/beads/issues/{id}:release` never does — the ownership fence refuses without naming anyone. An absent member means "this refusal could not name the holder", never "nobody holds it"; re-read the row.
+	// IT IS OPTIONAL ON EVERY OPERATION BUT THE CLAIM. `POST /v0/issuegraph/issues/{id}:claim` always carries it, because its conflict path reads the row it lost to. `PATCH /v0/issuegraph/issues/{id}` and `POST /v0/issuegraph/issues:batchApply` carry it only when the refusing transaction reported a holder, and `POST /v0/issuegraph/issues/{id}:release` never does — the ownership fence refuses without naming anyone. An absent member means "this refusal could not name the holder", never "nobody holds it"; re-read the row.
 	Assignee *string `json:"assignee,omitempty"`
 
 	// BlockerId With `dependency_cycle`, hierarchy refusal only: the ancestor or descendant the edge named as blocker. See `issue_id`.
@@ -1583,11 +1583,11 @@ type QueryPage struct {
 	Items []IssueWithCounts `json:"items"`
 }
 
-// ReadyCount The size of a ready set. It carries no items, no `has_more` and no cursor: this is a number about a set, and the operation that returns rows is `GET /v0/beads/ready`.
+// ReadyCount The size of a ready set. It carries no items, no `has_more` and no cursor: this is a number about a set, and the operation that returns rows is `GET /v0/issuegraph/ready`.
 //
 // It is NOT `x-go-type`-pinned, unlike the seven schemas above, and that is a decision rather than an omission: those seven are pinned because a canonical Go struct's JSON encoding IS the contract and a second wire struct would let the CLI's `--json` drift from these bodies. There is no canonical struct here — the CLI publishes this number inside its own stdout envelope's `pagination` member, which is not a wire type — so pinning would weld this body to a CLI presentation type instead of preventing a drift.
 type ReadyCount struct {
-	// Total How many items `GET /v0/beads/ready` would return for these filters with `limit=0`. Never negative; 0 when nothing is ready, which is a 200 rather than a 404 — a question about a set has an answer even when the set is empty.
+	// Total How many items `GET /v0/issuegraph/ready` would return for these filters with `limit=0`. Never negative; 0 when nothing is ready, which is a 200 rather than a 404 — a question about a set has an answer even when the set is empty.
 	Total int64 `json:"total"`
 }
 
@@ -1613,7 +1613,7 @@ type Ref struct {
 	Key *string `json:"key,omitempty"`
 }
 
-// RelatedIssues One issue's neighbors — the body of `GET /v0/beads/issues/{id}/related`. It is NOT a page: this operation has no limit and no cursor, and it names ONE anchor, so there is nothing for a `has_more` to be about.
+// RelatedIssues One issue's neighbors — the body of `GET /v0/issuegraph/issues/{id}/related`. It is NOT a page: this operation has no limit and no cursor, and it names ONE anchor, so there is nothing for a `has_more` to be about.
 //
 // There is no `missing` beside `items`, unlike `DependencyEdges`. That member exists because a batch cannot report an absent anchor any other way without discarding the anchors it did find; here the single absent anchor is a 404.
 //
@@ -1621,7 +1621,7 @@ type Ref struct {
 type RelatedIssues struct {
 	// Items The neighbors, ascending by id with the edge type breaking a tie. Empty array (never null) when this issue has none in the requested direction, or when the `type` filter rejected every edge.
 	//
-	// Each element is a full issue plus `dependency_type`, the type of the edge that led to it — the same element `GET /v0/beads/issues/{id}` carries under `dependencies` and `dependents`, so the two surfaces are one compatibility domain.
+	// Each element is a full issue plus `dependency_type`, the type of the edge that led to it — the same element `GET /v0/issuegraph/issues/{id}` carries under `dependencies` and `dependents`, so the two surfaces are one compatibility domain.
 	//
 	// AN EDGE WITH NO FAR END IN THIS DATABASE CONTRIBUTES NOTHING here: an `external:` reference, an id in another repository's namespace and an id whose issue was deleted out from under its edges are all silently absent, with no placeholder row and no error. The length of this array is a NEIGHBOR count, never an edge count.
 	Items []IssueWithDependencyMetadata `json:"items"`
@@ -1645,7 +1645,7 @@ type ReleaseIssueRequest struct {
 	// IT IS NOT LENGTH- OR PATTERN-BOUNDED the way `actor` is, and the asymmetry is deliberate: this value is COMPARED and never stored, so a value no assignee column could hold simply cannot match, and refusing it at the edge would be a refusal the role does not have.
 	ExpectedAssignee *string `json:"expected_assignee,omitempty"`
 
-	// Force Bypass the ownership fence, so an actor that is not the holder may release the claim. It is the escape hatch `bd unclaim --force` spells, for an abandoned claim whose holder crashed.
+	// Force Bypass the ownership fence, so an actor that is not the holder may release the claim. It is the escape hatch `issuegraph unclaim --force` spells, for an abandoned claim whose holder crashed.
 	//
 	// IT BYPASSES THE FENCE AND NOTHING ELSE. It does not make an unheld row releasable, it does not make a closed one releasable, and it never bypasses a precondition — sending it beside `expected_assignee` is a 400 rather than a silent win for either.
 	Force *bool `json:"force,omitempty"`
@@ -1678,7 +1678,7 @@ type RememberRequest struct {
 
 	// Key The key to store under. OMIT IT to have the server derive one from `content`; the response's `key` is then how the caller learns where the memory landed.
 	//
-	// Supplied, it is used verbatim — no trimming, no slugging, no charset restriction. A key carrying a control character is storable this way and by `bd remember --key`, and is then unreachable through `GET`/`DELETE /v0/beads/memories/{key}`, which refuse one: see those operations.
+	// Supplied, it is used verbatim — no trimming, no slugging, no charset restriction. A key carrying a control character is storable this way and by `issuegraph remember --key`, and is then unreachable through `GET`/`DELETE /v0/issuegraph/memories/{key}`, which refuse one: see those operations.
 	Key *string `json:"key,omitempty"`
 }
 
@@ -1691,7 +1691,7 @@ type RememberedMemory struct {
 
 	// Replaced True when a previous value existed under `key` and this request overwrote it; false when the key was new. It is observed in the same transaction as the write, so it describes the row this request wrote.
 	//
-	// A previous value that was the EMPTY STRING reports true: the ROW existed, even though `GET /v0/beads/memories/{key}` would have answered `404` for it. That divergence is the storage seam's conflation showing through, and it is stated rather than smoothed over, because smoothing it would mean this member reporting "nothing was there" about a write that overwrote something.
+	// A previous value that was the EMPTY STRING reports true: the ROW existed, even though `GET /v0/issuegraph/memories/{key}` would have answered `404` for it. That divergence is the storage seam's conflation showing through, and it is stated rather than smoothed over, because smoothing it would mean this member reporting "nothing was there" about a write that overwrote something.
 	Replaced bool `json:"replaced"`
 
 	// Value The stored content, echoed verbatim. Always present, and never withheld — this plane has no redaction; see the operation description.
@@ -1718,7 +1718,7 @@ type RemoveDependencyResponse struct {
 
 // RemovedSetting The outcome of removing one setting.
 //
-// IT CARRIES THE KEY AND NOTHING ELSE, and the absence is the contract rather than an unfinished shape. There is no `removed` flag because the storage seam discards the affected-row count on every implementation, so the member would be a value one of them had to invent — and no `value`, because reporting what was there would publish, on the one operation that withholds nothing, exactly the credential `GET /v0/beads/config/{key}` redacts.
+// IT CARRIES THE KEY AND NOTHING ELSE, and the absence is the contract rather than an unfinished shape. There is no `removed` flag because the storage seam discards the affected-row count on every implementation, so the member would be a value one of them had to invent — and no `value`, because reporting what was there would publish, on the one operation that withholds nothing, exactly the credential `GET /v0/issuegraph/config/{key}` redacts.
 type RemovedSetting struct {
 	// Key The key that now holds nothing, echoed verbatim.
 	Key string `json:"key"`
@@ -1774,7 +1774,7 @@ type SetSettingRequest struct {
 
 // Setting One entry of the workspace's stored settings plane.
 //
-// THIS SCHEMA IS DELIBERATELY NOT `x-go-type`-PINNED, and it is one of the two ROW schemas on this surface that is not — `Memory` is the other. (Envelopes and page wrappers are unpinned as a class, for a different reason: they are new wire surface with no prior implementation. `TestWireTagBijection`'s `pinnedSchemas` is the authority on what is pinned.) The thirteen pinned schemas above are pinned because a canonical Go struct already IS the contract — `types.Issue`'s JSON encoding is what `bd show --json` emits. A setting has no such struct: the CLI marshals an ad-hoc `map[string]string` per verb, so there is nothing to pin TO, and minting a type to pin to would mean changing what `bd config get --json` prints in order to satisfy a rule about not changing it.
+// THIS SCHEMA IS DELIBERATELY NOT `x-go-type`-PINNED, and it is one of the two ROW schemas on this surface that is not — `Memory` is the other. (Envelopes and page wrappers are unpinned as a class, for a different reason: they are new wire surface with no prior implementation. `TestWireTagBijection`'s `pinnedSchemas` is the authority on what is pinned.) The thirteen pinned schemas above are pinned because a canonical Go struct already IS the contract — `types.Issue`'s JSON encoding is what `issuegraph show --json` emits. A setting has no such struct: the CLI marshals an ad-hoc `map[string]string` per verb, so there is nothing to pin TO, and minting a type to pin to would mean changing what `issuegraph config get --json` prints in order to satisfy a rule about not changing it.
 //
 // The two surfaces are still one shape where they overlap — `key` and `value` are spelled as the CLI spells them — and they diverge in exactly one deliberate place, `redacted`, which exists because a bearer on this surface is optional, shared and surface-wide — it cannot decide that one caller may read a credential and another may not — while the CLI requires access to the database anyway.
 type Setting struct {
@@ -1808,64 +1808,64 @@ type SettingsPage struct {
 
 // Statistics Workspace summary counts. Two of them are DEPENDENCY-AWARE and two are structurally always zero; both facts are stated on the properties themselves, because every number here is the same JSON type and nothing else on the wire distinguishes them.
 //
-// This is the struct `bd status --json` marshals under `summary`, pinned so the two surfaces are one compatibility domain.
+// This is the struct `issuegraph status --json` marshals under `summary`, pinned so the two surfaces are one compatibility domain.
 type Statistics = types.Statistics
 
-// StatsResponse The same envelope `bd status --json` prints, minus one member: the CLI also carries `recent_activity`, which every shipped code path leaves absent, so it is not published here.
+// StatsResponse The same envelope `issuegraph status --json` prints, minus one member: the CLI also carries `recent_activity`, which every shipped code path leaves absent, so it is not published here.
 type StatsResponse struct {
 	// BlockedCountSkipped True when the summary came back without the blocked-set scan, which is exactly `summary.blocked_issues == null`. It is DERIVED from the answer rather than echoed from the request: `skip_blocked` is a hint, and a backend with no cheaper path answers with the full numbers and this flag false.
 	BlockedCountSkipped bool `json:"blocked_count_skipped"`
 
 	// Summary Workspace summary counts. Two of them are DEPENDENCY-AWARE and two are structurally always zero; both facts are stated on the properties themselves, because every number here is the same JSON type and nothing else on the wire distinguishes them.
 	//
-	// This is the struct `bd status --json` marshals under `summary`, pinned so the two surfaces are one compatibility domain.
+	// This is the struct `issuegraph status --json` marshals under `summary`, pinned so the two surfaces are one compatibility domain.
 	Summary Statistics `json:"summary"`
 }
 
-// SweepRequest Which closed beads to clear. The predicate is FIXED at "closed beads of one tier" and the two narrowing members only narrow it: there is no status, no assignee, no label and no free-text query here, because every one of those would be another way to spell a destructive selection that a caller could get subtly wrong.
+// SweepRequest Which closed issuegraph to clear. The predicate is FIXED at "closed issuegraph of one tier" and the two narrowing members only narrow it: there is no status, no assignee, no label and no free-text query here, because every one of those would be another way to spell a destructive selection that a caller could get subtly wrong.
 //
 // `additionalProperties: false`, so an unknown member is a `400` naming the member — the same posture the query-parameter rule takes, and for the same reason: on this operation a silently ignored narrowing term widens what is erased.
 type SweepRequest struct {
-	// Actor Caller-asserted attribution for wherever the backend records it, under the same rules and for the same reasons as `ClaimRequest`'s `actor`: trimmed, refused when empty after trimming, over 256 BYTES, or carrying any control character. Optional — a deleted bead leaves no row to attribute the deletion on.
+	// Actor Caller-asserted attribution for wherever the backend records it, under the same rules and for the same reasons as `ClaimRequest`'s `actor`: trimmed, refused when empty after trimming, over 256 BYTES, or carrying any control character. Optional — a deleted issue leaves no row to attribute the deletion on.
 	Actor *string `json:"actor,omitempty"`
 
-	// ClosedBefore Keep only beads closed STRICTLY BEFORE this instant (RFC 3339). A bead closed exactly at it is kept, which is the half-open interval every other time bound on this surface uses. `bd prune --older-than 30d` resolves the duration itself and sends the resulting instant.
+	// ClosedBefore Keep only issuegraph closed STRICTLY BEFORE this instant (RFC 3339). A issue closed exactly at it is kept, which is the half-open interval every other time bound on this surface uses. `issuegraph prune --older-than 30d` resolves the duration itself and sends the resulting instant.
 	ClosedBefore *time.Time `json:"closed_before,omitempty"`
 
 	// DryRun Report what the sweep WOULD do and delete nothing. The counts, the skips and the refusals are the same ones the real sweep would produce, computed against the same snapshot — and nothing is recorded in history either.
 	DryRun *bool `json:"dry_run,omitempty"`
 
-	// Pattern Keep only beads whose id matches this shell glob (`*`, `?`, `[...]`, `\` escapes; `*` also crosses `-` and `.`, since an id is not a path). Absent matches every bead in the tier. A MALFORMED glob is a `400`, never a pattern that matches nothing.
+	// Pattern Keep only issuegraph whose id matches this shell glob (`*`, `?`, `[...]`, `\` escapes; `*` also crosses `-` and `.`, since an id is not a path). Absent matches every issue in the tier. A MALFORMED glob is a `400`, never a pattern that matches nothing.
 	Pattern *string `json:"pattern,omitempty"`
 
-	// ProtectReferenced Skip candidates whose id is CITED — as a literal, at word boundaries — in the description, notes or comments of any bead that is not done, so a decision trail a live bead still points at is not deleted out from under it.
+	// ProtectReferenced Skip candidates whose id is CITED — as a literal, at word boundaries — in the description, notes or comments of any issue that is not done, so a decision trail a live issue still points at is not deleted out from under it.
 	//
-	// It DEFAULTS ON here, unlike the library default, and that is deliberate. This is the only destructive operation on the surface, and the bearer a deployment may configure is not a per-caller right: one shared token admits a client to everything published here, so being authenticated says nothing about whether this particular deletion was meant. A caller that omits the member must therefore not get weaker protection than the operator typing `bd prune`, which protects unless `--ignore-references`. The inverse — opt OUT locally, opt IN remotely — is the shape that lets a stray request delete a decision trail nothing brings back.
+	// It DEFAULTS ON here, unlike the library default, and that is deliberate. This is the only destructive operation on the surface, and the bearer a deployment may configure is not a per-caller right: one shared token admits a client to everything published here, so being authenticated says nothing about whether this particular deletion was meant. A caller that omits the member must therefore not get weaker protection than the operator typing `issuegraph prune`, which protects unless `--ignore-references`. The inverse — opt OUT locally, opt IN remotely — is the shape that lets a stray request delete a decision trail nothing brings back.
 	//
 	// It costs a full scan of the not-done set and its comments. Sending `protect_referenced: false` buys the cheaper sweep, and asking for it explicitly is the point: that is the request that should be the deliberate one.
 	ProtectReferenced *bool `json:"protect_referenced,omitempty"`
 
-	// Tier Which plane to clear. `ephemeral` is the wisp tier (`bd purge`) and `durable` is the issue tier (`bd prune`). The two are DISJOINT: a sweep of one can never touch a bead of the other. Required, with no default — a caller handed the wrong tier has nothing to notice until the beads are gone.
+	// Tier Which plane to clear. `ephemeral` is the wisp tier (`issuegraph purge`) and `durable` is the issue tier (`issuegraph prune`). The two are DISJOINT: a sweep of one can never touch a issue of the other. Required, with no default — a caller handed the wrong tier has nothing to notice until the issuegraph are gone.
 	Tier SweepRequestTier `json:"tier"`
 }
 
-// SweepRequestTier Which plane to clear. `ephemeral` is the wisp tier (`bd purge`) and `durable` is the issue tier (`bd prune`). The two are DISJOINT: a sweep of one can never touch a bead of the other. Required, with no default — a caller handed the wrong tier has nothing to notice until the beads are gone.
+// SweepRequestTier Which plane to clear. `ephemeral` is the wisp tier (`issuegraph purge`) and `durable` is the issue tier (`issuegraph prune`). The two are DISJOINT: a sweep of one can never touch a issue of the other. Required, with no default — a caller handed the wrong tier has nothing to notice until the issuegraph are gone.
 type SweepRequestTier string
 
 // SweepResult What one sweep did. Every number describes the SAME snapshot, because the selection and the deletion ran in one transaction.
 //
 // It is NOT `x-go-type`-pinned, for the reason `ReadyCount` is not: there is no canonical Go struct whose JSON encoding is this contract. The CLI publishes these numbers under its own per-command keys (`purged_count`, `pruned_count`), which are a stdout presentation rather than a wire type, so pinning would weld this body to one of them.
 type SweepResult struct {
-	// Dependencies Dependency edge rows removed with them. Reported because a sweep's visible effect is much larger than its bead count.
+	// Dependencies Dependency edge rows removed with them. Reported because a sweep's visible effect is much larger than its issue count.
 	Dependencies int `json:"dependencies"`
 
-	// DryRun Echoes the request, so a result carries whether its numbers describe beads that are gone or beads that would go.
+	// DryRun Echoes the request, so a result carries whether its numbers describe issuegraph that are gone or issuegraph that would go.
 	DryRun bool `json:"dry_run"`
 
-	// Events Event rows removed with the swept beads.
+	// Events Event rows removed with the swept issuegraph.
 	Events int `json:"events"`
 
-	// Labels Label rows removed with the swept beads.
+	// Labels Label rows removed with the swept issuegraph.
 	Labels int `json:"labels"`
 
 	// ReferencedIds A BOUNDED SAMPLE of the ids `skipped.referenced` counts — at most 100, in the order the candidate query returned them. It is a sample, not the set: compare its length against 100 to tell a truncated one from a complete one. Absent when nothing was protected.
@@ -1874,7 +1874,7 @@ type SweepResult struct {
 	// Skipped The candidates a sweep declined to delete, bucketed by WHY. They are separate counters rather than one number because they mean different things: the first two are PROTECTIONS, and the last four are the sweep declining to trust its own input.
 	Skipped SweepSkips `json:"skipped"`
 
-	// Swept How many beads were deleted, or under `dry_run` would be.
+	// Swept How many issuegraph were deleted, or under `dry_run` would be.
 	Swept int `json:"swept"`
 }
 
@@ -1883,13 +1883,13 @@ type SweepSkips struct {
 	// ClosedAtOrAfterCutoff Candidates whose close timestamp did not satisfy `closed_before`. See `not_closed`.
 	ClosedAtOrAfterCutoff int `json:"closed_at_or_after_cutoff"`
 
-	// NotClosed Candidates the tier query returned that the recheck found were not closed. A NON-ZERO VALUE HERE IS A DEFENSE FIRING, not a normal outcome: the query asked for exactly the beads this excludes.
+	// NotClosed Candidates the tier query returned that the recheck found were not closed. A NON-ZERO VALUE HERE IS A DEFENSE FIRING, not a normal outcome: the query asked for exactly the issuegraph this excludes.
 	NotClosed int `json:"not_closed"`
 
-	// Pinned Candidates protected by the pinned flag. No request member overrides it — a caller who wants a pinned bead gone unpins it first.
+	// Pinned Candidates protected by the pinned flag. No request member overrides it — a caller who wants a pinned issue gone unpins it first.
 	Pinned int `json:"pinned"`
 
-	// Referenced Candidates protected by `protect_referenced`. Always 0 when that member is false or absent, so a 0 read without having asked says nothing about whether beads are cited.
+	// Referenced Candidates protected by `protect_referenced`. Always 0 when that member is false or absent, so a 0 read without having asked says nothing about whether issuegraph are cited.
 	Referenced int `json:"referenced"`
 
 	// UnknownClosedAt Closed candidates carrying no close timestamp. See `not_closed`.
@@ -1919,7 +1919,7 @@ type UpdateIssueRequest struct {
 
 	// ExpectedVersion Requires the row's revision to equal this value before the patch. A miss refuses the WHOLE request with `409 precondition_failed` and writes nothing — `ApplyUpdateItem.expected_version`'s contract, on the operation that patches one row.
 	//
-	// The token is the `revision` this operation's own response carries, and the same one `GET /v0/beads/issues/{id}` publishes — which is where a first guarded write seeds itself, rather than from an unguarded one or from `POST /v0/beads/issues:batchApply`'s `ApplyItemResult.revision`. Compose the next expectation from the value the write ANSWERED with, never from one the client composed itself: the token is OPAQUE and compared for equality alone, so it has no predecessor a client can compute.
+	// The token is the `revision` this operation's own response carries, and the same one `GET /v0/issuegraph/issues/{id}` publishes — which is where a first guarded write seeds itself, rather than from an unguarded one or from `POST /v0/issuegraph/issues:batchApply`'s `ApplyItemResult.revision`. Compose the next expectation from the value the write ANSWERED with, never from one the client composed itself: the token is OPAQUE and compared for equality alone, so it has no predecessor a client can compute.
 	//
 	// IT IS A STRING, and it must be the `revision` string a response carried, verbatim. A JSON number — or any other type — is a `400` naming this member. The token spans the FULL 64-bit range, so a number would be rounded past 2^53 by an IEEE-754-double parser and the guard would miss a row nothing else touched; a string round-trips exactly in every consumer.
 	ExpectedVersion *string `json:"expected_version,omitempty"`
@@ -1948,7 +1948,7 @@ type UpdateIssueResponse struct {
 
 	// Revision The row's optimistic-concurrency token AFTER this write, spelled the way `ApplyItemResult.revision` spells it.
 	//
-	// It is here because `expected_version` is: a guard whose token no response carries is a guard a caller cannot fill. A read-modify-write loop composes its next expectation from THIS value and never from a number it incremented itself, for the reason `compareAndSetMetadata` gives about a value the store renormalizes. `GET /v0/beads/issues/{id}`'s `revision` is the read that publishes the same token, and this member agrees with it.
+	// It is here because `expected_version` is: a guard whose token no response carries is a guard a caller cannot fill. A read-modify-write loop composes its next expectation from THIS value and never from a number it incremented itself, for the reason `compareAndSetMetadata` gives about a value the store renormalizes. `GET /v0/issuegraph/issues/{id}`'s `revision` is the read that publishes the same token, and this member agrees with it.
 	//
 	// IT IS A STRING, the token's decimal spelling — `"-3819021935081927"`, or `"0"` for a legacy migration-0054 row. Send it back verbatim as an `expected_version`; do not parse it into a number. A JSON number would not survive the trip: the token spans the FULL 64-bit range, and an IEEE-754-double parser — JavaScript's `JSON.parse`, Go's `any`, Python's `float` — rounds anything past 2^53 to a value NEAR the token that is not it, so a guard composed from it is refused against a row nothing else touched. A string round-trips exactly in every consumer.
 	Revision string `json:"revision"`
@@ -1985,7 +1985,7 @@ type bearerTokenContextKey string
 type ListDependenciesParams struct {
 	// IssueId The issues to read edges for. Repeat the parameter; at least one is required and at most 100 are accepted, and either bound is a 400 `invalid_argument` with `param: "issue_id"`, `reason: "invalid_value"`.
 	//
-	// Each value must be an EXACT canonical issue id: there is no fuzzy, prefix or substring resolution on this surface, for the reason `GET /v0/beads/issues/{id}` gives. A value that matches nothing is reported in `missing` rather than refused. An empty value is a 400.
+	// Each value must be an EXACT canonical issue id: there is no fuzzy, prefix or substring resolution on this surface, for the reason `GET /v0/issuegraph/issues/{id}` gives. A value that matches nothing is reported in `missing` rather than refused. An empty value is a 400.
 	//
 	// Repeats collapse: an id named twice is one entry in `missing` at most once, and its edges appear once.
 	IssueId []string `form:"issue_id" json:"issue_id"`
@@ -2002,7 +2002,7 @@ type ListDependenciesParams struct {
 type ListBlockingAnnotationsParams struct {
 	// IssueId The issues to annotate. Repeat the parameter; at least one is required and at most 100 are accepted, and either bound is a 400 `invalid_argument` with `param: "issue_id"`, `reason: "invalid_value"`.
 	//
-	// Each value must be an EXACT canonical issue id: there is no fuzzy, prefix or substring resolution on this surface, for the reason `GET /v0/beads/issues/{id}` gives. A value that matches nothing gets a bare entry rather than being refused. An empty value is a 400.
+	// Each value must be an EXACT canonical issue id: there is no fuzzy, prefix or substring resolution on this surface, for the reason `GET /v0/issuegraph/issues/{id}` gives. A value that matches nothing gets a bare entry rather than being refused. An empty value is a 400.
 	//
 	// Repeats collapse: an id named twice is one entry, at the position of its first mention.
 	IssueId []string `form:"issue_id" json:"issue_id"`
@@ -2010,7 +2010,7 @@ type ListBlockingAnnotationsParams struct {
 
 // GetDependencyTreeParams defines parameters for GetDependencyTree.
 type GetDependencyTreeParams struct {
-	// RootId The issue to walk from. It must be an EXACT canonical issue id: there is no fuzzy, prefix or substring resolution on this surface, for the reason `GET /v0/beads/issues/{id}` gives. An empty value is a 400 `invalid_argument`; a value that matches no issue and no wisp is a 404 `not_found`, because there is one anchor here and no other answer to preserve.
+	// RootId The issue to walk from. It must be an EXACT canonical issue id: there is no fuzzy, prefix or substring resolution on this surface, for the reason `GET /v0/issuegraph/issues/{id}` gives. An empty value is a 400 `invalid_argument`; a value that matches no issue and no wisp is a 404 `not_found`, because there is one anchor here and no other answer to preserve.
 	RootId string `form:"root_id" json:"root_id"`
 
 	// Direction Which way to follow edges. `down` (the default) walks what the root DEPENDS ON; `up` walks what depends ON it; `both` walks each way and returns one list.
@@ -2040,12 +2040,12 @@ type GetDependencyTreeParamsDirection string
 type CountDependencyEdgesParams struct {
 	// IssueId The anchors to count around. Repeat the parameter; at least one is required and at most 100 are accepted, and either bound is a 400 `invalid_argument` with `param: "issue_id"`, `reason: "invalid_value"`.
 	//
-	// Each value must be an EXACT canonical issue id, for the reason `GET /v0/beads/dependencies` gives. A value that matches nothing is reported on its own anchor rather than refused. An EMPTY value is a 400: the empty string names nothing a caller can have meant, and reporting it as a missing anchor would put a nameless row in an answer keyed by name.
+	// Each value must be an EXACT canonical issue id, for the reason `GET /v0/issuegraph/dependencies` gives. A value that matches nothing is reported on its own anchor rather than refused. An EMPTY value is a 400: the empty string names nothing a caller can have meant, and reporting it as a missing anchor would put a nameless row in an answer keyed by name.
 	//
 	// Repeats collapse onto the first mention — a second entry carries no second fact and would only invite a caller summing the result to count the same edges twice.
 	IssueId []string `form:"issue_id" json:"issue_id"`
 
-	// Direction Which end of the edge the anchors sit on. `out` counts what each anchor DEPENDS ON — the direction `bd dep list` reads and the number `bd show` prints as the dependency count. `in` counts what depends on it.
+	// Direction Which end of the edge the anchors sit on. `out` counts what each anchor DEPENDS ON — the direction `issuegraph dep list` reads and the number `issuegraph show` prints as the dependency count. `in` counts what depends on it.
 	//
 	// IT IS REQUIRED, and that is the one deliberate unfriendliness on this request. The two answers are about DIFFERENT EDGE SETS, and a workspace where most issues have edges in only one direction returns the same number for both often enough that a caller who meant the other one would not notice for a long time. An absent or unrecognized value is a 400 `invalid_argument` with `param: "direction"`, never a count in some default direction.
 	//
@@ -2054,7 +2054,7 @@ type CountDependencyEdgesParams struct {
 
 	// Type Edge types to include. Repeat the parameter. Empty means every type.
 	//
-	// `GET /v0/beads/dependencies`'s `type` exactly: the vocabulary is OPEN, so an unrecognized value is not an error and simply matches no edge, while a value no edge could ever carry — empty, or longer than the column — is a 400 `invalid_argument`.
+	// `GET /v0/issuegraph/dependencies`'s `type` exactly: the vocabulary is OPEN, so an unrecognized value is not an error and simply matches no edge, while a value no edge could ever carry — empty, or longer than the column — is a 400 `invalid_argument`.
 	//
 	// The filter narrows EDGES, never anchors. An anchor whose every edge it rejects comes back present with a count of 0, which is a different fact from an anchor that is not there.
 	Type *[]string `form:"type,omitempty" json:"type,omitempty"`
@@ -2063,7 +2063,7 @@ type CountDependencyEdgesParams struct {
 	//
 	// IT IS LEGAL ONLY WITH `direction=in`. Sending it beside `direction=out` is a 400 `invalid_argument` with `param: "status"` and `reason: "invalid_value"`, rather than a filter that is quietly ignored. The asymmetry is the substrate's and `issueops.EdgeCountRequest.Status` states why: narrowing by status joins the far end of the edge to the row holding its status, and an OUTBOUND edge's far end may be an `external:` reference or an id belonging to another repository — rows this database does not hold — so the filter would silently drop every dangling edge.
 	//
-	// It is ONE status, not a comma-separated OR set, and it is NOT validated against the workspace vocabulary: an unrecognized name matches nothing and counts 0 rather than failing, exactly as `GET /v0/beads/issues:count`'s `status` does. A scripted caller counting a status its workspace has since dropped reads 0 and should keep reading 0.
+	// It is ONE status, not a comma-separated OR set, and it is NOT validated against the workspace vocabulary: an unrecognized name matches nothing and counts 0 rather than failing, exactly as `GET /v0/issuegraph/issues:count`'s `status` does. A scripted caller counting a status its workspace has since dropped reads 0 and should keep reading 0.
 	Status *string `form:"status,omitempty" json:"status,omitempty"`
 }
 
@@ -2074,14 +2074,14 @@ type CountDependencyEdgesParamsDirection string
 type ListEventsParams struct {
 	// Since Return records with `seq` strictly greater than this value. Pass `0` to read from the beginning of the retained journal.
 	//
-	// REQUIRED, and deliberately not defaulted to zero. A consumer that omitted its checkpoint by mistake would be served the whole retained window, which reads as a flood of duplicate records rather than as an error. A negative value is a 400 `invalid_argument` for the same reason `bd events tail --since` refuses one: it is almost always arithmetic on an empty cursor, and `seq > -5` would quietly serve everything as though it were a legitimate resume.
+	// REQUIRED, and deliberately not defaulted to zero. A consumer that omitted its checkpoint by mistake would be served the whole retained window, which reads as a flood of duplicate records rather than as an error. A negative value is a 400 `invalid_argument` for the same reason `issuegraph events tail --since` refuses one: it is almost always arithmetic on an empty cursor, and `seq > -5` would quietly serve everything as though it were a legitimate resume.
 	//
 	// A value at or above `head` is not an error — it is the caught-up case, a 200 with an empty `records` array.
 	Since int64 `form:"since" json:"since"`
 
 	// Limit Maximum number of records to return, from 1 to 10000. A value outside that range — `0` included — is a 400 `invalid_argument`.
 	//
-	// THERE IS NO UNLIMITED READ HERE, and `0` does NOT mean unlimited as it does on `GET /v0/beads/issues`. A caller resuming from an old checkpoint would otherwise ask one process to buffer the entire retained window — a hundred thousand records under the shipped `events-journal-retain-rows` floor — and encode it into a single response. The ceiling is unconditional and does not depend on the bind mode.
+	// THERE IS NO UNLIMITED READ HERE, and `0` does NOT mean unlimited as it does on `GET /v0/issuegraph/issues`. A caller resuming from an old checkpoint would otherwise ask one process to buffer the entire retained window — a hundred thousand records under the shipped `events-journal-retain-rows` floor — and encode it into a single response. The ceiling is unconditional and does not depend on the bind mode.
 	//
 	// The default of 1000 is deliberately much larger than the issue listings' 50: a journal consumer is a machine draining a backlog in order rather than a person reading a page, and the number that matters to it is round trips to catch up.
 	//
@@ -2113,7 +2113,7 @@ type ListIssuesParams struct {
 	// Setting this REPLACES the default status exclusions rather than fighting with them: `status=closed` on its own returns closed issues, and does NOT also need `all=true`. Leave it unset to get the default view described above.
 	Status *[]string `form:"status,omitempty" json:"status,omitempty"`
 
-	// Type Issue type. Shorthand aliases are expanded exactly as `bd list --type` expands them (`mr`, `feat`, `mol`, `enhancement`, `dec`, `adr`); there is no plural folding. Unlike on `ready`, an unknown type is a 400 `invalid_argument` with `reason: "invalid_value"`, because `bd list` validates the type against the workspace's configured vocabulary and this operation keeps that behavior.
+	// Type Issue type. Shorthand aliases are expanded exactly as `issuegraph list --type` expands them (`mr`, `feat`, `mol`, `enhancement`, `dec`, `adr`); there is no plural folding. Unlike on `ready`, an unknown type is a 400 `invalid_argument` with `reason: "invalid_value"`, because `issuegraph list` validates the type against the workspace's configured vocabulary and this operation keeps that behavior.
 	Type *string `form:"type,omitempty" json:"type,omitempty"`
 
 	// Assignee Only issues assigned to this actor.
@@ -2160,11 +2160,11 @@ type ListIssuesParams struct {
 	// HasMetadataKey Only issues carrying this top-level metadata key.
 	HasMetadataKey *string `form:"has_metadata_key,omitempty" json:"has_metadata_key,omitempty"`
 
-	// Sort Which of the two served total orders this page is in. `created` is `(created_at DESC, id ASC)`; `priority` is `(priority ASC, created_at DESC, id ASC)` — `bd list`'s flagless ordering, and the order `bd list --sort priority` produces.
+	// Sort Which of the two served total orders this page is in. `created` is `(created_at DESC, id ASC)`; `priority` is `(priority ASC, created_at DESC, id ASC)` — `issuegraph list`'s flagless ordering, and the order `issuegraph list --sort priority` produces.
 	//
 	// THE DEFAULT IS `created` AND WILL NOT CHANGE. It is what this operation served before this parameter existed, so moving it would alter which rows a truncated page contains for every client written against that behavior, with no error to notice it by.
 	//
-	// THE VOCABULARY IS CLOSED, and deliberately smaller than the nine values `bd list --sort` and `GET /v0/beads/issues:query` take. Each value here is a cursor contract, not a display preference: it needs a keyset predicate and a key proven total. See the operation description for why the other seven have neither.
+	// THE VOCABULARY IS CLOSED, and deliberately smaller than the nine values `issuegraph list --sort` and `GET /v0/issuegraph/issues:query` take. Each value here is a cursor contract, not a display preference: it needs a keyset predicate and a key proven total. See the operation description for why the other seven have neither.
 	//
 	// A value outside the enum is a 400 `invalid_argument` with `param: "sort"` and `reason: "invalid_value"`. A server that predates this parameter answers `param: "sort"` with `reason: "unknown_parameter"` instead, which is the per-parameter capability probe a client can dispatch on to fall back to paging in `created` order and sorting client-side.
 	Sort *ListIssuesParamsSort `form:"sort,omitempty" json:"sort,omitempty"`
@@ -2178,16 +2178,16 @@ type ListIssuesParams struct {
 	// FILTER MISUSE IS *NOT* DETECTABLE, which is the difference, and why repeating the filters matters. Because the token carries no filters, a page fetched with a cursor minted under DIFFERENT filters is not refused: the server applies the filters of the current request from the position of the old one, silently skipping every row the new filter set would have placed before that position. Repeat every filter verbatim for the whole traversal, and start a new traversal when they change.
 	Cursor *string `form:"cursor,omitempty" json:"cursor,omitempty"`
 
-	// Limit Maximum number of items to return. `0` means unlimited, exactly as `bd list --limit 0` does — the two surfaces read the same shared default and the same zero semantics, so they cannot diverge. An unlimited page reports `has_more: false` and carries no `next_cursor`. A negative value is a 400.
+	// Limit Maximum number of items to return. `0` means unlimited, exactly as `issuegraph list --limit 0` does — the two surfaces read the same shared default and the same zero semantics, so they cannot diverge. An unlimited page reports `has_more: false` and carries no `next_cursor`. A negative value is a 400.
 	//
-	// The default below is the shared list limit constant (`workapi.DefaultListLimit`, the value `bd list`'s `--limit` flag registers).
+	// The default below is the shared list limit constant (`workapi.DefaultListLimit`, the value `issuegraph list`'s `--limit` flag registers).
 	//
 	// One exception, and it is mode-dependent: when the server was started with `--allow-non-loopback`, `limit=0` is refused with 400 `invalid_argument`, `param: "limit"`, `reason: "invalid_value"` and detail "unlimited reads are loopback-only; pass an explicit limit". An unlimited read buffers the whole active set and its JSON encoding inside one shared process, which must not be reachable by arbitrary network peers. The bind mode is deliberately NOT advertised in `ContextResponse` — a client that wants an unlimited read asks for one and, on that 400, re-issues with an explicit limit (and pages with `cursor`); it is a client-side fix, never a retry.
 	Limit *int `form:"limit,omitempty" json:"limit,omitempty"`
 
 	// Brief Omit the free-form text from every item: `description`, `design`, `acceptance_criteria`, `notes`, `payload` and `waiters` are not selected. Filtering is unaffected, because it selects rows and this selects fields. Default false, so the payload is unchanged for a client that does not ask.
 	//
-	// The response carries no marker for the omission, so an omitted field is indistinguishable from a genuinely empty one: only the client that sent this parameter knows the rows are partial. Fetch a whole issue with `GET /v0/beads/issues/{id}`.
+	// The response carries no marker for the omission, so an omitted field is indistinguishable from a genuinely empty one: only the client that sent this parameter knows the rows are partial. Fetch a whole issue with `GET /v0/issuegraph/issues/{id}`.
 	Brief *bool `form:"brief,omitempty" json:"brief,omitempty"`
 }
 
@@ -2208,16 +2208,16 @@ type GetIssueParams struct {
 
 // ListRelatedIssuesParams defines parameters for ListRelatedIssues.
 type ListRelatedIssuesParams struct {
-	// Direction Which way this issue's edges are walked. `out` answers the issues it DEPENDS ON — the `dependencies` member of `GET /v0/beads/issues/{id}`. `in` answers the issues that depend on it — that read's `dependents` member.
+	// Direction Which way this issue's edges are walked. `out` answers the issues it DEPENDS ON — the `dependencies` member of `GET /v0/issuegraph/issues/{id}`. `in` answers the issues that depend on it — that read's `dependents` member.
 	//
-	// IT IS REQUIRED AND HAS NO DEFAULT, on `GET /v0/beads/dependencies:count`'s terms and for the reason `issueops.RelationDirection` gives: the two answers have the same shape and the same member names, so a caller handed the inverse graph has nothing to notice. An absent or unrecognized value is a 400 `invalid_argument` with `param: "direction"`, never a walk in some default direction.
+	// IT IS REQUIRED AND HAS NO DEFAULT, on `GET /v0/issuegraph/dependencies:count`'s terms and for the reason `issueops.RelationDirection` gives: the two answers have the same shape and the same member names, so a caller handed the inverse graph has nothing to notice. An absent or unrecognized value is a 400 `invalid_argument` with `param: "direction"`, never a walk in some default direction.
 	//
 	// The vocabulary is CLOSED — unlike `type` below — because it is a property of the edge's shape rather than of a workspace's configuration.
 	Direction ListRelatedIssuesParamsDirection `form:"direction" json:"direction"`
 
 	// Type Edge types to include. Repeat the parameter. Empty means every type.
 	//
-	// `GET /v0/beads/dependencies`'s `type` exactly: the vocabulary is OPEN, so an unrecognized value is not an error and simply matches no edge, while a value no edge could ever carry — empty, or longer than the column — is a 400 `invalid_argument` with `param: "type"`.
+	// `GET /v0/issuegraph/dependencies`'s `type` exactly: the vocabulary is OPEN, so an unrecognized value is not an error and simply matches no edge, while a value no edge could ever carry — empty, or longer than the column — is a 400 `invalid_argument` with `param: "type"`.
 	//
 	// The filter narrows EDGES, never the anchor. An issue whose every edge it rejects is answered with an empty `items` and not with a 404, which is a different fact from an id that names nothing.
 	Type *[]string `form:"type,omitempty" json:"type,omitempty"`
@@ -2234,9 +2234,9 @@ type ClaimNextIssueParams struct {
 	// Unassigned Only issues with no assignee.
 	Unassigned *bool `form:"unassigned,omitempty" json:"unassigned,omitempty"`
 
-	// Type Issue type. The only normalization is shorthand ALIAS expansion, exactly what `bd ready --type` does: `mr` → `merge-request`, `feat` → `feature`, `mol` → `molecule`, `enhancement` → `feature`, `dec`/`adr` → `decision`. Every other value is used as written — there is NO plural folding, so `bugs` is not `bug`.
+	// Type Issue type. The only normalization is shorthand ALIAS expansion, exactly what `issuegraph ready --type` does: `mr` → `merge-request`, `feat` → `feature`, `mol` → `molecule`, `enhancement` → `feature`, `dec`/`adr` → `decision`. Every other value is used as written — there is NO plural folding, so `bugs` is not `bug`.
 	//
-	// An unrecognized type is not an error here: the type vocabulary is workspace-configurable, and `bd ready` does not validate it either, so it simply matches nothing and `items` comes back empty. (The list operation differs — `bd list` DOES validate the type, so `GET /v0/beads/issues?type=bugs` is a 400.)
+	// An unrecognized type is not an error here: the type vocabulary is workspace-configurable, and `issuegraph ready` does not validate it either, so it simply matches nothing and `items` comes back empty. (The list operation differs — `issuegraph list` DOES validate the type, so `GET /v0/issuegraph/issues?type=bugs` is a 400.)
 	//
 	// When set, `exclude_type` is ignored, and so are the default type exclusions described above.
 	Type *string `form:"type,omitempty" json:"type,omitempty"`
@@ -2279,7 +2279,7 @@ type ClaimNextIssueParams struct {
 
 	// Sort Ready-work ordering. `priority` is priority-first; `hybrid` orders recent issues by priority and older ones by age; `oldest` is creation order. An unrecognized value is a 400.
 	//
-	// The default is the one `bd ready --sort` registers, so a client swapping `bd ready --json` for this operation gets the same items in the same order. The storage layer treats an EMPTY policy as `hybrid`, but that fallback is unreachable from the CLI and is NOT this parameter's default: `hybrid` demotes older high-priority work, so defaulting to it would change the item SET as soon as `limit` truncates — silently, and only for the clients this API exists to migrate.
+	// The default is the one `issuegraph ready --sort` registers, so a client swapping `issuegraph ready --json` for this operation gets the same items in the same order. The storage layer treats an EMPTY policy as `hybrid`, but that fallback is unreachable from the CLI and is NOT this parameter's default: `hybrid` demotes older high-priority work, so defaulting to it would change the item SET as soon as `limit` truncates — silently, and only for the clients this API exists to migrate.
 	Sort *ClaimNextIssueParamsSort `form:"sort,omitempty" json:"sort,omitempty"`
 }
 
@@ -2290,12 +2290,12 @@ type ClaimNextIssueParamsSort string
 type CountIssuesParams struct {
 	// Status One stored status. The empty value and the literal `all` both mean EVERY status, which is what makes a bare count answer for closed rows as well as open ones.
 	//
-	// IT IS ONE STATUS, NOT A COMMA-SEPARATED SET, and that is the one parameter name this operation shares with `GET /v0/beads/issues` while meaning something narrower — that one takes a comma-separated OR set. It is stated here rather than quietly reconciled, because a client that assumed otherwise would read a plausible number instead of an error.
+	// IT IS ONE STATUS, NOT A COMMA-SEPARATED SET, and that is the one parameter name this operation shares with `GET /v0/issuegraph/issues` while meaning something narrower — that one takes a comma-separated OR set. It is stated here rather than quietly reconciled, because a client that assumed otherwise would read a plausible number instead of an error.
 	//
-	// It is NOT validated against this workspace's configured vocabulary. An unrecognized name matches nothing and the answer is `0`, not a refusal — the shipped behavior of `bd count`, published rather than tightened, because a scripted caller counting a status its workspace has since dropped currently reads 0 and would otherwise start reading an error.
+	// It is NOT validated against this workspace's configured vocabulary. An unrecognized name matches nothing and the answer is `0`, not a refusal — the shipped behavior of `issuegraph count`, published rather than tightened, because a scripted caller counting a status its workspace has since dropped currently reads 0 and would otherwise start reading an error.
 	Status *string `form:"status,omitempty" json:"status,omitempty"`
 
-	// Type One issue type, with `status`'s match-nothing-rather-than-fail treatment and NO shorthand alias expansion at all — unlike `GET /v0/beads/ready`'s `type`, which expands aliases.
+	// Type One issue type, with `status`'s match-nothing-rather-than-fail treatment and NO shorthand alias expansion at all — unlike `GET /v0/issuegraph/ready`'s `type`, which expands aliases.
 	//
 	// It has a SECOND effect under `include_infra`: a type this workspace calls infra routes the count to the ephemeral tier. See that parameter.
 	Type *string `form:"type,omitempty" json:"type,omitempty"`
@@ -2324,7 +2324,7 @@ type CountIssuesParams struct {
 	// Id A comma-separated id set to restrict the count to. Splitting, trimming and de-duplication happen inside the role, so a caller passes the string it was given rather than a slice it had to prepare.
 	Id *string `form:"id,omitempty" json:"id,omitempty"`
 
-	// TitleContains Substring match on the title, spelled as `GET /v0/beads/issues:query` spells it. It overlaps `title` deliberately: both reach the filter, and the two names exist because the role carries both fields.
+	// TitleContains Substring match on the title, spelled as `GET /v0/issuegraph/issues:query` spells it. It overlaps `title` deliberately: both reach the filter, and the two names exist because the role carries both fields.
 	TitleContains *string `form:"title_contains,omitempty" json:"title_contains,omitempty"`
 
 	// DescContains Substring match on the description.
@@ -2363,13 +2363,13 @@ type CountIssuesParams struct {
 	// MetadataField Top-level metadata equality filter as `key=value`, split on the first `=`. Repeatable. An invalid key is a 400.
 	MetadataField *[]string `form:"metadata_field,omitempty" json:"metadata_field,omitempty"`
 
-	// IncludeInfra Count the cardinality of `bd list --include-infra --all` instead of the durable plane. IT CHANGES FOUR THINGS AT ONCE, and they are listed rather than summarized because a caller reading "include infra" would expect one:
+	// IncludeInfra Count the cardinality of `issuegraph list --include-infra --all` instead of the durable plane. IT CHANGES FOUR THINGS AT ONCE, and they are listed rather than summarized because a caller reading "include infra" would expect one:
 	//
-	// the ephemeral wisps tier is MERGED IN, picking up both wisps and the `no_history` beads that are durable work stored in that tier; template molecules are EXCLUDED, which a default count includes; gate beads are EXCLUDED unless `type=gate` asks for them by name; and a `type` this workspace calls infra ROUTES the count to the ephemeral tier instead of the durable one.
+	// the ephemeral wisps tier is MERGED IN, picking up both wisps and the `no_history` issuegraph that are durable work stored in that tier; template molecules are EXCLUDED, which a default count includes; gate issuegraph are EXCLUDED unless `type=gate` asks for them by name; and a `type` this workspace calls infra ROUTES the count to the ephemeral tier instead of the durable one.
 	//
 	// The infra vocabulary is the WORKSPACE's, read from its configuration inside the role. A caller does not supply it and cannot — that config load is what this role exists to keep off both front doors.
 	//
-	// Unset, the count is durable-plane only and applies none of the four: the historical `bd count` answer, kept exactly so a scripted caller reads the same number it read yesterday.
+	// Unset, the count is durable-plane only and applies none of the four: the historical `issuegraph count` answer, kept exactly so a scripted caller reads the same number it read yesterday.
 	IncludeInfra *bool `form:"include_infra,omitempty" json:"include_infra,omitempty"`
 
 	// GroupBy Bucket the count by one dimension and return `groups` beside `total`. Absent, the response carries `total` alone.
@@ -2393,7 +2393,7 @@ type QueryIssuesParams struct {
 	// All Include closed issues. Without it closed issues are excluded — unless the expression itself compares `status`, in which case the expression's own opinion stands and this parameter changes nothing.
 	All *bool `form:"all,omitempty" json:"all,omitempty"`
 
-	// Sort Display order for the page. Absent leaves the rows in the order the query returned them, which is the same thing `bd query` without `--sort` does.
+	// Sort Display order for the page. Absent leaves the rows in the order the query returned them, which is the same thing `issuegraph query` without `--sort` does.
 	//
 	// WHAT IT ORDERS is the rows the query bounded, exactly as on the CLI: for an expression the database answered under `limit`, the page; for a predicate expression, which the database cannot bound, the whole matching set.
 	Sort *QueryIssuesParamsSort `form:"sort,omitempty" json:"sort,omitempty"`
@@ -2401,7 +2401,7 @@ type QueryIssuesParams struct {
 	// Reverse Invert the display order. Ignored when `sort` is absent.
 	Reverse *bool `form:"reverse,omitempty" json:"reverse,omitempty"`
 
-	// Limit Maximum number of items to return. `0` means unlimited, exactly as `bd query --limit 0` does — the two surfaces read the same shared default (`workapi.DefaultQueryLimit`, the value `bd query --limit` registers) and the same zero semantics. A negative value is a 400.
+	// Limit Maximum number of items to return. `0` means unlimited, exactly as `issuegraph query --limit 0` does — the two surfaces read the same shared default (`workapi.DefaultQueryLimit`, the value `issuegraph query --limit` registers) and the same zero semantics. A negative value is a 400.
 	//
 	// The same mode-dependent refusal the issue listing carries applies here: under `--allow-non-loopback`, `limit=0` is refused with 400 `invalid_argument`, `param: "limit"`, `reason: "invalid_value"`.
 	Limit *int `form:"limit,omitempty" json:"limit,omitempty"`
@@ -2414,9 +2414,9 @@ type QueryIssuesParamsSort string
 type ListMemoriesParams struct {
 	// Search Narrows the answer to memories that MATCH: a memory matches when the lowercase of its key, or the lowercase of its value, contains the lowercase of this term. Absent or empty means everything, and a term nothing matches is a `200` with an empty `items`.
 	//
-	// IT IS A SUBSTRING MATCH, NOT THE `issues:query` EXPRESSION LANGUAGE, and it is spelled `search` rather than `q` FOR THAT REASON. On `GET /v0/beads/issues:query`, `q` is a boolean expression over issue fields that is refused when it does not parse; here there is nothing to parse, no vocabulary and no refusal — every string is a legal search term, `status=open` included, and it is matched literally. Two names because two questions: a client that sent this operation the other `q` would otherwise get a literal substring search back instead of an error.
+	// IT IS A SUBSTRING MATCH, NOT THE `issues:query` EXPRESSION LANGUAGE, and it is spelled `search` rather than `q` FOR THAT REASON. On `GET /v0/issuegraph/issues:query`, `q` is a boolean expression over issue fields that is refused when it does not parse; here there is nothing to parse, no vocabulary and no refusal — every string is a legal search term, `status=open` included, and it is matched literally. Two names because two questions: a client that sent this operation the other `q` would otherwise get a literal substring search back instead of an error.
 	//
-	// The term reaches the role UNFOLDED. Case folding is the role's, so that this surface and `bd memories` cannot come to disagree about what matching means; a client sends what its user typed.
+	// The term reaches the role UNFOLDED. Case folding is the role's, so that this surface and `issuegraph memories` cannot come to disagree about what matching means; a client sends what its user typed.
 	Search *string `form:"search,omitempty" json:"search,omitempty"`
 }
 
@@ -2428,9 +2428,9 @@ type ListReadyWorkParams struct {
 	// Unassigned Only issues with no assignee.
 	Unassigned *bool `form:"unassigned,omitempty" json:"unassigned,omitempty"`
 
-	// Type Issue type. The only normalization is shorthand ALIAS expansion, exactly what `bd ready --type` does: `mr` → `merge-request`, `feat` → `feature`, `mol` → `molecule`, `enhancement` → `feature`, `dec`/`adr` → `decision`. Every other value is used as written — there is NO plural folding, so `bugs` is not `bug`.
+	// Type Issue type. The only normalization is shorthand ALIAS expansion, exactly what `issuegraph ready --type` does: `mr` → `merge-request`, `feat` → `feature`, `mol` → `molecule`, `enhancement` → `feature`, `dec`/`adr` → `decision`. Every other value is used as written — there is NO plural folding, so `bugs` is not `bug`.
 	//
-	// An unrecognized type is not an error here: the type vocabulary is workspace-configurable, and `bd ready` does not validate it either, so it simply matches nothing and `items` comes back empty. (The list operation differs — `bd list` DOES validate the type, so `GET /v0/beads/issues?type=bugs` is a 400.)
+	// An unrecognized type is not an error here: the type vocabulary is workspace-configurable, and `issuegraph ready` does not validate it either, so it simply matches nothing and `items` comes back empty. (The list operation differs — `issuegraph list` DOES validate the type, so `GET /v0/issuegraph/issues?type=bugs` is a 400.)
 	//
 	// When set, `exclude_type` is ignored, and so are the default type exclusions described above.
 	Type *string `form:"type,omitempty" json:"type,omitempty"`
@@ -2473,19 +2473,19 @@ type ListReadyWorkParams struct {
 
 	// Sort Ready-work ordering. `priority` is priority-first; `hybrid` orders recent issues by priority and older ones by age; `oldest` is creation order. An unrecognized value is a 400.
 	//
-	// The default is the one `bd ready --sort` registers, so a client swapping `bd ready --json` for this operation gets the same items in the same order. The storage layer treats an EMPTY policy as `hybrid`, but that fallback is unreachable from the CLI and is NOT this parameter's default: `hybrid` demotes older high-priority work, so defaulting to it would change the item SET as soon as `limit` truncates — silently, and only for the clients this API exists to migrate.
+	// The default is the one `issuegraph ready --sort` registers, so a client swapping `issuegraph ready --json` for this operation gets the same items in the same order. The storage layer treats an EMPTY policy as `hybrid`, but that fallback is unreachable from the CLI and is NOT this parameter's default: `hybrid` demotes older high-priority work, so defaulting to it would change the item SET as soon as `limit` truncates — silently, and only for the clients this API exists to migrate.
 	Sort *ListReadyWorkParamsSort `form:"sort,omitempty" json:"sort,omitempty"`
 
-	// Limit Maximum number of items to return. `0` means unlimited, exactly as `bd ready --limit 0` does — the two surfaces read the same shared default and the same zero semantics, so they cannot diverge. A negative value is a 400.
+	// Limit Maximum number of items to return. `0` means unlimited, exactly as `issuegraph ready --limit 0` does — the two surfaces read the same shared default and the same zero semantics, so they cannot diverge. A negative value is a 400.
 	//
-	// The default below is the shared ready-work limit constant (`workapi.DefaultReadyLimit`, the value `bd ready`'s `--limit` flag registers).
+	// The default below is the shared ready-work limit constant (`workapi.DefaultReadyLimit`, the value `issuegraph ready`'s `--limit` flag registers).
 	//
 	// One exception, and it is mode-dependent: when the server was started with `--allow-non-loopback`, `limit=0` is refused with 400 `invalid_argument`, `param: "limit"`, `reason: "invalid_value"` and detail "unlimited reads are loopback-only; pass an explicit limit". An unlimited read buffers the whole active set and its JSON encoding inside one shared process, which must not be reachable by arbitrary network peers. The bind mode is deliberately NOT advertised in `ContextResponse` — a client that wants an unlimited read asks for one and, on that 400, re-issues with an explicit limit; it is a client-side fix, never a retry.
 	Limit *int `form:"limit,omitempty" json:"limit,omitempty"`
 
 	// Brief Omit the free-form text from every item: `description`, `design`, `acceptance_criteria`, `notes`, `payload` and `waiters` are not selected. Filtering is unaffected, because it selects rows and this selects fields. Default false, so the payload is unchanged for a client that does not ask.
 	//
-	// The response carries no marker for the omission, so an omitted field is indistinguishable from a genuinely empty one: only the client that sent this parameter knows the rows are partial. Fetch a whole issue with `GET /v0/beads/issues/{id}`.
+	// The response carries no marker for the omission, so an omitted field is indistinguishable from a genuinely empty one: only the client that sent this parameter knows the rows are partial. Fetch a whole issue with `GET /v0/issuegraph/issues/{id}`.
 	Brief *bool `form:"brief,omitempty" json:"brief,omitempty"`
 }
 
@@ -2500,7 +2500,7 @@ type CountReadyWorkParams struct {
 	// Unassigned Only issues with no assignee.
 	Unassigned *bool `form:"unassigned,omitempty" json:"unassigned,omitempty"`
 
-	// Type Issue type, with the shorthand alias expansion and the match-nothing-rather-than-fail treatment `GET /v0/beads/ready` documents. Setting it drops the default type exclusions and makes `exclude_type` ignored, there and here alike.
+	// Type Issue type, with the shorthand alias expansion and the match-nothing-rather-than-fail treatment `GET /v0/issuegraph/ready` documents. Setting it drops the default type exclusions and makes `exclude_type` ignored, there and here alike.
 	Type *string `form:"type,omitempty" json:"type,omitempty"`
 
 	// ExcludeType Issue types to exclude. Repeat the parameter, or pass a comma-separated list. Ignored when `type` is set.
@@ -2547,7 +2547,7 @@ type GetStatsParams struct {
 	// IT CHANGES FOUR DEFINITIONS AT ONCE, and they are named on the `Statistics` properties rather than here: the set widens to include the ephemeral tier, `blocked_issues` counts the `blocked` STATUS instead of the dependency flag, `ready_issues` becomes the real ready-work count instead of a subtraction, and `pinned_issues` is always 0. An actor with no rows is a summary of zeros, not a 404.
 	Assignee *string `form:"assignee,omitempty" json:"assignee,omitempty"`
 
-	// SkipBlocked Ask for the answer WITHOUT the blocked-set scan, which is the expensive half of this query on a large workspace — the same request `bd status --no-blocked` makes.
+	// SkipBlocked Ask for the answer WITHOUT the blocked-set scan, which is the expensive half of this query on a large workspace — the same request `issuegraph status --no-blocked` makes.
 	//
 	// IT IS A HINT. When it is honored, `blocked_issues` and `ready_issues` are both null and `blocked_count_skipped` is true; when the backend has no cheaper path the full numbers come back and the flag is false. Nothing else in the summary changes either way, so a client that reads neither pointer cannot tell the difference.
 	//

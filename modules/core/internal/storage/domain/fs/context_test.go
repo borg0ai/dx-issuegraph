@@ -10,42 +10,42 @@ import (
 
 	"github.com/stretchr/testify/require"
 
-	"github.com/steveyegge/beads/internal/beads"
-	"github.com/steveyegge/beads/internal/configfile"
-	"github.com/steveyegge/beads/internal/git"
-	"github.com/steveyegge/beads/internal/storage/backendnames"
-	"github.com/steveyegge/beads/internal/storage/domain"
+	"github.com/borg0ai/dx-issuegraph/internal/configfile"
+	"github.com/borg0ai/dx-issuegraph/internal/git"
+	"github.com/borg0ai/dx-issuegraph/internal/issuegraph"
+	"github.com/borg0ai/dx-issuegraph/internal/storage/backendnames"
+	"github.com/borg0ai/dx-issuegraph/internal/storage/domain"
 )
 
-func newContextRepoForTest(t *testing.T) (workDir, beadsDir string, repo domain.ContextRepository) {
+func newContextRepoForTest(t *testing.T) (workDir, issuegraphDir string, repo domain.ContextRepository) {
 	t.Helper()
 	workDir = t.TempDir()
-	beadsDir = filepath.Join(workDir, ".beads")
-	require.NoError(t, os.MkdirAll(beadsDir, 0o750))
+	issuegraphDir = filepath.Join(workDir, ".issuegraph")
+	require.NoError(t, os.MkdirAll(issuegraphDir, 0o750))
 
-	t.Setenv("BEADS_DIR", beadsDir)
-	t.Setenv("BEADS_DOLT_SERVER_MODE", "")
-	t.Setenv("BEADS_DOLT_SHARED_SERVER", "")
-	t.Setenv("BEADS_DOLT_SERVER_DATABASE", "")
-	t.Setenv("BEADS_DOLT_SERVER_HOST", "")
-	t.Setenv("BEADS_DOLT_DATA_DIR", "")
-	t.Setenv("BEADS_DOLT_SERVER_PORT", "")
-	t.Setenv("BEADS_PROXIED_SERVER_ROOT_PATH", "")
+	t.Setenv("ISSUEGRAPH_DIR", issuegraphDir)
+	t.Setenv("ISSUEGRAPH_DOLT_SERVER_MODE", "")
+	t.Setenv("ISSUEGRAPH_DOLT_SHARED_SERVER", "")
+	t.Setenv("ISSUEGRAPH_DOLT_SERVER_DATABASE", "")
+	t.Setenv("ISSUEGRAPH_DOLT_SERVER_HOST", "")
+	t.Setenv("ISSUEGRAPH_DOLT_DATA_DIR", "")
+	t.Setenv("ISSUEGRAPH_DOLT_SERVER_PORT", "")
+	t.Setenv("ISSUEGRAPH_PROXIED_SERVER_ROOT_PATH", "")
 
-	repo = NewContextRepository(NewBeadsDirFSRepository(workDir, testTemplates()))
-	return workDir, beadsDir, repo
+	repo = NewContextRepository(NewIssueGraphDirFSRepository(workDir, testTemplates()))
+	return workDir, issuegraphDir, repo
 }
 
-func canonicalBeadsDir(t *testing.T, workDir string) string {
+func canonicalIssueGraphDir(t *testing.T, workDir string) string {
 	t.Helper()
-	return NewBeadsDirFSRepository(workDir, testTemplates()).ResolveBeadsDirPath(context.Background()).BeadsDir
+	return NewIssueGraphDirFSRepository(workDir, testTemplates()).ResolveIssueGraphDirPath(context.Background()).IssueGraphDir
 }
 
-func writeMetadata(t *testing.T, beadsDir string, cfg *configfile.Config) {
+func writeMetadata(t *testing.T, issuegraphDir string, cfg *configfile.Config) {
 	t.Helper()
 	data, err := json.Marshal(cfg)
 	require.NoError(t, err)
-	require.NoError(t, os.WriteFile(filepath.Join(beadsDir, "metadata.json"), data, 0o600))
+	require.NoError(t, os.WriteFile(filepath.Join(issuegraphDir, "metadata.json"), data, 0o600))
 }
 
 func TestContextRepository_BackendConfig(t *testing.T) {
@@ -75,8 +75,8 @@ func TestContextRepository_BackendConfig(t *testing.T) {
 		backendnames.Add(name)
 		t.Cleanup(func() { backendnames.Remove(name) })
 
-		_, beadsDir, repo := newContextRepoForTest(t)
-		writeMetadata(t, beadsDir, &configfile.Config{Backend: name})
+		_, issuegraphDir, repo := newContextRepoForTest(t)
+		writeMetadata(t, issuegraphDir, &configfile.Config{Backend: name})
 
 		got, err := repo.BackendConfig(context.Background())
 		require.NoError(t, err)
@@ -84,8 +84,8 @@ func TestContextRepository_BackendConfig(t *testing.T) {
 	})
 
 	t.Run("EmbeddedWithExplicitValues", func(t *testing.T) {
-		_, beadsDir, repo := newContextRepoForTest(t)
-		writeMetadata(t, beadsDir, &configfile.Config{
+		_, issuegraphDir, repo := newContextRepoForTest(t)
+		writeMetadata(t, issuegraphDir, &configfile.Config{
 			DoltMode:     configfile.DoltModeEmbedded,
 			DoltDatabase: "mydb",
 			ProjectID:    "proj-123",
@@ -101,8 +101,8 @@ func TestContextRepository_BackendConfig(t *testing.T) {
 	})
 
 	t.Run("ServerMode", func(t *testing.T) {
-		_, beadsDir, repo := newContextRepoForTest(t)
-		writeMetadata(t, beadsDir, &configfile.Config{
+		_, issuegraphDir, repo := newContextRepoForTest(t)
+		writeMetadata(t, issuegraphDir, &configfile.Config{
 			DoltMode:       configfile.DoltModeServer,
 			DoltServerHost: "db.example.com",
 			DoltDataDir:    "/data/dolt",
@@ -117,8 +117,8 @@ func TestContextRepository_BackendConfig(t *testing.T) {
 	})
 
 	t.Run("ProxiedServerMode", func(t *testing.T) {
-		_, beadsDir, repo := newContextRepoForTest(t)
-		writeMetadata(t, beadsDir, &configfile.Config{
+		_, issuegraphDir, repo := newContextRepoForTest(t)
+		writeMetadata(t, issuegraphDir, &configfile.Config{
 			DoltMode: configfile.DoltModeProxiedServer,
 		})
 
@@ -129,9 +129,9 @@ func TestContextRepository_BackendConfig(t *testing.T) {
 	})
 
 	t.Run("EnvOverridesDatabase", func(t *testing.T) {
-		_, beadsDir, repo := newContextRepoForTest(t)
-		writeMetadata(t, beadsDir, &configfile.Config{DoltDatabase: "filedb"})
-		t.Setenv("BEADS_DOLT_SERVER_DATABASE", "envdb")
+		_, issuegraphDir, repo := newContextRepoForTest(t)
+		writeMetadata(t, issuegraphDir, &configfile.Config{DoltDatabase: "filedb"})
+		t.Setenv("ISSUEGRAPH_DOLT_SERVER_DATABASE", "envdb")
 
 		got, err := repo.BackendConfig(context.Background())
 		require.NoError(t, err)
@@ -142,7 +142,7 @@ func TestContextRepository_BackendConfig(t *testing.T) {
 func TestContextRepository_ServerPort(t *testing.T) {
 	t.Run("EnvOverride", func(t *testing.T) {
 		_, _, repo := newContextRepoForTest(t)
-		t.Setenv("BEADS_DOLT_SERVER_PORT", "3333")
+		t.Setenv("ISSUEGRAPH_DOLT_SERVER_PORT", "3333")
 
 		got, err := repo.ServerPort(context.Background())
 		require.NoError(t, err)
@@ -150,8 +150,8 @@ func TestContextRepository_ServerPort(t *testing.T) {
 	})
 
 	t.Run("ReadsPortFile", func(t *testing.T) {
-		_, beadsDir, repo := newContextRepoForTest(t)
-		require.NoError(t, os.WriteFile(filepath.Join(beadsDir, "dolt-server.port"), []byte("4567"), 0o600))
+		_, issuegraphDir, repo := newContextRepoForTest(t)
+		require.NoError(t, os.WriteFile(filepath.Join(issuegraphDir, "dolt-server.port"), []byte("4567"), 0o600))
 
 		got, err := repo.ServerPort(context.Background())
 		require.NoError(t, err)
@@ -163,33 +163,33 @@ func TestContextRepository_ProxiedServerRoot(t *testing.T) {
 	t.Run("EnvAbsolutePath", func(t *testing.T) {
 		_, _, repo := newContextRepoForTest(t)
 		abs := filepath.Join(t.TempDir(), "abs-root")
-		t.Setenv("BEADS_PROXIED_SERVER_ROOT_PATH", abs)
+		t.Setenv("ISSUEGRAPH_PROXIED_SERVER_ROOT_PATH", abs)
 
 		got, err := repo.ProxiedServerRoot(context.Background())
 		require.NoError(t, err)
 		require.Equal(t, abs, got)
 	})
 
-	t.Run("EnvRelativePathJoinedWithBeadsDir", func(t *testing.T) {
+	t.Run("EnvRelativePathJoinedWithIssueGraphDir", func(t *testing.T) {
 		workDir, _, repo := newContextRepoForTest(t)
-		t.Setenv("BEADS_PROXIED_SERVER_ROOT_PATH", "relroot")
+		t.Setenv("ISSUEGRAPH_PROXIED_SERVER_ROOT_PATH", "relroot")
 
 		got, err := repo.ProxiedServerRoot(context.Background())
 		require.NoError(t, err)
-		canonBeadsDir := canonicalBeadsDir(t, workDir)
-		require.Equal(t, filepath.Join(canonBeadsDir, "relroot"), got)
+		canonIssueGraphDir := canonicalIssueGraphDir(t, workDir)
+		require.Equal(t, filepath.Join(canonIssueGraphDir, "relroot"), got)
 	})
 
 	t.Run("ClientInfoRootPath", func(t *testing.T) {
-		workDir, beadsDir, repo := newContextRepoForTest(t)
-		require.NoError(t, configfile.SaveProxiedServerClientInfo(beadsDir, &configfile.ProxiedServerClientInfo{
+		workDir, issuegraphDir, repo := newContextRepoForTest(t)
+		require.NoError(t, configfile.SaveProxiedServerClientInfo(issuegraphDir, &configfile.ProxiedServerClientInfo{
 			RootPath: "customroot",
 		}))
 
 		got, err := repo.ProxiedServerRoot(context.Background())
 		require.NoError(t, err)
-		canonBeadsDir := canonicalBeadsDir(t, workDir)
-		require.Equal(t, filepath.Join(canonBeadsDir, "customroot"), got)
+		canonIssueGraphDir := canonicalIssueGraphDir(t, workDir)
+		require.Equal(t, filepath.Join(canonIssueGraphDir, "customroot"), got)
 	})
 
 	t.Run("DefaultProxiedDir", func(t *testing.T) {
@@ -197,20 +197,20 @@ func TestContextRepository_ProxiedServerRoot(t *testing.T) {
 
 		got, err := repo.ProxiedServerRoot(context.Background())
 		require.NoError(t, err)
-		canonBeadsDir := canonicalBeadsDir(t, workDir)
-		require.Equal(t, filepath.Join(canonBeadsDir, "dolt"), got)
+		canonIssueGraphDir := canonicalIssueGraphDir(t, workDir)
+		require.Equal(t, filepath.Join(canonIssueGraphDir, "dolt"), got)
 	})
 }
 
 func TestContextRepository_SyncRemote(t *testing.T) {
-	writeConfigYAML := func(t *testing.T, beadsDir, body string) {
+	writeConfigYAML := func(t *testing.T, issuegraphDir, body string) {
 		t.Helper()
-		require.NoError(t, os.WriteFile(filepath.Join(beadsDir, "config.yaml"), []byte(body), 0o600))
+		require.NoError(t, os.WriteFile(filepath.Join(issuegraphDir, "config.yaml"), []byte(body), 0o600))
 	}
 
 	t.Run("ReadsSyncRemote", func(t *testing.T) {
-		_, beadsDir, repo := newContextRepoForTest(t)
-		writeConfigYAML(t, beadsDir, "sync:\n  remote: git@example.com:org/repo.git\n")
+		_, issuegraphDir, repo := newContextRepoForTest(t)
+		writeConfigYAML(t, issuegraphDir, "sync:\n  remote: git@example.com:org/repo.git\n")
 
 		got, err := repo.SyncRemote(context.Background())
 		require.NoError(t, err)
@@ -218,8 +218,8 @@ func TestContextRepository_SyncRemote(t *testing.T) {
 	})
 
 	t.Run("FallsBackToGitRemote", func(t *testing.T) {
-		_, beadsDir, repo := newContextRepoForTest(t)
-		writeConfigYAML(t, beadsDir, "sync:\n  git-remote: legacy-remote\n")
+		_, issuegraphDir, repo := newContextRepoForTest(t)
+		writeConfigYAML(t, issuegraphDir, "sync:\n  git-remote: legacy-remote\n")
 
 		got, err := repo.SyncRemote(context.Background())
 		require.NoError(t, err)
@@ -227,8 +227,8 @@ func TestContextRepository_SyncRemote(t *testing.T) {
 	})
 
 	t.Run("SyncRemoteWinsOverGitRemote", func(t *testing.T) {
-		_, beadsDir, repo := newContextRepoForTest(t)
-		writeConfigYAML(t, beadsDir, "sync:\n  remote: primary\n  git-remote: legacy\n")
+		_, issuegraphDir, repo := newContextRepoForTest(t)
+		writeConfigYAML(t, issuegraphDir, "sync:\n  remote: primary\n  git-remote: legacy\n")
 
 		got, err := repo.SyncRemote(context.Background())
 		require.NoError(t, err)
@@ -254,19 +254,19 @@ func TestContextRepository_RepoContextAndRole(t *testing.T) {
 	cmd.Dir = workDir
 	require.NoError(t, cmd.Run())
 
-	beadsDir := filepath.Join(workDir, ".beads")
-	require.NoError(t, os.MkdirAll(beadsDir, 0o750))
-	require.NoError(t, os.WriteFile(filepath.Join(beadsDir, "metadata.json"), []byte("{}"), 0o600))
+	issuegraphDir := filepath.Join(workDir, ".issuegraph")
+	require.NoError(t, os.MkdirAll(issuegraphDir, 0o750))
+	require.NoError(t, os.WriteFile(filepath.Join(issuegraphDir, "metadata.json"), []byte("{}"), 0o600))
 
-	t.Setenv("BEADS_DIR", beadsDir)
-	beads.ResetCaches()
+	t.Setenv("ISSUEGRAPH_DIR", issuegraphDir)
+	issuegraph.ResetCaches()
 	git.ResetCaches()
 	t.Cleanup(func() {
-		beads.ResetCaches()
+		issuegraph.ResetCaches()
 		git.ResetCaches()
 	})
 
-	repo := NewContextRepository(NewBeadsDirFSRepository(workDir, testTemplates()))
+	repo := NewContextRepository(NewIssueGraphDirFSRepository(workDir, testTemplates()))
 
 	paths, err := repo.RepoContext(context.Background())
 	if err != nil {
@@ -274,10 +274,10 @@ func TestContextRepository_RepoContextAndRole(t *testing.T) {
 	}
 	require.True(t, paths.IsRedirected)
 	require.NotEmpty(t, paths.RepoRoot)
-	require.Equal(t, ".beads", filepath.Base(paths.BeadsDir))
+	require.Equal(t, ".issuegraph", filepath.Base(paths.IssueGraphDir))
 
 	role, ok, err := repo.Role(context.Background())
 	require.NoError(t, err)
 	require.True(t, ok)
-	require.Equal(t, string(beads.Contributor), role)
+	require.Equal(t, string(issuegraph.Contributor), role)
 }

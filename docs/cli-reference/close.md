@@ -1,11 +1,11 @@
 ---
-title: "bd close"
+title: "issuegraph close"
 description: "Close one or more issues."
 ---
 
 {/* AUTO-GENERATED: do not edit manually */}
 
-Generated from `bd help --doc close`.
+Generated from `issuegraph help --doc close`.
 
 Close one or more issues.
 
@@ -18,7 +18,7 @@ to the first ID, the second --reason to the second ID, regardless of where
 the flags appear in the command line.
 
 ```
-bd close [id...] [flags]
+issuegraph close [id...] [flags]
 ```
 
 **Aliases:** done

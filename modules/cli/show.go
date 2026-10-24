@@ -6,24 +6,24 @@ import (
 	"strings"
 	"time"
 
+	"github.com/borg0ai/dx-issuegraph/internal/metrics"
+	"github.com/borg0ai/dx-issuegraph/internal/types"
+	"github.com/borg0ai/dx-issuegraph/internal/ui"
+	"github.com/borg0ai/dx-issuegraph/internal/uimd"
+	"github.com/borg0ai/dx-issuegraph/issueops"
 	"github.com/spf13/cobra"
-	"github.com/steveyegge/beads/internal/metrics"
-	"github.com/steveyegge/beads/internal/types"
-	"github.com/steveyegge/beads/internal/ui"
-	"github.com/steveyegge/beads/internal/uimd"
-	"github.com/steveyegge/beads/issueops"
 )
 
 // showNotFoundHint explains that an unresolved issue ID is not proof the ID
-// never existed: bd delete and wisp purge both remove a row (and its
+// never existed: issuegraph delete and wisp purge both remove a row (and its
 // events) from the live tables with no trace left behind, so a deleted or
-// purged ID looks identical to one that was never created. bd history can
+// purged ID looks identical to one that was never created. issuegraph history can
 // sometimes tell the two apart via Dolt's commit history, but that scan is
 // real, sometimes-slow work (and wisps are never committed to history at
 // all), so it's offered as a pointer rather than run automatically here
 // (ga-m6inyb).
 func showNotFoundHint(id string) string {
-	return fmt.Sprintf("this ID may have never existed, or may reference a deleted/purged record with no trace left in the live database — try 'bd history %s'", id)
+	return fmt.Sprintf("this ID may have never existed, or may reference a deleted/purged record with no trace left in the live database — try 'issuegraph history %s'", id)
 }
 
 var showCmd = &cobra.Command{
@@ -277,7 +277,7 @@ var showCmd = &cobra.Command{
 				}
 			} else {
 				return HandleErrorWithHintRespectJSON("no issues found matching the provided IDs",
-					"some IDs may reference deleted/purged records with no trace left in the live database — try 'bd history <id>' to check")
+					"some IDs may reference deleted/purged records with no trace left in the live database — try 'issuegraph history <id>' to check")
 			}
 		} else if foundCount > 0 {
 			maybeShowTip(store)
@@ -301,12 +301,12 @@ func init() {
 	showCmd.Flags().Bool("long", false, "Show all available fields (extended metadata, agent identity, gate fields, etc.)")
 	showCmd.Flags().Bool("refs", false, "Show issues that reference this issue (reverse lookup)")
 	showCmd.Flags().Bool("children", false, "Show only the children of this issue")
-	showCmd.Flags().String("as-of", "", "Show issue as it existed at a specific commit hash or branch (requires Dolt; commit hashes must be the full 32-character hash from 'bd history', not a prefix)")
+	showCmd.Flags().String("as-of", "", "Show issue as it existed at a specific commit hash or branch (requires Dolt; commit hashes must be the full 32-character hash from 'issuegraph history', not a prefix)")
 	showCmd.Flags().StringArray("id", nil, "Issue ID (use for IDs that look like flags, e.g., --id=gt--xyz)")
 	showCmd.Flags().Bool("local-time", false, "Show timestamps in local time instead of UTC")
 	showCmd.Flags().BoolP("watch", "w", false, "Watch for changes and auto-refresh display")
 	showCmd.Flags().Bool("current", false, "Show the currently active issue (in-progress, hooked, or last touched)")
-	showCmd.Flags().Bool("include-dependents", false, "Stream full dependent issues in JSON output (--json only; may be slow on hub beads)")
+	showCmd.Flags().Bool("include-dependents", false, "Stream full dependent issues in JSON output (--json only; may be slow on hub issuegraph)")
 	showCmd.Flags().Bool("include-comments", false, "Stream full comment bodies in JSON output (--json only; may be slow on issues with many comments)")
 	showCmd.Flags().Bool("brief-deps", false, "Reduce each dependency to its identity fields in JSON output (--json only; drops description, design, notes and acceptance criteria)")
 	showCmd.ValidArgsFunction = issueIDCompletion

@@ -32,7 +32,7 @@ package schema
 // on all 504 snapshot lines including the wisp_ tables the parity oracle
 // excludes — so no prepared statement the bundle still carries changes its
 // committed schema. Before that, 2.3.1 landed three extra columns (0060's
-// storage_class, gastownhall/beads#5903) and one extra widening (0065's
+// storage_class, borg0ai/dx-issuegraph#5903) and one extra widening (0065's
 // wisp_comments.text). cli_prepared_ddl.go is what keeps a new migration from
 // re-opening that gap.
 //
@@ -45,7 +45,7 @@ package schema
 // For a migration whose PREPARE'd DML matters on this path (not just DDL),
 // the fix is not a direct-SQL override here — it is to not depend on
 // PREPARE'd writes to real tables in the source migration at all. Migration
-// 0059 (gastownhall/beads#4877) is the pattern: real-table mutations are
+// 0059 (borg0ai/dx-issuegraph#4877) is the pattern: real-table mutations are
 // direct SQL; the only PREPARE'd statements are best-effort, guarded copies
 // into throwaway stand-in tables that a direct statement then reads, so a
 // silent no-op there degrades gracefully instead of corrupting state.
@@ -121,12 +121,12 @@ func cliCompatibleMigrationSQL(name, sqlText string) string {
 		// PREPARE guard (INFORMATION_SCHEMA probe) makes it idempotent on
 		// upgraded databases, and the 2.2.x CLI no-ops the prepared ALTER
 		// (measured 2026-08-20: AllMigrationsSQL() through dolt 2.2.0 lands
-		// bd_events_journal WITHOUT actor; 2.3.1 — and 2.2.3, which already
+		// issuegraph_events_journal WITHOUT actor; 2.3.1 — and 2.2.3, which already
 		// carries the #11345 fix — land it; CI pins 2.2.0). The table
 		// itself is always present here: 0064's prepared RENAME executes on
 		// 2.2.0 (same measurement), so a fresh bundle always needs the column.
 		return cliMigration0066AddEventsJournalActor
-	case "0067_add_versioned_beads_schema.up.sql":
+	case "0067_add_versioned_issuegraph_schema.up.sql":
 		// Direct DDL for the same reason as 0060: the source migration's
 		// PREPARE guards (INFORMATION_SCHEMA probes) are what make the raw
 		// .up.sql idempotent when replayed onto an already-migrated store,
@@ -137,7 +137,7 @@ func cliCompatibleMigrationSQL(name, sqlText string) string {
 		// IF NOT EXISTS is ordinary unwrapped DDL that the CLI executes.
 		// Replays over a database that never synced the wisp tables must use
 		// the frozen source text instead -- see cliSubstituteAssumesWispTables.
-		return cliMigration0067AddVersionedBeadsSchema
+		return cliMigration0067AddVersionedIssueGraphSchema
 	default:
 		return sqlText
 	}
@@ -170,8 +170,8 @@ func cliSubstituteAssumesWispTables(name string) bool {
 		// cliMigration0065WidenWispCommentsText is a bare MODIFY on
 		// wisp_comments.
 		return true
-	case "0067_add_versioned_beads_schema.up.sql":
-		// cliMigration0067AddVersionedBeadsSchema drops the source's
+	case "0067_add_versioned_issuegraph_schema.up.sql":
+		// cliMigration0067AddVersionedIssueGraphSchema drops the source's
 		// @wisps_cr_needs_add table-exists guard and ALTERs wisps directly.
 		return true
 	default:
@@ -219,13 +219,13 @@ const cliMigration0060AddStorageClass = `ALTER TABLE issues ADD COLUMN storage_c
 ALTER TABLE wisps ADD COLUMN storage_class VARCHAR(16);`
 
 const cliMigration0065WidenWispCommentsText = `ALTER TABLE wisp_comments MODIFY COLUMN text LONGTEXT NOT NULL;`
-const cliMigration0066AddEventsJournalActor = `ALTER TABLE bd_events_journal ADD COLUMN actor VARCHAR(255) NOT NULL DEFAULT '';`
+const cliMigration0066AddEventsJournalActor = `ALTER TABLE issuegraph_events_journal ADD COLUMN actor VARCHAR(255) NOT NULL DEFAULT '';`
 
-// cliMigration0067AddVersionedBeadsSchema is 0067 with its two guarded
+// cliMigration0067AddVersionedIssueGraphSchema is 0067 with its two guarded
 // PREPARE blocks replaced by the direct ALTERs they would run on a fresh
 // database. The CREATE TABLEs are the source file's own text: CREATE TABLE
 // IF NOT EXISTS executes on the CLI batch path unchanged.
-const cliMigration0067AddVersionedBeadsSchema = `CREATE TABLE IF NOT EXISTS issue_versions (
+const cliMigration0067AddVersionedIssueGraphSchema = `CREATE TABLE IF NOT EXISTS issue_versions (
     issue_id VARCHAR(255) NOT NULL,
     revision BIGINT NOT NULL,
     epoch INT NOT NULL,
@@ -321,8 +321,8 @@ INSERT IGNORE INTO issues (
     spec_id, compaction_level, compacted_at, compacted_at_commit, original_size,
     sender, ephemeral, wisp_type, pinned, is_template, mol_type, work_type,
     source_system, metadata, source_repo, close_reason, event_kind, actor,
-    target, payload, await_type, await_id, timeout_ns, waiters, hook_bead,
-    role_bead, agent_state, last_activity, role_type, rig, due_at, defer_until,
+    target, payload, await_type, await_id, timeout_ns, waiters, hook_issue,
+    role_issue, agent_state, last_activity, role_type, rig, due_at, defer_until,
     no_history, started_at
 )
 SELECT
@@ -332,8 +332,8 @@ SELECT
     spec_id, compaction_level, compacted_at, compacted_at_commit, original_size,
     sender, ephemeral, wisp_type, pinned, is_template, mol_type, work_type,
     source_system, metadata, source_repo, close_reason, event_kind, actor,
-    target, payload, await_type, await_id, timeout_ns, waiters, hook_bead,
-    role_bead, agent_state, last_activity, role_type, rig, due_at, defer_until,
+    target, payload, await_type, await_id, timeout_ns, waiters, hook_issue,
+    role_issue, agent_state, last_activity, role_type, rig, due_at, defer_until,
     no_history, started_at
 FROM wisps
 WHERE issue_type = 'rig';

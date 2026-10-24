@@ -15,7 +15,7 @@ var fakeMySQLGreeting = []byte{0x08, 0x00, 0x00, 0x00, 0x0a, 0x0a, 0x0a, 0x0a, 0
 // TestWaitForReadyEmitsRST proves waitForReady connects exactly once against
 // a server that greets immediately, and that the probe connection is drained
 // before Close() (so the TCP stack sends FIN, not RST). See
-// gastownhall/beads#4132, #4133.
+// borg0ai/dx-issuegraph#4132, #4133.
 func TestWaitForReadyEmitsRST(t *testing.T) {
 	ln, err := net.Listen("tcp", "127.0.0.1:0")
 	if err != nil {

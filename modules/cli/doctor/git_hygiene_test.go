@@ -40,7 +40,7 @@ func runGit(t *testing.T, dir string, args ...string) string {
 
 func initRepo(t *testing.T, dir string, branch string) {
 	t.Helper()
-	_ = os.MkdirAll(filepath.Join(dir, ".beads"), 0755)
+	_ = os.MkdirAll(filepath.Join(dir, ".issuegraph"), 0755)
 	runGit(t, dir, "init", "-b", branch)
 	runGit(t, dir, "config", "user.email", "test@test.com")
 	runGit(t, dir, "config", "user.name", "Test User")
@@ -58,7 +58,7 @@ func commitFile(t *testing.T, dir, name, content, msg string) {
 		t.Fatalf("write file: %v", err)
 	}
 	addArgs := []string{"add"}
-	if name == ".beads" || strings.HasPrefix(name, ".beads/") {
+	if name == ".issuegraph" || strings.HasPrefix(name, ".issuegraph/") {
 		addArgs = append(addArgs, "-f")
 	}
 	addArgs = append(addArgs, name)
@@ -109,21 +109,21 @@ func TestCheckGitWorkingTree_RedirectWorktree(t *testing.T) {
 		dir := mkTmpDirInTmp(t, "bd-git-redir-*")
 		initRepo(t, dir, "main")
 
-		// Commit some .beads/ files that would exist in the upstream repo
-		commitFile(t, dir, ".beads/README.md", "# beads\n", "add beads readme")
-		commitFile(t, dir, ".beads/config.yaml", "backend: dolt\n", "add config")
-		commitFile(t, dir, ".beads/BD_GUIDE.md", "# guide\n", "add guide")
+		// Commit some .issuegraph/ files that would exist in the upstream repo
+		commitFile(t, dir, ".issuegraph/README.md", "# issuegraph\n", "add issuegraph readme")
+		commitFile(t, dir, ".issuegraph/config.yaml", "backend: dolt\n", "add config")
+		commitFile(t, dir, ".issuegraph/ISSUEGRAPH_GUIDE.md", "# guide\n", "add guide")
 
 		// Create a redirect file (simulating crew worktree setup)
-		redirectPath := filepath.Join(dir, ".beads", "redirect")
-		if err := os.WriteFile(redirectPath, []byte("../../mayor/rig/.beads\n"), 0644); err != nil {
+		redirectPath := filepath.Join(dir, ".issuegraph", "redirect")
+		if err := os.WriteFile(redirectPath, []byte("../../mayor/rig/.issuegraph\n"), 0644); err != nil {
 			t.Fatalf("write redirect: %v", err)
 		}
 
-		// Delete the .beads/ files that would be replaced by redirect target
-		os.Remove(filepath.Join(dir, ".beads", "README.md"))
-		os.Remove(filepath.Join(dir, ".beads", "config.yaml"))
-		os.Remove(filepath.Join(dir, ".beads", "BD_GUIDE.md"))
+		// Delete the .issuegraph/ files that would be replaced by redirect target
+		os.Remove(filepath.Join(dir, ".issuegraph", "README.md"))
+		os.Remove(filepath.Join(dir, ".issuegraph", "config.yaml"))
+		os.Remove(filepath.Join(dir, ".issuegraph", "ISSUEGRAPH_GUIDE.md"))
 
 		check := CheckGitWorkingTree(dir)
 		if check.Status != StatusOK {
@@ -138,17 +138,17 @@ func TestCheckGitWorkingTree_RedirectWorktree(t *testing.T) {
 		dir := mkTmpDirInTmp(t, "bd-git-redir-dirty-*")
 		initRepo(t, dir, "main")
 
-		commitFile(t, dir, ".beads/README.md", "# beads\n", "add beads readme")
+		commitFile(t, dir, ".issuegraph/README.md", "# issuegraph\n", "add issuegraph readme")
 		commitFile(t, dir, "src/main.go", "package main\n", "add source")
 
 		// Create redirect file
-		redirectPath := filepath.Join(dir, ".beads", "redirect")
-		if err := os.WriteFile(redirectPath, []byte("../../mayor/rig/.beads\n"), 0644); err != nil {
+		redirectPath := filepath.Join(dir, ".issuegraph", "redirect")
+		if err := os.WriteFile(redirectPath, []byte("../../mayor/rig/.issuegraph\n"), 0644); err != nil {
 			t.Fatalf("write redirect: %v", err)
 		}
 
-		// Delete .beads file (expected in redirect) and modify source (real dirty)
-		os.Remove(filepath.Join(dir, ".beads", "README.md"))
+		// Delete .issuegraph file (expected in redirect) and modify source (real dirty)
+		os.Remove(filepath.Join(dir, ".issuegraph", "README.md"))
 		if err := os.WriteFile(filepath.Join(dir, "src", "main.go"), []byte("package main\n// changed\n"), 0644); err != nil {
 			t.Fatalf("write dirty: %v", err)
 		}
@@ -157,9 +157,9 @@ func TestCheckGitWorkingTree_RedirectWorktree(t *testing.T) {
 		if check.Status != StatusWarning {
 			t.Fatalf("status=%q want %q (msg=%q)", check.Status, StatusWarning, check.Message)
 		}
-		// Detail should not include the .beads/ deletion but should include the real change
-		if strings.Contains(check.Detail, ".beads/README.md") {
-			t.Fatalf("detail should not include .beads/ deletions: %q", check.Detail)
+		// Detail should not include the .issuegraph/ deletion but should include the real change
+		if strings.Contains(check.Detail, ".issuegraph/README.md") {
+			t.Fatalf("detail should not include .issuegraph/ deletions: %q", check.Detail)
 		}
 		if !strings.Contains(check.Detail, "src/main.go") {
 			t.Fatalf("detail should include real dirty file: %q", check.Detail)
@@ -173,14 +173,14 @@ func TestIsExpectedRedirectChange(t *testing.T) {
 		line string
 		want bool
 	}{
-		{"unstaged delete beads file", " D .beads/README.md", true},
-		{"staged delete beads file", "D  .beads/config.yaml", true},
-		{"staged+unstaged delete", "DD .beads/BD_GUIDE.md", true},
-		{"untracked redirect file", "?? .beads/redirect", true},
-		{"untracked other beads file", "?? .beads/something", false},
-		{"modified non-beads file", " M src/main.go", false},
-		{"deleted non-beads file", " D src/main.go", false},
-		{"modified beads file", " M .beads/config.yaml", false},
+		{"unstaged delete issuegraph file", " D .issuegraph/README.md", true},
+		{"staged delete issuegraph file", "D  .issuegraph/config.yaml", true},
+		{"staged+unstaged delete", "DD .issuegraph/ISSUEGRAPH_GUIDE.md", true},
+		{"untracked redirect file", "?? .issuegraph/redirect", true},
+		{"untracked other issuegraph file", "?? .issuegraph/something", false},
+		{"modified non-issuegraph file", " M src/main.go", false},
+		{"deleted non-issuegraph file", " D src/main.go", false},
+		{"modified issuegraph file", " M .issuegraph/config.yaml", false},
 		{"short line", " D", false},
 		{"empty line", "", false},
 	}

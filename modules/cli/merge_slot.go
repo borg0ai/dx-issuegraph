@@ -5,10 +5,10 @@ import (
 	"fmt"
 	"os"
 
+	"github.com/borg0ai/dx-issuegraph/internal/metrics"
+	"github.com/borg0ai/dx-issuegraph/internal/storage"
+	"github.com/borg0ai/dx-issuegraph/internal/ui"
 	"github.com/spf13/cobra"
-	"github.com/steveyegge/beads/internal/metrics"
-	"github.com/steveyegge/beads/internal/storage"
-	"github.com/steveyegge/beads/internal/ui"
 )
 
 // mergeSlotCmd is the parent command for merge-slot operations
@@ -22,7 +22,7 @@ A merge slot is an exclusive access primitive: only one agent can hold it at a t
 This prevents "monkey knife fights" where multiple polecats race to resolve conflicts
 and create cascading conflicts.
 
-Each rig has one merge slot bead: <prefix>-merge-slot (labeled gt:slot).
+Each rig has one merge slot issue: <prefix>-merge-slot (labeled gt:slot).
 The slot uses:
   - status=open: slot is available
   - status=in_progress: slot is held
@@ -30,18 +30,18 @@ The slot uses:
   - metadata.waiters: priority-ordered queue of waiters
 
 Examples:
-  bd merge-slot create              # Create merge slot for current rig
-  bd merge-slot check               # Check if slot is available
-  bd merge-slot acquire             # Try to acquire the slot
-  bd merge-slot release             # Release the slot`,
+  issuegraph merge-slot create              # Create merge slot for current rig
+  issuegraph merge-slot check               # Check if slot is available
+  issuegraph merge-slot acquire             # Try to acquire the slot
+  issuegraph merge-slot release             # Release the slot`,
 }
 
 var mergeSlotCreateCmd = &cobra.Command{
 	Use:   "create",
-	Short: "Create a merge slot bead for the current rig",
-	Long: `Create a merge slot bead for serialized conflict resolution.
+	Short: "Create a merge slot issue for the current rig",
+	Long: `Create a merge slot issue for serialized conflict resolution.
 
-The slot ID is automatically generated based on the beads prefix (e.g., gt-merge-slot).
+The slot ID is automatically generated based on the issuegraph prefix (e.g., gt-merge-slot).
 The slot is created with status=open (available).`,
 	Args:          cobra.NoArgs,
 	SilenceUsage:  true,
@@ -76,7 +76,7 @@ If the slot is available (status=open), it will be acquired:
 If the slot is held (status=in_progress), the command fails unless
 --wait is passed, which adds the requester to the waiters queue.
 
-Use --holder to specify who is acquiring (default: BEADS_ACTOR env var).`,
+Use --holder to specify who is acquiring (default: ISSUEGRAPH_ACTOR env var).`,
 	Args:          cobra.NoArgs,
 	SilenceUsage:  true,
 	SilenceErrors: true,
@@ -102,7 +102,7 @@ var (
 )
 
 func init() {
-	mergeSlotAcquireCmd.Flags().StringVar(&mergeSlotHolder, "holder", "", "Who is acquiring the slot (default: BEADS_ACTOR)")
+	mergeSlotAcquireCmd.Flags().StringVar(&mergeSlotHolder, "holder", "", "Who is acquiring the slot (default: ISSUEGRAPH_ACTOR)")
 	mergeSlotAcquireCmd.Flags().BoolVar(&mergeSlotAddWaiter, "wait", false, "Add to waiters list if slot is held")
 	mergeSlotReleaseCmd.Flags().StringVar(&mergeSlotHolder, "holder", "", "Who is releasing the slot (for verification)")
 
@@ -173,7 +173,7 @@ func runMergeSlotCheck(cmd *cobra.Command, args []string) error {
 				return encoder.Encode(result)
 			}
 			fmt.Printf("Merge slot not found: %s\n", slotID)
-			fmt.Printf("Run 'bd merge-slot create' to create one.\n")
+			fmt.Printf("Run 'issuegraph merge-slot create' to create one.\n")
 			return nil
 		}
 		return HandleErrorRespectJSON("%v", err)
@@ -225,7 +225,7 @@ func runMergeSlotAcquire(cmd *cobra.Command, args []string) error {
 		holder = actor
 	}
 	if holder == "" {
-		return HandleError("no holder specified; use --holder or set BEADS_ACTOR env var")
+		return HandleError("no holder specified; use --holder or set ISSUEGRAPH_ACTOR env var")
 	}
 
 	result, err := store.MergeSlotAcquire(rootCtx, holder, actor, mergeSlotAddWaiter)

@@ -3,9 +3,9 @@
 package main
 
 // Real front-door outage/reconnect acceptance matrix. Each case seeds a
-// sentinel through bd, takes only the upstream out of service, and verifies a
+// sentinel through issuegraph, takes only the upstream out of service, and verifies a
 // bounded failure without mutation before restoring the same endpoint. Proxy
-// ownership is exercised separately by killing the proxy and letting bd adopt
+// ownership is exercised separately by killing the proxy and letting issuegraph adopt
 // a replacement on the next invocation.
 
 import (
@@ -19,16 +19,16 @@ import (
 	"testing"
 	"time"
 
-	"github.com/steveyegge/beads/internal/configfile"
-	"github.com/steveyegge/beads/internal/storage/dbproxy/proxy"
-	"github.com/steveyegge/beads/internal/testutil"
-	"github.com/steveyegge/beads/internal/types"
+	"github.com/borg0ai/dx-issuegraph/internal/configfile"
+	"github.com/borg0ai/dx-issuegraph/internal/storage/dbproxy/proxy"
+	"github.com/borg0ai/dx-issuegraph/internal/testutil"
+	"github.com/borg0ai/dx-issuegraph/internal/types"
 	"github.com/stretchr/testify/require"
 )
 
 func TestProxiedOutageReconnectAcceptanceMatrix(t *testing.T) {
 	requireProxiedServerEnv(t)
-	bd := buildEmbeddedBD(t)
+	issuegraph := buildEmbeddedBD(t)
 	for _, topology := range []struct {
 		name   string
 		socket bool
@@ -53,12 +53,12 @@ func TestProxiedOutageReconnectAcceptanceMatrix(t *testing.T) {
 
 			var p proxiedProject
 			if topology.socket {
-				p = bdProxiedInit(t, bd, "outage_socket", "--proxied-server-external-socket-path", endpoint)
+				p = issuegraphProxiedInit(t, issuegraph, "outage_socket", "--proxied-server-external-socket-path", endpoint)
 			} else {
-				p = bdProxiedInit(t, bd, "outage_tcp", "--proxied-server-external-host", "127.0.0.1", "--proxied-server-external-port", endpoint)
+				p = issuegraphProxiedInit(t, issuegraph, "outage_tcp", "--proxied-server-external-host", "127.0.0.1", "--proxied-server-external-port", endpoint)
 			}
-			sentinel := bdProxiedCreate(t, bd, p.dir, "outage sentinel")
-			before := bdProxiedShow(t, bd, p.dir, sentinel.ID)
+			sentinel := issuegraphProxiedCreate(t, issuegraph, p.dir, "outage sentinel")
+			before := issuegraphProxiedShow(t, issuegraph, p.dir, sentinel.ID)
 			if _, err := os.Stat(filepath.Join(p.proxyRoot, "proxy-child.pid")); err == nil {
 				t.Fatal("external topology spawned a local Dolt sidecar")
 			}
@@ -68,7 +68,7 @@ func TestProxiedOutageReconnectAcceptanceMatrix(t *testing.T) {
 			ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
 			require.NoError(t, upstream.Stop(ctx))
 			cancel()
-			_, stderr, err, timedOut := runProxiedDeadline(t, bd, p.dir, 3*time.Second, "show", sentinel.ID, "--json")
+			_, stderr, err, timedOut := runProxiedDeadline(t, issuegraph, p.dir, 3*time.Second, "show", sentinel.ID, "--json")
 			if timedOut {
 				t.Fatal("upstream outage command exceeded 3s bound")
 			}
@@ -88,13 +88,13 @@ func TestProxiedOutageReconnectAcceptanceMatrix(t *testing.T) {
 			bridge = startOutageBridge(t, endpoint, newPort, topology.socket)
 			var after *types.Issue
 			require.Eventually(t, func() bool {
-				stdout, _, runErr := bdProxiedRunBuffers(t, bd, p.dir, "show", sentinel.ID, "--json")
+				stdout, _, runErr := issuegraphProxiedRunBuffers(t, issuegraph, p.dir, "show", sentinel.ID, "--json")
 				if runErr != nil {
 					return false
 				}
 				after = parseIssueJSON(t, []byte(stdout))
 				return true
-			}, 10*time.Second, 100*time.Millisecond, "bd reconnect after upstream restart")
+			}, 10*time.Second, 100*time.Millisecond, "issuegraph reconnect after upstream restart")
 			if after.ID != before.ID || after.Title != before.Title {
 				t.Fatalf("sentinel changed after reconnect: before=%q/%q after=%q/%q", before.ID, before.Title, after.ID, after.Title)
 			}
@@ -107,13 +107,13 @@ func TestProxiedOutageReconnectAcceptanceMatrix(t *testing.T) {
 			if err := proxy.Shutdown(p.proxyRoot); err != nil {
 				t.Fatalf("shutdown proxy: %v", err)
 			}
-			afterProxy := bdProxiedShow(t, bd, p.dir, sentinel.ID)
+			afterProxy := issuegraphProxiedShow(t, issuegraph, p.dir, sentinel.ID)
 			if afterProxy.ID != sentinel.ID || afterProxy.Title != sentinel.Title {
 				t.Fatalf("sentinel lost after proxy restart: %+v", afterProxy)
 			}
 
 			// Endpoint identity changes must refuse stale-proxy adoption.
-			info, err := configfile.LoadProxiedServerClientInfo(p.beadsDir)
+			info, err := configfile.LoadProxiedServerClientInfo(p.issuegraphDir)
 			if err != nil || info == nil || info.External == nil {
 				t.Fatalf("load endpoint identity: info=%+v err=%v", info, err)
 			}
@@ -123,10 +123,10 @@ func TestProxiedOutageReconnectAcceptanceMatrix(t *testing.T) {
 			} else {
 				info.External.Port++
 			}
-			if err := configfile.SaveProxiedServerClientInfo(p.beadsDir, info); err != nil {
+			if err := configfile.SaveProxiedServerClientInfo(p.issuegraphDir, info); err != nil {
 				t.Fatalf("rewrite endpoint identity: %v", err)
 			}
-			stdout, stderr, err := bdProxiedRunBuffers(t, bd, p.dir, "show", sentinel.ID, "--json")
+			stdout, stderr, err := issuegraphProxiedRunBuffers(t, issuegraph, p.dir, "show", sentinel.ID, "--json")
 			if err == nil {
 				t.Fatalf("stale endpoint unexpectedly succeeded:\nstdout=%s\nstderr=%s", stdout, stderr)
 			}
@@ -134,16 +134,16 @@ func TestProxiedOutageReconnectAcceptanceMatrix(t *testing.T) {
 				t.Fatalf("stale endpoint refusal lacks identity context: %s%s", stdout, stderr)
 			}
 			info.External = &original
-			require.NoError(t, configfile.SaveProxiedServerClientInfo(p.beadsDir, info))
+			require.NoError(t, configfile.SaveProxiedServerClientInfo(p.issuegraphDir, info))
 		})
 	}
 }
 
 func TestManagedLocalProxiedOutageReconnectContract(t *testing.T) {
 	requireManagedLocalProxiedEnv(t)
-	bd := buildEmbeddedBD(t)
-	p := bdManagedLocalInit(t, bd, "outage_managed", 5*time.Minute)
-	sentinel := bdProxiedCreate(t, bd, p.dir, "managed outage sentinel")
+	issuegraph := buildEmbeddedBD(t)
+	p := issuegraphManagedLocalInit(t, issuegraph, "outage_managed", 5*time.Minute)
+	sentinel := issuegraphProxiedCreate(t, issuegraph, p.dir, "managed outage sentinel")
 	proxyBefore := readManagedProxyPidFile(t, p)
 	if proxyBefore == nil || !processAlive(proxyBefore.Pid) {
 		t.Fatalf("managed-local proxy is not running: %+v", proxyBefore)
@@ -156,9 +156,9 @@ func TestManagedLocalProxiedOutageReconnectContract(t *testing.T) {
 	require.NoError(t, err)
 	require.NoError(t, proc.Kill())
 	require.Eventually(t, func() bool { return !processAlive(proxyBefore.Pid) }, 3*time.Second, 50*time.Millisecond, "managed proxy did not retire after child death")
-	// 1.3.0 contract: child death terminates the owned proxy; the next bd
+	// 1.3.0 contract: child death terminates the owned proxy; the next issuegraph
 	// invocation starts a fresh proxy/backend rather than in-place restarting.
-	got := bdProxiedShow(t, bd, p.dir, sentinel.ID)
+	got := issuegraphProxiedShow(t, issuegraph, p.dir, sentinel.ID)
 	if got.ID != sentinel.ID || got.Title != "managed outage sentinel" {
 		t.Fatalf("managed-local sentinel lost after command-level restart: %+v", got)
 	}
@@ -175,13 +175,13 @@ func TestManagedLocalProxiedOutageReconnectContract(t *testing.T) {
 	}
 }
 
-func runProxiedDeadline(t *testing.T, bd, dir string, timeout time.Duration, args ...string) (stdout, stderr string, err error, timedOut bool) {
+func runProxiedDeadline(t *testing.T, issuegraph, dir string, timeout time.Duration, args ...string) (stdout, stderr string, err error, timedOut bool) {
 	t.Helper()
 	ctx, cancel := context.WithTimeout(context.Background(), timeout)
 	defer cancel()
-	cmd := exec.CommandContext(ctx, bd, args...)
+	cmd := exec.CommandContext(ctx, issuegraph, args...)
 	cmd.SysProcAttr = &syscall.SysProcAttr{Setpgid: true}
-	cmd.Dir, cmd.Env = dir, bdProxiedEnv(dir)
+	cmd.Dir, cmd.Env = dir, issuegraphProxiedEnv(dir)
 	var out, errOut strings.Builder
 	cmd.Stdout, cmd.Stderr = &out, &errOut
 	done := make(chan struct{})

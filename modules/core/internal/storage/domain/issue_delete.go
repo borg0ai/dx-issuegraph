@@ -6,8 +6,8 @@ import (
 	"regexp"
 	"sort"
 
-	"github.com/steveyegge/beads/internal/storage/dberrors"
-	"github.com/steveyegge/beads/internal/types"
+	"github.com/borg0ai/dx-issuegraph/internal/storage/dberrors"
+	"github.com/borg0ai/dx-issuegraph/internal/types"
 )
 
 // DeleteBlockedError is the refusal returned by deleteMany when

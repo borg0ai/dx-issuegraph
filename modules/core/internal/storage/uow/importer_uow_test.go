@@ -6,8 +6,8 @@ import (
 	"testing"
 	"time"
 
-	"github.com/steveyegge/beads/internal/types"
-	publicops "github.com/steveyegge/beads/issueops"
+	"github.com/borg0ai/dx-issuegraph/internal/types"
+	publicops "github.com/borg0ai/dx-issuegraph/issueops"
 )
 
 // TestImporterUOW pins the Importer role's contract on the unit-of-work
@@ -113,8 +113,8 @@ func TestImporterUOW(t *testing.T) {
 		if got := queryString(t, "SELECT value FROM config WHERE `key` = 'kv.memory.importer-probe'"); got != "remembered" {
 			t.Errorf("memory value = %q, want %q", got, "remembered")
 		}
-		if msg := queryString(t, "SELECT message FROM dolt_log ORDER BY date DESC, commit_hash LIMIT 1"); !strings.Contains(msg, "bd import: 2 issues, 1 memories from importer_uow_test.jsonl") {
-			t.Errorf("history message = %q, want the bd import message", msg)
+		if msg := queryString(t, "SELECT message FROM dolt_log ORDER BY date DESC, commit_hash LIMIT 1"); !strings.Contains(msg, "issuegraph import: 2 issues, 1 memories from importer_uow_test.jsonl") {
+			t.Errorf("history message = %q, want the issuegraph import message", msg)
 		}
 	})
 

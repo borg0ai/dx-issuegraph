@@ -13,9 +13,9 @@ import (
 	"testing"
 	"time"
 
-	"github.com/steveyegge/beads/internal/linear"
-	"github.com/steveyegge/beads/internal/tracker"
-	"github.com/steveyegge/beads/internal/types"
+	"github.com/borg0ai/dx-issuegraph/internal/linear"
+	"github.com/borg0ai/dx-issuegraph/internal/tracker"
+	"github.com/borg0ai/dx-issuegraph/internal/types"
 )
 
 // mockLinearServer is a stateful mock that only stores what the Linear client
@@ -283,7 +283,7 @@ func TestLinearRoundTripCoreFields(t *testing.T) {
 	for k, v := range map[string]string{
 		"linear.api_key": "test-api-key",
 		"linear.team_id": teamID,
-		"issue_prefix":   "bd",
+		"issue_prefix":   "issuegraph",
 	} {
 		if err := sourceStore.SetConfig(ctx, k, v); err != nil {
 			t.Fatalf("SetConfig(%s): %v", k, err)
@@ -374,7 +374,7 @@ func TestLinearRoundTripCoreFields(t *testing.T) {
 		"linear.api_key":      "test-api-key",
 		"linear.team_id":      teamID,
 		"linear.api_endpoint": server.URL,
-		"issue_prefix":        "bd",
+		"issue_prefix":        "issuegraph",
 	} {
 		if err := targetStore.SetConfig(ctx, k, v); err != nil {
 			t.Fatalf("SetConfig(%s) target: %v", k, err)
@@ -437,7 +437,7 @@ func TestLinearRoundTripCoreFields(t *testing.T) {
 				t.Errorf("title: got %q, want %q", pulled.Title, source.Title)
 			}
 
-			// Priority round-trip (beads→linear→beads)
+			// Priority round-trip (issuegraph→linear→issuegraph)
 			if pulled.Priority != source.Priority {
 				t.Errorf("priority: got %d, want %d", pulled.Priority, source.Priority)
 			}
@@ -477,7 +477,7 @@ func TestLinearPullMilestonesCreatesEpicHierarchy(t *testing.T) {
 		"linear.api_key":      "test-api-key",
 		"linear.team_id":      teamID,
 		"linear.api_endpoint": server.URL,
-		"issue_prefix":        "bd",
+		"issue_prefix":        "issuegraph",
 	} {
 		if err := targetStore.SetConfig(ctx, k, v); err != nil {
 			t.Fatalf("SetConfig(%s): %v", k, err)
@@ -631,7 +631,7 @@ func buildLinearPushHooksForTest(ctx context.Context, lt *linear.Tracker) *track
 		},
 		ContentEqual: func(local *types.Issue, remote *tracker.TrackerIssue) bool {
 			localComparable := linear.NormalizeIssueForLinearHash(local)
-			remoteConv := lt.FieldMapper().IssueToBeads(remote)
+			remoteConv := lt.FieldMapper().IssueToIssueGraph(remote)
 			if remoteConv == nil || remoteConv.Issue == nil {
 				return false
 			}
@@ -645,7 +645,7 @@ func buildLinearPushHooksForTest(ctx context.Context, lt *linear.Tracker) *track
 			if !ok || sc == nil {
 				return "", false
 			}
-			id := sc.FindStateForBeadsStatus(status)
+			id := sc.FindStateForIssueGraphStatus(status)
 			return id, id != ""
 		},
 		ShouldPush: func(issue *types.Issue) bool {
@@ -678,7 +678,7 @@ func buildLinearPullHooksForTest(ctx context.Context, store interface {
 			MaxLength:  8,
 			UsedIDs:    usedIDs,
 		}
-		if err := linear.GenerateIssueIDs(ids, "bd", "linear-import", idOpts); err != nil {
+		if err := linear.GenerateIssueIDs(ids, "issuegraph", "linear-import", idOpts); err != nil {
 			return err
 		}
 		usedIDs[issue.ID] = true

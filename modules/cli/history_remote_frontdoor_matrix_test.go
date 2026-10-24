@@ -18,16 +18,16 @@ import (
 	"testing"
 	"time"
 
-	"github.com/steveyegge/beads/internal/storage/dbproxy/proxy"
-	"github.com/steveyegge/beads/internal/testutil"
+	"github.com/borg0ai/dx-issuegraph/internal/storage/dbproxy/proxy"
+	"github.com/borg0ai/dx-issuegraph/internal/testutil"
 )
 
-// TestHistoryRemoteRefusalFrontDoorMatrix runs the real bd binary through all
+// TestHistoryRemoteRefusalFrontDoorMatrix runs the real issuegraph binary through all
 // supported proxied transports. Valid command arguments are intentional: a
 // typed capability refusal must win over Cobra usage validation and must not
 // start a provider or touch durable state.
 func TestHistoryRemoteRefusalFrontDoorMatrix(t *testing.T) {
-	bd := buildEmbeddedBD(t)
+	issuegraph := buildEmbeddedBD(t)
 	type fixture struct {
 		name string
 		make func(*testing.T) proxiedProject
@@ -36,13 +36,13 @@ func TestHistoryRemoteRefusalFrontDoorMatrix(t *testing.T) {
 		name: "managed-local",
 		make: func(t *testing.T) proxiedProject {
 			requireManagedLocalProxiedEnv(t)
-			return bdManagedLocalInit(t, bd, "hm_managed", 5*time.Minute)
+			return issuegraphManagedLocalInit(t, issuegraph, "hm_managed", 5*time.Minute)
 		},
 	}}
-	if os.Getenv("BEADS_TEST_PROXIED_SERVER") == "1" {
+	if os.Getenv("ISSUEGRAPH_TEST_PROXIED_SERVER") == "1" {
 		fixtures = append(fixtures,
 			fixture{name: "external-tcp", make: func(t *testing.T) proxiedProject {
-				return newSharedProxiedProject(t, bd, "hm_tcp")
+				return newSharedProxiedProject(t, issuegraph, "hm_tcp")
 			}},
 			fixture{name: "external-unix", make: func(t *testing.T) proxiedProject {
 				requireProxiedServerEnv(t)
@@ -50,7 +50,7 @@ func TestHistoryRemoteRefusalFrontDoorMatrix(t *testing.T) {
 				socket := filepath.Join(t.TempDir(), "dolt.sock")
 				bridge := startHistoryUnixBridge(t, socket, upstream.Port)
 				t.Cleanup(func() { _ = bridge.Process.Kill() })
-				return bdProxiedInit(t, bd, "hm_unix", "--proxied-server-external-socket-path", socket)
+				return issuegraphProxiedInit(t, issuegraph, "hm_unix", "--proxied-server-external-socket-path", socket)
 			}},
 		)
 	}
@@ -82,21 +82,21 @@ func TestHistoryRemoteRefusalFrontDoorMatrix(t *testing.T) {
 		{"dolt remote reset-data", "proxy.dolt_remote.unsupported", "dolt remote reset-data is not supported in proxied-server mode", []string{"dolt", "remote", "reset-data", "backup"}},
 		{"sync", "proxy.sync.unsupported", "sync is not supported in proxied-server mode", []string{"sync"}},
 		// Keyed on the path "admin compact", not the leaf name "compact":
-		// root `bd compact` is a different command that is proxy-supported.
-		{"admin compact", "proxy.compact.unsupported", "only 'bd admin compact --dolt' is supported in proxied-server mode", []string{"admin", "compact", "--stats"}},
+		// root `issuegraph compact` is a different command that is proxy-supported.
+		{"admin compact", "proxy.compact.unsupported", "only 'issuegraph admin compact --dolt' is supported in proxied-server mode", []string{"admin", "compact", "--stats"}},
 	}
 	for _, f := range fixtures {
 		t.Run(f.name, func(t *testing.T) {
 			p := f.make(t)
-			bdProxiedCreate(t, bd, p.dir, "matrix sentinel")
+			issuegraphProxiedCreate(t, issuegraph, p.dir, "matrix sentinel")
 			_ = proxy.Shutdown(p.proxyRoot)
-			before := snapshotHistoryState(t, bd, p)
+			before := snapshotHistoryState(t, issuegraph, p)
 			for _, tc := range commands {
 				t.Run(tc.name, func(t *testing.T) {
 					// Put the global flag before the subcommand. A few nested
 					// front doors do not inherit persistent flags after their args.
 					args := append([]string{"--json"}, tc.args...)
-					stdout, stderr, err := bdProxiedRunBuffersWithEnv(t, bd, p.dir, []string{"BEADS_JSON=1"}, args...)
+					stdout, stderr, err := issuegraphProxiedRunBuffersWithEnv(t, issuegraph, p.dir, []string{"ISSUEGRAPH_JSON=1"}, args...)
 					if err == nil {
 						t.Fatalf("%v unexpectedly succeeded", tc.args)
 					}
@@ -118,7 +118,7 @@ func TestHistoryRemoteRefusalFrontDoorMatrix(t *testing.T) {
 					if _, statErr := os.Stat(filepath.Join(p.proxyRoot, proxy.PIDFileName)); statErr == nil {
 						t.Fatal("provider proxy started for direct-only refusal")
 					}
-					after := snapshotHistoryState(t, bd, p)
+					after := snapshotHistoryState(t, issuegraph, p)
 					if string(before) != string(after) {
 						t.Fatal("durable artifacts changed during refusal")
 					}
@@ -133,18 +133,18 @@ func TestHistoryRemoteRefusalFrontDoorMatrix(t *testing.T) {
 // refusal that stops firing degrades to the older, opaque late failure; a
 // refusal that fires too widely breaks a command that works, and does it at the
 // front door where there is no fallback. That is what the leaf-name keying did
-// to `bd mol ready --gated`, which is proxy-supported, has no --max-rows flag,
-// and shares its leaf name with `bd ready` — so it refused to run for anyone
-// with BEADS_MAX_ROWS exported.
+// to `issuegraph mol ready --gated`, which is proxy-supported, has no --max-rows flag,
+// and shares its leaf name with `issuegraph ready` — so it refused to run for anyone
+// with ISSUEGRAPH_MAX_ROWS exported.
 //
 // Each command runs twice: once with a clean environment and once under
-// BEADS_MAX_ROWS=5, because the cap is the input that turned the front door
+// ISSUEGRAPH_MAX_ROWS=5, because the cap is the input that turned the front door
 // from a no-op into a refusal.
 func TestHistoryRemoteAllowPathFrontDoorMatrix(t *testing.T) {
-	bd := buildEmbeddedBD(t)
+	issuegraph := buildEmbeddedBD(t)
 	requireManagedLocalProxiedEnv(t)
-	p := bdManagedLocalInit(t, bd, "hm_allow", 5*time.Minute)
-	sentinel := bdProxiedCreate(t, bd, p.dir, "allow-path sentinel")
+	p := issuegraphManagedLocalInit(t, issuegraph, "hm_allow", 5*time.Minute)
+	sentinel := issuegraphProxiedCreate(t, issuegraph, p.dir, "allow-path sentinel")
 	commands := []struct {
 		name string
 		args []string
@@ -156,7 +156,7 @@ func TestHistoryRemoteAllowPathFrontDoorMatrix(t *testing.T) {
 		{name: "mol ready --gated", args: []string{"mol", "ready", "--gated"}},
 		// The documented alias for the row above, running the identical
 		// gate-resume scan. It belongs beside it: keying the cap refusal on
-		// `bd ready` rather than on the arm left this spelling refused while
+		// `issuegraph ready` rather than on the arm left this spelling refused while
 		// the `mol` one worked, which is the same split one level down.
 		{name: "ready --gated", args: []string{"ready", "--gated"}},
 		{name: "ready", args: []string{"ready"}, capRefused: true},
@@ -168,29 +168,29 @@ func TestHistoryRemoteAllowPathFrontDoorMatrix(t *testing.T) {
 		extras []string
 	}{
 		{name: "clean"},
-		{name: "capped", extras: []string{"BEADS_MAX_ROWS=5"}},
+		{name: "capped", extras: []string{"ISSUEGRAPH_MAX_ROWS=5"}},
 	} {
 		t.Run(env.name, func(t *testing.T) {
 			for _, tc := range commands {
 				t.Run(tc.name, func(t *testing.T) {
-					stdout, stderr, err := bdProxiedRunBuffersWithEnv(t, bd, p.dir, env.extras, tc.args...)
+					stdout, stderr, err := issuegraphProxiedRunBuffersWithEnv(t, issuegraph, p.dir, env.extras, tc.args...)
 					refusal := "is not supported in proxied-server mode"
 					if tc.capRefused && len(env.extras) > 0 {
 						if err == nil {
-							t.Fatalf("bd %s ignored an unsupported row cap; want a refusal\nstdout=%s", strings.Join(tc.args, " "), stdout)
+							t.Fatalf("issuegraph %s ignored an unsupported row cap; want a refusal\nstdout=%s", strings.Join(tc.args, " "), stdout)
 						}
 						if !strings.Contains(stderr+stdout, refusal) {
-							t.Fatalf("bd %s failed without the cap refusal: %v\nstdout=%s\nstderr=%s",
+							t.Fatalf("issuegraph %s failed without the cap refusal: %v\nstdout=%s\nstderr=%s",
 								strings.Join(tc.args, " "), err, stdout, stderr)
 						}
 						return
 					}
 					if err != nil {
-						t.Fatalf("bd %s was refused on the allow path: %v\nstdout=%s\nstderr=%s",
+						t.Fatalf("issuegraph %s was refused on the allow path: %v\nstdout=%s\nstderr=%s",
 							strings.Join(tc.args, " "), err, stdout, stderr)
 					}
 					if strings.Contains(stderr, refusal) {
-						t.Fatalf("bd %s printed a proxied refusal while exiting 0: stderr=%q",
+						t.Fatalf("issuegraph %s printed a proxied refusal while exiting 0: stderr=%q",
 							strings.Join(tc.args, " "), stderr)
 					}
 				})
@@ -203,8 +203,8 @@ func snapshotHistoryArtifacts(t *testing.T, p proxiedProject) []byte {
 	t.Helper()
 	var out []byte
 	for _, path := range []string{
-		filepath.Join(p.beadsDir, "config.yaml"), filepath.Join(p.beadsDir, "metadata.json"),
-		filepath.Join(p.beadsDir, "events.jsonl"), filepath.Join(p.beadsDir, ".local_version"),
+		filepath.Join(p.issuegraphDir, "config.yaml"), filepath.Join(p.issuegraphDir, "metadata.json"),
+		filepath.Join(p.issuegraphDir, "events.jsonl"), filepath.Join(p.issuegraphDir, ".local_version"),
 		filepath.Join(p.proxyRoot, proxy.LockFileName), filepath.Join(p.proxyRoot, proxy.PIDFileName),
 	} {
 		b, err := os.ReadFile(path)
@@ -216,9 +216,9 @@ func snapshotHistoryArtifacts(t *testing.T, p proxiedProject) []byte {
 	return out
 }
 
-func snapshotHistoryState(t *testing.T, bd string, p proxiedProject) []byte {
+func snapshotHistoryState(t *testing.T, issuegraph string, p proxiedProject) []byte {
 	t.Helper()
-	stdout, stderr, err := bdProxiedRunBuffers(t, bd, p.dir, "--json", "list")
+	stdout, stderr, err := issuegraphProxiedRunBuffers(t, issuegraph, p.dir, "--json", "list")
 	if err != nil {
 		t.Fatalf("snapshot list failed: %v\nstdout=%s\nstderr=%s", err, stdout, stderr)
 	}
@@ -241,19 +241,19 @@ func snapshotHistoryState(t *testing.T, bd string, p proxiedProject) []byte {
 }
 
 type directHistoryProject struct {
-	dir      string
-	beadsDir string
-	database string
-	port     int
-	env      []string
+	dir           string
+	issuegraphDir string
+	database      string
+	port          int
+	env           []string
 }
 
-func newDirectHistoryProject(t *testing.T, bd, prefix string) directHistoryProject {
+func newDirectHistoryProject(t *testing.T, issuegraph, prefix string) directHistoryProject {
 	t.Helper()
 	port := sharedProxiedServerPort(t)
 	dir := t.TempDir()
 	initGitRepoAt(t, dir)
-	beadsDir := filepath.Join(dir, ".beads")
+	issuegraphDir := filepath.Join(dir, ".issuegraph")
 	database := uniqueProxiedDatabase()
 	env := historyCleanEnv(dir)
 	args := []string{
@@ -262,34 +262,34 @@ func newDirectHistoryProject(t *testing.T, bd, prefix string) directHistoryProje
 		"--database", database, "--prefix", prefix, "--quiet", "--non-interactive",
 		"--skip-hooks", "--skip-agents",
 	}
-	cmd := exec.Command(bd, args...)
+	cmd := exec.Command(issuegraph, args...)
 	cmd.Dir = dir
 	cmd.Env = env
 	if out, err := cmd.CombinedOutput(); err != nil {
 		t.Fatalf("direct Dolt init failed: %v\n%s", err, out)
 	}
 	t.Cleanup(func() { dropTestDatabase(database, port) })
-	return directHistoryProject{dir: dir, beadsDir: beadsDir, database: database, port: port, env: env}
+	return directHistoryProject{dir: dir, issuegraphDir: issuegraphDir, database: database, port: port, env: env}
 }
 
 func historyCleanEnv(home string) []string {
 	env := make([]string, 0, len(os.Environ())+5)
 	for _, value := range os.Environ() {
-		if !strings.HasPrefix(value, "BEADS_") {
+		if !strings.HasPrefix(value, "ISSUEGRAPH_") {
 			env = append(env, value)
 		}
 	}
 	return append(env,
 		"HOME="+home,
-		"BEADS_NO_DAEMON=1",
-		"BD_DISABLE_METRICS=1",
-		"BD_DISABLE_EVENT_FLUSH=1",
+		"ISSUEGRAPH_NO_DAEMON=1",
+		"ISSUEGRAPH_DISABLE_METRICS=1",
+		"ISSUEGRAPH_DISABLE_EVENT_FLUSH=1",
 	)
 }
 
-func runDirectHistory(t *testing.T, bd string, p directHistoryProject, args ...string) (string, string, error) {
+func runDirectHistory(t *testing.T, issuegraph string, p directHistoryProject, args ...string) (string, string, error) {
 	t.Helper()
-	cmd := exec.Command(bd, args...)
+	cmd := exec.Command(issuegraph, args...)
 	cmd.Dir = p.dir
 	cmd.Env = p.env
 	var stdout, stderr bytes.Buffer
@@ -343,28 +343,28 @@ func startHistoryUnixBridge(t *testing.T, endpoint, upstreamPort string) *exec.C
 // TestHistoryRemoteSupportedFrontDoorParity checks the two operations that
 // are intentionally shared by direct and proxied providers.
 func TestHistoryRemoteSupportedFrontDoorParity(t *testing.T) {
-	if os.Getenv("BEADS_TEST_PROXIED_SERVER") != "1" && os.Getenv(managedLocalProxiedEnvVar) != "1" {
+	if os.Getenv("ISSUEGRAPH_TEST_PROXIED_SERVER") != "1" && os.Getenv(managedLocalProxiedEnvVar) != "1" {
 		t.Skip("set a proxied test lane to run history parity")
 	}
-	bd := buildEmbeddedBD(t)
+	issuegraph := buildEmbeddedBD(t)
 	for _, tc := range []struct {
 		name string
 		make func(*testing.T) proxiedProject
 	}{
 		{"managed-local", func(t *testing.T) proxiedProject {
 			requireManagedLocalProxiedEnv(t)
-			return bdManagedLocalInit(t, bd, "hs_managed", 5*time.Minute)
+			return issuegraphManagedLocalInit(t, issuegraph, "hs_managed", 5*time.Minute)
 		}},
 		{"external-tcp", func(t *testing.T) proxiedProject {
 			requireProxiedServerEnv(t)
-			return newSharedProxiedProject(t, bd, "hs_tcp")
+			return newSharedProxiedProject(t, issuegraph, "hs_tcp")
 		}},
 	} {
 		t.Run(tc.name, func(t *testing.T) {
 			p := tc.make(t)
-			issue := bdProxiedCreate(t, bd, p.dir, "history parity")
-			bdProxiedUpdate(t, bd, p.dir, issue.ID, "--title", "history parity updated")
-			out, err := bdProxiedRun(t, bd, p.dir, "--json", "history", issue.ID, "--events")
+			issue := issuegraphProxiedCreate(t, issuegraph, p.dir, "history parity")
+			issuegraphProxiedUpdate(t, issuegraph, p.dir, issue.ID, "--title", "history parity updated")
+			out, err := issuegraphProxiedRun(t, issuegraph, p.dir, "--json", "history", issue.ID, "--events")
 			if err != nil || !strings.Contains(string(out), issue.ID) {
 				t.Fatalf("history --events failed: %v\n%s", err, out)
 			}
@@ -372,7 +372,7 @@ func TestHistoryRemoteSupportedFrontDoorParity(t *testing.T) {
 			if _, err := db.ExecContext(context.Background(), "CALL DOLT_REMOTE('add', ?, ?)", "backup", "https://example.invalid/backup"); err != nil {
 				t.Fatalf("seed remote: %v", err)
 			}
-			out, err = bdProxiedRun(t, bd, p.dir, "--json", "dolt", "remote", "remove", "backup")
+			out, err = issuegraphProxiedRun(t, issuegraph, p.dir, "--json", "dolt", "remote", "remove", "backup")
 			if err != nil || !strings.Contains(string(out), "backup") {
 				t.Fatalf("remote remove failed: %v\n%s", err, out)
 			}
@@ -381,30 +381,30 @@ func TestHistoryRemoteSupportedFrontDoorParity(t *testing.T) {
 }
 
 func TestHistoryRemoteSupportedDirectAndProxiedParity(t *testing.T) {
-	if os.Getenv("BEADS_TEST_PROXIED_SERVER") != "1" {
-		t.Skip("set BEADS_TEST_PROXIED_SERVER=1 to run direct/server parity")
+	if os.Getenv("ISSUEGRAPH_TEST_PROXIED_SERVER") != "1" {
+		t.Skip("set ISSUEGRAPH_TEST_PROXIED_SERVER=1 to run direct/server parity")
 	}
-	bd := buildEmbeddedBD(t)
-	direct := newDirectHistoryProject(t, bd, "hp_direct")
-	proxied := newSharedProxiedProject(t, bd, "hp_proxy")
+	issuegraph := buildEmbeddedBD(t)
+	direct := newDirectHistoryProject(t, issuegraph, "hp_direct")
+	proxied := newSharedProxiedProject(t, issuegraph, "hp_proxy")
 
-	directIssue := createDirectHistoryIssue(t, bd, direct)
-	proxyIssue := bdProxiedCreate(t, bd, proxied.dir, "history parity")
+	directIssue := createDirectHistoryIssue(t, issuegraph, direct)
+	proxyIssue := issuegraphProxiedCreate(t, issuegraph, proxied.dir, "history parity")
 
-	directEvents := exerciseHistoryParity(t, bd, directIssue, func(args ...string) (string, string, error) {
-		return runDirectHistory(t, bd, direct, args...)
+	directEvents := exerciseHistoryParity(t, issuegraph, directIssue, func(args ...string) (string, string, error) {
+		return runDirectHistory(t, issuegraph, direct, args...)
 	}, openDirectHistoryDB(t, direct))
-	proxyEvents := exerciseHistoryParity(t, bd, proxyIssue.ID, func(args ...string) (string, string, error) {
-		return bdProxiedRunBuffers(t, bd, proxied.dir, args...)
+	proxyEvents := exerciseHistoryParity(t, issuegraph, proxyIssue.ID, func(args ...string) (string, string, error) {
+		return issuegraphProxiedRunBuffers(t, issuegraph, proxied.dir, args...)
 	}, openProxiedDB(t, proxied))
 	if !reflect.DeepEqual(directEvents, proxyEvents) {
 		t.Fatalf("history event types differ: direct=%v proxied=%v", directEvents, proxyEvents)
 	}
 }
 
-func createDirectHistoryIssue(t *testing.T, bd string, p directHistoryProject) string {
+func createDirectHistoryIssue(t *testing.T, issuegraph string, p directHistoryProject) string {
 	t.Helper()
-	stdout, stderr, err := runDirectHistory(t, bd, p, "create", "--json", "history parity")
+	stdout, stderr, err := runDirectHistory(t, issuegraph, p, "create", "--json", "history parity")
 	if err != nil {
 		t.Fatalf("direct create failed: %v\nstdout=%s\nstderr=%s", err, stdout, stderr)
 	}
@@ -421,7 +421,7 @@ func createDirectHistoryIssue(t *testing.T, bd string, p directHistoryProject) s
 	return issue.ID
 }
 
-func exerciseHistoryParity(t *testing.T, bd, issueID string, run func(...string) (string, string, error), db *sql.DB) []string {
+func exerciseHistoryParity(t *testing.T, issuegraph, issueID string, run func(...string) (string, string, error), db *sql.DB) []string {
 	t.Helper()
 	if _, stderr, err := run("update", "--json", issueID, "--title", "history parity updated"); err != nil {
 		t.Fatalf("update %s failed: %v\nstderr=%s", issueID, err, stderr)

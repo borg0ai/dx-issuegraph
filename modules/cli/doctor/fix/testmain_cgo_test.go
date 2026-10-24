@@ -7,8 +7,8 @@ import (
 	"os"
 	"testing"
 
-	"github.com/steveyegge/beads/internal/doltserver"
-	"github.com/steveyegge/beads/internal/testutil"
+	"github.com/borg0ai/dx-issuegraph/internal/doltserver"
+	"github.com/borg0ai/dx-issuegraph/internal/testutil"
 )
 
 // TestMain starts an isolated Dolt server so fix tests don't hit the
@@ -21,10 +21,10 @@ func TestMain(m *testing.M) {
 // exits — os.Exit skips deferred calls, so TestMain itself must never defer
 // anything (be-5kkk6).
 func testMainInner(m *testing.M) int {
-	os.Setenv("BEADS_TEST_MODE", "1")
+	os.Setenv("ISSUEGRAPH_TEST_MODE", "1")
 	// AD-01 (be-c5p): allow doctor/fix tests through the dolt.New
 	// database-name firewall when they connect to the spawned test server.
-	os.Setenv("BEADS_TEST_SERVER", "1")
+	os.Setenv("ISSUEGRAPH_TEST_SERVER", "1")
 	if err := testutil.EnsureDoltContainerForTestMain(); err != nil {
 		fmt.Fprintf(os.Stderr, "WARN: %v, skipping Dolt tests\n", err)
 	} else {
@@ -41,7 +41,7 @@ func testMainInner(m *testing.M) int {
 
 	// Pin t.TempDir() under a suite-owned root so the sweep below can reap
 	// AutoStart leftovers whose directory cleanup failed because the live
-	// child still holds the tree (gastownhall/beads#5631). Must never be a
+	// child still holds the tree (borg0ai/dx-issuegraph#5631). Must never be a
 	// shared/global temp dir (see SweepSuiteTestServers).
 	root, pinErr := testutil.PinSuiteTempRoot(suiteRootPrefix + "*")
 	if pinErr != nil {
@@ -61,11 +61,11 @@ func testMainInner(m *testing.M) int {
 
 	// Best-effort reap of any dolt sql-server left running under this
 	// suite's own temp root (e.g. a SIGKILLed run) — see
-	// gastownhall/beads mybd-q6cz / #5631.
+	// borg0ai/dx-issuegraph mybd-q6cz / #5631.
 	swept := doltserver.SweepSuiteTestServers(root)
 	code = doltserver.ApplyLeakPolicy("modules/cli/doctor/fix", code, swept)
-	os.Unsetenv("BEADS_DOLT_PORT")
-	os.Unsetenv("BEADS_TEST_MODE")
-	os.Unsetenv("BEADS_TEST_SERVER")
+	os.Unsetenv("ISSUEGRAPH_DOLT_PORT")
+	os.Unsetenv("ISSUEGRAPH_TEST_MODE")
+	os.Unsetenv("ISSUEGRAPH_TEST_SERVER")
 	return code
 }

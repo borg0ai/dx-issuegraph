@@ -17,14 +17,14 @@ import (
 	"testing"
 	"time"
 
-	"github.com/steveyegge/beads/internal/httpapi"
+	"github.com/borg0ai/dx-issuegraph/internal/httpapi"
 )
 
-// End-to-end lifecycle for `bd serve`, driven as a subprocess exactly as an
+// End-to-end lifecycle for `issuegraph serve`, driven as a subprocess exactly as an
 // operator runs it: bound address parsed off stdout, requests over real TCP,
 // and a signal to shut it down.
 
-// serveProcess is a running `bd serve` subprocess plus the two streams the
+// serveProcess is a running `issuegraph serve` subprocess plus the two streams the
 // contract makes promises about.
 type serveProcess struct {
 	cmd    *exec.Cmd
@@ -53,7 +53,7 @@ func (s *syncBuffer) String() string {
 	return s.b.String()
 }
 
-// startServe launches `bd serve` in dir and waits for the bound address it
+// startServe launches `issuegraph serve` in dir and waits for the bound address it
 // prints. Under the ephemeral default that line is the ONLY way to find the
 // port, which is why it is stdout's first line and why this parses it rather
 // than guessing.
@@ -61,10 +61,10 @@ func (s *syncBuffer) String() string {
 // It takes the environment rather than a proxied project because the same
 // lifecycle is the contract in every mode serve supports: the server-mode
 // integration test drives this exact harness with a server-mode env.
-func startServe(t *testing.T, bd, dir string, env []string, args ...string) *serveProcess {
+func startServe(t *testing.T, issuegraph, dir string, env []string, args ...string) *serveProcess {
 	t.Helper()
 
-	cmd := exec.Command(bd, append([]string{"serve", "--addr", "127.0.0.1:0"}, args...)...)
+	cmd := exec.Command(issuegraph, append([]string{"serve", "--addr", "127.0.0.1:0"}, args...)...)
 	cmd.Dir = dir
 	cmd.Env = env
 
@@ -76,7 +76,7 @@ func startServe(t *testing.T, bd, dir string, env []string, args ...string) *ser
 	cmd.Stderr = stderr
 
 	if err := cmd.Start(); err != nil {
-		t.Fatalf("start bd serve: %v", err)
+		t.Fatalf("start issuegraph serve: %v", err)
 	}
 
 	sp := &serveProcess{
@@ -106,15 +106,15 @@ func startServe(t *testing.T, bd, dir string, env []string, args ...string) *ser
 	select {
 	case line, ok := <-lines:
 		if !ok {
-			t.Fatalf("bd serve exited before printing the bound address\nstderr:\n%s", stderr.String())
+			t.Fatalf("issuegraph serve exited before printing the bound address\nstderr:\n%s", stderr.String())
 		}
-		addr, found := strings.CutPrefix(line, "bd serve: listening on http://")
+		addr, found := strings.CutPrefix(line, "issuegraph serve: listening on http://")
 		if !found {
 			t.Fatalf("first stdout line %q does not announce the bound address\nstderr:\n%s", line, stderr.String())
 		}
 		sp.addr = strings.TrimSpace(addr)
 	case <-time.After(90 * time.Second):
-		t.Fatalf("bd serve did not print a bound address\nstderr:\n%s", stderr.String())
+		t.Fatalf("issuegraph serve did not print a bound address\nstderr:\n%s", stderr.String())
 	}
 
 	return sp
@@ -155,7 +155,7 @@ func (sp *serveProcess) url(path string) string { return "http://" + sp.addr + p
 // write.
 //
 // What the assertion still buys, and what no in-package test can see: each
-// TOPOLOGY's subprocess really binds, really answers /v0/beads/context, and
+// TOPOLOGY's subprocess really binds, really answers /v0/issuegraph/context, and
 // really publishes the whole set rather than a truncated one.
 func assertServedCapabilities(t *testing.T, body map[string]any) {
 	t.Helper()
@@ -213,26 +213,26 @@ func (sp *serveProcess) shutdown(t *testing.T) {
 	select {
 	case err := <-done:
 		if err != nil {
-			t.Fatalf("bd serve exited %v after SIGTERM, want a clean exit\nstderr:\n%s", err, sp.stderr.String())
+			t.Fatalf("issuegraph serve exited %v after SIGTERM, want a clean exit\nstderr:\n%s", err, sp.stderr.String())
 		}
 	case <-time.After(60 * time.Second):
 		_ = sp.cmd.Process.Kill()
-		t.Fatalf("bd serve did not exit after SIGTERM\nstderr:\n%s", sp.stderr.String())
+		t.Fatalf("issuegraph serve did not exit after SIGTERM\nstderr:\n%s", sp.stderr.String())
 	}
 }
 
 func TestProxiedServerServeLifecycle(t *testing.T) {
 	requireSharedProxiedServer(t)
 	t.Parallel()
-	bd := buildEmbeddedBD(t)
-	p := newSharedProxiedProject(t, bd, "srvl")
+	issuegraph := buildEmbeddedBD(t)
+	p := newSharedProxiedProject(t, issuegraph, "srvl")
 
-	sp := startServe(t, bd, p.dir, bdProxiedEnv(p.dir))
+	sp := startServe(t, issuegraph, p.dir, issuegraphProxiedEnv(p.dir))
 
 	// Startup lines: what the operator needs before the first request, and the
 	// only record of which workspace this process is serving.
 	startup := sp.awaitLogLine(t, "event=startup")
-	for _, want := range []string{"addr=" + sp.addr, "mode=", "workspace=", "beads_dir="} {
+	for _, want := range []string{"addr=" + sp.addr, "mode=", "workspace=", "issuegraph_dir="} {
 		if !strings.Contains(startup, want) {
 			t.Errorf("startup line is missing %q:\n%s", want, startup)
 		}
@@ -258,7 +258,7 @@ func TestProxiedServerServeLifecycle(t *testing.T) {
 	})
 
 	t.Run("context", func(t *testing.T) {
-		status, body, _ := sp.get(t, "/v0/beads/context")
+		status, body, _ := sp.get(t, "/v0/issuegraph/context")
 		if status != http.StatusOK {
 			t.Fatalf("status = %d, want 200", status)
 		}
@@ -271,8 +271,8 @@ func TestProxiedServerServeLifecycle(t *testing.T) {
 		if body["database"] != p.database {
 			t.Errorf("database = %v, want %q", body["database"], p.database)
 		}
-		if body["bd_version"] == "" || body["bd_version"] == nil {
-			t.Error("bd_version is empty")
+		if body["issuegraph_version"] == "" || body["issuegraph_version"] == nil {
+			t.Error("issuegraph_version is empty")
 		}
 		assertServedCapabilities(t, body)
 		// The allowlist is enforced in internal/httpapi; this is the end-to-end
@@ -285,7 +285,7 @@ func TestProxiedServerServeLifecycle(t *testing.T) {
 	})
 
 	t.Run("a read operation answers from the database", func(t *testing.T) {
-		status, body, header := sp.get(t, "/v0/beads/ready")
+		status, body, header := sp.get(t, "/v0/issuegraph/ready")
 		if status != http.StatusOK {
 			t.Fatalf("status = %d, want 200: %v", status, body)
 		}
@@ -327,7 +327,7 @@ func TestProxiedServerServeLifecycle(t *testing.T) {
 	})
 
 	t.Run("unrouted paths keep the error shape", func(t *testing.T) {
-		status, body, header := sp.get(t, "/v0/beads/nope")
+		status, body, header := sp.get(t, "/v0/issuegraph/nope")
 		if status != http.StatusNotFound {
 			t.Fatalf("status = %d, want 404", status)
 		}
@@ -343,8 +343,8 @@ func TestProxiedServerServeLifecycle(t *testing.T) {
 	// slow" from "the server is saturated" from "the handler is broken".
 	requests := []struct{ path, op, status string }{
 		{"/healthz", "health", "200"},
-		{"/v0/beads/context", "getContext", "200"},
-		{"/v0/beads/ready", "listReadyWork", "200"},
+		{"/v0/issuegraph/context", "getContext", "200"},
+		{"/v0/issuegraph/ready", "listReadyWork", "200"},
 	}
 	for _, want := range requests {
 		line := sp.awaitLogLine(t, "path="+want.path+" ")
@@ -382,7 +382,7 @@ func TestProxiedServerServeLifecycle(t *testing.T) {
 // hit from the command line.
 //
 // The dolt-server-mode staged refusal is NOT driven end to end here: this
-// harness provisions proxied and embedded workspaces, not a `bd init --server`
+// harness provisions proxied and embedded workspaces, not a `issuegraph init --server`
 // one, and building that topology for a message assertion would trade a lot of
 // setup for no extra coverage. The typed error and its wording — including that
 // it does not read as permanent — are pinned in TestServeRefusalsPromiseNothing
@@ -391,18 +391,18 @@ func TestProxiedServerServeLifecycle(t *testing.T) {
 func TestProxiedServerServeModeGate(t *testing.T) {
 	requireProxiedServerEnv(t)
 	t.Parallel()
-	bd := buildEmbeddedBD(t)
+	issuegraph := buildEmbeddedBD(t)
 
 	t.Run("embedded workspace is refused permanently", func(t *testing.T) {
 		t.Parallel()
-		dir, _, _ := bdInit(t, bd)
+		dir, _, _ := issuegraphInit(t, issuegraph)
 
-		cmd := exec.Command(bd, "serve")
+		cmd := exec.Command(issuegraph, "serve")
 		cmd.Dir = dir
-		cmd.Env = bdEnv(dir)
+		cmd.Env = issuegraphEnv(dir)
 		stdout, stderr, err := runCommandBuffers(t, cmd)
 		if err == nil {
-			t.Fatalf("bd serve succeeded in an embedded workspace\nstdout:\n%s", stdout.String())
+			t.Fatalf("issuegraph serve succeeded in an embedded workspace\nstdout:\n%s", stdout.String())
 		}
 		assertServeExitCode(t, err, 1)
 
@@ -417,14 +417,14 @@ func TestProxiedServerServeModeGate(t *testing.T) {
 
 	t.Run("non-loopback bind needs the opt-in", func(t *testing.T) {
 		t.Parallel()
-		dir, _, _ := bdInit(t, bd)
+		dir, _, _ := issuegraphInit(t, issuegraph)
 
-		cmd := exec.Command(bd, "serve", "--addr", "10.0.0.5:8080")
+		cmd := exec.Command(issuegraph, "serve", "--addr", "10.0.0.5:8080")
 		cmd.Dir = dir
-		cmd.Env = bdEnv(dir)
+		cmd.Env = issuegraphEnv(dir)
 		_, stderr, err := runCommandBuffers(t, cmd)
 		if err == nil {
-			t.Fatal("bd serve accepted a non-loopback address without --allow-non-loopback")
+			t.Fatal("issuegraph serve accepted a non-loopback address without --allow-non-loopback")
 		}
 		assertServeExitCode(t, err, 1)
 		// Checked before anything about the workspace, so the refusal is the
@@ -437,14 +437,14 @@ func TestProxiedServerServeModeGate(t *testing.T) {
 
 	t.Run("a hostname is not an address", func(t *testing.T) {
 		t.Parallel()
-		dir, _, _ := bdInit(t, bd)
+		dir, _, _ := issuegraphInit(t, issuegraph)
 
-		cmd := exec.Command(bd, "serve", "--addr", "localhost:0")
+		cmd := exec.Command(issuegraph, "serve", "--addr", "localhost:0")
 		cmd.Dir = dir
-		cmd.Env = bdEnv(dir)
+		cmd.Env = issuegraphEnv(dir)
 		_, stderr, err := runCommandBuffers(t, cmd)
 		if err == nil {
-			t.Fatal("bd serve accepted a hostname as --addr")
+			t.Fatal("issuegraph serve accepted a hostname as --addr")
 		}
 		assertServeExitCode(t, err, 1)
 		if !strings.Contains(stderr.String(), "numeric IP literal") {
@@ -454,7 +454,7 @@ func TestProxiedServerServeModeGate(t *testing.T) {
 }
 
 // assertServeExitCode reads a SUBPROCESS exit status. The package's
-// assertExitCode unwraps the in-process *exitError instead, which a forked bd
+// assertExitCode unwraps the in-process *exitError instead, which a forked issuegraph
 // never produces.
 func assertServeExitCode(t *testing.T, err error, want int) {
 	t.Helper()

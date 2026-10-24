@@ -1,4 +1,4 @@
-module github.com/borg0ai/issuegraph
+module github.com/borg0ai/dx-issuegraph-workspace
 
 go 1.26.5
 

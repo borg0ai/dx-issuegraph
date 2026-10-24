@@ -5,17 +5,17 @@ import (
 	"path/filepath"
 	"testing"
 
-	"github.com/steveyegge/beads/internal/config"
-	"github.com/steveyegge/beads/internal/configfile"
-	"github.com/steveyegge/beads/internal/doltserver"
+	"github.com/borg0ai/dx-issuegraph/internal/config"
+	"github.com/borg0ai/dx-issuegraph/internal/configfile"
+	"github.com/borg0ai/dx-issuegraph/internal/doltserver"
 )
 
-func writeTestConfigYAML(t *testing.T, beadsDir, contents string) {
+func writeTestConfigYAML(t *testing.T, issuegraphDir, contents string) {
 	t.Helper()
-	if err := os.MkdirAll(beadsDir, 0o700); err != nil {
-		t.Fatalf("mkdir beads dir: %v", err)
+	if err := os.MkdirAll(issuegraphDir, 0o700); err != nil {
+		t.Fatalf("mkdir issuegraph dir: %v", err)
 	}
-	if err := os.WriteFile(filepath.Join(beadsDir, "config.yaml"), []byte(contents), 0o600); err != nil {
+	if err := os.WriteFile(filepath.Join(issuegraphDir, "config.yaml"), []byte(contents), 0o600); err != nil {
 		t.Fatalf("write config.yaml: %v", err)
 	}
 }
@@ -51,39 +51,33 @@ func restoreRootFlagState(t *testing.T, state map[string]flagSnapshot) {
 	}
 }
 
-// clearActorEnv blanks the two environment variables that outrank a
-// config.yaml actor, so a test asserting the config value is rebound does not
-// depend on the developer's shell (GH#6560). BEADS_ACTOR outranks it
-// deliberately: resolveConfiguredActor checks the env first, which is the
-// GH#4645 fix. BD_ACTOR does too, because viper's BD-prefixed AutomaticEnv
-// reads it as the actor key ahead of the file. CI runners set neither, which is
-// why these tests only ever failed locally.
+// clearActorEnv blanks the actor override so config rebinding tests do not
+// depend on the developer's shell.
 func clearActorEnv(t *testing.T) {
 	t.Helper()
-	t.Setenv("BEADS_ACTOR", "")
-	t.Setenv("BD_ACTOR", "")
+	t.Setenv("ISSUEGRAPH_ACTOR", "")
 }
 
 func TestPrepareSelectedCommandContext_RebindsTargetConfig(t *testing.T) {
-	t.Setenv("BEADS_DOLT_SERVER_DATABASE", "")
-	t.Setenv("BEADS_DOLT_SERVER_PORT", "")
+	t.Setenv("ISSUEGRAPH_DOLT_SERVER_DATABASE", "")
+	t.Setenv("ISSUEGRAPH_DOLT_SERVER_PORT", "")
 	clearActorEnv(t)
 
 	callerDir := t.TempDir()
-	callerBeadsDir := filepath.Join(callerDir, ".beads")
-	writeTestConfigYAML(t, callerBeadsDir, "actor: caller-actor\ndolt.auto-start: true\ndolt.port: 1111\ndolt.auto-commit: on\n")
+	callerIssueGraphDir := filepath.Join(callerDir, ".issuegraph")
+	writeTestConfigYAML(t, callerIssueGraphDir, "actor: caller-actor\ndolt.auto-start: true\ndolt.port: 1111\ndolt.auto-commit: on\n")
 
 	targetDir := t.TempDir()
-	targetBeadsDir := filepath.Join(targetDir, ".beads")
-	writeTestConfigYAML(t, targetBeadsDir, "actor: target-actor\ndolt.auto-start: false\ndolt.port: 4242\ndolt.auto-commit: batch\njson: true\nreadonly: true\n")
+	targetIssueGraphDir := filepath.Join(targetDir, ".issuegraph")
+	writeTestConfigYAML(t, targetIssueGraphDir, "actor: target-actor\ndolt.auto-start: false\ndolt.port: 4242\ndolt.auto-commit: batch\njson: true\nreadonly: true\n")
 	if err := (&configfile.Config{
 		Backend:  configfile.BackendDolt,
 		DoltMode: configfile.DoltModeServer,
-	}).Save(targetBeadsDir); err != nil {
+	}).Save(targetIssueGraphDir); err != nil {
 		t.Fatalf("save target metadata: %v", err)
 	}
 
-	t.Setenv("BEADS_DIR", callerBeadsDir)
+	t.Setenv("ISSUEGRAPH_DIR", callerIssueGraphDir)
 	config.ResetForTesting()
 	t.Cleanup(config.ResetForTesting)
 	if err := config.Initialize(); err != nil {
@@ -116,11 +110,11 @@ func TestPrepareSelectedCommandContext_RebindsTargetConfig(t *testing.T) {
 		}
 	}
 
-	prepareSelectedCommandContext(targetBeadsDir, false)
+	prepareSelectedCommandContext(targetIssueGraphDir, false)
 	refreshBoundCommandConfig(rootCmd)
 
-	if got := os.Getenv("BEADS_DIR"); got != targetBeadsDir {
-		t.Fatalf("BEADS_DIR = %q, want %q", got, targetBeadsDir)
+	if got := os.Getenv("ISSUEGRAPH_DIR"); got != targetIssueGraphDir {
+		t.Fatalf("ISSUEGRAPH_DIR = %q, want %q", got, targetIssueGraphDir)
 	}
 	if !serverMode {
 		t.Fatal("serverMode should be true after rebinding to target metadata")
@@ -140,27 +134,27 @@ func TestPrepareSelectedCommandContext_RebindsTargetConfig(t *testing.T) {
 	if !doltserver.IsAutoStartDisabled() {
 		t.Fatal("IsAutoStartDisabled should honor target config after rebinding")
 	}
-	if got := doltserver.DefaultConfig(targetBeadsDir).Port; got != 4242 {
+	if got := doltserver.DefaultConfig(targetIssueGraphDir).Port; got != 4242 {
 		t.Fatalf("DefaultConfig(target).Port = %d, want %d", got, 4242)
 	}
 }
 
 func TestPrepareSelectedCommandContext_DoesNotMergeCallerConfigForUnsetKeys(t *testing.T) {
-	t.Setenv("BEADS_DOLT_SERVER_DATABASE", "")
-	t.Setenv("BEADS_DOLT_SERVER_PORT", "")
+	t.Setenv("ISSUEGRAPH_DOLT_SERVER_DATABASE", "")
+	t.Setenv("ISSUEGRAPH_DOLT_SERVER_PORT", "")
 	clearActorEnv(t)
 
 	root := t.TempDir()
 	callerDir := filepath.Join(root, "caller")
-	callerBeadsDir := filepath.Join(callerDir, ".beads")
-	writeTestConfigYAML(t, callerBeadsDir, "readonly: true\njson: true\n")
+	callerIssueGraphDir := filepath.Join(callerDir, ".issuegraph")
+	writeTestConfigYAML(t, callerIssueGraphDir, "readonly: true\njson: true\n")
 
 	targetDir := filepath.Join(root, "target")
-	targetBeadsDir := filepath.Join(targetDir, ".beads")
-	writeTestConfigYAML(t, targetBeadsDir, "actor: target-actor\n")
+	targetIssueGraphDir := filepath.Join(targetDir, ".issuegraph")
+	writeTestConfigYAML(t, targetIssueGraphDir, "actor: target-actor\n")
 
 	t.Chdir(callerDir)
-	t.Setenv("BEADS_DIR", callerBeadsDir)
+	t.Setenv("ISSUEGRAPH_DIR", callerIssueGraphDir)
 	config.ResetForTesting()
 	t.Cleanup(config.ResetForTesting)
 	if err := config.Initialize(); err != nil {
@@ -187,7 +181,7 @@ func TestPrepareSelectedCommandContext_DoesNotMergeCallerConfigForUnsetKeys(t *t
 		}
 	}
 
-	prepareSelectedCommandContext(targetBeadsDir, false)
+	prepareSelectedCommandContext(targetIssueGraphDir, false)
 	refreshBoundCommandConfig(rootCmd)
 
 	if readonlyMode {

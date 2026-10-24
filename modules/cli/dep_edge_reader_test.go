@@ -10,12 +10,12 @@ import (
 	"sync"
 	"testing"
 
-	"github.com/steveyegge/beads/internal/storage"
-	"github.com/steveyegge/beads/internal/types"
-	"github.com/steveyegge/beads/issueops"
+	"github.com/borg0ai/dx-issuegraph/internal/storage"
+	"github.com/borg0ai/dx-issuegraph/internal/types"
+	"github.com/borg0ai/dx-issuegraph/issueops"
 )
 
-// These cover `bd dep list a b c`'s two halves above the role: which store each
+// These cover `issuegraph dep list a b c`'s two halves above the role: which store each
 // resolved anchor is asked, and what the shared printer emits. Everything below
 // them is the role's, pinned by backend/conformance/edge_reader_contract.go.
 
@@ -68,7 +68,7 @@ func edgeReaderAnchorFor(id string, reader issueops.EdgeReader) depListAnchor {
 
 // TestDepListEdgesReportsTheReadFailure is the regression for a shipped defect:
 // the pre-role code fell through to the hydrated neighbor listing on ANY error,
-// so a transient failure turned `bd dep list a b --json` from an array of
+// so a transient failure turned `issuegraph dep list a b --json` from an array of
 // dependency records into an array of ISSUES, with no error and no warning.
 func TestDepListEdgesReportsTheReadFailure(t *testing.T) {
 	want := errors.New("dependency table is unreachable")
@@ -85,7 +85,7 @@ func TestDepListEdgesReportsTheReadFailure(t *testing.T) {
 
 // TestDepListEdgesAsksEachAnchorsOwnStore pins the routed half of the same
 // defect: a batch whose anchors resolved to different stores also fell through
-// to the neighbor listing, so a cross-rig `bd dep list` emitted a different
+// to the neighbor listing, so a cross-rig `issuegraph dep list` emitted a different
 // document from a same-rig one. It also pins that no store is asked for another
 // store's ids — an id sent to the wrong database comes back Missing, which
 // reads as "no such issue".

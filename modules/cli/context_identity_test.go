@@ -9,27 +9,27 @@ import (
 	"path/filepath"
 	"testing"
 
-	"github.com/steveyegge/beads/internal/beads"
-	"github.com/steveyegge/beads/internal/configfile"
-	"github.com/steveyegge/beads/internal/storage"
-	"github.com/steveyegge/beads/internal/storage/backends"
-	"github.com/steveyegge/beads/internal/storage/contextinfo"
-	"github.com/steveyegge/beads/internal/storage/domain"
+	"github.com/borg0ai/dx-issuegraph/internal/configfile"
+	"github.com/borg0ai/dx-issuegraph/internal/issuegraph"
+	"github.com/borg0ai/dx-issuegraph/internal/storage"
+	"github.com/borg0ai/dx-issuegraph/internal/storage/backends"
+	"github.com/borg0ai/dx-issuegraph/internal/storage/contextinfo"
+	"github.com/borg0ai/dx-issuegraph/internal/storage/domain"
 )
 
 // TestContextRoutesNameOneWorkspaceTheSameWay.
 //
 // There are two routes to a workspace snapshot and they are not
-// interchangeable: `bd context` reads the config files itself, because it has
+// interchangeable: `issuegraph context` reads the config files itself, because it has
 // to answer in degraded states where no database opens, while the proxied route
-// and GET /v0/beads/context go through the contextinfo provider. Both hand the
+// and GET /v0/issuegraph/context go through the contextinfo provider. Both hand the
 // result to domain.PublishedContext, which exists so that the identity an
 // automation client is given and the identity printed on the operator's
 // terminal beside it are the same values read the same way.
 //
 // Nothing tested that. Both routes carried their own `Backend:
 // configfile.BackendDolt`, so a workspace on a registered backend was described
-// as embedded Dolt on database "beads" by both — the same lie twice, which is
+// as embedded Dolt on database "issuegraph" by both — the same lie twice, which is
 // indistinguishable from agreement.
 func TestContextRoutesNameOneWorkspaceTheSameWay(t *testing.T) {
 	const registered = "context-identity-backend"
@@ -40,7 +40,7 @@ func TestContextRoutesNameOneWorkspaceTheSameWay(t *testing.T) {
 		OpenReadOnly: func(context.Context, string) (storage.DoltStorage, error) {
 			return nil, errors.ErrUnsupported
 		},
-		WorkspaceIsBeadsDir: true,
+		WorkspaceIsIssueGraphDir: true,
 	})
 	t.Cleanup(func() { backends.Deregister(registered) })
 
@@ -74,35 +74,35 @@ func TestContextRoutesNameOneWorkspaceTheSameWay(t *testing.T) {
 		t.Run(tc.name, func(t *testing.T) {
 			dir := t.TempDir()
 			initGitRepoAt(t, dir)
-			beadsDir := filepath.Join(dir, ".beads")
-			if err := os.MkdirAll(beadsDir, 0o755); err != nil {
-				t.Fatalf("mkdir .beads: %v", err)
+			issuegraphDir := filepath.Join(dir, ".issuegraph")
+			if err := os.MkdirAll(issuegraphDir, 0o755); err != nil {
+				t.Fatalf("mkdir .issuegraph: %v", err)
 			}
-			if err := tc.cfg.Save(beadsDir); err != nil {
+			if err := tc.cfg.Save(issuegraphDir); err != nil {
 				t.Fatalf("save metadata.json: %v", err)
 			}
 			t.Chdir(dir)
-			t.Setenv("BEADS_DIR", beadsDir)
-			beads.ResetCaches()
-			t.Cleanup(beads.ResetCaches)
+			t.Setenv("ISSUEGRAPH_DIR", issuegraphDir)
+			issuegraph.ResetCaches()
+			t.Cleanup(issuegraph.ResetCaches)
 
 			provider, err := contextinfo.NewContextProvider(dir, Version).ContextUseCase().GetContextInfo(t.Context())
 			if err != nil {
 				t.Fatalf("provider route: %v", err)
 			}
-			direct := directContextSnapshot(t, beadsDir)
+			direct := directContextSnapshot(t, issuegraphDir)
 
 			// The paths and the version come from the workspace either way and
 			// are not what this compares; the identity is.
 			want := tc.want
-			want.BdVersion, want.BeadsDir, want.RepoRoot = Version, provider.BeadsDir, provider.RepoRoot
+			want.BdVersion, want.IssueGraphDir, want.RepoRoot = Version, provider.IssueGraphDir, provider.RepoRoot
 
 			for _, got := range []struct {
 				route  string
 				fields domain.PublishedContextFields
 			}{
-				{"the contextinfo provider (GET /v0/beads/context, bd context in proxied mode)", domain.PublishedContext(provider)},
-				{"the direct route (bd context)", domain.PublishedContext(direct)},
+				{"the contextinfo provider (GET /v0/issuegraph/context, issuegraph context in proxied mode)", domain.PublishedContext(provider)},
+				{"the direct route (issuegraph context)", domain.PublishedContext(direct)},
 			} {
 				if got.fields != want {
 					t.Errorf("%s published\n  %+v\nwant\n  %+v", got.route, got.fields, want)
@@ -116,25 +116,25 @@ func TestContextRoutesNameOneWorkspaceTheSameWay(t *testing.T) {
 // pins the shared projection rather than the command's own wiring. A change
 // that bypassed applyContextBackend inside RunE would not be caught here.
 //
-// directContextSnapshot assembles the snapshot `bd context`'s direct route
+// directContextSnapshot assembles the snapshot `issuegraph context`'s direct route
 // answers from, off the same config files the command reads.
-func directContextSnapshot(t *testing.T, beadsDir string) domain.ContextInfo {
+func directContextSnapshot(t *testing.T, issuegraphDir string) domain.ContextInfo {
 	t.Helper()
-	rc, err := beads.GetRepoContext()
+	rc, err := issuegraph.GetRepoContext()
 	if err != nil {
 		t.Fatalf("repo context: %v", err)
 	}
-	cfg, err := configfile.Load(beadsDir)
+	cfg, err := configfile.Load(issuegraphDir)
 	if err != nil || cfg == nil {
 		t.Fatalf("load metadata.json: %v", err)
 	}
 
 	snapshot := domain.ContextInfo{
-		BdVersion: Version,
-		BeadsDir:  rc.BeadsDir,
-		RepoRoot:  rc.RepoRoot,
+		BdVersion:     Version,
+		IssueGraphDir: rc.IssueGraphDir,
+		RepoRoot:      rc.RepoRoot,
 	}
-	if err := applyContextBackend(&snapshot, rc.BeadsDir, cfg); err != nil {
+	if err := applyContextBackend(&snapshot, rc.IssueGraphDir, cfg); err != nil {
 		t.Fatalf("applyContextBackend: %v", err)
 	}
 	return snapshot

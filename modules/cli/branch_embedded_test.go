@@ -12,41 +12,41 @@ import (
 	"testing"
 )
 
-// bdBranch runs "bd branch" with extra args. Returns combined output.
-func bdBranch(t *testing.T, bd, dir string, args ...string) string {
+// issuegraphBranch runs "issuegraph branch" with extra args. Returns combined output.
+func issuegraphBranch(t *testing.T, issuegraph, dir string, args ...string) string {
 	t.Helper()
 	fullArgs := append([]string{"branch"}, args...)
-	cmd := exec.Command(bd, fullArgs...)
+	cmd := exec.Command(issuegraph, fullArgs...)
 	cmd.Dir = dir
-	cmd.Env = bdEnv(dir)
+	cmd.Env = issuegraphEnv(dir)
 	stdout, stderr, err := runCommandBuffers(t, cmd)
 	if err != nil {
-		t.Fatalf("bd branch %s failed: %v\nstdout:\n%s\nstderr:\n%s", strings.Join(args, " "), err, stdout.String(), stderr.String())
+		t.Fatalf("issuegraph branch %s failed: %v\nstdout:\n%s\nstderr:\n%s", strings.Join(args, " "), err, stdout.String(), stderr.String())
 	}
 	return stdout.String()
 }
 
 func TestEmbeddedBranch(t *testing.T) {
-	if os.Getenv("BEADS_TEST_EMBEDDED_DOLT") != "1" {
-		t.Skip("set BEADS_TEST_EMBEDDED_DOLT=1 to run embedded dolt branch tests")
+	if os.Getenv("ISSUEGRAPH_TEST_EMBEDDED_DOLT") != "1" {
+		t.Skip("set ISSUEGRAPH_TEST_EMBEDDED_DOLT=1 to run embedded dolt branch tests")
 	}
 	t.Parallel()
 
-	bd := buildEmbeddedBD(t)
+	issuegraph := buildEmbeddedBD(t)
 
 	t.Run("list_default", func(t *testing.T) {
-		dir, _, _ := bdInit(t, bd, "--prefix", "brlist")
+		dir, _, _ := issuegraphInit(t, issuegraph, "--prefix", "brlist")
 
-		out := bdBranch(t, bd, dir)
+		out := issuegraphBranch(t, issuegraph, dir)
 		if !strings.Contains(out, "main") {
 			t.Errorf("expected 'main' in branch list, got: %s", out)
 		}
 	})
 
 	t.Run("list_json", func(t *testing.T) {
-		dir, _, _ := bdInit(t, bd, "--prefix", "brjson")
+		dir, _, _ := issuegraphInit(t, issuegraph, "--prefix", "brjson")
 
-		out := bdBranch(t, bd, dir, "--json")
+		out := issuegraphBranch(t, issuegraph, dir, "--json")
 		var result map[string]interface{}
 		if err := json.Unmarshal([]byte(out), &result); err != nil {
 			t.Fatalf("failed to parse JSON: %v\n%s", err, out)
@@ -61,24 +61,24 @@ func TestEmbeddedBranch(t *testing.T) {
 	})
 
 	t.Run("create", func(t *testing.T) {
-		dir, _, _ := bdInit(t, bd, "--prefix", "brcreate")
+		dir, _, _ := issuegraphInit(t, issuegraph, "--prefix", "brcreate")
 
-		out := bdBranch(t, bd, dir, "feature-xyz")
+		out := issuegraphBranch(t, issuegraph, dir, "feature-xyz")
 		if !strings.Contains(out, "feature-xyz") {
 			t.Errorf("expected 'feature-xyz' in output, got: %s", out)
 		}
 
 		// Verify branch appears in list
-		listOut := bdBranch(t, bd, dir)
+		listOut := issuegraphBranch(t, issuegraph, dir)
 		if !strings.Contains(listOut, "feature-xyz") {
 			t.Errorf("expected 'feature-xyz' in branch list, got: %s", listOut)
 		}
 	})
 
 	t.Run("create_json", func(t *testing.T) {
-		dir, _, _ := bdInit(t, bd, "--prefix", "brcrj")
+		dir, _, _ := issuegraphInit(t, issuegraph, "--prefix", "brcrj")
 
-		out := bdBranch(t, bd, dir, "my-branch", "--json")
+		out := issuegraphBranch(t, issuegraph, dir, "my-branch", "--json")
 		var result map[string]interface{}
 		if err := json.Unmarshal([]byte(out), &result); err != nil {
 			t.Fatalf("failed to parse JSON: %v\n%s", err, out)
@@ -89,13 +89,13 @@ func TestEmbeddedBranch(t *testing.T) {
 	})
 
 	t.Run("create_multiple", func(t *testing.T) {
-		dir, _, _ := bdInit(t, bd, "--prefix", "brmulti")
+		dir, _, _ := issuegraphInit(t, issuegraph, "--prefix", "brmulti")
 
-		bdBranch(t, bd, dir, "branch-a")
-		bdBranch(t, bd, dir, "branch-b")
-		bdBranch(t, bd, dir, "branch-c")
+		issuegraphBranch(t, issuegraph, dir, "branch-a")
+		issuegraphBranch(t, issuegraph, dir, "branch-b")
+		issuegraphBranch(t, issuegraph, dir, "branch-c")
 
-		out := bdBranch(t, bd, dir, "--json")
+		out := issuegraphBranch(t, issuegraph, dir, "--json")
 		var result map[string]interface{}
 		if err := json.Unmarshal([]byte(out), &result); err != nil {
 			t.Fatalf("failed to parse JSON: %v\n%s", err, out)
@@ -108,13 +108,13 @@ func TestEmbeddedBranch(t *testing.T) {
 }
 
 func TestEmbeddedBranchConcurrent(t *testing.T) {
-	if os.Getenv("BEADS_TEST_EMBEDDED_DOLT") != "1" {
-		t.Skip("set BEADS_TEST_EMBEDDED_DOLT=1 to run embedded dolt branch tests")
+	if os.Getenv("ISSUEGRAPH_TEST_EMBEDDED_DOLT") != "1" {
+		t.Skip("set ISSUEGRAPH_TEST_EMBEDDED_DOLT=1 to run embedded dolt branch tests")
 	}
 	t.Parallel()
 
-	bd := buildEmbeddedBD(t)
-	dir, _, _ := bdInit(t, bd, "--prefix", "brconc")
+	issuegraph := buildEmbeddedBD(t)
+	dir, _, _ := issuegraphInit(t, issuegraph, "--prefix", "brconc")
 
 	const numWorkers = 10
 
@@ -132,9 +132,9 @@ func TestEmbeddedBranchConcurrent(t *testing.T) {
 		go func(worker int) {
 			defer wg.Done()
 			branchName := fmt.Sprintf("conc-branch-%d", worker)
-			cmd := exec.Command(bd, "branch", branchName)
+			cmd := exec.Command(issuegraph, "branch", branchName)
 			cmd.Dir = dir
-			cmd.Env = bdEnv(dir)
+			cmd.Env = issuegraphEnv(dir)
 			out, err := cmd.CombinedOutput()
 			results[worker] = result{worker: worker, out: string(out), err: err}
 		}(w)
@@ -158,7 +158,7 @@ func TestEmbeddedBranchConcurrent(t *testing.T) {
 	t.Logf("%d/%d branch workers succeeded", successes, numWorkers)
 
 	// Verify at least the successful branches exist
-	listOut := bdBranch(t, bd, dir)
+	listOut := issuegraphBranch(t, issuegraph, dir)
 	if !strings.Contains(listOut, "main") {
 		t.Error("expected 'main' in branch list after concurrent creates")
 	}

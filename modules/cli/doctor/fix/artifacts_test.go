@@ -8,8 +8,8 @@ import (
 
 func TestClassicArtifacts_NoArtifacts(t *testing.T) {
 	dir := t.TempDir()
-	beadsDir := filepath.Join(dir, ".beads")
-	if err := os.MkdirAll(beadsDir, 0755); err != nil {
+	issuegraphDir := filepath.Join(dir, ".issuegraph")
+	if err := os.MkdirAll(issuegraphDir, 0755); err != nil {
 		t.Fatal(err)
 	}
 
@@ -21,14 +21,14 @@ func TestClassicArtifacts_NoArtifacts(t *testing.T) {
 
 func TestClassicArtifacts_RemovesSQLiteWAL(t *testing.T) {
 	dir := t.TempDir()
-	beadsDir := filepath.Join(dir, ".beads")
-	if err := os.MkdirAll(beadsDir, 0755); err != nil {
+	issuegraphDir := filepath.Join(dir, ".issuegraph")
+	if err := os.MkdirAll(issuegraphDir, 0755); err != nil {
 		t.Fatal(err)
 	}
 
 	// Create WAL/SHM files
-	for _, name := range []string{"beads.db-shm", "beads.db-wal"} {
-		if err := os.WriteFile(filepath.Join(beadsDir, name), []byte("data"), 0644); err != nil {
+	for _, name := range []string{"issuegraph.db-shm", "issuegraph.db-wal"} {
+		if err := os.WriteFile(filepath.Join(issuegraphDir, name), []byte("data"), 0644); err != nil {
 			t.Fatal(err)
 		}
 	}
@@ -39,22 +39,22 @@ func TestClassicArtifacts_RemovesSQLiteWAL(t *testing.T) {
 	}
 
 	// Verify WAL/SHM files were removed
-	for _, name := range []string{"beads.db-shm", "beads.db-wal"} {
-		if _, err := os.Stat(filepath.Join(beadsDir, name)); !os.IsNotExist(err) {
+	for _, name := range []string{"issuegraph.db-shm", "issuegraph.db-wal"} {
+		if _, err := os.Stat(filepath.Join(issuegraphDir, name)); !os.IsNotExist(err) {
 			t.Errorf("%s should have been removed", name)
 		}
 	}
 }
 
-func TestClassicArtifacts_SkipsBeadsDB(t *testing.T) {
+func TestClassicArtifacts_SkipsIssueGraphDB(t *testing.T) {
 	dir := t.TempDir()
-	beadsDir := filepath.Join(dir, ".beads")
-	if err := os.MkdirAll(beadsDir, 0755); err != nil {
+	issuegraphDir := filepath.Join(dir, ".issuegraph")
+	if err := os.MkdirAll(issuegraphDir, 0755); err != nil {
 		t.Fatal(err)
 	}
 
-	// Create beads.db (should be skipped)
-	if err := os.WriteFile(filepath.Join(beadsDir, "beads.db"), []byte("data"), 0644); err != nil {
+	// Create issuegraph.db (should be skipped)
+	if err := os.WriteFile(filepath.Join(issuegraphDir, "issuegraph.db"), []byte("data"), 0644); err != nil {
 		t.Fatal(err)
 	}
 
@@ -63,21 +63,21 @@ func TestClassicArtifacts_SkipsBeadsDB(t *testing.T) {
 		t.Errorf("expected no error, got: %v", err)
 	}
 
-	// beads.db should still exist (not safe to delete automatically)
-	if _, err := os.Stat(filepath.Join(beadsDir, "beads.db")); os.IsNotExist(err) {
-		t.Error("beads.db should NOT have been removed")
+	// issuegraph.db should still exist (not safe to delete automatically)
+	if _, err := os.Stat(filepath.Join(issuegraphDir, "issuegraph.db")); os.IsNotExist(err) {
+		t.Error("issuegraph.db should NOT have been removed")
 	}
 }
 
 func TestClassicArtifacts_RemovesBackupDBs(t *testing.T) {
 	dir := t.TempDir()
-	beadsDir := filepath.Join(dir, ".beads")
-	if err := os.MkdirAll(beadsDir, 0755); err != nil {
+	issuegraphDir := filepath.Join(dir, ".issuegraph")
+	if err := os.MkdirAll(issuegraphDir, 0755); err != nil {
 		t.Fatal(err)
 	}
 
-	backupName := "beads.backup-20260204.db"
-	if err := os.WriteFile(filepath.Join(beadsDir, backupName), []byte("data"), 0644); err != nil {
+	backupName := "issuegraph.backup-20260204.db"
+	if err := os.WriteFile(filepath.Join(issuegraphDir, backupName), []byte("data"), 0644); err != nil {
 		t.Fatal(err)
 	}
 
@@ -86,33 +86,33 @@ func TestClassicArtifacts_RemovesBackupDBs(t *testing.T) {
 		t.Errorf("expected no error, got: %v", err)
 	}
 
-	if _, err := os.Stat(filepath.Join(beadsDir, backupName)); !os.IsNotExist(err) {
+	if _, err := os.Stat(filepath.Join(issuegraphDir, backupName)); !os.IsNotExist(err) {
 		t.Error("backup db should have been removed")
 	}
 }
 
 func TestClassicArtifacts_CleansJSONLInDoltDir(t *testing.T) {
 	dir := t.TempDir()
-	beadsDir := filepath.Join(dir, ".beads")
-	doltDir := filepath.Join(beadsDir, "dolt")
+	issuegraphDir := filepath.Join(dir, ".issuegraph")
+	doltDir := filepath.Join(issuegraphDir, "dolt")
 	if err := os.MkdirAll(doltDir, 0755); err != nil {
 		t.Fatal(err)
 	}
 
 	// Create safe-to-delete JSONL artifacts
 	for _, name := range []string{"issues.jsonl.new"} {
-		if err := os.WriteFile(filepath.Join(beadsDir, name), []byte(`{"id":"test"}`), 0644); err != nil {
+		if err := os.WriteFile(filepath.Join(issuegraphDir, name), []byte(`{"id":"test"}`), 0644); err != nil {
 			t.Fatal(err)
 		}
 	}
 
 	// Create empty interactions.jsonl
-	if err := os.WriteFile(filepath.Join(beadsDir, "interactions.jsonl"), []byte{}, 0644); err != nil {
+	if err := os.WriteFile(filepath.Join(issuegraphDir, "interactions.jsonl"), []byte{}, 0644); err != nil {
 		t.Fatal(err)
 	}
 
 	// Create issues.jsonl (should be skipped)
-	if err := os.WriteFile(filepath.Join(beadsDir, "issues.jsonl"), []byte(`{"id":"real"}`), 0644); err != nil {
+	if err := os.WriteFile(filepath.Join(issuegraphDir, "issues.jsonl"), []byte(`{"id":"real"}`), 0644); err != nil {
 		t.Fatal(err)
 	}
 
@@ -123,40 +123,40 @@ func TestClassicArtifacts_CleansJSONLInDoltDir(t *testing.T) {
 
 	// Safe files should be removed
 	for _, name := range []string{"issues.jsonl.new", "interactions.jsonl"} {
-		if _, err := os.Stat(filepath.Join(beadsDir, name)); !os.IsNotExist(err) {
+		if _, err := os.Stat(filepath.Join(issuegraphDir, name)); !os.IsNotExist(err) {
 			t.Errorf("%s should have been removed", name)
 		}
 	}
 
 	// issues.jsonl should be kept
-	if _, err := os.Stat(filepath.Join(beadsDir, "issues.jsonl")); os.IsNotExist(err) {
+	if _, err := os.Stat(filepath.Join(issuegraphDir, "issues.jsonl")); os.IsNotExist(err) {
 		t.Error("issues.jsonl should NOT have been removed")
 	}
 }
 
-func TestClassicArtifacts_CleansCruftBeadsDir(t *testing.T) {
+func TestClassicArtifacts_CleansCruftIssueGraphDir(t *testing.T) {
 	dir := t.TempDir()
 	polecatsDir := filepath.Join(dir, "polecats", "test")
-	beadsDir := filepath.Join(polecatsDir, ".beads")
-	if err := os.MkdirAll(beadsDir, 0755); err != nil {
+	issuegraphDir := filepath.Join(polecatsDir, ".issuegraph")
+	if err := os.MkdirAll(issuegraphDir, 0755); err != nil {
 		t.Fatal(err)
 	}
 
 	// Add redirect (expected)
-	if err := os.WriteFile(filepath.Join(beadsDir, "redirect"), []byte("../../mayor/rig/.beads"), 0644); err != nil {
+	if err := os.WriteFile(filepath.Join(issuegraphDir, "redirect"), []byte("../../mayor/rig/.issuegraph"), 0644); err != nil {
 		t.Fatal(err)
 	}
 
 	// Add .gitkeep (should be preserved)
-	if err := os.WriteFile(filepath.Join(beadsDir, ".gitkeep"), []byte{}, 0644); err != nil {
+	if err := os.WriteFile(filepath.Join(issuegraphDir, ".gitkeep"), []byte{}, 0644); err != nil {
 		t.Fatal(err)
 	}
 
 	// Add cruft
-	if err := os.WriteFile(filepath.Join(beadsDir, "extra.txt"), []byte("cruft"), 0644); err != nil {
+	if err := os.WriteFile(filepath.Join(issuegraphDir, "extra.txt"), []byte("cruft"), 0644); err != nil {
 		t.Fatal(err)
 	}
-	if err := os.MkdirAll(filepath.Join(beadsDir, "cruft-subdir"), 0755); err != nil {
+	if err := os.MkdirAll(filepath.Join(issuegraphDir, "cruft-subdir"), 0755); err != nil {
 		t.Fatal(err)
 	}
 
@@ -166,26 +166,26 @@ func TestClassicArtifacts_CleansCruftBeadsDir(t *testing.T) {
 	}
 
 	// redirect should still exist
-	if _, err := os.Stat(filepath.Join(beadsDir, "redirect")); os.IsNotExist(err) {
+	if _, err := os.Stat(filepath.Join(issuegraphDir, "redirect")); os.IsNotExist(err) {
 		t.Error("redirect should NOT have been removed")
 	}
 
 	// .gitkeep should still exist
-	if _, err := os.Stat(filepath.Join(beadsDir, ".gitkeep")); os.IsNotExist(err) {
+	if _, err := os.Stat(filepath.Join(issuegraphDir, ".gitkeep")); os.IsNotExist(err) {
 		t.Error(".gitkeep should NOT have been removed")
 	}
 
 	// cruft should be removed
-	if _, err := os.Stat(filepath.Join(beadsDir, "extra.txt")); !os.IsNotExist(err) {
+	if _, err := os.Stat(filepath.Join(issuegraphDir, "extra.txt")); !os.IsNotExist(err) {
 		t.Error("extra.txt should have been removed")
 	}
-	if _, err := os.Stat(filepath.Join(beadsDir, "cruft-subdir")); !os.IsNotExist(err) {
+	if _, err := os.Stat(filepath.Join(issuegraphDir, "cruft-subdir")); !os.IsNotExist(err) {
 		t.Error("cruft-subdir should have been removed")
 	}
 }
 
 // TestClassicArtifacts_PreservesMetadataJSONAlongsideRedirect is a
-// regression test for gastownhall/beads#4692: a metadata.json co-located
+// regression test for borg0ai/dx-issuegraph#4692: a metadata.json co-located
 // with a redirect file (the fb51196f7 / docs "Database Redirects" topology,
 // where a server-mode source rig's own metadata.json supplies its
 // dolt_database while a redirect points at the shared Gas Town root) must
@@ -193,19 +193,19 @@ func TestClassicArtifacts_CleansCruftBeadsDir(t *testing.T) {
 func TestClassicArtifacts_PreservesMetadataJSONAlongsideRedirect(t *testing.T) {
 	dir := t.TempDir()
 	polecatsDir := filepath.Join(dir, "polecats", "test")
-	beadsDir := filepath.Join(polecatsDir, ".beads")
-	if err := os.MkdirAll(beadsDir, 0755); err != nil {
+	issuegraphDir := filepath.Join(polecatsDir, ".issuegraph")
+	if err := os.MkdirAll(issuegraphDir, 0755); err != nil {
 		t.Fatal(err)
 	}
 
-	if err := os.WriteFile(filepath.Join(beadsDir, "redirect"), []byte("../../mayor/rig/.beads"), 0644); err != nil {
+	if err := os.WriteFile(filepath.Join(issuegraphDir, "redirect"), []byte("../../mayor/rig/.issuegraph"), 0644); err != nil {
 		t.Fatal(err)
 	}
-	if err := os.WriteFile(filepath.Join(beadsDir, "metadata.json"), []byte(`{"dolt_mode":"server","dolt_database":"lola"}`), 0644); err != nil {
+	if err := os.WriteFile(filepath.Join(issuegraphDir, "metadata.json"), []byte(`{"dolt_mode":"server","dolt_database":"lola"}`), 0644); err != nil {
 		t.Fatal(err)
 	}
 	// Still remove unrelated cruft in the same pass.
-	if err := os.WriteFile(filepath.Join(beadsDir, "extra.txt"), []byte("cruft"), 0644); err != nil {
+	if err := os.WriteFile(filepath.Join(issuegraphDir, "extra.txt"), []byte("cruft"), 0644); err != nil {
 		t.Fatal(err)
 	}
 
@@ -213,13 +213,13 @@ func TestClassicArtifacts_PreservesMetadataJSONAlongsideRedirect(t *testing.T) {
 		t.Fatalf("expected no error, got: %v", err)
 	}
 
-	if _, err := os.Stat(filepath.Join(beadsDir, "redirect")); os.IsNotExist(err) {
+	if _, err := os.Stat(filepath.Join(issuegraphDir, "redirect")); os.IsNotExist(err) {
 		t.Error("redirect should NOT have been removed")
 	}
-	if _, err := os.Stat(filepath.Join(beadsDir, "metadata.json")); os.IsNotExist(err) {
+	if _, err := os.Stat(filepath.Join(issuegraphDir, "metadata.json")); os.IsNotExist(err) {
 		t.Error("metadata.json should NOT have been removed while a redirect is present")
 	}
-	if _, err := os.Stat(filepath.Join(beadsDir, "extra.txt")); !os.IsNotExist(err) {
+	if _, err := os.Stat(filepath.Join(issuegraphDir, "extra.txt")); !os.IsNotExist(err) {
 		t.Error("extra.txt should have been removed")
 	}
 }
@@ -229,19 +229,19 @@ func TestClassicArtifacts_CleansCruftWithoutRedirectFile(t *testing.T) {
 	// NO redirect file, the fix should still clean up the cruft.
 	// Previously, the fix required both isRedirectExpected AND hasRedirect,
 	// leaving stale files (config.yaml, metadata.json, README.md, issues.jsonl)
-	// in .git/beads-worktrees/*/.beads/ directories.
+	// in .git/issuegraph-worktrees/*/.issuegraph/ directories.
 	dir := t.TempDir()
 
-	// Simulate .git/beads-worktrees/master/.beads/ (redirect-expected location)
-	worktreeBeads := filepath.Join(dir, ".git", "beads-worktrees", "master", ".beads")
-	if err := os.MkdirAll(worktreeBeads, 0755); err != nil {
+	// Simulate .git/issuegraph-worktrees/master/.issuegraph/ (redirect-expected location)
+	worktreeIssueGraph := filepath.Join(dir, ".git", "issuegraph-worktrees", "master", ".issuegraph")
+	if err := os.MkdirAll(worktreeIssueGraph, 0755); err != nil {
 		t.Fatal(err)
 	}
 
 	// Add typical stale files (NO redirect file present)
 	cruftFiles := []string{"config.yaml", "metadata.json", "README.md", "issues.jsonl", ".gitignore", ".local_version"}
 	for _, name := range cruftFiles {
-		if err := os.WriteFile(filepath.Join(worktreeBeads, name), []byte("stale"), 0644); err != nil {
+		if err := os.WriteFile(filepath.Join(worktreeIssueGraph, name), []byte("stale"), 0644); err != nil {
 			t.Fatal(err)
 		}
 	}
@@ -253,7 +253,7 @@ func TestClassicArtifacts_CleansCruftWithoutRedirectFile(t *testing.T) {
 
 	// All cruft files should be removed
 	for _, name := range cruftFiles {
-		if _, err := os.Stat(filepath.Join(worktreeBeads, name)); !os.IsNotExist(err) {
+		if _, err := os.Stat(filepath.Join(worktreeIssueGraph, name)); !os.IsNotExist(err) {
 			t.Errorf("%s should have been removed (cruft in redirect-expected dir without redirect file)", name)
 		}
 	}
@@ -265,11 +265,11 @@ func TestIsRedirectExpectedLocation(t *testing.T) {
 		path     string
 		expected bool
 	}{
-		{"polecat worktree", "/foo/polecats/obsidian/.beads", true},
-		{"crew workspace", "/foo/crew/mel/.beads", true},
-		{"refinery rig", "/foo/refinery/rig/.beads", true},
-		{"beads-worktrees", "/foo/.git/beads-worktrees/abc/.beads", true},
-		{"regular beads dir", "/foo/.beads", false},
+		{"polecat worktree", "/foo/polecats/obsidian/.issuegraph", true},
+		{"crew workspace", "/foo/crew/mel/.issuegraph", true},
+		{"refinery rig", "/foo/refinery/rig/.issuegraph", true},
+		{"issuegraph-worktrees", "/foo/.git/issuegraph-worktrees/abc/.issuegraph", true},
+		{"regular issuegraph dir", "/foo/.issuegraph", false},
 	}
 
 	for _, tt := range tests {

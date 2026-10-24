@@ -7,15 +7,15 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/steveyegge/beads/modules/cli/doctor"
-	"github.com/steveyegge/beads/internal/git"
+	"github.com/borg0ai/dx-issuegraph/internal/git"
+	"github.com/borg0ai/dx-issuegraph/modules/cli/doctor"
 )
 
 func TestApplyHookMigrationExecution_LegacyWithOldSidecar(t *testing.T) {
 	repoDir, hooksDir := setupHookMigrationRepo(t)
 	preCommitPath := filepath.Join(hooksDir, "pre-commit")
 
-	writeHookMigrationFile(t, preCommitPath, "#!/usr/bin/env sh\n# bd-shim v2\n# bd-hooks-version: 0.56.1\nexec bd hooks run pre-commit \"$@\"\n")
+	writeHookMigrationFile(t, preCommitPath, "#!/usr/bin/env sh\n# bd-shim v2\n# bd-hooks-version: 0.56.1\nexec issuegraph hooks run pre-commit \"$@\"\n")
 	writeHookMigrationFile(t, preCommitPath+".old", "#!/usr/bin/env sh\necho old-custom\n")
 
 	plan, err := doctor.PlanHookMigration(repoDir)
@@ -51,7 +51,7 @@ func TestApplyHookMigrationExecution_LegacyWithBothSidecarsPrefersOld(t *testing
 	repoDir, hooksDir := setupHookMigrationRepo(t)
 	preCommitPath := filepath.Join(hooksDir, "pre-commit")
 
-	writeHookMigrationFile(t, preCommitPath, "#!/usr/bin/env sh\n# bd-shim v2\n# bd-hooks-version: 0.56.1\nexec bd hooks run pre-commit \"$@\"\n")
+	writeHookMigrationFile(t, preCommitPath, "#!/usr/bin/env sh\n# bd-shim v2\n# bd-hooks-version: 0.56.1\nexec issuegraph hooks run pre-commit \"$@\"\n")
 	writeHookMigrationFile(t, preCommitPath+".old", "#!/usr/bin/env sh\necho from-old\n")
 	writeHookMigrationFile(t, preCommitPath+".backup", "#!/usr/bin/env sh\necho from-backup\n")
 
@@ -83,7 +83,7 @@ func TestApplyHookMigrationExecution_LegacyWithBackupSidecar(t *testing.T) {
 	repoDir, hooksDir := setupHookMigrationRepo(t)
 	preCommitPath := filepath.Join(hooksDir, "pre-commit")
 
-	writeHookMigrationFile(t, preCommitPath, "#!/usr/bin/env sh\n# bd-shim v2\n# bd-hooks-version: 0.56.1\nexec bd hooks run pre-commit \"$@\"\n")
+	writeHookMigrationFile(t, preCommitPath, "#!/usr/bin/env sh\n# bd-shim v2\n# bd-hooks-version: 0.56.1\nexec issuegraph hooks run pre-commit \"$@\"\n")
 	writeHookMigrationFile(t, preCommitPath+".backup", "#!/usr/bin/env sh\necho backup-custom\n")
 
 	plan, err := doctor.PlanHookMigration(repoDir)
@@ -163,7 +163,7 @@ func TestApplyHookMigrationExecution_MarkerBrokenIsRepaired(t *testing.T) {
 	repoDir, hooksDir := setupHookMigrationRepo(t)
 	preCommitPath := filepath.Join(hooksDir, "pre-commit")
 
-	brokenContent := "#!/usr/bin/env sh\n# --- BEGIN BEADS INTEGRATION v0.57.0 ---\nbd hooks run pre-commit \"$@\"\n"
+	brokenContent := "#!/usr/bin/env sh\n# --- BEGIN ISSUEGRAPH INTEGRATION v0.57.0 ---\nbd hooks run pre-commit \"$@\"\n"
 	writeHookMigrationFile(t, preCommitPath, brokenContent)
 
 	plan, err := doctor.PlanHookMigration(repoDir)
@@ -190,7 +190,7 @@ func TestApplyHookMigrationExecution_MarkerBrokenIsRepaired(t *testing.T) {
 	if !strings.Contains(rendered, hookSectionBeginPrefix) || !strings.Contains(rendered, hookSectionEndPrefix) {
 		t.Fatalf("expected repaired hook to contain valid marker section, got:\n%s", rendered)
 	}
-	if !strings.Contains(rendered, "bd hooks run pre-commit") {
+	if !strings.Contains(rendered, "issuegraph hooks run pre-commit") {
 		t.Fatalf("expected repaired hook to contain hook invocation, got:\n%s", rendered)
 	}
 }
@@ -199,7 +199,7 @@ func TestApplyHookMigrationExecution_Idempotent(t *testing.T) {
 	repoDir, hooksDir := setupHookMigrationRepo(t)
 	preCommitPath := filepath.Join(hooksDir, "pre-commit")
 
-	writeHookMigrationFile(t, preCommitPath, "#!/usr/bin/env sh\n# bd-shim v2\n# bd-hooks-version: 0.56.1\nexec bd hooks run pre-commit \"$@\"\n")
+	writeHookMigrationFile(t, preCommitPath, "#!/usr/bin/env sh\n# bd-shim v2\n# bd-hooks-version: 0.56.1\nexec issuegraph hooks run pre-commit \"$@\"\n")
 	writeHookMigrationFile(t, preCommitPath+".old", "#!/usr/bin/env sh\necho old-custom\n")
 
 	plan, err := doctor.PlanHookMigration(repoDir)
@@ -233,7 +233,7 @@ func TestApplyHookMigrationExecution_RetireCollisionFailsBeforeWrites(t *testing
 	repoDir, hooksDir := setupHookMigrationRepo(t)
 	preCommitPath := filepath.Join(hooksDir, "pre-commit")
 
-	legacyHook := "#!/usr/bin/env sh\n# bd-shim v2\n# bd-hooks-version: 0.56.1\nexec bd hooks run pre-commit \"$@\"\n"
+	legacyHook := "#!/usr/bin/env sh\n# bd-shim v2\n# bd-hooks-version: 0.56.1\nexec issuegraph hooks run pre-commit \"$@\"\n"
 	writeHookMigrationFile(t, preCommitPath, legacyHook)
 	writeHookMigrationFile(t, preCommitPath+".old", "#!/usr/bin/env sh\necho old-custom\n")
 	writeHookMigrationFile(t, preCommitPath+".old.migrated", "#!/usr/bin/env sh\necho conflicting-content\n")
@@ -261,7 +261,7 @@ func TestBuildExecutionPlan_ModifiedLegacyHookBlocks(t *testing.T) {
 	preCommitPath := filepath.Join(hooksDir, "pre-commit")
 
 	// Legacy shim with user-added custom logic
-	modifiedLegacy := "#!/usr/bin/env sh\n# bd-shim v2\n# bd-hooks-version: 0.56.1\nexec bd hooks run pre-commit \"$@\"\n\n# My custom linting\n./run-my-linter.sh\n"
+	modifiedLegacy := "#!/usr/bin/env sh\n# bd-shim v2\n# bd-hooks-version: 0.56.1\nexec issuegraph hooks run pre-commit \"$@\"\n\n# My custom linting\n./run-my-linter.sh\n"
 	writeHookMigrationFile(t, preCommitPath, modifiedLegacy)
 	writeHookMigrationFile(t, preCommitPath+".old", "#!/usr/bin/env sh\necho old-custom\n")
 
@@ -299,7 +299,7 @@ func TestBuildExecutionPlan_UnmodifiedLegacyHookProceeds(t *testing.T) {
 	preCommitPath := filepath.Join(hooksDir, "pre-commit")
 
 	// Clean legacy shim — no user modifications
-	cleanLegacy := "#!/usr/bin/env sh\n# bd-shim v2\n# bd-hooks-version: 0.56.1\nexec bd hooks run pre-commit \"$@\"\n"
+	cleanLegacy := "#!/usr/bin/env sh\n# bd-shim v2\n# bd-hooks-version: 0.56.1\nexec issuegraph hooks run pre-commit \"$@\"\n"
 	writeHookMigrationFile(t, preCommitPath, cleanLegacy)
 	writeHookMigrationFile(t, preCommitPath+".old", "#!/usr/bin/env sh\necho old-custom\n")
 

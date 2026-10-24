@@ -7,11 +7,11 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/steveyegge/beads/internal/git"
+	"github.com/borg0ai/dx-issuegraph/internal/git"
 )
 
-func TestConfigureBeadsHooksPath_WorktreeUsesMainRepo(t *testing.T) {
-	tmpDir, err := os.MkdirTemp("", "beads-hooks-worktree-test-*")
+func TestConfigureIssueGraphHooksPath_WorktreeUsesMainRepo(t *testing.T) {
+	tmpDir, err := os.MkdirTemp("", "issuegraph-hooks-worktree-test-*")
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -50,7 +50,7 @@ func TestConfigureBeadsHooksPath_WorktreeUsesMainRepo(t *testing.T) {
 		_ = cmd.Run()
 	})
 
-	if err := os.MkdirAll(filepath.Join(mainRepoDir, ".beads", "hooks"), 0755); err != nil {
+	if err := os.MkdirAll(filepath.Join(mainRepoDir, ".issuegraph", "hooks"), 0755); err != nil {
 		t.Fatal(err)
 	}
 
@@ -61,8 +61,8 @@ func TestConfigureBeadsHooksPath_WorktreeUsesMainRepo(t *testing.T) {
 		t.Fatal("expected git.IsWorktree() to return true")
 	}
 
-	if err := configureBeadsHooksPath(); err != nil {
-		t.Fatalf("configureBeadsHooksPath failed: %v", err)
+	if err := configureIssueGraphHooksPath(); err != nil {
+		t.Fatalf("configureIssueGraphHooksPath failed: %v", err)
 	}
 
 	cmd = exec.Command("git", "config", "--get", "core.hooksPath")
@@ -72,7 +72,7 @@ func TestConfigureBeadsHooksPath_WorktreeUsesMainRepo(t *testing.T) {
 		t.Fatalf("git config --get core.hooksPath failed: %v", err)
 	}
 	hooksPath := filepath.Clean(strings.TrimSpace(string(out)))
-	expected := filepath.Join(mainRepoDir, ".beads", "hooks")
+	expected := filepath.Join(mainRepoDir, ".issuegraph", "hooks")
 	hooksPath, _ = filepath.EvalSymlinks(hooksPath)
 	expected, _ = filepath.EvalSymlinks(expected)
 	if hooksPath != expected {
@@ -81,7 +81,7 @@ func TestConfigureBeadsHooksPath_WorktreeUsesMainRepo(t *testing.T) {
 }
 
 func TestConfigureSharedHooksPath_WorktreeUsesMainRepo(t *testing.T) {
-	tmpDir, err := os.MkdirTemp("", "beads-shared-hooks-worktree-test-*")
+	tmpDir, err := os.MkdirTemp("", "issuegraph-shared-hooks-worktree-test-*")
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -120,7 +120,7 @@ func TestConfigureSharedHooksPath_WorktreeUsesMainRepo(t *testing.T) {
 		_ = cmd.Run()
 	})
 
-	if err := os.MkdirAll(filepath.Join(mainRepoDir, ".beads-hooks"), 0755); err != nil {
+	if err := os.MkdirAll(filepath.Join(mainRepoDir, ".issuegraph-hooks"), 0755); err != nil {
 		t.Fatal(err)
 	}
 
@@ -142,7 +142,7 @@ func TestConfigureSharedHooksPath_WorktreeUsesMainRepo(t *testing.T) {
 		t.Fatalf("git config --get core.hooksPath failed: %v", err)
 	}
 	hooksPath := filepath.Clean(strings.TrimSpace(string(out)))
-	expected := filepath.Join(mainRepoDir, ".beads-hooks")
+	expected := filepath.Join(mainRepoDir, ".issuegraph-hooks")
 	hooksPath, _ = filepath.EvalSymlinks(hooksPath)
 	expected, _ = filepath.EvalSymlinks(expected)
 	if hooksPath != expected {
@@ -150,8 +150,8 @@ func TestConfigureSharedHooksPath_WorktreeUsesMainRepo(t *testing.T) {
 	}
 }
 
-func TestResetHooksPathIfBeadsManaged_Worktree(t *testing.T) {
-	tmpDir, err := os.MkdirTemp("", "beads-reset-hooks-worktree-test-*")
+func TestResetHooksPathIfIssueGraphManaged_Worktree(t *testing.T) {
+	tmpDir, err := os.MkdirTemp("", "issuegraph-reset-hooks-worktree-test-*")
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -190,11 +190,11 @@ func TestResetHooksPathIfBeadsManaged_Worktree(t *testing.T) {
 		_ = cmd.Run()
 	})
 
-	if err := os.MkdirAll(filepath.Join(mainRepoDir, ".beads", "hooks"), 0755); err != nil {
+	if err := os.MkdirAll(filepath.Join(mainRepoDir, ".issuegraph", "hooks"), 0755); err != nil {
 		t.Fatal(err)
 	}
 
-	hooksPathToSet := filepath.Join(mainRepoDir, ".beads", "hooks")
+	hooksPathToSet := filepath.Join(mainRepoDir, ".issuegraph", "hooks")
 	evaluated, _ := filepath.EvalSymlinks(hooksPathToSet)
 	if evaluated != "" {
 		hooksPathToSet = evaluated
@@ -212,8 +212,8 @@ func TestResetHooksPathIfBeadsManaged_Worktree(t *testing.T) {
 		t.Fatal("expected git.IsWorktree() to return true")
 	}
 
-	if err := resetHooksPathIfBeadsManaged(); err != nil {
-		t.Fatalf("resetHooksPathIfBeadsManaged failed: %v", err)
+	if err := resetHooksPathIfIssueGraphManaged(); err != nil {
+		t.Fatalf("resetHooksPathIfIssueGraphManaged failed: %v", err)
 	}
 
 	cmd = exec.Command("git", "config", "--get", "core.hooksPath")
@@ -224,8 +224,8 @@ func TestResetHooksPathIfBeadsManaged_Worktree(t *testing.T) {
 	}
 }
 
-func TestConfigureBeadsHooksPath_NormalRepoUnchanged(t *testing.T) {
-	tmpDir, err := os.MkdirTemp("", "beads-hooks-normal-test-*")
+func TestConfigureIssueGraphHooksPath_NormalRepoUnchanged(t *testing.T) {
+	tmpDir, err := os.MkdirTemp("", "issuegraph-hooks-normal-test-*")
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -252,7 +252,7 @@ func TestConfigureBeadsHooksPath_NormalRepoUnchanged(t *testing.T) {
 	run("add", "README.md")
 	run("commit", "-m", "Initial commit")
 
-	if err := os.MkdirAll(filepath.Join(repoDir, ".beads", "hooks"), 0755); err != nil {
+	if err := os.MkdirAll(filepath.Join(repoDir, ".issuegraph", "hooks"), 0755); err != nil {
 		t.Fatal(err)
 	}
 
@@ -263,8 +263,8 @@ func TestConfigureBeadsHooksPath_NormalRepoUnchanged(t *testing.T) {
 		t.Fatal("expected git.IsWorktree() to return false in normal repo")
 	}
 
-	if err := configureBeadsHooksPath(); err != nil {
-		t.Fatalf("configureBeadsHooksPath failed: %v", err)
+	if err := configureIssueGraphHooksPath(); err != nil {
+		t.Fatalf("configureIssueGraphHooksPath failed: %v", err)
 	}
 
 	cmd := exec.Command("git", "config", "--get", "core.hooksPath")
@@ -274,7 +274,7 @@ func TestConfigureBeadsHooksPath_NormalRepoUnchanged(t *testing.T) {
 		t.Fatalf("git config --get core.hooksPath failed: %v", err)
 	}
 	hooksPath := filepath.Clean(strings.TrimSpace(string(out)))
-	expected := filepath.Join(repoDir, ".beads", "hooks")
+	expected := filepath.Join(repoDir, ".issuegraph", "hooks")
 	hooksPath, _ = filepath.EvalSymlinks(hooksPath)
 	expected, _ = filepath.EvalSymlinks(expected)
 	if hooksPath != expected {

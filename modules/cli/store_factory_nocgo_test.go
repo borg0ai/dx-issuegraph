@@ -6,11 +6,11 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/steveyegge/beads/internal/storage/dolt"
+	"github.com/borg0ai/dx-issuegraph/internal/storage/dolt"
 )
 
 // TestNocgoNewDoltStore_ErrorSuggestsCorrectFlag verifies that newDoltStore
-// suggests "bd init --server" (not the old "--mode server") when ServerMode
+// suggests "issuegraph init --server" (not the old "--mode server") when ServerMode
 // is false.
 func TestNocgoNewDoltStore_ErrorSuggestsCorrectFlag(t *testing.T) {
 	cfg := &dolt.Config{ServerMode: false}
@@ -19,8 +19,8 @@ func TestNocgoNewDoltStore_ErrorSuggestsCorrectFlag(t *testing.T) {
 		t.Fatal("expected error when ServerMode is false")
 	}
 	msg := err.Error()
-	if !strings.Contains(msg, "bd init --server") {
-		t.Errorf("error should suggest 'bd init --server', got: %s", msg)
+	if !strings.Contains(msg, "issuegraph init --server") {
+		t.Errorf("error should suggest 'issuegraph init --server', got: %s", msg)
 	}
 	if strings.Contains(msg, "--mode") {
 		t.Errorf("error should NOT contain '--mode' (old flag), got: %s", msg)
@@ -28,17 +28,17 @@ func TestNocgoNewDoltStore_ErrorSuggestsCorrectFlag(t *testing.T) {
 }
 
 // TestNocgoNewDoltStoreFromConfig_ErrorSuggestsCorrectFlag verifies that
-// newDoltStoreFromConfig suggests "bd init --server" when no server-mode
+// newDoltStoreFromConfig suggests "issuegraph init --server" when no server-mode
 // config exists.
 func TestNocgoNewDoltStoreFromConfig_ErrorSuggestsCorrectFlag(t *testing.T) {
-	beadsDir := t.TempDir() // empty dir — no config.json
-	_, err := newDoltStoreFromConfig(t.Context(), beadsDir)
+	issuegraphDir := t.TempDir() // empty dir — no config.json
+	_, err := newDoltStoreFromConfig(t.Context(), issuegraphDir)
 	if err == nil {
-		t.Fatal("expected error for empty beads dir without server config")
+		t.Fatal("expected error for empty issuegraph dir without server config")
 	}
 	msg := err.Error()
-	if !strings.Contains(msg, "bd init --server") {
-		t.Errorf("error should suggest 'bd init --server', got: %s", msg)
+	if !strings.Contains(msg, "issuegraph init --server") {
+		t.Errorf("error should suggest 'issuegraph init --server', got: %s", msg)
 	}
 	if strings.Contains(msg, "--mode") {
 		t.Errorf("error should NOT contain '--mode' (old flag), got: %s", msg)
@@ -46,17 +46,17 @@ func TestNocgoNewDoltStoreFromConfig_ErrorSuggestsCorrectFlag(t *testing.T) {
 }
 
 // TestNocgoNewReadOnlyStoreFromConfig_ErrorSuggestsCorrectFlag verifies that
-// newReadOnlyStoreFromConfig suggests "bd init --server" when no server-mode
+// newReadOnlyStoreFromConfig suggests "issuegraph init --server" when no server-mode
 // config exists.
 func TestNocgoNewReadOnlyStoreFromConfig_ErrorSuggestsCorrectFlag(t *testing.T) {
-	beadsDir := t.TempDir() // empty dir — no config.json
-	_, err := newReadOnlyStoreFromConfig(t.Context(), beadsDir)
+	issuegraphDir := t.TempDir() // empty dir — no config.json
+	_, err := newReadOnlyStoreFromConfig(t.Context(), issuegraphDir)
 	if err == nil {
-		t.Fatal("expected error for empty beads dir without server config")
+		t.Fatal("expected error for empty issuegraph dir without server config")
 	}
 	msg := err.Error()
-	if !strings.Contains(msg, "bd init --server") {
-		t.Errorf("error should suggest 'bd init --server', got: %s", msg)
+	if !strings.Contains(msg, "issuegraph init --server") {
+		t.Errorf("error should suggest 'issuegraph init --server', got: %s", msg)
 	}
 	if strings.Contains(msg, "--mode") {
 		t.Errorf("error should NOT contain '--mode' (old flag), got: %s", msg)

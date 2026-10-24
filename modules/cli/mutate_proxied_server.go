@@ -5,13 +5,13 @@ import (
 	"errors"
 	"fmt"
 
-	"github.com/steveyegge/beads/internal/storage"
-	"github.com/steveyegge/beads/internal/storage/uow"
-	"github.com/steveyegge/beads/internal/types"
-	"github.com/steveyegge/beads/internal/ui"
-	"github.com/steveyegge/beads/internal/validation"
-	"github.com/steveyegge/beads/internal/workapi"
-	"github.com/steveyegge/beads/issueops"
+	"github.com/borg0ai/dx-issuegraph/internal/storage"
+	"github.com/borg0ai/dx-issuegraph/internal/storage/uow"
+	"github.com/borg0ai/dx-issuegraph/internal/types"
+	"github.com/borg0ai/dx-issuegraph/internal/ui"
+	"github.com/borg0ai/dx-issuegraph/internal/validation"
+	"github.com/borg0ai/dx-issuegraph/internal/workapi"
+	"github.com/borg0ai/dx-issuegraph/issueops"
 )
 
 func proxiedMutateIssue(ctx context.Context, id, commitMsg string, mutate func(ctx context.Context, uw uow.UnitOfWork, issue *types.Issue, isWisp bool) error) (*types.Issue, error) {
@@ -51,7 +51,7 @@ func proxiedMutateIssue(ctx context.Context, id, commitMsg string, mutate func(c
 // fence (bd-98s5c). Callers whose updates never carry "assignee" pass false.
 func proxiedUpdateIssueFields(ctx context.Context, id, commitMsg string, updates map[string]any, force bool) (*types.Issue, error) {
 	return proxiedMutateIssue(ctx, id, commitMsg, func(ctx context.Context, uw uow.UnitOfWork, issue *types.Issue, isWisp bool) error {
-		// bd-98s5c: an unguarded assignee update (bd assign via the proxied
+		// bd-98s5c: an unguarded assignee update (issuegraph assign via the proxied
 		// server) must not silently overwrite another actor's live claim.
 		if newAssignee, ok := updates["assignee"].(string); ok {
 			if err := validateIssueReassignable(id, issue, actor, newAssignee,
@@ -69,7 +69,7 @@ func proxiedUpdateIssueFields(ctx context.Context, id, commitMsg string, updates
 func runAssignProxiedServer(ctx context.Context, args []string, force bool) error {
 	id := args[0]
 	assignee := args[1]
-	updated, err := proxiedUpdateIssueFields(ctx, id, "bd: assign "+id, map[string]any{"assignee": assignee}, force)
+	updated, err := proxiedUpdateIssueFields(ctx, id, "issuegraph: assign "+id, map[string]any{"assignee": assignee}, force)
 	if err != nil {
 		return HandleErrorRespectJSON("assign %s: %v", id, err)
 	}
@@ -94,7 +94,7 @@ func runPriorityProxiedServer(ctx context.Context, args []string) error {
 	if err != nil {
 		return HandleErrorRespectJSON("%v", err)
 	}
-	updated, err := proxiedUpdateIssueFields(ctx, id, "bd: priority "+id, map[string]any{"priority": priority}, false)
+	updated, err := proxiedUpdateIssueFields(ctx, id, "issuegraph: priority "+id, map[string]any{"priority": priority}, false)
 	if err != nil {
 		return HandleErrorRespectJSON("priority %s: %v", id, err)
 	}
@@ -109,7 +109,7 @@ func runPriorityProxiedServer(ctx context.Context, args []string) error {
 }
 
 func runNoteProxiedServer(ctx context.Context, id, noteText string) error {
-	updated, err := proxiedMutateIssue(ctx, id, "bd: note "+id, func(ctx context.Context, uw uow.UnitOfWork, issue *types.Issue, isWisp bool) error {
+	updated, err := proxiedMutateIssue(ctx, id, "issuegraph: note "+id, func(ctx context.Context, uw uow.UnitOfWork, issue *types.Issue, isWisp bool) error {
 		combined := issue.Notes
 		if combined != "" {
 			combined += "\n"
@@ -134,7 +134,7 @@ func runNoteProxiedServer(ctx context.Context, id, noteText string) error {
 	return nil
 }
 
-// runTagProxiedServer is `bd tag` on the proxied-server route, and it is the
+// runTagProxiedServer is `issuegraph tag` on the proxied-server route, and it is the
 // one verb in this file that does NOT go through proxiedMutateIssue.
 //
 // It cannot, and that is the point. proxiedMutateIssue hands its callback a

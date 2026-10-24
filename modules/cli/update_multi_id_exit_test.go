@@ -1,9 +1,9 @@
-// Tests for multi-ID `bd update` exit-code semantics (GH audit: multi-ID
+// Tests for multi-ID `issuegraph update` exit-code semantics (GH audit: multi-ID
 // update exits 0 after a mid-batch failure, so callers cannot detect that
 // some IDs were not updated).
 //
 // Contract under test:
-//   - `bd update` applies updates per issue ID, not atomically across IDs:
+//   - `issuegraph update` applies updates per issue ID, not atomically across IDs:
 //     successful IDs stay applied even when other IDs fail.
 //   - Any per-ID failure makes the command exit nonzero with a per-ID error
 //     report on stderr.
@@ -13,7 +13,7 @@
 //   - The all-good path is unchanged: exit 0, clean stderr.
 //
 // This file MUST NOT carry a cgo build tag: it exercises the default sqlite
-// backend via a bd binary built with the gms_pure_go tag.
+// backend via a issuegraph binary built with the gms_pure_go tag.
 
 package main
 
@@ -27,13 +27,13 @@ import (
 	"testing"
 )
 
-// multiIDUpdateEnv returns a hermetic environment for bd subprocess runs:
-// no inherited BEADS_* variables, HOME and USERPROFILE pinned to the test dir,
+// multiIDUpdateEnv returns a hermetic environment for issuegraph subprocess runs:
+// no inherited ISSUEGRAPH_* variables, HOME and USERPROFILE pinned to the test dir,
 // metrics and daemons disabled.
 func multiIDUpdateEnv(dir string) []string {
 	var env []string
 	for _, e := range os.Environ() {
-		if strings.HasPrefix(e, "BEADS_") {
+		if strings.HasPrefix(e, "ISSUEGRAPH_") {
 			continue
 		}
 		env = append(env, e)
@@ -41,20 +41,20 @@ func multiIDUpdateEnv(dir string) []string {
 	return append(env,
 		"HOME="+dir,
 		"USERPROFILE="+dir,
-		"BD_NON_INTERACTIVE=1",
-		"BD_DISABLE_METRICS=1",
-		"BD_DISABLE_EVENT_FLUSH=1",
-		"BEADS_NO_DAEMON=1",
-		"BEADS_DOLT_AUTO_START=0",
+		"ISSUEGRAPH_NON_INTERACTIVE=1",
+		"ISSUEGRAPH_DISABLE_METRICS=1",
+		"ISSUEGRAPH_DISABLE_EVENT_FLUSH=1",
+		"ISSUEGRAPH_NO_DAEMON=1",
+		"ISSUEGRAPH_DOLT_AUTO_START=0",
 	)
 }
 
-// runBDMultiID runs the bd binary and returns stdout, stderr, and the exit
+// runIssueGraphMultiID runs the issuegraph binary and returns stdout, stderr, and the exit
 // code. Only a failure to launch the process fails the test; nonzero exits
 // are returned to the caller for assertion.
-func runBDMultiID(t *testing.T, bd, dir string, args ...string) (stdout, stderr string, exitCode int) {
+func runIssueGraphMultiID(t *testing.T, issuegraph, dir string, args ...string) (stdout, stderr string, exitCode int) {
 	t.Helper()
-	cmd := exec.Command(bd, args...)
+	cmd := exec.Command(issuegraph, args...)
 	cmd.Dir = dir
 	cmd.Env = multiIDUpdateEnv(dir)
 	var outBuf, errBuf bytes.Buffer
@@ -63,35 +63,35 @@ func runBDMultiID(t *testing.T, bd, dir string, args ...string) (stdout, stderr 
 	if err := cmd.Run(); err != nil {
 		var ee *exec.ExitError
 		if !errors.As(err, &ee) {
-			t.Fatalf("bd %v did not run: %v", args, err)
+			t.Fatalf("issuegraph %v did not run: %v", args, err)
 		}
 		return outBuf.String(), errBuf.String(), ee.ExitCode()
 	}
 	return outBuf.String(), errBuf.String(), 0
 }
 
-// setupMultiIDUpdateDB builds bd and initializes a fresh sqlite-backed
+// setupMultiIDUpdateDB builds issuegraph and initializes a fresh sqlite-backed
 // database in a temp dir.
-func setupMultiIDUpdateDB(t *testing.T) (bd, dir string) {
+func setupMultiIDUpdateDB(t *testing.T) (issuegraph, dir string) {
 	t.Helper()
-	bd = buildBDForInitTests(t)
+	issuegraph = buildIssueGraphForInitTests(t)
 	dir = t.TempDir()
 	runGitForBootstrapTest(t, dir, "init", "-q")
 	runGitForBootstrapTest(t, dir, "config", "core.hooksPath", ".git/hooks")
-	stdout, stderr, code := runBDMultiID(t, bd, dir,
+	stdout, stderr, code := runIssueGraphMultiID(t, issuegraph, dir,
 		"init", "--prefix", "test", "--quiet", "--non-interactive", "--skip-hooks", "--skip-agents")
 	if code != 0 {
-		t.Fatalf("bd init failed (exit %d):\nstdout:\n%s\nstderr:\n%s", code, stdout, stderr)
+		t.Fatalf("issuegraph init failed (exit %d):\nstdout:\n%s\nstderr:\n%s", code, stdout, stderr)
 	}
-	return bd, dir
+	return issuegraph, dir
 }
 
 // createMultiIDUpdateIssue creates an issue and returns its ID.
-func createMultiIDUpdateIssue(t *testing.T, bd, dir, title string) string {
+func createMultiIDUpdateIssue(t *testing.T, issuegraph, dir, title string) string {
 	t.Helper()
-	stdout, stderr, code := runBDMultiID(t, bd, dir, "create", title, "-p", "2", "--json")
+	stdout, stderr, code := runIssueGraphMultiID(t, issuegraph, dir, "create", title, "-p", "2", "--json")
 	if code != 0 {
-		t.Fatalf("bd create failed (exit %d):\nstdout:\n%s\nstderr:\n%s", code, stdout, stderr)
+		t.Fatalf("issuegraph create failed (exit %d):\nstdout:\n%s\nstderr:\n%s", code, stdout, stderr)
 	}
 	var issue struct {
 		ID string `json:"id"`
@@ -100,17 +100,17 @@ func createMultiIDUpdateIssue(t *testing.T, bd, dir, title string) string {
 		t.Fatalf("parsing create --json output: %v\n%s", err, stdout)
 	}
 	if issue.ID == "" {
-		t.Fatalf("bd create --json returned no id:\n%s", stdout)
+		t.Fatalf("issuegraph create --json returned no id:\n%s", stdout)
 	}
 	return issue.ID
 }
 
-// showMultiIDUpdatePriority fetches an issue's priority via bd show --json.
-func showMultiIDUpdatePriority(t *testing.T, bd, dir, id string) int {
+// showMultiIDUpdatePriority fetches an issue's priority via issuegraph show --json.
+func showMultiIDUpdatePriority(t *testing.T, issuegraph, dir, id string) int {
 	t.Helper()
-	stdout, stderr, code := runBDMultiID(t, bd, dir, "show", id, "--json")
+	stdout, stderr, code := runIssueGraphMultiID(t, issuegraph, dir, "show", id, "--json")
 	if code != 0 {
-		t.Fatalf("bd show %s failed (exit %d):\nstdout:\n%s\nstderr:\n%s", id, code, stdout, stderr)
+		t.Fatalf("issuegraph show %s failed (exit %d):\nstdout:\n%s\nstderr:\n%s", id, code, stdout, stderr)
 	}
 	var details []struct {
 		ID       string `json:"id"`
@@ -126,18 +126,18 @@ func showMultiIDUpdatePriority(t *testing.T, bd, dir, id string) int {
 }
 
 // bogusMultiIDUpdateID is an ID that cannot collide with generated issue IDs
-// (bd resolves fuzzy/substring matches, so it must not be a substring of a
+// (issuegraph resolves fuzzy/substring matches, so it must not be a substring of a
 // real ID either).
 const bogusMultiIDUpdateID = "test-zzzzzzzzzz"
 
 func TestMultiIDUpdatePartialFailureExitsNonzero(t *testing.T) {
-	bd, dir := setupMultiIDUpdateDB(t)
-	id1 := createMultiIDUpdateIssue(t, bd, dir, "first issue")
-	id2 := createMultiIDUpdateIssue(t, bd, dir, "second issue")
+	issuegraph, dir := setupMultiIDUpdateDB(t)
+	id1 := createMultiIDUpdateIssue(t, issuegraph, dir, "first issue")
+	id2 := createMultiIDUpdateIssue(t, issuegraph, dir, "second issue")
 
-	stdout, stderr, code := runBDMultiID(t, bd, dir, "update", id1, bogusMultiIDUpdateID, id2, "--priority", "0")
+	stdout, stderr, code := runIssueGraphMultiID(t, issuegraph, dir, "update", id1, bogusMultiIDUpdateID, id2, "--priority", "0")
 	if code == 0 {
-		t.Errorf("bd update with a bogus ID mid-batch exited 0, want nonzero\nstdout:\n%s\nstderr:\n%s", stdout, stderr)
+		t.Errorf("issuegraph update with a bogus ID mid-batch exited 0, want nonzero\nstdout:\n%s\nstderr:\n%s", stdout, stderr)
 	}
 	if !strings.Contains(stderr, bogusMultiIDUpdateID) {
 		t.Errorf("stderr does not mention the failed ID %s:\n%s", bogusMultiIDUpdateID, stderr)
@@ -145,20 +145,20 @@ func TestMultiIDUpdatePartialFailureExitsNonzero(t *testing.T) {
 
 	// The command is per-ID, not atomic: both good IDs must still be applied.
 	for _, id := range []string{id1, id2} {
-		if got := showMultiIDUpdatePriority(t, bd, dir, id); got != 0 {
+		if got := showMultiIDUpdatePriority(t, issuegraph, dir, id); got != 0 {
 			t.Errorf("issue %s priority = %d, want 0 (successful IDs must stay applied)", id, got)
 		}
 	}
 }
 
 func TestMultiIDUpdatePartialFailureJSONReportsFailedIDs(t *testing.T) {
-	bd, dir := setupMultiIDUpdateDB(t)
-	id1 := createMultiIDUpdateIssue(t, bd, dir, "first issue")
-	id2 := createMultiIDUpdateIssue(t, bd, dir, "second issue")
+	issuegraph, dir := setupMultiIDUpdateDB(t)
+	id1 := createMultiIDUpdateIssue(t, issuegraph, dir, "first issue")
+	id2 := createMultiIDUpdateIssue(t, issuegraph, dir, "second issue")
 
-	stdout, stderr, code := runBDMultiID(t, bd, dir, "update", id1, bogusMultiIDUpdateID, id2, "--priority", "0", "--json")
+	stdout, stderr, code := runIssueGraphMultiID(t, issuegraph, dir, "update", id1, bogusMultiIDUpdateID, id2, "--priority", "0", "--json")
 	if code == 0 {
-		t.Errorf("bd update --json with a bogus ID mid-batch exited 0, want nonzero\nstdout:\n%s\nstderr:\n%s", stdout, stderr)
+		t.Errorf("issuegraph update --json with a bogus ID mid-batch exited 0, want nonzero\nstdout:\n%s\nstderr:\n%s", stdout, stderr)
 	}
 
 	// stdout keeps the existing success shape: an array of the successfully
@@ -207,11 +207,11 @@ func TestMultiIDUpdatePartialFailureJSONReportsFailedIDs(t *testing.T) {
 }
 
 func TestMultiIDUpdateAllFailStillExitsNonzero(t *testing.T) {
-	bd, dir := setupMultiIDUpdateDB(t)
+	issuegraph, dir := setupMultiIDUpdateDB(t)
 
-	stdout, stderr, code := runBDMultiID(t, bd, dir, "update", bogusMultiIDUpdateID, "--priority", "0")
+	stdout, stderr, code := runIssueGraphMultiID(t, issuegraph, dir, "update", bogusMultiIDUpdateID, "--priority", "0")
 	if code == 0 {
-		t.Errorf("bd update with only a bogus ID exited 0, want nonzero\nstdout:\n%s\nstderr:\n%s", stdout, stderr)
+		t.Errorf("issuegraph update with only a bogus ID exited 0, want nonzero\nstdout:\n%s\nstderr:\n%s", stdout, stderr)
 	}
 	if !strings.Contains(stderr, bogusMultiIDUpdateID) {
 		t.Errorf("stderr does not mention the failed ID %s:\n%s", bogusMultiIDUpdateID, stderr)
@@ -219,16 +219,16 @@ func TestMultiIDUpdateAllFailStillExitsNonzero(t *testing.T) {
 }
 
 func TestMultiIDUpdateAllGoodPathUnchanged(t *testing.T) {
-	bd, dir := setupMultiIDUpdateDB(t)
-	id1 := createMultiIDUpdateIssue(t, bd, dir, "first issue")
-	id2 := createMultiIDUpdateIssue(t, bd, dir, "second issue")
+	issuegraph, dir := setupMultiIDUpdateDB(t)
+	id1 := createMultiIDUpdateIssue(t, issuegraph, dir, "first issue")
+	id2 := createMultiIDUpdateIssue(t, issuegraph, dir, "second issue")
 
-	stdout, stderr, code := runBDMultiID(t, bd, dir, "update", id1, id2, "--priority", "1", "--json")
+	stdout, stderr, code := runIssueGraphMultiID(t, issuegraph, dir, "update", id1, id2, "--priority", "1", "--json")
 	if code != 0 {
-		t.Fatalf("all-good bd update --json exited %d, want 0\nstdout:\n%s\nstderr:\n%s", code, stdout, stderr)
+		t.Fatalf("all-good issuegraph update --json exited %d, want 0\nstdout:\n%s\nstderr:\n%s", code, stdout, stderr)
 	}
 	if stderr != "" {
-		t.Errorf("all-good bd update --json wrote to stderr (success path must stay byte-identical):\n%s", stderr)
+		t.Errorf("all-good issuegraph update --json wrote to stderr (success path must stay byte-identical):\n%s", stderr)
 	}
 	var updated []struct {
 		ID       string `json:"id"`

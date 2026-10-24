@@ -8,11 +8,11 @@ import (
 	"sync"
 	"time"
 
-	"github.com/steveyegge/beads/internal/beads"
-	"github.com/steveyegge/beads/internal/config"
-	"github.com/steveyegge/beads/internal/configfile"
-	"github.com/steveyegge/beads/internal/debug"
-	"github.com/steveyegge/beads/internal/storage"
+	"github.com/borg0ai/dx-issuegraph/internal/config"
+	"github.com/borg0ai/dx-issuegraph/internal/configfile"
+	"github.com/borg0ai/dx-issuegraph/internal/debug"
+	"github.com/borg0ai/dx-issuegraph/internal/issuegraph"
+	"github.com/borg0ai/dx-issuegraph/internal/storage"
 )
 
 // isBackupAutoEnabled returns whether backup should run.
@@ -21,15 +21,15 @@ import (
 // embedded mode.
 //
 // In sql-server / shared-server mode (usesSQLServer()) the default is
-// OFF: N bd clients share a single Dolt server, and the Dolt-native
+// OFF: N issuegraph clients share a single Dolt server, and the Dolt-native
 // backup path (store.BackupDatabase) registers a server-side backup
 // remote under one fixed name pointing at THIS client's local
-// .beads/backup dir, then full-syncs the whole DB. With many clients
+// .issuegraph/backup dir, then full-syncs the whole DB. With many clients
 // that means racing remove/add of the same name plus every client
 // full-syncing the entire history into its own dir — the amplifier
 // behind the 2026-07 shared-dolt CPU-pin incident. Operators who want
 // backups in server mode must opt in explicitly (backup.enabled=true
-// / BD_BACKUP_ENABLED=1) and coordinate destinations themselves.
+// / ISSUEGRAPH_BACKUP_ENABLED=1) and coordinate destinations themselves.
 func isBackupAutoEnabled() bool {
 	if config.GetValueSource("backup.enabled") != config.SourceDefault {
 		return config.GetBool("backup.enabled")
@@ -40,7 +40,7 @@ func isBackupAutoEnabled() bool {
 	return primeHasGitRemote()
 }
 
-// backupAutoStatusNote returns the parenthetical `bd backup status`
+// backupAutoStatusNote returns the parenthetical `issuegraph backup status`
 // prints after the effective backup.enabled value, or "" when the value
 // speaks for itself. Callers pass the value isBackupAutoEnabled()
 // already computed so the note cannot disagree with the number beside
@@ -54,16 +54,16 @@ func isBackupAutoEnabled() bool {
 // "enabled=true" would send the operator away believing backups happen.
 // The five backup verbs are honored on managed-local (the only proxied
 // shape that reaches this line — every other one is refused by
-// requireLocalProxiedBackup), so `bd backup sync` is the real answer there.
+// requireLocalProxiedBackup), so `issuegraph backup sync` is the real answer there.
 //
 // Every other sql-server shape keeps its post-run hook, so there the
-// default is merely off — the reason `bd config get backup.enabled`
+// default is merely off — the reason `issuegraph config get backup.enabled`
 // already reports for the same condition. Before this arm existed, status
 // attributed that OFF to a missing git remote, which is untrue: server
 // mode short-circuits isBackupAutoEnabled whether or not a remote exists.
 func backupAutoStatusNote(enabled bool) string {
 	if usesProxiedServer() {
-		return "auto-backup does not run on proxied-server; use 'bd backup sync'"
+		return "auto-backup does not run on proxied-server; use 'issuegraph backup sync'"
 	}
 	if config.GetValueSource("backup.enabled") != config.SourceDefault {
 		return ""
@@ -78,7 +78,7 @@ func backupAutoStatusNote(enabled bool) string {
 }
 
 // clientServerShareFilesystem reports whether the configured Dolt
-// server runs on a filesystem the bd client can also see — i.e.
+// server runs on a filesystem the issuegraph client can also see — i.e.
 // whether a file:// URL constructed on the client is meaningful to
 // the server.
 //
@@ -99,10 +99,10 @@ func backupAutoStatusNote(enabled bool) string {
 // by mode inference — the operator's intent is unambiguous from the
 // effective host value alone.
 func clientServerShareFilesystem() bool {
-	host := os.Getenv("BEADS_DOLT_SERVER_HOST")
+	host := os.Getenv("ISSUEGRAPH_DOLT_SERVER_HOST")
 	if host == "" {
-		if bd := beads.FindBeadsDir(); bd != "" {
-			if cfg, err := configfile.Load(bd); err == nil && cfg != nil {
+		if issuegraph := issuegraph.FindIssueGraphDir(); issuegraph != "" {
+			if cfg, err := configfile.Load(issuegraph); err == nil && cfg != nil {
 				// An explicit dolt_mode=embedded pins local storage;
 				// a leftover dolt_server_host is inert then (same
 				// gate as HostImpliesServerMode), so local
@@ -122,16 +122,16 @@ func clientServerShareFilesystem() bool {
 
 // autoBackupSkipNoticeOnce ensures the "auto-backup skipped" INFO
 // message fires at most once per process — operators running long
-// bd sessions don't need a chatty repeat on every command.
+// issuegraph sessions don't need a chatty repeat on every command.
 var autoBackupSkipNoticeOnce sync.Once
 
 // maybeAutoBackup runs a Dolt-native backup if enabled and the throttle interval has passed.
 // Called from PersistentPostRun after auto-commit.
 func maybeAutoBackup(ctx context.Context) {
 	// Skip backup entirely when running as a git hook (post-checkout, post-merge, etc.).
-	// Git hooks call 'bd hooks run' which goes through PersistentPostRun — without this
+	// Git hooks call 'issuegraph hooks run' which goes through PersistentPostRun — without this
 	// guard, every git checkout/merge/rebase triggers a backup on the current branch.
-	if os.Getenv("BD_GIT_HOOK") == "1" {
+	if os.Getenv("ISSUEGRAPH_GIT_HOOK") == "1" {
 		debug.Logf("backup: skipping — running as git hook\n")
 		return
 	}
@@ -147,7 +147,7 @@ func maybeAutoBackup(ctx context.Context) {
 	}
 
 	// GH#3523: when the Dolt server runs on a different filesystem
-	// from this client (operator's BEADS_DOLT_SERVER_HOST points at a
+	// from this client (operator's ISSUEGRAPH_DOLT_SERVER_HOST points at a
 	// non-localhost value), the file:// URL the auto-backup path
 	// constructs is meaningless to the server — register fails on
 	// every command. Skip cleanly with a one-time INFO so operators
@@ -157,8 +157,8 @@ func maybeAutoBackup(ctx context.Context) {
 			if !isQuiet() && !jsonOutput {
 				fmt.Fprintln(os.Stderr,
 					"Info: auto-backup skipped — server filesystem differs "+
-						"from client (BEADS_DOLT_SERVER_HOST is non-localhost).\n"+
-						"      Configure backup.url=s3://... or run `bd backup` "+
+						"from client (ISSUEGRAPH_DOLT_SERVER_HOST is non-localhost).\n"+
+						"      Configure backup.url=s3://... or run `issuegraph backup` "+
 						"manually for cross-filesystem backups.")
 			}
 		})

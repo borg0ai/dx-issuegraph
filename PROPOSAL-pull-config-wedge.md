@@ -23,7 +23,7 @@ Wyvern wy-71t. Push is unaffected; only pull (the cross-clone *receive* path) is
 
    ```
    SELECT to_key, diff_type FROM dolt_diff('main','WORKING','config');
-   kv.memory.beads-jsonl-sync-procedure                       added
+   kv.memory.issuegraph-jsonl-sync-procedure                       added
    kv.memory.bitbucket-altssh-dead                            added
    kv.memory.local-dev-ssl-posture                            added
    kv.memory.react-client-e2e-against-the-local-game-server   added

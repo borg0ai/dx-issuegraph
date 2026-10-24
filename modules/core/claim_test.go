@@ -1,12 +1,12 @@
-package beads
+package issuegraph
 
 import (
 	"errors"
 	"fmt"
 	"testing"
 
-	"github.com/steveyegge/beads/internal/storage"
-	"github.com/steveyegge/beads/internal/storage/dolt"
+	"github.com/borg0ai/dx-issuegraph/internal/storage"
+	"github.com/borg0ai/dx-issuegraph/internal/storage/dolt"
 )
 
 // TestClaimSentinelsWrapPreservation proves that errors produced the way the
@@ -21,17 +21,17 @@ func TestClaimSentinelsWrapPreservation(t *testing.T) {
 	// then an outer context wrap as a real caller would add.
 	alreadyClaimed := fmt.Errorf("claim dr-1: %w", fmt.Errorf("%w by %s", storage.ErrAlreadyClaimed, "alice"))
 	if !errors.Is(alreadyClaimed, ErrAlreadyClaimed) {
-		t.Errorf("wrapped already-claimed error does not match root beads.ErrAlreadyClaimed")
+		t.Errorf("wrapped already-claimed error does not match root issuegraph.ErrAlreadyClaimed")
 	}
 
 	notClaimable := fmt.Errorf("claim dr-1: %w", fmt.Errorf("%w: status %s", storage.ErrNotClaimable, "closed"))
 	if !errors.Is(notClaimable, ErrNotClaimable) {
-		t.Errorf("wrapped not-claimable error does not match root beads.ErrNotClaimable")
+		t.Errorf("wrapped not-claimable error does not match root issuegraph.ErrNotClaimable")
 	}
 
 	circuit := fmt.Errorf("read issue: %w", dolt.ErrCircuitOpen)
 	if !errors.Is(circuit, ErrCircuitOpen) {
-		t.Errorf("wrapped circuit error does not match root beads.ErrCircuitOpen")
+		t.Errorf("wrapped circuit error does not match root issuegraph.ErrCircuitOpen")
 	}
 
 	// A conflict must not cross-match the wrong sentinel.
@@ -64,7 +64,7 @@ func TestParseClaimConflict(t *testing.T) {
 		// sentinel is wrapped (so errors.Is classification holds) but the
 		// holder-focused message does not end in the " by <assignee>" tail, so
 		// the assignee comes back empty — best-effort — while ok stays true.
-		err := fmt.Errorf("claim cl-fa1: %w", fmt.Errorf("%w: already assigned to %q — coordinate with the holder; if their claim is abandoned (crashed agent), lease expiry will surface it for bd reclaim", storage.ErrAlreadyClaimed, "alice"))
+		err := fmt.Errorf("claim cl-fa1: %w", fmt.Errorf("%w: already assigned to %q — coordinate with the holder; if their claim is abandoned (crashed agent), lease expiry will surface it for issuegraph reclaim", storage.ErrAlreadyClaimed, "alice"))
 		got, ok := ParseClaimConflict(err)
 		if !ok {
 			t.Fatalf("ParseClaimConflict returned ok=false for a wrapped open-assigned ErrAlreadyClaimed")

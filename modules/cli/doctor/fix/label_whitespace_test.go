@@ -3,7 +3,7 @@ package fix
 import "testing"
 
 // The classifier is the load-bearing part of the #5812 doctor check: it decides
-// which stored labels bd can no longer filter for. The SQL around it is a plain
+// which stored labels issuegraph can no longer filter for. The SQL around it is a plain
 // table scan.
 func TestClassifyLabelWhitespace(t *testing.T) {
 	tests := []struct {

@@ -1,29 +1,29 @@
 ---
-title: "bd comments"
+title: "issuegraph comments"
 description: "View or manage comments on an issue."
 ---
 
 {/* AUTO-GENERATED: do not edit manually */}
 
-Generated from `bd help --doc comments`.
+Generated from `issuegraph help --doc comments`.
 
 View or manage comments on an issue.
 
 Examples:
   # List all comments on an issue (issue id is required — there is no "comments list")
-  bd comments bd-123
+  issuegraph comments issuegraph-123
 
   # List comments in JSON format
-  bd comments bd-123 --json
+  issuegraph comments issuegraph-123 --json
 
   # Add a comment
-  bd comments add bd-123 "This is a comment"
+  issuegraph comments add issuegraph-123 "This is a comment"
 
   # Add a comment from a file
-  bd comments add bd-123 -f notes.txt
+  issuegraph comments add issuegraph-123 -f notes.txt
 
 ```
-bd comments [issue-id] [flags]
+issuegraph comments [issue-id] [flags]
 ```
 
 **Flags:**
@@ -32,19 +32,19 @@ bd comments [issue-id] [flags]
       --local-time   Show timestamps in local time instead of UTC
 ```
 
-## bd comments add
+## issuegraph comments add
 
 Add a comment to an issue.
 
 Examples:
   # Add a comment
-  bd comments add bd-123 "Working on this now"
+  issuegraph comments add issuegraph-123 "Working on this now"
 
   # Add a comment from a file
-  bd comments add bd-123 -f notes.txt
+  issuegraph comments add issuegraph-123 -f notes.txt
 
 ```
-bd comments add [issue-id] [text] [flags]
+issuegraph comments add [issue-id] [text] [flags]
 ```
 
 **Flags:**
@@ -54,10 +54,10 @@ bd comments add [issue-id] [text] [flags]
   -f, --file string     Read comment text from file
 ```
 
-## bd comments list
+## issuegraph comments list
 
-Invalid — use bd comments &lt;issue-id&gt; to list comments
+Invalid — use issuegraph comments &lt;issue-id&gt; to list comments
 
 ```
-bd comments list [flags]
+issuegraph comments list [flags]
 ```

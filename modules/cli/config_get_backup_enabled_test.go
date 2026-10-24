@@ -5,7 +5,7 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/steveyegge/beads/internal/config"
+	"github.com/borg0ai/dx-issuegraph/internal/config"
 )
 
 type backupEnabledEffectiveValueCase struct {
@@ -17,7 +17,7 @@ type backupEnabledEffectiveValueCase struct {
 	wantContains string // source annotation substring
 }
 
-// TestConfigGetBackupEnabled_EffectiveValue pins wy-zrmqr fix #3: `bd config
+// TestConfigGetBackupEnabled_EffectiveValue pins wy-zrmqr fix #3: `issuegraph config
 // get backup.enabled` must report the EFFECTIVE value (what isBackupAutoEnabled
 // actually returns) plus its source, not the raw stored value. Before the fix
 // it printed "false"/"not set" even while auto-backup was running via
@@ -54,32 +54,32 @@ func runConfigGetBackupEnabledEffectiveValueCases(t *testing.T, tests []backupEn
 	t.Helper()
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			// Isolate CWD and BEADS_DIR before config.Initialize() below.
-			// Without this, a leaked BEADS_DIR (or cwd left inside the repo
+			// Isolate CWD and ISSUEGRAPH_DIR before config.Initialize() below.
+			// Without this, a leaked ISSUEGRAPH_DIR (or cwd left inside the repo
 			// tree by an earlier no-DB command in the same test binary) lets
 			// Initialize() load a real ambient config.yaml with an explicit
 			// backup.enabled value, which wins over the computed default
 			// these cases assert on (be-yjp4z).
 			t.Chdir(t.TempDir())
-			t.Setenv("BEADS_DIR", "")
-			t.Setenv("BEADS_TEST_IGNORE_REPO_CONFIG", "1")
+			t.Setenv("ISSUEGRAPH_DIR", "")
+			t.Setenv("ISSUEGRAPH_TEST_IGNORE_REPO_CONFIG", "1")
 
 			orig := primeHasGitRemote
 			primeHasGitRemote = func() bool { return tt.hasRemote }
 			t.Cleanup(func() { primeHasGitRemote = orig })
 
 			if tt.sharedServer {
-				t.Setenv("BEADS_DOLT_SHARED_SERVER", "1")
+				t.Setenv("ISSUEGRAPH_DOLT_SHARED_SERVER", "1")
 			} else {
-				os.Unsetenv("BEADS_DOLT_SHARED_SERVER")
-				t.Cleanup(func() { os.Unsetenv("BEADS_DOLT_SHARED_SERVER") })
+				os.Unsetenv("ISSUEGRAPH_DOLT_SHARED_SERVER")
+				t.Cleanup(func() { os.Unsetenv("ISSUEGRAPH_DOLT_SHARED_SERVER") })
 			}
 
 			if tt.envVal == "\x00" {
-				os.Unsetenv("BD_BACKUP_ENABLED")
-				t.Cleanup(func() { os.Unsetenv("BD_BACKUP_ENABLED") })
+				os.Unsetenv("ISSUEGRAPH_BACKUP_ENABLED")
+				t.Cleanup(func() { os.Unsetenv("ISSUEGRAPH_BACKUP_ENABLED") })
 			} else {
-				t.Setenv("BD_BACKUP_ENABLED", tt.envVal)
+				t.Setenv("ISSUEGRAPH_BACKUP_ENABLED", tt.envVal)
 			}
 
 			config.ResetForTesting()

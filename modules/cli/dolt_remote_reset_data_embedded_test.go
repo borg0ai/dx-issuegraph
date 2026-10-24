@@ -10,9 +10,9 @@ import (
 	"testing"
 )
 
-// Integration tests for bd-fs6k3: bd dolt remote reset-data — replace a
+// Integration tests for bd-fs6k3: issuegraph dolt remote reset-data — replace a
 // remote's data plane in place after a history squash. Run with
-// BEADS_TEST_EMBEDDED_DOLT=1.
+// ISSUEGRAPH_TEST_EMBEDDED_DOLT=1.
 
 // resetDataRunGit runs a git command in dir, fatal on failure.
 func resetDataRunGit(t *testing.T, dir string, args ...string) string {
@@ -58,22 +58,22 @@ func lsRemoteRef(t *testing.T, remoteDir, ref string) string {
 }
 
 func TestDoltRemoteResetData_GitBacked(t *testing.T) {
-	if os.Getenv("BEADS_TEST_EMBEDDED_DOLT") != "1" {
-		t.Skip("set BEADS_TEST_EMBEDDED_DOLT=1 to run embedded integration tests")
+	if os.Getenv("ISSUEGRAPH_TEST_EMBEDDED_DOLT") != "1" {
+		t.Skip("set ISSUEGRAPH_TEST_EMBEDDED_DOLT=1 to run embedded integration tests")
 	}
 	t.Parallel()
-	bd := buildEmbeddedBD(t)
-	dir, _, _ := bdInit(t, bd, "--prefix", "rd")
+	issuegraph := buildEmbeddedBD(t)
+	dir, _, _ := issuegraphInit(t, issuegraph, "--prefix", "rd")
 
 	remoteDir := setupBareGitRemote(t)
 	remoteURL := "git+file://" + remoteDir
 
-	if _, stderr, err := bdDoltSeparate(t, bd, dir, "remote", "add", "origin", remoteURL); err != nil {
-		t.Fatalf("bd dolt remote add failed: %v\nstderr:\n%s", err, stderr)
+	if _, stderr, err := issuegraphDoltSeparate(t, issuegraph, dir, "remote", "add", "origin", remoteURL); err != nil {
+		t.Fatalf("issuegraph dolt remote add failed: %v\nstderr:\n%s", err, stderr)
 	}
-	bdCreate(t, bd, dir, "seed issue", "--type", "task")
-	if stdout, stderr, err := bdDoltSeparate(t, bd, dir, "push"); err != nil {
-		t.Fatalf("bd dolt push failed: %v\nstdout:\n%s\nstderr:\n%s", err, stdout, stderr)
+	issuegraphCreate(t, issuegraph, dir, "seed issue", "--type", "task")
+	if stdout, stderr, err := issuegraphDoltSeparate(t, issuegraph, dir, "push"); err != nil {
+		t.Fatalf("issuegraph dolt push failed: %v\nstdout:\n%s\nstderr:\n%s", err, stdout, stderr)
 	}
 
 	dataBefore := lsRemoteRef(t, remoteDir, "refs/dolt/data")
@@ -82,7 +82,7 @@ func TestDoltRemoteResetData_GitBacked(t *testing.T) {
 	}
 
 	// Non-interactive without --yes: refuse, mention --yes, touch nothing.
-	if _, stderr, err := bdDoltSeparate(t, bd, dir, "remote", "reset-data", "origin"); err == nil {
+	if _, stderr, err := issuegraphDoltSeparate(t, issuegraph, dir, "remote", "reset-data", "origin"); err == nil {
 		t.Fatalf("expected reset-data without --yes to exit non-zero\nstderr:\n%s", stderr)
 	} else if !strings.Contains(stderr, "--yes") {
 		t.Errorf("refusal should mention --yes, got:\n%s", stderr)
@@ -92,9 +92,9 @@ func TestDoltRemoteResetData_GitBacked(t *testing.T) {
 	}
 
 	// With --yes: delete the data refs and rebuild the store via force-push.
-	stdout, stderr, err := bdDoltSeparate(t, bd, dir, "remote", "reset-data", "origin", "--yes")
+	stdout, stderr, err := issuegraphDoltSeparate(t, issuegraph, dir, "remote", "reset-data", "origin", "--yes")
 	if err != nil {
-		t.Fatalf("bd dolt remote reset-data --yes failed: %v\nstdout:\n%s\nstderr:\n%s", err, stdout, stderr)
+		t.Fatalf("issuegraph dolt remote reset-data --yes failed: %v\nstdout:\n%s\nstderr:\n%s", err, stdout, stderr)
 	}
 	if !strings.Contains(stdout, "refs/dolt/data") {
 		t.Errorf("expected deleted-refs report in output, got:\n%s", stdout)
@@ -108,20 +108,20 @@ func TestDoltRemoteResetData_GitBacked(t *testing.T) {
 	}
 
 	// Re-run is idempotent: refs exist again, so they are deleted and rebuilt.
-	if stdout, stderr, err := bdDoltSeparate(t, bd, dir, "remote", "reset-data", "origin", "--yes"); err != nil {
+	if stdout, stderr, err := issuegraphDoltSeparate(t, issuegraph, dir, "remote", "reset-data", "origin", "--yes"); err != nil {
 		t.Fatalf("second reset-data failed: %v\nstdout:\n%s\nstderr:\n%s", err, stdout, stderr)
 	}
 }
 
 func TestDoltRemoteResetData_UnknownRemote(t *testing.T) {
-	if os.Getenv("BEADS_TEST_EMBEDDED_DOLT") != "1" {
-		t.Skip("set BEADS_TEST_EMBEDDED_DOLT=1 to run embedded integration tests")
+	if os.Getenv("ISSUEGRAPH_TEST_EMBEDDED_DOLT") != "1" {
+		t.Skip("set ISSUEGRAPH_TEST_EMBEDDED_DOLT=1 to run embedded integration tests")
 	}
 	t.Parallel()
-	bd := buildEmbeddedBD(t)
-	dir, _, _ := bdInit(t, bd, "--prefix", "rd")
+	issuegraph := buildEmbeddedBD(t)
+	dir, _, _ := issuegraphInit(t, issuegraph, "--prefix", "rd")
 
-	_, stderr, err := bdDoltSeparate(t, bd, dir, "remote", "reset-data", "nosuch", "--yes")
+	_, stderr, err := issuegraphDoltSeparate(t, issuegraph, dir, "remote", "reset-data", "nosuch", "--yes")
 	if err == nil {
 		t.Fatalf("expected reset-data on unknown remote to exit non-zero\nstderr:\n%s", stderr)
 	}
@@ -131,17 +131,17 @@ func TestDoltRemoteResetData_UnknownRemote(t *testing.T) {
 }
 
 func TestDoltRemoteResetData_CloudRemoteRefused(t *testing.T) {
-	if os.Getenv("BEADS_TEST_EMBEDDED_DOLT") != "1" {
-		t.Skip("set BEADS_TEST_EMBEDDED_DOLT=1 to run embedded integration tests")
+	if os.Getenv("ISSUEGRAPH_TEST_EMBEDDED_DOLT") != "1" {
+		t.Skip("set ISSUEGRAPH_TEST_EMBEDDED_DOLT=1 to run embedded integration tests")
 	}
 	t.Parallel()
-	bd := buildEmbeddedBD(t)
-	dir, _, _ := bdInit(t, bd, "--prefix", "rd")
+	issuegraph := buildEmbeddedBD(t)
+	dir, _, _ := issuegraphInit(t, issuegraph, "--prefix", "rd")
 
-	if _, stderr, err := bdDoltSeparate(t, bd, dir, "remote", "add", "cloud", "gs://bucket/db"); err != nil {
-		t.Fatalf("bd dolt remote add failed: %v\nstderr:\n%s", err, stderr)
+	if _, stderr, err := issuegraphDoltSeparate(t, issuegraph, dir, "remote", "add", "cloud", "gs://bucket/db"); err != nil {
+		t.Fatalf("issuegraph dolt remote add failed: %v\nstderr:\n%s", err, stderr)
 	}
-	_, stderr, err := bdDoltSeparate(t, bd, dir, "remote", "reset-data", "cloud", "--yes")
+	_, stderr, err := issuegraphDoltSeparate(t, issuegraph, dir, "remote", "reset-data", "cloud", "--yes")
 	if err == nil {
 		t.Fatalf("expected reset-data on gs:// remote to exit non-zero\nstderr:\n%s", stderr)
 	}

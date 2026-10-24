@@ -9,19 +9,19 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/steveyegge/beads/internal/storage/embeddeddolt"
+	"github.com/borg0ai/dx-issuegraph/internal/storage/embeddeddolt"
 )
 
 func TestSchemaAfterInit(t *testing.T) {
-	if os.Getenv("BEADS_TEST_EMBEDDED_DOLT") != "1" {
-		t.Skip("set BEADS_TEST_EMBEDDED_DOLT=1 to run embedded dolt tests")
+	if os.Getenv("ISSUEGRAPH_TEST_EMBEDDED_DOLT") != "1" {
+		t.Skip("set ISSUEGRAPH_TEST_EMBEDDED_DOLT=1 to run embedded dolt tests")
 	}
 
 	ctx := t.Context()
-	beadsDir := filepath.Join(t.TempDir(), ".beads")
-	dataDir := filepath.Join(beadsDir, "embeddeddolt")
+	issuegraphDir := filepath.Join(t.TempDir(), ".issuegraph")
+	dataDir := filepath.Join(issuegraphDir, "embeddeddolt")
 
-	store, err := embeddeddolt.Open(ctx, beadsDir, "testdb", "main")
+	store, err := embeddeddolt.Open(ctx, issuegraphDir, "testdb", "main")
 	if err != nil {
 		t.Fatalf("Open: %v", err)
 	}

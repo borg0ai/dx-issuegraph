@@ -87,7 +87,7 @@ func resetTipTestState(t *testing.T) {
 
 func TestTipSelection(t *testing.T) {
 	resetTipTestState(t)
-	t.Setenv("BEADS_TIP_SEED", "12345")
+	t.Setenv("ISSUEGRAPH_TIP_SEED", "12345")
 	initTipRand()
 	store := &tipMetadataRecorder{values: map[string]string{}}
 
@@ -209,7 +209,7 @@ func TestTipSelection(t *testing.T) {
 
 func TestTipProbability(t *testing.T) {
 	resetTipTestState(t)
-	t.Setenv("BEADS_TIP_SEED", "99999")
+	t.Setenv("ISSUEGRAPH_TIP_SEED", "99999")
 	initTipRand()
 
 	tipsMutex.Lock()
@@ -334,7 +334,7 @@ func TestRecordTipShown(t *testing.T) {
 
 func TestMaybeShowTip_RespectsFlags(t *testing.T) {
 	resetTipTestState(t)
-	t.Setenv("BEADS_TIP_SEED", "54321")
+	t.Setenv("ISSUEGRAPH_TIP_SEED", "54321")
 
 	tipsMutex.Lock()
 	tips = []Tip{
@@ -422,7 +422,7 @@ func TestInjectTip(t *testing.T) {
 	store := &tipMetadataRecorder{values: map[string]string{}}
 
 	// Set deterministic seed for testing
-	t.Setenv("BEADS_TIP_SEED", "11111")
+	t.Setenv("ISSUEGRAPH_TIP_SEED", "11111")
 	initTipRand()
 
 	// Test 1: Inject a new tip
@@ -689,7 +689,7 @@ func TestIsClaudeSetupComplete(t *testing.T) {
 		return // Skip if we can't get home dir
 	}
 
-	globalCommand := home + "/.claude/commands/prime_beads.md"
+	globalCommand := home + "/.claude/commands/prime_issuegraph.md"
 	globalHooksSession := home + "/.claude/hooks/sessionstart"
 	globalHooksPreTool := home + "/.claude/hooks/PreToolUse"
 
@@ -707,7 +707,7 @@ func TestIsClaudeSetupComplete(t *testing.T) {
 	}
 
 	// Check project-level setup
-	projectCommand := ".claude/commands/prime_beads.md"
+	projectCommand := ".claude/commands/prime_issuegraph.md"
 	projectHooksSession := ".claude/hooks/sessionstart"
 	projectHooksPreTool := ".claude/hooks/PreToolUse"
 

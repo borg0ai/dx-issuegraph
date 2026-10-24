@@ -10,7 +10,7 @@ import (
 
 func setupWorktreeRepo(t *testing.T) (mainRepoDir, worktreeDir string) {
 	t.Helper()
-	tmpDir, err := os.MkdirTemp("", "beads-doctor-worktree-test-*")
+	tmpDir, err := os.MkdirTemp("", "issuegraph-doctor-worktree-test-*")
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -62,64 +62,64 @@ func resolve(t testing.TB, path string) string {
 	return resolved
 }
 
-func TestResolveBeadsDirForRepo_WorktreeFallback(t *testing.T) {
+func TestResolveIssueGraphDirForRepo_WorktreeFallback(t *testing.T) {
 	mainRepoDir, worktreeDir := setupWorktreeRepo(t)
 
-	mainBeadsDir := filepath.Join(mainRepoDir, ".beads")
-	if err := os.MkdirAll(mainBeadsDir, 0755); err != nil {
+	mainIssueGraphDir := filepath.Join(mainRepoDir, ".issuegraph")
+	if err := os.MkdirAll(mainIssueGraphDir, 0755); err != nil {
 		t.Fatal(err)
 	}
-	os.Remove(filepath.Join(worktreeDir, ".beads"))
+	os.Remove(filepath.Join(worktreeDir, ".issuegraph"))
 
-	clearResolveBeadsDirCache()
+	clearResolveIssueGraphDirCache()
 
-	got := resolve(t, ResolveBeadsDirForRepo(worktreeDir))
-	want := resolve(t, mainBeadsDir)
+	got := resolve(t, ResolveIssueGraphDirForRepo(worktreeDir))
+	want := resolve(t, mainIssueGraphDir)
 
 	if got != want {
-		t.Errorf("ResolveBeadsDirForRepo(worktree) = %q, want %q", got, want)
+		t.Errorf("ResolveIssueGraphDirForRepo(worktree) = %q, want %q", got, want)
 	}
 }
 
-func TestResolveBeadsDirForRepo_WorktreeLocalBeadsPreferred(t *testing.T) {
+func TestResolveIssueGraphDirForRepo_WorktreeLocalIssueGraphPreferred(t *testing.T) {
 	mainRepoDir, worktreeDir := setupWorktreeRepo(t)
 
-	mainBeadsDir := filepath.Join(mainRepoDir, ".beads")
-	worktreeBeadsDir := filepath.Join(worktreeDir, ".beads")
-	if err := os.MkdirAll(mainBeadsDir, 0755); err != nil {
+	mainIssueGraphDir := filepath.Join(mainRepoDir, ".issuegraph")
+	worktreeIssueGraphDir := filepath.Join(worktreeDir, ".issuegraph")
+	if err := os.MkdirAll(mainIssueGraphDir, 0755); err != nil {
 		t.Fatal(err)
 	}
-	if err := os.MkdirAll(worktreeBeadsDir, 0755); err != nil {
+	if err := os.MkdirAll(worktreeIssueGraphDir, 0755); err != nil {
 		t.Fatal(err)
 	}
 
-	clearResolveBeadsDirCache()
+	clearResolveIssueGraphDirCache()
 
-	got := resolve(t, ResolveBeadsDirForRepo(worktreeDir))
-	want := resolve(t, worktreeBeadsDir)
+	got := resolve(t, ResolveIssueGraphDirForRepo(worktreeDir))
+	want := resolve(t, worktreeIssueGraphDir)
 
 	if got != want {
-		t.Errorf("ResolveBeadsDirForRepo(worktree) = %q, want %q (local .beads should take precedence)", got, want)
+		t.Errorf("ResolveIssueGraphDirForRepo(worktree) = %q, want %q (local .issuegraph should take precedence)", got, want)
 	}
 }
 
-func TestResolveBeadsDirForRepo_WorktreeNoBeadsAnywhere(t *testing.T) {
+func TestResolveIssueGraphDirForRepo_WorktreeNoIssueGraphAnywhere(t *testing.T) {
 	_, worktreeDir := setupWorktreeRepo(t)
 
-	os.Remove(filepath.Join(worktreeDir, ".beads"))
+	os.Remove(filepath.Join(worktreeDir, ".issuegraph"))
 
-	clearResolveBeadsDirCache()
+	clearResolveIssueGraphDirCache()
 
-	got := ResolveBeadsDirForRepo(worktreeDir)
+	got := ResolveIssueGraphDirForRepo(worktreeDir)
 
 	gotClean := filepath.Clean(strings.TrimSpace(got))
-	wantBeads := filepath.Join(worktreeDir, ".beads")
-	wantClean := filepath.Clean(wantBeads)
+	wantIssueGraph := filepath.Join(worktreeDir, ".issuegraph")
+	wantClean := filepath.Clean(wantIssueGraph)
 
 	gotResolved, _ := filepath.EvalSymlinks(gotClean)
 	wantResolved, _ := filepath.EvalSymlinks(wantClean)
 
 	if gotResolved != wantResolved {
-		t.Errorf("ResolveBeadsDirForRepo(worktree with no .beads) = %q, want %q (falls back to local path)", gotResolved, wantResolved)
+		t.Errorf("ResolveIssueGraphDirForRepo(worktree with no .issuegraph) = %q, want %q (falls back to local path)", gotResolved, wantResolved)
 	}
 }

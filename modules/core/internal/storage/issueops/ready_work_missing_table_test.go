@@ -32,7 +32,7 @@ func deferredParentFound() *sqlmock.Rows {
 //
 // The tolerance is written for the wisp plane, the two tables a database may
 // legitimately not have. Keyed on the error class alone it also fires on the
-// leg's other table, so a missing `issues` -- a table no beads database is
+// leg's other table, so a missing `issues` -- a table no issuegraph database is
 // allowed to be without -- surfacing on a wisp_dependencies leg was read as
 // "this database has no wisp_dependencies", which breaks the inner loop and
 // so skips the one leg left in the walk, behind a nil error.

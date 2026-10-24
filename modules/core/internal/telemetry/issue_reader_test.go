@@ -5,8 +5,8 @@ import (
 	"errors"
 	"testing"
 
-	"github.com/steveyegge/beads/internal/storage"
-	"github.com/steveyegge/beads/issueops"
+	"github.com/borg0ai/dx-issuegraph/internal/storage"
+	"github.com/borg0ai/dx-issuegraph/issueops"
 )
 
 type fakeIssueReader struct {
@@ -43,7 +43,7 @@ func (s *readerDoltStore) IssueReader() (issueops.Reader, error) { return s.read
 // satisfies Storage, and passes every other test in the tree — and every read
 // goes unspanned while writes stay instrumented.
 func TestInstrumentedStorageIssueReaderInstrumentsInner(t *testing.T) {
-	t.Setenv("BD_OTEL_STDOUT", "true")
+	t.Setenv("ISSUEGRAPH_OTEL_STDOUT", "true")
 	inner := &fakeIssueReader{}
 	wrapped := WrapStorage(&readerDoltStore{reader: inner}).(*InstrumentedStorage)
 
@@ -61,7 +61,7 @@ func TestInstrumentedStorageIssueReaderInstrumentsInner(t *testing.T) {
 }
 
 func TestInstrumentedStorageIssueReaderPropagatesInnerError(t *testing.T) {
-	t.Setenv("BD_OTEL_STDOUT", "true")
+	t.Setenv("ISSUEGRAPH_OTEL_STDOUT", "true")
 	want := errors.New("inner refused")
 	wrapped := WrapStorage(&readerDoltStore{err: want}).(*InstrumentedStorage)
 
@@ -77,7 +77,7 @@ func TestInstrumentedStorageIssueReaderPropagatesInnerError(t *testing.T) {
 // TestInstrumentedIssueReaderForwardsEveryCallOnce: the span wrapper must not
 // swallow, duplicate or reorder a call, on either outcome.
 func TestInstrumentedIssueReaderForwardsEveryCallOnce(t *testing.T) {
-	t.Setenv("BD_OTEL_STDOUT", "true")
+	t.Setenv("ISSUEGRAPH_OTEL_STDOUT", "true")
 	base := WrapStorage(&fakeDoltStore{}).(*InstrumentedStorage)
 	for _, test := range []struct {
 		name string

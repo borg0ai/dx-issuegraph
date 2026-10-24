@@ -13,19 +13,19 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/steveyegge/beads/internal/types"
+	"github.com/borg0ai/dx-issuegraph/internal/types"
 )
 
 func TestProxiedServerCreate(t *testing.T) {
 	requireSharedProxiedServer(t)
 	t.Parallel()
 
-	bd := buildEmbeddedBD(t)
+	issuegraph := buildEmbeddedBD(t)
 
 	t.Run("scalar_and_output_boundary", func(t *testing.T) {
 		t.Parallel()
-		p := newSharedProxiedProject(t, bd, "sc")
-		issue := bdProxiedCreate(t, bd, p.dir, "Scalar issue")
+		p := newSharedProxiedProject(t, issuegraph, "sc")
+		issue := issuegraphProxiedCreate(t, issuegraph, p.dir, "Scalar issue")
 		if !strings.HasPrefix(issue.ID, "sc-") {
 			t.Fatalf("ID should have prefix sc-, got %q", issue.ID)
 		}
@@ -43,9 +43,9 @@ func TestProxiedServerCreate(t *testing.T) {
 			t.Errorf("persisted scalar issue = title=%q status=%q priority=%d type=%q", title, status, priority, issueType)
 		}
 
-		out, err := bdProxiedRun(t, bd, p.dir, "create", "--silent", "Silent issue")
+		out, err := issuegraphProxiedRun(t, issuegraph, p.dir, "create", "--silent", "Silent issue")
 		if err != nil {
-			t.Fatalf("bd create --silent: %v\n%s", err, out)
+			t.Fatalf("issuegraph create --silent: %v\n%s", err, out)
 		}
 		silentID := strings.TrimSpace(string(out))
 		if !strings.HasPrefix(silentID, "sc-") || string(out) != silentID+"\n" {
@@ -61,10 +61,10 @@ func TestProxiedServerCreate(t *testing.T) {
 
 	t.Run("aggregate_transaction_boundary", func(t *testing.T) {
 		t.Parallel()
-		p := newSharedProxiedProject(t, bd, "ag")
-		parent := bdProxiedCreate(t, bd, p.dir, "Parent", "-t", "epic", "-l", "parent-label,shared")
-		target := bdProxiedCreate(t, bd, p.dir, "Dependency target")
-		child := bdProxiedCreate(t, bd, p.dir, "Child", "--parent", parent.ID, "-l", "own-label", "--deps", "blocks:"+target.ID)
+		p := newSharedProxiedProject(t, issuegraph, "ag")
+		parent := issuegraphProxiedCreate(t, issuegraph, p.dir, "Parent", "-t", "epic", "-l", "parent-label,shared")
+		target := issuegraphProxiedCreate(t, issuegraph, p.dir, "Dependency target")
+		child := issuegraphProxiedCreate(t, issuegraph, p.dir, "Child", "--parent", parent.ID, "-l", "own-label", "--deps", "blocks:"+target.ID)
 		if !strings.HasPrefix(child.ID, parent.ID+".") {
 			t.Errorf("child ID %q should start with %q.", child.ID, parent.ID)
 		}
@@ -96,12 +96,12 @@ func TestProxiedServerCreate(t *testing.T) {
 func TestProxiedServerCreate2(t *testing.T) {
 	requireSharedProxiedServer(t)
 	t.Parallel()
-	bd := buildEmbeddedBD(t)
+	issuegraph := buildEmbeddedBD(t)
 
 	t.Run("ephemeral", func(t *testing.T) {
 		t.Parallel()
-		p := newSharedProxiedProject(t, bd, "ep")
-		issue := bdProxiedCreate(t, bd, p.dir, "Ephemeral issue", "--ephemeral")
+		p := newSharedProxiedProject(t, issuegraph, "ep")
+		issue := issuegraphProxiedCreate(t, issuegraph, p.dir, "Ephemeral issue", "--ephemeral")
 
 		db := openProxiedDB(t, p)
 		var count int
@@ -115,8 +115,8 @@ func TestProxiedServerCreate2(t *testing.T) {
 
 	t.Run("no_history", func(t *testing.T) {
 		t.Parallel()
-		p := newSharedProxiedProject(t, bd, "nh")
-		issue := bdProxiedCreate(t, bd, p.dir, "No history issue", "--no-history")
+		p := newSharedProxiedProject(t, issuegraph, "nh")
+		issue := issuegraphProxiedCreate(t, issuegraph, p.dir, "No history issue", "--no-history")
 		if issue.ID == "" {
 			t.Fatal("expected issue ID")
 		}
@@ -124,8 +124,8 @@ func TestProxiedServerCreate2(t *testing.T) {
 
 	t.Run("estimate", func(t *testing.T) {
 		t.Parallel()
-		p := newSharedProxiedProject(t, bd, "es")
-		issue := bdProxiedCreate(t, bd, p.dir, "Estimated issue", "-e", "60")
+		p := newSharedProxiedProject(t, issuegraph, "es")
+		issue := issuegraphProxiedCreate(t, issuegraph, p.dir, "Estimated issue", "-e", "60")
 		if issue.EstimatedMinutes == nil || *issue.EstimatedMinutes != 60 {
 			t.Errorf("estimate: got %v, want 60", issue.EstimatedMinutes)
 		}
@@ -133,8 +133,8 @@ func TestProxiedServerCreate2(t *testing.T) {
 
 	t.Run("notes", func(t *testing.T) {
 		t.Parallel()
-		p := newSharedProxiedProject(t, bd, "nt")
-		issue := bdProxiedCreate(t, bd, p.dir, "Notes issue", "--notes", "Some notes here")
+		p := newSharedProxiedProject(t, issuegraph, "nt")
+		issue := issuegraphProxiedCreate(t, issuegraph, p.dir, "Notes issue", "--notes", "Some notes here")
 		if issue.Notes != "Some notes here" {
 			t.Errorf("notes: got %q, want %q", issue.Notes, "Some notes here")
 		}
@@ -142,8 +142,8 @@ func TestProxiedServerCreate2(t *testing.T) {
 
 	t.Run("spec_id", func(t *testing.T) {
 		t.Parallel()
-		p := newSharedProxiedProject(t, bd, "sp")
-		issue := bdProxiedCreate(t, bd, p.dir, "Spec issue", "--spec-id", "sp-spec1")
+		p := newSharedProxiedProject(t, issuegraph, "sp")
+		issue := issuegraphProxiedCreate(t, issuegraph, p.dir, "Spec issue", "--spec-id", "sp-spec1")
 		if issue.SpecID != "sp-spec1" {
 			t.Errorf("spec_id: got %q, want %q", issue.SpecID, "sp-spec1")
 		}
@@ -151,8 +151,8 @@ func TestProxiedServerCreate2(t *testing.T) {
 
 	t.Run("external_ref", func(t *testing.T) {
 		t.Parallel()
-		p := newSharedProxiedProject(t, bd, "er")
-		issue := bdProxiedCreate(t, bd, p.dir, "External ref issue", "--external-ref", "gh-123")
+		p := newSharedProxiedProject(t, issuegraph, "er")
+		issue := issuegraphProxiedCreate(t, issuegraph, p.dir, "External ref issue", "--external-ref", "gh-123")
 		if issue.ExternalRef == nil || *issue.ExternalRef != "gh-123" {
 			t.Errorf("external_ref: got %v, want %q", issue.ExternalRef, "gh-123")
 		}
@@ -160,9 +160,9 @@ func TestProxiedServerCreate2(t *testing.T) {
 
 	t.Run("linear_external_ref", func(t *testing.T) {
 		t.Parallel()
-		p := newSharedProxiedProject(t, bd, "ler")
+		p := newSharedProxiedProject(t, issuegraph, "ler")
 		ref := "https://linear.app/team/issue/TEAM-123/fix-login"
-		issue := bdProxiedCreate(t, bd, p.dir, "Pre-linked Linear issue", "--external-ref", ref)
+		issue := issuegraphProxiedCreate(t, issuegraph, p.dir, "Pre-linked Linear issue", "--external-ref", ref)
 		if issue.ExternalRef == nil || *issue.ExternalRef != ref {
 			t.Errorf("external_ref: got %v, want %q", issue.ExternalRef, ref)
 		}
@@ -170,8 +170,8 @@ func TestProxiedServerCreate2(t *testing.T) {
 
 	t.Run("metadata", func(t *testing.T) {
 		t.Parallel()
-		p := newSharedProxiedProject(t, bd, "mt")
-		issue := bdProxiedCreate(t, bd, p.dir, "Metadata issue", "--metadata", `{"key":"value"}`)
+		p := newSharedProxiedProject(t, issuegraph, "mt")
+		issue := issuegraphProxiedCreate(t, issuegraph, p.dir, "Metadata issue", "--metadata", `{"key":"value"}`)
 		if issue.Metadata == nil {
 			t.Fatal("expected metadata to be set")
 		}
@@ -186,10 +186,10 @@ func TestProxiedServerCreate2(t *testing.T) {
 
 	t.Run("dry_run", func(t *testing.T) {
 		t.Parallel()
-		p := newSharedProxiedProject(t, bd, "dr")
-		out, err := bdProxiedRun(t, bd, p.dir, "create", "--dry-run", "Dry run issue", "--json")
+		p := newSharedProxiedProject(t, issuegraph, "dr")
+		out, err := issuegraphProxiedRun(t, issuegraph, p.dir, "create", "--dry-run", "Dry run issue", "--json")
 		if err != nil {
-			t.Fatalf("bd create --dry-run failed: %v\n%s", err, out)
+			t.Fatalf("issuegraph create --dry-run failed: %v\n%s", err, out)
 		}
 		if strings.Contains(string(out), "error") {
 			t.Errorf("dry-run produced error output: %s", out)
@@ -206,8 +206,8 @@ func TestProxiedServerCreate2(t *testing.T) {
 
 	t.Run("skills_and_context", func(t *testing.T) {
 		t.Parallel()
-		p := newSharedProxiedProject(t, bd, "sc")
-		issue := bdProxiedCreate(t, bd, p.dir, "Skills issue",
+		p := newSharedProxiedProject(t, issuegraph, "sc")
+		issue := issuegraphProxiedCreate(t, issuegraph, p.dir, "Skills issue",
 			"--skills", "Go, SQL",
 			"--context", "Working on embedded storage")
 		if !strings.Contains(issue.Description, "Go, SQL") {
@@ -220,9 +220,9 @@ func TestProxiedServerCreate2(t *testing.T) {
 
 	t.Run("discovered_from_dep", func(t *testing.T) {
 		t.Parallel()
-		p := newSharedProxiedProject(t, bd, "di")
-		parent := bdProxiedCreate(t, bd, p.dir, "Parent work")
-		child := bdProxiedCreate(t, bd, p.dir, "Discovered bug",
+		p := newSharedProxiedProject(t, issuegraph, "di")
+		parent := issuegraphProxiedCreate(t, issuegraph, p.dir, "Parent work")
+		child := issuegraphProxiedCreate(t, issuegraph, p.dir, "Discovered bug",
 			"--deps", "discovered-from:"+parent.ID)
 		if child.ID == "" {
 			t.Fatal("expected child issue ID")
@@ -233,7 +233,7 @@ func TestProxiedServerCreate2(t *testing.T) {
 
 	t.Run("markdown_bulk_create", func(t *testing.T) {
 		t.Parallel()
-		p := newSharedProxiedProject(t, bd, "mk")
+		p := newSharedProxiedProject(t, issuegraph, "mk")
 		mdContent := `## First issue
 
 ### Priority
@@ -263,9 +263,9 @@ A new feature
 		if err := os.WriteFile(mdFile, []byte(mdContent), 0644); err != nil {
 			t.Fatal(err)
 		}
-		out, err := bdProxiedRun(t, bd, p.dir, "create", "-f", mdFile, "--json")
+		out, err := issuegraphProxiedRun(t, issuegraph, p.dir, "create", "-f", mdFile, "--json")
 		if err != nil {
-			t.Fatalf("bd create -f failed: %v\n%s", err, out)
+			t.Fatalf("issuegraph create -f failed: %v\n%s", err, out)
 		}
 		db := openProxiedDB(t, p)
 		var count int
@@ -279,8 +279,8 @@ A new feature
 
 	t.Run("both_due_and_defer", func(t *testing.T) {
 		t.Parallel()
-		p := newSharedProxiedProject(t, bd, "bd2")
-		issue := bdProxiedCreate(t, bd, p.dir, "Both due and defer", "--due", "+48h", "--defer", "+24h")
+		p := newSharedProxiedProject(t, issuegraph, "bd2")
+		issue := issuegraphProxiedCreate(t, issuegraph, p.dir, "Both due and defer", "--due", "+48h", "--defer", "+24h")
 		if issue.DueAt == nil {
 			t.Fatal("expected DueAt to be set")
 		}
@@ -291,9 +291,9 @@ A new feature
 
 	t.Run("parent_label_inheritance_merge", func(t *testing.T) {
 		t.Parallel()
-		p := newSharedProxiedProject(t, bd, "pm")
-		parent := bdProxiedCreate(t, bd, p.dir, "Parent with a,b", "-t", "epic", "-l", "a,b")
-		child := bdProxiedCreate(t, bd, p.dir, "Child with c,a", "--parent", parent.ID, "-l", "c,a")
+		p := newSharedProxiedProject(t, issuegraph, "pm")
+		parent := issuegraphProxiedCreate(t, issuegraph, p.dir, "Parent with a,b", "-t", "epic", "-l", "a,b")
+		child := issuegraphProxiedCreate(t, issuegraph, p.dir, "Child with c,a", "--parent", parent.ID, "-l", "c,a")
 
 		db := openProxiedDB(t, p)
 		labels := getProxiedLabels(t, db, child.ID)
@@ -313,9 +313,9 @@ A new feature
 
 	t.Run("parent_no_labels", func(t *testing.T) {
 		t.Parallel()
-		p := newSharedProxiedProject(t, bd, "pn")
-		parent := bdProxiedCreate(t, bd, p.dir, "Labelless parent", "-t", "epic")
-		child := bdProxiedCreate(t, bd, p.dir, "Child of labelless", "--parent", parent.ID)
+		p := newSharedProxiedProject(t, issuegraph, "pn")
+		parent := issuegraphProxiedCreate(t, issuegraph, p.dir, "Labelless parent", "-t", "epic")
+		child := issuegraphProxiedCreate(t, issuegraph, p.dir, "Child of labelless", "--parent", parent.ID)
 
 		db := openProxiedDB(t, p)
 		labels := getProxiedLabels(t, db, child.ID)
@@ -326,9 +326,9 @@ A new feature
 
 	t.Run("discovered_from_inherits_source_repo", func(t *testing.T) {
 		t.Parallel()
-		p := newSharedProxiedProject(t, bd, "sr")
+		p := newSharedProxiedProject(t, issuegraph, "sr")
 
-		parent := bdProxiedCreate(t, bd, p.dir, "Parent with source repo")
+		parent := issuegraphProxiedCreate(t, issuegraph, p.dir, "Parent with source repo")
 		db := openProxiedDB(t, p)
 		if _, err := db.ExecContext(context.Background(),
 			"UPDATE issues SET source_repo = ? WHERE id = ?",
@@ -336,7 +336,7 @@ A new feature
 			t.Fatalf("set parent source_repo: %v", err)
 		}
 
-		child := bdProxiedCreate(t, bd, p.dir, "Discovered bug",
+		child := issuegraphProxiedCreate(t, issuegraph, p.dir, "Discovered bug",
 			"--deps", "discovered-from:"+parent.ID)
 
 		var sourceRepo string
@@ -350,7 +350,7 @@ A new feature
 		}
 	})
 
-	// RULING R1 (TestParityCreateOnOccupiedIDRefuses): `bd create --id` on an
+	// RULING R1 (TestParityCreateOnOccupiedIDRefuses): `issuegraph create --id` on an
 	// occupied ID refuses with exit 1 and a fixed message, leaving the
 	// pre-existing row untouched. This is the proxied twin of the embedded
 	// parity pin — before the bd-b8itp fix the proxied route sent the
@@ -358,23 +358,23 @@ A new feature
 	// while reporting "Created issue:".
 	t.Run("occupied_id_refuses", func(t *testing.T) {
 		t.Parallel()
-		p := newSharedProxiedProject(t, bd, "oc")
-		seeded := bdProxiedCreate(t, bd, p.dir, "Original title",
+		p := newSharedProxiedProject(t, issuegraph, "oc")
+		seeded := issuegraphProxiedCreate(t, issuegraph, p.dir, "Original title",
 			"--id", "oc-occ1", "-d", "original description", "-p", "0")
 		if seeded.ID != "oc-occ1" {
 			t.Fatalf("seed ID = %q, want oc-occ1", seeded.ID)
 		}
 
-		stdout, stderr, err := bdProxiedRunBuffers(t, bd, p.dir, "create", "Replacement title",
+		stdout, stderr, err := issuegraphProxiedRunBuffers(t, issuegraph, p.dir, "create", "Replacement title",
 			"--id", "oc-occ1", "-d", "replacement description", "-p", "4")
 		if err == nil {
-			t.Fatalf("bd create --id oc-occ1 should have refused the occupied ID\nstdout:\n%s\nstderr:\n%s", stdout, stderr)
+			t.Fatalf("issuegraph create --id oc-occ1 should have refused the occupied ID\nstdout:\n%s\nstderr:\n%s", stdout, stderr)
 		}
 		var exitErr *exec.ExitError
 		if !errors.As(err, &exitErr) || exitErr.ExitCode() != 1 {
 			t.Errorf("exit = %v, want exit code 1", err)
 		}
-		const wantErr = "Error: oc-occ1 already exists; use bd update, or bd import for upsert semantics\n"
+		const wantErr = "Error: oc-occ1 already exists; use issuegraph update, or issuegraph import for upsert semantics\n"
 		if stderr != wantErr {
 			t.Errorf("stderr = %q, want %q", stderr, wantErr)
 		}
@@ -397,8 +397,8 @@ A new feature
 
 	t.Run("no_title_fails", func(t *testing.T) {
 		t.Parallel()
-		p := newSharedProxiedProject(t, bd, "nt2")
-		out := bdProxiedCreateFail(t, bd, p.dir)
+		p := newSharedProxiedProject(t, issuegraph, "nt2")
+		out := issuegraphProxiedCreateFail(t, issuegraph, p.dir)
 		if !strings.Contains(out, "title") {
 			t.Errorf("expected title-related error, got: %s", out)
 		}
@@ -406,7 +406,7 @@ A new feature
 
 	t.Run("graph_basic", func(t *testing.T) {
 		t.Parallel()
-		p := newSharedProxiedProject(t, bd, "gb")
+		p := newSharedProxiedProject(t, issuegraph, "gb")
 		plan := `{
   "nodes": [
     {"key": "a", "title": "Node A", "type": "task"},
@@ -420,9 +420,9 @@ A new feature
 		if err := os.WriteFile(planFile, []byte(plan), 0644); err != nil {
 			t.Fatal(err)
 		}
-		out, err := bdProxiedRun(t, bd, p.dir, "create", "--graph", planFile, "--json")
+		out, err := issuegraphProxiedRun(t, issuegraph, p.dir, "create", "--graph", planFile, "--json")
 		if err != nil {
-			t.Fatalf("bd create --graph failed: %v\n%s", err, out)
+			t.Fatalf("issuegraph create --graph failed: %v\n%s", err, out)
 		}
 		var result GraphApplyResult
 		if err := json.Unmarshal(out, &result); err != nil {
@@ -438,7 +438,7 @@ A new feature
 
 	t.Run("graph_parent_child_top_level_ids", func(t *testing.T) {
 		t.Parallel()
-		p := newSharedProxiedProject(t, bd, "gpc")
+		p := newSharedProxiedProject(t, issuegraph, "gpc")
 		plan := `{
   "nodes": [
     {"key": "child", "title": "Child", "type": "task", "parent_key": "parent"},
@@ -449,9 +449,9 @@ A new feature
 		if err := os.WriteFile(planFile, []byte(plan), 0644); err != nil {
 			t.Fatal(err)
 		}
-		out, err := bdProxiedRun(t, bd, p.dir, "create", "--graph", planFile, "--json")
+		out, err := issuegraphProxiedRun(t, issuegraph, p.dir, "create", "--graph", planFile, "--json")
 		if err != nil {
-			t.Fatalf("bd create --graph failed: %v\n%s", err, out)
+			t.Fatalf("issuegraph create --graph failed: %v\n%s", err, out)
 		}
 		var result GraphApplyResult
 		if err := json.Unmarshal(out, &result); err != nil {
@@ -470,7 +470,7 @@ A new feature
 
 	t.Run("graph_dry_run_db_aware", func(t *testing.T) {
 		t.Parallel()
-		p := newSharedProxiedProject(t, bd, "gdr")
+		p := newSharedProxiedProject(t, issuegraph, "gdr")
 		db := openProxiedDB(t, p)
 		_, err := db.ExecContext(context.Background(),
 			`REPLACE INTO config (`+"`key`"+`, value) VALUES (?, ?)`,
@@ -488,7 +488,7 @@ A new feature
 		if err := os.WriteFile(planFile, []byte(plan), 0644); err != nil {
 			t.Fatal(err)
 		}
-		out, err := bdProxiedRun(t, bd, p.dir, "create", "--graph", planFile, "--dry-run", "--json")
+		out, err := issuegraphProxiedRun(t, issuegraph, p.dir, "create", "--graph", planFile, "--dry-run", "--json")
 		if err != nil {
 			t.Fatalf("dry-run with DB-only custom type should succeed: %v\n%s", err, out)
 		}
@@ -503,7 +503,7 @@ A new feature
 
 	t.Run("graph_initial_labels_not_duplicated", func(t *testing.T) {
 		t.Parallel()
-		p := newSharedProxiedProject(t, bd, "gil")
+		p := newSharedProxiedProject(t, issuegraph, "gil")
 		plan := `{
   "nodes": [
     {"key": "root", "title": "Graph root", "type": "task", "labels": ["team-a", "shared"]}
@@ -513,9 +513,9 @@ A new feature
 		if err := os.WriteFile(planFile, []byte(plan), 0644); err != nil {
 			t.Fatal(err)
 		}
-		out, err := bdProxiedRun(t, bd, p.dir, "create", "--graph", planFile, "--json")
+		out, err := issuegraphProxiedRun(t, issuegraph, p.dir, "create", "--graph", planFile, "--json")
 		if err != nil {
-			t.Fatalf("bd create --graph failed: %v\n%s", err, out)
+			t.Fatalf("issuegraph create --graph failed: %v\n%s", err, out)
 		}
 		var result GraphApplyResult
 		if err := json.Unmarshal(out, &result); err != nil {
@@ -545,13 +545,13 @@ A new feature
 // TestProxiedServerCreateInfraTypeRoutesToWisps pins end-to-end that a
 // configured infra type lands in the wisps tables against a real proxied
 // server, matching the embedded path. Before ga-2kkue the proxied path routed
-// on the --ephemeral/--no-history flags alone, so `bd create -t message` wrote
+// on the --ephemeral/--no-history flags alone, so `issuegraph create -t message` wrote
 // a durable row into issues.
 func TestProxiedServerCreateInfraTypeRoutesToWisps(t *testing.T) {
 	requireSharedProxiedServer(t)
 	t.Parallel()
 
-	bd := buildEmbeddedBD(t)
+	issuegraph := buildEmbeddedBD(t)
 
 	// countRows reports how many rows the given table holds for an ID. Issues
 	// and wisps share one ID space, so both sides must be asserted: a routing
@@ -569,8 +569,8 @@ func TestProxiedServerCreateInfraTypeRoutesToWisps(t *testing.T) {
 
 	t.Run("infra type routes to wisps", func(t *testing.T) {
 		t.Parallel()
-		p := newSharedProxiedProject(t, bd, "iw")
-		issue := bdProxiedCreate(t, bd, p.dir, "Infra message", "-t", "message")
+		p := newSharedProxiedProject(t, issuegraph, "iw")
+		issue := issuegraphProxiedCreate(t, issuegraph, p.dir, "Infra message", "-t", "message")
 		if !issue.Ephemeral {
 			t.Errorf("Ephemeral = false, want true for an infra type")
 		}
@@ -584,8 +584,8 @@ func TestProxiedServerCreateInfraTypeRoutesToWisps(t *testing.T) {
 
 	t.Run("non-infra type stays durable", func(t *testing.T) {
 		t.Parallel()
-		p := newSharedProxiedProject(t, bd, "id")
-		issue := bdProxiedCreate(t, bd, p.dir, "Plain task", "-t", "task")
+		p := newSharedProxiedProject(t, issuegraph, "id")
+		issue := issuegraphProxiedCreate(t, issuegraph, p.dir, "Plain task", "-t", "task")
 		if got := countRows(t, p, "issues", issue.ID); got != 1 {
 			t.Errorf("issues rows for %s = %d, want 1", issue.ID, got)
 		}
@@ -596,8 +596,8 @@ func TestProxiedServerCreateInfraTypeRoutesToWisps(t *testing.T) {
 
 	t.Run("no-history infra type keeps its retention mode", func(t *testing.T) {
 		t.Parallel()
-		p := newSharedProxiedProject(t, bd, "ih")
-		issue := bdProxiedCreate(t, bd, p.dir, "Infra message", "-t", "message", "--no-history")
+		p := newSharedProxiedProject(t, issuegraph, "ih")
+		issue := issuegraphProxiedCreate(t, issuegraph, p.dir, "Infra message", "-t", "message", "--no-history")
 		if issue.Ephemeral {
 			t.Errorf("Ephemeral = true, want false — --no-history keeps its own retention mode")
 		}

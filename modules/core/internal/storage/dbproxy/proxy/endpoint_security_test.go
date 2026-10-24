@@ -14,12 +14,12 @@ import (
 	"testing"
 	"time"
 
-	"github.com/steveyegge/beads/internal/configfile"
-	"github.com/steveyegge/beads/internal/procid"
-	"github.com/steveyegge/beads/internal/storage/dbproxy/identity"
-	"github.com/steveyegge/beads/internal/storage/dbproxy/pidfile"
-	"github.com/steveyegge/beads/internal/storage/dbproxy/server"
-	"github.com/steveyegge/beads/internal/storage/dbproxy/util"
+	"github.com/borg0ai/dx-issuegraph/internal/configfile"
+	"github.com/borg0ai/dx-issuegraph/internal/procid"
+	"github.com/borg0ai/dx-issuegraph/internal/storage/dbproxy/identity"
+	"github.com/borg0ai/dx-issuegraph/internal/storage/dbproxy/pidfile"
+	"github.com/borg0ai/dx-issuegraph/internal/storage/dbproxy/server"
+	"github.com/borg0ai/dx-issuegraph/internal/storage/dbproxy/util"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
@@ -399,7 +399,7 @@ func TestLegacyRecordFailClosed(t *testing.T) {
 		_, err = GetCreateDatabaseProxyServerEndpoint(root, externalOpenOpts(root))
 		require.Error(t, err)
 		assert.Contains(t, err.Error(), filepath.Join(root, LockFileName))
-		assert.Contains(t, err.Error(), "old bd binary")
+		assert.Contains(t, err.Error(), "old issuegraph binary")
 		assertHelperAlive(t, helper)
 		_, err = os.Stat(pidfile.Path(root, PIDFileName))
 		assert.NoError(t, err)
@@ -690,7 +690,7 @@ func TestShutdownReportsPartialOutcomeAndRefusesLegacyProcess(t *testing.T) {
 	assert.True(t, CanForceStopUnverified(err))
 	assert.Contains(t, err.Error(), "backend stopped; proxy left running")
 	assert.Contains(t, err.Error(), pidfile.Path(root, PIDFileName))
-	assert.Contains(t, err.Error(), "old bd binary")
+	assert.Contains(t, err.Error(), "old issuegraph binary")
 	assert.Contains(t, err.Error(), pidfile.Path(root, PIDFileName)+".stale-<unix-timestamp>")
 	assertHelperAlive(t, proxyHelper)
 	assertHelperExited(t, backendHelper)

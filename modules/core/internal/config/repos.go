@@ -20,12 +20,12 @@ type configFile struct {
 	root yaml.Node
 }
 
-// FindConfigYAMLPath finds the config.yaml file in .beads directory
-// Walks up from CWD to find .beads/config.yaml
+// FindConfigYAMLPath finds the config.yaml file in .issuegraph directory
+// Walks up from CWD to find .issuegraph/config.yaml
 func FindConfigYAMLPath() (string, error) {
 	configPath, err := findProjectConfigYaml()
 	if err != nil {
-		return "", fmt.Errorf("no .beads/config.yaml found in current directory or parents")
+		return "", fmt.Errorf("no .issuegraph/config.yaml found in current directory or parents")
 	}
 	return configPath, nil
 }

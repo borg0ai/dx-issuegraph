@@ -6,8 +6,8 @@ import (
 	"fmt"
 	"time"
 
-	"github.com/steveyegge/beads/internal/storage/rowid"
-	"github.com/steveyegge/beads/internal/types"
+	"github.com/borg0ai/dx-issuegraph/internal/storage/rowid"
+	"github.com/borg0ai/dx-issuegraph/internal/types"
 )
 
 // This file is the insert-time half of the content-derived aux-row ids
@@ -103,7 +103,7 @@ func InsertDerivedEvent(ctx context.Context, tx DBTX, table string, e AuxEvent) 
 
 // InsertDerivedEventReturningID is InsertDerivedEvent for callers that need the
 // stored row's id — the events journal records it in a comment payload so a
-// consumer can replay the audit comment idempotently without re-deriving bd's
+// consumer can replay the audit comment idempotently without re-deriving issuegraph's
 // content digest.
 //
 //nolint:gosec // G201: table is a hardcoded routing constant at every call site.

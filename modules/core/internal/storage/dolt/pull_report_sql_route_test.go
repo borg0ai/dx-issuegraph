@@ -18,7 +18,7 @@ import (
 // Both are still successes. That is the point and it is the control: the fix
 // adds information, it does not turn no-op pulls into errors. A change that
 // made the second pull fail would look like it caught something and would
-// break every idle `bd sync` in the product.
+// break every idle `issuegraph sync` in the product.
 //
 // The fixture keeps everything inside the sql-server's own filesystem — a
 // file:// remote the server creates on push, and a peer database it clones from
@@ -62,7 +62,7 @@ func TestPullTransportReportsWhetherAnythingMerged(t *testing.T) {
 	}
 
 	// A table of our own, so the assertion "the peer's row arrived" does not
-	// depend on any beads-schema sweeping/ignore behaviour.
+	// depend on any issuegraph-schema sweeping/ignore behaviour.
 	mustExec("create marker", "CREATE TABLE pull_report_marker (id INT PRIMARY KEY, v VARCHAR(64))")
 	mustExec("stage", "CALL DOLT_ADD('-A')")
 	mustExec("commit", "CALL DOLT_COMMIT('-m', 'test: pull report marker')")

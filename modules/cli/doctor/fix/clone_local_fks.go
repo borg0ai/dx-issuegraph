@@ -52,12 +52,12 @@ type SeveredCloneLocalFK struct {
 // ScanSeveredCloneLocalFKs reports which clone-local FKs are missing from the
 // live schema. Used by CheckCloneLocalFKs in the doctor package.
 func ScanSeveredCloneLocalFKs(path string) ([]SeveredCloneLocalFK, error) {
-	beadsDir, err := resolvedWorkspaceBeadsDir(path)
+	issuegraphDir, err := resolvedWorkspaceIssueGraphDir(path)
 	if err != nil {
 		return nil, err
 	}
 
-	db, _, err := openDoltDB(beadsDir)
+	db, _, err := openDoltDB(issuegraphDir)
 	if err != nil {
 		return nil, err
 	}
@@ -113,19 +113,19 @@ func scanSeveredCloneLocalFKs(db *sql.DB) ([]SeveredCloneLocalFK, error) {
 // then re-adds the constraint in place. Verified on dolt 2.2.2: the re-added
 // FK resolves against the current tracked root and enforces again.
 func CloneLocalFKEnforcement(path string, verbose bool) error {
-	beadsDir, err := resolvedWorkspaceBeadsDir(path)
+	issuegraphDir, err := resolvedWorkspaceIssueGraphDir(path)
 	if err != nil {
 		return err
 	}
 
-	db, cfg, err := openDoltDB(beadsDir)
+	db, cfg, err := openDoltDB(issuegraphDir)
 	if err != nil {
 		fmt.Printf("  Clone-local FK fix skipped (%v)\n", err)
 		return nil
 	}
 	defer db.Close()
 
-	if skip, err := guardFixTarget("Clone-local FK fix", db, beadsDir, cfg); skip {
+	if skip, err := guardFixTarget("Clone-local FK fix", db, issuegraphDir, cfg); skip {
 		return err
 	}
 

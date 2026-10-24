@@ -5,7 +5,7 @@
 -- the FK-less window (a create that incremented the counter but rolled back
 -- before inserting the child, or a parent deleted with no cascade) survive
 -- the constraint's return. Dolt then fails constraint validation on
--- subsequent writes, so one legacy orphan bricks every bd create on an
+-- subsequent writes, so one legacy orphan bricks every issuegraph create on an
 -- otherwise healthy database.
 --
 -- First move counters that belong to live wisps into wisp_child_counters

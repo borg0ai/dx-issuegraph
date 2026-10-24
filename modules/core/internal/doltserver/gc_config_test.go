@@ -118,7 +118,7 @@ func callCountingStub(t *testing.T, dir, versionLine string) (bin string, writeV
 }
 
 // TestSupportsArchiveLevelConfig_MemoizesUnchangedBinary covers the nit fix
-// (gastownhall/beads#4986 round 2): repeated calls against the SAME,
+// (borg0ai/dx-issuegraph#4986 round 2): repeated calls against the SAME,
 // UNCHANGED on-disk binary must not re-fork `dolt version`. Proven directly
 // via a call counter embedded in the stub script, rather than only
 // inferring it from the returned bool.
@@ -146,7 +146,7 @@ func TestSupportsArchiveLevelConfig_MemoizesUnchangedBinary(t *testing.T) {
 }
 
 // TestSupportsArchiveLevelConfig_InvalidatesOnFileIdentityChange covers the
-// round-3 minor fix (gastownhall/beads#4986): the cache key includes
+// round-3 minor fix (borg0ai/dx-issuegraph#4986): the cache key includes
 // size+mtime, not just the path string, so an in-place dolt
 // upgrade/downgrade at the same path is re-probed on its very next call
 // rather than serving a stale verdict for the rest of the process's

@@ -6,34 +6,34 @@ import (
 
 	"github.com/spf13/cobra"
 
-	"github.com/steveyegge/beads/internal/config"
-	"github.com/steveyegge/beads/internal/debug"
-	"github.com/steveyegge/beads/internal/eventsjournal"
-	"github.com/steveyegge/beads/internal/storage"
-	"github.com/steveyegge/beads/internal/storage/issueops"
-	"github.com/steveyegge/beads/internal/storage/uow"
+	"github.com/borg0ai/dx-issuegraph/internal/config"
+	"github.com/borg0ai/dx-issuegraph/internal/debug"
+	"github.com/borg0ai/dx-issuegraph/internal/eventsjournal"
+	"github.com/borg0ai/dx-issuegraph/internal/storage"
+	"github.com/borg0ai/dx-issuegraph/internal/storage/issueops"
+	"github.com/borg0ai/dx-issuegraph/internal/storage/uow"
 )
 
 // Events-journal activation, applied in ONE place: the factories that construct
 // a store or a unit-of-work provider (store_factory.go, store_factory_nocgo.go,
-// uow_factory.go, and bd doctor's repair handlers through the same package).
-// Every plumbing bd opens goes through one of those, so a new command cannot
+// uow_factory.go, and issuegraph doctor's repair handlers through the same package).
+// Every plumbing issuegraph opens goes through one of those, so a new command cannot
 // acquire a store that silently records nothing.
 //
 // It did not start there, and the three ways it was wrong are the argument for
 // the guard that now holds it. First a process-global switch. Then two root
 // pre-run call sites, which covered the CLI's own store and its proxied
-// provider and missed `bd serve` (which builds its own provider for a
+// provider and missed `issuegraph serve` (which builds its own provider for a
 // server-mode workspace), routed creates and remote-cache hydration (which open
 // a SECOND store for another workspace), the pluggable backend registry arm,
-// and the personal-migration planning store. Then a blanket exemption for bd
-// doctor, whose stated reason — "workspace repairs, not bead mutations" — was
+// and the personal-migration planning store. Then a blanket exemption for issuegraph
+// doctor, whose stated reason — "workspace repairs, not issue mutations" — was
 // false for three of its repair handlers. Each miss ran with the journal off
 // while every command reported success, because an empty journal is
 // indistinguishable from a quiet one.
 // TestEveryStoreConstructionActivatesTheEventsJournal keeps it centralized.
 //
-// The policy itself lives in internal/eventsjournal so bd doctor's fix package,
+// The policy itself lives in internal/eventsjournal so issuegraph doctor's fix package,
 // which cannot import package main, applies the identical rule.
 
 // eventsJournalEnabled reports the activation the PROCESS resolved, for the
@@ -45,8 +45,8 @@ func eventsJournalEnabled() bool {
 // activateEventsJournalStore is eventsjournal.ActivateStore under the name the
 // construction guard matches. Kept as a wrapper rather than called directly so
 // modules/cli has one spelling of the idiom and the guard has one name to look for.
-func activateEventsJournalStore(beadsDir string, s storage.DoltStorage, err error) (storage.DoltStorage, error) {
-	return eventsjournal.ActivateStore(beadsDir, s, err)
+func activateEventsJournalStore(issuegraphDir string, s storage.DoltStorage, err error) (storage.DoltStorage, error) {
+	return eventsjournal.ActivateStore(issuegraphDir, s, err)
 }
 
 // eventsJournalMaintenanceRunner returns the plumbing auto-prune should run
@@ -73,7 +73,7 @@ func eventsJournalMaintenanceRunner() issueops.EventsMaintenanceRunner {
 // unit-of-work provider — to its maintenance capability.
 //
 // BOTH decorator chains are peeled, and the provider half is not symmetry for
-// its own sake. bd wraps the unit-of-work provider in a hook-firing decorator
+// its own sake. issuegraph wraps the unit-of-work provider in a hook-firing decorator
 // whenever a hook runner exists, which is by default; a bare type assertion
 // against that wrapper matches nothing, and auto-prune becomes a silent no-op
 // in exactly the topology — proxied server — that journals fastest. Nothing
@@ -111,13 +111,13 @@ func eventsJournalMaintenanceRunnerFor(plumbing any) issueops.EventsMaintenanceR
 // use one block above, deliberately rather than a new classification:
 //
 //   - runsPostCommandMaintenance excludes strict --readonly (a store opened to
-//     refuse writes) and `bd serve`, which drives the same pass from its own
+//     refuse writes) and `issuegraph serve`, which drives the same pass from its own
 //     ticker rather than from a command boundary it does not have.
 //   - isReadOnlyCommand excludes the classified reads, and it is load-bearing
 //     rather than belt-and-braces: a read-only classification opens the store
 //     with OpenForReadOnlyCommand, which is "otherwise a normal writable
 //     store", so nothing underneath refuses a maintenance delete. Drop this
-//     check and `bd list` prunes the journal — which
+//     check and `issuegraph list` prunes the journal — which
 //     TestAutoPruneDoesNotRunForReadOnlyCommands catches.
 //
 // Two more gates are specific to this trigger:
@@ -127,10 +127,10 @@ func eventsJournalMaintenanceRunnerFor(plumbing any) issueops.EventsMaintenanceR
 //     to make the same judgement the store-open mode did, or maintenance
 //     becomes the one write a preview performs — logged as a failure at best,
 //     and a real delete on any plumbing that does not refuse it.
-//   - The `bd events` family is excluded whole. Reading a feed must never be
-//     what prunes it: `bd events tail --follow` is a consumer, and a consumer
+//   - The `issuegraph events` family is excluded whole. Reading a feed must never be
+//     what prunes it: `issuegraph events tail --follow` is a consumer, and a consumer
 //     that trims its own backlog on the way out is a surprise nobody asked
-//     for. `bd events prune` is excluded for the opposite reason — it just
+//     for. `issuegraph events prune` is excluded for the opposite reason — it just
 //     resolved the retention bound by hand, so an automatic pass immediately
 //     behind it is work with nothing to do.
 //
@@ -155,7 +155,7 @@ func shouldAutoPruneEventsJournal(cmd *cobra.Command) bool {
 	return true
 }
 
-// isEventsJournalCommand reports whether cmd is `bd events` or one of its
+// isEventsJournalCommand reports whether cmd is `issuegraph events` or one of its
 // subcommands. It walks the ancestor chain rather than matching leaf names:
 // `tail`, `export` and `prune` are all names the top level uses for something
 // else, and a gate that matched on the leaf would be exempting the wrong
@@ -170,7 +170,7 @@ func isEventsJournalCommand(cmd *cobra.Command) bool {
 }
 
 // autoPruneOnce holds the once-per-process guarantee the trigger promises.
-// PersistentPostRunE runs once per bd invocation anyway; the guard is what
+// PersistentPostRunE runs once per issuegraph invocation anyway; the guard is what
 // keeps that true for the in-process callers that run Execute() repeatedly (the
 // modules/cli test binary, library embedders), where an unguarded trigger would turn
 // a maintenance pass into a per-command tax.
@@ -187,7 +187,7 @@ var autoPruneOnce sync.Once
 // command SUCCEEDED (an error return never reaches it), the mutation
 // transaction is closed (so maintenance cannot extend or roll back a user's
 // write), a store or provider is still open, and read-only commands are already
-// excluded by the surrounding classification. `bd serve` is excluded there by
+// excluded by the surrounding classification. `issuegraph serve` is excluded there by
 // name and drives the same pass from its own ticker instead.
 //
 // The alternatives were all worse in the same way — they fire somewhere that
@@ -201,9 +201,9 @@ var autoPruneOnce sync.Once
 //
 // gating, in order of cost: config (free), plumbing (free), then the throttle
 // (one indexed query). A workspace without the journal pays nothing at all.
-func maybeAutoPruneEventsJournal(ctx context.Context, beadsDir string) {
+func maybeAutoPruneEventsJournal(ctx context.Context, issuegraphDir string) {
 	autoPruneOnce.Do(func() {
-		if !eventsjournal.EnabledFor(beadsDir) || !eventsjournal.AutoPruneEnabledFor(beadsDir) {
+		if !eventsjournal.EnabledFor(issuegraphDir) || !eventsjournal.AutoPruneEnabledFor(issuegraphDir) {
 			return
 		}
 		runner := eventsJournalMaintenanceRunner()
@@ -216,7 +216,7 @@ func maybeAutoPruneEventsJournal(ctx context.Context, beadsDir string) {
 }
 
 // eventsJournalAutoPruneOptions reads the retention floors the pass applies.
-// Same keys and same accessor as `bd events prune`, so the automatic bound and
+// Same keys and same accessor as `issuegraph events prune`, so the automatic bound and
 // the manual one cannot be computed from different numbers.
 func eventsJournalAutoPruneOptions() eventsjournal.AutoPruneOptions {
 	return eventsjournal.AutoPruneOptions{
@@ -239,14 +239,14 @@ func reportEventsJournalAutoPrune(n int64, err error) {
 	}
 }
 
-// activateEventsJournalProvider is the same for a unit-of-work provider — bd's
+// activateEventsJournalProvider is the same for a unit-of-work provider — issuegraph's
 // second write plumbing, with its own transactions and its own activation.
-func activateEventsJournalProvider(ctx context.Context, beadsDir string, p uow.UnitOfWorkProvider, err error) (uow.UnitOfWorkProvider, error) {
+func activateEventsJournalProvider(ctx context.Context, issuegraphDir string, p uow.UnitOfWorkProvider, err error) (uow.UnitOfWorkProvider, error) {
 	if err != nil || p == nil {
 		return p, err
 	}
 	configurer, _ := p.(storage.EventsJournalConfigurer)
-	if cfgErr := eventsjournal.Apply(configurer, eventsjournal.EnabledFor(beadsDir)); cfgErr != nil {
+	if cfgErr := eventsjournal.Apply(configurer, eventsjournal.EnabledFor(issuegraphDir)); cfgErr != nil {
 		closeCtx, cancel := context.WithTimeout(context.WithoutCancel(ctx), providerCloseTimeout)
 		defer cancel()
 		_ = p.Close(closeCtx)

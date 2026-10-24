@@ -9,9 +9,9 @@ import (
 	"testing"
 
 	sqlmock "github.com/DATA-DOG/go-sqlmock"
+	"github.com/borg0ai/dx-issuegraph/internal/storage/schema"
 	"github.com/spf13/cobra"
 	"github.com/spf13/pflag"
-	"github.com/steveyegge/beads/internal/storage/schema"
 )
 
 // captureNoticeStderr runs fn with os.Stderr redirected and returns what it
@@ -37,10 +37,10 @@ func captureNoticeStderr(t *testing.T, fn func()) string {
 }
 
 // TestIsSchemaMigrateVerbScope pins which invocations count as consent to
-// migrate a shared database (gastownhall/beads#5920). Only `bd migrate schema`
-// does. Bare `bd migrate` reconciles version/repo-id metadata and never
+// migrate a shared database (borg0ai/dx-issuegraph#5920). Only `issuegraph migrate schema`
+// does. Bare `issuegraph migrate` reconciles version/repo-id metadata and never
 // applies a schema migration itself, and its flag modes are further still from
-// schema work — `bd migrate --update-repo-id` is repo-fingerprint surgery, and
+// schema work — `issuegraph migrate --update-repo-id` is repo-fingerprint surgery, and
 // treating it as consent would let a repo-ID update promote the schema for
 // every co-resident client as a side effect.
 func TestIsSchemaMigrateVerbScope(t *testing.T) {
@@ -81,11 +81,11 @@ func TestNoticeSharedMigrateRefusalPerDecision(t *testing.T) {
 		want     string
 		absent   string
 	}{
-		{decision: "shared-no-remote", want: "bd migrate schema"},
-		{decision: "adopt", want: "bd bootstrap", absent: "bd migrate schema"},
-		{decision: "adopt-ff", want: "bd bootstrap", absent: "bd migrate schema"},
-		{decision: "fork-skew", want: "bd doctor", absent: "bd migrate schema"},
-		{decision: "", want: "bd migrate", absent: "bd migrate schema"},
+		{decision: "shared-no-remote", want: "issuegraph migrate schema"},
+		{decision: "adopt", want: "issuegraph bootstrap", absent: "issuegraph migrate schema"},
+		{decision: "adopt-ff", want: "issuegraph bootstrap", absent: "issuegraph migrate schema"},
+		{decision: "fork-skew", want: "issuegraph doctor", absent: "issuegraph migrate schema"},
+		{decision: "", want: "issuegraph migrate", absent: "issuegraph migrate schema"},
 	} {
 		name := tt.decision
 		if name == "" {
@@ -148,7 +148,7 @@ func TestNoticeSharedMigrateRefusalPerDecision(t *testing.T) {
 
 // TestSharedRefusalPrescribesAWorkingVerb closes the loop the review flagged:
 // the shared-store refusal names a command, and that command must actually run
-// wherever the refusal can appear. In proxied-server mode `bd migrate schema`
+// wherever the refusal can appear. In proxied-server mode `issuegraph migrate schema`
 // used to hard-refuse, so the only remedy the gate offered there was a dead
 // end — worse, the root pre-run would have consumed the consent on the open
 // before RunE ever printed "not supported".
@@ -173,9 +173,9 @@ func TestSharedRefusalPrescribesAWorkingVerb(t *testing.T) {
 		t.Errorf("UserMessage must name the remedy:\n%s", refusal.UserMessage())
 	}
 
-	// The prescribed command is `bd <path of migrateSchemaCmd>`, and that is
+	// The prescribed command is `issuegraph <path of migrateSchemaCmd>`, and that is
 	// exactly the command isSchemaMigrateVerb grants consent for.
-	wantPath := "bd " + strings.TrimPrefix(migrateSchemaCmd.CommandPath(), rootCmd.Name()+" ")
+	wantPath := "issuegraph " + strings.TrimPrefix(migrateSchemaCmd.CommandPath(), rootCmd.Name()+" ")
 	if wantPath != schema.SharedConsentCommand {
 		t.Fatalf("the gate prescribes %q but the consenting verb is %q", schema.SharedConsentCommand, wantPath)
 	}
@@ -186,7 +186,7 @@ func TestSharedRefusalPrescribesAWorkingVerb(t *testing.T) {
 
 // TestPrintGlobalDatabaseConsentHint pins the one fact the gate's own block
 // cannot know: which database the invocation targeted. Under --global the open
-// hits `beads_global`, so the block's unflagged `bd migrate schema` would
+// hits `issuegraph_global`, so the block's unflagged `issuegraph migrate schema` would
 // migrate the project database and leave the refusal in place.
 func TestPrintGlobalDatabaseConsentHint(t *testing.T) {
 	orig := globalFlag
@@ -254,13 +254,13 @@ func runPrescribedConsent(t *testing.T, cmdline string) error {
 	t.Setenv(schema.SmartGateEnv, "0")
 	t.Setenv(schema.AllowRemoteMigrateEnv, "0")
 
-	args := strings.Fields(strings.TrimPrefix(cmdline, "bd "))
+	args := strings.Fields(strings.TrimPrefix(cmdline, "issuegraph "))
 	target, rest, err := rootCmd.Find(args)
 	if err != nil {
 		t.Fatalf("the gate prescribes %q, which does not resolve to a command: %v", cmdline, err)
 	}
 	if target == rootCmd {
-		t.Fatalf("the gate prescribes %q, which resolves to bare bd", cmdline)
+		t.Fatalf("the gate prescribes %q, which resolves to bare issuegraph", cmdline)
 	}
 	if err := target.ParseFlags(rest); err != nil {
 		t.Fatalf("the gate prescribes %q, whose flags do not parse: %v", cmdline, err)

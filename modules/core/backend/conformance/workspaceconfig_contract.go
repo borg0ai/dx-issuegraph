@@ -8,9 +8,9 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/steveyegge/beads/internal/storage/kvkeys"
-	"github.com/steveyegge/beads/internal/types"
-	publicops "github.com/steveyegge/beads/issueops"
+	"github.com/borg0ai/dx-issuegraph/internal/storage/kvkeys"
+	"github.com/borg0ai/dx-issuegraph/internal/types"
+	publicops "github.com/borg0ai/dx-issuegraph/issueops"
 )
 
 // This file holds the contract every implementation of
@@ -42,7 +42,7 @@ import (
 // a delta — safe because a write rewrites the table outright.
 //
 // NOT here: which SOURCE owns a key, and the multi-source views over it
-// (`bd config show`, `drift`, `apply`, `validate`). That is front-door routing
+// (`issuegraph config show`, `drift`, `apply`, `validate`). That is front-door routing
 // over files on the client's machine; modules/cli/config_test.go pins it.
 
 // WorkspaceConfigFixture supplies adapter-specific storage access for the
@@ -79,7 +79,7 @@ type WorkspaceConfigFixture struct {
 // are workapi.ConfigSource method for method, because that is the seam
 // workapi.LoadListConfig reads through, and what LoadListConfig does with an
 // error is the whole reason these cases exist: it loads all three UP FRONT and
-// wraps ANY failure, with no degraded path. `bd list`, `bd ready` and every
+// wraps ANY failure, with no degraded path. `issuegraph list`, `issuegraph ready` and every
 // other list-shaped command call it before they can render a single row, so a
 // vocabulary read that answers an ERROR where the workspace has simply not
 // configured anything does not degrade — it takes out the entire family of
@@ -200,7 +200,7 @@ func RunWorkspaceConfigReplacesAnExistingValue(t *testing.T, ctx context.Context
 // for BOTH a key nothing ever wrote and a key written as the empty string, and
 // there is no ErrNotFound on this role.
 //
-// The conflation is what lets `bd config get` print "(not set)" for a key that
+// The conflation is what lets `issuegraph config get` print "(not set)" for a key that
 // was in fact set.
 func RunWorkspaceConfigConflatesAnUnsetKeyWithAnEmptyValue(t *testing.T, ctx context.Context, fixture WorkspaceConfigFixture) {
 	t.Helper()
@@ -265,7 +265,7 @@ func RunWorkspaceConfigListsEveryStoredSetting(t *testing.T, ctx context.Context
 // The value on the memory probe is shaped like a credential on purpose. That is
 // what the exclusion is for: the HTTP surface's redaction decides on the KEY
 // name, so a memory whose content is a secret under an innocuous slug was
-// served verbatim by an unauthenticated GET /v0/beads/config.
+// served verbatim by an unauthenticated GET /v0/issuegraph/config.
 func RunWorkspaceConfigListExcludesTheKVPlane(t *testing.T, ctx context.Context, fixture WorkspaceConfigFixture) {
 	t.Helper()
 	setting := workspaceConfigKey(fixture, "kv-neighbor")
@@ -302,9 +302,9 @@ func RunWorkspaceConfigListExcludesTheKVPlane(t *testing.T, ctx context.Context,
 // there.
 //
 // This half is the one that matters. The enumeration exclusion assumed a caller
-// who knew the exact key was a different class of caller, and `bd remember`
+// who knew the exact key was a different class of caller, and `issuegraph remember`
 // derives its key from the content it stores, so the keys are guessable and
-// GET /v0/beads/config/kv.memory.<slug> walked around the wall — on a surface
+// GET /v0/issuegraph/config/kv.memory.<slug> walked around the wall — on a surface
 // whose only credential is an optional shared bearer, and whose redaction
 // decides on the key NAME while a memory's secret is in the VALUE.
 //
@@ -323,7 +323,7 @@ func RunWorkspaceConfigListExcludesTheKVPlane(t *testing.T, ctx context.Context,
 //     memories; and the rows are what the write half of this plane still owns.
 //   - A SETTINGS key still reads back its value. A GetSetting that answered ""
 //     for everything is the other way to pass this case for the wrong reason,
-//     and it would take out `bd config get` entirely.
+//     and it would take out `issuegraph config get` entirely.
 //
 // AND THE WRITES ARE UNTOUCHED, asserted last: UnsetSetting still removes a
 // `kv.` row. That is the escape hatch for a wedged memory, it is the only thing
@@ -515,7 +515,7 @@ func RunWorkspaceConfigProjectsCustomStatuses(t *testing.T, ctx context.Context,
 // RunWorkspaceConfigProjectsCustomTypes is the same pin for types.custom, and
 // it FAILED on the unit-of-work backend before this role existed: that route
 // wrote the string and left custom_types holding the previous set, so
-// `bd config set types.custom` reported success while `bd create -t <the new
+// `issuegraph config set types.custom` reported success while `issuegraph create -t <the new
 // type>` kept answering "invalid issue type" and doctor reported all-OK.
 //
 // The three-stage sequence pins the REWRITE rather than an insert: a second
@@ -602,7 +602,7 @@ func RunWorkspaceConfigARefusedWriteRecordsNoHistory(t *testing.T, ctx context.C
 // nothing held any backend to it. The stake is silent data loss in one
 // direction and a wrong answer in the other: under a case-insensitive
 // collation the second write REPLACES the first (the store bodies write with
-// REPLACE INTO / an upsert on the key), so `bd config set myKey` would quietly
+// REPLACE INTO / an upsert on the key), so `issuegraph config set myKey` would quietly
 // destroy `mykey`, and every reader of either would get whichever row survived.
 //
 // BOTH READ PATHS ARE ASSERTED, because they are different SQL: GetSetting
@@ -654,7 +654,7 @@ func RunWorkspaceConfigKeysAreCaseSensitive(t *testing.T, ctx context.Context, f
 // the statuses come back ORDERED BY NAME, alphabetically, independent of the
 // order the config string listed them, each carrying its own category.
 //
-// The order is not cosmetic. It is the order `bd list`'s status vocabulary is
+// The order is not cosmetic. It is the order `issuegraph list`'s status vocabulary is
 // built in (internal/workapi/list.go LoadListConfig), so it is the order every
 // list-shaped command renders and groups by.
 //
@@ -759,7 +759,7 @@ func RunWorkspaceConfigConfiguredInfraTypesReplaceTheDefaultSet(t *testing.T, ct
 // RunWorkspaceConfigUnconfiguredVocabularyReadsAreEmptyNotErrors pins the
 // success path a workspace takes on its very first list-shaped command.
 //
-// THIS IS THE EDGE THAT BRICKS `bd list`. internal/workapi/list.go's
+// THIS IS THE EDGE THAT BRICKS `issuegraph list`. internal/workapi/list.go's
 // LoadListConfig loads all three of these reads UP FRONT and wraps any error —
 // "load custom statuses: %w" and its two siblings — with no degraded path, and
 // every list-shaped front door calls it before it can render a row. So on a
@@ -767,7 +767,7 @@ func RunWorkspaceConfigConfiguredInfraTypesReplaceTheDefaultSet(t *testing.T, ct
 // empty with a nil error for the two projections, and the DEFAULT infra set for
 // the third. A backend that answers a scan error, a table-missing error or a
 // nil-map surprise for the state a workspace is in the moment it is created
-// does not degrade — it takes out `bd list`, `bd ready` and the rest at once,
+// does not degrade — it takes out `issuegraph list`, `issuegraph ready` and the rest at once,
 // and every existing vocabulary case configures the vocabulary first, so none
 // of them would notice.
 //

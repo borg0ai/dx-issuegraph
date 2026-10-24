@@ -6,10 +6,10 @@ import (
 	"fmt"
 	"testing"
 
-	"github.com/steveyegge/beads/internal/hooks"
-	"github.com/steveyegge/beads/internal/storage/domain"
-	"github.com/steveyegge/beads/internal/types"
-	publicops "github.com/steveyegge/beads/issueops"
+	"github.com/borg0ai/dx-issuegraph/internal/hooks"
+	"github.com/borg0ai/dx-issuegraph/internal/storage/domain"
+	"github.com/borg0ai/dx-issuegraph/internal/types"
+	publicops "github.com/borg0ai/dx-issuegraph/issueops"
 )
 
 // ── Fakes ───────────────────────────────────────────────────────────
@@ -293,7 +293,7 @@ func closeThroughBatch(ctx context.Context, t *testing.T, uw UnitOfWork, ids ...
 // ── The contract ────────────────────────────────────────────────────
 
 // TestNewNotifyingProviderWithoutSinksReturnsInnerUnwrapped is the zero-cost
-// half of the contract: a bd with hooks disabled must not pay for this file,
+// half of the contract: a issuegraph with hooks disabled must not pay for this file,
 // and must not lose the concrete provider's own capabilities behind a wrapper.
 func TestNewNotifyingProviderWithoutSinksReturnsInnerUnwrapped(t *testing.T) {
 	inner := &mockUnitOfWorkProvider{}
@@ -306,7 +306,7 @@ func TestNewNotifyingProviderWithoutSinksReturnsInnerUnwrapped(t *testing.T) {
 }
 
 // TestUnwrapProviderReachesTheProviderBeneathTheHooks pins the escape hatch a
-// caller that must NOT run hooks takes — `bd serve`, which documents that it
+// caller that must NOT run hooks takes — `issuegraph serve`, which documents that it
 // runs none, serves from beneath this layer.
 func TestUnwrapProviderReachesTheProviderBeneathTheHooks(t *testing.T) {
 	inner := &mockUnitOfWorkProvider{}
@@ -346,7 +346,7 @@ func TestNotifyingUOWFiresNothingUntilCommit(t *testing.T) {
 		t.Fatalf("hooks fired before commit: %v", f.runner.events())
 	}
 
-	if err := uw.Commit(ctx, "bd: test"); err != nil {
+	if err := uw.Commit(ctx, "issuegraph: test"); err != nil {
 		t.Fatalf("Commit: %v", err)
 	}
 	want := []firedHook{{hooks.EventCreate, "bd-2"}, {hooks.EventUpdate, "bd-1"}}
@@ -369,7 +369,7 @@ func TestNotifyingUOWRollbackFiresNothing(t *testing.T) {
 		}
 		// The buffer is gone, not merely unread: a Commit after the rollback
 		// must not replay it.
-		if err := uw.Commit(ctx, "bd: test"); err != nil {
+		if err := uw.Commit(ctx, "issuegraph: test"); err != nil {
 			t.Fatalf("Commit: %v", err)
 		}
 		if got := f.runner.events(); len(got) != 0 {
@@ -385,7 +385,7 @@ func TestNotifyingUOWRollbackFiresNothing(t *testing.T) {
 		if err := uw.IssueUseCase().UpdateIssue(ctx, "bd-1", map[string]any{"title": "new"}, "tester"); err != nil {
 			t.Fatalf("UpdateIssue: %v", err)
 		}
-		if err := uw.Commit(ctx, "bd: test"); err == nil {
+		if err := uw.Commit(ctx, "issuegraph: test"); err == nil {
 			t.Fatal("Commit succeeded, want the mock's refusal")
 		}
 		if got := f.runner.events(); len(got) != 0 {
@@ -418,7 +418,7 @@ func TestNotifyingProviderFiresThroughRunTx(t *testing.T) {
 		if _, err := uw.IssueUseCase().CloseIssueChecked(ctx, "bd-1", domain.CloseIssueParams{}, "tester", false); err != nil {
 			return "", err
 		}
-		return "bd: close issue", nil
+		return "issuegraph: close issue", nil
 	})
 	if err != nil {
 		t.Fatalf("RunTx: %v", err)
@@ -539,7 +539,7 @@ func TestNotifyingUOWOpToHookEventMapping(t *testing.T) {
 			// needed its own fix: closeBatchItem reaches the SAME recording
 			// verb, so before ga-2yaqp.1 a teardown replayed against an
 			// already-closed convoy ran the workspace's on_close script once
-			// per item on every pass. Proxied mode — which is what `bd serve`
+			// per item on every pass. Proxied mode — which is what `issuegraph serve`
 			// runs — is this plumbing, so that was the user-visible symptom.
 			name:   "a batch re-close reports the close once",
 			parity: "hookBatchCloser fires per outcome whose Changed is set, so the second pass announces nothing",
@@ -725,7 +725,7 @@ func TestNotifyingUOWOpToHookEventMapping(t *testing.T) {
 			ctx := context.Background()
 			uw := f.newUOW(t)
 			test.run(ctx, t, uw)
-			if err := uw.Commit(ctx, "bd: test"); err != nil {
+			if err := uw.Commit(ctx, "issuegraph: test"); err != nil {
 				t.Fatalf("Commit: %v", err)
 			}
 			assertFired(t, f.runner.events(), test.want)
@@ -733,8 +733,8 @@ func TestNotifyingUOWOpToHookEventMapping(t *testing.T) {
 	}
 }
 
-// TestNotifyingUOWIgnoresAPreconditionOnlyUpdate covers the call `bd close
-// --expect-version` and `bd reopen --expect-version` make before the operation
+// TestNotifyingUOWIgnoresAPreconditionOnlyUpdate covers the call `issuegraph close
+// --expect-version` and `issuegraph reopen --expect-version` make before the operation
 // they guard: an UpdateSpec carrying only expectations writes nothing, and the
 // DoltStorage plumbing passes the same precondition into the close and fires
 // the close hook alone.
@@ -766,7 +766,7 @@ func TestNotifyingUOWIgnoresAPreconditionOnlyUpdate(t *testing.T) {
 			if _, err := uw.IssueUseCase().ApplyUpdate(ctx, "bd-1", test.spec, "tester"); err != nil {
 				t.Fatalf("ApplyUpdate: %v", err)
 			}
-			if err := uw.Commit(ctx, "bd: test"); err != nil {
+			if err := uw.Commit(ctx, "issuegraph: test"); err != nil {
 				t.Fatalf("Commit: %v", err)
 			}
 			assertFired(t, f.runner.events(), test.want)
@@ -776,7 +776,7 @@ func TestNotifyingUOWIgnoresAPreconditionOnlyUpdate(t *testing.T) {
 
 // TestNotifyingUOWBuffersItsOwnSnapshot pins the clone. The runner marshals the
 // issue on its own goroutine while the caller goes on editing the value it was
-// handed — `bd update` and `bd reopen` both strip fields off theirs — so a
+// handed — `issuegraph update` and `issuegraph reopen` both strip fields off theirs — so a
 // buffered snapshot that aliased the caller's issue would be a data race and a
 // wrong payload.
 func TestNotifyingUOWBuffersItsOwnSnapshot(t *testing.T) {
@@ -790,7 +790,7 @@ func TestNotifyingUOWBuffersItsOwnSnapshot(t *testing.T) {
 	}
 	updated.Title = "edited after the call"
 
-	if err := uw.Commit(ctx, "bd: test"); err != nil {
+	if err := uw.Commit(ctx, "issuegraph: test"); err != nil {
 		t.Fatalf("Commit: %v", err)
 	}
 	if len(f.runner.issues) != 1 {
@@ -813,7 +813,7 @@ func TestNotifyingUOWSnapshotCarriesLabels(t *testing.T) {
 	if err := uw.LabelUseCase().AddLabel(ctx, "bd-1", "urgent", "tester"); err != nil {
 		t.Fatalf("AddLabel: %v", err)
 	}
-	if err := uw.Commit(ctx, "bd: test"); err != nil {
+	if err := uw.Commit(ctx, "issuegraph: test"); err != nil {
 		t.Fatalf("Commit: %v", err)
 	}
 	if len(f.runner.issues) != 1 {
@@ -836,7 +836,7 @@ func TestNotifyingUOWDependencySnapshotCarriesTheEdges(t *testing.T) {
 	if err := uw.DependencyUseCase().AddDependency(ctx, dep, "tester"); err != nil {
 		t.Fatalf("AddDependency: %v", err)
 	}
-	if err := uw.Commit(ctx, "bd: test"); err != nil {
+	if err := uw.Commit(ctx, "issuegraph: test"); err != nil {
 		t.Fatalf("Commit: %v", err)
 	}
 	if len(f.runner.issues) != 1 {

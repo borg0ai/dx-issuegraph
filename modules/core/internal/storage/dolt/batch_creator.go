@@ -4,9 +4,9 @@ import (
 	"context"
 	"database/sql"
 
-	"github.com/steveyegge/beads/internal/storage"
-	storageissueops "github.com/steveyegge/beads/internal/storage/issueops"
-	"github.com/steveyegge/beads/issueops"
+	"github.com/borg0ai/dx-issuegraph/internal/storage"
+	storageissueops "github.com/borg0ai/dx-issuegraph/internal/storage/issueops"
+	"github.com/borg0ai/dx-issuegraph/issueops"
 )
 
 // BatchCreator returns the guarded create-many surface for this store.
@@ -33,7 +33,7 @@ type batchCreator struct{ store *DoltStore }
 // branch working set. The Dolt history commit runs after the SQL transaction
 // (runIssueOperationTxWithMessage) and may be deferred — if it fails after
 // retries the creates still landed and ride the next Dolt commit; the only
-// signal is the bd.db.post_tx_commit_dropped counter, since the batch path has
+// signal is the issuegraph.db.post_tx_commit_dropped counter, since the batch path has
 // no verify-by-re-read recovery. A nil return is therefore not a retry signal:
 // the creates already applied, and retrying would double-create.
 func (o *batchCreator) CreateBatch(ctx context.Context, request issueops.CreateBatchRequest) (issueops.CreateBatchResult, error) {

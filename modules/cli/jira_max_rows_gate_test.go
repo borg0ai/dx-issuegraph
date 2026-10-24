@@ -8,15 +8,15 @@ import (
 	"path/filepath"
 	"testing"
 
-	"github.com/steveyegge/beads/internal/testutil"
-	"github.com/steveyegge/beads/internal/tracker"
-	"github.com/steveyegge/beads/internal/types"
+	"github.com/borg0ai/dx-issuegraph/internal/testutil"
+	"github.com/borg0ai/dx-issuegraph/internal/tracker"
+	"github.com/borg0ai/dx-issuegraph/internal/types"
 )
 
 // TestJiraSync_FilterHasZeroMaxRows is the be-x42v.4 opt-out gate for
 // the Jira sync path. Asserts that the sync engine's SearchIssues calls
 // (internal/tracker/engine.go:246, :315, etc.) never carry MaxRows>0
-// or a non-empty MaxRowsSource. A BEADS_MAX_ROWS-tripped sync would
+// or a non-empty MaxRowsSource. A ISSUEGRAPH_MAX_ROWS-tripped sync would
 // abort mid-conflict-detection or mid-push, leaving partial state on
 // either side of the boundary.
 //
@@ -46,8 +46,8 @@ func TestJiraSync_FilterHasZeroMaxRows(t *testing.T) {
 	_ = saved
 
 	tmpDir := t.TempDir()
-	beadsDir := filepath.Join(tmpDir, ".beads")
-	if err := os.MkdirAll(beadsDir, 0755); err != nil {
+	issuegraphDir := filepath.Join(tmpDir, ".issuegraph")
+	if err := os.MkdirAll(issuegraphDir, 0755); err != nil {
 		t.Fatal(err)
 	}
 	origWd, _ := os.Getwd()
@@ -57,7 +57,7 @@ func TestJiraSync_FilterHasZeroMaxRows(t *testing.T) {
 	t.Cleanup(func() { _ = os.Chdir(origWd) })
 
 	dbName := uniqueTestDBName(t)
-	testDBPath := filepath.Join(beadsDir, "dolt")
+	testDBPath := filepath.Join(issuegraphDir, "dolt")
 	writeTestMetadata(t, testDBPath, dbName)
 	inner := newTestStore(t, testDBPath)
 	spy := newFilterCapturingStore(inner)
@@ -117,7 +117,7 @@ func TestJiraSync_FilterHasZeroMaxRows(t *testing.T) {
 // DetectConflicts.
 //
 // Named distinctly from any be-uwvs.5 stubTracker so the two gate
-// tests coexist in the same package once both beads land.
+// tests coexist in the same package once both issuegraph land.
 type stubMaxRowsTracker struct{}
 
 func (*stubMaxRowsTracker) Name() string                                    { return "stubmr" }

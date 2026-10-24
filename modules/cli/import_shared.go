@@ -12,10 +12,10 @@ import (
 	"strings"
 	"time"
 
-	"github.com/steveyegge/beads/internal/storage"
-	"github.com/steveyegge/beads/internal/storage/issueops"
-	"github.com/steveyegge/beads/internal/types"
-	"github.com/steveyegge/beads/internal/utils"
+	"github.com/borg0ai/dx-issuegraph/internal/storage"
+	"github.com/borg0ai/dx-issuegraph/internal/storage/issueops"
+	"github.com/borg0ai/dx-issuegraph/internal/types"
+	"github.com/borg0ai/dx-issuegraph/internal/utils"
 )
 
 // importChunkSize bounds the number of issues written per transaction during
@@ -28,7 +28,7 @@ import (
 // 500-issue chunks both cost ~13% total time over one big transaction, but
 // 250 holds the write lock ~1.4s per transaction versus ~2.8s at 500 and ~6s
 // at 1000 — and the SQLite connection's busy_timeout is 5s, so per-chunk lock
-// holds must stay comfortably below that for concurrent bd operations to wait
+// holds must stay comfortably below that for concurrent issuegraph operations to wait
 // out an import instead of failing. A var, not a const, so tests can shrink it.
 var importChunkSize = 250
 
@@ -36,7 +36,7 @@ var importChunkSize = 250
 // transactions is not enough on its own: SQLite busy-polling has no fairness
 // queue, so a loop that re-issues BEGIN IMMEDIATE microseconds after each
 // COMMIT re-takes the lock before any waiter's poll fires and starves every
-// concurrent bd operation for the whole import — measured as an unchanged
+// concurrent issuegraph operation for the whole import — measured as an unchanged
 // 100% failure pattern with zero lock acquisitions across 20 chunk commits.
 // The pause is the acquisition window that lets waiters in. 150ms costs
 // ~15s on a 26k-issue import (104 chunks) against the ~2-minute write time.
@@ -61,14 +61,14 @@ type ImportOptions struct {
 	ProtectLocalExportIDs      map[string]time.Time
 	// ConflictSkip makes the import insert-if-new instead of UPSERT: an
 	// issue whose ID already exists is left untouched. Set only by the
-	// auto-import upgrade-recovery fallback (GH#3955); explicit `bd import`
+	// auto-import upgrade-recovery fallback (GH#3955); explicit `issuegraph import`
 	// leaves this false and keeps UPSERT semantics.
 	ConflictSkip bool
 	// AllowStale imports rows even when their updated_at is older than the
 	// local issue's, overwriting newer local state. Required for the
 	// restore-an-older-snapshot recovery workflow, which the default stale
 	// guard otherwise silently no-ops per row (bd-6dnrw.9). Only settable
-	// via explicit `bd import --allow-stale`; auto-import paths never set it.
+	// via explicit `issuegraph import --allow-stale`; auto-import paths never set it.
 	AllowStale bool
 }
 
@@ -246,7 +246,7 @@ func assembleImportResult(issues []*types.Issue, staleSkippedIDs []string, chang
 // importIssuesChunked writes a large import in bounded transactions of
 // importChunkSize rows instead of one batch-wide transaction, sleeping
 // importInterChunkPause between commits. One giant transaction holds the
-// store's write lock for the whole import, taking every concurrent bd
+// store's write lock for the whole import, taking every concurrent issuegraph
 // operation down with it; bounded chunks cap the per-transaction lock hold,
 // and the pause between commits is the fairness window that actually lets
 // waiters acquire (see importInterChunkPause).
@@ -258,7 +258,7 @@ func assembleImportResult(issues []*types.Issue, staleSkippedIDs []string, chang
 // blocks — so that edge rides inline with its row and both commit in one
 // transaction. Only a force-emitted cycle member can carry a readiness edge
 // into the deferred pass; outside that case a concurrent reader never observes
-// an imported bead without the blocking edges its import file declares.
+// an imported issue without the blocking edges its import file declares.
 //
 // Only edges that cannot be satisfied when their row commits are deferred to
 // a final dependency pass: edges into an intra-batch dependency cycle
@@ -423,7 +423,7 @@ func writeImportRowChunks(ctx context.Context, store storage.DoltStorage, ordere
 		if err := store.CreateIssuesWithFullOptions(ctx, ordered[start:end], actor, rowOpts); err != nil {
 			return fmt.Errorf("import chunk %d/%d failed, %d issues already committed (committed rows are durable; re-run the import to resume — it converges): %w", chunk, chunks, start, err)
 		}
-		fmt.Fprintf(importProgress, "bd import: %d/%d issues committed\n", end, total) //nolint:gosec // G705: stderr, not a browser context
+		fmt.Fprintf(importProgress, "issuegraph import: %d/%d issues committed\n", end, total) //nolint:gosec // G705: stderr, not a browser context
 	}
 	return nil
 }
@@ -471,7 +471,7 @@ func wireDeferredImportDeps(ctx context.Context, store storage.DoltStorage, defe
 		if err := store.CreateIssuesWithFullOptions(ctx, depRows[start:end], actor, depOpts); err != nil {
 			return fmt.Errorf("import dependency pass chunk %d/%d failed (all %d issue rows are committed; re-run the import to resume — it converges): %w", start/importChunkSize+1, depChunks, rowTotal, err)
 		}
-		fmt.Fprintf(importProgress, "bd import: deferred dependencies wired for %d/%d issues\n", end, depTotal) //nolint:gosec // G705: stderr, not a browser context
+		fmt.Fprintf(importProgress, "issuegraph import: deferred dependencies wired for %d/%d issues\n", end, depTotal) //nolint:gosec // G705: stderr, not a browser context
 	}
 	return nil
 }
@@ -1222,10 +1222,10 @@ func parseJSONLFile(path string) ([]*types.Issue, map[string]string, error) {
 			return nil, nil, fmt.Errorf("failed to parse JSONL line: %w", err)
 		}
 
-		// Skip the optional beads-jsonl metadata/header record.
+		// Skip the optional issuegraph-jsonl metadata/header record.
 		// Canonical exports produced by the stable-ordering /
 		// git-merge convention prepend a schema+provenance line, e.g.
-		// {"_schema":"beads-jsonl/1","_dolt_branch":"main",
+		// {"_schema":"issuegraph-jsonl/1","_dolt_branch":"main",
 		// "_dolt_commit":"...","_sort":"stable-v1"}. It carries no
 		// _type and no issue fields; without this guard it falls
 		// through to the issue path, unmarshals into an empty Issue,
@@ -1277,7 +1277,7 @@ func parseJSONLFile(path string) ([]*types.Issue, map[string]string, error) {
 
 // applyImportWispPlane resolves which storage plane (wisps vs issues table) a
 // parsed import record routes to, shared by every JSONL parse loop
-// (parseImportRecords for `bd import` in both storage modes, parseJSONLFile
+// (parseImportRecords for `issuegraph import` in both storage modes, parseJSONLFile
 // for bootstrap / init --from-jsonl / auto-import).
 //
 // The "wisp_plane" peek key is the EXPLICIT wisps-plane marker (bd-r9uce):
@@ -1336,7 +1336,7 @@ func applyImportWispPlane(peek map[string]json.RawMessage, issue *types.Issue) {
 
 // importFromLocalJSONLFull imports issues and memories from a local JSONL file
 // using UPSERT semantics (an existing issue row is overwritten). Used by the
-// explicit recovery paths: `bd bootstrap` and `bd init --from-jsonl`.
+// explicit recovery paths: `issuegraph bootstrap` and `issuegraph init --from-jsonl`.
 func importFromLocalJSONLFull(ctx context.Context, store storage.DoltStorage, localPath string) (*importLocalResult, error) {
 	return importFromLocalJSONLWithOpts(ctx, store, localPath, false)
 }

@@ -6,8 +6,8 @@ import (
 
 	sqlmock "github.com/DATA-DOG/go-sqlmock"
 
-	"github.com/steveyegge/beads/internal/storage/domain"
-	"github.com/steveyegge/beads/internal/types"
+	"github.com/borg0ai/dx-issuegraph/internal/storage/domain"
+	"github.com/borg0ai/dx-issuegraph/internal/types"
 )
 
 // unionCountsOverBrokenWispPlane drives the counted union to the point where
@@ -38,7 +38,7 @@ func unionCountsOverBrokenWispPlane(t *testing.T, hydrateErr error) (sqlmock.Sql
 }
 
 // TestSearchCountsUnionBrokenWispPlaneIsAnError is the counted-page twin of
-// TestSearchUnionBrokenWispPlaneIsAnError. `bd search --counts` and every
+// TestSearchUnionBrokenWispPlaneIsAnError. `issuegraph search --counts` and every
 // store-shaped caller that projects counts ran through this path, and a wisp
 // hydration that failed because a table the wisp plane does not own had gone
 // missing was answered as "there are no wisps".

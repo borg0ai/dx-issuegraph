@@ -3,18 +3,18 @@ package validation
 import (
 	"testing"
 
-	"github.com/steveyegge/beads/internal/config"
-	"github.com/steveyegge/beads/internal/types"
+	"github.com/borg0ai/dx-issuegraph/internal/config"
+	"github.com/borg0ai/dx-issuegraph/internal/types"
 )
 
 // isolateLintConfig resets the process-wide config singleton so the test
 // starts from a known state and can set lint.sections.* values in memory.
-// BEADS_TEST_IGNORE_REPO_CONFIG keeps the checkout's own .beads/config.yaml
+// ISSUEGRAPH_TEST_IGNORE_REPO_CONFIG keeps the checkout's own .issuegraph/config.yaml
 // out of the picture; the real user-level config on dev machines carries no
 // lint.* keys, and config.Set() overrides any file value anyway.
 func isolateLintConfig(t *testing.T) {
 	t.Helper()
-	t.Setenv("BEADS_TEST_IGNORE_REPO_CONFIG", "1")
+	t.Setenv("ISSUEGRAPH_TEST_IGNORE_REPO_CONFIG", "1")
 	config.ResetForTesting()
 	if err := config.Initialize(); err != nil {
 		t.Fatalf("config.Initialize: %v", err)

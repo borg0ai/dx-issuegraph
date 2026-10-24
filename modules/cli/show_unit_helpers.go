@@ -3,11 +3,11 @@ package main
 import (
 	"context"
 
-	"github.com/steveyegge/beads/internal/storage"
-	"github.com/steveyegge/beads/internal/storage/issueops"
-	"github.com/steveyegge/beads/internal/storage/uow"
-	"github.com/steveyegge/beads/internal/types"
-	"github.com/steveyegge/beads/internal/validation"
+	"github.com/borg0ai/dx-issuegraph/internal/storage"
+	"github.com/borg0ai/dx-issuegraph/internal/storage/issueops"
+	"github.com/borg0ai/dx-issuegraph/internal/storage/uow"
+	"github.com/borg0ai/dx-issuegraph/internal/types"
+	"github.com/borg0ai/dx-issuegraph/internal/validation"
 )
 
 // validateIssueUpdatable checks if an issue can be updated.
@@ -22,7 +22,7 @@ func validateIssueUpdatable(id string, issue *types.Issue) error {
 // Uses the centralized validation package for consistency.
 //
 // actor is the current actor identity (may be empty in early-init contexts);
-// AssigneeMatches refuses the close when the bead is assigned to someone else
+// AssigneeMatches refuses the close when the issue is assigned to someone else
 // unless force is true. This is the authority guard for be-035.
 func validateIssueClosable(id string, issue *types.Issue, actor string, force bool) error {
 	// Note: We use individual validators instead of ForClose() to maintain
@@ -35,7 +35,7 @@ func validateIssueClosable(id string, issue *types.Issue, actor string, force bo
 }
 
 // validateIssueReassignable checks whether an assignee update may proceed:
-// plain `bd update -a` / `bd assign` must not silently overwrite another
+// plain `issuegraph update -a` / `issuegraph assign` must not silently overwrite another
 // actor's live in_progress claim (bd-98s5c) — it was the last unfenced
 // cross-actor takeover path after --claim, unclaim, and close were fenced.
 //

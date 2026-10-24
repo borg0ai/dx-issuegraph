@@ -6,7 +6,7 @@
 of the gc-contract surface that validated a backend-agnostic storage seam at 299/299 byte-parity
 across two radically different backends), a five-dimension recon of this repo's storage
 architecture, and a two-reviewer adversarial verification pass. All file:line citations verified
-against `worktree-beads-new`.
+against `worktree-issuegraph-new`.
 
 > **Superseded scope:** This proposal is retained as the design record for the
 > storage interface, shared issue core, SQLite adapter, and differential
@@ -133,8 +133,8 @@ backend and the one that validates the seam.
 - **The capability-gating pattern already ships:** 10 optional interfaces
   (`storage.go:217-287`), `UnwrapStore` + type-assert at 22 modules/cli sites, graceful errors
   (`sql.go:54-57`).
-- **The public API is not frozen to the god interface:** root `beads.go:20` aliases
-  `Storage = beads.Storage` (= `storage.Storage`); RemoteStore/SyncStore are exported as
+- **The public API is not frozen to the god interface:** root `issuegraph.go:20` aliases
+  `Storage = issuegraph.Storage` (= `storage.Storage`); RemoteStore/SyncStore are exported as
   separately assertable interfaces. The retype does not break the public type surface — but see
   §4.4 for the public `Open*` constructors and the extension-compat note.
 - **Real prior art for the oracle:** `tests/regression` (built for the SQLite→Dolt migration;
@@ -175,8 +175,8 @@ backend and the one that validates the seam.
 - **H3. Global store + FIVE construction paths.** `store storage.DoltStorage`
   (`main.go:45`; **159 non-test refs / 61 files**, 15 more test files). Paths: PreRun choke
   point; lazy `direct_mode.go`; read-only; ~13 files opening routed/extra stores; **and the
-  public API** — root `beads.go:63-73` `Open/OpenFromConfig` hard-code `dolt.New*`
-  (+ `beads_nocgo.go` `OpenBestAvailable`), used by external Go extensions. The registry must
+  public API** — root `issuegraph.go:63-73` `Open/OpenFromConfig` hard-code `dolt.New*`
+  (+ `issuegraph_nocgo.go` `OpenBestAvailable`), used by external Go extensions. The registry must
   own all five. The `HookFiringStore` decorator EMBEDS DoltStorage
   (`hook_decorator.go:28-29`) and is applied only on the main path today — the registry must
   own decorator application or lazy/read-only/routed opens keep silently skipping hooks.
@@ -216,7 +216,7 @@ backend and the one that validates the seam.
   "auto-importing … into empty database" strings are gc error class 4 (the write-loss guard).
   A second backend that is empty-on-fresh-open is exactly the trigger condition; if its strings
   differ, gc's guard goes blind.
-- **H10. Env precedence can override the locator at OPEN.** `BEADS_DOLT_SERVER_MODE=1` is
+- **H10. Env precedence can override the locator at OPEN.** `ISSUEGRAPH_DOLT_SERVER_MODE=1` is
   precedence #1 over metadata.json (`configfile.go:232-243`); shared-server env/config
   overrides pinned `dolt_mode` with a Notice (`main.go:247`); `--global` hard-requires
   shared-server (`main.go:1071-1076`). Parsing is scattered (configfile, doltserver, init,
@@ -378,7 +378,7 @@ A specified seam protocol, designed in Phase 2b BEFORE code moves:
   backend's topology config — the CLI no longer knows modes exist.
 
 ### 4.3 Locator, legacy rule, and env precedence
-- Locator in `.beads/metadata.json`: `{backend: "dolt"|"sqlite"|"postgres", ...}`. `dolt_mode`
+- Locator in `.issuegraph/metadata.json`: `{backend: "dolt"|"sqlite"|"postgres", ...}`. `dolt_mode`
   becomes Dolt-internal topology config.
 - **Legacy-value rule (review blocker):** the existing `backend` field is UNTRUSTED legacy —
   workspaces in the wild may carry `backend:"sqlite"` from the pre-removal era
@@ -389,7 +389,7 @@ A specified seam protocol, designed in Phase 2b BEFORE code moves:
   with a legacy `backend:"sqlite"` metadata.json pins this. This closes the trap where a legacy
   value resolves to the new SQLite backend, opens an empty store, and H9 auto-import silently
   re-seeds/forks the workspace.
-- **Env precedence:** `BEADS_DOLT_*` (19 vars) are owned by the Dolt backend and are **inert
+- **Env precedence:** `ISSUEGRAPH_DOLT_*` (19 vars) are owned by the Dolt backend and are **inert
   for non-Dolt locators**; env parsing consolidates behind the registry; the Phase 1 harness
   pins the precedence table (H10). `--global`/shared-server: the CLI keeps a seam-level
   "workspace redirection" concept whose only current provider is Dolt shared-server topology —
@@ -400,13 +400,13 @@ A specified seam protocol, designed in Phase 2b BEFORE code moves:
   ALL envelope/stream routing and contract strings above it — including gc error class 3
   (`issuegraph sql` embedded string), class 4 (H9 auto-import strings — now backend-neutral pinned
   contract), and the claim-conflict text.
-- Public API: `beads.Open*` route through the registry (H3 fifth path). **Compat note for
+- Public API: `issuegraph.Open*` route through the registry (H3 fifth path). **Compat note for
   extension authors:** on non-Dolt workspaces, type-asserting `RemoteStore` etc. on the
   returned `Storage` starts returning false — document in release notes; the assertion pattern
-  itself (`beads.go:27-31`) is unchanged.
+  itself (`issuegraph.go:27-31`) is unchanged.
 - Single binary, no dynamic plugins. "Addons/packs" = capability-gated stubs inside one binary
   + build tags where deps demand (embedded Dolt is cgo-only; modernc SQLite is pure-Go → nocgo
-  builds gain a local backend for the first time, `beads_nocgo.go:27`).
+  builds gain a local backend for the first time, `issuegraph_nocgo.go:27`).
 
 ### 4.5 Bridge vs destination — how the two relate
 
@@ -573,7 +573,7 @@ candidate-binary paths.
   `molecules.NewLoader` + `remotecache.StoreOpener` + helpers from `DoltStorage` to the core
   interface (**159 refs / 61 files + 15 test files**); convert the ~87 Dolt-shaped call sites
   to UnwrapStore asserts; delete `DoltStorage`.
-- Consolidate the FIVE construction paths (incl. public `beads.Open*`) into the registry;
+- Consolidate the FIVE construction paths (incl. public `issuegraph.Open*`) into the registry;
   registry owns decorator application (closing the existing lazy/read-only/routed hook gap);
   new locator key + legacy rule (§4.3).
 - Convert H6 string lists to declared per-command properties.
@@ -649,7 +649,7 @@ test.
 
 ### Phase 5 — Third backend: SQLite (the nocgo/embedded story; now optional)
 Pure-Go (`modernc.org/sqlite`), documented single-writer (claim-drain gate N/A); fills the
-nocgo hole (`beads_nocgo.go:27` — non-CGO builds currently have NO local backend). Under
+nocgo hole (`issuegraph_nocgo.go:27` — non-CGO builds currently have NO local backend). Under
 Route A it rides the same production line (a SQLite `TxProvider` + dialect port); under
 Route B, a direct implementation with the WAL lessons (`synchronous=NORMAL`,
 `wal_autocheckpoint=0` + explicit checkpoint cadence, pragmas on the read pool, no unclosed
@@ -727,7 +727,7 @@ thing a new backend must pass before the differential harness.
   federation_nocgo precedent. (If hiding is ever wanted, it is its own sized work item.)
 - **D3 — `RunInTransaction` message param:** keep, re-specified per §4.2 (the blank-message
   suppression semantics become explicit seam behavior; "advisory" was wrong).
-- **D4 — MergeSlot\*/Slot\***: keep in core (bead-backed, portable); revisit when Postgres
+- **D4 — MergeSlot\*/Slot\***: keep in core (issue-backed, portable); revisit when Postgres
   lands (Phase 4) — real row locking may obviate them.
 - **D5 — Wisps' dolt-local tables** on backends without an ignore concept: table-prefix
   convention (recommended) vs separate file/schema. Feeds the Phase 4 schema design.

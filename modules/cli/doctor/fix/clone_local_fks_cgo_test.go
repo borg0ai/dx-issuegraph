@@ -13,8 +13,8 @@ import (
 	"testing"
 	"time"
 
-	"github.com/steveyegge/beads/internal/storage/dolt"
-	"github.com/steveyegge/beads/internal/types"
+	"github.com/borg0ai/dx-issuegraph/internal/storage/dolt"
+	"github.com/borg0ai/dx-issuegraph/internal/types"
 )
 
 // bd-7bpkd: DOLT_RESET('--hard') swaps the tracked issues table's backing
@@ -32,14 +32,14 @@ func TestRelinkSeveredCloneLocalFKs_AfterHardReset(t *testing.T) {
 	tmpDir := t.TempDir()
 	ctx := context.Background()
 
-	beadsDir := filepath.Join(tmpDir, ".beads")
-	if err := os.MkdirAll(beadsDir, 0755); err != nil {
-		t.Fatalf("failed to create .beads: %v", err)
+	issuegraphDir := filepath.Join(tmpDir, ".issuegraph")
+	if err := os.MkdirAll(issuegraphDir, 0755); err != nil {
+		t.Fatalf("failed to create .issuegraph: %v", err)
 	}
 	h := sha256.Sum256([]byte(t.Name() + fmt.Sprintf("%d", time.Now().UnixNano())))
 	dbName := "fixtest_" + hex.EncodeToString(h[:6])
 	store, err := dolt.New(ctx, &dolt.Config{
-		Path:            filepath.Join(beadsDir, "beads.db"),
+		Path:            filepath.Join(issuegraphDir, "issuegraph.db"),
 		ServerHost:      "127.0.0.1",
 		ServerPort:      port,
 		Database:        dbName,
@@ -52,7 +52,7 @@ func TestRelinkSeveredCloneLocalFKs_AfterHardReset(t *testing.T) {
 		store.Close()
 		dropFixTestDatabase(dbName, port)
 	})
-	if err := store.SetConfig(ctx, "issue_prefix", "bd"); err != nil {
+	if err := store.SetConfig(ctx, "issue_prefix", "issuegraph"); err != nil {
 		t.Fatalf("failed to set issue_prefix: %v", err)
 	}
 

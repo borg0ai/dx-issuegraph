@@ -1,6 +1,6 @@
 # Async Gates for Workflow Coordination
 
-> Adapted from ACF beads skill
+> Adapted from ACF issuegraph skill
 
 `issuegraph gate` provides async coordination primitives for cross-session and external-condition workflows. Gates are **wisps** (ephemeral issues) that block until a condition is met.
 
@@ -14,7 +14,7 @@
 | CI | `gh:run` | GitHub Actions run ID | Wait for GitHub Actions completion |
 | PR | `gh:pr` | PR number | Wait for PR merge |
 | Timer | `timer` | — | Deployment propagation delay |
-| Bead | `bead` | `<bead-id>` (local) | Wait for another local bead to close |
+| Issue | `issue` | `<issue-id>` (local) | Wait for another local issue to close |
 
 ---
 
@@ -22,36 +22,36 @@
 
 ```bash
 # Human approval gate (timeout is stored but not enforced by check)
-issuegraph gate create --type human --blocks bd-abc \
+issuegraph gate create --type human --blocks issuegraph-abc \
   --reason "Approve production deploy"
 
 # CI gate (GitHub Actions)
-issuegraph gate create --type gh:run --blocks bd-abc \
+issuegraph gate create --type gh:run --blocks issuegraph-abc \
   --await-id 123456789
 
 # PR merge gate
-issuegraph gate create --type gh:pr --blocks bd-abc \
+issuegraph gate create --type gh:pr --blocks issuegraph-abc \
   --await-id 42
 
 # Timer gate (deployment propagation) — --timeout is enforced by check
-issuegraph gate create --type timer --blocks bd-abc \
+issuegraph gate create --type timer --blocks issuegraph-abc \
   --timeout 15m
 
-# Bead gate (waits for a local bead to close)
-issuegraph gate create --type bead --blocks bd-abc \
-  --await-id bd-xyz
+# Issue gate (waits for a local issue to close)
+issuegraph gate create --type issue --blocks issuegraph-abc \
+  --await-id issuegraph-xyz
 ```
 
-> Note: cross-rig await IDs (`<rig>:<bead-id>`) are accepted at create time
+> Note: cross-rig await IDs (`<rig>:<issue-id>`) are accepted at create time
 > but are not currently evaluable — the gate stays pending forever. Use a
-> local bead ID.
+> local issue ID.
 
 **Required options**:
 - `--blocks <issue-id>` — Issue that stays blocked until the gate resolves
 
 **Optional**:
-- `--type <type>` — Gate type: `human`, `timer`, `gh:run`, `gh:pr`, `bead` (default `human`)
-- `--await-id <id>` — Condition identifier (run ID, PR number, `rig:bead-id`, etc.)
+- `--type <type>` — Gate type: `human`, `timer`, `gh:run`, `gh:pr`, `issue` (default `human`)
+- `--await-id <id>` — Condition identifier (run ID, PR number, `rig:issue-id`, etc.)
 - `--reason <text>` — Stored on the gate as its description (what is being gated)
 - `--timeout <duration>` — **Only timer gates enforce this** via `issuegraph gate check`. You can set it on other types for documentation, but `check` does not auto-resolve/escalate human or GitHub gates based on timeout.
 
@@ -75,7 +75,7 @@ issuegraph gate check --escalate  # Also fire escalations for failed/closed-unme
 | `timer` | `now > created_at + timeout` | never (timers only resolve or stay pending) |
 | `gh:run` | run `status=completed` **and** `conclusion=success` (also `skipped`) | run completed with `failure` / `canceled` |
 | `gh:pr` | PR `state=MERGED` | PR `state=CLOSED` without merge |
-| `bead` | target bead `status=closed` | — |
+| `issue` | target issue `status=closed` | — |
 | `human` | **never** via `check` — use `issuegraph gate resolve` | — |
 
 Only **resolved** gates are closed. Escalated gates remain open; use `--escalate` to notify, then decide whether to `issuegraph gate resolve` manually.
@@ -103,7 +103,7 @@ issuegraph gate check
 
 1. **Timeouts only protect timer gates**: `issuegraph gate check` evaluates `Timeout` for `timer` only. For human/GitHub forever-open protection, schedule a manual review or resolve yourself — do not rely on `--timeout` alone.
    ```bash
-   issuegraph gate create --type timer --blocks bd-abc --timeout 15m
+   issuegraph gate create --type timer --blocks issuegraph-abc --timeout 15m
    ```
 
 2. **Clear reasons**: `--reason` is stored as the gate description (what is being gated).

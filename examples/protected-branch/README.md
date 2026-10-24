@@ -11,7 +11,7 @@ You have a repository with:
 
 ## Solution
 
-Use issuegraph's separate sync branch feature to commit issue metadata to a dedicated branch (e.g., `beads-metadata`), then periodically merge via pull request.
+Use issuegraph's separate sync branch feature to commit issue metadata to a dedicated branch (e.g., `issuegraph-metadata`), then periodically merge via pull request.
 
 ## Quick Demo
 
@@ -23,11 +23,11 @@ git init my-project
 cd my-project
 
 # Initialize issuegraph with separate sync branch
-issuegraph init --branch beads-metadata --quiet
+issuegraph init --branch issuegraph-metadata --quiet
 
 # Verify configuration
 issuegraph config get sync.branch
-# Output: beads-metadata
+# Output: issuegraph-metadata
 ```
 
 ### 2. Create Issues (Agent Workflow)
@@ -39,14 +39,14 @@ issuegraph create "Add login page" -t task -p 1
 issuegraph create "Write auth tests" -t task -p 2
 
 # Link tasks to parent feature
-issuegraph link bd-XXXXX --blocks bd-YYYYY  # auth blocks login
-issuegraph link bd-XXXXX --blocks bd-ZZZZZ  # auth blocks tests
+issuegraph link issuegraph-XXXXX --blocks issuegraph-YYYYY  # auth blocks login
+issuegraph link issuegraph-XXXXX --blocks issuegraph-ZZZZZ  # auth blocks tests
 
 # Start work
-issuegraph update bd-XXXXX --claim
+issuegraph update issuegraph-XXXXX --claim
 ```
 
-**Note:** Replace `bd-XXXXX` etc. with actual issue IDs created above.
+**Note:** Replace `issuegraph-XXXXX` etc. with actual issue IDs created above.
 
 ### 3. Auto-Sync (Server Mode)
 
@@ -55,17 +55,17 @@ issuegraph update bd-XXXXX --claim
 issuegraph config set dolt.auto-commit on
 issuegraph dolt start
 
-# All issue changes are now automatically committed to beads-metadata branch
+# All issue changes are now automatically committed to issuegraph-metadata branch
 ```
 
 Check what's been committed:
 
 ```bash
 # View commits on sync branch
-git log beads-metadata --oneline | head -5
+git log issuegraph-metadata --oneline | head -5
 
 # View diff between main and sync branch
-git log main..beads-metadata --oneline
+git log main..issuegraph-metadata --oneline
 ```
 
 ### 4. Manual Sync (Without Server)
@@ -75,13 +75,13 @@ If you're not using the Dolt server:
 ```bash
 # Create or update issues
 issuegraph create "Fix bug in login" -t bug -p 0
-issuegraph update bd-XXXXX --status closed
+issuegraph update issuegraph-XXXXX --status closed
 
 # Manually push to remote
 issuegraph dolt push
 
 # Verify commit
-git log beads-metadata -1
+git log issuegraph-metadata -1
 ```
 
 ### 5. Merge to Main (Human Review)
@@ -90,10 +90,10 @@ Option 1: Via pull request (recommended):
 
 ```bash
 # Push sync branch
-git push origin beads-metadata
+git push origin issuegraph-metadata
 
 # Create PR on GitHub
-gh pr create --base main --head beads-metadata \
+gh pr create --base main --head issuegraph-metadata \
   --title "Update issue metadata" \
   --body "Automated issue tracker updates from issuegraph"
 
@@ -107,11 +107,11 @@ Option 2: Direct merge (if you have push access):
 
 ```bash
 # Preview merge
-git log main..beads-metadata --oneline
+git log main..issuegraph-metadata --oneline
 
 # Perform merge
 git checkout main
-git merge beads-metadata --no-ff
+git merge issuegraph-metadata --no-ff
 git push
 issuegraph dolt pull  # Pull merged changes into local database
 ```
@@ -124,10 +124,10 @@ If you have multiple clones or agents:
 # Clone 1: Create issue
 issuegraph create "New feature" -t feature -p 1
 issuegraph dolt push  # Push to remote
-git push origin beads-metadata
+git push origin issuegraph-metadata
 
 # Clone 2: Pull changes
-git fetch origin beads-metadata
+git fetch origin issuegraph-metadata
 issuegraph dolt pull  # Pull from remote into local database
 issuegraph list  # See the new feature issue
 ```
@@ -146,7 +146,7 @@ issuegraph list  # See the new feature issue
 │  Dolt server    │
 │  (or manual     │
 │  sync) commits  │
-│  to beads-      │
+│  to issuegraph-      │
 │  metadata       │
 └────────┬────────┘
          │
@@ -172,12 +172,12 @@ When using separate sync branch, your repo will have:
 ```
 my-project/
 ├── .git/
-│   ├── beads-worktrees/       # Hidden worktree directory
-│   │   └── beads-metadata/    # Lightweight checkout of sync branch
-│   │       └── .beads/
+│   ├── issuegraph-worktrees/       # Hidden worktree directory
+│   │   └── issuegraph-metadata/    # Lightweight checkout of sync branch
+│   │       └── .issuegraph/
 │   │           └── dolt/
 │   └── ...
-├── .beads/                    # Main issuegraph directory (in your workspace)
+├── .issuegraph/                    # Main issuegraph directory (in your workspace)
 │   ├── dolt/                  # Dolt database (source of truth)
 │   └── config.yaml            # IssueGraph configuration
 ├── src/                       # Your application code
@@ -186,8 +186,8 @@ my-project/
 ```
 
 **Key points:**
-- `.git/beads-worktrees/` is hidden from your main workspace
-- Only `.beads/` is checked out in the worktree (sparse checkout)
+- `.git/issuegraph-worktrees/` is hidden from your main workspace
+- Only `.issuegraph/` is checked out in the worktree (sparse checkout)
 - Your `src/` code is never affected by issuegraph commits
 - Minimal disk overhead (~few MB for worktree)
 
@@ -195,7 +195,7 @@ my-project/
 
 ### For Humans
 
-- **Review before merging:** Use `git log main..beads-metadata --oneline` to see what changed
+- **Review before merging:** Use `git log main..issuegraph-metadata --oneline` to see what changed
 - **Batch merges:** Don't need to merge after every issue - merge when convenient
 - **PR descriptions:** Link to specific issues in PR body for context
 
@@ -227,7 +227,7 @@ issuegraph dolt stop && issuegraph dolt start              # Server will create 
 Make sure:
 - `issuegraph config get sync.branch` returns the same value on all clones
 - Dolt server is running: `issuegraph doctor`
-- Both clones have fetched: `git fetch origin beads-metadata`
+- Both clones have fetched: `git fetch origin issuegraph-metadata`
 
 ## Advanced: GitHub Actions Integration
 
@@ -241,7 +241,7 @@ on:
   workflow_dispatch:
 
 jobs:
-  merge-beads:
+  merge-issuegraph:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v3
@@ -249,13 +249,13 @@ jobs:
           fetch-depth: 0
 
       - name: Install issuegraph
-        run: curl -fsSL https://raw.githubusercontent.com/gastownhall/beads/main/scripts/install.sh | bash
+        run: curl -fsSL https://raw.githubusercontent.com/borg0ai/dx-issuegraph/main/scripts/install.sh | bash
 
       - name: Check for changes
         id: check
         run: |
-          git fetch origin beads-metadata
-          if git diff --quiet main origin/beads-metadata -- .beads/; then
+          git fetch origin issuegraph-metadata
+          if git diff --quiet main origin/issuegraph-metadata -- .issuegraph/; then
             echo "has_changes=false" >> $GITHUB_OUTPUT
           else
             echo "has_changes=true" >> $GITHUB_OUTPUT
@@ -264,7 +264,7 @@ jobs:
       - name: Create PR
         if: steps.check.outputs.has_changes == 'true'
         run: |
-          gh pr create --base main --head beads-metadata \
+          gh pr create --base main --head issuegraph-metadata \
             --title "Update issue metadata" \
             --body "Automated issue tracker updates from issuegraph" \
             || echo "PR already exists"

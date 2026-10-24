@@ -5,7 +5,7 @@ import (
 	"testing"
 	"time"
 
-	"github.com/steveyegge/beads/internal/types"
+	"github.com/borg0ai/dx-issuegraph/internal/types"
 )
 
 // seedCountWispCorpus creates a mixed corpus spanning every cardinality trap
@@ -58,7 +58,7 @@ func seedCountWispCorpus(t *testing.T, ctx context.Context, store *DoltStore, p 
 // TestCountIssuesMergedMatchesSearch is the storage-side parity guard for
 // GH#4387: for any filter, CountIssues with SkipWisps=false must return
 // exactly len(SearchIssues) for the same filter — the merged issues+wisps
-// cardinality that `bd list --include-infra` materializes.
+// cardinality that `issuegraph list --include-infra` materializes.
 func TestCountIssuesMergedMatchesSearch(t *testing.T) {
 	store, cleanup := setupTestStore(t)
 	defer cleanup()
@@ -79,14 +79,14 @@ func TestCountIssuesMergedMatchesSearch(t *testing.T) {
 	}{
 		// 4 issues + 2 no_history wisps + 1 ephemeral wisp.
 		{"merged_all", types.IssueFilter{}, 7},
-		// Durable tier only (today's bd count default).
+		// Durable tier only (today's issuegraph count default).
 		{"durable_only", types.IssueFilter{SkipWisps: true}, 4},
 		// Type filter applies identically to both tables.
 		{"merged_type_task", types.IssueFilter{IssueType: &task}, 5},
-		// Template exclusion (bd list default) drops cm-perm-tpl.
+		// Template exclusion (issuegraph list default) drops cm-perm-tpl.
 		{"merged_no_templates", types.IssueFilter{IsTemplate: &noTemplate}, 6},
 		{"merged_no_templates_task", types.IssueFilter{IsTemplate: &noTemplate, IssueType: &task}, 4},
-		// Ephemeral-only routes to the wisps tier (bd list --type <infra>).
+		// Ephemeral-only routes to the wisps tier (issuegraph list --type <infra>).
 		{"ephemeral_only", types.IssueFilter{Ephemeral: &ephemeral}, 1},
 	}
 
@@ -119,8 +119,8 @@ func TestCountIssuesMergedMatchesSearch(t *testing.T) {
 // count and so reported 0 where list returned the durable row, breaking the
 // "count == len(list) for any filter" contract. This reproduces the exact
 // empty-wisps-but-durable-match state: a durable issues row carrying
-// ephemeral=1 (what an infra bead that landed durable looks like), which normal
-// creation never produces because it routes ephemeral/infra beads to the wisps
+// ephemeral=1 (what an infra issue that landed durable looks like), which normal
+// creation never produces because it routes ephemeral/infra issuegraph to the wisps
 // table, so the row is inserted directly.
 func TestCountIssuesEphemeralFallsThroughToDurable(t *testing.T) {
 	store, cleanup := setupTestStore(t)
@@ -168,7 +168,7 @@ func TestCountIssuesEphemeralFallsThroughToDurable(t *testing.T) {
 }
 
 // TestCountIssuesByGroupIncludesWisps verifies the grouped-count paths honor
-// SkipWisps the same way CountIssues does, so `bd count --include-infra
+// SkipWisps the same way CountIssues does, so `issuegraph count --include-infra
 // --by-*` reports the merged issues+wisps numbers instead of silently-wrong
 // durable-only buckets (GH#4387).
 func TestCountIssuesByGroupIncludesWisps(t *testing.T) {
@@ -236,7 +236,7 @@ func TestCountIssuesByGroupIncludesWisps(t *testing.T) {
 		if counts["shared"] != 2 {
 			t.Errorf("merged label count = %d, want 2 (wisp labels dropped)", counts["shared"])
 		}
-		// 5 remaining beads carry no label.
+		// 5 remaining issuegraph carry no label.
 		if counts["(no labels)"] != 5 {
 			t.Errorf("merged (no labels) count = %d, want 5", counts["(no labels)"])
 		}
@@ -259,7 +259,7 @@ func TestCountIssuesByGroupIncludesWisps(t *testing.T) {
 
 // seedDurableEphemeralRow inserts the exact GH#4387 fall-through trap: a durable
 // issues-table row carrying ephemeral=1 with no matching wisp. Normal creation
-// never produces this because ephemeral/infra beads route to the wisps table on
+// never produces this because ephemeral/infra issuegraph route to the wisps table on
 // insert, so the row is written directly. Returns the durable ephemeral row id.
 func seedDurableEphemeralRow(t *testing.T, ctx context.Context, store *DoltStore, p string) string {
 	t.Helper()
@@ -286,7 +286,7 @@ func seedDurableEphemeralRow(t *testing.T, ctx context.Context, store *DoltStore
 // TestCountIssuesByGroupEphemeralFallsThroughToDurable is the grouped-count
 // sibling of TestCountIssuesEphemeralFallsThroughToDurable. Before the fix,
 // CountIssuesByGroupInTx returned the wisps-only grouped counts for an
-// Ephemeral=true filter, so `bd count --include-infra --by-type` reported empty
+// Ephemeral=true filter, so `issuegraph count --include-infra --by-type` reported empty
 // buckets (sum 0) while the scalar Total fell through to the durable issues
 // table and reported 1 — sum(groups) != Total, breaking GH#4387 cardinality
 // parity. This pins that the grouped path falls through to the durable issues
@@ -332,7 +332,7 @@ func TestCountIssuesByGroupEphemeralFallsThroughToDurable(t *testing.T) {
 // TestSearchIssuesWithCountsEphemeralFallsThroughToDurable is the
 // counts-projection sibling of the same GH#4387 fix. Before the fix,
 // SearchIssuesWithCountsInTx returned nil for an Ephemeral=true filter whenever
-// no matching wisp existed, so `bd search --counts --include-infra` dropped a
+// no matching wisp existed, so `issuegraph search --counts --include-infra` dropped a
 // durable issues-table row flagged ephemeral=1 that plain SearchIssues (and
 // CountIssues) still surface. This pins parity between the counts-projection
 // search and the plain search for that durable-ephemeral state.

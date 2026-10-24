@@ -24,7 +24,7 @@ const (
 // cursorHookMarkerDirOverride lets tests redirect the refresh-marker location.
 var cursorHookMarkerDirOverride string
 
-// cursorHookExecPrime runs `bd prime` and returns its output. It is a package
+// cursorHookExecPrime runs `issuegraph prime` and returns its output. It is a package
 // variable so tests can stub it; it delegates to the shared runBdPrime used by
 // codex-hook.
 var cursorHookExecPrime = func(ctx context.Context) (string, error) {
@@ -93,7 +93,7 @@ func runCursorHook(ctx context.Context, event string, stdin io.Reader, stdout io
 	}
 }
 
-// cursorHookHandleSessionStart injects full `bd prime` output into the new
+// cursorHookHandleSessionStart injects full `issuegraph prime` output into the new
 // session and clears any stale post-compaction refresh marker.
 func cursorHookHandleSessionStart(ctx context.Context, input cursorHookInput, stdout io.Writer) error {
 	_ = os.Remove(cursorHookRefreshMarkerPath(input)) // best-effort: drop stale marker
@@ -115,13 +115,13 @@ func cursorHookHandleSessionStart(ctx context.Context, input cursorHookInput, st
 func cursorHookHandlePreCompact(input cursorHookInput, stdout io.Writer) error {
 	_ = writeAgentHookMarker(cursorHookRefreshMarkerPath(input)) // best-effort: arm recovery
 	return json.NewEncoder(stdout).Encode(cursorHookResponse{
-		UserMessage: "Beads: context compacting — bd workflow context will be re-injected on the next tool call (or run `bd prime`).",
+		UserMessage: "IssueGraph: context compacting — issuegraph workflow context will be re-injected on the next tool call (or run `issuegraph prime`).",
 	})
 }
 
 // cursorHookHandlePostToolUse is a fast no-op on every tool call unless a
 // compaction just happened (marker present), in which case it re-injects
-// `bd prime` exactly once and clears the marker.
+// `issuegraph prime` exactly once and clears the marker.
 func cursorHookHandlePostToolUse(ctx context.Context, input cursorHookInput, stdout io.Writer) error {
 	path := cursorHookRefreshMarkerPath(input)
 	if _, err := os.Stat(path); err != nil {
@@ -139,7 +139,7 @@ func cursorHookHandlePostToolUse(ctx context.Context, input cursorHookInput, std
 	// context-injection response. (The no-op paths above stay as a bare "{}",
 	// the documented no-op for a command hook.)
 	cont := true
-	restored := "[Beads] Context was compacted. Restored bd workflow context below.\n\n" + strings.TrimRight(out, "\n")
+	restored := "[IssueGraph] Context was compacted. Restored issuegraph workflow context below.\n\n" + strings.TrimRight(out, "\n")
 	return json.NewEncoder(stdout).Encode(cursorHookResponse{Continue: &cont, AdditionalContext: restored})
 }
 

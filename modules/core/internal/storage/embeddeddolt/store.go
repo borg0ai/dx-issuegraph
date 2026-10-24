@@ -13,13 +13,13 @@ import (
 	"sync/atomic"
 	"time"
 
-	"github.com/steveyegge/beads/internal/config"
-	"github.com/steveyegge/beads/internal/storage"
-	"github.com/steveyegge/beads/internal/storage/issueops"
-	"github.com/steveyegge/beads/internal/storage/schema"
-	"github.com/steveyegge/beads/internal/storage/versioncontrolops"
-	"github.com/steveyegge/beads/internal/types"
-	"github.com/steveyegge/beads/internal/utils"
+	"github.com/borg0ai/dx-issuegraph/internal/config"
+	"github.com/borg0ai/dx-issuegraph/internal/storage"
+	"github.com/borg0ai/dx-issuegraph/internal/storage/issueops"
+	"github.com/borg0ai/dx-issuegraph/internal/storage/schema"
+	"github.com/borg0ai/dx-issuegraph/internal/storage/versioncontrolops"
+	"github.com/borg0ai/dx-issuegraph/internal/types"
+	"github.com/borg0ai/dx-issuegraph/internal/utils"
 )
 
 // Compile-time interface checks.
@@ -41,10 +41,10 @@ var _ storage.ExternalRefHistoryQuerier = (*EmbeddedDoltStore)(nil)
 // multiple processes access the same database concurrently.
 //
 // The dolthub/driver/v2 handles its own concurrency internally. File-level locking
-// is only used during bd init to protect one-time initialization steps.
+// is only used during issuegraph init to protect one-time initialization steps.
 type EmbeddedDoltStore struct {
 	dataDir       string
-	beadsDir      string
+	issuegraphDir string
 	database      string
 	branch        string
 	credentialKey []byte
@@ -73,10 +73,10 @@ type EmbeddedDoltStore struct {
 const lenientSharedGateGuidance = "  This is a coordination decision, not an auto-fix - do NOT run a\n" +
 	"  migration unless you are the single designated migrator (only ONE\n" +
 	"  clone may migrate a shared remote, else the schema forks; #4259):\n" +
-	"    • designated migrator (only ONE machine): bd migrate --force && bd dolt push\n" +
-	"    • every other clone (another already migrated): bd bootstrap\n" +
+	"    • designated migrator (only ONE machine): issuegraph migrate --force && issuegraph dolt push\n" +
+	"    • every other clone (another already migrated): issuegraph bootstrap\n" +
 	"    • several machines: only ONE migrates; sync each other clone and run\n" +
-	"      bd dolt pull after the migrator pushes, before upgrading it\n"
+	"      issuegraph dolt pull after the migrator pushes, before upgrading it\n"
 
 // lenientGateWarningBody preserves the generic migrate-or-adopt guidance for
 // blunt gate refusals while allowing smart-gate decisions to explain their
@@ -107,14 +107,14 @@ const (
 	// dirty tables either. Used by OpenForReadOnlyCommand.
 	openReadOnlyCommand
 	// openWorkingSetReconcile relaxes both refusals for working-set-reconcile
-	// commands (bd dolt commit, bd vc commit): their entire purpose is to
+	// commands (issuegraph dolt commit, issuegraph vc commit): their entire purpose is to
 	// clear the dirty working set that a migration would otherwise refuse to
 	// touch, so failing the open here would deadlock the documented recovery
 	// (#4566). Used by OpenForWorkingSetReconcile.
 	openWorkingSetReconcile
 	// openRemoteSync is the same shape of deadlock break as
 	// openWorkingSetReconcile, for the #6575 data-behind gate refusal: that
-	// refusal's entire remedy is `bd dolt pull`, which itself opens the store
+	// refusal's entire remedy is `issuegraph dolt pull`, which itself opens the store
 	// and so hit the refusal that prescribed it — a fence with no gate. Unlike
 	// the two intents above it relaxes exactly ONE refusal and nothing else:
 	// only a gate error whose reason is data-behind
@@ -135,18 +135,18 @@ const (
 // to be the terminator of the two non-data-behind arms, moved to the front).
 //
 // #6575/#6660: lenientSharedGateGuidance is the blunt migrate-or-adopt block.
-// On data-behind its bullets are measurably wrong — `bd migrate --force`
-// applies the migration this stop exists to prevent, the `bd dolt push` after
+// On data-behind its bullets are measurably wrong — `issuegraph migrate --force`
+// applies the migration this stop exists to prevent, the `issuegraph dolt push` after
 // it is rejected non-fast-forward while the clone is still behind, and
-// `bd bootstrap` no-ops against an existing workspace. On the smart decisions
+// `issuegraph bootstrap` no-ops against an existing workspace. On the smart decisions
 // they are instead redundant with the shaped body — and, for the
-// `bd migrate --force` bullet, contradicted by it (fork-skew's body says
+// `issuegraph migrate --force` bullet, contradicted by it (fork-skew's body says
 // migrating cannot un-fork the schema). Either way gateErr's own UserMessage
 // is where the right body lives, already branched per decision and, for
 // data-behind, per fast-forward vs diverged pull. Printing %v (Error(), the
 // one-line summary) and appending the bullets dropped it: a 1.1-era upgrader's
-// first `bd list` and their `bd dolt commit` both land in the two arms below,
-// so the first thing bd said to a data-behind clone was the wedge. Server
+// first `issuegraph list` and their `issuegraph dolt commit` both land in the two arms below,
+// so the first thing issuegraph said to a data-behind clone was the wedge. Server
 // mode's warnLenientOpenRefusal (dolt/store.go) has rendered UserMessage all
 // along; these arms are the ones that lagged.
 //
@@ -164,7 +164,7 @@ func lenientGateWarning(intent openIntent, gateErr *schema.RemoteMigrateGateErro
 		// the operator has necessarily just been handed that body by the
 		// command this pull is unblocking, and re-printing "pull first"
 		// at the moment they are finally doing it is noise. What it must
-		// never do is name `bd migrate --force`.
+		// never do is name `issuegraph migrate --force`.
 		return fmt.Sprintf(
 			"Warning: %[1]v\n"+
 				"  Remote-sync command: continuing on schema v%[2]d without migrating, so\n"+
@@ -208,7 +208,7 @@ func lenientGateWarning(intent openIntent, gateErr *schema.RemoteMigrateGateErro
 // failing the open.
 //
 // openRemoteSync is deliberately conditional on the REASON rather than being
-// another blanket exemption: it exists only so `bd dolt pull` can execute the
+// another blanket exemption: it exists only so `issuegraph dolt pull` can execute the
 // #6575 data-behind refusal's own remedy, and widening it to every gate
 // refusal would quietly let a pull through a fork-skew or shared-store stop
 // that the pull cannot help with.
@@ -246,35 +246,35 @@ func (s *EmbeddedDoltStore) IsClosed() bool {
 }
 
 // newStore creates an EmbeddedDoltStore using the embedded Dolt engine.
-// beadsDir is the .beads/ root; the data directory is derived as <beadsDir>/embeddeddolt/.
+// issuegraphDir is the .issuegraph/ root; the data directory is derived as <issuegraphDir>/embeddeddolt/.
 // The database is created automatically if it doesn't exist (initSchema handles this).
 //
 // The dolthub/driver/v2 handles its own concurrency internally. File-level locking
-// is only used during bd init (via util.TryLock in the init command) to protect
+// is only used during issuegraph init (via util.TryLock in the init command) to protect
 // one-time initialization steps — the store itself does not hold any lock.
-func newStore(ctx context.Context, beadsDir, database, branch string, intent openIntent) (*EmbeddedDoltStore, error) {
+func newStore(ctx context.Context, issuegraphDir, database, branch string, intent openIntent) (*EmbeddedDoltStore, error) {
 	if database == "" {
-		return nil, fmt.Errorf("embeddeddolt: database name must not be empty (caller should default to %q)", "beads")
+		return nil, fmt.Errorf("embeddeddolt: database name must not be empty (caller should default to %q)", "issuegraph")
 	}
 
 	// Resolve to absolute path — the embedded dolt driver resolves file://
 	// DSN paths relative to its data directory, so relative paths cause
 	// doubled-path errors on subsequent opens.
-	absBeadsDir, err := filepath.Abs(beadsDir)
+	absIssueGraphDir, err := filepath.Abs(issuegraphDir)
 	if err != nil {
-		return nil, fmt.Errorf("embeddeddolt: resolving beads dir: %w", err)
+		return nil, fmt.Errorf("embeddeddolt: resolving issuegraph dir: %w", err)
 	}
-	dataDir := filepath.Join(absBeadsDir, "embeddeddolt")
-	if err := os.MkdirAll(dataDir, config.BeadsDirPerm); err != nil {
+	dataDir := filepath.Join(absIssueGraphDir, "embeddeddolt")
+	if err := os.MkdirAll(dataDir, config.IssueGraphDirPerm); err != nil {
 		return nil, fmt.Errorf("embeddeddolt: creating data directory: %w", err)
 	}
 
 	s := &EmbeddedDoltStore{
-		dataDir:  dataDir,
-		beadsDir: absBeadsDir,
-		database: database,
-		branch:   branch,
-		intent:   intent,
+		dataDir:       dataDir,
+		issuegraphDir: absIssueGraphDir,
+		database:      database,
+		branch:        branch,
+		intent:        intent,
 	}
 
 	if err := s.initSchema(ctx); err != nil {
@@ -300,8 +300,8 @@ func newStore(ctx context.Context, beadsDir, database, branch string, intent ope
 // handed a future writable Open (which would skip migrations), and writable
 // opens of the same directory keep their own lifecycle. Write transactions on
 // the returned store are refused.
-func OpenReadOnly(ctx context.Context, beadsDir, database, branch string) (*EmbeddedDoltStore, error) {
-	return openReadOnly(ctx, beadsDir, database, branch, true)
+func OpenReadOnly(ctx context.Context, issuegraphDir, database, branch string) (*EmbeddedDoltStore, error) {
+	return openReadOnly(ctx, issuegraphDir, database, branch, true)
 }
 
 // OpenForPreviewCommand opens an existing embedded database without any
@@ -310,32 +310,32 @@ func OpenReadOnly(ctx context.Context, beadsDir, database, branch string) (*Embe
 // still validate state that is query-compatible with the current binary. A
 // missing column or other genuine incompatibility is reported by the preview
 // query itself; it is never repaired implicitly.
-func OpenForPreviewCommand(ctx context.Context, beadsDir, database, branch string) (*EmbeddedDoltStore, error) {
-	return openReadOnly(ctx, beadsDir, database, branch, false)
+func OpenForPreviewCommand(ctx context.Context, issuegraphDir, database, branch string) (*EmbeddedDoltStore, error) {
+	return openReadOnly(ctx, issuegraphDir, database, branch, false)
 }
 
-func openReadOnly(ctx context.Context, beadsDir, database, branch string, checkBehind bool) (*EmbeddedDoltStore, error) {
+func openReadOnly(ctx context.Context, issuegraphDir, database, branch string, checkBehind bool) (*EmbeddedDoltStore, error) {
 	if database == "" {
-		return nil, fmt.Errorf("embeddeddolt: database name must not be empty (caller should default to %q)", "beads")
+		return nil, fmt.Errorf("embeddeddolt: database name must not be empty (caller should default to %q)", "issuegraph")
 	}
 	if !validIdentifier.MatchString(database) {
 		return nil, fmt.Errorf("embeddeddolt: invalid database name: %q", database)
 	}
-	absBeadsDir, err := filepath.Abs(beadsDir)
+	absIssueGraphDir, err := filepath.Abs(issuegraphDir)
 	if err != nil {
-		return nil, fmt.Errorf("embeddeddolt: resolving beads dir: %w", err)
+		return nil, fmt.Errorf("embeddeddolt: resolving issuegraph dir: %w", err)
 	}
-	dataDir := filepath.Join(absBeadsDir, "embeddeddolt")
+	dataDir := filepath.Join(absIssueGraphDir, "embeddeddolt")
 	if _, err := os.Stat(dataDir); err != nil {
 		return nil, fmt.Errorf("embeddeddolt: no embedded database at %s: %w", dataDir, err)
 	}
 
 	s := &EmbeddedDoltStore{
-		dataDir:  dataDir,
-		beadsDir: absBeadsDir,
-		database: database,
-		branch:   branch,
-		readOnly: true,
+		dataDir:       dataDir,
+		issuegraphDir: absIssueGraphDir,
+		database:      database,
+		branch:        branch,
+		readOnly:      true,
 	}
 
 	db, cleanup, err := OpenSQL(ctx, dataDir, database, branch)
@@ -471,7 +471,7 @@ func (s *EmbeddedDoltStore) initSchema(ctx context.Context) error {
 		if !validIdentifier.MatchString(s.database) {
 			msg := fmt.Sprintf("embeddeddolt: invalid database name: %q", s.database)
 			if strings.ContainsRune(s.database, '-') {
-				msg += "; hyphens are not allowed in embedded mode — replace with underscores in .beads/metadata.json dolt_database field, or run 'bd doctor'"
+				msg += "; hyphens are not allowed in embedded mode — replace with underscores in .issuegraph/metadata.json dolt_database field, or run 'issuegraph doctor'"
 			}
 			return errors.New(msg)
 		}
@@ -489,7 +489,7 @@ func (s *EmbeddedDoltStore) initSchema(ctx context.Context) error {
 	}
 
 	// Forward-drift guard: if this database's schema is AHEAD of the binary,
-	// fail fast with a clear "upgrade bd" message before MigrateUp no-ops and a
+	// fail fast with a clear "upgrade issuegraph" message before MigrateUp no-ops and a
 	// later query dies on a dropped/renamed column. Embedded mode is the mode
 	// the stale-binary incident (#4135/#4137) was observed in. The read-only
 	// embedded open (OpenReadOnly) already guards this; the writable open did
@@ -517,7 +517,7 @@ func (s *EmbeddedDoltStore) initSchema(ctx context.Context) error {
 			return versioncontrolops.LocalIsStrictAncestorOf(ctx, db, ref)
 		},
 		// The raw counts the equal-version data-behind check needs
-		// (gastownhall/beads#6575): behind >= 1 whatever ahead is, plus
+		// (borg0ai/dx-issuegraph#6575): behind >= 1 whatever ahead is, plus
 		// which shape it is so the refusal names the pull the operator
 		// will actually get.
 		AheadBehind: func(ctx context.Context, db schema.DBConn, ref string) (int, int, error) {
@@ -573,13 +573,13 @@ func (s *EmbeddedDoltStore) initSchema(ctx context.Context) error {
 				fmt.Fprintf(os.Stderr,
 					"Warning: %v\n"+
 						"  Committing the working set at the current schema; when it completes,\n"+
-						"  re-run 'bd migrate'.\n",
+						"  re-run 'issuegraph migrate'.\n",
 					dirtyErr)
 			default: // openReadOnlyCommand
 				fmt.Fprintf(os.Stderr,
 					"Warning: %v\n"+
-						"  Continuing without migrating. Run 'bd dolt commit' to commit the\n"+
-						"  working set at the current schema, then re-run 'bd migrate'.\n",
+						"  Continuing without migrating. Run 'issuegraph dolt commit' to commit the\n"+
+						"  working set at the current schema, then re-run 'issuegraph migrate'.\n",
 					dirtyErr)
 			}
 			return nil
@@ -588,15 +588,15 @@ func (s *EmbeddedDoltStore) initSchema(ctx context.Context) error {
 		if s.toleratesMigrationRefusal() && errors.As(err, &rekeyErr) {
 			// Same principle for the dependency re-key's refusal (#5268): it is
 			// a convergence repair, not a precondition for reading, and before
-			// that pass existed these clones opened fine. Bricking 'bd list' and
-			// 'bd show' on latent id corruption the user cannot even inspect
+			// that pass existed these clones opened fine. Bricking 'issuegraph list' and
+			// 'issuegraph show' on latent id corruption the user cannot even inspect
 			// without them would be a worse outcome than a stale primary key.
 			// Nothing is lost by continuing: the 0026 marker stays unrecorded,
 			// so the next open retries the repair.
 			fmt.Fprintf(os.Stderr,
 				"Warning: %v\n"+
 					"  Continuing without re-keying dependencies. Dependency ids stay as\n"+
-					"  they are until the conflict is resolved; run 'bd doctor' to inspect.\n",
+					"  they are until the conflict is resolved; run 'issuegraph doctor' to inspect.\n",
 				rekeyErr)
 			return nil
 		}
@@ -769,7 +769,7 @@ func (s *EmbeddedDoltStore) GetAllEventsSince(ctx context.Context, since time.Ti
 
 // EventsSince returns durable events strictly after the keyset cursor, ordered
 // by (created_at ASC, id ASC) and bounded by limit. Durable events table only.
-// issueID != "" scopes the feed to one bead's history.
+// issueID != "" scopes the feed to one issue's history.
 func (s *EmbeddedDoltStore) EventsSince(ctx context.Context, cursor storage.EventCursor, issueID string, limit int) ([]*types.Event, error) {
 	var result []*types.Event
 	err := s.withConn(ctx, false, func(tx *sql.Tx) error {
@@ -979,7 +979,7 @@ func (s *EmbeddedDoltStore) Compact(ctx context.Context, initialHash, boundaryHa
 	})
 }
 
-// Path returns the embedded dolt data directory (.beads/embeddeddolt/).
+// Path returns the embedded dolt data directory (.issuegraph/embeddeddolt/).
 func (s *EmbeddedDoltStore) Path() string {
 	return s.dataDir
 }
@@ -1027,7 +1027,7 @@ func (s *EmbeddedDoltStore) ActiveDatabaseSize(ctx context.Context) (int64, erro
 // comparison would cost two extra engine opens on every call (this runs on
 // every embedded pull/sync) and race against any concurrent HEAD movement.
 func (s *EmbeddedDoltStore) CommitPending(ctx context.Context, actor string) (bool, error) {
-	msg := fmt.Sprintf("bd: commit pending changes by %s", actor)
+	msg := fmt.Sprintf("issuegraph: commit pending changes by %s", actor)
 	return s.commitAll(ctx, msg, true)
 }
 

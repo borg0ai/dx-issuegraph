@@ -2,11 +2,11 @@
 
 package main
 
-// Helpers for the MANAGED-LOCAL proxied-server lane: bd launches its own
-// loopback proxy (a detached `bd db-proxy-child` process) and that proxy
+// Helpers for the MANAGED-LOCAL proxied-server lane: issuegraph launches its own
+// loopback proxy (a detached `issuegraph db-proxy-child` process) and that proxy
 // launches a locally installed `dolt sql-server`. No external host/port and
 // no testcontainer are involved, which is the production local-first
-// topology that the external-harness shards (BEADS_TEST_PROXIED_SERVER)
+// topology that the external-harness shards (ISSUEGRAPH_TEST_PROXIED_SERVER)
 // deliberately do not cover.
 //
 // The lane is gated by its own environment variable so CI can run the two
@@ -25,17 +25,17 @@ import (
 	"testing"
 	"time"
 
-	"github.com/steveyegge/beads/internal/configfile"
-	"github.com/steveyegge/beads/internal/storage/dbproxy/pidfile"
-	"github.com/steveyegge/beads/internal/storage/dbproxy/proxy"
-	"github.com/steveyegge/beads/internal/storage/dbproxy/server"
+	"github.com/borg0ai/dx-issuegraph/internal/configfile"
+	"github.com/borg0ai/dx-issuegraph/internal/storage/dbproxy/pidfile"
+	"github.com/borg0ai/dx-issuegraph/internal/storage/dbproxy/proxy"
+	"github.com/borg0ai/dx-issuegraph/internal/storage/dbproxy/server"
 )
 
-const managedLocalProxiedEnvVar = "BEADS_TEST_PROXIED_LOCAL"
+const managedLocalProxiedEnvVar = "ISSUEGRAPH_TEST_PROXIED_LOCAL"
 
 // requireManagedLocalProxiedEnv gates the managed-local proxied lane.
 // Unlike requireProxiedServerEnv, a missing dolt binary FAILS the test when
-// the lane is explicitly requested: this lane exists to prove that bd can
+// the lane is explicitly requested: this lane exists to prove that issuegraph can
 // launch and supervise a local Dolt child, so skipping on a broken
 // prerequisite would report a green run without testing anything.
 func requireManagedLocalProxiedEnv(t *testing.T) {
@@ -49,22 +49,22 @@ func requireManagedLocalProxiedEnv(t *testing.T) {
 	}
 }
 
-// bdManagedLocalInit initializes a disposable managed-local proxied project:
-// `bd init --proxied-server` with NO external host/port flags, so command
+// issuegraphManagedLocalInit initializes a disposable managed-local proxied project:
+// `issuegraph init --proxied-server` with NO external host/port flags, so command
 // dispatch launches the loopback proxy and the proxy launches dolt.
 // idleTimeout is passed through --proxied-server-idle-timeout so tests can
 // observe idle shutdown without waiting out the 30s production default.
-func bdManagedLocalInit(t *testing.T, bd, prefix string, idleTimeout time.Duration, extraInitArgs ...string) proxiedProject {
+func issuegraphManagedLocalInit(t *testing.T, issuegraph, prefix string, idleTimeout time.Duration, extraInitArgs ...string) proxiedProject {
 	t.Helper()
 	args := append([]string{"--proxied-server-idle-timeout", idleTimeout.String()}, extraInitArgs...)
-	p := bdProxiedInit(t, bd, prefix, args...)
+	p := issuegraphProxiedInit(t, issuegraph, prefix, args...)
 
-	info, err := configfile.LoadProxiedServerClientInfo(p.beadsDir)
+	info, err := configfile.LoadProxiedServerClientInfo(p.issuegraphDir)
 	if err != nil {
-		t.Fatalf("LoadProxiedServerClientInfo(%s): %v", p.beadsDir, err)
+		t.Fatalf("LoadProxiedServerClientInfo(%s): %v", p.issuegraphDir, err)
 	}
 	if info == nil {
-		t.Fatalf("missing %s in %s after managed-local init", configfile.ProxiedServerClientInfoFileName, p.beadsDir)
+		t.Fatalf("missing %s in %s after managed-local init", configfile.ProxiedServerClientInfoFileName, p.issuegraphDir)
 	}
 	if info.External != nil {
 		t.Fatalf("expected managed-local topology (no External block), got %+v", info.External)
@@ -79,7 +79,7 @@ func bdManagedLocalInit(t *testing.T, bd, prefix string, idleTimeout time.Durati
 }
 
 // readManagedProxyPidFile returns the loopback proxy's pidfile (proxy.pid:
-// the detached `bd db-proxy-child` process and the port the proxy listens
+// the detached `issuegraph db-proxy-child` process and the port the proxy listens
 // on), or nil when it does not exist.
 func readManagedProxyPidFile(t *testing.T, p proxiedProject) *pidfile.PidFile {
 	t.Helper()
@@ -205,10 +205,10 @@ func (h *heldProxiedConn) Release() {
 }
 
 // openHeldManagedProxiedConn ensures the managed proxy is running (issuing a
-// cheap bd command to start or restart it when needed), then returns a held
+// cheap issuegraph command to start or restart it when needed), then returns a held
 // connection through it. Callers must Release() it to let the topology idle
 // out; a t.Cleanup Release is registered as a backstop.
-func openHeldManagedProxiedConn(t *testing.T, bd string, p proxiedProject) *heldProxiedConn {
+func openHeldManagedProxiedConn(t *testing.T, issuegraph string, p proxiedProject) *heldProxiedConn {
 	t.Helper()
 
 	var held *heldProxiedConn
@@ -217,10 +217,10 @@ func openHeldManagedProxiedConn(t *testing.T, bd string, p proxiedProject) *held
 		if pf == nil || !processAlive(pf.Pid) {
 			// Proxy not up (yet, or idled out between commands): any data
 			// command restarts it transparently.
-			if out, err := bdProxiedRun(t, bd, p.dir, "list", "--json"); err != nil {
-				return false, fmt.Sprintf("bd list to (re)start proxy failed: %v\n%s", err, out)
+			if out, err := issuegraphProxiedRun(t, issuegraph, p.dir, "list", "--json"); err != nil {
+				return false, fmt.Sprintf("issuegraph list to (re)start proxy failed: %v\n%s", err, out)
 			}
-			return false, "proxy pidfile absent; issued bd list to start it"
+			return false, "proxy pidfile absent; issued issuegraph list to start it"
 		}
 
 		dsn := fmt.Sprintf("root:@tcp(127.0.0.1:%d)/%s?parseTime=true", pf.Port, p.database)

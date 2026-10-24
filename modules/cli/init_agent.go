@@ -7,15 +7,15 @@ import (
 	"path/filepath"
 	"strings"
 
-	"github.com/steveyegge/beads/internal/templates/agents"
-	"github.com/steveyegge/beads/internal/ui"
+	"github.com/borg0ai/dx-issuegraph/internal/templates/agents"
+	"github.com/borg0ai/dx-issuegraph/internal/ui"
 )
 
 // addAgentsInstructions creates or updates the agents file with embedded template content.
-// agentFile is the target filename (e.g. "AGENTS.md" or "BEADS.md").
+// agentFile is the target filename (e.g. "AGENTS.md" or "ISSUEGRAPH.md").
 // If templatePath is non-empty, the custom template file is used instead of the embedded default.
 // profile controls which template variant to render (full or minimal); defaults to minimal.
-// opts controls conditional content (e.g. omitting bd dolt push when no remote is configured).
+// opts controls conditional content (e.g. omitting issuegraph dolt push when no remote is configured).
 func addAgentsInstructions(agentFile string, verbose bool, templatePath string, profile agents.Profile, opts agents.RenderOpts) {
 	if profile == "" {
 		profile = agents.ProfileMinimal
@@ -30,8 +30,8 @@ func addAgentsInstructions(agentFile string, verbose bool, templatePath string, 
 }
 
 // updateAgentFile creates or updates an agent instructions file with embedded template content.
-// When a beads section already exists (legacy or current), it is updated to the latest
-// versioned format so that `bd init` never silently locks in stale sections.
+// When a issuegraph section already exists (legacy or current), it is updated to the latest
+// versioned format so that `issuegraph init` never silently locks in stale sections.
 // If the file already has a full profile and a minimal profile is requested, the full
 // profile is preserved to avoid information loss.
 func updateAgentFile(filename string, verbose bool, templatePath string, profile agents.Profile, opts agents.RenderOpts) error {
@@ -52,10 +52,10 @@ func updateAgentFile(filename string, verbose bool, templatePath string, profile
 			newContent = agents.EmbeddedDefault()
 		}
 
-		// Replace the beads section with the requested profile.
+		// Replace the issuegraph section with the requested profile.
 		// EmbeddedDefault() ships with profile:full; swap to the requested profile
 		// (which defaults to minimal). Also handles legacy markers without profile metadata.
-		if strings.Contains(newContent, "BEGIN BEADS INTEGRATION") {
+		if strings.Contains(newContent, "BEGIN ISSUEGRAPH INTEGRATION") {
 			if replaced, changed, err := agents.ReplaceSectionWithOpts(newContent, profile, opts); err == nil && changed {
 				newContent = replaced
 			}
@@ -75,12 +75,12 @@ func updateAgentFile(filename string, verbose bool, templatePath string, profile
 
 	// File exists - check if it already has our sections
 	contentStr := string(content)
-	hasBeads := strings.Contains(contentStr, "BEGIN BEADS INTEGRATION")
+	hasIssueGraph := strings.Contains(contentStr, "BEGIN ISSUEGRAPH INTEGRATION")
 
-	if hasBeads {
+	if hasIssueGraph {
 		// Preserve existing full profile when minimal is requested (avoid information loss)
 		effectiveProfile := profile
-		existingMeta := agents.ParseMarker(contentStr[strings.Index(contentStr, "<!-- BEGIN BEADS INTEGRATION"):])
+		existingMeta := agents.ParseMarker(contentStr[strings.Index(contentStr, "<!-- BEGIN ISSUEGRAPH INTEGRATION"):])
 		if existingMeta != nil && existingMeta.Profile == agents.ProfileFull && profile == agents.ProfileMinimal {
 			effectiveProfile = agents.ProfileFull
 			if verbose {
@@ -91,7 +91,7 @@ func updateAgentFile(filename string, verbose bool, templatePath string, profile
 		// Update existing section to latest versioned format (upgrades legacy markers)
 		updated, changed, replaceErr := agents.ReplaceSectionWithOpts(contentStr, effectiveProfile, opts)
 		if replaceErr != nil {
-			return fmt.Errorf("failed to update beads section in %s: %w", filename, replaceErr)
+			return fmt.Errorf("failed to update issuegraph section in %s: %w", filename, replaceErr)
 		}
 		if changed {
 			// #nosec G306 - markdown needs to be readable
@@ -99,7 +99,7 @@ func updateAgentFile(filename string, verbose bool, templatePath string, profile
 				return fmt.Errorf("failed to update %s: %w", filename, err)
 			}
 			if verbose {
-				fmt.Printf("  %s Updated beads section in %s to latest format\n", ui.RenderPass("✓"), filename)
+				fmt.Printf("  %s Updated issuegraph section in %s to latest format\n", ui.RenderPass("✓"), filename)
 			}
 		} else if verbose {
 			fmt.Printf("  %s already has current agent instructions\n", filename)
@@ -107,7 +107,7 @@ func updateAgentFile(filename string, verbose bool, templatePath string, profile
 		return nil
 	}
 
-	// Append beads section with profile metadata
+	// Append issuegraph section with profile metadata
 	newContent := contentStr
 	if !strings.HasSuffix(newContent, "\n") {
 		newContent += "\n"
@@ -142,7 +142,7 @@ func setupClaudeSettings(verbose bool) error {
 		if err := json.Unmarshal(content, &existingSettings); err != nil {
 			// Don't silently overwrite - the user has a file with invalid JSON
 			// that likely contains important settings they don't want to lose
-			return fmt.Errorf("existing %s contains invalid JSON: %w\nPlease fix the JSON syntax manually before running bd init", settingsPath, err)
+			return fmt.Errorf("existing %s contains invalid JSON: %w\nPlease fix the JSON syntax manually before running issuegraph init", settingsPath, err)
 		}
 	} else if !os.IsNotExist(err) {
 		// File exists but couldn't be read (permissions issue, etc.)
@@ -153,20 +153,20 @@ func setupClaudeSettings(verbose bool) error {
 	}
 
 	// Add or update the prompt with prime instruction
-	primePrompt := "Before starting any work, run 'bd prime' to understand the current project state and available issues."
+	primePrompt := "Before starting any work, run 'issuegraph prime' to understand the current project state and available issues."
 
 	// Check if prompt already contains prime or onboard instruction
 	if promptValue, exists := existingSettings["prompt"]; exists {
 		if promptStr, ok := promptValue.(string); ok {
-			if strings.Contains(promptStr, "bd prime") {
+			if strings.Contains(promptStr, "issuegraph prime") {
 				if verbose {
-					fmt.Printf("Claude settings already configured with bd prime instruction\n")
+					fmt.Printf("Claude settings already configured with issuegraph prime instruction\n")
 				}
 				return nil
 			}
-			// Migrate legacy "bd onboard" references to "bd prime"
-			if strings.Contains(promptStr, "bd onboard") {
-				existingSettings["prompt"] = strings.ReplaceAll(promptStr, "bd onboard", "bd prime")
+			// Migrate legacy "issuegraph onboard" references to "issuegraph prime"
+			if strings.Contains(promptStr, "issuegraph onboard") {
+				existingSettings["prompt"] = strings.ReplaceAll(promptStr, "issuegraph onboard", "issuegraph prime")
 			} else {
 				// Update existing prompt to include prime instruction
 				existingSettings["prompt"] = promptStr + "\n\n" + primePrompt
@@ -192,7 +192,7 @@ func setupClaudeSettings(verbose bool) error {
 	}
 
 	if verbose {
-		fmt.Printf("Configured Claude settings with bd prime instruction\n")
+		fmt.Printf("Configured Claude settings with issuegraph prime instruction\n")
 	}
 
 	return nil

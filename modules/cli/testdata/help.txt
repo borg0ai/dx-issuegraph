@@ -1,5 +1,5 @@
-# Test bd help command
-bd help
+# Test issuegraph help command
+issuegraph help
 stdout 'Usage:'
 stdout 'Available Commands:'
 stdout 'create'

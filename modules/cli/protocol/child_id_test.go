@@ -30,7 +30,7 @@ func TestProtocol_ChildIDCounterNeverReusesNumbers(t *testing.T) {
 	// Delete the highest child: the counter must NOT rewind to it.
 	w.run("delete", c3, "--force")
 	if _, err := w.tryRun("show", c3, "--json"); err == nil {
-		t.Fatalf("D2.3 setup: %s still exists after `bd delete --force`", c3)
+		t.Fatalf("D2.3 setup: %s still exists after `issuegraph delete --force`", c3)
 	}
 
 	c4 := w.create("--title", "child four", "--parent", parent)

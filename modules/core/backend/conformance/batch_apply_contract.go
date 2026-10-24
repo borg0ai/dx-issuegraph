@@ -8,8 +8,8 @@ import (
 	"reflect"
 	"testing"
 
-	"github.com/steveyegge/beads/internal/types"
-	publicops "github.com/steveyegge/beads/issueops"
+	"github.com/borg0ai/dx-issuegraph/internal/types"
+	publicops "github.com/borg0ai/dx-issuegraph/issueops"
 )
 
 // This file holds the contract every implementation of publicops.BatchApplier
@@ -930,7 +930,7 @@ func RunBatchApplyClosePolicyEvaluatesAtTheCloseItem(t *testing.T, ctx context.C
 
 // RunBatchApplyAllowsAClosedParentToGainAnOpenChild pins the sentence beside it
 // (CloseItem.Force): "A LATER item that gives a closed parent an open child is
-// NOT refused, because beads has no global invariant that a closed issue has no
+// NOT refused, because issuegraph has no global invariant that a closed issue has no
 // open children; the policy is a gate on the closing act, not a constraint the
 // store maintains."
 //
@@ -1105,7 +1105,7 @@ func RunBatchApplyANoOpBatchRecordsNoHistory(t *testing.T, ctx context.Context, 
 // changes anyway.
 //
 // issueops.ApplyBatchCommitMessage returns "" ONLY when nothing changed on
-// either plane, so this batch is handed the plain "bd: apply batch". The trap
+// either plane, so this batch is handed the plain "issuegraph: apply batch". The trap
 // it closes is on the unit-of-work leg, which reads an empty message as "roll
 // this attempt back": composing "" from the LANDINGS alone would discard a
 // write that really happened, and the store legs would take a staged table into
@@ -1163,9 +1163,9 @@ func RunBatchApplyRecordsOneEntryForAWriteThatLandedNothing(t *testing.T, ctx co
 	if fixture.CountHistoryMatching == nil {
 		return
 	}
-	pattern := historyPatternForExactMessage(t, "bd: apply batch")
+	pattern := historyPatternForExactMessage(t, "issuegraph: apply batch")
 	if got := batchApplyHistoryMatching(t, ctx, fixture, pattern); got < 1 {
-		t.Errorf("no history entry reads %q; naming a count of zero would not be honest, so the act is named plainly", "bd: apply batch")
+		t.Errorf("no history entry reads %q; naming a count of zero would not be honest, so the act is named plainly", "issuegraph: apply batch")
 	}
 }
 
@@ -1375,7 +1375,7 @@ func RunBatchApplyAnEphemeralBatchKeepsItsWispsAndRecordsNoDurableHistory(t *tes
 // POSITIVE HALF, AND IT IS THE HALF THAT SAYS WHAT THE RULE IS ABOUT: an edge
 // between a durable row and a wisp that ALREADY EXISTED is allowed, because
 // that is DependencyEditor's ordinary both-planes case. A body that refused
-// every cross-plane edge would satisfy the refusal alone and break `bd dep add`
+// every cross-plane edge would satisfy the refusal alone and break `issuegraph dep add`
 // between a wisp and an issue.
 func RunBatchApplyRefusesACrossPlaneEdgeBetweenRowsItCreated(t *testing.T, ctx context.Context, fixture BatchApplyFixture) {
 	t.Helper()
@@ -1527,7 +1527,7 @@ func RunBatchApplyNormalizesTheWaitsForGate(t *testing.T, ctx context.Context, f
 // direction cannot matter here."
 //
 // The shape is the MEASURED one the clause names — "a retry that re-mints a
-// bead and stamps the original's id onto it" — with the stamped row declared
+// issue and stamps the original's id onto it" — with the stamped row declared
 // first and the row it names declared second. It asserts the raw metadata
 // column of the row that reached forward, against an id this case chose, so
 // neither half of the comparison comes from the role.

@@ -5,15 +5,15 @@ import (
 	"testing"
 	"time"
 
-	"github.com/steveyegge/beads/internal/types"
+	"github.com/borg0ai/dx-issuegraph/internal/types"
 )
 
 // TestCountAndIterIncludeWispDependencies is the regression guard for the
 // PR #4010 review (be-xbl83). The Count*/Iter* paths that feed
-// `bd show --json` (DependentCount/DependencyCount and --include-dependents)
+// `issuegraph show --json` (DependentCount/DependencyCount and --include-dependents)
 // must include `wisp_dependencies` edges, matching the slice-path relationship
 // APIs (GetDependentsWithMetadata / GetDependenciesWithMetadata) that the
-// human-readable `bd show` already uses.
+// human-readable `issuegraph show` already uses.
 //
 // Before the fix, CountDependents, CountDependencies, CountDependentsByStatus,
 // and the streaming IterDependentsWithMetadata queried only the `dependencies`
@@ -47,7 +47,7 @@ func TestCountAndIterIncludeWispDependencies(t *testing.T) {
 	addBlocks("wc-perm-dep", "wc-target")
 	addBlocks("wc-wisp-dep", "wc-target")
 
-	// Precondition: the slice path bd show's human output uses already counts
+	// Precondition: the slice path issuegraph show's human output uses already counts
 	// both dependents. The new count/iter paths must agree with it.
 	deps, err := store.GetDependentsWithMetadata(ctx, "wc-target")
 	if err != nil {

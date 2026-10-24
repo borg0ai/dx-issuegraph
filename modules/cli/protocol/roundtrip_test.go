@@ -10,7 +10,7 @@ import (
 
 // TestProtocol_ImportPreservesRelationalData asserts that relational data
 // (labels, dependencies, comments) set via CLI commands survives and is
-// queryable via bd show --json.
+// queryable via issuegraph show --json.
 //
 // Invariant: create → add labels/deps/comments → show --json returns all data.
 func TestProtocol_ImportPreservesRelationalData(t *testing.T) {
@@ -28,7 +28,7 @@ func TestProtocol_ImportPreservesRelationalData(t *testing.T) {
 	w.run("comments", "add", id1, "Design notes for the feature")
 	w.run("comments", "add", id1, "Review feedback from team")
 
-	// Verify via bd show --json. The feature's comment bodies are opt-in
+	// Verify via issuegraph show --json. The feature's comment bodies are opt-in
 	// (--include-comments), so it needs the full payload; the dep target is
 	// only checked for labels, which are inline in the default one.
 	featShow := w.showJSONFull(id1)
@@ -101,7 +101,7 @@ func TestProtocol_FieldsRoundTrip(t *testing.T) {
 }
 
 // TestProtocol_MetadataRoundTrip asserts that JSON metadata set via
-// bd update --metadata survives in show --json output.
+// issuegraph update --metadata survives in show --json output.
 func TestProtocol_MetadataRoundTrip(t *testing.T) {
 	t.Parallel()
 	w := newWorkspace(t)
@@ -130,7 +130,7 @@ func TestProtocol_MetadataRoundTrip(t *testing.T) {
 	}
 }
 
-// TestProtocol_SpecIDRoundTrip asserts that spec_id set via bd update --spec-id
+// TestProtocol_SpecIDRoundTrip asserts that spec_id set via issuegraph update --spec-id
 // survives in show --json output.
 func TestProtocol_SpecIDRoundTrip(t *testing.T) {
 	t.Parallel()
@@ -161,7 +161,7 @@ func TestProtocol_CloseReasonRoundTrip(t *testing.T) {
 
 	reason, ok := issue["close_reason"].(string)
 	if !ok || reason == "" {
-		t.Fatal("close_reason missing or empty from show --json after bd close --reason")
+		t.Fatal("close_reason missing or empty from show --json after issuegraph close --reason")
 	}
 	if reason != "Fixed in commit abc123" {
 		t.Errorf("close_reason = %q, want %q", reason, "Fixed in commit abc123")
@@ -169,7 +169,7 @@ func TestProtocol_CloseReasonRoundTrip(t *testing.T) {
 }
 
 // TestProtocol_ParentChildDepShowRoundTrip asserts that when a child issue
-// is created via --parent, the dependency is visible via bd show --json
+// is created via --parent, the dependency is visible via issuegraph show --json
 // in both directions: the child's dependencies reference the parent,
 // and the parent's dependents reference the child.
 func TestProtocol_ParentChildDepShowRoundTrip(t *testing.T) {

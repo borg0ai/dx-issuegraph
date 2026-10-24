@@ -1,15 +1,15 @@
-# Test bd prime --full includes new sections
-bd init --prefix test
-bd prime --full
+# Test issuegraph prime --full includes new sections
+issuegraph init --prefix test
+issuegraph prime --full
 stdout 'Quality Tools'
-stdout 'bd lint'
-stdout 'bd formula list'
-stdout 'bd human'
+stdout 'issuegraph lint'
+stdout 'issuegraph formula list'
+stdout 'issuegraph human'
 stdout 'Lifecycle & Hygiene'
 stdout 'Structured Workflows'
-stdout 'bd defer'
-stdout 'bd supersede'
-stdout 'bd stale'
-stdout 'bd orphans'
-stdout 'bd preflight'
+stdout 'issuegraph defer'
+stdout 'issuegraph supersede'
+stdout 'issuegraph stale'
+stdout 'issuegraph orphans'
+stdout 'issuegraph preflight'
 stdout 'conventions'

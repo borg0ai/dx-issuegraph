@@ -1,10 +1,10 @@
-package beads
+package issuegraph
 
 import (
 	"errors"
 	"strings"
 
-	"github.com/steveyegge/beads/internal/storage"
+	"github.com/borg0ai/dx-issuegraph/internal/storage"
 )
 
 // ClaimConflict describes why a claim failed, recovered from the claim error.

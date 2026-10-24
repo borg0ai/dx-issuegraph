@@ -9,7 +9,7 @@ import (
 	"testing"
 	"time"
 
-	"github.com/steveyegge/beads/internal/types"
+	"github.com/borg0ai/dx-issuegraph/internal/types"
 )
 
 func TestNewRunner(t *testing.T) {
@@ -30,7 +30,7 @@ func TestNewRunnerFromWorkspace(t *testing.T) {
 	if runner == nil {
 		t.Fatal("NewRunnerFromWorkspace returned nil")
 	}
-	expected := filepath.Join("/workspace", ".beads", "hooks")
+	expected := filepath.Join("/workspace", ".issuegraph", "hooks")
 	if runner.hooksDir != expected {
 		t.Errorf("hooksDir = %q, want %q", runner.hooksDir, expected)
 	}
@@ -154,7 +154,7 @@ func TestRunSync_Success(t *testing.T) {
 		// cannot be executed as a shell script, so the marker file is never created
 		// and the assertion fails. Skipping until the runner gains Windows script
 		// support (PATHEXT-aware extension lookup + interpreter dispatch).
-		// See: https://github.com/gastownhall/beads/issues/3800
+		// See: https://github.com/borg0ai/dx-issuegraph/issues/3800
 		t.Skip("hook script execution not supported on Windows - see GH#3800")
 	}
 
@@ -196,7 +196,7 @@ func TestRunSync_ReceivesJSON(t *testing.T) {
 		// cannot be executed as a shell script, so stdin is never read and the JSON
 		// assertion fails. Skipping until the runner gains Windows script support
 		// (PATHEXT-aware extension lookup + interpreter dispatch).
-		// See: https://github.com/gastownhall/beads/issues/3800
+		// See: https://github.com/borg0ai/dx-issuegraph/issues/3800
 		t.Skip("hook script execution not supported on Windows - see GH#3800")
 	}
 
@@ -245,7 +245,7 @@ func TestRunSync_Timeout(t *testing.T) {
 		// instead of running, so RunSync returns immediately rather than hitting the
 		// timeout path and the expected timeout error never surfaces. Skipping until
 		// the runner gains Windows script support (PATHEXT-aware extension lookup +
-		// interpreter dispatch). See: https://github.com/gastownhall/beads/issues/3800
+		// interpreter dispatch). See: https://github.com/borg0ai/dx-issuegraph/issues/3800
 		t.Skip("hook script execution not supported on Windows - see GH#3800")
 	}
 
@@ -347,7 +347,7 @@ func TestRunSync_HookFailure(t *testing.T) {
 		// cannot be executed as a shell script, so the hook silently no-ops instead
 		// of exiting 1, and the expected error is never returned. Skipping until the
 		// runner gains Windows script support (PATHEXT-aware extension lookup +
-		// interpreter dispatch). See: https://github.com/gastownhall/beads/issues/3800
+		// interpreter dispatch). See: https://github.com/borg0ai/dx-issuegraph/issues/3800
 		t.Skip("hook script execution not supported on Windows - see GH#3800")
 	}
 
@@ -377,7 +377,7 @@ func TestRun_Async(t *testing.T) {
 		// cannot be executed as a shell script, so the marker file is never created
 		// and the assertion fails. Skipping until the runner gains Windows script
 		// support (PATHEXT-aware extension lookup + interpreter dispatch).
-		// See: https://github.com/gastownhall/beads/issues/3800
+		// See: https://github.com/borg0ai/dx-issuegraph/issues/3800
 		t.Skip("hook script execution not supported on Windows - see GH#3800")
 	}
 

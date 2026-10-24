@@ -3,11 +3,11 @@ package main
 import (
 	"fmt"
 
+	"github.com/borg0ai/dx-issuegraph/internal/metrics"
+	"github.com/borg0ai/dx-issuegraph/internal/types"
+	"github.com/borg0ai/dx-issuegraph/internal/ui"
+	"github.com/borg0ai/dx-issuegraph/internal/utils"
 	"github.com/spf13/cobra"
-	"github.com/steveyegge/beads/internal/metrics"
-	"github.com/steveyegge/beads/internal/types"
-	"github.com/steveyegge/beads/internal/ui"
-	"github.com/steveyegge/beads/internal/utils"
 )
 
 var duplicateCmd = &cobra.Command{
@@ -20,7 +20,7 @@ The duplicate issue is automatically closed with a reference to the canonical.
 This is essential for large issue databases with many similar reports.
 
 Examples:
-  bd duplicate bd-abc --of bd-xyz    # Mark bd-abc as duplicate of bd-xyz`,
+  issuegraph duplicate bd-abc --of bd-xyz    # Mark bd-abc as duplicate of bd-xyz`,
 	Args: cobra.ExactArgs(1),
 	RunE: runDuplicate,
 }
@@ -35,7 +35,7 @@ The superseded issue is automatically closed with a reference to the replacement
 Useful for design docs, specs, and evolving artifacts.
 
 Examples:
-  bd supersede bd-old --with bd-new    # Mark bd-old as superseded by bd-new`,
+  issuegraph supersede bd-old --with bd-new    # Mark bd-old as superseded by bd-new`,
 	Args: cobra.ExactArgs(1),
 	RunE: runSupersede,
 }

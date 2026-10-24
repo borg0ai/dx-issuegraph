@@ -8,20 +8,20 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/steveyegge/beads/internal/storage"
-	"github.com/steveyegge/beads/internal/types"
+	"github.com/borg0ai/dx-issuegraph/internal/storage"
+	"github.com/borg0ai/dx-issuegraph/internal/types"
 )
 
 // runBatchScriptInTx is a tiny helper that mirrors what batchCmd.RunE does,
 // minus the cobra/flag plumbing, so tests can drive batch execution against
-// a *dolt.DoltStore without spawning a 'bd' subprocess.
+// a *dolt.DoltStore without spawning a 'issuegraph' subprocess.
 func runBatchScriptInTx(t *testing.T, ctx context.Context, st storage.DoltStorage, script string) error {
 	t.Helper()
 	ops, err := parseBatchScript(strings.NewReader(script))
 	if err != nil {
 		return err
 	}
-	return st.RunInTransaction(ctx, "test: bd batch", func(tx storage.Transaction) error {
+	return st.RunInTransaction(ctx, "test: issuegraph batch", func(tx storage.Transaction) error {
 		for _, op := range ops {
 			if _, err := runBatchOp(ctx, tx, op); err != nil {
 				return err
@@ -53,7 +53,7 @@ func seedBatchTestIssues(t *testing.T, ctx context.Context, st storage.DoltStora
 // afterwards.
 func TestBatch_AppliesAllInOneTransaction(t *testing.T) {
 	tmpDir := t.TempDir()
-	st := newTestStoreWithPrefix(t, filepath.Join(tmpDir, ".beads", "beads.db"), "tb")
+	st := newTestStoreWithPrefix(t, filepath.Join(tmpDir, ".issuegraph", "issuegraph.db"), "tb")
 	ctx := context.Background()
 
 	seedBatchTestIssues(t, ctx, st, "tb-1", "tb-2", "tb-3")
@@ -112,7 +112,7 @@ dep add tb-3 tb-2
 // fails the foreign-key constraint on the dependencies table.
 func TestBatch_RollbackOnError(t *testing.T) {
 	tmpDir := t.TempDir()
-	st := newTestStoreWithPrefix(t, filepath.Join(tmpDir, ".beads", "beads.db"), "tbr")
+	st := newTestStoreWithPrefix(t, filepath.Join(tmpDir, ".issuegraph", "issuegraph.db"), "tbr")
 	ctx := context.Background()
 
 	seedBatchTestIssues(t, ctx, st, "tbr-1", "tbr-2")
@@ -149,10 +149,10 @@ dep add tbr-DOES-NOT-EXIST tbr-ALSO-MISSING
 }
 
 // TestBatch_EmptyScriptIsNoOp verifies that an empty input is treated as a
-// successful no-op (matches `bd list ... | bd batch` with an empty pipeline).
+// successful no-op (matches `issuegraph list ... | issuegraph batch` with an empty pipeline).
 func TestBatch_EmptyScriptIsNoOp(t *testing.T) {
 	tmpDir := t.TempDir()
-	st := newTestStoreWithPrefix(t, filepath.Join(tmpDir, ".beads", "beads.db"), "tbe")
+	st := newTestStoreWithPrefix(t, filepath.Join(tmpDir, ".issuegraph", "issuegraph.db"), "tbe")
 	ctx := context.Background()
 
 	if err := runBatchScriptInTx(t, ctx, st, ""); err != nil {
@@ -169,7 +169,7 @@ func TestBatch_EmptyScriptIsNoOp(t *testing.T) {
 // surfaces before any writes hit the database).
 func TestBatch_UnsupportedCommandFailsBeforeWrites(t *testing.T) {
 	tmpDir := t.TempDir()
-	st := newTestStoreWithPrefix(t, filepath.Join(tmpDir, ".beads", "beads.db"), "tbu")
+	st := newTestStoreWithPrefix(t, filepath.Join(tmpDir, ".issuegraph", "issuegraph.db"), "tbu")
 	ctx := context.Background()
 
 	seedBatchTestIssues(t, ctx, st, "tbu-1")
@@ -201,7 +201,7 @@ show tbu-1
 // TestBatch_DepRemoveInBatch verifies the dep.remove path inside a batch.
 func TestBatch_DepRemoveInBatch(t *testing.T) {
 	tmpDir := t.TempDir()
-	st := newTestStoreWithPrefix(t, filepath.Join(tmpDir, ".beads", "beads.db"), "tbd")
+	st := newTestStoreWithPrefix(t, filepath.Join(tmpDir, ".issuegraph", "issuegraph.db"), "tbd")
 	ctx := context.Background()
 
 	seedBatchTestIssues(t, ctx, st, "tbd-1", "tbd-2")
@@ -233,7 +233,7 @@ func TestBatch_DepRemoveInBatch(t *testing.T) {
 // must be rewritten to use a different failure trigger.
 func TestBatch_RollbackTriggerStillFailsAtStorageLayer(t *testing.T) {
 	tmpDir := t.TempDir()
-	st := newTestStoreWithPrefix(t, filepath.Join(tmpDir, ".beads", "beads.db"), "tbg")
+	st := newTestStoreWithPrefix(t, filepath.Join(tmpDir, ".issuegraph", "issuegraph.db"), "tbg")
 	ctx := context.Background()
 
 	err := st.RunInTransaction(ctx, "test: trigger guard", func(tx storage.Transaction) error {

@@ -25,15 +25,15 @@ IssueGraph has three things called events, and they answer different questions.
 
 | System | What it is | Reach for it when |
 |---|---|---|
-| **Script hooks** | Executable `on_create` / `on_update` / `on_close` scripts in `.beads/hooks/`, run after the mutation and fire-and-forget: asynchronous, output discarded, a failure neither blocks nor retries the write. | A side effect is nice to have — a chat ping, a cache bust — and losing one now and then is acceptable. |
-| **Audit history** | The per-issue trail behind `issuegraph history <id> --events`: who changed what, when, with the old and new value of the field. | A person is asking who closed this bead, and when. |
+| **Script hooks** | Executable `on_create` / `on_update` / `on_close` scripts in `.issuegraph/hooks/`, run after the mutation and fire-and-forget: asynchronous, output discarded, a failure neither blocks nor retries the write. | A side effect is nice to have — a chat ping, a cache bust — and losing one now and then is acceptable. |
+| **Audit history** | The per-issue trail behind `issuegraph history <id> --events`: who changed what, when, with the old and new value of the field. | A person is asking who closed this issue, and when. |
 | **Events journal** | One workspace-wide, sequence-ordered stream of committed mutations, replayable from a checkpoint. | A machine is keeping its own copy of the graph in step. |
 
 ## Turning it on
 
 ```bash
-issuegraph config set events-journal true      # this workspace, written to .beads/config.yaml
-BD_EVENTS_JOURNAL=1 issuegraph close bd-a1b2   # or per process / operator-wide
+issuegraph config set events-journal true      # this workspace, written to .issuegraph/config.yaml
+ISSUEGRAPH_EVENTS_JOURNAL=1 issuegraph close issuegraph-a1b2   # or per process / operator-wide
 ```
 
 Records are written only while the journal is enabled. Enabling it does not
@@ -46,7 +46,7 @@ Turn it on wherever issuegraph **writes**, not just where your consumer reads. T
 journal records the mutations made by the clone that made them, so a workspace
 whose writers never enabled it stays permanently empty — and an empty journal
 is indistinguishable from a caught-up one. Every writer of a workspace you
-intend to replay needs `events-journal: true` (or `BD_EVENTS_JOURNAL=1` in its
+intend to replay needs `events-journal: true` (or `ISSUEGRAPH_EVENTS_JOURNAL=1` in its
 environment), including agents, CI jobs, and a `issuegraph serve` process. `issuegraph events
 export` and `issuegraph events tail` say so on stderr when the workspace they read is
 disabled; over HTTP the same condition is a `409`.
@@ -63,9 +63,9 @@ The floors bound both prunes: the automatic one and `issuegraph events prune`. S
 [Retention and pruning](#retention-and-pruning).
 
 All four are startup settings kept in `config.yaml` rather than database config,
-and each has an environment equivalent: `BD_EVENTS_JOURNAL`,
-`BD_EVENTS_JOURNAL_RETAIN_DAYS`, `BD_EVENTS_JOURNAL_RETAIN_ROWS`,
-`BD_EVENTS_JOURNAL_AUTO_PRUNE`.
+and each has an environment equivalent: `ISSUEGRAPH_EVENTS_JOURNAL`,
+`ISSUEGRAPH_EVENTS_JOURNAL_RETAIN_DAYS`, `ISSUEGRAPH_EVENTS_JOURNAL_RETAIN_ROWS`,
+`ISSUEGRAPH_EVENTS_JOURNAL_AUTO_PRUNE`.
 
 ## Reading it
 
@@ -80,9 +80,9 @@ issuegraph events export                        # the whole journal from seq 1 �
 Output is JSON Lines, one record per line, in sequence order:
 
 ```json
-{"seq":1,"ts":"2026-01-02T03:04:05Z","op":"create","issue_id":"bd-100","actor":"worker-1","issue":{"id":"bd-100","title":"wire the seam","status":"open","priority":1,"issue_type":"task","created_at":"2026-01-02T03:00:00Z","updated_at":"2026-01-02T03:04:05Z"}}
-{"seq":4,"ts":"2026-01-02T03:04:05Z","op":"update","issue_id":"bd-100","issue":{"id":"bd-100","title":"wire the seam","status":"open","priority":1,"issue_type":"task","is_blocked":true,"created_at":"2026-01-02T03:00:00Z","updated_at":"2026-01-02T03:04:05Z"}}
-{"seq":11,"ts":"2026-01-02T03:04:05Z","op":"delete","issue_id":"bd-100","issue":null}
+{"seq":1,"ts":"2026-01-02T03:04:05Z","op":"create","issue_id":"issuegraph-100","actor":"worker-1","issue":{"id":"issuegraph-100","title":"wire the seam","status":"open","priority":1,"issue_type":"task","created_at":"2026-01-02T03:00:00Z","updated_at":"2026-01-02T03:04:05Z"}}
+{"seq":4,"ts":"2026-01-02T03:04:05Z","op":"update","issue_id":"issuegraph-100","issue":{"id":"issuegraph-100","title":"wire the seam","status":"open","priority":1,"issue_type":"task","is_blocked":true,"created_at":"2026-01-02T03:00:00Z","updated_at":"2026-01-02T03:04:05Z"}}
+{"seq":11,"ts":"2026-01-02T03:04:05Z","op":"delete","issue_id":"issuegraph-100","issue":null}
 ```
 
 A consumer advances its checkpoint to the highest `seq` it has durably
@@ -91,16 +91,16 @@ processed, and passes that as the next `--since`.
 ### Over HTTP
 
 A consumer that already talks to a workspace over `issuegraph serve` reads the same
-journal at `GET /v0/beads/events` instead of shelling out:
+journal at `GET /v0/issuegraph/events` instead of shelling out:
 
 ```bash
-curl 'http://127.0.0.1:8080/v0/beads/events?since=4211&limit=500'
+curl 'http://127.0.0.1:8080/v0/issuegraph/events?since=4211&limit=500'
 ```
 
 ```json
 {
   "records": [
-    {"seq":4212,"ts":"2026-01-02T03:04:05Z","op":"create","issue_id":"bd-100","actor":"worker-1","issue":{"id":"bd-100","title":"wire the seam","status":"open","priority":1,"issue_type":"task","created_at":"2026-01-02T03:00:00Z","updated_at":"2026-01-02T03:04:05Z"}}
+    {"seq":4212,"ts":"2026-01-02T03:04:05Z","op":"create","issue_id":"issuegraph-100","actor":"worker-1","issue":{"id":"issuegraph-100","title":"wire the seam","status":"open","priority":1,"issue_type":"task","created_at":"2026-01-02T03:00:00Z","updated_at":"2026-01-02T03:04:05Z"}}
   ],
   "head": 4980
 }
@@ -114,7 +114,7 @@ same [record contract](#the-record-contract) — so an HTTP mirror and a
   missing or negative value is a `400`, never a read from the beginning.
 - `limit` runs from 1 to 10000 and defaults to 1000. There is no unlimited
   read here: `limit=0` is refused rather than meaning "everything" as it does
-  on `GET /v0/beads/issues`.
+  on `GET /v0/issuegraph/issues`.
 - `head` is the highest sequence number ever assigned, so a consumer knows
   whether to keep reading or back off. When the last record's `seq` equals
   `head` you are caught up — a full page proves nothing on its own.
@@ -126,9 +126,9 @@ Publishing the journal publishes the workspace's **history**, not its current
 state: every retained record carries the full issue snapshot as it was at that
 mutation, including titles and descriptions since edited and issues since
 deleted. Pruning and the retention floors are the only thing that removes a
-record — editing or deleting a bead does not redact it from the journal. And
+record — editing or deleting a issue does not redact it from the journal. And
 because this is an HTTP read, any process that can reach the address gets that
-history without the filesystem permissions on `.beads/` that `issuegraph events tail`
+history without the filesystem permissions on `.issuegraph/` that `issuegraph events tail`
 requires. Weigh both before binding a journal-enabled workspace with
 `--allow-non-loopback` — which requires `--auth-token-file` (or the explicit
 `--insecure-no-auth`), and that token is shared and surface-wide: every client
@@ -143,7 +143,7 @@ forward. And a workspace whose journal is **off** answers `409` with
 `events_journal_disabled` rather than an empty page, because a disabled journal
 and an empty one look identical in the data and a consumer given the empty page
 would poll a workspace that will never produce a record. That 409 is workspace
-state, not a missing feature: `events.list` appears in `/v0/beads/context`'s
+state, not a missing feature: `events.list` appears in `/v0/issuegraph/context`'s
 capabilities on every build, so treat the capability as "this server speaks it"
 and the 409 as "not on this workspace". (A workspace that has enabled the
 journal on a storage backend with no journal support never gets this far —
@@ -156,19 +156,19 @@ Track one per server, and re-baseline rather than carry one across.
 
 ### Streaming instead of polling
 
-`GET /v0/beads/events:watch` is the same journal, pushed. It answers
+`GET /v0/issuegraph/events:watch` is the same journal, pushed. It answers
 `text/event-stream` and holds the connection open, emitting each mutation as it
 commits — the HTTP form of `issuegraph events tail --follow`:
 
 ```bash
-curl -N 'http://127.0.0.1:8080/v0/beads/events:watch?since=4211'
+curl -N 'http://127.0.0.1:8080/v0/issuegraph/events:watch?since=4211'
 ```
 
 ```
 retry: 3000
 
 id: 4212
-data: {"seq":4212,"ts":"2026-01-02T03:04:05Z","op":"create","issue_id":"bd-100","actor":"worker-1","issue":{"id":"bd-100","title":"wire the seam","status":"open","priority":1,"issue_type":"task","created_at":"2026-01-02T03:00:00Z","updated_at":"2026-01-02T03:04:05Z"}}
+data: {"seq":4212,"ts":"2026-01-02T03:04:05Z","op":"create","issue_id":"issuegraph-100","actor":"worker-1","issue":{"id":"issuegraph-100","title":"wire the seam","status":"open","priority":1,"issue_type":"task","created_at":"2026-01-02T03:00:00Z","updated_at":"2026-01-02T03:04:05Z"}}
 
 : heartbeat
 ```
@@ -183,7 +183,7 @@ automatically.
 between requests and can never be refused for capacity; a stream costs a
 connection for as long as it is open, and this server holds at most **48** of
 them before answering `503` with `events_watch_saturated` and pointing you back
-at `GET /v0/beads/events`. That cap sits deliberately below the server's
+at `GET /v0/issuegraph/events`. That cap sits deliberately below the server's
 64-connection limit, so a workspace saturated with streams still has room to
 answer polls, mutations and health checks — and room to deliver the `503`
 itself. Stream when something is waiting on the mutation — a live mirror, an
@@ -203,7 +203,7 @@ processed; it **overrides** `since`. That is what makes a browser's
 `since` is as old as your process:
 
 ```js
-const es = new EventSource('/v0/beads/events:watch?since=0');
+const es = new EventSource('/v0/issuegraph/events:watch?since=0');
 es.onmessage = (e) => apply(JSON.parse(e.data));   // e.lastEventId is the seq
 es.addEventListener('truncated', (e) => { es.close(); rebaseline(JSON.parse(e.data)); });
 ```
@@ -234,7 +234,7 @@ ignores it does not lose records silently, but it does stall loudly: a bare
 The exposure warning above applies identically — a stream is the same history
 over the same address and under the same shared credential, held open — and so
 does the capability
-rule: `events.watch` appears in `/v0/beads/context`'s capabilities on every
+rule: `events.watch` appears in `/v0/issuegraph/context`'s capabilities on every
 build, and says nothing about whether this workspace has a journal.
 
 ## The record contract
@@ -245,7 +245,7 @@ build, and says nothing about whether this workspace has a journal.
 | `ts` | string | UTC insert time, stamped inside the committing transaction. |
 | `op` | string | One of the seven operations below. |
 | `issue_id` | string | The mutated issue. |
-| `actor` | string | The acting identity that performed the mutation, as resolved for the audit-events table; on a `comment` row, the comment's author. A `delete` and the `dep_remove` records a cascading delete produces carry the identity that *requested* the delete, not the beads the cascade reached. Absent when the path genuinely has no actor — derived maintenance (`is_blocked` recomputes), system cleanup with no request behind it, and rows written before the journal recorded actors. An absent `actor` is never user attribution: read it as "system/unknown", not as a conflicting writer. |
+| `actor` | string | The acting identity that performed the mutation, as resolved for the audit-events table; on a `comment` row, the comment's author. A `delete` and the `dep_remove` records a cascading delete produces carry the identity that *requested* the delete, not the issuegraph the cascade reached. Absent when the path genuinely has no actor — derived maintenance (`is_blocked` recomputes), system cleanup with no request behind it, and rows written before the journal recorded actors. An absent `actor` is never user attribution: read it as "system/unknown", not as a conflicting writer. |
 | `issue` | object or null | The issue's full state *after* the mutation; `null` on a delete. |
 | `dep` | object | `{"kind","target","metadata"}` on `dep_add` and `dep_remove`; absent otherwise. |
 | `comment` | object | `{"id","author","text","created_at","source"}` on `comment`; absent otherwise. |
@@ -255,10 +255,10 @@ feed built on the journal may carry:
 
 | `op` | Recorded when |
 |---|---|
-| `create` | A bead (or wisp) is created. |
-| `update` | Any field, label, metadata, claim, unclaim, lease reclaim, promote, defer wake, or derived `is_blocked` flip changes the bead. |
-| `close` | A bead is closed. A reopen is an `update`. |
-| `delete` | A bead is removed. |
+| `create` | A issue (or wisp) is created. |
+| `update` | Any field, label, metadata, claim, unclaim, lease reclaim, promote, defer wake, or derived `is_blocked` flip changes the issue. |
+| `close` | A issue is closed. A reopen is an `update`. |
+| `delete` | A issue is removed. |
 | `dep_add` | A [dependency](/core-concepts/dependencies) edge is written. |
 | `dep_remove` | A dependency edge is removed. |
 
@@ -281,12 +281,12 @@ the issue snapshot beside it.
 
 ### The issue snapshot
 
-`issue` is the bead's own row plus its labels plus `is_blocked` — the persisted
+`issue` is the issue's own row plus its labels plus `is_blocked` — the persisted
 readiness projection, included so a dependency change replays without
 recomputing the graph. It never inlines dependencies or comments; those arrive
 as their own `dep_*` and `comment` records.
 
-It is `null` on a `delete`, and on a dependency record whose source bead was
+It is `null` on a `delete`, and on a dependency record whose source issue was
 itself removed by the same cascade.
 
 ### Dependency records are not symmetric
@@ -294,7 +294,7 @@ itself removed by the same cascade.
 A `dep` member names the edge that changed:
 
 ```json
-{"kind":"blocks","target":"bd-100","metadata":""}
+{"kind":"blocks","target":"issuegraph-100","metadata":""}
 ```
 
 **In count.** A `dep_add` is recorded for every accepted add, *including* an
@@ -444,7 +444,7 @@ assumes otherwise.
   re-baseline rather than carry one across.
 
   The same reset happens in place if the journal tables are dropped and
-  recreated, or if `bd_events_seq` is lost or restored from a backup: `seq`
+  recreated, or if `issuegraph_events_seq` is lost or restored from a backup: `seq`
   begins again at 1, so a parked consumer's checkpoint now sits above the head
   and reads as "caught up" forever. No error is raised, because nothing about
   the new journal looks pruned. Re-baseline any consumer after either.
@@ -460,17 +460,17 @@ assumes otherwise.
   paths that record, and is a known non-coverage.
 - **Store-open writes are not journaled.** Schema migrations and the version
   reconciliation that runs before the workspace's configuration reaches the
-  store touch schema and clone-local metadata, never a bead, so a replaying
+  store touch schema and clone-local metadata, never a issue, so a replaying
   consumer has nothing to apply them to.
 - **Compaction and restore are not journaled.** `issuegraph admin compact` rewrites a
-  bead's text outside the operation vocabulary, and `issuegraph restore --apply` puts
-  it back the same way. A consumer's mirror of a compacted bead goes stale and
-  stays stale until that bead's next journaled mutation delivers a fresh
+  issue's text outside the operation vocabulary, and `issuegraph restore --apply` puts
+  it back the same way. A consumer's mirror of a compacted issue goes stale and
+  stays stale until that issue's next journaled mutation delivers a fresh
   snapshot.
 
 ## How it sits in Dolt
 
-The journal lives in two tables, `bd_events_journal` and `bd_events_seq`, both
+The journal lives in two tables, `issuegraph_events_journal` and `issuegraph_events_seq`, both
 registered in `dolt_ignore`. They are working-set state: never versioned, never
 staged into a commit, never pushed, pulled, or federated — and, like untracked
 files in git, they survive a `dolt reset --hard`.

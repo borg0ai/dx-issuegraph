@@ -10,7 +10,7 @@ import (
 	sqlmock "github.com/DATA-DOG/go-sqlmock"
 	mysql "github.com/go-sql-driver/mysql"
 
-	"github.com/steveyegge/beads/internal/storage"
+	"github.com/borg0ai/dx-issuegraph/internal/storage"
 )
 
 // TestDoltAddAndCommitDrainsCallResultSets pins doltAddAndCommit to routing its
@@ -41,12 +41,12 @@ func TestDoltAddAndCommitDrainsCallResultSets(t *testing.T) {
 	mock.ExpectQuery(regexp.QuoteMeta("SELECT COUNT(*) FROM dolt_status WHERE staged = 1")).
 		WillReturnRows(sqlmock.NewRows([]string{"count"}).AddRow(1))
 	mock.ExpectQuery(regexp.QuoteMeta("CALL DOLT_COMMIT('-m', ?, '--author', ?)")).
-		WithArgs("bd: test commit", " <>").
+		WithArgs("issuegraph: test commit", " <>").
 		WillReturnRows(sqlmock.NewRows([]string{"hash"}))
 
 	store := &DoltStore{db: db}
 
-	if err := store.doltAddAndCommit(context.Background(), []string{"issues"}, "bd: test commit"); err != nil {
+	if err := store.doltAddAndCommit(context.Background(), []string{"issues"}, "issuegraph: test commit"); err != nil {
 		t.Fatalf("doltAddAndCommit: %v", err)
 	}
 
@@ -89,7 +89,7 @@ func TestDoltAddAndCommitPostSQLFailuresAreIndeterminate(t *testing.T) {
 				mock.ExpectQuery(regexp.QuoteMeta("SELECT COUNT(*) FROM dolt_status WHERE staged = 1")).
 					WillReturnRows(sqlmock.NewRows([]string{"count"}).AddRow(1))
 				mock.ExpectQuery(regexp.QuoteMeta("CALL DOLT_COMMIT('-m', ?, '--author', ?)")).
-					WithArgs("bd: test commit", " <>").
+					WithArgs("issuegraph: test commit", " <>").
 					WillReturnError(testConnectionLoss)
 			},
 			cause:       testConnectionLoss,
@@ -104,7 +104,7 @@ func TestDoltAddAndCommitPostSQLFailuresAreIndeterminate(t *testing.T) {
 				mock.ExpectQuery(regexp.QuoteMeta("SELECT COUNT(*) FROM dolt_status WHERE staged = 1")).
 					WillReturnRows(sqlmock.NewRows([]string{"count"}).AddRow(1))
 				mock.ExpectQuery(regexp.QuoteMeta("CALL DOLT_COMMIT('-m', ?, '--author', ?)")).
-					WithArgs("bd: test commit", " <>").
+					WithArgs("issuegraph: test commit", " <>").
 					WillReturnError(&mysql.MySQLError{Number: 1213, Message: "deadlock"})
 			},
 			mysqlNumber: 1213,
@@ -119,7 +119,7 @@ func TestDoltAddAndCommitPostSQLFailuresAreIndeterminate(t *testing.T) {
 				mock.ExpectQuery(regexp.QuoteMeta("SELECT COUNT(*) FROM dolt_status WHERE staged = 1")).
 					WillReturnRows(sqlmock.NewRows([]string{"count"}).AddRow(1))
 				mock.ExpectQuery(regexp.QuoteMeta("CALL DOLT_COMMIT('-m', ?, '--author', ?)")).
-					WithArgs("bd: test commit", " <>").
+					WithArgs("issuegraph: test commit", " <>").
 					WillReturnError(&mysql.MySQLError{Number: 1205, Message: "lock wait timeout"})
 			},
 			mysqlNumber: 1205,
@@ -142,7 +142,7 @@ func TestDoltAddAndCommitPostSQLFailuresAreIndeterminate(t *testing.T) {
 				}
 			}
 
-			err = store.doltAddAndCommit(context.Background(), []string{"issues"}, "bd: test commit")
+			err = store.doltAddAndCommit(context.Background(), []string{"issues"}, "issuegraph: test commit")
 			if !errors.Is(err, storage.ErrCommitIndeterminate) {
 				t.Fatalf("doltAddAndCommit() error = %v, want ErrCommitIndeterminate", err)
 			}
@@ -166,7 +166,7 @@ func TestDoltAddAndCommitPostSQLFailuresAreIndeterminate(t *testing.T) {
 }
 
 func TestDoltAddAndCommitAmbiguousConnectionFailuresTripCircuitOnce(t *testing.T) {
-	t.Setenv("BEADS_TEST_MODE", "")
+	t.Setenv("ISSUEGRAPH_TEST_MODE", "")
 	db, mock, err := sqlmock.New(sqlmock.QueryMatcherOption(sqlmock.QueryMatcherRegexp))
 	if err != nil {
 		t.Fatalf("sqlmock: %v", err)
@@ -181,7 +181,7 @@ func TestDoltAddAndCommitAmbiguousConnectionFailuresTripCircuitOnce(t *testing.T
 	breaker := newTestCircuitBreaker(t)
 	store := &DoltStore{db: db, breaker: breaker}
 	for i := 0; i < circuitFailureThreshold; i++ {
-		err := store.doltAddAndCommit(context.Background(), []string{"issues"}, "bd: test commit")
+		err := store.doltAddAndCommit(context.Background(), []string{"issues"}, "issuegraph: test commit")
 		if !errors.Is(err, ErrCommitIndeterminate) {
 			t.Fatalf("attempt %d error = %v, want ErrCommitIndeterminate", i+1, err)
 		}
@@ -210,11 +210,11 @@ func TestDoltAddAndCommitTreatsNothingToCommitAsSuccess(t *testing.T) {
 	mock.ExpectQuery(regexp.QuoteMeta("SELECT COUNT(*) FROM dolt_status WHERE staged = 1")).
 		WillReturnRows(sqlmock.NewRows([]string{"count"}).AddRow(1))
 	mock.ExpectQuery(regexp.QuoteMeta("CALL DOLT_COMMIT('-m', ?, '--author', ?)")).
-		WithArgs("bd: test commit", " <>").
+		WithArgs("issuegraph: test commit", " <>").
 		WillReturnError(errors.New("nothing to commit"))
 
 	store := &DoltStore{db: db}
-	if err := store.doltAddAndCommit(context.Background(), []string{"issues"}, "bd: test commit"); err != nil {
+	if err := store.doltAddAndCommit(context.Background(), []string{"issues"}, "issuegraph: test commit"); err != nil {
 		t.Fatalf("doltAddAndCommit() error = %v, want nil", err)
 	}
 	if err := mock.ExpectationsWereMet(); err != nil {
@@ -230,11 +230,11 @@ func TestCommitWithConfigCommitResponseLossIsIndeterminate(t *testing.T) {
 	t.Cleanup(func() { _ = db.Close() })
 
 	mock.ExpectQuery(regexp.QuoteMeta("CALL DOLT_COMMIT('-Am', ?, '--author', ?)")).
-		WithArgs("bd: test config commit", " <>").
+		WithArgs("issuegraph: test config commit", " <>").
 		WillReturnError(testConnectionLoss)
 
 	store := &DoltStore{db: db}
-	err = store.CommitWithConfig(context.Background(), "bd: test config commit")
+	err = store.CommitWithConfig(context.Background(), "issuegraph: test config commit")
 	if !errors.Is(err, storage.ErrCommitIndeterminate) {
 		t.Fatalf("CommitWithConfig() error = %v, want ErrCommitIndeterminate", err)
 	}
@@ -259,11 +259,11 @@ func TestCommitCommitResponseLossIsIndeterminate(t *testing.T) {
 		WithArgs("issues").
 		WillReturnRows(sqlmock.NewRows([]string{"status"}))
 	mock.ExpectQuery(regexp.QuoteMeta("CALL DOLT_COMMIT('-m', ?, '--author', ?)")).
-		WithArgs("bd: test commit", " <>").
+		WithArgs("issuegraph: test commit", " <>").
 		WillReturnError(testConnectionLoss)
 
 	store := &DoltStore{db: db}
-	err = store.Commit(context.Background(), "bd: test commit")
+	err = store.Commit(context.Background(), "issuegraph: test commit")
 	if !errors.Is(err, storage.ErrCommitIndeterminate) {
 		t.Fatalf("Commit() error = %v, want ErrCommitIndeterminate", err)
 	}
@@ -290,7 +290,7 @@ func TestCommitPropagatesDoltAddFailureBeforeCommit(t *testing.T) {
 		WillReturnError(stageErr)
 
 	store := &DoltStore{db: db}
-	err = store.Commit(context.Background(), "bd: test commit")
+	err = store.Commit(context.Background(), "issuegraph: test commit")
 	if !errors.Is(err, stageErr) {
 		t.Fatalf("Commit() error = %v, want staging cause %v", err, stageErr)
 	}
@@ -303,7 +303,7 @@ func TestCommitPropagatesDoltAddFailureBeforeCommit(t *testing.T) {
 }
 
 func TestPublicCommitAmbiguousConnectionFailuresTripCircuit(t *testing.T) {
-	t.Setenv("BEADS_TEST_MODE", "")
+	t.Setenv("ISSUEGRAPH_TEST_MODE", "")
 	tests := []struct {
 		name   string
 		expect func(sqlmock.Sqlmock)
@@ -318,11 +318,11 @@ func TestPublicCommitAmbiguousConnectionFailuresTripCircuit(t *testing.T) {
 					WithArgs("issues").
 					WillReturnRows(sqlmock.NewRows([]string{"status"}))
 				mock.ExpectQuery(regexp.QuoteMeta("CALL DOLT_COMMIT('-m', ?, '--author', ?)")).
-					WithArgs("bd: test commit", " <>").
+					WithArgs("issuegraph: test commit", " <>").
 					WillReturnError(testConnectionLoss)
 			},
 			commit: func(store *DoltStore) error {
-				return store.Commit(context.Background(), "bd: test commit")
+				return store.Commit(context.Background(), "issuegraph: test commit")
 			},
 		},
 		{
@@ -334,22 +334,22 @@ func TestPublicCommitAmbiguousConnectionFailuresTripCircuit(t *testing.T) {
 					WithArgs("issues").
 					WillReturnRows(sqlmock.NewRows([]string{"status"}))
 				mock.ExpectQuery(regexp.QuoteMeta("CALL DOLT_COMMIT('-m', ?, '--author', ?)")).
-					WithArgs("bd: test merge commit", " <>").
+					WithArgs("issuegraph: test merge commit", " <>").
 					WillReturnError(testConnectionLoss)
 			},
 			commit: func(store *DoltStore) error {
-				return store.CommitMergeResolution(context.Background(), "bd: test merge commit")
+				return store.CommitMergeResolution(context.Background(), "issuegraph: test merge commit")
 			},
 		},
 		{
 			name: "CommitWithConfig",
 			expect: func(mock sqlmock.Sqlmock) {
 				mock.ExpectQuery(regexp.QuoteMeta("CALL DOLT_COMMIT('-Am', ?, '--author', ?)")).
-					WithArgs("bd: test config commit", " <>").
+					WithArgs("issuegraph: test config commit", " <>").
 					WillReturnError(testConnectionLoss)
 			},
 			commit: func(store *DoltStore) error {
-				return store.CommitWithConfig(context.Background(), "bd: test config commit")
+				return store.CommitWithConfig(context.Background(), "issuegraph: test config commit")
 			},
 		},
 	}
@@ -420,12 +420,12 @@ func TestDoltAddAndCommitInTxClassifiesCommitResponses(t *testing.T) {
 			mock.ExpectQuery(regexp.QuoteMeta("SELECT COUNT(*) FROM dolt_status WHERE staged = 1")).
 				WillReturnRows(sqlmock.NewRows([]string{"count"}).AddRow(1))
 			mock.ExpectQuery(regexp.QuoteMeta("CALL DOLT_COMMIT('-m', ?, '--author', ?)")).
-				WithArgs("bd: test commit", " <>").
+				WithArgs("issuegraph: test commit", " <>").
 				WillReturnError(tc.commitErr)
 			mock.ExpectRollback()
 
 			store := &DoltStore{}
-			err = store.doltAddAndCommitInTx(context.Background(), tx, []string{"issues"}, "bd: test commit")
+			err = store.doltAddAndCommitInTx(context.Background(), tx, []string{"issues"}, "issuegraph: test commit")
 			if got := errors.Is(err, storage.ErrCommitIndeterminate); got != tc.wantIndeterminate {
 				t.Fatalf("doltAddAndCommitInTx() error = %v, ErrCommitIndeterminate = %v, want %v", err, got, tc.wantIndeterminate)
 			}
@@ -461,7 +461,7 @@ func TestDoltAddAndCommitInTxStopsAtStageFailure(t *testing.T) {
 	mock.ExpectRollback()
 
 	store := &DoltStore{}
-	err = store.doltAddAndCommitInTx(context.Background(), tx, []string{"issues", "events"}, "bd: test commit")
+	err = store.doltAddAndCommitInTx(context.Background(), tx, []string{"issues", "events"}, "issuegraph: test commit")
 	if !errors.Is(err, stageErr) {
 		t.Fatalf("doltAddAndCommitInTx() error = %v, want stage failure %v", err, stageErr)
 	}

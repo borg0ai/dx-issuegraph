@@ -3,7 +3,7 @@ package issueops
 import (
 	"context"
 
-	"github.com/steveyegge/beads/internal/types"
+	"github.com/borg0ai/dx-issuegraph/internal/types"
 )
 
 // StatsRequest asks for the workspace's summary statistics. It carries no
@@ -46,7 +46,7 @@ type AssigneeStatsRequest struct {
 	// An empty or whitespace-only value is ErrValidation rather than a query.
 	// An empty assignee would otherwise select the rows whose assignee column
 	// is empty and report them as one actor's workload, and there is no caller
-	// that means that: `bd status --assigned` resolves an actor before it asks,
+	// that means that: `issuegraph status --assigned` resolves an actor before it asks,
 	// and an HTTP caller that omits the parameter is asking the workspace-wide
 	// question and gets Stats.
 	Assignee string
@@ -55,7 +55,7 @@ type AssigneeStatsRequest struct {
 // StatsResult carries the summary.
 //
 // It wraps the CANONICAL struct rather than redeclaring its ten fields, and
-// that is load-bearing rather than lazy. types.Statistics is what `bd status
+// that is load-bearing rather than lazy. types.Statistics is what `issuegraph status
 // --json` marshals under "summary" and what the HTTP operation's `summary`
 // object is pinned to with x-go-type, so both front doors serialize ONE struct
 // and neither performs a Go-to-Go mapping on the way to the wire. A result type
@@ -72,8 +72,8 @@ type StatsResult struct {
 	Summary types.Statistics
 }
 
-// StatsReporter describes the summary statistics `bd status` prints and its
-// `bd stats` alias reprints — and, like Lifecycle, Reader, ReadyClaimer,
+// StatsReporter describes the summary statistics `issuegraph status` prints and its
+// `issuegraph stats` alias reprints — and, like Lifecycle, Reader, ReadyClaimer,
 // BatchCloser, DependencyEditor, Commenter, Relations and Counter, a role with
 // its own accessor. A new capability gets a new role interface and its own
 // accessor; never append a method here.
@@ -104,17 +104,17 @@ type StatsResult struct {
 //     is "blocked" — an open row with an unfinished blocker is counted here
 //     and its status is still "open".
 //   - ReadyIssues is ARITHMETIC, not a query: OpenIssues minus BlockedIssues,
-//     clamped at zero. It is therefore not the cardinality of `bd ready`, which
+//     clamped at zero. It is therefore not the cardinality of `issuegraph ready`, which
 //     applies type exclusions, the deferral window, assignee filters and a
 //     limit that none of this touches. A caller that needs the ready-work count
 //     asks the ready-work question; this field is the headline number
-//     `bd status` prints and nothing more.
+//     `issuegraph status` prints and nothing more.
 //   - EpicsEligibleForClosure and AverageLeadTime are ALWAYS ZERO. No shipped
 //     implementation computes either, on any backend or either front door.
 //     They are carried because types.Statistics is the struct both surfaces
 //     serialize and dropping a field from it is a wire change; they are named
 //     here so a caller does not read a zero as an answer — and so a reader
-//     knows why `bd status`'s "Extended:" branch has never once printed.
+//     knows why `issuegraph status`'s "Extended:" branch has never once printed.
 //
 // THE WISP TIER IS NOT MERGED into the workspace-wide answer: Stats counts the
 // durable plane only, which is why an empty workspace full of wisps reports
@@ -160,7 +160,7 @@ type StatsReporter interface {
 	// AssigneeStats returns the summary restricted to one actor's rows.
 	//
 	// IT IS THE SAME STRUCT WITH FOUR FIELDS DEFINED DIFFERENTLY, and the
-	// differences are the shipped behavior of `bd status --assigned` rather
+	// differences are the shipped behavior of `issuegraph status --assigned` rather
 	// than a design anyone would choose fresh:
 	//
 	//   - THE SET IS WIDER. It is the actor's rows across the durable plane AND
@@ -183,7 +183,7 @@ type StatsReporter interface {
 	//
 	// A FAILED READY-WORK QUERY IS REPORTED AS ZERO READY WORK, not as an
 	// error: the other five numbers are still right and the summary is still
-	// returned. That is the shipped behavior of both `bd status --assigned`
+	// returned. That is the shipped behavior of both `issuegraph status --assigned`
 	// routes, published here rather than quietly tightened, and it is the one
 	// place this role can hand back a number that is not an answer. A caller
 	// that must not confuse "none ready" with "could not tell" asks the

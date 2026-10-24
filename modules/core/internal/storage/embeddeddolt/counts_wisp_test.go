@@ -5,14 +5,14 @@ package embeddeddolt_test
 import (
 	"testing"
 
-	"github.com/steveyegge/beads/internal/types"
+	"github.com/borg0ai/dx-issuegraph/internal/types"
 )
 
 // TestCountsIncludeWispDependencies is the regression guard for the PR #4010
-// review (be-xbl83). The Count* methods that feed `bd show --json`
+// review (be-xbl83). The Count* methods that feed `issuegraph show --json`
 // (DependentCount/DependencyCount) must include `wisp_dependencies` edges,
 // matching the slice-path relationship APIs (GetDependentsWithMetadata) that
-// the human-readable `bd show` already uses.
+// the human-readable `issuegraph show` already uses.
 //
 // Before the fix, CountDependents/CountDependencies/CountDependentsByStatus
 // queried only the `dependencies` table, so a permanent issue with a wisp
@@ -44,7 +44,7 @@ func TestCountsIncludeWispDependencies(t *testing.T) {
 		}
 	}
 
-	// Precondition: the slice path bd show's human output uses counts both.
+	// Precondition: the slice path issuegraph show's human output uses counts both.
 	deps, err := te.store.GetDependentsWithMetadata(ctx, "ec-target")
 	if err != nil {
 		t.Fatalf("GetDependentsWithMetadata: %v", err)

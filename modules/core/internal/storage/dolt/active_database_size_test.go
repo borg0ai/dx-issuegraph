@@ -6,7 +6,7 @@ import (
 	"path/filepath"
 	"testing"
 
-	"github.com/steveyegge/beads/internal/storage"
+	"github.com/borg0ai/dx-issuegraph/internal/storage"
 )
 
 func TestResolveLocalActiveDatabaseDir(t *testing.T) {
@@ -14,14 +14,14 @@ func TestResolveLocalActiveDatabaseDir(t *testing.T) {
 
 	t.Run("owned local", func(t *testing.T) {
 		clearSizingModeEnv(t)
-		beadsDir := t.TempDir()
-		root := filepath.Join(beadsDir, "dolt")
+		issuegraphDir := t.TempDir()
+		root := filepath.Join(issuegraphDir, "dolt")
 		cfg := &Config{
-			Path:       root,
-			BeadsDir:   beadsDir,
-			Database:   "active",
-			ServerHost: "127.0.0.1",
-			AutoStart:  true,
+			Path:          root,
+			IssueGraphDir: issuegraphDir,
+			Database:      "active",
+			ServerHost:    "127.0.0.1",
+			AutoStart:     true,
 		}
 		want := filepath.Join(root, "active")
 		if got := resolveLocalActiveDatabaseDir(cfg); got != want {
@@ -32,13 +32,13 @@ func TestResolveLocalActiveDatabaseDir(t *testing.T) {
 	t.Run("shared local", func(t *testing.T) {
 		clearSizingModeEnv(t)
 		sharedDir := t.TempDir()
-		t.Setenv("BEADS_DOLT_SHARED_SERVER", "1")
-		t.Setenv("BEADS_SHARED_SERVER_DIR", sharedDir)
+		t.Setenv("ISSUEGRAPH_DOLT_SHARED_SERVER", "1")
+		t.Setenv("ISSUEGRAPH_SHARED_SERVER_DIR", sharedDir)
 		cfg := &Config{
-			Path:       filepath.Join(t.TempDir(), "dolt"),
-			BeadsDir:   t.TempDir(),
-			Database:   "shared_active",
-			ServerHost: "localhost",
+			Path:          filepath.Join(t.TempDir(), "dolt"),
+			IssueGraphDir: t.TempDir(),
+			Database:      "shared_active",
+			ServerHost:    "localhost",
 		}
 		want := filepath.Join(sharedDir, "dolt", "shared_active")
 		if got := resolveLocalActiveDatabaseDir(cfg); got != want {
@@ -59,27 +59,27 @@ func TestResolveLocalActiveDatabaseDir(t *testing.T) {
 		{
 			name: "external server mode",
 			setup: func(t *testing.T, _ *Config) {
-				t.Setenv("BEADS_DOLT_SERVER_MODE", "1")
+				t.Setenv("ISSUEGRAPH_DOLT_SERVER_MODE", "1")
 			},
 		},
 		{
 			name: "environment endpoint",
 			setup: func(t *testing.T, _ *Config) {
-				t.Setenv("BEADS_DOLT_SERVER_PORT", "44001")
+				t.Setenv("ISSUEGRAPH_DOLT_SERVER_PORT", "44001")
 			},
 		},
 		{
 			name: "legacy environment endpoint",
 			setup: func(t *testing.T, _ *Config) {
-				t.Setenv("BEADS_DOLT_PORT", "44001")
+				t.Setenv("ISSUEGRAPH_DOLT_PORT", "44001")
 			},
 		},
 		{
 			name: "shared mode with explicit endpoint",
 			setup: func(t *testing.T, _ *Config) {
-				t.Setenv("BEADS_DOLT_SHARED_SERVER", "1")
-				t.Setenv("BEADS_SHARED_SERVER_DIR", t.TempDir())
-				t.Setenv("BEADS_DOLT_SERVER_PORT", "44001")
+				t.Setenv("ISSUEGRAPH_DOLT_SHARED_SERVER", "1")
+				t.Setenv("ISSUEGRAPH_SHARED_SERVER_DIR", t.TempDir())
+				t.Setenv("ISSUEGRAPH_DOLT_SERVER_PORT", "44001")
 			},
 		},
 		{
@@ -117,13 +117,13 @@ func TestResolveLocalActiveDatabaseDir(t *testing.T) {
 		tc := tc
 		t.Run(tc.name, func(t *testing.T) {
 			clearSizingModeEnv(t)
-			beadsDir := t.TempDir()
+			issuegraphDir := t.TempDir()
 			cfg := &Config{
-				Path:       filepath.Join(beadsDir, "dolt"),
-				BeadsDir:   beadsDir,
-				Database:   "active",
-				ServerHost: "127.0.0.1",
-				AutoStart:  true,
+				Path:          filepath.Join(issuegraphDir, "dolt"),
+				IssueGraphDir: issuegraphDir,
+				Database:      "active",
+				ServerHost:    "127.0.0.1",
+				AutoStart:     true,
 			}
 			tc.setup(t, cfg)
 			if got := resolveLocalActiveDatabaseDir(cfg); got != "" {
@@ -139,7 +139,7 @@ func TestDoltStoreActiveDatabaseSizeKeepsPerInstanceAuthorityAcrossModeChurn(t *
 	newSizingStore := func(cfg *Config) *DoltStore {
 		return &DoltStore{
 			dbPath:                 cfg.Path,
-			beadsDir:               cfg.BeadsDir,
+			issuegraphDir:          cfg.IssueGraphDir,
 			database:               cfg.Database,
 			localActiveDatabaseDir: resolveLocalActiveDatabaseDir(cfg),
 			serverMode:             true,
@@ -164,13 +164,13 @@ func TestDoltStoreActiveDatabaseSizeKeepsPerInstanceAuthorityAcrossModeChurn(t *
 		}
 	}
 
-	ownedBeadsDir := t.TempDir()
+	ownedIssueGraphDir := t.TempDir()
 	ownedConfig := &Config{
-		Path:       filepath.Join(ownedBeadsDir, "dolt"),
-		BeadsDir:   ownedBeadsDir,
-		Database:   "owned_active",
-		ServerHost: "127.0.0.1",
-		AutoStart:  true,
+		Path:          filepath.Join(ownedIssueGraphDir, "dolt"),
+		IssueGraphDir: ownedIssueGraphDir,
+		Database:      "owned_active",
+		ServerHost:    "127.0.0.1",
+		AutoStart:     true,
 	}
 	ownedDatabaseDir := filepath.Join(ownedConfig.Path, ownedConfig.Database)
 	if err := os.MkdirAll(ownedDatabaseDir, 0o700); err != nil {
@@ -185,14 +185,14 @@ func TestDoltStoreActiveDatabaseSizeKeepsPerInstanceAuthorityAcrossModeChurn(t *
 		t.Fatalf("owned localActiveDatabaseDir = %q, want %q", ownedStore.localActiveDatabaseDir, ownedDatabaseDir)
 	}
 
-	t.Setenv("BEADS_DOLT_PORT", "44001")
-	externalBeadsDir := t.TempDir()
+	t.Setenv("ISSUEGRAPH_DOLT_PORT", "44001")
+	externalIssueGraphDir := t.TempDir()
 	externalConfig := &Config{
-		Path:       filepath.Join(externalBeadsDir, "dolt"),
-		BeadsDir:   externalBeadsDir,
-		Database:   "external_active",
-		ServerHost: "127.0.0.1",
-		AutoStart:  true,
+		Path:          filepath.Join(externalIssueGraphDir, "dolt"),
+		IssueGraphDir: externalIssueGraphDir,
+		Database:      "external_active",
+		ServerHost:    "127.0.0.1",
+		AutoStart:     true,
 	}
 	externalStore := newSizingStore(externalConfig)
 	if externalStore.localActiveDatabaseDir != "" {
@@ -201,18 +201,18 @@ func TestDoltStoreActiveDatabaseSizeKeepsPerInstanceAuthorityAcrossModeChurn(t *
 	requireSize(ownedStore, int64(len(ownedPayload)))
 	requireUnsupported(externalStore)
 
-	t.Setenv("BEADS_DOLT_PORT", "")
-	t.Setenv("BEADS_DOLT_SHARED_SERVER", "1")
-	t.Setenv("BEADS_SHARED_SERVER_DIR", t.TempDir())
+	t.Setenv("ISSUEGRAPH_DOLT_PORT", "")
+	t.Setenv("ISSUEGRAPH_DOLT_SHARED_SERVER", "1")
+	t.Setenv("ISSUEGRAPH_SHARED_SERVER_DIR", t.TempDir())
 	requireSize(ownedStore, int64(len(ownedPayload)))
 	requireUnsupported(externalStore)
 
-	t.Setenv("BEADS_DOLT_SERVER_PORT", "44002")
+	t.Setenv("ISSUEGRAPH_DOLT_SERVER_PORT", "44002")
 	sharedConfig := &Config{
-		Path:       filepath.Join(t.TempDir(), "dolt"),
-		BeadsDir:   t.TempDir(),
-		Database:   "shared_explicit",
-		ServerHost: "localhost",
+		Path:          filepath.Join(t.TempDir(), "dolt"),
+		IssueGraphDir: t.TempDir(),
+		Database:      "shared_explicit",
+		ServerHost:    "localhost",
 	}
 	if got := resolveLocalActiveDatabaseDir(sharedConfig); got != "" {
 		t.Fatalf("shared explicit-endpoint path = %q, want unsupported", got)
@@ -284,13 +284,13 @@ func TestDoltStoreActiveDatabaseSizeFailsForDeclaredLocalMissingPath(t *testing.
 func clearSizingModeEnv(t *testing.T) {
 	t.Helper()
 	for _, name := range []string{
-		"BEADS_DOLT_SERVER_MODE",
-		"BEADS_DOLT_SHARED_SERVER",
-		"BEADS_SHARED_SERVER_DIR",
-		"BEADS_DOLT_SERVER_PORT",
-		"BEADS_DOLT_PORT",
-		"BEADS_DOLT_SERVER_SOCKET",
-		"BEADS_DOLT_SERVER_HOST",
+		"ISSUEGRAPH_DOLT_SERVER_MODE",
+		"ISSUEGRAPH_DOLT_SHARED_SERVER",
+		"ISSUEGRAPH_SHARED_SERVER_DIR",
+		"ISSUEGRAPH_DOLT_SERVER_PORT",
+		"ISSUEGRAPH_DOLT_PORT",
+		"ISSUEGRAPH_DOLT_SERVER_SOCKET",
+		"ISSUEGRAPH_DOLT_SERVER_HOST",
 	} {
 		t.Setenv(name, "")
 	}

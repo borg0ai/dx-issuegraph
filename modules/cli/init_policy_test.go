@@ -7,7 +7,7 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/steveyegge/beads/internal/config"
+	"github.com/borg0ai/dx-issuegraph/internal/config"
 )
 
 func TestRunInitRemoteClone(t *testing.T) {
@@ -75,17 +75,17 @@ func TestRunInitRemoteClone(t *testing.T) {
 			t.Fatal("fresh fallback lost explicit Dolt remote wiring")
 		}
 
-		beadsDir := filepath.Join(t.TempDir(), ".beads")
-		if err := os.MkdirAll(beadsDir, 0o750); err != nil {
-			t.Fatalf("mkdir beads dir: %v", err)
+		issuegraphDir := filepath.Join(t.TempDir(), ".issuegraph")
+		if err := os.MkdirAll(issuegraphDir, 0o750); err != nil {
+			t.Fatalf("mkdir issuegraph dir: %v", err)
 		}
-		if err := os.WriteFile(filepath.Join(beadsDir, "config.yaml"), []byte("# Beads Config\n"), 0o600); err != nil {
+		if err := os.WriteFile(filepath.Join(issuegraphDir, "config.yaml"), []byte("# IssueGraph Config\n"), 0o600); err != nil {
 			t.Fatalf("write config.yaml: %v", err)
 		}
-		if err := persistInitSyncRemote(beadsDir, remoteURL, resolvedURL, false, syncURLFromConfig, false); err != nil {
+		if err := persistInitSyncRemote(issuegraphDir, remoteURL, resolvedURL, false, syncURLFromConfig, false); err != nil {
 			t.Fatalf("persistInitSyncRemote: %v", err)
 		}
-		configBytes, err := os.ReadFile(filepath.Join(beadsDir, "config.yaml"))
+		configBytes, err := os.ReadFile(filepath.Join(issuegraphDir, "config.yaml"))
 		if err != nil {
 			t.Fatalf("read config.yaml: %v", err)
 		}
@@ -96,7 +96,7 @@ func TestRunInitRemoteClone(t *testing.T) {
 
 	t.Run("preserves non-empty clone failure", func(t *testing.T) {
 		want := errors.New("permission denied")
-		disposition, err := runInitRemoteClone("https://example.invalid/beads", func(string) error {
+		disposition, err := runInitRemoteClone("https://example.invalid/issuegraph", func(string) error {
 			return want
 		})
 		if !errors.Is(err, want) {
@@ -147,26 +147,26 @@ func TestDetectInitRemoteHostConflict(t *testing.T) {
 }
 
 func TestConfiguredImportJSONLPath(t *testing.T) {
-	t.Setenv("BEADS_TEST_IGNORE_REPO_CONFIG", "1")
+	t.Setenv("ISSUEGRAPH_TEST_IGNORE_REPO_CONFIG", "1")
 	config.ResetForTesting()
 	if err := config.Initialize(); err != nil {
 		t.Fatalf("config.Initialize: %v", err)
 	}
 	t.Cleanup(config.ResetForTesting)
 
-	const beadsDir = "/workspace/.beads"
+	const issuegraphDir = "/workspace/.issuegraph"
 	for _, tt := range []struct {
 		name string
 		path string
 		want string
 	}{
-		{name: "default", want: filepath.Join(beadsDir, "issues.jsonl")},
-		{name: "configured", path: "beads.jsonl", want: filepath.Join(beadsDir, "beads.jsonl")},
+		{name: "default", want: filepath.Join(issuegraphDir, "issues.jsonl")},
+		{name: "configured", path: "issuegraph.jsonl", want: filepath.Join(issuegraphDir, "issuegraph.jsonl")},
 	} {
 		t.Run(tt.name, func(t *testing.T) {
 			config.Set("import.path", tt.path)
-			if got := configuredImportJSONLPath(beadsDir); got != tt.want {
-				t.Errorf("configuredImportJSONLPath(%q) = %q, want %q", beadsDir, got, tt.want)
+			if got := configuredImportJSONLPath(issuegraphDir); got != tt.want {
+				t.Errorf("configuredImportJSONLPath(%q) = %q, want %q", issuegraphDir, got, tt.want)
 			}
 		})
 	}
@@ -181,7 +181,7 @@ func TestNormalizeIssuePrefixAndDatabaseName(t *testing.T) {
 		{name: "dotted directory", raw: "MyPkg.jl", want: "MyPkg_jl"},
 		{name: "leading dot", raw: ".claude", want: "claude"},
 		{name: "trailing hyphen", raw: "project-", want: "project"},
-		{name: "numeric start", raw: "001", want: "bd_001"},
+		{name: "numeric start", raw: "001", want: "issuegraph_001"},
 		{name: "database hyphen", raw: "my-prefix", want: "my_prefix"},
 	} {
 		t.Run(tt.name, func(t *testing.T) {
@@ -193,11 +193,11 @@ func TestNormalizeIssuePrefixAndDatabaseName(t *testing.T) {
 	}
 }
 
-// TestDoltRemoteURL pins which URLs bd rewrites before handing them to Dolt —
+// TestDoltRemoteURL pins which URLs issuegraph rewrites before handing them to Dolt —
 // for DOLT_CLONE, for DOLT_REMOTE('add', ...) and therefore for DOLT_PUSH.
 // Forge URLs must arrive in git+ form so Dolt uses the git remote factory
 // rather than the remotesapi retry storm (#4421); a user-configured remotesapi
-// endpoint must arrive byte-identical (GH#3339). bd init and bd bootstrap
+// endpoint must arrive byte-identical (GH#3339). issuegraph init and issuegraph bootstrap
 // share this one helper so they can never disagree about the URL derived from
 // a single committed sync.remote.
 func TestDoltRemoteURL(t *testing.T) {

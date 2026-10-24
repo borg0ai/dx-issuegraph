@@ -5,22 +5,22 @@ import (
 	"os"
 	"time"
 
+	"github.com/borg0ai/dx-issuegraph/internal/issuegraph"
+	"github.com/borg0ai/dx-issuegraph/internal/metrics"
+	"github.com/borg0ai/dx-issuegraph/internal/storage"
+	"github.com/borg0ai/dx-issuegraph/internal/types"
+	"github.com/borg0ai/dx-issuegraph/internal/ui"
 	"github.com/spf13/cobra"
-	"github.com/steveyegge/beads/internal/beads"
-	"github.com/steveyegge/beads/internal/metrics"
-	"github.com/steveyegge/beads/internal/storage"
-	"github.com/steveyegge/beads/internal/types"
-	"github.com/steveyegge/beads/internal/ui"
 )
 
 var pingCmd = &cobra.Command{
 	Use:     "ping",
 	GroupID: "maint",
 	Short:   "Check database connectivity",
-	Long: `Lightweight health check that confirms bd can reach its database.
+	Long: `Lightweight health check that confirms issuegraph can reach its database.
 
 Steps:
-  1. Resolve the .beads workspace
+  1. Resolve the .issuegraph workspace
   2. Open the store (embedded or server)
   3. Run a trivial query (issue count)
   4. Report timing
@@ -28,8 +28,8 @@ Steps:
 Exit 0 on success, exit 1 on failure.
 
 Examples:
-  bd ping              # Quick connectivity check
-  bd ping --json       # Structured output for automation`,
+  issuegraph ping              # Quick connectivity check
+  issuegraph ping --json       # Structured output for automation`,
 	SilenceUsage:  true,
 	SilenceErrors: true,
 	RunE: func(cmd *cobra.Command, args []string) error {
@@ -45,9 +45,9 @@ Examples:
 
 		start := time.Now()
 
-		beadsDir := beads.FindBeadsDir()
-		if beadsDir == "" {
-			return pingFail(start, "no .beads directory found")
+		issuegraphDir := issuegraph.FindIssueGraphDir()
+		if issuegraphDir == "" {
+			return pingFail(start, "no .issuegraph directory found")
 		}
 		resolveMs := time.Since(start).Milliseconds()
 
@@ -78,7 +78,7 @@ Examples:
 			})
 		}
 
-		fmt.Fprintf(os.Stdout, "%s bd ping: ok (%dms)\n", ui.RenderPass("✓"), totalMs)
+		fmt.Fprintf(os.Stdout, "%s issuegraph ping: ok (%dms)\n", ui.RenderPass("✓"), totalMs)
 		return nil
 	},
 }
@@ -95,7 +95,7 @@ func pingFail(start time.Time, reason string) error {
 		}
 		return SilentExit()
 	}
-	return HandleError("bd ping: %s (%dms)", reason, totalMs)
+	return HandleError("issuegraph ping: %s (%dms)", reason, totalMs)
 }
 
 func init() {

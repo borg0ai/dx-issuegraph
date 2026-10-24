@@ -6,8 +6,8 @@ import (
 	"testing"
 	"time"
 
-	"github.com/steveyegge/beads/internal/storage"
-	"github.com/steveyegge/beads/internal/types"
+	"github.com/borg0ai/dx-issuegraph/internal/storage"
+	"github.com/borg0ai/dx-issuegraph/internal/types"
 )
 
 // clauseValues pairs the SET clauses ManageClosedAt appended with their args so
@@ -33,7 +33,7 @@ func clauseValues(t *testing.T, clauses []string, args []interface{}) map[string
 // (ga-kjkv1): closeIssueInTx always writes close_reason and closed_by_session,
 // including the empty values a caller supplying neither produces, so a generic
 // update that crosses into closed must write them too. Without this a re-close
-// after a generic reopen keeps the PREVIOUS close's session and `bd show`
+// after a generic reopen keeps the PREVIOUS close's session and `issuegraph show`
 // misattributes it. Each default is suppressed by its own explicit key.
 func TestManageClosedAtMatchesCloseSemantics(t *testing.T) {
 	openIssue := &types.Issue{ID: "bd-1", Status: types.StatusOpen}

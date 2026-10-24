@@ -14,11 +14,11 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/steveyegge/beads/internal/beads"
-	"github.com/steveyegge/beads/internal/configfile"
-	"github.com/steveyegge/beads/internal/git"
-	"github.com/steveyegge/beads/internal/storage/dolt"
-	"github.com/steveyegge/beads/internal/testutil"
+	"github.com/borg0ai/dx-issuegraph/internal/configfile"
+	"github.com/borg0ai/dx-issuegraph/internal/git"
+	"github.com/borg0ai/dx-issuegraph/internal/issuegraph"
+	"github.com/borg0ai/dx-issuegraph/internal/storage/dolt"
+	"github.com/borg0ai/dx-issuegraph/internal/testutil"
 )
 
 // skipIfNoDolt skips the test when no Dolt server is available.
@@ -44,7 +44,7 @@ func TestInitCommand(t *testing.T) {
 			name:           "init with default prefix",
 			prefix:         "",
 			quiet:          false,
-			wantOutputText: "bd initialized successfully",
+			wantOutputText: "issuegraph initialized successfully",
 		},
 		{
 			name:           "init with custom prefix",
@@ -134,14 +134,14 @@ func TestInitCommand(t *testing.T) {
 				}
 			}
 
-			// Verify .beads directory was created
-			beadsDir := filepath.Join(tmpDir, ".beads")
-			if _, err := os.Stat(beadsDir); os.IsNotExist(err) {
-				t.Error(".beads directory was not created")
+			// Verify .issuegraph directory was created
+			issuegraphDir := filepath.Join(tmpDir, ".issuegraph")
+			if _, err := os.Stat(issuegraphDir); os.IsNotExist(err) {
+				t.Error(".issuegraph directory was not created")
 			}
 
 			// Verify .gitignore was created with proper content
-			gitignorePath := filepath.Join(beadsDir, ".gitignore")
+			gitignorePath := filepath.Join(issuegraphDir, ".gitignore")
 			gitignoreContent, err := os.ReadFile(gitignorePath)
 			if err != nil {
 				t.Errorf(".gitignore file was not created: %v", err)
@@ -154,7 +154,7 @@ func TestInitCommand(t *testing.T) {
 					"*.db-journal",
 					"*.db-wal",
 					"*.db-shm",
-					"bd.sock",
+					"issuegraph.sock",
 					"dolt/",
 				}
 				for _, pattern := range expectedPatterns {
@@ -165,7 +165,7 @@ func TestInitCommand(t *testing.T) {
 			}
 
 			// Verify Dolt database directory was created
-			doltPath := filepath.Join(beadsDir, "dolt")
+			doltPath := filepath.Join(issuegraphDir, "dolt")
 			if info, err := os.Stat(doltPath); os.IsNotExist(err) {
 				t.Errorf("Dolt database directory was not created at %s", doltPath)
 			} else if !info.IsDir() {
@@ -210,7 +210,7 @@ func TestInitAlreadyInitialized(t *testing.T) {
 	}
 
 	// Verify database still works
-	dbPath := filepath.Join(tmpDir, ".beads", "dolt")
+	dbPath := filepath.Join(tmpDir, ".issuegraph", "dolt")
 	store, err := openExistingTestDB(t, dbPath)
 	if err != nil {
 		t.Fatalf("Failed to open database: %v", err)
@@ -228,7 +228,7 @@ func TestInitAlreadyInitialized(t *testing.T) {
 	}
 }
 
-// GH#3490: `bd init --init-if-missing` makes init idempotent for scaffold
+// GH#3490: `issuegraph init --init-if-missing` makes init idempotent for scaffold
 // scripts. When the workspace is already initialized, init must skip and
 // return without error (exit 0), emitting a benign "Skipping init" message,
 // instead of aborting via os.Exit(1). The default (no-flag) abort path calls
@@ -293,12 +293,12 @@ func TestInitIfMissing(t *testing.T) {
 	}
 
 	// The skip is a no-op: the existing workspace must remain in place (init
-	// returned before touching any data). We assert on the .beads directory
+	// returned before touching any data). We assert on the .issuegraph directory
 	// rather than a specific backend layout so the test holds for both the
 	// embedded and server test modes.
-	beadsDir := filepath.Join(tmpDir, ".beads")
-	if info, err := os.Stat(beadsDir); err != nil || !info.IsDir() {
-		t.Fatalf("expected existing .beads workspace to remain at %s, stat err: %v", beadsDir, err)
+	issuegraphDir := filepath.Join(tmpDir, ".issuegraph")
+	if info, err := os.Stat(issuegraphDir); err != nil || !info.IsDir() {
+		t.Fatalf("expected existing .issuegraph workspace to remain at %s, stat err: %v", issuegraphDir, err)
 	}
 }
 
@@ -318,7 +318,7 @@ func TestInitIfMissingPrefixMismatch(t *testing.T) {
 		{name: "case-insensitive match", existing: "Foo", requested: "foo", want: false},
 		{name: "hyphen normalizes to underscore", existing: "my_proj", requested: "my-proj", want: false},
 		{name: "trailing hyphen trimmed", existing: "foo", requested: "foo-", want: false},
-		{name: "leading-digit gets bd_ prefix", existing: "bd_001", requested: "001", want: false},
+		{name: "leading-digit gets issuegraph_ prefix", existing: "issuegraph_001", requested: "001", want: false},
 		{name: "genuine mismatch aborts", existing: "foo", requested: "bar", want: true},
 		{name: "unknown existing falls through", existing: "", requested: "bar", want: false},
 		{name: "empty requested falls through", existing: "foo", requested: "", want: false},
@@ -407,32 +407,32 @@ func TestInitIfMissingDatabaseMismatch(t *testing.T) {
 	}
 }
 
-// TestCheckExistingBeadsDataOperationalErrorNotMasked verifies the core of the
+// TestCheckExistingIssueGraphDataOperationalErrorNotMasked verifies the core of the
 // --init-if-missing idempotency fix: only the benign "already initialized"
 // outcome matches errWorkspaceAlreadyInitialized (and may be skipped), while an
 // operational failure must NOT match it — otherwise --init-if-missing would mask
-// a real error (e.g. an unreadable .beads/embeddeddolt) as a successful skip.
-func TestCheckExistingBeadsDataOperationalErrorNotMasked(t *testing.T) {
-	saveEmbeddedConfig := func(t *testing.T, beadsDir string) {
+// a real error (e.g. an unreadable .issuegraph/embeddeddolt) as a successful skip.
+func TestCheckExistingIssueGraphDataOperationalErrorNotMasked(t *testing.T) {
+	saveEmbeddedConfig := func(t *testing.T, issuegraphDir string) {
 		t.Helper()
 		cfg := &configfile.Config{
 			Database: "dolt",
 			Backend:  configfile.BackendDolt,
 			DoltMode: configfile.DoltModeEmbedded,
 		}
-		if err := cfg.Save(beadsDir); err != nil {
+		if err := cfg.Save(issuegraphDir); err != nil {
 			t.Fatalf("save config: %v", err)
 		}
 	}
 
 	t.Run("existing database matches sentinel", func(t *testing.T) {
-		beadsDir := t.TempDir()
-		saveEmbeddedConfig(t, beadsDir)
+		issuegraphDir := t.TempDir()
+		saveEmbeddedConfig(t, issuegraphDir)
 		// A real embedded database lives at embeddeddolt/<db>/.dolt.
-		if err := os.MkdirAll(filepath.Join(beadsDir, "embeddeddolt", "mydb", ".dolt"), 0o750); err != nil {
+		if err := os.MkdirAll(filepath.Join(issuegraphDir, "embeddeddolt", "mydb", ".dolt"), 0o750); err != nil {
 			t.Fatal(err)
 		}
-		err := checkExistingBeadsDataAt(beadsDir, "mydb")
+		err := checkExistingIssueGraphDataAt(issuegraphDir, "mydb")
 		if err == nil {
 			t.Fatal("expected already-initialized error, got nil")
 		}
@@ -442,14 +442,14 @@ func TestCheckExistingBeadsDataOperationalErrorNotMasked(t *testing.T) {
 	})
 
 	t.Run("operational error not masked", func(t *testing.T) {
-		beadsDir := t.TempDir()
-		saveEmbeddedConfig(t, beadsDir)
+		issuegraphDir := t.TempDir()
+		saveEmbeddedConfig(t, issuegraphDir)
 		// Make embeddeddolt a regular file so os.ReadDir fails with a
 		// non-IsNotExist (operational) error rather than "already initialized".
-		if err := os.WriteFile(filepath.Join(beadsDir, "embeddeddolt"), []byte("not a dir"), 0o600); err != nil {
+		if err := os.WriteFile(filepath.Join(issuegraphDir, "embeddeddolt"), []byte("not a dir"), 0o600); err != nil {
 			t.Fatal(err)
 		}
-		err := checkExistingBeadsDataAt(beadsDir, "mydb")
+		err := checkExistingIssueGraphDataAt(issuegraphDir, "mydb")
 		if err == nil {
 			t.Fatal("expected operational error, got nil")
 		}
@@ -460,7 +460,7 @@ func TestCheckExistingBeadsDataOperationalErrorNotMasked(t *testing.T) {
 }
 
 func TestInitWithCustomDBPath(t *testing.T) {
-	t.Skip("BEADS_DB env var does not control Dolt store location; Dolt always uses .beads/dolt/")
+	t.Skip("ISSUEGRAPH_DB env var does not control Dolt store location; Dolt always uses .issuegraph/dolt/")
 	// Save original state
 	origDBPath := dbPath
 	defer func() { dbPath = origDBPath }()
@@ -478,16 +478,16 @@ func TestInitWithCustomDBPath(t *testing.T) {
 
 	customDBPath := filepath.Join(customDBDir, "test.db")
 
-	// Test with BEADS_DB environment variable (replacing --db flag test)
-	t.Run("init with BEADS_DB pointing to custom path", func(t *testing.T) {
+	// Test with ISSUEGRAPH_DB environment variable (replacing --db flag test)
+	t.Run("init with ISSUEGRAPH_DB pointing to custom path", func(t *testing.T) {
 		dbPath = "" // Reset global
-		os.Setenv("BEADS_DB", customDBPath)
-		defer os.Unsetenv("BEADS_DB")
+		os.Setenv("ISSUEGRAPH_DB", customDBPath)
+		defer os.Unsetenv("ISSUEGRAPH_DB")
 
 		rootCmd.SetArgs([]string{"init", "--prefix", "custom", "--quiet"})
 
 		if err := rootCmd.Execute(); err != nil {
-			t.Fatalf("Init with BEADS_DB failed: %v", err)
+			t.Fatalf("Init with ISSUEGRAPH_DB failed: %v", err)
 		}
 
 		// Verify database was created at custom location
@@ -512,28 +512,28 @@ func TestInitWithCustomDBPath(t *testing.T) {
 			t.Errorf("Expected prefix 'custom', got %q", prefix)
 		}
 
-		// Verify .beads/ directory was NOT created in work directory
-		if _, err := os.Stat(filepath.Join(workDir, ".beads")); err == nil {
-			t.Error(".beads/ directory should not be created when using BEADS_DB env var")
+		// Verify .issuegraph/ directory was NOT created in work directory
+		if _, err := os.Stat(filepath.Join(workDir, ".issuegraph")); err == nil {
+			t.Error(".issuegraph/ directory should not be created when using ISSUEGRAPH_DB env var")
 		}
 	})
 
-	// Test with BEADS_DB env var
-	t.Run("init with BEADS_DB env var", func(t *testing.T) {
+	// Test with ISSUEGRAPH_DB env var
+	t.Run("init with ISSUEGRAPH_DB env var", func(t *testing.T) {
 		dbPath = "" // Reset global
 		envDBPath := filepath.Join(tmpDir, "env", "location", "env.db")
-		os.Setenv("BEADS_DB", envDBPath)
-		defer os.Unsetenv("BEADS_DB")
+		os.Setenv("ISSUEGRAPH_DB", envDBPath)
+		defer os.Unsetenv("ISSUEGRAPH_DB")
 
 		rootCmd.SetArgs([]string{"init", "--prefix", "envtest", "--quiet"})
 
 		if err := rootCmd.Execute(); err != nil {
-			t.Fatalf("Init with BEADS_DB failed: %v", err)
+			t.Fatalf("Init with ISSUEGRAPH_DB failed: %v", err)
 		}
 
 		// Verify database was created at env location
 		if _, err := os.Stat(envDBPath); os.IsNotExist(err) {
-			t.Errorf("Database was not created at BEADS_DB path %s", envDBPath)
+			t.Errorf("Database was not created at ISSUEGRAPH_DB path %s", envDBPath)
 		}
 
 		// Verify database works
@@ -554,18 +554,18 @@ func TestInitWithCustomDBPath(t *testing.T) {
 		}
 	})
 
-	// Test that BEADS_DB path containing ".beads" doesn't create CWD/.beads
-	t.Run("init with BEADS_DB path containing .beads", func(t *testing.T) {
+	// Test that ISSUEGRAPH_DB path containing ".issuegraph" doesn't create CWD/.issuegraph
+	t.Run("init with ISSUEGRAPH_DB path containing .issuegraph", func(t *testing.T) {
 		dbPath = "" // Reset global
-		// Path contains ".beads" but is outside work directory
-		customPath := filepath.Join(tmpDir, "storage", ".beads-backup", "test.db")
-		os.Setenv("BEADS_DB", customPath)
-		defer os.Unsetenv("BEADS_DB")
+		// Path contains ".issuegraph" but is outside work directory
+		customPath := filepath.Join(tmpDir, "storage", ".issuegraph-backup", "test.db")
+		os.Setenv("ISSUEGRAPH_DB", customPath)
+		defer os.Unsetenv("ISSUEGRAPH_DB")
 
-		rootCmd.SetArgs([]string{"init", "--prefix", "beadstest", "--quiet"})
+		rootCmd.SetArgs([]string{"init", "--prefix", "issuegraphtest", "--quiet"})
 
 		if err := rootCmd.Execute(); err != nil {
-			t.Fatalf("Init with custom .beads path failed: %v", err)
+			t.Fatalf("Init with custom .issuegraph path failed: %v", err)
 		}
 
 		// Verify database was created at custom location
@@ -573,34 +573,34 @@ func TestInitWithCustomDBPath(t *testing.T) {
 			t.Errorf("Database was not created at custom path %s", customPath)
 		}
 
-		// Verify .beads/ directory was NOT created in work directory
-		if _, err := os.Stat(filepath.Join(workDir, ".beads")); err == nil {
-			t.Error(".beads/ directory should not be created in CWD when BEADS_DB path contains .beads")
+		// Verify .issuegraph/ directory was NOT created in work directory
+		if _, err := os.Stat(filepath.Join(workDir, ".issuegraph")); err == nil {
+			t.Error(".issuegraph/ directory should not be created in CWD when ISSUEGRAPH_DB path contains .issuegraph")
 		}
 	})
 
-	// Test with multiple BEADS_DB variations
-	t.Run("BEADS_DB with subdirectories", func(t *testing.T) {
+	// Test with multiple ISSUEGRAPH_DB variations
+	t.Run("ISSUEGRAPH_DB with subdirectories", func(t *testing.T) {
 		dbPath = "" // Reset global
 		envPath := filepath.Join(tmpDir, "env", "subdirs", "test.db")
 
-		os.Setenv("BEADS_DB", envPath)
-		defer os.Unsetenv("BEADS_DB")
+		os.Setenv("ISSUEGRAPH_DB", envPath)
+		defer os.Unsetenv("ISSUEGRAPH_DB")
 
 		rootCmd.SetArgs([]string{"init", "--prefix", "envtest2", "--quiet"})
 
 		if err := rootCmd.Execute(); err != nil {
-			t.Fatalf("Init with BEADS_DB subdirs failed: %v", err)
+			t.Fatalf("Init with ISSUEGRAPH_DB subdirs failed: %v", err)
 		}
 
 		// Verify database was created at env location
 		if _, err := os.Stat(envPath); os.IsNotExist(err) {
-			t.Errorf("Database was not created at BEADS_DB path %s", envPath)
+			t.Errorf("Database was not created at ISSUEGRAPH_DB path %s", envPath)
 		}
 
-		// Verify .beads/ directory was NOT created in work directory
-		if _, err := os.Stat(filepath.Join(workDir, ".beads")); err == nil {
-			t.Error(".beads/ directory should not be created in CWD when BEADS_DB is set")
+		// Verify .issuegraph/ directory was NOT created in work directory
+		if _, err := os.Stat(filepath.Join(workDir, ".issuegraph")); err == nil {
+			t.Error(".issuegraph/ directory should not be created in CWD when ISSUEGRAPH_DB is set")
 		}
 	})
 }
@@ -657,8 +657,8 @@ func TestSetupClaudeSettings_InvalidJSON(t *testing.T) {
 		t.Error("Original file content should be preserved")
 	}
 
-	if strings.Contains(string(content), "bd prime") {
-		t.Error("File should NOT contain bd prime prompt after error")
+	if strings.Contains(string(content), "issuegraph prime") {
+		t.Error("File should NOT contain issuegraph prime prompt after error")
 	}
 }
 
@@ -705,8 +705,8 @@ func TestSetupClaudeSettings_ValidJSON(t *testing.T) {
 	contentStr := string(content)
 
 	// Should contain the new prompt
-	if !strings.Contains(contentStr, "bd prime") {
-		t.Error("File should contain bd prime prompt")
+	if !strings.Contains(contentStr, "issuegraph prime") {
+		t.Error("File should contain issuegraph prime prompt")
 	}
 
 	// Should preserve existing permissions
@@ -745,8 +745,8 @@ func TestSetupClaudeSettings_NoExistingFile(t *testing.T) {
 		t.Fatalf("Failed to read settings file: %v", err)
 	}
 
-	if !strings.Contains(string(content), "bd prime") {
-		t.Error("File should contain bd prime prompt")
+	if !strings.Contains(string(content), "issuegraph prime") {
+		t.Error("File should contain issuegraph prime prompt")
 	}
 }
 
@@ -792,8 +792,8 @@ func TestSetupGlobalGitIgnore_ReadOnly(t *testing.T) {
 		if !strings.Contains(output, "Unable to write") {
 			t.Error("expected instructions for manual addition")
 		}
-		if !strings.Contains(output, "/test/project/.beads/") {
-			t.Error("expected .beads pattern in output")
+		if !strings.Contains(output, "/test/project/.issuegraph/") {
+			t.Error("expected .issuegraph pattern in output")
 		}
 	})
 
@@ -834,19 +834,19 @@ func TestSetupGlobalGitIgnore_ReadOnly(t *testing.T) {
 		if !strings.Contains(output, "Unable to write") {
 			t.Error("expected instructions for manual addition")
 		}
-		if !strings.Contains(output, "/test/project/.beads/") {
-			t.Error("expected .beads pattern in output")
+		if !strings.Contains(output, "/test/project/.issuegraph/") {
+			t.Error("expected .issuegraph pattern in output")
 		}
 	})
 }
 
-// TestInitPromptRoleConfig tests the beads.role git config read/write functions
+// TestInitPromptRoleConfig tests the issuegraph.role git config read/write functions
 func TestInitPromptRoleConfig(t *testing.T) {
-	t.Run("getBeadsRole returns empty when not configured", func(t *testing.T) {
+	t.Run("getIssueGraphRole returns empty when not configured", func(t *testing.T) {
 		tmpDir := newGitRepo(t)
 		t.Chdir(tmpDir)
 
-		role, hasRole := getBeadsRole()
+		role, hasRole := getIssueGraphRole()
 		if hasRole {
 			t.Errorf("Expected hasRole=false when not configured, got true with role=%q", role)
 		}
@@ -855,16 +855,16 @@ func TestInitPromptRoleConfig(t *testing.T) {
 		}
 	})
 
-	t.Run("setBeadsRole and getBeadsRole roundtrip", func(t *testing.T) {
+	t.Run("setIssueGraphRole and getIssueGraphRole roundtrip", func(t *testing.T) {
 		tmpDir := newGitRepo(t)
 		t.Chdir(tmpDir)
 
 		// Set role to contributor
-		if err := setBeadsRole("contributor"); err != nil {
-			t.Fatalf("Failed to set beads.role: %v", err)
+		if err := setIssueGraphRole("contributor"); err != nil {
+			t.Fatalf("Failed to set issuegraph.role: %v", err)
 		}
 
-		role, hasRole := getBeadsRole()
+		role, hasRole := getIssueGraphRole()
 		if !hasRole {
 			t.Error("Expected hasRole=true after setting role")
 		}
@@ -873,11 +873,11 @@ func TestInitPromptRoleConfig(t *testing.T) {
 		}
 
 		// Change to maintainer
-		if err := setBeadsRole("maintainer"); err != nil {
-			t.Fatalf("Failed to set beads.role: %v", err)
+		if err := setIssueGraphRole("maintainer"); err != nil {
+			t.Fatalf("Failed to set issuegraph.role: %v", err)
 		}
 
-		role, hasRole = getBeadsRole()
+		role, hasRole = getIssueGraphRole()
 		if !hasRole {
 			t.Error("Expected hasRole=true after setting role")
 		}
@@ -897,10 +897,10 @@ func TestInitPromptSkippedWithFlags(t *testing.T) {
 		dbPath = ""
 
 		// Reset caches so RepoContext picks up new directory
-		beads.ResetCaches()
+		issuegraph.ResetCaches()
 		git.ResetCaches()
 		defer func() {
-			beads.ResetCaches()
+			issuegraph.ResetCaches()
 			git.ResetCaches()
 		}()
 
@@ -911,18 +911,18 @@ func TestInitPromptSkippedWithFlags(t *testing.T) {
 		t.Chdir(tmpDir)
 
 		// Verify no role is set initially
-		role, hasRole := getBeadsRole()
+		role, hasRole := getIssueGraphRole()
 		if hasRole {
 			t.Fatalf("Expected no role initially, got %q", role)
 		}
 
-		// Run bd init with --contributor flag (quiet to suppress wizard output)
+		// Run issuegraph init with --contributor flag (quiet to suppress wizard output)
 		// The wizard will fail because there's no planning repo, but that's OK
 		// We just want to verify the flag bypasses the prompt
 		rootCmd.SetArgs([]string{"init", "--prefix", "test", "--contributor", "--quiet"})
 		_ = rootCmd.Execute() // Ignore error - wizard may fail
 
-		// The --contributor flag should NOT set beads.role (that's done by prompt, not flag)
+		// The --contributor flag should NOT set issuegraph.role (that's done by prompt, not flag)
 		// The flag just triggers the wizard directly
 	})
 
@@ -933,10 +933,10 @@ func TestInitPromptSkippedWithFlags(t *testing.T) {
 		dbPath = ""
 
 		// Reset caches so RepoContext picks up new directory
-		beads.ResetCaches()
+		issuegraph.ResetCaches()
 		git.ResetCaches()
 		defer func() {
-			beads.ResetCaches()
+			issuegraph.ResetCaches()
 			git.ResetCaches()
 		}()
 
@@ -947,16 +947,16 @@ func TestInitPromptSkippedWithFlags(t *testing.T) {
 		t.Chdir(tmpDir)
 
 		// Verify no role is set initially
-		role, hasRole := getBeadsRole()
+		role, hasRole := getIssueGraphRole()
 		if hasRole {
 			t.Fatalf("Expected no role initially, got %q", role)
 		}
 
-		// Run bd init with --team flag
+		// Run issuegraph init with --team flag
 		rootCmd.SetArgs([]string{"init", "--prefix", "test", "--team", "--quiet"})
 		_ = rootCmd.Execute() // Ignore error - wizard may fail
 
-		// The --team flag should not set beads.role
+		// The --team flag should not set issuegraph.role
 		// (team wizard is separate from contributor/maintainer roles)
 	})
 }
@@ -989,10 +989,10 @@ func TestInitPromptNonGitRepo(t *testing.T) {
 	dbPath = ""
 
 	// Reset caches so RepoContext picks up new directory
-	beads.ResetCaches()
+	issuegraph.ResetCaches()
 	git.ResetCaches()
 	defer func() {
-		beads.ResetCaches()
+		issuegraph.ResetCaches()
 		git.ResetCaches()
 	}()
 
@@ -1005,20 +1005,20 @@ func TestInitPromptNonGitRepo(t *testing.T) {
 
 	// DON'T initialize git repo
 
-	// Run bd init - should succeed without prompting (no git repo)
+	// Run issuegraph init - should succeed without prompting (no git repo)
 	rootCmd.SetArgs([]string{"init", "--prefix", "test", "--quiet"})
 	if err := rootCmd.Execute(); err != nil {
 		t.Fatalf("Init should succeed in non-git directory: %v", err)
 	}
 
-	// Verify .beads was created
-	beadsDir := filepath.Join(tmpDir, ".beads")
-	if _, err := os.Stat(beadsDir); os.IsNotExist(err) {
-		t.Error(".beads directory should be created even without git")
+	// Verify .issuegraph was created
+	issuegraphDir := filepath.Join(tmpDir, ".issuegraph")
+	if _, err := os.Stat(issuegraphDir); os.IsNotExist(err) {
+		t.Error(".issuegraph directory should be created even without git")
 	}
 }
 
-// TestInitPromptExistingRole verifies behavior when beads.role is already set
+// TestInitPromptExistingRole verifies behavior when issuegraph.role is already set
 func TestInitPromptExistingRole(t *testing.T) {
 	skipIfNoDolt(t)
 	t.Run("existing role is preserved on reinit with --force", func(t *testing.T) {
@@ -1028,10 +1028,10 @@ func TestInitPromptExistingRole(t *testing.T) {
 		dbPath = ""
 
 		// Reset caches so RepoContext picks up new directory
-		beads.ResetCaches()
+		issuegraph.ResetCaches()
 		git.ResetCaches()
 		defer func() {
-			beads.ResetCaches()
+			issuegraph.ResetCaches()
 			git.ResetCaches()
 		}()
 
@@ -1044,20 +1044,20 @@ func TestInitPromptExistingRole(t *testing.T) {
 		t.Chdir(tmpDir)
 
 		// Set role before init
-		if err := setBeadsRole("contributor"); err != nil {
-			t.Fatalf("Failed to set beads.role: %v", err)
+		if err := setIssueGraphRole("contributor"); err != nil {
+			t.Fatalf("Failed to set issuegraph.role: %v", err)
 		}
 
-		// Run bd init (non-interactive, so prompt is skipped)
+		// Run issuegraph init (non-interactive, so prompt is skipped)
 		rootCmd.SetArgs([]string{"init", "--prefix", "test", "--quiet"})
 		if err := rootCmd.Execute(); err != nil {
 			t.Fatalf("Init failed: %v", err)
 		}
 
 		// Verify role is still set
-		role, hasRole := getBeadsRole()
+		role, hasRole := getIssueGraphRole()
 		if !hasRole {
-			t.Error("Expected beads.role to still be set after init")
+			t.Error("Expected issuegraph.role to still be set after init")
 		}
 		if role != "contributor" {
 			t.Errorf("Expected role 'contributor' to be preserved, got %q", role)
@@ -1073,9 +1073,9 @@ func TestInitPromptExistingRole(t *testing.T) {
 		}
 
 		// Verify role is still set (not cleared by reinit)
-		role, hasRole = getBeadsRole()
+		role, hasRole = getIssueGraphRole()
 		if !hasRole {
-			t.Error("Expected beads.role to still be set after reinit")
+			t.Error("Expected issuegraph.role to still be set after reinit")
 		}
 		if role != "contributor" {
 			t.Errorf("Expected role 'contributor' to be preserved after reinit, got %q", role)
@@ -1083,17 +1083,17 @@ func TestInitPromptExistingRole(t *testing.T) {
 	})
 }
 
-func TestInitContributorSetsBeadsRoleContributor(t *testing.T) {
+func TestInitContributorSetsIssueGraphRoleContributor(t *testing.T) {
 	skipIfNoDolt(t)
 
 	origDBPath := dbPath
 	defer func() { dbPath = origDBPath }()
 	dbPath = ""
 
-	beads.ResetCaches()
+	issuegraph.ResetCaches()
 	git.ResetCaches()
 	defer func() {
-		beads.ResetCaches()
+		issuegraph.ResetCaches()
 		git.ResetCaches()
 	}()
 
@@ -1122,7 +1122,7 @@ func TestInitContributorSetsBeadsRoleContributor(t *testing.T) {
 
 	// Wizard answers:
 	// 1) "Do you want to use a separate planning repo anyway? [Y/n]" -> Enter (default yes)
-	// 2) "Planning repo path [press Enter for default]" -> Enter (default ~/.beads-planning)
+	// 2) "Planning repo path [press Enter for default]" -> Enter (default ~/.issuegraph-planning)
 	r, w, err := os.Pipe()
 	if err != nil {
 		t.Fatalf("failed to create stdin pipe: %v", err)
@@ -1139,17 +1139,17 @@ func TestInitContributorSetsBeadsRoleContributor(t *testing.T) {
 		t.Fatalf("init --contributor failed: %v", err)
 	}
 
-	role, hasRole := getBeadsRole()
+	role, hasRole := getIssueGraphRole()
 	if !hasRole {
-		t.Fatal("expected beads.role to be configured")
+		t.Fatal("expected issuegraph.role to be configured")
 	}
 	if role != "contributor" {
-		t.Fatalf("beads.role = %q, want %q", role, "contributor")
+		t.Fatalf("issuegraph.role = %q, want %q", role, "contributor")
 	}
 }
 
-// TestInitNonInteractiveAlwaysSetsRole verifies that bd init --non-interactive
-// always leaves beads.role set, even when no --role flag is provided (GH#2950).
+// TestInitNonInteractiveAlwaysSetsRole verifies that issuegraph init --non-interactive
+// always leaves issuegraph.role set, even when no --role flag is provided (GH#2950).
 // This is the safety net for the init flow.
 func TestInitNonInteractiveAlwaysSetsRole(t *testing.T) {
 	skipIfNoDolt(t)
@@ -1158,10 +1158,10 @@ func TestInitNonInteractiveAlwaysSetsRole(t *testing.T) {
 	defer func() { dbPath = origDBPath }()
 	dbPath = ""
 
-	beads.ResetCaches()
+	issuegraph.ResetCaches()
 	git.ResetCaches()
 	defer func() {
-		beads.ResetCaches()
+		issuegraph.ResetCaches()
 		git.ResetCaches()
 	}()
 
@@ -1174,41 +1174,41 @@ func TestInitNonInteractiveAlwaysSetsRole(t *testing.T) {
 	t.Chdir(tmpDir)
 
 	// Ensure no role is set before init
-	exec.Command("git", "config", "--unset", "beads.role").Run() //nolint:errcheck
+	exec.Command("git", "config", "--unset", "issuegraph.role").Run() //nolint:errcheck
 
 	rootCmd.SetArgs([]string{"init", "--prefix", "test", "--quiet", "--non-interactive"})
 	if err := rootCmd.Execute(); err != nil {
 		t.Fatalf("init --non-interactive failed: %v", err)
 	}
 
-	role, hasRole := getBeadsRole()
+	role, hasRole := getIssueGraphRole()
 	if !hasRole {
-		t.Fatal("expected beads.role to be configured after non-interactive init (GH#2950)")
+		t.Fatal("expected issuegraph.role to be configured after non-interactive init (GH#2950)")
 	}
 	if role != "maintainer" {
-		t.Fatalf("beads.role = %q, want %q (default for non-interactive)", role, "maintainer")
+		t.Fatalf("issuegraph.role = %q, want %q (default for non-interactive)", role, "maintainer")
 	}
 }
 
-// TestInitWithRedirect verifies that bd init creates the database in the redirect target,
-// not in the local .beads directory. (GH#bd-0qel)
+// TestInitWithRedirect verifies that issuegraph init creates the database in the redirect target,
+// not in the local .issuegraph directory. (GH#bd-0qel)
 // TestInitRedirect groups redirect-related init tests.
 func TestInitRedirect(t *testing.T) {
 	skipIfNoDolt(t)
 	resetRedirectState := func(t *testing.T) {
 		t.Helper()
 		origDBPath := dbPath
-		origBeadsDir := os.Getenv("BEADS_DIR")
+		origIssueGraphDir := os.Getenv("ISSUEGRAPH_DIR")
 		t.Cleanup(func() {
 			dbPath = origDBPath
-			if origBeadsDir != "" {
-				os.Setenv("BEADS_DIR", origBeadsDir)
+			if origIssueGraphDir != "" {
+				os.Setenv("ISSUEGRAPH_DIR", origIssueGraphDir)
 			} else {
-				os.Unsetenv("BEADS_DIR")
+				os.Unsetenv("ISSUEGRAPH_DIR")
 			}
 		})
 		dbPath = ""
-		os.Unsetenv("BEADS_DIR")
+		os.Unsetenv("ISSUEGRAPH_DIR")
 		initCmd.Flags().Set("prefix", "")
 		initCmd.Flags().Set("quiet", "false")
 		initCmd.Flags().Set("force", "false")
@@ -1224,18 +1224,18 @@ func TestInitRedirect(t *testing.T) {
 			t.Fatal(err)
 		}
 
-		localBeadsDir := filepath.Join(projectDir, ".beads")
-		if err := os.MkdirAll(localBeadsDir, 0755); err != nil {
+		localIssueGraphDir := filepath.Join(projectDir, ".issuegraph")
+		if err := os.MkdirAll(localIssueGraphDir, 0755); err != nil {
 			t.Fatal(err)
 		}
 
-		targetBeadsDir := filepath.Join(tmpDir, "canonical", ".beads")
-		if err := os.MkdirAll(targetBeadsDir, 0755); err != nil {
+		targetIssueGraphDir := filepath.Join(tmpDir, "canonical", ".issuegraph")
+		if err := os.MkdirAll(targetIssueGraphDir, 0755); err != nil {
 			t.Fatal(err)
 		}
 
-		redirectPath := filepath.Join(localBeadsDir, beads.RedirectFileName)
-		if err := os.WriteFile(redirectPath, []byte("../canonical/.beads\n"), 0644); err != nil {
+		redirectPath := filepath.Join(localIssueGraphDir, issuegraph.RedirectFileName)
+		if err := os.WriteFile(redirectPath, []byte("../canonical/.issuegraph\n"), 0644); err != nil {
 			t.Fatal(err)
 		}
 
@@ -1246,14 +1246,14 @@ func TestInitRedirect(t *testing.T) {
 			t.Fatalf("Init with redirect failed: %v", err)
 		}
 
-		targetDBPath := filepath.Join(targetBeadsDir, "dolt")
+		targetDBPath := filepath.Join(targetIssueGraphDir, "dolt")
 		if _, err := os.Stat(targetDBPath); os.IsNotExist(err) {
 			t.Errorf("Dolt database was NOT created in redirect target: %s", targetDBPath)
 		}
 
-		localDBPath := filepath.Join(localBeadsDir, "dolt")
+		localDBPath := filepath.Join(localIssueGraphDir, "dolt")
 		if _, err := os.Stat(localDBPath); err == nil {
-			t.Errorf("Database was incorrectly created in local .beads: %s (should be in redirect target)", localDBPath)
+			t.Errorf("Database was incorrectly created in local .issuegraph: %s (should be in redirect target)", localDBPath)
 		}
 
 		store, err := openExistingTestDB(t, targetDBPath)
@@ -1272,7 +1272,7 @@ func TestInitRedirect(t *testing.T) {
 		}
 	})
 
-	// Verifies that bd init errors when the redirect target already has a database,
+	// Verifies that issuegraph init errors when the redirect target already has a database,
 	// preventing accidental overwrites. (GH#bd-0qel)
 	t.Run("ErrorWhenTargetHasExistingDB", func(t *testing.T) {
 		resetRedirectState(t)
@@ -1280,38 +1280,38 @@ func TestInitRedirect(t *testing.T) {
 		tmpDir := t.TempDir()
 
 		canonicalDir := filepath.Join(tmpDir, "canonical")
-		canonicalBeadsDir := filepath.Join(canonicalDir, ".beads")
-		if err := os.MkdirAll(canonicalBeadsDir, 0755); err != nil {
+		canonicalIssueGraphDir := filepath.Join(canonicalDir, ".issuegraph")
+		if err := os.MkdirAll(canonicalIssueGraphDir, 0755); err != nil {
 			t.Fatal(err)
 		}
 
-		canonicalDBPath := filepath.Join(canonicalBeadsDir, "beads.db")
-		// Create the db file so checkExistingBeadsData detects it
+		canonicalDBPath := filepath.Join(canonicalIssueGraphDir, "issuegraph.db")
+		// Create the db file so checkExistingIssueGraphData detects it
 		if err := os.WriteFile(canonicalDBPath, []byte{}, 0644); err != nil {
 			t.Fatalf("Failed to create canonical db file: %v", err)
 		}
 
 		projectDir := filepath.Join(tmpDir, "project")
-		projectBeadsDir := filepath.Join(projectDir, ".beads")
-		if err := os.MkdirAll(projectBeadsDir, 0755); err != nil {
+		projectIssueGraphDir := filepath.Join(projectDir, ".issuegraph")
+		if err := os.MkdirAll(projectIssueGraphDir, 0755); err != nil {
 			t.Fatal(err)
 		}
 
-		redirectPath := filepath.Join(projectBeadsDir, beads.RedirectFileName)
-		if err := os.WriteFile(redirectPath, []byte("../canonical/.beads\n"), 0644); err != nil {
+		redirectPath := filepath.Join(projectIssueGraphDir, issuegraph.RedirectFileName)
+		if err := os.WriteFile(redirectPath, []byte("../canonical/.issuegraph\n"), 0644); err != nil {
 			t.Fatal(err)
 		}
 
-		// Use os.Chdir since checkExistingBeadsData reads CWD directly
+		// Use os.Chdir since checkExistingIssueGraphData reads CWD directly
 		origWd, _ := os.Getwd()
 		if err := os.Chdir(projectDir); err != nil {
 			t.Fatal(err)
 		}
 		defer os.Chdir(origWd)
 
-		err := checkExistingBeadsData("new-prefix")
+		err := checkExistingIssueGraphData("new-prefix")
 		if err == nil {
-			t.Fatal("Expected checkExistingBeadsData to return error when redirect target already has database")
+			t.Fatal("Expected checkExistingIssueGraphData to return error when redirect target already has database")
 		}
 
 		errorMsg := err.Error()
@@ -1327,150 +1327,150 @@ func TestInitRedirect(t *testing.T) {
 }
 
 // =============================================================================
-// BEADS_DIR Tests
+// ISSUEGRAPH_DIR Tests
 // =============================================================================
-// These tests verify that bd init respects the BEADS_DIR environment variable
+// These tests verify that issuegraph init respects the ISSUEGRAPH_DIR environment variable
 // for both safety checks and database creation.
 
-// TestInitBEADS_DIR groups BEADS_DIR-related init tests.
+// TestInitISSUEGRAPH_DIR groups ISSUEGRAPH_DIR-related init tests.
 // Tests requirements FR-001, FR-002, FR-004, NFR-001.
-func TestInitBEADS_DIR(t *testing.T) {
+func TestInitISSUEGRAPH_DIR(t *testing.T) {
 	skipIfNoDolt(t)
-	// resetBeadsDirState resets global state and env vars for each subtest.
-	resetBeadsDirState := func(t *testing.T) {
+	// resetIssueGraphDirState resets global state and env vars for each subtest.
+	resetIssueGraphDirState := func(t *testing.T) {
 		t.Helper()
 		origDBPath := dbPath
 		t.Cleanup(func() {
 			dbPath = origDBPath
-			beads.ResetCaches()
+			issuegraph.ResetCaches()
 			git.ResetCaches()
 		})
 		dbPath = ""
-		beads.ResetCaches()
+		issuegraph.ResetCaches()
 		git.ResetCaches()
 		initCmd.Flags().Set("prefix", "")
 		initCmd.Flags().Set("quiet", "false")
 		initCmd.Flags().Set("backend", "")
 	}
 
-	// checkExistingBeadsData tests (FR-001, FR-004)
+	// checkExistingIssueGraphData tests (FR-001, FR-004)
 	t.Run("CheckExisting_NoExistingDB", func(t *testing.T) {
-		resetBeadsDirState(t)
+		resetIssueGraphDirState(t)
 
 		tmpDir := t.TempDir()
-		beadsDirPath := filepath.Join(tmpDir, "external", ".beads")
-		os.MkdirAll(beadsDirPath, 0755)
+		issuegraphDirPath := filepath.Join(tmpDir, "external", ".issuegraph")
+		os.MkdirAll(issuegraphDirPath, 0755)
 
-		os.Setenv("BEADS_DIR", beadsDirPath)
-		t.Cleanup(func() { os.Unsetenv("BEADS_DIR") })
-		beads.ResetCaches()
+		os.Setenv("ISSUEGRAPH_DIR", issuegraphDirPath)
+		t.Cleanup(func() { os.Unsetenv("ISSUEGRAPH_DIR") })
+		issuegraph.ResetCaches()
 
-		err := checkExistingBeadsData("test")
+		err := checkExistingIssueGraphData("test")
 		if err != nil {
-			t.Errorf("Expected no error when BEADS_DIR has no database, got: %v", err)
+			t.Errorf("Expected no error when ISSUEGRAPH_DIR has no database, got: %v", err)
 		}
 	})
 
 	t.Run("CheckExisting_CWDIgnoredWhenSet", func(t *testing.T) {
-		resetBeadsDirState(t)
+		resetIssueGraphDirState(t)
 
 		tmpDir := t.TempDir()
 
 		// Create CWD with existing database (should be ignored)
-		cwdBeadsDir := filepath.Join(tmpDir, "cwd", ".beads")
-		os.MkdirAll(cwdBeadsDir, 0755)
-		cwdDBPath := filepath.Join(cwdBeadsDir, beads.CanonicalDatabaseName)
-		// Create the db file so checkExistingBeadsData detects it
+		cwdIssueGraphDir := filepath.Join(tmpDir, "cwd", ".issuegraph")
+		os.MkdirAll(cwdIssueGraphDir, 0755)
+		cwdDBPath := filepath.Join(cwdIssueGraphDir, issuegraph.CanonicalDatabaseName)
+		// Create the db file so checkExistingIssueGraphData detects it
 		if err := os.WriteFile(cwdDBPath, []byte{}, 0644); err != nil {
 			t.Fatal(err)
 		}
 
-		// Create BEADS_DIR location (no database)
-		beadsDirPath := filepath.Join(tmpDir, "external", ".beads")
-		os.MkdirAll(beadsDirPath, 0755)
+		// Create ISSUEGRAPH_DIR location (no database)
+		issuegraphDirPath := filepath.Join(tmpDir, "external", ".issuegraph")
+		os.MkdirAll(issuegraphDirPath, 0755)
 
-		os.Setenv("BEADS_DIR", beadsDirPath)
-		t.Cleanup(func() { os.Unsetenv("BEADS_DIR") })
-		beads.ResetCaches()
+		os.Setenv("ISSUEGRAPH_DIR", issuegraphDirPath)
+		t.Cleanup(func() { os.Unsetenv("ISSUEGRAPH_DIR") })
+		issuegraph.ResetCaches()
 
 		origWd, _ := os.Getwd()
 		os.Chdir(filepath.Join(tmpDir, "cwd"))
 		defer os.Chdir(origWd)
 
-		err := checkExistingBeadsData("test")
+		err := checkExistingIssueGraphData("test")
 		if err != nil {
-			t.Errorf("Expected no error when BEADS_DIR has no database (CWD should be ignored), got: %v", err)
+			t.Errorf("Expected no error when ISSUEGRAPH_DIR has no database (CWD should be ignored), got: %v", err)
 		}
 	})
 
 	t.Run("CheckExisting_ErrorWhenDBExists", func(t *testing.T) {
-		resetBeadsDirState(t)
+		resetIssueGraphDirState(t)
 
 		tmpDir := t.TempDir()
 
-		beadsDirPath := filepath.Join(tmpDir, "external", ".beads")
-		os.MkdirAll(beadsDirPath, 0755)
-		testDBPath := filepath.Join(beadsDirPath, beads.CanonicalDatabaseName)
-		// Create the db file so checkExistingBeadsData detects it
+		issuegraphDirPath := filepath.Join(tmpDir, "external", ".issuegraph")
+		os.MkdirAll(issuegraphDirPath, 0755)
+		testDBPath := filepath.Join(issuegraphDirPath, issuegraph.CanonicalDatabaseName)
+		// Create the db file so checkExistingIssueGraphData detects it
 		if err := os.WriteFile(testDBPath, []byte{}, 0644); err != nil {
 			t.Fatal(err)
 		}
 
-		os.Setenv("BEADS_DIR", beadsDirPath)
-		t.Cleanup(func() { os.Unsetenv("BEADS_DIR") })
-		beads.ResetCaches()
+		os.Setenv("ISSUEGRAPH_DIR", issuegraphDirPath)
+		t.Cleanup(func() { os.Unsetenv("ISSUEGRAPH_DIR") })
+		issuegraph.ResetCaches()
 
-		err := checkExistingBeadsData("test")
+		err := checkExistingIssueGraphData("test")
 		if err == nil {
-			t.Error("Expected error when BEADS_DIR already has database")
+			t.Error("Expected error when ISSUEGRAPH_DIR already has database")
 		}
-		if !strings.Contains(err.Error(), beadsDirPath) {
-			t.Errorf("Expected error to mention BEADS_DIR path %s, got: %v", beadsDirPath, err)
+		if !strings.Contains(err.Error(), issuegraphDirPath) {
+			t.Errorf("Expected error to mention ISSUEGRAPH_DIR path %s, got: %v", issuegraphDirPath, err)
 		}
 	})
 
-	// FR-002: init creates database at BEADS_DIR
-	t.Run("InitCreatesDBAtBeadsDir", func(t *testing.T) {
+	// FR-002: init creates database at ISSUEGRAPH_DIR
+	t.Run("InitCreatesDBAtIssueGraphDir", func(t *testing.T) {
 		if runtime.GOOS == "windows" {
-			t.Skip("Skipping BEADS_DIR test on Windows")
+			t.Skip("Skipping ISSUEGRAPH_DIR test on Windows")
 		}
 
-		resetBeadsDirState(t)
+		resetIssueGraphDirState(t)
 
 		tmpDir := t.TempDir()
 
-		beadsDirPath := filepath.Join(tmpDir, "external", ".beads")
-		os.MkdirAll(filepath.Dir(beadsDirPath), 0755)
+		issuegraphDirPath := filepath.Join(tmpDir, "external", ".issuegraph")
+		os.MkdirAll(filepath.Dir(issuegraphDirPath), 0755)
 
-		os.Setenv("BEADS_DIR", beadsDirPath)
-		t.Cleanup(func() { os.Unsetenv("BEADS_DIR") })
-		beads.ResetCaches()
+		os.Setenv("ISSUEGRAPH_DIR", issuegraphDirPath)
+		t.Cleanup(func() { os.Unsetenv("ISSUEGRAPH_DIR") })
+		issuegraph.ResetCaches()
 		git.ResetCaches()
 
 		cwdPath := filepath.Join(tmpDir, "workdir")
 		os.MkdirAll(cwdPath, 0755)
 		t.Chdir(cwdPath)
 
-		rootCmd.SetArgs([]string{"init", "--prefix", "beadsdir-test", "--quiet"})
+		rootCmd.SetArgs([]string{"init", "--prefix", "issuegraphdir-test", "--quiet"})
 		if err := rootCmd.Execute(); err != nil {
-			t.Fatalf("Init with BEADS_DIR failed: %v", err)
+			t.Fatalf("Init with ISSUEGRAPH_DIR failed: %v", err)
 		}
 
-		expectedDBPath := filepath.Join(beadsDirPath, "dolt")
+		expectedDBPath := filepath.Join(issuegraphDirPath, "dolt")
 		if info, err := os.Stat(expectedDBPath); os.IsNotExist(err) {
-			t.Errorf("Dolt database was not created at BEADS_DIR path: %s", expectedDBPath)
+			t.Errorf("Dolt database was not created at ISSUEGRAPH_DIR path: %s", expectedDBPath)
 		} else if !info.IsDir() {
 			t.Errorf("Expected %s to be a directory", expectedDBPath)
 		}
 
-		cwdDBPath := filepath.Join(cwdPath, ".beads", "dolt")
+		cwdDBPath := filepath.Join(cwdPath, ".issuegraph", "dolt")
 		if _, err := os.Stat(cwdDBPath); err == nil {
 			t.Errorf("Database should NOT have been created at CWD: %s", cwdDBPath)
 		}
 
 		store, err := openExistingTestDB(t, expectedDBPath)
 		if err != nil {
-			t.Fatalf("Failed to open database at BEADS_DIR: %v", err)
+			t.Fatalf("Failed to open database at ISSUEGRAPH_DIR: %v", err)
 		}
 		defer store.Close()
 
@@ -1479,30 +1479,30 @@ func TestInitBEADS_DIR(t *testing.T) {
 		if err != nil {
 			t.Fatalf("Failed to get prefix from database: %v", err)
 		}
-		if prefix != "beadsdir-test" {
-			t.Errorf("Expected prefix 'beadsdir-test', got %q", prefix)
+		if prefix != "issuegraphdir-test" {
+			t.Errorf("Expected prefix 'issuegraphdir-test', got %q", prefix)
 		}
 	})
 
-	// NFR-001: existing behavior unchanged when BEADS_DIR not set
-	t.Run("WithoutBeadsDirNoBehaviorChange", func(t *testing.T) {
-		resetBeadsDirState(t)
+	// NFR-001: existing behavior unchanged when ISSUEGRAPH_DIR not set
+	t.Run("WithoutIssueGraphDirNoBehaviorChange", func(t *testing.T) {
+		resetIssueGraphDirState(t)
 
-		os.Unsetenv("BEADS_DIR")
-		beads.ResetCaches()
+		os.Unsetenv("ISSUEGRAPH_DIR")
+		issuegraph.ResetCaches()
 		git.ResetCaches()
 
 		tmpDir := t.TempDir()
 		t.Chdir(tmpDir)
 
-		rootCmd.SetArgs([]string{"init", "--prefix", "no-beadsdir", "--quiet"})
+		rootCmd.SetArgs([]string{"init", "--prefix", "no-issuegraphdir", "--quiet"})
 		if err := rootCmd.Execute(); err != nil {
-			t.Fatalf("Init without BEADS_DIR failed: %v", err)
+			t.Fatalf("Init without ISSUEGRAPH_DIR failed: %v", err)
 		}
 
-		expectedDBPath := filepath.Join(tmpDir, ".beads", "dolt")
+		expectedDBPath := filepath.Join(tmpDir, ".issuegraph", "dolt")
 		if info, err := os.Stat(expectedDBPath); os.IsNotExist(err) {
-			t.Errorf("Dolt database was not created at default CWD/.beads path: %s", expectedDBPath)
+			t.Errorf("Dolt database was not created at default CWD/.issuegraph path: %s", expectedDBPath)
 		} else if !info.IsDir() {
 			t.Errorf("Expected %s to be a directory", expectedDBPath)
 		}
@@ -1518,18 +1518,18 @@ func TestInitBEADS_DIR(t *testing.T) {
 		if err != nil {
 			t.Fatalf("Failed to get prefix from database: %v", err)
 		}
-		if prefix != "no-beadsdir" {
-			t.Errorf("Expected prefix 'no-beadsdir', got %q", prefix)
+		if prefix != "no-issuegraphdir" {
+			t.Errorf("Expected prefix 'no-issuegraphdir', got %q", prefix)
 		}
 	})
 
-	// Worktree bypass: BEADS_DIR skips the worktree guard and git init
-	t.Run("WorktreeBypassWhenBeadsDirSet", func(t *testing.T) {
+	// Worktree bypass: ISSUEGRAPH_DIR skips the worktree guard and git init
+	t.Run("WorktreeBypassWhenIssueGraphDirSet", func(t *testing.T) {
 		if runtime.GOOS == "windows" {
 			t.Skip("Skipping worktree test on Windows")
 		}
 
-		resetBeadsDirState(t)
+		resetIssueGraphDirState(t)
 
 		tmpDir := t.TempDir()
 
@@ -1556,73 +1556,73 @@ func TestInitBEADS_DIR(t *testing.T) {
 		worktreeDir := filepath.Join(tmpDir, "my-worktree")
 		runGit(mainRepo, "worktree", "add", worktreeDir, "-b", "test-wt")
 
-		// Set BEADS_DIR to a standalone location outside the repo
-		beadsDirPath := filepath.Join(tmpDir, "standalone", ".beads")
-		if err := os.MkdirAll(filepath.Dir(beadsDirPath), 0755); err != nil {
+		// Set ISSUEGRAPH_DIR to a standalone location outside the repo
+		issuegraphDirPath := filepath.Join(tmpDir, "standalone", ".issuegraph")
+		if err := os.MkdirAll(filepath.Dir(issuegraphDirPath), 0755); err != nil {
 			t.Fatalf("Failed to create standalone dir: %v", err)
 		}
-		os.Setenv("BEADS_DIR", beadsDirPath)
-		t.Cleanup(func() { os.Unsetenv("BEADS_DIR") })
-		beads.ResetCaches()
+		os.Setenv("ISSUEGRAPH_DIR", issuegraphDirPath)
+		t.Cleanup(func() { os.Unsetenv("ISSUEGRAPH_DIR") })
+		issuegraph.ResetCaches()
 		git.ResetCaches()
 
-		// cd into the worktree — without BEADS_DIR this would fail
+		// cd into the worktree — without ISSUEGRAPH_DIR this would fail
 		t.Chdir(worktreeDir)
 
 		rootCmd.SetArgs([]string{"init", "--prefix", "wt-bypass", "--skip-hooks", "--quiet"})
 		err := rootCmd.Execute()
 		if err != nil {
-			t.Fatalf("Init with BEADS_DIR from worktree should succeed, got: %v", err)
+			t.Fatalf("Init with ISSUEGRAPH_DIR from worktree should succeed, got: %v", err)
 		}
 
-		// Verify database was created at BEADS_DIR, not in the worktree
-		expectedDBPath := filepath.Join(beadsDirPath, "dolt")
+		// Verify database was created at ISSUEGRAPH_DIR, not in the worktree
+		expectedDBPath := filepath.Join(issuegraphDirPath, "dolt")
 		if _, statErr := os.Stat(expectedDBPath); os.IsNotExist(statErr) {
-			t.Errorf("Dolt database was not created at BEADS_DIR path: %s", expectedDBPath)
+			t.Errorf("Dolt database was not created at ISSUEGRAPH_DIR path: %s", expectedDBPath)
 		}
 
-		worktreeDBPath := filepath.Join(worktreeDir, ".beads", "dolt")
+		worktreeDBPath := filepath.Join(worktreeDir, ".issuegraph", "dolt")
 		if _, statErr := os.Stat(worktreeDBPath); statErr == nil {
 			t.Errorf("Database should NOT have been created in worktree: %s", worktreeDBPath)
 		}
 	})
 
-	// Precedence: BEADS_DB > BEADS_DIR
-	t.Run("BEADS_DB_OverridesBeadsDir", func(t *testing.T) {
-		t.Skip("BEADS_DB env var does not control Dolt store location; Dolt always uses .beads/dolt/")
-		resetBeadsDirState(t)
+	// Precedence: ISSUEGRAPH_DB > ISSUEGRAPH_DIR
+	t.Run("ISSUEGRAPH_DB_OverridesIssueGraphDir", func(t *testing.T) {
+		t.Skip("ISSUEGRAPH_DB env var does not control Dolt store location; Dolt always uses .issuegraph/dolt/")
+		resetIssueGraphDirState(t)
 
-		beadsDirTarget := t.TempDir()
-		beadsDBTarget := t.TempDir()
+		issuegraphDirTarget := t.TempDir()
+		issuegraphDBTarget := t.TempDir()
 
-		beadsDirBeads := filepath.Join(beadsDirTarget, ".beads")
-		if err := os.MkdirAll(beadsDirBeads, 0750); err != nil {
+		issuegraphDirIssueGraph := filepath.Join(issuegraphDirTarget, ".issuegraph")
+		if err := os.MkdirAll(issuegraphDirIssueGraph, 0750); err != nil {
 			t.Fatal(err)
 		}
 
-		beadsDBPath := filepath.Join(beadsDBTarget, "override.db")
+		issuegraphDBPath := filepath.Join(issuegraphDBTarget, "override.db")
 
-		t.Setenv("BEADS_DIR", beadsDirBeads)
-		t.Setenv("BEADS_DB", beadsDBPath)
+		t.Setenv("ISSUEGRAPH_DIR", issuegraphDirIssueGraph)
+		t.Setenv("ISSUEGRAPH_DB", issuegraphDBPath)
 
 		tmpDir := t.TempDir()
 		t.Chdir(tmpDir)
 
 		rootCmd.SetArgs([]string{"init", "--prefix", "precedence", "--quiet"})
 		if err := rootCmd.Execute(); err != nil {
-			t.Fatalf("Init with BEADS_DB + BEADS_DIR failed: %v", err)
+			t.Fatalf("Init with ISSUEGRAPH_DB + ISSUEGRAPH_DIR failed: %v", err)
 		}
 
-		if _, err := os.Stat(beadsDBPath); os.IsNotExist(err) {
-			t.Errorf("Database was NOT created at BEADS_DB path: %s", beadsDBPath)
+		if _, err := os.Stat(issuegraphDBPath); os.IsNotExist(err) {
+			t.Errorf("Database was NOT created at ISSUEGRAPH_DB path: %s", issuegraphDBPath)
 		}
 
-		beadsDirDBPath := filepath.Join(beadsDirBeads, beads.CanonicalDatabaseName)
-		if _, err := os.Stat(beadsDirDBPath); err == nil {
-			t.Errorf("Database was incorrectly created at BEADS_DIR path: %s (BEADS_DB should override)", beadsDirDBPath)
+		issuegraphDirDBPath := filepath.Join(issuegraphDirIssueGraph, issuegraph.CanonicalDatabaseName)
+		if _, err := os.Stat(issuegraphDirDBPath); err == nil {
+			t.Errorf("Database was incorrectly created at ISSUEGRAPH_DIR path: %s (ISSUEGRAPH_DB should override)", issuegraphDirDBPath)
 		}
 
-		store, err := openExistingTestDB(t, beadsDBPath)
+		store, err := openExistingTestDB(t, issuegraphDBPath)
 		if err != nil {
 			t.Fatalf("Failed to open database: %v", err)
 		}
@@ -1639,13 +1639,13 @@ func TestInitBEADS_DIR(t *testing.T) {
 	})
 }
 
-// TestInit_WithBEADS_DIR_DoltBackend verifies that bd init with Dolt backend
-// creates the database at BEADS_DIR when the environment variable is set.
+// TestInit_WithISSUEGRAPH_DIR_DoltBackend verifies that issuegraph init with Dolt backend
+// creates the database at ISSUEGRAPH_DIR when the environment variable is set.
 // This tests requirements FR-002 for Dolt backend.
-func TestInit_WithBEADS_DIR_DoltBackend(t *testing.T) {
+func TestInit_WithISSUEGRAPH_DIR_DoltBackend(t *testing.T) {
 	// Skip on Windows
 	if runtime.GOOS == "windows" {
-		t.Skip("Skipping BEADS_DIR Dolt test on Windows")
+		t.Skip("Skipping ISSUEGRAPH_DIR Dolt test on Windows")
 	}
 
 	testutil.RequireDoltBinary(t)
@@ -1655,15 +1655,15 @@ func TestInit_WithBEADS_DIR_DoltBackend(t *testing.T) {
 	defer func() { dbPath = origDBPath }()
 	dbPath = ""
 
-	// Save and restore BEADS_DIR
-	origBeadsDir := os.Getenv("BEADS_DIR")
+	// Save and restore ISSUEGRAPH_DIR
+	origIssueGraphDir := os.Getenv("ISSUEGRAPH_DIR")
 	defer func() {
-		if origBeadsDir != "" {
-			os.Setenv("BEADS_DIR", origBeadsDir)
+		if origIssueGraphDir != "" {
+			os.Setenv("ISSUEGRAPH_DIR", origIssueGraphDir)
 		} else {
-			os.Unsetenv("BEADS_DIR")
+			os.Unsetenv("ISSUEGRAPH_DIR")
 		}
-		beads.ResetCaches()
+		issuegraph.ResetCaches()
 		git.ResetCaches()
 	}()
 
@@ -1674,12 +1674,12 @@ func TestInit_WithBEADS_DIR_DoltBackend(t *testing.T) {
 
 	tmpDir := t.TempDir()
 
-	// Create external BEADS_DIR location
-	beadsDirPath := filepath.Join(tmpDir, "external", ".beads")
-	os.MkdirAll(filepath.Dir(beadsDirPath), 0755)
+	// Create external ISSUEGRAPH_DIR location
+	issuegraphDirPath := filepath.Join(tmpDir, "external", ".issuegraph")
+	os.MkdirAll(filepath.Dir(issuegraphDirPath), 0755)
 
-	os.Setenv("BEADS_DIR", beadsDirPath)
-	beads.ResetCaches()
+	os.Setenv("ISSUEGRAPH_DIR", issuegraphDirPath)
+	issuegraph.ResetCaches()
 	git.ResetCaches()
 
 	// Change to a different working directory
@@ -1687,31 +1687,31 @@ func TestInit_WithBEADS_DIR_DoltBackend(t *testing.T) {
 	os.MkdirAll(cwdPath, 0755)
 	t.Chdir(cwdPath)
 
-	// Run bd init with Dolt backend
+	// Run issuegraph init with Dolt backend
 	rootCmd.SetArgs([]string{"init", "--prefix", "dolt-test", "--quiet"})
 	if err := rootCmd.Execute(); err != nil {
-		t.Fatalf("Init with BEADS_DIR and Dolt backend failed: %v", err)
+		t.Fatalf("Init with ISSUEGRAPH_DIR and Dolt backend failed: %v", err)
 	}
 
-	// In embedded mode (default), the engine creates .beads/embeddeddolt/ —
-	// .beads/dolt/ should NOT be created (GH#2903).
-	unexpectedDoltPath := filepath.Join(beadsDirPath, "dolt")
+	// In embedded mode (default), the engine creates .issuegraph/embeddeddolt/ —
+	// .issuegraph/dolt/ should NOT be created (GH#2903).
+	unexpectedDoltPath := filepath.Join(issuegraphDirPath, "dolt")
 	if _, err := os.Stat(unexpectedDoltPath); err == nil {
-		t.Errorf("Empty .beads/dolt/ should not be created in embedded mode: %s", unexpectedDoltPath)
+		t.Errorf("Empty .issuegraph/dolt/ should not be created in embedded mode: %s", unexpectedDoltPath)
 	}
 
 	// Verify database was NOT created at CWD
-	cwdDoltPath := filepath.Join(cwdPath, ".beads", "dolt")
+	cwdDoltPath := filepath.Join(cwdPath, ".issuegraph", "dolt")
 	if _, err := os.Stat(cwdDoltPath); err == nil {
 		t.Errorf("Dolt database should NOT have been created at CWD: %s", cwdDoltPath)
 	}
 }
 
-// Note: TestInit_WithoutBEADS_DIR_NoBehaviorChange and TestInit_BEADS_DB_OverridesBEADS_DIR
-// are now subtests of TestInitBEADS_DIR above.
+// Note: TestInit_WithoutISSUEGRAPH_DIR_NoBehaviorChange and TestInit_ISSUEGRAPH_DB_OverridesISSUEGRAPH_DIR
+// are now subtests of TestInitISSUEGRAPH_DIR above.
 
-// TestInitDoltMetadata verifies that bd init --backend dolt writes and persists
-// all 3 tracking metadata fields (bd_version, repo_id, clone_id) via verifyMetadata.
+// TestInitDoltMetadata verifies that issuegraph init --backend dolt writes and persists
+// all 3 tracking metadata fields (issuegraph_version, repo_id, clone_id) via verifyMetadata.
 // Covers FR-001, FR-002, FR-003, FR-004.
 func TestInitDoltMetadata(t *testing.T) {
 	skipIfNoDolt(t)
@@ -1723,10 +1723,10 @@ func TestInitDoltMetadata(t *testing.T) {
 	dbPath = ""
 
 	// Reset caches to avoid stale state
-	beads.ResetCaches()
+	issuegraph.ResetCaches()
 	git.ResetCaches()
 	t.Cleanup(func() {
-		beads.ResetCaches()
+		issuegraph.ResetCaches()
 		git.ResetCaches()
 	})
 
@@ -1748,20 +1748,20 @@ func TestInitDoltMetadata(t *testing.T) {
 
 	// Open the dolt store to verify metadata was written
 	ctx := context.Background()
-	doltPath := filepath.Join(tmpDir, ".beads", "dolt")
+	doltPath := filepath.Join(tmpDir, ".issuegraph", "dolt")
 	doltStore, err := openDoltStoreForTest(t, ctx, doltPath, "test")
 	if err != nil {
 		t.Fatalf("failed to open dolt store for verification: %v", err)
 	}
 	defer doltStore.Close()
 
-	// FR-001: bd_version must be written
-	bdVersion, err := doltStore.GetLocalMetadata(ctx, "bd_version")
+	// FR-001: issuegraph_version must be written
+	issuegraphVersion, err := doltStore.GetLocalMetadata(ctx, "issuegraph_version")
 	if err != nil {
-		t.Fatalf("GetLocalMetadata(bd_version) failed: %v", err)
+		t.Fatalf("GetLocalMetadata(issuegraph_version) failed: %v", err)
 	}
-	if bdVersion == "" {
-		t.Error("bd_version local metadata was not written")
+	if issuegraphVersion == "" {
+		t.Error("issuegraph_version local metadata was not written")
 	}
 
 	// FR-002: repo_id must be written (git repo with remote configured)
@@ -1820,8 +1820,8 @@ func TestVerifyMetadataSuccess(t *testing.T) {
 	}
 }
 
-// TestInitDoltMetadataNoGit verifies that bd init outside a git repo gracefully
-// skips repo_id while still writing bd_version and clone_id.
+// TestInitDoltMetadataNoGit verifies that issuegraph init outside a git repo gracefully
+// skips repo_id while still writing issuegraph_version and clone_id.
 // Verifies warning output; actual metadata persistence checked by e2e tests.
 // Covers FR-015 (skip repo_id outside git).
 func TestInitDoltMetadataNoGit(t *testing.T) {
@@ -1833,10 +1833,10 @@ func TestInitDoltMetadataNoGit(t *testing.T) {
 	saveAndRestoreGlobals(t)
 	dbPath = ""
 
-	beads.ResetCaches()
+	issuegraph.ResetCaches()
 	git.ResetCaches()
 	t.Cleanup(func() {
-		beads.ResetCaches()
+		issuegraph.ResetCaches()
 		git.ResetCaches()
 	})
 
@@ -1845,23 +1845,23 @@ func TestInitDoltMetadataNoGit(t *testing.T) {
 	initCmd.Flags().Set("quiet", "false")
 	initCmd.Flags().Set("backend", "")
 
-	// Create temp dir WITHOUT git init — bd init will create one,
+	// Create temp dir WITHOUT git init — issuegraph init will create one,
 	// but there will be no remote configured so upstream warning is expected.
 	tmpDir := t.TempDir()
 	t.Chdir(tmpDir)
 
-	// Run init in a non-git directory (bd init will create git repo internally)
+	// Run init in a non-git directory (issuegraph init will create git repo internally)
 	rootCmd.SetArgs([]string{"init", "--prefix", "nogit"})
 	if err := rootCmd.Execute(); err != nil {
 		t.Fatalf("init --prefix nogit failed: %v", err)
 	}
 
-	// Note: no upstream/repository ID warning expected here because bd init
+	// Note: no upstream/repository ID warning expected here because issuegraph init
 	// creates a brand-new git repo with no remotes, and the upstream warning
 	// is intentionally skipped for repos with no remotes (not noise-worthy).
 
-	// Verify .beads/dolt directory was created (init succeeded)
-	doltPath := filepath.Join(tmpDir, ".beads", "dolt")
+	// Verify .issuegraph/dolt directory was created (init succeeded)
+	doltPath := filepath.Join(tmpDir, ".issuegraph", "dolt")
 	if info, err := os.Stat(doltPath); os.IsNotExist(err) {
 		t.Errorf("Dolt database directory was not created: %s", doltPath)
 	} else if !info.IsDir() {
@@ -1869,7 +1869,7 @@ func TestInitDoltMetadataNoGit(t *testing.T) {
 	}
 
 	// Verify no SQLite database was created (backend-specific)
-	sqlitePath := filepath.Join(tmpDir, ".beads", "beads.db")
+	sqlitePath := filepath.Join(tmpDir, ".issuegraph", "issuegraph.db")
 	if _, err := os.Stat(sqlitePath); err == nil {
 		t.Errorf("unexpected sqlite database created in dolt mode")
 	}
@@ -1885,10 +1885,10 @@ func TestInitServerModeWritesDoltCompatibilityMarker(t *testing.T) {
 	tmpDir := t.TempDir()
 	t.Chdir(tmpDir)
 
-	beadsDir := filepath.Join(tmpDir, ".beads")
-	doltDir := filepath.Join(beadsDir, "dolt")
-	if err := os.MkdirAll(beadsDir, 0o700); err != nil {
-		t.Fatalf("creating beads dir: %v", err)
+	issuegraphDir := filepath.Join(tmpDir, ".issuegraph")
+	doltDir := filepath.Join(issuegraphDir, "dolt")
+	if err := os.MkdirAll(issuegraphDir, 0o700); err != nil {
+		t.Fatalf("creating issuegraph dir: %v", err)
 	}
 	if err := os.MkdirAll(filepath.Join(doltDir, ".dolt"), 0o750); err != nil {
 		t.Fatalf("creating simulated server data dir: %v", err)
@@ -1932,8 +1932,8 @@ func TestInitServerModeWarnsOnMarkerFailureInQuietMode(t *testing.T) {
 	tmpDir := t.TempDir()
 	t.Chdir(tmpDir)
 
-	beadsDir := filepath.Join(tmpDir, ".beads")
-	doltDir := filepath.Join(beadsDir, "dolt")
+	issuegraphDir := filepath.Join(tmpDir, ".issuegraph")
+	doltDir := filepath.Join(issuegraphDir, "dolt")
 	if err := os.MkdirAll(doltDir, 0o700); err != nil {
 		t.Fatalf("creating dolt dir: %v", err)
 	}
@@ -2034,31 +2034,31 @@ func setupBareParentInitWorktree(t *testing.T) (string, string) {
 	return bareDir, featureWorktreeDir
 }
 
-// TestInitDatabaseFlag tests the --database flag for bd init.
+// TestInitDatabaseFlag tests the --database flag for issuegraph init.
 // Uses subprocess execution because:
 //   - init manipulates extensive Cobra global state that's difficult to reset
 //   - init validation paths call os.Exit(1), which kills in-process tests
 //
-// Each subtest runs bd init in a temp directory and verifies metadata.json.
+// Each subtest runs issuegraph init in a temp directory and verifies metadata.json.
 func TestInitDatabaseFlag(t *testing.T) {
 	skipIfNoDolt(t)
-	bd := buildBDForInitTests(t)
+	issuegraphBinary := buildIssueGraphForInitTests(t)
 
 	t.Run("metadata_written", func(t *testing.T) {
 		tmpDir := t.TempDir()
 
 		// Run init with --database to specify a pre-existing database name
-		cmd := exec.Command(bd, "init", "--database", "myapp_production", "--quiet")
+		cmd := exec.Command(issuegraphBinary, "init", "--database", "myapp_production", "--quiet")
 		cmd.Dir = tmpDir
 		cmd.Env = os.Environ()
 		out, err := cmd.CombinedOutput()
 		if err != nil {
-			t.Fatalf("bd init --database failed: %v\n%s", err, out)
+			t.Fatalf("issuegraph init --database failed: %v\n%s", err, out)
 		}
 
 		// Verify metadata.json contains the correct database name
-		beadsDir := filepath.Join(tmpDir, ".beads")
-		cfg, err := configfile.Load(beadsDir)
+		issuegraphDir := filepath.Join(tmpDir, ".issuegraph")
+		cfg, err := configfile.Load(issuegraphDir)
 		if err != nil {
 			t.Fatalf("Failed to load metadata.json: %v", err)
 		}
@@ -2083,15 +2083,15 @@ func TestInitDatabaseFlag(t *testing.T) {
 		origDBPath := dbPath
 		t.Cleanup(func() {
 			dbPath = origDBPath
-			beads.ResetCaches()
+			issuegraph.ResetCaches()
 			git.ResetCaches()
 		})
 		dbPath = ""
-		beads.ResetCaches()
+		issuegraph.ResetCaches()
 		git.ResetCaches()
-		bd := buildBDForInitTests(t)
+		issuegraphBinary := buildIssueGraphForInitTests(t)
 		bareDir, worktreeDir := setupBareParentInitWorktree(t)
-		bareBeadsDir := filepath.Join(bareDir, ".beads")
+		bareIssueGraphDir := filepath.Join(bareDir, ".issuegraph")
 
 		// Shared-server init daemonizes a dolt sql-server that nothing here
 		// stopped; it outlived the suite whose temp HOME it served
@@ -2099,27 +2099,27 @@ func TestInitDatabaseFlag(t *testing.T) {
 		// t.Fatalf paths are covered too.
 		stopSharedServerCleanup(t)
 
-		cmd := exec.Command(bd, "init", "--prefix", "bare-fallback", "--skip-hooks", "--quiet")
+		cmd := exec.Command(issuegraphBinary, "init", "--prefix", "bare-fallback", "--skip-hooks", "--quiet")
 		cmd.Dir = worktreeDir
-		cmd.Env = append(os.Environ(), "BEADS_DOLT_SHARED_SERVER=1")
+		cmd.Env = append(os.Environ(), "ISSUEGRAPH_DOLT_SHARED_SERVER=1")
 		out, err := cmd.CombinedOutput()
 		if err != nil {
-			t.Fatalf("bd init from bare-parent worktree failed: %v\n%s", err, out)
+			t.Fatalf("issuegraph init from bare-parent worktree failed: %v\n%s", err, out)
 		}
 
-		if _, err := os.Stat(filepath.Join(bareBeadsDir, "metadata.json")); err != nil {
+		if _, err := os.Stat(filepath.Join(bareIssueGraphDir, "metadata.json")); err != nil {
 			t.Fatalf("expected bare parent metadata.json to exist: %v", err)
 		}
-		if _, err := os.Stat(filepath.Join(worktreeDir, ".beads")); !os.IsNotExist(err) {
-			t.Fatalf("worktree should not get a local .beads directory, stat err=%v", err)
+		if _, err := os.Stat(filepath.Join(worktreeDir, ".issuegraph")); !os.IsNotExist(err) {
+			t.Fatalf("worktree should not get a local .issuegraph directory, stat err=%v", err)
 		}
 
-		retry := exec.Command(bd, "init", "--prefix", "bare-fallback", "--skip-hooks", "--quiet")
+		retry := exec.Command(issuegraphBinary, "init", "--prefix", "bare-fallback", "--skip-hooks", "--quiet")
 		retry.Dir = worktreeDir
-		retry.Env = append(os.Environ(), "BEADS_DOLT_SHARED_SERVER=1")
+		retry.Env = append(os.Environ(), "ISSUEGRAPH_DOLT_SHARED_SERVER=1")
 		retryOut, retryErr := retry.CombinedOutput()
 		if retryErr == nil {
-			t.Fatal("expected second bd init to fail against existing bare-parent .beads")
+			t.Fatal("expected second issuegraph init to fail against existing bare-parent .issuegraph")
 		}
 		if !strings.Contains(string(retryOut), "already initialized") && !strings.Contains(string(retryOut), "already exists") {
 			t.Fatalf("expected existing-data guard on second init, got:\n%s", retryOut)
@@ -2131,17 +2131,17 @@ func TestInitDatabaseFlag(t *testing.T) {
 
 		// Run init with both --database and --prefix
 		// --database should override prefix for DB name, but prefix still sets issue_prefix
-		cmd := exec.Command(bd, "init", "--database", "shared_db", "--prefix", "team-alpha", "--quiet")
+		cmd := exec.Command(issuegraphBinary, "init", "--database", "shared_db", "--prefix", "team-alpha", "--quiet")
 		cmd.Dir = tmpDir
 		cmd.Env = os.Environ()
 		out, err := cmd.CombinedOutput()
 		if err != nil {
-			t.Fatalf("bd init --database --prefix failed: %v\n%s", err, out)
+			t.Fatalf("issuegraph init --database --prefix failed: %v\n%s", err, out)
 		}
 
 		// Verify metadata.json
-		beadsDir := filepath.Join(tmpDir, ".beads")
-		cfg, err := configfile.Load(beadsDir)
+		issuegraphDir := filepath.Join(tmpDir, ".issuegraph")
+		cfg, err := configfile.Load(issuegraphDir)
 		if err != nil {
 			t.Fatalf("Failed to load metadata.json: %v", err)
 		}
@@ -2156,7 +2156,7 @@ func TestInitDatabaseFlag(t *testing.T) {
 
 		// Verify the database was opened and issue_prefix was set
 		// by reopening the store and checking config
-		dbPath := filepath.Join(beadsDir, "dolt")
+		dbPath := filepath.Join(issuegraphDir, "dolt")
 		s, err := openExistingTestDB(t, dbPath)
 		if err != nil {
 			t.Fatalf("Failed to reopen database: %v", err)
@@ -2177,17 +2177,17 @@ func TestInitDatabaseFlag(t *testing.T) {
 		tmpDir := t.TempDir()
 
 		// Run init with --database
-		cmd := exec.Command(bd, "init", "--database", "test_server_cfg", "--quiet")
+		cmd := exec.Command(issuegraphBinary, "init", "--database", "test_server_cfg", "--quiet")
 		cmd.Dir = tmpDir
 		cmd.Env = os.Environ()
 		out, err := cmd.CombinedOutput()
 		if err != nil {
-			t.Fatalf("bd init --database failed: %v\n%s", err, out)
+			t.Fatalf("issuegraph init --database failed: %v\n%s", err, out)
 		}
 
 		// Verify metadata.json has both dolt_database and dolt_mode: server
-		beadsDir := filepath.Join(tmpDir, ".beads")
-		cfg, err := configfile.Load(beadsDir)
+		issuegraphDir := filepath.Join(tmpDir, ".issuegraph")
+		cfg, err := configfile.Load(issuegraphDir)
 		if err != nil {
 			t.Fatalf("Failed to load metadata.json: %v", err)
 		}
@@ -2209,16 +2209,16 @@ func TestInitDatabaseFlag(t *testing.T) {
 	t.Run("shared_server_flag_selects_server_mode", func(t *testing.T) {
 		tmpDir := t.TempDir()
 
-		cmd := exec.Command(bd, "init", "--shared-server", "--prefix", "shared-mode-test", "--skip-hooks")
+		cmd := exec.Command(issuegraphBinary, "init", "--shared-server", "--prefix", "shared-mode-test", "--skip-hooks")
 		cmd.Dir = tmpDir
 		cmd.Env = os.Environ()
 		out, err := cmd.CombinedOutput()
 		if err != nil {
-			t.Fatalf("bd init --shared-server failed: %v\n%s", err, out)
+			t.Fatalf("issuegraph init --shared-server failed: %v\n%s", err, out)
 		}
 
-		beadsDir := filepath.Join(tmpDir, ".beads")
-		cfg, err := configfile.Load(beadsDir)
+		issuegraphDir := filepath.Join(tmpDir, ".issuegraph")
+		cfg, err := configfile.Load(issuegraphDir)
 		if err != nil {
 			t.Fatalf("Failed to load metadata.json: %v", err)
 		}
@@ -2230,7 +2230,7 @@ func TestInitDatabaseFlag(t *testing.T) {
 			t.Errorf("Expected DoltMode %q, got %q", configfile.DoltModeServer, cfg.DoltMode)
 		}
 
-		configYAML, err := os.ReadFile(filepath.Join(beadsDir, "config.yaml"))
+		configYAML, err := os.ReadFile(filepath.Join(issuegraphDir, "config.yaml"))
 		if err != nil {
 			t.Fatalf("Failed to read config.yaml: %v", err)
 		}
@@ -2254,7 +2254,7 @@ func TestInitDatabaseFlag(t *testing.T) {
 		tmpDir := t.TempDir()
 
 		// Run init with an invalid database name (contains semicolon = SQL injection)
-		cmd := exec.Command(bd, "init", "--database", "bad;name", "--quiet")
+		cmd := exec.Command(issuegraphBinary, "init", "--database", "bad;name", "--quiet")
 		cmd.Dir = tmpDir
 		cmd.Env = os.Environ()
 		out, err := cmd.CombinedOutput()
@@ -2267,10 +2267,10 @@ func TestInitDatabaseFlag(t *testing.T) {
 			t.Errorf("Expected error to mention 'invalid database name', got: %s", outStr)
 		}
 
-		// Verify no .beads directory was created (early validation prevents side effects)
-		beadsDir := filepath.Join(tmpDir, ".beads")
-		if _, err := os.Stat(beadsDir); err == nil {
-			t.Error(".beads directory should not be created when validation fails")
+		// Verify no .issuegraph directory was created (early validation prevents side effects)
+		issuegraphDir := filepath.Join(tmpDir, ".issuegraph")
+		if _, err := os.Stat(issuegraphDir); err == nil {
+			t.Error(".issuegraph directory should not be created when validation fails")
 		}
 	})
 
@@ -2278,7 +2278,7 @@ func TestInitDatabaseFlag(t *testing.T) {
 		tmpDir := t.TempDir()
 
 		// Database name with spaces should fail validation
-		cmd := exec.Command(bd, "init", "--database", "my database", "--quiet")
+		cmd := exec.Command(issuegraphBinary, "init", "--database", "my database", "--quiet")
 		cmd.Dir = tmpDir
 		cmd.Env = os.Environ()
 		out, err := cmd.CombinedOutput()
@@ -2296,7 +2296,7 @@ func TestInitDatabaseFlag(t *testing.T) {
 		tmpDir := t.TempDir()
 
 		// Database name with backtick injection should fail validation
-		cmd := exec.Command(bd, "init", "--database", "db`; DROP DATABASE x; --", "--quiet")
+		cmd := exec.Command(issuegraphBinary, "init", "--database", "db`; DROP DATABASE x; --", "--quiet")
 		cmd.Dir = tmpDir
 		cmd.Env = os.Environ()
 		out, err := cmd.CombinedOutput()
@@ -2317,76 +2317,76 @@ func TestBareParentWorktreeCoreCommandsWithoutRedirect(t *testing.T) {
 		t.Skip("Skipping worktree test on Windows")
 	}
 
-	bd := buildBDForInitTests(t)
+	issuegraphBinary := buildIssueGraphForInitTests(t)
 	bareDir, worktreeDir := setupBareParentInitWorktree(t)
-	bareBeadsDir := filepath.Join(bareDir, ".beads")
-	sharedEnv := append(os.Environ(), "BEADS_DOLT_SHARED_SERVER=1")
+	bareIssueGraphDir := filepath.Join(bareDir, ".issuegraph")
+	sharedEnv := append(os.Environ(), "ISSUEGRAPH_DOLT_SHARED_SERVER=1")
 
 	// Same daemonized shared server, same missing stop (wy-j2zc8q).
 	stopSharedServerCleanup(t)
 
-	initCmd := exec.Command(bd, "init", "--prefix", "bare-core", "--skip-hooks", "--quiet")
+	initCmd := exec.Command(issuegraphBinary, "init", "--prefix", "bare-core", "--skip-hooks", "--quiet")
 	initCmd.Dir = worktreeDir
 	initCmd.Env = sharedEnv
 	if out, err := initCmd.CombinedOutput(); err != nil {
-		t.Fatalf("bd init from bare-parent worktree failed: %v\n%s", err, out)
+		t.Fatalf("issuegraph init from bare-parent worktree failed: %v\n%s", err, out)
 	}
 
-	if _, err := os.Stat(filepath.Join(bareBeadsDir, "metadata.json")); err != nil {
+	if _, err := os.Stat(filepath.Join(bareIssueGraphDir, "metadata.json")); err != nil {
 		t.Fatalf("expected bare parent metadata.json to exist: %v", err)
 	}
 
-	createCmd := exec.Command(bd, "create", "bare fallback issue", "--description", "regression", "--json")
+	createCmd := exec.Command(issuegraphBinary, "create", "bare fallback issue", "--description", "regression", "--json")
 	createCmd.Dir = worktreeDir
 	createCmd.Env = sharedEnv
 	createOut, err := createCmd.CombinedOutput()
 	if err != nil {
-		t.Fatalf("bd create from bare-parent worktree failed: %v\n%s", err, createOut)
+		t.Fatalf("issuegraph create from bare-parent worktree failed: %v\n%s", err, createOut)
 	}
 	if !strings.Contains(string(createOut), "bare fallback issue") {
-		t.Fatalf("bd create output did not include created title:\n%s", createOut)
+		t.Fatalf("issuegraph create output did not include created title:\n%s", createOut)
 	}
 
-	listCmd := exec.Command(bd, "list", "--json")
+	listCmd := exec.Command(issuegraphBinary, "list", "--json")
 	listCmd.Dir = worktreeDir
 	listCmd.Env = sharedEnv
 	listOut, err := listCmd.CombinedOutput()
 	if err != nil {
-		t.Fatalf("bd list from bare-parent worktree failed: %v\n%s", err, listOut)
+		t.Fatalf("issuegraph list from bare-parent worktree failed: %v\n%s", err, listOut)
 	}
 	if !strings.Contains(string(listOut), "bare fallback issue") {
-		t.Fatalf("bd list output did not include created issue:\n%s", listOut)
+		t.Fatalf("issuegraph list output did not include created issue:\n%s", listOut)
 	}
 }
 
-// initBackendTestEnv returns the process environment with all beads-specific
-// variables (BEADS_*, BD_*) removed and BEADS_DIR pinned to beadsDir. Pinning
-// BEADS_DIR isolates each subtest's workspace and stops bd from walking up into
-// an ambient .beads left by another test or tool; HOME is preserved so bd init's
+// initBackendTestEnv returns the process environment with all issuegraph-specific
+// variables (ISSUEGRAPH_*, ISSUEGRAPH_*) removed and ISSUEGRAPH_DIR pinned to issuegraphDir. Pinning
+// ISSUEGRAPH_DIR isolates each subtest's workspace and stops issuegraph from walking up into
+// an ambient .issuegraph left by another test or tool; HOME is preserved so issuegraph init's
 // git bootstrap still works.
-func initBackendTestEnv(beadsDir string) []string {
+func initBackendTestEnv(issuegraphDir string) []string {
 	var env []string
 	for _, e := range os.Environ() {
-		if strings.HasPrefix(e, "BEADS_") || strings.HasPrefix(e, "BD_") {
+		if strings.HasPrefix(e, "ISSUEGRAPH_") || strings.HasPrefix(e, "ISSUEGRAPH_") {
 			continue
 		}
 		env = append(env, e)
 	}
-	return append(env, "BEADS_DIR="+beadsDir)
+	return append(env, "ISSUEGRAPH_DIR="+issuegraphDir)
 }
 
 func TestInitBackendFlag(t *testing.T) {
-	bd := buildBDForInitTests(t)
+	issuegraphBinary := buildIssueGraphForInitTests(t)
 
 	// The SQLite backend was rolled back with the other alternative backends:
 	// init fails closed with migration guidance and writes no workspace state.
 	t.Run("sqlite_is_no_longer_supported", func(t *testing.T) {
 		tmpDir := t.TempDir()
-		beadsDir := filepath.Join(tmpDir, ".beads")
+		issuegraphDir := filepath.Join(tmpDir, ".issuegraph")
 
-		cmd := exec.Command(bd, "init", "--backend", "sqlite", "--quiet")
+		cmd := exec.Command(issuegraphBinary, "init", "--backend", "sqlite", "--quiet")
 		cmd.Dir = tmpDir
-		cmd.Env = initBackendTestEnv(beadsDir)
+		cmd.Env = initBackendTestEnv(issuegraphDir)
 		out, err := cmd.CombinedOutput()
 		if err == nil {
 			t.Fatalf("Expected non-zero exit for --backend=sqlite:\n%s", out)
@@ -2395,7 +2395,7 @@ func TestInitBackendFlag(t *testing.T) {
 		if !strings.Contains(outStr, "no longer supported") || !strings.Contains(outStr, "single engine") {
 			t.Errorf("Expected rollback guidance for sqlite, got: %s", outStr)
 		}
-		if _, statErr := os.Stat(beadsDir); !os.IsNotExist(statErr) {
+		if _, statErr := os.Stat(issuegraphDir); !os.IsNotExist(statErr) {
 			t.Fatalf("rejected sqlite init created workspace state (stat error: %v)", statErr)
 		}
 	})
@@ -2403,11 +2403,11 @@ func TestInitBackendFlag(t *testing.T) {
 	for _, backend := range []string{"postgres", "mysql"} {
 		t.Run(backend+"_is_no_longer_supported", func(t *testing.T) {
 			tmpDir := t.TempDir()
-			beadsDir := filepath.Join(tmpDir, ".beads")
+			issuegraphDir := filepath.Join(tmpDir, ".issuegraph")
 
-			cmd := exec.Command(bd, "init", "--backend", backend, "--quiet")
+			cmd := exec.Command(issuegraphBinary, "init", "--backend", backend, "--quiet")
 			cmd.Dir = tmpDir
-			cmd.Env = initBackendTestEnv(beadsDir)
+			cmd.Env = initBackendTestEnv(issuegraphDir)
 			out, err := cmd.CombinedOutput()
 			if err == nil {
 				t.Fatalf("Expected non-zero exit for --backend=%s", backend)
@@ -2426,11 +2426,11 @@ func TestInitBackendFlag(t *testing.T) {
 	// A genuinely unsupported backend value is still rejected up front.
 	t.Run("unknown_backend_errors", func(t *testing.T) {
 		tmpDir := t.TempDir()
-		beadsDir := filepath.Join(tmpDir, ".beads")
+		issuegraphDir := filepath.Join(tmpDir, ".issuegraph")
 
-		cmd := exec.Command(bd, "init", "--backend", "mongodb", "--quiet")
+		cmd := exec.Command(issuegraphBinary, "init", "--backend", "mongodb", "--quiet")
 		cmd.Dir = tmpDir
-		cmd.Env = initBackendTestEnv(beadsDir)
+		cmd.Env = initBackendTestEnv(issuegraphDir)
 		out, err := cmd.CombinedOutput()
 		if err == nil {
 			t.Fatal("Expected non-zero exit for a genuinely unknown backend")
@@ -2445,32 +2445,32 @@ func TestInitBackendFlag(t *testing.T) {
 	t.Run("dolt_backend_succeeds", func(t *testing.T) {
 		skipIfNoDolt(t)
 		tmpDir := t.TempDir()
-		beadsDir := filepath.Join(tmpDir, ".beads")
+		issuegraphDir := filepath.Join(tmpDir, ".issuegraph")
 
-		cmd := exec.Command(bd, "init", "--backend", "dolt", "--quiet")
+		cmd := exec.Command(issuegraphBinary, "init", "--backend", "dolt", "--quiet")
 		cmd.Dir = tmpDir
-		cmd.Env = initBackendTestEnv(beadsDir)
+		cmd.Env = initBackendTestEnv(issuegraphDir)
 		out, err := cmd.CombinedOutput()
 		if err != nil {
-			t.Fatalf("bd init --backend=dolt should succeed: %v\n%s", err, out)
+			t.Fatalf("issuegraph init --backend=dolt should succeed: %v\n%s", err, out)
 		}
 	})
 
 	t.Run("default_backend_is_dolt", func(t *testing.T) {
 		skipIfNoDolt(t)
 		tmpDir := t.TempDir()
-		beadsDir := filepath.Join(tmpDir, ".beads")
+		issuegraphDir := filepath.Join(tmpDir, ".issuegraph")
 
-		cmd := exec.Command(bd, "init", "--quiet")
+		cmd := exec.Command(issuegraphBinary, "init", "--quiet")
 		cmd.Dir = tmpDir
-		cmd.Env = initBackendTestEnv(beadsDir)
+		cmd.Env = initBackendTestEnv(issuegraphDir)
 		out, err := cmd.CombinedOutput()
 		if err != nil {
-			t.Fatalf("bd init should default to dolt: %v\n%s", err, out)
+			t.Fatalf("issuegraph init should default to dolt: %v\n%s", err, out)
 		}
 
 		// Verify metadata.json has backend: dolt
-		cfg, err := configfile.Load(beadsDir)
+		cfg, err := configfile.Load(issuegraphDir)
 		if err != nil {
 			t.Fatalf("Failed to load metadata.json: %v", err)
 		}
@@ -2483,7 +2483,7 @@ func TestInitBackendFlag(t *testing.T) {
 	})
 }
 
-// TestInitDatabaseAdoptsExistingProjectID verifies that bd init --database adopts
+// TestInitDatabaseAdoptsExistingProjectID verifies that issuegraph init --database adopts
 // the _project_id from an existing server database instead of generating a new one.
 // This prevents PROJECT IDENTITY MISMATCH errors when multiple users connect to
 // a shared remote Dolt server. (GH#2922)
@@ -2507,15 +2507,15 @@ func TestInitDatabaseAdoptsExistingProjectID(t *testing.T) {
 
 	// Create a database with a known _project_id (simulates first user's init)
 	database := uniqueTestDBName(t)
-	firstBeadsDir := filepath.Join(t.TempDir(), ".beads")
-	if err := os.MkdirAll(firstBeadsDir, 0o755); err != nil {
+	firstIssueGraphDir := filepath.Join(t.TempDir(), ".issuegraph")
+	if err := os.MkdirAll(firstIssueGraphDir, 0o755); err != nil {
 		t.Fatalf("mkdir: %v", err)
 	}
 
 	doltNewMutex.Lock()
 	firstStore, err := dolt.New(ctx, &dolt.Config{
-		Path:            filepath.Join(firstBeadsDir, "dolt"),
-		BeadsDir:        firstBeadsDir,
+		Path:            filepath.Join(firstIssueGraphDir, "dolt"),
+		IssueGraphDir:   firstIssueGraphDir,
 		ServerHost:      "127.0.0.1",
 		ServerPort:      testDoltServerPort,
 		Database:        database,
@@ -2567,8 +2567,8 @@ func TestInitDatabaseAdoptsExistingProjectID(t *testing.T) {
 	}
 
 	// Verify the second user's metadata.json adopted the existing project_id
-	secondBeadsDir := filepath.Join(secondDir, ".beads")
-	cfg, err := configfile.Load(secondBeadsDir)
+	secondIssueGraphDir := filepath.Join(secondDir, ".issuegraph")
+	cfg, err := configfile.Load(secondIssueGraphDir)
 	if err != nil {
 		t.Fatalf("load metadata.json: %v", err)
 	}

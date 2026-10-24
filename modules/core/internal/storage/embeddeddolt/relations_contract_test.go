@@ -5,7 +5,7 @@ package embeddeddolt_test
 import (
 	"testing"
 
-	"github.com/steveyegge/beads/backend/conformance"
+	"github.com/borg0ai/dx-issuegraph/backend/conformance"
 )
 
 func TestEmbeddedRelationsAnswersInThePinnedOrder(t *testing.T) {

@@ -10,8 +10,8 @@ import (
 	"github.com/spf13/cobra"
 )
 
-// GH#6035: --metadata only checked json.Valid, so `bd create --metadata
-// '"oops"'` stored a bare JSON string as the metadata, while `bd update`
+// GH#6035: --metadata only checked json.Valid, so `issuegraph create --metadata
+// '"oops"'` stored a bare JSON string as the metadata, while `issuegraph update`
 // with the same value failed late in the storage merge. Both commands now
 // require a top-level JSON object up front.
 const metadataObjectErr = "invalid --metadata: must be a JSON object"

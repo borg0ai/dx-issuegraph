@@ -1,24 +1,24 @@
 ---
-title: "bd comment"
+title: "issuegraph comment"
 description: "Add a comment to an issue."
 ---
 
 {/* AUTO-GENERATED: do not edit manually */}
 
-Generated from `bd help --doc comment`.
+Generated from `issuegraph help --doc comment`.
 
 Add a comment to an issue.
 
-Shorthand for 'bd comments add &lt;id&gt; "text"'.
+Shorthand for 'issuegraph comments add &lt;id&gt; "text"'.
 
 Examples:
-  bd comment bd-123 "Working on this now"
-  bd comment bd-123 Working on this now
-  echo "comment from pipe" | bd comment bd-123 --stdin
-  bd comment bd-123 --file notes.txt
+  issuegraph comment issuegraph-123 "Working on this now"
+  issuegraph comment issuegraph-123 Working on this now
+  echo "comment from pipe" | issuegraph comment issuegraph-123 --stdin
+  issuegraph comment issuegraph-123 --file notes.txt
 
 ```
-bd comment <id> [text...] [flags]
+issuegraph comment <id> [text...] [flags]
 ```
 
 **Flags:**

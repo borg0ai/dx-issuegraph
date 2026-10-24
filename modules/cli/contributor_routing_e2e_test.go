@@ -15,9 +15,9 @@ import (
 	"testing"
 	"time"
 
-	"github.com/steveyegge/beads/internal/routing"
-	"github.com/steveyegge/beads/internal/storage/dolt"
-	"github.com/steveyegge/beads/internal/types"
+	"github.com/borg0ai/dx-issuegraph/internal/routing"
+	"github.com/borg0ai/dx-issuegraph/internal/storage/dolt"
+	"github.com/borg0ai/dx-issuegraph/internal/types"
 )
 
 // TestContributorRoutingTracer is the Phase 1 tracer bullet test.
@@ -55,12 +55,12 @@ func TestContributorRoutingTracer(t *testing.T) {
 	t.Run("DetermineTargetRepo_contributor_routes_to_planning", func(t *testing.T) {
 		config := &routing.RoutingConfig{
 			Mode:            "auto",
-			ContributorRepo: "~/.beads-planning",
+			ContributorRepo: "~/.issuegraph-planning",
 		}
 
 		got := routing.DetermineTargetRepo(config, routing.Contributor, ".")
-		if got != "~/.beads-planning" {
-			t.Errorf("DetermineTargetRepo() = %q, want %q", got, "~/.beads-planning")
+		if got != "~/.issuegraph-planning" {
+			t.Errorf("DetermineTargetRepo() = %q, want %q", got, "~/.issuegraph-planning")
 		}
 	})
 
@@ -68,7 +68,7 @@ func TestContributorRoutingTracer(t *testing.T) {
 		config := &routing.RoutingConfig{
 			Mode:            "auto",
 			MaintainerRepo:  ".",
-			ContributorRepo: "~/.beads-planning",
+			ContributorRepo: "~/.issuegraph-planning",
 		}
 
 		got := routing.DetermineTargetRepo(config, routing.Maintainer, ".")
@@ -83,20 +83,20 @@ func TestContributorRoutingTracer(t *testing.T) {
 		projectDir := filepath.Join(tmpDir, "project")
 		planningDir := filepath.Join(tmpDir, "planning")
 
-		// Create project .beads directory
-		projectBeadsDir := filepath.Join(projectDir, ".beads")
-		if err := os.MkdirAll(projectBeadsDir, 0755); err != nil {
-			t.Fatalf("failed to create project .beads dir: %v", err)
+		// Create project .issuegraph directory
+		projectIssueGraphDir := filepath.Join(projectDir, ".issuegraph")
+		if err := os.MkdirAll(projectIssueGraphDir, 0755); err != nil {
+			t.Fatalf("failed to create project .issuegraph dir: %v", err)
 		}
 
-		// Create planning .beads directory
-		planningBeadsDir := filepath.Join(planningDir, ".beads")
-		if err := os.MkdirAll(planningBeadsDir, 0755); err != nil {
-			t.Fatalf("failed to create planning .beads dir: %v", err)
+		// Create planning .issuegraph directory
+		planningIssueGraphDir := filepath.Join(planningDir, ".issuegraph")
+		if err := os.MkdirAll(planningIssueGraphDir, 0755); err != nil {
+			t.Fatalf("failed to create planning .issuegraph dir: %v", err)
 		}
 
 		// Initialize project database
-		projectDBPath := filepath.Join(projectBeadsDir, "beads.db")
+		projectDBPath := filepath.Join(projectIssueGraphDir, "issuegraph.db")
 		ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
 		defer cancel()
 
@@ -146,7 +146,7 @@ func TestContributorRoutingTracer(t *testing.T) {
 		}
 
 		// Initialize planning database and verify we can create issues there
-		planningDBPath := filepath.Join(planningBeadsDir, "beads.db")
+		planningDBPath := filepath.Join(planningIssueGraphDir, "issuegraph.db")
 		planningStore := newTestStoreIsolatedDB(t, planningDBPath, "plan-")
 
 		// Create a test issue in planning store (simulating what Phase 2 will do)
@@ -182,19 +182,19 @@ func TestContributorRoutingTracer(t *testing.T) {
 func TestBackwardCompatContributorConfig(t *testing.T) {
 	// Set up temporary directory
 	tmpDir := t.TempDir()
-	beadsDir := filepath.Join(tmpDir, ".beads")
-	if err := os.MkdirAll(beadsDir, 0755); err != nil {
-		t.Fatalf("failed to create .beads dir: %v", err)
+	issuegraphDir := filepath.Join(tmpDir, ".issuegraph")
+	if err := os.MkdirAll(issuegraphDir, 0755); err != nil {
+		t.Fatalf("failed to create .issuegraph dir: %v", err)
 	}
 
 	// Initialize database
-	dbPath := filepath.Join(beadsDir, "beads.db")
+	dbPath := filepath.Join(issuegraphDir, "issuegraph.db")
 	ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
 	defer cancel()
 
 	store := newTestStoreIsolatedDB(t, dbPath, "test")
 
-	// Set LEGACY contributor.* keys (what old versions of bd init --contributor would set)
+	// Set LEGACY contributor.* keys (what old versions of issuegraph init --contributor would set)
 	if err := store.SetConfig(ctx, "contributor.auto_route", "true"); err != nil {
 		t.Fatalf("failed to set contributor.auto_route: %v", err)
 	}
@@ -260,15 +260,15 @@ func setupContributorRoutingEnv(t *testing.T) *contributorRoutingEnv {
 	planningDir := filepath.Join(tmpDir, "planning")
 
 	// Create project directory with git init
-	projectBeadsDir := filepath.Join(projectDir, ".beads")
-	if err := os.MkdirAll(projectBeadsDir, 0755); err != nil {
-		t.Fatalf("failed to create project .beads dir: %v", err)
+	projectIssueGraphDir := filepath.Join(projectDir, ".issuegraph")
+	if err := os.MkdirAll(projectIssueGraphDir, 0755); err != nil {
+		t.Fatalf("failed to create project .issuegraph dir: %v", err)
 	}
 
 	// Create planning directory with git init
-	planningBeadsDir := filepath.Join(planningDir, ".beads")
-	if err := os.MkdirAll(planningBeadsDir, 0755); err != nil {
-		t.Fatalf("failed to create planning .beads dir: %v", err)
+	planningIssueGraphDir := filepath.Join(planningDir, ".issuegraph")
+	if err := os.MkdirAll(planningIssueGraphDir, 0755); err != nil {
+		t.Fatalf("failed to create planning .issuegraph dir: %v", err)
 	}
 
 	ctx, cancel := context.WithTimeout(context.Background(), 60*time.Second)
@@ -291,7 +291,7 @@ func (env *contributorRoutingEnv) cleanup() {
 // initProjectStore initializes the project store with routing config
 func (env *contributorRoutingEnv) initProjectStore(syncMode string) *dolt.DoltStore {
 	env.t.Helper()
-	projectDBPath := filepath.Join(env.projectDir, ".beads", "beads.db")
+	projectDBPath := filepath.Join(env.projectDir, ".issuegraph", "issuegraph.db")
 	store := newTestStoreIsolatedDB(env.t, projectDBPath, "proj-")
 
 	// Set routing config
@@ -307,7 +307,7 @@ func (env *contributorRoutingEnv) initProjectStore(syncMode string) *dolt.DoltSt
 	case "direct":
 		// No special config needed - direct is default
 	case "sync-branch":
-		if err := store.SetConfig(env.ctx, "sync.branch", "beads-sync"); err != nil {
+		if err := store.SetConfig(env.ctx, "sync.branch", "issuegraph-sync"); err != nil {
 			env.t.Fatalf("failed to set sync.branch: %v", err)
 		}
 	case "no-db":
@@ -326,7 +326,7 @@ func (env *contributorRoutingEnv) initProjectStore(syncMode string) *dolt.DoltSt
 // initPlanningStore initializes the planning store
 func (env *contributorRoutingEnv) initPlanningStore() *dolt.DoltStore {
 	env.t.Helper()
-	planningDBPath := filepath.Join(env.planningDir, ".beads", "beads.db")
+	planningDBPath := filepath.Join(env.planningDir, ".issuegraph", "issuegraph.db")
 	store := newTestStoreIsolatedDB(env.t, planningDBPath, "plan-")
 
 	return store
@@ -424,8 +424,8 @@ func TestContributorRoutingSyncBranch(t *testing.T) {
 
 	// Verify sync.branch is set
 	syncBranch, _ := projectStore.GetConfig(env.ctx, "sync.branch")
-	if syncBranch != "beads-sync" {
-		t.Fatalf("sync.branch not set correctly: got %q, want %q", syncBranch, "beads-sync")
+	if syncBranch != "issuegraph-sync" {
+		t.Fatalf("sync.branch not set correctly: got %q, want %q", syncBranch, "issuegraph-sync")
 	}
 
 	// Build routing config
@@ -627,12 +627,12 @@ func TestExplicitRepoOverride(t *testing.T) {
 
 	// Create a third "override" directory
 	overrideDir := filepath.Join(env.tmpDir, "override")
-	overrideBeadsDir := filepath.Join(overrideDir, ".beads")
-	if err := os.MkdirAll(overrideBeadsDir, 0755); err != nil {
-		t.Fatalf("failed to create override .beads dir: %v", err)
+	overrideIssueGraphDir := filepath.Join(overrideDir, ".issuegraph")
+	if err := os.MkdirAll(overrideIssueGraphDir, 0755); err != nil {
+		t.Fatalf("failed to create override .issuegraph dir: %v", err)
 	}
 
-	overrideDBPath := filepath.Join(overrideBeadsDir, "beads.db")
+	overrideDBPath := filepath.Join(overrideIssueGraphDir, "issuegraph.db")
 	overrideStore := newTestStoreIsolatedDB(t, overrideDBPath, "over-")
 
 	// Build routing config WITH explicit override
@@ -687,37 +687,37 @@ func TestExplicitRepoOverride(t *testing.T) {
 	}
 }
 
-// TestBEADS_DIRPrecedence verifies BEADS_DIR env var takes precedence over routing config
-func TestBEADS_DIRPrecedence(t *testing.T) {
+// TestISSUEGRAPH_DIRPrecedence verifies ISSUEGRAPH_DIR env var takes precedence over routing config
+func TestISSUEGRAPH_DIRPrecedence(t *testing.T) {
 	env := setupContributorRoutingEnv(t)
 	defer env.cleanup()
 
-	// Create an external beads directory (simulating BEADS_DIR target)
+	// Create an external issuegraph directory (simulating ISSUEGRAPH_DIR target)
 	externalDir := filepath.Join(env.tmpDir, "external")
-	externalBeadsDir := filepath.Join(externalDir, ".beads")
-	if err := os.MkdirAll(externalBeadsDir, 0755); err != nil {
-		t.Fatalf("failed to create external .beads dir: %v", err)
+	externalIssueGraphDir := filepath.Join(externalDir, ".issuegraph")
+	if err := os.MkdirAll(externalIssueGraphDir, 0755); err != nil {
+		t.Fatalf("failed to create external .issuegraph dir: %v", err)
 	}
 
-	externalDBPath := filepath.Join(externalBeadsDir, "beads.db")
+	externalDBPath := filepath.Join(externalIssueGraphDir, "issuegraph.db")
 	externalStore := newTestStoreIsolatedDB(t, externalDBPath, "ext-")
 
-	// Set BEADS_DIR to external directory
-	t.Setenv("BEADS_DIR", externalBeadsDir)
+	// Set ISSUEGRAPH_DIR to external directory
+	t.Setenv("ISSUEGRAPH_DIR", externalIssueGraphDir)
 
-	// The key insight: BEADS_DIR is checked in FindBeadsDir() BEFORE routing config is read.
+	// The key insight: ISSUEGRAPH_DIR is checked in FindIssueGraphDir() BEFORE routing config is read.
 	// This test verifies the precedence order documented in CONTRIBUTOR_NAMESPACE_ISOLATION.md:
-	// 1. BEADS_DIR environment variable (highest precedence)
+	// 1. ISSUEGRAPH_DIR environment variable (highest precedence)
 	// 2. --repo flag (explicit override)
 	// 3. Auto-routing based on user role
-	// 4. Current directory's .beads/ (default)
+	// 4. Current directory's .issuegraph/ (default)
 
-	// When BEADS_DIR is set, all operations should use that directory,
+	// When ISSUEGRAPH_DIR is set, all operations should use that directory,
 	// regardless of routing config.
 
 	// Create issue in external store
 	issue := &types.Issue{
-		Title:     "Test BEADS_DIR precedence",
+		Title:     "Test ISSUEGRAPH_DIR precedence",
 		IssueType: types.TypeTask,
 		Status:    types.StatusOpen,
 		Priority:  2,
@@ -733,20 +733,20 @@ func TestBEADS_DIRPrecedence(t *testing.T) {
 		t.Fatalf("issue not found in external store: %v", err)
 	}
 
-	// Initialize project store (should be ignored when BEADS_DIR is set)
+	// Initialize project store (should be ignored when ISSUEGRAPH_DIR is set)
 	projectStore := env.initProjectStore("direct")
 	defer projectStore.Close()
 
 	// Verify issue does NOT exist in project store
 	projectIssue, _ := projectStore.GetIssue(env.ctx, issue.ID)
 	if projectIssue != nil {
-		t.Error("issue should NOT exist in project store when BEADS_DIR is set")
+		t.Error("issue should NOT exist in project store when ISSUEGRAPH_DIR is set")
 	}
 }
 
-// TestExplicitRoleOverride verifies git config beads.role takes precedence over URL detection
+// TestExplicitRoleOverride verifies git config issuegraph.role takes precedence over URL detection
 func TestExplicitRoleOverride(t *testing.T) {
-	// Test that beads.role=maintainer in git config forces maintainer role
+	// Test that issuegraph.role=maintainer in git config forces maintainer role
 	// even when the remote URL would indicate contributor
 
 	tests := []struct {
@@ -759,13 +759,13 @@ func TestExplicitRoleOverride(t *testing.T) {
 			name:         "explicit maintainer",
 			configRole:   "maintainer",
 			expectedRole: routing.Maintainer,
-			description:  "git config beads.role=maintainer should force maintainer",
+			description:  "git config issuegraph.role=maintainer should force maintainer",
 		},
 		{
 			name:         "explicit contributor",
 			configRole:   "contributor",
 			expectedRole: routing.Contributor,
-			description:  "git config beads.role=contributor should force contributor",
+			description:  "git config issuegraph.role=contributor should force contributor",
 		},
 	}
 
@@ -817,11 +817,11 @@ func TestRoutingWithAllOperationalModes(t *testing.T) {
 			name:      "sync-branch",
 			mode:      "sync-branch",
 			configKey: "sync.branch",
-			configVal: "beads-sync",
+			configVal: "issuegraph-sync",
 			extraCheck: func(t *testing.T, store *dolt.DoltStore, ctx context.Context) {
 				val, _ := store.GetConfig(ctx, "sync.branch")
-				if val != "beads-sync" {
-					t.Errorf("sync.branch = %q, want %q", val, "beads-sync")
+				if val != "issuegraph-sync" {
+					t.Errorf("sync.branch = %q, want %q", val, "issuegraph-sync")
 				}
 			},
 		},

@@ -12,8 +12,8 @@ import (
 	"fmt"
 	"strings"
 
-	"github.com/steveyegge/beads/internal/storage"
-	"github.com/steveyegge/beads/internal/types"
+	"github.com/borg0ai/dx-issuegraph/internal/storage"
+	"github.com/borg0ai/dx-issuegraph/internal/types"
 )
 
 // mockTracker implements IssueTracker for testing.
@@ -185,20 +185,20 @@ func (m *mockTracker) UpdateIssue(_ context.Context, externalID string, issue *t
 
 // mockMapper implements FieldMapper for testing.
 type mockMapper struct {
-	issueToBeads func(*TrackerIssue) *IssueConversion
+	issueToIssueGraph func(*TrackerIssue) *IssueConversion
 }
 
-func (m *mockMapper) PriorityToBeads(p interface{}) int {
+func (m *mockMapper) PriorityToIssueGraph(p interface{}) int {
 	if v, ok := p.(int); ok {
 		return v
 	}
 	return 2
 }
-func (m *mockMapper) PriorityToTracker(p int) interface{}         { return p }
-func (m *mockMapper) StatusToBeads(_ interface{}) types.Status    { return types.StatusOpen }
-func (m *mockMapper) StatusToTracker(s types.Status) interface{}  { return string(s) }
-func (m *mockMapper) TypeToBeads(_ interface{}) types.IssueType   { return types.TypeTask }
-func (m *mockMapper) TypeToTracker(t types.IssueType) interface{} { return string(t) }
+func (m *mockMapper) PriorityToTracker(p int) interface{}            { return p }
+func (m *mockMapper) StatusToIssueGraph(_ interface{}) types.Status  { return types.StatusOpen }
+func (m *mockMapper) StatusToTracker(s types.Status) interface{}     { return string(s) }
+func (m *mockMapper) TypeToIssueGraph(_ interface{}) types.IssueType { return types.TypeTask }
+func (m *mockMapper) TypeToTracker(t types.IssueType) interface{}    { return string(t) }
 func (m *mockMapper) IssueToTracker(issue *types.Issue) map[string]interface{} {
 	return map[string]interface{}{
 		"title":       issue.Title,
@@ -206,9 +206,9 @@ func (m *mockMapper) IssueToTracker(issue *types.Issue) map[string]interface{} {
 	}
 }
 
-func (m *mockMapper) IssueToBeads(ti *TrackerIssue) *IssueConversion {
-	if m.issueToBeads != nil {
-		return m.issueToBeads(ti)
+func (m *mockMapper) IssueToIssueGraph(ti *TrackerIssue) *IssueConversion {
+	if m.issueToIssueGraph != nil {
+		return m.issueToIssueGraph(ti)
 	}
 	return &IssueConversion{
 		Issue: &types.Issue{

@@ -1,15 +1,15 @@
 ---
-title: "bd find-duplicates"
+title: "issuegraph find-duplicates"
 description: "Find issues that are semantically similar but not exact duplicates."
 ---
 
 {/* AUTO-GENERATED: do not edit manually */}
 
-Generated from `bd help --doc find-duplicates`.
+Generated from `issuegraph help --doc find-duplicates`.
 
 Find issues that are semantically similar but not exact duplicates.
 
-Unlike 'bd duplicates' which finds exact content matches, find-duplicates
+Unlike 'issuegraph duplicates' which finds exact content matches, find-duplicates
 uses text similarity or AI to find issues that discuss the same topic
 with different wording.
 
@@ -26,15 +26,15 @@ It first uses mechanical pre-filtering to reduce the number of API calls,
 then asks the LLM to judge whether the remaining pairs are true duplicates.
 
 Examples:
-  bd find-duplicates                       # Mechanical similarity (default)
-  bd find-duplicates --threshold 0.4       # Lower threshold = more results
-  bd find-duplicates --method ai           # Use AI for semantic comparison
-  bd find-duplicates --status open         # Only check open issues
-  bd find-duplicates --limit 20            # Show top 20 pairs
-  bd find-duplicates --json                # JSON output
+  issuegraph find-duplicates                       # Mechanical similarity (default)
+  issuegraph find-duplicates --threshold 0.4       # Lower threshold = more results
+  issuegraph find-duplicates --method ai           # Use AI for semantic comparison
+  issuegraph find-duplicates --status open         # Only check open issues
+  issuegraph find-duplicates --limit 20            # Show top 20 pairs
+  issuegraph find-duplicates --json                # JSON output
 
 ```
-bd find-duplicates [flags]
+issuegraph find-duplicates [flags]
 ```
 
 **Aliases:** find-dups

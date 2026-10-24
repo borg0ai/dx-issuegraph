@@ -38,7 +38,7 @@ one capability split in two — and the split is only worth it if each half is
 reachable, contract-pinned and named on its own terms afterwards.
 
 `issueops.BatchCreator` and `issueops.BatchApplier` are the worked example.
-Both write many beads in one transaction, and the tempting reading is that the
+Both write many issuegraph in one transaction, and the tempting reading is that the
 second subsumes the first: an apply plan of N create items is a batch create.
 It is not, and the reason is what to copy:
 
@@ -47,7 +47,7 @@ It is not, and the reason is what to copy:
   request order; `batchApply` takes a heterogeneous plan of creates, updates
   and closes over rows that may not exist yet, with intra-plan references and a
   per-item guard vocabulary. Folding the first into the second would make every
-  caller of "create these ten beads" compose a plan.
+  caller of "create these ten issuegraph" compose a plan.
 - **The REFUSALS differ, and a caller dispatches on them.** `batchApply`'s 409
   vocabulary carries `item_index`, `item_kind`, `item_key` and
   `item_issue_id`, because an item is the unit that failed. `batchCreate` has
@@ -93,8 +93,8 @@ in; 13 is the HTTP surface, which lands with the command rather than after it.
 1. **The leaf contract.** `issueops/<role>.go`. Request and result types plus
    the interface, with the doc comment written as a SPECIFICATION — every
    promise a conformance case will cite by line. The package imports
-   `internal/types`, `beadserrors` and stdlib only, and exports no
-   constructors. A leaf in some OTHER namespace imports `beadserrors` and
+   `internal/types`, `issuegrapherrors` and stdlib only, and exports no
+   constructors. A leaf in some OTHER namespace imports `issuegrapherrors` and
    stdlib, and reaches for `internal/types` only if its plane actually holds
    issue-shaped things — `memoryops` does not, and says so.
    Template: `issueops/readyclaimer.go`, `issueops/commenter.go`.
@@ -361,7 +361,7 @@ in; 13 is the HTTP surface, which lands with the command rather than after it.
     one that does.** It answers a startup hook rather than a command: its two
     markers are clone-local and dolt-ignored, so they describe the machine
     holding the database and mean nothing to a remote caller, and the one
-    version fact a client can act on is already `ContextResponse.bd_version`.
+    version fact a client can act on is already `ContextResponse.issuegraph_version`.
     Writing that decision down — in the leaf doc, beside the promises, and in
     AMBIGUITIES.md for the owner — is the work. Adding an operation because the
     checklist has a row for one is not.
@@ -431,7 +431,7 @@ because that is the list a third one inherits, and each of these reads like a
 convention until you notice it was situational.
 
 **Alias the sentinels; do not mint a second vocabulary.** `memoryops/errors.go`
-is one line of declaration — `var ErrValidation = beadserrors.ErrValidation`
+is one line of declaration — `var ErrValidation = issuegrapherrors.ErrValidation`
 — and the IDENTITY is the entire point. `errors.Is` against that one
 value is what the HTTP problem classifier, `modules/cli`'s error handling and every
 conformance contract already do. A `memoryops`-flavored twin would be a
@@ -442,22 +442,22 @@ error. Re-exporting rather than telling callers to reach through the declaring
 package is the other half: code holding only `Memories` can classify a refusal
 without discovering a second import.
 
-**Alias DOWNWARD, to `beadserrors`, not sideways into `issueops`.** This is the
+**Alias DOWNWARD, to `issuegrapherrors`, not sideways into `issueops`.** This is the
 part the second namespace got wrong first and then fixed. `memoryops` originally
 aliased `issueops.ErrValidation`, which kept identity but put the issue package
 in a memory leaf's dependency graph with `internal/types` behind it — a claim
 that the memory plane sits downstream of the issue plane, when the two are
-siblings over one config table. `beadserrors` now declares the namespace-neutral
+siblings over one config table. `issuegrapherrors` now declares the namespace-neutral
 vocabulary (`ErrValidation`, `ErrNotFound`, `ErrNotInitialized`, the
 `ErrUnsupported` type) and `issueops` re-exports it by alias like everyone else.
-`memoryops` depends on `beadserrors` and `context`, nothing more.
+`memoryops` depends on `issuegrapherrors` and `context`, nothing more.
 
 The test for what belongs down there: **would a leaf for a plane nobody has
 written yet need it?** A request can be invalid, a row can be missing, a
 substrate can be uninitialized and a backend can not implement a capability, on
 any plane. `ErrCloseBlocked` and `ErrDependencyCycle` name issue concepts and
-stay put. `beadserrors` imports stdlib and nothing else — enforced by the
-`beadserrors-leaf` depguard rule, not just asked for, because the next tempting
+stay put. `issuegrapherrors` imports stdlib and nothing else — enforced by the
+`issuegrapherrors-leaf` depguard rule, not just asked for, because the next tempting
 import is always one shared constant that "obviously belongs with the errors".
 
 **One earlier claim here was wrong and is worth keeping visible**: this section
@@ -564,8 +564,8 @@ may be a row that cannot fail.**
 
 `journalops.Journal` is the durable mutation journal's read side: the
 seq-ordered replay feed behind `issuegraph events tail`, `issuegraph events export` and
-`GET /v0/beads/events`. It is a third leaf rather than a role in either
-existing one because its rows are neither beads nor settings — they are
+`GET /v0/issuegraph/events`. It is a third leaf rather than a role in either
+existing one because its rows are neither issuegraph nor settings — they are
 clone-local engine state on a `dolt_ignore`d table, written in the same
 transaction as the mutation they describe, versioned by nothing and replicated
 nowhere. A plane whose rows deliberately survive no merge has nothing in common
@@ -715,8 +715,8 @@ surface has to agree with the other.
 
 **Then go back and update the leaf when a front door lands**, because the same
 sentence that made the absence legible makes it a lie the moment it stops being
-true. `GET /v0/beads/dependencies:count` landed in #5536 and
-`GET /v0/beads/issues/{id}/related` in #5540; the first left `graphcounter.go`
+true. `GET /v0/issuegraph/dependencies:count` landed in #5536 and
+`GET /v0/issuegraph/issues/{id}/related` in #5540; the first left `graphcounter.go`
 saying it had "no HTTP operation either" and promising a bound "the graph-counts
 wire slice sets" in the future tense, over a slice that had already set it. A
 facade-only leaf carries a claim with an expiry date on it. The wire slice owns
@@ -833,7 +833,7 @@ your mutation was in it.** Nothing automates this.
 **A wrapper is a composition, and the contract cannot see it.** `DoltStore` and
 `EmbeddedDoltStore` expose `UpdateIssueChecked`, `CloseIssueChecked` and
 `ClaimIssue` — published on `storage.DoltStorage`, with option types in
-`beads.go` — which assemble the shared bodies on their own. Deleting their only
+`issuegraph.go` — which assemble the shared bodies on their own. Deleting their only
 observers left `ExpectedStatus` routed on no branch at all, and disabling a
 wrapper's compare-and-set passed every contract case on that backend. When a
 wrapper has

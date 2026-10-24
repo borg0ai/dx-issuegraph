@@ -6,8 +6,8 @@ import (
 	"fmt"
 	"testing"
 
-	"github.com/steveyegge/beads/internal/storage/domain"
-	"github.com/steveyegge/beads/internal/types"
+	"github.com/borg0ai/dx-issuegraph/internal/storage/domain"
+	"github.com/borg0ai/dx-issuegraph/internal/types"
 )
 
 // TestAddDependencyTypeConflictReturnsTypedError proves the embedded
@@ -19,8 +19,8 @@ import (
 // the old wording keep working.
 //
 // It asserts against domain.DependencyTypeConflictError rather than the public
-// beads.DependencyTypeConflictError alias only because package dolt cannot import
-// the root beads package (root beads imports dolt); the two are the same type via
+// issuegraph.DependencyTypeConflictError alias only because package dolt cannot import
+// the root issuegraph package (root issuegraph imports dolt); the two are the same type via
 // the alias, and the public-alias errors.As is locked separately in the root
 // errors_test.
 //
@@ -85,7 +85,7 @@ func assertTypeConflict(t *testing.T, ctx context.Context, store *DoltStore, sou
 	}
 
 	// Byte-identical to the pre-taxonomy fmt.Errorf message.
-	want := fmt.Sprintf(`dependency %s -> %s already exists with type "blocks" (requested "related"); remove it first with 'bd dep remove' then re-add`, source, target)
+	want := fmt.Sprintf(`dependency %s -> %s already exists with type "blocks" (requested "related"); remove it first with 'issuegraph dep remove' then re-add`, source, target)
 	if err.Error() != want {
 		t.Errorf("message = %q, want byte-identical %q", err.Error(), want)
 	}

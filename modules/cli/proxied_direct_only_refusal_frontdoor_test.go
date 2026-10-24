@@ -10,11 +10,11 @@ import (
 
 func TestProxiedDirectOnlyRefusalsFrontDoor(t *testing.T) {
 	requireManagedLocalProxiedEnv(t)
-	bd := buildEmbeddedBD(t)
-	p := bdManagedLocalInit(t, bd, "directonly", 5*time.Minute)
+	issuegraph := buildEmbeddedBD(t)
+	p := issuegraphManagedLocalInit(t, issuegraph, "directonly", 5*time.Minute)
 	for _, args := range [][]string{{"sync"}, {"dolt", "remote", "add", "origin", "https://example.com/repo"}, {"dolt", "remote", "list"}, {"dolt", "remote", "reset-data", "origin"}, {"dolt", "push"}, {"dolt", "pull"}, {"dolt", "commit"}} {
 		t.Run(strings.Join(args, "/"), func(t *testing.T) {
-			out, errOut, err := bdProxiedRunBuffers(t, bd, p.dir, append(args, "--json")...)
+			out, errOut, err := issuegraphProxiedRunBuffers(t, issuegraph, p.dir, append(args, "--json")...)
 			if err == nil {
 				t.Fatal("expected refusal")
 			}

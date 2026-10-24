@@ -1,5 +1,5 @@
 // Package githooksenv disables git's client-side hooks for the git commands
-// Dolt runs inside bd's own process.
+// Dolt runs inside issuegraph's own process.
 //
 // Dolt transfers refs/dolt/data for a git-protocol remote by shelling out to
 // git against its embedded cache-mirror, .dolt/git-remote-cache/<hash>/repo.git.
@@ -7,13 +7,13 @@
 // honors the user's init.templateDir and copies template hooks into its
 // hooks/ dir. A templated pre-push hook that runs `git diff` or `git status`
 // — the pre-commit framework's staged_files_only setup, for instance — then
-// dies with "fatal: this operation must be run in a work tree" and takes bd's
+// dies with "fatal: this operation must be run in a work tree" and takes issuegraph's
 // push down with it (GH#3724, GH#4272).
 //
 // PR #3740 fixed this for the CLI shell-out fallback by decorating the
 // exec.Cmd. The primary path is CALL DOLT_PUSH/DOLT_FETCH, which runs in the
-// Dolt engine inside bd and spawns git itself — there is no exec.Cmd to
-// decorate, so the override has to be on bd's own process environment for the
+// Dolt engine inside issuegraph and spawns git itself — there is no exec.Cmd to
+// decorate, so the override has to be on issuegraph's own process environment for the
 // duration of the call. That is what this package provides.
 package githooksenv
 

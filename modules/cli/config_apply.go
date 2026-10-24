@@ -6,15 +6,15 @@ import (
 	"os"
 	"strings"
 
+	"github.com/borg0ai/dx-issuegraph/internal/config"
+	"github.com/borg0ai/dx-issuegraph/internal/doltserver"
+	"github.com/borg0ai/dx-issuegraph/internal/git"
+	"github.com/borg0ai/dx-issuegraph/internal/issuegraph"
+	"github.com/borg0ai/dx-issuegraph/internal/metrics"
+	"github.com/borg0ai/dx-issuegraph/internal/storage"
+	"github.com/borg0ai/dx-issuegraph/internal/storage/dolt"
+	"github.com/borg0ai/dx-issuegraph/internal/storage/doltutil"
 	"github.com/spf13/cobra"
-	"github.com/steveyegge/beads/internal/beads"
-	"github.com/steveyegge/beads/internal/config"
-	"github.com/steveyegge/beads/internal/doltserver"
-	"github.com/steveyegge/beads/internal/git"
-	"github.com/steveyegge/beads/internal/metrics"
-	"github.com/steveyegge/beads/internal/storage"
-	"github.com/steveyegge/beads/internal/storage/dolt"
-	"github.com/steveyegge/beads/internal/storage/doltutil"
 )
 
 // ApplyResult represents the outcome of a single apply action.
@@ -49,9 +49,9 @@ This command is idempotent — safe to run multiple times. Use --dry-run
 to preview what would change without making modifications.
 
 Examples:
-  bd config apply
-  bd config apply --dry-run
-  bd config apply --json`,
+  issuegraph config apply
+  issuegraph config apply --dry-run
+  issuegraph config apply --json`,
 	SilenceUsage:  true,
 	SilenceErrors: true,
 	RunE: func(cmd *cobra.Command, _ []string) error {
@@ -231,7 +231,7 @@ type originRemoteEvidence interface {
 // from the SQL listing alone: a freshly (auto-)started sql-server can report
 // an empty dolt_remotes while the remote is persisted on disk in
 // .dolt/repo_state.json (GH#2118, wy-6k7f7). Recovering the persisted URL
-// routes `bd config apply` into the same consistent/update legs it would
+// routes `issuegraph config apply` into the same consistent/update legs it would
 // take after the window, instead of blind-adding over an invisible remote.
 // A failed listing returns the error — it is never evidence of "no remote".
 func currentOriginRemoteURL(ctx context.Context, st originRemoteEvidence) (string, error) {
@@ -262,13 +262,13 @@ func applyRemote(drifted bool, dryRun bool) ApplyResult {
 		}
 	}
 
-	beadsDir := beads.FindBeadsDir()
-	if beadsDir == "" {
+	issuegraphDir := issuegraph.FindIssueGraphDir()
+	if issuegraphDir == "" {
 		return ApplyResult{
 			Check:   "remote",
 			Action:  "configure",
 			Status:  applyStatusSkipped,
-			Message: "No active beads workspace found",
+			Message: "No active issuegraph workspace found",
 		}
 	}
 
@@ -283,7 +283,7 @@ func applyRemote(drifted bool, dryRun bool) ApplyResult {
 	}
 
 	ctx := context.Background()
-	st, err := dolt.NewFromConfigWithOptions(ctx, beadsDir, remoteApplyStoreConfig(dryRun))
+	st, err := dolt.NewFromConfigWithOptions(ctx, issuegraphDir, remoteApplyStoreConfig(dryRun))
 	if err != nil {
 		return ApplyResult{
 			Check:   "remote",
@@ -400,13 +400,13 @@ func applyServer(drifted bool, dryRun bool) ApplyResult {
 		}
 	}
 
-	beadsDir := beads.FindBeadsDir()
-	if beadsDir == "" {
+	issuegraphDir := issuegraph.FindIssueGraphDir()
+	if issuegraphDir == "" {
 		return ApplyResult{
 			Check:   "server",
 			Action:  "start",
 			Status:  applyStatusSkipped,
-			Message: "No active beads workspace found",
+			Message: "No active issuegraph workspace found",
 		}
 	}
 
@@ -418,7 +418,7 @@ func applyServer(drifted bool, dryRun bool) ApplyResult {
 			Check:   "server",
 			Action:  "none",
 			Status:  applyStatusSkipped,
-			Message: "Server is running but dolt.shared-server is not enabled; not stopping (use 'bd dolt stop' manually)",
+			Message: "Server is running but dolt.shared-server is not enabled; not stopping (use 'issuegraph dolt stop' manually)",
 		}
 	}
 
@@ -434,7 +434,7 @@ func applyServer(drifted bool, dryRun bool) ApplyResult {
 		}
 	}
 
-	serverDir := doltserver.ResolveServerDir(beadsDir)
+	serverDir := doltserver.ResolveServerDir(issuegraphDir)
 
 	if dryRun {
 		return ApplyResult{

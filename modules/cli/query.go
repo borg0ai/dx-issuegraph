@@ -7,13 +7,13 @@ import (
 	"os"
 	"strings"
 
+	"github.com/borg0ai/dx-issuegraph/internal/metrics"
+	"github.com/borg0ai/dx-issuegraph/internal/query"
+	"github.com/borg0ai/dx-issuegraph/internal/types"
+	"github.com/borg0ai/dx-issuegraph/internal/ui"
+	"github.com/borg0ai/dx-issuegraph/internal/workapi"
+	"github.com/borg0ai/dx-issuegraph/issueops"
 	"github.com/spf13/cobra"
-	"github.com/steveyegge/beads/internal/metrics"
-	"github.com/steveyegge/beads/internal/query"
-	"github.com/steveyegge/beads/internal/types"
-	"github.com/steveyegge/beads/internal/ui"
-	"github.com/steveyegge/beads/internal/workapi"
-	"github.com/steveyegge/beads/issueops"
 )
 
 var queryCmd = &cobra.Command{
@@ -41,7 +41,7 @@ Boolean operators (case-insensitive):
   (expr)            Grouping with parentheses
 
 Supported fields:
-  status            Stored status (open, in_progress, blocked, deferred, closed). Note: dependency-blocked issues stay "open"; use 'bd blocked' to find them
+  status            Stored status (open, in_progress, blocked, deferred, closed). Note: dependency-blocked issues stay "open"; use 'issuegraph blocked' to find them
   priority          Priority level (0-4)
   type              Issue type (bug, feature, task, epic, chore, decision)
   assignee          Assigned user (use "none" for unassigned)
@@ -68,15 +68,15 @@ Date values:
   Natural language: tomorrow, "next monday", "in 3 days"
 
 Examples:
-  bd query "status=open AND priority>1"
-  bd query "status=open AND priority<=2 AND updated>7d"
-  bd query "(status=open OR status=blocked) AND priority<2"
-  bd query "type=bug AND label=urgent"
-  bd query "NOT status=closed"
-  bd query "assignee=none AND type=task"
-  bd query "created>30d AND status!=closed"
-  bd query "label=frontend OR label=backend"
-  bd query "title=authentication AND priority=0"`,
+  issuegraph query "status=open AND priority>1"
+  issuegraph query "status=open AND priority<=2 AND updated>7d"
+  issuegraph query "(status=open OR status=blocked) AND priority<2"
+  issuegraph query "type=bug AND label=urgent"
+  issuegraph query "NOT status=closed"
+  issuegraph query "assignee=none AND type=task"
+  issuegraph query "created>30d AND status!=closed"
+  issuegraph query "label=frontend OR label=backend"
+  issuegraph query "title=authentication AND priority=0"`,
 	SilenceUsage:  true,
 	SilenceErrors: true,
 	RunE: func(cmd *cobra.Command, args []string) error {
@@ -152,7 +152,7 @@ func gatherQueryInput(cmd *cobra.Command, args []string) (queryInput, error) {
 	in := queryInput{expression: strings.Join(args, " ")}
 	in.limit, _ = cmd.Flags().GetInt("limit")
 	if !cmd.Flags().Changed("limit") {
-		// bd list's policy for an unflagged limit: piped stdout is unlimited,
+		// issuegraph list's policy for an unflagged limit: piped stdout is unlimited,
 		// agent mode is compact, a terminal gets the default (GH#6229).
 		in.limit = unflaggedLimit(in.limit)
 	}

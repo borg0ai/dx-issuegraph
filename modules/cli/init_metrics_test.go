@@ -12,8 +12,8 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/steveyegge/beads/internal/metrics"
-	"github.com/steveyegge/beads/internal/testutil"
+	"github.com/borg0ai/dx-issuegraph/internal/metrics"
+	"github.com/borg0ai/dx-issuegraph/internal/testutil"
 )
 
 type metricsEvent struct {
@@ -29,7 +29,7 @@ type metricsEvent struct {
 
 func readInitEvent(t *testing.T, home, expectedCommand string) metricsEvent {
 	t.Helper()
-	dir := filepath.Join(home, ".beads", "eventsData")
+	dir := filepath.Join(home, ".issuegraph", "eventsData")
 	entries, err := os.ReadDir(dir)
 	if err != nil {
 		t.Fatalf("read eventsData dir: %v", err)
@@ -85,39 +85,39 @@ func (e metricsEvent) attr(key string) (string, bool) {
 }
 
 func metricsTestEnv(home string, extra ...string) []string {
-	base := bdEnv(home)
+	base := issuegraphEnv(home)
 	out := make([]string, 0, len(base)+len(extra)+1)
 	for _, e := range base {
-		if strings.HasPrefix(e, "BD_DISABLE_METRICS=") || strings.HasPrefix(e, "DO_NOT_TRACK=") {
+		if strings.HasPrefix(e, "ISSUEGRAPH_DISABLE_METRICS=") || strings.HasPrefix(e, "DO_NOT_TRACK=") {
 			continue
 		}
 		out = append(out, e)
 	}
-	out = append(out, "BD_DISABLE_EVENT_FLUSH=1")
+	out = append(out, "ISSUEGRAPH_DISABLE_EVENT_FLUSH=1")
 	return append(out, extra...)
 }
 
 func runBdInitForMetrics(t *testing.T, home string, extraEnv []string, args ...string) {
 	t.Helper()
-	bd := buildEmbeddedBD(t)
+	issuegraph := buildEmbeddedBD(t)
 	repo, err := testTempDir("bd-metrics-repo-*")
 	if err != nil {
 		t.Fatalf("temp repo: %v", err)
 	}
 	initGitRepoAt(t, repo)
 
-	// `bd init --shared-server` daemonizes a dolt sql-server under
-	// <home>/.beads/shared-server — <home> being the HOME this fixture gives
+	// `issuegraph init --shared-server` daemonizes a dolt sql-server under
+	// <home>/.issuegraph/shared-server — <home> being the HOME this fixture gives
 	// ONLY to the subprocess, so the in-process SharedServerPath would look in
 	// the wrong tree — and `--proxied-server` leaves a proxy plus its backend
-	// server under <repo>/.beads/dolt. Neither was ever stopped; the post-run
+	// server under <repo>/.issuegraph/dolt. Neither was ever stopped; the post-run
 	// sweep named this fixture by both cwds (wy-j2zc8q). Registered before
 	// the subprocess so the t.Fatalf paths are covered too.
-	stopDoltServerCleanup(t, filepath.Join(home, ".beads", "shared-server"))
-	stopProxiedServerCleanup(t, filepath.Join(repo, ".beads", "dolt"))
+	stopDoltServerCleanup(t, filepath.Join(home, ".issuegraph", "shared-server"))
+	stopProxiedServerCleanup(t, filepath.Join(repo, ".issuegraph", "dolt"))
 
 	full := append([]string{"init", "--non-interactive", "--quiet"}, args...)
-	cmd := exec.Command(bd, full...)
+	cmd := exec.Command(issuegraph, full...)
 	cmd.Dir = repo
 	cmd.Env = metricsTestEnv(home, extraEnv...)
 	var stdout, stderr bytes.Buffer
@@ -173,13 +173,13 @@ func TestInitMetricsEmittedPerDoltMode(t *testing.T) {
 				if err != nil {
 					t.Fatalf("find free port: %v", err)
 				}
-				env = append(env, "BEADS_DOLT_SERVER_PORT="+strconv.Itoa(port))
+				env = append(env, "ISSUEGRAPH_DOLT_SERVER_PORT="+strconv.Itoa(port))
 			}
 			runBdInitForMetrics(t, home, env, tc.extraArgs...)
 			evt := readInitEvent(t, home, tc.expectedCommand)
 
-			if evt.AppName != "beads" {
-				t.Errorf("app_name = %q, want %q", evt.AppName, "beads")
+			if evt.AppName != "issuegraph" {
+				t.Errorf("app_name = %q, want %q", evt.AppName, "issuegraph")
 			}
 			if len(evt.Events) != 1 {
 				t.Fatalf("events len = %d, want 1", len(evt.Events))
@@ -199,7 +199,7 @@ func TestInitMetricsEmittedPerDoltMode(t *testing.T) {
 
 func writeUserMetricsDisabled(t *testing.T, home string, disabled bool) {
 	t.Helper()
-	dir := filepath.Join(home, ".config", "bd")
+	dir := filepath.Join(home, ".config", "issuegraph")
 	if err := os.MkdirAll(dir, 0o755); err != nil {
 		t.Fatalf("mkdir user config: %v", err)
 	}
@@ -214,7 +214,7 @@ func writeUserMetricsDisabled(t *testing.T, home string, disabled bool) {
 
 func evtqFilesIn(t *testing.T, home string) []string {
 	t.Helper()
-	dir := filepath.Join(home, ".beads", "eventsData")
+	dir := filepath.Join(home, ".issuegraph", "eventsData")
 	entries, err := os.ReadDir(dir)
 	if err != nil {
 		return nil
@@ -230,14 +230,14 @@ func evtqFilesIn(t *testing.T, home string) []string {
 
 func runBdInitWithEnv(t *testing.T, home string, extraEnv []string) {
 	t.Helper()
-	bd := buildEmbeddedBD(t)
+	issuegraph := buildEmbeddedBD(t)
 	repo, err := testTempDir("bd-metrics-repo-*")
 	if err != nil {
 		t.Fatalf("temp repo: %v", err)
 	}
 	initGitRepoAt(t, repo)
 
-	cmd := exec.Command(bd, "init", "--non-interactive", "--quiet")
+	cmd := exec.Command(issuegraph, "init", "--non-interactive", "--quiet")
 	cmd.Dir = repo
 	cmd.Env = metricsTestEnv(home, extraEnv...)
 	var stdout, stderr bytes.Buffer
@@ -268,14 +268,14 @@ func TestInitMetricsEnvConfigPrecedence(t *testing.T) {
 			name:           "config_enabled_env_disables",
 			setUserConfig:  true,
 			configDisabled: false,
-			envVar:         []string{"BD_DISABLE_METRICS=1"},
+			envVar:         []string{"ISSUEGRAPH_DISABLE_METRICS=1"},
 			wantEvtq:       false,
 		},
 		{
 			name:           "config_disabled_env_overrides_to_enabled",
 			setUserConfig:  true,
 			configDisabled: true,
-			envVar:         []string{"BD_DISABLE_METRICS=0"},
+			envVar:         []string{"ISSUEGRAPH_DISABLE_METRICS=0"},
 			wantEvtq:       true,
 		},
 	}
@@ -312,7 +312,7 @@ func TestInitBootstrapsUserConfigWhenMissing(t *testing.T) {
 
 	runBdInitWithEnv(t, home, nil)
 
-	path := filepath.Join(home, ".config", "bd", "config.yaml")
+	path := filepath.Join(home, ".config", "issuegraph", "config.yaml")
 	body, err := os.ReadFile(path)
 	if err != nil {
 		t.Fatalf("read %s: %v", path, err)
@@ -332,7 +332,7 @@ func TestInitPreservesExistingMetricsValuesAndFillsMissingLeaves(t *testing.T) {
 		t.Fatalf("temp home: %v", err)
 	}
 
-	dir := filepath.Join(home, ".config", "bd")
+	dir := filepath.Join(home, ".config", "issuegraph")
 	if err := os.MkdirAll(dir, 0o755); err != nil {
 		t.Fatalf("mkdir: %v", err)
 	}
@@ -358,7 +358,7 @@ func TestInitPreservesExistingMetricsValuesAndFillsMissingLeaves(t *testing.T) {
 }
 
 func TestInitMetricsDisabledSuppresses(t *testing.T) {
-	bd := buildEmbeddedBD(t)
+	issuegraph := buildEmbeddedBD(t)
 	home, err := testTempDir("bd-metrics-disabled-home-*")
 	if err != nil {
 		t.Fatalf("temp home: %v", err)
@@ -369,19 +369,19 @@ func TestInitMetricsDisabledSuppresses(t *testing.T) {
 	}
 	initGitRepoAt(t, repo)
 
-	cmd := exec.Command(bd, "init", "--non-interactive", "--quiet")
+	cmd := exec.Command(issuegraph, "init", "--non-interactive", "--quiet")
 	cmd.Dir = repo
-	env := append([]string{}, bdEnv(home)...)
-	env = append(env, "BD_DISABLE_METRICS=1")
+	env := append([]string{}, issuegraphEnv(home)...)
+	env = append(env, "ISSUEGRAPH_DISABLE_METRICS=1")
 	cmd.Env = env
 	var stdout, stderr bytes.Buffer
 	cmd.Stdout = &stdout
 	cmd.Stderr = &stderr
 	if err := cmd.Run(); err != nil {
-		t.Fatalf("bd init failed: %v\n%s\n%s", err, stdout.String(), stderr.String())
+		t.Fatalf("issuegraph init failed: %v\n%s\n%s", err, stdout.String(), stderr.String())
 	}
 
-	dir := filepath.Join(home, ".beads", "eventsData")
+	dir := filepath.Join(home, ".issuegraph", "eventsData")
 	if _, err := os.Stat(dir); err == nil {
 		entries, _ := os.ReadDir(dir)
 		var evtqs []string
@@ -391,18 +391,18 @@ func TestInitMetricsDisabledSuppresses(t *testing.T) {
 			}
 		}
 		if len(evtqs) > 0 {
-			t.Errorf("BD_DISABLE_METRICS=1 still produced .evtq files: %v", evtqs)
+			t.Errorf("ISSUEGRAPH_DISABLE_METRICS=1 still produced .evtq files: %v", evtqs)
 		}
 	}
 }
 
 // allCommandEvents returns the `command` attribute of every cli_command event
 // across all queued .evtq files, so a test can assert the exact emission
-// cardinality of a single bd invocation (one user command must record exactly
+// cardinality of a single issuegraph invocation (one user command must record exactly
 // one cli_command event).
 func allCommandEvents(t *testing.T, home string) []string {
 	t.Helper()
-	dir := filepath.Join(home, ".beads", "eventsData")
+	dir := filepath.Join(home, ".issuegraph", "eventsData")
 	entries, err := os.ReadDir(dir)
 	if err != nil {
 		return nil
@@ -434,9 +434,9 @@ func allCommandEvents(t *testing.T, home string) []string {
 	return cmds
 }
 
-func runBdForMetrics(t *testing.T, bd, repo, home string, args ...string) (stdout, stderr string) {
+func runBdForMetrics(t *testing.T, issuegraph, repo, home string, args ...string) (stdout, stderr string) {
 	t.Helper()
-	cmd := exec.Command(bd, args...)
+	cmd := exec.Command(issuegraph, args...)
 	cmd.Dir = repo
 	cmd.Env = metricsTestEnv(home)
 	var outBuf, errBuf bytes.Buffer
@@ -447,10 +447,10 @@ func runBdForMetrics(t *testing.T, bd, repo, home string, args ...string) (stdou
 }
 
 // TestMetricsTodoAliasEmitsSingleEvent is the double-emit regression for PR
-// #4419: bare `bd todo` delegates to the todo-list behavior, but it must record
+// #4419: bare `issuegraph todo` delegates to the todo-list behavior, but it must record
 // exactly one cli_command event ("todo"), not also a phantom "todo-list".
 func TestMetricsTodoAliasEmitsSingleEvent(t *testing.T) {
-	bd := buildEmbeddedBD(t)
+	issuegraph := buildEmbeddedBD(t)
 	home, err := testTempDir("bd-metrics-todo-home-*")
 	if err != nil {
 		t.Fatalf("temp home: %v", err)
@@ -461,31 +461,31 @@ func TestMetricsTodoAliasEmitsSingleEvent(t *testing.T) {
 	}
 	initGitRepoAt(t, repo)
 
-	// A store is needed so `bd todo` (which lists task issues) reaches its RunE.
-	if _, errOut := runBdForMetrics(t, bd, repo, home, "init", "--non-interactive", "--quiet"); errOut != "" {
+	// A store is needed so `issuegraph todo` (which lists task issues) reaches its RunE.
+	if _, errOut := runBdForMetrics(t, issuegraph, repo, home, "init", "--non-interactive", "--quiet"); errOut != "" {
 		// init may print warnings; only fail later if todo produces no event.
 		_ = errOut
 	}
 
 	// Isolate the next invocation by dropping init's queued event.
-	if err := os.RemoveAll(filepath.Join(home, ".beads", "eventsData")); err != nil {
+	if err := os.RemoveAll(filepath.Join(home, ".issuegraph", "eventsData")); err != nil {
 		t.Fatalf("clear eventsData: %v", err)
 	}
 
-	_, errOut := runBdForMetrics(t, bd, repo, home, "todo")
+	_, errOut := runBdForMetrics(t, issuegraph, repo, home, "todo")
 
 	got := allCommandEvents(t, home)
 	if len(got) != 1 || got[0] != "todo" {
-		t.Errorf("bd todo emitted %v, want exactly [todo] (double-emit regression)\nstderr:\n%s", got, errOut)
+		t.Errorf("issuegraph todo emitted %v, want exactly [todo] (double-emit regression)\nstderr:\n%s", got, errOut)
 	}
 }
 
 // TestMetricsReadyGatedAliasEmitsSingleEvent is the double-emit regression for
-// PR #4419: `bd ready --gated` delegates to the gate-ready molecule discovery,
+// PR #4419: `issuegraph ready --gated` delegates to the gate-ready molecule discovery,
 // but it must record exactly one cli_command event ("ready"), not also a phantom
 // "mol-ready-gated".
 func TestMetricsReadyGatedAliasEmitsSingleEvent(t *testing.T) {
-	bd := buildEmbeddedBD(t)
+	issuegraph := buildEmbeddedBD(t)
 	home, err := testTempDir("bd-metrics-readygated-home-*")
 	if err != nil {
 		t.Fatalf("temp home: %v", err)
@@ -496,31 +496,31 @@ func TestMetricsReadyGatedAliasEmitsSingleEvent(t *testing.T) {
 	}
 	initGitRepoAt(t, repo)
 
-	// A store is needed so `bd ready --gated` reaches its discovery body.
-	if _, errOut := runBdForMetrics(t, bd, repo, home, "init", "--non-interactive", "--quiet"); errOut != "" {
+	// A store is needed so `issuegraph ready --gated` reaches its discovery body.
+	if _, errOut := runBdForMetrics(t, issuegraph, repo, home, "init", "--non-interactive", "--quiet"); errOut != "" {
 		_ = errOut
 	}
 
 	// Isolate the next invocation by dropping init's queued event.
-	if err := os.RemoveAll(filepath.Join(home, ".beads", "eventsData")); err != nil {
+	if err := os.RemoveAll(filepath.Join(home, ".issuegraph", "eventsData")); err != nil {
 		t.Fatalf("clear eventsData: %v", err)
 	}
 
-	_, errOut := runBdForMetrics(t, bd, repo, home, "ready", "--gated")
+	_, errOut := runBdForMetrics(t, issuegraph, repo, home, "ready", "--gated")
 
 	got := allCommandEvents(t, home)
 	if len(got) != 1 || got[0] != "ready" {
-		t.Errorf("bd ready --gated emitted %v, want exactly [ready] (double-emit regression)\nstderr:\n%s", got, errOut)
+		t.Errorf("issuegraph ready --gated emitted %v, want exactly [ready] (double-emit regression)\nstderr:\n%s", got, errOut)
 	}
 }
 
 // TestMetricsWispAliasEmitsSingleEvent is the double-emit regression for PR
-// #4419: bare `bd mol wisp <proto>` delegates to the wisp-create behavior, but it
+// #4419: bare `issuegraph mol wisp <proto>` delegates to the wisp-create behavior, but it
 // must record exactly one cli_command event ("wisp"), not also a phantom
 // "wisp-create". The proto does not exist, so the command fails after the event
 // is recorded; the event count is what this guards.
 func TestMetricsWispAliasEmitsSingleEvent(t *testing.T) {
-	bd := buildEmbeddedBD(t)
+	issuegraph := buildEmbeddedBD(t)
 	home, err := testTempDir("bd-metrics-wisp-home-*")
 	if err != nil {
 		t.Fatalf("temp home: %v", err)
@@ -531,38 +531,38 @@ func TestMetricsWispAliasEmitsSingleEvent(t *testing.T) {
 	}
 	initGitRepoAt(t, repo)
 
-	// A store is needed so `bd mol wisp <proto>` reaches its RunE body.
-	if _, errOut := runBdForMetrics(t, bd, repo, home, "init", "--non-interactive", "--quiet"); errOut != "" {
+	// A store is needed so `issuegraph mol wisp <proto>` reaches its RunE body.
+	if _, errOut := runBdForMetrics(t, issuegraph, repo, home, "init", "--non-interactive", "--quiet"); errOut != "" {
 		_ = errOut
 	}
 
 	// Isolate the next invocation by dropping init's queued event.
-	if err := os.RemoveAll(filepath.Join(home, ".beads", "eventsData")); err != nil {
+	if err := os.RemoveAll(filepath.Join(home, ".issuegraph", "eventsData")); err != nil {
 		t.Fatalf("clear eventsData: %v", err)
 	}
 
 	// A non-existent proto makes the create fail, but the "wisp" event is still
 	// recorded before delegation, which is exactly what this regression checks.
-	_, errOut := runBdForMetrics(t, bd, repo, home, "mol", "wisp", "mol-nonexistent-proto")
+	_, errOut := runBdForMetrics(t, issuegraph, repo, home, "mol", "wisp", "mol-nonexistent-proto")
 
 	got := allCommandEvents(t, home)
 	if len(got) != 1 || got[0] != "wisp" {
-		t.Errorf("bd mol wisp <proto> emitted %v, want exactly [wisp] (double-emit regression)\nstderr:\n%s", got, errOut)
+		t.Errorf("issuegraph mol wisp <proto> emitted %v, want exactly [wisp] (double-emit regression)\nstderr:\n%s", got, errOut)
 	}
 }
 
 // TestMetricsRootVersionFlagSuppressesFirstRunNotice is the fresh-home regression
-// for PR #4419: `bd --version` and `bd -V` are version probes (like the `version`
+// for PR #4419: `issuegraph --version` and `issuegraph -V` are version probes (like the `version`
 // subcommand) and must not print the one-time consent notice to stderr or mark it
 // shown, even on a brand-new home with metrics enabled. A positive control proves
 // the harness can still fire the notice for a non-suppressed command, so a missing
 // notice below reflects real suppression rather than a dead test.
 func TestMetricsRootVersionFlagSuppressesFirstRunNotice(t *testing.T) {
-	bd := buildEmbeddedBD(t)
+	issuegraph := buildEmbeddedBD(t)
 	const noticeMarker = "anonymous usage metrics"
 
 	noticeShown := func(home string) bool {
-		b, err := os.ReadFile(filepath.Join(home, ".config", "bd", "config.yaml"))
+		b, err := os.ReadFile(filepath.Join(home, ".config", "issuegraph", "config.yaml"))
 		if err != nil {
 			return false
 		}
@@ -580,8 +580,8 @@ func TestMetricsRootVersionFlagSuppressesFirstRunNotice(t *testing.T) {
 	if err != nil {
 		t.Fatalf("temp repo: %v", err)
 	}
-	if _, errOut := runBdForMetrics(t, bd, controlRepo, control, "list"); !strings.Contains(errOut, noticeMarker) {
-		t.Fatalf("positive control: `bd list` on a fresh home should print the first-run notice; stderr:\n%s", errOut)
+	if _, errOut := runBdForMetrics(t, issuegraph, controlRepo, control, "list"); !strings.Contains(errOut, noticeMarker) {
+		t.Fatalf("positive control: `issuegraph list` on a fresh home should print the first-run notice; stderr:\n%s", errOut)
 	}
 
 	for _, flag := range []string{"--version", "-V"} {
@@ -595,15 +595,15 @@ func TestMetricsRootVersionFlagSuppressesFirstRunNotice(t *testing.T) {
 			if err != nil {
 				t.Fatalf("temp repo: %v", err)
 			}
-			stdout, errOut := runBdForMetrics(t, bd, repo, home, flag)
-			if !strings.Contains(stdout, "bd version") {
-				t.Errorf("`bd %s` should print version to stdout, got stdout:\n%s\nstderr:\n%s", flag, stdout, errOut)
+			stdout, errOut := runBdForMetrics(t, issuegraph, repo, home, flag)
+			if !strings.Contains(stdout, "issuegraph version") {
+				t.Errorf("`issuegraph %s` should print version to stdout, got stdout:\n%s\nstderr:\n%s", flag, stdout, errOut)
 			}
 			if strings.Contains(errOut, noticeMarker) {
-				t.Errorf("`bd %s` printed the first-run metrics notice to stderr (must be suppressed):\n%s", flag, errOut)
+				t.Errorf("`issuegraph %s` printed the first-run metrics notice to stderr (must be suppressed):\n%s", flag, errOut)
 			}
 			if noticeShown(home) {
-				t.Errorf("`bd %s` marked metrics.notice_shown in user config (must not for a version probe)", flag)
+				t.Errorf("`issuegraph %s` marked metrics.notice_shown in user config (must not for a version probe)", flag)
 			}
 		})
 	}
@@ -613,7 +613,7 @@ func TestMetricsRootVersionFlagSuppressesFirstRunNotice(t *testing.T) {
 // collected or sent" promise even though metrics are still enabled for the
 // off invocation itself.
 func TestMetricsOffEmitsNoEvent(t *testing.T) {
-	bd := buildEmbeddedBD(t)
+	issuegraph := buildEmbeddedBD(t)
 	home, err := testTempDir("bd-metrics-off-home-*")
 	if err != nil {
 		t.Fatalf("temp home: %v", err)
@@ -625,17 +625,17 @@ func TestMetricsOffEmitsNoEvent(t *testing.T) {
 	initGitRepoAt(t, repo)
 
 	// Establish the metrics-enabled baseline and confirm a normal command emits.
-	runBdForMetrics(t, bd, repo, home, "init", "--non-interactive", "--quiet")
+	runBdForMetrics(t, issuegraph, repo, home, "init", "--non-interactive", "--quiet")
 	if got := allCommandEvents(t, home); len(got) == 0 {
-		t.Fatalf("precondition: metrics-enabled `bd init` produced no event; env may be misconfigured")
+		t.Fatalf("precondition: metrics-enabled `issuegraph init` produced no event; env may be misconfigured")
 	}
-	if err := os.RemoveAll(filepath.Join(home, ".beads", "eventsData")); err != nil {
+	if err := os.RemoveAll(filepath.Join(home, ".issuegraph", "eventsData")); err != nil {
 		t.Fatalf("clear eventsData: %v", err)
 	}
 
-	_, errOut := runBdForMetrics(t, bd, repo, home, "metrics", "off")
+	_, errOut := runBdForMetrics(t, issuegraph, repo, home, "metrics", "off")
 
 	if got := allCommandEvents(t, home); len(got) != 0 {
-		t.Errorf("bd metrics off emitted %v, want no events\nstderr:\n%s", got, errOut)
+		t.Errorf("issuegraph metrics off emitted %v, want no events\nstderr:\n%s", got, errOut)
 	}
 }

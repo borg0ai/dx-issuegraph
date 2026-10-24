@@ -21,11 +21,11 @@ invokes Go in the default build mode, and records per-command timing through
 
 Broad Go test wrappers also source `scripts/ci/lib/test-env.sh`, which creates a
 temporary HOME/XDG/Dolt root, isolates Git global/system config, clears runtime
-IssueGraph/Dolt environment variables, and sets `BEADS_TEST_SKIP=dolt` before tests
+IssueGraph/Dolt environment variables, and sets `ISSUEGRAPH_TEST_SKIP=dolt` before tests
 run. This keeps local `make test` and `make ci-pr-core` results comparable to
 the fast PR-core contract even on shared agent hosts. Set
-`BEADS_TEST_ENV_RUN_DOLT=1` only when intentionally running the Dolt-dependent
-tests through these broad wrappers, or `BEADS_TEST_ENV_DISABLE=1` when debugging
+`ISSUEGRAPH_TEST_ENV_RUN_DOLT=1` only when intentionally running the Dolt-dependent
+tests through these broad wrappers, or `ISSUEGRAPH_TEST_ENV_DISABLE=1` when debugging
 against your real local configuration.
 
 The broad Go wrappers also cap package and test parallelism to `4` by default
@@ -40,13 +40,13 @@ boundaries.
 Package gate wrappers validate publishable/package-adjacent surfaces:
 
 - `make ci-package-mcp` builds or consumes an `issuegraph` binary, puts it on `PATH` as
-  `bd`, then runs locked MCP package `uv sync`, Ruff, mypy, pytest, and build
+  `issuegraph`, then runs locked MCP package `uv sync`, Ruff, mypy, pytest, and build
   checks.
 - `make ci-package-npm` builds or consumes the native binary expected by
-  `npm-package/bin/bd`, runs the npm package test suite, and checks
+  `apps/cli/bin/issuegraph`, runs the npm package test suite, and checks
   `npm pack --dry-run`.
 
-Set `BEADS_TEST_BD_BINARY=/path/to/bd` for MCP and npm package gates to reuse a
+Set `ISSUEGRAPH_TEST_ISSUEGRAPH_BINARY=/path/to/issuegraph` for MCP and npm package gates to reuse a
 prebuilt candidate binary instead of rebuilding it inside the wrapper.
 
 ## pr-preflight.sh
@@ -55,14 +55,14 @@ Read-only PR safety check for agents and maintainers.
 
 ```bash
 # Before implementing or opening a related PR
-./scripts/pr-preflight.sh --search "topic keywords" --repo gastownhall/beads
+./scripts/pr-preflight.sh --search "topic keywords" --repo borg0ai/dx-issuegraph
 
 # Before changing, closing, or merging an existing PR
-./scripts/pr-preflight.sh 123 --repo gastownhall/beads
+./scripts/pr-preflight.sh 123 --repo borg0ai/dx-issuegraph
 ```
 
 It reports contributor/fork status, draft/review/merge/check state, risky diff
-signals such as `.beads/` changes or missing tests, and the required
+signals such as `.issuegraph/` changes or missing tests, and the required
 contributor-protection next steps. It does not replace code review or local
 validation.
 
@@ -133,7 +133,7 @@ This master script automates the **entire release process**:
 - All changes committed
 - golangci-lint installed
 - Homebrew installed (for local upgrade)
-- Push access to gastownhall/beads
+- Push access to borg0ai/dx-issuegraph
 
 ### Output
 
@@ -149,7 +149,7 @@ After the script finishes:
 - GitHub Actions builds binaries for all platforms (~5 minutes)
 - PyPI package is published automatically
 - Homebrew core formula is verified or tracked through its canonical PR
-- Users can `brew upgrade beads` to get the new version after Homebrew merges
+- Users can `brew upgrade issuegraph` to get the new version after Homebrew merges
 - GitHub Release is created with binaries and changelog
 
 ---
@@ -175,10 +175,10 @@ Bumps the version number across all issuegraph components in a single command.
 
 Updates version in all these files:
 - `modules/cli/version.go` - issuegraph CLI version constant
-- `plugins/beads/.claude-plugin/plugin.json` - Claude plugin version
-- `plugins/beads/.codex-plugin/plugin.json` - Codex plugin version
+- `plugins/issuegraph/.claude-plugin/plugin.json` - Claude plugin version
+- `plugins/issuegraph/.codex-plugin/plugin.json` - Codex plugin version
 - `.claude-plugin/marketplace.json` - Claude marketplace plugin version
-- `integrations/beads-mcp/pyproject.toml` - MCP server version
+- `integrations/issuegraph-mcp/pyproject.toml` - MCP server version
 - `README.md` - Alpha status version
 - `PLUGIN.md` - Version requirements
 
@@ -224,7 +224,7 @@ Signs Windows executables with an Authenticode certificate using osslsigncode.
 
 ```bash
 # Sign a Windows executable
-./scripts/sign-windows.sh path/to/bd.exe
+./scripts/sign-windows.sh path/to/issuegraph.exe
 
 # Environment variables required for signing:
 export WINDOWS_SIGNING_CERT_PFX_BASE64="<base64-encoded-pfx>"

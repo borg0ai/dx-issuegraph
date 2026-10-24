@@ -5,20 +5,20 @@ import (
 	"testing"
 )
 
-// section is a stand-in BEADS INTEGRATION block used in these tests; the
+// section is a stand-in ISSUEGRAPH INTEGRATION block used in these tests; the
 // real generator is generateHookSection but the injection logic doesn't care
 // about the contents — it only cares about marker presence and placement.
-const testBeadsSection = `# --- BEGIN BEADS INTEGRATION v1.2.3 ---
-if command -v bd >/dev/null 2>&1; then
-  bd hooks run pre-commit "$@"
+const testIssueGraphSection = `# --- BEGIN ISSUEGRAPH INTEGRATION v1.2.3 ---
+if command -v issuegraph >/dev/null 2>&1; then
+  issuegraph hooks run pre-commit "$@"
 fi
-# --- END BEADS INTEGRATION v1.2.3 ---
+# --- END ISSUEGRAPH INTEGRATION v1.2.3 ---
 `
 
-// TestInjectHookSection_PrecommitTemplatedHook reproduces GH#3537: bd's
+// TestInjectHookSection_PrecommitTemplatedHook reproduces GH#3537: issuegraph's
 // section must NOT be appended below pre-commit's templated hook (which ends
 // in `exec`), because exec replaces the running shell — anything below it
-// is unreachable. The bd section must be injected ABOVE the exec block so
+// is unreachable. The issuegraph section must be injected ABOVE the exec block so
 // it actually runs on every commit.
 func TestInjectHookSection_PrecommitTemplatedHook(t *testing.T) {
 	// Faithful reproduction of pre-commit init-templatedir's hook output.
@@ -44,11 +44,11 @@ else
 fi
 `
 
-	out := injectHookSection(existing, testBeadsSection)
+	out := injectHookSection(existing, testIssueGraphSection)
 
-	beadsIdx := strings.Index(out, "BEGIN BEADS INTEGRATION")
-	if beadsIdx == -1 {
-		t.Fatalf("bd section not present in result:\n%s", out)
+	issuegraphIdx := strings.Index(out, "BEGIN ISSUEGRAPH INTEGRATION")
+	if issuegraphIdx == -1 {
+		t.Fatalf("issuegraph section not present in result:\n%s", out)
 	}
 
 	ifIdx := strings.Index(out, `if [ -x "$INSTALL_PYTHON" ]`)
@@ -56,10 +56,10 @@ fi
 		t.Fatalf("expected pre-commit's `if` block to remain, got:\n%s", out)
 	}
 
-	if beadsIdx >= ifIdx {
-		t.Errorf("bd section was injected BELOW the exec block (unreachable). "+
-			"beads at byte %d, if-block at byte %d. Full output:\n%s",
-			beadsIdx, ifIdx, out)
+	if issuegraphIdx >= ifIdx {
+		t.Errorf("issuegraph section was injected BELOW the exec block (unreachable). "+
+			"issuegraph at byte %d, if-block at byte %d. Full output:\n%s",
+			issuegraphIdx, ifIdx, out)
 	}
 
 	if !strings.Contains(out, `exec "$INSTALL_PYTHON" -mpre_commit`) ||
@@ -76,15 +76,15 @@ func TestInjectHookSection_StandaloneTrailingExec(t *testing.T) {
 echo "user setup"
 exec /usr/local/bin/some-tool "$@"
 `
-	out := injectHookSection(existing, testBeadsSection)
+	out := injectHookSection(existing, testIssueGraphSection)
 
-	beadsIdx := strings.Index(out, "BEGIN BEADS INTEGRATION")
+	issuegraphIdx := strings.Index(out, "BEGIN ISSUEGRAPH INTEGRATION")
 	execIdx := strings.Index(out, "exec /usr/local/bin/some-tool")
-	if beadsIdx == -1 || execIdx == -1 {
+	if issuegraphIdx == -1 || execIdx == -1 {
 		t.Fatalf("missing markers in output:\n%s", out)
 	}
-	if beadsIdx >= execIdx {
-		t.Errorf("bd section was injected BELOW exec (unreachable):\n%s", out)
+	if issuegraphIdx >= execIdx {
+		t.Errorf("issuegraph section was injected BELOW exec (unreachable):\n%s", out)
 	}
 	if !strings.Contains(out, `echo "user setup"`) {
 		t.Errorf("expected user setup line preserved, got:\n%s", out)
@@ -99,16 +99,16 @@ func TestInjectHookSection_NonExecHookAppendsAtEnd(t *testing.T) {
 echo "user hook"
 some-other-command
 `
-	out := injectHookSection(existing, testBeadsSection)
+	out := injectHookSection(existing, testIssueGraphSection)
 
-	// User content must come before the bd section.
+	// User content must come before the issuegraph section.
 	userIdx := strings.Index(out, "some-other-command")
-	beadsIdx := strings.Index(out, "BEGIN BEADS INTEGRATION")
-	if userIdx == -1 || beadsIdx == -1 {
+	issuegraphIdx := strings.Index(out, "BEGIN ISSUEGRAPH INTEGRATION")
+	if userIdx == -1 || issuegraphIdx == -1 {
 		t.Fatalf("missing markers:\n%s", out)
 	}
-	if userIdx >= beadsIdx {
-		t.Errorf("expected bd section appended after user content, got:\n%s", out)
+	if userIdx >= issuegraphIdx {
+		t.Errorf("expected issuegraph section appended after user content, got:\n%s", out)
 	}
 }
 
@@ -123,15 +123,15 @@ fi
 echo "running normal commit checks"
 some-other-command "$@"
 `
-	out := injectHookSection(existing, testBeadsSection)
+	out := injectHookSection(existing, testIssueGraphSection)
 
-	beadsIdx := strings.Index(out, "BEGIN BEADS INTEGRATION")
+	issuegraphIdx := strings.Index(out, "BEGIN ISSUEGRAPH INTEGRATION")
 	echoIdx := strings.Index(out, `echo "running normal commit checks"`)
-	if beadsIdx == -1 || echoIdx == -1 {
+	if issuegraphIdx == -1 || echoIdx == -1 {
 		t.Fatalf("missing markers:\n%s", out)
 	}
-	if beadsIdx <= echoIdx {
-		t.Errorf("bd section should be appended after non-trivial trailing code, got:\n%s", out)
+	if issuegraphIdx <= echoIdx {
+		t.Errorf("issuegraph section should be appended after non-trivial trailing code, got:\n%s", out)
 	}
 }
 
@@ -236,15 +236,15 @@ if [ -x /usr/local/bin/foo ]; then
     exec /usr/local/bin/foo "$@"
 fi
 `
-	out := injectHookSection(existing, testBeadsSection)
+	out := injectHookSection(existing, testIssueGraphSection)
 
-	beadsIdx := strings.Index(out, "BEGIN BEADS INTEGRATION")
+	issuegraphIdx := strings.Index(out, "BEGIN ISSUEGRAPH INTEGRATION")
 	ifIdx := strings.Index(out, "if [ -x /usr/local/bin/foo ]")
-	if beadsIdx == -1 || ifIdx == -1 {
+	if issuegraphIdx == -1 || ifIdx == -1 {
 		t.Fatalf("missing markers:\n%s", out)
 	}
-	if beadsIdx >= ifIdx {
-		t.Errorf("bd section should be injected above the if-block (not between if and exec); got:\n%s", out)
+	if issuegraphIdx >= ifIdx {
+		t.Errorf("issuegraph section should be injected above the if-block (not between if and exec); got:\n%s", out)
 	}
 	if !strings.Contains(out, "# Why we use foo") {
 		t.Errorf("body comment was lost:\n%s", out)
@@ -270,16 +270,16 @@ else
     exit 1
 fi
 `
-	once := injectHookSection(existing, testBeadsSection)
-	twice := injectHookSection(once, testBeadsSection)
+	once := injectHookSection(existing, testIssueGraphSection)
+	twice := injectHookSection(once, testIssueGraphSection)
 	if once != twice {
 		t.Errorf("injectHookSection is not idempotent.\nrun 1:\n%s\nrun 2:\n%s", once, twice)
 	}
-	// Sanity: the bd block must still be above the exec block after both runs.
-	beadsIdx := strings.Index(twice, "BEGIN BEADS INTEGRATION")
+	// Sanity: the issuegraph block must still be above the exec block after both runs.
+	issuegraphIdx := strings.Index(twice, "BEGIN ISSUEGRAPH INTEGRATION")
 	ifIdx := strings.Index(twice, `if [ -x "$INSTALL_PYTHON" ]`)
-	if beadsIdx == -1 || ifIdx == -1 || beadsIdx >= ifIdx {
-		t.Errorf("after two runs the bd block should still sit above the if-block:\n%s", twice)
+	if issuegraphIdx == -1 || ifIdx == -1 || issuegraphIdx >= ifIdx {
+		t.Errorf("after two runs the issuegraph block should still sit above the if-block:\n%s", twice)
 	}
 }
 

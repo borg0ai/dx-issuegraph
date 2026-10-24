@@ -11,43 +11,43 @@ import (
 	"sync"
 	"testing"
 
-	"github.com/steveyegge/beads/internal/storage/embeddeddolt"
+	"github.com/borg0ai/dx-issuegraph/internal/storage/embeddeddolt"
 )
 
-// bdDiff runs "bd diff" with the given args and returns raw stdout.
+// issuegraphDiff runs "issuegraph diff" with the given args and returns raw stdout.
 // Retries on flock contention.
-func bdDiff(t *testing.T, bd, dir string, args ...string) string {
+func issuegraphDiff(t *testing.T, issuegraph, dir string, args ...string) string {
 	t.Helper()
 	fullArgs := append([]string{"diff"}, args...)
-	out, err := bdRunWithFlockRetry(t, bd, dir, fullArgs...)
+	out, err := issuegraphRunWithFlockRetry(t, issuegraph, dir, fullArgs...)
 	if err != nil {
-		t.Fatalf("bd diff %s failed: %v\n%s", strings.Join(args, " "), err, out)
+		t.Fatalf("issuegraph diff %s failed: %v\n%s", strings.Join(args, " "), err, out)
 	}
 	return string(out)
 }
 
-// bdDiffFail runs "bd diff" expecting failure.
-func bdDiffFail(t *testing.T, bd, dir string, args ...string) string {
+// issuegraphDiffFail runs "issuegraph diff" expecting failure.
+func issuegraphDiffFail(t *testing.T, issuegraph, dir string, args ...string) string {
 	t.Helper()
 	fullArgs := append([]string{"diff"}, args...)
-	cmd := exec.Command(bd, fullArgs...)
+	cmd := exec.Command(issuegraph, fullArgs...)
 	cmd.Dir = dir
-	cmd.Env = bdEnv(dir)
+	cmd.Env = issuegraphEnv(dir)
 	out, err := cmd.CombinedOutput()
 	if err == nil {
-		t.Fatalf("expected bd diff %s to fail, but succeeded:\n%s", strings.Join(args, " "), out)
+		t.Fatalf("expected issuegraph diff %s to fail, but succeeded:\n%s", strings.Join(args, " "), out)
 	}
 	return string(out)
 }
 
-// bdDiffJSON runs "bd diff --json" and parses the result as a slice.
+// issuegraphDiffJSON runs "issuegraph diff --json" and parses the result as a slice.
 // Retries on flock contention.
-func bdDiffJSON(t *testing.T, bd, dir string, args ...string) []map[string]interface{} {
+func issuegraphDiffJSON(t *testing.T, issuegraph, dir string, args ...string) []map[string]interface{} {
 	t.Helper()
 	fullArgs := append([]string{"diff", "--json"}, args...)
-	out, err := bdRunWithFlockRetry(t, bd, dir, fullArgs...)
+	out, err := issuegraphRunWithFlockRetry(t, issuegraph, dir, fullArgs...)
 	if err != nil {
-		t.Fatalf("bd diff --json %s failed: %v\n%s", strings.Join(args, " "), err, out)
+		t.Fatalf("issuegraph diff --json %s failed: %v\n%s", strings.Join(args, " "), err, out)
 	}
 	s := strings.TrimSpace(string(out))
 	start := strings.Index(s, "[")
@@ -64,10 +64,10 @@ func bdDiffJSON(t *testing.T, bd, dir string, args ...string) []map[string]inter
 
 // getCommitHash returns the current HEAD commit hash via the store.
 // The store is closed immediately to release the flock, allowing subsequent
-// bd subprocess commands to acquire it.
-func getCommitHash(t *testing.T, beadsDir, database string) string {
+// issuegraph subprocess commands to acquire it.
+func getCommitHash(t *testing.T, issuegraphDir, database string) string {
 	t.Helper()
-	s, err := embeddeddolt.Open(t.Context(), beadsDir, database, "main")
+	s, err := embeddeddolt.Open(t.Context(), issuegraphDir, database, "main")
 	if err != nil {
 		t.Fatalf("openStore for getCommitHash: %v", err)
 	}
@@ -81,28 +81,28 @@ func getCommitHash(t *testing.T, beadsDir, database string) string {
 }
 
 func TestEmbeddedDiff(t *testing.T) {
-	if os.Getenv("BEADS_TEST_EMBEDDED_DOLT") != "1" {
-		t.Skip("set BEADS_TEST_EMBEDDED_DOLT=1 to run embedded dolt integration tests")
+	if os.Getenv("ISSUEGRAPH_TEST_EMBEDDED_DOLT") != "1" {
+		t.Skip("set ISSUEGRAPH_TEST_EMBEDDED_DOLT=1 to run embedded dolt integration tests")
 	}
 	t.Parallel()
 
-	bd := buildEmbeddedBD(t)
-	dir, beadsDir, _ := bdInit(t, bd, "--prefix", "df")
+	issuegraph := buildEmbeddedBD(t)
+	dir, issuegraphDir, _ := issuegraphInit(t, issuegraph, "--prefix", "df")
 
 	// Capture initial commit (after init, before any issues).
-	hash0 := getCommitHash(t, beadsDir, "df")
+	hash0 := getCommitHash(t, issuegraphDir, "df")
 
 	// Create some issues — each create auto-commits.
-	issue1 := bdCreate(t, bd, dir, "Diff issue one", "--type", "task")
-	hash1 := getCommitHash(t, beadsDir, "df")
+	issue1 := issuegraphCreate(t, issuegraph, dir, "Diff issue one", "--type", "task")
+	hash1 := getCommitHash(t, issuegraphDir, "df")
 
-	issue2 := bdCreate(t, bd, dir, "Diff issue two", "--type", "bug", "--priority", "1")
-	hash2 := getCommitHash(t, beadsDir, "df")
+	issue2 := issuegraphCreate(t, issuegraph, dir, "Diff issue two", "--type", "bug", "--priority", "1")
+	hash2 := getCommitHash(t, issuegraphDir, "df")
 
 	// ===== Basic diff between commits =====
 
 	t.Run("basic_diff_added", func(t *testing.T) {
-		out := bdDiff(t, bd, dir, hash0, hash2)
+		out := issuegraphDiff(t, issuegraph, dir, hash0, hash2)
 		if !strings.Contains(out, issue1.ID) {
 			t.Errorf("expected issue1 ID in diff output: %s", out)
 		}
@@ -118,20 +118,20 @@ func TestEmbeddedDiff(t *testing.T) {
 
 	t.Run("diff_added_modified_removed", func(t *testing.T) {
 		// Modify issue1
-		bdUpdate(t, bd, dir, issue1.ID, "--status", "in_progress")
+		issuegraphUpdate(t, issuegraph, dir, issue1.ID, "--status", "in_progress")
 
 		// Delete issue2
-		bdDelete(t, bd, dir, issue2.ID, "--force")
+		issuegraphDelete(t, issuegraph, dir, issue2.ID, "--force")
 
 		// Create a new issue
-		issue3 := bdCreate(t, bd, dir, "Diff issue three", "--type", "feature")
-		hashAfterAdd := getCommitHash(t, beadsDir, "df")
+		issue3 := issuegraphCreate(t, issuegraph, dir, "Diff issue three", "--type", "feature")
+		hashAfterAdd := getCommitHash(t, issuegraphDir, "df")
 
 		// Diff from hash2 (before modifications) to now should show:
 		// - issue1 modified (status changed)
 		// - issue2 removed
 		// - issue3 added
-		entries := bdDiffJSON(t, bd, dir, hash2, hashAfterAdd)
+		entries := issuegraphDiffJSON(t, issuegraph, dir, hash2, hashAfterAdd)
 
 		foundModified := false
 		foundRemoved := false
@@ -165,7 +165,7 @@ func TestEmbeddedDiff(t *testing.T) {
 
 	t.Run("diff_with_commit_hashes", func(t *testing.T) {
 		// Diff between two specific known commits
-		entries := bdDiffJSON(t, bd, dir, hash0, hash1)
+		entries := issuegraphDiffJSON(t, issuegraph, dir, hash0, hash1)
 		if len(entries) == 0 {
 			t.Error("expected at least 1 diff entry between init and first create")
 		}
@@ -184,7 +184,7 @@ func TestEmbeddedDiff(t *testing.T) {
 	// ===== Empty diff (same ref) =====
 
 	t.Run("empty_diff_same_ref", func(t *testing.T) {
-		out := bdDiff(t, bd, dir, hash1, hash1)
+		out := issuegraphDiff(t, issuegraph, dir, hash1, hash1)
 		if !strings.Contains(out, "No changes") {
 			t.Errorf("expected 'No changes' for same ref, got: %s", out)
 		}
@@ -193,17 +193,17 @@ func TestEmbeddedDiff(t *testing.T) {
 	// ===== Invalid ref =====
 
 	t.Run("invalid_ref", func(t *testing.T) {
-		bdDiffFail(t, bd, dir, "not@valid!", hash1)
+		issuegraphDiffFail(t, issuegraph, dir, "not@valid!", hash1)
 	})
 
 	t.Run("invalid_ref_second_arg", func(t *testing.T) {
-		bdDiffFail(t, bd, dir, hash1, "not@valid!")
+		issuegraphDiffFail(t, issuegraph, dir, hash1, "not@valid!")
 	})
 
 	// ===== JSON output =====
 
 	t.Run("json_output_structure", func(t *testing.T) {
-		entries := bdDiffJSON(t, bd, dir, hash0, hash1)
+		entries := issuegraphDiffJSON(t, issuegraph, dir, hash0, hash1)
 		if len(entries) == 0 {
 			t.Fatal("expected non-empty JSON array")
 		}
@@ -219,8 +219,8 @@ func TestEmbeddedDiff(t *testing.T) {
 
 	t.Run("json_modified_has_old_and_new", func(t *testing.T) {
 		// issue1 was modified between hash1 and current HEAD
-		currentHash := getCommitHash(t, beadsDir, "df")
-		entries := bdDiffJSON(t, bd, dir, hash1, currentHash)
+		currentHash := getCommitHash(t, issuegraphDir, "df")
+		entries := issuegraphDiffJSON(t, issuegraph, dir, hash1, currentHash)
 		for _, e := range entries {
 			if e["IssueID"] == issue1.ID && e["DiffType"] == "modified" {
 				if e["OldValue"] == nil {
@@ -239,7 +239,7 @@ func TestEmbeddedDiff(t *testing.T) {
 	// ===== Human-readable format sections =====
 
 	t.Run("human_readable_sections", func(t *testing.T) {
-		out := bdDiff(t, bd, dir, hash0, hash1)
+		out := issuegraphDiff(t, issuegraph, dir, hash0, hash1)
 		// Should contain the "Changes from ... to ..." header
 		if !strings.Contains(out, "Changes from") {
 			t.Errorf("expected 'Changes from' header: %s", out)
@@ -252,36 +252,36 @@ func TestEmbeddedDiff(t *testing.T) {
 	// ===== Wrong number of args =====
 
 	t.Run("too_few_args", func(t *testing.T) {
-		bdDiffFail(t, bd, dir, hash0)
+		issuegraphDiffFail(t, issuegraph, dir, hash0)
 	})
 
 	t.Run("too_many_args", func(t *testing.T) {
-		bdDiffFail(t, bd, dir, hash0, hash1, hash2)
+		issuegraphDiffFail(t, issuegraph, dir, hash0, hash1, hash2)
 	})
 }
 
 // TestEmbeddedDiffConcurrent exercises diff operations concurrently.
 func TestEmbeddedDiffConcurrent(t *testing.T) {
-	if os.Getenv("BEADS_TEST_EMBEDDED_DOLT") != "1" {
-		t.Skip("set BEADS_TEST_EMBEDDED_DOLT=1 to run embedded dolt integration tests")
+	if os.Getenv("ISSUEGRAPH_TEST_EMBEDDED_DOLT") != "1" {
+		t.Skip("set ISSUEGRAPH_TEST_EMBEDDED_DOLT=1 to run embedded dolt integration tests")
 	}
 	t.Parallel()
 
-	bd := buildEmbeddedBD(t)
-	dir, beadsDir, _ := bdInit(t, bd, "--prefix", "dc")
+	issuegraph := buildEmbeddedBD(t)
+	dir, issuegraphDir, _ := issuegraphInit(t, issuegraph, "--prefix", "dc")
 
-	hash0 := getCommitHash(t, beadsDir, "dc")
+	hash0 := getCommitHash(t, issuegraphDir, "dc")
 
 	// Create several issues to build up commit history.
 	for i := 0; i < 5; i++ {
-		bdCreate(t, bd, dir, fmt.Sprintf("concurrent-diff-%d", i), "--type", "task")
+		issuegraphCreate(t, issuegraph, dir, fmt.Sprintf("concurrent-diff-%d", i), "--type", "task")
 	}
-	hash1 := getCommitHash(t, beadsDir, "dc")
+	hash1 := getCommitHash(t, issuegraphDir, "dc")
 
 	for i := 5; i < 10; i++ {
-		bdCreate(t, bd, dir, fmt.Sprintf("concurrent-diff-%d", i), "--type", "task")
+		issuegraphCreate(t, issuegraph, dir, fmt.Sprintf("concurrent-diff-%d", i), "--type", "task")
 	}
-	hash2 := getCommitHash(t, beadsDir, "dc")
+	hash2 := getCommitHash(t, issuegraphDir, "dc")
 
 	const numWorkers = 8
 
@@ -314,9 +314,9 @@ func TestEmbeddedDiffConcurrent(t *testing.T) {
 
 			// JSON diff
 			args := []string{"diff", "--json", pair[0], pair[1]}
-			cmd := exec.Command(bd, args...)
+			cmd := exec.Command(issuegraph, args...)
 			cmd.Dir = dir
-			cmd.Env = bdEnv(dir)
+			cmd.Env = issuegraphEnv(dir)
 			out, err := cmd.CombinedOutput()
 			if err != nil {
 				r.err = fmt.Errorf("worker %d diff %s..%s: %v\n%s", worker, pair[0][:8], pair[1][:8], err, out)
@@ -326,9 +326,9 @@ func TestEmbeddedDiffConcurrent(t *testing.T) {
 
 			// Also run plain text diff
 			args = []string{"diff", pair[0], pair[1]}
-			cmd = exec.Command(bd, args...)
+			cmd = exec.Command(issuegraph, args...)
 			cmd.Dir = dir
-			cmd.Env = bdEnv(dir)
+			cmd.Env = issuegraphEnv(dir)
 			out, err = cmd.CombinedOutput()
 			if err != nil {
 				r.err = fmt.Errorf("worker %d plain diff: %v\n%s", worker, err, out)

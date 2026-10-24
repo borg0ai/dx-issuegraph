@@ -6,7 +6,7 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/steveyegge/beads/internal/storage"
+	"github.com/borg0ai/dx-issuegraph/internal/storage"
 )
 
 type gcSizeStoreStub struct {
@@ -138,7 +138,7 @@ func TestGCHelpDocumentsFullPass(t *testing.T) {
 
 	full := gcCmd.Flags().Lookup("full")
 	if full == nil {
-		t.Fatal("bd gc has no --full flag")
+		t.Fatal("issuegraph gc has no --full flag")
 	}
 	if !strings.Contains(full.Usage, "all generations") {
 		t.Errorf("--full usage does not mention all generations: %q", full.Usage)

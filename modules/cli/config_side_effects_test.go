@@ -20,8 +20,8 @@ func TestCheckConfigSetSideEffects_SharedServerTrue(t *testing.T) {
 	if len(effects) != 1 {
 		t.Fatalf("expected 1 effect, got %d", len(effects))
 	}
-	if effects[0].Command != "bd dolt server start" {
-		t.Errorf("expected 'bd dolt server start', got %q", effects[0].Command)
+	if effects[0].Command != "issuegraph dolt server start" {
+		t.Errorf("expected 'issuegraph dolt server start', got %q", effects[0].Command)
 	}
 }
 
@@ -30,8 +30,8 @@ func TestCheckConfigSetSideEffects_SharedServerFalse(t *testing.T) {
 	if len(effects) != 1 {
 		t.Fatalf("expected 1 effect, got %d", len(effects))
 	}
-	if effects[0].Command != "bd dolt server stop" {
-		t.Errorf("expected 'bd dolt server stop', got %q", effects[0].Command)
+	if effects[0].Command != "issuegraph dolt server stop" {
+		t.Errorf("expected 'issuegraph dolt server stop', got %q", effects[0].Command)
 	}
 }
 
@@ -40,7 +40,7 @@ func TestCheckConfigSetSideEffects_DoltDebugTrue(t *testing.T) {
 	if len(effects) != 1 {
 		t.Fatalf("expected 1 effect, got %d", len(effects))
 	}
-	if effects[0].Command != "bd dolt stop && bd dolt start" {
+	if effects[0].Command != "issuegraph dolt stop && issuegraph dolt start" {
 		t.Errorf("expected restart command, got %q", effects[0].Command)
 	}
 }
@@ -50,7 +50,7 @@ func TestCheckConfigSetSideEffects_DoltDebugFalse(t *testing.T) {
 	if len(effects) != 1 {
 		t.Fatalf("expected 1 effect, got %d", len(effects))
 	}
-	if effects[0].Command != "bd dolt stop && bd dolt start" {
+	if effects[0].Command != "issuegraph dolt stop && issuegraph dolt start" {
 		t.Errorf("expected restart command, got %q", effects[0].Command)
 	}
 }
@@ -60,7 +60,7 @@ func TestCheckConfigUnsetSideEffects_DoltDebug(t *testing.T) {
 	if len(effects) != 1 {
 		t.Fatalf("expected 1 effect, got %d", len(effects))
 	}
-	if effects[0].Command != "bd dolt stop && bd dolt start" {
+	if effects[0].Command != "issuegraph dolt stop && issuegraph dolt start" {
 		t.Errorf("expected restart command, got %q", effects[0].Command)
 	}
 }
@@ -110,8 +110,8 @@ func TestCheckConfigUnsetSideEffects_FederationRemote(t *testing.T) {
 	if len(effects) != 1 {
 		t.Fatalf("expected 1 effect, got %d", len(effects))
 	}
-	if effects[0].Command != "bd dolt remote remove origin" {
-		t.Errorf("expected 'bd dolt remote remove origin', got %q", effects[0].Command)
+	if effects[0].Command != "issuegraph dolt remote remove origin" {
+		t.Errorf("expected 'issuegraph dolt remote remove origin', got %q", effects[0].Command)
 	}
 }
 
@@ -147,10 +147,10 @@ func TestPrintConfigSideEffects(t *testing.T) {
 	printConfigSideEffects(nil)
 	printConfigSideEffects([]configSideEffect{})
 	printConfigSideEffects([]configSideEffect{
-		{Message: "test hint", Command: "bd test"},
+		{Message: "test hint", Command: "issuegraph test"},
 	})
 	printConfigSideEffects([]configSideEffect{
 		{Message: "no command hint"},
-		{Message: "with command", Command: "bd apply"},
+		{Message: "with command", Command: "issuegraph apply"},
 	})
 }

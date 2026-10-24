@@ -6,8 +6,8 @@ import (
 	"errors"
 	"testing"
 
-	"github.com/steveyegge/beads/internal/storage"
-	"github.com/steveyegge/beads/internal/types"
+	"github.com/borg0ai/dx-issuegraph/internal/storage"
+	"github.com/borg0ai/dx-issuegraph/internal/types"
 )
 
 // The residue of close_issue_checked_test.go and update_issue_checked_test.go.
@@ -26,7 +26,7 @@ import (
 // wrapper — a guard that stops running, an option that stops being forwarded —
 // is invisible to every contract case on every leg. After the deletion this
 // package had ZERO callers of either method, and both are on the
-// storage.DoltStorage interface with beads.go publishing their option types as
+// storage.DoltStorage interface with issuegraph.go publishing their option types as
 // caller-facing API. A review probe confirmed it: disabling the CAS branch in
 // the wrapper failed the deleted test and passed all 136 contract cases.
 //

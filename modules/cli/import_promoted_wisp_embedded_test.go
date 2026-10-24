@@ -22,12 +22,12 @@ import (
 // durable plane. Import now routes by the export stream's explicit "wisp_plane"
 // plane marker: marker absent ⇒ durable plane, whatever no_history says.
 func TestEmbeddedImportPromotedWispRoundtrip(t *testing.T) {
-	if os.Getenv("BEADS_TEST_EMBEDDED_DOLT") != "1" {
-		t.Skip("set BEADS_TEST_EMBEDDED_DOLT=1 to run embedded dolt import tests")
+	if os.Getenv("ISSUEGRAPH_TEST_EMBEDDED_DOLT") != "1" {
+		t.Skip("set ISSUEGRAPH_TEST_EMBEDDED_DOLT=1 to run embedded dolt import tests")
 	}
 	t.Parallel()
 
-	bd := buildEmbeddedBD(t)
+	issuegraph := buildEmbeddedBD(t)
 
 	// recordByID returns the parsed export record for id, or nil.
 	recordByID := func(t *testing.T, stream, id string) map[string]any {
@@ -41,7 +41,7 @@ func TestEmbeddedImportPromotedWispRoundtrip(t *testing.T) {
 	}
 
 	t.Run("promoted_shape_routes_durable", func(t *testing.T) {
-		dir, _, _ := bdInit(t, bd, "--prefix", "rtp")
+		dir, _, _ := issuegraphInit(t, issuegraph, "--prefix", "rtp")
 
 		// The wild promoted shape, as an export stream produced before the
 		// promote fix: a durable record still carrying no_history=true, NO
@@ -55,12 +55,12 @@ func TestEmbeddedImportPromotedWispRoundtrip(t *testing.T) {
 			t.Fatal(err)
 		}
 
-		importOut := bdImport(t, bd, dir, "-i", wildPath)
+		importOut := issuegraphImport(t, issuegraph, dir, "-i", wildPath)
 		if strings.Contains(importOut, "Skipped dependency") {
 			t.Errorf("import dropped a relation (promoted row re-planed into the wisps bucket?):\n%s", importOut)
 		}
 
-		exportA := bdExport(t, bd, dir)
+		exportA := issuegraphExport(t, issuegraph, dir)
 		promo := recordByID(t, exportA, "rtp-wisp-promo")
 		if promo == nil {
 			t.Fatal("export missing rtp-wisp-promo")
@@ -91,24 +91,24 @@ func TestEmbeddedImportPromotedWispRoundtrip(t *testing.T) {
 
 		// Second leg: the first export imported into a fresh rig re-exports
 		// byte-identically — the round trip is a fixed point.
-		dir2, _, _ := bdInit(t, bd, "--prefix", "rtp")
+		dir2, _, _ := issuegraphInit(t, issuegraph, "--prefix", "rtp")
 		exportAPath := filepath.Join(dir2, "incoming.jsonl")
 		if err := os.WriteFile(exportAPath, []byte(exportA), 0o644); err != nil {
 			t.Fatal(err)
 		}
-		if out := bdImport(t, bd, dir2, "-i", exportAPath); strings.Contains(out, "Skipped dependency") {
+		if out := issuegraphImport(t, issuegraph, dir2, "-i", exportAPath); strings.Contains(out, "Skipped dependency") {
 			t.Errorf("second-leg import dropped a relation:\n%s", out)
 		}
-		if exportB := bdExport(t, bd, dir2); exportB != exportA {
+		if exportB := issuegraphExport(t, issuegraph, dir2); exportB != exportA {
 			t.Errorf("round trip is not a fixed point:\n%s", firstStreamDiff(exportA, exportB))
 		}
 	})
 
 	t.Run("no_history_wisp_keeps_plane", func(t *testing.T) {
-		dir, _, _ := bdInit(t, bd, "--prefix", "rtw")
-		wispID := bdCreateSilent(t, bd, dir, "Genuine no-history wisp", "--no-history")
+		dir, _, _ := issuegraphInit(t, issuegraph, "--prefix", "rtw")
+		wispID := issuegraphCreateSilent(t, issuegraph, dir, "Genuine no-history wisp", "--no-history")
 
-		exportA := bdExport(t, bd, dir)
+		exportA := issuegraphExport(t, issuegraph, dir)
 		rec := recordByID(t, exportA, wispID)
 		if rec == nil {
 			t.Fatalf("export missing no-history wisp %s", wispID)
@@ -120,13 +120,13 @@ func TestEmbeddedImportPromotedWispRoundtrip(t *testing.T) {
 			t.Fatalf("no-history wisp exported without the wisps-plane marker: %v", rec)
 		}
 
-		dir2, _, _ := bdInit(t, bd, "--prefix", "rtw")
+		dir2, _, _ := issuegraphInit(t, issuegraph, "--prefix", "rtw")
 		path := filepath.Join(dir2, "incoming.jsonl")
 		if err := os.WriteFile(path, []byte(exportA), 0o644); err != nil {
 			t.Fatal(err)
 		}
-		bdImport(t, bd, dir2, "-i", path)
-		exportB := bdExport(t, bd, dir2)
+		issuegraphImport(t, issuegraph, dir2, "-i", path)
+		exportB := issuegraphExport(t, issuegraph, dir2)
 		if exportB != exportA {
 			t.Errorf("no-history wisp round trip is not a fixed point:\n%s", firstStreamDiff(exportA, exportB))
 		}
@@ -140,7 +140,7 @@ func TestEmbeddedImportPromotedWispRoundtrip(t *testing.T) {
 	})
 
 	t.Run("legacy_wisp_alias_still_means_ephemeral", func(t *testing.T) {
-		dir, _, _ := bdInit(t, bd, "--prefix", "rtl")
+		dir, _, _ := issuegraphInit(t, issuegraph, "--prefix", "rtl")
 		// v0.35–v0.37 exports spelled "ephemeral" as "wisp" and predate
 		// no_history; the marker parse must keep restoring Ephemeral for them.
 		legacy := `{"_type":"issue","id":"rtl-wisp-leg","title":"Legacy ephemeral","status":"open","priority":2,"issue_type":"task","created_at":"2026-08-01T10:00:00Z","updated_at":"2026-08-01T10:00:00Z","wisp":true}
@@ -149,10 +149,10 @@ func TestEmbeddedImportPromotedWispRoundtrip(t *testing.T) {
 		if err := os.WriteFile(path, []byte(legacy), 0o644); err != nil {
 			t.Fatal(err)
 		}
-		bdImport(t, bd, dir, "-i", path)
-		out, err := bdRunWithFlockRetry(t, bd, dir, "show", "rtl-wisp-leg", "--json")
+		issuegraphImport(t, issuegraph, dir, "-i", path)
+		out, err := issuegraphRunWithFlockRetry(t, issuegraph, dir, "show", "rtl-wisp-leg", "--json")
 		if err != nil {
-			t.Fatalf("bd show: %v\n%s", err, out)
+			t.Fatalf("issuegraph show: %v\n%s", err, out)
 		}
 		var shown any
 		if err := json.Unmarshal(out, &shown); err != nil {

@@ -4,10 +4,10 @@ import (
 	"context"
 	"testing"
 
-	"github.com/steveyegge/beads/backend/conformance"
-	"github.com/steveyegge/beads/internal/storage"
-	"github.com/steveyegge/beads/internal/storage/domain"
-	"github.com/steveyegge/beads/internal/types"
+	"github.com/borg0ai/dx-issuegraph/backend/conformance"
+	"github.com/borg0ai/dx-issuegraph/internal/storage"
+	"github.com/borg0ai/dx-issuegraph/internal/storage/domain"
+	"github.com/borg0ai/dx-issuegraph/internal/types"
 )
 
 // TestJournalContract runs the Journal contract against the unit-of-work
@@ -63,7 +63,7 @@ func newUOWJournalFixture(t *testing.T, ctx context.Context, prefix string) conf
 	}
 	// Activation is the OTHER half, and it is a different interface on purpose:
 	// the read role cannot turn itself on, so the fixture reaches for the
-	// operator surface the way `bd serve` does.
+	// operator surface the way `issuegraph serve` does.
 	configurer, ok := provider.(storage.EventsJournalConfigurer)
 	if !ok {
 		t.Fatalf("provider %T does not implement storage.EventsJournalConfigurer", provider)
@@ -73,7 +73,7 @@ func newUOWJournalFixture(t *testing.T, ctx context.Context, prefix string) conf
 		Journal:           cursor,
 		SetJournalEnabled: configurer.SetEventsJournalEnabled,
 		Prune: func(ctx context.Context, before int64, retainDays, retainRows int) (int64, error) {
-			// Ephemeral, exactly as `bd events prune` runs it here: the journal
+			// Ephemeral, exactly as `issuegraph events prune` runs it here: the journal
 			// table is dolt_ignored, so the delete has to persist into the
 			// working set without minting a Dolt commit.
 			return RunTxEphemeral(ctx, provider, func(ctx context.Context, uw UnitOfWork) (int64, error) {

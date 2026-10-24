@@ -8,11 +8,11 @@ import (
 	"strings"
 	"time"
 
-	"github.com/steveyegge/beads/internal/storage"
-	"github.com/steveyegge/beads/internal/storage/uow"
-	"github.com/steveyegge/beads/internal/types"
-	"github.com/steveyegge/beads/internal/ui"
-	"github.com/steveyegge/beads/internal/workapi"
+	"github.com/borg0ai/dx-issuegraph/internal/storage"
+	"github.com/borg0ai/dx-issuegraph/internal/storage/uow"
+	"github.com/borg0ai/dx-issuegraph/internal/types"
+	"github.com/borg0ai/dx-issuegraph/internal/ui"
+	"github.com/borg0ai/dx-issuegraph/internal/workapi"
 )
 
 type unclaimProxiedResult struct {
@@ -36,7 +36,7 @@ type unclaimProxiedResult struct {
 // EXIT CONTRACT (unchanged by the port, and deliberately identical to the
 // embedded path): a mismatched holder prints the storage.ErrAssigneeMismatch
 // error naming the current holder, writes NOTHING, and exits 1 via SilentExit.
-// `bd unclaim` has never had `bd update`'s ExitGuardMismatch(13) verdict —
+// `issuegraph unclaim` has never had `issuegraph update`'s ExitGuardMismatch(13) verdict —
 // see the "Exit status" paragraph of the command's help — and this port does
 // not invent one, because a proxied exit code that differs from the embedded
 // one for the same refusal is exactly the divergence this lane exists to
@@ -87,7 +87,7 @@ func runUnclaimProxiedServer(ctx context.Context, args []string, reason string, 
 		if len(r.ids) == 0 {
 			return r, "", nil
 		}
-		return r, "bd: unclaim " + strings.Join(r.ids, ", "), nil
+		return r, "issuegraph: unclaim " + strings.Join(r.ids, ", "), nil
 	})
 	if err != nil {
 		return HandleErrorRespectJSON("%v", err)
@@ -140,7 +140,7 @@ func runReclaimProxiedServer(ctx context.Context, olderThan time.Duration, filte
 		for _, r := range out {
 			ids = append(ids, r.ID)
 		}
-		return out, "bd: reclaim " + strings.Join(ids, ", "), nil
+		return out, "issuegraph: reclaim " + strings.Join(ids, ", "), nil
 	})
 	if err != nil {
 		return HandleErrorRespectJSON("reclaim: %v", err)

@@ -8,16 +8,16 @@ import (
 	"path/filepath"
 	"strings"
 
-	"github.com/steveyegge/beads/modules/cli/doctor/fix"
-	"github.com/steveyegge/beads/internal/configfile"
-	"github.com/steveyegge/beads/internal/git"
-	"github.com/steveyegge/beads/internal/storage/dolt"
+	"github.com/borg0ai/dx-issuegraph/internal/configfile"
+	"github.com/borg0ai/dx-issuegraph/internal/git"
+	"github.com/borg0ai/dx-issuegraph/internal/storage/dolt"
+	"github.com/borg0ai/dx-issuegraph/modules/cli/doctor/fix"
 )
 
-// CheckInstallation verifies that .beads directory exists
+// CheckInstallation verifies that .issuegraph directory exists
 func CheckInstallation(path string) DoctorCheck {
-	beadsDir := ResolveBeadsDirForRepo(path)
-	if _, err := os.Stat(beadsDir); os.IsNotExist(err) {
+	issuegraphDir := ResolveIssueGraphDirForRepo(path)
+	if _, err := os.Stat(issuegraphDir); os.IsNotExist(err) {
 		// Auto-detect prefix from directory name
 		prefix := filepath.Base(path)
 		prefix = strings.TrimRight(prefix, "-")
@@ -25,58 +25,58 @@ func CheckInstallation(path string) DoctorCheck {
 		return DoctorCheck{
 			Name:    "Installation",
 			Status:  StatusError,
-			Message: "No .beads/ directory found",
-			Fix:     fmt.Sprintf("Run 'bd init --prefix %s' to initialize beads", prefix),
+			Message: "No .issuegraph/ directory found",
+			Fix:     fmt.Sprintf("Run 'issuegraph init --prefix %s' to initialize issuegraph", prefix),
 		}
 	}
 
 	return DoctorCheck{
 		Name:    "Installation",
 		Status:  StatusOK,
-		Message: ".beads/ directory found",
+		Message: ".issuegraph/ directory found",
 	}
 }
 
-// CheckPermissions verifies that .beads directory and database are readable/writable.
+// CheckPermissions verifies that .issuegraph directory and database are readable/writable.
 // Opens its own store; prefer CheckPermissionsWithStore when a shared store is available.
 func CheckPermissions(path string) DoctorCheck {
-	beadsDir := ResolveBeadsDirForRepo(path)
+	issuegraphDir := ResolveIssueGraphDirForRepo(path)
 
-	// Check if .beads/ is writable
-	testFile := filepath.Join(beadsDir, ".doctor-test-write")
+	// Check if .issuegraph/ is writable
+	testFile := filepath.Join(issuegraphDir, ".doctor-test-write")
 	if err := os.WriteFile(testFile, []byte("test"), 0600); err != nil {
 		return DoctorCheck{
 			Name:    "Permissions",
 			Status:  StatusError,
-			Message: ".beads/ directory is not writable",
-			Fix:     "Run 'bd doctor --fix' to fix permissions",
+			Message: ".issuegraph/ directory is not writable",
+			Fix:     "Run 'issuegraph doctor --fix' to fix permissions",
 		}
 	}
 	_ = os.Remove(testFile) // Clean up test file (intentionally ignore error)
 
 	// Check Dolt database directory permissions
-	cfg, err := configfile.Load(beadsDir)
+	cfg, err := configfile.Load(issuegraphDir)
 	if err == nil && cfg != nil && cfg.GetBackend() == configfile.BackendDolt {
-		doltPath := getDatabasePath(beadsDir)
+		doltPath := getDatabasePath(issuegraphDir)
 		if info, err := os.Stat(doltPath); err == nil {
 			if !info.IsDir() {
 				return DoctorCheck{
 					Name:    "Permissions",
 					Status:  StatusError,
 					Message: "dolt/ is not a directory",
-					Fix:     "Run 'bd doctor --fix' to fix permissions",
+					Fix:     "Run 'issuegraph doctor --fix' to fix permissions",
 				}
 			}
 			// Try to open Dolt store read-only to verify accessibility
 			ctx := context.Background()
-			store, err := dolt.NewFromConfigWithCLIOptions(ctx, beadsDir, &dolt.Config{ReadOnly: true})
+			store, err := dolt.NewFromConfigWithCLIOptions(ctx, issuegraphDir, &dolt.Config{ReadOnly: true})
 			if err != nil {
 				return DoctorCheck{
 					Name:    "Permissions",
 					Status:  StatusError,
 					Message: "Dolt database exists but cannot be opened",
 					Detail:  err.Error(),
-					Fix:     "Run 'bd doctor --fix' to fix permissions",
+					Fix:     "Run 'issuegraph doctor --fix' to fix permissions",
 				}
 			}
 			_ = store.Close()
@@ -93,23 +93,23 @@ func CheckPermissions(path string) DoctorCheck {
 // CheckPermissionsWithStore verifies permissions using a shared store (GH#2636).
 // If the shared store was opened successfully, the database is accessible.
 func CheckPermissionsWithStore(path string, ss *SharedStore) DoctorCheck {
-	beadsDir := beadsDirFromSharedStore(path, ss)
+	issuegraphDir := issuegraphDirFromSharedStore(path, ss)
 	store := ss.Store()
 
-	// Check if .beads/ is writable
-	testFile := filepath.Join(beadsDir, ".doctor-test-write")
+	// Check if .issuegraph/ is writable
+	testFile := filepath.Join(issuegraphDir, ".doctor-test-write")
 	if err := os.WriteFile(testFile, []byte("test"), 0600); err != nil {
 		return DoctorCheck{
 			Name:    "Permissions",
 			Status:  StatusError,
-			Message: ".beads/ directory is not writable",
-			Fix:     "Run 'bd doctor --fix' to fix permissions",
+			Message: ".issuegraph/ directory is not writable",
+			Fix:     "Run 'issuegraph doctor --fix' to fix permissions",
 		}
 	}
 	_ = os.Remove(testFile)
 
 	// Check Dolt database directory permissions
-	cfg, err := configfile.Load(beadsDir)
+	cfg, err := configfile.Load(issuegraphDir)
 	if err == nil && cfg != nil && cfg.GetBackend() == configfile.BackendDolt {
 		if cfg.IsDoltServerMode() {
 			if store == nil {
@@ -117,7 +117,7 @@ func CheckPermissionsWithStore(path string, ss *SharedStore) DoctorCheck {
 					Name:    "Permissions",
 					Status:  StatusError,
 					Message: "Unable to verify Dolt server-backed database permissions",
-					Fix:     "Check 'bd dolt status' for server availability, then re-run 'bd doctor'",
+					Fix:     "Check 'issuegraph dolt status' for server availability, then re-run 'issuegraph doctor'",
 				}
 			}
 			return DoctorCheck{
@@ -127,14 +127,14 @@ func CheckPermissionsWithStore(path string, ss *SharedStore) DoctorCheck {
 			}
 		}
 
-		doltPath := getDatabasePath(beadsDir)
+		doltPath := getDatabasePath(issuegraphDir)
 		if info, err := os.Stat(doltPath); err == nil {
 			if !info.IsDir() {
 				return DoctorCheck{
 					Name:    "Permissions",
 					Status:  StatusError,
 					Message: "dolt/ is not a directory",
-					Fix:     "Run 'bd doctor --fix' to fix permissions",
+					Fix:     "Run 'issuegraph doctor --fix' to fix permissions",
 				}
 			}
 			// If shared store is nil, the database could not be opened
@@ -143,7 +143,7 @@ func CheckPermissionsWithStore(path string, ss *SharedStore) DoctorCheck {
 					Name:    "Permissions",
 					Status:  StatusError,
 					Message: "Dolt database exists but cannot be opened",
-					Fix:     "Run 'bd doctor --fix' to fix permissions",
+					Fix:     "Run 'issuegraph doctor --fix' to fix permissions",
 				}
 			}
 			// Shared store was opened successfully — database is accessible
@@ -157,12 +157,12 @@ func CheckPermissionsWithStore(path string, ss *SharedStore) DoctorCheck {
 	}
 }
 
-// CheckUntrackedBeadsFiles checks for untracked .beads/*.jsonl files that should be committed.
+// CheckUntrackedIssueGraphFiles checks for untracked .issuegraph/*.jsonl files that should be committed.
 // This check only applies to legacy (non-Dolt) backends where JSONL files are the data store.
 // In sync-branch mode, JSONL files are intentionally untracked in working branches
 // and only committed to the dedicated sync branch (GH#858).
-func CheckUntrackedBeadsFiles(path string) DoctorCheck {
-	backend, _ := getBackendAndBeadsDir(path)
+func CheckUntrackedIssueGraphFiles(path string) DoctorCheck {
+	backend, _ := getBackendAndIssueGraphDir(path)
 
 	// Dolt backends store data on the server, not in JSONL files
 	if backend == configfile.BackendDolt {
@@ -173,15 +173,15 @@ func CheckUntrackedBeadsFiles(path string) DoctorCheck {
 		}
 	}
 
-	beadsDir := ResolveBeadsDirForRepo(path)
-	repoRoot := resolvedBeadsRepoRoot(path)
+	issuegraphDir := ResolveIssueGraphDirForRepo(path)
+	repoRoot := resolvedIssueGraphRepoRoot(path)
 
-	// Skip if .beads doesn't exist
-	if _, err := os.Stat(beadsDir); os.IsNotExist(err) {
+	// Skip if .issuegraph doesn't exist
+	if _, err := os.Stat(issuegraphDir); os.IsNotExist(err) {
 		return DoctorCheck{
 			Name:    "Untracked Files",
 			Status:  StatusOK,
-			Message: "N/A (no .beads directory)",
+			Message: "N/A (no .issuegraph directory)",
 		}
 	}
 
@@ -195,8 +195,8 @@ func CheckUntrackedBeadsFiles(path string) DoctorCheck {
 		}
 	}
 
-	// Run git status --porcelain to find untracked files in .beads/
-	cmd := exec.Command("git", "status", "--porcelain", ".beads/")
+	// Run git status --porcelain to find untracked files in .issuegraph/
+	cmd := exec.Command("git", "status", "--porcelain", ".issuegraph/")
 	cmd.Dir = repoRoot
 	output, err := cmd.Output()
 	if err != nil {
@@ -229,7 +229,7 @@ func CheckUntrackedBeadsFiles(path string) DoctorCheck {
 		return DoctorCheck{
 			Name:    "Untracked Files",
 			Status:  StatusOK,
-			Message: "All .beads/*.jsonl files are tracked",
+			Message: "All .issuegraph/*.jsonl files are tracked",
 		}
 	}
 
@@ -238,11 +238,11 @@ func CheckUntrackedBeadsFiles(path string) DoctorCheck {
 		Status:  StatusWarning,
 		Message: fmt.Sprintf("Untracked JSONL files: %s", strings.Join(untrackedJSONL, ", ")),
 		Detail:  "These files should be committed to propagate changes to other clones",
-		Fix:     "Run 'bd doctor --fix' to stage and commit untracked files, or manually: git add .beads/*.jsonl && git commit",
+		Fix:     "Run 'issuegraph doctor --fix' to stage and commit untracked files, or manually: git add .issuegraph/*.jsonl && git commit",
 	}
 }
 
-// FixPermissions fixes file permission issues in the .beads directory
+// FixPermissions fixes file permission issues in the .issuegraph directory
 func FixPermissions(path string) error {
 	return fix.Permissions(path)
 }

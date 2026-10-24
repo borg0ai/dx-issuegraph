@@ -19,7 +19,7 @@ import (
 // update. storage.MergeMetadataJSON unmarshals the incoming document into a
 // map, which rejects a string, number, boolean or array with an internal
 // error -- but JSON null unmarshals into a map with no error at all, so
-// `bd update --metadata null` used to exit 0 having merged nothing. Refusing
+// `issuegraph update --metadata null` used to exit 0 having merged nothing. Refusing
 // null up front is therefore a deliberate (small) behavior change on update,
 // not a restatement of the merge's rule.
 //

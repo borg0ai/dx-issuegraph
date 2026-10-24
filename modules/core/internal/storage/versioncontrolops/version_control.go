@@ -6,8 +6,8 @@ import (
 	"regexp"
 	"strings"
 
-	"github.com/steveyegge/beads/internal/storage"
-	"github.com/steveyegge/beads/internal/storage/issueops"
+	"github.com/borg0ai/dx-issuegraph/internal/storage"
+	"github.com/borg0ai/dx-issuegraph/internal/storage/issueops"
 )
 
 // validTablePattern matches valid SQL table names (letters, digits, underscores).
@@ -112,7 +112,7 @@ func Merge(ctx context.Context, db DBConn, branch, author string) ([]storage.Con
 			return conflicts, nil
 		}
 		if isMergeConflictAutocommitError(err) {
-			return nil, fmt.Errorf("merge branch %s: %w (resolve with: bd vc merge %s --strategy ours|theirs)", branch, err, branch)
+			return nil, fmt.Errorf("merge branch %s: %w (resolve with: issuegraph vc merge %s --strategy ours|theirs)", branch, err, branch)
 		}
 		return nil, fmt.Errorf("merge branch %s: %w", branch, err)
 	}

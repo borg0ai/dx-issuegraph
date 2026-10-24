@@ -62,7 +62,7 @@ func TestMarkInheritedCloexec_MarksLeakedFD(t *testing.T) {
 }
 
 // TestMarkInheritedCloexec_LeavesStdioAlone guards the carve-out: os/exec
-// rewires 0/1/2 per-child, so marking bd's own stdio would change unrelated
+// rewires 0/1/2 per-child, so marking issuegraph's own stdio would change unrelated
 // spawns.
 func TestMarkInheritedCloexec_LeavesStdioAlone(t *testing.T) {
 	before := make([]int, 3)

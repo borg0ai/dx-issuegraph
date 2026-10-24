@@ -5,12 +5,12 @@ import (
 	"fmt"
 	"strings"
 
+	"github.com/borg0ai/dx-issuegraph/internal/metrics"
+	"github.com/borg0ai/dx-issuegraph/internal/storage"
+	"github.com/borg0ai/dx-issuegraph/internal/types"
+	"github.com/borg0ai/dx-issuegraph/internal/utils"
+	"github.com/borg0ai/dx-issuegraph/internal/validation"
 	"github.com/spf13/cobra"
-	"github.com/steveyegge/beads/internal/metrics"
-	"github.com/steveyegge/beads/internal/storage"
-	"github.com/steveyegge/beads/internal/types"
-	"github.com/steveyegge/beads/internal/utils"
-	"github.com/steveyegge/beads/internal/validation"
 )
 
 var quickCmd = &cobra.Command{
@@ -21,10 +21,10 @@ var quickCmd = &cobra.Command{
 Designed for scripting and AI agent integration.
 
 Example:
-  bd q "Fix login bug"           # Outputs: bd-a1b2
-  ISSUE=$(bd q "New feature")    # Capture ID in variable
-  bd q "Task" | xargs bd show    # Pipe to other commands
-  bd q "Subtask" --parent=bd-a1b2  # Hierarchical child (outputs: bd-a1b2.1)`,
+  issuegraph q "Fix login bug"           # Outputs: bd-a1b2
+  ISSUE=$(issuegraph q "New feature")    # Capture ID in variable
+  issuegraph q "Task" | xargs issuegraph show    # Pipe to other commands
+  issuegraph q "Subtask" --parent=bd-a1b2  # Hierarchical child (outputs: bd-a1b2.1)`,
 	Args:          cobra.MinimumNArgs(1),
 	SilenceUsage:  true,
 	SilenceErrors: true,
@@ -61,7 +61,7 @@ Example:
 
 		ctx := rootCtx
 
-		// Mirrors bd create's parent handling: validate the parent exists,
+		// Mirrors issuegraph create's parent handling: validate the parent exists,
 		// inherit its labels, and reserve a hierarchical child ID.
 		var inheritedLabels []string
 		if parentID != "" {
@@ -93,7 +93,7 @@ Example:
 
 		// The issue and its parent-child edge commit in one transaction; a
 		// failed edge rolls back the create instead of leaving a dep-less
-		// child behind (same contract as bd create).
+		// child behind (same contract as issuegraph create).
 		if err := createIssueWithDeps(ctx, store, issue, actor, createDepEdges{parentID: parentID}); err != nil {
 			return HandleError("%v", err)
 		}

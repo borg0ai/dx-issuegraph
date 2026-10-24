@@ -6,28 +6,28 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/steveyegge/beads/internal/configfile"
-	"github.com/steveyegge/beads/internal/doltserver"
+	"github.com/borg0ai/dx-issuegraph/internal/configfile"
+	"github.com/borg0ai/dx-issuegraph/internal/doltserver"
 )
 
 func TestCheckManagedHandoffPortWarnsOnManagedPortConflict(t *testing.T) {
-	clearResolveBeadsDirCache()
-	t.Cleanup(clearResolveBeadsDirCache)
+	clearResolveIssueGraphDirCache()
+	t.Cleanup(clearResolveIssueGraphDirCache)
 
 	repoDir := t.TempDir()
-	beadsDir := filepath.Join(repoDir, ".beads")
-	if err := os.MkdirAll(beadsDir, 0o755); err != nil {
-		t.Fatalf("mkdir .beads: %v", err)
+	issuegraphDir := filepath.Join(repoDir, ".issuegraph")
+	if err := os.MkdirAll(issuegraphDir, 0o755); err != nil {
+		t.Fatalf("mkdir .issuegraph: %v", err)
 	}
-	if err := (&configfile.Config{}).Save(beadsDir); err != nil {
+	if err := (&configfile.Config{}).Save(issuegraphDir); err != nil {
 		t.Fatalf("save metadata: %v", err)
 	}
-	if err := os.WriteFile(filepath.Join(beadsDir, doltserver.PortFileName), []byte("37953"), 0o600); err != nil {
+	if err := os.WriteFile(filepath.Join(issuegraphDir, doltserver.PortFileName), []byte("37953"), 0o600); err != nil {
 		t.Fatalf("write port file: %v", err)
 	}
 
-	t.Setenv("BEADS_DOLT_PORT", "54418")
-	t.Setenv("BEADS_DOLT_SERVER_PORT", "")
+	t.Setenv("ISSUEGRAPH_DOLT_PORT", "54418")
+	t.Setenv("ISSUEGRAPH_DOLT_SERVER_PORT", "")
 	t.Setenv("GT_ROOT", filepath.Join(repoDir, "city"))
 
 	check := CheckManagedHandoffPort(repoDir)
@@ -36,7 +36,7 @@ func TestCheckManagedHandoffPortWarnsOnManagedPortConflict(t *testing.T) {
 	}
 	for _, want := range []string{
 		"managed Dolt port override differs",
-		"BEADS_DOLT_PORT=54418",
+		"ISSUEGRAPH_DOLT_PORT=54418",
 		"contains 37953",
 		"GT_ROOT=",
 		"standalone store",
@@ -48,23 +48,23 @@ func TestCheckManagedHandoffPortWarnsOnManagedPortConflict(t *testing.T) {
 }
 
 func TestCheckManagedHandoffPortOKWithoutConflict(t *testing.T) {
-	clearResolveBeadsDirCache()
-	t.Cleanup(clearResolveBeadsDirCache)
+	clearResolveIssueGraphDirCache()
+	t.Cleanup(clearResolveIssueGraphDirCache)
 
 	repoDir := t.TempDir()
-	beadsDir := filepath.Join(repoDir, ".beads")
-	if err := os.MkdirAll(beadsDir, 0o755); err != nil {
-		t.Fatalf("mkdir .beads: %v", err)
+	issuegraphDir := filepath.Join(repoDir, ".issuegraph")
+	if err := os.MkdirAll(issuegraphDir, 0o755); err != nil {
+		t.Fatalf("mkdir .issuegraph: %v", err)
 	}
-	if err := (&configfile.Config{}).Save(beadsDir); err != nil {
+	if err := (&configfile.Config{}).Save(issuegraphDir); err != nil {
 		t.Fatalf("save metadata: %v", err)
 	}
-	if err := os.WriteFile(filepath.Join(beadsDir, doltserver.PortFileName), []byte("37953"), 0o600); err != nil {
+	if err := os.WriteFile(filepath.Join(issuegraphDir, doltserver.PortFileName), []byte("37953"), 0o600); err != nil {
 		t.Fatalf("write port file: %v", err)
 	}
 
-	t.Setenv("BEADS_DOLT_PORT", "37953")
-	t.Setenv("BEADS_DOLT_SERVER_PORT", "")
+	t.Setenv("ISSUEGRAPH_DOLT_PORT", "37953")
+	t.Setenv("ISSUEGRAPH_DOLT_SERVER_PORT", "")
 
 	check := CheckManagedHandoffPort(repoDir)
 	if check.Status != StatusOK {

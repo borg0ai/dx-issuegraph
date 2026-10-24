@@ -40,9 +40,9 @@ func isDoltBackendUnavailable(output string) bool {
 
 func doltHeadCommit(t *testing.T, dir string, env []string) string {
 	t.Helper()
-	out, err := runBDExecAllowErrorWithEnv(t, dir, env, "--json", "vc", "status")
+	out, err := runIssueGraphExecAllowErrorWithEnv(t, dir, env, "--json", "vc", "status")
 	if err != nil {
-		t.Fatalf("bd vc status failed: %v\n%s", err, out)
+		t.Fatalf("issuegraph vc status failed: %v\n%s", err, out)
 	}
 	var m map[string]any
 	if err := json.Unmarshal([]byte(out), &m); err != nil {
@@ -73,12 +73,12 @@ func findDoltRepoDir(t *testing.T, dir string) string {
 	t.Helper()
 
 	// Embedded driver may create either:
-	// - a dolt repo directly at .beads/dolt/
-	// - a dolt environment at .beads/dolt/ with a db subdir containing .dolt/
-	base := filepath.Join(dir, ".beads", "dolt")
+	// - a dolt repo directly at .issuegraph/dolt/
+	// - a dolt environment at .issuegraph/dolt/ with a db subdir containing .dolt/
+	base := filepath.Join(dir, ".issuegraph", "dolt")
 	candidates := []string{
 		base,
-		filepath.Join(base, "beads"),
+		filepath.Join(base, "issuegraph"),
 	}
 	for _, c := range candidates {
 		if _, err := os.Stat(filepath.Join(c, ".dolt")); err == nil {
@@ -131,22 +131,22 @@ func TestDoltAutoCommit_On_WritesAdvanceHead(t *testing.T) {
 	tmpDir := createTempDirWithCleanup(t)
 	setupGitRepoForIntegration(t, tmpDir)
 
-	env := append(os.Environ(), "BEADS_TEST_MODE=1")
+	env := append(os.Environ(), "ISSUEGRAPH_TEST_MODE=1")
 
-	initOut, initErr := runBDExecAllowErrorWithEnv(t, tmpDir, env, "init", "--backend", "dolt", "--prefix", "test", "--quiet")
+	initOut, initErr := runIssueGraphExecAllowErrorWithEnv(t, tmpDir, env, "init", "--backend", "dolt", "--prefix", "test", "--quiet")
 	if initErr != nil {
 		if isDoltBackendUnavailable(initOut) {
 			t.Skipf("dolt backend not available: %s", initOut)
 		}
-		t.Fatalf("bd init --backend dolt failed: %v\n%s", initErr, initOut)
+		t.Fatalf("issuegraph init --backend dolt failed: %v\n%s", initErr, initOut)
 	}
 
 	before := doltHeadCommit(t, tmpDir, env)
 
 	// Explicitly enable auto-commit=on (default is now "batch" in embedded mode).
-	out, err := runBDExecAllowErrorWithEnv(t, tmpDir, env, "--dolt-auto-commit", "on", "create", "Auto-commit test", "--json")
+	out, err := runIssueGraphExecAllowErrorWithEnv(t, tmpDir, env, "--dolt-auto-commit", "on", "create", "Auto-commit test", "--json")
 	if err != nil {
-		t.Fatalf("bd create failed: %v\n%s", err, out)
+		t.Fatalf("issuegraph create failed: %v\n%s", err, out)
 	}
 
 	after := doltHeadCommit(t, tmpDir, env)
@@ -157,11 +157,11 @@ func TestDoltAutoCommit_On_WritesAdvanceHead(t *testing.T) {
 	// Commit author should be deterministic (not the authenticated SQL user like root@%).
 	expectedName := os.Getenv("GIT_AUTHOR_NAME")
 	if expectedName == "" {
-		expectedName = "beads"
+		expectedName = "issuegraph"
 	}
 	expectedEmail := os.Getenv("GIT_AUTHOR_EMAIL")
 	if expectedEmail == "" {
-		expectedEmail = "beads@local"
+		expectedEmail = "issuegraph@local"
 	}
 	expectedAuthor := fmt.Sprintf("%s <%s>", expectedName, expectedEmail)
 	if got := doltHeadAuthor(t, tmpDir); got != expectedAuthor {
@@ -169,9 +169,9 @@ func TestDoltAutoCommit_On_WritesAdvanceHead(t *testing.T) {
 	}
 
 	// A read-only command should not create another commit.
-	out, err = runBDExecAllowErrorWithEnv(t, tmpDir, env, "--dolt-auto-commit", "on", "list")
+	out, err = runIssueGraphExecAllowErrorWithEnv(t, tmpDir, env, "--dolt-auto-commit", "on", "list")
 	if err != nil {
-		t.Fatalf("bd list failed: %v\n%s", err, out)
+		t.Fatalf("issuegraph list failed: %v\n%s", err, out)
 	}
 	afterList := doltHeadCommit(t, tmpDir, env)
 	if afterList != after {
@@ -190,22 +190,22 @@ func TestDoltAutoCommit_Batch_DefersCommit(t *testing.T) {
 	tmpDir := createTempDirWithCleanup(t)
 	setupGitRepoForIntegration(t, tmpDir)
 
-	env := append(os.Environ(), "BEADS_TEST_MODE=1")
+	env := append(os.Environ(), "ISSUEGRAPH_TEST_MODE=1")
 
-	initOut, initErr := runBDExecAllowErrorWithEnv(t, tmpDir, env, "init", "--backend", "dolt", "--prefix", "test", "--quiet")
+	initOut, initErr := runIssueGraphExecAllowErrorWithEnv(t, tmpDir, env, "init", "--backend", "dolt", "--prefix", "test", "--quiet")
 	if initErr != nil {
 		if isDoltBackendUnavailable(initOut) {
 			t.Skipf("dolt backend not available: %s", initOut)
 		}
-		t.Fatalf("bd init --backend dolt failed: %v\n%s", initErr, initOut)
+		t.Fatalf("issuegraph init --backend dolt failed: %v\n%s", initErr, initOut)
 	}
 
 	before := doltHeadCommit(t, tmpDir, env)
 
 	// In batch mode (default for embedded), writes should NOT advance HEAD.
-	out, err := runBDExecAllowErrorWithEnv(t, tmpDir, env, "--dolt-auto-commit", "batch", "create", "Batch test 1", "--json")
+	out, err := runIssueGraphExecAllowErrorWithEnv(t, tmpDir, env, "--dolt-auto-commit", "batch", "create", "Batch test 1", "--json")
 	if err != nil {
-		t.Fatalf("bd create failed: %v\n%s", err, out)
+		t.Fatalf("issuegraph create failed: %v\n%s", err, out)
 	}
 
 	afterCreate := doltHeadCommit(t, tmpDir, env)
@@ -214,9 +214,9 @@ func TestDoltAutoCommit_Batch_DefersCommit(t *testing.T) {
 	}
 
 	// Create another issue — still deferred.
-	out, err = runBDExecAllowErrorWithEnv(t, tmpDir, env, "--dolt-auto-commit", "batch", "create", "Batch test 2", "--json")
+	out, err = runIssueGraphExecAllowErrorWithEnv(t, tmpDir, env, "--dolt-auto-commit", "batch", "create", "Batch test 2", "--json")
 	if err != nil {
-		t.Fatalf("bd create (2) failed: %v\n%s", err, out)
+		t.Fatalf("issuegraph create (2) failed: %v\n%s", err, out)
 	}
 	var created struct {
 		ID string `json:"id"`
@@ -233,9 +233,9 @@ func TestDoltAutoCommit_Batch_DefersCommit(t *testing.T) {
 
 	// Delete rides the issueops facade, not transactHonoringAutoCommit — it
 	// must defer too (the bd-4wamg review caught it passing a bare rootCtx).
-	out, err = runBDExecAllowErrorWithEnv(t, tmpDir, env, "--dolt-auto-commit", "batch", "delete", secondID, "--force")
+	out, err = runIssueGraphExecAllowErrorWithEnv(t, tmpDir, env, "--dolt-auto-commit", "batch", "delete", secondID, "--force")
 	if err != nil {
-		t.Fatalf("bd delete failed: %v\n%s", err, out)
+		t.Fatalf("issuegraph delete failed: %v\n%s", err, out)
 	}
 
 	afterDelete := doltHeadCommit(t, tmpDir, env)
@@ -243,10 +243,10 @@ func TestDoltAutoCommit_Batch_DefersCommit(t *testing.T) {
 		t.Fatalf("expected Dolt HEAD unchanged after batch-mode delete; before=%s after=%s", before, afterDelete)
 	}
 
-	// An explicit "bd dolt commit" should commit all accumulated changes.
-	out, err = runBDExecAllowErrorWithEnv(t, tmpDir, env, "--dolt-auto-commit", "batch", "dolt", "commit")
+	// An explicit "issuegraph dolt commit" should commit all accumulated changes.
+	out, err = runIssueGraphExecAllowErrorWithEnv(t, tmpDir, env, "--dolt-auto-commit", "batch", "dolt", "commit")
 	if err != nil {
-		t.Fatalf("bd dolt commit failed: %v\n%s", err, out)
+		t.Fatalf("issuegraph dolt commit failed: %v\n%s", err, out)
 	}
 
 	afterCommit := doltHeadCommit(t, tmpDir, env)
@@ -266,22 +266,22 @@ func TestDoltAutoCommit_Off_DoesNotAdvanceHead(t *testing.T) {
 	tmpDir := createTempDirWithCleanup(t)
 	setupGitRepoForIntegration(t, tmpDir)
 
-	env := append(os.Environ(), "BEADS_TEST_MODE=1")
+	env := append(os.Environ(), "ISSUEGRAPH_TEST_MODE=1")
 
-	initOut, initErr := runBDExecAllowErrorWithEnv(t, tmpDir, env, "init", "--backend", "dolt", "--prefix", "test", "--quiet")
+	initOut, initErr := runIssueGraphExecAllowErrorWithEnv(t, tmpDir, env, "init", "--backend", "dolt", "--prefix", "test", "--quiet")
 	if initErr != nil {
 		if isDoltBackendUnavailable(initOut) {
 			t.Skipf("dolt backend not available: %s", initOut)
 		}
-		t.Fatalf("bd init --backend dolt failed: %v\n%s", initErr, initOut)
+		t.Fatalf("issuegraph init --backend dolt failed: %v\n%s", initErr, initOut)
 	}
 
 	before := doltHeadCommit(t, tmpDir, env)
 
 	// Disable auto-commit via persistent flag (must come before subcommand).
-	out, err := runBDExecAllowErrorWithEnv(t, tmpDir, env, "--dolt-auto-commit", "off", "create", "Auto-commit off", "--json")
+	out, err := runIssueGraphExecAllowErrorWithEnv(t, tmpDir, env, "--dolt-auto-commit", "off", "create", "Auto-commit off", "--json")
 	if err != nil {
-		t.Fatalf("bd create failed: %v\n%s", err, out)
+		t.Fatalf("issuegraph create failed: %v\n%s", err, out)
 	}
 
 	after := doltHeadCommit(t, tmpDir, env)

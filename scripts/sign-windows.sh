@@ -13,11 +13,11 @@
 #
 # Usage:
 #   ./sign-windows.sh <path-to-exe>
-#   ./sign-windows.sh dist/bd-windows-amd64_windows_amd64_v1/bd.exe
+#   ./sign-windows.sh dist/issuegraph-windows-amd64_windows_amd64_v1/issuegraph.exe
 #
 # For GoReleaser integration, add to .goreleaser.yml:
 #   builds:
-#     - id: bd-windows-amd64
+#     - id: issuegraph-windows-amd64
 #       hooks:
 #         post:
 #           - ./scripts/sign-windows.sh "{{ .Path }}"
@@ -102,8 +102,8 @@ echo "$WINDOWS_SIGNING_CERT_PFX_BASE64" | base64 -d > "$CERT_FILE"
 osslsigncode sign \
     -pkcs12 "$CERT_FILE" \
     -pass "$WINDOWS_SIGNING_CERT_PASSWORD" \
-    -n "beads - AI-supervised issue tracker" \
-    -i "https://github.com/gastownhall/beads" \
+    -n "issuegraph - AI-supervised issue tracker" \
+    -i "https://github.com/borg0ai/dx-issuegraph" \
     -t "$TIMESTAMP_SERVER" \
     -in "$EXE_PATH" \
     -out "${EXE_PATH}.signed"

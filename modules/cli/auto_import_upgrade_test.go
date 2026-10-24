@@ -14,58 +14,58 @@ import (
 	"testing"
 	"time"
 
-	"github.com/steveyegge/beads/internal/types"
+	"github.com/borg0ai/dx-issuegraph/internal/types"
 )
 
 // TestEmbeddedAutoImportJSONLNoExplicitCommit verifies that auto-import
 // uses a single transaction and defers the Dolt commit to PersistentPostRun
 // (no separate DOLT_COMMIT during pre-run).
 func TestEmbeddedAutoImportJSONLNoExplicitCommit(t *testing.T) {
-	if os.Getenv("BEADS_TEST_EMBEDDED_DOLT") != "1" {
-		t.Skip("set BEADS_TEST_EMBEDDED_DOLT=1 to run embedded dolt integration tests")
+	if os.Getenv("ISSUEGRAPH_TEST_EMBEDDED_DOLT") != "1" {
+		t.Skip("set ISSUEGRAPH_TEST_EMBEDDED_DOLT=1 to run embedded dolt integration tests")
 	}
 	t.Parallel()
 
-	bd := buildEmbeddedBD(t)
+	issuegraph := buildEmbeddedBD(t)
 
 	// Create a source store with 3 issues, then export to JSONL.
-	srcDir, _, _ := bdInit(t, bd, "--prefix", "src")
+	srcDir, _, _ := issuegraphInit(t, issuegraph, "--prefix", "src")
 	for i := 0; i < 3; i++ {
-		bdCreate(t, bd, srcDir, fmt.Sprintf("auto-import-test-%d", i), "--type", "task")
+		issuegraphCreate(t, issuegraph, srcDir, fmt.Sprintf("auto-import-test-%d", i), "--type", "task")
 	}
 	srcJSONL := filepath.Join(srcDir, "export.jsonl")
-	cmd := exec.Command(bd, "export", "-o", srcJSONL)
+	cmd := exec.Command(issuegraph, "export", "-o", srcJSONL)
 	cmd.Dir = srcDir
-	cmd.Env = bdEnv(srcDir)
+	cmd.Env = issuegraphEnv(srcDir)
 	if out, err := cmd.CombinedOutput(); err != nil {
-		t.Fatalf("bd export failed: %v\n%s", err, out)
+		t.Fatalf("issuegraph export failed: %v\n%s", err, out)
 	}
 
 	// Create a fresh empty store in a new directory.
-	dstDir, dstBeadsDir, _ := bdInit(t, bd, "--prefix", "dst")
+	dstDir, dstIssueGraphDir, _ := issuegraphInit(t, issuegraph, "--prefix", "dst")
 
 	// Place the JSONL file where auto-import looks for it.
 	srcData, err := os.ReadFile(srcJSONL)
 	if err != nil {
 		t.Fatalf("reading exported JSONL: %v", err)
 	}
-	if err := os.WriteFile(filepath.Join(dstBeadsDir, "issues.jsonl"), srcData, 0644); err != nil {
+	if err := os.WriteFile(filepath.Join(dstIssueGraphDir, "issues.jsonl"), srcData, 0644); err != nil {
 		t.Fatalf("writing issues.jsonl: %v", err)
 	}
 
-	// Trigger auto-import via a write command. bd list is registered as
+	// Trigger auto-import via a write command. issuegraph list is registered as
 	// read-only in modules/cli/main.go's dispatcher and skips
 	// maybeAutoImportJSONL entirely — using it here would leave the
 	// destination empty and the test would assert against zero issues.
-	// bd create runs maybeAutoImportJSONL in PersistentPreRun (which
+	// issuegraph create runs maybeAutoImportJSONL in PersistentPreRun (which
 	// stages the imported issues in the Dolt working set without an
 	// explicit DOLT_COMMIT), performs its own create write into the same
 	// working set, and then explicitly calls store.Commit at the end of
 	// modules/cli/create.go — that single commit picks up both the auto-import
 	// and the new issue. PersistentPostRun's maybeAutoCommit is then a
 	// no-op (nothing left to commit).
-	bdCreate(t, bd, dstDir, "post-import marker", "--type", "task")
-	issues := bdListJSON(t, bd, dstDir)
+	issuegraphCreate(t, issuegraph, dstDir, "post-import marker", "--type", "task")
+	issues := issuegraphListJSON(t, issuegraph, dstDir)
 	if len(issues) != 4 {
 		t.Fatalf("expected 4 issues (3 imported + 1 created post-import), got %d", len(issues))
 	}
@@ -73,14 +73,14 @@ func TestEmbeddedAutoImportJSONLNoExplicitCommit(t *testing.T) {
 	// Verify auto-import did NOT issue its own DOLT_COMMIT. The
 	// single-transaction import sets commandDidWrite and defers the commit
 	// to PersistentPostRun, so the auto-import and the post-run write
-	// (the bd create above) coalesce into one Dolt commit. The exact total
+	// (the issuegraph create above) coalesce into one Dolt commit. The exact total
 	// depends on init detail (2-3 init commits + 1 coalesced post-run);
 	// what we want to forbid is a separate auto-import commit appearing
 	// alongside the post-run commit. The "auto-import: ... (upgrade
 	// recovery, GH#2994)" message is only used when the function calls
 	// s.Commit explicitly (the fallback path) — its absence proves the
 	// embedded path used the deferred-commit flow.
-	logOut := bdDolt(t, bd, dstDir, "log")
+	logOut := issuegraphDolt(t, issuegraph, dstDir, "log")
 	if strings.Contains(logOut, "auto-import:") && strings.Contains(logOut, "upgrade recovery, GH#2994") {
 		t.Errorf("embedded auto-import path issued an explicit DOLT_COMMIT; expected the commit to be deferred to PersistentPostRun;\nlog:\n%s", logOut)
 	}
@@ -90,15 +90,15 @@ func TestEmbeddedAutoImportJSONLNoExplicitCommit(t *testing.T) {
 // auto-import runs concurrently with other writers (the race that prompted
 // the single-transaction fix).
 func TestEmbeddedAutoImportJSONLConcurrentWriter(t *testing.T) {
-	if os.Getenv("BEADS_TEST_EMBEDDED_DOLT") != "1" {
-		t.Skip("set BEADS_TEST_EMBEDDED_DOLT=1 to run embedded dolt integration tests")
+	if os.Getenv("ISSUEGRAPH_TEST_EMBEDDED_DOLT") != "1" {
+		t.Skip("set ISSUEGRAPH_TEST_EMBEDDED_DOLT=1 to run embedded dolt integration tests")
 	}
 	t.Parallel()
 
-	bd := buildEmbeddedBD(t)
+	issuegraph := buildEmbeddedBD(t)
 
 	// Create a fresh store and place a hand-crafted issues.jsonl.
-	dir, beadsDir, _ := bdInit(t, bd, "--prefix", "cr")
+	dir, issuegraphDir, _ := issuegraphInit(t, issuegraph, "--prefix", "cr")
 
 	jsonlIssues := []types.Issue{
 		{ID: "cr-import-1", Title: "Imported One", Status: types.StatusOpen, Priority: 2, IssueType: types.TypeTask, CreatedAt: time.Now(), UpdatedAt: time.Now()},
@@ -110,11 +110,11 @@ func TestEmbeddedAutoImportJSONLConcurrentWriter(t *testing.T) {
 		b, _ := json.Marshal(issue)
 		lines = append(lines, string(b))
 	}
-	if err := os.WriteFile(filepath.Join(beadsDir, "issues.jsonl"), []byte(strings.Join(lines, "\n")+"\n"), 0644); err != nil {
+	if err := os.WriteFile(filepath.Join(issuegraphDir, "issues.jsonl"), []byte(strings.Join(lines, "\n")+"\n"), 0644); err != nil {
 		t.Fatal(err)
 	}
 
-	// Launch concurrent writers + one "bd list" that triggers auto-import.
+	// Launch concurrent writers + one "issuegraph list" that triggers auto-import.
 	const numWriters = 4
 
 	type result struct {
@@ -130,7 +130,7 @@ func TestEmbeddedAutoImportJSONLConcurrentWriter(t *testing.T) {
 		wg.Add(1)
 		go func(idx int) {
 			defer wg.Done()
-			issue := bdCreateAllowError(t, bd, dir, fmt.Sprintf("concurrent-%d", idx), "--type", "task")
+			issue := issuegraphCreateAllowError(t, issuegraph, dir, fmt.Sprintf("concurrent-%d", idx), "--type", "task")
 			if issue != nil {
 				writerResults[idx] = result{id: issue.ID}
 			} else {
@@ -139,12 +139,12 @@ func TestEmbeddedAutoImportJSONLConcurrentWriter(t *testing.T) {
 		}(i)
 	}
 
-	// Trigger auto-import via bd list (runs concurrently with creates)
+	// Trigger auto-import via issuegraph list (runs concurrently with creates)
 	wg.Add(1)
 	var listIssues []*types.IssueWithCounts
 	go func() {
 		defer wg.Done()
-		listIssues = bdListJSONAllowError(t, bd, dir)
+		listIssues = issuegraphListJSONAllowError(t, issuegraph, dir)
 	}()
 
 	wg.Wait()
@@ -158,7 +158,7 @@ func TestEmbeddedAutoImportJSONLConcurrentWriter(t *testing.T) {
 	}
 
 	// Final authoritative list — after all concurrency is done
-	finalIssues := bdListJSON(t, bd, dir)
+	finalIssues := issuegraphListJSON(t, issuegraph, dir)
 	finalIDs := make(map[string]bool)
 	for _, issue := range finalIssues {
 		finalIDs[issue.ID] = true
@@ -181,16 +181,16 @@ func TestEmbeddedAutoImportJSONLConcurrentWriter(t *testing.T) {
 // a no-op when the database already has issues (atomicity of the
 // emptiness check + import within a single transaction).
 func TestEmbeddedAutoImportJSONLSkipsNonEmpty(t *testing.T) {
-	if os.Getenv("BEADS_TEST_EMBEDDED_DOLT") != "1" {
-		t.Skip("set BEADS_TEST_EMBEDDED_DOLT=1 to run embedded dolt integration tests")
+	if os.Getenv("ISSUEGRAPH_TEST_EMBEDDED_DOLT") != "1" {
+		t.Skip("set ISSUEGRAPH_TEST_EMBEDDED_DOLT=1 to run embedded dolt integration tests")
 	}
 	t.Parallel()
 
-	bd := buildEmbeddedBD(t)
+	issuegraph := buildEmbeddedBD(t)
 
 	// Create a store with one existing issue.
-	dir, beadsDir, _ := bdInit(t, bd, "--prefix", "ne")
-	existing := bdCreate(t, bd, dir, "pre-existing issue", "--type", "task")
+	dir, issuegraphDir, _ := issuegraphInit(t, issuegraph, "--prefix", "ne")
+	existing := issuegraphCreate(t, issuegraph, dir, "pre-existing issue", "--type", "task")
 
 	// Place a JSONL file with different issues.
 	jsonlIssues := []types.Issue{
@@ -202,12 +202,12 @@ func TestEmbeddedAutoImportJSONLSkipsNonEmpty(t *testing.T) {
 		b, _ := json.Marshal(issue)
 		lines = append(lines, string(b))
 	}
-	if err := os.WriteFile(filepath.Join(beadsDir, "issues.jsonl"), []byte(strings.Join(lines, "\n")+"\n"), 0644); err != nil {
+	if err := os.WriteFile(filepath.Join(issuegraphDir, "issues.jsonl"), []byte(strings.Join(lines, "\n")+"\n"), 0644); err != nil {
 		t.Fatal(err)
 	}
 
-	// Run bd list — auto-import should skip because DB is non-empty.
-	issues := bdListJSON(t, bd, dir)
+	// Run issuegraph list — auto-import should skip because DB is non-empty.
+	issues := issuegraphListJSON(t, issuegraph, dir)
 
 	// Only the pre-existing issue should be present.
 	if len(issues) != 1 {
@@ -218,14 +218,14 @@ func TestEmbeddedAutoImportJSONLSkipsNonEmpty(t *testing.T) {
 	}
 }
 
-// bdCreateAllowError runs "bd create --json" and returns the issue on success,
+// issuegraphCreateAllowError runs "issuegraph create --json" and returns the issue on success,
 // or nil on failure (without failing the test).
-func bdCreateAllowError(t *testing.T, bd, dir string, args ...string) *types.Issue {
+func issuegraphCreateAllowError(t *testing.T, issuegraph, dir string, args ...string) *types.Issue {
 	t.Helper()
 	fullArgs := append([]string{"create", "--json"}, args...)
-	cmd := exec.Command(bd, fullArgs...)
+	cmd := exec.Command(issuegraph, fullArgs...)
 	cmd.Dir = dir
-	cmd.Env = bdEnv(dir)
+	cmd.Env = issuegraphEnv(dir)
 	out, err := cmd.CombinedOutput()
 	if err != nil {
 		return nil
@@ -242,14 +242,14 @@ func bdCreateAllowError(t *testing.T, bd, dir string, args ...string) *types.Iss
 	return &issue
 }
 
-// bdListJSONAllowError runs "bd list --json" and returns issues on success,
+// issuegraphListJSONAllowError runs "issuegraph list --json" and returns issues on success,
 // or nil on failure (without failing the test).
-func bdListJSONAllowError(t *testing.T, bd, dir string, args ...string) []*types.IssueWithCounts {
+func issuegraphListJSONAllowError(t *testing.T, issuegraph, dir string, args ...string) []*types.IssueWithCounts {
 	t.Helper()
 	fullArgs := append([]string{"list", "--json"}, args...)
-	cmd := exec.Command(bd, fullArgs...)
+	cmd := exec.Command(issuegraph, fullArgs...)
 	cmd.Dir = dir
-	cmd.Env = bdEnv(dir)
+	cmd.Env = issuegraphEnv(dir)
 	out, err := cmd.CombinedOutput()
 	if err != nil {
 		return nil
@@ -275,15 +275,15 @@ func bdListJSONAllowError(t *testing.T, bd, dir string, args ...string) []*types
 // a regressed emptiness guard — and verify the live row is untouched while
 // a brand-new id from the JSONL is still inserted.
 func TestEmbeddedAutoImportFallback_ConflictSkip_DoesNotClobber(t *testing.T) {
-	if os.Getenv("BEADS_TEST_EMBEDDED_DOLT") != "1" {
-		t.Skip("set BEADS_TEST_EMBEDDED_DOLT=1 to run embedded dolt integration tests")
+	if os.Getenv("ISSUEGRAPH_TEST_EMBEDDED_DOLT") != "1" {
+		t.Skip("set ISSUEGRAPH_TEST_EMBEDDED_DOLT=1 to run embedded dolt integration tests")
 	}
 	t.Parallel()
 
-	bd := buildEmbeddedBD(t)
-	dir, beadsDir, _ := bdInit(t, bd, "--prefix", "cs")
+	issuegraph := buildEmbeddedBD(t)
+	dir, issuegraphDir, _ := issuegraphInit(t, issuegraph, "--prefix", "cs")
 
-	live := bdCreate(t, bd, dir, "live issue title", "--type", "task")
+	live := issuegraphCreate(t, issuegraph, dir, "live issue title", "--type", "task")
 	if live.ID == "" {
 		t.Fatal("expected a created issue ID")
 	}
@@ -304,12 +304,12 @@ func TestEmbeddedAutoImportFallback_ConflictSkip_DoesNotClobber(t *testing.T) {
 		}
 		lines = append(lines, string(b))
 	}
-	jsonlPath := filepath.Join(beadsDir, "issues.jsonl")
+	jsonlPath := filepath.Join(issuegraphDir, "issues.jsonl")
 	if err := os.WriteFile(jsonlPath, []byte(strings.Join(lines, "\n")+"\n"), 0o644); err != nil {
 		t.Fatal(err)
 	}
 
-	store := openStore(t, beadsDir, "cs")
+	store := openStore(t, issuegraphDir, "cs")
 	ctx := context.Background()
 
 	// Exactly the code path fallbackImporter points at; running it on a
@@ -343,13 +343,13 @@ func TestEmbeddedAutoImportFallback_ConflictSkip_DoesNotClobber(t *testing.T) {
 // legitimate upgrade-recovery path. Against an empty store the fallback
 // still imports every issue from the JSONL.
 func TestEmbeddedAutoImportFallback_ConflictSkip_EmptyDBImportsAll(t *testing.T) {
-	if os.Getenv("BEADS_TEST_EMBEDDED_DOLT") != "1" {
-		t.Skip("set BEADS_TEST_EMBEDDED_DOLT=1 to run embedded dolt integration tests")
+	if os.Getenv("ISSUEGRAPH_TEST_EMBEDDED_DOLT") != "1" {
+		t.Skip("set ISSUEGRAPH_TEST_EMBEDDED_DOLT=1 to run embedded dolt integration tests")
 	}
 	t.Parallel()
 
-	bd := buildEmbeddedBD(t)
-	_, beadsDir, _ := bdInit(t, bd, "--prefix", "ce")
+	issuegraph := buildEmbeddedBD(t)
+	_, issuegraphDir, _ := issuegraphInit(t, issuegraph, "--prefix", "ce")
 
 	now := time.Now().UTC()
 	jsonlIssues := []types.Issue{
@@ -364,12 +364,12 @@ func TestEmbeddedAutoImportFallback_ConflictSkip_EmptyDBImportsAll(t *testing.T)
 		}
 		lines = append(lines, string(b))
 	}
-	jsonlPath := filepath.Join(beadsDir, "issues.jsonl")
+	jsonlPath := filepath.Join(issuegraphDir, "issues.jsonl")
 	if err := os.WriteFile(jsonlPath, []byte(strings.Join(lines, "\n")+"\n"), 0o644); err != nil {
 		t.Fatal(err)
 	}
 
-	store := openStore(t, beadsDir, "ce")
+	store := openStore(t, issuegraphDir, "ce")
 	ctx := context.Background()
 
 	res, err := importFromLocalJSONLConflictSkip(ctx, store, jsonlPath)

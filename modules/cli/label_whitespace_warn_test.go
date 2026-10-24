@@ -7,7 +7,7 @@ import (
 	"github.com/spf13/cobra"
 )
 
-// bd honors the shell's word boundaries: a quoted or backslash-escaped space
+// issuegraph honors the shell's word boundaries: a quoted or backslash-escaped space
 // makes ONE label, exactly as it makes one filename. That is correct, and also
 // indistinguishable from a comma someone meant to type — so it warns.
 func TestWarnLabelsContainingWhitespace(t *testing.T) {

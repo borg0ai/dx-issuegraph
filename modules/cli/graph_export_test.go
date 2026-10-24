@@ -8,7 +8,7 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/steveyegge/beads/internal/types"
+	"github.com/borg0ai/dx-issuegraph/internal/types"
 )
 
 func makeTestSubgraph() (*TemplateSubgraph, *GraphLayout) {
@@ -58,8 +58,8 @@ func TestRenderGraphDOT(t *testing.T) {
 	got := output.String()
 
 	// Verify DOT structure
-	if !strings.HasPrefix(got, "digraph beads {") {
-		t.Error("DOT output should start with 'digraph beads {'")
+	if !strings.HasPrefix(got, "digraph issuegraph {") {
+		t.Error("DOT output should start with 'digraph issuegraph {'")
 	}
 	if !strings.Contains(got, "rankdir=LR") {
 		t.Error("DOT output should specify left-to-right layout")
@@ -104,7 +104,7 @@ func TestRenderGraphDOT_Empty(t *testing.T) {
 		t.Fatalf("renderGraphDOT: %v", err)
 	}
 
-	if got, want := output.String(), "digraph beads { }\n"; got != want {
+	if got, want := output.String(), "digraph issuegraph { }\n"; got != want {
 		t.Errorf("Empty DOT output = %q, want %q", got, want)
 	}
 }

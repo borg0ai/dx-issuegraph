@@ -40,7 +40,7 @@ type DeleteRequest struct {
 	// deleted eight of ten and then reported a typo has already done the part
 	// that cannot be undone.
 	//
-	// IDs ARE EXACT. Prefix resolution, cross-repository routing and `bd`'s
+	// IDs ARE EXACT. Prefix resolution, cross-repository routing and `issuegraph`'s
 	// other id conveniences happen at the front door, above this role, because
 	// resolving an ambiguous prefix to a row and then deleting it is the one
 	// place a convenience is not one.
@@ -75,7 +75,7 @@ type DeleteRequest struct {
 	// lives, and BatchCloseItem deliberately carries no version for the same
 	// reason its own doc gives.
 	//
-	// DUPLICATES COLLAPSE FIRST, so `bd delete a a` with a token names one row
+	// DUPLICATES COLLAPSE FIRST, so `issuegraph delete a a` with a token names one row
 	// and is legal. The refusal counts DISTINCT ids, not mentions.
 	//
 	// NEITHER Cascade NOR Force BYPASSES IT. Force bypasses POLICY — the
@@ -96,7 +96,7 @@ type DeleteRequest struct {
 	// needs the closure itself pinned wants DryRun's preview and not this.
 	ExpectedVersion *int64
 	// Cascade also deletes the TRANSITIVE CLOSURE of everything that depends
-	// on the named rows, in both planes. It is what `bd delete --cascade`
+	// on the named rows, in both planes. It is what `issuegraph delete --cascade`
 	// asks for.
 	//
 	// WITH CASCADE THERE IS NOTHING LEFT TO ORPHAN, by construction: the
@@ -125,12 +125,12 @@ type DeleteRequest struct {
 	// refused exactly as a named issue is, and a durable row's wisp dependent
 	// counts too. Half of that was an implementation gap for one release: the
 	// store-backed body asked the guard about the durable half of the request
-	// only, so `bd delete <wisp>` orphaned a durable dependent without saying
+	// only, so `issuegraph delete <wisp>` orphaned a durable dependent without saying
 	// so and without being refused.
 	//
 	// A dependent INSIDE the request is not a dependent for this purpose — a
 	// batch that names both ends of an edge is deleting the edge too, and
-	// refusing it would make `bd delete a b` fail on exactly the pair a caller
+	// refusing it would make `issuegraph delete a b` fail on exactly the pair a caller
 	// took care to list together.
 	//
 	// IT BYPASSES POLICY, NEVER A PRECONDITION. It does not bypass
@@ -247,7 +247,7 @@ func (e *NotFoundError) Error() string {
 func (e *NotFoundError) Unwrap() error { return ErrNotFound }
 
 // Deleter describes erasure of NAMED rows — the capability behind
-// `bd delete` — and, like every other capability here, a role with its own
+// `issuegraph delete` — and, like every other capability here, a role with its own
 // accessor. A new capability gets a new role interface and its own accessor;
 // never append a method here.
 //
@@ -316,7 +316,7 @@ type Deleter interface {
 	// THE ORDER THE REFUSALS HAPPEN IN IS PART OF THE ANSWER, because a
 	// request can fail several ways at once: request validation, then the
 	// existence probe, then the version precondition, then the dependents
-	// guard. `bd delete typo real-with-dependents` reports the TYPO, which is
+	// guard. `issuegraph delete typo real-with-dependents` reports the TYPO, which is
 	// the one the caller can fix without deciding anything.
 	//
 	// THE VERSION PRECONDITION OUTRANKS THE DEPENDENTS GUARD, and that

@@ -11,13 +11,13 @@ import (
 	"testing"
 )
 
-func runConfigCommandWithStreams(t *testing.T, bd, dir string, args ...string) (stdout string, stderr string, err error) {
+func runConfigCommandWithStreams(t *testing.T, issuegraph, dir string, args ...string) (stdout string, stderr string, err error) {
 	t.Helper()
 
 	fullArgs := append([]string{"config"}, args...)
-	cmd := exec.Command(bd, fullArgs...)
+	cmd := exec.Command(issuegraph, fullArgs...)
 	cmd.Dir = dir
-	cmd.Env = bdEnv(dir)
+	cmd.Env = issuegraphEnv(dir)
 
 	var stdoutBuf bytes.Buffer
 	var stderrBuf bytes.Buffer
@@ -42,16 +42,16 @@ func assertNoStoreInitLeak(t *testing.T, stderr string) {
 }
 
 func TestEmbeddedConfigNoWorkspaceStoreFreeCommands(t *testing.T) {
-	if os.Getenv("BEADS_TEST_EMBEDDED_DOLT") != "1" {
-		t.Skip("set BEADS_TEST_EMBEDDED_DOLT=1 to run embedded dolt integration tests")
+	if os.Getenv("ISSUEGRAPH_TEST_EMBEDDED_DOLT") != "1" {
+		t.Skip("set ISSUEGRAPH_TEST_EMBEDDED_DOLT=1 to run embedded dolt integration tests")
 	}
 	t.Parallel()
 
-	bd := buildEmbeddedBD(t)
+	issuegraph := buildEmbeddedBD(t)
 	dir := t.TempDir()
 
 	t.Run("get_yaml_only", func(t *testing.T) {
-		stdout, stderr, err := runConfigCommandWithStreams(t, bd, dir, "get", "no-db")
+		stdout, stderr, err := runConfigCommandWithStreams(t, issuegraph, dir, "get", "no-db")
 		if err != nil {
 			t.Fatalf("config get no-db failed: %v\nstdout:\n%s\nstderr:\n%s", err, stdout, stderr)
 		}
@@ -66,18 +66,18 @@ func TestEmbeddedConfigNoWorkspaceStoreFreeCommands(t *testing.T) {
 	})
 
 	t.Run("set_yaml_only_reports_config_yaml_error", func(t *testing.T) {
-		stdout, stderr, err := runConfigCommandWithStreams(t, bd, dir, "set", "no-db", "true")
+		stdout, stderr, err := runConfigCommandWithStreams(t, issuegraph, dir, "set", "no-db", "true")
 		if err == nil {
 			t.Fatalf("expected config set no-db to fail without a workspace config, stdout:\n%s\nstderr:\n%s", stdout, stderr)
 		}
 		assertNoStoreInitLeak(t, stderr)
-		if !strings.Contains(stderr, "no .beads/config.yaml found") {
+		if !strings.Contains(stderr, "no .issuegraph/config.yaml found") {
 			t.Fatalf("expected config.yaml error, got stderr:\n%s", stderr)
 		}
 	})
 
 	t.Run("show_json", func(t *testing.T) {
-		stdout, stderr, err := runConfigCommandWithStreams(t, bd, dir, "show", "--json")
+		stdout, stderr, err := runConfigCommandWithStreams(t, issuegraph, dir, "show", "--json")
 		if err != nil {
 			t.Fatalf("config show --json failed: %v\nstdout:\n%s\nstderr:\n%s", err, stdout, stderr)
 		}
@@ -96,7 +96,7 @@ func TestEmbeddedConfigNoWorkspaceStoreFreeCommands(t *testing.T) {
 	})
 
 	t.Run("drift_json", func(t *testing.T) {
-		stdout, stderr, err := runConfigCommandWithStreams(t, bd, dir, "drift", "--json")
+		stdout, stderr, err := runConfigCommandWithStreams(t, issuegraph, dir, "drift", "--json")
 		if err != nil {
 			t.Fatalf("config drift --json failed: %v\nstdout:\n%s\nstderr:\n%s", err, stdout, stderr)
 		}
@@ -115,7 +115,7 @@ func TestEmbeddedConfigNoWorkspaceStoreFreeCommands(t *testing.T) {
 	})
 
 	t.Run("apply_json", func(t *testing.T) {
-		stdout, stderr, err := runConfigCommandWithStreams(t, bd, dir, "apply", "--json")
+		stdout, stderr, err := runConfigCommandWithStreams(t, issuegraph, dir, "apply", "--json")
 		if err != nil {
 			t.Fatalf("config apply --json failed: %v\nstdout:\n%s\nstderr:\n%s", err, stdout, stderr)
 		}
@@ -135,15 +135,15 @@ func TestEmbeddedConfigNoWorkspaceStoreFreeCommands(t *testing.T) {
 }
 
 func TestEmbeddedConfigValidateJSONNoWorkspaceWritesStdout(t *testing.T) {
-	if os.Getenv("BEADS_TEST_EMBEDDED_DOLT") != "1" {
-		t.Skip("set BEADS_TEST_EMBEDDED_DOLT=1 to run embedded dolt integration tests")
+	if os.Getenv("ISSUEGRAPH_TEST_EMBEDDED_DOLT") != "1" {
+		t.Skip("set ISSUEGRAPH_TEST_EMBEDDED_DOLT=1 to run embedded dolt integration tests")
 	}
 	t.Parallel()
 
-	bd := buildEmbeddedBD(t)
+	issuegraph := buildEmbeddedBD(t)
 	dir := t.TempDir()
 
-	stdout, stderr, err := runConfigCommandWithStreams(t, bd, dir, "validate", "--json")
+	stdout, stderr, err := runConfigCommandWithStreams(t, issuegraph, dir, "validate", "--json")
 	if err == nil {
 		t.Fatalf("expected config validate --json to fail without a workspace, stdout:\n%s\nstderr:\n%s", stdout, stderr)
 	}
@@ -159,7 +159,7 @@ func TestEmbeddedConfigValidateJSONNoWorkspaceWritesStdout(t *testing.T) {
 	if errField, _ := payload["error"].(string); errField != activeWorkspaceNotFoundError() {
 		t.Fatalf("error = %q, want %q", errField, activeWorkspaceNotFoundError())
 	}
-	if hint, _ := payload["hint"].(string); !strings.Contains(hint, "bd where") {
-		t.Fatalf("expected hint to mention bd where, got %q", hint)
+	if hint, _ := payload["hint"].(string); !strings.Contains(hint, "issuegraph where") {
+		t.Fatalf("expected hint to mention issuegraph where, got %q", hint)
 	}
 }

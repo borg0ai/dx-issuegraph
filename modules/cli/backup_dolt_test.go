@@ -9,18 +9,18 @@ import (
 	"testing"
 	"time"
 
-	"github.com/steveyegge/beads/internal/storage"
+	"github.com/borg0ai/dx-issuegraph/internal/storage"
 )
 
 func TestResolveDoltBackupURL(t *testing.T) {
 	t.Parallel()
 
 	// Build the absolute-path fixture with platform-native semantics.
-	// A hard-coded POSIX literal like "/mnt/usb/beads-backup" is not absolute
+	// A hard-coded POSIX literal like "/mnt/usb/issuegraph-backup" is not absolute
 	// on Windows (no volume name), so resolveDoltBackupURL would resolve it
 	// against the current drive and return "file://C:\\mnt\\usb\\...".
 	// t.TempDir() is absolute and already cleaned on every platform.
-	absBackup := filepath.Join(t.TempDir(), "beads-backup")
+	absBackup := filepath.Join(t.TempDir(), "issuegraph-backup")
 
 	tests := []struct {
 		name      string
@@ -84,11 +84,11 @@ func TestResolveDoltBackupURL(t *testing.T) {
 
 func TestResolveDoltBackupURL_HomeTilde(t *testing.T) {
 	t.Parallel()
-	got := resolveDoltBackupURL("~/backups/beads")
+	got := resolveDoltBackupURL("~/backups/issuegraph")
 	home, _ := os.UserHomeDir()
-	want := "file://" + filepath.Join(home, "backups/beads")
+	want := "file://" + filepath.Join(home, "backups/issuegraph")
 	if got != want {
-		t.Errorf("resolveDoltBackupURL(~/backups/beads) = %q, want %q", got, want)
+		t.Errorf("resolveDoltBackupURL(~/backups/issuegraph) = %q, want %q", got, want)
 	}
 }
 
@@ -242,7 +242,7 @@ func TestDoltBackupSizeFromSizer(t *testing.T) {
 
 func TestShowDoltBackupStatusJSON_NilWhenNotConfigured(t *testing.T) {
 	t.Parallel()
-	// When no .beads dir exists, should return configured=false
+	// When no .issuegraph dir exists, should return configured=false
 	result := showDoltBackupStatusJSON()
 	configured, ok := result["configured"].(bool)
 	if !ok || configured {

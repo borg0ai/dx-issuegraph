@@ -6,10 +6,10 @@ import (
 	"fmt"
 	"strings"
 
-	"github.com/steveyegge/beads/internal/storage"
-	"github.com/steveyegge/beads/internal/storage/issueops"
-	"github.com/steveyegge/beads/internal/storage/sqlbuild"
-	"github.com/steveyegge/beads/internal/types"
+	"github.com/borg0ai/dx-issuegraph/internal/storage"
+	"github.com/borg0ai/dx-issuegraph/internal/storage/issueops"
+	"github.com/borg0ai/dx-issuegraph/internal/storage/sqlbuild"
+	"github.com/borg0ai/dx-issuegraph/internal/types"
 )
 
 // Wisp table routing helpers.
@@ -133,7 +133,7 @@ func scanIssueTxFromTable(ctx context.Context, tx *sql.Tx, table, id string) (*t
 
 // wispPrefix returns the ID prefix for wisp ID generation.
 // Uses IDPrefix if set (e.g., IDPrefix="wisp" → "bd-wisp"), otherwise
-// appends "-wisp" to the config prefix (e.g., "bd" → "bd-wisp").
+// appends "-wisp" to the config prefix (e.g., "issuegraph" → "bd-wisp").
 func wispPrefix(configPrefix string, issue *types.Issue) string {
 	if issue.PrefixOverride != "" {
 		return issue.PrefixOverride
@@ -345,7 +345,7 @@ func (s *DoltStore) deleteWisp(ctx context.Context, id string) error {
 	}
 
 	// Edges are journaled before the row goes, while their source snapshots can
-	// still be read. An active wisp is a bead like any other, so its delete is
+	// still be read. An active wisp is a issue like any other, so its delete is
 	// a journalled mutation, not silent cleanup.
 	// The wisp delete surface carries no actor, so these record none.
 	if err := issueops.RecordDependencyRemovalsForIssuesInTx(ctx, tx, []string{id}, ""); err != nil {
@@ -441,7 +441,7 @@ func (s *DoltStore) deleteWispBatchTx(ctx context.Context, ids []string) (int, e
 	// afterwards they are gone, and RowsAffected reports a count, not a set.
 	// GC hands this path ids it scanned earlier, so an already-collected wisp is
 	// a routine case, and a phantom delete record would tell a consumer to drop
-	// a bead this transaction never touched.
+	// a issue this transaction never touched.
 	deletedIDs, err := issueops.ExistingIssueIDsInTableInTx(ctx, tx, "wisps", ids)
 	if err != nil {
 		return 0, fmt.Errorf("resolve existing wisps for batch delete: %w", err)

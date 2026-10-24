@@ -4,10 +4,10 @@ import (
 	"fmt"
 	"os"
 
+	"github.com/borg0ai/dx-issuegraph/internal/metrics"
+	"github.com/borg0ai/dx-issuegraph/internal/types"
+	"github.com/borg0ai/dx-issuegraph/internal/ui"
 	"github.com/spf13/cobra"
-	"github.com/steveyegge/beads/internal/metrics"
-	"github.com/steveyegge/beads/internal/types"
-	"github.com/steveyegge/beads/internal/ui"
 )
 
 var shipCmd = &cobra.Command{
@@ -21,15 +21,15 @@ This command:
   3. Adds provides:<capability> label
 
 External projects can depend on this capability using:
-  bd dep add <issue> external:<project>:<capability>
+  issuegraph dep add <issue> external:<project>:<capability>
 
 The capability is resolved when the external project has a closed issue
 with the provides:<capability> label.
 
 Examples:
-  bd ship mol-run-assignee              # Ship the mol-run-assignee capability
-  bd ship mol-run-assignee --force      # Ship even if issue is not closed
-  bd ship mol-run-assignee --dry-run    # Preview without making changes`,
+  issuegraph ship mol-run-assignee              # Ship the mol-run-assignee capability
+  issuegraph ship mol-run-assignee --force      # Ship even if issue is not closed
+  issuegraph ship mol-run-assignee --dry-run    # Preview without making changes`,
 	Args:          cobra.ExactArgs(1),
 	SilenceUsage:  true,
 	SilenceErrors: true,
@@ -69,7 +69,7 @@ func runShip(cmd *cobra.Command, args []string) error {
 	if len(issues) == 0 {
 		return HandleErrorWithHintRespectJSON(
 			fmt.Sprintf("no issue found with label '%s'", exportLabel),
-			fmt.Sprintf("add the label first: bd label add <issue-id> %s", exportLabel))
+			fmt.Sprintf("add the label first: issuegraph label add <issue-id> %s", exportLabel))
 	}
 
 	if len(issues) > 1 {

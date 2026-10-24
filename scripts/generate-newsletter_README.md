@@ -93,7 +93,7 @@ Add to your crontab for weekly generation:
 
 ```bash
 # Run every Monday at 9 AM
-0 9 * * 1 cd /path/to/beads && uv run scripts/generate-newsletter.py
+0 9 * * 1 cd /path/to/issuegraph && uv run scripts/generate-newsletter.py
 ```
 
 ## How It Works

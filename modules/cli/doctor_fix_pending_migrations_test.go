@@ -6,17 +6,17 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/steveyegge/beads/modules/cli/doctor"
+	"github.com/borg0ai/dx-issuegraph/modules/cli/doctor"
 )
 
 func TestFixPendingMigrations_AppliesHookMigration(t *testing.T) {
 	repoDir, hooksDir := setupHookMigrationRepo(t)
 	preCommitPath := filepath.Join(hooksDir, "pre-commit")
 
-	writeHookMigrationFile(t, preCommitPath, "#!/usr/bin/env sh\n# bd-shim v2\n# bd-hooks-version: 0.56.1\nexec bd hooks run pre-commit \"$@\"\n")
+	writeHookMigrationFile(t, preCommitPath, "#!/usr/bin/env sh\n# bd-shim v2\n# bd-hooks-version: 0.56.1\nexec issuegraph hooks run pre-commit \"$@\"\n")
 	writeHookMigrationFile(t, preCommitPath+".old", "#!/usr/bin/env sh\necho old-custom\n")
-	if err := os.MkdirAll(filepath.Join(repoDir, ".beads"), 0o755); err != nil {
-		t.Fatalf("failed to create .beads: %v", err)
+	if err := os.MkdirAll(filepath.Join(repoDir, ".issuegraph"), 0o755); err != nil {
+		t.Fatalf("failed to create .issuegraph: %v", err)
 	}
 
 	pending := doctor.DetectPendingMigrations(repoDir)
@@ -44,10 +44,10 @@ func TestFixPendingMigrations_BrokenMarkerIsRepaired(t *testing.T) {
 	repoDir, hooksDir := setupHookMigrationRepo(t)
 	preCommitPath := filepath.Join(hooksDir, "pre-commit")
 
-	brokenContent := "#!/usr/bin/env sh\n# --- BEGIN BEADS INTEGRATION v0.57.0 ---\nbd hooks run pre-commit \"$@\"\n"
+	brokenContent := "#!/usr/bin/env sh\n# --- BEGIN ISSUEGRAPH INTEGRATION v0.57.0 ---\nbd hooks run pre-commit \"$@\"\n"
 	writeHookMigrationFile(t, preCommitPath, brokenContent)
-	if err := os.MkdirAll(filepath.Join(repoDir, ".beads"), 0o755); err != nil {
-		t.Fatalf("failed to create .beads: %v", err)
+	if err := os.MkdirAll(filepath.Join(repoDir, ".issuegraph"), 0o755); err != nil {
+		t.Fatalf("failed to create .issuegraph: %v", err)
 	}
 
 	if err := fixPendingMigrations(repoDir); err != nil {

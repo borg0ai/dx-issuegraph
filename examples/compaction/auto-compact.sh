@@ -38,15 +38,15 @@ if [ -z "$ANTHROPIC_API_KEY" ]; then
   exit 1
 fi
 
-# Check bd is installed
-if ! command -v bd &> /dev/null; then
-  echo "❌ Error: bd command not found"
+# Check issuegraph is installed
+if ! command -v issuegraph &> /dev/null; then
+  echo "❌ Error: issuegraph command not found"
   exit 1
 fi
 
 # Check eligible issues
 echo "Checking eligible issues (Tier $TIER)..."
-ELIGIBLE=$(bd admin compact --dry-run --all --tier "$TIER" --json 2>/dev/null | jq '. | length' || echo "0")
+ELIGIBLE=$(issuegraph admin compact --dry-run --all --tier "$TIER" --json 2>/dev/null | jq '. | length' || echo "0")
 
 if [ -z "$ELIGIBLE" ] || [ "$ELIGIBLE" = "null" ]; then
   ELIGIBLE=0
@@ -61,19 +61,19 @@ fi
 
 if [ "$DRY_RUN" = true ]; then
   echo "🔍 Dry run mode - showing candidates:"
-  bd admin compact --dry-run --all --tier "$TIER"
+  issuegraph admin compact --dry-run --all --tier "$TIER"
   exit 0
 fi
 
 # Run compaction
 echo "🗜️  Compacting $ELIGIBLE issues (Tier $TIER)..."
-bd admin compact --all --tier "$TIER"
+issuegraph admin compact --all --tier "$TIER"
 
 # Show stats
 echo
 echo "📊 Statistics:"
-bd admin compact --stats
+issuegraph admin compact --stats
 
 echo
 echo "✅ Auto-compaction complete"
-echo "Remember to commit: git add .beads/issues.jsonl issues.db && git commit -m 'Auto-compact'"
+echo "Remember to commit: git add .issuegraph/issues.jsonl issues.db && git commit -m 'Auto-compact'"

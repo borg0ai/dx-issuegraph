@@ -13,8 +13,8 @@ import (
 	"testing"
 	"time"
 
-	"github.com/steveyegge/beads/internal/configfile"
-	"github.com/steveyegge/beads/internal/types"
+	"github.com/borg0ai/dx-issuegraph/internal/configfile"
+	"github.com/borg0ai/dx-issuegraph/internal/types"
 )
 
 // TestCheckDuplicateIssues_ClosedIssuesExcluded verifies that closed issues
@@ -154,19 +154,19 @@ func TestCheckDuplicateIssues_DeletedExcluded(t *testing.T) {
 // TestCheckDuplicateIssues_NoDatabase verifies graceful handling when no database exists.
 func TestCheckDuplicateIssues_NoDatabase(t *testing.T) {
 	tmpDir := t.TempDir()
-	beadsDir := filepath.Join(tmpDir, ".beads")
-	if err := os.Mkdir(beadsDir, 0o755); err != nil {
+	issuegraphDir := filepath.Join(tmpDir, ".issuegraph")
+	if err := os.Mkdir(issuegraphDir, 0o755); err != nil {
 		t.Fatal(err)
 	}
 
 	// Write metadata.json pointing to a unique nonexistent database so that
-	// openStoreDB doesn't fall back to the shared default "beads" database.
+	// openStoreDB doesn't fall back to the shared default "issuegraph" database.
 	h := sha256.Sum256([]byte(t.Name() + fmt.Sprintf("%d", time.Now().UnixNano())))
 	noDbName := "doctest_nodb_" + hex.EncodeToString(h[:6])
 	cfg := configfile.DefaultConfig()
 	cfg.Backend = configfile.BackendDolt
 	cfg.DoltDatabase = noDbName
-	if err := cfg.Save(beadsDir); err != nil {
+	if err := cfg.Save(issuegraphDir); err != nil {
 		t.Fatalf("Failed to save config: %v", err)
 	}
 
@@ -607,11 +607,11 @@ func TestCheckChildParentDependenciesDB_WispChildBlockingParentDetected(t *testi
 }
 
 // TestCheckTestPollution_NoTestIssues_NoServer verifies StatusOK when no Dolt
-// server is reachable. This isolates BEADS_DOLT_PORT set by TestMain (which
+// server is reachable. This isolates ISSUEGRAPH_DOLT_PORT set by TestMain (which
 // starts a Docker-based Dolt container on Ubuntu but not macOS) so the test
 // exercises the "no database" code path deterministically on all platforms.
 func TestCheckTestPollution_NoTestIssues_NoServer(t *testing.T) {
-	for _, key := range []string{"BEADS_DOLT_PORT", "BEADS_DOLT_SERVER_PORT"} {
+	for _, key := range []string{"ISSUEGRAPH_DOLT_PORT", "ISSUEGRAPH_DOLT_SERVER_PORT"} {
 		if orig, ok := os.LookupEnv(key); ok {
 			t.Cleanup(func() { os.Setenv(key, orig) })
 			os.Unsetenv(key)
@@ -619,8 +619,8 @@ func TestCheckTestPollution_NoTestIssues_NoServer(t *testing.T) {
 	}
 
 	tmpDir := t.TempDir()
-	beadsDir := filepath.Join(tmpDir, ".beads")
-	if err := os.MkdirAll(beadsDir, 0o755); err != nil {
+	issuegraphDir := filepath.Join(tmpDir, ".issuegraph")
+	if err := os.MkdirAll(issuegraphDir, 0o755); err != nil {
 		t.Fatal(err)
 	}
 
@@ -643,8 +643,8 @@ func TestCheckTestPollution_NoTestIssues_EmptyDB(t *testing.T) {
 	}
 
 	tmpDir := t.TempDir()
-	beadsDir := filepath.Join(tmpDir, ".beads")
-	if err := os.MkdirAll(beadsDir, 0o755); err != nil {
+	issuegraphDir := filepath.Join(tmpDir, ".issuegraph")
+	if err := os.MkdirAll(issuegraphDir, 0o755); err != nil {
 		t.Fatal(err)
 	}
 
@@ -662,8 +662,8 @@ func TestCheckTestPollution_NoTestIssues_EmptyDB(t *testing.T) {
 // when the Dolt database directory doesn't exist.
 func TestCheckGitConflicts_DoltBackend_NoDB(t *testing.T) {
 	tmpDir := t.TempDir()
-	beadsDir := filepath.Join(tmpDir, ".beads")
-	if err := os.MkdirAll(beadsDir, 0o755); err != nil {
+	issuegraphDir := filepath.Join(tmpDir, ".issuegraph")
+	if err := os.MkdirAll(issuegraphDir, 0o755); err != nil {
 		t.Fatal(err)
 	}
 

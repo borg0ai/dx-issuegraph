@@ -8,10 +8,10 @@ import (
 	"slices"
 	"testing"
 
-	"github.com/steveyegge/beads/internal/storage"
-	"github.com/steveyegge/beads/internal/storage/embeddeddolt"
-	"github.com/steveyegge/beads/internal/storage/externaldeps"
-	"github.com/steveyegge/beads/internal/types"
+	"github.com/borg0ai/dx-issuegraph/internal/storage"
+	"github.com/borg0ai/dx-issuegraph/internal/storage/embeddeddolt"
+	"github.com/borg0ai/dx-issuegraph/internal/storage/externaldeps"
+	"github.com/borg0ai/dx-issuegraph/internal/types"
 )
 
 type nonClosingStore struct {
@@ -114,7 +114,7 @@ func TestExternalCapabilityBlocksEmbeddedReadyAndAppearsInTree(t *testing.T) {
 
 func openExternalDependencyStore(t *testing.T, prefix string) *embeddeddolt.EmbeddedDoltStore {
 	t.Helper()
-	store, err := embeddeddolt.Open(t.Context(), filepath.Join(t.TempDir(), ".beads"), prefix, "main")
+	store, err := embeddeddolt.Open(t.Context(), filepath.Join(t.TempDir(), ".issuegraph"), prefix, "main")
 	if err != nil {
 		t.Fatalf("Open(%s): %v", prefix, err)
 	}
@@ -122,7 +122,7 @@ func openExternalDependencyStore(t *testing.T, prefix string) *embeddeddolt.Embe
 	if err := store.SetConfig(t.Context(), "issue_prefix", prefix); err != nil {
 		t.Fatalf("SetConfig(%s): %v", prefix, err)
 	}
-	if err := store.Commit(t.Context(), "bd init"); err != nil {
+	if err := store.Commit(t.Context(), "issuegraph init"); err != nil {
 		t.Fatalf("Commit(%s): %v", prefix, err)
 	}
 	return store

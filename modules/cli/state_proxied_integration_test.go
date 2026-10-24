@@ -11,15 +11,15 @@ import (
 func TestProxiedServerState(t *testing.T) {
 	requireSharedProxiedServer(t)
 	t.Parallel()
-	bd := buildEmbeddedBD(t)
+	issuegraph := buildEmbeddedBD(t)
 
 	t.Run("state_query", func(t *testing.T) {
 		t.Parallel()
-		p := newSharedProxiedProject(t, bd, "st")
-		issue := bdProxiedCreate(t, bd, p.dir, "State target")
-		bdProxiedLabel(t, bd, p.dir, "add", issue.ID, "patrol:active")
+		p := newSharedProxiedProject(t, issuegraph, "st")
+		issue := issuegraphProxiedCreate(t, issuegraph, p.dir, "State target")
+		issuegraphProxiedLabel(t, issuegraph, p.dir, "add", issue.ID, "patrol:active")
 
-		out, stderr, err := bdProxiedRunBuffers(t, bd, p.dir, "state", issue.ID, "patrol")
+		out, stderr, err := issuegraphProxiedRunBuffers(t, issuegraph, p.dir, "state", issue.ID, "patrol")
 		if err != nil {
 			t.Fatalf("state failed: %v\nstderr:\n%s", err, stderr)
 		}
@@ -30,9 +30,9 @@ func TestProxiedServerState(t *testing.T) {
 
 	t.Run("state_query_unset", func(t *testing.T) {
 		t.Parallel()
-		p := newSharedProxiedProject(t, bd, "su")
-		issue := bdProxiedCreate(t, bd, p.dir, "No state")
-		out, _, err := bdProxiedRunBuffers(t, bd, p.dir, "state", issue.ID, "mode")
+		p := newSharedProxiedProject(t, issuegraph, "su")
+		issue := issuegraphProxiedCreate(t, issuegraph, p.dir, "No state")
+		out, _, err := issuegraphProxiedRunBuffers(t, issuegraph, p.dir, "state", issue.ID, "mode")
 		if err != nil {
 			t.Fatalf("state failed: %v", err)
 		}
@@ -43,11 +43,11 @@ func TestProxiedServerState(t *testing.T) {
 
 	t.Run("state_query_json", func(t *testing.T) {
 		t.Parallel()
-		p := newSharedProxiedProject(t, bd, "sj")
-		issue := bdProxiedCreate(t, bd, p.dir, "State json")
-		bdProxiedLabel(t, bd, p.dir, "add", issue.ID, "mode:degraded")
+		p := newSharedProxiedProject(t, issuegraph, "sj")
+		issue := issuegraphProxiedCreate(t, issuegraph, p.dir, "State json")
+		issuegraphProxiedLabel(t, issuegraph, p.dir, "add", issue.ID, "mode:degraded")
 
-		stdout, stderr, err := bdProxiedRunBuffers(t, bd, p.dir, "state", issue.ID, "mode", "--json")
+		stdout, stderr, err := issuegraphProxiedRunBuffers(t, issuegraph, p.dir, "state", issue.ID, "mode", "--json")
 		if err != nil {
 			t.Fatalf("state --json failed: %v\nstderr:\n%s", err, stderr)
 		}
@@ -66,11 +66,11 @@ func TestProxiedServerState(t *testing.T) {
 
 	t.Run("state_list", func(t *testing.T) {
 		t.Parallel()
-		p := newSharedProxiedProject(t, bd, "sl")
-		issue := bdProxiedCreate(t, bd, p.dir, "State list target")
-		bdProxiedLabel(t, bd, p.dir, "add", issue.ID, "patrol:active,mode:normal")
+		p := newSharedProxiedProject(t, issuegraph, "sl")
+		issue := issuegraphProxiedCreate(t, issuegraph, p.dir, "State list target")
+		issuegraphProxiedLabel(t, issuegraph, p.dir, "add", issue.ID, "patrol:active,mode:normal")
 
-		out, stderr, err := bdProxiedRunBuffers(t, bd, p.dir, "state", "list", issue.ID)
+		out, stderr, err := issuegraphProxiedRunBuffers(t, issuegraph, p.dir, "state", "list", issue.ID)
 		if err != nil {
 			t.Fatalf("state list failed: %v\nstderr:\n%s", err, stderr)
 		}
@@ -81,9 +81,9 @@ func TestProxiedServerState(t *testing.T) {
 
 	t.Run("state_list_empty", func(t *testing.T) {
 		t.Parallel()
-		p := newSharedProxiedProject(t, bd, "se")
-		issue := bdProxiedCreate(t, bd, p.dir, "No labels")
-		out, _, err := bdProxiedRunBuffers(t, bd, p.dir, "state", "list", issue.ID)
+		p := newSharedProxiedProject(t, issuegraph, "se")
+		issue := issuegraphProxiedCreate(t, issuegraph, p.dir, "No labels")
+		out, _, err := issuegraphProxiedRunBuffers(t, issuegraph, p.dir, "state", "list", issue.ID)
 		if err != nil {
 			t.Fatalf("state list failed: %v", err)
 		}
@@ -94,11 +94,11 @@ func TestProxiedServerState(t *testing.T) {
 
 	t.Run("state_reads_wisp_labels", func(t *testing.T) {
 		t.Parallel()
-		p := newSharedProxiedProject(t, bd, "sw")
-		wisp := bdProxiedCreate(t, bd, p.dir, "Wisp state", "--ephemeral")
-		bdProxiedLabel(t, bd, p.dir, "add", wisp.ID, "patrol:muted")
+		p := newSharedProxiedProject(t, issuegraph, "sw")
+		wisp := issuegraphProxiedCreate(t, issuegraph, p.dir, "Wisp state", "--ephemeral")
+		issuegraphProxiedLabel(t, issuegraph, p.dir, "add", wisp.ID, "patrol:muted")
 
-		out, stderr, err := bdProxiedRunBuffers(t, bd, p.dir, "state", wisp.ID, "patrol")
+		out, stderr, err := issuegraphProxiedRunBuffers(t, issuegraph, p.dir, "state", wisp.ID, "patrol")
 		if err != nil {
 			t.Fatalf("state on wisp failed: %v\nstderr:\n%s", err, stderr)
 		}

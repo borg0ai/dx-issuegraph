@@ -12,12 +12,12 @@ import (
 	"strings"
 	"time"
 
+	"github.com/borg0ai/dx-issuegraph"
+	"github.com/borg0ai/dx-issuegraph/internal/config"
+	internalissuegraph "github.com/borg0ai/dx-issuegraph/internal/issuegraph"
+	"github.com/borg0ai/dx-issuegraph/internal/metrics"
+	"github.com/borg0ai/dx-issuegraph/memoryops"
 	"github.com/spf13/cobra"
-	"github.com/steveyegge/beads"
-	internalbeads "github.com/steveyegge/beads/internal/beads"
-	"github.com/steveyegge/beads/internal/config"
-	"github.com/steveyegge/beads/internal/metrics"
-	"github.com/steveyegge/beads/memoryops"
 )
 
 var (
@@ -36,7 +36,7 @@ var (
 )
 
 const (
-	primeStoreTimeoutEnv     = "BEADS_PRIME_TIMEOUT"
+	primeStoreTimeoutEnv     = "ISSUEGRAPH_PRIME_TIMEOUT"
 	primeStoreTimeoutDefault = 10 * time.Second
 )
 
@@ -62,7 +62,7 @@ func primeStoreTimeout() time.Duration {
 	return primeStoreTimeoutDefault
 }
 
-// resolveGlobalPrimePath returns the path to ~/.config/beads/PRIME.md if it
+// resolveGlobalPrimePath returns the path to ~/.config/issuegraph/PRIME.md if it
 // exists. configDirOverride is used for testing; pass "" for production.
 func resolveGlobalPrimePath(configDirOverride string) string {
 	var configDir string
@@ -75,7 +75,7 @@ func resolveGlobalPrimePath(configDirOverride string) string {
 			return ""
 		}
 	}
-	p := filepath.Join(configDir, "beads", "PRIME.md")
+	p := filepath.Join(configDir, "issuegraph", "PRIME.md")
 	if _, err := os.Stat(p); err == nil {
 		return p
 	}
@@ -86,27 +86,27 @@ var primeCmd = &cobra.Command{
 	Use:     "prime",
 	GroupID: "setup",
 	Short:   "Output AI-optimized workflow context",
-	Long: `Output essential Beads workflow context in AI-optimized markdown format.
+	Long: `Output essential IssueGraph workflow context in AI-optimized markdown format.
 
 Automatically detects if MCP server is active and adapts output:
 - MCP mode: Brief workflow reminders (~50 tokens)
 - CLI mode: Full command reference (~1-2k tokens)
 
 Designed for Claude Code, Gemini CLI, and Codex SessionStart hooks to prevent
-agents from forgetting bd workflow after context compaction.
+agents from forgetting issuegraph workflow after context compaction.
 
 Config options:
 - no-git-ops: When true, outputs stealth mode (no git commands in session close protocol).
-  Set via: bd config set no-git-ops true
+  Set via: issuegraph config set no-git-ops true
   Useful when you want to control when commits happen manually.
 - agent.profile: Explicit policy profile for git/commit authority wording
   (conservative | minimal | team-maintainer; default conservative).
-  Set via: bd config set agent.profile team-maintainer
-  Or per-session: BD_AGENT_PROFILE=team-maintainer (env var takes precedence).
+  Set via: issuegraph config set agent.profile team-maintainer
+  Or per-session: ISSUEGRAPH_AGENT_PROFILE=team-maintainer (env var takes precedence).
   See docs/getting-started/ide-setup.md#policy-profiles for what each profile means.
 
 	Workflow customization:
-	- Place a .beads/PRIME.md file in the local clone or resolved workspace to override the default workflow text. Persistent memories (from bd remember) are still appended so memory injection keeps working under a custom template.
+	- Place a .issuegraph/PRIME.md file in the local clone or resolved workspace to override the default workflow text. Persistent memories (from issuegraph remember) are still appended so memory injection keeps working under a custom template.
 	- Use --export to dump the default content for customization.
 	- Use --memories-only for hook contexts that should inject only persistent memories; this returns only the memories section even when a custom PRIME.md is present.
 	- Use --no-memories to omit the persistent memories section (useful when the memories section is large and would dominate a context budget). --memories-only takes precedence if both are set.
@@ -118,7 +118,7 @@ Memory injection caps:
 	prime.max-memory-chars config keys; an explicit flag wins, and an explicit
 	0 forces unlimited). Caps apply at whole-memory boundaries, at least one
 	memory is always emitted, and a banner ahead of the entries reports how
-	many were elided and how to browse the rest with bd memories.
+	many were elided and how to browse the rest with issuegraph memories.
 	--max-memory-chars caps the total bytes of the injected memory entries;
 	the section header and elision banner are excluded from the budget.`,
 	SilenceUsage:  true,
@@ -142,8 +142,8 @@ Memory injection caps:
 			}
 		}
 
-		beadsDir := beads.FindBeadsDir()
-		if beadsDir == "" {
+		issuegraphDir := issuegraph.FindIssueGraphDir()
+		if issuegraphDir == "" {
 			// Silent exit with success enables cross-platform hook integration.
 			// Under --hook-json still emit a valid empty envelope.
 			if primeHookJSONMode {
@@ -183,11 +183,11 @@ Memory injection caps:
 
 		// Check for custom PRIME.md override (unless --export flag).
 		// A custom PRIME.md replaces the default workflow text, but the persistent
-		// memories section is still appended (when present) so `bd remember` keeps
+		// memories section is still appended (when present) so `issuegraph remember` keeps
 		// working under a custom template — matching the default-template behavior
 		// (GH#3941).
 		if !primeExportMode {
-			if content, ok := readCustomPrimeContent(beadsDir); ok {
+			if content, ok := readCustomPrimeContent(issuegraphDir); ok {
 				if !primeNoMemories {
 					if mem := formatMemoriesForPrime(false); mem != "" {
 						content += mem
@@ -207,7 +207,7 @@ Memory injection caps:
 			return nil
 		}
 		// Append the AGENTS.md/CLAUDE.md divergence reminder only when both
-		// files are independent regulars carrying the bd marker; otherwise this
+		// files are independent regulars carrying the issuegraph marker; otherwise this
 		// adds nothing (zero output, negligible cost).
 		buf.WriteString(primeDivergenceReminder(""))
 		emit(buf.String())
@@ -229,24 +229,24 @@ func init() {
 }
 
 // readCustomPrimeContent returns the contents of a custom PRIME.md override and
-// true when one is found. It checks, in priority order: the local .beads/PRIME.md
+// true when one is found. It checks, in priority order: the local .issuegraph/PRIME.md
 // (clone-specific customization), the redirected workspace PRIME.md (shared
-// customization), then the global ~/.config/beads/PRIME.md. It returns ("", false)
+// customization), then the global ~/.config/issuegraph/PRIME.md. It returns ("", false)
 // when no override exists, so callers fall through to the generated default.
-func readCustomPrimeContent(beadsDir string) (string, bool) {
-	localPrimePath := filepath.Join(".beads", "PRIME.md")
+func readCustomPrimeContent(issuegraphDir string) (string, bool) {
+	localPrimePath := filepath.Join(".issuegraph", "PRIME.md")
 	// Try local first (user's clone-specific customization).
 	// #nosec G304 -- path is relative to cwd
 	if content, err := os.ReadFile(localPrimePath); err == nil {
 		return string(content), true
 	}
 	// Fall back to redirected location (shared customization).
-	redirectedPrimePath := filepath.Join(beadsDir, "PRIME.md")
-	// #nosec G304 -- path is constructed from beadsDir which we control
+	redirectedPrimePath := filepath.Join(issuegraphDir, "PRIME.md")
+	// #nosec G304 -- path is constructed from issuegraphDir which we control
 	if content, err := os.ReadFile(redirectedPrimePath); err == nil {
 		return string(content), true
 	}
-	// Fall back to global config (~/.config/beads/PRIME.md).
+	// Fall back to global config (~/.config/issuegraph/PRIME.md).
 	if globalPath := resolveGlobalPrimePath(""); globalPath != "" {
 		// #nosec G304 -- path constructed from UserConfigDir which we control
 		if content, err := os.ReadFile(globalPath); err == nil {
@@ -301,15 +301,15 @@ func isMCPActive() bool {
 		return false
 	}
 
-	// Check mcpServers section for beads
+	// Check mcpServers section for issuegraph
 	mcpServers, ok := settings["mcpServers"].(map[string]interface{})
 	if !ok {
 		return false
 	}
 
-	// Look for beads server (any key containing "beads")
+	// Look for issuegraph server (any key containing "issuegraph")
 	for key := range mcpServers {
-		if strings.Contains(strings.ToLower(key), "beads") {
+		if strings.Contains(strings.ToLower(key), "issuegraph") {
 			return true
 		}
 	}
@@ -321,7 +321,7 @@ func isMCPActive() bool {
 var isEphemeralBranch = func() bool {
 	// git rev-parse --abbrev-ref --symbolic-full-name @{u}
 	// Returns error code 128 if no upstream configured
-	rc, err := internalbeads.GetRepoContext()
+	rc, err := internalissuegraph.GetRepoContext()
 	if err != nil {
 		return true // Default to ephemeral if we can't determine context
 	}
@@ -336,7 +336,7 @@ var primeNoPushConfigured = func() bool {
 }
 
 // primeAgentProfile reports the explicit agent.profile knob (gh#3423,
-// follow-up to #4220), resolved via BD_AGENT_PROFILE env override / config
+// follow-up to #4220), resolved via ISSUEGRAPH_AGENT_PROFILE env override / config
 // key with a safe fallback to conservative (stubbable for tests).
 var primeAgentProfile = func() config.AgentProfile {
 	return config.GetAgentProfile()
@@ -344,7 +344,7 @@ var primeAgentProfile = func() config.AgentProfile {
 
 // primeHasGitRemote detects if any git remote is configured (stubbable for tests)
 var primeHasGitRemote = func() bool {
-	rc, err := internalbeads.GetRepoContext()
+	rc, err := internalissuegraph.GetRepoContext()
 	if err != nil {
 		return false
 	}
@@ -361,7 +361,7 @@ var primeHasSyncRemote = func() bool {
 	return resolveSyncRemote() != ""
 }
 
-// primeDoltSyncBullets returns the "bd dolt push"/"bd dolt pull" bullet
+// primeDoltSyncBullets returns the "issuegraph dolt push"/"issuegraph dolt pull" bullet
 // lines for the Sync & Collaboration section, in the requested order, and
 // an empty string when no Dolt sync remote is configured (doltSync == false,
 // gh#4130). This is independent of the git-remote axis (localOnly) that
@@ -372,27 +372,27 @@ func primeDoltSyncBullets(doltSync bool, pushFirst bool) string {
 		return ""
 	}
 	if pushFirst {
-		return "- `bd dolt push` - Push beads to Dolt remote\n" +
-			"- `bd dolt pull` - Pull beads from Dolt remote\n"
+		return "- `issuegraph dolt push` - Push issuegraph to Dolt remote\n" +
+			"- `issuegraph dolt pull` - Pull issuegraph from Dolt remote\n"
 	}
-	return "- `bd dolt pull` - Pull beads updates from Dolt remote\n" +
-		"- `bd dolt push` - Push beads to Dolt remote\n"
+	return "- `issuegraph dolt pull` - Pull issuegraph updates from Dolt remote\n" +
+		"- `issuegraph dolt push` - Push issuegraph to Dolt remote\n"
 }
 
-// getRedirectNotice returns a notice string if beads is redirected
+// getRedirectNotice returns a notice string if issuegraph is redirected
 func getRedirectNotice(verbose bool) string {
-	redirectInfo := beads.GetRedirectInfo()
+	redirectInfo := issuegraph.GetRedirectInfo()
 	if !redirectInfo.IsRedirected {
 		return ""
 	}
 
 	if verbose {
-		return fmt.Sprintf(`> ⚠️ **Redirected**: Local .beads → %s
+		return fmt.Sprintf(`> ⚠️ **Redirected**: Local .issuegraph → %s
 > You share issues with other clones using this redirect.
 
 `, redirectInfo.TargetDir)
 	}
-	return fmt.Sprintf("**Note**: Beads redirected to %s (shared with other clones)\n\n", redirectInfo.TargetDir)
+	return fmt.Sprintf("**Note**: IssueGraph redirected to %s (shared with other clones)\n\n", redirectInfo.TargetDir)
 }
 
 // outputPrimeContext outputs workflow context in markdown format
@@ -410,7 +410,7 @@ func outputPrimeContextWithOptions(w io.Writer, mcpMode bool, stealthMode bool, 
 	return outputCLIContext(w, stealthMode)
 }
 
-const primeTruncationDirective = "[bd prime] If this output is truncated by your host, read the full persisted hook output before continuing; it may contain project memories and session rules not visible in the preview.\n\n"
+const primeTruncationDirective = "[issuegraph prime] If this output is truncated by your host, read the full persisted hook output before continuing; it may contain project memories and session rules not visible in the preview.\n\n"
 
 func outputMemoriesOnlyContext(w io.Writer) error {
 	_, _ = fmt.Fprint(w, primeTruncationDirective)
@@ -418,7 +418,7 @@ func outputMemoriesOnlyContext(w io.Writer) error {
 		_, _ = fmt.Fprint(w, mem)
 		return nil
 	}
-	_, _ = fmt.Fprint(w, "# Beads Persistent Memories\n\nNo memories stored. Use `bd remember \"insight\"` to add one.\n")
+	_, _ = fmt.Fprint(w, "# IssueGraph Persistent Memories\n\nNo memories stored. Use `issuegraph remember \"insight\"` to add one.\n")
 	return nil
 }
 
@@ -453,7 +453,7 @@ func formatMemoriesForPrime(compact bool) string {
 			if errors.Is(err, context.DeadlineExceeded) {
 				return formatPrimeMemoryTimeout(compact, timeout)
 			}
-			if errors.Is(err, ErrNoBeadsDatabase) {
+			if errors.Is(err, ErrNoIssueGraphDatabase) {
 				return "" // No workspace here — genuinely nothing to inject.
 			}
 			return formatPrimeMemoryUnavailable(compact, err)
@@ -566,7 +566,7 @@ func renderPrimeMemories(memories map[string]string, compact bool, maxCount, max
 	if compact {
 		if elided > 0 {
 			sb.WriteString(fmt.Sprintf("\n## Memories (showing %d of %d)\n", len(entries), len(keys)))
-			sb.WriteString(fmt.Sprintf("- %d more not shown (%s); browse with `bd memories <keyword>`\n", elided, primeMemoryCapNote(noteCount, noteChars)))
+			sb.WriteString(fmt.Sprintf("- %d more not shown (%s); browse with `issuegraph memories <keyword>`\n", elided, primeMemoryCapNote(noteCount, noteChars)))
 		} else {
 			sb.WriteString("\n## Memories\n")
 		}
@@ -576,9 +576,9 @@ func renderPrimeMemories(memories map[string]string, compact bool, maxCount, max
 		} else {
 			sb.WriteString(fmt.Sprintf("\n## Persistent Memories (%d)\n\n", len(keys)))
 		}
-		sb.WriteString("Stored via `bd remember`. Update in place with `bd remember --key <key> \"new content\"`. Search with `bd memories <keyword>`. Remove with `bd forget <key>`.\n\n")
+		sb.WriteString("Stored via `issuegraph remember`. Update in place with `issuegraph remember --key <key> \"new content\"`. Search with `issuegraph memories <keyword>`. Remove with `issuegraph forget <key>`.\n\n")
 		if elided > 0 {
-			sb.WriteString(fmt.Sprintf("> %d more memories are not shown here (%s). Browse the full set with `bd memories <keyword>` or recall one with `bd remember <key>`.\n\n", elided, primeMemoryCapNote(noteCount, noteChars)))
+			sb.WriteString(fmt.Sprintf("> %d more memories are not shown here (%s). Browse the full set with `issuegraph memories <keyword>` or recall one with `issuegraph remember <key>`.\n\n", elided, primeMemoryCapNote(noteCount, noteChars)))
 		}
 	}
 	for _, entry := range entries {
@@ -603,7 +603,7 @@ func formatPrimeMemoryTimeout(compact bool, timeout time.Duration) string {
 	if timeout <= 0 {
 		timeout = primeStoreTimeoutDefault
 	}
-	msg := fmt.Sprintf("Skipped: timed out after %s opening beads storage. Another bd process or stale storage lock may be blocking memory injection; run `bd doctor` and stop stuck bd processes before retrying.", timeout.Round(time.Millisecond))
+	msg := fmt.Sprintf("Skipped: timed out after %s opening issuegraph storage. Another issuegraph process or stale storage lock may be blocking memory injection; run `issuegraph doctor` and stop stuck issuegraph processes before retrying.", timeout.Round(time.Millisecond))
 	if compact {
 		return "\n## Memories\n- " + msg + "\n"
 	}
@@ -622,7 +622,7 @@ func formatPrimeMemoryTimeout(compact bool, timeout time.Duration) string {
 // memory plane is down — every instrument read healthy while agents woke with
 // zero recall (gh#5877).
 func formatPrimeMemoryUnavailable(compact bool, err error) string {
-	msg := fmt.Sprintf("Skipped: beads storage unavailable (%s) — persistent memories were NOT injected this session. Run `bd doctor`; if the store is a Dolt server, check it is running and reachable.", primeErrorSummary(err))
+	msg := fmt.Sprintf("Skipped: issuegraph storage unavailable (%s) — persistent memories were NOT injected this session. Run `issuegraph doctor`; if the store is a Dolt server, check it is running and reachable.", primeErrorSummary(err))
 	if compact {
 		return "\n## Memories\n- " + msg + "\n"
 	}
@@ -635,7 +635,7 @@ const primeMemoryErrorMaxLen = 160
 // primeErrorSummary reduces an error to one short single-line phrase fit for a
 // prime section. Storage errors routinely carry multi-line hints and stack-ish
 // detail; prime is injected into an agent's context window, so it quotes the
-// first line only, whitespace-collapsed and length-capped. `bd doctor` is where
+// first line only, whitespace-collapsed and length-capped. `issuegraph doctor` is where
 // the full text belongs.
 func primeErrorSummary(err error) string {
 	if err == nil {
@@ -662,7 +662,7 @@ func outputMCPContext(w io.Writer, stealthMode bool) error {
 	// localOnly reflects only the git-remote axis (drives git push/pull
 	// hints and remote-sync authority wording). Dolt sync-remote presence
 	// (doltSync, below) is a separate axis that only gates the literal
-	// `bd dolt push`/`bd dolt pull` hint lines (gh#4130) — the two must not
+	// `issuegraph dolt push`/`issuegraph dolt pull` hint lines (gh#4130) — the two must not
 	// be conflated (gh#4230 review).
 	localOnly := !primeHasGitRemote()
 	doltSync := primeHasSyncRemote()
@@ -671,21 +671,21 @@ func outputMCPContext(w io.Writer, stealthMode bool) error {
 	var profileRule string
 	if stealthMode {
 		// Stealth mode is an explicit no-git context.
-		closeProtocol = "Before saying \"done\": bd close <completed-ids>"
+		closeProtocol = "Before saying \"done\": issuegraph close <completed-ids>"
 		profileRule = "Git authority: no git operations in this context"
 	} else if localOnly {
 		if primeAgentProfile() == config.ProfileTeamMaintainer {
-			closeProtocol = "Before saying \"done\": bd close <completed-ids>; run checks; run git status and commit local changes as routine work (agent.profile=team-maintainer); do not push, pull, or run remote sync."
+			closeProtocol = "Before saying \"done\": issuegraph close <completed-ids>; run checks; run git status and commit local changes as routine work (agent.profile=team-maintainer); do not push, pull, or run remote sync."
 			profileRule = "Git authority: local-only/no-remote. No git remote configured. Profile: team-maintainer active (agent.profile=team-maintainer) - local commits are routine; do not push, pull, or run remote sync. Explicit no-commit instructions still override."
 		} else {
-			closeProtocol = "Before saying \"done\": bd close <completed-ids>; run checks; report git status and proposed handoff (local-only/no remote sync)"
+			closeProtocol = "Before saying \"done\": issuegraph close <completed-ids>; run checks; report git status and proposed handoff (local-only/no remote sync)"
 			profileRule = "Git authority: local-only/no-remote. No git remote configured. Do not push, pull, or run remote sync. Local git operations follow active user, orchestrator, and repository authority."
 		}
 	} else if ephemeral {
-		closeProtocol = "Before saying \"done\": bd close <completed-ids>; run checks; report git status and proposed handoff (no push - ephemeral branch)"
+		closeProtocol = "Before saying \"done\": issuegraph close <completed-ids>; run checks; report git status and proposed handoff (no push - ephemeral branch)"
 		profileRule = "Profile model: conservative by default; commit only with explicit user/orchestrator authority"
 	} else if noPush {
-		closeProtocol = "Before saying \"done\": bd close <completed-ids>; run checks; report git status and proposed handoff (push disabled)"
+		closeProtocol = "Before saying \"done\": issuegraph close <completed-ids>; run checks; report git status and proposed handoff (push disabled)"
 		profileRule = "Profile model: conservative by default; push only with explicit user/orchestrator authority"
 	} else if primeAgentProfile() == config.ProfileTeamMaintainer {
 		// Explicit agent.profile=team-maintainer knob: commit/sync/push are
@@ -693,13 +693,13 @@ func outputMCPContext(w io.Writer, stealthMode bool) error {
 		// Hard constraints above (stealth/local-only/ephemeral/no-push) still
 		// take precedence over this profile.
 		if doltSync {
-			closeProtocol = "Before saying \"done\": bd close <completed-ids>; run checks; commit, bd dolt push, and git push as part of routine work (agent.profile=team-maintainer), unless current instructions say otherwise."
+			closeProtocol = "Before saying \"done\": issuegraph close <completed-ids>; run checks; commit, issuegraph dolt push, and git push as part of routine work (agent.profile=team-maintainer), unless current instructions say otherwise."
 		} else {
-			closeProtocol = "Before saying \"done\": bd close <completed-ids>; run checks; commit and git push as part of routine work (agent.profile=team-maintainer), unless current instructions say otherwise."
+			closeProtocol = "Before saying \"done\": issuegraph close <completed-ids>; run checks; commit and git push as part of routine work (agent.profile=team-maintainer), unless current instructions say otherwise."
 		}
 		profileRule = "Profile: team-maintainer active (agent.profile=team-maintainer) - commit, sync, and push are routine; explicit no-commit/no-push instructions still override."
 	} else {
-		closeProtocol = "Before saying \"done\": bd close <completed-ids>; run checks. Then follow the active profile — conservative reports handoff; team-maintainer may commit/sync/push when explicitly enabled."
+		closeProtocol = "Before saying \"done\": issuegraph close <completed-ids>; run checks. Then follow the active profile — conservative reports handoff; team-maintainer may commit/sync/push when explicitly enabled."
 		profileRule = "Default: do not commit, push, or run dolt remote sync without explicit authority. Team-maintainer behavior is opt-in and still subordinate to user/orchestrator instructions."
 	}
 
@@ -709,7 +709,7 @@ func outputMCPContext(w io.Writer, stealthMode bool) error {
 		memories = formatMemoriesForPrime(true)
 	}
 
-	context := primeTruncationDirective + `# Beads Issue Tracker Active
+	context := primeTruncationDirective + `# IssueGraph Issue Tracker Active
 
 ` + redirectNotice
 	if memories != "" {
@@ -721,10 +721,10 @@ func outputMCPContext(w io.Writer, stealthMode bool) error {
 ` + closeProtocol + `
 
 ## Core Rules
-- **Default**: Use beads for ALL task tracking (` + "`bd create`" + `, ` + "`bd ready`" + `, ` + "`bd close`" + `)
+- **Default**: Use issuegraph for ALL task tracking (` + "`issuegraph create`" + `, ` + "`issuegraph ready`" + `, ` + "`issuegraph close`" + `)
 - **Prohibited**: Do NOT use TodoWrite, TaskCreate, or markdown files for task tracking
-- **Workflow**: Create beads issue BEFORE writing code, mark in_progress when starting
-- **Memory**: Use ` + "`bd remember`" + ` for persistent knowledge. Do NOT use MEMORY.md files.
+- **Workflow**: Create issuegraph issue BEFORE writing code, mark in_progress when starting
+- **Memory**: Use ` + "`issuegraph remember`" + ` for persistent knowledge. Do NOT use MEMORY.md files.
 - Persistence you don't need beats lost context
 - ` + profileRule + `
 
@@ -742,7 +742,7 @@ func outputCLIContext(w io.Writer, stealthMode bool) error {
 	// localOnly reflects only the git-remote axis (drives git push/pull
 	// hints and remote-sync authority wording). Dolt sync-remote presence
 	// (doltSync, below) is a separate axis that only gates the literal
-	// `bd dolt push`/`bd dolt pull` hint lines (gh#4130) — the two must not
+	// `issuegraph dolt push`/`issuegraph dolt pull` hint lines (gh#4130) — the two must not
 	// be conflated (gh#4230 review).
 	localOnly := !primeHasGitRemote()
 	doltSync := primeHasSyncRemote()
@@ -756,27 +756,27 @@ func outputCLIContext(w io.Writer, stealthMode bool) error {
 
 	if stealthMode {
 		// Stealth mode is an explicit no-git context.
-		closeProtocol = `[ ] bd close <id1> <id2> ...   (close completed issues)`
+		closeProtocol = `[ ] issuegraph close <id1> <id2> ...   (close completed issues)`
 		syncSection = `### Sync & Collaboration
-- ` + "`bd search <query>`" + ` - Search issues by keyword`
+- ` + "`issuegraph search <query>`" + ` - Search issues by keyword`
 		completingWorkflow = `**Completing work:**
 ` + "```bash" + `
-bd close <id1> <id2> ...    # Close all completed issues at once
+issuegraph close <id1> <id2> ...    # Close all completed issues at once
 ` + "```"
 		gitWorkflowRule = "Git workflow: stealth mode (no git ops)"
 		profileRule = "Git authority: no git operations in this context"
 	} else if localOnly {
 		closeNote = "**Note:** No git remote configured. Do not push, pull, or run remote sync. Local git operations follow active user, orchestrator, and repository authority."
 		syncSection = `### Sync & Collaboration
-- ` + "`bd search <query>`" + ` - Search issues by keyword`
+- ` + "`issuegraph search <query>`" + ` - Search issues by keyword`
 		if primeAgentProfile() == config.ProfileTeamMaintainer {
-			closeProtocol = `[ ] 1. bd close <id1> <id2> ...   (close completed issues)
+			closeProtocol = `[ ] 1. issuegraph close <id1> <id2> ...   (close completed issues)
 [ ] 2. run quality gates        (tests, linters, builds when relevant)
 [ ] 3. git status               (check what changed)
 [ ] 4. team-maintainer: commit local changes; do not push or run remote sync`
 			completingWorkflow = `**Completing work:**
 ` + "```bash" + `
-bd close <id1> <id2> ...    # Close all completed issues at once
+issuegraph close <id1> <id2> ...    # Close all completed issues at once
 git status                  # Check changed files
 git add <files> && git commit -m "..."
 # Local-only/no-remote: do not push, pull, or run remote sync
@@ -784,13 +784,13 @@ git add <files> && git commit -m "..."
 			gitWorkflowRule = "Git workflow: local-only/no-remote; team-maintainer commits locally but does not push or run remote sync"
 			profileRule = "Git authority: local-only/no-remote. Profile: team-maintainer active (agent.profile=team-maintainer) - local commits are routine; explicit no-commit instructions still override."
 		} else {
-			closeProtocol = `[ ] 1. bd close <id1> <id2> ...   (close completed issues)
+			closeProtocol = `[ ] 1. issuegraph close <id1> <id2> ...   (close completed issues)
 [ ] 2. run quality gates        (tests, linters, builds when relevant)
 [ ] 3. git status               (check what changed)
 [ ] 4. report handoff           (local-only/no remote sync; wait for authority)`
 			completingWorkflow = `**Completing work:**
 ` + "```bash" + `
-bd close <id1> <id2> ...    # Close all completed issues at once
+issuegraph close <id1> <id2> ...    # Close all completed issues at once
 git status                  # Report changed files and proposed commands
 # Local-only/no-remote: do not push, pull, or run remote sync
 ` + "```"
@@ -798,38 +798,38 @@ git status                  # Report changed files and proposed commands
 			profileRule = "Git authority: local-only/no-remote. Local git operations follow active user, orchestrator, and repository authority."
 		}
 	} else if ephemeral {
-		closeProtocol = `[ ] 1. bd close <id1> <id2> ...   (close completed issues)
+		closeProtocol = `[ ] 1. issuegraph close <id1> <id2> ...   (close completed issues)
 [ ] 2. run quality gates        (tests, linters, builds when relevant)
 [ ] 3. git status               (check what changed)
 [ ] 4. report handoff           (changed files, validation, proposed commit if authorized)`
 		closeNote = "**Note:** This is an ephemeral branch (no upstream). Do not push it unless the user or orchestrator explicitly says to."
 		syncSection = "### Sync & Collaboration\n" +
 			primeDoltSyncBullets(doltSync, false) +
-			"- `bd search <query>` - Search issues by keyword"
+			"- `issuegraph search <query>` - Search issues by keyword"
 		doltPullStep := ""
 		if doltSync {
-			doltPullStep = "bd dolt pull                # Pull latest beads from main\n"
+			doltPullStep = "issuegraph dolt pull                # Pull latest issuegraph from main\n"
 		}
 		completingWorkflow = `**Completing work:**
 ` + "```bash" + `
-bd close <id1> <id2> ...    # Close all completed issues at once
+issuegraph close <id1> <id2> ...    # Close all completed issues at once
 ` + doltPullStep + `git status                  # Report changed files and proposed commit; wait for authority
 # Merge to main locally only when the active instructions grant that authority
 ` + "```"
 		gitWorkflowRule = "Git workflow: conservative by default on ephemeral branches"
 		profileRule = "Profile model: conservative/minimal report handoff; team-maintainer may commit only when explicitly enabled"
 	} else if noPush {
-		closeProtocol = `[ ] 1. bd close <id1> <id2> ...   (close completed issues)
+		closeProtocol = `[ ] 1. issuegraph close <id1> <id2> ...   (close completed issues)
 [ ] 2. run quality gates        (tests, linters, builds when relevant)
 [ ] 3. git status               (check what changed)
 [ ] 4. report handoff           (push disabled; wait for explicit authority)`
 		closeNote = "**Note:** Push disabled via config. Do not push unless the user or orchestrator explicitly says to."
 		syncSection = "### Sync & Collaboration\n" +
 			primeDoltSyncBullets(doltSync, true) +
-			"- `bd search <query>` - Search issues by keyword"
+			"- `issuegraph search <query>` - Search issues by keyword"
 		completingWorkflow = `**Completing work:**
 ` + "```bash" + `
-bd close <id1> <id2> ...    # Close all completed issues at once
+issuegraph close <id1> <id2> ...    # Close all completed issues at once
 git status                  # Report changed files and proposed commands
 # Do not push unless current instructions explicitly allow it
 ` + "```"
@@ -840,21 +840,21 @@ git status                  # Report changed files and proposed commands
 		// routine work here, not conditional on a per-session "enabled" ask.
 		// Hard constraints above (stealth/local-only/ephemeral/no-push) still
 		// take precedence over this profile.
-		closeProtocol = `[ ] 1. bd close <id1> <id2> ...   (close completed issues)
+		closeProtocol = `[ ] 1. issuegraph close <id1> <id2> ...   (close completed issues)
 [ ] 2. run quality gates        (tests, linters, builds when relevant)
 [ ] 3. git status               (check what changed)
 [ ] 4. team-maintainer: commit, sync, push as part of routine work (unless current instructions say otherwise)`
 		closeNote = "**Policy:** agent.profile=team-maintainer is active. Commit, sync, and push as part of routine work; explicit \"do not commit\"/\"do not push\" instructions still override."
 		syncSection = "### Sync & Collaboration\n" +
 			primeDoltSyncBullets(doltSync, true) +
-			"- `bd search <query>` - Search issues by keyword"
+			"- `issuegraph search <query>` - Search issues by keyword"
 		doltPushStep := ""
 		if doltSync {
-			doltPushStep = "bd dolt push\n"
+			doltPushStep = "issuegraph dolt push\n"
 		}
 		completingWorkflow = `**Completing work:**
 ` + "```bash" + `
-bd close <id1> <id2> ...    # Close all completed issues at once
+issuegraph close <id1> <id2> ...    # Close all completed issues at once
 git status                  # Check changed files
 # team-maintainer: commit, sync, push are routine unless instructions forbid it
 git add . && git commit -m "..."
@@ -863,21 +863,21 @@ git add . && git commit -m "..."
 		gitWorkflowRule = "Git workflow: team-maintainer active - commit/push are routine unless explicitly restricted"
 		profileRule = "Profile: team-maintainer active (agent.profile=team-maintainer) - commit, sync, and push are routine; explicit no-commit/no-push instructions still override."
 	} else {
-		closeProtocol = `[ ] 1. bd close <id1> <id2> ...   (close completed issues)
+		closeProtocol = `[ ] 1. issuegraph close <id1> <id2> ...   (close completed issues)
 [ ] 2. run quality gates        (tests, linters, builds when relevant)
 [ ] 3. git status               (check what changed)
 [ ] 4. follow active profile    (conservative: report handoff; team-maintainer: commit/sync/push if enabled)`
 		closeNote = "**Policy:** Conservative is the default. Commit, sync, or push only when the active user, orchestrator, or repository profile grants that authority."
 		syncSection = "### Sync & Collaboration\n" +
 			primeDoltSyncBullets(doltSync, true) +
-			"- `bd search <query>` - Search issues by keyword"
+			"- `issuegraph search <query>` - Search issues by keyword"
 		doltPushComment := ""
 		if doltSync {
-			doltPushComment = "# bd dolt push\n"
+			doltPushComment = "# issuegraph dolt push\n"
 		}
 		completingWorkflow = `**Completing work:**
 ` + "```bash" + `
-bd close <id1> <id2> ...    # Close all completed issues at once
+issuegraph close <id1> <id2> ...    # Close all completed issues at once
 git status                  # Check changed files
 # Conservative/minimal/default: report status and proposed commands; wait for approval
 # Team-maintainer opt-in only, unless current instructions forbid it:
@@ -894,10 +894,10 @@ git status                  # Check changed files
 		memories = formatMemoriesForPrime(false)
 	}
 
-	context := primeTruncationDirective + `# Beads Workflow Context
+	context := primeTruncationDirective + `# IssueGraph Workflow Context
 
-> **Context Recovery**: Run ` + "`bd prime`" + ` after compaction, clear, or new session
-> Hooks auto-call this in Claude Code and Codex when a beads workspace is resolved
+> **Context Recovery**: Run ` + "`issuegraph prime`" + ` after compaction, clear, or new session
+> Hooks auto-call this in Claude Code and Codex when a issuegraph workspace is resolved
 
 ` + redirectNotice
 	if memories != "" {
@@ -915,88 +915,88 @@ git status                  # Check changed files
 ` + closeNote + `
 
 ## Core Rules
-- **Default**: Use beads for ALL task tracking (` + "`bd create`" + `, ` + "`bd ready`" + `, ` + "`bd close`" + `)
+- **Default**: Use issuegraph for ALL task tracking (` + "`issuegraph create`" + `, ` + "`issuegraph ready`" + `, ` + "`issuegraph close`" + `)
 - **Prohibited**: Do NOT use TodoWrite, TaskCreate, or markdown files for task tracking
-- **Workflow**: Create beads issue BEFORE writing code, mark in_progress when starting
-- **Memory**: Use ` + "`bd remember \"insight\"`" + ` for persistent knowledge across sessions. Do NOT use MEMORY.md files — they fragment across accounts. Search with ` + "`bd memories <keyword>`" + `.
+- **Workflow**: Create issuegraph issue BEFORE writing code, mark in_progress when starting
+- **Memory**: Use ` + "`issuegraph remember \"insight\"`" + ` for persistent knowledge across sessions. Do NOT use MEMORY.md files — they fragment across accounts. Search with ` + "`issuegraph memories <keyword>`" + `.
 - Persistence you don't need beats lost context
 - ` + profileRule + `
 - ` + gitWorkflowRule + `
-- Session management: check ` + "`bd ready`" + ` for available work
+- Session management: check ` + "`issuegraph ready`" + ` for available work
 
 ## Essential Commands
 
 ### Finding Work
-- ` + "`bd ready`" + ` - Show issues ready to work (no blockers)
-- ` + "`bd list --status=open`" + ` - All open issues
-- ` + "`bd list --status=in_progress`" + ` - Your active work
-- ` + "`bd show <id>`" + ` - Detailed issue view with dependencies
+- ` + "`issuegraph ready`" + ` - Show issues ready to work (no blockers)
+- ` + "`issuegraph list --status=open`" + ` - All open issues
+- ` + "`issuegraph list --status=in_progress`" + ` - Your active work
+- ` + "`issuegraph show <id>`" + ` - Detailed issue view with dependencies
 
 ### Creating & Updating
-- ` + "`bd create --title=\"Summary of this issue\" --description=\"Why this issue exists and what needs to be done\" --type=task|bug|feature --priority=2`" + ` - New issue
+- ` + "`issuegraph create --title=\"Summary of this issue\" --description=\"Why this issue exists and what needs to be done\" --type=task|bug|feature --priority=2`" + ` - New issue
   - Priority: 0-4 or P0-P4 (0=critical, 2=medium, 4=backlog). NOT "high"/"medium"/"low"
-- ` + "`bd create ... --parent=<id>`" + ` - Hierarchical child (task under epic, subtask under task; inherits parent labels)
-- ` + "`bd update <id> --claim`" + ` - Claim work
-- ` + "`bd unclaim <id>`" + ` - Release stuck issue (agent crashed)
-- ` + "`bd update <id> --assignee=username`" + ` - Assign to someone
-- ` + "`bd update <id> --if-assignee=<expected> --assignee=<new>`" + ` - Atomic reassign: applies only if the assignee still matches (--if-status=<expected> guards status; --if-assignee='' requires unassigned). Mismatch exits non-zero with nothing written — never retry blindly
-- ` + "`bd update <id> --title/--description/--notes/--design`" + ` - Update fields inline
-- ` + "`bd close <id>`" + ` - Mark complete
-- ` + "`bd close <id1> <id2> ...`" + ` - Close multiple issues at once (more efficient)
-- ` + "`bd close <id> --reason=\"explanation\"`" + ` - Close with reason
+- ` + "`issuegraph create ... --parent=<id>`" + ` - Hierarchical child (task under epic, subtask under task; inherits parent labels)
+- ` + "`issuegraph update <id> --claim`" + ` - Claim work
+- ` + "`issuegraph unclaim <id>`" + ` - Release stuck issue (agent crashed)
+- ` + "`issuegraph update <id> --assignee=username`" + ` - Assign to someone
+- ` + "`issuegraph update <id> --if-assignee=<expected> --assignee=<new>`" + ` - Atomic reassign: applies only if the assignee still matches (--if-status=<expected> guards status; --if-assignee='' requires unassigned). Mismatch exits non-zero with nothing written — never retry blindly
+- ` + "`issuegraph update <id> --title/--description/--notes/--design`" + ` - Update fields inline
+- ` + "`issuegraph close <id>`" + ` - Mark complete
+- ` + "`issuegraph close <id1> <id2> ...`" + ` - Close multiple issues at once (more efficient)
+- ` + "`issuegraph close <id> --reason=\"explanation\"`" + ` - Close with reason
 - **Tip**: When creating multiple issues/tasks/epics, use parallel subagents for efficiency
-- **WARNING**: Do NOT use ` + "`bd edit`" + ` - it opens $EDITOR (vim/nano) which blocks agents
+- **WARNING**: Do NOT use ` + "`issuegraph edit`" + ` - it opens $EDITOR (vim/nano) which blocks agents
 
 ### Dependencies & Blocking
-- ` + "`bd dep add <issue> <depends-on>`" + ` - Add dependency (issue depends on depends-on)
-- ` + "`bd blocked`" + ` - Show all blocked issues
-- ` + "`bd show <id>`" + ` - See what's blocking/blocked by this issue
+- ` + "`issuegraph dep add <issue> <depends-on>`" + ` - Add dependency (issue depends on depends-on)
+- ` + "`issuegraph blocked`" + ` - Show all blocked issues
+- ` + "`issuegraph show <id>`" + ` - See what's blocking/blocked by this issue
 
 ` + syncSection + `
 
 ### Project Health
-- ` + "`bd stats`" + ` - Project statistics (open/closed/blocked counts)
-- ` + "`bd doctor`" + ` - Check for issues (sync problems, missing hooks)
-- ` + "`bd doctor --check=conventions`" + ` - Check for convention drift (lint, stale, orphans)
+- ` + "`issuegraph stats`" + ` - Project statistics (open/closed/blocked counts)
+- ` + "`issuegraph doctor`" + ` - Check for issues (sync problems, missing hooks)
+- ` + "`issuegraph doctor --check=conventions`" + ` - Check for convention drift (lint, stale, orphans)
 
 ### Quality Tools
-- ` + "`bd create --validate`" + ` - Check description has required sections
-- ` + "`bd create --acceptance=\"criteria\"`" + ` - Set acceptance criteria (checked by --validate)
-- ` + "`bd create --design=\"decisions\"`" + ` - Record design decisions
-- ` + "`bd create --notes=\"context\"`" + ` - Add supplementary notes
-- ` + "`bd config set validation.on-create warn`" + ` - Auto-validate on every create
-- ` + "`bd lint`" + ` - Check existing issues for missing sections
+- ` + "`issuegraph create --validate`" + ` - Check description has required sections
+- ` + "`issuegraph create --acceptance=\"criteria\"`" + ` - Set acceptance criteria (checked by --validate)
+- ` + "`issuegraph create --design=\"decisions\"`" + ` - Record design decisions
+- ` + "`issuegraph create --notes=\"context\"`" + ` - Add supplementary notes
+- ` + "`issuegraph config set validation.on-create warn`" + ` - Auto-validate on every create
+- ` + "`issuegraph lint`" + ` - Check existing issues for missing sections
 
 ### Lifecycle & Hygiene
-- ` + "`bd defer <id> --until=\"date\"`" + ` - Defer work to a future date
-- ` + "`bd supersede <id> --with=<new-id>`" + ` - Mark issue as superseded
-- ` + "`bd close <id> --suggest-next`" + ` - Show newly unblocked issues after closing
-- ` + "`bd stale`" + ` - Find issues with no recent activity
-- ` + "`bd orphans`" + ` - Find issues with broken dependencies
-- ` + "`bd preflight`" + ` - Pre-PR checks (lint, stale, orphans)
-- ` + "`bd human <id>`" + ` - Flag for human decision (list/respond/dismiss)
+- ` + "`issuegraph defer <id> --until=\"date\"`" + ` - Defer work to a future date
+- ` + "`issuegraph supersede <id> --with=<new-id>`" + ` - Mark issue as superseded
+- ` + "`issuegraph close <id> --suggest-next`" + ` - Show newly unblocked issues after closing
+- ` + "`issuegraph stale`" + ` - Find issues with no recent activity
+- ` + "`issuegraph orphans`" + ` - Find issues with broken dependencies
+- ` + "`issuegraph preflight`" + ` - Pre-PR checks (lint, stale, orphans)
+- ` + "`issuegraph human <id>`" + ` - Flag for human decision (list/respond/dismiss)
 
 ### Structured Workflows
-- ` + "`bd formula list`" + ` - See available workflow templates
-- ` + "`bd mol pour <name>`" + ` - Start structured workflow from formula
+- ` + "`issuegraph formula list`" + ` - See available workflow templates
+- ` + "`issuegraph mol pour <name>`" + ` - Start structured workflow from formula
 
 ## Common Workflows
 
 **Starting work:**
 ` + "```bash" + `
-bd ready           # Find available work
-bd show <id>       # Review issue details
-bd update <id> --claim  # Claim it
+issuegraph ready           # Find available work
+issuegraph show <id>       # Review issue details
+issuegraph update <id> --claim  # Claim it
 ` + "```" + `
 
 ` + completingWorkflow + `
 
 **Creating dependent work:**
 ` + "```bash" + `
-# Run bd create commands in parallel (use subagents for many items)
-bd create --title="Implement feature X" --description="Why this issue exists and what needs to be done" --type=feature
-bd create --title="Write tests for X" --description="Why this issue exists and what needs to be done" --type=task
-bd dep add beads-yyy beads-xxx  # Tests depend on Feature (Feature blocks tests)
+# Run issuegraph create commands in parallel (use subagents for many items)
+issuegraph create --title="Implement feature X" --description="Why this issue exists and what needs to be done" --type=feature
+issuegraph create --title="Write tests for X" --description="Why this issue exists and what needs to be done" --type=task
+issuegraph dep add issuegraph-yyy issuegraph-xxx  # Tests depend on Feature (Feature blocks tests)
 ` + "```" + `
 `
 	_, _ = fmt.Fprint(w, context)

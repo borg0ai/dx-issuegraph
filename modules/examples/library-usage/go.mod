@@ -1,8 +1,8 @@
-module example.com/beads-library-demo
+module example.com/issuegraph-library-demo
 
 go 1.26.5
 
-require github.com/steveyegge/beads v0.0.0
+require github.com/borg0ai/dx-issuegraph v0.0.0
 
 require (
 	cel.dev/expr v0.25.2 // indirect
@@ -182,4 +182,4 @@ require (
 )
 
 // For local development, replace with local path
-replace github.com/steveyegge/beads => ../../core
+replace github.com/borg0ai/dx-issuegraph => ../../core

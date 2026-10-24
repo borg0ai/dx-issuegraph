@@ -8,7 +8,7 @@ import (
 	"testing"
 )
 
-// End-to-end for the single create, against real Dolt through a real `bd serve`
+// End-to-end for the single create, against real Dolt through a real `issuegraph serve`
 // subprocess. The pure tests in internal/httpapi cover the wire edge on a fake
 // role and assert the projection onto issueops.CreateRequest member by member;
 // what only this level can prove is that the projection LANDS — that the whole
@@ -34,7 +34,7 @@ import (
 // createIssue posts a create and returns the status and decoded body.
 func (sp *serveProcess) createIssue(t *testing.T, body string) (int, map[string]any) {
 	t.Helper()
-	return sp.postJSON(t, "/v0/beads/issues", body)
+	return sp.postJSON(t, "/v0/issuegraph/issues", body)
 }
 
 // storedEdgeTypes indexes the edges leaving id by their target, so an assertion
@@ -53,9 +53,9 @@ func storedEdgeTypes(edges []map[string]any) map[string]string {
 func TestProxiedServerServeCreate(t *testing.T) {
 	requireSharedProxiedServer(t)
 	t.Parallel()
-	bd := buildEmbeddedBD(t)
-	p := newSharedProxiedProject(t, bd, "srvcrt")
-	sp := startServe(t, bd, p.dir, bdProxiedEnv(p.dir))
+	issuegraph := buildEmbeddedBD(t)
+	p := newSharedProxiedProject(t, issuegraph, "srvcrt")
+	sp := startServe(t, issuegraph, p.dir, issuegraphProxiedEnv(p.dir))
 
 	// THE WHOLE PUBLISHED VOCABULARY IN ONE REQUEST, read back out of the row
 	// and out of the graph. A create is atomic, so a member that did not land
@@ -63,8 +63,8 @@ func TestProxiedServerServeCreate(t *testing.T) {
 	// through the documented stored-edge endpoint rather than trusted from the
 	// response.
 	t.Run("every published member lands in one transaction", func(t *testing.T) {
-		parent := bdProxiedCreate(t, bd, p.dir, "the parent", "-p", "2")
-		blocker := bdProxiedCreate(t, bd, p.dir, "the blocker", "-p", "2")
+		parent := issuegraphProxiedCreate(t, issuegraph, p.dir, "the parent", "-p", "2")
+		blocker := issuegraphProxiedCreate(t, issuegraph, p.dir, "the blocker", "-p", "2")
 
 		const id = "srvcrt-wire1"
 		status, body := sp.createIssue(t, `{
@@ -105,7 +105,7 @@ func TestProxiedServerServeCreate(t *testing.T) {
 			t.Errorf("the response omitted the persisted timestamps: %v", body)
 		}
 
-		stored := bdProxiedShow(t, bd, p.dir, id)
+		stored := issuegraphProxiedShow(t, issuegraph, p.dir, id)
 		for _, tc := range []struct {
 			member    string
 			got, want any
@@ -180,7 +180,7 @@ func TestProxiedServerServeCreate(t *testing.T) {
 			t.Fatalf("the response carries no minted id: %v", body)
 		}
 
-		stored := bdProxiedShow(t, bd, p.dir, id)
+		stored := issuegraphProxiedShow(t, issuegraph, p.dir, id)
 		if !stored.Ephemeral {
 			t.Errorf("stored ephemeral = false; the row did not land on the wisp plane")
 		}
@@ -220,7 +220,7 @@ func TestProxiedServerServeCreate(t *testing.T) {
 
 		// NEVER AN ADOPTION AND NEVER AN OVERWRITE: the refusal must leave the
 		// stored row exactly as the first create left it.
-		stored := bdProxiedShow(t, bd, p.dir, id)
+		stored := issuegraphProxiedShow(t, issuegraph, p.dir, id)
 		if stored.Title != "the first row" || stored.Description != "untouched" {
 			t.Errorf("the refused create wrote to the stored row: %+v", stored)
 		}
@@ -243,7 +243,7 @@ func TestProxiedServerServeCreate(t *testing.T) {
 		if problem["param"] != "dependencies" {
 			t.Errorf("param = %v, want dependencies", problem["param"])
 		}
-		if getStatus, _, _ := sp.get(t, "/v0/beads/issues/"+id); getStatus != http.StatusNotFound {
+		if getStatus, _, _ := sp.get(t, "/v0/issuegraph/issues/"+id); getStatus != http.StatusNotFound {
 			t.Errorf("GET the refused id: status = %d, want 404 — a refused create must write no row", getStatus)
 		}
 	})

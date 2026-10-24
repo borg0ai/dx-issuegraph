@@ -15,11 +15,11 @@ import (
 	"testing"
 	"time"
 
+	"github.com/borg0ai/dx-issuegraph/internal/configfile"
+	"github.com/borg0ai/dx-issuegraph/internal/storage"
+	"github.com/borg0ai/dx-issuegraph/internal/storage/dolt"
+	"github.com/borg0ai/dx-issuegraph/internal/storage/doltutil"
 	"github.com/spf13/cobra"
-	"github.com/steveyegge/beads/internal/configfile"
-	"github.com/steveyegge/beads/internal/storage"
-	"github.com/steveyegge/beads/internal/storage/dolt"
-	"github.com/steveyegge/beads/internal/storage/doltutil"
 )
 
 func TestEffectiveRootStorePolicy(t *testing.T) {
@@ -225,14 +225,14 @@ func snapshotReadonlyTree(t *testing.T, root string) readonlyTreeSnapshot {
 	return snapshot
 }
 
-func readonlyCanaryEnv(home, beadsDir, circuitDir string, port int) []string {
+func readonlyCanaryEnv(home, issuegraphDir, circuitDir string, port int) []string {
 	replace := map[string]bool{
 		"HOME": true, "XDG_CONFIG_HOME": true,
-		"BEADS_DIR": true, "BEADS_DB": true, "BD_DB": true,
-		"BEADS_DOLT_PORT": true, "BEADS_DOLT_SERVER_PORT": true, "BEADS_DOLT_AUTO_START": true,
-		"BEADS_TEST_MODE": true, "BEADS_TEST_CIRCUIT_DIR": true,
-		"BD_DISABLE_METRICS": true, "BD_DISABLE_EVENT_FLUSH": true,
-		"BD_OTEL_METRICS_URL": true, "BD_OTEL_LOGS_URL": true, "BD_OTEL_STDOUT": true,
+		"ISSUEGRAPH_DIR": true, "ISSUEGRAPH_DB": true,
+		"ISSUEGRAPH_DOLT_PORT": true, "ISSUEGRAPH_DOLT_SERVER_PORT": true, "ISSUEGRAPH_DOLT_AUTO_START": true,
+		"ISSUEGRAPH_TEST_MODE": true, "ISSUEGRAPH_TEST_CIRCUIT_DIR": true,
+		"ISSUEGRAPH_DISABLE_METRICS": true, "ISSUEGRAPH_DISABLE_EVENT_FLUSH": true,
+		"ISSUEGRAPH_OTEL_METRICS_URL": true, "ISSUEGRAPH_OTEL_LOGS_URL": true, "ISSUEGRAPH_OTEL_STDOUT": true,
 	}
 	env := make([]string, 0, len(os.Environ())+16)
 	for _, value := range os.Environ() {
@@ -244,33 +244,33 @@ func readonlyCanaryEnv(home, beadsDir, circuitDir string, port int) []string {
 	return append(env,
 		"HOME="+home,
 		"XDG_CONFIG_HOME="+filepath.Join(home, "xdg"),
-		"BEADS_DIR="+beadsDir,
-		"BEADS_DB=", "BD_DB=",
-		"BEADS_DOLT_SERVER_PORT="+strconv.Itoa(port),
-		"BEADS_DOLT_PORT="+strconv.Itoa(port),
-		"BEADS_DOLT_AUTO_START=0",
-		"BEADS_TEST_MODE=1",
-		"BEADS_TEST_CIRCUIT_DIR="+circuitDir,
-		"BD_DISABLE_METRICS=1",
-		"BD_DISABLE_EVENT_FLUSH=1",
-		"BD_OTEL_METRICS_URL=", "BD_OTEL_LOGS_URL=", "BD_OTEL_STDOUT=false",
-		"BEADS_TEST_IGNORE_REPO_CONFIG=1",
+		"ISSUEGRAPH_DIR="+issuegraphDir,
+		"ISSUEGRAPH_DB=", "ISSUEGRAPH_DB=",
+		"ISSUEGRAPH_DOLT_SERVER_PORT="+strconv.Itoa(port),
+		"ISSUEGRAPH_DOLT_PORT="+strconv.Itoa(port),
+		"ISSUEGRAPH_DOLT_AUTO_START=0",
+		"ISSUEGRAPH_TEST_MODE=1",
+		"ISSUEGRAPH_TEST_CIRCUIT_DIR="+circuitDir,
+		"ISSUEGRAPH_DISABLE_METRICS=1",
+		"ISSUEGRAPH_DISABLE_EVENT_FLUSH=1",
+		"ISSUEGRAPH_OTEL_METRICS_URL=", "ISSUEGRAPH_OTEL_LOGS_URL=", "ISSUEGRAPH_OTEL_STDOUT=false",
+		"ISSUEGRAPH_TEST_IGNORE_REPO_CONFIG=1",
 	)
 }
 
 func TestConfigValidateReadOnlyIsHermetic(t *testing.T) {
-	port, err := strconv.Atoi(os.Getenv("BEADS_DOLT_PORT"))
+	port, err := strconv.Atoi(os.Getenv("ISSUEGRAPH_DOLT_PORT"))
 	if err != nil || port <= 0 {
 		t.Skip("shared Dolt test server is unavailable")
 	}
-	circuitDir := os.Getenv("BEADS_TEST_CIRCUIT_DIR")
+	circuitDir := os.Getenv("ISSUEGRAPH_TEST_CIRCUIT_DIR")
 	if !filepath.IsAbs(circuitDir) {
 		t.Fatalf("suite circuit directory is not isolated: %q", circuitDir)
 	}
 
 	repoDir := t.TempDir()
-	beadsDir := filepath.Join(repoDir, ".beads")
-	doltPath := filepath.Join(beadsDir, "dolt")
+	issuegraphDir := filepath.Join(repoDir, ".issuegraph")
+	doltPath := filepath.Join(issuegraphDir, "dolt")
 	if err := os.MkdirAll(doltPath, 0o755); err != nil {
 		t.Fatalf("create isolated Dolt path: %v", err)
 	}
@@ -283,12 +283,12 @@ func TestConfigValidateReadOnlyIsHermetic(t *testing.T) {
 		DoltServerHost: "127.0.0.1",
 		DoltServerPort: port,
 	}
-	if err := cfg.Save(beadsDir); err != nil {
+	if err := cfg.Save(issuegraphDir); err != nil {
 		t.Fatalf("save isolated metadata: %v", err)
 	}
 	store, err := dolt.New(context.Background(), &dolt.Config{
 		Path:            doltPath,
-		BeadsDir:        beadsDir,
+		IssueGraphDir:   issuegraphDir,
 		ServerHost:      "127.0.0.1",
 		ServerPort:      port,
 		Database:        database,
@@ -311,14 +311,14 @@ func TestConfigValidateReadOnlyIsHermetic(t *testing.T) {
 			_, _ = db.ExecContext(context.Background(), fmt.Sprintf("DROP DATABASE IF EXISTS `%s`", database)) //nolint:gosec // generated test name
 		}
 	})
-	// federation.remote is required for `bd config validate` to pass since
+	// federation.remote is required for `issuegraph config validate` to pass since
 	// the JSONL-removal change; without it the canary fails on validation
 	// rather than exercising the hermeticity contract.
-	if err := os.WriteFile(filepath.Join(beadsDir, "config.yaml"), []byte("issue-prefix: readonly\ndolt.auto-start: false\nfederation:\n  remote: https://github.com/example/beads-remote\n"), 0o644); err != nil {
+	if err := os.WriteFile(filepath.Join(issuegraphDir, "config.yaml"), []byte("issue-prefix: readonly\ndolt.auto-start: false\nfederation:\n  remote: https://github.com/example/issuegraph-remote\n"), 0o644); err != nil {
 		t.Fatalf("write isolated config: %v", err)
 	}
 
-	beforeBeads := snapshotReadonlyTree(t, beadsDir)
+	beforeIssueGraph := snapshotReadonlyTree(t, issuegraphDir)
 	beforeCircuit := snapshotReadonlyTree(t, circuitDir)
 	home := t.TempDir()
 	if err := os.MkdirAll(filepath.Join(home, "xdg"), 0o755); err != nil {
@@ -326,26 +326,26 @@ func TestConfigValidateReadOnlyIsHermetic(t *testing.T) {
 	}
 	// The canary must execute the current worktree source, never a caller-provided
 	// prebuilt binary that may predate this candidate.
-	t.Setenv("BEADS_TEST_BD_BINARY", "")
-	bd := buildBDForTest(t)
-	cmd := exec.Command(bd, "config", "validate", "--readonly")
+	t.Setenv("ISSUEGRAPH_TEST_ISSUEGRAPH_BINARY", "")
+	issuegraph := buildIssueGraphForTest(t)
+	cmd := exec.Command(issuegraph, "config", "validate", "--readonly")
 	cmd.Dir = repoDir
-	cmd.Env = readonlyCanaryEnv(home, beadsDir, circuitDir, port)
+	cmd.Env = readonlyCanaryEnv(home, issuegraphDir, circuitDir, port)
 	output, err := cmd.CombinedOutput()
 	if err != nil {
-		t.Fatalf("bd config validate --readonly: %v\n%s", err, output)
+		t.Fatalf("issuegraph config validate --readonly: %v\n%s", err, output)
 	}
 
-	afterBeads := snapshotReadonlyTree(t, beadsDir)
-	if !reflect.DeepEqual(afterBeads, beforeBeads) {
-		t.Fatalf("target .beads changed\nbefore: %#v\nafter:  %#v\noutput: %s", beforeBeads, afterBeads, output)
+	afterIssueGraph := snapshotReadonlyTree(t, issuegraphDir)
+	if !reflect.DeepEqual(afterIssueGraph, beforeIssueGraph) {
+		t.Fatalf("target .issuegraph changed\nbefore: %#v\nafter:  %#v\noutput: %s", beforeIssueGraph, afterIssueGraph, output)
 	}
 	afterCircuit := snapshotReadonlyTree(t, circuitDir)
 	if !reflect.DeepEqual(afterCircuit, beforeCircuit) {
 		t.Fatalf("test circuit state changed\nbefore: %#v\nafter:  %#v", beforeCircuit, afterCircuit)
 	}
 	for _, artifact := range []string{".local_version", "dolt-server.port", "dolt-server.pid", "dolt-server.log"} {
-		if _, err := os.Lstat(filepath.Join(beadsDir, artifact)); !os.IsNotExist(err) {
+		if _, err := os.Lstat(filepath.Join(issuegraphDir, artifact)); !os.IsNotExist(err) {
 			t.Fatalf("strict readonly created server/version artifact %s (stat error: %v)", artifact, err)
 		}
 	}

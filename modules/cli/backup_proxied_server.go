@@ -10,13 +10,13 @@ import (
 	"strings"
 	"time"
 
-	"github.com/steveyegge/beads/internal/beads"
-	"github.com/steveyegge/beads/internal/configfile"
-	"github.com/steveyegge/beads/internal/storage"
-	"github.com/steveyegge/beads/internal/storage/dbproxy/proxy"
-	"github.com/steveyegge/beads/internal/storage/issueops"
-	"github.com/steveyegge/beads/internal/storage/uow"
-	"github.com/steveyegge/beads/internal/storage/versioncontrolops"
+	"github.com/borg0ai/dx-issuegraph/internal/configfile"
+	"github.com/borg0ai/dx-issuegraph/internal/issuegraph"
+	"github.com/borg0ai/dx-issuegraph/internal/storage"
+	"github.com/borg0ai/dx-issuegraph/internal/storage/dbproxy/proxy"
+	"github.com/borg0ai/dx-issuegraph/internal/storage/issueops"
+	"github.com/borg0ai/dx-issuegraph/internal/storage/uow"
+	"github.com/borg0ai/dx-issuegraph/internal/storage/versioncontrolops"
 )
 
 // Dolt-native backup over the proxied-server provider.
@@ -38,7 +38,7 @@ import (
 // concern — PersistentPostRunE's proxied branch never reads them — and the
 // other proxied routes leave them alone for the same reason.
 
-// proxiedBackupTargetName is the Dolt backup remote bd registers. Same name the
+// proxiedBackupTargetName is the Dolt backup remote issuegraph registers. Same name the
 // direct path uses, so a workspace that changes topology still finds its
 // destination.
 const proxiedBackupTargetName = defaultDoltBackupName
@@ -53,7 +53,7 @@ func requireLocalProxiedBackup(path string) error {
 		// build for a backup path with no row. Refuse rather than guess.
 		return HandleErrorRespectJSON("%s has no proxied-server capability row", path)
 	}
-	rule := row.ruleFor(resolveProxiedTopology(beads.FindBeadsDir()))
+	rule := row.ruleFor(resolveProxiedTopology(issuegraph.FindIssueGraphDir()))
 	if rule.Outcome == ProxyOutcomeHonored {
 		return nil
 	}
@@ -124,7 +124,7 @@ func runBackupInitProxied(ctx context.Context, rawPath string) error {
 		})
 	}
 	fmt.Printf("Backup destination configured: %s\n", backupURL)
-	fmt.Println("Run 'bd backup sync' to push your data.")
+	fmt.Println("Run 'issuegraph backup sync' to push your data.")
 	return nil
 }
 
@@ -146,7 +146,7 @@ func runBackupSyncProxied(ctx context.Context) error {
 	})
 	if err != nil {
 		if strings.Contains(err.Error(), "no backup") || strings.Contains(err.Error(), "not found") {
-			return HandleErrorRespectJSON("no backup destination configured. Run 'bd backup init <path>' first")
+			return HandleErrorRespectJSON("no backup destination configured. Run 'issuegraph backup init <path>' first")
 		}
 		return HandleErrorRespectJSON("backup sync failed: %v", err)
 	}
@@ -167,7 +167,7 @@ func runBackupSyncProxied(ctx context.Context) error {
 }
 
 // commitWorkingSetBeforeBackup is the proxied twin of the direct path's
-// "bd: pre-backup commit". DOLT_BACKUP syncs COMMITTED history, so anything
+// "issuegraph: pre-backup commit". DOLT_BACKUP syncs COMMITTED history, so anything
 // still in the working set would silently be missing from the backup.
 //
 // It is normally a no-op: every proxied write transaction ends in
@@ -182,7 +182,7 @@ func commitWorkingSetBeforeBackup(ctx context.Context, conn *sql.Conn) error {
 	if !pending {
 		return nil
 	}
-	if _, err := conn.ExecContext(ctx, "CALL DOLT_COMMIT('-Am', ?)", "bd: pre-backup commit"); err != nil {
+	if _, err := conn.ExecContext(ctx, "CALL DOLT_COMMIT('-Am', ?)", "issuegraph: pre-backup commit"); err != nil {
 		if issueops.IsNothingToCommitError(err) {
 			return nil
 		}
@@ -228,7 +228,7 @@ func runBackupRemoveProxied(ctx context.Context) error {
 }
 
 // doltBackupSizeProxied measures the managed-local database on disk, which is
-// what `bd backup status` reports on every other topology that can answer.
+// what `issuegraph backup status` reports on every other topology that can answer.
 //
 // It reads the directory rather than asking Dolt because that is what the
 // direct stores do (DoltStore.ActiveDatabaseSize measures
@@ -236,11 +236,11 @@ func runBackupRemoveProxied(ctx context.Context) error {
 // The database NAME still comes from the server, so the directory measured is
 // the one this connection is actually using.
 func doltBackupSizeProxied(ctx context.Context) (int64, bool, error) {
-	beadsDir := beads.FindBeadsDir()
-	if beadsDir == "" {
+	issuegraphDir := issuegraph.FindIssueGraphDir()
+	if issuegraphDir == "" {
 		return 0, false, nil
 	}
-	root, err := resolveProxiedServerRootPath(beadsDir)
+	root, err := resolveProxiedServerRootPath(issuegraphDir)
 	if err != nil {
 		return 0, false, nil
 	}
@@ -252,7 +252,7 @@ func doltBackupSizeProxied(ctx context.Context) (int64, bool, error) {
 
 	dir := filepath.Join(root, database)
 	if _, err := os.Stat(dir); err != nil {
-		// No local directory means nothing bd can measure; the status contract
+		// No local directory means nothing issuegraph can measure; the status contract
 		// treats size as optional rather than failing the command.
 		return 0, false, nil
 	}
@@ -268,11 +268,11 @@ func doltBackupSizeProxied(ctx context.Context) (int64, bool, error) {
 //
 // DOLT_BACKUP('restore') REPLACES the database under the server. Doing that
 // while clients hold connections to it is undefined, so the restore runs with
-// bd as the only client and nothing else pointed at the store:
+// issuegraph as the only client and nothing else pointed at the store:
 //
-//  1. `bd backup restore` already holds the workspace and physical-root gates
-//     EXCLUSIVELY (commandNeedsExclusiveGate), so no other gated bd command —
-//     including `bd serve` — is using this workspace.
+//  1. `issuegraph backup restore` already holds the workspace and physical-root gates
+//     EXCLUSIVELY (commandNeedsExclusiveGate), so no other gated issuegraph command —
+//     including `issuegraph serve` — is using this workspace.
 //  2. This function closes the provider the root pre-run opened and shuts the
 //     proxy and its dolt child down, so no connection survives into the
 //     replace.
@@ -284,17 +284,17 @@ func doltBackupSizeProxied(ctx context.Context) (int64, bool, error) {
 //     pinned across the replace would be reading a database that no longer
 //     exists underneath it.
 //
-// The final shutdown leaves the workspace quiescent, so the next bd command
+// The final shutdown leaves the workspace quiescent, so the next issuegraph command
 // relaunches lazily against the restored data.
 func runBackupRestoreProxied(ctx context.Context, dir string, force bool) error {
 	if err := requireLocalProxiedBackup("backup restore"); err != nil {
 		return err
 	}
-	beadsDir := beads.FindBeadsDir()
-	if beadsDir == "" {
+	issuegraphDir := issuegraph.FindIssueGraphDir()
+	if issuegraphDir == "" {
 		return HandleErrorRespectJSON("%s", activeWorkspaceNotFoundError())
 	}
-	root, err := resolveProxiedServerRootPath(beadsDir)
+	root, err := resolveProxiedServerRootPath(issuegraphDir)
 	if err != nil {
 		return HandleErrorRespectJSON("%v", err)
 	}
@@ -313,14 +313,14 @@ func runBackupRestoreProxied(ctx context.Context, dir string, force bool) error 
 		return HandleErrorRespectJSON("%v", err)
 	}
 
-	if err := withQuiescedProxiedProvider(ctx, beadsDir, database, root, func(ctx context.Context, conn *sql.Conn) error {
+	if err := withQuiescedProxiedProvider(ctx, issuegraphDir, database, root, func(ctx context.Context, conn *sql.Conn) error {
 		return versioncontrolops.BackupRestore(ctx, conn, backupURL, database, force)
 	}); err != nil {
 		return HandleErrorRespectJSON("%s", proxiedRestoreFailureMessage(dir, false, err))
 	}
 
-	if err := withQuiescedProxiedProvider(ctx, beadsDir, database, root, func(ctx context.Context, conn *sql.Conn) error {
-		return reconcileRestoredProxiedWorkspace(ctx, conn, beadsDir, dir, force)
+	if err := withQuiescedProxiedProvider(ctx, issuegraphDir, database, root, func(ctx context.Context, conn *sql.Conn) error {
+		return reconcileRestoredProxiedWorkspace(ctx, conn, issuegraphDir, dir, force)
 	}); err != nil {
 		return HandleErrorRespectJSON("%s", proxiedRestoreFailureMessage(dir, true, err))
 	}
@@ -345,10 +345,10 @@ func proxiedRestoreFailureMessage(dir string, afterReconcile bool, err error) st
 	if errors.As(err, &teardown) {
 		if afterReconcile {
 			return fmt.Sprintf("restored from %s, but shutting the proxied server down afterwards failed: %v; "+
-				"the data is restored and reconciled — run 'bd dolt stop --force' before the next command", dir, teardown)
+				"the data is restored and reconciled — run 'issuegraph dolt stop --force' before the next command", dir, teardown)
 		}
 		return fmt.Sprintf("restored from %s, but shutting the proxied server down afterwards failed: %v; "+
-			"the data is restored — run 'bd dolt stop --force', then 'bd backup init %s' to re-register the "+
+			"the data is restored — run 'issuegraph dolt stop --force', then 'issuegraph backup init %s' to re-register the "+
 			"backup destination, which this run did not reach", dir, teardown, dir)
 	}
 	if afterReconcile {
@@ -368,7 +368,7 @@ func quiesceProxiedTopology(ctx context.Context, root string) error {
 	}
 	if err := proxy.Shutdown(root); err != nil {
 		return fmt.Errorf("stop the proxied server before restoring: %w; "+
-			"run 'bd dolt stop --force' and retry", err)
+			"run 'issuegraph dolt stop --force' and retry", err)
 	}
 	return nil
 }
@@ -400,7 +400,7 @@ func (e *proxiedTeardownError) Unwrap() error { return e.err }
 // failed, preserve that error and append any cleanup failure without the
 // success marker. Shutdown is attempted even if construction fails after
 // starting the topology but before returning a provider.
-func withQuiescedProxiedProvider(ctx context.Context, beadsDir, database, root string, fn func(context.Context, *sql.Conn) error) (err error) {
+func withQuiescedProxiedProvider(ctx context.Context, issuegraphDir, database, root string, fn func(context.Context, *sql.Conn) error) (err error) {
 	var provider uow.UnitOfWorkProvider
 	defer func() {
 		var closeErr error
@@ -416,7 +416,7 @@ func withQuiescedProxiedProvider(ctx context.Context, beadsDir, database, root s
 			}
 		}
 	}()
-	provider, err = newProxiedServerUOWProviderAdopting(ctx, beadsDir, database)
+	provider, err = newProxiedServerUOWProviderAdopting(ctx, issuegraphDir, database)
 	if err != nil {
 		return err
 	}
@@ -431,14 +431,14 @@ func withQuiescedProxiedProvider(ctx context.Context, beadsDir, database, root s
 // reconcileRestoredProxiedWorkspace is the post-restore bookkeeping, mirroring
 // the direct path: adopt the restored database's project identity when the
 // restore overwrote one, and register the restore source as the backup
-// destination so `bd backup sync` works without a separate init.
+// destination so `issuegraph backup sync` works without a separate init.
 //
 // Both are best-effort with a warning, as in direct mode. The restore itself
 // has already succeeded by this point, and failing the command over bookkeeping
 // would tell the operator their data did not come back when it did.
-func reconcileRestoredProxiedWorkspace(ctx context.Context, conn *sql.Conn, beadsDir, dir string, force bool) error {
+func reconcileRestoredProxiedWorkspace(ctx context.Context, conn *sql.Conn, issuegraphDir, dir string, force bool) error {
 	if force {
-		if err := syncProjectIDFromProxiedDB(ctx, conn, beadsDir); err != nil {
+		if err := syncProjectIDFromProxiedDB(ctx, conn, issuegraphDir); err != nil {
 			fmt.Fprintf(os.Stderr, "Warning: failed to sync project ID after restore: %v\n", err)
 		}
 	}
@@ -460,12 +460,12 @@ func reconcileRestoredProxiedWorkspace(ctx context.Context, conn *sql.Conn, bead
 // direct path reads it through the store; there is no store in proxied mode, so
 // it goes through the same issueops accessor the store itself uses rather than
 // a second copy of the query.
-func syncProjectIDFromProxiedDB(ctx context.Context, conn *sql.Conn, beadsDir string) error {
+func syncProjectIDFromProxiedDB(ctx context.Context, conn *sql.Conn, issuegraphDir string) error {
 	dbID, err := issueops.GetMetadataInTx(ctx, conn, "_project_id")
 	if err != nil || dbID == "" {
 		return err
 	}
-	cfg, err := configfile.Load(beadsDir)
+	cfg, err := configfile.Load(issuegraphDir)
 	if err != nil {
 		return err
 	}
@@ -473,5 +473,5 @@ func syncProjectIDFromProxiedDB(ctx context.Context, conn *sql.Conn, beadsDir st
 		return nil
 	}
 	cfg.ProjectID = dbID
-	return cfg.Save(beadsDir)
+	return cfg.Save(issuegraphDir)
 }

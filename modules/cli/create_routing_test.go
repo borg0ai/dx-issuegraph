@@ -7,14 +7,14 @@ import (
 	"path/filepath"
 	"testing"
 
-	"github.com/steveyegge/beads/internal/config"
+	"github.com/borg0ai/dx-issuegraph/internal/config"
 )
 
 func TestGetRoutingConfigValue_DBFallback(t *testing.T) {
 	initConfigForTest(t)
 
 	tmpDir := t.TempDir()
-	testDB := filepath.Join(tmpDir, ".beads", "beads.db")
+	testDB := filepath.Join(tmpDir, ".issuegraph", "issuegraph.db")
 	s := newTestStore(t, testDB)
 	ctx := context.Background()
 
@@ -32,7 +32,7 @@ func TestGetRoutingConfigValue_YAMLPrecedence(t *testing.T) {
 	initConfigForTest(t)
 
 	tmpDir := t.TempDir()
-	testDB := filepath.Join(tmpDir, ".beads", "beads.db")
+	testDB := filepath.Join(tmpDir, ".issuegraph", "issuegraph.db")
 	s := newTestStore(t, testDB)
 	ctx := context.Background()
 

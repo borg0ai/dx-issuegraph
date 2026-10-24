@@ -12,33 +12,33 @@ import (
 	"testing"
 )
 
-// bdTodo runs "bd todo" with the given args and returns stdout.
-func bdTodo(t *testing.T, bd, dir string, args ...string) string {
+// issuegraphTodo runs "issuegraph todo" with the given args and returns stdout.
+func issuegraphTodo(t *testing.T, issuegraph, dir string, args ...string) string {
 	t.Helper()
 	fullArgs := append([]string{"todo"}, args...)
-	cmd := exec.Command(bd, fullArgs...)
+	cmd := exec.Command(issuegraph, fullArgs...)
 	cmd.Dir = dir
-	cmd.Env = bdEnv(dir)
+	cmd.Env = issuegraphEnv(dir)
 	stdout, stderr, err := runCommandBuffers(t, cmd)
 	if err != nil {
-		t.Fatalf("bd todo %s failed: %v\nstdout:\n%s\nstderr:\n%s", strings.Join(args, " "), err, stdout.String(), stderr.String())
+		t.Fatalf("issuegraph todo %s failed: %v\nstdout:\n%s\nstderr:\n%s", strings.Join(args, " "), err, stdout.String(), stderr.String())
 	}
 	return stdout.String()
 }
 
 func TestEmbeddedTodo(t *testing.T) {
-	if os.Getenv("BEADS_TEST_EMBEDDED_DOLT") != "1" {
-		t.Skip("set BEADS_TEST_EMBEDDED_DOLT=1 to run embedded dolt integration tests")
+	if os.Getenv("ISSUEGRAPH_TEST_EMBEDDED_DOLT") != "1" {
+		t.Skip("set ISSUEGRAPH_TEST_EMBEDDED_DOLT=1 to run embedded dolt integration tests")
 	}
 	t.Parallel()
 
-	bd := buildEmbeddedBD(t)
-	dir, _, _ := bdInit(t, bd, "--prefix", "td")
+	issuegraph := buildEmbeddedBD(t)
+	dir, _, _ := issuegraphInit(t, issuegraph, "--prefix", "td")
 
 	// ===== todo add =====
 
 	t.Run("todo_add_basic", func(t *testing.T) {
-		out := bdTodo(t, bd, dir, "add", "Buy groceries")
+		out := issuegraphTodo(t, issuegraph, dir, "add", "Buy groceries")
 		if !strings.Contains(out, "Created") {
 			t.Errorf("expected 'Created' in output: %s", out)
 		}
@@ -48,12 +48,12 @@ func TestEmbeddedTodo(t *testing.T) {
 	})
 
 	t.Run("todo_add_json", func(t *testing.T) {
-		cmd := exec.Command(bd, "todo", "add", "JSON todo", "--json")
+		cmd := exec.Command(issuegraph, "todo", "add", "JSON todo", "--json")
 		cmd.Dir = dir
-		cmd.Env = bdEnv(dir)
+		cmd.Env = issuegraphEnv(dir)
 		stdout, stderr, err := runCommandBuffers(t, cmd)
 		if err != nil {
-			t.Fatalf("bd todo add --json failed: %v\nstdout:\n%s\nstderr:\n%s", err, stdout.String(), stderr.String())
+			t.Fatalf("issuegraph todo add --json failed: %v\nstdout:\n%s\nstderr:\n%s", err, stdout.String(), stderr.String())
 		}
 		s := strings.TrimSpace(stdout.String())
 		start := strings.Index(s, "{")
@@ -73,14 +73,14 @@ func TestEmbeddedTodo(t *testing.T) {
 	})
 
 	t.Run("todo_add_priority", func(t *testing.T) {
-		out := bdTodo(t, bd, dir, "add", "Urgent todo", "--priority", "1")
+		out := issuegraphTodo(t, issuegraph, dir, "add", "Urgent todo", "--priority", "1")
 		if !strings.Contains(out, "Created") {
 			t.Errorf("expected 'Created' in output: %s", out)
 		}
 	})
 
 	t.Run("todo_add_description", func(t *testing.T) {
-		out := bdTodo(t, bd, dir, "add", "Described todo", "--description", "Details here")
+		out := issuegraphTodo(t, issuegraph, dir, "add", "Described todo", "--description", "Details here")
 		if !strings.Contains(out, "Created") {
 			t.Errorf("expected 'Created' in output: %s", out)
 		}
@@ -89,7 +89,7 @@ func TestEmbeddedTodo(t *testing.T) {
 	// ===== todo list =====
 
 	t.Run("todo_list", func(t *testing.T) {
-		out := bdTodo(t, bd, dir, "list")
+		out := issuegraphTodo(t, issuegraph, dir, "list")
 		// Should show TODOs we created
 		if !strings.Contains(out, "Buy groceries") && !strings.Contains(out, "td-") {
 			t.Logf("todo list output: %s", out)
@@ -97,12 +97,12 @@ func TestEmbeddedTodo(t *testing.T) {
 	})
 
 	t.Run("todo_list_json", func(t *testing.T) {
-		cmd := exec.Command(bd, "todo", "list", "--json")
+		cmd := exec.Command(issuegraph, "todo", "list", "--json")
 		cmd.Dir = dir
-		cmd.Env = bdEnv(dir)
+		cmd.Env = issuegraphEnv(dir)
 		stdout, stderr, err := runCommandBuffers(t, cmd)
 		if err != nil {
-			t.Fatalf("bd todo list --json failed: %v\nstdout:\n%s\nstderr:\n%s", err, stdout.String(), stderr.String())
+			t.Fatalf("issuegraph todo list --json failed: %v\nstdout:\n%s\nstderr:\n%s", err, stdout.String(), stderr.String())
 		}
 		s := strings.TrimSpace(stdout.String())
 		start := strings.Index(s, "[")
@@ -122,12 +122,12 @@ func TestEmbeddedTodo(t *testing.T) {
 
 	t.Run("todo_done_single", func(t *testing.T) {
 		// Create a todo, then mark done
-		cmd := exec.Command(bd, "todo", "add", "Done test", "--json")
+		cmd := exec.Command(issuegraph, "todo", "add", "Done test", "--json")
 		cmd.Dir = dir
-		cmd.Env = bdEnv(dir)
+		cmd.Env = issuegraphEnv(dir)
 		stdout, stderr, err := runCommandBuffers(t, cmd)
 		if err != nil {
-			t.Fatalf("bd todo add failed: %v\nstdout:\n%s\nstderr:\n%s", err, stdout.String(), stderr.String())
+			t.Fatalf("issuegraph todo add failed: %v\nstdout:\n%s\nstderr:\n%s", err, stdout.String(), stderr.String())
 		}
 		s := strings.TrimSpace(stdout.String())
 		start := strings.Index(s, "{")
@@ -135,20 +135,20 @@ func TestEmbeddedTodo(t *testing.T) {
 		json.Unmarshal([]byte(s[start:]), &m)
 		id := m["id"].(string)
 
-		bdTodo(t, bd, dir, "done", id)
-		got := bdShow(t, bd, dir, id)
+		issuegraphTodo(t, issuegraph, dir, "done", id)
+		got := issuegraphShow(t, issuegraph, dir, id)
 		if got.Status != "closed" {
 			t.Errorf("expected closed after done, got %s", got.Status)
 		}
 	})
 
 	t.Run("todo_done_multiple", func(t *testing.T) {
-		cmd1 := exec.Command(bd, "todo", "add", "Multi done 1", "--json")
+		cmd1 := exec.Command(issuegraph, "todo", "add", "Multi done 1", "--json")
 		cmd1.Dir = dir
-		cmd1.Env = bdEnv(dir)
+		cmd1.Env = issuegraphEnv(dir)
 		stdout1, stderr1, err := runCommandBuffers(t, cmd1)
 		if err != nil {
-			t.Fatalf("bd todo add Multi done 1 --json failed: %v\nstdout:\n%s\nstderr:\n%s", err, stdout1.String(), stderr1.String())
+			t.Fatalf("issuegraph todo add Multi done 1 --json failed: %v\nstdout:\n%s\nstderr:\n%s", err, stdout1.String(), stderr1.String())
 		}
 		s1 := strings.TrimSpace(stdout1.String())
 		start1 := strings.Index(s1, "{")
@@ -161,12 +161,12 @@ func TestEmbeddedTodo(t *testing.T) {
 		}
 		id1 := m1["id"].(string)
 
-		cmd2 := exec.Command(bd, "todo", "add", "Multi done 2", "--json")
+		cmd2 := exec.Command(issuegraph, "todo", "add", "Multi done 2", "--json")
 		cmd2.Dir = dir
-		cmd2.Env = bdEnv(dir)
+		cmd2.Env = issuegraphEnv(dir)
 		stdout2, stderr2, err := runCommandBuffers(t, cmd2)
 		if err != nil {
-			t.Fatalf("bd todo add Multi done 2 --json failed: %v\nstdout:\n%s\nstderr:\n%s", err, stdout2.String(), stderr2.String())
+			t.Fatalf("issuegraph todo add Multi done 2 --json failed: %v\nstdout:\n%s\nstderr:\n%s", err, stdout2.String(), stderr2.String())
 		}
 		s2 := strings.TrimSpace(stdout2.String())
 		start2 := strings.Index(s2, "{")
@@ -179,9 +179,9 @@ func TestEmbeddedTodo(t *testing.T) {
 		}
 		id2 := m2["id"].(string)
 
-		bdTodo(t, bd, dir, "done", id1, id2)
-		got1 := bdShow(t, bd, dir, id1)
-		got2 := bdShow(t, bd, dir, id2)
+		issuegraphTodo(t, issuegraph, dir, "done", id1, id2)
+		got1 := issuegraphShow(t, issuegraph, dir, id1)
+		got2 := issuegraphShow(t, issuegraph, dir, id2)
 		if got1.Status != "closed" {
 			t.Errorf("issue1: expected closed, got %s", got1.Status)
 		}
@@ -191,12 +191,12 @@ func TestEmbeddedTodo(t *testing.T) {
 	})
 
 	t.Run("todo_done_with_reason", func(t *testing.T) {
-		cmd := exec.Command(bd, "todo", "add", "Reason done", "--json")
+		cmd := exec.Command(issuegraph, "todo", "add", "Reason done", "--json")
 		cmd.Dir = dir
-		cmd.Env = bdEnv(dir)
+		cmd.Env = issuegraphEnv(dir)
 		stdout, stderr, err := runCommandBuffers(t, cmd)
 		if err != nil {
-			t.Fatalf("bd todo add Reason done --json failed: %v\nstdout:\n%s\nstderr:\n%s", err, stdout.String(), stderr.String())
+			t.Fatalf("issuegraph todo add Reason done --json failed: %v\nstdout:\n%s\nstderr:\n%s", err, stdout.String(), stderr.String())
 		}
 		s := strings.TrimSpace(stdout.String())
 		start := strings.Index(s, "{")
@@ -209,20 +209,20 @@ func TestEmbeddedTodo(t *testing.T) {
 		}
 		id := m["id"].(string)
 
-		bdTodo(t, bd, dir, "done", id, "--reason", "No longer needed")
-		got := bdShow(t, bd, dir, id)
+		issuegraphTodo(t, issuegraph, dir, "done", id, "--reason", "No longer needed")
+		got := issuegraphShow(t, issuegraph, dir, id)
 		if got.Status != "closed" {
 			t.Errorf("expected closed, got %s", got.Status)
 		}
 	})
 
 	t.Run("todo_done_json", func(t *testing.T) {
-		cmd := exec.Command(bd, "todo", "add", "JSON done", "--json")
+		cmd := exec.Command(issuegraph, "todo", "add", "JSON done", "--json")
 		cmd.Dir = dir
-		cmd.Env = bdEnv(dir)
+		cmd.Env = issuegraphEnv(dir)
 		addStdout, addStderr, err := runCommandBuffers(t, cmd)
 		if err != nil {
-			t.Fatalf("bd todo add JSON done --json failed: %v\nstdout:\n%s\nstderr:\n%s", err, addStdout.String(), addStderr.String())
+			t.Fatalf("issuegraph todo add JSON done --json failed: %v\nstdout:\n%s\nstderr:\n%s", err, addStdout.String(), addStderr.String())
 		}
 		s := strings.TrimSpace(addStdout.String())
 		start := strings.Index(s, "{")
@@ -235,24 +235,24 @@ func TestEmbeddedTodo(t *testing.T) {
 		}
 		id := m["id"].(string)
 
-		doneCmd := exec.Command(bd, "todo", "done", id, "--json")
+		doneCmd := exec.Command(issuegraph, "todo", "done", id, "--json")
 		doneCmd.Dir = dir
-		doneCmd.Env = bdEnv(dir)
+		doneCmd.Env = issuegraphEnv(dir)
 		stdout, stderr, err := runCommandBuffers(t, doneCmd)
 		if err != nil {
-			t.Fatalf("bd todo done --json failed: %v\nstdout:\n%s\nstderr:\n%s", err, stdout.String(), stderr.String())
+			t.Fatalf("issuegraph todo done --json failed: %v\nstdout:\n%s\nstderr:\n%s", err, stdout.String(), stderr.String())
 		}
 	})
 
 	// ===== todo list --all =====
 
 	t.Run("todo_list_all", func(t *testing.T) {
-		cmd := exec.Command(bd, "todo", "list", "--all", "--json")
+		cmd := exec.Command(issuegraph, "todo", "list", "--all", "--json")
 		cmd.Dir = dir
-		cmd.Env = bdEnv(dir)
+		cmd.Env = issuegraphEnv(dir)
 		stdout, stderr, err := runCommandBuffers(t, cmd)
 		if err != nil {
-			t.Fatalf("bd todo list --all --json failed: %v\nstdout:\n%s\nstderr:\n%s", err, stdout.String(), stderr.String())
+			t.Fatalf("issuegraph todo list --all --json failed: %v\nstdout:\n%s\nstderr:\n%s", err, stdout.String(), stderr.String())
 		}
 		s := strings.TrimSpace(stdout.String())
 		start := strings.Index(s, "[")
@@ -280,13 +280,13 @@ func TestEmbeddedTodo(t *testing.T) {
 
 	t.Run("todo_lifecycle", func(t *testing.T) {
 		// Add
-		out := bdTodo(t, bd, dir, "add", "Lifecycle todo")
+		out := issuegraphTodo(t, issuegraph, dir, "add", "Lifecycle todo")
 		if !strings.Contains(out, "Created") {
 			t.Fatal("expected Created")
 		}
 
 		// List
-		listOut := bdTodo(t, bd, dir, "list")
+		listOut := issuegraphTodo(t, issuegraph, dir, "list")
 		if !strings.Contains(listOut, "Lifecycle todo") {
 			t.Logf("lifecycle todo not in list: %s", listOut)
 		}
@@ -295,13 +295,13 @@ func TestEmbeddedTodo(t *testing.T) {
 
 // TestEmbeddedTodoConcurrent exercises todo operations concurrently.
 func TestEmbeddedTodoConcurrent(t *testing.T) {
-	if os.Getenv("BEADS_TEST_EMBEDDED_DOLT") != "1" {
-		t.Skip("set BEADS_TEST_EMBEDDED_DOLT=1 to run embedded dolt integration tests")
+	if os.Getenv("ISSUEGRAPH_TEST_EMBEDDED_DOLT") != "1" {
+		t.Skip("set ISSUEGRAPH_TEST_EMBEDDED_DOLT=1 to run embedded dolt integration tests")
 	}
 	t.Parallel()
 
-	bd := buildEmbeddedBD(t)
-	dir, _, _ := bdInit(t, bd, "--prefix", "tx")
+	issuegraph := buildEmbeddedBD(t)
+	dir, _, _ := issuegraphInit(t, issuegraph, "--prefix", "tx")
 
 	const numWorkers = 6
 
@@ -320,9 +320,9 @@ func TestEmbeddedTodoConcurrent(t *testing.T) {
 			r := workerResult{worker: worker}
 
 			title := fmt.Sprintf("w%d-todo", worker)
-			cmd := exec.Command(bd, "todo", "add", title)
+			cmd := exec.Command(issuegraph, "todo", "add", title)
 			cmd.Dir = dir
-			cmd.Env = bdEnv(dir)
+			cmd.Env = issuegraphEnv(dir)
 			out, err := cmd.CombinedOutput()
 			if err != nil {
 				r.err = fmt.Errorf("todo add: %v\n%s", err, out)

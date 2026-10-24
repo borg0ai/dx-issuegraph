@@ -7,8 +7,8 @@ import (
 	"os"
 	"testing"
 
-	"github.com/steveyegge/beads/internal/storage/embeddeddolt"
-	"github.com/steveyegge/beads/internal/types"
+	"github.com/borg0ai/dx-issuegraph/internal/storage/embeddeddolt"
+	"github.com/borg0ai/dx-issuegraph/internal/types"
 )
 
 // TestEmbeddedSquashWispMoleculeClearsRootEphemeral mirrors
@@ -16,14 +16,14 @@ import (
 // Dolt backend used by CI. Without this, the standalone-Dolt regression test
 // skips in the Embedded Dolt CI tier and the fix's lines stay uncovered.
 func TestEmbeddedSquashWispMoleculeClearsRootEphemeral(t *testing.T) {
-	if os.Getenv("BEADS_TEST_EMBEDDED_DOLT") != "1" {
-		t.Skip("set BEADS_TEST_EMBEDDED_DOLT=1 to run embedded dolt integration tests")
+	if os.Getenv("ISSUEGRAPH_TEST_EMBEDDED_DOLT") != "1" {
+		t.Skip("set ISSUEGRAPH_TEST_EMBEDDED_DOLT=1 to run embedded dolt integration tests")
 	}
 
 	ctx := context.Background()
-	beadsDir := t.TempDir()
+	issuegraphDir := t.TempDir()
 
-	s, err := embeddeddolt.Open(ctx, beadsDir, "moltest", "main")
+	s, err := embeddeddolt.Open(ctx, issuegraphDir, "moltest", "main")
 	if err != nil {
 		t.Fatalf("embeddeddolt.Open: %v", err)
 	}

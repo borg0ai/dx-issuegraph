@@ -1,4 +1,4 @@
-// Package main provides the bd CLI commands.
+// Package main provides the issuegraph CLI commands.
 package main
 
 import (
@@ -8,14 +8,14 @@ import (
 	"strconv"
 	"strings"
 
+	"github.com/borg0ai/dx-issuegraph/internal/ado"
+	"github.com/borg0ai/dx-issuegraph/internal/config"
+	"github.com/borg0ai/dx-issuegraph/internal/metrics"
+	"github.com/borg0ai/dx-issuegraph/internal/storage"
+	"github.com/borg0ai/dx-issuegraph/internal/storage/dolt"
+	"github.com/borg0ai/dx-issuegraph/internal/tracker"
+	"github.com/borg0ai/dx-issuegraph/internal/types"
 	"github.com/spf13/cobra"
-	"github.com/steveyegge/beads/internal/ado"
-	"github.com/steveyegge/beads/internal/config"
-	"github.com/steveyegge/beads/internal/metrics"
-	"github.com/steveyegge/beads/internal/storage"
-	"github.com/steveyegge/beads/internal/storage/dolt"
-	"github.com/steveyegge/beads/internal/tracker"
-	"github.com/steveyegge/beads/internal/types"
 )
 
 // ADOConfig holds Azure DevOps connection configuration.
@@ -31,9 +31,9 @@ type ADOConfig struct {
 var adoCmd = &cobra.Command{
 	Use:   "ado",
 	Short: "Azure DevOps integration commands",
-	Long: `Commands for syncing issues between beads and Azure DevOps.
+	Long: `Commands for syncing issues between issuegraph and Azure DevOps.
 
-Configuration can be set via 'bd config' or environment variables:
+Configuration can be set via 'issuegraph config' or environment variables:
   ado.org / AZURE_DEVOPS_ORG              - Organization name
   ado.project / AZURE_DEVOPS_PROJECT      - Project name (single)
   ado.projects / AZURE_DEVOPS_PROJECTS    - Project names (comma-separated)
@@ -41,21 +41,21 @@ Configuration can be set via 'bd config' or environment variables:
   ado.url / AZURE_DEVOPS_URL              - Custom base URL (on-prem)`,
 }
 
-// adoSyncCmd synchronizes issues between beads and Azure DevOps.
+// adoSyncCmd synchronizes issues between issuegraph and Azure DevOps.
 var adoSyncCmd = &cobra.Command{
 	Use:   "sync",
 	Short: "Sync issues with Azure DevOps",
-	Long: `Synchronize issues between beads and Azure DevOps.
+	Long: `Synchronize issues between issuegraph and Azure DevOps.
 
 By default, performs bidirectional sync:
-- Pulls new/updated work items from Azure DevOps to beads
-- Pushes local beads issues to Azure DevOps
+- Pulls new/updated work items from Azure DevOps to issuegraph
+- Pushes local issuegraph issues to Azure DevOps
 
 Use --pull-only or --push-only to limit direction.
 
 Filters (--area-path, --iteration-path, --types, --states) restrict
 which work items are synced. On pull, they limit the WIQL query. On push,
---types and --states filter local beads before pushing to ADO. Use
+--types and --states filter local issuegraph before pushing to ADO. Use
 --no-create with push to skip creating new ADO work items (only update
 existing linked items). Filters can also be persisted via config:
   ado.filter.area_path, ado.filter.iteration_path,
@@ -104,7 +104,7 @@ type ADOConflictStrategy string
 const (
 	// ADOConflictPreferNewer uses the most recently updated version (default).
 	ADOConflictPreferNewer ADOConflictStrategy = "prefer-newer"
-	// ADOConflictPreferLocal always keeps the local beads version.
+	// ADOConflictPreferLocal always keeps the local issuegraph version.
 	ADOConflictPreferLocal ADOConflictStrategy = "prefer-local"
 	// ADOConflictPreferADO always uses the Azure DevOps version.
 	ADOConflictPreferADO ADOConflictStrategy = "prefer-ado"
@@ -148,7 +148,7 @@ func init() {
 	adoSyncCmd.Flags().BoolVar(&adoSyncPushOnly, "push-only", false, "Only push issues to Azure DevOps")
 
 	// Conflict resolution flags (mutually exclusive)
-	adoSyncCmd.Flags().BoolVar(&adoPreferLocal, "prefer-local", false, "On conflict, keep local beads version")
+	adoSyncCmd.Flags().BoolVar(&adoPreferLocal, "prefer-local", false, "On conflict, keep local issuegraph version")
 	adoSyncCmd.Flags().BoolVar(&adoPreferADO, "prefer-ado", false, "On conflict, use Azure DevOps version")
 	adoSyncCmd.Flags().BoolVar(&adoPreferNewer, "prefer-newer", false, "On conflict, use most recent version (default)")
 
@@ -169,7 +169,7 @@ func init() {
 	rootCmd.AddCommand(adoCmd)
 }
 
-// getADOConfig returns Azure DevOps configuration from bd config or environment.
+// getADOConfig returns Azure DevOps configuration from issuegraph config or environment.
 func getADOConfig() ADOConfig {
 	ctx := context.Background()
 	cfg := ADOConfig{}
@@ -240,13 +240,13 @@ func adoConfigToEnvVar(key string) string {
 // validateADOConfig checks that required configuration is present.
 func validateADOConfig(cfg ADOConfig) error {
 	if cfg.PAT == "" {
-		return fmt.Errorf("ado.pat not configured: set via 'bd config set ado.pat <token>' or AZURE_DEVOPS_PAT env var")
+		return fmt.Errorf("ado.pat not configured: set via 'issuegraph config set ado.pat <token>' or AZURE_DEVOPS_PAT env var")
 	}
 	if cfg.Org == "" && cfg.URL == "" {
-		return fmt.Errorf("ado.org not configured: set via 'bd config set ado.org <org>' or AZURE_DEVOPS_ORG env var")
+		return fmt.Errorf("ado.org not configured: set via 'issuegraph config set ado.org <org>' or AZURE_DEVOPS_ORG env var")
 	}
 	if len(cfg.Projects) == 0 {
-		return fmt.Errorf("no ADO project configured\nSet via 'bd config set ado.project <project>'\nOr:  'bd config set ado.projects \"proj1,proj2\"'\nOr: AZURE_DEVOPS_PROJECT env var")
+		return fmt.Errorf("no ADO project configured\nSet via 'issuegraph config set ado.project <project>'\nOr:  'issuegraph config set ado.projects \"proj1,proj2\"'\nOr: AZURE_DEVOPS_PROJECT env var")
 	}
 	return nil
 }
@@ -424,10 +424,10 @@ func runADOProjects(cmd *cobra.Command, _ []string) error {
 
 	cfg := getADOConfig()
 	if cfg.PAT == "" {
-		return fmt.Errorf("ado.pat not configured: set via 'bd config set ado.pat <token>' or AZURE_DEVOPS_PAT env var")
+		return fmt.Errorf("ado.pat not configured: set via 'issuegraph config set ado.pat <token>' or AZURE_DEVOPS_PAT env var")
 	}
 	if cfg.Org == "" && cfg.URL == "" {
-		return fmt.Errorf("ado.org not configured: set via 'bd config set ado.org <org>' or AZURE_DEVOPS_ORG env var")
+		return fmt.Errorf("ado.org not configured: set via 'issuegraph config set ado.org <org>' or AZURE_DEVOPS_ORG env var")
 	}
 
 	out := cmd.OutOrStdout()
@@ -593,7 +593,7 @@ func runADOSync(cmd *cobra.Command, _ []string) error {
 		return err
 	}
 
-	// Link push pass: sync beads dependencies → ADO work item relations.
+	// Link push pass: sync issuegraph dependencies → ADO work item relations.
 	var linksPushed int
 	if !adoSyncDryRun && push {
 		adoClient := at.ADOClient()
@@ -764,7 +764,7 @@ func collectADOWorkItemMap(ctx context.Context, at *ado.Tracker) map[int]string 
 	return m
 }
 
-// pushADOLinks syncs beads dependencies to ADO work item relations for all
+// pushADOLinks syncs issuegraph dependencies to ADO work item relations for all
 // local issues with ADO external refs. Returns the number of links synced
 // and any warnings.
 func pushADOLinks(ctx context.Context, resolver *ado.LinkResolver, at *ado.Tracker, st storage.Storage, warn func(string)) (int, []string) {
@@ -776,8 +776,8 @@ func pushADOLinks(ctx context.Context, resolver *ado.LinkResolver, at *ado.Track
 	var warnings []string
 	linkCount := 0
 
-	// Build the set of ADO work item IDs beads tracks. PushLinks only removes a
-	// current relation when its target is in this set, so links to items beads
+	// Build the set of ADO work item IDs issuegraph tracks. PushLinks only removes a
+	// current relation when its target is in this set, so links to items issuegraph
 	// does not track (e.g. human-created Related / Predecessor-Successor links)
 	// are preserved rather than clobbered. See GH#4522.
 	managedTargets := make(map[int]bool)
@@ -868,7 +868,7 @@ func pushADOLinks(ctx context.Context, resolver *ado.LinkResolver, at *ado.Track
 // local issues by external_ref, source_system, and heuristic before creating
 // duplicates. When noCreate is true, unmatched items are skipped entirely.
 func buildADOPullHooks(ctx context.Context, at *ado.Tracker, bootstrapMatch, noCreate bool, matchCount *int, warn func(string)) *tracker.PullHooks {
-	prefix := "bd"
+	prefix := "issuegraph"
 	// YAML config takes precedence — in shared-server mode the DB
 	// may belong to a different project (GH#2469).
 	if p := config.GetString("issue-prefix"); p != "" {
@@ -915,10 +915,10 @@ func buildADOPullHooks(ctx context.Context, at *ado.Tracker, bootstrapMatch, noC
 						"external_ref":  ref,
 						"source_system": "ado:" + extIssue.ID,
 					}
-					if err := store.UpdateIssue(ctx, result.BeadsID, updates, actor); err == nil {
+					if err := store.UpdateIssue(ctx, result.IssueGraphID, updates, actor); err == nil {
 						*matchCount++
 						if warn != nil {
-							warn(fmt.Sprintf("Bootstrap matched ADO #%s → %s (%s)", extIssue.ID, result.BeadsID, result.MatchType))
+							warn(fmt.Sprintf("Bootstrap matched ADO #%s → %s (%s)", extIssue.ID, result.IssueGraphID, result.MatchType))
 						}
 						return true // GetIssueByExternalRef will now find it.
 					}
@@ -937,8 +937,8 @@ func buildADOPullHooks(ctx context.Context, at *ado.Tracker, bootstrapMatch, noC
 }
 
 // buildADOPushHooks creates PushHooks for ADO-specific push filtering.
-// When --types or --states are set, local beads are filtered before pushing
-// to ADO by mapping the ADO filter values to beads types/statuses.
+// When --types or --states are set, local issuegraph are filtered before pushing
+// to ADO by mapping the ADO filter values to issuegraph types/statuses.
 // When noCreate is true, only issues already linked to ADO work items
 // are pushed (no new work items are created).
 func buildADOPushHooks(mapper tracker.FieldMapper, isExternalRef func(string) bool, filters *ado.PullFilters, noCreate bool) *tracker.PushHooks {
@@ -948,16 +948,16 @@ func buildADOPushHooks(mapper tracker.FieldMapper, isExternalRef func(string) bo
 	if filters != nil && len(filters.WorkItemTypes) > 0 {
 		allowedTypes = make(map[types.IssueType]bool, len(filters.WorkItemTypes))
 		for _, adoType := range filters.WorkItemTypes {
-			beadsType := mapper.TypeToBeads(adoType)
-			allowedTypes[beadsType] = true
+			issuegraphType := mapper.TypeToIssueGraph(adoType)
+			allowedTypes[issuegraphType] = true
 		}
 	}
 
 	if filters != nil && len(filters.States) > 0 {
 		allowedStatuses = make(map[types.Status]bool, len(filters.States))
 		for _, adoState := range filters.States {
-			beadsStatus := mapper.StatusToBeads(adoState)
-			allowedStatuses[beadsStatus] = true
+			issuegraphStatus := mapper.StatusToIssueGraph(adoState)
+			allowedStatuses[issuegraphStatus] = true
 		}
 	}
 

@@ -4,19 +4,19 @@ import (
 	"context"
 )
 
-// QueryRequest describes one boolean-expression query: the question `bd query`
+// QueryRequest describes one boolean-expression query: the question `issuegraph query`
 // asks, plus the page it wants back.
 //
 // THE EXPRESSION IS THE PREDICATE, and that is what makes this request unlike
 // every other one here. CountRequest, ListRequest and ReadyRequest spell their
 // predicate as FIELDS — one per filter, ANDed together — and a caller composes
 // them by setting more of them. This request carries a SENTENCE, in the query
-// mini-language `bd query` publishes, and that language has OR, NOT and
+// mini-language `issuegraph query` publishes, and that language has OR, NOT and
 // parentheses, which no conjunction of fields can express. Parsing, evaluation
 // and the choice of how to execute the result all happen inside; a caller says
 // what it wants matched and never how the match is shaped.
 type QueryRequest struct {
-	// Expression is the query, in the language `bd query --help` documents:
+	// Expression is the query, in the language `issuegraph query --help` documents:
 	// field comparisons (`status=open`, `priority>1`, `created>7d`) combined
 	// with AND, OR, NOT and parentheses.
 	//
@@ -35,7 +35,7 @@ type QueryRequest struct {
 	// `status`. So `status=closed` answers with closed rows on its own, and
 	// `NOT status=open` does too — an expression that has an opinion about
 	// status keeps it, and only an expression with none gets the default. The
-	// flag `bd query --all` sets is this one.
+	// flag `issuegraph query --all` sets is this one.
 	IncludeClosed bool
 
 	// SortBy names the display order and Reverse inverts it, over the same
@@ -45,11 +45,11 @@ type QueryRequest struct {
 	// WHAT THE ORDER IS APPLIED TO depends on what bounded the query, and the
 	// difference is worth stating because it is observable. The order is
 	// applied to the rows the QUERY bounded, then the page is cut from them —
-	// the epilogue `bd list` runs (workapi.FinishPage). For a
+	// the epilogue `issuegraph list` runs (workapi.FinishPage). For a
 	// filter-expressible query the database applied Limit, so the order sorts
 	// the page. For a PREDICATE query nothing bounded the query — see
 	// Querier.Query — so the order sorts the whole matching set and the page
-	// is its head. `bd list` has the same split for the same reason: a sort
+	// is its head. `issuegraph list` has the same split for the same reason: a sort
 	// SQL cannot express fetches everything and trims afterwards.
 	SortBy  string
 	Reverse bool
@@ -64,12 +64,12 @@ type QueryRequest struct {
 	// NOTHING BACKSTOPS IT. ListRequest pairs its Limit with MaxRows, a
 	// circuit breaker that refuses an oversized answer outright; this request
 	// has no twin to it by design, and neither knob that sets that one
-	// (`--max-rows`, BEADS_MAX_ROWS) is read anywhere on the query path. So an
+	// (`--max-rows`, ISSUEGRAPH_MAX_ROWS) is read anywhere on the query path. So an
 	// unlimited query is unbounded in the plain sense: it reads every row the
 	// expression matches, however many that is, and a caller who asked for one
 	// gets it rather than an ErrTooManyRows. The ceiling here is Limit itself.
-	// This is reachable without asking: a piped `bd query` resolves its
-	// unflagged limit to 0 before the request, the same policy `bd list` has
+	// This is reachable without asking: a piped `issuegraph query` resolves its
+	// unflagged limit to 0 before the request, the same policy `issuegraph list` has
 	// applied to piped output since GH#4094.
 	Limit *int
 
@@ -90,7 +90,7 @@ type QueryRequest struct {
 	// IT SKIPS MATCHES — never candidate rows. A skip
 	// applied before the predicate would discard rows the predicate would have
 	// rejected anyway and hand back a short page, which is the failure that
-	// made `bd query --offset` refuse OR queries outright.
+	// made `issuegraph query --offset` refuse OR queries outright.
 	//
 	// AN OFFSET WITH A SortBy IS ErrValidation, at every backend. The order is
 	// applied to the rows the query BOUNDED (see SortBy), so under a page
@@ -101,7 +101,7 @@ type QueryRequest struct {
 	Offset int
 }
 
-// Querier answers boolean-expression queries: the operation `bd query`
+// Querier answers boolean-expression queries: the operation `issuegraph query`
 // performs, and — like Counter, Reader and ReadyCounter — a role with its own
 // accessor. A new capability gets a new role interface and its own accessor;
 // never append a method here.

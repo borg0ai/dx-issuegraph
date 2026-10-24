@@ -6,8 +6,8 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/steveyegge/beads/modules/cli/doctor"
-	"github.com/steveyegge/beads/internal/types"
+	"github.com/borg0ai/dx-issuegraph/internal/types"
+	"github.com/borg0ai/dx-issuegraph/modules/cli/doctor"
 )
 
 // mockProvider implements types.IssueProvider for testing
@@ -22,7 +22,7 @@ func (m *mockProvider) GetOpenIssues(ctx context.Context) ([]*types.Issue, error
 
 func (m *mockProvider) GetIssuePrefix() string {
 	if m.prefix == "" {
-		return "bd"
+		return "issuegraph"
 	}
 	return m.prefix
 }
@@ -50,7 +50,7 @@ func TestFindOrphanedIssues_ConvertsDoctorOutput(t *testing.T) {
 
 	// We need to bypass getIssueProvider for this test since it needs a real store
 	// The test is really about conversion logic, so we test the mock directly
-	provider := &mockProvider{prefix: "bd"}
+	provider := &mockProvider{prefix: "issuegraph"}
 	orphans, err := doctorFindOrphanedIssues("/tmp/repo", provider)
 	if err != nil {
 		t.Fatalf("doctorFindOrphanedIssues returned error: %v", err)
@@ -78,7 +78,7 @@ func TestFindOrphanedIssues_ErrorWrapped(t *testing.T) {
 	t.Cleanup(func() { doctorFindOrphanedIssues = orig })
 
 	// Call the mocked function directly to test error propagation
-	provider := &mockProvider{prefix: "bd"}
+	provider := &mockProvider{prefix: "issuegraph"}
 	_, err := doctorFindOrphanedIssues("/tmp/repo", provider)
 	if err == nil {
 		t.Fatal("expected error, got nil")

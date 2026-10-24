@@ -3,10 +3,10 @@ package main
 import (
 	"fmt"
 
+	"github.com/borg0ai/dx-issuegraph/internal/metrics"
+	"github.com/borg0ai/dx-issuegraph/internal/ui"
+	"github.com/borg0ai/dx-issuegraph/internal/utils"
 	"github.com/spf13/cobra"
-	"github.com/steveyegge/beads/internal/metrics"
-	"github.com/steveyegge/beads/internal/ui"
-	"github.com/steveyegge/beads/internal/utils"
 )
 
 var tagCmd = &cobra.Command{
@@ -15,11 +15,11 @@ var tagCmd = &cobra.Command{
 	Short:   "Add a label to an issue",
 	Long: `Add a label to an issue.
 
-Shorthand for 'bd update <id> --add-label <label>'.
+Shorthand for 'issuegraph update <id> --add-label <label>'.
 
 Examples:
-  bd tag bd-123 bug
-  bd tag bd-123 needs-review`,
+  issuegraph tag bd-123 bug
+  issuegraph tag bd-123 needs-review`,
 	Args:          cobra.ExactArgs(2),
 	SilenceUsage:  true,
 	SilenceErrors: true,
@@ -95,19 +95,19 @@ Examples:
 	},
 }
 
-// normalizeLabelForTag applies to `bd tag` the normalization every other CLI
+// normalizeLabelForTag applies to `issuegraph tag` the normalization every other CLI
 // label write performs, and it is deliberately called BEFORE the route split so
 // the direct and proxied paths cannot diverge on it.
 //
-// `bd tag` describes itself as "Shorthand for 'bd update <id> --add-label
+// `issuegraph tag` describes itself as "Shorthand for 'issuegraph update <id> --add-label
 // <label>'". Without this it was not: update trims and warns, tag stored the
-// positional verbatim, so `bd tag bd-1 ' theme:a'` wrote a label that no
+// positional verbatim, so `issuegraph tag bd-1 ' theme:a'` wrote a label that no
 // `--label theme:a` filter can ever match — the exact unfilterable class #5812
 // is about, written by the command whose help text promises equivalence.
 //
 // A label that is only whitespace is rejected rather than silently dropped.
 // The plural flags can drop an empty element and still honor the rest of the
-// request; `bd tag` has exactly one label to add, so dropping it would leave a
+// request; `issuegraph tag` has exactly one label to add, so dropping it would leave a
 // command that reported success having done nothing.
 func normalizeLabelForTag(raw string) (string, error) {
 	labels := utils.NormalizeLabels([]string{raw})

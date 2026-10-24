@@ -11,9 +11,9 @@ import (
 	"testing"
 	"time"
 
-	"github.com/steveyegge/beads/internal/configfile"
-	"github.com/steveyegge/beads/internal/storage/dolt"
-	"github.com/steveyegge/beads/internal/types"
+	"github.com/borg0ai/dx-issuegraph/internal/configfile"
+	"github.com/borg0ai/dx-issuegraph/internal/storage/dolt"
+	"github.com/borg0ai/dx-issuegraph/internal/types"
 )
 
 func filteredEnvForContextBinding(keys ...string) []string {
@@ -25,7 +25,7 @@ func filteredEnvForContextBinding(keys ...string) []string {
 	env := os.Environ()
 	filtered := make([]string, 0, len(env))
 	for _, entry := range env {
-		if strings.HasPrefix(entry, "BEADS_") || strings.HasPrefix(entry, "BD_") {
+		if strings.HasPrefix(entry, "ISSUEGRAPH_") || strings.HasPrefix(entry, "ISSUEGRAPH_") {
 			continue
 		}
 		trim := false
@@ -39,7 +39,7 @@ func filteredEnvForContextBinding(keys ...string) []string {
 			filtered = append(filtered, entry)
 		}
 	}
-	return append(filtered, "BD_DISABLE_METRICS=1", "BD_DISABLE_EVENT_FLUSH=1")
+	return append(filtered, "ISSUEGRAPH_DISABLE_METRICS=1", "ISSUEGRAPH_DISABLE_EVENT_FLUSH=1")
 }
 
 func TestListExplicitDBPathRebindsTargetContext(t *testing.T) {
@@ -49,15 +49,15 @@ func TestListExplicitDBPathRebindsTargetContext(t *testing.T) {
 
 	tmpDir := t.TempDir()
 	callerRepo := filepath.Join(tmpDir, "caller")
-	callerBeadsDir := filepath.Join(callerRepo, ".beads")
-	writeTestConfigYAML(t, callerBeadsDir, "dolt.auto-commit: invalid\nactor: caller-actor\n")
-	if err := os.WriteFile(filepath.Join(callerBeadsDir, ".env"), []byte("BEADS_DOLT_SERVER_PORT=1\n"), 0o600); err != nil {
+	callerIssueGraphDir := filepath.Join(callerRepo, ".issuegraph")
+	writeTestConfigYAML(t, callerIssueGraphDir, "dolt.auto-commit: invalid\nactor: caller-actor\n")
+	if err := os.WriteFile(filepath.Join(callerIssueGraphDir, ".env"), []byte("ISSUEGRAPH_DOLT_SERVER_PORT=1\n"), 0o600); err != nil {
 		t.Fatalf("write caller .env: %v", err)
 	}
 
 	targetRepo := filepath.Join(tmpDir, "target")
-	targetBeadsDir := filepath.Join(targetRepo, ".beads")
-	writeTestConfigYAML(t, targetBeadsDir, "dolt.auto-commit: off\nactor: target-actor\n")
+	targetIssueGraphDir := filepath.Join(targetRepo, ".issuegraph")
+	writeTestConfigYAML(t, targetIssueGraphDir, "dolt.auto-commit: off\nactor: target-actor\n")
 	database := uniqueTestDBName(t)
 	if err := (&configfile.Config{
 		Backend:        configfile.BackendDolt,
@@ -65,14 +65,14 @@ func TestListExplicitDBPathRebindsTargetContext(t *testing.T) {
 		DoltServerHost: "127.0.0.1",
 		DoltServerPort: testDoltServerPort,
 		DoltDatabase:   database,
-	}).Save(targetBeadsDir); err != nil {
+	}).Save(targetIssueGraphDir); err != nil {
 		t.Fatalf("save target metadata: %v", err)
 	}
 
 	ctx := context.Background()
 	testStore, err := dolt.New(ctx, &dolt.Config{
-		Path:            filepath.Join(targetBeadsDir, "dolt"),
-		BeadsDir:        targetBeadsDir,
+		Path:            filepath.Join(targetIssueGraphDir, "dolt"),
+		IssueGraphDir:   targetIssueGraphDir,
 		ServerHost:      "127.0.0.1",
 		ServerPort:      testDoltServerPort,
 		Database:        database,
@@ -103,37 +103,37 @@ func TestListExplicitDBPathRebindsTargetContext(t *testing.T) {
 		t.Fatalf("create issue: %v", err)
 	}
 
-	// Shared once-per-process binary (honors BEADS_TEST_BD_BINARY) instead of
+	// Shared once-per-process binary (honors ISSUEGRAPH_TEST_ISSUEGRAPH_BINARY) instead of
 	// a per-test go build — the in-test link steps dominated modules/cli's wall
 	// clock (wy-4mtr0).
-	binPath := buildBDForInitTests(t)
+	binPath := buildIssueGraphForInitTests(t)
 
-	listCmd := exec.Command(binPath, "list", "--db", filepath.Join(targetBeadsDir, "dolt"), "--json")
+	listCmd := exec.Command(binPath, "list", "--db", filepath.Join(targetIssueGraphDir, "dolt"), "--json")
 	listCmd.Dir = callerRepo
-	listCmd.Env = append(filteredEnvForContextBinding("BEADS_DIR", "BEADS_DB", "BD_DB", "BEADS_DOLT_SERVER_PORT", "BEADS_DOLT_SERVER_DATABASE"),
+	listCmd.Env = append(filteredEnvForContextBinding("ISSUEGRAPH_DIR", "ISSUEGRAPH_DB", "ISSUEGRAPH_DB", "ISSUEGRAPH_DOLT_SERVER_PORT", "ISSUEGRAPH_DOLT_SERVER_DATABASE"),
 		"HOME="+t.TempDir(),
 		"XDG_CONFIG_HOME="+t.TempDir(),
-		"BEADS_TEST_MODE=1",
+		"ISSUEGRAPH_TEST_MODE=1",
 		// AD-01 (be-c5p): the subprocess connects to a testdb_*-named DB on
 		// the test container; pass the firewall opt-in so dolt.New allows it.
-		"BEADS_TEST_SERVER=1",
-		"BEADS_DIR="+callerBeadsDir,
-		"BEADS_DB=",
+		"ISSUEGRAPH_TEST_SERVER=1",
+		"ISSUEGRAPH_DIR="+callerIssueGraphDir,
+		"ISSUEGRAPH_DB=",
 	)
 	output, err := listCmd.CombinedOutput()
 	if err != nil {
-		t.Fatalf("bd list failed: %v\n%s", err, output)
+		t.Fatalf("issuegraph list failed: %v\n%s", err, output)
 	}
 	if !strings.Contains(string(output), "Context binding proof") {
 		t.Fatalf("expected list output to include target issue\n%s", output)
 	}
 
-	if _, err := os.Stat(filepath.Join(callerBeadsDir, localVersionFile)); err == nil {
-		t.Fatalf("caller workspace unexpectedly created %s", filepath.Join(callerBeadsDir, localVersionFile))
+	if _, err := os.Stat(filepath.Join(callerIssueGraphDir, localVersionFile)); err == nil {
+		t.Fatalf("caller workspace unexpectedly created %s", filepath.Join(callerIssueGraphDir, localVersionFile))
 	} else if !os.IsNotExist(err) {
 		t.Fatalf("stat caller %s: %v", localVersionFile, err)
 	}
-	if _, err := os.Stat(filepath.Join(targetBeadsDir, localVersionFile)); err != nil {
+	if _, err := os.Stat(filepath.Join(targetIssueGraphDir, localVersionFile)); err != nil {
 		t.Fatalf("target workspace should create %s: %v", localVersionFile, err)
 	}
 }

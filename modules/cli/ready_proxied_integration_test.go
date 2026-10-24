@@ -12,25 +12,25 @@ import (
 	"sync"
 	"testing"
 
-	"github.com/steveyegge/beads/internal/storage/depid"
-	"github.com/steveyegge/beads/internal/types"
+	"github.com/borg0ai/dx-issuegraph/internal/storage/depid"
+	"github.com/borg0ai/dx-issuegraph/internal/types"
 )
 
-func bdProxiedClaimCmd(bd, dir, actor string) *exec.Cmd {
-	cmd := exec.Command(bd, "ready", "--claim", "--json", "--label", "atomic")
+func issuegraphProxiedClaimCmd(issuegraph, dir, actor string) *exec.Cmd {
+	cmd := exec.Command(issuegraph, "ready", "--claim", "--json", "--label", "atomic")
 	cmd.Dir = dir
-	env := bdProxiedEnv(dir)
-	env = append(env, "BEADS_ACTOR="+actor)
+	env := issuegraphProxiedEnv(dir)
+	env = append(env, "ISSUEGRAPH_ACTOR="+actor)
 	cmd.Env = env
 	return cmd
 }
 
-func bdProxiedReadyJSON(t *testing.T, bd string, p proxiedProject, args ...string) []*types.IssueWithCounts {
+func issuegraphProxiedReadyJSON(t *testing.T, issuegraph string, p proxiedProject, args ...string) []*types.IssueWithCounts {
 	t.Helper()
 	fullArgs := append([]string{"ready", "--json"}, args...)
-	stdout, stderr, err := bdProxiedRunBuffers(t, bd, p.dir, fullArgs...)
+	stdout, stderr, err := issuegraphProxiedRunBuffers(t, issuegraph, p.dir, fullArgs...)
 	if err != nil {
-		t.Fatalf("bd ready --json %s failed: %v\nstdout:\n%s\nstderr:\n%s",
+		t.Fatalf("issuegraph ready --json %s failed: %v\nstdout:\n%s\nstderr:\n%s",
 			strings.Join(args, " "), err, stdout, stderr)
 	}
 	s := strings.TrimSpace(stdout)
@@ -45,23 +45,23 @@ func bdProxiedReadyJSON(t *testing.T, bd string, p proxiedProject, args ...strin
 	return issues
 }
 
-func bdProxiedReadyCapture(t *testing.T, bd string, p proxiedProject, args ...string) (string, string) {
+func issuegraphProxiedReadyCapture(t *testing.T, issuegraph string, p proxiedProject, args ...string) (string, string) {
 	t.Helper()
 	fullArgs := append([]string{"ready"}, args...)
-	stdout, stderr, err := bdProxiedRunBuffers(t, bd, p.dir, fullArgs...)
+	stdout, stderr, err := issuegraphProxiedRunBuffers(t, issuegraph, p.dir, fullArgs...)
 	if err != nil {
-		t.Fatalf("bd ready %s failed: %v\nstdout:\n%s\nstderr:\n%s",
+		t.Fatalf("issuegraph ready %s failed: %v\nstdout:\n%s\nstderr:\n%s",
 			strings.Join(args, " "), err, stdout, stderr)
 	}
 	return stdout, stderr
 }
 
-func bdProxiedReadyFail(t *testing.T, bd string, p proxiedProject, args ...string) string {
+func issuegraphProxiedReadyFail(t *testing.T, issuegraph string, p proxiedProject, args ...string) string {
 	t.Helper()
 	fullArgs := append([]string{"ready"}, args...)
-	stdout, stderr, err := bdProxiedRunBuffers(t, bd, p.dir, fullArgs...)
+	stdout, stderr, err := issuegraphProxiedRunBuffers(t, issuegraph, p.dir, fullArgs...)
 	if err == nil {
-		t.Fatalf("bd ready %s should have failed; stdout:\n%s\nstderr:\n%s",
+		t.Fatalf("issuegraph ready %s should have failed; stdout:\n%s\nstderr:\n%s",
 			strings.Join(args, " "), stdout, stderr)
 	}
 	return stdout + stderr
@@ -70,13 +70,13 @@ func bdProxiedReadyFail(t *testing.T, bd string, p proxiedProject, args ...strin
 func TestProxiedServerReady(t *testing.T) {
 	requireSharedProxiedServer(t)
 	t.Parallel()
-	bd := buildEmbeddedBD(t)
+	issuegraph := buildEmbeddedBD(t)
 
 	t.Run("json_round_trips_issue_with_counts", func(t *testing.T) {
 		t.Parallel()
-		p := newSharedProxiedProject(t, bd, "rdj1")
-		issue := bdProxiedCreate(t, bd, p.dir, "Zero deps", "--label", "rdj1-only")
-		ready := bdProxiedReadyJSON(t, bd, p, "--label", "rdj1-only")
+		p := newSharedProxiedProject(t, issuegraph, "rdj1")
+		issue := issuegraphProxiedCreate(t, issuegraph, p.dir, "Zero deps", "--label", "rdj1-only")
+		ready := issuegraphProxiedReadyJSON(t, issuegraph, p, "--label", "rdj1-only")
 		if len(ready) != 1 {
 			t.Fatalf("ready count = %d, want 1", len(ready))
 		}
@@ -90,23 +90,23 @@ func TestProxiedServerReady(t *testing.T) {
 
 	t.Run("label_pattern_and_regex_filter", func(t *testing.T) {
 		t.Parallel()
-		p := newSharedProxiedProject(t, bd, "rdlpr")
-		matched := bdProxiedCreate(t, bd, p.dir, "Matched", "--label", "tech-debt")
-		bdProxiedCreate(t, bd, p.dir, "Unmatched", "--label", "product")
+		p := newSharedProxiedProject(t, issuegraph, "rdlpr")
+		matched := issuegraphProxiedCreate(t, issuegraph, p.dir, "Matched", "--label", "tech-debt")
+		issuegraphProxiedCreate(t, issuegraph, p.dir, "Unmatched", "--label", "product")
 
 		for _, args := range [][]string{{"--label-pattern", "tech-*"}, {"--label-regex", "^tech-(debt|legacy)$"}} {
-			ready := bdProxiedReadyJSON(t, bd, p, args...)
+			ready := issuegraphProxiedReadyJSON(t, issuegraph, p, args...)
 			if len(ready) != 1 || ready[0].ID != matched.ID {
-				t.Errorf("bd ready %s = %#v, want only %s", strings.Join(args, " "), ready, matched.ID)
+				t.Errorf("issuegraph ready %s = %#v, want only %s", strings.Join(args, " "), ready, matched.ID)
 			}
 		}
 	})
 
 	t.Run("default_text_output", func(t *testing.T) {
 		t.Parallel()
-		p := newSharedProxiedProject(t, bd, "rdt")
-		bdProxiedCreate(t, bd, p.dir, "Ready title here")
-		stdout, _ := bdProxiedReadyCapture(t, bd, p)
+		p := newSharedProxiedProject(t, issuegraph, "rdt")
+		issuegraphProxiedCreate(t, issuegraph, p.dir, "Ready title here")
+		stdout, _ := issuegraphProxiedReadyCapture(t, issuegraph, p)
 		if !strings.Contains(stdout, "Ready title here") {
 			t.Errorf("expected issue title in output, got: %s", stdout)
 		}
@@ -114,11 +114,11 @@ func TestProxiedServerReady(t *testing.T) {
 
 	t.Run("json_validity", func(t *testing.T) {
 		t.Parallel()
-		p := newSharedProxiedProject(t, bd, "rdv")
-		bdProxiedCreate(t, bd, p.dir, "JSON test")
-		stdout, _, err := bdProxiedRunBuffers(t, bd, p.dir, "ready", "--json")
+		p := newSharedProxiedProject(t, issuegraph, "rdv")
+		issuegraphProxiedCreate(t, issuegraph, p.dir, "JSON test")
+		stdout, _, err := issuegraphProxiedRunBuffers(t, issuegraph, p.dir, "ready", "--json")
 		if err != nil {
-			t.Fatalf("bd ready --json failed: %v\n%s", err, stdout)
+			t.Fatalf("issuegraph ready --json failed: %v\n%s", err, stdout)
 		}
 		s := strings.TrimSpace(stdout)
 		start := strings.IndexAny(s, "[{")
@@ -132,17 +132,17 @@ func TestProxiedServerReady(t *testing.T) {
 
 	t.Run("limit_zero_returns_full_set_and_suppresses_hint", func(t *testing.T) {
 		t.Parallel()
-		p := newSharedProxiedProject(t, bd, "rdl0")
+		p := newSharedProxiedProject(t, issuegraph, "rdl0")
 		const n = 4
 		want := make(map[string]bool, n)
 		for i := 0; i < n; i++ {
-			issue := bdProxiedCreate(t, bd, p.dir, fmt.Sprintf("L0 item %d", i), "--label", "l0")
+			issue := issuegraphProxiedCreate(t, issuegraph, p.dir, fmt.Sprintf("L0 item %d", i), "--label", "l0")
 			want[issue.ID] = true
 		}
-		stdout, stderr, err := bdProxiedRunBuffers(t, bd, p.dir,
+		stdout, stderr, err := issuegraphProxiedRunBuffers(t, issuegraph, p.dir,
 			"ready", "--json", "--limit", "0", "--label", "l0")
 		if err != nil {
-			t.Fatalf("bd ready --json --limit 0 failed: %v\nstderr: %s", err, stderr)
+			t.Fatalf("issuegraph ready --json --limit 0 failed: %v\nstderr: %s", err, stderr)
 		}
 		if strings.Contains(stderr, "Use --limit 0 for all") {
 			t.Errorf("--limit 0 must not emit truncation hint, got stderr: %s", stderr)
@@ -172,13 +172,13 @@ func TestProxiedServerReady(t *testing.T) {
 
 	t.Run("limit_truncation_hint_on_stderr", func(t *testing.T) {
 		t.Parallel()
-		p := newSharedProxiedProject(t, bd, "rdl")
+		p := newSharedProxiedProject(t, issuegraph, "rdl")
 		for i := 0; i < 4; i++ {
-			bdProxiedCreate(t, bd, p.dir, fmt.Sprintf("Ready item %d", i))
+			issuegraphProxiedCreate(t, issuegraph, p.dir, fmt.Sprintf("Ready item %d", i))
 		}
-		stdout, stderr, err := bdProxiedRunBuffers(t, bd, p.dir, "ready", "--json", "--limit", "2")
+		stdout, stderr, err := issuegraphProxiedRunBuffers(t, issuegraph, p.dir, "ready", "--json", "--limit", "2")
 		if err != nil {
-			t.Fatalf("bd ready --json --limit 2 failed: %v\nstderr: %s\nstdout: %s", err, stderr, stdout)
+			t.Fatalf("issuegraph ready --json --limit 2 failed: %v\nstderr: %s\nstdout: %s", err, stderr, stdout)
 		}
 		s := strings.TrimSpace(stdout)
 		start := strings.Index(s, "[")
@@ -195,14 +195,14 @@ func TestProxiedServerReady(t *testing.T) {
 
 	t.Run("pagination_envelope_truncated", func(t *testing.T) {
 		t.Parallel()
-		p := newSharedProxiedProject(t, bd, "rdpgt")
+		p := newSharedProxiedProject(t, issuegraph, "rdpgt")
 		for i := 0; i < 4; i++ {
-			bdProxiedCreate(t, bd, p.dir, fmt.Sprintf("Pag item %d", i), "--label", "rdpgt")
+			issuegraphProxiedCreate(t, issuegraph, p.dir, fmt.Sprintf("Pag item %d", i), "--label", "rdpgt")
 		}
-		stdout, _, err := bdProxiedRunBuffersWithEnv(t, bd, p.dir, []string{"BD_JSON_ENVELOPE=1"},
+		stdout, _, err := issuegraphProxiedRunBuffersWithEnv(t, issuegraph, p.dir, []string{"ISSUEGRAPH_JSON_ENVELOPE=1"},
 			"ready", "--json", "--limit", "2", "--label", "rdpgt")
 		if err != nil {
-			t.Fatalf("bd ready --json --limit 2 failed: %v\nstdout: %s", err, stdout)
+			t.Fatalf("issuegraph ready --json --limit 2 failed: %v\nstdout: %s", err, stdout)
 		}
 		var envelope struct {
 			Data       []*types.IssueWithCounts `json:"data"`
@@ -241,12 +241,12 @@ func TestProxiedServerReady(t *testing.T) {
 
 	t.Run("pagination_envelope_not_truncated", func(t *testing.T) {
 		t.Parallel()
-		p := newSharedProxiedProject(t, bd, "rdpgn")
-		bdProxiedCreate(t, bd, p.dir, "Pag not truncated", "--label", "rdpgn")
-		stdout, _, err := bdProxiedRunBuffersWithEnv(t, bd, p.dir, []string{"BD_JSON_ENVELOPE=1"},
+		p := newSharedProxiedProject(t, issuegraph, "rdpgn")
+		issuegraphProxiedCreate(t, issuegraph, p.dir, "Pag not truncated", "--label", "rdpgn")
+		stdout, _, err := issuegraphProxiedRunBuffersWithEnv(t, issuegraph, p.dir, []string{"ISSUEGRAPH_JSON_ENVELOPE=1"},
 			"ready", "--json", "--limit", "10", "--label", "rdpgn")
 		if err != nil {
-			t.Fatalf("bd ready --json --limit 10 failed: %v\nstdout: %s", err, stdout)
+			t.Fatalf("issuegraph ready --json --limit 10 failed: %v\nstdout: %s", err, stdout)
 		}
 		var envelope map[string]json.RawMessage
 		s := strings.TrimSpace(stdout)
@@ -265,12 +265,12 @@ func TestProxiedServerReady(t *testing.T) {
 
 	t.Run("offset_with_large_finite_limit", func(t *testing.T) {
 		t.Parallel()
-		p := newSharedProxiedProject(t, bd, "rdofflz")
+		p := newSharedProxiedProject(t, issuegraph, "rdofflz")
 		for i := 0; i < 4; i++ {
-			bdProxiedCreate(t, bd, p.dir,
+			issuegraphProxiedCreate(t, issuegraph, p.dir,
 				fmt.Sprintf("Lz item %d", i), "--label", "rdofflz")
 		}
-		got := bdProxiedReadyJSON(t, bd, p,
+		got := issuegraphProxiedReadyJSON(t, issuegraph, p,
 			"--offset", "1", "--limit", "1000", "--label", "rdofflz")
 		if len(got) != 3 {
 			t.Errorf("expected 3 items (4 created, offset 1, loose limit), got %d", len(got))
@@ -279,14 +279,14 @@ func TestProxiedServerReady(t *testing.T) {
 
 	t.Run("offset_zero_equals_no_offset", func(t *testing.T) {
 		t.Parallel()
-		p := newSharedProxiedProject(t, bd, "rdoff0")
+		p := newSharedProxiedProject(t, issuegraph, "rdoff0")
 		for i := 0; i < 3; i++ {
-			bdProxiedCreate(t, bd, p.dir,
+			issuegraphProxiedCreate(t, issuegraph, p.dir,
 				fmt.Sprintf("Eq item %d", i), "--label", "rdoff0")
 		}
-		baseline := bdProxiedReadyJSON(t, bd, p,
+		baseline := issuegraphProxiedReadyJSON(t, issuegraph, p,
 			"--limit", "10", "--label", "rdoff0")
-		withZero := bdProxiedReadyJSON(t, bd, p,
+		withZero := issuegraphProxiedReadyJSON(t, issuegraph, p,
 			"--offset", "0", "--limit", "10", "--label", "rdoff0")
 		if len(baseline) != len(withZero) {
 			t.Fatalf("--offset 0 must equal no --offset, lengths differ: %d vs %d", len(baseline), len(withZero))
@@ -300,8 +300,8 @@ func TestProxiedServerReady(t *testing.T) {
 
 	t.Run("offset_combo_guards", func(t *testing.T) {
 		t.Parallel()
-		p := newSharedProxiedProject(t, bd, "rdoffg")
-		bdProxiedCreate(t, bd, p.dir, "Seed")
+		p := newSharedProxiedProject(t, issuegraph, "rdoffg")
+		issuegraphProxiedCreate(t, issuegraph, p.dir, "Seed")
 		cases := []struct {
 			name string
 			args []string
@@ -313,7 +313,7 @@ func TestProxiedServerReady(t *testing.T) {
 		}
 		for _, c := range cases {
 			t.Run(c.name, func(t *testing.T) {
-				out := bdProxiedReadyFail(t, bd, p, c.args...)
+				out := issuegraphProxiedReadyFail(t, issuegraph, p, c.args...)
 				if !strings.Contains(out, "--offset cannot be combined") {
 					t.Errorf("expected '--offset cannot be combined' error, got: %s", out)
 				}
@@ -327,8 +327,8 @@ func TestProxiedServerReady(t *testing.T) {
 	// supported there at all.
 	t.Run("negative_offset_rejected", func(t *testing.T) {
 		t.Parallel()
-		p := newSharedProxiedProject(t, bd, "rdoffneg")
-		out := bdProxiedReadyFail(t, bd, p, "--offset", "-1")
+		p := newSharedProxiedProject(t, issuegraph, "rdoffneg")
+		out := issuegraphProxiedReadyFail(t, issuegraph, p, "--offset", "-1")
 		if !strings.Contains(out, "--offset must be >= 0") {
 			t.Errorf("expected '--offset must be >= 0' error, got: %s", out)
 		}
@@ -336,20 +336,20 @@ func TestProxiedServerReady(t *testing.T) {
 
 	t.Run("offset_skips_leading_results", func(t *testing.T) {
 		t.Parallel()
-		p := newSharedProxiedProject(t, bd, "rdoff")
+		p := newSharedProxiedProject(t, issuegraph, "rdoff")
 		ids := make([]string, 4)
 		for i := 0; i < 4; i++ {
-			issue := bdProxiedCreate(t, bd, p.dir,
+			issue := issuegraphProxiedCreate(t, issuegraph, p.dir,
 				fmt.Sprintf("Off item %d", i), "-p", "1", "--label", "rdoff")
 			ids[i] = issue.ID
 		}
-		got := bdProxiedReadyJSON(t, bd, p,
+		got := issuegraphProxiedReadyJSON(t, issuegraph, p,
 			"--offset", "2", "--limit", "2", "--label", "rdoff")
 		if len(got) != 2 {
 			t.Fatalf("expected exactly 2 items after offset+limit, got %d: %+v", len(got), got)
 		}
 		gotIDs := []string{got[0].ID, got[1].ID}
-		first := bdProxiedReadyJSON(t, bd, p, "--limit", "0", "--label", "rdoff")
+		first := issuegraphProxiedReadyJSON(t, issuegraph, p, "--limit", "0", "--label", "rdoff")
 		if len(first) < 4 {
 			t.Fatalf("baseline returned %d, need 4 to assert ordering", len(first))
 		}
@@ -362,11 +362,11 @@ func TestProxiedServerReady(t *testing.T) {
 
 	t.Run("claim_json_no_match_returns_empty_array", func(t *testing.T) {
 		t.Parallel()
-		p := newSharedProxiedProject(t, bd, "rcn")
-		bdProxiedCreate(t, bd, p.dir, "Has wrong label", "--label", "real")
-		out, err := bdProxiedRun(t, bd, p.dir, "ready", "--claim", "--json", "--label", "missing-label")
+		p := newSharedProxiedProject(t, issuegraph, "rcn")
+		issuegraphProxiedCreate(t, issuegraph, p.dir, "Has wrong label", "--label", "real")
+		out, err := issuegraphProxiedRun(t, issuegraph, p.dir, "ready", "--claim", "--json", "--label", "missing-label")
 		if err != nil {
-			t.Fatalf("bd ready --claim --json with no match failed: %v\n%s", err, out)
+			t.Fatalf("issuegraph ready --claim --json with no match failed: %v\n%s", err, out)
 		}
 		var empty []types.IssueWithCounts
 		if err := json.Unmarshal(bytes.TrimSpace(out), &empty); err != nil {
@@ -379,11 +379,11 @@ func TestProxiedServerReady(t *testing.T) {
 
 	t.Run("claim_json_marks_in_progress_and_assignee", func(t *testing.T) {
 		t.Parallel()
-		p := newSharedProxiedProject(t, bd, "rcm")
-		issue := bdProxiedCreate(t, bd, p.dir, "Claim me", "--label", "claim-me")
-		out, err := bdProxiedRun(t, bd, p.dir, "ready", "--claim", "--json", "--label", "claim-me")
+		p := newSharedProxiedProject(t, issuegraph, "rcm")
+		issue := issuegraphProxiedCreate(t, issuegraph, p.dir, "Claim me", "--label", "claim-me")
+		out, err := issuegraphProxiedRun(t, issuegraph, p.dir, "ready", "--claim", "--json", "--label", "claim-me")
 		if err != nil {
-			t.Fatalf("bd ready --claim --json failed: %v\n%s", err, out)
+			t.Fatalf("issuegraph ready --claim --json failed: %v\n%s", err, out)
 		}
 		var claimed []types.IssueWithCounts
 		if err := json.Unmarshal(bytes.TrimSpace(out), &claimed); err != nil {
@@ -401,7 +401,7 @@ func TestProxiedServerReady(t *testing.T) {
 		if claimed[0].Assignee == "" {
 			t.Error("Assignee should be set after claim")
 		}
-		shown := bdProxiedShow(t, bd, p.dir, issue.ID)
+		shown := issuegraphProxiedShow(t, issuegraph, p.dir, issue.ID)
 		if shown.Status != types.StatusInProgress {
 			t.Errorf("after re-fetch: Status = %s, want %s", shown.Status, types.StatusInProgress)
 		}
@@ -412,10 +412,10 @@ func TestProxiedServerReady(t *testing.T) {
 
 	t.Run("blocked_issues_excluded_from_default_output", func(t *testing.T) {
 		t.Parallel()
-		p := newSharedProxiedProject(t, bd, "rdb")
-		blocker := bdProxiedCreate(t, bd, p.dir, "Blocker issue")
-		bdProxiedCreate(t, bd, p.dir, "Should be hidden because blocked", "--deps", "depends-on:"+blocker.ID)
-		stdout, _ := bdProxiedReadyCapture(t, bd, p)
+		p := newSharedProxiedProject(t, issuegraph, "rdb")
+		blocker := issuegraphProxiedCreate(t, issuegraph, p.dir, "Blocker issue")
+		issuegraphProxiedCreate(t, issuegraph, p.dir, "Should be hidden because blocked", "--deps", "depends-on:"+blocker.ID)
+		stdout, _ := issuegraphProxiedReadyCapture(t, issuegraph, p)
 		if strings.Contains(stdout, "Should be hidden because blocked") {
 			t.Errorf("blocked issue must not appear in ready output: %s", stdout)
 		}
@@ -423,10 +423,10 @@ func TestProxiedServerReady(t *testing.T) {
 
 	t.Run("exclude_label_filter", func(t *testing.T) {
 		t.Parallel()
-		p := newSharedProxiedProject(t, bd, "rdex")
-		bdProxiedCreate(t, bd, p.dir, "Triage pending item", "--label", "triage:pending")
-		bdProxiedCreate(t, bd, p.dir, "Normal ready item")
-		stdout, _ := bdProxiedReadyCapture(t, bd, p, "--exclude-label", "triage:pending")
+		p := newSharedProxiedProject(t, issuegraph, "rdex")
+		issuegraphProxiedCreate(t, issuegraph, p.dir, "Triage pending item", "--label", "triage:pending")
+		issuegraphProxiedCreate(t, issuegraph, p.dir, "Normal ready item")
+		stdout, _ := issuegraphProxiedReadyCapture(t, issuegraph, p, "--exclude-label", "triage:pending")
 		if strings.Contains(stdout, "Triage pending item") {
 			t.Errorf("triage:pending issue must be excluded: %s", stdout)
 		}
@@ -437,13 +437,13 @@ func TestProxiedServerReady(t *testing.T) {
 
 	t.Run("explain_json_round_trip", func(t *testing.T) {
 		t.Parallel()
-		p := newSharedProxiedProject(t, bd, "rde")
-		bdProxiedCreate(t, bd, p.dir, "Plain ready")
-		blocker := bdProxiedCreate(t, bd, p.dir, "Live blocker")
-		bdProxiedCreate(t, bd, p.dir, "Blocked dependent", "--deps", "depends-on:"+blocker.ID)
-		stdout, _, err := bdProxiedRunBuffers(t, bd, p.dir, "ready", "--explain", "--json")
+		p := newSharedProxiedProject(t, issuegraph, "rde")
+		issuegraphProxiedCreate(t, issuegraph, p.dir, "Plain ready")
+		blocker := issuegraphProxiedCreate(t, issuegraph, p.dir, "Live blocker")
+		issuegraphProxiedCreate(t, issuegraph, p.dir, "Blocked dependent", "--deps", "depends-on:"+blocker.ID)
+		stdout, _, err := issuegraphProxiedRunBuffers(t, issuegraph, p.dir, "ready", "--explain", "--json")
 		if err != nil {
-			t.Fatalf("bd ready --explain --json failed: %v\n%s", err, stdout)
+			t.Fatalf("issuegraph ready --explain --json failed: %v\n%s", err, stdout)
 		}
 		s := strings.TrimSpace(stdout)
 		start := strings.Index(s, "{")
@@ -464,11 +464,11 @@ func TestProxiedServerReady(t *testing.T) {
 
 	t.Run("explain_text_header", func(t *testing.T) {
 		t.Parallel()
-		p := newSharedProxiedProject(t, bd, "rdet")
-		bdProxiedCreate(t, bd, p.dir, "Smoke")
-		stdout, _, err := bdProxiedRunBuffers(t, bd, p.dir, "ready", "--explain")
+		p := newSharedProxiedProject(t, issuegraph, "rdet")
+		issuegraphProxiedCreate(t, issuegraph, p.dir, "Smoke")
+		stdout, _, err := issuegraphProxiedRunBuffers(t, issuegraph, p.dir, "ready", "--explain")
 		if err != nil {
-			t.Fatalf("bd ready --explain failed: %v\n%s", err, stdout)
+			t.Fatalf("issuegraph ready --explain failed: %v\n%s", err, stdout)
 		}
 		if !strings.Contains(stdout, "Ready Work Explanation") {
 			t.Errorf("expected explain heading, got: %s", stdout)
@@ -477,9 +477,9 @@ func TestProxiedServerReady(t *testing.T) {
 
 	t.Run("explain_detects_cycles", func(t *testing.T) {
 		t.Parallel()
-		p := newSharedProxiedProject(t, bd, "rdc")
-		a := bdProxiedCreate(t, bd, p.dir, "Cycle node A")
-		b := bdProxiedCreate(t, bd, p.dir, "Cycle node B")
+		p := newSharedProxiedProject(t, issuegraph, "rdc")
+		a := issuegraphProxiedCreate(t, issuegraph, p.dir, "Cycle node A")
+		b := issuegraphProxiedCreate(t, issuegraph, p.dir, "Cycle node B")
 		db := openProxiedDB(t, p)
 		ctx := context.Background()
 		if _, err := db.ExecContext(ctx,
@@ -492,9 +492,9 @@ func TestProxiedServerReady(t *testing.T) {
 			depid.New(b.ID, a.ID), b.ID, a.ID, string(types.DepBlocks)); err != nil {
 			t.Fatalf("plant b->a edge: %v", err)
 		}
-		stdout, _, err := bdProxiedRunBuffers(t, bd, p.dir, "ready", "--explain", "--json")
+		stdout, _, err := issuegraphProxiedRunBuffers(t, issuegraph, p.dir, "ready", "--explain", "--json")
 		if err != nil {
-			t.Fatalf("bd ready --explain --json after cycle plant: %v\n%s", err, stdout)
+			t.Fatalf("issuegraph ready --explain --json after cycle plant: %v\n%s", err, stdout)
 		}
 		s := strings.TrimSpace(stdout)
 		start := strings.Index(s, "{")
@@ -512,11 +512,11 @@ func TestProxiedServerReady(t *testing.T) {
 
 	t.Run("gated_empty_case", func(t *testing.T) {
 		t.Parallel()
-		p := newSharedProxiedProject(t, bd, "rdge")
-		bdProxiedCreate(t, bd, p.dir, "No gates anywhere")
-		stdout, _, err := bdProxiedRunBuffers(t, bd, p.dir, "ready", "--gated", "--json")
+		p := newSharedProxiedProject(t, issuegraph, "rdge")
+		issuegraphProxiedCreate(t, issuegraph, p.dir, "No gates anywhere")
+		stdout, _, err := issuegraphProxiedRunBuffers(t, issuegraph, p.dir, "ready", "--gated", "--json")
 		if err != nil {
-			t.Fatalf("bd ready --gated --json failed: %v\n%s", err, stdout)
+			t.Fatalf("issuegraph ready --gated --json failed: %v\n%s", err, stdout)
 		}
 		s := strings.TrimSpace(stdout)
 		start := strings.Index(s, "{")
@@ -531,7 +531,7 @@ func TestProxiedServerReady(t *testing.T) {
 			t.Errorf("expected empty molecules array, got %d", len(out.Molecules))
 		}
 
-		text, _ := bdProxiedReadyCapture(t, bd, p, "--gated")
+		text, _ := issuegraphProxiedReadyCapture(t, issuegraph, p, "--gated")
 		if !strings.Contains(text, "No molecules ready for gate-resume dispatch") {
 			t.Errorf("expected 'No molecules ready for gate-resume dispatch' text, got: %s", text)
 		}
@@ -542,15 +542,15 @@ func TestProxiedServerReady(t *testing.T) {
 func TestProxiedServerReady2(t *testing.T) {
 	requireSharedProxiedServer(t)
 	t.Parallel()
-	bd := buildEmbeddedBD(t)
+	issuegraph := buildEmbeddedBD(t)
 
 	t.Run("gated_json_shape_with_open_gate", func(t *testing.T) {
 		t.Parallel()
-		p := newSharedProxiedProject(t, bd, "rdgw")
-		bdProxiedCreate(t, bd, p.dir, "Open gate", "--type", "gate")
-		stdout, _, err := bdProxiedRunBuffers(t, bd, p.dir, "ready", "--gated", "--json")
+		p := newSharedProxiedProject(t, issuegraph, "rdgw")
+		issuegraphProxiedCreate(t, issuegraph, p.dir, "Open gate", "--type", "gate")
+		stdout, _, err := issuegraphProxiedRunBuffers(t, issuegraph, p.dir, "ready", "--gated", "--json")
 		if err != nil {
-			t.Fatalf("bd ready --gated --json failed: %v\n%s", err, stdout)
+			t.Fatalf("issuegraph ready --gated --json failed: %v\n%s", err, stdout)
 		}
 		s := strings.TrimSpace(stdout)
 		start := strings.Index(s, "{")
@@ -568,13 +568,13 @@ func TestProxiedServerReady2(t *testing.T) {
 
 	t.Run("mol_text_and_json", func(t *testing.T) {
 		t.Parallel()
-		p := newSharedProxiedProject(t, bd, "rdm")
-		mol := bdProxiedCreate(t, bd, p.dir, "Mol parent", "--type", "molecule")
-		s1 := bdProxiedCreate(t, bd, p.dir, "Step one", "--parent", mol.ID)
-		bdProxiedCreate(t, bd, p.dir, "Step two", "--parent", mol.ID, "--deps", "depends-on:"+s1.ID)
-		stdout, _, err := bdProxiedRunBuffers(t, bd, p.dir, "ready", "--mol", mol.ID, "--json")
+		p := newSharedProxiedProject(t, issuegraph, "rdm")
+		mol := issuegraphProxiedCreate(t, issuegraph, p.dir, "Mol parent", "--type", "molecule")
+		s1 := issuegraphProxiedCreate(t, issuegraph, p.dir, "Step one", "--parent", mol.ID)
+		issuegraphProxiedCreate(t, issuegraph, p.dir, "Step two", "--parent", mol.ID, "--deps", "depends-on:"+s1.ID)
+		stdout, _, err := issuegraphProxiedRunBuffers(t, issuegraph, p.dir, "ready", "--mol", mol.ID, "--json")
 		if err != nil {
-			t.Fatalf("bd ready --mol --json failed: %v\n%s", err, stdout)
+			t.Fatalf("issuegraph ready --mol --json failed: %v\n%s", err, stdout)
 		}
 		sj := strings.TrimSpace(stdout)
 		start := strings.Index(sj, "{")
@@ -592,7 +592,7 @@ func TestProxiedServerReady2(t *testing.T) {
 			t.Errorf("ReadySteps = %d, want >=1", out.ReadySteps)
 		}
 
-		text, _ := bdProxiedReadyCapture(t, bd, p, "--mol", mol.ID)
+		text, _ := issuegraphProxiedReadyCapture(t, issuegraph, p, "--mol", mol.ID)
 		if !strings.Contains(text, "Mol parent") {
 			t.Errorf("expected molecule title in text output, got: %s", text)
 		}
@@ -600,18 +600,18 @@ func TestProxiedServerReady2(t *testing.T) {
 
 	t.Run("empty_state_messages", func(t *testing.T) {
 		t.Parallel()
-		p := newSharedProxiedProject(t, bd, "rde")
-		stdout, _ := bdProxiedReadyCapture(t, bd, p)
+		p := newSharedProxiedProject(t, issuegraph, "rde")
+		stdout, _ := issuegraphProxiedReadyCapture(t, issuegraph, p)
 		if !strings.Contains(stdout, "No open issues") {
 			t.Errorf("expected 'No open issues', got: %s", stdout)
 		}
 
-		blocked := bdProxiedCreate(t, bd, p.dir, "Blocked open issue")
+		blocked := issuegraphProxiedCreate(t, issuegraph, p.dir, "Blocked open issue")
 		db := openProxiedDB(t, p)
 		if _, err := db.ExecContext(context.Background(), "UPDATE issues SET is_blocked = 1 WHERE id = ?", blocked.ID); err != nil {
 			t.Fatalf("mark issue blocked: %v", err)
 		}
-		stdout, _ = bdProxiedReadyCapture(t, bd, p)
+		stdout, _ = issuegraphProxiedReadyCapture(t, issuegraph, p)
 		if !strings.Contains(stdout, "No ready work found") {
 			t.Errorf("expected 'No ready work found', got: %s", stdout)
 		}
@@ -619,10 +619,10 @@ func TestProxiedServerReady2(t *testing.T) {
 
 	t.Run("include_ephemeral_surfaces_wisps", func(t *testing.T) {
 		t.Parallel()
-		p := newSharedProxiedProject(t, bd, "rdie")
-		reg := bdProxiedCreate(t, bd, p.dir, "Regular")
-		wisp := bdProxiedCreate(t, bd, p.dir, "Wispy", "--ephemeral")
-		def := bdProxiedReadyJSON(t, bd, p)
+		p := newSharedProxiedProject(t, issuegraph, "rdie")
+		reg := issuegraphProxiedCreate(t, issuegraph, p.dir, "Regular")
+		wisp := issuegraphProxiedCreate(t, issuegraph, p.dir, "Wispy", "--ephemeral")
+		def := issuegraphProxiedReadyJSON(t, issuegraph, p)
 		ids := map[string]bool{}
 		for _, r := range def {
 			ids[r.ID] = true
@@ -633,7 +633,7 @@ func TestProxiedServerReady2(t *testing.T) {
 		if ids[wisp.ID] {
 			t.Errorf("wisp %s must not appear by default", wisp.ID)
 		}
-		eph := bdProxiedReadyJSON(t, bd, p, "--include-ephemeral")
+		eph := issuegraphProxiedReadyJSON(t, issuegraph, p, "--include-ephemeral")
 		ids2 := map[string]bool{}
 		for _, r := range eph {
 			ids2[r.ID] = true
@@ -645,38 +645,38 @@ func TestProxiedServerReady2(t *testing.T) {
 
 	t.Run("max_rows_claim_policy_and_transaction", func(t *testing.T) {
 		t.Parallel()
-		p := newSharedProxiedProject(t, bd, "rcmr")
+		p := newSharedProxiedProject(t, issuegraph, "rcmr")
 		for i := 0; i < 3; i++ {
-			bdProxiedCreate(t, bd, p.dir, fmt.Sprintf("Claim under cap %d", i), "--label", "rcmr-claim")
+			issuegraphProxiedCreate(t, issuegraph, p.dir, fmt.Sprintf("Claim under cap %d", i), "--label", "rcmr-claim")
 		}
 
-		out := bdProxiedReadyFail(t, bd, p, "--claim", "--max-rows", "-1")
+		out := issuegraphProxiedReadyFail(t, issuegraph, p, "--claim", "--max-rows", "-1")
 		if !strings.Contains(out, "must be non-negative") {
 			t.Errorf("expected --max-rows usage-error rejection, got: %s", out)
 		}
-		out = bdProxiedReadyFail(t, bd, p, "--max-rows", "1")
+		out = issuegraphProxiedReadyFail(t, issuegraph, p, "--max-rows", "1")
 		if !strings.Contains(out, "not supported in proxied-server mode") {
 			t.Errorf("expected --max-rows proxied-server rejection for bulk ready, got: %s", out)
 		}
-		stdout, stderr, err := bdProxiedRunBuffersWithEnv(t, bd, p.dir,
-			[]string{"BEADS_MAX_ROWS=1"}, "ready")
+		stdout, stderr, err := issuegraphProxiedRunBuffersWithEnv(t, issuegraph, p.dir,
+			[]string{"ISSUEGRAPH_MAX_ROWS=1"}, "ready")
 		if err == nil {
-			t.Fatalf("expected BEADS_MAX_ROWS under proxied bulk ready to fail, but it succeeded:\nstdout:\n%s\nstderr:\n%s", stdout, stderr)
+			t.Fatalf("expected ISSUEGRAPH_MAX_ROWS under proxied bulk ready to fail, but it succeeded:\nstdout:\n%s\nstderr:\n%s", stdout, stderr)
 		}
 		if out := stdout + stderr; !strings.Contains(out, "not supported in proxied-server mode") {
-			t.Errorf("expected BEADS_MAX_ROWS proxied-server rejection for bulk ready, got: %s", out)
+			t.Errorf("expected ISSUEGRAPH_MAX_ROWS proxied-server rejection for bulk ready, got: %s", out)
 		}
 
-		before := bdProxiedReadyJSON(t, bd, p, "--label", "rcmr-claim")
-		stdout, stderr, err = bdProxiedRunBuffersWithEnv(t, bd, p.dir,
-			[]string{"BEADS_MAX_ROWS=1"}, "ready", "--claim", "--json", "--label", "rcmr-claim")
+		before := issuegraphProxiedReadyJSON(t, issuegraph, p, "--label", "rcmr-claim")
+		stdout, stderr, err = issuegraphProxiedRunBuffersWithEnv(t, issuegraph, p.dir,
+			[]string{"ISSUEGRAPH_MAX_ROWS=1"}, "ready", "--claim", "--json", "--label", "rcmr-claim")
 		if err == nil {
-			t.Fatalf("bd ready --claim --json under BEADS_MAX_ROWS=1 should refuse")
+			t.Fatalf("issuegraph ready --claim --json under ISSUEGRAPH_MAX_ROWS=1 should refuse")
 		}
 		if out := stdout + stderr; !strings.Contains(out, "not supported in proxied-server mode") {
 			t.Fatalf("expected cap refusal, got:\n%s", out)
 		}
-		after := bdProxiedReadyJSON(t, bd, p, "--label", "rcmr-claim")
+		after := issuegraphProxiedReadyJSON(t, issuegraph, p, "--label", "rcmr-claim")
 		if len(after) != len(before) {
 			t.Fatalf("claim refusal mutated ready set: before=%d after=%d", len(before), len(after))
 		}
@@ -686,9 +686,9 @@ func TestProxiedServerReady2(t *testing.T) {
 func TestProxiedServerReadyConcurrent(t *testing.T) {
 	requireSharedProxiedServer(t)
 	t.Parallel()
-	bd := buildEmbeddedBD(t)
-	p := newSharedProxiedProject(t, bd, "rxc")
-	bdProxiedCreate(t, bd, p.dir, "Concurrent read target")
+	issuegraph := buildEmbeddedBD(t)
+	p := newSharedProxiedProject(t, issuegraph, "rxc")
+	issuegraphProxiedCreate(t, issuegraph, p.dir, "Concurrent read target")
 
 	const numWorkers = 8
 	errs := make([]error, numWorkers)
@@ -697,7 +697,7 @@ func TestProxiedServerReadyConcurrent(t *testing.T) {
 	for w := 0; w < numWorkers; w++ {
 		go func(worker int) {
 			defer wg.Done()
-			_, err := bdProxiedRun(t, bd, p.dir, "ready")
+			_, err := issuegraphProxiedRun(t, issuegraph, p.dir, "ready")
 			errs[worker] = err
 		}(w)
 	}
@@ -712,9 +712,9 @@ func TestProxiedServerReadyConcurrent(t *testing.T) {
 func TestProxiedServerReadyClaimConcurrent(t *testing.T) {
 	requireSharedProxiedServer(t)
 	t.Parallel()
-	bd := buildEmbeddedBD(t)
-	p := newSharedProxiedProject(t, bd, "rcx")
-	issue := bdProxiedCreate(t, bd, p.dir, "Atomic claim target", "--label", "atomic")
+	issuegraph := buildEmbeddedBD(t)
+	p := newSharedProxiedProject(t, issuegraph, "rcx")
+	issue := issuegraphProxiedCreate(t, issuegraph, p.dir, "Atomic claim target", "--label", "atomic")
 
 	const numWorkers = 8
 	type result struct {
@@ -728,7 +728,7 @@ func TestProxiedServerReadyClaimConcurrent(t *testing.T) {
 	for w := 0; w < numWorkers; w++ {
 		go func(worker int) {
 			defer wg.Done()
-			cmd := bdProxiedClaimCmd(bd, p.dir, fmt.Sprintf("worker-%d@test", worker))
+			cmd := issuegraphProxiedClaimCmd(issuegraph, p.dir, fmt.Sprintf("worker-%d@test", worker))
 			var stdout, stderr bytes.Buffer
 			cmd.Stdout = &stdout
 			cmd.Stderr = &stderr
@@ -767,7 +767,7 @@ func TestProxiedServerReadyClaimConcurrent(t *testing.T) {
 		}
 		t.Fatalf("expected exactly one winning claim, got %d", winners)
 	}
-	final := bdProxiedShow(t, bd, p.dir, issue.ID)
+	final := issuegraphProxiedShow(t, issuegraph, p.dir, issue.ID)
 	if final.Status != types.StatusInProgress {
 		t.Errorf("final Status = %s, want in_progress", final.Status)
 	}

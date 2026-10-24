@@ -13,23 +13,23 @@ import (
 // proxied server. The downstream contract (wyvern wheelhouse portcullis
 // salvage) is that promote REWRITES THE ROW IN PLACE: same id, wisp_type
 // retained, labels/deps/events/comments preserved, still visible to
-// `bd list --include-infra --wisp-type <t>`, no longer purge-reclaimable,
+// `issuegraph list --include-infra --wisp-type <t>`, no longer purge-reclaimable,
 // same --json shape and error contract as classic.
 func TestProxiedServerPromote(t *testing.T) {
 	requireSharedProxiedServer(t)
 	t.Parallel()
-	bd := buildEmbeddedBD(t)
+	issuegraph := buildEmbeddedBD(t)
 
 	t.Run("journey_rewrites_row_in_place", func(t *testing.T) {
 		t.Parallel()
-		p := newSharedProxiedProject(t, bd, "pm")
-		target := bdProxiedCreate(t, bd, p.dir, "Promote dep target", "--type", "task")
-		inbound := bdProxiedCreate(t, bd, p.dir, "Inbound dependent", "--type", "task")
-		wisp := bdProxiedCreate(t, bd, p.dir, "Promote journey wisp",
+		p := newSharedProxiedProject(t, issuegraph, "pm")
+		target := issuegraphProxiedCreate(t, issuegraph, p.dir, "Promote dep target", "--type", "task")
+		inbound := issuegraphProxiedCreate(t, issuegraph, p.dir, "Inbound dependent", "--type", "task")
+		wisp := issuegraphProxiedCreate(t, issuegraph, p.dir, "Promote journey wisp",
 			"--ephemeral", "--wisp-type", "patrol", "--label", "keep-me")
 
-		if out, err := bdProxiedRun(t, bd, p.dir, "comment", wisp.ID, "pre-promote note"); err != nil {
-			t.Fatalf("bd comment: %v\n%s", err, out)
+		if out, err := issuegraphProxiedRun(t, issuegraph, p.dir, "comment", wisp.ID, "pre-promote note"); err != nil {
+			t.Fatalf("issuegraph comment: %v\n%s", err, out)
 		}
 
 		db := openProxiedDB(t, p)
@@ -48,11 +48,11 @@ func TestProxiedServerPromote(t *testing.T) {
 
 		head := proxiedDoltHead(t, db)
 
-		stdout, stderr, err := bdProxiedRunBuffers(t, bd, p.dir, "promote", wisp.ID, "--reason", "worth keeping")
+		stdout, stderr, err := issuegraphProxiedRunBuffers(t, issuegraph, p.dir, "promote", wisp.ID, "--reason", "worth keeping")
 		if err != nil {
-			t.Fatalf("bd promote: %v\nstdout:\n%s\nstderr:\n%s", err, stdout, stderr)
+			t.Fatalf("issuegraph promote: %v\nstdout:\n%s\nstderr:\n%s", err, stdout, stderr)
 		}
-		if !strings.Contains(stdout, "Promoted "+wisp.ID+" to permanent bead") {
+		if !strings.Contains(stdout, "Promoted "+wisp.ID+" to permanent issue") {
 			t.Errorf("expected promote success line, got: %s", stdout)
 		}
 
@@ -64,8 +64,8 @@ func TestProxiedServerPromote(t *testing.T) {
 		if err := db.QueryRow("SELECT message FROM DOLT_LOG('HEAD', '--not', ?)", head).Scan(&msg); err != nil {
 			t.Fatalf("read promote commit message: %v", err)
 		}
-		if msg != "bd: promote "+wisp.ID {
-			t.Errorf("commit message = %q, want %q", msg, "bd: promote "+wisp.ID)
+		if msg != "issuegraph: promote "+wisp.ID {
+			t.Errorf("commit message = %q, want %q", msg, "issuegraph: promote "+wisp.ID)
 		}
 
 		// The row moved planes in place: same id, flag cleared, type retained.
@@ -122,9 +122,9 @@ func TestProxiedServerPromote(t *testing.T) {
 		}
 
 		// Downstream contract: the promoted row is still returned by
-		// `bd list --include-infra --wisp-type patrol` (callers' -s open
+		// `issuegraph list --include-infra --wisp-type patrol` (callers' -s open
 		// filters keep working because the default status is unchanged).
-		listed := bdProxiedListJSON(t, bd, p, "--include-infra", "--wisp-type", "patrol")
+		listed := issuegraphProxiedListJSON(t, issuegraph, p, "--include-infra", "--wisp-type", "patrol")
 		if !containsID(listed, wisp.ID) {
 			t.Errorf("expected promoted %s in list --include-infra --wisp-type patrol, got %d rows", wisp.ID, len(listed))
 		}
@@ -132,13 +132,13 @@ func TestProxiedServerPromote(t *testing.T) {
 
 	t.Run("json_shape_matches_classic", func(t *testing.T) {
 		t.Parallel()
-		p := newSharedProxiedProject(t, bd, "pmj")
-		wisp := bdProxiedCreate(t, bd, p.dir, "Promote JSON wisp",
+		p := newSharedProxiedProject(t, issuegraph, "pmj")
+		wisp := issuegraphProxiedCreate(t, issuegraph, p.dir, "Promote JSON wisp",
 			"--ephemeral", "--wisp-type", "heartbeat", "--label", "shaped")
 
-		out, err := bdProxiedRun(t, bd, p.dir, "promote", wisp.ID, "--json")
+		out, err := issuegraphProxiedRun(t, issuegraph, p.dir, "promote", wisp.ID, "--json")
 		if err != nil {
-			t.Fatalf("bd promote --json: %v\n%s", err, out)
+			t.Fatalf("issuegraph promote --json: %v\n%s", err, out)
 		}
 		var m map[string]interface{}
 		if err := json.Unmarshal(out, &m); err != nil {
@@ -169,21 +169,21 @@ func TestProxiedServerPromote(t *testing.T) {
 
 	t.Run("one_way_purge_no_longer_reclaims", func(t *testing.T) {
 		t.Parallel()
-		p := newSharedProxiedProject(t, bd, "pmp")
-		promoted := bdProxiedCreate(t, bd, p.dir, "Promoted survives purge", "--ephemeral")
-		control := bdProxiedCreate(t, bd, p.dir, "Control wisp purged", "--ephemeral")
+		p := newSharedProxiedProject(t, issuegraph, "pmp")
+		promoted := issuegraphProxiedCreate(t, issuegraph, p.dir, "Promoted survives purge", "--ephemeral")
+		control := issuegraphProxiedCreate(t, issuegraph, p.dir, "Control wisp purged", "--ephemeral")
 
-		if out, err := bdProxiedRun(t, bd, p.dir, "promote", promoted.ID); err != nil {
-			t.Fatalf("bd promote: %v\n%s", err, out)
+		if out, err := issuegraphProxiedRun(t, issuegraph, p.dir, "promote", promoted.ID); err != nil {
+			t.Fatalf("issuegraph promote: %v\n%s", err, out)
 		}
 		for _, id := range []string{promoted.ID, control.ID} {
-			if out, err := bdProxiedRun(t, bd, p.dir, "close", id); err != nil {
-				t.Fatalf("bd close %s: %v\n%s", id, err, out)
+			if out, err := issuegraphProxiedRun(t, issuegraph, p.dir, "close", id); err != nil {
+				t.Fatalf("issuegraph close %s: %v\n%s", id, err, out)
 			}
 		}
 
-		if out, err := bdProxiedRun(t, bd, p.dir, "purge", "--force"); err != nil {
-			t.Fatalf("bd purge --force: %v\n%s", err, out)
+		if out, err := issuegraphProxiedRun(t, issuegraph, p.dir, "purge", "--force"); err != nil {
+			t.Fatalf("issuegraph purge --force: %v\n%s", err, out)
 		}
 
 		db := openProxiedDB(t, p)
@@ -197,10 +197,10 @@ func TestProxiedServerPromote(t *testing.T) {
 
 	t.Run("non_wisp_and_missing_id_fail", func(t *testing.T) {
 		t.Parallel()
-		p := newSharedProxiedProject(t, bd, "pmf")
-		durable := bdProxiedCreate(t, bd, p.dir, "Already permanent", "--type", "task")
+		p := newSharedProxiedProject(t, issuegraph, "pmf")
+		durable := issuegraphProxiedCreate(t, issuegraph, p.dir, "Already permanent", "--type", "task")
 
-		out, err := bdProxiedRun(t, bd, p.dir, "promote", durable.ID)
+		out, err := issuegraphProxiedRun(t, issuegraph, p.dir, "promote", durable.ID)
 		if err == nil {
 			t.Fatalf("expected promote of non-wisp to fail, got:\n%s", out)
 		}
@@ -208,7 +208,7 @@ func TestProxiedServerPromote(t *testing.T) {
 			t.Errorf("expected classic non-wisp error text, got: %s", out)
 		}
 
-		out, err = bdProxiedRun(t, bd, p.dir, "promote", "pmf-nope999")
+		out, err = issuegraphProxiedRun(t, issuegraph, p.dir, "promote", "pmf-nope999")
 		if err == nil {
 			t.Fatalf("expected promote of missing id to fail, got:\n%s", out)
 		}
@@ -216,12 +216,12 @@ func TestProxiedServerPromote(t *testing.T) {
 			t.Errorf("expected classic resolve-failure error, got: %s", out)
 		}
 
-		// A promoted bead cannot be promoted twice (it is no longer a wisp).
-		wisp := bdProxiedCreate(t, bd, p.dir, "Promote twice", "--ephemeral")
-		if out, err := bdProxiedRun(t, bd, p.dir, "promote", wisp.ID); err != nil {
-			t.Fatalf("bd promote: %v\n%s", err, out)
+		// A promoted issue cannot be promoted twice (it is no longer a wisp).
+		wisp := issuegraphProxiedCreate(t, issuegraph, p.dir, "Promote twice", "--ephemeral")
+		if out, err := issuegraphProxiedRun(t, issuegraph, p.dir, "promote", wisp.ID); err != nil {
+			t.Fatalf("issuegraph promote: %v\n%s", err, out)
 		}
-		out, err = bdProxiedRun(t, bd, p.dir, "promote", wisp.ID)
+		out, err = issuegraphProxiedRun(t, issuegraph, p.dir, "promote", wisp.ID)
 		if err == nil {
 			t.Fatalf("expected second promote to fail, got:\n%s", out)
 		}

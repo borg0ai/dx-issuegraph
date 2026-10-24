@@ -5,7 +5,7 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/steveyegge/beads/internal/formula"
+	"github.com/borg0ai/dx-issuegraph/internal/formula"
 )
 
 func TestFormulaSchemaList_HumanOutput(t *testing.T) {
@@ -82,7 +82,7 @@ func TestFormulaSchemaShow_AliasResolution(t *testing.T) {
 }
 
 func TestFormulaSchemaCmd_AliasRegistered(t *testing.T) {
-	// `bd formula primitives` must route to the same handler as `bd formula schema`.
+	// `issuegraph formula primitives` must route to the same handler as `issuegraph formula schema`.
 	found := false
 	for _, alias := range formulaSchemaCmd.Aliases {
 		if alias == "primitives" {

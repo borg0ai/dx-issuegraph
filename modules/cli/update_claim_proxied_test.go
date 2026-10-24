@@ -7,11 +7,11 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/steveyegge/beads/internal/hooks"
-	"github.com/steveyegge/beads/internal/storage"
-	"github.com/steveyegge/beads/internal/storage/uow"
-	"github.com/steveyegge/beads/internal/types"
-	"github.com/steveyegge/beads/issueops"
+	"github.com/borg0ai/dx-issuegraph/internal/hooks"
+	"github.com/borg0ai/dx-issuegraph/internal/storage"
+	"github.com/borg0ai/dx-issuegraph/internal/storage/uow"
+	"github.com/borg0ai/dx-issuegraph/internal/types"
+	"github.com/borg0ai/dx-issuegraph/issueops"
 )
 
 // The proxied claim path is a day-one caller of issueops.Lifecycle, and these
@@ -108,12 +108,12 @@ func TestProxiedClaimRunsOnTheLifecycleContract(t *testing.T) {
 	}
 	// The commit message this path has always written, carried on the request
 	// instead of being spelled at the commit site.
-	if req.Provenance != "bd: update bd-1" {
+	if req.Provenance != "issuegraph: update bd-1" {
 		t.Errorf("Provenance = %q, want the message the proxied update has always written", req.Provenance)
 	}
 	// A CLI claim resolves either plane; only the HTTP surface restricts it.
 	if req.IssuePlaneOnly {
-		t.Error("the CLI claim restricted the plane; `bd update --claim` has always resolved a wisp id")
+		t.Error("the CLI claim restricted the plane; `issuegraph update --claim` has always resolved a wisp id")
 	}
 	if req.ExpectedAssignee != nil || req.ExpectedStatus != nil {
 		t.Errorf("request carries guards a claim may not combine with: %+v", req)
@@ -162,7 +162,7 @@ func TestProxiedClaimConflictStaysAPerIDFailure(t *testing.T) {
 	}
 }
 
-// SIGINT cancels bd's root context mid-batch. That is not a verdict on the
+// SIGINT cancels issuegraph's root context mid-batch. That is not a verdict on the
 // issue in flight: the loop aborts, rather than recording one "context
 // canceled" failure for this id and then the same failure for every id left.
 func TestProxiedClaimAbortsTheBatchOnCancellation(t *testing.T) {

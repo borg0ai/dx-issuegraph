@@ -4,7 +4,7 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/steveyegge/beads/internal/types"
+	"github.com/borg0ai/dx-issuegraph/internal/types"
 )
 
 func TestIsMachineCheckableGate(t *testing.T) {
@@ -58,10 +58,10 @@ func TestIsMachineCheckableGate(t *testing.T) {
 			want: true,
 		},
 		{
-			name: "gate with bead await type",
+			name: "gate with issue await type",
 			issue: &types.Issue{
 				IssueType: "gate",
-				AwaitType: "bead",
+				AwaitType: "issue",
 			},
 			want: true,
 		},
@@ -165,18 +165,18 @@ func TestCheckGateSatisfaction_GHRunWithoutAwaitID(t *testing.T) {
 	}
 }
 
-func TestCheckGateSatisfaction_BeadGateInvalidFormat(t *testing.T) {
-	// bead gate with invalid await_id should return an error
+func TestCheckGateSatisfaction_IssueGateInvalidFormat(t *testing.T) {
+	// issue gate with invalid await_id should return an error
 	issue := &types.Issue{
 		IssueType: "gate",
-		AwaitType: "bead",
+		AwaitType: "issue",
 		AwaitID:   "invalid-no-colon",
-		Title:     "Bead gate with bad format",
+		Title:     "Issue gate with bad format",
 	}
 
 	err := checkGateSatisfaction(issue)
 	if err == nil {
-		t.Error("checkGateSatisfaction() should return error for bead gate with invalid await_id format")
+		t.Error("checkGateSatisfaction() should return error for issue gate with invalid await_id format")
 	}
 }
 
@@ -184,7 +184,7 @@ func TestCheckGateSatisfaction_ErrorMessageFormat(t *testing.T) {
 	// Verify error messages contain the force override hint
 	issue := &types.Issue{
 		IssueType: "gate",
-		AwaitType: "bead",
+		AwaitType: "issue",
 		AwaitID:   "invalid-no-colon",
 		Title:     "Test gate",
 	}

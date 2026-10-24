@@ -1,7 +1,7 @@
-// Package main demonstrates using Beads as a Go library
+// Package main demonstrates using IssueGraph as a Go library
 //
 // This example shows how an external project (like VC) can import and use
-// Beads programmatically instead of spawning CLI processes.
+// IssueGraph programmatically instead of spawning CLI processes.
 package main
 
 import (
@@ -10,22 +10,22 @@ import (
 	"log"
 	"time"
 
-	"github.com/steveyegge/beads"
+	"github.com/borg0ai/dx-issuegraph"
 )
 
 func main() {
 	ctx := context.Background()
 
-	// Find the Beads workspace so backend selection can follow metadata.json.
-	beadsDir := beads.FindBeadsDir()
-	if beadsDir == "" {
-		log.Fatal("No Beads workspace found. Run 'bd init' first.")
+	// Find the IssueGraph workspace so backend selection can follow metadata.json.
+	issuegraphDir := issuegraph.FindIssueGraphDir()
+	if issuegraphDir == "" {
+		log.Fatal("No IssueGraph workspace found. Run 'issuegraph init' first.")
 	}
 
-	fmt.Printf("Using workspace: %s\n\n", beadsDir)
+	fmt.Printf("Using workspace: %s\n\n", issuegraphDir)
 
 	// Open the configured Dolt implementation (embedded or server mode).
-	store, err := beads.OpenBestAvailable(ctx, beadsDir)
+	store, err := issuegraph.OpenBestAvailable(ctx, issuegraphDir)
 	if err != nil {
 		log.Fatalf("Failed to open storage: %v", err)
 	}
@@ -33,8 +33,8 @@ func main() {
 
 	// Example 1: Get ready work
 	fmt.Println("=== Ready Work ===")
-	ready, err := store.GetReadyWork(ctx, beads.WorkFilter{
-		Status: beads.StatusOpen,
+	ready, err := store.GetReadyWork(ctx, issuegraph.WorkFilter{
+		Status: issuegraph.StatusOpen,
 		Limit:  5,
 	})
 	if err != nil {
@@ -47,13 +47,13 @@ func main() {
 
 	// Example 2: Create an issue
 	fmt.Println("\n=== Creating Issue ===")
-	newIssue := &beads.Issue{
+	newIssue := &issuegraph.Issue{
 		ID:          "", // Empty = auto-generate
 		Title:       "Example library-created issue",
-		Description: "This issue was created programmatically using Beads as a library",
-		Status:      beads.StatusOpen,
+		Description: "This issue was created programmatically using IssueGraph as a library",
+		Status:      issuegraph.StatusOpen,
 		Priority:    2,
-		IssueType:   beads.TypeTask,
+		IssueType:   issuegraph.TypeTask,
 		CreatedAt:   time.Now(),
 		UpdatedAt:   time.Now(),
 	}
@@ -66,19 +66,19 @@ func main() {
 
 	// Example 3: Add a dependency
 	fmt.Println("\n=== Adding Dependency ===")
-	dep := &beads.Dependency{
+	dep := &issuegraph.Dependency{
 		IssueID:     newIssue.ID,
-		DependsOnID: "bd-1", // Assumes bd-1 exists
-		Type:        beads.DepDiscoveredFrom,
+		DependsOnID: "issuegraph-1", // Assumes issuegraph-1 exists
+		Type:        issuegraph.DepDiscoveredFrom,
 		CreatedAt:   time.Now(),
 		CreatedBy:   "library-example",
 	}
 
 	if err := store.AddDependency(ctx, dep, "library-example"); err != nil {
-		// Don't fail if bd-1 doesn't exist
-		fmt.Printf("Note: Could not add dependency (bd-1 may not exist): %v\n", err)
+		// Don't fail if issuegraph-1 doesn't exist
+		fmt.Printf("Note: Could not add dependency (issuegraph-1 may not exist): %v\n", err)
 	} else {
-		fmt.Printf("Added dependency: %s discovered-from bd-1\n", newIssue.ID)
+		fmt.Printf("Added dependency: %s discovered-from issuegraph-1\n", newIssue.ID)
 	}
 
 	// Example 4: Add a label
@@ -99,7 +99,7 @@ func main() {
 	// Example 6: Update issue status
 	fmt.Println("\n=== Updating Status ===")
 	updates := map[string]interface{}{
-		"status": beads.StatusInProgress,
+		"status": issuegraph.StatusInProgress,
 	}
 	if err := store.UpdateIssue(ctx, newIssue.ID, updates, "library-example"); err != nil {
 		log.Fatalf("Failed to update issue: %v", err)

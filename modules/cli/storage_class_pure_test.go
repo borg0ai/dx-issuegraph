@@ -4,8 +4,8 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/steveyegge/beads/internal/config"
-	"github.com/steveyegge/beads/internal/types"
+	"github.com/borg0ai/dx-issuegraph/internal/config"
+	"github.com/borg0ai/dx-issuegraph/internal/types"
 )
 
 // resolveStorageClass: the explicit flag path (config-default resolution
@@ -166,7 +166,7 @@ func TestResolveCreateStorageClassConfigDefault(t *testing.T) {
 		t.Errorf("config default: got (%q, %v, %v), want (unversioned, false, nil)", class, wisp, err)
 	}
 	// Aliases normalize before the lookup, so --type feat finds
-	// storage-class.feature (the only spelling `bd config set` accepts).
+	// storage-class.feature (the only spelling `issuegraph config set` accepts).
 	class, _, err = resolveCreateStorageClass("", types.IssueType("feat"), false, false)
 	if err != nil || class != types.StorageClassUnversioned {
 		t.Errorf("alias type: got (%q, %v), want unversioned", class, err)

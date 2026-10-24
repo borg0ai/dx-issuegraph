@@ -9,7 +9,7 @@ import (
 	"testing"
 	"time"
 
-	"github.com/steveyegge/beads/internal/types"
+	"github.com/borg0ai/dx-issuegraph/internal/types"
 )
 
 // newProvenanceTestIssue creates an issue the provenance events can hang off
@@ -34,7 +34,7 @@ func newProvenanceTestIssue(t *testing.T, ctx context.Context, s interface {
 func TestProvenanceRecordLogByRefRoundTrip(t *testing.T) {
 	t.Parallel()
 	ctx := context.Background()
-	s := newTestStore(t, filepath.Join(t.TempDir(), ".beads", "beads.db"))
+	s := newTestStore(t, filepath.Join(t.TempDir(), ".issuegraph", "issuegraph.db"))
 	issueID := newProvenanceTestIssue(t, ctx, s)
 
 	sha := "0123456789abcdef0123456789abcdef01234567"
@@ -83,7 +83,7 @@ func TestProvenanceRecordLogByRefRoundTrip(t *testing.T) {
 func TestProvenanceRecordIsIdempotent(t *testing.T) {
 	t.Parallel()
 	ctx := context.Background()
-	s := newTestStore(t, filepath.Join(t.TempDir(), ".beads", "beads.db"))
+	s := newTestStore(t, filepath.Join(t.TempDir(), ".issuegraph", "issuegraph.db"))
 	issueID := newProvenanceTestIssue(t, ctx, s)
 
 	sha := "abcabcabcabcabcabcabcabcabcabcabcabcabca"
@@ -126,7 +126,7 @@ func TestProvenanceRecordIsIdempotent(t *testing.T) {
 func TestProvenanceRejectsUnknownKind(t *testing.T) {
 	t.Parallel()
 	ctx := context.Background()
-	s := newTestStore(t, filepath.Join(t.TempDir(), ".beads", "beads.db"))
+	s := newTestStore(t, filepath.Join(t.TempDir(), ".issuegraph", "issuegraph.db"))
 	issueID := newProvenanceTestIssue(t, ctx, s)
 
 	_, _, err := s.RecordProvenanceEvent(ctx, types.ProvenanceEvent{
@@ -142,7 +142,7 @@ func TestProvenanceRejectsUnknownKind(t *testing.T) {
 func TestProvenanceRejectsReservedSourceCaseInsensitive(t *testing.T) {
 	t.Parallel()
 	ctx := context.Background()
-	s := newTestStore(t, filepath.Join(t.TempDir(), ".beads", "beads.db"))
+	s := newTestStore(t, filepath.Join(t.TempDir(), ".issuegraph", "issuegraph.db"))
 	issueID := newProvenanceTestIssue(t, ctx, s)
 
 	at := time.Now().UTC()
@@ -162,7 +162,7 @@ func TestProvenanceRejectsReservedSourceCaseInsensitive(t *testing.T) {
 func TestProvenanceRejectsNon40HexGitSHA(t *testing.T) {
 	t.Parallel()
 	ctx := context.Background()
-	s := newTestStore(t, filepath.Join(t.TempDir(), ".beads", "beads.db"))
+	s := newTestStore(t, filepath.Join(t.TempDir(), ".issuegraph", "issuegraph.db"))
 	issueID := newProvenanceTestIssue(t, ctx, s)
 
 	badRef := "not-a-sha"
@@ -185,7 +185,7 @@ func TestProvenanceRejectsNon40HexGitSHA(t *testing.T) {
 func TestProvenanceRefLessKindIsDeterministicWithOccurredAt(t *testing.T) {
 	t.Parallel()
 	ctx := context.Background()
-	s := newTestStore(t, filepath.Join(t.TempDir(), ".beads", "beads.db"))
+	s := newTestStore(t, filepath.Join(t.TempDir(), ".issuegraph", "issuegraph.db"))
 	issueID := newProvenanceTestIssue(t, ctx, s)
 
 	t1 := time.Date(2026, 6, 19, 12, 0, 0, 0, time.UTC)
@@ -237,7 +237,7 @@ func TestProvenanceRefLessKindIsDeterministicWithOccurredAt(t *testing.T) {
 func TestProvenanceRejectsRefLessWithoutOccurredAt(t *testing.T) {
 	t.Parallel()
 	ctx := context.Background()
-	s := newTestStore(t, filepath.Join(t.TempDir(), ".beads", "beads.db"))
+	s := newTestStore(t, filepath.Join(t.TempDir(), ".issuegraph", "issuegraph.db"))
 	issueID := newProvenanceTestIssue(t, ctx, s)
 
 	_, _, err := s.RecordProvenanceEvent(ctx, types.ProvenanceEvent{
@@ -255,7 +255,7 @@ func TestProvenanceRejectsRefLessWithoutOccurredAt(t *testing.T) {
 func TestProvenanceRejectsRefKindWithoutRef(t *testing.T) {
 	t.Parallel()
 	ctx := context.Background()
-	s := newTestStore(t, filepath.Join(t.TempDir(), ".beads", "beads.db"))
+	s := newTestStore(t, filepath.Join(t.TempDir(), ".issuegraph", "issuegraph.db"))
 	issueID := newProvenanceTestIssue(t, ctx, s)
 
 	refKind := "git-sha"
@@ -277,7 +277,7 @@ func TestProvenanceRejectsRefKindWithoutRef(t *testing.T) {
 func TestProvenanceSubSecondOccurredAtIsIdempotent(t *testing.T) {
 	t.Parallel()
 	ctx := context.Background()
-	s := newTestStore(t, filepath.Join(t.TempDir(), ".beads", "beads.db"))
+	s := newTestStore(t, filepath.Join(t.TempDir(), ".issuegraph", "issuegraph.db"))
 	issueID := newProvenanceTestIssue(t, ctx, s)
 
 	// 123456789ns fractional seconds — must not affect the id.
@@ -323,7 +323,7 @@ func TestProvenanceSubSecondOccurredAtIsIdempotent(t *testing.T) {
 func TestProvenanceOpaqueFieldsRoundTripExactly(t *testing.T) {
 	t.Parallel()
 	ctx := context.Background()
-	s := newTestStore(t, filepath.Join(t.TempDir(), ".beads", "beads.db"))
+	s := newTestStore(t, filepath.Join(t.TempDir(), ".issuegraph", "issuegraph.db"))
 	issueID := newProvenanceTestIssue(t, ctx, s)
 
 	sha := "0123456789abcdef0123456789abcdef01234567"
@@ -371,7 +371,7 @@ func TestProvenanceOpaqueFieldsRoundTripExactly(t *testing.T) {
 func TestProvenanceNonGitShaRefKindWithRefWorks(t *testing.T) {
 	t.Parallel()
 	ctx := context.Background()
-	s := newTestStore(t, filepath.Join(t.TempDir(), ".beads", "beads.db"))
+	s := newTestStore(t, filepath.Join(t.TempDir(), ".issuegraph", "issuegraph.db"))
 	issueID := newProvenanceTestIssue(t, ctx, s)
 
 	ref := "https://github.com/example/repo/pull/42"

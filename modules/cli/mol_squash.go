@@ -6,12 +6,12 @@ import (
 	"strings"
 	"time"
 
+	"github.com/borg0ai/dx-issuegraph/internal/metrics"
+	"github.com/borg0ai/dx-issuegraph/internal/storage"
+	"github.com/borg0ai/dx-issuegraph/internal/types"
+	"github.com/borg0ai/dx-issuegraph/internal/ui"
+	"github.com/borg0ai/dx-issuegraph/internal/utils"
 	"github.com/spf13/cobra"
-	"github.com/steveyegge/beads/internal/metrics"
-	"github.com/steveyegge/beads/internal/storage"
-	"github.com/steveyegge/beads/internal/types"
-	"github.com/steveyegge/beads/internal/ui"
-	"github.com/steveyegge/beads/internal/utils"
 )
 
 var molSquashCmd = &cobra.Command{
@@ -32,7 +32,7 @@ The squash operation:
      OR keeps them with --keep-children (default: delete)
 
 AGENT INTEGRATION:
-Use --summary to provide an AI-generated summary. This keeps bd as a pure
+Use --summary to provide an AI-generated summary. This keeps issuegraph as a pure
 tool - the calling agent (orchestrator worker, Claude Code, etc.) is responsible
 for generating intelligent summaries. Without --summary, a basic concatenation
 of child issue content is used.
@@ -41,10 +41,10 @@ This is part of the wisp workflow: spawn creates wisps,
 execution happens, squash compresses the trace into an outcome (digest).
 
 Example:
-  bd mol squash bd-abc123                    # Squash and promote children
-  bd mol squash bd-abc123 --dry-run          # Preview what would be squashed
-  bd mol squash bd-abc123 --keep-children    # Keep wisps after digest
-  bd mol squash bd-abc123 --summary "Agent-generated summary of work done"`,
+  issuegraph mol squash bd-abc123                    # Squash and promote children
+  issuegraph mol squash bd-abc123 --dry-run          # Preview what would be squashed
+  issuegraph mol squash bd-abc123 --keep-children    # Keep wisps after digest
+  issuegraph mol squash bd-abc123 --summary "Agent-generated summary of work done"`,
 	Args:          cobra.ExactArgs(1),
 	SilenceUsage:  true,
 	SilenceErrors: true,
@@ -237,14 +237,14 @@ func generateDigest(root *types.Issue, children []*types.Issue) string {
 // squashMolecule performs the squash operation
 // If summary is provided (non-empty), it's used as the digest content.
 // Otherwise, generateDigest() creates a basic concatenation.
-// This enables agents to provide AI-generated summaries while keeping bd as a pure tool.
+// This enables agents to provide AI-generated summaries while keeping issuegraph as a pure tool.
 func squashMolecule(ctx context.Context, s storage.DoltStorage, root *types.Issue, children []*types.Issue, keepChildren bool, summary string, actorName string) (*SquashResult, error) {
 	if s == nil {
 		return nil, fmt.Errorf("no database connection")
 	}
 
 	var result *SquashResult
-	err := transact(ctx, s, fmt.Sprintf("bd: squash molecule %s", root.ID), func(tx storage.Transaction) error {
+	err := transact(ctx, s, fmt.Sprintf("issuegraph: squash molecule %s", root.ID), func(tx storage.Transaction) error {
 		r, err := squashMoleculeInto(ctx, storeMolWriter{DoltStorage: s, tx: tx}, root, children, keepChildren, summary, actorName)
 		if err != nil {
 			return err

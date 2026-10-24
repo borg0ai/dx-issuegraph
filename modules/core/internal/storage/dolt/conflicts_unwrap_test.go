@@ -3,7 +3,7 @@ package dolt
 import (
 	"testing"
 
-	"github.com/steveyegge/beads/internal/storage"
+	"github.com/borg0ai/dx-issuegraph/internal/storage"
 )
 
 // The wy-jpd3.5 review BLOCKER, guarded WITHOUT dolt (wy-wrq9o F6). The CLI
@@ -11,7 +11,7 @@ import (
 // hook-firing store whenever hooks are on). A decorator that embeds the
 // DoltStorage interface promotes only that interface's methods, so a naked
 // assertion to ConflictInspector on the wrapper is false and every conflict
-// reads as "no conflicts" — which is exactly how `bd conflicts` came to print
+// reads as "no conflicts" — which is exactly how `issuegraph conflicts` came to print
 // "No merge conflicts" over a wedged merge. storage.UnwrapStore is the fix.
 //
 // Every assertion here is a type assertion over a typed-nil store: no method
@@ -42,12 +42,12 @@ type nonForwardingDecorator struct {
 func (d *nonForwardingDecorator) Unwrap() storage.DoltStorage { return d.inner }
 
 // TestDoltStoreExposesTheConflictSurface pins the method set the CLI reaches
-// for. If DoltStore ever loses one of these, `bd conflicts` degrades to
+// for. If DoltStore ever loses one of these, `issuegraph conflicts` degrades to
 // "no conflicts" rather than failing to build.
 func TestDoltStoreExposesTheConflictSurface(t *testing.T) {
 	concrete := unwrapProbeStore()
 	if _, ok := concrete.(storage.ConflictInspector); !ok {
-		t.Error("*DoltStore no longer satisfies ConflictInspector: bd conflicts show/resolve would read as 'no conflicts'")
+		t.Error("*DoltStore no longer satisfies ConflictInspector: issuegraph conflicts show/resolve would read as 'no conflicts'")
 	}
 	if _, ok := concrete.(storage.MergeBlockerInspector); !ok {
 		t.Error("*DoltStore no longer satisfies MergeBlockerInspector: schema conflicts and constraint violations would be invisible")
@@ -81,10 +81,10 @@ func TestUnwrapStoreReachesTheConflictSurfaceThroughDecorators(t *testing.T) {
 				t.Fatalf("UnwrapStore did not reach the concrete store: got %T, want %T", unwrapped, concrete)
 			}
 			if _, ok := unwrapped.(storage.ConflictInspector); !ok {
-				t.Error("UnwrapStore(chain) does not satisfy ConflictInspector: bd conflicts would report 'No merge conflicts' over a wedged merge (the wy-jpd3.5 review blocker)")
+				t.Error("UnwrapStore(chain) does not satisfy ConflictInspector: issuegraph conflicts would report 'No merge conflicts' over a wedged merge (the wy-jpd3.5 review blocker)")
 			}
 			if _, ok := unwrapped.(storage.MergeBlockerInspector); !ok {
-				t.Error("UnwrapStore(chain) does not satisfy MergeBlockerInspector: schema conflicts and constraint violations would be invisible to bd conflicts")
+				t.Error("UnwrapStore(chain) does not satisfy MergeBlockerInspector: schema conflicts and constraint violations would be invisible to issuegraph conflicts")
 			}
 		})
 	}

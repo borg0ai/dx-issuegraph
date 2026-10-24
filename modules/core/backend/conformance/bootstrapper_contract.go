@@ -5,7 +5,7 @@ import (
 	"errors"
 	"testing"
 
-	publicops "github.com/steveyegge/beads/issueops"
+	publicops "github.com/borg0ai/dx-issuegraph/issueops"
 )
 
 // This file holds the contract every implementation of publicops.Bootstrapper
@@ -118,7 +118,7 @@ func RunBootstrapperStoresThePrefixWithoutItsTrailingHyphen(t *testing.T, ctx co
 // pins, but that the identity standing on the substrate is EXACTLY the one that
 // was there before.
 //
-// bootstrapper.go's "THE REFUSAL WRITES NOTHING" is what makes running `bd init`
+// bootstrapper.go's "THE REFUSAL WRITES NOTHING" is what makes running `issuegraph init`
 // twice safe on a database several rigs share. A body that refused after writing
 // the prefix would pass an error-only assertion and still have renamed every id
 // the other rigs are about to mint.
@@ -236,12 +236,12 @@ func RunBootstrapperLeavesTheSubstrateUntouchedWhenItCannotComplete(t *testing.T
 // THEY RECORD NONE BECAUSE THE FRONT DOOR RECORDS IT. dolt's bootstrapper says
 // so in the body it would have to change — "NO VERSION-CONTROL ENTRY IS
 // RECORDED HERE ... the front door's own initial commit is what records them.
-// Adding a DOLT_COMMIT would give a bootstrap an entry that `bd init`'s commit
+// Adding a DOLT_COMMIT would give a bootstrap an entry that `issuegraph init`'s commit
 // then duplicates" — and embeddeddolt's reaches its transaction through
 // withConn, which mints no Dolt commit either. The commit they defer to is
-// commitInitState's CommitWithConfig(ctx, "bd init") on the direct init route
+// commitInitState's CommitWithConfig(ctx, "issuegraph init") on the direct init route
 // in modules/cli/init.go. A store that started committing in-role would double-
-// record every `bd init`, and that is what this zero forbids.
+// record every `issuegraph init`, and that is what this zero forbids.
 //
 // A ZERO IS ONLY WORTH ASSERTING IF THE HOOK CAN MOVE, which is the question
 // an exact zero has to answer about its own fixture. It can: both store
@@ -257,7 +257,7 @@ func RunBootstrapperLeavesTheSubstrateUntouchedWhenItCannotComplete(t *testing.T
 func RunBootstrapperRecordsNoHistoryEntryOfItsOwn(t *testing.T, ctx context.Context, fixture BootstrapperFixture) {
 	t.Helper()
 	assertBootstrapHistoryDelta(t, ctx, fixture, 0,
-		"this backend leaves the identity entry to `bd init`'s own commit at the front door, and an in-role commit would duplicate it")
+		"this backend leaves the identity entry to `issuegraph init`'s own commit at the front door, and an in-role commit would duplicate it")
 }
 
 // RunBootstrapperRecordsExactlyOneHistoryEntry is the UNIT-OF-WORK half, and
@@ -269,10 +269,10 @@ func RunBootstrapperRecordsNoHistoryEntryOfItsOwn(t *testing.T, ctx context.Cont
 // than one per key", uow/bootstrapper.go) is the only thing that versions the
 // identity there. Making this leg record none to match the stores would leave a
 // proxied workspace's identity unversioned; making the stores record one to
-// match this leg would duplicate a commit `bd init` already makes. Each leg is
+// match this leg would duplicate a commit `issuegraph init` already makes. Each leg is
 // right for the front door it stands behind, and the front-door OUTCOME
 // converges: every init route ends with exactly one entry carrying the
-// identity, labeled "bd init" on the store routes and "bd: bootstrap <prefix>"
+// identity, labeled "issuegraph init" on the store routes and "issuegraph: bootstrap <prefix>"
 // on this one.
 //
 // WHY THIS IS NOT skipKnownDivergence. That mechanism parks a case as
@@ -323,7 +323,7 @@ func assertBootstrapHistoryDelta(t *testing.T, ctx context.Context, fixture Boot
 // initverifier.go:13-19: "" is a NORMAL ANSWER, not an error and not a missing
 // row to classify.
 //
-// It is the answer `bd init` acts on when it decides whether there is anything
+// It is the answer `issuegraph init` acts on when it decides whether there is anything
 // to adopt, so turning it into ErrNotFound would make the ordinary case look
 // like a failure.
 func RunInitVerifierAnswersEmptyForAnUnidentifiedSubstrate(t *testing.T, ctx context.Context, fixture BootstrapperFixture) {
@@ -361,7 +361,7 @@ func RunInitVerifierReportsAPartialIdentityAsItStands(t *testing.T, ctx context.
 // The two states are one line apart at every call site — an unprovisioned
 // database gets bootstrapped, a database that merely could not be reached must
 // not be — so a body that reported the read failure as two empty strings would
-// hand `bd init` a second identity for a workspace that already had one. A
+// hand `issuegraph init` a second identity for a workspace that already had one. A
 // canceled context is the failure every backend can be made to have.
 func RunInitVerifierReportsAFailedReadAsAnError(t *testing.T, ctx context.Context, fixture BootstrapperFixture) {
 	t.Helper()
@@ -378,7 +378,7 @@ func RunInitVerifierReportsAFailedReadAsAnError(t *testing.T, ctx context.Contex
 
 // RunInitVerifierWritesNothing pins initverifier.go's "IT WRITES NOTHING",
 // including the version-control entry: a read that committed would put an entry
-// in the log of every workspace `bd init` merely LOOKED at.
+// in the log of every workspace `issuegraph init` merely LOOKED at.
 func RunInitVerifierWritesNothing(t *testing.T, ctx context.Context, fixture BootstrapperFixture) {
 	t.Helper()
 	if fixture.CountHistory == nil {

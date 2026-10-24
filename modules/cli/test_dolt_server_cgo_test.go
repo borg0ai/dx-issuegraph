@@ -8,9 +8,9 @@ import (
 	"fmt"
 	"os"
 
-	"github.com/steveyegge/beads/internal/storage/dolt"
-	"github.com/steveyegge/beads/internal/storage/schema"
-	"github.com/steveyegge/beads/internal/testutil"
+	"github.com/borg0ai/dx-issuegraph/internal/storage/dolt"
+	"github.com/borg0ai/dx-issuegraph/internal/storage/schema"
+	"github.com/borg0ai/dx-issuegraph/internal/testutil"
 )
 
 func init() {
@@ -28,13 +28,13 @@ var testSharedConn *sql.DB
 // from creating testdb_* databases on the production Dolt server.
 // Returns a cleanup function that stops the server and removes the container.
 func startTestDoltServer() func() {
-	if os.Getenv("BEADS_TEST_PROXIED_LOCAL") == "1" {
+	if os.Getenv("ISSUEGRAPH_TEST_PROXIED_LOCAL") == "1" {
 		return func() {}
 	}
-	if os.Getenv("BEADS_TEST_EMBEDDED_DOLT") == "1" {
+	if os.Getenv("ISSUEGRAPH_TEST_EMBEDDED_DOLT") == "1" {
 		return func() {}
 	}
-	if os.Getenv("BEADS_TEST_PROXIED_SERVER") == "1" {
+	if os.Getenv("ISSUEGRAPH_TEST_PROXIED_SERVER") == "1" {
 		return func() { testutil.TerminateDoltContainer() }
 	}
 	if err := testutil.EnsureDoltContainerForTestMain(); err != nil {
@@ -47,14 +47,14 @@ func startTestDoltServer() func() {
 	// Set up shared database for branch-per-test isolation (bd-xmf).
 	// Instead of CREATE/DROP DATABASE per test, tests branch from this
 	// shared DB, eliminating ~1-2s of overhead per test.
-	testSharedDB = "cmdbd_pkg_shared"
+	testSharedDB = "cmdissuegraph_pkg_shared"
 	db, err := testutil.SetupSharedTestDB(testDoltServerPort, testSharedDB)
 	if err != nil {
 		fmt.Fprintf(os.Stderr, "WARNING: shared DB setup failed: %v (falling back to per-test DBs)\n", err)
 		testSharedDB = ""
 	} else {
 		testSharedConn = db
-		if err := initCmdBDSharedSchema(testDoltServerPort); err != nil {
+		if err := initCmdIssueGraphSharedSchema(testDoltServerPort); err != nil {
 			fmt.Fprintf(os.Stderr, "WARNING: shared schema init failed: %v (falling back to per-test DBs)\n", err)
 			testSharedDB = ""
 			db.Close()
@@ -69,14 +69,14 @@ func startTestDoltServer() func() {
 		}
 		testSharedDB = ""
 		testDoltServerPort = 0
-		os.Unsetenv("BEADS_DOLT_PORT")
+		os.Unsetenv("ISSUEGRAPH_DOLT_PORT")
 		testutil.TerminateDoltContainer()
 	}
 }
 
-// initCmdBDSharedSchema initializes the schema and config on the shared database
+// initCmdIssueGraphSharedSchema initializes the schema and config on the shared database
 // and commits to main so branches get a clean snapshot.
-func initCmdBDSharedSchema(port int) error {
+func initCmdIssueGraphSharedSchema(port int) error {
 	ctx, cancel := context.WithTimeout(context.Background(), testStoreOpenTimeout)
 	defer cancel()
 	cfg := &dolt.Config{

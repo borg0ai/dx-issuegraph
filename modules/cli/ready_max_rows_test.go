@@ -14,8 +14,8 @@ import (
 	"fmt"
 	"testing"
 
-	"github.com/steveyegge/beads/internal/storage/issueops"
-	"github.com/steveyegge/beads/internal/types"
+	"github.com/borg0ai/dx-issuegraph/internal/storage/issueops"
+	"github.com/borg0ai/dx-issuegraph/internal/types"
 )
 
 func TestGetReadyWork_MaxRowsSuite(t *testing.T) {
@@ -80,7 +80,7 @@ func TestGetReadyWork_MaxRowsSuite(t *testing.T) {
 		_, err := store.GetReadyWork(ctx, types.WorkFilter{
 			Status:        "open",
 			MaxRows:       2,
-			MaxRowsSource: "BEADS_MAX_ROWS",
+			MaxRowsSource: "ISSUEGRAPH_MAX_ROWS",
 		})
 		if err == nil {
 			t.Fatal("expected ErrTooManyRows, got nil")
@@ -89,8 +89,8 @@ func TestGetReadyWork_MaxRowsSuite(t *testing.T) {
 		if !errors.As(err, &typed) {
 			t.Fatalf("expected *ErrTooManyRows, got %T: %v", err, err)
 		}
-		if typed.Source != "BEADS_MAX_ROWS" {
-			t.Errorf("ErrTooManyRows.Source = %q, want %q", typed.Source, "BEADS_MAX_ROWS")
+		if typed.Source != "ISSUEGRAPH_MAX_ROWS" {
+			t.Errorf("ErrTooManyRows.Source = %q, want %q", typed.Source, "ISSUEGRAPH_MAX_ROWS")
 		}
 	})
 
@@ -131,7 +131,7 @@ func TestGetReadyWork_MaxRowsSuite(t *testing.T) {
 			Status:        "open",
 			Limit:         10,
 			MaxRows:       3,
-			MaxRowsSource: "BEADS_MAX_ROWS",
+			MaxRowsSource: "ISSUEGRAPH_MAX_ROWS",
 		})
 		if err == nil {
 			t.Fatal("expected ErrTooManyRows, got nil")
@@ -143,8 +143,8 @@ func TestGetReadyWork_MaxRowsSuite(t *testing.T) {
 		if typed.Cap != 3 {
 			t.Errorf("ErrTooManyRows.Cap = %d, want 3", typed.Cap)
 		}
-		if typed.Source != "BEADS_MAX_ROWS" {
-			t.Errorf("ErrTooManyRows.Source = %q, want %q", typed.Source, "BEADS_MAX_ROWS")
+		if typed.Source != "ISSUEGRAPH_MAX_ROWS" {
+			t.Errorf("ErrTooManyRows.Source = %q, want %q", typed.Source, "ISSUEGRAPH_MAX_ROWS")
 		}
 	})
 
@@ -168,7 +168,7 @@ func TestGetReadyWork_MaxRowsSuite(t *testing.T) {
 }
 
 // TestClaimReadyIssue_MaxRows_LargePoolUnderLowCap is the be-x42v.4-follow-up
-// regression for ClaimReadyIssueInTx: a rig-wide BEADS_MAX_ROWS cap (sized
+// regression for ClaimReadyIssueInTx: a rig-wide ISSUEGRAPH_MAX_ROWS cap (sized
 // for bulk list/ready reads) must never fail a claim, which only ever
 // consumes a single row regardless of how large the ready pool is.
 // Before the claim.go:206 fix, ClaimReadyIssueInTx forwarded MaxRows into
@@ -200,7 +200,7 @@ func TestClaimReadyIssue_MaxRows_LargePoolUnderLowCap(t *testing.T) {
 	claimed, err := store.ClaimReadyIssue(ctx, types.WorkFilter{
 		Status:        "open",
 		MaxRows:       3,
-		MaxRowsSource: "BEADS_MAX_ROWS",
+		MaxRowsSource: "ISSUEGRAPH_MAX_ROWS",
 	}, "claimant")
 	if err != nil {
 		t.Fatalf("ClaimReadyIssue under cap=3 with %d-issue ready pool: unexpected error: %v", totalReady, err)

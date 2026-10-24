@@ -11,7 +11,7 @@ import (
 	"testing"
 )
 
-// End-to-end for claimNext, against real Dolt through a real `bd serve`
+// End-to-end for claimNext, against real Dolt through a real `issuegraph serve`
 // subprocess.
 //
 // This is the operation whose whole justification a fake cannot express. The
@@ -30,7 +30,7 @@ import (
 // claimNext posts a claim and returns the status and decoded body.
 func (sp *serveProcess) claimNext(t *testing.T, query, body string) (int, map[string]any) {
 	t.Helper()
-	req, err := http.NewRequest(http.MethodPost, sp.url("/v0/beads/issues:claimNext"+query), strings.NewReader(body))
+	req, err := http.NewRequest(http.MethodPost, sp.url("/v0/issuegraph/issues:claimNext"+query), strings.NewReader(body))
 	if err != nil {
 		t.Fatalf("new claimNext request: %v", err)
 	}
@@ -76,14 +76,14 @@ func claimedID(t *testing.T, body map[string]any) string {
 func TestProxiedServerServeClaimNext(t *testing.T) {
 	requireSharedProxiedServer(t)
 	t.Parallel()
-	bd := buildEmbeddedBD(t)
-	p := newSharedProxiedProject(t, bd, "srvcnx")
-	sp := startServe(t, bd, p.dir, bdProxiedEnv(p.dir))
+	issuegraph := buildEmbeddedBD(t)
+	p := newSharedProxiedProject(t, issuegraph, "srvcnx")
+	sp := startServe(t, issuegraph, p.dir, issuegraphProxiedEnv(p.dir))
 
 	// The loop this operation serves, and the read-back that proves the claim
 	// is a property of the stored row rather than of the response body.
 	t.Run("a claim wins a ready row and leaves it held", func(t *testing.T) {
-		issue := bdProxiedCreate(t, bd, p.dir, "claim-next over http", "-p", "0",
+		issue := issuegraphProxiedCreate(t, issuegraph, p.dir, "claim-next over http", "-p", "0",
 			"--label", "cnx-solo")
 
 		status, body := sp.claimNext(t, "?label=cnx-solo", `{"actor":"poller-a"}`)
@@ -94,9 +94,9 @@ func TestProxiedServerServeClaimNext(t *testing.T) {
 			t.Fatalf("claimed %q, want the one ready row %q", got, issue.ID)
 		}
 
-		shown := bdProxiedShow(t, bd, p.dir, issue.ID)
+		shown := issuegraphProxiedShow(t, issuegraph, p.dir, issue.ID)
 		if string(shown.Status) != "in_progress" || shown.Assignee != "poller-a" {
-			t.Fatalf("bd show reports status %q assignee %q; the HTTP claim did not land",
+			t.Fatalf("issuegraph show reports status %q assignee %q; the HTTP claim did not land",
 				shown.Status, shown.Assignee)
 		}
 
@@ -123,7 +123,7 @@ func TestProxiedServerServeClaimNext(t *testing.T) {
 		const rows = 6
 		want := map[string]bool{}
 		for i := 0; i < rows; i++ {
-			issue := bdProxiedCreate(t, bd, p.dir, "contended ready work", "-p", "0",
+			issue := issuegraphProxiedCreate(t, issuegraph, p.dir, "contended ready work", "-p", "0",
 				"--label", "cnx-race")
 			want[issue.ID] = true
 		}
@@ -174,8 +174,8 @@ func TestProxiedServerServeClaimNext(t *testing.T) {
 	// rather than being decoded and dropped: a claim that ignored the filter
 	// would happily hand back the other label's row.
 	t.Run("the filter narrows what a claim may win", func(t *testing.T) {
-		mine := bdProxiedCreate(t, bd, p.dir, "wanted", "-p", "0", "--label", "cnx-want")
-		bdProxiedCreate(t, bd, p.dir, "unwanted", "-p", "0", "--label", "cnx-avoid")
+		mine := issuegraphProxiedCreate(t, issuegraph, p.dir, "wanted", "-p", "0", "--label", "cnx-want")
+		issuegraphProxiedCreate(t, issuegraph, p.dir, "unwanted", "-p", "0", "--label", "cnx-avoid")
 
 		status, body := sp.claimNext(t, "?label=cnx-want", `{"actor":"picky"}`)
 		if status != http.StatusOK {

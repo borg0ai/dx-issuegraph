@@ -30,7 +30,7 @@ func TestHistoryCapabilityMatrixExactPaths(t *testing.T) {
 }
 
 func TestSyncRefusesBeforeProvider(t *testing.T) {
-	root := &cobra.Command{Use: "bd"}
+	root := &cobra.Command{Use: "issuegraph"}
 	cmd := &cobra.Command{Use: "sync"}
 	root.AddCommand(cmd)
 	err := validateProxyRegistryBeforeProvider(cmd, ProxyTopologyManagedLocal)
@@ -66,7 +66,7 @@ func TestHistoryDirectOnlyRefusalContract(t *testing.T) {
 	// while nothing asserted them, which reads as coverage that is not there.
 	for _, path := range slices.Sorted(maps.Keys(expected)) {
 		parts := strings.Split(path, " ")
-		root := &cobra.Command{Use: "bd"}
+		root := &cobra.Command{Use: "issuegraph"}
 		cmd := &cobra.Command{Use: parts[0]}
 		root.AddCommand(cmd)
 		for _, part := range parts[1:] {
@@ -101,7 +101,7 @@ func TestHistoryNestedFrontDoorsRefuseAndSupportedPathsPass(t *testing.T) {
 	}
 	for _, path := range []string{"vc merge", "vc commit", "repo add", "conflicts resolve", "federation sync", "dolt remote remove"} {
 		parts := strings.Split(path, " ")
-		root := &cobra.Command{Use: "bd"}
+		root := &cobra.Command{Use: "issuegraph"}
 		cmd := &cobra.Command{Use: parts[0]}
 		root.AddCommand(cmd)
 		for _, part := range parts[1:] {
@@ -134,7 +134,7 @@ func TestHistoryNestedFrontDoorsRefuseAndSupportedPathsPass(t *testing.T) {
 			t.Fatalf("%s refusal = %#v, want code=%q message=%q mutates=false", path, got, want.code, want.message)
 		}
 	}
-	root := &cobra.Command{Use: "bd"}
+	root := &cobra.Command{Use: "issuegraph"}
 	history := &cobra.Command{Use: "history"}
 	root.AddCommand(history)
 	if err := validateProxyRegistryBeforeProvider(history, ProxyTopologyManagedLocal); err != nil {

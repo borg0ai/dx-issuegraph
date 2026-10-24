@@ -1,0 +1,16 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" role="img" aria-labelledby="title desc">
+  <title id="title">IssueGraph issue card mark</title>
+  <desc id="desc">Three connected issue cards form a compact dependency graph.</desc>
+  <rect width="512" height="512" rx="116" fill="#17212B"/>
+  <path d="M161 157v-18c0-18 14-32 32-32h133c18 0 32 14 32 32v16" fill="none" stroke="#6BC8B5" stroke-width="18" stroke-linecap="round"/>
+  <rect x="130" y="128" width="252" height="186" rx="30" fill="#F4F0E8"/>
+  <rect x="156" y="158" width="58" height="12" rx="6" fill="#F08C68"/>
+  <rect x="156" y="188" width="156" height="13" rx="6.5" fill="#263746"/>
+  <rect x="156" y="214" width="112" height="10" rx="5" fill="#94A1A7"/>
+  <circle cx="343" cy="219" r="20" fill="#6BC8B5"/>
+  <path d="m334 219 6 6 12-14" fill="none" stroke="#17212B" stroke-width="6" stroke-linecap="round" stroke-linejoin="round"/>
+  <path d="M256 315v26m-90 0h180m-180 0v20m180-20v20" fill="none" stroke="#F4F0E8" stroke-width="16" stroke-linecap="round" stroke-linejoin="round"/>
+  <rect x="102" y="360" width="146" height="76" rx="22" fill="#F08C68"/>
+  <rect x="264" y="360" width="146" height="76" rx="22" fill="#6BC8B5"/>
+  <path d="M127 388h46m-46 18h78M289 388h46m-46 18h78" stroke="#17212B" stroke-width="9" stroke-linecap="round"/>
+</svg>

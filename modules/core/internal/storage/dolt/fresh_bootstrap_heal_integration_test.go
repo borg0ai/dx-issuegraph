@@ -15,10 +15,10 @@ import (
 
 	_ "github.com/go-sql-driver/mysql"
 
-	"github.com/steveyegge/beads/internal/doltserver"
-	"github.com/steveyegge/beads/internal/storage/doltutil"
-	"github.com/steveyegge/beads/internal/storage/schema"
-	"github.com/steveyegge/beads/internal/testutil/integration"
+	"github.com/borg0ai/dx-issuegraph/internal/doltserver"
+	"github.com/borg0ai/dx-issuegraph/internal/storage/doltutil"
+	"github.com/borg0ai/dx-issuegraph/internal/storage/schema"
+	"github.com/borg0ai/dx-issuegraph/internal/testutil/integration"
 )
 
 // TestFreshBootstrapHealIncarnation exercises the destructive bootstrap-heal
@@ -27,20 +27,20 @@ import (
 // a database-name ABA boundary and deleting another incarnation's work.
 func TestFreshBootstrapHealIncarnation(t *testing.T) {
 	integration.RequireDolt(t)
-	t.Setenv("BEADS_DOLT_SHARED_SERVER", "0")
-	t.Setenv("BEADS_DOLT_SERVER_PORT", "")
-	t.Setenv("BEADS_DOLT_PORT", "")
+	t.Setenv("ISSUEGRAPH_DOLT_SHARED_SERVER", "0")
+	t.Setenv("ISSUEGRAPH_DOLT_SERVER_PORT", "")
+	t.Setenv("ISSUEGRAPH_DOLT_PORT", "")
 
-	beadsDir := filepath.Join(t.TempDir(), ".beads")
-	if err := os.MkdirAll(beadsDir, 0o700); err != nil {
-		t.Fatalf("mkdir beads dir: %v", err)
+	issuegraphDir := filepath.Join(t.TempDir(), ".issuegraph")
+	if err := os.MkdirAll(issuegraphDir, 0o700); err != nil {
+		t.Fatalf("mkdir issuegraph dir: %v", err)
 	}
-	state, err := doltserver.Start(beadsDir)
+	state, err := doltserver.Start(issuegraphDir)
 	if err != nil {
 		t.Fatalf("start local Dolt server: %v", err)
 	}
 	t.Cleanup(func() {
-		current, stateErr := doltserver.IsRunning(beadsDir)
+		current, stateErr := doltserver.IsRunning(issuegraphDir)
 		if stateErr != nil {
 			t.Errorf("check local Dolt server before stop: %v", stateErr)
 			return
@@ -48,7 +48,7 @@ func TestFreshBootstrapHealIncarnation(t *testing.T) {
 		if current == nil || !current.Running {
 			return
 		}
-		if err := doltserver.Stop(beadsDir); err != nil {
+		if err := doltserver.Stop(issuegraphDir); err != nil {
 			t.Errorf("stop local Dolt server: %v", err)
 		}
 	})
@@ -83,7 +83,7 @@ func TestFreshBootstrapHealIncarnation(t *testing.T) {
 				defer wg.Done()
 				<-ready
 				cfg := freshBootstrapIntegrationConfig(
-					beadsDir, state.Port, "heal_creator_race", fmt.Sprintf("creator-%02d", i),
+					issuegraphDir, state.Port, "heal_creator_race", fmt.Sprintf("creator-%02d", i),
 				)
 				db, _, facts, err := openServerConnection(ctx, cfg)
 				if db != nil {
@@ -111,7 +111,7 @@ func TestFreshBootstrapHealIncarnation(t *testing.T) {
 	})
 
 	t.Run("exact creator heals its interrupted bootstrap", func(t *testing.T) {
-		cfg := freshBootstrapIntegrationConfig(beadsDir, state.Port, "heal_exact_creator", "exact-creator")
+		cfg := freshBootstrapIntegrationConfig(issuegraphDir, state.Port, "heal_exact_creator", "exact-creator")
 		db, _, facts, err := openServerConnection(ctx, cfg)
 		if err != nil {
 			t.Fatalf("creator open: %v", err)
@@ -133,9 +133,9 @@ func TestFreshBootstrapHealIncarnation(t *testing.T) {
 	})
 
 	t.Run("fresh store initializes and commits cleanly", func(t *testing.T) {
-		cfg := freshBootstrapIntegrationConfig(beadsDir, state.Port, "heal_fresh_store", "fresh-store")
-		cfg.CommitterName = "Beads Test"
-		cfg.CommitterEmail = "beads@example.com"
+		cfg := freshBootstrapIntegrationConfig(issuegraphDir, state.Port, "heal_fresh_store", "fresh-store")
+		cfg.CommitterName = "IssueGraph Test"
+		cfg.CommitterEmail = "issuegraph@example.com"
 		store, err := New(ctx, cfg)
 		if err != nil {
 			t.Fatalf("open fresh store: %v", err)
@@ -144,7 +144,7 @@ func TestFreshBootstrapHealIncarnation(t *testing.T) {
 		if err := store.SetConfig(ctx, "issue_prefix", "heal"); err != nil {
 			t.Fatalf("set intentional init config: %v", err)
 		}
-		if err := store.CommitWithConfig(ctx, "bd init"); err != nil {
+		if err := store.CommitWithConfig(ctx, "issuegraph init"); err != nil {
 			t.Fatalf("config-inclusive init commit: %v", err)
 		}
 		assertFreshBootstrapConverged(t, ctx, store.db)
@@ -160,7 +160,7 @@ func TestFreshBootstrapHealIncarnation(t *testing.T) {
 	})
 
 	t.Run("drop and recreate revokes creator capability", func(t *testing.T) {
-		cfg := freshBootstrapIntegrationConfig(beadsDir, state.Port, "heal_creator_aba", "creator-aba")
+		cfg := freshBootstrapIntegrationConfig(issuegraphDir, state.Port, "heal_creator_aba", "creator-aba")
 		creatorDB, _, facts, err := openServerConnection(ctx, cfg)
 		if err != nil {
 			t.Fatalf("creator open: %v", err)
@@ -217,10 +217,10 @@ func TestFreshBootstrapHealIncarnation(t *testing.T) {
 	})
 }
 
-func freshBootstrapIntegrationConfig(beadsDir string, port int, database, pathSuffix string) *Config {
+func freshBootstrapIntegrationConfig(issuegraphDir string, port int, database, pathSuffix string) *Config {
 	return &Config{
-		Path:            filepath.Join(beadsDir, pathSuffix),
-		BeadsDir:        beadsDir,
+		Path:            filepath.Join(issuegraphDir, pathSuffix),
+		IssueGraphDir:   issuegraphDir,
 		ServerHost:      "127.0.0.1",
 		ServerPort:      port,
 		ServerUser:      "root",
@@ -232,7 +232,7 @@ func freshBootstrapIntegrationConfig(beadsDir string, port int, database, pathSu
 
 // requireWorkingHardReset fails before the heal under test runs when this
 // database's CALL DOLT_RESET('--hard') is already broken, so a broken Dolt is
-// named as such instead of masquerading as a beads defect.
+// named as such instead of masquerading as a issuegraph defect.
 //
 // Dolt 2.3.0 regressed the procedure: roughly one freshly created database in
 // twenty comes up with it permanently unusable, answering
@@ -240,7 +240,7 @@ func freshBootstrapIntegrationConfig(beadsDir string, port int, database, pathSu
 // server process (measured 2026-08-20: 2.1.8 0/40, 2.2.0 0/60, 2.3.0 3/60,
 // 2.3.1 3/100 fresh databases broken). Without this probe the defect surfaces
 // only as the heal's generic #4566 dirty-table refusal, which reads like a
-// beads bug and points the reader at "run 'bd dolt commit'" — advice that
+// issuegraph bug and points the reader at "run 'issuegraph dolt commit'" — advice that
 // cannot work, because the reset the heal needs is the thing that is broken.
 //
 // The probe is safe on the database under test: on a pristine, just-created
@@ -250,7 +250,7 @@ func requireWorkingHardReset(t *testing.T, ctx context.Context, db *sql.DB) {
 	t.Helper()
 	if err := schema.DrainCall(ctx, db, "CALL DOLT_RESET('--hard')"); err != nil {
 		t.Fatalf("this Dolt server cannot CALL DOLT_RESET('--hard') on a database it just created: %v\n"+
-			"That is the Dolt 2.3.0 regression, not a beads failure — the bootstrap heal this test "+
+			"That is the Dolt 2.3.0 regression, not a issuegraph failure — the bootstrap heal this test "+
 			"exercises is unimplementable on such a server. Check the pinned CLI version in "+
 			"scripts/ci/install-dolt.sh and `dolt version`.", err)
 	}
@@ -267,7 +267,7 @@ func prepareFreshBootstrapV51Dirty(t *testing.T, ctx context.Context, db *sql.DB
 		t.Fatalf("migrate database to v51: %v", err)
 	}
 	if _, err := conn.ExecContext(ctx,
-		"CALL DOLT_COMMIT('-Am', 'test: v51 baseline', '--author', 'Beads Test <beads@example.com>')",
+		"CALL DOLT_COMMIT('-Am', 'test: v51 baseline', '--author', 'IssueGraph Test <issuegraph@example.com>')",
 	); err != nil {
 		t.Fatalf("commit v51 baseline: %v", err)
 	}

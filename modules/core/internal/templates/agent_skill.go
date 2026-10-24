@@ -1,14 +1,14 @@
-// Package templates provides embedded files that bd writes into user workspaces.
+// Package templates provides embedded files that issuegraph writes into user workspaces.
 package templates
 
-import "github.com/steveyegge/beads/internal/generated/issuegraphassets"
+import "github.com/borg0ai/dx-issuegraph/internal/generated/issuegraphassets"
 
-// BeadsAgentSkill returns the repo-local Beads agent skill content.
-func BeadsAgentSkill() string {
+// IssueGraphAgentSkill returns the repo-local IssueGraph agent skill content.
+func IssueGraphAgentSkill() string {
 	return issuegraphassets.AgentSkill()
 }
 
-// BeadsAgentSkillOpenAIYAML returns the OpenAI UI metadata for the Beads agent skill.
-func BeadsAgentSkillOpenAIYAML() string {
+// IssueGraphAgentSkillOpenAIYAML returns the OpenAI UI metadata for the IssueGraph agent skill.
+func IssueGraphAgentSkillOpenAIYAML() string {
 	return issuegraphassets.AgentSkillOpenAIYAML()
 }

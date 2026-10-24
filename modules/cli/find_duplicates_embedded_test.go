@@ -12,44 +12,44 @@ import (
 	"testing"
 )
 
-// bdFindDups runs "bd find-duplicates" with the given args and returns raw stdout.
-func bdFindDups(t *testing.T, bd, dir string, args ...string) string {
+// issuegraphFindDups runs "issuegraph find-duplicates" with the given args and returns raw stdout.
+func issuegraphFindDups(t *testing.T, issuegraph, dir string, args ...string) string {
 	t.Helper()
 	fullArgs := append([]string{"find-duplicates"}, args...)
-	cmd := exec.Command(bd, fullArgs...)
+	cmd := exec.Command(issuegraph, fullArgs...)
 	cmd.Dir = dir
-	cmd.Env = bdEnv(dir)
+	cmd.Env = issuegraphEnv(dir)
 	stdout, stderr, err := runCommandBuffers(t, cmd)
 	if err != nil {
-		t.Fatalf("bd find-duplicates %s failed: %v\nstdout:\n%s\nstderr:\n%s", strings.Join(args, " "), err, stdout.String(), stderr.String())
+		t.Fatalf("issuegraph find-duplicates %s failed: %v\nstdout:\n%s\nstderr:\n%s", strings.Join(args, " "), err, stdout.String(), stderr.String())
 	}
 	return stdout.String()
 }
 
-// bdFindDupsFail runs "bd find-duplicates" expecting failure.
-func bdFindDupsFail(t *testing.T, bd, dir string, args ...string) string {
+// issuegraphFindDupsFail runs "issuegraph find-duplicates" expecting failure.
+func issuegraphFindDupsFail(t *testing.T, issuegraph, dir string, args ...string) string {
 	t.Helper()
 	fullArgs := append([]string{"find-duplicates"}, args...)
-	cmd := exec.Command(bd, fullArgs...)
+	cmd := exec.Command(issuegraph, fullArgs...)
 	cmd.Dir = dir
-	cmd.Env = bdEnv(dir)
+	cmd.Env = issuegraphEnv(dir)
 	out, err := cmd.CombinedOutput()
 	if err == nil {
-		t.Fatalf("expected bd find-duplicates %s to fail, but succeeded:\n%s", strings.Join(args, " "), out)
+		t.Fatalf("expected issuegraph find-duplicates %s to fail, but succeeded:\n%s", strings.Join(args, " "), out)
 	}
 	return string(out)
 }
 
-// bdFindDupsJSON runs "bd find-duplicates --json" and parses the result.
-func bdFindDupsJSON(t *testing.T, bd, dir string, args ...string) map[string]interface{} {
+// issuegraphFindDupsJSON runs "issuegraph find-duplicates --json" and parses the result.
+func issuegraphFindDupsJSON(t *testing.T, issuegraph, dir string, args ...string) map[string]interface{} {
 	t.Helper()
 	fullArgs := append([]string{"find-duplicates", "--json"}, args...)
-	cmd := exec.Command(bd, fullArgs...)
+	cmd := exec.Command(issuegraph, fullArgs...)
 	cmd.Dir = dir
-	cmd.Env = bdEnv(dir)
+	cmd.Env = issuegraphEnv(dir)
 	stdout, stderr, err := runCommandBuffers(t, cmd)
 	if err != nil {
-		t.Fatalf("bd find-duplicates --json %s failed: %v\nstdout:\n%s\nstderr:\n%s", strings.Join(args, " "), err, stdout.String(), stderr.String())
+		t.Fatalf("issuegraph find-duplicates --json %s failed: %v\nstdout:\n%s\nstderr:\n%s", strings.Join(args, " "), err, stdout.String(), stderr.String())
 	}
 	s := strings.TrimSpace(stdout.String())
 	start := strings.Index(s, "{")
@@ -64,39 +64,39 @@ func bdFindDupsJSON(t *testing.T, bd, dir string, args ...string) map[string]int
 }
 
 func TestEmbeddedFindDuplicates(t *testing.T) {
-	if os.Getenv("BEADS_TEST_EMBEDDED_DOLT") != "1" {
-		t.Skip("set BEADS_TEST_EMBEDDED_DOLT=1 to run embedded dolt integration tests")
+	if os.Getenv("ISSUEGRAPH_TEST_EMBEDDED_DOLT") != "1" {
+		t.Skip("set ISSUEGRAPH_TEST_EMBEDDED_DOLT=1 to run embedded dolt integration tests")
 	}
 	t.Parallel()
 
-	bd := buildEmbeddedBD(t)
-	dir, _, _ := bdInit(t, bd, "--prefix", "fd")
+	issuegraph := buildEmbeddedBD(t)
+	dir, _, _ := issuegraphInit(t, issuegraph, "--prefix", "fd")
 
 	// Create near-identical issues (should be flagged as duplicates).
-	bdCreate(t, bd, dir, "Fix login page timeout error", "--type", "bug",
+	issuegraphCreate(t, issuegraph, dir, "Fix login page timeout error", "--type", "bug",
 		"--description", "The login page throws a timeout error after 30 seconds of inactivity")
-	bdCreate(t, bd, dir, "Login page timeout error fix needed", "--type", "bug",
+	issuegraphCreate(t, issuegraph, dir, "Login page timeout error fix needed", "--type", "bug",
 		"--description", "After 30 seconds the login page shows a timeout error to the user")
 
 	// Create distinct issues (should NOT be flagged).
-	bdCreate(t, bd, dir, "Add dark mode to settings", "--type", "feature",
+	issuegraphCreate(t, issuegraph, dir, "Add dark mode to settings", "--type", "feature",
 		"--description", "Users want a dark mode toggle in the settings page")
-	bdCreate(t, bd, dir, "Upgrade database to PostgreSQL 16", "--type", "task",
+	issuegraphCreate(t, issuegraph, dir, "Upgrade database to PostgreSQL 16", "--type", "task",
 		"--description", "Migrate from PostgreSQL 14 to PostgreSQL 16 for performance")
-	bdCreate(t, bd, dir, "Write API documentation", "--type", "task",
+	issuegraphCreate(t, issuegraph, dir, "Write API documentation", "--type", "task",
 		"--description", "Document all REST endpoints with OpenAPI spec")
 
 	// Create a closed issue for status filter testing.
-	closed := bdCreate(t, bd, dir, "Fix login page timeout error (old)", "--type", "bug",
+	closed := issuegraphCreate(t, issuegraph, dir, "Fix login page timeout error (old)", "--type", "bug",
 		"--description", "The login page throws a timeout error")
-	bdClose(t, bd, dir, closed.ID)
+	issuegraphClose(t, issuegraph, dir, closed.ID)
 
 	// ===== Mechanical method with near-identical issues =====
 
 	t.Run("mechanical_finds_near_identical", func(t *testing.T) {
 		// Use a low threshold since token overlap between the two login issues
 		// depends on exact tokenization (Jaccard + cosine average).
-		m := bdFindDupsJSON(t, bd, dir, "--threshold", "0.15")
+		m := issuegraphFindDupsJSON(t, issuegraph, dir, "--threshold", "0.15")
 		pairs, ok := m["pairs"].([]interface{})
 		if !ok {
 			t.Fatalf("expected pairs array, got %T", m["pairs"])
@@ -122,10 +122,10 @@ func TestEmbeddedFindDuplicates(t *testing.T) {
 	// ===== Threshold controls sensitivity =====
 
 	t.Run("threshold_high_reduces_results", func(t *testing.T) {
-		m := bdFindDupsJSON(t, bd, dir, "--threshold", "0.95")
+		m := issuegraphFindDupsJSON(t, issuegraph, dir, "--threshold", "0.95")
 		pairs := m["pairs"].([]interface{})
 		// Very high threshold should find fewer/no pairs
-		mLow := bdFindDupsJSON(t, bd, dir, "--threshold", "0.2")
+		mLow := issuegraphFindDupsJSON(t, issuegraph, dir, "--threshold", "0.2")
 		pairsLow := mLow["pairs"].([]interface{})
 		if len(pairsLow) < len(pairs) {
 			t.Errorf("lower threshold should find >= as many pairs: low=%d high=%d", len(pairsLow), len(pairs))
@@ -133,7 +133,7 @@ func TestEmbeddedFindDuplicates(t *testing.T) {
 	})
 
 	t.Run("threshold_zero_finds_all_pairs", func(t *testing.T) {
-		m := bdFindDupsJSON(t, bd, dir, "--threshold", "0.0")
+		m := issuegraphFindDupsJSON(t, issuegraph, dir, "--threshold", "0.0")
 		pairs := m["pairs"].([]interface{})
 		// With threshold 0, every pair with any similarity should appear
 		if len(pairs) == 0 {
@@ -144,7 +144,7 @@ func TestEmbeddedFindDuplicates(t *testing.T) {
 	// ===== Status filter =====
 
 	t.Run("status_filter_open", func(t *testing.T) {
-		m := bdFindDupsJSON(t, bd, dir, "--status", "open", "--threshold", "0.2")
+		m := issuegraphFindDupsJSON(t, issuegraph, dir, "--status", "open", "--threshold", "0.2")
 		// Should exclude the closed issue
 		pairs := m["pairs"].([]interface{})
 		for _, p := range pairs {
@@ -158,7 +158,7 @@ func TestEmbeddedFindDuplicates(t *testing.T) {
 	})
 
 	t.Run("status_filter_all", func(t *testing.T) {
-		m := bdFindDupsJSON(t, bd, dir, "--status", "all", "--threshold", "0.3")
+		m := issuegraphFindDupsJSON(t, issuegraph, dir, "--status", "all", "--threshold", "0.3")
 		pairs := m["pairs"].([]interface{})
 		// With "all" status, the closed issue may appear in pairs
 		if len(pairs) == 0 {
@@ -169,7 +169,7 @@ func TestEmbeddedFindDuplicates(t *testing.T) {
 	// ===== Limit caps results =====
 
 	t.Run("limit_caps_results", func(t *testing.T) {
-		m := bdFindDupsJSON(t, bd, dir, "--threshold", "0.0", "--limit", "1")
+		m := issuegraphFindDupsJSON(t, issuegraph, dir, "--threshold", "0.0", "--limit", "1")
 		pairs := m["pairs"].([]interface{})
 		if len(pairs) > 1 {
 			t.Errorf("expected at most 1 pair with --limit 1, got %d", len(pairs))
@@ -180,7 +180,7 @@ func TestEmbeddedFindDuplicates(t *testing.T) {
 
 	t.Run("no_duplicates_distinct_issues", func(t *testing.T) {
 		// Very high threshold — distinct issues shouldn't match
-		out := bdFindDups(t, bd, dir, "--threshold", "0.99")
+		out := issuegraphFindDups(t, issuegraph, dir, "--threshold", "0.99")
 		if !strings.Contains(out, "No similar issues") {
 			// It's ok if nothing matches — just verify no crash
 		}
@@ -189,7 +189,7 @@ func TestEmbeddedFindDuplicates(t *testing.T) {
 	// ===== JSON output =====
 
 	t.Run("json_output_structure", func(t *testing.T) {
-		m := bdFindDupsJSON(t, bd, dir, "--threshold", "0.3")
+		m := issuegraphFindDupsJSON(t, issuegraph, dir, "--threshold", "0.3")
 		if _, ok := m["pairs"]; !ok {
 			t.Error("expected 'pairs' key in JSON output")
 		}
@@ -208,7 +208,7 @@ func TestEmbeddedFindDuplicates(t *testing.T) {
 	})
 
 	t.Run("json_pair_fields", func(t *testing.T) {
-		m := bdFindDupsJSON(t, bd, dir, "--threshold", "0.2")
+		m := issuegraphFindDupsJSON(t, issuegraph, dir, "--threshold", "0.2")
 		pairs := m["pairs"].([]interface{})
 		if len(pairs) == 0 {
 			t.Skip("no pairs to check fields on")
@@ -224,7 +224,7 @@ func TestEmbeddedFindDuplicates(t *testing.T) {
 	// ===== Invalid method =====
 
 	t.Run("invalid_method_error", func(t *testing.T) {
-		out := bdFindDupsFail(t, bd, dir, "--method", "bogus")
+		out := issuegraphFindDupsFail(t, issuegraph, dir, "--method", "bogus")
 		if !strings.Contains(out, "invalid method") {
 			t.Errorf("expected 'invalid method' error, got: %s", out)
 		}
@@ -234,20 +234,20 @@ func TestEmbeddedFindDuplicates(t *testing.T) {
 
 	t.Run("fewer_than_2_issues", func(t *testing.T) {
 		// Create a fresh init with only 1 issue
-		dir2, _, _ := bdInit(t, bd, "--prefix", "fd2")
-		bdCreate(t, bd, dir2, "Only one issue", "--type", "task")
+		dir2, _, _ := issuegraphInit(t, issuegraph, "--prefix", "fd2")
+		issuegraphCreate(t, issuegraph, dir2, "Only one issue", "--type", "task")
 
-		out := bdFindDups(t, bd, dir2)
+		out := issuegraphFindDups(t, issuegraph, dir2)
 		if !strings.Contains(out, "Not enough issues") {
 			t.Errorf("expected 'Not enough issues' message, got: %s", out)
 		}
 	})
 
 	t.Run("fewer_than_2_issues_json", func(t *testing.T) {
-		dir3, _, _ := bdInit(t, bd, "--prefix", "fd3")
-		bdCreate(t, bd, dir3, "Only one issue json", "--type", "task")
+		dir3, _, _ := issuegraphInit(t, issuegraph, "--prefix", "fd3")
+		issuegraphCreate(t, issuegraph, dir3, "Only one issue json", "--type", "task")
 
-		m := bdFindDupsJSON(t, bd, dir3)
+		m := issuegraphFindDupsJSON(t, issuegraph, dir3)
 		count := int(m["count"].(float64))
 		if count != 0 {
 			t.Errorf("expected count=0 with fewer than 2 issues, got %d", count)
@@ -257,12 +257,12 @@ func TestEmbeddedFindDuplicates(t *testing.T) {
 	// ===== find-dups alias =====
 
 	t.Run("find_dups_alias", func(t *testing.T) {
-		cmd := exec.Command(bd, "find-dups", "--json", "--threshold", "0.3")
+		cmd := exec.Command(issuegraph, "find-dups", "--json", "--threshold", "0.3")
 		cmd.Dir = dir
-		cmd.Env = bdEnv(dir)
+		cmd.Env = issuegraphEnv(dir)
 		stdout, stderr, err := runCommandBuffers(t, cmd)
 		if err != nil {
-			t.Fatalf("bd find-dups alias failed: %v\nstdout:\n%s\nstderr:\n%s", err, stdout.String(), stderr.String())
+			t.Fatalf("issuegraph find-dups alias failed: %v\nstdout:\n%s\nstderr:\n%s", err, stdout.String(), stderr.String())
 		}
 		if !strings.Contains(stdout.String(), "pairs") {
 			t.Errorf("expected JSON with 'pairs' from alias: %s", stdout.String())
@@ -272,7 +272,7 @@ func TestEmbeddedFindDuplicates(t *testing.T) {
 	// ===== Human-readable output =====
 
 	t.Run("human_readable_output", func(t *testing.T) {
-		out := bdFindDups(t, bd, dir, "--threshold", "0.3")
+		out := issuegraphFindDups(t, issuegraph, dir, "--threshold", "0.3")
 		if strings.Contains(out, "No similar issues") {
 			t.Skip("no pairs found at this threshold")
 		}
@@ -287,17 +287,17 @@ func TestEmbeddedFindDuplicates(t *testing.T) {
 
 // TestEmbeddedFindDuplicatesConcurrent exercises find-duplicates operations concurrently.
 func TestEmbeddedFindDuplicatesConcurrent(t *testing.T) {
-	if os.Getenv("BEADS_TEST_EMBEDDED_DOLT") != "1" {
-		t.Skip("set BEADS_TEST_EMBEDDED_DOLT=1 to run embedded dolt integration tests")
+	if os.Getenv("ISSUEGRAPH_TEST_EMBEDDED_DOLT") != "1" {
+		t.Skip("set ISSUEGRAPH_TEST_EMBEDDED_DOLT=1 to run embedded dolt integration tests")
 	}
 	t.Parallel()
 
-	bd := buildEmbeddedBD(t)
-	dir, _, _ := bdInit(t, bd, "--prefix", "fdc")
+	issuegraph := buildEmbeddedBD(t)
+	dir, _, _ := issuegraphInit(t, issuegraph, "--prefix", "fdc")
 
 	// Create enough issues for meaningful comparison.
 	for i := 0; i < 10; i++ {
-		bdCreate(t, bd, dir, fmt.Sprintf("concurrent dup test issue %d about login", i), "--type", "task")
+		issuegraphCreate(t, issuegraph, dir, fmt.Sprintf("concurrent dup test issue %d about login", i), "--type", "task")
 	}
 
 	const numWorkers = 8
@@ -319,9 +319,9 @@ func TestEmbeddedFindDuplicatesConcurrent(t *testing.T) {
 			// Vary the threshold per worker
 			threshold := fmt.Sprintf("%.1f", 0.1+float64(worker)*0.1)
 			args := []string{"find-duplicates", "--json", "--threshold", threshold}
-			cmd := exec.Command(bd, args...)
+			cmd := exec.Command(issuegraph, args...)
 			cmd.Dir = dir
-			cmd.Env = bdEnv(dir)
+			cmd.Env = issuegraphEnv(dir)
 			stdout, stderr, err := runCommandBuffers(t, cmd)
 			if err != nil {
 				r.err = fmt.Errorf("worker %d find-duplicates: %v\nstdout:\n%s\nstderr:\n%s", worker, err, stdout.String(), stderr.String())

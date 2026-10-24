@@ -42,5 +42,5 @@ Most issues can be diagnosed with `issuegraph status`. Start there before follow
 If these runbooks don't resolve your issue:
 
 1. Check the [FAQ](/reference/faq)
-2. Search [existing issues](https://github.com/gastownhall/beads/issues)
+2. Search [existing issues](https://github.com/borg0ai/dx-issuegraph/issues)
 3. Open a new issue with diagnostic output

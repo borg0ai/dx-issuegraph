@@ -2,8 +2,8 @@
 # check-doc-flags.sh — Validate documentation references against actual CLI flags.
 #
 # This script catches stale doc references by:
-# 1. Extracting all flags from `bd help --all`
-# 2. Scanning docs for `bd <command> --<flag>` patterns
+# 1. Extracting all flags from `issuegraph help --all`
+# 2. Scanning docs for `issuegraph <command> --<flag>` patterns
 # 3. Flagging any that don't exist in the CLI
 #
 # Also checks for references to known-removed commands.
@@ -16,28 +16,28 @@
 
 set -euo pipefail
 
-BD="${1:-bd}"
+ISSUEGRAPH="${1:-issuegraph}"
 ERRORS=0
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 PROJECT_ROOT="$(dirname "$SCRIPT_DIR")"
 
 # Release pin (docs/cli-docs.pin): the docs describe the pinned release, so
-# every check below validates against a bd built from that tag, not the
-# supplied binary. Set BD_DOCS_IGNORE_PIN=1 to bypass.
-if [ "${BD_DOCS_IGNORE_PIN:-0}" != "1" ]; then
-    PINNED_BD="$("$SCRIPT_DIR/resolve-docs-bd.sh")"
+# every check below validates against a issuegraph built from that tag, not the
+# supplied binary. Set ISSUEGRAPH_DOCS_IGNORE_PIN=1 to bypass.
+if [ "${ISSUEGRAPH_DOCS_IGNORE_PIN:-0}" != "1" ]; then
+    PINNED_BD="$("$SCRIPT_DIR/resolve-docs-issuegraph.sh")"
     if [ -n "$PINNED_BD" ]; then
-        if [ "$BD" != "$PINNED_BD" ]; then
-            echo "Note: docs are pinned via docs/cli-docs.pin; validating against the pinned bd."
+        if [ "$ISSUEGRAPH" != "$PINNED_BD" ]; then
+            echo "Note: docs are pinned via docs/cli-docs.pin; validating against the pinned issuegraph."
         fi
-        BD="$PINNED_BD"
+        ISSUEGRAPH="$PINNED_BD"
     fi
 fi
 
-# Verify bd binary exists and runs
-if ! command -v "$BD" &>/dev/null && [ ! -x "$BD" ]; then
-    echo "Error: bd binary not found at '$BD'"
-    echo "Usage: $0 [path-to-bd]"
+# Verify issuegraph binary exists and runs
+if ! command -v "$ISSUEGRAPH" &>/dev/null && [ ! -x "$ISSUEGRAPH" ]; then
+    echo "Error: issuegraph binary not found at '$ISSUEGRAPH'"
+    echo "Usage: $0 [path-to-issuegraph]"
     exit 1
 fi
 
@@ -51,29 +51,29 @@ run_bounded() {
 }
 
 echo "Checking documentation against CLI flags..."
-echo "Using: $($BD version 2>/dev/null | head -1 || echo "$BD")"
+echo "Using: $($ISSUEGRAPH version 2>/dev/null | head -1 || echo "$ISSUEGRAPH")"
 echo ""
 
 # --- Check 1: Known-removed commands ---
 echo "=== Check 1: Removed commands ==="
 
-# bd sync: the JSONL-era command was removed in v0.51, and a top-level `bd sync`
+# issuegraph sync: the JSONL-era command was removed in v0.51, and a top-level `issuegraph sync`
 # was reintroduced (wy-jpd3.4) as the federation loop — pull, positive conflict
 # check, recompute-blocked, push. So the stale reference to hunt is no longer
 # any mention of the command; it is docs still describing it as removed,
 # deprecated, or a no-op, which is exactly what its own command doc said until
 # the verb came back. CHANGELOG and the staged-for-removal audits are history
 # and legitimately say so.
-SYNC_REFS=$(grep -rn 'bd sync\b' \
+SYNC_REFS=$(grep -rn 'issuegraph sync\b' \
     "$PROJECT_ROOT"/docs/*.md \
     "$PROJECT_ROOT"/docs/*/*.md \
     "$PROJECT_ROOT"/AGENT_INSTRUCTIONS.md \
     "$PROJECT_ROOT"/AGENTS.md \
     "$PROJECT_ROOT"/README.md \
-    "$PROJECT_ROOT"/npm-package/*.md \
+    "$PROJECT_ROOT"/apps/cli/*.md \
     "$PROJECT_ROOT"/integrations/*/README.md \
-    "$PROJECT_ROOT"/plugins/beads/skills/beads/commands/*.md \
-    "$PROJECT_ROOT"/plugins/beads/skills/beads/resources/*.md \
+    "$PROJECT_ROOT"/plugins/issuegraph/skills/issuegraph/commands/*.md \
+    "$PROJECT_ROOT"/plugins/issuegraph/skills/issuegraph/resources/*.md \
     2>/dev/null \
     | grep -v 'CHANGELOG\|audit-sync-mode' \
     | grep -i 'deprecated\|no-op\|removed\|unknown-command' \
@@ -81,31 +81,31 @@ SYNC_REFS=$(grep -rn 'bd sync\b' \
     || true)
 
 if [ -n "$SYNC_REFS" ]; then
-    echo "FAIL: Found docs describing 'bd sync' as removed/deprecated — it is a live command:"
+    echo "FAIL: Found docs describing 'issuegraph sync' as removed/deprecated — it is a live command:"
     echo "$SYNC_REFS" | head -20
     ERRORS=$((ERRORS + 1))
 else
-    echo "PASS: No stale 'bd sync is removed' references"
+    echo "PASS: No stale 'issuegraph sync is removed' references"
 fi
 
 echo ""
 
-# --- Check 2: bd init flags ---
-echo "=== Check 2: bd init flags ==="
+# --- Check 2: issuegraph init flags ---
+echo "=== Check 2: issuegraph init flags ==="
 
 # Get actual init flags. Match both long-only rows and rows with a short alias.
 INIT_FLAGS_OK=1
-if ! INIT_FLAGS=$("$BD" init --help 2>&1 \
+if ! INIT_FLAGS=$("$ISSUEGRAPH" init --help 2>&1 \
     | grep -E '^[[:space:]]+(-[[:alnum:]], )?--[a-z]' \
     | grep -oE -- '--[a-z][a-z0-9-]*' \
     | sort -u); then
-    echo "FAIL: Could not extract flags from 'bd init --help'"
+    echo "FAIL: Could not extract flags from 'issuegraph init --help'"
     ERRORS=$((ERRORS + 1))
     INIT_FLAGS_OK=0
 fi
 
 # Check for --branch on init (removed)
-BRANCH_REFS=$(grep -rn 'bd init.*--branch' \
+BRANCH_REFS=$(grep -rn 'issuegraph init.*--branch' \
     "$PROJECT_ROOT"/docs/*.md \
     "$PROJECT_ROOT"/docs/*/*.md \
     "$PROJECT_ROOT"/AGENT_INSTRUCTIONS.md \
@@ -116,15 +116,15 @@ BRANCH_REFS=$(grep -rn 'bd init.*--branch' \
     || true)
 
 if [ "$INIT_FLAGS_OK" -ne 1 ]; then
-    echo "SKIP: Cannot validate 'bd init --branch' without the live init flag list"
+    echo "SKIP: Cannot validate 'issuegraph init --branch' without the live init flag list"
 elif printf '%s\n' "$INIT_FLAGS" | grep -qx -- '--branch'; then
-    echo "PASS: 'bd init --branch' is a live flag"
+    echo "PASS: 'issuegraph init --branch' is a live flag"
 elif [ -n "$BRANCH_REFS" ]; then
-    echo "FAIL: Found references to removed 'bd init --branch' flag:"
+    echo "FAIL: Found references to removed 'issuegraph init --branch' flag:"
     echo "$BRANCH_REFS" | head -20
     ERRORS=$((ERRORS + 1))
 else
-    echo "PASS: No stale 'bd init --branch' references"
+    echo "PASS: No stale 'issuegraph init --branch' references"
 fi
 
 echo ""
@@ -132,7 +132,7 @@ echo ""
 # --- Check 3: SQLite/legacy database paths ---
 echo "=== Check 3: Legacy storage references ==="
 
-SQLITE_REFS=$(grep -rn 'beads\.db\|default\.db\|sqlite3.*\.beads\|\.beads/.*\.db' \
+SQLITE_REFS=$(grep -rn 'issuegraph\.db\|default\.db\|sqlite3.*\.issuegraph\|\.issuegraph/.*\.db' \
     "$PROJECT_ROOT"/docs/*.md \
     "$PROJECT_ROOT"/docs/*/*.md \
     "$PROJECT_ROOT"/AGENT_INSTRUCTIONS.md \
@@ -159,16 +159,16 @@ CLI_REF="$PROJECT_ROOT/docs/CLI_REFERENCE.md"
 if [ -f "$CLI_REF" ]; then
     TMPDIR_CHECK=$(mktemp -d)
     trap "rm -rf $TMPDIR_CHECK" EXIT
-    if run_bounded "$BD" help --list > "$TMPDIR_CHECK/help-cmds.txt" 2>/dev/null; then
+    if run_bounded "$ISSUEGRAPH" help --list > "$TMPDIR_CHECK/help-cmds.txt" 2>/dev/null; then
         sort -u "$TMPDIR_CHECK/help-cmds.txt" -o "$TMPDIR_CHECK/help-cmds.txt"
 
         grep -oE '\bbd [a-z][a-z0-9-]*\b' "$CLI_REF" \
-            | sed 's/^bd //' | sort -u > "$TMPDIR_CHECK/cli-reference-cmds.txt" || true
+            | sed 's/^issuegraph //' | sort -u > "$TMPDIR_CHECK/cli-reference-cmds.txt" || true
 
         MISSING_CLI_REF=$(comm -23 "$TMPDIR_CHECK/help-cmds.txt" "$TMPDIR_CHECK/cli-reference-cmds.txt" || true)
         if [ -n "$MISSING_CLI_REF" ]; then
             echo "FAIL: Live CLI commands missing from docs/CLI_REFERENCE.md:"
-            echo "$MISSING_CLI_REF" | sed 's/^/  bd /' | head -50
+            echo "$MISSING_CLI_REF" | sed 's/^/  issuegraph /' | head -50
             ERRORS=$((ERRORS + 1))
         else
             echo "PASS: docs/CLI_REFERENCE.md covers all live top-level CLI commands"
@@ -180,12 +180,12 @@ if [ -f "$CLI_REF" ]; then
                 continue
             fi
             grep -rhoE '\bbd [a-z][a-z0-9-]*\b' "$dir"/*.md \
-                | sed 's/^bd //' | sort -u > "$TMPDIR_CHECK/website-cmds.txt" || true
+                | sed 's/^issuegraph //' | sort -u > "$TMPDIR_CHECK/website-cmds.txt" || true
 
             MISSING_WEBSITE=$(comm -23 "$TMPDIR_CHECK/help-cmds.txt" "$TMPDIR_CHECK/website-cmds.txt" || true)
             if [ -n "$MISSING_WEBSITE" ]; then
                 echo "FAIL: Live CLI commands missing from ${dir#$PROJECT_ROOT/}:"
-                echo "$MISSING_WEBSITE" | sed 's/^/  bd /' | head -50
+                echo "$MISSING_WEBSITE" | sed 's/^/  issuegraph /' | head -50
                 ERRORS=$((ERRORS + 1))
             else
                 echo "PASS: ${dir#$PROJECT_ROOT/} covers all live top-level CLI commands"
@@ -193,14 +193,14 @@ if [ -f "$CLI_REF" ]; then
         done
 
         if [ -x "$PROJECT_ROOT/scripts/generate-cli-docs.sh" ]; then
-            BD_FOR_GEN="$BD"
-            if ! [ -x "$BD_FOR_GEN" ]; then
-                BD_FOR_GEN="$(command -v "$BD" 2>/dev/null || true)"
+            ISSUEGRAPH_FOR_GEN="$ISSUEGRAPH"
+            if ! [ -x "$ISSUEGRAPH_FOR_GEN" ]; then
+                ISSUEGRAPH_FOR_GEN="$(command -v "$ISSUEGRAPH" 2>/dev/null || true)"
             fi
-            if [ -z "$BD_FOR_GEN" ]; then
-                echo "FAIL: Could not resolve bd binary path for CLI docs freshness check"
+            if [ -z "$ISSUEGRAPH_FOR_GEN" ]; then
+                echo "FAIL: Could not resolve issuegraph binary path for CLI docs freshness check"
                 ERRORS=$((ERRORS + 1))
-            elif "$PROJECT_ROOT/scripts/check-cli-docs-drift.sh" "$BD_FOR_GEN"; then
+            elif "$PROJECT_ROOT/scripts/check-cli-docs-drift.sh" "$ISSUEGRAPH_FOR_GEN"; then
                 echo "PASS: CLI docs freshness gate (see drift check output above)"
             else
                 ERRORS=$((ERRORS + 1))
@@ -210,7 +210,7 @@ if [ -f "$CLI_REF" ]; then
             ERRORS=$((ERRORS + 1))
         fi
     else
-        echo "FAIL: bd help --list timed out or unavailable"
+        echo "FAIL: issuegraph help --list timed out or unavailable"
         ERRORS=$((ERRORS + 1))
     fi
 else
@@ -223,7 +223,7 @@ echo ""
 # --- Check 5: Plugin CLI reference must stay a pointer ---
 echo "=== Check 5: Plugin CLI reference pointer policy ==="
 
-PLUGIN_CLI_REF="$PROJECT_ROOT/plugins/beads/skills/beads/resources/CLI_REFERENCE.md"
+PLUGIN_CLI_REF="$PROJECT_ROOT/plugins/issuegraph/skills/issuegraph/resources/CLI_REFERENCE.md"
 if [ -f "$PLUGIN_CLI_REF" ]; then
     if grep -q 'This skill does not bundle a copied CLI command reference' "$PLUGIN_CLI_REF" \
         && grep -q 'docs/CLI_REFERENCE.md' "$PLUGIN_CLI_REF"; then
@@ -231,11 +231,11 @@ if [ -f "$PLUGIN_CLI_REF" ]; then
     else
         echo "FAIL: plugin CLI resource drifted from pointer policy"
         echo "  Expected pointer language and canonical docs/CLI_REFERENCE.md reference in:"
-        echo "  plugins/beads/skills/beads/resources/CLI_REFERENCE.md"
+        echo "  plugins/issuegraph/skills/issuegraph/resources/CLI_REFERENCE.md"
         ERRORS=$((ERRORS + 1))
     fi
 else
-    echo "FAIL: plugin CLI resource missing: plugins/beads/skills/beads/resources/CLI_REFERENCE.md"
+    echo "FAIL: plugin CLI resource missing: plugins/issuegraph/skills/issuegraph/resources/CLI_REFERENCE.md"
     ERRORS=$((ERRORS + 1))
 fi
 
@@ -248,8 +248,8 @@ if [ $ERRORS -gt 0 ]; then
     echo ""
     echo "To fix:"
     echo "  1. Update stale prose references to use current CLI commands."
-    echo "  2. Regenerate CLI docs with: ./scripts/generate-cli-docs.sh $BD"
-    echo "  3. Re-run: ./scripts/check-doc-flags.sh $BD"
+    echo "  2. Regenerate CLI docs with: ./scripts/generate-cli-docs.sh $ISSUEGRAPH"
+    echo "  3. Re-run: ./scripts/check-doc-flags.sh $ISSUEGRAPH"
     exit 1
 else
     echo "PASSED: All documentation references are consistent with CLI"

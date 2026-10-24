@@ -1,20 +1,20 @@
 ---
-title: "bd forget"
+title: "issuegraph forget"
 description: "Remove a memory by its key."
 ---
 
 {/* AUTO-GENERATED: do not edit manually */}
 
-Generated from `bd help --doc forget`.
+Generated from `issuegraph help --doc forget`.
 
 Remove a memory by its key.
 
-Use 'bd memories' to see available keys.
+Use 'issuegraph memories' to see available keys.
 
 Examples:
-  bd forget dolt-phantoms
-  bd forget auth-jwt
+  issuegraph forget dolt-phantoms
+  issuegraph forget auth-jwt
 
 ```
-bd forget <key> [flags]
+issuegraph forget <key> [flags]
 ```

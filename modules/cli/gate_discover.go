@@ -12,11 +12,11 @@ import (
 	"strings"
 	"time"
 
+	"github.com/borg0ai/dx-issuegraph/internal/issuegraph"
+	"github.com/borg0ai/dx-issuegraph/internal/metrics"
+	"github.com/borg0ai/dx-issuegraph/internal/types"
+	"github.com/borg0ai/dx-issuegraph/internal/ui"
 	"github.com/spf13/cobra"
-	"github.com/steveyegge/beads/internal/beads"
-	"github.com/steveyegge/beads/internal/metrics"
-	"github.com/steveyegge/beads/internal/types"
-	"github.com/steveyegge/beads/internal/ui"
 )
 
 // GHWorkflowRun represents a GitHub workflow run from `gh run list --json`
@@ -54,9 +54,9 @@ against runs queried from that repository, never against the current
 repository's runs of a same-named workflow.
 
 Examples:
-  bd gate discover           # Auto-discover run IDs for all matching gates
-  bd gate discover --dry-run # Preview what would be matched (no updates)
-  bd gate discover --branch main --limit 10  # Only match runs on 'main' branch`,
+  issuegraph gate discover           # Auto-discover run IDs for all matching gates
+  issuegraph gate discover --dry-run # Preview what would be matched (no updates)
+  issuegraph gate discover --branch main --limit 10  # Only match runs on 'main' branch`,
 	SilenceUsage:  true,
 	SilenceErrors: true,
 	RunE:          runGateDiscover,
@@ -238,7 +238,7 @@ func gateDiscoveryQueryFailures(matches []gateDiscoveryMatch) map[string]error {
 // user explicitly passed via `--branch`: an explicit filter is a deliberate
 // instruction about the TARGET repo's branch, not a guess about the local
 // checkout, and dropping it silently for cross-repo gates would make
-// `bd gate discover --branch main` appear to work while doing nothing.
+// `issuegraph gate discover --branch main` appear to work while doing nothing.
 func branchFilterForRepo(localBranchFilter, repo string, userSpecified bool) string {
 	if repo != "" && !userSpecified {
 		return ""
@@ -260,7 +260,7 @@ func branchFilterForRepo(localBranchFilter, repo string, userSpecified bool) str
 // repo's unfiltered recent-run list (capped by --limit) might never surface
 // the specific workflow a gate is waiting on. The current repo's query is
 // never narrowed this way (workflowHint is always "" for it), matching
-// pre-existing `bd gate discover` behavior for local gates.
+// pre-existing `issuegraph gate discover` behavior for local gates.
 func matchGatesToRuns(gates []*types.Issue, maxAge time.Duration, queryRuns func(repo, workflowHint string) ([]GHWorkflowRun, error)) []gateDiscoveryMatch {
 	runsByKey := make(map[string][]GHWorkflowRun)
 	queryErrByKey := make(map[string]error)
@@ -400,7 +400,7 @@ func findPendingGates() ([]*types.Issue, error) {
 // getGitBranchForGateDiscovery returns the current git branch name
 // Uses CWD repo context since this is for user's project CI discovery
 func getGitBranchForGateDiscovery() string {
-	rc, err := beads.GetRepoContext()
+	rc, err := issuegraph.GetRepoContext()
 	if err != nil {
 		return "main" // Default fallback
 	}
@@ -416,7 +416,7 @@ func getGitBranchForGateDiscovery() string {
 // getGitCommitForGateDiscovery returns the current git commit SHA
 // Uses CWD repo context since this is for user's project CI discovery
 func getGitCommitForGateDiscovery() string {
-	rc, err := beads.GetRepoContext()
+	rc, err := issuegraph.GetRepoContext()
 	if err != nil {
 		return ""
 	}
@@ -432,10 +432,10 @@ func getGitCommitForGateDiscovery() string {
 // queryGitHubRunsInRepo queries recent workflow runs from GitHub using gh
 // CLI, scoped to repo ("" means the current repository) and optionally
 // narrowed to a single workflow (workflow == "" queries all workflows). This
-// is the query path for `bd gate discover`'s branch/heuristic matching (SF1)
+// is the query path for `issuegraph gate discover`'s branch/heuristic matching (SF1)
 // - distinct from queryGitHubRunsForWorkflowInRepo in gate.go, which filters
 // by a specific --workflow name for the direct await_id discovery used by
-// `bd gate check`. matchGatesToRuns only ever passes a non-empty workflow for
+// `issuegraph gate check`. matchGatesToRuns only ever passes a non-empty workflow for
 // a foreign repo, to recover the visibility --limit would otherwise cost an
 // unfiltered cross-repo query (see matchGatesToRuns).
 func queryGitHubRunsInRepo(branch string, limit int, repo string, workflow string) ([]GHWorkflowRun, error) {

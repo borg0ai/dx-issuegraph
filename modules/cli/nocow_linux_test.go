@@ -39,7 +39,7 @@ func TestApplyNoCOW_Linux(t *testing.T) {
 
 // TestApplyNoCOW_Idempotent verifies that calling applyNoCOW twice is
 // safe and does not error on the second invocation. This matters because
-// `bd doctor --fix` may re-apply the flag.
+// `issuegraph doctor --fix` may re-apply the flag.
 func TestApplyNoCOW_Idempotent(t *testing.T) {
 	dir := t.TempDir()
 	if err := applyNoCOW(dir); err != nil {

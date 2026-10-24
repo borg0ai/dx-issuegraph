@@ -5,11 +5,11 @@ import (
 	"fmt"
 	"testing"
 
-	"github.com/steveyegge/beads/internal/tracker"
-	"github.com/steveyegge/beads/internal/types"
+	"github.com/borg0ai/dx-issuegraph/internal/tracker"
+	"github.com/borg0ai/dx-issuegraph/internal/types"
 )
 
-func TestPriorityToBeads(t *testing.T) {
+func TestPriorityToIssueGraph(t *testing.T) {
 	m := NewFieldMapper(nil, nil)
 
 	tests := []struct {
@@ -17,10 +17,10 @@ func TestPriorityToBeads(t *testing.T) {
 		input interface{}
 		want  int
 	}{
-		{"ADO 1 → beads 0", float64(1), 0},
-		{"ADO 2 → beads 1", float64(2), 1},
-		{"ADO 3 → beads 2", float64(3), 2},
-		{"ADO 4 → beads 3", float64(4), 3},
+		{"ADO 1 → issuegraph 0", float64(1), 0},
+		{"ADO 2 → issuegraph 1", float64(2), 1},
+		{"ADO 3 → issuegraph 2", float64(3), 2},
+		{"ADO 4 → issuegraph 3", float64(4), 3},
 		{"ADO 0 invalid → default 2", float64(0), 2},
 		{"ADO 5 invalid → default 2", float64(5), 2},
 		{"nil → default 2", nil, 2},
@@ -29,9 +29,9 @@ func TestPriorityToBeads(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			got := m.PriorityToBeads(tt.input)
+			got := m.PriorityToIssueGraph(tt.input)
 			if got != tt.want {
-				t.Errorf("PriorityToBeads(%v) = %d, want %d", tt.input, got, tt.want)
+				t.Errorf("PriorityToIssueGraph(%v) = %d, want %d", tt.input, got, tt.want)
 			}
 		})
 	}
@@ -45,12 +45,12 @@ func TestPriorityToTracker(t *testing.T) {
 		input int
 		want  int
 	}{
-		{"beads 0 → ADO 1", 0, 1},
-		{"beads 1 → ADO 2", 1, 2},
-		{"beads 2 → ADO 3", 2, 3},
-		{"beads 3 → ADO 4", 3, 4},
-		{"beads 4 → ADO 4 lossy", 4, 4},
-		{"beads -1 → ADO 3 default", -1, 3},
+		{"issuegraph 0 → ADO 1", 0, 1},
+		{"issuegraph 1 → ADO 2", 1, 2},
+		{"issuegraph 2 → ADO 3", 2, 3},
+		{"issuegraph 3 → ADO 4", 3, 4},
+		{"issuegraph 4 → ADO 4 lossy", 4, 4},
+		{"issuegraph -1 → ADO 3 default", -1, 3},
 	}
 
 	for _, tt := range tests {
@@ -91,7 +91,7 @@ func TestSeverityForBug(t *testing.T) {
 	}
 }
 
-func TestStatusToBeads_Defaults(t *testing.T) {
+func TestStatusToIssueGraph_Defaults(t *testing.T) {
 	m := NewFieldMapper(nil, nil)
 
 	tests := []struct {
@@ -110,15 +110,15 @@ func TestStatusToBeads_Defaults(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			got := m.StatusToBeads(tt.input)
+			got := m.StatusToIssueGraph(tt.input)
 			if got != tt.want {
-				t.Errorf("StatusToBeads(%q) = %q, want %q", tt.input, got, tt.want)
+				t.Errorf("StatusToIssueGraph(%q) = %q, want %q", tt.input, got, tt.want)
 			}
 		})
 	}
 }
 
-func TestStatusToBeads_NonStringInput(t *testing.T) {
+func TestStatusToIssueGraph_NonStringInput(t *testing.T) {
 	m := NewFieldMapper(nil, nil)
 
 	tests := []struct {
@@ -134,9 +134,9 @@ func TestStatusToBeads_NonStringInput(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			got := m.StatusToBeads(tt.input)
+			got := m.StatusToIssueGraph(tt.input)
 			if got != tt.want {
-				t.Errorf("StatusToBeads(%v) = %q, want %q", tt.input, got, tt.want)
+				t.Errorf("StatusToIssueGraph(%v) = %q, want %q", tt.input, got, tt.want)
 			}
 		})
 	}
@@ -185,7 +185,7 @@ func TestStatusToTracker_CustomMapOverridesDefault(t *testing.T) {
 	}
 }
 
-func TestTypeToBeads_NonStringInput(t *testing.T) {
+func TestTypeToIssueGraph_NonStringInput(t *testing.T) {
 	m := NewFieldMapper(nil, nil)
 
 	tests := []struct {
@@ -200,24 +200,24 @@ func TestTypeToBeads_NonStringInput(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			got := m.TypeToBeads(tt.input)
+			got := m.TypeToIssueGraph(tt.input)
 			if got != tt.want {
-				t.Errorf("TypeToBeads(%v) = %q, want %q", tt.input, got, tt.want)
+				t.Errorf("TypeToIssueGraph(%v) = %q, want %q", tt.input, got, tt.want)
 			}
 		})
 	}
 }
 
-func TestTypeToBeads_UnknownWithDefault(t *testing.T) {
+func TestTypeToIssueGraph_UnknownWithDefault(t *testing.T) {
 	m := NewFieldMapper(nil, nil)
 
-	got := m.TypeToBeads("CustomWorkItemType")
+	got := m.TypeToIssueGraph("CustomWorkItemType")
 	if got != types.TypeTask {
-		t.Errorf("TypeToBeads(CustomWorkItemType) = %q, want %q", got, types.TypeTask)
+		t.Errorf("TypeToIssueGraph(CustomWorkItemType) = %q, want %q", got, types.TypeTask)
 	}
 }
 
-func TestTypeToBeads_CustomMap(t *testing.T) {
+func TestTypeToIssueGraph_CustomMap(t *testing.T) {
 	m := NewFieldMapper(nil, map[string]string{"feature": "Product Backlog Item", "bug": "Defect"})
 
 	tests := []struct {
@@ -233,9 +233,9 @@ func TestTypeToBeads_CustomMap(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			got := m.TypeToBeads(tt.input)
+			got := m.TypeToIssueGraph(tt.input)
 			if got != tt.want {
-				t.Errorf("TypeToBeads(%q) = %q, want %q", tt.input, got, tt.want)
+				t.Errorf("TypeToIssueGraph(%q) = %q, want %q", tt.input, got, tt.want)
 			}
 		})
 	}
@@ -281,7 +281,7 @@ func TestTypeToTracker_CustomMapAllTypes(t *testing.T) {
 	}
 }
 
-func TestStatusToBeads_CustomMap(t *testing.T) {
+func TestStatusToIssueGraph_CustomMap(t *testing.T) {
 	m := NewFieldMapper(
 		map[string]string{"in_progress": "Doing", "closed": "Finished"},
 		nil,
@@ -299,9 +299,9 @@ func TestStatusToBeads_CustomMap(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			got := m.StatusToBeads(tt.input)
+			got := m.StatusToIssueGraph(tt.input)
 			if got != tt.want {
-				t.Errorf("StatusToBeads(%q) = %q, want %q", tt.input, got, tt.want)
+				t.Errorf("StatusToIssueGraph(%q) = %q, want %q", tt.input, got, tt.want)
 			}
 		})
 	}
@@ -358,7 +358,7 @@ func TestStatusToTracker_CustomMap(t *testing.T) {
 	}
 }
 
-func TestTypeToBeads_Defaults(t *testing.T) {
+func TestTypeToIssueGraph_Defaults(t *testing.T) {
 	m := NewFieldMapper(nil, nil)
 
 	tests := []struct {
@@ -377,20 +377,20 @@ func TestTypeToBeads_Defaults(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			got := m.TypeToBeads(tt.input)
+			got := m.TypeToIssueGraph(tt.input)
 			if got != tt.want {
-				t.Errorf("TypeToBeads(%q) = %q, want %q", tt.input, got, tt.want)
+				t.Errorf("TypeToIssueGraph(%q) = %q, want %q", tt.input, got, tt.want)
 			}
 		})
 	}
 }
 
-func TestTypeToBeads_Scrum(t *testing.T) {
+func TestTypeToIssueGraph_Scrum(t *testing.T) {
 	m := NewFieldMapper(nil, nil)
 
-	got := m.TypeToBeads("Product Backlog Item")
+	got := m.TypeToIssueGraph("Product Backlog Item")
 	if got != types.TypeFeature {
-		t.Errorf("TypeToBeads(Product Backlog Item) = %q, want %q", got, types.TypeFeature)
+		t.Errorf("TypeToIssueGraph(Product Backlog Item) = %q, want %q", got, types.TypeFeature)
 	}
 }
 
@@ -434,7 +434,7 @@ func TestTypeToTracker_CustomMap(t *testing.T) {
 	}
 }
 
-func TestIssueToBeads(t *testing.T) {
+func TestIssueToIssueGraph(t *testing.T) {
 	m := NewFieldMapper(nil, nil)
 
 	wi := &WorkItem{
@@ -447,7 +447,7 @@ func TestIssueToBeads(t *testing.T) {
 			FieldPriority:      float64(1),
 			FieldState:         "Active",
 			FieldWorkItemType:  "Bug",
-			FieldTags:          "urgent; beads:blocked; frontend",
+			FieldTags:          "urgent; issuegraph:blocked; frontend",
 			FieldAreaPath:      "MyProject\\Team1",
 			FieldIterationPath: "MyProject\\Sprint 5",
 			FieldStoryPoints:   float64(3),
@@ -464,9 +464,9 @@ func TestIssueToBeads(t *testing.T) {
 		Raw: wi,
 	}
 
-	conv := m.IssueToBeads(ti)
+	conv := m.IssueToIssueGraph(ti)
 	if conv == nil {
-		t.Fatal("IssueToBeads returned nil")
+		t.Fatal("IssueToIssueGraph returned nil")
 	}
 
 	issue := conv.Issue
@@ -479,7 +479,7 @@ func TestIssueToBeads(t *testing.T) {
 	if issue.Priority != 0 {
 		t.Errorf("Priority = %d, want 0", issue.Priority)
 	}
-	// Active + beads:blocked tag → blocked status.
+	// Active + issuegraph:blocked tag → blocked status.
 	if issue.Status != types.StatusBlocked {
 		t.Errorf("Status = %q, want %q", issue.Status, types.StatusBlocked)
 	}
@@ -490,7 +490,7 @@ func TestIssueToBeads(t *testing.T) {
 		t.Errorf("Owner = %q, want %q", issue.Owner, "Alice Smith")
 	}
 
-	// Labels should exclude beads:* tags.
+	// Labels should exclude issuegraph:* tags.
 	wantLabels := []string{"urgent", "frontend"}
 	if len(issue.Labels) != len(wantLabels) {
 		t.Fatalf("Labels = %v, want %v", issue.Labels, wantLabels)
@@ -533,24 +533,24 @@ func TestIssueToBeads(t *testing.T) {
 	}
 }
 
-func TestIssueToBeads_NilRaw(t *testing.T) {
+func TestIssueToIssueGraph_NilRaw(t *testing.T) {
 	m := NewFieldMapper(nil, nil)
 
 	// nil TrackerIssue.
-	if conv := m.IssueToBeads(nil); conv != nil {
-		t.Error("IssueToBeads(nil) should return nil")
+	if conv := m.IssueToIssueGraph(nil); conv != nil {
+		t.Error("IssueToIssueGraph(nil) should return nil")
 	}
 
 	// Wrong Raw type.
 	ti := &tracker.TrackerIssue{Raw: "not a WorkItem"}
-	if conv := m.IssueToBeads(ti); conv != nil {
-		t.Error("IssueToBeads(wrong type) should return nil")
+	if conv := m.IssueToIssueGraph(ti); conv != nil {
+		t.Error("IssueToIssueGraph(wrong type) should return nil")
 	}
 
 	// Nil Raw.
 	ti = &tracker.TrackerIssue{Raw: (*WorkItem)(nil)}
-	if conv := m.IssueToBeads(ti); conv != nil {
-		t.Error("IssueToBeads(nil WorkItem) should return nil")
+	if conv := m.IssueToIssueGraph(ti); conv != nil {
+		t.Error("IssueToIssueGraph(nil WorkItem) should return nil")
 	}
 }
 
@@ -742,17 +742,17 @@ func TestBuildTagString(t *testing.T) {
 	}
 }
 
-func TestFilterBeadsTags(t *testing.T) {
-	input := []string{"bug", "beads:blocked", "urgent"}
-	got := filterBeadsTags(input)
+func TestFilterIssueGraphTags(t *testing.T) {
+	input := []string{"bug", "issuegraph:blocked", "urgent"}
+	got := filterIssueGraphTags(input)
 	want := []string{"bug", "urgent"}
 
 	if len(got) != len(want) {
-		t.Fatalf("filterBeadsTags(%v) = %v, want %v", input, got, want)
+		t.Fatalf("filterIssueGraphTags(%v) = %v, want %v", input, got, want)
 	}
 	for i := range got {
 		if got[i] != want[i] {
-			t.Errorf("filterBeadsTags[%d] = %q, want %q", i, got[i], want[i])
+			t.Errorf("filterIssueGraphTags[%d] = %q, want %q", i, got[i], want[i])
 		}
 	}
 }
@@ -888,7 +888,7 @@ func TestRestoreMetadata(t *testing.T) {
 func TestBlockedStatusRoundTrip(t *testing.T) {
 	m := NewFieldMapper(nil, nil)
 
-	// Push direction: blocked beads issue → ADO Active + beads:blocked tag.
+	// Push direction: blocked issuegraph issue → ADO Active + issuegraph:blocked tag.
 	issue := &types.Issue{
 		Title:    "Blocked task",
 		Status:   types.StatusBlocked,
@@ -903,11 +903,11 @@ func TestBlockedStatusRoundTrip(t *testing.T) {
 	if !ok {
 		t.Fatal("push: Tags field missing")
 	}
-	if !hasBeadsTag(tagStr, "beads:blocked") {
-		t.Errorf("push: Tags = %q, want beads:blocked present", tagStr)
+	if !hasIssueGraphTag(tagStr, "issuegraph:blocked") {
+		t.Errorf("push: Tags = %q, want issuegraph:blocked present", tagStr)
 	}
 
-	// Pull direction: ADO Active + beads:blocked → beads blocked.
+	// Pull direction: ADO Active + issuegraph:blocked → issuegraph blocked.
 	wi := &WorkItem{
 		ID: 99,
 		Fields: map[string]interface{}{
@@ -915,21 +915,21 @@ func TestBlockedStatusRoundTrip(t *testing.T) {
 			FieldState:        "Active",
 			FieldPriority:     float64(3),
 			FieldWorkItemType: "Task",
-			FieldTags:         "urgent; beads:blocked",
+			FieldTags:         "urgent; issuegraph:blocked",
 		},
 	}
 	ti := &tracker.TrackerIssue{ID: "99", Raw: wi}
-	conv := m.IssueToBeads(ti)
+	conv := m.IssueToIssueGraph(ti)
 	if conv == nil {
-		t.Fatal("pull: IssueToBeads returned nil")
+		t.Fatal("pull: IssueToIssueGraph returned nil")
 	}
 	if conv.Issue.Status != types.StatusBlocked {
 		t.Errorf("pull: Status = %q, want %q", conv.Issue.Status, types.StatusBlocked)
 	}
-	// beads:blocked should be filtered from user-visible labels.
+	// issuegraph:blocked should be filtered from user-visible labels.
 	for _, l := range conv.Issue.Labels {
-		if l == "beads:blocked" {
-			t.Error("pull: beads:blocked should not appear in Labels")
+		if l == "issuegraph:blocked" {
+			t.Error("pull: issuegraph:blocked should not appear in Labels")
 		}
 	}
 }
@@ -937,7 +937,7 @@ func TestBlockedStatusRoundTrip(t *testing.T) {
 func TestBlockedStatusPush_NoLabels(t *testing.T) {
 	m := NewFieldMapper(nil, nil)
 
-	// Blocked issue with no labels should still get beads:blocked tag.
+	// Blocked issue with no labels should still get issuegraph:blocked tag.
 	issue := &types.Issue{
 		Title:    "Blocked no labels",
 		Status:   types.StatusBlocked,
@@ -945,8 +945,8 @@ func TestBlockedStatusPush_NoLabels(t *testing.T) {
 	}
 	fields := m.IssueToTracker(issue)
 	tagStr, ok := fields[FieldTags].(string)
-	if !ok || !hasBeadsTag(tagStr, "beads:blocked") {
-		t.Errorf("Tags = %v, want beads:blocked present", fields[FieldTags])
+	if !ok || !hasIssueGraphTag(tagStr, "issuegraph:blocked") {
+		t.Errorf("Tags = %v, want issuegraph:blocked present", fields[FieldTags])
 	}
 }
 
@@ -964,7 +964,7 @@ func TestActiveWithoutBlockedTag_StaysInProgress(t *testing.T) {
 		},
 	}
 	ti := &tracker.TrackerIssue{ID: "100", Raw: wi}
-	conv := m.IssueToBeads(ti)
+	conv := m.IssueToIssueGraph(ti)
 	if conv.Issue.Status != types.StatusInProgress {
 		t.Errorf("Status = %q, want %q", conv.Issue.Status, types.StatusInProgress)
 	}
@@ -974,10 +974,10 @@ func TestPriorityRoundTrip(t *testing.T) {
 	m := NewFieldMapper(nil, nil)
 
 	tests := []struct {
-		name          string
-		beadsPriority int
-		wantADO       int
-		wantRoundTrip int
+		name               string
+		issuegraphPriority int
+		wantADO            int
+		wantRoundTrip      int
 	}{
 		{"priority 3 round-trips", 3, 4, 3},
 		{"priority 4 round-trips", 4, 4, 4},
@@ -985,10 +985,10 @@ func TestPriorityRoundTrip(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			// Push: beads → ADO.
+			// Push: issuegraph → ADO.
 			issue := &types.Issue{
 				Title:    "Priority test",
-				Priority: tt.beadsPriority,
+				Priority: tt.issuegraphPriority,
 				Status:   types.StatusOpen,
 			}
 			fields := m.IssueToTracker(issue)
@@ -996,21 +996,21 @@ func TestPriorityRoundTrip(t *testing.T) {
 				t.Fatalf("push: ADO priority = %v, want %d", fields[FieldPriority], tt.wantADO)
 			}
 
-			// Verify beads_priority stored in metadata.
+			// Verify issuegraph_priority stored in metadata.
 			var meta map[string]interface{}
 			if err := json.Unmarshal(issue.Metadata, &meta); err != nil {
 				t.Fatalf("push: failed to unmarshal metadata: %v", err)
 			}
-			wantBP := json.Number(fmt.Sprintf("%d", tt.beadsPriority))
-			gotBP, ok := meta["beads_priority"].(string)
+			wantBP := json.Number(fmt.Sprintf("%d", tt.issuegraphPriority))
+			gotBP, ok := meta["issuegraph_priority"].(string)
 			if !ok {
-				t.Fatalf("push: beads_priority not found in metadata, got %v", meta["beads_priority"])
+				t.Fatalf("push: issuegraph_priority not found in metadata, got %v", meta["issuegraph_priority"])
 			}
 			if gotBP != wantBP.String() {
-				t.Fatalf("push: beads_priority = %q, want %q", gotBP, wantBP)
+				t.Fatalf("push: issuegraph_priority = %q, want %q", gotBP, wantBP)
 			}
 
-			// Pull: ADO → beads with beads_priority in TrackerIssue metadata.
+			// Pull: ADO → issuegraph with issuegraph_priority in TrackerIssue metadata.
 			wi := &WorkItem{
 				ID: 50,
 				Fields: map[string]interface{}{
@@ -1024,12 +1024,12 @@ func TestPriorityRoundTrip(t *testing.T) {
 				ID:  "50",
 				Raw: wi,
 				Metadata: map[string]interface{}{
-					"beads_priority": fmt.Sprintf("%d", tt.beadsPriority),
+					"issuegraph_priority": fmt.Sprintf("%d", tt.issuegraphPriority),
 				},
 			}
-			conv := m.IssueToBeads(ti)
+			conv := m.IssueToIssueGraph(ti)
 			if conv == nil {
-				t.Fatal("pull: IssueToBeads returned nil")
+				t.Fatal("pull: IssueToIssueGraph returned nil")
 			}
 			if conv.Issue.Priority != tt.wantRoundTrip {
 				t.Errorf("pull: Priority = %d, want %d", conv.Issue.Priority, tt.wantRoundTrip)
@@ -1041,7 +1041,7 @@ func TestPriorityRoundTrip(t *testing.T) {
 func TestPriorityNoMetadata_DefaultsTo3(t *testing.T) {
 	m := NewFieldMapper(nil, nil)
 
-	// ADO priority 4 without beads_priority metadata → defaults to beads 3.
+	// ADO priority 4 without issuegraph_priority metadata → defaults to issuegraph 3.
 	wi := &WorkItem{
 		ID: 51,
 		Fields: map[string]interface{}{
@@ -1052,7 +1052,7 @@ func TestPriorityNoMetadata_DefaultsTo3(t *testing.T) {
 		},
 	}
 	ti := &tracker.TrackerIssue{ID: "51", Raw: wi}
-	conv := m.IssueToBeads(ti)
+	conv := m.IssueToIssueGraph(ti)
 	if conv.Issue.Priority != 3 {
 		t.Errorf("Priority = %d, want 3", conv.Issue.Priority)
 	}
@@ -1061,7 +1061,7 @@ func TestPriorityNoMetadata_DefaultsTo3(t *testing.T) {
 func TestSeverityRoundTrip(t *testing.T) {
 	m := NewFieldMapper(nil, nil)
 
-	// Pull: ADO Bug with Severity → beads issue with severity in metadata.
+	// Pull: ADO Bug with Severity → issuegraph issue with severity in metadata.
 	wi := &WorkItem{
 		ID:  60,
 		Rev: 1,
@@ -1075,9 +1075,9 @@ func TestSeverityRoundTrip(t *testing.T) {
 		},
 	}
 	ti := &tracker.TrackerIssue{ID: "60", Raw: wi}
-	conv := m.IssueToBeads(ti)
+	conv := m.IssueToIssueGraph(ti)
 	if conv == nil {
-		t.Fatal("pull: IssueToBeads returned nil")
+		t.Fatal("pull: IssueToIssueGraph returned nil")
 	}
 
 	// Verify severity is preserved in metadata.
@@ -1089,7 +1089,7 @@ func TestSeverityRoundTrip(t *testing.T) {
 		t.Errorf("pull: ado.severity = %v, want %q", meta["ado.severity"], "2 - High")
 	}
 
-	// Push: beads bug issue → ADO fields should include Severity.
+	// Push: issuegraph bug issue → ADO fields should include Severity.
 	fields := m.IssueToTracker(conv.Issue)
 	sev, ok := fields[FieldSeverity].(string)
 	if !ok {
@@ -1101,23 +1101,23 @@ func TestSeverityRoundTrip(t *testing.T) {
 	}
 }
 
-func TestHasBeadsTag(t *testing.T) {
+func TestHasIssueGraphTag(t *testing.T) {
 	tests := []struct {
 		name   string
 		tagStr string
 		tag    string
 		want   bool
 	}{
-		{"present", "urgent; beads:blocked; frontend", "beads:blocked", true},
-		{"absent", "urgent; frontend", "beads:blocked", false},
-		{"empty string", "", "beads:blocked", false},
+		{"present", "urgent; issuegraph:blocked; frontend", "issuegraph:blocked", true},
+		{"absent", "urgent; frontend", "issuegraph:blocked", false},
+		{"empty string", "", "issuegraph:blocked", false},
 	}
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			got := hasBeadsTag(tt.tagStr, tt.tag)
+			got := hasIssueGraphTag(tt.tagStr, tt.tag)
 			if got != tt.want {
-				t.Errorf("hasBeadsTag(%q, %q) = %v, want %v", tt.tagStr, tt.tag, got, tt.want)
+				t.Errorf("hasIssueGraphTag(%q, %q) = %v, want %v", tt.tagStr, tt.tag, got, tt.want)
 			}
 		})
 	}

@@ -6,9 +6,9 @@ import (
 	"errors"
 	"fmt"
 
-	"github.com/steveyegge/beads/internal/storage"
-	"github.com/steveyegge/beads/internal/storage/domain"
-	"github.com/steveyegge/beads/internal/types"
+	"github.com/borg0ai/dx-issuegraph/internal/storage"
+	"github.com/borg0ai/dx-issuegraph/internal/storage/domain"
+	"github.com/borg0ai/dx-issuegraph/internal/types"
 )
 
 // DetailOptions selects the two expensive halves of the detail view. Both
@@ -192,7 +192,7 @@ func shallowDep(item *types.IssueWithDependencyMetadata) *types.IssueWithDepende
 // collectDependents streams the dependents and keeps only the
 // identity-and-shape fields of each.
 //
-// be-4d36f2: hub beads with thousands of dependents made `bd show --json
+// be-4d36f2: hub issuegraph with thousands of dependents made `issuegraph show --json
 // <hub>` allocate 5-13 GB marshaling full Issue records. The shallow shape
 // preserves what callers consume (id, status, type, priority, title) and
 // drops the free-form text; streaming keeps the full rows from piling up

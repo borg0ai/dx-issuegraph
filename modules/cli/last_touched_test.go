@@ -10,15 +10,15 @@ import (
 )
 
 func TestLastTouchedBasic(t *testing.T) {
-	// Create a temp directory to simulate .beads
+	// Create a temp directory to simulate .issuegraph
 	tmpDir := t.TempDir()
-	beadsDir := filepath.Join(tmpDir, ".beads")
-	if err := os.MkdirAll(beadsDir, 0755); err != nil {
+	issuegraphDir := filepath.Join(tmpDir, ".issuegraph")
+	if err := os.MkdirAll(issuegraphDir, 0755); err != nil {
 		t.Fatal(err)
 	}
 
-	// Create a marker file so FindBeadsDir recognizes this as a valid beads directory
-	if err := os.WriteFile(filepath.Join(beadsDir, "config.yaml"), []byte{}, 0644); err != nil {
+	// Create a marker file so FindIssueGraphDir recognizes this as a valid issuegraph directory
+	if err := os.WriteFile(filepath.Join(issuegraphDir, "config.yaml"), []byte{}, 0644); err != nil {
 		t.Fatal(err)
 	}
 
@@ -31,7 +31,7 @@ func TestLastTouchedBasic(t *testing.T) {
 		_ = os.Chdir(origDir)
 	}()
 
-	// Change to temp directory so FindBeadsDir finds our .beads
+	// Change to temp directory so FindIssueGraphDir finds our .issuegraph
 	if err := os.Chdir(tmpDir); err != nil {
 		t.Fatal(err)
 	}
@@ -71,11 +71,11 @@ func TestLastTouchedBasic(t *testing.T) {
 // fingerprints, cache validators) never see an "identical" marker (GH#3965).
 func TestSetLastTouchedIDAdvancesMtime(t *testing.T) {
 	tmpDir := t.TempDir()
-	beadsDir := filepath.Join(tmpDir, ".beads")
-	if err := os.MkdirAll(beadsDir, 0755); err != nil {
+	issuegraphDir := filepath.Join(tmpDir, ".issuegraph")
+	if err := os.MkdirAll(issuegraphDir, 0755); err != nil {
 		t.Fatal(err)
 	}
-	if err := os.WriteFile(filepath.Join(beadsDir, "config.yaml"), []byte{}, 0644); err != nil {
+	if err := os.WriteFile(filepath.Join(issuegraphDir, "config.yaml"), []byte{}, 0644); err != nil {
 		t.Fatal(err)
 	}
 
@@ -88,7 +88,7 @@ func TestSetLastTouchedIDAdvancesMtime(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	path := filepath.Join(beadsDir, lastTouchedFile)
+	path := filepath.Join(issuegraphDir, lastTouchedFile)
 
 	SetLastTouchedID("bd-same")
 	info1, err := os.Stat(path)
@@ -128,15 +128,15 @@ func TestAllowLastTouchedFallback_EnvPrecedence(t *testing.T) {
 		{"explicit 0 denies", "0", "", "", false},
 		{"explicit false denies", "false", "", "", false},
 		{"garbage value denies", "yes", "", "", false},
-		{"BD_NON_INTERACTIVE=1 denies", "", "1", "", false},
-		{"BD_NON_INTERACTIVE=true denies", "", "true", "", false},
+		{"ISSUEGRAPH_NON_INTERACTIVE=1 denies", "", "1", "", false},
+		{"ISSUEGRAPH_NON_INTERACTIVE=true denies", "", "true", "", false},
 		{"CI=true denies", "", "", "true", false},
 		{"CI=1 denies", "", "", "1", false},
 	}
 	for _, tc := range cases {
 		t.Run(tc.name, func(t *testing.T) {
 			t.Setenv(lastTouchedFallbackEnv, tc.fallbackEnv)
-			t.Setenv("BD_NON_INTERACTIVE", tc.nonInteractive)
+			t.Setenv("ISSUEGRAPH_NON_INTERACTIVE", tc.nonInteractive)
 			t.Setenv("CI", tc.ci)
 			if got := AllowLastTouchedFallback(); got != tc.want {
 				t.Errorf("AllowLastTouchedFallback() = %v, want %v", got, tc.want)
@@ -149,7 +149,7 @@ func TestAllowLastTouchedFallback_EnvPrecedence(t *testing.T) {
 // path denies when stdin is not a terminal and no env override is set.
 func TestAllowLastTouchedFallback_DefaultDeniesNonTTY(t *testing.T) {
 	t.Setenv(lastTouchedFallbackEnv, "")
-	t.Setenv("BD_NON_INTERACTIVE", "")
+	t.Setenv("ISSUEGRAPH_NON_INTERACTIVE", "")
 	t.Setenv("CI", "")
 	if term.IsTerminal(int(os.Stdin.Fd())) {
 		t.Skip("stdin is a terminal; default-deny branch not observable")
@@ -162,13 +162,13 @@ func TestAllowLastTouchedFallback_DefaultDeniesNonTTY(t *testing.T) {
 func TestSetLastTouchedIDIgnoresEmpty(t *testing.T) {
 	// Create a temp directory
 	tmpDir := t.TempDir()
-	beadsDir := filepath.Join(tmpDir, ".beads")
-	if err := os.MkdirAll(beadsDir, 0755); err != nil {
+	issuegraphDir := filepath.Join(tmpDir, ".issuegraph")
+	if err := os.MkdirAll(issuegraphDir, 0755); err != nil {
 		t.Fatal(err)
 	}
 
-	// Create a marker file so FindBeadsDir recognizes this as a valid beads directory
-	if err := os.WriteFile(filepath.Join(beadsDir, "config.yaml"), []byte{}, 0644); err != nil {
+	// Create a marker file so FindIssueGraphDir recognizes this as a valid issuegraph directory
+	if err := os.WriteFile(filepath.Join(issuegraphDir, "config.yaml"), []byte{}, 0644); err != nil {
 		t.Fatal(err)
 	}
 

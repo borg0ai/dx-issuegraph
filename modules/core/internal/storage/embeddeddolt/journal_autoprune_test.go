@@ -7,9 +7,9 @@ import (
 	"testing"
 	"time"
 
-	"github.com/steveyegge/beads/internal/eventsjournal"
-	"github.com/steveyegge/beads/internal/storage/issueops"
-	"github.com/steveyegge/beads/internal/types"
+	"github.com/borg0ai/dx-issuegraph/internal/eventsjournal"
+	"github.com/borg0ai/dx-issuegraph/internal/storage/issueops"
+	"github.com/borg0ai/dx-issuegraph/internal/types"
 )
 
 // Auto-prune against the real engine. The decision tables elsewhere cover the
@@ -50,7 +50,7 @@ func createJournaledIssues(t *testing.T, ctx context.Context, env *testEnv, pref
 
 // TestEventsAutoPruneBoundsTheJournalToTheFloors is the whole feature in one
 // test: a workspace with the journal on and a rows floor of three ends up
-// holding three records, without anyone running `bd events prune`.
+// holding three records, without anyone running `issuegraph events prune`.
 //
 // It also pins that the survivors are the NEWEST three and that they are
 // contiguous — the automatic path resolves to the same single prefix bound the
@@ -153,7 +153,7 @@ func TestEventsAutoPruneThrottleSkipsTheSecondPass(t *testing.T) {
 		t.Fatal("a pass past the throttle interval deleted nothing")
 	}
 	var remaining int
-	env.queryScalar(t, ctx, "SELECT COUNT(*) FROM bd_events_journal", nil, &remaining)
+	env.queryScalar(t, ctx, "SELECT COUNT(*) FROM issuegraph_events_journal", nil, &remaining)
 	if remaining != 2 {
 		t.Fatalf("journal holds %d rows after the late pass, want the 2 the floor retains", remaining)
 	}

@@ -18,7 +18,7 @@ import (
 // dolt binary whose own compiled-in YAMLConfig struct predates this field
 // will fail to parse a config file that sets it — the unknown key is a hard
 // parse error, not a silently-ignored one, and `dolt sql-server` refuses to
-// start. See gastownhall/beads#4986.
+// start. See borg0ai/dx-issuegraph#4986.
 const MinDoltVersionForArchiveLevelConfig = "1.52.1"
 
 // archiveLevelSupportCache memoizes SupportsArchiveLevelConfig, keyed by

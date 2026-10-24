@@ -6,24 +6,24 @@ import (
 	"strings"
 	"time"
 
-	"github.com/steveyegge/beads/internal/tracker"
-	"github.com/steveyegge/beads/internal/types"
+	"github.com/borg0ai/dx-issuegraph/internal/tracker"
+	"github.com/borg0ai/dx-issuegraph/internal/types"
 )
 
-// MappingConfig defines fixed conversions between Notion sync payloads and beads core types.
+// MappingConfig defines fixed conversions between Notion sync payloads and issuegraph core types.
 type MappingConfig struct {
-	PriorityToBeads  map[string]int
-	PriorityToNotion map[int]string
-	StatusToBeads    map[string]types.Status
-	StatusToNotion   map[types.Status]string
-	TypeToBeads      map[string]types.IssueType
-	TypeToNotion     map[types.IssueType]string
+	PriorityToIssueGraph map[string]int
+	PriorityToNotion     map[int]string
+	StatusToIssueGraph   map[string]types.Status
+	StatusToNotion       map[types.Status]string
+	TypeToIssueGraph     map[string]types.IssueType
+	TypeToNotion         map[types.IssueType]string
 }
 
-// DefaultMappingConfig returns the v1 fixed mapping for the dedicated Notion beads schema.
+// DefaultMappingConfig returns the v1 fixed mapping for the dedicated Notion issuegraph schema.
 func DefaultMappingConfig() *MappingConfig {
 	return &MappingConfig{
-		PriorityToBeads: map[string]int{
+		PriorityToIssueGraph: map[string]int{
 			"critical": 0,
 			"high":     1,
 			"medium":   2,
@@ -37,7 +37,7 @@ func DefaultMappingConfig() *MappingConfig {
 			3: "Low",
 			4: "Backlog",
 		},
-		StatusToBeads: map[string]types.Status{
+		StatusToIssueGraph: map[string]types.Status{
 			"open":        types.StatusOpen,
 			"in_progress": types.StatusInProgress,
 			"blocked":     types.StatusBlocked,
@@ -51,7 +51,7 @@ func DefaultMappingConfig() *MappingConfig {
 			types.StatusDeferred:   "Deferred",
 			types.StatusClosed:     "Closed",
 		},
-		TypeToBeads: map[string]types.IssueType{
+		TypeToIssueGraph: map[string]types.IssueType{
 			"bug":     types.TypeBug,
 			"feature": types.TypeFeature,
 			"task":    types.TypeTask,
@@ -68,19 +68,19 @@ func DefaultMappingConfig() *MappingConfig {
 	}
 }
 
-// BeadsIssueFromPullIssue converts one pulled Notion issue into a beads core issue.
-func BeadsIssueFromPullIssue(issue PulledIssue, config *MappingConfig) (*types.Issue, error) {
+// IssueGraphIssueFromPullIssue converts one pulled Notion issue into a issuegraph core issue.
+func IssueGraphIssueFromPullIssue(issue PulledIssue, config *MappingConfig) (*types.Issue, error) {
 	if config == nil {
 		config = DefaultMappingConfig()
 	}
 
-	status := statusToBeads(issue.Status, config)
-	priority := priorityToBeads(issue.Priority, config)
+	status := statusToIssueGraph(issue.Status, config)
+	priority := priorityToIssueGraph(issue.Priority, config)
 	issueTypeRaw := issue.IssueType
 	if strings.TrimSpace(issueTypeRaw) == "" {
 		issueTypeRaw = issue.Type
 	}
-	issueType := typeToBeads(issueTypeRaw, config)
+	issueType := typeToIssueGraph(issueTypeRaw, config)
 
 	createdAt, hasCreated, err := parseMappingTimestamp(string(issue.CreatedAt))
 	if err != nil {
@@ -98,7 +98,7 @@ func BeadsIssueFromPullIssue(issue PulledIssue, config *MappingConfig) (*types.I
 		updatedAt = createdAt
 	}
 
-	beadsIssue := &types.Issue{
+	issuegraphIssue := &types.Issue{
 		ID:           strings.TrimSpace(issue.ID),
 		Title:        strings.TrimSpace(issue.Title),
 		Description:  strings.TrimSpace(issue.Description),
@@ -113,15 +113,15 @@ func BeadsIssueFromPullIssue(issue PulledIssue, config *MappingConfig) (*types.I
 	}
 
 	if externalRef := BuildNotionExternalRef(&issue); externalRef != "" {
-		beadsIssue.ExternalRef = &externalRef
+		issuegraphIssue.ExternalRef = &externalRef
 	}
 
-	return beadsIssue, nil
+	return issuegraphIssue, nil
 }
 
 // TrackerIssueFromPullIssue converts a pull issue to the generic tracker representation.
 func TrackerIssueFromPullIssue(issue PulledIssue, config *MappingConfig) (*tracker.TrackerIssue, error) {
-	beadsIssue, err := BeadsIssueFromPullIssue(issue, config)
+	issuegraphIssue, err := IssueGraphIssueFromPullIssue(issue, config)
 	if err != nil {
 		return nil, err
 	}
@@ -138,22 +138,22 @@ func TrackerIssueFromPullIssue(issue PulledIssue, config *MappingConfig) (*track
 		ID:          issue.NotionPageID,
 		Identifier:  ExtractNotionIdentifier(firstNonEmpty(url, issue.NotionPageID)),
 		URL:         url,
-		Title:       beadsIssue.Title,
-		Description: beadsIssue.Description,
-		Priority:    beadsIssue.Priority,
-		State:       beadsIssue.Status,
-		Type:        beadsIssue.IssueType,
-		Labels:      append([]string(nil), beadsIssue.Labels...),
-		Assignee:    beadsIssue.Assignee,
-		CreatedAt:   beadsIssue.CreatedAt,
-		UpdatedAt:   beadsIssue.UpdatedAt,
+		Title:       issuegraphIssue.Title,
+		Description: issuegraphIssue.Description,
+		Priority:    issuegraphIssue.Priority,
+		State:       issuegraphIssue.Status,
+		Type:        issuegraphIssue.IssueType,
+		Labels:      append([]string(nil), issuegraphIssue.Labels...),
+		Assignee:    issuegraphIssue.Assignee,
+		CreatedAt:   issuegraphIssue.CreatedAt,
+		UpdatedAt:   issuegraphIssue.UpdatedAt,
 		Raw:         &issue,
 	}
 
 	return trackerIssue, nil
 }
 
-// PushIssueFromIssue converts one beads issue into the Notion push issue shape.
+// PushIssueFromIssue converts one issuegraph issue into the Notion push issue shape.
 func PushIssueFromIssue(issue *types.Issue, config *MappingConfig) (*PushIssue, error) {
 	if issue == nil {
 		return nil, fmt.Errorf("issue is nil")
@@ -199,20 +199,20 @@ func BuildPageProperties(pushIssue *PushIssue) map[string]interface{} {
 		labels = append(labels, map[string]interface{}{"name": label})
 	}
 	return map[string]interface{}{
-		PropertyTitle:       map[string]interface{}{"title": richTextRequest(pushIssue.Title)},
-		PropertyBeadsID:     map[string]interface{}{"rich_text": richTextRequest(pushIssue.ID)},
-		PropertyStatus:      map[string]interface{}{"select": map[string]interface{}{"name": pushIssue.Status}},
-		PropertyPriority:    map[string]interface{}{"select": map[string]interface{}{"name": pushIssue.Priority}},
-		PropertyType:        map[string]interface{}{"select": map[string]interface{}{"name": pushIssue.IssueType}},
-		PropertyDescription: map[string]interface{}{"rich_text": richTextRequest(pushIssue.Description)},
-		PropertyAssignee:    map[string]interface{}{"rich_text": richTextRequest(pushIssue.Assignee)},
-		PropertyLabels:      map[string]interface{}{"multi_select": labels},
+		PropertyTitle:        map[string]interface{}{"title": richTextRequest(pushIssue.Title)},
+		PropertyIssueGraphID: map[string]interface{}{"rich_text": richTextRequest(pushIssue.ID)},
+		PropertyStatus:       map[string]interface{}{"select": map[string]interface{}{"name": pushIssue.Status}},
+		PropertyPriority:     map[string]interface{}{"select": map[string]interface{}{"name": pushIssue.Priority}},
+		PropertyType:         map[string]interface{}{"select": map[string]interface{}{"name": pushIssue.IssueType}},
+		PropertyDescription:  map[string]interface{}{"rich_text": richTextRequest(pushIssue.Description)},
+		PropertyAssignee:     map[string]interface{}{"rich_text": richTextRequest(pushIssue.Assignee)},
+		PropertyLabels:       map[string]interface{}{"multi_select": labels},
 	}
 }
 
 func PulledIssueFromPage(page Page) PulledIssue {
 	issue := PulledIssue{
-		ID:           strings.TrimSpace(DataSourceTitle(page.Properties[PropertyBeadsID].RichText)),
+		ID:           strings.TrimSpace(DataSourceTitle(page.Properties[PropertyIssueGraphID].RichText)),
 		Title:        strings.TrimSpace(DataSourceTitle(page.Properties[PropertyTitle].Title)),
 		Description:  strings.TrimSpace(DataSourceTitle(page.Properties[PropertyDescription].RichText)),
 		Status:       strings.TrimSpace(pagePropertySelect(page.Properties[PropertyStatus])),
@@ -255,8 +255,8 @@ func ValidateDataSourceSchema(ds *DataSource) *StatusSchema {
 	return result
 }
 
-func priorityToBeads(raw string, config *MappingConfig) int {
-	value, ok := config.PriorityToBeads[normalizeMappingValue(raw)]
+func priorityToIssueGraph(raw string, config *MappingConfig) int {
+	value, ok := config.PriorityToIssueGraph[normalizeMappingValue(raw)]
 	if !ok {
 		return 2
 	}
@@ -271,8 +271,8 @@ func priorityToNotion(priority int, config *MappingConfig) string {
 	return value
 }
 
-func statusToBeads(raw string, config *MappingConfig) types.Status {
-	value, ok := config.StatusToBeads[normalizeMappingValue(raw)]
+func statusToIssueGraph(raw string, config *MappingConfig) types.Status {
+	value, ok := config.StatusToIssueGraph[normalizeMappingValue(raw)]
 	if !ok {
 		return types.StatusOpen
 	}
@@ -287,8 +287,8 @@ func statusToNotion(status types.Status, config *MappingConfig) string {
 	return value
 }
 
-func typeToBeads(raw string, config *MappingConfig) types.IssueType {
-	value, ok := config.TypeToBeads[normalizeMappingValue(raw)]
+func typeToIssueGraph(raw string, config *MappingConfig) types.IssueType {
+	value, ok := config.TypeToIssueGraph[normalizeMappingValue(raw)]
 	if !ok {
 		return types.TypeTask
 	}

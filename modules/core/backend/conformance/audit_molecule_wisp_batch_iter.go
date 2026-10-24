@@ -6,8 +6,8 @@ import (
 	"testing"
 	"time"
 
-	"github.com/steveyegge/beads/internal/storage"
-	"github.com/steveyegge/beads/internal/types"
+	"github.com/borg0ai/dx-issuegraph/internal/storage"
+	"github.com/borg0ai/dx-issuegraph/internal/types"
 )
 
 // Audit cases for the molecule/wisp/batch/iter slice. Each case targets a
@@ -448,7 +448,7 @@ func testAuditCreateAllWispsFastPath(t *testing.T, f Factory) {
 // silently. Regression guard: the sqlkit all-wisps arm previously looped the
 // single-issue create, which runs no dependency-persist pass, so every inline edge
 // was silently lost with an empty skipped-dependency report. Mirrors the reachable
-// `bd import` options (RejectStaleUpserts off here; skip-on-validation + skip
+// `issuegraph import` options (RejectStaleUpserts off here; skip-on-validation + skip
 // callback on).
 func testAuditCreateAllWispsInlineDependencies(t *testing.T, f Factory) {
 	s := f(t)

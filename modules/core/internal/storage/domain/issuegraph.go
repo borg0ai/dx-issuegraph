@@ -1,0 +1,263 @@
+package domain
+
+import (
+	"context"
+	"fmt"
+	"path/filepath"
+	"strings"
+
+	"github.com/borg0ai/dx-issuegraph/internal/configfile"
+)
+
+type IssueGraphDirFSRepository interface {
+	ResolveIssueGraphDirPath(ctx context.Context) IssueGraphDirResolution
+	IssueGraphDirIsLocal(ctx context.Context) bool
+
+	CreateIssueGraphDir(ctx context.Context) error
+	IssueGraphDirExists(ctx context.Context) (bool, error)
+	WriteIssueGraphGitignore(ctx context.Context) error
+	IssueGraphGitignoreExists(ctx context.Context) (bool, error)
+	WriteProjectGitignore(ctx context.Context) error
+	ProjectGitignoreExists(ctx context.Context) (bool, error)
+	WriteInteractionsLog(ctx context.Context) error
+	WriteReadme(ctx context.Context) error
+	WriteMetadataJSON(ctx context.Context, content []byte) error
+	ReadMetadataJSON(ctx context.Context) ([]byte, error)
+	WriteConfigYAML(ctx context.Context, content []byte) error
+	ReadConfigYAML(ctx context.Context) ([]byte, error)
+	ReadIssueGraphConfig(ctx context.Context) (*configfile.Config, error)
+	WriteProxiedServerClientInfo(ctx context.Context, info *configfile.ProxiedServerClientInfo) error
+	ReadProxiedServerClientInfo(ctx context.Context) (*configfile.ProxiedServerClientInfo, error)
+}
+
+type IssueGraphDirFSUseCase interface {
+	ResolveIssueGraphDir(ctx context.Context) IssueGraphDirResolution
+	ResolveProxiedInit(ctx context.Context, params ResolveProxiedInitParams) (ResolveProxiedInitResult, error)
+	InitializeIssueGraphDir(ctx context.Context, params InitializeIssueGraphDirParams) (InitializeIssueGraphDirResult, error)
+	SetupForkExclude(ctx context.Context, verbose bool) error
+	SetupStealthMode(ctx context.Context, verbose bool) error
+	InstallGitHooks(ctx context.Context, params HooksInstallParams) error
+	InstallJJHooks(ctx context.Context) error
+	AddAgentsInstructions(ctx context.Context, params AgentsFileParams) error
+	InstallClaudeProject(ctx context.Context, stealth bool) error
+	SetYAMLConfig(ctx context.Context, key, value string) error
+}
+
+type IssueGraphDirResolution struct {
+	IssueGraphDir string
+	HasExplicit   bool
+}
+
+type ResolveProxiedInitParams struct {
+	Prefix string
+	DBFlag string
+}
+
+type ResolveProxiedInitResult struct {
+	IssueGraphDir string
+	HasExplicit   bool
+	IsLocal       bool
+	DBName        string
+	ProjectID     string
+	// DBNameDerived: DBName was guessed (prefix or default) rather than
+	// pinned by the --database flag or an existing metadata.json.
+	DBNameDerived bool
+}
+
+type IssueGraphDirTemplates struct {
+	IssueGraphGitignore      string
+	ProjectGitignoreHeader   string
+	ProjectGitignorePatterns []string
+	Readme                   string
+}
+
+type InitializeIssueGraphDirParams struct {
+	MetadataJSONBody        []byte
+	ConfigYAMLBody          []byte
+	ProxiedServerClientInfo *configfile.ProxiedServerClientInfo
+	WriteProjectGitignore   bool
+	SetNoCOW                bool
+	LocalVersion            string
+}
+
+type InitializeIssueGraphDirResult struct {
+	NoCOWErr        error
+	LocalVersionErr error
+}
+
+type HooksInstallParams struct {
+	HookNames       []string
+	Force           bool
+	Shared          bool
+	Chain           bool
+	IssueGraphHooks bool
+}
+
+type AgentsFileParams struct {
+	File         string
+	Verbose      bool
+	TemplatePath string
+	Profile      string
+	HasRemote    bool
+	NoPush       bool
+}
+
+type IssueGraphDirFSAdapters struct {
+	ApplyNoCOW            func(path string) error
+	WriteLocalVersion     func(path, version string) error
+	SetupForkExclude      func(verbose bool) error
+	SetupStealthMode      func(verbose bool) error
+	InstallGitHooks       func(params HooksInstallParams) error
+	InstallJJHooks        func() error
+	AddAgentsInstructions func(params AgentsFileParams)
+	InstallClaudeProject  func(stealth bool) error
+	SetYAMLConfig         func(key, value string) error
+}
+
+func NewIssueGraphDirFSUseCase(fsRepo IssueGraphDirFSRepository, adapters IssueGraphDirFSAdapters) IssueGraphDirFSUseCase {
+	return &issuegraphDirFSUseCaseImpl{fsRepo: fsRepo, adapters: adapters}
+}
+
+type issuegraphDirFSUseCaseImpl struct {
+	fsRepo   IssueGraphDirFSRepository
+	adapters IssueGraphDirFSAdapters
+}
+
+var _ IssueGraphDirFSUseCase = (*issuegraphDirFSUseCaseImpl)(nil)
+
+func (u *issuegraphDirFSUseCaseImpl) ResolveIssueGraphDir(ctx context.Context) IssueGraphDirResolution {
+	return u.fsRepo.ResolveIssueGraphDirPath(ctx)
+}
+
+func (u *issuegraphDirFSUseCaseImpl) ResolveProxiedInit(ctx context.Context, params ResolveProxiedInitParams) (ResolveProxiedInitResult, error) {
+	resolution := u.fsRepo.ResolveIssueGraphDirPath(ctx)
+	result := ResolveProxiedInitResult{
+		IssueGraphDir: resolution.IssueGraphDir,
+		HasExplicit:   resolution.HasExplicit,
+		IsLocal:       u.fsRepo.IssueGraphDirIsLocal(ctx),
+	}
+
+	cfg, err := u.fsRepo.ReadIssueGraphConfig(ctx)
+	if err != nil {
+		return ResolveProxiedInitResult{}, fmt.Errorf("ResolveProxiedInit: read config: %w", err)
+	}
+
+	result.DBName, result.DBNameDerived = resolveDoltDatabaseName(cfg, params.Prefix, params.DBFlag)
+	result.ProjectID = resolveProjectID(cfg)
+	return result, nil
+}
+
+func resolveDoltDatabaseName(cfg *configfile.Config, prefix, dbFlag string) (name string, derived bool) {
+	if dbFlag != "" {
+		return dbFlag, false
+	}
+	if cfg != nil && cfg.DoltDatabase != "" {
+		return cfg.DoltDatabase, false
+	}
+	if prefix != "" {
+		return strings.ReplaceAll(prefix, "-", "_"), true
+	}
+	return configfile.DefaultDoltDatabase, true
+}
+
+func resolveProjectID(cfg *configfile.Config) string {
+	if cfg != nil && cfg.ProjectID != "" {
+		return cfg.ProjectID
+	}
+	return configfile.GenerateProjectID()
+}
+
+func (u *issuegraphDirFSUseCaseImpl) InitializeIssueGraphDir(ctx context.Context, params InitializeIssueGraphDirParams) (InitializeIssueGraphDirResult, error) {
+	if err := u.fsRepo.CreateIssueGraphDir(ctx); err != nil {
+		return InitializeIssueGraphDirResult{}, err
+	}
+	if err := u.fsRepo.WriteIssueGraphGitignore(ctx); err != nil {
+		return InitializeIssueGraphDirResult{}, err
+	}
+	if len(params.MetadataJSONBody) > 0 {
+		if err := u.fsRepo.WriteMetadataJSON(ctx, params.MetadataJSONBody); err != nil {
+			return InitializeIssueGraphDirResult{}, err
+		}
+	}
+	if len(params.ConfigYAMLBody) > 0 {
+		if err := u.fsRepo.WriteConfigYAML(ctx, params.ConfigYAMLBody); err != nil {
+			return InitializeIssueGraphDirResult{}, err
+		}
+	}
+	if params.ProxiedServerClientInfo != nil {
+		if err := u.fsRepo.WriteProxiedServerClientInfo(ctx, params.ProxiedServerClientInfo); err != nil {
+			return InitializeIssueGraphDirResult{}, err
+		}
+	}
+	if err := u.fsRepo.WriteReadme(ctx); err != nil {
+		return InitializeIssueGraphDirResult{}, err
+	}
+	if params.WriteProjectGitignore {
+		if err := u.fsRepo.WriteProjectGitignore(ctx); err != nil {
+			return InitializeIssueGraphDirResult{}, err
+		}
+	}
+
+	var result InitializeIssueGraphDirResult
+	if params.SetNoCOW && u.adapters.ApplyNoCOW != nil {
+		result.NoCOWErr = u.adapters.ApplyNoCOW(u.fsRepo.ResolveIssueGraphDirPath(ctx).IssueGraphDir)
+	}
+	if params.LocalVersion != "" && u.adapters.WriteLocalVersion != nil {
+		issuegraphDir := u.fsRepo.ResolveIssueGraphDirPath(ctx).IssueGraphDir
+		result.LocalVersionErr = u.adapters.WriteLocalVersion(
+			filepath.Join(issuegraphDir, ".local_version"),
+			params.LocalVersion,
+		)
+	}
+	return result, nil
+}
+
+func (u *issuegraphDirFSUseCaseImpl) SetupForkExclude(ctx context.Context, verbose bool) error {
+	if u.adapters.SetupForkExclude == nil {
+		return fmt.Errorf("SetupForkExclude: adapter not configured")
+	}
+	return u.adapters.SetupForkExclude(verbose)
+}
+
+func (u *issuegraphDirFSUseCaseImpl) SetupStealthMode(ctx context.Context, verbose bool) error {
+	if u.adapters.SetupStealthMode == nil {
+		return fmt.Errorf("SetupStealthMode: adapter not configured")
+	}
+	return u.adapters.SetupStealthMode(verbose)
+}
+
+func (u *issuegraphDirFSUseCaseImpl) InstallGitHooks(ctx context.Context, params HooksInstallParams) error {
+	if u.adapters.InstallGitHooks == nil {
+		return fmt.Errorf("InstallGitHooks: adapter not configured")
+	}
+	return u.adapters.InstallGitHooks(params)
+}
+
+func (u *issuegraphDirFSUseCaseImpl) InstallJJHooks(ctx context.Context) error {
+	if u.adapters.InstallJJHooks == nil {
+		return fmt.Errorf("InstallJJHooks: adapter not configured")
+	}
+	return u.adapters.InstallJJHooks()
+}
+
+func (u *issuegraphDirFSUseCaseImpl) AddAgentsInstructions(ctx context.Context, params AgentsFileParams) error {
+	if u.adapters.AddAgentsInstructions == nil {
+		return fmt.Errorf("AddAgentsInstructions: adapter not configured")
+	}
+	u.adapters.AddAgentsInstructions(params)
+	return nil
+}
+
+func (u *issuegraphDirFSUseCaseImpl) InstallClaudeProject(ctx context.Context, stealth bool) error {
+	if u.adapters.InstallClaudeProject == nil {
+		return fmt.Errorf("InstallClaudeProject: adapter not configured")
+	}
+	return u.adapters.InstallClaudeProject(stealth)
+}
+
+func (u *issuegraphDirFSUseCaseImpl) SetYAMLConfig(ctx context.Context, key, value string) error {
+	if u.adapters.SetYAMLConfig == nil {
+		return fmt.Errorf("SetYAMLConfig: adapter not configured")
+	}
+	return u.adapters.SetYAMLConfig(key, value)
+}

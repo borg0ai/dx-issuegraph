@@ -10,8 +10,8 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/steveyegge/beads/internal/types"
-	"github.com/steveyegge/beads/issueops"
+	"github.com/borg0ai/dx-issuegraph/internal/types"
+	"github.com/borg0ai/dx-issuegraph/issueops"
 )
 
 func TestDeletePreviewJSONIsPayloadBlind(t *testing.T) {
@@ -55,7 +55,7 @@ func TestDeletePreviewJSONIsPayloadBlind(t *testing.T) {
 
 func TestDeleteBatchDryRunHonorsForce(t *testing.T) {
 	tmpDir := t.TempDir()
-	s := newTestStore(t, filepath.Join(tmpDir, ".beads", "beads.db"))
+	s := newTestStore(t, filepath.Join(tmpDir, ".issuegraph", "issuegraph.db"))
 	ctx := context.Background()
 
 	parent := &types.Issue{Title: "parent", Status: types.StatusOpen, Priority: 2, IssueType: types.TypeTask}
@@ -95,8 +95,8 @@ func TestDeleteBatchDryRunHonorsForce(t *testing.T) {
 func TestBulkDeleteNoResurrection(t *testing.T) {
 
 	tmpDir := t.TempDir()
-	beadsDir := filepath.Join(tmpDir, ".beads")
-	testDB := filepath.Join(beadsDir, "beads.db")
+	issuegraphDir := filepath.Join(tmpDir, ".issuegraph")
+	testDB := filepath.Join(issuegraphDir, "issuegraph.db")
 
 	testGitInit(t, tmpDir)
 
@@ -183,8 +183,8 @@ func testGitCmd(t *testing.T, dir string, args ...string) {
 func TestDeleteIssueWrapper(t *testing.T) {
 
 	tmpDir := t.TempDir()
-	beadsDir := filepath.Join(tmpDir, ".beads")
-	testDB := filepath.Join(beadsDir, "beads.db")
+	issuegraphDir := filepath.Join(tmpDir, ".issuegraph")
+	testDB := filepath.Join(issuegraphDir, "issuegraph.db")
 
 	s := newTestStore(t, testDB)
 	ctx := context.Background()

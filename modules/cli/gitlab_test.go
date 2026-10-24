@@ -1,4 +1,4 @@
-// Package main provides the bd CLI commands.
+// Package main provides the issuegraph CLI commands.
 package main
 
 import (
@@ -10,10 +10,10 @@ import (
 	"testing"
 	"time"
 
-	"github.com/steveyegge/beads/internal/config"
-	"github.com/steveyegge/beads/internal/storage"
-	"github.com/steveyegge/beads/internal/tracker"
-	"github.com/steveyegge/beads/internal/types"
+	"github.com/borg0ai/dx-issuegraph/internal/config"
+	"github.com/borg0ai/dx-issuegraph/internal/storage"
+	"github.com/borg0ai/dx-issuegraph/internal/tracker"
+	"github.com/borg0ai/dx-issuegraph/internal/types"
 )
 
 // TestGitLabConfigFromEnv verifies config is read from environment variables.
@@ -43,7 +43,7 @@ func TestGitLabConfigFromEnv(t *testing.T) {
 
 // TestGitLabConfigValueYamlTokenReadsFromYaml verifies that the yaml-only
 // secret key gitlab.token is resolved from config.yaml by the CLI-layer
-// reader used to build the `bd gitlab sync` client. Before the yaml-only
+// reader used to build the `issuegraph gitlab sync` client. Before the yaml-only
 // fold-in (upstream 99653e059), getGitLabConfigValue only read the Dolt store
 // and env, so a config.yaml-stored token returned "" here. The store/dbPath
 // globals are cleared to prove the value comes from config.yaml, not the store.
@@ -55,18 +55,18 @@ func TestGitLabConfigValueYamlTokenReadsFromYaml(t *testing.T) {
 	t.Cleanup(func() { dbPath, store = oldDBPath, oldStore })
 
 	tmpDir := t.TempDir()
-	beadsDir := filepath.Join(tmpDir, ".beads")
-	if err := os.MkdirAll(beadsDir, 0o750); err != nil {
-		t.Fatalf("mkdir .beads: %v", err)
+	issuegraphDir := filepath.Join(tmpDir, ".issuegraph")
+	if err := os.MkdirAll(issuegraphDir, 0o750); err != nil {
+		t.Fatalf("mkdir .issuegraph: %v", err)
 	}
 	yamlBody := "gitlab.token: \"" + wantToken + "\"\n"
-	if err := os.WriteFile(filepath.Join(beadsDir, "config.yaml"), []byte(yamlBody), 0o600); err != nil {
+	if err := os.WriteFile(filepath.Join(issuegraphDir, "config.yaml"), []byte(yamlBody), 0o600); err != nil {
 		t.Fatalf("write config.yaml: %v", err)
 	}
 
 	t.Setenv("GITLAB_TOKEN", "")
-	t.Setenv("BEADS_DIR", "")
-	t.Setenv("BEADS_TEST_IGNORE_REPO_CONFIG", "1")
+	t.Setenv("ISSUEGRAPH_DIR", "")
+	t.Setenv("ISSUEGRAPH_TEST_IGNORE_REPO_CONFIG", "1")
 	t.Setenv("HOME", filepath.Join(tmpDir, "home"))
 	t.Setenv("XDG_CONFIG_HOME", filepath.Join(tmpDir, "xdg"))
 	t.Chdir(tmpDir)
@@ -91,8 +91,8 @@ func TestGitLabConfigValueYamlTokenFallsBackToEnv(t *testing.T) {
 	t.Cleanup(func() { dbPath, store = oldDBPath, oldStore })
 
 	tmpDir := t.TempDir()
-	t.Setenv("BEADS_DIR", "")
-	t.Setenv("BEADS_TEST_IGNORE_REPO_CONFIG", "1")
+	t.Setenv("ISSUEGRAPH_DIR", "")
+	t.Setenv("ISSUEGRAPH_TEST_IGNORE_REPO_CONFIG", "1")
 	t.Setenv("HOME", filepath.Join(tmpDir, "home"))
 	t.Setenv("XDG_CONFIG_HOME", filepath.Join(tmpDir, "xdg"))
 	t.Setenv("GITLAB_TOKEN", "env-cli-token-value")

@@ -3,13 +3,13 @@ package main
 import (
 	"os"
 
+	"github.com/borg0ai/dx-issuegraph/internal/metrics"
 	"github.com/spf13/cobra"
-	"github.com/steveyegge/beads/internal/metrics"
 )
 
 var sendMetricsCmd = &cobra.Command{
 	Use:    metrics.SendMetricsSubcommand,
-	Short:  "Internal: flush queued telemetry events (spawned by bd)",
+	Short:  "Internal: flush queued telemetry events (spawned by issuegraph)",
 	Hidden: true,
 	Args:   cobra.NoArgs,
 	Run: func(cmd *cobra.Command, args []string) {

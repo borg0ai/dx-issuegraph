@@ -6,14 +6,14 @@ import (
 )
 
 // TestShowNotFoundHint_PointsAtHistoryAndAcknowledgesDeletion guards
-// ga-m6inyb: bd show's "not found" message must stop implying an ID never
+// ga-m6inyb: issuegraph show's "not found" message must stop implying an ID never
 // existed (it may have existed and been deleted/purged, which leaves no
 // trace in the live tables) and must tell the reader how to check further.
 func TestShowNotFoundHint_PointsAtHistoryAndAcknowledgesDeletion(t *testing.T) {
 	hint := showNotFoundHint("bd-1234")
 
-	if !strings.Contains(hint, "bd history bd-1234") {
-		t.Errorf("expected hint to name the exact id in a 'bd history' pointer, got: %q", hint)
+	if !strings.Contains(hint, "issuegraph history bd-1234") {
+		t.Errorf("expected hint to name the exact id in a 'issuegraph history' pointer, got: %q", hint)
 	}
 	if !strings.Contains(hint, "deleted") && !strings.Contains(hint, "purged") {
 		t.Errorf("expected hint to acknowledge deletion/purge as a possibility, got: %q", hint)

@@ -12,8 +12,8 @@ import (
 func TestProxiedServerOrphans(t *testing.T) {
 	requireSharedProxiedServer(t)
 	t.Parallel()
-	bd := buildEmbeddedBD(t)
-	p := newSharedProxiedProject(t, bd, "orp")
+	issuegraph := buildEmbeddedBD(t)
+	p := newSharedProxiedProject(t, issuegraph, "orp")
 
 	gitCommit := func(t *testing.T, message string) {
 		t.Helper()
@@ -26,7 +26,7 @@ func TestProxiedServerOrphans(t *testing.T) {
 
 	orphanIDs := func(t *testing.T, args ...string) map[string]bool {
 		t.Helper()
-		out, err := bdProxiedRun(t, bd, p.dir, append([]string{"orphans", "--json"}, args...)...)
+		out, err := issuegraphProxiedRun(t, issuegraph, p.dir, append([]string{"orphans", "--json"}, args...)...)
 		if err != nil {
 			t.Fatalf("orphans %v: %v\n%s", args, err, out)
 		}
@@ -45,10 +45,10 @@ func TestProxiedServerOrphans(t *testing.T) {
 	}
 
 	// An open issue referenced by a commit message is an orphan.
-	referenced := bdProxiedCreate(t, bd, p.dir, "Referenced but never closed", "--type", "task")
-	unreferenced := bdProxiedCreate(t, bd, p.dir, "Never mentioned", "--type", "task")
+	referenced := issuegraphProxiedCreate(t, issuegraph, p.dir, "Referenced but never closed", "--type", "task")
+	unreferenced := issuegraphProxiedCreate(t, issuegraph, p.dir, "Never mentioned", "--type", "task")
 	// Give the referenced issue a label so --label can select it.
-	bdProxiedLabel(t, bd, p.dir, "add", referenced.ID, "theme:personal")
+	issuegraphProxiedLabel(t, issuegraph, p.dir, "add", referenced.ID, "theme:personal")
 	gitCommit(t, "feat: implemented ("+referenced.ID+")")
 
 	t.Run("detects_referenced_open_issue", func(t *testing.T) {
@@ -63,7 +63,7 @@ func TestProxiedServerOrphans(t *testing.T) {
 
 	// Plain (non-JSON) default output must succeed and mention the orphan.
 	t.Run("default_plain_output", func(t *testing.T) {
-		out, err := bdProxiedRun(t, bd, p.dir, "orphans")
+		out, err := issuegraphProxiedRun(t, issuegraph, p.dir, "orphans")
 		if err != nil {
 			t.Fatalf("orphans: %v\n%s", err, out)
 		}
@@ -74,7 +74,7 @@ func TestProxiedServerOrphans(t *testing.T) {
 
 	// --json on a db with orphans must still produce valid JSON.
 	t.Run("json_valid", func(t *testing.T) {
-		out, err := bdProxiedRun(t, bd, p.dir, "orphans", "--json")
+		out, err := issuegraphProxiedRun(t, issuegraph, p.dir, "orphans", "--json")
 		if err != nil {
 			t.Fatalf("orphans --json: %v\n%s", err, out)
 		}
@@ -85,7 +85,7 @@ func TestProxiedServerOrphans(t *testing.T) {
 
 	// --details should succeed and include the orphan.
 	t.Run("details", func(t *testing.T) {
-		out, err := bdProxiedRun(t, bd, p.dir, "orphans", "--details")
+		out, err := issuegraphProxiedRun(t, issuegraph, p.dir, "orphans", "--details")
 		if err != nil {
 			t.Fatalf("orphans --details: %v\n%s", err, out)
 		}

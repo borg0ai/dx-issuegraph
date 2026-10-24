@@ -23,8 +23,8 @@ pages and splices the CLI Reference pages array in `docs/docs.json`.
 ./scripts/generate-cli-docs.sh
 
 # Regenerate/check against an existing binary
-./scripts/generate-cli-docs.sh ./bd
-./scripts/generate-cli-docs.sh --check ./bd
+./scripts/generate-cli-docs.sh ./issuegraph
+./scripts/generate-cli-docs.sh --check ./issuegraph
 ```
 
 ### Outputs
@@ -141,7 +141,7 @@ All 5 platform builds (linux-amd64, linux-arm64, darwin-amd64, darwin-arm64, win
 
 **Testing the Version Pipeline**:
 - After running `./scripts/install.sh`, users should immediately see full version info via `issuegraph version`
-- The text output shows format like: `bd version 0.29.0 (dev: main@7e70940)`
+- The text output shows format like: `issuegraph version 0.29.0 (dev: main@7e70940)`
 - JSON output includes both `commit` and `branch` fields
 
 **Release Coordination**:

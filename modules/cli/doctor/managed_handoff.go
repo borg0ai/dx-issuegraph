@@ -7,16 +7,16 @@ import (
 	"strconv"
 	"strings"
 
-	"github.com/steveyegge/beads/internal/configfile"
-	"github.com/steveyegge/beads/internal/doltserver"
+	"github.com/borg0ai/dx-issuegraph/internal/configfile"
+	"github.com/borg0ai/dx-issuegraph/internal/doltserver"
 )
 
 // CheckManagedHandoffPort detects the #3926 split-brain risk where a managed
 // city/orchestrator port override differs from an existing standalone port file.
 func CheckManagedHandoffPort(repoPath string) DoctorCheck {
-	beadsDir := ResolveBeadsDirForRepo(repoPath)
+	issuegraphDir := ResolveIssueGraphDirForRepo(repoPath)
 
-	cfg, err := configfile.Load(beadsDir)
+	cfg, err := configfile.Load(issuegraphDir)
 	if err != nil || cfg == nil || cfg.GetBackend() != configfile.BackendDolt {
 		return DoctorCheck{
 			Name:     "Managed Handoff Port",
@@ -26,7 +26,7 @@ func CheckManagedHandoffPort(repoPath string) DoctorCheck {
 		}
 	}
 
-	localPort := doltserver.ReadPortFile(beadsDir)
+	localPort := doltserver.ReadPortFile(issuegraphDir)
 	if localPort == 0 {
 		return DoctorCheck{
 			Name:     "Managed Handoff Port",
@@ -58,7 +58,7 @@ func CheckManagedHandoffPort(repoPath string) DoctorCheck {
 		"%s=%d but %s contains %d. This can mean commands are reading a managed-city database while the standalone store still exists locally.",
 		envName,
 		envPort,
-		filepath.Join(beadsDir, doltserver.PortFileName),
+		filepath.Join(issuegraphDir, doltserver.PortFileName),
 		localPort,
 	)
 	if gtRoot := strings.TrimSpace(os.Getenv("GT_ROOT")); gtRoot != "" {
@@ -76,7 +76,7 @@ func CheckManagedHandoffPort(repoPath string) DoctorCheck {
 }
 
 func runtimePortOverride() (string, int) {
-	for _, name := range []string{"BEADS_DOLT_SERVER_PORT", "BEADS_DOLT_PORT"} {
+	for _, name := range []string{"ISSUEGRAPH_DOLT_SERVER_PORT", "ISSUEGRAPH_DOLT_PORT"} {
 		raw := strings.TrimSpace(os.Getenv(name))
 		if raw == "" {
 			continue

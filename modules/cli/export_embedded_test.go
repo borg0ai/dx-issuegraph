@@ -13,34 +13,34 @@ import (
 	"testing"
 )
 
-// bdExport runs "bd export" with extra args. Returns combined output.
-func bdExport(t *testing.T, bd, dir string, args ...string) string {
+// issuegraphExport runs "issuegraph export" with extra args. Returns combined output.
+func issuegraphExport(t *testing.T, issuegraph, dir string, args ...string) string {
 	t.Helper()
 	fullArgs := append([]string{"export"}, args...)
-	cmd := exec.Command(bd, fullArgs...)
+	cmd := exec.Command(issuegraph, fullArgs...)
 	cmd.Dir = dir
-	cmd.Env = bdEnv(dir)
+	cmd.Env = issuegraphEnv(dir)
 	stdout, stderr, err := runCommandBuffers(t, cmd)
 	if err != nil {
-		t.Fatalf("bd export %s failed: %v\nstdout:\n%s\nstderr:\n%s", strings.Join(args, " "), err, stdout.String(), stderr.String())
+		t.Fatalf("issuegraph export %s failed: %v\nstdout:\n%s\nstderr:\n%s", strings.Join(args, " "), err, stdout.String(), stderr.String())
 	}
 	return stdout.String()
 }
 
 func TestEmbeddedExport(t *testing.T) {
-	if os.Getenv("BEADS_TEST_EMBEDDED_DOLT") != "1" {
-		t.Skip("set BEADS_TEST_EMBEDDED_DOLT=1 to run embedded dolt export tests")
+	if os.Getenv("ISSUEGRAPH_TEST_EMBEDDED_DOLT") != "1" {
+		t.Skip("set ISSUEGRAPH_TEST_EMBEDDED_DOLT=1 to run embedded dolt export tests")
 	}
 	t.Parallel()
 
-	bd := buildEmbeddedBD(t)
+	issuegraph := buildEmbeddedBD(t)
 
 	t.Run("default_stdout", func(t *testing.T) {
-		dir, _, _ := bdInit(t, bd, "--prefix", "exstd")
-		bdCreateSilent(t, bd, dir, "export test issue 1")
-		bdCreateSilent(t, bd, dir, "export test issue 2")
+		dir, _, _ := issuegraphInit(t, issuegraph, "--prefix", "exstd")
+		issuegraphCreateSilent(t, issuegraph, dir, "export test issue 1")
+		issuegraphCreateSilent(t, issuegraph, dir, "export test issue 2")
 
-		out := bdExport(t, bd, dir)
+		out := issuegraphExport(t, issuegraph, dir)
 		lines := strings.Split(strings.TrimSpace(out), "\n")
 		if len(lines) < 2 {
 			t.Errorf("expected at least 2 JSONL lines, got %d: %s", len(lines), out)
@@ -54,10 +54,10 @@ func TestEmbeddedExport(t *testing.T) {
 	})
 
 	t.Run("type_discriminator", func(t *testing.T) {
-		dir, _, _ := bdInit(t, bd, "--prefix", "extyp")
-		bdCreateSilent(t, bd, dir, "type discriminator test")
+		dir, _, _ := issuegraphInit(t, issuegraph, "--prefix", "extyp")
+		issuegraphCreateSilent(t, issuegraph, dir, "type discriminator test")
 
-		out := bdExport(t, bd, dir)
+		out := issuegraphExport(t, issuegraph, dir)
 		lines := strings.Split(strings.TrimSpace(out), "\n")
 		for _, line := range lines {
 			var record map[string]interface{}
@@ -86,11 +86,11 @@ func TestEmbeddedExport(t *testing.T) {
 	})
 
 	t.Run("output_file", func(t *testing.T) {
-		dir, _, _ := bdInit(t, bd, "--prefix", "exfile")
-		bdCreateSilent(t, bd, dir, "file export issue")
+		dir, _, _ := issuegraphInit(t, issuegraph, "--prefix", "exfile")
+		issuegraphCreateSilent(t, issuegraph, dir, "file export issue")
 
 		outFile := filepath.Join(t.TempDir(), "export.jsonl")
-		bdExport(t, bd, dir, "-o", outFile)
+		issuegraphExport(t, issuegraph, dir, "-o", outFile)
 
 		data, err := os.ReadFile(outFile)
 		if err != nil {
@@ -102,14 +102,14 @@ func TestEmbeddedExport(t *testing.T) {
 	})
 
 	t.Run("all_flag", func(t *testing.T) {
-		dir, _, _ := bdInit(t, bd, "--prefix", "exall")
-		bdCreateSilent(t, bd, dir, "regular issue")
+		dir, _, _ := issuegraphInit(t, issuegraph, "--prefix", "exall")
+		issuegraphCreateSilent(t, issuegraph, dir, "regular issue")
 
 		// Export without --all
-		outDefault := bdExport(t, bd, dir)
+		outDefault := issuegraphExport(t, issuegraph, dir)
 
 		// Export with --all (includes infra, templates, etc.)
-		outAll := bdExport(t, bd, dir, "--all")
+		outAll := issuegraphExport(t, issuegraph, dir, "--all")
 
 		// --all should produce at least as many lines
 		defaultLines := len(strings.Split(strings.TrimSpace(outDefault), "\n"))
@@ -120,19 +120,19 @@ func TestEmbeddedExport(t *testing.T) {
 	})
 
 	t.Run("include_infra", func(t *testing.T) {
-		dir, _, _ := bdInit(t, bd, "--prefix", "exinfra")
-		bdCreateSilent(t, bd, dir, "regular issue for infra test")
+		dir, _, _ := issuegraphInit(t, issuegraph, "--prefix", "exinfra")
+		issuegraphCreateSilent(t, issuegraph, dir, "regular issue for infra test")
 
 		// Just verify it runs without error
-		bdExport(t, bd, dir, "--include-infra")
+		issuegraphExport(t, issuegraph, dir, "--include-infra")
 	})
 
 	t.Run("scrub", func(t *testing.T) {
-		dir, _, _ := bdInit(t, bd, "--prefix", "exscrub")
-		bdCreateSilent(t, bd, dir, "real issue")
-		bdCreateSilent(t, bd, dir, "test issue for scrub")
+		dir, _, _ := issuegraphInit(t, issuegraph, "--prefix", "exscrub")
+		issuegraphCreateSilent(t, issuegraph, dir, "real issue")
+		issuegraphCreateSilent(t, issuegraph, dir, "test issue for scrub")
 
-		out := bdExport(t, bd, dir, "--scrub")
+		out := issuegraphExport(t, issuegraph, dir, "--scrub")
 		// Should still have at least one line
 		if strings.TrimSpace(out) == "" {
 			t.Error("--scrub should still produce output for non-test issues")
@@ -140,11 +140,11 @@ func TestEmbeddedExport(t *testing.T) {
 	})
 
 	t.Run("no_memories", func(t *testing.T) {
-		dir, _, _ := bdInit(t, bd, "--prefix", "exnomem")
-		bdCreateSilent(t, bd, dir, "no memories issue")
+		dir, _, _ := issuegraphInit(t, issuegraph, "--prefix", "exnomem")
+		issuegraphCreateSilent(t, issuegraph, dir, "no memories issue")
 
-		outWith := bdExport(t, bd, dir)
-		outWithout := bdExport(t, bd, dir, "--no-memories")
+		outWith := issuegraphExport(t, issuegraph, dir)
+		outWithout := issuegraphExport(t, issuegraph, dir, "--no-memories")
 
 		// --no-memories should produce <= lines (no memory records)
 		withLines := len(strings.Split(strings.TrimSpace(outWith), "\n"))
@@ -155,24 +155,24 @@ func TestEmbeddedExport(t *testing.T) {
 	})
 
 	t.Run("empty_db", func(t *testing.T) {
-		dir, _, _ := bdInit(t, bd, "--prefix", "exempty")
+		dir, _, _ := issuegraphInit(t, issuegraph, "--prefix", "exempty")
 
 		// Export with --no-memories on empty db should not error
-		bdExport(t, bd, dir, "--no-memories")
+		issuegraphExport(t, issuegraph, dir, "--no-memories")
 	})
 }
 
 func TestEmbeddedExportConcurrent(t *testing.T) {
-	if os.Getenv("BEADS_TEST_EMBEDDED_DOLT") != "1" {
-		t.Skip("set BEADS_TEST_EMBEDDED_DOLT=1 to run embedded dolt export tests")
+	if os.Getenv("ISSUEGRAPH_TEST_EMBEDDED_DOLT") != "1" {
+		t.Skip("set ISSUEGRAPH_TEST_EMBEDDED_DOLT=1 to run embedded dolt export tests")
 	}
 	t.Parallel()
 
-	bd := buildEmbeddedBD(t)
-	dir, _, _ := bdInit(t, bd, "--prefix", "exconc")
+	issuegraph := buildEmbeddedBD(t)
+	dir, _, _ := issuegraphInit(t, issuegraph, "--prefix", "exconc")
 
 	for i := 0; i < 5; i++ {
-		bdCreateSilent(t, bd, dir, fmt.Sprintf("concurrent export issue %d", i))
+		issuegraphCreateSilent(t, issuegraph, dir, fmt.Sprintf("concurrent export issue %d", i))
 	}
 
 	const numWorkers = 5
@@ -191,9 +191,9 @@ func TestEmbeddedExportConcurrent(t *testing.T) {
 		go func(worker int) {
 			defer wg.Done()
 			outFile := filepath.Join(t.TempDir(), fmt.Sprintf("export-%d.jsonl", worker))
-			cmd := exec.Command(bd, "export", "-o", outFile)
+			cmd := exec.Command(issuegraph, "export", "-o", outFile)
 			cmd.Dir = dir
-			cmd.Env = bdEnv(dir)
+			cmd.Env = issuegraphEnv(dir)
 			out, err := cmd.CombinedOutput()
 			results[worker] = result{worker: worker, out: string(out), err: err}
 		}(w)

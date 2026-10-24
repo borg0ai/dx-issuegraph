@@ -8,7 +8,7 @@ import (
 )
 
 func TestCheckInstallation(t *testing.T) {
-	t.Run("missing beads directory", func(t *testing.T) {
+	t.Run("missing issuegraph directory", func(t *testing.T) {
 		tmpDir := t.TempDir()
 		check := CheckInstallation(tmpDir)
 
@@ -22,11 +22,11 @@ func TestCheckInstallation(t *testing.T) {
 }
 
 func TestCheckPermissions(t *testing.T) {
-	t.Run("no beads directory", func(t *testing.T) {
+	t.Run("no issuegraph directory", func(t *testing.T) {
 		tmpDir := t.TempDir()
 		check := CheckPermissions(tmpDir)
 
-		// Should return error when .beads dir doesn't exist (can't write to it)
+		// Should return error when .issuegraph dir doesn't exist (can't write to it)
 		if check.Status != StatusError {
 			t.Errorf("expected StatusError for missing dir, got %s", check.Status)
 		}
@@ -34,8 +34,8 @@ func TestCheckPermissions(t *testing.T) {
 
 	t.Run("writable directory", func(t *testing.T) {
 		tmpDir := t.TempDir()
-		beadsDir := filepath.Join(tmpDir, ".beads")
-		if err := os.Mkdir(beadsDir, 0755); err != nil {
+		issuegraphDir := filepath.Join(tmpDir, ".issuegraph")
+		if err := os.Mkdir(issuegraphDir, 0755); err != nil {
 			t.Fatal(err)
 		}
 
@@ -48,8 +48,8 @@ func TestCheckPermissions(t *testing.T) {
 
 	t.Run("bare parent worktree fallback", func(t *testing.T) {
 		bareDir, worktreeDir := setupDoctorBareParentWorktree(t)
-		bareBeadsDir := filepath.Join(bareDir, ".beads")
-		if err := os.MkdirAll(bareBeadsDir, 0755); err != nil {
+		bareIssueGraphDir := filepath.Join(bareDir, ".issuegraph")
+		if err := os.MkdirAll(bareIssueGraphDir, 0755); err != nil {
 			t.Fatal(err)
 		}
 
@@ -60,23 +60,23 @@ func TestCheckPermissions(t *testing.T) {
 	})
 
 	t.Run("with store bare parent worktree fallback", func(t *testing.T) {
-		clearResolveBeadsDirCache()
-		t.Cleanup(clearResolveBeadsDirCache)
+		clearResolveIssueGraphDirCache()
+		t.Cleanup(clearResolveIssueGraphDirCache)
 
 		bareDir, worktreeDir := setupDoctorBareParentWorktree(t)
-		bareBeadsDir := filepath.Join(bareDir, ".beads")
-		if err := os.MkdirAll(bareBeadsDir, 0o755); err != nil {
+		bareIssueGraphDir := filepath.Join(bareDir, ".issuegraph")
+		if err := os.MkdirAll(bareIssueGraphDir, 0o755); err != nil {
 			t.Fatal(err)
 		}
 
-		ss := &SharedStore{beadsDir: bareBeadsDir}
+		ss := &SharedStore{issuegraphDir: bareIssueGraphDir}
 		check := CheckPermissionsWithStore(worktreeDir, ss)
 
 		if check.Status != StatusOK {
 			t.Fatalf("expected StatusOK for bare-parent fallback with store, got %s: %s", check.Status, check.Message)
 		}
-		if _, err := os.Stat(filepath.Join(worktreeDir, ".beads")); !os.IsNotExist(err) {
-			t.Fatalf("expected no local .beads in worktree, got err=%v", err)
+		if _, err := os.Stat(filepath.Join(worktreeDir, ".issuegraph")); !os.IsNotExist(err) {
+			t.Fatalf("expected no local .issuegraph in worktree, got err=%v", err)
 		}
 	})
 }
@@ -89,8 +89,8 @@ func TestCheckPermissions_TempFileUsesSecurePerms(t *testing.T) {
 	}
 
 	tmpDir := t.TempDir()
-	beadsDir := filepath.Join(tmpDir, ".beads")
-	if err := os.Mkdir(beadsDir, 0755); err != nil {
+	issuegraphDir := filepath.Join(tmpDir, ".issuegraph")
+	if err := os.Mkdir(issuegraphDir, 0755); err != nil {
 		t.Fatal(err)
 	}
 
@@ -101,7 +101,7 @@ func TestCheckPermissions_TempFileUsesSecurePerms(t *testing.T) {
 	}
 
 	// The temp file should be cleaned up
-	testFile := filepath.Join(beadsDir, ".doctor-test-write")
+	testFile := filepath.Join(issuegraphDir, ".doctor-test-write")
 	if _, err := os.Stat(testFile); !os.IsNotExist(err) {
 		t.Error("CheckPermissions should clean up its temp file after use")
 	}
@@ -109,8 +109,8 @@ func TestCheckPermissions_TempFileUsesSecurePerms(t *testing.T) {
 
 func TestCheckPermissions_CleansUpOnSuccess(t *testing.T) {
 	tmpDir := t.TempDir()
-	beadsDir := filepath.Join(tmpDir, ".beads")
-	if err := os.Mkdir(beadsDir, 0755); err != nil {
+	issuegraphDir := filepath.Join(tmpDir, ".issuegraph")
+	if err := os.Mkdir(issuegraphDir, 0755); err != nil {
 		t.Fatal(err)
 	}
 
@@ -120,7 +120,7 @@ func TestCheckPermissions_CleansUpOnSuccess(t *testing.T) {
 	}
 
 	// Verify the temp file does not remain on disk
-	testFile := filepath.Join(beadsDir, ".doctor-test-write")
+	testFile := filepath.Join(issuegraphDir, ".doctor-test-write")
 	if _, err := os.Stat(testFile); !os.IsNotExist(err) {
 		t.Errorf("temp file %s should be removed after CheckPermissions", testFile)
 	}

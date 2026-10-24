@@ -24,7 +24,7 @@ func TestExampleTipDefinitions(t *testing.T) {
 	mediumPriorityTip := Tip{
 		ID:          "example_medium_priority",
 		Condition:   func() bool { return true },
-		Message:     "Try using 'bd ready' to see available work",
+		Message:     "Try using 'issuegraph ready' to see available work",
 		Frequency:   7 * 24 * time.Hour, // Show at most once per week
 		Priority:    50,                 // Medium priority
 		Probability: 0.5,                // 50% chance when eligible

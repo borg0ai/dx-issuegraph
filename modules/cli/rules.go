@@ -12,7 +12,7 @@ import (
 
 	"github.com/spf13/cobra"
 
-	"github.com/steveyegge/beads/internal/metrics"
+	"github.com/borg0ai/dx-issuegraph/internal/metrics"
 )
 
 // --- Types ---
@@ -46,7 +46,7 @@ type MergeCandidate struct {
 	Score      float64  `json:"score"`
 }
 
-// AuditResult is the full output of `bd rules audit`.
+// AuditResult is the full output of `issuegraph rules audit`.
 type AuditResult struct {
 	TotalRules      int                   `json:"total_rules"`
 	TokenEstimate   int                   `json:"token_estimate"`
@@ -568,7 +568,7 @@ func CompactRules(rules []RuleFile, groupLabel string) (string, error) {
 	return sb.String(), nil
 }
 
-// RunAudit is the top-level orchestrator for `bd rules audit`.
+// RunAudit is the top-level orchestrator for `issuegraph rules audit`.
 func RunAudit(rulesDir string, threshold float64) (*AuditResult, error) {
 	entries, err := os.ReadDir(rulesDir)
 	if err != nil {
@@ -732,7 +732,7 @@ func runRulesAudit(cmd *cobra.Command, args []string) error {
 			suggested := strings.ReplaceAll(mc.GroupLabel, " ", "-") + ".md"
 			fmt.Printf("    Suggested: merge into %s\n\n", suggested)
 		}
-		fmt.Printf("Run `bd rules compact --auto` to apply suggested merges.\n")
+		fmt.Printf("Run `issuegraph rules compact --auto` to apply suggested merges.\n")
 	}
 	return nil
 }

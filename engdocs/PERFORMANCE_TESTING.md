@@ -156,7 +156,7 @@ GetReadyWork:  45ms  [OK]
 SearchIssues:  78ms  [OK]
 CreateIssue:   8ms   [OK]
 
-CPU profile saved: beads-perf-2024-01-15-143022.prof
+CPU profile saved: issuegraph-perf-2024-01-15-143022.prof
 ```
 
 Status indicators:
@@ -249,13 +249,13 @@ make clean
 
 This removes:
 - CPU profile files (`bench-cpu-*.prof`)
-- User diagnostic profiles (`beads-perf-*.prof`)
-- Cached benchmark databases are in `/tmp/beads-bench-cache/`
+- User diagnostic profiles (`issuegraph-perf-*.prof`)
+- Cached benchmark databases are in `/tmp/issuegraph-bench-cache/`
 
 To clear cached databases:
 
 ```bash
-rm -rf /tmp/beads-bench-cache/
+rm -rf /tmp/issuegraph-bench-cache/
 ```
 
 ## See Also

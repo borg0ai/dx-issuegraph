@@ -12,37 +12,37 @@ import (
 	"testing"
 )
 
-// bdOrphans runs "bd orphans" with the given args and returns stdout.
-func bdOrphans(t *testing.T, bd, dir string, args ...string) string {
+// issuegraphOrphans runs "issuegraph orphans" with the given args and returns stdout.
+func issuegraphOrphans(t *testing.T, issuegraph, dir string, args ...string) string {
 	t.Helper()
 	fullArgs := append([]string{"orphans"}, args...)
-	cmd := exec.Command(bd, fullArgs...)
+	cmd := exec.Command(issuegraph, fullArgs...)
 	cmd.Dir = dir
-	cmd.Env = bdEnv(dir)
+	cmd.Env = issuegraphEnv(dir)
 	stdout, stderr, err := runCommandBuffers(t, cmd)
 	if err != nil {
-		t.Fatalf("bd orphans %s failed: %v\nstdout:\n%s\nstderr:\n%s", strings.Join(args, " "), err, stdout.String(), stderr.String())
+		t.Fatalf("issuegraph orphans %s failed: %v\nstdout:\n%s\nstderr:\n%s", strings.Join(args, " "), err, stdout.String(), stderr.String())
 	}
 	return stdout.String()
 }
 
 func TestEmbeddedOrphans(t *testing.T) {
-	if os.Getenv("BEADS_TEST_EMBEDDED_DOLT") != "1" {
-		t.Skip("set BEADS_TEST_EMBEDDED_DOLT=1 to run embedded dolt integration tests")
+	if os.Getenv("ISSUEGRAPH_TEST_EMBEDDED_DOLT") != "1" {
+		t.Skip("set ISSUEGRAPH_TEST_EMBEDDED_DOLT=1 to run embedded dolt integration tests")
 	}
 	t.Parallel()
 
-	bd := buildEmbeddedBD(t)
-	dir, _, _ := bdInit(t, bd, "--prefix", "or")
+	issuegraph := buildEmbeddedBD(t)
+	dir, _, _ := issuegraphInit(t, issuegraph, "--prefix", "or")
 
 	// Create some issues so the db isn't empty
-	bdCreate(t, bd, dir, "Orphans test issue 1", "--type", "task")
-	bdCreate(t, bd, dir, "Orphans test issue 2", "--type", "task")
+	issuegraphCreate(t, issuegraph, dir, "Orphans test issue 1", "--type", "task")
+	issuegraphCreate(t, issuegraph, dir, "Orphans test issue 2", "--type", "task")
 
 	// ===== Default =====
 
 	t.Run("orphans_default", func(t *testing.T) {
-		out := bdOrphans(t, bd, dir)
+		out := issuegraphOrphans(t, issuegraph, dir)
 		// On a clean db, should report no orphans or empty output
 		_ = out
 	})
@@ -50,7 +50,7 @@ func TestEmbeddedOrphans(t *testing.T) {
 	// ===== --json =====
 
 	t.Run("orphans_json", func(t *testing.T) {
-		out := bdOrphans(t, bd, dir, "--json")
+		out := issuegraphOrphans(t, issuegraph, dir, "--json")
 		s := strings.TrimSpace(out)
 		// orphans --json may return "null", "[]", or a JSON array/object
 		if !json.Valid([]byte(s)) {
@@ -61,7 +61,7 @@ func TestEmbeddedOrphans(t *testing.T) {
 	// ===== --details =====
 
 	t.Run("orphans_details", func(t *testing.T) {
-		out := bdOrphans(t, bd, dir, "--details")
+		out := issuegraphOrphans(t, issuegraph, dir, "--details")
 		_ = out // Should succeed without crashing
 	})
 
@@ -69,12 +69,12 @@ func TestEmbeddedOrphans(t *testing.T) {
 
 	t.Run("orphans_label", func(t *testing.T) {
 		// --label with a label that matches no issues should return no orphans
-		out := bdOrphans(t, bd, dir, "--label", "nonexistent-label-xyz")
+		out := issuegraphOrphans(t, issuegraph, dir, "--label", "nonexistent-label-xyz")
 		_ = out // Should succeed without crashing
 	})
 
 	t.Run("orphans_label_json", func(t *testing.T) {
-		out := bdOrphans(t, bd, dir, "--label", "nonexistent-label-xyz", "--json")
+		out := issuegraphOrphans(t, issuegraph, dir, "--label", "nonexistent-label-xyz", "--json")
 		s := strings.TrimSpace(out)
 		if !json.Valid([]byte(s)) {
 			t.Errorf("invalid JSON with --label --json: %s", s[:min(200, len(s))])
@@ -82,22 +82,22 @@ func TestEmbeddedOrphans(t *testing.T) {
 	})
 
 	t.Run("orphans_label_any", func(t *testing.T) {
-		out := bdOrphans(t, bd, dir, "--label-any", "nonexistent-label-xyz")
+		out := issuegraphOrphans(t, issuegraph, dir, "--label-any", "nonexistent-label-xyz")
 		_ = out // Should succeed without crashing
 	})
 }
 
 // TestEmbeddedOrphansConcurrent exercises orphans concurrently.
 func TestEmbeddedOrphansConcurrent(t *testing.T) {
-	if os.Getenv("BEADS_TEST_EMBEDDED_DOLT") != "1" {
-		t.Skip("set BEADS_TEST_EMBEDDED_DOLT=1 to run embedded dolt integration tests")
+	if os.Getenv("ISSUEGRAPH_TEST_EMBEDDED_DOLT") != "1" {
+		t.Skip("set ISSUEGRAPH_TEST_EMBEDDED_DOLT=1 to run embedded dolt integration tests")
 	}
 	t.Parallel()
 
-	bd := buildEmbeddedBD(t)
-	dir, _, _ := bdInit(t, bd, "--prefix", "ox")
+	issuegraph := buildEmbeddedBD(t)
+	dir, _, _ := issuegraphInit(t, issuegraph, "--prefix", "ox")
 
-	bdCreate(t, bd, dir, "Orphans concurrent issue", "--type", "task")
+	issuegraphCreate(t, issuegraph, dir, "Orphans concurrent issue", "--type", "task")
 
 	const numWorkers = 8
 	type workerResult struct {
@@ -112,9 +112,9 @@ func TestEmbeddedOrphansConcurrent(t *testing.T) {
 		go func(worker int) {
 			defer wg.Done()
 			r := workerResult{worker: worker}
-			cmd := exec.Command(bd, "orphans")
+			cmd := exec.Command(issuegraph, "orphans")
 			cmd.Dir = dir
-			cmd.Env = bdEnv(dir)
+			cmd.Env = issuegraphEnv(dir)
 			out, err := cmd.CombinedOutput()
 			if err != nil {
 				r.err = fmt.Errorf("orphans (worker %d): %v\n%s", worker, err, out)

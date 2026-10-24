@@ -12,8 +12,8 @@ import (
 	"testing"
 	"time"
 
-	"github.com/steveyegge/beads/internal/storage/embeddeddolt"
-	"github.com/steveyegge/beads/internal/types"
+	"github.com/borg0ai/dx-issuegraph/internal/storage/embeddeddolt"
+	"github.com/borg0ai/dx-issuegraph/internal/types"
 )
 
 // TestEmbeddedDoltExternalRefChangedAfterUsesHistoryFastPath is a regression
@@ -27,8 +27,8 @@ import (
 // correct answer is produced instead.
 func TestEmbeddedDoltExternalRefChangedAfterUsesHistoryFastPath(t *testing.T) {
 	ctx := context.Background()
-	beadsDir := filepath.Join(t.TempDir(), ".beads")
-	store, err := embeddeddolt.Open(ctx, beadsDir, "gh4549", "main")
+	issuegraphDir := filepath.Join(t.TempDir(), ".issuegraph")
+	store, err := embeddeddolt.Open(ctx, issuegraphDir, "gh4549", "main")
 	if err != nil {
 		t.Fatalf("Open embedded store: %v", err)
 	}
@@ -37,7 +37,7 @@ func TestEmbeddedDoltExternalRefChangedAfterUsesHistoryFastPath(t *testing.T) {
 	if err := store.SetConfig(ctx, "issue_prefix", "gh4549"); err != nil {
 		t.Fatalf("SetConfig(issue_prefix): %v", err)
 	}
-	if err := store.Commit(ctx, "bd init"); err != nil {
+	if err := store.Commit(ctx, "issuegraph init"); err != nil {
 		t.Fatalf("Commit: %v", err)
 	}
 

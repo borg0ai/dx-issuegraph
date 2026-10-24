@@ -30,7 +30,7 @@ func TestPartialIDSearchPartKeepsPlainAndHierarchicalIDs(t *testing.T) {
 }
 
 func TestPartialIDSearchPartRejectsInvalidSearchText(t *testing.T) {
-	for _, input := range []string{"", "bd abc", "bd:abc", "bd/abc"} {
+	for _, input := range []string{"", "issuegraph abc", "issuegraph:abc", "issuegraph/abc"} {
 		if got, ok := partialIDSearchPart(input); ok {
 			t.Fatalf("partialIDSearchPart(%q) = %q, true; want false", input, got)
 		}

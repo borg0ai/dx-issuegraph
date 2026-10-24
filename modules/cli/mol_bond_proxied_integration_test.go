@@ -7,7 +7,7 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/steveyegge/beads/internal/formula"
+	"github.com/borg0ai/dx-issuegraph/internal/formula"
 )
 
 func twoStepFormula(name, stepTitle string) *formula.Formula {
@@ -24,17 +24,17 @@ func twoStepFormula(name, stepTitle string) *formula.Formula {
 func TestProxiedServerMolBond(t *testing.T) {
 	requireSharedProxiedServer(t)
 	t.Parallel()
-	bd := buildEmbeddedBD(t)
+	issuegraph := buildEmbeddedBD(t)
 
 	t.Run("label_only_protos_bond_as_compound_molecule_not_proto", func(t *testing.T) {
 		t.Parallel()
-		p := newSharedProxiedProject(t, bd, "mbpp")
-		protoA := bdProxiedCreate(t, bd, p.dir, "Proto A", "--type", "epic", "--label", "template")
-		protoB := bdProxiedCreate(t, bd, p.dir, "Proto B", "--type", "epic", "--label", "template")
+		p := newSharedProxiedProject(t, issuegraph, "mbpp")
+		protoA := issuegraphProxiedCreate(t, issuegraph, p.dir, "Proto A", "--type", "epic", "--label", "template")
+		protoB := issuegraphProxiedCreate(t, issuegraph, p.dir, "Proto B", "--type", "epic", "--label", "template")
 
-		out, err := bdProxiedRun(t, bd, p.dir, "mol", "bond", protoA.ID, protoB.ID, "--type", "sequential", "--json")
+		out, err := issuegraphProxiedRun(t, issuegraph, p.dir, "mol", "bond", protoA.ID, protoB.ID, "--type", "sequential", "--json")
 		if err != nil {
-			t.Fatalf("bd mol bond --json: %v\n%s", err, out)
+			t.Fatalf("issuegraph mol bond --json: %v\n%s", err, out)
 		}
 		var got struct {
 			ResultID   string `json:"result_id"`
@@ -56,11 +56,11 @@ func TestProxiedServerMolBond(t *testing.T) {
 
 	t.Run("formula_plus_formula_currently_errors", func(t *testing.T) {
 		t.Parallel()
-		p := newSharedProxiedProject(t, bd, "mbppf")
+		p := newSharedProxiedProject(t, issuegraph, "mbppf")
 		writeFormulaFixture(t, p, twoStepFormula("proto-a", "Step of proto A"))
 		writeFormulaFixture(t, p, twoStepFormula("proto-b", "Step of proto B"))
 
-		stdout, stderr, err := bdProxiedRunBuffers(t, bd, p.dir, "mol", "bond", "proto-a", "proto-b", "--type", "sequential")
+		stdout, stderr, err := issuegraphProxiedRunBuffers(t, issuegraph, p.dir, "mol", "bond", "proto-a", "proto-b", "--type", "sequential")
 		if err == nil {
 			t.Fatalf("expected bonding two cooked-but-unpersisted formulas to error (pre-existing limitation); got success: %s", stdout)
 		}
@@ -71,13 +71,13 @@ func TestProxiedServerMolBond(t *testing.T) {
 
 	t.Run("proto_plus_mol_spawns_and_attaches", func(t *testing.T) {
 		t.Parallel()
-		p := newSharedProxiedProject(t, bd, "mbpm")
+		p := newSharedProxiedProject(t, issuegraph, "mbpm")
 		writeFormulaFixture(t, p, twoStepFormula("diagnostic", "Diagnostic step"))
-		mol := bdProxiedCreate(t, bd, p.dir, "Live molecule", "--type", "epic")
+		mol := issuegraphProxiedCreate(t, issuegraph, p.dir, "Live molecule", "--type", "epic")
 
-		out, err := bdProxiedRun(t, bd, p.dir, "mol", "bond", "diagnostic", mol.ID, "--type", "sequential", "--json")
+		out, err := issuegraphProxiedRun(t, issuegraph, p.dir, "mol", "bond", "diagnostic", mol.ID, "--type", "sequential", "--json")
 		if err != nil {
-			t.Fatalf("bd mol bond --json: %v\n%s", err, out)
+			t.Fatalf("issuegraph mol bond --json: %v\n%s", err, out)
 		}
 		var got struct {
 			ResultID   string `json:"result_id"`
@@ -94,7 +94,7 @@ func TestProxiedServerMolBond(t *testing.T) {
 			t.Fatalf("spawned = %d, want 2 (proto root + step)", got.Spawned)
 		}
 
-		show := bdProxiedShow(t, bd, p.dir, mol.ID)
+		show := issuegraphProxiedShow(t, issuegraph, p.dir, mol.ID)
 		if show.ID != mol.ID {
 			t.Fatalf("expected molecule %s to still exist after bond", mol.ID)
 		}
@@ -102,13 +102,13 @@ func TestProxiedServerMolBond(t *testing.T) {
 
 	t.Run("mol_plus_mol_adds_dependency_and_rejects_cycle", func(t *testing.T) {
 		t.Parallel()
-		p := newSharedProxiedProject(t, bd, "mbmm")
-		molA := bdProxiedCreate(t, bd, p.dir, "Mol A", "--type", "epic")
-		molB := bdProxiedCreate(t, bd, p.dir, "Mol B", "--type", "epic")
+		p := newSharedProxiedProject(t, issuegraph, "mbmm")
+		molA := issuegraphProxiedCreate(t, issuegraph, p.dir, "Mol A", "--type", "epic")
+		molB := issuegraphProxiedCreate(t, issuegraph, p.dir, "Mol B", "--type", "epic")
 
-		out, err := bdProxiedRun(t, bd, p.dir, "mol", "bond", molA.ID, molB.ID, "--type", "sequential", "--json")
+		out, err := issuegraphProxiedRun(t, issuegraph, p.dir, "mol", "bond", molA.ID, molB.ID, "--type", "sequential", "--json")
 		if err != nil {
-			t.Fatalf("bd mol bond --json: %v\n%s", err, out)
+			t.Fatalf("issuegraph mol bond --json: %v\n%s", err, out)
 		}
 		var got struct {
 			ResultType string `json:"result_type"`
@@ -123,7 +123,7 @@ func TestProxiedServerMolBond(t *testing.T) {
 		db := openProxiedDB(t, p)
 		assertProxiedDepExistsWithType(t, db, molB.ID, molA.ID, "blocks")
 
-		stdout, stderr, err := bdProxiedRunBuffers(t, bd, p.dir, "mol", "bond", molB.ID, molA.ID, "--type", "sequential")
+		stdout, stderr, err := issuegraphProxiedRunBuffers(t, issuegraph, p.dir, "mol", "bond", molB.ID, molA.ID, "--type", "sequential")
 		if err == nil {
 			t.Fatalf("expected cycle rejection, got success: %s", stdout)
 		}
@@ -134,14 +134,14 @@ func TestProxiedServerMolBond(t *testing.T) {
 
 	t.Run("ref_dynamic_bonding_generates_readable_ids", func(t *testing.T) {
 		t.Parallel()
-		p := newSharedProxiedProject(t, bd, "mbref")
+		p := newSharedProxiedProject(t, issuegraph, "mbref")
 		writeFormulaFixture(t, p, twoStepFormula("arm", "Capture {{worker_name}}"))
-		patrol := bdProxiedCreate(t, bd, p.dir, "Patrol", "--type", "epic")
+		patrol := issuegraphProxiedCreate(t, issuegraph, p.dir, "Patrol", "--type", "epic")
 
-		out, err := bdProxiedRun(t, bd, p.dir, "mol", "bond", "arm", patrol.ID,
+		out, err := issuegraphProxiedRun(t, issuegraph, p.dir, "mol", "bond", "arm", patrol.ID,
 			"--ref", "arm-{{worker_name}}", "--var", "worker_name=ace", "--json")
 		if err != nil {
-			t.Fatalf("bd mol bond --ref --json: %v\n%s", err, out)
+			t.Fatalf("issuegraph mol bond --ref --json: %v\n%s", err, out)
 		}
 		var got struct {
 			IDMapping map[string]string `json:"id_mapping"`
@@ -165,7 +165,7 @@ func TestProxiedServerMolBond(t *testing.T) {
 			if newID == expectedRootID {
 				continue
 			}
-			issue := bdProxiedShow(t, bd, p.dir, newID)
+			issue := issuegraphProxiedShow(t, issuegraph, p.dir, newID)
 			if strings.Contains(issue.Title, "ace") {
 				substituted = true
 			}
@@ -177,19 +177,19 @@ func TestProxiedServerMolBond(t *testing.T) {
 
 	t.Run("dry_run_creates_nothing", func(t *testing.T) {
 		t.Parallel()
-		p := newSharedProxiedProject(t, bd, "mbdr")
+		p := newSharedProxiedProject(t, issuegraph, "mbdr")
 		writeFormulaFixture(t, p, twoStepFormula("dry-proto-a", "Dry proto A step"))
 		writeFormulaFixture(t, p, twoStepFormula("dry-proto-b", "Dry proto B step"))
 
-		before := bdProxiedListJSON(t, bd, p, "--all")
-		stdout, _, err := bdProxiedRunBuffers(t, bd, p.dir, "mol", "bond", "dry-proto-a", "dry-proto-b", "--dry-run")
+		before := issuegraphProxiedListJSON(t, issuegraph, p, "--all")
+		stdout, _, err := issuegraphProxiedRunBuffers(t, issuegraph, p.dir, "mol", "bond", "dry-proto-a", "dry-proto-b", "--dry-run")
 		if err != nil {
-			t.Fatalf("bd mol bond --dry-run: %v\n%s", err, stdout)
+			t.Fatalf("issuegraph mol bond --dry-run: %v\n%s", err, stdout)
 		}
 		if !strings.Contains(stdout, "Dry run") {
 			t.Errorf("expected dry-run preview, got: %s", stdout)
 		}
-		after := bdProxiedListJSON(t, bd, p, "--all")
+		after := issuegraphProxiedListJSON(t, issuegraph, p, "--all")
 		if len(after) != len(before) {
 			t.Errorf("expected no new issues from --dry-run: before=%d after=%d", len(before), len(after))
 		}

@@ -8,9 +8,9 @@ import (
 	"strings"
 	"unicode/utf8"
 
-	"github.com/steveyegge/beads/internal/httpapi/apigen"
-	"github.com/steveyegge/beads/internal/types"
-	"github.com/steveyegge/beads/issueops"
+	"github.com/borg0ai/dx-issuegraph/internal/httpapi/apigen"
+	"github.com/borg0ai/dx-issuegraph/internal/types"
+	"github.com/borg0ai/dx-issuegraph/issueops"
 )
 
 // closeRequestMembers is the document's member list for CloseIssueRequest. The
@@ -25,7 +25,7 @@ var closeRequestMembers = []string{"actor", "reason", "session", "force", expect
 // It carries the claim's posture verbatim. The actor is caller-ASSERTED
 // provenance for the audit trail and not authenticated identity; hooks do not
 // fire and the per-command auto-commit machinery does not run, exactly as for
-// POST /v0/beads/issues/{id}:claim. The only durable effect is the single
+// POST /v0/issuegraph/issues/{id}:claim. The only durable effect is the single
 // storage commit the role makes inside its own transaction.
 //
 // Everything above the role is argument validation: the media type, the body

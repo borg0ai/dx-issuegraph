@@ -12,43 +12,43 @@ import (
 	"testing"
 )
 
-// bdKV runs "bd kv" with the given args and returns stdout.
-func bdKV(t *testing.T, bd, dir string, args ...string) string {
+// issuegraphKV runs "issuegraph kv" with the given args and returns stdout.
+func issuegraphKV(t *testing.T, issuegraph, dir string, args ...string) string {
 	t.Helper()
 	fullArgs := append([]string{"kv"}, args...)
-	cmd := exec.Command(bd, fullArgs...)
+	cmd := exec.Command(issuegraph, fullArgs...)
 	cmd.Dir = dir
-	cmd.Env = bdEnv(dir)
+	cmd.Env = issuegraphEnv(dir)
 	stdout, stderr, err := runCommandBuffers(t, cmd)
 	if err != nil {
-		t.Fatalf("bd kv %s failed: %v\nstdout:\n%s\nstderr:\n%s", strings.Join(args, " "), err, stdout.String(), stderr.String())
+		t.Fatalf("issuegraph kv %s failed: %v\nstdout:\n%s\nstderr:\n%s", strings.Join(args, " "), err, stdout.String(), stderr.String())
 	}
 	return stdout.String()
 }
 
-// bdKVFail runs "bd kv" expecting failure.
-func bdKVFail(t *testing.T, bd, dir string, args ...string) string {
+// issuegraphKVFail runs "issuegraph kv" expecting failure.
+func issuegraphKVFail(t *testing.T, issuegraph, dir string, args ...string) string {
 	t.Helper()
 	fullArgs := append([]string{"kv"}, args...)
-	cmd := exec.Command(bd, fullArgs...)
+	cmd := exec.Command(issuegraph, fullArgs...)
 	cmd.Dir = dir
-	cmd.Env = bdEnv(dir)
+	cmd.Env = issuegraphEnv(dir)
 	out, err := cmd.CombinedOutput()
 	if err == nil {
-		t.Fatalf("expected bd kv %s to fail, but succeeded:\n%s", strings.Join(args, " "), out)
+		t.Fatalf("expected issuegraph kv %s to fail, but succeeded:\n%s", strings.Join(args, " "), out)
 	}
 	return string(out)
 }
 
-// bdKVListJSON runs "bd kv list --json" and returns parsed map.
-func bdKVListJSON(t *testing.T, bd, dir string) map[string]string {
+// issuegraphKVListJSON runs "issuegraph kv list --json" and returns parsed map.
+func issuegraphKVListJSON(t *testing.T, issuegraph, dir string) map[string]string {
 	t.Helper()
-	cmd := exec.Command(bd, "kv", "list", "--json")
+	cmd := exec.Command(issuegraph, "kv", "list", "--json")
 	cmd.Dir = dir
-	cmd.Env = bdEnv(dir)
+	cmd.Env = issuegraphEnv(dir)
 	stdout, stderr, err := runCommandBuffers(t, cmd)
 	if err != nil {
-		t.Fatalf("bd kv list --json failed: %v\nstdout:\n%s\nstderr:\n%s", err, stdout.String(), stderr.String())
+		t.Fatalf("issuegraph kv list --json failed: %v\nstdout:\n%s\nstderr:\n%s", err, stdout.String(), stderr.String())
 	}
 	s := strings.TrimSpace(stdout.String())
 	start := strings.Index(s, "{")
@@ -72,36 +72,36 @@ func bdKVListJSON(t *testing.T, bd, dir string) map[string]string {
 }
 
 func TestEmbeddedKV(t *testing.T) {
-	if os.Getenv("BEADS_TEST_EMBEDDED_DOLT") != "1" {
-		t.Skip("set BEADS_TEST_EMBEDDED_DOLT=1 to run embedded dolt integration tests")
+	if os.Getenv("ISSUEGRAPH_TEST_EMBEDDED_DOLT") != "1" {
+		t.Skip("set ISSUEGRAPH_TEST_EMBEDDED_DOLT=1 to run embedded dolt integration tests")
 	}
 	t.Parallel()
 
-	bd := buildEmbeddedBD(t)
-	dir, _, _ := bdInit(t, bd, "--prefix", "tk")
+	issuegraph := buildEmbeddedBD(t)
+	dir, _, _ := issuegraphInit(t, issuegraph, "--prefix", "tk")
 
 	// ===== Set and Get =====
 
 	t.Run("kv_set_and_get", func(t *testing.T) {
-		bdKV(t, bd, dir, "set", "mykey", "myvalue")
-		out := bdKV(t, bd, dir, "get", "mykey")
+		issuegraphKV(t, issuegraph, dir, "set", "mykey", "myvalue")
+		out := issuegraphKV(t, issuegraph, dir, "get", "mykey")
 		if !strings.Contains(out, "myvalue") {
 			t.Errorf("expected 'myvalue' in get output: %s", out)
 		}
 	})
 
 	t.Run("kv_set_overwrite", func(t *testing.T) {
-		bdKV(t, bd, dir, "set", "overkey", "first")
-		bdKV(t, bd, dir, "set", "overkey", "second")
-		out := bdKV(t, bd, dir, "get", "overkey")
+		issuegraphKV(t, issuegraph, dir, "set", "overkey", "first")
+		issuegraphKV(t, issuegraph, dir, "set", "overkey", "second")
+		out := issuegraphKV(t, issuegraph, dir, "get", "overkey")
 		if !strings.Contains(out, "second") {
 			t.Errorf("expected 'second' after overwrite: %s", out)
 		}
 	})
 
 	t.Run("kv_set_special_chars", func(t *testing.T) {
-		bdKV(t, bd, dir, "set", "special", "hello world with spaces")
-		out := bdKV(t, bd, dir, "get", "special")
+		issuegraphKV(t, issuegraph, dir, "set", "special", "hello world with spaces")
+		out := issuegraphKV(t, issuegraph, dir, "get", "special")
 		if !strings.Contains(out, "hello world with spaces") {
 			t.Errorf("expected value with spaces: %s", out)
 		}
@@ -110,14 +110,14 @@ func TestEmbeddedKV(t *testing.T) {
 	// ===== List =====
 
 	t.Run("kv_list", func(t *testing.T) {
-		out := bdKV(t, bd, dir, "list")
+		out := issuegraphKV(t, issuegraph, dir, "list")
 		if !strings.Contains(out, "mykey") {
 			t.Errorf("expected 'mykey' in list output: %s", out)
 		}
 	})
 
 	t.Run("kv_list_json", func(t *testing.T) {
-		m := bdKVListJSON(t, bd, dir)
+		m := issuegraphKVListJSON(t, issuegraph, dir)
 		if v, ok := m["mykey"]; !ok || v != "myvalue" {
 			t.Errorf("expected mykey=myvalue in JSON, got %q (exists=%v)", v, ok)
 		}
@@ -126,14 +126,14 @@ func TestEmbeddedKV(t *testing.T) {
 	// ===== Clear =====
 
 	t.Run("kv_clear", func(t *testing.T) {
-		bdKV(t, bd, dir, "set", "clearme", "temporary")
-		out := bdKV(t, bd, dir, "get", "clearme")
+		issuegraphKV(t, issuegraph, dir, "set", "clearme", "temporary")
+		out := issuegraphKV(t, issuegraph, dir, "get", "clearme")
 		if !strings.Contains(out, "temporary") {
 			t.Fatalf("expected 'temporary' before clear: %s", out)
 		}
-		bdKV(t, bd, dir, "clear", "clearme")
+		issuegraphKV(t, issuegraph, dir, "clear", "clearme")
 		// Verify it's gone from list
-		m := bdKVListJSON(t, bd, dir)
+		m := issuegraphKVListJSON(t, issuegraph, dir)
 		if _, ok := m["clearme"]; ok {
 			t.Error("expected clearme to be absent from kv list after clear")
 		}
@@ -143,9 +143,9 @@ func TestEmbeddedKV(t *testing.T) {
 
 	t.Run("kv_get_missing_key", func(t *testing.T) {
 		// get on nonexistent key — check behavior
-		cmd := exec.Command(bd, "kv", "get", "nonexistent_key_xyz")
+		cmd := exec.Command(issuegraph, "kv", "get", "nonexistent_key_xyz")
 		cmd.Dir = dir
-		cmd.Env = bdEnv(dir)
+		cmd.Env = issuegraphEnv(dir)
 		out, err := cmd.CombinedOutput()
 		// May succeed with empty or fail — either way no crash
 		_ = err
@@ -153,27 +153,27 @@ func TestEmbeddedKV(t *testing.T) {
 	})
 
 	t.Run("kv_set_no_args", func(t *testing.T) {
-		bdKVFail(t, bd, dir, "set")
+		issuegraphKVFail(t, issuegraph, dir, "set")
 	})
 
 	t.Run("kv_get_no_args", func(t *testing.T) {
-		bdKVFail(t, bd, dir, "get")
+		issuegraphKVFail(t, issuegraph, dir, "get")
 	})
 
 	t.Run("kv_clear_no_args", func(t *testing.T) {
-		bdKVFail(t, bd, dir, "clear")
+		issuegraphKVFail(t, issuegraph, dir, "clear")
 	})
 }
 
 // TestEmbeddedKVConcurrent exercises kv operations concurrently.
 func TestEmbeddedKVConcurrent(t *testing.T) {
-	if os.Getenv("BEADS_TEST_EMBEDDED_DOLT") != "1" {
-		t.Skip("set BEADS_TEST_EMBEDDED_DOLT=1 to run embedded dolt integration tests")
+	if os.Getenv("ISSUEGRAPH_TEST_EMBEDDED_DOLT") != "1" {
+		t.Skip("set ISSUEGRAPH_TEST_EMBEDDED_DOLT=1 to run embedded dolt integration tests")
 	}
 	t.Parallel()
 
-	bd := buildEmbeddedBD(t)
-	dir, _, _ := bdInit(t, bd, "--prefix", "kx")
+	issuegraph := buildEmbeddedBD(t)
+	dir, _, _ := issuegraphInit(t, issuegraph, "--prefix", "kx")
 
 	const numWorkers = 8
 
@@ -196,9 +196,9 @@ func TestEmbeddedKVConcurrent(t *testing.T) {
 				key := fmt.Sprintf("w%d-k%d", worker, i)
 				value := fmt.Sprintf("v%d-%d", worker, i)
 
-				cmd := exec.Command(bd, "kv", "set", key, value)
+				cmd := exec.Command(issuegraph, "kv", "set", key, value)
 				cmd.Dir = dir
-				cmd.Env = bdEnv(dir)
+				cmd.Env = issuegraphEnv(dir)
 				out, err := cmd.CombinedOutput()
 				if err != nil {
 					r.err = fmt.Errorf("set %s: %v\n%s", key, err, out)
@@ -212,9 +212,9 @@ func TestEmbeddedKVConcurrent(t *testing.T) {
 				key := fmt.Sprintf("w%d-k%d", worker, i)
 				expected := fmt.Sprintf("v%d-%d", worker, i)
 
-				cmd := exec.Command(bd, "kv", "get", key)
+				cmd := exec.Command(issuegraph, "kv", "get", key)
 				cmd.Dir = dir
-				cmd.Env = bdEnv(dir)
+				cmd.Env = issuegraphEnv(dir)
 				out, err := cmd.CombinedOutput()
 				if err != nil {
 					r.err = fmt.Errorf("get %s: %v\n%s", key, err, out)
@@ -230,9 +230,9 @@ func TestEmbeddedKVConcurrent(t *testing.T) {
 
 			// Clear one key
 			clearKey := fmt.Sprintf("w%d-k0", worker)
-			cmd := exec.Command(bd, "kv", "clear", clearKey)
+			cmd := exec.Command(issuegraph, "kv", "clear", clearKey)
 			cmd.Dir = dir
-			cmd.Env = bdEnv(dir)
+			cmd.Env = issuegraphEnv(dir)
 			out, err := cmd.CombinedOutput()
 			if err != nil {
 				r.err = fmt.Errorf("clear %s: %v\n%s", clearKey, err, out)
@@ -253,7 +253,7 @@ func TestEmbeddedKVConcurrent(t *testing.T) {
 
 	// Verify remaining keys only for workers that succeeded (err==nil).
 	// With exclusive flock, some workers may fail with "one writer at a time".
-	m := bdKVListJSON(t, bd, dir)
+	m := issuegraphKVListJSON(t, issuegraph, dir)
 	var successCount int
 	for _, r := range results {
 		if r.err != nil {

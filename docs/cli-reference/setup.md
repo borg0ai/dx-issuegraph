@@ -1,35 +1,35 @@
 ---
-title: "bd setup"
+title: "issuegraph setup"
 description: "Setup integration files for AI editors and coding assistants."
 ---
 
 {/* AUTO-GENERATED: do not edit manually */}
 
-Generated from `bd help --doc setup`.
+Generated from `issuegraph help --doc setup`.
 
 Setup integration files for AI editors and coding assistants.
 
-Recipes define where beads workflow instructions are written. Built-in recipes
+Recipes define where issuegraph workflow instructions are written. Built-in recipes
 include cursor, claude, copilot, gemini, aider, factory, codex, mux, opencode, junie, windsurf, cody, and kilocode.
 
 Examples:
-  bd setup cursor          # Install Cursor IDE integration
-  bd setup codex           # Install Codex skill + AGENTS.md guidance + native hooks
-  bd setup codex --global  # Install global Codex skill + guidance + native hooks
-  bd setup copilot         # Install Copilot CLI plugin + repository instructions
-  bd setup mux --project   # Install Mux workspace layer (.mux/AGENTS.md)
-  bd setup mux --global    # Install Mux global layer (~/.mux/AGENTS.md)
-  bd setup mux --project --global  # Install both Mux layers
-  bd setup --list          # Show all available recipes
-  bd setup --print         # Print the template to stdout
-  bd setup -o rules.md     # Write template to custom path
-  bd setup --add myeditor .myeditor/rules.md  # Add custom recipe
+  issuegraph setup cursor          # Install Cursor IDE integration
+  issuegraph setup codex           # Install Codex skill + AGENTS.md guidance + native hooks
+  issuegraph setup codex --global  # Install global Codex skill + guidance + native hooks
+  issuegraph setup copilot         # Install Copilot CLI plugin + repository instructions
+  issuegraph setup mux --project   # Install Mux workspace layer (.mux/AGENTS.md)
+  issuegraph setup mux --global    # Install Mux global layer (~/.mux/AGENTS.md)
+  issuegraph setup mux --project --global  # Install both Mux layers
+  issuegraph setup --list          # Show all available recipes
+  issuegraph setup --print         # Print the template to stdout
+  issuegraph setup -o rules.md     # Write template to custom path
+  issuegraph setup --add myeditor .myeditor/rules.md  # Add custom recipe
 
-Use 'bd setup &lt;recipe&gt; --check' to verify installation status.
-Use 'bd setup &lt;recipe&gt; --remove' to uninstall.
+Use 'issuegraph setup &lt;recipe&gt; --check' to verify installation status.
+Use 'issuegraph setup &lt;recipe&gt; --remove' to uninstall.
 
 ```
-bd setup [recipe] [flags]
+issuegraph setup [recipe] [flags]
 ```
 
 **Flags:**

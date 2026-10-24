@@ -5,9 +5,9 @@ import (
 	"database/sql"
 	"fmt"
 
-	"github.com/steveyegge/beads/internal/storage"
-	"github.com/steveyegge/beads/internal/types"
-	publicops "github.com/steveyegge/beads/issueops"
+	"github.com/borg0ai/dx-issuegraph/internal/storage"
+	"github.com/borg0ai/dx-issuegraph/internal/types"
+	publicops "github.com/borg0ai/dx-issuegraph/issueops"
 )
 
 // ClaimNextCommitMessage names the claim in the Dolt commit message, matching
@@ -15,7 +15,7 @@ import (
 // role. It is the only spelling: the id it names is the one the claim WON, so
 // no caller could have composed it before the call.
 func ClaimNextCommitMessage(issueID string) string {
-	return "bd: claim ready " + issueID
+	return "issuegraph: claim ready " + issueID
 }
 
 // ValidateClaimNextRequest applies the request rules every ReadyClaimer

@@ -13,8 +13,8 @@ import (
 	"testing"
 	"time"
 
+	"github.com/borg0ai/dx-issuegraph/internal/storage/doltutil"
 	_ "github.com/go-sql-driver/mysql" // MySQL driver for direct DB connections
-	"github.com/steveyegge/beads/internal/storage/doltutil"
 )
 
 // branchPrefix is the prefix for all test branches, used for cleanup.
@@ -156,14 +156,14 @@ func SetupSharedTestDB(port int, dbName string) (*sql.DB, error) {
 		return nil, fmt.Errorf("SetupSharedTestDB: REFUSED — port %d is production (Clown Shows #12-#18)", port)
 	}
 
-	// FIREWALL: refuse when the ambient BEADS_DOLT_SERVER_PORT disagrees
+	// FIREWALL: refuse when the ambient ISSUEGRAPH_DOLT_SERVER_PORT disagrees
 	// with the port we were asked to use — proceeding would silently
 	// create the shared test DB against whichever server
-	// BEADS_DOLT_SERVER_PORT points at instead of our own testcontainer
+	// ISSUEGRAPH_DOLT_SERVER_PORT points at instead of our own testcontainer
 	// (be-33se).
-	if ambient := os.Getenv("BEADS_DOLT_SERVER_PORT"); ambient != "" && ambient != strconv.Itoa(port) {
+	if ambient := os.Getenv("ISSUEGRAPH_DOLT_SERVER_PORT"); ambient != "" && ambient != strconv.Itoa(port) {
 		_ = db.Close()
-		return nil, fmt.Errorf("SetupSharedTestDB: REFUSED — port %d disagrees with ambient BEADS_DOLT_SERVER_PORT=%s", port, ambient)
+		return nil, fmt.Errorf("SetupSharedTestDB: REFUSED — port %d disagrees with ambient ISSUEGRAPH_DOLT_SERVER_PORT=%s", port, ambient)
 	}
 
 	// Create the shared database

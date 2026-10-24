@@ -11,11 +11,11 @@ import (
 	"strings"
 	"time"
 
+	"github.com/borg0ai/dx-issuegraph/internal/git"
+	"github.com/borg0ai/dx-issuegraph/internal/issuegraph"
+	"github.com/borg0ai/dx-issuegraph/internal/metrics"
+	"github.com/borg0ai/dx-issuegraph/modules/cli/doctor"
 	"github.com/spf13/cobra"
-	"github.com/steveyegge/beads/modules/cli/doctor"
-	"github.com/steveyegge/beads/internal/beads"
-	"github.com/steveyegge/beads/internal/git"
-	"github.com/steveyegge/beads/internal/metrics"
 )
 
 // CheckResult represents the result of a single preflight check.
@@ -45,15 +45,15 @@ This command helps catch common issues before pushing to CI:
 - Tests not run locally
 - Lint errors
 - Unformatted Go files
-- .beads/issues.jsonl pollution
+- .issuegraph/issues.jsonl pollution
 - Stale nix vendorHash
 - Version mismatches
 
 Examples:
-  bd preflight              # Show checklist
-  bd preflight --check      # Run checks automatically
-  bd preflight --check --json  # JSON output for programmatic use
-  bd preflight --check --skip-lint  # Explicitly skip lint check
+  issuegraph preflight              # Show checklist
+  issuegraph preflight --check      # Run checks automatically
+  issuegraph preflight --check --json  # JSON output for programmatic use
+  issuegraph preflight --check --skip-lint  # Explicitly skip lint check
 `,
 	SilenceUsage:  true,
 	SilenceErrors: true,
@@ -66,7 +66,7 @@ func init() {
 	// Bound to the package global like every other command's local --json.
 	// commandJSONFlagChanged suppresses the config-driven default whenever a
 	// local --json is set, so a flag that does not write the global would
-	// leave `bd preflight --json` with jsonOutput=false — inverting JSON mode
+	// leave `issuegraph preflight --json` with jsonOutput=false — inverting JSON mode
 	// for everything that reads the global, including the front-door error
 	// renderers.
 	preflightCmd.Flags().BoolVar(&jsonOutput, "json", false, "Output results as JSON")
@@ -110,7 +110,7 @@ func runPreflight(cmd *cobra.Command, args []string) error {
 		fmt.Printf("[ ] %s\n", item)
 	}
 	fmt.Println()
-	fmt.Println("Run 'bd preflight --check' to validate automatically.")
+	fmt.Println("Run 'issuegraph preflight --check' to validate automatically.")
 	return nil
 }
 
@@ -130,15 +130,15 @@ func fileExists(dir, name string) bool {
 // (gms_pure_go build tags, nix vendorHash, version.go vs default.nix) only
 // appear where they apply (GH#4364).
 func buildPreflightChecklist(dir string) []string {
-	// Preserve the exact rich checklist when run inside the beads repo itself
+	// Preserve the exact rich checklist when run inside the issuegraph repo itself
 	// (its primary audience), so the gms_pure_go build tags and nix/version
-	// reminders beads contributors rely on are not lost.
-	if isBeadsRepo(dir) {
+	// reminders issuegraph contributors rely on are not lost.
+	if isIssueGraphRepo(dir) {
 		return []string{
 			"Tests pass: go test -tags gms_pure_go -short ./...",
 			"Lint passes: golangci-lint run --build-tags=gms_pure_go ./...",
 			"Formatting: gofmt -l .",
-			"No beads pollution: check .beads/issues.jsonl diff",
+			"No issuegraph pollution: check .issuegraph/issues.jsonl diff",
 			"Nix hash current: go.sum unchanged or vendorHash updated",
 			"Version sync: version.go matches default.nix",
 		}
@@ -171,17 +171,17 @@ func buildPreflightChecklist(dir string) []string {
 		items = append(items, "Tests pass: run your project's test suite, linter, and formatter")
 	}
 
-	// Relevant to any beads workspace, regardless of language.
-	if fileExists(dir, ".beads") {
-		items = append(items, "No beads pollution: check .beads/issues.jsonl diff")
+	// Relevant to any issuegraph workspace, regardless of language.
+	if fileExists(dir, ".issuegraph") {
+		items = append(items, "No issuegraph pollution: check .issuegraph/issues.jsonl diff")
 	}
 
 	return items
 }
 
-// isBeadsRepo reports whether dir is the beads source repo, detected by the
+// isIssueGraphRepo reports whether dir is the issuegraph source repo, detected by the
 // module path in go.mod. Used to keep preflight's repo-specific checklist.
-func isBeadsRepo(dir string) bool {
+func isIssueGraphRepo(dir string) bool {
 	data, err := os.ReadFile(filepath.Join(dir, "go.mod")) //nolint:gosec // path is constructed internally (repo root + fixed filename)
 	if err != nil {
 		return false
@@ -189,7 +189,7 @@ func isBeadsRepo(dir string) bool {
 	for _, line := range strings.Split(string(data), "\n") {
 		line = strings.TrimSpace(line)
 		if strings.HasPrefix(line, "module ") {
-			return strings.TrimSpace(strings.TrimPrefix(line, "module ")) == "github.com/steveyegge/beads"
+			return strings.TrimSpace(strings.TrimPrefix(line, "module ")) == "github.com/borg0ai/dx-issuegraph"
 		}
 	}
 	return false
@@ -211,9 +211,9 @@ func runChecks(jsonOutput, skipLint bool) error {
 	fmtResult := runFmtCheck()
 	results = append(results, fmtResult)
 
-	// Run beads pollution check
-	beadsResult := runBeadsPollutionCheck()
-	results = append(results, beadsResult)
+	// Run issuegraph pollution check
+	issuegraphResult := runIssueGraphPollutionCheck()
+	results = append(results, issuegraphResult)
 
 	// Run nix hash check
 	nixResult := runNixHashCheck()
@@ -394,30 +394,30 @@ func runFmtCheck() CheckResult {
 	}
 }
 
-// runBeadsPollutionCheck detects .beads/issues.jsonl modifications vs merge base.
-func runBeadsPollutionCheck() CheckResult {
-	command := "git diff -- .beads/issues.jsonl"
+// runIssueGraphPollutionCheck detects .issuegraph/issues.jsonl modifications vs merge base.
+func runIssueGraphPollutionCheck() CheckResult {
+	command := "git diff -- .issuegraph/issues.jsonl"
 
-	beadsDir := beads.FindBeadsDir()
-	if beadsDir == "" {
+	issuegraphDir := issuegraph.FindIssueGraphDir()
+	if issuegraphDir == "" {
 		return CheckResult{
-			Name:    "No beads pollution",
+			Name:    "No issuegraph pollution",
 			Passed:  true,
 			Command: command,
 		}
 	}
 
 	// git diff requires a path relative to the worktree root.
-	// If beadsDir points outside the worktree (shared .beads in a
+	// If issuegraphDir points outside the worktree (shared .issuegraph in a
 	// worktree setup), convert to a relative path. When the path is
 	// outside the worktree, the pollution check is skipped since git
 	// cannot diff paths outside the working tree.
-	issuesPath := filepath.Join(beadsDir, "issues.jsonl")
+	issuesPath := filepath.Join(issuegraphDir, "issues.jsonl")
 	if filepath.IsAbs(issuesPath) {
 		repoRoot := git.GetRepoRoot()
 		if repoRoot == "" {
 			return CheckResult{
-				Name:    "No beads pollution",
+				Name:    "No issuegraph pollution",
 				Passed:  true,
 				Command: command,
 			}
@@ -425,10 +425,10 @@ func runBeadsPollutionCheck() CheckResult {
 		rel, err := filepath.Rel(repoRoot, issuesPath)
 		if err != nil || isPathOutsideRepo(rel) {
 			return CheckResult{
-				Name:    "No beads pollution",
+				Name:    "No issuegraph pollution",
 				Passed:  true,
 				Command: command,
-				Output:  "Skipped: .beads is outside working tree (worktree setup)",
+				Output:  "Skipped: .issuegraph is outside working tree (worktree setup)",
 			}
 		}
 		issuesPath = rel
@@ -438,7 +438,7 @@ func runBeadsPollutionCheck() CheckResult {
 	branchOut, err := branchCmd.Output()
 	if err != nil {
 		return CheckResult{
-			Name:    "No beads pollution",
+			Name:    "No issuegraph pollution",
 			Passed:  false,
 			Skipped: true,
 			Output:  fmt.Sprintf("Cannot determine branch: %v", err),
@@ -461,15 +461,15 @@ func runBeadsPollutionCheck() CheckResult {
 
 	if len(strings.TrimSpace(string(diffOutput))) > 0 {
 		return CheckResult{
-			Name:    "No beads pollution",
+			Name:    "No issuegraph pollution",
 			Passed:  false,
-			Output:  ".beads/issues.jsonl has been modified — revert changes before pushing",
+			Output:  ".issuegraph/issues.jsonl has been modified — revert changes before pushing",
 			Command: command,
 		}
 	}
 
 	return CheckResult{
-		Name:    "No beads pollution",
+		Name:    "No issuegraph pollution",
 		Passed:  true,
 		Command: command,
 	}
@@ -621,7 +621,7 @@ func runVersionSyncCheck() CheckResult {
 // user-authored regions so the inconsistency is caught pre-PR rather than in
 // review.
 func runAgentDocDivergenceCheck() CheckResult {
-	command := "bd doctor (Agent Doc Divergence)"
+	command := "issuegraph doctor (Agent Doc Divergence)"
 
 	repoRoot := git.GetRepoRoot()
 	if repoRoot == "" {

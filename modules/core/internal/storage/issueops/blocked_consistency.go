@@ -270,7 +270,7 @@ func RecomputeAllIsBlockedInTx(ctx context.Context, tx DBTX) (int64, error) {
 // OR-of-correlated-EXISTS shape ran per outer row and made the full repair
 // cost ~80+ statement-seconds on fast hardware and >600s on small cloud CPUs
 // (bd-t9ypt); the batched templates now use the same union scoped to their
-// batch (gastownhall/beads#6288). The id lists are still captured for the
+// batch (borg0ai/dx-issuegraph#6288). The id lists are still captured for the
 // journal snapshot, and len(wispIDs) doubles as the "wisps table exists and
 // has rows" signal.
 func recomputeIsBlockedCounting(ctx context.Context, tx DBTX, issueIDs, wispIDs []string) (int64, error) {
@@ -396,7 +396,7 @@ func shouldBeBlockedIDsUnionSQL(depTable string) string {
 // correlated subqueries ahead of the type filter and re-ran them against the
 // whole overlay for every candidate row — over a 19k-row uncommitted working
 // set the flat leg took 436 s while returning zero rows; behind the derived
-// table, 0.01 s (gastownhall/beads#6288, wy-pyrus4). The DISTINCT is
+// table, 0.01 s (borg0ai/dx-issuegraph#6288, wy-pyrus4). The DISTINCT is
 // semantically free (the leg feeds a UNION, and the gate depends only on the
 // projected columns) and is what makes the barrier structural: a plain
 // single-table derived table is the mergeable shape MySQL-dialect planners
@@ -441,7 +441,7 @@ func shouldBeBlockedIDsUnionScopedSQL(depTable, scope string) string {
 
 // CountIsBlockedInconsistenciesInTx reports how many issue and wisp rows carry a
 // stale is_blocked flag — rows a full recompute would flip. It is the read-only
-// detection behind the bd doctor "Blocked State" check (bd-6dnrw.37); the
+// detection behind the issuegraph doctor "Blocked State" check (bd-6dnrw.37); the
 // repair is RecomputeAllIsBlockedInTx.
 //
 // Both derive their membership test from the one shouldBeBlockedIDsUnionSQL

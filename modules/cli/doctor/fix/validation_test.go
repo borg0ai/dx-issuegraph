@@ -13,23 +13,23 @@ import (
 	"testing"
 	"time"
 
-	"github.com/steveyegge/beads/internal/configfile"
-	"github.com/steveyegge/beads/internal/storage/dolt"
-	"github.com/steveyegge/beads/internal/storage/doltutil"
-	"github.com/steveyegge/beads/internal/testutil"
-	"github.com/steveyegge/beads/internal/types"
+	"github.com/borg0ai/dx-issuegraph/internal/configfile"
+	"github.com/borg0ai/dx-issuegraph/internal/storage/dolt"
+	"github.com/borg0ai/dx-issuegraph/internal/storage/doltutil"
+	"github.com/borg0ai/dx-issuegraph/internal/testutil"
+	"github.com/borg0ai/dx-issuegraph/internal/types"
 )
 
 // fixTestServerPort returns the Dolt server port for fix tests.
 // Uses DoltContainerPortInt so the port is only non-zero when TestMain
-// actually started a container, ignoring any external BEADS_DOLT_PORT.
+// actually started a container, ignoring any external ISSUEGRAPH_DOLT_PORT.
 func fixTestServerPort() int {
 	return testutil.DoltContainerPortInt()
 }
 
 // requireFixDoltContainer enforces the Dolt test container precondition for
 // the DB-backed fix tests. Locally a missing container skips, so contributors
-// without Docker stay green. A CI job that sets BEADS_FIX_REQUIRE_DOLT=1
+// without Docker stay green. A CI job that sets ISSUEGRAPH_FIX_REQUIRE_DOLT=1
 // (after pulling the Dolt image) turns the missing container into a hard
 // failure instead — the guard that keeps this suite from silently going dark
 // again (bd-nxt5e: every DB-backed test here skipped for months, locally and
@@ -40,14 +40,14 @@ func requireFixDoltContainer(t *testing.T) {
 	if fixTestServerPort() != 0 {
 		return
 	}
-	if os.Getenv("BEADS_FIX_REQUIRE_DOLT") == "1" {
-		t.Fatal("Dolt test container unavailable but BEADS_FIX_REQUIRE_DOLT=1; the fix-package DB suite must not silently skip")
+	if os.Getenv("ISSUEGRAPH_FIX_REQUIRE_DOLT") == "1" {
+		t.Fatal("Dolt test container unavailable but ISSUEGRAPH_FIX_REQUIRE_DOLT=1; the fix-package DB suite must not silently skip")
 	}
 	t.Skip("skipping: Dolt test container not available")
 }
 
 // newFixTestStore creates a DoltStore for fix package tests with proper
-// .beads directory structure so openAnyDB can connect for end-to-end testing.
+// .issuegraph directory structure so openAnyDB can connect for end-to-end testing.
 func newFixTestStore(t *testing.T, dir string, prefix string) *dolt.DoltStore {
 	t.Helper()
 	ctx := context.Background()
@@ -59,10 +59,10 @@ func newFixTestStore(t *testing.T, dir string, prefix string) *dolt.DoltStore {
 	h := sha256.Sum256([]byte(t.Name() + fmt.Sprintf("%d", time.Now().UnixNano())))
 	dbName := "fixtest_" + hex.EncodeToString(h[:6])
 
-	// Create .beads directory
-	beadsDir := filepath.Join(dir, ".beads")
-	if err := os.MkdirAll(beadsDir, 0755); err != nil {
-		t.Fatalf("Failed to create .beads: %v", err)
+	// Create .issuegraph directory
+	issuegraphDir := filepath.Join(dir, ".issuegraph")
+	if err := os.MkdirAll(issuegraphDir, 0755); err != nil {
+		t.Fatalf("Failed to create .issuegraph: %v", err)
 	}
 
 	// project_id matched between metadata.json and the database so
@@ -80,7 +80,7 @@ func newFixTestStore(t *testing.T, dir string, prefix string) *dolt.DoltStore {
 		DoltDatabase:   dbName,
 		ProjectID:      projectID,
 	}
-	if err := cfg.Save(beadsDir); err != nil {
+	if err := cfg.Save(issuegraphDir); err != nil {
 		t.Fatalf("Failed to write metadata.json: %v", err)
 	}
 
@@ -88,7 +88,7 @@ func newFixTestStore(t *testing.T, dir string, prefix string) *dolt.DoltStore {
 	// required: the per-test database does not exist yet, and dolt.New's
 	// create-guard refuses to create it implicitly (bd-nxt5e — its absence
 	// made every test using this helper skip).
-	dbPath := filepath.Join(beadsDir, "beads.db")
+	dbPath := filepath.Join(issuegraphDir, "issuegraph.db")
 	store, err := dolt.New(ctx, &dolt.Config{
 		Path:            dbPath,
 		ServerHost:      "127.0.0.1",
@@ -130,9 +130,9 @@ func dropFixTestDatabase(dbName string, port int) {
 	_, _ = db.ExecContext(ctx, fmt.Sprintf("DROP DATABASE IF EXISTS `%s`", dbName))
 }
 
-// TestFixFunctions_RequireBeadsDir verifies all fix functions properly validate
-// that a .beads directory exists before attempting fixes.
-func TestFixFunctions_RequireBeadsDir(t *testing.T) {
+// TestFixFunctions_RequireIssueGraphDir verifies all fix functions properly validate
+// that a .issuegraph directory exists before attempting fixes.
+func TestFixFunctions_RequireIssueGraphDir(t *testing.T) {
 	funcs := []struct {
 		name string
 		fn   func(string) error
@@ -146,11 +146,11 @@ func TestFixFunctions_RequireBeadsDir(t *testing.T) {
 
 	for _, tc := range funcs {
 		t.Run(tc.name, func(t *testing.T) {
-			// Use a temp directory without .beads
+			// Use a temp directory without .issuegraph
 			dir := t.TempDir()
 			err := tc.fn(dir)
 			if err == nil {
-				t.Errorf("%s should return error for missing .beads directory", tc.name)
+				t.Errorf("%s should return error for missing .issuegraph directory", tc.name)
 			}
 		})
 	}
@@ -158,7 +158,7 @@ func TestFixFunctions_RequireBeadsDir(t *testing.T) {
 
 func TestChildParentDependencies_NoBadDeps(t *testing.T) {
 	dir := t.TempDir()
-	store := newFixTestStore(t, dir, "bd")
+	store := newFixTestStore(t, dir, "issuegraph")
 	ctx := context.Background()
 
 	// Create issues
@@ -206,7 +206,7 @@ func TestChildParentDependencies_NoBadDeps(t *testing.T) {
 
 func TestChildParentDependencies_FixesBadDeps(t *testing.T) {
 	dir := t.TempDir()
-	store := newFixTestStore(t, dir, "bd")
+	store := newFixTestStore(t, dir, "issuegraph")
 	ctx := context.Background()
 
 	// Create issues
@@ -262,7 +262,7 @@ func TestChildParentDependencies_FixesBadDeps(t *testing.T) {
 // parent-child type dependencies are NOT removed (only blocking types are removed).
 func TestChildParentDependencies_PreservesParentChildType(t *testing.T) {
 	dir := t.TempDir()
-	store := newFixTestStore(t, dir, "bd")
+	store := newFixTestStore(t, dir, "issuegraph")
 	ctx := context.Background()
 
 	// Create issues

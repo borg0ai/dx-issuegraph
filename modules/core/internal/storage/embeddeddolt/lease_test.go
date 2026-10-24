@@ -8,10 +8,10 @@ import (
 	"testing"
 	"time"
 
-	"github.com/steveyegge/beads/internal/storage"
-	"github.com/steveyegge/beads/internal/storage/embeddeddolt"
-	"github.com/steveyegge/beads/internal/storage/issueops"
-	"github.com/steveyegge/beads/internal/types"
+	"github.com/borg0ai/dx-issuegraph/internal/storage"
+	"github.com/borg0ai/dx-issuegraph/internal/storage/embeddeddolt"
+	"github.com/borg0ai/dx-issuegraph/internal/storage/issueops"
+	"github.com/borg0ai/dx-issuegraph/internal/types"
 )
 
 // TestLeaseLifecycleEmbedded confirms the lease columns exist in the embedded
@@ -87,10 +87,10 @@ func TestReclaimExpiredLeaseSurvivesRestartEmbedded(t *testing.T) {
 	skipUnlessEmbeddedDolt(t)
 
 	ctx := t.Context()
-	beadsDir := filepath.Join(t.TempDir(), ".beads")
+	issuegraphDir := filepath.Join(t.TempDir(), ".issuegraph")
 	const prefix = "lease_restart"
 
-	store, err := embeddeddolt.Open(ctx, beadsDir, prefix, "main")
+	store, err := embeddeddolt.Open(ctx, issuegraphDir, prefix, "main")
 	if err != nil {
 		t.Fatalf("Open: %v", err)
 	}
@@ -98,7 +98,7 @@ func TestReclaimExpiredLeaseSurvivesRestartEmbedded(t *testing.T) {
 		store.Close()
 		t.Fatalf("SetConfig(issue_prefix): %v", err)
 	}
-	if err := store.Commit(ctx, "bd init"); err != nil {
+	if err := store.Commit(ctx, "issuegraph init"); err != nil {
 		store.Close()
 		t.Fatalf("Commit: %v", err)
 	}
@@ -124,7 +124,7 @@ func TestReclaimExpiredLeaseSurvivesRestartEmbedded(t *testing.T) {
 	if err := store.Close(); err != nil {
 		t.Fatalf("Close: %v", err)
 	}
-	store2, err := embeddeddolt.Open(ctx, beadsDir, prefix, "main")
+	store2, err := embeddeddolt.Open(ctx, issuegraphDir, prefix, "main")
 	if err != nil {
 		t.Fatalf("reopen: %v", err)
 	}
@@ -133,7 +133,7 @@ func TestReclaimExpiredLeaseSurvivesRestartEmbedded(t *testing.T) {
 	// The lease row survived the restart with its holder intact — this guards
 	// against a vacuous pass below, since reclaim JOINs on the leases table and
 	// would return nothing if restart had dropped the row.
-	te := &testEnv{store: store2, dataDir: filepath.Join(beadsDir, "embeddeddolt"), database: prefix}
+	te := &testEnv{store: store2, dataDir: filepath.Join(issuegraphDir, "embeddeddolt"), database: prefix}
 	var holder, statusBefore, expiresStr string
 	te.queryScalar(t, ctx,
 		"SELECT l.holder, i.status, CAST(l.lease_expires_at AS CHAR) FROM leases l JOIN issues i ON i.id = l.issue_id WHERE l.issue_id = ?",

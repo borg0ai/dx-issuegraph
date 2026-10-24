@@ -7,12 +7,12 @@ import (
 	"os"
 	"path/filepath"
 
+	"github.com/borg0ai/dx-issuegraph/internal/config"
+	"github.com/borg0ai/dx-issuegraph/internal/metrics"
+	"github.com/borg0ai/dx-issuegraph/internal/remotecache"
+	"github.com/borg0ai/dx-issuegraph/internal/storage"
+	"github.com/borg0ai/dx-issuegraph/internal/types"
 	"github.com/spf13/cobra"
-	"github.com/steveyegge/beads/internal/config"
-	"github.com/steveyegge/beads/internal/metrics"
-	"github.com/steveyegge/beads/internal/remotecache"
-	"github.com/steveyegge/beads/internal/storage"
-	"github.com/steveyegge/beads/internal/types"
 )
 
 var repoCmd = &cobra.Command{
@@ -21,23 +21,23 @@ var repoCmd = &cobra.Command{
 	Short:   "Manage multiple repository configuration",
 	Long: `Configure and manage multiple repository support for multi-repo hydration.
 
-Multi-repo support allows hydrating issues from multiple beads repositories
+Multi-repo support allows hydrating issues from multiple issuegraph repositories
 into a single database for unified cross-repo issue tracking.
 
-Configuration is stored in .beads/config.yaml under the 'repos' section:
+Configuration is stored in .issuegraph/config.yaml under the 'repos' section:
 
   repos:
     primary: "."
     additional:
-      - ~/beads-planning
+      - ~/issuegraph-planning
       - ~/work-repo
 
 Examples:
-  bd repo add ~/beads-planning       # Add planning repo
-  bd repo add ../other-repo          # Add relative path repo
-  bd repo list                       # Show all configured repos
-  bd repo remove ~/beads-planning    # Remove by path
-  bd repo sync                       # Sync from all configured repos`,
+  issuegraph repo add ~/issuegraph-planning       # Add planning repo
+  issuegraph repo add ../other-repo          # Add relative path repo
+  issuegraph repo list                       # Show all configured repos
+  issuegraph repo remove ~/issuegraph-planning    # Remove by path
+  issuegraph repo sync                       # Sync from all configured repos`,
 }
 
 var repoAddCmd = &cobra.Command{
@@ -45,10 +45,10 @@ var repoAddCmd = &cobra.Command{
 	Short: "Add an additional repository to sync",
 	Long: `Add a repository path to the repos.additional list in config.yaml.
 
-The path should point to a directory containing a .beads folder.
+The path should point to a directory containing a .issuegraph folder.
 Paths can be absolute or relative (they are stored as-is).
 
-This modifies .beads/config.yaml, which is version-controlled and
+This modifies .issuegraph/config.yaml, which is version-controlled and
 shared across all clones of this repository.`,
 	Args:          cobra.ExactArgs(1),
 	SilenceUsage:  true,
@@ -77,9 +77,9 @@ shared across all clones of this repository.`,
 				}
 			}
 
-			beadsDir := filepath.Join(expandedPath, ".beads")
-			if _, err := os.Stat(beadsDir); os.IsNotExist(err) {
-				return HandleError("no beads workspace found at %s", expandedPath)
+			issuegraphDir := filepath.Join(expandedPath, ".issuegraph")
+			if _, err := os.Stat(issuegraphDir); os.IsNotExist(err) {
+				return HandleError("no issuegraph workspace found at %s", expandedPath)
 			}
 		}
 
@@ -101,7 +101,7 @@ shared across all clones of this repository.`,
 		}
 
 		fmt.Printf("Added repository: %s\n", repoPath)
-		fmt.Printf("Run 'bd repo sync' to hydrate issues from this repository.\n")
+		fmt.Printf("Run 'issuegraph repo sync' to hydrate issues from this repository.\n")
 		return nil
 	},
 }
@@ -185,7 +185,7 @@ that came from the removed repository.`,
 var repoListCmd = &cobra.Command{
 	Use:   "list",
 	Short: "List all configured repositories",
-	Long: `List all repositories configured in .beads/config.yaml.
+	Long: `List all repositories configured in .issuegraph/config.yaml.
 
 Shows the primary repository (always ".") and any additional
 repositories configured for hydration.`,
@@ -344,7 +344,7 @@ Also triggers Dolt push/pull if a remote is configured.`,
 				continue
 			}
 
-			jsonlPath := filepath.Join(absPath, ".beads", "issues.jsonl")
+			jsonlPath := filepath.Join(absPath, ".issuegraph", "issues.jsonl")
 			info, err := os.Stat(jsonlPath)
 			if err != nil {
 				if verbose {
@@ -403,7 +403,7 @@ Also triggers Dolt push/pull if a remote is configured.`,
 		}
 
 		// Push is handled by periodic sync, not per-operation.
-		// Manual push available via: bd dolt push
+		// Manual push available via: issuegraph dolt push
 
 		if totalImported > 0 {
 			commandDidWrite.Store(true)

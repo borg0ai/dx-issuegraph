@@ -6,8 +6,8 @@ import (
 	"fmt"
 	"testing"
 
-	"github.com/steveyegge/beads/internal/types"
-	publicops "github.com/steveyegge/beads/issueops"
+	"github.com/borg0ai/dx-issuegraph/internal/types"
+	publicops "github.com/borg0ai/dx-issuegraph/issueops"
 )
 
 // This file holds the contract every implementation of
@@ -19,7 +19,7 @@ import (
 // share a body; only the unit-of-work run is an independent vote on the body.
 //
 // The first four cases pin the one thing the three had actually diverged on:
-// which PLANE an edge lands in. `bd dep add <wisp-id> <target>` writes the
+// which PLANE an edge lands in. `issuegraph dep add <wisp-id> <target>` writes the
 // ephemeral graph, and it has to, because a wisp has no row in the issues
 // plane for an edge to hang off.
 //
@@ -1915,7 +1915,7 @@ func RunDependencyEditorAcceptsADiamond(t *testing.T, ctx context.Context, fixtu
 // raw-seeded graph, and RunDependencyEditorRefusesACycleThroughAParentChildHop
 // pins that the gate walks one type the report does not. Neither shows the
 // gate DECLINING to walk a type: a mutual pair of non-scheduling edges is not a
-// scheduling cycle and has to be accepted, because that is what `bd dep add
+// scheduling cycle and has to be accepted, because that is what `issuegraph dep add
 // --type relates-to` writes in both directions between two issues that
 // reference each other.
 //

@@ -9,12 +9,12 @@ import (
 	"strings"
 	"time"
 
-	"github.com/steveyegge/beads/internal/beads"
-	"github.com/steveyegge/beads/internal/doltremote"
+	"github.com/borg0ai/dx-issuegraph/internal/doltremote"
+	"github.com/borg0ai/dx-issuegraph/internal/issuegraph"
 )
 
 // isGitRepo checks if the current working directory is in a git repository.
-// NOTE: This intentionally checks CWD, not the beads repo. It's used as a guard
+// NOTE: This intentionally checks CWD, not the issuegraph repo. It's used as a guard
 // before calling other git functions to prevent hangs on Windows (GH#727).
 // Does not use RepoContext because it's a prerequisite check for git availability.
 func isGitRepo() bool {
@@ -33,11 +33,11 @@ func isBareGitRepo() bool {
 	return strings.TrimSpace(string(output)) == "true"
 }
 
-// gitHasUpstream checks if the current branch has an upstream configured in the beads repository.
+// gitHasUpstream checks if the current branch has an upstream configured in the issuegraph repository.
 // Uses RepoContext to ensure git commands run in the correct repository.
 // Uses git config directly for compatibility with Git for Windows.
 func gitHasUpstream() bool {
-	rc, err := beads.GetRepoContext()
+	rc, err := issuegraph.GetRepoContext()
 	if err != nil {
 		return false
 	}
@@ -57,7 +57,7 @@ func gitHasUpstream() bool {
 // gitHasAnyRemotes returns true if the git repository has any remotes configured.
 // Used to distinguish between "new repo with no remotes" and "repo with origin but no upstream".
 func gitHasAnyRemotes() bool {
-	rc, err := beads.GetRepoContext()
+	rc, err := issuegraph.GetRepoContext()
 	if err != nil {
 		return false
 	}
@@ -82,7 +82,7 @@ func gitOriginGetURL() (string, error) {
 }
 
 func gitOriginGetURLForActiveRepo(ctx context.Context) (string, error) {
-	rc, err := beads.GetRepoContext()
+	rc, err := issuegraph.GetRepoContext()
 	if err != nil {
 		return "", err
 	}
@@ -146,7 +146,7 @@ func gitLsRemoteProbeError(ctx context.Context, err error) error {
 		// git can echo the remote it failed to reach — including a CI token in
 		// https://x-access-token:<token>@host form — so scrub credentials before
 		// this detail reaches plan.Reason, which flows to both stderr and
-		// `bd bootstrap --json`. exitErr itself is only "exit status 128".
+		// `issuegraph bootstrap --json`. exitErr itself is only "exit status 128".
 		if detail := scrubURLCredentials(firstNonEmptyLine(string(exitErr.Stderr))); detail != "" {
 			return fmt.Errorf("git ls-remote: %v: %s", exitErr, detail)
 		}
@@ -184,7 +184,7 @@ func gitURLToDoltRemote(url string) string {
 // Unlike gitHasUpstream(), this works even when HEAD is detached (e.g., jj/jujutsu).
 // Uses RepoContext to ensure git commands run in the correct repository.
 func gitBranchHasUpstream(branch string) bool {
-	rc, err := beads.GetRepoContext()
+	rc, err := issuegraph.GetRepoContext()
 	if err != nil {
 		return false
 	}

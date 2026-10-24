@@ -4,7 +4,7 @@ import (
 	"net/http"
 	"testing"
 
-	"github.com/steveyegge/beads/internal/types"
+	"github.com/borg0ai/dx-issuegraph/internal/types"
 )
 
 // TestStatsReportsTheSkippedScanFromTheAnswer pins the one derivation this
@@ -17,7 +17,7 @@ func TestStatsReportsTheSkippedScanFromTheAnswer(t *testing.T) {
 	reporter := &roleStats{summary: types.Statistics{TotalIssues: 3, OpenIssues: 2}}
 	ts := newTestServer(t, rolesConfig(Config{Stats: reporter}))
 
-	resp := ts.get(t, "/v0/beads/stats?skip_blocked=true")
+	resp := ts.get(t, "/v0/issuegraph/stats?skip_blocked=true")
 	if resp.StatusCode != http.StatusOK {
 		t.Fatalf("status = %d, want 200: %s", resp.StatusCode, readAll(t, resp))
 	}
@@ -59,7 +59,7 @@ func statsAssertEmptyAssigneeRefused(t *testing.T, rawAssignee string) {
 	reporter := &roleStats{}
 	ts := newTestServer(t, rolesConfig(Config{Stats: reporter}))
 
-	resp := ts.get(t, "/v0/beads/stats?assignee="+rawAssignee)
+	resp := ts.get(t, "/v0/issuegraph/stats?assignee="+rawAssignee)
 	if resp.StatusCode != http.StatusBadRequest {
 		t.Fatalf("status = %d, want 400: %s", resp.StatusCode, readAll(t, resp))
 	}
@@ -81,7 +81,7 @@ func statsAssertEmptyAssigneeRefused(t *testing.T, rawAssignee string) {
 func TestStatsRefusesAMalformedSkipBlocked(t *testing.T) {
 	ts := newTestServer(t, rolesConfig(Config{Stats: &roleStats{}}))
 
-	resp := ts.get(t, "/v0/beads/stats?skip_blocked=maybe")
+	resp := ts.get(t, "/v0/issuegraph/stats?skip_blocked=maybe")
 	if resp.StatusCode != http.StatusBadRequest {
 		t.Fatalf("status = %d, want 400: %s", resp.StatusCode, readAll(t, resp))
 	}
@@ -97,7 +97,7 @@ func TestStatsRefusesAMalformedSkipBlocked(t *testing.T) {
 func TestStatsRefusesAnUnknownParameter(t *testing.T) {
 	ts := newTestServer(t, rolesConfig(Config{Stats: &roleStats{}}))
 
-	resp := ts.get(t, "/v0/beads/stats?status=open")
+	resp := ts.get(t, "/v0/issuegraph/stats?status=open")
 	if resp.StatusCode != http.StatusBadRequest {
 		t.Fatalf("status = %d, want 400: %s", resp.StatusCode, readAll(t, resp))
 	}

@@ -4,7 +4,7 @@
 
 set -e
 
-echo "=== BD Compaction Workflow ==="
+echo "=== ISSUEGRAPH Compaction Workflow ==="
 echo "Date: $(date)"
 echo
 
@@ -18,26 +18,26 @@ if [ -z "$ANTHROPIC_API_KEY" ]; then
   exit 1
 fi
 
-# Check bd is installed
-if ! command -v bd &> /dev/null; then
-  echo "❌ Error: bd command not found"
+# Check issuegraph is installed
+if ! command -v issuegraph &> /dev/null; then
+  echo "❌ Error: issuegraph command not found"
   echo
-  echo "Install bd:"
-  echo "  curl -fsSL https://raw.githubusercontent.com/gastownhall/beads/main/scripts/install.sh | bash"
+  echo "Install issuegraph:"
+  echo "  curl -fsSL https://raw.githubusercontent.com/borg0ai/dx-issuegraph/main/scripts/install.sh | bash"
   echo
   exit 1
 fi
 
 # Preview candidates
 echo "--- Preview Tier 1 Candidates ---"
-bd admin compact --dry-run --all
+issuegraph admin compact --dry-run --all
 
 echo
 read -p "Proceed with Tier 1 compaction? (y/N) " -n 1 -r
 echo
 if [[ $REPLY =~ ^[Yy]$ ]]; then
   echo "--- Running Tier 1 Compaction ---"
-  bd admin compact --all
+  issuegraph admin compact --all
   echo "✅ Tier 1 compaction complete"
 else
   echo "⏭️  Skipping Tier 1"
@@ -46,14 +46,14 @@ fi
 # Preview Tier 2
 echo
 echo "--- Preview Tier 2 Candidates ---"
-bd admin compact --dry-run --all --tier 2
+issuegraph admin compact --dry-run --all --tier 2
 
 echo
 read -p "Proceed with Tier 2 compaction? (y/N) " -n 1 -r
 echo
 if [[ $REPLY =~ ^[Yy]$ ]]; then
   echo "--- Running Tier 2 Compaction ---"
-  bd admin compact --all --tier 2
+  issuegraph admin compact --all --tier 2
   echo "✅ Tier 2 compaction complete"
 else
   echo "⏭️  Skipping Tier 2"
@@ -62,12 +62,12 @@ fi
 # Show stats
 echo
 echo "--- Final Statistics ---"
-bd admin compact --stats
+issuegraph admin compact --stats
 
 echo
 echo "=== Compaction Complete ==="
 echo
 echo "Next steps:"
-echo "  1. Review compacted issues: bd list --json | jq '.[] | select(.compaction_level > 0)'"
-echo "  2. Commit changes: git add .beads/issues.jsonl issues.db && git commit -m 'Compact old issues'"
+echo "  1. Review compacted issues: issuegraph list --json | jq '.[] | select(.compaction_level > 0)'"
+echo "  2. Commit changes: git add .issuegraph/issues.jsonl issues.db && git commit -m 'Compact old issues'"
 echo "  3. Push to remote: git push"

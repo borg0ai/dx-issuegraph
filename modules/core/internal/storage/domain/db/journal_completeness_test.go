@@ -3,7 +3,7 @@ package db
 import (
 	"testing"
 
-	"github.com/steveyegge/beads/internal/storage/journalscan"
+	"github.com/borg0ai/dx-issuegraph/internal/storage/journalscan"
 )
 
 // TestEveryRepositoryMutatorJournals is the completeness guard for the
@@ -14,24 +14,24 @@ import (
 // The guard is STRUCTURAL, not name-based: it does not trust a verb regex on the
 // method name or a broad "Insert" coverage token (either of which could let a
 // mutator named off-pattern, or a false delegation, ship un-journaled). Instead
-// it detects a mutator by BEHAVIOR — any method on a work-bead repository whose
+// it detects a mutator by BEHAVIOR — any method on a work-issue repository whose
 // body (directly, or through a free function it calls) executes an INSERT /
-// UPDATE / DELETE against a work-bead table — and asserts each one journals.
+// UPDATE / DELETE against a work-issue table — and asserts each one journals.
 //
-// A new reimplemented mutator that writes a bead table and forgets to journal
+// A new reimplemented mutator that writes a issue table and forgets to journal
 // fails this test even if it is named nothing like a mutator.
 func TestEveryRepositoryMutatorJournals(t *testing.T) {
-	// Repository receiver types that own work-bead state. issue/dependency/label
-	// reimplement issueops SQL; comment writes the comments bead table.
-	beadReceivers := map[string]bool{
+	// Repository receiver types that own work-issue state. issue/dependency/label
+	// reimplement issueops SQL; comment writes the comments issue table.
+	issueReceivers := map[string]bool{
 		"issueSQLRepositoryImpl":      true,
 		"dependencySQLRepositoryImpl": true,
 		"labelSQLRepositoryImpl":      true,
 		"commentSQLRepositoryImpl":    true,
 	}
 
-	// Bead-mutating methods that legitimately do NOT journal, each with a reason.
-	// The staleness check below fails if any of these stops being a bead mutator,
+	// Issue-mutating methods that legitimately do NOT journal, each with a reason.
+	// The staleness check below fails if any of these stops being a issue mutator,
 	// so a rename or refactor cannot silently strand an exemption.
 	exempt := map[string]string{
 		"labelSQLRepositoryImpl.DeleteAllForIDs":              "bulk label cleanup runs under a parent issue delete; the surviving journal record is the node delete",
@@ -76,12 +76,12 @@ func TestEveryRepositoryMutatorJournals(t *testing.T) {
 		t.Fatalf("parse domain/db package: %v", err)
 	}
 
-	// beadDML: fn writes a bead table directly, or calls a free function that
+	// issueDML: fn writes a issue table directly, or calls a free function that
 	// transitively does (e.g. Insert -> insertIssueRow). Only free-function
 	// (bare-identifier) calls propagate DML, so an events/leases write reached
-	// through a selector (r.events.Record) does not count as a bead mutation.
-	beadDML := journalscan.Fixpoint(fns,
-		func(f *journalscan.FuncInfo) bool { return f.OwnBeadDML },
+	// through a selector (r.events.Record) does not count as a issue mutation.
+	issueDML := journalscan.Fixpoint(fns,
+		func(f *journalscan.FuncInfo) bool { return f.OwnIssueDML },
 		func(f *journalscan.FuncInfo) []string { return f.IdentCalls })
 
 	// emits: fn calls an emit helper directly, or calls any package function
@@ -93,7 +93,7 @@ func TestEveryRepositoryMutatorJournals(t *testing.T) {
 	seenExempt := map[string]bool{}
 	var checked int
 	for name, f := range fns {
-		if !beadReceivers[f.Recv] || !beadDML[name] {
+		if !issueReceivers[f.Recv] || !issueDML[name] {
 			continue
 		}
 		exemptKey := f.Recv + "." + f.Name
@@ -106,17 +106,17 @@ func TestEveryRepositoryMutatorJournals(t *testing.T) {
 		}
 		checked++
 		if !emits[name] {
-			t.Errorf("%s.%s writes a work-bead table but does not journal: it neither calls a Record*InTx emit helper, nor delegates to an emitting issueops function, nor to a sibling mutator that journals", f.Recv, f.Name)
+			t.Errorf("%s.%s writes a work-issue table but does not journal: it neither calls a Record*InTx emit helper, nor delegates to an emitting issueops function, nor to a sibling mutator that journals", f.Recv, f.Name)
 		}
 	}
 
 	if checked == 0 {
-		t.Fatal("guard found no bead-mutating repository methods — receiver names, DML detection, or parsing changed; the completeness guard is not actually running")
+		t.Fatal("guard found no issue-mutating repository methods — receiver names, DML detection, or parsing changed; the completeness guard is not actually running")
 	}
-	// Staleness: every exemption must still name a real bead mutator.
+	// Staleness: every exemption must still name a real issue mutator.
 	for m := range exempt {
 		if !seenExempt[m] {
-			t.Errorf("exemption %q no longer matches a bead-mutating repository method — remove it", m)
+			t.Errorf("exemption %q no longer matches a issue-mutating repository method — remove it", m)
 		}
 	}
 }

@@ -11,7 +11,7 @@ import (
 	"testing"
 
 	sqlmock "github.com/DATA-DOG/go-sqlmock"
-	"github.com/steveyegge/beads/internal/storage"
+	"github.com/borg0ai/dx-issuegraph/internal/storage"
 )
 
 func TestStageAndCommitAfterSQLCommitResponseLossIsIndeterminateAndNotReplayed(t *testing.T) {
@@ -29,7 +29,7 @@ func TestStageAndCommitAfterSQLCommitResponseLossIsIndeterminateAndNotReplayed(t
 			conn := &postSQLCommitFailureConn{failCall: tc.failCall, err: responseLoss, status: newDoltStatusStub(t)}
 
 			err := stageAndCommitAfterSQLCommit(t.Context(), conn,
-				map[string]bool{"issues": true}, "bd: commit derived state", "tester <tester@example.com>")
+				map[string]bool{"issues": true}, "issuegraph: commit derived state", "tester <tester@example.com>")
 			if !errors.Is(err, responseLoss) {
 				t.Fatalf("stageAndCommitAfterSQLCommit() error = %v, want cause %v", err, responseLoss)
 			}

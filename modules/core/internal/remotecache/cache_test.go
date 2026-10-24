@@ -303,8 +303,8 @@ func TestDefaultCache(t *testing.T) {
 	if cache.Dir == "" {
 		t.Error("cache.Dir should not be empty")
 	}
-	// Should end with beads/remotes
-	if filepath.Base(filepath.Dir(cache.Dir)) != "beads" || filepath.Base(cache.Dir) != "remotes" {
+	// Should end with issuegraph/remotes
+	if filepath.Base(filepath.Dir(cache.Dir)) != "issuegraph" || filepath.Base(cache.Dir) != "remotes" {
 		t.Errorf("unexpected cache dir: %s", cache.Dir)
 	}
 }

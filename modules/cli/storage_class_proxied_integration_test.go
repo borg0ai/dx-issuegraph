@@ -11,7 +11,7 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/steveyegge/beads/internal/types"
+	"github.com/borg0ai/dx-issuegraph/internal/types"
 )
 
 // The proxied-server mirror of TestEmbeddedCreateStorageClass. This is the
@@ -24,14 +24,14 @@ import (
 // the JSON the command prints is the request's own struct on some routes and
 // would agree with itself either way.
 //
-// CI note: this shard is gated on BEADS_TEST_PROXIED_SERVER=1 and runs mostly
+// CI note: this shard is gated on ISSUEGRAPH_TEST_PROXIED_SERVER=1 and runs mostly
 // only on push-to-main, so it is meant to be run locally alongside any change
 // to the create input path.
 func TestStorageClassProxiedServer(t *testing.T) {
 	requireSharedProxiedServer(t)
 	t.Parallel()
 
-	bd := buildEmbeddedBD(t)
+	issuegraph := buildEmbeddedBD(t)
 
 	// storageClassCell pins the at-rest form (NULL vs literal) on whichever
 	// plane the row was supposed to land on.
@@ -63,18 +63,18 @@ func TestStorageClassProxiedServer(t *testing.T) {
 
 	setStorageClassConfig := func(t *testing.T, p proxiedProject, key, value string) {
 		t.Helper()
-		if out, err := bdProxiedRun(t, bd, p.dir, "config", "set", key, value); err != nil {
+		if out, err := issuegraphProxiedRun(t, issuegraph, p.dir, "config", "set", key, value); err != nil {
 			t.Fatalf("config set %s: %v\n%s", key, err, out)
 		}
 	}
 
 	// THE FIELD REPORT: `--storage-class unversioned` on this door left the cell
-	// NULL, so the class could never be read back — and `bd update` has no
+	// NULL, so the class could never be read back — and `issuegraph update` has no
 	// storage-class surface, which makes a create-time drop unrepairable.
 	t.Run("explicit_unversioned_persists", func(t *testing.T) {
 		t.Parallel()
-		p := newSharedProxiedProject(t, bd, "pu")
-		issue := bdProxiedCreate(t, bd, p.dir, "Unversioned bead", "-d", "x", "--storage-class", "unversioned")
+		p := newSharedProxiedProject(t, issuegraph, "pu")
+		issue := issuegraphProxiedCreate(t, issuegraph, p.dir, "Unversioned issue", "-d", "x", "--storage-class", "unversioned")
 		if issue.StorageClass != types.StorageClassUnversioned {
 			t.Errorf("JSON storage_class = %q, want unversioned", issue.StorageClass)
 		}
@@ -86,16 +86,16 @@ func TestStorageClassProxiedServer(t *testing.T) {
 
 	t.Run("default_and_explicit_versioned_stay_null", func(t *testing.T) {
 		t.Parallel()
-		p := newSharedProxiedProject(t, bd, "pv")
+		p := newSharedProxiedProject(t, issuegraph, "pv")
 		db := openProxiedDB(t, p)
 
-		plain := bdProxiedCreate(t, bd, p.dir, "Plain bead", "-d", "x")
+		plain := issuegraphProxiedCreate(t, issuegraph, p.dir, "Plain issue", "-d", "x")
 		if cell := storageClassCell(t, db, "issues", plain.ID); cell.Valid {
 			t.Errorf("plain create: DB cell = %q, want NULL", cell.String)
 		}
 		// C2.4: the explicit versioned spelling normalizes to the same NULL, so
 		// a NULL cell here is correct rather than the bug.
-		explicit := bdProxiedCreate(t, bd, p.dir, "Versioned bead", "-d", "x", "--storage-class", "versioned")
+		explicit := issuegraphProxiedCreate(t, issuegraph, p.dir, "Versioned issue", "-d", "x", "--storage-class", "versioned")
 		if cell := storageClassCell(t, db, "issues", explicit.ID); cell.Valid {
 			t.Errorf("explicit versioned: DB cell = %q, want NULL", cell.String)
 		}
@@ -105,8 +105,8 @@ func TestStorageClassProxiedServer(t *testing.T) {
 	// a request that asked for ephemeral.
 	t.Run("ephemeral_spelling_routes_to_wisp_plane", func(t *testing.T) {
 		t.Parallel()
-		p := newSharedProxiedProject(t, bd, "pe")
-		issue := bdProxiedCreate(t, bd, p.dir, "Ephemeral bead", "-d", "x", "--storage-class", "ephemeral")
+		p := newSharedProxiedProject(t, issuegraph, "pe")
+		issue := issuegraphProxiedCreate(t, issuegraph, p.dir, "Ephemeral issue", "-d", "x", "--storage-class", "ephemeral")
 		if !issue.Ephemeral {
 			t.Errorf("--storage-class ephemeral should set the ephemeral flag")
 		}
@@ -134,10 +134,10 @@ func TestStorageClassProxiedServer(t *testing.T) {
 	// rejects the contradiction, this one silently made the row a wisp.
 	t.Run("durable_class_with_wisp_plane_is_rejected", func(t *testing.T) {
 		t.Parallel()
-		p := newSharedProxiedProject(t, bd, "pf")
+		p := newSharedProxiedProject(t, issuegraph, "pf")
 		db := openProxiedDB(t, p)
 		for _, planeFlag := range []string{"--ephemeral", "--no-history"} {
-			out := bdProxiedCreateFail(t, bd, p.dir, "Conflicting "+planeFlag, "-d", "x", planeFlag, "--storage-class", "versioned")
+			out := issuegraphProxiedCreateFail(t, issuegraph, p.dir, "Conflicting "+planeFlag, "-d", "x", planeFlag, "--storage-class", "versioned")
 			// Byte-identical to the direct door's message.
 			if !strings.Contains(out, "conflicts with --ephemeral/--no-history") {
 				t.Errorf("%s: expected the wisp-plane conflict error, got:\n%s", planeFlag, out)
@@ -149,7 +149,7 @@ func TestStorageClassProxiedServer(t *testing.T) {
 				t.Errorf("%s: a refused create left issue %s behind", planeFlag, id)
 			}
 		}
-		out := bdProxiedCreateFail(t, bd, p.dir, "Doubly ephemeral", "-d", "x", "--no-history", "--storage-class", "ephemeral")
+		out := issuegraphProxiedCreateFail(t, issuegraph, p.dir, "Doubly ephemeral", "-d", "x", "--no-history", "--storage-class", "ephemeral")
 		if !strings.Contains(out, "--storage-class ephemeral and --no-history are mutually exclusive") {
 			t.Errorf("expected the ephemeral/no-history exclusion, got:\n%s", out)
 		}
@@ -160,27 +160,27 @@ func TestStorageClassProxiedServer(t *testing.T) {
 	// which transport the workspace was initialized with.
 	t.Run("per_type_config_default", func(t *testing.T) {
 		t.Parallel()
-		p := newSharedProxiedProject(t, bd, "pc")
+		p := newSharedProxiedProject(t, issuegraph, "pc")
 		setStorageClassConfig(t, p, "storage-class.task", "unversioned")
 		db := openProxiedDB(t, p)
 
-		byDefault := bdProxiedCreate(t, bd, p.dir, "Defaulted bead", "-d", "x", "-t", "task")
+		byDefault := issuegraphProxiedCreate(t, issuegraph, p.dir, "Defaulted issue", "-d", "x", "-t", "task")
 		if cell := storageClassCell(t, db, "issues", byDefault.ID); !cell.Valid || cell.String != "unversioned" {
 			t.Errorf("config default: DB cell = %+v, want 'unversioned'", cell)
 		}
 		// Flag over config (C1.3), and versioned normalizes back to NULL.
-		forced := bdProxiedCreate(t, bd, p.dir, "Forced versioned", "-d", "x", "-t", "task", "--storage-class", "versioned")
+		forced := issuegraphProxiedCreate(t, issuegraph, p.dir, "Forced versioned", "-d", "x", "-t", "task", "--storage-class", "versioned")
 		if cell := storageClassCell(t, db, "issues", forced.ID); cell.Valid {
 			t.Errorf("explicit versioned over config default: DB cell = %q, want NULL", cell.String)
 		}
 		// Other types are untouched by the task default.
-		bug := bdProxiedCreate(t, bd, p.dir, "A bug", "-d", "x", "-t", "bug")
+		bug := issuegraphProxiedCreate(t, issuegraph, p.dir, "A bug", "-d", "x", "-t", "bug")
 		if cell := storageClassCell(t, db, "issues", bug.ID); cell.Valid {
 			t.Errorf("other type: DB cell = %q, want NULL", cell.String)
 		}
 		// A config-derived durable class is not a caller contradiction, so it
 		// YIELDS to the explicit plane instead of blocking the create.
-		yielded := bdProxiedCreate(t, bd, p.dir, "Ephemeral over config", "-d", "x", "-t", "task", "--ephemeral")
+		yielded := issuegraphProxiedCreate(t, issuegraph, p.dir, "Ephemeral over config", "-d", "x", "-t", "task", "--ephemeral")
 		if !yielded.Ephemeral {
 			t.Errorf("--ephemeral over config default should set the ephemeral flag")
 		}
@@ -193,7 +193,7 @@ func TestStorageClassProxiedServer(t *testing.T) {
 	// this is the proxied half of the same fix the embedded suite covers.
 	t.Run("markdown_batch", func(t *testing.T) {
 		t.Parallel()
-		p := newSharedProxiedProject(t, bd, "pm")
+		p := newSharedProxiedProject(t, issuegraph, "pm")
 		db := openProxiedDB(t, p)
 		writeBatch := func(t *testing.T, name, body string) string {
 			t.Helper()
@@ -214,7 +214,7 @@ First.
 ### Description
 Second.
 `)
-		if out, err := bdProxiedRun(t, bd, p.dir, "create", "--file", unversioned, "--storage-class", "unversioned"); err != nil {
+		if out, err := issuegraphProxiedRun(t, issuegraph, p.dir, "create", "--file", unversioned, "--storage-class", "unversioned"); err != nil {
 			t.Fatalf("create --file: %v\n%s", err, out)
 		}
 		for _, title := range []string{"Proxied batch one", "Proxied batch two"} {
@@ -232,7 +232,7 @@ Second.
 ### Description
 Third.
 `)
-		if out, err := bdProxiedRun(t, bd, p.dir, "create", "--file", ephemeral, "--storage-class", "ephemeral"); err != nil {
+		if out, err := issuegraphProxiedRun(t, issuegraph, p.dir, "create", "--file", ephemeral, "--storage-class", "ephemeral"); err != nil {
 			t.Fatalf("create --file --storage-class ephemeral: %v\n%s", err, out)
 		}
 		if id := idByTitle(t, db, "wisps", "Proxied batch wisp"); id == "" {
@@ -244,7 +244,7 @@ Third.
 ### Description
 Fourth.
 `)
-		out, err := bdProxiedRun(t, bd, p.dir, "create", "--file", conflicting, "--ephemeral", "--storage-class", "versioned")
+		out, err := issuegraphProxiedRun(t, issuegraph, p.dir, "create", "--file", conflicting, "--ephemeral", "--storage-class", "versioned")
 		if err == nil {
 			t.Fatalf("durable class with --ephemeral should be refused, got:\n%s", out)
 		}
@@ -258,7 +258,7 @@ Fourth.
 
 	t.Run("markdown_batch_per_type_config_default", func(t *testing.T) {
 		t.Parallel()
-		p := newSharedProxiedProject(t, bd, "pb")
+		p := newSharedProxiedProject(t, issuegraph, "pb")
 		setStorageClassConfig(t, p, "storage-class.task", "unversioned")
 		db := openProxiedDB(t, p)
 
@@ -278,7 +278,7 @@ Bug body.
 `), 0o600); err != nil {
 			t.Fatalf("write markdown plan: %v", err)
 		}
-		if out, err := bdProxiedRun(t, bd, p.dir, "create", "--file", path); err != nil {
+		if out, err := issuegraphProxiedRun(t, issuegraph, p.dir, "create", "--file", path); err != nil {
 			t.Fatalf("create --file: %v\n%s", err, out)
 		}
 		taskID := idByTitle(t, db, "issues", "Proxied default task")
@@ -293,12 +293,12 @@ Bug body.
 
 	t.Run("graph_rejects_plan_wide_storage_class", func(t *testing.T) {
 		t.Parallel()
-		p := newSharedProxiedProject(t, bd, "pg")
+		p := newSharedProxiedProject(t, issuegraph, "pg")
 		path := filepath.Join(p.dir, "plan.json")
 		if err := os.WriteFile(path, []byte(`{"nodes":[{"key":"a","title":"Proxied graph node","description":"n"}]}`), 0o600); err != nil {
 			t.Fatalf("write graph plan: %v", err)
 		}
-		out := bdProxiedCreateFail(t, bd, p.dir, "--graph", path, "--storage-class", "unversioned")
+		out := issuegraphProxiedCreateFail(t, issuegraph, p.dir, "--graph", path, "--storage-class", "unversioned")
 		if !strings.Contains(out, "set storage_class per node in the plan instead") {
 			t.Errorf("error should point at the per-node field, got:\n%s", out)
 		}
@@ -307,7 +307,7 @@ Bug body.
 		if err := os.WriteFile(perNode, []byte(`{"nodes":[{"key":"a","title":"Proxied per-node","description":"n","storage_class":"unversioned"}]}`), 0o600); err != nil {
 			t.Fatalf("write graph plan: %v", err)
 		}
-		if out, err := bdProxiedRun(t, bd, p.dir, "create", "--graph", perNode); err != nil {
+		if out, err := issuegraphProxiedRun(t, issuegraph, p.dir, "create", "--graph", perNode); err != nil {
 			t.Fatalf("create --graph with a per-node class: %v\n%s", err, out)
 		}
 		db := openProxiedDB(t, p)
@@ -322,18 +322,18 @@ Bug body.
 	// write would be worse than none.
 	t.Run("dry_run_preview_shows_the_resolved_class", func(t *testing.T) {
 		t.Parallel()
-		p := newSharedProxiedProject(t, bd, "pd")
+		p := newSharedProxiedProject(t, issuegraph, "pd")
 		setStorageClassConfig(t, p, "storage-class.bug", "unversioned")
 
-		preview := bdProxiedCreate(t, bd, p.dir, "Previewed bead", "-d", "x", "--dry-run", "--storage-class", "unversioned")
+		preview := issuegraphProxiedCreate(t, issuegraph, p.dir, "Previewed issue", "-d", "x", "--dry-run", "--storage-class", "unversioned")
 		if preview.StorageClass != types.StorageClassUnversioned {
 			t.Errorf("dry-run preview storage_class = %q, want unversioned", preview.StorageClass)
 		}
-		fromConfig := bdProxiedCreate(t, bd, p.dir, "Previewed default", "-d", "x", "-t", "bug", "--dry-run")
+		fromConfig := issuegraphProxiedCreate(t, issuegraph, p.dir, "Previewed default", "-d", "x", "-t", "bug", "--dry-run")
 		if fromConfig.StorageClass != types.StorageClassUnversioned {
 			t.Errorf("dry-run preview of the config default = %q, want unversioned", fromConfig.StorageClass)
 		}
-		wisp := bdProxiedCreate(t, bd, p.dir, "Previewed wisp", "-d", "x", "--dry-run", "--storage-class", "ephemeral")
+		wisp := issuegraphProxiedCreate(t, issuegraph, p.dir, "Previewed wisp", "-d", "x", "--dry-run", "--storage-class", "ephemeral")
 		if !wisp.Ephemeral || wisp.StorageClass != "" {
 			t.Errorf("dry-run preview of the ephemeral spelling: ephemeral=%v class=%q", wisp.Ephemeral, wisp.StorageClass)
 		}

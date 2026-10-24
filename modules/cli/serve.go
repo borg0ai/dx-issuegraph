@@ -10,16 +10,16 @@ import (
 
 	"github.com/spf13/cobra"
 
-	"github.com/steveyegge/beads/internal/configfile"
-	"github.com/steveyegge/beads/internal/eventsjournal"
-	"github.com/steveyegge/beads/internal/httpapi"
-	"github.com/steveyegge/beads/internal/storage"
-	"github.com/steveyegge/beads/internal/storage/backends"
-	"github.com/steveyegge/beads/internal/storage/contextinfo"
-	"github.com/steveyegge/beads/internal/storage/domain"
-	"github.com/steveyegge/beads/internal/storage/uow"
-	"github.com/steveyegge/beads/issueops"
-	"github.com/steveyegge/beads/memoryops"
+	"github.com/borg0ai/dx-issuegraph/internal/configfile"
+	"github.com/borg0ai/dx-issuegraph/internal/eventsjournal"
+	"github.com/borg0ai/dx-issuegraph/internal/httpapi"
+	"github.com/borg0ai/dx-issuegraph/internal/storage"
+	"github.com/borg0ai/dx-issuegraph/internal/storage/backends"
+	"github.com/borg0ai/dx-issuegraph/internal/storage/contextinfo"
+	"github.com/borg0ai/dx-issuegraph/internal/storage/domain"
+	"github.com/borg0ai/dx-issuegraph/internal/storage/uow"
+	"github.com/borg0ai/dx-issuegraph/issueops"
+	"github.com/borg0ai/dx-issuegraph/memoryops"
 )
 
 // serveCmdName is the command name, shared with the root command's post-run
@@ -33,7 +33,7 @@ const providerCloseTimeout = 10 * time.Second
 
 // serveTokenFileEnv is the environment fallback for --auth-token-file, which an
 // operator would otherwise have to thread through a container spec. It follows
-// the BEADS_* convention the rest of the binary uses, and applies ONLY when the
+// the ISSUEGRAPH_* convention the rest of the binary uses, and applies ONLY when the
 // flag was not passed.
 //
 // It is read here and nowhere else. internal/httpapi never reads the
@@ -43,7 +43,7 @@ const (
 	// #nosec G101 -- this is the NAME of an environment variable that holds a
 	// file PATH. No credential appears in this source file, and none may: a
 	// token reaches the process only by being read out of that file.
-	serveTokenFileEnv = "BEADS_SERVE_TOKEN_FILE"
+	serveTokenFileEnv = "ISSUEGRAPH_SERVE_TOKEN_FILE"
 )
 
 var (
@@ -56,12 +56,12 @@ var (
 
 var serveCmd = &cobra.Command{
 	Use:   serveCmdName,
-	Short: "Serve the beads HTTP API over loopback",
-	Long: `Serve the beads HTTP API — the same work surface the CLI answers, for
-automation clients that would otherwise fork a bd subprocess per call.
+	Short: "Serve the issuegraph HTTP API over loopback",
+	Long: `Serve the issuegraph HTTP API — the same work surface the CLI answers, for
+automation clients that would otherwise fork a issuegraph subprocess per call.
 
 The wire contract is described by an OpenAPI document (/v0); GET
-/v0/beads/context reports which operations this build actually implements.
+/v0/issuegraph/context reports which operations this build actually implements.
 
 DEPLOYMENT
 
@@ -73,14 +73,14 @@ DEPLOYMENT
   behavior. Concurrent serves are data-safe either way; claims are arbitrated
   in the SQL server.
 
-  Run it under a supervisor. bd shuts down gracefully on SIGHUP as well as
-  SIGINT and SIGTERM, so closing the terminal of a foreground bd serve stops it.
+  Run it under a supervisor. issuegraph shuts down gracefully on SIGHUP as well as
+  SIGINT and SIGTERM, so closing the terminal of a foreground issuegraph serve stops it.
 
 PROBES
 
   GET /healthz is LIVENESS only: it answers from the process and never touches
   the database, so it stays green while the database is unreachable. For
-  readiness use GET /v0/beads/ready?limit=1 — a real query, where 200 means
+  readiness use GET /v0/issuegraph/ready?limit=1 — a real query, where 200 means
   ready and 503 means live but not ready.
 
 AUTHENTICATION
@@ -88,8 +88,8 @@ AUTHENTICATION
   Optional, and off by default on loopback — where the trust model is the
   loopback boundary itself, the same one the database behind it already relies
   on. --auth-token-file turns it on: every operation except GET /healthz then
-  requires an "Authorization: Bearer <token>" header, GET /v0/beads/context
-  included, because it reports the repo root, beads directory and database name.
+  requires an "Authorization: Bearer <token>" header, GET /v0/issuegraph/context
+  included, because it reports the repo root, issuegraph directory and database name.
 
   The file holds ONE TOKEN PER LINE and every line is accepted. That is the
   rotation mechanism: write the new token alongside the old, roll the clients
@@ -140,11 +140,11 @@ WHAT THIS DOES NOT DO
 
 DESTRUCTIVE OPERATIONS
 
-  POST /v0/beads/issues:sweep deletes closed beads in bulk — the operation
-  behind bd purge and bd prune — and nothing it deletes comes back. It shares
+  POST /v0/issuegraph/issues:sweep deletes closed issuegraph in bulk — the operation
+  behind issuegraph purge and issuegraph prune — and nothing it deletes comes back. It shares
   the library surface those commands call, so it inherits their guards: pinned
-  beads are never swept, and a durable sweep with neither a cutoff nor an id
-  pattern is refused rather than clearing every closed bead in the workspace.
+  issuegraph are never swept, and a durable sweep with neither a cutoff nor an id
+  pattern is refused rather than clearing every closed issue in the workspace.
   Combined with the trust model above, that means anyone who can reach this
   address can erase closed work; bind it accordingly.`,
 	Args: cobra.NoArgs,
@@ -158,7 +158,7 @@ func init() {
 	rootCmd.AddCommand(serveCmd)
 }
 
-// registerServeFlags declares bd serve's own flags.
+// registerServeFlags declares issuegraph serve's own flags.
 //
 // It is a named function rather than a block in init so a test that runs the
 // command in-process can put the flag set back the way it found it: cobra
@@ -181,7 +181,7 @@ func registerServeFlags(cmd *cobra.Command) {
 // the workspace nor its database source: the operator's flags, and the
 // environment fallbacks behind them.
 //
-// It is deliberately not an httpapi.Config. Every Config bd builds names the
+// It is deliberately not an httpapi.Config. Every Config issuegraph builds names the
 // one database source it serves from, and that source is not known until the
 // workspace has been classified — so a Config filled in this early would be a
 // server configuration that cannot yet describe a server. The field names match
@@ -272,15 +272,15 @@ func runServe() error {
 	// after the context resolves rather than before it. A directory with no
 	// workspace at all therefore reports that it has none, instead of reporting
 	// the embedded refusal for a workspace nobody found.
-	db, err := serveDatabaseSource(info.BeadsDir)
+	db, err := serveDatabaseSource(info.IssueGraphDir)
 	if err != nil {
 		return HandleError("%v", err)
 	}
 
 	if db.source == serveSourceStore {
 		// Nothing to create. PersistentPreRunE already opened this workspace
-		// through the same backends.Lookup dispatch every ordinary bd command
-		// opens it with, so the store bd list and bd create answer from is the
+		// through the same backends.Lookup dispatch every ordinary issuegraph command
+		// opens it with, so the store issuegraph list and issuegraph create answer from is the
 		// store sitting in front of this server — one creation path, which is
 		// the whole point of this arm. Opening a second handle here would
 		// double the pools and self-conflict with any backend that takes an
@@ -290,12 +290,12 @@ func runServe() error {
 		// runs after this function returns, which is after the server has
 		// fully drained, so no request can reach a closed store. runServe must
 		// not close it.
-		journalEnabled := eventsjournal.EnabledFor(info.BeadsDir)
+		journalEnabled := eventsjournal.EnabledFor(info.IssueGraphDir)
 		roles, err := serveIssueRoles(store, journalEnabled)
 		if err != nil {
-			return HandleError("bd serve: %v", err)
+			return HandleError("issuegraph serve: %v", err)
 		}
-		defer startServeEventsJournalMaintenance(info.BeadsDir, store)()
+		defer startServeEventsJournalMaintenance(info.IssueGraphDir, store)()
 		return serveListen(opts, httpapi.Config{
 			Reader:            roles.reader,
 			Claimer:           roles.claimer,
@@ -326,7 +326,7 @@ func runServe() error {
 			// asked for one; Listen requires it exactly when the flag below is
 			// set, and serveIssueRoles has already refused the enabled case.
 			EventsJournal: roles.eventsJournal,
-			// GET /v0/beads/events refuses outright on a workspace that records
+			// GET /v0/issuegraph/events refuses outright on a workspace that records
 			// nothing, because a disabled journal and an empty one are one
 			// answer at the data level. Resolved ONCE above, so the role
 			// extraction, this flag and the maintenance ticker cannot disagree
@@ -338,7 +338,7 @@ func runServe() error {
 		})
 	}
 
-	// Serve from the provider BENEATH the hook layer. `bd serve` documents that
+	// Serve from the provider BENEATH the hook layer. `issuegraph serve` documents that
 	// it runs no hooks — a user-controlled subprocess per mutation is an
 	// unbounded latency multiplier and an orphaned child at shutdown — while
 	// proxied mode wires a notifying provider so the CLI's own writes keep
@@ -360,11 +360,11 @@ func runServe() error {
 		// connection or two against the very server this process is about to
 		// pool twenty more on. Worth knowing when sizing a shared Dolt server's
 		// max_connections.
-		topology, err := resolveServerModeUOWTopology(rootCtx, info.BeadsDir)
+		topology, err := resolveServerModeUOWTopology(rootCtx, info.IssueGraphDir)
 		if err != nil {
-			return HandleError("bd serve: %v", err)
+			return HandleError("issuegraph serve: %v", err)
 		}
-		// GET /v0/beads/context is the one endpoint automation is told to trust
+		// GET /v0/issuegraph/context is the one endpoint automation is told to trust
 		// for this server's identity, and its Database comes from metadata.json,
 		// which knows nothing about --global. Report the database the provider
 		// actually opened, or the handshake names one database while every
@@ -374,17 +374,17 @@ func runServe() error {
 		// same metadata.json GetContextInfo just read, so the handshake and the
 		// operations share one source of truth by construction.
 		info.Database = topology.database
-		p, err := newSQLServerUOWProvider(rootCtx, info.BeadsDir, topology)
+		p, err := newSQLServerUOWProvider(rootCtx, info.IssueGraphDir, topology)
 		if err != nil {
 			// A daemon has no operator watching a prompt, so a migration-gate
 			// refusal here must fail startup loudly and completely: the whole
-			// block, in the service log, naming the one-time `bd migrate
+			// block, in the service log, naming the one-time `issuegraph migrate
 			// schema` that unblocks it. No prompt, no auto-consent, no
 			// half-started daemon serving a schema it refused to reconcile.
 			if rendered := renderTypedOpenError(err); rendered {
 				return SilentExit()
 			}
-			return HandleError("bd serve: %v", err)
+			return HandleError("issuegraph serve: %v", err)
 		}
 		defer func() {
 			// By the time this runs the signal context is already canceled, so a
@@ -392,13 +392,13 @@ func runServe() error {
 			closeCtx, cancel := context.WithTimeout(context.WithoutCancel(rootCtx), providerCloseTimeout)
 			defer cancel()
 			if err := p.Close(closeCtx); err != nil {
-				fmt.Fprintf(os.Stderr, "bd serve: closing the unit-of-work provider: %v\n", err)
+				fmt.Fprintf(os.Stderr, "issuegraph serve: closing the unit-of-work provider: %v\n", err)
 			}
 		}()
 		provider = wireExternalDependencyUOWProvider(p)
 	}
 
-	defer startServeEventsJournalMaintenance(info.BeadsDir, provider)()
+	defer startServeEventsJournalMaintenance(info.IssueGraphDir, provider)()
 
 	return serveListen(opts, httpapi.Config{
 		Provider: provider,
@@ -408,7 +408,7 @@ func runServe() error {
 		// is still the workspace's answer and still has to be handed in — the
 		// provider knows how to READ the journal, not whether this workspace has
 		// one.
-		EventsJournalEnabled: eventsjournal.EnabledFor(info.BeadsDir),
+		EventsJournalEnabled: eventsjournal.EnabledFor(info.IssueGraphDir),
 		Workspace:            info,
 		SchemaVersion:        JSONSchemaVersion,
 		Mode:                 serveResolvedMode(info, db),
@@ -430,8 +430,8 @@ func runServe() error {
 // The stop is deferred by the caller so it runs after the server has drained:
 // maintenance and requests overlap freely (both are ordinary transactions), but
 // nothing should still be deleting when the provider closes underneath it.
-func startServeEventsJournalMaintenance(beadsDir string, source any) func() {
-	if !eventsjournal.EnabledFor(beadsDir) || !eventsjournal.AutoPruneEnabledFor(beadsDir) {
+func startServeEventsJournalMaintenance(issuegraphDir string, source any) func() {
+	if !eventsjournal.EnabledFor(issuegraphDir) || !eventsjournal.AutoPruneEnabledFor(issuegraphDir) {
 		return func() {}
 	}
 	// The plumbing this server answers FROM, not whatever the root pre-run left
@@ -495,13 +495,13 @@ func warnServePosture(w io.Writer, opts serveOptions) {
 	}
 	if opts.Auth == nil {
 		fmt.Fprintf(w,
-			"bd serve: WARNING: --insecure-no-auth binds %s beyond loopback with no authentication. "+
+			"issuegraph serve: WARNING: --insecure-no-auth binds %s beyond loopback with no authentication. "+
 				"Any peer that can reach it can read every issue and claim work as any actor.\n",
 			opts.Addr)
 		return
 	}
 	fmt.Fprintf(w,
-		"bd serve: WARNING: %s is bound beyond loopback with bearer authentication but NO TLS. "+
+		"issuegraph serve: WARNING: %s is bound beyond loopback with bearer authentication but NO TLS. "+
 			"Tokens and issue data travel in plaintext; deploy it inside a trusted network boundary.\n",
 		opts.Addr)
 }
@@ -512,7 +512,7 @@ type serveSource int
 
 const (
 	// serveSourceProvider is the unit-of-work provider: one unit of work per
-	// request, timed into that request's uow_ms and drawn from a pool bd serve
+	// request, timed into that request's uow_ms and drawn from a pool issuegraph serve
 	// bounds itself. Every Dolt SQL-server topology takes it.
 	serveSourceProvider serveSource = iota
 	// serveSourceStore is the role set, taken off the store the root command
@@ -530,7 +530,7 @@ func (s serveSource) String() string {
 	return "provider"
 }
 
-// serveDatabase is the resolved answer to the one question bd serve asks about
+// serveDatabase is the resolved answer to the one question issuegraph serve asks about
 // a workspace before it binds anything: where does this server read and claim
 // from.
 type serveDatabase struct {
@@ -548,7 +548,7 @@ type serveDatabase struct {
 // THE REGISTRY IS CONSULTED FIRST, and that ordering is not a preference.
 // PersistentPreRunE dispatches the store open on backends.Lookup before
 // anything looks at Dolt mode, so a registered workspace opens its registered
-// store even with BEADS_DOLT_SHARED_SERVER=1 exported. Resolving it the other
+// store even with ISSUEGRAPH_DOLT_SHARED_SERVER=1 exported. Resolving it the other
 // way here would build a Dolt unit-of-work provider over a non-Dolt store and
 // answer HTTP from a different database than the CLI reaches in the same
 // directory. Registry-first is also what closes the !cgo corner, where
@@ -565,13 +565,13 @@ type serveDatabase struct {
 // the backend behind a role, and every store publishes every role accessor
 // whatever it is. TestServeNamesOneDatabaseSourcePerServerItBuilds pins that
 // the roles are only ever reached through here.
-func serveDatabaseSource(beadsDir string) (serveDatabase, error) {
-	cfg, err := configfile.Load(beadsDir)
+func serveDatabaseSource(issuegraphDir string) (serveDatabase, error) {
+	cfg, err := configfile.Load(issuegraphDir)
 	if err != nil {
 		// Never classify past an unreadable metadata.json. The classification's
 		// default is the embedded refusal, so falling back would refuse a
 		// workspace whose real backend nobody managed to read.
-		return serveDatabase{}, fmt.Errorf("load %s: %w", configfile.ConfigPath(beadsDir), err)
+		return serveDatabase{}, fmt.Errorf("load %s: %w", configfile.ConfigPath(issuegraphDir), err)
 	}
 	if backend := normalizeLoadedConfig(cfg).GetBackend(); backends.Registered(backend) {
 		return serveDatabase{source: serveSourceStore, backend: backend}, nil
@@ -582,7 +582,7 @@ func serveDatabaseSource(beadsDir string) (serveDatabase, error) {
 	return serveDatabase{source: serveSourceProvider}, nil
 }
 
-// errServeReadonly refuses `bd --readonly serve`.
+// errServeReadonly refuses `issuegraph --readonly serve`.
 //
 // AHEAD OF THE WORKSPACE, deliberately: every server this command builds
 // publishes the same operation set, claim included, so the answer cannot depend
@@ -592,7 +592,7 @@ func serveDatabaseSource(beadsDir string) (serveDatabase, error) {
 //
 //   - On the STORE source the root command opens the workspace through
 //     backend.OpenReadOnly and serve takes its claimer off that store. The
-//     server bound, GET /v0/beads/context went on advertising `issues.claim`
+//     server bound, GET /v0/issuegraph/context went on advertising `issues.claim`
 //     (the capability set is derived from the route table and knows nothing
 //     about a CLI flag), and every claim answered 500 with the issue left open.
 //   - On the PROVIDER source serve builds its own unit-of-work provider from
@@ -605,7 +605,7 @@ func serveDatabaseSource(beadsDir string) (serveDatabase, error) {
 // read-only server's advertised capabilities would be a wire change — that list
 // is the documented pre-flight a client checks — and it would make one
 // operation's presence depend on a flag on the process that happened to start
-// the server, which no client can discover before connecting. bd already
+// the server, which no client can discover before connecting. issuegraph already
 // answers this question the same way one layer down, where a backend that
 // cannot guarantee mutation-free access is turned away rather than opened
 // anyway (the proxy.readonly.unsupported refusal in modules/cli/main.go).
@@ -614,7 +614,7 @@ func serveDatabaseSource(beadsDir string) (serveDatabase, error) {
 // `readonly` is also a config key, and PersistentPreRunE has already folded
 // both into readonlyMode by the time any RunE runs.
 func errServeReadonly() error {
-	return errors.New("bd serve is unavailable under strict readonly (--readonly, or readonly in config): " +
+	return errors.New("issuegraph serve is unavailable under strict readonly (--readonly, or readonly in config): " +
 		"every server it binds publishes the issue-claim operation, and refusing to start is the only honest " +
 		"answer — a server that advertised a claim it could never land would be worse than no server")
 }
@@ -629,7 +629,7 @@ func errServeReadonly() error {
 // taxonomy, so putting a topology string in it would hand every downstream
 // errors.As a mixed backend/mode vocabulary.
 func errServeEmbedded() error {
-	return fmt.Errorf("%w: bd serve requires a Dolt SQL server; this workspace uses embedded Dolt",
+	return fmt.Errorf("%w: issuegraph serve requires a Dolt SQL server; this workspace uses embedded Dolt",
 		&storage.ErrUnsupported{Op: "serve", Backend: "embedded-dolt"})
 }
 
@@ -684,7 +684,7 @@ var _ serveRoleSource = storage.DoltStorage(nil)
 // serveIssueRoles takes the roles this server answers from off the store the
 // root command already opened.
 //
-// ONE PEEL, and never storage.UnwrapStore. bd's chain is
+// ONE PEEL, and never storage.UnwrapStore. issuegraph's chain is
 // HookFiringStore -> InstrumentedStorage -> raw, and every decorator publishes
 // its own roles — that is what the accessors are for — so store.IssueClaimer()
 // returns a claimer that runs the workspace's on_update script for every claim
@@ -694,7 +694,7 @@ var _ serveRoleSource = storage.DoltStorage(nil)
 // hook-firing role rather than trusting this comment, so getting it wrong is a
 // startup error rather than a silent subprocess per claim.
 //
-// The assertion is conditional because a BD_NO_HOOKS=1 workspace has no hook
+// The assertion is conditional because a ISSUEGRAPH_NO_HOOKS=1 workspace has no hook
 // layer to peel.
 //
 // It returns the WHOLE set httpapi.Config requires; Listen refuses a partial
@@ -771,7 +771,7 @@ func serveIssueRoles(src serveRoleSource, journalEnabled bool) (serveRoles, erro
 			// default, and eventsjournal.Apply takes exactly this deal when it
 			// binds activation at open time. Only an ENABLED workspace has
 			// asked for something this backend cannot do, and the message is
-			// the one `bd events` prints for the same condition.
+			// the one `issuegraph events` prints for the same condition.
 			if journalEnabled {
 				return fmt.Errorf("storage backend does not support the events journal")
 			}
@@ -815,17 +815,17 @@ type serveRoles struct {
 	reader  issueops.Reader
 	claimer issueops.Claimer
 	// batchCloser closes many issues as one transaction, behind
-	// POST /v0/beads/issues:batchClose. Its accessor does NOT recurse through
+	// POST /v0/issuegraph/issues:batchClose. Its accessor does NOT recurse through
 	// the hook decorator today, so it is taken off the peeled store with the
 	// rest for uniformity rather than out of necessity.
 	batchCloser issueops.BatchCloser
 	// readyClaimer is the atomic take of ready work, behind
-	// POST /v0/beads/issues:claimNext. Its accessor does NOT recurse through
+	// POST /v0/issuegraph/issues:claimNext. Its accessor does NOT recurse through
 	// the hook decorator today, so it is taken off the peeled store with the
 	// rest for uniformity rather than out of necessity.
 	readyClaimer issueops.ReadyClaimer
 	// releaser is the claim's inverse, behind
-	// POST /v0/beads/issues/{id}:release. Its accessor recurses through the
+	// POST /v0/issuegraph/issues/{id}:release. Its accessor recurses through the
 	// hook decorator like the two below it — a release is an update, so
 	// HookFiringStore.Releaser fires the workspace's on_update script — which
 	// is why it comes off the PEELED store with the rest.
@@ -885,7 +885,7 @@ type serveRoles struct {
 // serveResolvedMode labels the topology for the startup log line. Cosmetic —
 // nothing dispatches on it — but the managed/external distinction is worth
 // naming: an external dolt sql-server shares its max_connections budget with
-// every other bd process pointed at it, and this server's pool is a claim on
+// every other issuegraph process pointed at it, and this server's pool is a claim on
 // that budget.
 //
 // A registered backend is named instead of being given a Dolt mode, which it
@@ -900,10 +900,10 @@ func serveResolvedMode(info domain.ContextInfo, db serveDatabase) string {
 	if !usesProxiedServer() {
 		// Server, external-server and shared-server: serve fronts the running
 		// dolt sql-server rather than starting one, so from this process the
-		// server is external even when Beads is what started it.
+		// server is external even when IssueGraph is what started it.
 		return info.DoltMode + " (external dolt)"
 	}
-	client, err := configfile.LoadProxiedServerClientInfo(info.BeadsDir)
+	client, err := configfile.LoadProxiedServerClientInfo(info.IssueGraphDir)
 	if err == nil && client != nil && client.External != nil {
 		return info.DoltMode + " (external dolt)"
 	}

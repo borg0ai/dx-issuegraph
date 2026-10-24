@@ -1,12 +1,12 @@
 // Package memoryapi holds the parts of the memory plane that decide what an
 // answer MEANS: the key derivation, the two refusals and the search filter.
 // Every implementation of memoryops.Memories goes through them, so they are the
-// single definition of what `bd remember` and `bd memories` mean, and they are
+// single definition of what `issuegraph remember` and `issuegraph memories` mean, and they are
 // checkable in milliseconds with no database.
 //
 // It is its own package rather than a file in internal/workapi because nothing
 // in it is issue-shaped, and it is deliberately importable by modules/cli: the
-// `bd remember` front door needs DeriveKey to spot the bare-slug desire path
+// `issuegraph remember` front door needs DeriveKey to spot the bare-slug desire path
 // BEFORE it decides which role method to call, exactly as the twenty-odd modules/cli
 // files that import workapi need the builders. What a front door must not
 // reach is a role CONSTRUCTOR, and there is none here — these are meaning
@@ -22,7 +22,7 @@ import (
 	"regexp"
 	"strings"
 
-	"github.com/steveyegge/beads/memoryops"
+	"github.com/borg0ai/dx-issuegraph/memoryops"
 )
 
 // nonSlugChars matches every run of characters a derived key collapses to a
@@ -30,14 +30,14 @@ import (
 var nonSlugChars = regexp.MustCompile(`[^a-z0-9]+`)
 
 // DeriveKey turns memory content into the key it is stored under when the
-// caller supplies none. It is `bd remember`'s slugify, moved verbatim.
+// caller supplies none. It is `issuegraph remember`'s slugify, moved verbatim.
 //
 // ITS QUIRKS ARE LOAD-BEARING AND MUST NOT BE TIDIED. Content is lowercased,
 // every run of non-alphanumerics becomes ONE hyphen, the first EIGHT
 // hyphen-separated segments are kept and the rest DROPPED, and the result is
 // capped at 60 BYTES with a hyphen left at the cut trimmed off. All four are
 // observable in the key, and a "cleanup" here silently re-keys every memory
-// anyone re-remembers: `bd remember "always run tests with -race flag"` would
+// anyone re-remembers: `issuegraph remember "always run tests with -race flag"` would
 // mint a new key beside the old one instead of updating it, and the old memory
 // would sit there forever answering an obsolete question. memoryapi_test.go
 // pins the whole shape with a golden table.
@@ -74,7 +74,7 @@ func DeriveKey(content string) string {
 
 // ValidateContent checks the content a caller wants to remember.
 //
-// The prose is `bd remember`'s, preserved: it is the sentence agents have been
+// The prose is `issuegraph remember`'s, preserved: it is the sentence agents have been
 // reading since the command shipped, and the sentinel is what code classifies
 // on.
 func ValidateContent(content string) error {
@@ -87,7 +87,7 @@ func ValidateContent(content string) error {
 // ValidateKey checks a key a caller wants to read or remove, and returns it
 // UNCHANGED.
 //
-// Unchanged is the whole point: `bd remember --key` accepts any string, so a
+// Unchanged is the whole point: `issuegraph remember --key` accepts any string, so a
 // key differing from another only by surrounding space is a key someone may
 // genuinely hold, and trimming it here would answer a different question from
 // the one asked. The only rule is that a key has to name something.
@@ -116,7 +116,7 @@ func ResolveKey(key, content string) (string, error) {
 		// Forget run — refuses a key that is empty after trimming, so accepting
 		// one here mints a row that no memory operation can ever name again:
 		// enumerable by List forever, unrecallable, unforgettable, reachable
-		// only through `bd config unset` on the raw storage key. The HTTP
+		// only through `issuegraph config unset` on the raw storage key. The HTTP
 		// surface inherits the same split, so POST would accept what GET and
 		// DELETE refuse.
 		//
@@ -133,7 +133,7 @@ func ResolveKey(key, content string) (string, error) {
 
 // FilterMemories narrows already-prefix-stripped memories by a raw search term.
 //
-// THE FOLDING IS HERE, on both sides. The shipped `bd memories` lowercased the
+// THE FOLDING IS HERE, on both sides. The shipped `issuegraph memories` lowercased the
 // term at the front door and the filter lowercased the stored values, which
 // worked only for as long as every caller remembered the first half; a second
 // door that passed the term through raw would have matched nothing and reported

@@ -11,8 +11,8 @@ import (
 	"testing"
 	"time"
 
-	"github.com/steveyegge/beads/internal/doltserver"
-	"github.com/steveyegge/beads/internal/testutil/integration"
+	"github.com/borg0ai/dx-issuegraph/internal/doltserver"
+	"github.com/borg0ai/dx-issuegraph/internal/testutil/integration"
 )
 
 // setupWispCascadeStore starts a real, standalone dolt sql-server (no Docker)
@@ -24,24 +24,24 @@ import (
 func setupWispCascadeStore(t *testing.T) *DoltStore {
 	t.Helper()
 	integration.RequireDolt(t)
-	t.Setenv("BEADS_DOLT_SHARED_SERVER", "0")
-	t.Setenv("BEADS_DOLT_SERVER_PORT", "")
-	t.Setenv("BEADS_DOLT_PORT", "")
+	t.Setenv("ISSUEGRAPH_DOLT_SHARED_SERVER", "0")
+	t.Setenv("ISSUEGRAPH_DOLT_SERVER_PORT", "")
+	t.Setenv("ISSUEGRAPH_DOLT_PORT", "")
 
-	beadsDir := filepath.Join(t.TempDir(), ".beads")
-	if err := os.MkdirAll(beadsDir, 0o700); err != nil {
-		t.Fatalf("mkdir beads dir: %v", err)
+	issuegraphDir := filepath.Join(t.TempDir(), ".issuegraph")
+	if err := os.MkdirAll(issuegraphDir, 0o700); err != nil {
+		t.Fatalf("mkdir issuegraph dir: %v", err)
 	}
-	state, err := doltserver.Start(beadsDir)
+	state, err := doltserver.Start(issuegraphDir)
 	if err != nil {
 		t.Fatalf("start local dolt server: %v", err)
 	}
 	t.Cleanup(func() {
-		current, stateErr := doltserver.IsRunning(beadsDir)
+		current, stateErr := doltserver.IsRunning(issuegraphDir)
 		if stateErr != nil || current == nil || !current.Running {
 			return
 		}
-		if err := doltserver.Stop(beadsDir); err != nil {
+		if err := doltserver.Stop(issuegraphDir); err != nil {
 			t.Errorf("stop local dolt server: %v", err)
 		}
 	})
@@ -50,16 +50,16 @@ func setupWispCascadeStore(t *testing.T) *DoltStore {
 	defer cancel()
 
 	cfg := &Config{
-		Path:            filepath.Join(beadsDir, "store"),
-		BeadsDir:        beadsDir,
+		Path:            filepath.Join(issuegraphDir, "store"),
+		IssueGraphDir:   issuegraphDir,
 		ServerHost:      "127.0.0.1",
 		ServerPort:      state.Port,
 		ServerUser:      "root",
 		Database:        "wisp_cascade_test",
 		CreateIfMissing: true,
 		MaxOpenConns:    1,
-		CommitterName:   "Beads Test",
-		CommitterEmail:  "beads@example.com",
+		CommitterName:   "IssueGraph Test",
+		CommitterEmail:  "issuegraph@example.com",
 	}
 	store, err := New(ctx, cfg)
 	if err != nil {

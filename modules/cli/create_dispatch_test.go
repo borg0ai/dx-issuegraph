@@ -9,11 +9,11 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/steveyegge/beads/internal/types"
+	"github.com/borg0ai/dx-issuegraph/internal/types"
 )
 
 // TestCreateDirectModeRejectsAllowEmptyDescriptionWithFile is a regression
-// test for the 2026-07-23 CHANGES_REQUESTED review on gastownhall/beads#4984:
+// test for the 2026-07-23 CHANGES_REQUESTED review on borg0ai/dx-issuegraph#4984:
 // direct-mode (non-proxied) --file dispatch returned from RunE before the
 // validateDescriptionUpdate/--allow-empty-description check ever ran, so the
 // flag was silently accepted-and-ignored with --file. This asserts the guard
@@ -118,7 +118,7 @@ func TestCreateSingleIssueAllowEmptyDescriptionRoundTrip(t *testing.T) {
 	})
 
 	tmpDir := t.TempDir()
-	testDB := filepath.Join(tmpDir, ".beads", "beads.db")
+	testDB := filepath.Join(tmpDir, ".issuegraph", "issuegraph.db")
 	s := newTestStore(t, testDB)
 
 	store = s
@@ -173,7 +173,7 @@ func TestCreateSingleIssueAllowEmptyDescriptionRoundTrip(t *testing.T) {
 }
 
 // TestCreateFileDispatchRejectsPositionalTitle is a regression test for
-// gastownhall/beads#4643: --file is a batch-import route, so a positional
+// borg0ai/dx-issuegraph#4643: --file is a batch-import route, so a positional
 // title has nowhere to go once createIssuesFromMarkdown takes over. This
 // asserts gatherCreateInput's existing guard still rejects the combination
 // before any issue is written, rather than silently discarding the title.
@@ -192,7 +192,7 @@ func TestCreateFileDispatchRejectsPositionalTitle(t *testing.T) {
 
 	tmpDir := t.TempDir()
 	mdPath := filepath.Join(tmpDir, "single.md")
-	if err := os.WriteFile(mdPath, []byte("## My Bead\n\nBody text.\n"), 0644); err != nil {
+	if err := os.WriteFile(mdPath, []byte("## My Issue\n\nBody text.\n"), 0644); err != nil {
 		t.Fatalf("write markdown fixture: %v", err)
 	}
 
@@ -202,7 +202,7 @@ func TestCreateFileDispatchRejectsPositionalTitle(t *testing.T) {
 
 	var err error
 	stderr := captureStderr(t, func() {
-		err = createCmd.RunE(createCmd, []string{"my new bead"})
+		err = createCmd.RunE(createCmd, []string{"my new issue"})
 	})
 	if err == nil {
 		t.Fatal("expected --file dispatch with a positional title to be rejected")

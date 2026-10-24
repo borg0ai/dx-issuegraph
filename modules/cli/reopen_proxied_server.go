@@ -7,12 +7,12 @@ import (
 
 	"github.com/spf13/cobra"
 
-	"github.com/steveyegge/beads/internal/audit"
-	"github.com/steveyegge/beads/internal/storage/uow"
-	"github.com/steveyegge/beads/internal/types"
-	"github.com/steveyegge/beads/internal/ui"
-	"github.com/steveyegge/beads/internal/workapi"
-	"github.com/steveyegge/beads/issueops"
+	"github.com/borg0ai/dx-issuegraph/internal/audit"
+	"github.com/borg0ai/dx-issuegraph/internal/storage/uow"
+	"github.com/borg0ai/dx-issuegraph/internal/types"
+	"github.com/borg0ai/dx-issuegraph/internal/ui"
+	"github.com/borg0ai/dx-issuegraph/internal/workapi"
+	"github.com/borg0ai/dx-issuegraph/issueops"
 )
 
 // reopenProxiedTarget is one id that resolved, carrying the status it sat at
@@ -39,7 +39,7 @@ type reopenProxiedTarget struct {
 //
 // ONE CALL PER ID, so one transaction and one history entry per id, where this
 // route used to run every id in one unit of work under a hand-composed
-// "bd: reopen a, b" message.
+// "issuegraph: reopen a, b" message.
 func runReopenProxiedServer(cmd *cobra.Command, ctx context.Context, args []string) error {
 	if len(args) == 0 {
 		return HandleErrorRespectJSON("no issue ID provided")
@@ -70,8 +70,8 @@ func runReopenProxiedServer(cmd *cobra.Command, ctx context.Context, args []stri
 			IssueID: target.id,
 			Reason:  reason,
 			// The label the direct route spells, so one reopen reads the same
-			// in `bd dolt log` whichever route served it.
-			Provenance: "bd: reopen " + target.id,
+			// in `issuegraph dolt log` whichever route served it.
+			Provenance: "issuegraph: reopen " + target.id,
 		})
 		if err != nil {
 			reportIssueLookupFailure("reopening", target.id, err)
@@ -89,7 +89,7 @@ func runReopenProxiedServer(cmd *cobra.Command, ctx context.Context, args []stri
 		audit.LogFieldChange(target.id, "status", string(target.status), string(types.StatusOpen), actor, reason)
 		if jsonOut {
 			if issue := result.Issue; issue != nil {
-				// `bd reopen` has never printed dependency records, on either
+				// `issuegraph reopen` has never printed dependency records, on either
 				// route.
 				issue.Dependencies = nil
 				reopenedIssues = append(reopenedIssues, issue)

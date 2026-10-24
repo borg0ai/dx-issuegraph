@@ -7,7 +7,7 @@ import (
 	"testing"
 	"time"
 
-	"github.com/steveyegge/beads/internal/types"
+	"github.com/borg0ai/dx-issuegraph/internal/types"
 )
 
 func TestGenerateIssueIDs(t *testing.T) {
@@ -108,7 +108,7 @@ func TestGenerateIssueIDsNoDuplicates(t *testing.T) {
 		},
 	}
 
-	err := GenerateIssueIDs(issues, "bd", "linear-import", IDGenerationOptions{})
+	err := GenerateIssueIDs(issues, "issuegraph", "linear-import", IDGenerationOptions{})
 	if err != nil {
 		t.Fatalf("GenerateIssueIDs failed: %v", err)
 	}
@@ -125,7 +125,7 @@ func TestGenerateIssueIDsNoDuplicates(t *testing.T) {
 }
 
 func TestNormalizeIssueForLinearHashCanonicalizesExternalRef(t *testing.T) {
-	slugged := "https://linear.app/crown-dev/issue/BEA-93/updated-title-for-beads"
+	slugged := "https://linear.app/crown-dev/issue/BEA-93/updated-title-for-issuegraph"
 	canonical := "https://linear.app/crown-dev/issue/BEA-93"
 	issue := &types.Issue{
 		Title:       "Title",
@@ -194,7 +194,7 @@ func TestDefaultMappingConfig(t *testing.T) {
 	}
 }
 
-func TestPriorityToBeads(t *testing.T) {
+func TestPriorityToIssueGraph(t *testing.T) {
 	config := DefaultMappingConfig()
 
 	tests := []struct {
@@ -210,9 +210,9 @@ func TestPriorityToBeads(t *testing.T) {
 	}
 
 	for _, tt := range tests {
-		got := PriorityToBeads(tt.linearPriority, config)
+		got := PriorityToIssueGraph(tt.linearPriority, config)
 		if got != tt.want {
-			t.Errorf("PriorityToBeads(%d) = %d, want %d", tt.linearPriority, got, tt.want)
+			t.Errorf("PriorityToIssueGraph(%d) = %d, want %d", tt.linearPriority, got, tt.want)
 		}
 	}
 }
@@ -221,8 +221,8 @@ func TestPriorityToLinear(t *testing.T) {
 	config := DefaultMappingConfig()
 
 	tests := []struct {
-		beadsPriority int
-		want          int
+		issuegraphPriority int
+		want               int
 	}{
 		{0, 1}, // Critical -> Urgent
 		{1, 2}, // High -> High
@@ -233,14 +233,14 @@ func TestPriorityToLinear(t *testing.T) {
 	}
 
 	for _, tt := range tests {
-		got := PriorityToLinear(tt.beadsPriority, config)
+		got := PriorityToLinear(tt.issuegraphPriority, config)
 		if got != tt.want {
-			t.Errorf("PriorityToLinear(%d) = %d, want %d", tt.beadsPriority, got, tt.want)
+			t.Errorf("PriorityToLinear(%d) = %d, want %d", tt.issuegraphPriority, got, tt.want)
 		}
 	}
 }
 
-func TestStateToBeadsStatus(t *testing.T) {
+func TestStateToIssueGraphStatus(t *testing.T) {
 	config := DefaultMappingConfig()
 
 	tests := []struct {
@@ -257,18 +257,18 @@ func TestStateToBeadsStatus(t *testing.T) {
 	}
 
 	for _, tt := range tests {
-		got := StateToBeadsStatus(tt.state, config)
+		got := StateToIssueGraphStatus(tt.state, config)
 		if got != tt.want {
 			stateName := "nil"
 			if tt.state != nil {
 				stateName = tt.state.Type
 			}
-			t.Errorf("StateToBeadsStatus(%s) = %v, want %v", stateName, got, tt.want)
+			t.Errorf("StateToIssueGraphStatus(%s) = %v, want %v", stateName, got, tt.want)
 		}
 	}
 }
 
-func TestParseBeadsStatus(t *testing.T) {
+func TestParseIssueGraphStatus(t *testing.T) {
 	tests := []struct {
 		input string
 		want  types.Status
@@ -290,9 +290,9 @@ func TestParseBeadsStatus(t *testing.T) {
 	}
 
 	for _, tt := range tests {
-		got := ParseBeadsStatus(tt.input)
+		got := ParseIssueGraphStatus(tt.input)
 		if got != tt.want {
-			t.Errorf("ParseBeadsStatus(%q) = %v, want %v", tt.input, got, tt.want)
+			t.Errorf("ParseIssueGraphStatus(%q) = %v, want %v", tt.input, got, tt.want)
 		}
 	}
 }
@@ -399,7 +399,7 @@ func TestParseIssueType(t *testing.T) {
 	}
 }
 
-func TestRelationToBeadsDep(t *testing.T) {
+func TestRelationToIssueGraphDep(t *testing.T) {
 	config := DefaultMappingConfig()
 
 	tests := []struct {
@@ -414,14 +414,14 @@ func TestRelationToBeadsDep(t *testing.T) {
 	}
 
 	for _, tt := range tests {
-		got := RelationToBeadsDep(tt.relationType, config)
+		got := RelationToIssueGraphDep(tt.relationType, config)
 		if got != tt.want {
-			t.Errorf("RelationToBeadsDep(%q) = %q, want %q", tt.relationType, got, tt.want)
+			t.Errorf("RelationToIssueGraphDep(%q) = %q, want %q", tt.relationType, got, tt.want)
 		}
 	}
 }
 
-func TestIssueToBeads(t *testing.T) {
+func TestIssueToIssueGraph(t *testing.T) {
 	config := DefaultMappingConfig()
 
 	linearIssue := &Issue{
@@ -438,7 +438,7 @@ func TestIssueToBeads(t *testing.T) {
 		UpdatedAt:   "2024-01-16T12:00:00Z",
 	}
 
-	result := IssueToBeads(linearIssue, config)
+	result := IssueToIssueGraph(linearIssue, config)
 	issue := result.Issue.(*types.Issue)
 
 	if issue.Title != "Test Issue" {
@@ -447,7 +447,7 @@ func TestIssueToBeads(t *testing.T) {
 	if issue.Description != "Test description" {
 		t.Errorf("Description = %q, want %q", issue.Description, "Test description")
 	}
-	if issue.Priority != 1 { // High in beads
+	if issue.Priority != 1 { // High in issuegraph
 		t.Errorf("Priority = %d, want 1", issue.Priority)
 	}
 	if issue.Status != types.StatusInProgress {
@@ -464,7 +464,7 @@ func TestIssueToBeads(t *testing.T) {
 	}
 }
 
-func TestIssueToBeadsWithParent(t *testing.T) {
+func TestIssueToIssueGraphWithParent(t *testing.T) {
 	config := DefaultMappingConfig()
 
 	linearIssue := &Issue{
@@ -480,7 +480,7 @@ func TestIssueToBeadsWithParent(t *testing.T) {
 		UpdatedAt:   "2024-01-16T12:00:00Z",
 	}
 
-	result := IssueToBeads(linearIssue, config)
+	result := IssueToIssueGraph(linearIssue, config)
 
 	if len(result.Dependencies) != 1 {
 		t.Fatalf("Expected 1 dependency, got %d", len(result.Dependencies))
@@ -499,7 +499,7 @@ func TestIssueToBeadsWithParent(t *testing.T) {
 	}
 }
 
-func TestIssueToBeadsRelationMappedToParentChildKeepsRelationSource(t *testing.T) {
+func TestIssueToIssueGraphRelationMappedToParentChildKeepsRelationSource(t *testing.T) {
 	config := DefaultMappingConfig()
 	config.RelationMap["related"] = "parent-child"
 
@@ -524,7 +524,7 @@ func TestIssueToBeadsRelationMappedToParentChildKeepsRelationSource(t *testing.T
 		UpdatedAt: "2024-01-16T12:00:00Z",
 	}
 
-	result := IssueToBeads(linearIssue, config)
+	result := IssueToIssueGraph(linearIssue, config)
 
 	if len(result.Dependencies) != 1 {
 		t.Fatalf("Expected 1 dependency, got %d", len(result.Dependencies))
@@ -562,7 +562,7 @@ func TestBuildLinearToLocalUpdates(t *testing.T) {
 	if updates["description"] != "Updated description" {
 		t.Errorf("description = %v, want %q", updates["description"], "Updated description")
 	}
-	if updates["priority"] != 0 { // Critical in beads
+	if updates["priority"] != 0 { // Critical in issuegraph
 		t.Errorf("priority = %v, want 0", updates["priority"])
 	}
 	if updates["status"] != "closed" {
@@ -668,12 +668,12 @@ func TestLoadMappingConfigDottedStateMapResolvesPushByName(t *testing.T) {
 		},
 	}
 
-	got, err := ResolveStateIDForBeadsStatus(cache, types.StatusClosed, config)
+	got, err := ResolveStateIDForIssueGraphStatus(cache, types.StatusClosed, config)
 	if err != nil {
-		t.Fatalf("ResolveStateIDForBeadsStatus() error = %v", err)
+		t.Fatalf("ResolveStateIDForIssueGraphStatus() error = %v", err)
 	}
 	if got != "state-done" {
-		t.Fatalf("ResolveStateIDForBeadsStatus() = %q, want state-done", got)
+		t.Fatalf("ResolveStateIDForIssueGraphStatus() = %q, want state-done", got)
 	}
 }
 
@@ -727,14 +727,14 @@ func TestBuildLinearDescription(t *testing.T) {
 	}
 }
 
-func TestResolveStateIDForBeadsStatusRequiresExplicitMappings(t *testing.T) {
+func TestResolveStateIDForIssueGraphStatusRequiresExplicitMappings(t *testing.T) {
 	cache := &StateCache{
 		States: []State{
 			{ID: "state-1", Name: "Todo", Type: "unstarted"},
 		},
 	}
 
-	_, err := ResolveStateIDForBeadsStatus(cache, types.StatusOpen, DefaultMappingConfig())
+	_, err := ResolveStateIDForIssueGraphStatus(cache, types.StatusOpen, DefaultMappingConfig())
 	if err == nil {
 		t.Fatal("expected missing explicit state map to fail")
 	}
@@ -743,7 +743,7 @@ func TestResolveStateIDForBeadsStatusRequiresExplicitMappings(t *testing.T) {
 	}
 }
 
-func TestResolveStateIDForBeadsStatusRejectsAmbiguousTypeFallback(t *testing.T) {
+func TestResolveStateIDForIssueGraphStatusRejectsAmbiguousTypeFallback(t *testing.T) {
 	cache := &StateCache{
 		States: []State{
 			{ID: "state-1", Name: "Done", Type: "completed"},
@@ -753,7 +753,7 @@ func TestResolveStateIDForBeadsStatusRejectsAmbiguousTypeFallback(t *testing.T) 
 	config := DefaultMappingConfig()
 	config.ExplicitStateMap["completed"] = "closed"
 
-	_, err := ResolveStateIDForBeadsStatus(cache, types.StatusClosed, config)
+	_, err := ResolveStateIDForIssueGraphStatus(cache, types.StatusClosed, config)
 	if err == nil {
 		t.Fatal("expected ambiguous completed mapping to fail")
 	}
@@ -762,7 +762,7 @@ func TestResolveStateIDForBeadsStatusRejectsAmbiguousTypeFallback(t *testing.T) 
 	}
 }
 
-func TestResolveStateIDForBeadsStatusPrefersExplicitStateName(t *testing.T) {
+func TestResolveStateIDForIssueGraphStatusPrefersExplicitStateName(t *testing.T) {
 	cache := &StateCache{
 		States: []State{
 			{ID: "state-1", Name: "Done", Type: "completed"},
@@ -772,16 +772,16 @@ func TestResolveStateIDForBeadsStatusPrefersExplicitStateName(t *testing.T) {
 	config := DefaultMappingConfig()
 	config.ExplicitStateMap["done"] = "closed"
 
-	got, err := ResolveStateIDForBeadsStatus(cache, types.StatusClosed, config)
+	got, err := ResolveStateIDForIssueGraphStatus(cache, types.StatusClosed, config)
 	if err != nil {
-		t.Fatalf("ResolveStateIDForBeadsStatus() error = %v", err)
+		t.Fatalf("ResolveStateIDForIssueGraphStatus() error = %v", err)
 	}
 	if got != "state-1" {
-		t.Fatalf("ResolveStateIDForBeadsStatus() = %q, want state-1", got)
+		t.Fatalf("ResolveStateIDForIssueGraphStatus() = %q, want state-1", got)
 	}
 }
 
-func TestResolveStateIDForBeadsStatusOutboundOverrideResolvesAmbiguousType(t *testing.T) {
+func TestResolveStateIDForIssueGraphStatusOutboundOverrideResolvesAmbiguousType(t *testing.T) {
 	// Reproduces the be-9gt scenario: Linear's default workspace has two
 	// "started"-type states. Without an outbound override the push would error
 	// with the ambiguity message; with one it resolves cleanly.
@@ -795,16 +795,16 @@ func TestResolveStateIDForBeadsStatusOutboundOverrideResolvesAmbiguousType(t *te
 	config.ExplicitStateMap["started"] = "in_progress"
 	config.OutboundStateMap["in_progress"] = "In Progress"
 
-	got, err := ResolveStateIDForBeadsStatus(cache, types.StatusInProgress, config)
+	got, err := ResolveStateIDForIssueGraphStatus(cache, types.StatusInProgress, config)
 	if err != nil {
-		t.Fatalf("ResolveStateIDForBeadsStatus() error = %v", err)
+		t.Fatalf("ResolveStateIDForIssueGraphStatus() error = %v", err)
 	}
 	if got != "state-progress" {
-		t.Fatalf("ResolveStateIDForBeadsStatus() = %q, want state-progress", got)
+		t.Fatalf("ResolveStateIDForIssueGraphStatus() = %q, want state-progress", got)
 	}
 }
 
-func TestResolveStateIDForBeadsStatusOutboundOverrideIsCaseInsensitive(t *testing.T) {
+func TestResolveStateIDForIssueGraphStatusOutboundOverrideIsCaseInsensitive(t *testing.T) {
 	cache := &StateCache{
 		States: []State{
 			{ID: "state-progress", Name: "In Progress", Type: "started"},
@@ -814,16 +814,16 @@ func TestResolveStateIDForBeadsStatusOutboundOverrideIsCaseInsensitive(t *testin
 	config.ExplicitStateMap["started"] = "in_progress"
 	config.OutboundStateMap["in_progress"] = "  in progress  " // mixed case, padding
 
-	got, err := ResolveStateIDForBeadsStatus(cache, types.StatusInProgress, config)
+	got, err := ResolveStateIDForIssueGraphStatus(cache, types.StatusInProgress, config)
 	if err != nil {
-		t.Fatalf("ResolveStateIDForBeadsStatus() error = %v", err)
+		t.Fatalf("ResolveStateIDForIssueGraphStatus() error = %v", err)
 	}
 	if got != "state-progress" {
-		t.Fatalf("ResolveStateIDForBeadsStatus() = %q, want state-progress", got)
+		t.Fatalf("ResolveStateIDForIssueGraphStatus() = %q, want state-progress", got)
 	}
 }
 
-func TestResolveStateIDForBeadsStatusOutboundOverrideUnknownStateNameErrors(t *testing.T) {
+func TestResolveStateIDForIssueGraphStatusOutboundOverrideUnknownStateNameErrors(t *testing.T) {
 	cache := &StateCache{
 		States: []State{
 			{ID: "state-progress", Name: "In Progress", Type: "started"},
@@ -834,7 +834,7 @@ func TestResolveStateIDForBeadsStatusOutboundOverrideUnknownStateNameErrors(t *t
 	config.ExplicitStateMap["started"] = "in_progress"
 	config.OutboundStateMap["in_progress"] = "Doing"
 
-	_, err := ResolveStateIDForBeadsStatus(cache, types.StatusInProgress, config)
+	_, err := ResolveStateIDForIssueGraphStatus(cache, types.StatusInProgress, config)
 	if err == nil {
 		t.Fatal("expected error for unknown outbound state name")
 	}
@@ -843,7 +843,7 @@ func TestResolveStateIDForBeadsStatusOutboundOverrideUnknownStateNameErrors(t *t
 	}
 }
 
-func TestResolveStateIDForBeadsStatusOutboundOverrideWinsOverExplicitStateName(t *testing.T) {
+func TestResolveStateIDForIssueGraphStatusOutboundOverrideWinsOverExplicitStateName(t *testing.T) {
 	cache := &StateCache{
 		States: []State{
 			{ID: "state-progress", Name: "In Progress", Type: "started"},
@@ -856,16 +856,16 @@ func TestResolveStateIDForBeadsStatusOutboundOverrideWinsOverExplicitStateName(t
 	config.ExplicitStateMap["in review"] = "in_progress"
 	config.OutboundStateMap["in_progress"] = "In Progress"
 
-	got, err := ResolveStateIDForBeadsStatus(cache, types.StatusInProgress, config)
+	got, err := ResolveStateIDForIssueGraphStatus(cache, types.StatusInProgress, config)
 	if err != nil {
-		t.Fatalf("ResolveStateIDForBeadsStatus() error = %v", err)
+		t.Fatalf("ResolveStateIDForIssueGraphStatus() error = %v", err)
 	}
 	if got != "state-progress" {
-		t.Fatalf("ResolveStateIDForBeadsStatus() = %q, want state-progress (outbound override should win over explicit name match)", got)
+		t.Fatalf("ResolveStateIDForIssueGraphStatus() = %q, want state-progress (outbound override should win over explicit name match)", got)
 	}
 }
 
-func TestResolveStateIDForBeadsStatusAmbiguousErrorPointsAtOutboundOverride(t *testing.T) {
+func TestResolveStateIDForIssueGraphStatusAmbiguousErrorPointsAtOutboundOverride(t *testing.T) {
 	cache := &StateCache{
 		States: []State{
 			{ID: "state-progress", Name: "In Progress", Type: "started"},
@@ -875,7 +875,7 @@ func TestResolveStateIDForBeadsStatusAmbiguousErrorPointsAtOutboundOverride(t *t
 	config := DefaultMappingConfig()
 	config.ExplicitStateMap["started"] = "in_progress"
 
-	_, err := ResolveStateIDForBeadsStatus(cache, types.StatusInProgress, config)
+	_, err := ResolveStateIDForIssueGraphStatus(cache, types.StatusInProgress, config)
 	if err == nil {
 		t.Fatal("expected ambiguous mapping to fail")
 	}
@@ -908,8 +908,8 @@ func TestLoadMappingConfigParsesOutboundStateMap(t *testing.T) {
 }
 
 // Regression GH#3754: explicit state_map values that are custom status names
-// must not parse as StatusOpen and create phantom matches for beads "open".
-func TestResolveStateIDForBeadsStatusCustomValueDoesNotFalseMatchOpen(t *testing.T) {
+// must not parse as StatusOpen and create phantom matches for issuegraph "open".
+func TestResolveStateIDForIssueGraphStatusCustomValueDoesNotFalseMatchOpen(t *testing.T) {
 	cache := &StateCache{
 		States: []State{
 			{ID: "state-todo", Name: "Todo", Type: "unstarted"},
@@ -920,24 +920,24 @@ func TestResolveStateIDForBeadsStatusCustomValueDoesNotFalseMatchOpen(t *testing
 	config.ExplicitStateMap["todo"] = "open"
 	config.ExplicitStateMap["in review"] = "review"
 
-	got, err := ResolveStateIDForBeadsStatus(cache, types.StatusOpen, config)
+	got, err := ResolveStateIDForIssueGraphStatus(cache, types.StatusOpen, config)
 	if err != nil {
-		t.Fatalf("ResolveStateIDForBeadsStatus(open) error = %v", err)
+		t.Fatalf("ResolveStateIDForIssueGraphStatus(open) error = %v", err)
 	}
 	if got != "state-todo" {
-		t.Fatalf("ResolveStateIDForBeadsStatus(open) = %q, want state-todo", got)
+		t.Fatalf("ResolveStateIDForIssueGraphStatus(open) = %q, want state-todo", got)
 	}
 
-	got2, err := ResolveStateIDForBeadsStatus(cache, types.Status("review"), config)
+	got2, err := ResolveStateIDForIssueGraphStatus(cache, types.Status("review"), config)
 	if err != nil {
-		t.Fatalf("ResolveStateIDForBeadsStatus(review) error = %v", err)
+		t.Fatalf("ResolveStateIDForIssueGraphStatus(review) error = %v", err)
 	}
 	if got2 != "state-review" {
-		t.Fatalf("ResolveStateIDForBeadsStatus(review) = %q, want state-review", got2)
+		t.Fatalf("ResolveStateIDForIssueGraphStatus(review) = %q, want state-review", got2)
 	}
 }
 
-func TestResolveStateIDForBeadsStatusDeferredExplicitMapping(t *testing.T) {
+func TestResolveStateIDForIssueGraphStatusDeferredExplicitMapping(t *testing.T) {
 	cache := &StateCache{
 		States: []State{
 			{ID: "state-icebox", Name: "Icebox", Type: "unstarted"},
@@ -946,12 +946,12 @@ func TestResolveStateIDForBeadsStatusDeferredExplicitMapping(t *testing.T) {
 	config := DefaultMappingConfig()
 	config.ExplicitStateMap["icebox"] = "deferred"
 
-	got, err := ResolveStateIDForBeadsStatus(cache, types.StatusDeferred, config)
+	got, err := ResolveStateIDForIssueGraphStatus(cache, types.StatusDeferred, config)
 	if err != nil {
-		t.Fatalf("ResolveStateIDForBeadsStatus() error = %v", err)
+		t.Fatalf("ResolveStateIDForIssueGraphStatus() error = %v", err)
 	}
 	if got != "state-icebox" {
-		t.Fatalf("ResolveStateIDForBeadsStatus() = %q, want state-icebox", got)
+		t.Fatalf("ResolveStateIDForIssueGraphStatus() = %q, want state-icebox", got)
 	}
 }
 
@@ -1002,14 +1002,14 @@ func TestPushFieldsEqualComparesResolvedLabelIDs(t *testing.T) {
 		Title:       "x",
 		Description: "d",
 		Status:      types.StatusOpen,
-		Priority:    0, // critical in beads → urgent in Linear (priority 1)
+		Priority:    0, // critical in issuegraph → urgent in Linear (priority 1)
 		IssueType:   types.TypeTask,
 		Labels:      []string{"A"},
 	}
 	remote := &Issue{
 		Title:       "x",
 		Description: "d",
-		Priority:    4, // low in Linear — differs from beads P0 mapping
+		Priority:    4, // low in Linear — differs from issuegraph P0 mapping
 		State:       &State{ID: "s", Name: "Backlog", Type: "backlog"},
 		Labels: &Labels{Nodes: []Label{
 			{ID: "id-task", Name: "task"},
@@ -1048,7 +1048,7 @@ func TestPushFieldsEqualIgnoresLocalOnlyDifferences(t *testing.T) {
 	}
 }
 
-func TestPushFieldsEqualToBeads(t *testing.T) {
+func TestPushFieldsEqualToIssueGraph(t *testing.T) {
 	local := &types.Issue{
 		Title:       "Ship the fix",
 		Description: "Main body",
@@ -1067,7 +1067,7 @@ func TestPushFieldsEqualToBeads(t *testing.T) {
 		Labels:      []string{"ignored"},
 	}
 
-	if !PushFieldsEqualToBeads(local, remote) {
-		t.Fatal("expected beads-form fallback comparison to ignore local-only fields")
+	if !PushFieldsEqualToIssueGraph(local, remote) {
+		t.Fatal("expected issuegraph-form fallback comparison to ignore local-only fields")
 	}
 }

@@ -99,7 +99,7 @@ func TestLoadDependencyEdges_MissingIDColumnFallsBack(t *testing.T) {
 
 // TestLoadDependencyEdges_QueryErrorFailsCheck: a failed page query (e.g. a
 // missing wisp_dependencies table on a clone that has not run the repair
-// migrations) must surface as the warning check, exactly like 'bd dep cycles'
+// migrations) must surface as the warning check, exactly like 'issuegraph dep cycles'
 // erroring on the same shape — never as a silent "no cycles".
 func TestLoadDependencyEdges_QueryErrorFailsCheck(t *testing.T) {
 	db, mock, err := sqlmock.New()

@@ -13,19 +13,19 @@ import (
 // is not advertised as a working capability: invoking it errors with a clear
 // "not yet implemented" message, and --stats does not promise Tier 2 savings.
 func TestEmbeddedAdminCompactTier2Honesty(t *testing.T) {
-	if os.Getenv("BEADS_TEST_EMBEDDED_DOLT") != "1" {
-		t.Skip("set BEADS_TEST_EMBEDDED_DOLT=1 to run embedded dolt integration tests")
+	if os.Getenv("ISSUEGRAPH_TEST_EMBEDDED_DOLT") != "1" {
+		t.Skip("set ISSUEGRAPH_TEST_EMBEDDED_DOLT=1 to run embedded dolt integration tests")
 	}
 	t.Parallel()
 
-	bd := buildEmbeddedBD(t)
-	dir, _, _ := bdInit(t, bd, "--prefix", "t2")
+	issuegraph := buildEmbeddedBD(t)
+	dir, _, _ := issuegraphInit(t, issuegraph, "--prefix", "t2")
 
 	t.Run("tier2_rejected", func(t *testing.T) {
 		// --analyze reaches the tier guard (read-only, direct-mode path).
-		cmd := exec.Command(bd, "admin", "compact", "--analyze", "--tier", "2")
+		cmd := exec.Command(issuegraph, "admin", "compact", "--analyze", "--tier", "2")
 		cmd.Dir = dir
-		cmd.Env = bdEnv(dir)
+		cmd.Env = issuegraphEnv(dir)
 		out, err := cmd.CombinedOutput()
 		if err == nil {
 			t.Fatalf("expected --tier 2 to fail, but succeeded:\n%s", out)
@@ -36,12 +36,12 @@ func TestEmbeddedAdminCompactTier2Honesty(t *testing.T) {
 	})
 
 	t.Run("stats_does_not_advertise_tier2", func(t *testing.T) {
-		cmd := exec.Command(bd, "admin", "compact", "--stats")
+		cmd := exec.Command(issuegraph, "admin", "compact", "--stats")
 		cmd.Dir = dir
-		cmd.Env = bdEnv(dir)
+		cmd.Env = issuegraphEnv(dir)
 		stdout, stderr, err := runCommandBuffers(t, cmd)
 		if err != nil {
-			t.Fatalf("bd admin compact --stats failed: %v\nstdout:\n%s\nstderr:\n%s", err, stdout.String(), stderr.String())
+			t.Fatalf("issuegraph admin compact --stats failed: %v\nstdout:\n%s\nstderr:\n%s", err, stdout.String(), stderr.String())
 		}
 		out := stdout.String()
 		if !strings.Contains(out, "not yet implemented") {

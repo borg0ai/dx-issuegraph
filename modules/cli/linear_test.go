@@ -15,63 +15,63 @@ import (
 	"testing"
 	"time"
 
-	"github.com/steveyegge/beads/internal/linear"
-	"github.com/steveyegge/beads/internal/tracker"
-	"github.com/steveyegge/beads/internal/types"
+	"github.com/borg0ai/dx-issuegraph/internal/linear"
+	"github.com/borg0ai/dx-issuegraph/internal/tracker"
+	"github.com/borg0ai/dx-issuegraph/internal/types"
 )
 
-func TestLinearPriorityToBeads(t *testing.T) {
+func TestLinearPriorityToIssueGraph(t *testing.T) {
 	config := linear.DefaultMappingConfig()
 
 	tests := []struct {
 		name           string
 		linearPriority int
-		wantBeads      int
+		wantIssueGraph int
 	}{
 		{
 			name:           "no priority maps to backlog",
 			linearPriority: 0,
-			wantBeads:      4, // Backlog
+			wantIssueGraph: 4, // Backlog
 		},
 		{
 			name:           "urgent maps to critical",
 			linearPriority: 1,
-			wantBeads:      0, // Critical
+			wantIssueGraph: 0, // Critical
 		},
 		{
 			name:           "high maps to high",
 			linearPriority: 2,
-			wantBeads:      1, // High
+			wantIssueGraph: 1, // High
 		},
 		{
 			name:           "medium maps to medium",
 			linearPriority: 3,
-			wantBeads:      2, // Medium
+			wantIssueGraph: 2, // Medium
 		},
 		{
 			name:           "low maps to low",
 			linearPriority: 4,
-			wantBeads:      3, // Low
+			wantIssueGraph: 3, // Low
 		},
 		{
 			name:           "unknown priority defaults to medium",
 			linearPriority: 99,
-			wantBeads:      2, // Default Medium
+			wantIssueGraph: 2, // Default Medium
 		},
 	}
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			got := linear.PriorityToBeads(tt.linearPriority, config)
-			if got != tt.wantBeads {
-				t.Errorf("PriorityToBeads(%d) = %d, want %d",
-					tt.linearPriority, got, tt.wantBeads)
+			got := linear.PriorityToIssueGraph(tt.linearPriority, config)
+			if got != tt.wantIssueGraph {
+				t.Errorf("PriorityToIssueGraph(%d) = %d, want %d",
+					tt.linearPriority, got, tt.wantIssueGraph)
 			}
 		})
 	}
 }
 
-func TestLinearPriorityToBeadsCustomConfig(t *testing.T) {
+func TestLinearPriorityToIssueGraphCustomConfig(t *testing.T) {
 	// Test with custom priority mapping
 	config := &linear.MappingConfig{
 		PriorityMap: map[string]int{
@@ -85,7 +85,7 @@ func TestLinearPriorityToBeadsCustomConfig(t *testing.T) {
 
 	tests := []struct {
 		linearPriority int
-		wantBeads      int
+		wantIssueGraph int
 	}{
 		{0, 2}, // Custom mapping
 		{1, 1}, // Custom mapping
@@ -95,61 +95,61 @@ func TestLinearPriorityToBeadsCustomConfig(t *testing.T) {
 	}
 
 	for _, tt := range tests {
-		got := linear.PriorityToBeads(tt.linearPriority, config)
-		if got != tt.wantBeads {
-			t.Errorf("PriorityToBeads(%d) with custom config = %d, want %d",
-				tt.linearPriority, got, tt.wantBeads)
+		got := linear.PriorityToIssueGraph(tt.linearPriority, config)
+		if got != tt.wantIssueGraph {
+			t.Errorf("PriorityToIssueGraph(%d) with custom config = %d, want %d",
+				tt.linearPriority, got, tt.wantIssueGraph)
 		}
 	}
 }
 
-func TestBeadsPriorityToLinear(t *testing.T) {
+func TestIssueGraphPriorityToLinear(t *testing.T) {
 	config := linear.DefaultMappingConfig()
 
 	tests := []struct {
-		name          string
-		beadsPriority int
-		wantLinear    int
+		name               string
+		issuegraphPriority int
+		wantLinear         int
 	}{
 		{
-			name:          "critical maps to urgent",
-			beadsPriority: 0,
-			wantLinear:    1, // Urgent
+			name:               "critical maps to urgent",
+			issuegraphPriority: 0,
+			wantLinear:         1, // Urgent
 		},
 		{
-			name:          "high maps to high",
-			beadsPriority: 1,
-			wantLinear:    2, // High
+			name:               "high maps to high",
+			issuegraphPriority: 1,
+			wantLinear:         2, // High
 		},
 		{
-			name:          "medium maps to medium",
-			beadsPriority: 2,
-			wantLinear:    3, // Medium
+			name:               "medium maps to medium",
+			issuegraphPriority: 2,
+			wantLinear:         3, // Medium
 		},
 		{
-			name:          "low maps to low",
-			beadsPriority: 3,
-			wantLinear:    4, // Low
+			name:               "low maps to low",
+			issuegraphPriority: 3,
+			wantLinear:         4, // Low
 		},
 		{
-			name:          "backlog maps to no priority",
-			beadsPriority: 4,
-			wantLinear:    0, // No priority
+			name:               "backlog maps to no priority",
+			issuegraphPriority: 4,
+			wantLinear:         0, // No priority
 		},
 	}
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			got := linear.PriorityToLinear(tt.beadsPriority, config)
+			got := linear.PriorityToLinear(tt.issuegraphPriority, config)
 			if got != tt.wantLinear {
 				t.Errorf("PriorityToLinear(%d) = %d, want %d",
-					tt.beadsPriority, got, tt.wantLinear)
+					tt.issuegraphPriority, got, tt.wantLinear)
 			}
 		})
 	}
 }
 
-func TestLinearStateToBeadsStatus(t *testing.T) {
+func TestLinearStateToIssueGraphStatus(t *testing.T) {
 	config := linear.DefaultMappingConfig()
 
 	tests := []struct {
@@ -196,15 +196,15 @@ func TestLinearStateToBeadsStatus(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			got := linear.StateToBeadsStatus(tt.state, config)
+			got := linear.StateToIssueGraphStatus(tt.state, config)
 			if got != tt.wantStatus {
-				t.Errorf("StateToBeadsStatus() = %s, want %s", got, tt.wantStatus)
+				t.Errorf("StateToIssueGraphStatus() = %s, want %s", got, tt.wantStatus)
 			}
 		})
 	}
 }
 
-func TestLinearStateToBeadsStatusCustomConfig(t *testing.T) {
+func TestLinearStateToIssueGraphStatusCustomConfig(t *testing.T) {
 	// Test with custom state name mapping for custom workflow states
 	// Note: State names are converted to lowercase with spaces preserved
 	// So "In Review" -> "in review", "On Hold" -> "on hold"
@@ -251,16 +251,16 @@ func TestLinearStateToBeadsStatusCustomConfig(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			got := linear.StateToBeadsStatus(tt.state, config)
+			got := linear.StateToIssueGraphStatus(tt.state, config)
 			if got != tt.wantStatus {
-				t.Errorf("StateToBeadsStatus() with custom config = %s, want %s",
+				t.Errorf("StateToIssueGraphStatus() with custom config = %s, want %s",
 					got, tt.wantStatus)
 			}
 		})
 	}
 }
 
-func TestBeadsStatusToLinearStateType(t *testing.T) {
+func TestIssueGraphStatusToLinearStateType(t *testing.T) {
 	tests := []struct {
 		name            string
 		status          types.Status
@@ -466,7 +466,7 @@ func TestLinearLabelToIssueTypeCustomConfig(t *testing.T) {
 	}
 }
 
-func TestLinearRelationToBeadsDep(t *testing.T) {
+func TestLinearRelationToIssueGraphDep(t *testing.T) {
 	config := linear.DefaultMappingConfig()
 
 	tests := []struct {
@@ -503,16 +503,16 @@ func TestLinearRelationToBeadsDep(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			got := linear.RelationToBeadsDep(tt.relationType, config)
+			got := linear.RelationToIssueGraphDep(tt.relationType, config)
 			if got != tt.wantDepType {
-				t.Errorf("RelationToBeadsDep(%s) = %s, want %s",
+				t.Errorf("RelationToIssueGraphDep(%s) = %s, want %s",
 					tt.relationType, got, tt.wantDepType)
 			}
 		})
 	}
 }
 
-func TestLinearRelationToBeadsDepCustomConfig(t *testing.T) {
+func TestLinearRelationToIssueGraphDepCustomConfig(t *testing.T) {
 	// Test with custom relation mapping
 	config := &linear.MappingConfig{
 		RelationMap: map[string]string{
@@ -534,16 +534,16 @@ func TestLinearRelationToBeadsDepCustomConfig(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.relationType, func(t *testing.T) {
-			got := linear.RelationToBeadsDep(tt.relationType, config)
+			got := linear.RelationToIssueGraphDep(tt.relationType, config)
 			if got != tt.wantDepType {
-				t.Errorf("RelationToBeadsDep(%s) with custom config = %s, want %s",
+				t.Errorf("RelationToIssueGraphDep(%s) with custom config = %s, want %s",
 					tt.relationType, got, tt.wantDepType)
 			}
 		})
 	}
 }
 
-func TestLinearIssueToBeads(t *testing.T) {
+func TestLinearIssueToIssueGraph(t *testing.T) {
 	config := linear.DefaultMappingConfig()
 
 	tests := []struct {
@@ -738,7 +738,7 @@ func TestLinearIssueToBeads(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			conversion := linear.IssueToBeads(tt.linearIssue, config)
+			conversion := linear.IssueToIssueGraph(tt.linearIssue, config)
 			issue := conversion.Issue.(*types.Issue)
 
 			if issue.Title != tt.wantTitle {
@@ -933,7 +933,7 @@ func TestMaskAPIKey(t *testing.T) {
 	}
 }
 
-func TestParseBeadsStatus(t *testing.T) {
+func TestParseIssueGraphStatus(t *testing.T) {
 	tests := []struct {
 		input      string
 		wantStatus types.Status
@@ -952,9 +952,9 @@ func TestParseBeadsStatus(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.input, func(t *testing.T) {
-			got := linear.ParseBeadsStatus(tt.input)
+			got := linear.ParseIssueGraphStatus(tt.input)
 			if got != tt.wantStatus {
-				t.Errorf("ParseBeadsStatus(%q) = %s, want %s",
+				t.Errorf("ParseIssueGraphStatus(%q) = %s, want %s",
 					tt.input, got, tt.wantStatus)
 			}
 		})
@@ -1457,7 +1457,7 @@ func TestLinearClientGraphQLError(t *testing.T) {
 	}
 }
 
-func TestLinearStateCacheFindStateForBeadsStatus(t *testing.T) {
+func TestLinearStateCacheFindStateForIssueGraphStatus(t *testing.T) {
 	cache := &linear.StateCache{
 		States: []linear.State{
 			{ID: "state-1", Name: "Backlog", Type: "backlog"},
@@ -1499,9 +1499,9 @@ func TestLinearStateCacheFindStateForBeadsStatus(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			got := cache.FindStateForBeadsStatus(tt.status)
+			got := cache.FindStateForIssueGraphStatus(tt.status)
 			if got != tt.wantStateID {
-				t.Errorf("FindStateForBeadsStatus(%s) = %s, want %s",
+				t.Errorf("FindStateForIssueGraphStatus(%s) = %s, want %s",
 					tt.status, got, tt.wantStateID)
 			}
 		})
@@ -1515,7 +1515,7 @@ func TestLinearStateCacheEmpty(t *testing.T) {
 	}
 
 	// Should return empty string when no states available
-	got := cache.FindStateForBeadsStatus(types.StatusOpen)
+	got := cache.FindStateForIssueGraphStatus(types.StatusOpen)
 	if got != "" {
 		t.Errorf("expected empty string for empty cache, got %s", got)
 	}

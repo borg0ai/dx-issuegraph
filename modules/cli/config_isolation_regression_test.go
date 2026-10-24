@@ -5,7 +5,7 @@ import (
 	"path/filepath"
 	"testing"
 
-	"github.com/steveyegge/beads/internal/config"
+	"github.com/borg0ai/dx-issuegraph/internal/config"
 )
 
 // leakFixturePrefix is the issue-prefix written into the fixture workspace below.
@@ -13,61 +13,61 @@ import (
 // is unambiguous evidence that the fixture config was imported.
 const leakFixturePrefix = "zzleak"
 
-// newLeakFixtureRepo builds a self-contained fake module root holding a .beads
+// newLeakFixtureRepo builds a self-contained fake module root holding a .issuegraph
 // workspace whose config.yaml sets leakFixturePrefix, chdirs into it, and returns
-// the .beads path.
+// the .issuegraph path.
 //
-// It must not depend on the real beads checkout: that checkout's .beads/config.yaml
-// is untracked developer state (it happens to carry `issue-prefix: bd` on the machine
+// It must not depend on the real issuegraph checkout: that checkout's .issuegraph/config.yaml
+// is untracked developer state (it happens to carry `issue-prefix: issuegraph` on the machine
 // where ga-e6h6i was found), so a test reading it would behave differently on CI and
 // on a developer box.
 func newLeakFixtureRepo(t *testing.T) string {
 	t.Helper()
 
 	root := t.TempDir()
-	beadsDir := filepath.Join(root, ".beads")
-	if err := os.MkdirAll(beadsDir, 0o700); err != nil {
-		t.Fatalf("create .beads: %v", err)
+	issuegraphDir := filepath.Join(root, ".issuegraph")
+	if err := os.MkdirAll(issuegraphDir, 0o700); err != nil {
+		t.Fatalf("create .issuegraph: %v", err)
 	}
 	if err := os.WriteFile(filepath.Join(root, "go.mod"), []byte("module example.com/leakfixture\n\ngo 1.24.0\n"), 0o600); err != nil {
 		t.Fatalf("write go.mod: %v", err)
 	}
-	if err := os.WriteFile(filepath.Join(beadsDir, "config.yaml"), []byte("issue-prefix: "+leakFixturePrefix+"\n"), 0o600); err != nil {
+	if err := os.WriteFile(filepath.Join(issuegraphDir, "config.yaml"), []byte("issue-prefix: "+leakFixturePrefix+"\n"), 0o600); err != nil {
 		t.Fatalf("write config.yaml: %v", err)
 	}
 	t.Chdir(root)
 
-	return beadsDir
+	return issuegraphDir
 }
 
 // ga-e6h6i: a prior test in this binary that dispatches a real CLI command leaves
-// BEADS_DIR pointing at a checkout's .beads via a raw os.Setenv with no restore
+// ISSUEGRAPH_DIR pointing at a checkout's .issuegraph via a raw os.Setenv with no restore
 // (prepareSelectedCommandContext). initConfigForTest pins that leaked value, so its
 // config.Initialize used to re-import the repo config — including issue-prefix, which
 // surfaced as "prefix mismatch: database uses bd-" in an unrelated --id test.
 //
 // The raw os.Setenv here is deliberate: t.Setenv would restore the value on cleanup
 // and therefore would not reproduce the unrestored leak this test exists to catch.
-func TestInitConfigForTestNeutralizesLeakedRepoBeadsDir(t *testing.T) {
-	beadsDir := newLeakFixtureRepo(t)
+func TestInitConfigForTestNeutralizesLeakedRepoIssueGraphDir(t *testing.T) {
+	issuegraphDir := newLeakFixtureRepo(t)
 
-	prev, had := os.LookupEnv("BEADS_DIR")
-	if err := os.Setenv("BEADS_DIR", beadsDir); err != nil {
-		t.Fatalf("setenv BEADS_DIR: %v", err)
+	prev, had := os.LookupEnv("ISSUEGRAPH_DIR")
+	if err := os.Setenv("ISSUEGRAPH_DIR", issuegraphDir); err != nil {
+		t.Fatalf("setenv ISSUEGRAPH_DIR: %v", err)
 	}
 	t.Cleanup(func() {
 		if had {
-			_ = os.Setenv("BEADS_DIR", prev)
+			_ = os.Setenv("ISSUEGRAPH_DIR", prev)
 			return
 		}
-		_ = os.Unsetenv("BEADS_DIR")
+		_ = os.Unsetenv("ISSUEGRAPH_DIR")
 	})
 
 	initConfigForTest(t)
 
 	if got := config.GetString("issue-prefix"); got != "" {
 		t.Fatalf("config.GetString(issue-prefix) = %q after initConfigForTest, want empty: "+
-			"a leaked BEADS_DIR still imports the repo config", got)
+			"a leaked ISSUEGRAPH_DIR still imports the repo config", got)
 	}
 }
 
@@ -76,11 +76,11 @@ func TestInitConfigForTestNeutralizesLeakedRepoBeadsDir(t *testing.T) {
 // later test that does not call initConfigForTest.
 func TestDispatchDoesNotPolluteViperIssuePrefix(t *testing.T) {
 	ensureCleanGlobalState(t)
-	t.Setenv("BEADS_TEST_IGNORE_REPO_CONFIG", "1")
+	t.Setenv("ISSUEGRAPH_TEST_IGNORE_REPO_CONFIG", "1")
 
-	beadsDir := newLeakFixtureRepo(t)
-	// Dispatch only selects a workspace that FindBeadsDir accepts.
-	if err := os.WriteFile(filepath.Join(beadsDir, "metadata.json"), []byte(`{"database":"beads","backend":"dolt"}`+"\n"), 0o600); err != nil {
+	issuegraphDir := newLeakFixtureRepo(t)
+	// Dispatch only selects a workspace that FindIssueGraphDir accepts.
+	if err := os.WriteFile(filepath.Join(issuegraphDir, "metadata.json"), []byte(`{"database":"issuegraph","backend":"dolt"}`+"\n"), 0o600); err != nil {
 		t.Fatalf("write metadata.json: %v", err)
 	}
 
@@ -88,7 +88,7 @@ func TestDispatchDoesNotPolluteViperIssuePrefix(t *testing.T) {
 	t.Cleanup(config.ResetForTesting)
 	t.Cleanup(resetCommandContext)
 
-	// --version is a skipsStoreInit command: it reaches dispatch (and its BEADS_DIR
+	// --version is a skipsStoreInit command: it reaches dispatch (and its ISSUEGRAPH_DIR
 	// side effect) without needing a live store.
 	runVersionDispatch(t)
 
@@ -98,7 +98,7 @@ func TestDispatchDoesNotPolluteViperIssuePrefix(t *testing.T) {
 	}
 }
 
-// runVersionDispatch executes `bd --version` through the shared root command with
+// runVersionDispatch executes `issuegraph --version` through the shared root command with
 // stdout discarded. Cobra's command tree and os.Stdout are process-global, so this
 // holds stdioMutex per the policy documented on that mutex.
 func runVersionDispatch(t *testing.T) {

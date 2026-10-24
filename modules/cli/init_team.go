@@ -7,15 +7,15 @@ import (
 	"os"
 	"strings"
 
-	"github.com/steveyegge/beads/internal/beads"
-	"github.com/steveyegge/beads/internal/storage"
-	"github.com/steveyegge/beads/internal/ui"
+	"github.com/borg0ai/dx-issuegraph/internal/issuegraph"
+	"github.com/borg0ai/dx-issuegraph/internal/storage"
+	"github.com/borg0ai/dx-issuegraph/internal/ui"
 )
 
 // runTeamWizard guides the user through team workflow setup
 func runTeamWizard(ctx context.Context, store storage.DoltStorage) error {
-	fmt.Printf("\n%s %s\n\n", ui.RenderBold("bd"), ui.RenderBold("Team Workflow Setup Wizard"))
-	fmt.Println("This wizard will configure beads for team collaboration.")
+	fmt.Printf("\n%s %s\n\n", ui.RenderBold("issuegraph"), ui.RenderBold("Team Workflow Setup Wizard"))
+	fmt.Println("This wizard will configure issuegraph for team collaboration.")
 	fmt.Println()
 
 	if ctx == nil {
@@ -65,8 +65,8 @@ func runTeamWizard(ctx context.Context, store storage.DoltStorage) error {
 
 	if protectedMain {
 		fmt.Printf("\n%s Protected main detected\n", ui.RenderPass("✓"))
-		fmt.Println("\n  Beads will commit issue updates to a separate branch.")
-		fmt.Printf("  Default sync branch: %s\n", ui.RenderAccent("beads-metadata"))
+		fmt.Println("\n  IssueGraph will commit issue updates to a separate branch.")
+		fmt.Printf("  Default sync branch: %s\n", ui.RenderAccent("issuegraph-metadata"))
 		fmt.Print("\n  Sync branch name [press Enter for default]: ")
 
 		branchName, err := readLineWithContext(ctx, reader, os.Stdin)
@@ -79,7 +79,7 @@ func runTeamWizard(ctx context.Context, store storage.DoltStorage) error {
 		branchName = strings.TrimSpace(branchName)
 
 		if branchName == "" {
-			syncBranch = "beads-metadata"
+			syncBranch = "issuegraph-metadata"
 		} else {
 			syncBranch = branchName
 		}
@@ -138,16 +138,16 @@ func runTeamWizard(ctx context.Context, store storage.DoltStorage) error {
 	fmt.Println("How it works:")
 	fmt.Println("  • All team members work on the same repository")
 	fmt.Println("  • Issues are shared via git commits")
-	fmt.Println("  • Use 'bd list' to see all team's issues")
+	fmt.Println("  • Use 'issuegraph list' to see all team's issues")
 
 	if protectedMain {
 		fmt.Println("  • Issue updates commit to", syncBranch)
 		fmt.Println("  • Periodically merge", syncBranch, "to main via PR")
 	}
 
-	fmt.Println("  • Dolt handles sync natively — run 'bd dolt push' to push changes")
+	fmt.Println("  • Dolt handles sync natively — run 'issuegraph dolt push' to push changes")
 	fmt.Println()
-	fmt.Printf("Try it: %s\n", ui.RenderAccent("bd create \"Team planning issue\" -p 2"))
+	fmt.Printf("Try it: %s\n", ui.RenderAccent("issuegraph create \"Team planning issue\" -p 2"))
 	fmt.Println()
 
 	if protectedMain {
@@ -165,7 +165,7 @@ func runTeamWizard(ctx context.Context, store storage.DoltStorage) error {
 // Uses symbolic-ref instead of rev-parse to work in fresh repos without commits (bd-flil)
 // Uses CWD repo context since this is for user's project configuration
 func getGitBranch() (string, error) {
-	rc, err := beads.GetRepoContext()
+	rc, err := issuegraph.GetRepoContext()
 	if err != nil {
 		return "", err
 	}
@@ -179,10 +179,10 @@ func getGitBranch() (string, error) {
 	return strings.TrimSpace(string(output)), nil
 }
 
-// createSyncBranch creates a new branch for beads sync
+// createSyncBranch creates a new branch for issuegraph sync
 // Uses CWD repo context since this is for user's project configuration
 func createSyncBranch(branchName string) error {
-	rc, err := beads.GetRepoContext()
+	rc, err := issuegraph.GetRepoContext()
 	if err != nil {
 		return err
 	}

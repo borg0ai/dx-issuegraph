@@ -17,7 +17,7 @@ import (
 	"testing"
 )
 
-// scenario is a named sequence of bd CLI invocations. IDs are pinned with --id so
+// scenario is a named sequence of issuegraph CLI invocations. IDs are pinned with --id so
 // they match across backends; only timestamps/paths need normalization.
 //
 // unordered marks a scenario whose JSON-array output has no contractual order. For
@@ -126,7 +126,7 @@ var corpus = []scenario{
 		{"label", "add", "cf-cnt1", "urgent"},
 		{"count", "--by-label", "--json"},
 	}},
-	// Finding: bd label add + bd label remove roundtrip (DELETE routing + ORDER BY label).
+	// Finding: issuegraph label add + issuegraph label remove roundtrip (DELETE routing + ORDER BY label).
 	// zeta added, alpha added, zeta removed -> show should list only the surviving label.
 	{name: "audit-label-add-remove", steps: [][]string{
 		{"create", "y", "--id", "cf-lr1", "-t", "task"},
@@ -136,7 +136,7 @@ var corpus = []scenario{
 		{"show", "cf-lr1", "--json"},
 	}},
 
-	// (bd comments roundtrip is covered at the store level; its output carries a random
+	// (issuegraph comments roundtrip is covered at the store level; its output carries a random
 	// comment UUIDv7 the CLI harness can't normalize, so it is not a CLI-differential.)
 	// Case-variant config key round-trip. `config set` passes the key verbatim to
 	// store.SetConfig (no ToLower) and namespaced keys bypass the recognized-key
@@ -150,7 +150,7 @@ var corpus = []scenario{
 		{"config", "get", "custom.TeamName"},
 		{"config", "unset", "custom.TeamName"},
 	}},
-	// bd create --parent: children auto-mint deterministic ids via GetNextChildID,
+	// issuegraph create --parent: children auto-mint deterministic ids via GetNextChildID,
 	// exercising the CONCAT/LIKE/ON DUPLICATE KEY child-counter SQL at the CLI layer.
 	// No --id on the children — the whole point is the minted cf-cp1.1 / cf-cp1.2.
 	{name: "create-parent-autoid", unordered: true, steps: [][]string{
@@ -159,19 +159,19 @@ var corpus = []scenario{
 		{"create", "childB", "-t", "task", "--parent", "cf-cp1", "--json"},
 		{"list", "--json"},
 	}},
-	// (bd mol wisp list order is non-contractual for equal-second ties — backends
+	// (issuegraph mol wisp list order is non-contractual for equal-second ties — backends
 	// can differ on tie order in the nested wisps array, which the harness can't
 	// normalize; ListWisps is covered as a set at the store level.)
 	// All cli-differential scenarios below were driven end-to-end against the
-	// embedded-Dolt reference (bd built with -tags gms_pure_go, `bd init -p cf`) and
+	// embedded-Dolt reference (issuegraph built with -tags gms_pure_go, `issuegraph init -p cf`) and
 	// produce exactly the asserted output. Init prefix is "cf", so every pinned id is cf-*.
-	// NOTE: `bd create` REJECTS `--id` together with `--parent` ("cannot specify both
+	// NOTE: `issuegraph create` REJECTS `--id` together with `--parent` ("cannot specify both
 	// --id and --parent flags"); parent-child children get auto-generated dotted ids
 	// (cf-pp.1, cf-pp.1.1), which are deterministic across backends. The two parent
 	// scenarios therefore pin those dotted ids instead of custom --id values.
 
 	// metadata JSON predicate (JSON_EXTRACT / JSON_UNQUOTE(JSON_EXTRACT(...)) + $.key path).
-	// Flags live on `bd list`, not `bd search`. has-key and field=core each return
+	// Flags live on `issuegraph list`, not `issuegraph search`. has-key and field=core each return
 	// exactly [cf-md1]; field=nope returns []. Only the JSON predicate discriminates the
 	// two same-titled rows.
 	{name: "search-metadata-json", steps: [][]string{
@@ -182,7 +182,7 @@ var corpus = []scenario{
 		{"list", "--metadata-field", "team=nope", "--flat", "--json"},
 	}},
 
-	// bd list --ready --parent <epic>: recursive descendant CTE (WITH RECURSIVE +
+	// issuegraph list --ready --parent <epic>: recursive descendant CTE (WITH RECURSIVE +
 	// CONCAT path + LOCATE cycle guard). Returns BOTH the child (cf-pp.1) and the
 	// grandchild (cf-pp.1.1) — transitive, not one-hop. Two equal-priority same-second
 	// rows, so mark unordered.
@@ -193,7 +193,7 @@ var corpus = []scenario{
 		{"list", "--ready", "--parent", "cf-pp", "--flat", "--json"},
 	}},
 
-	// bd blocked --json: reads the denormalized is_blocked projection, hydrates
+	// issuegraph blocked --json: reads the denormalized is_blocked projection, hydrates
 	// BlockedBy/BlockedByCount from live blocking deps. First call returns exactly
 	// cf-bk2 (blocked_by=[cf-bk1], count 1); after closing the blocker, blocked is [].
 	{name: "blocked-projection", steps: [][]string{
@@ -205,7 +205,7 @@ var corpus = []scenario{
 		{"blocked", "--json"},
 	}},
 
-	// bd search --desc-contains (LOWER(description) LIKE) + status defaulting.
+	// issuegraph search --desc-contains (LOWER(description) LIKE) + status defaulting.
 	// Lowercase 'endpoint' matches stored 'ENDPOINT' -> [cf-sd1]; plain search
 	// INCLUDES closed cf-sd3 by default (bd-t5yex) -> [cf-sd3]; --status open
 	// excludes it -> [].
@@ -218,7 +218,7 @@ var corpus = []scenario{
 		{"search", "gamma", "--status", "open", "--json"},
 	}},
 
-	// bd list --parent <id> --flat: non-recursive ParentID filter (deps parent-child
+	// issuegraph list --parent <id> --flat: non-recursive ParentID filter (deps parent-child
 	// branch OR the id-LIKE CONCAT(?, '.%') shape branch). The dotted child cf-lp.1 is
 	// returned; result is exactly [cf-lp.1].
 	{name: "list-parent-flat-nonrecursive", steps: [][]string{
@@ -227,7 +227,7 @@ var corpus = []scenario{
 		{"list", "--parent", "cf-lp", "--flat", "--json"},
 	}},
 
-	// bd reopen on an already-open issue (RowsAffected()==0 -> AlreadyOpen, exit 0) and
+	// issuegraph reopen on an already-open issue (RowsAffected()==0 -> AlreadyOpen, exit 0) and
 	// defer/close-reason clearing. cf-ro1 already-open reopen is a no-op (status open,
 	// closed_at null). cf-ro2 deferred-then-closed-then-reopened clears defer_until and
 	// close_reason (status open, closed_at null, defer_until null).
@@ -242,7 +242,7 @@ var corpus = []scenario{
 		{"show", "cf-ro2", "--json"},
 	}},
 
-	// bd mol wisp list / gc --closed --force: wisps-table routing (Ephemeral=true) +
+	// issuegraph mol wisp list / gc --closed --force: wisps-table routing (Ephemeral=true) +
 	// closed-wisp cascade delete. First list shows cf-wg1; gc deletes exactly cf-wg1;
 	// final list --all is empty. --closed --force avoids the time-dependent age path.
 	{name: "wisp-list-gc-closed", steps: [][]string{
@@ -253,7 +253,7 @@ var corpus = []scenario{
 		{"mol", "wisp", "list", "--all", "--json"},
 	}},
 
-	// bd update --status in_progress: auto-sets started_at (null -> now on first
+	// issuegraph update --status in_progress: auto-sets started_at (null -> now on first
 	// transition). Pre-update started_at is null; post-update status=in_progress and
 	// started_at renders as <TS> (normalized), proving the null->present transition.
 	{name: "update-status-in-progress-started-at", steps: [][]string{
@@ -263,7 +263,7 @@ var corpus = []scenario{
 		{"show", "cf-ip1", "--json"},
 	}},
 
-	// bd delete --force: inbound text-reference rewrite to [deleted:ID] + inbound dep
+	// issuegraph delete --force: inbound text-reference rewrite to [deleted:ID] + inbound dep
 	// cleanup across two issues in one transaction. cf-dl2.description becomes
 	// "blocks [deleted:cf-dl1] heavily" and its dependency on cf-dl1 is gone.
 	{name: "delete-force-reference-rewrite", steps: [][]string{
@@ -274,7 +274,7 @@ var corpus = []scenario{
 		{"show", "cf-dl2", "--json"},
 	}},
 
-	// bd dep tree <id> --direction both --json: bidirectional graph walk. Pinned as a
+	// issuegraph dep tree <id> --direction both --json: bidirectional graph walk. Pinned as a
 	// linear chain cf-dt3 -> cf-dt2 -> cf-dt1 so exactly one child per level and the
 	// traversal order is deterministic (depth 0/1/2).
 	{name: "dep-tree-both-linear", steps: [][]string{
@@ -286,7 +286,7 @@ var corpus = []scenario{
 		{"dep", "tree", "cf-dt3", "--direction", "both", "--json"},
 	}},
 
-	// bd note (append-notes write) + bd search --notes-contains (LOWER(notes) LIKE).
+	// issuegraph note (append-notes write) + issuegraph search --notes-contains (LOWER(notes) LIKE).
 	// show reflects the appended notes; lowercase 'flaky' matches stored 'FLAKY' -> [cf-nt1].
 	{name: "note-append-and-notes-contains", steps: [][]string{
 		{"create", "n", "--id", "cf-nt1", "-t", "task"},
@@ -346,7 +346,7 @@ func runScenario(t *testing.T, bin string, p BackendProfile, sc scenario) []stri
 	}
 	initArgs := append([]string{"init", "-p", "cf", "--quiet"}, p.InitArgs(ws)...)
 	if _, stderr, code := runBd(bin, ws.Dir, env, initArgs...); code != 0 {
-		t.Fatalf("[%s] bd init failed (exit %d): %s", p.Name, code, stderr)
+		t.Fatalf("[%s] issuegraph init failed (exit %d): %s", p.Name, code, stderr)
 	}
 
 	var results []string
@@ -356,7 +356,7 @@ func runScenario(t *testing.T, bin string, p BackendProfile, sc scenario) []stri
 		if sc.unordered {
 			out = sortJSONArrayByID(out)
 		}
-		results = append(results, fmt.Sprintf("$ bd %s | exit=%d\nout: %s\nerr: %s",
+		results = append(results, fmt.Sprintf("$ issuegraph %s | exit=%d\nout: %s\nerr: %s",
 			strings.Join(step, " "), code, out, normalize(se, ws)))
 	}
 	return results
@@ -398,15 +398,15 @@ var (
 	// backend that drops a timestamp byte-identical to one that preserved it. Map
 	// these to a distinct token FIRST so a lost timestamp reads as a divergence.
 	reZeroTS = regexp.MustCompile(`(?:0001-01-01|1970-01-01)[T ]00:00:00(?:\.\d+)?(?:Z|[+-]\d{2}:?\d{2})?`)
-	// Onboarding tips are random (probabilistic, BEADS_TIP_SEED-seeded) and not part
+	// Onboarding tips are random (probabilistic, ISSUEGRAPH_TIP_SEED-seeded) and not part
 	// of the storage contract — strip them so they never cause a false divergence.
 	reTip = regexp.MustCompile(`\n*💡 Tip:[^\n]*`)
-	// The beads.role config nudge (GH#2950) is written to stderr when the workspace's
-	// git config has no beads.role. Whether it fires depends on the runner's git-config
+	// The issuegraph.role config nudge (GH#2950) is written to stderr when the workspace's
+	// git config has no issuegraph.role. Whether it fires depends on the runner's git-config
 	// state (it appears on CI but not on a dev box), not on the storage backend, so it
 	// is cross-env noise like the tip banner rather than a storage divergence. Strip the
 	// whole 3-line block so a role nudge on one backend's run never reads as a mismatch.
-	reRoleWarn = regexp.MustCompile(`(?m)^warning: beads\.role not configured \(GH#2950\)\.\n(?:^  (?:Fix|Or): .*\n?)*`)
+	reRoleWarn = regexp.MustCompile(`(?m)^warning: issuegraph\.role not configured \(GH#2950\)\.\n(?:^  (?:Fix|Or): .*\n?)*`)
 )
 
 // normalize removes cross-backend and cross-run noise: workspace path, timestamps,
@@ -441,7 +441,7 @@ func runBd(bin, dir string, env []string, args ...string) (stdout, stderr string
 	cmd.Dir = dir
 	// Pin the tip RNG so any tip that slips past normalization is at least identical
 	// across backends; the profile env may override.
-	cmd.Env = append(os.Environ(), "BEADS_TIP_SEED=1")
+	cmd.Env = append(os.Environ(), "ISSUEGRAPH_TIP_SEED=1")
 	cmd.Env = append(cmd.Env, env...)
 	var o, e bytes.Buffer
 	cmd.Stdout, cmd.Stderr = &o, &e
@@ -456,48 +456,48 @@ func runBd(bin, dir string, env []string, args ...string) (stdout, stderr string
 }
 
 var (
-	buildOnce sync.Once
-	bdBin     string
-	bdBinDir  string
-	bdErr     error
+	buildOnce        sync.Once
+	issuegraphBin    string
+	issuegraphBinDir string
+	issuegraphErr    error
 )
 
-// TestMain removes the shared bd binary after the whole package runs. buildBD is
+// TestMain removes the shared issuegraph binary after the whole package runs. buildBD is
 // process-wide (sync.Once) and shared by every test, so its binary must outlive any
 // single test — hence a package-scoped temp dir cleaned here rather than a per-test
 // t.TempDir, which Go deletes when its owning test returns.
 func TestMain(m *testing.M) {
 	code := m.Run()
-	if bdBinDir != "" {
-		_ = os.RemoveAll(bdBinDir)
+	if issuegraphBinDir != "" {
+		_ = os.RemoveAll(issuegraphBinDir)
 	}
 	os.Exit(code)
 }
 
-// buildBD builds the bd binary once per test process (matching the gms_pure_go tag
+// buildBD builds the issuegraph binary once per test process (matching the gms_pure_go tag
 // used everywhere else) and returns its absolute path.
 func buildBD(t *testing.T) string {
 	t.Helper()
 	buildOnce.Do(func() {
 		dir, err := os.MkdirTemp("", "bd-e2e")
 		if err != nil {
-			bdErr = fmt.Errorf("mkdir temp for bd binary: %v", err)
+			issuegraphErr = fmt.Errorf("mkdir temp for issuegraph binary: %v", err)
 			return
 		}
-		bdBinDir = dir
+		issuegraphBinDir = dir
 		bin := filepath.Join(dir, "bd-e2e")
 		cmd := exec.Command("go", "build", "-tags", "gms_pure_go", "-o", bin, "./modules/cli")
 		cmd.Dir = repoRoot()
 		if out, err := cmd.CombinedOutput(); err != nil {
-			bdErr = fmt.Errorf("build bd: %v\n%s", err, out)
+			issuegraphErr = fmt.Errorf("build issuegraph: %v\n%s", err, out)
 			return
 		}
-		bdBin = bin
+		issuegraphBin = bin
 	})
-	if bdErr != nil {
-		t.Fatal(bdErr)
+	if issuegraphErr != nil {
+		t.Fatal(issuegraphErr)
 	}
-	return bdBin
+	return issuegraphBin
 }
 
 func repoRoot() string {

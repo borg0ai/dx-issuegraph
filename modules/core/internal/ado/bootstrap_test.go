@@ -4,8 +4,8 @@ import (
 	"testing"
 	"time"
 
-	"github.com/steveyegge/beads/internal/tracker"
-	"github.com/steveyegge/beads/internal/types"
+	"github.com/borg0ai/dx-issuegraph/internal/tracker"
+	"github.com/borg0ai/dx-issuegraph/internal/types"
 )
 
 func strPtr(s string) *string { return &s }
@@ -28,8 +28,8 @@ func TestFindMatch_ExternalRef(t *testing.T) {
 	if !result.Matched {
 		t.Fatal("expected match")
 	}
-	if result.BeadsID != "bd-2" {
-		t.Errorf("BeadsID = %q, want %q", result.BeadsID, "bd-2")
+	if result.IssueGraphID != "bd-2" {
+		t.Errorf("IssueGraphID = %q, want %q", result.IssueGraphID, "bd-2")
 	}
 	if result.MatchType != "external_ref" {
 		t.Errorf("MatchType = %q, want %q", result.MatchType, "external_ref")
@@ -54,8 +54,8 @@ func TestFindMatch_SourceSystem(t *testing.T) {
 	if !result.Matched {
 		t.Fatal("expected match")
 	}
-	if result.BeadsID != "bd-2" {
-		t.Errorf("BeadsID = %q, want %q", result.BeadsID, "bd-2")
+	if result.IssueGraphID != "bd-2" {
+		t.Errorf("IssueGraphID = %q, want %q", result.IssueGraphID, "bd-2")
 	}
 	if result.MatchType != "source_system" {
 		t.Errorf("MatchType = %q, want %q", result.MatchType, "source_system")
@@ -79,8 +79,8 @@ func TestFindMatch_SourceSystemURL(t *testing.T) {
 	if !result.Matched {
 		t.Fatal("expected match")
 	}
-	if result.BeadsID != "bd-5" {
-		t.Errorf("BeadsID = %q, want %q", result.BeadsID, "bd-5")
+	if result.IssueGraphID != "bd-5" {
+		t.Errorf("IssueGraphID = %q, want %q", result.IssueGraphID, "bd-5")
 	}
 	if result.MatchType != "source_system" {
 		t.Errorf("MatchType = %q, want %q", result.MatchType, "source_system")
@@ -107,8 +107,8 @@ func TestFindMatch_HeuristicExactMatch(t *testing.T) {
 	if !result.Matched {
 		t.Fatal("expected match")
 	}
-	if result.BeadsID != "bd-10" {
-		t.Errorf("BeadsID = %q, want %q", result.BeadsID, "bd-10")
+	if result.IssueGraphID != "bd-10" {
+		t.Errorf("IssueGraphID = %q, want %q", result.IssueGraphID, "bd-10")
 	}
 	if result.MatchType != "heuristic" {
 		t.Errorf("MatchType = %q, want %q", result.MatchType, "heuristic")

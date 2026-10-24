@@ -29,9 +29,9 @@ var (
 	inProcessMutex sync.Mutex // Protects concurrent access to rootCmd and global state
 )
 
-// templateDB holds a pre-initialized bd database directory.
+// templateDB holds a pre-initialized issuegraph database directory.
 // Created once via sync.Once, then copied for each test to avoid
-// running bd init (which creates SQLite DB, config files, etc.) per test.
+// running issuegraph init (which creates SQLite DB, config files, etc.) per test.
 // This optimization eliminates ~2s per test from repeated initialization.
 var (
 	templateDBDir  string
@@ -51,14 +51,14 @@ func initTemplateDB() {
 		}
 		templateDBDir = tmpDir
 
-		// Use exec.Command to run bd init in a subprocess.
+		// Use exec.Command to run issuegraph init in a subprocess.
 		// This avoids any Cobra global state pollution that would affect subsequent
 		// in-process test runs.
 		cmd := exec.Command(testBD, "init", "--prefix", "test", "--quiet")
 		cmd.Dir = tmpDir
 		cmd.Env = os.Environ()
 		if out, err := cmd.CombinedOutput(); err != nil {
-			templateDBErr = fmt.Errorf("template bd init failed: %v\n%s", err, out)
+			templateDBErr = fmt.Errorf("template issuegraph init failed: %v\n%s", err, out)
 			return
 		}
 	})
@@ -93,8 +93,8 @@ func copyDir(src, dst string) error {
 	return nil
 }
 
-// setupCLITestDB creates a fresh initialized bd database for CLI tests.
-// Uses a cached template directory to avoid running bd init for every test.
+// setupCLITestDB creates a fresh initialized issuegraph database for CLI tests.
+// Uses a cached template directory to avoid running issuegraph init for every test.
 // The template is created once via sync.Once and copied for each test.
 func setupCLITestDB(t *testing.T) string {
 	t.Helper()
@@ -141,9 +141,9 @@ func createTempDirWithCleanup(t *testing.T) string {
 	return tmpDir
 }
 
-// runBDInProcess runs bd commands in-process by calling rootCmd.Execute
+// runIssueGraphInProcess runs issuegraph commands in-process by calling rootCmd.Execute
 // This is ~10-20x faster than exec.Command because it avoids process spawn overhead
-func runBDInProcess(t *testing.T, dir string, args ...string) string {
+func runIssueGraphInProcess(t *testing.T, dir string, args ...string) string {
 	t.Helper()
 
 	// Serialize all in-process test execution to avoid race conditions
@@ -174,7 +174,7 @@ func runBDInProcess(t *testing.T, dir string, args ...string) string {
 
 	// Set args for rootCmd
 	rootCmd.SetArgs(args)
-	os.Args = append([]string{"bd"}, args...)
+	os.Args = append([]string{"issuegraph"}, args...)
 
 	// Execute command
 	err := rootCmd.Execute()
@@ -212,7 +212,7 @@ func runBDInProcess(t *testing.T, dir string, args ...string) string {
 	stderr := errBuf.String()
 
 	if err != nil {
-		t.Fatalf("bd %v failed: %v\nStdout: %s\nStderr: %s", args, err, stdout, stderr)
+		t.Fatalf("issuegraph %v failed: %v\nStdout: %s\nStderr: %s", args, err, stdout, stderr)
 	}
 
 	// Return only stdout (stderr contains warnings that break JSON parsing)
@@ -222,8 +222,8 @@ func runBDInProcess(t *testing.T, dir string, args ...string) string {
 func TestCLI_Ready(t *testing.T) {
 	// Note: Not using t.Parallel() because inProcessMutex serializes execution anyway
 	tmpDir := setupCLITestDB(t)
-	runBDInProcess(t, tmpDir, "create", "Ready issue", "-p", "1")
-	out := runBDInProcess(t, tmpDir, "ready")
+	runIssueGraphInProcess(t, tmpDir, "create", "Ready issue", "-p", "1")
+	out := runIssueGraphInProcess(t, tmpDir, "ready")
 	if !strings.Contains(out, "Ready issue") {
 		t.Errorf("Expected 'Ready issue' in output, got: %s", out)
 	}
@@ -232,7 +232,7 @@ func TestCLI_Ready(t *testing.T) {
 func TestCLI_Create(t *testing.T) {
 	// Note: Not using t.Parallel() because inProcessMutex serializes execution anyway
 	tmpDir := setupCLITestDB(t)
-	out := runBDInProcess(t, tmpDir, "create", "Test issue", "-p", "1", "--json")
+	out := runIssueGraphInProcess(t, tmpDir, "create", "Test issue", "-p", "1", "--json")
 
 	// Extract JSON from output (may contain warnings before JSON)
 	jsonStart := strings.Index(out, "{")
@@ -250,21 +250,14 @@ func TestCLI_Create(t *testing.T) {
 	}
 }
 
-// TestCLI_CreateActorPrecedence is a CLI-level regression test for GH#4645:
-// with both BEADS_ACTOR and the deprecated BD_ACTOR set, `bd create` must
-// stamp created_by with BEADS_ACTOR's value. Unlike TestResolveConfiguredActor
-// (which calls resolveConfiguredActor() directly), this drives the real
-// command through rootCmd.Execute() so it also covers the root
-// PersistentPreRunE / refreshBoundCommandConfig wiring that pre-populates the
-// global actor before create.go ever runs — reverting either call site would
-// leave TestResolveConfiguredActor green but this test red.
-func TestCLI_CreateActorPrecedence(t *testing.T) {
+// TestCLI_CreateUsesActorEnvironment verifies actor attribution through the
+// real command path, including PersistentPreRunE configuration binding.
+func TestCLI_CreateUsesActorEnvironment(t *testing.T) {
 	// Note: Not using t.Parallel() because inProcessMutex serializes execution anyway
 	tmpDir := setupCLITestDB(t)
-	t.Setenv("BD_ACTOR", "from-bd-actor")
-	t.Setenv("BEADS_ACTOR", "from-beads-actor")
+	t.Setenv("ISSUEGRAPH_ACTOR", "from-issuegraph-actor")
 
-	out := runBDInProcess(t, tmpDir, "create", "Actor precedence test", "-p", "1", "--json")
+	out := runIssueGraphInProcess(t, tmpDir, "create", "Actor precedence test", "-p", "1", "--json")
 
 	jsonStart := strings.Index(out, "{")
 	if jsonStart == -1 {
@@ -276,18 +269,18 @@ func TestCLI_CreateActorPrecedence(t *testing.T) {
 	if err := json.Unmarshal([]byte(jsonOut), &result); err != nil {
 		t.Fatalf("Failed to parse JSON: %v\nOutput: %s", err, jsonOut)
 	}
-	if result["created_by"] != "from-beads-actor" {
-		t.Errorf("created_by = %v, want %q (BEADS_ACTOR must outrank deprecated BD_ACTOR)", result["created_by"], "from-beads-actor")
+	if result["created_by"] != "from-issuegraph-actor" {
+		t.Errorf("created_by = %v, want %q", result["created_by"], "from-issuegraph-actor")
 	}
 }
 
 func TestCLI_List(t *testing.T) {
 	// Note: Not using t.Parallel() because inProcessMutex serializes execution anyway
 	tmpDir := setupCLITestDB(t)
-	runBDInProcess(t, tmpDir, "create", "First", "-p", "1")
-	runBDInProcess(t, tmpDir, "create", "Second", "-p", "2")
+	runIssueGraphInProcess(t, tmpDir, "create", "First", "-p", "1")
+	runIssueGraphInProcess(t, tmpDir, "create", "Second", "-p", "2")
 
-	out := runBDInProcess(t, tmpDir, "list", "--json")
+	out := runIssueGraphInProcess(t, tmpDir, "list", "--json")
 	var issues []map[string]interface{}
 	if err := json.Unmarshal([]byte(out), &issues); err != nil {
 		t.Fatalf("Failed to parse JSON: %v", err)
@@ -300,15 +293,15 @@ func TestCLI_List(t *testing.T) {
 func TestCLI_Update(t *testing.T) {
 	// Note: Not using t.Parallel() because inProcessMutex serializes execution anyway
 	tmpDir := setupCLITestDB(t)
-	out := runBDInProcess(t, tmpDir, "create", "Issue to update", "-p", "1", "--json")
+	out := runIssueGraphInProcess(t, tmpDir, "create", "Issue to update", "-p", "1", "--json")
 
 	var issue map[string]interface{}
 	json.Unmarshal([]byte(out), &issue)
 	id := issue["id"].(string)
 
-	runBDInProcess(t, tmpDir, "update", id, "--status", "in_progress")
+	runIssueGraphInProcess(t, tmpDir, "update", id, "--status", "in_progress")
 
-	out = runBDInProcess(t, tmpDir, "show", id, "--json")
+	out = runIssueGraphInProcess(t, tmpDir, "show", id, "--json")
 	var updated []map[string]interface{}
 	json.Unmarshal([]byte(out), &updated)
 	if updated[0]["status"] != "in_progress" {
@@ -319,16 +312,16 @@ func TestCLI_Update(t *testing.T) {
 func TestCLI_UpdateLabels(t *testing.T) {
 	// Note: Not using t.Parallel() because inProcessMutex serializes execution anyway
 	tmpDir := setupCLITestDB(t)
-	out := runBDInProcess(t, tmpDir, "create", "Issue for label testing", "-p", "2", "--json")
+	out := runIssueGraphInProcess(t, tmpDir, "create", "Issue for label testing", "-p", "2", "--json")
 
 	var issue map[string]interface{}
 	json.Unmarshal([]byte(out), &issue)
 	id := issue["id"].(string)
 
 	// Test adding labels
-	runBDInProcess(t, tmpDir, "update", id, "--add-label", "feature", "--add-label", "backend")
+	runIssueGraphInProcess(t, tmpDir, "update", id, "--add-label", "feature", "--add-label", "backend")
 
-	out = runBDInProcess(t, tmpDir, "show", id, "--json")
+	out = runIssueGraphInProcess(t, tmpDir, "show", id, "--json")
 	var updated []map[string]interface{}
 	json.Unmarshal([]byte(out), &updated)
 	labels := updated[0]["labels"].([]interface{})
@@ -349,9 +342,9 @@ func TestCLI_UpdateLabels(t *testing.T) {
 	}
 
 	// Test removing a label
-	runBDInProcess(t, tmpDir, "update", id, "--remove-label", "backend")
+	runIssueGraphInProcess(t, tmpDir, "update", id, "--remove-label", "backend")
 
-	out = runBDInProcess(t, tmpDir, "show", id, "--json")
+	out = runIssueGraphInProcess(t, tmpDir, "show", id, "--json")
 	json.Unmarshal([]byte(out), &updated)
 	labels = updated[0]["labels"].([]interface{})
 	if len(labels) != 1 {
@@ -362,9 +355,9 @@ func TestCLI_UpdateLabels(t *testing.T) {
 	}
 
 	// Test setting labels (replaces all)
-	runBDInProcess(t, tmpDir, "update", id, "--set-labels", "api,database,critical")
+	runIssueGraphInProcess(t, tmpDir, "update", id, "--set-labels", "api,database,critical")
 
-	out = runBDInProcess(t, tmpDir, "show", id, "--json")
+	out = runIssueGraphInProcess(t, tmpDir, "show", id, "--json")
 	json.Unmarshal([]byte(out), &updated)
 	labels = updated[0]["labels"].([]interface{})
 	if len(labels) != 3 {
@@ -381,7 +374,7 @@ func TestCLI_UpdateLabels(t *testing.T) {
 func TestCLI_UpdateEphemeral(t *testing.T) {
 	// Note: Not using t.Parallel() because inProcessMutex serializes execution anyway
 	tmpDir := setupCLITestDB(t)
-	out := runBDInProcess(t, tmpDir, "create", "Issue for ephemeral testing", "-p", "2", "--json")
+	out := runIssueGraphInProcess(t, tmpDir, "create", "Issue for ephemeral testing", "-p", "2", "--json")
 
 	var issue map[string]interface{}
 	if err := json.Unmarshal([]byte(out), &issue); err != nil {
@@ -390,9 +383,9 @@ func TestCLI_UpdateEphemeral(t *testing.T) {
 	id := issue["id"].(string)
 
 	// Mark as ephemeral
-	runBDInProcess(t, tmpDir, "update", id, "--ephemeral")
+	runIssueGraphInProcess(t, tmpDir, "update", id, "--ephemeral")
 
-	out = runBDInProcess(t, tmpDir, "show", id, "--json")
+	out = runIssueGraphInProcess(t, tmpDir, "show", id, "--json")
 	var updated []map[string]interface{}
 	if err := json.Unmarshal([]byte(out), &updated); err != nil {
 		t.Fatalf("Failed to parse show output: %v", err)
@@ -407,7 +400,7 @@ func TestCLI_UpdatePersistent(t *testing.T) {
 	tmpDir := setupCLITestDB(t)
 
 	// Create ephemeral issue directly
-	out := runBDInProcess(t, tmpDir, "create", "Ephemeral issue", "-p", "2", "--ephemeral", "--json")
+	out := runIssueGraphInProcess(t, tmpDir, "create", "Ephemeral issue", "-p", "2", "--ephemeral", "--json")
 
 	var issue map[string]interface{}
 	if err := json.Unmarshal([]byte(out), &issue); err != nil {
@@ -416,7 +409,7 @@ func TestCLI_UpdatePersistent(t *testing.T) {
 	id := issue["id"].(string)
 
 	// Verify it's ephemeral
-	out = runBDInProcess(t, tmpDir, "show", id, "--json")
+	out = runIssueGraphInProcess(t, tmpDir, "show", id, "--json")
 	var initial []map[string]interface{}
 	if err := json.Unmarshal([]byte(out), &initial); err != nil {
 		t.Fatalf("Failed to parse show output: %v", err)
@@ -426,9 +419,9 @@ func TestCLI_UpdatePersistent(t *testing.T) {
 	}
 
 	// Promote to persistent
-	runBDInProcess(t, tmpDir, "update", id, "--persistent")
+	runIssueGraphInProcess(t, tmpDir, "update", id, "--persistent")
 
-	out = runBDInProcess(t, tmpDir, "show", id, "--json")
+	out = runIssueGraphInProcess(t, tmpDir, "show", id, "--json")
 	var updated []map[string]interface{}
 	if err := json.Unmarshal([]byte(out), &updated); err != nil {
 		t.Fatalf("Failed to parse show output after persistent: %v", err)
@@ -441,14 +434,14 @@ func TestCLI_UpdatePersistent(t *testing.T) {
 func TestCLI_UpdateEphemeralMutualExclusion(t *testing.T) {
 	// Note: Not using t.Parallel() because inProcessMutex serializes execution anyway
 	tmpDir := setupCLITestDB(t)
-	out := runBDInProcess(t, tmpDir, "create", "Issue for mutual exclusion test", "-p", "2", "--json")
+	out := runIssueGraphInProcess(t, tmpDir, "create", "Issue for mutual exclusion test", "-p", "2", "--json")
 
 	var issue map[string]interface{}
 	json.Unmarshal([]byte(out), &issue)
 	id := issue["id"].(string)
 
 	// Both flags should error
-	_, stderr, err := runBDInProcessAllowError(t, tmpDir, "update", id, "--ephemeral", "--persistent")
+	_, stderr, err := runIssueGraphInProcessAllowError(t, tmpDir, "update", id, "--ephemeral", "--persistent")
 	if err == nil {
 		t.Errorf("Expected error when both flags specified, got none")
 	}
@@ -459,16 +452,16 @@ func TestCLI_UpdateEphemeralMutualExclusion(t *testing.T) {
 
 func TestCLI_UpdateAppendNotes(t *testing.T) {
 	tmpDir := setupCLITestDB(t)
-	out := runBDInProcess(t, tmpDir, "create", "Issue for append-notes test", "-p", "2", "--notes", "Original notes", "--json")
+	out := runIssueGraphInProcess(t, tmpDir, "create", "Issue for append-notes test", "-p", "2", "--notes", "Original notes", "--json")
 
 	var issue map[string]interface{}
 	json.Unmarshal([]byte(out), &issue)
 	id := issue["id"].(string)
 
 	// Test appending notes
-	runBDInProcess(t, tmpDir, "update", id, "--append-notes", "Appended content")
+	runIssueGraphInProcess(t, tmpDir, "update", id, "--append-notes", "Appended content")
 
-	out = runBDInProcess(t, tmpDir, "show", id, "--json")
+	out = runIssueGraphInProcess(t, tmpDir, "show", id, "--json")
 	var updated []map[string]interface{}
 	json.Unmarshal([]byte(out), &updated)
 	notes := updated[0]["notes"].(string)
@@ -477,13 +470,13 @@ func TestCLI_UpdateAppendNotes(t *testing.T) {
 	}
 
 	// Test appending to empty notes
-	out = runBDInProcess(t, tmpDir, "create", "Issue with empty notes", "-p", "2", "--json")
+	out = runIssueGraphInProcess(t, tmpDir, "create", "Issue with empty notes", "-p", "2", "--json")
 	json.Unmarshal([]byte(out), &issue)
 	id2 := issue["id"].(string)
 
-	runBDInProcess(t, tmpDir, "update", id2, "--append-notes", "First note")
+	runIssueGraphInProcess(t, tmpDir, "update", id2, "--append-notes", "First note")
 
-	out = runBDInProcess(t, tmpDir, "show", id2, "--json")
+	out = runIssueGraphInProcess(t, tmpDir, "show", id2, "--json")
 	json.Unmarshal([]byte(out), &updated)
 	notes = updated[0]["notes"].(string)
 	if notes != "First note" {
@@ -493,14 +486,14 @@ func TestCLI_UpdateAppendNotes(t *testing.T) {
 
 func TestCLI_UpdateAppendNotesMutualExclusion(t *testing.T) {
 	tmpDir := setupCLITestDB(t)
-	out := runBDInProcess(t, tmpDir, "create", "Issue for notes mutual exclusion", "-p", "2", "--json")
+	out := runIssueGraphInProcess(t, tmpDir, "create", "Issue for notes mutual exclusion", "-p", "2", "--json")
 
 	var issue map[string]interface{}
 	json.Unmarshal([]byte(out), &issue)
 	id := issue["id"].(string)
 
 	// Both --notes and --append-notes should error
-	_, stderr, err := runBDInProcessAllowError(t, tmpDir, "update", id, "--notes", "New notes", "--append-notes", "Appended")
+	_, stderr, err := runIssueGraphInProcessAllowError(t, tmpDir, "update", id, "--notes", "New notes", "--append-notes", "Appended")
 	if err == nil {
 		t.Errorf("Expected error when both --notes and --append-notes specified, got none")
 	}
@@ -513,14 +506,14 @@ func TestCLI_NoteCommand(t *testing.T) {
 	tmpDir := setupCLITestDB(t)
 
 	// Create an issue with initial notes
-	out := runBDInProcess(t, tmpDir, "create", "Issue for note test", "-p", "2", "--notes", "Original notes", "--json")
+	out := runIssueGraphInProcess(t, tmpDir, "create", "Issue for note test", "-p", "2", "--notes", "Original notes", "--json")
 	var issue map[string]interface{}
 	json.Unmarshal([]byte(out), &issue)
 	id := issue["id"].(string)
 
-	// Test: bd note <id> <text> appends to existing notes
-	runBDInProcess(t, tmpDir, "note", id, "Added via note command")
-	out = runBDInProcess(t, tmpDir, "show", id, "--json")
+	// Test: issuegraph note <id> <text> appends to existing notes
+	runIssueGraphInProcess(t, tmpDir, "note", id, "Added via note command")
+	out = runIssueGraphInProcess(t, tmpDir, "show", id, "--json")
 	var updated []map[string]interface{}
 	json.Unmarshal([]byte(out), &updated)
 	notes := updated[0]["notes"].(string)
@@ -528,30 +521,30 @@ func TestCLI_NoteCommand(t *testing.T) {
 		t.Errorf("Expected 'Original notes\\nAdded via note command', got: %q", notes)
 	}
 
-	// Test: bd note <id> with multiple words joins them
-	runBDInProcess(t, tmpDir, "note", id, "second", "note", "here")
-	out = runBDInProcess(t, tmpDir, "show", id, "--json")
+	// Test: issuegraph note <id> with multiple words joins them
+	runIssueGraphInProcess(t, tmpDir, "note", id, "second", "note", "here")
+	out = runIssueGraphInProcess(t, tmpDir, "show", id, "--json")
 	json.Unmarshal([]byte(out), &updated)
 	notes = updated[0]["notes"].(string)
 	if notes != "Original notes\nAdded via note command\nsecond note here" {
 		t.Errorf("Expected three lines, got: %q", notes)
 	}
 
-	// Test: bd note on issue with no existing notes
-	out = runBDInProcess(t, tmpDir, "create", "Issue with no notes", "-p", "2", "--json")
+	// Test: issuegraph note on issue with no existing notes
+	out = runIssueGraphInProcess(t, tmpDir, "create", "Issue with no notes", "-p", "2", "--json")
 	json.Unmarshal([]byte(out), &issue)
 	id2 := issue["id"].(string)
 
-	runBDInProcess(t, tmpDir, "note", id2, "First note ever")
-	out = runBDInProcess(t, tmpDir, "show", id2, "--json")
+	runIssueGraphInProcess(t, tmpDir, "note", id2, "First note ever")
+	out = runIssueGraphInProcess(t, tmpDir, "show", id2, "--json")
 	json.Unmarshal([]byte(out), &updated)
 	notes = updated[0]["notes"].(string)
 	if notes != "First note ever" {
 		t.Errorf("Expected 'First note ever', got: %q", notes)
 	}
 
-	// Test: bd note with no text should fail
-	_, stderr, err := runBDInProcessAllowError(t, tmpDir, "note", id)
+	// Test: issuegraph note with no text should fail
+	_, stderr, err := runIssueGraphInProcessAllowError(t, tmpDir, "note", id)
 	if err == nil {
 		t.Errorf("Expected error when no note text provided, got none")
 	}
@@ -562,17 +555,17 @@ func TestCLI_NoteCommand(t *testing.T) {
 
 // TestCLI_NoteListMisplacedSyntax is a regression test for "note" silently
 // mis-resolving a subcommand-like typo as an issue id (GH#5370). Mirrors
-// TestCLI_CommentListMisplacedSyntax (#5369): "bd note list <text>" used to
+// TestCLI_CommentListMisplacedSyntax (#5369): "issuegraph note list <text>" used to
 // parse as id="list", text=[<text>...] with no validation on the id — since
 // no issue is literally named "list", ResolvePartialID's substring/prefix
-// fallback would silently match it against whatever existing bead or wisp id
+// fallback would silently match it against whatever existing issue or wisp id
 // happened to contain "list" and append the note there instead of erroring.
 // This asserts both halves of the fix: the command is rejected with a
 // helpful hint, AND no note silently landed on an unrelated real issue.
 func TestCLI_NoteListMisplacedSyntax(t *testing.T) {
 	tmpDir := setupCLITestDB(t)
 
-	out := runBDInProcess(t, tmpDir, "create", "Bystander issue", "-p", "1", "--json")
+	out := runIssueGraphInProcess(t, tmpDir, "create", "Bystander issue", "-p", "1", "--json")
 	jsonStart := strings.Index(out, "{")
 	if jsonStart < 0 {
 		t.Fatalf("No JSON found in create output: %s", out)
@@ -583,12 +576,12 @@ func TestCLI_NoteListMisplacedSyntax(t *testing.T) {
 	}
 	fullID := issue["id"].(string)
 
-	// Snapshot notes BEFORE the rejected command. runBDInProcess reuses the
+	// Snapshot notes BEFORE the rejected command. runIssueGraphInProcess reuses the
 	// package-level rootCmd without resetting cobra flag state, so an earlier
 	// test's --notes value can leak into this create. Asserting before==after
 	// is immune to that leak and is a stronger regression check: the rejected
 	// command wrote nothing (GH#5370 review fix-round).
-	beforeShow := runBDInProcess(t, tmpDir, "show", fullID, "--json")
+	beforeShow := runIssueGraphInProcess(t, tmpDir, "show", fullID, "--json")
 	var beforeShown []map[string]interface{}
 	if err := json.Unmarshal([]byte(beforeShow), &beforeShown); err != nil {
 		t.Fatalf("Failed to parse pre-reject show JSON: %v\nOutput: %s", err, beforeShow)
@@ -598,19 +591,19 @@ func TestCLI_NoteListMisplacedSyntax(t *testing.T) {
 	}
 	notesBefore, _ := beforeShown[0]["notes"].(string)
 
-	stdout, stderr, err := runBDInProcessAllowError(t, tmpDir, "note", "list", "accidental stray text")
+	stdout, stderr, err := runIssueGraphInProcessAllowError(t, tmpDir, "note", "list", "accidental stray text")
 	if err == nil {
 		t.Fatalf("expected non-zero exit, got stdout=%q stderr=%q", stdout, stderr)
 	}
 	combined := stdout + stderr
-	if !strings.Contains(combined, "bd note") || !strings.Contains(combined, "<issue-id>") {
-		t.Fatalf("expected hint pointing at bd note <issue-id>, got stdout=%q stderr=%q", stdout, stderr)
+	if !strings.Contains(combined, "issuegraph note") || !strings.Contains(combined, "<issue-id>") {
+		t.Fatalf("expected hint pointing at issuegraph note <issue-id>, got stdout=%q stderr=%q", stdout, stderr)
 	}
 
 	// The regression check: the bystander issue's notes must be UNCHANGED.
 	// Pre-fix, this could silently succeed and land a note on whatever
-	// bead's id happened to contain "list" as a substring.
-	showOut := runBDInProcess(t, tmpDir, "show", fullID, "--json")
+	// issue's id happened to contain "list" as a substring.
+	showOut := runIssueGraphInProcess(t, tmpDir, "show", fullID, "--json")
 	var shown []map[string]interface{}
 	if err := json.Unmarshal([]byte(showOut), &shown); err != nil {
 		t.Fatalf("Failed to parse show JSON: %v\nOutput: %s", err, showOut)
@@ -625,13 +618,13 @@ func TestCLI_NoteListMisplacedSyntax(t *testing.T) {
 }
 
 // TestCLI_NoteAddMisplacedSyntax mirrors TestCLI_NoteListMisplacedSyntax
-// for the symmetric "add" typo — a caller who types "bd note add <id> <text>"
+// for the symmetric "add" typo — a caller who types "issuegraph note add <id> <text>"
 // (confusing note with comments-style "add") would parse as id="add",
 // text=[<id>, <text>...].
 func TestCLI_NoteAddMisplacedSyntax(t *testing.T) {
 	tmpDir := setupCLITestDB(t)
 
-	out := runBDInProcess(t, tmpDir, "create", "Bystander issue for add-typo", "-p", "1", "--json")
+	out := runIssueGraphInProcess(t, tmpDir, "create", "Bystander issue for add-typo", "-p", "1", "--json")
 	jsonStart := strings.Index(out, "{")
 	if jsonStart < 0 {
 		t.Fatalf("No JSON found in create output: %s", out)
@@ -644,7 +637,7 @@ func TestCLI_NoteAddMisplacedSyntax(t *testing.T) {
 
 	// Snapshot notes BEFORE the rejected command (same order-independence
 	// rationale as TestCLI_NoteListMisplacedSyntax).
-	beforeShow := runBDInProcess(t, tmpDir, "show", fullID, "--json")
+	beforeShow := runIssueGraphInProcess(t, tmpDir, "show", fullID, "--json")
 	var beforeShown []map[string]interface{}
 	if err := json.Unmarshal([]byte(beforeShow), &beforeShown); err != nil {
 		t.Fatalf("Failed to parse pre-reject show JSON: %v\nOutput: %s", err, beforeShow)
@@ -654,16 +647,16 @@ func TestCLI_NoteAddMisplacedSyntax(t *testing.T) {
 	}
 	notesBefore, _ := beforeShown[0]["notes"].(string)
 
-	stdout, stderr, err := runBDInProcessAllowError(t, tmpDir, "note", "add", fullID, "accidental stray text")
+	stdout, stderr, err := runIssueGraphInProcessAllowError(t, tmpDir, "note", "add", fullID, "accidental stray text")
 	if err == nil {
 		t.Fatalf("expected non-zero exit, got stdout=%q stderr=%q", stdout, stderr)
 	}
 	combined := stdout + stderr
-	if !strings.Contains(combined, "bd note") || !strings.Contains(combined, "<issue-id>") {
-		t.Fatalf("expected hint pointing at bd note <issue-id>, got stdout=%q stderr=%q", stdout, stderr)
+	if !strings.Contains(combined, "issuegraph note") || !strings.Contains(combined, "<issue-id>") {
+		t.Fatalf("expected hint pointing at issuegraph note <issue-id>, got stdout=%q stderr=%q", stdout, stderr)
 	}
 
-	showOut := runBDInProcess(t, tmpDir, "show", fullID, "--json")
+	showOut := runIssueGraphInProcess(t, tmpDir, "show", fullID, "--json")
 	var shown []map[string]interface{}
 	if err := json.Unmarshal([]byte(showOut), &shown); err != nil {
 		t.Fatalf("Failed to parse show JSON: %v\nOutput: %s", err, showOut)
@@ -681,25 +674,25 @@ func TestCLI_NoteAddMisplacedSyntax(t *testing.T) {
 // fires from noteCmd's Args validator, before PersistentPreRunE ever
 // opens a store, mirroring
 // TestCLI_CommentMisplacedSyntaxRejectedBeforeStoreOpen for the comment
-// sibling. Using a directory with no .beads/ at all proves the store was
-// never touched: a RunE-only check would have failed first with "no beads
+// sibling. Using a directory with no .issuegraph/ at all proves the store was
+// never touched: a RunE-only check would have failed first with "no issuegraph
 // database found".
 func TestCLI_NoteMisplacedSyntaxRejectedBeforeStoreOpen(t *testing.T) {
-	noBeadsCwd := t.TempDir()
-	if _, err := os.Stat(filepath.Join(noBeadsCwd, ".beads")); err == nil {
-		t.Fatalf("test setup: %s unexpectedly has a .beads dir", noBeadsCwd)
+	noIssueGraphCwd := t.TempDir()
+	if _, err := os.Stat(filepath.Join(noIssueGraphCwd, ".issuegraph")); err == nil {
+		t.Fatalf("test setup: %s unexpectedly has a .issuegraph dir", noIssueGraphCwd)
 	}
 
-	stdout, stderr, err := runBDInProcessAllowError(t, noBeadsCwd, "note", "list", "should not be stored")
+	stdout, stderr, err := runIssueGraphInProcessAllowError(t, noIssueGraphCwd, "note", "list", "should not be stored")
 	if err == nil {
 		t.Fatalf("expected non-zero exit for misplaced 'note list', got success:\nstdout: %s", stdout)
 	}
 	combined := stdout + stderr
-	if strings.Contains(combined, "no beads database found") {
+	if strings.Contains(combined, "no issuegraph database found") {
 		t.Fatalf("Args validation did not run before store open: got the pre-fix error.\nOutput:\n%s", combined)
 	}
-	if !strings.Contains(combined, "bd note") {
-		t.Errorf("expected hint pointing to `bd note`, got:\n%s", combined)
+	if !strings.Contains(combined, "issuegraph note") {
+		t.Errorf("expected hint pointing to `issuegraph note`, got:\n%s", combined)
 	}
 }
 
@@ -715,13 +708,13 @@ func TestCLI_NoteMisplacedSyntaxRejectedInProxiedServerMode(t *testing.T) {
 	proxiedServerMode = true
 
 	tmpDir := setupCLITestDB(t)
-	stdout, stderr, err := runBDInProcessAllowError(t, tmpDir, "note", "list", "should not be stored")
+	stdout, stderr, err := runIssueGraphInProcessAllowError(t, tmpDir, "note", "list", "should not be stored")
 	if err == nil {
 		t.Fatalf("expected non-zero exit for misplaced 'note list' in proxied-server mode, got success:\nstdout: %s", stdout)
 	}
 	combined := stdout + stderr
-	if !strings.Contains(combined, "bd note") {
-		t.Errorf("expected hint pointing to `bd note`, got:\n%s", combined)
+	if !strings.Contains(combined, "issuegraph note") {
+		t.Errorf("expected hint pointing to `issuegraph note`, got:\n%s", combined)
 	}
 }
 
@@ -732,7 +725,7 @@ func TestCLI_NoteMisplacedSyntaxRejectedInProxiedServerMode(t *testing.T) {
 func TestCLI_NoteTextStartingWithReservedWordStillWorks(t *testing.T) {
 	tmpDir := setupCLITestDB(t)
 
-	out := runBDInProcess(t, tmpDir, "create", "Issue for reserved-word-text test", "-p", "1", "--json")
+	out := runIssueGraphInProcess(t, tmpDir, "create", "Issue for reserved-word-text test", "-p", "1", "--json")
 	jsonStart := strings.Index(out, "{")
 	if jsonStart < 0 {
 		t.Fatalf("No JSON found in create output: %s", out)
@@ -743,7 +736,7 @@ func TestCLI_NoteTextStartingWithReservedWordStillWorks(t *testing.T) {
 	}
 	fullID := issue["id"].(string)
 
-	stdout, stderr, err := runBDInProcessAllowError(t, tmpDir, "note", fullID, "list", "of", "things", "to", "do")
+	stdout, stderr, err := runIssueGraphInProcessAllowError(t, tmpDir, "note", fullID, "list", "of", "things", "to", "do")
 	if err != nil {
 		t.Fatalf("note with text starting in 'list' unexpectedly failed: %v\nstdout: %s\nstderr: %s", err, stdout, stderr)
 	}
@@ -751,7 +744,7 @@ func TestCLI_NoteTextStartingWithReservedWordStillWorks(t *testing.T) {
 		t.Errorf("Expected 'Note added' in output, got: %s", stdout)
 	}
 
-	showOut := runBDInProcess(t, tmpDir, "show", fullID, "--json")
+	showOut := runIssueGraphInProcess(t, tmpDir, "show", fullID, "--json")
 	if !strings.Contains(showOut, "list of things to do") {
 		t.Fatalf("expected note text to be stored verbatim, got: %s", showOut)
 	}
@@ -760,15 +753,15 @@ func TestCLI_NoteTextStartingWithReservedWordStillWorks(t *testing.T) {
 func TestCLI_Close(t *testing.T) {
 	// Note: Not using t.Parallel() because inProcessMutex serializes execution anyway
 	tmpDir := setupCLITestDB(t)
-	out := runBDInProcess(t, tmpDir, "create", "Issue to close", "-p", "1", "--json")
+	out := runIssueGraphInProcess(t, tmpDir, "create", "Issue to close", "-p", "1", "--json")
 
 	var issue map[string]interface{}
 	json.Unmarshal([]byte(out), &issue)
 	id := issue["id"].(string)
 
-	runBDInProcess(t, tmpDir, "close", id, "--reason", "Done")
+	runIssueGraphInProcess(t, tmpDir, "close", id, "--reason", "Done")
 
-	out = runBDInProcess(t, tmpDir, "show", id, "--json")
+	out = runIssueGraphInProcess(t, tmpDir, "show", id, "--json")
 	var closed []map[string]interface{}
 	json.Unmarshal([]byte(out), &closed)
 	if closed[0]["status"] != "closed" {
@@ -783,8 +776,8 @@ func TestCLI_DepAdd(t *testing.T) {
 	// Note: Not using t.Parallel() because inProcessMutex serializes execution anyway
 	tmpDir := setupCLITestDB(t)
 
-	out1 := runBDInProcess(t, tmpDir, "create", "First", "-p", "1", "--json")
-	out2 := runBDInProcess(t, tmpDir, "create", "Second", "-p", "1", "--json")
+	out1 := runIssueGraphInProcess(t, tmpDir, "create", "First", "-p", "1", "--json")
+	out2 := runIssueGraphInProcess(t, tmpDir, "create", "Second", "-p", "1", "--json")
 
 	var issue1, issue2 map[string]interface{}
 	json.Unmarshal([]byte(out1), &issue1)
@@ -793,24 +786,24 @@ func TestCLI_DepAdd(t *testing.T) {
 	id1 := issue1["id"].(string)
 	id2 := issue2["id"].(string)
 
-	out := runBDInProcess(t, tmpDir, "dep", "add", id2, id1)
+	out := runIssueGraphInProcess(t, tmpDir, "dep", "add", id2, id1)
 	if !strings.Contains(out, "Added dependency") {
 		t.Errorf("Expected 'Added dependency', got: %s", out)
 	}
 }
 
 // TestCLI_DepAdd_TypeBlockedByAliasGates is the regression test for GH#5069:
-// `bd dep add A B --type blocked-by` used to store the literal custom type
+// `issuegraph dep add A B --type blocked-by` used to store the literal custom type
 // "blocked-by" instead of normalizing it to the canonical "blocks" type, so
-// the dependency was displayed everywhere but silently never gated `bd
-// ready`/`bd blocked`. Assert the alias now gates exactly like the default
+// the dependency was displayed everywhere but silently never gated `issuegraph
+// ready`/`issuegraph blocked`. Assert the alias now gates exactly like the default
 // (canonical) type does.
 func TestCLI_DepAdd_TypeBlockedByAliasGates(t *testing.T) {
 	// Note: Not using t.Parallel() because inProcessMutex serializes execution anyway
 	tmpDir := setupCLITestDB(t)
 
-	out1 := runBDInProcess(t, tmpDir, "create", "Blocker", "-p", "1", "--json")
-	out2 := runBDInProcess(t, tmpDir, "create", "Blocked", "-p", "1", "--json")
+	out1 := runIssueGraphInProcess(t, tmpDir, "create", "Blocker", "-p", "1", "--json")
+	out2 := runIssueGraphInProcess(t, tmpDir, "create", "Blocked", "-p", "1", "--json")
 
 	var issue1, issue2 map[string]interface{}
 	json.Unmarshal([]byte(out1), &issue1)
@@ -821,23 +814,23 @@ func TestCLI_DepAdd_TypeBlockedByAliasGates(t *testing.T) {
 
 	// blockedID depends on (is blocked by) blockerID, using the --type
 	// blocked-by alias rather than the default "blocks" type.
-	out := runBDInProcess(t, tmpDir, "dep", "add", blockedID, blockerID, "--type", "blocked-by")
+	out := runIssueGraphInProcess(t, tmpDir, "dep", "add", blockedID, blockerID, "--type", "blocked-by")
 	if !strings.Contains(out, "Added dependency") {
 		t.Fatalf("Expected 'Added dependency', got: %s", out)
 	}
 
-	blockedOut := runBDInProcess(t, tmpDir, "blocked")
+	blockedOut := runIssueGraphInProcess(t, tmpDir, "blocked")
 	if !strings.Contains(blockedOut, "Blocked") {
-		t.Errorf("Expected 'Blocked' issue in `bd blocked` output after --type blocked-by dep, got: %s", blockedOut)
+		t.Errorf("Expected 'Blocked' issue in `issuegraph blocked` output after --type blocked-by dep, got: %s", blockedOut)
 	}
 
-	readyOut := runBDInProcess(t, tmpDir, "ready")
+	readyOut := runIssueGraphInProcess(t, tmpDir, "ready")
 	if strings.Contains(readyOut, "Blocked") {
-		t.Errorf("Expected blocked issue to be excluded from `bd ready` after --type blocked-by dep, got: %s", readyOut)
+		t.Errorf("Expected blocked issue to be excluded from `issuegraph ready` after --type blocked-by dep, got: %s", readyOut)
 	}
 }
 
-// TestCLI_Show_SupersedesIsNotABlocker is the regression test for bd show
+// TestCLI_Show_SupersedesIsNotABlocker is the regression test for issuegraph show
 // grouping every dependency type it did not name explicitly into the blocks
 // bucket. A supersedes edge printed under "DEPENDS ON" on the replaced issue
 // and "BLOCKS" on the replacement — a blocking claim that is false, since
@@ -846,8 +839,8 @@ func TestCLI_Show_SupersedesIsNotABlocker(t *testing.T) {
 	// Note: Not using t.Parallel() because inProcessMutex serializes execution anyway
 	tmpDir := setupCLITestDB(t)
 
-	outOld := runBDInProcess(t, tmpDir, "create", "V1 spec", "-p", "1", "--json")
-	outNew := runBDInProcess(t, tmpDir, "create", "V2 spec", "-p", "1", "--json")
+	outOld := runIssueGraphInProcess(t, tmpDir, "create", "V1 spec", "-p", "1", "--json")
+	outNew := runIssueGraphInProcess(t, tmpDir, "create", "V2 spec", "-p", "1", "--json")
 
 	var oldIssue, newIssue map[string]interface{}
 	json.Unmarshal([]byte(outOld), &oldIssue)
@@ -856,11 +849,11 @@ func TestCLI_Show_SupersedesIsNotABlocker(t *testing.T) {
 	oldID := oldIssue["id"].(string)
 	newID := newIssue["id"].(string)
 
-	runBDInProcess(t, tmpDir, "supersede", oldID, "--with", newID)
+	runIssueGraphInProcess(t, tmpDir, "supersede", oldID, "--with", newID)
 
-	// `bd supersede old --with new` stores (old, new), so the replaced issue is
+	// `issuegraph supersede old --with new` stores (old, new), so the replaced issue is
 	// the edge's source and names its replacement.
-	replaced := runBDInProcess(t, tmpDir, "show", oldID)
+	replaced := runIssueGraphInProcess(t, tmpDir, "show", oldID)
 	if !strings.Contains(replaced, "SUPERSEDED BY") {
 		t.Errorf("expected SUPERSEDED BY section on the replaced issue, got: %s", replaced)
 	}
@@ -868,7 +861,7 @@ func TestCLI_Show_SupersedesIsNotABlocker(t *testing.T) {
 		t.Errorf("replaced issue must not claim it depends on its replacement, got: %s", replaced)
 	}
 
-	replacement := runBDInProcess(t, tmpDir, "show", newID)
+	replacement := runIssueGraphInProcess(t, tmpDir, "show", newID)
 	if !strings.Contains(replacement, "SUPERSEDES") {
 		t.Errorf("expected SUPERSEDES section on the replacement, got: %s", replacement)
 	}
@@ -881,8 +874,8 @@ func TestCLI_DepRemove(t *testing.T) {
 	// Note: Not using t.Parallel() because inProcessMutex serializes execution anyway
 	tmpDir := setupCLITestDB(t)
 
-	out1 := runBDInProcess(t, tmpDir, "create", "First", "-p", "1", "--json")
-	out2 := runBDInProcess(t, tmpDir, "create", "Second", "-p", "1", "--json")
+	out1 := runIssueGraphInProcess(t, tmpDir, "create", "First", "-p", "1", "--json")
+	out2 := runIssueGraphInProcess(t, tmpDir, "create", "Second", "-p", "1", "--json")
 
 	var issue1, issue2 map[string]interface{}
 	json.Unmarshal([]byte(out1), &issue1)
@@ -891,8 +884,8 @@ func TestCLI_DepRemove(t *testing.T) {
 	id1 := issue1["id"].(string)
 	id2 := issue2["id"].(string)
 
-	runBDInProcess(t, tmpDir, "dep", "add", id2, id1)
-	out := runBDInProcess(t, tmpDir, "dep", "remove", id2, id1)
+	runIssueGraphInProcess(t, tmpDir, "dep", "add", id2, id1)
+	out := runIssueGraphInProcess(t, tmpDir, "dep", "remove", id2, id1)
 	if !strings.Contains(out, "Removed dependency") {
 		t.Errorf("Expected 'Removed dependency', got: %s", out)
 	}
@@ -902,8 +895,8 @@ func TestCLI_DepTree(t *testing.T) {
 	// Note: Not using t.Parallel() because inProcessMutex serializes execution anyway
 	tmpDir := setupCLITestDB(t)
 
-	out1 := runBDInProcess(t, tmpDir, "create", "Parent", "-p", "1", "--json")
-	out2 := runBDInProcess(t, tmpDir, "create", "Child", "-p", "1", "--json")
+	out1 := runIssueGraphInProcess(t, tmpDir, "create", "Parent", "-p", "1", "--json")
+	out2 := runIssueGraphInProcess(t, tmpDir, "create", "Child", "-p", "1", "--json")
 
 	var issue1, issue2 map[string]interface{}
 	json.Unmarshal([]byte(out1), &issue1)
@@ -912,8 +905,8 @@ func TestCLI_DepTree(t *testing.T) {
 	id1 := issue1["id"].(string)
 	id2 := issue2["id"].(string)
 
-	runBDInProcess(t, tmpDir, "dep", "add", id2, id1)
-	out := runBDInProcess(t, tmpDir, "dep", "tree", id1)
+	runIssueGraphInProcess(t, tmpDir, "dep", "add", id2, id1)
+	out := runIssueGraphInProcess(t, tmpDir, "dep", "tree", id1)
 	if !strings.Contains(out, "Parent") {
 		t.Errorf("Expected 'Parent' in tree, got: %s", out)
 	}
@@ -923,8 +916,8 @@ func TestCLI_Blocked(t *testing.T) {
 	// Note: Not using t.Parallel() because inProcessMutex serializes execution anyway
 	tmpDir := setupCLITestDB(t)
 
-	out1 := runBDInProcess(t, tmpDir, "create", "Blocker", "-p", "1", "--json")
-	out2 := runBDInProcess(t, tmpDir, "create", "Blocked", "-p", "1", "--json")
+	out1 := runIssueGraphInProcess(t, tmpDir, "create", "Blocker", "-p", "1", "--json")
+	out2 := runIssueGraphInProcess(t, tmpDir, "create", "Blocked", "-p", "1", "--json")
 
 	var issue1, issue2 map[string]interface{}
 	json.Unmarshal([]byte(out1), &issue1)
@@ -933,8 +926,8 @@ func TestCLI_Blocked(t *testing.T) {
 	id1 := issue1["id"].(string)
 	id2 := issue2["id"].(string)
 
-	runBDInProcess(t, tmpDir, "dep", "add", id2, id1)
-	out := runBDInProcess(t, tmpDir, "blocked")
+	runIssueGraphInProcess(t, tmpDir, "dep", "add", id2, id1)
+	out := runIssueGraphInProcess(t, tmpDir, "blocked")
 	if !strings.Contains(out, "Blocked") {
 		t.Errorf("Expected 'Blocked' in output, got: %s", out)
 	}
@@ -943,10 +936,10 @@ func TestCLI_Blocked(t *testing.T) {
 func TestCLI_Stats(t *testing.T) {
 	// Note: Not using t.Parallel() because inProcessMutex serializes execution anyway
 	tmpDir := setupCLITestDB(t)
-	runBDInProcess(t, tmpDir, "create", "Issue 1", "-p", "1")
-	runBDInProcess(t, tmpDir, "create", "Issue 2", "-p", "1")
+	runIssueGraphInProcess(t, tmpDir, "create", "Issue 1", "-p", "1")
+	runIssueGraphInProcess(t, tmpDir, "create", "Issue 2", "-p", "1")
 
-	out := runBDInProcess(t, tmpDir, "stats")
+	out := runIssueGraphInProcess(t, tmpDir, "stats")
 	if !strings.Contains(out, "Total") || !strings.Contains(out, "2") {
 		t.Errorf("Expected stats to show 2 issues, got: %s", out)
 	}
@@ -955,13 +948,13 @@ func TestCLI_Stats(t *testing.T) {
 func TestCLI_Show(t *testing.T) {
 	// Note: Not using t.Parallel() because inProcessMutex serializes execution anyway
 	tmpDir := setupCLITestDB(t)
-	out := runBDInProcess(t, tmpDir, "create", "Show test", "-p", "1", "--json")
+	out := runIssueGraphInProcess(t, tmpDir, "create", "Show test", "-p", "1", "--json")
 
 	var issue map[string]interface{}
 	json.Unmarshal([]byte(out), &issue)
 	id := issue["id"].(string)
 
-	out = runBDInProcess(t, tmpDir, "show", id)
+	out = runIssueGraphInProcess(t, tmpDir, "show", id)
 	if !strings.Contains(out, "Show test") {
 		t.Errorf("Expected 'Show test' in output, got: %s", out)
 	}
@@ -970,10 +963,10 @@ func TestCLI_Show(t *testing.T) {
 func TestCLI_Export(t *testing.T) {
 	// Note: Not using t.Parallel() because inProcessMutex serializes execution anyway
 	tmpDir := setupCLITestDB(t)
-	runBDInProcess(t, tmpDir, "create", "Export test", "-p", "1")
+	runIssueGraphInProcess(t, tmpDir, "create", "Export test", "-p", "1")
 
 	exportFile := filepath.Join(tmpDir, "export.jsonl")
-	runBDInProcess(t, tmpDir, "export", "-o", exportFile)
+	runIssueGraphInProcess(t, tmpDir, "export", "-o", exportFile)
 
 	if _, err := os.Stat(exportFile); os.IsNotExist(err) {
 		t.Errorf("Export file not created: %s", exportFile)
@@ -983,17 +976,17 @@ func TestCLI_Export(t *testing.T) {
 func TestCLI_Import(t *testing.T) {
 	// Note: Not using t.Parallel() because inProcessMutex serializes execution anyway
 	tmpDir := setupCLITestDB(t)
-	runBDInProcess(t, tmpDir, "create", "Import test", "-p", "1")
+	runIssueGraphInProcess(t, tmpDir, "create", "Import test", "-p", "1")
 
 	exportFile := filepath.Join(tmpDir, "export.jsonl")
-	runBDInProcess(t, tmpDir, "export", "-o", exportFile)
+	runIssueGraphInProcess(t, tmpDir, "export", "-o", exportFile)
 
 	// Create new db and import
 	tmpDir2 := createTempDirWithCleanup(t)
-	runBDInProcess(t, tmpDir2, "init", "--prefix", "test", "--quiet")
-	runBDInProcess(t, tmpDir2, "import", "-i", exportFile)
+	runIssueGraphInProcess(t, tmpDir2, "init", "--prefix", "test", "--quiet")
+	runIssueGraphInProcess(t, tmpDir2, "import", "-i", exportFile)
 
-	out := runBDInProcess(t, tmpDir2, "list", "--json")
+	out := runIssueGraphInProcess(t, tmpDir2, "list", "--json")
 	var issues []map[string]interface{}
 	json.Unmarshal([]byte(out), &issues)
 	if len(issues) != 1 {
@@ -1014,9 +1007,9 @@ func init() {
 		return
 	}
 	// Prebuilt fast path (scripts/test.sh and CI export this), else build
-	// once. No repo-root ./bd reuse: a stale checkout-root binary silently
+	// once. No repo-root ./issuegraph reuse: a stale checkout-root binary silently
 	// substitutes itself for the source under test (wy-4mtr0).
-	if prebuilt := os.Getenv("BEADS_TEST_BD_BINARY"); prebuilt != "" {
+	if prebuilt := os.Getenv("ISSUEGRAPH_TEST_ISSUEGRAPH_BINARY"); prebuilt != "" {
 		if abs, err := filepath.Abs(prebuilt); err == nil {
 			if _, statErr := os.Stat(abs); statErr == nil {
 				testBD = abs
@@ -1024,9 +1017,9 @@ func init() {
 			}
 		}
 	}
-	bdBinary := "bd"
+	issuegraphBinary := "issuegraph"
 	if runtime.GOOS == "windows" {
-		bdBinary = "bd.exe"
+		issuegraphBinary = "issuegraph.exe"
 	}
 
 	// Fall back to building once (for CI or fresh checkouts)
@@ -1034,16 +1027,16 @@ func init() {
 	if err != nil {
 		panic(err)
 	}
-	testBD = filepath.Join(tmpDir, bdBinary)
+	testBD = filepath.Join(tmpDir, issuegraphBinary)
 	cmd := exec.Command("go", "build", "-tags", "gms_pure_go", "-o", testBD, ".")
 	if out, err := cmd.CombinedOutput(); err != nil {
 		panic(string(out))
 	}
 }
 
-// runBDExec runs bd via exec.Command for end-to-end testing
+// runIssueGraphExec runs issuegraph via exec.Command for end-to-end testing
 // This is kept for a few tests to ensure the actual binary works correctly
-func runBDExec(t *testing.T, dir string, args ...string) string {
+func runIssueGraphExec(t *testing.T, dir string, args ...string) string {
 	t.Helper()
 
 	cmd := exec.Command(testBD, args...)
@@ -1052,14 +1045,14 @@ func runBDExec(t *testing.T, dir string, args ...string) string {
 
 	out, err := cmd.CombinedOutput()
 	if err != nil {
-		t.Fatalf("bd %v failed: %v\nOutput: %s", args, err, out)
+		t.Fatalf("issuegraph %v failed: %v\nOutput: %s", args, err, out)
 	}
 	return string(out)
 }
 
-// runBDExecAllowErrorWithEnv runs bd via exec.Command with custom env vars,
+// runIssueGraphExecAllowErrorWithEnv runs issuegraph via exec.Command with custom env vars,
 // returning combined output and any error (does not fail the test on error).
-func runBDExecAllowErrorWithEnv(t *testing.T, dir string, env []string, args ...string) (string, error) {
+func runIssueGraphExecAllowErrorWithEnv(t *testing.T, dir string, env []string, args ...string) (string, error) {
 	t.Helper()
 
 	cmd := exec.Command(testBD, args...)
@@ -1081,18 +1074,18 @@ func TestCLI_EndToEnd(t *testing.T) {
 	tmpDir := createTempDirWithCleanup(t)
 
 	// Test full workflow with exec.Command to validate binary
-	runBDExec(t, tmpDir, "init", "--prefix", "test", "--quiet")
+	runIssueGraphExec(t, tmpDir, "init", "--prefix", "test", "--quiet")
 
-	out := runBDExec(t, tmpDir, "create", "E2E test", "-p", "1", "--json")
+	out := runIssueGraphExec(t, tmpDir, "create", "E2E test", "-p", "1", "--json")
 	var issue map[string]interface{}
 	jsonStart := strings.Index(out, "{")
 	json.Unmarshal([]byte(out[jsonStart:]), &issue)
 	id := issue["id"].(string)
 
-	runBDExec(t, tmpDir, "update", id, "--status", "in_progress")
-	runBDExec(t, tmpDir, "close", id, "--reason", "Done")
+	runIssueGraphExec(t, tmpDir, "update", id, "--status", "in_progress")
+	runIssueGraphExec(t, tmpDir, "close", id, "--reason", "Done")
 
-	out = runBDExec(t, tmpDir, "show", id, "--json")
+	out = runIssueGraphExec(t, tmpDir, "show", id, "--json")
 	var closed []map[string]interface{}
 	json.Unmarshal([]byte(out), &closed)
 
@@ -1102,7 +1095,7 @@ func TestCLI_EndToEnd(t *testing.T) {
 
 	// Test export
 	exportFile := filepath.Join(tmpDir, "export.jsonl")
-	runBDExec(t, tmpDir, "export", "-o", exportFile)
+	runIssueGraphExec(t, tmpDir, "export", "-o", exportFile)
 
 	if _, err := os.Stat(exportFile); os.IsNotExist(err) {
 		t.Errorf("Export file not created: %s", exportFile)
@@ -1112,7 +1105,7 @@ func TestCLI_EndToEnd(t *testing.T) {
 func TestCLI_Labels(t *testing.T) {
 	// Note: Not using t.Parallel() because inProcessMutex serializes execution anyway
 	tmpDir := setupCLITestDB(t)
-	out := runBDInProcess(t, tmpDir, "create", "Label test", "-p", "1", "--json")
+	out := runIssueGraphInProcess(t, tmpDir, "create", "Label test", "-p", "1", "--json")
 
 	jsonStart := strings.Index(out, "{")
 	jsonOut := out[jsonStart:]
@@ -1122,17 +1115,17 @@ func TestCLI_Labels(t *testing.T) {
 	id := issue["id"].(string)
 
 	// Add label
-	runBDInProcess(t, tmpDir, "label", "add", id, "urgent")
+	runIssueGraphInProcess(t, tmpDir, "label", "add", id, "urgent")
 
 	// List labels
-	out = runBDInProcess(t, tmpDir, "label", "list", id)
+	out = runIssueGraphInProcess(t, tmpDir, "label", "list", id)
 	if !strings.Contains(out, "urgent") {
 		t.Errorf("Expected 'urgent' label, got: %s", out)
 	}
 
 	// Remove label
-	runBDInProcess(t, tmpDir, "label", "remove", id, "urgent")
-	out = runBDInProcess(t, tmpDir, "label", "list", id)
+	runIssueGraphInProcess(t, tmpDir, "label", "remove", id, "urgent")
+	out = runIssueGraphInProcess(t, tmpDir, "label", "list", id)
 	if strings.Contains(out, "urgent") {
 		t.Errorf("Label should be removed, got: %s", out)
 	}
@@ -1143,7 +1136,7 @@ func TestCLI_PriorityFormats(t *testing.T) {
 	tmpDir := setupCLITestDB(t)
 
 	// Test numeric priority
-	out := runBDInProcess(t, tmpDir, "create", "Test P0", "-p", "0", "--json")
+	out := runIssueGraphInProcess(t, tmpDir, "create", "Test P0", "-p", "0", "--json")
 	jsonStart := strings.Index(out, "{")
 	jsonOut := out[jsonStart:]
 	var issue map[string]interface{}
@@ -1153,7 +1146,7 @@ func TestCLI_PriorityFormats(t *testing.T) {
 	}
 
 	// Test P-format priority
-	out = runBDInProcess(t, tmpDir, "create", "Test P3", "-p", "P3", "--json")
+	out = runIssueGraphInProcess(t, tmpDir, "create", "Test P3", "-p", "P3", "--json")
 	jsonStart = strings.Index(out, "{")
 	jsonOut = out[jsonStart:]
 	json.Unmarshal([]byte(jsonOut), &issue)
@@ -1163,9 +1156,9 @@ func TestCLI_PriorityFormats(t *testing.T) {
 
 	// Test update with P-format
 	id := issue["id"].(string)
-	runBDInProcess(t, tmpDir, "update", id, "-p", "P1")
+	runIssueGraphInProcess(t, tmpDir, "update", id, "-p", "P1")
 
-	out = runBDInProcess(t, tmpDir, "show", id, "--json")
+	out = runIssueGraphInProcess(t, tmpDir, "show", id, "--json")
 	var updated []map[string]interface{}
 	json.Unmarshal([]byte(out), &updated)
 	if updated[0]["priority"].(float64) != 1 {
@@ -1176,7 +1169,7 @@ func TestCLI_PriorityFormats(t *testing.T) {
 func TestCLI_Reopen(t *testing.T) {
 	// Note: Not using t.Parallel() because inProcessMutex serializes execution anyway
 	tmpDir := setupCLITestDB(t)
-	out := runBDInProcess(t, tmpDir, "create", "Reopen test", "-p", "1", "--json")
+	out := runIssueGraphInProcess(t, tmpDir, "create", "Reopen test", "-p", "1", "--json")
 
 	jsonStart := strings.Index(out, "{")
 	jsonOut := out[jsonStart:]
@@ -1185,12 +1178,12 @@ func TestCLI_Reopen(t *testing.T) {
 	id := issue["id"].(string)
 
 	// Close it
-	runBDInProcess(t, tmpDir, "close", id)
+	runIssueGraphInProcess(t, tmpDir, "close", id)
 
 	// Reopen it
-	runBDInProcess(t, tmpDir, "reopen", id)
+	runIssueGraphInProcess(t, tmpDir, "reopen", id)
 
-	out = runBDInProcess(t, tmpDir, "show", id, "--json")
+	out = runIssueGraphInProcess(t, tmpDir, "show", id, "--json")
 	var reopened []map[string]interface{}
 	json.Unmarshal([]byte(out), &reopened)
 	if reopened[0]["status"] != "open" {
@@ -1198,9 +1191,9 @@ func TestCLI_Reopen(t *testing.T) {
 	}
 }
 
-// runBDInProcessAllowError is like runBDInProcess but doesn't fail on error
+// runIssueGraphInProcessAllowError is like runIssueGraphInProcess but doesn't fail on error
 // Returns stdout, stderr, and any error from command execution
-func runBDInProcessAllowError(t *testing.T, dir string, args ...string) (string, string, error) {
+func runIssueGraphInProcessAllowError(t *testing.T, dir string, args ...string) (string, string, error) {
 	t.Helper()
 
 	inProcessMutex.Lock()
@@ -1225,7 +1218,7 @@ func runBDInProcessAllowError(t *testing.T, dir string, args ...string) (string,
 	}()
 
 	rootCmd.SetArgs(args)
-	os.Args = append([]string{"bd"}, args...)
+	os.Args = append([]string{"issuegraph"}, args...)
 
 	cmdErr := rootCmd.Execute()
 
@@ -1256,7 +1249,7 @@ func runBDInProcessAllowError(t *testing.T, dir string, args ...string) (string,
 	return outBuf.String(), errBuf.String(), cmdErr
 }
 
-// TestCLI_CreateDryRun tests the --dry-run flag for bd create command (bd-nib2)
+// TestCLI_CreateDryRun tests the --dry-run flag for issuegraph create command (bd-nib2)
 func TestCLI_CreateDryRun(t *testing.T) {
 	if testDoltServerPort == 0 {
 		t.Skip("skipping: Dolt test container not available")
@@ -1267,7 +1260,7 @@ func TestCLI_CreateDryRun(t *testing.T) {
 		tmpDir := setupCLITestDB(t)
 
 		// Run create with --dry-run
-		out := runBDInProcess(t, tmpDir, "create", "Test dry run issue", "-p", "1", "--dry-run")
+		out := runIssueGraphInProcess(t, tmpDir, "create", "Test dry run issue", "-p", "1", "--dry-run")
 
 		// Verify output contains dry-run indicator
 		if !strings.Contains(out, "[DRY RUN]") {
@@ -1284,7 +1277,7 @@ func TestCLI_CreateDryRun(t *testing.T) {
 		}
 
 		// Verify no issue was actually created
-		listOut := runBDInProcess(t, tmpDir, "list", "--json")
+		listOut := runIssueGraphInProcess(t, tmpDir, "list", "--json")
 		var issues []map[string]interface{}
 		json.Unmarshal([]byte(listOut), &issues)
 		if len(issues) != 0 {
@@ -1296,7 +1289,7 @@ func TestCLI_CreateDryRun(t *testing.T) {
 		tmpDir := setupCLITestDB(t)
 
 		// Run create with --dry-run --json
-		out := runBDInProcess(t, tmpDir, "create", "JSON dry run test", "-p", "2", "-t", "bug", "--dry-run", "--json")
+		out := runIssueGraphInProcess(t, tmpDir, "create", "JSON dry run test", "-p", "2", "-t", "bug", "--dry-run", "--json")
 
 		// Find JSON in output (may have warnings before it)
 		jsonStart := strings.Index(out, "{")
@@ -1331,7 +1324,7 @@ func TestCLI_CreateDryRun(t *testing.T) {
 		}
 
 		// Verify no issue was actually created
-		listOut := runBDInProcess(t, tmpDir, "list", "--json")
+		listOut := runIssueGraphInProcess(t, tmpDir, "list", "--json")
 		var issues []map[string]interface{}
 		json.Unmarshal([]byte(listOut), &issues)
 		if len(issues) != 0 {
@@ -1343,7 +1336,7 @@ func TestCLI_CreateDryRun(t *testing.T) {
 		tmpDir := setupCLITestDB(t)
 
 		// Run create with --dry-run including labels and deps
-		out := runBDInProcess(t, tmpDir, "create", "Issue with extras", "-p", "1",
+		out := runIssueGraphInProcess(t, tmpDir, "create", "Issue with extras", "-p", "1",
 			"--labels", "urgent,backend",
 			"--deps", "blocks:test-123",
 			"--dry-run")
@@ -1374,7 +1367,7 @@ func TestCLI_CreateDryRun(t *testing.T) {
 		// Run create with --dry-run and --prefix (simulates cross-rig creation)
 		// Note: This won't actually route to another rig since we don't have one,
 		// but it should show the target rig in the preview
-		out := runBDInProcess(t, tmpDir, "create", "Cross-rig issue", "-p", "1",
+		out := runIssueGraphInProcess(t, tmpDir, "create", "Cross-rig issue", "-p", "1",
 			"--prefix", "other-rig",
 			"--dry-run")
 
@@ -1422,7 +1415,7 @@ func TestCLI_CreateDryRun(t *testing.T) {
 		tmpDir := setupCLITestDB(t)
 
 		// Run create with --dry-run and event-specific fields
-		out := runBDInProcess(t, tmpDir, "create", "Event issue", "-p", "1",
+		out := runIssueGraphInProcess(t, tmpDir, "create", "Event issue", "-p", "1",
 			"--type", "event",
 			"--event-category", "agent.started",
 			"--dry-run")
@@ -1440,7 +1433,7 @@ func TestCLI_CreateDryRun(t *testing.T) {
 		tmpDir := setupCLITestDB(t)
 
 		// Run create with --dry-run and explicit ID
-		out := runBDInProcess(t, tmpDir, "create", "Explicit ID issue", "-p", "1",
+		out := runIssueGraphInProcess(t, tmpDir, "create", "Explicit ID issue", "-p", "1",
 			"--id", "test-explicit123",
 			"--dry-run")
 
@@ -1454,47 +1447,47 @@ func TestCLI_CreateDryRun(t *testing.T) {
 	})
 }
 
-// TestCLI_CommentsListMisplacedSyntax ensures "bd comments list" gets a helpful error (GH#3542).
+// TestCLI_CommentsListMisplacedSyntax ensures "issuegraph comments list" gets a helpful error (GH#3542).
 func TestCLI_CommentsListMisplacedSyntax(t *testing.T) {
 	t.Parallel()
 
 	tmpDir := setupCLITestDB(t)
-	stdout, stderr, err := runBDInProcessAllowError(t, tmpDir, "comments", "list")
+	stdout, stderr, err := runIssueGraphInProcessAllowError(t, tmpDir, "comments", "list")
 	if err == nil {
 		t.Fatalf("expected non-zero exit, got stdout=%q stderr=%q", stdout, stderr)
 	}
 	combined := stdout + stderr
-	if !strings.Contains(combined, "bd comments") || !strings.Contains(combined, "<issue-id>") {
-		t.Fatalf("expected hint with bd comments and issue-id placeholder, got stdout=%q stderr=%q", stdout, stderr)
+	if !strings.Contains(combined, "issuegraph comments") || !strings.Contains(combined, "<issue-id>") {
+		t.Fatalf("expected hint with issuegraph comments and issue-id placeholder, got stdout=%q stderr=%q", stdout, stderr)
 	}
 }
 
 // TestCLI_CommentsSwappedAddRejectedBeforeStoreOpen is a regression test for
-// GH#4642's should-fix: the swapped-order rejection (`bd comments <id> add
+// GH#4642's should-fix: the swapped-order rejection (`issuegraph comments <id> add
 // <text>`) must fire from commentsCmd's Args validator, before
 // PersistentPreRunE ever opens a store or runs a migration, and before
 // RunE's usesProxiedServer() dispatch — not from a check inside RunE that
-// only the local-store branch reaches. Using a directory with no .beads/ at
+// only the local-store branch reaches. Using a directory with no .issuegraph/ at
 // all proves the store was never touched: the old RunE-only check needed an
 // already-initialized store (PersistentPreRunE would have failed first with
-// "no beads database found"), so this would fail with the wrong error before
+// "no issuegraph database found"), so this would fail with the wrong error before
 // the fix.
 func TestCLI_CommentsSwappedAddRejectedBeforeStoreOpen(t *testing.T) {
-	noBeadsCwd := t.TempDir()
-	if _, err := os.Stat(filepath.Join(noBeadsCwd, ".beads")); err == nil {
-		t.Fatalf("test setup: %s unexpectedly has a .beads dir", noBeadsCwd)
+	noIssueGraphCwd := t.TempDir()
+	if _, err := os.Stat(filepath.Join(noIssueGraphCwd, ".issuegraph")); err == nil {
+		t.Fatalf("test setup: %s unexpectedly has a .issuegraph dir", noIssueGraphCwd)
 	}
 
-	stdout, stderr, err := runBDInProcessAllowError(t, noBeadsCwd, "comments", "bd-123", "add", "should not be stored")
+	stdout, stderr, err := runIssueGraphInProcessAllowError(t, noIssueGraphCwd, "comments", "bd-123", "add", "should not be stored")
 	if err == nil {
 		t.Fatalf("expected non-zero exit for swapped-order add, got success:\nstdout: %s", stdout)
 	}
 	combined := stdout + stderr
-	if strings.Contains(combined, "no beads database found") {
+	if strings.Contains(combined, "no issuegraph database found") {
 		t.Fatalf("Args validation did not run before store open: got the pre-fix error.\nOutput:\n%s", combined)
 	}
-	if !strings.Contains(combined, "bd comments add") {
-		t.Errorf("expected hint pointing to `bd comments add`, got:\n%s", combined)
+	if !strings.Contains(combined, "issuegraph comments add") {
+		t.Errorf("expected hint pointing to `issuegraph comments add`, got:\n%s", combined)
 	}
 }
 
@@ -1512,7 +1505,7 @@ func TestCLI_CommentsSwappedAddRejectedInProxiedServerMode(t *testing.T) {
 	proxiedServerMode = true
 
 	tmpDir := setupCLITestDB(t)
-	stdout, stderr, err := runBDInProcessAllowError(t, tmpDir, "comments", "bd-123", "add", "should not be stored")
+	stdout, stderr, err := runIssueGraphInProcessAllowError(t, tmpDir, "comments", "bd-123", "add", "should not be stored")
 	if err == nil {
 		t.Fatalf("expected non-zero exit for swapped-order add in proxied-server mode, got success:\nstdout: %s", stdout)
 	}
@@ -1520,13 +1513,13 @@ func TestCLI_CommentsSwappedAddRejectedInProxiedServerMode(t *testing.T) {
 	if strings.Contains(combined, "not supported in proxied-server mode") {
 		t.Fatalf("Args validation did not run before the proxied dispatch: got RunE's proxied-mode stub error instead.\nOutput:\n%s", combined)
 	}
-	if !strings.Contains(combined, "bd comments add") {
-		t.Errorf("expected hint pointing to `bd comments add`, got:\n%s", combined)
+	if !strings.Contains(combined, "issuegraph comments add") {
+		t.Errorf("expected hint pointing to `issuegraph comments add`, got:\n%s", combined)
 	}
 }
 
 // TestCLI_CommentsAddShortID tests that 'comments add' accepts short IDs (issue #1070)
-// Most bd commands accept short IDs (e.g., "5wbm") but comments add previously required
+// Most issuegraph commands accept short IDs (e.g., "5wbm") but comments add previously required
 // full IDs (e.g., "mike.vibe-coding-5wbm"). This test ensures short IDs work.
 //
 // Note: Short IDs work because the code calls utils.ResolvePartialID().
@@ -1536,7 +1529,7 @@ func TestCLI_CommentsAddShortID(t *testing.T) {
 		tmpDir := setupCLITestDB(t)
 
 		// Create an issue and get its full ID
-		out := runBDInProcess(t, tmpDir, "create", "Issue for comment test", "-p", "1", "--json")
+		out := runIssueGraphInProcess(t, tmpDir, "create", "Issue for comment test", "-p", "1", "--json")
 
 		jsonStart := strings.Index(out, "{")
 		if jsonStart < 0 {
@@ -1562,7 +1555,7 @@ func TestCLI_CommentsAddShortID(t *testing.T) {
 		t.Logf("Using short ID: %s", shortID)
 
 		// Add a comment using the SHORT ID (not full ID)
-		stdout, stderr, err := runBDInProcessAllowError(t, tmpDir, "comments", "add", shortID, "Test comment with short ID")
+		stdout, stderr, err := runIssueGraphInProcessAllowError(t, tmpDir, "comments", "add", shortID, "Test comment with short ID")
 		if err != nil {
 			t.Fatalf("comments add failed: %v\nstdout: %s\nstderr: %s", err, stdout, stderr)
 		}
@@ -1572,7 +1565,7 @@ func TestCLI_CommentsAddShortID(t *testing.T) {
 		}
 
 		// Verify the comment was actually added by listing comments (use full ID for list)
-		stdout, stderr, err = runBDInProcessAllowError(t, tmpDir, "comments", fullID)
+		stdout, stderr, err = runIssueGraphInProcessAllowError(t, tmpDir, "comments", fullID)
 		if err != nil {
 			t.Fatalf("comments list failed: %v\nstdout: %s\nstderr: %s", err, stdout, stderr)
 		}
@@ -1586,7 +1579,7 @@ func TestCLI_CommentsAddShortID(t *testing.T) {
 		tmpDir := setupCLITestDB(t)
 
 		// Create an issue
-		out := runBDInProcess(t, tmpDir, "create", "Issue for partial ID test", "-p", "1", "--json")
+		out := runIssueGraphInProcess(t, tmpDir, "create", "Issue for partial ID test", "-p", "1", "--json")
 
 		jsonStart := strings.Index(out, "{")
 		jsonOut := out[jsonStart:]
@@ -1604,7 +1597,7 @@ func TestCLI_CommentsAddShortID(t *testing.T) {
 		t.Logf("Full ID: %s, Partial ID: %s", fullID, shortID)
 
 		// Add comment using partial ID
-		stdout, stderr, err := runBDInProcessAllowError(t, tmpDir, "comments", "add", shortID, "Comment via partial ID")
+		stdout, stderr, err := runIssueGraphInProcessAllowError(t, tmpDir, "comments", "add", shortID, "Comment via partial ID")
 		if err != nil {
 			t.Fatalf("comments add with partial ID failed: %v\nstdout: %s\nstderr: %s", err, stdout, stderr)
 		}
@@ -1618,7 +1611,7 @@ func TestCLI_CommentsAddShortID(t *testing.T) {
 		tmpDir := setupCLITestDB(t)
 
 		// Create an issue
-		out := runBDInProcess(t, tmpDir, "create", "Issue for alias test", "-p", "1", "--json")
+		out := runIssueGraphInProcess(t, tmpDir, "create", "Issue for alias test", "-p", "1", "--json")
 
 		jsonStart := strings.Index(out, "{")
 		jsonOut := out[jsonStart:]
@@ -1632,7 +1625,7 @@ func TestCLI_CommentsAddShortID(t *testing.T) {
 		shortID := parts[len(parts)-1]
 
 		// Use the 'comment' alias (deprecated but should still work)
-		stdout, stderr, err := runBDInProcessAllowError(t, tmpDir, "comment", shortID, "Comment via alias with short ID")
+		stdout, stderr, err := runIssueGraphInProcessAllowError(t, tmpDir, "comment", shortID, "Comment via alias with short ID")
 		if err != nil {
 			t.Fatalf("comment alias failed: %v\nstdout: %s\nstderr: %s", err, stdout, stderr)
 		}
@@ -1645,11 +1638,11 @@ func TestCLI_CommentsAddShortID(t *testing.T) {
 
 // TestCLI_CommentListMisplacedSyntax is a regression test for the singular
 // "comment" shorthand silently mis-resolving a subcommand-like typo as an
-// issue id. "bd comment list <text>" (meant as an attempt to list comments,
+// issue id. "issuegraph comment list <text>" (meant as an attempt to list comments,
 // using the singular noun by mistake) used to parse as id="list",
 // text=[<text>...] with no validation on the id — since no issue is
 // literally named "list", ResolvePartialID's substring/prefix fallback
-// would silently match it against whatever existing bead or wisp id
+// would silently match it against whatever existing issue or wisp id
 // happened to contain "list" and post the comment there instead of
 // erroring. This asserts both halves of the fix: the command is rejected
 // with a helpful hint (mirroring TestCLI_CommentsListMisplacedSyntax for
@@ -1660,7 +1653,7 @@ func TestCLI_CommentListMisplacedSyntax(t *testing.T) {
 
 	tmpDir := setupCLITestDB(t)
 
-	out := runBDInProcess(t, tmpDir, "create", "Bystander issue", "-p", "1", "--json")
+	out := runIssueGraphInProcess(t, tmpDir, "create", "Bystander issue", "-p", "1", "--json")
 	jsonStart := strings.Index(out, "{")
 	if jsonStart < 0 {
 		t.Fatalf("No JSON found in create output: %s", out)
@@ -1671,20 +1664,20 @@ func TestCLI_CommentListMisplacedSyntax(t *testing.T) {
 	}
 	fullID := issue["id"].(string)
 
-	stdout, stderr, err := runBDInProcessAllowError(t, tmpDir, "comment", "list", "accidental stray text")
+	stdout, stderr, err := runIssueGraphInProcessAllowError(t, tmpDir, "comment", "list", "accidental stray text")
 	if err == nil {
 		t.Fatalf("expected non-zero exit, got stdout=%q stderr=%q", stdout, stderr)
 	}
 	combined := stdout + stderr
-	if !strings.Contains(combined, "bd comments") || !strings.Contains(combined, "<issue-id>") {
-		t.Fatalf("expected hint pointing at bd comments <issue-id>, got stdout=%q stderr=%q", stdout, stderr)
+	if !strings.Contains(combined, "issuegraph comments") || !strings.Contains(combined, "<issue-id>") {
+		t.Fatalf("expected hint pointing at issuegraph comments <issue-id>, got stdout=%q stderr=%q", stdout, stderr)
 	}
 
 	// The regression check: the bystander issue must have received NO
 	// comment. Pre-fix, this could silently succeed and land a comment on
-	// whatever bead's id happened to contain "list" as a substring — this
+	// whatever issue's id happened to contain "list" as a substring — this
 	// DB has exactly one issue, so any stray write would show up here.
-	commentsOut := runBDInProcess(t, tmpDir, "comments", fullID, "--json")
+	commentsOut := runIssueGraphInProcess(t, tmpDir, "comments", fullID, "--json")
 	trimmed := strings.TrimSpace(commentsOut)
 	if trimmed != "[]" && trimmed != "null" {
 		t.Fatalf("expected no comments on bystander issue %s after rejected 'comment list', got: %s", fullID, commentsOut)
@@ -1693,15 +1686,15 @@ func TestCLI_CommentListMisplacedSyntax(t *testing.T) {
 
 // TestCLI_CommentAddMisplacedSyntax mirrors TestCLI_CommentListMisplacedSyntax
 // for the symmetric "add" typo — a caller who confuses the singular shorthand
-// with the plural's "bd comments add <id> <text>" form might type
-// "bd comment add <id> <text>", which the same unguarded id-resolution bug
+// with the plural's "issuegraph comments add <id> <text>" form might type
+// "issuegraph comment add <id> <text>", which the same unguarded id-resolution bug
 // would parse as id="add", text=[<id>, <text>...].
 func TestCLI_CommentAddMisplacedSyntax(t *testing.T) {
 	t.Parallel()
 
 	tmpDir := setupCLITestDB(t)
 
-	out := runBDInProcess(t, tmpDir, "create", "Bystander issue for add-typo", "-p", "1", "--json")
+	out := runIssueGraphInProcess(t, tmpDir, "create", "Bystander issue for add-typo", "-p", "1", "--json")
 	jsonStart := strings.Index(out, "{")
 	if jsonStart < 0 {
 		t.Fatalf("No JSON found in create output: %s", out)
@@ -1712,16 +1705,16 @@ func TestCLI_CommentAddMisplacedSyntax(t *testing.T) {
 	}
 	fullID := issue["id"].(string)
 
-	stdout, stderr, err := runBDInProcessAllowError(t, tmpDir, "comment", "add", fullID, "accidental stray text")
+	stdout, stderr, err := runIssueGraphInProcessAllowError(t, tmpDir, "comment", "add", fullID, "accidental stray text")
 	if err == nil {
 		t.Fatalf("expected non-zero exit, got stdout=%q stderr=%q", stdout, stderr)
 	}
 	combined := stdout + stderr
-	if !strings.Contains(combined, "bd comments add") {
-		t.Fatalf("expected hint pointing at bd comments add <issue-id>, got stdout=%q stderr=%q", stdout, stderr)
+	if !strings.Contains(combined, "issuegraph comments add") {
+		t.Fatalf("expected hint pointing at issuegraph comments add <issue-id>, got stdout=%q stderr=%q", stdout, stderr)
 	}
 
-	commentsOut := runBDInProcess(t, tmpDir, "comments", fullID, "--json")
+	commentsOut := runIssueGraphInProcess(t, tmpDir, "comments", fullID, "--json")
 	trimmed := strings.TrimSpace(commentsOut)
 	if trimmed != "[]" && trimmed != "null" {
 		t.Fatalf("expected no comments on bystander issue %s after rejected 'comment add', got: %s", fullID, commentsOut)
@@ -1732,25 +1725,25 @@ func TestCLI_CommentAddMisplacedSyntax(t *testing.T) {
 // fires from commentCmd's Args validator, before PersistentPreRunE ever
 // opens a store, mirroring
 // TestCLI_CommentsSwappedAddRejectedBeforeStoreOpen for the plural sibling.
-// Using a directory with no .beads/ at all proves the store was never
-// touched: a RunE-only check would have failed first with "no beads
+// Using a directory with no .issuegraph/ at all proves the store was never
+// touched: a RunE-only check would have failed first with "no issuegraph
 // database found".
 func TestCLI_CommentMisplacedSyntaxRejectedBeforeStoreOpen(t *testing.T) {
-	noBeadsCwd := t.TempDir()
-	if _, err := os.Stat(filepath.Join(noBeadsCwd, ".beads")); err == nil {
-		t.Fatalf("test setup: %s unexpectedly has a .beads dir", noBeadsCwd)
+	noIssueGraphCwd := t.TempDir()
+	if _, err := os.Stat(filepath.Join(noIssueGraphCwd, ".issuegraph")); err == nil {
+		t.Fatalf("test setup: %s unexpectedly has a .issuegraph dir", noIssueGraphCwd)
 	}
 
-	stdout, stderr, err := runBDInProcessAllowError(t, noBeadsCwd, "comment", "list", "should not be stored")
+	stdout, stderr, err := runIssueGraphInProcessAllowError(t, noIssueGraphCwd, "comment", "list", "should not be stored")
 	if err == nil {
 		t.Fatalf("expected non-zero exit for misplaced 'comment list', got success:\nstdout: %s", stdout)
 	}
 	combined := stdout + stderr
-	if strings.Contains(combined, "no beads database found") {
+	if strings.Contains(combined, "no issuegraph database found") {
 		t.Fatalf("Args validation did not run before store open: got the pre-fix error.\nOutput:\n%s", combined)
 	}
-	if !strings.Contains(combined, "bd comments") {
-		t.Errorf("expected hint pointing to `bd comments`, got:\n%s", combined)
+	if !strings.Contains(combined, "issuegraph comments") {
+		t.Errorf("expected hint pointing to `issuegraph comments`, got:\n%s", combined)
 	}
 }
 
@@ -1766,13 +1759,13 @@ func TestCLI_CommentMisplacedSyntaxRejectedInProxiedServerMode(t *testing.T) {
 	proxiedServerMode = true
 
 	tmpDir := setupCLITestDB(t)
-	stdout, stderr, err := runBDInProcessAllowError(t, tmpDir, "comment", "list", "should not be stored")
+	stdout, stderr, err := runIssueGraphInProcessAllowError(t, tmpDir, "comment", "list", "should not be stored")
 	if err == nil {
 		t.Fatalf("expected non-zero exit for misplaced 'comment list' in proxied-server mode, got success:\nstdout: %s", stdout)
 	}
 	combined := stdout + stderr
-	if !strings.Contains(combined, "bd comments") {
-		t.Errorf("expected hint pointing to `bd comments`, got:\n%s", combined)
+	if !strings.Contains(combined, "issuegraph comments") {
+		t.Errorf("expected hint pointing to `issuegraph comments`, got:\n%s", combined)
 	}
 }
 
@@ -1785,7 +1778,7 @@ func TestCLI_CommentTextStartingWithReservedWordStillWorks(t *testing.T) {
 
 	tmpDir := setupCLITestDB(t)
 
-	out := runBDInProcess(t, tmpDir, "create", "Issue for reserved-word-text test", "-p", "1", "--json")
+	out := runIssueGraphInProcess(t, tmpDir, "create", "Issue for reserved-word-text test", "-p", "1", "--json")
 	jsonStart := strings.Index(out, "{")
 	if jsonStart < 0 {
 		t.Fatalf("No JSON found in create output: %s", out)
@@ -1796,7 +1789,7 @@ func TestCLI_CommentTextStartingWithReservedWordStillWorks(t *testing.T) {
 	}
 	fullID := issue["id"].(string)
 
-	stdout, stderr, err := runBDInProcessAllowError(t, tmpDir, "comment", fullID, "list", "of", "things", "to", "do")
+	stdout, stderr, err := runIssueGraphInProcessAllowError(t, tmpDir, "comment", fullID, "list", "of", "things", "to", "do")
 	if err != nil {
 		t.Fatalf("comment with text starting in 'list' unexpectedly failed: %v\nstdout: %s\nstderr: %s", err, stdout, stderr)
 	}
@@ -1804,7 +1797,7 @@ func TestCLI_CommentTextStartingWithReservedWordStillWorks(t *testing.T) {
 		t.Errorf("Expected 'Comment added' in output, got: %s", stdout)
 	}
 
-	commentsOut := runBDInProcess(t, tmpDir, "comments", fullID, "--json")
+	commentsOut := runIssueGraphInProcess(t, tmpDir, "comments", fullID, "--json")
 	if !strings.Contains(commentsOut, "list of things to do") {
 		t.Fatalf("expected comment text to be stored verbatim, got: %s", commentsOut)
 	}
@@ -1859,7 +1852,7 @@ func TestCLI_CreateRejectsFlagLikeTitles(t *testing.T) {
 	t.Run("TitleFlagAllowsDashes", func(t *testing.T) {
 		tmpDir := setupCLITestDB(t)
 
-		out := runBDInProcess(t, tmpDir, "create", "--title", "--unusual-title", "-p", "1", "--json")
+		out := runIssueGraphInProcess(t, tmpDir, "create", "--title", "--unusual-title", "-p", "1", "--json")
 		if !strings.Contains(out, "--unusual-title") {
 			t.Errorf("Expected title '--unusual-title' in output, got: %s", out)
 		}
@@ -1867,8 +1860,8 @@ func TestCLI_CreateRejectsFlagLikeTitles(t *testing.T) {
 }
 
 // TestCLI_CreateRejectsEmptyTitle verifies that a whitespace-only title is
-// refused rather than silently creating a title-less bead (GH#4771). Such a
-// bead is functionally invisible in title-based views.
+// refused rather than silently creating a title-less issue (GH#4771). Such a
+// issue is functionally invisible in title-based views.
 func TestCLI_CreateRejectsEmptyTitle(t *testing.T) {
 	cases := []struct {
 		name string
@@ -1881,7 +1874,7 @@ func TestCLI_CreateRejectsEmptyTitle(t *testing.T) {
 	for _, tc := range cases {
 		t.Run(tc.name, func(t *testing.T) {
 			tmpDir := setupCLITestDB(t)
-			stdout, stderr, err := runBDInProcessAllowError(t, tmpDir, tc.args...)
+			stdout, stderr, err := runIssueGraphInProcessAllowError(t, tmpDir, tc.args...)
 			if err == nil {
 				t.Fatalf("expected error for whitespace-only title, got success\nstdout: %s", stdout)
 			}
@@ -1897,7 +1890,7 @@ func TestCLI_CreateRejectsEmptyTitle(t *testing.T) {
 // regression for GH#4771. Before this fix, the whitespace-only guard lived
 // only in create's local-store RunE branch: gatherCreateInput/
 // runCreateProxiedServer (the path taken when usesProxiedServer() is true)
-// never re-checked, so proxied-mode create still minted a blank-titled bead.
+// never re-checked, so proxied-mode create still minted a blank-titled issue.
 // The fix moved the check into resolveTitle, invoked from createCmd's Args
 // validator — which runs for every invocation regardless of backend, before
 // RunE ever branches on usesProxiedServer(). Setting proxiedServerMode here
@@ -1926,7 +1919,7 @@ func TestCLI_CreateRejectsEmptyTitle_ProxiedServerMode(t *testing.T) {
 	titleFlag.Changed = false
 
 	tmpDir := setupCLITestDB(t)
-	stdout, stderr, err := runBDInProcessAllowError(t, tmpDir, "create", "   ", "-p", "2")
+	stdout, stderr, err := runIssueGraphInProcessAllowError(t, tmpDir, "create", "   ", "-p", "2")
 	if err == nil {
 		t.Fatalf("expected error for whitespace-only title in proxied-server mode, got success\nstdout: %s", stdout)
 	}
@@ -1943,7 +1936,7 @@ func TestCLI_CreateNoHistory(t *testing.T) {
 
 	t.Run("NoHistoryFlagSetOnCreatedIssue", func(t *testing.T) {
 		tmpDir := setupCLITestDB(t)
-		out := runBDInProcess(t, tmpDir, "create", "No-history agent bead", "-p", "2", "--no-history", "--json")
+		out := runIssueGraphInProcess(t, tmpDir, "create", "No-history agent issue", "-p", "2", "--no-history", "--json")
 
 		var result map[string]interface{}
 		if err := json.Unmarshal([]byte(out), &result); err != nil {
@@ -1960,7 +1953,7 @@ func TestCLI_CreateNoHistory(t *testing.T) {
 
 	t.Run("NoHistoryPersistedAfterShow", func(t *testing.T) {
 		tmpDir := setupCLITestDB(t)
-		out := runBDInProcess(t, tmpDir, "create", "No-history bead for show test", "-p", "2", "--no-history", "--json")
+		out := runIssueGraphInProcess(t, tmpDir, "create", "No-history issue for show test", "-p", "2", "--no-history", "--json")
 
 		var created map[string]interface{}
 		if err := json.Unmarshal([]byte(out), &created); err != nil {
@@ -1968,7 +1961,7 @@ func TestCLI_CreateNoHistory(t *testing.T) {
 		}
 		id := created["id"].(string)
 
-		showOut := runBDInProcess(t, tmpDir, "show", id, "--json")
+		showOut := runIssueGraphInProcess(t, tmpDir, "show", id, "--json")
 		var issues []map[string]interface{}
 		if err := json.Unmarshal([]byte(showOut), &issues); err != nil {
 			t.Fatalf("Failed to parse show output: %v\nOutput: %s", err, showOut)
@@ -1983,7 +1976,7 @@ func TestCLI_CreateNoHistory(t *testing.T) {
 
 	t.Run("EphemeralAndNoHistoryMutuallyExclusive", func(t *testing.T) {
 		tmpDir := setupCLITestDB(t)
-		_, stderr, err := runBDInProcessAllowError(t, tmpDir, "create", "Should fail", "--ephemeral", "--no-history")
+		_, stderr, err := runIssueGraphInProcessAllowError(t, tmpDir, "create", "Should fail", "--ephemeral", "--no-history")
 		if err == nil {
 			t.Error("Expected error when combining --ephemeral and --no-history, got none")
 		}
@@ -1993,17 +1986,17 @@ func TestCLI_CreateNoHistory(t *testing.T) {
 	})
 }
 
-// TestCLI_WispListTypeFilter tests that bd mol wisp list --type filters correctly.
+// TestCLI_WispListTypeFilter tests that issuegraph mol wisp list --type filters correctly.
 func TestCLI_WispListTypeFilter(t *testing.T) {
 
 	tmpDir := setupCLITestDB(t)
 
 	// Create two ephemeral wisps of different built-in types
-	runBDInProcess(t, tmpDir, "create", "Bug wisp", "--ephemeral", "--type", "bug", "-p", "2")
-	runBDInProcess(t, tmpDir, "create", "Task wisp", "--ephemeral", "--type", "task", "-p", "2")
+	runIssueGraphInProcess(t, tmpDir, "create", "Bug wisp", "--ephemeral", "--type", "bug", "-p", "2")
+	runIssueGraphInProcess(t, tmpDir, "create", "Task wisp", "--ephemeral", "--type", "task", "-p", "2")
 
 	// --type bug should return only the bug wisp
-	out := runBDInProcess(t, tmpDir, "mol", "wisp", "list", "--type", "bug", "--json")
+	out := runIssueGraphInProcess(t, tmpDir, "mol", "wisp", "list", "--type", "bug", "--json")
 	var result map[string]interface{}
 	if err := json.Unmarshal([]byte(out), &result); err != nil {
 		t.Fatalf("Failed to parse JSON: %v\nOutput: %s", err, out)
@@ -2023,7 +2016,7 @@ func TestCLI_WispListTypeFilter(t *testing.T) {
 	}
 
 	// --type task should return only the task wisp
-	out = runBDInProcess(t, tmpDir, "mol", "wisp", "list", "--type", "task", "--json")
+	out = runIssueGraphInProcess(t, tmpDir, "mol", "wisp", "list", "--type", "task", "--json")
 	if err := json.Unmarshal([]byte(out), &result); err != nil {
 		t.Fatalf("Failed to parse JSON: %v\nOutput: %s", err, out)
 	}
@@ -2042,7 +2035,7 @@ func TestCLI_WispListTypeFilter(t *testing.T) {
 	}
 
 	// No --type filter returns both
-	out = runBDInProcess(t, tmpDir, "mol", "wisp", "list", "--json")
+	out = runIssueGraphInProcess(t, tmpDir, "mol", "wisp", "list", "--json")
 	if err := json.Unmarshal([]byte(out), &result); err != nil {
 		t.Fatalf("Failed to parse JSON: %v\nOutput: %s", err, out)
 	}
@@ -2052,7 +2045,7 @@ func TestCLI_WispListTypeFilter(t *testing.T) {
 	}
 }
 
-// TestCLI_WispGCExcludeType tests that bd mol wisp gc --exclude-type skips
+// TestCLI_WispGCExcludeType tests that issuegraph mol wisp gc --exclude-type skips
 // wisps of the excluded type during garbage collection.
 func TestCLI_WispGCExcludeType(t *testing.T) {
 
@@ -2061,8 +2054,8 @@ func TestCLI_WispGCExcludeType(t *testing.T) {
 	// Create two ephemeral wisps of different built-in types.
 	// Use --age=0s so that ALL wisps (regardless of actual age) are treated
 	// as abandoned GC candidates.
-	bugOut := runBDInProcess(t, tmpDir, "create", "Bug wisp to keep", "--ephemeral", "--type", "bug", "-p", "2", "--json")
-	taskOut := runBDInProcess(t, tmpDir, "create", "Task wisp to gc", "--ephemeral", "--type", "task", "-p", "2", "--json")
+	bugOut := runIssueGraphInProcess(t, tmpDir, "create", "Bug wisp to keep", "--ephemeral", "--type", "bug", "-p", "2", "--json")
+	taskOut := runIssueGraphInProcess(t, tmpDir, "create", "Task wisp to gc", "--ephemeral", "--type", "task", "-p", "2", "--json")
 
 	var bugCreated, taskCreated map[string]interface{}
 	if err := json.Unmarshal([]byte(bugOut), &bugCreated); err != nil {
@@ -2076,7 +2069,7 @@ func TestCLI_WispGCExcludeType(t *testing.T) {
 
 	// Dry-run GC with --exclude-type bug, --age=0s (treats all wisps as abandoned).
 	// The WispGCResult dry-run JSON uses cleaned_ids to list what would be deleted.
-	gcOut := runBDInProcess(t, tmpDir, "mol", "wisp", "gc", "--exclude-type", "bug", "--age", "0s", "--dry-run", "--json")
+	gcOut := runIssueGraphInProcess(t, tmpDir, "mol", "wisp", "gc", "--exclude-type", "bug", "--age", "0s", "--dry-run", "--json")
 	var gcResult map[string]interface{}
 	if err := json.Unmarshal([]byte(gcOut), &gcResult); err != nil {
 		t.Fatalf("Failed to parse gc JSON: %v\nOutput: %s", err, gcOut)

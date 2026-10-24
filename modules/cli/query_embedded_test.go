@@ -12,30 +12,30 @@ import (
 	"testing"
 )
 
-// bdQuery runs "bd query" with the given args and returns stdout.
-func bdQuery(t *testing.T, bd, dir string, args ...string) string {
+// issuegraphQuery runs "issuegraph query" with the given args and returns stdout.
+func issuegraphQuery(t *testing.T, issuegraph, dir string, args ...string) string {
 	t.Helper()
 	fullArgs := append([]string{"query"}, args...)
-	cmd := exec.Command(bd, fullArgs...)
+	cmd := exec.Command(issuegraph, fullArgs...)
 	cmd.Dir = dir
-	cmd.Env = bdEnv(dir)
+	cmd.Env = issuegraphEnv(dir)
 	stdout, stderr, err := runCommandBuffers(t, cmd)
 	if err != nil {
-		t.Fatalf("bd query %s failed: %v\nstdout:\n%s\nstderr:\n%s", strings.Join(args, " "), err, stdout.String(), stderr.String())
+		t.Fatalf("issuegraph query %s failed: %v\nstdout:\n%s\nstderr:\n%s", strings.Join(args, " "), err, stdout.String(), stderr.String())
 	}
 	return stdout.String()
 }
 
-// bdQueryJSON runs "bd query --json" and returns parsed results.
-func bdQueryJSON(t *testing.T, bd, dir string, args ...string) []map[string]interface{} {
+// issuegraphQueryJSON runs "issuegraph query --json" and returns parsed results.
+func issuegraphQueryJSON(t *testing.T, issuegraph, dir string, args ...string) []map[string]interface{} {
 	t.Helper()
 	fullArgs := append([]string{"query", "--json"}, args...)
-	cmd := exec.Command(bd, fullArgs...)
+	cmd := exec.Command(issuegraph, fullArgs...)
 	cmd.Dir = dir
-	cmd.Env = bdEnv(dir)
+	cmd.Env = issuegraphEnv(dir)
 	stdout, stderr, err := runCommandBuffers(t, cmd)
 	if err != nil {
-		t.Fatalf("bd query --json %s failed: %v\nstdout:\n%s\nstderr:\n%s", strings.Join(args, " "), err, stdout.String(), stderr.String())
+		t.Fatalf("issuegraph query --json %s failed: %v\nstdout:\n%s\nstderr:\n%s", strings.Join(args, " "), err, stdout.String(), stderr.String())
 	}
 	s := strings.TrimSpace(stdout.String())
 	start := strings.Index(s, "[")
@@ -49,40 +49,40 @@ func bdQueryJSON(t *testing.T, bd, dir string, args ...string) []map[string]inte
 	return results
 }
 
-// bdQueryFail runs "bd query" expecting failure.
-func bdQueryFail(t *testing.T, bd, dir string, args ...string) string {
+// issuegraphQueryFail runs "issuegraph query" expecting failure.
+func issuegraphQueryFail(t *testing.T, issuegraph, dir string, args ...string) string {
 	t.Helper()
 	fullArgs := append([]string{"query"}, args...)
-	cmd := exec.Command(bd, fullArgs...)
+	cmd := exec.Command(issuegraph, fullArgs...)
 	cmd.Dir = dir
-	cmd.Env = bdEnv(dir)
+	cmd.Env = issuegraphEnv(dir)
 	out, err := cmd.CombinedOutput()
 	if err == nil {
-		t.Fatalf("expected bd query %s to fail, but succeeded:\n%s", strings.Join(args, " "), out)
+		t.Fatalf("expected issuegraph query %s to fail, but succeeded:\n%s", strings.Join(args, " "), out)
 	}
 	return string(out)
 }
 
 func TestEmbeddedQuery(t *testing.T) {
-	if os.Getenv("BEADS_TEST_EMBEDDED_DOLT") != "1" {
-		t.Skip("set BEADS_TEST_EMBEDDED_DOLT=1 to run embedded dolt integration tests")
+	if os.Getenv("ISSUEGRAPH_TEST_EMBEDDED_DOLT") != "1" {
+		t.Skip("set ISSUEGRAPH_TEST_EMBEDDED_DOLT=1 to run embedded dolt integration tests")
 	}
 	t.Parallel()
 
-	bd := buildEmbeddedBD(t)
-	dir, _, _ := bdInit(t, bd, "--prefix", "tq")
+	issuegraph := buildEmbeddedBD(t)
+	dir, _, _ := issuegraphInit(t, issuegraph, "--prefix", "tq")
 
 	// Create test fixtures
-	taskHigh := bdCreate(t, bd, dir, "High priority task", "--type", "task", "--priority", "1", "--assignee", "alice")
-	bugMed := bdCreate(t, bd, dir, "Medium bug", "--type", "bug", "--priority", "2", "--assignee", "bob")
-	featureLow := bdCreate(t, bd, dir, "Low feature", "--type", "feature", "--priority", "3")
-	closedTask := bdCreate(t, bd, dir, "Closed query task", "--type", "task")
-	bdClose(t, bd, dir, closedTask.ID)
+	taskHigh := issuegraphCreate(t, issuegraph, dir, "High priority task", "--type", "task", "--priority", "1", "--assignee", "alice")
+	bugMed := issuegraphCreate(t, issuegraph, dir, "Medium bug", "--type", "bug", "--priority", "2", "--assignee", "bob")
+	featureLow := issuegraphCreate(t, issuegraph, dir, "Low feature", "--type", "feature", "--priority", "3")
+	closedTask := issuegraphCreate(t, issuegraph, dir, "Closed query task", "--type", "task")
+	issuegraphClose(t, issuegraph, dir, closedTask.ID)
 
 	// ===== Basic Query Expressions =====
 
 	t.Run("query_status_equals", func(t *testing.T) {
-		results := bdQueryJSON(t, bd, dir, "status=open")
+		results := issuegraphQueryJSON(t, issuegraph, dir, "status=open")
 		for _, r := range results {
 			if r["status"] == "closed" {
 				t.Error("should not find closed issues with status=open")
@@ -94,7 +94,7 @@ func TestEmbeddedQuery(t *testing.T) {
 	})
 
 	t.Run("query_type_equals", func(t *testing.T) {
-		results := bdQueryJSON(t, bd, dir, "type=bug")
+		results := issuegraphQueryJSON(t, issuegraph, dir, "type=bug")
 		if len(results) != 1 {
 			t.Fatalf("expected 1 bug, got %d", len(results))
 		}
@@ -104,7 +104,7 @@ func TestEmbeddedQuery(t *testing.T) {
 	})
 
 	t.Run("query_assignee_equals", func(t *testing.T) {
-		results := bdQueryJSON(t, bd, dir, "assignee=alice")
+		results := issuegraphQueryJSON(t, issuegraph, dir, "assignee=alice")
 		found := false
 		for _, r := range results {
 			if r["id"] == taskHigh.ID {
@@ -117,7 +117,7 @@ func TestEmbeddedQuery(t *testing.T) {
 	})
 
 	t.Run("query_priority_greater_than", func(t *testing.T) {
-		results := bdQueryJSON(t, bd, dir, "priority>1")
+		results := issuegraphQueryJSON(t, issuegraph, dir, "priority>1")
 		for _, r := range results {
 			pri := int(r["priority"].(float64))
 			if pri <= 1 {
@@ -127,7 +127,7 @@ func TestEmbeddedQuery(t *testing.T) {
 	})
 
 	t.Run("query_priority_less_equal", func(t *testing.T) {
-		results := bdQueryJSON(t, bd, dir, "priority<=2")
+		results := issuegraphQueryJSON(t, issuegraph, dir, "priority<=2")
 		for _, r := range results {
 			pri := int(r["priority"].(float64))
 			if pri > 2 {
@@ -139,14 +139,14 @@ func TestEmbeddedQuery(t *testing.T) {
 	// ===== Boolean Operators =====
 
 	t.Run("query_and", func(t *testing.T) {
-		results := bdQueryJSON(t, bd, dir, "type=task AND priority=1")
+		results := issuegraphQueryJSON(t, issuegraph, dir, "type=task AND priority=1")
 		if len(results) != 1 || results[0]["id"] != taskHigh.ID {
 			t.Errorf("expected only %s with type=task AND priority=1, got %d results", taskHigh.ID, len(results))
 		}
 	})
 
 	t.Run("query_or", func(t *testing.T) {
-		results := bdQueryJSON(t, bd, dir, "type=bug OR type=feature")
+		results := issuegraphQueryJSON(t, issuegraph, dir, "type=bug OR type=feature")
 		ids := map[string]bool{}
 		for _, r := range results {
 			ids[r["id"].(string)] = true
@@ -157,7 +157,7 @@ func TestEmbeddedQuery(t *testing.T) {
 	})
 
 	t.Run("query_not", func(t *testing.T) {
-		results := bdQueryJSON(t, bd, dir, "NOT type=task")
+		results := issuegraphQueryJSON(t, issuegraph, dir, "NOT type=task")
 		for _, r := range results {
 			if r["issue_type"] == "task" {
 				t.Errorf("should not find tasks with NOT type=task")
@@ -166,7 +166,7 @@ func TestEmbeddedQuery(t *testing.T) {
 	})
 
 	t.Run("query_inequality", func(t *testing.T) {
-		results := bdQueryJSON(t, bd, dir, "type!=task")
+		results := issuegraphQueryJSON(t, issuegraph, dir, "type!=task")
 		for _, r := range results {
 			if r["issue_type"] == "task" {
 				t.Errorf("should not find tasks with type!=task")
@@ -177,7 +177,7 @@ func TestEmbeddedQuery(t *testing.T) {
 	// ===== Flags =====
 
 	t.Run("query_all_includes_closed", func(t *testing.T) {
-		results := bdQueryJSON(t, bd, dir, "--all", "type=task")
+		results := issuegraphQueryJSON(t, issuegraph, dir, "--all", "type=task")
 		ids := map[string]bool{}
 		for _, r := range results {
 			ids[r["id"].(string)] = true
@@ -188,21 +188,21 @@ func TestEmbeddedQuery(t *testing.T) {
 	})
 
 	t.Run("query_limit", func(t *testing.T) {
-		results := bdQueryJSON(t, bd, dir, "--limit", "1", "status=open")
+		results := issuegraphQueryJSON(t, issuegraph, dir, "--limit", "1", "status=open")
 		if len(results) > 1 {
 			t.Errorf("expected at most 1 result with --limit 1, got %d", len(results))
 		}
 	})
 
 	t.Run("query_limit_zero", func(t *testing.T) {
-		results := bdQueryJSON(t, bd, dir, "--limit", "0", "--all", "priority>=0")
+		results := issuegraphQueryJSON(t, issuegraph, dir, "--limit", "0", "--all", "priority>=0")
 		if len(results) < 4 {
 			t.Errorf("expected all issues with --limit 0, got %d", len(results))
 		}
 	})
 
 	t.Run("query_sort_priority", func(t *testing.T) {
-		results := bdQueryJSON(t, bd, dir, "--sort", "priority", "status=open")
+		results := issuegraphQueryJSON(t, issuegraph, dir, "--sort", "priority", "status=open")
 		if len(results) >= 2 {
 			first := int(results[0]["priority"].(float64))
 			last := int(results[len(results)-1]["priority"].(float64))
@@ -213,7 +213,7 @@ func TestEmbeddedQuery(t *testing.T) {
 	})
 
 	t.Run("query_sort_reverse", func(t *testing.T) {
-		results := bdQueryJSON(t, bd, dir, "--sort", "priority", "--reverse", "status=open")
+		results := issuegraphQueryJSON(t, issuegraph, dir, "--sort", "priority", "--reverse", "status=open")
 		if len(results) >= 2 {
 			first := int(results[0]["priority"].(float64))
 			last := int(results[len(results)-1]["priority"].(float64))
@@ -224,14 +224,14 @@ func TestEmbeddedQuery(t *testing.T) {
 	})
 
 	t.Run("query_long", func(t *testing.T) {
-		out := bdQuery(t, bd, dir, "--long", "status=open")
+		out := issuegraphQuery(t, issuegraph, dir, "--long", "status=open")
 		if len(out) == 0 {
 			t.Error("expected non-empty long output")
 		}
 	})
 
 	t.Run("query_parse_only", func(t *testing.T) {
-		out := bdQuery(t, bd, dir, "--parse-only", "type=bug AND priority>1")
+		out := issuegraphQuery(t, issuegraph, dir, "--parse-only", "type=bug AND priority>1")
 		if !strings.Contains(out, "Parsed query") {
 			t.Errorf("expected 'Parsed query' in --parse-only output: %s", out)
 		}
@@ -240,15 +240,15 @@ func TestEmbeddedQuery(t *testing.T) {
 	// ===== Error Cases =====
 
 	t.Run("query_no_expression", func(t *testing.T) {
-		bdQueryFail(t, bd, dir)
+		issuegraphQueryFail(t, issuegraph, dir)
 	})
 
 	t.Run("query_invalid_expression", func(t *testing.T) {
-		bdQueryFail(t, bd, dir, "===invalid===")
+		issuegraphQueryFail(t, issuegraph, dir, "===invalid===")
 	})
 
 	t.Run("query_empty_results", func(t *testing.T) {
-		results := bdQueryJSON(t, bd, dir, "assignee=nonexistentperson12345")
+		results := issuegraphQueryJSON(t, issuegraph, dir, "assignee=nonexistentperson12345")
 		if len(results) != 0 {
 			t.Errorf("expected 0 results, got %d", len(results))
 		}
@@ -261,17 +261,17 @@ func TestEmbeddedQuery(t *testing.T) {
 
 // TestEmbeddedQueryConcurrent exercises query operations concurrently.
 func TestEmbeddedQueryConcurrent(t *testing.T) {
-	if os.Getenv("BEADS_TEST_EMBEDDED_DOLT") != "1" {
-		t.Skip("set BEADS_TEST_EMBEDDED_DOLT=1 to run embedded dolt integration tests")
+	if os.Getenv("ISSUEGRAPH_TEST_EMBEDDED_DOLT") != "1" {
+		t.Skip("set ISSUEGRAPH_TEST_EMBEDDED_DOLT=1 to run embedded dolt integration tests")
 	}
 	t.Parallel()
 
-	bd := buildEmbeddedBD(t)
-	dir, _, _ := bdInit(t, bd, "--prefix", "qx")
+	issuegraph := buildEmbeddedBD(t)
+	dir, _, _ := issuegraphInit(t, issuegraph, "--prefix", "qx")
 
 	// Pre-create issues
 	for i := 0; i < 15; i++ {
-		bdCreate(t, bd, dir, fmt.Sprintf("concurrent-query-%d", i), "--type", "task", "--priority", fmt.Sprintf("%d", i%4+1))
+		issuegraphCreate(t, issuegraph, dir, fmt.Sprintf("concurrent-query-%d", i), "--type", "task", "--priority", fmt.Sprintf("%d", i%4+1))
 	}
 
 	type workerResult struct {
@@ -298,9 +298,9 @@ func TestEmbeddedQueryConcurrent(t *testing.T) {
 			}
 			q := queries[worker%len(queries)]
 
-			cmd := exec.Command(bd, append([]string{"query"}, q...)...)
+			cmd := exec.Command(issuegraph, append([]string{"query"}, q...)...)
 			cmd.Dir = dir
-			cmd.Env = bdEnv(dir)
+			cmd.Env = issuegraphEnv(dir)
 			out, err := cmd.CombinedOutput()
 			if err != nil {
 				r.err = fmt.Errorf("query %v: %v\n%s", q, err, out)

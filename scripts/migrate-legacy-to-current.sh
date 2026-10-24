@@ -9,14 +9,14 @@ usage() {
     cat <<'EOF'
 Usage: migrate-legacy-to-current.sh \
   --source DIR --destination DIR --source-version VERSION \
-  --old-bd PATH --new-bd PATH --prefix PREFIX \
-  [--canonicalizer-bd PATH]
+  --old-issuegraph PATH --new-issuegraph PATH --prefix PREFIX \
+  [--canonicalizer-issuegraph PATH]
 
-SOURCE must contain one historical SQLite database under .beads. DESTINATION
+SOURCE must contain one historical SQLite database under .issuegraph. DESTINATION
 must not exist and must resolve outside SOURCE.
 
 Versions before v0.49.6 require a verified v0.49.6 binary supplied through
---canonicalizer-bd. The script opens only a sealed copy, exports canonical
+--canonicalizer-issuegraph. The script opens only a sealed copy, exports canonical
 JSONL, imports it into DESTINATION/cutover, and compares the candidate export
 semantically before reporting success.
 EOF
@@ -34,9 +34,9 @@ while (($#)); do
         --source) source=${2:?}; shift 2 ;;
         --destination) destination=${2:?}; shift 2 ;;
         --source-version) source_version=${2:?}; shift 2 ;;
-        --old-bd) old_bd=${2:?}; shift 2 ;;
-        --new-bd) new_bd=${2:?}; shift 2 ;;
-        --canonicalizer-bd) canonicalizer_bd=${2:?}; shift 2 ;;
+        --old-issuegraph) old_bd=${2:?}; shift 2 ;;
+        --new-issuegraph) new_bd=${2:?}; shift 2 ;;
+        --canonicalizer-issuegraph) canonicalizer_bd=${2:?}; shift 2 ;;
         --prefix) prefix=${2:?}; shift 2 ;;
         -h|--help) usage; exit 0 ;;
         *) printf 'unknown argument: %s\n' "$1" >&2; usage >&2; exit 2 ;;
@@ -121,7 +121,7 @@ verify_binary_version() {
     output=$(run_at "$destination/probe" "$binary" version 2>&1) || die "$binary does not run"
     bare=${expected#v}
     if [ "$expected" = v0.9.1 ]; then
-        grep -Fq 'bd version 0.9.0 (dev)' <<< "$output" ||
+        grep -Fq 'issuegraph version 0.9.0 (dev)' <<< "$output" ||
             die "v0.9.1 source binary has unexpected version output: $output"
     else
         grep -Eq "(^|[[:space:]])${bare//./\\.}([[:space:]]|\\(|$)" <<< "$output" ||
@@ -217,24 +217,24 @@ validate_sqlite_database_reference() {
 }
 
 verify_current_cutover() {
-    local beads_dir=$1 metadata active_path
-    metadata="$beads_dir/metadata.json"
+    local issuegraph_dir=$1 metadata active_path
+    metadata="$issuegraph_dir/metadata.json"
     [ -f "$metadata" ] && [ ! -L "$metadata" ] ||
         die 'candidate did not write a non-symlink metadata.json'
     jq -e '.backend == "dolt" and .dolt_mode == "embedded"' "$metadata" >/dev/null ||
         die 'candidate did not select embedded Dolt'
-    [ -d "$beads_dir/embeddeddolt" ] && [ ! -L "$beads_dir/embeddeddolt" ] ||
+    [ -d "$issuegraph_dir/embeddeddolt" ] && [ ! -L "$issuegraph_dir/embeddeddolt" ] ||
         die 'candidate did not create a non-symlink embedded Dolt directory'
-    if ! (set +o pipefail; find "$beads_dir/embeddeddolt" -type f -print | grep -q .); then
+    if ! (set +o pipefail; find "$issuegraph_dir/embeddeddolt" -type f -print | grep -q .); then
         die 'candidate embedded Dolt directory contains no storage files'
     fi
-    [ ! -e "$beads_dir/dolt" ] && [ ! -L "$beads_dir/dolt" ] ||
+    [ ! -e "$issuegraph_dir/dolt" ] && [ ! -L "$issuegraph_dir/dolt" ] ||
         die 'candidate left an active legacy Dolt directory'
-    for active_path in "$beads_dir/"*.db; do
+    for active_path in "$issuegraph_dir/"*.db; do
         [ ! -e "$active_path" ] && [ ! -L "$active_path" ] ||
             die 'candidate left an active SQLite database'
     done
-    for active_path in "$beads_dir"/legacy-dolt-*; do
+    for active_path in "$issuegraph_dir"/legacy-dolt-*; do
         [ ! -e "$active_path" ] && [ ! -L "$active_path" ] ||
             die 'candidate left a legacy Dolt directory'
     done
@@ -248,33 +248,33 @@ command -v git >/dev/null 2>&1 || die 'git is required'
 source=$(cd -P "$source" && pwd -P) || die "source directory is unavailable: $source"
 destination=$(canonical_new_path "$destination") ||
     die 'destination parent must already exist and resolve to a physical directory'
-old_bd=$(canonical_file "$old_bd") || die "cannot resolve old bd binary: $old_bd"
-new_bd=$(canonical_file "$new_bd") || die "cannot resolve new bd binary: $new_bd"
+old_bd=$(canonical_file "$old_bd") || die "cannot resolve old issuegraph binary: $old_bd"
+new_bd=$(canonical_file "$new_bd") || die "cannot resolve new issuegraph binary: $new_bd"
 source_version="v${source_version#v}"
 strategy=$(classify_source_version "$source_version")
 
 if [ "$strategy" != direct ]; then
     [ -n "$canonicalizer_bd" ] ||
-        die "$source_version requires --canonicalizer-bd with a verified v0.49.6 binary"
+        die "$source_version requires --canonicalizer-issuegraph with a verified v0.49.6 binary"
     require_regular_executable "$canonicalizer_bd"
     canonicalizer_bd=$(canonical_file "$canonicalizer_bd") ||
         die "cannot resolve canonicalizer binary: $canonicalizer_bd"
 fi
 
-[ -d "$source/.beads" ] && [ ! -L "$source/.beads" ] ||
-    die "source has no non-symlink .beads directory: $source"
-[ ! -e "$source/.beads/dolt" ] && [ ! -L "$source/.beads/dolt" ] &&
-    [ ! -e "$source/.beads/embeddeddolt" ] && [ ! -L "$source/.beads/embeddeddolt" ] ||
+[ -d "$source/.issuegraph" ] && [ ! -L "$source/.issuegraph" ] ||
+    die "source has no non-symlink .issuegraph directory: $source"
+[ ! -e "$source/.issuegraph/dolt" ] && [ ! -L "$source/.issuegraph/dolt" ] &&
+    [ ! -e "$source/.issuegraph/embeddeddolt" ] && [ ! -L "$source/.issuegraph/embeddeddolt" ] ||
     die 'source contains Dolt data; this helper accepts historical SQLite only'
-if (set +o pipefail; find "$source/.beads" -type l -print | grep -q .); then
-    die 'source .beads contains a symlink; refusing to follow it'
+if (set +o pipefail; find "$source/.issuegraph" -type l -print | grep -q .); then
+    die 'source .issuegraph contains a symlink; refusing to follow it'
 fi
-validate_sqlite_descriptor "$source/.beads/metadata.json" metadata.json
-validate_sqlite_descriptor "$source/.beads/config.json" config.json
+validate_sqlite_descriptor "$source/.issuegraph/metadata.json" metadata.json
+validate_sqlite_descriptor "$source/.issuegraph/config.json" config.json
 
 sqlite_database=""
 sqlite_database_count=0
-for candidate_database in "$source/.beads/"*.db; do
+for candidate_database in "$source/.issuegraph/"*.db; do
     [ -f "$candidate_database" ] || continue
     sqlite_database=$candidate_database
     sqlite_database_count=$((sqlite_database_count + 1))
@@ -285,8 +285,8 @@ cmp -s <(dd if="$sqlite_database" bs=16 count=1 2>/dev/null) \
     <(printf 'SQLite format 3\0') ||
     die "source database does not have a SQLite header: $sqlite_database"
 sqlite_database_name=${sqlite_database##*/}
-validate_sqlite_database_reference "$source/.beads/metadata.json" metadata.json "$sqlite_database_name"
-validate_sqlite_database_reference "$source/.beads/config.json" config.json "$sqlite_database_name"
+validate_sqlite_database_reference "$source/.issuegraph/metadata.json" metadata.json "$sqlite_database_name"
+validate_sqlite_database_reference "$source/.issuegraph/config.json" config.json "$sqlite_database_name"
 
 case "$destination/" in
     "$source/"*) die "destination must resolve outside source: $destination" ;;
@@ -294,14 +294,14 @@ esac
 [ ! -e "$destination" ] && [ ! -L "$destination" ] ||
     die "destination already exists; refusing to overwrite: $destination"
 
-source_before=$(fingerprint "$source/.beads")
-mkdir -p "$destination/sealed-source" "$destination/cutover/.beads" \
+source_before=$(fingerprint "$source/.issuegraph")
+mkdir -p "$destination/sealed-source" "$destination/cutover/.issuegraph" \
     "$destination/home/config" "$destination/home/cache" "$destination/probe"
-cp -Rp "$source/.beads" "$destination/sealed-source/.beads"
-sealed_fingerprint=$(fingerprint "$destination/sealed-source/.beads")
+cp -Rp "$source/.issuegraph" "$destination/sealed-source/.issuegraph"
+sealed_fingerprint=$(fingerprint "$destination/sealed-source/.issuegraph")
 [ "$sealed_fingerprint" = "$source_before" ] ||
     die 'sealed copy fingerprint does not match source'
-[ "$(fingerprint "$source/.beads")" = "$source_before" ] ||
+[ "$(fingerprint "$source/.issuegraph")" = "$source_before" ] ||
     die 'source changed while its sealed copy was made; stop and retry'
 
 for repo in "$destination/sealed-source" "$destination/cutover"; do
@@ -320,9 +320,9 @@ run_at() {
             XDG_CONFIG_HOME="$destination/home/config" \
             XDG_CACHE_HOME="$destination/home/cache" \
             GIT_CONFIG_NOSYSTEM=1 GIT_CONFIG_GLOBAL=/dev/null \
-            GIT_TERMINAL_PROMPT=0 BD_DISABLE_METRICS=1 \
-            BD_DISABLE_EVENT_FLUSH=1 BD_NON_INTERACTIVE=1 \
-            BEADS_NO_DAEMON=1 BEADS_DOLT_AUTO_START=0 \
+            GIT_TERMINAL_PROMPT=0 ISSUEGRAPH_DISABLE_METRICS=1 \
+            ISSUEGRAPH_DISABLE_EVENT_FLUSH=1 ISSUEGRAPH_NON_INTERACTIVE=1 \
+            ISSUEGRAPH_NO_DAEMON=1 ISSUEGRAPH_DOLT_AUTO_START=0 \
             BRIDGE_TEST_MARKER="${BRIDGE_TEST_MARKER:-}" "$@"
     )
 }
@@ -336,7 +336,7 @@ export_jsonl="$destination/export.jsonl"
 case "$strategy" in
     materialize-and-canonicalize)
         run_at "$destination/sealed-source" "$old_bd" --no-auto-import \
-            export --format jsonl --output .beads/issues.jsonl >/dev/null
+            export --format jsonl --output .issuegraph/issues.jsonl >/dev/null
         run_at "$destination/sealed-source" "$canonicalizer_bd" \
             --no-daemon --no-auto-import init --force --prefix "$prefix" >/dev/null
         run_at "$destination/sealed-source" "$canonicalizer_bd" \
@@ -351,7 +351,7 @@ case "$strategy" in
     direct)
         run_at "$destination/probe" "$new_bd" \
             migrate legacy-sqlite \
-            --source-db "$destination/sealed-source/.beads/$sqlite_database_name" \
+            --source-db "$destination/sealed-source/.issuegraph/$sqlite_database_name" \
             --output "$export_jsonl"
         ;;
 esac
@@ -372,13 +372,13 @@ jq -s -e '
          end))
 ' "$export_jsonl" >/dev/null ||
     die 'historical export is not a valid JSONL bridge payload'
-[ "$(fingerprint "$source/.beads")" = "$source_before" ] ||
+[ "$(fingerprint "$source/.issuegraph")" = "$source_before" ] ||
     die 'historical source changed during canonical export'
 
-cp -f "$export_jsonl" "$destination/cutover/.beads/issues.jsonl"
+cp -f "$export_jsonl" "$destination/cutover/.issuegraph/issues.jsonl"
 run_at "$destination/cutover" "$new_bd" init --from-jsonl --quiet \
     --non-interactive --skip-hooks --skip-agents --prefix "$prefix"
-verify_current_cutover "$destination/cutover/.beads"
+verify_current_cutover "$destination/cutover/.issuegraph"
 
 candidate_export="$destination/candidate-export.jsonl"
 run_at "$destination/cutover" "$new_bd" export --all -o "$candidate_export" >/dev/null
@@ -395,7 +395,7 @@ if ! cmp -s "$destination/expected-normalized.json" "$destination/candidate-norm
         "$destination/candidate-normalized.json" >&2 || true
     die 'candidate data does not semantically match the canonical historical export'
 fi
-[ "$(fingerprint "$source/.beads")" = "$source_before" ] ||
+[ "$(fingerprint "$source/.issuegraph")" = "$source_before" ] ||
     die 'historical source changed during candidate verification'
 
 printf 'cutover created at %s/cutover\n' "$destination"

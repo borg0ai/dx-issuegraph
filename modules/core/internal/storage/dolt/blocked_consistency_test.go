@@ -5,11 +5,11 @@ import (
 	"database/sql"
 	"testing"
 
-	"github.com/steveyegge/beads/internal/storage/issueops"
-	"github.com/steveyegge/beads/internal/types"
+	"github.com/borg0ai/dx-issuegraph/internal/storage/issueops"
+	"github.com/borg0ai/dx-issuegraph/internal/types"
 )
 
-// countInconsistencies wraps the read-only detection used by the bd doctor
+// countInconsistencies wraps the read-only detection used by the issuegraph doctor
 // Blocked State check.
 func countInconsistencies(ctx context.Context, t *testing.T, db *sql.DB) int64 {
 	t.Helper()
@@ -20,7 +20,7 @@ func countInconsistencies(ctx context.Context, t *testing.T, db *sql.DB) int64 {
 	return n
 }
 
-// recomputeAll wraps the full repair used by 'bd doctor --fix' and returns the
+// recomputeAll wraps the full repair used by 'issuegraph doctor --fix' and returns the
 // number of rows it corrected.
 func recomputeAll(ctx context.Context, t *testing.T, db *sql.DB) int64 {
 	t.Helper()
@@ -89,7 +89,7 @@ func TestRecomputeAllIsBlocked_RepairsStaleClearedFlag(t *testing.T) {
 
 // TestRecomputeAllIsBlocked_ClearsStuckBlockedFlag is the mirror case: a row
 // left is_blocked = 1 after its only blocker was closed remotely (a merge that
-// bypassed the recompute hook). `bd ready` would keep hiding it; the full
+// bypassed the recompute hook). `issuegraph ready` would keep hiding it; the full
 // recompute must clear the flag.
 func TestRecomputeAllIsBlocked_ClearsStuckBlockedFlag(t *testing.T) {
 	store, cleanup := setupTestStore(t)

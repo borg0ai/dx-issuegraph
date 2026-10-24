@@ -12,42 +12,42 @@ import (
 	"testing"
 )
 
-// bdDolt runs "bd dolt" with the given args and returns stdout.
-func bdDolt(t *testing.T, bd, dir string, args ...string) string {
+// issuegraphDolt runs "issuegraph dolt" with the given args and returns stdout.
+func issuegraphDolt(t *testing.T, issuegraph, dir string, args ...string) string {
 	t.Helper()
 	fullArgs := append([]string{"dolt"}, args...)
-	cmd := exec.Command(bd, fullArgs...)
+	cmd := exec.Command(issuegraph, fullArgs...)
 	cmd.Dir = dir
-	cmd.Env = bdEnv(dir)
+	cmd.Env = issuegraphEnv(dir)
 	stdout, stderr, err := runCommandBuffers(t, cmd)
 	if err != nil {
-		t.Fatalf("bd dolt %s failed: %v\nstdout:\n%s\nstderr:\n%s", strings.Join(args, " "), err, stdout.String(), stderr.String())
+		t.Fatalf("issuegraph dolt %s failed: %v\nstdout:\n%s\nstderr:\n%s", strings.Join(args, " "), err, stdout.String(), stderr.String())
 	}
 	return stdout.String()
 }
 
-// bdDoltFail runs "bd dolt" expecting failure and returns stderr+stdout.
-func bdDoltFail(t *testing.T, bd, dir string, args ...string) string {
+// issuegraphDoltFail runs "issuegraph dolt" expecting failure and returns stderr+stdout.
+func issuegraphDoltFail(t *testing.T, issuegraph, dir string, args ...string) string {
 	t.Helper()
 	fullArgs := append([]string{"dolt"}, args...)
-	cmd := exec.Command(bd, fullArgs...)
+	cmd := exec.Command(issuegraph, fullArgs...)
 	cmd.Dir = dir
-	cmd.Env = bdEnv(dir)
+	cmd.Env = issuegraphEnv(dir)
 	out, err := cmd.CombinedOutput()
 	if err == nil {
-		t.Fatalf("expected bd dolt %s to fail, but succeeded:\n%s", strings.Join(args, " "), out)
+		t.Fatalf("expected issuegraph dolt %s to fail, but succeeded:\n%s", strings.Join(args, " "), out)
 	}
 	return string(out)
 }
 
 func TestEmbeddedDolt(t *testing.T) {
-	if os.Getenv("BEADS_TEST_EMBEDDED_DOLT") != "1" {
-		t.Skip("set BEADS_TEST_EMBEDDED_DOLT=1 to run embedded dolt integration tests")
+	if os.Getenv("ISSUEGRAPH_TEST_EMBEDDED_DOLT") != "1" {
+		t.Skip("set ISSUEGRAPH_TEST_EMBEDDED_DOLT=1 to run embedded dolt integration tests")
 	}
 	t.Parallel()
 
-	bd := buildEmbeddedBD(t)
-	dir, _, _ := bdInit(t, bd, "--prefix", "td")
+	issuegraph := buildEmbeddedBD(t)
+	dir, _, _ := issuegraphInit(t, issuegraph, "--prefix", "td")
 
 	// ===== Server-only commands must fail in embedded mode =====
 
@@ -68,7 +68,7 @@ func TestEmbeddedDolt(t *testing.T) {
 
 	for _, tc := range serverOnlyCmds {
 		t.Run("blocked_"+tc.name, func(t *testing.T) {
-			out := bdDoltFail(t, bd, dir, tc.args...)
+			out := issuegraphDoltFail(t, issuegraph, dir, tc.args...)
 			if !strings.Contains(out, "not supported in embedded mode") {
 				t.Errorf("expected 'not supported in embedded mode' in output for dolt %s: %s", tc.name, out)
 			}
@@ -78,14 +78,14 @@ func TestEmbeddedDolt(t *testing.T) {
 	// ===== Embedded-mode inspection commands succeed with embedded-mode output =====
 
 	t.Run("embedded_status", func(t *testing.T) {
-		out := bdDolt(t, bd, dir, "status")
+		out := issuegraphDolt(t, issuegraph, dir, "status")
 		if !strings.Contains(out, "embedded") {
 			t.Errorf("expected embedded-mode status output to mention 'embedded': %s", out)
 		}
 	})
 
 	t.Run("embedded_status_json", func(t *testing.T) {
-		out := bdDolt(t, bd, dir, "status", "--json")
+		out := issuegraphDolt(t, issuegraph, dir, "status", "--json")
 		var result map[string]interface{}
 		if err := json.Unmarshal([]byte(out), &result); err != nil {
 			t.Fatalf("status --json returned invalid JSON: %v\n%s", err, out)
@@ -102,7 +102,7 @@ func TestEmbeddedDolt(t *testing.T) {
 	})
 
 	t.Run("embedded_show", func(t *testing.T) {
-		out := bdDolt(t, bd, dir, "show")
+		out := issuegraphDolt(t, issuegraph, dir, "show")
 		if !strings.Contains(out, "Mode:") || !strings.Contains(out, "embedded") {
 			t.Errorf("expected embedded-mode show output to contain 'Mode:' and 'embedded': %s", out)
 		}
@@ -111,29 +111,29 @@ func TestEmbeddedDolt(t *testing.T) {
 	// ===== Working commands =====
 
 	// Create an issue so there are pending changes to commit
-	bdCreate(t, bd, dir, "Dolt commit test issue", "--type", "task")
+	issuegraphCreate(t, issuegraph, dir, "Dolt commit test issue", "--type", "task")
 
 	t.Run("commit", func(t *testing.T) {
-		out := bdDolt(t, bd, dir, "commit")
+		out := issuegraphDolt(t, issuegraph, dir, "commit")
 		// Should succeed — either commits or reports nothing to commit
 		_ = out
 	})
 
 	t.Run("commit_with_message", func(t *testing.T) {
-		bdCreate(t, bd, dir, "Another issue for commit", "--type", "task")
-		out := bdDolt(t, bd, dir, "commit", "-m", "test commit message")
+		issuegraphCreate(t, issuegraph, dir, "Another issue for commit", "--type", "task")
+		out := issuegraphDolt(t, issuegraph, dir, "commit", "-m", "test commit message")
 		_ = out
 	})
 
 	t.Run("commit_clean_reports_nothing", func(t *testing.T) {
-		// bd init leaves the working set clean (bootstrap's own commit
+		// issuegraph init leaves the working set clean (bootstrap's own commit
 		// tolerates nothing-to-commit, GH#3886). A second, truly no-op
-		// "bd dolt commit" here must print "Nothing to commit.", not
+		// "issuegraph dolt commit" here must print "Nothing to commit.", not
 		// "Committed." — this is the case EmbeddedDoltStore.Commit's new
 		// nothing-to-commit tolerance made possible to reach with a nil
 		// error.
-		cleanDir, _, _ := bdInit(t, bd, "--prefix", "tdcln")
-		out := bdDolt(t, bd, cleanDir, "commit")
+		cleanDir, _, _ := issuegraphInit(t, issuegraph, "--prefix", "tdcln")
+		out := issuegraphDolt(t, issuegraph, cleanDir, "commit")
 		if !strings.Contains(out, "Nothing to commit.") {
 			t.Errorf("expected 'Nothing to commit.' on a clean working set, got: %s", out)
 		}
@@ -142,22 +142,22 @@ func TestEmbeddedDolt(t *testing.T) {
 	// ===== Remote management =====
 
 	t.Run("remote_list_empty", func(t *testing.T) {
-		out := bdDolt(t, bd, dir, "remote", "list")
+		out := issuegraphDolt(t, issuegraph, dir, "remote", "list")
 		_ = out // Should succeed even with no remotes
 	})
 
 	t.Run("remote_add_and_list", func(t *testing.T) {
 		remoteDir := t.TempDir()
-		bdDolt(t, bd, dir, "remote", "add", "test-remote", "file://"+remoteDir)
-		out := bdDolt(t, bd, dir, "remote", "list")
+		issuegraphDolt(t, issuegraph, dir, "remote", "add", "test-remote", "file://"+remoteDir)
+		out := issuegraphDolt(t, issuegraph, dir, "remote", "list")
 		if !strings.Contains(out, "test-remote") {
 			t.Errorf("expected 'test-remote' in remote list: %s", out)
 		}
 	})
 
 	t.Run("remote_remove", func(t *testing.T) {
-		bdDolt(t, bd, dir, "remote", "remove", "test-remote")
-		out := bdDolt(t, bd, dir, "remote", "list")
+		issuegraphDolt(t, issuegraph, dir, "remote", "remove", "test-remote")
+		out := issuegraphDolt(t, issuegraph, dir, "remote", "list")
 		if strings.Contains(out, "test-remote") {
 			t.Errorf("expected 'test-remote' to be removed: %s", out)
 		}
@@ -166,34 +166,34 @@ func TestEmbeddedDolt(t *testing.T) {
 	// ===== Push/Pull with file remote =====
 
 	t.Run("push_to_file_remote", func(t *testing.T) {
-		ppDir, _, _ := bdInit(t, bd, "--prefix", "pp")
+		ppDir, _, _ := issuegraphInit(t, issuegraph, "--prefix", "pp")
 
 		remoteDir := t.TempDir()
-		bdDolt(t, bd, ppDir, "remote", "add", "origin", "file://"+remoteDir)
+		issuegraphDolt(t, issuegraph, ppDir, "remote", "add", "origin", "file://"+remoteDir)
 
 		// Create an issue and commit
-		bdCreate(t, bd, ppDir, "Push roundtrip issue", "--type", "task")
-		bdDolt(t, bd, ppDir, "commit", "-m", "roundtrip commit")
+		issuegraphCreate(t, issuegraph, ppDir, "Push roundtrip issue", "--type", "task")
+		issuegraphDolt(t, issuegraph, ppDir, "commit", "-m", "roundtrip commit")
 
 		// Push to file remote
-		bdDolt(t, bd, ppDir, "push")
+		issuegraphDolt(t, issuegraph, ppDir, "push")
 	})
 
 	t.Run("push_force", func(t *testing.T) {
-		pfDir, _, _ := bdInit(t, bd, "--prefix", "pf")
+		pfDir, _, _ := issuegraphInit(t, issuegraph, "--prefix", "pf")
 		remoteDir := t.TempDir()
-		bdDolt(t, bd, pfDir, "remote", "add", "origin", "file://"+remoteDir)
+		issuegraphDolt(t, issuegraph, pfDir, "remote", "add", "origin", "file://"+remoteDir)
 
-		bdCreate(t, bd, pfDir, "Force push issue", "--type", "task")
-		bdDolt(t, bd, pfDir, "commit", "-m", "force push commit")
-		bdDolt(t, bd, pfDir, "push", "--force")
+		issuegraphCreate(t, issuegraph, pfDir, "Force push issue", "--type", "task")
+		issuegraphDolt(t, issuegraph, pfDir, "commit", "-m", "force push commit")
+		issuegraphDolt(t, issuegraph, pfDir, "push", "--force")
 	})
 
 	t.Run("push_no_remote", func(t *testing.T) {
 		// Push without a remote should fail gracefully, not panic
-		cmd := exec.Command(bd, "dolt", "push")
+		cmd := exec.Command(issuegraph, "dolt", "push")
 		cmd.Dir = dir
-		cmd.Env = bdEnv(dir)
+		cmd.Env = issuegraphEnv(dir)
 		out, err := cmd.CombinedOutput()
 		if err == nil {
 			t.Log("push without remote succeeded unexpectedly")
@@ -202,9 +202,9 @@ func TestEmbeddedDolt(t *testing.T) {
 	})
 
 	t.Run("pull_no_remote", func(t *testing.T) {
-		cmd := exec.Command(bd, "dolt", "pull")
+		cmd := exec.Command(issuegraph, "dolt", "pull")
 		cmd.Dir = dir
-		cmd.Env = bdEnv(dir)
+		cmd.Env = issuegraphEnv(dir)
 		out, err := cmd.CombinedOutput()
 		if err == nil {
 			t.Log("pull without remote succeeded unexpectedly")
@@ -216,35 +216,35 @@ func TestEmbeddedDolt(t *testing.T) {
 
 	t.Run("push_then_push_more", func(t *testing.T) {
 		// Push twice to verify incremental pushes work
-		ppDir, _, _ := bdInit(t, bd, "--prefix", "pm")
+		ppDir, _, _ := issuegraphInit(t, issuegraph, "--prefix", "pm")
 		remoteDir := t.TempDir()
-		bdDolt(t, bd, ppDir, "remote", "add", "origin", "file://"+remoteDir)
+		issuegraphDolt(t, issuegraph, ppDir, "remote", "add", "origin", "file://"+remoteDir)
 
 		// First push
-		bdCreate(t, bd, ppDir, "First push issue", "--type", "task")
-		bdDolt(t, bd, ppDir, "commit", "-m", "first commit")
-		bdDolt(t, bd, ppDir, "push")
+		issuegraphCreate(t, issuegraph, ppDir, "First push issue", "--type", "task")
+		issuegraphDolt(t, issuegraph, ppDir, "commit", "-m", "first commit")
+		issuegraphDolt(t, issuegraph, ppDir, "push")
 
 		// Second push
-		bdCreate(t, bd, ppDir, "Second push issue", "--type", "task")
-		bdDolt(t, bd, ppDir, "commit", "-m", "second commit")
-		bdDolt(t, bd, ppDir, "push")
+		issuegraphCreate(t, issuegraph, ppDir, "Second push issue", "--type", "task")
+		issuegraphDolt(t, issuegraph, ppDir, "commit", "-m", "second commit")
+		issuegraphDolt(t, issuegraph, ppDir, "push")
 	})
 }
 
 // TestEmbeddedDoltConcurrent exercises dolt operations concurrently.
 func TestEmbeddedDoltConcurrent(t *testing.T) {
-	if os.Getenv("BEADS_TEST_EMBEDDED_DOLT") != "1" {
-		t.Skip("set BEADS_TEST_EMBEDDED_DOLT=1 to run embedded dolt integration tests")
+	if os.Getenv("ISSUEGRAPH_TEST_EMBEDDED_DOLT") != "1" {
+		t.Skip("set ISSUEGRAPH_TEST_EMBEDDED_DOLT=1 to run embedded dolt integration tests")
 	}
 	t.Parallel()
 
-	bd := buildEmbeddedBD(t)
-	dir, _, _ := bdInit(t, bd, "--prefix", "dx")
+	issuegraph := buildEmbeddedBD(t)
+	dir, _, _ := issuegraphInit(t, issuegraph, "--prefix", "dx")
 
 	// Pre-create issues so commits have something to work with
 	for i := 0; i < 4; i++ {
-		bdCreate(t, bd, dir, fmt.Sprintf("dolt-concurrent-%d", i), "--type", "task")
+		issuegraphCreate(t, issuegraph, dir, fmt.Sprintf("dolt-concurrent-%d", i), "--type", "task")
 	}
 
 	const numWorkers = 8
@@ -277,9 +277,9 @@ func TestEmbeddedDoltConcurrent(t *testing.T) {
 				expectFail = true
 			}
 
-			cmd := exec.Command(bd, args...)
+			cmd := exec.Command(issuegraph, args...)
 			cmd.Dir = dir
-			cmd.Env = bdEnv(dir)
+			cmd.Env = issuegraphEnv(dir)
 			out, err := cmd.CombinedOutput()
 
 			if expectFail {
@@ -306,20 +306,20 @@ func TestEmbeddedDoltConcurrent(t *testing.T) {
 	}
 }
 
-// TestAdminEmbeddedBlocked verifies that bd admin subcommands are blocked in
+// TestAdminEmbeddedBlocked verifies that issuegraph admin subcommands are blocked in
 // embedded mode. The guard was previously on adminCmd.PersistentPreRunE which
 // fired before cmdCtx.ServerMode was populated, causing a false "embedded mode"
 // error even in server-mode projects. The guard is now inside each subcommand's
 // Run func, after store init. This test ensures embedded mode still correctly
 // rejects admin commands.
 func TestEmbeddedAdminBlocked(t *testing.T) {
-	if os.Getenv("BEADS_TEST_EMBEDDED_DOLT") != "1" {
-		t.Skip("set BEADS_TEST_EMBEDDED_DOLT=1 to run embedded dolt integration tests")
+	if os.Getenv("ISSUEGRAPH_TEST_EMBEDDED_DOLT") != "1" {
+		t.Skip("set ISSUEGRAPH_TEST_EMBEDDED_DOLT=1 to run embedded dolt integration tests")
 	}
 	t.Parallel()
 
-	bd := buildEmbeddedBD(t)
-	dir, _, _ := bdInit(t, bd, "--prefix", "ta")
+	issuegraph := buildEmbeddedBD(t)
+	dir, _, _ := issuegraphInit(t, issuegraph, "--prefix", "ta")
 
 	blockedCmds := []struct {
 		name string
@@ -334,16 +334,16 @@ func TestEmbeddedAdminBlocked(t *testing.T) {
 		tc := tc
 		t.Run("blocked_"+tc.name, func(t *testing.T) {
 			t.Parallel()
-			cmd := exec.Command(bd, tc.args...)
+			cmd := exec.Command(issuegraph, tc.args...)
 			cmd.Dir = dir
-			cmd.Env = bdEnv(dir)
+			cmd.Env = issuegraphEnv(dir)
 			out, err := cmd.CombinedOutput()
 			if err == nil {
-				t.Errorf("bd %s should fail in embedded mode but succeeded: %s", tc.name, out)
+				t.Errorf("issuegraph %s should fail in embedded mode but succeeded: %s", tc.name, out)
 				return
 			}
 			if !strings.Contains(string(out), "not yet supported in embedded mode") {
-				t.Errorf("bd %s: expected 'not yet supported in embedded mode', got: %s", tc.name, out)
+				t.Errorf("issuegraph %s: expected 'not yet supported in embedded mode', got: %s", tc.name, out)
 			}
 		})
 	}
@@ -352,13 +352,13 @@ func TestEmbeddedAdminBlocked(t *testing.T) {
 // TestAdminEmbeddedCompactReadOnlyAllowed verifies read-only compact modes are
 // not blocked by the embedded-mode admin guard.
 func TestEmbeddedAdminCompactReadOnlyAllowed(t *testing.T) {
-	if os.Getenv("BEADS_TEST_EMBEDDED_DOLT") != "1" {
-		t.Skip("set BEADS_TEST_EMBEDDED_DOLT=1 to run embedded dolt integration tests")
+	if os.Getenv("ISSUEGRAPH_TEST_EMBEDDED_DOLT") != "1" {
+		t.Skip("set ISSUEGRAPH_TEST_EMBEDDED_DOLT=1 to run embedded dolt integration tests")
 	}
 	t.Parallel()
 
-	bd := buildEmbeddedBD(t)
-	dir, _, _ := bdInit(t, bd, "--prefix", "ta")
+	issuegraph := buildEmbeddedBD(t)
+	dir, _, _ := issuegraphInit(t, issuegraph, "--prefix", "ta")
 
 	readOnlyCmds := []struct {
 		name string
@@ -372,16 +372,16 @@ func TestEmbeddedAdminCompactReadOnlyAllowed(t *testing.T) {
 		tc := tc
 		t.Run("allowed_"+tc.name, func(t *testing.T) {
 			t.Parallel()
-			cmd := exec.Command(bd, tc.args...)
+			cmd := exec.Command(issuegraph, tc.args...)
 			cmd.Dir = dir
-			cmd.Env = bdEnv(dir)
+			cmd.Env = issuegraphEnv(dir)
 			out, err := cmd.CombinedOutput()
 			if err != nil {
-				t.Errorf("bd %s should be allowed in embedded mode: %v\n%s", tc.name, err, out)
+				t.Errorf("issuegraph %s should be allowed in embedded mode: %v\n%s", tc.name, err, out)
 				return
 			}
 			if strings.Contains(string(out), "not yet supported in embedded mode") {
-				t.Errorf("bd %s hit embedded-mode guard unexpectedly: %s", tc.name, out)
+				t.Errorf("issuegraph %s hit embedded-mode guard unexpectedly: %s", tc.name, out)
 			}
 		})
 	}

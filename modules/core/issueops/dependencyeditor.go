@@ -3,7 +3,7 @@ package issueops
 import (
 	"context"
 
-	"github.com/steveyegge/beads/internal/types"
+	"github.com/borg0ai/dx-issuegraph/internal/types"
 )
 
 // DependencyType names one kind of edge between two issues.
@@ -103,7 +103,7 @@ type RemoveDependencyResult struct {
 }
 
 // DependencyEditor describes guarded edits to the dependency graph: the write
-// side of `bd dep add` and `bd dep remove`, and — like Lifecycle, Reader,
+// side of `issuegraph dep add` and `issuegraph dep remove`, and — like Lifecycle, Reader,
 // ReadyClaimer and BatchCloser — a role with its own accessor. A new
 // capability gets a new role interface and its own accessor; never append a
 // method here.
@@ -114,8 +114,8 @@ type RemoveDependencyResult struct {
 // about the GRAPH the two endpoints sit in rather than about either row. A
 // patch has nowhere to put that.
 //
-// An edge FOLLOWS ITS SOURCE. Both methods edit the durable graph `bd dep`
-// shows and `bd dolt log` versions when the source is a durable issue, and the
+// An edge FOLLOWS ITS SOURCE. Both methods edit the durable graph `issuegraph dep`
+// shows and `issuegraph dolt log` versions when the source is a durable issue, and the
 // ephemeral graph when it is an ephemeral one — a wisp has no durable row for
 // an edge to hang off, so there is no third answer. One request may mix the
 // two; it is still one transaction, and still all-or-nothing across both.

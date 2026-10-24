@@ -13,8 +13,8 @@ concurrency:
   cancel-in-progress: true
 
 env:
-  BD_DISABLE_METRICS: "1"
-  BD_DISABLE_EVENT_FLUSH: "1"
+  ISSUEGRAPH_DISABLE_METRICS: "1"
+  ISSUEGRAPH_DISABLE_EVENT_FLUSH: "1"
 
 jobs:
   conformance:

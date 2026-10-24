@@ -20,31 +20,31 @@ func checkConfigSetSideEffects(key, value string) []configSideEffect {
 	case key == "federation.remote":
 		effects = append(effects, configSideEffect{
 			Message: fmt.Sprintf("To activate, ensure a Dolt remote matches this URL: %s", value),
-			Command: fmt.Sprintf("bd dolt remote add origin %s", value),
+			Command: fmt.Sprintf("issuegraph dolt remote add origin %s", value),
 		})
 
 	case key == "dolt.shared-server" && strings.EqualFold(value, "true"):
 		effects = append(effects, configSideEffect{
 			Message: "Shared server mode enabled. Start the server to activate.",
-			Command: "bd dolt server start",
+			Command: "issuegraph dolt server start",
 		})
 
 	case key == "dolt.shared-server" && !strings.EqualFold(value, "true"):
 		effects = append(effects, configSideEffect{
 			Message: "Shared server mode disabled. Stop any running server if no longer needed.",
-			Command: "bd dolt server stop",
+			Command: "issuegraph dolt server stop",
 		})
 
 	case key == "dolt.debug" && strings.EqualFold(value, "true"):
 		effects = append(effects, configSideEffect{
 			Message: "Debug mode will apply on the next Dolt server start (loglevel=debug, --prof cpu).",
-			Command: "bd dolt stop && bd dolt start",
+			Command: "issuegraph dolt stop && issuegraph dolt start",
 		})
 
 	case key == "dolt.debug" && !strings.EqualFold(value, "true"):
 		effects = append(effects, configSideEffect{
 			Message: "Debug mode disabled. Restart the server to drop --prof and --loglevel=debug.",
-			Command: "bd dolt stop && bd dolt start",
+			Command: "issuegraph dolt stop && issuegraph dolt start",
 		})
 
 	case key == "routing.mode":
@@ -78,19 +78,19 @@ func checkConfigUnsetSideEffects(key string) []configSideEffect {
 	case "federation.remote":
 		effects = append(effects, configSideEffect{
 			Message: "Federation remote removed from config. The Dolt remote still exists and can be removed manually.",
-			Command: "bd dolt remote remove origin",
+			Command: "issuegraph dolt remote remove origin",
 		})
 
 	case "dolt.shared-server":
 		effects = append(effects, configSideEffect{
 			Message: "Shared server config removed. Stop any running server if no longer needed.",
-			Command: "bd dolt server stop",
+			Command: "issuegraph dolt server stop",
 		})
 
 	case "dolt.debug":
 		effects = append(effects, configSideEffect{
 			Message: "Debug config removed. Restart the server to drop --prof and --loglevel=debug.",
-			Command: "bd dolt stop && bd dolt start",
+			Command: "issuegraph dolt stop && issuegraph dolt start",
 		})
 
 	case "backup.enabled":

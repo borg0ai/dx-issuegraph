@@ -9,13 +9,13 @@ import (
 	"syscall"
 	"time"
 
-	"github.com/steveyegge/beads/internal/types"
-	"github.com/steveyegge/beads/internal/ui"
-	"github.com/steveyegge/beads/internal/uimd"
+	"github.com/borg0ai/dx-issuegraph/internal/types"
+	"github.com/borg0ai/dx-issuegraph/internal/ui"
+	"github.com/borg0ai/dx-issuegraph/internal/uimd"
 )
 
 // displayShowIssue displays a single issue (reusable for watch mode).
-// Matches the full bd show output: header, metadata, content, labels, deps, comments.
+// Matches the full issuegraph show output: header, metadata, content, labels, deps, comments.
 func displayShowIssue(ctx context.Context, issueID string) {
 	displayShowIssueReturn(ctx, issueID)
 }
@@ -101,7 +101,7 @@ func displayShowIssueReturn(ctx context.Context, issueID string) *types.Issue {
 	fmt.Println(formatIssueHeader(issue))
 	fmt.Println(formatIssueMetadata(issue))
 
-	// Content sections (matches standard bd show order)
+	// Content sections (matches standard issuegraph show order)
 	if issue.Description != "" {
 		fmt.Printf("\n%s\n%s\n", ui.RenderBold("DESCRIPTION"), uimd.RenderMarkdown(issue.Description))
 	}

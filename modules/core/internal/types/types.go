@@ -1,4 +1,4 @@
-// Package types defines core data structures for the bd issue tracker.
+// Package types defines core data structures for the issuegraph issue tracker.
 package types
 
 import (
@@ -81,7 +81,7 @@ type Issue struct {
 	// row_lock is random per write, so generic Issue serialization would break
 	// stable list/export round-trips. The detail-view DTO projects it explicitly
 	// as `revision` for guarded clients (IssueDetails.Revision, set by
-	// NewIssueDetails, and on the wire at GET /v0/beads/issues/{id}) — as a
+	// NewIssueDetails, and on the wire at GET /v0/issuegraph/issues/{id}) — as a
 	// decimal STRING, via RevisionToken, because the full int64 range does not
 	// survive a JSON number in a JavaScript consumer. Go consumers read
 	// RowVersion directly and never see the string.
@@ -100,7 +100,7 @@ type Issue struct {
 
 	// ===== Time-Based Scheduling (GH#820) =====
 	DueAt      *time.Time `json:"due_at,omitempty"`      // When this issue should be completed
-	DeferUntil *time.Time `json:"defer_until,omitempty"` // Hide from bd ready until this time
+	DeferUntil *time.Time `json:"defer_until,omitempty"` // Hide from issuegraph ready until this time
 
 	// ===== External Integration =====
 	ExternalRef  *string `json:"external_ref,omitempty"`  // e.g., "gh-9", "jira-ABC"
@@ -180,7 +180,7 @@ type Issue struct {
 	// ===== Event Fields (operational state changes) =====
 	EventKind string `json:"event_kind,omitempty"` // Namespaced event type: patrol.muted, agent.started
 	Actor     string `json:"actor,omitempty"`      // Entity URI who caused this event
-	Target    string `json:"target,omitempty"`     // Entity URI or bead ID affected
+	Target    string `json:"target,omitempty"`     // Entity URI or issue ID affected
 	Payload   string `json:"payload,omitempty"`    // Event-specific JSON data
 
 	// ===== Internal Hydration Flags (not serialized) =====
@@ -514,12 +514,12 @@ const (
 	StatusBlocked    Status = "blocked"
 	StatusDeferred   Status = "deferred" // Deliberately put on ice for later
 	StatusClosed     Status = "closed"
-	StatusPinned     Status = "pinned" // Persistent bead that stays open indefinitely
+	StatusPinned     Status = "pinned" // Persistent issue that stays open indefinitely
 	StatusHooked     Status = "hooked" // Work actively claimed by a worker
 )
 
 // AllStatuses lists the built-in issue statuses (excludes custom statuses). It
-// is the single source consulted by Status.IsValid and the `bd schema` enum, so
+// is the single source consulted by Status.IsValid and the `issuegraph schema` enum, so
 // adding a status here surfaces it in both validation and the published schema.
 var AllStatuses = []Status{
 	StatusOpen, StatusInProgress, StatusBlocked, StatusDeferred,
@@ -532,7 +532,7 @@ func (s Status) IsValid() bool {
 }
 
 // IsValidWithCustom checks if the status is valid, including custom statuses.
-// Custom statuses are user-defined via bd config set status.custom "status1,status2,..."
+// Custom statuses are user-defined via issuegraph config set status.custom "status1,status2,..."
 func (s Status) IsValidWithCustom(customStatuses []string) bool {
 	// First check built-in statuses
 	if s.IsValid() {
@@ -564,16 +564,16 @@ func (s Status) IsValidWithCustomStatuses(customStatuses []CustomStatus) bool {
 type StatusCategory string
 
 const (
-	// CategoryActive statuses appear in bd ready and default bd list.
+	// CategoryActive statuses appear in issuegraph ready and default issuegraph list.
 	CategoryActive StatusCategory = "active"
-	// CategoryWIP statuses are excluded from bd ready but visible in default bd list.
+	// CategoryWIP statuses are excluded from issuegraph ready but visible in default issuegraph list.
 	CategoryWIP StatusCategory = "wip"
-	// CategoryDone statuses are excluded from bd ready and default bd list.
+	// CategoryDone statuses are excluded from issuegraph ready and default issuegraph list.
 	CategoryDone StatusCategory = "done"
-	// CategoryFrozen statuses are excluded from bd ready and default bd list.
+	// CategoryFrozen statuses are excluded from issuegraph ready and default issuegraph list.
 	CategoryFrozen StatusCategory = "frozen"
 	// CategoryUnspecified is assigned when no category is provided (backward compat).
-	// Behaves like current behavior: valid, visible in default bd list, absent from bd ready.
+	// Behaves like current behavior: valid, visible in default issuegraph list, absent from issuegraph ready.
 	CategoryUnspecified StatusCategory = "unspecified"
 )
 
@@ -707,7 +707,7 @@ func BuiltInStatusCategory(status Status) StatusCategory {
 // IssueType categorizes the kind of work
 type IssueType string
 
-// Core work type constants - these are the built-in types that beads validates.
+// Core work type constants - these are the built-in types that issuegraph validates.
 // All other types require configuration via types.custom in config.yaml.
 const (
 	TypeBug       IssueType = "bug"
@@ -718,30 +718,30 @@ const (
 	TypeDecision  IssueType = "decision"
 	TypeMessage   IssueType = "message"
 	TypeMolecule  IssueType = "molecule"  // Molecule type for swarm coordination (internal use)
-	TypeGate      IssueType = "gate"      // Gate type for async coordination (bd gate, formula gates)
+	TypeGate      IssueType = "gate"      // Gate type for async coordination (issuegraph gate, formula gates)
 	TypeSpike     IssueType = "spike"     // Timeboxed investigation to reduce uncertainty
 	TypeStory     IssueType = "story"     // User story describing a feature from the user's perspective
 	TypeMilestone IssueType = "milestone" // Marks completion of a set of related issues (no work itself)
 )
 
-// TypeEvent is a system-internal type used by set-state for audit trail beads.
+// TypeEvent is a system-internal type used by set-state for audit trail issuegraph.
 // Originally an orchestrator type, promoted to built-in internal type. It is not a
 // core work type (not in IsValid) but is accepted by IsValidWithCustom /
 // ValidateWithCustom and treated as built-in for hydration trust (GH#1356).
 const TypeEvent IssueType = "event"
 
 // Note: Most orchestrator types (convoy, merge-request, slot, agent, role, rig)
-// were removed from beads core. They are now purely custom types with no built-in constants.
+// were removed from issuegraph core. They are now purely custom types with no built-in constants.
 // Use string literals like types.IssueType("convoy") if needed, and configure types.custom.
-// molecule, gate, and event were re-promoted to built-in because bd commands rely on them:
-//   - molecule: bd mol pour/wisp/bond (swarm coordination)
-//   - gate: bd gate create/check/resolve, formula gate steps (GH#3213)
-//   - event: set-state audit trail beads (GH#1356)
+// molecule, gate, and event were re-promoted to built-in because issuegraph commands rely on them:
+//   - molecule: issuegraph mol pour/wisp/bond (swarm coordination)
+//   - gate: issuegraph gate create/check/resolve, formula gate steps (GH#3213)
+//   - event: set-state audit trail issuegraph (GH#1356)
 // (message was re-promoted to built-in for inter-agent communication — GH#1347.)
 
 // AllIssueTypes lists the built-in issue types (excludes TypeEvent and custom
 // types, matching IssueType.IsValid). Single source for IsValid and the
-// `bd schema` enum.
+// `issuegraph schema` enum.
 var AllIssueTypes = []IssueType{
 	TypeBug, TypeFeature, TypeTask, TypeEpic, TypeChore, TypeDecision,
 	TypeMessage, TypeMolecule, TypeGate, TypeSpike, TypeStory, TypeMilestone,
@@ -763,7 +763,7 @@ func (t IssueType) IsBuiltIn() bool {
 }
 
 // IsValidWithCustom checks if the issue type is valid, including custom types.
-// Custom types are user-defined via bd config set types.custom "type1,type2,..."
+// Custom types are user-defined via issuegraph config set types.custom "type1,type2,..."
 func (t IssueType) IsValidWithCustom(customTypes []string) bool {
 	if t.IsBuiltIn() {
 		return true
@@ -798,7 +798,7 @@ func (t IssueType) Normalize() IssueType {
 }
 
 // RequiredSection describes a recommended section for an issue type.
-// Used by bd lint and bd create --validate for template validation.
+// Used by issuegraph lint and issuegraph create --validate for template validation.
 type RequiredSection struct {
 	Heading string // Markdown heading, e.g., "## Steps to Reproduce"
 	Hint    string // Guidance for what to include
@@ -1083,7 +1083,7 @@ func joinNamesWithOr[T ~string](names []T) string {
 	return strings.Join(strs[:len(strs)-1], ", ") + ", or " + strs[len(strs)-1]
 }
 
-// WorkType categorizes how work assignment operates for a bead (Decision 006)
+// WorkType categorizes how work assignment operates for a issue (Decision 006)
 type WorkType string
 
 // WorkType constants
@@ -1145,7 +1145,7 @@ type IssueWithCounts struct {
 }
 
 // IssueDetails extends Issue with labels, dependencies, dependents, and comments.
-// Used for JSON serialization in bd show and RPC responses.
+// Used for JSON serialization in issuegraph show and RPC responses.
 type IssueDetails struct {
 	Issue
 	Labels       []string                       `json:"labels,omitempty"`
@@ -1209,7 +1209,7 @@ type IssueDetails struct {
 // RevisionToken renders an optimistic-concurrency token for the wire.
 //
 // This and ParseRevisionToken are the ONE spelling of the encoding. The token
-// is int64 everywhere inside bd — the row_lock column, Issue.RowVersion, the
+// is int64 everywhere inside issuegraph — the row_lock column, Issue.RowVersion, the
 // ExpectedVersion guard on the issueops requests — and a decimal string
 // everywhere on the wire, because it is opaque and equality-only and a JSON
 // number loses the top bits in a JavaScript consumer. Keeping the conversion in
@@ -1259,7 +1259,7 @@ const (
 	DepRepliesTo  DependencyType = "replies-to" // Conversation threading
 	DepRelatesTo  DependencyType = "relates-to" // Loose knowledge graph edges
 	DepDuplicates DependencyType = "duplicates" // Deduplication link
-	DepSupersedes DependencyType = "supersedes" // Replacement link: old issue superseded by a different issue (bd supersede); not a version relation
+	DepSupersedes DependencyType = "supersedes" // Replacement link: old issue superseded by a different issue (issuegraph supersede); not a version relation
 
 	// Entity types (HOP foundation - Decision 004)
 	DepAuthoredBy DependencyType = "authored-by" // Creator relationship
@@ -1280,8 +1280,8 @@ const (
 )
 
 // AllDependencyTypes lists the built-in dependency types, in declaration order.
-// Single source for the `bd schema` enum so the published schema enumerates
-// exactly the types bd recognizes.
+// Single source for the `issuegraph schema` enum so the published schema enumerates
+// exactly the types issuegraph recognizes.
 var AllDependencyTypes = []DependencyType{
 	DepBlocks, DepParentChild, DepConditionalBlocks, DepWaitsFor,
 	DepRelated, DepDiscoveredFrom,
@@ -1656,7 +1656,7 @@ const (
 	EventLabelRemoved      EventType = "label_removed"
 	EventCompacted         EventType = "compacted"
 	// EventLeaseReclaimed records that a stale lease was reverted to ready by
-	// bd reclaim (dead-worker recovery). old_value is the previous owner.
+	// issuegraph reclaim (dead-worker recovery). old_value is the previous owner.
 	EventLeaseReclaimed EventType = "lease_reclaimed"
 )
 
@@ -1666,7 +1666,7 @@ const (
 //
 // Unlike Event (a field-mutation audit record), a ProvenanceEvent records that
 // something happened in the world — a commit landed, a claim was made, work was
-// handed off — and ties it to an opaque external Ref. bd never interprets Actor
+// handed off — and ties it to an opaque external Ref. issuegraph never interprets Actor
 // or Ref; only Kind and RefKind are structurally validated. This keeps the log
 // a primitive usable by any runtime without baking in orchestrator semantics.
 //
@@ -1955,7 +1955,7 @@ type IssueFilter struct {
 	// in an order neither side agrees on.
 	//
 	// THE KEY IS MUTABLE, which created_at is not, and that changes what a
-	// walk can promise. `bd update --priority` moves a row between pages
+	// walk can promise. `issuegraph update --priority` moves a row between pages
 	// mid-walk, so a row can be seen twice or missed — the already-documented
 	// consequence of pinning a position rather than a snapshot, reached here
 	// by updates as well as by creations. What totality buys is that
@@ -1982,8 +1982,8 @@ type IssueFilter struct {
 	// a row is ephemeral-tier when ephemeral=1 OR it carries a wisp_type.
 	// The distinction exists because the flag alone misses typed wisps minted
 	// without it (older creators set wisp_type but not ephemeral), and those
-	// rows must fall to `bd purge`, not accumulate forever — while NoHistory
-	// beads (wisps plane, ephemeral=0, no wisp_type) stay durable-tier.
+	// rows must fall to `issuegraph purge`, not accumulate forever — while NoHistory
+	// issuegraph (wisps plane, ephemeral=0, no wisp_type) stay durable-tier.
 	// Unlike Ephemeral=true this field does NOT route the search to the wisps
 	// plane alone; a tier query must merge both planes, because legacy typed
 	// wisps can live in the issues table. nil = no tier constraint.
@@ -2035,7 +2035,7 @@ type IssueFilter struct {
 
 	// SkipLabels suppresses label hydration. When true, the labels JOIN is
 	// skipped and Issue.Labels is left nil (callers MUST treat as empty).
-	// Opt-in performance flag for the bd list --skip-labels code path.
+	// Opt-in performance flag for the issuegraph list --skip-labels code path.
 	SkipLabels bool
 
 	// SkipCounts suppresses cardinality hydration on the counts mega-query.
@@ -2062,11 +2062,11 @@ type IssueFilter struct {
 	// Limit: Limit=0 still means "unlimited" at the contract level; MaxRows is
 	// a safety knob layered on top. When both are set, the effective SQL LIMIT
 	// is min(Limit, MaxRows+1). Library users may set MaxRows directly; the
-	// CLI layer resolves it from --max-rows / BEADS_MAX_ROWS.
+	// CLI layer resolves it from --max-rows / ISSUEGRAPH_MAX_ROWS.
 	MaxRows int
 
 	// MaxRowsSource attributes which knob set MaxRows, used in error messages.
-	// Expected values: "--max-rows", "BEADS_MAX_ROWS", or "" (library users
+	// Expected values: "--max-rows", "ISSUEGRAPH_MAX_ROWS", or "" (library users
 	// who set MaxRows directly without source attribution).
 	MaxRowsSource string
 
@@ -2080,8 +2080,8 @@ type IssueFilter struct {
 	//
 	// Backend coverage: honored on BOTH stacks for the COUNTED page, which is
 	// every read that returns IssueWithCounts — issueops.Reader.List on either
-	// implementation, and so `bd list --json` on both routes and
-	// GET /v0/beads/issues. It rides the counts mega-query as
+	// implementation, and so `issuegraph list --json` on both routes and
+	// GET /v0/issuegraph/issues. It rides the counts mega-query as
 	// sqlbuild.CountsHydration.Lite, which both seams derive from this field
 	// through their hydrationFor helper.
 	//
@@ -2123,7 +2123,7 @@ func (s SortPolicy) IsValid() bool {
 }
 
 // ReclaimedLease names an issue whose stale lease was reverted to ready by
-// bd reclaim, together with the owner the lease was taken from. Returned so
+// issuegraph reclaim, together with the owner the lease was taken from. Returned so
 // callers (the CLI, a supervisor) can report which dead workers' work was
 // recovered.
 type ReclaimedLease struct {
@@ -2131,7 +2131,7 @@ type ReclaimedLease struct {
 	PreviousOwner string `json:"previous_owner"`
 }
 
-// ReclaimFilter scopes which stale-lease issues bd reclaim may revert. The
+// ReclaimFilter scopes which stale-lease issues issuegraph reclaim may revert. The
 // zero value reclaims every stale lease (the historical global behavior);
 // every populated field narrows the set further (fields AND-combine).
 //
@@ -2187,7 +2187,7 @@ type WorkFilter struct {
 	Limit         int
 	SortPolicy    SortPolicy
 
-	// Parent filtering: filter to descendants of a bead/epic (recursive)
+	// Parent filtering: filter to descendants of a issue/epic (recursive)
 	ParentID *string // Show all descendants of this issue
 
 	// Molecule filtering: filter to direct children of this molecule
@@ -2225,12 +2225,12 @@ type WorkFilter struct {
 	Offset int
 
 	// MaxRows enforces a hard upper bound on the row count returned. Mirrors
-	// IssueFilter.MaxRows so bd ready honors --max-rows / BEADS_MAX_ROWS
-	// symmetrically with bd list. 0 (the default) disables the cap.
+	// IssueFilter.MaxRows so issuegraph ready honors --max-rows / ISSUEGRAPH_MAX_ROWS
+	// symmetrically with issuegraph list. 0 (the default) disables the cap.
 	MaxRows int
 
 	// MaxRowsSource attributes which knob set MaxRows. Expected values:
-	// "--max-rows", "BEADS_MAX_ROWS", or "" (library users with no source).
+	// "--max-rows", "ISSUEGRAPH_MAX_ROWS", or "" (library users with no source).
 	MaxRowsSource string
 
 	// Lite mirrors IssueFilter.Lite for ready work: the heavy TEXT columns
@@ -2334,7 +2334,7 @@ const (
 // Used by: modules/cli/pour.go, modules/cli/wisp.go (ID generation)
 const (
 	IDPrefixMol  = "mol"  // Persistent molecules (bd-mol-xxx)
-	IDPrefixWisp = "wisp" // Ephemeral wisps (bd-wisp-xxx)
+	IDPrefixWisp = "wisp" // Ephemeral wisps (issuegraph-wisp-xxx)
 )
 
 // IsCompound returns true if this issue is a compound (bonded from multiple sources).

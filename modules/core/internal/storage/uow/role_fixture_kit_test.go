@@ -6,9 +6,9 @@ import (
 	"testing"
 	"time"
 
-	"github.com/steveyegge/beads/backend/conformance"
-	"github.com/steveyegge/beads/internal/storage/domain"
-	"github.com/steveyegge/beads/internal/types"
+	"github.com/borg0ai/dx-issuegraph/backend/conformance"
+	"github.com/borg0ai/dx-issuegraph/internal/storage/domain"
+	"github.com/borg0ai/dx-issuegraph/internal/types"
 )
 
 // roleFixtureKit is the unit-of-work backend's answer to the hooks every
@@ -25,7 +25,7 @@ import (
 //
 // FROZEN SURFACE. This file is owned by the scaffolding slice (bd-kue5t) and
 // no role slice edits it. A role that needs a hook this kit does not expose
-// routes the addition through a follow-up commit against that bead, so the
+// routes the addition through a follow-up commit against that issue, so the
 // three kits never drift apart in a worktree.
 //
 // NAMING CONVENTION FOR EVERYTHING BUILT ON THIS KIT: every unexported helper a
@@ -138,7 +138,7 @@ func newUOWRoleFixtureProvider(t *testing.T, ctx context.Context, prefix string)
 	t.Helper()
 	provider := newTestUOWProvider(t)
 	if err := RunTx(ctx, provider, func(ctx context.Context, uw UnitOfWork) (string, error) {
-		return "bd: set issue prefix", uw.ConfigUseCase().SetConfig(ctx, "issue_prefix", prefix)
+		return "issuegraph: set issue prefix", uw.ConfigUseCase().SetConfig(ctx, "issue_prefix", prefix)
 	}); err != nil {
 		t.Fatalf("set issue_prefix to %q: %v", prefix, err)
 	}
@@ -239,11 +239,11 @@ func newUOWRoleFixtureKit(provider UnitOfWorkProvider, prefix string) roleFixtur
 // inside the shared Run function) keeps the case running and passing on the
 // backends that agree, so their behaviour is pinned the day the divergence is
 // found. The "KNOWN DIVERGENCE" prefix is literal so `grep -r "KNOWN DIVERGENCE"`
-// finds every parked case, and beadID names the child of bd-yby99 that records
+// finds every parked case, and issueID names the child of bd-yby99 that records
 // the three-way observed behaviour.
-func skipKnownDivergence(t *testing.T, beadID, reason string) {
+func skipKnownDivergence(t *testing.T, issueID, reason string) {
 	t.Helper()
-	t.Skipf("KNOWN DIVERGENCE %s: %s", beadID, reason)
+	t.Skipf("KNOWN DIVERGENCE %s: %s", issueID, reason)
 }
 
 // TestScanRawSQLValueCoversTheContractDestinations pins the scan-destination

@@ -18,8 +18,8 @@ jobs:
         with:
           app-id: ${{ secrets.FLAKE_UPDATE_APP_ID }}
           private-key: ${{ secrets.FLAKE_UPDATE_APP_PRIVATE_KEY }}
-          owner: gastownhall
-          repositories: beads
+          owner: borg0ai
+          repositories: dx-issuegraph
           permission-contents: write
           permission-pull-requests: write
 

@@ -7,7 +7,7 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/steveyegge/beads/modules/cli/doctor"
+	"github.com/borg0ai/dx-issuegraph/modules/cli/doctor"
 )
 
 // TestSetupGitExclude_Worktree verifies that setupGitExclude writes to the main
@@ -57,8 +57,8 @@ func TestSetupGitExclude_Worktree(t *testing.T) {
 		t.Fatalf("failed to read main exclude file: %v", err)
 	}
 
-	if !strings.Contains(string(content), ".beads/") {
-		t.Errorf("main repo exclude missing .beads/ pattern: %s", content)
+	if !strings.Contains(string(content), ".issuegraph/") {
+		t.Errorf("main repo exclude missing .issuegraph/ pattern: %s", content)
 	}
 	if !strings.Contains(string(content), ".claude/settings.local.json") {
 		t.Errorf("main repo exclude missing .claude/settings.local.json pattern: %s", content)
@@ -72,9 +72,9 @@ func TestSetupGitExclude_Worktree(t *testing.T) {
 	}
 	worktreeExcludePath := filepath.Join(strings.TrimSpace(string(worktreeGitDir)), "info", "exclude")
 	if worktreeContent, err := os.ReadFile(worktreeExcludePath); err == nil {
-		// If worktree exclude file exists, it should NOT have the beads patterns
-		if strings.Contains(string(worktreeContent), ".beads/") {
-			t.Errorf("worktree exclude should not have .beads/ pattern (it was written to wrong location)")
+		// If worktree exclude file exists, it should NOT have the issuegraph patterns
+		if strings.Contains(string(worktreeContent), ".issuegraph/") {
+			t.Errorf("worktree exclude should not have .issuegraph/ pattern (it was written to wrong location)")
 		}
 	}
 	// If the file doesn't exist, that's fine - we didn't create it
@@ -126,8 +126,8 @@ func TestSetupForkExclude_Worktree(t *testing.T) {
 		t.Fatalf("failed to read main exclude file: %v", err)
 	}
 
-	if !strings.Contains(string(content), ".beads/") {
-		t.Errorf("main repo exclude missing .beads/ pattern: %s", content)
+	if !strings.Contains(string(content), ".issuegraph/") {
+		t.Errorf("main repo exclude missing .issuegraph/ pattern: %s", content)
 	}
 
 	// Verify: worktree's .git/worktrees/<name>/info/exclude should NOT exist
@@ -138,22 +138,22 @@ func TestSetupForkExclude_Worktree(t *testing.T) {
 	}
 	worktreeExcludePath := filepath.Join(strings.TrimSpace(string(worktreeGitDir)), "info", "exclude")
 	if worktreeContent, err := os.ReadFile(worktreeExcludePath); err == nil {
-		// If worktree exclude file exists, it should NOT have the beads patterns
-		if strings.Contains(string(worktreeContent), ".beads/") {
-			t.Errorf("worktree exclude should not have .beads/ pattern (it was written to wrong location)")
+		// If worktree exclude file exists, it should NOT have the issuegraph patterns
+		if strings.Contains(string(worktreeContent), ".issuegraph/") {
+			t.Errorf("worktree exclude should not have .issuegraph/ pattern (it was written to wrong location)")
 		}
 	}
 }
 
 // TestAddProjectPatternsToGitExclude_DoesNotTouchGitignore is a regression test for stealth mode
-// leaking into the tracked project-root .gitignore. In stealth mode bd must route the Dolt-file
+// leaking into the tracked project-root .gitignore. In stealth mode issuegraph must route the Dolt-file
 // ignore patterns into .git/info/exclude and must NEVER create or modify the project .gitignore
-// (which collaborators see). Previously bd init --stealth called doctor.EnsureProjectGitignore
-// unconditionally, adding a "# Beads / Dolt files" section to the tracked .gitignore.
+// (which collaborators see). Previously issuegraph init --stealth called doctor.EnsureProjectGitignore
+// unconditionally, adding a "# IssueGraph / Dolt files" section to the tracked .gitignore.
 func TestAddProjectPatternsToGitExclude_DoesNotTouchGitignore(t *testing.T) {
 	dir := newGitRepo(t)
 
-	// Pre-existing project .gitignore unrelated to beads.
+	// Pre-existing project .gitignore unrelated to issuegraph.
 	gitignorePath := filepath.Join(dir, ".gitignore")
 	originalGitignore := "node_modules/\n"
 	if err := os.WriteFile(gitignorePath, []byte(originalGitignore), 0644); err != nil {
@@ -243,16 +243,16 @@ func TestAddProjectPatternsToGitExclude_Idempotent(t *testing.T) {
 // TestIsStealthRepo verifies stealth detection via the persisted no-git-ops flag.
 func TestIsStealthRepo(t *testing.T) {
 	dir := newGitRepo(t)
-	beadsDir := filepath.Join(dir, ".beads")
-	if err := os.MkdirAll(beadsDir, 0755); err != nil {
-		t.Fatalf("mkdir .beads: %v", err)
+	issuegraphDir := filepath.Join(dir, ".issuegraph")
+	if err := os.MkdirAll(issuegraphDir, 0755); err != nil {
+		t.Fatalf("mkdir .issuegraph: %v", err)
 	}
 
 	if isStealthRepo(dir) {
 		t.Error("expected non-stealth repo before no-git-ops is set")
 	}
 
-	if err := os.WriteFile(filepath.Join(beadsDir, "config.yaml"), []byte("no-git-ops: true\n"), 0644); err != nil {
+	if err := os.WriteFile(filepath.Join(issuegraphDir, "config.yaml"), []byte("no-git-ops: true\n"), 0644); err != nil {
 		t.Fatalf("write config.yaml: %v", err)
 	}
 	if !isStealthRepo(dir) {
@@ -261,7 +261,7 @@ func TestIsStealthRepo(t *testing.T) {
 }
 
 // TestCheckProjectExcludeStealth is the doctor-side regression guard: in stealth mode the project
-// ignore patterns must be checked against .git/info/exclude, not a tracked .gitignore, so bd doctor
+// ignore patterns must be checked against .git/info/exclude, not a tracked .gitignore, so issuegraph doctor
 // never re-creates the .gitignore.
 func TestCheckProjectExcludeStealth(t *testing.T) {
 	dir := newGitRepo(t)
@@ -290,7 +290,7 @@ func TestCheckProjectExcludeStealth(t *testing.T) {
 }
 
 // leakedGitignore returns the content doctor.EnsureProjectGitignore writes when it appends the
-// beads section beneath existing user content.
+// issuegraph section beneath existing user content.
 func leakedGitignore(userContent string) string {
 	s := userContent
 	if len(s) > 0 && !strings.HasSuffix(s, "\n") {
@@ -303,21 +303,21 @@ func leakedGitignore(userContent string) string {
 	return s
 }
 
-// TestRemoveBeadsProjectGitignoreSection_PreservesUserContent verifies that remediation strips only
+// TestRemoveIssueGraphProjectGitignoreSection_PreservesUserContent verifies that remediation strips only
 // the bd-managed section and leaves unrelated user patterns intact.
-func TestRemoveBeadsProjectGitignoreSection_PreservesUserContent(t *testing.T) {
+func TestRemoveIssueGraphProjectGitignoreSection_PreservesUserContent(t *testing.T) {
 	dir := newGitRepo(t)
 	gitignorePath := filepath.Join(dir, ".gitignore")
 	if err := os.WriteFile(gitignorePath, []byte(leakedGitignore("node_modules/\n*.log")), 0644); err != nil {
 		t.Fatalf("seed .gitignore: %v", err)
 	}
 
-	changed, err := removeBeadsProjectGitignoreSection(dir)
+	changed, err := removeIssueGraphProjectGitignoreSection(dir)
 	if err != nil {
-		t.Fatalf("removeBeadsProjectGitignoreSection failed: %v", err)
+		t.Fatalf("removeIssueGraphProjectGitignoreSection failed: %v", err)
 	}
 	if !changed {
-		t.Fatal("expected the beads section to be removed")
+		t.Fatal("expected the issuegraph section to be removed")
 	}
 
 	got, err := os.ReadFile(gitignorePath)
@@ -325,11 +325,11 @@ func TestRemoveBeadsProjectGitignoreSection_PreservesUserContent(t *testing.T) {
 		t.Fatalf("read .gitignore: %v", err)
 	}
 	if strings.Contains(string(got), doctor.ProjectGitignoreHeader) {
-		t.Errorf("beads header still present:\n%s", got)
+		t.Errorf("issuegraph header still present:\n%s", got)
 	}
 	for _, p := range doctor.ProjectGitignorePatterns {
 		if containsExactPattern(string(got), p) {
-			t.Errorf("beads pattern %q still present:\n%s", p, got)
+			t.Errorf("issuegraph pattern %q still present:\n%s", p, got)
 		}
 	}
 	for _, want := range []string{"node_modules/", "*.log"} {
@@ -339,30 +339,30 @@ func TestRemoveBeadsProjectGitignoreSection_PreservesUserContent(t *testing.T) {
 	}
 }
 
-// TestRemoveBeadsProjectGitignoreSection_DeletesWhenOnlyBeads verifies that a .gitignore beads
+// TestRemoveIssueGraphProjectGitignoreSection_DeletesWhenOnlyIssueGraph verifies that a .gitignore issuegraph
 // created solely for its own section is removed entirely, restoring true stealth.
-func TestRemoveBeadsProjectGitignoreSection_DeletesWhenOnlyBeads(t *testing.T) {
+func TestRemoveIssueGraphProjectGitignoreSection_DeletesWhenOnlyIssueGraph(t *testing.T) {
 	dir := newGitRepo(t)
 	gitignorePath := filepath.Join(dir, ".gitignore")
 	if err := os.WriteFile(gitignorePath, []byte(leakedGitignore("")), 0644); err != nil {
 		t.Fatalf("seed .gitignore: %v", err)
 	}
 
-	changed, err := removeBeadsProjectGitignoreSection(dir)
+	changed, err := removeIssueGraphProjectGitignoreSection(dir)
 	if err != nil {
-		t.Fatalf("removeBeadsProjectGitignoreSection failed: %v", err)
+		t.Fatalf("removeIssueGraphProjectGitignoreSection failed: %v", err)
 	}
 	if !changed {
 		t.Fatal("expected removal")
 	}
 	if _, err := os.Stat(gitignorePath); !os.IsNotExist(err) {
-		t.Errorf("expected .gitignore removed when beads was its only content (err=%v)", err)
+		t.Errorf("expected .gitignore removed when issuegraph was its only content (err=%v)", err)
 	}
 }
 
-// TestRemoveBeadsProjectGitignoreSection_NoSection verifies remediation is a no-op (and reports no
-// change) for a .gitignore that has no beads section.
-func TestRemoveBeadsProjectGitignoreSection_NoSection(t *testing.T) {
+// TestRemoveIssueGraphProjectGitignoreSection_NoSection verifies remediation is a no-op (and reports no
+// change) for a .gitignore that has no issuegraph section.
+func TestRemoveIssueGraphProjectGitignoreSection_NoSection(t *testing.T) {
 	dir := newGitRepo(t)
 	gitignorePath := filepath.Join(dir, ".gitignore")
 	orig := "node_modules/\n*.log\n"
@@ -370,12 +370,12 @@ func TestRemoveBeadsProjectGitignoreSection_NoSection(t *testing.T) {
 		t.Fatalf("seed .gitignore: %v", err)
 	}
 
-	changed, err := removeBeadsProjectGitignoreSection(dir)
+	changed, err := removeIssueGraphProjectGitignoreSection(dir)
 	if err != nil {
-		t.Fatalf("removeBeadsProjectGitignoreSection failed: %v", err)
+		t.Fatalf("removeIssueGraphProjectGitignoreSection failed: %v", err)
 	}
 	if changed {
-		t.Error("expected no change for a .gitignore without a beads section")
+		t.Error("expected no change for a .gitignore without a issuegraph section")
 	}
 	got, _ := os.ReadFile(gitignorePath)
 	if string(got) != orig {
@@ -386,13 +386,13 @@ func TestRemoveBeadsProjectGitignoreSection_NoSection(t *testing.T) {
 	if err := os.Remove(gitignorePath); err != nil {
 		t.Fatalf("remove .gitignore: %v", err)
 	}
-	if changed, err := removeBeadsProjectGitignoreSection(dir); err != nil || changed {
+	if changed, err := removeIssueGraphProjectGitignoreSection(dir); err != nil || changed {
 		t.Errorf("expected no-op for missing .gitignore, got changed=%v err=%v", changed, err)
 	}
 }
 
 // TestCheckProjectExcludeStealth_WarnsOnLeakedGitignore verifies the stealth doctor check flags a
-// tracked .gitignore that still exposes the beads section, even when .git/info/exclude is correct.
+// tracked .gitignore that still exposes the issuegraph section, even when .git/info/exclude is correct.
 func TestCheckProjectExcludeStealth_WarnsOnLeakedGitignore(t *testing.T) {
 	dir := newGitRepo(t)
 	origDir, _ := os.Getwd()
@@ -414,8 +414,8 @@ func TestCheckProjectExcludeStealth_WarnsOnLeakedGitignore(t *testing.T) {
 	}
 
 	// After remediation the check should pass.
-	if _, err := removeBeadsProjectGitignoreSection(dir); err != nil {
-		t.Fatalf("removeBeadsProjectGitignoreSection failed: %v", err)
+	if _, err := removeIssueGraphProjectGitignoreSection(dir); err != nil {
+		t.Fatalf("removeIssueGraphProjectGitignoreSection failed: %v", err)
 	}
 	if check := checkProjectExcludeStealth(dir); check.Status != doctor.StatusOK {
 		t.Errorf("expected OK after remediation, got %q (%s)", check.Status, check.Message)
@@ -443,8 +443,8 @@ func TestSetupGitExclude_RegularRepo(t *testing.T) {
 		t.Fatalf("failed to read exclude file: %v", err)
 	}
 
-	if !strings.Contains(string(content), ".beads/") {
-		t.Errorf("exclude file missing .beads/ pattern: %s", content)
+	if !strings.Contains(string(content), ".issuegraph/") {
+		t.Errorf("exclude file missing .issuegraph/ pattern: %s", content)
 	}
 	if !strings.Contains(string(content), ".claude/settings.local.json") {
 		t.Errorf("exclude file missing .claude/settings.local.json pattern: %s", content)

@@ -5,9 +5,9 @@ import (
 	"database/sql"
 	"testing"
 
-	"github.com/steveyegge/beads/internal/storage/depid"
-	"github.com/steveyegge/beads/internal/storage/issueops"
-	"github.com/steveyegge/beads/internal/types"
+	"github.com/borg0ai/dx-issuegraph/internal/storage/depid"
+	"github.com/borg0ai/dx-issuegraph/internal/storage/issueops"
+	"github.com/borg0ai/dx-issuegraph/internal/types"
 )
 
 // seedBlockedPair creates issues W and X with W blocked on X through the
@@ -64,7 +64,7 @@ func recomputeAfterMerge(ctx context.Context, t *testing.T, db *sql.DB, fromComm
 // audit scenario, with the remote clone's merged-in writes simulated by raw
 // SQL (exactly what a merge does: rows change with no local write path
 // running). The blocker X is closed "remotely"; without the post-merge
-// recompute, W stays is_blocked=1 with a closed blocker and `bd ready`
+// recompute, W stays is_blocked=1 with a closed blocker and `issuegraph ready`
 // silently hides it.
 func TestRecomputeIsBlockedAfterMerge_BlockerClosedRemotely(t *testing.T) {
 	store, cleanup := setupTestStore(t)
@@ -224,7 +224,7 @@ func TestRecomputeIsBlockedAfterMerge_PendingMarkerWidensWindow(t *testing.T) {
 }
 
 // TestMergeRecomputesIsBlocked covers the bd-578h9.11 coverage gap: merges
-// that land via store.Merge (bd vc merge, Sync's merge step) bring in writes
+// that land via store.Merge (issuegraph vc merge, Sync's merge step) bring in writes
 // that bypassed every local is_blocked hook, exactly like a pull's merge —
 // but only the pull paths ran the recompute.
 func TestMergeRecomputesIsBlocked(t *testing.T) {
@@ -285,12 +285,12 @@ func TestMergeRecomputesIsBlocked(t *testing.T) {
 	}
 
 	if isBlocked(ctx, t, db, "bm-w") {
-		t.Error("bm-w still is_blocked=1 after bd merge though the merged-in branch closed its only blocker")
+		t.Error("bm-w still is_blocked=1 after issuegraph merge though the merged-in branch closed its only blocker")
 	}
 }
 
 // TestRecomputeIsBlockedAfterMerge_WorkingSetMergeHEADUnchanged covers the
-// bd-6dnrw.39 hole: a pull whose merge bd auto-resolved (conflicts) or
+// bd-6dnrw.39 hole: a pull whose merge issuegraph auto-resolved (conflicts) or
 // cascade-repaired (FK violations) lands in the WORKING SET without advancing
 // HEAD — the merge commit is only created by a later DOLT_COMMIT. The
 // recompute must not mistake the unchanged HEAD for "nothing merged": it

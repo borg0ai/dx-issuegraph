@@ -6,9 +6,9 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/steveyegge/beads/internal/storage/domain"
-	"github.com/steveyegge/beads/internal/types"
-	"github.com/steveyegge/beads/issueops"
+	"github.com/borg0ai/dx-issuegraph/internal/storage/domain"
+	"github.com/borg0ai/dx-issuegraph/internal/types"
+	"github.com/borg0ai/dx-issuegraph/issueops"
 )
 
 func TestOutputDeleteProxiedPreviewIsPayloadBlind(t *testing.T) {
@@ -135,7 +135,7 @@ func TestOutputDeleteProxiedPreviewExactContracts(t *testing.T) {
 		out := captureStdout(t, func() error { return outputDeleteProxiedPreview(in, result) })
 		for _, required := range []string{
 			"Cascade mode enabled - will also delete all dependent issues",
-			"bd delete bd-target --cascade --force",
+			"issuegraph delete bd-target --cascade --force",
 		} {
 			if !strings.Contains(out, required) {
 				t.Errorf("cascade preview missing %q:\n%s", required, out)

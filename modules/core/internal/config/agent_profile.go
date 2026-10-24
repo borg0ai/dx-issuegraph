@@ -16,8 +16,8 @@ const (
 	// ProfileMinimal has the same git authority as ProfileConservative; it
 	// only differs in how much text hook-first integrations install.
 	ProfileMinimal AgentProfile = "minimal"
-	// ProfileTeamMaintainer allows an agent to close beads, run quality
-	// gates, commit, `bd dolt push`, and `git push` as part of routine work,
+	// ProfileTeamMaintainer allows an agent to close issuegraph, run quality
+	// gates, commit, `issuegraph dolt push`, and `git push` as part of routine work,
 	// subordinate to any explicit "do not commit"/"do not push" instruction.
 	ProfileTeamMaintainer AgentProfile = "team-maintainer"
 )
@@ -47,7 +47,7 @@ func IsValidAgentProfile(profile string) bool {
 // GetAgentProfile retrieves the explicit agent policy profile.
 //
 // Config key: agent.profile
-// Env var: BD_AGENT_PROFILE (bound automatically via viper's BD env prefix)
+// Env var: ISSUEGRAPH_AGENT_PROFILE (bound automatically via viper's ISSUEGRAPH env prefix)
 // Valid values: conservative | minimal | team-maintainer
 //
 // Returns ProfileConservative if unset, empty, or invalid; an invalid

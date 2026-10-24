@@ -16,68 +16,68 @@ import (
 	"testing"
 	"time"
 
-	"github.com/steveyegge/beads/internal/config"
-	"github.com/steveyegge/beads/internal/configfile"
-	"github.com/steveyegge/beads/internal/storage/embeddeddolt"
-	"github.com/steveyegge/beads/internal/storage/schema"
-	"github.com/steveyegge/beads/internal/types"
+	"github.com/borg0ai/dx-issuegraph/internal/config"
+	"github.com/borg0ai/dx-issuegraph/internal/configfile"
+	"github.com/borg0ai/dx-issuegraph/internal/storage/embeddeddolt"
+	"github.com/borg0ai/dx-issuegraph/internal/storage/schema"
+	"github.com/borg0ai/dx-issuegraph/internal/types"
 )
 
 var (
-	embeddedBDOnce sync.Once
-	embeddedBD     string
-	embeddedBDErr  error
+	embeddedIssueGraphOnce sync.Once
+	embeddedBD             string
+	embeddedIssueGraphErr  error
 )
 
-// buildEmbeddedBD returns the path to an embedded bd binary for subprocess tests.
-// If BEADS_TEST_BD_BINARY is set, uses that pre-built binary (skipping the ~45s build).
+// buildEmbeddedBD returns the path to an embedded issuegraph binary for subprocess tests.
+// If ISSUEGRAPH_TEST_ISSUEGRAPH_BINARY is set, uses that pre-built binary (skipping the ~45s build).
 // CI can pre-build once and pass the path to all test invocations.
 func buildEmbeddedBD(t *testing.T) string {
 	t.Helper()
-	embeddedBDOnce.Do(func() {
-		if prebuilt := os.Getenv("BEADS_TEST_BD_BINARY"); prebuilt != "" {
+	embeddedIssueGraphOnce.Do(func() {
+		if prebuilt := os.Getenv("ISSUEGRAPH_TEST_ISSUEGRAPH_BINARY"); prebuilt != "" {
 			if _, err := os.Stat(prebuilt); err != nil {
-				embeddedBDErr = fmt.Errorf("BEADS_TEST_BD_BINARY=%q not found: %w", prebuilt, err)
+				embeddedIssueGraphErr = fmt.Errorf("ISSUEGRAPH_TEST_ISSUEGRAPH_BINARY=%q not found: %w", prebuilt, err)
 				return
 			}
 			embeddedBD = prebuilt
 			return
 		}
-		tmpDir, err := testTempDir("bd-embedded-init-test-*")
+		tmpDir, err := testTempDir("issuegraph-embedded-init-test-*")
 		if err != nil {
-			embeddedBDErr = fmt.Errorf("failed to create temp dir: %w", err)
+			embeddedIssueGraphErr = fmt.Errorf("failed to create temp dir: %w", err)
 			return
 		}
-		name := "bd"
+		name := "issuegraph"
 		if runtime.GOOS == "windows" {
-			name = "bd.exe"
+			name = "issuegraph.exe"
 		}
 		embeddedBD = filepath.Join(tmpDir, name)
 		cmd := exec.Command("go", "build", "-tags", "gms_pure_go", "-o", embeddedBD, ".")
 		if out, err := cmd.CombinedOutput(); err != nil {
-			embeddedBDErr = fmt.Errorf("go build failed: %v\n%s", err, out)
+			embeddedIssueGraphErr = fmt.Errorf("go build failed: %v\n%s", err, out)
 		}
 	})
-	if embeddedBDErr != nil {
-		t.Fatalf("Failed to build embedded bd binary: %v", embeddedBDErr)
+	if embeddedIssueGraphErr != nil {
+		t.Fatalf("Failed to build embedded issuegraph binary: %v", embeddedIssueGraphErr)
 	}
 	return embeddedBD
 }
 
-func bdEnv(dir string) []string {
+func issuegraphEnv(dir string) []string {
 	var env []string
 	for _, e := range os.Environ() {
-		if strings.HasPrefix(e, "BEADS_") {
+		if strings.HasPrefix(e, "ISSUEGRAPH_") {
 			continue
 		}
 		env = append(env, e)
 	}
 	return append(env,
 		"HOME="+dir,
-		"BEADS_DOLT_AUTO_START=0",
-		"BEADS_NO_DAEMON=1",
-		"BD_DISABLE_METRICS=1",
-		"BD_DISABLE_EVENT_FLUSH=1",
+		"ISSUEGRAPH_DOLT_AUTO_START=0",
+		"ISSUEGRAPH_NO_DAEMON=1",
+		"ISSUEGRAPH_DISABLE_METRICS=1",
+		"ISSUEGRAPH_DISABLE_EVENT_FLUSH=1",
 	)
 }
 
@@ -94,13 +94,13 @@ func envWithout(env []string, name string) []string {
 }
 
 // isEmbeddedLockOutput recognizes every "another process holds the lock"
-// outcome for concurrent bd commands against the same embedded workspace:
+// outcome for concurrent issuegraph commands against the same embedded workspace:
 // the embedded Dolt flock's own messages, and the workspacegate EXCLUSIVE
 // contention message (workspacegate.ErrBusy = "workspace gate busy"). The
 // gate is acquired BEFORE the embedded flock is ever attempted, so a losing
-// concurrent `bd init` today reports gate contention rather than a flock
+// concurrent `issuegraph init` today reports gate contention rather than a flock
 // error — both are the same class of outcome from the caller's point of
-// view: another bd process holds the lock, retry later.
+// view: another issuegraph process holds the lock, retry later.
 func isEmbeddedLockOutput(out string) bool {
 	out = strings.ToLower(out)
 	return strings.Contains(out, "one writer at a time") ||
@@ -117,17 +117,17 @@ func runCommandBuffers(t *testing.T, cmd *exec.Cmd) (stdout, stderr bytes.Buffer
 	return stdout, stderr, err
 }
 
-// bdRunWithFlockRetry runs a bd command with retry on flock contention.
+// issuegraphRunWithFlockRetry runs a issuegraph command with retry on flock contention.
 // Returns stdout and nil on success, or combined stdout/stderr and the last
 // error after retries are exhausted or a non-flock error occurs.
-func bdRunWithFlockRetry(t *testing.T, bd, dir string, args ...string) ([]byte, error) {
+func issuegraphRunWithFlockRetry(t *testing.T, issuegraph, dir string, args ...string) ([]byte, error) {
 	t.Helper()
 	var out []byte
 	var err error
 	for attempt := 0; attempt < 10; attempt++ {
-		cmd := exec.Command(bd, args...)
+		cmd := exec.Command(issuegraph, args...)
 		cmd.Dir = dir
-		cmd.Env = bdEnv(dir)
+		cmd.Env = issuegraphEnv(dir)
 		var stdout, stderr bytes.Buffer
 		cmd.Stdout = &stdout
 		cmd.Stderr = &stderr
@@ -139,55 +139,55 @@ func bdRunWithFlockRetry(t *testing.T, bd, dir string, args ...string) ([]byte, 
 		if !isEmbeddedLockOutput(string(out)) {
 			return out, err
 		}
-		t.Logf("bd %s: flock contention (attempt %d/10), retrying...", args[0], attempt+1)
+		t.Logf("issuegraph %s: flock contention (attempt %d/10), retrying...", args[0], attempt+1)
 		time.Sleep(time.Duration(500*(1<<min(attempt, 4))) * time.Millisecond)
 	}
 	return out, err
 }
 
-// bdInit creates a temp dir with a git repo, runs bd init --quiet with the
-// given extra args, and returns (dir, beadsDir, combined output).
-// Fatals if bd init fails.
-func bdInit(t *testing.T, bd string, extraArgs ...string) (dir, beadsDir string, out string) {
+// issuegraphInit creates a temp dir with a git repo, runs issuegraph init --quiet with the
+// given extra args, and returns (dir, issuegraphDir, combined output).
+// Fatals if issuegraph init fails.
+func issuegraphInit(t *testing.T, issuegraph string, extraArgs ...string) (dir, issuegraphDir string, out string) {
 	t.Helper()
 	dir = t.TempDir()
 	initGitRepoAt(t, dir)
-	out = runBDInit(t, bd, dir, extraArgs...)
-	beadsDir = filepath.Join(dir, ".beads")
+	out = runIssueGraphInit(t, issuegraph, dir, extraArgs...)
+	issuegraphDir = filepath.Join(dir, ".issuegraph")
 	return
 }
 
-// bdInitInDir runs bd init --quiet in an existing dir. Fatals on failure.
-func runBDInit(t *testing.T, bd, dir string, extraArgs ...string) string {
+// issuegraphInitInDir runs issuegraph init --quiet in an existing dir. Fatals on failure.
+func runIssueGraphInit(t *testing.T, issuegraph, dir string, extraArgs ...string) string {
 	t.Helper()
 	args := append([]string{"init", "--quiet"}, extraArgs...)
-	cmd := exec.Command(bd, args...)
+	cmd := exec.Command(issuegraph, args...)
 	cmd.Dir = dir
-	cmd.Env = bdEnv(dir)
+	cmd.Env = issuegraphEnv(dir)
 	stdout, stderr, err := runCommandBuffers(t, cmd)
 	if err != nil {
-		t.Fatalf("bd init %s failed: %v\nstdout:\n%s\nstderr:\n%s", strings.Join(extraArgs, " "), err, stdout.String(), stderr.String())
+		t.Fatalf("issuegraph init %s failed: %v\nstdout:\n%s\nstderr:\n%s", strings.Join(extraArgs, " "), err, stdout.String(), stderr.String())
 	}
 	return stdout.String()
 }
 
-// bdInitFail runs bd init --quiet expecting failure. Returns combined output.
-func bdInitFail(t *testing.T, bd string, extraArgs ...string) string {
+// issuegraphInitFail runs issuegraph init --quiet expecting failure. Returns combined output.
+func issuegraphInitFail(t *testing.T, issuegraph string, extraArgs ...string) string {
 	t.Helper()
 	dir := t.TempDir()
 	initGitRepoAt(t, dir)
 	args := append([]string{"init", "--quiet"}, extraArgs...)
-	cmd := exec.Command(bd, args...)
+	cmd := exec.Command(issuegraph, args...)
 	cmd.Dir = dir
-	cmd.Env = bdEnv(dir)
+	cmd.Env = issuegraphEnv(dir)
 	out, err := cmd.CombinedOutput()
 	if err == nil {
-		t.Fatal("bd init should have failed")
+		t.Fatal("issuegraph init should have failed")
 	}
 	return string(out)
 }
 
-func readBack(t *testing.T, beadsDir, database, key string, metadata bool) string {
+func readBack(t *testing.T, issuegraphDir, database, key string, metadata bool) string {
 	t.Helper()
 
 	// The embedded dolt driver holds a process-level lock, so concurrent
@@ -199,7 +199,7 @@ func readBack(t *testing.T, beadsDir, database, key string, metadata bool) strin
 		if attempt > 0 {
 			time.Sleep(time.Duration(attempt) * 500 * time.Millisecond)
 		}
-		val, err := readBackOnce(t, beadsDir, database, key, metadata)
+		val, err := readBackOnce(t, issuegraphDir, database, key, metadata)
 		if err == nil {
 			return val
 		}
@@ -213,11 +213,11 @@ func readBack(t *testing.T, beadsDir, database, key string, metadata bool) strin
 	return "" // unreachable
 }
 
-func readBackOnce(t *testing.T, beadsDir, database, key string, metadata bool) (string, error) {
+func readBackOnce(t *testing.T, issuegraphDir, database, key string, metadata bool) (string, error) {
 	t.Helper()
 	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
 	defer cancel()
-	store, err := embeddeddolt.Open(ctx, beadsDir, database, "main")
+	store, err := embeddeddolt.Open(ctx, issuegraphDir, database, "main")
 	if err != nil {
 		return "", fmt.Errorf("New failed: %w", err)
 	}
@@ -288,17 +288,17 @@ func requireNoFile(t *testing.T, path string) {
 }
 
 func TestEmbeddedInit(t *testing.T) {
-	if os.Getenv("BEADS_TEST_EMBEDDED_DOLT") != "1" {
-		t.Skip("set BEADS_TEST_EMBEDDED_DOLT=1 to run embedded dolt init tests")
+	if os.Getenv("ISSUEGRAPH_TEST_EMBEDDED_DOLT") != "1" {
+		t.Skip("set ISSUEGRAPH_TEST_EMBEDDED_DOLT=1 to run embedded dolt init tests")
 	}
 	t.Parallel()
 
-	bd := buildEmbeddedBD(t)
+	issuegraph := buildEmbeddedBD(t)
 
 	t.Run("basic", func(t *testing.T) {
-		dir, beadsDir, out := bdInit(t, bd, "--prefix", "basic")
-		embeddedDir := filepath.Join(beadsDir, "embeddeddolt")
-		requireFile(t, beadsDir)
+		dir, issuegraphDir, out := issuegraphInit(t, issuegraph, "--prefix", "basic")
+		embeddedDir := filepath.Join(issuegraphDir, "embeddeddolt")
+		requireFile(t, issuegraphDir)
 		requireFile(t, embeddedDir)
 		requireFile(t, filepath.Join(embeddedDir, "basic", ".dolt"))
 
@@ -309,34 +309,34 @@ func TestEmbeddedInit(t *testing.T) {
 				t.Errorf("expected clean working set, got:\n%s", statusOut)
 			}
 			logOut := runDolt(t, doltBin, dbDir, "log", "--oneline")
-			for _, want := range []string{"schema: apply migrations", "bd init"} {
+			for _, want := range []string{"schema: apply migrations", "issuegraph init"} {
 				if !strings.Contains(logOut, want) {
 					t.Errorf("dolt log missing %q commit:\n%s", want, logOut)
 				}
 			}
 		}
 
-		if val := readBack(t, beadsDir, "basic", "issue_prefix", false); val != "basic" {
+		if val := readBack(t, issuegraphDir, "basic", "issue_prefix", false); val != "basic" {
 			t.Errorf("issue_prefix: got %q, want %q", val, "basic")
 		}
-		if strings.Contains(out, "bd initialized") {
+		if strings.Contains(out, "issuegraph initialized") {
 			t.Error("--quiet should suppress success message")
 		}
 
-		// bd_version is in local_metadata (dolt-ignored), not metadata
+		// issuegraph_version is in local_metadata (dolt-ignored), not metadata
 		func() {
 			ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
 			defer cancel()
-			store, err := embeddeddolt.Open(ctx, beadsDir, "basic", "main")
+			store, err := embeddeddolt.Open(ctx, issuegraphDir, "basic", "main")
 			if err != nil {
-				t.Fatalf("failed to open store for bd_version check: %v", err)
+				t.Fatalf("failed to open store for issuegraph_version check: %v", err)
 			}
 			defer store.Close()
-			if val, err := store.GetLocalMetadata(ctx, "bd_version"); err != nil || val == "" {
-				t.Error("bd_version local metadata not set")
+			if val, err := store.GetLocalMetadata(ctx, "issuegraph_version"); err != nil || val == "" {
+				t.Error("issuegraph_version local metadata not set")
 			}
 		}()
-		importTime := readBack(t, beadsDir, "basic", "last_import_time", true)
+		importTime := readBack(t, issuegraphDir, "basic", "last_import_time", true)
 		if importTime == "" {
 			t.Error("last_import_time metadata not set")
 		}
@@ -344,7 +344,7 @@ func TestEmbeddedInit(t *testing.T) {
 			t.Errorf("last_import_time not valid RFC3339: %q", importTime)
 		}
 
-		cfg, err := configfile.Load(beadsDir)
+		cfg, err := configfile.Load(issuegraphDir)
 		if err != nil {
 			t.Fatalf("failed to load metadata.json: %v", err)
 		}
@@ -355,31 +355,31 @@ func TestEmbeddedInit(t *testing.T) {
 			t.Error("ProjectID should be set")
 		}
 
-		requireFile(t, filepath.Join(beadsDir, "config.yaml"))
-		if _, err := os.Stat(filepath.Join(beadsDir, "interactions.jsonl")); !os.IsNotExist(err) {
+		requireFile(t, filepath.Join(issuegraphDir, "config.yaml"))
+		if _, err := os.Stat(filepath.Join(issuegraphDir, "interactions.jsonl")); !os.IsNotExist(err) {
 			t.Fatalf("interactions.jsonl should be created only when audit.enabled is true, got stat err %v", err)
 		}
 		requireFile(t, filepath.Join(dir, "AGENTS.md"))
-		requireFile(t, filepath.Join(dir, ".agents", "skills", "beads", "SKILL.md"))
-		requireFile(t, filepath.Join(dir, ".agents", "skills", "beads", "agents", "openai.yaml"))
+		requireFile(t, filepath.Join(dir, ".agents", "skills", "issuegraph", "SKILL.md"))
+		requireFile(t, filepath.Join(dir, ".agents", "skills", "issuegraph", "agents", "openai.yaml"))
 		requireFile(t, filepath.Join(dir, ".codex", "config.toml"))
 		requireFile(t, filepath.Join(dir, ".codex", "hooks.json"))
-		// Cursor integration is auto-installed by bd init too (rules + hooks).
-		requireFile(t, filepath.Join(dir, ".cursor", "rules", "beads.mdc"))
+		// Cursor integration is auto-installed by issuegraph init too (rules + hooks).
+		requireFile(t, filepath.Join(dir, ".cursor", "rules", "issuegraph.mdc"))
 		requireFile(t, filepath.Join(dir, ".cursor", "hooks.json"))
 
-		content, err := os.ReadFile(filepath.Join(beadsDir, ".gitignore"))
+		content, err := os.ReadFile(filepath.Join(issuegraphDir, ".gitignore"))
 		if err != nil {
-			t.Fatalf("failed to read .beads/.gitignore: %v", err)
+			t.Fatalf("failed to read .issuegraph/.gitignore: %v", err)
 		}
-		for _, pattern := range []string{"*.db", "dolt/", "bd.sock"} {
+		for _, pattern := range []string{"*.db", "dolt/", "issuegraph.sock"} {
 			if !strings.Contains(string(content), pattern) {
 				t.Errorf(".gitignore missing pattern: %s", pattern)
 			}
 		}
 
 		{
-			out := bdDolt(t, bd, dir, "remote", "list")
+			out := issuegraphDolt(t, issuegraph, dir, "remote", "list")
 			if strings.Contains(out, "origin") {
 				t.Fatalf("init without git origin should not configure a Dolt remote; remote list:\n%s", out)
 			}
@@ -389,28 +389,28 @@ func TestEmbeddedInit(t *testing.T) {
 			// absent" is now satisfied by a config.yaml that DOES persist a
 			// remote — this guard would have sailed past the regression it
 			// exists to catch.
-			beadsDir := filepath.Join(dir, ".beads")
-			configYAML, err := os.ReadFile(filepath.Join(beadsDir, "config.yaml"))
+			issuegraphDir := filepath.Join(dir, ".issuegraph")
+			configYAML, err := os.ReadFile(filepath.Join(issuegraphDir, "config.yaml"))
 			if err != nil {
 				t.Fatalf("read config.yaml: %v", err)
 			}
-			if got := config.GetStringFromDir(beadsDir, "sync.remote"); got != "" {
+			if got := config.GetStringFromDir(issuegraphDir, "sync.remote"); got != "" {
 				t.Fatalf("init without git origin persisted sync.remote = %q; config.yaml:\n%s", got, configYAML)
 			}
 		}
 	})
 
 	t.Run("database_with_prefix", func(t *testing.T) {
-		_, beadsDir, _ := bdInit(t, bd, "--database", "shared_db", "--prefix", "alpha")
-		cfg, err := configfile.Load(beadsDir)
+		_, issuegraphDir, _ := issuegraphInit(t, issuegraph, "--database", "shared_db", "--prefix", "alpha")
+		cfg, err := configfile.Load(issuegraphDir)
 		if err != nil {
 			t.Fatalf("failed to load metadata.json: %v", err)
 		}
 		if cfg.DoltDatabase != "shared_db" {
 			t.Errorf("DoltDatabase: got %q, want %q", cfg.DoltDatabase, "shared_db")
 		}
-		requireFile(t, filepath.Join(beadsDir, "embeddeddolt", "shared_db", ".dolt"))
-		if val := readBack(t, beadsDir, "shared_db", "issue_prefix", false); val != "alpha" {
+		requireFile(t, filepath.Join(issuegraphDir, "embeddeddolt", "shared_db", ".dolt"))
+		if val := readBack(t, issuegraphDir, "shared_db", "issue_prefix", false); val != "alpha" {
 			t.Errorf("issue_prefix: got %q, want %q", val, "alpha")
 		}
 	})
@@ -439,42 +439,42 @@ func TestEmbeddedInit(t *testing.T) {
 			}
 		}
 
-		out := runBDInit(t, bd, dir, "--prefix", "forkauto")
+		out := runIssueGraphInit(t, issuegraph, dir, "--prefix", "forkauto")
 		if strings.Contains(out, "Fork detected") {
 			t.Errorf("--quiet should suppress fork auto-routing output, got:\n%s", out)
 		}
 
-		beadsDir := filepath.Join(dir, ".beads")
-		planningDir := filepath.Join(dir, ".beads-planning")
-		if val := readBack(t, beadsDir, "forkauto", "routing.mode", false); val != "auto" {
+		issuegraphDir := filepath.Join(dir, ".issuegraph")
+		planningDir := filepath.Join(dir, ".issuegraph-planning")
+		if val := readBack(t, issuegraphDir, "forkauto", "routing.mode", false); val != "auto" {
 			t.Errorf("routing.mode: got %q, want %q", val, "auto")
 		}
-		if val := readBack(t, beadsDir, "forkauto", "routing.contributor", false); val != planningDir {
+		if val := readBack(t, issuegraphDir, "forkauto", "routing.contributor", false); val != planningDir {
 			t.Errorf("routing.contributor: got %q, want %q", val, planningDir)
 		}
-		if val := readBack(t, beadsDir, "forkauto", "sync.remote", false); val != "upstream" {
+		if val := readBack(t, issuegraphDir, "forkauto", "sync.remote", false); val != "upstream" {
 			t.Errorf("sync.remote: got %q, want %q", val, "upstream")
 		}
-		if _, err := os.Stat(filepath.Join(planningDir, ".beads")); err != nil {
-			t.Errorf("planning .beads missing: %v", err)
+		if _, err := os.Stat(filepath.Join(planningDir, ".issuegraph")); err != nil {
+			t.Errorf("planning .issuegraph missing: %v", err)
 		}
 
 		// Regression: autoConfigureForkContributor must initialize the planning
-		// Dolt schema, not just create the .beads directory. An uninitialized
-		// store causes "Dolt server unreachable" on first use (e.g. bd migrate-personal).
-		planningEmbeddedDir := filepath.Join(planningDir, ".beads", "embeddeddolt")
+		// Dolt schema, not just create the .issuegraph directory. An uninitialized
+		// store causes "Dolt server unreachable" on first use (e.g. issuegraph migrate-personal).
+		planningEmbeddedDir := filepath.Join(planningDir, ".issuegraph", "embeddeddolt")
 		if _, err := os.Stat(planningEmbeddedDir); err != nil {
 			t.Errorf("planning embeddeddolt dir missing (planning store not pre-initialized): %v", err)
 		}
 
-		roleCmd := exec.Command("git", "config", "--get", "beads.role")
+		roleCmd := exec.Command("git", "config", "--get", "issuegraph.role")
 		roleCmd.Dir = dir
 		roleOut, err := roleCmd.Output()
 		if err != nil {
-			t.Fatalf("git config --get beads.role failed: %v", err)
+			t.Fatalf("git config --get issuegraph.role failed: %v", err)
 		}
 		if role := strings.TrimSpace(string(roleOut)); role != "contributor" {
-			t.Errorf("beads.role: got %q, want %q", role, "contributor")
+			t.Errorf("issuegraph.role: got %q, want %q", role, "contributor")
 		}
 	})
 
@@ -494,14 +494,14 @@ func TestEmbeddedInit(t *testing.T) {
 		remoteURL := "file://" + bareDir
 		runGitForBootstrapTest(t, dir, "remote", "add", "origin", remoteURL)
 
-		runBDInit(t, bd, dir, "--prefix", "pg", "--skip-hooks", "--skip-agents")
+		runIssueGraphInit(t, issuegraph, dir, "--prefix", "pg", "--skip-hooks", "--skip-agents")
 
-		out := bdDolt(t, bd, dir, "remote", "list")
+		out := issuegraphDolt(t, issuegraph, dir, "remote", "list")
 		if !strings.Contains(out, "origin") || !strings.Contains(out, remoteURL) {
 			t.Fatalf("git origin should be registered as a Dolt remote %q; remote list:\n%s", remoteURL, out)
 		}
 
-		configYAML, err := os.ReadFile(filepath.Join(dir, ".beads", "config.yaml"))
+		configYAML, err := os.ReadFile(filepath.Join(dir, ".issuegraph", "config.yaml"))
 		if err != nil {
 			t.Fatalf("read config.yaml: %v", err)
 		}
@@ -509,14 +509,14 @@ func TestEmbeddedInit(t *testing.T) {
 			t.Fatalf("git origin should be persisted as sync.remote; config.yaml:\n%s", configYAML)
 		}
 
-		bdDolt(t, bd, dir, "push")
+		issuegraphDolt(t, issuegraph, dir, "push")
 		ls := exec.Command("git", "ls-remote", remoteURL, "refs/dolt/data")
 		lsOut, err := ls.CombinedOutput()
 		if err != nil {
 			t.Fatalf("git ls-remote refs/dolt/data failed: %v\n%s", err, lsOut)
 		}
 		if !strings.Contains(string(lsOut), "refs/dolt/data") {
-			t.Fatalf("bd dolt push did not publish refs/dolt/data:\n%s", lsOut)
+			t.Fatalf("issuegraph dolt push did not publish refs/dolt/data:\n%s", lsOut)
 		}
 	})
 
@@ -531,24 +531,24 @@ func TestEmbeddedInit(t *testing.T) {
 		initGitRepoAt(t, dir)
 		runGitForBootstrapTest(t, dir, "branch", "-M", "main")
 		runGitForBootstrapTest(t, dir, "commit", "--allow-empty", "-m", "init")
-		runBDInit(t, bd, dir, "--prefix", "late", "--skip-hooks", "--skip-agents")
-		bdCreate(t, bd, dir, "Lazy remote adoption", "--type", "task")
+		runIssueGraphInit(t, issuegraph, dir, "--prefix", "late", "--skip-hooks", "--skip-agents")
+		issuegraphCreate(t, issuegraph, dir, "Lazy remote adoption", "--type", "task")
 
 		runGitForBootstrapTest(t, dir, "remote", "add", "origin", remoteURL)
 		runGitForBootstrapTest(t, dir, "push", "-u", "origin", "main")
 
-		// No TTY and no --yes: bd must refuse rather than derive a remote and
+		// No TTY and no --yes: issuegraph must refuse rather than derive a remote and
 		// upload to it.
 		{
-			out := bdDoltFail(t, bd, dir, "push")
+			out := issuegraphDoltFail(t, issuegraph, dir, "push")
 			if !strings.Contains(out, remoteURL) {
 				t.Errorf("refusal did not name the remote it would have adopted; output:\n%s", out)
 			}
 
-			if list := bdDolt(t, bd, dir, "remote", "list"); strings.Contains(list, remoteURL) {
+			if list := issuegraphDolt(t, issuegraph, dir, "remote", "list"); strings.Contains(list, remoteURL) {
 				t.Errorf("refused push still added the remote; remote list:\n%s", list)
 			}
-			configYAML, readErr := os.ReadFile(filepath.Join(dir, ".beads", "config.yaml"))
+			configYAML, readErr := os.ReadFile(filepath.Join(dir, ".issuegraph", "config.yaml"))
 			if readErr == nil && strings.Contains(string(configYAML), remoteURL) {
 				t.Errorf("refused push still persisted sync.remote; config.yaml:\n%s", configYAML)
 			}
@@ -568,27 +568,27 @@ func TestEmbeddedInit(t *testing.T) {
 		initGitRepoAt(t, ambientDir)
 		runGitForBootstrapTest(t, ambientDir, "remote", "add", "origin", ambientURL)
 
-		pushCmd := exec.Command(bd, "-C", dir, "dolt", "push", "--yes")
+		pushCmd := exec.Command(issuegraph, "-C", dir, "dolt", "push", "--yes")
 		pushCmd.Dir = ambientDir
-		pushCmd.Env = bdEnv(ambientDir)
+		pushCmd.Env = issuegraphEnv(ambientDir)
 		if out, err := pushCmd.CombinedOutput(); err != nil {
-			t.Fatalf("bd -C target dolt push failed: %v\n%s", err, out)
+			t.Fatalf("issuegraph -C target dolt push failed: %v\n%s", err, out)
 		}
 
-		out := bdDolt(t, bd, dir, "remote", "list")
+		out := issuegraphDolt(t, issuegraph, dir, "remote", "list")
 		if !strings.Contains(out, "origin") || !strings.Contains(out, remoteURL) {
-			t.Fatalf("bd dolt push --yes should adopt later git origin %q; remote list:\n%s", remoteURL, out)
+			t.Fatalf("issuegraph dolt push --yes should adopt later git origin %q; remote list:\n%s", remoteURL, out)
 		}
 		if strings.Contains(out, ambientURL) {
-			t.Fatalf("bd -C target dolt push adopted ambient origin %q; remote list:\n%s", ambientURL, out)
+			t.Fatalf("issuegraph -C target dolt push adopted ambient origin %q; remote list:\n%s", ambientURL, out)
 		}
 
-		configYAML, err := os.ReadFile(filepath.Join(dir, ".beads", "config.yaml"))
+		configYAML, err := os.ReadFile(filepath.Join(dir, ".issuegraph", "config.yaml"))
 		if err != nil {
 			t.Fatalf("read config.yaml: %v", err)
 		}
 		if !strings.Contains(string(configYAML), remoteURL) {
-			t.Fatalf("bd dolt push should persist sync.remote; config.yaml:\n%s", configYAML)
+			t.Fatalf("issuegraph dolt push should persist sync.remote; config.yaml:\n%s", configYAML)
 		}
 
 		ls := exec.Command("git", "ls-remote", remoteURL, "refs/dolt/data")
@@ -597,7 +597,7 @@ func TestEmbeddedInit(t *testing.T) {
 			t.Fatalf("git ls-remote refs/dolt/data failed: %v\n%s", err, lsOut)
 		}
 		if !strings.Contains(string(lsOut), "refs/dolt/data") {
-			t.Fatalf("bd dolt push did not publish refs/dolt/data:\n%s", lsOut)
+			t.Fatalf("issuegraph dolt push did not publish refs/dolt/data:\n%s", lsOut)
 		}
 	})
 
@@ -608,8 +608,8 @@ func TestEmbeddedInit(t *testing.T) {
 		remoteDir := filepath.Join(t.TempDir(), "remote")
 		remoteURL := "file://" + remoteDir
 
-		sourceDir, _, _ := bdInit(t, bd, "--prefix", "src", "--skip-hooks", "--skip-agents")
-		sourceCfg, err := configfile.Load(filepath.Join(sourceDir, ".beads"))
+		sourceDir, _, _ := issuegraphInit(t, issuegraph, "--prefix", "src", "--skip-hooks", "--skip-agents")
+		sourceCfg, err := configfile.Load(filepath.Join(sourceDir, ".issuegraph"))
 		if err != nil {
 			t.Fatalf("load source metadata.json: %v", err)
 		}
@@ -617,15 +617,15 @@ func TestEmbeddedInit(t *testing.T) {
 			t.Fatal("source project ID is empty")
 		}
 
-		cmd := exec.Command(bd, "create", "Remote issue", "--type", "task")
+		cmd := exec.Command(issuegraph, "create", "Remote issue", "--type", "task")
 		cmd.Dir = sourceDir
-		cmd.Env = bdEnv(sourceDir)
+		cmd.Env = issuegraphEnv(sourceDir)
 		if out, err := cmd.CombinedOutput(); err != nil {
-			t.Fatalf("bd create failed: %v\n%s", err, out)
+			t.Fatalf("issuegraph create failed: %v\n%s", err, out)
 		}
-		bdDolt(t, bd, sourceDir, "commit")
-		bdDolt(t, bd, sourceDir, "remote", "add", "origin", remoteURL)
-		bdDolt(t, bd, sourceDir, "push", "--force")
+		issuegraphDolt(t, issuegraph, sourceDir, "commit")
+		issuegraphDolt(t, issuegraph, sourceDir, "remote", "add", "origin", remoteURL)
+		issuegraphDolt(t, issuegraph, sourceDir, "push", "--force")
 
 		cloneDir := t.TempDir()
 		initGitRepoAt(t, cloneDir)
@@ -640,7 +640,7 @@ func TestEmbeddedInit(t *testing.T) {
 		if err := os.Symlink(gitBin, filepath.Join(pathDir, "git")); err != nil {
 			t.Fatalf("symlink git into PATH: %v", err)
 		}
-		noDoltEnv := bdEnv(cloneDir)
+		noDoltEnv := issuegraphEnv(cloneDir)
 		replacedPath := false
 		for i, entry := range noDoltEnv {
 			if strings.HasPrefix(entry, "PATH=") {
@@ -652,49 +652,49 @@ func TestEmbeddedInit(t *testing.T) {
 		if !replacedPath {
 			noDoltEnv = append(noDoltEnv, "PATH="+pathDir)
 		}
-		cmd = exec.Command(bd, "init", "--quiet", "--prefix", "clone", "--remote", remoteURL, "--skip-hooks", "--skip-agents")
+		cmd = exec.Command(issuegraph, "init", "--quiet", "--prefix", "clone", "--remote", remoteURL, "--skip-hooks", "--skip-agents")
 		cmd.Dir = cloneDir
 		cmd.Env = noDoltEnv
 		if out, err := cmd.CombinedOutput(); err != nil {
-			t.Fatalf("bd init --remote without dolt CLI failed: %v\n%s", err, out)
+			t.Fatalf("issuegraph init --remote without dolt CLI failed: %v\n%s", err, out)
 		}
 
-		cloneCfg, err := configfile.Load(filepath.Join(cloneDir, ".beads"))
+		cloneCfg, err := configfile.Load(filepath.Join(cloneDir, ".issuegraph"))
 		if err != nil {
 			t.Fatalf("load clone metadata.json: %v", err)
 		}
 		if cloneCfg.ProjectID != sourceCfg.ProjectID {
 			t.Fatalf("clone ProjectID = %q, want source ProjectID %q", cloneCfg.ProjectID, sourceCfg.ProjectID)
 		}
-		if val := readBack(t, filepath.Join(cloneDir, ".beads"), "clone", "_project_id", true); val != sourceCfg.ProjectID {
+		if val := readBack(t, filepath.Join(cloneDir, ".issuegraph"), "clone", "_project_id", true); val != sourceCfg.ProjectID {
 			t.Fatalf("clone database _project_id = %q, want source ProjectID %q", val, sourceCfg.ProjectID)
 		}
 
-		cmd = exec.Command(bd, "list")
+		cmd = exec.Command(issuegraph, "list")
 		cmd.Dir = cloneDir
-		cmd.Env = bdEnv(cloneDir)
+		cmd.Env = issuegraphEnv(cloneDir)
 		stdout, stderr, err := runCommandBuffers(t, cmd)
 		if err != nil {
-			t.Fatalf("bd list failed: %v\nstdout:\n%s\nstderr:\n%s", err, stdout.String(), stderr.String())
+			t.Fatalf("issuegraph list failed: %v\nstdout:\n%s\nstderr:\n%s", err, stdout.String(), stderr.String())
 		}
 		if !strings.Contains(stdout.String(), "Remote issue") {
 			t.Fatalf("cloned database missing remote issue:\n%s", stdout.String())
 		}
 
-		cloneBeadsDir := filepath.Join(cloneDir, ".beads")
-		requireNoFile(t, filepath.Join(cloneBeadsDir, "hooks"))
+		cloneIssueGraphDir := filepath.Join(cloneDir, ".issuegraph")
+		requireNoFile(t, filepath.Join(cloneIssueGraphDir, "hooks"))
 		requireNoFile(t, filepath.Join(cloneDir, "AGENTS.md"))
 		requireNoFile(t, filepath.Join(cloneDir, "CLAUDE.md"))
 		requireNoFile(t, filepath.Join(cloneDir, ".claude"))
 		requireNoFile(t, filepath.Join(cloneDir, ".agents"))
 		requireNoFile(t, filepath.Join(cloneDir, ".codex"))
 
-		out := bdDolt(t, bd, cloneDir, "remote", "list")
+		out := issuegraphDolt(t, issuegraph, cloneDir, "remote", "list")
 		if !strings.Contains(out, "origin") || !strings.Contains(out, remoteURL) {
 			t.Fatalf("expected origin remote %q in remote list:\n%s", remoteURL, out)
 		}
 
-		configYAML, err := os.ReadFile(filepath.Join(cloneBeadsDir, "config.yaml"))
+		configYAML, err := os.ReadFile(filepath.Join(cloneIssueGraphDir, "config.yaml"))
 		if err != nil {
 			t.Fatalf("read config.yaml: %v", err)
 		}
@@ -709,23 +709,23 @@ func TestEmbeddedInit(t *testing.T) {
 		// regressed one migration below LatestVersion. Two paths against it:
 		// the default smart gate auto-migrates the clone as a safe
 		// first-mover (remote at the same version — no one has migrated),
-		// while the BD_SMART_GATE=0 opt-out must fail with
+		// while the ISSUEGRAPH_SMART_GATE=0 opt-out must fail with
 		// designated-migrator guidance and leave a finalized workspace where
 		// the guidance commands can run — not a half-initialized directory
 		// with a raw gate error.
 		remoteDir := filepath.Join(t.TempDir(), "behind-remote")
 		remoteURL := "file://" + remoteDir
 
-		sourceDir, sourceBeads, _ := bdInit(t, bd, "--prefix", "bsrc", "--skip-hooks", "--skip-agents")
-		bdCreate(t, bd, sourceDir, "Behind remote issue", "--type", "task")
-		bdDolt(t, bd, sourceDir, "commit")
+		sourceDir, sourceIssueGraph, _ := issuegraphInit(t, issuegraph, "--prefix", "bsrc", "--skip-hooks", "--skip-agents")
+		issuegraphCreate(t, issuegraph, sourceDir, "Behind remote issue", "--type", "task")
+		issuegraphDolt(t, issuegraph, sourceDir, "commit")
 
 		// Regress the source database one migration and publish it, all in
-		// one raw SQL session — running bd against the regressed database
+		// one raw SQL session — running issuegraph against the regressed database
 		// would just auto-migrate it back (it has no remote registered yet).
 		ctx, cancel := context.WithTimeout(context.Background(), 60*time.Second)
 		defer cancel()
-		db, cleanupSQL, err := embeddeddolt.OpenSQL(ctx, filepath.Join(sourceBeads, "embeddeddolt"), "bsrc", "main")
+		db, cleanupSQL, err := embeddeddolt.OpenSQL(ctx, filepath.Join(sourceIssueGraph, "embeddeddolt"), "bsrc", "main")
 		if err != nil {
 			t.Fatalf("OpenSQL: %v", err)
 		}
@@ -745,26 +745,26 @@ func TestEmbeddedInit(t *testing.T) {
 		t.Run("default_smart_gate_auto_migrates_first_mover", func(t *testing.T) {
 			cloneDir := t.TempDir()
 			initGitRepoAt(t, cloneDir)
-			cmd := exec.Command(bd, "init", "--quiet", "--prefix", "bclone", "--remote", remoteURL, "--skip-hooks", "--skip-agents")
+			cmd := exec.Command(issuegraph, "init", "--quiet", "--prefix", "bclone", "--remote", remoteURL, "--skip-hooks", "--skip-agents")
 			cmd.Dir = cloneDir
 			// Exercise the true default: strip any ambient opt-out so
-			// BD_SMART_GATE is genuinely unset.
-			cmd.Env = envWithout(append(bdEnv(cloneDir), schema.AllowRemoteMigrateEnv+"=0"), schema.SmartGateEnv)
+			// ISSUEGRAPH_SMART_GATE is genuinely unset.
+			cmd.Env = envWithout(append(issuegraphEnv(cloneDir), schema.AllowRemoteMigrateEnv+"=0"), schema.SmartGateEnv)
 			out, err := cmd.CombinedOutput()
 			if err != nil {
 				t.Fatalf("default smart gate should auto-migrate the safe first-mover during init: %v\n%s", err, out)
 			}
-			if !strings.Contains(string(out), "Smart gate") || !strings.Contains(string(out), "bd dolt push") {
+			if !strings.Contains(string(out), "Smart gate") || !strings.Contains(string(out), "issuegraph dolt push") {
 				t.Fatalf("smart auto-migrate should announce itself and direct a follow-up push:\n%s", out)
 			}
 
 			// The clone is migrated and immediately usable, no unlock needed.
-			cmd = exec.Command(bd, "list")
+			cmd = exec.Command(issuegraph, "list")
 			cmd.Dir = cloneDir
-			cmd.Env = bdEnv(cloneDir)
+			cmd.Env = issuegraphEnv(cloneDir)
 			listOut, err := cmd.CombinedOutput()
 			if err != nil {
-				t.Fatalf("bd list after smart auto-migrate failed: %v\n%s", err, listOut)
+				t.Fatalf("issuegraph list after smart auto-migrate failed: %v\n%s", err, listOut)
 			}
 			if !strings.Contains(string(listOut), "Behind remote issue") {
 				t.Fatalf("auto-migrated clone missing source issue:\n%s", listOut)
@@ -774,17 +774,17 @@ func TestEmbeddedInit(t *testing.T) {
 		t.Run("opt_out_gates_with_guidance", func(t *testing.T) {
 			cloneDir := t.TempDir()
 			initGitRepoAt(t, cloneDir)
-			cmd := exec.Command(bd, "init", "--quiet", "--prefix", "bclone", "--remote", remoteURL, "--skip-hooks", "--skip-agents")
+			cmd := exec.Command(issuegraph, "init", "--quiet", "--prefix", "bclone", "--remote", remoteURL, "--skip-hooks", "--skip-agents")
 			cmd.Dir = cloneDir
-			cmd.Env = append(bdEnv(cloneDir), schema.AllowRemoteMigrateEnv+"=0", schema.SmartGateEnv+"=0")
+			cmd.Env = append(issuegraphEnv(cloneDir), schema.AllowRemoteMigrateEnv+"=0", schema.SmartGateEnv+"=0")
 			out, err := cmd.CombinedOutput()
 			if err == nil {
-				t.Fatalf("bd init --remote against a behind-schema remote should fail; output:\n%s", out)
+				t.Fatalf("issuegraph init --remote against a behind-schema remote should fail; output:\n%s", out)
 			}
 			for _, want := range []string{
-				"Re-running `bd init` will NOT fix this",
-				"bd migrate --force",
-				"bd dolt push",
+				"Re-running `issuegraph init` will NOT fix this",
+				"issuegraph migrate --force",
+				"issuegraph dolt push",
 			} {
 				if !strings.Contains(string(out), want) {
 					t.Fatalf("init output missing %q:\n%s", want, out)
@@ -793,28 +793,28 @@ func TestEmbeddedInit(t *testing.T) {
 
 			// The failed init must leave a finalized workspace (metadata.json,
 			// config.yaml) so the guidance commands can open the cloned database.
-			cloneBeads := filepath.Join(cloneDir, ".beads")
+			cloneIssueGraph := filepath.Join(cloneDir, ".issuegraph")
 			for _, f := range []string{"metadata.json", "config.yaml"} {
-				if _, err := os.Stat(filepath.Join(cloneBeads, f)); err != nil {
+				if _, err := os.Stat(filepath.Join(cloneIssueGraph, f)); err != nil {
 					t.Fatalf("failed init should leave %s behind: %v", f, err)
 				}
 			}
 
 			// Recovery per the guidance: the designated migrator unlocks,
 			// migrates, and the workspace is usable.
-			cmd = exec.Command(bd, "migrate")
+			cmd = exec.Command(issuegraph, "migrate")
 			cmd.Dir = cloneDir
-			cmd.Env = append(bdEnv(cloneDir), schema.AllowRemoteMigrateEnv+"=1")
+			cmd.Env = append(issuegraphEnv(cloneDir), schema.AllowRemoteMigrateEnv+"=1")
 			if migOut, err := cmd.CombinedOutput(); err != nil {
-				t.Fatalf("%s=1 bd migrate failed: %v\n%s", schema.AllowRemoteMigrateEnv, err, migOut)
+				t.Fatalf("%s=1 issuegraph migrate failed: %v\n%s", schema.AllowRemoteMigrateEnv, err, migOut)
 			}
 
-			cmd = exec.Command(bd, "list")
+			cmd = exec.Command(issuegraph, "list")
 			cmd.Dir = cloneDir
-			cmd.Env = bdEnv(cloneDir)
+			cmd.Env = issuegraphEnv(cloneDir)
 			listOut, err := cmd.CombinedOutput()
 			if err != nil {
-				t.Fatalf("bd list after migrate failed: %v\n%s", err, listOut)
+				t.Fatalf("issuegraph list after migrate failed: %v\n%s", err, listOut)
 			}
 			if !strings.Contains(string(listOut), "Behind remote issue") {
 				t.Fatalf("migrated clone missing source issue:\n%s", listOut)
@@ -835,12 +835,12 @@ func TestEmbeddedInit(t *testing.T) {
 
 		ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
 		defer cancel()
-		cmd := exec.CommandContext(ctx, bd, "init", "--quiet", "--prefix", "fail", "--remote", remoteURL, "--skip-hooks", "--skip-agents")
+		cmd := exec.CommandContext(ctx, issuegraph, "init", "--quiet", "--prefix", "fail", "--remote", remoteURL, "--skip-hooks", "--skip-agents")
 		cmd.Dir = dir
-		cmd.Env = bdEnv(dir)
+		cmd.Env = issuegraphEnv(dir)
 		out, err := cmd.CombinedOutput()
 		if err == nil {
-			t.Fatalf("expected bd init --remote with bogus URL to fail; got success:\n%s", out)
+			t.Fatalf("expected issuegraph init --remote with bogus URL to fail; got success:\n%s", out)
 		}
 		wantWrap := fmt.Sprintf("failed to clone remote %q", remoteURL)
 		if !strings.Contains(string(out), wantWrap) {
@@ -849,15 +849,15 @@ func TestEmbeddedInit(t *testing.T) {
 		if !strings.Contains(string(out), "Hint:") {
 			t.Fatalf("expected error output to include a Hint: about reachability/credentials; got:\n%s", out)
 		}
-		if _, statErr := os.Stat(filepath.Join(dir, ".beads", "config.yaml")); statErr == nil {
-			t.Fatalf(".beads/config.yaml should not exist after a failed clone; init must not silently fall through to fresh init")
+		if _, statErr := os.Stat(filepath.Join(dir, ".issuegraph", "config.yaml")); statErr == nil {
+			t.Fatalf(".issuegraph/config.yaml should not exist after a failed clone; init must not silently fall through to fresh init")
 		}
 	})
 
-	// Regression: bd init --stealth must not touch any git-visible files. Previously it
+	// Regression: issuegraph init --stealth must not touch any git-visible files. Previously it
 	// created/modified the tracked project-root .gitignore via doctor.EnsureProjectGitignore, which
-	// showed up in `git status` and defeated stealth. Everything beads adds must be excluded
-	// (.beads/) or live in .git/info/exclude, leaving the working tree clean from git's view.
+	// showed up in `git status` and defeated stealth. Everything issuegraph adds must be excluded
+	// (.issuegraph/) or live in .git/info/exclude, leaving the working tree clean from git's view.
 	t.Run("stealth_leaves_worktree_clean", func(t *testing.T) {
 		bareDir := filepath.Join(t.TempDir(), "stealth.git")
 		runGitForBootstrapTest(t, "", "init", "--bare", "-b", "main", bareDir)
@@ -883,23 +883,23 @@ func TestEmbeddedInit(t *testing.T) {
 			}
 		}
 
-		runBDInit(t, bd, dir, "--prefix", "stc", "--stealth")
+		runIssueGraphInit(t, issuegraph, dir, "--prefix", "stc", "--stealth")
 
-		beadsDir := filepath.Join(dir, ".beads")
+		issuegraphDir := filepath.Join(dir, ".issuegraph")
 		requireNoFile(t, filepath.Join(dir, "AGENTS.md"))
 		requireNoFile(t, filepath.Join(dir, "CLAUDE.md"))
 		requireNoFile(t, filepath.Join(dir, ".claude"))
 		requireNoFile(t, filepath.Join(dir, ".agents"))
 		requireNoFile(t, filepath.Join(dir, ".codex"))
 
-		// Stealth must stay invisible: it should create .beads/ but route everything else into
+		// Stealth must stay invisible: it should create .issuegraph/ but route everything else into
 		// .git/info/exclude so the database lives there without git seeing it.
-		requireFile(t, beadsDir)
+		requireFile(t, issuegraphDir)
 		excludeContent, err := os.ReadFile(filepath.Join(dir, ".git", "info", "exclude"))
 		if err != nil {
 			t.Fatalf("failed to read .git/info/exclude: %v", err)
 		}
-		for _, want := range []string{".beads/", ".dolt/", "*.db"} {
+		for _, want := range []string{".issuegraph/", ".dolt/", "*.db"} {
 			if !strings.Contains(string(excludeContent), want) {
 				t.Errorf(".git/info/exclude missing %q:\n%s", want, excludeContent)
 			}
@@ -913,7 +913,7 @@ func TestEmbeddedInit(t *testing.T) {
 			t.Fatalf("git status failed: %v\n%s", err, out)
 		}
 		if strings.TrimSpace(string(out)) != "" {
-			t.Errorf("bd init --stealth left git-visible changes (should be invisible):\n%s", out)
+			t.Errorf("issuegraph init --stealth left git-visible changes (should be invisible):\n%s", out)
 		}
 
 		// And the seeded .gitignore must be byte-for-byte unchanged.
@@ -926,31 +926,31 @@ func TestEmbeddedInit(t *testing.T) {
 		}
 
 		{
-			out := bdDolt(t, bd, dir, "remote", "list")
+			out := issuegraphDolt(t, issuegraph, dir, "remote", "list")
 			if strings.Contains(out, "origin") {
 				t.Fatalf("stealth init should not synthesize a Dolt remote; remote list:\n%s", out)
 			}
 
 			// Read back rather than grep for a spelling: see the same guard in
 			// the no-git-origin case above.
-			beadsDir := filepath.Join(dir, ".beads")
-			configYAML, err := os.ReadFile(filepath.Join(beadsDir, "config.yaml"))
+			issuegraphDir := filepath.Join(dir, ".issuegraph")
+			configYAML, err := os.ReadFile(filepath.Join(issuegraphDir, "config.yaml"))
 			if err != nil {
 				t.Fatalf("read config.yaml: %v", err)
 			}
-			if got := config.GetStringFromDir(beadsDir, "sync.remote"); got != "" {
+			if got := config.GetStringFromDir(issuegraphDir, "sync.remote"); got != "" {
 				t.Fatalf("stealth init persisted sync.remote = %q; config.yaml:\n%s", got, configYAML)
 			}
 		}
 
-		// bd doctor --fix may exit non-zero for unrelated checks; we only care that it does not
+		// issuegraph doctor --fix may exit non-zero for unrelated checks; we only care that it does not
 		// introduce git-visible changes on a stealth repo.
 		{
-			fixCmd := exec.Command(bd, "doctor", "--fix", "--yes")
+			fixCmd := exec.Command(issuegraph, "doctor", "--fix", "--yes")
 			fixCmd.Dir = dir
-			fixCmd.Env = bdEnv(dir)
+			fixCmd.Env = issuegraphEnv(dir)
 			if out, err := fixCmd.CombinedOutput(); err != nil {
-				t.Logf("bd doctor --fix exited non-zero (tolerated): %v\n%s", err, out)
+				t.Logf("issuegraph doctor --fix exited non-zero (tolerated): %v\n%s", err, out)
 			}
 
 			statusCmd := exec.Command("git", "-c", "core.hooksPath=", "status", "--porcelain")
@@ -960,10 +960,10 @@ func TestEmbeddedInit(t *testing.T) {
 				t.Fatalf("git status failed: %v\n%s", err, out)
 			}
 			if strings.TrimSpace(string(out)) != "" {
-				t.Errorf("bd doctor --fix left git-visible changes on a stealth repo:\n%s", out)
+				t.Errorf("issuegraph doctor --fix left git-visible changes on a stealth repo:\n%s", out)
 			}
 			if got, _ := os.ReadFile(gitignorePath); string(got) != "node_modules/\n" {
-				t.Errorf("bd doctor --fix modified project .gitignore on a stealth repo:\ngot: %q", string(got))
+				t.Errorf("issuegraph doctor --fix modified project .gitignore on a stealth repo:\ngot: %q", string(got))
 			}
 		}
 	})
@@ -974,15 +974,15 @@ func TestEmbeddedInit(t *testing.T) {
 			t.Skip("dolt CLI not on PATH")
 		}
 
-		dir, beadsDir, _ := bdInit(t, bd, "--prefix", "fi")
-		dbDir := filepath.Join(beadsDir, "embeddeddolt", "fi")
+		dir, issuegraphDir, _ := issuegraphInit(t, issuegraph, "--prefix", "fi")
+		dbDir := filepath.Join(issuegraphDir, "embeddeddolt", "fi")
 
 		statusOut := runDolt(t, doltBin, dbDir, "status")
 		if !strings.Contains(statusOut, "nothing to commit") {
 			t.Errorf("after first init: expected clean working set, got:\n%s", statusOut)
 		}
 		logOut1 := runDolt(t, doltBin, dbDir, "log", "--oneline")
-		for _, want := range []string{"schema: apply migrations", "bd init"} {
+		for _, want := range []string{"schema: apply migrations", "issuegraph init"} {
 			if !strings.Contains(logOut1, want) {
 				t.Errorf("after first init: missing %q commit:\n%s", want, logOut1)
 			}
@@ -992,7 +992,7 @@ func TestEmbeddedInit(t *testing.T) {
 		t.Logf("log after first init:\n%s", logOut1)
 
 		// Second init with --force
-		runBDInit(t, bd, dir, "--prefix", "fi", "--force")
+		runIssueGraphInit(t, issuegraph, dir, "--prefix", "fi", "--force")
 
 		statusOut = runDolt(t, doltBin, dbDir, "status")
 		if !strings.Contains(statusOut, "nothing to commit") {
@@ -1002,7 +1002,7 @@ func TestEmbeddedInit(t *testing.T) {
 		t.Logf("HEAD after force reinit: %s", doltHeadHash(t, doltBin, dbDir))
 		t.Logf("log after force reinit:\n%s", logOut2)
 
-		for _, want := range []string{"schema: apply migrations", "bd init"} {
+		for _, want := range []string{"schema: apply migrations", "issuegraph init"} {
 			if !strings.Contains(logOut2, want) {
 				t.Errorf("after force reinit: missing %q commit:\n%s", want, logOut2)
 			}
@@ -1013,7 +1013,7 @@ func TestEmbeddedInit(t *testing.T) {
 		if commitCount2 < commitCount1 {
 			t.Errorf("commit count decreased after force reinit: before=%d after=%d", commitCount1, commitCount2)
 		}
-		if val := readBack(t, beadsDir, "fi", "issue_prefix", false); val != "fi" {
+		if val := readBack(t, issuegraphDir, "fi", "issue_prefix", false); val != "fi" {
 			t.Errorf("issue_prefix after --force: got %q, want %q", val, "fi")
 		}
 	})
@@ -1037,14 +1037,14 @@ func TestEmbeddedInit(t *testing.T) {
 		}
 
 		{
-			cmd := exec.Command(bd, "init", "--prefix", "hook", "--agents-template", templatePath)
+			cmd := exec.Command(issuegraph, "init", "--prefix", "hook", "--agents-template", templatePath)
 			cmd.Dir = dir
-			cmd.Env = bdEnv(dir)
+			cmd.Env = issuegraphEnv(dir)
 			stdout, stderr, err := runCommandBuffers(t, cmd)
 			if err != nil {
-				t.Fatalf("bd init failed: %v\nstdout:\n%s\nstderr:\n%s", err, stdout.String(), stderr.String())
+				t.Fatalf("issuegraph init failed: %v\nstdout:\n%s\nstderr:\n%s", err, stdout.String(), stderr.String())
 			}
-			if !strings.Contains(stdout.String(), "bd initialized successfully") {
+			if !strings.Contains(stdout.String(), "issuegraph initialized successfully") {
 				t.Errorf("expected success message, got: %s", stdout.String())
 			}
 		}
@@ -1066,7 +1066,7 @@ func TestEmbeddedInit(t *testing.T) {
 		if err != nil {
 			t.Fatalf("git log failed: %v\nstdout:\n%s\nstderr:\n%s", err, stdout.String(), stderr.String())
 		}
-		if !strings.Contains(stdout.String(), "bd init: initialize beads issue tracking") {
+		if !strings.Contains(stdout.String(), "issuegraph init: initialize issuegraph issue tracking") {
 			t.Fatalf("expected init commit to succeed, got log: %s", stdout.String())
 		}
 	})
@@ -1088,8 +1088,8 @@ func TestEmbeddedInit(t *testing.T) {
 		initGitRepoAt(t, dir)
 		runGitForBootstrapTest(t, dir, "remote", "add", "origin", bareDir)
 
-		beadsDir := filepath.Join(dir, ".beads")
-		if err := os.MkdirAll(beadsDir, 0750); err != nil {
+		issuegraphDir := filepath.Join(dir, ".issuegraph")
+		if err := os.MkdirAll(issuegraphDir, 0750); err != nil {
 			t.Fatal(err)
 		}
 		issue := types.Issue{
@@ -1102,21 +1102,21 @@ func TestEmbeddedInit(t *testing.T) {
 			UpdatedAt: time.Now(),
 		}
 		line, _ := json.Marshal(issue)
-		if err := os.WriteFile(filepath.Join(beadsDir, "issues.jsonl"), append(line, '\n'), 0644); err != nil {
+		if err := os.WriteFile(filepath.Join(issuegraphDir, "issues.jsonl"), append(line, '\n'), 0644); err != nil {
 			t.Fatal(err)
 		}
 
-		cmd := exec.Command(bd, "init", "--prefix", "jlremote", "--from-jsonl", "--discard-remote", "--destroy-token=DESTROY-jlremote", "--quiet", "--non-interactive", "--skip-hooks", "--skip-agents")
+		cmd := exec.Command(issuegraph, "init", "--prefix", "jlremote", "--from-jsonl", "--discard-remote", "--destroy-token=DESTROY-jlremote", "--quiet", "--non-interactive", "--skip-hooks", "--skip-agents")
 		cmd.Dir = dir
-		cmd.Env = bdEnv(dir)
+		cmd.Env = issuegraphEnv(dir)
 		stdout, stderr, err := runCommandBuffers(t, cmd)
 		if err != nil {
 			t.Fatalf("--from-jsonl with authorized remote discard should import without cloning: %v\nstdout:\n%s\nstderr:\n%s", err, stdout.String(), stderr.String())
 		}
 
-		showCmd := exec.Command(bd, "show", "jlremote-abc123", "--json")
+		showCmd := exec.Command(issuegraph, "show", "jlremote-abc123", "--json")
 		showCmd.Dir = dir
-		showCmd.Env = bdEnv(dir)
+		showCmd.Env = issuegraphEnv(dir)
 		out, err := showCmd.CombinedOutput()
 		if err != nil {
 			t.Fatalf("imported issue not found: %v\n%s", err, out)
@@ -1127,9 +1127,9 @@ func TestEmbeddedInit(t *testing.T) {
 	})
 
 	t.Run("server_flags_ignored", func(t *testing.T) {
-		_, beadsDir, _ := bdInit(t, bd, "--prefix", "sv",
+		_, issuegraphDir, _ := issuegraphInit(t, issuegraph, "--prefix", "sv",
 			"--server-host", "10.0.0.1", "--server-port", "4444", "--server-user", "alice")
-		cfg, err := configfile.Load(beadsDir)
+		cfg, err := configfile.Load(issuegraphDir)
 		if err != nil {
 			t.Fatalf("failed to load metadata.json: %v", err)
 		}
@@ -1154,12 +1154,12 @@ func TestEmbeddedInit(t *testing.T) {
 			t.Fatal(err)
 		}
 		initGitRepoAt(t, dir)
-		cmd := exec.Command(bd, "init", "--quiet")
+		cmd := exec.Command(issuegraph, "init", "--quiet")
 		cmd.Dir = dir
-		cmd.Env = bdEnv(dir)
+		cmd.Env = issuegraphEnv(dir)
 		out, err := cmd.CombinedOutput()
 		if err == nil {
-			t.Fatal("bd init should have failed for directory with invalid name")
+			t.Fatal("issuegraph init should have failed for directory with invalid name")
 		}
 		outStr := string(out)
 		if !strings.Contains(outStr, "invalid database name") && !strings.Contains(outStr, "produces an invalid") {
@@ -1169,11 +1169,11 @@ func TestEmbeddedInit(t *testing.T) {
 
 	t.Run("remote_host_without_server_mode_fails", func(t *testing.T) {
 		// When dolt.host is set to a remote address but server mode is not
-		// enabled, bd init must hard-fail (not fall through to embedded).
+		// enabled, issuegraph init must hard-fail (not fall through to embedded).
 		dir := t.TempDir()
 		initGitRepoAt(t, dir)
 
-		xdgDir := filepath.Join(dir, ".config", "bd")
+		xdgDir := filepath.Join(dir, ".config", "issuegraph")
 		if err := os.MkdirAll(xdgDir, 0o755); err != nil {
 			t.Fatalf("mkdir: %v", err)
 		}
@@ -1182,12 +1182,12 @@ func TestEmbeddedInit(t *testing.T) {
 			t.Fatalf("write config.yaml: %v", err)
 		}
 
-		cmd := exec.Command(bd, "init", "--prefix", "ambi", "--non-interactive")
+		cmd := exec.Command(issuegraph, "init", "--prefix", "ambi", "--non-interactive")
 		cmd.Dir = dir
-		cmd.Env = bdEnv(dir)
+		cmd.Env = issuegraphEnv(dir)
 		out, err := cmd.CombinedOutput()
 		if err == nil {
-			t.Fatalf("expected bd init to fail with remote host and no server mode, but it succeeded:\n%s", out)
+			t.Fatalf("expected issuegraph init to fail with remote host and no server mode, but it succeeded:\n%s", out)
 		}
 		output := string(out)
 		if !strings.Contains(output, "server mode is not enabled") {
@@ -1206,7 +1206,7 @@ func TestEmbeddedInit(t *testing.T) {
 		dir := t.TempDir()
 		initGitRepoAt(t, dir)
 
-		xdgDir := filepath.Join(dir, ".config", "bd")
+		xdgDir := filepath.Join(dir, ".config", "issuegraph")
 		if err := os.MkdirAll(xdgDir, 0o755); err != nil {
 			t.Fatalf("mkdir: %v", err)
 		}
@@ -1218,19 +1218,19 @@ func TestEmbeddedInit(t *testing.T) {
 		// With dolt.mode: server and no actual server, init should fail
 		// with a connection error — proving that config.yaml triggered
 		// server mode.
-		cmd := exec.Command(bd, "init", "--prefix", "srvmode", "--non-interactive", "--quiet")
+		cmd := exec.Command(issuegraph, "init", "--prefix", "srvmode", "--non-interactive", "--quiet")
 		cmd.Dir = dir
-		cmd.Env = bdEnv(dir)
+		cmd.Env = issuegraphEnv(dir)
 		out, err := cmd.CombinedOutput()
 		// We expect failure because there's no server to connect to.
 		// The key assertion is that it tried server mode at all.
 		if err == nil {
 			// If it succeeded, it created an embedded DB — meaning
 			// config.yaml dolt.mode was ignored.
-			beadsDir := filepath.Join(dir, ".beads")
-			cfg, loadErr := configfile.Load(beadsDir)
+			issuegraphDir := filepath.Join(dir, ".issuegraph")
+			cfg, loadErr := configfile.Load(issuegraphDir)
 			if loadErr != nil {
-				t.Fatalf("bd init succeeded but cannot load metadata: %v", loadErr)
+				t.Fatalf("issuegraph init succeeded but cannot load metadata: %v", loadErr)
 			}
 			if strings.ToLower(cfg.DoltMode) != "server" {
 				t.Errorf("expected DoltMode=server in metadata, got %q (config.yaml dolt.mode: server was ignored)", cfg.DoltMode)
@@ -1252,7 +1252,7 @@ func TestEmbeddedInit(t *testing.T) {
 		dir := t.TempDir()
 		initGitRepoAt(t, dir)
 
-		xdgDir := filepath.Join(dir, ".config", "bd")
+		xdgDir := filepath.Join(dir, ".config", "issuegraph")
 		if err := os.MkdirAll(xdgDir, 0o755); err != nil {
 			t.Fatalf("mkdir: %v", err)
 		}
@@ -1261,9 +1261,9 @@ func TestEmbeddedInit(t *testing.T) {
 			t.Fatalf("write config.yaml: %v", err)
 		}
 
-		cmd := exec.Command(bd, "init", "--prefix", "hyphendb", "--database", "server-db", "--non-interactive", "--quiet")
+		cmd := exec.Command(issuegraph, "init", "--prefix", "hyphendb", "--database", "server-db", "--non-interactive", "--quiet")
 		cmd.Dir = dir
-		cmd.Env = bdEnv(dir)
+		cmd.Env = issuegraphEnv(dir)
 		out, err := cmd.CombinedOutput()
 		if err == nil {
 			t.Fatalf("expected server init to fail without a server, but it succeeded:\n%s", out)
@@ -1279,7 +1279,7 @@ func TestEmbeddedInit(t *testing.T) {
 	})
 }
 
-// TestEmbeddedInitConcurrent verifies concurrent `bd init` writers are
+// TestEmbeddedInitConcurrent verifies concurrent `issuegraph init` writers are
 // serialized rather than corrupting the workspace. The EXCLUSIVE workspace
 // gate (see acquireExclusiveWorkspaceGates in modules/cli/init.go) is acquired
 // before the embedded Dolt flock is ever attempted, so contention here
@@ -1306,17 +1306,17 @@ func TestEmbeddedInit(t *testing.T) {
 // #5093) exercises it deterministically by holding the gate in-process, which
 // is what this test was approximating by racing.
 func TestEmbeddedInitConcurrent(t *testing.T) {
-	if os.Getenv("BEADS_TEST_EMBEDDED_DOLT") != "1" {
-		t.Skip("set BEADS_TEST_EMBEDDED_DOLT=1 to run embedded dolt init tests")
+	if os.Getenv("ISSUEGRAPH_TEST_EMBEDDED_DOLT") != "1" {
+		t.Skip("set ISSUEGRAPH_TEST_EMBEDDED_DOLT=1 to run embedded dolt init tests")
 	}
 	t.Parallel()
 
-	bd := buildEmbeddedBD(t)
+	issuegraph := buildEmbeddedBD(t)
 	dir := t.TempDir()
 	initGitRepoAt(t, dir)
 
 	const N = 10
-	env := bdEnv(dir)
+	env := issuegraphEnv(dir)
 
 	type result struct {
 		idx      int
@@ -1333,7 +1333,7 @@ func TestEmbeddedInitConcurrent(t *testing.T) {
 			ctx, cancel := context.WithTimeout(context.Background(), 90*time.Second)
 			defer cancel()
 
-			cmd := exec.CommandContext(ctx, bd, "init", "--prefix", "conc", "--force", "--quiet", "--skip-agents")
+			cmd := exec.CommandContext(ctx, issuegraph, "init", "--prefix", "conc", "--force", "--quiet", "--skip-agents")
 			cmd.Dir = dir
 			cmd.Env = env
 			out, err := cmd.CombinedOutput()
@@ -1345,7 +1345,7 @@ func TestEmbeddedInitConcurrent(t *testing.T) {
 	successes, lockErrors, timeoutKills := 0, 0, 0
 	for _, r := range results {
 		if r.timedOut {
-			t.Logf("process %d timed out after 90s running concurrent bd init: %v\n%s", r.idx, r.err, r.out)
+			t.Logf("process %d timed out after 90s running concurrent issuegraph init: %v\n%s", r.idx, r.err, r.out)
 			timeoutKills++
 			continue
 		}
@@ -1374,16 +1374,16 @@ func TestEmbeddedInitConcurrent(t *testing.T) {
 	}
 	t.Logf("%d/%d succeeded, %d/%d got lock error, %d/%d timed out", successes, N, lockErrors, N, timeoutKills, N)
 
-	beadsDir := filepath.Join(dir, ".beads")
-	embeddedDir := filepath.Join(beadsDir, "embeddeddolt")
+	issuegraphDir := filepath.Join(dir, ".issuegraph")
+	embeddedDir := filepath.Join(issuegraphDir, "embeddeddolt")
 	requireFile(t, embeddedDir)
 	requireFile(t, filepath.Join(embeddedDir, "conc", ".dolt"))
 
-	if val := readBack(t, beadsDir, "conc", "issue_prefix", false); val != "conc" {
+	if val := readBack(t, issuegraphDir, "conc", "issue_prefix", false); val != "conc" {
 		t.Errorf("issue_prefix: got %q, want %q", val, "conc")
 	}
 
-	cfg, err := configfile.Load(beadsDir)
+	cfg, err := configfile.Load(issuegraphDir)
 	if err != nil {
 		t.Fatalf("failed to load metadata.json: %v", err)
 	}
@@ -1405,7 +1405,7 @@ func TestEmbeddedInitConcurrent(t *testing.T) {
 }
 
 // TestInitGateBusyClassifiedAsLockContention pins the fix for
-// TestEmbeddedInitConcurrent's regression: a losing concurrent `bd init`
+// TestEmbeddedInitConcurrent's regression: a losing concurrent `issuegraph init`
 // that fails because another process holds the workspace gate EXCLUSIVELY
 // (rather than hitting the embedded Dolt flock, which the gate now
 // short-circuits before it is ever attempted) must still be classified as
@@ -1417,7 +1417,7 @@ func TestEmbeddedInitConcurrent(t *testing.T) {
 func TestInitGateBusyClassifiedAsLockContention(t *testing.T) {
 	resetGateTestEnv(t)
 	t.Cleanup(releaseWorkspaceGates)
-	beadsDir := newGateTestWorkspace(t)
+	issuegraphDir := newGateTestWorkspace(t)
 
 	oldWait := exclusiveGateWait
 	exclusiveGateWait = 10 * time.Millisecond
@@ -1425,20 +1425,20 @@ func TestInitGateBusyClassifiedAsLockContention(t *testing.T) {
 
 	// Simulate the winner: hold the workspace gate EXCLUSIVELY for the
 	// duration of its init, exactly as modules/cli/init.go does.
-	winner, err := acquireExclusiveWorkspaceGates(context.Background(), beadsDir, "test winner init")
+	winner, err := acquireExclusiveWorkspaceGates(context.Background(), issuegraphDir, "test winner init")
 	if err != nil {
 		t.Fatalf("winner acquisition: %v", err)
 	}
 	defer func() { _ = winner.Release() }()
 
-	// Simulate the loser: bd init's own acquisition call, and its own
-	// error-wrapping (modules/cli/init.go: "bd init refuses to run over live bd
+	// Simulate the loser: issuegraph init's own acquisition call, and its own
+	// error-wrapping (modules/cli/init.go: "issuegraph init refuses to run over live issuegraph
 	// activity on this workspace: %w").
-	_, gateErr := acquireExclusiveWorkspaceGates(context.Background(), beadsDir, "bd init")
+	_, gateErr := acquireExclusiveWorkspaceGates(context.Background(), issuegraphDir, "issuegraph init")
 	if gateErr == nil {
 		t.Fatal("loser acquisition under a live exclusive holder must fail")
 	}
-	loserOutput := fmt.Errorf("bd init refuses to run over live bd activity on this workspace: %w", gateErr).Error()
+	loserOutput := fmt.Errorf("issuegraph init refuses to run over live issuegraph activity on this workspace: %w", gateErr).Error()
 
 	if !isEmbeddedLockOutput(loserOutput) {
 		t.Fatalf("gate-busy loser output not classified as lock contention: %q", loserOutput)

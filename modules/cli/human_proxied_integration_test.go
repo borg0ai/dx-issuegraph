@@ -10,42 +10,42 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/steveyegge/beads/internal/types"
+	"github.com/borg0ai/dx-issuegraph/internal/types"
 )
 
-func bdProxiedHuman(t *testing.T, bd, dir string, args ...string) (string, string) {
+func issuegraphProxiedHuman(t *testing.T, issuegraph, dir string, args ...string) (string, string) {
 	t.Helper()
 	fullArgs := append([]string{"human"}, args...)
-	stdout, stderr, err := bdProxiedRunBuffers(t, bd, dir, fullArgs...)
+	stdout, stderr, err := issuegraphProxiedRunBuffers(t, issuegraph, dir, fullArgs...)
 	if err != nil {
-		t.Fatalf("bd human %s failed: %v\nstdout:\n%s\nstderr:\n%s",
+		t.Fatalf("issuegraph human %s failed: %v\nstdout:\n%s\nstderr:\n%s",
 			strings.Join(args, " "), err, stdout, stderr)
 	}
 	return stdout, stderr
 }
 
-func bdProxiedHumanFail(t *testing.T, bd, dir string, args ...string) string {
+func issuegraphProxiedHumanFail(t *testing.T, issuegraph, dir string, args ...string) string {
 	t.Helper()
 	fullArgs := append([]string{"human"}, args...)
-	stdout, stderr, err := bdProxiedRunBuffers(t, bd, dir, fullArgs...)
+	stdout, stderr, err := issuegraphProxiedRunBuffers(t, issuegraph, dir, fullArgs...)
 	if err == nil {
-		t.Fatalf("expected bd human %s to fail, but succeeded:\nstdout:\n%s\nstderr:\n%s",
+		t.Fatalf("expected issuegraph human %s to fail, but succeeded:\nstdout:\n%s\nstderr:\n%s",
 			strings.Join(args, " "), stdout, stderr)
 	}
 	return stdout + stderr
 }
 
-func bdProxiedLabelAdd(t *testing.T, bd, dir, id, label string) {
+func issuegraphProxiedLabelAdd(t *testing.T, issuegraph, dir, id, label string) {
 	t.Helper()
-	cmd := exec.Command(bd, "label", "add", id, label)
+	cmd := exec.Command(issuegraph, "label", "add", id, label)
 	cmd.Dir = dir
-	cmd.Env = bdProxiedEnv(dir)
+	cmd.Env = issuegraphProxiedEnv(dir)
 	if out, err := cmd.CombinedOutput(); err != nil {
-		t.Fatalf("bd label add %s %s failed: %v\n%s", id, label, err, out)
+		t.Fatalf("issuegraph label add %s %s failed: %v\n%s", id, label, err, out)
 	}
 }
 
-// TestProxiedServerHuman covers the bd-m7zzd port of the four `bd human`
+// TestProxiedServerHuman covers the bd-m7zzd port of the four `issuegraph human`
 // subcommands to proxied-server mode. Before it, each of them called
 // ensureStoreActive(), which in proxied mode lazily opened a DIRECT store —
 // silently bypassing the proxy, so writes landed outside the proxied commit
@@ -55,16 +55,16 @@ func bdProxiedLabelAdd(t *testing.T, bd, dir, id, label string) {
 func TestProxiedServerHuman(t *testing.T) {
 	requireSharedProxiedServer(t)
 	t.Parallel()
-	bd := buildEmbeddedBD(t)
+	issuegraph := buildEmbeddedBD(t)
 
 	t.Run("list_and_stats_empty", func(t *testing.T) {
 		t.Parallel()
-		p := newSharedProxiedProject(t, bd, "hm1")
-		out, _ := bdProxiedHuman(t, bd, p.dir, "list")
-		if !strings.Contains(out, "No human-needed beads found") {
+		p := newSharedProxiedProject(t, issuegraph, "hm1")
+		out, _ := issuegraphProxiedHuman(t, issuegraph, p.dir, "list")
+		if !strings.Contains(out, "No human-needed issuegraph found") {
 			t.Errorf("expected empty human list message: %s", out)
 		}
-		statsOut, _ := bdProxiedHuman(t, bd, p.dir, "stats")
+		statsOut, _ := issuegraphProxiedHuman(t, issuegraph, p.dir, "stats")
 		if !strings.Contains(statsOut, "Total:") || !strings.Contains(statsOut, "0") {
 			t.Errorf("expected zeroed stats output: %s", statsOut)
 		}
@@ -72,11 +72,11 @@ func TestProxiedServerHuman(t *testing.T) {
 
 	t.Run("respond_journey", func(t *testing.T) {
 		t.Parallel()
-		p := newSharedProxiedProject(t, bd, "hm2")
-		issue := bdProxiedCreate(t, bd, p.dir, "Needs a human", "--type", "task")
-		bdProxiedLabelAdd(t, bd, p.dir, issue.ID, "human")
+		p := newSharedProxiedProject(t, issuegraph, "hm2")
+		issue := issuegraphProxiedCreate(t, issuegraph, p.dir, "Needs a human", "--type", "task")
+		issuegraphProxiedLabelAdd(t, issuegraph, p.dir, issue.ID, "human")
 
-		listOut, _ := bdProxiedHuman(t, bd, p.dir, "list")
+		listOut, _ := issuegraphProxiedHuman(t, issuegraph, p.dir, "list")
 		if !strings.Contains(listOut, issue.ID) {
 			t.Errorf("expected %s in human list:\n%s", issue.ID, listOut)
 		}
@@ -84,23 +84,23 @@ func TestProxiedServerHuman(t *testing.T) {
 		db := openProxiedDB(t, p)
 		head := readDoltHead(t, db)
 
-		out, _ := bdProxiedHuman(t, bd, p.dir, "respond", issue.ID, "--response", "Use OAuth2")
+		out, _ := issuegraphProxiedHuman(t, issuegraph, p.dir, "respond", issue.ID, "--response", "Use OAuth2")
 		if !strings.Contains(out, "closed with response") {
 			t.Errorf("expected respond confirmation: %s", out)
 		}
 
 		// The close and the comment are visible through the PROXIED read
 		// path — the write went through the proxy, not a direct store.
-		after := bdProxiedShow(t, bd, p.dir, issue.ID)
+		after := issuegraphProxiedShow(t, issuegraph, p.dir, issue.ID)
 		if string(after.Status) != "closed" {
 			t.Errorf("expected closed status after respond, got %s", after.Status)
 		}
 		if after.CloseReason != "Responded" {
 			t.Errorf("expected close reason 'Responded', got %q", after.CloseReason)
 		}
-		commentsOut, err := bdProxiedRun(t, bd, p.dir, "comments", issue.ID)
+		commentsOut, err := issuegraphProxiedRun(t, issuegraph, p.dir, "comments", issue.ID)
 		if err != nil {
-			t.Fatalf("bd comments failed: %v\n%s", err, commentsOut)
+			t.Fatalf("issuegraph comments failed: %v\n%s", err, commentsOut)
 		}
 		if !strings.Contains(string(commentsOut), "Response: Use OAuth2") {
 			t.Errorf("expected response comment:\n%s", commentsOut)
@@ -111,26 +111,26 @@ func TestProxiedServerHuman(t *testing.T) {
 		if n := readDoltLogCountSince(t, db, head); n != 1 {
 			t.Errorf("expected exactly 1 commit for respond, got %d", n)
 		}
-		if msg := readDoltLogTopMessage(t, db); !strings.Contains(msg, "bd: human respond") {
-			t.Errorf("expected 'bd: human respond' commit message, got %q", msg)
+		if msg := readDoltLogTopMessage(t, db); !strings.Contains(msg, "issuegraph: human respond") {
+			t.Errorf("expected 'issuegraph: human respond' commit message, got %q", msg)
 		}
 	})
 
 	t.Run("dismiss_journey", func(t *testing.T) {
 		t.Parallel()
-		p := newSharedProxiedProject(t, bd, "hm3")
-		issue := bdProxiedCreate(t, bd, p.dir, "Dismiss me", "--type", "task")
-		bdProxiedLabelAdd(t, bd, p.dir, issue.ID, "human")
+		p := newSharedProxiedProject(t, issuegraph, "hm3")
+		issue := issuegraphProxiedCreate(t, issuegraph, p.dir, "Dismiss me", "--type", "task")
+		issuegraphProxiedLabelAdd(t, issuegraph, p.dir, issue.ID, "human")
 
 		db := openProxiedDB(t, p)
 		head := readDoltHead(t, db)
 
-		out, _ := bdProxiedHuman(t, bd, p.dir, "dismiss", issue.ID, "--reason", "Not needed")
+		out, _ := issuegraphProxiedHuman(t, issuegraph, p.dir, "dismiss", issue.ID, "--reason", "Not needed")
 		if !strings.Contains(out, "dismissed") {
 			t.Errorf("expected dismiss confirmation: %s", out)
 		}
 
-		after := bdProxiedShow(t, bd, p.dir, issue.ID)
+		after := issuegraphProxiedShow(t, issuegraph, p.dir, issue.ID)
 		if string(after.Status) != "closed" {
 			t.Errorf("expected closed status after dismiss, got %s", after.Status)
 		}
@@ -141,16 +141,16 @@ func TestProxiedServerHuman(t *testing.T) {
 		if n := readDoltLogCountSince(t, db, head); n != 1 {
 			t.Errorf("expected exactly 1 commit for dismiss, got %d", n)
 		}
-		if msg := readDoltLogTopMessage(t, db); !strings.Contains(msg, "bd: human dismiss") {
-			t.Errorf("expected 'bd: human dismiss' commit message, got %q", msg)
+		if msg := readDoltLogTopMessage(t, db); !strings.Contains(msg, "issuegraph: human dismiss") {
+			t.Errorf("expected 'issuegraph: human dismiss' commit message, got %q", msg)
 		}
 	})
 
 	t.Run("respond_without_label_warns", func(t *testing.T) {
 		t.Parallel()
-		p := newSharedProxiedProject(t, bd, "hm4")
-		issue := bdProxiedCreate(t, bd, p.dir, "Unlabeled", "--type", "task")
-		_, stderr := bdProxiedHuman(t, bd, p.dir, "respond", issue.ID, "--response", "ok")
+		p := newSharedProxiedProject(t, issuegraph, "hm4")
+		issue := issuegraphProxiedCreate(t, issuegraph, p.dir, "Unlabeled", "--type", "task")
+		_, stderr := issuegraphProxiedHuman(t, issuegraph, p.dir, "respond", issue.ID, "--response", "ok")
 		if !strings.Contains(stderr, "does not have 'human' label") {
 			t.Errorf("expected missing-label warning on stderr: %s", stderr)
 		}
@@ -158,9 +158,9 @@ func TestProxiedServerHuman(t *testing.T) {
 
 	t.Run("respond_refusals", func(t *testing.T) {
 		t.Parallel()
-		p := newSharedProxiedProject(t, bd, "hm5")
+		p := newSharedProxiedProject(t, issuegraph, "hm5")
 
-		out := bdProxiedHumanFail(t, bd, p.dir, "respond", "hm5-nonexistent", "--response", "ok")
+		out := issuegraphProxiedHumanFail(t, issuegraph, p.dir, "respond", "hm5-nonexistent", "--response", "ok")
 		if !strings.Contains(out, "issue not found") {
 			t.Errorf("expected 'issue not found' refusal: %s", out)
 		}
@@ -168,10 +168,10 @@ func TestProxiedServerHuman(t *testing.T) {
 			t.Errorf("opaque 'storage is nil' error leaked through: %s", out)
 		}
 
-		issue := bdProxiedCreate(t, bd, p.dir, "Already closed", "--type", "task")
-		bdProxiedLabelAdd(t, bd, p.dir, issue.ID, "human")
-		bdProxiedHuman(t, bd, p.dir, "dismiss", issue.ID)
-		out = bdProxiedHumanFail(t, bd, p.dir, "respond", issue.ID, "--response", "late")
+		issue := issuegraphProxiedCreate(t, issuegraph, p.dir, "Already closed", "--type", "task")
+		issuegraphProxiedLabelAdd(t, issuegraph, p.dir, issue.ID, "human")
+		issuegraphProxiedHuman(t, issuegraph, p.dir, "dismiss", issue.ID)
+		out = issuegraphProxiedHumanFail(t, issuegraph, p.dir, "respond", issue.ID, "--response", "late")
 		if !strings.Contains(out, "already closed") {
 			t.Errorf("expected already-closed refusal: %s", out)
 		}
@@ -179,19 +179,19 @@ func TestProxiedServerHuman(t *testing.T) {
 
 	t.Run("stats_counts", func(t *testing.T) {
 		t.Parallel()
-		p := newSharedProxiedProject(t, bd, "hm6")
+		p := newSharedProxiedProject(t, issuegraph, "hm6")
 
-		pending := bdProxiedCreate(t, bd, p.dir, "Pending", "--type", "task")
-		bdProxiedLabelAdd(t, bd, p.dir, pending.ID, "human")
-		responded := bdProxiedCreate(t, bd, p.dir, "Responded", "--type", "task")
-		bdProxiedLabelAdd(t, bd, p.dir, responded.ID, "human")
-		dismissed := bdProxiedCreate(t, bd, p.dir, "Dismissed", "--type", "task")
-		bdProxiedLabelAdd(t, bd, p.dir, dismissed.ID, "human")
+		pending := issuegraphProxiedCreate(t, issuegraph, p.dir, "Pending", "--type", "task")
+		issuegraphProxiedLabelAdd(t, issuegraph, p.dir, pending.ID, "human")
+		responded := issuegraphProxiedCreate(t, issuegraph, p.dir, "Responded", "--type", "task")
+		issuegraphProxiedLabelAdd(t, issuegraph, p.dir, responded.ID, "human")
+		dismissed := issuegraphProxiedCreate(t, issuegraph, p.dir, "Dismissed", "--type", "task")
+		issuegraphProxiedLabelAdd(t, issuegraph, p.dir, dismissed.ID, "human")
 
-		bdProxiedHuman(t, bd, p.dir, "respond", responded.ID, "--response", "done")
-		bdProxiedHuman(t, bd, p.dir, "dismiss", dismissed.ID)
+		issuegraphProxiedHuman(t, issuegraph, p.dir, "respond", responded.ID, "--response", "done")
+		issuegraphProxiedHuman(t, issuegraph, p.dir, "dismiss", dismissed.ID)
 
-		out, _ := bdProxiedHuman(t, bd, p.dir, "stats")
+		out, _ := issuegraphProxiedHuman(t, issuegraph, p.dir, "stats")
 		for _, want := range []string{"Total:      3", "Pending:    1", "Responded:  1", "Dismissed:  1"} {
 			if !strings.Contains(out, want) {
 				t.Errorf("expected %q in stats output:\n%s", want, out)
@@ -199,29 +199,29 @@ func TestProxiedServerHuman(t *testing.T) {
 		}
 
 		// And the closed pair drops out of the open list.
-		listOut, _ := bdProxiedHuman(t, bd, p.dir, "list", "--status", "open")
+		listOut, _ := issuegraphProxiedHuman(t, issuegraph, p.dir, "list", "--status", "open")
 		if !strings.Contains(listOut, pending.ID) {
 			t.Errorf("expected %s in open human list:\n%s", pending.ID, listOut)
 		}
 		if strings.Contains(listOut, responded.ID) || strings.Contains(listOut, dismissed.ID) {
-			t.Errorf("closed beads leaked into open human list:\n%s", listOut)
+			t.Errorf("closed issuegraph leaked into open human list:\n%s", listOut)
 		}
 	})
 
-	// A human-labeled bead can be a WISP: `bd human list` shows the whole
-	// ephemeral plane, so a bead a person can SEE here must be one they can
+	// A human-labeled issue can be a WISP: `issuegraph human list` shows the whole
+	// ephemeral plane, so a issue a person can SEE here must be one they can
 	// also ANSWER. Before the wisp branch, respond resolved the wisp fine and
 	// then wrote its comment and close against the durable tables, where the
 	// row does not exist.
 	t.Run("respond_on_wisp", func(t *testing.T) {
 		t.Parallel()
-		p := newSharedProxiedProject(t, bd, "hm7")
-		wisp := bdProxiedCreate(t, bd, p.dir, "Wisp question", "--ephemeral", "--labels", "human")
+		p := newSharedProxiedProject(t, issuegraph, "hm7")
+		wisp := issuegraphProxiedCreate(t, issuegraph, p.dir, "Wisp question", "--ephemeral", "--labels", "human")
 
 		// No label warning: the label load has to reach the WISP plane too,
 		// and a failed load must stay silent rather than claim the label is
 		// missing.
-		_, stderr := bdProxiedHuman(t, bd, p.dir, "respond", wisp.ID, "wisp answer")
+		_, stderr := issuegraphProxiedHuman(t, issuegraph, p.dir, "respond", wisp.ID, "wisp answer")
 		if strings.Contains(stderr, "does not have 'human' label") {
 			t.Errorf("unexpected label warning for a human-labeled wisp:\n%s", stderr)
 		}
@@ -245,32 +245,32 @@ func TestProxiedServerHuman(t *testing.T) {
 	// rather than silently returning nothing.
 	t.Run("list_filters_and_status_selector", func(t *testing.T) {
 		t.Parallel()
-		p := newSharedProxiedProject(t, bd, "hm8")
-		open := bdProxiedCreate(t, bd, p.dir, "Open human bead", "--type", "task")
-		bdProxiedLabelAdd(t, bd, p.dir, open.ID, "human")
-		done := bdProxiedCreate(t, bd, p.dir, "Done human bead", "--type", "task")
-		bdProxiedLabelAdd(t, bd, p.dir, done.ID, "human")
-		other := bdProxiedCreate(t, bd, p.dir, "Not for humans", "--type", "task")
-		bdProxiedHuman(t, bd, p.dir, "dismiss", done.ID)
+		p := newSharedProxiedProject(t, issuegraph, "hm8")
+		open := issuegraphProxiedCreate(t, issuegraph, p.dir, "Open human issue", "--type", "task")
+		issuegraphProxiedLabelAdd(t, issuegraph, p.dir, open.ID, "human")
+		done := issuegraphProxiedCreate(t, issuegraph, p.dir, "Done human issue", "--type", "task")
+		issuegraphProxiedLabelAdd(t, issuegraph, p.dir, done.ID, "human")
+		other := issuegraphProxiedCreate(t, issuegraph, p.dir, "Not for humans", "--type", "task")
+		issuegraphProxiedHuman(t, issuegraph, p.dir, "dismiss", done.ID)
 
-		out, _ := bdProxiedHuman(t, bd, p.dir, "list")
+		out, _ := issuegraphProxiedHuman(t, issuegraph, p.dir, "list")
 		if !strings.Contains(out, open.ID) {
-			t.Errorf("expected open human bead in list, got:\n%s", out)
+			t.Errorf("expected open human issue in list, got:\n%s", out)
 		}
 		if strings.Contains(out, done.ID) || strings.Contains(out, other.ID) {
-			t.Errorf("expected closed and unlabeled beads hidden, got:\n%s", out)
+			t.Errorf("expected closed and unlabeled issuegraph hidden, got:\n%s", out)
 		}
 
-		all, _ := bdProxiedHuman(t, bd, p.dir, "list", "--status=all")
+		all, _ := issuegraphProxiedHuman(t, issuegraph, p.dir, "list", "--status=all")
 		if !strings.Contains(all, open.ID) || !strings.Contains(all, done.ID) {
-			t.Errorf("expected --status=all to show open and closed beads, got:\n%s", all)
+			t.Errorf("expected --status=all to show open and closed issuegraph, got:\n%s", all)
 		}
 
-		if out := bdProxiedHumanFail(t, bd, p.dir, "list", "--status=colsed"); !strings.Contains(out, "invalid status") {
+		if out := issuegraphProxiedHumanFail(t, issuegraph, p.dir, "list", "--status=colsed"); !strings.Contains(out, "invalid status") {
 			t.Errorf("expected invalid-status error, got:\n%s", out)
 		}
 
-		jsonOut, _ := bdProxiedHuman(t, bd, p.dir, "list", "--json")
+		jsonOut, _ := issuegraphProxiedHuman(t, issuegraph, p.dir, "list", "--json")
 		start := strings.Index(jsonOut, "[")
 		if start < 0 {
 			t.Fatalf("no JSON array in human list output:\n%s", jsonOut)
@@ -280,7 +280,7 @@ func TestProxiedServerHuman(t *testing.T) {
 			t.Fatalf("parse human list JSON: %v\nraw: %s", err, jsonOut[start:])
 		}
 		if len(issues) != 1 || issues[0].ID != open.ID {
-			t.Fatalf("expected exactly the open human bead in JSON, got %+v", issues)
+			t.Fatalf("expected exactly the open human issue in JSON, got %+v", issues)
 		}
 		// The list no longer re-fetches labels for the JSON path; the search
 		// already hydrated them.
@@ -294,14 +294,14 @@ func TestProxiedServerHuman(t *testing.T) {
 	// proxied dispatch, so there is one reading for both routes.
 	t.Run("positional_text_reaches_the_proxy", func(t *testing.T) {
 		t.Parallel()
-		p := newSharedProxiedProject(t, bd, "hm9")
+		p := newSharedProxiedProject(t, issuegraph, "hm9")
 
-		answered := bdProxiedCreate(t, bd, p.dir, "Positional respond", "--type", "task")
-		bdProxiedLabelAdd(t, bd, p.dir, answered.ID, "human")
-		bdProxiedHuman(t, bd, p.dir, "respond", answered.ID, "Use", "OAuth2")
-		commentsOut, _, err := bdProxiedRunBuffers(t, bd, p.dir, "comments", "--json", answered.ID)
+		answered := issuegraphProxiedCreate(t, issuegraph, p.dir, "Positional respond", "--type", "task")
+		issuegraphProxiedLabelAdd(t, issuegraph, p.dir, answered.ID, "human")
+		issuegraphProxiedHuman(t, issuegraph, p.dir, "respond", answered.ID, "Use", "OAuth2")
+		commentsOut, _, err := issuegraphProxiedRunBuffers(t, issuegraph, p.dir, "comments", "--json", answered.ID)
 		if err != nil {
-			t.Fatalf("bd comments --json failed: %v\n%s", err, commentsOut)
+			t.Fatalf("issuegraph comments --json failed: %v\n%s", err, commentsOut)
 		}
 		var comments []types.Comment
 		if err := json.Unmarshal([]byte(commentsOut), &comments); err != nil {
@@ -311,10 +311,10 @@ func TestProxiedServerHuman(t *testing.T) {
 			t.Fatalf("expected 1 response comment with the joined text, got %+v", comments)
 		}
 
-		dropped := bdProxiedCreate(t, bd, p.dir, "Positional dismiss", "--type", "task")
-		bdProxiedLabelAdd(t, bd, p.dir, dropped.ID, "human")
-		bdProxiedHuman(t, bd, p.dir, "dismiss", dropped.ID, "No", "longer", "applicable")
-		if got := bdProxiedShow(t, bd, p.dir, dropped.ID); got.CloseReason != "Dismissed: No longer applicable" {
+		dropped := issuegraphProxiedCreate(t, issuegraph, p.dir, "Positional dismiss", "--type", "task")
+		issuegraphProxiedLabelAdd(t, issuegraph, p.dir, dropped.ID, "human")
+		issuegraphProxiedHuman(t, issuegraph, p.dir, "dismiss", dropped.ID, "No", "longer", "applicable")
+		if got := issuegraphProxiedShow(t, issuegraph, p.dir, dropped.ID); got.CloseReason != "Dismissed: No longer applicable" {
 			t.Errorf("close reason: got %q, want %q", got.CloseReason, "Dismissed: No longer applicable")
 		}
 	})

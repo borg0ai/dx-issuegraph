@@ -5,9 +5,9 @@ import (
 
 	"github.com/spf13/cobra"
 
-	"github.com/steveyegge/beads/internal/config"
-	"github.com/steveyegge/beads/internal/ui"
-	"github.com/steveyegge/beads/internal/workapi"
+	"github.com/borg0ai/dx-issuegraph/internal/config"
+	"github.com/borg0ai/dx-issuegraph/internal/ui"
+	"github.com/borg0ai/dx-issuegraph/internal/workapi"
 )
 
 // newListLimitCommand registers the flags the limit policy reads, with
@@ -25,13 +25,13 @@ func newListLimitCommand(t *testing.T, args ...string) *cobra.Command {
 }
 
 // TestListLimitPolicyIsResolvedBeforeTheRequest pins the third structural
-// divergence between `bd list` and GET /v0/beads/issues, the one the parity
+// divergence between `issuegraph list` and GET /v0/issuegraph/issues, the one the parity
 // oracle cannot see because every comparison there passes an explicit limit.
 //
-// The endpoint always defaults to workapi.DefaultListLimit. `bd list` resolves
+// The endpoint always defaults to workapi.DefaultListLimit. `issuegraph list` resolves
 // its own policy first and puts the RESULT on the request, so the shared
 // default that both surfaces are supposed to read is unreachable from the CLI:
-// a client swapping `bd list --json | ...` (piped, therefore unlimited) for the
+// a client swapping `issuegraph list --json | ...` (piped, therefore unlimited) for the
 // HTTP call silently loses every row past 50.
 //
 // That is deliberate — GH#4094 made piped output stop truncating — but it is a
@@ -83,7 +83,7 @@ func TestListLimitPolicyIsResolvedBeforeTheRequest(t *testing.T) {
 			// why workapi.PageLimit's shared-default fallback is dead code
 			// from this front door.
 			if in.Limit == nil {
-				t.Fatal("ListRequest.Limit is nil; `bd list` always resolves its own limit before the request exists")
+				t.Fatal("ListRequest.Limit is nil; `issuegraph list` always resolves its own limit before the request exists")
 			}
 			if *in.Limit != tc.want {
 				t.Errorf("ListRequest.Limit = %d, want %d", *in.Limit, tc.want)

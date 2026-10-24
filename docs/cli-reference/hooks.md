@@ -1,13 +1,13 @@
 ---
-title: "bd hooks"
-description: "Install, uninstall, or list git hooks for beads integration."
+title: "issuegraph hooks"
+description: "Install, uninstall, or list git hooks for issuegraph integration."
 ---
 
 {/* AUTO-GENERATED: do not edit manually */}
 
-Generated from `bd help --doc hooks`.
+Generated from `issuegraph help --doc hooks`.
 
-Install, uninstall, or list git hooks for beads integration.
+Install, uninstall, or list git hooks for issuegraph integration.
 
 The hooks provide:
 - pre-commit: Run chained hooks before commit
@@ -17,16 +17,16 @@ The hooks provide:
 - prepare-commit-msg: Add agent identity trailers for forensics
 
 ```
-bd hooks [flags]
+issuegraph hooks [flags]
 ```
 
-## bd hooks install
+## issuegraph hooks install
 
-Install git hooks for beads integration.
+Install git hooks for issuegraph integration.
 
 By default, hooks are installed to .git/hooks/ in the current repository.
-Use --beads to install to .beads/hooks/ (recommended for Dolt backend).
-Use --shared to install to a versioned directory (.beads-hooks/) that can be
+Use --issuegraph to install to .issuegraph/hooks/ (recommended for Dolt backend).
+Use --shared to install to a versioned directory (.issuegraph-hooks/) that can be
 committed to git and shared with team members.
 
 Hooks use section markers to coexist with existing hooks — any user content
@@ -40,27 +40,27 @@ Installed hooks:
   - prepare-commit-msg: Add agent identity trailers (for orchestrator agents)
 
 ```
-bd hooks install [flags]
+issuegraph hooks install [flags]
 ```
 
 **Flags:**
 
 ```
-      --beads    Install hooks to .beads/hooks/ (recommended for Dolt backend)
-      --chain    Chain with existing hooks (run them before bd hooks)
+      --issuegraph    Install hooks to .issuegraph/hooks/ (recommended for Dolt backend)
+      --chain    Chain with existing hooks (run them before issuegraph hooks)
       --force    Overwrite existing hooks without backup
-      --shared   Install hooks to .beads-hooks/ (versioned) instead of .git/hooks/
+      --shared   Install hooks to .issuegraph-hooks/ (versioned) instead of .git/hooks/
 ```
 
-## bd hooks list
+## issuegraph hooks list
 
-Show the status of bd git hooks (installed, outdated, missing).
+Show the status of issuegraph git hooks (installed, outdated, missing).
 
 ```
-bd hooks list [flags]
+issuegraph hooks list [flags]
 ```
 
-## bd hooks run
+## issuegraph hooks run
 
 Execute the logic for a git hook. This command is typically called by
 thin shim scripts installed in .git/hooks/.
@@ -73,16 +73,16 @@ Supported hooks:
   - prepare-commit-msg: Add agent identity trailers for forensics
 
 The thin shim pattern ensures hook logic is always in sync with the
-installed bd version - upgrading bd automatically updates hook behavior.
+installed issuegraph version - upgrading issuegraph automatically updates hook behavior.
 
 ```
-bd hooks run <hook-name> [args...] [flags]
+issuegraph hooks run <hook-name> [args...] [flags]
 ```
 
-## bd hooks uninstall
+## issuegraph hooks uninstall
 
-Remove bd git hooks from .git/hooks/ directory.
+Remove issuegraph git hooks from .git/hooks/ directory.
 
 ```
-bd hooks uninstall [flags]
+issuegraph hooks uninstall [flags]
 ```

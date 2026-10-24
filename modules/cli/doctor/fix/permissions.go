@@ -5,53 +5,53 @@ import (
 	"os"
 	"path/filepath"
 
-	"github.com/steveyegge/beads/internal/configfile"
+	"github.com/borg0ai/dx-issuegraph/internal/configfile"
 )
 
-// Permissions fixes file permission issues in the .beads directory
+// Permissions fixes file permission issues in the .issuegraph directory
 func Permissions(path string) error {
-	dirs, err := resolveWorkspaceBeadsDirs(path)
+	dirs, err := resolveWorkspaceIssueGraphDirs(path)
 	if err != nil {
 		return err
 	}
-	beadsDirResolved := dirs.resolved
-	beadsDir := dirs.local
+	issuegraphDirResolved := dirs.resolved
+	issuegraphDir := dirs.local
 
-	// Check if .beads/ directory exists
+	// Check if .issuegraph/ directory exists
 	// Use Lstat to detect symlinks - we shouldn't chmod symlinked directories
 	// as this would change the target's permissions (problematic on NixOS).
-	info, err := os.Lstat(beadsDir)
+	info, err := os.Lstat(issuegraphDir)
 	if err != nil {
 		if !os.IsNotExist(err) {
-			return fmt.Errorf("failed to stat .beads directory: %w", err)
+			return fmt.Errorf("failed to stat .issuegraph directory: %w", err)
 		}
-		beadsDir = beadsDirResolved
-		info, err = os.Lstat(beadsDir)
+		issuegraphDir = issuegraphDirResolved
+		info, err = os.Lstat(issuegraphDir)
 		if err != nil {
-			return fmt.Errorf("failed to stat .beads directory: %w", err)
+			return fmt.Errorf("failed to stat .issuegraph directory: %w", err)
 		}
 	}
 
-	// Skip permission fixes for symlinked .beads directories (common on NixOS with home-manager)
+	// Skip permission fixes for symlinked .issuegraph directories (common on NixOS with home-manager)
 	if info.Mode()&os.ModeSymlink != 0 {
 		return nil // Symlink permissions are not meaningful on Unix
 	}
 
-	// Ensure .beads directory has exactly 0700 permissions (owner rwx only)
+	// Ensure .issuegraph directory has exactly 0700 permissions (owner rwx only)
 	expectedDirMode := os.FileMode(0700)
 	if info.Mode().Perm() != expectedDirMode {
-		if err := os.Chmod(beadsDir, expectedDirMode); err != nil {
-			return fmt.Errorf("failed to fix .beads directory permissions: %w", err)
+		if err := os.Chmod(issuegraphDir, expectedDirMode); err != nil {
+			return fmt.Errorf("failed to fix .issuegraph directory permissions: %w", err)
 		}
 	}
 
 	// Fix permissions on database file/directory if it exists
 	// Resolve the actual database path from config (supports both SQLite and Dolt)
 	var dbPath string
-	if cfg, err := configfile.Load(beadsDirResolved); err == nil && cfg != nil {
-		dbPath = cfg.DatabasePath(beadsDirResolved)
+	if cfg, err := configfile.Load(issuegraphDirResolved); err == nil && cfg != nil {
+		dbPath = cfg.DatabasePath(issuegraphDirResolved)
 	} else {
-		dbPath = filepath.Join(beadsDirResolved, "beads.db")
+		dbPath = filepath.Join(issuegraphDirResolved, "issuegraph.db")
 	}
 
 	// Use Lstat to detect symlinks - skip chmod for symlinked database files

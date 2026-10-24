@@ -8,13 +8,13 @@ import (
 	"sort"
 	"strings"
 
+	"github.com/borg0ai/dx-issuegraph/internal/config"
+	"github.com/borg0ai/dx-issuegraph/internal/metrics"
+	"github.com/borg0ai/dx-issuegraph/internal/notion"
+	"github.com/borg0ai/dx-issuegraph/internal/storage"
+	"github.com/borg0ai/dx-issuegraph/internal/tracker"
+	"github.com/borg0ai/dx-issuegraph/internal/types"
 	"github.com/spf13/cobra"
-	"github.com/steveyegge/beads/internal/config"
-	"github.com/steveyegge/beads/internal/metrics"
-	"github.com/steveyegge/beads/internal/notion"
-	"github.com/steveyegge/beads/internal/storage"
-	"github.com/steveyegge/beads/internal/tracker"
-	"github.com/steveyegge/beads/internal/types"
 )
 
 type notionConfig struct {
@@ -88,7 +88,7 @@ var newNotionSetupClient = notion.NewClient
 var notionCmd = &cobra.Command{
 	Use:   "notion",
 	Short: "Notion integration commands",
-	Long:  "Commands for syncing issues between beads and Notion.",
+	Long:  "Commands for syncing issues between issuegraph and Notion.",
 }
 
 var notionStatusCmd = &cobra.Command{
@@ -101,7 +101,7 @@ var notionStatusCmd = &cobra.Command{
 
 var notionInitCmd = &cobra.Command{
 	Use:           "init",
-	Short:         "Create a dedicated Beads database in Notion",
+	Short:         "Create a dedicated IssueGraph database in Notion",
 	SilenceUsage:  true,
 	SilenceErrors: true,
 	RunE:          runNotionInit,
@@ -109,7 +109,7 @@ var notionInitCmd = &cobra.Command{
 
 var notionConnectCmd = &cobra.Command{
 	Use:           "connect",
-	Short:         "Connect bd to an existing Notion database or data source",
+	Short:         "Connect issuegraph to an existing Notion database or data source",
 	SilenceUsage:  true,
 	SilenceErrors: true,
 	RunE:          runNotionConnect,
@@ -118,7 +118,7 @@ var notionConnectCmd = &cobra.Command{
 var notionSyncCmd = &cobra.Command{
 	Use:   "sync",
 	Short: "Sync issues with Notion",
-	Long: "Synchronize issues between beads and Notion.\n\n" +
+	Long: "Synchronize issues between issuegraph and Notion.\n\n" +
 		"By default this performs bidirectional sync. Use --pull or --push to limit direction.",
 	SilenceUsage:  true,
 	SilenceErrors: true,
@@ -136,7 +136,7 @@ func init() {
 	notionSyncCmd.Flags().BoolVar(&notionSyncPull, "pull", false, "Only pull issues from Notion")
 	notionSyncCmd.Flags().BoolVar(&notionSyncPush, "push", false, "Only push issues to Notion")
 	notionSyncCmd.Flags().BoolVar(&notionSyncDryRun, "dry-run", false, "Preview changes without making mutations")
-	notionSyncCmd.Flags().BoolVar(&notionPreferLocal, "prefer-local", false, "On conflict, keep the local beads version")
+	notionSyncCmd.Flags().BoolVar(&notionPreferLocal, "prefer-local", false, "On conflict, keep the local issuegraph version")
 	notionSyncCmd.Flags().BoolVar(&notionPreferNotion, "prefer-notion", false, "On conflict, use the Notion version")
 	notionSyncCmd.Flags().BoolVar(&notionCreateOnly, "create-only", false, "Only create missing remote pages, do not update existing ones")
 	notionSyncCmd.Flags().StringVar(&notionSyncState, "state", "all", "Issue state to sync: open, closed, or all")
@@ -205,17 +205,17 @@ func resolveNotionAuth(ctx context.Context) (*notion.ResolvedAuth, error) {
 
 func validateNotionConfig(cfg notionConfig, auth *notion.ResolvedAuth) error {
 	if auth == nil || strings.TrimSpace(auth.Token) == "" {
-		return fmt.Errorf("Notion authentication is not configured. Set notion.token with 'bd config set notion.token <token>', or export NOTION_TOKEN")
+		return fmt.Errorf("Notion authentication is not configured. Set notion.token with 'issuegraph config set notion.token <token>', or export NOTION_TOKEN")
 	}
 	if cfg.DataSourceID == "" {
-		return fmt.Errorf("notion.data_source_id is not configured. Run 'bd notion init --parent <page-id>' or 'bd notion connect --url <notion-url>', or set it directly via bd config set notion.data_source_id <id> or NOTION_DATA_SOURCE_ID")
+		return fmt.Errorf("notion.data_source_id is not configured. Run 'issuegraph notion init --parent <page-id>' or 'issuegraph notion connect --url <notion-url>', or set it directly via issuegraph config set notion.data_source_id <id> or NOTION_DATA_SOURCE_ID")
 	}
 	return nil
 }
 
 func validateNotionToken(auth *notion.ResolvedAuth) error {
 	if auth == nil || strings.TrimSpace(auth.Token) == "" {
-		return fmt.Errorf("Notion authentication is not configured. Set notion.token with 'bd config set notion.token <token>', or export NOTION_TOKEN")
+		return fmt.Errorf("Notion authentication is not configured. Set notion.token with 'issuegraph config set notion.token <token>', or export NOTION_TOKEN")
 	}
 	return nil
 }
@@ -562,7 +562,7 @@ func summarizeNotionSyncWarnings(warnings []string) []string {
 }
 
 func buildNotionPullHooks(ctx context.Context) *tracker.PullHooks {
-	prefix := "bd"
+	prefix := "issuegraph"
 	if p := config.GetString("issue-prefix"); p != "" {
 		prefix = p
 	} else if store != nil {

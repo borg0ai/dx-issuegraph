@@ -9,10 +9,10 @@ import (
 	"sync"
 	"time"
 
-	"github.com/steveyegge/beads/internal/config"
-	"github.com/steveyegge/beads/internal/tracker"
-	itracker "github.com/steveyegge/beads/internal/tracker"
-	"github.com/steveyegge/beads/internal/types"
+	"github.com/borg0ai/dx-issuegraph/internal/config"
+	"github.com/borg0ai/dx-issuegraph/internal/tracker"
+	itracker "github.com/borg0ai/dx-issuegraph/internal/tracker"
+	"github.com/borg0ai/dx-issuegraph/internal/types"
 )
 
 const defaultBatchPushWorkers = 8
@@ -78,7 +78,7 @@ func (t *Tracker) Init(ctx context.Context, store tracker.Store) error {
 		return fmt.Errorf("Notion authentication is not configured (set notion.token or export NOTION_TOKEN)")
 	}
 	if t.dataSourceID == "" {
-		return fmt.Errorf("Notion data source not configured (run 'bd notion init --parent <page-id>', 'bd notion connect --url <notion-url>', or set notion.data_source_id)")
+		return fmt.Errorf("Notion data source not configured (run 'issuegraph notion init --parent <page-id>', 'issuegraph notion connect --url <notion-url>', or set notion.data_source_id)")
 	}
 	t.authSource = auth.Source
 	if t.client == nil {

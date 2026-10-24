@@ -6,19 +6,19 @@ import (
 	"net/http"
 	"testing"
 
-	"github.com/steveyegge/beads/internal/httpapi/apigen"
-	"github.com/steveyegge/beads/internal/storage"
-	"github.com/steveyegge/beads/issueops"
+	"github.com/borg0ai/dx-issuegraph/internal/httpapi/apigen"
+	"github.com/borg0ai/dx-issuegraph/internal/storage"
+	"github.com/borg0ai/dx-issuegraph/issueops"
 )
 
-// The pins for POST /v0/beads/issues:batchApply. What is asserted here is the
+// The pins for POST /v0/issuegraph/issues:batchApply. What is asserted here is the
 // WIRE EDGE — that a four-level body reaches the role faithfully, that the
 // tagged union's two halves are made to agree before the role sees them, that
 // the result goes back LEAN, and that each of the role's typed refusals arrives
 // as the documented code carrying the members that name the offending item.
 // Everything below the wire is the role's.
 
-const batchApplyPath = "/v0/beads/issues:batchApply"
+const batchApplyPath = "/v0/issuegraph/issues:batchApply"
 
 func newApplyBatchServer(t *testing.T, applier *roleBatchApplier) *testServer {
 	t.Helper()
@@ -32,7 +32,7 @@ func itemErr(index int, kind issueops.ItemKind, key, issueID string, err error) 
 }
 
 // TestApplyBatchPathReachesItsHandler: a literal collection-level custom method
-// registered beside the claim's `/v0/beads/issues/{idop}` wildcard. A 404 here
+// registered beside the claim's `/v0/issuegraph/issues/{idop}` wildcard. A 404 here
 // would mean the segment was parsed as a claim of an issue called ":batchApply".
 func TestApplyBatchPathReachesItsHandler(t *testing.T) {
 	applier := &roleBatchApplier{result: issueops.ApplyBatchResult{
@@ -896,7 +896,7 @@ var errUnmapped = fmt.Errorf("a failure this mapping has never seen")
 // TestApplyBatchCarriesTheHierarchyMembersOnlyOnTheHierarchyRefusal pins the
 // discriminator inside `dependency_cycle`: member PRESENCE tells a plain
 // scheduling cycle from the hierarchy case, exactly as it does on
-// POST /v0/beads/dependencies:add.
+// POST /v0/issuegraph/dependencies:add.
 func TestApplyBatchCarriesTheHierarchyMembersOnlyOnTheHierarchyRefusal(t *testing.T) {
 	hierarchy := &roleBatchApplier{err: itemErr(0, issueops.ItemDepAdd, "", "bd-1",
 		&issueops.DependencyHierarchyConflictError{IssueID: "bd-1", BlockerID: "bd-2", BlockerIsAncestor: false})}

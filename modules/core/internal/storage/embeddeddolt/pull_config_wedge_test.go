@@ -8,8 +8,8 @@ import (
 	"errors"
 	"testing"
 
-	"github.com/steveyegge/beads/internal/storage"
-	"github.com/steveyegge/beads/internal/storage/versioncontrolops"
+	"github.com/borg0ai/dx-issuegraph/internal/storage"
+	"github.com/borg0ai/dx-issuegraph/internal/storage/versioncontrolops"
 )
 
 // configCommittedClean asserts the config table has no uncommitted changes —
@@ -188,9 +188,9 @@ func statusHasConfig(t *testing.T, ctx context.Context, te *testEnv) bool {
 // server-mode TestFederationSyncCommitsConfigBeforeFetch: EmbeddedDoltStore.Sync
 // must auto-commit pending changes before its merge, exactly as embedded
 // Pull/PullRemote/PullFrom already do. Persistent memories live in config as
-// kv.memory.* rows that `bd remember` leaves uncommitted; without the pre-merge
+// kv.memory.* rows that `issuegraph remember` leaves uncommitted; without the pre-merge
 // CommitPending, a dirty config working set survives into DOLT_MERGE and wedges
-// `bd federation sync` ("cannot merge with uncommitted changes"). The peer remote
+// `issuegraph federation sync` ("cannot merge with uncommitted changes"). The peer remote
 // does not exist, so Sync fails at fetch — but only after the pre-merge commit has
 // already staged config, which is exactly what this test pins.
 func TestEmbeddedSyncCommitsConfigBeforeMerge(t *testing.T) {
@@ -201,19 +201,19 @@ func TestEmbeddedSyncCommitsConfigBeforeMerge(t *testing.T) {
 	// auto-commit, then fails at fetch — far enough to prove config was staged.
 	peer := &storage.FederationPeer{
 		Name:        "peer-sync-wedge",
-		RemoteURL:   "file:///tmp/beads-no-such-embedded-federation-peer",
+		RemoteURL:   "file:///tmp/issuegraph-no-such-embedded-federation-peer",
 		Sovereignty: "T2",
 	}
 	if err := te.store.AddFederationPeer(ctx, peer); err != nil {
 		t.Fatalf("add federation peer: %v", err)
 	}
 	// Commit the peer registration so the only dirty table going into Sync is the
-	// config row seeded below — the precise `bd remember` wedge precondition.
+	// config row seeded below — the precise `issuegraph remember` wedge precondition.
 	if err := te.store.Commit(ctx, "register sync peer"); err != nil {
 		t.Fatalf("commit peer registration: %v", err)
 	}
 
-	// Simulate `bd remember`: a kv.memory.* config write, left uncommitted.
+	// Simulate `issuegraph remember`: a kv.memory.* config write, left uncommitted.
 	if err := te.store.SetConfig(ctx, "kv.memory.sync-wedge", "v1"); err != nil {
 		t.Fatalf("SetConfig memory row: %v", err)
 	}
@@ -226,6 +226,6 @@ func TestEmbeddedSyncCommitsConfigBeforeMerge(t *testing.T) {
 	}
 
 	if statusHasConfig(t, ctx, te) {
-		t.Fatal("embedded Sync left config dirty before merge; bd federation sync would wedge DOLT_MERGE (GH#2474)")
+		t.Fatal("embedded Sync left config dirty before merge; issuegraph federation sync would wedge DOLT_MERGE (GH#2474)")
 	}
 }

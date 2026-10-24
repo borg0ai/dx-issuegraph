@@ -10,7 +10,7 @@
 A shared Dolt SQL server (PID 13360, port 3307) became completely unresponsive
 under concurrent load from ~20 AI coding agents. All queries timed out, causing a
 cascade failure that bricked the entire multi-agent workspace. Required
-force-killing the Dolt server and all ~15 stuck bd/gt processes to recover.
+force-killing the Dolt server and all ~15 stuck issuegraph/gt processes to recover.
 
 ## Environment
 
@@ -65,7 +65,7 @@ No query-level timeouts — root context has no deadline.
 1. ~20 agents simultaneously issue `issuegraph` commands (create, update, list, close)
 2. Each command opens a connection to port 3307, does work, calls DOLT_COMMIT
 3. Dolt server becomes completely unresponsive — all queries hang
-4. ~15 bd/gt processes pile up waiting for responses
+4. ~15 issuegraph/gt processes pile up waiting for responses
 5. Manual intervention required: force-kill Dolt server (PID 13360) + all stuck processes
 6. GT daemon auto-restarts fresh Dolt server → town recovers
 
@@ -117,6 +117,6 @@ production:
 ## Run the Repro
 
 ```bash
-cd beads/
+cd issuegraph/
 go run ./scripts/repro-dolt-hang 50 20 both
 ```

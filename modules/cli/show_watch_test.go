@@ -9,7 +9,7 @@ import (
 	"testing"
 	"time"
 
-	"github.com/steveyegge/beads/internal/types"
+	"github.com/borg0ai/dx-issuegraph/internal/types"
 )
 
 // TestSingleIssueSnapshot tests that the snapshot captures status and update time.
@@ -55,9 +55,9 @@ func TestWatchIssueFlags(t *testing.T) {
 }
 
 // TestWatchIssueDetectsStatusChange is a regression test for the bug where
-// bd show --watch used fsnotify (file watching) instead of polling. Dolt stores
+// issuegraph show --watch used fsnotify (file watching) instead of polling. Dolt stores
 // data in a server-side database, not files, so file watchers never fired and
-// the display never updated — even when the underlying bead changed to closed.
+// the display never updated — even when the underlying issue changed to closed.
 //
 // This test creates an issue, takes a snapshot, closes the issue, takes another
 // snapshot, and verifies the watch loop would detect the change.
@@ -67,7 +67,7 @@ func TestWatchIssueDetectsStatusChange(t *testing.T) {
 
 	ctx := context.Background()
 	tmpDir := t.TempDir()
-	dbPath := filepath.Join(tmpDir, ".beads", "test.db")
+	dbPath := filepath.Join(tmpDir, ".issuegraph", "test.db")
 	s := newTestStore(t, dbPath)
 
 	// Create an open issue
@@ -104,7 +104,7 @@ func TestWatchIssueDetectsStatusChange(t *testing.T) {
 
 	// The polling-based watch loop detects changes by comparing snapshots.
 	// This must differ — the old fsnotify implementation would never see this
-	// because Dolt writes don't produce filesystem events in .beads/.
+	// because Dolt writes don't produce filesystem events in .issuegraph/.
 	if snapBefore == snapAfter {
 		t.Errorf("snapshot did not change after closing issue: before=%q after=%q", snapBefore, snapAfter)
 	}
@@ -121,7 +121,7 @@ func TestWatchIssueDetectsFieldUpdate(t *testing.T) {
 
 	ctx := context.Background()
 	tmpDir := t.TempDir()
-	dbPath := filepath.Join(tmpDir, ".beads", "test.db")
+	dbPath := filepath.Join(tmpDir, ".issuegraph", "test.db")
 	s := newTestStore(t, dbPath)
 
 	// Seed updated_at an hour in the past so the title update's fresh (now)

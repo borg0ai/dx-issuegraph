@@ -4,10 +4,10 @@ import (
 	"context"
 	"fmt"
 
+	"github.com/borg0ai/dx-issuegraph/internal/metrics"
+	"github.com/borg0ai/dx-issuegraph/internal/types"
+	"github.com/borg0ai/dx-issuegraph/internal/ui"
 	"github.com/spf13/cobra"
-	"github.com/steveyegge/beads/internal/metrics"
-	"github.com/steveyegge/beads/internal/types"
-	"github.com/steveyegge/beads/internal/ui"
 )
 
 // builtInStatuses describes the built-in statuses with their categories and descriptions.
@@ -34,19 +34,19 @@ var statusesCmd = &cobra.Command{
 Built-in statuses (open, in_progress, blocked, etc.) are always valid.
 Additional statuses can be configured via status.custom:
 
-  bd config set status.custom "in_review:active,qa_testing:wip,on_hold:frozen"
+  issuegraph config set status.custom "in_review:active,qa_testing:wip,on_hold:frozen"
 
 Categories control behavior:
-  active  — appears in 'bd ready' and default 'bd list'
-  wip     — excluded from 'bd ready', visible in default 'bd list'
-  done    — excluded from 'bd ready' and default 'bd list'
-  frozen  — excluded from 'bd ready' and default 'bd list'
+  active  — appears in 'issuegraph ready' and default 'issuegraph list'
+  wip     — excluded from 'issuegraph ready', visible in default 'issuegraph list'
+  done    — excluded from 'issuegraph ready' and default 'issuegraph list'
+  frozen  — excluded from 'issuegraph ready' and default 'issuegraph list'
 
-Statuses without a category (legacy format) are valid but excluded from 'bd ready'.
+Statuses without a category (legacy format) are valid but excluded from 'issuegraph ready'.
 
 Examples:
-  bd statuses            # List all statuses with icons and categories
-  bd statuses --json     # Output as JSON
+  issuegraph statuses            # List all statuses with icons and categories
+  issuegraph statuses --json     # Output as JSON
 `,
 	SilenceUsage:  true,
 	SilenceErrors: true,
@@ -111,7 +111,7 @@ func renderStatuses(customStatuses []types.CustomStatus) error {
 		}
 	} else {
 		fmt.Println("\nNo custom statuses configured.")
-		fmt.Println("Configure with: bd config set status.custom \"name:category,...\"")
+		fmt.Println("Configure with: issuegraph config set status.custom \"name:category,...\"")
 		fmt.Println("Categories: active, wip, done, frozen")
 	}
 	return nil

@@ -9,7 +9,7 @@ import (
 	"testing"
 	"time"
 
-	"github.com/steveyegge/beads/internal/types"
+	"github.com/borg0ai/dx-issuegraph/internal/types"
 )
 
 // TestBurnWisps tests direct wisp deletion via burnWisps.
@@ -17,7 +17,7 @@ func TestBurnWisps(t *testing.T) {
 	t.Parallel()
 	ctx := context.Background()
 	tmpDir := t.TempDir()
-	testDB := filepath.Join(tmpDir, ".beads", "beads.db")
+	testDB := filepath.Join(tmpDir, ".issuegraph", "issuegraph.db")
 	s := newTestStore(t, testDB)
 
 	t.Run("DeletesSingleWisp", func(t *testing.T) {
@@ -127,7 +127,7 @@ func TestAutoCloseCompletedMolecule(t *testing.T) {
 	t.Parallel()
 	ctx := context.Background()
 	tmpDir := t.TempDir()
-	testDB := filepath.Join(tmpDir, ".beads", "beads.db")
+	testDB := filepath.Join(tmpDir, ".issuegraph", "issuegraph.db")
 	s := newTestStore(t, testDB)
 
 	t.Run("ClosesWhenAllStepsComplete", func(t *testing.T) {
@@ -137,7 +137,7 @@ func TestAutoCloseCompletedMolecule(t *testing.T) {
 			Status:    types.StatusOpen,
 			Priority:  1,
 			IssueType: types.TypeEpic,
-			Labels:    []string{BeadsTemplateLabel},
+			Labels:    []string{IssueGraphTemplateLabel},
 			CreatedAt: time.Now(),
 		}
 		if err := s.CreateIssue(ctx, root, "test"); err != nil {
@@ -198,7 +198,7 @@ func TestAutoCloseCompletedMolecule(t *testing.T) {
 			Status:    types.StatusOpen,
 			Priority:  1,
 			IssueType: types.TypeEpic,
-			Labels:    []string{BeadsTemplateLabel},
+			Labels:    []string{IssueGraphTemplateLabel},
 			CreatedAt: time.Now(),
 		}
 		if err := s.CreateIssue(ctx, root, "test"); err != nil {
@@ -271,7 +271,7 @@ func TestAutoCloseCompletedMolecule(t *testing.T) {
 			Status:    types.StatusClosed,
 			Priority:  1,
 			IssueType: types.TypeEpic,
-			Labels:    []string{BeadsTemplateLabel},
+			Labels:    []string{IssueGraphTemplateLabel},
 			CreatedAt: time.Now(),
 		}
 		if err := s.CreateIssue(ctx, root, "test"); err != nil {
@@ -307,7 +307,7 @@ func TestAutoCloseCompletedMolecule(t *testing.T) {
 			Status:    types.StatusOpen,
 			Priority:  1,
 			IssueType: types.TypeEpic,
-			Labels:    []string{BeadsTemplateLabel},
+			Labels:    []string{IssueGraphTemplateLabel},
 			CreatedAt: time.Now(),
 		}
 		if err := s.CreateIssue(ctx, root, "test"); err != nil {
@@ -388,7 +388,7 @@ func TestFindStaleMolecules(t *testing.T) {
 	t.Parallel()
 	ctx := context.Background()
 	tmpDir := t.TempDir()
-	testDB := filepath.Join(tmpDir, ".beads", "beads.db")
+	testDB := filepath.Join(tmpDir, ".issuegraph", "issuegraph.db")
 	s := newTestStore(t, testDB)
 
 	// Create a stale molecule: open epic with all children closed
@@ -627,7 +627,7 @@ func TestPostCreateWritesDoltCommit(t *testing.T) {
 	t.Parallel()
 	ctx := context.Background()
 	tmpDir := t.TempDir()
-	testDB := filepath.Join(tmpDir, ".beads", "beads.db")
+	testDB := filepath.Join(tmpDir, ".issuegraph", "issuegraph.db")
 	s := newTestStore(t, testDB)
 
 	t.Run("LabelsPersistedAfterCommit", func(t *testing.T) {

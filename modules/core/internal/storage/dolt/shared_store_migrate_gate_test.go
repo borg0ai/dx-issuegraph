@@ -6,14 +6,14 @@ import (
 	"fmt"
 	"testing"
 
-	"github.com/steveyegge/beads/internal/storage/schema"
+	"github.com/borg0ai/dx-issuegraph/internal/storage/schema"
 )
 
 // TestDoltNew_SharedStoreMigrateGate_NoRemote is the server-mode half of
-// gastownhall/beads#5920: a dolt sql-server database with NO remote at all.
+// borg0ai/dx-issuegraph#5920: a dolt sql-server database with NO remote at all.
 //
 // Before this gate, the first upgraded client to open such a database writably
-// migrated it silently, promoting the schema cursor for every co-resident bd
+// migrated it silently, promoting the schema cursor for every co-resident issuegraph
 // client on the same server — which then refused the database until each was
 // upgraded too (~14 minutes of a locked-out team, in the incident). A
 // sql-server store serves co-resident clients by construction, so the refusal

@@ -11,17 +11,17 @@ import (
 func TestProxiedServerMolBurn(t *testing.T) {
 	requireSharedProxiedServer(t)
 	t.Parallel()
-	bd := buildEmbeddedBD(t)
+	issuegraph := buildEmbeddedBD(t)
 
 	t.Run("burns_single_wisp_molecule", func(t *testing.T) {
 		t.Parallel()
-		p := newSharedProxiedProject(t, bd, "mbu")
-		root := bdProxiedCreate(t, bd, p.dir, "Wisp burn root", "--type", "epic", "--ephemeral")
-		child := bdProxiedCreate(t, bd, p.dir, "Wisp burn child", "--type", "task", "--parent", root.ID, "--ephemeral")
+		p := newSharedProxiedProject(t, issuegraph, "mbu")
+		root := issuegraphProxiedCreate(t, issuegraph, p.dir, "Wisp burn root", "--type", "epic", "--ephemeral")
+		child := issuegraphProxiedCreate(t, issuegraph, p.dir, "Wisp burn child", "--type", "task", "--parent", root.ID, "--ephemeral")
 
-		out, err := bdProxiedRun(t, bd, p.dir, "mol", "burn", root.ID, "--force", "--json")
+		out, err := issuegraphProxiedRun(t, issuegraph, p.dir, "mol", "burn", root.ID, "--force", "--json")
 		if err != nil {
-			t.Fatalf("bd mol burn --force --json: %v\n%s", err, out)
+			t.Fatalf("issuegraph mol burn --force --json: %v\n%s", err, out)
 		}
 
 		db := openProxiedDB(t, p)
@@ -38,13 +38,13 @@ func TestProxiedServerMolBurn(t *testing.T) {
 
 	t.Run("burns_single_persistent_molecule", func(t *testing.T) {
 		t.Parallel()
-		p := newSharedProxiedProject(t, bd, "mbup")
-		root := bdProxiedCreate(t, bd, p.dir, "Persistent burn root", "--type", "epic")
-		child := bdProxiedCreate(t, bd, p.dir, "Persistent burn child", "--type", "task", "--parent", root.ID)
+		p := newSharedProxiedProject(t, issuegraph, "mbup")
+		root := issuegraphProxiedCreate(t, issuegraph, p.dir, "Persistent burn root", "--type", "epic")
+		child := issuegraphProxiedCreate(t, issuegraph, p.dir, "Persistent burn child", "--type", "task", "--parent", root.ID)
 
-		out, err := bdProxiedRun(t, bd, p.dir, "mol", "burn", root.ID, "--force", "--json")
+		out, err := issuegraphProxiedRun(t, issuegraph, p.dir, "mol", "burn", root.ID, "--force", "--json")
 		if err != nil {
-			t.Fatalf("bd mol burn --force --json: %v\n%s", err, out)
+			t.Fatalf("issuegraph mol burn --force --json: %v\n%s", err, out)
 		}
 
 		db := openProxiedDB(t, p)
@@ -61,13 +61,13 @@ func TestProxiedServerMolBurn(t *testing.T) {
 
 	t.Run("burns_multiple_mixed_wisp_and_persistent", func(t *testing.T) {
 		t.Parallel()
-		p := newSharedProxiedProject(t, bd, "mbum")
-		wispRoot := bdProxiedCreate(t, bd, p.dir, "Mixed wisp root", "--type", "epic", "--ephemeral")
-		persistentRoot := bdProxiedCreate(t, bd, p.dir, "Mixed persistent root", "--type", "epic")
+		p := newSharedProxiedProject(t, issuegraph, "mbum")
+		wispRoot := issuegraphProxiedCreate(t, issuegraph, p.dir, "Mixed wisp root", "--type", "epic", "--ephemeral")
+		persistentRoot := issuegraphProxiedCreate(t, issuegraph, p.dir, "Mixed persistent root", "--type", "epic")
 
-		out, err := bdProxiedRun(t, bd, p.dir, "mol", "burn", wispRoot.ID, persistentRoot.ID, "--force", "--json")
+		out, err := issuegraphProxiedRun(t, issuegraph, p.dir, "mol", "burn", wispRoot.ID, persistentRoot.ID, "--force", "--json")
 		if err != nil {
-			t.Fatalf("bd mol burn --force --json (batch): %v\n%s", err, out)
+			t.Fatalf("issuegraph mol burn --force --json (batch): %v\n%s", err, out)
 		}
 		var got struct {
 			TotalDeleted int `json:"total_deleted"`
@@ -98,18 +98,18 @@ func TestProxiedServerMolBurn(t *testing.T) {
 
 	t.Run("dry_run_deletes_nothing", func(t *testing.T) {
 		t.Parallel()
-		p := newSharedProxiedProject(t, bd, "mbud")
-		root := bdProxiedCreate(t, bd, p.dir, "Dry burn root", "--type", "epic")
+		p := newSharedProxiedProject(t, issuegraph, "mbud")
+		root := issuegraphProxiedCreate(t, issuegraph, p.dir, "Dry burn root", "--type", "epic")
 
-		stdout, _, err := bdProxiedRunBuffers(t, bd, p.dir, "mol", "burn", root.ID, "--dry-run")
+		stdout, _, err := issuegraphProxiedRunBuffers(t, issuegraph, p.dir, "mol", "burn", root.ID, "--dry-run")
 		if err != nil {
-			t.Fatalf("bd mol burn --dry-run: %v\n%s", err, stdout)
+			t.Fatalf("issuegraph mol burn --dry-run: %v\n%s", err, stdout)
 		}
 		if !strings.Contains(stdout, "Dry run") {
 			t.Errorf("expected dry-run preview, got: %s", stdout)
 		}
 
-		spawned := bdProxiedShow(t, bd, p.dir, root.ID)
+		spawned := issuegraphProxiedShow(t, issuegraph, p.dir, root.ID)
 		if spawned.ID != root.ID {
 			t.Errorf("expected root %s to survive --dry-run", root.ID)
 		}

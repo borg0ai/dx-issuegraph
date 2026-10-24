@@ -5,13 +5,13 @@ import (
 	"errors"
 	"fmt"
 
-	"github.com/steveyegge/beads/internal/storage"
-	"github.com/steveyegge/beads/internal/storage/uow"
-	"github.com/steveyegge/beads/internal/types"
-	"github.com/steveyegge/beads/issueops"
+	"github.com/borg0ai/dx-issuegraph/internal/storage"
+	"github.com/borg0ai/dx-issuegraph/internal/storage/uow"
+	"github.com/borg0ai/dx-issuegraph/internal/types"
+	"github.com/borg0ai/dx-issuegraph/issueops"
 )
 
-// The two seams `bd list` reaches its roles through, and the one projection its
+// The two seams `issuegraph list` reaches its roles through, and the one projection its
 // text renderings need. Both routes call these, so the page and its decoration
 // come from one statement rather than two that happen to agree.
 
@@ -64,7 +64,7 @@ func newListBlocking(result issueops.BlockingResult) listBlocking {
 
 // annotateListBlocking is the DIRECT route's decoration read. It swallows every
 // failure, including the accessor's, because that is what this route has always
-// done: `bd list` renders the page undecorated rather than refusing to print it.
+// done: `issuegraph list` renders the page undecorated rather than refusing to print it.
 func annotateListBlocking(ctx context.Context, store storage.DoltStorage, ids []string) listBlocking {
 	annotator, err := store.BlockingAnnotator()
 	if err != nil {

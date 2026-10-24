@@ -11,12 +11,12 @@ import (
 	"testing"
 	"time"
 
-	"github.com/steveyegge/beads/internal/storage/dbproxy/proxy"
+	"github.com/borg0ai/dx-issuegraph/internal/storage/dbproxy/proxy"
 )
 
 func TestManagedLocalProxiedListenerPolicy(t *testing.T) {
 	requireManagedLocalProxiedEnv(t)
-	bd := buildEmbeddedBD(t)
+	issuegraph := buildEmbeddedBD(t)
 
 	t.Run("non-loopback custom config refused at init", func(t *testing.T) {
 		dir := t.TempDir()
@@ -29,11 +29,11 @@ func TestManagedLocalProxiedListenerPolicy(t *testing.T) {
 			false,
 		)
 
-		stdout, stderr, err := bdProxiedRunBuffersWithEnv(
+		stdout, stderr, err := issuegraphProxiedRunBuffersWithEnv(
 			t,
-			bd,
+			issuegraph,
 			dir,
-			[]string{"BEADS_PROXIED_SERVER_CONFIG=" + configPath},
+			[]string{"ISSUEGRAPH_PROXIED_SERVER_CONFIG=" + configPath},
 			"init",
 			"--proxied-server",
 			"--quiet",
@@ -60,9 +60,9 @@ func TestManagedLocalProxiedListenerPolicy(t *testing.T) {
 			false,
 		)
 
-		stdout, stderr, err := bdProxiedRunBuffersWithEnv(
+		stdout, stderr, err := issuegraphProxiedRunBuffersWithEnv(
 			t,
-			bd,
+			issuegraph,
 			dir,
 			nil,
 			"init",
@@ -98,15 +98,15 @@ func TestManagedLocalProxiedListenerPolicy(t *testing.T) {
 			backendPort,
 		)
 
-		p := bdManagedLocalInit(
+		p := issuegraphManagedLocalInit(
 			t,
-			bd,
+			issuegraph,
 			"mlpolicyok",
 			5*time.Minute,
 			"--proxied-server-config-path", configPath,
 		)
-		held := openHeldManagedProxiedConn(t, bd, p)
-		issue := bdProxiedCreate(t, bd, p.dir, "loopback custom policy issue")
+		held := openHeldManagedProxiedConn(t, issuegraph, p)
+		issue := issuegraphProxiedCreate(t, issuegraph, p.dir, "loopback custom policy issue")
 
 		ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
 		var title string
@@ -125,7 +125,7 @@ func TestManagedLocalProxiedListenerPolicy(t *testing.T) {
 		}
 		writeListenerConfigWithPort(t, configPath, "0.0.0.0", backendPort)
 
-		out, err := bdProxiedRun(t, bd, p.dir, "list", "--json")
+		out, err := issuegraphProxiedRun(t, issuegraph, p.dir, "list", "--json")
 		if err == nil {
 			t.Fatalf("runtime resolution unexpectedly accepted hand-edited 0.0.0.0 config:\n%s", out)
 		}

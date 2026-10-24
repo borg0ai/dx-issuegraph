@@ -6,13 +6,13 @@ import (
 	"errors"
 	"fmt"
 
-	"github.com/steveyegge/beads/internal/storage"
+	"github.com/borg0ai/dx-issuegraph/internal/storage"
 )
 
 // CheckExpectedFieldsInTx reads the current assignee and status for id and
 // returns ErrAssigneeMismatch/ErrStatusMismatch (wrapped with actual vs
 // expected) when a non-nil guard differs — the semantic-field compare-and-swap
-// behind `bd update --if-assignee/--if-status` (bd-wsqvw). A non-nil pointer to
+// behind `issuegraph update --if-assignee/--if-status` (bd-wsqvw). A non-nil pointer to
 // "" is a real guard meaning "expected unassigned"; nil disables that check.
 // Routes to the issues or wisps table. Returns ErrNotFound when the row is
 // absent.

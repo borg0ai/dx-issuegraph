@@ -5,8 +5,8 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/steveyegge/beads/modules/cli/doctor"
-	"github.com/steveyegge/beads/internal/doltremote"
+	"github.com/borg0ai/dx-issuegraph/internal/doltremote"
+	"github.com/borg0ai/dx-issuegraph/modules/cli/doctor"
 )
 
 // Unit tests for the git-origin collision guard helpers:

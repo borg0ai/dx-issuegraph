@@ -21,8 +21,8 @@ func TestCommitInitStateIncludesIntentionalConfig(t *testing.T) {
 	if err := commitInitState(context.Background(), store); err != nil {
 		t.Fatalf("commitInitState: %v", err)
 	}
-	if store.message != "bd init" {
-		t.Fatalf("CommitWithConfig message = %q, want %q", store.message, "bd init")
+	if store.message != "issuegraph init" {
+		t.Fatalf("CommitWithConfig message = %q, want %q", store.message, "issuegraph init")
 	}
 }
 

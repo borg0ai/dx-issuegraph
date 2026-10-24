@@ -6,9 +6,9 @@ import (
 	"io"
 	"os"
 
+	"github.com/borg0ai/dx-issuegraph/internal/audit"
+	"github.com/borg0ai/dx-issuegraph/internal/metrics"
 	"github.com/spf13/cobra"
-	"github.com/steveyegge/beads/internal/audit"
-	"github.com/steveyegge/beads/internal/metrics"
 )
 
 var (
@@ -29,14 +29,14 @@ var (
 var auditCmd = &cobra.Command{
 	Use:   "audit",
 	Short: "Record and label agent interactions (append-only JSONL)",
-	Long: `Record explicit agent/tool interaction audit entries in .beads/interactions.jsonl.
+	Long: `Record explicit agent/tool interaction audit entries in .issuegraph/interactions.jsonl.
 
 This optional JSONL sidecar is disabled by default. Enable it with:
 
-  bd config set audit.enabled true
+  issuegraph config set audit.enabled true
 
 Issue history is always recorded in the database and is visible with
-bd history <id> --events. The JSONL sidecar is for explicit interaction capture:
+issuegraph history <id> --events. The JSONL sidecar is for explicit interaction capture:
 - auditing ("why did the agent do that?")
 - dataset generation (SFT/RL fine-tuning)
 

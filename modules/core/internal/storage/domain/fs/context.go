@@ -5,43 +5,43 @@ import (
 	"os"
 	"path/filepath"
 
-	"github.com/steveyegge/beads/internal/beads"
-	"github.com/steveyegge/beads/internal/config"
-	"github.com/steveyegge/beads/internal/configfile"
-	"github.com/steveyegge/beads/internal/doltserver"
-	"github.com/steveyegge/beads/internal/storage/domain"
+	"github.com/borg0ai/dx-issuegraph/internal/config"
+	"github.com/borg0ai/dx-issuegraph/internal/configfile"
+	"github.com/borg0ai/dx-issuegraph/internal/doltserver"
+	"github.com/borg0ai/dx-issuegraph/internal/issuegraph"
+	"github.com/borg0ai/dx-issuegraph/internal/storage/domain"
 )
 
-func NewContextRepository(fsRepo domain.BeadsDirFSRepository) domain.ContextRepository {
+func NewContextRepository(fsRepo domain.IssueGraphDirFSRepository) domain.ContextRepository {
 	return &contextRepositoryImpl{fsRepo: fsRepo}
 }
 
 type contextRepositoryImpl struct {
-	fsRepo domain.BeadsDirFSRepository
+	fsRepo domain.IssueGraphDirFSRepository
 }
 
 var _ domain.ContextRepository = (*contextRepositoryImpl)(nil)
 
-func (r *contextRepositoryImpl) beadsDir(ctx context.Context) string {
-	return r.fsRepo.ResolveBeadsDirPath(ctx).BeadsDir
+func (r *contextRepositoryImpl) issuegraphDir(ctx context.Context) string {
+	return r.fsRepo.ResolveIssueGraphDirPath(ctx).IssueGraphDir
 }
 
 func (r *contextRepositoryImpl) RepoContext(ctx context.Context) (domain.RepoPaths, error) {
-	rc, err := beads.GetRepoContext()
+	rc, err := issuegraph.GetRepoContext()
 	if err != nil {
 		return domain.RepoPaths{}, err
 	}
 	return domain.RepoPaths{
-		BeadsDir:     rc.BeadsDir,
-		RepoRoot:     rc.RepoRoot,
-		CWDRepoRoot:  rc.CWDRepoRoot,
-		IsRedirected: rc.IsRedirected,
-		IsWorktree:   rc.IsWorktree,
+		IssueGraphDir: rc.IssueGraphDir,
+		RepoRoot:      rc.RepoRoot,
+		CWDRepoRoot:   rc.CWDRepoRoot,
+		IsRedirected:  rc.IsRedirected,
+		IsWorktree:    rc.IsWorktree,
 	}, nil
 }
 
 func (r *contextRepositoryImpl) Role(ctx context.Context) (string, bool, error) {
-	rc, err := beads.GetRepoContext()
+	rc, err := issuegraph.GetRepoContext()
 	if err != nil {
 		return "", false, err
 	}
@@ -50,7 +50,7 @@ func (r *contextRepositoryImpl) Role(ctx context.Context) (string, bool, error) 
 }
 
 func (r *contextRepositoryImpl) BackendConfig(ctx context.Context) (domain.BackendConfig, error) {
-	cfg, err := r.fsRepo.ReadBeadsConfig(ctx)
+	cfg, err := r.fsRepo.ReadIssueGraphConfig(ctx)
 	if err != nil || cfg == nil {
 		cfg = configfile.DefaultConfig()
 	}
@@ -67,33 +67,33 @@ func (r *contextRepositoryImpl) BackendConfig(ctx context.Context) (domain.Backe
 }
 
 func (r *contextRepositoryImpl) ServerPort(ctx context.Context) (int, error) {
-	return doltserver.DefaultConfig(r.beadsDir(ctx)).Port, nil
+	return doltserver.DefaultConfig(r.issuegraphDir(ctx)).Port, nil
 }
 
 func (r *contextRepositoryImpl) ProxiedServerRoot(ctx context.Context) (string, error) {
-	beadsDir := r.beadsDir(ctx)
-	if p := envOrAbsJoin("BEADS_PROXIED_SERVER_ROOT_PATH", beadsDir); p != "" {
+	issuegraphDir := r.issuegraphDir(ctx)
+	if p := envOrAbsJoin("ISSUEGRAPH_PROXIED_SERVER_ROOT_PATH", issuegraphDir); p != "" {
 		return p, nil
 	}
 	info, err := r.fsRepo.ReadProxiedServerClientInfo(ctx)
 	if err != nil {
 		return "", err
 	}
-	if p := info.ResolvedRootPath(beadsDir); p != "" {
+	if p := info.ResolvedRootPath(issuegraphDir); p != "" {
 		return p, nil
 	}
-	return doltserver.ResolveDoltDir(beadsDir), nil
+	return doltserver.ResolveDoltDir(issuegraphDir), nil
 }
 
 func (r *contextRepositoryImpl) SyncRemote(ctx context.Context) (string, error) {
-	beadsDir := r.beadsDir(ctx)
-	if v := config.GetStringFromDir(beadsDir, "sync.remote"); v != "" {
+	issuegraphDir := r.issuegraphDir(ctx)
+	if v := config.GetStringFromDir(issuegraphDir, "sync.remote"); v != "" {
 		return v, nil
 	}
-	return config.GetStringFromDir(beadsDir, "sync.git-remote"), nil
+	return config.GetStringFromDir(issuegraphDir, "sync.git-remote"), nil
 }
 
-func envOrAbsJoin(envName, beadsDir string) string {
+func envOrAbsJoin(envName, issuegraphDir string) string {
 	p := os.Getenv(envName)
 	if p == "" {
 		return ""
@@ -101,5 +101,5 @@ func envOrAbsJoin(envName, beadsDir string) string {
 	if filepath.IsAbs(p) {
 		return p
 	}
-	return filepath.Join(beadsDir, p)
+	return filepath.Join(issuegraphDir, p)
 }

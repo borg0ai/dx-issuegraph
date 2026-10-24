@@ -4,7 +4,7 @@ import (
 	"os"
 	"testing"
 
-	"github.com/steveyegge/beads/internal/testutil"
+	"github.com/borg0ai/dx-issuegraph/internal/testutil"
 )
 
 // Guard the actual TestMain wiring: both APIs must allocate fixtures under
@@ -26,6 +26,6 @@ func TestTempDirLandsUnderSuiteSweepRoot(t *testing.T) {
 		t.Fatalf("os.MkdirTemp() %q is outside suite root %q", dir, root)
 	}
 	if testutil.PathUnderSuiteRoot(dir, os.Getenv("HOME")) {
-		t.Fatal("fixture directories must not inherit the suite's ~/.beads state")
+		t.Fatal("fixture directories must not inherit the suite's ~/.issuegraph state")
 	}
 }

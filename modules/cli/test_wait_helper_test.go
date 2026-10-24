@@ -7,8 +7,8 @@ import (
 	"testing"
 	"time"
 
-	"github.com/steveyegge/beads/internal/beads"
-	"github.com/steveyegge/beads/internal/git"
+	"github.com/borg0ai/dx-issuegraph/internal/git"
+	"github.com/borg0ai/dx-issuegraph/internal/issuegraph"
 )
 
 // waitFor repeatedly evaluates pred until it returns true or timeout expires.
@@ -26,7 +26,7 @@ func waitFor(t *testing.T, timeout, poll time.Duration, pred func() bool) {
 }
 
 // setupGitRepo creates a temporary git repository and returns its path and cleanup function.
-// The repo is initialized with git config, a .beads directory, and an initial commit.
+// The repo is initialized with git config, a .issuegraph directory, and an initial commit.
 // The current directory is changed to the new repo.
 func setupGitRepo(t *testing.T) (repoPath string, cleanup func()) {
 	t.Helper()
@@ -43,7 +43,7 @@ func setupGitRepo(t *testing.T) (repoPath string, cleanup func()) {
 
 	// Reset caches after changing directory
 	git.ResetCaches()
-	beads.ResetCaches()
+	issuegraph.ResetCaches()
 
 	// Copy cached git template instead of running git init (bd-ktng optimization)
 	initGitTemplate()
@@ -56,15 +56,15 @@ func setupGitRepo(t *testing.T) (repoPath string, cleanup func()) {
 		t.Fatalf("failed to copy git template: %v", err)
 	}
 	git.ResetCaches()
-	beads.ResetCaches()
+	issuegraph.ResetCaches()
 
-	// Create .beads directory with minimal issues.jsonl (required for RepoContext)
-	beadsDir := filepath.Join(tmpDir, ".beads")
-	if err := os.MkdirAll(beadsDir, 0755); err != nil {
+	// Create .issuegraph directory with minimal issues.jsonl (required for RepoContext)
+	issuegraphDir := filepath.Join(tmpDir, ".issuegraph")
+	if err := os.MkdirAll(issuegraphDir, 0755); err != nil {
 		_ = os.Chdir(originalWd)
-		t.Fatalf("failed to create .beads directory: %v", err)
+		t.Fatalf("failed to create .issuegraph directory: %v", err)
 	}
-	if err := os.WriteFile(filepath.Join(beadsDir, "issues.jsonl"), []byte{}, 0600); err != nil {
+	if err := os.WriteFile(filepath.Join(issuegraphDir, "issues.jsonl"), []byte{}, 0600); err != nil {
 		_ = os.Chdir(originalWd)
 		t.Fatalf("failed to write issues.jsonl: %v", err)
 	}
@@ -83,7 +83,7 @@ func setupGitRepo(t *testing.T) (repoPath string, cleanup func()) {
 	cleanup = func() {
 		_ = os.Chdir(originalWd)
 		git.ResetCaches()
-		beads.ResetCaches()
+		issuegraph.ResetCaches()
 	}
 
 	return tmpDir, cleanup
@@ -106,7 +106,7 @@ func setupGitRepoWithBranch(t *testing.T, branch string) (repoPath string, clean
 
 	// Reset caches after changing directory
 	git.ResetCaches()
-	beads.ResetCaches()
+	issuegraph.ResetCaches()
 
 	// Copy cached git template instead of running git init (bd-ktng optimization)
 	initGitTemplate()
@@ -126,15 +126,15 @@ func setupGitRepoWithBranch(t *testing.T, branch string) (repoPath string, clean
 		}
 	}
 	git.ResetCaches()
-	beads.ResetCaches()
+	issuegraph.ResetCaches()
 
-	// Create .beads directory with minimal issues.jsonl (required for RepoContext)
-	beadsDir := filepath.Join(tmpDir, ".beads")
-	if err := os.MkdirAll(beadsDir, 0755); err != nil {
+	// Create .issuegraph directory with minimal issues.jsonl (required for RepoContext)
+	issuegraphDir := filepath.Join(tmpDir, ".issuegraph")
+	if err := os.MkdirAll(issuegraphDir, 0755); err != nil {
 		_ = os.Chdir(originalWd)
-		t.Fatalf("failed to create .beads directory: %v", err)
+		t.Fatalf("failed to create .issuegraph directory: %v", err)
 	}
-	if err := os.WriteFile(filepath.Join(beadsDir, "issues.jsonl"), []byte{}, 0600); err != nil {
+	if err := os.WriteFile(filepath.Join(issuegraphDir, "issues.jsonl"), []byte{}, 0600); err != nil {
 		_ = os.Chdir(originalWd)
 		t.Fatalf("failed to write issues.jsonl: %v", err)
 	}
@@ -153,7 +153,7 @@ func setupGitRepoWithBranch(t *testing.T, branch string) (repoPath string, clean
 	cleanup = func() {
 		_ = os.Chdir(originalWd)
 		git.ResetCaches()
-		beads.ResetCaches()
+		issuegraph.ResetCaches()
 	}
 
 	return tmpDir, cleanup
@@ -176,7 +176,7 @@ func setupMinimalGitRepo(t *testing.T) (repoPath string, cleanup func()) {
 
 	// Reset caches after changing directory
 	git.ResetCaches()
-	beads.ResetCaches()
+	issuegraph.ResetCaches()
 
 	// Copy cached git template instead of running git init (bd-ktng optimization)
 	initGitTemplate()
@@ -192,7 +192,7 @@ func setupMinimalGitRepo(t *testing.T) (repoPath string, cleanup func()) {
 	cleanup = func() {
 		_ = os.Chdir(originalWd)
 		git.ResetCaches()
-		beads.ResetCaches()
+		issuegraph.ResetCaches()
 	}
 
 	return tmpDir, cleanup

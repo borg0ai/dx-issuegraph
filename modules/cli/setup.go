@@ -7,11 +7,11 @@ import (
 	"sort"
 	"strings"
 
+	"github.com/borg0ai/dx-issuegraph/internal/issuegraph"
+	"github.com/borg0ai/dx-issuegraph/internal/metrics"
+	"github.com/borg0ai/dx-issuegraph/internal/recipes"
+	"github.com/borg0ai/dx-issuegraph/modules/cli/setup"
 	"github.com/spf13/cobra"
-	"github.com/steveyegge/beads/modules/cli/setup"
-	"github.com/steveyegge/beads/internal/beads"
-	"github.com/steveyegge/beads/internal/metrics"
-	"github.com/steveyegge/beads/internal/recipes"
 )
 
 var (
@@ -32,26 +32,26 @@ var setupCmd = &cobra.Command{
 	Short:   "Setup integration with AI editors",
 	Long: `Setup integration files for AI editors and coding assistants.
 
-Recipes define where beads workflow instructions are written. Built-in recipes
+Recipes define where issuegraph workflow instructions are written. Built-in recipes
 include cursor, claude, copilot, gemini, aider, factory, codex, mux, opencode, junie, kiro, windsurf, cody, and kilocode.
 
 Examples:
-  bd setup cursor          # Install Cursor IDE integration (rules + agent hooks)
-  bd setup cursor --global # Install global Cursor hooks (~/.cursor/hooks.json)
-  bd setup kiro            # Install Kiro steering guidance
-  bd setup codex           # Install Codex skill + AGENTS.md guidance + native hooks
-  bd setup codex --global  # Install global Codex skill + guidance + native hooks
-  bd setup copilot         # Install Copilot CLI plugin + repository instructions
-  bd setup mux --project   # Install Mux workspace layer (.mux/AGENTS.md)
-  bd setup mux --global    # Install Mux global layer (~/.mux/AGENTS.md)
-  bd setup mux --project --global  # Install both Mux layers
-  bd setup --list          # Show all available recipes
-  bd setup --print         # Print the template to stdout
-  bd setup -o rules.md     # Write template to custom path
-  bd setup --add myeditor .myeditor/rules.md  # Add custom recipe
+  issuegraph setup cursor          # Install Cursor IDE integration (rules + agent hooks)
+  issuegraph setup cursor --global # Install global Cursor hooks (~/.cursor/hooks.json)
+  issuegraph setup kiro            # Install Kiro steering guidance
+  issuegraph setup codex           # Install Codex skill + AGENTS.md guidance + native hooks
+  issuegraph setup codex --global  # Install global Codex skill + guidance + native hooks
+  issuegraph setup copilot         # Install Copilot CLI plugin + repository instructions
+  issuegraph setup mux --project   # Install Mux workspace layer (.mux/AGENTS.md)
+  issuegraph setup mux --global    # Install Mux global layer (~/.mux/AGENTS.md)
+  issuegraph setup mux --project --global  # Install both Mux layers
+  issuegraph setup --list          # Show all available recipes
+  issuegraph setup --print         # Print the template to stdout
+  issuegraph setup -o rules.md     # Write template to custom path
+  issuegraph setup --add myeditor .myeditor/rules.md  # Add custom recipe
 
-Use 'bd setup <recipe> --check' to verify installation status.
-Use 'bd setup <recipe> --remove' to uninstall.`,
+Use 'issuegraph setup <recipe> --check' to verify installation status.
+Use 'issuegraph setup <recipe> --remove' to uninstall.`,
 	Args:          cobra.MaximumNArgs(1),
 	SilenceUsage:  true,
 	SilenceErrors: true,
@@ -85,7 +85,7 @@ func runSetup(cmd *cobra.Command, args []string) error {
 
 	if setupAdd != "" {
 		if len(args) != 1 {
-			return HandleErrorWithHint("--add requires a path argument", "Usage: bd setup --add <name> <path>")
+			return HandleErrorWithHint("--add requires a path argument", "Usage: issuegraph setup --add <name> <path>")
 		}
 		if err := addRecipe(setupAdd, args[0]); err != nil {
 			return HandleError("%v", err)
@@ -115,12 +115,12 @@ func builtinSetupRecipes() map[string]recipes.Recipe {
 }
 
 func loadSetupRecipes() (map[string]recipes.Recipe, bool, error) {
-	beadsDir := beads.FindBeadsDir()
-	if beadsDir == "" {
+	issuegraphDir := issuegraph.FindIssueGraphDir()
+	if issuegraphDir == "" {
 		return builtinSetupRecipes(), false, nil
 	}
 
-	allRecipes, err := recipes.GetAllRecipes(beadsDir)
+	allRecipes, err := recipes.GetAllRecipes(issuegraphDir)
 	if err != nil {
 		return nil, false, err
 	}
@@ -128,18 +128,18 @@ func loadSetupRecipes() (map[string]recipes.Recipe, bool, error) {
 }
 
 func lookupSetupRecipe(name string) (*recipes.Recipe, error) {
-	beadsDir := beads.FindBeadsDir()
-	if beadsDir == "" {
+	issuegraphDir := issuegraph.FindIssueGraphDir()
+	if issuegraphDir == "" {
 		normalized := strings.ToLower(strings.Trim(name, "-"))
 		recipe, ok := recipes.BuiltinRecipes[normalized]
 		if !ok {
-			return nil, fmt.Errorf("unknown recipe: %s (workspace-local custom recipes require an active beads workspace)", normalized)
+			return nil, fmt.Errorf("unknown recipe: %s (workspace-local custom recipes require an active issuegraph workspace)", normalized)
 		}
 		resolved := recipe
 		return &resolved, nil
 	}
 
-	return recipes.GetRecipe(name, beadsDir)
+	return recipes.GetRecipe(name, issuegraphDir)
 }
 
 func listRecipes() error {
@@ -170,8 +170,8 @@ func listRecipes() error {
 		fmt.Printf("Hint: %s\n", diagHint())
 		fmt.Println()
 	}
-	fmt.Println("Use 'bd setup <recipe>' to install.")
-	fmt.Println("Use 'bd setup --add <name> <path>' to add a custom recipe.")
+	fmt.Println("Use 'issuegraph setup <recipe>' to install.")
+	fmt.Println("Use 'issuegraph setup --add <name> <path>' to add a custom recipe.")
 	return nil
 }
 
@@ -191,19 +191,19 @@ func writeToPath(path string) error {
 }
 
 func addRecipe(name, path string) error {
-	beadsDir := beads.FindBeadsDir()
-	if beadsDir == "" {
+	issuegraphDir := issuegraph.FindIssueGraphDir()
+	if issuegraphDir == "" {
 		return setupWorkspaceError()
 	}
 
-	if err := recipes.SaveUserRecipe(beadsDir, name, path); err != nil {
+	if err := recipes.SaveUserRecipe(issuegraphDir, name, path); err != nil {
 		return err
 	}
 
 	fmt.Printf("✓ Added recipe '%s' → %s\n", name, path)
-	fmt.Printf("  Config: %s/recipes.toml\n", beadsDir)
+	fmt.Printf("  Config: %s/recipes.toml\n", issuegraphDir)
 	fmt.Println()
-	fmt.Printf("Install with: bd setup %s\n", name)
+	fmt.Printf("Install with: issuegraph setup %s\n", name)
 	return nil
 }
 
@@ -231,7 +231,7 @@ func runRecipe(name string) error {
 
 	recipe, err := lookupSetupRecipe(name)
 	if err != nil {
-		return HandleErrorWithHint(fmt.Sprintf("%v", err), "Use 'bd setup --list' to see available recipes.")
+		return HandleErrorWithHint(fmt.Sprintf("%v", err), "Use 'issuegraph setup --list' to see available recipes.")
 	}
 
 	if recipe.Type != recipes.TypeFile && recipe.Type != recipes.TypeMultiFile {
@@ -252,7 +252,7 @@ func runRecipe(name string) error {
 		}
 		if len(missing) > 0 {
 			fmt.Printf("✗ %s integration not installed\n", recipe.Name)
-			fmt.Printf("  Run: bd setup %s\n", name)
+			fmt.Printf("  Run: issuegraph setup %s\n", name)
 			for _, path := range missing {
 				fmt.Printf("  Missing: %s\n", path)
 			}

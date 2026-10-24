@@ -14,14 +14,14 @@ import (
 	"go.opentelemetry.io/otel/codes"
 	"go.opentelemetry.io/otel/trace"
 
-	"github.com/steveyegge/beads/internal/storage"
-	"github.com/steveyegge/beads/internal/storage/issueops"
-	"github.com/steveyegge/beads/internal/types"
-	"github.com/steveyegge/beads/internal/ui"
+	"github.com/borg0ai/dx-issuegraph/internal/storage"
+	"github.com/borg0ai/dx-issuegraph/internal/storage/issueops"
+	"github.com/borg0ai/dx-issuegraph/internal/types"
+	"github.com/borg0ai/dx-issuegraph/internal/ui"
 )
 
 // syncTracer is the OTel tracer for tracker sync spans.
-var syncTracer = otel.Tracer("github.com/steveyegge/beads/tracker")
+var syncTracer = otel.Tracer("github.com/borg0ai/dx-issuegraph/tracker")
 
 // rateLimitExhaustedError is implemented by tracker errors (e.g.
 // linear.ErrRateLimitExhausted) that signal the API quota floor has been
@@ -47,17 +47,17 @@ type PullHooks struct {
 	// Callers typically pre-load used IDs into the closure for collision avoidance.
 	GenerateID func(ctx context.Context, issue *types.Issue) error
 
-	// TransformIssue is called after FieldMapper.IssueToBeads() and before storage.
+	// TransformIssue is called after FieldMapper.IssueToIssueGraph() and before storage.
 	// Use for description formatting, field normalization, etc.
 	TransformIssue func(issue *types.Issue)
 
 	// ShouldImport filters issues during pull. Return false to skip.
-	// Called on the raw TrackerIssue before conversion to beads format.
+	// Called on the raw TrackerIssue before conversion to issuegraph format.
 	// If nil, all issues are imported.
 	ShouldImport func(issue *TrackerIssue) bool
 
 	// AfterConvert is called after the external issue has been converted to
-	// a beads issue, transformed, and assigned an ID, but before it is stored.
+	// a issuegraph issue, transformed, and assigned an ID, but before it is stored.
 	// Hooks may mutate the conversion, for example by adding dependencies that
 	// should be created after all pulled issues have been saved.
 	AfterConvert func(ctx context.Context, extIssue *TrackerIssue, conv *IssueConversion, ref string, existing *types.Issue, opts SyncOptions) error
@@ -83,7 +83,7 @@ type PushHooks struct {
 	// stored content and target still match, the remote fetch and update are
 	// skipped entirely. This avoids the per-issue GET that ContentEqual alone
 	// still incurs, so a no-op `--push-only` run does not drain the API rate limit
-	// (gastownhall/beads#4214). Returning "" disables the short-circuit for that
+	// (borg0ai/dx-issuegraph#4214). Returning "" disables the short-circuit for that
 	// issue (the engine falls back to the fetch + ContentEqual path).
 	ContentHash func(local *types.Issue) string
 
@@ -104,12 +104,12 @@ type PushHooks struct {
 	// If nil, no caching is done.
 	BuildStateCache func(ctx context.Context) (interface{}, error)
 
-	// ResolveState maps a beads status to a tracker state ID using the cached state.
+	// ResolveState maps a issuegraph status to a tracker state ID using the cached state.
 	// Only called if BuildStateCache is set. Returns (stateID, ok).
 	ResolveState func(cache interface{}, status types.Status) (string, bool)
 }
 
-// Engine orchestrates synchronization between beads and an external tracker.
+// Engine orchestrates synchronization between issuegraph and an external tracker.
 // It implements the shared Pull→Detect→Resolve→Push pattern that all tracker
 // integrations follow, eliminating duplication between Linear, GitLab, etc.
 type Engine struct {
@@ -320,7 +320,7 @@ func (e *Engine) DetectConflicts(ctx context.Context) ([]Conflict, error) {
 	return conflicts, nil
 }
 
-// doPull imports issues from the external tracker into beads.
+// doPull imports issues from the external tracker into issuegraph.
 // doPull imports tracker issues. IDs of issues it creates or updates are
 // added to pulledIDs so a bidirectional sync's push phase does not echo the
 // freshly pulled content straight back to the tracker.
@@ -384,7 +384,7 @@ func (e *Engine) doPull(ctx context.Context, opts SyncOptions, allowOverwriteIDs
 		prefix, _ := e.Store.GetConfig(ctx, "issue_prefix")
 		for _, id := range opts.IssueIDs {
 			var identifier string
-			if isBeadID(id, prefix) {
+			if isIssueID(id, prefix) {
 				// Look up the local issue to find its external ref
 				if local, ok := localByID[id]; ok && local.ExternalRef != nil {
 					identifier = e.Tracker.ExtractIdentifier(*local.ExternalRef)
@@ -455,7 +455,7 @@ func (e *Engine) doPull(ctx context.Context, opts SyncOptions, allowOverwriteIDs
 				existing = localByExternalIdentifier[identifier]
 			}
 		}
-		conv := mapper.IssueToBeads(&extIssue)
+		conv := mapper.IssueToIssueGraph(&extIssue)
 		if conv == nil || conv.Issue == nil {
 			stats.Skipped++
 			continue
@@ -872,7 +872,7 @@ func parseSyncTime(value string) (time.Time, error) {
 	return time.Parse(time.RFC3339, value)
 }
 
-// doPush exports beads issues to the external tracker.
+// doPush exports issuegraph issues to the external tracker.
 // pushHashKey returns the local_metadata key under which the last-pushed
 // content hash for an issue is stored, namespaced per tracker (e.g.
 // "github.pushhash.bd-123"). local_metadata is dolt-ignored, so these hashes
@@ -1011,7 +1011,7 @@ func (e *Engine) doPush(ctx context.Context, opts SyncOptions, skipIDs, forceIDs
 			// No batch dry-runner (e.g. Linear): preview sequentially below,
 			// but only over the issues the batch filter kept. It has already
 			// counted every other issue as Skipped, and iterating all issues
-			// would count those skips a second time (gastownhall/beads#6712).
+			// would count those skips a second time (borg0ai/dx-issuegraph#6712).
 			issues = keepBatchPushIssues(issues, pushIssues)
 		} else {
 			batchResult, err := batchTracker.BatchPush(ctx, pushIssues, forceIDs)
@@ -1070,11 +1070,11 @@ func (e *Engine) doPush(ctx context.Context, opts SyncOptions, skipIDs, forceIDs
 				stats.Created++
 			} else if opts.CreateOnly && !forceIDs[issue.ID] {
 				// A real --create-only run leaves linked issues alone, so the
-				// preview must skip them too (gastownhall/beads#6337).
+				// preview must skip them too (borg0ai/dx-issuegraph#6337).
 				stats.Skipped++
 			} else if !forceIDs[issue.ID] && e.storedPushHashMatches(ctx, issue, extRef) {
 				// Content unchanged since last push: a real run would skip this
-				// issue, so the preview must say so too (gastownhall/beads#4214).
+				// issue, so the preview must say so too (borg0ai/dx-issuegraph#4214).
 				stats.Skipped++
 			} else {
 				e.msg("[dry-run] Would update in %s: %s", e.Tracker.DisplayName(), ui.SanitizeForTerminal(issue.Title))
@@ -1138,7 +1138,7 @@ func (e *Engine) doPush(ctx context.Context, opts SyncOptions, skipIDs, forceIDs
 				// Fast path: if the local content is unchanged since the last
 				// successful push, the remote must already match it, so skip the
 				// fetch entirely. This is what keeps a no-op `--push-only` run
-				// from issuing one GET per issue (gastownhall/beads#4214).
+				// from issuing one GET per issue (borg0ai/dx-issuegraph#4214).
 				if e.storedPushHashMatches(ctx, issue, extRef) {
 					stats.Skipped++
 					continue
@@ -1326,7 +1326,7 @@ func (e *Engine) reimportIssue(ctx context.Context, c Conflict) {
 		return
 	}
 
-	conv := e.Tracker.FieldMapper().IssueToBeads(extIssue)
+	conv := e.Tracker.FieldMapper().IssueToIssueGraph(extIssue)
 	if conv == nil || conv.Issue == nil {
 		return
 	}
@@ -1595,8 +1595,8 @@ func (e *Engine) shouldPushIssue(issue *types.Issue, opts SyncOptions) bool {
 		}
 	}
 
-	// ExcludeIDPrefix: case-sensitive prefix match on the bead ID. Filters
-	// workflow-artifact beads (e.g. "hw-mol-foo") from external sync without
+	// ExcludeIDPrefix: case-sensitive prefix match on the issue ID. Filters
+	// workflow-artifact issuegraph (e.g. "hw-mol-foo") from external sync without
 	// requiring them to share a type or label.
 	if opts.ExcludeIDPrefix != "" && strings.HasPrefix(issue.ID, opts.ExcludeIDPrefix) {
 		return false
@@ -1616,7 +1616,7 @@ func (e *Engine) shouldPushIssue(issue *types.Issue, opts SyncOptions) bool {
 	return true
 }
 
-// ResolveState maps a beads status to a tracker state ID using the push state cache.
+// ResolveState maps a issuegraph status to a tracker state ID using the push state cache.
 // Returns (stateID, ok). Only usable during a push operation after BuildStateCache has run.
 func (e *Engine) ResolveState(status types.Status) (string, bool) {
 	if e.PushHooks == nil || e.PushHooks.ResolveState == nil || e.stateCache == nil {
@@ -1636,10 +1636,10 @@ func derefStr(s *string) string {
 	return *s
 }
 
-// isBeadID returns true if the given string looks like a local bead ID
+// isIssueID returns true if the given string looks like a local issue ID
 // (i.e. it starts with the configured prefix followed by a hyphen, like "bd-123").
 // External tracker refs (URLs, "EXT-1", etc.) will return false.
-func isBeadID(id, prefix string) bool {
+func isIssueID(id, prefix string) bool {
 	if prefix == "" || id == "" {
 		return false
 	}

@@ -2,7 +2,7 @@
 // exports, by type alias, the storage contract an external Go module must
 // implement (the engine interface storage.DoltStorage and every type its
 // method signatures reach), the process-init registry that plugs an
-// implementation into bd, and — via the backend/conformance subpackage — the
+// implementation into issuegraph, and — via the backend/conformance subpackage — the
 // tests that prove an implementation behaves like the Dolt reference.
 //
 // Every name here is an alias or thin wrapper over the in-tree definition, so
@@ -16,7 +16,7 @@
 //
 //	package mybackend
 //
-//	import "github.com/steveyegge/beads/backend"
+//	import "github.com/borg0ai/dx-issuegraph/backend"
 //
 //	type Store struct{ ... }   // implements backend.DoltStorage
 //
@@ -48,7 +48,7 @@
 // role contracts in that package are the third piece, covering the issueops
 // roles the accessors on Storage return.
 //
-// Registration is init-time wiring only; see Register. bd init / bd bootstrap
+// Registration is init-time wiring only; see Register. issuegraph init / issuegraph bootstrap
 // do not provision registered backends — an external backend supplies its own
 // workspace-creation path and is opened by name via metadata.json.
 //
@@ -59,14 +59,14 @@
 // itself still evolves. Adding a required method to the engine interface is a
 // breaking change for out-of-tree implementations — such additions are called
 // out in CHANGELOG.md — and no compatibility promise beyond that is made yet.
-// Pin an exact beads version and re-run the conformance suite on every bump.
+// Pin an exact issuegraph version and re-run the conformance suite on every bump.
 package backend
 
 import (
 	"context"
 
-	"github.com/steveyegge/beads/internal/storage"
-	"github.com/steveyegge/beads/internal/storage/backends"
+	"github.com/borg0ai/dx-issuegraph/internal/storage"
+	"github.com/borg0ai/dx-issuegraph/internal/storage/backends"
 )
 
 // DoltStorage is the full engine interface an external backend implements:
@@ -132,7 +132,7 @@ type (
 )
 
 // VCStatus is the version-control status report (storage.Status). Named
-// VCStatus here — matching the root beads package — because Status is the
+// VCStatus here — matching the root issuegraph package — because Status is the
 // issue-status enum from the domain types.
 type VCStatus = storage.Status
 
@@ -164,11 +164,11 @@ func Registered(name string) bool {
 	return backends.Registered(name)
 }
 
-// WorkspaceIsBeadsDir reports whether name is a registered backend whose
-// workspace is identified by the .beads directory alone (metadata.json plus a
+// WorkspaceIsIssueGraphDir reports whether name is a registered backend whose
+// workspace is identified by the .issuegraph directory alone (metadata.json plus a
 // remote store), with no separately discoverable local database.
-func WorkspaceIsBeadsDir(name string) bool {
-	return backends.WorkspaceIsBeadsDir(name)
+func WorkspaceIsIssueGraphDir(name string) bool {
+	return backends.WorkspaceIsIssueGraphDir(name)
 }
 
 // Iter is the streaming-read cursor returned by the Iter* methods.

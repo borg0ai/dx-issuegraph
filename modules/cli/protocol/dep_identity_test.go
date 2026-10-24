@@ -66,7 +66,7 @@ func TestProtocol_DepReAddDifferentTypeIsAnError(t *testing.T) {
 	}
 }
 
-// depHasType reports whether `bd dep list <id> --json` carries an edge
+// depHasType reports whether `issuegraph dep list <id> --json` carries an edge
 // id -> dependsOn with the given type. A single-id `dep list` emits the
 // depended-on ISSUES, each carrying the edge type as "dependency_type".
 func depHasType(t *testing.T, w *workspace, id, dependsOn, want string) bool {

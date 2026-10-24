@@ -6,13 +6,13 @@ import (
 
 	"github.com/spf13/cobra"
 
-	"github.com/steveyegge/beads/internal/metrics"
-	"github.com/steveyegge/beads/internal/storage/uow"
-	"github.com/steveyegge/beads/internal/types"
-	"github.com/steveyegge/beads/internal/utils"
+	"github.com/borg0ai/dx-issuegraph/internal/metrics"
+	"github.com/borg0ai/dx-issuegraph/internal/storage/uow"
+	"github.com/borg0ai/dx-issuegraph/internal/types"
+	"github.com/borg0ai/dx-issuegraph/internal/utils"
 )
 
-// bd swarm status / validate in proxied-server mode (bd-gen49).
+// issuegraph swarm status / validate in proxied-server mode (bd-gen49).
 //
 // Both commands are pure computed reads: the epic's child graph is loaded and
 // analyzed in memory, nothing is written, so the whole body runs inside one
@@ -26,7 +26,7 @@ import (
 // swarm create and swarm list stay gated: no downstream consumer, and their
 // classic refusals in swarm.go are untouched.
 
-// runSwarmValidateProxiedServer ports `bd swarm validate` to proxied-server mode.
+// runSwarmValidateProxiedServer ports `issuegraph swarm validate` to proxied-server mode.
 func runSwarmValidateProxiedServer(cmd *cobra.Command, ctx context.Context, args []string) error {
 	evt := metrics.NewCommandEvent("swarm-validate")
 	defer func() {
@@ -95,7 +95,7 @@ func runSwarmValidateProxiedServer(cmd *cobra.Command, ctx context.Context, args
 	return nil
 }
 
-// runSwarmStatusProxiedServer ports `bd swarm status` to proxied-server mode.
+// runSwarmStatusProxiedServer ports `issuegraph swarm status` to proxied-server mode.
 func runSwarmStatusProxiedServer(_ *cobra.Command, ctx context.Context, args []string) error {
 	evt := metrics.NewCommandEvent("swarm-status")
 	defer func() {

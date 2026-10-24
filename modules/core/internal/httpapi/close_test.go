@@ -7,8 +7,8 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/steveyegge/beads/internal/types"
-	"github.com/steveyegge/beads/issueops"
+	"github.com/borg0ai/dx-issuegraph/internal/types"
+	"github.com/borg0ai/dx-issuegraph/issueops"
 )
 
 // These are pure: the close path runs end to end over a real listener against a
@@ -22,7 +22,7 @@ import (
 // internal/storage/uow/lifecycle_close_reopen_contract_test.go, which this
 // slice cites rather than duplicates.
 
-const closePath = "/v0/beads/issues/bd-1:close"
+const closePath = "/v0/issuegraph/issues/bd-1:close"
 
 func (ts *testServer) closeIssue(t *testing.T, path, body string) *http.Response {
 	t.Helper()
@@ -176,7 +176,7 @@ func TestCloseUnknownIDIs404(t *testing.T) {
 	lifecycle := &roleLifecycle{closeErr: fmt.Errorf("close bd-9: %w", issueops.ErrNotFound)}
 	ts := newCloseServer(t, lifecycle)
 
-	resp := ts.closeIssue(t, "/v0/beads/issues/bd-9:close", `{"actor":"alice"}`)
+	resp := ts.closeIssue(t, "/v0/issuegraph/issues/bd-9:close", `{"actor":"alice"}`)
 	if resp.StatusCode != http.StatusNotFound {
 		t.Fatalf("status = %d, want 404: %s", resp.StatusCode, readAll(t, resp))
 	}
@@ -428,7 +428,7 @@ func TestCloseErrorsMapThroughTheSharedClassification(t *testing.T) {
 // TestCloseIsNotReachableByOtherMethods: the dispatcher is registered for POST
 // alone, so the documented path under any other method is an unrouted path.
 //
-// PATCH is excluded and has its own test below. `PATCH /v0/beads/issues/{id}`
+// PATCH is excluded and has its own test below. `PATCH /v0/issuegraph/issues/{id}`
 // is a documented operation on a single-segment wildcard, so it MATCHES this
 // path — as an update of an issue whose id happens to be "bd-1:close". That is
 // the detail path's long-standing behavior (GET has always answered the same
@@ -468,7 +468,7 @@ func TestCloseRefusesUnrowableIDsBeforeAnyDatabaseWork(t *testing.T) {
 			lifecycle := &roleLifecycle{}
 			ts := newCloseServer(t, lifecycle)
 
-			resp := ts.closeIssue(t, "/v0/beads/issues/"+tc.id+":close", `{"actor":"alice"}`)
+			resp := ts.closeIssue(t, "/v0/issuegraph/issues/"+tc.id+":close", `{"actor":"alice"}`)
 			if resp.StatusCode != http.StatusNotFound {
 				t.Fatalf("status = %d, want 404: %s", resp.StatusCode, readAll(t, resp))
 			}
@@ -523,7 +523,7 @@ func TestCloseResolvesAcrossBothPlanes(t *testing.T) {
 	lifecycle := &roleLifecycle{closeResult: issueops.CloseResult{Issue: wisp, Changed: true}}
 	ts := newCloseServer(t, lifecycle)
 
-	resp := ts.closeIssue(t, "/v0/beads/issues/bd-w1:close", `{"actor":"alice"}`)
+	resp := ts.closeIssue(t, "/v0/issuegraph/issues/bd-w1:close", `{"actor":"alice"}`)
 	if resp.StatusCode != http.StatusOK {
 		t.Fatalf("closing a wisp id: status = %d, want 200: %s", resp.StatusCode, readAll(t, resp))
 	}

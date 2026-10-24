@@ -7,8 +7,8 @@ import (
 	"fmt"
 	"testing"
 
-	"github.com/steveyegge/beads/internal/types"
-	"github.com/steveyegge/beads/issueops"
+	"github.com/borg0ai/dx-issuegraph/internal/types"
+	"github.com/borg0ai/dx-issuegraph/issueops"
 )
 
 // What this file still holds, after the metadata PATCH SEMANTICS moved to the
@@ -84,7 +84,7 @@ func newMetadataPatchOperations(t *testing.T, ctx context.Context) issueops.Life
 	t.Helper()
 	provider := newTestUOWProvider(t)
 	if err := RunTx(ctx, provider, func(ctx context.Context, uw UnitOfWork) (string, error) {
-		if err := uw.ConfigUseCase().SetConfig(ctx, "issue_prefix", "bd"); err != nil {
+		if err := uw.ConfigUseCase().SetConfig(ctx, "issue_prefix", "issuegraph"); err != nil {
 			return "", err
 		}
 		return "initialize metadata patch fixture", nil

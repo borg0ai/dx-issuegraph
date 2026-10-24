@@ -11,8 +11,8 @@ import (
 
 	"github.com/spf13/cobra"
 
-	"github.com/steveyegge/beads/internal/storage/dolt"
-	"github.com/steveyegge/beads/internal/types"
+	"github.com/borg0ai/dx-issuegraph/internal/storage/dolt"
+	"github.com/borg0ai/dx-issuegraph/internal/types"
 )
 
 // wispTestProto creates a proto epic with the given number of parent-child
@@ -52,7 +52,7 @@ func wispTestProto(t *testing.T, ctx context.Context, s *dolt.DoltStore, numChil
 }
 
 // makeWispTestCmd builds a cobra.Command with the same flag schema as the
-// real `bd mol wisp` command, with the given flag values set as defaults
+// real `issuegraph mol wisp` command, with the given flag values set as defaults
 // (so runWispCreate reads them back without needing arg parsing).
 func makeWispTestCmd(rootOnly, dryRun bool) *cobra.Command {
 	c := &cobra.Command{Use: "wisp"}
@@ -86,7 +86,7 @@ func withWispTestGlobals(t *testing.T, s *dolt.DoltStore, ctx context.Context) {
 // Before the fix, wisps were silently forced to root-only unless the
 // formula set pour=true, making --root-only a no-op flag and breaking
 // ephemeral lifecycle testing of multi-step formulas. After the fix,
-// `bd mol wisp <proto>` materializes the full child DAG by default,
+// `issuegraph mol wisp <proto>` materializes the full child DAG by default,
 // just marked Ephemeral=true so it doesn't sync via git.
 func TestWispCreateMaterializesChildDAG(t *testing.T) {
 	ctx := context.Background()

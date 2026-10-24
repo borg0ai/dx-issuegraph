@@ -6,7 +6,7 @@ import (
 	"fmt"
 	"testing"
 
-	"github.com/steveyegge/beads/internal/types"
+	"github.com/borg0ai/dx-issuegraph/internal/types"
 )
 
 func TestGetNextChildID(t *testing.T) {
@@ -125,7 +125,7 @@ func TestGetNextChildID(t *testing.T) {
 			t.Fatalf("CreateIssue parent: %v", err)
 		}
 
-		// Simulate `bd create --id ex-parent.8` (no prior counter activity).
+		// Simulate `issuegraph create --id ex-parent.8` (no prior counter activity).
 		child := &types.Issue{
 			ID:        "ex-parent.8",
 			Title:     "Explicit child 8",

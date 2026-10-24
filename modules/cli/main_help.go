@@ -5,8 +5,8 @@ import (
 	"regexp"
 	"strings"
 
+	"github.com/borg0ai/dx-issuegraph/internal/ui"
 	"github.com/spf13/cobra"
-	"github.com/steveyegge/beads/internal/ui"
 )
 
 // colorizedHelpFunc wraps Cobra's default help with semantic coloring
@@ -123,7 +123,7 @@ func highlightEntryPoints(text string) string {
 }
 
 // colorizeCommandRefs applies command styling to references in text
-// Matches patterns like 'command name' or 'bd command'
+// Matches patterns like 'command name' or 'issuegraph command'
 func colorizeCommandRefs(text string) string {
 	// Match 'command words' in single quotes (e.g., 'comments add')
 	cmdRefRE := regexp.MustCompile(`'([a-z][a-z0-9 -]+)'`)

@@ -17,8 +17,8 @@ cd "$REPO_ROOT"
 # introduces are reported; main's push lane leaves it unset and sweeps the
 # whole tree. See the lint comment in .github/workflows/pr.yml.
 lint_scope=()
-if [[ -n "${BD_LINT_NEW_FROM_MERGE_BASE:-}" ]]; then
-    lint_scope=(--new-from-merge-base="$BD_LINT_NEW_FROM_MERGE_BASE")
+if [[ -n "${ISSUEGRAPH_LINT_NEW_FROM_MERGE_BASE:-}" ]]; then
+    lint_scope=(--new-from-merge-base="$ISSUEGRAPH_LINT_NEW_FROM_MERGE_BASE")
 fi
 
 ci_time "gofmt check" -- ./scripts/ci/fmt-check.sh

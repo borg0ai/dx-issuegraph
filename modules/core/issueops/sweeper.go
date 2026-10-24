@@ -12,17 +12,17 @@ import (
 // gone.
 //
 // The two are DISJOINT by construction — a sweep of one tier can never touch a
-// row of the other — which is what lets `bd purge` and `bd prune` be one
+// row of the other — which is what lets `issuegraph purge` and `issuegraph prune` be one
 // capability with a parameter rather than two capabilities that resemble each
 // other.
 type SweepTier string
 
 const (
-	// SweepEphemeral clears CLOSED rows of the wisp tier: `bd purge`.
+	// SweepEphemeral clears CLOSED rows of the wisp tier: `issuegraph purge`.
 	// Ephemeral rows accumulate fast, carry no long-term value once closed,
 	// and live in tables the version-control plane ignores.
 	SweepEphemeral SweepTier = "ephemeral"
-	// SweepDurable clears CLOSED rows of the issue tier: `bd prune`. This is
+	// SweepDurable clears CLOSED rows of the issue tier: `issuegraph prune`. This is
 	// the tier a workspace's real history lives in, which is why it — and only
 	// it — carries the require-a-filter refusal SweepRequest.ClosedBefore
 	// describes.
@@ -37,7 +37,7 @@ const (
 // it; there is no status, no assignee, no label and no free-text query,
 // because every one of those would be a way to spell a destructive selection
 // that no front door asks for and that a caller could get subtly wrong. What
-// this request can express is exactly what `bd purge` and `bd prune` expose,
+// this request can express is exactly what `issuegraph purge` and `issuegraph prune` expose,
 // and widening it is a decision rather than an omission to be filled in.
 //
 // Implementations never mutate caller-owned request values: ClosedBefore is
@@ -69,7 +69,7 @@ type SweepRequest struct {
 	// an omitted one.
 	//
 	// The EPHEMERAL tier carries no such gate: an unfiltered sweep of closed
-	// wisps is the ordinary use of `bd purge`, and the tier is transient by
+	// wisps is the ordinary use of `issuegraph purge`, and the tier is transient by
 	// definition.
 	ClosedBefore *time.Time
 	// IDPattern keeps only rows whose ID matches this shell glob, in the
@@ -79,7 +79,7 @@ type SweepRequest struct {
 	//
 	// A MALFORMED PATTERN IS ErrValidation, not a pattern that matches
 	// nothing. Both front doors previously discarded filepath.Match's error,
-	// so `--pattern '['` reported "no beads to prune" — indistinguishable from
+	// so `--pattern '['` reported "no issuegraph to prune" — indistinguishable from
 	// a correct pattern over an empty set, on a command whose whole job is to
 	// delete what it matched.
 	//
@@ -87,7 +87,7 @@ type SweepRequest struct {
 	IDPattern string
 	// ProtectReferenced skips candidates whose ID is CITED by a row that is
 	// not done — in its description, its notes, or any of its comments — so a
-	// decision trail a live bead still points at is not deleted out from under
+	// decision trail a live issue still points at is not deleted out from under
 	// it.
 	//
 	// WHAT COUNTS AS A CITATION is a literal occurrence of the id at ASCII
@@ -100,12 +100,12 @@ type SweepRequest struct {
 	// built-in active statuses plus every configured custom status whose
 	// category is not "done". Enumerating the workspace's custom statuses is
 	// REQUIRED rather than best-effort, because a failure to read them would
-	// under-scan and delete a bead a live custom-status bead still cites; an
+	// under-scan and delete a issue a live custom-status issue still cites; an
 	// implementation that cannot read them fails the sweep instead.
 	//
 	// It costs a full scan of the not-done set and of that set's comments, so
-	// it is opt-in per request rather than always-on. `bd prune` asks for it;
-	// `bd purge` does not, because a wisp's citations are as transient as the
+	// it is opt-in per request rather than always-on. `issuegraph prune` asks for it;
+	// `issuegraph purge` does not, because a wisp's citations are as transient as the
 	// wisp.
 	ProtectReferenced bool
 	// DryRun reports what the sweep WOULD do and deletes nothing. The result
@@ -191,7 +191,7 @@ type SweepResult struct {
 const SweepReferencedSampleLimit = 100
 
 // Sweeper describes bulk clearance of CLOSED rows — the capability behind
-// `bd purge` (the ephemeral tier) and `bd prune` (the durable one) — and, like
+// `issuegraph purge` (the ephemeral tier) and `issuegraph prune` (the durable one) — and, like
 // every other capability here, a role with its own accessor. A new capability
 // gets a new role interface and its own accessor; never append a method here.
 //
@@ -241,8 +241,8 @@ type Sweeper interface {
 	// A row created, closed, unpinned or cited between the selection and the
 	// deletion cannot change which rows go. The direct CLI route did not have
 	// that property before this role existed — it selected in one transaction
-	// and deleted in another, so a bead closed in the window was reported and
-	// not deleted, and a bead pinned in the window was deleted after being
+	// and deleted in another, so a issue closed in the window was reported and
+	// not deleted, and a issue pinned in the window was deleted after being
 	// judged unpinned.
 	//
 	// WHAT THAT COSTS, said out loud because it is a real trade and not a free

@@ -5,7 +5,7 @@
 # creation. Designed for maintainer-supervised agent work.
 #
 # Key design decisions:
-#   - Wisp (vapor phase): no git pollution in .beads/ or git history
+#   - Wisp (vapor phase): no git pollution in .issuegraph/ or git history
 #   - Clean worktree: created OUTSIDE repo root, synced to upstream base
 #   - Abort-early: stops and comments on the issue if it's a feature
 #     request (frozen), needs more info, is out of scope, already
@@ -18,8 +18,8 @@
 #   - Trivial-change fast path: lighter planning/review for simple fixes
 #
 # Usage:
-#   bd mol wisp gh-issue-to-pr --var issue_number=123
-#   bd mol wisp gh-issue-to-pr --var issue_number=123 --var repo=myorg/myrepo
+#   issuegraph mol wisp gh-issue-to-pr --var issue_number=123
+#   issuegraph mol wisp gh-issue-to-pr --var issue_number=123 --var repo=myorg/myrepo
 #
 # The worktree is created at ../<repo-basename>--gh-<issue_number>
 # (sibling of repo root, outside the repo, no .gitignore pollution).
@@ -28,10 +28,10 @@
 #   - `gh` CLI authenticated with sufficient scopes (issues:write,
 #     contents:write, pull_requests:write)
 #   - Git configured with remotes for upstream and (if fork) push target
-#   - `bd` (beads) installed with molecule/wisp support
+#   - `issuegraph` (issuegraph) installed with molecule/wisp support
 #   - `council` installed (or rubber-duck agent available as fallback)
 #   - The target repository's documented quality-gate tools are available
-#     (`make` and the CI-pinned `golangci-lint` for Beads)
+#     (`make` and the CI-pinned `golangci-lint` for IssueGraph)
 #   - `make test` may take 3-5 minutes on a full run
 #
 # Pager safety (CRITICAL for non-interactive execution):
@@ -341,11 +341,11 @@ avoid polluting .gitignore or the working tree.
    - Bug fix → fix/gh-{{issue_number}}
    - Task/chore → chore/gh-{{issue_number}}
    - Documentation → docs/gh-{{issue_number}}
-4. Create the worktree. Prefer bd, fall back to git:
+4. Create the worktree. Prefer issuegraph, fall back to git:
    ```
-   bd worktree create "$WORKTREE_PATH" --branch <branch-name>
+   issuegraph worktree create "$WORKTREE_PATH" --branch <branch-name>
    ```
-   If `bd worktree create` fails, fall back immediately:
+   If `issuegraph worktree create` fails, fall back immediately:
    ```
    git worktree add -b <branch-name> "$WORKTREE_PATH"
    ```
@@ -368,7 +368,7 @@ IMPORTANT: If ANY subsequent step fails and requires aborting, you MUST
 clean up the worktree before stopping:
 ```
 cd "$REPO_ROOT"
-bd worktree remove "$WORKTREE_PATH" || git worktree remove "$WORKTREE_PATH" --force
+issuegraph worktree remove "$WORKTREE_PATH" || git worktree remove "$WORKTREE_PATH" --force
 git worktree prune
 ```"""
 acceptance = "Worktree exists outside repo root, on correctly-prefixed branch, synced to {{base_remote}}/{{base_branch}}, clean state verified, CWD is worktree"
@@ -426,7 +426,7 @@ WORKING DIRECTORY: This step runs in the worktree.
    - Follow patterns in CONTRIBUTING.md
    - Keep changes focused — one issue per PR, no piggybacking
 3. Do NOT include:
-   - Local tracker metadata/data artifacts (for beads, this includes `.beads/` DB/JSONL files)
+   - Local tracker metadata/data artifacts (for issuegraph, this includes `.issuegraph/` DB/JSONL files)
    - Unrelated changes, cleanup, or "while I'm here" improvements
    - Generated or garbage files
 4. Tests — scale to the change:
@@ -469,11 +469,11 @@ ALL THREE quality gates are MANDATORY — do not skip any without explicit justi
    ```
    make test
    ```
-2. Run the required lint gate. For Beads:
+2. Run the required lint gate. For IssueGraph:
    ```
    make ci-pr-lint
    ```
-   The wrapper must pass with zero issues. For a non-Beads repository, use its
+   The wrapper must pass with zero issues. For a non-IssueGraph repository, use its
    documented required lint gate instead and require a clean pass.
 3. Build the project:
    ```
@@ -506,7 +506,7 @@ CGO_ENABLED=1 go test -tags gms_pure_go ./modules/cli/...
 ```
 
 If you need to abort after this step, clean up the worktree first (see worktree-setup)."""
-acceptance = "make test passes (or failures documented as pre-existing/flaky), required lint gate passes with zero issues (make ci-pr-lint for Beads), make build succeeds"
+acceptance = "make test passes (or failures documented as pre-existing/flaky), required lint gate passes with zero issues (make ci-pr-lint for IssueGraph), make build succeeds"
 
 [[steps]]
 id = "council-review"
@@ -634,7 +634,7 @@ WORKING DIRECTORY: This step runs in the worktree.
 
    ## Testing
    - All tests pass (make test)
-   - Required lint gate passes with zero issues (make ci-pr-lint for Beads)
+   - Required lint gate passes with zero issues (make ci-pr-lint for IssueGraph)
    - Build succeeds (make build)
    <If any flaky/pre-existing failures were noted, document them here>
 
@@ -681,13 +681,13 @@ WORKING DIRECTORY: Return to the main repo root for this step.
    cd "$REPO_ROOT"
    ```
 
-2. Remove the worktree. Prefer bd, fall back to git:
+2. Remove the worktree. Prefer issuegraph, fall back to git:
    ```
    REPO_NAME=$(basename "$REPO_ROOT")
    WORKTREE_PATH="../${REPO_NAME}--gh-{{issue_number}}"
-   bd worktree remove "$WORKTREE_PATH"
+   issuegraph worktree remove "$WORKTREE_PATH"
    ```
-   If bd worktree remove fails, fall back to:
+   If issuegraph worktree remove fails, fall back to:
    ```
    git worktree remove "$WORKTREE_PATH" --force
    git worktree prune
@@ -698,12 +698,12 @@ WORKING DIRECTORY: Return to the main repo root for this step.
    rm -f /tmp/gh-abort-comment.md /tmp/gh-claim-comment.md /tmp/gh-pr-body.md
    ```
 
-4. Burn the wisp (the ephemeral tracking bead for this workflow run).
+4. Burn the wisp (the ephemeral tracking issue for this workflow run).
    Use --force or pipe confirmation to avoid hanging on the prompt:
    ```
-   echo y | bd mol burn <wisp-id>
+   echo y | issuegraph mol burn <wisp-id>
    ```
-   (The wisp-id was returned when the wisp was created with `bd mol wisp`)
+   (The wisp-id was returned when the wisp was created with `issuegraph mol wisp`)
 
 5. Verify cleanup:
    - `git worktree list` should not show the removed worktree
@@ -714,11 +714,11 @@ WORKING DIRECTORY: Return to the main repo root for this step.
    for descriptions with special characters):
    ```
    echo 'Discovered during work on GH#{{issue_number}}: <details>' | \
-     bd create "Follow-up: <title>" --description=- -p 3 --json
+     issuegraph create "Follow-up: <title>" --description=- -p 3 --json
    ```
 
 7. If your workflow uses local tracker data with remote sync, sync it now:
    ```
-   bd dolt push 2>/dev/null || true
+   issuegraph dolt push 2>/dev/null || true
    ```"""
 acceptance = "Worktree removed, wisp burned, no temp files remain, branch exists on remote, follow-ups filed"

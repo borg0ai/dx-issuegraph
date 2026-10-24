@@ -6,22 +6,22 @@ import (
 	"os"
 	"testing"
 
-	"github.com/steveyegge/beads/internal/formula"
-	"github.com/steveyegge/beads/internal/storage/embeddeddolt"
-	"github.com/steveyegge/beads/internal/types"
+	"github.com/borg0ai/dx-issuegraph/internal/formula"
+	"github.com/borg0ai/dx-issuegraph/internal/storage/embeddeddolt"
+	"github.com/borg0ai/dx-issuegraph/internal/types"
 )
 
 // TestSpawnMolecule_PreservesStepLabels verifies that a cooked formula with
 // per-step labels results in spawned issues whose labels are persisted to the
 // database. Regression for labels being silently dropped by cloneSubgraph in
-// the same shape as the metadata bug fixed by gastownhall/beads#3341.
+// the same shape as the metadata bug fixed by borg0ai/dx-issuegraph#3341.
 func TestSpawnMolecule_PreservesStepLabels(t *testing.T) {
-	if os.Getenv("BEADS_TEST_EMBEDDED_DOLT") != "1" {
-		t.Skip("set BEADS_TEST_EMBEDDED_DOLT=1 to run embedded dolt integration tests")
+	if os.Getenv("ISSUEGRAPH_TEST_EMBEDDED_DOLT") != "1" {
+		t.Skip("set ISSUEGRAPH_TEST_EMBEDDED_DOLT=1 to run embedded dolt integration tests")
 	}
 
 	ctx := t.Context()
-	s, err := embeddeddolt.Open(ctx, t.TempDir(), "beads", "main")
+	s, err := embeddeddolt.Open(ctx, t.TempDir(), "issuegraph", "main")
 	if err != nil {
 		t.Fatalf("embeddeddolt.Open failed: %v", err)
 	}

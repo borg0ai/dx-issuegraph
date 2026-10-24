@@ -8,7 +8,7 @@ import (
 )
 
 // An unset must not also rewrite the end of the file. commentOutYamlKey used to
-// drop the document's trailing newline, so `bd config unset` produced a
+// drop the document's trailing newline, so `issuegraph config unset` produced a
 // no-newline-at-end-of-file change on top of the line it meant to comment out —
 // and did so even for a key the document does not contain, i.e. when nothing
 // was edited at all. A config.yaml is git-tracked, so that is a spurious line
@@ -76,21 +76,21 @@ func TestCommentOutYamlKeyPreservesTheTrailingNewline(t *testing.T) {
 	})
 }
 
-// The same property through the public writer, which is what `bd config unset`
+// The same property through the public writer, which is what `issuegraph config unset`
 // actually calls.
 func TestUnsetThroughTheFileKeepsTheTrailingNewline(t *testing.T) {
-	beadsDir := filepath.Join(t.TempDir(), ".beads")
-	if err := os.MkdirAll(beadsDir, 0o755); err != nil {
+	issuegraphDir := filepath.Join(t.TempDir(), ".issuegraph")
+	if err := os.MkdirAll(issuegraphDir, 0o755); err != nil {
 		t.Fatal(err)
 	}
-	path := filepath.Join(beadsDir, "config.yaml")
+	path := filepath.Join(issuegraphDir, "config.yaml")
 	// The file ends in a blank line, the shape a single appended "\n" does not
 	// restore.
 	const body = "issue_prefix: vp\nexport.auto: true\ndolt:\n  mode: server\n\n"
 	if err := os.WriteFile(path, []byte(body), 0o600); err != nil {
 		t.Fatal(err)
 	}
-	t.Setenv("BEADS_DIR", beadsDir)
+	t.Setenv("ISSUEGRAPH_DIR", issuegraphDir)
 	if err := UnsetYamlConfig("dolt.mode"); err != nil {
 		t.Fatalf("UnsetYamlConfig: %v", err)
 	}

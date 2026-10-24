@@ -36,7 +36,7 @@ issuegraph --version  # Requires v0.60.0+
 ```
 
 - **issuegraph CLI** installed and in PATH
-- **Git repository** (optional — use `BEADS_DIR` + `--stealth` for git-free operation)
+- **Git repository** (optional — use `ISSUEGRAPH_DIR` + `--stealth` for git-free operation)
 - **Initialization**: `issuegraph init` run once (humans do this, not agents)
 
 ## CLI Reference
@@ -65,7 +65,7 @@ Append `--json` to any command for structured output. Use `issuegraph show <id> 
 |-------|-----|
 | `database not found` | `issuegraph init <prefix>` in project root |
 | `not in a git repository` | `git init` first |
-| `disk I/O error (522)` | Move `.beads/` off cloud-synced filesystem |
+| `disk I/O error (522)` | Move `.issuegraph/` off cloud-synced filesystem |
 | Status updates lag | Use server mode: `issuegraph dolt start` |
 
 See [TROUBLESHOOTING.md](resources/TROUBLESHOOTING.md) for full details.
@@ -91,7 +91,7 @@ issuegraph close <id> --reason "Implemented with refresh tokens" --json
 |---------|-----|----------|
 | Molecules (templates) | `issuegraph mol --help` | [MOLECULES.md](resources/MOLECULES.md) |
 | Chemistry (pour/wisp) | `issuegraph pour`, `issuegraph wisp` | [CHEMISTRY_PATTERNS.md](resources/CHEMISTRY_PATTERNS.md) |
-| Agent beads | `issuegraph agent --help` | [AGENTS.md](resources/AGENTS.md) |
+| Agent issuegraph | `issuegraph agent --help` | [AGENTS.md](resources/AGENTS.md) |
 | Async gates | `issuegraph gate --help` | [ASYNC_GATES.md](resources/ASYNC_GATES.md) |
 | Worktrees | `issuegraph worktree --help` | [WORKTREES.md](resources/WORKTREES.md) |
 
@@ -107,4 +107,4 @@ issuegraph close <id> --reason "Implemented with refresh tokens" --json
 
 ## Validation
 
-If `issuegraph --version` reports newer than `0.60.0`, this skill may be stale. Run `issuegraph prime` for current CLI guidance — it auto-updates with each issuegraph release and is the canonical source of truth ([ADR-0001](adr/0001-bd-prime-as-source-of-truth.md)).
+If `issuegraph --version` reports newer than `0.60.0`, this skill may be stale. Run `issuegraph prime` for current CLI guidance — it auto-updates with each issuegraph release and is the canonical source of truth ([ADR-0001](adr/0001-issuegraph-prime-as-source-of-truth.md)).

@@ -4,10 +4,10 @@ import (
 	"context"
 	"database/sql"
 
-	"github.com/steveyegge/beads/internal/storage"
-	storageissueops "github.com/steveyegge/beads/internal/storage/issueops"
-	"github.com/steveyegge/beads/internal/types"
-	"github.com/steveyegge/beads/issueops"
+	"github.com/borg0ai/dx-issuegraph/internal/storage"
+	storageissueops "github.com/borg0ai/dx-issuegraph/internal/storage/issueops"
+	"github.com/borg0ai/dx-issuegraph/internal/types"
+	"github.com/borg0ai/dx-issuegraph/issueops"
 )
 
 // IssueLifecycle returns the guarded issue-lifecycle surface for this store.
@@ -28,15 +28,15 @@ type issueOperations struct{ store *DoltStore }
 // updateCommitMessage names the updated issue in the Dolt commit message.
 func updateCommitMessage(issueID string) string {
 	if issueID == "" {
-		return "bd: update issue"
+		return "issuegraph: update issue"
 	}
-	return "bd: update " + issueID
+	return "issuegraph: update " + issueID
 }
 
 func (o *issueOperations) Create(ctx context.Context, request issueops.CreateRequest) (issueops.CreateResult, error) {
 	snapshot := storageissueops.CloneCreateRequest(request)
 	var result issueops.CreateResult
-	err := o.store.runIssueOperationTx(ctx, "bd: create issue", func(tx *sql.Tx) (storageissueops.ChangedTables, error) {
+	err := o.store.runIssueOperationTx(ctx, "issuegraph: create issue", func(tx *sql.Tx) (storageissueops.ChangedTables, error) {
 		var err error
 		var tables storageissueops.ChangedTables
 		result, tables, err = storageissueops.ExecuteCreate(ctx, tx, snapshot)
@@ -49,7 +49,7 @@ func (o *issueOperations) Update(ctx context.Context, request issueops.UpdateReq
 	snapshot := storageissueops.CloneUpdateRequest(request)
 	var result issueops.UpdateResult
 	err := o.verifiedUpdate(ctx, snapshot, func(ctx context.Context) error {
-		// The message names the issue because that is the one `bd dolt log`
+		// The message names the issue because that is the one `issuegraph dolt log`
 		// affordance callers actually grep, and it is what the CLI's own
 		// per-command commit wrote before updates moved onto this path.
 		return o.store.runIssueOperationTx(ctx, storageissueops.HistoryEntry(snapshot.Provenance, updateCommitMessage(snapshot.IssueID)), func(tx *sql.Tx) (storageissueops.ChangedTables, error) {
@@ -175,7 +175,7 @@ func nonCoordinationPatchSignals(patch issueops.IssuePatch) []bool {
 func (o *issueOperations) Close(ctx context.Context, request issueops.CloseRequest) (issueops.CloseResult, error) {
 	snapshot := storageissueops.CloneCloseRequest(request)
 	var result issueops.CloseResult
-	err := o.store.runIssueOperationTx(ctx, "bd: close issue", func(tx *sql.Tx) (storageissueops.ChangedTables, error) {
+	err := o.store.runIssueOperationTx(ctx, "issuegraph: close issue", func(tx *sql.Tx) (storageissueops.ChangedTables, error) {
 		var err error
 		var tables storageissueops.ChangedTables
 		result, tables, err = storageissueops.ExecuteClose(ctx, tx, snapshot)
@@ -187,7 +187,7 @@ func (o *issueOperations) Close(ctx context.Context, request issueops.CloseReque
 func (o *issueOperations) Reopen(ctx context.Context, request issueops.ReopenRequest) (issueops.ReopenResult, error) {
 	snapshot := storageissueops.CloneReopenRequest(request)
 	var result issueops.ReopenResult
-	err := o.store.runIssueOperationTx(ctx, storageissueops.HistoryEntry(snapshot.Provenance, "bd: reopen issue"), func(tx *sql.Tx) (storageissueops.ChangedTables, error) {
+	err := o.store.runIssueOperationTx(ctx, storageissueops.HistoryEntry(snapshot.Provenance, "issuegraph: reopen issue"), func(tx *sql.Tx) (storageissueops.ChangedTables, error) {
 		var err error
 		var tables storageissueops.ChangedTables
 		result, tables, err = storageissueops.ExecuteReopen(ctx, tx, snapshot)

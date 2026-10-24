@@ -1,11 +1,11 @@
 ---
-title: "bd create-form"
+title: "issuegraph create-form"
 description: "Create a new issue using an interactive terminal form."
 ---
 
 {/* AUTO-GENERATED: do not edit manually */}
 
-Generated from `bd help --doc create-form`.
+Generated from `issuegraph help --doc create-form`.
 
 Create a new issue using an interactive terminal form.
 
@@ -22,11 +22,11 @@ The form uses keyboard navigation:
   - Arrow keys: Navigate within select fields
 
 ```
-bd create-form [flags]
+issuegraph create-form [flags]
 ```
 
 **Flags:**
 
 ```
-      --parent string   Parent issue ID for creating a hierarchical child (e.g., 'bd-a3f8e9')
+      --parent string   Parent issue ID for creating a hierarchical child (e.g., 'issuegraph-a3f8e9')
 ```

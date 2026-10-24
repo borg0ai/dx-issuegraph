@@ -3,7 +3,7 @@ package issueops
 import (
 	"testing"
 
-	"github.com/steveyegge/beads/internal/validation"
+	"github.com/borg0ai/dx-issuegraph/internal/validation"
 )
 
 // TestIdentityCanonicalizationParityWithValidation guards the two

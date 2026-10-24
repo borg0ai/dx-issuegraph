@@ -5,12 +5,12 @@ import (
 	"fmt"
 	"strings"
 
-	"github.com/steveyegge/beads/internal/config"
-	"github.com/steveyegge/beads/internal/storage"
-	"github.com/steveyegge/beads/internal/storage/domain"
-	"github.com/steveyegge/beads/internal/types"
-	"github.com/steveyegge/beads/internal/utils"
-	"github.com/steveyegge/beads/issueops"
+	"github.com/borg0ai/dx-issuegraph/internal/config"
+	"github.com/borg0ai/dx-issuegraph/internal/storage"
+	"github.com/borg0ai/dx-issuegraph/internal/storage/domain"
+	"github.com/borg0ai/dx-issuegraph/internal/types"
+	"github.com/borg0ai/dx-issuegraph/internal/utils"
+	"github.com/borg0ai/dx-issuegraph/issueops"
 )
 
 // DefaultListLimit is the default number of rows a list query returns when the
@@ -180,7 +180,7 @@ func LoadUOWListConfig(ctx context.Context, uw UnitOfWork) (ListConfig, error) {
 }
 
 // BuildListFilter turns list parameters into the storage-level filter. It is
-// the single definition of what `bd list` means: the closed/done/frozen status
+// the single definition of what `issuegraph list` means: the closed/done/frozen status
 // exclusions, the pinned and template defaults, and the gate, infra-type, and
 // wisp suppression that make the default listing show durable work only.
 func BuildListFilter(in issueops.ListRequest, cfg ListConfig) (types.IssueFilter, error) {
@@ -198,7 +198,7 @@ func BuildListFilter(in issueops.ListRequest, cfg ListConfig) (types.IssueFilter
 	filter := types.IssueFilter{
 		Limit: SQLLimit(in),
 		// The offset is carried for the callers that consume this filter as a
-		// VALUE and run their own query — `bd list --watch` and the proxied
+		// VALUE and run their own query — `issuegraph list --watch` and the proxied
 		// hierarchical --parent walk — where the seam beneath them renders it.
 		// Both implementations of issueops.Reader take it back off
 		// (WithRowsBeforeThePage) and skip in the shared page epilogue instead;
@@ -210,7 +210,7 @@ func BuildListFilter(in issueops.ListRequest, cfg ListConfig) (types.IssueFilter
 		AfterID:        in.AfterID,
 		AfterPriority:  in.AfterPriority,
 		// The defensive cap travels ON the request, so this builder is the
-		// only writer of the filter's two cap fields. `bd list` used to stamp
+		// only writer of the filter's two cap fields. `issuegraph list` used to stamp
 		// them onto the filter after the builder returned, which is the
 		// "build it, then reach in and change it" half-step the role exists to
 		// make unreachable — and it left the cap invisible to every
@@ -227,7 +227,7 @@ func BuildListFilter(in issueops.ListRequest, cfg ListConfig) (types.IssueFilter
 
 	// --ready defaults to open (the blocker-aware query's historical pin),
 	// but an explicit --status is an intersection, not an override. Dropping
-	// the selector used to answer `bd list --status X --ready` with the
+	// the selector used to answer `issuegraph list --status X --ready` with the
 	// unfiltered ready set (GH#5832). `--status all` is the no-filter
 	// spelling, so the open default still applies there.
 	if in.ReadyFlag && (len(statusParts) == 0 || statusAll) {
@@ -411,7 +411,7 @@ func BuildListFilter(in issueops.ListRequest, cfg ListConfig) (types.IssueFilter
 	return filter, nil
 }
 
-// applyTypeSuppressions applies every default suppression that hides a bead on
+// applyTypeSuppressions applies every default suppression that hides a issue on
 // account of WHAT IT IS, so that a "show everything" frontend has exactly one
 // thing to skip. Two kinds live here: the type-level exclusions that make the
 // default listing show durable work only (templates, gates, infra types), and
@@ -419,7 +419,7 @@ func BuildListFilter(in issueops.ListRequest, cfg ListConfig) (types.IssueFilter
 //
 // IncludeAllTypes lifts them ALL by skipping this function entirely, which is
 // what makes it future-proof: a suppression added here is automatically lifted
-// for frontends like `bd human list` without touching them.
+// for frontends like `issuegraph human list` without touching them.
 func applyTypeSuppressions(in issueops.ListRequest, cfg ListConfig, filter *types.IssueFilter) {
 	if in.IncludeAllTypes {
 		return
@@ -467,10 +467,10 @@ func splitStatusSelector(status string) []string {
 }
 
 // statusSelectsPinned reports whether a status selector asks for
-// pinned-carrying beads: the pinned or hooked status, or — when the selector
+// pinned-carrying issuegraph: the pinned or hooked status, or — when the selector
 // actually applies to the query — the "all" selector, which promises every
 // status. The pinned default is not forced off for a filter that asks for
-// those beads. allApplies is false under --ready: `--status all` (and the
+// those issuegraph. allApplies is false under --ready: `--status all` (and the
 // omitted selector) still pin open, so "all" must not lift the pinned
 // default there. Explicit selectors are honored under --ready (GH#5832);
 // pinned and hooked still return true regardless of allApplies.

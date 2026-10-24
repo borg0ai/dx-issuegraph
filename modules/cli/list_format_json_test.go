@@ -8,8 +8,8 @@ import (
 
 // TestListTypedFormatBeatsAConfigJSONDefault pins GH#6278. The root pre-run
 // promotes a config-file (or env) `json: true` into jsonOutput unless the
-// ROOT --format changed, but `bd list` registers its own --format, which
-// shadows the root one. So `bd list --format digraph` under `json: true`
+// ROOT --format changed, but `issuegraph list` registers its own --format, which
+// shadows the root one. So `issuegraph list --format digraph` under `json: true`
 // printed the JSON listing instead of the graph. A --format the caller typed
 // must win over that default; an explicit --json still wins over --format.
 func TestListTypedFormatBeatsAConfigJSONDefault(t *testing.T) {
@@ -31,7 +31,7 @@ func TestListTypedFormatBeatsAConfigJSONDefault(t *testing.T) {
 	t.Run("explicit --json still beats --format", func(t *testing.T) {
 		pinJSONOutput(t, true)
 		cmd := newListFlagsCommand(t, "--format", "digraph")
-		root := &cobra.Command{Use: "bd"}
+		root := &cobra.Command{Use: "issuegraph"}
 		root.PersistentFlags().Bool("json", false, "")
 		root.AddCommand(cmd)
 		if err := root.PersistentFlags().Set("json", "true"); err != nil {

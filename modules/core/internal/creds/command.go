@@ -14,7 +14,7 @@ import (
 
 // CommandSource runs a configured command and reads a credential from its stdout —
 // the external credential-process idiom (kubectl ExecCredential / AWS
-// credential_process / git credential helper). bd knows nothing of the issuer: the
+// credential_process / git credential helper). issuegraph knows nothing of the issuer: the
 // operator points Command at whatever mints the credential — a token-issuing CLI for
 // an identity, or `vault read ...` / `aws rds generate-db-auth-token ...` for a secret.
 // Kind is fixed at construction from the config slot, so the resolved value's role is
@@ -81,7 +81,7 @@ var (
 	// credRunner runs the helper; a package var so tests can stub it without a shell.
 	credRunner = func(ctx context.Context, command string) ([]byte, error) {
 		// POSIX shells parse the helper command; native Windows has no `sh`, so
-		// dispatch through cmd.exe there so a bare Windows bd does not hard-fail
+		// dispatch through cmd.exe there so a bare Windows issuegraph does not hard-fail
 		// every *_PASSWORD_COMMAND / CREDENTIAL_COMMAND in the fail-closed ladder.
 		var cmd *exec.Cmd
 		if runtime.GOOS == "windows" {

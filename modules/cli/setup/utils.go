@@ -6,7 +6,7 @@ import (
 	"os"
 	"path/filepath"
 
-	"github.com/steveyegge/beads/internal/utils"
+	"github.com/borg0ai/dx-issuegraph/internal/utils"
 )
 
 var errRefuseSymlinkWrite = errors.New("refusing to write through symlink")

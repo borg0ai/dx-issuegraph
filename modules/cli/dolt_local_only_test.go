@@ -4,7 +4,7 @@ import (
 	"context"
 	"testing"
 
-	"github.com/steveyegge/beads/internal/config"
+	"github.com/borg0ai/dx-issuegraph/internal/config"
 )
 
 // Unit tests for isDoltLocalOnly() and related guards.
@@ -62,7 +62,7 @@ func TestMaybeAutoPush_SkipsWhenLocalOnly(t *testing.T) {
 	}
 	config.Set("dolt.local-only", true)
 	// Enable auto-push so the local-only guard, not the disabled-check, short-circuits.
-	t.Setenv("BD_DOLT_AUTO_PUSH", "true")
+	t.Setenv("ISSUEGRAPH_DOLT_AUTO_PUSH", "true")
 
 	// Must not panic. The local-only guard fires before any store interaction.
 	maybeAutoPush(context.Background())

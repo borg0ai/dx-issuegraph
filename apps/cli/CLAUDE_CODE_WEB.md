@@ -14,7 +14,7 @@ Claude Code for Web environments:
 - ❌ May have restrictions on direct binary downloads
 - ❌ Don't persist installations between sessions
 
-The `@beads/bd` npm package solves this by:
+The `@borg0ai/issuegraph` npm package solves this by:
 1. Installing via npm (which is always available)
 2. Downloading the native binary during postinstall
 3. Providing a CLI wrapper that "just works"
@@ -31,10 +31,10 @@ Create or edit `.claude/hooks/session-start.sh` in your project:
 
 # Install issuegraph globally (only takes a few seconds)
 echo "Installing issuegraph (IssueGraph issue tracker)..."
-npm install -g @beads/bd
+npm install -g @borg0ai/issuegraph
 
 # Initialize issuegraph in the project (if not already initialized)
-if [ ! -d .beads ]; then
+if [ ! -d .issuegraph ]; then
   issuegraph init --quiet
 fi
 
@@ -52,7 +52,7 @@ chmod +x .claude/hooks/session-start.sh
 If you prefer not to use hooks, you can manually install at the start of each session:
 
 ```bash
-npm install -g @beads/bd
+npm install -g @borg0ai/issuegraph
 issuegraph init --quiet
 ```
 
@@ -61,11 +61,11 @@ issuegraph init --quiet
 Install as a dev dependency (slower but doesn't require global install):
 
 ```bash
-npm install --save-dev @beads/bd
+npm install --save-dev @borg0ai/issuegraph
 
 # Use with npx
-npx bd version
-npx bd ready
+npx issuegraph version
+npx issuegraph ready
 ```
 
 ## Verification
@@ -95,13 +95,13 @@ issuegraph create "Fix authentication bug" -t bug -p 1
 issuegraph ready
 
 # Start work
-issuegraph update bd-a1b2 --claim
+issuegraph update issuegraph-a1b2 --claim
 
 # Add dependencies
-issuegraph dep add bd-f14c bd-a1b2
+issuegraph dep add issuegraph-f14c issuegraph-a1b2
 
 # Close issues
-issuegraph close bd-a1b2 --reason "Fixed"
+issuegraph close issuegraph-a1b2 --reason "Fixed"
 ```
 
 ## Agent Integration
@@ -124,10 +124,10 @@ Use `--json` flags for programmatic parsing.
 ## How It Works
 
 1. **SessionStart Hook**: Runs automatically when session starts
-2. **npm install**: Downloads the @beads/bd package from npm registry
+2. **npm install**: Downloads the @borg0ai/issuegraph package from npm registry
 3. **postinstall**: Package automatically downloads the native binary for your platform
 4. **CLI Wrapper**: `issuegraph` command is a Node.js wrapper that invokes the native binary
-5. **issuegraph init**: Sets up the .beads directory and imports existing issues from git
+5. **issuegraph init**: Sets up the .issuegraph directory and imports existing issues from git
 
 ## Performance
 
@@ -137,12 +137,12 @@ Use `--json` flags for programmatic parsing.
 
 ## Troubleshooting
 
-### "bd: command not found"
+### "issuegraph: command not found"
 
 The SessionStart hook didn't run or installation failed. Manually run:
 
 ```bash
-npm install -g @beads/bd
+npm install -g @borg0ai/issuegraph
 ```
 
 ### npm postinstall fails with DNS or 403 errors
@@ -165,7 +165,7 @@ If Go is available (it usually is in Claude Code web), use the embedded-capable 
 
 ```bash
 # Install via Go without ICU
-CGO_ENABLED=1 GOFLAGS=-tags=gms_pure_go go install github.com/steveyegge/beads/modules/cli@latest
+CGO_ENABLED=1 GOFLAGS=-tags=gms_pure_go go install github.com/borg0ai/dx-issuegraph/modules/cli@latest
 
 # Add to PATH (required each session)
 export PATH="$PATH:$HOME/go/bin"
@@ -183,12 +183,12 @@ issuegraph version
 echo "🔗 Setting up issuegraph (IssueGraph issue tracker)..."
 
 # Try npm first, fall back to a supported Go install
-if ! command -v bd &> /dev/null; then
-    if npm install -g @beads/bd --quiet 2>/dev/null && command -v bd &> /dev/null; then
+if ! command -v issuegraph &> /dev/null; then
+    if npm install -g @borg0ai/issuegraph --quiet 2>/dev/null && command -v issuegraph &> /dev/null; then
         echo "✓ Installed via npm"
     elif command -v go &> /dev/null; then
         echo "npm install failed, trying go install..."
-        CGO_ENABLED=1 GOFLAGS=-tags=gms_pure_go go install github.com/steveyegge/beads/modules/cli@latest
+        CGO_ENABLED=1 GOFLAGS=-tags=gms_pure_go go install github.com/borg0ai/dx-issuegraph/modules/cli@latest
         export PATH="$PATH:$HOME/go/bin"
         echo "✓ Installed via go install"
     else
@@ -206,13 +206,13 @@ issuegraph version
 The version in package.json doesn't match a GitHub release. This shouldn't happen with published npm packages, but if it does, check:
 
 ```bash
-npm view @beads/bd versions
+npm view @borg0ai/issuegraph versions
 ```
 
 And install a specific version:
 
 ```bash
-npm install -g @beads/bd@0.21.5
+npm install -g @borg0ai/issuegraph@0.21.5
 ```
 
 ### "Binary not found after extraction"
@@ -256,23 +256,23 @@ set -e  # Exit on error
 echo "🔗 Setting up issuegraph (IssueGraph issue tracker)..."
 
 # Install issuegraph globally
-if ! command -v bd &> /dev/null; then
-    echo "Installing @beads/bd from npm..."
-    npm install -g @beads/bd --quiet
+if ! command -v issuegraph &> /dev/null; then
+    echo "Installing @borg0ai/issuegraph from npm..."
+    npm install -g @borg0ai/issuegraph --quiet
 else
     echo "issuegraph already installed"
 fi
 
 # Verify installation
-if bd version &> /dev/null; then
-    echo "✓ issuegraph $(bd version)"
+if issuegraph version &> /dev/null; then
+    echo "✓ issuegraph $(issuegraph version)"
 else
     echo "✗ issuegraph installation failed"
     exit 1
 fi
 
 # Initialize if needed
-if [ ! -d .beads ]; then
+if [ ! -d .issuegraph ]; then
     echo "Initializing issuegraph in project..."
     issuegraph init --quiet
 else
@@ -315,12 +315,12 @@ If you prefer to track issuegraph as a project dependency instead of global inst
 ```json
 {
   "devDependencies": {
-    "@beads/bd": "^0.21.5"
+    "@borg0ai/issuegraph": "^0.21.5"
   },
   "scripts": {
-    "bd": "bd",
-    "ready": "bd ready",
-    "postinstall": "bd init --quiet || true"
+    "issuegraph": "issuegraph",
+    "ready": "issuegraph ready",
+    "postinstall": "issuegraph init --quiet || true"
   }
 }
 ```
@@ -329,12 +329,12 @@ Then use with npm scripts or npx:
 
 ```bash
 npm run ready
-npx bd create "New issue"
+npx issuegraph create "New issue"
 ```
 
 ## Resources
 
-- [issuegraph GitHub repository](https://github.com/gastownhall/beads)
-- [npm package page](https://www.npmjs.com/package/@beads/bd)
-- [Complete documentation](https://github.com/gastownhall/beads#readme)
+- [issuegraph GitHub repository](https://github.com/borg0ai/dx-issuegraph)
+- [npm package page](https://www.npmjs.com/package/@borg0ai/issuegraph)
+- [Complete documentation](https://github.com/borg0ai/dx-issuegraph#readme)
 - [Claude Code hooks documentation](https://docs.claude.com/claude-code)

@@ -22,10 +22,10 @@ func TestInitSchemaPreviewDoesNotMutate(t *testing.T) {
 	}
 	defer func() { _ = db.Close() }()
 
-	mock.ExpectExec("USE `beads`").WillReturnResult(sqlmock.NewResult(0, 0))
+	mock.ExpectExec("USE `issuegraph`").WillReturnResult(sqlmock.NewResult(0, 0))
 
 	p := &doltSQLProvider{defaultBranch: defaultBranch, db: db, preview: true}
-	if err := p.initSchema(context.Background(), "beads"); err != nil {
+	if err := p.initSchema(context.Background(), "issuegraph"); err != nil {
 		t.Fatalf("initSchema(preview): %v", err)
 	}
 
@@ -45,10 +45,10 @@ func TestInitSchemaPreviewMissingDatabaseFailsClosed(t *testing.T) {
 	}
 	defer func() { _ = db.Close() }()
 
-	mock.ExpectExec("USE `beads`").WillReturnError(errors.New("database not found: beads"))
+	mock.ExpectExec("USE `issuegraph`").WillReturnError(errors.New("database not found: issuegraph"))
 
 	p := &doltSQLProvider{defaultBranch: defaultBranch, db: db, preview: true}
-	err = p.initSchema(context.Background(), "beads")
+	err = p.initSchema(context.Background(), "issuegraph")
 	if err == nil {
 		t.Fatal("initSchema(preview) on a missing database: got nil, want error")
 	}

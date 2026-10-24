@@ -9,14 +9,14 @@ import (
 
 	sqlmock "github.com/DATA-DOG/go-sqlmock"
 
-	"github.com/steveyegge/beads/internal/storage/doltutil"
-	"github.com/steveyegge/beads/internal/testutil"
+	"github.com/borg0ai/dx-issuegraph/internal/storage/doltutil"
+	"github.com/borg0ai/dx-issuegraph/internal/testutil"
 )
 
 func TestEnsureMatchingCLIRemoteSurfacesValidationErrors(t *testing.T) {
 	store := &DoltStore{
 		dbPath:   t.TempDir(),
-		database: "beads",
+		database: "issuegraph",
 	}
 
 	err := store.ensureMatchingCLIRemote("origin", "ftp://server/path")
@@ -82,7 +82,7 @@ func TestSQLCapableCLIRoutingFallsBackWhenCLIDirIsNotDoltRepo(t *testing.T) {
 			store := &DoltStore{
 				serverMode: true,
 				dbPath:     t.TempDir(),
-				database:   "beads",
+				database:   "issuegraph",
 				remote:     "origin",
 			}
 			if err := os.MkdirAll(store.CLIDir(), 0o755); err != nil {
@@ -158,7 +158,7 @@ func TestCLIRoutingFallsBackToSQLWhenNoCLIDir(t *testing.T) {
 			store := &DoltStore{
 				serverMode: true,
 				dbPath:     "",
-				database:   "beads",
+				database:   "issuegraph",
 				remote:     "origin",
 			}
 			useCLI, err := tt.route(store)

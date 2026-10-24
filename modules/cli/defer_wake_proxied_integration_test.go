@@ -7,7 +7,7 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/steveyegge/beads/internal/types"
+	"github.com/borg0ai/dx-issuegraph/internal/types"
 )
 
 // TestProxiedServerDeferAutoWake is the proxied-mode parity subtest for the
@@ -17,12 +17,12 @@ import (
 func TestProxiedServerDeferAutoWake(t *testing.T) {
 	requireSharedProxiedServer(t)
 	t.Parallel()
-	bd := buildEmbeddedBD(t)
-	p := newSharedProxiedProject(t, bd, "dwk")
+	issuegraph := buildEmbeddedBD(t)
+	p := newSharedProxiedProject(t, issuegraph, "dwk")
 
 	showState := func(t *testing.T, id string) (string, interface{}) {
 		t.Helper()
-		out, err := bdProxiedRun(t, bd, p.dir, "show", id, "--json")
+		out, err := issuegraphProxiedRun(t, issuegraph, p.dir, "show", id, "--json")
 		if err != nil {
 			t.Fatalf("show %s: %v\n%s", id, err, out)
 		}
@@ -39,7 +39,7 @@ func TestProxiedServerDeferAutoWake(t *testing.T) {
 
 	readySet := func(t *testing.T) map[string]bool {
 		t.Helper()
-		out, err := bdProxiedRun(t, bd, p.dir, "ready", "--json", "--limit", "0")
+		out, err := issuegraphProxiedRun(t, issuegraph, p.dir, "ready", "--json", "--limit", "0")
 		if err != nil {
 			t.Fatalf("ready: %v\n%s", err, out)
 		}
@@ -62,8 +62,8 @@ func TestProxiedServerDeferAutoWake(t *testing.T) {
 	}
 
 	t.Run("expired_dated_defer_wakes_on_ready", func(t *testing.T) {
-		a := bdProxiedCreate(t, bd, p.dir, "Expired snooze proxied", "--type", "task")
-		if out, err := bdProxiedRun(t, bd, p.dir, "defer", a.ID, "--until", "2020-01-01"); err != nil {
+		a := issuegraphProxiedCreate(t, issuegraph, p.dir, "Expired snooze proxied", "--type", "task")
+		if out, err := issuegraphProxiedRun(t, issuegraph, p.dir, "defer", a.ID, "--until", "2020-01-01"); err != nil {
 			t.Fatalf("defer: %v\n%s", err, out)
 		}
 		status, _ := showState(t, a.ID)
@@ -73,7 +73,7 @@ func TestProxiedServerDeferAutoWake(t *testing.T) {
 
 		ids := readySet(t)
 		if !ids[a.ID] {
-			t.Errorf("expected %s in bd ready after its defer date passed", a.ID)
+			t.Errorf("expected %s in issuegraph ready after its defer date passed", a.ID)
 		}
 		status, deferUntil := showState(t, a.ID)
 		if status != string(types.StatusOpen) {
@@ -90,8 +90,8 @@ func TestProxiedServerDeferAutoWake(t *testing.T) {
 		// ephemeral plain-COMMIT form instead — the path that once rolled
 		// wisp wakes back, leaving expired wisp defers deferred forever in
 		// proxied/serve mode while embedded mode woke them (parity break).
-		id := bdProxiedCreateSilent(t, bd, p.dir, "Wisp snooze proxied", "--type", "task", "--ephemeral", "--wisp-type", "heartbeat")
-		if out, err := bdProxiedRun(t, bd, p.dir, "defer", id, "--until", "2020-01-01"); err != nil {
+		id := issuegraphProxiedCreateSilent(t, issuegraph, p.dir, "Wisp snooze proxied", "--type", "task", "--ephemeral", "--wisp-type", "heartbeat")
+		if out, err := issuegraphProxiedRun(t, issuegraph, p.dir, "defer", id, "--until", "2020-01-01"); err != nil {
 			t.Fatalf("defer wisp: %v\n%s", err, out)
 		}
 		status, _ := showState(t, id)
@@ -99,7 +99,7 @@ func TestProxiedServerDeferAutoWake(t *testing.T) {
 			t.Fatalf("precondition: wisp status = %s, want deferred", status)
 		}
 
-		if out, err := bdProxiedRun(t, bd, p.dir, "ready", "--json"); err != nil {
+		if out, err := issuegraphProxiedRun(t, issuegraph, p.dir, "ready", "--json"); err != nil {
 			t.Fatalf("ready: %v\n%s", err, out)
 		}
 
@@ -113,14 +113,14 @@ func TestProxiedServerDeferAutoWake(t *testing.T) {
 	})
 
 	t.Run("dateless_defer_never_wakes", func(t *testing.T) {
-		a := bdProxiedCreate(t, bd, p.dir, "Indefinite icebox proxied", "--type", "task")
-		if out, err := bdProxiedRun(t, bd, p.dir, "defer", a.ID); err != nil {
+		a := issuegraphProxiedCreate(t, issuegraph, p.dir, "Indefinite icebox proxied", "--type", "task")
+		if out, err := issuegraphProxiedRun(t, issuegraph, p.dir, "defer", a.ID); err != nil {
 			t.Fatalf("defer: %v\n%s", err, out)
 		}
 
 		ids := readySet(t)
 		if ids[a.ID] {
-			t.Errorf("dateless defer %s must not appear in bd ready", a.ID)
+			t.Errorf("dateless defer %s must not appear in issuegraph ready", a.ID)
 		}
 		status, _ := showState(t, a.ID)
 		if status != string(types.StatusDeferred) {
@@ -129,14 +129,14 @@ func TestProxiedServerDeferAutoWake(t *testing.T) {
 	})
 
 	t.Run("future_dated_defer_stays_hidden", func(t *testing.T) {
-		a := bdProxiedCreate(t, bd, p.dir, "Future snooze proxied", "--type", "task")
-		if out, err := bdProxiedRun(t, bd, p.dir, "defer", a.ID, "--until", "+8760h"); err != nil {
+		a := issuegraphProxiedCreate(t, issuegraph, p.dir, "Future snooze proxied", "--type", "task")
+		if out, err := issuegraphProxiedRun(t, issuegraph, p.dir, "defer", a.ID, "--until", "+8760h"); err != nil {
 			t.Fatalf("defer: %v\n%s", err, out)
 		}
 
 		ids := readySet(t)
 		if ids[a.ID] {
-			t.Errorf("future defer %s must not appear in bd ready", a.ID)
+			t.Errorf("future defer %s must not appear in issuegraph ready", a.ID)
 		}
 		status, _ := showState(t, a.ID)
 		if status != string(types.StatusDeferred) {

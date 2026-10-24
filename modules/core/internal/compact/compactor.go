@@ -6,7 +6,7 @@ import (
 	"fmt"
 	"sync"
 
-	"github.com/steveyegge/beads/internal/types"
+	"github.com/borg0ai/dx-issuegraph/internal/types"
 )
 
 const (
@@ -131,7 +131,7 @@ func (c *Compactor) CompactTier1(ctx context.Context, issueID string) error {
 	}
 
 	// Archive the original content BEFORE the destructive overwrite, so the
-	// compaction is reversible (bd restore reads this snapshot). If archiving
+	// compaction is reversible (issuegraph restore reads this snapshot). If archiving
 	// fails we abort with the original content intact rather than lose it.
 	if err := c.store.SnapshotIssue(ctx, issueID, 1); err != nil {
 		return fmt.Errorf("failed to archive pre-compaction snapshot: %w", err)

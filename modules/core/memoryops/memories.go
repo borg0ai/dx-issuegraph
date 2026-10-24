@@ -11,7 +11,7 @@ type RememberRequest struct {
 	// the role derives rather than making the caller learn the derivation.
 	//
 	// A non-empty Key is used VERBATIM: no trimming, no slugging, no charset
-	// restriction. `bd remember --key` has always accepted any string, and a
+	// restriction. `issuegraph remember --key` has always accepted any string, and a
 	// stored key has to stay recallable under the exact bytes the caller used.
 	Key string
 	// Content is the memory itself.
@@ -68,7 +68,7 @@ type RecallResult struct {
 	// invent a distinction the seam beneath it cannot see. List DOES enumerate
 	// such a row, because its KEY exists, and that is the one way a caller can
 	// tell the two apart: the same same-answer-different-row asymmetry the
-	// settings contract pins for `bd config get`.
+	// settings contract pins for `issuegraph config get`.
 	Found bool
 }
 
@@ -80,7 +80,7 @@ type ForgetRequest struct{ Key string }
 type ForgetResult struct {
 	// Key echoes the request.
 	Key string
-	// Value is the content the removed memory held — what `bd forget` prints —
+	// Value is the content the removed memory held — what `issuegraph forget` prints —
 	// read in the SAME TRANSACTION as the delete, so it is what was actually
 	// removed rather than what a previous read happened to see.
 	Value string
@@ -112,7 +112,7 @@ type ListRequest struct {
 type ListResult struct {
 	// Memories maps USER key (prefix stripped) to stored value, for every row
 	// of the memory plane that matched — and ONLY the memory plane. Settings
-	// rows, generic `bd kv` rows and every other row of the config table this
+	// rows, generic `issuegraph kv` rows and every other row of the config table this
 	// plane shares are never here, whatever they contain, INCLUDING a memory
 	// whose key shadows a settings name: "kv.memory.issue_prefix" is a memory
 	// called "issue_prefix" and the workspace's real prefix is not a memory.
@@ -134,7 +134,7 @@ type ListResult struct {
 // would put one role's promise inside another role's result.
 //
 // The read/write entitlement test the role rule applies (can one caller be
-// entitled to the read and not the write?) comes back NO here: bd's readonly
+// entitled to the read and not the write?) comes back NO here: issuegraph's readonly
 // mode is a front-door guard applied uniformly across every role, and no
 // shipped path is forbidden to write memories the way a provisioned identity is
 // forbidden to write a workspace identity. If a genuinely read-only memory

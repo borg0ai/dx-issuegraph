@@ -5,24 +5,24 @@ import (
 	"fmt"
 	"os"
 
-	"github.com/steveyegge/beads/internal/storage/schema"
+	"github.com/borg0ai/dx-issuegraph/internal/storage/schema"
 )
 
 const (
 	// remoteBackedDocsURL covers the #4259 migrate-or-adopt decisions: the
 	// database syncs with a remote and the question is which clone migrates.
-	remoteBackedDocsURL = "https://github.com/gastownhall/beads/blob/main/docs/getting-started/upgrading.md#remote-backed-databases-and-multiple-clones"
+	remoteBackedDocsURL = "https://github.com/borg0ai/dx-issuegraph/blob/main/docs/getting-started/upgrading.md#remote-backed-databases-and-multiple-clones"
 	// sharedServersDocsURL covers the #5920 shared-store decisions: one
 	// database, many clients of one server, and the question is whether they
 	// are all upgraded.
-	sharedServersDocsURL = "https://github.com/gastownhall/beads/blob/main/docs/getting-started/upgrading.md#shared-servers"
+	sharedServersDocsURL = "https://github.com/borg0ai/dx-issuegraph/blob/main/docs/getting-started/upgrading.md#shared-servers"
 	// dataBehindDocsURL covers the #6575 data-behind stop. It needs its own
 	// anchor for the same reason sharedServersDocsURL does: the remote-backed
 	// section's recipe is migrate-or-adopt coordination, and its ordering rule
-	// says `bd dolt pull` is refused on every pending-migration open — which is
+	// says `issuegraph dolt pull` is refused on every pending-migration open — which is
 	// exactly the command this stop's options prescribe. An agent following the
 	// default link would be steered off the one command that works.
-	dataBehindDocsURL = "https://github.com/gastownhall/beads/blob/main/docs/getting-started/upgrading.md#clone-behind-the-remote"
+	dataBehindDocsURL = "https://github.com/borg0ai/dx-issuegraph/blob/main/docs/getting-started/upgrading.md#clone-behind-the-remote"
 )
 
 // humanDecisionRequired reports whether this refusal is one an agent must stop
@@ -35,13 +35,13 @@ const (
 // #6575 data-behind stop existed.
 //
 // The data-behind stop is the exception, and only in its narrowest shape. It
-// carries a single option whose command is `bd dolt pull`, whose When is
+// carries a single option whose command is `issuegraph dolt pull`, whose When is
 // unconditional ("always, for this stop") and whose Risk is "none — a pure
 // fast-forward"; AgentDirective says the same in prose. Leaving the field true
 // there made this payload contradict itself: an agent keying on it stopped to
 // ask a human to approve a step the rest of the payload calls unconditional
 // and riskless — and the cost of that stall is the operator reaching for
-// `bd migrate --force` instead, which is the #6575 wedge.
+// `issuegraph migrate --force` instead, which is the #6575 wedge.
 //
 // Both narrowing conditions are deliberate, and getting either backwards would
 // be worse than leaving the field true:
@@ -56,7 +56,7 @@ const (
 //
 //   - Shared: the pull itself is still safe, but on a shared store the payload
 //     carries a SECOND option, migrate-shared-after-pulling, whose When
-//     requires the operator to confirm every co-resident bd client is upgraded
+//     requires the operator to confirm every co-resident issuegraph client is upgraded
 //     (#5920) — unobservable from this process. This field describes the
 //     payload, not its first option, so one option needing a human makes the
 //     answer true. AgentDirective agrees ("Do NOT auto-run it"). Stays true.
@@ -72,7 +72,7 @@ func humanDecisionRequired(e *schema.RemoteMigrateGateError) bool {
 // structured JSON error block for agent consumption.
 //
 // The top-level "hint" is deliberately a non-runnable directive, NOT the
-// `BD_ALLOW_REMOTE_MIGRATE=1 bd migrate` escape command: handing an agent a
+// `ISSUEGRAPH_ALLOW_REMOTE_MIGRATE=1 issuegraph migrate` escape command: handing an agent a
 // ready-to-run migrate as "the fix" is the footgun that forks shared remotes on
 // multi-clone setups. The migrate command lives only inside
 // remote_migrate_gate.options[migrate], gated on its "single designated
@@ -83,13 +83,13 @@ func handleRemoteMigrateGateJSON(e *schema.RemoteMigrateGateError) {
 	if m, ok := outer.(map[string]interface{}); ok {
 		// The shared-no-remote consent verb is the one command in this block
 		// that is target-scoped: under --global the refused open aimed at
-		// beads_global, so the project-scoped `bd migrate schema` would consent
+		// issuegraph_global, so the project-scoped `issuegraph migrate schema` would consent
 		// the WRONG database and leave the refusal in place. Mirror the
 		// human/text path (printGlobalDatabaseConsentHint,
 		// noticeSharedMigrateRefusal) and name the --global verb when this
 		// invocation targeted the global database. Only shared-no-remote is
-		// retargeted; the remote-backed arms coordinate through bd bootstrap /
-		// bd migrate --force, which --global does not rewrite.
+		// retargeted; the remote-backed arms coordinate through issuegraph bootstrap /
+		// issuegraph migrate --force, which --global does not rewrite.
 		sharedConsent := schema.SharedConsentCommand
 		if globalFlag {
 			sharedConsent = schema.SharedConsentCommandGlobal
@@ -160,7 +160,7 @@ func handleRemoteMigrateGateJSON(e *schema.RemoteMigrateGateError) {
 			// is whether every client of it is upgraded. The base docs link
 			// goes with that framing, so it has to move too: an agent
 			// following it would brief the operator on designated-migrator
-			// and bd bootstrap coordination that does not exist here.
+			// and issuegraph bootstrap coordination that does not exist here.
 			gate["decision"] = "shared-no-remote"
 			gate["observed"] = fmt.Sprintf("%d pending schema migration(s) on a shared server database, no consent", e.Pending)
 			gate["expected"] = "operator upgrades co-resident clients, then consents once via " + sharedConsent
@@ -181,17 +181,17 @@ func handleRemoteMigrateGateJSON(e *schema.RemoteMigrateGateError) {
 			gate["skew_versions"] = e.SkewVersions
 		default:
 			// Blunt #4515 stop — name WHY the smart gate (#4516) could not do
-			// better (gastownhall/beads#4551 follow-up), so an agent/operator can
+			// better (borg0ai/dx-issuegraph#4551 follow-up), so an agent/operator can
 			// tell "unreadable remote state" apart from "below the convergence
-			// floor" apart from "opted out" apart from "unparseable BD_SMART_GATE".
+			// floor" apart from "opted out" apart from "unparseable ISSUEGRAPH_SMART_GATE".
 			if e.FallbackReason != "" {
 				gate["fallback_reason"] = e.FallbackReason
 			}
-			// gastownhall/beads#6575: the data-behind stop is a blunt stop with
+			// borg0ai/dx-issuegraph#6575: the data-behind stop is a blunt stop with
 			// a specific, verified, one-command remedy, and the blunt
 			// observed/expected pair above describes a decision that does not
 			// apply to it. Leaving them in place pointed an agent at
-			// `bd migrate --force` (the bug) followed by a `bd dolt push` that
+			// `issuegraph migrate --force` (the bug) followed by a `issuegraph dolt push` that
 			// is guaranteed to be rejected non-fast-forward while the clone is
 			// still behind. e.Options() already returns the pull-first option
 			// for this reason, so options/hint are correct above; these two
@@ -211,7 +211,7 @@ func handleRemoteMigrateGateJSON(e *schema.RemoteMigrateGateError) {
 				gate["expected"] = "run `" + schema.DataBehindRemedyCommand + "` first; the migration is only allowed once this clone has nothing left to pull"
 				// The docs pointer is set once above alongside the blunt
 				// observed/expected pair, and has to move with them: the section it
-				// names tells the reader `bd dolt pull` is refused on every
+				// names tells the reader `issuegraph dolt pull` is refused on every
 				// pending-migration open, which contradicts the single option this
 				// payload carries. Same move, for the same reason, as
 				// shared-no-remote's retarget above.

@@ -1,22 +1,22 @@
 ---
-title: "bd jira"
-description: "Synchronize issues between beads and Jira."
+title: "issuegraph jira"
+description: "Synchronize issues between issuegraph and Jira."
 ---
 
 {/* AUTO-GENERATED: do not edit manually */}
 
-Generated from `bd help --doc jira`.
+Generated from `issuegraph help --doc jira`.
 
-Synchronize issues between beads and Jira.
+Synchronize issues between issuegraph and Jira.
 
 Configuration:
-  bd config set jira.url "https://company.atlassian.net"
-  bd config set jira.project "PROJ"
-  bd config set jira.projects "PROJ1,PROJ2"   # Multiple projects
-  bd config set jira.api_token "YOUR_TOKEN"
-  bd config set jira.username "your_email@company.com"  # For Jira Cloud
-  bd config set jira.push_prefix "hippo"       # Only push hippo-* issues to Jira
-  bd config set jira.push_prefix "proj1,proj2" # Multiple prefixes (comma-separated)
+  issuegraph config set jira.url "https://company.atlassian.net"
+  issuegraph config set jira.project "PROJ"
+  issuegraph config set jira.projects "PROJ1,PROJ2"   # Multiple projects
+  issuegraph config set jira.api_token "YOUR_TOKEN"
+  issuegraph config set jira.username "your_email@company.com"  # For Jira Cloud
+  issuegraph config set jira.push_prefix "hippo"       # Only push hippo-* issues to Jira
+  issuegraph config set jira.push_prefix "proj1,proj2" # Multiple prefixes (comma-separated)
 
 Environment variables (alternative to config):
   JIRA_API_TOKEN  - Jira API token
@@ -24,25 +24,25 @@ Environment variables (alternative to config):
   JIRA_PROJECTS   - Comma-separated project keys
 
 Examples:
-  bd jira sync --pull         # Import issues from Jira
-  bd jira sync --push         # Export issues to Jira
-  bd jira sync                # Bidirectional sync (pull then push)
-  bd jira sync --dry-run      # Preview sync without changes
-  bd jira status              # Show sync status
+  issuegraph jira sync --pull         # Import issues from Jira
+  issuegraph jira sync --push         # Export issues to Jira
+  issuegraph jira sync                # Bidirectional sync (pull then push)
+  issuegraph jira sync --dry-run      # Preview sync without changes
+  issuegraph jira status              # Show sync status
 
 ```
-bd jira [flags]
+issuegraph jira [flags]
 ```
 
-## bd jira pull
+## issuegraph jira pull
 
 Pull one or more items from Jira.
 
-Accepts bead IDs or external references as positional arguments.
-Equivalent to: bd jira sync --pull --issues &lt;refs&gt;
+Accepts issue IDs or external references as positional arguments.
+Equivalent to: issuegraph jira sync --pull --issues &lt;refs&gt;
 
 ```
-bd jira pull [refs...] [flags]
+issuegraph jira pull [refs...] [flags]
 ```
 
 **Flags:**
@@ -51,15 +51,15 @@ bd jira pull [refs...] [flags]
       --dry-run   Preview pull without making changes
 ```
 
-## bd jira push
+## issuegraph jira push
 
-Push one or more beads issues to Jira.
+Push one or more issuegraph issues to Jira.
 
-Accepts bead IDs as positional arguments.
-Equivalent to: bd jira sync --push --issues &lt;ids&gt;
+Accepts issue IDs as positional arguments.
+Equivalent to: issuegraph jira sync --push --issues &lt;ids&gt;
 
 ```
-bd jira push [bead-ids...] [flags]
+issuegraph jira push [issue-ids...] [flags]
 ```
 
 **Flags:**
@@ -68,7 +68,7 @@ bd jira push [bead-ids...] [flags]
       --dry-run   Preview push without making changes
 ```
 
-## bd jira status
+## issuegraph jira status
 
 Show the current Jira sync status, including:
   - Last sync timestamp
@@ -77,31 +77,31 @@ Show the current Jira sync status, including:
   - Issues pending push (no external_ref)
 
 ```
-bd jira status [flags]
+issuegraph jira status [flags]
 ```
 
-## bd jira sync
+## issuegraph jira sync
 
-Synchronize issues between beads and Jira.
+Synchronize issues between issuegraph and Jira.
 
 Modes:
-  --pull         Import issues from Jira into beads
-  --push         Export issues from beads to Jira
+  --pull         Import issues from Jira into issuegraph
+  --push         Export issues from issuegraph to Jira
   (no flags)     Bidirectional sync: pull then push, with conflict resolution
 
 Conflict Resolution:
   By default, newer timestamp wins. Override with:
-  --prefer-local   Always prefer local beads version
+  --prefer-local   Always prefer local issuegraph version
   --prefer-jira    Always prefer Jira version
 
 Examples:
-  bd jira sync --pull                # Import from Jira
-  bd jira sync --push --create-only  # Push new issues only
-  bd jira sync --dry-run             # Preview without changes
-  bd jira sync --prefer-local        # Bidirectional, local wins
+  issuegraph jira sync --pull                # Import from Jira
+  issuegraph jira sync --push --create-only  # Push new issues only
+  issuegraph jira sync --dry-run             # Preview without changes
+  issuegraph jira sync --prefer-local        # Bidirectional, local wins
 
 ```
-bd jira sync [flags]
+issuegraph jira sync [flags]
 ```
 
 **Flags:**
@@ -109,8 +109,8 @@ bd jira sync [flags]
 ```
       --create-only       Only create new issues, don't update existing
       --dry-run           Preview sync without making changes
-      --issues string     Comma-separated bead IDs to sync selectively (e.g., bd-abc,bd-def). Mutually exclusive with --parent.
-      --parent string     Limit push to this bead and its descendants (push only). Mutually exclusive with --issues.
+      --issues string     Comma-separated issue IDs to sync selectively (e.g., issuegraph-abc,issuegraph-def). Mutually exclusive with --parent.
+      --parent string     Limit push to this issue and its descendants (push only). Mutually exclusive with --issues.
       --prefer-jira       Prefer Jira version on conflicts
       --prefer-local      Prefer local version on conflicts
       --project strings   Project key(s) to sync (overrides configured project/projects)

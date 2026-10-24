@@ -8,9 +8,9 @@ import (
 	"testing"
 	"time"
 
+	"github.com/borg0ai/dx-issuegraph/internal/storage/doltutil"
+	"github.com/borg0ai/dx-issuegraph/internal/storage/schema"
 	_ "github.com/go-sql-driver/mysql"
-	"github.com/steveyegge/beads/internal/storage/doltutil"
-	"github.com/steveyegge/beads/internal/storage/schema"
 )
 
 // TestSchemaInitRecoversFromPartialNonlocalMigration reproduces, against a real
@@ -82,7 +82,7 @@ func TestSchemaInitRecoversFromPartialNonlocalMigration(t *testing.T) {
 	//    row never recorded. The row must be committed (not just staged): a real
 	//    partial 0040 committed it, and an uncommitted row would instead trip the
 	//    separate "pending migration alters a dirty table" guard
-	//    (gastownhall/beads#4566) before the replay is ever reached.
+	//    (borg0ai/dx-issuegraph#4566) before the replay is ever reached.
 	if _, err := db.ExecContext(ctx, "DELETE FROM schema_migrations WHERE version >= 40"); err != nil {
 		t.Fatalf("rewind schema_migrations: %v", err)
 	}

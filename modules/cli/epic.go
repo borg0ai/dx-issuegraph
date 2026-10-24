@@ -5,13 +5,13 @@ import (
 	"os"
 	"strings"
 
+	"github.com/borg0ai/dx-issuegraph/internal/metrics"
+	"github.com/borg0ai/dx-issuegraph/internal/types"
+	"github.com/borg0ai/dx-issuegraph/internal/ui"
 	"github.com/spf13/cobra"
-	"github.com/steveyegge/beads/internal/metrics"
-	"github.com/steveyegge/beads/internal/types"
-	"github.com/steveyegge/beads/internal/ui"
 )
 
-// defaultCloseEligibleReason is the close reason `bd epic close-eligible` has
+// defaultCloseEligibleReason is the close reason `issuegraph epic close-eligible` has
 // always used; --reason overrides it (GH#4817).
 const defaultCloseEligibleReason = "All children completed"
 

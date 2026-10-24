@@ -161,39 +161,39 @@ func TestCheckLefthookBdIntegration(t *testing.T) {
 			expectConfigured: false,
 		},
 		{
-			name:       "yaml with bd hooks run",
+			name:       "yaml with issuegraph hooks run",
 			configFile: "lefthook.yml",
 			configContent: `
 pre-commit:
   commands:
-    bd:
-      run: bd hooks run pre-commit
+    issuegraph:
+      run: issuegraph hooks run pre-commit
 post-merge:
   commands:
-    bd:
-      run: bd hooks run post-merge
+    issuegraph:
+      run: issuegraph hooks run post-merge
 pre-push:
   commands:
-    bd:
-      run: bd hooks run pre-push
+    issuegraph:
+      run: issuegraph hooks run pre-push
 `,
 			expectConfigured:  true,
 			expectHooksWithBd: []string{"pre-commit", "post-merge", "pre-push"},
 		},
 		{
-			name:       "yaml with partial bd integration",
+			name:       "yaml with partial issuegraph integration",
 			configFile: "lefthook.yml",
 			configContent: `
 pre-commit:
   commands:
-    bd:
-      run: bd hooks run pre-commit
+    issuegraph:
+      run: issuegraph hooks run pre-commit
     lint:
       run: eslint .
 post-merge:
   commands:
-    bd:
-      run: echo "no bd here"
+    issuegraph:
+      run: echo "no issuegraph here"
 `,
 			expectConfigured:     true,
 			expectHooksWithBd:    []string{"pre-commit"},
@@ -201,7 +201,7 @@ post-merge:
 			expectNotInConfig:    []string{"pre-push"},
 		},
 		{
-			name:       "yaml without bd at all",
+			name:       "yaml without issuegraph at all",
 			configFile: "lefthook.yml",
 			configContent: `
 pre-commit:
@@ -214,43 +214,43 @@ pre-commit:
 			expectNotInConfig:    []string{"post-merge", "pre-push"},
 		},
 		{
-			name:       "toml with bd hooks run",
+			name:       "toml with issuegraph hooks run",
 			configFile: "lefthook.toml",
 			configContent: `
-[pre-commit.commands.bd]
-run = "bd hooks run pre-commit"
+[pre-commit.commands.issuegraph]
+run = "issuegraph hooks run pre-commit"
 
-[post-merge.commands.bd]
-run = "bd hooks run post-merge"
+[post-merge.commands.issuegraph]
+run = "issuegraph hooks run post-merge"
 
-[pre-push.commands.bd]
-run = "bd hooks run pre-push"
+[pre-push.commands.issuegraph]
+run = "issuegraph hooks run pre-push"
 `,
 			expectConfigured:  true,
 			expectHooksWithBd: []string{"pre-commit", "post-merge", "pre-push"},
 		},
 		{
-			name:       "json with bd hooks run",
+			name:       "json with issuegraph hooks run",
 			configFile: "lefthook.json",
 			configContent: `{
   "pre-commit": {
     "commands": {
-      "bd": {
-        "run": "bd hooks run pre-commit"
+      "issuegraph": {
+        "run": "issuegraph hooks run pre-commit"
       }
     }
   },
   "post-merge": {
     "commands": {
-      "bd": {
-        "run": "bd hooks run post-merge"
+      "issuegraph": {
+        "run": "issuegraph hooks run post-merge"
       }
     }
   },
   "pre-push": {
     "commands": {
-      "bd": {
-        "run": "bd hooks run pre-push"
+      "issuegraph": {
+        "run": "issuegraph hooks run pre-push"
       }
     }
   }
@@ -264,8 +264,8 @@ run = "bd hooks run pre-push"
 			configContent: `
 pre-commit:
   commands:
-    bd:
-      run: bd hooks run pre-commit
+    issuegraph:
+      run: issuegraph hooks run pre-commit
 `,
 			expectConfigured:  true,
 			expectHooksWithBd: []string{"pre-commit"},
@@ -336,7 +336,7 @@ func TestCheckHkBdIntegration(t *testing.T) {
 			expectNil: true,
 		},
 		{
-			name:       "all recommended hooks with bd",
+			name:       "all recommended hooks with issuegraph",
 			configFile: "hk.pkl",
 			configContent: `amends "package://github.com/jdx/hk/releases/download/v1.36.0/hk@1.36.0#/Config.pkl"
 
@@ -344,21 +344,21 @@ hooks {
     ["pre-commit"] {
         steps {
             ["bd-pre-commit"] {
-                check = "bd hooks run pre-commit"
+                check = "issuegraph hooks run pre-commit"
             }
         }
     }
     ["post-merge"] {
         steps {
             ["bd-post-merge"] {
-                check = "bd hooks run post-merge"
+                check = "issuegraph hooks run post-merge"
             }
         }
     }
     ["pre-push"] {
         steps {
             ["bd-pre-push"] {
-                check = "bd hooks run pre-push \"$@\""
+                check = "issuegraph hooks run pre-push \"$@\""
             }
         }
     }
@@ -368,13 +368,13 @@ hooks {
 			expectHooksWithBd: []string{"pre-commit", "post-merge", "pre-push"},
 		},
 		{
-			name:       "partial bd integration",
+			name:       "partial issuegraph integration",
 			configFile: "hk.pkl",
 			configContent: `hooks {
     ["pre-commit"] {
         steps {
             ["bd-pre-commit"] {
-                check = "bd hooks run pre-commit"
+                check = "issuegraph hooks run pre-commit"
             }
             ["lint"] {
                 glob = "*.go"
@@ -397,7 +397,7 @@ hooks {
 			expectNotInConfig:    []string{"pre-push"},
 		},
 		{
-			name:       "no bd at all",
+			name:       "no issuegraph at all",
 			configFile: "hk.pkl",
 			configContent: `hooks {
     ["pre-commit"] {
@@ -421,7 +421,7 @@ hooks {
     ["pre-commit"] {
         steps {
             ["bd-sync"] {
-                check = "bd hooks run pre-commit"
+                check = "issuegraph hooks run pre-commit"
             }
         }
     }
@@ -438,7 +438,7 @@ hooks {
     ["pre-commit"] {
         steps {
             ["bd-sync"] {
-                check = "bd hooks run pre-commit"
+                check = "issuegraph hooks run pre-commit"
             }
         }
     }
@@ -522,7 +522,7 @@ func TestCheckHuskyBdIntegration(t *testing.T) {
 			expectConfigured: false,
 		},
 		{
-			name: "all hooks with bd",
+			name: "all hooks with issuegraph",
 			hooks: map[string]string{
 				"pre-commit": "#!/bin/sh\nbd hooks run pre-commit\n",
 				"post-merge": "#!/bin/sh\nbd hooks run post-merge\n",
@@ -532,10 +532,10 @@ func TestCheckHuskyBdIntegration(t *testing.T) {
 			expectHooksWithBd: []string{"pre-commit", "post-merge", "pre-push"},
 		},
 		{
-			name: "partial bd integration",
+			name: "partial issuegraph integration",
 			hooks: map[string]string{
 				"pre-commit": "#!/bin/sh\nbd hooks run pre-commit\n",
-				"post-merge": "#!/bin/sh\necho 'no bd'\n",
+				"post-merge": "#!/bin/sh\necho 'no issuegraph'\n",
 			},
 			expectConfigured:     true,
 			expectHooksWithBd:    []string{"pre-commit"},
@@ -543,7 +543,7 @@ func TestCheckHuskyBdIntegration(t *testing.T) {
 			expectNotInConfig:    []string{"pre-push"},
 		},
 		{
-			name: "no bd at all",
+			name: "no issuegraph at all",
 			hooks: map[string]string{
 				"pre-commit": "#!/bin/sh\neslint .\n",
 			},
@@ -615,20 +615,20 @@ func TestCheckPrecommitBdIntegration(t *testing.T) {
 			expectNil: true,
 		},
 		{
-			name: "all hooks with bd",
+			name: "all hooks with issuegraph",
 			configContent: `repos:
   - repo: local
     hooks:
       - id: bd-pre-commit
-        entry: bd hooks run pre-commit
+        entry: issuegraph hooks run pre-commit
         language: system
         stages: [pre-commit]
       - id: bd-post-merge
-        entry: bd hooks run post-merge
+        entry: issuegraph hooks run post-merge
         language: system
         stages: [post-merge]
       - id: bd-pre-push
-        entry: bd hooks run pre-push
+        entry: issuegraph hooks run pre-push
         language: system
         stages: [pre-push]
 `,
@@ -641,7 +641,7 @@ func TestCheckPrecommitBdIntegration(t *testing.T) {
   - repo: local
     hooks:
       - id: bd-pre-commit
-        entry: bd hooks run pre-commit
+        entry: issuegraph hooks run pre-commit
         language: system
 `,
 			expectConfigured:       true,
@@ -654,11 +654,11 @@ func TestCheckPrecommitBdIntegration(t *testing.T) {
   - repo: local
     hooks:
       - id: bd-commit
-        entry: bd hooks run pre-commit
+        entry: issuegraph hooks run pre-commit
         language: system
         stages: [commit]
       - id: bd-push
-        entry: bd hooks run pre-push
+        entry: issuegraph hooks run pre-push
         language: system
         stages: [push]
 `,
@@ -667,7 +667,7 @@ func TestCheckPrecommitBdIntegration(t *testing.T) {
 			expectHooksNotInConfig: []string{"post-merge"},
 		},
 		{
-			name: "no bd hooks at all",
+			name: "no issuegraph hooks at all",
 			configContent: `repos:
   - repo: https://github.com/pre-commit/pre-commit-hooks
     rev: v4.5.0
@@ -679,7 +679,7 @@ func TestCheckPrecommitBdIntegration(t *testing.T) {
 			expectHooksNotInConfig: []string{"pre-commit", "post-merge", "pre-push"},
 		},
 		{
-			name: "mixed bd and other hooks",
+			name: "mixed issuegraph and other hooks",
 			configContent: `repos:
   - repo: https://github.com/pre-commit/pre-commit-hooks
     rev: v4.5.0
@@ -688,7 +688,7 @@ func TestCheckPrecommitBdIntegration(t *testing.T) {
   - repo: local
     hooks:
       - id: bd-pre-commit
-        entry: bd hooks run pre-commit
+        entry: issuegraph hooks run pre-commit
         language: system
 `,
 			expectConfigured:       true,
@@ -752,26 +752,26 @@ func TestBdHookPatternMatching(t *testing.T) {
 		content string
 		matches bool
 	}{
-		{"bd hooks run pre-commit", true},
-		{"bd  hooks  run pre-commit", true},
-		{"bd hooks run post-merge", true},
-		{`bd hooks run pre-push "$@"`, true},
-		{"if command -v bd; then bd hooks run pre-commit; fi", true},
-		{"# bd hooks run is recommended", true},
+		{"issuegraph hooks run pre-commit", true},
+		{"issuegraph  hooks  run pre-commit", true},
+		{"issuegraph hooks run post-merge", true},
+		{`issuegraph hooks run pre-push "$@"`, true},
+		{"if command -v issuegraph; then issuegraph hooks run pre-commit; fi", true},
+		{"# issuegraph hooks run is recommended", true},
 		// Word boundary tests - should NOT match partial words
-		{"kbd hooks runner", false}, // 'kbd' contains 'bd' but is different word
-		{"bd_hooks_run", false},     // underscores make different tokens
-		{"bd sync", false},
-		{"bd export", false},
-		{".beads/", false},
+		{"kbd hooks runner", false},     // 'kbd' contains 'issuegraph' but is different word
+		{"issuegraph_hooks_run", false}, // underscores make different tokens
+		{"issuegraph sync", false},
+		{"issuegraph export", false},
+		{".issuegraph/", false},
 		{"eslint .", false},
 		{"echo hello", false},
 	}
 
 	for _, tt := range tests {
 		t.Run(tt.content, func(t *testing.T) {
-			if got := bdHookPattern.MatchString(tt.content); got != tt.matches {
-				t.Errorf("bdHookPattern.MatchString(%q) = %v, want %v", tt.content, got, tt.matches)
+			if got := issuegraphHookPattern.MatchString(tt.content); got != tt.matches {
+				t.Errorf("issuegraphHookPattern.MatchString(%q) = %v, want %v", tt.content, got, tt.matches)
 			}
 		})
 	}
@@ -917,18 +917,18 @@ func TestHasBdInCommands(t *testing.T) {
 		expected bool
 	}{
 		{
-			name: "bd hooks run in commands",
+			name: "issuegraph hooks run in commands",
 			section: map[string]interface{}{
 				"commands": map[string]interface{}{
-					"bd": map[string]interface{}{
-						"run": "bd hooks run pre-commit",
+					"issuegraph": map[string]interface{}{
+						"run": "issuegraph hooks run pre-commit",
 					},
 				},
 			},
 			expected: true,
 		},
 		{
-			name: "no bd in commands",
+			name: "no issuegraph in commands",
 			section: map[string]interface{}{
 				"commands": map[string]interface{}{
 					"lint": map[string]interface{}{
@@ -939,12 +939,12 @@ func TestHasBdInCommands(t *testing.T) {
 			expected: false,
 		},
 		{
-			name: "bd mentioned in comment not run field",
+			name: "issuegraph mentioned in comment not run field",
 			section: map[string]interface{}{
 				"commands": map[string]interface{}{
 					"lint": map[string]interface{}{
 						"run":  "eslint .",
-						"tags": "bd hooks run should be added",
+						"tags": "issuegraph hooks run should be added",
 					},
 				},
 			},
@@ -1013,12 +1013,12 @@ func TestCheckExternalHookManagerIntegration(t *testing.T) {
 			expectNil: true,
 		},
 		{
-			name: "lefthook with bd integration",
+			name: "lefthook with issuegraph integration",
 			setup: func(dir string) error {
 				config := `pre-commit:
   commands:
-    bd:
-      run: bd hooks run pre-commit
+    issuegraph:
+      run: issuegraph hooks run pre-commit
 `
 				return os.WriteFile(filepath.Join(dir, "lefthook.yml"), []byte(config), 0644)
 			},
@@ -1028,7 +1028,7 @@ func TestCheckExternalHookManagerIntegration(t *testing.T) {
 			expectDetectionOnly: false,
 		},
 		{
-			name: "husky with bd integration",
+			name: "husky with issuegraph integration",
 			setup: func(dir string) error {
 				huskyDir := filepath.Join(dir, ".husky")
 				if err := os.MkdirAll(huskyDir, 0755); err != nil {
@@ -1042,7 +1042,7 @@ func TestCheckExternalHookManagerIntegration(t *testing.T) {
 			expectDetectionOnly: false,
 		},
 		{
-			name: "pre-commit framework without bd",
+			name: "pre-commit framework without issuegraph",
 			setup: func(dir string) error {
 				return os.WriteFile(filepath.Join(dir, ".pre-commit-config.yaml"), []byte("repos:\n"), 0644)
 			},
@@ -1052,13 +1052,13 @@ func TestCheckExternalHookManagerIntegration(t *testing.T) {
 			expectDetectionOnly: false, // pre-commit is now fully supported
 		},
 		{
-			name: "pre-commit framework with bd integration",
+			name: "pre-commit framework with issuegraph integration",
 			setup: func(dir string) error {
 				config := `repos:
   - repo: local
     hooks:
       - id: bd-pre-commit
-        entry: bd hooks run pre-commit
+        entry: issuegraph hooks run pre-commit
         language: system
 `
 				return os.WriteFile(filepath.Join(dir, ".pre-commit-config.yaml"), []byte(config), 0644)
@@ -1079,7 +1079,7 @@ func TestCheckExternalHookManagerIntegration(t *testing.T) {
 			expectDetectionOnly: true,
 		},
 		{
-			name: "lefthook without bd",
+			name: "lefthook without issuegraph",
 			setup: func(dir string) error {
 				config := `pre-commit:
   commands:
@@ -1142,8 +1142,8 @@ func TestMultipleManagersDetected(t *testing.T) {
 				// Create lefthook config
 				config := `pre-commit:
   commands:
-    bd:
-      run: bd hooks run pre-commit
+    issuegraph:
+      run: issuegraph hooks run pre-commit
 `
 				if err := os.WriteFile(filepath.Join(dir, "lefthook.yml"), []byte(config), 0644); err != nil {
 					return err
@@ -1240,7 +1240,7 @@ func TestCheckManagerBdIntegration(t *testing.T) {
 			name:        "lefthook integration",
 			managerName: "lefthook",
 			setup: func(dir string) error {
-				return os.WriteFile(filepath.Join(dir, "lefthook.yml"), []byte("pre-commit:\n  commands:\n    bd:\n      run: bd hooks run pre-commit\n"), 0644)
+				return os.WriteFile(filepath.Join(dir, "lefthook.yml"), []byte("pre-commit:\n  commands:\n    issuegraph:\n      run: issuegraph hooks run pre-commit\n"), 0644)
 			},
 			expectNil:     false,
 			expectManager: "lefthook",
@@ -1253,7 +1253,7 @@ func TestCheckManagerBdIntegration(t *testing.T) {
 				if err := os.MkdirAll(huskyDir, 0755); err != nil {
 					return err
 				}
-				return os.WriteFile(filepath.Join(huskyDir, "pre-commit"), []byte("bd hooks run pre-commit"), 0755)
+				return os.WriteFile(filepath.Join(huskyDir, "pre-commit"), []byte("issuegraph hooks run pre-commit"), 0755)
 			},
 			expectNil:     false,
 			expectManager: "husky",
@@ -1262,7 +1262,7 @@ func TestCheckManagerBdIntegration(t *testing.T) {
 			name:        "hk integration",
 			managerName: "hk",
 			setup: func(dir string) error {
-				config := "hooks {\n    [\"pre-commit\"] {\n        steps {\n            [\"bd\"] {\n                check = \"bd hooks run pre-commit\"\n            }\n        }\n    }\n}\n"
+				config := "hooks {\n    [\"pre-commit\"] {\n        steps {\n            [\"issuegraph\"] {\n                check = \"issuegraph hooks run pre-commit\"\n            }\n        }\n    }\n}\n"
 				return os.WriteFile(filepath.Join(dir, "hk.pkl"), []byte(config), 0644)
 			},
 			expectNil:     false,

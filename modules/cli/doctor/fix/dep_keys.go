@@ -5,7 +5,7 @@ import (
 	"database/sql"
 	"fmt"
 
-	"github.com/steveyegge/beads/internal/storage/depid"
+	"github.com/borg0ai/dx-issuegraph/internal/storage/depid"
 )
 
 // depKeyTables are the edge tables carrying the deterministic surrogate key
@@ -14,7 +14,7 @@ var depKeyTables = []string{"dependencies", "wisp_dependencies"}
 
 // DepKeyAnomalies summarizes one table's leftovers from the #4259 rekey
 // backfill (bd-6dnrw.17): rows whose surrogate id is not the deterministic
-// depid.New(issue_id, target) — per-clone-random keys that break bd dolt pull —
+// depid.New(issue_id, target) — per-clone-random keys that break issuegraph dolt pull —
 // and rows with no target at all (NULL in all three typed columns), which the
 // backfill deliberately leaves untouched.
 type DepKeyAnomalies struct {
@@ -77,19 +77,19 @@ func ScanDependencyKeys(ctx context.Context, db *sql.DB) ([]DepKeyAnomalies, err
 // creating them today.
 // If verbose is true, prints each repaired row; otherwise shows only a summary.
 func DependencyKeys(path string, verbose bool) error {
-	beadsDir, err := resolvedWorkspaceBeadsDir(path)
+	issuegraphDir, err := resolvedWorkspaceIssueGraphDir(path)
 	if err != nil {
 		return err
 	}
 
-	db, cfg, err := openDoltDB(beadsDir)
+	db, cfg, err := openDoltDB(issuegraphDir)
 	if err != nil {
 		fmt.Printf("  Dependency key fix skipped (%v)\n", err)
 		return nil
 	}
 	defer db.Close()
 
-	if skip, err := guardFixTarget("Dependency key fix", db, beadsDir, cfg); skip {
+	if skip, err := guardFixTarget("Dependency key fix", db, issuegraphDir, cfg); skip {
 		return err
 	}
 
@@ -161,7 +161,7 @@ func repairDependencyKeys(ctx context.Context, db *sql.DB, verbose bool) error {
 	}
 
 	if failed > 0 {
-		fmt.Printf("  Dependency keys: %d re-keyed, %d removed, %d FAILED — failed rows keep their old keys; resolve the warnings above and re-run bd doctor\n",
+		fmt.Printf("  Dependency keys: %d re-keyed, %d removed, %d FAILED — failed rows keep their old keys; resolve the warnings above and re-run issuegraph doctor\n",
 			rekeyed, removed, failed)
 		return nil
 	}

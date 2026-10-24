@@ -20,12 +20,12 @@ docker compose up -d
 
 ## Configuration
 
-Telemetry is **explicit opt-in**. Set `BD_OTEL_ENABLED=true` and configure the
+Telemetry is **explicit opt-in**. Set `ISSUEGRAPH_OTEL_ENABLED=true` and configure the
 exporter via standard OpenTelemetry SDK environment variables — both go in
 your shell profile or workspace `.env`:
 
 ```bash
-export BD_OTEL_ENABLED=true
+export ISSUEGRAPH_OTEL_ENABLED=true
 export OTEL_EXPORTER_OTLP_METRICS_ENDPOINT=http://localhost:8428/opentelemetry/api/v1/push
 ```
 
@@ -33,14 +33,14 @@ A standard `OTEL_*` variable alone will not turn issuegraph telemetry on — `is
 auto-activate from a machine-global `OTEL_*` setting that was set for some
 other instrumented tool.
 
-Log export is not implemented yet. `BD_OTEL_LOGS_URL` is reserved for a future
+Log export is not implemented yet. `ISSUEGRAPH_OTEL_LOGS_URL` is reserved for a future
 VictoriaLogs exporter and does not activate telemetry today.
 
 ### Shell profile (recommended)
 
 ```bash
 # ~/.zshrc or ~/.bashrc
-export BD_OTEL_ENABLED=true
+export ISSUEGRAPH_OTEL_ENABLED=true
 export OTEL_EXPORTER_OTLP_METRICS_ENDPOINT=http://localhost:8428/opentelemetry/api/v1/push
 ```
 
@@ -48,14 +48,14 @@ export OTEL_EXPORTER_OTLP_METRICS_ENDPOINT=http://localhost:8428/opentelemetry/a
 
 | Variable | Example | Description |
 |----------|---------|-------------|
-| `BD_OTEL_ENABLED` | `true` | **Master switch.** Activates telemetry. Without it, the variables below are ignored. |
+| `ISSUEGRAPH_OTEL_ENABLED` | `true` | **Master switch.** Activates telemetry. Without it, the variables below are ignored. |
 | `OTEL_EXPORTER_OTLP_METRICS_ENDPOINT` | `http://localhost:8428/opentelemetry/api/v1/push` | Push metrics to an OTLP HTTP receiver. |
 | `OTEL_EXPORTER_OTLP_LOGS_ENDPOINT` | `http://localhost:9428/insert/opentelemetry/v1/logs` | Push logs to an OTLP HTTP receiver (reserved for future log export). |
 | `OTEL_TRACES_EXPORTER` | `console` | Write spans to stderr (dev/debug). |
 | `OTEL_METRICS_EXPORTER` | `console` | Metric exporter selection, comma-separated (`otlp`, `console`, `none`). Unset defaults to `otlp`; `console` writes to stderr (dev/debug); a selection without `otlp` never exports to an OTLP endpoint, even if one is configured machine-globally. |
 | `OTEL_SERVICE_NAME` | `issuegraph` | Override the `service.name` resource attribute. |
 | `OTEL_RESOURCE_ATTRIBUTES` | `deployment.environment=workstation,team=infra` | Extend or override resource attributes (comma-separated `key=value`). |
-| `OTEL_SDK_DISABLED` | `true` | Force telemetry off even when `BD_OTEL_ENABLED=true` is set. |
+| `OTEL_SDK_DISABLED` | `true` | Force telemetry off even when `ISSUEGRAPH_OTEL_ENABLED=true` is set. |
 
 ### Resource attributes
 
@@ -71,23 +71,23 @@ Add anything else via `OTEL_RESOURCE_ATTRIBUTES`.
 ### Local debug mode
 
 ```bash
-BD_OTEL_ENABLED=true OTEL_TRACES_EXPORTER=console OTEL_METRICS_EXPORTER=console issuegraph list
+ISSUEGRAPH_OTEL_ENABLED=true OTEL_TRACES_EXPORTER=console OTEL_METRICS_EXPORTER=console issuegraph list
 ```
 
 ### Legacy environment variables (deprecated)
 
-The earlier `BD_OTEL_*` data variables are honored for backwards
+The earlier `ISSUEGRAPH_OTEL_*` data variables are honored for backwards
 compatibility. Setting any of them activates telemetry on its own (no
-`BD_OTEL_ENABLED=true` required) and translates to the standard OTLP equivalent
+`ISSUEGRAPH_OTEL_ENABLED=true` required) and translates to the standard OTLP equivalent
 — a legacy value wins over a pre-existing `OTEL_*` value so a machine-global
 `OTEL_*` setting cannot silently redirect issuegraph telemetry. Each `issuegraph` invocation
 that sees one logs a one-line deprecation warning to stderr:
 
 | Legacy | Standard equivalent |
 |--------|---------------------|
-| `BD_OTEL_METRICS_URL` | `OTEL_EXPORTER_OTLP_METRICS_ENDPOINT` |
-| `BD_OTEL_LOGS_URL` | `OTEL_EXPORTER_OTLP_LOGS_ENDPOINT` |
-| `BD_OTEL_STDOUT=true` | `OTEL_TRACES_EXPORTER=console` + `OTEL_METRICS_EXPORTER=console` |
+| `ISSUEGRAPH_OTEL_METRICS_URL` | `OTEL_EXPORTER_OTLP_METRICS_ENDPOINT` |
+| `ISSUEGRAPH_OTEL_LOGS_URL` | `OTEL_EXPORTER_OTLP_LOGS_ENDPOINT` |
+| `ISSUEGRAPH_OTEL_STDOUT=true` | `OTEL_TRACES_EXPORTER=console` + `OTEL_METRICS_EXPORTER=console` |
 
 ## Verification
 
@@ -98,22 +98,22 @@ issuegraph list   # triggers metrics → visible in VictoriaMetrics
 Verification queries in Grafana (VictoriaMetrics datasource):
 
 ```promql
-bd_storage_operations_total                              # raw counter
-sum(rate(bd_storage_operations_total[5m]))               # operation rate
+issuegraph_storage_operations_total                              # raw counter
+sum(rate(issuegraph_storage_operations_total[5m]))               # operation rate
 ```
 
 ### Confirm storage instrumentation locally
 
 To verify the storage decorator chain is wired up without standing up a
-collector, run `issuegraph` with stdout exporters and look for `bd.storage.*`
+collector, run `issuegraph` with stdout exporters and look for `issuegraph.storage.*`
 records on stderr:
 
 ```bash
-BD_OTEL_STDOUT=true issuegraph list 2>&1 | grep -F bd.storage.operations
+ISSUEGRAPH_OTEL_STDOUT=true issuegraph list 2>&1 | grep -F issuegraph.storage.operations
 ```
 
 Expect at least one line per storage call (`GetReadyWork`, `GetIssue`, …).
-If `bd.storage.*` and `bd.issue.count` are absent but `bd.db.pool_*` is
+If `issuegraph.storage.*` and `issuegraph.issue.count` are absent but `issuegraph.db.pool_*` is
 present, the storage decorator is not in the chain — check
 `wireStorageDecorators` in `modules/cli/storage_chain.go`.
 
@@ -121,38 +121,38 @@ present, the storage decorator is not in the chain — check
 
 ## Metrics
 
-### Storage (`bd_storage_*`)
+### Storage (`issuegraph_storage_*`)
 
 | Metric | Type | Attributes | Description |
 |--------|------|------------|-------------|
-| `bd_storage_operations_total` | Counter | `db.operation` | Storage operations executed |
-| `bd_storage_operation_duration_ms` | Histogram | `db.operation` | Operation duration (ms) |
-| `bd_storage_errors_total` | Counter | `db.operation` | Storage errors |
+| `issuegraph_storage_operations_total` | Counter | `db.operation` | Storage operations executed |
+| `issuegraph_storage_operation_duration_ms` | Histogram | `db.operation` | Operation duration (ms) |
+| `issuegraph_storage_errors_total` | Counter | `db.operation` | Storage errors |
 
 > These metrics are emitted by `InstrumentedStorage`, the issuegraph SDK wrapper.
 
-### Dolt database (`bd_db_*`)
+### Dolt database (`issuegraph_db_*`)
 
 | Metric | Type | Attributes | Description |
 |--------|------|------------|-------------|
-| `bd_db_retry_count_total` | Counter | — | SQL retries in server mode |
-| `bd_db_lock_wait_ms` | Histogram | `dolt_lock_exclusive` | Wait time to acquire database locks |
+| `issuegraph_db_retry_count_total` | Counter | — | SQL retries in server mode |
+| `issuegraph_db_lock_wait_ms` | Histogram | `dolt_lock_exclusive` | Wait time to acquire database locks |
 
-### Issues (`bd_issue_*`)
+### Issues (`issuegraph_issue_*`)
 
 | Metric | Type | Attributes | Description |
 |--------|------|------------|-------------|
-| `bd_issue_count` | Gauge | `status` | Number of issues by status |
+| `issuegraph_issue_count` | Gauge | `status` | Number of issues by status |
 
 `status` values: `open`, `in_progress`, `closed`, `deferred`.
 
-### AI (`bd_ai_*`)
+### AI (`issuegraph_ai_*`)
 
 | Metric | Type | Attributes | Description |
 |--------|------|------------|-------------|
-| `bd_ai_input_tokens_total` | Counter | `bd_ai_model` | Anthropic input tokens |
-| `bd_ai_output_tokens_total` | Counter | `bd_ai_model` | Anthropic output tokens |
-| `bd_ai_request_duration_ms` | Histogram | `bd_ai_model` | API call latency |
+| `issuegraph_ai_input_tokens_total` | Counter | `issuegraph_ai_model` | Anthropic input tokens |
+| `issuegraph_ai_output_tokens_total` | Counter | `issuegraph_ai_model` | Anthropic output tokens |
+| `issuegraph_ai_request_duration_ms` | Histogram | `issuegraph_ai_model` | API call latency |
 
 ---
 
@@ -162,7 +162,7 @@ Spans are only exported when `OTEL_TRACES_EXPORTER=console` — there is no trac
 
 | Span | Source | Description |
 |------|--------|-------------|
-| `bd.command.<name>` | CLI | Total duration of the command |
+| `issuegraph.command.<name>` | CLI | Total duration of the command |
 | `dolt.exec` / `dolt.query` / `dolt.query_row` | SQL | Each SQL operation |
 | `dolt.commit` / `dolt.push` / `dolt.pull` / `dolt.merge` | Dolt VC | Version control procedures |
 | `ephemeral.count` / `ephemeral.nuke` | SQLite | Ephemeral store operations |
@@ -172,14 +172,14 @@ Spans are only exported when `OTEL_TRACES_EXPORTER=console` — there is no trac
 
 ### Notable attributes
 
-**`bd.command.<name>`**
+**`issuegraph.command.<name>`**
 
 | Attribute | Description |
 |-----------|-------------|
-| `bd.command` | Subcommand name (`list`, `create`, ...) |
-| `bd.version` | bd version |
-| `bd.args` | Raw arguments passed to the command (e.g. "create 'title' -p 2") |
-| `bd.actor` | Actor (resolved from git config / env) |
+| `issuegraph.command` | Subcommand name (`list`, `create`, ...) |
+| `issuegraph.version` | issuegraph version |
+| `issuegraph.args` | Raw arguments passed to the command (e.g. "create 'title' -p 2") |
+| `issuegraph.actor` | Actor (resolved from git config / env) |
 
 **`hook.exec`**
 
@@ -187,7 +187,7 @@ Spans are only exported when `OTEL_TRACES_EXPORTER=console` — there is no trac
 |-------------------|-------------|
 | `hook.event` | Event type (`create`, `update`, `close`) |
 | `hook.path` | Absolute path to the script |
-| `bd.issue_id` | ID of the triggering issue |
+| `issuegraph.issue_id` | ID of the triggering issue |
 | event `hook.stdout` | Script standard output (truncated to 1 024 bytes) |
 | event `hook.stderr` | Script error output (truncated to 1 024 bytes) |
 
@@ -204,12 +204,12 @@ modules/cli/main.go
       ├─ OTEL_METRICS_EXPORTER=console       → MeterProvider stdout
       └─ OTEL_EXPORTER_OTLP_METRICS_ENDPOINT → MeterProvider HTTP → VictoriaMetrics
 
-internal/storage/dolt/        → bd_db_* metrics + dolt.* spans
+internal/storage/dolt/        → issuegraph_db_* metrics + dolt.* spans
 internal/storage/ephemeral/   → ephemeral.* spans
 internal/hooks/               → hook.exec span
 internal/tracker/             → tracker.* spans
-internal/compact/             → bd_ai_* metrics + anthropic.* spans
-internal/telemetry/storage.go → bd_storage_* metrics (SDK wrapper)
+internal/compact/             → issuegraph_ai_* metrics + anthropic.* spans
+internal/telemetry/storage.go → issuegraph_storage_* metrics (SDK wrapper)
 ```
 
 When no OpenTelemetry SDK environment variable selects an exporter,

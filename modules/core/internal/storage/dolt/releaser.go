@@ -5,10 +5,10 @@ import (
 	"database/sql"
 	"fmt"
 
-	"github.com/steveyegge/beads/internal/storage"
-	storeops "github.com/steveyegge/beads/internal/storage/issueops"
-	"github.com/steveyegge/beads/internal/workapi"
-	"github.com/steveyegge/beads/issueops"
+	"github.com/borg0ai/dx-issuegraph/internal/storage"
+	storeops "github.com/borg0ai/dx-issuegraph/internal/storage/issueops"
+	"github.com/borg0ai/dx-issuegraph/internal/workapi"
+	"github.com/borg0ai/dx-issuegraph/issueops"
 )
 
 // Releaser returns the claim-release surface for this store.
@@ -70,7 +70,7 @@ func (r *releaser) Release(ctx context.Context, req issueops.ReleaseRequest) (is
 					return nil, "", err
 				}
 				result = released
-				return write.Tables, fmt.Sprintf("bd: unclaim %s", req.IssueID), nil
+				return write.Tables, fmt.Sprintf("issuegraph: unclaim %s", req.IssueID), nil
 			})
 		})
 	}); err != nil {

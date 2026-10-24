@@ -15,11 +15,11 @@ import (
 	"testing"
 	"time"
 
+	"github.com/borg0ai/dx-issuegraph/internal/lockfile"
+	"github.com/borg0ai/dx-issuegraph/internal/procid"
+	"github.com/borg0ai/dx-issuegraph/internal/storage/dbproxy/pidfile"
+	"github.com/borg0ai/dx-issuegraph/internal/storage/dbproxy/server"
 	mysqldrv "github.com/go-sql-driver/mysql"
-	"github.com/steveyegge/beads/internal/lockfile"
-	"github.com/steveyegge/beads/internal/procid"
-	"github.com/steveyegge/beads/internal/storage/dbproxy/pidfile"
-	"github.com/steveyegge/beads/internal/storage/dbproxy/server"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
@@ -552,8 +552,8 @@ func TestDoltServer_ConcurrentStart_SameRootDir_OneWins(t *testing.T) {
 	// Pre-configure dolt's global user.name/email so doltConfigure is a
 	// no-op for every concurrent Start (no JSON-write race on
 	// ~/.dolt/config_global.json).
-	require.NoError(t, exec.Command(bin, "config", "--global", "--add", "user.name", "beads-test").Run())
-	require.NoError(t, exec.Command(bin, "config", "--global", "--add", "user.email", "beads@test").Run())
+	require.NoError(t, exec.Command(bin, "config", "--global", "--add", "user.name", "issuegraph-test").Run())
+	require.NoError(t, exec.Command(bin, "config", "--global", "--add", "user.email", "issuegraph@test").Run())
 
 	rootDir := t.TempDir()
 
@@ -615,8 +615,8 @@ func TestDoltServer_DoltInit_Idempotent(t *testing.T) {
 
 	// Pre-init the dolt repo manually. dolt init refuses to run without
 	// user.name/email in global config, so set those first.
-	require.NoError(t, exec.Command(bin, "config", "--global", "--add", "user.name", "beads-test").Run())
-	require.NoError(t, exec.Command(bin, "config", "--global", "--add", "user.email", "beads@test").Run())
+	require.NoError(t, exec.Command(bin, "config", "--global", "--add", "user.name", "issuegraph-test").Run())
+	require.NoError(t, exec.Command(bin, "config", "--global", "--add", "user.email", "issuegraph@test").Run())
 
 	cmd := exec.Command(bin, "init")
 	cmd.Dir = rootDir

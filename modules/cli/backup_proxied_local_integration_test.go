@@ -12,9 +12,9 @@ import (
 	"testing"
 	"time"
 
-	"github.com/steveyegge/beads/internal/storage/dbproxy/proxy"
-	"github.com/steveyegge/beads/internal/storage/dbproxy/server"
-	"github.com/steveyegge/beads/internal/storage/versioncontrolops"
+	"github.com/borg0ai/dx-issuegraph/internal/storage/dbproxy/proxy"
+	"github.com/borg0ai/dx-issuegraph/internal/storage/dbproxy/server"
+	"github.com/borg0ai/dx-issuegraph/internal/storage/versioncontrolops"
 )
 
 // TestManagedLocalProxiedBackupRoundTrip is the claim slice S3 makes: a
@@ -31,19 +31,19 @@ import (
 //
 // Named TestManagedLocalProxied* so the proxied-local smoke lane
 // (.github/workflows/proxied-local-smoke.yml) runs it; that lane is the only
-// one that sets BEADS_TEST_PROXIED_LOCAL.
+// one that sets ISSUEGRAPH_TEST_PROXIED_LOCAL.
 func TestManagedLocalProxiedBackupRoundTrip(t *testing.T) {
 	requireManagedLocalProxiedEnv(t)
 
-	bd := buildEmbeddedBD(t)
-	p := bdManagedLocalInit(t, bd, "bkrt", 5*time.Minute)
+	issuegraph := buildEmbeddedBD(t)
+	p := issuegraphManagedLocalInit(t, issuegraph, "bkrt", 5*time.Minute)
 
-	before := bdProxiedCreate(t, bd, p.dir, "survives the restore", "-p", "1")
+	before := issuegraphProxiedCreate(t, issuegraph, p.dir, "survives the restore", "-p", "1")
 
 	// Status first: it is the read-only probe that proves the route exists at
 	// all, and it must answer with a real measured size rather than the
 	// "optional field omitted" the external topologies produce.
-	status := readProxiedBackupStatus(t, bd, p)
+	status := readProxiedBackupStatus(t, issuegraph, p)
 	if status.Dolt.Configured {
 		t.Fatalf("fresh workspace reports a configured backup: %+v", status.Dolt)
 	}
@@ -52,11 +52,11 @@ func TestManagedLocalProxiedBackupRoundTrip(t *testing.T) {
 	}
 
 	dest := filepath.Join(t.TempDir(), "dolt-backup")
-	if out, err := bdProxiedRun(t, bd, p.dir, "backup", "init", dest); err != nil {
-		t.Fatalf("bd backup init %s: %v\n%s", dest, err, out)
+	if out, err := issuegraphProxiedRun(t, issuegraph, p.dir, "backup", "init", dest); err != nil {
+		t.Fatalf("issuegraph backup init %s: %v\n%s", dest, err, out)
 	}
-	if out, err := bdProxiedRun(t, bd, p.dir, "backup", "sync"); err != nil {
-		t.Fatalf("bd backup sync: %v\n%s", err, out)
+	if out, err := issuegraphProxiedRun(t, issuegraph, p.dir, "backup", "sync"); err != nil {
+		t.Fatalf("issuegraph backup sync: %v\n%s", err, out)
 	}
 	// A Dolt backup is a chunk store with a manifest; an empty directory here
 	// would mean the command reported a success it did not perform.
@@ -64,11 +64,11 @@ func TestManagedLocalProxiedBackupRoundTrip(t *testing.T) {
 		t.Fatalf("backup sync produced no manifest at %s: %v", dest, err)
 	}
 
-	after := bdProxiedCreate(t, bd, p.dir, "must not survive the restore", "-p", "1")
+	after := issuegraphProxiedCreate(t, issuegraph, p.dir, "must not survive the restore", "-p", "1")
 
-	out, err := bdProxiedRun(t, bd, p.dir, "backup", "restore", dest, "--force", "--json")
+	out, err := issuegraphProxiedRun(t, issuegraph, p.dir, "backup", "restore", dest, "--force", "--json")
 	if err != nil {
-		t.Fatalf("bd backup restore %s --force: %v\n%s", dest, err, out)
+		t.Fatalf("issuegraph backup restore %s --force: %v\n%s", dest, err, out)
 	}
 	var result struct {
 		Restored bool   `json:"restored"`
@@ -91,7 +91,7 @@ func TestManagedLocalProxiedBackupRoundTrip(t *testing.T) {
 		}
 	}
 
-	issues := bdProxiedListJSON(t, bd, p)
+	issues := issuegraphProxiedListJSON(t, issuegraph, p)
 	var ids []string
 	for _, issue := range issues {
 		ids = append(ids, issue.ID)
@@ -105,29 +105,29 @@ func TestManagedLocalProxiedBackupRoundTrip(t *testing.T) {
 	}
 
 	// The restore registers its source as the backup destination, so a plain
-	// `bd backup sync` works straight afterwards with no second init.
-	restored := readProxiedBackupStatus(t, bd, p)
+	// `issuegraph backup sync` works straight afterwards with no second init.
+	restored := readProxiedBackupStatus(t, issuegraph, p)
 	if !restored.Dolt.Configured || !strings.HasSuffix(restored.Dolt.BackupURL, dest) {
 		t.Fatalf("restore did not register %s as the backup destination: %+v", dest, restored.Dolt)
 	}
-	if out, err := bdProxiedRun(t, bd, p.dir, "backup", "sync"); err != nil {
-		t.Fatalf("bd backup sync after restore: %v\n%s", err, out)
+	if out, err := issuegraphProxiedRun(t, issuegraph, p.dir, "backup", "sync"); err != nil {
+		t.Fatalf("issuegraph backup sync after restore: %v\n%s", err, out)
 	}
 
-	if out, err := bdProxiedRun(t, bd, p.dir, "backup", "remove"); err != nil {
-		t.Fatalf("bd backup remove: %v\n%s", err, out)
+	if out, err := issuegraphProxiedRun(t, issuegraph, p.dir, "backup", "remove"); err != nil {
+		t.Fatalf("issuegraph backup remove: %v\n%s", err, out)
 	}
-	removed := readProxiedBackupStatus(t, bd, p)
+	removed := readProxiedBackupStatus(t, issuegraph, p)
 	if removed.Dolt.Configured {
 		t.Fatalf("backup remove left the destination configured: %+v", removed.Dolt)
 	}
 	// Removing the destination unregisters the remote; it does not delete the
-	// backup, which is what makes `bd backup remove` safe to run.
+	// backup, which is what makes `issuegraph backup remove` safe to run.
 	if _, err := os.Stat(filepath.Join(dest, "manifest")); err != nil {
 		t.Fatalf("backup remove deleted the backup data at %s: %v", dest, err)
 	}
-	if out, err := bdProxiedRun(t, bd, p.dir, "backup", "sync"); err == nil {
-		t.Fatalf("bd backup sync succeeded with no destination configured:\n%s", out)
+	if out, err := issuegraphProxiedRun(t, issuegraph, p.dir, "backup", "sync"); err == nil {
+		t.Fatalf("issuegraph backup sync succeeded with no destination configured:\n%s", out)
 	}
 }
 
@@ -136,17 +136,17 @@ func TestManagedLocalProxiedBackupRoundTrip(t *testing.T) {
 // still leave both processes down, even though no provider was returned.
 func TestManagedLocalProxiedBackupRestoreReopenFailure(t *testing.T) {
 	requireManagedLocalProxiedEnv(t)
-	bd := buildEmbeddedBD(t)
-	p := bdManagedLocalInit(t, bd, "bkrf", 5*time.Minute)
+	issuegraph := buildEmbeddedBD(t)
+	p := issuegraphManagedLocalInit(t, issuegraph, "bkrf", 5*time.Minute)
 	dest := filepath.Join(t.TempDir(), "malformed-backup")
-	if out, err := bdProxiedRun(t, bd, p.dir, "backup", "init", dest); err != nil {
+	if out, err := issuegraphProxiedRun(t, issuegraph, p.dir, "backup", "init", dest); err != nil {
 		t.Fatalf("backup init: %v\n%s", err, out)
 	}
 
 	// Damage the migration table in the backup, then repair the live table so
 	// the command's initial provider can open normally. Only its post-restore
 	// constructor will see the malformed table and fail after starting Dolt.
-	held := openHeldManagedProxiedConn(t, bd, p)
+	held := openHeldManagedProxiedConn(t, issuegraph, p)
 	ctx := context.Background()
 	if _, err := held.Conn.ExecContext(ctx, "ALTER TABLE schema_migrations RENAME COLUMN version TO broken_version"); err != nil {
 		t.Fatalf("damage migration table: %v", err)
@@ -162,7 +162,7 @@ func TestManagedLocalProxiedBackupRestoreReopenFailure(t *testing.T) {
 	}
 	held.Release()
 
-	out, err := bdProxiedRun(t, bd, p.dir, "backup", "restore", dest, "--force")
+	out, err := issuegraphProxiedRun(t, issuegraph, p.dir, "backup", "restore", dest, "--force")
 	if err == nil {
 		t.Fatalf("restore unexpectedly reopened a malformed schema:\n%s", out)
 	}
@@ -190,15 +190,15 @@ type proxiedBackupStatus struct {
 	} `json:"database_size"`
 }
 
-func readProxiedBackupStatus(t *testing.T, bd string, p proxiedProject) proxiedBackupStatus {
+func readProxiedBackupStatus(t *testing.T, issuegraph string, p proxiedProject) proxiedBackupStatus {
 	t.Helper()
-	out, err := bdProxiedRun(t, bd, p.dir, "backup", "status", "--json")
+	out, err := issuegraphProxiedRun(t, issuegraph, p.dir, "backup", "status", "--json")
 	if err != nil {
-		t.Fatalf("bd backup status --json: %v\n%s", err, out)
+		t.Fatalf("issuegraph backup status --json: %v\n%s", err, out)
 	}
 	start := strings.Index(string(out), "{")
 	if start < 0 {
-		t.Fatalf("bd backup status --json produced no JSON:\n%s", out)
+		t.Fatalf("issuegraph backup status --json produced no JSON:\n%s", out)
 	}
 	var status proxiedBackupStatus
 	if err := json.Unmarshal(out[start:], &status); err != nil {

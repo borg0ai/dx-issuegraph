@@ -10,7 +10,7 @@
 # ///
 
 """
-Generate a weekly Beads newsletter based on changelog, commits, and changes.
+Generate a weekly IssueGraph newsletter based on changelog, commits, and changes.
 
 Usage:
     python generate-newsletter.py
@@ -60,7 +60,7 @@ except ImportError:
 
 
 # Newsletter prompt template
-NEWSLETTER_PROMPT_TEMPLATE = """Generate a Beads newsletter covering the period from {since_date} to {until_date}.
+NEWSLETTER_PROMPT_TEMPLATE = """Generate a IssueGraph newsletter covering the period from {since_date} to {until_date}.
 
 Reporting Period:
 - Date Range: {since_date} to {until_date}
@@ -318,7 +318,7 @@ def find_docs_for_command(command_name: str) -> str:
         try:
             content = file_path.read_text()
             # Look for command mention with context
-            pattern = rf'`{re.escape(command_name)}`|bd\s+{re.escape(command_name)}'
+            pattern = rf'`{re.escape(command_name)}`|issuegraph\s+{re.escape(command_name)}'
             if re.search(pattern, content, re.IGNORECASE):
                 # Find the paragraph/section containing this command
                 matches = re.finditer(rf'[^\n]*{re.escape(command_name)}[^\n]*', content, re.IGNORECASE)
@@ -634,7 +634,7 @@ def generate_newsletter(
     return newsletter, version, since_date, until_date, input_tokens, output_tokens, actual_cost
 
 
-app = typer.Typer(help="Generate a weekly Beads newsletter based on changelog and commits")
+app = typer.Typer(help="Generate a weekly IssueGraph newsletter based on changelog and commits")
 
 
 @app.command()

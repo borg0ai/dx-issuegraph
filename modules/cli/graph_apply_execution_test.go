@@ -9,14 +9,14 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/steveyegge/beads/internal/types"
+	"github.com/borg0ai/dx-issuegraph/internal/types"
 )
 
 func withGraphApplyTestStore(t *testing.T) (context.Context, *sql.DB) {
 	t.Helper()
 
 	ctx := context.Background()
-	testStore := newTestStoreWithPrefix(t, filepath.Join(t.TempDir(), ".beads", "beads.db"), "ga")
+	testStore := newTestStoreWithPrefix(t, filepath.Join(t.TempDir(), ".issuegraph", "issuegraph.db"), "ga")
 
 	oldStore, oldCtx, oldActor := store, rootCtx, actor
 	store, rootCtx, actor = testStore, ctx, "graph-apply-test"

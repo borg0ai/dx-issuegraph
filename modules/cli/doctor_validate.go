@@ -6,8 +6,8 @@ import (
 	"os"
 	"strings"
 
-	"github.com/steveyegge/beads/modules/cli/doctor"
-	"github.com/steveyegge/beads/internal/ui"
+	"github.com/borg0ai/dx-issuegraph/internal/ui"
+	"github.com/borg0ai/dx-issuegraph/modules/cli/doctor"
 	"golang.org/x/term"
 )
 
@@ -64,7 +64,7 @@ func runValidateCheckInner(path string) (bool, error) {
 		// Suggest --fix if there are fixable issues
 		for _, cr := range checks {
 			if cr.fixable && cr.check.Status != statusOK {
-				fmt.Printf("\n%s\n", ui.RenderMuted("Tip: Use 'bd doctor --check=validate --fix' to auto-repair fixable issues"))
+				fmt.Printf("\n%s\n", ui.RenderMuted("Tip: Use 'issuegraph doctor --check=validate --fix' to auto-repair fixable issues"))
 				break
 			}
 		}
@@ -158,7 +158,7 @@ func applyValidateFixes(path string, checks []validateCheckResult) {
 		if !isInteractive {
 			// In non-interactive mode without --yes, skip with helpful message
 			fmt.Fprintf(os.Stderr, "\n%s Running in non-interactive mode\n", ui.RenderWarn("⚠"))
-			fmt.Fprintf(os.Stderr, "  To auto-fix issues without prompting, use: %s\n\n", ui.RenderAccent("bd doctor --validate --yes"))
+			fmt.Fprintf(os.Stderr, "  To auto-fix issues without prompting, use: %s\n\n", ui.RenderAccent("issuegraph doctor --validate --yes"))
 			return
 		}
 

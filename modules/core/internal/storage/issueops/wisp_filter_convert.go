@@ -1,6 +1,6 @@
 package issueops
 
-import "github.com/steveyegge/beads/internal/types"
+import "github.com/borg0ai/dx-issuegraph/internal/types"
 
 // WispFilterToIssueFilter converts a types.WispFilter into an IssueFilter
 // suitable for use with SearchIssuesInTx or searchTableInTx.
@@ -18,7 +18,7 @@ func WispFilterToIssueFilter(f types.WispFilter) types.IssueFilter {
 	}
 	// When no explicit status filter is set and IncludeClosed is false,
 	// exclude closed wisps. This matches the default behavior of
-	// "bd mol wisp list" (which hides closed wisps unless --all is passed).
+	// "issuegraph mol wisp list" (which hides closed wisps unless --all is passed).
 	if !f.IncludeClosed && f.Status == nil {
 		filter.ExcludeStatus = []types.Status{types.StatusClosed}
 	}

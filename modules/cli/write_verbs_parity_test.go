@@ -1,7 +1,7 @@
 //go:build cgo
 
-// Characterization ("parity") suite for the four write verbs — bd create,
-// bd update, bd close, bd reopen — pinning the observable CLI contract as it
+// Characterization ("parity") suite for the four write verbs — issuegraph create,
+// issuegraph update, issuegraph close, issuegraph reopen — pinning the observable CLI contract as it
 // stands BEFORE modules/cli is rewired onto the issue-operations facade
 // (internal/storage/issueops).
 //
@@ -9,19 +9,19 @@
 // it ought to do. Several pinned behaviors are known bugs; four of them have
 // already been adjudicated and WILL change during the rewire:
 //
-//	R1  bd create --id <occupied>  -> silent full-row upsert reporting success
-//	                                  [FLIPPED to a refusal by the bd create rewire]
-//	R2  compound bd update         -> one store call (= one hook firing) per
+//	R1  issuegraph create --id <occupied>  -> silent full-row upsert reporting success
+//	                                  [FLIPPED to a refusal by the issuegraph create rewire]
+//	R2  compound issuegraph update         -> one store call (= one hook firing) per
 //	                                  field/label/parent edit, plus phantom
 //	                                  label_added/label_removed events
-//	                                  [FLIPPED to one atomic op by the bd update
+//	                                  [FLIPPED to one atomic op by the issuegraph update
 //	                                  rewire]
-//	R3  bd update --parent         -> removes only the FIRST parent edge
-//	                                  [FLIPPED to replace-all by the bd update
+//	R3  issuegraph update --parent         -> removes only the FIRST parent edge
+//	                                  [FLIPPED to replace-all by the issuegraph update
 //	                                  rewire]
-//	R4  bd reopen on a non-done,
+//	R4  issuegraph reopen on a non-done,
 //	    non-open status            -> prints "↻ Reopened" and reports success
-//	                                  [FLIPPED to "nothing to do" by the bd
+//	                                  [FLIPPED to "nothing to do" by the issuegraph
 //	                                  reopen rewire]
 //
 // Assertions covering those four are tagged `RULING Rn`. When a rewire commit
@@ -53,14 +53,14 @@ import (
 	"testing"
 	"time"
 
+	"github.com/borg0ai/dx-issuegraph"
+	"github.com/borg0ai/dx-issuegraph/internal/config"
+	"github.com/borg0ai/dx-issuegraph/internal/storage"
+	"github.com/borg0ai/dx-issuegraph/internal/types"
+	"github.com/borg0ai/dx-issuegraph/internal/ui"
+	"github.com/borg0ai/dx-issuegraph/issueops"
 	"github.com/spf13/cobra"
 	"github.com/spf13/pflag"
-	"github.com/steveyegge/beads"
-	"github.com/steveyegge/beads/internal/config"
-	"github.com/steveyegge/beads/internal/storage"
-	"github.com/steveyegge/beads/internal/types"
-	"github.com/steveyegge/beads/internal/ui"
-	"github.com/steveyegge/beads/issueops"
 )
 
 // ===== counting store decorator =====
@@ -169,7 +169,7 @@ func (p *parityStore) RemoveDependency(ctx context.Context, issueID, dependsOnID
 // database — a verb still on a direct store call records "UpdateIssue", a
 // rewired verb records "Update".
 //
-// The firing rules mirror beads.hookIssueOperations exactly, which is what
+// The firing rules mirror issuegraph.hookIssueOperations exactly, which is what
 // makes the counts comparable across the rewire: Create, Update and Close fire
 // their completion hook on any success; Reopen fires only when it changed
 // something.
@@ -219,17 +219,17 @@ func (o *parityOps) Reopen(ctx context.Context, request issueops.ReopenRequest) 
 // ===== harness =====
 
 type parityEnv struct {
-	t        *testing.T
-	store    *parityStore
-	beadsDir string
+	t             *testing.T
+	store         *parityStore
+	issuegraphDir string
 }
 
 // newParityEnv wires the package globals the write-verb RunE functions read
 // (store, rootCtx, actor, jsonOutput, quietFlag, readonlyMode) at a real Dolt
-// store, points BEADS_DIR at its .beads dir so SetLastTouchedID is observable,
+// store, points ISSUEGRAPH_DIR at its .issuegraph dir so SetLastTouchedID is observable,
 // and restores everything on cleanup.
 //
-// quietFlag is set so `bd create`'s random maybeShowTip line cannot appear on
+// quietFlag is set so `issuegraph create`'s random maybeShowTip line cannot appear on
 // stdout mid-assertion. It does NOT suppress the "✓ Created issue:" lines:
 // those go through debug.PrintNormal, which reads the debug package's own
 // quiet flag (set by main.go's PersistentPreRun, which RunE-level tests skip).
@@ -244,8 +244,8 @@ func newParityEnv(t *testing.T) *parityEnv {
 	initConfigForTest(t)
 
 	dir := t.TempDir()
-	beadsDir := filepath.Join(dir, ".beads")
-	raw := newTestStore(t, filepath.Join(beadsDir, "beads.db"))
+	issuegraphDir := filepath.Join(dir, ".issuegraph")
+	raw := newTestStore(t, filepath.Join(issuegraphDir, "issuegraph.db"))
 	ps := newParityStore(raw)
 
 	savedCtx, savedJSON, savedActor := rootCtx, jsonOutput, actor
@@ -260,7 +260,7 @@ func newParityEnv(t *testing.T) *parityEnv {
 	// Count the facade operations the write verbs perform. The real store is
 	// unwrapped first so the counted lifecycle is the concrete store's,
 	// whatever parityStore's own passthrough happens to promote.
-	newIssueOperations = func(target beads.Storage) (issueops.Lifecycle, error) {
+	newIssueOperations = func(target issuegraph.Storage) (issueops.Lifecycle, error) {
 		if decorated, ok := target.(storage.DoltStorage); ok {
 			target = storage.UnwrapStore(decorated)
 		}
@@ -284,7 +284,7 @@ func newParityEnv(t *testing.T) *parityEnv {
 	// the ambient git identity. Pin it: CI commonly sets GIT_AUTHOR_EMAIL, a developer
 	// shell usually does not, and the suite must render the same verdict in both.
 	t.Setenv("GIT_AUTHOR_EMAIL", parityOwnerEmail)
-	t.Setenv("BEADS_DIR", beadsDir)
+	t.Setenv("ISSUEGRAPH_DIR", issuegraphDir)
 
 	// Pin every config key the write verbs read. config.Initialize() merges
 	// whatever config.yaml files happen to exist under the test HOME, and
@@ -315,7 +315,7 @@ func newParityEnv(t *testing.T) *parityEnv {
 		t.Fatalf("parity harness requires title interpolation; formatFeedbackID = %q", got)
 	}
 
-	env := &parityEnv{t: t, store: ps, beadsDir: beadsDir}
+	env := &parityEnv{t: t, store: ps, issuegraphDir: issuegraphDir}
 	env.clearLastTouched()
 	return env
 }
@@ -332,12 +332,12 @@ func setParityConfig(t *testing.T, kv map[string]any) {
 
 func (e *parityEnv) clearLastTouched() {
 	e.t.Helper()
-	_ = os.Remove(filepath.Join(e.beadsDir, lastTouchedFile))
+	_ = os.Remove(filepath.Join(e.issuegraphDir, lastTouchedFile))
 }
 
 func (e *parityEnv) lastTouched() string {
 	e.t.Helper()
-	data, err := os.ReadFile(filepath.Join(e.beadsDir, lastTouchedFile))
+	data, err := os.ReadFile(filepath.Join(e.issuegraphDir, lastTouchedFile))
 	if err != nil {
 		return ""
 	}
@@ -612,9 +612,9 @@ func assertRecentUTCTimestamp(t *testing.T, label, value string) {
 	}
 }
 
-// ===== bd create =====
+// ===== issuegraph create =====
 
-// TestParityCreateJSONShape pins `bd create --json`: a SINGLE pretty-printed
+// TestParityCreateJSONShape pins `issuegraph create --json`: a SINGLE pretty-printed
 // JSON object (not an array), emitted from the LOCAL *types.Issue the CLI
 // built — never a re-read — carrying a synthesized "schema_version" key and,
 // because outputJSON round-trips a non-slice through map[string]any, SORTED
@@ -691,7 +691,7 @@ func TestParityCreateJSONShape(t *testing.T) {
 	}
 }
 
-// TestParityCreateJSONTimestamps pins that `bd create --json` DOES emit
+// TestParityCreateJSONTimestamps pins that `issuegraph create --json` DOES emit
 // populated created_at/updated_at (and no closed_at for an open issue).
 //
 // They are populated by a side effect: the storage layer's
@@ -723,7 +723,7 @@ func TestParityCreateJSONTimestamps(t *testing.T) {
 	}
 }
 
-// TestParityCreateSilent pins `bd create --silent`: stdout is exactly the new
+// TestParityCreateSilent pins `issuegraph create --silent`: stdout is exactly the new
 // ID plus a newline, and nothing else. Source: modules/cli/create.go:605-606.
 func TestParityCreateSilent(t *testing.T) {
 	env := newParityEnv(t)
@@ -793,8 +793,8 @@ func TestParityCreateSetsLastTouched(t *testing.T) {
 
 // TestParityCreateWithDepsOmitsDependenciesKey pins the create/update JSON
 // asymmetry at its sharpest: even when the create actually persists dependency
-// edges, `bd create --json` shows none, because it prints the local struct.
-// `bd update --json` on the same issue re-reads — and (today) still shows no
+// edges, `issuegraph create --json` shows none, because it prints the local struct.
+// `issuegraph update --json` on the same issue re-reads — and (today) still shows no
 // `dependencies` key, because storage GetIssue does not hydrate dependencies
 // either (internal/storage/issueops/get_issue.go:37-56). The difference that
 // IS observable is the container: object vs array, sorted keys vs struct
@@ -827,7 +827,7 @@ func TestParityCreateWithDepsOmitsDependenciesKey(t *testing.T) {
 	}
 }
 
-// TestParityCreateOnOccupiedIDRefuses pins RULING R1 as adopted: `bd create
+// TestParityCreateOnOccupiedIDRefuses pins RULING R1 as adopted: `issuegraph create
 // --id <occupied>` refuses. The facade's create-only guard returns
 // storage.ErrAlreadyExists, the CLI maps it to exit 1 with a fixed message
 // naming the alternatives, and the pre-existing row is left untouched.
@@ -855,7 +855,7 @@ func TestParityCreateOnOccupiedIDRefuses(t *testing.T) {
 	if res.exitCode != 1 {
 		t.Fatalf("exit = %d, want 1\nstdout:\n%s\nstderr:\n%s", res.exitCode, res.stdout, res.stderr)
 	}
-	const wantErr = "Error: test-occ1 already exists; use bd update, or bd import for upsert semantics\n"
+	const wantErr = "Error: test-occ1 already exists; use issuegraph update, or issuegraph import for upsert semantics\n"
 	if res.stderr != wantErr {
 		t.Errorf("stderr = %q, want %q", res.stderr, wantErr)
 	}
@@ -971,9 +971,9 @@ func TestParityCreateJSONErrorShape(t *testing.T) {
 	}
 }
 
-// ===== bd update =====
+// ===== issuegraph update =====
 
-// TestParityUpdateJSONShape pins `bd update --json`: a JSON ARRAY of re-read
+// TestParityUpdateJSONShape pins `issuegraph update --json`: a JSON ARRAY of re-read
 // issues, in struct-field order, with NO schema_version wrapper (outputJSON
 // leaves slices alone — modules/cli/output.go:85-87).
 //
@@ -1103,7 +1103,7 @@ func TestParityUpdateDefaultsToLastTouched(t *testing.T) {
 		t.Fatalf("exit=%d err=%v stderr=%s", res.exitCode, res.err, res.stderr)
 	}
 	if got := env.get("test-updlt").Priority; got != 1 {
-		t.Errorf("priority = %d, want 1; bare `bd update` must target last-touched", got)
+		t.Errorf("priority = %d, want 1; bare `issuegraph update` must target last-touched", got)
 	}
 }
 
@@ -1288,7 +1288,7 @@ func TestParityUpdateJSONFailureReport(t *testing.T) {
 }
 
 // TestParityUpdateCompoundSideEffectSurface pins RULING R2 as adopted: a
-// compound `bd update` is ONE atomic operation, so exactly one on_update hook
+// compound `issuegraph update` is ONE atomic operation, so exactly one on_update hook
 // fires for the whole command instead of one per edit group.
 //
 // Before the rewire this made one store call per edit group — the field
@@ -1385,7 +1385,7 @@ func TestParityUpdateNoOpLabelEditIsSilent(t *testing.T) {
 
 // TestParityUpdateBareClaimFiresUpdateHook pins the last R2 asymmetry as
 // closed: a bare `--claim` is an ordinary update operation, so it fires the
-// on_update hook like every other `bd update`.
+// on_update hook like every other `issuegraph update`.
 //
 // Before the rewire it went through ClaimIssue, a method
 // storage.HookFiringStore does not decorate, so a claim was the one update
@@ -1414,7 +1414,7 @@ func TestParityUpdateBareClaimFiresUpdateHook(t *testing.T) {
 	}
 }
 
-// TestParityUpdateParentReplacesAllEdges pins RULING R3 as adopted: `bd update
+// TestParityUpdateParentReplacesAllEdges pins RULING R3 as adopted: `issuegraph update
 // --parent` replaces EVERY existing parent-child edge with the requested one,
 // atomically, in the same operation as the rest of the update.
 //
@@ -1469,9 +1469,9 @@ func TestParityUpdateParentReplacesAllEdges(t *testing.T) {
 	}
 }
 
-// ===== bd close =====
+// ===== issuegraph close =====
 
-// TestParityCloseJSONShape pins `bd close --json`: a JSON ARRAY of re-read
+// TestParityCloseJSONShape pins `issuegraph close --json`: a JSON ARRAY of re-read
 // issues in struct-field order with no schema_version wrapper — the same
 // container shape as update, and the opposite of create.
 // Source: modules/cli/close.go:222 (re-fetch) and :340-353 (outputJSON).
@@ -1562,7 +1562,7 @@ func TestParityCloseDefaultsToLastTouched(t *testing.T) {
 		t.Fatalf("exit=%d err=%v stderr=%s", res.exitCode, res.err, res.stderr)
 	}
 	if got := env.get("test-clslt").Status; got != types.StatusClosed {
-		t.Errorf("status = %q, want closed; bare `bd close` must target last-touched", got)
+		t.Errorf("status = %q, want closed; bare `issuegraph close` must target last-touched", got)
 	}
 }
 
@@ -1675,9 +1675,9 @@ func TestParityCloseAlreadyClosedIsIdempotentSuccess(t *testing.T) {
 	}
 }
 
-// ===== bd reopen =====
+// ===== issuegraph reopen =====
 
-// TestParityReopenJSONShape pins `bd reopen --json`: a JSON ARRAY of re-read
+// TestParityReopenJSONShape pins `issuegraph reopen --json`: a JSON ARRAY of re-read
 // issues, no schema_version — same container as update/close.
 // Source: modules/cli/reopen.go:72-76 and :101-105.
 func TestParityReopenJSONShape(t *testing.T) {
@@ -1755,7 +1755,7 @@ func TestParityReopenHumanOutputNoReason(t *testing.T) {
 }
 
 // TestParityReopenDoesNotSetLastTouched pins an absence: unlike create,
-// update and close, `bd reopen` never calls SetLastTouchedID. Nothing in
+// update and close, `issuegraph reopen` never calls SetLastTouchedID. Nothing in
 // modules/cli/reopen.go does.
 func TestParityReopenDoesNotSetLastTouched(t *testing.T) {
 	env := newParityEnv(t)
@@ -1767,7 +1767,7 @@ func TestParityReopenDoesNotSetLastTouched(t *testing.T) {
 		t.Fatalf("exit=%d err=%v stderr=%s", res.exitCode, res.err, res.stderr)
 	}
 	if got := env.lastTouched(); got != "" {
-		t.Errorf("last-touched = %q; bd reopen does not record one today", got)
+		t.Errorf("last-touched = %q; issuegraph reopen does not record one today", got)
 	}
 }
 
@@ -1858,10 +1858,10 @@ func TestParityReopenNonDoneStatusReportsNothingToDo(t *testing.T) {
 	}
 }
 
-// ===== bd update crossing into closed vs bd close =====
+// ===== issuegraph update crossing into closed vs issuegraph close =====
 
 // closeRowParityExclusions lists the types.Issue fields a row-for-row
-// comparison of `bd update -s closed` against `bd close` must skip, and why.
+// comparison of `issuegraph update -s closed` against `issuegraph close` must skip, and why.
 // Everything else has to match: the two verbs reach the same done state, so any
 // other divergence is the update funnel failing to close the way close closes.
 var closeRowParityExclusions = map[string]string{
@@ -1872,8 +1872,8 @@ var closeRowParityExclusions = map[string]string{
 	"UpdatedAt":   "wall-clock stamp from two different writes",
 	"ClosedAt":    "wall-clock stamp; asserted non-nil on both instead",
 	"RowVersion":  "freshRowLock() is regenerated per write by design",
-	"CloseReason": "modules/cli/close.go resolveCloseReasons defaults `bd close`'s " +
-		"reason to \"Closed\" at the CLI layer, and `bd update` has no reason " +
+	"CloseReason": "modules/cli/close.go resolveCloseReasons defaults `issuegraph close`'s " +
+		"reason to \"Closed\" at the CLI layer, and `issuegraph update` has no reason " +
 		"flag; the funnel-level default is asserted separately below",
 	// ga-ktn9pe.4.14 owns pin behavior in the update funnels — issueops
 	// auto-clears `pinned` on a status change and domain/db does not. Comparing
@@ -1882,7 +1882,7 @@ var closeRowParityExclusions = map[string]string{
 }
 
 // TestParityUpdateToClosedMatchesCloseRow pins ga-kjkv1's shape: a generic
-// update whose status crosses into closed must land the same row `bd close`
+// update whose status crosses into closed must land the same row `issuegraph close`
 // lands. close writes close_reason and closed_by_session on every close
 // (issueops/close.go closeIssueInTx), including the empty values a caller that
 // named neither produces; the funnels used to write them only when the caller
@@ -1915,23 +1915,23 @@ func TestParityUpdateToClosedMatchesCloseRow(t *testing.T) {
 		}
 		got, want := updatedValue.Field(i).Interface(), closedValue.Field(i).Interface()
 		if !reflect.DeepEqual(got, want) {
-			t.Errorf("%s after `bd update -s closed` = %#v, want %#v (the value `bd close` writes)", field.Name, got, want)
+			t.Errorf("%s after `issuegraph update -s closed` = %#v, want %#v (the value `issuegraph close` writes)", field.Name, got, want)
 		}
 	}
 
 	// And the funnel default itself: no session flag, no session recorded.
 	if updated.ClosedBySession != "" {
-		t.Errorf("closed_by_session after a sessionless `bd update -s closed` = %q, want empty", updated.ClosedBySession)
+		t.Errorf("closed_by_session after a sessionless `issuegraph update -s closed` = %q, want empty", updated.ClosedBySession)
 	}
 	if updated.CloseReason != "" {
-		t.Errorf("close_reason after a reasonless `bd update -s closed` = %q, want empty", updated.CloseReason)
+		t.Errorf("close_reason after a reasonless `issuegraph update -s closed` = %q, want empty", updated.CloseReason)
 	}
 }
 
 // TestParityUpdateToClosedClearsPriorCloseAttribution pins the misattribution
 // ga-kjkv1 fixes. The generic reopen branch never cleared closed_by_session, so
 // a re-close through the funnel inherited the PREVIOUS close's session and
-// `bd show` rendered the new close as that old session's work.
+// `issuegraph show` rendered the new close as that old session's work.
 func TestParityUpdateToClosedClearsPriorCloseAttribution(t *testing.T) {
 	env := newParityEnv(t)
 	env.seed("test-updcls3", "Reclose attribution", nil)
@@ -1976,7 +1976,7 @@ func TestParityUpdateToClosedClearsPriorCloseAttribution(t *testing.T) {
 }
 
 // TestParityUpdateToClosedKeepsExplicitSession pins that the defaults above
-// yield to an explicit key: `bd update -s closed --session` still attributes the
+// yield to an explicit key: `issuegraph update -s closed --session` still attributes the
 // close, so the CLI's own closed_by_session pass-through (modules/cli/update.go:133,
 // modules/cli/update_input.go:58) keeps working and must stay in place.
 func TestParityUpdateToClosedKeepsExplicitSession(t *testing.T) {

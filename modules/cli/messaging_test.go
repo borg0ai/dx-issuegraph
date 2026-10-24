@@ -9,7 +9,7 @@ import (
 	"testing"
 	"time"
 
-	"github.com/steveyegge/beads/internal/types"
+	"github.com/borg0ai/dx-issuegraph/internal/types"
 )
 
 // TestMessagingSuite consolidates message lifecycle, dependency types, and thread tests.
@@ -17,7 +17,7 @@ import (
 func TestMessagingSuite(t *testing.T) {
 	t.Parallel()
 	tmpDir := t.TempDir()
-	testStore := newTestStore(t, filepath.Join(tmpDir, ".beads", "beads.db"))
+	testStore := newTestStore(t, filepath.Join(tmpDir, ".issuegraph", "issuegraph.db"))
 	ctx := context.Background()
 	now := time.Now()
 
@@ -355,19 +355,19 @@ func TestMessagingSuite(t *testing.T) {
 // TestFindMailDelegate tests the mail delegate resolution logic.
 // Kept separate because it modifies global state (env vars, store).
 func TestFindMailDelegate(t *testing.T) {
-	origBeads := os.Getenv("BEADS_MAIL_DELEGATE")
-	origBD := os.Getenv("BD_MAIL_DELEGATE")
+	origIssueGraph := os.Getenv("ISSUEGRAPH_MAIL_DELEGATE")
+	origBD := os.Getenv("ISSUEGRAPH_MAIL_DELEGATE")
 	defer func() {
-		os.Setenv("BEADS_MAIL_DELEGATE", origBeads)
-		os.Setenv("BD_MAIL_DELEGATE", origBD)
+		os.Setenv("ISSUEGRAPH_MAIL_DELEGATE", origIssueGraph)
+		os.Setenv("ISSUEGRAPH_MAIL_DELEGATE", origBD)
 	}()
 
-	t.Run("BEADS_MAIL_DELEGATE takes priority", func(t *testing.T) {
-		os.Setenv("BEADS_MAIL_DELEGATE", "gt mail")
-		os.Setenv("BD_MAIL_DELEGATE", "other mail")
+	t.Run("ISSUEGRAPH_MAIL_DELEGATE takes priority", func(t *testing.T) {
+		os.Setenv("ISSUEGRAPH_MAIL_DELEGATE", "gt mail")
+		os.Setenv("ISSUEGRAPH_MAIL_DELEGATE", "other mail")
 		defer func() {
-			os.Unsetenv("BEADS_MAIL_DELEGATE")
-			os.Unsetenv("BD_MAIL_DELEGATE")
+			os.Unsetenv("ISSUEGRAPH_MAIL_DELEGATE")
+			os.Unsetenv("ISSUEGRAPH_MAIL_DELEGATE")
 		}()
 
 		got := findMailDelegate()
@@ -376,10 +376,10 @@ func TestFindMailDelegate(t *testing.T) {
 		}
 	})
 
-	t.Run("BD_MAIL_DELEGATE fallback", func(t *testing.T) {
-		os.Unsetenv("BEADS_MAIL_DELEGATE")
-		os.Setenv("BD_MAIL_DELEGATE", "custom mail")
-		defer os.Unsetenv("BD_MAIL_DELEGATE")
+	t.Run("ISSUEGRAPH_MAIL_DELEGATE fallback", func(t *testing.T) {
+		os.Unsetenv("ISSUEGRAPH_MAIL_DELEGATE")
+		os.Setenv("ISSUEGRAPH_MAIL_DELEGATE", "custom mail")
+		defer os.Unsetenv("ISSUEGRAPH_MAIL_DELEGATE")
 
 		got := findMailDelegate()
 		if got != "custom mail" {
@@ -388,8 +388,8 @@ func TestFindMailDelegate(t *testing.T) {
 	})
 
 	t.Run("no delegate returns empty", func(t *testing.T) {
-		os.Unsetenv("BEADS_MAIL_DELEGATE")
-		os.Unsetenv("BD_MAIL_DELEGATE")
+		os.Unsetenv("ISSUEGRAPH_MAIL_DELEGATE")
+		os.Unsetenv("ISSUEGRAPH_MAIL_DELEGATE")
 
 		oldStore := store
 		store = nil
@@ -406,20 +406,20 @@ func TestFindMailDelegate(t *testing.T) {
 // Kept separate because it modifies global store and rootCtx.
 func TestMailDelegateFromConfig(t *testing.T) {
 	tmpDir := t.TempDir()
-	testStore := newTestStore(t, filepath.Join(tmpDir, ".beads", "beads.db"))
+	testStore := newTestStore(t, filepath.Join(tmpDir, ".issuegraph", "issuegraph.db"))
 	ctx := context.Background()
 
 	if err := testStore.SetConfig(ctx, "mail.delegate", "gt mail"); err != nil {
 		t.Fatalf("SetConfig failed: %v", err)
 	}
 
-	origBeads := os.Getenv("BEADS_MAIL_DELEGATE")
-	origBD := os.Getenv("BD_MAIL_DELEGATE")
-	os.Unsetenv("BEADS_MAIL_DELEGATE")
-	os.Unsetenv("BD_MAIL_DELEGATE")
+	origIssueGraph := os.Getenv("ISSUEGRAPH_MAIL_DELEGATE")
+	origBD := os.Getenv("ISSUEGRAPH_MAIL_DELEGATE")
+	os.Unsetenv("ISSUEGRAPH_MAIL_DELEGATE")
+	os.Unsetenv("ISSUEGRAPH_MAIL_DELEGATE")
 	defer func() {
-		os.Setenv("BEADS_MAIL_DELEGATE", origBeads)
-		os.Setenv("BD_MAIL_DELEGATE", origBD)
+		os.Setenv("ISSUEGRAPH_MAIL_DELEGATE", origIssueGraph)
+		os.Setenv("ISSUEGRAPH_MAIL_DELEGATE", origBD)
 	}()
 
 	oldStore := store

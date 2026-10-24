@@ -6,7 +6,7 @@ import (
 	"testing"
 	"time"
 
-	"github.com/steveyegge/beads/internal/types"
+	"github.com/borg0ai/dx-issuegraph/internal/types"
 )
 
 func TestReopenIssue(t *testing.T) {
@@ -327,7 +327,7 @@ func TestGetReadyWorkIncludeEphemeralAppliesWispFilters(t *testing.T) {
 		Priority:  1,
 		IssueType: types.TypeTask,
 		Ephemeral: true,
-		Metadata:  []byte(`{"gc.routed_to":"beads/workflows.kimi"}`),
+		Metadata:  []byte(`{"gc.routed_to":"issuegraph/workflows.kimi"}`),
 	}
 	assigned := &types.Issue{
 		ID:        "rwf-wisp-filter-assigned",
@@ -335,9 +335,9 @@ func TestGetReadyWorkIncludeEphemeralAppliesWispFilters(t *testing.T) {
 		Status:    types.StatusOpen,
 		Priority:  1,
 		IssueType: types.TypeTask,
-		Assignee:  "beads--control-dispatcher",
+		Assignee:  "issuegraph--control-dispatcher",
 		Ephemeral: true,
-		Metadata:  []byte(`{"gc.routed_to":"beads/workflows.kimi"}`),
+		Metadata:  []byte(`{"gc.routed_to":"issuegraph/workflows.kimi"}`),
 	}
 	wrongRoute := &types.Issue{
 		ID:        "rwf-wisp-filter-wrong-route",
@@ -346,7 +346,7 @@ func TestGetReadyWorkIncludeEphemeralAppliesWispFilters(t *testing.T) {
 		Priority:  1,
 		IssueType: types.TypeTask,
 		Ephemeral: true,
-		Metadata:  []byte(`{"gc.routed_to":"beads/workflows.codex-max"}`),
+		Metadata:  []byte(`{"gc.routed_to":"issuegraph/workflows.codex-max"}`),
 	}
 	for _, issue := range []*types.Issue{matching, assigned, wrongRoute} {
 		createIssue(issue)
@@ -356,7 +356,7 @@ func TestGetReadyWorkIncludeEphemeralAppliesWispFilters(t *testing.T) {
 		Status:     types.StatusOpen,
 		Unassigned: true,
 		MetadataFields: map[string]string{
-			"gc.routed_to": "beads/workflows.kimi",
+			"gc.routed_to": "issuegraph/workflows.kimi",
 		},
 	})
 	assertReady(ids, matching.ID, assigned.ID, wrongRoute.ID)

@@ -1,7 +1,7 @@
 {
   "$schema": "https://mintlify.com/docs.json",
   "theme": "linden",
-  "name": "Beads Documentation",
+  "name": "IssueGraph Documentation",
   "logo": {
     "light": "/images/logo.svg",
     "dark": "/images/logo.svg"
@@ -13,18 +13,18 @@
         "label": "GitHub",
         "icon": "github",
         "iconType": "brands",
-        "href": "https://github.com/gastownhall/beads"
+        "href": "https://github.com/borg0ai/dx-issuegraph"
       },
       {
         "label": "npm",
-        "href": "https://www.npmjs.com/package/@beads/bd"
+        "href": "https://www.npmjs.com/package/@borg0ai/issuegraph"
       }
     ]
   },
   "colors": {
-    "primary": "#2e8555",
-    "light": "#3cad6e",
-    "dark": "#29784c"
+    "primary": "#6BC8B5",
+    "light": "#83D9C8",
+    "dark": "#17212B"
   },
   "redirects": [
     {

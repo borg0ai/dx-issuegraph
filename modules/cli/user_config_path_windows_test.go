@@ -10,13 +10,13 @@ import (
 	"testing"
 )
 
-// TestMetricsOffRejectsUnsafeUserRootsInNativeProcess exercises the real bd
+// TestMetricsOffRejectsUnsafeUserRootsInNativeProcess exercises the real issuegraph
 // executable from a sentinel checkout. It models the profile environment a
 // Git-for-Windows hook can inherit and proves an explicit user-global write
 // fails before creating a cwd-relative "~" or APPDATA tree.
 func TestMetricsOffRejectsUnsafeUserRootsInNativeProcess(t *testing.T) {
 	sentinel := t.TempDir()
-	bdBinary := buildBDForInitTests(t)
+	issuegraphBinary := buildIssueGraphForInitTests(t)
 	validHome := filepath.Join(sentinel, "bootstrap-home")
 	validAppData := filepath.Join(validHome, "AppData", "Roaming")
 	if err := os.MkdirAll(validAppData, 0o755); err != nil {
@@ -29,9 +29,9 @@ func TestMetricsOffRejectsUnsafeUserRootsInNativeProcess(t *testing.T) {
 		"USERPROFILE="+validHome,
 		"APPDATA="+validAppData,
 		"XDG_CONFIG_HOME="+filepath.Join(validHome, ".config"),
-		"BD_DISABLE_METRICS=1",
-		"BD_DISABLE_EVENT_FLUSH=1",
-		"BEADS_TEST_MODE=1",
+		"ISSUEGRAPH_DISABLE_METRICS=1",
+		"ISSUEGRAPH_DISABLE_EVENT_FLUSH=1",
+		"ISSUEGRAPH_TEST_MODE=1",
 	)
 
 	gitInit := exec.Command("git", "init", "--quiet")
@@ -66,12 +66,12 @@ func TestMetricsOffRejectsUnsafeUserRootsInNativeProcess(t *testing.T) {
 			env := append([]string{}, baseEnv...)
 			env = append(env, tt.profileEnv...)
 			env = append(env,
-				"BD_DISABLE_METRICS=1",
-				"BD_DISABLE_EVENT_FLUSH=1",
-				"BEADS_TEST_MODE=1",
+				"ISSUEGRAPH_DISABLE_METRICS=1",
+				"ISSUEGRAPH_DISABLE_EVENT_FLUSH=1",
+				"ISSUEGRAPH_TEST_MODE=1",
 			)
 
-			cmd := exec.Command(bdBinary, "metrics", "off")
+			cmd := exec.Command(issuegraphBinary, "metrics", "off")
 			cmd.Dir = sentinel
 			cmd.Env = env
 			out, err := cmd.CombinedOutput()
@@ -96,11 +96,11 @@ func TestMetricsOffRejectsUnsafeUserRootsInNativeProcess(t *testing.T) {
 		env = append(env,
 			"HOME=/c/Users/hook-user",
 			"APPDATA=relative-appdata",
-			"BD_DISABLE_EVENT_FLUSH=1",
-			"BEADS_TEST_MODE=1",
+			"ISSUEGRAPH_DISABLE_EVENT_FLUSH=1",
+			"ISSUEGRAPH_TEST_MODE=1",
 		)
 
-		cmd := exec.Command(bdBinary, "hooks", "run", "pre-commit")
+		cmd := exec.Command(issuegraphBinary, "hooks", "run", "pre-commit")
 		cmd.Dir = sentinel
 		cmd.Env = env
 		if out, err := cmd.CombinedOutput(); err != nil {
@@ -117,21 +117,21 @@ func TestMetricsOffRejectsUnsafeUserRootsInNativeProcess(t *testing.T) {
 
 func filteredWindowsUserConfigEnv(env []string) []string {
 	blocked := map[string]bool{
-		"HOME":                          true,
-		"USERPROFILE":                   true,
-		"HOMEDRIVE":                     true,
-		"HOMEPATH":                      true,
-		"APPDATA":                       true,
-		"LOCALAPPDATA":                  true,
-		"XDG_CONFIG_HOME":               true,
-		"BEADS_DIR":                     true,
-		"BEADS_DB":                      true,
-		"BD_DB":                         true,
-		"BD_DISABLE_METRICS":            true,
-		"BD_DISABLE_EVENT_FLUSH":        true,
-		"DO_NOT_TRACK":                  true,
-		"BEADS_TEST_MODE":               true,
-		"BEADS_TEST_IGNORE_REPO_CONFIG": true,
+		"HOME":                               true,
+		"USERPROFILE":                        true,
+		"HOMEDRIVE":                          true,
+		"HOMEPATH":                           true,
+		"APPDATA":                            true,
+		"LOCALAPPDATA":                       true,
+		"XDG_CONFIG_HOME":                    true,
+		"ISSUEGRAPH_DIR":                     true,
+		"ISSUEGRAPH_DB":                      true,
+		"ISSUEGRAPH_DB":                      true,
+		"ISSUEGRAPH_DISABLE_METRICS":         true,
+		"ISSUEGRAPH_DISABLE_EVENT_FLUSH":     true,
+		"DO_NOT_TRACK":                       true,
+		"ISSUEGRAPH_TEST_MODE":               true,
+		"ISSUEGRAPH_TEST_IGNORE_REPO_CONFIG": true,
 	}
 	out := make([]string, 0, len(env))
 	for _, entry := range env {

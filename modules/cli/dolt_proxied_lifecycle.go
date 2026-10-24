@@ -1,9 +1,9 @@
 package main
 
-// `bd dolt start` and `bd dolt status` for proxied-server workspaces.
+// `issuegraph dolt start` and `issuegraph dolt status` for proxied-server workspaces.
 //
-// Both commands predate proxied mode and assume bd owns the sql-server: they
-// read and write .beads/dolt-server.pid. A proxied workspace never has one —
+// Both commands predate proxied mode and assume issuegraph owns the sql-server: they
+// read and write .issuegraph/dolt-server.pid. A proxied workspace never has one —
 // the proxy writes proxy.pid and proxy-child.pid under the proxied root — so
 // status used to report "not running" against a healthy backend, and start
 // used to act on that by putting a second sql-server over the live data
@@ -15,21 +15,21 @@ import (
 	"os"
 	"strconv"
 
-	"github.com/steveyegge/beads/internal/configfile"
-	"github.com/steveyegge/beads/internal/storage/dbproxy/proxy"
+	"github.com/borg0ai/dx-issuegraph/internal/configfile"
+	"github.com/borg0ai/dx-issuegraph/internal/storage/dbproxy/proxy"
 )
 
-// Stable identity of the `bd dolt start` refusal on a proxied workspace.
+// Stable identity of the `issuegraph dolt start` refusal on a proxied workspace.
 // Codes are the part of the refusal contract downstream consumers branch on,
 // so this one is frozen; the message beside it is informative.
 const proxyDoltStartConflictCode = "proxy.dolt_start.conflict"
 
 const proxyDoltStartConflictMessage = "dolt start is not supported in proxied-server mode: " +
 	"the proxy owns its dolt backend, and a second sql-server over the same data directory risks corrupting it; " +
-	"the proxy starts on demand — run 'bd dolt status' to see what is running, or 'bd dolt stop' to shut it down"
+	"the proxy starts on demand — run 'issuegraph dolt status' to see what is running, or 'issuegraph dolt stop' to shut it down"
 
 // proxiedDoltStartRefusal is enforced inside the command rather than by the
-// pre-provider capability gate because `bd dolt` is a noDbCommands entry: its
+// pre-provider capability gate because `issuegraph dolt` is a noDbCommands entry: its
 // subcommands skip store init and so never reach the gate in main.go. Folding
 // this row into the consolidated registry is S2's job; the corruption guard
 // should not wait for it.
@@ -41,10 +41,10 @@ func proxiedDoltStartRefusal() *ProxyCapabilityError {
 	}
 }
 
-// proxiedDoltStatus is the `bd dolt status --json` payload for a proxied
+// proxiedDoltStatus is the `issuegraph dolt status --json` payload for a proxied
 // workspace. It reports the two processes separately because they fail
 // separately and an operator's next move differs: Running describes the proxy,
-// which is the endpoint every bd command connects through, while the Backend*
+// which is the endpoint every issuegraph command connects through, while the Backend*
 // fields describe the dolt server behind it.
 type proxiedDoltStatus struct {
 	Mode      string `json:"mode"`
@@ -55,7 +55,7 @@ type proxiedDoltStatus struct {
 	// BackendManaged is false on an external proxied topology, where the
 	// dolt server is somebody else's process and BackendRunning says nothing
 	// about it. Without this flag a caller cannot tell "the backend is down"
-	// from "bd never had a backend to report".
+	// from "issuegraph never had a backend to report".
 	BackendManaged  bool   `json:"backend_managed"`
 	BackendRunning  bool   `json:"backend_running"`
 	BackendPID      int    `json:"backend_pid,omitempty"`
@@ -64,8 +64,8 @@ type proxiedDoltStatus struct {
 	IdleTimeout     string `json:"idle_timeout,omitempty"`
 }
 
-func collectProxiedDoltStatus(beadsDir string) (proxiedDoltStatus, error) {
-	root, err := resolveProxiedServerRootPath(beadsDir)
+func collectProxiedDoltStatus(issuegraphDir string) (proxiedDoltStatus, error) {
+	root, err := resolveProxiedServerRootPath(issuegraphDir)
 	if err != nil {
 		return proxiedDoltStatus{}, err
 	}
@@ -82,7 +82,7 @@ func collectProxiedDoltStatus(beadsDir string) (proxiedDoltStatus, error) {
 		BackendPort:    live.BackendPort,
 	}
 
-	info, err := configfile.LoadProxiedServerClientInfo(beadsDir)
+	info, err := configfile.LoadProxiedServerClientInfo(issuegraphDir)
 	if err != nil {
 		return proxiedDoltStatus{}, err
 	}
@@ -126,7 +126,7 @@ func renderProxiedDoltStatus(status proxiedDoltStatus) {
 	fmt.Printf("  Root:       %s\n", status.Root)
 	switch {
 	case !status.BackendManaged:
-		fmt.Printf("  Backend:    external at %s (not managed by bd)\n", status.BackendEndpoint)
+		fmt.Printf("  Backend:    external at %s (not managed by issuegraph)\n", status.BackendEndpoint)
 	case status.BackendRunning:
 		fmt.Printf("  Backend:    running (dolt PID %d, port %d)\n", status.BackendPID, status.BackendPort)
 	default:
@@ -136,7 +136,7 @@ func renderProxiedDoltStatus(status proxiedDoltStatus) {
 		fmt.Printf("  Idle timeout: %s\n", status.IdleTimeout)
 	}
 	if !status.Running {
-		fmt.Println("  The proxy starts on demand; the next bd command launches it.")
+		fmt.Println("  The proxy starts on demand; the next issuegraph command launches it.")
 	}
 	if isDoltLocalOnly() {
 		fmt.Println("  Remote sync: disabled (dolt.local-only=true)")

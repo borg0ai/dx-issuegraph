@@ -32,11 +32,11 @@ func TestShouldFlagTrackedFile_RuntimeArtifacts(t *testing.T) {
 		{"push-state.json", true},
 		{"sync-state.json", true},
 		{"daemon.pid", true},
-		{"bd.lock", true},
+		{"issuegraph.lock", true},
 		{"dolt/noms/manifest", true},
 		{"issues.jsonl", false},
 		{"config.json", false},
-		{"sub/last_pull", false}, // patterns apply to top-level .beads/ files only
+		{"sub/last_pull", false}, // patterns apply to top-level .issuegraph/ files only
 	}
 	for _, tc := range cases {
 		if got := shouldFlagTrackedFile(tc.rel); got != tc.flag {
@@ -45,20 +45,20 @@ func TestShouldFlagTrackedFile_RuntimeArtifacts(t *testing.T) {
 	}
 }
 
-func TestCheckTrackedRuntimeFiles_WorktreeFallbackUsesSharedBeads(t *testing.T) {
+func TestCheckTrackedRuntimeFiles_WorktreeFallbackUsesSharedIssueGraph(t *testing.T) {
 	mainRepoDir, worktreeDir := setupWorktreeRepo(t)
 	disableGlobalGitIgnore(t, mainRepoDir)
-	mainBeadsDir := filepath.Join(mainRepoDir, ".beads")
-	if err := os.MkdirAll(mainBeadsDir, 0o755); err != nil {
-		t.Fatalf("failed to create main .beads dir: %v", err)
+	mainIssueGraphDir := filepath.Join(mainRepoDir, ".issuegraph")
+	if err := os.MkdirAll(mainIssueGraphDir, 0o755); err != nil {
+		t.Fatalf("failed to create main .issuegraph dir: %v", err)
 	}
 
-	lastTouched := filepath.Join(mainBeadsDir, "last-touched")
+	lastTouched := filepath.Join(mainIssueGraphDir, "last-touched")
 	if err := os.WriteFile(lastTouched, []byte("tracked runtime"), 0o644); err != nil {
 		t.Fatalf("failed to write last-touched: %v", err)
 	}
 
-	add := exec.Command("git", "add", "-f", ".beads/last-touched")
+	add := exec.Command("git", "add", "-f", ".issuegraph/last-touched")
 	add.Dir = mainRepoDir
 	if out, err := add.CombinedOutput(); err != nil {
 		t.Fatalf("git add failed: %v\n%s", err, out)
@@ -69,31 +69,31 @@ func TestCheckTrackedRuntimeFiles_WorktreeFallbackUsesSharedBeads(t *testing.T) 
 		t.Fatalf("git commit failed: %v\n%s", err, out)
 	}
 
-	clearResolveBeadsDirCache()
+	clearResolveIssueGraphDirCache()
 
 	check := CheckTrackedRuntimeFiles(worktreeDir)
 	if check.Status != "warning" {
 		t.Fatalf("expected warning status, got %s: %s", check.Status, check.Detail)
 	}
-	if check.Detail == "" || !contains(check.Detail, ".beads/last-touched") {
-		t.Fatalf("expected tracked runtime detail for shared .beads, got: %s", check.Detail)
+	if check.Detail == "" || !contains(check.Detail, ".issuegraph/last-touched") {
+		t.Fatalf("expected tracked runtime detail for shared .issuegraph, got: %s", check.Detail)
 	}
 }
 
-func TestFixTrackedRuntimeFiles_WorktreeFallbackUsesSharedBeads(t *testing.T) {
+func TestFixTrackedRuntimeFiles_WorktreeFallbackUsesSharedIssueGraph(t *testing.T) {
 	mainRepoDir, worktreeDir := setupWorktreeRepo(t)
 	disableGlobalGitIgnore(t, mainRepoDir)
-	mainBeadsDir := filepath.Join(mainRepoDir, ".beads")
-	if err := os.MkdirAll(mainBeadsDir, 0o755); err != nil {
-		t.Fatalf("failed to create main .beads dir: %v", err)
+	mainIssueGraphDir := filepath.Join(mainRepoDir, ".issuegraph")
+	if err := os.MkdirAll(mainIssueGraphDir, 0o755); err != nil {
+		t.Fatalf("failed to create main .issuegraph dir: %v", err)
 	}
 
-	lastTouched := filepath.Join(mainBeadsDir, "last-touched")
+	lastTouched := filepath.Join(mainIssueGraphDir, "last-touched")
 	if err := os.WriteFile(lastTouched, []byte("tracked runtime"), 0o644); err != nil {
 		t.Fatalf("failed to write last-touched: %v", err)
 	}
 
-	add := exec.Command("git", "add", "-f", ".beads/last-touched")
+	add := exec.Command("git", "add", "-f", ".issuegraph/last-touched")
 	add.Dir = mainRepoDir
 	if out, err := add.CombinedOutput(); err != nil {
 		t.Fatalf("git add failed: %v\n%s", err, out)
@@ -104,19 +104,19 @@ func TestFixTrackedRuntimeFiles_WorktreeFallbackUsesSharedBeads(t *testing.T) {
 		t.Fatalf("git commit failed: %v\n%s", err, out)
 	}
 
-	clearResolveBeadsDirCache()
+	clearResolveIssueGraphDirCache()
 
 	if err := FixTrackedRuntimeFiles(worktreeDir); err != nil {
 		t.Fatalf("FixTrackedRuntimeFiles() error = %v", err)
 	}
 
-	status := exec.Command("git", "status", "--short", "--", ".beads/last-touched")
+	status := exec.Command("git", "status", "--short", "--", ".issuegraph/last-touched")
 	status.Dir = mainRepoDir
 	out, err := status.CombinedOutput()
 	if err != nil {
 		t.Fatalf("git status failed: %v\n%s", err, out)
 	}
-	if !contains(string(out), "D  .beads/last-touched") {
+	if !contains(string(out), "D  .issuegraph/last-touched") {
 		t.Fatalf("expected staged untrack for shared runtime file, got:\n%s", out)
 	}
 

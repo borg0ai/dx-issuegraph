@@ -1,24 +1,24 @@
 ---
-title: "bd notion"
-description: "Commands for syncing issues between beads and Notion."
+title: "issuegraph notion"
+description: "Commands for syncing issues between issuegraph and Notion."
 ---
 
 {/* AUTO-GENERATED: do not edit manually */}
 
-Generated from `bd help --doc notion`.
+Generated from `issuegraph help --doc notion`.
 
-Commands for syncing issues between beads and Notion.
-
-```
-bd notion [flags]
-```
-
-## bd notion connect
-
-Connect bd to an existing Notion database or data source
+Commands for syncing issues between issuegraph and Notion.
 
 ```
-bd notion connect [flags]
+issuegraph notion [flags]
+```
+
+## issuegraph notion connect
+
+Connect issuegraph to an existing Notion database or data source
+
+```
+issuegraph notion connect [flags]
 ```
 
 **Flags:**
@@ -27,30 +27,30 @@ bd notion connect [flags]
       --url string   Existing Notion database or data source URL
 ```
 
-## bd notion init
+## issuegraph notion init
 
-Create a dedicated Beads database in Notion
+Create a dedicated IssueGraph database in Notion
 
 ```
-bd notion init [flags]
+issuegraph notion init [flags]
 ```
 
 **Flags:**
 
 ```
       --parent string   Parent page ID
-      --title string    Database title (default "Beads Issues")
+      --title string    Database title (default "IssueGraph Issues")
 ```
 
-## bd notion pull
+## issuegraph notion pull
 
 Pull one or more items from Notion.
 
-Accepts bead IDs or external references as positional arguments.
-Equivalent to: bd notion sync --pull --issues &lt;refs&gt;
+Accepts issue IDs or external references as positional arguments.
+Equivalent to: issuegraph notion sync --pull --issues &lt;refs&gt;
 
 ```
-bd notion pull [refs...] [flags]
+issuegraph notion pull [refs...] [flags]
 ```
 
 **Flags:**
@@ -59,15 +59,15 @@ bd notion pull [refs...] [flags]
       --dry-run   Preview pull without making changes
 ```
 
-## bd notion push
+## issuegraph notion push
 
-Push one or more beads issues to Notion.
+Push one or more issuegraph issues to Notion.
 
-Accepts bead IDs as positional arguments.
-Equivalent to: bd notion sync --push --issues &lt;ids&gt;
+Accepts issue IDs as positional arguments.
+Equivalent to: issuegraph notion sync --push --issues &lt;ids&gt;
 
 ```
-bd notion push [bead-ids...] [flags]
+issuegraph notion push [issue-ids...] [flags]
 ```
 
 **Flags:**
@@ -76,22 +76,22 @@ bd notion push [bead-ids...] [flags]
       --dry-run   Preview push without making changes
 ```
 
-## bd notion status
+## issuegraph notion status
 
 Show Notion sync status
 
 ```
-bd notion status [flags]
+issuegraph notion status [flags]
 ```
 
-## bd notion sync
+## issuegraph notion sync
 
-Synchronize issues between beads and Notion.
+Synchronize issues between issuegraph and Notion.
 
 By default this performs bidirectional sync. Use --pull or --push to limit direction.
 
 ```
-bd notion sync [flags]
+issuegraph notion sync [flags]
 ```
 
 **Flags:**
@@ -99,9 +99,9 @@ bd notion sync [flags]
 ```
       --create-only     Only create missing remote pages, do not update existing ones
       --dry-run         Preview changes without making mutations
-      --issues string   Comma-separated bead IDs to sync selectively (e.g., bd-abc,bd-def). Mutually exclusive with --parent.
-      --parent string   Limit push to this bead and its descendants (push only). Mutually exclusive with --issues.
-      --prefer-local    On conflict, keep the local beads version
+      --issues string   Comma-separated issue IDs to sync selectively (e.g., issuegraph-abc,issuegraph-def). Mutually exclusive with --parent.
+      --parent string   Limit push to this issue and its descendants (push only). Mutually exclusive with --issues.
+      --prefer-local    On conflict, keep the local issuegraph version
       --prefer-notion   On conflict, use the Notion version
       --pull            Only pull issues from Notion
       --push            Only push issues to Notion

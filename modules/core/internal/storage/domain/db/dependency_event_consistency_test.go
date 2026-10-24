@@ -1,14 +1,14 @@
 package db
 
 import (
-	"github.com/steveyegge/beads/internal/storage/domain"
-	"github.com/steveyegge/beads/internal/types"
+	"github.com/borg0ai/dx-issuegraph/internal/storage/domain"
+	"github.com/borg0ai/dx-issuegraph/internal/types"
 )
 
 // TestDependencyEventConsistency locks in the explicit-verb boundary: the
 // proxied plumbing records a dependency_added / dependency_removed event ONLY on
 // the explicit dep verb (through the DependencyUseCase), never on create-with-deps
-// (which calls depRepo.Insert directly). So `bd create --parent` / `--deps`
+// (which calls depRepo.Insert directly). So `issuegraph create --parent` / `--deps`
 // produces the same empty dep history on the proxied backend as on the embedded
 // backend, where create routes through issueops PersistDependencies (no emit).
 func (s *testSuite) TestDependencyEventConsistency() {
@@ -18,7 +18,7 @@ func (s *testSuite) TestDependencyEventConsistency() {
 	s.Run("CreateWithDepsDoesNotEmit", s.consistencyCreateDepsNoEmit)
 }
 
-// consistencyExplicitAddEmits proves the real proxied `bd dep add` / `bd link`
+// consistencyExplicitAddEmits proves the real proxied `issuegraph dep add` / `issuegraph link`
 // verb — which routes through DependencyUseCase.AddDependencies (bulk) — emits.
 func (s *testSuite) consistencyExplicitAddEmits() {
 	s.seedIssueRow("bd-cons-add-a")
@@ -32,7 +32,7 @@ func (s *testSuite) consistencyExplicitAddEmits() {
 	s.Require().NoError(s.Runner().QueryRowContext(s.Ctx(),
 		"SELECT COUNT(*) FROM events WHERE issue_id = ? AND event_type = ?",
 		"bd-cons-add-a", string(types.EventDependencyAdded)).Scan(&count))
-	s.Equal(1, count, "explicit AddDependencies (bd dep add / bd link) must emit one dependency_added")
+	s.Equal(1, count, "explicit AddDependencies (issuegraph dep add / issuegraph link) must emit one dependency_added")
 
 	var newValue string
 	s.Require().NoError(s.Runner().QueryRowContext(s.Ctx(),
@@ -41,7 +41,7 @@ func (s *testSuite) consistencyExplicitAddEmits() {
 	s.Equal("Added dependency: bd-cons-add-a blocks bd-cons-add-b", newValue)
 }
 
-// consistencyExplicitRemoveEmits proves the explicit `bd dep remove` verb —
+// consistencyExplicitRemoveEmits proves the explicit `issuegraph dep remove` verb —
 // DependencyUseCase.RemoveDependency — emits a dependency_removed event.
 func (s *testSuite) consistencyExplicitRemoveEmits() {
 	s.seedIssueRow("bd-cons-rm-a")
@@ -56,10 +56,10 @@ func (s *testSuite) consistencyExplicitRemoveEmits() {
 	s.Require().NoError(s.Runner().QueryRowContext(s.Ctx(),
 		"SELECT COUNT(*) FROM events WHERE issue_id = ? AND event_type = ?",
 		"bd-cons-rm-a", string(types.EventDependencyRemoved)).Scan(&count))
-	s.Equal(1, count, "explicit RemoveDependency (bd dep remove) must emit one dependency_removed")
+	s.Equal(1, count, "explicit RemoveDependency (issuegraph dep remove) must emit one dependency_removed")
 }
 
-// consistencyCreateParentNoEmit proves `bd create --parent` on the proxied path
+// consistencyCreateParentNoEmit proves `issuegraph create --parent` on the proxied path
 // creates the implicit parent-child edge but records NO dependency_added event,
 // matching the embedded backend.
 func (s *testSuite) consistencyCreateParentNoEmit() {
@@ -90,7 +90,7 @@ func (s *testSuite) consistencyCreateParentNoEmit() {
 	s.Equal(0, eventCount, "create --parent must NOT emit dependency_added (matches embedded PersistDependencies)")
 }
 
-// consistencyCreateDepsNoEmit proves `bd create --deps` on the proxied path
+// consistencyCreateDepsNoEmit proves `issuegraph create --deps` on the proxied path
 // creates the edge but records NO dependency_added event, matching the embedded
 // backend.
 func (s *testSuite) consistencyCreateDepsNoEmit() {

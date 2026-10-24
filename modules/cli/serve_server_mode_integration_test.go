@@ -12,11 +12,11 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/steveyegge/beads/internal/doltserver"
-	"github.com/steveyegge/beads/internal/storage/dbproxy/proxy"
+	"github.com/borg0ai/dx-issuegraph/internal/doltserver"
+	"github.com/borg0ai/dx-issuegraph/internal/storage/dbproxy/proxy"
 )
 
-// `bd serve` against a SERVER-MODE workspace — `bd init --server` pointed at a
+// `issuegraph serve` against a SERVER-MODE workspace — `issuegraph init --server` pointed at a
 // dolt sql-server this process did not start and does not own.
 //
 // That topology is the reason this file exists rather than another case in the
@@ -25,16 +25,16 @@ import (
 // provider at all. Everything the HTTP surface answers here is answered through
 // a provider serve built itself, from the workspace's Dolt connection settings.
 
-// serverModeProject is a `bd init --server` workspace pointed at the shared
+// serverModeProject is a `issuegraph init --server` workspace pointed at the shared
 // test Dolt container.
 type serverModeProject struct {
-	dir      string
-	beadsDir string
-	database string
-	env      []string
+	dir           string
+	issuegraphDir string
+	database      string
+	env           []string
 }
 
-func newServerModeProject(t *testing.T, bd, prefix string) serverModeProject {
+func newServerModeProject(t *testing.T, issuegraph, prefix string) serverModeProject {
 	t.Helper()
 	// The shared container IS an externally-managed dolt sql-server: nothing
 	// about it is proxied. The gate env var is named for the suite that
@@ -43,20 +43,20 @@ func newServerModeProject(t *testing.T, bd, prefix string) serverModeProject {
 
 	dir := t.TempDir()
 	initGitRepoAt(t, dir)
-	beadsDir := filepath.Join(dir, ".beads")
+	issuegraphDir := filepath.Join(dir, ".issuegraph")
 	database := uniqueProxiedDatabase()
-	env := bdEnv(dir)
+	env := issuegraphEnv(dir)
 
 	// serve fronts the server through a proxy child of its own; without this
 	// the child outlives the test by its idle timeout.
-	proxyRoot := filepath.Join(beadsDir, "dolt")
+	proxyRoot := filepath.Join(issuegraphDir, "dolt")
 	t.Cleanup(func() {
 		if err := proxy.Shutdown(proxyRoot); err != nil {
 			t.Logf("proxy.Shutdown(%s): %v", proxyRoot, err)
 		}
 	})
 
-	cmd := exec.Command(bd, "init", "--quiet", "--server",
+	cmd := exec.Command(issuegraph, "init", "--quiet", "--server",
 		"--server-host", "127.0.0.1",
 		"--server-port", strconv.Itoa(port),
 		"--database", database,
@@ -66,20 +66,20 @@ func newServerModeProject(t *testing.T, bd, prefix string) serverModeProject {
 	cmd.Env = env
 	stdout, stderr, err := runCommandBuffers(t, cmd)
 	if err != nil {
-		t.Fatalf("bd init --server failed: %v\nstdout:\n%s\nstderr:\n%s", err, stdout.String(), stderr.String())
+		t.Fatalf("issuegraph init --server failed: %v\nstdout:\n%s\nstderr:\n%s", err, stdout.String(), stderr.String())
 	}
 
-	return serverModeProject{dir: dir, beadsDir: beadsDir, database: database, env: env}
+	return serverModeProject{dir: dir, issuegraphDir: issuegraphDir, database: database, env: env}
 }
 
-func (p serverModeProject) run(t *testing.T, bd string, args ...string) string {
+func (p serverModeProject) run(t *testing.T, issuegraph string, args ...string) string {
 	t.Helper()
-	cmd := exec.Command(bd, args...)
+	cmd := exec.Command(issuegraph, args...)
 	cmd.Dir = p.dir
 	cmd.Env = p.env
 	stdout, stderr, err := runCommandBuffers(t, cmd)
 	if err != nil {
-		t.Fatalf("bd %s failed: %v\nstdout:\n%s\nstderr:\n%s",
+		t.Fatalf("issuegraph %s failed: %v\nstdout:\n%s\nstderr:\n%s",
 			strings.Join(args, " "), err, stdout.String(), stderr.String())
 	}
 	return stdout.String()
@@ -88,21 +88,21 @@ func (p serverModeProject) run(t *testing.T, bd string, args ...string) string {
 func TestServerModeServe(t *testing.T) {
 	requireSharedProxiedServer(t)
 	t.Parallel()
-	bd := buildEmbeddedBD(t)
-	p := newServerModeProject(t, bd, "srvm")
+	issuegraph := buildEmbeddedBD(t)
+	p := newServerModeProject(t, issuegraph, "srvm")
 
-	issue := strings.TrimSpace(p.run(t, bd, "create", "--silent", "server mode work"))
+	issue := strings.TrimSpace(p.run(t, issuegraph, "create", "--silent", "server mode work"))
 	if issue == "" {
-		t.Fatal("bd create returned no issue id")
+		t.Fatal("issuegraph create returned no issue id")
 	}
 
-	sp := startServe(t, bd, p.dir, p.env)
+	sp := startServe(t, issuegraph, p.dir, p.env)
 
 	startup := sp.awaitLogLine(t, "event=startup")
 	// The mode label is what tells an operator which topology this process
 	// attached to, and a server-mode workspace's Dolt server is external to it
-	// even when Beads is what started it — serve fronts one, never spawns one.
-	for _, want := range []string{`mode="server (external dolt)"`, "database=" + p.database, "beads_dir=" + p.beadsDir} {
+	// even when IssueGraph is what started it — serve fronts one, never spawns one.
+	for _, want := range []string{`mode="server (external dolt)"`, "database=" + p.database, "issuegraph_dir=" + p.issuegraphDir} {
 		if !strings.Contains(startup, want) {
 			t.Errorf("startup line is missing %q:\n%s", want, startup)
 		}
@@ -134,7 +134,7 @@ func TestServerModeServe(t *testing.T) {
 	})
 
 	t.Run("context", func(t *testing.T) {
-		status, body, _ := sp.get(t, "/v0/beads/context")
+		status, body, _ := sp.get(t, "/v0/issuegraph/context")
 		if status != http.StatusOK {
 			t.Fatalf("status = %d, want 200", status)
 		}
@@ -156,7 +156,7 @@ func TestServerModeServe(t *testing.T) {
 	})
 
 	t.Run("a read operation answers from the server-mode database", func(t *testing.T) {
-		status, body, header := sp.get(t, "/v0/beads/ready")
+		status, body, header := sp.get(t, "/v0/issuegraph/ready")
 		if status != http.StatusOK {
 			t.Fatalf("status = %d, want 200: %v", status, body)
 		}
@@ -180,15 +180,15 @@ func TestServerModeServe(t *testing.T) {
 	// idle timeout (20s + the 30s default) before a request can fail — a minute
 	// of enforced dead time gated on two independent timers, which is neither
 	// cheap nor reliable enough for a test.
-	assertProxyChildNeverIdles(t, filepath.Join(p.beadsDir, "dolt"))
+	assertProxyChildNeverIdles(t, filepath.Join(p.issuegraphDir, "dolt"))
 
 	sp.shutdown(t)
 
 	// The workspace is still the CLI's afterwards. Building a provider against a
 	// server-mode workspace runs the unit-of-work schema init on a database the
 	// DoltStore also manages; this is the check that the two agree.
-	if out := p.run(t, bd, "list"); !strings.Contains(out, issue) {
-		t.Errorf("bd list no longer shows %s after bd serve ran:\n%s", issue, out)
+	if out := p.run(t, issuegraph, "list"); !strings.Contains(out, issue) {
+		t.Errorf("issuegraph list no longer shows %s after issuegraph serve ran:\n%s", issue, out)
 	}
 }
 
@@ -226,7 +226,7 @@ func assertProxyChildNeverIdles(t *testing.T, proxyRoot string) {
 }
 
 // TestServerModeServeSkipsPostRunMaintenance is the behavioral half of the
-// exclusion. In server mode `bd serve` takes the PersistentPostRunE branch that
+// exclusion. In server mode `issuegraph serve` takes the PersistentPostRunE branch that
 // runs auto-commit, backup, export and push — so without the exclusion, SIGTERM
 // would fire all of it, attributing a whole process lifetime of requests to the
 // shutdown and pushing from inside a signal handler.
@@ -236,13 +236,13 @@ func assertProxyChildNeverIdles(t *testing.T, proxyRoot string) {
 func TestServerModeServeSkipsPostRunMaintenance(t *testing.T) {
 	requireSharedProxiedServer(t)
 	t.Parallel()
-	bd := buildEmbeddedBD(t)
-	p := newServerModeProject(t, bd, "srvmm")
+	issuegraph := buildEmbeddedBD(t)
+	p := newServerModeProject(t, issuegraph, "srvmm")
 
-	p.run(t, bd, "config", "set", "export.auto", "true")
+	p.run(t, issuegraph, "config", "set", "export.auto", "true")
 
-	jsonl := filepath.Join(p.beadsDir, "issues.jsonl")
-	state := filepath.Join(p.beadsDir, "export-state.json")
+	jsonl := filepath.Join(p.issuegraphDir, "issues.jsonl")
+	state := filepath.Join(p.issuegraphDir, "export-state.json")
 	clearExportState := func() {
 		if err := os.Remove(jsonl); err != nil && !os.IsNotExist(err) {
 			t.Fatalf("remove %s: %v", jsonl, err)
@@ -256,20 +256,20 @@ func TestServerModeServeSkipsPostRunMaintenance(t *testing.T) {
 	// maintenance net. Without this the assertion below would also pass on a
 	// workspace where auto-export was simply never going to fire.
 	clearExportState()
-	p.run(t, bd, "create", "--silent", "export control")
+	p.run(t, issuegraph, "create", "--silent", "export control")
 	if _, err := os.Stat(jsonl); err != nil {
-		t.Fatalf("auto-export did not fire for bd create (%v); the serve assertion would prove nothing", err)
+		t.Fatalf("auto-export did not fire for issuegraph create (%v); the serve assertion would prove nothing", err)
 	}
 
 	clearExportState()
-	sp := startServe(t, bd, p.dir, p.env)
+	sp := startServe(t, issuegraph, p.dir, p.env)
 	if status, _, _ := sp.get(t, "/healthz"); status != http.StatusOK {
 		t.Fatalf("/healthz status = %d, want 200", status)
 	}
 	sp.shutdown(t)
 
 	if _, err := os.Stat(jsonl); err == nil {
-		t.Error("bd serve ran the auto-export; a server must not export and push on the way out of a signal handler")
+		t.Error("issuegraph serve ran the auto-export; a server must not export and push on the way out of a signal handler")
 	} else if !os.IsNotExist(err) {
 		t.Fatalf("stat %s: %v", jsonl, err)
 	}
@@ -277,7 +277,7 @@ func TestServerModeServeSkipsPostRunMaintenance(t *testing.T) {
 
 // SHARED-SERVER mode with --global. The flag swaps the database the provider
 // opens to the shared global one, exactly as it does for the store the CLI
-// opens — but GET /v0/beads/context answers from a workspace snapshot read out
+// opens — but GET /v0/issuegraph/context answers from a workspace snapshot read out
 // of metadata.json, which knows nothing about the flag.
 //
 // That one endpoint is what automation is told to trust for this server's
@@ -287,16 +287,16 @@ func TestServerModeServeSkipsPostRunMaintenance(t *testing.T) {
 func TestSharedServerModeServeGlobalReportsTheServedDatabase(t *testing.T) {
 	requireSharedProxiedServer(t)
 	t.Parallel()
-	bd := buildEmbeddedBD(t)
-	p := newServerModeProject(t, bd, "srvgl")
+	issuegraph := buildEmbeddedBD(t)
+	p := newServerModeProject(t, issuegraph, "srvgl")
 
 	// Shared-server mode is server mode plus this switch; the workspace is
 	// otherwise the same one every other case in this file uses. It also moves
 	// the proxy root under the shared dolt directory, so the project-local
 	// cleanup newServerModeProject registered does not cover the child this test
 	// leaves behind.
-	p.env = append(p.env, "BEADS_DOLT_SHARED_SERVER=1")
-	sharedProxyRoot := filepath.Join(p.dir, ".beads", "shared-server", "dolt")
+	p.env = append(p.env, "ISSUEGRAPH_DOLT_SHARED_SERVER=1")
+	sharedProxyRoot := filepath.Join(p.dir, ".issuegraph", "shared-server", "dolt")
 	t.Cleanup(func() {
 		if err := proxy.Shutdown(sharedProxyRoot); err != nil {
 			t.Logf("proxy.Shutdown(%s): %v", sharedProxyRoot, err)
@@ -305,9 +305,9 @@ func TestSharedServerModeServeGlobalReportsTheServedDatabase(t *testing.T) {
 
 	// Control: the CLI reaches the global database in this workspace, so the
 	// server refusing or misreporting it is about serve, not about the setup.
-	p.run(t, bd, "--global", "list")
+	p.run(t, issuegraph, "--global", "list")
 
-	sp := startServe(t, bd, p.dir, p.env, "--global")
+	sp := startServe(t, issuegraph, p.dir, p.env, "--global")
 
 	startup := sp.awaitLogLine(t, "event=startup")
 	if !strings.Contains(startup, "database="+doltserver.GlobalDatabaseName) {
@@ -317,7 +317,7 @@ func TestSharedServerModeServeGlobalReportsTheServedDatabase(t *testing.T) {
 		t.Errorf("startup line names the project database while --global is in effect:\n%s", startup)
 	}
 
-	status, body, _ := sp.get(t, "/v0/beads/context")
+	status, body, _ := sp.get(t, "/v0/issuegraph/context")
 	if status != http.StatusOK {
 		t.Fatalf("status = %d, want 200", status)
 	}

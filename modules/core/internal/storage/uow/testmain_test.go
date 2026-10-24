@@ -5,13 +5,13 @@ import (
 	"os"
 	"testing"
 
-	"github.com/steveyegge/beads/internal/doltserver"
-	"github.com/steveyegge/beads/internal/testutil"
+	"github.com/borg0ai/dx-issuegraph/internal/doltserver"
+	"github.com/borg0ai/dx-issuegraph/internal/testutil"
 )
 
 // suiteRootPrefix is this suite's os.MkdirTemp pattern without its random
 // tail. SweepDeadSuiteRoots globs for it, so the two must not drift.
-const suiteRootPrefix = "beads-storage-uow-tests-"
+const suiteRootPrefix = "issuegraph-storage-uow-tests-"
 
 // suiteTempRoot is the TestMain-owned temp directory that every t.TempDir()
 // in this package lands under, so SweepSuiteTestServers has a root it can

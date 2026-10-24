@@ -1,8 +1,8 @@
 package db
 
 import (
-	"github.com/steveyegge/beads/internal/storage/domain"
-	"github.com/steveyegge/beads/internal/types"
+	"github.com/borg0ai/dx-issuegraph/internal/storage/domain"
+	"github.com/borg0ai/dx-issuegraph/internal/types"
 )
 
 func (s *testSuite) TestConfigSQLRepository() {
@@ -119,11 +119,11 @@ func (s *testSuite) configSetMetadataOverwrite() {
 
 func (s *testSuite) configSetLocalMetadataWrites() {
 	r := s.configRepo()
-	s.Require().NoError(r.SetLocalMetadata(s.Ctx(), "bd_version", "1.2.3"))
+	s.Require().NoError(r.SetLocalMetadata(s.Ctx(), "issuegraph_version", "1.2.3"))
 
 	var v string
 	err := s.Runner().
-		QueryRowContext(s.Ctx(), "SELECT value FROM local_metadata WHERE `key` = ?", "bd_version").
+		QueryRowContext(s.Ctx(), "SELECT value FROM local_metadata WHERE `key` = ?", "issuegraph_version").
 		Scan(&v)
 	s.Require().NoError(err)
 	s.Equal("1.2.3", v)
@@ -137,17 +137,17 @@ func (s *testSuite) configGetLocalMetadataMissingKey() {
 
 func (s *testSuite) configGetLocalMetadataRoundTrip() {
 	r := s.configRepo()
-	s.Require().NoError(r.SetLocalMetadata(s.Ctx(), "bd_version", "1.2.3"))
-	v, err := r.GetLocalMetadata(s.Ctx(), "bd_version")
+	s.Require().NoError(r.SetLocalMetadata(s.Ctx(), "issuegraph_version", "1.2.3"))
+	v, err := r.GetLocalMetadata(s.Ctx(), "issuegraph_version")
 	s.Require().NoError(err)
 	s.Equal("1.2.3", v)
 }
 
 func (s *testSuite) configGetLocalMetadataOverwrite() {
 	r := s.configRepo()
-	s.Require().NoError(r.SetLocalMetadata(s.Ctx(), "bd_version", "1.2.3"))
-	s.Require().NoError(r.SetLocalMetadata(s.Ctx(), "bd_version", "1.3.0"))
-	v, err := r.GetLocalMetadata(s.Ctx(), "bd_version")
+	s.Require().NoError(r.SetLocalMetadata(s.Ctx(), "issuegraph_version", "1.2.3"))
+	s.Require().NoError(r.SetLocalMetadata(s.Ctx(), "issuegraph_version", "1.3.0"))
+	v, err := r.GetLocalMetadata(s.Ctx(), "issuegraph_version")
 	s.Require().NoError(err)
 	s.Equal("1.3.0", v)
 }
@@ -194,13 +194,13 @@ func (s *testSuite) configSetConfigIssuePrefixTrim() {
 	s.Require().NoError(r.SetConfig(s.Ctx(), "issue_prefix", "bd-"))
 	v, err := r.GetConfig(s.Ctx(), "issue_prefix")
 	s.Require().NoError(err)
-	s.Equal("bd", v)
+	s.Equal("issuegraph", v)
 }
 
 // configSetConfigSyncsCustomTypesTable proves the unit-of-work config write
 // path re-syncs the normalized custom_types table (not just the types.custom
 // string), mirroring DoltStore.SetConfig. Without the sync, GetCustomTypes'
-// table-first read keeps returning stale rows and every write of a bead whose
+// table-first read keeps returning stale rows and every write of a issue whose
 // type is only in the string (e.g. "session") fails with "invalid issue type".
 func (s *testSuite) configSetConfigSyncsCustomTypesTable() {
 	_, err := s.Runner().ExecContext(s.Ctx(), "DELETE FROM custom_types")
@@ -306,10 +306,10 @@ func (s *testSuite) configGetAllConfigAllRows() {
 
 func (s *testSuite) configSetConfigIssuePrefixUnchanged() {
 	r := s.configRepo()
-	s.Require().NoError(r.SetConfig(s.Ctx(), "issue_prefix", "bd"))
+	s.Require().NoError(r.SetConfig(s.Ctx(), "issue_prefix", "issuegraph"))
 	v, err := r.GetConfig(s.Ctx(), "issue_prefix")
 	s.Require().NoError(err)
-	s.Equal("bd", v)
+	s.Equal("issuegraph", v)
 }
 
 func (s *testSuite) configGetCustomTypesMissing() {
@@ -529,20 +529,20 @@ func (s *testSuite) resetLocalMetadata() {
 // asserted at all three backends by TestVersionReconcilerContract.
 func (s *testSuite) configLocalMetadataRoundTrip() {
 	s.resetLocalMetadata()
-	s.Require().NoError(s.configUC().SetLocalMetadata(s.Ctx(), "bd_version", "1.2.0"))
+	s.Require().NoError(s.configUC().SetLocalMetadata(s.Ctx(), "issuegraph_version", "1.2.0"))
 
-	got, err := s.configUC().GetLocalMetadata(s.Ctx(), "bd_version")
+	got, err := s.configUC().GetLocalMetadata(s.Ctx(), "issuegraph_version")
 	s.Require().NoError(err)
 	s.Equal("1.2.0", got)
-	s.Equal("1.2.0", s.localMeta("bd_version"))
+	s.Equal("1.2.0", s.localMeta("issuegraph_version"))
 }
 
 func (s *testSuite) configLocalMetadataOverwrite() {
 	s.resetLocalMetadata()
-	s.Require().NoError(s.configUC().SetLocalMetadata(s.Ctx(), "bd_version", "1.2.0"))
-	s.Require().NoError(s.configUC().SetLocalMetadata(s.Ctx(), "bd_version", "1.3.0"))
+	s.Require().NoError(s.configUC().SetLocalMetadata(s.Ctx(), "issuegraph_version", "1.2.0"))
+	s.Require().NoError(s.configUC().SetLocalMetadata(s.Ctx(), "issuegraph_version", "1.3.0"))
 
-	s.Equal("1.3.0", s.localMeta("bd_version"))
+	s.Equal("1.3.0", s.localMeta("issuegraph_version"))
 }
 
 func (s *testSuite) configUseCaseGetConfigMissing() {
@@ -573,7 +573,7 @@ func (s *testSuite) configUseCaseSetConfigIssuePrefixTrim() {
 	s.Require().NoError(uc.SetConfig(s.Ctx(), "issue_prefix", "bd-"))
 	v, err := uc.GetConfig(s.Ctx(), "issue_prefix")
 	s.Require().NoError(err)
-	s.Equal("bd", v)
+	s.Equal("issuegraph", v)
 }
 
 func (s *testSuite) configUseCaseDeleteConfigRemoves() {

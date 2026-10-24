@@ -1,5 +1,5 @@
-# Test bd ready command
-bd init --prefix test
-bd create 'Ready issue'
-bd ready
+# Test issuegraph ready command
+issuegraph init --prefix test
+issuegraph create 'Ready issue'
+issuegraph ready
 stdout 'Ready'

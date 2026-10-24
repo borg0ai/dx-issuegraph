@@ -3,10 +3,10 @@ title: History Bloat
 description: Shed reachable Dolt history that dolt gc cannot reclaim
 ---
 
-Every bead write mints a Dolt commit, and Dolt keeps every byte a reachable
+Every issue write mints a Dolt commit, and Dolt keeps every byte a reachable
 commit references — `dolt gc` only reclaims what nothing points to. A
 workspace that has accumulated months of high-frequency writes can grow far
-past its live data (gigabytes of storage for a few thousand beads) while
+past its live data (gigabytes of storage for a few thousand issuegraph) while
 `dolt gc` reclaims nothing, because the entire chain is still reachable from
 your branch. This runbook squashes that chain to a single baseline commit so
 the old history becomes collectable, without touching your live data.
@@ -21,14 +21,14 @@ this database**, backup verified first.
 ## Symptoms
 
 - The Dolt data directory (or its remote/backup) is large and growing while
-  `issuegraph stats` shows a modest number of beads
+  `issuegraph stats` shows a modest number of issuegraph
 - `dolt gc` and `dolt gc --full` reclaim little or nothing
 - Cloning or pulling the database is slow far out of proportion to its content
 
 ## Diagnosis
 
-Run these inside the Dolt data directory — `.beads/embeddeddolt/<database>/`
-in embedded mode, `.beads/dolt/<database>/` in server mode:
+Run these inside the Dolt data directory — `.issuegraph/embeddeddolt/<database>/`
+in embedded mode, `.issuegraph/dolt/<database>/` in server mode:
 
 ```bash
 # How big is the store?

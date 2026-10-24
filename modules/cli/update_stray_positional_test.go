@@ -1,11 +1,11 @@
-// Tests for bd-5247: `bd update --set-metadata a=1 b=2` silently turns `b=2`
+// Tests for bd-5247: `issuegraph update --set-metadata a=1 b=2` silently turns `b=2`
 // into a positional issue id (--set-metadata takes one key=value per flag).
 // Before this guard, `a=1` was written and only the unbound pairs failed, so a
 // caller could not tell a full write from a 1-of-N write. The guard refuses a
 // `=`-bearing positional before ANY write, so no partial update lands.
 //
 // This file MUST NOT carry a cgo build tag: it exercises the default sqlite
-// backend via a bd binary built with the gms_pure_go tag, reusing the helpers
+// backend via a issuegraph binary built with the gms_pure_go tag, reusing the helpers
 // in update_multi_id_exit_test.go (same package).
 
 package main
@@ -30,12 +30,12 @@ func TestErrStrayFlagValuePositional(t *testing.T) {
 	}
 }
 
-// showStrayMetadata fetches an issue's metadata map via bd show --json.
-func showStrayMetadata(t *testing.T, bd, dir, id string) map[string]interface{} {
+// showStrayMetadata fetches an issue's metadata map via issuegraph show --json.
+func showStrayMetadata(t *testing.T, issuegraph, dir, id string) map[string]interface{} {
 	t.Helper()
-	stdout, stderr, code := runBDMultiID(t, bd, dir, "show", id, "--json")
+	stdout, stderr, code := runIssueGraphMultiID(t, issuegraph, dir, "show", id, "--json")
 	if code != 0 {
-		t.Fatalf("bd show %s failed (exit %d):\nstdout:\n%s\nstderr:\n%s", id, code, stdout, stderr)
+		t.Fatalf("issuegraph show %s failed (exit %d):\nstdout:\n%s\nstderr:\n%s", id, code, stdout, stderr)
 	}
 	var details []struct {
 		ID       string                 `json:"id"`
@@ -51,15 +51,15 @@ func showStrayMetadata(t *testing.T, bd, dir, id string) map[string]interface{} 
 }
 
 func TestUpdateStrayMetadataPositionalRefusedBeforeWrite(t *testing.T) {
-	bd, dir := setupMultiIDUpdateDB(t)
-	id := createMultiIDUpdateIssue(t, bd, dir, "stray metadata target")
+	issuegraph, dir := setupMultiIDUpdateDB(t)
+	id := createMultiIDUpdateIssue(t, issuegraph, dir, "stray metadata target")
 
 	// Only `probe_a=1` binds to the flag; `probe_b=2` and `probe_c=3` land as
 	// positional ids. The command must refuse before writing anything.
-	stdout, stderr, code := runBDMultiID(t, bd, dir,
+	stdout, stderr, code := runIssueGraphMultiID(t, issuegraph, dir,
 		"update", id, "--set-metadata", "probe_a=1", "probe_b=2", "probe_c=3")
 	if code == 0 {
-		t.Errorf("bd update with a '='-bearing positional exited 0, want nonzero\nstdout:\n%s\nstderr:\n%s", stdout, stderr)
+		t.Errorf("issuegraph update with a '='-bearing positional exited 0, want nonzero\nstdout:\n%s\nstderr:\n%s", stdout, stderr)
 	}
 	if !strings.Contains(stderr, "probe_b=2") {
 		t.Errorf("stderr does not name the mis-typed pair probe_b=2:\n%s", stderr)
@@ -67,24 +67,24 @@ func TestUpdateStrayMetadataPositionalRefusedBeforeWrite(t *testing.T) {
 
 	// The refusal is before any write: no pair — not even the bound probe_a —
 	// may have landed. This is the half a message-only fix would leave broken.
-	meta := showStrayMetadata(t, bd, dir, id)
+	meta := showStrayMetadata(t, issuegraph, dir, id)
 	if len(meta) != 0 {
 		t.Errorf("metadata is %v, want empty: refusal must prevent the partial write", meta)
 	}
 }
 
 func TestUpdateSetMetadataRepeatedFlagStillWrites(t *testing.T) {
-	bd, dir := setupMultiIDUpdateDB(t)
-	id := createMultiIDUpdateIssue(t, bd, dir, "correct form target")
+	issuegraph, dir := setupMultiIDUpdateDB(t)
+	id := createMultiIDUpdateIssue(t, issuegraph, dir, "correct form target")
 
 	// The correct form (one flag per pair) has no stray positional and must
 	// still apply normally — the guard does not break valid usage.
-	stdout, stderr, code := runBDMultiID(t, bd, dir,
+	stdout, stderr, code := runIssueGraphMultiID(t, issuegraph, dir,
 		"update", id, "--set-metadata", "probe_a=1", "--set-metadata", "probe_b=2")
 	if code != 0 {
-		t.Fatalf("bd update with repeated --set-metadata exited %d, want 0\nstdout:\n%s\nstderr:\n%s", code, stdout, stderr)
+		t.Fatalf("issuegraph update with repeated --set-metadata exited %d, want 0\nstdout:\n%s\nstderr:\n%s", code, stdout, stderr)
 	}
-	meta := showStrayMetadata(t, bd, dir, id)
+	meta := showStrayMetadata(t, issuegraph, dir, id)
 	if meta["probe_a"] == nil || meta["probe_b"] == nil {
 		t.Errorf("metadata = %v, want both probe_a and probe_b written", meta)
 	}

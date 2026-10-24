@@ -6,11 +6,11 @@ import (
 	"path/filepath"
 	"strings"
 
-	"github.com/steveyegge/beads/internal/git"
+	"github.com/borg0ai/dx-issuegraph/internal/git"
 )
 
 // CheckHooksQuick does a fast check for outdated git hooks.
-// Checks all beads hooks: pre-commit, post-merge, pre-push, post-checkout.
+// Checks all issuegraph hooks: pre-commit, post-merge, pre-push, post-checkout.
 // cliVersion is the current CLI version to compare against.
 func CheckHooksQuick(cliVersion string) string {
 	// Get hooks directory from common git dir (hooks are shared across worktrees)
@@ -24,7 +24,7 @@ func CheckHooksQuick(cliVersion string) string {
 		return "" // No git hooks directory, skip
 	}
 
-	// Check all beads-managed hooks
+	// Check all issuegraph-managed hooks
 	hookNames := []string{"pre-commit", "post-merge", "pre-push", "post-checkout"}
 
 	var outdatedHooks []string
@@ -40,7 +40,7 @@ func CheckHooksQuick(cliVersion string) string {
 		// Look for version marker
 		hookContent := string(content)
 		if !strings.Contains(hookContent, "bd-hooks-version:") {
-			continue // Not a bd hook or old format, skip
+			continue // Not a issuegraph hook or old format, skip
 		}
 
 		// Extract version

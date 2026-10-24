@@ -3,16 +3,16 @@ package httpapi
 import (
 	"net/http"
 
-	"github.com/steveyegge/beads/internal/httpapi/apigen"
-	"github.com/steveyegge/beads/issueops"
+	"github.com/borg0ai/dx-issuegraph/internal/httpapi/apigen"
+	"github.com/borg0ai/dx-issuegraph/issueops"
 )
 
-// handleDependencyCycles answers GET /v0/beads/dependencies/cycles.
+// handleDependencyCycles answers GET /v0/issuegraph/dependencies/cycles.
 //
 // WHAT IS NOT HERE, as for the read operations next door: no graph is built, no
 // table is chosen, no path is rotated and no report is sorted. The
 // canonicalization the document promises is inside issueops.CycleDetector's
-// implementation, which `bd dep cycles` reaches through the same accessor; a
+// implementation, which `issuegraph dep cycles` reaches through the same accessor; a
 // handler that ordered the answer for itself would be a second definition of
 // "canonical".
 //

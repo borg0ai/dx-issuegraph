@@ -9,8 +9,8 @@ import (
 func TestDoltHelpMentionsRemoteAuth(t *testing.T) {
 	for _, body := range []string{doltCmd.Long, doltSetCmd.Long} {
 		for _, needle := range []string{
-			"BEADS_DOLT_PASSWORD",
-			"BEADS_DOLT_SERVER_TLS",
+			"ISSUEGRAPH_DOLT_PASSWORD",
+			"ISSUEGRAPH_DOLT_SERVER_TLS",
 			"credentials",
 		} {
 			if !strings.Contains(body, needle) {
@@ -27,7 +27,7 @@ func TestDoltHelpMentionsRemoteAuth(t *testing.T) {
 // sql-server as the architecture every database uses, and must scope the
 // server-only subcommands.
 func TestDoltHelpDescribesEmbeddedDefault(t *testing.T) {
-	if strings.Contains(doltCmd.Long, "Beads uses a dolt sql-server for all database operations") {
+	if strings.Contains(doltCmd.Long, "IssueGraph uses a dolt sql-server for all database operations") {
 		t.Error("dolt help still describes a sql-server as the architecture for all databases")
 	}
 	for _, needle := range []string{

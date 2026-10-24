@@ -19,5 +19,5 @@ versa.
   by path. Different job from IssueGraph: where IssueGraph is a task graph for
   *what to do next*, scry is a recall layer for *what was decided and
   why*. They compose — independently arrived at the same hash-based-ID
-  convention (`bd-a1b2`, `~hash`) for the same reason: preventing
+  convention (`issuegraph-a1b2`, `~hash`) for the same reason: preventing
   collisions across multi-agent and multi-branch work.

@@ -103,7 +103,7 @@ func TestValidateJSONLForMigration_FileNotFound(t *testing.T) {
 	}
 }
 
-func TestCheckMigrationReadinessResult_NoBeadsDir(t *testing.T) {
+func TestCheckMigrationReadinessResult_NoIssueGraphDir(t *testing.T) {
 	tmpDir, err := os.MkdirTemp("", "bd-migration-validation-*")
 	if err != nil {
 		t.Fatalf("failed to create temp dir: %v", err)
@@ -117,7 +117,7 @@ func TestCheckMigrationReadinessResult_NoBeadsDir(t *testing.T) {
 	}
 
 	if result.Ready {
-		t.Error("expected result.Ready = false for missing .beads")
+		t.Error("expected result.Ready = false for missing .issuegraph")
 	}
 
 	if len(result.Errors) == 0 {
@@ -132,11 +132,11 @@ func TestCheckMigrationReadinessResult_NoJSONL(t *testing.T) {
 	}
 	defer os.RemoveAll(tmpDir)
 
-	beadsDir := filepath.Join(tmpDir, ".beads")
-	if err := os.MkdirAll(beadsDir, 0755); err != nil {
-		t.Fatalf("failed to create .beads: %v", err)
+	issuegraphDir := filepath.Join(tmpDir, ".issuegraph")
+	if err := os.MkdirAll(issuegraphDir, 0755); err != nil {
+		t.Fatalf("failed to create .issuegraph: %v", err)
 	}
-	if err := os.WriteFile(filepath.Join(beadsDir, "metadata.json"), []byte(`{"backend":"sqlite","sqlite_path":"issues.db"}`), 0644); err != nil {
+	if err := os.WriteFile(filepath.Join(issuegraphDir, "metadata.json"), []byte(`{"backend":"sqlite","sqlite_path":"issues.db"}`), 0644); err != nil {
 		t.Fatalf("failed to create SQLite metadata: %v", err)
 	}
 
@@ -154,17 +154,17 @@ func TestCheckMigrationReadinessResult_ValidJSONL(t *testing.T) {
 	}
 	defer os.RemoveAll(tmpDir)
 
-	beadsDir := filepath.Join(tmpDir, ".beads")
-	if err := os.MkdirAll(beadsDir, 0755); err != nil {
-		t.Fatalf("failed to create .beads: %v", err)
+	issuegraphDir := filepath.Join(tmpDir, ".issuegraph")
+	if err := os.MkdirAll(issuegraphDir, 0755); err != nil {
+		t.Fatalf("failed to create .issuegraph: %v", err)
 	}
-	if err := os.WriteFile(filepath.Join(beadsDir, "metadata.json"), []byte(`{"backend":"sqlite","sqlite_path":"issues.db"}`), 0644); err != nil {
+	if err := os.WriteFile(filepath.Join(issuegraphDir, "metadata.json"), []byte(`{"backend":"sqlite","sqlite_path":"issues.db"}`), 0644); err != nil {
 		t.Fatalf("failed to create SQLite metadata: %v", err)
 	}
 
 	// Create valid JSONL
 	jsonl := `{"id":"bd-001","title":"Test 1"}` + "\n" + `{"id":"bd-002","title":"Test 2"}`
-	if err := os.WriteFile(filepath.Join(beadsDir, "issues.jsonl"), []byte(jsonl), 0644); err != nil {
+	if err := os.WriteFile(filepath.Join(issuegraphDir, "issues.jsonl"), []byte(jsonl), 0644); err != nil {
 		t.Fatalf("failed to create JSONL: %v", err)
 	}
 
@@ -173,15 +173,15 @@ func TestCheckMigrationReadinessResult_ValidJSONL(t *testing.T) {
 	if check.Status == StatusError {
 		t.Errorf("status = %q, did not want error", check.Status)
 	}
-	if !strings.Contains(check.Fix, "bd help init-safety") {
+	if !strings.Contains(check.Fix, "issuegraph help init-safety") {
 		t.Errorf("fix must point to safe reinitialization guidance, got %q", check.Fix)
 	}
-	if strings.Contains(check.Fix, "bd migrate dolt") {
+	if strings.Contains(check.Fix, "issuegraph migrate dolt") {
 		t.Errorf("fix must not recommend removed backend-conversion command, got %q", check.Fix)
 	}
 }
 
-func TestCheckMigrationCompletionResult_NoBeadsDir(t *testing.T) {
+func TestCheckMigrationCompletionResult_NoIssueGraphDir(t *testing.T) {
 	tmpDir, err := os.MkdirTemp("", "bd-migration-validation-*")
 	if err != nil {
 		t.Fatalf("failed to create temp dir: %v", err)
@@ -210,17 +210,17 @@ func TestCheckMigrationCompletionResult_NotDoltBackend(t *testing.T) {
 	}
 	defer os.RemoveAll(tmpDir)
 
-	beadsDir := filepath.Join(tmpDir, ".beads")
-	if err := os.MkdirAll(beadsDir, 0755); err != nil {
-		t.Fatalf("failed to create .beads: %v", err)
+	issuegraphDir := filepath.Join(tmpDir, ".issuegraph")
+	if err := os.MkdirAll(issuegraphDir, 0755); err != nil {
+		t.Fatalf("failed to create .issuegraph: %v", err)
 	}
-	if err := os.WriteFile(filepath.Join(beadsDir, "metadata.json"), []byte(`{"backend":"sqlite","sqlite_path":"issues.db"}`), 0644); err != nil {
+	if err := os.WriteFile(filepath.Join(issuegraphDir, "metadata.json"), []byte(`{"backend":"sqlite","sqlite_path":"issues.db"}`), 0644); err != nil {
 		t.Fatalf("failed to create SQLite metadata: %v", err)
 	}
 
 	// Create JSONL (no Dolt backend present)
 	jsonl := `{"id":"bd-001","title":"Test 1"}`
-	if err := os.WriteFile(filepath.Join(beadsDir, "issues.jsonl"), []byte(jsonl), 0644); err != nil {
+	if err := os.WriteFile(filepath.Join(issuegraphDir, "issues.jsonl"), []byte(jsonl), 0644); err != nil {
 		t.Fatalf("failed to create JSONL: %v", err)
 	}
 
@@ -237,10 +237,10 @@ func TestCheckMigrationCompletionResult_NotDoltBackend(t *testing.T) {
 	if len(result.Errors) == 0 {
 		t.Error("expected errors in result")
 	}
-	if !strings.Contains(check.Fix, "bd help init-safety") {
+	if !strings.Contains(check.Fix, "issuegraph help init-safety") {
 		t.Errorf("fix must point to safe reinitialization guidance, got %q", check.Fix)
 	}
-	if strings.Contains(check.Fix, "bd migrate dolt") {
+	if strings.Contains(check.Fix, "issuegraph migrate dolt") {
 		t.Errorf("fix must not recommend removed backend-conversion command, got %q", check.Fix)
 	}
 }
@@ -279,7 +279,7 @@ func TestMigrationValidationResult_JSONSerialization(t *testing.T) {
 
 func TestCategorizeDoltExtras_AllForeign(t *testing.T) {
 	ctx := context.Background()
-	store := newTestDoltStore(t, "bd")
+	store := newTestDoltStore(t, "issuegraph")
 
 	// Create local issues via store
 	for _, id := range []string{"bd-001", "bd-002"} {
@@ -313,7 +313,7 @@ func TestCategorizeDoltExtras_AllForeign(t *testing.T) {
 
 func TestCategorizeDoltExtras_MixedEphemeralAndForeign(t *testing.T) {
 	ctx := context.Background()
-	store := newTestDoltStore(t, "bd")
+	store := newTestDoltStore(t, "issuegraph")
 
 	// Create local issues via store
 	for _, id := range []string{"bd-001", "bd-003"} {
@@ -341,7 +341,7 @@ func TestCategorizeDoltExtras_MixedEphemeralAndForeign(t *testing.T) {
 
 func TestCategorizeDoltExtras_AllEphemeral(t *testing.T) {
 	ctx := context.Background()
-	store := newTestDoltStore(t, "bd")
+	store := newTestDoltStore(t, "issuegraph")
 
 	// All extras are same-prefix (ephemeral)
 	for _, id := range []string{"bd-001", "bd-002", "bd-003"} {
@@ -364,7 +364,7 @@ func TestCategorizeDoltExtras_AllEphemeral(t *testing.T) {
 
 func TestCategorizeDoltExtras_NoExtras(t *testing.T) {
 	ctx := context.Background()
-	store := newTestDoltStore(t, "bd")
+	store := newTestDoltStore(t, "issuegraph")
 
 	for _, id := range []string{"bd-001", "bd-002"} {
 		if err := store.CreateIssue(ctx, newTestIssue(id), "test"); err != nil {

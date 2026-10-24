@@ -5,7 +5,7 @@ import (
 	"path/filepath"
 	"testing"
 
-	"github.com/steveyegge/beads/internal/utils"
+	"github.com/borg0ai/dx-issuegraph/internal/utils"
 )
 
 func TestSharedStore_NilSafe(t *testing.T) {
@@ -14,8 +14,8 @@ func TestSharedStore_NilSafe(t *testing.T) {
 	if ss.Store() != nil {
 		t.Error("expected nil store from nil SharedStore")
 	}
-	if ss.BeadsDir() != "" {
-		t.Error("expected empty beadsDir from nil SharedStore")
+	if ss.IssueGraphDir() != "" {
+		t.Error("expected empty issuegraphDir from nil SharedStore")
 	}
 	// Close should not panic on nil
 	ss.Close()
@@ -24,8 +24,8 @@ func TestSharedStore_NilSafe(t *testing.T) {
 func TestSharedStore_NoDatabase(t *testing.T) {
 	// SharedStore with no database should return nil Store
 	tmpDir := t.TempDir()
-	beadsDir := filepath.Join(tmpDir, ".beads")
-	if err := os.MkdirAll(beadsDir, 0755); err != nil {
+	issuegraphDir := filepath.Join(tmpDir, ".issuegraph")
+	if err := os.MkdirAll(issuegraphDir, 0755); err != nil {
 		t.Fatal(err)
 	}
 
@@ -35,26 +35,26 @@ func TestSharedStore_NoDatabase(t *testing.T) {
 	if ss.Store() != nil {
 		t.Error("expected nil store when no database exists")
 	}
-	if ss.BeadsDir() == "" {
-		t.Error("expected non-empty beadsDir")
+	if ss.IssueGraphDir() == "" {
+		t.Error("expected non-empty issuegraphDir")
 	}
 }
 
 func TestSharedStore_BareParentWorktreeFallback(t *testing.T) {
-	clearResolveBeadsDirCache()
-	t.Cleanup(clearResolveBeadsDirCache)
+	clearResolveIssueGraphDirCache()
+	t.Cleanup(clearResolveIssueGraphDirCache)
 
 	bareDir, worktreeDir := setupDoctorBareParentWorktree(t)
-	bareBeadsDir := filepath.Join(bareDir, ".beads")
-	if err := os.MkdirAll(bareBeadsDir, 0o755); err != nil {
+	bareIssueGraphDir := filepath.Join(bareDir, ".issuegraph")
+	if err := os.MkdirAll(bareIssueGraphDir, 0o755); err != nil {
 		t.Fatal(err)
 	}
 
 	ss := NewSharedStore(worktreeDir)
 	defer ss.Close()
 
-	if ss.BeadsDir() != utils.CanonicalizePath(bareBeadsDir) {
-		t.Fatalf("BeadsDir() = %q, want %q", ss.BeadsDir(), utils.CanonicalizePath(bareBeadsDir))
+	if ss.IssueGraphDir() != utils.CanonicalizePath(bareIssueGraphDir) {
+		t.Fatalf("IssueGraphDir() = %q, want %q", ss.IssueGraphDir(), utils.CanonicalizePath(bareIssueGraphDir))
 	}
 	if ss.Store() != nil {
 		t.Fatal("expected nil store when bare parent has no database")
@@ -64,8 +64,8 @@ func TestSharedStore_BareParentWorktreeFallback(t *testing.T) {
 func TestSharedStore_DoubleClose(t *testing.T) {
 	// Double close should not panic
 	tmpDir := t.TempDir()
-	beadsDir := filepath.Join(tmpDir, ".beads")
-	if err := os.MkdirAll(beadsDir, 0755); err != nil {
+	issuegraphDir := filepath.Join(tmpDir, ".issuegraph")
+	if err := os.MkdirAll(issuegraphDir, 0755); err != nil {
 		t.Fatal(err)
 	}
 
@@ -77,8 +77,8 @@ func TestSharedStore_DoubleClose(t *testing.T) {
 func TestSharedStore_WithStoreChecks_NoDatabase(t *testing.T) {
 	// WithStore variants should return sensible results when store is nil
 	tmpDir := t.TempDir()
-	beadsDir := filepath.Join(tmpDir, ".beads")
-	if err := os.MkdirAll(beadsDir, 0755); err != nil {
+	issuegraphDir := filepath.Join(tmpDir, ".issuegraph")
+	if err := os.MkdirAll(issuegraphDir, 0755); err != nil {
 		t.Fatal(err)
 	}
 
@@ -113,17 +113,17 @@ func TestSharedStore_WithStoreChecks_NoDatabase(t *testing.T) {
 }
 
 func TestCheckDatabaseVersionWithStore_BareParentWorktreeServerModeNoLocalDolt(t *testing.T) {
-	clearResolveBeadsDirCache()
-	t.Cleanup(clearResolveBeadsDirCache)
+	clearResolveIssueGraphDirCache()
+	t.Cleanup(clearResolveIssueGraphDirCache)
 
 	bareDir, worktreeDir := setupDoctorBareParentWorktree(t)
-	bareBeadsDir := filepath.Join(bareDir, ".beads")
-	if err := os.MkdirAll(bareBeadsDir, 0o755); err != nil {
+	bareIssueGraphDir := filepath.Join(bareDir, ".issuegraph")
+	if err := os.MkdirAll(bareIssueGraphDir, 0o755); err != nil {
 		t.Fatal(err)
 	}
 	if err := os.WriteFile(
-		filepath.Join(bareBeadsDir, "metadata.json"),
-		[]byte("{\"backend\":\"dolt\",\"dolt_mode\":\"server\",\"dolt_database\":\"beads_feature\"}"),
+		filepath.Join(bareIssueGraphDir, "metadata.json"),
+		[]byte("{\"backend\":\"dolt\",\"dolt_mode\":\"server\",\"dolt_database\":\"issuegraph_feature\"}"),
 		0o644,
 	); err != nil {
 		t.Fatal(err)
@@ -142,15 +142,15 @@ func TestCheckDatabaseVersionWithStore_BareParentWorktreeServerModeNoLocalDolt(t
 	if check.Detail != "Storage: Dolt" {
 		t.Fatalf("expected Storage: Dolt detail, got %q", check.Detail)
 	}
-	if _, err := os.Stat(filepath.Join(worktreeDir, ".beads")); !os.IsNotExist(err) {
-		t.Fatalf("expected no local .beads in worktree, got err=%v", err)
+	if _, err := os.Stat(filepath.Join(worktreeDir, ".issuegraph")); !os.IsNotExist(err) {
+		t.Fatalf("expected no local .issuegraph in worktree, got err=%v", err)
 	}
 }
 
 func TestGetSuppressedChecksWithStore_NilStore(t *testing.T) {
 	tmpDir := t.TempDir()
-	beadsDir := filepath.Join(tmpDir, ".beads")
-	if err := os.MkdirAll(beadsDir, 0755); err != nil {
+	issuegraphDir := filepath.Join(tmpDir, ".issuegraph")
+	if err := os.MkdirAll(issuegraphDir, 0755); err != nil {
 		t.Fatal(err)
 	}
 

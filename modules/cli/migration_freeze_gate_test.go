@@ -1,10 +1,10 @@
-// Tests for the migration freeze write gate (dc-6jaq): bd write commands must
+// Tests for the migration freeze write gate (dc-6jaq): issuegraph write commands must
 // refuse to run, with exit code ExitMigrationFrozen, while a MIGRATION-FREEZE
 // marker sits in the working directory or any ancestor of it — or at the path
-// named by BD_MIGRATION_FREEZE_FILE, which is authoritative when set.
+// named by ISSUEGRAPH_MIGRATION_FREEZE_FILE, which is authoritative when set.
 //
 // This file MUST NOT carry a cgo build tag: it exercises the default sqlite
-// backend via a bd binary built with the gms_pure_go tag (mirrors
+// backend via a issuegraph binary built with the gms_pure_go tag (mirrors
 // update_multi_id_exit_test.go's convention).
 
 package main
@@ -21,12 +21,12 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/steveyegge/beads/internal/migration"
+	"github.com/borg0ai/dx-issuegraph/internal/migration"
 )
 
 // vendorNeutralBans are substrings the refusal must never print. The gate used
 // to key on a gastown town root and tell users to run `gt migrate thaw`, a CLI
-// that does not ship with bd; nothing about the OSS binary's write refusal may
+// that does not ship with issuegraph; nothing about the OSS binary's write refusal may
 // name another vendor's product again.
 var vendorNeutralBans = []string{"gt ", "gt migrate", "thaw", "town", "mayor", "GT_"}
 
@@ -39,14 +39,14 @@ func assertVendorNeutral(t *testing.T, stderr string) {
 	}
 }
 
-// migrationFreezeEnv returns a hermetic environment for bd subprocess runs:
-// no inherited BEADS_*/GT_* variables, HOME pinned to the test dir, metrics and
+// migrationFreezeEnv returns a hermetic environment for issuegraph subprocess runs:
+// no inherited ISSUEGRAPH_*/GT_* variables, HOME pinned to the test dir, metrics and
 // daemons disabled.
 //
 // The freeze override is pinned to a path that cannot exist, not merely
 // stripped. Because the gate walks every ancestor to the filesystem root, a
 // stray MIGRATION-FREEZE anywhere above TMPDIR would otherwise fail these
-// tests at `bd init` — and the pin is authoritative, so it also holds the walk
+// tests at `issuegraph init` — and the pin is authoritative, so it also holds the walk
 // off while a test is setting its workspace up. Tests that actually exercise
 // the walk layer freezeWalkEnv on top. (TestMain pins the same variable for
 // the whole package, since the walk makes every write-subprocess suite here
@@ -54,7 +54,7 @@ func assertVendorNeutral(t *testing.T, stderr string) {
 func migrationFreezeEnv(dir string) []string {
 	var env []string
 	for _, e := range os.Environ() {
-		if strings.HasPrefix(e, "BEADS_") || strings.HasPrefix(e, "GT_") {
+		if strings.HasPrefix(e, "ISSUEGRAPH_") || strings.HasPrefix(e, "GT_") {
 			continue
 		}
 		if strings.HasPrefix(e, migration.EnvFreezeFile+"=") {
@@ -65,11 +65,11 @@ func migrationFreezeEnv(dir string) []string {
 	return append(env,
 		"HOME="+dir,
 		"USERPROFILE="+dir,
-		"BD_NON_INTERACTIVE=1",
-		"BD_DISABLE_METRICS=1",
-		"BD_DISABLE_EVENT_FLUSH=1",
-		"BEADS_NO_DAEMON=1",
-		"BEADS_DOLT_AUTO_START=0",
+		"ISSUEGRAPH_NON_INTERACTIVE=1",
+		"ISSUEGRAPH_DISABLE_METRICS=1",
+		"ISSUEGRAPH_DISABLE_EVENT_FLUSH=1",
+		"ISSUEGRAPH_NO_DAEMON=1",
+		"ISSUEGRAPH_DOLT_AUTO_START=0",
 		migration.EnvFreezeFile+"="+filepath.Join(dir, "no-such-freeze-marker"),
 	)
 }
@@ -79,27 +79,27 @@ func freezeWalkEnv() []string {
 	return []string{migration.EnvFreezeFile + "="}
 }
 
-// runBDFrozen runs bd with the ancestor walk enabled — the mode every
+// runIssueGraphFrozen runs issuegraph with the ancestor walk enabled — the mode every
 // marker-on-disk test needs.
-func runBDFrozen(t *testing.T, bd, dir string, args ...string) (stdout, stderr string, exitCode int) {
+func runIssueGraphFrozen(t *testing.T, issuegraph, dir string, args ...string) (stdout, stderr string, exitCode int) {
 	t.Helper()
-	return runBDMigrationFreezeWithEnv(t, bd, dir, freezeWalkEnv(), args...)
+	return runIssueGraphMigrationFreezeWithEnv(t, issuegraph, dir, freezeWalkEnv(), args...)
 }
 
-// runBDMigrationFreeze runs the bd binary and returns stdout, stderr, and the
+// runIssueGraphMigrationFreeze runs the issuegraph binary and returns stdout, stderr, and the
 // exit code. Only a failure to launch the process fails the test; nonzero
 // exits are returned to the caller for assertion.
-func runBDMigrationFreeze(t *testing.T, bd, dir string, args ...string) (stdout, stderr string, exitCode int) {
+func runIssueGraphMigrationFreeze(t *testing.T, issuegraph, dir string, args ...string) (stdout, stderr string, exitCode int) {
 	t.Helper()
-	return runBDMigrationFreezeWithEnv(t, bd, dir, nil, args...)
+	return runIssueGraphMigrationFreezeWithEnv(t, issuegraph, dir, nil, args...)
 }
 
-// runBDMigrationFreezeWithEnv is runBDMigrationFreeze plus caller-supplied
+// runIssueGraphMigrationFreezeWithEnv is runIssueGraphMigrationFreeze plus caller-supplied
 // environment variables layered on top of the hermetic base env (e.g.
-// BD_DEBUG=1, for tests that need to observe debug.Logf output).
-func runBDMigrationFreezeWithEnv(t *testing.T, bd, dir string, extraEnv []string, args ...string) (stdout, stderr string, exitCode int) {
+// ISSUEGRAPH_DEBUG=1, for tests that need to observe debug.Logf output).
+func runIssueGraphMigrationFreezeWithEnv(t *testing.T, issuegraph, dir string, extraEnv []string, args ...string) (stdout, stderr string, exitCode int) {
 	t.Helper()
-	cmd := exec.Command(bd, args...)
+	cmd := exec.Command(issuegraph, args...)
 	cmd.Dir = dir
 	cmd.Env = append(migrationFreezeEnv(dir), extraEnv...)
 	var outBuf, errBuf bytes.Buffer
@@ -108,31 +108,31 @@ func runBDMigrationFreezeWithEnv(t *testing.T, bd, dir string, extraEnv []string
 	if err := cmd.Run(); err != nil {
 		var ee *exec.ExitError
 		if !errors.As(err, &ee) {
-			t.Fatalf("bd %v did not run: %v", args, err)
+			t.Fatalf("issuegraph %v did not run: %v", args, err)
 		}
 		return outBuf.String(), errBuf.String(), ee.ExitCode()
 	}
 	return outBuf.String(), errBuf.String(), 0
 }
 
-// setupMigrationFreezeWorkspaceIn builds bd and initializes a fresh sqlite-
+// setupMigrationFreezeWorkspaceIn builds issuegraph and initializes a fresh sqlite-
 // backed database in dir. The workspace needs nothing but itself: the gate
 // keys on the freeze marker file, not on any orchestrator structure around it.
-func setupMigrationFreezeWorkspaceIn(t *testing.T, dir string) (bd string) {
+func setupMigrationFreezeWorkspaceIn(t *testing.T, dir string) (issuegraph string) {
 	t.Helper()
-	bd = buildBDForInitTests(t)
+	issuegraph = buildIssueGraphForInitTests(t)
 	runGitForBootstrapTest(t, dir, "init", "-q")
 	runGitForBootstrapTest(t, dir, "config", "core.hooksPath", ".git/hooks")
 
-	stdout, stderr, code := runBDMigrationFreeze(t, bd, dir,
+	stdout, stderr, code := runIssueGraphMigrationFreeze(t, issuegraph, dir,
 		"init", "--prefix", "test", "--quiet", "--non-interactive", "--skip-hooks", "--skip-agents")
 	if code != 0 {
-		t.Fatalf("bd init failed (exit %d):\nstdout:\n%s\nstderr:\n%s", code, stdout, stderr)
+		t.Fatalf("issuegraph init failed (exit %d):\nstdout:\n%s\nstderr:\n%s", code, stdout, stderr)
 	}
-	return bd
+	return issuegraph
 }
 
-func setupMigrationFreezeWorkspace(t *testing.T) (bd, dir string) {
+func setupMigrationFreezeWorkspace(t *testing.T) (issuegraph, dir string) {
 	t.Helper()
 	dir = t.TempDir()
 	return setupMigrationFreezeWorkspaceIn(t, dir), dir
@@ -150,10 +150,10 @@ func writeFreezeMarker(t *testing.T, dir, operator, reason string) string {
 }
 
 func TestCreateBlockedDuringMigrationFreeze(t *testing.T) {
-	bd, dir := setupMigrationFreezeWorkspace(t)
+	issuegraph, dir := setupMigrationFreezeWorkspace(t)
 	writeFreezeMarker(t, dir, "migrator", "dolt v2 migration")
 
-	stdout, stderr, code := runBDFrozen(t, bd, dir, "create", "should not be created", "-p", "2")
+	stdout, stderr, code := runIssueGraphFrozen(t, issuegraph, dir, "create", "should not be created", "-p", "2")
 
 	if code != ExitMigrationFrozen {
 		t.Fatalf("exit code = %d, want %d\nstdout:\n%s\nstderr:\n%s", code, ExitMigrationFrozen, stdout, stderr)
@@ -180,12 +180,12 @@ func TestCreateBlockedDuringMigrationFreeze(t *testing.T) {
 }
 
 func TestUpdateBlockedDuringMigrationFreeze(t *testing.T) {
-	bd, dir := setupMigrationFreezeWorkspace(t)
+	issuegraph, dir := setupMigrationFreezeWorkspace(t)
 
 	// Create the issue BEFORE freezing — create itself isn't under test here.
-	stdout, stderr, code := runBDMigrationFreeze(t, bd, dir, "create", "pre-freeze issue", "-p", "2", "--json")
+	stdout, stderr, code := runIssueGraphMigrationFreeze(t, issuegraph, dir, "create", "pre-freeze issue", "-p", "2", "--json")
 	if code != 0 {
-		t.Fatalf("setup bd create failed (exit %d):\nstdout:\n%s\nstderr:\n%s", code, stdout, stderr)
+		t.Fatalf("setup issuegraph create failed (exit %d):\nstdout:\n%s\nstderr:\n%s", code, stdout, stderr)
 	}
 	var issue struct {
 		ID string `json:"id"`
@@ -196,7 +196,7 @@ func TestUpdateBlockedDuringMigrationFreeze(t *testing.T) {
 
 	writeFreezeMarker(t, dir, "athos", "server migration in progress")
 
-	stdout, stderr, code = runBDFrozen(t, bd, dir, "update", issue.ID, "-p", "1")
+	stdout, stderr, code = runIssueGraphFrozen(t, issuegraph, dir, "update", issue.ID, "-p", "1")
 	if code != ExitMigrationFrozen {
 		t.Fatalf("exit code = %d, want %d\nstdout:\n%s\nstderr:\n%s", code, ExitMigrationFrozen, stdout, stderr)
 	}
@@ -215,10 +215,10 @@ func TestWriteBlockedByAncestorFreezeMarker(t *testing.T) {
 	if err := os.MkdirAll(work, 0755); err != nil {
 		t.Fatalf("creating %s: %v", work, err)
 	}
-	bd := setupMigrationFreezeWorkspaceIn(t, work)
+	issuegraph := setupMigrationFreezeWorkspaceIn(t, work)
 	writeFreezeMarker(t, root, "migrator", "tree-wide migration")
 
-	stdout, stderr, code := runBDFrozen(t, bd, work, "create", "should not be created", "-p", "2")
+	stdout, stderr, code := runIssueGraphFrozen(t, issuegraph, work, "create", "should not be created", "-p", "2")
 	if code != ExitMigrationFrozen {
 		t.Fatalf("exit code = %d, want %d (marker one level above the workspace)\nstdout:\n%s\nstderr:\n%s",
 			code, ExitMigrationFrozen, stdout, stderr)
@@ -230,12 +230,12 @@ func TestWriteBlockedByAncestorFreezeMarker(t *testing.T) {
 }
 
 // TestMigrationFreezeFileEnvOverride pins both directions of
-// BD_MIGRATION_FREEZE_FILE: set to an existing file it freezes a workspace
+// ISSUEGRAPH_MIGRATION_FREEZE_FILE: set to an existing file it freezes a workspace
 // with no marker anywhere above it, and set to a missing path it does NOT
 // freeze even with a marker right there — that second half is what makes the
 // variable a usable opt-out.
 func TestMigrationFreezeFileEnvOverride(t *testing.T) {
-	bd, dir := setupMigrationFreezeWorkspace(t)
+	issuegraph, dir := setupMigrationFreezeWorkspace(t)
 	elsewhere := t.TempDir()
 	override := filepath.Join(elsewhere, "freeze-marker")
 	if err := os.WriteFile(override, []byte("migrator\t2026-08-16T12:00:00Z\tout-of-tree freeze\n"), 0644); err != nil {
@@ -243,7 +243,7 @@ func TestMigrationFreezeFileEnvOverride(t *testing.T) {
 	}
 
 	t.Run("existing override file blocks with no marker in the tree", func(t *testing.T) {
-		stdout, stderr, code := runBDMigrationFreezeWithEnv(t, bd, dir,
+		stdout, stderr, code := runIssueGraphMigrationFreezeWithEnv(t, issuegraph, dir,
 			[]string{migration.EnvFreezeFile + "=" + override},
 			"create", "should not be created", "-p", "2")
 
@@ -267,7 +267,7 @@ func TestMigrationFreezeFileEnvOverride(t *testing.T) {
 		writeFreezeMarker(t, dir, "migrator", "should be ignored")
 		t.Cleanup(func() { _ = os.Remove(filepath.Join(dir, migration.FileName)) })
 
-		stdout, stderr, code := runBDMigrationFreezeWithEnv(t, bd, dir,
+		stdout, stderr, code := runIssueGraphMigrationFreezeWithEnv(t, issuegraph, dir,
 			[]string{migration.EnvFreezeFile + "=" + filepath.Join(elsewhere, "no-such-marker")},
 			"create", "normal issue", "-p", "2", "--json")
 
@@ -281,7 +281,7 @@ func TestMigrationFreezeFileEnvOverride(t *testing.T) {
 // TestFreezeKeysOnTargetWorkspaceNotCwd is the core-contract test: the gate
 // must follow the store being written, not the shell the caller happens to be
 // sitting in. Both shapes here target a frozen workspace from an unrelated
-// working directory, and neither one chdirs — `bd -C` only sets BEADS_DIR.
+// working directory, and neither one chdirs — `issuegraph -C` only sets ISSUEGRAPH_DIR.
 // Before this, both walked the caller's ancestry, found nothing, and wrote
 // straight through the freeze.
 func TestFreezeKeysOnTargetWorkspaceNotCwd(t *testing.T) {
@@ -290,18 +290,18 @@ func TestFreezeKeysOnTargetWorkspaceNotCwd(t *testing.T) {
 	if err := os.MkdirAll(work, 0755); err != nil {
 		t.Fatalf("creating %s: %v", work, err)
 	}
-	bd := setupMigrationFreezeWorkspaceIn(t, work)
+	issuegraph := setupMigrationFreezeWorkspaceIn(t, work)
 	writeFreezeMarker(t, frozenRoot, "migrator", "cross-tree migration")
 
 	// The caller's cwd is nowhere near the frozen tree.
 	outside := t.TempDir()
 
-	t.Run("BEADS_DIR", func(t *testing.T) {
-		stdout, stderr, code := runBDMigrationFreezeWithEnv(t, bd, outside,
-			append(freezeWalkEnv(), "BEADS_DIR="+filepath.Join(work, ".beads")),
+	t.Run("ISSUEGRAPH_DIR", func(t *testing.T) {
+		stdout, stderr, code := runIssueGraphMigrationFreezeWithEnv(t, issuegraph, outside,
+			append(freezeWalkEnv(), "ISSUEGRAPH_DIR="+filepath.Join(work, ".issuegraph")),
 			"create", "should not be created", "-p", "2")
 		if code != ExitMigrationFrozen {
-			t.Fatalf("exit code = %d, want %d — BEADS_DIR named a frozen workspace\nstdout:\n%s\nstderr:\n%s",
+			t.Fatalf("exit code = %d, want %d — ISSUEGRAPH_DIR named a frozen workspace\nstdout:\n%s\nstderr:\n%s",
 				code, ExitMigrationFrozen, stdout, stderr)
 		}
 		if !strings.Contains(stderr, "workspace is frozen for migration") {
@@ -310,7 +310,7 @@ func TestFreezeKeysOnTargetWorkspaceNotCwd(t *testing.T) {
 	})
 
 	t.Run("-C", func(t *testing.T) {
-		stdout, stderr, code := runBDFrozen(t, bd, outside,
+		stdout, stderr, code := runIssueGraphFrozen(t, issuegraph, outside,
 			"-C", work, "create", "should not be created", "-p", "2")
 		if code != ExitMigrationFrozen {
 			t.Fatalf("exit code = %d, want %d — -C named a frozen workspace\nstdout:\n%s\nstderr:\n%s",
@@ -325,15 +325,15 @@ func TestFreezeKeysOnTargetWorkspaceNotCwd(t *testing.T) {
 // TestInitReinitBlockedDuringMigrationFreeze covers the skip-store bypass, the
 // sharpest hole of the lot: `init` is in noDbCommands, so PersistentPreRunE
 // returns before its freeze gate, and init.go calls neither CheckReadonly nor
-// the gate. `bd init --reinit-local` therefore destroyed and recreated the
+// the gate. `issuegraph init --reinit-local` therefore destroyed and recreated the
 // very database the marker was protecting — permanently, exit 0, marker never
 // consulted.
 func TestInitReinitBlockedDuringMigrationFreeze(t *testing.T) {
-	bd, dir := setupMigrationFreezeWorkspace(t)
+	issuegraph, dir := setupMigrationFreezeWorkspace(t)
 
-	stdout, stderr, code := runBDMigrationFreeze(t, bd, dir, "create", "issue that must survive", "-p", "2", "--json")
+	stdout, stderr, code := runIssueGraphMigrationFreeze(t, issuegraph, dir, "create", "issue that must survive", "-p", "2", "--json")
 	if code != 0 {
-		t.Fatalf("setup bd create failed (exit %d):\nstdout:\n%s\nstderr:\n%s", code, stdout, stderr)
+		t.Fatalf("setup issuegraph create failed (exit %d):\nstdout:\n%s\nstderr:\n%s", code, stdout, stderr)
 	}
 	var issue struct {
 		ID string `json:"id"`
@@ -344,7 +344,7 @@ func TestInitReinitBlockedDuringMigrationFreeze(t *testing.T) {
 
 	writeFreezeMarker(t, dir, "migrator", "dolt v2 migration")
 
-	stdout, stderr, code = runBDFrozen(t, bd, dir,
+	stdout, stderr, code = runIssueGraphFrozen(t, issuegraph, dir,
 		"init", "--prefix", "test", "--reinit-local", "--non-interactive", "--quiet", "--skip-hooks", "--skip-agents")
 	if code != ExitMigrationFrozen {
 		t.Fatalf("exit code = %d, want %d — a destructive reinit must not run during a freeze\nstdout:\n%s\nstderr:\n%s",
@@ -359,9 +359,9 @@ func TestInitReinitBlockedDuringMigrationFreeze(t *testing.T) {
 	if err := os.Remove(filepath.Join(dir, migration.FileName)); err != nil {
 		t.Fatalf("removing freeze marker: %v", err)
 	}
-	stdout, stderr, code = runBDMigrationFreeze(t, bd, dir, "show", issue.ID, "--json")
+	stdout, stderr, code = runIssueGraphMigrationFreeze(t, issuegraph, dir, "show", issue.ID, "--json")
 	if code != 0 {
-		t.Fatalf("bd show after the refused reinit failed (exit %d) — the data was destroyed anyway:\nstdout:\n%s\nstderr:\n%s",
+		t.Fatalf("issuegraph show after the refused reinit failed (exit %d) — the data was destroyed anyway:\nstdout:\n%s\nstderr:\n%s",
 			code, stdout, stderr)
 	}
 }
@@ -373,7 +373,7 @@ func TestInitReinitBlockedDuringMigrationFreeze(t *testing.T) {
 // block after the clean refusal, making it read like a syntax error. Every
 // other freeze test uses a silenced command, so nothing else catches this.
 func TestFreezeRefusalHasNoUsageDump(t *testing.T) {
-	bd, dir := setupMigrationFreezeWorkspace(t)
+	issuegraph, dir := setupMigrationFreezeWorkspace(t)
 	writeFreezeMarker(t, dir, "migrator", "dolt v2 migration")
 
 	for _, tc := range []struct {
@@ -384,7 +384,7 @@ func TestFreezeRefusalHasNoUsageDump(t *testing.T) {
 		{name: "relate", args: []string{"dep", "relate", "test-aaaa", "test-bbbb"}},
 	} {
 		t.Run(tc.name, func(t *testing.T) {
-			stdout, stderr, code := runBDFrozen(t, bd, dir, tc.args...)
+			stdout, stderr, code := runIssueGraphFrozen(t, issuegraph, dir, tc.args...)
 			if code != ExitMigrationFrozen {
 				t.Fatalf("exit code = %d, want %d\nstdout:\n%s\nstderr:\n%s", code, ExitMigrationFrozen, stdout, stderr)
 			}
@@ -401,15 +401,15 @@ func TestFreezeRefusalHasNoUsageDump(t *testing.T) {
 	}
 }
 
-// TestCreateNotBlockedWithoutFreeze is the regression-safety check: normal bd
+// TestCreateNotBlockedWithoutFreeze is the regression-safety check: normal issuegraph
 // usage (no freeze marker present, the overwhelming common case) must be
 // completely unaffected by this gate.
 func TestCreateNotBlockedWithoutFreeze(t *testing.T) {
-	bd, dir := setupMigrationFreezeWorkspace(t)
+	issuegraph, dir := setupMigrationFreezeWorkspace(t)
 
-	stdout, stderr, code := runBDMigrationFreeze(t, bd, dir, "create", "normal issue", "-p", "2", "--json")
+	stdout, stderr, code := runIssueGraphMigrationFreeze(t, issuegraph, dir, "create", "normal issue", "-p", "2", "--json")
 	if code != 0 {
-		t.Fatalf("bd create failed (exit %d) with no freeze marker present:\nstdout:\n%s\nstderr:\n%s", code, stdout, stderr)
+		t.Fatalf("issuegraph create failed (exit %d) with no freeze marker present:\nstdout:\n%s\nstderr:\n%s", code, stdout, stderr)
 	}
 	var issue struct {
 		ID string `json:"id"`
@@ -418,7 +418,7 @@ func TestCreateNotBlockedWithoutFreeze(t *testing.T) {
 		t.Fatalf("parsing create --json output: %v\n%s", err, stdout)
 	}
 	if issue.ID == "" {
-		t.Fatalf("bd create --json returned no id:\n%s", stdout)
+		t.Fatalf("issuegraph create --json returned no id:\n%s", stdout)
 	}
 }
 
@@ -429,10 +429,10 @@ func TestCreateNotBlockedWithoutFreeze(t *testing.T) {
 // the freeze refusal used to os.Exit straight through that defer. A workspace
 // must be immediately usable after a blocked write.
 func TestWorkspaceUsableAfterMigrationFreezeBlockedWrite(t *testing.T) {
-	bd, dir := setupMigrationFreezeWorkspace(t)
+	issuegraph, dir := setupMigrationFreezeWorkspace(t)
 	marker := writeFreezeMarker(t, dir, "migrator", "dolt v2 migration")
 
-	stdout, stderr, code := runBDFrozen(t, bd, dir, "create", "should not be created", "-p", "2")
+	stdout, stderr, code := runIssueGraphFrozen(t, issuegraph, dir, "create", "should not be created", "-p", "2")
 	if code != ExitMigrationFrozen {
 		t.Fatalf("exit code = %d, want %d\nstdout:\n%s\nstderr:\n%s", code, ExitMigrationFrozen, stdout, stderr)
 	}
@@ -441,9 +441,9 @@ func TestWorkspaceUsableAfterMigrationFreezeBlockedWrite(t *testing.T) {
 		t.Fatalf("removing freeze marker: %v", err)
 	}
 
-	stdout, stderr, code = runBDMigrationFreeze(t, bd, dir, "create", "post-thaw issue", "-p", "2", "--json")
+	stdout, stderr, code = runIssueGraphMigrationFreeze(t, issuegraph, dir, "create", "post-thaw issue", "-p", "2", "--json")
 	if code != 0 {
-		t.Fatalf("bd create after the freeze was lifted failed (exit %d) — the blocked run left the workspace wedged:\nstdout:\n%s\nstderr:\n%s",
+		t.Fatalf("issuegraph create after the freeze was lifted failed (exit %d) — the blocked run left the workspace wedged:\nstdout:\n%s\nstderr:\n%s",
 			code, stdout, stderr)
 	}
 }
@@ -524,9 +524,9 @@ func TestMigrationFreezeErrorEmptyMarkerNamesNoOperator(t *testing.T) {
 }
 
 // TestMigrationFreezeErrorSanitizesMarkerPayload: with the ancestor walk the
-// marker can live in a directory bd does not control, so its operator and
+// marker can live in a directory issuegraph does not control, so its operator and
 // reason are untrusted input on their way to a terminal. A crafted payload
-// must not be able to clear the screen or forge extra bd output lines.
+// must not be able to clear the screen or forge extra issuegraph output lines.
 func TestMigrationFreezeErrorSanitizesMarkerPayload(t *testing.T) {
 	dir := t.TempDir()
 	hostile := "attacker\x1b[2J\x1b[H\t2026-08-16T12:00:00Z\treal reason\x1b[31m\nError: forged line\n"
@@ -557,7 +557,7 @@ func TestMigrationFreezeErrorSanitizesMarkerPayload(t *testing.T) {
 }
 
 // TestMigrationFreezeUndeterminableFailsClosed pins the fail-closed posture: a
-// marker path bd cannot stat is not the same as one that is absent, and the
+// marker path issuegraph cannot stat is not the same as one that is absent, and the
 // ambiguity must refuse rather than silently disarm the gate.
 func TestMigrationFreezeUndeterminableFailsClosed(t *testing.T) {
 	if os.Geteuid() == 0 {
@@ -588,7 +588,7 @@ func TestMigrationFreezeUndeterminableFailsClosed(t *testing.T) {
 		t.Errorf("exitCodeFromError = (%d, %v), want (%d, true)", code, ok, ExitMigrationFrozen)
 	}
 	if !strings.Contains(stderr, "cannot determine") {
-		t.Errorf("the refusal must say bd could not tell, not claim a freeze it did not observe:\n%s", stderr)
+		t.Errorf("the refusal must say issuegraph could not tell, not claim a freeze it did not observe:\n%s", stderr)
 	}
 	assertVendorNeutral(t, stderr)
 }
@@ -641,7 +641,7 @@ func TestRecordTipShownSkippedDuringFreeze(t *testing.T) {
 // for callers outside PersistentPreRunE: the silent probe used by diagnosis
 // paths that must keep running while frozen but skip their own writes, and the
 // targeted refusal for a command handed a workspace other than the one it was
-// launched in (`bd doctor /frozen/repo`). Both must agree with the gate.
+// launched in (`issuegraph doctor /frozen/repo`). Both must agree with the gate.
 func TestMigrationFreezeProbeAndTargetedGate(t *testing.T) {
 	unrelated := t.TempDir()
 	frozenRoot := t.TempDir()
@@ -652,7 +652,7 @@ func TestMigrationFreezeProbeAndTargetedGate(t *testing.T) {
 	}
 	t.Chdir(unrelated)
 	t.Setenv(migration.EnvFreezeFile, "")
-	t.Setenv("BEADS_DIR", "")
+	t.Setenv("ISSUEGRAPH_DIR", "")
 
 	if migrationFreezeActive() {
 		t.Errorf("migrationFreezeActive() = true with an unrelated cwd and no marker above it")
@@ -671,7 +671,7 @@ func TestMigrationFreezeProbeAndTargetedGate(t *testing.T) {
 		t.Errorf("refusal does not name the operation it was given:\n%s", stderr)
 	}
 
-	// The probe agrees once the frozen tree is the one bd resolved.
+	// The probe agrees once the frozen tree is the one issuegraph resolved.
 	t.Chdir(target)
 	if !migrationFreezeActive() {
 		t.Errorf("migrationFreezeActive() = false inside a frozen tree")
@@ -688,16 +688,16 @@ func (f *fakeTipMetadataWriter) SetLocalMetadata(_ context.Context, _, _ string)
 // TestQuickBlockedDuringMigrationFreeze regression-checks the sharpest gap
 // flagged in review of the original gate (dc-6jaq, PR #5826): the gate
 // hand-picked five commands (create, update, close, remember, import), but
-// "bd q" (quick.go) is create's own documented shorthand and called
+// "issuegraph q" (quick.go) is create's own documented shorthand and called
 // CheckReadonly directly rather than going through create's RunE — so it
 // was never gated even though create was. Now that CheckReadonly itself
 // folds in the freeze check, every one of its ~120 call sites is covered
 // automatically, "q" included.
 func TestQuickBlockedDuringMigrationFreeze(t *testing.T) {
-	bd, dir := setupMigrationFreezeWorkspace(t)
+	issuegraph, dir := setupMigrationFreezeWorkspace(t)
 	writeFreezeMarker(t, dir, "migrator", "dolt v2 migration")
 
-	stdout, stderr, code := runBDFrozen(t, bd, dir, "q", "should not be created")
+	stdout, stderr, code := runIssueGraphFrozen(t, issuegraph, dir, "q", "should not be created")
 	if code != ExitMigrationFrozen {
 		t.Fatalf("exit code = %d, want %d\nstdout:\n%s\nstderr:\n%s", code, ExitMigrationFrozen, stdout, stderr)
 	}
@@ -712,13 +712,13 @@ func TestQuickBlockedDuringMigrationFreeze(t *testing.T) {
 // TestLabelAddBlockedDuringMigrationFreeze checks a second, unrelated write
 // command that was never part of the original hand-picked five either —
 // evidence the fold-into-CheckReadonly fix covers the write surface
-// generally, not just the one bypass ("bd q") review happened to name.
+// generally, not just the one bypass ("issuegraph q") review happened to name.
 func TestLabelAddBlockedDuringMigrationFreeze(t *testing.T) {
-	bd, dir := setupMigrationFreezeWorkspace(t)
+	issuegraph, dir := setupMigrationFreezeWorkspace(t)
 
-	stdout, stderr, code := runBDMigrationFreeze(t, bd, dir, "create", "pre-freeze issue for label", "-p", "2", "--json")
+	stdout, stderr, code := runIssueGraphMigrationFreeze(t, issuegraph, dir, "create", "pre-freeze issue for label", "-p", "2", "--json")
 	if code != 0 {
-		t.Fatalf("setup bd create failed (exit %d):\nstdout:\n%s\nstderr:\n%s", code, stdout, stderr)
+		t.Fatalf("setup issuegraph create failed (exit %d):\nstdout:\n%s\nstderr:\n%s", code, stdout, stderr)
 	}
 	var issue struct {
 		ID string `json:"id"`
@@ -729,7 +729,7 @@ func TestLabelAddBlockedDuringMigrationFreeze(t *testing.T) {
 
 	writeFreezeMarker(t, dir, "migrator", "dolt v2 migration")
 
-	stdout, stderr, code = runBDFrozen(t, bd, dir, "label", "add", issue.ID, "should-not-be-added")
+	stdout, stderr, code = runIssueGraphFrozen(t, issuegraph, dir, "label", "add", issue.ID, "should-not-be-added")
 	if code != ExitMigrationFrozen {
 		t.Fatalf("exit code = %d, want %d\nstdout:\n%s\nstderr:\n%s", code, ExitMigrationFrozen, stdout, stderr)
 	}
@@ -738,9 +738,9 @@ func TestLabelAddBlockedDuringMigrationFreeze(t *testing.T) {
 	}
 }
 
-// TestImportBlockedDuringMigrationFreeze covers bd import both ways round.
+// TestImportBlockedDuringMigrationFreeze covers issuegraph import both ways round.
 //
-// Plain `bd import` is stopped by the early gate in PersistentPreRunE, like
+// Plain `issuegraph import` is stopped by the early gate in PersistentPreRunE, like
 // any other write. The `--dry-run` row is the one that pins runImport's OWN
 // call: a preview sets useReadOnly, so it skips the early gate, and runImport
 // never calls CheckReadonly — delete the check from import.go and only this
@@ -756,7 +756,7 @@ func TestImportBlockedDuringMigrationFreeze(t *testing.T) {
 		{name: "import --dry-run", args: []string{"import", "--dry-run"}},
 	} {
 		t.Run(tc.name, func(t *testing.T) {
-			bd, dir := setupMigrationFreezeWorkspace(t)
+			issuegraph, dir := setupMigrationFreezeWorkspace(t)
 			jsonlPath := filepath.Join(dir, "incoming.jsonl")
 			if err := os.WriteFile(jsonlPath,
 				[]byte(`{"id":"test-zzzz","title":"should not be imported","status":"open","priority":2,"issue_type":"task"}`+"\n"),
@@ -766,7 +766,7 @@ func TestImportBlockedDuringMigrationFreeze(t *testing.T) {
 			writeFreezeMarker(t, dir, "migrator", "dolt v2 migration")
 
 			args := append(append([]string{}, tc.args...), jsonlPath)
-			stdout, stderr, code := runBDFrozen(t, bd, dir, args...)
+			stdout, stderr, code := runIssueGraphFrozen(t, issuegraph, dir, args...)
 			if code != ExitMigrationFrozen {
 				t.Fatalf("exit code = %d, want %d\nstdout:\n%s\nstderr:\n%s", code, ExitMigrationFrozen, stdout, stderr)
 			}
@@ -789,7 +789,7 @@ func TestImportBlockedDuringMigrationFreeze(t *testing.T) {
 //
 // An old .local_version forces trackBdVersion to detect a version "bump" so
 // autoMigrateOnVersionBump's body actually does something observable
-// instead of short-circuiting on "no upgrade detected" — then BD_DEBUG=1
+// instead of short-circuiting on "no upgrade detected" — then ISSUEGRAPH_DEBUG=1
 // surfaces its unconditional "auto-migrate:"-prefixed debug.Logf lines, so
 // their absence is direct evidence the function was never entered.
 //
@@ -799,7 +799,7 @@ func TestImportBlockedDuringMigrationFreeze(t *testing.T) {
 // must still be skipped, because they are this hook's own writes and run
 // independently of the command's classification. Reproduced pre-fix:
 // freeze the workspace, seed .local_version with a stale version, run
-// `BD_DEBUG=1 bd list` — exit 0, but the "auto-migrate:" line appeared and
+// `ISSUEGRAPH_DEBUG=1 issuegraph list` — exit 0, but the "auto-migrate:" line appeared and
 // .local_version was rewritten to the current version anyway.
 func TestAutoMigrateSkippedDuringMigrationFreeze(t *testing.T) {
 	tests := []struct {
@@ -814,16 +814,16 @@ func TestAutoMigrateSkippedDuringMigrationFreeze(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			bd, dir := setupMigrationFreezeWorkspace(t)
+			issuegraph, dir := setupMigrationFreezeWorkspace(t)
 
-			localVersionPath := filepath.Join(dir, ".beads", localVersionFile)
+			localVersionPath := filepath.Join(dir, ".issuegraph", localVersionFile)
 			if err := os.WriteFile(localVersionPath, []byte("0.0.1\n"), 0644); err != nil {
 				t.Fatalf("writing fake old %s: %v", localVersionFile, err)
 			}
 
 			writeFreezeMarker(t, dir, "migrator", "dolt v2 migration")
 
-			stdout, stderr, code := runBDMigrationFreezeWithEnv(t, bd, dir, append(freezeWalkEnv(), "BD_DEBUG=1"), tt.args...)
+			stdout, stderr, code := runIssueGraphMigrationFreezeWithEnv(t, issuegraph, dir, append(freezeWalkEnv(), "ISSUEGRAPH_DEBUG=1"), tt.args...)
 
 			if code != tt.wantExit {
 				t.Fatalf("exit code = %d, want %d\nstdout:\n%s\nstderr:\n%s", code, tt.wantExit, stdout, stderr)
@@ -857,7 +857,7 @@ func TestAutoMigrateSkippedDuringMigrationFreeze(t *testing.T) {
 // dc-6jaq gate above never reached: it carries skipStoreAnnotation, so the root
 // PersistentPreRunE returns before its freeze check ever runs, and doctor's own
 // RunE never called CheckReadonly. Its fixers then opened stores directly — two
-// of them by shelling out to a child bd — and mutated straight through an
+// of them by shelling out to a child issuegraph — and mutated straight through an
 // active freeze.
 //
 // One row per writing surface class. The gate fires before doctor's
@@ -865,13 +865,13 @@ func TestAutoMigrateSkippedDuringMigrationFreeze(t *testing.T) {
 // interactive row proves the refusal precedes any prompt (stdin is closed; a
 // hang here is the failure).
 func TestDoctorMutationBlockedDuringMigrationFreeze(t *testing.T) {
-	bd, dir := setupMigrationFreezeWorkspace(t)
+	issuegraph, dir := setupMigrationFreezeWorkspace(t)
 	writeFreezeMarker(t, dir, "migrator", "dolt v2 migration")
 	before := doctorWorkspaceFingerprint(t, dir)
 
 	for _, tt := range doctorMutationSurfaces() {
 		t.Run(tt.name, func(t *testing.T) {
-			stdout, stderr, code := runBDFrozen(t, bd, dir, tt.args...)
+			stdout, stderr, code := runIssueGraphFrozen(t, issuegraph, dir, tt.args...)
 
 			if code != ExitMigrationFrozen {
 				t.Fatalf("exit code = %d, want %d\nstdout:\n%s\nstderr:\n%s", code, ExitMigrationFrozen, stdout, stderr)
@@ -887,7 +887,7 @@ func TestDoctorMutationBlockedDuringMigrationFreeze(t *testing.T) {
 				// kernel has already resolved, so a /var/folders temp root
 				// arrives as /private/var/folders and a full-path expectation
 				// never matches.
-				"bd " + tt.op + " is blocked by the freeze marker at ",
+				"issuegraph " + tt.op + " is blocked by the freeze marker at ",
 				filepath.Join(filepath.Base(dir), migration.FileName),
 				"To resume writes, remove that file.",
 			} {
@@ -926,12 +926,12 @@ func TestFreezeRefusalPathMatchesUnderSymlinkedTempRoot(t *testing.T) {
 		t.Skipf("symlinks unavailable on this filesystem: %v", err)
 	}
 
-	bd := setupMigrationFreezeWorkspaceIn(t, real)
+	issuegraph := setupMigrationFreezeWorkspaceIn(t, real)
 	writeFreezeMarker(t, real, "migrator", "dolt v2 migration")
 
 	// cwd expressed through the symlink — the shape macOS hands every
 	// subprocess without anyone asking for it.
-	stdout, stderr, code := runBDFrozen(t, bd, link, "create", "should not be created", "-p", "2")
+	stdout, stderr, code := runIssueGraphFrozen(t, issuegraph, link, "create", "should not be created", "-p", "2")
 	if code != ExitMigrationFrozen {
 		t.Fatalf("exit code = %d, want %d\nstdout:\n%s\nstderr:\n%s", code, ExitMigrationFrozen, stdout, stderr)
 	}
@@ -951,11 +951,11 @@ func TestFreezeRefusalPathMatchesUnderSymlinkedTempRoot(t *testing.T) {
 // TestDoctorPathArgBlockedByTargetFreeze covers the reason doctor's gate takes
 // the resolved target path: doctor is the only write-capable command that
 // operates on a directory named on the command line, so keying the lookup on
-// the caller's cwd alone would let `bd doctor /frozen/repo --fix` walk an
+// the caller's cwd alone would let `issuegraph doctor /frozen/repo --fix` walk an
 // entirely unrelated tree and mutate straight through the marker.
 func TestDoctorPathArgBlockedByTargetFreeze(t *testing.T) {
 	target := t.TempDir()
-	bd := setupMigrationFreezeWorkspaceIn(t, target)
+	issuegraph := setupMigrationFreezeWorkspaceIn(t, target)
 	writeFreezeMarker(t, target, "migrator", "dolt v2 migration")
 	before := doctorWorkspaceFingerprint(t, target)
 
@@ -963,7 +963,7 @@ func TestDoctorPathArgBlockedByTargetFreeze(t *testing.T) {
 	outside := t.TempDir()
 	setupMigrationFreezeWorkspaceIn(t, outside)
 
-	stdout, stderr, code := runBDFrozen(t, bd, outside, "doctor", target, "--fix", "--yes")
+	stdout, stderr, code := runIssueGraphFrozen(t, issuegraph, outside, "doctor", target, "--fix", "--yes")
 
 	if code != ExitMigrationFrozen {
 		t.Fatalf("exit code = %d, want %d\nstdout:\n%s\nstderr:\n%s", code, ExitMigrationFrozen, stdout, stderr)
@@ -983,18 +983,18 @@ func TestDoctorPathArgBlockedByTargetFreeze(t *testing.T) {
 }
 
 // TestDoctorPathArgMaintenanceSkippedByTargetFreeze is the diagnosis-side twin:
-// plain `bd doctor <path>` writes .local_version into the *target*, so the skip
-// probe has to key on the target too, not merely on where bd was launched.
+// plain `issuegraph doctor <path>` writes .local_version into the *target*, so the skip
+// probe has to key on the target too, not merely on where issuegraph was launched.
 func TestDoctorPathArgMaintenanceSkippedByTargetFreeze(t *testing.T) {
 	target := t.TempDir()
-	bd := setupMigrationFreezeWorkspaceIn(t, target)
+	issuegraph := setupMigrationFreezeWorkspaceIn(t, target)
 	seedStaleLocalVersion(t, target)
 	writeFreezeMarker(t, target, "migrator", "dolt v2 migration")
 
 	outside := t.TempDir()
 	setupMigrationFreezeWorkspaceIn(t, outside)
 
-	_, stderr, _ := runBDMigrationFreezeWithEnv(t, bd, outside,
+	_, stderr, _ := runIssueGraphMigrationFreezeWithEnv(t, issuegraph, outside,
 		append(freezeWalkEnv(), doctorMaintenanceEnv()...), "doctor", target)
 
 	if got := readWorkspaceLocalVersion(t, target); got != staleLocalVersion {
@@ -1011,7 +1011,7 @@ func TestDoctorPathArgMaintenanceSkippedByTargetFreeze(t *testing.T) {
 // every non-mutating doctor mode must keep running. The gate keys on
 // --fix/--clean and nothing else.
 func TestDoctorDiagnosisWorksDuringMigrationFreeze(t *testing.T) {
-	bd, dir := setupMigrationFreezeWorkspace(t)
+	issuegraph, dir := setupMigrationFreezeWorkspace(t)
 	writeFreezeMarker(t, dir, "migrator", "dolt v2 migration")
 
 	for _, args := range [][]string{
@@ -1021,9 +1021,9 @@ func TestDoctorDiagnosisWorksDuringMigrationFreeze(t *testing.T) {
 		{"doctor", "--check=conventions"},
 	} {
 		t.Run(strings.Join(args, "_"), func(t *testing.T) {
-			stdout, stderr, code := runBDFrozen(t, bd, dir, args...)
+			stdout, stderr, code := runIssueGraphFrozen(t, issuegraph, dir, args...)
 			if code == ExitMigrationFrozen || strings.Contains(stderr, "frozen for migration") {
-				t.Errorf("bd %v was refused during a freeze but mutates nothing (exit %d):\nstderr:\n%s\nstdout:\n%s",
+				t.Errorf("issuegraph %v was refused during a freeze but mutates nothing (exit %d):\nstderr:\n%s\nstdout:\n%s",
 					args, code, stderr, stdout)
 			}
 		})
@@ -1035,17 +1035,17 @@ func TestDoctorDiagnosisWorksDuringMigrationFreeze(t *testing.T) {
 // refused (the gate reads the mutating flag, not the preview flag — the same
 // posture the freeze gate takes on every other command's --dry-run).
 func TestDoctorDryRunWorksDuringMigrationFreeze(t *testing.T) {
-	bd, dir := setupMigrationFreezeWorkspace(t)
+	issuegraph, dir := setupMigrationFreezeWorkspace(t)
 	writeFreezeMarker(t, dir, "migrator", "dolt v2 migration")
 
-	stdout, stderr, code := runBDFrozen(t, bd, dir, "doctor", "--dry-run")
+	stdout, stderr, code := runIssueGraphFrozen(t, issuegraph, dir, "doctor", "--dry-run")
 	if code == ExitMigrationFrozen || strings.Contains(stderr, "frozen for migration") {
-		t.Errorf("'bd doctor --dry-run' previews only and must not be refused (exit %d):\nstderr:\n%s\nstdout:\n%s", code, stderr, stdout)
+		t.Errorf("'issuegraph doctor --dry-run' previews only and must not be refused (exit %d):\nstderr:\n%s\nstdout:\n%s", code, stderr, stdout)
 	}
 
-	stdout, stderr, code = runBDFrozen(t, bd, dir, "doctor", "--fix", "--dry-run")
+	stdout, stderr, code = runIssueGraphFrozen(t, issuegraph, dir, "doctor", "--fix", "--dry-run")
 	if code != ExitMigrationFrozen || !strings.Contains(stderr, "workspace is frozen for migration") {
-		t.Errorf("'bd doctor --fix --dry-run' must be refused (exit %d, want %d):\nstderr:\n%s\nstdout:\n%s",
+		t.Errorf("'issuegraph doctor --fix --dry-run' must be refused (exit %d, want %d):\nstderr:\n%s\nstdout:\n%s",
 			code, ExitMigrationFrozen, stderr, stdout)
 	}
 }
@@ -1057,17 +1057,17 @@ const staleLocalVersion = "0.0.1"
 
 func seedStaleLocalVersion(t *testing.T, dir string) {
 	t.Helper()
-	path := filepath.Join(dir, ".beads", localVersionFile)
+	path := filepath.Join(dir, ".issuegraph", localVersionFile)
 	if err := os.WriteFile(path, []byte(staleLocalVersion+"\n"), 0644); err != nil {
 		t.Fatalf("writing stale %s: %v", localVersionFile, err)
 	}
 }
 
-// readWorkspaceLocalVersion reads .beads/.local_version out of a test
+// readWorkspaceLocalVersion reads .issuegraph/.local_version out of a test
 // workspace (the production readLocalVersion takes the file path directly).
 func readWorkspaceLocalVersion(t *testing.T, dir string) string {
 	t.Helper()
-	data, err := os.ReadFile(filepath.Join(dir, ".beads", localVersionFile))
+	data, err := os.ReadFile(filepath.Join(dir, ".issuegraph", localVersionFile))
 	if err != nil {
 		t.Fatalf("reading %s: %v", localVersionFile, err)
 	}
@@ -1077,12 +1077,12 @@ func readWorkspaceLocalVersion(t *testing.T, dir string) string {
 // doctorMaintenanceEnv puts doctor on its full diagnosis path. runDiagnostics —
 // where the maintenance calls under test live — sits behind doctor's
 // embedded-mode gate, so the workspace has to look server-backed;
-// BEADS_DOLT_SHARED_SERVER is enough, and no server needs to answer, because
-// the maintenance block runs before doctor opens its shared store. BD_DEBUG
+// ISSUEGRAPH_DOLT_SHARED_SERVER is enough, and no server needs to answer, because
+// the maintenance block runs before doctor opens its shared store. ISSUEGRAPH_DEBUG
 // surfaces autoMigrateOnVersionBump's own "auto-migrate:" logging, so the
 // absence of that line is direct evidence the function was never entered.
 func doctorMaintenanceEnv() []string {
-	return []string{"BEADS_DOLT_SHARED_SERVER=1", "BD_DEBUG=1"}
+	return []string{"ISSUEGRAPH_DOLT_SHARED_SERVER=1", "ISSUEGRAPH_DEBUG=1"}
 }
 
 // assertDoctorReportedStaleVersionWithoutHealing is the #6028 diagnosis
@@ -1095,7 +1095,7 @@ func assertDoctorReportedStaleVersionWithoutHealing(t *testing.T, dir, stdout, s
 			localVersionFile, got, staleLocalVersion)
 	}
 	if strings.Contains(stderr, "auto-migrate:") {
-		t.Errorf("autoMigrateOnVersionBump ran its store-opening body during a gated 'bd doctor' "+
+		t.Errorf("autoMigrateOnVersionBump ran its store-opening body during a gated 'issuegraph doctor' "+
 			"(found an 'auto-migrate:' debug line) — diagnosis must not apply schema migrations:\n%s", stderr)
 	}
 	if !strings.Contains(stdout, "Version Tracking") || !strings.Contains(stdout, staleLocalVersion) {
@@ -1105,26 +1105,26 @@ func assertDoctorReportedStaleVersionWithoutHealing(t *testing.T, dir, stdout, s
 }
 
 // TestDoctorMaintenanceSkippedDuringMigrationFreeze is the regression test for
-// the sharpest half of #6028: plain `bd doctor` — no --fix, no --clean — wrote
+// the sharpest half of #6028: plain `issuegraph doctor` — no --fix, no --clean — wrote
 // to a frozen store. runDiagnostics re-implements PersistentPreRunE's two
 // maintenance side effects (trackBdVersion, autoMigrateOnVersionBump) because
 // doctor skips that hook, but it inherited none of the hook's guards, so it
-// rewrote .beads/.local_version and could auto-apply a schema migration
+// rewrote .issuegraph/.local_version and could auto-apply a schema migration
 // mid-freeze — the exact torn-upgrade write the freeze exists to prevent.
 //
 // This is the doctor-side twin of TestAutoMigrateSkippedDuringMigrationFreeze
 // above, which pins the same two calls on the PersistentPreRunE path.
 func TestDoctorMaintenanceSkippedDuringMigrationFreeze(t *testing.T) {
-	bd, dir := setupMigrationFreezeWorkspace(t)
+	issuegraph, dir := setupMigrationFreezeWorkspace(t)
 	seedStaleLocalVersion(t, dir)
 	writeFreezeMarker(t, dir, "migrator", "dolt v2 migration")
 
-	stdout, stderr, code := runBDMigrationFreezeWithEnv(t, bd, dir,
+	stdout, stderr, code := runIssueGraphMigrationFreezeWithEnv(t, issuegraph, dir,
 		append(freezeWalkEnv(), doctorMaintenanceEnv()...), "doctor")
 
 	assertDoctorReportedStaleVersionWithoutHealing(t, dir, stdout, stderr)
 	if code == ExitMigrationFrozen || strings.Contains(stderr, "frozen for migration") {
-		t.Errorf("plain 'bd doctor' must diagnose during a freeze, not refuse (exit %d):\nstderr:\n%s", code, stderr)
+		t.Errorf("plain 'issuegraph doctor' must diagnose during a freeze, not refuse (exit %d):\nstderr:\n%s", code, stderr)
 	}
 }
 
@@ -1133,18 +1133,18 @@ func TestDoctorMaintenanceSkippedDuringMigrationFreeze(t *testing.T) {
 // PersistentPreRunE must not interfere with autoMigrateOnVersionBump's normal
 // version-bump reconciliation.
 func TestAutoMigrateStillRunsWithoutFreeze(t *testing.T) {
-	bd, dir := setupMigrationFreezeWorkspace(t)
+	issuegraph, dir := setupMigrationFreezeWorkspace(t)
 
-	localVersionPath := filepath.Join(dir, ".beads", localVersionFile)
+	localVersionPath := filepath.Join(dir, ".issuegraph", localVersionFile)
 	if err := os.WriteFile(localVersionPath, []byte("0.0.1\n"), 0644); err != nil {
 		t.Fatalf("writing fake old %s: %v", localVersionFile, err)
 	}
 
-	stdout, stderr, code := runBDMigrationFreezeWithEnv(t, bd, dir, []string{"BD_DEBUG=1"},
+	stdout, stderr, code := runIssueGraphMigrationFreezeWithEnv(t, issuegraph, dir, []string{"ISSUEGRAPH_DEBUG=1"},
 		"create", "normal issue", "-p", "2", "--json")
 
 	if code != 0 {
-		t.Fatalf("bd create failed (exit %d) with no freeze marker present:\nstdout:\n%s\nstderr:\n%s", code, stdout, stderr)
+		t.Fatalf("issuegraph create failed (exit %d) with no freeze marker present:\nstdout:\n%s\nstderr:\n%s", code, stdout, stderr)
 	}
 	if !strings.Contains(stderr, "auto-migrate:") {
 		t.Errorf("expected autoMigrateOnVersionBump to run (an 'auto-migrate:' debug log line) when not frozen, got none:\nstderr:\n%s", stderr)

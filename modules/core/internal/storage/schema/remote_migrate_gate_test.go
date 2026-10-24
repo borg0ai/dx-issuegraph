@@ -173,7 +173,7 @@ func TestCheckRemoteMigrateGate(t *testing.T) {
 		expectGateCurrentVersion(mock, 1)
 		expectGateCurrentVersion(mock, 1)
 		mock.ExpectQuery(`SELECT COUNT\(\*\) FROM dolt_remotes`).
-			WillReturnError(errors.New("Error 1146: Table 'beads.dolt_remotes' doesn't exist"))
+			WillReturnError(errors.New("Error 1146: Table 'issuegraph.dolt_remotes' doesn't exist"))
 		if err := CheckRemoteMigrateGate(context.Background(), db); err != nil {
 			t.Fatalf("missing dolt_remotes should be treated as no remote (allow), got %v", err)
 		}
@@ -186,7 +186,7 @@ func TestCheckRemoteMigrateGate(t *testing.T) {
 // TestCheckRemoteMigrateGateWithRemoteCheck covers the on-disk fallback used by
 // server mode: a freshly (auto-)started dolt server reports an empty dolt_remotes
 // table even when a remote is configured, so the gate must fall back to a probe of
-// the persisted CLI remotes before allowing migration (gastownhall/beads#4268).
+// the persisted CLI remotes before allowing migration (borg0ai/dx-issuegraph#4268).
 func TestCheckRemoteMigrateGateWithRemoteCheck(t *testing.T) {
 	// Blunt-gate coverage; keep the smart router out of the mock expectations.
 	t.Setenv(SmartGateEnv, "0")
@@ -286,10 +286,10 @@ func TestRemoteMigrateGateAgentSafety(t *testing.T) {
 	if e.AgentDirective() == e.EscapeHint() {
 		t.Fatalf("AgentDirective must not equal the runnable escape command %q", e.EscapeHint())
 	}
-	if strings.Contains(e.AgentDirective(), AllowRemoteMigrateEnv+"=1 bd migrate") {
+	if strings.Contains(e.AgentDirective(), AllowRemoteMigrateEnv+"=1 issuegraph migrate") {
 		t.Errorf("AgentDirective must not embed the runnable migrate command: %q", e.AgentDirective())
 	}
-	if strings.Contains(e.AgentDirective(), "bd migrate --force") {
+	if strings.Contains(e.AgentDirective(), "issuegraph migrate --force") {
 		t.Errorf("AgentDirective must not embed the runnable --force migrate command: %q", e.AgentDirective())
 	}
 
@@ -343,10 +343,10 @@ func TestRemoteMigrateGateAdoptFastForward(t *testing.T) {
 	if e.AgentDirective() == e.EscapeHint() {
 		t.Fatalf("AgentDirective must not equal the runnable escape command %q", e.EscapeHint())
 	}
-	if strings.Contains(e.AgentDirective(), AllowRemoteMigrateEnv+"=1 bd migrate") {
+	if strings.Contains(e.AgentDirective(), AllowRemoteMigrateEnv+"=1 issuegraph migrate") {
 		t.Errorf("AgentDirective must not embed the runnable migrate command: %q", e.AgentDirective())
 	}
-	if strings.Contains(e.AgentDirective(), "bd migrate --force") {
+	if strings.Contains(e.AgentDirective(), "issuegraph migrate --force") {
 		t.Errorf("AgentDirective must not embed the runnable --force migrate command: %q", e.AgentDirective())
 	}
 

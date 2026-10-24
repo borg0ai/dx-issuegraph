@@ -4,9 +4,9 @@ import (
 	"fmt"
 	"strings"
 
-	"github.com/steveyegge/beads/modules/cli/doctor"
-	"github.com/steveyegge/beads/modules/cli/doctor/fix"
-	"github.com/steveyegge/beads/internal/ui"
+	"github.com/borg0ai/dx-issuegraph/internal/ui"
+	"github.com/borg0ai/dx-issuegraph/modules/cli/doctor"
+	"github.com/borg0ai/dx-issuegraph/modules/cli/doctor/fix"
 )
 
 // runArtifactsCheck runs detailed classic artifact detection.
@@ -40,17 +40,17 @@ func runArtifactsCheck(path string, clean bool, yes bool) error {
 		}
 
 		result := map[string]interface{}{
-			"total_count":       report.TotalCount,
-			"safe_delete_count": report.SafeDeleteCount,
-			"sqlite_artifacts":  len(report.SQLiteArtifacts),
-			"cruft_beads_dirs":  len(report.CruftBeadsDirs),
-			"redirect_issues":   len(report.RedirectIssues),
+			"total_count":           report.TotalCount,
+			"safe_delete_count":     report.SafeDeleteCount,
+			"sqlite_artifacts":      len(report.SQLiteArtifacts),
+			"cruft_issuegraph_dirs": len(report.CruftIssueGraphDirs),
+			"redirect_issues":       len(report.RedirectIssues),
 		}
 
 		var findings []map[string]interface{}
 		for _, lists := range [][]doctor.ArtifactFinding{
 			report.SQLiteArtifacts,
-			report.CruftBeadsDirs, report.RedirectIssues,
+			report.CruftIssueGraphDirs, report.RedirectIssues,
 		} {
 			for _, f := range lists {
 				findings = append(findings, map[string]interface{}{
@@ -81,9 +81,9 @@ func runArtifactsCheck(path string, clean bool, yes bool) error {
 		fmt.Println()
 	}
 
-	if len(report.CruftBeadsDirs) > 0 {
-		fmt.Printf("Cruft .beads Directories (%d):\n", len(report.CruftBeadsDirs))
-		for _, f := range report.CruftBeadsDirs {
+	if len(report.CruftIssueGraphDirs) > 0 {
+		fmt.Printf("Cruft .issuegraph Directories (%d):\n", len(report.CruftIssueGraphDirs))
+		for _, f := range report.CruftIssueGraphDirs {
 			safeTag := ""
 			if f.SafeDelete {
 				safeTag = " [safe]"
@@ -104,7 +104,7 @@ func runArtifactsCheck(path string, clean bool, yes bool) error {
 	}
 
 	if !clean {
-		fmt.Println("Run 'bd doctor --check=artifacts --clean' to remove safe-to-delete artifacts.")
+		fmt.Println("Run 'issuegraph doctor --check=artifacts --clean' to remove safe-to-delete artifacts.")
 		return nil
 	}
 

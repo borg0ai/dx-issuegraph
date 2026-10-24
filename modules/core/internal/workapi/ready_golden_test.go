@@ -7,8 +7,8 @@ import (
 	"path/filepath"
 	"testing"
 
-	"github.com/steveyegge/beads/internal/types"
-	"github.com/steveyegge/beads/issueops"
+	"github.com/borg0ai/dx-issuegraph/internal/types"
+	"github.com/borg0ai/dx-issuegraph/issueops"
 )
 
 type readyBuilderResult struct {
@@ -139,7 +139,7 @@ func TestReadyFilterGoldenDivergences(t *testing.T) {
 		"offset_positive":     "direct never sets Offset; its RunE rejects --offset upstream",
 		"everything_together": "same as offset_positive: Offset only, via --offset 2",
 
-		// Kept: direct's. --max-rows / BEADS_MAX_ROWS is a direct-path knob;
+		// Kept: direct's. --max-rows / ISSUEGRAPH_MAX_ROWS is a direct-path knob;
 		// the proxied path rejects a live cap outright and deliberately
 		// ignores it for --claim. modules/cli resolves it and stamps it onto the
 		// filter, so it stays out of the shared params.
@@ -152,7 +152,7 @@ func TestReadyFilterGoldenDivergences(t *testing.T) {
 
 		// Kept: both. The rejection the gather builder recorded is about
 		// --offset, which only the proxied route supports, so it moved to that
-		// route's RunE instead of into the shared gatherer; `bd ready
+		// route's RunE instead of into the shared gatherer; `issuegraph ready
 		// --offset -1` still prints ready work on the direct route. See
 		// modules/cli's TestGatherReadyInputIgnoresNegativeOffset.
 		"offset_negative": "gather rejects a negative --offset; direct silently ignored it",

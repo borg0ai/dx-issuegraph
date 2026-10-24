@@ -6,27 +6,27 @@ import (
 	"os"
 	"strings"
 
+	"github.com/borg0ai/dx-issuegraph/internal/formula"
+	"github.com/borg0ai/dx-issuegraph/internal/metrics"
+	"github.com/borg0ai/dx-issuegraph/internal/types"
+	"github.com/borg0ai/dx-issuegraph/internal/ui"
+	"github.com/borg0ai/dx-issuegraph/internal/utils"
 	"github.com/spf13/cobra"
-	"github.com/steveyegge/beads/internal/formula"
-	"github.com/steveyegge/beads/internal/metrics"
-	"github.com/steveyegge/beads/internal/types"
-	"github.com/steveyegge/beads/internal/ui"
-	"github.com/steveyegge/beads/internal/utils"
 )
 
 // pourCmd is a top-level command for instantiating protos as persistent mols.
 //
 // In the molecular chemistry metaphor:
 //   - Proto (solid) -> pour -> Mol (liquid)
-//   - Pour creates persistent, auditable work in .beads/
+//   - Pour creates persistent, auditable work in .issuegraph/
 var pourCmd = &cobra.Command{
 	Use:   "pour <proto-id>",
 	Short: "Instantiate a proto as a persistent mol (solid -> liquid)",
 	Long: `Pour a proto into a persistent mol - like pouring molten metal into a mold.
 
 This is the chemistry-inspired command for creating PERSISTENT work from templates.
-The resulting mol is stored as persistent beads in the issue database and
-syncs like any other bead (bd dolt push / pull).
+The resulting mol is stored as persistent issuegraph in the issue database and
+syncs like any other issue (issuegraph dolt push / pull).
 
 Phase transition: Proto (solid) -> pour -> Mol (liquid)
 
@@ -46,8 +46,8 @@ TIP: Formulas can specify phase:"vapor" to recommend wisp usage.
      If you pour a vapor-phase formula, you'll get a warning.
 
 Examples:
-  bd mol pour mol-feature --var name=auth    # Persistent feature work
-  bd mol pour mol-review --var pr=123        # Persistent code review`,
+  issuegraph mol pour mol-feature --var name=auth    # Persistent feature work
+  issuegraph mol pour mol-review --var pr=123        # Persistent code review`,
 	Args:          cobra.ExactArgs(1),
 	SilenceUsage:  true,
 	SilenceErrors: true,
@@ -222,12 +222,12 @@ func runPour(cmd *cobra.Command, args []string) error {
 
 func warnPourVaporFormula(protoArg string, varFlags []string) {
 	fmt.Fprintf(os.Stderr, "%s Formula %q recommends vapor phase (ephemeral)\n", ui.RenderWarn("⚠"), protoArg)
-	fmt.Fprintf(os.Stderr, "  Consider using: bd mol wisp %s", protoArg)
+	fmt.Fprintf(os.Stderr, "  Consider using: issuegraph mol wisp %s", protoArg)
 	for _, v := range varFlags {
 		fmt.Fprintf(os.Stderr, " --var %s", v)
 	}
 	fmt.Fprintf(os.Stderr, "\n")
-	fmt.Fprintf(os.Stderr, "  Pour creates persistent issues that sync like any other bead.\n")
+	fmt.Fprintf(os.Stderr, "  Pour creates persistent issues that sync like any other issue.\n")
 	fmt.Fprintf(os.Stderr, "  Wisp creates ephemeral issues that auto-cleanup.\n\n")
 }
 
@@ -279,7 +279,7 @@ type pourAttachPreview struct {
 
 func renderPourDryRun(protoID string, subgraph *TemplateSubgraph, vars map[string]string, assignee, attachType string, attachments []pourAttachPreview) {
 	fmt.Printf("\nDry run: would pour %d issues from proto %s\n\n", len(subgraph.Issues), protoID)
-	fmt.Printf("Storage: permanent (.beads/)\n\n")
+	fmt.Printf("Storage: permanent (.issuegraph/)\n\n")
 	for _, issue := range subgraph.Issues {
 		newTitle := substituteVariables(issue.Title, vars)
 		suffix := ""

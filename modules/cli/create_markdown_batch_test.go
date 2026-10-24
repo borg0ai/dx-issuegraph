@@ -1,8 +1,8 @@
 package main
 
-// End-to-end cover for `bd create --file` on the DIRECT route, which is where
+// End-to-end cover for `issuegraph create --file` on the DIRECT route, which is where
 // this command's behaviour changed when it moved onto issueops.BatchCreator.
-// They run the real bd binary against an isolated embedded-Dolt workspace and
+// They run the real issuegraph binary against an isolated embedded-Dolt workspace and
 // reuse create_deps_atomic_test.go's hermetic environment and output helpers.
 
 import (
@@ -23,9 +23,9 @@ func writeMarkdownPlan(t *testing.T, dir, name, body string) string {
 }
 
 func TestCreateFromMarkdownFile(t *testing.T) {
-	bd := buildBDForInitTests(t)
+	issuegraph := buildIssueGraphForInitTests(t)
 	dir := t.TempDir()
-	runCreateDepsBD(t, bd, dir, "init", "--backend", "dolt", "--prefix", "test",
+	runCreateDepsBD(t, issuegraph, dir, "init", "--backend", "dolt", "--prefix", "test",
 		"--quiet", "--non-interactive", "--skip-hooks", "--skip-agents")
 
 	t.Run("creates_every_template_in_the_file", func(t *testing.T) {
@@ -47,11 +47,11 @@ api, batch
 ### Description
 Second body.
 `)
-		out := runCreateDepsBD(t, bd, dir, "create", "--file", plan)
+		out := runCreateDepsBD(t, issuegraph, dir, "create", "--file", plan)
 		if !strings.Contains(out, "Created 2 issues from") {
 			t.Errorf("create --file output = %q, want the two-issue summary", out)
 		}
-		titles := createDepsIssueTitles(t, bd, dir)
+		titles := createDepsIssueTitles(t, issuegraph, dir)
 		for _, title := range []string{"First from file", "Second from file"} {
 			if !titles[title] {
 				t.Errorf("issue %q was not created", title)
@@ -74,11 +74,11 @@ Fine.
 ### Dependencies
 test-nosuchissue
 `)
-		out, err := runCreateDepsBDRaw(bd, dir, "create", "--file", plan)
+		out, err := runCreateDepsIssueGraphRaw(issuegraph, dir, "create", "--file", plan)
 		if err == nil {
 			t.Fatalf("create --file with an unresolvable dependency exited 0; output:\n%s", out)
 		}
-		titles := createDepsIssueTitles(t, bd, dir)
+		titles := createDepsIssueTitles(t, issuegraph, dir)
 		if titles["Lands before the refusal"] {
 			t.Error(`issue "Lands before the refusal" persisted despite the file being refused: ` +
 				"a --file create is all or nothing")
@@ -97,13 +97,13 @@ test-nosuchissue
 ### Description
 Ephemeral body.
 `)
-		out := runCreateDepsBD(t, bd, dir, "create", "--file", plan, "--ephemeral", "--json")
+		out := runCreateDepsBD(t, issuegraph, dir, "create", "--file", plan, "--ephemeral", "--json")
 		if !strings.Contains(out, `"ephemeral": true`) && !strings.Contains(out, `"ephemeral":true`) {
 			t.Errorf("create --file --ephemeral --json does not report an ephemeral row:\n%s", out)
 		}
 		// And the durable listing does not carry it, which is the half a
 		// caller asking for scratch work actually depends on.
-		if createDepsIssueTitles(t, bd, dir)["Scratch from file"] {
+		if createDepsIssueTitles(t, issuegraph, dir)["Scratch from file"] {
 			t.Error(`"Scratch from file" is in the durable listing; --file --ephemeral must create a wisp`)
 		}
 	})
@@ -111,7 +111,7 @@ Ephemeral body.
 	// The edges the file declares are written with the issues, in the same
 	// transaction — including an edge onto an issue created EARLIER in the file.
 	t.Run("writes_the_edges_the_file_declares", func(t *testing.T) {
-		blocker := strings.TrimSpace(runCreateDepsBD(t, bd, dir, "create", "file edge blocker", "--silent"))
+		blocker := strings.TrimSpace(runCreateDepsBD(t, issuegraph, dir, "create", "file edge blocker", "--silent"))
 		if blocker == "" {
 			t.Fatal("blocker create returned empty ID")
 		}
@@ -120,10 +120,10 @@ Ephemeral body.
 ### Dependencies
 `+blocker+`
 `)
-		runCreateDepsBD(t, bd, dir, "create", "--file", plan)
+		runCreateDepsBD(t, issuegraph, dir, "create", "--file", plan)
 		// --direction=up is what the blocker BLOCKS, which is where the edge
 		// the file declared shows up.
-		out := runCreateDepsBD(t, bd, dir, "dep", "tree", blocker, "--direction=up", "--json")
+		out := runCreateDepsBD(t, issuegraph, dir, "dep", "tree", blocker, "--direction=up", "--json")
 		if !strings.Contains(out, "Blocked by an existing issue") {
 			t.Errorf("the declared edge was not written; dependents of %s:\n%s", blocker, out)
 		}

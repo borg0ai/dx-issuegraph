@@ -6,46 +6,46 @@ import (
 	"fmt"
 	"time"
 
+	"github.com/borg0ai/dx-issuegraph/internal/config"
+	"github.com/borg0ai/dx-issuegraph/internal/metrics"
 	"github.com/spf13/cobra"
-	"github.com/steveyegge/beads/internal/config"
-	"github.com/steveyegge/beads/internal/metrics"
 )
 
 var backupCmd = &cobra.Command{
 	Use:   "backup",
-	Short: "Back up your beads database",
-	Long: `Back up your beads database for off-machine recovery.
+	Short: "Back up your issuegraph database",
+	Long: `Back up your issuegraph database for off-machine recovery.
 
 This is a Dolt-native database backup. It preserves the database state,
 including tables, branches, commit history, and working-set data. This is
-different from 'bd export', which writes issue records to JSONL for migration
+different from 'issuegraph export', which writes issue records to JSONL for migration
 and interoperability.
 
 Commands:
-  bd backup init <path>    Set up a backup destination (filesystem or DoltHub)
-  bd backup sync           Push to configured backup destination
-  bd backup restore [path] Restore from a backup directory
-  bd backup remove         Remove backup destination
-  bd backup status         Show backup status
+  issuegraph backup init <path>    Set up a backup destination (filesystem or DoltHub)
+  issuegraph backup sync           Push to configured backup destination
+  issuegraph backup restore [path] Restore from a backup directory
+  issuegraph backup remove         Remove backup destination
+  issuegraph backup status         Show backup status
 
 DoltHub is recommended for cloud backup:
-  bd backup init https://doltremoteapi.dolthub.com/<user>/<repo>
+  issuegraph backup init https://doltremoteapi.dolthub.com/<user>/<repo>
   Set DOLT_REMOTE_USER and DOLT_REMOTE_PASSWORD for authentication.
 
 Auto-backup default:
   When backup.enabled is unset, auto-backup turns ON in embedded mode if a
   git remote exists, and stays OFF in sql-server / shared-server mode. In
-  server mode many bd clients share one Dolt server, and each would register
+  server mode many issuegraph clients share one Dolt server, and each would register
   a server-side backup remote under the same name pointing at its own local
   dir and full-sync the whole database — a self-amplifying storm. To back up
-  a shared server, run 'bd backup' explicitly (or set backup.enabled=true and
-  coordinate destinations). 'bd config get backup.enabled' shows the effective
+  a shared server, run 'issuegraph backup' explicitly (or set backup.enabled=true and
+  coordinate destinations). 'issuegraph config get backup.enabled' shows the effective
   value and its source.
 
   On a proxied-server workspace that opt-in does not apply: auto-backup has
   no post-command hook on that path, so backup.enabled=true is inert there.
   The five backup verbs above are honored on a managed-local proxied server —
-  run 'bd backup sync' explicitly to back one up.`,
+  run 'issuegraph backup sync' explicitly to back one up.`,
 	GroupID: "sync",
 }
 
@@ -112,8 +112,8 @@ func newBackupStatusCommand(sizeDatabase backupSizeFunc) *cobra.Command {
 				fmt.Println("No backup has been performed yet.")
 				fmt.Println()
 				fmt.Println("Setup:")
-				fmt.Println("  bd backup init <path>    Set up a backup destination")
-				fmt.Println("  bd backup sync           Push to backup destination")
+				fmt.Println("  issuegraph backup init <path>    Set up a backup destination")
+				fmt.Println("  issuegraph backup sync           Push to backup destination")
 				if sizeAvailable {
 					showDBSize(databaseSize)
 				}

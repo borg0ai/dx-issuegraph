@@ -1,6 +1,6 @@
 //go:build !cgo
 
-package beads_test
+package issuegraph_test
 
 import (
 	"context"
@@ -11,23 +11,23 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/steveyegge/beads"
+	"github.com/borg0ai/dx-issuegraph"
 )
 
 func TestOpenBestAvailable_NoCGO_EmbeddedMode_ReturnsError(t *testing.T) {
 	tmpDir := t.TempDir()
-	beadsDir := filepath.Join(tmpDir, ".beads")
-	if err := os.MkdirAll(beadsDir, 0755); err != nil {
-		t.Fatalf("failed to create .beads dir: %v", err)
+	issuegraphDir := filepath.Join(tmpDir, ".issuegraph")
+	if err := os.MkdirAll(issuegraphDir, 0755); err != nil {
+		t.Fatalf("failed to create .issuegraph dir: %v", err)
 	}
 
 	metadata := `{"backend":"dolt","database":"dolt","dolt_mode":"embedded"}`
-	if err := os.WriteFile(filepath.Join(beadsDir, "metadata.json"), []byte(metadata), 0644); err != nil {
+	if err := os.WriteFile(filepath.Join(issuegraphDir, "metadata.json"), []byte(metadata), 0644); err != nil {
 		t.Fatalf("failed to write metadata.json: %v", err)
 	}
 
 	ctx := context.Background()
-	_, err := beads.OpenBestAvailable(ctx, beadsDir)
+	_, err := issuegraph.OpenBestAvailable(ctx, issuegraphDir)
 	if err == nil {
 		t.Fatal("expected error for embedded mode without CGO")
 	}
@@ -38,14 +38,14 @@ func TestOpenBestAvailable_NoCGO_EmbeddedMode_ReturnsError(t *testing.T) {
 
 func TestOpenBestAvailable_NoCGO_NoMetadata_ReturnsError(t *testing.T) {
 	tmpDir := t.TempDir()
-	beadsDir := filepath.Join(tmpDir, ".beads")
-	if err := os.MkdirAll(beadsDir, 0755); err != nil {
-		t.Fatalf("failed to create .beads dir: %v", err)
+	issuegraphDir := filepath.Join(tmpDir, ".issuegraph")
+	if err := os.MkdirAll(issuegraphDir, 0755); err != nil {
+		t.Fatalf("failed to create .issuegraph dir: %v", err)
 	}
 	// No metadata.json — embedded is the default, CGO required.
 
 	ctx := context.Background()
-	_, err := beads.OpenBestAvailable(ctx, beadsDir)
+	_, err := issuegraph.OpenBestAvailable(ctx, issuegraphDir)
 	if err == nil {
 		t.Fatal("expected error for embedded mode without CGO")
 	}
@@ -57,19 +57,19 @@ func TestOpenBestAvailable_NoCGO_NoMetadata_ReturnsError(t *testing.T) {
 func TestOpenBestAvailable_NoCGO_ServerMode_FailsWithoutServer(t *testing.T) {
 	// Even in !cgo builds, server mode should delegate to OpenFromConfig and
 	// return the fail-fast error when no server is listening.
-	if prev := os.Getenv("BEADS_DOLT_PORT"); prev != "" {
-		os.Unsetenv("BEADS_DOLT_PORT")
-		t.Cleanup(func() { os.Setenv("BEADS_DOLT_PORT", prev) })
+	if prev := os.Getenv("ISSUEGRAPH_DOLT_PORT"); prev != "" {
+		os.Unsetenv("ISSUEGRAPH_DOLT_PORT")
+		t.Cleanup(func() { os.Setenv("ISSUEGRAPH_DOLT_PORT", prev) })
 	}
-	if prev := os.Getenv("BEADS_TEST_MODE"); prev != "" {
-		os.Unsetenv("BEADS_TEST_MODE")
-		t.Cleanup(func() { os.Setenv("BEADS_TEST_MODE", prev) })
+	if prev := os.Getenv("ISSUEGRAPH_TEST_MODE"); prev != "" {
+		os.Unsetenv("ISSUEGRAPH_TEST_MODE")
+		t.Cleanup(func() { os.Setenv("ISSUEGRAPH_TEST_MODE", prev) })
 	}
 
 	tmpDir := t.TempDir()
-	beadsDir := filepath.Join(tmpDir, ".beads")
-	if err := os.MkdirAll(beadsDir, 0755); err != nil {
-		t.Fatalf("failed to create .beads dir: %v", err)
+	issuegraphDir := filepath.Join(tmpDir, ".issuegraph")
+	if err := os.MkdirAll(issuegraphDir, 0755); err != nil {
+		t.Fatalf("failed to create .issuegraph dir: %v", err)
 	}
 
 	ln, err := net.Listen("tcp", "127.0.0.1:0")
@@ -80,12 +80,12 @@ func TestOpenBestAvailable_NoCGO_ServerMode_FailsWithoutServer(t *testing.T) {
 	ln.Close()
 
 	metadata := fmt.Sprintf(`{"backend":"dolt","database":"dolt","dolt_mode":"server","dolt_server_host":"127.0.0.1","dolt_server_port":%d}`, freePort)
-	if err := os.WriteFile(filepath.Join(beadsDir, "metadata.json"), []byte(metadata), 0644); err != nil {
+	if err := os.WriteFile(filepath.Join(issuegraphDir, "metadata.json"), []byte(metadata), 0644); err != nil {
 		t.Fatalf("failed to write metadata.json: %v", err)
 	}
 
 	ctx := context.Background()
-	_, openErr := beads.OpenBestAvailable(ctx, beadsDir)
+	_, openErr := issuegraph.OpenBestAvailable(ctx, issuegraphDir)
 	if openErr == nil {
 		t.Fatal("OpenBestAvailable (server mode) should fail when no server is running")
 	}

@@ -1,11 +1,11 @@
 ---
-title: "bd count"
+title: "issuegraph count"
 description: "Count issues matching the specified filters."
 ---
 
 {/* AUTO-GENERATED: do not edit manually */}
 
-Generated from `bd help --doc count`.
+Generated from `issuegraph help --doc count`.
 
 Count issues matching the specified filters.
 
@@ -13,19 +13,19 @@ By default, returns the total count of issues matching the filters.
 Use --by-* flags to group counts by different attributes.
 
 Examples:
-  bd count                          # Count all issues
-  bd count --status open            # Count open issues
-  bd count --by-status              # Group count by status
-  bd count --by-priority            # Group count by priority
-  bd count --by-type                # Group count by issue type
-  bd count --by-assignee            # Group count by assignee
-  bd count --by-label               # Group count by label
-  bd count --assignee alice --by-status  # Count alice's issues by status
-  bd count --include-infra          # Count issues + wisps tier (matches 'bd list --include-infra --all' cardinality)
+  issuegraph count                          # Count all issues
+  issuegraph count --status open            # Count open issues
+  issuegraph count --by-status              # Group count by status
+  issuegraph count --by-priority            # Group count by priority
+  issuegraph count --by-type                # Group count by issue type
+  issuegraph count --by-assignee            # Group count by assignee
+  issuegraph count --by-label               # Group count by label
+  issuegraph count --assignee alice --by-status  # Count alice's issues by status
+  issuegraph count --include-infra          # Count issues + wisps tier (matches 'issuegraph list --include-infra --all' cardinality)
 
 
 ```
-bd count [flags]
+issuegraph count [flags]
 ```
 
 **Flags:**
@@ -44,7 +44,7 @@ bd count [flags]
       --desc-contains string    Filter by description substring
       --empty-description       Filter issues with empty description
       --id string               Filter by specific issue IDs (comma-separated)
-      --include-infra           Include infrastructure beads and the wisps tier (matches 'bd list --include-infra --all' cardinality)
+      --include-infra           Include infrastructure issuegraph and the wisps tier (matches 'issuegraph list --include-infra --all' cardinality)
   -l, --label strings           Filter by labels (AND: must have ALL)
       --label-any strings       Filter by labels (OR: must have AT LEAST ONE)
       --no-assignee             Filter issues with no assignee
@@ -53,7 +53,7 @@ bd count [flags]
   -p, --priority int            Filter by priority (0-4: 0=critical, 1=high, 2=medium, 3=low, 4=backlog)
       --priority-max int        Filter by maximum priority (inclusive)
       --priority-min int        Filter by minimum priority (inclusive)
-  -s, --status string           Filter by stored status (open, in_progress, blocked, deferred, closed). Note: dependency-blocked issues use 'bd blocked'
+  -s, --status string           Filter by stored status (open, in_progress, blocked, deferred, closed). Note: dependency-blocked issues use 'issuegraph blocked'
       --title string            Filter by title text (case-insensitive substring match)
       --title-contains string   Filter by title substring
   -t, --type string             Filter by type (bug, feature, task, epic, chore, decision, merge-request, molecule, gate)

@@ -8,7 +8,7 @@ import (
 	"path/filepath"
 	"testing"
 
-	"github.com/steveyegge/beads/internal/formula"
+	"github.com/borg0ai/dx-issuegraph/internal/formula"
 )
 
 func writeFormulaFixture(t *testing.T, p proxiedProject, f *formula.Formula) {
@@ -17,7 +17,7 @@ func writeFormulaFixture(t *testing.T, p proxiedProject, f *formula.Formula) {
 	if err != nil {
 		t.Fatalf("marshal formula %s: %v", f.Formula, err)
 	}
-	formulasDir := filepath.Join(p.beadsDir, "formulas")
+	formulasDir := filepath.Join(p.issuegraphDir, "formulas")
 	if err := os.MkdirAll(formulasDir, 0o755); err != nil {
 		t.Fatalf("mkdir formulas dir: %v", err)
 	}

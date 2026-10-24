@@ -8,8 +8,8 @@ import (
 
 	"github.com/stretchr/testify/suite"
 
-	"github.com/steveyegge/beads/internal/git"
-	"github.com/steveyegge/beads/internal/storage/domain"
+	"github.com/borg0ai/dx-issuegraph/internal/git"
+	"github.com/borg0ai/dx-issuegraph/internal/storage/domain"
 )
 
 type testSuite struct {
@@ -23,7 +23,7 @@ func (s *testSuite) SetupSuite() {
 	s.Require().NoError(err, "SetupSuite: get working directory")
 	s.origDir = origDir
 
-	suiteDir, err := os.MkdirTemp("", "beads-fs-suite-*")
+	suiteDir, err := os.MkdirTemp("", "issuegraph-fs-suite-*")
 	s.Require().NoError(err, "SetupSuite: create temp dir")
 	s.suiteDir = suiteDir
 
@@ -45,19 +45,19 @@ func (s *testSuite) Ctx() context.Context {
 	return context.Background()
 }
 
-func (s *testSuite) newRepo() (workDir, beadsDir string, repo domain.BeadsDirFSRepository) {
+func (s *testSuite) newRepo() (workDir, issuegraphDir string, repo domain.IssueGraphDirFSRepository) {
 	s.T().Helper()
-	s.T().Setenv("BEADS_DIR", "")
+	s.T().Setenv("ISSUEGRAPH_DIR", "")
 	workDir = s.T().TempDir()
-	beadsDir = filepath.Join(workDir, ".beads")
-	repo = NewBeadsDirFSRepository(workDir, testTemplates())
+	issuegraphDir = filepath.Join(workDir, ".issuegraph")
+	repo = NewIssueGraphDirFSRepository(workDir, testTemplates())
 	return
 }
 
-func testTemplates() domain.BeadsDirTemplates {
-	return domain.BeadsDirTemplates{
-		BeadsGitignore:           "# test beads gitignore\ndolt/\n",
-		ProjectGitignoreHeader:   "# Beads test header",
+func testTemplates() domain.IssueGraphDirTemplates {
+	return domain.IssueGraphDirTemplates{
+		IssueGraphGitignore:      "# test issuegraph gitignore\ndolt/\n",
+		ProjectGitignoreHeader:   "# IssueGraph test header",
 		ProjectGitignorePatterns: []string{".dolt/", "*.db"},
 		Readme:                   "# test readme\n",
 	}

@@ -7,7 +7,7 @@ import (
 )
 
 func TestWrapWithSchemaVersion_Legacy_Object(t *testing.T) {
-	input := map[string]string{"id": "beads-123", "title": "Test"}
+	input := map[string]string{"id": "issuegraph-123", "title": "Test"}
 	result := wrapWithSchemaVersion(input)
 
 	m, ok := result.(map[string]interface{})
@@ -17,8 +17,8 @@ func TestWrapWithSchemaVersion_Legacy_Object(t *testing.T) {
 	if m["schema_version"] != JSONSchemaVersion {
 		t.Errorf("schema_version = %v, want %d", m["schema_version"], JSONSchemaVersion)
 	}
-	if m["id"] != "beads-123" {
-		t.Errorf("id = %v, want beads-123", m["id"])
+	if m["id"] != "issuegraph-123" {
+		t.Errorf("id = %v, want issuegraph-123", m["id"])
 	}
 }
 
@@ -47,9 +47,9 @@ func TestWrapWithSchemaVersion_Legacy_Nil(t *testing.T) {
 }
 
 func TestWrapWithSchemaVersion_Envelope_Object(t *testing.T) {
-	t.Setenv("BD_JSON_ENVELOPE", "1")
+	t.Setenv("ISSUEGRAPH_JSON_ENVELOPE", "1")
 
-	input := map[string]string{"id": "beads-123", "title": "Test"}
+	input := map[string]string{"id": "issuegraph-123", "title": "Test"}
 	result := wrapWithSchemaVersion(input)
 
 	m, ok := result.(map[string]interface{})
@@ -67,13 +67,13 @@ func TestWrapWithSchemaVersion_Envelope_Object(t *testing.T) {
 	if !ok {
 		t.Fatalf("data type = %T, want map[string]string", data)
 	}
-	if inner["id"] != "beads-123" {
-		t.Errorf("data.id = %v, want beads-123", inner["id"])
+	if inner["id"] != "issuegraph-123" {
+		t.Errorf("data.id = %v, want issuegraph-123", inner["id"])
 	}
 }
 
 func TestWrapWithSchemaVersion_Envelope_Slice(t *testing.T) {
-	t.Setenv("BD_JSON_ENVELOPE", "1")
+	t.Setenv("ISSUEGRAPH_JSON_ENVELOPE", "1")
 
 	input := []string{"a", "b", "c"}
 	result := wrapWithSchemaVersion(input)
@@ -99,7 +99,7 @@ func TestWrapWithSchemaVersion_Envelope_Slice(t *testing.T) {
 }
 
 func TestWrapWithSchemaVersion_Envelope_Nil(t *testing.T) {
-	t.Setenv("BD_JSON_ENVELOPE", "1")
+	t.Setenv("ISSUEGRAPH_JSON_ENVELOPE", "1")
 
 	result := wrapWithSchemaVersion(nil)
 	m, ok := result.(map[string]interface{})
@@ -115,7 +115,7 @@ func TestWrapWithSchemaVersion_Envelope_Nil(t *testing.T) {
 }
 
 func TestWrapWithSchemaVersion_Envelope_RoundTrip(t *testing.T) {
-	t.Setenv("BD_JSON_ENVELOPE", "1")
+	t.Setenv("ISSUEGRAPH_JSON_ENVELOPE", "1")
 
 	input := map[string]interface{}{"count": 42, "name": "test"}
 	result := wrapWithSchemaVersion(input)
@@ -157,7 +157,7 @@ func TestOutputJSONWithPagination_NoTruncation(t *testing.T) {
 }
 
 func TestOutputJSONWithPagination_EnvelopeTruncated(t *testing.T) {
-	t.Setenv("BD_JSON_ENVELOPE", "1")
+	t.Setenv("ISSUEGRAPH_JSON_ENVELOPE", "1")
 
 	items := []string{"a", "b", "c"}
 	pag := &PaginationMeta{Returned: 3, Total: 10, Truncated: true}
@@ -188,7 +188,7 @@ func TestOutputJSONWithPagination_EnvelopeTruncated(t *testing.T) {
 }
 
 func TestOutputJSONWithPagination_EnvelopeNotTruncated(t *testing.T) {
-	t.Setenv("BD_JSON_ENVELOPE", "1")
+	t.Setenv("ISSUEGRAPH_JSON_ENVELOPE", "1")
 
 	items := []string{"a", "b"}
 	out := captureStdout(t, func() error {

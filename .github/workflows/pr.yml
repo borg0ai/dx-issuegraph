@@ -13,8 +13,8 @@ concurrency:
   cancel-in-progress: true
 
 env:
-  BD_DISABLE_METRICS: "1"
-  BD_DISABLE_EVENT_FLUSH: "1"
+  ISSUEGRAPH_DISABLE_METRICS: "1"
+  ISSUEGRAPH_DISABLE_EVENT_FLUSH: "1"
 
 jobs:
 
@@ -37,15 +37,15 @@ jobs:
         uses: actions/cache/restore@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
         with:
           path: ~/go/pkg/mod
-          key: beads-go-mod-v2-${{ runner.os }}-${{ runner.arch }}-go-${{ steps.setup-go.outputs.go-version }}-${{ hashFiles('go.mod', 'go.sum') }}
-          restore-keys: beads-go-mod-v2-${{ runner.os }}-${{ runner.arch }}-go-${{ steps.setup-go.outputs.go-version }}-
+          key: issuegraph-go-mod-v2-${{ runner.os }}-${{ runner.arch }}-go-${{ steps.setup-go.outputs.go-version }}-${{ hashFiles('go.mod', 'go.sum') }}
+          restore-keys: issuegraph-go-mod-v2-${{ runner.os }}-${{ runner.arch }}-go-${{ steps.setup-go.outputs.go-version }}-
 
       - name: Restore non-race Go build cache
         uses: actions/cache/restore@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
         with:
           path: ${{ runner.temp }}/go-cache/non-race
-          key: beads-go-build-v2-${{ runner.os }}-${{ runner.arch }}-go-${{ steps.setup-go.outputs.go-version }}-base-gms_pure_go-non-race-${{ github.sha }}
-          restore-keys: beads-go-build-v2-${{ runner.os }}-${{ runner.arch }}-go-${{ steps.setup-go.outputs.go-version }}-base-gms_pure_go-non-race-
+          key: issuegraph-go-build-v2-${{ runner.os }}-${{ runner.arch }}-go-${{ steps.setup-go.outputs.go-version }}-base-gms_pure_go-non-race-${{ github.sha }}
+          restore-keys: issuegraph-go-build-v2-${{ runner.os }}-${{ runner.arch }}-go-${{ steps.setup-go.outputs.go-version }}-base-gms_pure_go-non-race-
 
       - name: Build reusable Linux artifacts
         env:
@@ -56,17 +56,17 @@ jobs:
           source ./modules/core/.buildflags
           go_version="$(go version)"
           commit="$(git rev-parse HEAD)"
-          go build -tags "$BEADS_BUILD_TAGS" -o artifacts/bd-linux-gms-pure github.com/steveyegge/beads/modules/cli
-          chmod +x artifacts/bd-linux-gms-pure
+          go build -tags "$ISSUEGRAPH_BUILD_TAGS" -o artifacts/issuegraph-linux-gms-pure github.com/borg0ai/dx-issuegraph/modules/cli
+          chmod +x artifacts/issuegraph-linux-gms-pure
           (
             cd artifacts
-            sha256sum bd-linux-gms-pure > SHA256SUMS
+            sha256sum issuegraph-linux-gms-pure > SHA256SUMS
           )
           {
             echo "commit=${commit}"
             echo "go_version=${go_version}"
-            echo "build_tags=${BEADS_BUILD_TAGS}"
-            echo "artifact=bd-linux-gms-pure"
+            echo "build_tags=${ISSUEGRAPH_BUILD_TAGS}"
+            echo "artifact=issuegraph-linux-gms-pure"
           } > artifacts/build-manifest.txt
 
       - name: Upload build artifacts
@@ -134,8 +134,8 @@ jobs:
         uses: actions/cache/restore@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
         with:
           path: ~/go/pkg/mod
-          key: beads-go-mod-v2-${{ runner.os }}-${{ runner.arch }}-go-${{ steps.setup-go.outputs.go-version }}-${{ hashFiles('go.mod', 'go.sum') }}
-          restore-keys: beads-go-mod-v2-${{ runner.os }}-${{ runner.arch }}-go-${{ steps.setup-go.outputs.go-version }}-
+          key: issuegraph-go-mod-v2-${{ runner.os }}-${{ runner.arch }}-go-${{ steps.setup-go.outputs.go-version }}-${{ hashFiles('go.mod', 'go.sum') }}
+          restore-keys: issuegraph-go-mod-v2-${{ runner.os }}-${{ runner.arch }}-go-${{ steps.setup-go.outputs.go-version }}-
 
       - name: Type-check every module under examples/
         id: build-examples
@@ -204,7 +204,7 @@ jobs:
           test_output="$(go test -tags gms_pure_go -count=1 -timeout=2m \
             -exec="$(go env GOROOT)/lib/wasm/go_js_wasm_exec" \
             -run '^TestRunHookReportsUnsupportedExecution$' \
-            -v github.com/steveyegge/beads/internal/hooks 2>&1)" || test_status=$?
+            -v github.com/borg0ai/dx-issuegraph/internal/hooks 2>&1)" || test_status=$?
           printf '%s\n' "$test_output"
           (( test_status == 0 )) || exit "$test_status"
 
@@ -233,15 +233,15 @@ jobs:
       - name: Build modules/cli (CGO_ENABLED=0, gms_pure_go)
         env:
           CGO_ENABLED: "0"
-        run: go build -tags gms_pure_go -o /tmp/bd-puregeo github.com/steveyegge/beads/modules/cli
+        run: go build -tags gms_pure_go -o /tmp/bd-puregeo github.com/borg0ai/dx-issuegraph/modules/cli
 
       - name: Compile pure-Go test binaries (CGO_ENABLED=0, gms_pure_go)
         env:
           CGO_ENABLED: "0"
         run: |
-          go test -tags gms_pure_go -c -o /tmp/bd-cmd-puregeo-test github.com/steveyegge/beads/modules/cli
-          go test -tags gms_pure_go -c -o /tmp/bd-embeddeddolt-puregeo-test github.com/steveyegge/beads/internal/storage/embeddeddolt
-          go test -tags gms_pure_go -c -o /tmp/bd-tracker-puregeo-test github.com/steveyegge/beads/internal/tracker
+          go test -tags gms_pure_go -c -o /tmp/bd-cmd-puregeo-test github.com/borg0ai/dx-issuegraph/modules/cli
+          go test -tags gms_pure_go -c -o /tmp/bd-embeddeddolt-puregeo-test github.com/borg0ai/dx-issuegraph/internal/storage/embeddeddolt
+          go test -tags gms_pure_go -c -o /tmp/bd-tracker-puregeo-test github.com/borg0ai/dx-issuegraph/internal/tracker
 
       - name: Run pure-Go modules/cli test subset (CGO_ENABLED=0)
         env:
@@ -251,7 +251,7 @@ jobs:
         # is available; the goal here is to catch compile-time contamination,
         # not run the full suite.
         run: |
-          go test -tags gms_pure_go -count=1 -short -run '^Test(Help|CheckRemoteSafety|FormatDestroyToken|ShouldWireInitRemote|ExtractPrefix|IsNumericID|GetWorktreeGitDir|DriftItemStatuses|RunDriftChecks|IsServerProbablyRunning|CheckHooksDriftNotGitRepo|CheckServerDriftNoBeadsDir|CheckRemoteDriftNoBeadsDir)' github.com/steveyegge/beads/modules/cli
+          go test -tags gms_pure_go -count=1 -short -run '^Test(Help|CheckRemoteSafety|FormatDestroyToken|ShouldWireInitRemote|ExtractPrefix|IsNumericID|GetWorktreeGitDir|DriftItemStatuses|RunDriftChecks|IsServerProbablyRunning|CheckHooksDriftNotGitRepo|CheckServerDriftNoIssueGraphDir|CheckRemoteDriftNoIssueGraphDir)' github.com/borg0ai/dx-issuegraph/modules/cli
 
   # The lingering-handle liveness regression test is //go:build windows: the
   # Ubuntu job above selects it by name but compiles it out, and main.yml's
@@ -272,7 +272,7 @@ jobs:
           cache: false
 
       - name: Run Windows liveness regression test
-        run: go test -tags gms_pure_go -count=1 -run '^TestIsServerProbablyRunning' github.com/steveyegge/beads/modules/cli
+        run: go test -tags gms_pure_go -count=1 -run '^TestIsServerProbablyRunning' github.com/borg0ai/dx-issuegraph/modules/cli
 
   # internal/doltversion carries Windows-specific branches (PATHEXT
   # extension completion in Resolve, ERROR_BAD_EXE_FORMAT detection, the
@@ -296,7 +296,7 @@ jobs:
           cache: false
 
       - name: Run doltversion package tests on Windows
-        run: go test -tags gms_pure_go -count=1 github.com/steveyegge/beads/internal/doltversion/
+        run: go test -tags gms_pure_go -count=1 github.com/borg0ai/dx-issuegraph/internal/doltversion/
 
   # Destructive worktree removal depends on native Windows path identity.
   # This focused process suite requires NTFS per-directory case sensitivity
@@ -319,21 +319,21 @@ jobs:
         uses: actions/cache/restore@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
         with:
           path: ~/go/pkg/mod
-          key: beads-go-mod-v2-${{ runner.os }}-${{ runner.arch }}-go-${{ steps.setup-go.outputs.go-version }}-${{ hashFiles('go.mod', 'go.sum') }}
-          restore-keys: beads-go-mod-v2-${{ runner.os }}-${{ runner.arch }}-go-${{ steps.setup-go.outputs.go-version }}-
+          key: issuegraph-go-mod-v2-${{ runner.os }}-${{ runner.arch }}-go-${{ steps.setup-go.outputs.go-version }}-${{ hashFiles('go.mod', 'go.sum') }}
+          restore-keys: issuegraph-go-mod-v2-${{ runner.os }}-${{ runner.arch }}-go-${{ steps.setup-go.outputs.go-version }}-
 
       - name: Restore non-race Go build cache
         uses: actions/cache/restore@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
         with:
           path: ${{ runner.temp }}/go-cache/non-race
-          key: beads-go-build-v2-${{ runner.os }}-${{ runner.arch }}-go-${{ steps.setup-go.outputs.go-version }}-base-gms_pure_go-non-race-${{ github.sha }}
-          restore-keys: beads-go-build-v2-${{ runner.os }}-${{ runner.arch }}-go-${{ steps.setup-go.outputs.go-version }}-base-gms_pure_go-non-race-
+          key: issuegraph-go-build-v2-${{ runner.os }}-${{ runner.arch }}-go-${{ steps.setup-go.outputs.go-version }}-base-gms_pure_go-non-race-${{ github.sha }}
+          restore-keys: issuegraph-go-build-v2-${{ runner.os }}-${{ runner.arch }}-go-${{ steps.setup-go.outputs.go-version }}-base-gms_pure_go-non-race-
 
       - name: Run native Windows worktree removal boundary tests
         env:
           CGO_ENABLED: "0"
           GOCACHE: ${{ runner.temp }}/go-cache/non-race
-        run: go test -tags gms_pure_go -count=1 -run '^TestWorktreeRemove' github.com/steveyegge/beads/modules/cli
+        run: go test -tags gms_pure_go -count=1 -run '^TestWorktreeRemove' github.com/borg0ai/dx-issuegraph/modules/cli
 
   # internal/storage/dbproxy/server carries the platform-portable path
   # handling that #5820 introduced (testPlatformPath, external dolt config
@@ -371,7 +371,7 @@ jobs:
       - name: Run dbproxy server package tests on Windows
         env:
           CGO_ENABLED: "0"
-        run: go test -tags gms_pure_go -count=1 -v github.com/steveyegge/beads/internal/storage/dbproxy/server/
+        run: go test -tags gms_pure_go -count=1 -v github.com/borg0ai/dx-issuegraph/internal/storage/dbproxy/server/
 
   # Fast check to ensure all version files are in sync
   check-version-consistency:
@@ -418,14 +418,14 @@ jobs:
           go-version-file: 'go.mod'
           cache: false
 
-      - name: Build bd
-        run: CGO_ENABLED=0 go build -tags gms_pure_go -o bd github.com/steveyegge/beads/modules/cli
+      - name: Build issuegraph
+        run: CGO_ENABLED=0 go build -tags gms_pure_go -o issuegraph github.com/borg0ai/dx-issuegraph/modules/cli
 
       - name: Validate docs against CLI
         env:
           DOC_DRIFT_PATCH_OUT: ${{ runner.temp }}/cli-docs-freshness.patch
         run: |
-          ./scripts/check-doc-flags.sh ./bd
+          ./scripts/check-doc-flags.sh ./issuegraph
           ./scripts/check-doc-freshness.sh
 
       # When the drift check fails, it writes the exact regenerated-docs fix
@@ -469,8 +469,8 @@ jobs:
         uses: actions/cache/restore@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
         with:
           path: ~/go/pkg/mod
-          key: beads-go-mod-v2-${{ runner.os }}-${{ runner.arch }}-go-${{ steps.setup-go.outputs.go-version }}-${{ hashFiles('go.mod', 'go.sum') }}
-          restore-keys: beads-go-mod-v2-${{ runner.os }}-${{ runner.arch }}-go-${{ steps.setup-go.outputs.go-version }}-
+          key: issuegraph-go-mod-v2-${{ runner.os }}-${{ runner.arch }}-go-${{ steps.setup-go.outputs.go-version }}-${{ hashFiles('go.mod', 'go.sum') }}
+          restore-keys: issuegraph-go-mod-v2-${{ runner.os }}-${{ runner.arch }}-go-${{ steps.setup-go.outputs.go-version }}-
 
       - name: Exercise native date and Bash process boundary
         run: go test '-tags=integration,gms_pure_go' -count=1 -run '^TestDocFreshness' ./scripts
@@ -500,8 +500,8 @@ jobs:
         uses: actions/cache/restore@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
         with:
           path: ~/go/pkg/mod
-          key: beads-go-mod-v2-${{ runner.os }}-${{ runner.arch }}-go-${{ steps.setup-go.outputs.go-version }}-${{ hashFiles('go.mod', 'go.sum') }}
-          restore-keys: beads-go-mod-v2-${{ runner.os }}-${{ runner.arch }}-go-${{ steps.setup-go.outputs.go-version }}-
+          key: issuegraph-go-mod-v2-${{ runner.os }}-${{ runner.arch }}-go-${{ steps.setup-go.outputs.go-version }}-${{ hashFiles('go.mod', 'go.sum') }}
+          restore-keys: issuegraph-go-mod-v2-${{ runner.os }}-${{ runner.arch }}-go-${{ steps.setup-go.outputs.go-version }}-
 
       - name: Exercise the real Bash process boundary
         shell: bash
@@ -513,16 +513,16 @@ jobs:
 
       - name: Exercise generated Git hook timeout process boundary
         shell: bash
-        run: go test '-tags=gms_pure_go' -count=1 -run '^TestGeneratedHookTimeoutProcessBoundary$' github.com/steveyegge/beads/modules/cli
+        run: go test '-tags=gms_pure_go' -count=1 -run '^TestGeneratedHookTimeoutProcessBoundary$' github.com/borg0ai/dx-issuegraph/modules/cli
 
       - name: Check benchmark environment scrubbing
         if: matrix.os == 'windows-latest'
         shell: bash
         run: go test -tags gms_pure_go -count=1 -run '^(TestCleanEnvUsesHostKeySemantics|TestBenchmarkCommandBuildersStripDoltEnvOverrides)$' ./scripts/repro-dolt-prod-timeouts
 
-  # Fast check to catch accidental .beads/issues.jsonl changes from contributors
-  check-no-beads-changes:
-    name: Check for .beads changes
+  # Fast check to catch accidental .issuegraph/issues.jsonl changes from contributors
+  check-no-issuegraph-changes:
+    name: Check for .issuegraph changes
     runs-on: ubuntu-latest
     if: github.event_name == 'pull_request'
     steps:
@@ -530,21 +530,21 @@ jobs:
         with:
           fetch-depth: 0
 
-      - name: Check for .beads/issues.jsonl changes
+      - name: Check for .issuegraph/issues.jsonl changes
         run: |
-          if git diff --name-only origin/${{ github.base_ref }}...HEAD | grep -q "^\.beads/issues\.jsonl$"; then
-            echo "This PR includes changes to .beads/issues.jsonl"
+          if git diff --name-only origin/${{ github.base_ref }}...HEAD | grep -q "^\.issuegraph/issues\.jsonl$"; then
+            echo "This PR includes changes to .issuegraph/issues.jsonl"
             echo ""
             echo "This file is the project's issue database and should not be modified in PRs."
             echo ""
             echo "To fix, run:"
-            echo "  git checkout origin/main -- .beads/issues.jsonl"
+            echo "  git checkout origin/main -- .issuegraph/issues.jsonl"
             echo "  git commit --amend"
             echo "  git push --force"
             echo ""
             exit 1
           fi
-          echo "No .beads/issues.jsonl changes detected"
+          echo "No .issuegraph/issues.jsonl changes detected"
 
   detect-package-gates:
     name: Detect package gates
@@ -606,12 +606,12 @@ jobs:
           set -euo pipefail
           cd ci-build-artifacts
           sha256sum -c SHA256SUMS
-          chmod +x bd-linux-gms-pure
+          chmod +x issuegraph-linux-gms-pure
 
       - name: Run MCP package gate
         if: steps.applicability.outputs.run == 'true'
         env:
-          BEADS_TEST_BD_BINARY: ${{ github.workspace }}/ci-build-artifacts/bd-linux-gms-pure
+          ISSUEGRAPH_TEST_ISSUEGRAPH_BINARY: ${{ github.workspace }}/ci-build-artifacts/issuegraph-linux-gms-pure
         run: make ci-package-mcp
 
   package-npm:
@@ -649,12 +649,12 @@ jobs:
           set -euo pipefail
           cd ci-build-artifacts
           sha256sum -c SHA256SUMS
-          chmod +x bd-linux-gms-pure
+          chmod +x issuegraph-linux-gms-pure
 
       - name: Run npm package gate
         if: steps.applicability.outputs.run == 'true'
         env:
-          BEADS_TEST_BD_BINARY: ${{ github.workspace }}/ci-build-artifacts/bd-linux-gms-pure
+          ISSUEGRAPH_TEST_ISSUEGRAPH_BINARY: ${{ github.workspace }}/ci-build-artifacts/issuegraph-linux-gms-pure
         run: make ci-package-npm
 
 
@@ -693,15 +693,15 @@ jobs:
         uses: actions/cache/restore@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
         with:
           path: ~/go/pkg/mod
-          key: beads-go-mod-v2-${{ runner.os }}-${{ runner.arch }}-go-${{ steps.setup-go.outputs.go-version }}-${{ hashFiles('go.mod', 'go.sum') }}
-          restore-keys: beads-go-mod-v2-${{ runner.os }}-${{ runner.arch }}-go-${{ steps.setup-go.outputs.go-version }}-
+          key: issuegraph-go-mod-v2-${{ runner.os }}-${{ runner.arch }}-go-${{ steps.setup-go.outputs.go-version }}-${{ hashFiles('go.mod', 'go.sum') }}
+          restore-keys: issuegraph-go-mod-v2-${{ runner.os }}-${{ runner.arch }}-go-${{ steps.setup-go.outputs.go-version }}-
 
       - name: Restore race Go build cache
         uses: actions/cache/restore@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
         with:
           path: ${{ runner.temp }}/go-cache/race
-          key: beads-go-build-v2-${{ runner.os }}-${{ runner.arch }}-go-${{ steps.setup-go.outputs.go-version }}-base-gms_pure_go-race-${{ github.sha }}
-          restore-keys: beads-go-build-v2-${{ runner.os }}-${{ runner.arch }}-go-${{ steps.setup-go.outputs.go-version }}-base-gms_pure_go-race-
+          key: issuegraph-go-build-v2-${{ runner.os }}-${{ runner.arch }}-go-${{ steps.setup-go.outputs.go-version }}-base-gms_pure_go-race-${{ github.sha }}
+          restore-keys: issuegraph-go-build-v2-${{ runner.os }}-${{ runner.arch }}-go-${{ steps.setup-go.outputs.go-version }}-base-gms_pure_go-race-
 
       - name: Install Dolt
         run: ./scripts/ci/install-dolt.sh
@@ -709,9 +709,9 @@ jobs:
       - name: Configure Git and Dolt identity
         run: |
           git config --global user.name "CI Bot"
-          git config --global user.email "ci@beads.test"
+          git config --global user.email "ci@issuegraph.test"
           dolt config --global --add user.name "CI Bot"
-          dolt config --global --add user.email "ci@beads.test"
+          dolt config --global --add user.email "ci@issuegraph.test"
 
       - name: Download build artifacts
         uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8
@@ -724,11 +724,11 @@ jobs:
           set -euo pipefail
           cd ci-build-artifacts
           sha256sum -c SHA256SUMS
-          chmod +x bd-linux-gms-pure
+          chmod +x issuegraph-linux-gms-pure
 
       - name: Run PR core wrapper
         env:
-          BEADS_TEST_BD_BINARY: ${{ github.workspace }}/ci-build-artifacts/bd-linux-gms-pure
+          ISSUEGRAPH_TEST_ISSUEGRAPH_BINARY: ${{ github.workspace }}/ci-build-artifacts/issuegraph-linux-gms-pure
           GOCACHE: ${{ runner.temp }}/go-cache/race
         run: make ci-pr-core
 
@@ -756,7 +756,7 @@ jobs:
       # Both PR triggers (pull_request, merge_group) target main.
       - name: Run PR lint wrapper
         env:
-          BD_LINT_NEW_FROM_MERGE_BASE: origin/main
+          ISSUEGRAPH_LINT_NEW_FROM_MERGE_BASE: origin/main
         run: make ci-pr-lint
 
   # Advisory architecture signal. This deliberately does not participate in
@@ -820,7 +820,7 @@ jobs:
 
   # Focused job for the hexagonal storage layer (internal/storage/domain/* and
   # internal/storage/uow). These packages back the proxied-server init path and
-  # also live behind the existing github.com/steveyegge/beads/... matrix, but TestDomainDB requires the
+  # also live behind the existing github.com/borg0ai/dx-issuegraph/... matrix, but TestDomainDB requires the
   # Dolt sql-server image cached locally (testcontainers checks `docker image
   # inspect` and skips otherwise). Pulling the image up front guarantees the
   # suite actually runs and surfaces failures here with a clear job name.
@@ -849,9 +849,9 @@ jobs:
       - name: Configure Git and Dolt identity
         run: |
           git config --global user.name "CI Bot"
-          git config --global user.email "ci@beads.test"
+          git config --global user.email "ci@issuegraph.test"
           dolt config --global --add user.name "CI Bot"
-          dolt config --global --add user.email "ci@beads.test"
+          dolt config --global --add user.email "ci@issuegraph.test"
 
       - name: Pull Dolt sql-server image
         # Keep tag in sync with internal/testutil/testdoltcommon.go:DoltDockerImage.
@@ -869,22 +869,22 @@ jobs:
           set -euo pipefail
           cd ci-build-artifacts
           sha256sum -c SHA256SUMS
-          chmod +x bd-linux-gms-pure
+          chmod +x issuegraph-linux-gms-pure
 
       - name: Test domain + uow + tracker
         env:
-          BEADS_TEST_BD_BINARY: ${{ github.workspace }}/ci-build-artifacts/bd-linux-gms-pure
-        run: go test -tags gms_pure_go -race -count=1 -timeout 15m -v github.com/steveyegge/beads/internal/storage/domain/... github.com/steveyegge/beads/internal/storage/uow/... github.com/steveyegge/beads/internal/tracker/...
+          ISSUEGRAPH_TEST_ISSUEGRAPH_BINARY: ${{ github.workspace }}/ci-build-artifacts/issuegraph-linux-gms-pure
+        run: go test -tags gms_pure_go -race -count=1 -timeout 15m -v github.com/borg0ai/dx-issuegraph/internal/storage/domain/... github.com/borg0ai/dx-issuegraph/internal/storage/uow/... github.com/borg0ai/dx-issuegraph/internal/tracker/...
 
       # The doctor/fix DB-backed suite spins its own Dolt container in
-      # TestMain. BEADS_FIX_REQUIRE_DOLT=1 turns a missing container into a
+      # TestMain. ISSUEGRAPH_FIX_REQUIRE_DOLT=1 turns a missing container into a
       # hard failure so the suite can never silently skip in CI again
       # (bd-nxt5e: it was dark for months); this job pulls the image above.
       - name: Test doctor/fix (Dolt-backed, hard-require container)
         env:
-          BEADS_TEST_BD_BINARY: ${{ github.workspace }}/ci-build-artifacts/bd-linux-gms-pure
-          BEADS_FIX_REQUIRE_DOLT: "1"
-        run: go test -tags gms_pure_go -race -count=1 -timeout 10m -v github.com/steveyegge/beads/modules/cli/doctor/fix
+          ISSUEGRAPH_TEST_ISSUEGRAPH_BINARY: ${{ github.workspace }}/ci-build-artifacts/issuegraph-linux-gms-pure
+          ISSUEGRAPH_FIX_REQUIRE_DOLT: "1"
+        run: go test -tags gms_pure_go -race -count=1 -timeout 10m -v github.com/borg0ai/dx-issuegraph/modules/cli/doctor/fix
 
   # macOS-only regressions were landing on main undetected: main.yml's Test
   # (macos-latest) leg only runs `if: github.event_name == 'push' &&
@@ -924,22 +924,22 @@ jobs:
         uses: actions/cache/restore@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
         with:
           path: ~/go/pkg/mod
-          key: beads-go-mod-v2-${{ runner.os }}-${{ runner.arch }}-go-${{ steps.setup-go.outputs.go-version }}-${{ hashFiles('go.mod', 'go.sum') }}
-          restore-keys: beads-go-mod-v2-${{ runner.os }}-${{ runner.arch }}-go-${{ steps.setup-go.outputs.go-version }}-
+          key: issuegraph-go-mod-v2-${{ runner.os }}-${{ runner.arch }}-go-${{ steps.setup-go.outputs.go-version }}-${{ hashFiles('go.mod', 'go.sum') }}
+          restore-keys: issuegraph-go-mod-v2-${{ runner.os }}-${{ runner.arch }}-go-${{ steps.setup-go.outputs.go-version }}-
 
       - name: Restore non-race Go build cache
         uses: actions/cache/restore@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
         with:
           path: ${{ runner.temp }}/go-cache/non-race
-          key: beads-go-build-v2-${{ runner.os }}-${{ runner.arch }}-go-${{ steps.setup-go.outputs.go-version }}-base-gms_pure_go-non-race-${{ github.sha }}
-          restore-keys: beads-go-build-v2-${{ runner.os }}-${{ runner.arch }}-go-${{ steps.setup-go.outputs.go-version }}-base-gms_pure_go-non-race-
+          key: issuegraph-go-build-v2-${{ runner.os }}-${{ runner.arch }}-go-${{ steps.setup-go.outputs.go-version }}-base-gms_pure_go-non-race-${{ github.sha }}
+          restore-keys: issuegraph-go-build-v2-${{ runner.os }}-${{ runner.arch }}-go-${{ steps.setup-go.outputs.go-version }}-base-gms_pure_go-non-race-
 
       - name: Restore race Go build cache
         uses: actions/cache/restore@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
         with:
           path: ${{ runner.temp }}/go-cache/race
-          key: beads-go-build-v2-${{ runner.os }}-${{ runner.arch }}-go-${{ steps.setup-go.outputs.go-version }}-base-gms_pure_go-race-${{ github.sha }}
-          restore-keys: beads-go-build-v2-${{ runner.os }}-${{ runner.arch }}-go-${{ steps.setup-go.outputs.go-version }}-base-gms_pure_go-race-
+          key: issuegraph-go-build-v2-${{ runner.os }}-${{ runner.arch }}-go-${{ steps.setup-go.outputs.go-version }}-base-gms_pure_go-race-${{ github.sha }}
+          restore-keys: issuegraph-go-build-v2-${{ runner.os }}-${{ runner.arch }}-go-${{ steps.setup-go.outputs.go-version }}-base-gms_pure_go-race-
 
       - name: Install Dolt (Linux/macOS)
         run: ./scripts/ci/install-dolt.sh
@@ -950,38 +950,38 @@ jobs:
       - name: Configure Git and Dolt identity
         run: |
           git config --global user.name "CI Bot"
-          git config --global user.email "ci@beads.test"
+          git config --global user.email "ci@issuegraph.test"
           dolt config --global --add user.name "CI Bot"
-          dolt config --global --add user.email "ci@beads.test"
+          dolt config --global --add user.email "ci@issuegraph.test"
 
       - name: Build
         env:
           GOCACHE: ${{ runner.temp }}/go-cache/non-race
-        run: go build -v -tags gms_pure_go github.com/steveyegge/beads/modules/cli
+        run: go build -v -tags gms_pure_go github.com/borg0ai/dx-issuegraph/modules/cli
 
       - name: Test
         env:
-          BEADS_TEST_BD_BINARY: ${{ github.workspace }}/bd
+          ISSUEGRAPH_TEST_ISSUEGRAPH_BINARY: ${{ github.workspace }}/issuegraph
           GOCACHE: ${{ runner.temp }}/go-cache/race
         # -timeout is explicit for the same reason it is in scripts/ci/pr-core.sh
-        # (#6091): github.com/steveyegge/beads/modules/cli has outgrown `go test`'s 10m per-package default. On
+        # (#6091): github.com/borg0ai/dx-issuegraph/modules/cli has outgrown `go test`'s 10m per-package default. On
         # this runner it lands between 357s and 600s across recent runs — #6091's
         # own macOS lane passed at 596.7s, 3.3s under the wall — so the package
         # intermittently dies on the alarm and the panic names whichever test was
         # in flight, which reads like a hang instead of the clock running out. 30m
         # matches every other -race lane here for this same code.
-        run: go test -tags gms_pure_go -v -race -short -timeout=30m -skip '^TestEmbedded' github.com/steveyegge/beads/...
+        run: go test -tags gms_pure_go -v -race -short -timeout=30m -skip '^TestEmbedded' github.com/borg0ai/dx-issuegraph/...
 
-  # Producer-side guard for the Beads<->consumer CLI contract. Runs the whole
+  # Producer-side guard for the IssueGraph<->consumer CLI contract. Runs the whole
   # modules/cli/protocol package: the golden corpus (regenerated from this branch's
-  # bd and byte-compared to the committed testdata/corpus/, so an unreviewed
+  # issuegraph and byte-compared to the committed testdata/corpus/, so an unreviewed
   # wire change is a hard failure — run `make corpus-regen`), the double-run
   # determinism check, and the TestProtocol_/TestJSONContract_ behavioral
   # conformance suite that pins the CLI's JSON payloads and semantics.
   #
   # Run the PACKAGE, never a -run subset: a filter here is what let the
   # conformance tests sit red on main for ~3 months while every CI run was
-  # green (they matched no job's -run, and every broad github.com/steveyegge/beads/... job skips them
+  # green (they matched no job's -run, and every broad github.com/borg0ai/dx-issuegraph/... job skips them
   # for want of a Dolt store). Package scope means a newly added protocol test
   # is gated the moment it lands.
   #
@@ -1007,9 +1007,9 @@ jobs:
       - name: Configure Git and Dolt identity
         run: |
           git config --global user.name "CI Bot"
-          git config --global user.email "ci@beads.test"
+          git config --global user.email "ci@issuegraph.test"
           dolt config --global --add user.name "CI Bot"
-          dolt config --global --add user.email "ci@beads.test"
+          dolt config --global --add user.email "ci@issuegraph.test"
 
       - name: Pull Dolt sql-server image
         # Keep tag in sync with internal/testutil/testdoltcommon.go:DoltDockerImage.
@@ -1024,8 +1024,8 @@ jobs:
         # -timeout is explicit because the package runs well past `go test`'s
         # 10m default; without it a slow runner reports a panic, not a verdict.
         env:
-          BEADS_PROTOCOL_REQUIRE_DOLT: "1"
-        run: go test -tags gms_pure_go -count=1 -timeout 30m github.com/steveyegge/beads/modules/cli/protocol
+          ISSUEGRAPH_PROTOCOL_REQUIRE_DOLT: "1"
+        run: go test -tags gms_pure_go -count=1 -timeout 30m github.com/borg0ai/dx-issuegraph/modules/cli/protocol
 
   fmt-check:
     name: Check formatting
@@ -1207,7 +1207,7 @@ jobs:
           Copy-Item -LiteralPath (Join-Path $env:GITHUB_WORKSPACE 'Makefile') -Destination $fixtureRepo
           Copy-Item -LiteralPath (Join-Path $env:GITHUB_WORKSPACE 'go.mod') -Destination $fixtureRepo
 
-          $sentinel = Join-Path $buildDir 'bd.exe'
+          $sentinel = Join-Path $buildDir 'issuegraph.exe'
           Set-Content -LiteralPath $sentinel -Encoding ascii -NoNewline -Value 'native-install-sentinel'
           $sentinelHash = (Get-FileHash -LiteralPath $sentinel -Algorithm SHA256).Hash
 
@@ -1234,19 +1234,19 @@ jobs:
             Pop-Location
           }
 
-          $installed = Join-Path $installProfile '.local\bin\bd.exe'
+          $installed = Join-Path $installProfile '.local\bin\issuegraph.exe'
           if (-not (Test-Path -LiteralPath $installed -PathType Leaf)) {
-            throw "Native Make did not install bd.exe at the exact destination '$installed'"
+            throw "Native Make did not install issuegraph.exe at the exact destination '$installed'"
           }
           if ((Get-FileHash -LiteralPath $installed -Algorithm SHA256).Hash -ne $sentinelHash) {
-            throw 'Native Make installed bd.exe with unexpected contents'
+            throw 'Native Make installed issuegraph.exe with unexpected contents'
           }
 
           $expectedInstall = @(
             'D profile with spaces'
             'D profile with spaces/.local'
             'D profile with spaces/.local/bin'
-            "F profile with spaces/.local/bin/bd.exe $sentinelHash"
+            "F profile with spaces/.local/bin/issuegraph.exe $sentinelHash"
           ) | Sort-Object
           $actualInstall = @(Get-TreeManifest -Root $installRoot)
           if (Compare-Object -ReferenceObject $expectedInstall -DifferenceObject $actualInstall) {
@@ -1371,7 +1371,7 @@ jobs:
       - check-doc-flags
       - check-doc-freshness-platforms
       - pr-preflight-platforms
-      - check-no-beads-changes
+      - check-no-issuegraph-changes
       - detect-package-gates
       - package-mcp
       - package-npm
@@ -1393,7 +1393,7 @@ jobs:
           CI_GATE_REQUIRED: >-
             BUILD_ARTIFACTS
             CHECK_BUILD_TAGS
-            CHECK_CMD_BD_PUREGEO_TESTS
+            CHECK_CMD_ISSUEGRAPH_PUREGEO_TESTS
             TEST_WINDOWS_LIVENESS
             WORKTREE_REMOVE_WINDOWS
             CHECK_VERSION_CONSISTENCY
@@ -1401,7 +1401,7 @@ jobs:
             CHECK_DOC_FLAGS
             CHECK_DOC_FRESHNESS_PLATFORMS
             PR_PREFLIGHT_PLATFORMS
-            CHECK_NO_BEADS_CHANGES
+            CHECK_NO_ISSUEGRAPH_CHANGES
             DETECT_PACKAGE_GATES
             PACKAGE_MCP
             PACKAGE_NPM
@@ -1415,7 +1415,7 @@ jobs:
             WINDOWS_MAKE_SHELL
           BUILD_ARTIFACTS: ${{ needs.build-artifacts.result }}
           CHECK_BUILD_TAGS: ${{ needs.check-build-tags.result }}
-          CHECK_CMD_BD_PUREGEO_TESTS: ${{ needs.check-cmd-bd-puregeo-tests.result }}
+          CHECK_CMD_ISSUEGRAPH_PUREGEO_TESTS: ${{ needs.check-cmd-bd-puregeo-tests.result }}
           TEST_WINDOWS_LIVENESS: ${{ needs.test-windows-liveness.result }}
           WORKTREE_REMOVE_WINDOWS: ${{ needs.worktree-remove-windows.result }}
           CHECK_VERSION_CONSISTENCY: ${{ needs.check-version-consistency.result }}
@@ -1423,7 +1423,7 @@ jobs:
           CHECK_DOC_FLAGS: ${{ needs.check-doc-flags.result }}
           CHECK_DOC_FRESHNESS_PLATFORMS: ${{ needs.check-doc-freshness-platforms.result }}
           PR_PREFLIGHT_PLATFORMS: ${{ needs.pr-preflight-platforms.result }}
-          CHECK_NO_BEADS_CHANGES: ${{ needs.check-no-beads-changes.result }}
+          CHECK_NO_ISSUEGRAPH_CHANGES: ${{ needs.check-no-issuegraph-changes.result }}
           DETECT_PACKAGE_GATES: ${{ needs.detect-package-gates.result }}
           PACKAGE_MCP: ${{ needs.package-mcp.result }}
           PACKAGE_NPM: ${{ needs.package-npm.result }}
@@ -1438,7 +1438,7 @@ jobs:
         run: |
           skipped_ok=""
           if [[ "$GITHUB_EVENT_NAME" == "merge_group" ]]; then
-            skipped_ok="CHECK_NO_BEADS_CHANGES"
+            skipped_ok="CHECK_NO_ISSUEGRAPH_CHANGES"
           fi
           export CI_GATE_SKIPPED_OK="$skipped_ok"
           bash .github/scripts/ci-gate.sh

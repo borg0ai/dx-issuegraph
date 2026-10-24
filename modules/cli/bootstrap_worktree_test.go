@@ -7,12 +7,12 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/steveyegge/beads/internal/beads"
-	"github.com/steveyegge/beads/internal/git"
+	"github.com/borg0ai/dx-issuegraph/internal/git"
+	"github.com/borg0ai/dx-issuegraph/internal/issuegraph"
 )
 
 func TestBootstrap_WorktreeFallbackDir(t *testing.T) {
-	tmpDir, err := os.MkdirTemp("", "beads-bootstrap-worktree-test-*")
+	tmpDir, err := os.MkdirTemp("", "issuegraph-bootstrap-worktree-test-*")
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -53,13 +53,13 @@ func TestBootstrap_WorktreeFallbackDir(t *testing.T) {
 		_ = cleanupCmd.Run()
 	})
 
-	mainBeadsDir := filepath.Join(mainRepoDir, ".beads")
-	if err := os.MkdirAll(filepath.Join(mainBeadsDir, "dolt"), 0755); err != nil {
+	mainIssueGraphDir := filepath.Join(mainRepoDir, ".issuegraph")
+	if err := os.MkdirAll(filepath.Join(mainIssueGraphDir, "dolt"), 0755); err != nil {
 		t.Fatal(err)
 	}
 
-	worktreeBeadsDir := filepath.Join(worktreeDir, ".beads")
-	_ = os.RemoveAll(worktreeBeadsDir)
+	worktreeIssueGraphDir := filepath.Join(worktreeDir, ".issuegraph")
+	_ = os.RemoveAll(worktreeIssueGraphDir)
 
 	t.Chdir(worktreeDir)
 	git.ResetCaches()
@@ -68,13 +68,13 @@ func TestBootstrap_WorktreeFallbackDir(t *testing.T) {
 		t.Fatal("expected git.IsWorktree() to return true in worktree")
 	}
 
-	got := beads.GetWorktreeFallbackBeadsDir()
+	got := issuegraph.GetWorktreeFallbackIssueGraphDir()
 	if got == "" {
-		t.Fatal("GetWorktreeFallbackBeadsDir() returned empty string")
+		t.Fatal("GetWorktreeFallbackIssueGraphDir() returned empty string")
 	}
 
 	gotClean := filepath.Clean(strings.TrimSpace(got))
-	wantClean := filepath.Clean(strings.TrimSpace(mainBeadsDir))
+	wantClean := filepath.Clean(strings.TrimSpace(mainIssueGraphDir))
 
 	gotResolved, err := filepath.EvalSymlinks(gotClean)
 	if err != nil {
@@ -86,20 +86,20 @@ func TestBootstrap_WorktreeFallbackDir(t *testing.T) {
 	}
 
 	if gotResolved != wantResolved {
-		t.Errorf("GetWorktreeFallbackBeadsDir() = %q (resolved %q), want %q (resolved %q)",
+		t.Errorf("GetWorktreeFallbackIssueGraphDir() = %q (resolved %q), want %q (resolved %q)",
 			gotClean, gotResolved, wantClean, wantResolved)
 	}
 
 	cwd, _ := os.Getwd()
-	cwdBeads := filepath.Join(cwd, ".beads")
-	cwdResolved, _ := filepath.EvalSymlinks(filepath.Clean(cwdBeads))
+	cwdIssueGraph := filepath.Join(cwd, ".issuegraph")
+	cwdResolved, _ := filepath.EvalSymlinks(filepath.Clean(cwdIssueGraph))
 	if gotResolved == cwdResolved {
-		t.Errorf("GetWorktreeFallbackBeadsDir() returned CWD-based path %q, expected main repo path", gotResolved)
+		t.Errorf("GetWorktreeFallbackIssueGraphDir() returned CWD-based path %q, expected main repo path", gotResolved)
 	}
 }
 
-func TestBootstrap_WorktreeLocalBeadsPreferLocal(t *testing.T) {
-	tmpDir, err := os.MkdirTemp("", "beads-bootstrap-local-test-*")
+func TestBootstrap_WorktreeLocalIssueGraphPreferLocal(t *testing.T) {
+	tmpDir, err := os.MkdirTemp("", "issuegraph-bootstrap-local-test-*")
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -138,12 +138,12 @@ func TestBootstrap_WorktreeLocalBeadsPreferLocal(t *testing.T) {
 		_ = cleanupCmd.Run()
 	})
 
-	mainBeadsDir := filepath.Join(mainRepoDir, ".beads")
-	worktreeBeadsDir := filepath.Join(worktreeDir, ".beads")
-	if err := os.MkdirAll(filepath.Join(mainBeadsDir, "dolt"), 0755); err != nil {
+	mainIssueGraphDir := filepath.Join(mainRepoDir, ".issuegraph")
+	worktreeIssueGraphDir := filepath.Join(worktreeDir, ".issuegraph")
+	if err := os.MkdirAll(filepath.Join(mainIssueGraphDir, "dolt"), 0755); err != nil {
 		t.Fatal(err)
 	}
-	if err := os.MkdirAll(filepath.Join(worktreeBeadsDir, "dolt"), 0755); err != nil {
+	if err := os.MkdirAll(filepath.Join(worktreeIssueGraphDir, "dolt"), 0755); err != nil {
 		t.Fatal(err)
 	}
 
@@ -154,22 +154,22 @@ func TestBootstrap_WorktreeLocalBeadsPreferLocal(t *testing.T) {
 		t.Fatal("expected git.IsWorktree() to return true")
 	}
 
-	found := beads.FindBeadsDir()
+	found := issuegraph.FindIssueGraphDir()
 	if found == "" {
-		t.Fatal("FindBeadsDir() returned empty")
+		t.Fatal("FindIssueGraphDir() returned empty")
 	}
 
 	foundResolved, _ := filepath.EvalSymlinks(filepath.Clean(found))
-	worktreeBeadsResolved, _ := filepath.EvalSymlinks(filepath.Clean(worktreeBeadsDir))
+	worktreeIssueGraphResolved, _ := filepath.EvalSymlinks(filepath.Clean(worktreeIssueGraphDir))
 
-	if foundResolved != worktreeBeadsResolved {
-		t.Errorf("FindBeadsDir() = %q, want %q (local worktree .beads should take precedence over main repo fallback)",
-			foundResolved, worktreeBeadsResolved)
+	if foundResolved != worktreeIssueGraphResolved {
+		t.Errorf("FindIssueGraphDir() = %q, want %q (local worktree .issuegraph should take precedence over main repo fallback)",
+			foundResolved, worktreeIssueGraphResolved)
 	}
 }
 
-func TestBootstrap_WorktreeNoBeadsAnywhereStillPointsToMainRepo(t *testing.T) {
-	tmpDir, err := os.MkdirTemp("", "beads-bootstrap-empty-test-*")
+func TestBootstrap_WorktreeNoIssueGraphAnywhereStillPointsToMainRepo(t *testing.T) {
+	tmpDir, err := os.MkdirTemp("", "issuegraph-bootstrap-empty-test-*")
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -208,20 +208,20 @@ func TestBootstrap_WorktreeNoBeadsAnywhereStillPointsToMainRepo(t *testing.T) {
 		_ = cleanupCmd.Run()
 	})
 
-	os.RemoveAll(filepath.Join(worktreeDir, ".beads"))
+	os.RemoveAll(filepath.Join(worktreeDir, ".issuegraph"))
 
 	t.Chdir(worktreeDir)
 	git.ResetCaches()
 
-	fallback := beads.GetWorktreeFallbackBeadsDir()
+	fallback := issuegraph.GetWorktreeFallbackIssueGraphDir()
 	if fallback == "" {
-		t.Fatal("GetWorktreeFallbackBeadsDir() returned empty")
+		t.Fatal("GetWorktreeFallbackIssueGraphDir() returned empty")
 	}
 
-	mainBeadsDir := filepath.Join(mainRepoDir, ".beads")
+	mainIssueGraphDir := filepath.Join(mainRepoDir, ".issuegraph")
 	fallbackResolved, _ := filepath.EvalSymlinks(filepath.Clean(fallback))
-	mainResolved, _ := filepath.EvalSymlinks(filepath.Clean(mainBeadsDir))
+	mainResolved, _ := filepath.EvalSymlinks(filepath.Clean(mainIssueGraphDir))
 	if fallbackResolved != mainResolved {
-		t.Errorf("GetWorktreeFallbackBeadsDir() = %q, want %q (should resolve to main repo even without .beads)", fallbackResolved, mainResolved)
+		t.Errorf("GetWorktreeFallbackIssueGraphDir() = %q, want %q (should resolve to main repo even without .issuegraph)", fallbackResolved, mainResolved)
 	}
 }

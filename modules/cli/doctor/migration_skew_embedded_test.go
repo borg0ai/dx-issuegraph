@@ -8,7 +8,7 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/steveyegge/beads/internal/storage/embeddeddolt"
+	"github.com/borg0ai/dx-issuegraph/internal/storage/embeddeddolt"
 )
 
 // bd-578h9.13: SharedStore only ever opens a server-mode store, so in an
@@ -17,20 +17,20 @@ import (
 // embedded database sat on disk. The check must fall back to opening the
 // embedded database and actually run the comparison.
 func TestCheckMigrationContentSkew_EmbeddedFallback(t *testing.T) {
-	if os.Getenv("BEADS_TEST_EMBEDDED_DOLT") != "1" {
-		t.Skip("set BEADS_TEST_EMBEDDED_DOLT=1 to run embedded dolt tests")
+	if os.Getenv("ISSUEGRAPH_TEST_EMBEDDED_DOLT") != "1" {
+		t.Skip("set ISSUEGRAPH_TEST_EMBEDDED_DOLT=1 to run embedded dolt tests")
 	}
 
 	ctx := t.Context()
-	beadsDir := filepath.Join(t.TempDir(), ".beads")
+	issuegraphDir := filepath.Join(t.TempDir(), ".issuegraph")
 
-	store, err := embeddeddolt.Open(ctx, beadsDir, "beads", "main")
+	store, err := embeddeddolt.Open(ctx, issuegraphDir, "issuegraph", "main")
 	if err != nil {
 		t.Fatalf("Open: %v", err)
 	}
 	store.Close()
 
-	got := CheckMigrationContentSkew(&SharedStore{beadsDir: beadsDir})
+	got := CheckMigrationContentSkew(&SharedStore{issuegraphDir: issuegraphDir})
 	if got.Message == "N/A (no database)" {
 		t.Fatalf("check short-circuited to %q despite an embedded database on disk", got.Message)
 	}

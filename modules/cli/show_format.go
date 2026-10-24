@@ -7,11 +7,11 @@ import (
 	"strings"
 	"time"
 
+	"github.com/borg0ai/dx-issuegraph/internal/config"
+	"github.com/borg0ai/dx-issuegraph/internal/types"
+	"github.com/borg0ai/dx-issuegraph/internal/ui"
+	"github.com/borg0ai/dx-issuegraph/internal/uimd"
 	"github.com/charmbracelet/x/ansi"
-	"github.com/steveyegge/beads/internal/config"
-	"github.com/steveyegge/beads/internal/types"
-	"github.com/steveyegge/beads/internal/ui"
-	"github.com/steveyegge/beads/internal/uimd"
 )
 
 // formatShortIssue returns a compact one-line representation of an issue
@@ -44,7 +44,7 @@ func formatShortIssue(issue *types.Issue) string {
 
 // formatIssueHeader returns the Tufte-aligned header line
 // Format: ID · Title   [Priority · STATUS]
-// All elements in bd show get semantic colors since focus is on one issue
+// All elements in issuegraph show get semantic colors since focus is on one issue
 func formatIssueHeader(issue *types.Issue) string {
 	// Get status icon and style
 	statusIcon := ui.RenderStatusIcon(string(issue.Status))
@@ -135,7 +135,7 @@ func formatIssueMetadata(issue *types.Issue) string {
 		}
 		// Granting replica: only worth a reader's attention when it is NOT
 		// this node, since that is the case where the lease is unenforceable
-		// here and bd reclaim will decline it. Unknown provenance ("") stays
+		// here and issuegraph reclaim will decline it. Unknown provenance ("") stays
 		// silent — it is the pre-wy-jpd3.7 shape, not a fact about the lease.
 		// The local node being unnamed silences it too: the guard is disarmed
 		// there, so reclaim will NOT decline the lease and claiming otherwise
@@ -150,7 +150,7 @@ func formatIssueMetadata(issue *types.Issue) string {
 
 	// Line 3: Close reason (if closed). A reason too long or too structured to
 	// sit on a metadata line is body text, not metadata, so it gets the same
-	// markdown section treatment as DESCRIPTION — `bd close --reason-file`
+	// markdown section treatment as DESCRIPTION — `issuegraph close --reason-file`
 	// exists to write exactly that. Emitted after the remaining metadata lines
 	// so a multi-line reason cannot split the block it is part of.
 	//
@@ -319,7 +319,7 @@ func formatSimpleDependencyLine(prefix string, dep *types.Issue) string {
 }
 
 // formatIssueCustomMetadata renders the issue's custom JSON metadata field
-// for bd show output. Returns empty string if no metadata is set.
+// for issuegraph show output. Returns empty string if no metadata is set.
 // Top-level keys are displayed sorted alphabetically, one per line.
 // Scalar values are shown inline; objects/arrays are shown as compact JSON.
 func formatIssueCustomMetadata(issue *types.Issue) string {

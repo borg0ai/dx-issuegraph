@@ -202,7 +202,7 @@ func expectIgnoredCursorRestore(mock sqlmock.Sqlmock, sweptIntoHead bool) {
 	expectIgnoredCursorScratchDrop(mock, sweptIntoHead)
 }
 
-// TestHealSkipsHealthyDatabaseInTwoReads is the hot-path contract. Every bd
+// TestHealSkipsHealthyDatabaseInTwoReads is the hot-path contract. Every issuegraph
 // invocation that opens a writable store pays this, so it must be two reads
 // and nothing else — no write, no DDL, no commit — and both must be
 // statements that SUCCEED, or the pooled Dolt session ends up pinned to a
@@ -562,7 +562,7 @@ func TestHealNeverResurrectsRowsIntoALiveCursorTable(t *testing.T) {
 // The resume re-reads the operator veto rather than inheriting the decision
 // from whichever open crashed. An operator who resolved a crashed repair by
 // deliberately versioning the cursor table must not get stale rows pushed back
-// into it — but the scratch is bd's own junk and is still cleaned up.
+// into it — but the scratch is issuegraph's own junk and is still cleaned up.
 func TestHealResumeRespectsTheOperatorOverride(t *testing.T) {
 	db, mock := newMockDB(t)
 
@@ -871,7 +871,7 @@ func TestAlreadyConvergedKeepsTheLockProbeLast(t *testing.T) {
 // TestMigrateUpCountsAHealAsWork pins the signal the rest of the system reads.
 // A heal-only pass applies no numbered migration, but it runs DDL and moves
 // HEAD, so reporting 0 told DoltStore.Open not to rebuild the pool it had
-// pinned to the pre-migration session root (be-itm5) and told `bd migrate` to
+// pinned to the pre-migration session root (be-itm5) and told `issuegraph migrate` to
 // print "already at vN" right after minting a fleet-visible commit.
 func TestMigrateUpCountsAHealAsWork(t *testing.T) {
 	db, mock := newMockDB(t)

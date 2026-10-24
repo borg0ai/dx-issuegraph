@@ -65,7 +65,7 @@ func TestProtocol_CommentsPreservedAcrossUpdate(t *testing.T) {
 // silently drop labels, dependencies, or comments from an issue.
 //
 // Invariant: for any issue with labels L, deps D, and comments C,
-// running bd update <id> --title "..." must leave L, D, and C unchanged.
+// running issuegraph update <id> --title "..." must leave L, D, and C unchanged.
 //
 // This is the single most important data-integrity invariant. A violation
 // means any routine update can cause silent data loss.
@@ -149,8 +149,8 @@ func TestProtocol_StatusTransitionsPreserveLabels(t *testing.T) {
 // TestProtocol_DeleteCleansUpDeps asserts that deleting an issue removes
 // all references to it from other issues' dependency lists.
 //
-// Invariant: after bd delete X, no other issue should have X in its
-// dependencies as shown by bd show --json.
+// Invariant: after issuegraph delete X, no other issue should have X in its
+// dependencies as shown by issuegraph show --json.
 func TestProtocol_DeleteCleansUpDeps(t *testing.T) {
 	t.Parallel()
 	w := newWorkspace(t)

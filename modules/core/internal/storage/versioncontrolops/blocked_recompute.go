@@ -5,7 +5,7 @@ import (
 	"database/sql"
 	"fmt"
 
-	"github.com/steveyegge/beads/internal/storage/issueops"
+	"github.com/borg0ai/dx-issuegraph/internal/storage/issueops"
 )
 
 // BlockedRecomputeCommitMsg is the Dolt commit message the FULL is_blocked
@@ -13,7 +13,7 @@ import (
 // message, so a reader of dolt_log cannot tell which mode ran it — which is the
 // point: the repair is mode-independent (bd-6dnrw.37) and its history entry
 // must be too.
-const BlockedRecomputeCommitMsg = "bd: recompute is_blocked (full)"
+const BlockedRecomputeCommitMsg = "issuegraph: recompute is_blocked (full)"
 
 // BlockedRecomputeStagedTables is the exact staging set of the repair commit.
 //

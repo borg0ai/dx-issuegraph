@@ -9,18 +9,18 @@ import (
 	"testing"
 	"time"
 
-	"github.com/steveyegge/beads/internal/storage/embeddeddolt"
-	"github.com/steveyegge/beads/internal/types"
+	"github.com/borg0ai/dx-issuegraph/internal/storage/embeddeddolt"
+	"github.com/borg0ai/dx-issuegraph/internal/types"
 )
 
 func TestEmbeddedImportClosedChildWhoseParentWasDeleted(t *testing.T) {
-	if os.Getenv("BEADS_TEST_EMBEDDED_DOLT") != "1" {
-		t.Skip("set BEADS_TEST_EMBEDDED_DOLT=1 to run embedded dolt import tests")
+	if os.Getenv("ISSUEGRAPH_TEST_EMBEDDED_DOLT") != "1" {
+		t.Skip("set ISSUEGRAPH_TEST_EMBEDDED_DOLT=1 to run embedded dolt import tests")
 	}
 
 	ctx := context.Background()
-	beadsDir := t.TempDir()
-	store, err := embeddeddolt.Open(ctx, beadsDir, "beads", "main")
+	issuegraphDir := t.TempDir()
+	store, err := embeddeddolt.Open(ctx, issuegraphDir, "issuegraph", "main")
 	if err != nil {
 		t.Fatalf("open embedded Dolt store: %v", err)
 	}
@@ -58,8 +58,8 @@ func TestEmbeddedImportClosedChildWhoseParentWasDeleted(t *testing.T) {
 		t.Fatalf("orphan child status = %q, want %q", child.Status, types.StatusClosed)
 	}
 
-	dataDir := filepath.Join(beadsDir, "embeddeddolt")
-	db, cleanup, err := embeddeddolt.OpenSQL(ctx, dataDir, "beads", "main")
+	dataDir := filepath.Join(issuegraphDir, "embeddeddolt")
+	db, cleanup, err := embeddeddolt.OpenSQL(ctx, dataDir, "issuegraph", "main")
 	if err != nil {
 		t.Fatalf("open embedded SQL connection: %v", err)
 	}

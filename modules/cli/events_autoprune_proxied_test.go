@@ -7,10 +7,10 @@ import (
 	"fmt"
 	"testing"
 
-	"github.com/steveyegge/beads/internal/storage"
+	"github.com/borg0ai/dx-issuegraph/internal/storage"
 )
 
-// TestAutoPruneProxiedServer is the auto-prune guard for bd's SECOND write
+// TestAutoPruneProxiedServer is the auto-prune guard for issuegraph's SECOND write
 // plumbing.
 //
 // It is not a duplicate of the embedded test. Proxied mode opens no store at
@@ -24,26 +24,26 @@ func TestAutoPruneProxiedServer(t *testing.T) {
 	requireProxiedServerEnv(t)
 	t.Parallel()
 
-	bd := buildEmbeddedBD(t)
-	p := bdProxiedInit(t, bd, "pap")
+	issuegraph := buildEmbeddedBD(t)
+	p := issuegraphProxiedInit(t, issuegraph, "pap")
 
-	// Every knob is set explicitly, auto-prune included. bdProxiedEnv passes the
+	// Every knob is set explicitly, auto-prune included. issuegraphProxiedEnv passes the
 	// ambient environment through and these extras are appended (last wins), so
 	// stating the default is what stops a developer with
-	// BD_EVENTS_JOURNAL_AUTO_PRUNE exported from silently inverting the case
+	// ISSUEGRAPH_EVENTS_JOURNAL_AUTO_PRUNE exported from silently inverting the case
 	// under test.
 	base := []string{
-		"BD_EVENTS_JOURNAL=1",
-		"BD_EVENTS_JOURNAL_RETAIN_DAYS=0",
-		"BD_EVENTS_JOURNAL_RETAIN_ROWS=2",
-		"BD_EVENTS_JOURNAL_AUTO_PRUNE=1",
+		"ISSUEGRAPH_EVENTS_JOURNAL=1",
+		"ISSUEGRAPH_EVENTS_JOURNAL_RETAIN_DAYS=0",
+		"ISSUEGRAPH_EVENTS_JOURNAL_RETAIN_ROWS=2",
+		"ISSUEGRAPH_EVENTS_JOURNAL_AUTO_PRUNE=1",
 	}
-	noAutoPrune := append(append([]string{}, base...), "BD_EVENTS_JOURNAL_AUTO_PRUNE=0")
+	noAutoPrune := append(append([]string{}, base...), "ISSUEGRAPH_EVENTS_JOURNAL_AUTO_PRUNE=0")
 	mustRun := func(env []string, args ...string) string {
 		t.Helper()
-		stdout, stderr, err := bdProxiedRunBuffersWithEnv(t, bd, p.dir, env, args...)
+		stdout, stderr, err := issuegraphProxiedRunBuffersWithEnv(t, issuegraph, p.dir, env, args...)
 		if err != nil {
-			t.Fatalf("bd %v: %v\nstdout:\n%s\nstderr:\n%s", args, err, stdout, stderr)
+			t.Fatalf("issuegraph %v: %v\nstdout:\n%s\nstderr:\n%s", args, err, stdout, stderr)
 		}
 		return stdout
 	}
@@ -60,7 +60,7 @@ func TestAutoPruneProxiedServer(t *testing.T) {
 
 	mustRun(base, "create", "the trigger", "--silent")
 
-	stdout, stderr, err := bdProxiedRunBuffersWithEnv(t, bd, p.dir, base, "events", "export", "--json")
+	stdout, stderr, err := issuegraphProxiedRunBuffersWithEnv(t, issuegraph, p.dir, base, "events", "export", "--json")
 	if err == nil {
 		t.Fatalf("export from seq 0 succeeded after a proxied mutation; the prefix should be gone\n%s", stdout)
 	}

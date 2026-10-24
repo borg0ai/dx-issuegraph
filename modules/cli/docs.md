@@ -12,7 +12,7 @@ The CLI is built on the Cobra framework and consists of command implementations 
 
 - **Entry Point**: The CLI defined here (`modules/cli/main.go`) is the user-facing interface to the entire issuegraph system. All user interactions flow through this package.
 
-- **Integration with Core Libraries**: The CLI commands call into libraries at `@/internal/beads` (database discovery, version detection), `@/internal/storage` (database operations), `@/internal/rpc` (Dolt server communication), and other internal packages.
+- **Integration with Core Libraries**: The CLI commands call into libraries at `@/internal/issuegraph` (database discovery, version detection), `@/internal/storage` (database operations), `@/internal/rpc` (Dolt server communication), and other internal packages.
 
 - **Server Communication**: Commands use RPC client logic to communicate with the Dolt server (PersistentPreRun hook), allowing the CLI to operate either in server mode (delegating to the Dolt server) or embedded mode (local database operations).
 
@@ -52,7 +52,7 @@ The CLI is built on the Cobra framework and consists of command implementations 
 - The server connection state is managed via PersistentPreRun hooks, allowing most commands to transparently work in server or embedded mode
 
 **Key Data Paths**:
-- User input → Cobra command parsing → Internal beads library calls → Storage layer → Git operations
+- User input → Cobra command parsing → Internal issuegraph library calls → Storage layer → Git operations
 - Responses flow back through storage → RPC (if server) or direct return → formatted output
 
 ### Things to Know

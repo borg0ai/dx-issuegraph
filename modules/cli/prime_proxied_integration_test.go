@@ -8,11 +8,11 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/steveyegge/beads/internal/configfile"
+	"github.com/borg0ai/dx-issuegraph/internal/configfile"
 )
 
 // TestProxiedServerPrime covers the bd-mm8wf seam from lion's #5361 review:
-// `bd prime` sits in noDbCommands, so formatMemoriesForPrime lazily
+// `issuegraph prime` sits in noDbCommands, so formatMemoriesForPrime lazily
 // initialized storage via ensureStoreActiveForPrime — a direct-store open
 // (the bd-m7zzd seam class) that in proxied mode the store factory refuses,
 // which the silent-skip contract then swallowed: proxied prime never carried
@@ -23,23 +23,23 @@ import (
 func TestProxiedServerPrime(t *testing.T) {
 	requireSharedProxiedServer(t)
 	t.Parallel()
-	bd := buildEmbeddedBD(t)
+	issuegraph := buildEmbeddedBD(t)
 
 	// A lazy direct open in this workspace would materialize an embedded
 	// store directory; the proxied plane never does.
 	assertNoEmbeddedStore := func(t *testing.T, p proxiedProject) {
 		t.Helper()
-		embeddedDir := filepath.Join(p.beadsDir, "embeddeddolt")
+		embeddedDir := filepath.Join(p.issuegraphDir, "embeddeddolt")
 		if _, err := os.Stat(embeddedDir); !os.IsNotExist(err) {
-			t.Errorf("expected no embedded store at %s after bd prime (direct-store seam), stat err=%v", embeddedDir, err)
+			t.Errorf("expected no embedded store at %s after issuegraph prime (direct-store seam), stat err=%v", embeddedDir, err)
 		}
 	}
 
 	t.Run("memories_only_injects_via_proxied_plane", func(t *testing.T) {
 		t.Parallel()
-		p := newSharedProxiedProject(t, bd, "ppr1")
+		p := newSharedProxiedProject(t, issuegraph, "ppr1")
 		content := "proxied prime memories ride the uow plane"
-		out := bdProxiedMem(t, bd, p.dir, "remember", content, "--key", "proxied-prime-seam")
+		out := issuegraphProxiedMem(t, issuegraph, p.dir, "remember", content, "--key", "proxied-prime-seam")
 		if !strings.Contains(out, "Remembered [proxied-prime-seam]") {
 			t.Fatalf("expected 'Remembered [proxied-prime-seam]', got: %s", out)
 		}
@@ -47,7 +47,7 @@ func TestProxiedServerPrime(t *testing.T) {
 		db := openProxiedDB(t, p)
 		head := readDoltHead(t, db)
 
-		out = bdProxiedMem(t, bd, p.dir, "prime", "--memories-only")
+		out = issuegraphProxiedMem(t, issuegraph, p.dir, "prime", "--memories-only")
 		if !strings.Contains(out, "## Persistent Memories") {
 			t.Errorf("expected Persistent Memories section in proxied prime output, got: %s", out)
 		}
@@ -64,9 +64,9 @@ func TestProxiedServerPrime(t *testing.T) {
 
 	t.Run("full_prime_appends_memories_section", func(t *testing.T) {
 		t.Parallel()
-		p := newSharedProxiedProject(t, bd, "ppr2")
-		bdProxiedMem(t, bd, p.dir, "remember", "full prime carries memories in proxied mode", "--key", "full-prime-check")
-		out := bdProxiedMem(t, bd, p.dir, "prime", "--full")
+		p := newSharedProxiedProject(t, issuegraph, "ppr2")
+		issuegraphProxiedMem(t, issuegraph, p.dir, "remember", "full prime carries memories in proxied mode", "--key", "full-prime-check")
+		out := issuegraphProxiedMem(t, issuegraph, p.dir, "prime", "--full")
 		if !strings.Contains(out, "## Persistent Memories") || !strings.Contains(out, "full-prime-check") {
 			t.Errorf("expected memories section with key 'full-prime-check' in full prime output, got: %s", out)
 		}
@@ -75,8 +75,8 @@ func TestProxiedServerPrime(t *testing.T) {
 
 	t.Run("no_memories_yields_stored_none_message", func(t *testing.T) {
 		t.Parallel()
-		p := newSharedProxiedProject(t, bd, "ppr3")
-		out := bdProxiedMem(t, bd, p.dir, "prime", "--memories-only")
+		p := newSharedProxiedProject(t, issuegraph, "ppr3")
+		out := issuegraphProxiedMem(t, issuegraph, p.dir, "prime", "--memories-only")
 		if !strings.Contains(out, "No memories stored") {
 			t.Errorf("expected 'No memories stored' for empty proxied memory set, got: %s", out)
 		}
@@ -84,9 +84,9 @@ func TestProxiedServerPrime(t *testing.T) {
 
 	t.Run("reports_when_plane_unavailable", func(t *testing.T) {
 		t.Parallel()
-		p := newSharedProxiedProject(t, bd, "ppr4")
+		p := newSharedProxiedProject(t, issuegraph, "ppr4")
 		content := "this memory must not surface when the plane is down"
-		bdProxiedMem(t, bd, p.dir, "remember", content, "--key", "plane-down")
+		issuegraphProxiedMem(t, issuegraph, p.dir, "remember", content, "--key", "plane-down")
 
 		// Corrupt the proxied-server sidecar: provider open now fails before
 		// touching any server, the deterministic stand-in for an unreachable
@@ -94,16 +94,16 @@ func TestProxiedServerPrime(t *testing.T) {
 		// store — but it says so rather than rendering as an empty memory set
 		// (gh#5877), which is what made a downed plane indistinguishable from
 		// a workspace that simply has no memories.
-		sidecar := configfile.ProxiedServerClientInfoPath(p.beadsDir)
+		sidecar := configfile.ProxiedServerClientInfoPath(p.issuegraphDir)
 		if err := os.WriteFile(sidecar, []byte("not json{"), 0o644); err != nil {
 			t.Fatalf("corrupting sidecar %s: %v", sidecar, err)
 		}
 
-		out := bdProxiedMem(t, bd, p.dir, "prime", "--memories-only")
+		out := issuegraphProxiedMem(t, issuegraph, p.dir, "prime", "--memories-only")
 		if strings.Contains(out, content) || strings.Contains(out, "plane-down") {
 			t.Errorf("expected memory to be skipped when the proxied plane is unavailable, got: %s", out)
 		}
-		if !strings.Contains(out, "beads storage unavailable") || !strings.Contains(out, "were NOT injected this session") {
+		if !strings.Contains(out, "issuegraph storage unavailable") || !strings.Contains(out, "were NOT injected this session") {
 			t.Errorf("expected the storage-unavailable banner when the proxied plane is down, got: %s", out)
 		}
 		if strings.Contains(out, "No memories stored") {

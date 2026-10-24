@@ -89,7 +89,7 @@ func ParseHierarchicalID(id string) (rootID, parentID string, depth int) {
 	return rootID, parentID, depth
 }
 
-// ExtractPrefix returns the prefix portion of a bead ID (everything before
+// ExtractPrefix returns the prefix portion of a issue ID (everything before
 // the first hyphen, including the hyphen). For example, "sh-abc" returns "sh-".
 // Returns empty string for IDs without a hyphen.
 func ExtractPrefix(id string) string {

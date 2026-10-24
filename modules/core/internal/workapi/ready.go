@@ -4,9 +4,9 @@ import (
 	"fmt"
 	"strings"
 
-	"github.com/steveyegge/beads/internal/types"
-	"github.com/steveyegge/beads/internal/utils"
-	"github.com/steveyegge/beads/issueops"
+	"github.com/borg0ai/dx-issuegraph/internal/types"
+	"github.com/borg0ai/dx-issuegraph/internal/utils"
+	"github.com/borg0ai/dx-issuegraph/issueops"
 )
 
 // DefaultReadyLimit is the default number of rows a ready-work query returns
@@ -28,7 +28,7 @@ func LimitOr(limit *int, fallback int) int {
 }
 
 // BuildReadyFilter turns a ready request into the storage-level work filter.
-// It is the single definition of what `bd ready` means: open issues only (an
+// It is the single definition of what `issuegraph ready` means: open issues only (an
 // empty WorkFilter would default to open plus in_progress), issue-type alias
 // expansion, label and exclude-type normalization, limit defaulting, and the
 // assignee rule that lets Unassigned win over a stale Assignee.
@@ -41,14 +41,14 @@ func LimitOr(limit *int, fallback int) int {
 // own to shape, and running it through here would change it.
 func BuildReadyFilter(in issueops.ReadyRequest) (types.WorkFilter, error) {
 	filter := types.WorkFilter{
-		// Open only, not in_progress - the same set `bd list --ready` shows
+		// Open only, not in_progress - the same set `issuegraph list --ready` shows
 		// when --status is omitted (an explicit --status is an intersection;
 		// GH#5832).
 		Status: types.StatusOpen,
 		Type:   utils.NormalizeIssueType(in.IssueType),
 		Limit:  LimitOr(in.Limit, DefaultReadyLimit),
 		// Carried for the callers that consume this filter as a VALUE and run
-		// their own query (modules/cli's proxied `bd ready`), where the seam beneath
+		// their own query (modules/cli's proxied `issuegraph ready`), where the seam beneath
 		// them renders it. Both implementations of issueops.Reader take it back
 		// off and skip in the shared page epilogue; see BuildListFilter and
 		// FinishPageAt.
@@ -96,7 +96,7 @@ func BuildReadyFilter(in issueops.ReadyRequest) (types.WorkFilter, error) {
 		// Reader.Ready, ReadyClaimer.ClaimNext and BatchCloser's ClaimNext —
 		// promises a caller can classify one with errors.Is rather than by
 		// reading prose. The wrap is %.0w rather than a "%w: " prefix because
-		// this text is what `bd ready --sort bogus` prints verbatim behind
+		// this text is what `issuegraph ready --sort bogus` prints verbatim behind
 		// "Error: "; prefixing it would change user-visible copy to say
 		// something the reader already knows.
 		return filter, fmt.Errorf("invalid sort policy '%s'. Valid values: hybrid, priority, oldest%.0w", in.Sort, issueops.ErrValidation)
@@ -106,7 +106,7 @@ func BuildReadyFilter(in issueops.ReadyRequest) (types.WorkFilter, error) {
 
 // BuildReadyCountFilter turns a ready request into the storage-level filter a
 // COUNT of the ready set runs against: BuildReadyFilter's filter with the page
-// removed, and the single definition of what `bd ready`'s published total means.
+// removed, and the single definition of what `issuegraph ready`'s published total means.
 //
 // It refuses a request carrying a page. issueops.ReadyCounter.CountReady
 // promises its answer equals len(Reader.Ready(r with Limit=0).Items), and a
@@ -132,7 +132,7 @@ func BuildReadyCountFilter(in issueops.ReadyRequest) (types.WorkFilter, error) {
 	// COUNT(*) over the ready predicate and sizes the set by running the
 	// unbounded page and taking its length (uow/ready_counter.go), so clearing
 	// the field here would hydrate every heavy column of the whole ready set to
-	// answer `bd ready --brief`, which is the cost the projection exists to
+	// answer `issuegraph ready --brief`, which is the cost the projection exists to
 	// avoid and larger than the page it was asked for. Carrying it also keeps
 	// the count filter what this builder says it is: the listing's filter with
 	// the PAGE removed, and nothing else removed.

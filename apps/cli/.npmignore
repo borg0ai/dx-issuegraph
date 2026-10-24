@@ -9,5 +9,9 @@ test/
 tests/
 *.test.js
 coverage/
+bin/issuegraph
+bin/issuegraph.exe
+bin/bd
+bin/cli
 
 # Include only the necessary files (see package.json "files" field)

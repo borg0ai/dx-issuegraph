@@ -5,9 +5,9 @@ import (
 	"errors"
 	"fmt"
 
-	"github.com/steveyegge/beads/internal/storage"
-	"github.com/steveyegge/beads/internal/storage/uow"
-	"github.com/steveyegge/beads/internal/workapi"
+	"github.com/borg0ai/dx-issuegraph/internal/storage"
+	"github.com/borg0ai/dx-issuegraph/internal/storage/uow"
+	"github.com/borg0ai/dx-issuegraph/internal/workapi"
 )
 
 // heartbeatProxiedOutcome carries what the render layer needs out of the
@@ -17,7 +17,7 @@ type heartbeatProxiedOutcome struct {
 	title string
 }
 
-// runHeartbeatProxiedServer routes bd heartbeat through the proxied-server
+// runHeartbeatProxiedServer routes issuegraph heartbeat through the proxied-server
 // plane. The lease write is EPHEMERAL (the dolt_ignored leases table,
 // bd-lrgn1): the transaction commits via uow.RunTxEphemeral's SQL-only form,
 // so a heartbeat mints exactly ZERO Dolt commits per invocation — the same

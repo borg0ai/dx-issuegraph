@@ -5,15 +5,15 @@ import (
 	"os"
 	"testing"
 
-	"github.com/steveyegge/beads/internal/doltserver"
-	"github.com/steveyegge/beads/internal/testutil"
+	"github.com/borg0ai/dx-issuegraph/internal/doltserver"
+	"github.com/borg0ai/dx-issuegraph/internal/testutil"
 )
 
 // suiteRootPrefix is this suite's PinSuiteTempRoot pattern without its random
 // tail. SweepDeadSuiteRoots globs for it, so the two must not drift. It is
 // deliberately short: this package's unix-socket test builds a socket path
 // under t.TempDir(), and sun_path is 108 bytes on linux / 104 on macOS.
-const suiteRootPrefix = "beads-dbproxy-server-tests-"
+const suiteRootPrefix = "issuegraph-dbproxy-server-tests-"
 
 // suiteTempRoot is the TestMain-owned temp directory that every t.TempDir()
 // in this package lands under, so the sweeps have a root they can vouch for.

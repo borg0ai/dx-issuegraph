@@ -7,10 +7,10 @@ import (
 	"fmt"
 	"strings"
 
-	"github.com/steveyegge/beads/internal/storage/depid"
-	"github.com/steveyegge/beads/internal/storage/domain"
-	"github.com/steveyegge/beads/internal/storage/sqlbuild"
-	"github.com/steveyegge/beads/internal/types"
+	"github.com/borg0ai/dx-issuegraph/internal/storage/depid"
+	"github.com/borg0ai/dx-issuegraph/internal/storage/domain"
+	"github.com/borg0ai/dx-issuegraph/internal/storage/sqlbuild"
+	"github.com/borg0ai/dx-issuegraph/internal/types"
 )
 
 type DepTargetKind int
@@ -74,7 +74,7 @@ func depTargetIn(alias, placeholders string) string {
 
 // IsExternalDepTarget reports whether a dependency target is one this database
 // cannot hold a row for. Two shapes qualify: an "external:" reference, which
-// names something outside beads entirely, and a target whose id prefix names
+// names something outside issuegraph entirely, and a target whose id prefix names
 // ANOTHER REPOSITORY, which lives in that rig's database and not this one.
 // Both belong in depends_on_external — the one target column carrying no
 // foreign key into issues — so this is the single rule every backend must
@@ -131,8 +131,8 @@ type AddDependencyOpts struct {
 	// queries tx too.
 	PrecheckedTarget *DepTargetPrecheck
 	// EmitEvent records a dependency_added event on the source's event table
-	// for a genuine new edge. Only the explicit dependency verbs (bd dep add /
-	// bd link and their bulk twin) set it; create-with-deps and structural
+	// for a genuine new edge. Only the explicit dependency verbs (issuegraph dep add /
+	// issuegraph link and their bulk twin) set it; create-with-deps and structural
 	// callers leave it unset so an implicit parent-child / --deps / waits-for
 	// edge produces no event. This mirrors the proxied repository's
 	// DepInsertOpts.EmitEvent gate so both backends record identical history.
@@ -310,7 +310,7 @@ func addDependencyInTx(ctx context.Context, tx *sql.Tx, dep *types.Dependency, a
 	srcIsWisp := writeTable == "wisp_dependencies"
 
 	// Record the dependency_added event on the source issue's event table so the
-	// bd CLI and library callers observing an issue's history see the new edge.
+	// issuegraph CLI and library callers observing an issue's history see the new edge.
 	// The source's event table routes the same way as its dependency write table
 	// (wisp_dependencies -> wisp_events). This runs only on the genuine new-edge
 	// path: the idempotent same-type re-add returned earlier without emitting.
@@ -971,7 +971,7 @@ func checkRenameTargetCollision(ctx context.Context, tx DBTX, table, typedCol, n
 // source issue is an active wisp. When emitEvent is set and a row is actually
 // removed it records a dependency_removed event (attributed to actor) on the
 // source's event table; a no-op remove of a missing edge, or a structural remove
-// with emitEvent unset, records nothing. Only the explicit bd dep remove verb
+// with emitEvent unset, records nothing. Only the explicit issuegraph dep remove verb
 // sets emitEvent; structural removals (issue delete, reparent, batch, duplicate
 // cleanup) leave it unset so they wire edges away silently, mirroring the
 // proxied repository's DepInsertOpts.EmitEvent gate so both backends record
@@ -1012,7 +1012,7 @@ func removeDependencyInTx(ctx context.Context, tx *sql.Tx, issueID, dependsOnID,
 
 	// The lookup above returned early when no row matched, so reaching here means
 	// an edge was actually deleted. Record the dependency_removed event on the
-	// source issue's event table for bd CLI / library history observers — but only
+	// source issue's event table for issuegraph CLI / library history observers — but only
 	// when emitEvent is set, so structural removes stay silent (parity with the
 	// proxied repo and with the symmetric AddDependencyInTx EmitEvent gate).
 	eventWritten := false

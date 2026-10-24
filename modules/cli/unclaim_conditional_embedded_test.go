@@ -7,10 +7,10 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/steveyegge/beads/internal/types"
+	"github.com/borg0ai/dx-issuegraph/internal/types"
 )
 
-// TestUnclaimIfAssigneeCLI drives `bd unclaim --if-assignee` end-to-end against
+// TestUnclaimIfAssigneeCLI drives `issuegraph unclaim --if-assignee` end-to-end against
 // the embedded Dolt backend: the conditional release must be a compare-and-swap,
 // not a read-then-clobber. A stale expectation exits nonzero, names the current
 // holder, and leaves the claim untouched; the matching expectation releases the
@@ -18,23 +18,23 @@ import (
 // silent success (the exactly-once property a release-if-current supervisor
 // depends on).
 func TestUnclaimIfAssigneeCLI(t *testing.T) {
-	if os.Getenv("BEADS_TEST_EMBEDDED_DOLT") != "1" {
-		t.Skip("set BEADS_TEST_EMBEDDED_DOLT=1 to run embedded dolt integration tests")
+	if os.Getenv("ISSUEGRAPH_TEST_EMBEDDED_DOLT") != "1" {
+		t.Skip("set ISSUEGRAPH_TEST_EMBEDDED_DOLT=1 to run embedded dolt integration tests")
 	}
 	t.Parallel()
 
-	bd := buildEmbeddedBD(t)
-	dir, _, _ := bdInit(t, bd, "--prefix", "ur")
+	issuegraph := buildEmbeddedBD(t)
+	dir, _, _ := issuegraphInit(t, issuegraph, "--prefix", "ur")
 
-	issue := bdCreate(t, bd, dir, "Conditional release", "--type", "task")
-	bdUpdate(t, bd, dir, issue.ID, "--assignee", "alice", "--status", "in_progress")
+	issue := issuegraphCreate(t, issuegraph, dir, "Conditional release", "--type", "task")
+	issuegraphUpdate(t, issuegraph, dir, issue.ID, "--assignee", "alice", "--status", "in_progress")
 
 	// Stale expectation: distinct failure that names the current holder, claim intact.
-	out := bdUnclaimFail(t, bd, dir, issue.ID, "--if-assignee", "bob")
+	out := issuegraphUnclaimFail(t, issuegraph, dir, issue.ID, "--if-assignee", "bob")
 	if !strings.Contains(out, "alice") {
 		t.Errorf("mismatch error should name the current holder alice, got:\n%s", out)
 	}
-	got := bdShow(t, bd, dir, issue.ID)
+	got := issuegraphShow(t, issuegraph, dir, issue.ID)
 	if got.Assignee != "alice" {
 		t.Errorf("stale --if-assignee clobbered the claim: assignee = %q, want alice", got.Assignee)
 	}
@@ -43,8 +43,8 @@ func TestUnclaimIfAssigneeCLI(t *testing.T) {
 	}
 
 	// Matching expectation: releases the claim.
-	bdUnclaim(t, bd, dir, issue.ID, "--if-assignee", "alice")
-	got = bdShow(t, bd, dir, issue.ID)
+	issuegraphUnclaim(t, issuegraph, dir, issue.ID, "--if-assignee", "alice")
+	got = issuegraphShow(t, issuegraph, dir, issue.ID)
 	if got.Assignee != "" {
 		t.Errorf("after matching --if-assignee: assignee = %q, want empty", got.Assignee)
 	}
@@ -54,10 +54,10 @@ func TestUnclaimIfAssigneeCLI(t *testing.T) {
 
 	// Releasing an already-released issue with --if-assignee is also a distinct
 	// failure (exactly-once), not a silent success.
-	_ = bdUnclaimFail(t, bd, dir, issue.ID, "--if-assignee", "alice")
+	_ = issuegraphUnclaimFail(t, issuegraph, dir, issue.ID, "--if-assignee", "alice")
 }
 
-// TestUnclaimIfAssigneeCLIDifferentSpelling drives `bd unclaim --if-assignee`
+// TestUnclaimIfAssigneeCLIDifferentSpelling drives `issuegraph unclaim --if-assignee`
 // with an expectation that names the current holder under a different Gas
 // Town identity spelling than the stored assignee (dot vs underscore
 // separator — ga-5ksp5). This must count as a match, not a stale-expectation
@@ -66,19 +66,19 @@ func TestUnclaimIfAssigneeCLI(t *testing.T) {
 // the same identity, or the release silently affects zero rows even though
 // the precheck said the CAS should succeed.
 func TestUnclaimIfAssigneeCLIDifferentSpelling(t *testing.T) {
-	if os.Getenv("BEADS_TEST_EMBEDDED_DOLT") != "1" {
-		t.Skip("set BEADS_TEST_EMBEDDED_DOLT=1 to run embedded dolt integration tests")
+	if os.Getenv("ISSUEGRAPH_TEST_EMBEDDED_DOLT") != "1" {
+		t.Skip("set ISSUEGRAPH_TEST_EMBEDDED_DOLT=1 to run embedded dolt integration tests")
 	}
 	t.Parallel()
 
-	bd := buildEmbeddedBD(t)
-	dir, _, _ := bdInit(t, bd, "--prefix", "uw")
+	issuegraph := buildEmbeddedBD(t)
+	dir, _, _ := issuegraphInit(t, issuegraph, "--prefix", "uw")
 
-	issue := bdCreate(t, bd, dir, "Conditional release, spelling variant", "--type", "task")
-	bdUpdate(t, bd, dir, issue.ID, "--assignee", "gastown.mayor", "--status", "in_progress")
+	issue := issuegraphCreate(t, issuegraph, dir, "Conditional release, spelling variant", "--type", "task")
+	issuegraphUpdate(t, issuegraph, dir, issue.ID, "--assignee", "gastown.mayor", "--status", "in_progress")
 
-	bdUnclaim(t, bd, dir, issue.ID, "--if-assignee", "gastown_mayor")
-	got := bdShow(t, bd, dir, issue.ID)
+	issuegraphUnclaim(t, issuegraph, dir, issue.ID, "--if-assignee", "gastown_mayor")
+	got := issuegraphShow(t, issuegraph, dir, issue.ID)
 	if got.Assignee != "" {
 		t.Errorf("after same-identity --if-assignee: assignee = %q, want empty", got.Assignee)
 	}
@@ -97,25 +97,25 @@ func TestUnclaimIfAssigneeCLIDifferentSpelling(t *testing.T) {
 // (fall through to UnclaimIssue / let one flag win) would actually have released
 // the claim, making these true regression guards.
 func TestUnclaimIfAssigneeFlagValidation(t *testing.T) {
-	if os.Getenv("BEADS_TEST_EMBEDDED_DOLT") != "1" {
-		t.Skip("set BEADS_TEST_EMBEDDED_DOLT=1 to run embedded dolt integration tests")
+	if os.Getenv("ISSUEGRAPH_TEST_EMBEDDED_DOLT") != "1" {
+		t.Skip("set ISSUEGRAPH_TEST_EMBEDDED_DOLT=1 to run embedded dolt integration tests")
 	}
 	t.Parallel()
 
-	bd := buildEmbeddedBD(t)
-	dir, _, _ := bdInit(t, bd, "--prefix", "uv")
+	issuegraph := buildEmbeddedBD(t)
+	dir, _, _ := issuegraphInit(t, issuegraph, "--prefix", "uv")
 
 	t.Run("empty_if_assignee_rejected", func(t *testing.T) {
-		issue := bdCreate(t, bd, dir, "Empty expectation", "--type", "task")
-		bdUpdate(t, bd, dir, issue.ID, "--assignee", "alice", "--status", "in_progress")
+		issue := issuegraphCreate(t, issuegraph, dir, "Empty expectation", "--type", "task")
+		issuegraphUpdate(t, issuegraph, dir, issue.ID, "--assignee", "alice", "--status", "in_progress")
 
 		// As the holder (alice), a pre-fix empty --if-assignee "" would have
 		// fallen through to an unconditional owner release and cleared the claim.
-		out := bdUnclaimFail(t, bd, dir, issue.ID, "--if-assignee", "", "--actor", "alice")
+		out := issuegraphUnclaimFail(t, issuegraph, dir, issue.ID, "--if-assignee", "", "--actor", "alice")
 		if !strings.Contains(out, "if-assignee requires a non-empty assignee") {
 			t.Errorf("empty --if-assignee should be rejected with a clear error, got:\n%s", out)
 		}
-		got := bdShow(t, bd, dir, issue.ID)
+		got := issuegraphShow(t, issuegraph, dir, issue.ID)
 		if got.Assignee != "alice" {
 			t.Errorf("empty --if-assignee released the claim: assignee = %q, want alice", got.Assignee)
 		}
@@ -125,16 +125,16 @@ func TestUnclaimIfAssigneeFlagValidation(t *testing.T) {
 	})
 
 	t.Run("force_and_if_assignee_mutually_exclusive", func(t *testing.T) {
-		issue := bdCreate(t, bd, dir, "Conflicting flags", "--type", "task")
-		bdUpdate(t, bd, dir, issue.ID, "--assignee", "alice", "--status", "in_progress")
+		issue := issuegraphCreate(t, issuegraph, dir, "Conflicting flags", "--type", "task")
+		issuegraphUpdate(t, issuegraph, dir, issue.ID, "--assignee", "alice", "--status", "in_progress")
 
 		// --force + a matching --if-assignee would, pre-fix, take the CAS path and
 		// release the claim. The combination must instead be rejected outright.
-		out := bdUnclaimFail(t, bd, dir, issue.ID, "--force", "--if-assignee", "alice")
+		out := issuegraphUnclaimFail(t, issuegraph, dir, issue.ID, "--force", "--if-assignee", "alice")
 		if !strings.Contains(out, "force") || !strings.Contains(out, "if-assignee") {
 			t.Errorf("--force with --if-assignee should be rejected as mutually exclusive, got:\n%s", out)
 		}
-		got := bdShow(t, bd, dir, issue.ID)
+		got := issuegraphShow(t, issuegraph, dir, issue.ID)
 		if got.Assignee != "alice" {
 			t.Errorf("--force --if-assignee released the claim: assignee = %q, want alice", got.Assignee)
 		}

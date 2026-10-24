@@ -8,7 +8,7 @@ import (
 )
 
 // CheckBtrfsNoCOW verifies that FS_NOCOW_FL is set on the dolt data
-// directory under .beads/ when running on Linux btrfs. Without this flag,
+// directory under .issuegraph/ when running on Linux btrfs. Without this flag,
 // dolt's append-only write path triggers kworker thrashing because every
 // small append forces btrfs to read-modify-write-recompress an existing
 // compressed extent.
@@ -18,7 +18,7 @@ import (
 // the check also returns StatusOK because the flag is a no-op there.
 //
 // The check reports a warning when the flag is missing on a btrfs dolt
-// directory, along with a fix suggestion. `bd doctor --fix` (via
+// directory, along with a fix suggestion. `issuegraph doctor --fix` (via
 // FixBtrfsNoCOW) applies the flag but also warns that existing files inside
 // need to be rewritten to pick it up.
 func CheckBtrfsNoCOW(path string) DoctorCheck {
@@ -33,27 +33,27 @@ func CheckBtrfsNoCOW(path string) DoctorCheck {
 		}
 	}
 
-	beadsDir := ResolveBeadsDirForRepo(path)
-	if _, err := os.Stat(beadsDir); os.IsNotExist(err) {
+	issuegraphDir := ResolveIssueGraphDirForRepo(path)
+	if _, err := os.Stat(issuegraphDir); os.IsNotExist(err) {
 		return DoctorCheck{
 			Name:     name,
 			Status:   StatusOK,
-			Message:  "No .beads directory to check",
+			Message:  "No .issuegraph directory to check",
 			Category: CategoryPerformance,
 		}
 	}
 
 	// The dolt data directory is what actually matters for the hot write
-	// path, but FS_NOCOW_FL on .beads/ itself is enough because new subdirs
-	// inherit it. We check both: the ancestor (`.beads/`) is the one init
+	// path, but FS_NOCOW_FL on .issuegraph/ itself is enough because new subdirs
+	// inherit it. We check both: the ancestor (`.issuegraph/`) is the one init
 	// sets, and any existing dolt data dir is what dolt is actively writing
 	// to. If either is missing the flag, warn.
-	targets := []string{beadsDir}
-	doltDir := filepath.Join(beadsDir, "dolt")
+	targets := []string{issuegraphDir}
+	doltDir := filepath.Join(issuegraphDir, "dolt")
 	if _, err := os.Stat(doltDir); err == nil {
 		targets = append(targets, doltDir)
 	}
-	embeddedDir := filepath.Join(beadsDir, "embeddeddolt")
+	embeddedDir := filepath.Join(issuegraphDir, "embeddeddolt")
 	if _, err := os.Stat(embeddedDir); err == nil {
 		targets = append(targets, embeddedDir)
 	}
@@ -117,12 +117,12 @@ func CheckBtrfsNoCOW(path string) DoctorCheck {
 		Status:   StatusWarning,
 		Message:  fmt.Sprintf("FS_NOCOW_FL missing on %d btrfs dolt path(s)", len(missing)),
 		Detail:   detail,
-		Fix:      "Run 'bd doctor --fix' to apply the flag; then 'mv .beads/dolt /tmp/d && mv /tmp/d .beads/dolt' to rewrite existing files.",
+		Fix:      "Run 'issuegraph doctor --fix' to apply the flag; then 'mv .issuegraph/dolt /tmp/d && mv /tmp/d .issuegraph/dolt' to rewrite existing files.",
 		Category: CategoryPerformance,
 	}
 }
 
-// FixBtrfsNoCOW applies FS_NOCOW_FL to the .beads/ directory and to any
+// FixBtrfsNoCOW applies FS_NOCOW_FL to the .issuegraph/ directory and to any
 // existing dolt data subdirectories. Returns a human-readable summary of
 // what was done, plus a warning that existing files inside still need to
 // be relocated (via mv-to-tmp; mv-back) to actually pick up the new flag —
@@ -135,22 +135,22 @@ func FixBtrfsNoCOW(path string) (string, error) {
 		return "FS_NOCOW_FL fix skipped: not on Linux", nil
 	}
 
-	beadsDir := ResolveBeadsDirForRepo(path)
-	if _, err := os.Stat(beadsDir); os.IsNotExist(err) {
-		return "", fmt.Errorf(".beads directory not found at %s", beadsDir)
+	issuegraphDir := ResolveIssueGraphDirForRepo(path)
+	if _, err := os.Stat(issuegraphDir); os.IsNotExist(err) {
+		return "", fmt.Errorf(".issuegraph directory not found at %s", issuegraphDir)
 	}
 
-	onBtrfs, err := isBtrfs(beadsDir)
+	onBtrfs, err := isBtrfs(issuegraphDir)
 	if err != nil {
-		return "", fmt.Errorf("failed to statfs %s: %w", beadsDir, err)
+		return "", fmt.Errorf("failed to statfs %s: %w", issuegraphDir, err)
 	}
 	if !onBtrfs {
 		return "FS_NOCOW_FL fix skipped: not on btrfs", nil
 	}
 
-	targets := []string{beadsDir}
+	targets := []string{issuegraphDir}
 	for _, sub := range []string{"dolt", "embeddeddolt"} {
-		p := filepath.Join(beadsDir, sub)
+		p := filepath.Join(issuegraphDir, sub)
 		if _, err := os.Stat(p); err == nil {
 			targets = append(targets, p)
 		}
@@ -170,7 +170,7 @@ func FixBtrfsNoCOW(path string) (string, error) {
 	}
 	msg += "\nWARNING: existing files inside these directories still carry the\n" +
 		"old compression state. To fully benefit, relocate and restore the data:\n" +
-		"  mv .beads/dolt /tmp/beads-dolt-reloc && mv /tmp/beads-dolt-reloc .beads/dolt\n" +
+		"  mv .issuegraph/dolt /tmp/issuegraph-dolt-reloc && mv /tmp/issuegraph-dolt-reloc .issuegraph/dolt\n" +
 		"Stop the dolt server first if it is running."
 	return msg, nil
 }

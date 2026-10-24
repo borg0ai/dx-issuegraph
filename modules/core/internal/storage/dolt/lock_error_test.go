@@ -56,7 +56,7 @@ func TestWrapLockError(t *testing.T) {
 		if got == orig {
 			t.Fatal("expected wrapped error, got original")
 		}
-		if !strings.Contains(got.Error(), "bd doctor --fix") {
+		if !strings.Contains(got.Error(), "issuegraph doctor --fix") {
 			t.Fatalf("expected actionable guidance in error, got: %v", got)
 		}
 		if !errors.Is(got, orig) {

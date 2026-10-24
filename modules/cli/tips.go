@@ -46,7 +46,7 @@ var (
 	tipsMutex sync.RWMutex
 
 	// tipRand is the random number generator for probability rolls
-	// Can be seeded deterministically via BEADS_TIP_SEED for testing
+	// Can be seeded deterministically via ISSUEGRAPH_TIP_SEED for testing
 	tipRand *rand.Rand
 
 	// tipRandOnce ensures we only initialize the RNG once
@@ -54,11 +54,11 @@ var (
 )
 
 // initTipRand initializes the random number generator for tip selection
-// Uses BEADS_TIP_SEED env var for deterministic testing if set
+// Uses ISSUEGRAPH_TIP_SEED env var for deterministic testing if set
 func initTipRand() {
 	tipRandOnce.Do(func() {
 		seed := time.Now().UnixNano()
-		if seedStr := os.Getenv("BEADS_TIP_SEED"); seedStr != "" {
+		if seedStr := os.Getenv("ISSUEGRAPH_TIP_SEED"); seedStr != "" {
 			if parsedSeed, err := strconv.ParseInt(seedStr, 10, 64); err == nil {
 				seed = parsedSeed
 			}
@@ -290,16 +290,16 @@ func isClaudeDetected() bool {
 	return false
 }
 
-// isClaudeSetupComplete checks if the beads Claude integration is properly configured.
-// Returns true if the beads plugin is installed (provides hooks via plugin.json),
-// or if hooks were manually installed via 'bd setup claude'.
+// isClaudeSetupComplete checks if the issuegraph Claude integration is properly configured.
+// Returns true if the issuegraph plugin is installed (provides hooks via plugin.json),
+// or if hooks were manually installed via 'issuegraph setup claude'.
 func isClaudeSetupComplete() bool {
 	home, err := os.UserHomeDir()
 	if err != nil {
 		return false
 	}
 
-	// Check if beads plugin is installed - plugin now provides hooks automatically
+	// Check if issuegraph plugin is installed - plugin now provides hooks automatically
 	settingsPath := filepath.Join(home, ".claude", "settings.json")
 	// #nosec G304 - path is constructed from user home directory
 	if data, err := os.ReadFile(settingsPath); err == nil {
@@ -307,7 +307,7 @@ func isClaudeSetupComplete() bool {
 		if err := json.Unmarshal(data, &settings); err == nil {
 			if enabledPlugins, ok := settings["enabledPlugins"].(map[string]interface{}); ok {
 				for key, value := range enabledPlugins {
-					if strings.Contains(strings.ToLower(key), "beads") {
+					if strings.Contains(strings.ToLower(key), "issuegraph") {
 						if enabled, ok := value.(bool); ok && enabled {
 							return true // Plugin installed - provides hooks
 						}
@@ -317,23 +317,23 @@ func isClaudeSetupComplete() bool {
 		}
 	}
 
-	// Check for manual hooks installation via 'bd setup claude'
+	// Check for manual hooks installation via 'issuegraph setup claude'
 	// Global hooks in settings.json
-	if hasBeadsPrimeHooks(settingsPath) {
+	if hasIssueGraphPrimeHooks(settingsPath) {
 		return true
 	}
 
 	// Project-level hooks in .claude/settings.local.json
 	localSettingsPath := filepath.Join(home, ".claude", "settings.local.json")
-	if hasBeadsPrimeHooks(localSettingsPath) {
+	if hasIssueGraphPrimeHooks(localSettingsPath) {
 		return true
 	}
 
 	return false
 }
 
-// hasBeadsPrimeHooks checks if a settings file has bd prime hooks configured
-func hasBeadsPrimeHooks(settingsPath string) bool {
+// hasIssueGraphPrimeHooks checks if a settings file has issuegraph prime hooks configured
+func hasIssueGraphPrimeHooks(settingsPath string) bool {
 	// #nosec G304 - path is constructed from user home directory
 	data, err := os.ReadFile(settingsPath)
 	if err != nil {
@@ -350,7 +350,7 @@ func hasBeadsPrimeHooks(settingsPath string) bool {
 		return false
 	}
 
-	// Check SessionStart and PreCompact for "bd prime"
+	// Check SessionStart and PreCompact for "issuegraph prime"
 	for _, event := range []string{"SessionStart", "PreCompact"} {
 		eventHooks, ok := hooks[event].([]interface{})
 		if !ok {
@@ -372,7 +372,7 @@ func hasBeadsPrimeHooks(settingsPath string) bool {
 					continue
 				}
 				cmdStr, _ := cmdMap["command"].(string)
-				if cmdStr == "bd prime" || cmdStr == "bd prime --stealth" {
+				if cmdStr == "issuegraph prime" || cmdStr == "issuegraph prime --stealth" {
 					return true
 				}
 			}
@@ -385,11 +385,11 @@ func hasBeadsPrimeHooks(settingsPath string) bool {
 // initDefaultTips registers the built-in tips.
 // Called during initialization to populate the tip registry.
 func initDefaultTips() {
-	// Claude setup tip - suggest installing the beads plugin when Claude is detected
+	// Claude setup tip - suggest installing the issuegraph plugin when Claude is detected
 	// but the integration is not configured
 	InjectTip(
 		"claude_setup",
-		"Install the beads plugin for automatic workflow context, or run 'bd setup claude' for CLI-only mode",
+		"Install the issuegraph plugin for automatic workflow context, or run 'issuegraph setup claude' for CLI-only mode",
 		100,          // Highest priority - this is important for Claude users
 		24*time.Hour, // Daily minimum gap
 		0.6,          // 60% chance when eligible (~4 times per week)
@@ -402,7 +402,7 @@ func initDefaultTips() {
 	// This is a proactive health check that trumps educational tips (ox-cli pattern)
 	InjectTip(
 		"sync_conflict",
-		"Run 'bd dolt pull' to resolve sync conflict",
+		"Run 'issuegraph dolt pull' to resolve sync conflict",
 		200, // Higher than Claude setup - sync issues are urgent
 		0,   // No frequency limit - always show when applicable
 		1.0, // 100% probability - always show when condition is true

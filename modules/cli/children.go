@@ -3,23 +3,23 @@ package main
 import (
 	"github.com/spf13/cobra"
 
-	"github.com/steveyegge/beads/internal/metrics"
+	"github.com/borg0ai/dx-issuegraph/internal/metrics"
 )
 
 var childrenCmd = &cobra.Command{
 	Use:     "children <parent-id>",
 	GroupID: "issues",
-	Short:   "List child beads of a parent",
-	Long: `List all beads that are children of the specified parent bead.
+	Short:   "List child issuegraph of a parent",
+	Long: `List all issuegraph that are children of the specified parent issue.
 
-This is a convenience alias for 'bd list --parent <id> --status all'.
-Unlike plain 'bd list', children includes closed issues by default,
+This is a convenience alias for 'issuegraph list --parent <id> --status all'.
+Unlike plain 'issuegraph list', children includes closed issues by default,
 since the primary use case is inspecting all work under a parent.
 
 Examples:
-  bd children hq-abc123        # List all children of hq-abc123
-  bd children hq-abc123 --json # List children in JSON format
-  bd children hq-abc123 --pretty # Show children in tree format`,
+  issuegraph children hq-abc123        # List all children of hq-abc123
+  issuegraph children hq-abc123 --json # List children in JSON format
+  issuegraph children hq-abc123 --pretty # Show children in tree format`,
 	Args:          cobra.ExactArgs(1),
 	SilenceUsage:  true,
 	SilenceErrors: true,
@@ -45,7 +45,7 @@ Examples:
 			defer func() { _ = listCmd.Flags().Set("pretty", "false") }()
 		}
 
-		// Reuse the shared, non-emitting list core so a single `bd children`
+		// Reuse the shared, non-emitting list core so a single `issuegraph children`
 		// records exactly one cli_command event ("children"), not also "list".
 		return runListCore(listCmd, []string{})
 	},

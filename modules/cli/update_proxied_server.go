@@ -8,11 +8,11 @@ import (
 
 	"github.com/spf13/cobra"
 
-	"github.com/steveyegge/beads/internal/storage"
-	"github.com/steveyegge/beads/internal/storage/uow"
-	"github.com/steveyegge/beads/internal/types"
-	"github.com/steveyegge/beads/internal/ui"
-	"github.com/steveyegge/beads/issueops"
+	"github.com/borg0ai/dx-issuegraph/internal/storage"
+	"github.com/borg0ai/dx-issuegraph/internal/storage/uow"
+	"github.com/borg0ai/dx-issuegraph/internal/types"
+	"github.com/borg0ai/dx-issuegraph/internal/ui"
+	"github.com/borg0ai/dx-issuegraph/issueops"
 )
 
 func runUpdateProxiedServer(cmd *cobra.Command, ctx context.Context, args []string) error {
@@ -39,7 +39,7 @@ func runUpdateProxiedServer(cmd *cobra.Command, ctx context.Context, args []stri
 	// generic per-ID errors as well as a lost --claim race. In a mixed batch a
 	// later winner must NOT flip the exit code back to success and hide the
 	// failed IDs from exit-code automation; report them all and exit non-zero,
-	// mirroring the non-proxied path in update.go (beads audit finding #10).
+	// mirroring the non-proxied path in update.go (issuegraph audit finding #10).
 	var failures []updateIDFailure
 
 	for _, id := range args {
@@ -88,9 +88,9 @@ func proxiedIssueLifecycle() (issueops.Lifecycle, error) {
 // wired in main.go), which is what makes an update fire the same events here as
 // it does on the embedded path.
 //
-// Provenance carries the commit message this path has always written, so `bd
+// Provenance carries the commit message this path has always written, so `issuegraph
 // dolt log` reads the same after the move as before it. The plane is
-// deliberately NOT restricted: `bd update` has always resolved a wisp id,
+// deliberately NOT restricted: `issuegraph update` has always resolved a wisp id,
 // unlike the HTTP claim endpoint, which serves durable issues only.
 //
 // The pre-read is a read of its own, one transaction earlier than the
@@ -129,10 +129,10 @@ func applyUpdateProxiedOne(ctx context.Context, id string, in *updateInput) (*ty
 		force:            in.force,
 		expectedAssignee: in.ifAssignee,
 		expectedStatus:   expectedStatus,
-		provenance:       fmt.Sprintf("bd: update %s", id),
+		provenance:       fmt.Sprintf("issuegraph: update %s", id),
 	})
 	if err != nil {
-		// Cancellation is not a verdict on this issue — SIGINT cancels bd's
+		// Cancellation is not a verdict on this issue — SIGINT cancels issuegraph's
 		// root context, and every remaining id in the batch would fail the same
 		// way, so abort the batch. A commit that itself failed with a context
 		// error is indistinguishable from a cancellation between attempts;
@@ -147,14 +147,14 @@ func applyUpdateProxiedOne(ctx context.Context, id string, in *updateInput) (*ty
 		fmt.Fprintf(os.Stderr, "Error updating %s: the update reported no issue\n", id)
 		return nil, &updateIDFailure{ID: id, Error: "updating: no issue returned"}, nil
 	}
-	// `bd update` has never printed dependency records; the direct route drops
+	// `issuegraph update` has never printed dependency records; the direct route drops
 	// them for the same reason.
 	updated.Dependencies = nil
 	if in.claim {
 		// A CLAIM answers an already-published surface, and that surface is the
 		// bare row: issueops.ClaimResult omits labels, dependency records and
 		// comments, but routing this path through Lifecycle hydrates labels.
-		// Stripping them keeps `bd update --claim --json` byte-identical to the
+		// Stripping them keeps `issuegraph update --claim --json` byte-identical to the
 		// v0 claim response, which TestProxiedServerServeClaim asserts with an
 		// EMPTY allowlist. A plain update carries labels, as the direct route
 		// does.

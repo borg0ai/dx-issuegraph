@@ -10,9 +10,9 @@ import (
 	"testing"
 	"time"
 
-	"github.com/steveyegge/beads/internal/debug"
-	"github.com/steveyegge/beads/internal/storage/issueops"
-	"github.com/steveyegge/beads/internal/types"
+	"github.com/borg0ai/dx-issuegraph/internal/debug"
+	"github.com/borg0ai/dx-issuegraph/internal/storage/issueops"
+	"github.com/borg0ai/dx-issuegraph/internal/types"
 )
 
 // TestReclaimRefusesForeignReplicaLease is the wy-jpd3.7 acceptance: a lease
@@ -64,7 +64,7 @@ func TestReclaimRefusesForeignReplicaLease(t *testing.T) {
 	// state this line exists to make visible. Without an assertion here a
 	// malformed GROUP BY, or a Dolt release that stopped binding a parameter,
 	// would leave the audit permanently mute with a fully green suite
-	// (wy-s1ntth F4). The audit is stderr-only by contract — bd reclaim --json
+	// (wy-s1ntth F4). The audit is stderr-only by contract — issuegraph reclaim --json
 	// owns stdout — so capturing stderr is the only way to observe it.
 	laptopCtx := issueops.WithNodeID(ctx, "laptop")
 	var reclaimed []types.ReclaimedLease
@@ -251,13 +251,13 @@ func TestUnknownProvenanceLeaseStaysReclaimable(t *testing.T) {
 // existing test stayed green.
 //
 // Seeds more foreign stale leases than the cap, turns the per-issue expansion
-// on (`bd -v`), and asserts the expansion stops at the cap with an exact
+// on (`issuegraph -v`), and asserts the expansion stops at the cap with an exact
 // collapsed tail.
 func TestForeignSkipDetailIsBounded(t *testing.T) {
 	skipUnlessEmbeddedDolt(t)
 
 	// detailCap must equal issueops.foreignSkipDetailRows, which is unexported.
-	// The summary line advertises the same constant ("bd -v lists up to N of
+	// The summary line advertises the same constant ("issuegraph -v lists up to N of
 	// them"), and the cross-check below turns a retune of that constant into a
 	// loud failure here rather than a test that silently bounds at a stale
 	// number.
@@ -293,7 +293,7 @@ func TestForeignSkipDetailIsBounded(t *testing.T) {
 		}
 	}
 
-	// `bd -v`. BD_DEBUG is read once at package init, so the env var cannot be
+	// `issuegraph -v`. ISSUEGRAPH_DEBUG is read once at package init, so the env var cannot be
 	// set from inside the test binary; SetVerbose is the same switch through
 	// the other door (debug.Enabled() is `enabled || verboseMode`).
 	debug.SetVerbose(true)
@@ -363,7 +363,7 @@ func splitForeignSkipAudit(stderr string) (summary string, detail []string, tail
 
 // captureStderr returns everything written to os.Stderr while fn runs, with
 // the real stderr restored afterwards even if fn calls t.Fatalf. The replica
-// audit is stderr-only by contract (warnReplica — bd reclaim --json owns
+// audit is stderr-only by contract (warnReplica — issuegraph reclaim --json owns
 // stdout), so this is the only place its output can be observed at all.
 //
 // The pipe is drained on a goroutine rather than read after the fact: a

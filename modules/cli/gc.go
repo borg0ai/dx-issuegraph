@@ -4,10 +4,10 @@ import (
 	"fmt"
 	"time"
 
+	"github.com/borg0ai/dx-issuegraph/internal/metrics"
+	"github.com/borg0ai/dx-issuegraph/internal/storage"
+	"github.com/borg0ai/dx-issuegraph/internal/types"
 	"github.com/spf13/cobra"
-	"github.com/steveyegge/beads/internal/metrics"
-	"github.com/steveyegge/beads/internal/storage"
-	"github.com/steveyegge/beads/internal/types"
 )
 
 var (
@@ -23,11 +23,11 @@ var gcCmd = &cobra.Command{
 	Use:     "gc",
 	GroupID: "maint",
 	Short:   "Garbage collect: decay old issues, compact Dolt commits, run Dolt GC",
-	Long: `Full lifecycle garbage collection for standalone Beads databases.
+	Long: `Full lifecycle garbage collection for standalone IssueGraph databases.
 
 Runs three phases in sequence:
   1. DECAY   — Delete closed issues older than N days (default 90)
-  2. COMPACT — Squash old Dolt commits into fewer commits (bd compact)
+  2. COMPACT — Squash old Dolt commits into fewer commits (issuegraph compact)
   3. GC      — Run Dolt garbage collection to reclaim disk space
 
 Each phase can be skipped individually. Use --dry-run to preview all phases
@@ -40,13 +40,13 @@ not be reclaimed. Use --full to collect all generations (slower on large
 stores).
 
 Examples:
-  bd gc                              # Full GC with defaults (90 day decay)
-  bd gc --dry-run                    # Preview what would happen
-  bd gc --older-than 30              # Decay issues closed 30+ days ago
-  bd gc --skip-decay                 # Skip issue deletion, just compact+GC
-  bd gc --skip-dolt                  # Skip Dolt GC, just decay+compact
-  bd gc --full                       # Collect all storage generations
-  bd gc --force                      # Skip confirmation prompt`,
+  issuegraph gc                              # Full GC with defaults (90 day decay)
+  issuegraph gc --dry-run                    # Preview what would happen
+  issuegraph gc --older-than 30              # Decay issues closed 30+ days ago
+  issuegraph gc --skip-decay                 # Skip issue deletion, just compact+GC
+  issuegraph gc --skip-dolt                  # Skip Dolt GC, just decay+compact
+  issuegraph gc --full                       # Collect all storage generations
+  issuegraph gc --force                      # Skip confirmation prompt`,
 	SilenceUsage:  true,
 	SilenceErrors: true,
 	RunE: func(cmd *cobra.Command, _ []string) error {
@@ -87,7 +87,7 @@ Examples:
 			cutoffDays := gcOlderThan
 			cutoffTime := time.Now().UTC().AddDate(0, 0, -cutoffDays)
 			statusClosed := types.StatusClosed
-			// gc is a scripted internal sweep — opt out of BEADS_MAX_ROWS
+			// gc is a scripted internal sweep — opt out of ISSUEGRAPH_MAX_ROWS
 			// (designer §4.1) so a misconfigured env doesn't abort the sweep.
 			filter := types.IssueFilter{
 				Status:        &statusClosed,
@@ -170,13 +170,13 @@ Examples:
 		} else {
 			if gcDryRun {
 				if !jsonOutput {
-					fmt.Printf("  %d commits in history (use bd flatten to squash)\n\n", commitCount)
+					fmt.Printf("  %d commits in history (use issuegraph flatten to squash)\n\n", commitCount)
 				}
 				results = append(results, phaseResult{name: "Compact", detail: fmt.Sprintf("%d commits (dry-run)", commitCount)})
 			} else {
 				if !jsonOutput {
 					fmt.Printf("  %d commits in history\n", commitCount)
-					fmt.Printf("  Tip: use 'bd flatten' to squash all history to one commit\n\n")
+					fmt.Printf("  Tip: use 'issuegraph flatten' to squash all history to one commit\n\n")
 				}
 				results = append(results, phaseResult{name: "Compact", detail: fmt.Sprintf("%d commits", commitCount)})
 			}
@@ -206,7 +206,7 @@ Examples:
 				}
 				results = append(results, phaseResult{name: "Dolt GC", detail: "dry-run"})
 			} else {
-				// bd gc runs without a preceding squash, so remote-tracking
+				// issuegraph gc runs without a preceding squash, so remote-tracking
 				// refs are left alone here (they cache the remote tip for the
 				// migrate gate); flatten/compact prune them before their GC
 				// (bd-agctw). Sizes are reported so a no-op reclaim is visible.
@@ -232,7 +232,7 @@ Examples:
 						}
 						if len(remoteRefs)+len(tags) > 0 {
 							fmt.Printf("  Note: %d remote-tracking ref(s) and %d tag(s) anchor history;\n", len(remoteRefs), len(tags))
-							fmt.Printf("  after a history squash, use bd flatten / bd compact so they are pruned first.\n")
+							fmt.Printf("  after a history squash, use issuegraph flatten / issuegraph compact so they are pruned first.\n")
 						}
 					}
 					results = append(results, phaseResult{name: "Dolt GC", detail: detail})

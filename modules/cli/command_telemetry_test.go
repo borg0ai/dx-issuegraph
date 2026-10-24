@@ -6,7 +6,7 @@ import (
 	"testing"
 )
 
-// clearTelemetryEnv unsets every BD_OTEL_* / OTEL_* variable telemetry.Enabled
+// clearTelemetryEnv unsets every ISSUEGRAPH_OTEL_* / OTEL_* variable telemetry.Enabled
 // or the SDK looks at, using t.Setenv so the harness restores them on test
 // exit. Local to modules/cli because a sibling helper in internal/telemetry would
 // be in a different package; this duplication keeps modules/cli's tests hermetic
@@ -14,10 +14,10 @@ import (
 func clearTelemetryEnv(t *testing.T) {
 	t.Helper()
 	for _, k := range []string{
-		"BD_OTEL_ENABLED",
-		"BD_OTEL_METRICS_URL",
-		"BD_OTEL_LOGS_URL",
-		"BD_OTEL_STDOUT",
+		"ISSUEGRAPH_OTEL_ENABLED",
+		"ISSUEGRAPH_OTEL_METRICS_URL",
+		"ISSUEGRAPH_OTEL_LOGS_URL",
+		"ISSUEGRAPH_OTEL_STDOUT",
 		"OTEL_SDK_DISABLED",
 		"OTEL_SERVICE_NAME",
 		"OTEL_RESOURCE_ATTRIBUTES",
@@ -37,9 +37,9 @@ func TestCommandSpanAttrs(t *testing.T) {
 	got := commandSpanAttrs("ready", "1.0.4-dev", []string{"--json", "--include-deferred"}, nil)
 
 	want := map[string]string{
-		"bd.command": "ready",
-		"bd.version": "1.0.4-dev",
-		"bd.args":    "--json --include-deferred",
+		"issuegraph.command": "ready",
+		"issuegraph.version": "1.0.4-dev",
+		"issuegraph.args":    "--json --include-deferred",
 	}
 	if len(got) != len(want) {
 		t.Fatalf("commandSpanAttrs returned %d attrs; want %d", len(got), len(want))
@@ -59,13 +59,13 @@ func TestCommandSpanAttrs(t *testing.T) {
 func TestCommandSpanAttrs_EmptyArgs(t *testing.T) {
 	got := commandSpanAttrs("status", "v1", nil, nil)
 	for _, kv := range got {
-		if string(kv.Key) == "bd.args" && kv.Value.AsString() != "" {
-			t.Errorf("bd.args with nil args = %q; want empty string", kv.Value.AsString())
+		if string(kv.Key) == "issuegraph.args" && kv.Value.AsString() != "" {
+			t.Errorf("issuegraph.args with nil args = %q; want empty string", kv.Value.AsString())
 		}
 	}
 }
 
-// startCommandTelemetry composes Init + Tracer.Start. The bd.command.<name>
+// startCommandTelemetry composes Init + Tracer.Start. The issuegraph.command.<name>
 // span is the parent for every storage and AI span downstream — silently
 // returning nil here would break trace nesting across the whole invocation.
 // Whether the span actually records is governed by telemetry.Init (covered

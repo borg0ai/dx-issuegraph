@@ -11,7 +11,7 @@ import (
 )
 
 // End-to-end for the two settings writes, against real Dolt through a real
-// `bd serve` subprocess.
+// `issuegraph serve` subprocess.
 //
 // The pure tests in internal/httpapi cover the wire edge on a fake role — the
 // request projection, the response projection, every refusal this edge owns.
@@ -21,7 +21,7 @@ import (
 //   - the write LANDS and the CLI sees it, which is the whole point of a
 //     configuration write nothing else in the process is going to re-read;
 //   - `status.custom` is PROJECTED into custom_statuses in the same transaction
-//     as the row, so `bd` starts accepting the status the write configured — a
+//     as the row, so `issuegraph` starts accepting the status the write configured — a
 //     row without its table is a value that has been stored and has no effect,
 //     and no fake can be asked about a second table;
 //   - the ROLE's refusals are real refusals against a real workspace: writing
@@ -79,15 +79,15 @@ func (sp *serveProcess) bodyRequest(t *testing.T, method, path, body string) (in
 func TestProxiedServerServeSettingsWrites(t *testing.T) {
 	requireSharedProxiedServer(t)
 	t.Parallel()
-	bd := buildEmbeddedBD(t)
-	p := newSharedProxiedProject(t, bd, "srvcfgw")
-	sp := startServe(t, bd, p.dir, bdProxiedEnv(p.dir))
+	issuegraph := buildEmbeddedBD(t)
+	p := newSharedProxiedProject(t, issuegraph, "srvcfgw")
+	sp := startServe(t, issuegraph, p.dir, issuegraphProxiedEnv(p.dir))
 
 	// THE ROW LANDS, and the CLI is the read-back rather than this surface's own
 	// GET: a write only this API can see would be a plane of its own rather than
-	// the settings plane `bd config` reads.
+	// the settings plane `issuegraph config` reads.
 	t.Run("the value lands and the CLI reads it", func(t *testing.T) {
-		status, body := sp.putJSON(t, "/v0/beads/config/notes.wire", `{"value":"written over http"}`)
+		status, body := sp.putJSON(t, "/v0/issuegraph/config/notes.wire", `{"value":"written over http"}`)
 		if status != http.StatusOK {
 			t.Fatalf("status = %d, want 200: %v", status, body)
 		}
@@ -95,58 +95,58 @@ func TestProxiedServerServeSettingsWrites(t *testing.T) {
 			t.Errorf("body = %v, want the stored setting", body)
 		}
 
-		out, err := bdProxiedRun(t, bd, p.dir, "config", "get", "notes.wire")
+		out, err := issuegraphProxiedRun(t, issuegraph, p.dir, "config", "get", "notes.wire")
 		if err != nil {
-			t.Fatalf("bd config get: %v\n%s", err, out)
+			t.Fatalf("issuegraph config get: %v\n%s", err, out)
 		}
 		if !strings.Contains(string(out), "written over http") {
-			t.Errorf("bd config get printed %q, want the value the HTTP write stored", out)
+			t.Errorf("issuegraph config get printed %q, want the value the HTTP write stored", out)
 		}
 	})
 
 	// THE PROJECTION, which is the reason SetSetting is not a thin REPLACE INTO
 	// and the one property no fake can be asked about: `status.custom` is
 	// rewritten into custom_statuses IN THE SAME TRANSACTION as the row, and the
-	// visible consequence is that `bd` starts accepting the status it configured.
+	// visible consequence is that `issuegraph` starts accepting the status it configured.
 	t.Run("status.custom is projected into the table reads consult", func(t *testing.T) {
-		issue := bdProxiedCreate(t, bd, p.dir, "an issue to park", "-p", "2")
+		issue := issuegraphProxiedCreate(t, issuegraph, p.dir, "an issue to park", "-p", "2")
 
 		// Before the write the status is not in the workspace's vocabulary.
-		if out, err := bdProxiedRun(t, bd, p.dir, "update", issue.ID, "--status", "awaiting_review"); err == nil {
+		if out, err := issuegraphProxiedRun(t, issuegraph, p.dir, "update", issue.ID, "--status", "awaiting_review"); err == nil {
 			t.Fatalf("the workspace already accepts awaiting_review; this test proves nothing:\n%s", out)
 		}
 
-		status, body := sp.putJSON(t, "/v0/beads/config/status.custom", `{"value":"awaiting_review:active"}`)
+		status, body := sp.putJSON(t, "/v0/issuegraph/config/status.custom", `{"value":"awaiting_review:active"}`)
 		if status != http.StatusOK {
 			t.Fatalf("status = %d, want 200: %v", status, body)
 		}
 
-		if out, err := bdProxiedRun(t, bd, p.dir, "update", issue.ID, "--status", "awaiting_review"); err != nil {
+		if out, err := issuegraphProxiedRun(t, issuegraph, p.dir, "update", issue.ID, "--status", "awaiting_review"); err != nil {
 			t.Fatalf("the row landed without its table: %v\n%s", err, out)
 		}
 	})
 
 	// THE PROTECTED KEY, refused by the ROLE against a real workspace, with the
 	// prefix left exactly as it was. A wire that let this through would leave the
-	// beads created before the write and the beads created after it disagreeing
+	// issuegraph created before the write and the issuegraph created after it disagreeing
 	// about their own namespace.
 	t.Run("the issue prefix is refused in either spelling and nothing changes", func(t *testing.T) {
-		before := bdProxiedCreate(t, bd, p.dir, "a bead minted before", "-p", "2")
+		before := issuegraphProxiedCreate(t, issuegraph, p.dir, "a issue minted before", "-p", "2")
 
 		for _, key := range []string{"issue_prefix", "issue-prefix"} {
-			status, body := sp.putJSON(t, "/v0/beads/config/"+key, `{"value":"zz"}`)
+			status, body := sp.putJSON(t, "/v0/issuegraph/config/"+key, `{"value":"zz"}`)
 			if status != http.StatusBadRequest {
 				t.Fatalf("writing %s: status = %d, want 400: %v", key, status, body)
 			}
 			if body["code"] != "invalid_argument" {
 				t.Errorf("writing %s: code = %v, want invalid_argument", key, body["code"])
 			}
-			if detail, _ := body["detail"].(string); !strings.Contains(detail, "bd init --prefix") {
+			if detail, _ := body["detail"].(string); !strings.Contains(detail, "issuegraph init --prefix") {
 				t.Errorf("writing %s: detail = %q, want the role's own sentence", key, detail)
 			}
 		}
 
-		after := bdProxiedCreate(t, bd, p.dir, "a bead minted after", "-p", "2")
+		after := issuegraphProxiedCreate(t, issuegraph, p.dir, "a issue minted after", "-p", "2")
 		beforePrefix := before.ID[:strings.LastIndex(before.ID, "-")]
 		afterPrefix := after.ID[:strings.LastIndex(after.ID, "-")]
 		if beforePrefix != afterPrefix {
@@ -160,16 +160,16 @@ func TestProxiedServerServeSettingsWrites(t *testing.T) {
 	// another refused.
 	t.Run("a status.custom that does not parse leaves the row alone", func(t *testing.T) {
 		const good = "triage_hold:active"
-		if status, body := sp.putJSON(t, "/v0/beads/config/status.custom", `{"value":"`+good+`"}`); status != http.StatusOK {
+		if status, body := sp.putJSON(t, "/v0/issuegraph/config/status.custom", `{"value":"`+good+`"}`); status != http.StatusOK {
 			t.Fatalf("seeding a parseable value: status = %d: %v", status, body)
 		}
 
-		status, body := sp.putJSON(t, "/v0/beads/config/status.custom", `{"value":"::not a status::"}`)
+		status, body := sp.putJSON(t, "/v0/issuegraph/config/status.custom", `{"value":"::not a status::"}`)
 		if status != http.StatusBadRequest {
 			t.Fatalf("status = %d, want 400: %v", status, body)
 		}
 
-		readStatus, read, _ := sp.get(t, "/v0/beads/config/status.custom")
+		readStatus, read, _ := sp.get(t, "/v0/issuegraph/config/status.custom")
 		if readStatus != http.StatusOK {
 			t.Fatalf("read back: status = %d", readStatus)
 		}
@@ -184,7 +184,7 @@ func TestProxiedServerServeSettingsWrites(t *testing.T) {
 	// it from every reader is what redaction actually is.
 	t.Run("a credential key is writable and is never handed back", func(t *testing.T) {
 		const secret = "not-a-real-token-9f13"
-		status, body := sp.putJSON(t, "/v0/beads/config/notion.token", `{"value":"`+secret+`"}`)
+		status, body := sp.putJSON(t, "/v0/issuegraph/config/notion.token", `{"value":"`+secret+`"}`)
 		if status != http.StatusOK {
 			t.Fatalf("status = %d, want 200 — a credential-bearing key is writable: %v", status, body)
 		}
@@ -197,14 +197,14 @@ func TestProxiedServerServeSettingsWrites(t *testing.T) {
 
 		// The read agrees, and the enumeration agrees: one rule, decided on the
 		// key, for every operation that could carry the value.
-		readStatus, read, _ := sp.get(t, "/v0/beads/config/notion.token")
+		readStatus, read, _ := sp.get(t, "/v0/issuegraph/config/notion.token")
 		if readStatus != http.StatusOK {
 			t.Fatalf("read back: status = %d", readStatus)
 		}
 		if read["redacted"] != true || read["value"] != nil {
 			t.Errorf("the read published the credential: %v", read)
 		}
-		listStatus, list, _ := sp.get(t, "/v0/beads/config")
+		listStatus, list, _ := sp.get(t, "/v0/issuegraph/config")
 		if listStatus != http.StatusOK {
 			t.Fatalf("list: status = %d", listStatus)
 		}
@@ -216,12 +216,12 @@ func TestProxiedServerServeSettingsWrites(t *testing.T) {
 
 		// And the CLI, which holds the database, prints it: the withholding is
 		// this SURFACE's and not a claim that the value was not stored.
-		out, err := bdProxiedRun(t, bd, p.dir, "config", "get", "notion.token")
+		out, err := issuegraphProxiedRun(t, issuegraph, p.dir, "config", "get", "notion.token")
 		if err != nil {
-			t.Fatalf("bd config get: %v\n%s", err, out)
+			t.Fatalf("issuegraph config get: %v\n%s", err, out)
 		}
 		if !strings.Contains(string(out), secret) {
-			t.Errorf("bd config get printed %q; the write did not store the value it accepted", out)
+			t.Errorf("issuegraph config get printed %q; the write did not store the value it accepted", out)
 		}
 	})
 
@@ -239,7 +239,7 @@ func TestProxiedServerServeSettingsWrites(t *testing.T) {
 		if err != nil {
 			t.Fatalf("marshal body: %v", err)
 		}
-		status, body := sp.putJSON(t, "/v0/beads/config/notes.big", string(oversized))
+		status, body := sp.putJSON(t, "/v0/issuegraph/config/notes.big", string(oversized))
 		if status != http.StatusBadRequest {
 			t.Fatalf("a 100 KiB value: status = %d, want 400 — refused at the edge, not by the column: %v", status, body)
 		}
@@ -248,7 +248,7 @@ func TestProxiedServerServeSettingsWrites(t *testing.T) {
 		}
 
 		// Nothing landed, which a 400 asserts and a read-back proves.
-		readStatus, read, _ := sp.get(t, "/v0/beads/config/notes.big")
+		readStatus, read, _ := sp.get(t, "/v0/issuegraph/config/notes.big")
 		if readStatus != http.StatusOK {
 			t.Fatalf("read back: status = %d", readStatus)
 		}
@@ -261,11 +261,11 @@ func TestProxiedServerServeSettingsWrites(t *testing.T) {
 		if err != nil {
 			t.Fatalf("marshal body: %v", err)
 		}
-		status, body = sp.putJSON(t, "/v0/beads/config/notes.ceiling", string(ceiling))
+		status, body = sp.putJSON(t, "/v0/issuegraph/config/notes.ceiling", string(ceiling))
 		if status != http.StatusOK {
 			t.Fatalf("a 65535-byte value: status = %d, want 200 — this value fits the column: %v", status, body)
 		}
-		readStatus, read, _ = sp.get(t, "/v0/beads/config/notes.ceiling")
+		readStatus, read, _ = sp.get(t, "/v0/issuegraph/config/notes.ceiling")
 		if readStatus != http.StatusOK {
 			t.Fatalf("read back: status = %d", readStatus)
 		}
@@ -277,12 +277,12 @@ func TestProxiedServerServeSettingsWrites(t *testing.T) {
 	// THE REMOVAL, against the table: it removes, and removing again succeeds
 	// rather than reporting a miss this role cannot see.
 	t.Run("the removal is idempotent and reports no miss", func(t *testing.T) {
-		if status, body := sp.putJSON(t, "/v0/beads/config/notes.temp", `{"value":"transient"}`); status != http.StatusOK {
+		if status, body := sp.putJSON(t, "/v0/issuegraph/config/notes.temp", `{"value":"transient"}`); status != http.StatusOK {
 			t.Fatalf("seed: status = %d: %v", status, body)
 		}
 
 		for i := range 2 {
-			status, body := sp.deleteAt(t, "/v0/beads/config/notes.temp")
+			status, body := sp.deleteAt(t, "/v0/issuegraph/config/notes.temp")
 			if status != http.StatusOK {
 				t.Fatalf("removal %d: status = %d, want 200 — this operation has no miss to report: %v", i+1, status, body)
 			}
@@ -295,9 +295,9 @@ func TestProxiedServerServeSettingsWrites(t *testing.T) {
 		}
 
 		// Gone from the CLI's view too, which is the read-back that matters.
-		out, err := bdProxiedRun(t, bd, p.dir, "config", "get", "notes.temp")
+		out, err := issuegraphProxiedRun(t, issuegraph, p.dir, "config", "get", "notes.temp")
 		if err == nil && strings.Contains(string(out), "transient") {
-			t.Errorf("bd config get still prints the removed value: %s", out)
+			t.Errorf("issuegraph config get still prints the removed value: %s", out)
 		}
 	})
 }

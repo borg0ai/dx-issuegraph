@@ -8,7 +8,7 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/steveyegge/beads/internal/storage"
+	"github.com/borg0ai/dx-issuegraph/internal/storage"
 )
 
 func TestApplyHooksNoDrift(t *testing.T) {
@@ -42,7 +42,7 @@ func TestApplyRemoteNoDrift(t *testing.T) {
 }
 
 func TestApplyRemoteDryRun(t *testing.T) {
-	// When drifted but no beads dir, should skip
+	// When drifted but no issuegraph dir, should skip
 	result := applyRemote(true, true)
 	if result.Status != applyStatusSkipped && result.Status != applyStatusDryRun {
 		t.Errorf("expected status %q or %q, got %q", applyStatusSkipped, applyStatusDryRun, result.Status)
@@ -76,19 +76,19 @@ func TestRemoteURLMatchesConfigNormalizesEquivalentGitURLs(t *testing.T) {
 	}{
 		{
 			name:       "https normalized to git https",
-			current:    "git+https://github.com/gastownhall/beads.git",
-			configured: "https://github.com/gastownhall/beads.git",
+			current:    "git+https://github.com/borg0ai/dx-issuegraph.git",
+			configured: "https://github.com/borg0ai/dx-issuegraph.git",
 			want:       true,
 		},
 		{
 			name:       "ssh normalized to git ssh",
-			current:    "git+ssh://github.com/gastownhall/beads.git",
-			configured: "ssh://github.com/gastownhall/beads.git",
+			current:    "git+ssh://github.com/borg0ai/dx-issuegraph.git",
+			configured: "ssh://github.com/borg0ai/dx-issuegraph.git",
 			want:       true,
 		},
 		{
 			name:       "different repos still differ",
-			current:    "git+https://github.com/gastownhall/beads.git",
+			current:    "git+https://github.com/borg0ai/dx-issuegraph.git",
 			configured: "https://github.com/gastownhall/other.git",
 			want:       false,
 		},
@@ -116,18 +116,18 @@ func TestApplyServerNoDrift(t *testing.T) {
 func TestApplyServerDriftedButNotConfigured(t *testing.T) {
 	// Server running but config doesn't say shared-server=true
 	// Should skip (not stop the server)
-	t.Setenv("BEADS_TEST_IGNORE_REPO_CONFIG", "1")
+	t.Setenv("ISSUEGRAPH_TEST_IGNORE_REPO_CONFIG", "1")
 	result := applyServer(true, false)
-	// Without a .beads dir or with shared-server not set, should skip
+	// Without a .issuegraph dir or with shared-server not set, should skip
 	if result.Status != applyStatusSkipped {
 		t.Errorf("expected status %q, got %q", applyStatusSkipped, result.Status)
 	}
 }
 
 func TestApplyServerDryRun(t *testing.T) {
-	t.Setenv("BEADS_TEST_IGNORE_REPO_CONFIG", "1")
+	t.Setenv("ISSUEGRAPH_TEST_IGNORE_REPO_CONFIG", "1")
 	result := applyServer(true, true)
-	// Without beads dir, should skip even in dry-run
+	// Without issuegraph dir, should skip even in dry-run
 	if result.Status != applyStatusSkipped {
 		t.Errorf("expected status %q, got %q", applyStatusSkipped, result.Status)
 	}
@@ -154,18 +154,18 @@ func TestApplyServerSkipsWhenAutoStartDisabled(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			root := t.TempDir()
-			beadsDir := filepath.Join(root, ".beads")
-			if err := os.MkdirAll(beadsDir, 0o755); err != nil {
-				t.Fatalf("create .beads: %v", err)
+			issuegraphDir := filepath.Join(root, ".issuegraph")
+			if err := os.MkdirAll(issuegraphDir, 0o755); err != nil {
+				t.Fatalf("create .issuegraph: %v", err)
 			}
 			configYAML := "dolt:\n  shared-server: true\n  auto-start: " + tt.autoStartYML + "\n"
-			if err := os.WriteFile(filepath.Join(beadsDir, "config.yaml"), []byte(configYAML), 0o600); err != nil {
+			if err := os.WriteFile(filepath.Join(issuegraphDir, "config.yaml"), []byte(configYAML), 0o600); err != nil {
 				t.Fatalf("write config.yaml: %v", err)
 			}
 			sharedDir := filepath.Join(root, "shared-server")
-			t.Setenv("BEADS_DIR", beadsDir)
-			t.Setenv("BEADS_SHARED_SERVER_DIR", sharedDir)
-			t.Setenv("BEADS_DOLT_AUTO_START", tt.autoStartEnv)
+			t.Setenv("ISSUEGRAPH_DIR", issuegraphDir)
+			t.Setenv("ISSUEGRAPH_SHARED_SERVER_DIR", sharedDir)
+			t.Setenv("ISSUEGRAPH_DOLT_AUTO_START", tt.autoStartEnv)
 			initConfigForTest(t)
 
 			for _, dryRun := range []bool{false, true} {
@@ -194,7 +194,7 @@ func TestApplyServerSkipsWhenAutoStartDisabled(t *testing.T) {
 }
 
 func TestRunApplyAllOK(t *testing.T) {
-	t.Setenv("BEADS_TEST_IGNORE_REPO_CONFIG", "1")
+	t.Setenv("ISSUEGRAPH_TEST_IGNORE_REPO_CONFIG", "1")
 	// In a test environment with no drift, all results should be ok or skipped
 	results := runApply(false)
 	if len(results) != 3 {
@@ -208,7 +208,7 @@ func TestRunApplyAllOK(t *testing.T) {
 }
 
 func TestRunApplyDryRun(t *testing.T) {
-	t.Setenv("BEADS_TEST_IGNORE_REPO_CONFIG", "1")
+	t.Setenv("ISSUEGRAPH_TEST_IGNORE_REPO_CONFIG", "1")
 	results := runApply(true)
 	if len(results) != 3 {
 		t.Errorf("expected 3 results, got %d", len(results))
@@ -368,7 +368,7 @@ func (f *fakeOriginRemoteEvidence) PersistedRemoteInfos() []storage.RemoteInfo {
 }
 
 // TestCurrentOriginRemoteURL pins the wy-6k7f7 evidence rule for
-// `bd config apply`: an empty dolt_remotes listing alone is not proof there
+// `issuegraph config apply`: an empty dolt_remotes listing alone is not proof there
 // is no origin — a cold-started sql-server hides a persisted remote
 // (GH#2118), and blind-adding over it was the defect. The SQL listing wins
 // when populated; the persisted enumeration is the fallback; a failed

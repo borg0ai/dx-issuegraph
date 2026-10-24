@@ -9,8 +9,8 @@ import (
 	"reflect"
 	"testing"
 
-	"github.com/steveyegge/beads/internal/storage"
-	"github.com/steveyegge/beads/internal/storage/versioncontrolops"
+	"github.com/borg0ai/dx-issuegraph/internal/storage"
+	"github.com/borg0ai/dx-issuegraph/internal/storage/versioncontrolops"
 )
 
 // presentedAuth is what a remote entry point was handed, plus the environment
@@ -65,7 +65,7 @@ func captureRemoteEntryPoints(t *testing.T, got *presentedAuth) {
 
 // Regression test for the GH#5080 remainder: the non-federation verbs read
 // credentials from the environment alone, so a peer reached as an ordinary
-// remote (`bd sync --remote <peer>`, `bd dolt push|pull --remote <peer>`, or a
+// remote (`issuegraph sync --remote <peer>`, `issuegraph dolt push|pull --remote <peer>`, or a
 // peer registered as origin) authenticated as whatever the environment held.
 // Every verb must present the credentials add-peer stored for the remote it
 // operates on. PushRemote appears twice because it has two entry points.

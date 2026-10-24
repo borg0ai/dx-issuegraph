@@ -16,17 +16,17 @@ import (
 // the prime-runner and one-shot refresh-marker mechanics are identical and live
 // here to avoid divergence.
 
-// runBdPrime shells out to `bd prime [args...]` and returns its combined output.
+// runBdPrime shells out to `issuegraph prime [args...]` and returns its combined output.
 // The hooks exec a subprocess (rather than calling prime in process) to avoid
 // re-entrant store initialization.
 func runBdPrime(ctx context.Context, args ...string) (string, error) {
 	cmdArgs := append([]string{"prime"}, args...)
-	// #nosec G702 - os.Args[0] is this bd binary re-invoking itself; cmdArgs is the
+	// #nosec G702 - os.Args[0] is this issuegraph binary re-invoking itself; cmdArgs is the
 	// fixed "prime" subcommand plus internal flags, never attacker-controlled input.
 	cmd := exec.CommandContext(ctx, os.Args[0], cmdArgs...)
 	out, err := cmd.CombinedOutput()
 	if err != nil {
-		return "", fmt.Errorf("bd %s: %w: %s", strings.Join(cmdArgs, " "), err, strings.TrimSpace(string(out)))
+		return "", fmt.Errorf("issuegraph %s: %w: %s", strings.Join(cmdArgs, " "), err, strings.TrimSpace(string(out)))
 	}
 	return string(out), nil
 }
@@ -39,9 +39,9 @@ func agentHookMarkerBaseDir(subdir, override string) string {
 		return override
 	}
 	if dir, err := os.UserCacheDir(); err == nil && dir != "" {
-		return filepath.Join(dir, "beads", subdir)
+		return filepath.Join(dir, "issuegraph", subdir)
 	}
-	return filepath.Join(os.TempDir(), "beads-"+subdir)
+	return filepath.Join(os.TempDir(), "issuegraph-"+subdir)
 }
 
 // agentHookMarkerPath derives a per-session, per-workspace marker file under

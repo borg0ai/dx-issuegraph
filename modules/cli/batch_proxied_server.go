@@ -6,10 +6,10 @@ import (
 	"strconv"
 	"strings"
 
-	"github.com/steveyegge/beads/internal/storage/domain"
-	"github.com/steveyegge/beads/internal/storage/uow"
-	"github.com/steveyegge/beads/internal/types"
-	"github.com/steveyegge/beads/internal/workapi"
+	"github.com/borg0ai/dx-issuegraph/internal/storage/domain"
+	"github.com/borg0ai/dx-issuegraph/internal/storage/uow"
+	"github.com/borg0ai/dx-issuegraph/internal/types"
+	"github.com/borg0ai/dx-issuegraph/internal/workapi"
 )
 
 // runBatchProxiedServer executes an already-parsed batch script in ONE
@@ -185,9 +185,9 @@ func runBatchOpUOW(ctx context.Context, uw uow.UnitOfWork, op batchOp) (batchOpR
 		// storage.Transaction.AddDependency, whose zero DependencyAddOptions
 		// leaves EmitEvent false — the "structural, quiet" setting meant for
 		// create-with-deps and reparenting, not for a verb a user typed. So a
-		// batched `dep add` shows up in `bd history` here and does not there.
+		// batched `dep add` shows up in `issuegraph history` here and does not there.
 		// The edge itself, its plane, its type and the cycle verdict are
-		// identical; `bd dep add` at the CLI emits the event on BOTH backends,
+		// identical; `issuegraph dep add` at the CLI emits the event on BOTH backends,
 		// which is why the classic batch's silence reads as the outlier.
 		// Silencing it here would need a quiet variant on the use case that
 		// nothing else wants, so this port takes the event and names it rather

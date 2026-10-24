@@ -8,15 +8,15 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/steveyegge/beads/internal/configfile"
+	"github.com/borg0ai/dx-issuegraph/internal/configfile"
 )
 
 func TestRunDoltPerformanceDiagnostics_RequiresServer(t *testing.T) {
 	// Server-only mode: diagnostics require a running dolt sql-server.
 	// Without a server, RunDoltPerformanceDiagnostics should return an error.
 	tmpDir := t.TempDir()
-	beadsDir := filepath.Join(tmpDir, ".beads")
-	if err := os.MkdirAll(beadsDir, 0o755); err != nil {
+	issuegraphDir := filepath.Join(tmpDir, ".issuegraph")
+	if err := os.MkdirAll(issuegraphDir, 0o755); err != nil {
 		t.Fatal(err)
 	}
 
@@ -27,7 +27,7 @@ func TestRunDoltPerformanceDiagnostics_RequiresServer(t *testing.T) {
 	cfg.DoltServerHost = "127.0.0.1"
 	cfg.DoltServerPort = doctorTestServerPort()
 	cfg.DoltDatabase = "doctest_perf_nonexistent"
-	if err := cfg.Save(beadsDir); err != nil {
+	if err := cfg.Save(issuegraphDir); err != nil {
 		t.Fatalf("Failed to save config: %v", err)
 	}
 
@@ -43,12 +43,12 @@ func TestRunDoltPerformanceDiagnostics_RequiresServer(t *testing.T) {
 
 func TestRunDoltPerformanceDiagnosticsDeclineNonDoltBackend(t *testing.T) {
 	tmpDir := t.TempDir()
-	beadsDir := filepath.Join(tmpDir, ".beads")
-	if err := os.MkdirAll(beadsDir, 0o750); err != nil {
+	issuegraphDir := filepath.Join(tmpDir, ".issuegraph")
+	if err := os.MkdirAll(issuegraphDir, 0o750); err != nil {
 		t.Fatal(err)
 	}
-	cfg := &configfile.Config{Backend: configfile.BackendSQLite, SQLitePath: "beads.db"}
-	if err := cfg.Save(beadsDir); err != nil {
+	cfg := &configfile.Config{Backend: configfile.BackendSQLite, SQLitePath: "issuegraph.db"}
+	if err := cfg.Save(issuegraphDir); err != nil {
 		t.Fatalf("save SQLite config: %v", err)
 	}
 

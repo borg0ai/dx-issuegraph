@@ -21,14 +21,14 @@ import (
 )
 
 const (
-	actorAlice = "BEADS_ACTOR=alice"
-	actorBob   = "BEADS_ACTOR=bob"
+	actorAlice = "ISSUEGRAPH_ACTOR=alice"
+	actorBob   = "ISSUEGRAPH_ACTOR=bob"
 )
 
 // isNotFound reports whether a message expresses the not-found class. The
 // clause requires the CLASS to be recognizable, not one blessed phrase, so this
 // tolerates both spellings an implementation is likely to use ("not found",
-// "no issue found matching …") rather than freezing bd's current wording as
+// "no issue found matching …") rather than freezing issuegraph's current wording as
 // though it were the protocol.
 func isNotFound(msg string) bool {
 	lower := strings.ToLower(msg)
@@ -118,21 +118,21 @@ func TestProtocol_ErrorClass_NotClaimableNamesState(t *testing.T) {
 // claim error classes — and it is SKIPPED because bd-go does not satisfy it
 // today (wy-kxgf4).
 //
-// bd routes not-found through the JSON-respecting error helper, so
-// `bd show <missing> --json` emits {error, schema_version:1} (pinned above).
-// The claim path does not: `bd update <id> --claim --json` prints
+// issuegraph routes not-found through the JSON-respecting error helper, so
+// `issuegraph show <missing> --json` emits {error, schema_version:1} (pinned above).
+// The claim path does not: `issuegraph update <id> --claim --json` prints
 //
 //	Error claiming t04…-qqr: issue already claimed by alice
 //
-// as plain text, so an agent driving bd with --json gets an unparseable stderr
+// as plain text, so an agent driving issuegraph with --json gets an unparseable stderr
 // line for the single most common contended-write failure it must branch on.
 // The message contract (§E4) holds; the structured contract (§E5) does not.
 //
-// Per proposal §14, where bd's behavior deviates from a clause the clause wins
+// Per proposal §14, where issuegraph's behavior deviates from a clause the clause wins
 // and the deviation is a bug — so this test asserts the clause and stays
 // skipped until wy-kxgf4 lands, at which point it becomes the guardrail.
 func TestProtocol_ErrorClass_ClaimFailures_StructuredJSON(t *testing.T) {
-	t.Skip("bd emits claim failures as plain text even with --json; violates §E5 (wy-kxgf4)")
+	t.Skip("issuegraph emits claim failures as plain text even with --json; violates §E5 (wy-kxgf4)")
 
 	t.Parallel()
 	w := newWorkspace(t)

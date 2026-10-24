@@ -32,14 +32,14 @@ type VerifyIdentityResult struct {
 }
 
 // InitVerifier describes READING A SUBSTRATE'S IDENTITY: the prefix and project
-// id `bd init` reconciles against, adopts, or refuses to invent.
+// id `issuegraph init` reconciles against, adopts, or refuses to invent.
 //
 // IT IS A SEPARATE ROLE FROM Bootstrapper, AND NOT ITS READ HALF. The
 // precedent that would have made them one — VersionReconciler, whose read and
 // write are two shapes of one question — does not reach here, because the
-// callers are different and so are their PERMISSIONS. bd reads this identity on
+// callers are different and so are their PERMISSIONS. issuegraph reads this identity on
 // paths where it is forbidden to write one: against a bts-provisioned team
-// database, whose identity the provisioning tool owns and bd adopts; against an
+// database, whose identity the provisioning tool owns and issuegraph adopts; against an
 // authenticating gateway, whose credential may be read-only and whose
 // server-side identity a client must never overwrite. Handing those callers a
 // surface with a write on it is exactly the shape that produced the writes they
@@ -61,7 +61,7 @@ type VerifyIdentityResult struct {
 //
 // There is NO HTTP surface, for the reason recorded on Bootstrapper: the
 // identity a remote caller can act on is already published as
-// ContextResponse.project_id on GET /v0/beads/context, and a second spelling of
+// ContextResponse.project_id on GET /v0/issuegraph/context, and a second spelling of
 // one fact is a second thing to keep true.
 //
 // Deterministic request-validation failures match ErrValidation; result values

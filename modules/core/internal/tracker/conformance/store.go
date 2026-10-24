@@ -6,9 +6,9 @@ import (
 	"strings"
 	"sync"
 
-	"github.com/steveyegge/beads/internal/storage"
-	"github.com/steveyegge/beads/internal/tracker"
-	"github.com/steveyegge/beads/internal/types"
+	"github.com/borg0ai/dx-issuegraph/internal/storage"
+	"github.com/borg0ai/dx-issuegraph/internal/tracker"
+	"github.com/borg0ai/dx-issuegraph/internal/types"
 )
 
 // Store is a small tracker.Store implementation backed by maps. It is useful
@@ -149,7 +149,7 @@ func (s *Store) SearchIssues(_ context.Context, _ string, _ types.IssueFilter) (
 // GetIssueByExternalRef finds one local issue by external reference, issues
 // plane first and wisps only as a fallback. The order is the contract, not an
 // implementation detail: the direct backend resolves `issues` before `wisps`
-// so pull dedup updates the durable bead rather than a pushed ephemeral one,
+// so pull dedup updates the durable issue rather than a pushed ephemeral one,
 // and Run asserts it (see external_ref_resolution_prefers_issue_plane).
 func (s *Store) GetIssueByExternalRef(_ context.Context, ref string) (*types.Issue, error) {
 	s.mu.Lock()

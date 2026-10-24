@@ -5,8 +5,8 @@ import (
 	"slices"
 	"testing"
 
-	"github.com/steveyegge/beads/internal/types"
-	"github.com/steveyegge/beads/issueops"
+	"github.com/borg0ai/dx-issuegraph/internal/types"
+	"github.com/borg0ai/dx-issuegraph/issueops"
 )
 
 func queryRequest(expression string, limit int) issueops.QueryRequest {

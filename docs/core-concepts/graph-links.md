@@ -58,26 +58,26 @@ Bidirectional "see also" links between related issues. Not blocking, not hierarc
 
 ```bash
 # Link two related issues
-issuegraph dep relate bd-auth bd-security
-# Result: bd-auth.relates-to includes bd-security
-#         bd-security.relates-to includes bd-auth
+issuegraph dep relate issuegraph-auth issuegraph-security
+# Result: issuegraph-auth.relates-to includes issuegraph-security
+#         issuegraph-security.relates-to includes issuegraph-auth
 
 # View related issues
-issuegraph show bd-auth
-# Shows: Related: bd-security
+issuegraph show issuegraph-auth
+# Shows: Related: issuegraph-security
 
 # Remove the link
-issuegraph dep unrelate bd-auth bd-security
+issuegraph dep unrelate issuegraph-auth issuegraph-security
 ```
 
 **Multiple links:**
 An issue can have multiple relates-to links:
 
 ```bash
-issuegraph dep relate bd-api bd-auth
-issuegraph dep relate bd-api bd-docs
-issuegraph dep relate bd-api bd-tests
-# bd-api now relates to 3 issues
+issuegraph dep relate issuegraph-api issuegraph-auth
+issuegraph dep relate issuegraph-api issuegraph-docs
+issuegraph dep relate issuegraph-api issuegraph-tests
+# issuegraph-api now relates to 3 issues
 ```
 
 ### duplicates - Deduplication
@@ -96,17 +96,17 @@ Marks an issue as a duplicate of a canonical issue. The duplicate is automatical
 
 ```bash
 # Two similar bug reports exist
-issuegraph show bd-bug1  # "Login fails on Safari"
-issuegraph show bd-bug2  # "Safari login broken"
+issuegraph show issuegraph-bug1  # "Login fails on Safari"
+issuegraph show issuegraph-bug2  # "Safari login broken"
 
 # Mark bug2 as duplicate of bug1
-issuegraph duplicate bd-bug2 --of bd-bug1
-# Result: bd-bug2 is closed with duplicate_of: bd-bug1
+issuegraph duplicate issuegraph-bug2 --of issuegraph-bug1
+# Result: issuegraph-bug2 is closed with duplicate_of: issuegraph-bug1
 
 # View shows the relationship
-issuegraph show bd-bug2
+issuegraph show issuegraph-bug2
 # Status: closed
-# Duplicate of: bd-bug1
+# Duplicate of: issuegraph-bug1
 ```
 
 **Behavior:**
@@ -132,20 +132,20 @@ Marks an issue as superseded by a different (replacement) issue. The old issue i
 ```bash
 # Original design doc
 issuegraph create --title "Design Doc v1" --type task
-# Creates: bd-doc1
+# Creates: issuegraph-doc1
 
 # Later, create updated version
 issuegraph create --title "Design Doc v2" --type task
-# Creates: bd-doc2
+# Creates: issuegraph-doc2
 
 # Mark v1 as superseded
-issuegraph supersede bd-doc1 --with bd-doc2
-# Result: bd-doc1 closed with superseded_by: bd-doc2
+issuegraph supersede issuegraph-doc1 --with issuegraph-doc2
+# Result: issuegraph-doc1 closed with superseded_by: issuegraph-doc2
 
 # View shows the replacement
-issuegraph show bd-doc1
+issuegraph show issuegraph-doc1
 # Status: closed
-# Superseded by: bd-doc2
+# Superseded by: issuegraph-doc2
 ```
 
 **Behavior:**
@@ -175,14 +175,14 @@ issuegraph show <id>
 Shows all link types for an issue:
 
 ```
-bd-auth: Implement authentication
+issuegraph-auth: Implement authentication
 Status: open
 Priority: P1
 
 Related to (3):
-  bd-security: Security audit
-  bd-users: User management
-  bd-sessions: Session handling
+  issuegraph-security: Security audit
+  issuegraph-users: User management
+  issuegraph-sessions: Session handling
 ```
 
 ### View Threads
@@ -203,9 +203,9 @@ Returns all fields including graph links:
 
 ```json
 {
-  "id": "bd-auth",
+  "id": "issuegraph-auth",
   "title": "Implement authentication",
-  "relates-to": ["bd-security", "bd-users", "bd-sessions"],
+  "relates-to": ["issuegraph-security", "issuegraph-users", "issuegraph-sessions"],
   "duplicate_of": "",
   "superseded_by": ""
 }
@@ -229,9 +229,9 @@ Returns all fields including graph links:
 Link related documentation:
 
 ```bash
-issuegraph dep relate bd-api-ref bd-quickstart
-issuegraph dep relate bd-api-ref bd-examples
-issuegraph dep relate bd-quickstart bd-install
+issuegraph dep relate issuegraph-api-ref issuegraph-quickstart
+issuegraph dep relate issuegraph-api-ref issuegraph-examples
+issuegraph dep relate issuegraph-quickstart issuegraph-install
 ```
 
 ### Bug Triage
@@ -243,8 +243,8 @@ Consolidate duplicate reports:
 issuegraph duplicates
 
 # Merge duplicates
-issuegraph duplicate bd-bug42 --of bd-bug17
-issuegraph duplicate bd-bug58 --of bd-bug17
+issuegraph duplicate issuegraph-bug42 --of issuegraph-bug17
+issuegraph duplicate issuegraph-bug58 --of issuegraph-bug17
 ```
 
 ### Replacement History
@@ -252,9 +252,9 @@ issuegraph duplicate bd-bug58 --of bd-bug17
 Track document evolution:
 
 ```bash
-issuegraph supersede bd-rfc1 --with bd-rfc2
-issuegraph supersede bd-rfc2 --with bd-rfc3
-# bd-rfc3 is now the live issue
+issuegraph supersede issuegraph-rfc1 --with issuegraph-rfc2
+issuegraph supersede issuegraph-rfc2 --with issuegraph-rfc3
+# issuegraph-rfc3 is now the live issue
 ```
 
 ### Message Threading
@@ -277,6 +277,6 @@ Build conversation chains (via orchestrator mail):
 
 ## See Also
 
-- [Messaging](https://github.com/gastownhall/beads/blob/main/engdocs/messaging.md) - Mail commands and threading
+- [Messaging](https://github.com/borg0ai/dx-issuegraph/blob/main/engdocs/messaging.md) - Mail commands and threading
 - [Dependencies](/getting-started/quickstart#add-dependencies) - Blocking dependencies
 - [CLI Reference](/cli-reference/index) - All commands

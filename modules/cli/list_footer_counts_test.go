@@ -8,7 +8,7 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/steveyegge/beads/internal/types"
+	"github.com/borg0ai/dx-issuegraph/internal/types"
 )
 
 // A count printed next to a noun is read as a fact about the database, not as a
@@ -154,7 +154,7 @@ func TestListFooterLineUnfilteredKeepsBreakdown(t *testing.T) {
 // fact, because it is re-rendered every two seconds under a heading that says
 // the data is current.
 //
-// bd list --ready --watch (direct) → displayWatchedIssueList.
+// issuegraph list --ready --watch (direct) → displayWatchedIssueList.
 func TestDisplayWatchedIssueListReadyFooterDisclosesFilter(t *testing.T) {
 	// Open by construction: --ready pinned the query, so these are all the
 	// rows any database could return here.
@@ -178,7 +178,7 @@ func TestDisplayWatchedIssueListReadyFooterDisclosesFilter(t *testing.T) {
 	}
 }
 
-// bd list --ready --watch (proxied) displays through displayPrettyListWithDeps
+// issuegraph list --ready --watch (proxied) displays through displayPrettyListWithDeps
 // directly, so the parameter has to survive that wrapper too.
 func TestDisplayPrettyListWithDepsReadyFooterDisclosesFilter(t *testing.T) {
 	issues := []*types.Issue{

@@ -10,12 +10,12 @@ import (
 
 	_ "github.com/go-sql-driver/mysql"
 
-	"github.com/steveyegge/beads/internal/storage/doltutil"
-	"github.com/steveyegge/beads/internal/ui"
+	"github.com/borg0ai/dx-issuegraph/internal/storage/doltutil"
+	"github.com/borg0ai/dx-issuegraph/internal/ui"
 )
 
 // initGuardDBCheck holds the result of checking whether a database exists on a
-// Dolt server. Extracted from checkExistingBeadsDataAt for testability.
+// Dolt server. Extracted from checkExistingIssueGraphDataAt for testability.
 type initGuardDBCheck struct {
 	Exists    bool // database found via SHOW DATABASES
 	Reachable bool // server responded to ping
@@ -80,7 +80,7 @@ func checkDatabaseOnServer(host string, port int, user, password, dbName string,
 // server is reachable but the database does not exist (FR-010, FR-011).
 // Extracted as a pure function for unit testing without a real database.
 //
-// GH#2363: The message deliberately avoids suggesting `bd init --force` because
+// GH#2363: The message deliberately avoids suggesting `issuegraph init --force` because
 // that command destroys all existing issue data.  An AI agent running inside a
 // git hook blindly followed the previous suggestion and wiped a production
 // database.  Instead we guide the user toward safe diagnostic commands.
@@ -90,24 +90,24 @@ func initGuardServerMessage(dbName, host string, port int, prefix, syncRemote st
 	b.WriteString("The server is running but this database hasn't been created yet.\n")
 
 	b.WriteString("\nDiagnose with:\n")
-	b.WriteString("  bd doctor          # check project health\n")
-	b.WriteString("  bd dolt status     # inspect Dolt server state\n")
+	b.WriteString("  issuegraph doctor          # check project health\n")
+	b.WriteString("  issuegraph dolt status     # inspect Dolt server state\n")
 
 	b.WriteString("\nIf this is an existing project, fresh clone, or shared-server recovery, run:\n")
-	b.WriteString("  bd bootstrap\n")
+	b.WriteString("  issuegraph bootstrap\n")
 	b.WriteString("This is the safe entry point for existing-project recovery and may recover or initialize depending on detected state.\n")
 
 	if syncRemote != "" {
 		fmt.Fprintf(&b, "\nTip: sync.remote is configured (%s).\n", syncRemote)
-		b.WriteString("Run bd bootstrap to recover from the configured remote, or use --dry-run to inspect the plan first.\n")
+		b.WriteString("Run issuegraph bootstrap to recover from the configured remote, or use --dry-run to inspect the plan first.\n")
 	} else {
 		b.WriteString("\nIf this is a brand-new project, create the database with:\n")
-		fmt.Fprintf(&b, "  bd init --prefix %s\n", prefix)
-		b.WriteString("\nIf bd bootstrap cannot find the expected remote automatically, set sync.remote\n")
-		b.WriteString("in .beads/config.yaml and re-run bd bootstrap.\n")
+		fmt.Fprintf(&b, "  issuegraph init --prefix %s\n", prefix)
+		b.WriteString("\nIf issuegraph bootstrap cannot find the expected remote automatically, set sync.remote\n")
+		b.WriteString("in .issuegraph/config.yaml and re-run issuegraph bootstrap.\n")
 	}
 
-	b.WriteString("\n⚠  Caution: bd init --force destroys ALL existing issues. Do not\n")
+	b.WriteString("\n⚠  Caution: issuegraph init --force destroys ALL existing issues. Do not\n")
 	b.WriteString("use --force unless you are certain the database should be recreated.\n")
 
 	b.WriteString("\nAborting.")

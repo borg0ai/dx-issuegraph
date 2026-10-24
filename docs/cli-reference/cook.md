@@ -1,11 +1,11 @@
 ---
-title: "bd cook"
+title: "issuegraph cook"
 description: "Cook transforms a .formula.json file into a proto."
 ---
 
 {/* AUTO-GENERATED: do not edit manually */}
 
-Generated from `bd help --doc cook`.
+Generated from `issuegraph help --doc cook`.
 
 Cook transforms a .formula.json file into a proto.
 
@@ -38,25 +38,25 @@ For most workflows, prefer ephemeral protos: pour and wisp commands
 accept formula names directly and cook inline.
 
 Examples:
-  bd cook mol-feature.formula.json                    # Compile-time: keep &#123;&#123;vars&#125;&#125;
-  bd cook mol-feature --var name=auth                 # Runtime: substitute vars
-  bd cook mol-feature --mode=runtime --var name=auth  # Explicit runtime mode
-  bd cook mol-feature --dry-run                       # Preview steps
-  bd cook mol-release.formula.json --persist          # Write to database
-  bd cook mol-release.formula.json --persist --force  # Replace existing
+  issuegraph cook mol-feature.formula.json                    # Compile-time: keep &#123;&#123;vars&#125;&#125;
+  issuegraph cook mol-feature --var name=auth                 # Runtime: substitute vars
+  issuegraph cook mol-feature --mode=runtime --var name=auth  # Explicit runtime mode
+  issuegraph cook mol-feature --dry-run                       # Preview steps
+  issuegraph cook mol-release.formula.json --persist          # Write to database
+  issuegraph cook mol-release.formula.json --persist --force  # Replace existing
 
 Output (default):
   JSON representation of the resolved formula with all steps.
 
 Output (--persist):
-  Creates a proto bead in the database with:
+  Creates a proto issue in the database with:
   - ID matching the formula name (e.g., mol-feature)
   - The "template" label for proto identification
   - Child issues for each step
   - Dependencies matching depends_on relationships
 
 ```
-bd cook <formula-file> [flags]
+issuegraph cook <formula-file> [flags]
 ```
 
 **Flags:**

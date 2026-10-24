@@ -9,9 +9,9 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/steveyegge/beads/internal/beads"
-	"github.com/steveyegge/beads/internal/git"
-	"github.com/steveyegge/beads/internal/testutil"
+	"github.com/borg0ai/dx-issuegraph/internal/git"
+	"github.com/borg0ai/dx-issuegraph/internal/issuegraph"
+	"github.com/borg0ai/dx-issuegraph/internal/testutil"
 )
 
 func TestBackupRestoreMissingDir(t *testing.T) {
@@ -50,7 +50,7 @@ func TestSyncProjectIDFromDB_NoWorkspaceUsesActiveWorkspaceError(t *testing.T) {
 
 	ctx := context.Background()
 	repoDir := t.TempDir()
-	testDBPath := filepath.Join(repoDir, ".beads", "beads.db")
+	testDBPath := filepath.Join(repoDir, ".issuegraph", "issuegraph.db")
 	s := newTestStoreWithPrefix(t, testDBPath, "bp")
 	t.Cleanup(func() { _ = s.Close() })
 
@@ -60,13 +60,13 @@ func TestSyncProjectIDFromDB_NoWorkspaceUsesActiveWorkspaceError(t *testing.T) {
 
 	noWorkspaceDir := t.TempDir()
 	t.Chdir(noWorkspaceDir)
-	t.Setenv("BEADS_DIR", "")
-	t.Setenv("BEADS_DB", "")
+	t.Setenv("ISSUEGRAPH_DIR", "")
+	t.Setenv("ISSUEGRAPH_DB", "")
 
-	beads.ResetCaches()
+	issuegraph.ResetCaches()
 	git.ResetCaches()
 	t.Cleanup(func() {
-		beads.ResetCaches()
+		issuegraph.ResetCaches()
 		git.ResetCaches()
 	})
 
@@ -80,7 +80,7 @@ func TestSyncProjectIDFromDB_NoWorkspaceUsesActiveWorkspaceError(t *testing.T) {
 	if !strings.Contains(err.Error(), diagHint()) {
 		t.Fatalf("syncProjectIDFromDB error = %q, want diag hint", err)
 	}
-	if _, statErr := os.Stat(filepath.Join(noWorkspaceDir, ".beads")); !os.IsNotExist(statErr) {
-		t.Fatalf("syncProjectIDFromDB should not create local .beads, stat err = %v", statErr)
+	if _, statErr := os.Stat(filepath.Join(noWorkspaceDir, ".issuegraph")); !os.IsNotExist(statErr) {
+		t.Fatalf("syncProjectIDFromDB should not create local .issuegraph, stat err = %v", statErr)
 	}
 }

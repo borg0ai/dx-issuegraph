@@ -4,12 +4,12 @@ import (
 	"fmt"
 	"os"
 
+	"github.com/borg0ai/dx-issuegraph/internal/metrics"
+	"github.com/borg0ai/dx-issuegraph/internal/storage"
+	"github.com/borg0ai/dx-issuegraph/internal/types"
+	"github.com/borg0ai/dx-issuegraph/internal/ui"
+	"github.com/borg0ai/dx-issuegraph/issueops"
 	"github.com/spf13/cobra"
-	"github.com/steveyegge/beads/internal/metrics"
-	"github.com/steveyegge/beads/internal/storage"
-	"github.com/steveyegge/beads/internal/types"
-	"github.com/steveyegge/beads/internal/ui"
-	"github.com/steveyegge/beads/issueops"
 )
 
 var reopenCmd = &cobra.Command{
@@ -17,7 +17,7 @@ var reopenCmd = &cobra.Command{
 	GroupID: "issues",
 	Short:   "Reopen one or more closed issues",
 	Long: `Reopen closed issues by setting status to 'open' and clearing the closed_at timestamp.
-This is more explicit than 'bd update --status open' and emits a Reopened event.`,
+This is more explicit than 'issuegraph update --status open' and emits a Reopened event.`,
 	Args:          cobra.MinimumNArgs(1),
 	SilenceUsage:  true,
 	SilenceErrors: true,
@@ -50,7 +50,7 @@ This is more explicit than 'bd update --status open' and emits a Reopened event.
 			return HandleErrorWithHint("database not initialized", diagHint())
 		}
 		for _, id := range args {
-			// Resolve with prefix routing (supports cross-rig reopens like `bd reopen xe-5ls`)
+			// Resolve with prefix routing (supports cross-rig reopens like `issuegraph reopen xe-5ls`)
 			result, err := resolveAndGetIssueForMutation(ctx, store, id)
 			if err != nil {
 				fmt.Fprintf(os.Stderr, "Error resolving %s: %v\n", id, err)
@@ -77,10 +77,10 @@ This is more explicit than 'bd update --status open' and emits a Reopened event.
 				Actor:   actor,
 				IssueID: fullID,
 				Reason:  reason,
-				// Names the issue for the reason `bd close`'s does, and keeps
+				// Names the issue for the reason `issuegraph close`'s does, and keeps
 				// the entry identical across backends: the proxied route
-				// already writes "bd: reopen <ids>".
-				Provenance: "bd: reopen " + fullID,
+				// already writes "issuegraph: reopen <ids>".
+				Provenance: "issuegraph: reopen " + fullID,
 			})
 			if err != nil {
 				fmt.Fprintf(os.Stderr, "Error reopening %s: %v\n", fullID, err)
@@ -101,7 +101,7 @@ This is more explicit than 'bd update --status open' and emits a Reopened event.
 			pendingCloseResults = append(pendingCloseResults, result)
 			if jsonOutput {
 				// The operation's own post-state snapshot replaces the re-read.
-				// Dependency records are dropped because `bd reopen` has never
+				// Dependency records are dropped because `issuegraph reopen` has never
 				// printed them.
 				if updated := reopened.Issue; updated != nil {
 					updated.Dependencies = nil

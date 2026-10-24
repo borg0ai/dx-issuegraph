@@ -65,16 +65,16 @@ func setupDoctorSharedWorktree(t *testing.T) (mainRepoDir, worktreeDir string) {
 func TestCheckConfigValues(t *testing.T) {
 	// Create a temporary directory for testing
 	tmpDir := t.TempDir()
-	beadsDir := filepath.Join(tmpDir, ".beads")
-	if err := os.MkdirAll(beadsDir, 0755); err != nil {
-		t.Fatalf("failed to create .beads dir: %v", err)
+	issuegraphDir := filepath.Join(tmpDir, ".issuegraph")
+	if err := os.MkdirAll(issuegraphDir, 0755); err != nil {
+		t.Fatalf("failed to create .issuegraph dir: %v", err)
 	}
 
 	// Test with valid config
 	t.Run("valid config", func(t *testing.T) {
 		configContent := `issue-prefix: "test"
 `
-		if err := os.WriteFile(filepath.Join(beadsDir, "config.yaml"), []byte(configContent), 0644); err != nil {
+		if err := os.WriteFile(filepath.Join(issuegraphDir, "config.yaml"), []byte(configContent), 0644); err != nil {
 			t.Fatalf("failed to write config.yaml: %v", err)
 		}
 
@@ -88,7 +88,7 @@ func TestCheckConfigValues(t *testing.T) {
 	t.Run("invalid issue-prefix", func(t *testing.T) {
 		configContent := `issue-prefix: "123-invalid"
 `
-		if err := os.WriteFile(filepath.Join(beadsDir, "config.yaml"), []byte(configContent), 0644); err != nil {
+		if err := os.WriteFile(filepath.Join(issuegraphDir, "config.yaml"), []byte(configContent), 0644); err != nil {
 			t.Fatalf("failed to write config.yaml: %v", err)
 		}
 
@@ -106,7 +106,7 @@ func TestCheckConfigValues(t *testing.T) {
 		configContent := `routing:
   mode: "invalid-mode"
 `
-		if err := os.WriteFile(filepath.Join(beadsDir, "config.yaml"), []byte(configContent), 0644); err != nil {
+		if err := os.WriteFile(filepath.Join(issuegraphDir, "config.yaml"), []byte(configContent), 0644); err != nil {
 			t.Fatalf("failed to write config.yaml: %v", err)
 		}
 
@@ -123,7 +123,7 @@ func TestCheckConfigValues(t *testing.T) {
 	t.Run("too long issue-prefix", func(t *testing.T) {
 		configContent := `issue-prefix: "thisprefiswaytooolongtobevalid"
 `
-		if err := os.WriteFile(filepath.Join(beadsDir, "config.yaml"), []byte(configContent), 0644); err != nil {
+		if err := os.WriteFile(filepath.Join(issuegraphDir, "config.yaml"), []byte(configContent), 0644); err != nil {
 			t.Fatalf("failed to write config.yaml: %v", err)
 		}
 
@@ -139,12 +139,12 @@ func TestCheckConfigValues(t *testing.T) {
 
 func TestCheckConfigValuesWarnsOnFlatAndNestedSpellings(t *testing.T) {
 	tmpDir := t.TempDir()
-	beadsDir := filepath.Join(tmpDir, ".beads")
-	if err := os.MkdirAll(beadsDir, 0o755); err != nil {
-		t.Fatalf("create .beads: %v", err)
+	issuegraphDir := filepath.Join(tmpDir, ".issuegraph")
+	if err := os.MkdirAll(issuegraphDir, 0o755); err != nil {
+		t.Fatalf("create .issuegraph: %v", err)
 	}
 	configContent := "dolt.host: 127.0.0.1\ndolt:\n  host: 10.0.0.1\n"
-	if err := os.WriteFile(filepath.Join(beadsDir, "config.yaml"), []byte(configContent), 0o644); err != nil {
+	if err := os.WriteFile(filepath.Join(issuegraphDir, "config.yaml"), []byte(configContent), 0o644); err != nil {
 		t.Fatalf("write config.yaml: %v", err)
 	}
 
@@ -159,15 +159,15 @@ func TestCheckConfigValuesWarnsOnFlatAndNestedSpellings(t *testing.T) {
 
 func TestCheckConfigValues_WorktreeFallbackUsesSharedConfig(t *testing.T) {
 	mainRepoDir, worktreeDir := setupDoctorSharedWorktree(t)
-	mainBeadsDir := filepath.Join(mainRepoDir, ".beads")
-	if err := os.MkdirAll(mainBeadsDir, 0o755); err != nil {
-		t.Fatalf("failed to create main .beads dir: %v", err)
+	mainIssueGraphDir := filepath.Join(mainRepoDir, ".issuegraph")
+	if err := os.MkdirAll(mainIssueGraphDir, 0o755); err != nil {
+		t.Fatalf("failed to create main .issuegraph dir: %v", err)
 	}
-	if err := os.WriteFile(filepath.Join(mainBeadsDir, "config.yaml"), []byte("issue-prefix: \"123-invalid\"\n"), 0o644); err != nil {
+	if err := os.WriteFile(filepath.Join(mainIssueGraphDir, "config.yaml"), []byte("issue-prefix: \"123-invalid\"\n"), 0o644); err != nil {
 		t.Fatalf("failed to write config.yaml: %v", err)
 	}
 
-	clearResolveBeadsDirCache()
+	clearResolveIssueGraphDirCache()
 
 	check := CheckConfigValues(worktreeDir)
 	if check.Status != "warning" {
@@ -181,9 +181,9 @@ func TestCheckConfigValues_WorktreeFallbackUsesSharedConfig(t *testing.T) {
 func TestCheckMetadataConfigValues(t *testing.T) {
 	// Create a temporary directory for testing
 	tmpDir := t.TempDir()
-	beadsDir := filepath.Join(tmpDir, ".beads")
-	if err := os.MkdirAll(beadsDir, 0755); err != nil {
-		t.Fatalf("failed to create .beads dir: %v", err)
+	issuegraphDir := filepath.Join(tmpDir, ".issuegraph")
+	if err := os.MkdirAll(issuegraphDir, 0755); err != nil {
+		t.Fatalf("failed to create .issuegraph dir: %v", err)
 	}
 
 	// Test with valid metadata (Dolt backend)
@@ -191,7 +191,7 @@ func TestCheckMetadataConfigValues(t *testing.T) {
 		metadataContent := `{
   "database": "dolt"
 }`
-		if err := os.WriteFile(filepath.Join(beadsDir, "metadata.json"), []byte(metadataContent), 0644); err != nil {
+		if err := os.WriteFile(filepath.Join(issuegraphDir, "metadata.json"), []byte(metadataContent), 0644); err != nil {
 			t.Fatalf("failed to write metadata.json: %v", err)
 		}
 
@@ -208,7 +208,7 @@ func TestCheckMetadataConfigValues(t *testing.T) {
   "dolt_database": "my-cool-project",
   "dolt_mode": "embedded"
 }`
-		if err := os.WriteFile(filepath.Join(beadsDir, "metadata.json"), []byte(metadataContent), 0644); err != nil {
+		if err := os.WriteFile(filepath.Join(issuegraphDir, "metadata.json"), []byte(metadataContent), 0644); err != nil {
 			t.Fatalf("failed to write metadata.json: %v", err)
 		}
 
@@ -232,7 +232,7 @@ func TestCheckMetadataConfigValues(t *testing.T) {
   "dolt_database": "my.project",
   "dolt_mode": "embedded"
 }`
-		if err := os.WriteFile(filepath.Join(beadsDir, "metadata.json"), []byte(metadataContent), 0644); err != nil {
+		if err := os.WriteFile(filepath.Join(issuegraphDir, "metadata.json"), []byte(metadataContent), 0644); err != nil {
 			t.Fatalf("failed to write metadata.json: %v", err)
 		}
 
@@ -256,7 +256,7 @@ func TestCheckMetadataConfigValues(t *testing.T) {
   "dolt_database": "my-cool-project",
   "dolt_mode": "server"
 }`
-		if err := os.WriteFile(filepath.Join(beadsDir, "metadata.json"), []byte(metadataContent), 0644); err != nil {
+		if err := os.WriteFile(filepath.Join(issuegraphDir, "metadata.json"), []byte(metadataContent), 0644); err != nil {
 			t.Fatalf("failed to write metadata.json: %v", err)
 		}
 
@@ -274,7 +274,7 @@ func TestCheckMetadataConfigValues(t *testing.T) {
   "database": "dolt",
   "dolt_database": "my-project"
 }`
-		if err := os.WriteFile(filepath.Join(beadsDir, "metadata.json"), []byte(metadataContent), 0644); err != nil {
+		if err := os.WriteFile(filepath.Join(issuegraphDir, "metadata.json"), []byte(metadataContent), 0644); err != nil {
 			t.Fatalf("failed to write metadata.json: %v", err)
 		}
 
@@ -296,7 +296,7 @@ func TestCheckMetadataConfigValues(t *testing.T) {
   "database": "dolt",
   "backend": "dolt"
 }`
-		if err := os.WriteFile(filepath.Join(beadsDir, "metadata.json"), []byte(metadataContent), 0644); err != nil {
+		if err := os.WriteFile(filepath.Join(issuegraphDir, "metadata.json"), []byte(metadataContent), 0644); err != nil {
 			t.Fatalf("failed to write metadata.json: %v", err)
 		}
 
@@ -309,9 +309,9 @@ func TestCheckMetadataConfigValues(t *testing.T) {
 	// Test with path in database field
 	t.Run("path in database field", func(t *testing.T) {
 		metadataContent := `{
-  "database": "/path/to/beads.db"
+  "database": "/path/to/issuegraph.db"
 }`
-		if err := os.WriteFile(filepath.Join(beadsDir, "metadata.json"), []byte(metadataContent), 0644); err != nil {
+		if err := os.WriteFile(filepath.Join(issuegraphDir, "metadata.json"), []byte(metadataContent), 0644); err != nil {
 			t.Fatalf("failed to write metadata.json: %v", err)
 		}
 
@@ -324,18 +324,18 @@ func TestCheckMetadataConfigValues(t *testing.T) {
 
 func TestCheckMetadataConfigValues_WorktreeFallbackUsesSharedMetadata(t *testing.T) {
 	mainRepoDir, worktreeDir := setupDoctorSharedWorktree(t)
-	mainBeadsDir := filepath.Join(mainRepoDir, ".beads")
-	if err := os.MkdirAll(mainBeadsDir, 0o755); err != nil {
-		t.Fatalf("failed to create main .beads dir: %v", err)
+	mainIssueGraphDir := filepath.Join(mainRepoDir, ".issuegraph")
+	if err := os.MkdirAll(mainIssueGraphDir, 0o755); err != nil {
+		t.Fatalf("failed to create main .issuegraph dir: %v", err)
 	}
 	metadataContent := `{
-  "database": "/path/to/beads.db"
+  "database": "/path/to/issuegraph.db"
 }`
-	if err := os.WriteFile(filepath.Join(mainBeadsDir, "metadata.json"), []byte(metadataContent), 0o644); err != nil {
+	if err := os.WriteFile(filepath.Join(mainIssueGraphDir, "metadata.json"), []byte(metadataContent), 0o644); err != nil {
 		t.Fatalf("failed to write metadata.json: %v", err)
 	}
 
-	clearResolveBeadsDirCache()
+	clearResolveIssueGraphDirCache()
 
 	issues := checkMetadataConfigValues(worktreeDir)
 	if len(issues) == 0 {
@@ -486,15 +486,15 @@ func TestValidCustomStatusRegex(t *testing.T) {
 
 func TestCheckConfigValuesActor(t *testing.T) {
 	tmpDir := t.TempDir()
-	beadsDir := filepath.Join(tmpDir, ".beads")
-	if err := os.MkdirAll(beadsDir, 0755); err != nil {
-		t.Fatalf("failed to create .beads dir: %v", err)
+	issuegraphDir := filepath.Join(tmpDir, ".issuegraph")
+	if err := os.MkdirAll(issuegraphDir, 0755); err != nil {
+		t.Fatalf("failed to create .issuegraph dir: %v", err)
 	}
 
 	t.Run("invalid actor", func(t *testing.T) {
 		configContent := `actor: "@invalid-actor"
 `
-		if err := os.WriteFile(filepath.Join(beadsDir, "config.yaml"), []byte(configContent), 0644); err != nil {
+		if err := os.WriteFile(filepath.Join(issuegraphDir, "config.yaml"), []byte(configContent), 0644); err != nil {
 			t.Fatalf("failed to write config.yaml: %v", err)
 		}
 
@@ -510,7 +510,7 @@ func TestCheckConfigValuesActor(t *testing.T) {
 	t.Run("valid actor", func(t *testing.T) {
 		configContent := `actor: "alice@example.com"
 `
-		if err := os.WriteFile(filepath.Join(beadsDir, "config.yaml"), []byte(configContent), 0644); err != nil {
+		if err := os.WriteFile(filepath.Join(issuegraphDir, "config.yaml"), []byte(configContent), 0644); err != nil {
 			t.Fatalf("failed to write config.yaml: %v", err)
 		}
 
@@ -523,15 +523,15 @@ func TestCheckConfigValuesActor(t *testing.T) {
 
 func TestCheckConfigValuesDbPath(t *testing.T) {
 	tmpDir := t.TempDir()
-	beadsDir := filepath.Join(tmpDir, ".beads")
-	if err := os.MkdirAll(beadsDir, 0755); err != nil {
-		t.Fatalf("failed to create .beads dir: %v", err)
+	issuegraphDir := filepath.Join(tmpDir, ".issuegraph")
+	if err := os.MkdirAll(issuegraphDir, 0755); err != nil {
+		t.Fatalf("failed to create .issuegraph dir: %v", err)
 	}
 
 	t.Run("unusual db extension", func(t *testing.T) {
 		configContent := `db: "/path/to/database.txt"
 `
-		if err := os.WriteFile(filepath.Join(beadsDir, "config.yaml"), []byte(configContent), 0644); err != nil {
+		if err := os.WriteFile(filepath.Join(issuegraphDir, "config.yaml"), []byte(configContent), 0644); err != nil {
 			t.Fatalf("failed to write config.yaml: %v", err)
 		}
 
@@ -545,7 +545,7 @@ func TestCheckConfigValuesDbPath(t *testing.T) {
 	t.Run("valid db path", func(t *testing.T) {
 		configContent := `db: "/path/to/database.db"
 `
-		if err := os.WriteFile(filepath.Join(beadsDir, "config.yaml"), []byte(configContent), 0644); err != nil {
+		if err := os.WriteFile(filepath.Join(issuegraphDir, "config.yaml"), []byte(configContent), 0644); err != nil {
 			t.Fatalf("failed to write config.yaml: %v", err)
 		}
 
@@ -561,7 +561,7 @@ func TestCheckConfigValuesDbPath(t *testing.T) {
   mode: auto
   contributor: ~/planning-repo
 `
-		if err := os.WriteFile(filepath.Join(beadsDir, "config.yaml"), []byte(configContent), 0644); err != nil {
+		if err := os.WriteFile(filepath.Join(issuegraphDir, "config.yaml"), []byte(configContent), 0644); err != nil {
 			t.Fatalf("failed to write config.yaml: %v", err)
 		}
 
@@ -593,7 +593,7 @@ repos:
   additional:
     - ~/planning-repo
 `
-		if err := os.WriteFile(filepath.Join(beadsDir, "config.yaml"), []byte(configContent), 0644); err != nil {
+		if err := os.WriteFile(filepath.Join(issuegraphDir, "config.yaml"), []byte(configContent), 0644); err != nil {
 			t.Fatalf("failed to write config.yaml: %v", err)
 		}
 
@@ -611,7 +611,7 @@ repos:
   additional:
     - ~/other-repo
 `
-		if err := os.WriteFile(filepath.Join(beadsDir, "config.yaml"), []byte(configContent), 0644); err != nil {
+		if err := os.WriteFile(filepath.Join(issuegraphDir, "config.yaml"), []byte(configContent), 0644); err != nil {
 			t.Fatalf("failed to write config.yaml: %v", err)
 		}
 
@@ -643,7 +643,7 @@ repos:
   additional:
     - ~/maintainer-repo
 `
-		if err := os.WriteFile(filepath.Join(beadsDir, "config.yaml"), []byte(configContent), 0644); err != nil {
+		if err := os.WriteFile(filepath.Join(issuegraphDir, "config.yaml"), []byte(configContent), 0644); err != nil {
 			t.Fatalf("failed to write config.yaml: %v", err)
 		}
 
@@ -659,7 +659,7 @@ repos:
   mode: auto
   maintainer: "."
 `
-		if err := os.WriteFile(filepath.Join(beadsDir, "config.yaml"), []byte(configContent), 0644); err != nil {
+		if err := os.WriteFile(filepath.Join(issuegraphDir, "config.yaml"), []byte(configContent), 0644); err != nil {
 			t.Fatalf("failed to write config.yaml: %v", err)
 		}
 

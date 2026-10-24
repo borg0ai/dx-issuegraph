@@ -11,24 +11,24 @@ import (
 func TestProxiedServerStatus(t *testing.T) {
 	requireSharedProxiedServer(t)
 	t.Parallel()
-	bd := buildEmbeddedBD(t)
-	p := newSharedProxiedProject(t, bd, "sts")
+	issuegraph := buildEmbeddedBD(t)
+	p := newSharedProxiedProject(t, issuegraph, "sts")
 
 	// Seed the same known status distribution as TestEmbeddedStatus:
 	// 3 open, 1 in_progress, 1 closed (5 total).
-	bdProxiedCreate(t, bd, p.dir, "Status open 1", "--type", "task")
-	bdProxiedCreate(t, bd, p.dir, "Status open 2", "--type", "bug")
-	ip := bdProxiedCreate(t, bd, p.dir, "Status in_progress", "--type", "task", "--assignee", "alice")
-	bdProxiedUpdate(t, bd, p.dir, ip.ID, "--status", "in_progress")
-	closed := bdProxiedCreate(t, bd, p.dir, "Status closed", "--type", "task")
-	if out, err := bdProxiedRun(t, bd, p.dir, "close", closed.ID); err != nil {
+	issuegraphProxiedCreate(t, issuegraph, p.dir, "Status open 1", "--type", "task")
+	issuegraphProxiedCreate(t, issuegraph, p.dir, "Status open 2", "--type", "bug")
+	ip := issuegraphProxiedCreate(t, issuegraph, p.dir, "Status in_progress", "--type", "task", "--assignee", "alice")
+	issuegraphProxiedUpdate(t, issuegraph, p.dir, ip.ID, "--status", "in_progress")
+	closed := issuegraphProxiedCreate(t, issuegraph, p.dir, "Status closed", "--type", "task")
+	if out, err := issuegraphProxiedRun(t, issuegraph, p.dir, "close", closed.ID); err != nil {
 		t.Fatalf("close %s: %v\n%s", closed.ID, err, out)
 	}
-	bdProxiedCreate(t, bd, p.dir, "Status assigned bob", "--type", "task", "--assignee", "bob")
+	issuegraphProxiedCreate(t, issuegraph, p.dir, "Status assigned bob", "--type", "task", "--assignee", "bob")
 
 	statusJSON := func(t *testing.T, args ...string) StatusOutput {
 		t.Helper()
-		out, err := bdProxiedRun(t, bd, p.dir, append([]string{"status", "--json"}, args...)...)
+		out, err := issuegraphProxiedRun(t, issuegraph, p.dir, append([]string{"status", "--json"}, args...)...)
 		if err != nil {
 			t.Fatalf("status %v: %v\n%s", args, err, out)
 		}
@@ -44,7 +44,7 @@ func TestProxiedServerStatus(t *testing.T) {
 
 	statusText := func(t *testing.T, args ...string) string {
 		t.Helper()
-		out, err := bdProxiedRun(t, bd, p.dir, append([]string{"status"}, args...)...)
+		out, err := issuegraphProxiedRun(t, issuegraph, p.dir, append([]string{"status"}, args...)...)
 		if err != nil {
 			t.Fatalf("status %v: %v\n%s", args, err, out)
 		}
@@ -74,7 +74,7 @@ func TestProxiedServerStatus(t *testing.T) {
 	// ===== --json structure =====
 
 	t.Run("json_output_structure", func(t *testing.T) {
-		out, err := bdProxiedRun(t, bd, p.dir, "status", "--json")
+		out, err := issuegraphProxiedRun(t, issuegraph, p.dir, "status", "--json")
 		if err != nil {
 			t.Fatalf("status --json: %v\n%s", err, out)
 		}
@@ -113,7 +113,7 @@ func TestProxiedServerStatus(t *testing.T) {
 
 	t.Run("total_matches_list_all", func(t *testing.T) {
 		got := statusJSON(t)
-		want := len(bdProxiedListJSON(t, bd, p, "--all"))
+		want := len(issuegraphProxiedListJSON(t, issuegraph, p, "--all"))
 		if got.Summary.TotalIssues != want {
 			t.Errorf("status total = %d, want %d (list --all)", got.Summary.TotalIssues, want)
 		}
@@ -121,7 +121,7 @@ func TestProxiedServerStatus(t *testing.T) {
 
 	t.Run("open_matches_list", func(t *testing.T) {
 		got := statusJSON(t)
-		want := len(bdProxiedListJSON(t, bd, p, "--status", "open"))
+		want := len(issuegraphProxiedListJSON(t, issuegraph, p, "--status", "open"))
 		if got.Summary.OpenIssues != want {
 			t.Errorf("status open = %d, want %d (list --status open)", got.Summary.OpenIssues, want)
 		}
@@ -140,7 +140,7 @@ func TestProxiedServerStatus(t *testing.T) {
 	// ===== --no-activity =====
 
 	t.Run("no_activity_flag", func(t *testing.T) {
-		out, err := bdProxiedRun(t, bd, p.dir, "status", "--json", "--no-activity")
+		out, err := issuegraphProxiedRun(t, issuegraph, p.dir, "status", "--json", "--no-activity")
 		if err != nil {
 			t.Fatalf("status --json --no-activity: %v\n%s", err, out)
 		}
@@ -159,7 +159,7 @@ func TestProxiedServerStatus(t *testing.T) {
 	// ===== stats alias =====
 
 	t.Run("stats_alias", func(t *testing.T) {
-		out, err := bdProxiedRun(t, bd, p.dir, "stats", "--json")
+		out, err := issuegraphProxiedRun(t, issuegraph, p.dir, "stats", "--json")
 		if err != nil {
 			t.Fatalf("stats --json: %v\n%s", err, out)
 		}
@@ -175,8 +175,8 @@ func TestProxiedServerStatus(t *testing.T) {
 	// ===== Empty database =====
 
 	t.Run("empty_database", func(t *testing.T) {
-		empty := newSharedProxiedProject(t, bd, "ste")
-		out, err := bdProxiedRun(t, bd, empty.dir, "status", "--json")
+		empty := newSharedProxiedProject(t, issuegraph, "ste")
+		out, err := issuegraphProxiedRun(t, issuegraph, empty.dir, "status", "--json")
 		if err != nil {
 			t.Fatalf("status --json (empty): %v\n%s", err, out)
 		}

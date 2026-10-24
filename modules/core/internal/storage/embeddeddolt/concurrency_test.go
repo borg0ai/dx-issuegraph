@@ -15,18 +15,18 @@ import (
 	"testing"
 	"time"
 
-	"github.com/steveyegge/beads/internal/storage/embeddeddolt"
+	"github.com/borg0ai/dx-issuegraph/internal/storage/embeddeddolt"
 	"golang.org/x/sync/errgroup"
 )
 
 func TestConcurrencyMultiProcess(t *testing.T) {
-	if os.Getenv("BEADS_TEST_EMBEDDED_DOLT") != "1" {
-		t.Skip("set BEADS_TEST_EMBEDDED_DOLT=1 to run embedded dolt concurrency tests")
+	if os.Getenv("ISSUEGRAPH_TEST_EMBEDDED_DOLT") != "1" {
+		t.Skip("set ISSUEGRAPH_TEST_EMBEDDED_DOLT=1 to run embedded dolt concurrency tests")
 	}
 
-	procs := envInt("BEADS_EMBEDDED_DOLT_PROCS", 10)
-	iters := envInt("BEADS_EMBEDDED_DOLT_ITERS", 5)
-	timeout := envDuration("BEADS_EMBEDDED_DOLT_TIMEOUT", 5*time.Minute)
+	procs := envInt("ISSUEGRAPH_EMBEDDED_DOLT_PROCS", 10)
+	iters := envInt("ISSUEGRAPH_EMBEDDED_DOLT_ITERS", 5)
+	timeout := envDuration("ISSUEGRAPH_EMBEDDED_DOLT_TIMEOUT", 5*time.Minute)
 
 	t.Logf("config: procs=%d iters=%d timeout=%s", procs, iters, timeout)
 
@@ -60,11 +60,11 @@ func TestConcurrencyMultiProcess(t *testing.T) {
 	t.Log("init complete")
 
 	// Build the test binary that subprocesses will exec.
-	// If BEADS_TEST_EMBEDDED_TEST_BINARY is set, skip the build.
-	testBin := os.Getenv("BEADS_TEST_EMBEDDED_TEST_BINARY")
+	// If ISSUEGRAPH_TEST_EMBEDDED_TEST_BINARY is set, skip the build.
+	testBin := os.Getenv("ISSUEGRAPH_TEST_EMBEDDED_TEST_BINARY")
 	if testBin != "" {
 		if _, err := os.Stat(testBin); err != nil {
-			t.Fatalf("BEADS_TEST_EMBEDDED_TEST_BINARY=%q not found: %v", testBin, err)
+			t.Fatalf("ISSUEGRAPH_TEST_EMBEDDED_TEST_BINARY=%q not found: %v", testBin, err)
 		}
 		t.Logf("using pre-built test binary: %s", testBin)
 	} else {
@@ -97,10 +97,10 @@ func TestConcurrencyMultiProcess(t *testing.T) {
 			t.Logf("proc %d: starting", procN)
 			cmd := exec.CommandContext(egCtx, testBin, "-test.run=^TestHelperProcess$", "-test.v")
 			cmd.Env = append(os.Environ(),
-				"BEADS_EMBEDDED_DOLT_HELPER=1",
-				"BEADS_EMBEDDED_DOLT_DIR="+sharedDir,
-				"BEADS_EMBEDDED_DOLT_ITERS="+strconv.Itoa(iters),
-				"BEADS_EMBEDDED_DOLT_PROC_ID="+strconv.Itoa(procN),
+				"ISSUEGRAPH_EMBEDDED_DOLT_HELPER=1",
+				"ISSUEGRAPH_EMBEDDED_DOLT_DIR="+sharedDir,
+				"ISSUEGRAPH_EMBEDDED_DOLT_ITERS="+strconv.Itoa(iters),
+				"ISSUEGRAPH_EMBEDDED_DOLT_PROC_ID="+strconv.Itoa(procN),
 				"CGO_ENABLED=1",
 			)
 			out, err := cmd.CombinedOutput()
@@ -124,21 +124,21 @@ func TestConcurrencyMultiProcess(t *testing.T) {
 
 // TestHelperProcess is the subprocess entry point used by the multi-process
 // concurrency test. It is not a real test — it exits early unless the
-// BEADS_EMBEDDED_DOLT_HELPER env var is set.
+// ISSUEGRAPH_EMBEDDED_DOLT_HELPER env var is set.
 func TestHelperProcess(t *testing.T) {
-	if os.Getenv("BEADS_EMBEDDED_DOLT_HELPER") != "1" {
+	if os.Getenv("ISSUEGRAPH_EMBEDDED_DOLT_HELPER") != "1" {
 		return
 	}
 
-	dir := os.Getenv("BEADS_EMBEDDED_DOLT_DIR")
+	dir := os.Getenv("ISSUEGRAPH_EMBEDDED_DOLT_DIR")
 	if dir == "" {
-		t.Fatal("BEADS_EMBEDDED_DOLT_DIR not set")
+		t.Fatal("ISSUEGRAPH_EMBEDDED_DOLT_DIR not set")
 	}
-	iters, _ := strconv.Atoi(os.Getenv("BEADS_EMBEDDED_DOLT_ITERS"))
+	iters, _ := strconv.Atoi(os.Getenv("ISSUEGRAPH_EMBEDDED_DOLT_ITERS"))
 	if iters < 1 {
 		iters = 5
 	}
-	procID := os.Getenv("BEADS_EMBEDDED_DOLT_PROC_ID")
+	procID := os.Getenv("ISSUEGRAPH_EMBEDDED_DOLT_PROC_ID")
 
 	ctx := t.Context()
 	database := "testdb"
@@ -220,19 +220,19 @@ func mustQueryRow(t *testing.T, db *sql.DB, ctx context.Context, query string, a
 // the same data directory returns the cached instance immediately rather than
 // creating a redundant engine initialization.
 func TestConcurrentOpenReturnsCached(t *testing.T) {
-	if os.Getenv("BEADS_TEST_EMBEDDED_DOLT") != "1" {
-		t.Skip("set BEADS_TEST_EMBEDDED_DOLT=1 to run embedded dolt concurrency tests")
+	if os.Getenv("ISSUEGRAPH_TEST_EMBEDDED_DOLT") != "1" {
+		t.Skip("set ISSUEGRAPH_TEST_EMBEDDED_DOLT=1 to run embedded dolt concurrency tests")
 	}
 	ctx := t.Context()
-	beadsDir := t.TempDir()
+	issuegraphDir := t.TempDir()
 
-	store1, err := embeddeddolt.Open(ctx, beadsDir, "testdb", "main")
+	store1, err := embeddeddolt.Open(ctx, issuegraphDir, "testdb", "main")
 	if err != nil {
 		t.Fatalf("first Open: %v", err)
 	}
 
 	// Second Open should return immediately with the same cached store.
-	store2, err := embeddeddolt.Open(ctx, beadsDir, "testdb", "main")
+	store2, err := embeddeddolt.Open(ctx, issuegraphDir, "testdb", "main")
 	if err != nil {
 		t.Fatalf("second Open: %v", err)
 	}

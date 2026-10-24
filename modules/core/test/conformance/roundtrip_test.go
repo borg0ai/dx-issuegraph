@@ -12,7 +12,7 @@ import (
 	"testing"
 )
 
-// The portable JSONL backup path — `bd export` -> git -> `bd import` — is the
+// The portable JSONL backup path — `issuegraph export` -> git -> `issuegraph import` — is the
 // backend-agnostic backup mechanism for stores without Dolt-native CALL
 // DOLT_BACKUP and commit hashes. This test pins the manual round-trip so a
 // regression in export or import cannot slip through CI.
@@ -24,7 +24,7 @@ import (
 // timestamps and comment UUIDs a differential comparison would have to normalize away.
 
 // roundTripConfig registers the custom type/status the seed uses. It is replayed into
-// the restore workspace on purpose: `bd export` carries issue data only, not config,
+// the restore workspace on purpose: `issuegraph export` carries issue data only, not config,
 // and a custom status is rejected on import ("invalid status: triage") unless
 // status.custom is set first. This is backend-agnostic — the Dolt reference rejects it
 // identically — and mirrors a real restore, where config is recovered before data.
@@ -92,7 +92,7 @@ func TestExportImportRoundTripE2E(t *testing.T) {
 }
 
 // seedAndExport inits a workspace on the backend, applies the config + seed, and
-// returns its default `bd export` output.
+// returns its default `issuegraph export` output.
 func seedAndExport(t *testing.T, bin string, p BackendProfile) string {
 	t.Helper()
 	ws, env := initRoundTripWorkspace(t, bin, p)
@@ -100,7 +100,7 @@ func seedAndExport(t *testing.T, bin string, p BackendProfile) string {
 	runSteps(t, bin, ws.Dir, env, p.Name, roundTripSeed)
 	out := filepath.Join(ws.Dir, "export.jsonl")
 	if _, stderr, code := runBd(bin, ws.Dir, env, "export", "-o", out); code != 0 {
-		t.Fatalf("[%s] bd export failed (exit %d): %s", p.Name, code, stderr)
+		t.Fatalf("[%s] issuegraph export failed (exit %d): %s", p.Name, code, stderr)
 	}
 	return mustRead(t, out)
 }
@@ -114,16 +114,16 @@ func restoreAndReexport(t *testing.T, bin string, p BackendProfile, exportJSONL 
 	in := filepath.Join(ws.Dir, "restore.jsonl")
 	mustWrite(t, in, exportJSONL)
 	if _, stderr, code := runBd(bin, ws.Dir, env, "import", in); code != 0 {
-		t.Fatalf("[%s] bd import failed (exit %d): %s", p.Name, code, stderr)
+		t.Fatalf("[%s] issuegraph import failed (exit %d): %s", p.Name, code, stderr)
 	}
 	out := filepath.Join(ws.Dir, "reexport.jsonl")
 	if _, stderr, code := runBd(bin, ws.Dir, env, "export", "-o", out); code != 0 {
-		t.Fatalf("[%s] bd re-export failed (exit %d): %s", p.Name, code, stderr)
+		t.Fatalf("[%s] issuegraph re-export failed (exit %d): %s", p.Name, code, stderr)
 	}
 	return mustRead(t, out)
 }
 
-// initRoundTripWorkspace creates an isolated temporary workspace and runs `bd init`.
+// initRoundTripWorkspace creates an isolated temporary workspace and runs `issuegraph init`.
 // Prefix "rt" matches the pinned rt-* ids in the seed.
 func initRoundTripWorkspace(t *testing.T, bin string, p BackendProfile) (*Workspace, []string) {
 	t.Helper()
@@ -134,7 +134,7 @@ func initRoundTripWorkspace(t *testing.T, bin string, p BackendProfile) (*Worksp
 	}
 	initArgs := append([]string{"init", "-p", "rt", "--quiet"}, p.InitArgs(ws)...)
 	if _, stderr, code := runBd(bin, ws.Dir, env, initArgs...); code != 0 {
-		t.Fatalf("[%s] bd init failed (exit %d): %s", p.Name, code, stderr)
+		t.Fatalf("[%s] issuegraph init failed (exit %d): %s", p.Name, code, stderr)
 	}
 	return ws, env
 }
@@ -143,12 +143,12 @@ func runSteps(t *testing.T, bin, dir string, env []string, backend string, steps
 	t.Helper()
 	for _, step := range steps {
 		if _, stderr, code := runBd(bin, dir, env, step...); code != 0 {
-			t.Fatalf("[%s] bd %s failed (exit %d): %s", backend, strings.Join(step, " "), code, stderr)
+			t.Fatalf("[%s] issuegraph %s failed (exit %d): %s", backend, strings.Join(step, " "), code, stderr)
 		}
 	}
 }
 
-// ephemeralExportKeys are runtime claim/lease fields that `bd export`
+// ephemeralExportKeys are runtime claim/lease fields that `issuegraph export`
 // serializes but that are not part of the durable backup contract. Leases
 // live in the ephemeral, node-local leases table (bd-lrgn1): import restores
 // a snapshot lease only when the stored row is a live claim and no unexpired

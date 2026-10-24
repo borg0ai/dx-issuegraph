@@ -1,34 +1,34 @@
 ---
-title: "bd search"
+title: "issuegraph search"
 description: "Search issues across title and ID (excludes closed issues by default)."
 ---
 
 {/* AUTO-GENERATED: do not edit manually */}
 
-Generated from `bd help --doc search`.
+Generated from `issuegraph help --doc search`.
 
 Search issues across title and ID (excludes closed issues by default).
 
-ID-like queries (e.g., "bd-123", "hq-319") use fast exact/prefix matching.
+ID-like queries (e.g., "issuegraph-123", "hq-319") use fast exact/prefix matching.
 Text queries search titles. Use --desc-contains for description search.
 Use --status all to include closed issues.
 
 Examples:
-  bd search "authentication bug"
-  bd search "login" --status open
-  bd search "database" --label backend --limit 10
-  bd search --query "performance" --assignee alice
-  bd search "bd-5q" # Search by partial ID (fast prefix match)
-  bd search "security" --priority-min 0 --priority-max 2
-  bd search "bug" --created-after 2025-01-01
-  bd search "refactor" --status all  # Include closed issues
-  bd search "bug" --sort priority
-  bd search "task" --sort created --reverse
-  bd search "api" --desc-contains "endpoint"
-  bd search "cleanup" --no-assignee --no-labels
+  issuegraph search "authentication bug"
+  issuegraph search "login" --status open
+  issuegraph search "database" --label backend --limit 10
+  issuegraph search --query "performance" --assignee alice
+  issuegraph search "issuegraph-5q" # Search by partial ID (fast prefix match)
+  issuegraph search "security" --priority-min 0 --priority-max 2
+  issuegraph search "bug" --created-after 2025-01-01
+  issuegraph search "refactor" --status all  # Include closed issues
+  issuegraph search "bug" --sort priority
+  issuegraph search "task" --sort created --reverse
+  issuegraph search "api" --desc-contains "endpoint"
+  issuegraph search "cleanup" --no-assignee --no-labels
 
 ```
-bd search [query] [flags]
+issuegraph search [query] [flags]
 ```
 
 **Flags:**
@@ -56,7 +56,7 @@ bd search [query] [flags]
       --query string                 Search query (alternative to positional argument)
   -r, --reverse                      Reverse sort order
       --sort string                  Sort by field: priority, created, updated, closed, status, id, title, type, assignee
-  -s, --status string                Filter by stored status (open, in_progress, blocked, deferred, closed, all). Default excludes closed; use 'all' to include closed. Note: dependency-blocked issues use 'bd blocked'
+  -s, --status string                Filter by stored status (open, in_progress, blocked, deferred, closed, all). Default excludes closed; use 'all' to include closed. Note: dependency-blocked issues use 'issuegraph blocked'
   -t, --type string                  Filter by type (bug, feature, task, epic, chore, decision, merge-request, molecule, gate)
       --updated-after string         Filter issues updated after date (YYYY-MM-DD or RFC3339)
       --updated-before string        Filter issues updated before date (YYYY-MM-DD or RFC3339)

@@ -5,8 +5,8 @@ package main
 import (
 	"testing"
 
-	"github.com/steveyegge/beads/internal/tracker"
-	"github.com/steveyegge/beads/internal/types"
+	"github.com/borg0ai/dx-issuegraph/internal/tracker"
+	"github.com/borg0ai/dx-issuegraph/internal/types"
 )
 
 // TestSyncIsScoped covers the gate that decides whether to skip the

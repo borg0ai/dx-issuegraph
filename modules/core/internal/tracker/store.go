@@ -4,8 +4,8 @@ import (
 	"context"
 	"time"
 
-	"github.com/steveyegge/beads/internal/storage"
-	"github.com/steveyegge/beads/internal/types"
+	"github.com/borg0ai/dx-issuegraph/internal/storage"
+	"github.com/borg0ai/dx-issuegraph/internal/types"
 )
 
 // Store is the persistence contract required by the tracker synchronization
@@ -82,7 +82,7 @@ func (s *directStore) ApplyIssueUpdate(ctx context.Context, id string, updates m
 	if !ok {
 		return s.Storage.UpdateIssue(ctx, id, updates, actor)
 	}
-	return dolt.RunInIssueLifecycleTransaction(ctx, "bd: tracker update "+id, func(tx storage.IssueLifecycleTransaction) error {
+	return dolt.RunInIssueLifecycleTransaction(ctx, "issuegraph: tracker update "+id, func(tx storage.IssueLifecycleTransaction) error {
 		if err := tx.UpdateIssue(ctx, id, updates, actor); err != nil {
 			return err
 		}

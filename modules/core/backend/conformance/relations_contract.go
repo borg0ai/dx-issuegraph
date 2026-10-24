@@ -7,8 +7,8 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/steveyegge/beads/internal/types"
-	publicops "github.com/steveyegge/beads/issueops"
+	"github.com/borg0ai/dx-issuegraph/internal/types"
+	publicops "github.com/borg0ai/dx-issuegraph/issueops"
 )
 
 // This file holds the neighbor-query contract every implementation of
@@ -177,7 +177,7 @@ func RunRelationsOrdersNeighborsFromBothPlanesTogether(t *testing.T, ctx context
 // the cross-plane order case (RunRelationsOrdersNeighborsFromBothPlanesTogether)
 // reaches its wisps as edge SOURCES matched by issue_id, so the wisp-target
 // column path was unread. An implementation that resolved out-targets from
-// depends_on_issue_id alone would silently drop wisp dependencies from `bd dep
+// depends_on_issue_id alone would silently drop wisp dependencies from `issuegraph dep
 // list` and pass every other case here.
 //
 // The two column probes are what make that specific. Without them the case

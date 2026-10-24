@@ -4,7 +4,7 @@ import (
 	"context"
 	"time"
 
-	"github.com/steveyegge/beads/internal/types"
+	"github.com/borg0ai/dx-issuegraph/internal/types"
 )
 
 // IssueWithCounts is one row of a work page: the issue plus its relationship
@@ -207,11 +207,11 @@ type ListRequest struct {
 	// UNLIKE SkipLabels and SkipCounts it IS carried onto the ReadyFlag arm,
 	// and onto ReadyRequest.Brief beside it. Those two drop a NUMBER the ready
 	// renderings print; this drops a body no listing prints, so carrying it is
-	// what makes `--ready` and `bd ready` answer the same request the same way.
+	// what makes `--ready` and `issuegraph ready` answer the same request the same way.
 	//
 	// It is the storage layer's types.IssueFilter.Lite / types.WorkFilter.Lite
 	// under the name the CLI and the MCP integration already use for a
-	// projection (bd show --brief-deps, the MCP's brief).
+	// projection (issuegraph show --brief-deps, the MCP's brief).
 	Brief bool
 
 	// Priority is exact; PriorityMin and PriorityMax bound a range. All three
@@ -289,10 +289,10 @@ type ListRequest struct {
 	//
 	// On the ReadyFlag arm it is CARRIED rather than dropped; see that field.
 	IncludeEphemeral bool
-	// IncludeAllTypes lifts every default suppression that hides a bead from a
+	// IncludeAllTypes lifts every default suppression that hides a issue from a
 	// listing on account of WHAT IT IS: the three type knobs above (templates,
 	// gates, infra types) AND the ephemeral plane, so the wisps table is read
-	// too. Frontends whose contract is "never hide a bead" — `bd human list`,
+	// too. Frontends whose contract is "never hide a issue" — `issuegraph human list`,
 	// where a human label is an explicit request for a person's attention —
 	// set this one field instead of enumerating the knobs and then drifting
 	// from them when a fourth suppression lands.
@@ -443,7 +443,7 @@ type ListRequest struct {
 	// Unlike SkipCounts and SkipLabels it IS carried onto the ReadyFlag arm.
 	MaxRows int
 	// MaxRowsSource attributes the cap to whatever knob set it — "--max-rows",
-	// "BEADS_MAX_ROWS", or empty for a library caller — and that attribution is
+	// "ISSUEGRAPH_MAX_ROWS", or empty for a library caller — and that attribution is
 	// what the refusal text reads back. It decides no answer: a request is
 	// refused on MaxRows alone, and this only decides how the refusal reads.
 	MaxRowsSource string
@@ -534,7 +534,7 @@ type IssuePage struct {
 //     review comment. THE CLAIM at the bottom of this comment names them, and
 //     names what they cover and what they do not.
 //
-//   - `bd show --json`'s DETAIL VIEW is on the role on BOTH routes: the direct
+//   - `issuegraph show --json`'s DETAIL VIEW is on the role on BOTH routes: the direct
 //     one reaches it through store.IssueReader(), the proxied one through the
 //     unit-of-work provider's accessor. Its ALTERNATE views are not, and are
 //     not the same question: --refs, --children, --thread and --as-of each
@@ -546,13 +546,13 @@ type IssuePage struct {
 //     lives in internal/workapi/storereader, which the
 //     cmd-bd-role-constructors depguard rule keeps out of modules/cli: the
 //     accessor is where each storage decorator adds its layer, so a command
-//     that constructed a reader directly would get an unspanned one. `bd show`
+//     that constructed a reader directly would get an unspanned one. `issuegraph show`
 //     keeps its own id RESOLUTION — fuzzy ids, cross-repo routing, --current —
 //     and hands this contract the canonical id it resolved, because an
 //     affordance that can answer with a different issue than the caller named
 //     has no place on a contract an unattended HTTP client also calls.
 //
-//   - `bd list` IS, on both routes, for its PAGE — every output mode but the
+//   - `issuegraph list` IS, on both routes, for its PAGE — every output mode but the
 //     two named next. --json and every text rendering call List below and
 //     nothing else; --ready is not a route of its own on either side, it is
 //     ReadyFlag, and picking the ready query from it is this role's job.
@@ -564,18 +564,18 @@ type IssuePage struct {
 //     both this role's and BlockingAnnotator's, so those renderings take their
 //     page from here and load the graph beside it.
 //
-//     The other thing `bd list` used to do here was the per-page blocking
+//     The other thing `issuegraph list` used to do here was the per-page blocking
 //     decoration, which is issueops.BlockingAnnotator's on both routes now —
 //     its own role, because it is a DERIVED annotation over ids a page already
 //     chose rather than a page.
 //
-//   - `bd ready` is NOT, on either route, and will not be until there are more
+//   - `issuegraph ready` is NOT, on either route, and will not be until there are more
 //     roles to route it through. It consumes the FILTER itself for --claim,
 //     --gated, --explain and --mol. Two of its questions HAVE left the filter
 //     behind, each for the role that owns it: --claim is ReadyClaimer's, and
 //     the published total is ReadyCounter's, on both routes.
 //
-// WHAT `bd ready` DOES SHARE, stated exactly, because "not on the role" is not
+// WHAT `issuegraph ready` DOES SHARE, stated exactly, because "not on the role" is not
 // the same as "unprotected":
 //
 //   - CONSTRUCTION. Every route, and both implementations of this interface,
@@ -593,9 +593,9 @@ type IssuePage struct {
 //
 // THE CLAIM, stated once and in full so it can be checked sentence by
 // sentence. SHARED: all three issue reads on the HTTP surface go through this
-// role, so does `bd show --json`'s detail view on both its routes, and so does
-// `bd list`'s page on both of its — in every mode but --watch and the
-// hierarchical --parent tree, which take the filter instead. `bd ready` is not
+// role, so does `issuegraph show --json`'s detail view on both its routes, and so does
+// `issuegraph list`'s page on both of its — in every mode but --watch and the
+// hierarchical --parent tree, which take the filter instead. `issuegraph ready` is not
 // on it and shares instead the request types above, the two builders in
 // internal/workapi that their golden files pin, and workapi.FinishPage on its
 // proxied route only. ENFORCED,
@@ -606,21 +606,21 @@ type IssuePage struct {
 // are directory-scoped with no per-file exception, so a file added to that
 // package tomorrow is covered the moment it exists. That same forbidigo rule
 // covers modules/cli deny-by-default with 59 named exceptions, so the files
-// implementing `bd list` and `bd show` cannot write a filter, and neither can
+// implementing `issuegraph list` and `issuegraph show` cannot write a filter, and neither can
 // a file they are split or renamed into unless the new name lands on that
 // list. NOT ENFORCED: the rule forbids NAMING those types, not holding a
 // value, so the property is "no filter is written there", not "every filter
 // there came from a builder"; test files are exempt from both rules, because
-// the oracles hold filters in order to inspect them; `bd ready`'s files are
+// the oracles hold filters in order to inspect them; `issuegraph ready`'s files are
 // among the 59, since its listing and --claim are handed the filter itself and
 // the blocked-issue views in those files name one directly, so it is guarded by
 // the builder and the golden files and not by the linter;
 // modules/cli/list_show_filter_modes.go is among them too and STAYS there — the
-// count did not drop with this flip, because that file is where `bd list`'s
-// two filter-consuming modes and `bd show --current` live and all three still
+// count did not drop with this flip, because that file is where `issuegraph list`'s
+// two filter-consuming modes and `issuegraph show --current` live and all three still
 // need to name the type;
-// GET /healthz and GET /v0/beads/context are not issue queries and are on no
-// role; `bd ready`'s direct route and `bd list`'s hierarchical tree run
+// GET /healthz and GET /v0/issuegraph/context are not issue queries and are on no
+// role; `issuegraph ready`'s direct route and `issuegraph list`'s hierarchical tree run
 // epilogues of their own; and none of this is a merge gate — the rules run in
 // `make ci-pr-lint` on every pull request and aggregate into the ci-gate job,
 // but main carries no branch protection beyond deletion and non-fast-forward,

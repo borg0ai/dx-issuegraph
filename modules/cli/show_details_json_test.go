@@ -5,11 +5,11 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/steveyegge/beads/internal/types"
+	"github.com/borg0ai/dx-issuegraph/internal/types"
 )
 
 // TestIssueDetailsCountOnlyJSON is the regression guard for be-ijck6q:
-// the default bd show --json output must emit dependent_count / comment_count
+// the default issuegraph show --json output must emit dependent_count / comment_count
 // as count-only fields and must NOT include a "dependents" or "comments" key
 // when --include-dependents / --include-comments are not given.
 func TestIssueDetailsCountOnlyJSON(t *testing.T) {
@@ -53,7 +53,7 @@ func TestIssueDetailsCountOnlyJSON(t *testing.T) {
 	}
 }
 
-// TestShowJSONDetailsCarryTheRevisionToken pins what `bd show --json` puts on
+// TestShowJSONDetailsCarryTheRevisionToken pins what `issuegraph show --json` puts on
 // the wire, from the type the command now marshals directly.
 //
 // The CLI-only projection wrapper this used to test is gone: the token is a
@@ -74,7 +74,7 @@ func TestShowJSONDetailsCarryTheRevisionToken(t *testing.T) {
 		// the STRING "0" rather than the number.
 		{"a legacy un-mutated row", 0, `"revision":"0"`},
 		// The token this spelling exists for: 2^53+1 is the smallest int64 a
-		// double-based `jq`/JavaScript consumer of `bd show --json` cannot
+		// double-based `jq`/JavaScript consumer of `issuegraph show --json` cannot
 		// hold.
 		{"a token past 2^53", 9007199254740993, `"revision":"9007199254740993"`},
 	} {

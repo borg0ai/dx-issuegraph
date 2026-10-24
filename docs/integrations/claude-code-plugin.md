@@ -1,6 +1,6 @@
 ---
 title: IssueGraph Claude Code Plugin
-description: Install the issuegraph Claude Code plugin for /beads slash commands, a bundled skill, and session lifecycle hooks
+description: Install the issuegraph Claude Code plugin for /issuegraph slash commands, a bundled skill, and session lifecycle hooks
 ---
 
 AI-supervised issue tracker for coding workflows. Manage tasks, discover work, and maintain context with slash commands, a bundled skill, and lifecycle hooks.
@@ -19,41 +19,41 @@ IssueGraph (`issuegraph`) is an issue tracker designed specifically for AI-super
 
 1. Install issuegraph CLI:
 ```bash
-curl -sSL https://raw.githubusercontent.com/gastownhall/beads/main/scripts/install.sh | bash
+curl -sSL https://raw.githubusercontent.com/borg0ai/dx-issuegraph/main/scripts/install.sh | bash
 ```
 
 
 ### Install Plugin
 
-There are two ways to install the beads plugin:
+There are two ways to install the issuegraph plugin:
 
 #### Option 1: From GitHub (Recommended)
 
 ```bash
 # In Claude Code
-/plugin marketplace add gastownhall/beads
-/plugin install beads
+/plugin marketplace add borg0ai/dx-issuegraph
+/plugin install issuegraph
 ```
 
 #### Option 2: Local Development
 
 ```bash
 # Clone the repository (shell command)
-git clone https://github.com/gastownhall/beads
-cd beads
+git clone https://github.com/borg0ai/dx-issuegraph
+cd issuegraph
 ```
 
 Then in Claude Code:
 
 ```
 # Add local marketplace (Claude Code command)
-/plugin marketplace add ./beads
+/plugin marketplace add ./issuegraph
 
 # Install plugin
-/plugin install beads
+/plugin install issuegraph
 ```
 
-**Note:** If you want to install the plugin from a different repo, first `cd` to that repo's directory in your terminal, then use `./beads` (or the relative path to the beads directory) in Claude Code.
+**Note:** If you want to install the plugin from a different repo, first `cd` to that repo's directory in your terminal, then use `./issuegraph` (or the relative path to the issuegraph directory) in Claude Code.
 
 ### Restart Claude Code
 
@@ -63,37 +63,37 @@ After installation, restart Claude Code to load the plugin's commands and hooks.
 
 ```bash
 # Initialize issuegraph in your project
-/beads:init
+/issuegraph:init
 
 # Create your first issue
-/beads:create "Set up project structure" feature 1
+/issuegraph:create "Set up project structure" feature 1
 
 # See what's ready to work on
-/beads:ready
+/issuegraph:ready
 
 # Show full workflow guide
-/beads:workflow
+/issuegraph:workflow
 ```
 
 ## Available Commands
 
 ### Version Management
 
-- **`/beads:version`** - Check issuegraph CLI and plugin versions
+- **`/issuegraph:version`** - Check issuegraph CLI and plugin versions
 
 ### Core Workflow Commands
 
-- **`/beads:ready`** - Find tasks with no blockers, ready to work on
-- **`/beads:create [title] [type] [priority]`** - Create a new issue interactively
-- **`/beads:show [issue-id]`** - Show detailed information about an issue
-- **`/beads:update [issue-id] [status]`** - Update issue status or other fields
-- **`/beads:close [issue-id] [reason]`** - Close a completed issue
+- **`/issuegraph:ready`** - Find tasks with no blockers, ready to work on
+- **`/issuegraph:create [title] [type] [priority]`** - Create a new issue interactively
+- **`/issuegraph:show [issue-id]`** - Show detailed information about an issue
+- **`/issuegraph:update [issue-id] [status]`** - Update issue status or other fields
+- **`/issuegraph:close [issue-id] [reason]`** - Close a completed issue
 
 ### Project Management
 
-- **`/beads:init`** - Initialize issuegraph in the current project
-- **`/beads:workflow`** - Show the AI-supervised issue workflow guide
-- **`/beads:stats`** - Show project statistics and progress
+- **`/issuegraph:init`** - Initialize issuegraph in the current project
+- **`/issuegraph:workflow`** - Show the AI-supervised issue workflow guide
+- **`/issuegraph:stats`** - Show project statistics and progress
 
 ### Agents
 
@@ -104,7 +104,7 @@ After installation, restart Claude Code to load the plugin's commands and hooks.
 The plugin does not bundle an MCP server — it works through the issuegraph CLI,
 which Claude Code drives directly (lower token overhead than MCP tool
 schemas). If you want MCP tools as well — for example in MCP-only
-surfaces — configure the standalone `beads-mcp` server alongside the
+surfaces — configure the standalone `issuegraph-mcp` server alongside the
 plugin; see [MCP Server](/integrations/mcp-server) for its install
 options and full tool catalog.
 
@@ -112,11 +112,11 @@ options and full tool catalog.
 
 The issuegraph workflow is designed for AI agents but works great for humans too:
 
-1. **Find ready work**: `/beads:ready`
-2. **Claim your task**: `/beads:update <id> in_progress`
+1. **Find ready work**: `/issuegraph:ready`
+2. **Claim your task**: `/issuegraph:update <id> in_progress`
 3. **Work on it**: Implement, test, document
 4. **Discover new work**: Create issues for bugs/TODOs found during work
-5. **Complete**: `/beads:close <id> "Done: <summary>"`
+5. **Complete**: `/issuegraph:close <id> "Done: <summary>"`
 6. **Repeat**: Check for newly unblocked tasks
 
 ## Issue Types
@@ -148,7 +148,7 @@ Only `blocks` dependencies affect the ready work queue.
 
 ### Auto-Approval Configuration
 
-These settings apply if you configure the standalone [beads-mcp
+These settings apply if you configure the standalone [issuegraph-mcp
 server](/integrations/mcp-server) alongside the plugin. By default, Claude
 Code asks for confirmation every time an MCP server wants to run a command.
 This is a security feature, but it can disrupt workflow during active
@@ -162,7 +162,7 @@ Add to your Claude Code `settings.json`:
 
 ```json
 {
-  "enabledMcpjsonServers": ["beads"]
+  "enabledMcpjsonServers": ["issuegraph"]
 }
 ```
 
@@ -198,7 +198,7 @@ For active development on trusted projects where you're frequently using issuegr
 
 ```json
 {
-  "enabledMcpjsonServers": ["beads"]
+  "enabledMcpjsonServers": ["issuegraph"]
 }
 ```
 
@@ -211,29 +211,29 @@ For more information, see the [Claude Code settings documentation](https://docs.
 
 ```bash
 # Create a high-priority bug
-/beads:create "Fix authentication" bug 1
+/issuegraph:create "Fix authentication" bug 1
 
 # See ready work
-/beads:ready
+/issuegraph:ready
 
-# Start working on bd-10
-/beads:update bd-10 in_progress
+# Start working on issuegraph-10
+/issuegraph:update issuegraph-10 in_progress
 
 # Complete the task
-/beads:close bd-10 "Fixed auth token validation"
+/issuegraph:close issuegraph-10 "Fixed auth token validation"
 ```
 
 ### Discovering Work During Development
 
 ```bash
-# Working on bd-10, found a related bug
-/beads:create "Add rate limiting to API" feature 2
+# Working on issuegraph-10, found a related bug
+/issuegraph:create "Add rate limiting to API" feature 2
 
 # Link it to current work
-issuegraph dep add bd-11 bd-10 --type discovered-from
+issuegraph dep add issuegraph-11 issuegraph-10 --type discovered-from
 
 # Close original task
-/beads:close bd-10 "Done, discovered bd-11 for rate limiting"
+/issuegraph:close issuegraph-10 "Done, discovered issuegraph-11 for rate limiting"
 ```
 
 ### Using the Task Agent
@@ -276,7 +276,7 @@ The issuegraph plugin has three components that may need updating:
 
 Check for plugin updates:
 ```bash
-/plugin update beads
+/plugin update issuegraph
 ```
 
 Claude Code will pull the latest version from GitHub. After updating, **restart Claude Code** to apply plugin changes.
@@ -287,13 +287,13 @@ The plugin requires the `issuegraph` CLI to be installed. Update it separately:
 
 ```bash
 # Quick update
-curl -fsSL https://raw.githubusercontent.com/gastownhall/beads/main/scripts/install.sh | bash
+curl -fsSL https://raw.githubusercontent.com/borg0ai/dx-issuegraph/main/scripts/install.sh | bash
 
 # Or with Go (server-mode only)
-CGO_ENABLED=0 go install github.com/steveyegge/beads/modules/cli@latest
+CGO_ENABLED=0 go install github.com/borg0ai/dx-issuegraph/modules/cli@latest
 
 # Or with Go (embedded-capable)
-CGO_ENABLED=1 GOFLAGS=-tags=gms_pure_go go install github.com/steveyegge/beads/modules/cli@latest
+CGO_ENABLED=1 GOFLAGS=-tags=gms_pure_go go install github.com/borg0ai/dx-issuegraph/modules/cli@latest
 ```
 
 ### 3. Version Compatibility
@@ -302,7 +302,7 @@ The MCP server **automatically checks** issuegraph CLI version on startup and wi
 
 Check version compatibility manually:
 ```bash
-/beads:version
+/issuegraph:version
 ```
 
 This will show:
@@ -312,11 +312,11 @@ This will show:
 - Compatibility warnings if versions mismatch
 
 **Recommended update workflow:**
-1. Check versions: `/beads:version`
+1. Check versions: `/issuegraph:version`
 2. Update issuegraph CLI if needed (see above)
-3. Update plugin: `/plugin update beads`
+3. Update plugin: `/plugin update issuegraph`
 4. Restart Claude Code
-5. Verify: `/beads:version`
+5. Verify: `/issuegraph:version`
 
 ### Version Numbering
 
@@ -336,30 +336,30 @@ CHANGELOG.md for release notes.
 ### MCP server not connecting
 
 1. Check MCP server list: `/mcp`
-2. Look for "beads" server with plugin indicator
+2. Look for "issuegraph" server with plugin indicator
 3. Restart Claude Code to reload MCP servers
 4. Check logs for errors
 
 ### Commands not working
 
-1. Make sure you're in a project with issuegraph initialized: `/beads:init`
-2. Check if database exists: `ls -la .beads/`
+1. Make sure you're in a project with issuegraph initialized: `/issuegraph:init`
+2. Check if database exists: `ls -la .issuegraph/`
 3. Try direct MCP tool access instead of slash commands
 4. Check the issuegraph CLI works: `issuegraph --help`
 
 ### MCP tool errors
 
-1. Verify `issuegraph` executable location: `BEADS_PATH` env var
+1. Verify `issuegraph` executable location: `ISSUEGRAPH_PATH` env var
 2. Check `issuegraph` works in terminal: `issuegraph stats`
 3. Review MCP server logs in Claude Code
-4. Try reinitializing: `/beads:init`
+4. Try reinitializing: `/issuegraph:init`
 
 ## Learn More
 
-- **GitHub**: https://github.com/gastownhall/beads
+- **GitHub**: https://github.com/borg0ai/dx-issuegraph
 - **Documentation**: See README.md in the repository
 - **Examples**: Check `examples/` directory for integration patterns
-- **MCP Server**: See `integrations/beads-mcp/` for server details
+- **MCP Server**: See `integrations/issuegraph-mcp/` for server details
 
 ## Contributing
 

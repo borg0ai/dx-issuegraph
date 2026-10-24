@@ -6,8 +6,8 @@ import (
 	"testing"
 	"time"
 
-	"github.com/steveyegge/beads/internal/types"
-	publicops "github.com/steveyegge/beads/issueops"
+	"github.com/borg0ai/dx-issuegraph/internal/types"
+	publicops "github.com/borg0ai/dx-issuegraph/issueops"
 )
 
 // This file holds the semantic contract for the two Lifecycle verbs that own
@@ -175,7 +175,7 @@ func RunLifecycleCloseRefusalsCarryTheirTypesAndWriteNothing(t *testing.T, ctx c
 // The case above seeds a DIRECT blocker, so it passes just as well against a
 // guard that refuses on the bare column. This one seeds the other half: a
 // parent-child child of a blocked parent carries is_blocked = 1 with no direct
-// blocker of its own, and closes unforced. That is the historical `bd close`
+// blocker of its own, and closes unforced. That is the historical `issuegraph close`
 // behavior, and the same seeding is what a stale is_blocked column looks like
 // after its blockers close — a guard reading the column instead of the live
 // list makes both unclosable without Force.
@@ -575,7 +575,7 @@ func RunLifecycleCloseIsIdempotentAndKeepsTheFirstClose(t *testing.T, ctx contex
 	// closed_at is the member with the longest reach and the one no case in
 	// this file used to read on the reopen side — every ClosedAt assertion here
 	// is close-side. A row left carrying a closed_at it no longer earns is an
-	// open bead that reports a completion date: `bd show` renders it, cycle-time
+	// open issue that reports a completion date: `issuegraph show` renders it, cycle-time
 	// and burn-down arithmetic sums it, and the second close then has a stamp
 	// from the first closure to inherit. audit_issue-lifecycle.go's reopen cases
 	// read the ROLE ANSWER'S ClosedAt pointer; this reads the column.
@@ -641,10 +641,10 @@ func RunLifecycleCloseIsIdempotentAndKeepsTheFirstClose(t *testing.T, ctx contex
 // batch_closer_contract.go — is seeded OPEN and unassigned, so nothing pins the
 // only close a working agent actually performs: the one on the row it is
 // currently holding. Two divergences pass the whole suite today. A backend whose
-// close admits open rows only refuses every claimed issue, so `bd claim` and
-// `bd close` stop composing. A backend that clears assignee as part of the
+// close admits open rows only refuses every claimed issue, so `issuegraph claim` and
+// `issuegraph close` stop composing. A backend that clears assignee as part of the
 // close — a defensible reading of "the work is over" — silently drops the
-// attribution `bd show` renders and `bd list --assignee` filters on, and the
+// attribution `issuegraph show` renders and `issuegraph list --assignee` filters on, and the
 // reopen half loses it again for a caller handing the work back to the same
 // holder.
 //
@@ -1150,7 +1150,7 @@ func RunLifecycleCloseAndReopenRequireActorAndIssueID(t *testing.T, ctx context.
 //
 // What this deliberately does NOT assert is the DEFAULT spelling. The clause
 // says outright that the implementations disagree on it — the store-backed ones
-// write "bd: reopen issue" and the unit-of-work one "reopen issue" — so pinning
+// write "issuegraph: reopen issue" and the unit-of-work one "reopen issue" — so pinning
 // either would be asserting a promise the doc declines to make.
 func RunLifecycleReopenProvenanceLabelsHistory(t *testing.T, ctx context.Context, fixture LifecycleCloseReopenFixture) {
 	t.Helper()
@@ -1199,7 +1199,7 @@ func RunLifecycleReopenProvenanceLabelsHistory(t *testing.T, ctx context.Context
 // names no plane, while every neighboring role states its answer outright —
 // BatchCloser admits a wisp id "exactly as Lifecycle.Close resolves one"
 // (issueops/batchcloser.go:35-36) and Claimer refuses one (claimer.go:63). All
-// three implementations do resolve both planes today and both `bd reopen`
+// three implementations do resolve both planes today and both `issuegraph reopen`
 // routes now depend on it, but no assertion is written here: the doc makes no
 // promise to assert against, and inventing one is what bd-yby99's policy
 // forbids. The case seeds through the fixture kit's CreateWisp hook the day the
@@ -1547,7 +1547,7 @@ func lifecycleCloseReopenCountHistory(t *testing.T, ctx context.Context, fixture
 // assignee is part of the row rather than a separate read because every refusal
 // and no-op leg in this file asserts against the whole struct: a close that
 // dropped the holder on a path that changed nothing else would otherwise be
-// invisible here, and `bd show` and `bd list --assignee` would lose the holder
+// invisible here, and `issuegraph show` and `issuegraph list --assignee` would lose the holder
 // after every replayed close.
 type lifecycleCloseReopenRow struct {
 	Status          string

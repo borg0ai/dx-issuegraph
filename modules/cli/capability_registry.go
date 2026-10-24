@@ -71,12 +71,12 @@ const (
 
 // Tracking values name the plan-of-record work item for an unimplemented
 // refusal. These are the slices of the proxied-parity plan; a row gets a GitHub
-// issue or bead ID instead once one is filed for it.
+// issue or issue ID instead once one is filed for it.
 // S3 has no entry: it landed, and its rows carry Reason=design rather than a
 // tracking item.
 const (
 	trackVersionCtl  = "proxied-parity S4 (dolt commit/push/pull/remote)"
-	trackSync        = "proxied-parity S5 (bd sync)"
+	trackSync        = "proxied-parity S5 (issuegraph sync)"
 	trackDegradation = "proxied-parity S6 (doctor, config show, degradations)"
 	trackLongTail    = "proxied-parity S7 (long-tail policy pass)"
 )
@@ -195,7 +195,7 @@ func permitted(path string) capabilityRow {
 	return capabilityRow{Path: path, Rule: proxyCapabilityRule{Outcome: ProxyOutcomeHonored}}
 }
 
-// backupRefusal builds one backup-family row: honored where bd owns the Dolt
+// backupRefusal builds one backup-family row: honored where issuegraph owns the Dolt
 // server, refused by design everywhere else. The code stays
 // proxy.backup.unsupported — consumers have been keying on it since 1.3.0 and
 // the refusal it names has not changed, only its reason and its scope — and the
@@ -203,7 +203,7 @@ func permitted(path string) capabilityRow {
 // prefix, with the reason appended.
 //
 // The message leads with SERVER-GLOBAL STATE rather than with the filesystem,
-// because only the filesystem half is scheme-specific. `bd backup init` accepts
+// because only the filesystem half is scheme-specific. `issuegraph backup init` accepts
 // https/aws/gs as well as file:// (resolveDoltBackupURL) and the help text
 // recommends DoltHub; for those a server-side push over the network with the
 // server's own credentials is a coherent thing to ask for, and "the destination
@@ -217,7 +217,7 @@ func permitted(path string) capabilityRow {
 // being Reason=design: the outcome is settled, the remote-scheme CASE is not.
 func backupRefusal(path string) capabilityRow {
 	return refusedPath(path, "proxy.backup.unsupported", ProxyReasonDesign, backupRemoteSchemeTracking).
-		withMessage(path + " is not supported in proxied-server mode against a Dolt server bd does not own: " +
+		withMessage(path + " is not supported in proxied-server mode against a Dolt server issuegraph does not own: " +
 			"the backup remote is registered on the server, where it is global to every client, " +
 			"and a file:// destination names a filesystem this client cannot see").
 		honoredOn(ProxyTopologyManagedLocal)
@@ -226,18 +226,18 @@ func backupRefusal(path string) capabilityRow {
 // backupRemoteSchemeTracking records the one part of the backup refusal that is
 // a question rather than a verdict, so refusing the family off-host does not
 // silently foreclose it. A remote-scheme destination (DoltHub, aws://, gs://)
-// needs no filesystem bd can see — the server pushes it over the network from
+// needs no filesystem issuegraph can see — the server pushes it over the network from
 // its own environment, which is exactly the credential story S4 has to settle
 // for `dolt push` on these same topologies. Whether a per-client backup remote
 // on a shared server is ever acceptable is the open part; the plumbing is not.
 //
 // Note also that the DoltHub story is already half-built in DIRECT mode:
-// `bd backup init https://…` and `bd backup sync` work, but
-// `bd backup restore https://…` does not, because validateBackupRestoreDir
+// `issuegraph backup init https://…` and `issuegraph backup sync` work, but
+// `issuegraph backup restore https://…` does not, because validateBackupRestoreDir
 // os.Stats its argument and rejects anything that is not an existing directory
 // on every topology. Pre-existing, not something this slice changed.
 const backupRemoteSchemeTracking = "open question, not a verdict: remote-scheme (DoltHub/aws/gs) backup on a server " +
-	"bd does not own — revisit with S4, which settles the same server-env credential question for dolt push"
+	"issuegraph does not own — revisit with S4, which settles the same server-env credential question for dolt push"
 
 // proxyCapabilityRegistry is the whole path-keyed policy. Rows for permitted
 // paths are appended from proxyPermittedPaths by init.
@@ -257,7 +257,7 @@ var proxyCapabilityRegistry = []capabilityRow{
 	// SERVER, not to the client that asked for it: `CALL DOLT_BACKUP('add', …)`
 	// registers it in the server's own configuration, where it is global to
 	// every client connected to that server. On managed-local "every client" is
-	// this workspace, because bd spawned the child itself. Anywhere else one
+	// this workspace, because issuegraph spawned the child itself. Anywhere else one
 	// operator's backup decision silently becomes everyone's — the same shape as
 	// the auto-backup storm this command's help text already warns about, and
 	// the reason team-server is the sharpest case: bts owns the store.
@@ -353,7 +353,7 @@ var proxyCapabilityRegistry = []capabilityRow{
 	//
 	// S7 MUST RE-EXAMINE THE ROWS BELOW PER TOPOLOGY. "A store other clients may
 	// be holding open" describes external and team-server workspaces; it does
-	// not describe managed-local, which is 1:1 and bd-owned — bd spawned the
+	// not describe managed-local, which is 1:1 and bd-owned — issuegraph spawned the
 	// dolt child itself. A row cannot yet say "refused, except on managed-local"
 	// (S3's backup locality policy is the slice that adds per-topology rules),
 	// so the blanket refusal is the only thing this table can express today.
@@ -368,7 +368,7 @@ var proxyCapabilityRegistry = []capabilityRow{
 	// into the store-opening path it does not need. It is on none of main.go's
 	// store-init skip lists, so permitting it makes the root pre-run open the
 	// proxied provider before RunE ever runs. Measured, not assumed: with this
-	// row flipped to permitted, `bd migrate hooks --dry-run` on a managed-local
+	// row flipped to permitted, `issuegraph migrate hooks --dry-run` on a managed-local
 	// workspace started the proxy AND its dolt child (both pidfiles present) to
 	// print a hook plan, and on a workspace with an unreadable sidecar it exited
 	// 1 with "failed to open uow provider: corrupt proxied-server sidecar ..."
@@ -385,23 +385,23 @@ var proxyCapabilityRegistry = []capabilityRow{
 	// Same topology-blind rationale as the migrate block above, and the same
 	// instruction to S7: "destructive against a possibly-shared store" is a
 	// claim about external and team-server shapes. On managed-local the store is
-	// this workspace's alone, and `bd admin reset` there is no more shared than
+	// this workspace's alone, and `issuegraph admin reset` there is no more shared than
 	// it is in embedded mode, where it is honored. Re-examine per topology.
 	refusedPath("admin cleanup", "proxy.admin.unsupported", ProxyReasonDesign, ""),
 	refusedPath("admin reset", "proxy.admin.unsupported", ProxyReasonDesign, ""),
 	// --- issue compaction ---------------------------------------------------
-	// `bd admin compact` without --dolt is the description-rewriting pass; only
+	// `issuegraph admin compact` without --dolt is the description-rewriting pass; only
 	// the --dolt arm has a proxied route (runCompactDoltProxiedServer). The
 	// --dolt arm is decided by flag VALUE, so the gate keeps a value-aware
 	// branch for it and lands here when the flag is off.
 	// The wording names the real command path. "compact --dolt" reads as the
-	// root `bd compact`, a different command with no --dolt flag and its own
+	// root `issuegraph compact`, a different command with no --dolt flag and its own
 	// proxied route; compact.go's RunE fallback carries the same corrected
 	// string so the gate and the fallback cannot drift apart.
 	refusedPath("admin compact", "proxy.compact.unsupported", ProxyReasonUnimplemented, trackLongTail).
-		withMessage("only 'bd admin compact --dolt' is supported in proxied-server mode"),
-	// `bd restore` recovers a COMPACTED ISSUE's original text, not a backup —
-	// the backup verb is `bd backup restore`. Its snapshot read is ordinary
+		withMessage("only 'issuegraph admin compact --dolt' is supported in proxied-server mode"),
+	// `issuegraph restore` recovers a COMPACTED ISSUE's original text, not a backup —
+	// the backup verb is `issuegraph backup restore`. Its snapshot read is ordinary
 	// CRUD; only its fallback path (reconstructing from Dolt history when no
 	// snapshot was archived) touches version control.
 	refusedPath("restore", "proxy.restore.unsupported", ProxyReasonUnimplemented, trackLongTail),
@@ -551,7 +551,7 @@ func init() {
 
 // proxyCapabilityIndex is proxyCapabilityRegistry keyed for lookup. Duplicate
 // keys are rejected by TestProxyCapabilityRegistryHasNoDuplicateRows rather
-// than by a panic here: a typo must fail the build, not every bd invocation.
+// than by a panic here: a typo must fail the build, not every issuegraph invocation.
 var proxyCapabilityIndex map[string]capabilityRow
 
 func capabilityKey(path, argSet string) string { return path + "\x00" + argSet }
@@ -584,12 +584,12 @@ func capabilityRowFor(cmd *cobra.Command) (capabilityRow, bool) {
 }
 
 // commandRegistryPath is the registry key for a command: its full path with the
-// root name removed, for example "dolt remote add", "ready" for `bd ready`, and
+// root name removed, for example "dolt remote add", "ready" for `issuegraph ready`, and
 // "" for the bare root.
 //
 // Both halves of the front door key on this rather than on cobra's Name(),
 // which is only the leaf: two commands in different subtrees can share one, and
-// `bd ready` and `bd mol ready --gated` do. A Name()-keyed rule silently applies
+// `issuegraph ready` and `issuegraph mol ready --gated` do. A Name()-keyed rule silently applies
 // to both, so a refusal written for one command lands on an unrelated command
 // that no policy row authorizes.
 func commandRegistryPath(cmd *cobra.Command) string {
@@ -632,9 +632,9 @@ func validateProxyRegistryBeforeProvider(cmd *cobra.Command, topology ProxyTopol
 		return nil
 	}
 	// `compact` is the one rule that a flag VALUE decides rather than a flag's
-	// presence, so it cannot be expressed as an arg-set row. `bd compact` and
-	// `bd rules compact` have no --dolt flag at all and are never refused here;
-	// `bd admin compact --dolt` has a proxied route and falls through to it.
+	// presence, so it cannot be expressed as an arg-set row. `issuegraph compact` and
+	// `issuegraph rules compact` have no --dolt flag at all and are never refused here;
+	// `issuegraph admin compact --dolt` has a proxied route and falls through to it.
 	if cmd.Name() == "compact" {
 		if cmd.Flags().Lookup("dolt") == nil {
 			return nil

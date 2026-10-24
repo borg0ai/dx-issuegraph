@@ -12,10 +12,10 @@ import (
 	"testing"
 	"time"
 
-	"github.com/steveyegge/beads/internal/config"
-	"github.com/steveyegge/beads/internal/configfile"
-	"github.com/steveyegge/beads/internal/doltserver"
-	"github.com/steveyegge/beads/internal/testutil"
+	"github.com/borg0ai/dx-issuegraph/internal/config"
+	"github.com/borg0ai/dx-issuegraph/internal/configfile"
+	"github.com/borg0ai/dx-issuegraph/internal/doltserver"
+	"github.com/borg0ai/dx-issuegraph/internal/testutil"
 )
 
 func TestGlobalDBIdentityCheck(t *testing.T) {
@@ -23,7 +23,7 @@ func TestGlobalDBIdentityCheck(t *testing.T) {
 		t.Skip("not supported on Windows")
 	}
 
-	bdBinary := buildSharedServerTestBinary(t)
+	issuegraphBinary := buildSharedServerTestBinary(t)
 
 	cp, err := testutil.NewContainerProvider()
 	if err != nil {
@@ -54,13 +54,13 @@ func TestGlobalDBIdentityCheck(t *testing.T) {
 		"HOME=" + t.TempDir(),
 		"GOPATH=" + os.Getenv("GOPATH"),
 		"GOROOT=" + os.Getenv("GOROOT"),
-		"BEADS_SHARED_SERVER_DIR=" + sharedDir,
-		"BEADS_DOLT_SHARED_SERVER=1",
-		"BEADS_DOLT_SERVER_PORT=" + strconv.Itoa(containerPort),
-		"BEADS_DOLT_AUTO_START=0",
-		"BEADS_TEST_MODE=1",
-		"BD_DISABLE_METRICS=1",
-		"BD_DISABLE_EVENT_FLUSH=1",
+		"ISSUEGRAPH_SHARED_SERVER_DIR=" + sharedDir,
+		"ISSUEGRAPH_DOLT_SHARED_SERVER=1",
+		"ISSUEGRAPH_DOLT_SERVER_PORT=" + strconv.Itoa(containerPort),
+		"ISSUEGRAPH_DOLT_AUTO_START=0",
+		"ISSUEGRAPH_TEST_MODE=1",
+		"ISSUEGRAPH_DISABLE_METRICS=1",
+		"ISSUEGRAPH_DISABLE_EVENT_FLUSH=1",
 		"GIT_TERMINAL_PROMPT=0",
 		"GIT_ASKPASS=",
 		"SSH_ASKPASS=",
@@ -76,18 +76,18 @@ func TestGlobalDBIdentityCheck(t *testing.T) {
 		"--quiet",
 		"--non-interactive",
 	}
-	if out, err := ssExec(ctx, bdBinary, projectDir, env, initArgs...); err != nil {
-		t.Fatalf("bd %s failed: %v\noutput:\n%s",
+	if out, err := ssExec(ctx, issuegraphBinary, projectDir, env, initArgs...); err != nil {
+		t.Fatalf("issuegraph %s failed: %v\noutput:\n%s",
 			strings.Join(initArgs, " "), err, out)
 	}
 
-	beadsDir := filepath.Join(projectDir, ".beads")
-	cfg, err := configfile.Load(beadsDir)
+	issuegraphDir := filepath.Join(projectDir, ".issuegraph")
+	cfg, err := configfile.Load(issuegraphDir)
 	if err != nil {
-		t.Fatalf("load metadata.json from %s: %v", beadsDir, err)
+		t.Fatalf("load metadata.json from %s: %v", issuegraphDir, err)
 	}
 	if cfg == nil {
-		t.Fatalf("metadata.json missing in %s", beadsDir)
+		t.Fatalf("metadata.json missing in %s", issuegraphDir)
 	}
 	if cfg.GlobalDoltDatabase != doltserver.GlobalDatabaseName {
 		t.Errorf("metadata.json global_dolt_database = %q, want %q",
@@ -104,7 +104,7 @@ func TestGlobalDBIdentityCheck(t *testing.T) {
 		t.Errorf("metadata.json global_project_id = %q, want %q",
 			cfg.GlobalProjectID, doltserver.GlobalProjectID)
 	}
-	// bd init (non-no-db) stores the prefix in the DB, not config.yaml
+	// issuegraph init (non-no-db) stores the prefix in the DB, not config.yaml
 	// (the generated file only carries a commented `# issue-prefix: ""`).
 	// Write the project prefix into config.yaml explicitly so that the
 	// create/show steps below exercise the YAML-first prefix-selection
@@ -113,37 +113,37 @@ func TestGlobalDBIdentityCheck(t *testing.T) {
 	// global store's prefix even in --global mode, and the ID validation
 	// below would fail. See modules/cli/init_embedded_test.go for the same
 	// pattern.
-	if err := os.WriteFile(filepath.Join(beadsDir, "config.yaml"), []byte("issue-prefix: proj0\n"), 0o644); err != nil {
+	if err := os.WriteFile(filepath.Join(issuegraphDir, "config.yaml"), []byte("issue-prefix: proj0\n"), 0o644); err != nil {
 		t.Fatalf("write config.yaml issue-prefix: %v", err)
 	}
-	if yamlPrefix := config.GetStringFromDir(beadsDir, "issue-prefix"); yamlPrefix != "proj0" {
+	if yamlPrefix := config.GetStringFromDir(issuegraphDir, "issue-prefix"); yamlPrefix != "proj0" {
 		t.Fatalf("project YAML issue-prefix = %q, want %q", yamlPrefix, "proj0")
 	}
 
 	explicitGlobalID := doltserver.GlobalIssuePrefix + "-explicit"
-	out, err := ssExec(ctx, bdBinary, projectDir, env,
+	out, err := ssExec(ctx, issuegraphBinary, projectDir, env,
 		"create", "Global explicit ID", "--global", "--id", explicitGlobalID, "--silent")
 	if err != nil {
-		t.Fatalf("bd create --global --id %s failed: %v\noutput:\n%s", explicitGlobalID, err, out)
+		t.Fatalf("issuegraph create --global --id %s failed: %v\noutput:\n%s", explicitGlobalID, err, out)
 	}
 	if got := strings.TrimSpace(out); got != explicitGlobalID {
-		t.Fatalf("bd create --global --id returned %q, want %q", got, explicitGlobalID)
+		t.Fatalf("issuegraph create --global --id returned %q, want %q", got, explicitGlobalID)
 	}
 
-	out, err = ssExec(ctx, bdBinary, projectDir, env, "show", "--global", explicitGlobalID)
+	out, err = ssExec(ctx, issuegraphBinary, projectDir, env, "show", "--global", explicitGlobalID)
 	if err != nil {
-		t.Fatalf("bd show --global %s failed: %v\noutput:\n%s", explicitGlobalID, err, out)
+		t.Fatalf("issuegraph show --global %s failed: %v\noutput:\n%s", explicitGlobalID, err, out)
 	}
 	if !strings.Contains(out, explicitGlobalID) {
-		t.Fatalf("bd show --global did not return %s from %s:\n%s",
+		t.Fatalf("issuegraph show --global did not return %s from %s:\n%s",
 			explicitGlobalID, doltserver.GlobalDatabaseName, out)
 	}
 
-	out, err = ssExec(ctx, bdBinary, projectDir, env, "list", "--global")
+	out, err = ssExec(ctx, issuegraphBinary, projectDir, env, "list", "--global")
 	if err != nil {
-		t.Fatalf("bd list --global failed: %v\noutput:\n%s", err, out)
+		t.Fatalf("issuegraph list --global failed: %v\noutput:\n%s", err, out)
 	}
 	if strings.Contains(out, "PROJECT IDENTITY MISMATCH") {
-		t.Fatalf("bd list --global returned identity mismatch error against the global DB:\n%s", out)
+		t.Fatalf("issuegraph list --global returned identity mismatch error against the global DB:\n%s", out)
 	}
 }

@@ -1,0 +1,10 @@
+{
+  "schemaVersion": 1,
+  "skillId": "netify",
+  "channel": "stable",
+  "version": "0.1.0",
+  "source": {
+    "repository": "https://github.com/borg0ai/netify"
+  },
+  "updateManifestUrl": "https://borg0ai.github.io/netify/skill-updates/netify/stable.json"
+}

@@ -8,12 +8,12 @@
 //	12  init-safety: destroy-token missing or wrong
 //	130 interactive prompt canceled (SIGINT)
 //
-// The clause is about the NUMBERS, not about bd's Go constants, so these tests
+// The clause is about the NUMBERS, not about issuegraph's Go constants, so these tests
 // assert the literals: a conforming implementation with a different internal
 // spelling still has to exit 10 when it refuses a divergent init. New stable
 // codes require a spec revision.
 //
-// The refusal codes (10/11/12) are cheap to drive: `bd init` refuses before it
+// The refusal codes (10/11/12) are cheap to drive: `issuegraph init` refuses before it
 // opens any store, so those tests need only a built binary and a temp git repo.
 // 130 is the exception — cancellation is only reachable on the success path, so
 // that test pays a full store creation before the prompt it interrupts.
@@ -33,7 +33,7 @@ import (
 	"time"
 )
 
-// Literal exit codes frozen by §E3. Deliberately NOT bd's Go constants: the
+// Literal exit codes frozen by §E3. Deliberately NOT issuegraph's Go constants: the
 // corpus pins the wire contract an agent scripts against.
 const (
 	exitRemoteDivergenceRefused = 10
@@ -42,29 +42,29 @@ const (
 	exitPromptCanceled          = 130
 )
 
-// initEnv is a clean environment for a bd init subprocess. It strips any
-// ambient beads workspace so the init under test resolves only from the
+// initEnv is a clean environment for a issuegraph init subprocess. It strips any
+// ambient issuegraph workspace so the init under test resolves only from the
 // process's working directory, and pins the test Dolt server when one is
 // running so a successful init can never reach a real database.
 //
-// home MUST NOT be the repo the init runs in: bd keeps a user-level ~/.beads
+// home MUST NOT be the repo the init runs in: issuegraph keeps a user-level ~/.issuegraph
 // alongside the workspace-level one, so pointing HOME at the repo would make
-// "did the refusal create .beads/?" unanswerable.
+// "did the refusal create .issuegraph/?" unanswerable.
 func initEnv(home string, extra ...string) []string {
 	env := []string{
 		"PATH=" + os.Getenv("PATH"),
 		"HOME=" + home,
 		"XDG_CONFIG_HOME=" + filepath.Join(home, "xdg-config"),
 		"GIT_CONFIG_NOSYSTEM=1",
-		"BEADS_TEST_MODE=1",
+		"ISSUEGRAPH_TEST_MODE=1",
 		// See the note in helpers_test.go env(): the detached metrics child
-		// writes under HOME after bd exits and races t.TempDir() cleanup.
-		"BD_DISABLE_METRICS=1",
-		"BEADS_DB=",
-		"BEADS_DIR=",
+		// writes under HOME after issuegraph exits and races t.TempDir() cleanup.
+		"ISSUEGRAPH_DISABLE_METRICS=1",
+		"ISSUEGRAPH_DB=",
+		"ISSUEGRAPH_DIR=",
 	}
 	if testDoltPort > 0 {
-		env = append(env, "BEADS_DOLT_PORT="+strconv.Itoa(testDoltPort))
+		env = append(env, "ISSUEGRAPH_DOLT_PORT="+strconv.Itoa(testDoltPort))
 	}
 	if v := os.Getenv("TMPDIR"); v != "" {
 		env = append(env, "TMPDIR="+v)
@@ -85,7 +85,7 @@ func gitIn(t *testing.T, dir string, args ...string) {
 }
 
 // cloneOfRemoteWithDoltData returns a fresh, un-initialized git repo whose
-// origin advertises refs/dolt/data — the state that makes `bd init` refuse a
+// origin advertises refs/dolt/data — the state that makes `issuegraph init` refuse a
 // local-source init rather than orphan the remote's history.
 func cloneOfRemoteWithDoltData(t *testing.T) string {
 	t.Helper()
@@ -109,7 +109,7 @@ func cloneOfRemoteWithDoltData(t *testing.T) string {
 	return clone
 }
 
-// runInitExpectRefusal runs bd init in dir and returns combined output + exit
+// runInitExpectRefusal runs issuegraph init in dir and returns combined output + exit
 // code, requiring a non-zero exit.
 func runInitExpectRefusal(t *testing.T, dir string, args ...string) (string, int) {
 	t.Helper()
@@ -118,11 +118,11 @@ func runInitExpectRefusal(t *testing.T, dir string, args ...string) (string, int
 	cmd.Env = initEnv(t.TempDir())
 	out, err := cmd.CombinedOutput()
 	if err == nil {
-		t.Fatalf("bd init %s: expected refusal, got success\n%s", strings.Join(args, " "), out)
+		t.Fatalf("issuegraph init %s: expected refusal, got success\n%s", strings.Join(args, " "), out)
 	}
 	var exitErr *exec.ExitError
 	if !errors.As(err, &exitErr) {
-		t.Fatalf("bd init %s: unexpected error type: %v\n%s", strings.Join(args, " "), err, out)
+		t.Fatalf("issuegraph init %s: unexpected error type: %v\n%s", strings.Join(args, " "), err, out)
 	}
 	return string(out), exitErr.ExitCode()
 }
@@ -143,8 +143,8 @@ func TestProtocol_ExitCode10_RemoteDivergenceRefused(t *testing.T) {
 	}
 
 	// A refusal must not half-init the workspace.
-	if _, err := os.Stat(filepath.Join(clone, ".beads")); err == nil {
-		t.Errorf("refusal created .beads/ — refusal must be a no-op")
+	if _, err := os.Stat(filepath.Join(clone, ".issuegraph")); err == nil {
+		t.Errorf("refusal created .issuegraph/ — refusal must be a no-op")
 	}
 }
 
@@ -168,7 +168,7 @@ func TestProtocol_ExitCode12_DestroyTokenMissing(t *testing.T) {
 
 // TestProtocol_ExitCode11_LocalExistsRefused is the §E3 gap: exit 11 is
 // returned only from the INTERACTIVE typed-confirmation abort in
-// `bd init --reinit-local` (modules/cli/init.go, guarded by term.IsTerminal on
+// `issuegraph init --reinit-local` (modules/cli/init.go, guarded by term.IsTerminal on
 // stdin). The non-interactive branch of the same guard returns 12 instead, so
 // no piped-stdin subprocess can produce 11 — pinning it needs a PTY-backed run
 // helper, tracked in wy-vh5y8. Un-skip when that lands.
@@ -179,7 +179,7 @@ func TestProtocol_ExitCode11_LocalExistsRefused(t *testing.T) {
 
 // TestProtocol_ExitCode130_PromptCanceled pins §E3's exit 130: SIGINT at an
 // interactive prompt exits 130 (the shell convention, 128+SIGINT), not 1. An
-// agent supervising a bd subprocess uses this to tell "the operator canceled"
+// agent supervising a issuegraph subprocess uses this to tell "the operator canceled"
 // from "the command failed".
 func TestProtocol_ExitCode130_PromptCanceled(t *testing.T) {
 	if runtime.GOOS == "windows" {
@@ -207,12 +207,12 @@ func TestProtocol_ExitCode130_PromptCanceled(t *testing.T) {
 	cmd.Stdin = stdinR
 	cmd.Stdout = outW
 	cmd.Stderr = outW
-	// BD_NON_INTERACTIVE=0 keeps the prompt alive in a pipe-driven subprocess;
-	// without it bd would take the non-interactive path and never prompt.
-	cmd.Env = initEnv(t.TempDir(), "BD_NON_INTERACTIVE=0", "CI=")
+	// ISSUEGRAPH_NON_INTERACTIVE=0 keeps the prompt alive in a pipe-driven subprocess;
+	// without it issuegraph would take the non-interactive path and never prompt.
+	cmd.Env = initEnv(t.TempDir(), "ISSUEGRAPH_NON_INTERACTIVE=0", "CI=")
 
 	if err := cmd.Start(); err != nil {
-		t.Fatalf("start bd init: %v", err)
+		t.Fatalf("start issuegraph init: %v", err)
 	}
 	_ = stdinR.Close()
 	_ = outW.Close()
@@ -260,7 +260,7 @@ func TestProtocol_ExitCode130_PromptCanceled(t *testing.T) {
 	}
 
 	// The deadline has to cover a WHOLE init, not just process startup. Unlike
-	// the refusal tests above, this one takes the success path: bd builds the
+	// the refusal tests above, this one takes the success path: issuegraph builds the
 	// store — a real Dolt database, since initEnv pins the suite's server —
 	// and only then does the contributor wizard prompt. That is tens of seconds
 	// on a loaded machine, so a short deadline fires mid-init and reports a
@@ -273,7 +273,7 @@ func TestProtocol_ExitCode130_PromptCanceled(t *testing.T) {
 			t.Fatalf("send SIGINT: %v", err)
 		}
 	case err := <-waitCh:
-		t.Fatalf("bd init exited before prompting: %v\n%s", err, got())
+		t.Fatalf("issuegraph init exited before prompting: %v\n%s", err, got())
 	case <-time.After(promptDeadline):
 		_ = cmd.Process.Kill()
 		<-waitCh

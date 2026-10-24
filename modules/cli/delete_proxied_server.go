@@ -9,10 +9,10 @@ import (
 
 	"github.com/spf13/cobra"
 
-	"github.com/steveyegge/beads/internal/storage/domain"
-	"github.com/steveyegge/beads/internal/storage/uow"
-	"github.com/steveyegge/beads/internal/ui"
-	"github.com/steveyegge/beads/issueops"
+	"github.com/borg0ai/dx-issuegraph/internal/storage/domain"
+	"github.com/borg0ai/dx-issuegraph/internal/storage/uow"
+	"github.com/borg0ai/dx-issuegraph/internal/ui"
+	"github.com/borg0ai/dx-issuegraph/issueops"
 )
 
 type deleteInput struct {
@@ -62,7 +62,7 @@ func proxiedDeleter() (issueops.Deleter, error) {
 	return source.Deleter()
 }
 
-// runDeleteProxiedServer is `bd delete` against a team server. The selection,
+// runDeleteProxiedServer is `issuegraph delete` against a team server. The selection,
 // the guard and the deletion are issueops.Deleter, the same library surface the
 // direct route calls; what is left here is this route's own output, which is
 // not the direct route's and is pinned separately.
@@ -226,11 +226,11 @@ func renderDeletePreview(in *deleteInput, preview domain.DeletePreview, res issu
 	fmt.Printf("\n%s\n", ui.RenderWarn("This operation cannot be undone!"))
 	if in.cascade {
 		fmt.Printf("To proceed with cascade deletion, run: %s\n",
-			ui.RenderWarn("bd delete "+strings.Join(in.ids, " ")+" --cascade --force"))
+			ui.RenderWarn("issuegraph delete "+strings.Join(in.ids, " ")+" --cascade --force"))
 		return
 	}
 	fmt.Printf("To proceed, run: %s\n",
-		ui.RenderWarn("bd delete "+strings.Join(in.ids, " ")+" --force"))
+		ui.RenderWarn("issuegraph delete "+strings.Join(in.ids, " ")+" --force"))
 }
 
 func renderDeleteProxiedResult(in *deleteInput, res issueops.DeleteResult) {

@@ -9,10 +9,10 @@ import (
 
 	mysql "github.com/go-sql-driver/mysql"
 
-	"github.com/steveyegge/beads/internal/config"
-	"github.com/steveyegge/beads/internal/configfile"
-	"github.com/steveyegge/beads/internal/storage/dbproxy/proxy"
-	"github.com/steveyegge/beads/internal/storage/dbproxy/server"
+	"github.com/borg0ai/dx-issuegraph/internal/config"
+	"github.com/borg0ai/dx-issuegraph/internal/configfile"
+	"github.com/borg0ai/dx-issuegraph/internal/storage/dbproxy/proxy"
+	"github.com/borg0ai/dx-issuegraph/internal/storage/dbproxy/server"
 )
 
 func NewExternalDoltServerUOWProvider(
@@ -33,7 +33,7 @@ func NewExternalDoltServerUOWProvider(
 		idleTimeout = defaultProxyIdleTimeout
 	}
 	if database == "" {
-		return nil, fmt.Errorf("uow: database name must not be empty (caller should default to %q)", "beads")
+		return nil, fmt.Errorf("uow: database name must not be empty (caller should default to %q)", "issuegraph")
 	}
 	if rootUser == "" {
 		return nil, fmt.Errorf("uow: rootUser must not be empty")
@@ -47,7 +47,7 @@ func NewExternalDoltServerUOWProvider(
 		return nil, fmt.Errorf("uow: resolving server root dir: %w", err)
 	}
 
-	if err := os.MkdirAll(absServerRootDir, config.BeadsDirPerm); err != nil {
+	if err := os.MkdirAll(absServerRootDir, config.IssueGraphDirPerm); err != nil {
 		return nil, fmt.Errorf("uow: creating server root directory: %w", err)
 	}
 
@@ -78,7 +78,7 @@ func registerExternalTLSConfig(external configfile.ExternalDoltConfig) (string, 
 	if err != nil {
 		return "", err
 	}
-	name := "beads-external-" + server.ExternalDoltServerID(external)
+	name := "issuegraph-external-" + server.ExternalDoltServerID(external)
 	if err := mysql.RegisterTLSConfig(name, tc); err != nil {
 		return "", fmt.Errorf("register TLS config: %w", err)
 	}

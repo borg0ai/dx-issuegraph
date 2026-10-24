@@ -6,11 +6,11 @@ import (
 	"os"
 	"time"
 
-	"github.com/steveyegge/beads/internal/beads"
-	"github.com/steveyegge/beads/internal/metrics"
-	"github.com/steveyegge/beads/internal/storage/domain"
-	"github.com/steveyegge/beads/internal/storage/uow"
-	"github.com/steveyegge/beads/internal/ui"
+	"github.com/borg0ai/dx-issuegraph/internal/issuegraph"
+	"github.com/borg0ai/dx-issuegraph/internal/metrics"
+	"github.com/borg0ai/dx-issuegraph/internal/storage/domain"
+	"github.com/borg0ai/dx-issuegraph/internal/storage/uow"
+	"github.com/borg0ai/dx-issuegraph/internal/ui"
 )
 
 func runPingProxiedServer(ctx context.Context) error {
@@ -23,9 +23,9 @@ func runPingProxiedServer(ctx context.Context) error {
 
 	start := time.Now()
 
-	beadsDir := beads.FindBeadsDir()
-	if beadsDir == "" {
-		return pingFail(start, "no .beads directory found")
+	issuegraphDir := issuegraph.FindIssueGraphDir()
+	if issuegraphDir == "" {
+		return pingFail(start, "no .issuegraph directory found")
 	}
 	resolveMs := time.Since(start).Milliseconds()
 
@@ -53,6 +53,6 @@ func runPingProxiedServer(ctx context.Context) error {
 		})
 	}
 
-	fmt.Fprintf(os.Stdout, "%s bd ping: ok (%dms)\n", ui.RenderPass("✓"), totalMs)
+	fmt.Fprintf(os.Stdout, "%s issuegraph ping: ok (%dms)\n", ui.RenderPass("✓"), totalMs)
 	return nil
 }

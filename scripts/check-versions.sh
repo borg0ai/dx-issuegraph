@@ -44,20 +44,20 @@ check_version() {
 }
 
 # Check all version files
-check_version "integrations/beads-mcp/pyproject.toml" \
-    "$(grep '^version = ' integrations/beads-mcp/pyproject.toml 2>/dev/null | sed 's/.*"\(.*\)".*/\1/')" \
+check_version "integrations/issuegraph-mcp/pyproject.toml" \
+    "$(grep '^version = ' integrations/issuegraph-mcp/pyproject.toml 2>/dev/null | sed 's/.*"\(.*\)".*/\1/')" \
     "MCP pyproject.toml"
 
-check_version "integrations/beads-mcp/src/beads_mcp/__init__.py" \
-    "$(grep '__version__ = ' integrations/beads-mcp/src/beads_mcp/__init__.py 2>/dev/null | sed 's/.*"\(.*\)".*/\1/')" \
+check_version "integrations/issuegraph-mcp/src/issuegraph_mcp/__init__.py" \
+    "$(grep '__version__ = ' integrations/issuegraph-mcp/src/issuegraph_mcp/__init__.py 2>/dev/null | sed 's/.*"\(.*\)".*/\1/')" \
     "MCP __init__.py"
 
-check_version "plugins/beads/.claude-plugin/plugin.json" \
-    "$(jq -r '.version' plugins/beads/.claude-plugin/plugin.json 2>/dev/null)" \
+check_version "plugins/issuegraph/.claude-plugin/plugin.json" \
+    "$(jq -r '.version' plugins/issuegraph/.claude-plugin/plugin.json 2>/dev/null)" \
     "Claude plugin.json"
 
-check_version "plugins/beads/.codex-plugin/plugin.json" \
-    "$(jq -r '.version' plugins/beads/.codex-plugin/plugin.json 2>/dev/null)" \
+check_version "plugins/issuegraph/.codex-plugin/plugin.json" \
+    "$(jq -r '.version' plugins/issuegraph/.codex-plugin/plugin.json 2>/dev/null)" \
     "Codex plugin.json"
 
 # update-versions.sh bumps this one too, but it was never gated here — so a
@@ -65,16 +65,16 @@ check_version "plugins/beads/.codex-plugin/plugin.json" \
 # markers through v1.2.0) would silently no-op the bump's old->new sed, pass
 # this script, pass the pre-push hook and CI, and ship advertising the previous
 # version.
-check_version "plugins/beads/.copilot-plugin/plugin.json" \
-    "$(jq -r '.version' plugins/beads/.copilot-plugin/plugin.json 2>/dev/null)" \
+check_version "plugins/issuegraph/.copilot-plugin/plugin.json" \
+    "$(jq -r '.version' plugins/issuegraph/.copilot-plugin/plugin.json 2>/dev/null)" \
     "Copilot plugin.json"
 
 check_version ".claude-plugin/marketplace.json" \
     "$(jq -r '.plugins[0].version' .claude-plugin/marketplace.json 2>/dev/null)" \
     "Claude marketplace.json"
 
-check_version "npm-package/package.json" \
-    "$(jq -r '.version' npm-package/package.json 2>/dev/null)" \
+check_version "apps/cli/package.json" \
+    "$(jq -r '.version' apps/cli/package.json 2>/dev/null)" \
     "npm package.json"
 
 # The release workflow's MCP package gate runs `uv sync --locked`, so a stale
@@ -88,19 +88,19 @@ check_version "npm-package/package.json" \
 # uv.lock records the PEP 440-normalized version (1.1.0-rc.1 → 1.1.0rc1), so
 # normalize the canonical form before comparing.
 LOCK_EXPECTED=$(printf '%s' "$CANONICAL" | sed -E 's/-rc\.?/rc/')
-LOCK_VERSION=$(awk -F '"' '/^name = "beads-mcp"$/ { found=1; next } found && /^version = / { print $2; exit }' integrations/beads-mcp/uv.lock 2>/dev/null)
+LOCK_VERSION=$(awk -F '"' '/^name = "issuegraph-mcp"$/ { found=1; next } found && /^version = / { print $2; exit }' integrations/issuegraph-mcp/uv.lock 2>/dev/null)
 if [ "$LOCK_VERSION" != "$LOCK_EXPECTED" ]; then
-    echo -e "${RED}❌ MCP uv.lock (beads-mcp pin): ${LOCK_VERSION:-missing} (expected $LOCK_EXPECTED) — run: uv lock --directory integrations/beads-mcp${NC}"
+    echo -e "${RED}❌ MCP uv.lock (issuegraph-mcp pin): ${LOCK_VERSION:-missing} (expected $LOCK_EXPECTED) — run: uv lock --directory integrations/issuegraph-mcp${NC}"
     MISMATCH=1
 else
-    echo -e "${GREEN}✓ MCP uv.lock (beads-mcp pin): $LOCK_VERSION${NC}"
+    echo -e "${GREEN}✓ MCP uv.lock (issuegraph-mcp pin): $LOCK_VERSION${NC}"
 fi
 
 if command -v uv >/dev/null 2>&1; then
-    if uv lock --check --directory integrations/beads-mcp >/dev/null 2>&1; then
+    if uv lock --check --directory integrations/issuegraph-mcp >/dev/null 2>&1; then
         echo -e "${GREEN}✓ MCP uv.lock: fresh (uv lock --check)${NC}"
     else
-        echo -e "${RED}❌ MCP uv.lock: stale — run: uv lock --directory integrations/beads-mcp${NC}"
+        echo -e "${RED}❌ MCP uv.lock: stale — run: uv lock --directory integrations/issuegraph-mcp${NC}"
         MISMATCH=1
     fi
 fi
@@ -113,9 +113,9 @@ fi
 for hook in .githooks/*; do
     [ -f "$hook" ] || continue
     for prefix in "BEGIN" "END"; do
-        marker=$(grep -oE -- "--- $prefix BEADS INTEGRATION v[^ ]+ ---" "$hook" | head -1)
+        marker=$(grep -oE -- "--- $prefix ISSUEGRAPH INTEGRATION v[^ ]+ ---" "$hook" | head -1)
         if [ -z "$marker" ]; then
-            echo -e "${RED}❌ $hook: no '$prefix BEADS INTEGRATION' marker found${NC}"
+            echo -e "${RED}❌ $hook: no '$prefix ISSUEGRAPH INTEGRATION' marker found${NC}"
             MISMATCH=1
             continue
         fi

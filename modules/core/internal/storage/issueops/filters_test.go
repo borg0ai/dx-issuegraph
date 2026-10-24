@@ -6,8 +6,8 @@ import (
 	"testing"
 	"time"
 
-	"github.com/steveyegge/beads/internal/storage/sqlbuild"
-	"github.com/steveyegge/beads/internal/types"
+	"github.com/borg0ai/dx-issuegraph/internal/storage/sqlbuild"
+	"github.com/borg0ai/dx-issuegraph/internal/types"
 )
 
 func TestLooksLikeIssueID(t *testing.T) {
@@ -20,10 +20,10 @@ func TestLooksLikeIssueID(t *testing.T) {
 	}{
 		{name: "standard issue ID", query: "bd-abc123", want: true},
 		{name: "dotted child ID", query: "bd-abc123.1", want: true},
-		{name: "wisp ID", query: "bd-wisp-xyz", want: true},
+		{name: "wisp ID", query: "issuegraph-wisp-xyz", want: true},
 		{name: "numeric suffix only", query: "proj-42", want: true},
 		{name: "plain word", query: "hello", want: false},
-		{name: "has spaces", query: "bd abc", want: false},
+		{name: "has spaces", query: "issuegraph abc", want: false},
 		{name: "empty string", query: "", want: false},
 		{name: "just a dash", query: "-", want: false},
 		{name: "leading dash", query: "-abc", want: false},
@@ -573,7 +573,7 @@ func TestBuildIssueFilterClauses_EphemeralTierFilter(t *testing.T) {
 	// The tier discriminator, not the raw flag: ephemeral-tier admits typed
 	// wisps whose minting never set the ephemeral flag, and the durable tier
 	// excludes them — on the operation where the boundary decides which rows
-	// are deleted (bd purge / bd prune).
+	// are deleted (issuegraph purge / issuegraph prune).
 	for _, tt := range []struct {
 		name string
 		tier bool

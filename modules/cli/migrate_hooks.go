@@ -6,9 +6,9 @@ import (
 	"path/filepath"
 	"strings"
 
+	"github.com/borg0ai/dx-issuegraph/internal/metrics"
+	"github.com/borg0ai/dx-issuegraph/modules/cli/doctor"
 	"github.com/spf13/cobra"
-	"github.com/steveyegge/beads/modules/cli/doctor"
-	"github.com/steveyegge/beads/internal/metrics"
 	"golang.org/x/term"
 )
 
@@ -22,10 +22,10 @@ Modes:
   --apply    Apply migration operations
 
 Examples:
-  bd migrate hooks --dry-run
-  bd migrate hooks --apply
-  bd migrate hooks --apply --yes
-  bd migrate hooks --dry-run --json`,
+  issuegraph migrate hooks --dry-run
+  issuegraph migrate hooks --apply
+  issuegraph migrate hooks --apply --yes
+  issuegraph migrate hooks --dry-run --json`,
 	Args:          cobra.MaximumNArgs(1),
 	SilenceUsage:  true,
 	SilenceErrors: true,
@@ -205,7 +205,7 @@ func formatHookMigrationPlan(plan doctor.HookMigrationPlan, mode hookMigrationMo
 
 	if plan.NeedsMigrationCount > 0 {
 		if mode.RequestedDryRun {
-			lines = append(lines, "Next: run 'bd migrate hooks --apply' to execute this migration plan.")
+			lines = append(lines, "Next: run 'issuegraph migrate hooks --apply' to execute this migration plan.")
 		} else {
 			lines = append(lines, "Applying migration operations...")
 		}

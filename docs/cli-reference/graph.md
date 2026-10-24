@@ -1,11 +1,11 @@
 ---
-title: "bd graph"
+title: "issuegraph graph"
 description: "Display a visualization of an issue's dependency graph."
 ---
 
 {/* AUTO-GENERATED: do not edit manually */}
 
-Generated from `bd help --doc graph`.
+Generated from `issuegraph help --doc graph`.
 
 Display a visualization of an issue's dependency graph.
 
@@ -29,15 +29,15 @@ The graph shows execution order:
 Status icons: ○ open  ◐ in_progress  ● blocked  ✓ closed  ❄ deferred
 
 Examples:
-  bd graph issue-id              # Terminal DAG visualization (default)
-  bd graph --box issue-id        # ASCII boxes with layer grouping
-  bd graph --dot issue-id | dot -Tsvg &gt; graph.svg  # SVG via Graphviz
-  bd graph --dot issue-id | dot -Tpng &gt; graph.png  # PNG via Graphviz
-  bd graph --html issue-id &gt; graph.html  # Interactive browser view
-  bd graph --all --html &gt; all.html       # All issues, interactive
+  issuegraph graph issue-id              # Terminal DAG visualization (default)
+  issuegraph graph --box issue-id        # ASCII boxes with layer grouping
+  issuegraph graph --dot issue-id | dot -Tsvg &gt; graph.svg  # SVG via Graphviz
+  issuegraph graph --dot issue-id | dot -Tpng &gt; graph.png  # PNG via Graphviz
+  issuegraph graph --html issue-id &gt; graph.html  # Interactive browser view
+  issuegraph graph --all --html &gt; all.html       # All issues, interactive
 
 ```
-bd graph [issue-id] [flags]
+issuegraph graph [issue-id] [flags]
 ```
 
 **Flags:**
@@ -50,12 +50,12 @@ bd graph [issue-id] [flags]
       --html      Output self-contained interactive HTML (redirect to file)
 ```
 
-## bd graph check
+## issuegraph graph check
 
 Check the dependency graph for cycles, orphans, and other integrity issues.
 
 Returns exit code 0 if the graph is clean, 1 if issues are found.
 
 ```
-bd graph check [flags]
+issuegraph graph check [flags]
 ```

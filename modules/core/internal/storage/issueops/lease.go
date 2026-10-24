@@ -9,18 +9,18 @@ import (
 	"strings"
 	"time"
 
-	"github.com/steveyegge/beads/internal/config"
-	"github.com/steveyegge/beads/internal/debug"
-	"github.com/steveyegge/beads/internal/storage"
-	"github.com/steveyegge/beads/internal/storage/sqlbuild"
-	"github.com/steveyegge/beads/internal/types"
+	"github.com/borg0ai/dx-issuegraph/internal/config"
+	"github.com/borg0ai/dx-issuegraph/internal/debug"
+	"github.com/borg0ai/dx-issuegraph/internal/storage"
+	"github.com/borg0ai/dx-issuegraph/internal/storage/sqlbuild"
+	"github.com/borg0ai/dx-issuegraph/internal/types"
 )
 
 // DefaultLeaseTTL is how long a fresh claim stays valid without a heartbeat.
 // A worker is expected to call HeartbeatIssueInTx well within this window
-// (heartbeat cadence ≫ claim cadence; see the commit-bloat note on bd heartbeat)
+// (heartbeat cadence ≫ claim cadence; see the commit-bloat note on issuegraph heartbeat)
 // so a live claim's lease_expires_at always sits in the future. A worker that
-// dies stops heartbeating, its lease_expires_at goes stale, and bd reclaim
+// dies stops heartbeating, its lease_expires_at goes stale, and issuegraph reclaim
 // reverts the issue to ready. Tunable per-claim via WithLeaseTTL on the
 // context, falling back to this default.
 const DefaultLeaseTTL = 5 * time.Minute
@@ -70,7 +70,7 @@ func leaseTTL(ctx context.Context) time.Duration {
 // silently reintroduce the zombie-merge bug.
 //
 // The exemptions are load-bearing in the OTHER direction too (analysis
-// absorbed from gastownhall/beads#4682, Julian Knutsen): row_lock doubles as
+// absorbed from borg0ai/dx-issuegraph#4682, Julian Knutsen): row_lock doubles as
 // the RowVersion optimistic-concurrency token (types.Issue.RowVersion), so a
 // path that reminted it WITHOUT changing the content a CAS holder cares about
 // would spuriously fail honest ExpectedVersion checks. The is_blocked
@@ -295,7 +295,7 @@ func RestoreLeaseOnImportInTx(ctx context.Context, tx DBTX, issue *types.Issue, 
 //
 // The write touches ONLY the leases table (ephemeral, dolt_ignored): a
 // heartbeat mints no Dolt commit and no history, and deliberately does NOT
-// stamp issues.updated_at — updated_at keeps its merge/LWW meaning and bd
+// stamp issues.updated_at — updated_at keeps its merge/LWW meaning and issuegraph
 // stale consults leases.heartbeat_at for in_progress rows instead (bd-lrgn1).
 //
 //nolint:gosec // G201: table names come from WispTableRouting (hardcoded constants)
@@ -314,7 +314,7 @@ func HeartbeatIssueInTx(ctx context.Context, tx DBTX, id, actor string) error {
 	// heartbeat that affects 1 row is proof the holder is alive on THIS store,
 	// yet a row positively naming another node keeps that name forever, so the
 	// replica guard in ReclaimExpiredLeasesInTx declines it and only
-	// `bd reclaim --any-replica` can ever recover it. Two states reach that:
+	// `issuegraph reclaim --any-replica` can ever recover it. Two states reach that:
 	//
 	//   (a) a replica RENAMED (node_id mini -> mini2) keeps heartbeating its
 	//       own leases, which now read foreign forever;
@@ -335,9 +335,9 @@ func HeartbeatIssueInTx(ctx context.Context, tx DBTX, id, actor string) error {
 	// sync interval). Keeping it makes the failure mode LOUD and recoverable
 	// (reportForeignSkips summarizes it every run; --any-replica reverts it)
 	// rather than silent. The escape hatches are documented in
-	// `bd reclaim --help` and docs/multi-agent/federation.md; the fix for (a)
-	// is to reap on the old name, or `bd reclaim --any-replica --id <id>` /
-	// `bd unclaim --force <id>` for a single stranded unit once that replica is
+	// `issuegraph reclaim --help` and docs/multi-agent/federation.md; the fix for (a)
+	// is to reap on the old name, or `issuegraph reclaim --any-replica --id <id>` /
+	// `issuegraph unclaim --force <id>` for a single stranded unit once that replica is
 	// gone for good.
 	//
 	// SCOPE, precisely: the no-re-home invariant holds on THIS fast path only.
@@ -404,18 +404,18 @@ func HeartbeatIssueInTx(ctx context.Context, tx DBTX, id, actor string) error {
 	}
 	// DELIBERATELY NOT JOURNALED — do not add an emit here. A heartbeat is a
 	// high-frequency lease keepalive: it writes only the clone-local `leases`
-	// table (lease-liveness state), never a durable bead field. Journaling it
+	// table (lease-liveness state), never a durable issue field. Journaling it
 	// would put a full-snapshot write plus the shared seq-counter serialization
 	// on the hottest write in the fleet, and a replay consumer gains nothing —
 	// lease state lives on the working-set plane and expires on its own. Lease
 	// RECLAIM is the opposite case and does journal: it clears assignee and
-	// reverts status, which is durable bead state. The decision is pinned by
+	// reverts status, which is durable issue state. The decision is pinned by
 	// journalExemptMutations in journal_completeness_test.go.
 	return nil
 }
 
 // warnReplica writes a replica-guard audit line to STDERR (never stdout —
-// bd reclaim --json owns stdout and a stray line there breaks every machine
+// issuegraph reclaim --json owns stdout and a stray line there breaks every machine
 // consumer), suppressed only by quiet mode.
 func warnReplica(format string, args ...any) {
 	if debug.IsQuiet() {
@@ -430,7 +430,7 @@ func warnReplica(format string, args ...any) {
 // line per foreign ROW — meant a supervisor on a 1-minute timer against a
 // federated store with N stranded remote leases printed N lines/minute
 // indefinitely. So the default is ONE summary line per run, and the per-issue
-// naming moved behind verbose (`bd -v` / BD_DEBUG), itself capped.
+// naming moved behind verbose (`issuegraph -v` / ISSUEGRAPH_DEBUG), itself capped.
 const (
 	// foreignSkipNamedNodes is how many granting replicas the summary line
 	// names before collapsing the rest into a count.
@@ -452,7 +452,7 @@ type foreignSkipGroup struct {
 // not a correctness step, so a failed query is swallowed rather than allowed
 // to abort a reclaim that is otherwise fine.
 //
-// Emits ONE summary line (see the bounds above); `bd -v` / BD_DEBUG=1 adds the
+// Emits ONE summary line (see the bounds above); `issuegraph -v` / ISSUEGRAPH_DEBUG=1 adds the
 // per-issue detail. Under --quiet it does no work at all — warnReplica would
 // discard every line it produced, so the queries are skipped too.
 func reportForeignSkips(ctx context.Context, tx DBTX, cutoff time.Time, filter types.ReclaimFilter, localNode string) {
@@ -541,7 +541,7 @@ func formatForeignSkipSummary(groups []foreignSkipGroup, total int, localNode st
 	// one-stranded-unit case an operator reading this line usually has.
 	return fmt.Sprintf("reclaim: skipped %d stale %s granted by %s — %s, not this node (%q). "+
 		"Reap %s on the granting replica, or pass --any-replica --id <id> if that replica is gone. "+
-		"(bd -v lists up to %d of them.)\n",
+		"(issuegraph -v lists up to %d of them.)\n",
 		total, pluralWord(total, "lease", "leases"),
 		pluralWord(len(groups), "another replica", "other replicas"), b.String(), localNode,
 		pluralWord(total, "it", "them"), foreignSkipDetailRows)
@@ -641,7 +641,7 @@ func reclaimReplicaSQL(filter types.ReclaimFilter, localNode string) (string, []
 // view that is stale by up to one sync interval — reverting on it can rob a
 // worker that is very much alive over there. So a lease whose granted_node
 // POSITIVELY names another replica is skipped, and only an explicit
-// filter.AnyReplica (bd reclaim --any-replica) reverts it.
+// filter.AnyReplica (issuegraph reclaim --any-replica) reverts it.
 //
 // The guard is OPT-IN and deliberately fail-open. An empty granted_node (a lease
 // row predating ignored migration 0016, or the default state of any
@@ -658,7 +658,7 @@ func reclaimReplicaSQL(filter types.ReclaimFilter, localNode string) (string, []
 // A TTL or grace shorter than the cadence at which replicas exchange state is
 // meaningless across the bridge — the remote view is stale by a full interval
 // by construction, so a reaper on the far side decides on liveness data older
-// than the lease it is judging. bd reclaim's default grace is 2× the lease
+// than the lease it is judging. issuegraph reclaim's default grace is 2× the lease
 // TTL; raise the TTL (or the grace) above the sync interval, not the other way
 // round.
 //

@@ -11,22 +11,22 @@ import (
 	"sync"
 	"testing"
 
-	"github.com/steveyegge/beads/internal/configfile"
-	"github.com/steveyegge/beads/internal/storage/embeddeddolt"
+	"github.com/borg0ai/dx-issuegraph/internal/configfile"
+	"github.com/borg0ai/dx-issuegraph/internal/storage/embeddeddolt"
 )
 
 // countMemoryDoltCommits reads dolt_log for an embedded workspace. It is how
 // the auto-commit epilogue is observed: a direct-route write that never flags
-// it still answers `bd recall` perfectly well, because the row is in the
+// it still answers `issuegraph recall` perfectly well, because the row is in the
 // working set — dolt_log is the only place the difference shows.
-func countMemoryDoltCommits(t *testing.T, beadsDir string) int {
+func countMemoryDoltCommits(t *testing.T, issuegraphDir string) int {
 	t.Helper()
-	cfg, _ := configfile.Load(beadsDir)
+	cfg, _ := configfile.Load(issuegraphDir)
 	database := ""
 	if cfg != nil {
 		database = cfg.GetDoltDatabase()
 	}
-	db, cleanup, err := embeddeddolt.OpenSQL(t.Context(), filepath.Join(beadsDir, "embeddeddolt"), database, "main")
+	db, cleanup, err := embeddeddolt.OpenSQL(t.Context(), filepath.Join(issuegraphDir, "embeddeddolt"), database, "main")
 	if err != nil {
 		t.Fatalf("OpenSQL: %v", err)
 	}
@@ -38,162 +38,162 @@ func countMemoryDoltCommits(t *testing.T, beadsDir string) int {
 	return count
 }
 
-// bdRemember runs "bd remember" with the given args and returns stdout.
-func bdRemember(t *testing.T, bd, dir string, args ...string) string {
+// issuegraphRemember runs "issuegraph remember" with the given args and returns stdout.
+func issuegraphRemember(t *testing.T, issuegraph, dir string, args ...string) string {
 	t.Helper()
 	fullArgs := append([]string{"remember"}, args...)
-	cmd := exec.Command(bd, fullArgs...)
+	cmd := exec.Command(issuegraph, fullArgs...)
 	cmd.Dir = dir
-	cmd.Env = bdEnv(dir)
+	cmd.Env = issuegraphEnv(dir)
 	stdout, stderr, err := runCommandBuffers(t, cmd)
 	if err != nil {
-		t.Fatalf("bd remember %s failed: %v\nstdout:\n%s\nstderr:\n%s", strings.Join(args, " "), err, stdout.String(), stderr.String())
+		t.Fatalf("issuegraph remember %s failed: %v\nstdout:\n%s\nstderr:\n%s", strings.Join(args, " "), err, stdout.String(), stderr.String())
 	}
 	return stdout.String()
 }
 
-// bdRememberFail runs "bd remember" expecting failure.
-func bdRememberFail(t *testing.T, bd, dir string, args ...string) string {
+// issuegraphRememberFail runs "issuegraph remember" expecting failure.
+func issuegraphRememberFail(t *testing.T, issuegraph, dir string, args ...string) string {
 	t.Helper()
 	fullArgs := append([]string{"remember"}, args...)
-	cmd := exec.Command(bd, fullArgs...)
+	cmd := exec.Command(issuegraph, fullArgs...)
 	cmd.Dir = dir
-	cmd.Env = bdEnv(dir)
+	cmd.Env = issuegraphEnv(dir)
 	out, err := cmd.CombinedOutput()
 	if err == nil {
-		t.Fatalf("expected bd remember %s to fail, but succeeded:\n%s", strings.Join(args, " "), out)
+		t.Fatalf("expected issuegraph remember %s to fail, but succeeded:\n%s", strings.Join(args, " "), out)
 	}
 	return string(out)
 }
 
-// bdRecall runs "bd recall" with the given args and returns stdout.
-func bdRecall(t *testing.T, bd, dir string, args ...string) string {
+// issuegraphRecall runs "issuegraph recall" with the given args and returns stdout.
+func issuegraphRecall(t *testing.T, issuegraph, dir string, args ...string) string {
 	t.Helper()
 	fullArgs := append([]string{"recall"}, args...)
-	cmd := exec.Command(bd, fullArgs...)
+	cmd := exec.Command(issuegraph, fullArgs...)
 	cmd.Dir = dir
-	cmd.Env = bdEnv(dir)
+	cmd.Env = issuegraphEnv(dir)
 	stdout, stderr, err := runCommandBuffers(t, cmd)
 	if err != nil {
-		t.Fatalf("bd recall %s failed: %v\nstdout:\n%s\nstderr:\n%s", strings.Join(args, " "), err, stdout.String(), stderr.String())
+		t.Fatalf("issuegraph recall %s failed: %v\nstdout:\n%s\nstderr:\n%s", strings.Join(args, " "), err, stdout.String(), stderr.String())
 	}
 	return stdout.String()
 }
 
-// bdRecallFail runs "bd recall" expecting failure.
-func bdRecallFail(t *testing.T, bd, dir string, args ...string) string {
+// issuegraphRecallFail runs "issuegraph recall" expecting failure.
+func issuegraphRecallFail(t *testing.T, issuegraph, dir string, args ...string) string {
 	t.Helper()
 	fullArgs := append([]string{"recall"}, args...)
-	cmd := exec.Command(bd, fullArgs...)
+	cmd := exec.Command(issuegraph, fullArgs...)
 	cmd.Dir = dir
-	cmd.Env = bdEnv(dir)
+	cmd.Env = issuegraphEnv(dir)
 	out, err := cmd.CombinedOutput()
 	if err == nil {
-		t.Fatalf("expected bd recall %s to fail, but succeeded:\n%s", strings.Join(args, " "), out)
+		t.Fatalf("expected issuegraph recall %s to fail, but succeeded:\n%s", strings.Join(args, " "), out)
 	}
 	return string(out)
 }
 
-// bdMemories runs "bd memories" with the given args and returns stdout.
-func bdMemories(t *testing.T, bd, dir string, args ...string) string {
+// issuegraphMemories runs "issuegraph memories" with the given args and returns stdout.
+func issuegraphMemories(t *testing.T, issuegraph, dir string, args ...string) string {
 	t.Helper()
 	fullArgs := append([]string{"memories"}, args...)
-	cmd := exec.Command(bd, fullArgs...)
+	cmd := exec.Command(issuegraph, fullArgs...)
 	cmd.Dir = dir
-	cmd.Env = bdEnv(dir)
+	cmd.Env = issuegraphEnv(dir)
 	stdout, stderr, err := runCommandBuffers(t, cmd)
 	if err != nil {
-		t.Fatalf("bd memories %s failed: %v\nstdout:\n%s\nstderr:\n%s", strings.Join(args, " "), err, stdout.String(), stderr.String())
+		t.Fatalf("issuegraph memories %s failed: %v\nstdout:\n%s\nstderr:\n%s", strings.Join(args, " "), err, stdout.String(), stderr.String())
 	}
 	return stdout.String()
 }
 
-// bdForget runs "bd forget" with the given args and returns stdout.
-func bdForget(t *testing.T, bd, dir string, args ...string) string {
+// issuegraphForget runs "issuegraph forget" with the given args and returns stdout.
+func issuegraphForget(t *testing.T, issuegraph, dir string, args ...string) string {
 	t.Helper()
 	fullArgs := append([]string{"forget"}, args...)
-	cmd := exec.Command(bd, fullArgs...)
+	cmd := exec.Command(issuegraph, fullArgs...)
 	cmd.Dir = dir
-	cmd.Env = bdEnv(dir)
+	cmd.Env = issuegraphEnv(dir)
 	stdout, stderr, err := runCommandBuffers(t, cmd)
 	if err != nil {
-		t.Fatalf("bd forget %s failed: %v\nstdout:\n%s\nstderr:\n%s", strings.Join(args, " "), err, stdout.String(), stderr.String())
+		t.Fatalf("issuegraph forget %s failed: %v\nstdout:\n%s\nstderr:\n%s", strings.Join(args, " "), err, stdout.String(), stderr.String())
 	}
 	return stdout.String()
 }
 
-// bdForgetFail runs "bd forget" expecting failure.
-func bdForgetFail(t *testing.T, bd, dir string, args ...string) string {
+// issuegraphForgetFail runs "issuegraph forget" expecting failure.
+func issuegraphForgetFail(t *testing.T, issuegraph, dir string, args ...string) string {
 	t.Helper()
 	fullArgs := append([]string{"forget"}, args...)
-	cmd := exec.Command(bd, fullArgs...)
+	cmd := exec.Command(issuegraph, fullArgs...)
 	cmd.Dir = dir
-	cmd.Env = bdEnv(dir)
+	cmd.Env = issuegraphEnv(dir)
 	out, err := cmd.CombinedOutput()
 	if err == nil {
-		t.Fatalf("expected bd forget %s to fail, but succeeded:\n%s", strings.Join(args, " "), out)
+		t.Fatalf("expected issuegraph forget %s to fail, but succeeded:\n%s", strings.Join(args, " "), out)
 	}
 	return string(out)
 }
 
 func TestEmbeddedMemory(t *testing.T) {
-	if os.Getenv("BEADS_TEST_EMBEDDED_DOLT") != "1" {
-		t.Skip("set BEADS_TEST_EMBEDDED_DOLT=1 to run embedded dolt integration tests")
+	if os.Getenv("ISSUEGRAPH_TEST_EMBEDDED_DOLT") != "1" {
+		t.Skip("set ISSUEGRAPH_TEST_EMBEDDED_DOLT=1 to run embedded dolt integration tests")
 	}
 	t.Parallel()
 
-	bd := buildEmbeddedBD(t)
-	dir, _, _ := bdInit(t, bd, "--prefix", "tm")
+	issuegraph := buildEmbeddedBD(t)
+	dir, _, _ := issuegraphInit(t, issuegraph, "--prefix", "tm")
 
 	// ===== Remember and Recall =====
 
 	t.Run("remember_and_recall", func(t *testing.T) {
-		bdRemember(t, bd, dir, "always run tests with -race flag")
+		issuegraphRemember(t, issuegraph, dir, "always run tests with -race flag")
 		// Recall using auto-generated key — list memories to find it
-		out := bdMemories(t, bd, dir)
+		out := issuegraphMemories(t, issuegraph, dir)
 		if !strings.Contains(out, "always run tests with -race flag") {
 			t.Errorf("expected memory in list: %s", out)
 		}
 	})
 
 	t.Run("remember_with_key", func(t *testing.T) {
-		bdRemember(t, bd, dir, "auth module uses JWT not sessions", "--key", "auth-jwt")
-		out := bdRecall(t, bd, dir, "auth-jwt")
+		issuegraphRemember(t, issuegraph, dir, "auth module uses JWT not sessions", "--key", "auth-jwt")
+		out := issuegraphRecall(t, issuegraph, dir, "auth-jwt")
 		if !strings.Contains(out, "JWT") {
 			t.Errorf("expected 'JWT' in recall output: %s", out)
 		}
 	})
 
 	t.Run("remember_overwrite", func(t *testing.T) {
-		bdRemember(t, bd, dir, "first version", "--key", "overwrite-test")
-		bdRemember(t, bd, dir, "second version", "--key", "overwrite-test")
-		out := bdRecall(t, bd, dir, "overwrite-test")
+		issuegraphRemember(t, issuegraph, dir, "first version", "--key", "overwrite-test")
+		issuegraphRemember(t, issuegraph, dir, "second version", "--key", "overwrite-test")
+		out := issuegraphRecall(t, issuegraph, dir, "overwrite-test")
 		if !strings.Contains(out, "second version") {
 			t.Errorf("expected 'second version' after overwrite: %s", out)
 		}
 	})
 
-	// Desire path: `bd remember <existing-key>` (treating remember as a getter) is a READ --
+	// Desire path: `issuegraph remember <existing-key>` (treating remember as a getter) is a READ --
 	// it recalls the memory instead of overwriting it with its own key as content.
 	t.Run("remember_bare_existing_key_recalls", func(t *testing.T) {
-		bdRemember(t, bd, dir, "the real insight worth keeping", "--key", "guard-key")
+		issuegraphRemember(t, issuegraph, dir, "the real insight worth keeping", "--key", "guard-key")
 		// Fat-finger a "read": positional arg is the existing bare key. Succeeds as a recall.
-		out := bdRemember(t, bd, dir, "guard-key")
+		out := issuegraphRemember(t, issuegraph, dir, "guard-key")
 		if !strings.Contains(out, "the real insight worth keeping") {
 			t.Errorf("expected bare existing key to recall the memory content, got: %s", out)
 		}
 		// The original content must be intact, not clobbered to "guard-key".
-		recalled := bdRecall(t, bd, dir, "guard-key")
+		recalled := issuegraphRecall(t, issuegraph, dir, "guard-key")
 		if !strings.Contains(recalled, "the real insight worth keeping") {
 			t.Errorf("recall-instead-of-write must preserve original content, got: %s", recalled)
 		}
 	})
 
 	t.Run("remember_guard_bypass_with_explicit_key", func(t *testing.T) {
-		bdRemember(t, bd, dir, "original", "--key", "bypass-key")
+		issuegraphRemember(t, issuegraph, dir, "original", "--key", "bypass-key")
 		// Explicit --key signals deliberate intent and bypasses the guard.
-		bdRemember(t, bd, dir, "bypass-key", "--key", "bypass-key")
-		out := bdRecall(t, bd, dir, "bypass-key")
+		issuegraphRemember(t, issuegraph, dir, "bypass-key", "--key", "bypass-key")
+		out := issuegraphRecall(t, issuegraph, dir, "bypass-key")
 		if !strings.Contains(out, "bypass-key") {
 			t.Errorf("explicit --key should bypass guard and overwrite, got: %s", out)
 		}
@@ -202,12 +202,12 @@ func TestEmbeddedMemory(t *testing.T) {
 	t.Run("remember_bare_slug_without_memory_refuses", func(t *testing.T) {
 		// A bare slug naming NO existing memory is a mistyped read (or junk content) --
 		// refuse rather than silently creating a memory whose content is its own key.
-		out := bdRememberFail(t, bd, dir, "brand-new-slug-memory")
+		out := issuegraphRememberFail(t, issuegraph, dir, "brand-new-slug-memory")
 		if !strings.Contains(out, "memories") {
-			t.Errorf("expected refusal to point at `bd memories`, got: %s", out)
+			t.Errorf("expected refusal to point at `issuegraph memories`, got: %s", out)
 		}
 		// Nothing may have been stored.
-		bdRecallFail(t, bd, dir, "brand-new-slug-memory")
+		issuegraphRecallFail(t, issuegraph, dir, "brand-new-slug-memory")
 	})
 
 	// The two refusals that sit either side of the desire path, and the reason
@@ -224,20 +224,20 @@ func TestEmbeddedMemory(t *testing.T) {
 			{"   ", "memory content cannot be empty"},
 			{"!!!", "could not generate key from content"},
 		} {
-			out := bdRememberFail(t, bd, dir, tc.insight)
+			out := issuegraphRememberFail(t, issuegraph, dir, tc.insight)
 			if !strings.Contains(out, tc.want) {
-				t.Errorf("bd remember %q: expected %q, got: %s", tc.insight, tc.want, out)
+				t.Errorf("issuegraph remember %q: expected %q, got: %s", tc.insight, tc.want, out)
 			}
 			if strings.Contains(out, "a bare existing key READS") || strings.Contains(out, "no memory named") {
-				t.Errorf("bd remember %q took the bare-slug desire path, got: %s", tc.insight, out)
+				t.Errorf("issuegraph remember %q took the bare-slug desire path, got: %s", tc.insight, out)
 			}
 		}
 	})
 
 	t.Run("remember_new_slug_with_explicit_key_stores", func(t *testing.T) {
 		// --key states write intent: slug-like content stores fine.
-		bdRemember(t, bd, dir, "brand-new-slug-memory", "--key", "brand-new-slug-memory")
-		out := bdRecall(t, bd, dir, "brand-new-slug-memory")
+		issuegraphRemember(t, issuegraph, dir, "brand-new-slug-memory", "--key", "brand-new-slug-memory")
+		out := issuegraphRecall(t, issuegraph, dir, "brand-new-slug-memory")
 		if !strings.Contains(out, "brand-new-slug-memory") {
 			t.Errorf("expected --key to store slug content, got: %s", out)
 		}
@@ -246,7 +246,7 @@ func TestEmbeddedMemory(t *testing.T) {
 	// ===== Memories List =====
 
 	t.Run("memories_list", func(t *testing.T) {
-		out := bdMemories(t, bd, dir)
+		out := issuegraphMemories(t, issuegraph, dir)
 		// Should show at least the memories we stored above
 		if !strings.Contains(out, "auth-jwt") {
 			t.Errorf("expected 'auth-jwt' in memories list: %s", out)
@@ -254,15 +254,15 @@ func TestEmbeddedMemory(t *testing.T) {
 	})
 
 	t.Run("memories_search", func(t *testing.T) {
-		bdRemember(t, bd, dir, "dolt phantom DBs hide in three places", "--key", "dolt-phantoms")
-		out := bdMemories(t, bd, dir, "dolt")
+		issuegraphRemember(t, issuegraph, dir, "dolt phantom DBs hide in three places", "--key", "dolt-phantoms")
+		out := issuegraphMemories(t, issuegraph, dir, "dolt")
 		if !strings.Contains(out, "dolt") {
 			t.Errorf("expected 'dolt' related memory in search: %s", out)
 		}
 	})
 
 	t.Run("memories_search_no_match", func(t *testing.T) {
-		out := bdMemories(t, bd, dir, "zzz_nonexistent_term_xyz")
+		out := issuegraphMemories(t, issuegraph, dir, "zzz_nonexistent_term_xyz")
 		// Should succeed but show no results or empty
 		_ = out
 	})
@@ -270,14 +270,14 @@ func TestEmbeddedMemory(t *testing.T) {
 	// ===== Forget =====
 
 	t.Run("forget", func(t *testing.T) {
-		bdRemember(t, bd, dir, "temporary memory to forget", "--key", "forget-me")
-		out := bdRecall(t, bd, dir, "forget-me")
+		issuegraphRemember(t, issuegraph, dir, "temporary memory to forget", "--key", "forget-me")
+		out := issuegraphRecall(t, issuegraph, dir, "forget-me")
 		if !strings.Contains(out, "temporary memory") {
 			t.Fatalf("expected memory before forget: %s", out)
 		}
-		bdForget(t, bd, dir, "forget-me")
+		issuegraphForget(t, issuegraph, dir, "forget-me")
 		// After forget, recall should fail
-		bdRecallFail(t, bd, dir, "forget-me")
+		issuegraphRecallFail(t, issuegraph, dir, "forget-me")
 	})
 
 	// THE AUTO-COMMIT EPILOGUE, which is the trap this convergence was most
@@ -292,67 +292,67 @@ func TestEmbeddedMemory(t *testing.T) {
 	// Its own workspace, so the counts are deterministic (the pattern
 	// close_multiple_ids_single_dolt_commit uses).
 	t.Run("write_verbs_flag_the_auto_commit_epilogue", func(t *testing.T) {
-		edir, ebeads, _ := bdInit(t, bd, "--prefix", "ep")
+		edir, eissuegraph, _ := issuegraphInit(t, issuegraph, "--prefix", "ep")
 
 		// Warm-up write: a fresh workspace's first command may commit
 		// bookkeeping of its own, which is not what this is measuring.
-		bdRemember(t, bd, edir, "warm the workspace up", "--key", "epilogue-warmup")
+		issuegraphRemember(t, issuegraph, edir, "warm the workspace up", "--key", "epilogue-warmup")
 
-		before := countMemoryDoltCommits(t, ebeads)
-		bdRemember(t, bd, edir, "the epilogue is what makes a direct write durable", "--key", "epilogue-subject")
-		afterRemember := countMemoryDoltCommits(t, ebeads)
+		before := countMemoryDoltCommits(t, eissuegraph)
+		issuegraphRemember(t, issuegraph, edir, "the epilogue is what makes a direct write durable", "--key", "epilogue-subject")
+		afterRemember := countMemoryDoltCommits(t, eissuegraph)
 		if got := afterRemember - before; got != 1 {
-			t.Errorf("bd remember: dolt_log %d -> %d (delta %d), want exactly one auto-commit", before, afterRemember, got)
+			t.Errorf("issuegraph remember: dolt_log %d -> %d (delta %d), want exactly one auto-commit", before, afterRemember, got)
 		}
 
-		bdForget(t, bd, edir, "epilogue-subject")
-		afterForget := countMemoryDoltCommits(t, ebeads)
+		issuegraphForget(t, issuegraph, edir, "epilogue-subject")
+		afterForget := countMemoryDoltCommits(t, eissuegraph)
 		if got := afterForget - afterRemember; got != 1 {
-			t.Errorf("bd forget: dolt_log %d -> %d (delta %d), want exactly one auto-commit", afterRemember, afterForget, got)
+			t.Errorf("issuegraph forget: dolt_log %d -> %d (delta %d), want exactly one auto-commit", afterRemember, afterForget, got)
 		}
 
 		// A forget that found nothing deleted nothing, so it must leave no
 		// commit either — the other half of the contract, and the one a
 		// `noteDirectMemoryWrite()` placed before the not-found branch would
 		// break while every output assertion stayed green.
-		bdForgetFail(t, bd, edir, "epilogue-subject")
-		if got := countMemoryDoltCommits(t, ebeads); got != afterForget {
-			t.Errorf("bd forget of an absent key: dolt_log %d -> %d, want no commit", afterForget, got)
+		issuegraphForgetFail(t, issuegraph, edir, "epilogue-subject")
+		if got := countMemoryDoltCommits(t, eissuegraph); got != afterForget {
+			t.Errorf("issuegraph forget of an absent key: dolt_log %d -> %d, want no commit", afterForget, got)
 		}
 	})
 
 	// ===== Error Cases =====
 
 	t.Run("recall_missing_key", func(t *testing.T) {
-		bdRecallFail(t, bd, dir, "nonexistent-key-xyz")
+		issuegraphRecallFail(t, issuegraph, dir, "nonexistent-key-xyz")
 	})
 
 	t.Run("forget_missing_key", func(t *testing.T) {
-		bdForgetFail(t, bd, dir, "nonexistent-key-xyz")
+		issuegraphForgetFail(t, issuegraph, dir, "nonexistent-key-xyz")
 	})
 
 	t.Run("remember_no_args", func(t *testing.T) {
-		bdRememberFail(t, bd, dir)
+		issuegraphRememberFail(t, issuegraph, dir)
 	})
 
 	t.Run("recall_no_args", func(t *testing.T) {
-		bdRecallFail(t, bd, dir)
+		issuegraphRecallFail(t, issuegraph, dir)
 	})
 
 	t.Run("forget_no_args", func(t *testing.T) {
-		bdForgetFail(t, bd, dir)
+		issuegraphForgetFail(t, issuegraph, dir)
 	})
 }
 
 // TestEmbeddedMemoryConcurrent exercises memory operations concurrently.
 func TestEmbeddedMemoryConcurrent(t *testing.T) {
-	if os.Getenv("BEADS_TEST_EMBEDDED_DOLT") != "1" {
-		t.Skip("set BEADS_TEST_EMBEDDED_DOLT=1 to run embedded dolt integration tests")
+	if os.Getenv("ISSUEGRAPH_TEST_EMBEDDED_DOLT") != "1" {
+		t.Skip("set ISSUEGRAPH_TEST_EMBEDDED_DOLT=1 to run embedded dolt integration tests")
 	}
 	t.Parallel()
 
-	bd := buildEmbeddedBD(t)
-	dir, _, _ := bdInit(t, bd, "--prefix", "mx")
+	issuegraph := buildEmbeddedBD(t)
+	dir, _, _ := issuegraphInit(t, issuegraph, "--prefix", "mx")
 
 	// Disable auto-export: this test exercises concurrent memory
 	// flock contention, not export behavior. With export.auto=true
@@ -360,16 +360,16 @@ func TestEmbeddedMemoryConcurrent(t *testing.T) {
 	// post-write read paths that race with in-flight commits.
 	//
 	// The underlying race is not flock-level (flock already serializes
-	// bd subprocesses) but engine-shutdown-level: Dolt's working-set
+	// issuegraph subprocesses) but engine-shutdown-level: Dolt's working-set
 	// persistence can lag behind flock release, so the next subprocess
 	// sometimes commits with a stale view and overwrites a prior forget.
 	// See GH#3260 for the investigation (PR #3269 was the CI probe).
 	// Fix would require synchronous flush on engine close or a long-lived
 	// engine per store; both are substantial work. Until then, this
 	// workaround keeps the test deterministic.
-	disableAutoExport := exec.Command(bd, "config", "set", "export.auto", "false")
+	disableAutoExport := exec.Command(issuegraph, "config", "set", "export.auto", "false")
 	disableAutoExport.Dir = dir
-	disableAutoExport.Env = bdEnv(dir)
+	disableAutoExport.Env = issuegraphEnv(dir)
 	if out, err := disableAutoExport.CombinedOutput(); err != nil {
 		t.Fatalf("disable export.auto: %v\n%s", err, out)
 	}
@@ -395,9 +395,9 @@ func TestEmbeddedMemoryConcurrent(t *testing.T) {
 				key := fmt.Sprintf("w%d-mem%d", worker, i)
 				content := fmt.Sprintf("worker %d memory %d content", worker, i)
 
-				cmd := exec.Command(bd, "remember", content, "--key", key)
+				cmd := exec.Command(issuegraph, "remember", content, "--key", key)
 				cmd.Dir = dir
-				cmd.Env = bdEnv(dir)
+				cmd.Env = issuegraphEnv(dir)
 				out, err := cmd.CombinedOutput()
 				if err != nil {
 					r.err = fmt.Errorf("remember %s: %v\n%s", key, err, out)
@@ -411,9 +411,9 @@ func TestEmbeddedMemoryConcurrent(t *testing.T) {
 				key := fmt.Sprintf("w%d-mem%d", worker, i)
 				expected := fmt.Sprintf("worker %d memory %d content", worker, i)
 
-				cmd := exec.Command(bd, "recall", key)
+				cmd := exec.Command(issuegraph, "recall", key)
 				cmd.Dir = dir
-				cmd.Env = bdEnv(dir)
+				cmd.Env = issuegraphEnv(dir)
 				out, err := cmd.CombinedOutput()
 				if err != nil {
 					r.err = fmt.Errorf("recall %s: %v\n%s", key, err, out)
@@ -429,9 +429,9 @@ func TestEmbeddedMemoryConcurrent(t *testing.T) {
 
 			// Forget one memory
 			forgetKey := fmt.Sprintf("w%d-mem0", worker)
-			cmd := exec.Command(bd, "forget", forgetKey)
+			cmd := exec.Command(issuegraph, "forget", forgetKey)
 			cmd.Dir = dir
-			cmd.Env = bdEnv(dir)
+			cmd.Env = issuegraphEnv(dir)
 			out, err := cmd.CombinedOutput()
 			if err != nil {
 				r.err = fmt.Errorf("forget %s: %v\n%s", forgetKey, err, out)
@@ -440,9 +440,9 @@ func TestEmbeddedMemoryConcurrent(t *testing.T) {
 			}
 
 			// List memories
-			cmd = exec.Command(bd, "memories")
+			cmd = exec.Command(issuegraph, "memories")
 			cmd.Dir = dir
-			cmd.Env = bdEnv(dir)
+			cmd.Env = issuegraphEnv(dir)
 			out, err = cmd.CombinedOutput()
 			if err != nil {
 				r.err = fmt.Errorf("memories: %v\n%s", err, out)
@@ -463,7 +463,7 @@ func TestEmbeddedMemoryConcurrent(t *testing.T) {
 
 	// Verify memories only for workers that succeeded (err==nil).
 	// With exclusive flock, some workers may fail with "one writer at a time".
-	out := bdMemories(t, bd, dir)
+	out := issuegraphMemories(t, issuegraph, dir)
 	var successCount int
 	for _, r := range results {
 		if r.err != nil {

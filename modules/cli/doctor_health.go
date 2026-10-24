@@ -8,24 +8,24 @@ import (
 	"strings"
 	"time"
 
-	"github.com/steveyegge/beads/modules/cli/doctor"
-	"github.com/steveyegge/beads/internal/configfile"
-	"github.com/steveyegge/beads/internal/doltserver"
-	"github.com/steveyegge/beads/internal/storage/doltutil"
-	"github.com/steveyegge/beads/internal/ui"
+	"github.com/borg0ai/dx-issuegraph/internal/configfile"
+	"github.com/borg0ai/dx-issuegraph/internal/doltserver"
+	"github.com/borg0ai/dx-issuegraph/internal/storage/doltutil"
+	"github.com/borg0ai/dx-issuegraph/internal/ui"
+	"github.com/borg0ai/dx-issuegraph/modules/cli/doctor"
 )
 
 // runCheckHealth runs lightweight health checks for git hooks.
 // Silent on success, prints a hint if issues detected.
 // Respects hints.doctor config setting.
 func runCheckHealth(path string) error {
-	beadsDir := doctor.ResolveBeadsDirForRepo(path)
+	issuegraphDir := doctor.ResolveIssueGraphDirForRepo(path)
 
-	if _, err := os.Stat(beadsDir); os.IsNotExist(err) {
+	if _, err := os.Stat(issuegraphDir); os.IsNotExist(err) {
 		return nil
 	}
 
-	cfg, err := configfile.Load(beadsDir)
+	cfg, err := configfile.Load(issuegraphDir)
 	if err != nil || cfg == nil {
 		if issue := doctor.CheckHooksQuick(Version); issue != "" {
 			return printCheckHealthHint([]string{issue})
@@ -34,7 +34,7 @@ func runCheckHealth(path string) error {
 	}
 
 	host := cfg.GetDoltServerHost()
-	port := doltserver.DefaultConfig(beadsDir).Port
+	port := doltserver.DefaultConfig(issuegraphDir).Port
 	if port == 0 {
 		if issue := doctor.CheckHooksQuick(Version); issue != "" {
 			return printCheckHealthHint([]string{issue})
@@ -191,12 +191,12 @@ func printServerHealthResult(result doctor.ServerHealthResult) {
 }
 
 func printCheckHealthHint(issues []string) error {
-	fmt.Fprintf(os.Stderr, "💡 bd doctor recommends a health check:\n")
+	fmt.Fprintf(os.Stderr, "💡 issuegraph doctor recommends a health check:\n")
 	for _, issue := range issues {
 		fmt.Fprintf(os.Stderr, "   • %s\n", issue)
 	}
-	fmt.Fprintf(os.Stderr, "   Run 'bd doctor' for details, or 'bd doctor --fix' to auto-repair\n")
-	fmt.Fprintf(os.Stderr, "   (Suppress with: bd config set %s false)\n", ConfigKeyHintsDoctor)
+	fmt.Fprintf(os.Stderr, "   Run 'issuegraph doctor' for details, or 'issuegraph doctor --fix' to auto-repair\n")
+	fmt.Fprintf(os.Stderr, "   (Suppress with: issuegraph config set %s false)\n", ConfigKeyHintsDoctor)
 	return SilentExit()
 }
 
@@ -211,11 +211,11 @@ func hintsDisabledDB(db *sql.DB) bool {
 	return strings.ToLower(value) == "false"
 }
 
-// checkVersionMismatchDB checks if CLI version differs from database bd_version.
+// checkVersionMismatchDB checks if CLI version differs from database issuegraph_version.
 // Uses an existing DB connection.
 func checkVersionMismatchDB(db *sql.DB) string {
 	var dbVersion string
-	err := db.QueryRow("SELECT value FROM local_metadata WHERE `key` = 'bd_version'").Scan(&dbVersion)
+	err := db.QueryRow("SELECT value FROM local_metadata WHERE `key` = 'issuegraph_version'").Scan(&dbVersion)
 	if err != nil {
 		return "" // Can't read version, skip
 	}

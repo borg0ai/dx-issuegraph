@@ -1,4 +1,4 @@
-// Package ui provides terminal styling and pager support for beads CLI output.
+// Package ui provides terminal styling and pager support for issuegraph CLI output.
 package ui
 
 import (
@@ -19,14 +19,14 @@ type PagerOptions struct {
 // shouldUsePager determines if output should be piped to a pager.
 // Returns false if:
 // - NoPager option is set
-// - BD_NO_PAGER environment variable is set
+// - ISSUEGRAPH_NO_PAGER environment variable is set
 // - stdout is not a TTY (e.g., piped to another command)
 func shouldUsePager(opts PagerOptions) bool {
 	if opts.NoPager {
 		return false
 	}
 
-	if os.Getenv("BD_NO_PAGER") != "" {
+	if os.Getenv("ISSUEGRAPH_NO_PAGER") != "" {
 		return false
 	}
 
@@ -39,9 +39,9 @@ func shouldUsePager(opts PagerOptions) bool {
 }
 
 // getPagerCommand returns the pager command to use.
-// Checks BD_PAGER, then PAGER, defaults to "less".
+// Checks ISSUEGRAPH_PAGER, then PAGER, defaults to "less".
 func getPagerCommand() string {
-	if pager := os.Getenv("BD_PAGER"); pager != "" {
+	if pager := os.Getenv("ISSUEGRAPH_PAGER"); pager != "" {
 		return pager
 	}
 	if pager := os.Getenv("PAGER"); pager != "" {

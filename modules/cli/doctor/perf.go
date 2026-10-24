@@ -10,9 +10,9 @@ import (
 // RunPerformanceDiagnostics runs performance diagnostics.
 // Delegates to Dolt backend diagnostics.
 func RunPerformanceDiagnostics(path string) error {
-	beadsDir := ResolveBeadsDirForRepo(path)
-	if _, err := os.Stat(beadsDir); os.IsNotExist(err) {
-		return fmt.Errorf("no .beads/ directory found at %s; run 'bd init' to initialize beads", path)
+	issuegraphDir := ResolveIssueGraphDirForRepo(path)
+	if _, err := os.Stat(issuegraphDir); os.IsNotExist(err) {
+		return fmt.Errorf("no .issuegraph/ directory found at %s; run 'issuegraph init' to initialize issuegraph", path)
 	}
 
 	metrics, err := RunDoltPerformanceDiagnostics(path, true)
@@ -29,8 +29,8 @@ func CollectPlatformInfo(path string) map[string]string {
 	info["os_arch"] = fmt.Sprintf("%s/%s", runtime.GOOS, runtime.GOARCH)
 	info["go_version"] = runtime.Version()
 
-	beadsDir := ResolveBeadsDirForRepo(path)
-	if IsDoltBackend(beadsDir) {
+	issuegraphDir := ResolveIssueGraphDirForRepo(path)
+	if IsDoltBackend(issuegraphDir) {
 		info["backend"] = "dolt"
 	} else {
 		info["backend"] = "unknown"

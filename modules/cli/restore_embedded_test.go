@@ -12,33 +12,33 @@ import (
 	"testing"
 	"time"
 
-	"github.com/steveyegge/beads/internal/storage/embeddeddolt"
+	"github.com/borg0ai/dx-issuegraph/internal/storage/embeddeddolt"
 )
 
-// bdRestore runs "bd restore" with extra args. Returns combined output.
-func bdRestore(t *testing.T, bd, dir string, args ...string) string {
+// issuegraphRestore runs "issuegraph restore" with extra args. Returns combined output.
+func issuegraphRestore(t *testing.T, issuegraph, dir string, args ...string) string {
 	t.Helper()
 	fullArgs := append([]string{"restore"}, args...)
-	cmd := exec.Command(bd, fullArgs...)
+	cmd := exec.Command(issuegraph, fullArgs...)
 	cmd.Dir = dir
-	cmd.Env = bdEnv(dir)
+	cmd.Env = issuegraphEnv(dir)
 	stdout, stderr, err := runCommandBuffers(t, cmd)
 	if err != nil {
-		t.Fatalf("bd restore %s failed: %v\nstdout:\n%s\nstderr:\n%s", strings.Join(args, " "), err, stdout.String(), stderr.String())
+		t.Fatalf("issuegraph restore %s failed: %v\nstdout:\n%s\nstderr:\n%s", strings.Join(args, " "), err, stdout.String(), stderr.String())
 	}
 	return stdout.String()
 }
 
-// bdRestoreFail runs "bd restore" expecting failure.
-func bdRestoreFail(t *testing.T, bd, dir string, args ...string) string {
+// issuegraphRestoreFail runs "issuegraph restore" expecting failure.
+func issuegraphRestoreFail(t *testing.T, issuegraph, dir string, args ...string) string {
 	t.Helper()
 	fullArgs := append([]string{"restore"}, args...)
-	cmd := exec.Command(bd, fullArgs...)
+	cmd := exec.Command(issuegraph, fullArgs...)
 	cmd.Dir = dir
-	cmd.Env = bdEnv(dir)
+	cmd.Env = issuegraphEnv(dir)
 	out, err := cmd.CombinedOutput()
 	if err == nil {
-		t.Fatalf("bd restore %s should have failed, got: %s", strings.Join(args, " "), out)
+		t.Fatalf("issuegraph restore %s should have failed, got: %s", strings.Join(args, " "), out)
 	}
 	return string(out)
 }
@@ -46,23 +46,23 @@ func bdRestoreFail(t *testing.T, bd, dir string, args ...string) string {
 // simulateCompaction creates an issue with content, commits, then marks it as
 // compacted by updating compaction_level directly via the embedded store.
 // Returns the issue ID.
-func simulateCompaction(t *testing.T, bd, dir, beadsDir, database string) string {
+func simulateCompaction(t *testing.T, issuegraph, dir, issuegraphDir, database string) string {
 	t.Helper()
 
-	// Create an issue with substantial content (auto-committed by bd create)
-	id := bdCreateSilent(t, bd, dir, "Compactable issue",
+	// Create an issue with substantial content (auto-committed by issuegraph create)
+	id := issuegraphCreateSilent(t, issuegraph, dir, "Compactable issue",
 		"--description", "This is a long description that will be preserved in history.",
 		"--design", "Design notes for the compactable issue.")
 
 	// Directly update the issue to simulate compaction:
 	// set compaction_level=1 and truncate description.
-	// Use a retry loop because the bd subprocess may still hold the lock briefly.
+	// Use a retry loop because the issuegraph subprocess may still hold the lock briefly.
 	var store *embeddeddolt.EmbeddedDoltStore
 	var err error
 	ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
 	defer cancel()
 	for i := 0; i < 5; i++ {
-		store, err = embeddeddolt.Open(ctx, beadsDir, database, "main")
+		store, err = embeddeddolt.Open(ctx, issuegraphDir, database, "main")
 		if err == nil {
 			break
 		}
@@ -97,44 +97,44 @@ func simulateCompaction(t *testing.T, bd, dir, beadsDir, database string) string
 		t.Fatalf("commit compaction: %v", err)
 	}
 
-	// Close explicitly so the lock is released before the next bd subprocess.
+	// Close explicitly so the lock is released before the next issuegraph subprocess.
 	store.Close()
 
 	return id
 }
 
 func TestEmbeddedRestore(t *testing.T) {
-	if os.Getenv("BEADS_TEST_EMBEDDED_DOLT") != "1" {
-		t.Skip("set BEADS_TEST_EMBEDDED_DOLT=1 to run embedded dolt restore tests")
+	if os.Getenv("ISSUEGRAPH_TEST_EMBEDDED_DOLT") != "1" {
+		t.Skip("set ISSUEGRAPH_TEST_EMBEDDED_DOLT=1 to run embedded dolt restore tests")
 	}
 	t.Parallel()
 
-	bd := buildEmbeddedBD(t)
+	issuegraph := buildEmbeddedBD(t)
 
 	t.Run("not_found", func(t *testing.T) {
-		dir, _, _ := bdInit(t, bd, "--prefix", "rstnf")
+		dir, _, _ := issuegraphInit(t, issuegraph, "--prefix", "rstnf")
 
-		out := bdRestoreFail(t, bd, dir, "rstnf-nonexistent")
+		out := issuegraphRestoreFail(t, issuegraph, dir, "rstnf-nonexistent")
 		if !strings.Contains(out, "not found") {
 			t.Errorf("expected 'not found' error, got: %s", out)
 		}
 	})
 
 	t.Run("not_compacted", func(t *testing.T) {
-		dir, _, _ := bdInit(t, bd, "--prefix", "rstnc")
-		id := bdCreateSilent(t, bd, dir, "Not compacted issue")
+		dir, _, _ := issuegraphInit(t, issuegraph, "--prefix", "rstnc")
+		id := issuegraphCreateSilent(t, issuegraph, dir, "Not compacted issue")
 
-		out := bdRestoreFail(t, bd, dir, id)
+		out := issuegraphRestoreFail(t, issuegraph, dir, id)
 		if !strings.Contains(out, "not compacted") {
 			t.Errorf("expected 'not compacted' error, got: %s", out)
 		}
 	})
 
 	t.Run("restore_compacted", func(t *testing.T) {
-		dir, beadsDir, _ := bdInit(t, bd, "--prefix", "rstok")
-		id := simulateCompaction(t, bd, dir, beadsDir, "rstok")
+		dir, issuegraphDir, _ := issuegraphInit(t, issuegraph, "--prefix", "rstok")
+		id := simulateCompaction(t, issuegraph, dir, issuegraphDir, "rstok")
 
-		out := bdRestore(t, bd, dir, id)
+		out := issuegraphRestore(t, issuegraph, dir, id)
 		// Should show the restored content from history
 		if !strings.Contains(out, "long description") {
 			t.Errorf("expected restored description in output, got: %s", out)
@@ -142,13 +142,13 @@ func TestEmbeddedRestore(t *testing.T) {
 	})
 
 	t.Run("restore_json", func(t *testing.T) {
-		dir, beadsDir, _ := bdInit(t, bd, "--prefix", "rstjs")
-		id := simulateCompaction(t, bd, dir, beadsDir, "rstjs")
+		dir, issuegraphDir, _ := issuegraphInit(t, issuegraph, "--prefix", "rstjs")
+		id := simulateCompaction(t, issuegraph, dir, issuegraphDir, "rstjs")
 
-		// NOTE: bd restore has a known issue where its local --json flag
+		// NOTE: issuegraph restore has a known issue where its local --json flag
 		// conflicts with the root command's --json persistent flag.
 		// Just verify the command runs successfully.
-		out := bdRestore(t, bd, dir, id)
+		out := issuegraphRestore(t, issuegraph, dir, id)
 		if !strings.Contains(out, "long description") {
 			t.Errorf("expected restored description in output, got: %s", out)
 		}
@@ -157,31 +157,31 @@ func TestEmbeddedRestore(t *testing.T) {
 
 func TestEmbeddedRestoreConcurrent(t *testing.T) {
 	t.Skip("TODO: simulateCompaction fails under CI concurrency — needs investigation")
-	if os.Getenv("BEADS_TEST_EMBEDDED_DOLT") != "1" {
-		t.Skip("set BEADS_TEST_EMBEDDED_DOLT=1 to run embedded dolt restore tests")
+	if os.Getenv("ISSUEGRAPH_TEST_EMBEDDED_DOLT") != "1" {
+		t.Skip("set ISSUEGRAPH_TEST_EMBEDDED_DOLT=1 to run embedded dolt restore tests")
 	}
 	t.Parallel()
 
-	bd := buildEmbeddedBD(t)
-	dir, beadsDir, _ := bdInit(t, bd, "--prefix", "rstcon")
+	issuegraph := buildEmbeddedBD(t)
+	dir, issuegraphDir, _ := issuegraphInit(t, issuegraph, "--prefix", "rstcon")
 
 	// Create multiple compacted issues
 	const numIssues = 5
 	var ids []string
 	for i := 0; i < numIssues; i++ {
-		id := bdCreateSilent(t, bd, dir, fmt.Sprintf("Concurrent restore issue %d", i),
+		id := issuegraphCreateSilent(t, issuegraph, dir, fmt.Sprintf("Concurrent restore issue %d", i),
 			"--description", fmt.Sprintf("Content for issue %d that should be in history.", i))
 		ids = append(ids, id)
 	}
 
-	// Issues are auto-committed by bd create. Simulate compaction on all of them.
-	// Retry opening the store in case the last bd subprocess still holds the lock.
+	// Issues are auto-committed by issuegraph create. Simulate compaction on all of them.
+	// Retry opening the store in case the last issuegraph subprocess still holds the lock.
 	ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
 	defer cancel()
 	var store *embeddeddolt.EmbeddedDoltStore
 	var err error
 	for i := 0; i < 5; i++ {
-		store, err = embeddeddolt.Open(ctx, beadsDir, "rstcon", "main")
+		store, err = embeddeddolt.Open(ctx, issuegraphDir, "rstcon", "main")
 		if err == nil {
 			break
 		}
@@ -225,9 +225,9 @@ func TestEmbeddedRestoreConcurrent(t *testing.T) {
 	for w := 0; w < numIssues; w++ {
 		go func(worker int) {
 			defer wg.Done()
-			cmd := exec.Command(bd, "restore", ids[worker])
+			cmd := exec.Command(issuegraph, "restore", ids[worker])
 			cmd.Dir = dir
-			cmd.Env = bdEnv(dir)
+			cmd.Env = issuegraphEnv(dir)
 			out, err := cmd.CombinedOutput()
 			results[worker] = result{worker: worker, out: string(out), err: err}
 		}(w)

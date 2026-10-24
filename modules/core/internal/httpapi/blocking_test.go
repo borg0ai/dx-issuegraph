@@ -7,10 +7,10 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/steveyegge/beads/issueops"
+	"github.com/borg0ai/dx-issuegraph/issueops"
 )
 
-// These cover the transport half of GET /v0/beads/dependencies/blocking: that
+// These cover the transport half of GET /v0/issuegraph/dependencies/blocking: that
 // the request reaches the role unaltered, the two size refusals this operation
 // owns, how a role refusal is named on the wire, and the never-null members.
 // Everything below the wire — which edge types count, which row's status decides
@@ -31,7 +31,7 @@ func TestBlockingAnnotationsPassTheIDsThroughUnaltered(t *testing.T) {
 	annotator := &roleBlockingAnnotator{}
 	ts := newBlockingServer(t, annotator)
 
-	ts.get(t, "/v0/beads/dependencies/blocking?issue_id=bd-2&issue_id=bd-1&issue_id=bd-2")
+	ts.get(t, "/v0/issuegraph/dependencies/blocking?issue_id=bd-2&issue_id=bd-1&issue_id=bd-2")
 
 	reads := annotator.blockingRequests()
 	if len(reads) != 1 {
@@ -50,7 +50,7 @@ func TestBlockingAnnotationsPassTheIDsThroughUnaltered(t *testing.T) {
 
 // TestBlockingAnnotationsCarryTheRoleAnswer pins the wire projection: one entry
 // per annotated id, in the role's order, with the role's own struct as the
-// element — which is what makes this body and `bd list`'s decoration one
+// element — which is what makes this body and `issuegraph list`'s decoration one
 // compatibility domain.
 func TestBlockingAnnotationsCarryTheRoleAnswer(t *testing.T) {
 	annotator := &roleBlockingAnnotator{result: issueops.BlockingResult{Items: []issueops.IssueBlocking{
@@ -59,7 +59,7 @@ func TestBlockingAnnotationsCarryTheRoleAnswer(t *testing.T) {
 	}}}
 	ts := newBlockingServer(t, annotator)
 
-	body := decodeBody(t, ts.get(t, "/v0/beads/dependencies/blocking?issue_id=bd-1&issue_id=bd-3"))
+	body := decodeBody(t, ts.get(t, "/v0/issuegraph/dependencies/blocking?issue_id=bd-1&issue_id=bd-3"))
 	items, _ := body["items"].([]any)
 	if len(items) != 2 {
 		t.Fatalf("items = %v, want one entry per annotated id", body["items"])
@@ -90,7 +90,7 @@ func TestBlockingAnnotationsNeverAnswerNull(t *testing.T) {
 	}}}
 	ts := newBlockingServer(t, annotator)
 
-	raw := readAll(t, ts.get(t, "/v0/beads/dependencies/blocking?issue_id=bd-1"))
+	raw := readAll(t, ts.get(t, "/v0/issuegraph/dependencies/blocking?issue_id=bd-1"))
 	if strings.Contains(raw, "null") {
 		t.Fatalf("body = %s, want empty arrays rather than null", raw)
 	}
@@ -98,7 +98,7 @@ func TestBlockingAnnotationsNeverAnswerNull(t *testing.T) {
 	// And the envelope itself, for a role that answered with a nil slice: the
 	// wire promise does not depend on the role keeping its own.
 	bare := newBlockingServer(t, &roleBlockingAnnotator{})
-	if got := readAll(t, bare.get(t, "/v0/beads/dependencies/blocking?issue_id=bd-1")); strings.Contains(got, "null") {
+	if got := readAll(t, bare.get(t, "/v0/issuegraph/dependencies/blocking?issue_id=bd-1")); strings.Contains(got, "null") {
 		t.Fatalf("body = %s, want an empty items array rather than null", got)
 	}
 }
@@ -115,8 +115,8 @@ func TestBlockingAnnotationsBoundTheQuestion(t *testing.T) {
 		name  string
 		query string
 	}{
-		{"no issue_id at all", "/v0/beads/dependencies/blocking"},
-		{"more ids than the cap", "/v0/beads/dependencies/blocking?" + repeatedIssueIDs(maxDependencyAnchors+1)},
+		{"no issue_id at all", "/v0/issuegraph/dependencies/blocking"},
+		{"more ids than the cap", "/v0/issuegraph/dependencies/blocking?" + repeatedIssueIDs(maxDependencyAnchors+1)},
 	} {
 		t.Run(tc.name, func(t *testing.T) {
 			resp := ts.get(t, tc.query)
@@ -132,7 +132,7 @@ func TestBlockingAnnotationsBoundTheQuestion(t *testing.T) {
 
 	// The cap is a bound, not a rejection of large requests: exactly the cap is
 	// served.
-	if resp := ts.get(t, "/v0/beads/dependencies/blocking?"+repeatedIssueIDs(maxDependencyAnchors)); resp.StatusCode != http.StatusOK {
+	if resp := ts.get(t, "/v0/issuegraph/dependencies/blocking?"+repeatedIssueIDs(maxDependencyAnchors)); resp.StatusCode != http.StatusOK {
 		t.Errorf("status = %d for exactly %d ids, want 200: %s", resp.StatusCode, maxDependencyAnchors, readAll(t, resp))
 	}
 }
@@ -144,7 +144,7 @@ func TestBlockingAnnotationsBoundTheQuestion(t *testing.T) {
 func TestBlockingAnnotationsRefuseAnUnknownParameter(t *testing.T) {
 	ts := newBlockingServer(t, &roleBlockingAnnotator{})
 
-	resp := ts.get(t, "/v0/beads/dependencies/blocking?issue_id=bd-1&type=blocks")
+	resp := ts.get(t, "/v0/issuegraph/dependencies/blocking?issue_id=bd-1&type=blocks")
 	if resp.StatusCode != http.StatusBadRequest {
 		t.Fatalf("status = %d, want 400: %s", resp.StatusCode, readAll(t, resp))
 	}
@@ -161,7 +161,7 @@ func TestABlockingRoleRefusalIsTheDocumentedBadRequest(t *testing.T) {
 	ts := newBlockingServer(t, &roleBlockingAnnotator{
 		err: fmt.Errorf("annotate blocking: %w", issueops.ErrValidation),
 	})
-	resp := ts.get(t, "/v0/beads/dependencies/blocking?issue_id=bd-1&issue_id=")
+	resp := ts.get(t, "/v0/issuegraph/dependencies/blocking?issue_id=bd-1&issue_id=")
 	if resp.StatusCode != http.StatusBadRequest {
 		t.Fatalf("status = %d, want 400: %s", resp.StatusCode, readAll(t, resp))
 	}
@@ -171,7 +171,7 @@ func TestABlockingRoleRefusalIsTheDocumentedBadRequest(t *testing.T) {
 	}
 
 	opaque := newBlockingServer(t, &roleBlockingAnnotator{err: errors.New("backend is unreachable")})
-	if resp := opaque.get(t, "/v0/beads/dependencies/blocking?issue_id=bd-1"); resp.StatusCode != http.StatusInternalServerError {
+	if resp := opaque.get(t, "/v0/issuegraph/dependencies/blocking?issue_id=bd-1"); resp.StatusCode != http.StatusInternalServerError {
 		t.Errorf("status = %d for an opaque role failure, want 500: %s", resp.StatusCode, readAll(t, resp))
 	}
 }

@@ -12,18 +12,18 @@ import (
 func TestProxiedServerDuplicates(t *testing.T) {
 	requireSharedProxiedServer(t)
 	t.Parallel()
-	bd := buildEmbeddedBD(t)
-	p := newSharedProxiedProject(t, bd, "dup")
+	issuegraph := buildEmbeddedBD(t)
+	p := newSharedProxiedProject(t, issuegraph, "dup")
 
 	// Two issues with identical content form an exact-duplicate group.
-	a := bdProxiedCreate(t, bd, p.dir, "Fix login redirect", "--type", "bug", "--priority", "1", "--description", "Users bounce to /home after login")
-	b := bdProxiedCreate(t, bd, p.dir, "Fix login redirect", "--type", "bug", "--priority", "1", "--description", "Users bounce to /home after login")
+	a := issuegraphProxiedCreate(t, issuegraph, p.dir, "Fix login redirect", "--type", "bug", "--priority", "1", "--description", "Users bounce to /home after login")
+	b := issuegraphProxiedCreate(t, issuegraph, p.dir, "Fix login redirect", "--type", "bug", "--priority", "1", "--description", "Users bounce to /home after login")
 	// A distinct issue that must not be grouped.
-	bdProxiedCreate(t, bd, p.dir, "Unrelated task", "--type", "task", "--priority", "2")
+	issuegraphProxiedCreate(t, issuegraph, p.dir, "Unrelated task", "--type", "task", "--priority", "2")
 
 	dupsJSON := func(t *testing.T, args ...string) map[string]interface{} {
 		t.Helper()
-		out, err := bdProxiedRun(t, bd, p.dir, append([]string{"duplicates", "--json"}, args...)...)
+		out, err := issuegraphProxiedRun(t, issuegraph, p.dir, append([]string{"duplicates", "--json"}, args...)...)
 		if err != nil {
 			t.Fatalf("duplicates --json %v: %v\n%s", args, err, out)
 		}
@@ -45,7 +45,7 @@ func TestProxiedServerDuplicates(t *testing.T) {
 				} `json:"issues"`
 			} `json:"groups"`
 		}
-		out, err := bdProxiedRun(t, bd, p.dir, "duplicates", "--json")
+		out, err := issuegraphProxiedRun(t, issuegraph, p.dir, "duplicates", "--json")
 		if err != nil {
 			t.Fatalf("duplicates --json: %v\n%s", err, out)
 		}
@@ -79,7 +79,7 @@ func TestProxiedServerDuplicates(t *testing.T) {
 	})
 
 	t.Run("human_readable", func(t *testing.T) {
-		out, err := bdProxiedRun(t, bd, p.dir, "duplicates")
+		out, err := issuegraphProxiedRun(t, issuegraph, p.dir, "duplicates")
 		if err != nil {
 			t.Fatalf("duplicates: %v\n%s", err, out)
 		}
@@ -91,10 +91,10 @@ func TestProxiedServerDuplicates(t *testing.T) {
 
 	t.Run("no_duplicates_all_unique", func(t *testing.T) {
 		// A fresh project with only distinct issues yields zero groups.
-		p2 := newSharedProxiedProject(t, bd, "duq")
-		bdProxiedCreate(t, bd, p2.dir, "Unique 1", "--type", "task", "--description", "A")
-		bdProxiedCreate(t, bd, p2.dir, "Unique 2", "--type", "task", "--description", "B")
-		out, err := bdProxiedRun(t, bd, p2.dir, "duplicates", "--json")
+		p2 := newSharedProxiedProject(t, issuegraph, "duq")
+		issuegraphProxiedCreate(t, issuegraph, p2.dir, "Unique 1", "--type", "task", "--description", "A")
+		issuegraphProxiedCreate(t, issuegraph, p2.dir, "Unique 2", "--type", "task", "--description", "B")
+		out, err := issuegraphProxiedRun(t, issuegraph, p2.dir, "duplicates", "--json")
 		if err != nil {
 			t.Fatalf("duplicates --json: %v\n%s", err, out)
 		}
@@ -110,13 +110,13 @@ func TestProxiedServerDuplicates(t *testing.T) {
 	t.Run("excludes_closed", func(t *testing.T) {
 		// When one of an exact-duplicate pair is closed, only the open one
 		// remains and no group is reported (proxied groups open issues only).
-		p3 := newSharedProxiedProject(t, bd, "duc")
-		x := bdProxiedCreate(t, bd, p3.dir, "Closed dup", "--type", "task", "--description", "Same closed")
-		bdProxiedCreate(t, bd, p3.dir, "Closed dup", "--type", "task", "--description", "Same closed")
-		if out, err := bdProxiedRun(t, bd, p3.dir, "close", x.ID); err != nil {
+		p3 := newSharedProxiedProject(t, issuegraph, "duc")
+		x := issuegraphProxiedCreate(t, issuegraph, p3.dir, "Closed dup", "--type", "task", "--description", "Same closed")
+		issuegraphProxiedCreate(t, issuegraph, p3.dir, "Closed dup", "--type", "task", "--description", "Same closed")
+		if out, err := issuegraphProxiedRun(t, issuegraph, p3.dir, "close", x.ID); err != nil {
 			t.Fatalf("close: %v\n%s", err, out)
 		}
-		out, err := bdProxiedRun(t, bd, p3.dir, "duplicates", "--json")
+		out, err := issuegraphProxiedRun(t, issuegraph, p3.dir, "duplicates", "--json")
 		if err != nil {
 			t.Fatalf("duplicates --json: %v\n%s", err, out)
 		}
@@ -143,7 +143,7 @@ func TestProxiedServerDuplicates(t *testing.T) {
 	t.Run("auto_merge_rejected", func(t *testing.T) {
 		// Proxied mode refuses the write path of --auto-merge (embedded's auto_merge
 		// and auto_merge_reparents scenarios are intentionally not portable here).
-		out, err := bdProxiedRun(t, bd, p.dir, "duplicates", "--auto-merge")
+		out, err := issuegraphProxiedRun(t, issuegraph, p.dir, "duplicates", "--auto-merge")
 		if err == nil {
 			t.Fatalf("expected --auto-merge to be rejected, got success: %s", out)
 		}
@@ -153,7 +153,7 @@ func TestProxiedServerDuplicates(t *testing.T) {
 	})
 
 	t.Run("auto_merge_dry_run_allowed", func(t *testing.T) {
-		out, err := bdProxiedRun(t, bd, p.dir, "duplicates", "--auto-merge", "--dry-run", "--json")
+		out, err := issuegraphProxiedRun(t, issuegraph, p.dir, "duplicates", "--auto-merge", "--dry-run", "--json")
 		if err != nil {
 			t.Fatalf("--auto-merge --dry-run should be read-only allowed: %v\n%s", err, out)
 		}
@@ -173,31 +173,31 @@ func TestProxiedServerDuplicates(t *testing.T) {
 func TestProxiedServerFindDuplicates(t *testing.T) {
 	requireSharedProxiedServer(t)
 	t.Parallel()
-	bd := buildEmbeddedBD(t)
-	p := newSharedProxiedProject(t, bd, "fdp")
+	issuegraph := buildEmbeddedBD(t)
+	p := newSharedProxiedProject(t, issuegraph, "fdp")
 
 	// Near-identical login issues (should be flagged as duplicates).
-	bdProxiedCreate(t, bd, p.dir, "Fix login page timeout error", "--type", "bug",
+	issuegraphProxiedCreate(t, issuegraph, p.dir, "Fix login page timeout error", "--type", "bug",
 		"--description", "The login page throws a timeout error after 30 seconds of inactivity")
-	bdProxiedCreate(t, bd, p.dir, "Login page timeout error fix needed", "--type", "bug",
+	issuegraphProxiedCreate(t, issuegraph, p.dir, "Login page timeout error fix needed", "--type", "bug",
 		"--description", "After 30 seconds the login page shows a timeout error to the user")
 	// Distinct issues (should NOT be flagged).
-	bdProxiedCreate(t, bd, p.dir, "Add dark mode to settings", "--type", "feature",
+	issuegraphProxiedCreate(t, issuegraph, p.dir, "Add dark mode to settings", "--type", "feature",
 		"--description", "Users want a dark mode toggle in the settings page")
-	bdProxiedCreate(t, bd, p.dir, "Upgrade database to PostgreSQL 16", "--type", "task",
+	issuegraphProxiedCreate(t, issuegraph, p.dir, "Upgrade database to PostgreSQL 16", "--type", "task",
 		"--description", "Migrate from PostgreSQL 14 to PostgreSQL 16 for performance")
-	bdProxiedCreate(t, bd, p.dir, "Write API documentation", "--type", "task",
+	issuegraphProxiedCreate(t, issuegraph, p.dir, "Write API documentation", "--type", "task",
 		"--description", "Document all REST endpoints with OpenAPI spec")
 	// A closed near-duplicate for status-filter testing.
-	closed := bdProxiedCreate(t, bd, p.dir, "Fix login page timeout error (old)", "--type", "bug",
+	closed := issuegraphProxiedCreate(t, issuegraph, p.dir, "Fix login page timeout error (old)", "--type", "bug",
 		"--description", "The login page throws a timeout error")
-	if out, err := bdProxiedRun(t, bd, p.dir, "close", closed.ID); err != nil {
+	if out, err := issuegraphProxiedRun(t, issuegraph, p.dir, "close", closed.ID); err != nil {
 		t.Fatalf("close: %v\n%s", err, out)
 	}
 
 	fdJSON := func(t *testing.T, args ...string) map[string]interface{} {
 		t.Helper()
-		out, err := bdProxiedRun(t, bd, p.dir, append([]string{"find-duplicates", "--json"}, args...)...)
+		out, err := issuegraphProxiedRun(t, issuegraph, p.dir, append([]string{"find-duplicates", "--json"}, args...)...)
 		if err != nil {
 			t.Fatalf("find-duplicates --json %v: %v\n%s", args, err, out)
 		}
@@ -275,7 +275,7 @@ func TestProxiedServerFindDuplicates(t *testing.T) {
 
 	t.Run("no_duplicates_high_threshold", func(t *testing.T) {
 		// A very high threshold should simply produce no pairs without crashing.
-		if _, err := bdProxiedRun(t, bd, p.dir, "find-duplicates", "--threshold", "0.99"); err != nil {
+		if _, err := issuegraphProxiedRun(t, issuegraph, p.dir, "find-duplicates", "--threshold", "0.99"); err != nil {
 			t.Fatalf("find-duplicates --threshold 0.99: %v", err)
 		}
 	})
@@ -306,7 +306,7 @@ func TestProxiedServerFindDuplicates(t *testing.T) {
 	})
 
 	t.Run("invalid_method_error", func(t *testing.T) {
-		out, err := bdProxiedRun(t, bd, p.dir, "find-duplicates", "--method", "bogus")
+		out, err := issuegraphProxiedRun(t, issuegraph, p.dir, "find-duplicates", "--method", "bogus")
 		if err == nil {
 			t.Fatalf("expected invalid method error, got success: %s", out)
 		}
@@ -324,7 +324,7 @@ func TestProxiedServerFindDuplicates(t *testing.T) {
 		if os.Getenv("MINIMAX_API_KEY") != "" {
 			t.Skip("MINIMAX_API_KEY set; skipping missing-key assertion to avoid a live AI call")
 		}
-		out, err := bdProxiedRun(t, bd, p.dir, "find-duplicates", "--method", "ai")
+		out, err := issuegraphProxiedRun(t, issuegraph, p.dir, "find-duplicates", "--method", "ai")
 		if err == nil {
 			t.Fatalf("expected missing-key error for --method ai, got success: %s", out)
 		}
@@ -334,7 +334,7 @@ func TestProxiedServerFindDuplicates(t *testing.T) {
 	})
 
 	t.Run("find_dups_alias", func(t *testing.T) {
-		out, err := bdProxiedRun(t, bd, p.dir, "find-dups", "--json", "--threshold", "0.3")
+		out, err := issuegraphProxiedRun(t, issuegraph, p.dir, "find-dups", "--json", "--threshold", "0.3")
 		if err != nil {
 			t.Fatalf("find-dups alias: %v\n%s", err, out)
 		}
@@ -344,7 +344,7 @@ func TestProxiedServerFindDuplicates(t *testing.T) {
 	})
 
 	t.Run("human_readable_output", func(t *testing.T) {
-		out, err := bdProxiedRun(t, bd, p.dir, "find-duplicates", "--threshold", "0.15")
+		out, err := issuegraphProxiedRun(t, issuegraph, p.dir, "find-duplicates", "--threshold", "0.15")
 		if err != nil {
 			t.Fatalf("find-duplicates: %v\n%s", err, out)
 		}
@@ -361,9 +361,9 @@ func TestProxiedServerFindDuplicates(t *testing.T) {
 	})
 
 	t.Run("fewer_than_2_issues", func(t *testing.T) {
-		p2 := newSharedProxiedProject(t, bd, "fd1")
-		bdProxiedCreate(t, bd, p2.dir, "Only one issue", "--type", "task")
-		out, err := bdProxiedRun(t, bd, p2.dir, "find-duplicates")
+		p2 := newSharedProxiedProject(t, issuegraph, "fd1")
+		issuegraphProxiedCreate(t, issuegraph, p2.dir, "Only one issue", "--type", "task")
+		out, err := issuegraphProxiedRun(t, issuegraph, p2.dir, "find-duplicates")
 		if err != nil {
 			t.Fatalf("find-duplicates: %v\n%s", err, out)
 		}
@@ -373,9 +373,9 @@ func TestProxiedServerFindDuplicates(t *testing.T) {
 	})
 
 	t.Run("fewer_than_2_issues_json", func(t *testing.T) {
-		p3 := newSharedProxiedProject(t, bd, "fd2")
-		bdProxiedCreate(t, bd, p3.dir, "Only one issue json", "--type", "task")
-		out, err := bdProxiedRun(t, bd, p3.dir, "find-duplicates", "--json")
+		p3 := newSharedProxiedProject(t, issuegraph, "fd2")
+		issuegraphProxiedCreate(t, issuegraph, p3.dir, "Only one issue json", "--type", "task")
+		out, err := issuegraphProxiedRun(t, issuegraph, p3.dir, "find-duplicates", "--json")
 		if err != nil {
 			t.Fatalf("find-duplicates --json: %v\n%s", err, out)
 		}

@@ -3,8 +3,8 @@ package main
 import (
 	"testing"
 
+	"github.com/borg0ai/dx-issuegraph/internal/tracker"
 	"github.com/spf13/cobra"
-	"github.com/steveyegge/beads/internal/tracker"
 )
 
 // TestParentFlagRegistered verifies --parent flag exists on all tracker sync commands.
@@ -52,7 +52,7 @@ func TestParentFlagNotOnNotion(t *testing.T) {
 // TestIssuesAndParentAreMutuallyExclusive verifies that specifying both --issues
 // and --parent on the same sync command returns an error.
 //
-// The two flags cannot be combined: --issues targets specific bead IDs while
+// The two flags cannot be combined: --issues targets specific issue IDs while
 // --parent scopes by subtree. Silently ANDing them would produce confusing
 // results where only issues that appear in both sets are synced.
 func TestIssuesAndParentAreMutuallyExclusive(t *testing.T) {

@@ -14,12 +14,12 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/steveyegge/beads/internal/routing"
+	"github.com/borg0ai/dx-issuegraph/internal/routing"
 )
 
 // TestRoutingNoticeText_VariesByRule verifies the notice's reason and fix
 // command are branched on the matched routing rule instead of always
-// attributing the swap to beads.role=contributor (gastownhall/beads#4866
+// attributing the swap to issuegraph.role=contributor (borg0ai/dx-issuegraph#4866
 // review, 2026-07-23).
 func TestRoutingNoticeText_VariesByRule(t *testing.T) {
 	tests := []struct {
@@ -31,26 +31,26 @@ func TestRoutingNoticeText_VariesByRule(t *testing.T) {
 		{
 			name:       "contributor rule",
 			rule:       routing.RuleContributor,
-			wantReason: "beads.role=contributor",
-			wantFix:    "git config beads.role maintainer",
+			wantReason: "issuegraph.role=contributor",
+			wantFix:    "git config issuegraph.role maintainer",
 		},
 		{
 			name:       "maintainer rule",
 			rule:       routing.RuleMaintainer,
 			wantReason: "routing.maintainer",
-			wantFix:    "bd config unset routing.maintainer",
+			wantFix:    "issuegraph config unset routing.maintainer",
 		},
 		{
 			name:       "default rule",
 			rule:       routing.RuleDefault,
 			wantReason: "routing.default",
-			wantFix:    "bd config unset routing.default",
+			wantFix:    "issuegraph config unset routing.default",
 		},
 		{
 			name:       "no rule (fallback wording)",
 			rule:       routing.RuleNone,
 			wantReason: "auto-routing rule",
-			wantFix:    "bd config get",
+			wantFix:    "issuegraph config get",
 		},
 	}
 
@@ -67,13 +67,13 @@ func TestRoutingNoticeText_VariesByRule(t *testing.T) {
 	}
 
 	// The contributor-rule wording must not leak into the other rules'
-	// notices: that mislabeling (fixed `git config beads.role maintainer`
+	// notices: that mislabeling (fixed `git config issuegraph.role maintainer`
 	// advice for a maintainer- or default-routed swap) was the review's
 	// blocking finding.
 	for _, rule := range []routing.RoutingRule{routing.RuleMaintainer, routing.RuleDefault, routing.RuleNone} {
 		reason, fix := routingNoticeText(rule)
-		if strings.Contains(reason, "beads.role") || strings.Contains(fix, "beads.role") {
-			t.Errorf("routingNoticeText(%v) incorrectly mentions beads.role: reason=%q fix=%q", rule, reason, fix)
+		if strings.Contains(reason, "issuegraph.role") || strings.Contains(fix, "issuegraph.role") {
+			t.Errorf("routingNoticeText(%v) incorrectly mentions issuegraph.role: reason=%q fix=%q", rule, reason, fix)
 		}
 	}
 }
@@ -90,7 +90,7 @@ func TestPrintContributorRoutingNotice_TextMatchesRule(t *testing.T) {
 		rule routing.RoutingRule
 		want string
 	}{
-		{"contributor", routing.RuleContributor, "beads.role=contributor"},
+		{"contributor", routing.RuleContributor, "issuegraph.role=contributor"},
 		{"maintainer", routing.RuleMaintainer, "routing.maintainer"},
 		{"default", routing.RuleDefault, "routing.default"},
 	}

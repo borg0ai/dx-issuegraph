@@ -5,10 +5,10 @@ import (
 	"path/filepath"
 	"testing"
 
-	"github.com/steveyegge/beads/internal/doltserver"
-	"github.com/steveyegge/beads/internal/storage"
-	"github.com/steveyegge/beads/internal/testutil"
-	"github.com/steveyegge/beads/internal/types"
+	"github.com/borg0ai/dx-issuegraph/internal/doltserver"
+	"github.com/borg0ai/dx-issuegraph/internal/storage"
+	"github.com/borg0ai/dx-issuegraph/internal/testutil"
+	"github.com/borg0ai/dx-issuegraph/internal/types"
 )
 
 // setupAnyServerStore returns a store on the shared test server when TestMain
@@ -31,26 +31,26 @@ func setupLocalServerStore(t *testing.T) (*DoltStore, func()) {
 	t.Helper()
 	testutil.RequireDoltBinary(t)
 
-	beadsDir := filepath.Join(t.TempDir(), ".beads")
-	if err := os.MkdirAll(beadsDir, 0700); err != nil {
-		t.Fatalf("mkdir beads dir: %v", err)
+	issuegraphDir := filepath.Join(t.TempDir(), ".issuegraph")
+	if err := os.MkdirAll(issuegraphDir, 0700); err != nil {
+		t.Fatalf("mkdir issuegraph dir: %v", err)
 	}
 
-	t.Setenv("BEADS_DOLT_SHARED_SERVER", "0")
-	t.Setenv("BEADS_DOLT_AUTO_START", "1")
+	t.Setenv("ISSUEGRAPH_DOLT_SHARED_SERVER", "0")
+	t.Setenv("ISSUEGRAPH_DOLT_AUTO_START", "1")
 
-	state, err := doltserver.Start(beadsDir)
+	state, err := doltserver.Start(issuegraphDir)
 	if err != nil {
 		t.Fatalf("doltserver.Start: %v", err)
 	}
-	t.Cleanup(func() { _ = doltserver.Stop(beadsDir) })
+	t.Cleanup(func() { _ = doltserver.Stop(issuegraphDir) })
 
 	ctx, cancel := testContext(t)
 	defer cancel()
 
 	store, err := New(ctx, &Config{
-		Path:            filepath.Join(beadsDir, "dolt"),
-		BeadsDir:        beadsDir,
+		Path:            filepath.Join(issuegraphDir, "dolt"),
+		IssueGraphDir:   issuegraphDir,
 		CommitterName:   "test",
 		CommitterEmail:  "test@example.com",
 		Database:        uniqueTestDBName(t),

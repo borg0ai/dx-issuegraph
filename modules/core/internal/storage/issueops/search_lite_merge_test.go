@@ -7,7 +7,7 @@ import (
 	"time"
 
 	"github.com/DATA-DOG/go-sqlmock"
-	"github.com/steveyegge/beads/internal/types"
+	"github.com/borg0ai/dx-issuegraph/internal/types"
 )
 
 // liteColumnNames mirrors ScanIssueLiteFrom's dests order exactly (scan.go).
@@ -87,8 +87,8 @@ func TestSearchIssuesInTx_Lite_MergesAcrossIssuesAndWisps(t *testing.T) {
 	// DESC is entirely this leg.
 	mock.ExpectQuery(`(?s)FROM wisps.*LIMIT 2`).
 		WillReturnRows(sqlmock.NewRows(liteColumnNames()).
-			AddRow(liteMergeRow("bd-wisp-newest", day(12))...).
-			AddRow(liteMergeRow("bd-wisp-new", day(10))...))
+			AddRow(liteMergeRow("issuegraph-wisp-newest", day(12))...).
+			AddRow(liteMergeRow("issuegraph-wisp-new", day(10))...))
 
 	filter := types.IssueFilter{
 		Lite:       true,
@@ -103,12 +103,12 @@ func TestSearchIssuesInTx_Lite_MergesAcrossIssuesAndWisps(t *testing.T) {
 		t.Fatalf("SearchIssuesInTx: %v", err)
 	}
 
-	if len(got) != 2 || got[0].ID != "bd-wisp-newest" || got[1].ID != "bd-wisp-new" {
+	if len(got) != 2 || got[0].ID != "issuegraph-wisp-newest" || got[1].ID != "issuegraph-wisp-new" {
 		ids := make([]string, len(got))
 		for i, g := range got {
 			ids[i] = g.ID
 		}
-		t.Fatalf("SearchIssuesInTx Lite merge: got %v, want [bd-wisp-newest bd-wisp-new] "+
+		t.Fatalf("SearchIssuesInTx Lite merge: got %v, want [issuegraph-wisp-newest issuegraph-wisp-new] "+
 			"(true created-DESC top-2 across issues+wisps, not issues-leg concatenation order)", ids)
 	}
 

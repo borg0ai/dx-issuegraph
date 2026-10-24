@@ -11,7 +11,7 @@ import (
 
 // Git-origin adoption is the one write in the push path that can send private
 // issue history somewhere the user never named (#5068). Before this gate,
-// `bd dolt push` on a rig with no Dolt remote derived one from git origin,
+// `issuegraph dolt push` on a rig with no Dolt remote derived one from git origin,
 // wired it, persisted sync.remote, committed that config change under the
 // user's git identity, and uploaded — with no prompt, no flag and no opt-out.
 // A public git origin therefore published the whole issue database on a
@@ -27,16 +27,16 @@ import (
 // re-runs this operation with consent, and the verb the interactive question
 // uses. The sync path shares the whole adoption flow with push
 // (syncAdoptGitOrigin), and a refusal that steers a sync user into
-// `bd dolt push --yes` would trade their pull away — the opt-in must name the
+// `issuegraph dolt push --yes` would trade their pull away — the opt-in must name the
 // command they actually ran.
 type adoptOptIn struct {
-	rerun  string // e.g. "bd dolt push --yes"
+	rerun  string // e.g. "issuegraph dolt push --yes"
 	action string // completes "Adopt this remote and <action>?"
 }
 
 var (
-	pushAdoptOptIn = adoptOptIn{rerun: "bd dolt push --yes", action: "push"}
-	syncAdoptOptIn = adoptOptIn{rerun: "bd sync --yes", action: "sync"}
+	pushAdoptOptIn = adoptOptIn{rerun: "issuegraph dolt push --yes", action: "push"}
+	syncAdoptOptIn = adoptOptIn{rerun: "issuegraph sync --yes", action: "sync"}
 )
 
 // adoptPolicy carries the caller's consent inputs for git-origin adoption.
@@ -45,7 +45,7 @@ var (
 type adoptPolicy struct {
 	// AssumeYes is --yes/-y: consent given ahead of time, for scripted use.
 	AssumeYes bool
-	// Disabled is --no-adopt or BD_NO_REMOTE_ADOPT=1: never adopt.
+	// Disabled is --no-adopt or ISSUEGRAPH_NO_REMOTE_ADOPT=1: never adopt.
 	Disabled bool
 	// Interactive reports whether we can actually ask. False means fail-closed.
 	Interactive bool
@@ -94,7 +94,7 @@ func decideRemoteAdoption(p adoptPolicy) (adoptDecision, adoptRefusal) {
 	}
 }
 
-// currentAdoptPolicy builds the policy from flags plus BD_NO_REMOTE_ADOPT.
+// currentAdoptPolicy builds the policy from flags plus ISSUEGRAPH_NO_REMOTE_ADOPT.
 // stdinIsTerminal is injected so tests do not depend on how they were invoked.
 // jsonMode forces non-interactive even on a TTY: --json is a machine contract,
 // and a consent prompt inside it hangs whatever is parsing the stream (same
@@ -108,7 +108,7 @@ func currentAdoptPolicy(assumeYes, noAdopt, stdinIsTerminal, jsonMode bool) adop
 }
 
 func envNoRemoteAdopt() bool {
-	v := strings.TrimSpace(strings.ToLower(os.Getenv("BD_NO_REMOTE_ADOPT")))
+	v := strings.TrimSpace(strings.ToLower(os.Getenv("ISSUEGRAPH_NO_REMOTE_ADOPT")))
 	return v == "1" || v == "true" || v == "yes"
 }
 
@@ -121,7 +121,7 @@ func stdinIsTerminal() bool {
 // is useless without knowing which one — the reporter's whole complaint was
 // not knowing where the upload was going.
 func adoptionRefusedError(remoteURL string, optIn adoptOptIn) error {
-	return fmt.Errorf(`no Dolt remote is configured, and bd will not adopt one without consent.
+	return fmt.Errorf(`no Dolt remote is configured, and issuegraph will not adopt one without consent.
 
   Derived from git origin: %s
 
@@ -129,9 +129,9 @@ This would publish your entire issue history to that remote. If it is what you
 want, opt in explicitly:
 
   %-38s # adopt the derived remote and %s
-  bd dolt remote add origin <url>        # or name the remote yourself first
+  issuegraph dolt remote add origin <url>        # or name the remote yourself first
 
-To never adopt implicitly, pass --no-adopt or set BD_NO_REMOTE_ADOPT=1.`, remoteURL, optIn.rerun, optIn.action)
+To never adopt implicitly, pass --no-adopt or set ISSUEGRAPH_NO_REMOTE_ADOPT=1.`, remoteURL, optIn.rerun, optIn.action)
 }
 
 // applyAdoptionConsent is the gate as the push path uses it: given a derived
@@ -175,7 +175,7 @@ func confirmRemoteAdoption(remoteURL string, optIn adoptOptIn) bool {
 	fmt.Fprintln(os.Stderr, "")
 	fmt.Fprintln(os.Stderr, "Adopting it will:")
 	fmt.Fprintln(os.Stderr, "  • add it as Dolt remote \"origin\"")
-	fmt.Fprintln(os.Stderr, "  • write sync.remote into .beads/config.yaml")
+	fmt.Fprintln(os.Stderr, "  • write sync.remote into .issuegraph/config.yaml")
 	fmt.Fprintln(os.Stderr, "  • commit that config change under your git identity")
 	fmt.Fprintln(os.Stderr, "  • upload your full issue history there")
 	fmt.Fprintln(os.Stderr, "")

@@ -4,10 +4,10 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/steveyegge/beads/internal/storage"
+	"github.com/borg0ai/dx-issuegraph/internal/storage"
 )
 
-// Pure-logic coverage for `bd conflicts resolve --conclude` and the BLOCKING
+// Pure-logic coverage for `issuegraph conflicts resolve --conclude` and the BLOCKING
 // merge state (wy-36ilm F12). Command wiring, JSON output and real merge
 // transitions are covered, dolt-backed, in conflicts_conclude_integration_test.go.
 // The real system-table column names are guarded separately in
@@ -216,7 +216,7 @@ func TestWriteMergeBlockersRemedies(t *testing.T) {
 		for _, want := range []string{
 			"constraint violations: comments (3)",
 			"dolt_constraint_violations_",
-			"bd conflicts resolve --conclude",
+			"issuegraph conflicts resolve --conclude",
 		} {
 			if !strings.Contains(out, want) {
 				t.Errorf("violation remedy missing %q:\n%s", want, out)
@@ -236,7 +236,7 @@ func TestWriteMergeBlockersRemedies(t *testing.T) {
 		if !strings.Contains(out, "Schema conflicts:") || !strings.Contains(out, "Constraint violations:") {
 			t.Errorf("both classes outstanding must show both remedies:\n%s", out)
 		}
-		if strings.Contains(out, "bd conflicts resolve --conclude") {
+		if strings.Contains(out, "issuegraph conflicts resolve --conclude") {
 			t.Errorf("must not recommend --conclude while a schema conflict makes it refuse:\n%s", out)
 		}
 	})

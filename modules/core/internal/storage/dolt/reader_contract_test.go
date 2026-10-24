@@ -4,7 +4,7 @@ import (
 	"context"
 	"testing"
 
-	"github.com/steveyegge/beads/backend/conformance"
+	"github.com/borg0ai/dx-issuegraph/backend/conformance"
 )
 
 // The Reader contract, wired at the server-backed store. This accessor and the

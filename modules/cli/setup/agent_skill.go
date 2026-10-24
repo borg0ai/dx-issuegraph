@@ -7,12 +7,12 @@ import (
 	"os"
 	"path/filepath"
 
-	"github.com/steveyegge/beads/internal/templates"
+	"github.com/borg0ai/dx-issuegraph/internal/templates"
 )
 
 var (
-	errAgentSkillMissing = errors.New("beads agent skill not installed")
-	errAgentSkillStale   = errors.New("beads agent skill is stale")
+	errAgentSkillMissing = errors.New("issuegraph agent skill not installed")
+	errAgentSkillStale   = errors.New("issuegraph agent skill is stale")
 )
 
 type agentSkillEnv struct {
@@ -26,7 +26,7 @@ type agentSkillEnv struct {
 }
 
 func agentSkillRootPath(base string) string {
-	return filepath.Join(base, ".agents", "skills", "beads")
+	return filepath.Join(base, ".agents", "skills", "issuegraph")
 }
 
 func agentSkillPath(base string) string {
@@ -38,14 +38,14 @@ func agentSkillOpenAIYAMLPath(base string) string {
 }
 
 func installAgentSkill(env agentSkillEnv) error {
-	_, _ = fmt.Fprintln(env.stdout, "Installing Beads agent skill...")
+	_, _ = fmt.Fprintln(env.stdout, "Installing IssueGraph agent skill...")
 
 	skillPath := agentSkillPath(env.projectDir)
 	if err := env.ensureDir(filepath.Dir(skillPath), 0o755); err != nil {
 		_, _ = fmt.Fprintf(env.stderr, "Error: %v\n", err)
 		return err
 	}
-	if err := env.writeFile(skillPath, []byte(templates.BeadsAgentSkill())); err != nil {
+	if err := env.writeFile(skillPath, []byte(templates.IssueGraphAgentSkill())); err != nil {
 		_, _ = fmt.Fprintf(env.stderr, "Error: write skill: %v\n", err)
 		return err
 	}
@@ -55,12 +55,12 @@ func installAgentSkill(env agentSkillEnv) error {
 		_, _ = fmt.Fprintf(env.stderr, "Error: %v\n", err)
 		return err
 	}
-	if err := env.writeFile(openAIYAMLPath, []byte(templates.BeadsAgentSkillOpenAIYAML())); err != nil {
+	if err := env.writeFile(openAIYAMLPath, []byte(templates.IssueGraphAgentSkillOpenAIYAML())); err != nil {
 		_, _ = fmt.Fprintf(env.stderr, "Error: write skill metadata: %v\n", err)
 		return err
 	}
 
-	_, _ = fmt.Fprintln(env.stdout, "✓ Beads agent skill installed")
+	_, _ = fmt.Fprintln(env.stdout, "✓ IssueGraph agent skill installed")
 	_, _ = fmt.Fprintf(env.stdout, "  Skill: %s\n", skillPath)
 	return nil
 }
@@ -69,7 +69,7 @@ func checkAgentSkill(env agentSkillEnv, setupCommand string) error {
 	skillPath := agentSkillPath(env.projectDir)
 	data, err := env.readFile(skillPath)
 	if os.IsNotExist(err) {
-		_, _ = fmt.Fprintf(env.stdout, "✗ Beads agent skill not found: %s\n", skillPath)
+		_, _ = fmt.Fprintf(env.stdout, "✗ IssueGraph agent skill not found: %s\n", skillPath)
 		_, _ = fmt.Fprintf(env.stdout, "  Run: %s\n", setupCommand)
 		return errAgentSkillMissing
 	}
@@ -77,8 +77,8 @@ func checkAgentSkill(env agentSkillEnv, setupCommand string) error {
 		_, _ = fmt.Fprintf(env.stderr, "Error: read skill: %v\n", err)
 		return err
 	}
-	if string(data) != templates.BeadsAgentSkill() {
-		_, _ = fmt.Fprintf(env.stdout, "⚠ Beads agent skill installed but stale: %s\n", skillPath)
+	if string(data) != templates.IssueGraphAgentSkill() {
+		_, _ = fmt.Fprintf(env.stdout, "⚠ IssueGraph agent skill installed but stale: %s\n", skillPath)
 		_, _ = fmt.Fprintf(env.stdout, "  Run: %s\n", setupCommand)
 		return errAgentSkillStale
 	}
@@ -86,7 +86,7 @@ func checkAgentSkill(env agentSkillEnv, setupCommand string) error {
 	openAIYAMLPath := agentSkillOpenAIYAMLPath(env.projectDir)
 	data, err = env.readFile(openAIYAMLPath)
 	if os.IsNotExist(err) {
-		_, _ = fmt.Fprintf(env.stdout, "✗ Beads agent skill metadata not found: %s\n", openAIYAMLPath)
+		_, _ = fmt.Fprintf(env.stdout, "✗ IssueGraph agent skill metadata not found: %s\n", openAIYAMLPath)
 		_, _ = fmt.Fprintf(env.stdout, "  Run: %s\n", setupCommand)
 		return errAgentSkillMissing
 	}
@@ -94,18 +94,18 @@ func checkAgentSkill(env agentSkillEnv, setupCommand string) error {
 		_, _ = fmt.Fprintf(env.stderr, "Error: read skill metadata: %v\n", err)
 		return err
 	}
-	if string(data) != templates.BeadsAgentSkillOpenAIYAML() {
-		_, _ = fmt.Fprintf(env.stdout, "⚠ Beads agent skill metadata is stale: %s\n", openAIYAMLPath)
+	if string(data) != templates.IssueGraphAgentSkillOpenAIYAML() {
+		_, _ = fmt.Fprintf(env.stdout, "⚠ IssueGraph agent skill metadata is stale: %s\n", openAIYAMLPath)
 		_, _ = fmt.Fprintf(env.stdout, "  Run: %s\n", setupCommand)
 		return errAgentSkillStale
 	}
 
-	_, _ = fmt.Fprintf(env.stdout, "✓ Beads agent skill installed: %s\n", skillPath)
+	_, _ = fmt.Fprintf(env.stdout, "✓ IssueGraph agent skill installed: %s\n", skillPath)
 	return nil
 }
 
 func removeAgentSkill(env agentSkillEnv) error {
-	_, _ = fmt.Fprintln(env.stdout, "Removing Beads agent skill...")
+	_, _ = fmt.Fprintln(env.stdout, "Removing IssueGraph agent skill...")
 	for _, path := range []string{
 		agentSkillOpenAIYAMLPath(env.projectDir),
 		agentSkillPath(env.projectDir),
@@ -116,8 +116,8 @@ func removeAgentSkill(env agentSkillEnv) error {
 		}
 	}
 	for _, dir := range []string{
-		filepath.Join(env.projectDir, ".agents", "skills", "beads", "agents"),
-		filepath.Join(env.projectDir, ".agents", "skills", "beads"),
+		filepath.Join(env.projectDir, ".agents", "skills", "issuegraph", "agents"),
+		filepath.Join(env.projectDir, ".agents", "skills", "issuegraph"),
 		filepath.Join(env.projectDir, ".agents", "skills"),
 		filepath.Join(env.projectDir, ".agents"),
 	} {
@@ -136,6 +136,6 @@ func removeAgentSkill(env agentSkillEnv) error {
 			return err
 		}
 	}
-	_, _ = fmt.Fprintln(env.stdout, "✓ Beads agent skill removed")
+	_, _ = fmt.Fprintln(env.stdout, "✓ IssueGraph agent skill removed")
 	return nil
 }

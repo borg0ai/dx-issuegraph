@@ -10,16 +10,16 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/steveyegge/beads/internal/storage/dolt"
-	"github.com/steveyegge/beads/internal/types"
+	"github.com/borg0ai/dx-issuegraph/internal/storage/dolt"
+	"github.com/borg0ai/dx-issuegraph/internal/types"
 )
 
 func TestSqlCommand(t *testing.T) {
 	tempDir := t.TempDir()
-	testDBPath := filepath.Join(tempDir, ".beads", "test.db")
+	testDBPath := filepath.Join(tempDir, ".issuegraph", "test.db")
 
 	if err := os.MkdirAll(filepath.Dir(testDBPath), 0755); err != nil {
-		t.Fatalf("Failed to create .beads directory: %v", err)
+		t.Fatalf("Failed to create .issuegraph directory: %v", err)
 	}
 
 	testStore, err := dolt.New(context.Background(), &dolt.Config{Path: testDBPath})

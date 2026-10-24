@@ -60,7 +60,7 @@ func applyNoCOW(path string) error {
 		return nil
 	}
 
-	// nolint:gosec // G304: path is the caller-provided .beads/ dolt directory
+	// nolint:gosec // G304: path is the caller-provided .issuegraph/ dolt directory
 	f, err := os.Open(path)
 	if err != nil {
 		return err
@@ -87,7 +87,7 @@ func hasNoCOW(path string) (bool, error) {
 		return false, nil
 	}
 
-	// nolint:gosec // G304: path is the caller-provided .beads/ dolt directory
+	// nolint:gosec // G304: path is the caller-provided .issuegraph/ dolt directory
 	f, err := os.Open(path)
 	if err != nil {
 		return false, err

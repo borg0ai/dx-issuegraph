@@ -6,8 +6,8 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/steveyegge/beads/internal/types"
-	"github.com/steveyegge/beads/issueops"
+	"github.com/borg0ai/dx-issuegraph/internal/types"
+	"github.com/borg0ai/dx-issuegraph/issueops"
 )
 
 // Pure, on a fake ROLE. The wire edge — the body vocabulary at both levels, the
@@ -22,7 +22,7 @@ import (
 // with a bad id really did commit — which is TestProxiedServerServeBatchClose
 // against real Dolt.
 
-const batchClosePath = "/v0/beads/issues:batchClose"
+const batchClosePath = "/v0/issuegraph/issues:batchClose"
 
 func (ts *testServer) batchClose(t *testing.T, body string) *http.Response {
 	t.Helper()
@@ -426,7 +426,7 @@ func TestBatchCloseLeavesTheRolesOwnResultAlone(t *testing.T) {
 	}
 }
 
-// TestBatchCloseAdmitsADuplicateID: `bd close a b a` is a plausible typo, not a
+// TestBatchCloseAdmitsADuplicateID: `issuegraph close a b a` is a plausible typo, not a
 // failure. The role closes in order and reports the second occurrence as an
 // idempotent re-close at its OWN index, so the handler's job is to forward the
 // duplicate rather than deduplicate it — which would silently shorten the

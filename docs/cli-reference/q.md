@@ -1,22 +1,22 @@
 ---
-title: "bd q"
+title: "issuegraph q"
 description: "Quick capture creates an issue and outputs only the issue ID."
 ---
 
 {/* AUTO-GENERATED: do not edit manually */}
 
-Generated from `bd help --doc q`.
+Generated from `issuegraph help --doc q`.
 
 Quick capture creates an issue and outputs only the issue ID.
 Designed for scripting and AI agent integration.
 
 Example:
-  bd q "Fix login bug"           # Outputs: bd-a1b2
-  ISSUE=$(bd q "New feature")    # Capture ID in variable
-  bd q "Task" | xargs bd show    # Pipe to other commands
+  issuegraph q "Fix login bug"           # Outputs: issuegraph-a1b2
+  ISSUE=$(issuegraph q "New feature")    # Capture ID in variable
+  issuegraph q "Task" | xargs issuegraph show    # Pipe to other commands
 
 ```
-bd q [title] [flags]
+issuegraph q [title] [flags]
 ```
 
 **Flags:**

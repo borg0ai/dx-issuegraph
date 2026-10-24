@@ -16,41 +16,41 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/steveyegge/beads/internal/config"
+	"github.com/borg0ai/dx-issuegraph/internal/config"
 )
 
-// hermeticInitEnv sets sync.remote via BD_SYNC_REMOTE (viper AutomaticEnv,
-// config.go:165-169), stripped of inherited BD_*/BEADS_* vars and
-// HOME-isolated so ambient ~/.beads or ~/.config/bd config can't leak in.
+// hermeticInitEnv sets sync.remote via ISSUEGRAPH_SYNC_REMOTE (viper AutomaticEnv,
+// config.go:165-169), stripped of inherited ISSUEGRAPH_*/ISSUEGRAPH_* vars and
+// HOME-isolated so ambient ~/.issuegraph or ~/.config/issuegraph config can't leak in.
 //
-// BD_DISABLE_METRICS and BD_DISABLE_EVENT_FLUSH are re-added after the strip:
+// ISSUEGRAPH_DISABLE_METRICS and ISSUEGRAPH_DISABLE_EVENT_FLUSH are re-added after the strip:
 // they are not ambient user config, they are fixed harness guards this test
-// package owns (test_repo_beads_guard_test.go:139-140), and dropping them
-// re-arms the detached-flusher race that test_repo_beads_guard_test.go:118-135
+// package owns (test_repo_issuegraph_guard_test.go:139-140), and dropping them
+// re-arms the detached-flusher race that test_repo_issuegraph_guard_test.go:118-135
 // documents — the subprocess's homeDir is a t.TempDir() that gets RemoveAll'd
-// while the orphaned `bd send-metrics` child still holds files open under it.
+// while the orphaned `issuegraph send-metrics` child still holds files open under it.
 func hermeticInitEnv(homeDir string, extra ...string) []string {
 	var env []string
 	for _, e := range os.Environ() {
-		if strings.HasPrefix(e, "BD_") || strings.HasPrefix(e, "BEADS_") {
+		if strings.HasPrefix(e, "ISSUEGRAPH_") || strings.HasPrefix(e, "ISSUEGRAPH_") {
 			continue
 		}
 		env = append(env, e)
 	}
 	env = append(env, "HOME="+homeDir, "GIT_CONFIG_GLOBAL=/dev/null", "GIT_CONFIG_SYSTEM=/dev/null",
-		"BD_DISABLE_METRICS=1", "BD_DISABLE_EVENT_FLUSH=1")
+		"ISSUEGRAPH_DISABLE_METRICS=1", "ISSUEGRAPH_DISABLE_EVENT_FLUSH=1")
 	return append(env, extra...)
 }
 
 // TestInitReinitLocalConfiguredRemoteWithoutDoltDataSucceeds is the
-// caller-level regression test for GH#4861: sync.remote (via BD_SYNC_REMOTE,
+// caller-level regression test for GH#4861: sync.remote (via ISSUEGRAPH_SYNC_REMOTE,
 // not --remote, to hit initSyncRemoteConfigured) has no refs/dolt/data, so
-// `bd init --reinit-local` must succeed rather than refuse. Supersedes
+// `issuegraph init --reinit-local` must succeed rather than refuse. Supersedes
 // TestCheckRemoteSafety_ConfiguredRemoteWithoutDoltData, which called the
 // unmodified CheckRemoteSafety directly and tested nothing about this fix
 // (both its cases are already in TestCheckRemoteSafety_GuardMatrix).
 func TestInitReinitLocalConfiguredRemoteWithoutDoltDataSucceeds(t *testing.T) {
-	bdBin := buildBDForInitTests(t)
+	issuegraphBin := buildIssueGraphForInitTests(t)
 
 	bareDir := filepath.Join(t.TempDir(), "bare.git")
 	runGitForBootstrapTest(t, "", "init", "--bare", bareDir)
@@ -60,20 +60,20 @@ func TestInitReinitLocalConfiguredRemoteWithoutDoltDataSucceeds(t *testing.T) {
 	runGitForBootstrapTest(t, workDir, "init", "-b", "main")
 	runGitForBootstrapTest(t, workDir, "config", "core.hooksPath", ".git/hooks")
 
-	homeDir := t.TempDir() // must differ from workDir: metrics.go caches to $HOME/.beads
+	homeDir := t.TempDir() // must differ from workDir: metrics.go caches to $HOME/.issuegraph
 
-	cmd := exec.Command(bdBin, "init", "--reinit-local", "--prefix", "cfg", "--quiet", "--non-interactive", "--skip-hooks", "--skip-agents")
+	cmd := exec.Command(issuegraphBin, "init", "--reinit-local", "--prefix", "cfg", "--quiet", "--non-interactive", "--skip-hooks", "--skip-agents")
 	cmd.Dir = workDir
-	cmd.Env = hermeticInitEnv(homeDir, "BD_SYNC_REMOTE="+bareDir)
+	cmd.Env = hermeticInitEnv(homeDir, "ISSUEGRAPH_SYNC_REMOTE="+bareDir)
 	var stderr bytes.Buffer
 	cmd.Stderr = &stderr
 	if err := cmd.Run(); err != nil {
-		t.Fatalf("bd init --reinit-local with a Dolt-data-free sync.remote failed: %v\nstderr:\n%s", err, stderr.String())
+		t.Fatalf("issuegraph init --reinit-local with a Dolt-data-free sync.remote failed: %v\nstderr:\n%s", err, stderr.String())
 	}
 
-	beadsDir := filepath.Join(workDir, ".beads")
-	if _, err := os.Stat(beadsDir); err != nil {
-		t.Fatalf(".beads should have been created by a successful init: %v", err)
+	issuegraphDir := filepath.Join(workDir, ".issuegraph")
+	if _, err := os.Stat(issuegraphDir); err != nil {
+		t.Fatalf(".issuegraph should have been created by a successful init: %v", err)
 	}
 }
 
@@ -81,14 +81,14 @@ func TestInitReinitLocalConfiguredRemoteWithoutDoltDataSucceeds(t *testing.T) {
 // the tri-state probe: a git origin the probe cannot reach at all (exit 128 —
 // the credential-less private-remote shape every CI container has) resolves
 // to UNKNOWN, which fails closed for the refusal gate but must NOT convert a
-// plain `bd init` into a bootstrap clone against that same unreachable
+// plain `issuegraph init` into a bootstrap clone against that same unreachable
 // origin. There is no local history to protect here, and the clone can only
 // fail the same way the probe did, so init falls back to a fresh local
 // database — the behavior this path always had before the probe existed.
 // Regression: #5136 broke TestE2E_InitDoltMetadataRoundtrip (Main-lane only,
 // so its PR ran green) exactly this way.
 func TestInitFreshWithUnreachableGitOriginSucceeds(t *testing.T) {
-	bdBin := buildBDForInitTests(t)
+	issuegraphBin := buildIssueGraphForInitTests(t)
 
 	workDir := t.TempDir()
 	runGitForBootstrapTest(t, workDir, "init", "-b", "main")
@@ -98,9 +98,9 @@ func TestInitFreshWithUnreachableGitOriginSucceeds(t *testing.T) {
 	runGitForBootstrapTest(t, workDir, "remote", "add", "origin",
 		filepath.Join(t.TempDir(), "does-not-exist.git"))
 
-	homeDir := t.TempDir() // must differ from workDir: metrics.go caches to $HOME/.beads
+	homeDir := t.TempDir() // must differ from workDir: metrics.go caches to $HOME/.issuegraph
 
-	cmd := exec.Command(bdBin, "init", "--backend", "dolt", "--prefix", "org", "--quiet", "--non-interactive", "--skip-hooks", "--skip-agents")
+	cmd := exec.Command(issuegraphBin, "init", "--backend", "dolt", "--prefix", "org", "--quiet", "--non-interactive", "--skip-hooks", "--skip-agents")
 	cmd.Dir = workDir
 	cmd.Env = hermeticInitEnv(homeDir)
 	var out bytes.Buffer
@@ -111,27 +111,27 @@ func TestInitFreshWithUnreachableGitOriginSucceeds(t *testing.T) {
 		if strings.Contains(lower, "dolt") && (strings.Contains(lower, "not supported") || strings.Contains(lower, "not available") || strings.Contains(lower, "unknown")) {
 			t.Skipf("dolt backend not available: %s", out.String())
 		}
-		t.Fatalf("bd init with an unreachable git origin failed: %v\noutput:\n%s", err, out.String())
+		t.Fatalf("issuegraph init with an unreachable git origin failed: %v\noutput:\n%s", err, out.String())
 	}
 
-	if _, err := os.Stat(filepath.Join(workDir, ".beads")); err != nil {
-		t.Fatalf(".beads should have been created by a successful init: %v", err)
+	if _, err := os.Stat(filepath.Join(workDir, ".issuegraph")); err != nil {
+		t.Fatalf(".issuegraph should have been created by a successful init: %v", err)
 	}
 
-	if _, err := os.Stat(filepath.Join(homeDir, ".beads", "eventsData")); !os.IsNotExist(err) {
+	if _, err := os.Stat(filepath.Join(homeDir, ".issuegraph", "eventsData")); !os.IsNotExist(err) {
 		t.Errorf("metrics queue dir was created under the isolated HOME (err=%v); "+
 			"the detached send-metrics child will race t.TempDir cleanup "+
-			"(see test_repo_beads_guard_test.go:118)", err)
+			"(see test_repo_issuegraph_guard_test.go:118)", err)
 	}
 }
 
 // TestInitReinitLocalConfiguredRemoteWithDoltDataRefuses is the sibling case:
-// sync.remote (again via BD_SYNC_REMOTE, not --remote) points at a bare repo
-// that DOES have refs/dolt/data pushed to it. `bd init --reinit-local` must
+// sync.remote (again via ISSUEGRAPH_SYNC_REMOTE, not --remote) points at a bare repo
+// that DOES have refs/dolt/data pushed to it. `issuegraph init --reinit-local` must
 // still refuse with ExitRemoteDivergenceRefused (10) — this is the ADR-0002
 // invariant the GH#4861 fix must not weaken while closing the false positive.
 func TestInitReinitLocalConfiguredRemoteWithDoltDataRefuses(t *testing.T) {
-	bdBin := buildBDForInitTests(t)
+	issuegraphBin := buildIssueGraphForInitTests(t)
 
 	bareDir := filepath.Join(t.TempDir(), "bare.git")
 	runGitForBootstrapTest(t, "", "init", "--bare", bareDir)
@@ -149,14 +149,14 @@ func TestInitReinitLocalConfiguredRemoteWithDoltDataRefuses(t *testing.T) {
 	runGitForBootstrapTest(t, workDir, "config", "core.hooksPath", ".git/hooks")
 	homeDir := t.TempDir() // see collision note in the sibling test above
 
-	cmd := exec.Command(bdBin, "init", "--reinit-local", "--prefix", "cfg", "--quiet", "--non-interactive", "--skip-hooks", "--skip-agents")
+	cmd := exec.Command(issuegraphBin, "init", "--reinit-local", "--prefix", "cfg", "--quiet", "--non-interactive", "--skip-hooks", "--skip-agents")
 	cmd.Dir = workDir
-	cmd.Env = hermeticInitEnv(homeDir, "BD_SYNC_REMOTE="+bareDir)
+	cmd.Env = hermeticInitEnv(homeDir, "ISSUEGRAPH_SYNC_REMOTE="+bareDir)
 	var stderr bytes.Buffer
 	cmd.Stderr = &stderr
 	err := cmd.Run()
 	if err == nil {
-		t.Fatalf("bd init --reinit-local succeeded; expected refusal (sync.remote has Dolt history). stderr:\n%s", stderr.String())
+		t.Fatalf("issuegraph init --reinit-local succeeded; expected refusal (sync.remote has Dolt history). stderr:\n%s", stderr.String())
 	}
 	exitErr, ok := err.(*exec.ExitError)
 	if !ok {
@@ -166,9 +166,9 @@ func TestInitReinitLocalConfiguredRemoteWithDoltDataRefuses(t *testing.T) {
 		t.Errorf("exit code = %d, want %d (ExitRemoteDivergenceRefused)", code, ExitRemoteDivergenceRefused)
 	}
 
-	beadsDir := filepath.Join(workDir, ".beads")
-	if _, err := os.Stat(beadsDir); err == nil {
-		t.Errorf("refusal should not have created %s", beadsDir)
+	issuegraphDir := filepath.Join(workDir, ".issuegraph")
+	if _, err := os.Stat(issuegraphDir); err == nil {
+		t.Errorf("refusal should not have created %s", issuegraphDir)
 	}
 }
 
@@ -218,12 +218,12 @@ func TestCheckRemoteSafety_GuardMatrix(t *testing.T) {
 		// no token: requires destroy-token.
 		{
 			"remote/force+discard/non-interactive/no-token",
-			RemoteSafetyInput{RemoteHasDoltData: true, Force: true, DiscardRemote: true, ExpectedToken: "DESTROY-bd"},
+			RemoteSafetyInput{RemoteHasDoltData: true, Force: true, DiscardRemote: true, ExpectedToken: "DESTROY-issuegraph"},
 			ActionRequireDestroyToken, ExitDestroyTokenMissing,
 		},
 		{
 			"remote/from-jsonl+discard/non-interactive/no-token",
-			RemoteSafetyInput{RemoteHasDoltData: true, FromJSONL: true, DiscardRemote: true, ExpectedToken: "DESTROY-bd"},
+			RemoteSafetyInput{RemoteHasDoltData: true, FromJSONL: true, DiscardRemote: true, ExpectedToken: "DESTROY-issuegraph"},
 			ActionRequireDestroyToken, ExitDestroyTokenMissing,
 		},
 
@@ -233,7 +233,7 @@ func TestCheckRemoteSafety_GuardMatrix(t *testing.T) {
 			"remote/force+discard/non-interactive/wrong-token",
 			RemoteSafetyInput{
 				RemoteHasDoltData: true, Force: true, DiscardRemote: true,
-				DestroyToken: "DESTROY-wrong", ExpectedToken: "DESTROY-bd",
+				DestroyToken: "DESTROY-wrong", ExpectedToken: "DESTROY-issuegraph",
 			},
 			ActionRequireDestroyToken, ExitDestroyTokenMissing,
 		},
@@ -244,7 +244,7 @@ func TestCheckRemoteSafety_GuardMatrix(t *testing.T) {
 			"remote/force+discard/non-interactive/matching-token",
 			RemoteSafetyInput{
 				RemoteHasDoltData: true, Force: true, DiscardRemote: true,
-				DestroyToken: "DESTROY-bd", ExpectedToken: "DESTROY-bd",
+				DestroyToken: "DESTROY-issuegraph", ExpectedToken: "DESTROY-issuegraph",
 			},
 			ActionProceedWithDivergence, 0,
 		},
@@ -252,7 +252,7 @@ func TestCheckRemoteSafety_GuardMatrix(t *testing.T) {
 			"remote/from-jsonl+discard/non-interactive/matching-token",
 			RemoteSafetyInput{
 				RemoteHasDoltData: true, FromJSONL: true, DiscardRemote: true,
-				DestroyToken: "DESTROY-bd", ExpectedToken: "DESTROY-bd",
+				DestroyToken: "DESTROY-issuegraph", ExpectedToken: "DESTROY-issuegraph",
 			},
 			ActionProceedWithDivergence, 0,
 		},
@@ -272,7 +272,7 @@ func TestCheckRemoteSafety_GuardMatrix(t *testing.T) {
 		// the user named the intent explicitly. This is a small
 		// ergonomics win — a user who knows about --discard-remote
 		// doesn't also have to type --reinit-local. The local-safety
-		// guard still fires separately (checkExistingBeadsData) if there's
+		// guard still fires separately (checkExistingIssueGraphData) if there's
 		// local data; that's a separate column not in this matrix.
 		{
 			"remote/discard-remote-only/interactive",
@@ -303,8 +303,8 @@ func TestCheckRemoteSafety_GuardMatrix(t *testing.T) {
 // invocation. A copy-pasteable command in the error is the failure class
 // that produced the 58f5989bf 247-issue incident.
 func TestCheckRemoteSafety_RefusalTextNoEcho(t *testing.T) {
-	// The refusal text must point to `bd help init-safety` or
-	// `bd bootstrap` (safe tools), not construct a full destructive
+	// The refusal text must point to `issuegraph help init-safety` or
+	// `issuegraph bootstrap` (safe tools), not construct a full destructive
 	// command. Grep for flag combinations that would form a destructive
 	// one-liner.
 	in := RemoteSafetyInput{
@@ -313,8 +313,8 @@ func TestCheckRemoteSafety_RefusalTextNoEcho(t *testing.T) {
 	msg := CheckRemoteSafety(in).UserMessage
 
 	bannedEchoes := []string{
-		"bd init --force --discard-remote --destroy-token",
-		"bd init --reinit-local --discard-remote --destroy-token",
+		"issuegraph init --force --discard-remote --destroy-token",
+		"issuegraph init --reinit-local --discard-remote --destroy-token",
 		"DESTROY-",
 	}
 	for _, banned := range bannedEchoes {
@@ -324,12 +324,12 @@ func TestCheckRemoteSafety_RefusalTextNoEcho(t *testing.T) {
 	}
 
 	// It MUST name the safe path.
-	if !strings.Contains(msg, "bd bootstrap") {
-		t.Errorf("refusal text does not name the safe tool 'bd bootstrap':\n%s", msg)
+	if !strings.Contains(msg, "issuegraph bootstrap") {
+		t.Errorf("refusal text does not name the safe tool 'issuegraph bootstrap':\n%s", msg)
 	}
 	// And it must point to the help topic for the destructive path.
-	if !strings.Contains(msg, "bd help init-safety") {
-		t.Errorf("refusal text does not point to 'bd help init-safety':\n%s", msg)
+	if !strings.Contains(msg, "issuegraph help init-safety") {
+		t.Errorf("refusal text does not point to 'issuegraph help init-safety':\n%s", msg)
 	}
 	if !strings.Contains(msg, "--from-jsonl") {
 		t.Errorf("refusal text does not name the JSONL local-source flag:\n%s", msg)
@@ -359,11 +359,11 @@ func TestShouldWireInitRemote(t *testing.T) {
 		},
 		{
 			// Keep this true. The URL is the supported pre-first-push wiring:
-			// the first `bd dolt push` creates refs/dolt/data on that same git
+			// the first `issuegraph dolt push` creates refs/dolt/data on that same git
 			// remote, and bootstrap resolves the persisted value by probing
 			// for that ref (#5743). Do not "fix" a bootstrap failure by
 			// un-persisting here — that leaves every already-committed
-			// .beads/config.yaml in the wild broken.
+			// .issuegraph/config.yaml in the wild broken.
 			name:           "plain git origin without dolt data",
 			syncURL:        "git+https://github.com/org/plain-source.git",
 			syncURLFromGit: true,
@@ -371,7 +371,7 @@ func TestShouldWireInitRemote(t *testing.T) {
 		},
 		{
 			name:              "git origin with refs/dolt/data",
-			syncURL:           "git+https://github.com/org/beads-data.git",
+			syncURL:           "git+https://github.com/org/issuegraph-data.git",
 			syncFromRemote:    true,
 			syncURLFromConfig: false,
 			want:              true,
@@ -452,11 +452,11 @@ func TestShouldConfigureInitDoltRemoteHonorsLocalOnly(t *testing.T) {
 }
 
 func TestLocalOnlyInitSkipsConfigureButPersistsExplicitRemote(t *testing.T) {
-	beadsDir := filepath.Join(t.TempDir(), ".beads")
-	if err := os.MkdirAll(beadsDir, 0o700); err != nil {
-		t.Fatalf("mkdir beads dir: %v", err)
+	issuegraphDir := filepath.Join(t.TempDir(), ".issuegraph")
+	if err := os.MkdirAll(issuegraphDir, 0o700); err != nil {
+		t.Fatalf("mkdir issuegraph dir: %v", err)
 	}
-	configPath := filepath.Join(beadsDir, "config.yaml")
+	configPath := filepath.Join(issuegraphDir, "config.yaml")
 	if err := os.WriteFile(configPath, []byte("dolt.local-only: true\n"), 0o600); err != nil {
 		t.Fatalf("write config: %v", err)
 	}
@@ -466,10 +466,10 @@ func TestLocalOnlyInitSkipsConfigureButPersistsExplicitRemote(t *testing.T) {
 		t.Fatal("local-only init should not configure a Dolt remote")
 	}
 
-	if err := persistInitSyncRemote(beadsDir, remote, remote, false, true, false); err != nil {
+	if err := persistInitSyncRemote(issuegraphDir, remote, remote, false, true, false); err != nil {
 		t.Fatalf("persistInitSyncRemote failed: %v", err)
 	}
-	got := config.GetStringFromDir(beadsDir, "sync.remote")
+	got := config.GetStringFromDir(issuegraphDir, "sync.remote")
 	if got != remote {
 		data, _ := os.ReadFile(configPath)
 		t.Fatalf("sync.remote was not persisted under local-only config: got %q, want %q\nfile:\n%s",
@@ -479,7 +479,7 @@ func TestLocalOnlyInitSkipsConfigureButPersistsExplicitRemote(t *testing.T) {
 
 // TestIsDoltLocalOnly covers the config-reading helper that
 // TestLocalOnlyInitSkipsConfigureButPersistsExplicitRemote bypasses by
-// passing localOnly directly. dolt.local-only maps to BD_DOLT_LOCAL_ONLY
+// passing localOnly directly. dolt.local-only maps to ISSUEGRAPH_DOLT_LOCAL_ONLY
 // through the config env-key replacer (".","-" → "_").
 func TestIsDoltLocalOnly(t *testing.T) {
 	// Cannot be parallel: mutates the global env + config singleton.
@@ -496,10 +496,10 @@ func TestIsDoltLocalOnly(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			if tt.setEnv {
-				t.Setenv("BD_DOLT_LOCAL_ONLY", tt.envVal)
+				t.Setenv("ISSUEGRAPH_DOLT_LOCAL_ONLY", tt.envVal)
 			} else {
-				os.Unsetenv("BD_DOLT_LOCAL_ONLY")
-				t.Cleanup(func() { os.Unsetenv("BD_DOLT_LOCAL_ONLY") })
+				os.Unsetenv("ISSUEGRAPH_DOLT_LOCAL_ONLY")
+				t.Cleanup(func() { os.Unsetenv("ISSUEGRAPH_DOLT_LOCAL_ONLY") })
 			}
 
 			config.ResetForTesting()
@@ -516,27 +516,27 @@ func TestIsDoltLocalOnly(t *testing.T) {
 }
 
 // TestFormatDestroyToken asserts the token format contract that
-// bd help init-safety documents. If this format changes, help text
+// issuegraph help init-safety documents. If this format changes, help text
 // and the ADR must update together.
 func TestFormatDestroyToken(t *testing.T) {
-	got := FormatDestroyToken("bd")
-	want := "DESTROY-bd"
+	got := FormatDestroyToken("issuegraph")
+	want := "DESTROY-issuegraph"
 	if got != want {
-		t.Errorf("FormatDestroyToken(\"bd\") = %q, want %q", got, want)
+		t.Errorf("FormatDestroyToken(\"issuegraph\") = %q, want %q", got, want)
 	}
 }
 
 // TestInitForceRefusesWhenRemoteHasDoltData is the end-to-end subprocess
 // regression test for bd-q83. It creates a bare repo with a synthetic
-// `refs/dolt/data` ref, then runs `bd init --force` in a clone of that
-// repo. Expected: non-zero exit, refusal message points to `bd bootstrap`,
-// no `.beads/` directory created.
+// `refs/dolt/data` ref, then runs `issuegraph init --force` in a clone of that
+// repo. Expected: non-zero exit, refusal message points to `issuegraph bootstrap`,
+// no `.issuegraph/` directory created.
 //
 // Per the test-engineer position: the fixture uses a synthetic git ref
 // (no real Dolt push needed). `gitOriginHasDoltDataRef` only checks that the
 // ref exists, not its content.
 func TestInitForceRefusesWhenRemoteHasDoltData(t *testing.T) {
-	bdBin := buildBDForInitTests(t)
+	issuegraphBin := buildIssueGraphForInitTests(t)
 
 	bareDir := filepath.Join(t.TempDir(), "bare.git")
 	runGitForBootstrapTest(t, "", "init", "--bare", bareDir)
@@ -555,7 +555,7 @@ func TestInitForceRefusesWhenRemoteHasDoltData(t *testing.T) {
 	runGitForBootstrapTest(t, cloneDir, "remote", "add", "origin", bareDir)
 	runGitForBootstrapTest(t, cloneDir, "config", "core.hooksPath", ".git/hooks")
 
-	cmd := exec.Command(bdBin, "init", "--force", "--prefix", "bd", "--quiet", "--non-interactive", "--skip-hooks", "--skip-agents")
+	cmd := exec.Command(issuegraphBin, "init", "--force", "--prefix", "issuegraph", "--quiet", "--non-interactive", "--skip-hooks", "--skip-agents")
 	cmd.Dir = cloneDir
 	var stderr bytes.Buffer
 	cmd.Stderr = &stderr
@@ -563,7 +563,7 @@ func TestInitForceRefusesWhenRemoteHasDoltData(t *testing.T) {
 
 	// Expected: non-zero exit.
 	if err == nil {
-		t.Fatalf("bd init --force succeeded; expected refusal. stderr:\n%s", stderr.String())
+		t.Fatalf("issuegraph init --force succeeded; expected refusal. stderr:\n%s", stderr.String())
 	}
 	exitErr, ok := err.(*exec.ExitError)
 	if !ok {
@@ -575,7 +575,7 @@ func TestInitForceRefusesWhenRemoteHasDoltData(t *testing.T) {
 
 	// Refusal text must name the safe path.
 	stderrStr := stderr.String()
-	for _, must := range []string{"bd bootstrap", "bd help init-safety", "remote 'origin'"} {
+	for _, must := range []string{"issuegraph bootstrap", "issuegraph help init-safety", "remote 'origin'"} {
 		if !strings.Contains(stderrStr, must) {
 			t.Errorf("refusal missing %q:\n%s", must, stderrStr)
 		}
@@ -587,10 +587,10 @@ func TestInitForceRefusesWhenRemoteHasDoltData(t *testing.T) {
 		}
 	}
 
-	// No .beads/ should have been created.
-	beadsDir := filepath.Join(cloneDir, ".beads")
-	if _, err := os.Stat(beadsDir); err == nil {
-		t.Errorf("refusal should not have created %s", beadsDir)
+	// No .issuegraph/ should have been created.
+	issuegraphDir := filepath.Join(cloneDir, ".issuegraph")
+	if _, err := os.Stat(issuegraphDir); err == nil {
+		t.Errorf("refusal should not have created %s", issuegraphDir)
 	}
 }
 
@@ -598,7 +598,7 @@ func TestInitForceRefusesWhenRemoteHasDoltData(t *testing.T) {
 // guard for the safe default: --from-jsonl must not be silently ignored and
 // must not start a remote clone when origin advertises refs/dolt/data.
 func TestInitFromJSONLRefusesWhenRemoteHasDoltData(t *testing.T) {
-	bdBin := buildBDForInitTests(t)
+	issuegraphBin := buildIssueGraphForInitTests(t)
 
 	bareDir := filepath.Join(t.TempDir(), "bare.git")
 	runGitForBootstrapTest(t, "", "init", "--bare", bareDir)
@@ -617,22 +617,22 @@ func TestInitFromJSONLRefusesWhenRemoteHasDoltData(t *testing.T) {
 	runGitForBootstrapTest(t, cloneDir, "remote", "add", "origin", bareDir)
 	runGitForBootstrapTest(t, cloneDir, "config", "core.hooksPath", ".git/hooks")
 
-	beadsDir := filepath.Join(cloneDir, ".beads")
-	if err := os.MkdirAll(beadsDir, 0o750); err != nil {
+	issuegraphDir := filepath.Join(cloneDir, ".issuegraph")
+	if err := os.MkdirAll(issuegraphDir, 0o750); err != nil {
 		t.Fatal(err)
 	}
-	if err := os.WriteFile(filepath.Join(beadsDir, "issues.jsonl"), []byte(`{"id":"jl-abc123","title":"Local JSONL wins","type":"task","status":"open","priority":2}`+"\n"), 0o644); err != nil {
+	if err := os.WriteFile(filepath.Join(issuegraphDir, "issues.jsonl"), []byte(`{"id":"jl-abc123","title":"Local JSONL wins","type":"task","status":"open","priority":2}`+"\n"), 0o644); err != nil {
 		t.Fatal(err)
 	}
 
-	cmd := exec.Command(bdBin, "init", "--from-jsonl", "--prefix", "jl", "--quiet", "--non-interactive", "--skip-hooks", "--skip-agents")
+	cmd := exec.Command(issuegraphBin, "init", "--from-jsonl", "--prefix", "jl", "--quiet", "--non-interactive", "--skip-hooks", "--skip-agents")
 	cmd.Dir = cloneDir
 	var stderr bytes.Buffer
 	cmd.Stderr = &stderr
 	err := cmd.Run()
 
 	if err == nil {
-		t.Fatalf("bd init --from-jsonl succeeded; expected remote-divergence refusal. stderr:\n%s", stderr.String())
+		t.Fatalf("issuegraph init --from-jsonl succeeded; expected remote-divergence refusal. stderr:\n%s", stderr.String())
 	}
 	exitErr, ok := err.(*exec.ExitError)
 	if !ok {
@@ -643,7 +643,7 @@ func TestInitFromJSONLRefusesWhenRemoteHasDoltData(t *testing.T) {
 	}
 
 	stderrStr := stderr.String()
-	for _, must := range []string{"bd bootstrap", "bd help init-safety", "--from-jsonl", "remote 'origin'"} {
+	for _, must := range []string{"issuegraph bootstrap", "issuegraph help init-safety", "--from-jsonl", "remote 'origin'"} {
 		if !strings.Contains(stderrStr, must) {
 			t.Errorf("refusal missing %q:\n%s", must, stderrStr)
 		}
@@ -651,13 +651,13 @@ func TestInitFromJSONLRefusesWhenRemoteHasDoltData(t *testing.T) {
 	if strings.Contains(stderrStr, "failed to clone remote") {
 		t.Errorf("--from-jsonl should refuse before attempting remote clone:\n%s", stderrStr)
 	}
-	if _, err := os.Stat(filepath.Join(beadsDir, "embeddeddolt")); err == nil {
+	if _, err := os.Stat(filepath.Join(issuegraphDir, "embeddeddolt")); err == nil {
 		t.Errorf("refusal should not have created an embedded Dolt database")
 	}
 }
 
 func TestInitFromJSONLExplicitRemoteRefusesWhenRemoteHasDoltData(t *testing.T) {
-	bdBin := buildBDForInitTests(t)
+	issuegraphBin := buildIssueGraphForInitTests(t)
 
 	bareDir := filepath.Join(t.TempDir(), "bare.git")
 	runGitForBootstrapTest(t, "", "init", "--bare", bareDir)
@@ -675,22 +675,22 @@ func TestInitFromJSONLExplicitRemoteRefusesWhenRemoteHasDoltData(t *testing.T) {
 	runGitForBootstrapTest(t, cloneDir, "init", "-b", "main")
 	runGitForBootstrapTest(t, cloneDir, "config", "core.hooksPath", ".git/hooks")
 
-	beadsDir := filepath.Join(cloneDir, ".beads")
-	if err := os.MkdirAll(beadsDir, 0o750); err != nil {
+	issuegraphDir := filepath.Join(cloneDir, ".issuegraph")
+	if err := os.MkdirAll(issuegraphDir, 0o750); err != nil {
 		t.Fatal(err)
 	}
-	if err := os.WriteFile(filepath.Join(beadsDir, "issues.jsonl"), []byte(`{"id":"jl-abc123","title":"Local JSONL wins","type":"task","status":"open","priority":2}`+"\n"), 0o644); err != nil {
+	if err := os.WriteFile(filepath.Join(issuegraphDir, "issues.jsonl"), []byte(`{"id":"jl-abc123","title":"Local JSONL wins","type":"task","status":"open","priority":2}`+"\n"), 0o644); err != nil {
 		t.Fatal(err)
 	}
 
-	cmd := exec.Command(bdBin, "init", "--from-jsonl", "--remote", bareDir, "--prefix", "jl", "--quiet", "--non-interactive", "--skip-hooks", "--skip-agents")
+	cmd := exec.Command(issuegraphBin, "init", "--from-jsonl", "--remote", bareDir, "--prefix", "jl", "--quiet", "--non-interactive", "--skip-hooks", "--skip-agents")
 	cmd.Dir = cloneDir
 	var stderr bytes.Buffer
 	cmd.Stderr = &stderr
 	err := cmd.Run()
 
 	if err == nil {
-		t.Fatalf("bd init --from-jsonl --remote succeeded; expected remote-divergence refusal. stderr:\n%s", stderr.String())
+		t.Fatalf("issuegraph init --from-jsonl --remote succeeded; expected remote-divergence refusal. stderr:\n%s", stderr.String())
 	}
 	exitErr, ok := err.(*exec.ExitError)
 	if !ok {
@@ -701,7 +701,7 @@ func TestInitFromJSONLExplicitRemoteRefusesWhenRemoteHasDoltData(t *testing.T) {
 	}
 
 	stderrStr := stderr.String()
-	for _, must := range []string{"bd bootstrap", "bd help init-safety", "--from-jsonl", "remote 'origin'"} {
+	for _, must := range []string{"issuegraph bootstrap", "issuegraph help init-safety", "--from-jsonl", "remote 'origin'"} {
 		if !strings.Contains(stderrStr, must) {
 			t.Errorf("refusal missing %q:\n%s", must, stderrStr)
 		}
@@ -709,7 +709,7 @@ func TestInitFromJSONLExplicitRemoteRefusesWhenRemoteHasDoltData(t *testing.T) {
 	if strings.Contains(stderrStr, "failed to clone remote") {
 		t.Errorf("--from-jsonl should refuse before attempting remote clone:\n%s", stderrStr)
 	}
-	if _, err := os.Stat(filepath.Join(beadsDir, "embeddeddolt")); err == nil {
+	if _, err := os.Stat(filepath.Join(issuegraphDir, "embeddeddolt")); err == nil {
 		t.Errorf("refusal should not have created an embedded Dolt database")
 	}
 }
@@ -732,5 +732,5 @@ func TestInitForceDiscardRemoteProceedsWithToken(t *testing.T) {
 	t.Skip("covered by matrix; full end-to-end deferred to a follow-up when the full init path is simplified")
 }
 
-// Helpers used above: buildBDForInitTests, runGitForBootstrapTest — both
+// Helpers used above: buildIssueGraphForInitTests, runGitForBootstrapTest — both
 // defined elsewhere in the test package (init_test.go and bootstrap_test.go).

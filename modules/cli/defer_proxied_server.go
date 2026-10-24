@@ -7,11 +7,11 @@ import (
 	"os"
 	"time"
 
-	"github.com/steveyegge/beads/internal/storage"
-	"github.com/steveyegge/beads/internal/storage/uow"
-	"github.com/steveyegge/beads/internal/types"
-	"github.com/steveyegge/beads/internal/ui"
-	"github.com/steveyegge/beads/internal/workapi"
+	"github.com/borg0ai/dx-issuegraph/internal/storage"
+	"github.com/borg0ai/dx-issuegraph/internal/storage/uow"
+	"github.com/borg0ai/dx-issuegraph/internal/types"
+	"github.com/borg0ai/dx-issuegraph/internal/ui"
+	"github.com/borg0ai/dx-issuegraph/internal/workapi"
 )
 
 type deferProxiedResult struct {
@@ -79,7 +79,7 @@ func runDeferProxiedServer(ctx context.Context, args []string, deferUntil *time.
 		if len(r.issues) == 0 {
 			return r, "", nil
 		}
-		return r, "bd: defer", nil
+		return r, "issuegraph: defer", nil
 	})
 	if err != nil {
 		return HandleErrorRespectJSON("%v", err)
@@ -145,7 +145,7 @@ func runUndeferProxiedServer(ctx context.Context, args []string) error {
 		if len(r.issues) == 0 {
 			return r, "", nil
 		}
-		return r, "bd: undefer", nil
+		return r, "issuegraph: undefer", nil
 	})
 	if err != nil {
 		return HandleErrorRespectJSON("%v", err)

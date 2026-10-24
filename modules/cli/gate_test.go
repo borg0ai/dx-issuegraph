@@ -13,8 +13,8 @@ import (
 	"sync"
 	"testing"
 
-	"github.com/steveyegge/beads/internal/storage"
-	"github.com/steveyegge/beads/internal/types"
+	"github.com/borg0ai/dx-issuegraph/internal/storage"
+	"github.com/borg0ai/dx-issuegraph/internal/types"
 )
 
 var gateTestStdoutMu sync.Mutex
@@ -112,20 +112,20 @@ func TestShouldCheckGate(t *testing.T) {
 		{"empty filter matches gh:pr", "gh:pr", "", true},
 		{"empty filter matches timer", "timer", "", true},
 		{"empty filter matches human", "human", "", true},
-		{"empty filter matches bead", "bead", "", true},
+		{"empty filter matches issue", "issue", "", true},
 
 		// "all" filter matches all
 		{"all filter matches gh:run", "gh:run", "all", true},
 		{"all filter matches gh:pr", "gh:pr", "all", true},
 		{"all filter matches timer", "timer", "all", true},
-		{"all filter matches bead", "bead", "all", true},
+		{"all filter matches issue", "issue", "all", true},
 
 		// "gh" filter matches all GitHub types
 		{"gh filter matches gh:run", "gh:run", "gh", true},
 		{"gh filter matches gh:pr", "gh:pr", "gh", true},
 		{"gh filter does not match timer", "timer", "gh", false},
 		{"gh filter does not match human", "human", "gh", false},
-		{"gh filter does not match bead", "bead", "gh", false},
+		{"gh filter does not match issue", "issue", "gh", false},
 
 		// Exact type filters
 		{"gh:run filter matches gh:run", "gh:run", "gh:run", true},
@@ -134,8 +134,8 @@ func TestShouldCheckGate(t *testing.T) {
 		{"gh:pr filter does not match gh:run", "gh:run", "gh:pr", false},
 		{"timer filter matches timer", "timer", "timer", true},
 		{"timer filter does not match gh:run", "gh:run", "timer", false},
-		{"bead filter matches bead", "bead", "bead", true},
-		{"bead filter does not match timer", "timer", "bead", false},
+		{"issue filter matches issue", "issue", "issue", true},
+		{"issue filter does not match timer", "timer", "issue", false},
 	}
 
 	for _, tt := range tests {
@@ -152,14 +152,14 @@ func TestShouldCheckGate(t *testing.T) {
 	}
 }
 
-// fakeBeadGateGetter fakes the one lookup checkBeadGate performs.
-type fakeBeadGateGetter struct {
+// fakeIssueGateGetter fakes the one lookup checkIssueGate performs.
+type fakeIssueGateGetter struct {
 	issues map[string]*types.Issue
 	err    error
 	gotID  string
 }
 
-func (f *fakeBeadGateGetter) GetIssue(_ context.Context, id string) (*types.Issue, error) {
+func (f *fakeIssueGateGetter) GetIssue(_ context.Context, id string) (*types.Issue, error) {
 	f.gotID = id
 	if f.err != nil {
 		return nil, f.err
@@ -167,15 +167,15 @@ func (f *fakeBeadGateGetter) GetIssue(_ context.Context, id string) (*types.Issu
 	return f.issues[id], nil
 }
 
-func TestCheckBeadGate_CrossRigUsesBeadIDForRoutedLookup(t *testing.T) {
+func TestCheckIssueGate_CrossRigUsesIssueIDForRoutedLookup(t *testing.T) {
 	ctx := context.Background()
-	st := &fakeBeadGateGetter{issues: map[string]*types.Issue{
+	st := &fakeIssueGateGetter{issues: map[string]*types.Issue{
 		"gt-abc": {ID: "gt-abc", Status: types.StatusClosed},
 	}}
 
-	satisfied, reason := checkBeadGate(ctx, st, "gastown:gt-abc")
+	satisfied, reason := checkIssueGate(ctx, st, "gastown:gt-abc")
 	if !satisfied {
-		t.Fatalf("expected closed routed bead to satisfy gate, got reason %q", reason)
+		t.Fatalf("expected closed routed issue to satisfy gate, got reason %q", reason)
 	}
 	if st.gotID != "gt-abc" {
 		t.Fatalf("routed lookup ID = %q, want %q", st.gotID, "gt-abc")
@@ -186,7 +186,7 @@ func TestProxiedFreshReadGetterPreservesLocalNotFoundWhenRoutingUnavailable(t *t
 	withStubbedProxiedLookup(t, nil)
 
 	oldDBPath := dbPath
-	dbPath = filepath.Join(t.TempDir(), ".beads", "dolt")
+	dbPath = filepath.Join(t.TempDir(), ".issuegraph", "dolt")
 	t.Cleanup(func() { dbPath = oldDBPath })
 
 	_, err := (proxiedFreshReadGetter{}).GetIssue(context.Background(), "bd-missing")
@@ -195,31 +195,31 @@ func TestProxiedFreshReadGetterPreservesLocalNotFoundWhenRoutingUnavailable(t *t
 	}
 }
 
-func TestCheckBeadGate_InvalidCrossRigFormat(t *testing.T) {
+func TestCheckIssueGate_InvalidCrossRigFormat(t *testing.T) {
 	ctx := context.Background()
 	tests := []struct {
 		name    string
 		awaitID string
 	}{
 		{name: "missing rig", awaitID: ":gt-abc"},
-		{name: "missing bead", awaitID: "my-project:"},
+		{name: "missing issue", awaitID: "my-project:"},
 	}
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			satisfied, reason := checkBeadGate(ctx, nil, tt.awaitID)
+			satisfied, reason := checkIssueGate(ctx, nil, tt.awaitID)
 			if satisfied {
 				t.Errorf("expected not satisfied for %q", tt.awaitID)
 			}
-			if !gateTestContainsIgnoreCase(reason, "expected <rig>:<bead-id>") {
+			if !gateTestContainsIgnoreCase(reason, "expected <rig>:<issue-id>") {
 				t.Errorf("reason %q does not describe the expected format", reason)
 			}
 		})
 	}
 }
 
-func TestCheckBeadGate_EmptyAwaitID(t *testing.T) {
-	satisfied, reason := checkBeadGate(context.Background(), nil, "")
+func TestCheckIssueGate_EmptyAwaitID(t *testing.T) {
+	satisfied, reason := checkIssueGate(context.Background(), nil, "")
 	if satisfied {
 		t.Error("expected not satisfied for empty await_id")
 	}
@@ -228,49 +228,49 @@ func TestCheckBeadGate_EmptyAwaitID(t *testing.T) {
 	}
 }
 
-func TestCheckBeadGate_LocalBead(t *testing.T) {
-	// A plain (no-colon) await_id is a bead in this rig's own database
+func TestCheckIssueGate_LocalIssue(t *testing.T) {
+	// A plain (no-colon) await_id is a issue in this rig's own database
 	// (wy-hgms2): closed resolves the gate, anything else stays pending with
 	// a status-bearing reason.
 	ctx := context.Background()
-	st := &fakeBeadGateGetter{
+	st := &fakeIssueGateGetter{
 		issues: map[string]*types.Issue{
 			"bd-closed": {ID: "bd-closed", Status: types.StatusClosed},
 			"bd-open":   {ID: "bd-open", Status: types.StatusOpen},
 		},
 	}
 
-	satisfied, reason := checkBeadGate(ctx, st, "bd-closed")
+	satisfied, reason := checkIssueGate(ctx, st, "bd-closed")
 	if !satisfied {
-		t.Errorf("expected satisfied for closed local bead, got reason %q", reason)
+		t.Errorf("expected satisfied for closed local issue, got reason %q", reason)
 	}
 	if !gateTestContainsIgnoreCase(reason, "closed") {
 		t.Errorf("reason %q does not mention closed", reason)
 	}
 
-	satisfied, reason = checkBeadGate(ctx, st, "bd-open")
+	satisfied, reason = checkIssueGate(ctx, st, "bd-open")
 	if satisfied {
-		t.Error("expected not satisfied for open local bead")
+		t.Error("expected not satisfied for open local issue")
 	}
 	if !gateTestContainsIgnoreCase(reason, "open") {
-		t.Errorf("reason %q does not mention the bead status", reason)
+		t.Errorf("reason %q does not mention the issue status", reason)
 	}
 }
 
-func TestCheckBeadGate_LocalBeadNotFound(t *testing.T) {
-	st := &fakeBeadGateGetter{issues: map[string]*types.Issue{}}
-	satisfied, reason := checkBeadGate(context.Background(), st, "bd-missing")
+func TestCheckIssueGate_LocalIssueNotFound(t *testing.T) {
+	st := &fakeIssueGateGetter{issues: map[string]*types.Issue{}}
+	satisfied, reason := checkIssueGate(context.Background(), st, "bd-missing")
 	if satisfied {
-		t.Error("expected not satisfied for missing local bead")
+		t.Error("expected not satisfied for missing local issue")
 	}
 	if !gateTestContainsIgnoreCase(reason, "not found") {
 		t.Errorf("reason %q does not mention not found", reason)
 	}
 }
 
-func TestCheckBeadGate_LocalBeadLookupError(t *testing.T) {
-	st := &fakeBeadGateGetter{err: errors.New("dolt exploded")}
-	satisfied, reason := checkBeadGate(context.Background(), st, "bd-abc")
+func TestCheckIssueGate_LocalIssueLookupError(t *testing.T) {
+	st := &fakeIssueGateGetter{err: errors.New("dolt exploded")}
+	satisfied, reason := checkIssueGate(context.Background(), st, "bd-abc")
 	if satisfied {
 		t.Error("expected not satisfied on lookup error")
 	}
@@ -279,8 +279,8 @@ func TestCheckBeadGate_LocalBeadLookupError(t *testing.T) {
 	}
 }
 
-func TestCheckBeadGate_NilStoreStaysPending(t *testing.T) {
-	satisfied, reason := checkBeadGate(context.Background(), nil, "bd-abc")
+func TestCheckIssueGate_NilStoreStaysPending(t *testing.T) {
+	satisfied, reason := checkIssueGate(context.Background(), nil, "bd-abc")
 	if satisfied {
 		t.Error("expected not satisfied with no store")
 	}
@@ -480,7 +480,7 @@ func TestGitHubRepoFromIssueAllowsMissingRepoKey(t *testing.T) {
 func TestRepoMetadataForGateRestrictsToGitHubTypes(t *testing.T) {
 	badRepoMetadata := json.RawMessage(`{"repo":"not-owner-slash-repo"}`)
 
-	nonGitHubTypes := []string{"human", "timer", "bead"}
+	nonGitHubTypes := []string{"human", "timer", "issue"}
 	for _, gateType := range nonGitHubTypes {
 		t.Run("ignores_bad_repo_metadata_for_"+gateType, func(t *testing.T) {
 			metadata, err := repoMetadataForGate(gateType, &types.Issue{Metadata: badRepoMetadata})
@@ -582,7 +582,7 @@ func TestNeedsDiscovery(t *testing.T) {
 		{"gh:pr gate", "gh:pr", "", false},
 		{"timer gate", "timer", "", false},
 		{"human gate", "human", "", false},
-		{"bead gate", "bead", "rig:id", false},
+		{"issue gate", "issue", "rig:id", false},
 	}
 
 	for _, tt := range tests {
@@ -1100,9 +1100,9 @@ func gateTestFindSubstring(s, substr string) int {
 	return -1
 }
 
-// TestFilterIssueGates covers the bead-scoping helper behind `bd gate list <issue-id>`:
+// TestFilterIssueGates covers the issue-scoping helper behind `issuegraph gate list <issue-id>`:
 // only gate-type dependencies are returned, --all controls closed visibility, and the
-// limit is honored. Regression guard for the bug where `bd gate list <bead>` silently
+// limit is honored. Regression guard for the bug where `issuegraph gate list <issue>` silently
 // ignored the argument and returned the DB-wide gate list.
 func TestFilterIssueGates(t *testing.T) {
 	gate := types.IssueType("gate")

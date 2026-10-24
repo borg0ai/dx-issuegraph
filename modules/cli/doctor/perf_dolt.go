@@ -10,10 +10,10 @@ import (
 	"strings"
 	"time"
 
+	"github.com/borg0ai/dx-issuegraph/internal/configfile"
+	"github.com/borg0ai/dx-issuegraph/internal/doltserver"
+	"github.com/borg0ai/dx-issuegraph/internal/storage/doltutil"
 	_ "github.com/go-sql-driver/mysql"
-	"github.com/steveyegge/beads/internal/configfile"
-	"github.com/steveyegge/beads/internal/doltserver"
-	"github.com/steveyegge/beads/internal/storage/doltutil"
 )
 
 // DoltPerfMetrics holds performance metrics for Dolt operations
@@ -44,11 +44,11 @@ type DoltPerfMetrics struct {
 
 // RunDoltPerformanceDiagnostics runs performance diagnostics for Dolt backend
 func RunDoltPerformanceDiagnostics(path string, enableProfiling bool) (*DoltPerfMetrics, error) {
-	beadsDir := ResolveBeadsDirForRepo(path)
+	issuegraphDir := ResolveIssueGraphDirForRepo(path)
 
 	// Verify this is a Dolt backend
-	if !IsDoltBackend(beadsDir) {
-		backend, _ := getBackendAndBeadsDir(path)
+	if !IsDoltBackend(issuegraphDir) {
+		backend, _ := getBackendAndIssueGraphDir(path)
 		return nil, fmt.Errorf("Dolt server performance diagnostics do not apply to the configured backend %q", backend)
 	}
 
@@ -58,10 +58,10 @@ func RunDoltPerformanceDiagnostics(path string, enableProfiling bool) (*DoltPerf
 	}
 
 	// Resolve server config (handles standalone ephemeral ports)
-	dsCfg := doltserver.DefaultConfig(beadsDir)
+	dsCfg := doltserver.DefaultConfig(issuegraphDir)
 
 	// Check server status
-	doltDir := getDatabasePath(beadsDir)
+	doltDir := getDatabasePath(issuegraphDir)
 	serverRunning := isDoltServerRunning(dsCfg.Host, dsCfg.Port)
 	if serverRunning {
 		metrics.ServerStatus = "running"
@@ -71,13 +71,13 @@ func RunDoltPerformanceDiagnostics(path string, enableProfiling bool) (*DoltPerf
 
 	// Determine the database name from configuration
 	dbName := configfile.DefaultDoltDatabase
-	if cfg, err := configfile.Load(beadsDir); err == nil && cfg != nil {
+	if cfg, err := configfile.Load(issuegraphDir); err == nil && cfg != nil {
 		dbName = cfg.GetDoltDatabase()
 	}
 
 	// Start profiling if requested
 	if enableProfiling {
-		profilePath := fmt.Sprintf("beads-dolt-perf-%s.prof", time.Now().Format("2006-01-02-150405"))
+		profilePath := fmt.Sprintf("issuegraph-dolt-perf-%s.prof", time.Now().Format("2006-01-02-150405"))
 		if profileFile, err := startCPUProfile(profilePath); err != nil {
 			fmt.Fprintf(os.Stderr, "Warning: failed to start CPU profiling: %v\n", err)
 		} else {
@@ -88,10 +88,10 @@ func RunDoltPerformanceDiagnostics(path string, enableProfiling bool) (*DoltPerf
 
 	// Connect and run diagnostics via server
 	if !serverRunning {
-		return metrics, fmt.Errorf("dolt sql-server is not running on %s:%d; start it with 'bd dolt start'", dsCfg.Host, dsCfg.Port)
+		return metrics, fmt.Errorf("dolt sql-server is not running on %s:%d; start it with 'issuegraph dolt start'", dsCfg.Host, dsCfg.Port)
 	}
 
-	if err := runDoltServerDiagnostics(metrics, dsCfg.Host, dsCfg.Port, dbName, beadsDir); err != nil {
+	if err := runDoltServerDiagnostics(metrics, dsCfg.Host, dsCfg.Port, dbName, issuegraphDir); err != nil {
 		return metrics, fmt.Errorf("server diagnostics failed: %w", err)
 	}
 
@@ -102,18 +102,18 @@ func RunDoltPerformanceDiagnostics(path string, enableProfiling bool) (*DoltPerf
 }
 
 // runDoltServerDiagnostics runs diagnostics via dolt sql-server
-func runDoltServerDiagnostics(metrics *DoltPerfMetrics, host string, port int, dbName string, beadsDir string) error {
+func runDoltServerDiagnostics(metrics *DoltPerfMetrics, host string, port int, dbName string, issuegraphDir string) error {
 	metrics.Backend = "dolt-server"
 	metrics.ServerMode = true
 
 	// Resolve credentials from config and environment, matching openDoltDB behavior.
-	// GetDoltServerPasswordForPort checks BEADS_DOLT_PASSWORD env first, then
-	// falls back to ~/.config/beads/credentials keyed by [host:port] — required
+	// GetDoltServerPasswordForPort checks ISSUEGRAPH_DOLT_PASSWORD env first, then
+	// falls back to ~/.config/issuegraph/credentials keyed by [host:port] — required
 	// for externally-hosted Dolt servers (bd-h5k7).
 	user := configfile.DefaultDoltServerUser
 	var password string
 	var tls bool
-	if cfg, err := configfile.Load(beadsDir); err == nil && cfg != nil {
+	if cfg, err := configfile.Load(issuegraphDir); err == nil && cfg != nil {
 		user = cfg.GetDoltServerUser()
 		tls = cfg.GetDoltServerTLS()
 		password = cfg.GetDoltServerPasswordForPort(port)
@@ -317,9 +317,9 @@ func PrintDoltPerfReport(metrics *DoltPerfMetrics) {
 
 	fmt.Printf("\nOperation Performance (ms):\n")
 	fmt.Printf("  Connection:               %s\n", formatTiming(metrics.ConnectionTime))
-	fmt.Printf("  bd ready (GetReadyWork):  %s\n", formatTiming(metrics.ReadyWorkTime))
-	fmt.Printf("  bd list --status=open:    %s\n", formatTiming(metrics.ListOpenTime))
-	fmt.Printf("  bd show <issue>:          %s\n", formatTiming(metrics.ShowIssueTime))
+	fmt.Printf("  issuegraph ready (GetReadyWork):  %s\n", formatTiming(metrics.ReadyWorkTime))
+	fmt.Printf("  issuegraph list --status=open:    %s\n", formatTiming(metrics.ListOpenTime))
+	fmt.Printf("  issuegraph show <issue>:          %s\n", formatTiming(metrics.ShowIssueTime))
 	fmt.Printf("  Complex filter query:     %s\n", formatTiming(metrics.ComplexQueryTime))
 	fmt.Printf("  dolt_log query:           %s\n", formatTiming(metrics.CommitLogTime))
 
@@ -361,7 +361,7 @@ func assessDoltPerformance(metrics *DoltPerfMetrics) {
 
 	// Check database size
 	if metrics.TotalIssues > 5000 && metrics.ClosedIssues > 4000 {
-		recommendations = append(recommendations, "Many closed issues. Consider 'bd prune --older-than 90d' to prune old issues.")
+		recommendations = append(recommendations, "Many closed issues. Consider 'issuegraph prune --older-than 90d' to prune old issues.")
 	}
 
 	if len(warnings) == 0 {
@@ -382,10 +382,10 @@ func assessDoltPerformance(metrics *DoltPerfMetrics) {
 
 // CheckDoltPerformance runs a quick performance check as a doctor check
 func CheckDoltPerformance(path string) DoctorCheck {
-	beadsDir := ResolveBeadsDirForRepo(path)
+	issuegraphDir := ResolveIssueGraphDirForRepo(path)
 
 	// Only run for Dolt backend
-	if !IsDoltBackend(beadsDir) {
+	if !IsDoltBackend(issuegraphDir) {
 		return DoctorCheck{
 			Name:     "Dolt Performance",
 			Status:   StatusOK,
@@ -421,7 +421,7 @@ func CheckDoltPerformance(path string) DoctorCheck {
 			Name:     "Dolt Performance",
 			Status:   StatusWarning,
 			Message:  strings.Join(issues, "; "),
-			Fix:      "Run 'bd doctor perf-dolt' for detailed analysis",
+			Fix:      "Run 'issuegraph doctor perf-dolt' for detailed analysis",
 			Category: CategoryPerformance,
 		}
 	}

@@ -14,8 +14,8 @@ import (
 
 	_ "github.com/go-sql-driver/mysql"
 
-	"github.com/steveyegge/beads/internal/storage/dbproxy/proxy"
-	"github.com/steveyegge/beads/internal/testutil"
+	"github.com/borg0ai/dx-issuegraph/internal/storage/dbproxy/proxy"
+	"github.com/borg0ai/dx-issuegraph/internal/testutil"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
@@ -49,9 +49,9 @@ func TestNewDoltServerUOWProvider_ValidationErrors(t *testing.T) {
 		want     string
 	}{
 		{"empty database", "", "root", "/usr/bin/true", proxy.BackendLocalServer, "database name must not be empty"},
-		{"invalid backend", "beads", "root", "/usr/bin/true", proxy.Backend("nope"), "unknown backend"},
-		{"empty rootUser", "beads", "", "/usr/bin/true", proxy.BackendLocalServer, "rootUser must not be empty"},
-		{"empty doltBin", "beads", "root", "", proxy.BackendLocalServer, "doltBinExec must not be empty"},
+		{"invalid backend", "issuegraph", "root", "/usr/bin/true", proxy.Backend("nope"), "unknown backend"},
+		{"empty rootUser", "issuegraph", "", "/usr/bin/true", proxy.BackendLocalServer, "rootUser must not be empty"},
+		{"empty doltBin", "issuegraph", "root", "", proxy.BackendLocalServer, "doltBinExec must not be empty"},
 	}
 	for _, tc := range cases {
 		t.Run(tc.name, func(t *testing.T) {
@@ -78,9 +78,9 @@ func TestNewDoltServerUOWProvider_HappyPath(t *testing.T) {
 	bin, err := exec.LookPath("dolt")
 	require.NoError(t, err)
 
-	bdBin := buildBDBinary(t)
+	issuegraphBin := buildIssueGraphBinary(t)
 	prev := proxy.ResolveExecutable
-	proxy.ResolveExecutable = func() (string, error) { return bdBin, nil }
+	proxy.ResolveExecutable = func() (string, error) { return issuegraphBin, nil }
 	t.Cleanup(func() { proxy.ResolveExecutable = prev })
 
 	t.Setenv("HOME", t.TempDir())
@@ -96,7 +96,7 @@ func TestNewDoltServerUOWProvider_HappyPath(t *testing.T) {
 	provider, err := NewDoltServerUOWProvider(
 		context.Background(),
 		storeRootDir,
-		"beads",
+		"issuegraph",
 		logPath,
 		cfgPath,
 		proxy.BackendLocalServer,
@@ -119,9 +119,9 @@ func TestNewDoltServerUOWProvider_ConcurrentInstantiation(t *testing.T) {
 	bin, err := exec.LookPath("dolt")
 	require.NoError(t, err)
 
-	bdBin := buildBDBinary(t)
+	issuegraphBin := buildIssueGraphBinary(t)
 	prev := proxy.ResolveExecutable
-	proxy.ResolveExecutable = func() (string, error) { return bdBin, nil }
+	proxy.ResolveExecutable = func() (string, error) { return issuegraphBin, nil }
 	t.Cleanup(func() { proxy.ResolveExecutable = prev })
 
 	t.Setenv("HOME", t.TempDir())
@@ -150,7 +150,7 @@ func TestNewDoltServerUOWProvider_ConcurrentInstantiation(t *testing.T) {
 			p, err := NewDoltServerUOWProvider(
 				context.Background(),
 				storeRootDir,
-				"beads",
+				"issuegraph",
 				logPath,
 				cfgPath,
 				proxy.BackendLocalServer,
@@ -182,41 +182,41 @@ func TestNewDoltServerUOWProvider_ConcurrentInstantiation(t *testing.T) {
 }
 
 var (
-	bdBinaryOnce sync.Once
-	bdBinary     string
-	bdBinaryErr  error
+	issuegraphBinaryOnce sync.Once
+	issuegraphBinary     string
+	issuegraphBinaryErr  error
 )
 
-func buildBDBinary(t *testing.T) string {
+func buildIssueGraphBinary(t *testing.T) string {
 	t.Helper()
-	bdBinaryOnce.Do(func() {
-		if prebuilt := os.Getenv("BEADS_TEST_BD_BINARY"); prebuilt != "" {
+	issuegraphBinaryOnce.Do(func() {
+		if prebuilt := os.Getenv("ISSUEGRAPH_TEST_ISSUEGRAPH_BINARY"); prebuilt != "" {
 			if _, err := os.Stat(prebuilt); err != nil {
-				bdBinaryErr = fmt.Errorf("BEADS_TEST_BD_BINARY=%q not found: %w", prebuilt, err)
+				issuegraphBinaryErr = fmt.Errorf("ISSUEGRAPH_TEST_ISSUEGRAPH_BINARY=%q not found: %w", prebuilt, err)
 				return
 			}
-			bdBinary = prebuilt
+			issuegraphBinary = prebuilt
 			return
 		}
 		tmpDir, err := os.MkdirTemp("", "bd-uow-test-*")
 		if err != nil {
-			bdBinaryErr = fmt.Errorf("temp dir: %w", err)
+			issuegraphBinaryErr = fmt.Errorf("temp dir: %w", err)
 			return
 		}
-		name := "bd"
+		name := "issuegraph"
 		if runtime.GOOS == "windows" {
-			name = "bd.exe"
+			name = "issuegraph.exe"
 		}
-		bdBinary = filepath.Join(tmpDir, name)
-		cmd := exec.Command("go", "build", "-tags", "gms_pure_go", "-o", bdBinary, "github.com/steveyegge/beads/modules/cli")
+		issuegraphBinary = filepath.Join(tmpDir, name)
+		cmd := exec.Command("go", "build", "-tags", "gms_pure_go", "-o", issuegraphBinary, "github.com/borg0ai/dx-issuegraph/modules/cli")
 		if out, err := cmd.CombinedOutput(); err != nil {
-			bdBinaryErr = fmt.Errorf("go build bd: %v\n%s", err, out)
+			issuegraphBinaryErr = fmt.Errorf("go build issuegraph: %v\n%s", err, out)
 		}
 	})
-	if bdBinaryErr != nil {
-		t.Fatalf("build bd: %v", bdBinaryErr)
+	if issuegraphBinaryErr != nil {
+		t.Fatalf("build issuegraph: %v", issuegraphBinaryErr)
 	}
-	return bdBinary
+	return issuegraphBinary
 }
 
 func writeServerConfig(t *testing.T, port int) string {

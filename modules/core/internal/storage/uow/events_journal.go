@@ -4,7 +4,7 @@ import (
 	"context"
 	"fmt"
 
-	"github.com/steveyegge/beads/internal/storage"
+	"github.com/borg0ai/dx-issuegraph/internal/storage"
 )
 
 // EventsJournalCursorSource is the capability accessor a unit-of-work provider
@@ -15,8 +15,8 @@ import (
 //
 // There is deliberately no prune accessor beside it. Retention is a decision
 // the workspace makes, and the surfaces that page through the journal
-// (GET /v0/beads/events) must not be one line away from a delete; the prune
-// path stays on uw.EventsJournalUseCase(), where `bd events prune` reaches it
+// (GET /v0/issuegraph/events) must not be one line away from a delete; the prune
+// path stays on uw.EventsJournalUseCase(), where `issuegraph events prune` reaches it
 // inside the ephemeral-commit transaction the dolt_ignored table needs.
 type EventsJournalCursorSource interface {
 	EventsJournalCursor() (storage.EventsJournalCursor, error)

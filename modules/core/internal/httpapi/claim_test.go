@@ -17,9 +17,9 @@ import (
 
 	"github.com/go-sql-driver/mysql"
 
-	"github.com/steveyegge/beads/internal/storage"
-	"github.com/steveyegge/beads/internal/storage/domain"
-	"github.com/steveyegge/beads/internal/types"
+	"github.com/borg0ai/dx-issuegraph/internal/storage"
+	"github.com/borg0ai/dx-issuegraph/internal/storage/domain"
+	"github.com/borg0ai/dx-issuegraph/internal/types"
 )
 
 // These are pure: the claim path runs end to end over a real listener against a
@@ -27,7 +27,7 @@ import (
 // rules, response and problem shapes — is covered on every pull request by the
 // PR workflow's unconditional Go test job. What
 // a fake cannot prove is the CAS itself; the concurrent-claim race, the storage
-// commit, and the full-item parity oracle against `bd update --claim --json`
+// commit, and the full-item parity oracle against `issuegraph update --claim --json`
 // live in modules/cli's proxied-server integration test, against real Dolt.
 
 // fakeIssues embeds the interface so any method the claim path does not call
@@ -108,7 +108,7 @@ func newClaimServer(t *testing.T, issues *fakeIssues) (*testServer, *fakeProvide
 	return newTestServer(t, Config{Provider: provider}), provider
 }
 
-const claimPath = "/v0/beads/issues/bd-1:claim"
+const claimPath = "/v0/issuegraph/issues/bd-1:claim"
 
 // postBody posts a body with an explicit media type, because the media type is
 // part of what every body-carrying endpoint checks. Shared by the operations
@@ -175,8 +175,8 @@ func TestClaimWritesOnceAndAnswersWithTheRowItWrote(t *testing.T) {
 	if len(uows) != 1 {
 		t.Fatalf("opened %d units of work, want 1", len(uows))
 	}
-	if got := uows[0].commitMessages(); len(got) != 1 || got[0] != "bd: claim bd-1 by alice" {
-		t.Errorf("commit messages = %q, want exactly [bd: claim bd-1 by alice]", got)
+	if got := uows[0].commitMessages(); len(got) != 1 || got[0] != "issuegraph: claim bd-1 by alice" {
+		t.Errorf("commit messages = %q, want exactly [issuegraph: claim bd-1 by alice]", got)
 	}
 
 	// The observability floor holds for the write too: a claim that waited on
@@ -329,7 +329,7 @@ func TestClaimUnknownIDIs404(t *testing.T) {
 			}}
 			ts, _ := newClaimServer(t, issues)
 
-			resp := ts.claim(t, "/v0/beads/issues/bd-404:claim", `{"actor":"alice"}`)
+			resp := ts.claim(t, "/v0/issuegraph/issues/bd-404:claim", `{"actor":"alice"}`)
 			if resp.StatusCode != http.StatusNotFound {
 				t.Fatalf("status = %d, want 404: %s", resp.StatusCode, readAll(t, resp))
 			}
@@ -385,7 +385,7 @@ func TestClaimRefusesUnrowableIDsBeforeAnyDatabaseWork(t *testing.T) {
 			issues := &fakeIssues{issue: seededIssue("bd-1", "alice", types.StatusInProgress)}
 			ts, provider := newClaimServer(t, issues)
 
-			resp := ts.claim(t, "/v0/beads/issues/"+tc.id+":claim", `{"actor":"alice"}`)
+			resp := ts.claim(t, "/v0/issuegraph/issues/"+tc.id+":claim", `{"actor":"alice"}`)
 			if resp.StatusCode != http.StatusNotFound {
 				t.Fatalf("status = %d, want 404: %s", resp.StatusCode, readAll(t, resp))
 			}
@@ -488,7 +488,7 @@ func TestClaimTrimsTheActor(t *testing.T) {
 		t.Errorf("CAS actor = %v, want the trimmed value", got)
 	}
 	uows := provider.openedUOWs()
-	if got := uows[0].commitMessages(); len(got) != 1 || got[0] != "bd: claim bd-1 by alice" {
+	if got := uows[0].commitMessages(); len(got) != 1 || got[0] != "issuegraph: claim bd-1 by alice" {
 		t.Errorf("commit messages = %q, want the trimmed actor", got)
 	}
 }
@@ -632,7 +632,7 @@ func TestClaimBodyCapIsEnforcedWhileReading(t *testing.T) {
 
 // TestCustomMethodsNarrowThePOSTSurface. ServeMux wildcards match a whole
 // segment, so the single-resource custom methods share one pattern —
-// POST /v0/beads/issues/{idop} — and every POST under that prefix reaches the
+// POST /v0/issuegraph/issues/{idop} — and every POST under that prefix reaches the
 // dispatcher. The issue-detail path is documented GET-only, and a POST to it
 // must NOT be read as an operation on the issue named there: it is an unrouted
 // path, and it gets the unrouted path's answer.
@@ -643,25 +643,25 @@ func TestClaimBodyCapIsEnforcedWhileReading(t *testing.T) {
 // claim's happy path still worked.
 func TestCustomMethodsNarrowThePOSTSurface(t *testing.T) {
 	for _, path := range []string{
-		"/v0/beads/issues/bd-1",           // the GET-only detail path
-		"/v0/beads/issues/:claim",         // a custom method with no id
-		"/v0/beads/issues/:close",         // the same, on the newer verb
-		"/v0/beads/issues/bd-1:CLAIM",     // the custom method is not a spelling
-		"/v0/beads/issues/bd-1:Close",     // nor is this one
-		"/v0/beads/issues/bd-1:claim-not", // a suffix that merely starts the same
-		"/v0/beads/issues/bd-1:close-not",
+		"/v0/issuegraph/issues/bd-1",           // the GET-only detail path
+		"/v0/issuegraph/issues/:claim",         // a custom method with no id
+		"/v0/issuegraph/issues/:close",         // the same, on the newer verb
+		"/v0/issuegraph/issues/bd-1:CLAIM",     // the custom method is not a spelling
+		"/v0/issuegraph/issues/bd-1:Close",     // nor is this one
+		"/v0/issuegraph/issues/bd-1:claim-not", // a suffix that merely starts the same
+		"/v0/issuegraph/issues/bd-1:close-not",
 		// `unclaim` is the CLI's spelling of the release and is deliberately not
 		// a second name for it here: one verb per operation, and a client that
 		// guessed from the command name gets the same 404 any other unrouted
 		// suffix gets.
-		"/v0/beads/issues/bd-1:unclaim",
-		"/v0/beads/issues/:release",
-		"/v0/beads/issues/bd-1:Release",
-		"/v0/beads/issues/bd-1:released",
-		"/v0/beads/issues/:reopen",
-		"/v0/beads/issues/bd-1:Reopen",
-		"/v0/beads/issues/bd-1:reopened",
-		"/v0/beads/issues/bd-1:delete", // a verb this build does not serve
+		"/v0/issuegraph/issues/bd-1:unclaim",
+		"/v0/issuegraph/issues/:release",
+		"/v0/issuegraph/issues/bd-1:Release",
+		"/v0/issuegraph/issues/bd-1:released",
+		"/v0/issuegraph/issues/:reopen",
+		"/v0/issuegraph/issues/bd-1:Reopen",
+		"/v0/issuegraph/issues/bd-1:reopened",
+		"/v0/issuegraph/issues/bd-1:delete", // a verb this build does not serve
 	} {
 		t.Run(path, func(t *testing.T) {
 			issues := &fakeIssues{issue: seededIssue("bd-1", "alice", types.StatusInProgress)}
@@ -747,7 +747,7 @@ func TestClaimNeverReachesTheWispPlane(t *testing.T) {
 	}}
 	ts, _ := newClaimServer(t, issues)
 
-	resp := ts.claim(t, "/v0/beads/issues/bd-w1:claim", `{"actor":"alice"}`)
+	resp := ts.claim(t, "/v0/issuegraph/issues/bd-w1:claim", `{"actor":"alice"}`)
 	if resp.StatusCode != http.StatusNotFound {
 		t.Fatalf("status = %d, want 404: %s", resp.StatusCode, readAll(t, resp))
 	}

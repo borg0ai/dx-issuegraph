@@ -10,8 +10,8 @@ import (
 	"testing"
 	"time"
 
-	"github.com/steveyegge/beads/internal/storage/dolt"
-	"github.com/steveyegge/beads/internal/types"
+	"github.com/borg0ai/dx-issuegraph/internal/storage/dolt"
+	"github.com/borg0ai/dx-issuegraph/internal/types"
 )
 
 // setupGatedTestDB creates a temporary file-based test database
@@ -29,7 +29,7 @@ func setupGatedTestDB(t *testing.T) (*dolt.DoltStore, func()) {
 		t.Skipf("skipping: Dolt server not available: %v", err)
 	}
 
-	// Set issue_prefix (required for beads)
+	// Set issue_prefix (required for issuegraph)
 	ctx := context.Background()
 	if err := store.SetConfig(ctx, "issue_prefix", "test"); err != nil {
 		store.Close()

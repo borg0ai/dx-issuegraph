@@ -14,12 +14,12 @@ import (
 
 	"github.com/anthropics/anthropic-sdk-go"
 	"github.com/anthropics/anthropic-sdk-go/option"
+	"github.com/borg0ai/dx-issuegraph/internal/config"
+	"github.com/borg0ai/dx-issuegraph/internal/metrics"
+	"github.com/borg0ai/dx-issuegraph/internal/telemetry"
+	"github.com/borg0ai/dx-issuegraph/internal/types"
+	"github.com/borg0ai/dx-issuegraph/internal/ui"
 	"github.com/spf13/cobra"
-	"github.com/steveyegge/beads/internal/config"
-	"github.com/steveyegge/beads/internal/metrics"
-	"github.com/steveyegge/beads/internal/telemetry"
-	"github.com/steveyegge/beads/internal/types"
-	"github.com/steveyegge/beads/internal/ui"
 	"go.opentelemetry.io/otel/attribute"
 	"go.opentelemetry.io/otel/codes"
 )
@@ -31,7 +31,7 @@ var findDuplicatesCmd = &cobra.Command{
 	Short:   "Find semantically similar issues using text analysis or AI",
 	Long: `Find issues that are semantically similar but not exact duplicates.
 
-Unlike 'bd duplicates' which finds exact content matches, find-duplicates
+Unlike 'issuegraph duplicates' which finds exact content matches, find-duplicates
 uses text similarity or AI to find issues that discuss the same topic
 with different wording.
 
@@ -48,12 +48,12 @@ It first uses mechanical pre-filtering to reduce the number of API calls,
 then asks the LLM to judge whether the remaining pairs are true duplicates.
 
 Examples:
-  bd find-duplicates                       # Mechanical similarity (default)
-  bd find-duplicates --threshold 0.4       # Lower threshold = more results
-  bd find-duplicates --method ai           # Use AI for semantic comparison
-  bd find-duplicates --status open         # Only check open issues
-  bd find-duplicates --limit 20            # Show top 20 pairs
-  bd find-duplicates --json                # JSON output`,
+  issuegraph find-duplicates                       # Mechanical similarity (default)
+  issuegraph find-duplicates --threshold 0.4       # Lower threshold = more results
+  issuegraph find-duplicates --method ai           # Use AI for semantic comparison
+  issuegraph find-duplicates --status open         # Only check open issues
+  issuegraph find-duplicates --limit 20            # Show top 20 pairs
+  issuegraph find-duplicates --json                # JSON output`,
 	SilenceUsage:  true,
 	SilenceErrors: true,
 	RunE:          runFindDuplicates,
@@ -235,7 +235,7 @@ func reportFindDuplicates(ctx context.Context, issues []*types.Issue, method str
 		if p.Reason != "" {
 			fmt.Printf("  %s %s\n", ui.RenderAccent("Reason:"), p.Reason)
 		}
-		fmt.Printf("  %s bd show %s %s\n\n", ui.RenderAccent("Compare:"), p.IssueA.ID, p.IssueB.ID)
+		fmt.Printf("  %s issuegraph show %s %s\n\n", ui.RenderAccent("Compare:"), p.IssueA.ID, p.IssueB.ID)
 	}
 	return nil
 }
@@ -462,12 +462,12 @@ func analyzeWithAI(ctx context.Context, client anthropic.Client, model anthropic
 		sb.WriteString("\n")
 	}
 
-	tracer := telemetry.Tracer("github.com/steveyegge/beads/ai")
+	tracer := telemetry.Tracer("github.com/borg0ai/dx-issuegraph/ai")
 	aiCtx, aiSpan := tracer.Start(ctx, "anthropic.messages.new")
 	aiSpan.SetAttributes(
-		attribute.String("bd.ai.model", model),
-		attribute.String("bd.ai.operation", "find_duplicates"),
-		attribute.Int("bd.ai.batch_size", len(candidates)),
+		attribute.String("issuegraph.ai.model", model),
+		attribute.String("issuegraph.ai.operation", "find_duplicates"),
+		attribute.Int("issuegraph.ai.batch_size", len(candidates)),
 	)
 	t0 := time.Now()
 	message, err := client.Messages.New(aiCtx, anthropic.MessageNewParams{
@@ -486,9 +486,9 @@ func analyzeWithAI(ctx context.Context, client anthropic.Client, model anthropic
 		return candidates
 	}
 	aiSpan.SetAttributes(
-		attribute.Int64("bd.ai.input_tokens", message.Usage.InputTokens),
-		attribute.Int64("bd.ai.output_tokens", message.Usage.OutputTokens),
-		attribute.Float64("bd.ai.duration_ms", float64(time.Since(t0).Milliseconds())),
+		attribute.Int64("issuegraph.ai.input_tokens", message.Usage.InputTokens),
+		attribute.Int64("issuegraph.ai.output_tokens", message.Usage.OutputTokens),
+		attribute.Float64("issuegraph.ai.duration_ms", float64(time.Since(t0).Milliseconds())),
 	)
 	aiSpan.End()
 

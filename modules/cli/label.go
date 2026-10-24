@@ -1,4 +1,4 @@
-// Package main implements the bd CLI label management commands.
+// Package main implements the issuegraph CLI label management commands.
 package main
 
 import (
@@ -7,13 +7,13 @@ import (
 	"sort"
 	"strings"
 
+	"github.com/borg0ai/dx-issuegraph/internal/metrics"
+	"github.com/borg0ai/dx-issuegraph/internal/storage"
+	"github.com/borg0ai/dx-issuegraph/internal/types"
+	"github.com/borg0ai/dx-issuegraph/internal/ui"
+	"github.com/borg0ai/dx-issuegraph/internal/utils"
+	"github.com/borg0ai/dx-issuegraph/issueops"
 	"github.com/spf13/cobra"
-	"github.com/steveyegge/beads/internal/metrics"
-	"github.com/steveyegge/beads/internal/storage"
-	"github.com/steveyegge/beads/internal/types"
-	"github.com/steveyegge/beads/internal/ui"
-	"github.com/steveyegge/beads/internal/utils"
-	"github.com/steveyegge/beads/issueops"
 )
 
 var labelCmd = &cobra.Command{
@@ -33,7 +33,7 @@ func openIssueLifecycle() (issueops.Lifecycle, error) {
 	return store.IssueLifecycle()
 }
 
-// openIssueReader hands back the read role the same way. `bd label list` is a
+// openIssueReader hands back the read role the same way. `issuegraph label list` is a
 // detail read whose answer is already hydrated — issueops.Reader.Get returns
 // IssueDetails with Labels on it — so there is nothing here for a label-shaped
 // read surface to add.
@@ -60,8 +60,8 @@ func resolveLabelTarget(ctx context.Context, id string) (string, error) {
 }
 
 // applyLabelEdit applies ONE label patch to each named issue through
-// issueops.Lifecycle, and is the whole of what `bd label add` and
-// `bd label remove` do differently.
+// issueops.Lifecycle, and is the whole of what `issuegraph label add` and
+// `issuegraph label remove` do differently.
 //
 // ONE CALL PER ISSUE, AND ONE PATCH PER CALL. Every label of the request goes
 // into a single LabelPatch, so an N-issue, M-label edit is N calls rather than
@@ -286,7 +286,7 @@ func parseLabelArgs(args []string) (issueIDs []string, labels []string) {
 
 // splitLabelArg splits a comma-separated label argument into individual
 // labels, trimming whitespace and dropping empty entries. Matches the
-// comma-separated convention of bd create --labels.
+// comma-separated convention of issuegraph create --labels.
 func splitLabelArg(arg string) []string {
 	parts := strings.Split(arg, ",")
 	labels := make([]string, 0, len(parts))
@@ -309,7 +309,7 @@ func splitLabelArg(arg string) []string {
 // route reaches the store rather than on what it then does with the answer.
 //
 // Labels come last on the command line, so when several ID-position args fail
-// the caller almost certainly passed labels space-separated ("bd label add
+// the caller almost certainly passed labels space-separated ("issuegraph label add
 // bd-123 a b c"); the error hints at the comma-separated form instead of
 // silently skipping the bad args (bd-vu5kv).
 func resolveLabelIssueIDs(ctx context.Context, subcommand string, issueIDs []string) ([]string, error) {
@@ -318,7 +318,7 @@ func resolveLabelIssueIDs(ctx context.Context, subcommand string, issueIDs []str
 		fullID, err := resolveLabelTarget(ctx, id)
 		if err != nil {
 			if len(issueIDs) > 1 {
-				return nil, fmt.Errorf("resolving issue ID %q: %w (to %s multiple labels, pass one comma-separated argument: bd label %s <issue-id> label1,label2)",
+				return nil, fmt.Errorf("resolving issue ID %q: %w (to %s multiple labels, pass one comma-separated argument: issuegraph label %s <issue-id> label1,label2)",
 					id, err, subcommand, subcommand)
 			}
 			return nil, fmt.Errorf("resolving issue ID %q: %w", id, err)
@@ -332,7 +332,7 @@ func resolveLabelIssueIDs(ctx context.Context, subcommand string, issueIDs []str
 var labelAddCmd = &cobra.Command{
 	Use:           "add [issue-id...] [label[,label...]]",
 	Short:         "Add one or more labels to one or more issues",
-	Long:          "Add labels to issues. Issue IDs come first; the final argument is the label. Pass multiple labels comma-separated: bd label add bd-123 label1,label2",
+	Long:          "Add labels to issues. Issue IDs come first; the final argument is the label. Pass multiple labels comma-separated: issuegraph label add bd-123 label1,label2",
 	Args:          cobra.MinimumNArgs(2),
 	SilenceUsage:  true,
 	SilenceErrors: true,
@@ -354,7 +354,7 @@ var labelAddCmd = &cobra.Command{
 var labelRemoveCmd = &cobra.Command{
 	Use:           "remove [issue-id...] [label[,label...]]",
 	Short:         "Remove one or more labels from one or more issues",
-	Long:          "Remove labels from issues. Issue IDs come first; the final argument is the label. Pass multiple labels comma-separated: bd label remove bd-123 label1,label2",
+	Long:          "Remove labels from issues. Issue IDs come first; the final argument is the label. Pass multiple labels comma-separated: issuegraph label remove bd-123 label1,label2",
 	Args:          cobra.MinimumNArgs(2),
 	SilenceUsage:  true,
 	SilenceErrors: true,
@@ -389,7 +389,7 @@ var labelListCmd = &cobra.Command{
 	},
 }
 
-// labelListAllSearcher is the whole storage surface `bd label list-all`
+// labelListAllSearcher is the whole storage surface `issuegraph label list-all`
 // needs. SearchIssues already hydrates Issue.Labels in bulk; omitting
 // GetLabels here keeps the per-issue lookup — one extra connection and
 // transaction per issue in embedded mode — unreachable (GH#5325).
@@ -507,7 +507,7 @@ var labelPropagateCmd = &cobra.Command{
 		}
 
 		if strings.HasPrefix(label, "provides:") {
-			return HandleErrorRespectJSON("'provides:' labels are reserved for cross-project capabilities. Hint: use 'bd ship %s' instead", strings.TrimPrefix(label, "provides:"))
+			return HandleErrorRespectJSON("'provides:' labels are reserved for cross-project capabilities. Hint: use 'issuegraph ship %s' instead", strings.TrimPrefix(label, "provides:"))
 		}
 
 		children, err := store.SearchIssues(ctx, "", types.IssueFilter{ParentID: &parentID})
@@ -523,7 +523,7 @@ var labelPropagateCmd = &cobra.Command{
 			return nil
 		}
 
-		commitMsg := fmt.Sprintf("bd: propagate label '%s' from %s to %d children", label, parentID, len(children))
+		commitMsg := fmt.Sprintf("issuegraph: propagate label '%s' from %s to %d children", label, parentID, len(children))
 		err = transactHonoringAutoCommit(ctx, store, commitMsg, func(tx storage.Transaction) error {
 			for _, child := range children {
 				if err := tx.AddLabel(ctx, child.ID, label, actor); err != nil {
@@ -590,12 +590,12 @@ func runLabelAdd(ctx context.Context, args []string) error {
 	// of the two answers rather than a new rule.
 	for _, label := range labels {
 		if strings.HasPrefix(label, "provides:") {
-			return HandleErrorRespectJSON("'provides:' labels are reserved for cross-project capabilities. Hint: use 'bd ship %s' instead", strings.TrimPrefix(label, "provides:"))
+			return HandleErrorRespectJSON("'provides:' labels are reserved for cross-project capabilities. Hint: use 'issuegraph ship %s' instead", strings.TrimPrefix(label, "provides:"))
 		}
 	}
 	// splitLabelArg already trims and drops empties, so this route never stored
 	// the untrimmed class. What it could not tell a caller is that
-	// `bd label add bd-1 'theme:a theme:b'` is ONE label — the same silent
+	// `issuegraph label add bd-1 'theme:a theme:b'` is ONE label — the same silent
 	// miscount #5812 is about, reached by a different command. Warning here
 	// keeps the whole CLI saying the same thing about the same input.
 	warnLabelsContainingWhitespace(labels)

@@ -3,7 +3,7 @@ package telemetry
 import (
 	"context"
 
-	"github.com/steveyegge/beads/issueops"
+	"github.com/borg0ai/dx-issuegraph/issueops"
 )
 
 // IssueReader returns the inner store's query surface wrapped in this layer's

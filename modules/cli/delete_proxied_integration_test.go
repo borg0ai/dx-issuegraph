@@ -15,20 +15,20 @@ import (
 // TestProxiedServerDelete pins the CONVERGED semantics on a team server.
 //
 // This route used to hardcode cascade at both of its call sites and refuse the
-// --cascade flag outright, so `bd delete X --force` deleted X's whole subtree.
+// --cascade flag outright, so `issuegraph delete X --force` deleted X's whole subtree.
 // The three modes below are the direct route's, unchanged, checked from the far
 // side of a real Dolt sql-server.
 func TestProxiedServerDelete(t *testing.T) {
 	requireSharedProxiedServer(t)
 	t.Parallel()
-	bd := buildEmbeddedBD(t)
-	p := newSharedProxiedProject(t, bd, "delete")
+	issuegraph := buildEmbeddedBD(t)
+	p := newSharedProxiedProject(t, issuegraph, "delete")
 
-	survivor := bdProxiedCreate(t, bd, p.dir, "Survivor", "--type", "task")
-	target := bdProxiedCreate(t, bd, p.dir, "Target", "--type", "task", "--label", "alpha", "--deps", "depends-on:"+survivor.ID)
-	dependent := bdProxiedCreate(t, bd, p.dir, "Dependent", "--type", "task", "--deps", "depends-on:"+target.ID)
-	descendant := bdProxiedCreate(t, bd, p.dir, "Descendant", "--type", "task", "--parent", dependent.ID)
-	bdProxiedUpdateOne(t, bd, p.dir, survivor.ID, "--description", "see "+target.ID+" for context")
+	survivor := issuegraphProxiedCreate(t, issuegraph, p.dir, "Survivor", "--type", "task")
+	target := issuegraphProxiedCreate(t, issuegraph, p.dir, "Target", "--type", "task", "--label", "alpha", "--deps", "depends-on:"+survivor.ID)
+	dependent := issuegraphProxiedCreate(t, issuegraph, p.dir, "Dependent", "--type", "task", "--deps", "depends-on:"+target.ID)
+	descendant := issuegraphProxiedCreate(t, issuegraph, p.dir, "Descendant", "--type", "task", "--parent", dependent.ID)
+	issuegraphProxiedUpdateOne(t, issuegraph, p.dir, survivor.ID, "--description", "see "+target.ID+" for context")
 
 	db := openProxiedDB(t, p)
 	ctx := context.Background()
@@ -40,13 +40,13 @@ func TestProxiedServerDelete(t *testing.T) {
 	// Embedded parity (bd-paurh): with external dependents and neither
 	// --cascade nor --force, delete refuses and tells the caller how to
 	// proceed instead of silently cascading.
-	refusal := bdProxiedDeleteFail(t, bd, p.dir, target.ID)
+	refusal := issuegraphProxiedDeleteFail(t, issuegraph, p.dir, target.ID)
 	if !strings.Contains(refusal, "has dependents not in deletion set") ||
 		!strings.Contains(refusal, "--cascade") || !strings.Contains(refusal, "--force") {
 		t.Errorf("bare delete with dependents: got %q, want refusal naming --cascade/--force", refusal)
 	}
 
-	preview := bdProxiedDeleteJSON(t, bd, p.dir, "--json", "--cascade", target.ID)
+	preview := issuegraphProxiedDeleteJSON(t, issuegraph, p.dir, "--json", "--cascade", target.ID)
 	previewWant := map[string]any{
 		"schema_version":       float64(1),
 		"would_delete":         float64(3),
@@ -74,7 +74,7 @@ func TestProxiedServerDelete(t *testing.T) {
 		t.Errorf("preview advanced HEAD: before=%s after=%s", headBefore, headAfterPreview)
 	}
 
-	deleted := bdProxiedDeleteJSON(t, bd, p.dir, "--json", "--cascade", target.ID, "--force")
+	deleted := issuegraphProxiedDeleteJSON(t, issuegraph, p.dir, "--json", "--cascade", target.ID, "--force")
 	deletedWant := map[string]any{
 		"schema_version":       float64(1),
 		"deleted":              []any{target.ID},
@@ -126,7 +126,7 @@ func TestProxiedServerDelete(t *testing.T) {
 	}
 
 	missing := "delete-missing-id"
-	missingOut := bdProxiedDeleteFail(t, bd, p.dir, missing, "--force")
+	missingOut := issuegraphProxiedDeleteFail(t, issuegraph, p.dir, missing, "--force")
 	if !strings.Contains(strings.ToLower(missingOut), "not found") || !strings.Contains(missingOut, missing) {
 		t.Errorf("missing-ID error: got %q, want not-found translation naming %q", missingOut, missing)
 	}
@@ -143,14 +143,14 @@ func deleteJSONEqual(got, want map[string]any) bool {
 func TestProxiedServerDeleteForceOrphans(t *testing.T) {
 	requireSharedProxiedServer(t)
 	t.Parallel()
-	bd := buildEmbeddedBD(t)
-	p := newSharedProxiedProject(t, bd, "delfo")
+	issuegraph := buildEmbeddedBD(t)
+	p := newSharedProxiedProject(t, issuegraph, "delfo")
 
-	target := bdProxiedCreate(t, bd, p.dir, "Orphan target", "--type", "task")
-	dependent := bdProxiedCreate(t, bd, p.dir, "Orphaned dependent", "--type", "task", "--deps", "depends-on:"+target.ID)
-	descendant := bdProxiedCreate(t, bd, p.dir, "Orphan descendant", "--type", "task", "--parent", dependent.ID)
+	target := issuegraphProxiedCreate(t, issuegraph, p.dir, "Orphan target", "--type", "task")
+	dependent := issuegraphProxiedCreate(t, issuegraph, p.dir, "Orphaned dependent", "--type", "task", "--deps", "depends-on:"+target.ID)
+	descendant := issuegraphProxiedCreate(t, issuegraph, p.dir, "Orphan descendant", "--type", "task", "--parent", dependent.ID)
 
-	deleted := bdProxiedDeleteJSON(t, bd, p.dir, "--json", target.ID, "--force")
+	deleted := issuegraphProxiedDeleteJSON(t, issuegraph, p.dir, "--json", target.ID, "--force")
 	if got, want := deleted["deleted_count"], float64(1); got != want {
 		t.Errorf("deleted_count: got %v, want %v (force without cascade must delete only the named ID)", got, want)
 	}
@@ -189,13 +189,13 @@ func TestProxiedServerDeleteForceOrphans(t *testing.T) {
 func TestProxiedServerDeleteBlockedJSONSingleDoc(t *testing.T) {
 	requireSharedProxiedServer(t)
 	t.Parallel()
-	bd := buildEmbeddedBD(t)
-	p := newSharedProxiedProject(t, bd, "delete-blocked-json")
+	issuegraph := buildEmbeddedBD(t)
+	p := newSharedProxiedProject(t, issuegraph, "delete-blocked-json")
 
-	target := bdProxiedCreate(t, bd, p.dir, "Blocked target", "--type", "task")
-	bdProxiedCreate(t, bd, p.dir, "External dependent", "--type", "task", "--deps", "depends-on:"+target.ID)
+	target := issuegraphProxiedCreate(t, issuegraph, p.dir, "Blocked target", "--type", "task")
+	issuegraphProxiedCreate(t, issuegraph, p.dir, "External dependent", "--type", "task", "--deps", "depends-on:"+target.ID)
 
-	stdout, stderr, err := bdProxiedDeleteRaw(t, bd, p.dir, "--json", target.ID)
+	stdout, stderr, err := issuegraphProxiedDeleteRaw(t, issuegraph, p.dir, "--json", target.ID)
 	if err == nil {
 		t.Fatalf("blocked --json delete should fail; stdout:\n%s\nstderr:\n%s", stdout, stderr)
 	}
@@ -221,9 +221,9 @@ func TestProxiedServerDeleteBlockedJSONSingleDoc(t *testing.T) {
 
 func TestProxiedServerDeleteWisp(t *testing.T) {
 	requireSharedProxiedServer(t)
-	bd := buildEmbeddedBD(t)
-	p := newSharedProxiedProject(t, bd, "dwr")
-	wisp := bdProxiedCreate(t, bd, p.dir, "Wisp delete routing", "--ephemeral")
+	issuegraph := buildEmbeddedBD(t)
+	p := newSharedProxiedProject(t, issuegraph, "dwr")
+	wisp := issuegraphProxiedCreate(t, issuegraph, p.dir, "Wisp delete routing", "--ephemeral")
 	db := openProxiedDB(t, p)
 	assertRowExists(t, db, "wisps", wisp.ID)
 
@@ -242,7 +242,7 @@ func TestProxiedServerDeleteWisp(t *testing.T) {
 		t.Fatalf("read HEAD before: %v", err)
 	}
 
-	out := bdProxiedDelete(t, bd, p.dir, "--json", wisp.ID, "--force")
+	out := issuegraphProxiedDelete(t, issuegraph, p.dir, "--json", wisp.ID, "--force")
 	start := strings.Index(out, "{")
 	if start < 0 {
 		t.Fatalf("no JSON object in delete output:\n%s", out)
@@ -275,10 +275,10 @@ func TestProxiedServerDeleteWisp(t *testing.T) {
 func TestProxiedServerDeleteConcurrent(t *testing.T) {
 	requireSharedProxiedServer(t)
 	t.Parallel()
-	bd := buildEmbeddedBD(t)
+	issuegraph := buildEmbeddedBD(t)
 
-	p := newSharedProxiedProject(t, bd, "ddc")
-	issue := bdProxiedCreate(t, bd, p.dir, "Concurrent delete contest", "-t", "task")
+	p := newSharedProxiedProject(t, issuegraph, "ddc")
+	issue := issuegraphProxiedCreate(t, issuegraph, p.dir, "Concurrent delete contest", "-t", "task")
 
 	const n = 5
 	type result struct {
@@ -294,7 +294,7 @@ func TestProxiedServerDeleteConcurrent(t *testing.T) {
 		wg.Add(1)
 		go func() {
 			defer wg.Done()
-			stdout, stderr, err := bdProxiedDeleteRaw(t, bd, p.dir, issue.ID, "--force")
+			stdout, stderr, err := issuegraphProxiedDeleteRaw(t, issuegraph, p.dir, issue.ID, "--force")
 			results[i] = result{idx: i, exitErr: err, combined: stdout + stderr}
 		}()
 	}
@@ -330,20 +330,20 @@ func TestProxiedServerDeleteConcurrent(t *testing.T) {
 	assertRowAbsent(t, db, "issues", issue.ID)
 }
 
-func bdProxiedDelete(t *testing.T, bd, dir string, args ...string) string {
+func issuegraphProxiedDelete(t *testing.T, issuegraph, dir string, args ...string) string {
 	t.Helper()
 	fullArgs := append([]string{"delete"}, args...)
-	stdout, stderr, err := bdProxiedRunBuffers(t, bd, dir, fullArgs...)
+	stdout, stderr, err := issuegraphProxiedRunBuffers(t, issuegraph, dir, fullArgs...)
 	if err != nil {
-		t.Fatalf("bd delete %s failed: %v\nstdout:\n%s\nstderr:\n%s",
+		t.Fatalf("issuegraph delete %s failed: %v\nstdout:\n%s\nstderr:\n%s",
 			strings.Join(args, " "), err, stdout, stderr)
 	}
 	return stdout
 }
 
-func bdProxiedDeleteJSON(t *testing.T, bd, dir string, args ...string) map[string]any {
+func issuegraphProxiedDeleteJSON(t *testing.T, issuegraph, dir string, args ...string) map[string]any {
 	t.Helper()
-	out := bdProxiedDelete(t, bd, dir, args...)
+	out := issuegraphProxiedDelete(t, issuegraph, dir, args...)
 	start := strings.Index(out, "{")
 	if start < 0 {
 		t.Fatalf("no JSON object in delete output:\n%s", out)
@@ -355,17 +355,17 @@ func bdProxiedDeleteJSON(t *testing.T, bd, dir string, args ...string) map[strin
 	return got
 }
 
-func bdProxiedDeleteRaw(t *testing.T, bd, dir string, args ...string) (string, string, error) {
+func issuegraphProxiedDeleteRaw(t *testing.T, issuegraph, dir string, args ...string) (string, string, error) {
 	t.Helper()
 	fullArgs := append([]string{"delete"}, args...)
-	return bdProxiedRunBuffers(t, bd, dir, fullArgs...)
+	return issuegraphProxiedRunBuffers(t, issuegraph, dir, fullArgs...)
 }
 
-func bdProxiedDeleteFail(t *testing.T, bd, dir string, args ...string) string {
+func issuegraphProxiedDeleteFail(t *testing.T, issuegraph, dir string, args ...string) string {
 	t.Helper()
-	stdout, stderr, err := bdProxiedDeleteRaw(t, bd, dir, args...)
+	stdout, stderr, err := issuegraphProxiedDeleteRaw(t, issuegraph, dir, args...)
 	if err == nil {
-		t.Fatalf("bd delete %s should have failed; got:\nstdout:\n%s\nstderr:\n%s",
+		t.Fatalf("issuegraph delete %s should have failed; got:\nstdout:\n%s\nstderr:\n%s",
 			strings.Join(args, " "), stdout, stderr)
 	}
 	return stdout + stderr

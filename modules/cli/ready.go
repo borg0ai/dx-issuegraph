@@ -6,15 +6,15 @@ import (
 	"os"
 	"strings"
 
+	"github.com/borg0ai/dx-issuegraph/internal/debug"
+	"github.com/borg0ai/dx-issuegraph/internal/metrics"
+	"github.com/borg0ai/dx-issuegraph/internal/storage"
+	"github.com/borg0ai/dx-issuegraph/internal/types"
+	"github.com/borg0ai/dx-issuegraph/internal/ui"
+	"github.com/borg0ai/dx-issuegraph/internal/utils"
+	"github.com/borg0ai/dx-issuegraph/internal/workapi"
+	"github.com/borg0ai/dx-issuegraph/issueops"
 	"github.com/spf13/cobra"
-	"github.com/steveyegge/beads/internal/debug"
-	"github.com/steveyegge/beads/internal/metrics"
-	"github.com/steveyegge/beads/internal/storage"
-	"github.com/steveyegge/beads/internal/types"
-	"github.com/steveyegge/beads/internal/ui"
-	"github.com/steveyegge/beads/internal/utils"
-	"github.com/steveyegge/beads/internal/workapi"
-	"github.com/steveyegge/beads/issueops"
 )
 
 var readyCmd = &cobra.Command{
@@ -25,16 +25,16 @@ var readyCmd = &cobra.Command{
 Excludes in_progress, blocked, deferred, and hooked issues. This uses the
 GetReadyWork API which applies blocker-aware semantics to find truly claimable work.
 
-Note: 'bd list --ready' uses the same blocker-aware ready-work semantics.
+Note: 'issuegraph list --ready' uses the same blocker-aware ready-work semantics.
 
 Use --mol to filter to a specific molecule's steps:
-  bd ready --mol bd-patrol   # Show ready steps within molecule
+  issuegraph ready --mol bd-patrol   # Show ready steps within molecule
 
 Use --gated to find molecules ready for gate-resume dispatch:
-  bd ready --gated           # Find molecules where a gate closed
+  issuegraph ready --gated           # Find molecules where a gate closed
 
 Use --claim to atomically claim the first ready issue matching the filters:
-  bd ready --claim --json
+  issuegraph ready --claim --json
 
 This is useful for agents executing molecules to see which steps can run next.`,
 	SilenceUsage:  true,
@@ -87,7 +87,7 @@ This is useful for agents executing molecules to see which steps can run next.`,
 			if claimReady {
 				return HandleErrorRespectJSON("--claim cannot be combined with --gated")
 			}
-			// Delegate to the non-emitting core so `bd ready --gated` records
+			// Delegate to the non-emitting core so `issuegraph ready --gated` records
 			// exactly one cli_command event ("ready"), not also "mol-ready-gated".
 			return runMolReadyGatedCore(cmd, args)
 		}
@@ -282,8 +282,8 @@ This is useful for agents executing molecules to see which steps can run next.`,
 	},
 }
 
-// readyGatedArm reports whether this `bd ready` invocation dispatches to the
-// gate-resume arm — the same scan `bd mol ready --gated` runs, and the reason
+// readyGatedArm reports whether this `issuegraph ready` invocation dispatches to the
+// gate-resume arm — the same scan `issuegraph mol ready --gated` runs, and the reason
 // the row cap does not apply to it. Both proxied refusal sites call this, so
 // the exemption cannot land on one and miss the other.
 //
@@ -292,7 +292,7 @@ This is useful for agents executing molecules to see which steps can run next.`,
 // the proxied route runReadyProxiedGated discards its readyInput and calls the
 // same findGateReadyMolecules as runMolReadyGatedProxiedServer. `mol ready`,
 // the documented alias, carries a notApplicable() cap row for exactly that
-// reason; keying the refusal on `bd ready` alone split one documented command
+// reason; keying the refusal on `issuegraph ready` alone split one documented command
 // line across its two spellings.
 //
 // --claim is excluded deliberately. `--claim --gated` is a usage error
@@ -309,7 +309,7 @@ func readyGatedArm(cmd *cobra.Command) bool {
 	return !claim
 }
 
-// rejectReadyMaxRowsUnderProxiedServer is `bd ready`'s in-RunE backstop for the
+// rejectReadyMaxRowsUnderProxiedServer is `issuegraph ready`'s in-RunE backstop for the
 // row cap the proxied ready role cannot enforce. It exists as a named function
 // rather than an inline `if` so the exemption is reachable from a unit test:
 // the front door's half runs against the real command tree in
@@ -402,7 +402,7 @@ var blockedCmd = &cobra.Command{
 	},
 }
 
-// readyTotal sizes the whole ready set for the request `bd ready` just listed
+// readyTotal sizes the whole ready set for the request `issuegraph ready` just listed
 // a page of, through the store's own ReadyCounter accessor.
 //
 // THE TEXT OUTPUT CALLS IT, and only when the page came back full, which is
@@ -500,8 +500,8 @@ func displayReadyList(issues []*types.Issue, parentEpicMap map[string]string) {
 }
 
 // readyExplainFilter is the filter both --explain routes run, derived from the
-// same builder the listing uses so the set `bd ready --explain` explains cannot
-// drift from the set `bd ready` shows (bd-3fs.3).
+// same builder the listing uses so the set `issuegraph ready --explain` explains cannot
+// drift from the set `issuegraph ready` shows (bd-3fs.3).
 //
 // --explain takes no listing flags: it is a whole-graph diagnostic, and the
 // direct route reaches it before the flags are even gathered. The limit is
@@ -750,7 +750,7 @@ type MoleculeReadyStep struct {
 	ParallelGroup string        `json:"parallel_group,omitempty"`
 }
 
-// MoleculeReadyOutput is the JSON output for bd ready --mol
+// MoleculeReadyOutput is the JSON output for issuegraph ready --mol
 type MoleculeReadyOutput struct {
 	MoleculeID     string               `json:"molecule_id"`
 	MoleculeTitle  string               `json:"molecule_title"`
@@ -774,24 +774,24 @@ func init() {
 	readyCmd.Flags().String("label-regex", "", "Filter by label regex pattern (e.g., 'tech-(debt|legacy)')")
 	readyCmd.Flags().StringP("type", "t", "", "Filter by issue type (task, bug, feature, epic, decision, merge-request). Aliases: mr→merge-request, feat→feature, mol→molecule, dec/adr→decision")
 	readyCmd.Flags().String("mol", "", "Filter to steps within a specific molecule")
-	readyCmd.Flags().String("parent", "", "Filter to descendants of this bead/epic")
+	readyCmd.Flags().String("parent", "", "Filter to descendants of this issue/epic")
 	readyCmd.Flags().String("mol-type", "", "Filter by molecule type: swarm, patrol, or work")
 	readyCmd.Flags().Bool("pretty", true, "Display issues in a tree format with status/priority symbols")
 	readyCmd.Flags().Bool("plain", false, "Display issues as a plain numbered list")
-	readyCmd.Flags().Bool("flat", false, "Alias for --plain, spelled the way bd list spells it")
+	readyCmd.Flags().Bool("flat", false, "Alias for --plain, spelled the way issuegraph list spells it")
 	readyCmd.Flags().Bool("include-deferred", false, "Include issues with future defer_until timestamps")
 	readyCmd.Flags().Bool("include-ephemeral", false, "Include ephemeral issues (wisps) in results")
 	readyCmd.Flags().Bool("gated", false, "Find molecules ready for gate-resume dispatch")
 	readyCmd.Flags().StringSlice("exclude-type", nil, "Exclude issue types from results (comma-separated or repeatable, e.g., --exclude-type=convoy,epic)")
 	readyCmd.Flags().Bool("explain", false, "Show dependency-aware reasoning for why issues are ready or blocked")
 	readyCmd.Flags().Bool("claim", false, "Atomically claim the first ready issue matching the filters")
-	// Projection toggle, the same one `bd list --brief` sets. Refused with
+	// Projection toggle, the same one `issuegraph list --brief` sets. Refused with
 	// --claim, which returns one whole row by contract; see gatherReadyInput.
 	readyCmd.Flags().Bool("brief", false,
 		"Omit the free-form text (description, design, acceptance criteria, notes, "+
 			"payload, waiters) from each row. Filters that read those fields still "+
 			"select on them. An omitted field is indistinguishable from an empty "+
-			"one; fetch a whole issue with bd show. Requires --json, and cannot be "+
+			"one; fetch a whole issue with issuegraph show. Requires --json, and cannot be "+
 			"combined with --claim, --gated, --mol or --explain.")
 	// Metadata filtering (GH#1406)
 	readyCmd.Flags().StringArray("metadata-field", nil, "Filter by metadata field (key=value, repeatable)")
@@ -799,7 +799,7 @@ func init() {
 	// Defensive row cap (be-x42v): exits 2 on overage, default disabled.
 	addMaxRowsFlag(readyCmd)
 	rootCmd.AddCommand(readyCmd)
-	blockedCmd.Flags().String("parent", "", "Filter to descendants of this bead/epic")
+	blockedCmd.Flags().String("parent", "", "Filter to descendants of this issue/epic")
 	blockedCmd.Flags().StringSliceP("label", "l", []string{}, "Filter by labels (AND: must have ALL). Can combine with --label-any")
 	blockedCmd.Flags().StringSlice("label-any", []string{}, "Filter by labels (OR: must have AT LEAST ONE). Can combine with --label")
 	blockedCmd.Flags().StringSlice("exclude-label", []string{}, "Exclude issues that have ANY of these labels")

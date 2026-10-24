@@ -1,14 +1,14 @@
-package beads_test
+package issuegraph_test
 
 import (
 	"errors"
 	"reflect"
 	"testing"
 
-	"github.com/steveyegge/beads"
-	"github.com/steveyegge/beads/internal/storage"
-	"github.com/steveyegge/beads/internal/storage/dolt"
-	"github.com/steveyegge/beads/internal/telemetry"
+	"github.com/borg0ai/dx-issuegraph"
+	"github.com/borg0ai/dx-issuegraph/internal/storage"
+	"github.com/borg0ai/dx-issuegraph/internal/storage/dolt"
+	"github.com/borg0ai/dx-issuegraph/internal/telemetry"
 )
 
 // TestReadyClaimerLayersHooksOutsideTelemetry pins the decorator order the
@@ -18,7 +18,7 @@ import (
 // blind delegation at either decorator would still satisfy Storage and would
 // still compile.
 func TestReadyClaimerLayersHooksOutsideTelemetry(t *testing.T) {
-	t.Setenv("BD_OTEL_STDOUT", "true")
+	t.Setenv("ISSUEGRAPH_OTEL_STDOUT", "true")
 	instrumented, ok := telemetry.WrapStorage(&dolt.DoltStore{}).(*telemetry.InstrumentedStorage)
 	if !ok {
 		t.Fatal("WrapStorage() did not create InstrumentedStorage")
@@ -36,7 +36,7 @@ func TestReadyClaimerLayersHooksOutsideTelemetry(t *testing.T) {
 // TestBatchCloserLayersHooksOutsideTelemetry is the same pin for the
 // close-many role.
 func TestBatchCloserLayersHooksOutsideTelemetry(t *testing.T) {
-	t.Setenv("BD_OTEL_STDOUT", "true")
+	t.Setenv("ISSUEGRAPH_OTEL_STDOUT", "true")
 	instrumented, ok := telemetry.WrapStorage(&dolt.DoltStore{}).(*telemetry.InstrumentedStorage)
 	if !ok {
 		t.Fatal("WrapStorage() did not create InstrumentedStorage")
@@ -59,9 +59,9 @@ func TestReadyClaimerExposesTypedUnsupportedError(t *testing.T) {
 	if claimer != nil {
 		t.Fatalf("ReadyClaimer() claimer = %T, want nil", claimer)
 	}
-	var unsupported *beads.ErrUnsupported
+	var unsupported *issuegraph.ErrUnsupported
 	if !errors.As(err, &unsupported) {
-		t.Fatalf("ReadyClaimer() error = %v, want *beads.ErrUnsupported", err)
+		t.Fatalf("ReadyClaimer() error = %v, want *issuegraph.ErrUnsupported", err)
 	}
 }
 
@@ -70,16 +70,16 @@ func TestBatchCloserExposesTypedUnsupportedError(t *testing.T) {
 	if closer != nil {
 		t.Fatalf("BatchCloser() closer = %T, want nil", closer)
 	}
-	var unsupported *beads.ErrUnsupported
+	var unsupported *issuegraph.ErrUnsupported
 	if !errors.As(err, &unsupported) {
-		t.Fatalf("BatchCloser() error = %v, want *beads.ErrUnsupported", err)
+		t.Fatalf("BatchCloser() error = %v, want *issuegraph.ErrUnsupported", err)
 	}
 }
 
 // TestBatchCreatorLayersHooksOutsideTelemetry is the same pin for the
 // create-many role.
 func TestBatchCreatorLayersHooksOutsideTelemetry(t *testing.T) {
-	t.Setenv("BD_OTEL_STDOUT", "true")
+	t.Setenv("ISSUEGRAPH_OTEL_STDOUT", "true")
 	instrumented, ok := telemetry.WrapStorage(&dolt.DoltStore{}).(*telemetry.InstrumentedStorage)
 	if !ok {
 		t.Fatal("WrapStorage() did not create InstrumentedStorage")
@@ -99,16 +99,16 @@ func TestBatchCreatorExposesTypedUnsupportedError(t *testing.T) {
 	if creator != nil {
 		t.Fatalf("BatchCreator() creator = %T, want nil", creator)
 	}
-	var unsupported *beads.ErrUnsupported
+	var unsupported *issuegraph.ErrUnsupported
 	if !errors.As(err, &unsupported) {
-		t.Fatalf("BatchCreator() error = %v, want *beads.ErrUnsupported", err)
+		t.Fatalf("BatchCreator() error = %v, want *issuegraph.ErrUnsupported", err)
 	}
 }
 
 // TestDependencyEditorLayersHooksOutsideTelemetry is the same decorator-order
 // pin for the edge-write role.
 func TestDependencyEditorLayersHooksOutsideTelemetry(t *testing.T) {
-	t.Setenv("BD_OTEL_STDOUT", "true")
+	t.Setenv("ISSUEGRAPH_OTEL_STDOUT", "true")
 	instrumented, ok := telemetry.WrapStorage(&dolt.DoltStore{}).(*telemetry.InstrumentedStorage)
 	if !ok {
 		t.Fatal("WrapStorage() did not create InstrumentedStorage")
@@ -129,7 +129,7 @@ func TestDependencyEditorLayersHooksOutsideTelemetry(t *testing.T) {
 // stopped wrapping would silently drop on_create, on_update AND on_close for
 // every plan a caller applies.
 func TestBatchApplierLayersHooksOutsideTelemetry(t *testing.T) {
-	t.Setenv("BD_OTEL_STDOUT", "true")
+	t.Setenv("ISSUEGRAPH_OTEL_STDOUT", "true")
 	instrumented, ok := telemetry.WrapStorage(&dolt.DoltStore{}).(*telemetry.InstrumentedStorage)
 	if !ok {
 		t.Fatal("WrapStorage() did not create InstrumentedStorage")
@@ -149,16 +149,16 @@ func TestBatchApplierExposesTypedUnsupportedError(t *testing.T) {
 	if applier != nil {
 		t.Fatalf("BatchApplier() applier = %T, want nil", applier)
 	}
-	var unsupported *beads.ErrUnsupported
+	var unsupported *issuegraph.ErrUnsupported
 	if !errors.As(err, &unsupported) {
-		t.Fatalf("BatchApplier() error = %v, want *beads.ErrUnsupported", err)
+		t.Fatalf("BatchApplier() error = %v, want *issuegraph.ErrUnsupported", err)
 	}
 }
 
 // TestCommenterLayersHooksOutsideTelemetry is the same pin for the comment
 // role.
 func TestCommenterLayersHooksOutsideTelemetry(t *testing.T) {
-	t.Setenv("BD_OTEL_STDOUT", "true")
+	t.Setenv("ISSUEGRAPH_OTEL_STDOUT", "true")
 	instrumented, ok := telemetry.WrapStorage(&dolt.DoltStore{}).(*telemetry.InstrumentedStorage)
 	if !ok {
 		t.Fatal("WrapStorage() did not create InstrumentedStorage")
@@ -175,12 +175,12 @@ func TestCommenterLayersHooksOutsideTelemetry(t *testing.T) {
 
 // TestMetadataCASLayersHooksOutsideTelemetry is the same pin for the
 // conditional metadata write, and it is the answer the OTHER destructive-ish
-// write roles do not give: a swap that lands names a bead and moves a column,
+// write roles do not give: a swap that lands names a issue and moves a column,
 // which is on_update — a hook the vocabulary publishes and a row a script can
 // still read back — so this decorator wraps rather than recursing the way
 // Sweeper and Deleter do.
 func TestMetadataCASLayersHooksOutsideTelemetry(t *testing.T) {
-	t.Setenv("BD_OTEL_STDOUT", "true")
+	t.Setenv("ISSUEGRAPH_OTEL_STDOUT", "true")
 	instrumented, ok := telemetry.WrapStorage(&dolt.DoltStore{}).(*telemetry.InstrumentedStorage)
 	if !ok {
 		t.Fatal("WrapStorage() did not create InstrumentedStorage")
@@ -200,9 +200,9 @@ func TestMetadataCASExposesTypedUnsupportedError(t *testing.T) {
 	if cas != nil {
 		t.Fatalf("MetadataCAS() surface = %T, want nil", cas)
 	}
-	var unsupported *beads.ErrUnsupported
+	var unsupported *issuegraph.ErrUnsupported
 	if !errors.As(err, &unsupported) {
-		t.Fatalf("MetadataCAS() error = %v, want *beads.ErrUnsupported", err)
+		t.Fatalf("MetadataCAS() error = %v, want *issuegraph.ErrUnsupported", err)
 	}
 }
 
@@ -212,7 +212,7 @@ func TestMetadataCASExposesTypedUnsupportedError(t *testing.T) {
 // vocabulary publishes and a row a script can still read back — so this
 // decorator wraps rather than recursing the way Sweeper and Deleter do.
 func TestReleaserLayersHooksOutsideTelemetry(t *testing.T) {
-	t.Setenv("BD_OTEL_STDOUT", "true")
+	t.Setenv("ISSUEGRAPH_OTEL_STDOUT", "true")
 	instrumented, ok := telemetry.WrapStorage(&dolt.DoltStore{}).(*telemetry.InstrumentedStorage)
 	if !ok {
 		t.Fatal("WrapStorage() did not create InstrumentedStorage")
@@ -232,9 +232,9 @@ func TestReleaserExposesTypedUnsupportedError(t *testing.T) {
 	if releaser != nil {
 		t.Fatalf("Releaser() surface = %T, want nil", releaser)
 	}
-	var unsupported *beads.ErrUnsupported
+	var unsupported *issuegraph.ErrUnsupported
 	if !errors.As(err, &unsupported) {
-		t.Fatalf("Releaser() error = %v, want *beads.ErrUnsupported", err)
+		t.Fatalf("Releaser() error = %v, want *issuegraph.ErrUnsupported", err)
 	}
 }
 
@@ -244,7 +244,7 @@ func TestReleaserExposesTypedUnsupportedError(t *testing.T) {
 // surface. A wrapper appearing here would mean a hook layer landed on a path
 // with nothing to fire.
 func TestIssueRelationsKeepsTelemetryOutermost(t *testing.T) {
-	t.Setenv("BD_OTEL_STDOUT", "true")
+	t.Setenv("ISSUEGRAPH_OTEL_STDOUT", "true")
 	instrumented, ok := telemetry.WrapStorage(&dolt.DoltStore{}).(*telemetry.InstrumentedStorage)
 	if !ok {
 		t.Fatal("WrapStorage() did not create InstrumentedStorage")
@@ -264,9 +264,9 @@ func TestDependencyEditorExposesTypedUnsupportedError(t *testing.T) {
 	if editor != nil {
 		t.Fatalf("DependencyEditor() editor = %T, want nil", editor)
 	}
-	var unsupported *beads.ErrUnsupported
+	var unsupported *issuegraph.ErrUnsupported
 	if !errors.As(err, &unsupported) {
-		t.Fatalf("DependencyEditor() error = %v, want *beads.ErrUnsupported", err)
+		t.Fatalf("DependencyEditor() error = %v, want *issuegraph.ErrUnsupported", err)
 	}
 }
 
@@ -275,9 +275,9 @@ func TestCommenterExposesTypedUnsupportedError(t *testing.T) {
 	if commenter != nil {
 		t.Fatalf("Commenter() commenter = %T, want nil", commenter)
 	}
-	var unsupported *beads.ErrUnsupported
+	var unsupported *issuegraph.ErrUnsupported
 	if !errors.As(err, &unsupported) {
-		t.Fatalf("Commenter() error = %v, want *beads.ErrUnsupported", err)
+		t.Fatalf("Commenter() error = %v, want *issuegraph.ErrUnsupported", err)
 	}
 }
 
@@ -286,9 +286,9 @@ func TestIssueRelationsExposesTypedUnsupportedError(t *testing.T) {
 	if relations != nil {
 		t.Fatalf("IssueRelations() relations = %T, want nil", relations)
 	}
-	var unsupported *beads.ErrUnsupported
+	var unsupported *issuegraph.ErrUnsupported
 	if !errors.As(err, &unsupported) {
-		t.Fatalf("IssueRelations() error = %v, want *beads.ErrUnsupported", err)
+		t.Fatalf("IssueRelations() error = %v, want *issuegraph.ErrUnsupported", err)
 	}
 }
 
@@ -296,7 +296,7 @@ func TestIssueRelationsExposesTypedUnsupportedError(t *testing.T) {
 // TestIssueRelationsKeepsTelemetryOutermost gives: counting fires no completion
 // hooks, so the hook decorator adds no layer.
 func TestCounterKeepsTelemetryOutermost(t *testing.T) {
-	t.Setenv("BD_OTEL_STDOUT", "true")
+	t.Setenv("ISSUEGRAPH_OTEL_STDOUT", "true")
 	instrumented, ok := telemetry.WrapStorage(&dolt.DoltStore{}).(*telemetry.InstrumentedStorage)
 	if !ok {
 		t.Fatal("WrapStorage() did not create InstrumentedStorage")
@@ -316,10 +316,10 @@ func TestCounterKeepsTelemetryOutermost(t *testing.T) {
 //
 // The hook decorator's vocabulary is on_create / on_update / on_close and every
 // one of them hands a hook script an ISSUE. A settings write changes the
-// workspace rather than a bead, so there is nothing to hand one — and the
+// workspace rather than a issue, so there is nothing to hand one — and the
 // legacy config verbs this decorator inherits fire nothing either.
 func TestWorkspaceConfigKeepsTelemetryOutermost(t *testing.T) {
-	t.Setenv("BD_OTEL_STDOUT", "true")
+	t.Setenv("ISSUEGRAPH_OTEL_STDOUT", "true")
 	instrumented, ok := telemetry.WrapStorage(&dolt.DoltStore{}).(*telemetry.InstrumentedStorage)
 	if !ok {
 		t.Fatal("WrapStorage() did not create InstrumentedStorage")
@@ -343,7 +343,7 @@ func TestWorkspaceConfigKeepsTelemetryOutermost(t *testing.T) {
 // on_remember to fire and inventing one is a hook proposal, not a role commit.
 // See internal/storage/hook_memories.go.
 func TestMemoriesKeepsTelemetryOutermost(t *testing.T) {
-	t.Setenv("BD_OTEL_STDOUT", "true")
+	t.Setenv("ISSUEGRAPH_OTEL_STDOUT", "true")
 	instrumented, ok := telemetry.WrapStorage(&dolt.DoltStore{}).(*telemetry.InstrumentedStorage)
 	if !ok {
 		t.Fatal("WrapStorage() did not create InstrumentedStorage")
@@ -366,9 +366,9 @@ func TestMemoriesExposesTypedUnsupportedError(t *testing.T) {
 	if memories != nil {
 		t.Fatalf("Memories() memories = %T, want nil", memories)
 	}
-	var unsupported *beads.ErrUnsupported
+	var unsupported *issuegraph.ErrUnsupported
 	if !errors.As(err, &unsupported) {
-		t.Fatalf("Memories() error = %v, want *beads.ErrUnsupported", err)
+		t.Fatalf("Memories() error = %v, want *issuegraph.ErrUnsupported", err)
 	}
 }
 
@@ -376,9 +376,9 @@ func TestMemoriesExposesTypedUnsupportedError(t *testing.T) {
 // plus one this role has on its own: it runs from PersistentPreRun on every
 // startup, so a hook wrapper here would run a user's script before every
 // command — including the ones that go on to fail on their own arguments —
-// with no bead to hand it.
+// with no issue to hand it.
 func TestVersionReconcilerKeepsTelemetryOutermost(t *testing.T) {
-	t.Setenv("BD_OTEL_STDOUT", "true")
+	t.Setenv("ISSUEGRAPH_OTEL_STDOUT", "true")
 	instrumented, ok := telemetry.WrapStorage(&dolt.DoltStore{}).(*telemetry.InstrumentedStorage)
 	if !ok {
 		t.Fatal("WrapStorage() did not create InstrumentedStorage")
@@ -397,11 +397,11 @@ func TestVersionReconcilerKeepsTelemetryOutermost(t *testing.T) {
 // settings role's nor the version marker's. A bootstrap writes, and loudly —
 // it is what turns a database into a workspace — but this decorator's hook
 // vocabulary is issue-shaped and a bootstrap names no issue; and on a workspace
-// this new, `bd init` has not installed .beads/hooks/ yet, so a hook fired here
+// this new, `issuegraph init` has not installed .issuegraph/hooks/ yet, so a hook fired here
 // would run whatever the previous project in that directory left behind. See
 // internal/storage/hook_bootstrapper.go.
 func TestBootstrapperKeepsTelemetryOutermost(t *testing.T) {
-	t.Setenv("BD_OTEL_STDOUT", "true")
+	t.Setenv("ISSUEGRAPH_OTEL_STDOUT", "true")
 	instrumented, ok := telemetry.WrapStorage(&dolt.DoltStore{}).(*telemetry.InstrumentedStorage)
 	if !ok {
 		t.Fatal("WrapStorage() did not create InstrumentedStorage")
@@ -420,7 +420,7 @@ func TestBootstrapperKeepsTelemetryOutermost(t *testing.T) {
 // fire no hooks, so the hook decorator recurses and the telemetry wrapper is
 // what a caller holds.
 func TestInitVerifierKeepsTelemetryOutermost(t *testing.T) {
-	t.Setenv("BD_OTEL_STDOUT", "true")
+	t.Setenv("ISSUEGRAPH_OTEL_STDOUT", "true")
 	instrumented, ok := telemetry.WrapStorage(&dolt.DoltStore{}).(*telemetry.InstrumentedStorage)
 	if !ok {
 		t.Fatal("WrapStorage() did not create InstrumentedStorage")
@@ -440,9 +440,9 @@ func TestBootstrapperExposesTypedUnsupportedError(t *testing.T) {
 	if bootstrapper != nil {
 		t.Fatalf("Bootstrapper() bootstrapper = %T, want nil", bootstrapper)
 	}
-	var unsupported *beads.ErrUnsupported
+	var unsupported *issuegraph.ErrUnsupported
 	if !errors.As(err, &unsupported) {
-		t.Fatalf("Bootstrapper() error = %v, want *beads.ErrUnsupported", err)
+		t.Fatalf("Bootstrapper() error = %v, want *issuegraph.ErrUnsupported", err)
 	}
 }
 
@@ -451,9 +451,9 @@ func TestInitVerifierExposesTypedUnsupportedError(t *testing.T) {
 	if verifier != nil {
 		t.Fatalf("InitVerifier() verifier = %T, want nil", verifier)
 	}
-	var unsupported *beads.ErrUnsupported
+	var unsupported *issuegraph.ErrUnsupported
 	if !errors.As(err, &unsupported) {
-		t.Fatalf("InitVerifier() error = %v, want *beads.ErrUnsupported", err)
+		t.Fatalf("InitVerifier() error = %v, want *issuegraph.ErrUnsupported", err)
 	}
 }
 
@@ -462,9 +462,9 @@ func TestVersionReconcilerExposesTypedUnsupportedError(t *testing.T) {
 	if reconciler != nil {
 		t.Fatalf("VersionReconciler() reconciler = %T, want nil", reconciler)
 	}
-	var unsupported *beads.ErrUnsupported
+	var unsupported *issuegraph.ErrUnsupported
 	if !errors.As(err, &unsupported) {
-		t.Fatalf("VersionReconciler() error = %v, want *beads.ErrUnsupported", err)
+		t.Fatalf("VersionReconciler() error = %v, want *issuegraph.ErrUnsupported", err)
 	}
 }
 
@@ -473,16 +473,16 @@ func TestWorkspaceConfigExposesTypedUnsupportedError(t *testing.T) {
 	if settings != nil {
 		t.Fatalf("WorkspaceConfig() settings = %T, want nil", settings)
 	}
-	var unsupported *beads.ErrUnsupported
+	var unsupported *issuegraph.ErrUnsupported
 	if !errors.As(err, &unsupported) {
-		t.Fatalf("WorkspaceConfig() error = %v, want *beads.ErrUnsupported", err)
+		t.Fatalf("WorkspaceConfig() error = %v, want *issuegraph.ErrUnsupported", err)
 	}
 }
 
 // TestStatsReporterKeepsTelemetryOutermost is the READ answer again: reporting
 // fires no completion hooks, so the hook decorator recurses.
 func TestStatsReporterKeepsTelemetryOutermost(t *testing.T) {
-	t.Setenv("BD_OTEL_STDOUT", "true")
+	t.Setenv("ISSUEGRAPH_OTEL_STDOUT", "true")
 	instrumented, ok := telemetry.WrapStorage(&dolt.DoltStore{}).(*telemetry.InstrumentedStorage)
 	if !ok {
 		t.Fatal("WrapStorage() did not create InstrumentedStorage")
@@ -502,16 +502,16 @@ func TestStatsReporterExposesTypedUnsupportedError(t *testing.T) {
 	if reporter != nil {
 		t.Fatalf("StatsReporter() reporter = %T, want nil", reporter)
 	}
-	var unsupported *beads.ErrUnsupported
+	var unsupported *issuegraph.ErrUnsupported
 	if !errors.As(err, &unsupported) {
-		t.Fatalf("StatsReporter() error = %v, want *beads.ErrUnsupported", err)
+		t.Fatalf("StatsReporter() error = %v, want *issuegraph.ErrUnsupported", err)
 	}
 }
 
 // TestCycleDetectorKeepsTelemetryOutermost is the READ answer again: a cycle
 // sweep fires no completion hooks, so the hook decorator adds no layer.
 func TestCycleDetectorKeepsTelemetryOutermost(t *testing.T) {
-	t.Setenv("BD_OTEL_STDOUT", "true")
+	t.Setenv("ISSUEGRAPH_OTEL_STDOUT", "true")
 	instrumented, ok := telemetry.WrapStorage(&dolt.DoltStore{}).(*telemetry.InstrumentedStorage)
 	if !ok {
 		t.Fatal("WrapStorage() did not create InstrumentedStorage")
@@ -531,16 +531,16 @@ func TestCycleDetectorExposesTypedUnsupportedError(t *testing.T) {
 	if detector != nil {
 		t.Fatalf("CycleDetector() detector = %T, want nil", detector)
 	}
-	var unsupported *beads.ErrUnsupported
+	var unsupported *issuegraph.ErrUnsupported
 	if !errors.As(err, &unsupported) {
-		t.Fatalf("CycleDetector() error = %v, want *beads.ErrUnsupported", err)
+		t.Fatalf("CycleDetector() error = %v, want *issuegraph.ErrUnsupported", err)
 	}
 }
 
 // TestEdgeReaderKeepsTelemetryOutermost is the READ answer again: reading edges
 // fires no completion hooks, so the hook decorator adds no layer.
 func TestEdgeReaderKeepsTelemetryOutermost(t *testing.T) {
-	t.Setenv("BD_OTEL_STDOUT", "true")
+	t.Setenv("ISSUEGRAPH_OTEL_STDOUT", "true")
 	instrumented, ok := telemetry.WrapStorage(&dolt.DoltStore{}).(*telemetry.InstrumentedStorage)
 	if !ok {
 		t.Fatal("WrapStorage() did not create InstrumentedStorage")
@@ -560,9 +560,9 @@ func TestEdgeReaderExposesTypedUnsupportedError(t *testing.T) {
 	if edges != nil {
 		t.Fatalf("EdgeReader() reader = %T, want nil", edges)
 	}
-	var unsupported *beads.ErrUnsupported
+	var unsupported *issuegraph.ErrUnsupported
 	if !errors.As(err, &unsupported) {
-		t.Fatalf("EdgeReader() error = %v, want *beads.ErrUnsupported", err)
+		t.Fatalf("EdgeReader() error = %v, want *issuegraph.ErrUnsupported", err)
 	}
 }
 
@@ -570,7 +570,7 @@ func TestEdgeReaderExposesTypedUnsupportedError(t *testing.T) {
 // annotating a page fires no completion hooks, so the hook decorator adds no
 // layer.
 func TestBlockingAnnotatorKeepsTelemetryOutermost(t *testing.T) {
-	t.Setenv("BD_OTEL_STDOUT", "true")
+	t.Setenv("ISSUEGRAPH_OTEL_STDOUT", "true")
 	instrumented, ok := telemetry.WrapStorage(&dolt.DoltStore{}).(*telemetry.InstrumentedStorage)
 	if !ok {
 		t.Fatal("WrapStorage() did not create InstrumentedStorage")
@@ -590,16 +590,16 @@ func TestBlockingAnnotatorExposesTypedUnsupportedError(t *testing.T) {
 	if annotator != nil {
 		t.Fatalf("BlockingAnnotator() annotator = %T, want nil", annotator)
 	}
-	var unsupported *beads.ErrUnsupported
+	var unsupported *issuegraph.ErrUnsupported
 	if !errors.As(err, &unsupported) {
-		t.Fatalf("BlockingAnnotator() error = %v, want *beads.ErrUnsupported", err)
+		t.Fatalf("BlockingAnnotator() error = %v, want *issuegraph.ErrUnsupported", err)
 	}
 }
 
 // TestTreeWalkerKeepsTelemetryOutermost is the READ answer again: a tree walk
 // fires no completion hooks, so the hook decorator adds no layer.
 func TestTreeWalkerKeepsTelemetryOutermost(t *testing.T) {
-	t.Setenv("BD_OTEL_STDOUT", "true")
+	t.Setenv("ISSUEGRAPH_OTEL_STDOUT", "true")
 	instrumented, ok := telemetry.WrapStorage(&dolt.DoltStore{}).(*telemetry.InstrumentedStorage)
 	if !ok {
 		t.Fatal("WrapStorage() did not create InstrumentedStorage")
@@ -619,16 +619,16 @@ func TestTreeWalkerExposesTypedUnsupportedError(t *testing.T) {
 	if walker != nil {
 		t.Fatalf("TreeWalker() walker = %T, want nil", walker)
 	}
-	var unsupported *beads.ErrUnsupported
+	var unsupported *issuegraph.ErrUnsupported
 	if !errors.As(err, &unsupported) {
-		t.Fatalf("TreeWalker() error = %v, want *beads.ErrUnsupported", err)
+		t.Fatalf("TreeWalker() error = %v, want *issuegraph.ErrUnsupported", err)
 	}
 }
 
 // TestGraphCounterKeepsTelemetryOutermost is the READ answer again: counting
 // edges fires no completion hooks, so the hook decorator adds no layer.
 func TestGraphCounterKeepsTelemetryOutermost(t *testing.T) {
-	t.Setenv("BD_OTEL_STDOUT", "true")
+	t.Setenv("ISSUEGRAPH_OTEL_STDOUT", "true")
 	instrumented, ok := telemetry.WrapStorage(&dolt.DoltStore{}).(*telemetry.InstrumentedStorage)
 	if !ok {
 		t.Fatal("WrapStorage() did not create InstrumentedStorage")
@@ -648,9 +648,9 @@ func TestGraphCounterExposesTypedUnsupportedError(t *testing.T) {
 	if counter != nil {
 		t.Fatalf("GraphCounter() counter = %T, want nil", counter)
 	}
-	var unsupported *beads.ErrUnsupported
+	var unsupported *issuegraph.ErrUnsupported
 	if !errors.As(err, &unsupported) {
-		t.Fatalf("GraphCounter() error = %v, want *beads.ErrUnsupported", err)
+		t.Fatalf("GraphCounter() error = %v, want *issuegraph.ErrUnsupported", err)
 	}
 }
 
@@ -659,16 +659,16 @@ func TestCounterExposesTypedUnsupportedError(t *testing.T) {
 	if counter != nil {
 		t.Fatalf("Counter() counter = %T, want nil", counter)
 	}
-	var unsupported *beads.ErrUnsupported
+	var unsupported *issuegraph.ErrUnsupported
 	if !errors.As(err, &unsupported) {
-		t.Fatalf("Counter() error = %v, want *beads.ErrUnsupported", err)
+		t.Fatalf("Counter() error = %v, want *issuegraph.ErrUnsupported", err)
 	}
 }
 
 // TestReadyCounterKeepsTelemetryOutermost is the READ answer again: sizing the
 // ready set fires no completion hooks, so the hook decorator adds no layer.
 func TestReadyCounterKeepsTelemetryOutermost(t *testing.T) {
-	t.Setenv("BD_OTEL_STDOUT", "true")
+	t.Setenv("ISSUEGRAPH_OTEL_STDOUT", "true")
 	instrumented, ok := telemetry.WrapStorage(&dolt.DoltStore{}).(*telemetry.InstrumentedStorage)
 	if !ok {
 		t.Fatal("WrapStorage() did not create InstrumentedStorage")
@@ -688,16 +688,16 @@ func TestReadyCounterExposesTypedUnsupportedError(t *testing.T) {
 	if counter != nil {
 		t.Fatalf("ReadyCounter() counter = %T, want nil", counter)
 	}
-	var unsupported *beads.ErrUnsupported
+	var unsupported *issuegraph.ErrUnsupported
 	if !errors.As(err, &unsupported) {
-		t.Fatalf("ReadyCounter() error = %v, want *beads.ErrUnsupported", err)
+		t.Fatalf("ReadyCounter() error = %v, want *issuegraph.ErrUnsupported", err)
 	}
 }
 
 // TestQuerierKeepsTelemetryOutermost is the READ answer again: a query fires no
 // completion hooks, so the hook decorator adds no layer.
 func TestQuerierKeepsTelemetryOutermost(t *testing.T) {
-	t.Setenv("BD_OTEL_STDOUT", "true")
+	t.Setenv("ISSUEGRAPH_OTEL_STDOUT", "true")
 	instrumented, ok := telemetry.WrapStorage(&dolt.DoltStore{}).(*telemetry.InstrumentedStorage)
 	if !ok {
 		t.Fatal("WrapStorage() did not create InstrumentedStorage")
@@ -717,9 +717,9 @@ func TestQuerierExposesTypedUnsupportedError(t *testing.T) {
 	if querier != nil {
 		t.Fatalf("Querier() querier = %T, want nil", querier)
 	}
-	var unsupported *beads.ErrUnsupported
+	var unsupported *issuegraph.ErrUnsupported
 	if !errors.As(err, &unsupported) {
-		t.Fatalf("Querier() error = %v, want *beads.ErrUnsupported", err)
+		t.Fatalf("Querier() error = %v, want *issuegraph.ErrUnsupported", err)
 	}
 }
 
@@ -729,7 +729,7 @@ func TestQuerierExposesTypedUnsupportedError(t *testing.T) {
 // Pinning it here is what keeps that a decision rather than a wrapper someone
 // forgot to write.
 func TestSweeperKeepsTelemetryOutermost(t *testing.T) {
-	t.Setenv("BD_OTEL_STDOUT", "true")
+	t.Setenv("ISSUEGRAPH_OTEL_STDOUT", "true")
 	instrumented, ok := telemetry.WrapStorage(&dolt.DoltStore{}).(*telemetry.InstrumentedStorage)
 	if !ok {
 		t.Fatal("WrapStorage() did not create InstrumentedStorage")
@@ -749,9 +749,9 @@ func TestSweeperExposesTypedUnsupportedError(t *testing.T) {
 	if sweeper != nil {
 		t.Fatalf("Sweeper() sweeper = %T, want nil", sweeper)
 	}
-	var unsupported *beads.ErrUnsupported
+	var unsupported *issuegraph.ErrUnsupported
 	if !errors.As(err, &unsupported) {
-		t.Fatalf("Sweeper() error = %v, want *beads.ErrUnsupported", err)
+		t.Fatalf("Sweeper() error = %v, want *issuegraph.ErrUnsupported", err)
 	}
 }
 
@@ -759,7 +759,7 @@ func TestSweeperExposesTypedUnsupportedError(t *testing.T) {
 // the reads do: there is no on_delete hook to fire
 // (internal/storage/hook_deleter.go), so the hook decorator adds no layer.
 func TestDeleterKeepsTelemetryOutermost(t *testing.T) {
-	t.Setenv("BD_OTEL_STDOUT", "true")
+	t.Setenv("ISSUEGRAPH_OTEL_STDOUT", "true")
 	instrumented, ok := telemetry.WrapStorage(&dolt.DoltStore{}).(*telemetry.InstrumentedStorage)
 	if !ok {
 		t.Fatal("WrapStorage() did not create InstrumentedStorage")
@@ -779,8 +779,8 @@ func TestDeleterExposesTypedUnsupportedError(t *testing.T) {
 	if deleter != nil {
 		t.Fatalf("Deleter() deleter = %T, want nil", deleter)
 	}
-	var unsupported *beads.ErrUnsupported
+	var unsupported *issuegraph.ErrUnsupported
 	if !errors.As(err, &unsupported) {
-		t.Fatalf("Deleter() error = %v, want *beads.ErrUnsupported", err)
+		t.Fatalf("Deleter() error = %v, want *issuegraph.ErrUnsupported", err)
 	}
 }

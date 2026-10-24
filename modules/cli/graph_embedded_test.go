@@ -13,16 +13,16 @@ import (
 	"testing"
 )
 
-// bdGraph runs "bd graph" with the given args and returns raw stdout.
-func bdGraph(t *testing.T, bd, dir string, args ...string) string {
+// issuegraphGraph runs "issuegraph graph" with the given args and returns raw stdout.
+func issuegraphGraph(t *testing.T, issuegraph, dir string, args ...string) string {
 	t.Helper()
 	fullArgs := append([]string{"graph"}, args...)
-	cmd := exec.Command(bd, fullArgs...)
+	cmd := exec.Command(issuegraph, fullArgs...)
 	cmd.Dir = dir
-	cmd.Env = bdEnv(dir)
+	cmd.Env = issuegraphEnv(dir)
 	stdout, stderr, err := runCommandBuffers(t, cmd)
 	if err != nil {
-		t.Fatalf("bd graph %s failed: %v\nstdout:\n%s\nstderr:\n%s", strings.Join(args, " "), err, stdout.String(), stderr.String())
+		t.Fatalf("issuegraph graph %s failed: %v\nstdout:\n%s\nstderr:\n%s", strings.Join(args, " "), err, stdout.String(), stderr.String())
 	}
 	return stdout.String()
 }
@@ -30,7 +30,7 @@ func bdGraph(t *testing.T, bd, dir string, args ...string) string {
 // runWithReadOnlyStdout gives the child a real stdout handle that cannot
 // be written. Unlike a closed pipe, this produces a normal write error on both
 // Unix and Windows instead of depending on SIGPIPE behavior.
-func runWithReadOnlyStdout(t *testing.T, bd, dir string, env []string, args ...string) (string, error) {
+func runWithReadOnlyStdout(t *testing.T, issuegraph, dir string, env []string, args ...string) (string, error) {
 	t.Helper()
 	stdoutPath := filepath.Join(t.TempDir(), "stdout.txt")
 	if err := os.WriteFile(stdoutPath, nil, 0o600); err != nil {
@@ -42,7 +42,7 @@ func runWithReadOnlyStdout(t *testing.T, bd, dir string, env []string, args ...s
 	}
 	defer func() { _ = stdout.Close() }()
 
-	cmd := exec.Command(bd, args...)
+	cmd := exec.Command(issuegraph, args...)
 	cmd.Dir = dir
 	cmd.Env = env
 	cmd.Stdout = stdout
@@ -53,29 +53,29 @@ func runWithReadOnlyStdout(t *testing.T, bd, dir string, env []string, args ...s
 }
 
 func TestEmbeddedGraph(t *testing.T) {
-	if os.Getenv("BEADS_TEST_EMBEDDED_DOLT") != "1" {
-		t.Skip("set BEADS_TEST_EMBEDDED_DOLT=1 to run embedded dolt integration tests")
+	if os.Getenv("ISSUEGRAPH_TEST_EMBEDDED_DOLT") != "1" {
+		t.Skip("set ISSUEGRAPH_TEST_EMBEDDED_DOLT=1 to run embedded dolt integration tests")
 	}
 	t.Parallel()
 
-	bd := buildEmbeddedBD(t)
-	dir, _, _ := bdInit(t, bd, "--prefix", "gr")
+	issuegraph := buildEmbeddedBD(t)
+	dir, _, _ := issuegraphInit(t, issuegraph, "--prefix", "gr")
 
 	// Create an epic with dependencies for graph testing.
-	epic := bdCreate(t, bd, dir, "Graph epic", "--type", "epic")
-	taskA := bdCreate(t, bd, dir, "Graph task A", "--type", "task")
-	taskB := bdCreate(t, bd, dir, "Graph task B", "--type", "task")
-	taskC := bdCreate(t, bd, dir, "Graph task C", "--type", "task")
-	bdDep(t, bd, dir, "add", taskA.ID, epic.ID, "--type", "parent-child")
-	bdDep(t, bd, dir, "add", taskB.ID, epic.ID, "--type", "parent-child")
-	bdDep(t, bd, dir, "add", taskC.ID, taskA.ID) // C depends on A
+	epic := issuegraphCreate(t, issuegraph, dir, "Graph epic", "--type", "epic")
+	taskA := issuegraphCreate(t, issuegraph, dir, "Graph task A", "--type", "task")
+	taskB := issuegraphCreate(t, issuegraph, dir, "Graph task B", "--type", "task")
+	taskC := issuegraphCreate(t, issuegraph, dir, "Graph task C", "--type", "task")
+	issuegraphDep(t, issuegraph, dir, "add", taskA.ID, epic.ID, "--type", "parent-child")
+	issuegraphDep(t, issuegraph, dir, "add", taskB.ID, epic.ID, "--type", "parent-child")
+	issuegraphDep(t, issuegraph, dir, "add", taskC.ID, taskA.ID) // C depends on A
 
-	standalone := bdCreate(t, bd, dir, "Standalone issue", "--type", "task")
+	standalone := issuegraphCreate(t, issuegraph, dir, "Standalone issue", "--type", "task")
 
 	// ===== Single issue graph =====
 
 	t.Run("single_issue", func(t *testing.T) {
-		out := bdGraph(t, bd, dir, epic.ID)
+		out := issuegraphGraph(t, issuegraph, dir, epic.ID)
 		if !strings.Contains(out, epic.ID) {
 			t.Errorf("expected epic ID in graph: %s", out)
 		}
@@ -84,7 +84,7 @@ func TestEmbeddedGraph(t *testing.T) {
 	// ===== --all =====
 
 	t.Run("all_issues", func(t *testing.T) {
-		out := bdGraph(t, bd, dir, "--all")
+		out := issuegraphGraph(t, issuegraph, dir, "--all")
 		if !strings.Contains(out, epic.ID) {
 			t.Errorf("expected epic in --all graph: %s", out)
 		}
@@ -93,7 +93,7 @@ func TestEmbeddedGraph(t *testing.T) {
 	// ===== --compact =====
 
 	t.Run("compact_format", func(t *testing.T) {
-		out := bdGraph(t, bd, dir, "--compact", epic.ID)
+		out := issuegraphGraph(t, issuegraph, dir, "--compact", epic.ID)
 		if len(out) == 0 {
 			t.Error("expected non-empty compact output")
 		}
@@ -102,7 +102,7 @@ func TestEmbeddedGraph(t *testing.T) {
 	// ===== --box =====
 
 	t.Run("box_format", func(t *testing.T) {
-		out := bdGraph(t, bd, dir, "--box", epic.ID)
+		out := issuegraphGraph(t, issuegraph, dir, "--box", epic.ID)
 		if len(out) == 0 {
 			t.Error("expected non-empty box output")
 		}
@@ -111,7 +111,7 @@ func TestEmbeddedGraph(t *testing.T) {
 	// ===== --dot =====
 
 	t.Run("dot_format", func(t *testing.T) {
-		out := bdGraph(t, bd, dir, "--dot", epic.ID)
+		out := issuegraphGraph(t, issuegraph, dir, "--dot", epic.ID)
 		if !strings.Contains(out, "digraph") {
 			t.Errorf("expected 'digraph' in DOT output: %s", out)
 		}
@@ -120,14 +120,14 @@ func TestEmbeddedGraph(t *testing.T) {
 	// ===== --html =====
 
 	t.Run("html_format", func(t *testing.T) {
-		out := bdGraph(t, bd, dir, "--html", epic.ID)
+		out := issuegraphGraph(t, issuegraph, dir, "--html", epic.ID)
 		if !strings.Contains(out, "<html") && !strings.Contains(out, "<!DOCTYPE") {
 			t.Errorf("expected HTML output: %s", out[:min(200, len(out))])
 		}
 	})
 
 	t.Run("dot_output_error", func(t *testing.T) {
-		stderr, err := runWithReadOnlyStdout(t, bd, dir, bdEnv(dir), "graph", "--dot", epic.ID)
+		stderr, err := runWithReadOnlyStdout(t, issuegraph, dir, issuegraphEnv(dir), "graph", "--dot", epic.ID)
 		if err == nil {
 			t.Fatalf("graph --dot succeeded with read-only stdout; stderr:\n%s", stderr)
 		}
@@ -144,7 +144,7 @@ func TestEmbeddedGraph(t *testing.T) {
 		{name: "all_open_separator_output_error", args: []string{"graph", "--all", "--open"}},
 	} {
 		t.Run(tc.name, func(t *testing.T) {
-			stderr, err := runWithReadOnlyStdout(t, bd, dir, bdEnv(dir), tc.args...)
+			stderr, err := runWithReadOnlyStdout(t, issuegraph, dir, issuegraphEnv(dir), tc.args...)
 			if err == nil {
 				t.Fatalf("%s succeeded with read-only stdout; stderr:\n%s", strings.Join(tc.args, " "), stderr)
 			}
@@ -158,9 +158,9 @@ func TestEmbeddedGraph(t *testing.T) {
 
 	t.Run("json_output", func(t *testing.T) {
 		fullArgs := []string{"graph", "--json", epic.ID}
-		cmd := exec.Command(bd, fullArgs...)
+		cmd := exec.Command(issuegraph, fullArgs...)
 		cmd.Dir = dir
-		cmd.Env = bdEnv(dir)
+		cmd.Env = issuegraphEnv(dir)
 		stdout, stderr, err := runCommandBuffers(t, cmd)
 		if err != nil {
 			t.Fatalf("graph --json failed: %v\nstdout:\n%s\nstderr:\n%s", err, stdout.String(), stderr.String())
@@ -173,7 +173,7 @@ func TestEmbeddedGraph(t *testing.T) {
 	// ===== Issue with no dependencies =====
 
 	t.Run("no_dependencies", func(t *testing.T) {
-		out := bdGraph(t, bd, dir, standalone.ID)
+		out := issuegraphGraph(t, issuegraph, dir, standalone.ID)
 		// Should still produce output for the standalone issue
 		if !strings.Contains(out, standalone.ID) {
 			t.Errorf("expected standalone ID in graph: %s", out)
@@ -183,7 +183,7 @@ func TestEmbeddedGraph(t *testing.T) {
 	// ===== --all --compact =====
 
 	t.Run("all_compact", func(t *testing.T) {
-		out := bdGraph(t, bd, dir, "--all", "--compact")
+		out := issuegraphGraph(t, issuegraph, dir, "--all", "--compact")
 		if len(out) == 0 {
 			t.Error("expected non-empty all+compact output")
 		}
@@ -192,7 +192,7 @@ func TestEmbeddedGraph(t *testing.T) {
 	// ===== --all --dot =====
 
 	t.Run("all_dot", func(t *testing.T) {
-		out := bdGraph(t, bd, dir, "--all", "--dot")
+		out := issuegraphGraph(t, issuegraph, dir, "--all", "--dot")
 		if !strings.Contains(out, "digraph") {
 			t.Errorf("expected 'digraph' in all+dot: %s", out)
 		}
@@ -201,22 +201,22 @@ func TestEmbeddedGraph(t *testing.T) {
 
 // TestEmbeddedGraphConcurrent exercises graph operations concurrently.
 func TestEmbeddedGraphConcurrent(t *testing.T) {
-	if os.Getenv("BEADS_TEST_EMBEDDED_DOLT") != "1" {
-		t.Skip("set BEADS_TEST_EMBEDDED_DOLT=1 to run embedded dolt integration tests")
+	if os.Getenv("ISSUEGRAPH_TEST_EMBEDDED_DOLT") != "1" {
+		t.Skip("set ISSUEGRAPH_TEST_EMBEDDED_DOLT=1 to run embedded dolt integration tests")
 	}
 	t.Parallel()
 
-	bd := buildEmbeddedBD(t)
-	dir, _, _ := bdInit(t, bd, "--prefix", "grc")
+	issuegraph := buildEmbeddedBD(t)
+	dir, _, _ := issuegraphInit(t, issuegraph, "--prefix", "grc")
 
 	// Create issues with deps.
 	var ids []string
 	for i := 0; i < 8; i++ {
-		issue := bdCreate(t, bd, dir, fmt.Sprintf("concurrent-graph-%d", i), "--type", "task")
+		issue := issuegraphCreate(t, issuegraph, dir, fmt.Sprintf("concurrent-graph-%d", i), "--type", "task")
 		ids = append(ids, issue.ID)
 	}
 	for i := 0; i < 4; i++ {
-		bdDep(t, bd, dir, "add", ids[i*2], ids[i*2+1])
+		issuegraphDep(t, issuegraph, dir, "add", ids[i*2], ids[i*2+1])
 	}
 
 	const numWorkers = 8
@@ -246,9 +246,9 @@ func TestEmbeddedGraphConcurrent(t *testing.T) {
 			f := formats[worker%len(formats)]
 
 			args := append([]string{"graph"}, f...)
-			cmd := exec.Command(bd, args...)
+			cmd := exec.Command(issuegraph, args...)
 			cmd.Dir = dir
-			cmd.Env = bdEnv(dir)
+			cmd.Env = issuegraphEnv(dir)
 			out, err := cmd.CombinedOutput()
 			if err != nil {
 				r.err = fmt.Errorf("worker %d graph: %v\n%s", worker, err, out)

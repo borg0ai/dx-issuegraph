@@ -12,7 +12,7 @@ func TestJsonStderrError_StructuredOutput(t *testing.T) {
 		hint    string
 	}{
 		{"message_only", "database not found", ""},
-		{"message_with_hint", "database not found", "Run 'bd init' to create one"},
+		{"message_with_hint", "database not found", "Run 'issuegraph init' to create one"},
 	}
 
 	for _, tt := range tests {

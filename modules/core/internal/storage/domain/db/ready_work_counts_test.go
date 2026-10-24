@@ -1,8 +1,8 @@
 package db
 
 import (
-	"github.com/steveyegge/beads/internal/storage/domain"
-	"github.com/steveyegge/beads/internal/types"
+	"github.com/borg0ai/dx-issuegraph/internal/storage/domain"
+	"github.com/borg0ai/dx-issuegraph/internal/types"
 )
 
 func (s *testSuite) TestIssueGetReadyWorkWithCounts() {
@@ -231,7 +231,7 @@ func (s *testSuite) readyCountsLimit() {
 //
 // The canonical copy is the WISPS one, and the read answers with it. That is
 // the verdict the per-table seam has always reached (issueops, be-iabdi) and
-// the one `bd doctor --check=validate --fix` acts on: it deletes the stale
+// the one `issuegraph doctor --check=validate --fix` acts on: it deletes the stale
 // ISSUES copy, the same row this drops. scanIDSrcPage carries the full
 // argument.
 func (s *testSuite) readyCountsCollision() {

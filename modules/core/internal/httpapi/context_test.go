@@ -7,7 +7,7 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/steveyegge/beads/internal/storage/domain"
+	"github.com/borg0ai/dx-issuegraph/internal/storage/domain"
 )
 
 // fakeCredential is a realistic sync remote: a token in the userinfo of an
@@ -23,22 +23,22 @@ const (
 // assertions below name the leak instead of just failing a count.
 func populatedContextInfo() domain.ContextInfo {
 	return domain.ContextInfo{
-		BeadsDir:     "/host/workspace/.beads",
-		RepoRoot:     "/host/workspace",
-		CWDRepoRoot:  "/host/elsewhere",
-		IsRedirected: true,
-		IsWorktree:   true,
-		Backend:      "dolt",
-		DoltMode:     "proxied-server",
-		ServerHost:   fakeDoltAddress,
-		ServerPort:   3307,
-		ProxiedDir:   "/host/workspace/.beads/dolt",
-		Database:     "beads",
-		DataDir:      "/host/workspace/.beads/embeddeddolt",
-		ProjectID:    "proj-1",
-		SyncRemote:   fakeSyncRemote,
-		Role:         "maintainer",
-		BdVersion:    "9.9.9",
+		IssueGraphDir: "/host/workspace/.issuegraph",
+		RepoRoot:      "/host/workspace",
+		CWDRepoRoot:   "/host/elsewhere",
+		IsRedirected:  true,
+		IsWorktree:    true,
+		Backend:       "dolt",
+		DoltMode:      "proxied-server",
+		ServerHost:    fakeDoltAddress,
+		ServerPort:    3307,
+		ProxiedDir:    "/host/workspace/.issuegraph/dolt",
+		Database:      "issuegraph",
+		DataDir:       "/host/workspace/.issuegraph/embeddeddolt",
+		ProjectID:     "proj-1",
+		SyncRemote:    fakeSyncRemote,
+		Role:          "maintainer",
+		BdVersion:     "9.9.9",
 	}
 }
 
@@ -57,7 +57,7 @@ func TestContextHandlerServesOnlyTheAllowlist(t *testing.T) {
 		SchemaVersion: 1,
 	})
 
-	resp := ts.get(t, "/v0/beads/context")
+	resp := ts.get(t, "/v0/issuegraph/context")
 	if resp.StatusCode != http.StatusOK {
 		t.Fatalf("status = %d, want 200", resp.StatusCode)
 	}
@@ -105,11 +105,11 @@ func TestContextHandlerServesOnlyTheAllowlist(t *testing.T) {
 	if body["api_version"] != APIVersion {
 		t.Errorf("api_version = %v, want %q", body["api_version"], APIVersion)
 	}
-	if body["bd_version"] != "9.9.9" {
-		t.Errorf("bd_version = %v", body["bd_version"])
+	if body["issuegraph_version"] != "9.9.9" {
+		t.Errorf("issuegraph_version = %v", body["issuegraph_version"])
 	}
-	if body["beads_dir"] != "/host/workspace/.beads" {
-		t.Errorf("beads_dir = %v", body["beads_dir"])
+	if body["issuegraph_dir"] != "/host/workspace/.issuegraph" {
+		t.Errorf("issuegraph_dir = %v", body["issuegraph_dir"])
 	}
 	// The document types capabilities as an array; a client must never have to
 	// tell null from empty to learn that nothing is implemented yet.

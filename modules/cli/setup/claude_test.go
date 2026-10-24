@@ -9,7 +9,7 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/steveyegge/beads/internal/templates/agents"
+	"github.com/borg0ai/dx-issuegraph/internal/templates/agents"
 )
 
 func newClaudeTestEnv(t *testing.T) (claudeEnv, *bytes.Buffer, *bytes.Buffer) {
@@ -77,14 +77,14 @@ func TestAddHookCommand(t *testing.T) {
 			name:          "add hook to empty hooks",
 			existingHooks: make(map[string]interface{}),
 			event:         "SessionStart",
-			command:       "bd prime",
+			command:       "issuegraph prime",
 			wantAdded:     true,
 		},
 		{
 			name:          "add stealth hook to empty hooks",
 			existingHooks: make(map[string]interface{}),
 			event:         "SessionStart",
-			command:       "bd prime --stealth",
+			command:       "issuegraph prime --stealth",
 			wantAdded:     true,
 		},
 		{
@@ -96,14 +96,14 @@ func TestAddHookCommand(t *testing.T) {
 						"hooks": []interface{}{
 							map[string]interface{}{
 								"type":    "command",
-								"command": "bd prime",
+								"command": "issuegraph prime",
 							},
 						},
 					},
 				},
 			},
 			event:     "SessionStart",
-			command:   "bd prime",
+			command:   "issuegraph prime",
 			wantAdded: false,
 		},
 		{
@@ -115,14 +115,14 @@ func TestAddHookCommand(t *testing.T) {
 						"hooks": []interface{}{
 							map[string]interface{}{
 								"type":    "command",
-								"command": "bd prime --stealth",
+								"command": "issuegraph prime --stealth",
 							},
 						},
 					},
 				},
 			},
 			event:     "SessionStart",
-			command:   "bd prime --stealth",
+			command:   "issuegraph prime --stealth",
 			wantAdded: false,
 		},
 		{
@@ -141,7 +141,7 @@ func TestAddHookCommand(t *testing.T) {
 				},
 			},
 			event:     "SessionStart",
-			command:   "bd prime",
+			command:   "issuegraph prime",
 			wantAdded: true,
 		},
 	}
@@ -196,14 +196,14 @@ func TestRemoveHookCommand(t *testing.T) {
 						"hooks": []interface{}{
 							map[string]interface{}{
 								"type":    "command",
-								"command": "bd prime",
+								"command": "issuegraph prime",
 							},
 						},
 					},
 				},
 			},
 			event:         "SessionStart",
-			command:       "bd prime",
+			command:       "issuegraph prime",
 			wantRemaining: 0,
 		},
 		{
@@ -215,14 +215,14 @@ func TestRemoveHookCommand(t *testing.T) {
 						"hooks": []interface{}{
 							map[string]interface{}{
 								"type":    "command",
-								"command": "bd prime --stealth",
+								"command": "issuegraph prime --stealth",
 							},
 						},
 					},
 				},
 			},
 			event:         "SessionStart",
-			command:       "bd prime --stealth",
+			command:       "issuegraph prime --stealth",
 			wantRemaining: 0,
 		},
 		{
@@ -243,14 +243,14 @@ func TestRemoveHookCommand(t *testing.T) {
 						"hooks": []interface{}{
 							map[string]interface{}{
 								"type":    "command",
-								"command": "bd prime",
+								"command": "issuegraph prime",
 							},
 						},
 					},
 				},
 			},
 			event:         "SessionStart",
-			command:       "bd prime",
+			command:       "issuegraph prime",
 			wantRemaining: 1,
 		},
 	}
@@ -265,13 +265,13 @@ func TestRemoveHookCommand(t *testing.T) {
 				map[string]interface{}{
 					"matcher": "",
 					"hooks": []interface{}{
-						map[string]interface{}{"type": "command", "command": "bd prime"},
+						map[string]interface{}{"type": "command", "command": "issuegraph prime"},
 						map[string]interface{}{"type": "command", "command": "other-tool"},
 					},
 				},
 			},
 		}
-		removeHookCommand(hooks, "SessionStart", "bd prime")
+		removeHookCommand(hooks, "SessionStart", "issuegraph prime")
 
 		entries, ok := hooks["SessionStart"].([]interface{})
 		if !ok || len(entries) != 1 {
@@ -325,14 +325,14 @@ func TestRemoveHookCommandNoNull(t *testing.T) {
 				"hooks": []interface{}{
 					map[string]interface{}{
 						"type":    "command",
-						"command": "bd prime",
+						"command": "issuegraph prime",
 					},
 				},
 			},
 		},
 	}
 
-	removeHookCommand(hooks, "SessionStart", "bd prime")
+	removeHookCommand(hooks, "SessionStart", "issuegraph prime")
 
 	// Key should be deleted, not set to null or empty array
 	if _, exists := hooks["SessionStart"]; exists {
@@ -418,7 +418,7 @@ func TestInstallClaudeUsesPrimeForClaudeHooks(t *testing.T) {
 	settingsJSON := string(data)
 
 	for _, want := range []string{
-		`"command": "bd prime --hook-json"`,
+		`"command": "issuegraph prime --hook-json"`,
 		`"SessionStart"`,
 	} {
 		if !strings.Contains(settingsJSON, want) {
@@ -426,7 +426,7 @@ func TestInstallClaudeUsesPrimeForClaudeHooks(t *testing.T) {
 		}
 	}
 
-	for _, stale := range []string{"bd sync", "bd dolt push"} {
+	for _, stale := range []string{"issuegraph sync", "issuegraph dolt push"} {
 		if strings.Contains(settingsJSON, stale) {
 			t.Fatalf("settings contain stale Claude hook command %q:\n%s", stale, settingsJSON)
 		}
@@ -440,9 +440,9 @@ func TestClaudeSettingsUsesRemovedSyncCommand(t *testing.T) {
 		want bool
 	}{
 		{"empty", "{}", false},
-		{"bd prime only", `{"hooks":{"PreCompact":[{"matcher":"","hooks":[{"type":"command","command":"bd prime"}]}]}}`, false},
-		{"bd sync hook", `{"hooks":{"PreCompact":[{"matcher":"","hooks":[{"type":"command","command":"bd sync"}]}]}}`, true},
-		{"bd sync with suffix", `{"hooks":{"SessionStart":[{"matcher":"","hooks":[{"type":"command","command":"bd sync --flush-only"}]}]}}`, true},
+		{"issuegraph prime only", `{"hooks":{"PreCompact":[{"matcher":"","hooks":[{"type":"command","command":"issuegraph prime"}]}]}}`, false},
+		{"issuegraph sync hook", `{"hooks":{"PreCompact":[{"matcher":"","hooks":[{"type":"command","command":"issuegraph sync"}]}]}}`, true},
+		{"issuegraph sync with suffix", `{"hooks":{"SessionStart":[{"matcher":"","hooks":[{"type":"command","command":"issuegraph sync --flush-only"}]}]}}`, true},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
@@ -453,7 +453,7 @@ func TestClaudeSettingsUsesRemovedSyncCommand(t *testing.T) {
 	}
 }
 
-func TestHasBeadsHooks(t *testing.T) {
+func TestHasIssueGraphHooks(t *testing.T) {
 	tmpDir := t.TempDir()
 
 	tests := []struct {
@@ -462,7 +462,7 @@ func TestHasBeadsHooks(t *testing.T) {
 		want         bool
 	}{
 		{
-			name: "has bd prime hook",
+			name: "has issuegraph prime hook",
 			settingsData: map[string]interface{}{
 				"hooks": map[string]interface{}{
 					"SessionStart": []interface{}{
@@ -471,7 +471,7 @@ func TestHasBeadsHooks(t *testing.T) {
 							"hooks": []interface{}{
 								map[string]interface{}{
 									"type":    "command",
-									"command": "bd prime",
+									"command": "issuegraph prime",
 								},
 							},
 						},
@@ -481,7 +481,7 @@ func TestHasBeadsHooks(t *testing.T) {
 			want: true,
 		},
 		{
-			name: "has bd prime --stealth hook",
+			name: "has issuegraph prime --stealth hook",
 			settingsData: map[string]interface{}{
 				"hooks": map[string]interface{}{
 					"SessionStart": []interface{}{
@@ -490,7 +490,7 @@ func TestHasBeadsHooks(t *testing.T) {
 							"hooks": []interface{}{
 								map[string]interface{}{
 									"type":    "command",
-									"command": "bd prime --stealth",
+									"command": "issuegraph prime --stealth",
 								},
 							},
 						},
@@ -500,7 +500,7 @@ func TestHasBeadsHooks(t *testing.T) {
 			want: true,
 		},
 		{
-			name: "has bd prime in PreCompact",
+			name: "has issuegraph prime in PreCompact",
 			settingsData: map[string]interface{}{
 				"hooks": map[string]interface{}{
 					"SessionStart": []interface{}{
@@ -509,7 +509,7 @@ func TestHasBeadsHooks(t *testing.T) {
 							"hooks": []interface{}{
 								map[string]interface{}{
 									"type":    "command",
-									"command": "bd prime",
+									"command": "issuegraph prime",
 								},
 							},
 						},
@@ -519,7 +519,7 @@ func TestHasBeadsHooks(t *testing.T) {
 			want: true,
 		},
 		{
-			name: "has bd prime --stealth in PreCompact",
+			name: "has issuegraph prime --stealth in PreCompact",
 			settingsData: map[string]interface{}{
 				"hooks": map[string]interface{}{
 					"PreCompact": []interface{}{
@@ -528,7 +528,7 @@ func TestHasBeadsHooks(t *testing.T) {
 							"hooks": []interface{}{
 								map[string]interface{}{
 									"type":    "command",
-									"command": "bd prime --stealth",
+									"command": "issuegraph prime --stealth",
 								},
 							},
 						},
@@ -538,7 +538,7 @@ func TestHasBeadsHooks(t *testing.T) {
 			want: true,
 		},
 		{
-			name: "has bd prime --hook-json hook (current format)",
+			name: "has issuegraph prime --hook-json hook (current format)",
 			settingsData: map[string]interface{}{
 				"hooks": map[string]interface{}{
 					"SessionStart": []interface{}{
@@ -547,7 +547,7 @@ func TestHasBeadsHooks(t *testing.T) {
 							"hooks": []interface{}{
 								map[string]interface{}{
 									"type":    "command",
-									"command": "bd prime --hook-json",
+									"command": "issuegraph prime --hook-json",
 								},
 							},
 						},
@@ -557,7 +557,7 @@ func TestHasBeadsHooks(t *testing.T) {
 			want: true,
 		},
 		{
-			name: "has bd prime --stealth --hook-json hook (current format)",
+			name: "has issuegraph prime --stealth --hook-json hook (current format)",
 			settingsData: map[string]interface{}{
 				"hooks": map[string]interface{}{
 					"PreCompact": []interface{}{
@@ -566,7 +566,7 @@ func TestHasBeadsHooks(t *testing.T) {
 							"hooks": []interface{}{
 								map[string]interface{}{
 									"type":    "command",
-									"command": "bd prime --stealth --hook-json",
+									"command": "issuegraph prime --stealth --hook-json",
 								},
 							},
 						},
@@ -581,7 +581,7 @@ func TestHasBeadsHooks(t *testing.T) {
 			want:         false,
 		},
 		{
-			name: "has other hooks but not bd prime",
+			name: "has other hooks but not issuegraph prime",
 			settingsData: map[string]interface{}{
 				"hooks": map[string]interface{}{
 					"SessionStart": []interface{}{
@@ -614,9 +614,9 @@ func TestHasBeadsHooks(t *testing.T) {
 				t.Fatalf("Failed to write test file: %v", err)
 			}
 
-			got := hasBeadsHooks(settingsPath)
+			got := hasIssueGraphHooks(settingsPath)
 			if got != tt.want {
-				t.Errorf("hasBeadsHooks() = %v, want %v", got, tt.want)
+				t.Errorf("hasIssueGraphHooks() = %v, want %v", got, tt.want)
 			}
 		})
 	}
@@ -627,13 +627,13 @@ func TestIdempotency(t *testing.T) {
 	hooks := make(map[string]interface{})
 
 	// First add
-	added1 := addHookCommand(hooks, "SessionStart", "bd prime")
+	added1 := addHookCommand(hooks, "SessionStart", "issuegraph prime")
 	if !added1 {
 		t.Error("First call should have added the hook")
 	}
 
 	// Second add (should detect existing)
-	added2 := addHookCommand(hooks, "SessionStart", "bd prime")
+	added2 := addHookCommand(hooks, "SessionStart", "issuegraph prime")
 	if added2 {
 		t.Error("Second call should have detected existing hook")
 	}
@@ -649,12 +649,12 @@ func TestIdempotency(t *testing.T) {
 func TestIdempotencyWithStealth(t *testing.T) {
 	hooks := make(map[string]any)
 
-	if !addHookCommand(hooks, "SessionStart", "bd prime --stealth") {
+	if !addHookCommand(hooks, "SessionStart", "issuegraph prime --stealth") {
 		t.Error("First call should have added the stealth hook")
 	}
 
 	// Second add (should detect existing)
-	if addHookCommand(hooks, "SessionStart", "bd prime --stealth") {
+	if addHookCommand(hooks, "SessionStart", "issuegraph prime --stealth") {
 		t.Error("Second call should have detected existing stealth hook")
 	}
 
@@ -668,8 +668,8 @@ func TestIdempotencyWithStealth(t *testing.T) {
 	hookMap := eventHooks[0].(map[string]any)
 	commands := hookMap["hooks"].([]any)
 	cmdMap := commands[0].(map[string]any)
-	if cmdMap["command"] != "bd prime --stealth" {
-		t.Errorf("Expected 'bd prime --stealth', got %v", cmdMap["command"])
+	if cmdMap["command"] != "issuegraph prime --stealth" {
+		t.Errorf("Expected 'issuegraph prime --stealth', got %v", cmdMap["command"])
 	}
 }
 
@@ -687,7 +687,7 @@ func TestInstallClaudeProject(t *testing.T) {
 	if err := json.Unmarshal(data, &settings); err != nil {
 		t.Fatalf("unmarshal settings: %v", err)
 	}
-	if !hasBeadsHooks(projectSettingsPath(env.projectDir)) {
+	if !hasIssueGraphHooks(projectSettingsPath(env.projectDir)) {
 		t.Fatal("project hooks not detected")
 	}
 	instructionsPath := filepath.Join(env.projectDir, claudeInstructionsFile)
@@ -716,7 +716,7 @@ func TestInstallClaudeGlobalStealth(t *testing.T) {
 	if err != nil {
 		t.Fatalf("read global settings: %v", err)
 	}
-	if !strings.Contains(string(data), "bd prime --stealth") {
+	if !strings.Contains(string(data), "issuegraph prime --stealth") {
 		t.Error("expected stealth command in settings")
 	}
 	instructionsPath := filepath.Join(env.projectDir, claudeInstructionsFile)
@@ -768,7 +768,7 @@ func TestCheckClaudeScenarios(t *testing.T) {
 					map[string]interface{}{
 						"matcher": "",
 						"hooks": []interface{}{
-							map[string]interface{}{"type": "command", "command": "bd prime"},
+							map[string]interface{}{"type": "command", "command": "issuegraph prime"},
 						},
 					},
 				},
@@ -793,7 +793,7 @@ func TestCheckClaudeScenarios(t *testing.T) {
 					map[string]interface{}{
 						"matcher": "",
 						"hooks": []interface{}{
-							map[string]interface{}{"type": "command", "command": "bd prime"},
+							map[string]interface{}{"type": "command", "command": "issuegraph prime"},
 						},
 					},
 				},
@@ -815,7 +815,7 @@ func TestCheckClaudeScenarios(t *testing.T) {
 		if err := checkClaude(env); !errors.Is(err, errClaudeHooksMissing) {
 			t.Fatalf("expected errClaudeHooksMissing, got %v", err)
 		}
-		if !strings.Contains(stdout.String(), "Run: bd setup claude") {
+		if !strings.Contains(stdout.String(), "Run: issuegraph setup claude") {
 			t.Error("expected guidance message")
 		}
 	})
@@ -828,7 +828,7 @@ func TestCheckClaudeScenarios(t *testing.T) {
 					map[string]interface{}{
 						"matcher": "",
 						"hooks": []interface{}{
-							map[string]interface{}{"type": "command", "command": "bd prime"},
+							map[string]interface{}{"type": "command", "command": "issuegraph prime"},
 						},
 					},
 				},
@@ -853,7 +853,7 @@ func TestRemoveClaudeScenarios(t *testing.T) {
 					map[string]interface{}{
 						"matcher": "",
 						"hooks": []interface{}{
-							map[string]interface{}{"type": "command", "command": "bd prime"},
+							map[string]interface{}{"type": "command", "command": "issuegraph prime"},
 							map[string]interface{}{"type": "command", "command": "other"},
 						},
 					},
@@ -872,15 +872,15 @@ func TestRemoveClaudeScenarios(t *testing.T) {
 		if err != nil {
 			t.Fatalf("read file: %v", err)
 		}
-		if strings.Contains(string(data), "bd prime") {
-			t.Error("expected bd prime hooks removed")
+		if strings.Contains(string(data), "issuegraph prime") {
+			t.Error("expected issuegraph prime hooks removed")
 		}
 		instructions, err := os.ReadFile(instructionsPath)
 		if err != nil {
 			t.Fatalf("read %s: %v", claudeInstructionsFile, err)
 		}
-		if strings.Contains(string(instructions), "BEGIN BEADS INTEGRATION") {
-			t.Fatalf("expected beads section removed from %s", claudeInstructionsFile)
+		if strings.Contains(string(instructions), "BEGIN ISSUEGRAPH INTEGRATION") {
+			t.Fatalf("expected issuegraph section removed from %s", claudeInstructionsFile)
 		}
 		if !strings.Contains(stdout.String(), "hooks removed") {
 			t.Error("expected success message")
@@ -958,20 +958,20 @@ func TestClaudeWrappersReturnError(t *testing.T) {
 	})
 }
 
-// settingsWithPlugin returns settings data with the beads plugin enabled.
+// settingsWithPlugin returns settings data with the issuegraph plugin enabled.
 func settingsWithPlugin() map[string]interface{} {
 	return map[string]interface{}{
 		"enabledPlugins": map[string]interface{}{
-			"beads@beads-marketplace": true,
+			"issuegraph@issuegraph-marketplace": true,
 		},
 	}
 }
 
-func TestHasBeadsPlugin(t *testing.T) {
+func TestHasIssueGraphPlugin(t *testing.T) {
 	t.Run("plugin in project settings", func(t *testing.T) {
 		env, _, _ := newClaudeTestEnv(t)
 		writeSettings(t, projectSettingsPath(env.projectDir), settingsWithPlugin())
-		if !hasBeadsPlugin(env) {
+		if !hasIssueGraphPlugin(env) {
 			t.Error("expected plugin to be detected in project settings")
 		}
 	})
@@ -979,7 +979,7 @@ func TestHasBeadsPlugin(t *testing.T) {
 	t.Run("plugin in global settings", func(t *testing.T) {
 		env, _, _ := newClaudeTestEnv(t)
 		writeSettings(t, globalSettingsPath(env.homeDir), settingsWithPlugin())
-		if !hasBeadsPlugin(env) {
+		if !hasIssueGraphPlugin(env) {
 			t.Error("expected plugin to be detected in global settings")
 		}
 	})
@@ -988,48 +988,48 @@ func TestHasBeadsPlugin(t *testing.T) {
 		env, _, _ := newClaudeTestEnv(t)
 		writeSettings(t, projectSettingsPath(env.projectDir), map[string]interface{}{
 			"enabledPlugins": map[string]interface{}{
-				"beads@beads-marketplace": false,
+				"issuegraph@issuegraph-marketplace": false,
 			},
 		})
-		if hasBeadsPlugin(env) {
+		if hasIssueGraphPlugin(env) {
 			t.Error("disabled plugin should not be detected")
 		}
 	})
 
 	t.Run("no plugin", func(t *testing.T) {
 		env, _, _ := newClaudeTestEnv(t)
-		if hasBeadsPlugin(env) {
+		if hasIssueGraphPlugin(env) {
 			t.Error("expected no plugin detected")
 		}
 	})
 
-	t.Run("design-to-beads not mistaken for beads plugin", func(t *testing.T) {
-		// GH#4244: a plugin whose name merely contains "beads" (here
-		// design-to-beads) must NOT be taken for the beads hook plugin, or the
+	t.Run("design-to-issuegraph not mistaken for issuegraph plugin", func(t *testing.T) {
+		// GH#4244: a plugin whose name merely contains "issuegraph" (here
+		// design-to-issuegraph) must NOT be taken for the issuegraph hook plugin, or the
 		// SessionStart hook write is wrongly skipped.
 		env, _, _ := newClaudeTestEnv(t)
 		writeSettings(t, projectSettingsPath(env.projectDir), map[string]interface{}{
 			"enabledPlugins": map[string]interface{}{
-				"design-to-beads@xexr-marketplace": true,
+				"design-to-issuegraph@xexr-marketplace": true,
 			},
 		})
-		if hasBeadsPlugin(env) {
-			t.Error("design-to-beads should not be detected as the beads plugin")
+		if hasIssueGraphPlugin(env) {
+			t.Error("design-to-issuegraph should not be detected as the issuegraph plugin")
 		}
 	})
 
-	t.Run("real beads plugin detected past a decoy", func(t *testing.T) {
-		// The exact-name match must still find a real beads@<marketplace> even
-		// when a *beads*-named decoy is enabled too (GH#3192 preserved).
+	t.Run("real issuegraph plugin detected past a decoy", func(t *testing.T) {
+		// The exact-name match must still find a real issuegraph@<marketplace> even
+		// when a *issuegraph*-named decoy is enabled too (GH#3192 preserved).
 		env, _, _ := newClaudeTestEnv(t)
 		writeSettings(t, projectSettingsPath(env.projectDir), map[string]interface{}{
 			"enabledPlugins": map[string]interface{}{
-				"design-to-beads@xexr-marketplace": true,
-				"beads@beads-marketplace":          true,
+				"design-to-issuegraph@xexr-marketplace": true,
+				"issuegraph@issuegraph-marketplace":     true,
 			},
 		})
-		if !hasBeadsPlugin(env) {
-			t.Error("real beads@beads-marketplace should be detected even alongside a decoy")
+		if !hasIssueGraphPlugin(env) {
+			t.Error("real issuegraph@issuegraph-marketplace should be detected even alongside a decoy")
 		}
 	})
 }
@@ -1129,7 +1129,7 @@ func TestInstallClaudeReportsSkippedSymlinkInstructions(t *testing.T) {
 	if err != nil {
 		t.Fatalf("read target: %v", err)
 	}
-	if strings.Contains(string(data), "BEGIN BEADS INTEGRATION") {
+	if strings.Contains(string(data), "BEGIN ISSUEGRAPH INTEGRATION") {
 		t.Fatalf("symlink target should remain untouched:\n%s", data)
 	}
 }
@@ -1281,7 +1281,7 @@ func TestInstallClaudeRedirectsToAgentsMD(t *testing.T) {
 		t.Fatalf("write CLAUDE.md: %v", err)
 	}
 
-	// Create AGENTS.md with existing content (no beads block yet)
+	// Create AGENTS.md with existing content (no issuegraph block yet)
 	agentsPath := filepath.Join(env.projectDir, "AGENTS.md")
 	if err := os.WriteFile(agentsPath, []byte("# Agent Instructions\n\nSome content.\n"), 0o644); err != nil {
 		t.Fatalf("write AGENTS.md: %v", err)
@@ -1291,22 +1291,22 @@ func TestInstallClaudeRedirectsToAgentsMD(t *testing.T) {
 		t.Fatalf("installClaude: %v", err)
 	}
 
-	// CLAUDE.md should NOT have a beads section
+	// CLAUDE.md should NOT have a issuegraph section
 	claudeData, err := os.ReadFile(claudePath)
 	if err != nil {
 		t.Fatalf("read CLAUDE.md: %v", err)
 	}
-	if strings.Contains(string(claudeData), "BEGIN BEADS INTEGRATION") {
-		t.Fatalf("CLAUDE.md should not contain beads section when it imports AGENTS.md:\n%s", claudeData)
+	if strings.Contains(string(claudeData), "BEGIN ISSUEGRAPH INTEGRATION") {
+		t.Fatalf("CLAUDE.md should not contain issuegraph section when it imports AGENTS.md:\n%s", claudeData)
 	}
 
-	// AGENTS.md SHOULD have a beads section
+	// AGENTS.md SHOULD have a issuegraph section
 	agentsData, err := os.ReadFile(agentsPath)
 	if err != nil {
 		t.Fatalf("read AGENTS.md: %v", err)
 	}
-	if !strings.Contains(string(agentsData), "BEGIN BEADS INTEGRATION") {
-		t.Fatalf("AGENTS.md should contain beads section:\n%s", agentsData)
+	if !strings.Contains(string(agentsData), "BEGIN ISSUEGRAPH INTEGRATION") {
+		t.Fatalf("AGENTS.md should contain issuegraph section:\n%s", agentsData)
 	}
 	if !strings.Contains(string(agentsData), "profile:minimal") {
 		t.Fatalf("AGENTS.md should have minimal profile:\n%s", agentsData)
@@ -1347,8 +1347,8 @@ func TestInstallClaudeKeepsBlockWhenTheDirectiveIsOnlyDocumented(t *testing.T) {
 	if err != nil {
 		t.Fatalf("read CLAUDE.md: %v", err)
 	}
-	if !strings.Contains(string(claudeData), "BEGIN BEADS INTEGRATION") {
-		t.Fatalf("CLAUDE.md is authoritative and must carry the beads block; a fenced example redirected it away:\n%s", claudeData)
+	if !strings.Contains(string(claudeData), "BEGIN ISSUEGRAPH INTEGRATION") {
+		t.Fatalf("CLAUDE.md is authoritative and must carry the issuegraph block; a fenced example redirected it away:\n%s", claudeData)
 	}
 	if !strings.Contains(string(claudeData), "Until then, this file is authoritative.") {
 		t.Fatalf("CLAUDE.md lost its own content:\n%s", claudeData)
@@ -1358,7 +1358,7 @@ func TestInstallClaudeKeepsBlockWhenTheDirectiveIsOnlyDocumented(t *testing.T) {
 	if err != nil {
 		t.Fatalf("read AGENTS.md: %v", err)
 	}
-	if strings.Contains(string(agentsData), "BEGIN BEADS INTEGRATION") {
+	if strings.Contains(string(agentsData), "BEGIN ISSUEGRAPH INTEGRATION") {
 		t.Fatalf("AGENTS.md must not receive the block when CLAUDE.md is not a stub:\n%s", agentsData)
 	}
 }
@@ -1373,7 +1373,7 @@ func TestCheckClaudeRedirectsToAgentsMD(t *testing.T) {
 		t.Fatalf("write CLAUDE.md: %v", err)
 	}
 
-	// Create AGENTS.md with a beads section
+	// Create AGENTS.md with a issuegraph section
 	agentsPath := filepath.Join(env.projectDir, "AGENTS.md")
 	if err := os.WriteFile(agentsPath, []byte("# Agent Instructions\n\n"+agents.RenderSection(agents.ProfileMinimal)), 0o644); err != nil {
 		t.Fatalf("write AGENTS.md: %v", err)
@@ -1386,7 +1386,7 @@ func TestCheckClaudeRedirectsToAgentsMD(t *testing.T) {
 				map[string]interface{}{
 					"matcher": "",
 					"hooks": []interface{}{
-						map[string]interface{}{"type": "command", "command": "bd prime --hook-json"},
+						map[string]interface{}{"type": "command", "command": "issuegraph prime --hook-json"},
 					},
 				},
 			},
@@ -1413,7 +1413,7 @@ func TestRemoveClaudeRedirectsToAgentsMD(t *testing.T) {
 		t.Fatalf("write CLAUDE.md: %v", err)
 	}
 
-	// Create AGENTS.md with a beads section
+	// Create AGENTS.md with a issuegraph section
 	agentsPath := filepath.Join(env.projectDir, "AGENTS.md")
 	if err := os.WriteFile(agentsPath, []byte("# Agent Instructions\n\n"+agents.RenderSection(agents.ProfileMinimal)), 0o644); err != nil {
 		t.Fatalf("write AGENTS.md: %v", err)
@@ -1423,15 +1423,15 @@ func TestRemoveClaudeRedirectsToAgentsMD(t *testing.T) {
 		t.Fatalf("removeClaude: %v", err)
 	}
 
-	// AGENTS.md's beads section is project-authoritative (shared with other
+	// AGENTS.md's issuegraph section is project-authoritative (shared with other
 	// agents), not Claude-specific — removing Claude integration must leave
 	// it intact.
 	agentsData, err := os.ReadFile(agentsPath)
 	if err != nil {
 		t.Fatalf("read AGENTS.md: %v", err)
 	}
-	if !strings.Contains(string(agentsData), "BEGIN BEADS INTEGRATION") {
-		t.Fatalf("AGENTS.md should still contain the shared beads section after removing Claude:\n%s", agentsData)
+	if !strings.Contains(string(agentsData), "BEGIN ISSUEGRAPH INTEGRATION") {
+		t.Fatalf("AGENTS.md should still contain the shared issuegraph section after removing Claude:\n%s", agentsData)
 	}
 
 	// CLAUDE.md should be untouched (still a stub)
@@ -1449,8 +1449,8 @@ func TestRemoveClaudeRedirectsToAgentsMD(t *testing.T) {
 }
 
 // TestRemoveClaudeRedirectPreservesFullProfileSharedBlock covers the case
-// where AGENTS.md carries a full-profile shared beads block (e.g. created by
-// `bd init` or `bd setup codex`). Removing Claude integration must not touch
+// where AGENTS.md carries a full-profile shared issuegraph block (e.g. created by
+// `issuegraph init` or `issuegraph setup codex`). Removing Claude integration must not touch
 // it — other agents still depend on it.
 func TestRemoveClaudeRedirectPreservesFullProfileSharedBlock(t *testing.T) {
 	env, stdout, _ := newClaudeTestEnv(t)
@@ -1497,20 +1497,20 @@ func TestInstallClaudeNoRedirectWhenAGENTSMDMissing(t *testing.T) {
 		t.Fatalf("installClaude: %v", err)
 	}
 
-	// CLAUDE.md should get the beads section (fallback: no AGENTS.md to redirect to)
+	// CLAUDE.md should get the issuegraph section (fallback: no AGENTS.md to redirect to)
 	claudeData, err := os.ReadFile(claudePath)
 	if err != nil {
 		t.Fatalf("read CLAUDE.md: %v", err)
 	}
-	if !strings.Contains(string(claudeData), "BEGIN BEADS INTEGRATION") {
-		t.Fatalf("CLAUDE.md should contain beads section when AGENTS.md is missing:\n%s", claudeData)
+	if !strings.Contains(string(claudeData), "BEGIN ISSUEGRAPH INTEGRATION") {
+		t.Fatalf("CLAUDE.md should contain issuegraph section when AGENTS.md is missing:\n%s", claudeData)
 	}
 }
 
 // staleClaudeStubWithBlock builds a CLAUDE.md stub that carries BOTH the
-// @AGENTS.md import line (redirect trigger) and a beads block written by an
-// older bd, simulating a project that adopted the AGENTS.md-import pattern
-// after a beads block was already installed directly into CLAUDE.md.
+// @AGENTS.md import line (redirect trigger) and a issuegraph block written by an
+// older issuegraph, simulating a project that adopted the AGENTS.md-import pattern
+// after a issuegraph block was already installed directly into CLAUDE.md.
 func staleClaudeStubWithBlock() string {
 	return "# Claude Code\n\n@AGENTS.md\n\n" +
 		agents.RenderSection(agents.ProfileMinimal) +
@@ -1522,13 +1522,13 @@ func TestInstallClaudeRedirectCleansStaleClaudeBlock(t *testing.T) {
 	env, _, _ := newClaudeTestEnv(t)
 
 	// CLAUDE.md is a stub that imports AGENTS.md but still carries a stale
-	// beads block from an older bd install.
+	// issuegraph block from an older issuegraph install.
 	claudePath := filepath.Join(env.projectDir, claudeInstructionsFile)
 	if err := os.WriteFile(claudePath, []byte(staleClaudeStubWithBlock()), 0o644); err != nil {
 		t.Fatalf("write CLAUDE.md: %v", err)
 	}
 
-	// AGENTS.md already exists (without a beads block yet).
+	// AGENTS.md already exists (without a issuegraph block yet).
 	agentsPath := filepath.Join(env.projectDir, "AGENTS.md")
 	if err := os.WriteFile(agentsPath, []byte("# Agent Instructions\n\nSome content.\n"), 0o644); err != nil {
 		t.Fatalf("write AGENTS.md: %v", err)
@@ -1543,8 +1543,8 @@ func TestInstallClaudeRedirectCleansStaleClaudeBlock(t *testing.T) {
 		t.Fatalf("read CLAUDE.md: %v", err)
 	}
 	claudeContent := string(claudeData)
-	if strings.Contains(claudeContent, "BEGIN BEADS INTEGRATION") {
-		t.Fatalf("CLAUDE.md should have the stale beads block stripped:\n%s", claudeContent)
+	if strings.Contains(claudeContent, "BEGIN ISSUEGRAPH INTEGRATION") {
+		t.Fatalf("CLAUDE.md should have the stale issuegraph block stripped:\n%s", claudeContent)
 	}
 	if !strings.Contains(claudeContent, "@AGENTS.md") {
 		t.Fatalf("CLAUDE.md should still contain the @AGENTS.md import line:\n%s", claudeContent)
@@ -1558,23 +1558,23 @@ func TestInstallClaudeRedirectCleansStaleClaudeBlock(t *testing.T) {
 		t.Fatalf("read AGENTS.md: %v", err)
 	}
 	agentsContent := string(agentsData)
-	if got := strings.Count(agentsContent, "BEGIN BEADS INTEGRATION"); got != 1 {
-		t.Fatalf("AGENTS.md should contain exactly one beads block, got %d:\n%s", got, agentsContent)
+	if got := strings.Count(agentsContent, "BEGIN ISSUEGRAPH INTEGRATION"); got != 1 {
+		t.Fatalf("AGENTS.md should contain exactly one issuegraph block, got %d:\n%s", got, agentsContent)
 	}
 }
 
 // TestInstallClaudeRedirectSkipsStripWhenAgentsSymlink is a regression test
 // for the delete-before-write gap: when the redirect target (AGENTS.md) is a
 // symlink, installAgents skips injection (agents.go markSkipped) without
-// writing the beads block anywhere. In that case installClaude must NOT
+// writing the issuegraph block anywhere. In that case installClaude must NOT
 // strip the stale block already present in CLAUDE.md, or the project is left
-// with no beads section at all.
+// with no issuegraph section at all.
 func TestInstallClaudeRedirectSkipsStripWhenAgentsSymlink(t *testing.T) {
 	stubDetectRenderOpts(t)
 	env, _, stderr := newClaudeTestEnv(t)
 
 	// CLAUDE.md is a stub that imports AGENTS.md but still carries a stale
-	// beads block from an older bd install.
+	// issuegraph block from an older issuegraph install.
 	claudePath := filepath.Join(env.projectDir, claudeInstructionsFile)
 	if err := os.WriteFile(claudePath, []byte(staleClaudeStubWithBlock()), 0o644); err != nil {
 		t.Fatalf("write CLAUDE.md: %v", err)
@@ -1599,14 +1599,14 @@ func TestInstallClaudeRedirectSkipsStripWhenAgentsSymlink(t *testing.T) {
 		t.Fatalf("expected symlink warning on stderr, got:\n%s", stderr.String())
 	}
 
-	// The stale beads block in CLAUDE.md must be preserved: the redirect
+	// The stale issuegraph block in CLAUDE.md must be preserved: the redirect
 	// never wrote a replacement, so stripping it would delete-before-write.
 	claudeData, err := os.ReadFile(claudePath)
 	if err != nil {
 		t.Fatalf("read CLAUDE.md: %v", err)
 	}
-	if !strings.Contains(string(claudeData), "BEGIN BEADS INTEGRATION") {
-		t.Fatalf("CLAUDE.md should keep its beads block when the AGENTS.md redirect is skipped:\n%s", claudeData)
+	if !strings.Contains(string(claudeData), "BEGIN ISSUEGRAPH INTEGRATION") {
+		t.Fatalf("CLAUDE.md should keep its issuegraph block when the AGENTS.md redirect is skipped:\n%s", claudeData)
 	}
 
 	// The symlink target must remain untouched.
@@ -1614,7 +1614,7 @@ func TestInstallClaudeRedirectSkipsStripWhenAgentsSymlink(t *testing.T) {
 	if err != nil {
 		t.Fatalf("read AGENTS.md target: %v", err)
 	}
-	if strings.Contains(string(targetData), "BEGIN BEADS INTEGRATION") {
+	if strings.Contains(string(targetData), "BEGIN ISSUEGRAPH INTEGRATION") {
 		t.Fatalf("AGENTS.md symlink target should remain untouched:\n%s", targetData)
 	}
 }
@@ -1640,19 +1640,19 @@ func TestRemoveClaudeRedirectCleansStaleClaudeBlock(t *testing.T) {
 	if err != nil {
 		t.Fatalf("read CLAUDE.md: %v", err)
 	}
-	if strings.Contains(string(claudeData), "BEGIN BEADS INTEGRATION") {
-		t.Fatalf("CLAUDE.md should not contain a beads block after remove:\n%s", claudeData)
+	if strings.Contains(string(claudeData), "BEGIN ISSUEGRAPH INTEGRATION") {
+		t.Fatalf("CLAUDE.md should not contain a issuegraph block after remove:\n%s", claudeData)
 	}
 
-	// AGENTS.md's own beads section is project-authoritative and shared with
+	// AGENTS.md's own issuegraph section is project-authoritative and shared with
 	// other agents — removing Claude integration must not delete it, only the
 	// stale duplicate left in CLAUDE.md.
 	agentsData, err := os.ReadFile(agentsPath)
 	if err != nil {
 		t.Fatalf("read AGENTS.md: %v", err)
 	}
-	if !strings.Contains(string(agentsData), "BEGIN BEADS INTEGRATION") {
-		t.Fatalf("AGENTS.md should still contain its beads block after remove:\n%s", agentsData)
+	if !strings.Contains(string(agentsData), "BEGIN ISSUEGRAPH INTEGRATION") {
+		t.Fatalf("AGENTS.md should still contain its issuegraph block after remove:\n%s", agentsData)
 	}
 }
 
@@ -1685,7 +1685,7 @@ func tailOf(data []byte) string {
 	return string(data)
 }
 
-// GH#5693: bd setup claude must leave settings.json POSIX-clean (trailing
+// GH#5693: issuegraph setup claude must leave settings.json POSIX-clean (trailing
 // newline) instead of stripping the newline json.MarshalIndent omits.
 func TestInstallClaudeSettingsEndsWithTrailingNewline(t *testing.T) {
 	t.Run("project", func(t *testing.T) {
@@ -1704,7 +1704,7 @@ func TestInstallClaudeSettingsEndsWithTrailingNewline(t *testing.T) {
 	})
 }
 
-// GH#5693: a second bd setup claude with nothing to change must not rewrite
+// GH#5693: a second issuegraph setup claude with nothing to change must not rewrite
 // settings.json.
 func TestInstallClaudeSkipsRewriteWhenSettingsUnchanged(t *testing.T) {
 	env, _, _ := newClaudeTestEnv(t)
@@ -1772,14 +1772,14 @@ func TestRemoveClaudeSettingsNewlineAndSkipsUnchangedRewrite(t *testing.T) {
 // GH#5693: the legacy settings.local.json migration writes are the two other
 // marshal-and-write call sites in this file; they strip the newline too.
 func TestClaudeLegacySettingsWritesEndWithNewline(t *testing.T) {
-	legacyWithBeadsHook := func() map[string]interface{} {
+	legacyWithIssueGraphHook := func() map[string]interface{} {
 		return map[string]interface{}{
 			"hooks": map[string]interface{}{
 				"SessionStart": []interface{}{
 					map[string]interface{}{
 						"matcher": "",
 						"hooks": []interface{}{
-							map[string]interface{}{"type": "command", "command": "bd prime"},
+							map[string]interface{}{"type": "command", "command": "issuegraph prime"},
 						},
 					},
 				},
@@ -1789,26 +1789,26 @@ func TestClaudeLegacySettingsWritesEndWithNewline(t *testing.T) {
 
 	// The second install writes settings.local.json zero times, but not via
 	// writeSettingsIfChanged: installClaude's migration block is guarded by
-	// hasBeadsHooks(legacyPath), which is false once the first install has
+	// hasIssueGraphHooks(legacyPath), which is false once the first install has
 	// migrated the hooks away, so the block is skipped outright. That guard is
 	// also why the skip inside writeSettingsIfChanged is unreachable on this
 	// call site — whenever the guard passes, removeHookCommand strips a hook
-	// that hasBeadsHooks just matched, so the marshaled bytes always differ.
+	// that hasIssueGraphHooks just matched, so the marshaled bytes always differ.
 	// What this subtest pins is therefore the user-visible property (a repeat
-	// bd setup claude leaves settings.local.json alone) plus the newline, not
+	// issuegraph setup claude leaves settings.local.json alone) plus the newline, not
 	// the no-op-skip helper.
 	t.Run("install migration then no further legacy writes", func(t *testing.T) {
 		env, _, _ := newClaudeTestEnv(t)
 		counts := map[string]int{}
 		env = countingClaudeEnv(env, counts)
 		legacyPath := legacyProjectSettingsPath(env.projectDir)
-		writeSettings(t, legacyPath, legacyWithBeadsHook())
+		writeSettings(t, legacyPath, legacyWithIssueGraphHook())
 
 		if err := installClaude(env, false, false); err != nil {
 			t.Fatalf("first installClaude: %v", err)
 		}
-		if hasBeadsHooks(legacyPath) {
-			t.Fatal("legacy beads hooks should have been migrated away")
+		if hasIssueGraphHooks(legacyPath) {
+			t.Fatal("legacy issuegraph hooks should have been migrated away")
 		}
 		assertTrailingNewline(t, legacyPath)
 		writesAfterFirst := counts[legacyPath]
@@ -1840,7 +1840,7 @@ func TestClaudeLegacySettingsWritesEndWithNewline(t *testing.T) {
 		counts := map[string]int{}
 		env = countingClaudeEnv(env, counts)
 		legacyPath := legacyProjectSettingsPath(env.projectDir)
-		writeSettings(t, legacyPath, legacyWithBeadsHook())
+		writeSettings(t, legacyPath, legacyWithIssueGraphHook())
 
 		if err := removeClaude(env, false); err != nil {
 			t.Fatalf("first removeClaude: %v", err)

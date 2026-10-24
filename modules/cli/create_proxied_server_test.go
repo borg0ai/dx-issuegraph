@@ -9,9 +9,9 @@ import (
 	"testing"
 	"time"
 
-	"github.com/steveyegge/beads/internal/config"
-	"github.com/steveyegge/beads/internal/types"
-	"github.com/steveyegge/beads/issueops"
+	"github.com/borg0ai/dx-issuegraph/internal/config"
+	"github.com/borg0ai/dx-issuegraph/internal/types"
+	"github.com/borg0ai/dx-issuegraph/issueops"
 )
 
 func TestBuildCreateIssueFromInput_PopulatesAllFields(t *testing.T) {
@@ -506,15 +506,15 @@ func TestResolveProxiedCustomTypes_EmptyEverywhere(t *testing.T) {
 func withTestYAMLCustomTypes(t *testing.T, customCSV string) func() {
 	t.Helper()
 	tmpDir := t.TempDir()
-	beadsDir := filepath.Join(tmpDir, ".beads")
-	if err := os.MkdirAll(beadsDir, 0o755); err != nil {
-		t.Fatalf("mkdir .beads: %v", err)
+	issuegraphDir := filepath.Join(tmpDir, ".issuegraph")
+	if err := os.MkdirAll(issuegraphDir, 0o755); err != nil {
+		t.Fatalf("mkdir .issuegraph: %v", err)
 	}
 	var content string
 	if customCSV != "" {
 		content = "types:\n  custom: \"" + customCSV + "\"\n"
 	}
-	if err := os.WriteFile(filepath.Join(beadsDir, "config.yaml"), []byte(content), 0o644); err != nil {
+	if err := os.WriteFile(filepath.Join(issuegraphDir, "config.yaml"), []byte(content), 0o644); err != nil {
 		t.Fatalf("write config.yaml: %v", err)
 	}
 	t.Chdir(tmpDir)

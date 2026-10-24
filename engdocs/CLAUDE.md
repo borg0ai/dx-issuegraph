@@ -4,7 +4,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Project Overview
 
-**IssueGraph** (command: `issuegraph`) is a Dolt-powered issue tracker for AI-supervised coding workflows. Git integration is optional — see `BEADS_DIR` + `--stealth` for git-free operation. We dogfood our own tool.
+**IssueGraph** (command: `issuegraph`) is a Dolt-powered issue tracker for AI-supervised coding workflows. Git integration is optional — see `ISSUEGRAPH_DIR` + `--stealth` for git-free operation. We dogfood our own tool.
 
 **IMPORTANT**: See [AGENTS.md](../AGENTS.md) for complete workflow instructions, issuegraph commands, and development guidelines.
 

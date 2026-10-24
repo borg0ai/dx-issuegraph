@@ -8,7 +8,7 @@ import (
 	"os"
 	"path/filepath"
 
-	"github.com/steveyegge/beads/internal/templates/agents"
+	"github.com/borg0ai/dx-issuegraph/internal/templates/agents"
 )
 
 var (
@@ -21,7 +21,7 @@ const geminiInstructionsFile = "GEMINI.md"
 
 var geminiAgentsIntegration = agentsIntegration{
 	name:         "Gemini CLI",
-	setupCommand: "bd setup gemini",
+	setupCommand: "issuegraph setup gemini",
 	profile:      agents.ProfileMinimal,
 }
 
@@ -111,20 +111,20 @@ func installGemini(env geminiEnv, project bool, stealth bool) error {
 	}
 
 	// Gemini CLI (and Claude Code, Codex) require hook stdout to be valid JSON;
-	// --hook-json wraps bd prime's markdown in the shared SessionStart envelope.
+	// --hook-json wraps issuegraph prime's markdown in the shared SessionStart envelope.
 	// PreCompress is intentionally NOT registered: Gemini's PreCompress event is
 	// advisory-only and does not support additionalContext injection — context
 	// re-injection after compression is architecturally impossible there.
-	command := "bd prime --hook-json"
+	command := "issuegraph prime --hook-json"
 	if stealth {
-		command = "bd prime --stealth --hook-json"
+		command = "issuegraph prime --stealth --hook-json"
 	}
 
 	// Migration sweep: remove all known legacy command variants before registering
 	// the canonical command. Re-running setup must be a clean upgrade path —
 	// stale entries alongside the new one cause Gemini to invoke both, and any
 	// pre-JSON variant emits raw markdown that violates the strict hook contract.
-	legacyVariants := []string{"bd prime", "bd prime --stealth"}
+	legacyVariants := []string{"issuegraph prime", "issuegraph prime --stealth"}
 	for _, legacy := range legacyVariants {
 		if legacy == command {
 			continue // never remove the variant we're about to add
@@ -132,12 +132,12 @@ func installGemini(env geminiEnv, project bool, stealth bool) error {
 		removeHookCommand(hooks, "SessionStart", legacy)
 		removeHookCommand(hooks, "PreCompress", legacy)
 	}
-	// Also clear any --hook-json registration from PreCompress. Beads previously
-	// registered bd prime on PreCompress before we discovered that Gemini's
+	// Also clear any --hook-json registration from PreCompress. IssueGraph previously
+	// registered issuegraph prime on PreCompress before we discovered that Gemini's
 	// PreCompress event is advisory-only and cannot inject additionalContext
 	// into the model regardless of output format. Re-running setup migrates cleanly.
-	removeHookCommand(hooks, "PreCompress", "bd prime --hook-json")
-	removeHookCommand(hooks, "PreCompress", "bd prime --stealth --hook-json")
+	removeHookCommand(hooks, "PreCompress", "issuegraph prime --hook-json")
+	removeHookCommand(hooks, "PreCompress", "issuegraph prime --stealth --hook-json")
 
 	if addHookCommand(hooks, "SessionStart", command) {
 		_, _ = fmt.Fprintln(env.stdout, "✓ Registered SessionStart hook")
@@ -154,8 +154,8 @@ func installGemini(env geminiEnv, project bool, stealth bool) error {
 		return err
 	}
 
-	// Install minimal beads section in GEMINI.md.
-	// Hooks handle the heavy lifting via bd prime; GEMINI.md just needs a pointer.
+	// Install minimal issuegraph section in GEMINI.md.
+	// Hooks handle the heavy lifting via issuegraph prime; GEMINI.md just needs a pointer.
 	if err := installAgents(geminiAgentsEnv(env), geminiAgentsIntegration); err != nil {
 		// Non-fatal: hooks are already installed
 		_, _ = fmt.Fprintf(env.stderr, "Warning: failed to update %s: %v\n", geminiInstructionsFile, err)
@@ -184,19 +184,19 @@ func checkGemini(env geminiEnv) error {
 		_, _ = fmt.Fprintf(env.stdout, "✓ Global hooks installed (current): %s\n", globalSettings)
 	case hasCurrentGeminiHooks(projectSettings):
 		_, _ = fmt.Fprintf(env.stdout, "✓ Project hooks installed (current): %s\n", projectSettings)
-	case hasGeminiBeadsHooks(globalSettings):
+	case hasGeminiIssueGraphHooks(globalSettings):
 		_, _ = fmt.Fprintf(env.stdout, "⚠ Global hooks installed (legacy format): %s\n", globalSettings)
-		_, _ = fmt.Fprintln(env.stdout, "  Legacy 'bd prime' hooks emit raw markdown; Gemini requires JSON stdout.")
-		_, _ = fmt.Fprintln(env.stdout, "  Run: bd setup gemini  (upgrades to 'bd prime --hook-json')")
+		_, _ = fmt.Fprintln(env.stdout, "  Legacy 'issuegraph prime' hooks emit raw markdown; Gemini requires JSON stdout.")
+		_, _ = fmt.Fprintln(env.stdout, "  Run: issuegraph setup gemini  (upgrades to 'issuegraph prime --hook-json')")
 		return errGeminiHooksLegacy
-	case hasGeminiBeadsHooks(projectSettings):
+	case hasGeminiIssueGraphHooks(projectSettings):
 		_, _ = fmt.Fprintf(env.stdout, "⚠ Project hooks installed (legacy format): %s\n", projectSettings)
-		_, _ = fmt.Fprintln(env.stdout, "  Legacy 'bd prime' hooks emit raw markdown; Gemini requires JSON stdout.")
-		_, _ = fmt.Fprintln(env.stdout, "  Run: bd setup gemini --project  (upgrades to 'bd prime --hook-json')")
+		_, _ = fmt.Fprintln(env.stdout, "  Legacy 'issuegraph prime' hooks emit raw markdown; Gemini requires JSON stdout.")
+		_, _ = fmt.Fprintln(env.stdout, "  Run: issuegraph setup gemini --project  (upgrades to 'issuegraph prime --hook-json')")
 		return errGeminiHooksLegacy
 	default:
 		_, _ = fmt.Fprintln(env.stdout, "✗ No hooks installed")
-		_, _ = fmt.Fprintln(env.stdout, "  Run: bd setup gemini")
+		_, _ = fmt.Fprintln(env.stdout, "  Run: issuegraph setup gemini")
 		return errGeminiHooksMissing
 	}
 
@@ -237,13 +237,13 @@ func removeGemini(env geminiEnv, project bool) error {
 		} else {
 			// Remove all known variants from both events. PreCompress is
 			// included for migration safety: older installations registered
-			// bd prime there before we discovered Gemini's PreCompress hook
+			// issuegraph prime there before we discovered Gemini's PreCompress hook
 			// can't inject additionalContext.
 			variants := []string{
-				"bd prime",
-				"bd prime --stealth",
-				"bd prime --hook-json",
-				"bd prime --stealth --hook-json",
+				"issuegraph prime",
+				"issuegraph prime --stealth",
+				"issuegraph prime --hook-json",
+				"issuegraph prime --stealth --hook-json",
 			}
 			for _, cmd := range variants {
 				removeHookCommand(hooks, "SessionStart", cmd)
@@ -317,26 +317,26 @@ func geminiSessionStartCommands(settingsPath string) []string {
 }
 
 // hasCurrentGeminiHooks reports whether a settings file has a current-format
-// bd prime --hook-json command on SessionStart. Returns false for legacy
-// "bd prime" installs, which emit raw markdown that violates Gemini's strict
+// issuegraph prime --hook-json command on SessionStart. Returns false for legacy
+// "issuegraph prime" installs, which emit raw markdown that violates Gemini's strict
 // stdout-must-be-JSON hook contract.
 func hasCurrentGeminiHooks(settingsPath string) bool {
 	for _, cmd := range geminiSessionStartCommands(settingsPath) {
-		if cmd == "bd prime --hook-json" || cmd == "bd prime --stealth --hook-json" {
+		if cmd == "issuegraph prime --hook-json" || cmd == "issuegraph prime --stealth --hook-json" {
 			return true
 		}
 	}
 	return false
 }
 
-// hasGeminiBeadsHooks reports whether a settings file has any bd prime hook
+// hasGeminiIssueGraphHooks reports whether a settings file has any issuegraph prime hook
 // on SessionStart — current format or legacy. Used to detect pre-fix
-// installations that need upgrading via bd setup gemini.
-func hasGeminiBeadsHooks(settingsPath string) bool {
+// installations that need upgrading via issuegraph setup gemini.
+func hasGeminiIssueGraphHooks(settingsPath string) bool {
 	for _, cmd := range geminiSessionStartCommands(settingsPath) {
 		switch cmd {
-		case "bd prime", "bd prime --stealth",
-			"bd prime --hook-json", "bd prime --stealth --hook-json":
+		case "issuegraph prime", "issuegraph prime --stealth",
+			"issuegraph prime --hook-json", "issuegraph prime --stealth --hook-json":
 			return true
 		}
 	}

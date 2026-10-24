@@ -4,10 +4,10 @@ import (
 	"context"
 	"testing"
 
-	"github.com/steveyegge/beads/internal/hooks"
-	"github.com/steveyegge/beads/internal/storage"
-	"github.com/steveyegge/beads/internal/storage/externaldeps"
-	"github.com/steveyegge/beads/internal/telemetry"
+	"github.com/borg0ai/dx-issuegraph/internal/hooks"
+	"github.com/borg0ai/dx-issuegraph/internal/storage"
+	"github.com/borg0ai/dx-issuegraph/internal/storage/externaldeps"
+	"github.com/borg0ai/dx-issuegraph/internal/telemetry"
 )
 
 // stubChainStore is a stand-in for a concrete DoltStorage. The embedded
@@ -24,7 +24,7 @@ func (s *stubChainStore) ActiveDatabaseSize(context.Context) (int64, error) {
 }
 
 // clearTelemetryEnv is defined once for the package, in
-// command_telemetry_test.go; it unsets every BD_OTEL_* / OTEL_* variable
+// command_telemetry_test.go; it unsets every ISSUEGRAPH_OTEL_* / OTEL_* variable
 // telemetry.Enabled or the SDK looks at, so each test starts from a known
 // baseline.
 
@@ -53,12 +53,12 @@ func TestWireStorageDecorators_TelemetryOff_HookOn(t *testing.T) {
 }
 
 // Asserts the full HookFiringStore → externaldeps.Store → InstrumentedStorage
-// → raw chain that the rest of bd depends on for storage spans + bd.storage.* / bd.issue.count
+// → raw chain that the rest of issuegraph depends on for storage spans + issuegraph.storage.* / issuegraph.issue.count
 // metrics. This is the regression test for the original PR-3475 bug, where
 // WrapStorage was implemented but never called.
 func TestWireStorageDecorators_TelemetryOn_HookOn(t *testing.T) {
 	clearTelemetryEnv(t)
-	t.Setenv("BD_OTEL_STDOUT", "true")
+	t.Setenv("ISSUEGRAPH_OTEL_STDOUT", "true")
 	raw := &stubChainStore{}
 	got := wireStorageDecorators(raw, hooks.NewRunner("/nonexistent"), false)
 
@@ -85,7 +85,7 @@ func TestWireStorageDecorators_TelemetryOn_HookOn(t *testing.T) {
 
 func TestDoltBackupSizeUnwrapsStorageDecorators(t *testing.T) {
 	clearTelemetryEnv(t)
-	t.Setenv("BD_OTEL_STDOUT", "true")
+	t.Setenv("ISSUEGRAPH_OTEL_STDOUT", "true")
 	raw := &stubChainStore{databaseSize: 99}
 	wrapped := wireStorageDecorators(raw, hooks.NewRunner("/nonexistent"), false)
 
@@ -100,7 +100,7 @@ func TestDoltBackupSizeUnwrapsStorageDecorators(t *testing.T) {
 
 func TestGCStoreSizeUnwrapsStorageDecorators(t *testing.T) {
 	clearTelemetryEnv(t)
-	t.Setenv("BD_OTEL_STDOUT", "true")
+	t.Setenv("ISSUEGRAPH_OTEL_STDOUT", "true")
 	raw := &stubChainStore{databaseSize: 99}
 	wrapped := wireStorageDecorators(raw, hooks.NewRunner("/nonexistent"), false)
 
@@ -111,7 +111,7 @@ func TestGCStoreSizeUnwrapsStorageDecorators(t *testing.T) {
 
 func TestWireStorageDecorators_TelemetryOn_HookDisabled(t *testing.T) {
 	clearTelemetryEnv(t)
-	t.Setenv("BD_OTEL_STDOUT", "true")
+	t.Setenv("ISSUEGRAPH_OTEL_STDOUT", "true")
 	raw := &stubChainStore{}
 	got := wireStorageDecorators(raw, hooks.NewRunner("/nonexistent"), true)
 

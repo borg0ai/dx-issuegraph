@@ -8,20 +8,20 @@ import (
 	"testing"
 	"time"
 
-	"github.com/steveyegge/beads/internal/httpapi/apigen"
-	"github.com/steveyegge/beads/internal/storage"
-	"github.com/steveyegge/beads/internal/types"
-	"github.com/steveyegge/beads/issueops"
+	"github.com/borg0ai/dx-issuegraph/internal/httpapi/apigen"
+	"github.com/borg0ai/dx-issuegraph/internal/storage"
+	"github.com/borg0ai/dx-issuegraph/internal/types"
+	"github.com/borg0ai/dx-issuegraph/issueops"
 )
 
-// The pins for POST /v0/beads/issues. What is asserted here is the WIRE EDGE —
+// The pins for POST /v0/issuegraph/issues. What is asserted here is the WIRE EDGE —
 // that the whole create vocabulary reaches the role faithfully, that the edge
 // members arrive as typed edges rather than as fields on the issue, that the
 // response is the STORED row, and that each of the role's refusals arrives as
 // the documented code. Everything below the wire is the role's, and
 // TestProxiedServerServeCreate is where a real row proves it.
 
-const createPath = "/v0/beads/issues"
+const createPath = "/v0/issuegraph/issues"
 
 func newCreateServer(t *testing.T, lifecycle *roleLifecycle) *testServer {
 	t.Helper()
@@ -50,7 +50,7 @@ func (ts *testServer) createIssue(t *testing.T, body string) *http.Response {
 
 // TestCreatePathReachesItsHandler drives the plain collection POST, which
 // shares its path with listIssues' GET and sits beside three literal `:verb`
-// siblings and the claim's wide `/v0/beads/issues/{idop}` wildcard. A 404 or a
+// siblings and the claim's wide `/v0/issuegraph/issues/{idop}` wildcard. A 404 or a
 // batch response here would mean the request reached one of them.
 func TestCreatePathReachesItsHandler(t *testing.T) {
 	lifecycle := &roleLifecycle{createResult: issueops.CreateResult{Issue: createdIssue("bd-1")}}
@@ -65,7 +65,7 @@ func TestCreatePathReachesItsHandler(t *testing.T) {
 	}
 	// The batch beside it must still be reachable: ServeMux prefers the literal
 	// segment, and a row that broke that would answer batches here.
-	if got := ts.claim(t, "/v0/beads/issues:batchCreate", `{"actor":"alice","items":[{"title":"one"}]}`); got.StatusCode != http.StatusOK {
+	if got := ts.claim(t, "/v0/issuegraph/issues:batchCreate", `{"actor":"alice","items":[{"title":"one"}]}`); got.StatusCode != http.StatusOK {
 		t.Fatalf("issues:batchCreate status = %d, want 200: %s", got.StatusCode, readAll(t, got))
 	}
 	if len(lifecycle.createRequests()) != 1 {
@@ -288,7 +288,7 @@ func TestCreateAnswersTheStoredRow(t *testing.T) {
 // this is the half that says the wire does not round it away on the way out. A
 // handler that re-rendered the time through a second-granular layout would print
 // the same instant with the fraction gone, and every same-second create through
-// POST /v0/beads/issues would tie.
+// POST /v0/issuegraph/issues would tie.
 func TestCreateEchoesSubSecondTimestamps(t *testing.T) {
 	stored := createdIssue("bd-nano")
 	stored.CreatedAt = time.Date(2026, 8, 1, 9, 0, 0, 123456789, time.UTC)
@@ -349,7 +349,7 @@ func TestCreateRefusesAnOccupiedExplicitID(t *testing.T) {
 // dependency_cycle code, and the member PRESENCE that tells them apart. The
 // hierarchy refusal carries issue_id/blocker_id/blocker_is_ancestor and the
 // plain scheduling cycle carries none, which is the discriminator the document
-// promises for POST /v0/beads/dependencies:add and inherits here.
+// promises for POST /v0/issuegraph/dependencies:add and inherits here.
 func TestCreateRefusesAGraphTheEdgesWouldBreak(t *testing.T) {
 	for _, test := range []struct {
 		name          string

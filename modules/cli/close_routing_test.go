@@ -8,13 +8,13 @@ import (
 	"path/filepath"
 	"testing"
 
-	"github.com/steveyegge/beads/internal/storage"
-	"github.com/steveyegge/beads/internal/types"
+	"github.com/borg0ai/dx-issuegraph/internal/storage"
+	"github.com/borg0ai/dx-issuegraph/internal/types"
 )
 
-// TestResolveCloseTargets is the regression test for beads-0km: bd close
+// TestResolveCloseTargets is the regression test for issuegraph-0km: issuegraph close
 // failed for issues that lived only in the routed contributor planning store,
-// while bd show / bd update succeeded for the same IDs because they routed via
+// while issuegraph show / issuegraph update succeeded for the same IDs because they routed via
 // resolveAndGetIssueWithRouting and close did not. The fix uses
 // resolveCloseTargets, which performs the same routing fallback and shares one
 // routed-store handle across IDs when multiple IDs route to the same target.
@@ -28,7 +28,7 @@ import (
 func TestResolveCloseTargets(t *testing.T) {
 	cases := []struct {
 		name            string
-		role            string   // git config beads.role value
+		role            string   // git config issuegraph.role value
 		enableRouting   bool     // set routing.mode=auto + routing.contributor=<planningDir>
 		localSeed       []string // IDs to create in the primary (local) store
 		planningSeed    []string // IDs to create in the planning store; non-nil also creates the dir
@@ -75,9 +75,9 @@ func TestResolveCloseTargets(t *testing.T) {
 			planningDir := filepath.Join(tmpDir, "planning")
 
 			runCmd(t, tmpDir, "git", "init", repoDir)
-			runCmd(t, repoDir, "git", "config", "beads.role", tc.role)
+			runCmd(t, repoDir, "git", "config", "issuegraph.role", tc.role)
 
-			primaryStore := newTestStoreIsolatedDB(t, filepath.Join(repoDir, ".beads", "beads.db"), "shared")
+			primaryStore := newTestStoreIsolatedDB(t, filepath.Join(repoDir, ".issuegraph", "issuegraph.db"), "shared")
 			ctx := context.Background()
 
 			if tc.enableRouting {
@@ -94,7 +94,7 @@ func TestResolveCloseTargets(t *testing.T) {
 			}
 
 			if len(tc.planningSeed) > 0 {
-				planningStore := newTestStoreIsolatedDB(t, filepath.Join(planningDir, ".beads", "beads.db"), "shared")
+				planningStore := newTestStoreIsolatedDB(t, filepath.Join(planningDir, ".issuegraph", "issuegraph.db"), "shared")
 				for _, id := range tc.planningSeed {
 					seedIssue(t, ctx, planningStore, id)
 				}

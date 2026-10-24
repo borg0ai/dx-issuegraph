@@ -7,13 +7,13 @@ import (
 	"os"
 	"testing"
 
-	"github.com/steveyegge/beads/internal/doltserver"
-	"github.com/steveyegge/beads/internal/testutil"
+	"github.com/borg0ai/dx-issuegraph/internal/doltserver"
+	"github.com/borg0ai/dx-issuegraph/internal/testutil"
 )
 
 // CGO_ENABLED=0 fix tests compile this TestMain instead of the cgo one.
 // Without it, FixMissingMetadata AutoStart leaves detached sql-servers
-// running after t.TempDir() cleanup (gastownhall/beads#5631).
+// running after t.TempDir() cleanup (borg0ai/dx-issuegraph#5631).
 func TestMain(m *testing.M) {
 	os.Exit(testMainInner(m))
 }

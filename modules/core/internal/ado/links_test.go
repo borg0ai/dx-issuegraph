@@ -12,7 +12,7 @@ import (
 	"sync"
 	"testing"
 
-	"github.com/steveyegge/beads/internal/tracker"
+	"github.com/borg0ai/dx-issuegraph/internal/tracker"
 )
 
 // testAPIURL returns an ADO API URL for a work item ID used in tests.
@@ -58,7 +58,7 @@ func TestPullLinks_DirectRelations(t *testing.T) {
 	})
 
 	// Hierarchy-Forward: 100 is parent of 300 → swapped so the dep points
-	// child(300) -> parent(100), matching beads' child-to-parent storage.
+	// child(300) -> parent(100), matching issuegraph' child-to-parent storage.
 	assertDep(t, deps[0], testWebURL(300), testWebURL(100), "parent-child")
 	// Dependency-Forward: 100 blocks 200 (no swap)
 	assertDep(t, deps[1], testWebURL(100), testWebURL(200), "blocks")
@@ -94,7 +94,7 @@ func TestPullLinks_ReverseDirectionNormalization(t *testing.T) {
 	})
 
 	// Hierarchy-Reverse, no swap: self(100) is the child, so the dep points
-	// child(100) -> parent(300), matching beads' child-to-parent storage.
+	// child(100) -> parent(300), matching issuegraph' child-to-parent storage.
 	assertDep(t, deps[0], testWebURL(100), testWebURL(300), "parent-child")
 	// Dependency-Reverse swapped: 200 blocks 100
 	assertDep(t, deps[1], testWebURL(200), testWebURL(100), "blocks")
@@ -103,7 +103,7 @@ func TestPullLinks_ReverseDirectionNormalization(t *testing.T) {
 // TestPullLinks_HierarchyChildDirection is a direction-pinning regression
 // test for GH#5129: a work item carrying Hierarchy-Forward (RelChild) is
 // asserting it is the parent of the target, so the resulting dep must be
-// From = the child (target), To = the source (this item) — matching beads'
+// From = the child (target), To = the source (this item) — matching issuegraph'
 // child-to-parent storage convention.
 func TestPullLinks_HierarchyChildDirection(t *testing.T) {
 	wi := &WorkItem{
@@ -135,7 +135,7 @@ func TestPullLinks_DiscoveredFrom(t *testing.T) {
 				Rel: RelRelated,
 				URL: "https://dev.azure.com/org/proj/_apis/wit/workitems/500",
 				Attributes: map[string]interface{}{
-					"comment": "beads:discovered-from",
+					"comment": "issuegraph:discovered-from",
 				},
 			},
 		},
@@ -195,7 +195,7 @@ func TestPullLinks_EmptyRelations(t *testing.T) {
 	}
 }
 
-func TestAdoRelToBeadsDep(t *testing.T) {
+func TestAdoRelToIssueGraphDep(t *testing.T) {
 	tests := []struct {
 		name       string
 		rel        string
@@ -237,7 +237,7 @@ func TestAdoRelToBeadsDep(t *testing.T) {
 			name: "Related with discovered-from comment → discovered-from",
 			rel:  RelRelated,
 			attributes: map[string]interface{}{
-				"comment": "beads:discovered-from",
+				"comment": "issuegraph:discovered-from",
 			},
 			wantType: "discovered-from",
 			wantSwap: false,
@@ -261,7 +261,7 @@ func TestAdoRelToBeadsDep(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			depType, swap := adoRelToBeadsDep(tt.rel, tt.attributes)
+			depType, swap := adoRelToIssueGraphDep(tt.rel, tt.attributes)
 			if depType != tt.wantType {
 				t.Errorf("depType = %q, want %q", depType, tt.wantType)
 			}
@@ -272,13 +272,13 @@ func TestAdoRelToBeadsDep(t *testing.T) {
 	}
 }
 
-func TestBeadsDepToADORel(t *testing.T) {
+func TestIssueGraphDepToADORel(t *testing.T) {
 	tests := []struct {
 		depType string
 		wantRel string
 	}{
 		{"blocks", RelDependsOn},
-		{"parent-child", RelParent}, // canonical beads storage type; desired set is built child -> parent (GH#4961)
+		{"parent-child", RelParent}, // canonical issuegraph storage type; desired set is built child -> parent (GH#4961)
 		// Legacy "parent" rows were written parent -> child by the pre-fix pull path,
 		// so mapping them to RelParent would reparent real hierarchies backwards.
 		// They must stay inert until a migration retypes and reverses them (PR #5129).
@@ -290,9 +290,9 @@ func TestBeadsDepToADORel(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.depType, func(t *testing.T) {
-			got := beadsDepToADORel(tt.depType)
+			got := issuegraphDepToADORel(tt.depType)
 			if got != tt.wantRel {
-				t.Errorf("beadsDepToADORel(%q) = %q, want %q", tt.depType, got, tt.wantRel)
+				t.Errorf("issuegraphDepToADORel(%q) = %q, want %q", tt.depType, got, tt.wantRel)
 			}
 		})
 	}
@@ -541,7 +541,7 @@ func TestPushLinks_RemoveStale(t *testing.T) {
 			URL: ts.URL + "/proj/_apis/wit/workitems/200",
 		},
 		{
-			Rel: RelParent, // Hierarchy-Reverse: the type beads emits for parent-child (GH#4961)
+			Rel: RelParent, // Hierarchy-Reverse: the type issuegraph emits for parent-child (GH#4961)
 			URL: ts.URL + "/proj/_apis/wit/workitems/300",
 		},
 	}
@@ -575,10 +575,10 @@ func TestPushLinks_RemoveStale(t *testing.T) {
 }
 
 // TestPushLinks_PreservesUnmanagedLinks is the regression test for GH#4522:
-// a push must not delete links beads does not own. That includes links of
+// a push must not delete links issuegraph does not own. That includes links of
 // the opposite direction (Dependency-Reverse predecessor/successor and
-// Hierarchy-Forward), which beads represents via the link it owns on the
-// other work item, and forward links pointing at items beads does not
+// Hierarchy-Forward), which issuegraph represents via the link it owns on the
+// other work item, and forward links pointing at items issuegraph does not
 // track (e.g. human-created Related links to work items outside the synced
 // set). None of these may be removed even though they are absent from the
 // desired set.
@@ -614,7 +614,7 @@ func TestPushLinks_PreservesUnmanagedLinks(t *testing.T) {
 		// Reverse-direction predecessor/successor link to a tracked item.
 		{Rel: RelDependencyOf, URL: ts.URL + "/proj/_apis/wit/workitems/200"},
 		// Opposite-direction hierarchy link (Hierarchy-Forward) to a tracked
-		// item — beads owns the Hierarchy-Reverse link on the child, not this one.
+		// item — issuegraph owns the Hierarchy-Reverse link on the child, not this one.
 		{Rel: RelChild, URL: ts.URL + "/proj/_apis/wit/workitems/300"},
 		// Forward Related link to an UNtracked item (e.g. created by a human).
 		{Rel: RelRelated, URL: ts.URL + "/proj/_apis/wit/workitems/400"},
@@ -765,8 +765,8 @@ func TestHasDiscoveredFromAttribute(t *testing.T) {
 		{"non-string comment", map[string]interface{}{"comment": 42}, false},
 		{"empty comment string", map[string]interface{}{"comment": ""}, false},
 		{"non-matching comment", map[string]interface{}{"comment": "some other link"}, false},
-		{"matching comment", map[string]interface{}{"comment": "beads:discovered-from"}, true},
-		{"matching comment with extra text", map[string]interface{}{"comment": "link beads:discovered-from here"}, true},
+		{"matching comment", map[string]interface{}{"comment": "issuegraph:discovered-from"}, true},
+		{"matching comment with extra text", map[string]interface{}{"comment": "link issuegraph:discovered-from here"}, true},
 	}
 
 	for _, tt := range tests {
@@ -919,7 +919,7 @@ func TestPushLinks_RemoveFailure(t *testing.T) {
 			URL: ts.URL + "/proj/_apis/wit/workitems/200",
 		},
 		{
-			Rel: RelParent, // Hierarchy-Reverse: the type beads emits for parent-child (GH#4961)
+			Rel: RelParent, // Hierarchy-Reverse: the type issuegraph emits for parent-child (GH#4961)
 			URL: ts.URL + "/proj/_apis/wit/workitems/300",
 		},
 	}

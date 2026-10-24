@@ -1,16 +1,16 @@
 package main
 
 import (
-	"github.com/steveyegge/beads"
-	"github.com/steveyegge/beads/internal/storage"
-	"github.com/steveyegge/beads/issueops"
+	"github.com/borg0ai/dx-issuegraph"
+	"github.com/borg0ai/dx-issuegraph/internal/storage"
+	"github.com/borg0ai/dx-issuegraph/issueops"
 )
 
 // newIssueOperations asks a store for its guarded issue-lifecycle surface.
 // It is a variable purely as a test seam: the write-verb parity tests
 // substitute a counting facade so "which operations did this command perform"
 // stays observable. Production always calls the store's own accessor.
-var newIssueOperations = func(st beads.Storage) (issueops.Lifecycle, error) {
+var newIssueOperations = func(st issuegraph.Storage) (issueops.Lifecycle, error) {
 	return st.IssueLifecycle()
 }
 

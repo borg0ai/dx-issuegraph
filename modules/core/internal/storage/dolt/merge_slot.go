@@ -3,11 +3,11 @@ package dolt
 import (
 	"context"
 
-	"github.com/steveyegge/beads/internal/storage"
-	"github.com/steveyegge/beads/internal/types"
+	"github.com/borg0ai/dx-issuegraph/internal/storage"
+	"github.com/borg0ai/dx-issuegraph/internal/types"
 )
 
-// MergeSlotCreate creates the merge slot bead for the current rig.
+// MergeSlotCreate creates the merge slot issue for the current rig.
 // Idempotent: returns the existing slot if one already exists.
 func (s *DoltStore) MergeSlotCreate(ctx context.Context, actor string) (*types.Issue, error) {
 	return storage.MergeSlotCreateImpl(ctx, s, actor)

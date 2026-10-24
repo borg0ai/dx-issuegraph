@@ -5,7 +5,7 @@ import (
 	"testing"
 )
 
-// TestProtocol_UpdateRejectsGarbageStatus verifies that bd update --status
+// TestProtocol_UpdateRejectsGarbageStatus verifies that issuegraph update --status
 // with an invalid status value exits non-zero.
 func TestProtocol_UpdateRejectsGarbageStatus(t *testing.T) {
 	t.Parallel()
@@ -33,7 +33,7 @@ func TestProtocol_UpdateAcceptsBuiltinStatuses(t *testing.T) {
 }
 
 // TestProtocol_UpdateAcceptsCustomStatus verifies that custom statuses
-// configured via bd config are accepted by update.
+// configured via issuegraph config are accepted by update.
 func TestProtocol_UpdateAcceptsCustomStatus(t *testing.T) {
 	t.Parallel()
 	w := newWorkspace(t)

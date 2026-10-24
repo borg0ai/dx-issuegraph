@@ -4,25 +4,25 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/steveyegge/beads/internal/storage/kvkeys"
-	"github.com/steveyegge/beads/internal/workapi"
+	"github.com/borg0ai/dx-issuegraph/internal/storage/kvkeys"
+	"github.com/borg0ai/dx-issuegraph/internal/workapi"
 )
 
-// TestInfoConfigExcludesTheKVPlane pins that `bd info --json` does not serve
+// TestInfoConfigExcludesTheKVPlane pins that `issuegraph info --json` does not serve
 // memories.
 //
 // It asserts the FILTER both info routes now apply, rather than shelling out:
 // the two call sites differ only in which seam supplies the map, and the thing
 // that can regress is somebody re-inlining GetAllConfig at one of them.
 //
-// Why it matters more than an ordinary config read: the beads MCP server's
-// get_schema_info tool runs `bd info --schema --json` and returns the parsed
+// Why it matters more than an ordinary config read: the issuegraph MCP server's
+// get_schema_info tool runs `issuegraph info --schema --json` and returns the parsed
 // dict whole, so every memory key and VALUE landed in the transcript of any
-// agent that asked a schema question — and `bd info` is the diagnostic people
+// agent that asked a schema question — and `issuegraph info` is the diagnostic people
 // paste into bug reports.
 func TestInfoConfigExcludesTheKVPlane(t *testing.T) {
 	stored := map[string]string{
-		"issue_prefix":    "bd",
+		"issue_prefix":    "issuegraph",
 		"custom.statuses": "awaiting_review",
 		kvkeys.MemoryConfigKeyPrefix + "deploy-notes": "the staging deploy token is sk-live-000",
 		kvkeys.Prefix + "release.channel":             "beta",
@@ -35,7 +35,7 @@ func TestInfoConfigExcludesTheKVPlane(t *testing.T) {
 
 	for key := range got {
 		if strings.HasPrefix(key, kvkeys.Prefix) {
-			t.Errorf("bd info would serve %q: the kv plane is not settings, and this map reaches "+
+			t.Errorf("issuegraph info would serve %q: the kv plane is not settings, and this map reaches "+
 				"agent transcripts through the MCP get_schema_info tool", key)
 		}
 	}

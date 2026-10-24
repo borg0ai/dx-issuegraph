@@ -10,14 +10,14 @@ import (
 	"go.opentelemetry.io/otel/metric"
 	"go.opentelemetry.io/otel/trace"
 
-	"github.com/steveyegge/beads/internal/storage"
-	"github.com/steveyegge/beads/internal/types"
+	"github.com/borg0ai/dx-issuegraph/internal/storage"
+	"github.com/borg0ai/dx-issuegraph/internal/types"
 )
 
-const storageScopeName = "github.com/steveyegge/beads/storage"
+const storageScopeName = "github.com/borg0ai/dx-issuegraph/storage"
 
 // InstrumentedStorage wraps storage.DoltStorage with OTel tracing and metrics.
-// Methods on the core Storage interface are overridden to emit bd.storage.*
+// Methods on the core Storage interface are overridden to emit issuegraph.storage.*
 // counters, duration histograms, and per-operation spans. Methods on the
 // DoltStorage capability sub-interfaces (VersionControl, HistoryViewer,
 // SyncStore, etc.) pass through to the embedded inner store unchanged —
@@ -43,17 +43,17 @@ func WrapStorage(s storage.DoltStorage) storage.DoltStorage {
 		return s
 	}
 	m := Meter(storageScopeName)
-	ops, _ := m.Int64Counter("bd.storage.operations",
+	ops, _ := m.Int64Counter("issuegraph.storage.operations",
 		metric.WithDescription("Total storage operations executed"),
 	)
-	dur, _ := m.Float64Histogram("bd.storage.operation.duration",
+	dur, _ := m.Float64Histogram("issuegraph.storage.operation.duration",
 		metric.WithDescription("Storage operation duration in milliseconds"),
 		metric.WithUnit("ms"),
 	)
-	errs, _ := m.Int64Counter("bd.storage.errors",
+	errs, _ := m.Int64Counter("issuegraph.storage.errors",
 		metric.WithDescription("Total storage operation errors"),
 	)
-	issueGauge, _ := m.Int64Gauge("bd.issue.count",
+	issueGauge, _ := m.Int64Gauge("issuegraph.issue.count",
 		metric.WithDescription("Current number of issues by status (snapshot from GetStatistics)"),
 	)
 	return &InstrumentedStorage{
@@ -98,8 +98,8 @@ func (s *InstrumentedStorage) done(ctx context.Context, span trace.Span, start t
 
 func (s *InstrumentedStorage) CreateIssue(ctx context.Context, issue *types.Issue, actor string) error {
 	attrs := []attribute.KeyValue{
-		attribute.String("bd.actor", actor),
-		attribute.String("bd.issue.type", string(issue.IssueType)),
+		attribute.String("issuegraph.actor", actor),
+		attribute.String("issuegraph.issue.type", string(issue.IssueType)),
 	}
 	ctx, span, t := s.op(ctx, "CreateIssue", attrs...)
 	err := s.inner.CreateIssue(ctx, issue, actor)
@@ -109,8 +109,8 @@ func (s *InstrumentedStorage) CreateIssue(ctx context.Context, issue *types.Issu
 
 func (s *InstrumentedStorage) CreateIssues(ctx context.Context, issues []*types.Issue, actor string) error {
 	attrs := []attribute.KeyValue{
-		attribute.String("bd.actor", actor),
-		attribute.Int("bd.issue.count", len(issues)),
+		attribute.String("issuegraph.actor", actor),
+		attribute.Int("issuegraph.issue.count", len(issues)),
 	}
 	ctx, span, t := s.op(ctx, "CreateIssues", attrs...)
 	err := s.inner.CreateIssues(ctx, issues, actor)
@@ -119,7 +119,7 @@ func (s *InstrumentedStorage) CreateIssues(ctx context.Context, issues []*types.
 }
 
 func (s *InstrumentedStorage) GetIssue(ctx context.Context, id string) (*types.Issue, error) {
-	attrs := []attribute.KeyValue{attribute.String("bd.issue.id", id)}
+	attrs := []attribute.KeyValue{attribute.String("issuegraph.issue.id", id)}
 	ctx, span, t := s.op(ctx, "GetIssue", attrs...)
 	v, err := s.inner.GetIssue(ctx, id)
 	s.done(ctx, span, t, err, attrs...)
@@ -134,7 +134,7 @@ func (s *InstrumentedStorage) GetIssueByExternalRef(ctx context.Context, externa
 }
 
 func (s *InstrumentedStorage) GetIssuesByIDs(ctx context.Context, ids []string) ([]*types.Issue, error) {
-	attrs := []attribute.KeyValue{attribute.Int("bd.issue.count", len(ids))}
+	attrs := []attribute.KeyValue{attribute.Int("issuegraph.issue.count", len(ids))}
 	ctx, span, t := s.op(ctx, "GetIssuesByIDs", attrs...)
 	v, err := s.inner.GetIssuesByIDs(ctx, ids)
 	s.done(ctx, span, t, err, attrs...)
@@ -143,9 +143,9 @@ func (s *InstrumentedStorage) GetIssuesByIDs(ctx context.Context, ids []string) 
 
 func (s *InstrumentedStorage) UpdateIssue(ctx context.Context, id string, updates map[string]interface{}, actor string) error {
 	attrs := []attribute.KeyValue{
-		attribute.String("bd.issue.id", id),
-		attribute.String("bd.actor", actor),
-		attribute.Int("bd.update.count", len(updates)),
+		attribute.String("issuegraph.issue.id", id),
+		attribute.String("issuegraph.actor", actor),
+		attribute.Int("issuegraph.update.count", len(updates)),
 	}
 	ctx, span, t := s.op(ctx, "UpdateIssue", attrs...)
 	err := s.inner.UpdateIssue(ctx, id, updates, actor)
@@ -155,9 +155,9 @@ func (s *InstrumentedStorage) UpdateIssue(ctx context.Context, id string, update
 
 func (s *InstrumentedStorage) UpdateIssueChecked(ctx context.Context, id string, updates map[string]interface{}, actor string, opts storage.UpdateIssueOptions) error {
 	attrs := []attribute.KeyValue{
-		attribute.String("bd.issue.id", id),
-		attribute.String("bd.actor", actor),
-		attribute.Int("bd.update.count", len(updates)),
+		attribute.String("issuegraph.issue.id", id),
+		attribute.String("issuegraph.actor", actor),
+		attribute.Int("issuegraph.update.count", len(updates)),
 	}
 	ctx, span, t := s.op(ctx, "UpdateIssueChecked", attrs...)
 	err := s.inner.UpdateIssueChecked(ctx, id, updates, actor, opts)
@@ -167,8 +167,8 @@ func (s *InstrumentedStorage) UpdateIssueChecked(ctx context.Context, id string,
 
 func (s *InstrumentedStorage) ReopenIssue(ctx context.Context, id string, reason string, actor string) error {
 	attrs := []attribute.KeyValue{
-		attribute.String("bd.issue.id", id),
-		attribute.String("bd.actor", actor),
+		attribute.String("issuegraph.issue.id", id),
+		attribute.String("issuegraph.actor", actor),
 	}
 	ctx, span, t := s.op(ctx, "ReopenIssue", attrs...)
 	err := s.inner.ReopenIssue(ctx, id, reason, actor)
@@ -178,9 +178,9 @@ func (s *InstrumentedStorage) ReopenIssue(ctx context.Context, id string, reason
 
 func (s *InstrumentedStorage) UnclaimIssue(ctx context.Context, id string, actor string, force bool) error {
 	attrs := []attribute.KeyValue{
-		attribute.String("bd.issue.id", id),
-		attribute.String("bd.actor", actor),
-		attribute.Bool("bd.force", force),
+		attribute.String("issuegraph.issue.id", id),
+		attribute.String("issuegraph.actor", actor),
+		attribute.Bool("issuegraph.force", force),
 	}
 	ctx, span, t := s.op(ctx, "UnclaimIssue", attrs...)
 	err := s.inner.UnclaimIssue(ctx, id, actor, force)
@@ -190,9 +190,9 @@ func (s *InstrumentedStorage) UnclaimIssue(ctx context.Context, id string, actor
 
 func (s *InstrumentedStorage) UnclaimIssueIfAssignee(ctx context.Context, id string, actor string, expectedAssignee string) error {
 	attrs := []attribute.KeyValue{
-		attribute.String("bd.issue.id", id),
-		attribute.String("bd.actor", actor),
-		attribute.String("bd.issue.expected_assignee", expectedAssignee),
+		attribute.String("issuegraph.issue.id", id),
+		attribute.String("issuegraph.actor", actor),
+		attribute.String("issuegraph.issue.expected_assignee", expectedAssignee),
 	}
 	ctx, span, t := s.op(ctx, "UnclaimIssueIfAssignee", attrs...)
 	err := s.inner.UnclaimIssueIfAssignee(ctx, id, actor, expectedAssignee)
@@ -202,9 +202,9 @@ func (s *InstrumentedStorage) UnclaimIssueIfAssignee(ctx context.Context, id str
 
 func (s *InstrumentedStorage) UpdateIssueType(ctx context.Context, id string, issueType string, actor string) error {
 	attrs := []attribute.KeyValue{
-		attribute.String("bd.issue.id", id),
-		attribute.String("bd.issue.type", issueType),
-		attribute.String("bd.actor", actor),
+		attribute.String("issuegraph.issue.id", id),
+		attribute.String("issuegraph.issue.type", issueType),
+		attribute.String("issuegraph.actor", actor),
 	}
 	ctx, span, t := s.op(ctx, "UpdateIssueType", attrs...)
 	err := s.inner.UpdateIssueType(ctx, id, issueType, actor)
@@ -214,8 +214,8 @@ func (s *InstrumentedStorage) UpdateIssueType(ctx context.Context, id string, is
 
 func (s *InstrumentedStorage) CloseIssue(ctx context.Context, id string, reason string, actor string, session string) error {
 	attrs := []attribute.KeyValue{
-		attribute.String("bd.issue.id", id),
-		attribute.String("bd.actor", actor),
+		attribute.String("issuegraph.issue.id", id),
+		attribute.String("issuegraph.actor", actor),
 	}
 	ctx, span, t := s.op(ctx, "CloseIssue", attrs...)
 	err := s.inner.CloseIssue(ctx, id, reason, actor, session)
@@ -225,8 +225,8 @@ func (s *InstrumentedStorage) CloseIssue(ctx context.Context, id string, reason 
 
 func (s *InstrumentedStorage) CloseIssueChecked(ctx context.Context, id string, actor string, opts storage.CloseIssueOptions) (storage.CloseIssueResult, error) {
 	attrs := []attribute.KeyValue{
-		attribute.String("bd.issue.id", id),
-		attribute.String("bd.actor", actor),
+		attribute.String("issuegraph.issue.id", id),
+		attribute.String("issuegraph.actor", actor),
 	}
 	ctx, span, t := s.op(ctx, "CloseIssueChecked", attrs...)
 	res, err := s.inner.CloseIssueChecked(ctx, id, actor, opts)
@@ -235,7 +235,7 @@ func (s *InstrumentedStorage) CloseIssueChecked(ctx context.Context, id string, 
 }
 
 func (s *InstrumentedStorage) DeleteIssue(ctx context.Context, id string) error {
-	attrs := []attribute.KeyValue{attribute.String("bd.issue.id", id)}
+	attrs := []attribute.KeyValue{attribute.String("issuegraph.issue.id", id)}
 	ctx, span, t := s.op(ctx, "DeleteIssue", attrs...)
 	err := s.inner.DeleteIssue(ctx, id)
 	s.done(ctx, span, t, err, attrs...)
@@ -243,33 +243,33 @@ func (s *InstrumentedStorage) DeleteIssue(ctx context.Context, id string) error 
 }
 
 func (s *InstrumentedStorage) SearchIssues(ctx context.Context, query string, filter types.IssueFilter) ([]*types.Issue, error) {
-	attrs := []attribute.KeyValue{attribute.String("bd.query", query)}
+	attrs := []attribute.KeyValue{attribute.String("issuegraph.query", query)}
 	ctx, span, t := s.op(ctx, "SearchIssues", attrs...)
 	issues, err := s.inner.SearchIssues(ctx, query, filter)
 	if err == nil {
-		span.SetAttributes(attribute.Int("bd.result.count", len(issues)))
+		span.SetAttributes(attribute.Int("issuegraph.result.count", len(issues)))
 	}
 	s.done(ctx, span, t, err, attrs...)
 	return issues, err
 }
 
 func (s *InstrumentedStorage) SearchIssuesWithCounts(ctx context.Context, query string, filter types.IssueFilter) ([]*types.IssueWithCounts, error) {
-	attrs := []attribute.KeyValue{attribute.String("bd.query", query)}
+	attrs := []attribute.KeyValue{attribute.String("issuegraph.query", query)}
 	ctx, span, t := s.op(ctx, "SearchIssuesWithCounts", attrs...)
 	v, err := s.inner.SearchIssuesWithCounts(ctx, query, filter)
 	if err == nil {
-		span.SetAttributes(attribute.Int("bd.result.count", len(v)))
+		span.SetAttributes(attribute.Int("issuegraph.result.count", len(v)))
 	}
 	s.done(ctx, span, t, err, attrs...)
 	return v, err
 }
 
 func (s *InstrumentedStorage) SearchIssueIDs(ctx context.Context, query string, filter types.IssueFilter) ([]string, error) {
-	attrs := []attribute.KeyValue{attribute.String("bd.query", query)}
+	attrs := []attribute.KeyValue{attribute.String("issuegraph.query", query)}
 	ctx, span, t := s.op(ctx, "SearchIssueIDs", attrs...)
 	ids, err := s.inner.SearchIssueIDs(ctx, query, filter)
 	if err == nil {
-		span.SetAttributes(attribute.Int("bd.result.count", len(ids)))
+		span.SetAttributes(attribute.Int("issuegraph.result.count", len(ids)))
 	}
 	s.done(ctx, span, t, err, attrs...)
 	return ids, err
@@ -279,9 +279,9 @@ func (s *InstrumentedStorage) SearchIssueIDs(ctx context.Context, query string, 
 
 func (s *InstrumentedStorage) AddDependency(ctx context.Context, dep *types.Dependency, actor string) error {
 	attrs := []attribute.KeyValue{
-		attribute.String("bd.dep.from", dep.IssueID),
-		attribute.String("bd.dep.to", dep.DependsOnID),
-		attribute.String("bd.dep.type", string(dep.Type)),
+		attribute.String("issuegraph.dep.from", dep.IssueID),
+		attribute.String("issuegraph.dep.to", dep.DependsOnID),
+		attribute.String("issuegraph.dep.type", string(dep.Type)),
 	}
 	ctx, span, t := s.op(ctx, "AddDependency", attrs...)
 	err := s.inner.AddDependency(ctx, dep, actor)
@@ -291,9 +291,9 @@ func (s *InstrumentedStorage) AddDependency(ctx context.Context, dep *types.Depe
 
 func (s *InstrumentedStorage) AddDependencyWithOptions(ctx context.Context, dep *types.Dependency, actor string, opts storage.DependencyAddOptions) error {
 	attrs := []attribute.KeyValue{
-		attribute.String("bd.dep.from", dep.IssueID),
-		attribute.String("bd.dep.to", dep.DependsOnID),
-		attribute.String("bd.dep.type", string(dep.Type)),
+		attribute.String("issuegraph.dep.from", dep.IssueID),
+		attribute.String("issuegraph.dep.to", dep.DependsOnID),
+		attribute.String("issuegraph.dep.type", string(dep.Type)),
 	}
 	ctx, span, t := s.op(ctx, "AddDependency", attrs...)
 	err := s.inner.AddDependencyWithOptions(ctx, dep, actor, opts)
@@ -303,8 +303,8 @@ func (s *InstrumentedStorage) AddDependencyWithOptions(ctx context.Context, dep 
 
 func (s *InstrumentedStorage) RemoveDependency(ctx context.Context, issueID, dependsOnID string, actor string) error {
 	attrs := []attribute.KeyValue{
-		attribute.String("bd.dep.from", issueID),
-		attribute.String("bd.dep.to", dependsOnID),
+		attribute.String("issuegraph.dep.from", issueID),
+		attribute.String("issuegraph.dep.to", dependsOnID),
 	}
 	ctx, span, t := s.op(ctx, "RemoveDependency", attrs...)
 	err := s.inner.RemoveDependency(ctx, issueID, dependsOnID, actor)
@@ -314,8 +314,8 @@ func (s *InstrumentedStorage) RemoveDependency(ctx context.Context, issueID, dep
 
 func (s *InstrumentedStorage) RemoveDependencyWithOptions(ctx context.Context, issueID, dependsOnID string, actor string, opts storage.DependencyRemoveOptions) error {
 	attrs := []attribute.KeyValue{
-		attribute.String("bd.dep.from", issueID),
-		attribute.String("bd.dep.to", dependsOnID),
+		attribute.String("issuegraph.dep.from", issueID),
+		attribute.String("issuegraph.dep.to", dependsOnID),
 	}
 	ctx, span, t := s.op(ctx, "RemoveDependency", attrs...)
 	err := s.inner.RemoveDependencyWithOptions(ctx, issueID, dependsOnID, actor, opts)
@@ -324,7 +324,7 @@ func (s *InstrumentedStorage) RemoveDependencyWithOptions(ctx context.Context, i
 }
 
 func (s *InstrumentedStorage) GetDependencies(ctx context.Context, issueID string) ([]*types.Issue, error) {
-	attrs := []attribute.KeyValue{attribute.String("bd.issue.id", issueID)}
+	attrs := []attribute.KeyValue{attribute.String("issuegraph.issue.id", issueID)}
 	ctx, span, t := s.op(ctx, "GetDependencies", attrs...)
 	v, err := s.inner.GetDependencies(ctx, issueID)
 	s.done(ctx, span, t, err, attrs...)
@@ -332,7 +332,7 @@ func (s *InstrumentedStorage) GetDependencies(ctx context.Context, issueID strin
 }
 
 func (s *InstrumentedStorage) GetDependents(ctx context.Context, issueID string) ([]*types.Issue, error) {
-	attrs := []attribute.KeyValue{attribute.String("bd.issue.id", issueID)}
+	attrs := []attribute.KeyValue{attribute.String("issuegraph.issue.id", issueID)}
 	ctx, span, t := s.op(ctx, "GetDependents", attrs...)
 	v, err := s.inner.GetDependents(ctx, issueID)
 	s.done(ctx, span, t, err, attrs...)
@@ -340,7 +340,7 @@ func (s *InstrumentedStorage) GetDependents(ctx context.Context, issueID string)
 }
 
 func (s *InstrumentedStorage) GetDependenciesWithMetadata(ctx context.Context, issueID string) ([]*types.IssueWithDependencyMetadata, error) {
-	attrs := []attribute.KeyValue{attribute.String("bd.issue.id", issueID)}
+	attrs := []attribute.KeyValue{attribute.String("issuegraph.issue.id", issueID)}
 	ctx, span, t := s.op(ctx, "GetDependenciesWithMetadata", attrs...)
 	v, err := s.inner.GetDependenciesWithMetadata(ctx, issueID)
 	s.done(ctx, span, t, err, attrs...)
@@ -348,7 +348,7 @@ func (s *InstrumentedStorage) GetDependenciesWithMetadata(ctx context.Context, i
 }
 
 func (s *InstrumentedStorage) GetDependentsWithMetadata(ctx context.Context, issueID string) ([]*types.IssueWithDependencyMetadata, error) {
-	attrs := []attribute.KeyValue{attribute.String("bd.issue.id", issueID)}
+	attrs := []attribute.KeyValue{attribute.String("issuegraph.issue.id", issueID)}
 	ctx, span, t := s.op(ctx, "GetDependentsWithMetadata", attrs...)
 	v, err := s.inner.GetDependentsWithMetadata(ctx, issueID)
 	s.done(ctx, span, t, err, attrs...)
@@ -357,8 +357,8 @@ func (s *InstrumentedStorage) GetDependentsWithMetadata(ctx context.Context, iss
 
 func (s *InstrumentedStorage) GetDependencyTree(ctx context.Context, issueID string, maxDepth int, showAllPaths bool, reverse bool) ([]*types.TreeNode, error) {
 	attrs := []attribute.KeyValue{
-		attribute.String("bd.issue.id", issueID),
-		attribute.Int("bd.max_depth", maxDepth),
+		attribute.String("issuegraph.issue.id", issueID),
+		attribute.Int("issuegraph.max_depth", maxDepth),
 	}
 	ctx, span, t := s.op(ctx, "GetDependencyTree", attrs...)
 	v, err := s.inner.GetDependencyTree(ctx, issueID, maxDepth, showAllPaths, reverse)
@@ -370,8 +370,8 @@ func (s *InstrumentedStorage) GetDependencyTree(ctx context.Context, issueID str
 
 func (s *InstrumentedStorage) AddLabel(ctx context.Context, issueID, label, actor string) error {
 	attrs := []attribute.KeyValue{
-		attribute.String("bd.issue.id", issueID),
-		attribute.String("bd.label", label),
+		attribute.String("issuegraph.issue.id", issueID),
+		attribute.String("issuegraph.label", label),
 	}
 	ctx, span, t := s.op(ctx, "AddLabel", attrs...)
 	err := s.inner.AddLabel(ctx, issueID, label, actor)
@@ -381,8 +381,8 @@ func (s *InstrumentedStorage) AddLabel(ctx context.Context, issueID, label, acto
 
 func (s *InstrumentedStorage) RemoveLabel(ctx context.Context, issueID, label, actor string) error {
 	attrs := []attribute.KeyValue{
-		attribute.String("bd.issue.id", issueID),
-		attribute.String("bd.label", label),
+		attribute.String("issuegraph.issue.id", issueID),
+		attribute.String("issuegraph.label", label),
 	}
 	ctx, span, t := s.op(ctx, "RemoveLabel", attrs...)
 	err := s.inner.RemoveLabel(ctx, issueID, label, actor)
@@ -391,7 +391,7 @@ func (s *InstrumentedStorage) RemoveLabel(ctx context.Context, issueID, label, a
 }
 
 func (s *InstrumentedStorage) GetLabels(ctx context.Context, issueID string) ([]string, error) {
-	attrs := []attribute.KeyValue{attribute.String("bd.issue.id", issueID)}
+	attrs := []attribute.KeyValue{attribute.String("issuegraph.issue.id", issueID)}
 	ctx, span, t := s.op(ctx, "GetLabels", attrs...)
 	v, err := s.inner.GetLabels(ctx, issueID)
 	s.done(ctx, span, t, err, attrs...)
@@ -399,7 +399,7 @@ func (s *InstrumentedStorage) GetLabels(ctx context.Context, issueID string) ([]
 }
 
 func (s *InstrumentedStorage) GetIssuesByLabel(ctx context.Context, label string) ([]*types.Issue, error) {
-	attrs := []attribute.KeyValue{attribute.String("bd.label", label)}
+	attrs := []attribute.KeyValue{attribute.String("issuegraph.label", label)}
 	ctx, span, t := s.op(ctx, "GetIssuesByLabel", attrs...)
 	v, err := s.inner.GetIssuesByLabel(ctx, label)
 	s.done(ctx, span, t, err, attrs...)
@@ -412,7 +412,7 @@ func (s *InstrumentedStorage) GetReadyWork(ctx context.Context, filter types.Wor
 	ctx, span, t := s.op(ctx, "GetReadyWork")
 	v, err := s.inner.GetReadyWork(ctx, filter)
 	if err == nil {
-		span.SetAttributes(attribute.Int("bd.result.count", len(v)))
+		span.SetAttributes(attribute.Int("issuegraph.result.count", len(v)))
 	}
 	s.done(ctx, span, t, err)
 	return v, err
@@ -422,7 +422,7 @@ func (s *InstrumentedStorage) GetReadyWorkWithCounts(ctx context.Context, filter
 	ctx, span, t := s.op(ctx, "GetReadyWorkWithCounts")
 	v, err := s.inner.GetReadyWorkWithCounts(ctx, filter)
 	if err == nil {
-		span.SetAttributes(attribute.Int("bd.result.count", len(v)))
+		span.SetAttributes(attribute.Int("issuegraph.result.count", len(v)))
 	}
 	s.done(ctx, span, t, err)
 	return v, err
@@ -432,7 +432,7 @@ func (s *InstrumentedStorage) GetReadyWorkWithCountsAndTotal(ctx context.Context
 	ctx, span, t := s.op(ctx, "GetReadyWorkWithCountsAndTotal")
 	v, total, err := s.inner.GetReadyWorkWithCountsAndTotal(ctx, filter)
 	if err == nil {
-		span.SetAttributes(attribute.Int("bd.result.count", len(v)))
+		span.SetAttributes(attribute.Int("issuegraph.result.count", len(v)))
 	}
 	s.done(ctx, span, t, err)
 	return v, total, err
@@ -442,7 +442,7 @@ func (s *InstrumentedStorage) GetBlockedIssues(ctx context.Context, filter types
 	ctx, span, t := s.op(ctx, "GetBlockedIssues")
 	v, err := s.inner.GetBlockedIssues(ctx, filter)
 	if err == nil {
-		span.SetAttributes(attribute.Int("bd.result.count", len(v)))
+		span.SetAttributes(attribute.Int("issuegraph.result.count", len(v)))
 	}
 	s.done(ctx, span, t, err)
 	return v, err
@@ -459,8 +459,8 @@ func (s *InstrumentedStorage) GetEpicsEligibleForClosure(ctx context.Context) ([
 
 func (s *InstrumentedStorage) AddIssueComment(ctx context.Context, issueID, author, text string) (*types.Comment, error) {
 	attrs := []attribute.KeyValue{
-		attribute.String("bd.issue.id", issueID),
-		attribute.String("bd.actor", author),
+		attribute.String("issuegraph.issue.id", issueID),
+		attribute.String("issuegraph.actor", author),
 	}
 	ctx, span, t := s.op(ctx, "AddIssueComment", attrs...)
 	v, err := s.inner.AddIssueComment(ctx, issueID, author, text)
@@ -469,7 +469,7 @@ func (s *InstrumentedStorage) AddIssueComment(ctx context.Context, issueID, auth
 }
 
 func (s *InstrumentedStorage) GetIssueComments(ctx context.Context, issueID string) ([]*types.Comment, error) {
-	attrs := []attribute.KeyValue{attribute.String("bd.issue.id", issueID)}
+	attrs := []attribute.KeyValue{attribute.String("issuegraph.issue.id", issueID)}
 	ctx, span, t := s.op(ctx, "GetIssueComments", attrs...)
 	v, err := s.inner.GetIssueComments(ctx, issueID)
 	s.done(ctx, span, t, err, attrs...)
@@ -477,7 +477,7 @@ func (s *InstrumentedStorage) GetIssueComments(ctx context.Context, issueID stri
 }
 
 func (s *InstrumentedStorage) GetIssueCommentsPage(ctx context.Context, issueID string, after storage.CommentPageCursor, limit int) ([]*types.Comment, error) {
-	attrs := []attribute.KeyValue{attribute.String("bd.issue.id", issueID)}
+	attrs := []attribute.KeyValue{attribute.String("issuegraph.issue.id", issueID)}
 	ctx, span, t := s.op(ctx, "GetIssueCommentsPage", attrs...)
 	v, err := s.inner.GetIssueCommentsPage(ctx, issueID, after, limit)
 	s.done(ctx, span, t, err, attrs...)
@@ -485,7 +485,7 @@ func (s *InstrumentedStorage) GetIssueCommentsPage(ctx context.Context, issueID 
 }
 
 func (s *InstrumentedStorage) GetEvents(ctx context.Context, issueID string, limit int) ([]*types.Event, error) {
-	attrs := []attribute.KeyValue{attribute.String("bd.issue.id", issueID)}
+	attrs := []attribute.KeyValue{attribute.String("issuegraph.issue.id", issueID)}
 	ctx, span, t := s.op(ctx, "GetEvents", attrs...)
 	v, err := s.inner.GetEvents(ctx, issueID, limit)
 	s.done(ctx, span, t, err, attrs...)
@@ -493,7 +493,7 @@ func (s *InstrumentedStorage) GetEvents(ctx context.Context, issueID string, lim
 }
 
 func (s *InstrumentedStorage) GetAllEventsSince(ctx context.Context, since time.Time) ([]*types.Event, error) {
-	attrs := []attribute.KeyValue{attribute.String("bd.since", since.Format(time.RFC3339))}
+	attrs := []attribute.KeyValue{attribute.String("issuegraph.since", since.Format(time.RFC3339))}
 	ctx, span, t := s.op(ctx, "GetAllEventsSince", attrs...)
 	v, err := s.inner.GetAllEventsSince(ctx, since)
 	s.done(ctx, span, t, err, attrs...)
@@ -501,7 +501,7 @@ func (s *InstrumentedStorage) GetAllEventsSince(ctx context.Context, since time.
 }
 
 func (s *InstrumentedStorage) RecordProvenanceEvent(ctx context.Context, ev types.ProvenanceEvent) (string, bool, error) {
-	attrs := []attribute.KeyValue{attribute.String("bd.issue.id", ev.IssueID), attribute.String("bd.prov.kind", string(ev.Kind))}
+	attrs := []attribute.KeyValue{attribute.String("issuegraph.issue.id", ev.IssueID), attribute.String("issuegraph.prov.kind", string(ev.Kind))}
 	ctx, span, t := s.op(ctx, "RecordProvenanceEvent", attrs...)
 	id, inserted, err := s.inner.RecordProvenanceEvent(ctx, ev)
 	s.done(ctx, span, t, err, attrs...)
@@ -509,7 +509,7 @@ func (s *InstrumentedStorage) RecordProvenanceEvent(ctx context.Context, ev type
 }
 
 func (s *InstrumentedStorage) GetProvenanceEvents(ctx context.Context, issueID, kindFilter string) ([]types.ProvenanceEvent, error) {
-	attrs := []attribute.KeyValue{attribute.String("bd.issue.id", issueID)}
+	attrs := []attribute.KeyValue{attribute.String("issuegraph.issue.id", issueID)}
 	ctx, span, t := s.op(ctx, "GetProvenanceEvents", attrs...)
 	v, err := s.inner.GetProvenanceEvents(ctx, issueID, kindFilter)
 	s.done(ctx, span, t, err, attrs...)
@@ -517,7 +517,7 @@ func (s *InstrumentedStorage) GetProvenanceEvents(ctx context.Context, issueID, 
 }
 
 func (s *InstrumentedStorage) GetProvenanceByRef(ctx context.Context, ref string) ([]types.ProvenanceEvent, error) {
-	attrs := []attribute.KeyValue{attribute.String("bd.prov.ref", ref)}
+	attrs := []attribute.KeyValue{attribute.String("issuegraph.prov.ref", ref)}
 	ctx, span, t := s.op(ctx, "GetProvenanceByRef", attrs...)
 	v, err := s.inner.GetProvenanceByRef(ctx, ref)
 	s.done(ctx, span, t, err, attrs...)
@@ -546,7 +546,7 @@ func (s *InstrumentedStorage) GetStatistics(ctx context.Context) (*types.Statist
 // ── Configuration ────────────────────────────────────────────────────────────
 
 func (s *InstrumentedStorage) SetConfig(ctx context.Context, key, value string) error {
-	attrs := []attribute.KeyValue{attribute.String("bd.config.key", key)}
+	attrs := []attribute.KeyValue{attribute.String("issuegraph.config.key", key)}
 	ctx, span, t := s.op(ctx, "SetConfig", attrs...)
 	err := s.inner.SetConfig(ctx, key, value)
 	s.done(ctx, span, t, err, attrs...)
@@ -554,7 +554,7 @@ func (s *InstrumentedStorage) SetConfig(ctx context.Context, key, value string) 
 }
 
 func (s *InstrumentedStorage) GetConfig(ctx context.Context, key string) (string, error) {
-	attrs := []attribute.KeyValue{attribute.String("bd.config.key", key)}
+	attrs := []attribute.KeyValue{attribute.String("issuegraph.config.key", key)}
 	ctx, span, t := s.op(ctx, "GetConfig", attrs...)
 	v, err := s.inner.GetConfig(ctx, key)
 	s.done(ctx, span, t, err, attrs...)
@@ -569,7 +569,7 @@ func (s *InstrumentedStorage) GetAllConfig(ctx context.Context) (map[string]stri
 }
 
 func (s *InstrumentedStorage) SetLocalMetadata(ctx context.Context, key, value string) error {
-	attrs := []attribute.KeyValue{attribute.String("bd.local_metadata.key", key)}
+	attrs := []attribute.KeyValue{attribute.String("issuegraph.local_metadata.key", key)}
 	ctx, span, t := s.op(ctx, "SetLocalMetadata", attrs...)
 	err := s.inner.SetLocalMetadata(ctx, key, value)
 	s.done(ctx, span, t, err, attrs...)
@@ -577,7 +577,7 @@ func (s *InstrumentedStorage) SetLocalMetadata(ctx context.Context, key, value s
 }
 
 func (s *InstrumentedStorage) GetLocalMetadata(ctx context.Context, key string) (string, error) {
-	attrs := []attribute.KeyValue{attribute.String("bd.local_metadata.key", key)}
+	attrs := []attribute.KeyValue{attribute.String("issuegraph.local_metadata.key", key)}
 	ctx, span, t := s.op(ctx, "GetLocalMetadata", attrs...)
 	v, err := s.inner.GetLocalMetadata(ctx, key)
 	s.done(ctx, span, t, err, attrs...)
@@ -626,7 +626,7 @@ func (s *InstrumentedStorage) IterIssues(ctx context.Context, query string, filt
 }
 
 func (s *InstrumentedStorage) IterDependentsWithMetadata(ctx context.Context, issueID string) (storage.Iter[types.IssueWithDependencyMetadata], error) {
-	attrs := []attribute.KeyValue{attribute.String("bd.issue.id", issueID)}
+	attrs := []attribute.KeyValue{attribute.String("issuegraph.issue.id", issueID)}
 	ctx, span, t := s.op(ctx, "IterDependentsWithMetadata", attrs...)
 	it, err := s.inner.IterDependentsWithMetadata(ctx, issueID)
 	s.done(ctx, span, t, err, attrs...)
@@ -634,7 +634,7 @@ func (s *InstrumentedStorage) IterDependentsWithMetadata(ctx context.Context, is
 }
 
 func (s *InstrumentedStorage) IterDependenciesWithMetadata(ctx context.Context, issueID string) (storage.Iter[types.IssueWithDependencyMetadata], error) {
-	attrs := []attribute.KeyValue{attribute.String("bd.issue.id", issueID)}
+	attrs := []attribute.KeyValue{attribute.String("issuegraph.issue.id", issueID)}
 	ctx, span, t := s.op(ctx, "IterDependenciesWithMetadata", attrs...)
 	it, err := s.inner.IterDependenciesWithMetadata(ctx, issueID)
 	s.done(ctx, span, t, err, attrs...)
@@ -642,7 +642,7 @@ func (s *InstrumentedStorage) IterDependenciesWithMetadata(ctx context.Context, 
 }
 
 func (s *InstrumentedStorage) IterIssueComments(ctx context.Context, issueID string) (storage.Iter[types.Comment], error) {
-	attrs := []attribute.KeyValue{attribute.String("bd.issue.id", issueID)}
+	attrs := []attribute.KeyValue{attribute.String("issuegraph.issue.id", issueID)}
 	ctx, span, t := s.op(ctx, "IterIssueComments", attrs...)
 	it, err := s.inner.IterIssueComments(ctx, issueID)
 	s.done(ctx, span, t, err, attrs...)
@@ -650,7 +650,7 @@ func (s *InstrumentedStorage) IterIssueComments(ctx context.Context, issueID str
 }
 
 func (s *InstrumentedStorage) IterEvents(ctx context.Context, issueID string, limit int) (storage.Iter[types.Event], error) {
-	attrs := []attribute.KeyValue{attribute.String("bd.issue.id", issueID)}
+	attrs := []attribute.KeyValue{attribute.String("issuegraph.issue.id", issueID)}
 	ctx, span, t := s.op(ctx, "IterEvents", attrs...)
 	it, err := s.inner.IterEvents(ctx, issueID, limit)
 	s.done(ctx, span, t, err, attrs...)
@@ -658,7 +658,7 @@ func (s *InstrumentedStorage) IterEvents(ctx context.Context, issueID string, li
 }
 
 func (s *InstrumentedStorage) IterAllEventsSince(ctx context.Context, since time.Time) (storage.Iter[types.Event], error) {
-	attrs := []attribute.KeyValue{attribute.String("bd.since", since.Format(time.RFC3339))}
+	attrs := []attribute.KeyValue{attribute.String("issuegraph.since", since.Format(time.RFC3339))}
 	ctx, span, t := s.op(ctx, "IterAllEventsSince", attrs...)
 	it, err := s.inner.IterAllEventsSince(ctx, since)
 	s.done(ctx, span, t, err, attrs...)

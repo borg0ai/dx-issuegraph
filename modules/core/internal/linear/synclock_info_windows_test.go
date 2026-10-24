@@ -18,13 +18,13 @@ import (
 	"testing"
 	"time"
 
-	"github.com/steveyegge/beads/internal/lockfile"
+	"github.com/borg0ai/dx-issuegraph/internal/lockfile"
 	"golang.org/x/sys/windows"
 )
 
 const (
-	syncLockHelperModeEnv = "BD_TEST_LINEAR_SYNC_LOCK_HELPER_MODE"
-	syncLockHelperDirEnv  = "BD_TEST_LINEAR_SYNC_LOCK_HELPER_DIR"
+	syncLockHelperModeEnv = "ISSUEGRAPH_TEST_LINEAR_SYNC_LOCK_HELPER_MODE"
+	syncLockHelperDirEnv  = "ISSUEGRAPH_TEST_LINEAR_SYNC_LOCK_HELPER_DIR"
 )
 
 func TestSyncLockWindowsRecordRoundTripAndStrictValidation(t *testing.T) {

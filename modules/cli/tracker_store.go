@@ -4,7 +4,7 @@ import (
 	"context"
 	"fmt"
 
-	"github.com/steveyegge/beads/internal/tracker"
+	"github.com/borg0ai/dx-issuegraph/internal/tracker"
 )
 
 // trackerStoreForCommand selects the tracker synchronization seam without

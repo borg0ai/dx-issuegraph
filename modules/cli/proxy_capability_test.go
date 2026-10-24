@@ -38,7 +38,7 @@ func TestProxyCapabilityMatrix(t *testing.T) {
 	}
 }
 
-// realCommandPaths walks the actual bd command tree once and returns every
+// realCommandPaths walks the actual issuegraph command tree once and returns every
 // command path below the root. Policy tables and front-door branches are only
 // as good as their correspondence to this set: a key that matches nothing is
 // dead policy, and a branch keyed on something that is not a path applies to
@@ -122,8 +122,8 @@ func commandAcceptsFlag(cmd *cobra.Command, name string) bool {
 // TestProxyCapabilityRowsNameFlagsTheCommandRegisters is the flag-level half of
 // the policy drift guard, and the sibling above is the reason it is needed: that
 // one pins PATHS, so a row can name a command that genuinely exists and still
-// describe a flag the command has never had. `bd list` carried a
-// ProxyCapRepo: repoRefusal row promising a typed refusal for `bd list --repo`,
+// describe a flag the command has never had. `issuegraph list` carried a
+// ProxyCapRepo: repoRefusal row promising a typed refusal for `issuegraph list --repo`,
 // which cobra rejects at parse time as an unknown flag — a policy row no command
 // line could reach, plus a changelog contract no wrapper could observe. The path
 // guard could not see it.
@@ -173,13 +173,13 @@ func TestProxyCapabilityRowsNameFlagsTheCommandRegisters(t *testing.T) {
 				registered := commandAcceptsFlag(cmd, name)
 				if rule.Outcome == ProxyOutcomeNA {
 					if registered {
-						t.Errorf("proxyCommandCapabilities[%q][%s][%s] is notApplicable(), but `bd %s` accepts --%s; the row denies a flag the command has",
+						t.Errorf("proxyCommandCapabilities[%q][%s][%s] is notApplicable(), but `issuegraph %s` accepts --%s; the row denies a flag the command has",
 							path, mode, capability, path, name)
 					}
 					continue
 				}
 				if !registered {
-					t.Errorf("proxyCommandCapabilities[%q][%s][%s] is %q, but `bd %s` accepts no --%s; no command line can reach this row",
+					t.Errorf("proxyCommandCapabilities[%q][%s][%s] is %q, but `issuegraph %s` accepts no --%s; no command line can reach this row",
 						path, mode, capability, rule.Outcome, path, name)
 				}
 			}
@@ -191,8 +191,8 @@ func TestProxyCapabilityRowsNameFlagsTheCommandRegisters(t *testing.T) {
 // three front-door branches key on by hand: the two validators, plus the
 // skipsStoreInit route into validateProxyRegistryBeforeProvider in main.go.
 // This is the assertion that would have failed on the leaf-name keying: a
-// branch written for `bd ready` must name a path, because "ready" as a leaf
-// name is also `bd mol ready --gated`.
+// branch written for `issuegraph ready` must name a path, because "ready" as a leaf
+// name is also `issuegraph mol ready --gated`.
 func TestProxyFrontDoorBranchesUseRealCommandPaths(t *testing.T) {
 	paths := realCommandPaths(t)
 	for _, path := range []string{"create", "show", "ready", "graph", "find-duplicates", "admin compact", "mol ready", "doctor"} {
@@ -217,8 +217,8 @@ func TestProxyCapabilityFrontDoorAllowsSupportedCommands(t *testing.T) {
 		cappedEnv  bool
 		wantRefuse bool
 	}{
-		// `bd mol ready --gated` is the regression: proxy-supported, accepts
-		// no --max-rows, and shares its leaf name with `bd ready`.
+		// `issuegraph mol ready --gated` is the regression: proxy-supported, accepts
+		// no --max-rows, and shares its leaf name with `issuegraph ready`.
 		{path: "mol ready"},
 		{path: "mol ready", cappedEnv: true},
 		{path: "ready"},
@@ -228,13 +228,13 @@ func TestProxyCapabilityFrontDoorAllowsSupportedCommands(t *testing.T) {
 		{path: "dep tree", cappedEnv: true},
 		{path: "compact"},
 		{path: "compact", cappedEnv: true},
-		// `bd ready --gated` is the documented alias for the row above and runs
-		// the identical gate-resume scan, so a cap that leaves `bd mol ready
+		// `issuegraph ready --gated` is the documented alias for the row above and runs
+		// the identical gate-resume scan, so a cap that leaves `issuegraph mol ready
 		// --gated` alone must leave this spelling alone too. Keying the refusal
 		// on the command rather than the arm split one command line in half.
 		{path: "ready", flags: []string{"gated"}},
 		{path: "ready", flags: []string{"gated"}, cappedEnv: true},
-		// `bd ready` is the command the max-rows refusal was written for, so
+		// `issuegraph ready` is the command the max-rows refusal was written for, so
 		// it must still refuse an active cap.
 		{path: "ready", cappedEnv: true, wantRefuse: true},
 		// ...on every arm that actually lists ready rows. --claim is not
@@ -263,14 +263,14 @@ func TestProxyCapabilityFrontDoorAllowsSupportedCommands(t *testing.T) {
 			for _, flagName := range tc.flags {
 				flag := cmd.Flags().Lookup(flagName)
 				if flag == nil {
-					t.Fatalf("bd %s has no --%s flag to set", tc.path, flagName)
+					t.Fatalf("issuegraph %s has no --%s flag to set", tc.path, flagName)
 				}
 				if err := cmd.Flags().Set(flagName, "true"); err != nil {
-					t.Fatalf("set --%s on bd %s: %v", flagName, tc.path, err)
+					t.Fatalf("set --%s on issuegraph %s: %v", flagName, tc.path, err)
 				}
 				t.Cleanup(func() {
 					if err := flag.Value.Set(flag.DefValue); err != nil {
-						t.Errorf("restore --%s on bd %s: %v", flagName, tc.path, err)
+						t.Errorf("restore --%s on issuegraph %s: %v", flagName, tc.path, err)
 					}
 					flag.Changed = false
 				})
@@ -287,15 +287,15 @@ func TestProxyCapabilityFrontDoorAllowsSupportedCommands(t *testing.T) {
 			})
 			if tc.wantRefuse {
 				if err == nil {
-					t.Fatalf("bd %s was allowed; want a refusal", tc.path)
+					t.Fatalf("issuegraph %s was allowed; want a refusal", tc.path)
 				}
 				return
 			}
 			if err != nil {
-				t.Fatalf("bd %s refused before the provider: %v (stderr=%q)", tc.path, err, stderr)
+				t.Fatalf("issuegraph %s refused before the provider: %v (stderr=%q)", tc.path, err, stderr)
 			}
 			if stderr != "" {
-				t.Fatalf("bd %s wrote %q to stderr on the allow path", tc.path, stderr)
+				t.Fatalf("issuegraph %s wrote %q to stderr on the allow path", tc.path, stderr)
 			}
 		})
 	}
@@ -345,25 +345,25 @@ func TestProxyCapabilityRulesAlwaysCarryAMessage(t *testing.T) {
 // is worse than an absent one — and that cuts the same way whether the
 // disagreement over- or under-states the refusal.
 func TestRepoRowsMatchShippedBehavior(t *testing.T) {
-	// `bd create --repo` is the reachable site: create.go registers the flag and
+	// `issuegraph create --repo` is the reachable site: create.go registers the flag and
 	// the pre-provider gate asserts the mode-wide rule for it, so that rule must
 	// carry the documented message.
 	err := AssertProxyCapability(ProxyModeProxied, ProxyCapRepo)
 	if err == nil {
-		t.Fatal("--repo asserted nil; bd create --repo is refused under --proxied-server")
+		t.Fatal("--repo asserted nil; issuegraph create --repo is refused under --proxied-server")
 	}
 	if got, want := err.Error(), "--repo is not supported with --proxied-server"; got != want {
 		t.Fatalf("--repo refusal = %q, want %q", got, want)
 	}
 
-	// `bd list --repo` is NOT a reachable site: listCmd registers no --repo, so
+	// `issuegraph list --repo` is NOT a reachable site: listCmd registers no --repo, so
 	// the row reads notApplicable() and a command-keyed assert must come back
 	// allowed. An earlier version of this test asserted the opposite — that the
 	// list row refuses — which pinned a promise no command line could collect,
-	// since cobra rejects `bd list --repo` as an unknown flag before any of this
+	// since cobra rejects `issuegraph list --repo` as an unknown flag before any of this
 	// runs.
 	if err := AssertProxyCommandCapability("list", ProxyModeProxied, ProxyCapRepo); err != nil {
-		t.Fatalf("list --repo asserted %v; bd list has no --repo flag, so its row must be notApplicable()", err)
+		t.Fatalf("list --repo asserted %v; issuegraph list has no --repo flag, so its row must be notApplicable()", err)
 	}
 }
 
@@ -371,13 +371,13 @@ func TestRepoRowsMatchShippedBehavior(t *testing.T) {
 // test above pins only its text: a wrapper parsing --json must get the stable
 // code and the mutates flag on stdout, and the error must still carry exit 1.
 //
-// It drives `bd create --repo` through the REAL command tree, and that is the
-// whole point of the test. `bd create` is the only command that registers
+// It drives `issuegraph create --repo` through the REAL command tree, and that is the
+// whole point of the test. `issuegraph create` is the only command that registers
 // --repo (create.go), so its pre-provider gate is the only site a user can
 // actually reach this refusal from. An earlier version of this test called
 // runListProxiedServer directly with a hand-built listInput{repoOverrideSet:
 // true} — which cannot happen, because listCmd has no --repo flag for cobra to
-// mark Changed, and `bd list --repo` dies at parse time as an unknown flag. A
+// mark Changed, and `issuegraph list --repo` dies at parse time as an unknown flag. A
 // direct-call assertion looks like coverage while proving nothing about any
 // command line.
 func TestRepoProxiedRefusalIsStrictJSON(t *testing.T) {
@@ -388,14 +388,14 @@ func TestRepoProxiedRefusalIsStrictJSON(t *testing.T) {
 	cmd := realCommandAtPath(t, "create")
 	flag := cmd.Flags().Lookup("repo")
 	if flag == nil {
-		t.Fatal("bd create no longer registers --repo; the refusal has no reachable site")
+		t.Fatal("issuegraph create no longer registers --repo; the refusal has no reachable site")
 	}
 	if err := cmd.Flags().Set("repo", "/somewhere/else"); err != nil {
-		t.Fatalf("set --repo on bd create: %v", err)
+		t.Fatalf("set --repo on issuegraph create: %v", err)
 	}
 	t.Cleanup(func() {
 		if err := flag.Value.Set(flag.DefValue); err != nil {
-			t.Errorf("restore --repo on bd create: %v", err)
+			t.Errorf("restore --repo on issuegraph create: %v", err)
 		}
 		flag.Changed = false
 	})
@@ -432,7 +432,7 @@ func TestReadyClaimResolvesRowCapOnceBeforeProvider(t *testing.T) {
 	jsonOutput = false
 	t.Cleanup(func() { jsonOutput = oldJSON })
 	t.Setenv(maxRowsEnvVar, "bogus")
-	root := &cobra.Command{Use: "bd"}
+	root := &cobra.Command{Use: "issuegraph"}
 	cmd := &cobra.Command{Use: "ready"}
 	cmd.Flags().Bool("claim", false, "")
 	cmd.Flags().Int("max-rows", 0, "")
@@ -494,7 +494,7 @@ func TestProxyMaintenanceNestedPathsRefuseBeforeProvider(t *testing.T) {
 	t.Cleanup(func() { jsonOutput = oldJSON })
 	for _, path := range []string{"backup init", "backup status", "migrate sync", "gate discover"} {
 		parts := strings.Split(path, " ")
-		root := &cobra.Command{Use: "bd"}
+		root := &cobra.Command{Use: "issuegraph"}
 		parent := &cobra.Command{Use: parts[0]}
 		child := &cobra.Command{Use: parts[1]}
 		root.AddCommand(parent)
@@ -512,7 +512,7 @@ func TestProxyMaintenanceNestedPathsRefuseBeforeProvider(t *testing.T) {
 func TestProxyFormulaSwarmMergeSlotRefusals(t *testing.T) {
 	for _, path := range []string{"cook", "ship", "swarm create", "swarm list", "merge-slot create", "merge-slot check", "merge-slot acquire", "merge-slot release"} {
 		parts := strings.Split(path, " ")
-		root := &cobra.Command{Use: "bd"}
+		root := &cobra.Command{Use: "issuegraph"}
 		cmd := &cobra.Command{Use: parts[0]}
 		root.AddCommand(cmd)
 		for _, childName := range parts[1:] {
@@ -542,7 +542,7 @@ func TestProxyWorkflowRefusalContractAndNoMutation(t *testing.T) {
 	for _, tc := range cases {
 		t.Run(tc.path, func(t *testing.T) {
 			parts := strings.Split(tc.path, " ")
-			root := &cobra.Command{Use: "bd"}
+			root := &cobra.Command{Use: "issuegraph"}
 			cmd := &cobra.Command{Use: parts[0]}
 			root.AddCommand(cmd)
 			if tc.path == "cook" {
@@ -605,7 +605,7 @@ func lookupProxyMaintenanceRuleForTest(path string) (proxyCapabilityRule, bool) 
 }
 
 func TestProxyMaintenanceRefusalLeavesFilesUntouched(t *testing.T) {
-	root := &cobra.Command{Use: "bd"}
+	root := &cobra.Command{Use: "issuegraph"}
 	migrate := &cobra.Command{Use: "migrate"}
 	hooks := &cobra.Command{Use: "hooks"}
 	root.AddCommand(migrate)
@@ -634,13 +634,13 @@ func TestProxyMaintenanceRefusalLeavesFilesUntouched(t *testing.T) {
 	}
 }
 
-// newWatchShowCommand builds `bd show --watch`. The root matters: the front
+// newWatchShowCommand builds `issuegraph show --watch`. The root matters: the front
 // door keys on a command's path below its root, so a parentless command has no
 // path and matches no rule — which is how a test tree can report success for a
 // refusal that never fired.
 func newWatchShowCommand(t *testing.T) *cobra.Command {
 	t.Helper()
-	root := &cobra.Command{Use: "bd"}
+	root := &cobra.Command{Use: "issuegraph"}
 	cmd := &cobra.Command{Use: "show"}
 	cmd.Flags().Bool("watch", false, "")
 	root.AddCommand(cmd)
@@ -690,7 +690,7 @@ func TestReadyClaimValidatesMaxRowsBeforeProvider(t *testing.T) {
 	oldJSON := jsonOutput
 	jsonOutput = true
 	t.Cleanup(func() { jsonOutput = oldJSON })
-	root := &cobra.Command{Use: "bd"}
+	root := &cobra.Command{Use: "issuegraph"}
 	cmd := &cobra.Command{Use: "ready"}
 	cmd.Flags().Bool("claim", false, "")
 	cmd.Flags().Int("max-rows", 0, "")
@@ -719,12 +719,12 @@ func TestReadyClaimValidatesMaxRowsBeforeProvider(t *testing.T) {
 // cannot enforce one on either arm, and ready.go refuses both (see its comment
 // above rejectMaxRowsUnderProxiedServer). Exempting the claim at the front door
 // would not let it through — it would only downgrade the same refusal to an
-// untyped one raised after the provider opened, so `bd ready --max-rows 5` and
-// `bd ready --claim --max-rows 5` would answer --json in two different shapes,
+// untyped one raised after the provider opened, so `issuegraph ready --max-rows 5` and
+// `issuegraph ready --claim --max-rows 5` would answer --json in two different shapes,
 // selected by a flag that has nothing to do with the cap.
 func TestReadyPositiveCapRefusedTypedWithAndWithoutClaim(t *testing.T) {
 	const wantCode = "proxy.max_rows.unsupported"
-	const wantMessage = "--max-rows / BEADS_MAX_ROWS is not supported in proxied-server mode"
+	const wantMessage = "--max-rows / ISSUEGRAPH_MAX_ROWS is not supported in proxied-server mode"
 
 	assertTypedRefusal := func(t *testing.T, gotErr error, out string) {
 		t.Helper()
@@ -749,7 +749,7 @@ func TestReadyPositiveCapRefusedTypedWithAndWithoutClaim(t *testing.T) {
 			jsonOutput = true
 			t.Cleanup(func() { jsonOutput = oldJSON })
 
-			root := &cobra.Command{Use: "bd"}
+			root := &cobra.Command{Use: "issuegraph"}
 			cmd := &cobra.Command{Use: "ready"}
 			cmd.Flags().Bool("claim", false, "")
 			cmd.Flags().Int("max-rows", 0, "")

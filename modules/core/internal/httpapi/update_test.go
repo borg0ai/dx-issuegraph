@@ -8,9 +8,9 @@ import (
 	"testing"
 	"time"
 
-	"github.com/steveyegge/beads/internal/storage"
-	"github.com/steveyegge/beads/internal/types"
-	"github.com/steveyegge/beads/issueops"
+	"github.com/borg0ai/dx-issuegraph/internal/storage"
+	"github.com/borg0ai/dx-issuegraph/internal/types"
+	"github.com/borg0ai/dx-issuegraph/issueops"
 )
 
 // Pure, on a fake ROLE, like the close's and the reopen's. What a fake cannot
@@ -18,7 +18,7 @@ import (
 // land the way this handler says they do in a real row; that is
 // TestProxiedServerServeUpdate against real Dolt.
 
-const updatePath = "/v0/beads/issues/bd-1"
+const updatePath = "/v0/issuegraph/issues/bd-1"
 
 func (ts *testServer) updateIssue(t *testing.T, path, body string) *http.Response {
 	t.Helper()
@@ -416,7 +416,7 @@ func TestUpdateOfAnAbsentIssueIs404(t *testing.T) {
 	lifecycle := &roleLifecycle{updateErr: fmt.Errorf("update bd-9: %w", issueops.ErrNotFound)}
 	ts := newUpdateServer(t, lifecycle)
 
-	resp := ts.updateIssue(t, "/v0/beads/issues/bd-9", `{"actor":"alice","patch":{"title":"t"}}`)
+	resp := ts.updateIssue(t, "/v0/issuegraph/issues/bd-9", `{"actor":"alice","patch":{"title":"t"}}`)
 	if resp.StatusCode != http.StatusNotFound {
 		t.Fatalf("status = %d, want 404: %s", resp.StatusCode, readAll(t, resp))
 	}
@@ -473,7 +473,7 @@ func TestUpdateRefusesUnrowableIDsBeforeAnyDatabaseWork(t *testing.T) {
 			lifecycle := &roleLifecycle{}
 			ts := newUpdateServer(t, lifecycle)
 
-			resp := ts.updateIssue(t, "/v0/beads/issues/"+tc.id, `{"actor":"alice","patch":{"title":"t"}}`)
+			resp := ts.updateIssue(t, "/v0/issuegraph/issues/"+tc.id, `{"actor":"alice","patch":{"title":"t"}}`)
 			if resp.StatusCode != http.StatusNotFound {
 				t.Fatalf("status = %d, want 404: %s", resp.StatusCode, readAll(t, resp))
 			}
@@ -487,8 +487,8 @@ func TestUpdateRefusesUnrowableIDsBeforeAnyDatabaseWork(t *testing.T) {
 // TestPatchOnACustomMethodSegmentIsNeverTheCustomMethod is the routing-safety
 // property this operation introduces.
 //
-// `PATCH /v0/beads/issues/{id}` is a single-segment wildcard, so it MATCHES
-// /v0/beads/issues/bd-1:close — which the POST dispatcher would read as a
+// `PATCH /v0/issuegraph/issues/{id}` is a single-segment wildcard, so it MATCHES
+// /v0/issuegraph/issues/bd-1:close — which the POST dispatcher would read as a
 // close. The two live on one path under different methods, and what must never
 // happen is a PATCH executing as a lifecycle verb. It is an update of an issue
 // whose id is literally "bd-1:close", which no row holds.
@@ -498,7 +498,7 @@ func TestPatchOnACustomMethodSegmentIsNeverTheCustomMethod(t *testing.T) {
 			lifecycle := &roleLifecycle{updateResult: issueops.UpdateResult{Issue: updatedIssue(segment), Changed: true}}
 			ts := newUpdateServer(t, lifecycle)
 
-			resp := ts.updateIssue(t, "/v0/beads/issues/"+segment, `{"actor":"alice","patch":{"title":"t"}}`)
+			resp := ts.updateIssue(t, "/v0/issuegraph/issues/"+segment, `{"actor":"alice","patch":{"title":"t"}}`)
 			if resp.StatusCode != http.StatusOK {
 				t.Fatalf("status = %d, want 200: %s", resp.StatusCode, readAll(t, resp))
 			}
@@ -563,7 +563,7 @@ func TestUpdateKeepsItsPatternEqualToItsSpecPath(t *testing.T) {
 			t.Errorf("the update route declares specPath %q / customMethod %q; a plain method needs neither",
 				rt.specPath, rt.customMethod)
 		}
-		if rt.pattern != "/v0/beads/issues/{id}" {
+		if rt.pattern != "/v0/issuegraph/issues/{id}" {
 			t.Errorf("the update route's pattern is %q, want the issue-detail path", rt.pattern)
 		}
 		if rt.bypassSemaphore {
@@ -580,7 +580,7 @@ func TestUpdateResolvesAcrossBothPlanes(t *testing.T) {
 	lifecycle := &roleLifecycle{updateResult: issueops.UpdateResult{Issue: wisp, Changed: true}}
 	ts := newUpdateServer(t, lifecycle)
 
-	resp := ts.updateIssue(t, "/v0/beads/issues/bd-w1", `{"actor":"alice","patch":{"title":"t"}}`)
+	resp := ts.updateIssue(t, "/v0/issuegraph/issues/bd-w1", `{"actor":"alice","patch":{"title":"t"}}`)
 	if resp.StatusCode != http.StatusOK {
 		t.Fatalf("updating a wisp id: status = %d, want 200: %s", resp.StatusCode, readAll(t, resp))
 	}

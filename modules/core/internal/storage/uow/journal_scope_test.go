@@ -7,11 +7,11 @@ import (
 	"github.com/DATA-DOG/go-sqlmock"
 	"github.com/stretchr/testify/require"
 
-	"github.com/steveyegge/beads/internal/storage"
-	"github.com/steveyegge/beads/internal/storage/issueops"
+	"github.com/borg0ai/dx-issuegraph/internal/storage"
+	"github.com/borg0ai/dx-issuegraph/internal/storage/issueops"
 )
 
-// The unit-of-work provider is bd's SECOND write plumbing, and journal coverage
+// The unit-of-work provider is issuegraph's SECOND write plumbing, and journal coverage
 // has two independent halves: the issueops seam must EMIT, and the plumbing must
 // turn emission ON for the transaction the mutation runs in. The dolt store's
 // half is guarded structurally (TestEveryRawTxJournalScopeIsScopedOrExempt);
@@ -40,10 +40,10 @@ func TestBeginTxScopesJournalActivationToThePinnedConn(t *testing.T) {
 	p.SetEventsJournalEnabled(true)
 
 	mock.ExpectExec("START TRANSACTION").WillReturnResult(sqlmock.NewResult(0, 0))
-	mock.ExpectExec("UPDATE bd_events_seq SET next_seq").WillReturnResult(sqlmock.NewResult(0, 1))
-	mock.ExpectQuery("SELECT next_seq FROM bd_events_seq").
+	mock.ExpectExec("UPDATE issuegraph_events_seq SET next_seq").WillReturnResult(sqlmock.NewResult(0, 1))
+	mock.ExpectQuery("SELECT next_seq FROM issuegraph_events_seq").
 		WillReturnRows(sqlmock.NewRows([]string{"next_seq"}).AddRow(7))
-	mock.ExpectExec("INSERT INTO bd_events_journal").WillReturnResult(sqlmock.NewResult(0, 1))
+	mock.ExpectExec("INSERT INTO issuegraph_events_journal").WillReturnResult(sqlmock.NewResult(0, 1))
 
 	ctx := context.Background()
 	tx, err := p.BeginTx(ctx)

@@ -58,7 +58,7 @@ func Compact(ctx context.Context, conn DBConn, initialHash, boundaryHash string,
 	}
 
 	// --allow-empty: the preserved window can contain empty commits (a Dolt
-	// auto-commit with no table change, or a bd create double-commit whose
+	// auto-commit with no table change, or a issuegraph create double-commit whose
 	// leading member has 0 changed tables). Without this flag DOLT_CHERRY_PICK
 	// aborts the entire replay at the first empty commit with Error 1105
 	// ("The previous cherry-pick commit is empty. Use --allow-empty ..."),

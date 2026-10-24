@@ -6,8 +6,8 @@ import (
 	"slices"
 	"strings"
 
-	"github.com/steveyegge/beads/internal/storage"
-	"github.com/steveyegge/beads/internal/storage/issueops"
+	"github.com/borg0ai/dx-issuegraph/internal/storage"
+	"github.com/borg0ai/dx-issuegraph/internal/storage/issueops"
 )
 
 // transact wraps store.RunInTransaction and marks that a transactional
@@ -48,7 +48,7 @@ func transactHonoringAutoCommit(ctx context.Context, s storage.DoltStorage, comm
 
 // writesCommitNow reports whether a CLI write should create its Dolt version
 // commit as part of the write (mode "on"), rather than leaving it in the
-// working set for a later explicit commit point (batch/off; bd dolt commit).
+// working set for a later explicit commit point (batch/off; issuegraph dolt commit).
 // An unset value means no Dolt store resolved a default (e.g. a non-Dolt
 // backend), where per-write version commits are the only behavior that
 // exists — treat it as "on".
@@ -92,7 +92,7 @@ func issueOpsContext(ctx context.Context) (context.Context, error) {
 }
 
 type doltAutoCommitParams struct {
-	// Command is the top-level bd command name (e.g., "create", "update").
+	// Command is the top-level issuegraph command name (e.g., "create", "update").
 	Command string
 	// IssueIDs are the primary issue IDs affected by the command (optional).
 	IssueIDs []string
@@ -106,7 +106,7 @@ type doltAutoCommitParams struct {
 //   - Only applies when dolt auto-commit is "on" AND the active store is versioned (Dolt).
 //   - Skips SQL server modes; the server owns transaction commit lifecycle there.
 //   - In "batch" mode, commits are deferred — changes accumulate in the working set
-//     until an explicit commit point (bd dolt commit).
+//     until an explicit commit point (issuegraph dolt commit).
 //   - Uses Dolt's "commit all" behavior under the hood (DOLT_COMMIT -Am).
 //   - Treats "nothing to commit" as a no-op.
 func maybeAutoCommit(ctx context.Context, p doltAutoCommitParams) error {
@@ -132,7 +132,7 @@ func maybeAutoCommitStore(ctx context.Context, st storage.DoltStorage, p doltAut
 		return err
 	}
 	// In batch mode, skip per-command commits. Changes stay in the working set
-	// and are committed at logical boundaries (bd dolt commit).
+	// and are committed at logical boundaries (issuegraph dolt commit).
 	if mode != doltAutoCommitOn {
 		return nil
 	}
@@ -190,7 +190,7 @@ func formatDoltAutoCommitMessage(cmd string, actor string, issueIDs []string) st
 	}
 
 	if len(ids) == 0 {
-		return fmt.Sprintf("bd: %s (auto-commit) by %s", cmd, actor)
+		return fmt.Sprintf("issuegraph: %s (auto-commit) by %s", cmd, actor)
 	}
-	return fmt.Sprintf("bd: %s (auto-commit) by %s [%s]", cmd, actor, strings.Join(ids, ", "))
+	return fmt.Sprintf("issuegraph: %s (auto-commit) by %s [%s]", cmd, actor, strings.Join(ids, ", "))
 }

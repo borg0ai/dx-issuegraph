@@ -14,20 +14,20 @@ import (
 // metadata.json — naming the real cause instead of the misleading
 // "embedded requires CGO" fallback message.
 func TestNocgoStoreFactoriesCorruptMetadataFailLoud(t *testing.T) {
-	beadsDir := filepath.Join(t.TempDir(), ".beads")
-	if err := os.MkdirAll(beadsDir, 0o755); err != nil {
+	issuegraphDir := filepath.Join(t.TempDir(), ".issuegraph")
+	if err := os.MkdirAll(issuegraphDir, 0o755); err != nil {
 		t.Fatalf("mkdir: %v", err)
 	}
-	if err := os.WriteFile(filepath.Join(beadsDir, "metadata.json"), []byte(`{"dolt_mode":"serv`), 0o600); err != nil {
+	if err := os.WriteFile(filepath.Join(issuegraphDir, "metadata.json"), []byte(`{"dolt_mode":"serv`), 0o600); err != nil {
 		t.Fatalf("write corrupt metadata.json: %v", err)
 	}
 
 	for name, open := range map[string]func() (interface{ Close() error }, error){
 		"newDoltStoreFromConfig": func() (interface{ Close() error }, error) {
-			return newDoltStoreFromConfig(context.Background(), beadsDir)
+			return newDoltStoreFromConfig(context.Background(), issuegraphDir)
 		},
 		"newReadOnlyStoreFromConfig": func() (interface{ Close() error }, error) {
-			return newReadOnlyStoreFromConfig(context.Background(), beadsDir)
+			return newReadOnlyStoreFromConfig(context.Background(), issuegraphDir)
 		},
 	} {
 		store, err := open()

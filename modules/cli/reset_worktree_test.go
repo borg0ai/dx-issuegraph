@@ -7,12 +7,12 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/steveyegge/beads/internal/beads"
-	"github.com/steveyegge/beads/internal/git"
+	"github.com/borg0ai/dx-issuegraph/internal/git"
+	"github.com/borg0ai/dx-issuegraph/internal/issuegraph"
 )
 
-func TestReset_WorktreeFindsBeadsDir(t *testing.T) {
-	tmpDir, err := os.MkdirTemp("", "beads-reset-worktree-test-*")
+func TestReset_WorktreeFindsIssueGraphDir(t *testing.T) {
+	tmpDir, err := os.MkdirTemp("", "issuegraph-reset-worktree-test-*")
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -53,16 +53,16 @@ func TestReset_WorktreeFindsBeadsDir(t *testing.T) {
 		_ = cmd.Run()
 	})
 
-	mainBeadsDir := filepath.Join(mainRepoDir, ".beads")
-	if err := os.MkdirAll(mainBeadsDir, 0755); err != nil {
+	mainIssueGraphDir := filepath.Join(mainRepoDir, ".issuegraph")
+	if err := os.MkdirAll(mainIssueGraphDir, 0755); err != nil {
 		t.Fatal(err)
 	}
-	if err := os.WriteFile(filepath.Join(mainBeadsDir, "metadata.json"), []byte("{}"), 0644); err != nil {
+	if err := os.WriteFile(filepath.Join(mainIssueGraphDir, "metadata.json"), []byte("{}"), 0644); err != nil {
 		t.Fatal(err)
 	}
 
-	worktreeBeadsDir := filepath.Join(worktreeDir, ".beads")
-	os.RemoveAll(worktreeBeadsDir)
+	worktreeIssueGraphDir := filepath.Join(worktreeDir, ".issuegraph")
+	os.RemoveAll(worktreeIssueGraphDir)
 
 	t.Chdir(worktreeDir)
 	git.ResetCaches()
@@ -74,14 +74,14 @@ func TestReset_WorktreeFindsBeadsDir(t *testing.T) {
 		t.Fatal("expected git.IsWorktree() to return true")
 	}
 
-	found := beads.FindBeadsDir()
+	found := issuegraph.FindIssueGraphDir()
 	if found == "" {
-		t.Fatal("FindBeadsDir() returned empty string")
+		t.Fatal("FindIssueGraphDir() returned empty string")
 	}
 
-	expected, err := filepath.EvalSymlinks(mainBeadsDir)
+	expected, err := filepath.EvalSymlinks(mainIssueGraphDir)
 	if err != nil {
-		t.Fatalf("EvalSymlinks(%q) failed: %v", mainBeadsDir, err)
+		t.Fatalf("EvalSymlinks(%q) failed: %v", mainIssueGraphDir, err)
 	}
 	actual, err := filepath.EvalSymlinks(found)
 	if err != nil {
@@ -92,16 +92,16 @@ func TestReset_WorktreeFindsBeadsDir(t *testing.T) {
 	actual = filepath.Clean(strings.TrimSpace(actual))
 
 	if actual != expected {
-		t.Errorf("FindBeadsDir() = %q, want %q", actual, expected)
+		t.Errorf("FindIssueGraphDir() = %q, want %q", actual, expected)
 	}
 
 	if _, err := os.Stat(actual); err != nil {
-		t.Errorf("os.Stat(FindBeadsDir()) failed: %v — runReset would report \"not initialized\"", err)
+		t.Errorf("os.Stat(FindIssueGraphDir()) failed: %v — runReset would report \"not initialized\"", err)
 	}
 }
 
-func TestReset_WorktreeNoBeadsReturnsEmpty(t *testing.T) {
-	tmpDir, err := os.MkdirTemp("", "beads-reset-no-beads-test-*")
+func TestReset_WorktreeNoIssueGraphReturnsEmpty(t *testing.T) {
+	tmpDir, err := os.MkdirTemp("", "issuegraph-reset-no-issuegraph-test-*")
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -143,14 +143,14 @@ func TestReset_WorktreeNoBeadsReturnsEmpty(t *testing.T) {
 	t.Chdir(worktreeDir)
 	git.ResetCaches()
 
-	found := beads.FindBeadsDir()
+	found := issuegraph.FindIssueGraphDir()
 	if found != "" {
-		t.Errorf("FindBeadsDir() = %q, want empty string when no .beads exists anywhere", found)
+		t.Errorf("FindIssueGraphDir() = %q, want empty string when no .issuegraph exists anywhere", found)
 	}
 }
 
-func TestReset_WorktreeSubdirFindsBeadsDir(t *testing.T) {
-	tmpDir, err := os.MkdirTemp("", "beads-reset-subdir-test-*")
+func TestReset_WorktreeSubdirFindsIssueGraphDir(t *testing.T) {
+	tmpDir, err := os.MkdirTemp("", "issuegraph-reset-subdir-test-*")
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -189,11 +189,11 @@ func TestReset_WorktreeSubdirFindsBeadsDir(t *testing.T) {
 		_ = cmd.Run()
 	})
 
-	mainBeadsDir := filepath.Join(mainRepoDir, ".beads")
-	if err := os.MkdirAll(mainBeadsDir, 0755); err != nil {
+	mainIssueGraphDir := filepath.Join(mainRepoDir, ".issuegraph")
+	if err := os.MkdirAll(mainIssueGraphDir, 0755); err != nil {
 		t.Fatal(err)
 	}
-	os.RemoveAll(filepath.Join(worktreeDir, ".beads"))
+	os.RemoveAll(filepath.Join(worktreeDir, ".issuegraph"))
 
 	subDir := filepath.Join(worktreeDir, "sub", "dir")
 	if err := os.MkdirAll(subDir, 0755); err != nil {
@@ -203,12 +203,12 @@ func TestReset_WorktreeSubdirFindsBeadsDir(t *testing.T) {
 	t.Chdir(subDir)
 	git.ResetCaches()
 
-	found := beads.FindBeadsDir()
+	found := issuegraph.FindIssueGraphDir()
 	if found != "" {
 		actual, _ := filepath.EvalSymlinks(found)
-		expected, _ := filepath.EvalSymlinks(mainBeadsDir)
+		expected, _ := filepath.EvalSymlinks(mainIssueGraphDir)
 		if filepath.Clean(actual) != filepath.Clean(expected) {
-			t.Errorf("FindBeadsDir() from subdirectory = %q, want %q", actual, expected)
+			t.Errorf("FindIssueGraphDir() from subdirectory = %q, want %q", actual, expected)
 		}
 	}
 }

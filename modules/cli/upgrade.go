@@ -4,37 +4,37 @@ import (
 	"fmt"
 	"strings"
 
+	"github.com/borg0ai/dx-issuegraph/internal/configfile"
+	"github.com/borg0ai/dx-issuegraph/internal/issuegraph"
+	"github.com/borg0ai/dx-issuegraph/internal/metrics"
 	"github.com/spf13/cobra"
-	"github.com/steveyegge/beads/internal/beads"
-	"github.com/steveyegge/beads/internal/configfile"
-	"github.com/steveyegge/beads/internal/metrics"
 )
 
 var upgradeCmd = &cobra.Command{
 	Use:     "upgrade",
 	GroupID: "maint",
-	Short:   "Check and manage bd version upgrades",
-	Long: `Commands for checking bd version upgrades and reviewing changes.
+	Short:   "Check and manage issuegraph version upgrades",
+	Long: `Commands for checking issuegraph version upgrades and reviewing changes.
 
-The upgrade command helps you stay aware of bd version changes:
-  - bd upgrade status: Check if bd version changed since last use
-  - bd upgrade review: Show what's new since your last version
-  - bd upgrade ack: Acknowledge the current version
+The upgrade command helps you stay aware of issuegraph version changes:
+  - issuegraph upgrade status: Check if issuegraph version changed since last use
+  - issuegraph upgrade review: Show what's new since your last version
+  - issuegraph upgrade ack: Acknowledge the current version
 
-Version tracking is automatic - bd updates metadata.json on every run.`,
+Version tracking is automatic - issuegraph updates metadata.json on every run.`,
 }
 
 var upgradeStatusCmd = &cobra.Command{
 	Use:   "status",
-	Short: "Check if bd version has changed",
-	Long: `Check if bd has been upgraded since you last used it.
+	Short: "Check if issuegraph version has changed",
+	Long: `Check if issuegraph has been upgraded since you last used it.
 
 This command uses the version tracking that happens automatically
-at startup to detect if bd was upgraded.
+at startup to detect if issuegraph was upgraded.
 
 Examples:
-  bd upgrade status
-  bd upgrade status --json`,
+  issuegraph upgrade status
+  issuegraph upgrade status --json`,
 	SilenceUsage:  true,
 	SilenceErrors: true,
 	RunE: func(cmd *cobra.Command, args []string) error {
@@ -58,19 +58,19 @@ Examples:
 		}
 
 		if versionUpgradeDetected {
-			fmt.Printf("✨ bd upgraded from %s to %s\n", displayVersion(previousVersion), displayVersion(Version))
+			fmt.Printf("✨ issuegraph upgraded from %s to %s\n", displayVersion(previousVersion), displayVersion(Version))
 			newVersions := getVersionsSince(previousVersion)
 			if len(newVersions) > 0 {
 				fmt.Printf("   %d version%s with changes available\n",
 					len(newVersions),
 					pluralize(len(newVersions)))
 				fmt.Println()
-				fmt.Println("Run 'bd upgrade review' to see what changed")
+				fmt.Println("Run 'issuegraph upgrade review' to see what changed")
 			}
 		} else if previousVersion == "" {
-			fmt.Printf("bd version: %s (first run or version tracking just enabled)\n", displayVersion(Version))
+			fmt.Printf("issuegraph version: %s (first run or version tracking just enabled)\n", displayVersion(Version))
 		} else {
-			fmt.Printf("bd version: %s (no upgrade detected)\n", displayVersion(Version))
+			fmt.Printf("issuegraph version: %s (no upgrade detected)\n", displayVersion(Version))
 		}
 		return nil
 	},
@@ -78,18 +78,18 @@ Examples:
 
 var upgradeReviewCmd = &cobra.Command{
 	Use:   "review",
-	Short: "Review changes since last bd version",
-	Long: `Show what's new in bd since the last version you used.
+	Short: "Review changes since last issuegraph version",
+	Long: `Show what's new in issuegraph since the last version you used.
 
-Unlike 'bd info --whats-new' which shows the last 3 versions,
+Unlike 'issuegraph info --whats-new' which shows the last 3 versions,
 this command shows ALL changes since your specific last version.
 
 If you're upgrading from an old version, you'll see the complete
 changelog of everything that changed since then.
 
 Examples:
-  bd upgrade review
-  bd upgrade review --json`,
+  issuegraph upgrade review
+  issuegraph upgrade review --json`,
 	SilenceUsage:  true,
 	SilenceErrors: true,
 	RunE: func(cmd *cobra.Command, args []string) error {
@@ -104,13 +104,13 @@ Examples:
 
 		if lastVersion == "" {
 			fmt.Println("No previous version recorded")
-			fmt.Println("Run 'bd info --whats-new' to see recent changes")
+			fmt.Println("Run 'issuegraph info --whats-new' to see recent changes")
 			return nil
 		}
 
 		if !versionUpgradeDetected {
 			fmt.Printf("You're already on %s (no upgrade detected)\n", displayVersion(Version))
-			fmt.Println("Run 'bd info --whats-new' to see recent changes")
+			fmt.Println("Run 'issuegraph info --whats-new' to see recent changes")
 			return nil
 		}
 
@@ -130,7 +130,7 @@ Examples:
 
 		if len(newVersions) == 0 {
 			fmt.Printf("%s is newer than %s but not in changelog\n", displayVersion(Version), displayVersion(lastVersion))
-			fmt.Println("Run 'bd info --whats-new' to see recent documented changes")
+			fmt.Println("Run 'issuegraph info --whats-new' to see recent documented changes")
 			return nil
 		}
 
@@ -148,7 +148,7 @@ Examples:
 			fmt.Println()
 		}
 
-		fmt.Println("💡 Run 'bd upgrade ack' to mark this version as seen")
+		fmt.Println("💡 Run 'issuegraph upgrade ack' to mark this version as seen")
 		fmt.Println()
 		return nil
 	},
@@ -156,8 +156,8 @@ Examples:
 
 var upgradeAckCmd = &cobra.Command{
 	Use:   "ack",
-	Short: "Acknowledge the current bd version",
-	Long: `Mark the current bd version as acknowledged.
+	Short: "Acknowledge the current issuegraph version",
+	Long: `Mark the current issuegraph version as acknowledged.
 
 This updates metadata.json to record that you've seen the current
 version. Mainly useful after reviewing upgrade changes to suppress
@@ -167,8 +167,8 @@ Note: Version tracking happens automatically, so you don't need to
 run this command unless you want to explicitly mark acknowledgement.
 
 Examples:
-  bd upgrade ack
-  bd upgrade ack --json`,
+  issuegraph upgrade ack
+  issuegraph upgrade ack --json`,
 	SilenceUsage:  true,
 	SilenceErrors: true,
 	RunE: func(cmd *cobra.Command, args []string) error {
@@ -179,12 +179,12 @@ Examples:
 			}
 		}()
 
-		beadsDir := beads.FindBeadsDir()
-		if beadsDir == "" {
+		issuegraphDir := issuegraph.FindIssueGraphDir()
+		if issuegraphDir == "" {
 			return HandleErrorWithHint(activeWorkspaceNotFoundMessage(), diagHint())
 		}
 
-		cfg, err := configfile.Load(beadsDir)
+		cfg, err := configfile.Load(issuegraphDir)
 		if err != nil {
 			return HandleError("loading metadata.json: %v", err)
 		}
@@ -195,7 +195,7 @@ Examples:
 		lastSeenVersion := cfg.LastBdVersion
 		cfg.LastBdVersion = Version
 
-		if err := cfg.Save(beadsDir); err != nil {
+		if err := cfg.Save(issuegraphDir); err != nil {
 			return HandleError("saving metadata.json: %v", err)
 		}
 
@@ -213,7 +213,7 @@ Examples:
 		if lastSeenVersion == Version {
 			fmt.Printf("✓ Already on %s\n", displayVersion(Version))
 		} else if lastSeenVersion == "" {
-			fmt.Printf("✓ Acknowledged bd %s\n", displayVersion(Version))
+			fmt.Printf("✓ Acknowledged issuegraph %s\n", displayVersion(Version))
 		} else {
 			fmt.Printf("✓ Acknowledged upgrade from %s to %s\n", displayVersion(lastSeenVersion), displayVersion(Version))
 		}

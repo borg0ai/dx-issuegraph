@@ -8,7 +8,7 @@ import (
 
 	mysql "github.com/go-sql-driver/mysql"
 
-	"github.com/steveyegge/beads/internal/types"
+	"github.com/borg0ai/dx-issuegraph/internal/types"
 )
 
 // deleteMissingTable builds the error a Dolt read raises when `table` is

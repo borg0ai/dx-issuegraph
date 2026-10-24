@@ -1,6 +1,6 @@
-# Testing the @beads/bd npm Package
+# Testing the @borg0ai/issuegraph npm Package
 
-This document describes the testing strategy and how to run tests for the @beads/bd npm package.
+This document describes the testing strategy and how to run tests for the @borg0ai/issuegraph npm package.
 
 ## Test Suites
 
@@ -35,22 +35,22 @@ npm test
 - Verifies binary is downloaded and installed correctly
 
 #### Test 2: Binary Functionality
-- Tests `bd version` command
-- Tests `bd --help` command
+- Tests `issuegraph version` command
+- Tests `issuegraph --help` command
 - Verifies native binary works through Node wrapper
 
-#### Test 3: Basic bd Workflow
+#### Test 3: Basic issuegraph Workflow
 - Creates test project with git
-- Runs `bd init --quiet`
-- Creates an issue with `bd create`
-- Lists issues with `bd list --json`
-- Shows issue details with `bd show`
-- Updates issue status with `bd update`
-- Closes issue with `bd close`
-- Verifies ready work detection with `bd ready`
+- Runs `issuegraph init --quiet`
+- Creates an issue with `issuegraph create`
+- Lists issues with `issuegraph list --json`
+- Shows issue details with `issuegraph show`
+- Updates issue status with `issuegraph update`
+- Closes issue with `issuegraph close`
+- Verifies ready work detection with `issuegraph ready`
 
 #### Test 4: Claude Code for Web Simulation
-- **Session 1**: Initializes bd, creates an issue
+- **Session 1**: Initializes issuegraph, creates an issue
 - Verifies JSONL export
 - Deletes database to simulate fresh clone
 - **Session 2**: Re-initializes from JSONL (simulates SessionStart hook)
@@ -110,14 +110,14 @@ Failed: 0
 - ✅ Exit codes propagate
 - ✅ stdio streams work (stdin/stdout/stderr)
 
-### bd Commands
-- ✅ `bd init` creates .beads directory
-- ✅ `bd create` creates issues with hash IDs
-- ✅ `bd list` returns JSON array
-- ✅ `bd show` returns issue details
-- ✅ `bd update` modifies issue status
-- ✅ `bd close` closes issues
-- ✅ `bd ready` finds work with no blockers
+### issuegraph Commands
+- ✅ `issuegraph init` creates .issuegraph directory
+- ✅ `issuegraph create` creates issues with hash IDs
+- ✅ `issuegraph list` returns JSON array
+- ✅ `issuegraph show` returns issue details
+- ✅ `issuegraph update` modifies issue status
+- ✅ `issuegraph close` closes issues
+- ✅ `issuegraph ready` finds work with no blockers
 
 ### Claude Code for Web Use Case
 - ✅ Fresh installation works
@@ -148,36 +148,36 @@ npm run test:all
 
 # 3. Test installation from local tarball
 npm pack
-npm install -g ./beads-bd-X.Y.Z.tgz
-bd version
+npm install -g ./issuegraph-issuegraph-X.Y.Z.tgz
+issuegraph version
 
 # 4. Verify in a fresh project
-mkdir /tmp/test-bd
-cd /tmp/test-bd
+mkdir /tmp/test-issuegraph
+cd /tmp/test-issuegraph
 git init
-bd init
-bd create "Test" -p 1
-bd list
+issuegraph init
+issuegraph create "Test" -p 1
+issuegraph list
 
 # 5. Cleanup
-npm uninstall -g @beads/bd
+npm uninstall -g @borg0ai/issuegraph
 ```
 
 ## Continuous Integration
 
 ### GitHub Actions (Recommended)
 
-Create `.github/workflows/test-npm-package.yml`:
+Create `.github/workflows/test-apps/cli.yml`:
 
 ```yaml
 name: Test npm Package
 on:
   push:
     paths:
-      - 'npm-package/**'
+      - 'apps/cli/**'
   pull_request:
     paths:
-      - 'npm-package/**'
+      - 'apps/cli/**'
 
 jobs:
   test:
@@ -197,12 +197,12 @@ jobs:
 
       - name: Run unit tests
         run: |
-          cd npm-package
+          cd apps/cli
           npm test
 
       - name: Run integration tests
         run: |
-          cd npm-package
+          cd apps/cli
           npm run test:integration
 ```
 
@@ -213,8 +213,8 @@ jobs:
 1. Create `.claude/hooks/session-start.sh`:
    ```bash
    #!/bin/bash
-   npm install -g @beads/bd
-   bd init --quiet
+   npm install -g @borg0ai/issuegraph
+   issuegraph init --quiet
    ```
 
 2. Make executable: `chmod +x .claude/hooks/session-start.sh`
@@ -223,52 +223,52 @@ jobs:
 
 4. Verify:
    ```bash
-   bd version  # Should work
-   bd list     # Should show existing issues
+   issuegraph version  # Should work
+   issuegraph list     # Should show existing issues
    ```
 
 ### Scenario 2: Global Installation
 
 ```bash
 # Install globally
-npm install -g @beads/bd
+npm install -g @borg0ai/issuegraph
 
 # Verify
-which bd
-bd version
+which issuegraph
+issuegraph version
 
 # Use in any project
 mkdir ~/projects/test
 cd ~/projects/test
 git init
-bd init
-bd create "First issue" -p 1
-bd list
+issuegraph init
+issuegraph create "First issue" -p 1
+issuegraph list
 ```
 
 ### Scenario 3: Project Dependency
 
 ```bash
 # Add to project
-npm install --save-dev @beads/bd
+npm install --save-dev @borg0ai/issuegraph
 
 # Use via npx
-npx bd version
-npx bd init
-npx bd create "Issue" -p 1
+npx issuegraph version
+npx issuegraph init
+npx issuegraph create "Issue" -p 1
 ```
 
 ### Scenario 4: Offline/Cached Installation
 
 ```bash
 # First install (downloads binary)
-npm install -g @beads/bd
+npm install -g @borg0ai/issuegraph
 
 # Uninstall
-npm uninstall -g @beads/bd
+npm uninstall -g @borg0ai/issuegraph
 
 # Reinstall (should use npm cache)
-npm install -g @beads/bd
+npm install -g @borg0ai/issuegraph
 # Should be faster (no binary download if cached)
 ```
 
@@ -305,7 +305,7 @@ npm install -g @beads/bd
 **Cause**: Database format changed or JSONL format incorrect
 
 **Fix**:
-- Check bd version compatibility
+- Check issuegraph version compatibility
 - Verify JSONL format matches current schema
 - Update test to use proper operation records
 

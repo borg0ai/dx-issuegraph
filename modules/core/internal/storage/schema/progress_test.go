@@ -9,7 +9,7 @@ import (
 
 // TestEmitLargeRigNotice covers the be-8ja large-rig warning branch. The
 // fresh-install case (count reported via error, typically "table doesn't
-// exist") must stay silent — that's the UX contract: on a first-ever bd run,
+// exist") must stay silent — that's the UX contract: on a first-ever issuegraph run,
 // there is no rig to warn about.
 func TestEmitLargeRigNotice(t *testing.T) {
 	cases := []struct {

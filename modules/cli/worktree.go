@@ -6,8 +6,8 @@ import (
 	"os/exec"
 	"strings"
 
-	"github.com/steveyegge/beads/internal/beads"
-	"github.com/steveyegge/beads/internal/git"
+	"github.com/borg0ai/dx-issuegraph/internal/git"
+	"github.com/borg0ai/dx-issuegraph/internal/issuegraph"
 )
 
 // isGitWorktree detects if the current directory is in a git worktree.
@@ -45,10 +45,10 @@ func truncateForBox(path string, maxLen int) string {
 	return "..." + path[len(path)-(maxLen-3):]
 }
 
-// warnMultipleDatabases prints a warning if multiple .beads databases exist
+// warnMultipleDatabases prints a warning if multiple .issuegraph databases exist
 // in the directory hierarchy, to prevent confusion and database pollution
 func warnMultipleDatabases(currentDB string) {
-	databases := beads.FindAllDatabases()
+	databases := issuegraph.FindAllDatabases()
 	if len(databases) <= 1 {
 		return // Only one database found, no warning needed
 	}
@@ -64,7 +64,7 @@ func warnMultipleDatabases(currentDB string) {
 
 	fmt.Fprintln(os.Stderr)
 	fmt.Fprintln(os.Stderr, "╔══════════════════════════════════════════════════════════════════════════╗")
-	fmt.Fprintf(os.Stderr, "║ WARNING: %d beads databases detected in directory hierarchy             ║\n", len(databases))
+	fmt.Fprintf(os.Stderr, "║ WARNING: %d issuegraph databases detected in directory hierarchy             ║\n", len(databases))
 	fmt.Fprintln(os.Stderr, "╠══════════════════════════════════════════════════════════════════════════╣")
 	fmt.Fprintln(os.Stderr, "║ Multiple databases can cause confusion and database pollution.          ║")
 	fmt.Fprintln(os.Stderr, "║                                                                          ║")
@@ -81,7 +81,7 @@ func warnMultipleDatabases(currentDB string) {
 			marker = "▶"
 		}
 
-		line := fmt.Sprintf("%s %s%s", marker, db.BeadsDir, issueInfo)
+		line := fmt.Sprintf("%s %s%s", marker, db.IssueGraphDir, issueInfo)
 		fmt.Fprintf(os.Stderr, "║ %-72s ║\n", truncateForBox(line, 72))
 	}
 
@@ -89,7 +89,7 @@ func warnMultipleDatabases(currentDB string) {
 	if activeIdx == 0 {
 		fmt.Fprintln(os.Stderr, "║ Currently using the closest database (▶). This is usually correct.      ║")
 	} else {
-		fmt.Fprintln(os.Stderr, "║ WARNING: Not using the closest database! Check your BEADS_DB setting.   ║")
+		fmt.Fprintln(os.Stderr, "║ WARNING: Not using the closest database! Check your ISSUEGRAPH_DB setting.   ║")
 	}
 	fmt.Fprintln(os.Stderr, "║                                                                          ║")
 	fmt.Fprintln(os.Stderr, "║ RECOMMENDED: Consolidate or remove unused databases to avoid confusion. ║")

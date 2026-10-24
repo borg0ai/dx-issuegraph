@@ -9,9 +9,9 @@ import (
 
 	"github.com/spf13/cobra"
 
-	"github.com/steveyegge/beads/internal/configfile"
-	"github.com/steveyegge/beads/internal/storage/dbproxy/proxy"
-	"github.com/steveyegge/beads/internal/storage/dbproxy/server"
+	"github.com/borg0ai/dx-issuegraph/internal/configfile"
+	"github.com/borg0ai/dx-issuegraph/internal/storage/dbproxy/proxy"
+	"github.com/borg0ai/dx-issuegraph/internal/storage/dbproxy/server"
 )
 
 var (
@@ -35,7 +35,7 @@ var dbProxyChildCmd = &cobra.Command{
 	Hidden: true,
 	Short:  "Internal: run as the database proxy child process",
 	Long: `db-proxy-child runs the long-lived per-rootDir TCP proxy that fronts a
-DatabaseServer. It is spawned by the parent bd process via fork+exec and is
+DatabaseServer. It is spawned by the parent issuegraph process via fork+exec and is
 not intended to be invoked directly by users.`,
 
 	PersistentPreRun:  func(cmd *cobra.Command, args []string) {},

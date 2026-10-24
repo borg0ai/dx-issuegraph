@@ -5,8 +5,8 @@ import (
 	"testing"
 	"time"
 
-	"github.com/steveyegge/beads/internal/configfile"
-	"github.com/steveyegge/beads/internal/storage/dbproxy/proxy"
+	"github.com/borg0ai/dx-issuegraph/internal/configfile"
+	"github.com/borg0ai/dx-issuegraph/internal/storage/dbproxy/proxy"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
@@ -61,27 +61,27 @@ func TestBuildProxiedServerClientInfo(t *testing.T) {
 	})
 
 	t.Run("absolute paths pass through cleaned", func(t *testing.T) {
-		info, err := buildProxiedServerClientInfo("/var/lib/beads/proxieddb", "/etc/dolt/server.yaml", "/var/log/server.log", 0, 0, nil)
+		info, err := buildProxiedServerClientInfo("/var/lib/issuegraph/proxieddb", "/etc/dolt/server.yaml", "/var/log/server.log", 0, 0, nil)
 		require.NoError(t, err)
 		require.NotNil(t, info)
-		assert.Equal(t, "/var/lib/beads/proxieddb", info.RootPath)
+		assert.Equal(t, "/var/lib/issuegraph/proxieddb", info.RootPath)
 		assert.Equal(t, "/etc/dolt/server.yaml", info.ConfigPath)
 		assert.Equal(t, "/var/log/server.log", info.LogPath)
 		assert.Nil(t, info.External)
 	})
 
 	t.Run("filepath.Clean normalizes redundant separators and . segments", func(t *testing.T) {
-		info, err := buildProxiedServerClientInfo("/var/lib//beads/./proxieddb", "", "", 0, 0, nil)
+		info, err := buildProxiedServerClientInfo("/var/lib//issuegraph/./proxieddb", "", "", 0, 0, nil)
 		require.NoError(t, err)
 		require.NotNil(t, info)
-		assert.Equal(t, "/var/lib/beads/proxieddb", info.RootPath)
+		assert.Equal(t, "/var/lib/issuegraph/proxieddb", info.RootPath)
 	})
 
 	t.Run("mixed absolute + empty", func(t *testing.T) {
-		info, err := buildProxiedServerClientInfo("/var/lib/beads/proxieddb", "", "/var/log/server.log", 0, 0, nil)
+		info, err := buildProxiedServerClientInfo("/var/lib/issuegraph/proxieddb", "", "/var/log/server.log", 0, 0, nil)
 		require.NoError(t, err)
 		require.NotNil(t, info)
-		assert.Equal(t, "/var/lib/beads/proxieddb", info.RootPath)
+		assert.Equal(t, "/var/lib/issuegraph/proxieddb", info.RootPath)
 		assert.Equal(t, "", info.ConfigPath)
 		assert.Equal(t, "/var/log/server.log", info.LogPath)
 	})
@@ -105,11 +105,11 @@ func TestBuildProxiedServerClientInfo(t *testing.T) {
 	})
 
 	t.Run("absolute paths survive a round-trip through the sidecar resolver", func(t *testing.T) {
-		const beadsDir = "/proj/.beads"
-		info, err := buildProxiedServerClientInfo("/var/lib/beads/proxieddb", "", "", 0, 0, nil)
+		const issuegraphDir = "/proj/.issuegraph"
+		info, err := buildProxiedServerClientInfo("/var/lib/issuegraph/proxieddb", "", "", 0, 0, nil)
 		require.NoError(t, err)
 		require.NotNil(t, info)
-		assert.Equal(t, info.RootPath, (&configfile.ProxiedServerClientInfo{RootPath: info.RootPath}).ResolvedRootPath(beadsDir))
+		assert.Equal(t, info.RootPath, (&configfile.ProxiedServerClientInfo{RootPath: info.RootPath}).ResolvedRootPath(issuegraphDir))
 	})
 
 	t.Run("external config alone populates External section", func(t *testing.T) {
@@ -130,15 +130,15 @@ func TestBuildProxiedServerClientInfo(t *testing.T) {
 			Host:        "hosted-dolt.example.com",
 			Port:        3306,
 			TLSRequired: true,
-			TLSCert:     "/etc/beads/client.pem",
-			TLSKey:      "/etc/beads/client.key",
+			TLSCert:     "/etc/issuegraph/client.pem",
+			TLSKey:      "/etc/issuegraph/client.key",
 		}
 		info, err := buildProxiedServerClientInfo("", "", "", 0, 0, ext)
 		require.NoError(t, err)
 		require.NotNil(t, info.External)
 		assert.True(t, info.External.TLSRequired)
-		assert.Equal(t, "/etc/beads/client.pem", info.External.TLSCert)
-		assert.Equal(t, "/etc/beads/client.key", info.External.TLSKey)
+		assert.Equal(t, "/etc/issuegraph/client.pem", info.External.TLSCert)
+		assert.Equal(t, "/etc/issuegraph/client.key", info.External.TLSKey)
 	})
 
 	t.Run("external unix socket config flows through", func(t *testing.T) {
@@ -161,7 +161,7 @@ func TestBuildProxiedServerClientInfo(t *testing.T) {
 		_, err := buildProxiedServerClientInfo("", "", "", 0, 0, &configfile.ExternalDoltConfig{
 			Host:    "db",
 			Port:    3306,
-			TLSCert: "/etc/beads/client.pem",
+			TLSCert: "/etc/issuegraph/client.pem",
 		})
 		require.Error(t, err)
 		assert.Contains(t, err.Error(), "TLSCert set without TLSKey")
@@ -187,7 +187,7 @@ func TestBuildProxiedServerClientInfo(t *testing.T) {
 func TestComposeProxiedServerMetadataJSON_TeamServer(t *testing.T) {
 	t.Run("team-server flag is persisted and round-trips", func(t *testing.T) {
 		body, err := composeProxiedServerMetadataJSON(proxiedMetadataInputs{
-			dbName:     "beads_team",
+			dbName:     "issuegraph_team",
 			projectID:  "proj-1",
 			teamServer: true,
 		})
@@ -202,7 +202,7 @@ func TestComposeProxiedServerMetadataJSON_TeamServer(t *testing.T) {
 
 	t.Run("default omits the field and is not team-server managed", func(t *testing.T) {
 		body, err := composeProxiedServerMetadataJSON(proxiedMetadataInputs{
-			dbName:    "beads_team",
+			dbName:    "issuegraph_team",
 			projectID: "proj-1",
 		})
 		require.NoError(t, err)

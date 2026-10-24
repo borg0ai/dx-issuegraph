@@ -4,8 +4,8 @@ import (
 	"context"
 	"fmt"
 
-	"github.com/steveyegge/beads/internal/config"
-	"github.com/steveyegge/beads/internal/types"
+	"github.com/borg0ai/dx-issuegraph/internal/config"
+	"github.com/borg0ai/dx-issuegraph/internal/types"
 )
 
 type ConfigSQLRepository interface {
@@ -64,7 +64,7 @@ type ConfigUseCase interface {
 	SetLocalMetadata(ctx context.Context, key, value string) error
 }
 
-// CreateContext bundles the read-only config inputs that bd create needs
+// CreateContext bundles the read-only config inputs that issuegraph create needs
 // before inserting an issue. Returned by ConfigUseCase.LoadCreateContext in
 // a single round trip to keep the proxied-server path cheap.
 type CreateContext struct {

@@ -6,7 +6,7 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/steveyegge/beads/internal/types"
+	"github.com/borg0ai/dx-issuegraph/internal/types"
 )
 
 // countAttemptRefusals counts the refusals printed for one issue, not the run's
@@ -24,7 +24,7 @@ func countAttemptRefusals(out string) int {
 }
 
 // TestProxiedServerUpdateClosePolicy pins close policy on the PROXIED update
-// path — `bd update --status closed` against a dolt sql-server.
+// path — `issuegraph update --status closed` against a dolt sql-server.
 //
 // It exists because the two halves of this behavior were written against each
 // other's stale shape. #5206 added the policy and its two proxied refusal arms
@@ -50,15 +50,15 @@ func countAttemptRefusals(out string) int {
 func TestProxiedServerUpdateClosePolicy(t *testing.T) {
 	requireSharedProxiedServer(t)
 	t.Parallel()
-	bd := buildEmbeddedBD(t)
+	issuegraph := buildEmbeddedBD(t)
 
 	t.Run("live_blocker_refuses_once", func(t *testing.T) {
 		t.Parallel()
-		p := newSharedProxiedProject(t, bd, "upcb")
-		blocker := bdProxiedCreate(t, bd, p.dir, "Blocker")
-		blocked := bdProxiedCreate(t, bd, p.dir, "Blocked", "--deps", "depends-on:"+blocker.ID)
+		p := newSharedProxiedProject(t, issuegraph, "upcb")
+		blocker := issuegraphProxiedCreate(t, issuegraph, p.dir, "Blocker")
+		blocked := issuegraphProxiedCreate(t, issuegraph, p.dir, "Blocked", "--deps", "depends-on:"+blocker.ID)
 
-		out, code := bdProxiedUpdateFailCode(t, bd, p.dir, blocked.ID, "--status", "closed")
+		out, code := issuegraphProxiedUpdateFailCode(t, issuegraph, p.dir, blocked.ID, "--status", "closed")
 		if code != 1 {
 			t.Errorf("exit code = %d, want 1 (a policy refusal is not a guard mismatch); output:\n%s", code, out)
 		}
@@ -79,11 +79,11 @@ func TestProxiedServerUpdateClosePolicy(t *testing.T) {
 
 	t.Run("live_blocker_forced_crosses", func(t *testing.T) {
 		t.Parallel()
-		p := newSharedProxiedProject(t, bd, "upcf")
-		blocker := bdProxiedCreate(t, bd, p.dir, "Blocker force")
-		blocked := bdProxiedCreate(t, bd, p.dir, "Blocked force", "--deps", "depends-on:"+blocker.ID)
+		p := newSharedProxiedProject(t, issuegraph, "upcf")
+		blocker := issuegraphProxiedCreate(t, issuegraph, p.dir, "Blocker force")
+		blocked := issuegraphProxiedCreate(t, issuegraph, p.dir, "Blocked force", "--deps", "depends-on:"+blocker.ID)
 
-		bdProxiedUpdateOne(t, bd, p.dir, blocked.ID, "--status", "closed", "--force")
+		issuegraphProxiedUpdateOne(t, issuegraph, p.dir, blocked.ID, "--status", "closed", "--force")
 		db := openProxiedDB(t, p)
 		if got := readStatus(t, db, blocked.ID); got != types.StatusClosed {
 			t.Errorf("status = %q, want closed: --force must override close policy here too", got)
@@ -92,12 +92,12 @@ func TestProxiedServerUpdateClosePolicy(t *testing.T) {
 
 	t.Run("open_children_refuse_once", func(t *testing.T) {
 		t.Parallel()
-		p := newSharedProxiedProject(t, bd, "upcc")
-		parent := bdProxiedCreate(t, bd, p.dir, "Parent")
-		child := bdProxiedCreate(t, bd, p.dir, "Child")
-		bdProxiedDep(t, bd, p.dir, "add", child.ID, parent.ID, "--type", "parent-child")
+		p := newSharedProxiedProject(t, issuegraph, "upcc")
+		parent := issuegraphProxiedCreate(t, issuegraph, p.dir, "Parent")
+		child := issuegraphProxiedCreate(t, issuegraph, p.dir, "Child")
+		issuegraphProxiedDep(t, issuegraph, p.dir, "add", child.ID, parent.ID, "--type", "parent-child")
 
-		out, code := bdProxiedUpdateFailCode(t, bd, p.dir, parent.ID, "--status", "closed")
+		out, code := issuegraphProxiedUpdateFailCode(t, issuegraph, p.dir, parent.ID, "--status", "closed")
 		if code != 1 {
 			t.Errorf("exit code = %d, want 1; output:\n%s", code, out)
 		}
@@ -115,12 +115,12 @@ func TestProxiedServerUpdateClosePolicy(t *testing.T) {
 
 	t.Run("open_children_forced_crosses", func(t *testing.T) {
 		t.Parallel()
-		p := newSharedProxiedProject(t, bd, "upcg")
-		parent := bdProxiedCreate(t, bd, p.dir, "Parent force")
-		child := bdProxiedCreate(t, bd, p.dir, "Child force")
-		bdProxiedDep(t, bd, p.dir, "add", child.ID, parent.ID, "--type", "parent-child")
+		p := newSharedProxiedProject(t, issuegraph, "upcg")
+		parent := issuegraphProxiedCreate(t, issuegraph, p.dir, "Parent force")
+		child := issuegraphProxiedCreate(t, issuegraph, p.dir, "Child force")
+		issuegraphProxiedDep(t, issuegraph, p.dir, "add", child.ID, parent.ID, "--type", "parent-child")
 
-		bdProxiedUpdateOne(t, bd, p.dir, parent.ID, "--status", "closed", "--force")
+		issuegraphProxiedUpdateOne(t, issuegraph, p.dir, parent.ID, "--status", "closed", "--force")
 		db := openProxiedDB(t, p)
 		if got := readStatus(t, db, parent.ID); got != types.StatusClosed {
 			t.Errorf("status = %q, want closed", got)

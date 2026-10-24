@@ -12,10 +12,10 @@ import (
 	"testing"
 	"time"
 
-	"github.com/steveyegge/beads/internal/config"
-	"github.com/steveyegge/beads/internal/storage"
-	"github.com/steveyegge/beads/internal/storage/issueops"
-	"github.com/steveyegge/beads/internal/storage/versioncontrolops"
+	"github.com/borg0ai/dx-issuegraph/internal/config"
+	"github.com/borg0ai/dx-issuegraph/internal/storage"
+	"github.com/borg0ai/dx-issuegraph/internal/storage/issueops"
+	"github.com/borg0ai/dx-issuegraph/internal/storage/versioncontrolops"
 )
 
 func TestSyncFailureTextDistinguishesSSHDialTimeoutFromAuth(t *testing.T) {
@@ -675,7 +675,7 @@ func TestIsNoRemoteConfiguredErr(t *testing.T) {
 }
 
 // Every error the narrower dolt-verb classifier accepts must still be accepted
-// by sync's, or sync would exit non-zero where `bd dolt pull` exits 0.
+// by sync's, or sync would exit non-zero where `issuegraph dolt pull` exits 0.
 // TestIsNoRemoteConfiguredErrSupersetOfRemoteNotFound checks the widening
 // isNoRemoteConfiguredErr's doc comment promises: every "remote not found"
 // wording it delegates to isRemoteNotFoundErr is also accepted directly, AND
@@ -965,28 +965,28 @@ func TestSyncConflictMessage(t *testing.T) {
 
 	// Every halt describes an operator action, but only a live conflict has one
 	// that runs right now — "resolve the divergence" with no command named
-	// left the operator to go find bd conflicts on their own.
+	// left the operator to go find issuegraph conflicts on their own.
 	t.Run("live and pre-existing conflicts name a concrete resolve command", func(t *testing.T) {
 		for _, out := range []*syncOutcome{
 			{Conflicts: []string{"issues"}, ConflictsLive: true},
 			{Conflicts: []string{"issues"}, ConflictsPreexisting: true, ConflictsLive: true},
 		} {
 			got := joined(out)
-			if !strings.Contains(got, "bd conflicts resolve") {
+			if !strings.Contains(got, "issuegraph conflicts resolve") {
 				t.Errorf("message does not name a resolve command:\n%s", got)
 			}
 		}
 	})
 
-	// The aborted-merge case has nothing live for `bd conflicts` to show, so it
+	// The aborted-merge case has nothing live for `issuegraph conflicts` to show, so it
 	// must not point at that command as if the working set were conflicted —
 	// but it still must not leave the operator with zero next step.
 	t.Run("aborted conflict names a next step without claiming a live conflict", func(t *testing.T) {
 		got := joined(&syncOutcome{Conflicts: []string{"issues"}})
-		if !strings.Contains(got, "bd conflicts list") {
+		if !strings.Contains(got, "issuegraph conflicts list") {
 			t.Errorf("message does not mention checking for live conflicts:\n%s", got)
 		}
-		if strings.Contains(got, "bd conflicts resolve") {
+		if strings.Contains(got, "issuegraph conflicts resolve") {
 			t.Errorf("aborted-merge halt must not send the operator to resolve a conflict that is not live:\n%s", got)
 		}
 	})
@@ -1120,7 +1120,7 @@ func TestRunSyncLoopDirtyGraphRetriesExhausted(t *testing.T) {
 	}
 }
 
-// The positive escalation this bead adds (wy-mhouc): a graph table dirty
+// The positive escalation this issue adds (wy-mhouc): a graph table dirty
 // because of a constraint violation no writer will ever commit is knowable on
 // the FIRST blocked attempt, from storage.MergeBlockerInspector — it must not
 // wait out syncStuckTicks the way the tick-count inference does.
@@ -1215,7 +1215,7 @@ func TestRunSyncLoopMergeBlockersProbeFailureDoesNotEscalate(t *testing.T) {
 
 // A nil mergeBlockers hook (production shape for a store without
 // MergeBlockerInspector) must behave exactly like production did before this
-// bead: no escalation, ever.
+// issue: no escalation, ever.
 func TestRunSyncLoopNilMergeBlockersHookDoesNotEscalate(t *testing.T) {
 	r := &syncOpsRecorder{recomputeErrs: []error{dirtyGraphErr()}}
 	out, err := runSyncLoop(context.Background(), r.ops(), 2)
@@ -1461,7 +1461,7 @@ func (f *fakeSyncStore) ListRemotes(context.Context) ([]storage.RemoteInfo, erro
 // the default every pre-existing case here means (a solo rig with no git origin
 // to adopt), and it is load-bearing safety: the real adoption resolves the
 // active workspace, shells out to git, and can write and COMMIT
-// .beads/config.yaml, so leaving it live would let a unit test mutate whatever
+// .issuegraph/config.yaml, so leaving it live would let a unit test mutate whatever
 // repo the suite is run from. A case that is about adoption reassigns the seam
 // after calling this.
 func setupSyncCommandTest(t *testing.T, fake *fakeSyncStore) {
@@ -1533,18 +1533,18 @@ func TestRunSyncCommandNoRemoteJSON(t *testing.T) {
 }
 
 // TestRunSyncCommandNoPushSetsPushSkipped covers the noPush -> PushSkipped
-// correction: a successful ok-status run with BD_NO_PUSH=true must not call
+// correction: a successful ok-status run with ISSUEGRAPH_NO_PUSH=true must not call
 // Push, and the outcome the operator sees must say so (PushSkipped=true,
 // Pushed=false) rather than silently reporting an ordinary successful push.
 func TestRunSyncCommandNoPushSetsPushSkipped(t *testing.T) {
 	fake := &fakeSyncStore{recomputed: 2}
 	setupSyncCommandTest(t, fake)
-	t.Setenv("BD_NO_PUSH", "true")
+	t.Setenv("ISSUEGRAPH_NO_PUSH", "true")
 	if err := config.Initialize(); err != nil {
 		t.Fatalf("config.Initialize: %v", err)
 	}
 	if !config.GetBool("no-push") {
-		t.Fatal("test setup: BD_NO_PUSH=true must make no-push=true")
+		t.Fatal("test setup: ISSUEGRAPH_NO_PUSH=true must make no-push=true")
 	}
 	jsonOutput = true
 
@@ -1747,14 +1747,14 @@ func TestRunSyncCommandQuietDoesNotSilenceConflict(t *testing.T) {
 
 // ---------------------------------------------------------------------------
 // wy-gpzg7: sync's default-remote path adopts a git origin as the Dolt remote,
-// the same way `bd dolt push` does.
+// the same way `issuegraph dolt push` does.
 // ---------------------------------------------------------------------------
 
 // The bug: a first-time federation rig (git origin configured, no Dolt remote
-// registered yet) that runs `bd sync` as its bring-up step used to get a silent
+// registered yet) that runs `issuegraph sync` as its bring-up step used to get a silent
 // no-op — pull fails with Dolt's bare no-remote wording, the confirmed-no-remote
 // gate agrees because nothing ever adopted the origin, status=no-remote, exit 0
-// — where `bd dolt push` on the very same rig would have adopted origin and
+// — where `issuegraph dolt push` on the very same rig would have adopted origin and
 // pushed. Adoption must run BEFORE the loop, so the pull benefits from it too.
 func TestRunSyncCommandAdoptsGitOriginOnDefaultRemote(t *testing.T) {
 	fake := &fakeSyncStore{pullErr: errors.New("Error 1105: no remote"), recomputed: 2}
@@ -1790,7 +1790,7 @@ func TestRunSyncCommandAdoptsGitOriginOnDefaultRemote(t *testing.T) {
 
 // Adoption must precede the PULL, not merely the push: a rig that had to adopt
 // its remote has nothing to pull from until it has one, so an adoption wired in
-// front of the push only (mirroring `bd dolt push` too literally) would still
+// front of the push only (mirroring `issuegraph dolt push` too literally) would still
 // leave sync failing on its first step.
 func TestRunSyncCommandAdoptsBeforePull(t *testing.T) {
 	fake := &fakeSyncStore{}
@@ -1857,7 +1857,7 @@ func TestRunSyncCommandNamedRemoteNeverAdopts(t *testing.T) {
 }
 
 // A failed adoption is a real error, not a benign skip: it means the rig has no
-// Dolt remote AND bd could not derive one (a broken dolt_remotes listing, an
+// Dolt remote AND issuegraph could not derive one (a broken dolt_remotes listing, an
 // AddRemote refusal, an unwritable config.yaml). Reporting exit 0 there would
 // hide the very misconfiguration that stops the rig from ever federating, and
 // nothing may be pulled or pushed on top of it.
@@ -2185,7 +2185,7 @@ func TestSyncMixedTransientNote(t *testing.T) {
 	}
 }
 
-// The marker round-trips through the same .beads scratch file the next tick
+// The marker round-trips through the same .issuegraph scratch file the next tick
 // reads, and a cleared marker leaves no stale file behind.
 func TestSyncStatePersistence(t *testing.T) {
 	dir := t.TempDir()

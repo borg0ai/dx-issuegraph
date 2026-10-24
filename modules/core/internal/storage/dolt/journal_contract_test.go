@@ -4,9 +4,9 @@ import (
 	"context"
 	"testing"
 
-	"github.com/steveyegge/beads/backend/conformance"
-	"github.com/steveyegge/beads/internal/storage"
-	"github.com/steveyegge/beads/internal/types"
+	"github.com/borg0ai/dx-issuegraph/backend/conformance"
+	"github.com/borg0ai/dx-issuegraph/internal/storage"
+	"github.com/borg0ai/dx-issuegraph/internal/types"
 )
 
 // TestJournalContract runs the Journal contract against the server-backed
@@ -49,7 +49,7 @@ func newDoltJournalFixture(t *testing.T, prefix string) (conformance.JournalFixt
 	t.Helper()
 	store, storeCleanup := setupTestStore(t)
 	ctx, cancel := testContext(t)
-	// Through the type assertion `bd serve` makes, never the concrete method
+	// Through the type assertion `issuegraph serve` makes, never the concrete method
 	// set: the journal is not on storage.DoltStorage, so publishing it IS
 	// implementing this interface, and a backend that stopped would fail here
 	// rather than keep compiling against a struct.

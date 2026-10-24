@@ -12,18 +12,18 @@ import (
 	"sort"
 	"strings"
 
-	"github.com/steveyegge/beads/internal/beads"
-	"github.com/steveyegge/beads/internal/git"
-	"github.com/steveyegge/beads/internal/storage/dolt"
-	"github.com/steveyegge/beads/internal/types"
+	"github.com/borg0ai/dx-issuegraph/internal/git"
+	"github.com/borg0ai/dx-issuegraph/internal/issuegraph"
+	"github.com/borg0ai/dx-issuegraph/internal/storage/dolt"
+	"github.com/borg0ai/dx-issuegraph/internal/types"
 )
 
 // CheckIDFormat checks whether issues use hash-based or sequential IDs.
 // Opens its own store; prefer CheckIDFormatWithStore when a shared store is available.
 func CheckIDFormat(path string) DoctorCheck {
-	_, beadsDir := getBackendAndBeadsDir(path)
+	_, issuegraphDir := getBackendAndIssueGraphDir(path)
 
-	doltPath := getDatabasePath(beadsDir)
+	doltPath := getDatabasePath(issuegraphDir)
 	if _, err := os.Stat(doltPath); os.IsNotExist(err) {
 		return DoctorCheck{
 			Name:    "Issue IDs",
@@ -33,7 +33,7 @@ func CheckIDFormat(path string) DoctorCheck {
 	}
 
 	ctx := context.Background()
-	store, err := dolt.NewFromConfigWithCLIOptions(ctx, beadsDir, &dolt.Config{ReadOnly: true})
+	store, err := dolt.NewFromConfigWithCLIOptions(ctx, issuegraphDir, &dolt.Config{ReadOnly: true})
 	if err != nil {
 		return DoctorCheck{
 			Name:    "Issue IDs",
@@ -119,9 +119,9 @@ func checkIDFormatWithStore(store *dolt.DoltStore) DoctorCheck {
 // CheckDependencyCycles checks for circular dependencies in the issue graph.
 // Opens its own store; prefer CheckDependencyCyclesWithStore when a shared store is available.
 func CheckDependencyCycles(path string) DoctorCheck {
-	_, beadsDir := getBackendAndBeadsDir(path)
+	_, issuegraphDir := getBackendAndIssueGraphDir(path)
 
-	doltPath := getDatabasePath(beadsDir)
+	doltPath := getDatabasePath(issuegraphDir)
 	if _, err := os.Stat(doltPath); os.IsNotExist(err) {
 		return DoctorCheck{
 			Name:    "Dependency Cycles",
@@ -131,7 +131,7 @@ func CheckDependencyCycles(path string) DoctorCheck {
 	}
 
 	ctx := context.Background()
-	store, err := dolt.NewFromConfigWithCLIOptions(ctx, beadsDir, &dolt.Config{ReadOnly: true})
+	store, err := dolt.NewFromConfigWithCLIOptions(ctx, issuegraphDir, &dolt.Config{ReadOnly: true})
 	if err != nil {
 		return DoctorCheck{
 			Name:    "Dependency Cycles",
@@ -196,7 +196,7 @@ func checkDependencyCyclesWithStore(store *dolt.DoltStore) DoctorCheck {
 		Status:  StatusError,
 		Message: fmt.Sprintf("Found %d circular dependency cycle(s)", len(cycleNodes)),
 		Detail:  fmt.Sprintf("First cycle involves: %s", cycleNodes[0]),
-		Fix:     "Run 'bd dep cycles' to see full cycle paths, then 'bd dep remove' to break cycles",
+		Fix:     "Run 'issuegraph dep cycles' to see full cycle paths, then 'issuegraph dep remove' to break cycles",
 	}
 }
 
@@ -206,9 +206,9 @@ func checkDependencyCyclesWithStore(store *dolt.DoltStore) DoctorCheck {
 // graphs and exceeded per-query read timeouts on shared dolt sql-servers.
 //
 // Only blocking edge types are traversed, matching issueops.DetectCyclesInTx
-// and the cycle prevention on 'bd dep add': non-blocking types (tracks,
+// and the cycle prevention on 'issuegraph dep add': non-blocking types (tracks,
 // related, discovered-from, ...) legitimately form loops and previously made
-// this check disagree with the 'bd dep cycles' command its fix hint points at.
+// this check disagree with the 'issuegraph dep cycles' command its fix hint points at.
 //
 // All pages of both tables run inside one transaction so the whole graph is
 // read from a single snapshot; on a shared server, per-statement implicit
@@ -317,7 +317,7 @@ func loadDependencyEdgePage(ctx context.Context, tx *sql.Tx, table string, pageS
 // pass issueops.AppendBlockingGraphInTx makes. It is the fallback for schema
 // shapes where id keyset pagination would be unsound; the exponential work
 // this check must avoid was the recursive path enumeration, not the plain
-// edge scan 'bd dep cycles' itself relies on.
+// edge scan 'issuegraph dep cycles' itself relies on.
 func loadDependencyEdgeScan(ctx context.Context, tx *sql.Tx, table string, maxEdges int, edgeCount *int, edges map[string][]string) *DoctorCheck {
 	//nolint:gosec // G202: table is hardcoded in dependencyCycleTables
 	rows, err := tx.QueryContext(ctx, `
@@ -467,14 +467,14 @@ func hasSelfEdge(edges map[string][]string, v string) bool {
 
 // CheckDeletionsManifest checks the status of the legacy deletions.jsonl file
 func CheckDeletionsManifest(path string) DoctorCheck {
-	beadsDir := ResolveBeadsDirForRepo(path)
+	issuegraphDir := ResolveIssueGraphDirForRepo(path)
 
-	// Skip if .beads doesn't exist
-	if _, err := os.Stat(beadsDir); os.IsNotExist(err) {
+	// Skip if .issuegraph doesn't exist
+	if _, err := os.Stat(issuegraphDir); os.IsNotExist(err) {
 		return DoctorCheck{
 			Name:    "Deletions Manifest",
 			Status:  StatusOK,
-			Message: "N/A (no .beads directory)",
+			Message: "N/A (no .issuegraph directory)",
 		}
 	}
 
@@ -488,7 +488,7 @@ func CheckDeletionsManifest(path string) DoctorCheck {
 		}
 	}
 
-	deletionsPath := filepath.Join(beadsDir, "deletions.jsonl")
+	deletionsPath := filepath.Join(issuegraphDir, "deletions.jsonl")
 
 	// Check if deletions.jsonl exists
 	info, err := os.Stat(deletionsPath)
@@ -530,7 +530,7 @@ func CheckDeletionsManifest(path string) DoctorCheck {
 
 	// deletions.jsonl doesn't exist - this is the expected state
 	// Check for .migrated file to confirm migration happened
-	migratedPath := filepath.Join(beadsDir, "deletions.jsonl.migrated")
+	migratedPath := filepath.Join(issuegraphDir, "deletions.jsonl.migrated")
 	if _, err := os.Stat(migratedPath); err == nil {
 		return DoctorCheck{
 			Name:    "Deletions Manifest",
@@ -548,13 +548,13 @@ func CheckDeletionsManifest(path string) DoctorCheck {
 }
 
 // CheckRepoFingerprint validates that the database belongs to this repository.
-// This detects when a .beads directory was copied from another repo or when
+// This detects when a .issuegraph directory was copied from another repo or when
 // the git remote URL changed. A mismatch can cause data loss during sync.
 // Opens its own store; prefer CheckRepoFingerprintWithStore when a shared store is available.
 func CheckRepoFingerprint(path string) DoctorCheck {
-	_, beadsDir := getBackendAndBeadsDir(path)
+	_, issuegraphDir := getBackendAndIssueGraphDir(path)
 
-	if info, err := os.Stat(getDatabasePath(beadsDir)); err != nil || !info.IsDir() {
+	if info, err := os.Stat(getDatabasePath(issuegraphDir)); err != nil || !info.IsDir() {
 		return DoctorCheck{
 			Name:    "Repo Fingerprint",
 			Status:  StatusOK,
@@ -563,7 +563,7 @@ func CheckRepoFingerprint(path string) DoctorCheck {
 	}
 
 	ctx := context.Background()
-	store, err := dolt.NewFromConfigWithCLIOptions(ctx, beadsDir, &dolt.Config{ReadOnly: true})
+	store, err := dolt.NewFromConfigWithCLIOptions(ctx, issuegraphDir, &dolt.Config{ReadOnly: true})
 	if err != nil {
 		return DoctorCheck{
 			Name:    "Repo Fingerprint",
@@ -609,11 +609,11 @@ func checkRepoFingerprintWithStore(store *dolt.DoltStore, path string) DoctorChe
 			Status:  StatusWarning,
 			Message: "Missing repo fingerprint metadata",
 			Detail:  "Storage: Dolt",
-			Fix:     "Run 'bd doctor --fix' to repair metadata",
+			Fix:     "Run 'issuegraph doctor --fix' to repair metadata",
 		}
 	}
 
-	currentRepoID, currentSource, err := beads.ComputeRepoIDForPathWithSource(path)
+	currentRepoID, currentSource, err := issuegraph.ComputeRepoIDForPathWithSource(path)
 	if err != nil {
 		if strings.Contains(err.Error(), "not a git repository") {
 			return DoctorCheck{
@@ -636,22 +636,22 @@ func checkRepoFingerprintWithStore(store *dolt.DoltStore, path string) DoctorChe
 // classifyRepoFingerprint turns a stored-vs-current fingerprint comparison into
 // a doctor check. Pure so the mismatch branches are unit-testable without a
 // store.
-func classifyRepoFingerprint(storedRepoID, currentRepoID string, currentSource beads.RepoIDSource) DoctorCheck {
+func classifyRepoFingerprint(storedRepoID, currentRepoID string, currentSource issuegraph.RepoIDSource) DoctorCheck {
 	if storedRepoID != currentRepoID {
 		// bd-46vla: with no origin remote here, the local fingerprint is a
 		// path hash that can never match a remote-derived stored id — the
 		// signature of a synced clone on a host without the canonical remote.
 		// The stored id is the shared value; repo_id lives in the VERSIONED
-		// metadata table, so 'bd migrate --update-repo-id' would stamp this
+		// metadata table, so 'issuegraph migrate --update-repo-id' would stamp this
 		// host's path hash into shared state and propagate it to every clone
 		// on the next sync (the GH#4361 class).
-		if currentSource == beads.RepoIDSourcePath {
+		if currentSource == issuegraph.RepoIDSourcePath {
 			return DoctorCheck{
 				Name:    "Repo Fingerprint",
 				Status:  StatusWarning,
 				Message: "Fingerprint differs, but this checkout has no origin remote",
 				Detail:  fmt.Sprintf("stored: %s, current (path hash): %s — on a synced clone the stored id is the canonical shared value and this mismatch is cosmetic", truncateID(storedRepoID), truncateID(currentRepoID)),
-				Fix:     "On a synced clone, leave it (or add the canonical origin remote). Only run 'bd migrate --update-repo-id' if this checkout is the canonical repository — the new id propagates to every clone on the next sync",
+				Fix:     "On a synced clone, leave it (or add the canonical origin remote). Only run 'issuegraph migrate --update-repo-id' if this checkout is the canonical repository — the new id propagates to every clone on the next sync",
 			}
 		}
 		return DoctorCheck{
@@ -659,7 +659,7 @@ func classifyRepoFingerprint(storedRepoID, currentRepoID string, currentSource b
 			Status:  StatusError,
 			Message: "Database belongs to different repository",
 			Detail:  fmt.Sprintf("stored: %s, current: %s", truncateID(storedRepoID), truncateID(currentRepoID)),
-			Fix:     "Run 'bd migrate --update-repo-id' if URL changed, or 'rm -rf .beads && bd init' if wrong database",
+			Fix:     "Run 'issuegraph migrate --update-repo-id' if URL changed, or 'rm -rf .issuegraph && issuegraph init' if wrong database",
 		}
 	}
 

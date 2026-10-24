@@ -6,10 +6,10 @@ import (
 	"os/exec"
 	"strings"
 
+	"github.com/borg0ai/dx-issuegraph/internal/metrics"
+	"github.com/borg0ai/dx-issuegraph/internal/storage"
+	"github.com/borg0ai/dx-issuegraph/internal/ui"
 	"github.com/spf13/cobra"
-	"github.com/steveyegge/beads/internal/metrics"
-	"github.com/steveyegge/beads/internal/storage"
-	"github.com/steveyegge/beads/internal/ui"
 )
 
 var editCmd = &cobra.Command{
@@ -21,11 +21,11 @@ var editCmd = &cobra.Command{
 By default, edits the description. Use flags to edit other fields.
 
 Examples:
-  bd edit bd-42                    # Edit description
-  bd edit bd-42 --title            # Edit title
-  bd edit bd-42 --design           # Edit design notes
-  bd edit bd-42 --notes            # Edit notes
-  bd edit bd-42 --acceptance       # Edit acceptance criteria`,
+  issuegraph edit bd-42                    # Edit description
+  issuegraph edit bd-42 --title            # Edit title
+  issuegraph edit bd-42 --design           # Edit design notes
+  issuegraph edit bd-42 --notes            # Edit notes
+  issuegraph edit bd-42 --acceptance       # Edit acceptance criteria`,
 	Args:          cobra.ExactArgs(1),
 	SilenceUsage:  true,
 	SilenceErrors: true,
@@ -46,7 +46,7 @@ Examples:
 		id := args[0]
 		ctx := rootCtx
 
-		// Resolve ID with prefix routing (supports cross-rig edits like `bd edit xe-5ls`)
+		// Resolve ID with prefix routing (supports cross-rig edits like `issuegraph edit xe-5ls`)
 		result, err := resolveAndGetIssueForMutation(ctx, store, id)
 		if err != nil {
 			return HandleErrorRespectJSON("resolving %s: %v", id, err)

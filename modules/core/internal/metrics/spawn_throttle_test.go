@@ -9,7 +9,7 @@ import (
 )
 
 // The stateful half of the spawn gate (bd-p6o3y): a detached send-metrics
-// child is a full re-exec of the bd binary plus an HTTPS POST, so it must only
+// child is a full re-exec of the issuegraph binary plus an HTTPS POST, so it must only
 // spawn when there is something to upload AND the last attempt is at least
 // flushInterval old. These tests drive flusherDue/touchFlushMarker directly —
 // calling MaybeSpawnFlusher with every env gate open would fork the test
@@ -169,7 +169,7 @@ func TestHasQueuedEventsAcrossChunks(t *testing.T) {
 
 // TestFlusherDueFreshMarkerSkipsQueueScan pins the evaluation order: inside
 // the throttle interval the queue must not be scanned at all — the property
-// that keeps a backed-up queue (148k entries observed) from taxing every bd
+// that keeps a backed-up queue (148k entries observed) from taxing every issuegraph
 // invocation. The scanQueue seam is stubbed so any scan attempt fails the
 // test outright.
 func TestFlusherDueFreshMarkerSkipsQueueScan(t *testing.T) {

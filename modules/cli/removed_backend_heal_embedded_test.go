@@ -13,15 +13,15 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/steveyegge/beads/internal/configfile"
-	"github.com/steveyegge/beads/internal/types"
+	"github.com/borg0ai/dx-issuegraph/internal/configfile"
+	"github.com/borg0ai/dx-issuegraph/internal/types"
 )
 
 // setLegacyBackend rewrites metadata.json's "backend" field the way a stale
 // pre-rollback workspace carries it, preserving every other field.
-func setLegacyBackend(t *testing.T, beadsDir, backend string) {
+func setLegacyBackend(t *testing.T, issuegraphDir, backend string) {
 	t.Helper()
-	path := filepath.Join(beadsDir, configfile.ConfigFileName)
+	path := filepath.Join(issuegraphDir, configfile.ConfigFileName)
 	raw, err := os.ReadFile(path) // #nosec G304 -- test-controlled path
 	if err != nil {
 		t.Fatalf("read metadata.json: %v", err)
@@ -66,14 +66,14 @@ func snapshotTree(t *testing.T, root string) map[string]int64 {
 	return tree
 }
 
-// beadsDirEntries lists the names directly under .beads, skipping the advisory
-// workspace-gate lock files bd creates before it reaches the backend check.
+// issuegraphDirEntries lists the names directly under .issuegraph, skipping the advisory
+// workspace-gate lock files issuegraph creates before it reaches the backend check.
 // Those are not storage, and they are the only entries a rejected run may add.
-func beadsDirEntries(t *testing.T, beadsDir string) []string {
+func issuegraphDirEntries(t *testing.T, issuegraphDir string) []string {
 	t.Helper()
-	entries, err := os.ReadDir(beadsDir)
+	entries, err := os.ReadDir(issuegraphDir)
 	if err != nil {
-		t.Fatalf("read %s: %v", beadsDir, err)
+		t.Fatalf("read %s: %v", issuegraphDir, err)
 	}
 	var names []string
 	for _, entry := range entries {
@@ -86,23 +86,23 @@ func beadsDirEntries(t *testing.T, beadsDir string) []string {
 	return names
 }
 
-// runBDExpectingRejection runs bd in dir and requires it to exit 1 (the
+// runIssueGraphExpectingRejection runs issuegraph in dir and requires it to exit 1 (the
 // documented removed-backend exit code), returning the combined output.
-func runBDExpectingRejection(t *testing.T, bd, dir string, args ...string) string {
+func runIssueGraphExpectingRejection(t *testing.T, issuegraph, dir string, args ...string) string {
 	t.Helper()
-	cmd := exec.Command(bd, args...)
+	cmd := exec.Command(issuegraph, args...)
 	cmd.Dir = dir
-	cmd.Env = bdEnv(dir)
+	cmd.Env = issuegraphEnv(dir)
 	out, err := cmd.CombinedOutput()
 	if err == nil {
-		t.Fatalf("bd %s unexpectedly succeeded:\n%s", strings.Join(args, " "), out)
+		t.Fatalf("issuegraph %s unexpectedly succeeded:\n%s", strings.Join(args, " "), out)
 	}
 	exitErr, ok := err.(*exec.ExitError)
 	if !ok {
-		t.Fatalf("bd %s failed without an exit status: %v\n%s", strings.Join(args, " "), err, out)
+		t.Fatalf("issuegraph %s failed without an exit status: %v\n%s", strings.Join(args, " "), err, out)
 	}
 	if code := exitErr.ExitCode(); code != 1 {
-		t.Fatalf("bd %s exit code = %d, want 1\n%s", strings.Join(args, " "), code, out)
+		t.Fatalf("issuegraph %s exit code = %d, want 1\n%s", strings.Join(args, " "), code, out)
 	}
 	return string(out)
 }
@@ -112,28 +112,28 @@ func runBDExpectingRejection(t *testing.T, bd, dir string, args ...string) strin
 // database, so the rejection must name the exact edit that heals it — and
 // following that edit verbatim must make the workspace open again with its
 // issues intact. Before D-8 the message sent this user to export the data with
-// an old bd release and reinitialize, destroying a live database.
+// an old issuegraph release and reinitialize, destroying a live database.
 func TestRemovedBackendHealRoundTrip(t *testing.T) {
-	if os.Getenv("BEADS_TEST_EMBEDDED_DOLT") != "1" {
-		t.Skip("set BEADS_TEST_EMBEDDED_DOLT=1 to run embedded dolt integration tests")
+	if os.Getenv("ISSUEGRAPH_TEST_EMBEDDED_DOLT") != "1" {
+		t.Skip("set ISSUEGRAPH_TEST_EMBEDDED_DOLT=1 to run embedded dolt integration tests")
 	}
 
-	bd := buildEmbeddedBD(t)
-	dir, beadsDir, _ := bdInit(t, bd, "--prefix", "heal")
-	created := bdCreate(t, bd, dir, "issue that must survive the rejection", "--type", "task")
+	issuegraph := buildEmbeddedBD(t)
+	dir, issuegraphDir, _ := issuegraphInit(t, issuegraph, "--prefix", "heal")
+	created := issuegraphCreate(t, issuegraph, dir, "issue that must survive the rejection", "--type", "task")
 
-	doltDir := filepath.Join(beadsDir, "embeddeddolt")
-	setLegacyBackend(t, beadsDir, configfile.BackendSQLite)
+	doltDir := filepath.Join(issuegraphDir, "embeddeddolt")
+	setLegacyBackend(t, issuegraphDir, configfile.BackendSQLite)
 
-	metadataPath := filepath.Join(beadsDir, configfile.ConfigFileName)
+	metadataPath := filepath.Join(issuegraphDir, configfile.ConfigFileName)
 	metadataBefore, err := os.ReadFile(metadataPath) // #nosec G304 -- test-controlled path
 	if err != nil {
 		t.Fatalf("read metadata.json: %v", err)
 	}
 	doltBefore := snapshotTree(t, doltDir)
-	entriesBefore := beadsDirEntries(t, beadsDir)
+	entriesBefore := issuegraphDirEntries(t, issuegraphDir)
 
-	out := runBDExpectingRejection(t, bd, dir, "list", "--json")
+	out := runIssueGraphExpectingRejection(t, issuegraph, dir, "list", "--json")
 	for _, want := range []string{
 		"no longer supported",
 		metadataPath,
@@ -162,26 +162,26 @@ func TestRemovedBackendHealRoundTrip(t *testing.T) {
 	if diff := treeDiff(doltBefore, snapshotTree(t, doltDir)); diff != "" {
 		t.Errorf("rejection touched the Dolt database:\n%s", diff)
 	}
-	if got := beadsDirEntries(t, beadsDir); !equalStrings(got, entriesBefore) {
+	if got := issuegraphDirEntries(t, issuegraphDir); !equalStrings(got, entriesBefore) {
 		t.Errorf("rejection added workspace entries: before %v, after %v", entriesBefore, got)
 	}
-	if _, statErr := os.Stat(filepath.Join(beadsDir, "beads.db")); !os.IsNotExist(statErr) {
+	if _, statErr := os.Stat(filepath.Join(issuegraphDir, "issuegraph.db")); !os.IsNotExist(statErr) {
 		t.Errorf("rejection provisioned a SQLite database (stat error: %v)", statErr)
 	}
 
 	// Now apply exactly the edit the message prescribes.
-	setLegacyBackend(t, beadsDir, configfile.BackendDolt)
-	issues := bdListJSON(t, bd, dir)
+	setLegacyBackend(t, issuegraphDir, configfile.BackendDolt)
+	issues := issuegraphListJSON(t, issuegraph, dir)
 	if !containsIssue(issues, created.ID) {
-		t.Fatalf("after the prescribed heal, bd list does not show %s: %+v", created.ID, issues)
+		t.Fatalf("after the prescribed heal, issuegraph list does not show %s: %+v", created.ID, issues)
 	}
 
 	// The message's stated alternative — dropping the field entirely — must work
 	// just as well, since Dolt is the default.
-	removeBackendField(t, beadsDir)
-	issues = bdListJSON(t, bd, dir)
+	removeBackendField(t, issuegraphDir)
+	issues = issuegraphListJSON(t, issuegraph, dir)
 	if !containsIssue(issues, created.ID) {
-		t.Fatalf("after deleting the backend field, bd list does not show %s: %+v", created.ID, issues)
+		t.Fatalf("after deleting the backend field, issuegraph list does not show %s: %+v", created.ID, issues)
 	}
 }
 
@@ -189,20 +189,20 @@ func TestRemovedBackendHealRoundTrip(t *testing.T) {
 // tombstone — not just sqlite — reaches the heal message when Dolt data is
 // present. Only sqlite runs the full round-trip above; here we pin the rejection.
 func TestRemovedBackendHealRejectionPerBackend(t *testing.T) {
-	if os.Getenv("BEADS_TEST_EMBEDDED_DOLT") != "1" {
-		t.Skip("set BEADS_TEST_EMBEDDED_DOLT=1 to run embedded dolt integration tests")
+	if os.Getenv("ISSUEGRAPH_TEST_EMBEDDED_DOLT") != "1" {
+		t.Skip("set ISSUEGRAPH_TEST_EMBEDDED_DOLT=1 to run embedded dolt integration tests")
 	}
 
-	bd := buildEmbeddedBD(t)
+	issuegraph := buildEmbeddedBD(t)
 	for _, backend := range []string{configfile.BackendPostgres, configfile.BackendMySQL} {
 		t.Run(backend, func(t *testing.T) {
-			dir, beadsDir, _ := bdInit(t, bd, "--prefix", "hl"+backend[:2])
-			setLegacyBackend(t, beadsDir, backend)
+			dir, issuegraphDir, _ := issuegraphInit(t, issuegraph, "--prefix", "hl"+backend[:2])
+			setLegacyBackend(t, issuegraphDir, backend)
 
-			out := runBDExpectingRejection(t, bd, dir, "list", "--json")
+			out := runIssueGraphExpectingRejection(t, issuegraph, dir, "list", "--json")
 			for _, want := range []string{
 				"no longer supported",
-				filepath.Join(beadsDir, configfile.ConfigFileName),
+				filepath.Join(issuegraphDir, configfile.ConfigFileName),
 				fmt.Sprintf(`"backend": %q`, backend),
 				`"backend": "dolt"`,
 				configfile.BackendNotOpenedGuarantee,
@@ -220,9 +220,9 @@ func TestRemovedBackendHealRejectionPerBackend(t *testing.T) {
 
 // removeBackendField deletes the "backend" key from metadata.json, the
 // alternative the heal message offers.
-func removeBackendField(t *testing.T, beadsDir string) {
+func removeBackendField(t *testing.T, issuegraphDir string) {
 	t.Helper()
-	path := filepath.Join(beadsDir, configfile.ConfigFileName)
+	path := filepath.Join(issuegraphDir, configfile.ConfigFileName)
 	raw, err := os.ReadFile(path) // #nosec G304 -- test-controlled path
 	if err != nil {
 		t.Fatalf("read metadata.json: %v", err)

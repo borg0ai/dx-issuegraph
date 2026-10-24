@@ -9,9 +9,9 @@ import (
 func TestCheckClassicArtifacts_NoArtifacts(t *testing.T) {
 	dir := t.TempDir()
 
-	// Create a basic .beads directory with no artifacts
-	beadsDir := filepath.Join(dir, ".beads")
-	if err := os.MkdirAll(beadsDir, 0755); err != nil {
+	// Create a basic .issuegraph directory with no artifacts
+	issuegraphDir := filepath.Join(dir, ".issuegraph")
+	if err := os.MkdirAll(issuegraphDir, 0755); err != nil {
 		t.Fatal(err)
 	}
 
@@ -29,20 +29,20 @@ func TestScanForArtifacts_JSONLInDoltDir(t *testing.T) {
 func TestScanForArtifacts_SQLiteFiles(t *testing.T) {
 	dir := t.TempDir()
 
-	beadsDir := filepath.Join(dir, ".beads")
-	if err := os.MkdirAll(beadsDir, 0755); err != nil {
+	issuegraphDir := filepath.Join(dir, ".issuegraph")
+	if err := os.MkdirAll(issuegraphDir, 0755); err != nil {
 		t.Fatal(err)
 	}
 
 	// Create dolt/ directory so isDoltNative returns true (SQLite files
 	// are only flagged as artifacts when Dolt is the active backend)
-	if err := os.MkdirAll(filepath.Join(beadsDir, "dolt"), 0755); err != nil {
+	if err := os.MkdirAll(filepath.Join(issuegraphDir, "dolt"), 0755); err != nil {
 		t.Fatal(err)
 	}
 
 	// Create SQLite artifacts
-	for _, name := range []string{"beads.db", "beads.db-shm", "beads.db-wal", "beads.backup-20260204.db"} {
-		if err := os.WriteFile(filepath.Join(beadsDir, name), []byte("data"), 0644); err != nil {
+	for _, name := range []string{"issuegraph.db", "issuegraph.db-shm", "issuegraph.db-wal", "issuegraph.backup-20260204.db"} {
+		if err := os.WriteFile(filepath.Join(issuegraphDir, name), []byte("data"), 0644); err != nil {
 			t.Fatal(err)
 		}
 	}
@@ -56,17 +56,17 @@ func TestScanForArtifacts_SQLiteFiles(t *testing.T) {
 		t.Errorf("expected 4 SQLite artifacts, got %d", len(report.SQLiteArtifacts))
 	}
 
-	// beads.db should NOT be safe to delete
+	// issuegraph.db should NOT be safe to delete
 	for _, f := range report.SQLiteArtifacts {
-		if filepath.Base(f.Path) == "beads.db" && f.SafeDelete {
-			t.Error("beads.db should NOT be safe to delete")
+		if filepath.Base(f.Path) == "issuegraph.db" && f.SafeDelete {
+			t.Error("issuegraph.db should NOT be safe to delete")
 		}
 	}
 
 	// WAL/SHM should be safe
 	for _, f := range report.SQLiteArtifacts {
 		name := filepath.Base(f.Path)
-		if (name == "beads.db-shm" || name == "beads.db-wal") && !f.SafeDelete {
+		if (name == "issuegraph.db-shm" || name == "issuegraph.db-wal") && !f.SafeDelete {
 			t.Errorf("%s should be safe to delete", name)
 		}
 	}
@@ -74,31 +74,31 @@ func TestScanForArtifacts_SQLiteFiles(t *testing.T) {
 	// Backup should be safe
 	for _, f := range report.SQLiteArtifacts {
 		name := filepath.Base(f.Path)
-		if name == "beads.backup-20260204.db" && !f.SafeDelete {
+		if name == "issuegraph.backup-20260204.db" && !f.SafeDelete {
 			t.Error("backup should be safe to delete")
 		}
 	}
 }
 
-func TestScanForArtifacts_CruftBeadsDir(t *testing.T) {
-	// Create a structure like: beads/polecats/testpolecat/.beads/ with extra files
+func TestScanForArtifacts_CruftIssueGraphDir(t *testing.T) {
+	// Create a structure like: issuegraph/polecats/testpolecat/.issuegraph/ with extra files
 	dir := t.TempDir()
 	polecatsDir := filepath.Join(dir, "polecats", "testpolecat")
-	beadsDir := filepath.Join(polecatsDir, ".beads")
-	if err := os.MkdirAll(beadsDir, 0755); err != nil {
+	issuegraphDir := filepath.Join(polecatsDir, ".issuegraph")
+	if err := os.MkdirAll(issuegraphDir, 0755); err != nil {
 		t.Fatal(err)
 	}
 
 	// Add redirect file (expected)
-	if err := os.WriteFile(filepath.Join(beadsDir, "redirect"), []byte("../../mayor/rig/.beads"), 0644); err != nil {
+	if err := os.WriteFile(filepath.Join(issuegraphDir, "redirect"), []byte("../../mayor/rig/.issuegraph"), 0644); err != nil {
 		t.Fatal(err)
 	}
 
 	// Add cruft files
-	if err := os.WriteFile(filepath.Join(beadsDir, "beads.db"), []byte("data"), 0644); err != nil {
+	if err := os.WriteFile(filepath.Join(issuegraphDir, "issuegraph.db"), []byte("data"), 0644); err != nil {
 		t.Fatal(err)
 	}
-	if err := os.WriteFile(filepath.Join(beadsDir, "issues.jsonl"), []byte("data"), 0644); err != nil {
+	if err := os.WriteFile(filepath.Join(issuegraphDir, "issues.jsonl"), []byte("data"), 0644); err != nil {
 		t.Fatal(err)
 	}
 
@@ -107,28 +107,28 @@ func TestScanForArtifacts_CruftBeadsDir(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	if len(report.CruftBeadsDirs) != 1 {
-		t.Errorf("expected 1 cruft beads dir, got %d", len(report.CruftBeadsDirs))
+	if len(report.CruftIssueGraphDirs) != 1 {
+		t.Errorf("expected 1 cruft issuegraph dir, got %d", len(report.CruftIssueGraphDirs))
 	}
 
-	if len(report.CruftBeadsDirs) > 0 && !report.CruftBeadsDirs[0].SafeDelete {
-		t.Error("cruft beads dir with redirect should be safe to delete")
+	if len(report.CruftIssueGraphDirs) > 0 && !report.CruftIssueGraphDirs[0].SafeDelete {
+		t.Error("cruft issuegraph dir with redirect should be safe to delete")
 	}
 }
 
-func TestScanForArtifacts_CruftBeadsDirNoRedirect(t *testing.T) {
+func TestScanForArtifacts_CruftIssueGraphDirNoRedirect(t *testing.T) {
 	// Cruft dir without redirect should be detected AND safe to delete.
 	// The location being redirect-expected is sufficient — stale cruft files
 	// are what prevent the redirect from being created in the first place.
 	dir := t.TempDir()
 	polecatsDir := filepath.Join(dir, "polecats", "testpolecat")
-	beadsDir := filepath.Join(polecatsDir, ".beads")
-	if err := os.MkdirAll(beadsDir, 0755); err != nil {
+	issuegraphDir := filepath.Join(polecatsDir, ".issuegraph")
+	if err := os.MkdirAll(issuegraphDir, 0755); err != nil {
 		t.Fatal(err)
 	}
 
 	// No redirect file, just extra files
-	if err := os.WriteFile(filepath.Join(beadsDir, "beads.db"), []byte("data"), 0644); err != nil {
+	if err := os.WriteFile(filepath.Join(issuegraphDir, "issuegraph.db"), []byte("data"), 0644); err != nil {
 		t.Fatal(err)
 	}
 
@@ -138,27 +138,27 @@ func TestScanForArtifacts_CruftBeadsDirNoRedirect(t *testing.T) {
 	}
 
 	// Should be detected as cruft (it's in a polecat location) and safe to delete
-	if len(report.CruftBeadsDirs) != 1 {
-		t.Errorf("expected 1 cruft beads dir, got %d", len(report.CruftBeadsDirs))
+	if len(report.CruftIssueGraphDirs) != 1 {
+		t.Errorf("expected 1 cruft issuegraph dir, got %d", len(report.CruftIssueGraphDirs))
 	}
-	if len(report.CruftBeadsDirs) > 0 && !report.CruftBeadsDirs[0].SafeDelete {
-		t.Error("cruft beads dir in redirect-expected location should be safe to delete")
+	if len(report.CruftIssueGraphDirs) > 0 && !report.CruftIssueGraphDirs[0].SafeDelete {
+		t.Error("cruft issuegraph dir in redirect-expected location should be safe to delete")
 	}
 }
 
 func TestScanForArtifacts_CrewDir(t *testing.T) {
 	dir := t.TempDir()
 	crewDir := filepath.Join(dir, "crew", "testcrew")
-	beadsDir := filepath.Join(crewDir, ".beads")
-	if err := os.MkdirAll(beadsDir, 0755); err != nil {
+	issuegraphDir := filepath.Join(crewDir, ".issuegraph")
+	if err := os.MkdirAll(issuegraphDir, 0755); err != nil {
 		t.Fatal(err)
 	}
 
 	// Add redirect and cruft
-	if err := os.WriteFile(filepath.Join(beadsDir, "redirect"), []byte("../../mayor/rig/.beads"), 0644); err != nil {
+	if err := os.WriteFile(filepath.Join(issuegraphDir, "redirect"), []byte("../../mayor/rig/.issuegraph"), 0644); err != nil {
 		t.Fatal(err)
 	}
-	if err := os.WriteFile(filepath.Join(beadsDir, "extra.txt"), []byte("cruft"), 0644); err != nil {
+	if err := os.WriteFile(filepath.Join(issuegraphDir, "extra.txt"), []byte("cruft"), 0644); err != nil {
 		t.Fatal(err)
 	}
 
@@ -167,20 +167,20 @@ func TestScanForArtifacts_CrewDir(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	if len(report.CruftBeadsDirs) != 1 {
-		t.Errorf("expected 1 cruft beads dir for crew, got %d", len(report.CruftBeadsDirs))
+	if len(report.CruftIssueGraphDirs) != 1 {
+		t.Errorf("expected 1 cruft issuegraph dir for crew, got %d", len(report.CruftIssueGraphDirs))
 	}
 }
 
 func TestScanForArtifacts_RedirectValidation(t *testing.T) {
 	dir := t.TempDir()
-	beadsDir := filepath.Join(dir, ".beads")
-	if err := os.MkdirAll(beadsDir, 0755); err != nil {
+	issuegraphDir := filepath.Join(dir, ".issuegraph")
+	if err := os.MkdirAll(issuegraphDir, 0755); err != nil {
 		t.Fatal(err)
 	}
 
 	// Create redirect pointing to nonexistent target
-	if err := os.WriteFile(filepath.Join(beadsDir, "redirect"), []byte("/nonexistent/path"), 0644); err != nil {
+	if err := os.WriteFile(filepath.Join(issuegraphDir, "redirect"), []byte("/nonexistent/path"), 0644); err != nil {
 		t.Fatal(err)
 	}
 
@@ -196,13 +196,13 @@ func TestScanForArtifacts_RedirectValidation(t *testing.T) {
 
 func TestScanForArtifacts_EmptyRedirect(t *testing.T) {
 	dir := t.TempDir()
-	beadsDir := filepath.Join(dir, ".beads")
-	if err := os.MkdirAll(beadsDir, 0755); err != nil {
+	issuegraphDir := filepath.Join(dir, ".issuegraph")
+	if err := os.MkdirAll(issuegraphDir, 0755); err != nil {
 		t.Fatal(err)
 	}
 
 	// Create empty redirect
-	if err := os.WriteFile(filepath.Join(beadsDir, "redirect"), []byte(""), 0644); err != nil {
+	if err := os.WriteFile(filepath.Join(issuegraphDir, "redirect"), []byte(""), 0644); err != nil {
 		t.Fatal(err)
 	}
 
@@ -218,23 +218,23 @@ func TestScanForArtifacts_EmptyRedirect(t *testing.T) {
 
 func TestScanForArtifacts_ValidRedirect(t *testing.T) {
 	dir := t.TempDir()
-	beadsDir := filepath.Join(dir, ".beads")
-	targetDir := filepath.Join(dir, "target-beads")
+	issuegraphDir := filepath.Join(dir, ".issuegraph")
+	targetDir := filepath.Join(dir, "target-issuegraph")
 
-	if err := os.MkdirAll(beadsDir, 0755); err != nil {
+	if err := os.MkdirAll(issuegraphDir, 0755); err != nil {
 		t.Fatal(err)
 	}
 	if err := os.MkdirAll(targetDir, 0755); err != nil {
 		t.Fatal(err)
 	}
 	// A valid redirect target must have a metadata.json or database
-	// (gastownhall/beads#4692 guard).
-	if err := os.WriteFile(filepath.Join(targetDir, "metadata.json"), []byte(`{"database":"beads.db"}`), 0644); err != nil {
+	// (borg0ai/dx-issuegraph#4692 guard).
+	if err := os.WriteFile(filepath.Join(targetDir, "metadata.json"), []byte(`{"database":"issuegraph.db"}`), 0644); err != nil {
 		t.Fatal(err)
 	}
 
 	// Create redirect pointing to valid target
-	if err := os.WriteFile(filepath.Join(beadsDir, "redirect"), []byte(targetDir), 0644); err != nil {
+	if err := os.WriteFile(filepath.Join(issuegraphDir, "redirect"), []byte(targetDir), 0644); err != nil {
 		t.Fatal(err)
 	}
 
@@ -249,16 +249,16 @@ func TestScanForArtifacts_ValidRedirect(t *testing.T) {
 }
 
 // TestScanForArtifacts_RedirectTargetHasNoDatabase is a regression test for
-// gastownhall/beads#4692: a redirect target directory that exists but has no
+// borg0ai/dx-issuegraph#4692: a redirect target directory that exists but has no
 // metadata.json and no recognizable database is flagged as an actionable
 // warning (not SafeDelete cruft), matching FollowRedirect's own target-
-// validity guard (internal/beads).
+// validity guard (internal/issuegraph).
 func TestScanForArtifacts_RedirectTargetHasNoDatabase(t *testing.T) {
 	dir := t.TempDir()
-	beadsDir := filepath.Join(dir, ".beads")
-	targetDir := filepath.Join(dir, "target-beads")
+	issuegraphDir := filepath.Join(dir, ".issuegraph")
+	targetDir := filepath.Join(dir, "target-issuegraph")
 
-	if err := os.MkdirAll(beadsDir, 0755); err != nil {
+	if err := os.MkdirAll(issuegraphDir, 0755); err != nil {
 		t.Fatal(err)
 	}
 	if err := os.MkdirAll(targetDir, 0755); err != nil {
@@ -266,7 +266,7 @@ func TestScanForArtifacts_RedirectTargetHasNoDatabase(t *testing.T) {
 	}
 	// targetDir exists but is empty: no metadata.json, no database.
 
-	if err := os.WriteFile(filepath.Join(beadsDir, "redirect"), []byte(targetDir), 0644); err != nil {
+	if err := os.WriteFile(filepath.Join(issuegraphDir, "redirect"), []byte(targetDir), 0644); err != nil {
 		t.Fatal(err)
 	}
 
@@ -289,12 +289,12 @@ func TestIsRedirectExpectedDir(t *testing.T) {
 		path     string
 		expected bool
 	}{
-		{"polecat worktree", "/foo/polecats/obsidian/.beads", true},
-		{"crew workspace", "/foo/crew/mel/.beads", true},
-		{"refinery rig", "/foo/refinery/rig/.beads", true},
-		{"beads-worktrees", "/foo/.git/beads-worktrees/abc/.beads", true},
-		{"regular beads dir", "/foo/.beads", false},
-		{"nested project", "/foo/bar/.beads", false},
+		{"polecat worktree", "/foo/polecats/obsidian/.issuegraph", true},
+		{"crew workspace", "/foo/crew/mel/.issuegraph", true},
+		{"refinery rig", "/foo/refinery/rig/.issuegraph", true},
+		{"issuegraph-worktrees", "/foo/.git/issuegraph-worktrees/abc/.issuegraph", true},
+		{"regular issuegraph dir", "/foo/.issuegraph", false},
+		{"nested project", "/foo/bar/.issuegraph", false},
 	}
 
 	for _, tt := range tests {
@@ -310,16 +310,16 @@ func TestIsRedirectExpectedDir(t *testing.T) {
 func TestScanForArtifacts_SkipsGitkeep(t *testing.T) {
 	dir := t.TempDir()
 	polecatsDir := filepath.Join(dir, "polecats", "test")
-	beadsDir := filepath.Join(polecatsDir, ".beads")
-	if err := os.MkdirAll(beadsDir, 0755); err != nil {
+	issuegraphDir := filepath.Join(polecatsDir, ".issuegraph")
+	if err := os.MkdirAll(issuegraphDir, 0755); err != nil {
 		t.Fatal(err)
 	}
 
 	// redirect + .gitkeep only = no cruft
-	if err := os.WriteFile(filepath.Join(beadsDir, "redirect"), []byte("../../mayor/rig/.beads"), 0644); err != nil {
+	if err := os.WriteFile(filepath.Join(issuegraphDir, "redirect"), []byte("../../mayor/rig/.issuegraph"), 0644); err != nil {
 		t.Fatal(err)
 	}
-	if err := os.WriteFile(filepath.Join(beadsDir, ".gitkeep"), []byte{}, 0644); err != nil {
+	if err := os.WriteFile(filepath.Join(issuegraphDir, ".gitkeep"), []byte{}, 0644); err != nil {
 		t.Fatal(err)
 	}
 
@@ -328,29 +328,29 @@ func TestScanForArtifacts_SkipsGitkeep(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	if len(report.CruftBeadsDirs) != 0 {
-		t.Errorf("expected 0 cruft dirs (redirect + .gitkeep only), got %d", len(report.CruftBeadsDirs))
+	if len(report.CruftIssueGraphDirs) != 0 {
+		t.Errorf("expected 0 cruft dirs (redirect + .gitkeep only), got %d", len(report.CruftIssueGraphDirs))
 	}
 }
 
-func TestScanForArtifacts_SkipsGitInternalsButScansBeadsWorktrees(t *testing.T) {
+func TestScanForArtifacts_SkipsGitInternalsButScansIssueGraphWorktrees(t *testing.T) {
 	dir := t.TempDir()
 
-	// A bogus .beads under .git internals should be ignored entirely.
-	ignoredBeads := filepath.Join(dir, ".git", "objects", "pack", ".beads")
-	if err := os.MkdirAll(ignoredBeads, 0755); err != nil {
+	// A bogus .issuegraph under .git internals should be ignored entirely.
+	ignoredIssueGraph := filepath.Join(dir, ".git", "objects", "pack", ".issuegraph")
+	if err := os.MkdirAll(ignoredIssueGraph, 0755); err != nil {
 		t.Fatal(err)
 	}
-	if err := os.WriteFile(filepath.Join(ignoredBeads, "beads.db"), []byte("stale"), 0644); err != nil {
+	if err := os.WriteFile(filepath.Join(ignoredIssueGraph, "issuegraph.db"), []byte("stale"), 0644); err != nil {
 		t.Fatal(err)
 	}
 
-	// A worktree .beads under .git/beads-worktrees must still be scanned.
-	worktreeBeads := filepath.Join(dir, ".git", "beads-worktrees", "test", ".beads")
-	if err := os.MkdirAll(worktreeBeads, 0755); err != nil {
+	// A worktree .issuegraph under .git/issuegraph-worktrees must still be scanned.
+	worktreeIssueGraph := filepath.Join(dir, ".git", "issuegraph-worktrees", "test", ".issuegraph")
+	if err := os.MkdirAll(worktreeIssueGraph, 0755); err != nil {
 		t.Fatal(err)
 	}
-	if err := os.WriteFile(filepath.Join(worktreeBeads, "extra.txt"), []byte("cruft"), 0644); err != nil {
+	if err := os.WriteFile(filepath.Join(worktreeIssueGraph, "extra.txt"), []byte("cruft"), 0644); err != nil {
 		t.Fatal(err)
 	}
 
@@ -362,11 +362,11 @@ func TestScanForArtifacts_SkipsGitInternalsButScansBeadsWorktrees(t *testing.T) 
 	if len(report.SQLiteArtifacts) != 0 {
 		t.Fatalf("expected .git internals to be skipped, got %d sqlite findings", len(report.SQLiteArtifacts))
 	}
-	if len(report.CruftBeadsDirs) != 1 {
-		t.Fatalf("expected 1 worktree cruft finding, got %d", len(report.CruftBeadsDirs))
+	if len(report.CruftIssueGraphDirs) != 1 {
+		t.Fatalf("expected 1 worktree cruft finding, got %d", len(report.CruftIssueGraphDirs))
 	}
-	if got := report.CruftBeadsDirs[0].Path; got != worktreeBeads {
-		t.Fatalf("cruft finding path = %q, want %q", got, worktreeBeads)
+	if got := report.CruftIssueGraphDirs[0].Path; got != worktreeIssueGraph {
+		t.Fatalf("cruft finding path = %q, want %q", got, worktreeIssueGraph)
 	}
 }
 
@@ -377,18 +377,18 @@ func TestScanForArtifacts_NonEmptyInteractionsJSONL(t *testing.T) {
 
 func TestCheckClassicArtifacts_WithArtifacts(t *testing.T) {
 	dir := t.TempDir()
-	beadsDir := filepath.Join(dir, ".beads")
-	if err := os.MkdirAll(beadsDir, 0755); err != nil {
+	issuegraphDir := filepath.Join(dir, ".issuegraph")
+	if err := os.MkdirAll(issuegraphDir, 0755); err != nil {
 		t.Fatal(err)
 	}
 
 	// Create dolt/ directory so isDoltNative returns true
-	if err := os.MkdirAll(filepath.Join(beadsDir, "dolt"), 0755); err != nil {
+	if err := os.MkdirAll(filepath.Join(issuegraphDir, "dolt"), 0755); err != nil {
 		t.Fatal(err)
 	}
 
 	// Create a SQLite artifact
-	if err := os.WriteFile(filepath.Join(beadsDir, "beads.db-wal"), []byte("data"), 0644); err != nil {
+	if err := os.WriteFile(filepath.Join(issuegraphDir, "issuegraph.db-wal"), []byte("data"), 0644); err != nil {
 		t.Fatal(err)
 	}
 

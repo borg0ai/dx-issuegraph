@@ -4,7 +4,7 @@
   "packageManager": "pnpm@10.27.0",
   "scripts": {
     "build": "turbo run build",
-    "build:go": "pnpm run generate:assets && go -C modules/cli build -tags gms_pure_go -o ../../apps/cli/bin/cli .",
+    "build:go": "pnpm run generate:assets && go -C modules/cli build -tags gms_pure_go -o ../../apps/cli/bin/issuegraph .",
     "check": "turbo run check",
     "lint": "turbo run lint",
     "test": "turbo run test",

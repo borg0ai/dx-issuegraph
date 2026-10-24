@@ -1,16 +1,16 @@
 #!/bin/bash
 #
-# bd-version-check.sh - Automatic bd upgrade detection for AI agent sessions
+# bd-version-check.sh - Automatic issuegraph upgrade detection for AI agent sessions
 #
-# This script detects when bd (beads) has been upgraded and automatically shows
+# This script detects when issuegraph (issuegraph) has been upgraded and automatically shows
 # what changed, helping AI agents adapt their workflows without manual intervention.
 #
 # FEATURES:
-# - Detects bd version changes by comparing to last-seen version
-# - Shows 'bd info --whats-new' output when upgrade detected
+# - Detects issuegraph version changes by comparing to last-seen version
+# - Shows 'issuegraph info --whats-new' output when upgrade detected
 # - Auto-updates git hooks if outdated
-# - Persists version in .beads/metadata.json
-# - Zero bd code changes required - works today!
+# - Persists version in .issuegraph/metadata.json
+# - Zero issuegraph code changes required - works today!
 #
 # INTEGRATION:
 # Add this script to your AI environment's session startup:
@@ -37,18 +37,18 @@
 #   bash examples/startup-hooks/bd-version-check.sh
 #
 # REQUIREMENTS:
-# - bd (beads) installed and in PATH
+# - issuegraph (issuegraph) installed and in PATH
 # - jq for JSON manipulation
-# - .beads directory exists in current project
+# - .issuegraph directory exists in current project
 #
 
-# Exit early if not in a beads project
-if [ ! -d ".beads" ]; then
+# Exit early if not in a issuegraph project
+if [ ! -d ".issuegraph" ]; then
   return 0 2>/dev/null || exit 0
 fi
 
-# Check if bd is installed
-if ! command -v bd &> /dev/null; then
+# Check if issuegraph is installed
+if ! command -v issuegraph &> /dev/null; then
   return 0 2>/dev/null || exit 0
 fi
 
@@ -58,34 +58,34 @@ if ! command -v jq &> /dev/null; then
   return 0 2>/dev/null || exit 0
 fi
 
-# Get current bd version
-CURRENT_VERSION=$(bd --version 2>/dev/null | grep -oE '[0-9]+\.[0-9]+\.[0-9]+' | head -1)
+# Get current issuegraph version
+CURRENT_VERSION=$(issuegraph --version 2>/dev/null | grep -oE '[0-9]+\.[0-9]+\.[0-9]+' | head -1)
 
 if [ -z "$CURRENT_VERSION" ]; then
-  # bd command failed, skip
+  # issuegraph command failed, skip
   return 0 2>/dev/null || exit 0
 fi
 
 # Path to metadata file
-METADATA_FILE=".beads/metadata.json"
+METADATA_FILE=".issuegraph/metadata.json"
 
 # Initialize metadata.json if it doesn't exist
 if [ ! -f "$METADATA_FILE" ]; then
-  echo '{"database": "beads.db", "jsonl_export": "beads.jsonl"}' > "$METADATA_FILE"
+  echo '{"database": "issuegraph.db", "jsonl_export": "issuegraph.jsonl"}' > "$METADATA_FILE"
 fi
 
 # Read last-seen version from metadata.json
-LAST_VERSION=$(jq -r '.last_bd_version // "unknown"' "$METADATA_FILE" 2>/dev/null)
+LAST_VERSION=$(jq -r '.last_issuegraph_version // "unknown"' "$METADATA_FILE" 2>/dev/null)
 
 # Detect version change
 if [ "$CURRENT_VERSION" != "$LAST_VERSION" ] && [ "$LAST_VERSION" != "unknown" ]; then
   echo ""
-  echo "🔄 bd upgraded: $LAST_VERSION → $CURRENT_VERSION"
+  echo "🔄 issuegraph upgraded: $LAST_VERSION → $CURRENT_VERSION"
   echo ""
   echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
 
   # Show what's new
-  bd info --whats-new 2>/dev/null || echo "⚠️  Could not fetch what's new (run 'bd info --whats-new' manually)"
+  issuegraph info --whats-new 2>/dev/null || echo "⚠️  Could not fetch what's new (run 'issuegraph info --whats-new' manually)"
 
   echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
   echo ""
@@ -94,12 +94,12 @@ if [ "$CURRENT_VERSION" != "$LAST_VERSION" ] && [ "$LAST_VERSION" != "unknown" ]
 fi
 
 # Check for outdated git hooks (works even if version didn't change)
-if bd hooks list 2>&1 | grep -q "outdated"; then
-  echo "🔧 Git hooks outdated. Updating to match bd v$CURRENT_VERSION..."
-  if bd hooks install 2>/dev/null; then
+if issuegraph hooks list 2>&1 | grep -q "outdated"; then
+  echo "🔧 Git hooks outdated. Updating to match issuegraph v$CURRENT_VERSION..."
+  if issuegraph hooks install 2>/dev/null; then
     echo "✓ Git hooks updated successfully"
   else
-    echo "⚠️  Failed to update git hooks. Run 'bd hooks install' manually."
+    echo "⚠️  Failed to update git hooks. Run 'issuegraph hooks install' manually."
   fi
   echo ""
 fi
@@ -107,7 +107,7 @@ fi
 # Update metadata.json with current version
 # Use a temp file to avoid corruption if jq fails
 TEMP_FILE=$(mktemp)
-if jq --arg v "$CURRENT_VERSION" '.last_bd_version = $v' "$METADATA_FILE" > "$TEMP_FILE" 2>/dev/null; then
+if jq --arg v "$CURRENT_VERSION" '.last_issuegraph_version = $v' "$METADATA_FILE" > "$TEMP_FILE" 2>/dev/null; then
   mv "$TEMP_FILE" "$METADATA_FILE"
 else
   # jq failed, clean up temp file

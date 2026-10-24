@@ -1,6 +1,6 @@
 # `issuegraph rules audit` / `issuegraph rules compact` Design Doc
 
-> **Status:** Ready | **Target:** Upstream PR to `gastownhall/beads`
+> **Status:** Ready | **Target:** Upstream PR to `borg0ai/dx-issuegraph`
 > **Companion spec:** SESSION-OUTPUT-SPEC Items 2 & 6
 
 ---

@@ -12,38 +12,38 @@ import (
 	"testing"
 )
 
-// bdLabel runs "bd label" with the given args and returns stdout.
-func bdLabel(t *testing.T, bd, dir string, args ...string) string {
+// issuegraphLabel runs "issuegraph label" with the given args and returns stdout.
+func issuegraphLabel(t *testing.T, issuegraph, dir string, args ...string) string {
 	t.Helper()
 	fullArgs := append([]string{"label"}, args...)
-	cmd := exec.Command(bd, fullArgs...)
+	cmd := exec.Command(issuegraph, fullArgs...)
 	cmd.Dir = dir
-	cmd.Env = bdEnv(dir)
+	cmd.Env = issuegraphEnv(dir)
 	stdout, stderr, err := runCommandBuffers(t, cmd)
 	if err != nil {
-		t.Fatalf("bd label %s failed: %v\nstdout:\n%s\nstderr:\n%s", strings.Join(args, " "), err, stdout.String(), stderr.String())
+		t.Fatalf("issuegraph label %s failed: %v\nstdout:\n%s\nstderr:\n%s", strings.Join(args, " "), err, stdout.String(), stderr.String())
 	}
 	return stdout.String()
 }
 
-func bdLabelJSONOutput(t *testing.T, bd, dir string, args ...string) string {
+func issuegraphLabelJSONOutput(t *testing.T, issuegraph, dir string, args ...string) string {
 	t.Helper()
 	fullArgs := append([]string{"label"}, args...)
-	cmd := exec.Command(bd, fullArgs...)
+	cmd := exec.Command(issuegraph, fullArgs...)
 	cmd.Dir = dir
-	cmd.Env = bdEnv(dir)
+	cmd.Env = issuegraphEnv(dir)
 	stdout, stderr, err := runCommandBuffers(t, cmd)
 	if err != nil {
-		t.Fatalf("bd label %s failed: %v\nstdout:\n%s\nstderr:\n%s",
+		t.Fatalf("issuegraph label %s failed: %v\nstdout:\n%s\nstderr:\n%s",
 			strings.Join(args, " "), err, stdout.String(), stderr.String())
 	}
 	return stdout.String()
 }
 
-// bdLabelEditJSON runs "bd label <op> ... --json" and returns its result rows.
-func bdLabelEditJSON(t *testing.T, bd, dir, op string, args ...string) []map[string]interface{} {
+// issuegraphLabelEditJSON runs "issuegraph label <op> ... --json" and returns its result rows.
+func issuegraphLabelEditJSON(t *testing.T, issuegraph, dir, op string, args ...string) []map[string]interface{} {
 	t.Helper()
-	s := strings.TrimSpace(bdLabelJSONOutput(t, bd, dir, append(append([]string{op}, args...), "--json")...))
+	s := strings.TrimSpace(issuegraphLabelJSONOutput(t, issuegraph, dir, append(append([]string{op}, args...), "--json")...))
 	start := strings.Index(s, "[")
 	if start < 0 {
 		t.Fatalf("no JSON array in label %s output: %s", op, s)
@@ -55,24 +55,24 @@ func bdLabelEditJSON(t *testing.T, bd, dir, op string, args ...string) []map[str
 	return rows
 }
 
-// bdLabelFail runs "bd label" expecting failure.
-func bdLabelFail(t *testing.T, bd, dir string, args ...string) string {
+// issuegraphLabelFail runs "issuegraph label" expecting failure.
+func issuegraphLabelFail(t *testing.T, issuegraph, dir string, args ...string) string {
 	t.Helper()
 	fullArgs := append([]string{"label"}, args...)
-	cmd := exec.Command(bd, fullArgs...)
+	cmd := exec.Command(issuegraph, fullArgs...)
 	cmd.Dir = dir
-	cmd.Env = bdEnv(dir)
+	cmd.Env = issuegraphEnv(dir)
 	out, err := cmd.CombinedOutput()
 	if err == nil {
-		t.Fatalf("expected bd label %s to fail, but succeeded:\n%s", strings.Join(args, " "), out)
+		t.Fatalf("expected issuegraph label %s to fail, but succeeded:\n%s", strings.Join(args, " "), out)
 	}
 	return string(out)
 }
 
-// bdLabelListJSON runs "bd label list --json" and returns parsed labels.
-func bdLabelListJSON(t *testing.T, bd, dir, issueID string) []string {
+// issuegraphLabelListJSON runs "issuegraph label list --json" and returns parsed labels.
+func issuegraphLabelListJSON(t *testing.T, issuegraph, dir, issueID string) []string {
 	t.Helper()
-	s := strings.TrimSpace(bdLabelJSONOutput(t, bd, dir, "list", issueID, "--json"))
+	s := strings.TrimSpace(issuegraphLabelJSONOutput(t, issuegraph, dir, "list", issueID, "--json"))
 	start := strings.Index(s, "[")
 	if start < 0 {
 		return nil
@@ -84,10 +84,10 @@ func bdLabelListJSON(t *testing.T, bd, dir, issueID string) []string {
 	return labels
 }
 
-// bdLabelListAllJSON runs "bd label list-all --json" and returns parsed results.
-func bdLabelListAllJSON(t *testing.T, bd, dir string) []map[string]interface{} {
+// issuegraphLabelListAllJSON runs "issuegraph label list-all --json" and returns parsed results.
+func issuegraphLabelListAllJSON(t *testing.T, issuegraph, dir string) []map[string]interface{} {
 	t.Helper()
-	s := strings.TrimSpace(bdLabelJSONOutput(t, bd, dir, "list-all", "--json"))
+	s := strings.TrimSpace(issuegraphLabelJSONOutput(t, issuegraph, dir, "list-all", "--json"))
 	start := strings.Index(s, "[")
 	if start < 0 {
 		return nil
@@ -100,23 +100,23 @@ func bdLabelListAllJSON(t *testing.T, bd, dir string) []map[string]interface{} {
 }
 
 func TestEmbeddedLabel(t *testing.T) {
-	if os.Getenv("BEADS_TEST_EMBEDDED_DOLT") != "1" {
-		t.Skip("set BEADS_TEST_EMBEDDED_DOLT=1 to run embedded dolt integration tests")
+	if os.Getenv("ISSUEGRAPH_TEST_EMBEDDED_DOLT") != "1" {
+		t.Skip("set ISSUEGRAPH_TEST_EMBEDDED_DOLT=1 to run embedded dolt integration tests")
 	}
 	t.Parallel()
 
-	bd := buildEmbeddedBD(t)
-	dir, _, _ := bdInit(t, bd, "--prefix", "tl")
+	issuegraph := buildEmbeddedBD(t)
+	dir, _, _ := issuegraphInit(t, issuegraph, "--prefix", "tl")
 
 	// ===== Label Add =====
 
 	t.Run("label_add_single", func(t *testing.T) {
-		issue := bdCreate(t, bd, dir, "Label add test", "--type", "task")
-		out := bdLabel(t, bd, dir, "add", issue.ID, "urgent")
+		issue := issuegraphCreate(t, issuegraph, dir, "Label add test", "--type", "task")
+		out := issuegraphLabel(t, issuegraph, dir, "add", issue.ID, "urgent")
 		if !strings.Contains(out, "Added") {
 			t.Errorf("expected 'Added' in output: %s", out)
 		}
-		labels := bdLabelListJSON(t, bd, dir, issue.ID)
+		labels := issuegraphLabelListJSON(t, issuegraph, dir, issue.ID)
 		found := false
 		for _, l := range labels {
 			if l == "urgent" {
@@ -129,12 +129,12 @@ func TestEmbeddedLabel(t *testing.T) {
 	})
 
 	t.Run("label_add_batch", func(t *testing.T) {
-		issue1 := bdCreate(t, bd, dir, "Batch label 1", "--type", "task")
-		issue2 := bdCreate(t, bd, dir, "Batch label 2", "--type", "task")
-		bdLabel(t, bd, dir, "add", issue1.ID, issue2.ID, "batch-label")
+		issue1 := issuegraphCreate(t, issuegraph, dir, "Batch label 1", "--type", "task")
+		issue2 := issuegraphCreate(t, issuegraph, dir, "Batch label 2", "--type", "task")
+		issuegraphLabel(t, issuegraph, dir, "add", issue1.ID, issue2.ID, "batch-label")
 
 		for _, id := range []string{issue1.ID, issue2.ID} {
-			labels := bdLabelListJSON(t, bd, dir, id)
+			labels := issuegraphLabelListJSON(t, issuegraph, dir, id)
 			found := false
 			for _, l := range labels {
 				if l == "batch-label" {
@@ -148,8 +148,8 @@ func TestEmbeddedLabel(t *testing.T) {
 	})
 
 	t.Run("label_add_json", func(t *testing.T) {
-		issue := bdCreate(t, bd, dir, "Label JSON add", "--type", "task")
-		s := strings.TrimSpace(bdLabelJSONOutput(t, bd, dir, "add", issue.ID, "json-label", "--json"))
+		issue := issuegraphCreate(t, issuegraph, dir, "Label JSON add", "--type", "task")
+		s := strings.TrimSpace(issuegraphLabelJSONOutput(t, issuegraph, dir, "add", issue.ID, "json-label", "--json"))
 		start := strings.Index(s, "[")
 		if start < 0 {
 			t.Fatalf("no JSON array in output: %s", s)
@@ -160,12 +160,12 @@ func TestEmbeddedLabel(t *testing.T) {
 	})
 
 	t.Run("label_add_comma_separated_multi", func(t *testing.T) {
-		issue := bdCreate(t, bd, dir, "Multi label add", "--type", "task")
-		out := bdLabel(t, bd, dir, "add", issue.ID, "multi-a,multi-b,multi-c")
+		issue := issuegraphCreate(t, issuegraph, dir, "Multi label add", "--type", "task")
+		out := issuegraphLabel(t, issuegraph, dir, "add", issue.ID, "multi-a,multi-b,multi-c")
 		if !strings.Contains(out, "Added") {
 			t.Errorf("expected 'Added' in output: %s", out)
 		}
-		labels := bdLabelListJSON(t, bd, dir, issue.ID)
+		labels := issuegraphLabelListJSON(t, issuegraph, dir, issue.ID)
 		labelSet := map[string]bool{}
 		for _, l := range labels {
 			labelSet[l] = true
@@ -178,10 +178,10 @@ func TestEmbeddedLabel(t *testing.T) {
 	})
 
 	t.Run("label_remove_comma_separated_multi", func(t *testing.T) {
-		issue := bdCreate(t, bd, dir, "Multi label remove", "--type", "task",
+		issue := issuegraphCreate(t, issuegraph, dir, "Multi label remove", "--type", "task",
 			"--label", "rm-a", "--label", "rm-b", "--label", "rm-keep")
-		bdLabel(t, bd, dir, "remove", issue.ID, "rm-a,rm-b")
-		labels := bdLabelListJSON(t, bd, dir, issue.ID)
+		issuegraphLabel(t, issuegraph, dir, "remove", issue.ID, "rm-a,rm-b")
+		labels := issuegraphLabelListJSON(t, issuegraph, dir, issue.ID)
 		for _, l := range labels {
 			if l == "rm-a" || l == "rm-b" {
 				t.Errorf("label %q should have been removed: %v", l, labels)
@@ -199,10 +199,10 @@ func TestEmbeddedLabel(t *testing.T) {
 	})
 
 	t.Run("label_add_duplicate_idempotent", func(t *testing.T) {
-		issue := bdCreate(t, bd, dir, "Dup label", "--type", "task")
-		bdLabel(t, bd, dir, "add", issue.ID, "dup")
-		bdLabel(t, bd, dir, "add", issue.ID, "dup")
-		labels := bdLabelListJSON(t, bd, dir, issue.ID)
+		issue := issuegraphCreate(t, issuegraph, dir, "Dup label", "--type", "task")
+		issuegraphLabel(t, issuegraph, dir, "add", issue.ID, "dup")
+		issuegraphLabel(t, issuegraph, dir, "add", issue.ID, "dup")
+		labels := issuegraphLabelListJSON(t, issuegraph, dir, issue.ID)
 		count := 0
 		for _, l := range labels {
 			if l == "dup" {
@@ -217,9 +217,9 @@ func TestEmbeddedLabel(t *testing.T) {
 	// ===== Label Remove =====
 
 	t.Run("label_remove", func(t *testing.T) {
-		issue := bdCreate(t, bd, dir, "Remove label", "--type", "task", "--label", "removeme")
-		bdLabel(t, bd, dir, "remove", issue.ID, "removeme")
-		labels := bdLabelListJSON(t, bd, dir, issue.ID)
+		issue := issuegraphCreate(t, issuegraph, dir, "Remove label", "--type", "task", "--label", "removeme")
+		issuegraphLabel(t, issuegraph, dir, "remove", issue.ID, "removeme")
+		labels := issuegraphLabelListJSON(t, issuegraph, dir, issue.ID)
 		for _, l := range labels {
 			if l == "removeme" {
 				t.Error("label should have been removed")
@@ -228,11 +228,11 @@ func TestEmbeddedLabel(t *testing.T) {
 	})
 
 	t.Run("label_remove_batch", func(t *testing.T) {
-		issue1 := bdCreate(t, bd, dir, "Batch rm 1", "--type", "task", "--label", "batch-rm")
-		issue2 := bdCreate(t, bd, dir, "Batch rm 2", "--type", "task", "--label", "batch-rm")
-		bdLabel(t, bd, dir, "remove", issue1.ID, issue2.ID, "batch-rm")
+		issue1 := issuegraphCreate(t, issuegraph, dir, "Batch rm 1", "--type", "task", "--label", "batch-rm")
+		issue2 := issuegraphCreate(t, issuegraph, dir, "Batch rm 2", "--type", "task", "--label", "batch-rm")
+		issuegraphLabel(t, issuegraph, dir, "remove", issue1.ID, issue2.ID, "batch-rm")
 		for _, id := range []string{issue1.ID, issue2.ID} {
-			labels := bdLabelListJSON(t, bd, dir, id)
+			labels := issuegraphLabelListJSON(t, issuegraph, dir, id)
 			for _, l := range labels {
 				if l == "batch-rm" {
 					t.Errorf("label should have been removed from %s", id)
@@ -242,13 +242,13 @@ func TestEmbeddedLabel(t *testing.T) {
 	})
 
 	t.Run("label_remove_json", func(t *testing.T) {
-		issue := bdCreate(t, bd, dir, "JSON rm label", "--type", "task", "--label", "jsonrm")
-		cmd := exec.Command(bd, "label", "remove", issue.ID, "jsonrm", "--json")
+		issue := issuegraphCreate(t, issuegraph, dir, "JSON rm label", "--type", "task", "--label", "jsonrm")
+		cmd := exec.Command(issuegraph, "label", "remove", issue.ID, "jsonrm", "--json")
 		cmd.Dir = dir
-		cmd.Env = bdEnv(dir)
+		cmd.Env = issuegraphEnv(dir)
 		stdout, stderr, err := runCommandBuffers(t, cmd)
 		if err != nil {
-			t.Fatalf("bd label remove --json failed: %v\nstdout:\n%s\nstderr:\n%s", err, stdout.String(), stderr.String())
+			t.Fatalf("issuegraph label remove --json failed: %v\nstdout:\n%s\nstderr:\n%s", err, stdout.String(), stderr.String())
 		}
 		s := strings.TrimSpace(stdout.String())
 		start := strings.Index(s, "[")
@@ -264,61 +264,61 @@ func TestEmbeddedLabel(t *testing.T) {
 	//
 	// A label edit that leaves the set as it was used to print the same
 	// "✓ Removed"/"✓ Added" line and JSON status as a real one. It still exits
-	// 0 (bdLabel fails the test otherwise), but it now says so.
+	// 0 (issuegraphLabel fails the test otherwise), but it now says so.
 
 	t.Run("label_remove_absent_reports_noop", func(t *testing.T) {
-		issue := bdCreate(t, bd, dir, "Remove absent", "--type", "task", "--label", "present")
-		out := bdLabel(t, bd, dir, "remove", issue.ID, "never-applied")
+		issue := issuegraphCreate(t, issuegraph, dir, "Remove absent", "--type", "task", "--label", "present")
+		out := issuegraphLabel(t, issuegraph, dir, "remove", issue.ID, "never-applied")
 		if strings.Contains(out, "Removed") {
 			t.Errorf("remove of an absent label claimed a removal: %s", out)
 		}
 		if want := "Label 'never-applied' was not on " + issue.ID; !strings.Contains(out, want) {
 			t.Errorf("expected %q in output: %s", want, out)
 		}
-		rows := bdLabelEditJSON(t, bd, dir, "remove", issue.ID, "never-applied")
+		rows := issuegraphLabelEditJSON(t, issuegraph, dir, "remove", issue.ID, "never-applied")
 		if len(rows) != 1 || rows[0]["status"] != "unchanged" || rows[0]["label"] != "never-applied" || rows[0]["issue_id"] != issue.ID {
 			t.Errorf("remove of an absent label JSON = %v, want one unchanged row", rows)
 		}
 	})
 
 	t.Run("label_add_present_reports_noop", func(t *testing.T) {
-		issue := bdCreate(t, bd, dir, "Add present", "--type", "task", "--label", "present")
-		out := bdLabel(t, bd, dir, "add", issue.ID, "present")
+		issue := issuegraphCreate(t, issuegraph, dir, "Add present", "--type", "task", "--label", "present")
+		out := issuegraphLabel(t, issuegraph, dir, "add", issue.ID, "present")
 		if strings.Contains(out, "Added") {
 			t.Errorf("add of a present label claimed an addition: %s", out)
 		}
 		if want := issue.ID + " already has label 'present'"; !strings.Contains(out, want) {
 			t.Errorf("expected %q in output: %s", want, out)
 		}
-		rows := bdLabelEditJSON(t, bd, dir, "add", issue.ID, "present")
+		rows := issuegraphLabelEditJSON(t, issuegraph, dir, "add", issue.ID, "present")
 		if len(rows) != 1 || rows[0]["status"] != "unchanged" || rows[0]["label"] != "present" || rows[0]["issue_id"] != issue.ID {
 			t.Errorf("add of a present label JSON = %v, want one unchanged row", rows)
 		}
 	})
 
 	t.Run("label_edit_real_change_still_reported", func(t *testing.T) {
-		issue := bdCreate(t, bd, dir, "Real edit", "--type", "task")
-		if rows := bdLabelEditJSON(t, bd, dir, "add", issue.ID, "real"); len(rows) != 1 || rows[0]["status"] != "added" {
+		issue := issuegraphCreate(t, issuegraph, dir, "Real edit", "--type", "task")
+		if rows := issuegraphLabelEditJSON(t, issuegraph, dir, "add", issue.ID, "real"); len(rows) != 1 || rows[0]["status"] != "added" {
 			t.Errorf("real add JSON = %v, want one added row", rows)
 		}
-		if rows := bdLabelEditJSON(t, bd, dir, "remove", issue.ID, "real"); len(rows) != 1 || rows[0]["status"] != "removed" {
+		if rows := issuegraphLabelEditJSON(t, issuegraph, dir, "remove", issue.ID, "real"); len(rows) != 1 || rows[0]["status"] != "removed" {
 			t.Errorf("real remove JSON = %v, want one removed row", rows)
 		}
-		if out := bdLabel(t, bd, dir, "add", issue.ID, "real"); !strings.Contains(out, "Added label 'real' to "+issue.ID) {
+		if out := issuegraphLabel(t, issuegraph, dir, "add", issue.ID, "real"); !strings.Contains(out, "Added label 'real' to "+issue.ID) {
 			t.Errorf("real add text = %s", out)
 		}
-		if out := bdLabel(t, bd, dir, "remove", issue.ID, "real"); !strings.Contains(out, "Removed label 'real' from "+issue.ID) {
+		if out := issuegraphLabel(t, issuegraph, dir, "remove", issue.ID, "real"); !strings.Contains(out, "Removed label 'real' from "+issue.ID) {
 			t.Errorf("real remove text = %s", out)
 		}
 	})
 
 	t.Run("label_edit_mixed_reports_each_label", func(t *testing.T) {
-		issue := bdCreate(t, bd, dir, "Mixed edit", "--type", "task", "--label", "have")
-		out := bdLabel(t, bd, dir, "add", issue.ID, "have,fresh")
+		issue := issuegraphCreate(t, issuegraph, dir, "Mixed edit", "--type", "task", "--label", "have")
+		out := issuegraphLabel(t, issuegraph, dir, "add", issue.ID, "have,fresh")
 		if !strings.Contains(out, "Added label 'fresh' to "+issue.ID) || !strings.Contains(out, issue.ID+" already has label 'have'") {
 			t.Errorf("mixed add text = %s", out)
 		}
-		rows := bdLabelEditJSON(t, bd, dir, "remove", issue.ID, "have,ghost")
+		rows := issuegraphLabelEditJSON(t, issuegraph, dir, "remove", issue.ID, "have,ghost")
 		got := map[interface{}]interface{}{}
 		for _, r := range rows {
 			got[r["label"]] = r["status"]
@@ -337,9 +337,9 @@ func TestEmbeddedLabel(t *testing.T) {
 	// pre-GH#5988 code did. Every other subtest here edits a single issue and
 	// so would pass such a refactor.
 	t.Run("label_edit_divergent_multi_issue", func(t *testing.T) {
-		fresh := bdCreate(t, bd, dir, "Divergent JSON fresh", "--type", "task")
-		holder := bdCreate(t, bd, dir, "Divergent JSON holder", "--type", "task", "--label", "shared")
-		rows := bdLabelEditJSON(t, bd, dir, "add", fresh.ID, holder.ID, "shared")
+		fresh := issuegraphCreate(t, issuegraph, dir, "Divergent JSON fresh", "--type", "task")
+		holder := issuegraphCreate(t, issuegraph, dir, "Divergent JSON holder", "--type", "task", "--label", "shared")
+		rows := issuegraphLabelEditJSON(t, issuegraph, dir, "add", fresh.ID, holder.ID, "shared")
 		got := map[interface{}]interface{}{}
 		for _, r := range rows {
 			if r["label"] != "shared" {
@@ -354,9 +354,9 @@ func TestEmbeddedLabel(t *testing.T) {
 
 		// Same shape in the text report: one line per issue, each naming its
 		// own id, and the no-op issue must not be claimed as an edit.
-		freshText := bdCreate(t, bd, dir, "Divergent text fresh", "--type", "task")
-		holderText := bdCreate(t, bd, dir, "Divergent text holder", "--type", "task", "--label", "shared")
-		out := bdLabel(t, bd, dir, "add", freshText.ID, holderText.ID, "shared")
+		freshText := issuegraphCreate(t, issuegraph, dir, "Divergent text fresh", "--type", "task")
+		holderText := issuegraphCreate(t, issuegraph, dir, "Divergent text holder", "--type", "task", "--label", "shared")
+		out := issuegraphLabel(t, issuegraph, dir, "add", freshText.ID, holderText.ID, "shared")
 		if want := "Added label 'shared' to " + freshText.ID; !strings.Contains(out, want) {
 			t.Errorf("expected %q in output: %s", want, out)
 		}
@@ -371,24 +371,24 @@ func TestEmbeddedLabel(t *testing.T) {
 	// ===== Label List =====
 
 	t.Run("label_list", func(t *testing.T) {
-		issue := bdCreate(t, bd, dir, "List labels", "--type", "task", "--label", "alpha", "--label", "beta")
-		out := bdLabel(t, bd, dir, "list", issue.ID)
+		issue := issuegraphCreate(t, issuegraph, dir, "List labels", "--type", "task", "--label", "alpha", "--label", "beta")
+		out := issuegraphLabel(t, issuegraph, dir, "list", issue.ID)
 		if !strings.Contains(out, "alpha") || !strings.Contains(out, "beta") {
 			t.Errorf("expected both labels in list output: %s", out)
 		}
 	})
 
 	t.Run("label_list_empty", func(t *testing.T) {
-		issue := bdCreate(t, bd, dir, "No labels", "--type", "task")
-		labels := bdLabelListJSON(t, bd, dir, issue.ID)
+		issue := issuegraphCreate(t, issuegraph, dir, "No labels", "--type", "task")
+		labels := issuegraphLabelListJSON(t, issuegraph, dir, issue.ID)
 		if len(labels) != 0 {
 			t.Errorf("expected empty labels, got %v", labels)
 		}
 	})
 
 	t.Run("label_list_json", func(t *testing.T) {
-		issue := bdCreate(t, bd, dir, "JSON list", "--type", "task", "--label", "x", "--label", "y")
-		labels := bdLabelListJSON(t, bd, dir, issue.ID)
+		issue := issuegraphCreate(t, issuegraph, dir, "JSON list", "--type", "task", "--label", "x", "--label", "y")
+		labels := issuegraphLabelListJSON(t, issuegraph, dir, issue.ID)
 		labelSet := map[string]bool{}
 		for _, l := range labels {
 			labelSet[l] = true
@@ -401,7 +401,7 @@ func TestEmbeddedLabel(t *testing.T) {
 	// ===== Label List-All =====
 
 	t.Run("label_list_all", func(t *testing.T) {
-		out := bdLabel(t, bd, dir, "list-all")
+		out := issuegraphLabel(t, issuegraph, dir, "list-all")
 		// Should show some labels from earlier tests
 		if !strings.Contains(out, "urgent") {
 			t.Logf("list-all output may not contain 'urgent': %s", out)
@@ -409,7 +409,7 @@ func TestEmbeddedLabel(t *testing.T) {
 	})
 
 	t.Run("label_list_all_json", func(t *testing.T) {
-		results := bdLabelListAllJSON(t, bd, dir)
+		results := issuegraphLabelListAllJSON(t, issuegraph, dir)
 		if len(results) == 0 {
 			t.Error("expected labels in list-all")
 		}
@@ -427,20 +427,20 @@ func TestEmbeddedLabel(t *testing.T) {
 	// ===== Label Propagate =====
 
 	t.Run("label_propagate", func(t *testing.T) {
-		parent := bdCreate(t, bd, dir, "Propagate parent", "--type", "epic")
-		child1 := bdCreate(t, bd, dir, "Propagate child 1", "--type", "task")
-		child2 := bdCreate(t, bd, dir, "Propagate child 2", "--type", "task")
-		bdDepAdd(t, bd, dir, child1.ID, parent.ID, "--type", "parent-child")
-		bdDepAdd(t, bd, dir, child2.ID, parent.ID, "--type", "parent-child")
+		parent := issuegraphCreate(t, issuegraph, dir, "Propagate parent", "--type", "epic")
+		child1 := issuegraphCreate(t, issuegraph, dir, "Propagate child 1", "--type", "task")
+		child2 := issuegraphCreate(t, issuegraph, dir, "Propagate child 2", "--type", "task")
+		issuegraphDepAdd(t, issuegraph, dir, child1.ID, parent.ID, "--type", "parent-child")
+		issuegraphDepAdd(t, issuegraph, dir, child2.ID, parent.ID, "--type", "parent-child")
 
-		out := bdLabel(t, bd, dir, "propagate", parent.ID, "team:platform")
+		out := issuegraphLabel(t, issuegraph, dir, "propagate", parent.ID, "team:platform")
 		if !strings.Contains(out, "Propagated") {
 			t.Errorf("expected 'Propagated' in output: %s", out)
 		}
 
 		// Verify children got the label
 		for _, id := range []string{child1.ID, child2.ID} {
-			labels := bdLabelListJSON(t, bd, dir, id)
+			labels := issuegraphLabelListJSON(t, issuegraph, dir, id)
 			found := false
 			for _, l := range labels {
 				if l == "team:platform" {
@@ -454,11 +454,11 @@ func TestEmbeddedLabel(t *testing.T) {
 	})
 
 	t.Run("label_propagate_json", func(t *testing.T) {
-		parent := bdCreate(t, bd, dir, "JSON propagate", "--type", "epic")
-		child := bdCreate(t, bd, dir, "JSON prop child", "--type", "task")
-		bdDepAdd(t, bd, dir, child.ID, parent.ID, "--type", "parent-child")
+		parent := issuegraphCreate(t, issuegraph, dir, "JSON propagate", "--type", "epic")
+		child := issuegraphCreate(t, issuegraph, dir, "JSON prop child", "--type", "task")
+		issuegraphDepAdd(t, issuegraph, dir, child.ID, parent.ID, "--type", "parent-child")
 
-		s := strings.TrimSpace(bdLabelJSONOutput(t, bd, dir, "propagate", parent.ID, "prop-json", "--json"))
+		s := strings.TrimSpace(issuegraphLabelJSONOutput(t, issuegraph, dir, "propagate", parent.ID, "prop-json", "--json"))
 		start := strings.Index(s, "[")
 		if start >= 0 && !json.Valid([]byte(s[start:])) {
 			t.Errorf("expected valid JSON: %s", s)
@@ -466,8 +466,8 @@ func TestEmbeddedLabel(t *testing.T) {
 	})
 
 	t.Run("label_propagate_no_children", func(t *testing.T) {
-		parent := bdCreate(t, bd, dir, "No children parent", "--type", "task")
-		out := bdLabel(t, bd, dir, "propagate", parent.ID, "orphan-label")
+		parent := issuegraphCreate(t, issuegraph, dir, "No children parent", "--type", "task")
+		out := issuegraphLabel(t, issuegraph, dir, "propagate", parent.ID, "orphan-label")
 		if !strings.Contains(out, "No children") {
 			t.Logf("propagate with no children: %s", out)
 		}
@@ -476,35 +476,35 @@ func TestEmbeddedLabel(t *testing.T) {
 	// ===== Error Cases =====
 
 	t.Run("label_add_empty_label", func(t *testing.T) {
-		issue := bdCreate(t, bd, dir, "Empty label", "--type", "task")
-		bdLabelFail(t, bd, dir, "add", issue.ID, "")
+		issue := issuegraphCreate(t, issuegraph, dir, "Empty label", "--type", "task")
+		issuegraphLabelFail(t, issuegraph, dir, "add", issue.ID, "")
 	})
 
 	t.Run("label_add_reserved_provides", func(t *testing.T) {
-		issue := bdCreate(t, bd, dir, "Reserved label", "--type", "task")
-		bdLabelFail(t, bd, dir, "add", issue.ID, "provides:auth")
+		issue := issuegraphCreate(t, issuegraph, dir, "Reserved label", "--type", "task")
+		issuegraphLabelFail(t, issuegraph, dir, "add", issue.ID, "provides:auth")
 	})
 
 	t.Run("label_add_reserved_provides_in_comma_list", func(t *testing.T) {
-		issue := bdCreate(t, bd, dir, "Reserved label in list", "--type", "task")
-		bdLabelFail(t, bd, dir, "add", issue.ID, "ok-label,provides:auth")
+		issue := issuegraphCreate(t, issuegraph, dir, "Reserved label in list", "--type", "task")
+		issuegraphLabelFail(t, issuegraph, dir, "add", issue.ID, "ok-label,provides:auth")
 	})
 
 	t.Run("label_add_unresolvable_id_fails", func(t *testing.T) {
-		bdLabelFail(t, bd, dir, "add", "tl-doesnotexist", "some-label")
+		issuegraphLabelFail(t, issuegraph, dir, "add", "tl-doesnotexist", "some-label")
 	})
 
 	t.Run("label_add_space_separated_labels_fails_loudly", func(t *testing.T) {
-		// Regression test for bd-vu5kv: "bd label add <id> a b c" used to
+		// Regression test for bd-vu5kv: "issuegraph label add <id> a b c" used to
 		// treat a/b as unresolvable issue IDs, skip them with a stderr
 		// warning, and exit 0 having applied only "c". It must now fail
 		// hard, apply nothing, and hint at the comma-separated form.
-		issue := bdCreate(t, bd, dir, "Space separated labels", "--type", "task")
-		out := bdLabelFail(t, bd, dir, "add", issue.ID, "space-a", "space-b", "space-c")
+		issue := issuegraphCreate(t, issuegraph, dir, "Space separated labels", "--type", "task")
+		out := issuegraphLabelFail(t, issuegraph, dir, "add", issue.ID, "space-a", "space-b", "space-c")
 		if !strings.Contains(out, "comma-separated") {
 			t.Errorf("expected comma-separated hint in error output: %s", out)
 		}
-		labels := bdLabelListJSON(t, bd, dir, issue.ID)
+		labels := issuegraphLabelListJSON(t, issuegraph, dir, issue.ID)
 		for _, l := range labels {
 			if strings.HasPrefix(l, "space-") {
 				t.Errorf("no label should have been applied, found %q: %v", l, labels)
@@ -515,20 +515,20 @@ func TestEmbeddedLabel(t *testing.T) {
 
 // TestEmbeddedLabelConcurrent exercises label operations concurrently.
 func TestEmbeddedLabelConcurrent(t *testing.T) {
-	if os.Getenv("BEADS_TEST_EMBEDDED_DOLT") != "1" {
-		t.Skip("set BEADS_TEST_EMBEDDED_DOLT=1 to run embedded dolt integration tests")
+	if os.Getenv("ISSUEGRAPH_TEST_EMBEDDED_DOLT") != "1" {
+		t.Skip("set ISSUEGRAPH_TEST_EMBEDDED_DOLT=1 to run embedded dolt integration tests")
 	}
 	t.Parallel()
 
-	bd := buildEmbeddedBD(t)
-	dir, _, _ := bdInit(t, bd, "--prefix", "lx")
+	issuegraph := buildEmbeddedBD(t)
+	dir, _, _ := issuegraphInit(t, issuegraph, "--prefix", "lx")
 
 	const numWorkers = 8
 
 	// Pre-create issues
 	var issueIDs []string
 	for i := 0; i < numWorkers; i++ {
-		issue := bdCreate(t, bd, dir, fmt.Sprintf("label-concurrent-%d", i), "--type", "task")
+		issue := issuegraphCreate(t, issuegraph, dir, fmt.Sprintf("label-concurrent-%d", i), "--type", "task")
 		issueIDs = append(issueIDs, issue.ID)
 	}
 
@@ -550,9 +550,9 @@ func TestEmbeddedLabelConcurrent(t *testing.T) {
 			// Add labels
 			for i := 0; i < 3; i++ {
 				label := fmt.Sprintf("w%d-label-%d", worker, i)
-				cmd := exec.Command(bd, "label", "add", id, label)
+				cmd := exec.Command(issuegraph, "label", "add", id, label)
 				cmd.Dir = dir
-				cmd.Env = bdEnv(dir)
+				cmd.Env = issuegraphEnv(dir)
 				out, err := cmd.CombinedOutput()
 				if err != nil {
 					r.err = fmt.Errorf("add label %s to %s: %v\n%s", label, id, err, out)
@@ -562,9 +562,9 @@ func TestEmbeddedLabelConcurrent(t *testing.T) {
 			}
 
 			// List labels
-			cmd := exec.Command(bd, "label", "list", id, "--json")
+			cmd := exec.Command(issuegraph, "label", "list", id, "--json")
 			cmd.Dir = dir
-			cmd.Env = bdEnv(dir)
+			cmd.Env = issuegraphEnv(dir)
 			out, err := cmd.CombinedOutput()
 			if err != nil {
 				r.err = fmt.Errorf("list labels for %s: %v\n%s", id, err, out)

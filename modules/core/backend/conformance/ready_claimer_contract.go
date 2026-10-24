@@ -6,9 +6,9 @@ import (
 	"reflect"
 	"testing"
 
-	"github.com/steveyegge/beads/internal/storage"
-	"github.com/steveyegge/beads/internal/types"
-	publicops "github.com/steveyegge/beads/issueops"
+	"github.com/borg0ai/dx-issuegraph/internal/storage"
+	"github.com/borg0ai/dx-issuegraph/internal/types"
+	publicops "github.com/borg0ai/dx-issuegraph/issueops"
 )
 
 // This file holds the semantic contract every implementation of
@@ -272,7 +272,7 @@ func RunReadyClaimerClaimsTheFrontRowAndReturnsThePostClaimState(t *testing.T, c
 //   - no durable row appeared. Claiming an ephemeral row must not promote it.
 //   - durable history did not move. Ephemeral rows are not versioned, so the
 //     leaf's "a claim that wins an EPHEMERAL row records none either" is the
-//     visible consequence a `bd dolt log` reader would otherwise be surprised
+//     visible consequence a `issuegraph dolt log` reader would otherwise be surprised
 //     by. This is the ONE ready-claim outcome that mutates state without a
 //     history entry, which is exactly why it is pinned rather than assumed.
 //
@@ -338,7 +338,7 @@ func RunReadyClaimerClaimsAnEphemeralRowTheFilterAdmits(t *testing.T, ctx contex
 // The reader contract pins the default gate for the LISTING
 // (RunReaderReadyDeferredAndEphemeralGates), not for the claim; and after
 // bd-yby99.4 inverted the opt-in case, an implementation that overcorrected
-// into always admitting wisps would hand an agent work `bd ready` never offered
+// into always admitting wisps would hand an agent work `issuegraph ready` never offered
 // it — the failure that clause exists to prevent — with nothing failing.
 //
 // The listing probe is what keeps the nil honest. The seeded wisp is ready by
@@ -490,7 +490,7 @@ func RunReadyClaimerAnswersTheQuestionReaderReadyLists(t *testing.T, ctx context
 // rather than reporting an empty front.
 //
 // This is also where the claim's eligibility is narrower than the listing's:
-// `bd ready` offers assigned open work, and the claim does not take it. Both
+// `issuegraph ready` offers assigned open work, and the claim does not take it. Both
 // halves are asserted, so a change that made the claim steal an assigned row
 // fails here rather than in production.
 func RunReadyClaimerSkipsIneligibleFrontRows(t *testing.T, ctx context.Context, fixture ReadyClaimerFixture) {
@@ -765,7 +765,7 @@ func RunReadyClaimerFencesTheClaimByEveryLabelSetAndTheParentItWasGiven(t *testi
 // `blocks` edges and nothing else, so a body that counted every edge type
 // answers exactly the same numbers.
 //
-// The two count sets are genuinely different sets. `bd show`'s dependent count
+// The two count sets are genuinely different sets. `issuegraph show`'s dependent count
 // is all-types (storage.CountDependents), while the cardinalities carried on a
 // work row are blocks-only (sqlbuild.SearchCountsSQL's dc/rc joins both say
 // `WHERE type = 'blocks'`), and the unit of work computes them in a body of its

@@ -18,8 +18,8 @@ permissions:
   attestations: write
 
 env:
-  BD_DISABLE_METRICS: "1"
-  BD_DISABLE_EVENT_FLUSH: "1"
+  ISSUEGRAPH_DISABLE_METRICS: "1"
+  ISSUEGRAPH_DISABLE_EVENT_FLUSH: "1"
 
 jobs:
   # Pre-publish gate: refuse to publish a release whose version constants and
@@ -27,7 +27,7 @@ jobs:
   # ships with version.go bumped but the docs snapshot missing (which otherwise
   # only surfaces as a red main after the artifacts are already published).
   verify-version-consistency:
-    if: ${{ github.repository == 'gastownhall/beads' && startsWith(github.ref, 'refs/tags/v') }}
+    if: ${{ github.repository == 'borg0ai/dx-issuegraph' && startsWith(github.ref, 'refs/tags/v') }}
     runs-on: ubuntu-latest
     steps:
       - name: Checkout
@@ -50,7 +50,7 @@ jobs:
 
   release-package-mcp:
     name: Release Package Gate (MCP)
-    if: ${{ github.repository == 'gastownhall/beads' && startsWith(github.ref, 'refs/tags/v') }}
+    if: ${{ github.repository == 'borg0ai/dx-issuegraph' && startsWith(github.ref, 'refs/tags/v') }}
     needs: verify-version-consistency
     runs-on: ubuntu-latest
     steps:
@@ -77,13 +77,13 @@ jobs:
         uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7
         with:
           name: release-mcp-dist
-          path: integrations/beads-mcp/dist/*
+          path: integrations/issuegraph-mcp/dist/*
           if-no-files-found: error
           retention-days: 7
 
   release-package-npm:
     name: Release Package Gate (npm)
-    if: ${{ github.repository == 'gastownhall/beads' && startsWith(github.ref, 'refs/tags/v') }}
+    if: ${{ github.repository == 'borg0ai/dx-issuegraph' && startsWith(github.ref, 'refs/tags/v') }}
     needs: verify-version-consistency
     runs-on: ubuntu-latest
     steps:
@@ -106,7 +106,7 @@ jobs:
 
   goreleaser:
     # Guard: only run goreleaser in the canonical repository (not in forks)
-    if: ${{ github.repository == 'gastownhall/beads' && startsWith(github.ref, 'refs/tags/v') }}
+    if: ${{ github.repository == 'borg0ai/dx-issuegraph' && startsWith(github.ref, 'refs/tags/v') }}
     needs:
       - release-package-mcp
       - release-package-npm
@@ -165,7 +165,7 @@ jobs:
           version: '~> v2'
           args: >
             release --clean --parallelism 1
-            ${{ github.repository != 'gastownhall/beads' && '--skip=publish --skip=announce' || '' }}
+            ${{ github.repository != 'borg0ai/dx-issuegraph' && '--skip=publish --skip=announce' || '' }}
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           # Windows code signing (optional - signing is skipped if not set)
@@ -174,7 +174,7 @@ jobs:
 
       - name: Verify no ICU runtime dependency on Linux binaries
         run: |
-          for bin in dist/bd-linux-*/bd; do
+          for bin in dist/issuegraph-linux-*/issuegraph; do
             [ -f "$bin" ] || continue
             if ldd "$bin" 2>/dev/null | grep -qi icu; then
               echo "ERROR: $bin has unexpected ICU runtime dependency" >&2
@@ -188,7 +188,7 @@ jobs:
         # Ships the canonicalized golden corpus (modules/cli/protocol/testdata/corpus)
         # with each release and appends its checksum to the release checksums.txt,
         # so a downstream consumer can anchor its vendored-corpus drift-check to a signed
-        # beads release rather than a self-recomputed manifest. Runs before the
+        # issuegraph release rather than a self-recomputed manifest. Runs before the
         # macOS job's serial checksums.txt append (goreleaser-macos needs this
         # job), so the entry is preserved.
         env:
@@ -197,7 +197,7 @@ jobs:
           set -euo pipefail
           tag="${GITHUB_REF_NAME}"
           version="${tag#v}"
-          archive="beads_${version}_contract_corpus.tar.gz"
+          archive="issuegraph_${version}_contract_corpus.tar.gz"
           tar -czf "$archive" -C modules/cli/protocol/testdata corpus
           shasum -a 256 "$archive" | tee corpus-checksum.txt
           gh release upload "$tag" "$archive" --clobber
@@ -216,7 +216,7 @@ jobs:
   goreleaser-macos:
     # Build macOS binaries with CGO_ENABLED=1 for embedded Dolt support.
     # Runs on native macOS to avoid zig/osxcross cross-compilation issues.
-    if: ${{ github.repository == 'gastownhall/beads' && startsWith(github.ref, 'refs/tags/v') }}
+    if: ${{ github.repository == 'borg0ai/dx-issuegraph' && startsWith(github.ref, 'refs/tags/v') }}
     needs: goreleaser
     runs-on: macos-latest
     steps:
@@ -242,15 +242,15 @@ jobs:
         run: |
           go build -tags "gms_pure_go netgo" \
             -ldflags "-s -w -X main.Version=${{ steps.version.outputs.version }} -X main.Build=$(git rev-parse --short HEAD) -X main.Commit=$(git rev-parse HEAD) -X main.Branch=$(git branch --show-current)" \
-            -o bd-darwin-arm64 github.com/steveyegge/beads/modules/cli
-          ./scripts/verify-cgo.sh bd-darwin-arm64
+            -o issuegraph-darwin-arm64 github.com/borg0ai/dx-issuegraph/modules/cli
+          ./scripts/verify-cgo.sh issuegraph-darwin-arm64
           # Verify no ICU runtime dependency leaked through
-          if otool -L bd-darwin-arm64 | grep -qi icu; then
-            echo "ERROR: bd-darwin-arm64 has unexpected ICU runtime dependency" >&2
-            otool -L bd-darwin-arm64 >&2
+          if otool -L issuegraph-darwin-arm64 | grep -qi icu; then
+            echo "ERROR: issuegraph-darwin-arm64 has unexpected ICU runtime dependency" >&2
+            otool -L issuegraph-darwin-arm64 >&2
             exit 1
           fi
-          codesign -s - -f bd-darwin-arm64
+          codesign -s - -f issuegraph-darwin-arm64
 
       - name: Build darwin/amd64
         env:
@@ -263,19 +263,19 @@ jobs:
         run: |
           go build -tags "gms_pure_go netgo" \
             -ldflags "-s -w -X main.Version=${{ steps.version.outputs.version }} -X main.Build=$(git rev-parse --short HEAD) -X main.Commit=$(git rev-parse HEAD) -X main.Branch=$(git branch --show-current)" \
-            -o bd-darwin-amd64 github.com/steveyegge/beads/modules/cli
-          ./scripts/verify-cgo.sh bd-darwin-amd64
-          if otool -L bd-darwin-amd64 | grep -qi icu; then
-            echo "ERROR: bd-darwin-amd64 has unexpected ICU runtime dependency" >&2
-            otool -L bd-darwin-amd64 >&2
+            -o issuegraph-darwin-amd64 github.com/borg0ai/dx-issuegraph/modules/cli
+          ./scripts/verify-cgo.sh issuegraph-darwin-amd64
+          if otool -L issuegraph-darwin-amd64 | grep -qi icu; then
+            echo "ERROR: issuegraph-darwin-amd64 has unexpected ICU runtime dependency" >&2
+            otool -L issuegraph-darwin-amd64 >&2
             exit 1
           fi
-          codesign -s - -f bd-darwin-amd64
+          codesign -s - -f issuegraph-darwin-amd64
 
       - name: Smoke test embedded dolt (arm64 native)
         run: |
           # arm64 binary runs natively on macos-latest
-          bd="$(pwd)/bd-darwin-arm64"
+          issuegraph="$(pwd)/issuegraph-darwin-arm64"
           tmpdir=$(mktemp -d)
           projdir="$tmpdir/smoketest"
           mkdir -p "$projdir"
@@ -283,9 +283,9 @@ jobs:
           git init -b main
           git config user.name "CI" && git config user.email "ci@test"
           git commit --allow-empty -m "init"
-          "$bd" init --prefix smoketest
-          "$bd" create "smoke test" --type task
-          "$bd" list | grep -q "smoke test"
+          "$issuegraph" init --prefix smoketest
+          "$issuegraph" create "smoke test" --type task
+          "$issuegraph" list | grep -q "smoke test"
           # Verify embedded mode (no server process)
           if pgrep -f "dolt sql-server" >/dev/null 2>&1; then
             echo "ERROR: unexpected dolt sql-server process running" >&2
@@ -299,9 +299,9 @@ jobs:
         run: |
           version="${{ steps.version.outputs.version }}"
           for arch in arm64 amd64; do
-            staging="beads_${version}_darwin_${arch}"
+            staging="issuegraph_${version}_darwin_${arch}"
             mkdir -p "$staging"
-            cp "bd-darwin-${arch}" "$staging/bd"
+            cp "issuegraph-darwin-${arch}" "$staging/issuegraph"
             cp LICENSE README.md CHANGELOG.md "$staging/"
             tar -czf "${staging}.tar.gz" -C "$staging" .
             shasum -a 256 "${staging}.tar.gz" >> darwin-checksums.txt
@@ -313,7 +313,7 @@ jobs:
         run: |
           version="${{ steps.version.outputs.version }}"
           for arch in arm64 amd64; do
-            gh release upload "v${version}" "beads_${version}_darwin_${arch}.tar.gz" --clobber
+            gh release upload "v${version}" "issuegraph_${version}_darwin_${arch}.tar.gz" --clobber
           done
 
       - name: Append checksums to release checksums.txt
@@ -329,7 +329,7 @@ jobs:
   attest-release:
     # Attest the complete release after GoReleaser assets and the native macOS
     # archives have both populated checksums.txt.
-    if: ${{ github.repository == 'gastownhall/beads' && startsWith(github.ref, 'refs/tags/v') }}
+    if: ${{ github.repository == 'borg0ai/dx-issuegraph' && startsWith(github.ref, 'refs/tags/v') }}
     needs: [goreleaser, goreleaser-macos]
     runs-on: ubuntu-latest
     steps:
@@ -341,7 +341,7 @@ jobs:
         run: |
           mkdir -p dist
           echo "checksums=dist/checksums.txt" >> "$GITHUB_OUTPUT"
-          echo "sbom=dist/beads-${GITHUB_REF_NAME}.spdx.json" >> "$GITHUB_OUTPUT"
+          echo "sbom=dist/issuegraph-${GITHUB_REF_NAME}.spdx.json" >> "$GITHUB_OUTPUT"
 
       - name: Download release checksums
         env:
@@ -376,7 +376,7 @@ jobs:
   publish-pypi:
     runs-on: ubuntu-latest
     needs: [release-package-mcp, goreleaser]
-    if: ${{ github.repository == 'gastownhall/beads' && startsWith(github.ref, 'refs/tags/v') && !contains(github.ref_name, '-') }}
+    if: ${{ github.repository == 'borg0ai/dx-issuegraph' && startsWith(github.ref, 'refs/tags/v') && !contains(github.ref_name, '-') }}
     steps:
       - name: Checkout
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v6
@@ -393,25 +393,25 @@ jobs:
         uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8
         with:
           name: release-mcp-dist
-          path: integrations/beads-mcp/dist
+          path: integrations/issuegraph-mcp/dist
 
       - name: Verify validated MCP dist
         run: |
-          test -n "$(find integrations/beads-mcp/dist -maxdepth 1 -type f -print -quit)"
-          ls -la integrations/beads-mcp/dist
+          test -n "$(find integrations/issuegraph-mcp/dist -maxdepth 1 -type f -print -quit)"
+          ls -la integrations/issuegraph-mcp/dist
 
       - name: Publish to PyPI
         env:
           TWINE_USERNAME: __token__
           TWINE_PASSWORD: ${{ secrets.PYPI_API_TOKEN }}
         run: |
-          cd integrations/beads-mcp
+          cd integrations/issuegraph-mcp
           uv tool run twine upload dist/*
 
   publish-npm:
     runs-on: ubuntu-latest
     needs: [release-package-npm, goreleaser, goreleaser-macos]
-    if: ${{ github.repository == 'gastownhall/beads' && startsWith(github.ref, 'refs/tags/v') && !contains(github.ref_name, '-') }}
+    if: ${{ github.repository == 'borg0ai/dx-issuegraph' && startsWith(github.ref, 'refs/tags/v') && !contains(github.ref_name, '-') }}
     permissions:
       contents: read
       id-token: write  # Required for npm provenance/trusted publishing
@@ -430,7 +430,7 @@ jobs:
 
       - name: Publish to npm
         run: |
-          cd npm-package
+          cd apps/cli
           npm publish --access public
           # Uses OIDC trusted publishing - no token needed
           # Provenance attestations are automatic with trusted publishing

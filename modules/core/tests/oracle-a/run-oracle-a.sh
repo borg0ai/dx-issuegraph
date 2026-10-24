@@ -1,16 +1,16 @@
 #!/usr/bin/env bash
-# Oracle A — refactor-safety differential conformance for Go bd.
+# Oracle A — refactor-safety differential conformance for Go issuegraph.
 #
 # Runs the SAME curated contract scenarios against:
-#   REFERENCE  bd  — built from the merge base of HEAD and origin/main (the "before")
-#   CANDIDATE  bd  — built from the current working tree      (the "after")
+#   REFERENCE  issuegraph  — built from the merge base of HEAD and origin/main (the "before")
+#   CANDIDATE  issuegraph  — built from the current working tree      (the "after")
 # and diffs each step (exit code, stderr, JSON-aware stdout) with volatile
 # normalization (<TS>/<UUID>/<ACTOR>/<EMAIL>). ZERO in-scope divergences is the
-# gate: any in-scope FAIL means the change altered a user-visible bd behavior on
+# gate: any in-scope FAIL means the change altered a user-visible issuegraph behavior on
 # the covered contract surface.
 #
 # The differential is driven by the Rust conformance harness under harness/
-# (see harness/PROVENANCE.md); the harness is pointed at two Go bd binaries and
+# (see harness/PROVENANCE.md); the harness is pointed at two Go issuegraph binaries and
 # treats each as a black box.
 #
 # Two tiers: by default it runs the curated scenarios (fast, ~2-7 min). Set
@@ -61,7 +61,7 @@ RUN_ID="$(date +%Y%m%d-%H%M%S)-$$"
 SCRATCH="${TMPDIR:-/tmp}/oracle-a-$RUN_ID"
 REF_SRC="$SCRATCH/ref-src"
 REF_BIN="$SCRATCH/bd-reference"
-CAND_BIN="$SCRATCH/bd-candidate"
+CAND_BIN="$SCRATCH/issuegraph-candidate"
 mkdir -p "$SCRATCH"
 
 log()  { printf '\033[1;36m[oracle-a]\033[0m %s\n' "$*"; }
@@ -129,25 +129,25 @@ if [ "$REF_SHA" = "$CAND_SHA" ] && git -C "$REPO_ROOT" diff --quiet; then
   log "      harness bugs, not code changes."
 fi
 
-# --- 1. reference bd from origin/main (isolated worktree) ----------------------------
-log "building REFERENCE bd from $REF_REF ..."
+# --- 1. reference issuegraph from origin/main (isolated worktree) ----------------------------
+log "building REFERENCE issuegraph from $REF_REF ..."
 git -C "$REPO_ROOT" worktree add --detach "$REF_SRC" "$REF_SHA" >/dev/null 2>&1 \
   || die "git worktree add failed for $REF_SHA"
 ( cd "$REF_SRC" && CGO_ENABLED=1 go build -tags "$BUILD_TAGS" -o "$REF_BIN" ./modules/cli ) \
-  || die "reference bd build failed"
-[ -x "$REF_BIN" ] || die "reference bd not produced at $REF_BIN"
-log "reference bd : $REF_BIN ($($REF_BIN version 2>/dev/null | head -1))"
+  || die "reference issuegraph build failed"
+[ -x "$REF_BIN" ] || die "reference issuegraph not produced at $REF_BIN"
+log "reference issuegraph : $REF_BIN ($($REF_BIN version 2>/dev/null | head -1))"
 
-# --- 2. candidate bd from the working tree -------------------------------------------
-log "building CANDIDATE bd from the working tree ..."
+# --- 2. candidate issuegraph from the working tree -------------------------------------------
+log "building CANDIDATE issuegraph from the working tree ..."
 ( cd "$REPO_ROOT" && CGO_ENABLED=1 go build -tags "$BUILD_TAGS" -o "$CAND_BIN" ./modules/cli ) \
-  || die "candidate bd build failed"
+  || die "candidate issuegraph build failed"
 # restore any go.sum/go.mod build churn immediately (belt-and-suspenders; also in
 # cleanup) — restore-to-pre-run bytes, so a pre-existing user edit is preserved.
 restore_if_build_churned "$GOMOD_SNAP" "$REPO_ROOT/go.mod"
 restore_if_build_churned "$GOSUM_SNAP" "$REPO_ROOT/go.sum"
-[ -x "$CAND_BIN" ] || die "candidate bd not produced at $CAND_BIN"
-log "candidate bd : $CAND_BIN ($($CAND_BIN version 2>/dev/null | head -1))"
+[ -x "$CAND_BIN" ] || die "candidate issuegraph not produced at $CAND_BIN"
+log "candidate issuegraph : $CAND_BIN ($($CAND_BIN version 2>/dev/null | head -1))"
 
 # --- 3. build the conformance harness ------------------------------------------------
 log "building conformance harness ..."
@@ -160,20 +160,20 @@ SCOREBOARD="$HARNESS_DIR/target/release/scoreboard"
 # default), not a pinned snapshot — so goldens always reflect the current "before".
 rm -rf "$HARNESS_DIR/testdata/golden"
 
-# --- 4. capture goldens from the reference bd ----------------------------------------
-log "capturing goldens from REFERENCE bd ..."
+# --- 4. capture goldens from the reference issuegraph ----------------------------------------
+log "capturing goldens from REFERENCE issuegraph ..."
 ORACLE_REFERENCE_BD="$REF_BIN" "$CAPTURE" \
   || die "golden capture failed"
 
-# --- 4b. FLOOR ASSERTION — the reference goldens must represent a WORKING bd ----------
+# --- 4b. FLOOR ASSERTION — the reference goldens must represent a WORKING issuegraph ----------
 # Without a floor, green proves nothing: goldens captured from a totally broken
 # reference (init fails in CI, missing HOME, sandboxed Dolt file locks) that fails
 # EVERY step still score 100%, because the diff is empty on both sides.
-# capture_golden only fails on process-spawn IO errors, not on bd exit codes.
+# capture_golden only fails on process-spawn IO errors, not on issuegraph exit codes.
 #
 # The floor guards against that TOTAL-breakage mode: it requires the reference to
 # have produced at least one fully-successful create (exit 0 + a parseable JSON id),
-# proving bd can init a workspace and create an issue. It deliberately does NOT
+# proving issuegraph can init a workspace and create an issue. It deliberately does NOT
 # require EVERY scenario's create to succeed — the enumerated catalog
 # (ORACLE_CATALOG=1) intentionally includes error-path scenarios whose creates
 # SHOULD exit non-zero (invalid priority/type, missing title, unknown flag, ...) and
@@ -197,12 +197,12 @@ for trace in "$GOLDEN_DIR"/*.trace.json; do
 done
 shopt -u nullglob
 if [ "$total_ok" -eq 0 ]; then
-  die "golden floor FAILED: the reference bd produced ZERO successful creates across all scenarios — the environment, not the branch, is what the goldens captured. Refusing to score."
+  die "golden floor FAILED: the reference issuegraph produced ZERO successful creates across all scenarios — the environment, not the branch, is what the goldens captured. Refusing to score."
 fi
 log "golden floor OK — reference produced $total_ok successful create step(s)."
 
 # --- 5. score the candidate against the reference goldens ----------------------------
-log "scoring CANDIDATE bd against reference goldens ..."
+log "scoring CANDIDATE issuegraph against reference goldens ..."
 SCORE_OUT="$SCRATCH/scoreboard.out"
 ORACLE_CANDIDATE="$CAND_BIN" "$SCOREBOARD" | tee "$SCORE_OUT"
 

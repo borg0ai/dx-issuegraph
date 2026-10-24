@@ -12,44 +12,44 @@ import (
 	"testing"
 )
 
-// bdHistory runs "bd history" with the given args and returns raw stdout.
-func bdHistory(t *testing.T, bd, dir string, args ...string) string {
+// issuegraphHistory runs "issuegraph history" with the given args and returns raw stdout.
+func issuegraphHistory(t *testing.T, issuegraph, dir string, args ...string) string {
 	t.Helper()
 	fullArgs := append([]string{"history"}, args...)
-	cmd := exec.Command(bd, fullArgs...)
+	cmd := exec.Command(issuegraph, fullArgs...)
 	cmd.Dir = dir
-	cmd.Env = bdEnv(dir)
+	cmd.Env = issuegraphEnv(dir)
 	stdout, stderr, err := runCommandBuffers(t, cmd)
 	if err != nil {
-		t.Fatalf("bd history %s failed: %v\nstdout:\n%s\nstderr:\n%s", strings.Join(args, " "), err, stdout.String(), stderr.String())
+		t.Fatalf("issuegraph history %s failed: %v\nstdout:\n%s\nstderr:\n%s", strings.Join(args, " "), err, stdout.String(), stderr.String())
 	}
 	return stdout.String()
 }
 
-// bdHistoryFail runs "bd history" expecting failure.
-func bdHistoryFail(t *testing.T, bd, dir string, args ...string) string {
+// issuegraphHistoryFail runs "issuegraph history" expecting failure.
+func issuegraphHistoryFail(t *testing.T, issuegraph, dir string, args ...string) string {
 	t.Helper()
 	fullArgs := append([]string{"history"}, args...)
-	cmd := exec.Command(bd, fullArgs...)
+	cmd := exec.Command(issuegraph, fullArgs...)
 	cmd.Dir = dir
-	cmd.Env = bdEnv(dir)
+	cmd.Env = issuegraphEnv(dir)
 	out, err := cmd.CombinedOutput()
 	if err == nil {
-		t.Fatalf("expected bd history %s to fail, but succeeded:\n%s", strings.Join(args, " "), out)
+		t.Fatalf("expected issuegraph history %s to fail, but succeeded:\n%s", strings.Join(args, " "), out)
 	}
 	return string(out)
 }
 
-// bdHistoryJSON runs "bd history --json" and parses the result as a slice.
-func bdHistoryJSON(t *testing.T, bd, dir string, args ...string) []map[string]interface{} {
+// issuegraphHistoryJSON runs "issuegraph history --json" and parses the result as a slice.
+func issuegraphHistoryJSON(t *testing.T, issuegraph, dir string, args ...string) []map[string]interface{} {
 	t.Helper()
 	fullArgs := append([]string{"history", "--json"}, args...)
-	cmd := exec.Command(bd, fullArgs...)
+	cmd := exec.Command(issuegraph, fullArgs...)
 	cmd.Dir = dir
-	cmd.Env = bdEnv(dir)
+	cmd.Env = issuegraphEnv(dir)
 	stdout, stderr, err := runCommandBuffers(t, cmd)
 	if err != nil {
-		t.Fatalf("bd history --json %s failed: %v\nstdout:\n%s\nstderr:\n%s", strings.Join(args, " "), err, stdout.String(), stderr.String())
+		t.Fatalf("issuegraph history --json %s failed: %v\nstdout:\n%s\nstderr:\n%s", strings.Join(args, " "), err, stdout.String(), stderr.String())
 	}
 	s := strings.TrimSpace(stdout.String())
 	start := strings.Index(s, "[")
@@ -64,24 +64,24 @@ func bdHistoryJSON(t *testing.T, bd, dir string, args ...string) []map[string]in
 }
 
 func TestEmbeddedHistory(t *testing.T) {
-	if os.Getenv("BEADS_TEST_EMBEDDED_DOLT") != "1" {
-		t.Skip("set BEADS_TEST_EMBEDDED_DOLT=1 to run embedded dolt integration tests")
+	if os.Getenv("ISSUEGRAPH_TEST_EMBEDDED_DOLT") != "1" {
+		t.Skip("set ISSUEGRAPH_TEST_EMBEDDED_DOLT=1 to run embedded dolt integration tests")
 	}
 	t.Parallel()
 
-	bd := buildEmbeddedBD(t)
-	dir, _, _ := bdInit(t, bd, "--prefix", "hi")
+	issuegraph := buildEmbeddedBD(t)
+	dir, _, _ := issuegraphInit(t, issuegraph, "--prefix", "hi")
 
 	// Create an issue, then modify it several times to build history.
-	issue := bdCreate(t, bd, dir, "History test issue", "--type", "task", "--priority", "3")
-	bdUpdate(t, bd, dir, issue.ID, "--status", "in_progress")
-	bdUpdate(t, bd, dir, issue.ID, "--priority", "1")
-	bdUpdate(t, bd, dir, issue.ID, "--title", "History test issue updated")
+	issue := issuegraphCreate(t, issuegraph, dir, "History test issue", "--type", "task", "--priority", "3")
+	issuegraphUpdate(t, issuegraph, dir, issue.ID, "--status", "in_progress")
+	issuegraphUpdate(t, issuegraph, dir, issue.ID, "--priority", "1")
+	issuegraphUpdate(t, issuegraph, dir, issue.ID, "--title", "History test issue updated")
 
 	// ===== Basic history showing state changes =====
 
 	t.Run("basic_history", func(t *testing.T) {
-		out := bdHistory(t, bd, dir, issue.ID)
+		out := issuegraphHistory(t, issuegraph, dir, issue.ID)
 		if !strings.Contains(out, issue.ID) {
 			t.Errorf("expected issue ID in history output: %s", out)
 		}
@@ -95,7 +95,7 @@ func TestEmbeddedHistory(t *testing.T) {
 	})
 
 	t.Run("history_shows_multiple_entries", func(t *testing.T) {
-		entries := bdHistoryJSON(t, bd, dir, issue.ID)
+		entries := issuegraphHistoryJSON(t, issuegraph, dir, issue.ID)
 		// We created + updated 3 times = at least 4 commits touching this issue
 		if len(entries) < 4 {
 			t.Errorf("expected at least 4 history entries, got %d", len(entries))
@@ -105,7 +105,7 @@ func TestEmbeddedHistory(t *testing.T) {
 	// ===== --limit restricts entries =====
 
 	t.Run("limit_restricts_entries", func(t *testing.T) {
-		entries := bdHistoryJSON(t, bd, dir, issue.ID, "--limit", "2")
+		entries := issuegraphHistoryJSON(t, issuegraph, dir, issue.ID, "--limit", "2")
 		if len(entries) > 2 {
 			t.Errorf("expected at most 2 entries with --limit 2, got %d", len(entries))
 		}
@@ -115,14 +115,14 @@ func TestEmbeddedHistory(t *testing.T) {
 	})
 
 	t.Run("limit_1", func(t *testing.T) {
-		entries := bdHistoryJSON(t, bd, dir, issue.ID, "--limit", "1")
+		entries := issuegraphHistoryJSON(t, issuegraph, dir, issue.ID, "--limit", "1")
 		if len(entries) != 1 {
 			t.Errorf("expected exactly 1 entry with --limit 1, got %d", len(entries))
 		}
 	})
 
 	t.Run("events_json_output", func(t *testing.T) {
-		events := bdHistoryJSON(t, bd, dir, issue.ID, "--events")
+		events := issuegraphHistoryJSON(t, issuegraph, dir, issue.ID, "--events")
 		if len(events) == 0 {
 			t.Fatal("expected non-empty history events")
 		}
@@ -140,7 +140,7 @@ func TestEmbeddedHistory(t *testing.T) {
 	// ===== --json output =====
 
 	t.Run("json_output_structure", func(t *testing.T) {
-		entries := bdHistoryJSON(t, bd, dir, issue.ID)
+		entries := issuegraphHistoryJSON(t, issuegraph, dir, issue.ID)
 		if len(entries) == 0 {
 			t.Fatal("expected non-empty history")
 		}
@@ -161,7 +161,7 @@ func TestEmbeddedHistory(t *testing.T) {
 	})
 
 	t.Run("json_issue_snapshot_has_fields", func(t *testing.T) {
-		entries := bdHistoryJSON(t, bd, dir, issue.ID)
+		entries := issuegraphHistoryJSON(t, issuegraph, dir, issue.ID)
 		if len(entries) == 0 {
 			t.Fatal("expected non-empty history")
 		}
@@ -181,22 +181,22 @@ func TestEmbeddedHistory(t *testing.T) {
 	shortID := strings.TrimPrefix(issue.ID, "hi-")
 
 	t.Run("short_id_resolves_like_full_id", func(t *testing.T) {
-		out := bdHistory(t, bd, dir, shortID)
+		out := issuegraphHistory(t, issuegraph, dir, shortID)
 		if strings.Contains(out, "No history found") {
-			t.Fatalf("bd history %s (short id) incorrectly reported no history: %s", shortID, out)
+			t.Fatalf("issuegraph history %s (short id) incorrectly reported no history: %s", shortID, out)
 		}
 		if !strings.Contains(out, issue.ID) {
 			t.Errorf("expected full issue ID %s in history output for short id %s: %s", issue.ID, shortID, out)
 		}
 
-		entries := bdHistoryJSON(t, bd, dir, shortID)
+		entries := issuegraphHistoryJSON(t, issuegraph, dir, shortID)
 		if len(entries) < 4 {
 			t.Errorf("expected at least 4 history entries via short id, got %d", len(entries))
 		}
 	})
 
 	t.Run("partial_id_resolves_via_events_flag_too", func(t *testing.T) {
-		events := bdHistoryJSON(t, bd, dir, shortID, "--events")
+		events := issuegraphHistoryJSON(t, issuegraph, dir, shortID, "--events")
 		if len(events) == 0 {
 			t.Fatalf("expected non-empty history events via short id %s", shortID)
 		}
@@ -208,17 +208,17 @@ func TestEmbeddedHistory(t *testing.T) {
 	// ID that matches both must report the ambiguity rather than silently
 	// falling through to the "No history found" not-found path.
 	t.Run("ambiguous_partial_id_errors", func(t *testing.T) {
-		bdCreate(t, bd, dir, "Ambiguous candidate one", "--type", "task", "--id", "hi-zzzaaa1")
-		bdCreate(t, bd, dir, "Ambiguous candidate two", "--type", "task", "--id", "hi-zzzaaa2")
+		issuegraphCreate(t, issuegraph, dir, "Ambiguous candidate one", "--type", "task", "--id", "hi-zzzaaa1")
+		issuegraphCreate(t, issuegraph, dir, "Ambiguous candidate two", "--type", "task", "--id", "hi-zzzaaa2")
 
-		cmd := exec.Command(bd, "history", "zzzaaa")
+		cmd := exec.Command(issuegraph, "history", "zzzaaa")
 		cmd.Dir = dir
-		cmd.Env = bdEnv(dir)
+		cmd.Env = issuegraphEnv(dir)
 		var stdout, stderr strings.Builder
 		cmd.Stdout = &stdout
 		cmd.Stderr = &stderr
 		if err := cmd.Run(); err == nil {
-			t.Fatalf("expected bd history zzzaaa to fail, but succeeded:\n%s", stdout.String())
+			t.Fatalf("expected issuegraph history zzzaaa to fail, but succeeded:\n%s", stdout.String())
 		}
 		out := stderr.String()
 		if !strings.Contains(strings.ToLower(out), "ambiguous") {
@@ -233,16 +233,16 @@ func TestEmbeddedHistory(t *testing.T) {
 			t.Errorf("ambiguous partial id incorrectly fell through to 'No history found': %s", out)
 		}
 
-		cmd = exec.Command(bd, "history", "--json", "zzzaaa")
+		cmd = exec.Command(issuegraph, "history", "--json", "zzzaaa")
 		cmd.Dir = dir
-		cmd.Env = bdEnv(dir)
+		cmd.Env = issuegraphEnv(dir)
 		stdout.Reset()
 		stderr.Reset()
 		cmd.Stdout = &stdout
 		cmd.Stderr = &stderr
 		err := cmd.Run()
 		if err == nil {
-			t.Fatalf("expected bd history --json zzzaaa to fail, but succeeded:\n%s", stdout.String())
+			t.Fatalf("expected issuegraph history --json zzzaaa to fail, but succeeded:\n%s", stdout.String())
 		}
 		// HandleErrorRespectJSON writes the JSON error envelope to stdout.
 		s := strings.TrimSpace(stdout.String())
@@ -264,22 +264,22 @@ func TestEmbeddedHistory(t *testing.T) {
 	// ===== Nonexistent issue ID =====
 
 	t.Run("nonexistent_issue_empty_history", func(t *testing.T) {
-		out := bdHistory(t, bd, dir, "hi-nonexistent999")
+		out := issuegraphHistory(t, issuegraph, dir, "hi-nonexistent999")
 		if !strings.Contains(out, "No history") {
 			t.Errorf("expected 'No history' message for nonexistent issue, got: %s", out)
 		}
 	})
 
 	// --json must always produce parseable JSON, even when history is empty.
-	// Without this, consumers piping `bd history --json | jq` break on the
+	// Without this, consumers piping `issuegraph history --json | jq` break on the
 	// empty case while every other --json subcommand returns valid JSON.
 	t.Run("nonexistent_issue_json_returns_empty_array", func(t *testing.T) {
-		cmd := exec.Command(bd, "history", "--json", "hi-nonexistent999")
+		cmd := exec.Command(issuegraph, "history", "--json", "hi-nonexistent999")
 		cmd.Dir = dir
-		cmd.Env = bdEnv(dir)
+		cmd.Env = issuegraphEnv(dir)
 		stdout, stderr, err := runCommandBuffers(t, cmd)
 		if err != nil {
-			t.Fatalf("bd history --json failed: %v\nstdout:\n%s\nstderr:\n%s", err, stdout.String(), stderr.String())
+			t.Fatalf("issuegraph history --json failed: %v\nstdout:\n%s\nstderr:\n%s", err, stdout.String(), stderr.String())
 		}
 		s := strings.TrimSpace(stdout.String())
 		var entries []map[string]interface{}
@@ -295,12 +295,12 @@ func TestEmbeddedHistory(t *testing.T) {
 	// Guards against future reordering that might apply limit semantics
 	// before the empty-check and skip the JSON branch.
 	t.Run("nonexistent_issue_json_with_limit_returns_empty_array", func(t *testing.T) {
-		cmd := exec.Command(bd, "history", "--json", "--limit", "2", "hi-nonexistent999")
+		cmd := exec.Command(issuegraph, "history", "--json", "--limit", "2", "hi-nonexistent999")
 		cmd.Dir = dir
-		cmd.Env = bdEnv(dir)
+		cmd.Env = issuegraphEnv(dir)
 		stdout, stderr, err := runCommandBuffers(t, cmd)
 		if err != nil {
-			t.Fatalf("bd history --json --limit 2 failed: %v\nstdout:\n%s\nstderr:\n%s", err, stdout.String(), stderr.String())
+			t.Fatalf("issuegraph history --json --limit 2 failed: %v\nstdout:\n%s\nstderr:\n%s", err, stdout.String(), stderr.String())
 		}
 		s := strings.TrimSpace(stdout.String())
 		var entries []map[string]interface{}
@@ -315,18 +315,18 @@ func TestEmbeddedHistory(t *testing.T) {
 	// ===== Wrong number of args =====
 
 	t.Run("no_args_fails", func(t *testing.T) {
-		bdHistoryFail(t, bd, dir)
+		issuegraphHistoryFail(t, issuegraph, dir)
 	})
 
 	t.Run("too_many_args_fails", func(t *testing.T) {
-		bdHistoryFail(t, bd, dir, issue.ID, "extra")
+		issuegraphHistoryFail(t, issuegraph, dir, issue.ID, "extra")
 	})
 
 	// ===== History for newly created issue =====
 
 	t.Run("single_entry_for_new_issue", func(t *testing.T) {
-		fresh := bdCreate(t, bd, dir, "Fresh issue no updates", "--type", "task")
-		entries := bdHistoryJSON(t, bd, dir, fresh.ID)
+		fresh := issuegraphCreate(t, issuegraph, dir, "Fresh issue no updates", "--type", "task")
+		entries := issuegraphHistoryJSON(t, issuegraph, dir, fresh.ID)
 		if len(entries) < 1 {
 			t.Error("expected at least 1 history entry for a newly created issue")
 		}
@@ -335,19 +335,19 @@ func TestEmbeddedHistory(t *testing.T) {
 
 // TestEmbeddedHistoryConcurrent exercises history operations concurrently.
 func TestEmbeddedHistoryConcurrent(t *testing.T) {
-	if os.Getenv("BEADS_TEST_EMBEDDED_DOLT") != "1" {
-		t.Skip("set BEADS_TEST_EMBEDDED_DOLT=1 to run embedded dolt integration tests")
+	if os.Getenv("ISSUEGRAPH_TEST_EMBEDDED_DOLT") != "1" {
+		t.Skip("set ISSUEGRAPH_TEST_EMBEDDED_DOLT=1 to run embedded dolt integration tests")
 	}
 	t.Parallel()
 
-	bd := buildEmbeddedBD(t)
-	dir, _, _ := bdInit(t, bd, "--prefix", "hc")
+	issuegraph := buildEmbeddedBD(t)
+	dir, _, _ := issuegraphInit(t, issuegraph, "--prefix", "hc")
 
 	// Create several issues with history.
 	var ids []string
 	for i := 0; i < 8; i++ {
-		issue := bdCreate(t, bd, dir, fmt.Sprintf("concurrent-history-%d", i), "--type", "task")
-		bdUpdate(t, bd, dir, issue.ID, "--priority", "1")
+		issue := issuegraphCreate(t, issuegraph, dir, fmt.Sprintf("concurrent-history-%d", i), "--type", "task")
+		issuegraphUpdate(t, issuegraph, dir, issue.ID, "--priority", "1")
 		ids = append(ids, issue.ID)
 	}
 
@@ -370,9 +370,9 @@ func TestEmbeddedHistoryConcurrent(t *testing.T) {
 
 			// JSON history
 			args := []string{"history", "--json", id}
-			cmd := exec.Command(bd, args...)
+			cmd := exec.Command(issuegraph, args...)
 			cmd.Dir = dir
-			cmd.Env = bdEnv(dir)
+			cmd.Env = issuegraphEnv(dir)
 			out, err := cmd.CombinedOutput()
 			if err != nil {
 				r.err = fmt.Errorf("worker %d history %s: %v\n%s", worker, id, err, out)
@@ -382,9 +382,9 @@ func TestEmbeddedHistoryConcurrent(t *testing.T) {
 
 			// Plain text history
 			args = []string{"history", id, "--limit", "1"}
-			cmd = exec.Command(bd, args...)
+			cmd = exec.Command(issuegraph, args...)
 			cmd.Dir = dir
-			cmd.Env = bdEnv(dir)
+			cmd.Env = issuegraphEnv(dir)
 			out, err = cmd.CombinedOutput()
 			if err != nil {
 				r.err = fmt.Errorf("worker %d history --limit 1: %v\n%s", worker, err, out)

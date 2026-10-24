@@ -1,9 +1,9 @@
 //go:build regression
 
 // Package regression implements differential testing between a pinned baseline
-// bd binary (v0.49.6) and the current worktree build. Each test scenario runs
+// issuegraph binary (v0.49.6) and the current worktree build. Each test scenario runs
 // the same CLI commands against both binaries in isolated workspaces, snapshots
-// state via bd list + bd show, normalizes volatile fields and IDs, and diffs
+// state via issuegraph list + issuegraph show, normalizes volatile fields and IDs, and diffs
 // the results.
 //
 // Run: go test -tags=regression -timeout=10m ./tests/regression/...
@@ -30,13 +30,13 @@ import (
 	"testing"
 	"time"
 
-	"github.com/steveyegge/beads/internal/testutil"
+	"github.com/borg0ai/dx-issuegraph/internal/testutil"
 )
 
-// baselineBin is the path to the pinned baseline bd binary.
+// baselineBin is the path to the pinned baseline issuegraph binary.
 var baselineBin string
 
-// candidateBin is the path to the bd binary built from the current worktree.
+// candidateBin is the path to the issuegraph binary built from the current worktree.
 var candidateBin string
 
 // testDoltServerPort is the port of the isolated Dolt server started by TestMain.
@@ -65,9 +65,9 @@ func testMainInner(m *testing.M) int {
 		fmt.Fprintln(os.Stderr, "SKIP: dolt not found in PATH; regression tests require dolt")
 		return 0
 	}
-	os.Setenv("BEADS_TEST_MODE", "1")
+	os.Setenv("ISSUEGRAPH_TEST_MODE", "1")
 	// AD-01 (be-c5p): allow regression tests to connect to the test container.
-	os.Setenv("BEADS_TEST_SERVER", "1")
+	os.Setenv("ISSUEGRAPH_TEST_SERVER", "1")
 	if err := testutil.EnsureDoltContainerForTestMain(); err != nil {
 		fmt.Fprintf(os.Stderr, "WARN: %v, skipping Dolt tests\n", err)
 	} else {
@@ -83,7 +83,7 @@ func testMainInner(m *testing.M) int {
 	}
 
 	// Build candidate from current worktree
-	candidateBin = filepath.Join(tmpDir, "bd-candidate")
+	candidateBin = filepath.Join(tmpDir, "issuegraph-candidate")
 	fmt.Fprintln(os.Stderr, "Building candidate binary...")
 	if err := buildCandidate(candidateBin); err != nil {
 		fmt.Fprintf(os.Stderr, "building candidate: %v\n", err)
@@ -162,9 +162,9 @@ func icuPrefixPath() string {
 }
 
 func getBaseline() (string, error) {
-	if bin := os.Getenv("BD_REGRESSION_BASELINE_BIN"); bin != "" {
+	if bin := os.Getenv("ISSUEGRAPH_REGRESSION_BASELINE_BIN"); bin != "" {
 		if _, err := os.Stat(bin); err != nil {
-			return "", fmt.Errorf("BD_REGRESSION_BASELINE_BIN=%q: %w", bin, err)
+			return "", fmt.Errorf("ISSUEGRAPH_REGRESSION_BASELINE_BIN=%q: %w", bin, err)
 		}
 		return bin, nil
 	}
@@ -180,7 +180,7 @@ func getBaseline() (string, error) {
 	if err != nil {
 		cacheDir = os.TempDir()
 	}
-	cacheDir = filepath.Join(cacheDir, "beads-regression")
+	cacheDir = filepath.Join(cacheDir, "issuegraph-regression")
 	cachedBin := filepath.Join(cacheDir, "bd-"+version)
 
 	if info, err := os.Stat(cachedBin); err == nil && info.Size() > 0 {
@@ -192,8 +192,8 @@ func getBaseline() (string, error) {
 		return "", fmt.Errorf("creating cache dir: %w", err)
 	}
 	ver := strings.TrimPrefix(version, "v")
-	asset := fmt.Sprintf("beads_%s_%s_%s.tar.gz", ver, runtime.GOOS, runtime.GOARCH)
-	url := fmt.Sprintf("https://github.com/steveyegge/beads/releases/download/%s/%s", version, asset)
+	asset := fmt.Sprintf("issuegraph_%s_%s_%s.tar.gz", ver, runtime.GOOS, runtime.GOARCH)
+	url := fmt.Sprintf("https://github.com/borg0ai/dx-issuegraph/releases/download/%s/%s", version, asset)
 
 	fmt.Fprintf(os.Stderr, "Downloading baseline: %s\n", url)
 	if err := downloadAndExtract(url, cachedBin); err != nil {
@@ -229,7 +229,7 @@ func downloadAndExtract(url, destPath string) error {
 		if err != nil {
 			return fmt.Errorf("tar: %w", err)
 		}
-		if filepath.Base(hdr.Name) == "bd" {
+		if filepath.Base(hdr.Name) == "issuegraph" {
 			f, err := os.OpenFile(destPath, os.O_CREATE|os.O_WRONLY|os.O_TRUNC, 0o755)
 			if err != nil {
 				return err
@@ -242,21 +242,21 @@ func downloadAndExtract(url, destPath string) error {
 			return closeErr
 		}
 	}
-	return fmt.Errorf("bd binary not found in archive from %s", url)
+	return fmt.Errorf("issuegraph binary not found in archive from %s", url)
 }
 
 // ---------------------------------------------------------------------------
-// Workspace: isolated temp dir with git repo + bd init
+// Workspace: isolated temp dir with git repo + issuegraph init
 // ---------------------------------------------------------------------------
 
 type workspace struct {
-	dir        string
-	bdPath     string
-	t          *testing.T
-	createdIDs []string // issue IDs in creation order
+	dir            string
+	issuegraphPath string
+	t              *testing.T
+	createdIDs     []string // issue IDs in creation order
 }
 
-func newWorkspace(t *testing.T, bdPath string) *workspace {
+func newWorkspace(t *testing.T, issuegraphPath string) *workspace {
 	t.Helper()
 	dir, err := os.MkdirTemp("", "bd-regression-workspace-*")
 	if err != nil {
@@ -265,7 +265,7 @@ func newWorkspace(t *testing.T, bdPath string) *workspace {
 	t.Cleanup(func() {
 		removeWorkspaceDir(t, dir)
 	})
-	w := &workspace{dir: dir, bdPath: bdPath, t: t}
+	w := &workspace{dir: dir, issuegraphPath: issuegraphPath, t: t}
 	w.cleanupBaselineDaemon()
 
 	w.git("init")
@@ -307,7 +307,7 @@ func removeWorkspaceDir(t *testing.T, dir string) {
 
 func (w *workspace) cleanupBaselineDaemon() {
 	w.t.Helper()
-	if baselineBin == "" || w.bdPath != baselineBin {
+	if baselineBin == "" || w.issuegraphPath != baselineBin {
 		return
 	}
 
@@ -315,7 +315,7 @@ func (w *workspace) cleanupBaselineDaemon() {
 		ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
 		defer cancel()
 
-		cmd := exec.CommandContext(ctx, w.bdPath, "daemon", "stop")
+		cmd := exec.CommandContext(ctx, w.issuegraphPath, "daemon", "stop")
 		cmd.Dir = w.dir
 		cmd.Env = w.runEnv()
 		_ = cmd.Run()
@@ -324,7 +324,7 @@ func (w *workspace) cleanupBaselineDaemon() {
 			pkillCtx, pkillCancel := context.WithTimeout(context.Background(), 2*time.Second)
 			defer pkillCancel()
 
-			pattern := "^" + regexp.QuoteMeta(w.bdPath) + " daemon start$"
+			pattern := "^" + regexp.QuoteMeta(w.issuegraphPath) + " daemon start$"
 			_ = exec.CommandContext(pkillCtx, pkill, "-f", pattern).Run()
 		}
 	})
@@ -334,20 +334,20 @@ func (w *workspace) runEnv() []string {
 	env := []string{
 		"PATH=" + os.Getenv("PATH"),
 		"HOME=" + w.dir,
-		"BEADS_TEST_MODE=1",
+		"ISSUEGRAPH_TEST_MODE=1",
 		// The pinned v0.49.6 baseline still has daemon mode. Disable it
-		// up front so it cannot race t.TempDir cleanup by writing .beads files.
-		"BD_NO_DAEMON=1",
-		"BEADS_NO_DAEMON=1",
-		"BD_DISABLE_METRICS=1",
-		"BD_DISABLE_EVENT_FLUSH=1",
+		// up front so it cannot race t.TempDir cleanup by writing .issuegraph files.
+		"ISSUEGRAPH_NO_DAEMON=1",
+		"ISSUEGRAPH_NO_DAEMON=1",
+		"ISSUEGRAPH_DISABLE_METRICS=1",
+		"ISSUEGRAPH_DISABLE_EVENT_FLUSH=1",
 		"GIT_CONFIG_NOSYSTEM=1",
 	}
 	if testDoltServerPort != 0 {
 		portStr := strconv.Itoa(testDoltServerPort)
 		env = append(env,
-			"BEADS_DOLT_PORT="+portStr,
-			"BEADS_DOLT_SERVER_PORT="+portStr,
+			"ISSUEGRAPH_DOLT_PORT="+portStr,
+			"ISSUEGRAPH_DOLT_SERVER_PORT="+portStr,
 		)
 	}
 	if v := os.Getenv("TMPDIR"); v != "" {
@@ -368,25 +368,25 @@ func (w *workspace) git(args ...string) string {
 	return string(out)
 }
 
-// run executes a bd command (combined stdout+stderr), fataling on error.
+// run executes a issuegraph command (combined stdout+stderr), fataling on error.
 func (w *workspace) run(args ...string) string {
 	w.t.Helper()
-	cmd := exec.Command(w.bdPath, args...)
+	cmd := exec.Command(w.issuegraphPath, args...)
 	cmd.Dir = w.dir
 	cmd.Env = w.runEnv()
 	out, err := cmd.CombinedOutput()
 	if err != nil {
-		w.t.Fatalf("bd %s: %v\n%s", strings.Join(args, " "), err, out)
+		w.t.Fatalf("issuegraph %s: %v\n%s", strings.Join(args, " "), err, out)
 	}
 	return string(out)
 }
 
-// create runs bd create --silent and returns the created issue ID.
+// create runs issuegraph create --silent and returns the created issue ID.
 // The ID is also appended to createdIDs for canonical mapping.
 func (w *workspace) create(args ...string) string {
 	w.t.Helper()
 	allArgs := append([]string{"create", "--silent"}, args...)
-	cmd := exec.Command(w.bdPath, allArgs...)
+	cmd := exec.Command(w.issuegraphPath, allArgs...)
 	cmd.Dir = w.dir
 	cmd.Env = w.runEnv()
 	out, err := cmd.Output()
@@ -395,25 +395,25 @@ func (w *workspace) create(args ...string) string {
 		if ee, ok := err.(*exec.ExitError); ok {
 			stderr = string(ee.Stderr)
 		}
-		w.t.Fatalf("bd create %s: %v\n%s", strings.Join(args, " "), err, stderr)
+		w.t.Fatalf("issuegraph create %s: %v\n%s", strings.Join(args, " "), err, stderr)
 	}
 	id := strings.TrimSpace(string(out))
 	if id == "" {
-		w.t.Fatal("bd create returned empty ID")
+		w.t.Fatal("issuegraph create returned empty ID")
 	}
 	w.createdIDs = append(w.createdIDs, id)
 	return id
 }
 
-// snapshot collects workspace state via bd list + bd show, returning JSONL
-// (one JSON object per line). This replaces the old bd export command which
-// was removed from main. The listArgs are passed to the bd list invocation
+// snapshot collects workspace state via issuegraph list + issuegraph show, returning JSONL
+// (one JSON object per line). This replaces the old issuegraph export command which
+// was removed from main. The listArgs are passed to the issuegraph list invocation
 // (e.g., "--status", "open").
 func (w *workspace) snapshot(listArgs ...string) string {
 	w.t.Helper()
 
-	// Step 1: get all issue IDs via bd list (--all includes closed issues,
-	// matching the old bd export behavior)
+	// Step 1: get all issue IDs via issuegraph list (--all includes closed issues,
+	// matching the old issuegraph export behavior)
 	args := []string{"list", "--json", "-n", "0", "--all"}
 	args = append(args, listArgs...)
 	listOut := w.run(args...)
@@ -437,7 +437,7 @@ func (w *workspace) snapshot(listArgs ...string) string {
 		return ""
 	}
 
-	// Step 2: for each ID, run bd show --json and emit one JSONL line
+	// Step 2: for each ID, run issuegraph show --json and emit one JSONL line
 	var buf strings.Builder
 	enc := json.NewEncoder(&buf)
 	enc.SetEscapeHTML(false)
@@ -448,7 +448,7 @@ func (w *workspace) snapshot(listArgs ...string) string {
 		}
 		showOut := w.showJSONForSnapshot(id)
 
-		// bd show --json may return a JSON array or single object
+		// issuegraph show --json may return a JSON array or single object
 		var showArr []map[string]any
 		if err := json.Unmarshal([]byte(showOut), &showArr); err == nil && len(showArr) > 0 {
 			_ = enc.Encode(showArr[0])
@@ -459,7 +459,7 @@ func (w *workspace) snapshot(listArgs ...string) string {
 			_ = enc.Encode(showObj)
 			continue
 		}
-		w.t.Logf("WARNING: snapshot: bd show %s returned unparseable JSON: %s", id, showOut)
+		w.t.Logf("WARNING: snapshot: issuegraph show %s returned unparseable JSON: %s", id, showOut)
 	}
 	return buf.String()
 }
@@ -473,12 +473,12 @@ func (w *workspace) showJSONForSnapshot(id string) string {
 }
 
 func (w *workspace) supportsStreamedShowPayloads() bool {
-	return candidateBin != "" && w.bdPath == candidateBin
+	return candidateBin != "" && w.issuegraphPath == candidateBin
 }
 
 // export returns a JSONL snapshot of the workspace. This replaces the removed
-// bd export command with list+show based snapshots. Filter args (e.g.,
-// "--status", "open") are translated to bd list flags.
+// issuegraph export command with list+show based snapshots. Filter args (e.g.,
+// "--status", "open") are translated to issuegraph list flags.
 func (w *workspace) export(extraArgs ...string) string {
 	w.t.Helper()
 	// Translate old export flags to list flags.
@@ -521,13 +521,13 @@ var volatileFields = []string{
 	"compaction_level", "original_size",
 	"content_hash",
 	// revision (row_lock) is the guarded-write optimistic-concurrency token that
-	// bd show --json began exposing (bd-bwa7n): a random value the engine
+	// issuegraph show --json began exposing (bd-bwa7n): a random value the engine
 	// rewrites on every write, and absent from the v0.49.6 baseline's show
 	// output entirely, so it is pure cross-version noise for this oracle.
 	"revision",
 }
 
-// showOnlyFields are present in bd show --json but were not in bd export.
+// showOnlyFields are present in issuegraph show --json but were not in issuegraph export.
 // Strip them so snapshot output is comparable with baseline.
 var showOnlyFields = []string{
 	"events",
@@ -646,7 +646,7 @@ func normalizeIssue(m map[string]any) {
 	}
 
 	// normalizeDepSubobject strips volatile/internal fields from a dependency
-	// or dependent sub-object as returned by bd show --json. The candidate's
+	// or dependent sub-object as returned by issuegraph show --json. The candidate's
 	// streamed show payload intentionally returns shallow related issues, while
 	// the old baseline export included deeper issue fields. Compare the stable
 	// relationship identity, not the nested issue's full payload.
@@ -742,7 +742,7 @@ func canonicalizeIDs(m map[string]any, idMap map[string]string) {
 	replaceID("parent", m)
 
 	// Canonicalize IDs in dependencies and dependents sub-objects.
-	// bd show --json embeds full issue-like objects with "id" field,
+	// issuegraph show --json embeds full issue-like objects with "id" field,
 	// while the old export format used "issue_id" and "depends_on_id".
 	for _, field := range []string{"dependencies", "dependents"} {
 		if deps, ok := m[field].([]any); ok {
@@ -898,7 +898,7 @@ func issuesByID(jsonl string) map[string]string {
 	return m
 }
 
-// parseReadyIDs runs bd ready --json and returns the set of issue IDs.
+// parseReadyIDs runs issuegraph ready --json and returns the set of issue IDs.
 func parseReadyIDs(t *testing.T, w *workspace) map[string]bool {
 	t.Helper()
 	out := w.run("ready", "--json")
@@ -931,22 +931,22 @@ func parseReadyIDs(t *testing.T, w *workspace) map[string]bool {
 	return ids
 }
 
-// tryRun executes a bd command and returns (output, error) without fataling.
+// tryRun executes a issuegraph command and returns (output, error) without fataling.
 func (w *workspace) tryRun(args ...string) (string, error) {
 	w.t.Helper()
-	cmd := exec.Command(w.bdPath, args...)
+	cmd := exec.Command(w.issuegraphPath, args...)
 	cmd.Dir = w.dir
 	cmd.Env = w.runEnv()
 	out, err := cmd.CombinedOutput()
 	return string(out), err
 }
 
-// tryCreate runs bd create --silent and returns (issueID, error) without fataling.
+// tryCreate runs issuegraph create --silent and returns (issueID, error) without fataling.
 // On success the ID is appended to createdIDs for canonical mapping.
 func (w *workspace) tryCreate(args ...string) (string, error) {
 	w.t.Helper()
 	allArgs := append([]string{"create", "--silent"}, args...)
-	cmd := exec.Command(w.bdPath, allArgs...)
+	cmd := exec.Command(w.issuegraphPath, allArgs...)
 	cmd.Dir = w.dir
 	cmd.Env = w.runEnv()
 	out, err := cmd.Output()
@@ -955,7 +955,7 @@ func (w *workspace) tryCreate(args ...string) (string, error) {
 	}
 	id := strings.TrimSpace(string(out))
 	if id == "" {
-		return "", fmt.Errorf("bd create returned empty ID")
+		return "", fmt.Errorf("issuegraph create returned empty ID")
 	}
 	w.createdIDs = append(w.createdIDs, id)
 	return id, nil

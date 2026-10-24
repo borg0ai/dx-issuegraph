@@ -1,4 +1,4 @@
-// Package main provides the bd CLI commands.
+// Package main provides the issuegraph CLI commands.
 package main
 
 import (
@@ -12,13 +12,13 @@ import (
 	"sync/atomic"
 	"time"
 
+	"github.com/borg0ai/dx-issuegraph/internal/config"
+	"github.com/borg0ai/dx-issuegraph/internal/gitlab"
+	"github.com/borg0ai/dx-issuegraph/internal/metrics"
+	"github.com/borg0ai/dx-issuegraph/internal/storage"
+	"github.com/borg0ai/dx-issuegraph/internal/tracker"
+	"github.com/borg0ai/dx-issuegraph/internal/types"
 	"github.com/spf13/cobra"
-	"github.com/steveyegge/beads/internal/config"
-	"github.com/steveyegge/beads/internal/gitlab"
-	"github.com/steveyegge/beads/internal/metrics"
-	"github.com/steveyegge/beads/internal/storage"
-	"github.com/steveyegge/beads/internal/tracker"
-	"github.com/steveyegge/beads/internal/types"
 )
 
 // GitLabConfig holds GitLab connection configuration.
@@ -34,9 +34,9 @@ type GitLabConfig struct {
 var gitlabCmd = &cobra.Command{
 	Use:   "gitlab",
 	Short: "GitLab integration commands",
-	Long: `Commands for syncing issues between beads and GitLab.
+	Long: `Commands for syncing issues between issuegraph and GitLab.
 
-Configuration can be set via 'bd config' or environment variables:
+Configuration can be set via 'issuegraph config' or environment variables:
   gitlab.url / GITLAB_URL                         - GitLab instance URL
   gitlab.token / GITLAB_TOKEN                     - Personal access token
   gitlab.project_id / GITLAB_PROJECT_ID           - Project ID or path
@@ -44,15 +44,15 @@ Configuration can be set via 'bd config' or environment variables:
   gitlab.default_project_id / GITLAB_DEFAULT_PROJECT_ID - Project for creating issues in group mode`,
 }
 
-// gitlabSyncCmd synchronizes issues between beads and GitLab.
+// gitlabSyncCmd synchronizes issues between issuegraph and GitLab.
 var gitlabSyncCmd = &cobra.Command{
 	Use:   "sync",
 	Short: "Sync issues with GitLab",
-	Long: `Synchronize issues between beads and GitLab.
+	Long: `Synchronize issues between issuegraph and GitLab.
 
 By default, performs bidirectional sync:
-- Pulls new/updated issues from GitLab to beads
-- Pushes local beads issues to GitLab
+- Pulls new/updated issues from GitLab to issuegraph
+- Pushes local issuegraph issues to GitLab
 
 Use --pull-only or --push-only to limit direction.`,
 	SilenceUsage:  true,
@@ -109,7 +109,7 @@ type ConflictStrategy string
 const (
 	// ConflictStrategyPreferNewer uses the most recently updated version (default).
 	ConflictStrategyPreferNewer ConflictStrategy = "prefer-newer"
-	// ConflictStrategyPreferLocal always keeps the local beads version.
+	// ConflictStrategyPreferLocal always keeps the local issuegraph version.
 	ConflictStrategyPreferLocal ConflictStrategy = "prefer-local"
 	// ConflictStrategyPreferGitLab always uses the GitLab version.
 	ConflictStrategyPreferGitLab ConflictStrategy = "prefer-gitlab"
@@ -191,7 +191,7 @@ func init() {
 	gitlabSyncCmd.Flags().BoolVar(&gitlabSyncPushOnly, "push-only", false, "Only push issues to GitLab")
 
 	// Conflict resolution flags (mutually exclusive)
-	gitlabSyncCmd.Flags().BoolVar(&gitlabPreferLocal, "prefer-local", false, "On conflict, keep local beads version")
+	gitlabSyncCmd.Flags().BoolVar(&gitlabPreferLocal, "prefer-local", false, "On conflict, keep local issuegraph version")
 	gitlabSyncCmd.Flags().BoolVar(&gitlabPreferGitLab, "prefer-gitlab", false, "On conflict, use GitLab version")
 	gitlabSyncCmd.Flags().BoolVar(&gitlabPreferNewer, "prefer-newer", false, "On conflict, use most recent version (default)")
 
@@ -211,7 +211,7 @@ func init() {
 	rootCmd.AddCommand(gitlabCmd)
 }
 
-// getGitLabConfig returns GitLab configuration from bd config or environment.
+// getGitLabConfig returns GitLab configuration from issuegraph config or environment.
 func getGitLabConfig() GitLabConfig {
 	ctx := context.Background()
 	config := GitLabConfig{}
@@ -300,13 +300,13 @@ func gitlabConfigToEnvVar(key string) string {
 // validateGitLabConfig checks that required configuration is present.
 func validateGitLabConfig(config GitLabConfig) error {
 	if config.URL == "" {
-		return fmt.Errorf("gitlab.url is not configured. Set via 'bd config set gitlab.url <url>' or GITLAB_URL environment variable")
+		return fmt.Errorf("gitlab.url is not configured. Set via 'issuegraph config set gitlab.url <url>' or GITLAB_URL environment variable")
 	}
 	if config.Token == "" {
-		return fmt.Errorf("gitlab.token is not configured. Set via 'bd config set gitlab.token <token>' or GITLAB_TOKEN environment variable")
+		return fmt.Errorf("gitlab.token is not configured. Set via 'issuegraph config set gitlab.token <token>' or GITLAB_TOKEN environment variable")
 	}
 	if config.ProjectID == "" && config.GroupID == "" {
-		return fmt.Errorf("gitlab.project_id or gitlab.group_id is not configured. Set via 'bd config' or environment variables")
+		return fmt.Errorf("gitlab.project_id or gitlab.group_id is not configured. Set via 'issuegraph config' or environment variables")
 	}
 	// Reject non-HTTPS URLs to prevent sending tokens in cleartext.
 	// Allow http://localhost and http://127.0.0.1 for local development/testing.
@@ -574,7 +574,7 @@ func runGitLabSync(cmd *cobra.Command, args []string) error {
 		_, _ = fmt.Fprintf(os.Stderr, "Warning: %s\n", msg)
 	}
 
-	// Dependency-link push pass: sync beads dependencies to GitLab issue links.
+	// Dependency-link push pass: sync issuegraph dependencies to GitLab issue links.
 	var linksPushed int
 	var linksLicenseSkipped int
 	var milestonesUpdated int
@@ -643,9 +643,9 @@ func gitLabLicenseSkipMessage(n int) string {
 }
 
 // pushGitLabDependencyLinks runs the dependency-link + epic-milestone push pass:
-// it converts beads dependencies among the scoped issues (per opts) into GitLab
+// it converts issuegraph dependencies among the scoped issues (per opts) into GitLab
 // issue links (additive — stale remote links are left untouched) and repairs
-// epic-child milestones. Shared by `bd gitlab sync` and `bd gitlab push` so both
+// epic-child milestones. Shared by `issuegraph gitlab sync` and `issuegraph gitlab push` so both
 // reach the same link parity. Dry-run plan lines are written to out (unless
 // --json); warnings are delivered via warn. Returns the number of links created,
 // license-skipped, and milestones updated.
@@ -739,7 +739,7 @@ func collectGitLabLinkSyncData(ctx context.Context, st storage.Storage, opts tra
 			if !scopedIssueIDs[dep.ID] {
 				continue
 			}
-			link, ok := gitlab.LinkFromBeadsDependency(issue, dep)
+			link, ok := gitlab.LinkFromIssueGraphDependency(issue, dep)
 			if ok {
 				desired = append(desired, link)
 			}
@@ -869,7 +869,7 @@ func buildCLIFilter() *gitlab.IssueFilter {
 
 // buildGitLabPullHooks creates PullHooks for GitLab-specific pull behavior.
 func buildGitLabPullHooks(ctx context.Context) *tracker.PullHooks {
-	prefix := "bd"
+	prefix := "issuegraph"
 	// YAML config takes precedence — in shared-server mode the DB
 	// may belong to a different project (GH#2469).
 	if p := config.GetString("issue-prefix"); p != "" {
@@ -903,7 +903,7 @@ func gitLabPushContentEqual(local *types.Issue, remote *tracker.TrackerIssue) bo
 	}
 
 	// Epics are represented as GitLab milestones. GitLab can return a milestone
-	// updated_at that is older than local beads bookkeeping even when pushed
+	// updated_at that is older than local issuegraph bookkeeping even when pushed
 	// fields are already identical, so use content equality to avoid repeat PUTs.
 	if local.IssueType == types.TypeEpic && gitLabMilestonePushFieldsEqual(local, remote) {
 		return true

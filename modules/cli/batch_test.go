@@ -262,7 +262,7 @@ func TestParseUpdateKVs(t *testing.T) {
 }
 
 func TestBatchCmd_Registered(t *testing.T) {
-	// Ensure 'bd batch' is wired into rootCmd with the correct group.
+	// Ensure 'issuegraph batch' is wired into rootCmd with the correct group.
 	cmd, _, err := rootCmd.Find([]string{"batch"})
 	if err != nil {
 		t.Fatalf("rootCmd.Find batch: %v", err)

@@ -12,59 +12,59 @@ import (
 	"sync"
 	"testing"
 
-	"github.com/steveyegge/beads/internal/configfile"
-	"github.com/steveyegge/beads/internal/storage/embeddeddolt"
-	"github.com/steveyegge/beads/internal/types"
+	"github.com/borg0ai/dx-issuegraph/internal/configfile"
+	"github.com/borg0ai/dx-issuegraph/internal/storage/embeddeddolt"
+	"github.com/borg0ai/dx-issuegraph/internal/types"
 )
 
 // ===== Shared test helpers (used by both update and close tests) =====
 
-// bdUpdate runs "bd update" with the given args and returns stdout.
+// issuegraphUpdate runs "issuegraph update" with the given args and returns stdout.
 // Retries on flock contention.
-func bdUpdate(t *testing.T, bd, dir string, args ...string) string {
+func issuegraphUpdate(t *testing.T, issuegraph, dir string, args ...string) string {
 	t.Helper()
 	fullArgs := append([]string{"update"}, args...)
-	out, err := bdRunWithFlockRetry(t, bd, dir, fullArgs...)
+	out, err := issuegraphRunWithFlockRetry(t, issuegraph, dir, fullArgs...)
 	if err != nil {
-		t.Fatalf("bd update %s failed: %v\n%s", strings.Join(args, " "), err, out)
+		t.Fatalf("issuegraph update %s failed: %v\n%s", strings.Join(args, " "), err, out)
 	}
 	return string(out)
 }
 
-// bdUpdateFail runs "bd update" expecting failure.
-func bdUpdateFail(t *testing.T, bd, dir string, args ...string) string {
+// issuegraphUpdateFail runs "issuegraph update" expecting failure.
+func issuegraphUpdateFail(t *testing.T, issuegraph, dir string, args ...string) string {
 	t.Helper()
 	fullArgs := append([]string{"update"}, args...)
-	cmd := exec.Command(bd, fullArgs...)
+	cmd := exec.Command(issuegraph, fullArgs...)
 	cmd.Dir = dir
-	cmd.Env = bdEnv(dir)
+	cmd.Env = issuegraphEnv(dir)
 	out, err := cmd.CombinedOutput()
 	if err == nil {
-		t.Fatalf("expected bd update %s to fail, but it succeeded:\n%s", strings.Join(args, " "), out)
+		t.Fatalf("expected issuegraph update %s to fail, but it succeeded:\n%s", strings.Join(args, " "), out)
 	}
 	return string(out)
 }
 
-// bdUpdateCapture runs "bd update" expecting success, returning stdout and
+// issuegraphUpdateCapture runs "issuegraph update" expecting success, returning stdout and
 // stderr separately (stdout may be JSON; warnings must not pollute it).
-func bdUpdateCapture(t *testing.T, bd, dir string, args ...string) (stdout, stderr string) {
+func issuegraphUpdateCapture(t *testing.T, issuegraph, dir string, args ...string) (stdout, stderr string) {
 	t.Helper()
 	fullArgs := append([]string{"update"}, args...)
-	cmd := exec.Command(bd, fullArgs...)
+	cmd := exec.Command(issuegraph, fullArgs...)
 	cmd.Dir = dir
-	cmd.Env = bdEnv(dir)
+	cmd.Env = issuegraphEnv(dir)
 	outBuf, errBuf, err := runCommandBuffers(t, cmd)
 	if err != nil {
-		t.Fatalf("bd update %s failed: %v\nstdout:\n%s\nstderr:\n%s", strings.Join(args, " "), err, outBuf.String(), errBuf.String())
+		t.Fatalf("issuegraph update %s failed: %v\nstdout:\n%s\nstderr:\n%s", strings.Join(args, " "), err, outBuf.String(), errBuf.String())
 	}
 	return outBuf.String(), errBuf.String()
 }
 
-func bdRunInTimezone(t *testing.T, bd, dir, timezone string, args ...string) string {
+func issuegraphRunInTimezone(t *testing.T, issuegraph, dir, timezone string, args ...string) string {
 	t.Helper()
-	cmd := exec.Command(bd, args...)
+	cmd := exec.Command(issuegraph, args...)
 	cmd.Dir = dir
-	for _, env := range bdEnv(dir) {
+	for _, env := range issuegraphEnv(dir) {
 		if !strings.HasPrefix(env, "TZ=") {
 			cmd.Env = append(cmd.Env, env)
 		}
@@ -72,14 +72,14 @@ func bdRunInTimezone(t *testing.T, bd, dir, timezone string, args ...string) str
 	cmd.Env = append(cmd.Env, "TZ="+timezone)
 	out, err := cmd.CombinedOutput()
 	if err != nil {
-		t.Fatalf("bd %s failed in %s: %v\n%s", strings.Join(args, " "), timezone, err, out)
+		t.Fatalf("issuegraph %s failed in %s: %v\n%s", strings.Join(args, " "), timezone, err, out)
 	}
 	return string(out)
 }
 
-func embeddedCurrentCommit(t *testing.T, beadsDir, database string) string {
+func embeddedCurrentCommit(t *testing.T, issuegraphDir, database string) string {
 	t.Helper()
-	store, err := embeddeddolt.Open(t.Context(), beadsDir, database, "main")
+	store, err := embeddeddolt.Open(t.Context(), issuegraphDir, database, "main")
 	if err != nil {
 		t.Fatalf("open embedded store: %v", err)
 	}
@@ -95,15 +95,15 @@ func embeddedCurrentCommit(t *testing.T, beadsDir, database string) string {
 	return head
 }
 
-// bdShowJSON runs "bd show <id> --json" and returns the raw JSON output.
-func bdShowJSON(t *testing.T, bd, dir, id string) string {
+// issuegraphShowJSON runs "issuegraph show <id> --json" and returns the raw JSON output.
+func issuegraphShowJSON(t *testing.T, issuegraph, dir, id string) string {
 	t.Helper()
-	cmd := exec.Command(bd, "show", id, "--json")
+	cmd := exec.Command(issuegraph, "show", id, "--json")
 	cmd.Dir = dir
-	cmd.Env = bdEnv(dir)
+	cmd.Env = issuegraphEnv(dir)
 	stdout, stderr, err := runCommandBuffers(t, cmd)
 	if err != nil {
-		t.Fatalf("bd show %s --json failed: %v\nstdout:\n%s\nstderr:\n%s", id, err, stdout.String(), stderr.String())
+		t.Fatalf("issuegraph show %s --json failed: %v\nstdout:\n%s\nstderr:\n%s", id, err, stdout.String(), stderr.String())
 	}
 	return stdout.String()
 }
@@ -118,7 +118,7 @@ func hasLabel(issue *types.Issue, label string) bool {
 	return false
 }
 
-// parseShowJSON parses the first JSON object from bd show --json output,
+// parseShowJSON parses the first JSON object from issuegraph show --json output,
 // which may be wrapped in an array or have non-JSON lines before it.
 func parseShowJSON(t *testing.T, raw string) json.RawMessage {
 	t.Helper()
@@ -134,10 +134,10 @@ func parseShowJSON(t *testing.T, raw string) json.RawMessage {
 	return obj
 }
 
-// showLabels returns labels from bd show --json output (uses IssueDetails which includes labels).
-func showLabels(t *testing.T, bd, dir, id string) []string {
+// showLabels returns labels from issuegraph show --json output (uses IssueDetails which includes labels).
+func showLabels(t *testing.T, issuegraph, dir, id string) []string {
 	t.Helper()
-	raw := bdShowJSON(t, bd, dir, id)
+	raw := issuegraphShowJSON(t, issuegraph, dir, id)
 	obj := parseShowJSON(t, raw)
 	var details struct {
 		Labels []string `json:"labels"`
@@ -148,13 +148,13 @@ func showLabels(t *testing.T, bd, dir, id string) []string {
 	return details.Labels
 }
 
-// showDeps returns dependency IDs from bd show --json output.
-func showDeps(t *testing.T, bd, dir, id string) []struct {
+// showDeps returns dependency IDs from issuegraph show --json output.
+func showDeps(t *testing.T, issuegraph, dir, id string) []struct {
 	ID   string `json:"id"`
 	Type string `json:"dependency_type"`
 } {
 	t.Helper()
-	raw := bdShowJSON(t, bd, dir, id)
+	raw := issuegraphShowJSON(t, issuegraph, dir, id)
 	obj := parseShowJSON(t, raw)
 	var details struct {
 		Dependencies []struct {
@@ -171,61 +171,61 @@ func showDeps(t *testing.T, bd, dir, id string) []struct {
 // ===== Update tests =====
 
 func TestEmbeddedUpdateBatchAutoCommitDoesNotAdvanceHead(t *testing.T) {
-	if os.Getenv("BEADS_TEST_EMBEDDED_DOLT") != "1" {
-		t.Skip("set BEADS_TEST_EMBEDDED_DOLT=1 to run embedded dolt update tests")
+	if os.Getenv("ISSUEGRAPH_TEST_EMBEDDED_DOLT") != "1" {
+		t.Skip("set ISSUEGRAPH_TEST_EMBEDDED_DOLT=1 to run embedded dolt update tests")
 	}
 	t.Parallel()
 
-	bd := buildEmbeddedBD(t)
-	dir, beadsDir, _ := bdInit(t, bd, "--prefix", "ub")
-	issue := bdCreate(t, bd, dir, "Batch update")
-	before := embeddedCurrentCommit(t, beadsDir, "ub")
+	issuegraph := buildEmbeddedBD(t)
+	dir, issuegraphDir, _ := issuegraphInit(t, issuegraph, "--prefix", "ub")
+	issue := issuegraphCreate(t, issuegraph, dir, "Batch update")
+	before := embeddedCurrentCommit(t, issuegraphDir, "ub")
 
-	cmd := exec.Command(bd, "--dolt-auto-commit", "batch", "update", issue.ID, "--title", "Deferred batch update")
+	cmd := exec.Command(issuegraph, "--dolt-auto-commit", "batch", "update", issue.ID, "--title", "Deferred batch update")
 	cmd.Dir = dir
-	cmd.Env = bdEnv(dir)
+	cmd.Env = issuegraphEnv(dir)
 	stdout, stderr, err := runCommandBuffers(t, cmd)
 	if err != nil {
-		t.Fatalf("bd --dolt-auto-commit batch update failed: %v\nstdout:\n%s\nstderr:\n%s", err, stdout.String(), stderr.String())
+		t.Fatalf("issuegraph --dolt-auto-commit batch update failed: %v\nstdout:\n%s\nstderr:\n%s", err, stdout.String(), stderr.String())
 	}
 
-	after := embeddedCurrentCommit(t, beadsDir, "ub")
+	after := embeddedCurrentCommit(t, issuegraphDir, "ub")
 	if after != before {
 		t.Fatalf("batch-mode update advanced HEAD; before=%s after=%s", before, after)
 	}
 }
 
 func TestEmbeddedUpdateRoutedStoreCommitsTargetHead(t *testing.T) {
-	if os.Getenv("BEADS_TEST_EMBEDDED_DOLT") != "1" {
-		t.Skip("set BEADS_TEST_EMBEDDED_DOLT=1 to run embedded dolt update tests")
+	if os.Getenv("ISSUEGRAPH_TEST_EMBEDDED_DOLT") != "1" {
+		t.Skip("set ISSUEGRAPH_TEST_EMBEDDED_DOLT=1 to run embedded dolt update tests")
 	}
 	t.Parallel()
 
-	bd := buildEmbeddedBD(t)
-	dir, _, _ := bdInit(t, bd, "--prefix", "src")
+	issuegraph := buildEmbeddedBD(t)
+	dir, _, _ := issuegraphInit(t, issuegraph, "--prefix", "src")
 
 	targetDir := filepath.Join(dir, "target-repo")
 	if err := os.MkdirAll(targetDir, 0750); err != nil {
 		t.Fatal(err)
 	}
 	initGitRepoAt(t, targetDir)
-	runBDInit(t, bd, targetDir, "--prefix", "tgt")
+	runIssueGraphInit(t, issuegraph, targetDir, "--prefix", "tgt")
 
-	issue := bdCreate(t, bd, targetDir, "Routed target issue")
+	issue := issuegraphCreate(t, issuegraph, targetDir, "Routed target issue")
 	route := `{"prefix":"tgt-","path":"target-repo"}` + "\n"
-	if err := os.WriteFile(filepath.Join(dir, ".beads", "routes.jsonl"), []byte(route), 0644); err != nil {
+	if err := os.WriteFile(filepath.Join(dir, ".issuegraph", "routes.jsonl"), []byte(route), 0644); err != nil {
 		t.Fatalf("write routes.jsonl: %v", err)
 	}
 
-	targetBeadsDir := filepath.Join(targetDir, ".beads")
-	before := embeddedCurrentCommit(t, targetBeadsDir, "tgt")
-	bdUpdate(t, bd, dir, issue.ID, "--title", "Updated through route")
-	after := embeddedCurrentCommit(t, targetBeadsDir, "tgt")
+	targetIssueGraphDir := filepath.Join(targetDir, ".issuegraph")
+	before := embeddedCurrentCommit(t, targetIssueGraphDir, "tgt")
+	issuegraphUpdate(t, issuegraph, dir, issue.ID, "--title", "Updated through route")
+	after := embeddedCurrentCommit(t, targetIssueGraphDir, "tgt")
 	if after == before {
 		t.Fatalf("routed update did not advance target HEAD; before=%s after=%s", before, after)
 	}
 
-	targetStore := openStore(t, targetBeadsDir, "tgt")
+	targetStore := openStore(t, targetIssueGraphDir, "tgt")
 	got, err := targetStore.GetIssue(t.Context(), issue.ID)
 	if err != nil {
 		t.Fatalf("GetIssue in target: %v", err)
@@ -236,17 +236,17 @@ func TestEmbeddedUpdateRoutedStoreCommitsTargetHead(t *testing.T) {
 }
 
 func TestEmbeddedUpdate(t *testing.T) {
-	if os.Getenv("BEADS_TEST_EMBEDDED_DOLT") != "1" {
-		t.Skip("set BEADS_TEST_EMBEDDED_DOLT=1 to run embedded dolt integration tests")
+	if os.Getenv("ISSUEGRAPH_TEST_EMBEDDED_DOLT") != "1" {
+		t.Skip("set ISSUEGRAPH_TEST_EMBEDDED_DOLT=1 to run embedded dolt integration tests")
 	}
 	t.Parallel()
 
-	bd := buildEmbeddedBD(t)
-	dir, beadsDir, _ := bdInit(t, bd, "--prefix", "tu")
+	issuegraph := buildEmbeddedBD(t)
+	dir, issuegraphDir, _ := issuegraphInit(t, issuegraph, "--prefix", "tu")
 
 	t.Run("update_direct_flag_mapping", func(t *testing.T) {
-		issue := bdCreate(t, bd, dir, "Multi update", "--type", "task", "--metadata", `{"remove":"me"}`)
-		out := bdUpdate(t, bd, dir,
+		issue := issuegraphCreate(t, issuegraph, dir, "Multi update", "--type", "task", "--metadata", `{"remove":"me"}`)
+		out := issuegraphUpdate(t, issuegraph, dir,
 			"--json", issue.ID,
 			"--status", "in_progress",
 			"--assignee", "bob",
@@ -320,7 +320,7 @@ func TestEmbeddedUpdate(t *testing.T) {
 			t.Errorf("metadata still contains removed key: %v", metadata)
 		}
 
-		conflict := bdUpdateFail(t, bd, dir, issue.ID,
+		conflict := issuegraphUpdateFail(t, issuegraph, dir, issue.ID,
 			"--metadata", `{"other":"value"}`,
 			"--set-metadata", "team=other",
 		)
@@ -328,7 +328,7 @@ func TestEmbeddedUpdate(t *testing.T) {
 			t.Errorf("expected exact metadata conflict error, got: %s", conflict)
 		}
 
-		out = bdUpdate(t, bd, dir, "--json", issue.ID, "--due", "", "--history")
+		out = issuegraphUpdate(t, issuegraph, dir, "--json", issue.ID, "--due", "", "--history")
 		updated = nil
 		if err := json.Unmarshal([]byte(out), &updated); err != nil {
 			t.Fatalf("parse clearing update response: %v\n%s", err, out)
@@ -345,20 +345,20 @@ func TestEmbeddedUpdate(t *testing.T) {
 	})
 
 	t.Run("update_type_custom", func(t *testing.T) {
-		// Register "agent" as a custom type via bd config (GH#3030).
-		// This writes to Dolt only, NOT to .beads/config.yaml.
-		cfgCmd := exec.Command(bd, "config", "set", "types.custom", "agent,spike")
+		// Register "agent" as a custom type via issuegraph config (GH#3030).
+		// This writes to Dolt only, NOT to .issuegraph/config.yaml.
+		cfgCmd := exec.Command(issuegraph, "config", "set", "types.custom", "agent,spike")
 		cfgCmd.Dir = dir
-		cfgCmd.Env = bdEnv(dir)
+		cfgCmd.Env = issuegraphEnv(dir)
 		if out, err := cfgCmd.CombinedOutput(); err != nil {
-			t.Fatalf("bd config set types.custom failed: %v\n%s", err, out)
+			t.Fatalf("issuegraph config set types.custom failed: %v\n%s", err, out)
 		}
 
-		issue := bdCreate(t, bd, dir, "Custom type update", "--type", "task")
+		issue := issuegraphCreate(t, issuegraph, dir, "Custom type update", "--type", "task")
 		// Before the fix (GH#3030), this would fail with "invalid issue type"
 		// because the CLI-level validation could not read custom types from Dolt.
-		bdUpdate(t, bd, dir, issue.ID, "--type", "agent")
-		got := bdShow(t, bd, dir, issue.ID)
+		issuegraphUpdate(t, issuegraph, dir, issue.ID, "--type", "agent")
+		got := issuegraphShow(t, issuegraph, dir, issue.ID)
 		if string(got.IssueType) != "agent" {
 			t.Errorf("expected type agent, got %s", got.IssueType)
 		}
@@ -370,16 +370,16 @@ func TestEmbeddedUpdate(t *testing.T) {
 	// tracked, and two cleared issues round-trip with different JSON shapes
 	// (cleared via CLI emits "external_ref":"" while never-set issues omit the field).
 	t.Run("update_external_ref_clear", func(t *testing.T) {
-		a := bdCreate(t, bd, dir, "ExtRef clear A", "--type", "task", "--external-ref", "ref-a")
-		b := bdCreate(t, bd, dir, "ExtRef clear B", "--type", "task", "--external-ref", "ref-b")
+		a := issuegraphCreate(t, issuegraph, dir, "ExtRef clear A", "--type", "task", "--external-ref", "ref-a")
+		b := issuegraphCreate(t, issuegraph, dir, "ExtRef clear B", "--type", "task", "--external-ref", "ref-b")
 
-		bdUpdate(t, bd, dir, a.ID, "--external-ref", "")
+		issuegraphUpdate(t, issuegraph, dir, a.ID, "--external-ref", "")
 		// Repeat clear must succeed for a second issue — historical UNIQUE
 		// constraint repro from the issue report.
-		bdUpdate(t, bd, dir, b.ID, "--external-ref", "")
+		issuegraphUpdate(t, issuegraph, dir, b.ID, "--external-ref", "")
 
-		gotA := bdShow(t, bd, dir, a.ID)
-		gotB := bdShow(t, bd, dir, b.ID)
+		gotA := issuegraphShow(t, issuegraph, dir, a.ID)
+		gotB := issuegraphShow(t, issuegraph, dir, b.ID)
 		if gotA.ExternalRef != nil {
 			t.Errorf("expected A.external_ref to be nil after clear, got %q", *gotA.ExternalRef)
 		}
@@ -388,17 +388,17 @@ func TestEmbeddedUpdate(t *testing.T) {
 		}
 
 		// JSON output: cleared ref should be omitted via omitempty, not emitted as "".
-		rawA := bdShowJSON(t, bd, dir, a.ID)
+		rawA := issuegraphShowJSON(t, issuegraph, dir, a.ID)
 		if strings.Contains(rawA, `"external_ref"`) {
 			t.Errorf("expected external_ref field to be omitted from JSON after clear, got: %s", rawA)
 		}
 	})
 
 	t.Run("update_notes_overwrite_warns", func(t *testing.T) {
-		issue := bdCreate(t, bd, dir, "Notes warning test", "--type", "task")
-		bdUpdate(t, bd, dir, issue.ID, "--notes", "original notes")
+		issue := issuegraphCreate(t, issuegraph, dir, "Notes warning test", "--type", "task")
+		issuegraphUpdate(t, issuegraph, dir, issue.ID, "--notes", "original notes")
 
-		stdout, stderr := bdUpdateCapture(t, bd, dir, issue.ID, "--notes", "replacement notes")
+		stdout, stderr := issuegraphUpdateCapture(t, issuegraph, dir, issue.ID, "--notes", "replacement notes")
 		warning := fmt.Sprintf("warning: %s: --notes replaced existing notes (use --append-notes to preserve history)", issue.ID)
 		if !strings.Contains(stderr, warning) {
 			t.Errorf("expected stderr to contain %q, got: %s", warning, stderr)
@@ -406,29 +406,29 @@ func TestEmbeddedUpdate(t *testing.T) {
 		if strings.Contains(stdout, "warning:") {
 			t.Errorf("warning must not appear on stdout, got: %s", stdout)
 		}
-		if got := bdShow(t, bd, dir, issue.ID); got.Notes != "replacement notes" {
+		if got := issuegraphShow(t, issuegraph, dir, issue.ID); got.Notes != "replacement notes" {
 			t.Errorf("expected notes %q, got %q", "replacement notes", got.Notes)
 		}
 	})
 
 	t.Run("update_defer", func(t *testing.T) {
-		issue := bdCreate(t, bd, dir, "Defer test", "--type", "task")
-		bdUpdate(t, bd, dir, issue.ID, "--defer", "2099-01-15")
-		got := bdShow(t, bd, dir, issue.ID)
+		issue := issuegraphCreate(t, issuegraph, dir, "Defer test", "--type", "task")
+		issuegraphUpdate(t, issuegraph, dir, issue.ID, "--defer", "2099-01-15")
+		got := issuegraphShow(t, issuegraph, dir, issue.ID)
 		if got.DeferUntil == nil {
 			t.Error("expected defer_until to be set")
 		}
-		// GH#3233: --defer should also set status=deferred for consistency with `bd defer`
+		// GH#3233: --defer should also set status=deferred for consistency with `issuegraph defer`
 		if string(got.Status) != "deferred" {
 			t.Errorf("expected status=deferred, got %q", got.Status)
 		}
 	})
 
 	t.Run("relative_defer_is_persisted_in_UTC", func(t *testing.T) {
-		issue := bdCreate(t, bd, dir, "UTC defer test", "--type", "task")
-		bdRunInTimezone(t, bd, dir, "America/Denver", "update", issue.ID, "--defer", "+1h")
+		issue := issuegraphCreate(t, issuegraph, dir, "UTC defer test", "--type", "task")
+		issuegraphRunInTimezone(t, issuegraph, dir, "America/Denver", "update", issue.ID, "--defer", "+1h")
 
-		db, cleanup, err := embeddeddolt.OpenSQL(t.Context(), filepath.Join(beadsDir, "embeddeddolt"), "tu", "main")
+		db, cleanup, err := embeddeddolt.OpenSQL(t.Context(), filepath.Join(issuegraphDir, "embeddeddolt"), "tu", "main")
 		if err != nil {
 			t.Fatalf("open embedded SQL: %v", err)
 		}
@@ -448,32 +448,32 @@ func TestEmbeddedUpdate(t *testing.T) {
 	})
 
 	t.Run("show_renders_scheduled_dates_in_local_time", func(t *testing.T) {
-		issue := bdCreate(t, bd, dir, "Local date display test", "--type", "task")
+		issue := issuegraphCreate(t, issuegraph, dir, "Local date display test", "--type", "task")
 		const date = "2099-01-15"
-		bdRunInTimezone(t, bd, dir, "Pacific/Auckland", "update", issue.ID, "--due", date, "--defer", date)
-		output := bdRunInTimezone(t, bd, dir, "Pacific/Auckland", "--no-color", "show", issue.ID)
+		issuegraphRunInTimezone(t, issuegraph, dir, "Pacific/Auckland", "update", issue.ID, "--due", date, "--defer", date)
+		output := issuegraphRunInTimezone(t, issuegraph, dir, "Pacific/Auckland", "--no-color", "show", issue.ID)
 		for _, want := range []string{"Due: " + date, "Deferred: " + date} {
 			if !strings.Contains(output, want) {
-				t.Errorf("bd show output missing %q:\n%s", want, output)
+				t.Errorf("issuegraph show output missing %q:\n%s", want, output)
 			}
 		}
 	})
 
 	t.Run("update_defer_respects_explicit_status", func(t *testing.T) {
 		// GH#3233: explicit --status should win over the implicit deferred set by --defer
-		issue := bdCreate(t, bd, dir, "Defer+status test", "--type", "task")
-		bdUpdate(t, bd, dir, issue.ID, "--defer", "2099-01-15", "--status", "in_progress")
-		got := bdShow(t, bd, dir, issue.ID)
+		issue := issuegraphCreate(t, issuegraph, dir, "Defer+status test", "--type", "task")
+		issuegraphUpdate(t, issuegraph, dir, issue.ID, "--defer", "2099-01-15", "--status", "in_progress")
+		got := issuegraphShow(t, issuegraph, dir, issue.ID)
 		if string(got.Status) != "in_progress" {
 			t.Errorf("expected explicit status=in_progress to win, got %q", got.Status)
 		}
 	})
 
 	t.Run("update_defer_clear", func(t *testing.T) {
-		issue := bdCreate(t, bd, dir, "Defer clear test", "--type", "task")
-		bdUpdate(t, bd, dir, issue.ID, "--defer", "2099-01-15")
-		bdUpdate(t, bd, dir, issue.ID, "--defer", "")
-		got := bdShow(t, bd, dir, issue.ID)
+		issue := issuegraphCreate(t, issuegraph, dir, "Defer clear test", "--type", "task")
+		issuegraphUpdate(t, issuegraph, dir, issue.ID, "--defer", "2099-01-15")
+		issuegraphUpdate(t, issuegraph, dir, issue.ID, "--defer", "")
+		got := issuegraphShow(t, issuegraph, dir, issue.ID)
 		if got.DeferUntil != nil {
 			t.Error("expected defer_until to be cleared")
 		}
@@ -485,10 +485,10 @@ func TestEmbeddedUpdate(t *testing.T) {
 
 	t.Run("update_defer_past_date_keeps_status_open", func(t *testing.T) {
 		// GH#3233: past-date --defer shouldn't flip status to deferred, because
-		// the warning promises the issue "will appear in bd ready immediately".
-		issue := bdCreate(t, bd, dir, "Past defer test", "--type", "task")
-		bdUpdate(t, bd, dir, issue.ID, "--defer", "2000-01-01")
-		got := bdShow(t, bd, dir, issue.ID)
+		// the warning promises the issue "will appear in issuegraph ready immediately".
+		issue := issuegraphCreate(t, issuegraph, dir, "Past defer test", "--type", "task")
+		issuegraphUpdate(t, issuegraph, dir, issue.ID, "--defer", "2000-01-01")
+		got := issuegraphShow(t, issuegraph, dir, issue.ID)
 		if string(got.Status) == "deferred" {
 			t.Errorf("past --defer should not set status=deferred, got %q", got.Status)
 		}
@@ -497,19 +497,19 @@ func TestEmbeddedUpdate(t *testing.T) {
 	t.Run("update_defer_clear_preserves_non_deferred_status", func(t *testing.T) {
 		// GH#3233: clearing defer_until shouldn't clobber a non-deferred status
 		// that was set independently (e.g. in_progress).
-		issue := bdCreate(t, bd, dir, "Defer clear keep status test", "--type", "task")
-		bdUpdate(t, bd, dir, issue.ID, "--status", "in_progress")
-		bdUpdate(t, bd, dir, issue.ID, "--defer", "")
-		got := bdShow(t, bd, dir, issue.ID)
+		issue := issuegraphCreate(t, issuegraph, dir, "Defer clear keep status test", "--type", "task")
+		issuegraphUpdate(t, issuegraph, dir, issue.ID, "--status", "in_progress")
+		issuegraphUpdate(t, issuegraph, dir, issue.ID, "--defer", "")
+		got := issuegraphShow(t, issuegraph, dir, issue.ID)
 		if string(got.Status) != "in_progress" {
 			t.Errorf("expected status=in_progress to be preserved, got %q", got.Status)
 		}
 	})
 
 	t.Run("update_claim_already_claimed", func(t *testing.T) {
-		issue := bdCreate(t, bd, dir, "Claim fail test", "--type", "task")
-		bdUpdate(t, bd, dir, issue.ID, "--assignee", "alice")
-		out := bdUpdateFail(t, bd, dir, issue.ID, "--claim")
+		issue := issuegraphCreate(t, issuegraph, dir, "Claim fail test", "--type", "task")
+		issuegraphUpdate(t, issuegraph, dir, issue.ID, "--assignee", "alice")
+		out := issuegraphUpdateFail(t, issuegraph, dir, issue.ID, "--claim")
 		if !strings.Contains(out, "already assigned to") {
 			t.Errorf("expected 'already assigned to' error, got: %s", out)
 		}
@@ -531,37 +531,37 @@ func TestEmbeddedUpdate(t *testing.T) {
 	})
 
 	// A batch where one claim is lost and another is won must exit non-zero, so
-	// the lost claim is not hidden from exit-code automation (beads audit
+	// the lost claim is not hidden from exit-code automation (issuegraph audit
 	// finding #10). The winner is still committed.
 	t.Run("update_claim_batch_partial_loss_exits_nonzero", func(t *testing.T) {
-		lost := bdCreate(t, bd, dir, "Batch lost", "--type", "task")
-		won := bdCreate(t, bd, dir, "Batch won", "--type", "task")
+		lost := issuegraphCreate(t, issuegraph, dir, "Batch lost", "--type", "task")
+		won := issuegraphCreate(t, issuegraph, dir, "Batch won", "--type", "task")
 		// Pre-assign `lost` to someone else so the default actor's claim loses.
-		bdUpdate(t, bd, dir, lost.ID, "--assignee", "alice")
+		issuegraphUpdate(t, issuegraph, dir, lost.ID, "--assignee", "alice")
 
-		out := bdUpdateFail(t, bd, dir, lost.ID, won.ID, "--claim")
+		out := issuegraphUpdateFail(t, issuegraph, dir, lost.ID, won.ID, "--claim")
 		if !strings.Contains(out, "already assigned to") {
 			t.Errorf("expected 'already assigned to' error in batch output, got: %s", out)
 		}
 		// The winning claim still lands despite the batch exiting non-zero.
-		gotWon := bdShow(t, bd, dir, won.ID)
+		gotWon := issuegraphShow(t, issuegraph, dir, won.ID)
 		if gotWon.Status != types.StatusInProgress {
 			t.Errorf("winning claim %s: status = %s, want in_progress", won.ID, gotWon.Status)
 		}
 		// The lost issue is untouched.
-		gotLost := bdShow(t, bd, dir, lost.ID)
+		gotLost := issuegraphShow(t, issuegraph, dir, lost.ID)
 		if gotLost.Assignee != "alice" {
 			t.Errorf("lost issue %s assignee = %q, want alice (unchanged)", lost.ID, gotLost.Assignee)
 		}
 	})
 
 	t.Run("update_parent_change", func(t *testing.T) {
-		epic1 := bdCreate(t, bd, dir, "Old parent", "--type", "epic")
-		epic2 := bdCreate(t, bd, dir, "New parent", "--type", "epic")
-		child := bdCreate(t, bd, dir, "Reparent child", "--type", "task")
-		bdUpdate(t, bd, dir, child.ID, "--parent", epic1.ID)
-		bdUpdate(t, bd, dir, child.ID, "--parent", epic2.ID)
-		deps := showDeps(t, bd, dir, child.ID)
+		epic1 := issuegraphCreate(t, issuegraph, dir, "Old parent", "--type", "epic")
+		epic2 := issuegraphCreate(t, issuegraph, dir, "New parent", "--type", "epic")
+		child := issuegraphCreate(t, issuegraph, dir, "Reparent child", "--type", "task")
+		issuegraphUpdate(t, issuegraph, dir, child.ID, "--parent", epic1.ID)
+		issuegraphUpdate(t, issuegraph, dir, child.ID, "--parent", epic2.ID)
+		deps := showDeps(t, issuegraph, dir, child.ID)
 		hasOld, hasNew := false, false
 		for _, d := range deps {
 			if d.Type == "parent-child" {
@@ -582,22 +582,22 @@ func TestEmbeddedUpdate(t *testing.T) {
 	})
 
 	t.Run("update_persistent", func(t *testing.T) {
-		issue := bdCreate(t, bd, dir, "Persistent test", "--type", "task")
-		bdUpdate(t, bd, dir, issue.ID, "--ephemeral")
-		bdUpdate(t, bd, dir, issue.ID, "--persistent")
-		got := bdShow(t, bd, dir, issue.ID)
+		issue := issuegraphCreate(t, issuegraph, dir, "Persistent test", "--type", "task")
+		issuegraphUpdate(t, issuegraph, dir, issue.ID, "--ephemeral")
+		issuegraphUpdate(t, issuegraph, dir, issue.ID, "--persistent")
+		got := issuegraphShow(t, issuegraph, dir, issue.ID)
 		if got.Ephemeral {
 			t.Error("expected ephemeral to be false after --persistent")
 		}
 	})
 
 	t.Run("update_dolt_commit", func(t *testing.T) {
-		issue := bdCreate(t, bd, dir, "Dolt commit test", "--type", "task")
-		bdUpdate(t, bd, dir, issue.ID, "--status", "in_progress")
+		issue := issuegraphCreate(t, issuegraph, dir, "Dolt commit test", "--type", "task")
+		issuegraphUpdate(t, issuegraph, dir, issue.ID, "--status", "in_progress")
 
 		// Verify a Dolt commit exists by querying dolt_log.
-		dataDir := filepath.Join(beadsDir, "embeddeddolt")
-		cfg, _ := configfile.Load(beadsDir)
+		dataDir := filepath.Join(issuegraphDir, "embeddeddolt")
+		cfg, _ := configfile.Load(issuegraphDir)
 		database := ""
 		if cfg != nil {
 			database = cfg.GetDoltDatabase()
@@ -623,13 +623,13 @@ func TestEmbeddedUpdate(t *testing.T) {
 // concurrently to verify EmbeddedDoltStore handles concurrent CLI invocations
 // without panics, data corruption, or deadlocks.
 func TestEmbeddedUpdateConcurrent(t *testing.T) {
-	if os.Getenv("BEADS_TEST_EMBEDDED_DOLT") != "1" {
-		t.Skip("set BEADS_TEST_EMBEDDED_DOLT=1 to run embedded dolt integration tests")
+	if os.Getenv("ISSUEGRAPH_TEST_EMBEDDED_DOLT") != "1" {
+		t.Skip("set ISSUEGRAPH_TEST_EMBEDDED_DOLT=1 to run embedded dolt integration tests")
 	}
 	t.Parallel()
 
-	bd := buildEmbeddedBD(t)
-	dir, beadsDir, _ := bdInit(t, bd, "--prefix", "cu")
+	issuegraph := buildEmbeddedBD(t)
+	dir, issuegraphDir, _ := issuegraphInit(t, issuegraph, "--prefix", "cu")
 
 	const (
 		numWorkers      = 10
@@ -655,7 +655,7 @@ func TestEmbeddedUpdateConcurrent(t *testing.T) {
 			for i := 0; i < issuesPerWorker; i++ {
 				// Create an issue.
 				title := fmt.Sprintf("w%d-issue-%d", worker, i)
-				out, err := bdRunWithFlockRetry(t, bd, dir, "create", "--silent", title)
+				out, err := issuegraphRunWithFlockRetry(t, issuegraph, dir, "create", "--silent", title)
 				if err != nil {
 					r.err = fmt.Errorf("create %d: %v\n%s", i, err, out)
 					results[worker] = r
@@ -670,9 +670,9 @@ func TestEmbeddedUpdateConcurrent(t *testing.T) {
 				r.ids = append(r.ids, id)
 
 				// Update: change status to in_progress.
-				uCmd := exec.Command(bd, "update", id, "--status", "in_progress")
+				uCmd := exec.Command(issuegraph, "update", id, "--status", "in_progress")
 				uCmd.Dir = dir
-				uCmd.Env = bdEnv(dir)
+				uCmd.Env = issuegraphEnv(dir)
 				uOut, err := uCmd.CombinedOutput()
 				if err != nil {
 					r.err = fmt.Errorf("update status %d: %v\n%s", i, err, uOut)
@@ -681,9 +681,9 @@ func TestEmbeddedUpdateConcurrent(t *testing.T) {
 				}
 
 				// Update: set priority and assignee.
-				uCmd2 := exec.Command(bd, "update", id, "--priority", fmt.Sprintf("%d", worker%4), "--assignee", fmt.Sprintf("agent-%d", worker))
+				uCmd2 := exec.Command(issuegraph, "update", id, "--priority", fmt.Sprintf("%d", worker%4), "--assignee", fmt.Sprintf("agent-%d", worker))
 				uCmd2.Dir = dir
-				uCmd2.Env = bdEnv(dir)
+				uCmd2.Env = issuegraphEnv(dir)
 				uOut2, err := uCmd2.CombinedOutput()
 				if err != nil {
 					r.err = fmt.Errorf("update fields %d: %v\n%s", i, err, uOut2)
@@ -692,9 +692,9 @@ func TestEmbeddedUpdateConcurrent(t *testing.T) {
 				}
 
 				// Update: add a label.
-				uCmd3 := exec.Command(bd, "update", id, "--add-label", fmt.Sprintf("team-%d", worker%3))
+				uCmd3 := exec.Command(issuegraph, "update", id, "--add-label", fmt.Sprintf("team-%d", worker%3))
 				uCmd3.Dir = dir
-				uCmd3.Env = bdEnv(dir)
+				uCmd3.Env = issuegraphEnv(dir)
 				uOut3, err := uCmd3.CombinedOutput()
 				if err != nil {
 					r.err = fmt.Errorf("update label %d: %v\n%s", i, err, uOut3)
@@ -703,9 +703,9 @@ func TestEmbeddedUpdateConcurrent(t *testing.T) {
 				}
 
 				// List to verify consistency (interleaved with writes).
-				listCmd := exec.Command(bd, "list", "--json", "--limit", "0")
+				listCmd := exec.Command(issuegraph, "list", "--json", "--limit", "0")
 				listCmd.Dir = dir
-				listCmd.Env = bdEnv(dir)
+				listCmd.Env = issuegraphEnv(dir)
 				listStdout, listStderr, err := runCommandBuffers(t, listCmd)
 				if err != nil {
 					r.err = fmt.Errorf("list after update %d: %v\nstdout:\n%s\nstderr:\n%s", i, err, listStdout.String(), listStderr.String())
@@ -761,7 +761,7 @@ func TestEmbeddedUpdateConcurrent(t *testing.T) {
 	}
 
 	// Verify all successfully created issues exist and were updated correctly.
-	store := openStore(t, beadsDir, "cu")
+	store := openStore(t, issuegraphDir, "cu")
 	stats, err := store.GetStatistics(t.Context())
 	if err != nil {
 		t.Fatalf("GetStatistics: %v", err)

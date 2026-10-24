@@ -1,7 +1,7 @@
-# Test bd import command
-bd init --prefix test
-bd import import.jsonl
-bd show test-99
+# Test issuegraph import command
+issuegraph init --prefix test
+issuegraph import import.jsonl
+issuegraph show test-99
 stdout 'Imported issue'
 
 -- import.jsonl --

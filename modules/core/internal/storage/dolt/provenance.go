@@ -5,8 +5,8 @@ import (
 	"database/sql"
 	"fmt"
 
-	"github.com/steveyegge/beads/internal/storage/issueops"
-	"github.com/steveyegge/beads/internal/types"
+	"github.com/borg0ai/dx-issuegraph/internal/storage/issueops"
+	"github.com/borg0ai/dx-issuegraph/internal/types"
 )
 
 // RecordProvenanceEvent validates and appends a provenance event, then commits
@@ -25,7 +25,7 @@ func (s *DoltStore) RecordProvenanceEvent(ctx context.Context, ev types.Provenan
 	}
 	if inserted {
 		if err := s.doltAddAndCommit(ctx, []string{"provenance_events"},
-			fmt.Sprintf("bd: provenance %s %s", ev.Kind, ev.IssueID)); err != nil {
+			fmt.Sprintf("issuegraph: provenance %s %s", ev.Kind, ev.IssueID)); err != nil {
 			return "", false, err
 		}
 	}

@@ -7,12 +7,12 @@ import (
 	"strings"
 	"time"
 
+	"github.com/borg0ai/dx-issuegraph/internal/formula"
+	"github.com/borg0ai/dx-issuegraph/internal/metrics"
+	"github.com/borg0ai/dx-issuegraph/internal/storage"
+	"github.com/borg0ai/dx-issuegraph/internal/types"
+	"github.com/borg0ai/dx-issuegraph/internal/ui"
 	"github.com/spf13/cobra"
-	"github.com/steveyegge/beads/internal/formula"
-	"github.com/steveyegge/beads/internal/metrics"
-	"github.com/steveyegge/beads/internal/storage"
-	"github.com/steveyegge/beads/internal/types"
-	"github.com/steveyegge/beads/internal/ui"
 )
 
 // stepTypeToIssueType converts a formula step type string to a types.IssueType.
@@ -21,7 +21,7 @@ import (
 // cook --persist time, flattenUnregisteredIssueTypes degrades types that
 // are neither built-in nor registered in types.custom to task (with a
 // warning), and the storage layer validates what remains — the same
-// division of labor as bd create --type.
+// division of labor as issuegraph create --type.
 func stepTypeToIssueType(stepType string) types.IssueType {
 	stepType = strings.TrimSpace(stepType)
 	if stepType == "" {
@@ -30,7 +30,7 @@ func stepTypeToIssueType(stepType string) types.IssueType {
 	return types.IssueType(stepType).Normalize()
 }
 
-// cookCmd compiles a formula JSON into a proto bead.
+// cookCmd compiles a formula JSON into a proto issue.
 var cookCmd = &cobra.Command{
 	Use:   "cook <formula-file>",
 	Short: "Compile a formula into a proto (ephemeral by default)",
@@ -65,18 +65,18 @@ For most workflows, prefer ephemeral protos: pour and wisp commands
 accept formula names directly and cook inline.
 
 Examples:
-  bd cook mol-feature.formula.json                    # Compile-time: keep {{vars}}
-  bd cook mol-feature --var name=auth                 # Runtime: substitute vars
-  bd cook mol-feature --mode=runtime --var name=auth  # Explicit runtime mode
-  bd cook mol-feature --dry-run                       # Preview steps
-  bd cook mol-release.formula.json --persist          # Write to database
-  bd cook mol-release.formula.json --persist --force  # Replace existing
+  issuegraph cook mol-feature.formula.json                    # Compile-time: keep {{vars}}
+  issuegraph cook mol-feature --var name=auth                 # Runtime: substitute vars
+  issuegraph cook mol-feature --mode=runtime --var name=auth  # Explicit runtime mode
+  issuegraph cook mol-feature --dry-run                       # Preview steps
+  issuegraph cook mol-release.formula.json --persist          # Write to database
+  issuegraph cook mol-release.formula.json --persist --force  # Replace existing
 
 Output (default):
   JSON representation of the resolved formula with all steps.
 
 Output (--persist):
-  Creates a proto bead in the database with:
+  Creates a proto issue in the database with:
   - ID matching the formula name (e.g., mol-feature)
   - The "template" label for proto identification
   - Child issues for each step
@@ -149,12 +149,12 @@ func parseCookFlags(cmd *cobra.Command, args []string) (*cookFlags, error) {
 }
 
 // loadAndResolveFormula parses a formula file and applies all transformations.
-// It first tries to load by name from the formula registry (.beads/formulas/),
+// It first tries to load by name from the formula registry (.issuegraph/formulas/),
 // and falls back to parsing as a file path if that fails.
 func loadAndResolveFormula(formulaPath string, searchPaths []string) (*formula.Formula, error) {
 	parser := formula.NewParser(searchPaths...)
 
-	// Try to load by name first (from .beads/formulas/ registry)
+	// Try to load by name first (from .issuegraph/formulas/ registry)
 	f, err := parser.LoadByName(formulaPath)
 	if err != nil {
 		// Fall back to parsing as a file path
@@ -308,7 +308,7 @@ func outputCookEphemeral(resolved *formula.Formula, runtimeMode bool, inputVars 
 	return outputJSON(resolved)
 }
 
-// persistCookFormula creates a proto bead in the database (persist mode)
+// persistCookFormula creates a proto issue in the database (persist mode)
 func persistCookFormula(ctx context.Context, resolved *formula.Formula, protoID string, force bool, vars, bondPoints []string) error {
 	// Check if proto already exists
 	existingProto, err := store.GetIssue(ctx, protoID)
@@ -322,7 +322,7 @@ func persistCookFormula(ctx context.Context, resolved *formula.Formula, protoID 
 		}
 	}
 
-	// Create the proto bead from the formula
+	// Create the proto issue from the formula
 	result, err := cookFormula(ctx, store, resolved, protoID)
 	if err != nil {
 		return fmt.Errorf("cooking formula: %w", err)
@@ -346,7 +346,7 @@ func persistCookFormula(ctx context.Context, resolved *formula.Formula, protoID 
 	if len(bondPoints) > 0 {
 		fmt.Printf("  Bond points: %s\n", strings.Join(bondPoints, ", "))
 	}
-	fmt.Printf("\nTo use: bd mol pour %s --var <name>=<value>\n", result.ProtoID)
+	fmt.Printf("\nTo use: issuegraph mol pour %s --var <name>=<value>\n", result.ProtoID)
 	return nil
 }
 
@@ -525,10 +525,10 @@ func createGateIssue(step *formula.Step, parentID string) *types.Issue {
 	// declarative `metadata.repo` selector documented for ad-hoc gates.
 	// Malformed values are left for check time (githubRepoFromIssue) to
 	// reject, consistent with how a check-time-only value on any other
-	// gate created outside `bd gate create` is validated.
+	// gate created outside `issuegraph gate create` is validated.
 	//
 	// Restricted to gh:* gate types (SF4), same as repoMetadataForGate: a
-	// `repo` field on a human/timer/bead gate step is unrelated, ordinary
+	// `repo` field on a human/timer/issue gate step is unrelated, ordinary
 	// metadata, not a GitHub repo selector, so only gh:run/gh:pr gates
 	// write it here.
 	if isGitHubGateType(step.Gate.Type) && step.Gate.Repo != "" {
@@ -717,13 +717,13 @@ func resolveAndCookFormulaWithVars(formulaName string, searchPaths []string, con
 
 	// Validate any caller-provided variable values against enum/pattern/
 	// required-empty constraints. This is deliberately presence-agnostic:
-	// a var missing entirely is left to the caller's own UX (e.g. bd mol
+	// a var missing entirely is left to the caller's own UX (e.g. issuegraph mol
 	// pour/wisp's missing-var hint), but a var explicitly provided with a
 	// value that violates its constraints must error here so it reaches
 	// every caller of this shared path (pour, wisp, mol bond, mol seed) —
 	// runCook does not go through this helper; it validates separately via
 	// its own formula.ValidateVars call under --mode=runtime. Previously
-	// only that `bd cook --mode=runtime` path enforced these (mybd-u2r6).
+	// only that `issuegraph cook --mode=runtime` path enforced these (mybd-u2r6).
 	if conditionVars != nil {
 		if err := formula.ValidateProvidedVars(resolved, conditionVars); err != nil {
 			return nil, fmt.Errorf("formula %q: %w", formulaName, err)
@@ -842,7 +842,7 @@ func cookFormulaToSubgraphWithVars(f *formula.Formula, protoID string, vars map[
 	return subgraph, nil
 }
 
-// cookFormula creates a proto bead from a resolved formula.
+// cookFormula creates a proto issue from a resolved formula.
 // protoID is the final ID for the proto (may include a prefix).
 func cookFormula(ctx context.Context, s storage.DoltStorage, f *formula.Formula, protoID string) (*cookFormulaResult, error) {
 	if s == nil {
@@ -899,7 +899,7 @@ func cookFormula(ctx context.Context, s storage.DoltStorage, f *formula.Formula,
 
 	// Create issues, labels, and dependencies in a single atomic transaction.
 	// This prevents orphaned issues if label/dependency creation fails.
-	err := transact(ctx, s, fmt.Sprintf("bd: cook formula %s", protoID), func(tx storage.Transaction) error {
+	err := transact(ctx, s, fmt.Sprintf("issuegraph: cook formula %s", protoID), func(tx storage.Transaction) error {
 		// Flatten unregistered step types to task (with a warning) before
 		// inserting, mirroring cloneSubgraphInto (pour). Without this,
 		// PrepareIssueForInsert rejects them with "invalid issue type" and
@@ -1047,7 +1047,7 @@ func deleteProtoSubgraph(ctx context.Context, s storage.DoltStorage, protoID str
 	}
 
 	// Delete in reverse order (children first)
-	return transact(ctx, s, fmt.Sprintf("bd: delete proto subgraph %s", protoID), func(tx storage.Transaction) error {
+	return transact(ctx, s, fmt.Sprintf("issuegraph: delete proto subgraph %s", protoID), func(tx storage.Transaction) error {
 		for i := len(subgraph.Issues) - 1; i >= 0; i-- {
 			issue := subgraph.Issues[i]
 			if err := tx.DeleteIssue(ctx, issue.ID); err != nil {

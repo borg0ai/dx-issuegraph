@@ -5,7 +5,7 @@ import (
 	"testing"
 	"time"
 
-	"github.com/steveyegge/beads/internal/types"
+	"github.com/borg0ai/dx-issuegraph/internal/types"
 )
 
 // TestDefaultGitLabMappingConfig verifies the default configuration has proper mappings.
@@ -222,8 +222,8 @@ func TestTypeFromLabels(t *testing.T) {
 	}
 }
 
-// TestGitLabIssueToBeads verifies full conversion from GitLab Issue to beads Issue.
-func TestGitLabIssueToBeads(t *testing.T) {
+// TestGitLabIssueToIssueGraph verifies full conversion from GitLab Issue to issuegraph Issue.
+func TestGitLabIssueToIssueGraph(t *testing.T) {
 	config := DefaultMappingConfig()
 
 	createdAt := time.Date(2024, 1, 15, 10, 0, 0, 0, time.UTC)
@@ -254,9 +254,9 @@ func TestGitLabIssueToBeads(t *testing.T) {
 		Weight:  3,
 	}
 
-	conversion := GitLabIssueToBeads(glIssue, config)
+	conversion := GitLabIssueToIssueGraph(glIssue, config)
 	if conversion == nil {
-		t.Fatal("GitLabIssueToBeads returned nil")
+		t.Fatal("GitLabIssueToIssueGraph returned nil")
 	}
 
 	issue := conversion.Issue
@@ -302,8 +302,8 @@ func TestGitLabIssueToBeads(t *testing.T) {
 	}
 }
 
-// TestGitLabIssueToBeads_ClosedIssue verifies closed issues are converted correctly.
-func TestGitLabIssueToBeads_ClosedIssue(t *testing.T) {
+// TestGitLabIssueToIssueGraph_ClosedIssue verifies closed issues are converted correctly.
+func TestGitLabIssueToIssueGraph_ClosedIssue(t *testing.T) {
 	config := DefaultMappingConfig()
 
 	closedAt := time.Date(2024, 1, 17, 10, 0, 0, 0, time.UTC)
@@ -317,7 +317,7 @@ func TestGitLabIssueToBeads_ClosedIssue(t *testing.T) {
 		WebURL:   "https://gitlab.example.com/project/-/issues/10",
 	}
 
-	conversion := GitLabIssueToBeads(glIssue, config)
+	conversion := GitLabIssueToIssueGraph(glIssue, config)
 	issue := conversion.Issue
 	if issue == nil {
 		t.Fatal("conversion.Issue is nil")
@@ -328,12 +328,12 @@ func TestGitLabIssueToBeads_ClosedIssue(t *testing.T) {
 	}
 }
 
-// TestBeadsIssueToGitLabFields verifies conversion from beads Issue to GitLab update fields.
-func TestBeadsIssueToGitLabFields(t *testing.T) {
+// TestIssueGraphIssueToGitLabFields verifies conversion from issuegraph Issue to GitLab update fields.
+func TestIssueGraphIssueToGitLabFields(t *testing.T) {
 	config := DefaultMappingConfig()
 
 	estimatedMinutes := 300 // 5 hours
-	beadsIssue := &types.Issue{
+	issuegraphIssue := &types.Issue{
 		Title:            "New feature request",
 		Description:      "Add dark mode support",
 		IssueType:        types.TypeFeature,
@@ -343,7 +343,7 @@ func TestBeadsIssueToGitLabFields(t *testing.T) {
 		EstimatedMinutes: &estimatedMinutes,
 	}
 
-	fields := BeadsIssueToGitLabFields(beadsIssue, config)
+	fields := IssueGraphIssueToGitLabFields(issuegraphIssue, config)
 
 	// Verify title and description
 	if fields["title"] != "New feature request" {
@@ -389,11 +389,11 @@ func TestBeadsIssueToGitLabFields(t *testing.T) {
 	}
 }
 
-// TestBeadsIssueToGitLabFields_StateEvent verifies state_event tracks the bead
+// TestIssueGraphIssueToGitLabFields_StateEvent verifies state_event tracks the issue
 // status in both directions: closed issues close, non-closed issues reopen. The
-// reopen direction ensures a bead reopened after being synced closed does not
+// reopen direction ensures a issue reopened after being synced closed does not
 // stay closed in GitLab on update.
-func TestBeadsIssueToGitLabFields_StateEvent(t *testing.T) {
+func TestIssueGraphIssueToGitLabFields_StateEvent(t *testing.T) {
 	config := DefaultMappingConfig()
 
 	tests := []struct {
@@ -410,7 +410,7 @@ func TestBeadsIssueToGitLabFields_StateEvent(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			fields := BeadsIssueToGitLabFields(&types.Issue{Title: "t", Status: tt.status}, config)
+			fields := IssueGraphIssueToGitLabFields(&types.Issue{Title: "t", Status: tt.status}, config)
 			if fields["state_event"] != tt.want {
 				t.Errorf("state_event = %v, want %q", fields["state_event"], tt.want)
 			}
@@ -418,8 +418,8 @@ func TestBeadsIssueToGitLabFields_StateEvent(t *testing.T) {
 	}
 }
 
-// TestBeadsIssueToGitLabFields_OpenStatus verifies open issues don't get redundant status labels.
-func TestBeadsIssueToGitLabFields_OpenStatus(t *testing.T) {
+// TestIssueGraphIssueToGitLabFields_OpenStatus verifies open issues don't get redundant status labels.
+func TestIssueGraphIssueToGitLabFields_OpenStatus(t *testing.T) {
 	config := DefaultMappingConfig()
 
 	openIssue := &types.Issue{
@@ -428,7 +428,7 @@ func TestBeadsIssueToGitLabFields_OpenStatus(t *testing.T) {
 		Status:    types.StatusOpen,
 	}
 
-	fields := BeadsIssueToGitLabFields(openIssue, config)
+	fields := IssueGraphIssueToGitLabFields(openIssue, config)
 	labels := fields["labels"].([]string)
 
 	for _, l := range labels {
@@ -438,7 +438,7 @@ func TestBeadsIssueToGitLabFields_OpenStatus(t *testing.T) {
 	}
 }
 
-// TestissueLinksToDependencies verifies conversion of GitLab IssueLinks to beads Dependencies.
+// TestissueLinksToDependencies verifies conversion of GitLab IssueLinks to issuegraph Dependencies.
 func TestIssueLinksToDependencies(t *testing.T) {
 	config := DefaultMappingConfig()
 
@@ -514,7 +514,7 @@ func TestFilterNonScopedLabels(t *testing.T) {
 	}
 }
 
-// TestPriorityToLabel verifies conversion from beads priority to GitLab label value.
+// TestPriorityToLabel verifies conversion from issuegraph priority to GitLab label value.
 func TestPriorityToLabel(t *testing.T) {
 	tests := []struct {
 		priority int

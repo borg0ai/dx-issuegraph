@@ -11,8 +11,8 @@ import (
 	"testing"
 	"time"
 
-	"github.com/steveyegge/beads/internal/beads"
-	"github.com/steveyegge/beads/internal/git"
+	"github.com/borg0ai/dx-issuegraph/internal/git"
+	"github.com/borg0ai/dx-issuegraph/internal/issuegraph"
 )
 
 func TestBackupStateRoundTrip(t *testing.T) {
@@ -67,14 +67,14 @@ func TestBackupAtomicWrite(t *testing.T) {
 func TestBackupDir_NoWorkspaceReturnsActiveWorkspaceError(t *testing.T) {
 	tmpDir := t.TempDir()
 	t.Chdir(tmpDir)
-	t.Setenv("BEADS_DIR", "")
-	t.Setenv("BEADS_DB", "")
-	t.Setenv("BD_BACKUP_GIT_REPO", filepath.Join(tmpDir, "not-a-repo"))
+	t.Setenv("ISSUEGRAPH_DIR", "")
+	t.Setenv("ISSUEGRAPH_DB", "")
+	t.Setenv("ISSUEGRAPH_BACKUP_GIT_REPO", filepath.Join(tmpDir, "not-a-repo"))
 
-	beads.ResetCaches()
+	issuegraph.ResetCaches()
 	git.ResetCaches()
 	t.Cleanup(func() {
-		beads.ResetCaches()
+		issuegraph.ResetCaches()
 		git.ResetCaches()
 	})
 
@@ -88,8 +88,8 @@ func TestBackupDir_NoWorkspaceReturnsActiveWorkspaceError(t *testing.T) {
 	if !strings.Contains(err.Error(), diagHint()) {
 		t.Fatalf("backupDir() error = %q, want diag hint", err)
 	}
-	if _, statErr := os.Stat(filepath.Join(tmpDir, ".beads")); !os.IsNotExist(statErr) {
-		t.Fatalf("backupDir() should not create local .beads, stat err = %v", statErr)
+	if _, statErr := os.Stat(filepath.Join(tmpDir, ".issuegraph")); !os.IsNotExist(statErr) {
+		t.Fatalf("backupDir() should not create local .issuegraph, stat err = %v", statErr)
 	}
 }
 
@@ -130,21 +130,21 @@ func TestBackupDir_UsesWorktreeFallback(t *testing.T) {
 		_ = cleanupCmd.Run()
 	})
 
-	mainBeadsDir := filepath.Join(mainRepoDir, ".beads")
-	if err := os.MkdirAll(filepath.Join(mainBeadsDir, "dolt"), 0o755); err != nil {
-		t.Fatalf("mkdir main beads dir: %v", err)
+	mainIssueGraphDir := filepath.Join(mainRepoDir, ".issuegraph")
+	if err := os.MkdirAll(filepath.Join(mainIssueGraphDir, "dolt"), 0o755); err != nil {
+		t.Fatalf("mkdir main issuegraph dir: %v", err)
 	}
-	_ = os.RemoveAll(filepath.Join(worktreeDir, ".beads"))
+	_ = os.RemoveAll(filepath.Join(worktreeDir, ".issuegraph"))
 
 	t.Chdir(worktreeDir)
-	t.Setenv("BEADS_DIR", "")
-	t.Setenv("BEADS_DB", "")
-	t.Setenv("BD_BACKUP_GIT_REPO", filepath.Join(tmpDir, "not-a-repo"))
+	t.Setenv("ISSUEGRAPH_DIR", "")
+	t.Setenv("ISSUEGRAPH_DB", "")
+	t.Setenv("ISSUEGRAPH_BACKUP_GIT_REPO", filepath.Join(tmpDir, "not-a-repo"))
 
-	beads.ResetCaches()
+	issuegraph.ResetCaches()
 	git.ResetCaches()
 	t.Cleanup(func() {
-		beads.ResetCaches()
+		issuegraph.ResetCaches()
 		git.ResetCaches()
 	})
 
@@ -156,9 +156,9 @@ func TestBackupDir_UsesWorktreeFallback(t *testing.T) {
 	if err != nil {
 		t.Fatalf("EvalSymlinks(%q): %v", dir, err)
 	}
-	wantResolved, err := filepath.EvalSymlinks(filepath.Join(mainBeadsDir, "backup"))
+	wantResolved, err := filepath.EvalSymlinks(filepath.Join(mainIssueGraphDir, "backup"))
 	if err != nil {
-		t.Fatalf("EvalSymlinks(%q): %v", filepath.Join(mainBeadsDir, "backup"), err)
+		t.Fatalf("EvalSymlinks(%q): %v", filepath.Join(mainIssueGraphDir, "backup"), err)
 	}
 	if gotResolved != wantResolved {
 		t.Fatalf("backupDir() = %q (resolved %q), want resolved %q", dir, gotResolved, wantResolved)

@@ -7,13 +7,13 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/steveyegge/beads/internal/configfile"
+	"github.com/borg0ai/dx-issuegraph/internal/configfile"
 )
 
 func TestDatabaseIntegrity_ServerModeFailsClosedBeforeBackup(t *testing.T) {
 	dir := setupTestWorkspace(t)
-	beadsDir := filepath.Join(dir, ".beads")
-	doltDir := filepath.Join(beadsDir, "dolt")
+	issuegraphDir := filepath.Join(dir, ".issuegraph")
+	doltDir := filepath.Join(issuegraphDir, "dolt")
 	if err := os.MkdirAll(doltDir, 0o755); err != nil {
 		t.Fatalf("failed to create dolt dir: %v", err)
 	}
@@ -23,9 +23,9 @@ func TestDatabaseIntegrity_ServerModeFailsClosedBeforeBackup(t *testing.T) {
 		DoltMode:       configfile.DoltModeServer,
 		DoltServerHost: "127.0.0.1",
 		DoltServerPort: 49617,
-		DoltDatabase:   "beads_AI",
+		DoltDatabase:   "issuegraph_AI",
 	}
-	if err := cfg.Save(beadsDir); err != nil {
+	if err := cfg.Save(issuegraphDir); err != nil {
 		t.Fatalf("failed to save config: %v", err)
 	}
 
@@ -34,12 +34,12 @@ func TestDatabaseIntegrity_ServerModeFailsClosedBeforeBackup(t *testing.T) {
 		t.Fatal("expected server-mode integrity recovery to fail closed")
 	}
 	if strings.Contains(err.Error(), ErrTestBinary.Error()) {
-		t.Fatalf("expected server-mode guard before bd binary lookup, got %v", err)
+		t.Fatalf("expected server-mode guard before issuegraph binary lookup, got %v", err)
 	}
 	if !strings.Contains(err.Error(), "automatic integrity recovery is disabled for server-mode repos") {
 		t.Fatalf("unexpected error: %v", err)
 	}
-	if !strings.Contains(err.Error(), "beads_AI") {
+	if !strings.Contains(err.Error(), "issuegraph_AI") {
 		t.Fatalf("error %q does not mention configured database", err)
 	}
 
@@ -57,8 +57,8 @@ func TestDatabaseIntegrity_ServerModeFailsClosedBeforeBackup(t *testing.T) {
 
 func TestDatabaseIntegrity_NonServerModeRestoresRootOnTestBinaryError(t *testing.T) {
 	dir := setupTestWorkspace(t)
-	beadsDir := filepath.Join(dir, ".beads")
-	doltDir := filepath.Join(beadsDir, "dolt")
+	issuegraphDir := filepath.Join(dir, ".issuegraph")
+	doltDir := filepath.Join(issuegraphDir, "dolt")
 	if err := os.MkdirAll(doltDir, 0o755); err != nil {
 		t.Fatalf("failed to create dolt dir: %v", err)
 	}
@@ -82,8 +82,8 @@ func TestDatabaseIntegrity_NonServerModeRestoresRootOnTestBinaryError(t *testing
 
 func TestDatabaseIntegrity_SharedWorktreeServerModeFailsClosedBeforeBackup(t *testing.T) {
 	mainRepoDir, worktreeDir := setupSharedWorktreeWorkspace(t)
-	sharedBeadsDir := filepath.Join(mainRepoDir, ".beads")
-	sharedDoltDir := filepath.Join(sharedBeadsDir, "dolt")
+	sharedIssueGraphDir := filepath.Join(mainRepoDir, ".issuegraph")
+	sharedDoltDir := filepath.Join(sharedIssueGraphDir, "dolt")
 	if err := os.MkdirAll(sharedDoltDir, 0o755); err != nil {
 		t.Fatalf("failed to create shared dolt dir: %v", err)
 	}
@@ -93,9 +93,9 @@ func TestDatabaseIntegrity_SharedWorktreeServerModeFailsClosedBeforeBackup(t *te
 		DoltMode:       configfile.DoltModeServer,
 		DoltServerHost: "127.0.0.1",
 		DoltServerPort: 49617,
-		DoltDatabase:   "shared_beads",
+		DoltDatabase:   "shared_issuegraph",
 	}
-	if err := cfg.Save(sharedBeadsDir); err != nil {
+	if err := cfg.Save(sharedIssueGraphDir); err != nil {
 		t.Fatalf("failed to save shared config: %v", err)
 	}
 
@@ -103,22 +103,22 @@ func TestDatabaseIntegrity_SharedWorktreeServerModeFailsClosedBeforeBackup(t *te
 	if err == nil {
 		t.Fatal("expected server-mode integrity recovery to fail closed")
 	}
-	if !strings.Contains(err.Error(), "shared_beads") {
+	if !strings.Contains(err.Error(), "shared_issuegraph") {
 		t.Fatalf("error %q does not mention shared database", err)
 	}
 
 	if _, statErr := os.Stat(sharedDoltDir); statErr != nil {
 		t.Fatalf("expected shared dolt dir to remain in place, got %v", statErr)
 	}
-	if _, err := os.Stat(filepath.Join(worktreeDir, ".beads")); !os.IsNotExist(err) {
-		t.Fatalf("expected no worktree-local .beads directory, got err=%v", err)
+	if _, err := os.Stat(filepath.Join(worktreeDir, ".issuegraph")); !os.IsNotExist(err) {
+		t.Fatalf("expected no worktree-local .issuegraph directory, got err=%v", err)
 	}
 }
 
 func TestDatabaseIntegrity_SharedWorktreeRestoresSharedRootOnTestBinaryError(t *testing.T) {
 	mainRepoDir, worktreeDir := setupSharedWorktreeWorkspace(t)
-	sharedBeadsDir := filepath.Join(mainRepoDir, ".beads")
-	sharedDoltDir := filepath.Join(sharedBeadsDir, "dolt")
+	sharedIssueGraphDir := filepath.Join(mainRepoDir, ".issuegraph")
+	sharedDoltDir := filepath.Join(sharedIssueGraphDir, "dolt")
 	if err := os.MkdirAll(sharedDoltDir, 0o755); err != nil {
 		t.Fatalf("failed to create shared dolt dir: %v", err)
 	}
@@ -138,7 +138,7 @@ func TestDatabaseIntegrity_SharedWorktreeRestoresSharedRootOnTestBinaryError(t *
 	if len(backupPaths) != 0 {
 		t.Fatalf("expected no leftover corrupt backup path, got %v", backupPaths)
 	}
-	if _, err := os.Stat(filepath.Join(worktreeDir, ".beads")); !os.IsNotExist(err) {
-		t.Fatalf("expected no worktree-local .beads directory, got err=%v", err)
+	if _, err := os.Stat(filepath.Join(worktreeDir, ".issuegraph")); !os.IsNotExist(err) {
+		t.Fatalf("expected no worktree-local .issuegraph directory, got err=%v", err)
 	}
 }

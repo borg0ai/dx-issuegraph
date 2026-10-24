@@ -7,20 +7,20 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/steveyegge/beads/internal/configfile"
-	"github.com/steveyegge/beads/internal/hooks"
-	"github.com/steveyegge/beads/internal/storage"
-	"github.com/steveyegge/beads/internal/storage/domain"
-	"github.com/steveyegge/beads/issueops"
-	"github.com/steveyegge/beads/memoryops"
+	"github.com/borg0ai/dx-issuegraph/internal/configfile"
+	"github.com/borg0ai/dx-issuegraph/internal/hooks"
+	"github.com/borg0ai/dx-issuegraph/internal/storage"
+	"github.com/borg0ai/dx-issuegraph/internal/storage/domain"
+	"github.com/borg0ai/dx-issuegraph/issueops"
+	"github.com/borg0ai/dx-issuegraph/memoryops"
 )
 
 // TestServeDatabaseSourceClassifiesTheWorkspace drives the one decision point
-// bd serve has about where it reads and claims from.
+// issuegraph serve has about where it reads and claims from.
 //
 // The registered arm is the whole point: the store the root command opened for
 // a registered backend is opened through the same registry dispatch every
-// ordinary bd command uses, so a workspace fully usable from the CLI must be
+// ordinary issuegraph command uses, so a workspace fully usable from the CLI must be
 // servable too. The embedded arm is the permanent refusal, and it is here so
 // that widening the classification cannot quietly narrow the refusal.
 func TestServeDatabaseSourceClassifiesTheWorkspace(t *testing.T) {
@@ -28,9 +28,9 @@ func TestServeDatabaseSourceClassifiesTheWorkspace(t *testing.T) {
 		const name = "serve-registry"
 		registerContractBackend(t, name)
 		useStorageModeGlobals(t)
-		beadsDir := writeContractBackendConfig(t, name)
+		issuegraphDir := writeContractBackendConfig(t, name)
 
-		db, err := serveDatabaseSource(beadsDir)
+		db, err := serveDatabaseSource(issuegraphDir)
 		if err != nil {
 			t.Fatalf("serveDatabaseSource() = %v, want the store source", err)
 		}
@@ -45,7 +45,7 @@ func TestServeDatabaseSourceClassifiesTheWorkspace(t *testing.T) {
 	// The registry outranks every dolt-mode signal, because that is the order
 	// the store open already resolves them in: PersistentPreRunE dispatches on
 	// backends.Lookup before anything looks at shared-server mode, so a
-	// registered workspace with BEADS_DOLT_SHARED_SERVER=1 exported still opens
+	// registered workspace with ISSUEGRAPH_DOLT_SHARED_SERVER=1 exported still opens
 	// the registered store. Resolving it the other way here would build a Dolt
 	// provider over a non-Dolt store and serve a different database than the
 	// CLI in the same workspace reaches.
@@ -53,10 +53,10 @@ func TestServeDatabaseSourceClassifiesTheWorkspace(t *testing.T) {
 		const name = "serve-registry-shared"
 		registerContractBackend(t, name)
 		useStorageModeGlobals(t)
-		t.Setenv("BEADS_DOLT_SHARED_SERVER", "1")
-		beadsDir := writeContractBackendConfig(t, name)
+		t.Setenv("ISSUEGRAPH_DOLT_SHARED_SERVER", "1")
+		issuegraphDir := writeContractBackendConfig(t, name)
 
-		db, err := serveDatabaseSource(beadsDir)
+		db, err := serveDatabaseSource(issuegraphDir)
 		if err != nil {
 			t.Fatalf("serveDatabaseSource() = %v, want the store source", err)
 		}
@@ -67,14 +67,14 @@ func TestServeDatabaseSourceClassifiesTheWorkspace(t *testing.T) {
 
 	t.Run("an unloadable metadata.json is named, not classified", func(t *testing.T) {
 		useStorageModeGlobals(t)
-		beadsDir := t.TempDir()
-		writeBrokenBeadsConfig(t, beadsDir)
+		issuegraphDir := t.TempDir()
+		writeBrokenIssueGraphConfig(t, issuegraphDir)
 
-		db, err := serveDatabaseSource(beadsDir)
+		db, err := serveDatabaseSource(issuegraphDir)
 		if err == nil {
 			t.Fatalf("serveDatabaseSource() = %v, nil; want the load failure rather than a classification", db)
 		}
-		if !strings.Contains(err.Error(), configfile.ConfigPath(beadsDir)) {
+		if !strings.Contains(err.Error(), configfile.ConfigPath(issuegraphDir)) {
 			t.Errorf("error does not name the file it could not read: %v", err)
 		}
 	})
@@ -82,8 +82,8 @@ func TestServeDatabaseSourceClassifiesTheWorkspace(t *testing.T) {
 
 // TestServeIssueRolesComeFromBeneathTheHookDecorator.
 //
-// bd serve documents that hooks do not fire, and a store's accessors hand out
-// its decorators by design — `store.IssueClaimer()` on bd's own chain returns a
+// issuegraph serve documents that hooks do not fire, and a store's accessors hand out
+// its decorators by design — `store.IssueClaimer()` on issuegraph's own chain returns a
 // claimer that runs the workspace's on_update script for every claim it lands.
 // httpapi.Listen refuses exactly that value (storage.RoleFiresHooks), so this is
 // the difference between a server that boots and one that does not.
@@ -91,7 +91,7 @@ func TestServeIssueRolesComeFromBeneathTheHookDecorator(t *testing.T) {
 	// Two layers beneath the hooks, because peeling ONE is the requirement and
 	// peeling all of them (storage.UnwrapStore) is the mistake that looks
 	// identical on a single-layer chain. The middle store stands in for the
-	// telemetry layer bd wires there, which is an Unwrapper too.
+	// telemetry layer issuegraph wires there, which is an Unwrapper too.
 	stubs := func(inner storage.DoltStorage) *serveRolesDoltStore {
 		return &serveRolesDoltStore{serveRolesStore: &serveRolesStore{
 			reader:       &serveStubReader{},
@@ -224,13 +224,13 @@ func TestServeIssueRolesComeFromBeneathTheHookDecorator(t *testing.T) {
 		t.Fatalf("serveIssueRoles: %v", err)
 	}
 	if storage.RoleFiresHooks(roles.commenter) {
-		t.Error("bd serve would run this workspace's hooks on every HTTP comment")
+		t.Error("issuegraph serve would run this workspace's hooks on every HTTP comment")
 	}
 	// The one peel retains the external-dependency policy below the hook layer.
 	// Policy-wrapped roles intentionally have a distinct identity from the raw
 	// role beneath them; serving them without hooks is the contract here.
 	if storage.RoleFiresHooks(roles.readyClaimer) {
-		t.Error("bd serve would run this workspace's hooks on every HTTP ready claim")
+		t.Error("issuegraph serve would run this workspace's hooks on every HTTP ready claim")
 	}
 	if storage.RoleFiresHooks(roles.batchCloser) || roles.batchCloser != issueops.BatchCloser(middle.batchCloser) {
 		t.Errorf("batch closer came from %p, want the layer directly beneath the hooks (%p)", roles.batchCloser, middle.batchCloser)
@@ -239,30 +239,30 @@ func TestServeIssueRolesComeFromBeneathTheHookDecorator(t *testing.T) {
 		t.Errorf("batch creator came from %p, want the layer directly beneath the hooks (%p)", roles.batchCreator, middle.batchCreator)
 	}
 	if storage.RoleFiresHooks(roles.releaser) {
-		t.Error("bd serve would run this workspace's hooks on every HTTP release")
+		t.Error("issuegraph serve would run this workspace's hooks on every HTTP release")
 	}
 	reader, claimer := roles.reader, roles.claimer
 	// The same predicate httpapi.Listen refuses on, so a regression here is a
 	// server that refuses to boot rather than one that runs hooks silently.
 	if storage.RoleFiresHooks(claimer) {
-		t.Error("bd serve would run this workspace's hooks on every HTTP claim")
+		t.Error("issuegraph serve would run this workspace's hooks on every HTTP claim")
 	}
 	if reader == nil {
-		t.Error("bd serve lost the reader while peeling hooks")
+		t.Error("issuegraph serve lost the reader while peeling hooks")
 	}
 
 	// The lifecycle is the SECOND role the hook decorator wraps, and it wraps
 	// four verbs rather than one — so an unpeeled lifecycle would run this
 	// workspace's on_create, on_update and close hooks for every HTTP mutation.
 	if storage.RoleFiresHooks(roles.lifecycle) {
-		t.Error("bd serve would run this workspace's hooks on every HTTP lifecycle mutation")
+		t.Error("issuegraph serve would run this workspace's hooks on every HTTP lifecycle mutation")
 	}
 
 	// The dependency editor is the THIRD, and it fires the update hook once per
 	// DISTINCT SOURCE ISSUE — so an unpeeled editor would run this workspace's
 	// script several times for one HTTP batch.
 	if storage.RoleFiresHooks(roles.dependencyEditor) {
-		t.Error("bd serve would run this workspace's hooks on every HTTP dependency edit")
+		t.Error("issuegraph serve would run this workspace's hooks on every HTTP dependency edit")
 	}
 	if roles.dependencyEditor != issueops.DependencyEditor(middle.dependencies) {
 		t.Errorf("dependency editor came from %p, want the layer directly beneath the hooks (%p)",
@@ -275,7 +275,7 @@ func TestServeIssueRolesComeFromBeneathTheHookDecorator(t *testing.T) {
 	// one hundred-item plan is up to a hundred of this workspace's own
 	// subprocesses spawned inside a single HTTP request.
 	if storage.RoleFiresHooks(roles.batchApplier) {
-		t.Error("bd serve would run this workspace's hooks once per item of every HTTP plan")
+		t.Error("issuegraph serve would run this workspace's hooks once per item of every HTTP plan")
 	}
 	if roles.batchApplier != issueops.BatchApplier(middle.batchApplier) {
 		t.Errorf("batch applier came from %p, want the layer directly beneath the hooks (%p)",
@@ -286,7 +286,7 @@ func TestServeIssueRolesComeFromBeneathTheHookDecorator(t *testing.T) {
 	// caller — so an unpeeled one runs this workspace's on_update script once per
 	// contended retry, at whatever rate the clients poll.
 	if storage.RoleFiresHooks(roles.metadataCAS) {
-		t.Error("bd serve would run this workspace's hooks on every HTTP compare-and-set")
+		t.Error("issuegraph serve would run this workspace's hooks on every HTTP compare-and-set")
 	}
 	if roles.metadataCAS != issueops.MetadataCAS(middle.metadataCAS) {
 		t.Errorf("compare-and-set came from %p, want the layer directly beneath the hooks (%p)",
@@ -294,7 +294,7 @@ func TestServeIssueRolesComeFromBeneathTheHookDecorator(t *testing.T) {
 	}
 
 	t.Run("a workspace with hooks disabled has no layer to peel", func(t *testing.T) {
-		// BD_NO_HOOKS=1 wires no hook decorator at all, so the roles are the
+		// ISSUEGRAPH_NO_HOOKS=1 wires no hook decorator at all, so the roles are the
 		// store's own and the peel must be conditional.
 		bare := wireStorageDecorators(middle, hooks.NewRunner(t.TempDir()), true)
 		roles, err := serveIssueRoles(bare, false)
@@ -360,13 +360,13 @@ func TestServeResolvedModeNamesTheRegisteredBackend(t *testing.T) {
 	}
 }
 
-// writeBrokenBeadsConfig plants a metadata.json that configfile.Load cannot
+// writeBrokenIssueGraphConfig plants a metadata.json that configfile.Load cannot
 // parse, which is the one input serveDatabaseSource must refuse rather than
 // classify: falling back to a default here would serve the embedded default
 // for a workspace whose real backend is unknown.
-func writeBrokenBeadsConfig(t *testing.T, beadsDir string) {
+func writeBrokenIssueGraphConfig(t *testing.T, issuegraphDir string) {
 	t.Helper()
-	if err := os.WriteFile(configfile.ConfigPath(beadsDir), []byte("{ not json"), 0o600); err != nil {
+	if err := os.WriteFile(configfile.ConfigPath(issuegraphDir), []byte("{ not json"), 0o600); err != nil {
 		t.Fatalf("write broken metadata.json: %v", err)
 	}
 }
@@ -435,27 +435,27 @@ func (s *serveRolesStore) BatchCloser() (issueops.BatchCloser, error)   { return
 func (s *serveRolesStore) ReadyClaimer() (issueops.ReadyClaimer, error) { return s.readyClaimer, nil }
 
 // Releaser carries an identifiable value for the same reason, and it is the
-// SIXTH role the decorator wraps: a peel of the wrong depth would hand bd serve
+// SIXTH role the decorator wraps: a peel of the wrong depth would hand issuegraph serve
 // a releaser that runs the workspace's hooks once per claim it frees — which a
 // reaper draining abandoned work does in a tight loop.
 func (s *serveRolesStore) Releaser() (issueops.Releaser, error) { return s.releaser, nil }
 
 // IssueLifecycle carries an identifiable value for the same reason the reader
 // and the claimer do: it is one of the roles the hook decorator wraps, so a peel
-// of the wrong depth would hand bd serve a lifecycle that runs the workspace's
+// of the wrong depth would hand issuegraph serve a lifecycle that runs the workspace's
 // hooks on every close.
 func (s *serveRolesStore) IssueLifecycle() (issueops.Lifecycle, error) { return s.lifecycle, nil }
 
 // DependencyEditor carries an identifiable value for the same reason, and it is
 // the last of the three the decorator wraps: a peel of the wrong depth would
-// hand bd serve an editor that runs the workspace's hooks on every edge it
+// hand issuegraph serve an editor that runs the workspace's hooks on every edge it
 // writes.
 func (s *serveRolesStore) DependencyEditor() (issueops.DependencyEditor, error) {
 	return s.dependencies, nil
 }
 
 // BatchApplier carries an identifiable value for the same reason, and it is the
-// FOURTH the decorator wraps: a peel of the wrong depth would hand bd serve an
+// FOURTH the decorator wraps: a peel of the wrong depth would hand issuegraph serve an
 // applier that runs the workspace's hooks once per item of every plan it
 // applies.
 func (s *serveRolesStore) BatchApplier() (issueops.BatchApplier, error) {
@@ -475,7 +475,7 @@ func (*serveRolesStore) Deleter() (issueops.Deleter, error)                     
 func (*serveRolesStore) Memories() (memoryops.Memories, error)                  { return nil, nil }
 
 // MetadataCAS carries an identifiable value for the same reason, and it is the
-// FIFTH the decorator wraps: a peel of the wrong depth would hand bd serve a
+// FIFTH the decorator wraps: a peel of the wrong depth would hand issuegraph serve a
 // compare-and-set that runs the workspace's on_update script once per contended
 // retry round of every coordination loop pointed at this server.
 func (s *serveRolesStore) MetadataCAS() (issueops.MetadataCAS, error) { return s.metadataCAS, nil }
@@ -489,7 +489,7 @@ func (s *serveRolesStore) MetadataCAS() (issueops.MetadataCAS, error) { return s
 // The count role is not one the hook decorator wraps — it is a READ, so
 // hook_counter.go recurses and hands back the inner surface unwrapped — which is
 // exactly why it needed this: the recursion lands on this type, and this type
-// had no Counter to land on. It went unnoticed until `bd serve` began binding
+// had no Counter to land on. It went unnoticed until `issuegraph serve` began binding
 // the role, and then it surfaced on one CI runner as a panic in a test about
 // hook peeling.
 func (s *serveRolesStore) Counter() (issueops.Counter, error) { return s.counter, nil }
@@ -497,7 +497,7 @@ func (s *serveRolesStore) Counter() (issueops.Counter, error) { return s.counter
 // GraphCounter is declared for Counter's reason, and it is the SECOND role to
 // need this file edited for a promotion rather than for a hook: the edge count
 // is a read, so hook_graph_counter.go recurses and the recursion lands here.
-// The count role's own comment above says this went unnoticed until `bd serve`
+// The count role's own comment above says this went unnoticed until `issuegraph serve`
 // began binding it; this one was found the same way, by this test panicking the
 // moment the binding landed.
 func (s *serveRolesStore) GraphCounter() (issueops.GraphCounter, error) { return s.edgeCounter, nil }
@@ -509,7 +509,7 @@ func (s *serveRolesStore) GraphCounter() (issueops.GraphCounter, error) { return
 //
 // Counter and GraphCounter had to be FOUND. Neither is wrapped by the hook
 // decorator (both are reads, so their decorators recurse), so neither was
-// noticed until `bd serve` began binding it — GraphCounter on a full-package CI
+// noticed until `issuegraph serve` began binding it — GraphCounter on a full-package CI
 // shard, because no -run pattern anyone reaches for names this test.
 //
 // This one could not be missed. serveRoleSource names the accessor, the
@@ -521,7 +521,7 @@ func (s *serveRolesStore) IssueRelations() (issueops.Relations, error) { return 
 
 // BatchCreator carries an identifiable value rather than nil, and it moved off
 // nil for the reason the three preconditions below give: it is one of the roles
-// the hook decorator wraps, so a peel of the wrong depth hands bd serve a
+// the hook decorator wraps, so a peel of the wrong depth hands issuegraph serve a
 // creator that runs the workspace's on_create once per item of every batch.
 func (s *serveRolesStore) BatchCreator() (issueops.BatchCreator, error) {
 	return s.batchCreator, nil
@@ -542,7 +542,7 @@ func (*serveStubBatchCreator) CreateBatch(context.Context, issueops.CreateBatchR
 // It carries an identifiable value rather than nil, unlike the reads above,
 // because it IS one of the wrapped roles: hook_commenter.go fires the update
 // hook for every comment it lands, so a peel of the wrong depth would hand
-// bd serve a commenter that runs the workspace's script once per comment — and
+// issuegraph serve a commenter that runs the workspace's script once per comment — and
 // a comment is exactly the write an agent makes in a loop.
 func (s *serveRolesStore) Commenter() (issueops.Commenter, error) { return s.commenter, nil }
 

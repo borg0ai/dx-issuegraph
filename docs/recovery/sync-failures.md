@@ -20,7 +20,7 @@ issuegraph doctor
 issuegraph dolt show
 
 # View Dolt server logs
-tail -50 .beads/dolt-server.log   # server mode
+tail -50 .issuegraph/dolt-server.log   # server mode
 ```
 
 ## Solution
@@ -32,14 +32,14 @@ issuegraph dolt stop
 
 **Step 2:** Check for lock files
 ```bash
-ls -la .beads/*.lock
+ls -la .issuegraph/*.lock
 # Remove stale locks if Dolt server is definitely stopped
-rm -f .beads/*.lock
+rm -f .issuegraph/*.lock
 ```
 
 **Step 3:** Back up and preview fixes
 ```bash
-cp -r .beads .beads.backup
+cp -r .issuegraph .issuegraph.backup
 issuegraph doctor --dry-run
 ```
 

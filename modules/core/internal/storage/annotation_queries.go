@@ -4,7 +4,7 @@ import (
 	"context"
 	"time"
 
-	"github.com/steveyegge/beads/internal/types"
+	"github.com/borg0ai/dx-issuegraph/internal/types"
 )
 
 // AnnotationStore provides comment and label operations, including bulk queries.

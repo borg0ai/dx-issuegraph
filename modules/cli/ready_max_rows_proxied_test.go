@@ -21,7 +21,7 @@ func pinProxiedServerMode(t *testing.T) {
 }
 
 // TestReadyRefusesMaxRowsUnderProxiedServerOnClaim pins the --max-rows refusal
-// on `bd ready --claim` specifically.
+// on `issuegraph ready --claim` specifically.
 //
 // The refusal lives in readyCmd's RunE, above the dispatch into
 // runReadyProxiedServer, and --claim is the one ready invocation that takes a
@@ -34,7 +34,7 @@ func pinProxiedServerMode(t *testing.T) {
 // it at all.
 //
 // Both cap sources are exercised: resolveMaxRows honors --max-rows and
-// BEADS_MAX_ROWS, and a guard wired to only the flag would leave every rig that
+// ISSUEGRAPH_MAX_ROWS, and a guard wired to only the flag would leave every rig that
 // sets the env var running uncapped.
 func TestReadyRefusesMaxRowsUnderProxiedServerOnClaim(t *testing.T) {
 	pinProxiedServerMode(t)
@@ -69,7 +69,7 @@ func TestReadyRefusesMaxRowsUnderProxiedServerOnClaim(t *testing.T) {
 			stderr := captureStderr(t, func() { err = readyCmd.RunE(cmd, nil) })
 
 			assertExitCode(t, err, 1)
-			if !strings.Contains(stderr, "--max-rows / BEADS_MAX_ROWS is not supported in proxied-server mode") {
+			if !strings.Contains(stderr, "--max-rows / ISSUEGRAPH_MAX_ROWS is not supported in proxied-server mode") {
 				t.Fatalf("stderr = %q, want the proxied --max-rows refusal", stderr)
 			}
 		})
@@ -77,13 +77,13 @@ func TestReadyRefusesMaxRowsUnderProxiedServerOnClaim(t *testing.T) {
 }
 
 // TestReadyGatedSkipsMaxRowsRefusalUnderProxiedServer pins the third arm.
-// `bd ready --gated` and `bd mol ready --gated` are documented as the same
+// `issuegraph ready --gated` and `issuegraph mol ready --gated` are documented as the same
 // gate-resume scan, and on the proxied route they literally are one:
 // runReadyProxiedGated discards its readyInput and calls the same
 // findGateReadyMolecules as runMolReadyGatedProxiedServer. Neither threads a
 // row cap, so a cap must not refuse either spelling -- refusing only the
-// `bd ready` one split a single documented command line in half for anyone
-// with BEADS_MAX_ROWS exported.
+// `issuegraph ready` one split a single documented command line in half for anyone
+// with ISSUEGRAPH_MAX_ROWS exported.
 //
 // This goes through RunE rather than calling the helper, because RunE is where
 // the second refusal site lives: the pre-provider front door is pinned
@@ -118,12 +118,12 @@ func TestReadyGatedSkipsMaxRowsRefusalUnderProxiedServer(t *testing.T) {
 			var err error
 			stderr := captureStderr(t, func() { err = readyCmd.RunE(cmd, nil) })
 
-			if strings.Contains(stderr, "--max-rows / BEADS_MAX_ROWS is not supported in proxied-server mode") {
-				t.Fatalf("proxied `bd ready %s` was refused for a cap the gated arm never uses: %q",
+			if strings.Contains(stderr, "--max-rows / ISSUEGRAPH_MAX_ROWS is not supported in proxied-server mode") {
+				t.Fatalf("proxied `issuegraph ready %s` was refused for a cap the gated arm never uses: %q",
 					strings.Join(tc.args, " "), stderr)
 			}
 			if !strings.Contains(stderr, "proxied-server UOW provider not initialized") {
-				t.Fatalf("proxied `bd ready %s` did not reach the proxied dispatch: err=%v stderr=%q",
+				t.Fatalf("proxied `issuegraph ready %s` did not reach the proxied dispatch: err=%v stderr=%q",
 					strings.Join(tc.args, " "), err, stderr)
 			}
 		})
@@ -143,7 +143,7 @@ func TestReadyClaimGatedKeepsMaxRowsRefusalUnderProxiedServer(t *testing.T) {
 
 	err := rejectReadyMaxRowsUnderProxiedServer(newReadyFlagsCommand(t, "--claim", "--gated"))
 	if err == nil {
-		t.Fatal("proxied `bd ready --claim --gated` under a live cap was allowed; want the refusal the claim arm is owed")
+		t.Fatal("proxied `issuegraph ready --claim --gated` under a live cap was allowed; want the refusal the claim arm is owed")
 	}
 	assertExitCode(t, err, 1)
 }
@@ -161,7 +161,7 @@ func TestReadyClaimWithoutLiveCapIsNotRefusedUnderProxiedServer(t *testing.T) {
 	pinJSONOutput(t, false)
 	t.Setenv(maxRowsEnvVar, "")
 
-	// --max-rows 0 is an explicit disable that outranks BEADS_MAX_ROWS, so it
+	// --max-rows 0 is an explicit disable that outranks ISSUEGRAPH_MAX_ROWS, so it
 	// is not a live cap either even with the env var set.
 	for _, tc := range []struct {
 		name string
@@ -175,7 +175,7 @@ func TestReadyClaimWithoutLiveCapIsNotRefusedUnderProxiedServer(t *testing.T) {
 		t.Run(tc.name, func(t *testing.T) {
 			t.Setenv(maxRowsEnvVar, tc.env)
 			if err := rejectMaxRowsUnderProxiedServer(newReadyFlagsCommand(t, tc.args...)); err != nil {
-				t.Fatalf("proxied `bd ready %s` was refused with no live cap: %v", strings.Join(tc.args, " "), err)
+				t.Fatalf("proxied `issuegraph ready %s` was refused with no live cap: %v", strings.Join(tc.args, " "), err)
 			}
 		})
 	}

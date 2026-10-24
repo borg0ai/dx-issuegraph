@@ -10,8 +10,8 @@ import (
 	"strings"
 	"time"
 
-	"github.com/steveyegge/beads/internal/config"
-	"github.com/steveyegge/beads/internal/storage/backendnames"
+	"github.com/borg0ai/dx-issuegraph/internal/config"
+	"github.com/borg0ai/dx-issuegraph/internal/storage/backendnames"
 )
 
 const ConfigFileName = "metadata.json"
@@ -31,12 +31,12 @@ type Config struct {
 	DoltServerPort     int    `json:"dolt_server_port,omitempty"`     // Server port (default: 3307)
 	DoltServerSocket   string `json:"dolt_server_socket,omitempty"`   // Unix domain socket path (overrides host/port)
 	DoltServerUser     string `json:"dolt_server_user,omitempty"`     // MySQL user (default: root)
-	DoltDatabase       string `json:"dolt_database,omitempty"`        // SQL database name (default: beads)
+	DoltDatabase       string `json:"dolt_database,omitempty"`        // SQL database name (default: issuegraph)
 	DoltServerTLS      bool   `json:"dolt_server_tls,omitempty"`      // Enable TLS for server connections (required for Hosted Dolt)
-	DoltDataDir        string `json:"dolt_data_dir,omitempty"`        // Custom dolt data directory (absolute path; default: .beads/dolt)
+	DoltDataDir        string `json:"dolt_data_dir,omitempty"`        // Custom dolt data directory (absolute path; default: .issuegraph/dolt)
 	DoltRemotesAPIPort int    `json:"dolt_remotesapi_port,omitempty"` // Dolt remotesapi port for federation (default: 8080)
-	DoltTeamServer     bool   `json:"dolt_team_server,omitempty"`     // Schema is managed by beads-team-server (bts); bd never runs migrations (proxied-server mode only)
-	// Note: Password should be set via BEADS_DOLT_PASSWORD env var for security
+	DoltTeamServer     bool   `json:"dolt_team_server,omitempty"`     // Schema is managed by issuegraph-team-server (bts); issuegraph never runs migrations (proxied-server mode only)
+	// Note: Password should be set via ISSUEGRAPH_DOLT_PASSWORD env var for security
 
 	// Deprecated backend fields are retained only to round-trip metadata written by
 	// the short-lived PostgreSQL/MySQL implementations. They are not connection
@@ -48,9 +48,9 @@ type Config struct {
 
 	// Deprecated: retained only to round-trip metadata written by the removed
 	// SQLite backend (backend="sqlite"); store selection rejects that backend.
-	SQLitePath string `json:"sqlite_path,omitempty"` // database file, relative to the beads dir (default beads.db)
+	SQLitePath string `json:"sqlite_path,omitempty"` // database file, relative to the issuegraph dir (default issuegraph.db)
 
-	// Project identity — unique ID generated at bd init time.
+	// Project identity — unique ID generated at issuegraph init time.
 	// Used to detect cross-project data leakage when a client connects
 	// to the wrong Dolt server (GH#2372).
 	ProjectID string `json:"project_id,omitempty"`
@@ -66,26 +66,26 @@ type Config struct {
 	// Version is now stored in .local_version (gitignored) to prevent
 	// upgrade notifications firing after git operations reset metadata.json.
 	// bd-tok: This field is kept for backwards compatibility when reading old configs.
-	LastBdVersion string `json:"last_bd_version,omitempty"`
+	LastBdVersion string `json:"last_issuegraph_version,omitempty"`
 }
 
 func DefaultConfig() *Config {
 	return &Config{
-		Database: "beads.db",
+		Database: "issuegraph.db",
 	}
 }
 
-func ConfigPath(beadsDir string) string {
-	return filepath.Join(beadsDir, ConfigFileName)
+func ConfigPath(issuegraphDir string) string {
+	return filepath.Join(issuegraphDir, ConfigFileName)
 }
 
-func Load(beadsDir string) (*Config, error) {
-	configPath := ConfigPath(beadsDir)
+func Load(issuegraphDir string) (*Config, error) {
+	configPath := ConfigPath(issuegraphDir)
 
 	data, err := os.ReadFile(configPath) // #nosec G304 - controlled path from config
 	if os.IsNotExist(err) {
 		// Try legacy config.json location (migration path)
-		legacyPath := filepath.Join(beadsDir, "config.json")
+		legacyPath := filepath.Join(issuegraphDir, "config.json")
 		data, err = os.ReadFile(legacyPath) // #nosec G304 - controlled path from config
 		if os.IsNotExist(err) {
 			return nil, nil
@@ -101,7 +101,7 @@ func Load(beadsDir string) (*Config, error) {
 		}
 
 		// Save to new location
-		if err := cfg.Save(beadsDir); err != nil {
+		if err := cfg.Save(issuegraphDir); err != nil {
 			return nil, fmt.Errorf("migrating config to metadata.json: %w", err)
 		}
 
@@ -130,10 +130,10 @@ func Load(beadsDir string) (*Config, error) {
 // one. Unknown JSON fields remain tolerated here because callers use the
 // result only to decide whether to issue a conservative refusal; normal store
 // selection keeps its existing validation.
-func LoadForDiscovery(beadsDir string) (*Config, error) {
-	data, err := os.ReadFile(ConfigPath(beadsDir)) // #nosec G304 -- beadsDir is caller-selected workspace state
+func LoadForDiscovery(issuegraphDir string) (*Config, error) {
+	data, err := os.ReadFile(ConfigPath(issuegraphDir)) // #nosec G304 -- issuegraphDir is caller-selected workspace state
 	if os.IsNotExist(err) {
-		data, err = os.ReadFile(filepath.Join(beadsDir, "config.json")) // #nosec G304 -- legacy workspace state
+		data, err = os.ReadFile(filepath.Join(issuegraphDir, "config.json")) // #nosec G304 -- legacy workspace state
 		if os.IsNotExist(err) {
 			return nil, nil
 		}
@@ -151,8 +151,8 @@ func LoadForDiscovery(beadsDir string) (*Config, error) {
 	return &cfg, nil
 }
 
-func (c *Config) Save(beadsDir string) error {
-	configPath := ConfigPath(beadsDir)
+func (c *Config) Save(issuegraphDir string) error {
+	configPath := ConfigPath(issuegraphDir)
 
 	saved := *c
 	if filepath.IsAbs(saved.DoltDataDir) {
@@ -200,23 +200,23 @@ func writeFileAtomic(path string, data []byte, perm os.FileMode) error {
 	return os.Rename(tmpName, path)
 }
 
-func (c *Config) DatabasePath(beadsDir string) string {
+func (c *Config) DatabasePath(issuegraphDir string) string {
 	// Check for custom dolt data directory (absolute path on a faster filesystem).
-	// This is useful on WSL where .beads/ lives on NTFS (slow 9P mount) but
+	// This is useful on WSL where .issuegraph/ lives on NTFS (slow 9P mount) but
 	// dolt data can be placed on native ext4 for 5-10x I/O speedup.
 	if customDir := c.GetDoltDataDir(); customDir != "" {
 		if filepath.IsAbs(customDir) {
 			return customDir
 		}
-		return filepath.Join(beadsDir, customDir)
+		return filepath.Join(issuegraphDir, customDir)
 	}
 
 	if filepath.IsAbs(c.Database) {
 		return c.Database
 	}
 	// Always use "dolt" as the directory name.
-	// Stale values like "town", "wyvern", "beads_rig" caused split-brain (see DOLT-HEALTH-P0.md).
-	return filepath.Join(beadsDir, "dolt")
+	// Stale values like "town", "wyvern", "issuegraph_rig" caused split-brain (see DOLT-HEALTH-P0.md).
+	return filepath.Join(issuegraphDir, "dolt")
 }
 
 // DefaultDeletionsRetentionDays is the default retention period for deletion records.
@@ -257,7 +257,7 @@ const (
 // single-process-only unless using server mode.
 type BackendCapabilities struct {
 	// SingleProcessOnly indicates the backend must not be accessed from multiple
-	// Beads OS processes concurrently.
+	// IssueGraph OS processes concurrently.
 	SingleProcessOnly bool
 }
 
@@ -311,8 +311,8 @@ func (c *Config) GetBackend() string {
 	return BackendDolt
 }
 
-// GetSQLitePath returns the SQLite database file path (relative to the beads dir, or
-// absolute). Empty means the default (beads.db).
+// GetSQLitePath returns the SQLite database file path (relative to the issuegraph dir, or
+// absolute). Empty means the default (issuegraph.db).
 func (c *Config) GetSQLitePath() string {
 	if c == nil {
 		return ""
@@ -332,7 +332,7 @@ const (
 	DefaultDoltServerHost     = "127.0.0.1"
 	DefaultDoltServerPort     = 3307 // Use 3307 to avoid conflict with MySQL on 3306
 	DefaultDoltServerUser     = "root"
-	DefaultDoltDatabase       = "beads"
+	DefaultDoltDatabase       = "issuegraph"
 	DefaultDoltRemotesAPIPort = 8080 // Default dolt remotesapi port for federation
 )
 
@@ -340,9 +340,9 @@ const (
 // Server mode is the standard connection method.
 //
 // Checks (in priority order):
-//  1. BEADS_DOLT_SERVER_MODE=1 env var
-//  2. BEADS_DOLT_SHARED_SERVER env var (shared-server implies server mode)
-//  3. BEADS_DOLT_SERVER_HOST env var set to a non-localhost value (GH#3545):
+//  1. ISSUEGRAPH_DOLT_SERVER_MODE=1 env var
+//  2. ISSUEGRAPH_DOLT_SHARED_SERVER env var (shared-server implies server mode)
+//  3. ISSUEGRAPH_DOLT_SERVER_HOST env var set to a non-localhost value (GH#3545):
 //     an operator who configures a remote host but forgets the mode flag
 //     would otherwise silently fall through to embedded storage. Setting
 //     the env var to an explicit localhost value (or empty string) is
@@ -365,12 +365,12 @@ func (c *Config) IsDoltServerMode() bool {
 	if c.GetBackend() != BackendDolt {
 		return false
 	}
-	if os.Getenv("BEADS_DOLT_SERVER_MODE") == "1" {
+	if os.Getenv("ISSUEGRAPH_DOLT_SERVER_MODE") == "1" {
 		return true
 	}
 	// Shared-server mode implies server-backed storage. Check env var
 	// directly to avoid circular import with doltserver package.
-	if v := os.Getenv("BEADS_DOLT_SHARED_SERVER"); v == "1" || strings.EqualFold(v, "true") {
+	if v := os.Getenv("ISSUEGRAPH_DOLT_SHARED_SERVER"); v == "1" || strings.EqualFold(v, "true") {
 		return true
 	}
 	// Host-based inference (GH#3545): a configured non-localhost host
@@ -398,7 +398,7 @@ func (c *Config) IsDoltServerMode() bool {
 //   - Proxied-server workspaces are exempt: IsDoltServerMode and
 //     IsDoltProxiedServerMode are mutually exclusive (the
 //     proxied-to-server migration depends on it).
-//   - A non-empty BEADS_DOLT_SERVER_HOST decides alone: a non-localhost
+//   - A non-empty ISSUEGRAPH_DOLT_SERVER_HOST decides alone: a non-localhost
 //     value implies server mode even over explicit dolt_mode=embedded
 //     (runtime env beats stale metadata, GH#2949); an explicit
 //     localhost value suppresses inference from lower-priority hosts —
@@ -418,7 +418,7 @@ func (c *Config) HostImpliesServerMode() bool {
 	if strings.EqualFold(c.DoltMode, DoltModeProxiedServer) {
 		return false
 	}
-	if h := os.Getenv("BEADS_DOLT_SERVER_HOST"); h != "" {
+	if h := os.Getenv("ISSUEGRAPH_DOLT_SERVER_HOST"); h != "" {
 		return !IsLocalHostString(h)
 	}
 	if c.DoltMode != "" {
@@ -457,7 +457,7 @@ func (c *Config) IsDoltProxiedServerMode() bool {
 }
 
 // IsTeamServerManaged reports whether the database's schema and identity are
-// owned by beads-team-server (bts). Only meaningful in proxied-server mode.
+// owned by issuegraph-team-server (bts). Only meaningful in proxied-server mode.
 func (c *Config) IsTeamServerManaged() bool {
 	return c.IsDoltProxiedServerMode() && c.DoltTeamServer
 }
@@ -465,7 +465,7 @@ func (c *Config) IsTeamServerManaged() bool {
 // GetDoltMode returns the Dolt connection mode, defaulting to server.
 // GetDoltMode returns the EFFECTIVE mode: when no mode is persisted but
 // host-based inference (GH#3545) selects server mode, it reports
-// "server" so effective-context consumers (bd context, integrations)
+// "server" so effective-context consumers (issuegraph context, integrations)
 // agree with IsDoltServerMode instead of advertising an embedded mode
 // next to a remote server endpoint.
 func (c *Config) GetDoltMode() string {
@@ -479,13 +479,13 @@ func (c *Config) GetDoltMode() string {
 }
 
 // GetDoltServerHost returns the Dolt server host.
-// Priority: BEADS_DOLT_SERVER_HOST env var > metadata.json dolt_server_host
+// Priority: ISSUEGRAPH_DOLT_SERVER_HOST env var > metadata.json dolt_server_host
 // > config.yaml / global config dolt.host > DefaultDoltServerHost.
 // The config.yaml layer mirrors the dolt.port fix (GH#2073) so a shared
 // team / user-level Dolt server can be configured once without per-clone
 // metadata.json edits.
 func (c *Config) GetDoltServerHost() string {
-	if h := os.Getenv("BEADS_DOLT_SERVER_HOST"); h != "" {
+	if h := os.Getenv("ISSUEGRAPH_DOLT_SERVER_HOST"); h != "" {
 		return h
 	}
 	if c.DoltServerHost != "" {
@@ -497,21 +497,21 @@ func (c *Config) GetDoltServerHost() string {
 	return DefaultDoltServerHost
 }
 
-// Deprecated: Use doltserver.DefaultConfig(beadsDir).Port instead.
+// Deprecated: Use doltserver.DefaultConfig(issuegraphDir).Port instead.
 // This method falls back to 3307 which is wrong for standalone mode
 // (where the port is an OS-assigned ephemeral port).
 // Kept for backward compatibility with external consumers.
 //
 // GetDoltServerPort returns the Dolt server port.
-// Checks BEADS_DOLT_SERVER_PORT env var first, then BEADS_DOLT_PORT (orchestrator sets this),
+// Checks ISSUEGRAPH_DOLT_SERVER_PORT env var first, then ISSUEGRAPH_DOLT_PORT (orchestrator sets this),
 // then config, then default.
 func (c *Config) GetDoltServerPort() int {
-	if p := os.Getenv("BEADS_DOLT_SERVER_PORT"); p != "" {
+	if p := os.Getenv("ISSUEGRAPH_DOLT_SERVER_PORT"); p != "" {
 		if port, err := strconv.Atoi(p); err == nil {
 			return port
 		}
 	}
-	if p := os.Getenv("BEADS_DOLT_PORT"); p != "" {
+	if p := os.Getenv("ISSUEGRAPH_DOLT_PORT"); p != "" {
 		if port, err := strconv.Atoi(p); err == nil {
 			return port
 		}
@@ -523,18 +523,18 @@ func (c *Config) GetDoltServerPort() int {
 }
 
 // GetDoltServerSocket returns the Dolt server Unix domain socket path.
-// Checks BEADS_DOLT_SERVER_SOCKET env var first, then config. Empty means use TCP.
+// Checks ISSUEGRAPH_DOLT_SERVER_SOCKET env var first, then config. Empty means use TCP.
 func (c *Config) GetDoltServerSocket() string {
-	if s := os.Getenv("BEADS_DOLT_SERVER_SOCKET"); s != "" {
+	if s := os.Getenv("ISSUEGRAPH_DOLT_SERVER_SOCKET"); s != "" {
 		return s
 	}
 	return c.DoltServerSocket
 }
 
 // GetDoltServerUser returns the Dolt server MySQL user.
-// Checks BEADS_DOLT_SERVER_USER env var first, then config, then default.
+// Checks ISSUEGRAPH_DOLT_SERVER_USER env var first, then config, then default.
 func (c *Config) GetDoltServerUser() string {
-	if u := os.Getenv("BEADS_DOLT_SERVER_USER"); u != "" {
+	if u := os.Getenv("ISSUEGRAPH_DOLT_SERVER_USER"); u != "" {
 		return u
 	}
 	if c.DoltServerUser != "" {
@@ -544,21 +544,21 @@ func (c *Config) GetDoltServerUser() string {
 }
 
 // GetDoltCredentialCommand returns the server credential command:
-// BEADS_DOLT_CREDENTIAL_COMMAND. Empty means no command — the static
-// BEADS_DOLT_SERVER_USER / dolt_server_user path applies. The command's stdout is a
+// ISSUEGRAPH_DOLT_CREDENTIAL_COMMAND. Empty means no command — the static
+// ISSUEGRAPH_DOLT_SERVER_USER / dolt_server_user path applies. The command's stdout is a
 // short-lived token (bare, or a {token,expirationTimestamp} / {access_token,expires_in}
 // envelope) presented as the connection username to an authenticating gateway server,
 // which verifies it and routes to the database. It is deliberately read from the
 // environment only, NOT metadata.json: a metadata-sourced command is arbitrary code run
 // on open, so persisting it waits on a workspace-trust gate.
 func (c *Config) GetDoltCredentialCommand() string {
-	return os.Getenv("BEADS_DOLT_CREDENTIAL_COMMAND")
+	return os.Getenv("ISSUEGRAPH_DOLT_CREDENTIAL_COMMAND")
 }
 
 // GetDoltDatabase returns the Dolt SQL database name.
-// Checks BEADS_DOLT_SERVER_DATABASE env var first, then config, then default.
+// Checks ISSUEGRAPH_DOLT_SERVER_DATABASE env var first, then config, then default.
 func (c *Config) GetDoltDatabase() string {
-	if d := os.Getenv("BEADS_DOLT_SERVER_DATABASE"); d != "" {
+	if d := os.Getenv("ISSUEGRAPH_DOLT_SERVER_DATABASE"); d != "" {
 		return d
 	}
 	if c.DoltDatabase != "" {
@@ -579,9 +579,9 @@ func (c *Config) GetGlobalProjectID() string {
 
 // GetDoltServerPassword returns the Dolt server password.
 // Checks in order:
-//  1. BEADS_DOLT_PASSWORD env var (highest priority, existing behavior)
+//  1. ISSUEGRAPH_DOLT_PASSWORD env var (highest priority, existing behavior)
 //  2. Credentials file lookup by [host:port] section
-//     (path from BEADS_CREDENTIALS_FILE env var, or ~/.config/beads/credentials)
+//     (path from ISSUEGRAPH_CREDENTIALS_FILE env var, or ~/.config/issuegraph/credentials)
 //  3. Empty string (no password)
 //
 // Note: uses the port from configfile (metadata.json / env var), which may differ
@@ -599,7 +599,7 @@ func (c *Config) GetDoltServerPassword() string {
 // doltserver port file says 3307 (local), causing the credentials file lookup
 // to use the wrong [host:port] section.
 func (c *Config) GetDoltServerPasswordForPort(port int) string {
-	if p := os.Getenv("BEADS_DOLT_PASSWORD"); p != "" {
+	if p := os.Getenv("ISSUEGRAPH_DOLT_PASSWORD"); p != "" {
 		return p
 	}
 	host := c.GetDoltServerHost()
@@ -611,23 +611,23 @@ func (c *Config) GetDoltServerPasswordForPort(port int) string {
 
 // GetDoltServerTLS returns whether TLS is enabled for server connections.
 // Required for Hosted Dolt instances.
-// Checks BEADS_DOLT_SERVER_TLS env var first ("1" or "true"), then config.
+// Checks ISSUEGRAPH_DOLT_SERVER_TLS env var first ("1" or "true"), then config.
 func (c *Config) GetDoltServerTLS() bool {
-	if t := os.Getenv("BEADS_DOLT_SERVER_TLS"); t != "" {
+	if t := os.Getenv("ISSUEGRAPH_DOLT_SERVER_TLS"); t != "" {
 		return t == "1" || strings.ToLower(t) == "true"
 	}
 	return c.DoltServerTLS
 }
 
 // GetDoltDataDir returns the custom dolt data directory path.
-// When set, dolt stores its data in this directory instead of .beads/dolt/.
+// When set, dolt stores its data in this directory instead of .issuegraph/dolt/.
 // This is useful on WSL where the project lives on a slow NTFS mount (9P)
 // but dolt data can be placed on native ext4 for significantly better I/O.
-// Checks BEADS_DOLT_DATA_DIR env var first, then config. Nil-safe, like
+// Checks ISSUEGRAPH_DOLT_DATA_DIR env var first, then config. Nil-safe, like
 // GetBackend: rejection paths resolve the data dir for workspaces whose config
 // may not have loaded, and the env override still applies to those.
 func (c *Config) GetDoltDataDir() string {
-	if d := os.Getenv("BEADS_DOLT_DATA_DIR"); d != "" {
+	if d := os.Getenv("ISSUEGRAPH_DOLT_DATA_DIR"); d != "" {
 		return d
 	}
 	if c == nil {
@@ -637,9 +637,9 @@ func (c *Config) GetDoltDataDir() string {
 }
 
 // GetDoltRemotesAPIPort returns the Dolt remotesapi port used for federation.
-// Checks BEADS_DOLT_REMOTESAPI_PORT env var first, then config, then default (8080).
+// Checks ISSUEGRAPH_DOLT_REMOTESAPI_PORT env var first, then config, then default (8080).
 func (c *Config) GetDoltRemotesAPIPort() int {
-	if p := os.Getenv("BEADS_DOLT_REMOTESAPI_PORT"); p != "" {
+	if p := os.Getenv("ISSUEGRAPH_DOLT_REMOTESAPI_PORT"); p != "" {
 		if port, err := strconv.Atoi(p); err == nil {
 			return port
 		}

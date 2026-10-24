@@ -8,9 +8,9 @@ import (
 	"path/filepath"
 	"testing"
 
-	"github.com/steveyegge/beads/internal/storage"
-	"github.com/steveyegge/beads/internal/storage/issueops"
-	"github.com/steveyegge/beads/internal/types"
+	"github.com/borg0ai/dx-issuegraph/internal/storage"
+	"github.com/borg0ai/dx-issuegraph/internal/storage/issueops"
+	"github.com/borg0ai/dx-issuegraph/internal/types"
 )
 
 // Generic update close policy belongs to shared lifecycle conformance. These
@@ -47,12 +47,12 @@ func TestUpdateClosePolicyDirectForceStillFencesAssigneeTransfer(t *testing.T) {
 	}
 }
 
-// TestUpdateClosePolicyBatchCrossesIntoDone drives `bd batch update`, whose
+// TestUpdateClosePolicyBatchCrossesIntoDone drives `issuegraph batch update`, whose
 // transaction reaches the same embedded write funnel without going through the
 // facade at all.
 func TestUpdateClosePolicyBatchCrossesIntoDone(t *testing.T) {
 	tmpDir := t.TempDir()
-	st := newTestStoreWithPrefix(t, filepath.Join(tmpDir, ".beads", "beads.db"), "tbc")
+	st := newTestStoreWithPrefix(t, filepath.Join(tmpDir, ".issuegraph", "issuegraph.db"), "tbc")
 	ctx := context.Background()
 
 	seedBatchTestIssues(t, ctx, st, "tbc-parent", "tbc-child", "tbc-blocker", "tbc-blocked")

@@ -7,18 +7,18 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/steveyegge/beads/internal/types"
+	"github.com/borg0ai/dx-issuegraph/internal/types"
 )
 
 func TestProxiedServerDeferUndefer(t *testing.T) {
 	requireSharedProxiedServer(t)
 	t.Parallel()
-	bd := buildEmbeddedBD(t)
-	p := newSharedProxiedProject(t, bd, "dfr")
+	issuegraph := buildEmbeddedBD(t)
+	p := newSharedProxiedProject(t, issuegraph, "dfr")
 
 	showStatus := func(t *testing.T, id string) (string, interface{}) {
 		t.Helper()
-		out, err := bdProxiedRun(t, bd, p.dir, "show", id, "--json")
+		out, err := issuegraphProxiedRun(t, issuegraph, p.dir, "show", id, "--json")
 		if err != nil {
 			t.Fatalf("show %s: %v\n%s", id, err, out)
 		}
@@ -33,9 +33,9 @@ func TestProxiedServerDeferUndefer(t *testing.T) {
 	}
 
 	t.Run("defer_then_undefer", func(t *testing.T) {
-		a := bdProxiedCreate(t, bd, p.dir, "Defer target", "--type", "task")
+		a := issuegraphProxiedCreate(t, issuegraph, p.dir, "Defer target", "--type", "task")
 
-		out, err := bdProxiedRun(t, bd, p.dir, "defer", a.ID, "--until", "tomorrow", "--reason", "waiting on X", "--json")
+		out, err := issuegraphProxiedRun(t, issuegraph, p.dir, "defer", a.ID, "--until", "tomorrow", "--reason", "waiting on X", "--json")
 		if err != nil {
 			t.Fatalf("defer: %v\n%s", err, out)
 		}
@@ -59,7 +59,7 @@ func TestProxiedServerDeferUndefer(t *testing.T) {
 		}
 
 		// Undefer restores to open and clears defer_until.
-		if out, err := bdProxiedRun(t, bd, p.dir, "undefer", a.ID); err != nil {
+		if out, err := issuegraphProxiedRun(t, issuegraph, p.dir, "undefer", a.ID); err != nil {
 			t.Fatalf("undefer: %v\n%s", err, out)
 		}
 		status, deferUntil = showStatus(t, a.ID)
@@ -72,11 +72,11 @@ func TestProxiedServerDeferUndefer(t *testing.T) {
 	})
 
 	t.Run("deferred_excluded_from_ready", func(t *testing.T) {
-		b := bdProxiedCreate(t, bd, p.dir, "Ready-then-deferred", "--type", "task", "--priority", "1")
-		if out, err := bdProxiedRun(t, bd, p.dir, "defer", b.ID); err != nil {
+		b := issuegraphProxiedCreate(t, issuegraph, p.dir, "Ready-then-deferred", "--type", "task", "--priority", "1")
+		if out, err := issuegraphProxiedRun(t, issuegraph, p.dir, "defer", b.ID); err != nil {
 			t.Fatalf("defer: %v\n%s", err, out)
 		}
-		ready := bdProxiedListJSON(t, bd, p, "--ready")
+		ready := issuegraphProxiedListJSON(t, issuegraph, p, "--ready")
 		for _, iss := range ready {
 			if iss.ID == b.ID {
 				t.Errorf("deferred issue %s should not appear in ready", b.ID)
@@ -85,29 +85,29 @@ func TestProxiedServerDeferUndefer(t *testing.T) {
 	})
 
 	t.Run("undefer_nondeferred_errors", func(t *testing.T) {
-		c := bdProxiedCreate(t, bd, p.dir, "Open issue", "--type", "task")
-		stdout, stderr, _ := bdProxiedRunBuffers(t, bd, p.dir, "undefer", c.ID)
+		c := issuegraphProxiedCreate(t, issuegraph, p.dir, "Open issue", "--type", "task")
+		stdout, stderr, _ := issuegraphProxiedRunBuffers(t, issuegraph, p.dir, "undefer", c.ID)
 		if !strings.Contains(stdout+stderr, "is not deferred") {
 			t.Errorf("expected 'is not deferred' message, got stdout=%q stderr=%q", stdout, stderr)
 		}
 	})
 
 	t.Run("defer_is_idempotent", func(t *testing.T) {
-		d := bdProxiedCreate(t, bd, p.dir, "Idempotent defer", "--type", "task")
-		if out, err := bdProxiedRun(t, bd, p.dir, "defer", d.ID); err != nil {
+		d := issuegraphProxiedCreate(t, issuegraph, p.dir, "Idempotent defer", "--type", "task")
+		if out, err := issuegraphProxiedRun(t, issuegraph, p.dir, "defer", d.ID); err != nil {
 			t.Fatalf("first defer: %v\n%s", err, out)
 		}
 		// Second defer on an already-deferred issue must not error (ClientFoundRows fix).
-		if out, err := bdProxiedRun(t, bd, p.dir, "defer", d.ID, "--json"); err != nil {
+		if out, err := issuegraphProxiedRun(t, issuegraph, p.dir, "defer", d.ID, "--json"); err != nil {
 			t.Fatalf("second defer errored (no-op update regression): %v\n%s", err, out)
 		}
 	})
 
 	t.Run("defer_multiple", func(t *testing.T) {
-		e := bdProxiedCreate(t, bd, p.dir, "Defer multi 1", "--type", "task")
-		f := bdProxiedCreate(t, bd, p.dir, "Defer multi 2", "--type", "task")
+		e := issuegraphProxiedCreate(t, issuegraph, p.dir, "Defer multi 1", "--type", "task")
+		f := issuegraphProxiedCreate(t, issuegraph, p.dir, "Defer multi 2", "--type", "task")
 
-		out, err := bdProxiedRun(t, bd, p.dir, "defer", e.ID, f.ID)
+		out, err := issuegraphProxiedRun(t, issuegraph, p.dir, "defer", e.ID, f.ID)
 		if err != nil {
 			t.Fatalf("defer multiple: %v\n%s", err, out)
 		}
@@ -122,13 +122,13 @@ func TestProxiedServerDeferUndefer(t *testing.T) {
 	})
 
 	t.Run("undefer_multiple", func(t *testing.T) {
-		g := bdProxiedCreate(t, bd, p.dir, "Undefer multi 1", "--type", "task")
-		h := bdProxiedCreate(t, bd, p.dir, "Undefer multi 2", "--type", "task")
-		if out, err := bdProxiedRun(t, bd, p.dir, "defer", g.ID, h.ID); err != nil {
+		g := issuegraphProxiedCreate(t, issuegraph, p.dir, "Undefer multi 1", "--type", "task")
+		h := issuegraphProxiedCreate(t, issuegraph, p.dir, "Undefer multi 2", "--type", "task")
+		if out, err := issuegraphProxiedRun(t, issuegraph, p.dir, "defer", g.ID, h.ID); err != nil {
 			t.Fatalf("defer: %v\n%s", err, out)
 		}
 
-		out, err := bdProxiedRun(t, bd, p.dir, "undefer", g.ID, h.ID)
+		out, err := issuegraphProxiedRun(t, issuegraph, p.dir, "undefer", g.ID, h.ID)
 		if err != nil {
 			t.Fatalf("undefer multiple: %v\n%s", err, out)
 		}
@@ -143,11 +143,11 @@ func TestProxiedServerDeferUndefer(t *testing.T) {
 	})
 
 	t.Run("defer_reason_appended_to_notes", func(t *testing.T) {
-		i := bdProxiedCreate(t, bd, p.dir, "Defer with reason", "--type", "task")
-		if out, err := bdProxiedRun(t, bd, p.dir, "defer", i.ID, "--reason", "waiting on API access"); err != nil {
+		i := issuegraphProxiedCreate(t, issuegraph, p.dir, "Defer with reason", "--type", "task")
+		if out, err := issuegraphProxiedRun(t, issuegraph, p.dir, "defer", i.ID, "--reason", "waiting on API access"); err != nil {
 			t.Fatalf("defer --reason: %v\n%s", err, out)
 		}
-		iss := bdProxiedShow(t, bd, p.dir, i.ID)
+		iss := issuegraphProxiedShow(t, issuegraph, p.dir, i.ID)
 		if !strings.Contains(iss.Notes, "waiting on API access") {
 			t.Errorf("expected defer reason appended to notes, got notes=%q", iss.Notes)
 		}

@@ -45,10 +45,10 @@ func TestGenerateIdempotencyMarkerExcludesTitle(t *testing.T) {
 		t.Errorf("markers differ despite identical non-title inputs")
 	}
 
-	// Different beadID → different marker.
+	// Different issueID → different marker.
 	c := GenerateIdempotencyMarker("id-2", "bob@test.com", 100)
 	if a == c {
-		t.Error("different beadID should produce different marker")
+		t.Error("different issueID should produce different marker")
 	}
 }
 
@@ -56,7 +56,7 @@ func TestGenerateIdempotencyMarkerVariesOnInputs(t *testing.T) {
 	base := GenerateIdempotencyMarker("id-1", "a@b.com", 100)
 
 	if m := GenerateIdempotencyMarker("id-2", "a@b.com", 100); m == base {
-		t.Error("different beadID should change marker")
+		t.Error("different issueID should change marker")
 	}
 	if m := GenerateIdempotencyMarker("id-1", "x@y.com", 100); m == base {
 		t.Error("different creatorEmail should change marker")
@@ -157,7 +157,7 @@ func TestCreateIssueEmbedsMarker(t *testing.T) {
 
 	client := NewClient("test-key", "team-1").WithEndpoint(server.URL)
 
-	marker := GenerateIdempotencyMarker("bead-1", "dev@test.com", 100)
+	marker := GenerateIdempotencyMarker("issue-1", "dev@test.com", 100)
 	issue, deduped, err := client.CreateIssueIdempotent(
 		context.Background(),
 		"Test Issue",
@@ -204,7 +204,7 @@ func TestCreateIssueDedups(t *testing.T) {
 
 	client := NewClient("test-key", "team-1").WithEndpoint(server.URL)
 
-	marker := GenerateIdempotencyMarker("bead-1", "dev@test.com", 100)
+	marker := GenerateIdempotencyMarker("issue-1", "dev@test.com", 100)
 	issue, deduped, err := client.CreateIssueIdempotent(
 		context.Background(),
 		"Already Created",
@@ -270,7 +270,7 @@ func TestCreateIssueIdempotentEmptyDescription(t *testing.T) {
 
 	client := NewClient("test-key", "team-1").WithEndpoint(server.URL)
 
-	marker := GenerateIdempotencyMarker("bead-x", "dev@test.com", 200)
+	marker := GenerateIdempotencyMarker("issue-x", "dev@test.com", 200)
 	issue, _, err := client.CreateIssueIdempotent(
 		context.Background(),
 		"Empty Desc Issue",
@@ -369,7 +369,7 @@ func TestCreateIssueIdempotentOAuthAuthHeader(t *testing.T) {
 		TokenURL:     tokenServer.URL,
 	}, "team-1").WithEndpoint(apiServer.URL)
 
-	marker := GenerateIdempotencyMarker("bead-oauth", "dev@test.com", 300)
+	marker := GenerateIdempotencyMarker("issue-oauth", "dev@test.com", 300)
 	issue, deduped, err := client.CreateIssueIdempotent(
 		context.Background(),
 		"OAuth Issue",
@@ -460,7 +460,7 @@ func TestCreateIssueIdempotentRecoverAfterAmbiguousFailure(t *testing.T) {
 
 	client := NewClient("test-key", "team-1").WithEndpoint(server.URL)
 
-	marker := GenerateIdempotencyMarker("bead-net", "dev@test.com", 42)
+	marker := GenerateIdempotencyMarker("issue-net", "dev@test.com", 42)
 	issue, deduped, err := client.CreateIssueIdempotent(
 		context.Background(),
 		"Network Failure Issue",

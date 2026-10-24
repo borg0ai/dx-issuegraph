@@ -5,7 +5,7 @@ package main
 // Managed-local proxied lifecycle smoke lane (Linux first).
 //
 // This is the first end-to-end test of the production local-first proxied
-// topology: bd spawns a detached loopback proxy, the proxy spawns a local
+// topology: issuegraph spawns a detached loopback proxy, the proxy spawns a local
 // `dolt sql-server`, and no external host/port or testcontainer is
 // involved. It proves, on one disposable repository:
 //
@@ -18,13 +18,13 @@ package main
 //
 // Run locally with:
 //
-//	BEADS_TEST_PROXIED_LOCAL=1 go test -tags gms_pure_go ./modules/cli \
+//	ISSUEGRAPH_TEST_PROXIED_LOCAL=1 go test -tags gms_pure_go ./modules/cli \
 //	    -run '^TestManagedLocalProxied' -v
 //
 // CI additionally runs it inside a network namespace with only loopback up
 // (see .github/workflows/proxied-local-smoke.yml), proving the whole
-// lifecycle needs no outbound network once bd and dolt are installed.
-// When BEADS_TEST_PROXIED_LOCAL=1 is set, missing prerequisites or a Dolt
+// lifecycle needs no outbound network once issuegraph and dolt are installed.
+// When ISSUEGRAPH_TEST_PROXIED_LOCAL=1 is set, missing prerequisites or a Dolt
 // child that fails to launch FAIL the test rather than skipping.
 //
 // Defined, not implemented in this Linux-first stage:
@@ -56,25 +56,25 @@ import (
 
 func TestManagedLocalProxiedLifecycleSmoke(t *testing.T) {
 	requireManagedLocalProxiedEnv(t)
-	bd := buildEmbeddedBD(t)
+	issuegraph := buildEmbeddedBD(t)
 
 	// Short idle window so the shutdown phase is observable in test time;
 	// the production default is 30s.
 	const idleTimeout = 5 * time.Second
-	p := bdManagedLocalInit(t, bd, "mlp", idleTimeout)
+	p := issuegraphManagedLocalInit(t, issuegraph, "mlp", idleTimeout)
 
 	// Hold a connection through the proxy for the whole inspection phase:
 	// with an active connection the idle watcher never arms, so the process
 	// tree cannot shut down under us between assertions.
-	held := openHeldManagedProxiedConn(t, bd, p)
+	held := openHeldManagedProxiedConn(t, issuegraph, p)
 
-	issue := bdProxiedCreate(t, bd, p.dir, "managed local smoke issue")
+	issue := issuegraphProxiedCreate(t, issuegraph, p.dir, "managed local smoke issue")
 	if issue.ID == "" {
-		t.Fatal("bd create returned an empty issue ID")
+		t.Fatal("issuegraph create returned an empty issue ID")
 	}
-	shown := bdProxiedShow(t, bd, p.dir, issue.ID)
+	shown := issuegraphProxiedShow(t, issuegraph, p.dir, issue.ID)
 	if shown.Title != "managed local smoke issue" {
-		t.Errorf("bd show title: got %q, want %q", shown.Title, "managed local smoke issue")
+		t.Errorf("issuegraph show title: got %q, want %q", shown.Title, "managed local smoke issue")
 	}
 
 	// --- Live topology inspection -------------------------------------
@@ -101,23 +101,23 @@ func TestManagedLocalProxiedLifecycleSmoke(t *testing.T) {
 	// they claim to (the full identity handshake is separate hardening
 	// work; this catches gross mismatches).
 	if cl := procCmdline(proxyPF.Pid); !strings.Contains(cl, "db-proxy-child") {
-		t.Errorf("proxy pid %d cmdline %q does not look like a bd db-proxy-child", proxyPF.Pid, cl)
+		t.Errorf("proxy pid %d cmdline %q does not look like a issuegraph db-proxy-child", proxyPF.Pid, cl)
 	}
 	if cl := procCmdline(backendPF.Pid); !strings.Contains(cl, "sql-server") {
 		t.Errorf("backend pid %d cmdline %q does not look like dolt sql-server", backendPF.Pid, cl)
 	}
 
-	// Static loopback proof: the generated config.yaml is Beads-managed and
+	// Static loopback proof: the generated config.yaml is IssueGraph-managed and
 	// binds the backend listener to 127.0.0.1 on the backend pidfile's port.
 	assertManagedConfigLoopback(t, p, backendPF.Port)
 
 	// Dynamic loopback proof: each live process owns a 127.0.0.1 listener
 	// on the exact port its pidfile advertises, and neither process holds a
 	// TCP listener on a non-loopback address.
-	assertExpectedLoopbackListener(t, proxyPF.Pid, proxyPF.Port, "proxy (bd db-proxy-child)")
+	assertExpectedLoopbackListener(t, proxyPF.Pid, proxyPF.Port, "proxy (issuegraph db-proxy-child)")
 	assertExpectedLoopbackListener(t, backendPF.Pid, backendPF.Port, "dolt sql-server backend")
 
-	// The held connection must reach the same data bd wrote, through the
+	// The held connection must reach the same data issuegraph wrote, through the
 	// proxy listener the pidfile advertises.
 	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
 	defer cancel()
@@ -142,13 +142,13 @@ func TestManagedLocalProxiedLifecycleSmoke(t *testing.T) {
 
 	// --- Transparent restart and persistence ----------------------------
 
-	reread := bdProxiedShow(t, bd, p.dir, issue.ID)
+	reread := issuegraphProxiedShow(t, issuegraph, p.dir, issue.ID)
 	if reread.ID != issue.ID || reread.Title != "managed local smoke issue" {
 		t.Fatalf("after restart: got id=%q title=%q, want id=%q title=%q",
 			reread.ID, reread.Title, issue.ID, "managed local smoke issue")
 	}
 
-	held2 := openHeldManagedProxiedConn(t, bd, p)
+	held2 := openHeldManagedProxiedConn(t, issuegraph, p)
 	defer held2.Release()
 
 	proxyPF2 := readManagedProxyPidFile(t, p)
@@ -161,21 +161,21 @@ func TestManagedLocalProxiedLifecycleSmoke(t *testing.T) {
 	if !processAlive(proxyPF2.Pid) {
 		t.Fatalf("restarted proxy process %d is not alive", proxyPF2.Pid)
 	}
-	assertExpectedLoopbackListener(t, proxyPF2.Pid, proxyPF2.Port, "restarted proxy (bd db-proxy-child)")
+	assertExpectedLoopbackListener(t, proxyPF2.Pid, proxyPF2.Port, "restarted proxy (issuegraph db-proxy-child)")
 }
 
 // assertManagedConfigLoopback verifies the generated backend config.yaml
-// carries the Beads-managed marker, binds its listener host to 127.0.0.1,
+// carries the IssueGraph-managed marker, binds its listener host to 127.0.0.1,
 // and agrees with the port the backend pidfile advertises.
 func assertManagedConfigLoopback(t *testing.T, p proxiedProject, backendPort int) {
 	t.Helper()
-	path := proxiedServerConfigPath(p.beadsDir)
+	path := proxiedServerConfigPath(p.issuegraphDir)
 	body, err := os.ReadFile(path)
 	if err != nil {
 		t.Fatalf("read generated backend config %s: %v", path, err)
 	}
 	if !isManagedProxiedServerConfig(body) {
-		t.Errorf("%s lacks the Beads-managed marker; the default lane must use a generated config", path)
+		t.Errorf("%s lacks the IssueGraph-managed marker; the default lane must use a generated config", path)
 	}
 	cfg, err := servercfg.NewYamlConfig(body)
 	if err != nil {

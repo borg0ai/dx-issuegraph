@@ -5,8 +5,8 @@ import (
 
 	"github.com/spf13/cobra"
 
-	"github.com/steveyegge/beads/internal/metrics"
-	"github.com/steveyegge/beads/internal/ui"
+	"github.com/borg0ai/dx-issuegraph/internal/metrics"
+	"github.com/borg0ai/dx-issuegraph/internal/ui"
 )
 
 var assignCmd = &cobra.Command{
@@ -15,16 +15,16 @@ var assignCmd = &cobra.Command{
 	Short:   "Assign an issue to someone",
 	Long: `Assign an issue to someone.
 
-Shorthand for 'bd update <id> --assignee <name>'.
+Shorthand for 'issuegraph update <id> --assignee <name>'.
 
 Refuses to overwrite another actor's live in_progress claim without --force
 (bd-98s5c); issues assigned to a claim.pools alias are exempt, matching
 --claim. For a holder-aware transfer prefer
-'bd update <id> --if-assignee <holder> -a <new>'.
+'issuegraph update <id> --if-assignee <holder> -a <new>'.
 
 Examples:
-  bd assign bd-123 alice
-  bd assign bd-123 ""      # unassign`,
+  issuegraph assign bd-123 alice
+  issuegraph assign bd-123 ""      # unassign`,
 	Args:          cobra.ExactArgs(2),
 	SilenceUsage:  true,
 	SilenceErrors: true,
@@ -70,8 +70,8 @@ Examples:
 			return HandleErrorRespectJSON("%s", err)
 		}
 
-		// bd-98s5c: bd assign is shorthand for an unguarded assignee update —
-		// same live-claim fence as bd update -a.
+		// bd-98s5c: issuegraph assign is shorthand for an unguarded assignee update —
+		// same live-claim fence as issuegraph update -a.
 		if err := validateIssueReassignable(id, result.Issue, actor, assignee,
 			storeClaimPoolAliases(ctx, issueStore), force); err != nil {
 			return HandleErrorRespectJSON("%s", err)
@@ -116,7 +116,7 @@ Examples:
 }
 
 func init() {
-	assignCmd.Flags().Bool("force", false, "Allow overwriting another actor's live in_progress claim (use only for abandoned claims — crashed agent, expired lease; prefer bd reclaim)")
+	assignCmd.Flags().Bool("force", false, "Allow overwriting another actor's live in_progress claim (use only for abandoned claims — crashed agent, expired lease; prefer issuegraph reclaim)")
 	assignCmd.ValidArgsFunction = issueIDCompletion
 	rootCmd.AddCommand(assignCmd)
 }

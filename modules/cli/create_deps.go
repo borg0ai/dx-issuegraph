@@ -5,12 +5,12 @@ import (
 	"fmt"
 	"strings"
 
-	"github.com/steveyegge/beads/internal/config"
-	"github.com/steveyegge/beads/internal/storage"
-	"github.com/steveyegge/beads/internal/storage/domain"
-	"github.com/steveyegge/beads/internal/types"
-	"github.com/steveyegge/beads/internal/utils"
-	"github.com/steveyegge/beads/issueops"
+	"github.com/borg0ai/dx-issuegraph/internal/config"
+	"github.com/borg0ai/dx-issuegraph/internal/storage"
+	"github.com/borg0ai/dx-issuegraph/internal/storage/domain"
+	"github.com/borg0ai/dx-issuegraph/internal/types"
+	"github.com/borg0ai/dx-issuegraph/internal/utils"
+	"github.com/borg0ai/dx-issuegraph/issueops"
 )
 
 // createDependencyRequests translates parsed --deps specs into the create
@@ -97,11 +97,11 @@ func dedupeDepSpecs(specs []domain.DependencySpec) ([]domain.DependencySpec, err
 }
 
 // resolveDepSpecTargets rewrites each non-external TargetID through the same
-// partial-ID resolution path as `bd dep add` (utils.ResolvePartialID).
+// partial-ID resolution path as `issuegraph dep add` (utils.ResolvePartialID).
 //
-// Without this, `bd create --deps discovered-from:8vezf` stores the bare
-// token as depends_on_id, producing a dangling edge that `bd dep list` cannot
-// see and that `bd dep remove … 8vezf` then mis-targets after resolving the
+// Without this, `issuegraph create --deps discovered-from:8vezf` stores the bare
+// token as depends_on_id, producing a dangling edge that `issuegraph dep list` cannot
+// see and that `issuegraph dep remove … 8vezf` then mis-targets after resolving the
 // good fully-qualified row (GH#5005).
 func resolveDepSpecTargets(ctx context.Context, st storage.Storage, specs []domain.DependencySpec) ([]domain.DependencySpec, error) {
 	if len(specs) == 0 {
@@ -158,11 +158,11 @@ func parseDepSpec(raw string) (domain.DependencySpec, error) {
 
 // canonicalDependencyType maps the documented alias spellings "depends-on"
 // and "blocked-by" to the canonical "blocks" storage type that ready/blocked
-// gating checks (types.DependencyType.AffectsReadyWork). Both `bd create
-// --deps` and `bd dep add --type` share this mapping so an alias always
-// gates the same way as the canonical type — see GH#5069, where `bd dep add
+// gating checks (types.DependencyType.AffectsReadyWork). Both `issuegraph create
+// --deps` and `issuegraph dep add --type` share this mapping so an alias always
+// gates the same way as the canonical type — see GH#5069, where `issuegraph dep add
 // --type blocked-by` stored the literal string "blocked-by" and silently
-// never gated `bd ready`/`bd blocked`, even though `--help` itself documents
+// never gated `issuegraph ready`/`issuegraph blocked`, even though `--help` itself documents
 // "blocked-by" as the flag name. Any other value (including well-known types
 // like "parent-child" and custom types) passes through unchanged.
 func canonicalDependencyType(t types.DependencyType) types.DependencyType {
@@ -176,7 +176,7 @@ func canonicalDependencyType(t types.DependencyType) types.DependencyType {
 
 // validateDependencyType enforces that a (post-alias-normalization)
 // dependency type is both structurally valid and one of the well-known
-// built-in types. `bd create --deps` and `bd dep add --type` intentionally
+// built-in types. `issuegraph create --deps` and `issuegraph dep add --type` intentionally
 // reject custom/unknown dependency types (see the comment on
 // WellKnownDependencyTypes) — this is the single shared check so both
 // commands stay in lockstep.

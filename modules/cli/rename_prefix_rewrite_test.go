@@ -38,13 +38,13 @@ func TestRewriteIssueID_UnrelatedPrefixUnchanged(t *testing.T) {
 // TestRewriteIssueID_PrefixShortening pins PR #5135 review blocker B1
 // (maphew, 2026-07-29): the "already on target prefix" guard was checked
 // before the old-prefix match, so shortening a multi-part prefix to one of
-// its own leading segments (e.g. "beads-vscode-" -> "beads-") silently
-// skipped every ID, because "beads-vscode-1" also starts with "beads-".
+// its own leading segments (e.g. "issuegraph-vscode-" -> "issuegraph-") silently
+// skipped every ID, because "issuegraph-vscode-1" also starts with "issuegraph-".
 func TestRewriteIssueID_PrefixShortening(t *testing.T) {
 	t.Parallel()
-	got := rewriteIssueID("beads-vscode", "beads", "beads-vscode-1")
-	if got != "beads-1" {
-		t.Fatalf("got %q, want beads-1 (shortening regression)", got)
+	got := rewriteIssueID("issuegraph-vscode", "issuegraph", "issuegraph-vscode-1")
+	if got != "issuegraph-1" {
+		t.Fatalf("got %q, want issuegraph-1 (shortening regression)", got)
 	}
 	got = rewriteIssueID("kw-team", "kw", "kw-team-42")
 	if got != "kw-42" {

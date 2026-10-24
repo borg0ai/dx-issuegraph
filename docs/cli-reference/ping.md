@@ -1,16 +1,16 @@
 ---
-title: "bd ping"
-description: "Lightweight health check that confirms bd can reach its database."
+title: "issuegraph ping"
+description: "Lightweight health check that confirms issuegraph can reach its database."
 ---
 
 {/* AUTO-GENERATED: do not edit manually */}
 
-Generated from `bd help --doc ping`.
+Generated from `issuegraph help --doc ping`.
 
-Lightweight health check that confirms bd can reach its database.
+Lightweight health check that confirms issuegraph can reach its database.
 
 Steps:
-  1. Resolve the .beads workspace
+  1. Resolve the .issuegraph workspace
   2. Open the store (embedded or server)
   3. Run a trivial query (issue count)
   4. Report timing
@@ -18,9 +18,9 @@ Steps:
 Exit 0 on success, exit 1 on failure.
 
 Examples:
-  bd ping              # Quick connectivity check
-  bd ping --json       # Structured output for automation
+  issuegraph ping              # Quick connectivity check
+  issuegraph ping --json       # Structured output for automation
 
 ```
-bd ping [flags]
+issuegraph ping [flags]
 ```

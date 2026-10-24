@@ -139,19 +139,19 @@ If upgrading from an older version that used SQLite:
 >
 > See [Troubleshooting](/reference/troubleshooting#circuit-breaker-server-appears-down-failing-fast) if you encounter connection errors after migration.
 
-Migration creates backups automatically. Your original SQLite database is preserved as `beads.backup-pre-dolt-*.db`.
+Migration creates backups automatically. Your original SQLite database is preserved as `issuegraph.backup-pre-dolt-*.db`.
 
 ## Modes of Operation
 
 ```mermaid
 flowchart LR
     subgraph embedded["Embedded mode (default) — issuegraph init"]
-        bd1["issuegraph process<br/>Dolt runs in-process"] --> d1[(".beads/embeddeddolt/<br/>single writer, file-locked")]
+        bd1["issuegraph process<br/>Dolt runs in-process"] --> d1[(".issuegraph/embeddeddolt/<br/>single writer, file-locked")]
     end
     subgraph server["Server mode — issuegraph init --server"]
         bd2["issuegraph (agent 1)"] --> srv["dolt sql-server"]
         bd3["issuegraph (agent 2)"] --> srv
-        srv --> d2[(".beads/dolt/<br/>concurrent writers")]
+        srv --> d2[(".issuegraph/dolt/<br/>concurrent writers")]
     end
 ```
 
@@ -161,7 +161,7 @@ In-process Dolt engine — no separate server needed. This is the default for
 standalone IssueGraph users. The `issuegraph` binary includes everything; just `issuegraph init` and go.
 
 - Single-writer (one process at a time)
-- Data lives in `.beads/embeddeddolt/` alongside your code
+- Data lives in `.issuegraph/embeddeddolt/` alongside your code
 - Push to GitHub with `issuegraph dolt push` — code and issues in one repo
 - Zero ops: no server, no ports, no PID files
 
@@ -174,7 +174,7 @@ Connects to a running `dolt sql-server` for multi-client access.
 gt dolt start
 
 # Or manually
-cd ~/.dolt-data/beads && dolt sql-server --port 3307
+cd ~/.dolt-data/issuegraph && dolt sql-server --port 3307
 ```
 
 ```bash
@@ -182,11 +182,11 @@ cd ~/.dolt-data/beads && dolt sql-server --port 3307
 issuegraph init --server
 
 # Or switch via environment variable
-export BEADS_DOLT_SERVER_MODE=1
+export ISSUEGRAPH_DOLT_SERVER_MODE=1
 ```
 
 ```yaml
-# .beads/config.yaml (server mode settings)
+# .issuegraph/config.yaml (server mode settings)
 dolt:
   mode: server
   host: 127.0.0.1
@@ -198,11 +198,11 @@ Configure the connection with flags or environment variables:
 
 | Flag | Env Var | Default |
 |------|---------|---------|
-| `--server-host` | `BEADS_DOLT_SERVER_HOST` | `127.0.0.1` |
-| `--server-port` | `BEADS_DOLT_SERVER_PORT` | `3307` |
-| `--server-socket` | `BEADS_DOLT_SERVER_SOCKET` | (none; uses TCP) |
-| `--server-user` | `BEADS_DOLT_SERVER_USER` | `root` |
-| | `BEADS_DOLT_PASSWORD` | (none) |
+| `--server-host` | `ISSUEGRAPH_DOLT_SERVER_HOST` | `127.0.0.1` |
+| `--server-port` | `ISSUEGRAPH_DOLT_SERVER_PORT` | `3307` |
+| `--server-socket` | `ISSUEGRAPH_DOLT_SERVER_SOCKET` | (none; uses TCP) |
+| `--server-user` | `ISSUEGRAPH_DOLT_SERVER_USER` | `root` |
+| | `ISSUEGRAPH_DOLT_PASSWORD` | (none) |
 
 **Unix domain sockets:** Use `--server-socket` to connect via a Unix socket
 instead of TCP. This avoids port conflicts between concurrent projects and is
@@ -218,28 +218,28 @@ Switch to server mode when you need:
 
 ## Maintenance — `issuegraph prune` and `issuegraph purge`
 
-`issuegraph prune` permanently deletes closed non-ephemeral beads to reclaim storage
-and shrink auto-exports. `issuegraph purge` does the same for ephemeral beads (wisps,
+`issuegraph prune` permanently deletes closed non-ephemeral issuegraph to reclaim storage
+and shrink auto-exports. `issuegraph purge` does the same for ephemeral issuegraph (wisps,
 transient molecules). Both require `--force` to execute.
 
 ```bash
-issuegraph prune --older-than 30d              # Preview closed beads >30d old
+issuegraph prune --older-than 30d              # Preview closed issuegraph >30d old
 issuegraph prune --older-than 30d --force      # Delete them
 issuegraph prune --older-than 90d --dry-run    # Detailed preview with stats
-issuegraph purge --force                       # Delete all closed ephemeral beads
+issuegraph purge --force                       # Delete all closed ephemeral issuegraph
 ```
 
-**Reference-aware protection:** `issuegraph prune` automatically skips closed beads
+**Reference-aware protection:** `issuegraph prune` automatically skips closed issuegraph
 whose ID appears in the description, notes, or comments of any open or
-in-progress bead. This prevents accidental deletion of ADR, decision, and
-verification beads that downstream work still cites. Use
+in-progress issue. This prevents accidental deletion of ADR, decision, and
+verification issuegraph that downstream work still cites. Use
 `--ignore-references` to override when cleaning up known-stale references:
 
 ```bash
 issuegraph prune --older-than 90d --ignore-references --force
 ```
 
-`issuegraph purge` is unaffected — ephemeral beads' references are themselves
+`issuegraph purge` is unaffected — ephemeral issuegraph' references are themselves
 transient. For full Dolt storage reclaim after deleting many rows, follow
 with `issuegraph flatten`.
 
@@ -351,7 +351,7 @@ database backup.
 
 ### Notes
 
-- Data locations differ between modes: `.beads/embeddeddolt/` (embedded) vs `.beads/dolt/` (server)
+- Data locations differ between modes: `.issuegraph/embeddeddolt/` (embedded) vs `.issuegraph/dolt/` (server)
 - The backup directory is a full Dolt backup, not an `issues.jsonl` export — it can be on a local drive, NAS, or DoltHub
 - You can also migrate via Dolt remotes (`issuegraph dolt push` / `issuegraph dolt pull`) if both projects share a remote
 
@@ -376,7 +376,7 @@ restart.
 
 ```bash
 # DoltHub (public or private)
-issuegraph dolt remote add origin https://doltremoteapi.dolthub.com/org/beads
+issuegraph dolt remote add origin https://doltremoteapi.dolthub.com/org/issuegraph
 
 # S3
 issuegraph dolt remote add origin aws://[bucket]/path/to/repo
@@ -439,7 +439,7 @@ When someone clones a repository that uses Dolt backend:
 - Clones the Dolt database from the remote (instead of creating a fresh one)
 - Configures the Dolt remote for future `issuegraph dolt push`/`pull`
 
-If `sync.remote` is set in `.beads/config.yaml`, that takes precedence
+If `sync.remote` is set in `.issuegraph/config.yaml`, that takes precedence
 over auto-detection. Any Dolt-compatible remote URL is supported (DoltHub,
 S3, GCS, file, or git). On brand-new projects, `issuegraph init` auto-detects
 `git origin` and persists it as `sync.remote`, so the first `issuegraph dolt push`
@@ -475,13 +475,13 @@ gt dolt status       # Check if running
 
 **Check:**
 ```bash
-ls .beads/dolt/            # Should NOT exist (pre-bootstrap)
-BD_DEBUG=1 issuegraph list         # See bootstrap output
+ls .issuegraph/dolt/            # Should NOT exist (pre-bootstrap)
+ISSUEGRAPH_DEBUG=1 issuegraph list         # See bootstrap output
 ```
 
 **Force bootstrap:**
 ```bash
-rm -rf .beads/dolt         # Remove broken state
+rm -rf .issuegraph/dolt         # Remove broken state
 issuegraph list                    # Re-triggers bootstrap
 ```
 
@@ -505,16 +505,16 @@ issuegraph doctor --server         # Server mode checks (if applicable)
 
 2. **Rebuild from remote:**
    ```bash
-   rm -rf .beads/dolt
+   rm -rf .issuegraph/dolt
    issuegraph list                  # Re-triggers bootstrap
    ```
 
-### Already Committed `.beads/dolt/` to Git
+### Already Committed `.issuegraph/dolt/` to Git
 
 If you accidentally committed a Dolt data directory:
 
 1. Update gitignore: `issuegraph doctor --fix`
-2. Remove it from git tracking: `git rm --cached -r .beads/dolt/` (or `.beads/embeddeddolt/`)
+2. Remove it from git tracking: `git rm --cached -r .issuegraph/dolt/` (or `.issuegraph/embeddeddolt/`)
 3. Commit the removal: `git commit -m "fix: remove accidentally committed dolt data"`
 4. To purge from history, use [BFG Repo-Cleaner](https://rtyley.github.io/bfg-repo-cleaner/) or `git filter-repo`
 
@@ -528,7 +528,7 @@ access, switch to server mode. See [Migrating Between Backends](#migrating-betwe
 ## Configuration Reference
 
 ```yaml
-# .beads/config.yaml
+# .issuegraph/config.yaml
 
 # Dolt settings
 dolt:
@@ -544,7 +544,7 @@ dolt:
   # Password: env var or credentials file (see below)
 
   # Shared server mode (GH#2377): all projects share a single Dolt server
-  # at ~/.beads/shared-server/. Each project uses its own database (prefix-based).
+  # at ~/.issuegraph/shared-server/. Each project uses its own database (prefix-based).
   # Eliminates port conflicts and reduces resource usage on multi-project machines.
   shared-server: false   # true | false
 ```
@@ -553,17 +553,17 @@ dolt:
 
 | Variable | Purpose |
 |----------|---------|
-| `BEADS_DOLT_PASSWORD` | Server mode password (highest priority) |
-| `BEADS_CREDENTIALS_FILE` | Path to credentials file (overrides default location) |
-| `BEADS_DOLT_SERVER_MODE` | Enable server mode (set to "1") |
-| `BEADS_DOLT_SERVER_HOST` | Server host (default: 127.0.0.1) |
-| `BEADS_DOLT_SERVER_PORT` | Server port (default: 3307, or 3308 in shared mode) |
-| `BEADS_DOLT_SERVER_TLS` | Enable TLS (set to "1" or "true") |
-| `BEADS_DOLT_SERVER_USER` | MySQL connection user |
-| `BEADS_DOLT_SHARED_SERVER` | Enable shared server mode (set to "1" or "true") |
+| `ISSUEGRAPH_DOLT_PASSWORD` | Server mode password (highest priority) |
+| `ISSUEGRAPH_CREDENTIALS_FILE` | Path to credentials file (overrides default location) |
+| `ISSUEGRAPH_DOLT_SERVER_MODE` | Enable server mode (set to "1") |
+| `ISSUEGRAPH_DOLT_SERVER_HOST` | Server host (default: 127.0.0.1) |
+| `ISSUEGRAPH_DOLT_SERVER_PORT` | Server port (default: 3307, or 3308 in shared mode) |
+| `ISSUEGRAPH_DOLT_SERVER_TLS` | Enable TLS (set to "1" or "true") |
+| `ISSUEGRAPH_DOLT_SERVER_USER` | MySQL connection user |
+| `ISSUEGRAPH_DOLT_SHARED_SERVER` | Enable shared server mode (set to "1" or "true") |
 | `DOLT_REMOTE_USER` | Clone/push/pull auth user |
 | `DOLT_REMOTE_PASSWORD` | Clone/push/pull auth password |
-| `BD_DOLT_AUTO_COMMIT` | Override auto-commit setting |
+| `ISSUEGRAPH_DOLT_AUTO_COMMIT` | Override auto-commit setting |
 
 ### Credentials File
 
@@ -573,7 +573,7 @@ instead of juggling environment variables per project. Passwords are looked up b
 on its configured server.
 
 **Password resolution order:**
-1. `BEADS_DOLT_PASSWORD` env var (highest priority, existing behavior)
+1. `ISSUEGRAPH_DOLT_PASSWORD` env var (highest priority, existing behavior)
 2. Credentials file lookup by `[host:port]` (using the resolved runtime port)
 3. Empty string (no password)
 
@@ -583,18 +583,18 @@ order), not necessarily the port stored in `metadata.json`. This matters when us
 IAP tunnels: if your tunnel maps remote:3307 to localhost:3308, store your password
 under `[127.0.0.1:3308]` and the credentials file will match the actual connection.
 
-**Default location:** `~/.config/beads/credentials` (Linux/macOS), `%APPDATA%\beads\credentials` (Windows)
+**Default location:** `~/.config/issuegraph/credentials` (Linux/macOS), `%APPDATA%\issuegraph\credentials` (Windows)
 
-**Override location:** Set `BEADS_CREDENTIALS_FILE` env var.
+**Override location:** Set `ISSUEGRAPH_CREDENTIALS_FILE` env var.
 
 **File format:**
 
 ```ini
-# ~/.config/beads/credentials
+# ~/.config/issuegraph/credentials
 [127.0.0.1:3307]
 password=localDevPassword
 
-[beads.company.com:3307]
+[issuegraph.company.com:3307]
 password=teamServerPassword
 
 [10.0.1.50:3308]
@@ -605,7 +605,7 @@ password=officePassword
 readable by group or others (mirrors ssh behavior). Set permissions with:
 
 ```bash
-chmod 600 ~/.config/beads/credentials
+chmod 600 ~/.config/issuegraph/credentials
 ```
 
 ## Dolt Version Control
@@ -614,7 +614,7 @@ Dolt maintains its own version history, separate from Git:
 
 ```bash
 # View an issue's version history across Dolt commits
-issuegraph history bd-42
+issuegraph history issuegraph-42
 
 # Show current branch and uncommitted changes
 issuegraph vc status
@@ -661,9 +661,9 @@ Server runs on port 3307 (avoids MySQL conflict on 3306).
 
 When an existing standalone project is later added to a managed city or
 orchestrator, avoid letting two Dolt servers become sources of truth for the
-same issuegraph database name. A common split-brain symptom is that `.beads/dolt-server.port`
+same issuegraph database name. A common split-brain symptom is that `.issuegraph/dolt-server.port`
 points at the old standalone server while the shell environment points `issuegraph` at
-the managed server with `BEADS_DOLT_PORT` or `BEADS_DOLT_SERVER_PORT`.
+the managed server with `ISSUEGRAPH_DOLT_PORT` or `ISSUEGRAPH_DOLT_SERVER_PORT`.
 
 Check before migrating:
 
@@ -681,13 +681,13 @@ Safe manual handoff:
 
 ```bash
 # From the standalone project, without managed-city port overrides:
-unset BEADS_DOLT_PORT BEADS_DOLT_SERVER_PORT
+unset ISSUEGRAPH_DOLT_PORT ISSUEGRAPH_DOLT_SERVER_PORT
 issuegraph backup
-issuegraph export > /tmp/beads-standalone.jsonl
+issuegraph export > /tmp/issuegraph-standalone.jsonl
 issuegraph dolt stop
 
 # Then enter the managed-city environment and import into its Dolt server:
-issuegraph import /tmp/beads-standalone.jsonl
+issuegraph import /tmp/issuegraph-standalone.jsonl
 issuegraph doctor
 ```
 
@@ -699,14 +699,14 @@ snapshotted.
 ### Shared Server Mode
 
 On machines with multiple issuegraph projects, each project normally starts its own Dolt server.
-Shared server mode runs a single Dolt server at `~/.beads/shared-server/` that serves all projects:
+Shared server mode runs a single Dolt server at `~/.issuegraph/shared-server/` that serves all projects:
 
 ```bash
 # Enable for this project (config.yaml key)
 issuegraph config set dolt.shared-server true
 
 # Or enable machine-wide via environment variable
-export BEADS_DOLT_SHARED_SERVER=1
+export ISSUEGRAPH_DOLT_SHARED_SERVER=1
 
 # Or enable during init
 issuegraph init --prefix myproject --shared-server
@@ -718,11 +718,11 @@ issuegraph init --prefix myproject --shared-server
 - Automatic database isolation (each project uses its own database name)
 
 **How it works:**
-- Server state files (PID, port, lock, log) live in `~/.beads/shared-server/`
-- Dolt data directory: `~/.beads/shared-server/dolt/`
-- Each project's database is stored as a subdirectory (e.g., `~/.beads/shared-server/dolt/myproject/`)
+- Server state files (PID, port, lock, log) live in `~/.issuegraph/shared-server/`
+- Dolt data directory: `~/.issuegraph/shared-server/dolt/`
+- Each project's database is stored as a subdirectory (e.g., `~/.issuegraph/shared-server/dolt/myproject/`)
 - The file lock mechanism ensures safe concurrent access from multiple projects
-- Default port is 3308 (not 3307) to avoid conflict with the orchestrator. Override with `BEADS_DOLT_SERVER_PORT` or `dolt.port` in config.yaml
+- Default port is 3308 (not 3307) to avoid conflict with the orchestrator. Override with `ISSUEGRAPH_DOLT_SERVER_PORT` or `dolt.port` in config.yaml
 
 **Important:** Each project on a shared server **must have a unique prefix** (database name).
 Two projects with the same prefix share the same database — if this happens accidentally,
@@ -741,9 +741,9 @@ issuegraph dolt show
 
 ```
 <town-root>/.dolt-data/
-├── hq/                  # Town beads (hq-*)
+├── hq/                  # Town issuegraph (hq-*)
 ├── my-project/          # Project rig (mp-*)
-├── beads/               # Beads rig (bd-*)
+├── issuegraph/               # IssueGraph rig (issuegraph-*)
 └── other-project/       # Other rig (op-*)
 ```
 
@@ -831,8 +831,8 @@ mysql -h 127.0.0.1 -P 3307 -u root -e "SELECT 1"
 Point issuegraph at the central server:
 
 ```bash
-export BEADS_DOLT_SERVER_MODE=1
-export BEADS_DOLT_SERVER_PORT=3307
+export ISSUEGRAPH_DOLT_SERVER_MODE=1
+export ISSUEGRAPH_DOLT_SERVER_PORT=3307
 ```
 
 Manage the service:
@@ -852,13 +852,13 @@ tail -f /opt/homebrew/var/log/dolt.log
 ## Advanced Dolt Usage
 
 The `dolt` CLI lets you operate directly on the database for power-user
-workflows. The data directory depends on your mode: `.beads/embeddeddolt/`
-(embedded) or `.beads/dolt/` (server).
+workflows. The data directory depends on your mode: `.issuegraph/embeddeddolt/`
+(embedded) or `.issuegraph/dolt/` (server).
 
 ### Branching
 
 ```bash
-cd .beads/dolt   # or .beads/embeddeddolt for embedded mode
+cd .issuegraph/dolt   # or .issuegraph/embeddeddolt for embedded mode
 dolt branch feature-x
 dolt checkout feature-x
 ```
@@ -883,8 +883,8 @@ dolt blame issues
 After successful migration from SQLite, you may have backup files:
 
 ```
-.beads/beads.backup-pre-dolt-20260122-213600.db
-.beads/sqlite.backup-pre-dolt-20260123-192812.db
+.issuegraph/issuegraph.backup-pre-dolt-20260122-213600.db
+.issuegraph/sqlite.backup-pre-dolt-20260123-192812.db
 ```
 
 These are safe to delete once you've verified Dolt is working:
@@ -895,7 +895,7 @@ issuegraph list
 issuegraph doctor
 
 # Then clean up (after appropriate waiting period)
-rm .beads/*.backup-*.db
+rm .issuegraph/*.backup-*.db
 ```
 
 **Recommendation:** Keep backups for at least a week before deleting.

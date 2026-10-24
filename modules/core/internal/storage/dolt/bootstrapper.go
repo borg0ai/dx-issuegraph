@@ -4,10 +4,10 @@ import (
 	"context"
 	"database/sql"
 
-	"github.com/steveyegge/beads/internal/storage"
-	storeops "github.com/steveyegge/beads/internal/storage/issueops"
-	"github.com/steveyegge/beads/internal/workapi"
-	"github.com/steveyegge/beads/issueops"
+	"github.com/borg0ai/dx-issuegraph/internal/storage"
+	storeops "github.com/borg0ai/dx-issuegraph/internal/storage/issueops"
+	"github.com/borg0ai/dx-issuegraph/internal/workapi"
+	"github.com/borg0ai/dx-issuegraph/issueops"
 )
 
 // Bootstrapper returns the guarded identity-seeding surface for this store.
@@ -39,7 +39,7 @@ var _ issueops.Bootstrapper = (*bootstrapper)(nil)
 // NO VERSION-CONTROL ENTRY IS RECORDED HERE, which the role permits and which
 // matches what this store's ordinary SetConfig/SetMetadata already do: they
 // land in the working set and the front door's own initial commit is what
-// records them. Adding a DOLT_COMMIT would give a bootstrap an entry that `bd
+// records them. Adding a DOLT_COMMIT would give a bootstrap an entry that `issuegraph
 // init`'s commit then duplicates.
 func (b *bootstrapper) Bootstrap(ctx context.Context, req issueops.BootstrapRequest) (issueops.BootstrapResult, error) {
 	req, err := workapi.ValidateBootstrapRequest(req)

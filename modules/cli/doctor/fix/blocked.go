@@ -5,7 +5,7 @@ import (
 	"database/sql"
 	"fmt"
 
-	"github.com/steveyegge/beads/internal/storage/issueops"
+	"github.com/borg0ai/dx-issuegraph/internal/storage/issueops"
 )
 
 // RecomputeBlocked repairs stale is_blocked flags (bd-6dnrw.37) by running a
@@ -19,24 +19,24 @@ import (
 // working set is not swept under this commit.
 //
 // orderDoctorFixes (modules/cli/doctor_fix.go) pins this fix to run LAST in a
-// `bd doctor --fix` pass, after every graph-mutating fix — so a stale/wrong
+// `issuegraph doctor --fix` pass, after every graph-mutating fix — so a stale/wrong
 // connection here would land a DOLT_COMMIT into another project's history
 // even when every earlier fix correctly aborted on the same mismatched
 // target (mybd-2qegi). guardFixTarget below is what stops that.
 func RecomputeBlocked(path string) error {
-	beadsDir, err := resolvedWorkspaceBeadsDir(path)
+	issuegraphDir, err := resolvedWorkspaceIssueGraphDir(path)
 	if err != nil {
 		return err
 	}
 
-	db, cfg, err := openDoltDB(beadsDir)
+	db, cfg, err := openDoltDB(issuegraphDir)
 	if err != nil {
 		fmt.Printf("  Blocked-state fix skipped (%v)\n", err)
 		return nil
 	}
 	defer db.Close()
 
-	if skip, err := guardFixTarget("Blocked-state fix", db, beadsDir, cfg); skip {
+	if skip, err := guardFixTarget("Blocked-state fix", db, issuegraphDir, cfg); skip {
 		return err
 	}
 
@@ -55,7 +55,7 @@ func repairBlockedState(ctx context.Context, db *sql.DB) error {
 	// Refuse to derive and commit is_blocked from a dirty graph: like the store
 	// paths, the recompute reads the working set and stages only `issues`, so a
 	// dirty issues/dependencies tree would taint the repair commit (bd-6dnrw.37).
-	// In a `bd doctor --fix` run the dependency-graph fixes commit ahead of this
+	// In a `issuegraph doctor --fix` run the dependency-graph fixes commit ahead of this
 	// one, so the tree is normally clean here; when it is not, surface it as an
 	// actionable error rather than committing tainted state.
 	if err := issueops.GuardBlockedRecomputeWorkingSet(ctx, tx); err != nil {
@@ -81,7 +81,7 @@ func repairBlockedState(ctx context.Context, db *sql.DB) error {
 	// its own fresh-DB lifecycle rather than the shared store helper, but it must
 	// not report success on a failed commit: a swallowed DOLT_COMMIT error would
 	// leave the repair in the working set only, silently undone by the next pull.
-	// bd doctor is server-mode only, so the server supplies the commit identity.
+	// issuegraph doctor is server-mode only, so the server supplies the commit identity.
 	if _, err := db.ExecContext(ctx, "CALL DOLT_ADD(?)", "issues"); err != nil {
 		return fmt.Errorf("failed to stage is_blocked repairs: %w", err)
 	}

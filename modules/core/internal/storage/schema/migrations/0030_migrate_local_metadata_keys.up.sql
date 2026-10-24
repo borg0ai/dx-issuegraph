@@ -14,7 +14,7 @@ INSERT IGNORE INTO local_metadata (`key`, value)
 
 -- Copy version stamps
 INSERT IGNORE INTO local_metadata (`key`, value)
-    SELECT `key`, value FROM metadata WHERE `key` IN ('bd_version', 'bd_version_max');
+    SELECT `key`, value FROM metadata WHERE `key` IN ('issuegraph_version', 'issuegraph_version_max');
 
 -- Copy tracker sync cursors
 INSERT IGNORE INTO local_metadata (`key`, value)
@@ -23,5 +23,5 @@ INSERT IGNORE INTO local_metadata (`key`, value)
 -- Remove migrated keys from committed tables.
 -- The post-migration commit in initSchemaOnDB stages and commits these deletions.
 DELETE FROM metadata WHERE `key` LIKE 'tip\_%' ESCAPE '\\';
-DELETE FROM metadata WHERE `key` IN ('bd_version', 'bd_version_max');
+DELETE FROM metadata WHERE `key` IN ('issuegraph_version', 'issuegraph_version_max');
 DELETE FROM config WHERE `key` LIKE '%.last\_sync' ESCAPE '\\';

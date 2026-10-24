@@ -11,14 +11,14 @@ import (
 func TestProxiedServerSetState(t *testing.T) {
 	requireSharedProxiedServer(t)
 	t.Parallel()
-	bd := buildEmbeddedBD(t)
-	p := newSharedProxiedProject(t, bd, "sst")
-	issue := bdProxiedCreate(t, bd, p.dir, "Set-state target")
+	issuegraph := buildEmbeddedBD(t)
+	p := newSharedProxiedProject(t, issuegraph, "sst")
+	issue := issuegraphProxiedCreate(t, issuegraph, p.dir, "Set-state target")
 
 	setStateJSON := func(t *testing.T, spec string, extra ...string) map[string]interface{} {
 		t.Helper()
 		args := append([]string{"set-state", issue.ID, spec, "--json"}, extra...)
-		out, err := bdProxiedRun(t, bd, p.dir, args...)
+		out, err := issuegraphProxiedRun(t, issuegraph, p.dir, args...)
 		if err != nil {
 			t.Fatalf("set-state %s: %v\n%s", spec, err, out)
 		}
@@ -73,8 +73,8 @@ func TestProxiedServerSetState(t *testing.T) {
 		}
 	})
 
-	t.Run("event_bead_created_as_child", func(t *testing.T) {
-		out, err := bdProxiedRun(t, bd, p.dir, "state", "list", issue.ID, "--json")
+	t.Run("event_issue_created_as_child", func(t *testing.T) {
+		out, err := issuegraphProxiedRun(t, issuegraph, p.dir, "state", "list", issue.ID, "--json")
 		if err != nil {
 			t.Fatalf("state list: %v\n%s", err, out)
 		}
@@ -88,7 +88,7 @@ func TestProxiedServerSetState(t *testing.T) {
 			t.Errorf("state list shows patrol=%q, want muted", res.States["patrol"])
 		}
 		// The set-state calls created event children under the issue.
-		children := bdProxiedListJSON(t, bd, p, "--parent", issue.ID, "--status", "all")
+		children := issuegraphProxiedListJSON(t, issuegraph, p, "--parent", issue.ID, "--status", "all")
 		var events int
 		for _, c := range children {
 			if strings.HasPrefix(c.ID, issue.ID+".") {
@@ -96,28 +96,28 @@ func TestProxiedServerSetState(t *testing.T) {
 			}
 		}
 		if events == 0 {
-			t.Errorf("expected event child beads under %s, got none", issue.ID)
+			t.Errorf("expected event child issuegraph under %s, got none", issue.ID)
 		}
 	})
 
 	t.Run("invalid_format", func(t *testing.T) {
-		out, err := bdProxiedRun(t, bd, p.dir, "set-state", issue.ID, "patrolactive")
+		out, err := issuegraphProxiedRun(t, issuegraph, p.dir, "set-state", issue.ID, "patrolactive")
 		if err == nil {
 			t.Fatalf("expected error for missing '=', got success: %s", out)
 		}
 	})
 
 	t.Run("multiple_dimensions", func(t *testing.T) {
-		m := bdProxiedCreate(t, bd, p.dir, "Multi-dimension state")
+		m := issuegraphProxiedCreate(t, issuegraph, p.dir, "Multi-dimension state")
 
 		for _, spec := range []string{"phase=planning", "env=staging"} {
-			out, err := bdProxiedRun(t, bd, p.dir, "set-state", m.ID, spec)
+			out, err := issuegraphProxiedRun(t, issuegraph, p.dir, "set-state", m.ID, spec)
 			if err != nil {
 				t.Fatalf("set-state %s: %v\n%s", spec, err, out)
 			}
 		}
 
-		out, err := bdProxiedRun(t, bd, p.dir, "state", "list", m.ID, "--json")
+		out, err := issuegraphProxiedRun(t, issuegraph, p.dir, "state", "list", m.ID, "--json")
 		if err != nil {
 			t.Fatalf("state list: %v\n%s", err, out)
 		}
@@ -143,9 +143,9 @@ func TestProxiedServerSetState(t *testing.T) {
 	})
 
 	t.Run("set_state_on_wisp", func(t *testing.T) {
-		wisp := bdProxiedCreate(t, bd, p.dir, "Wisp set-state", "--ephemeral")
+		wisp := issuegraphProxiedCreate(t, issuegraph, p.dir, "Wisp set-state", "--ephemeral")
 
-		out, err := bdProxiedRun(t, bd, p.dir, "set-state", wisp.ID, "patrol=muted", "--json")
+		out, err := issuegraphProxiedRun(t, issuegraph, p.dir, "set-state", wisp.ID, "patrol=muted", "--json")
 		if err != nil {
 			t.Fatalf("set-state on wisp: %v\n%s", err, out)
 		}
@@ -158,7 +158,7 @@ func TestProxiedServerSetState(t *testing.T) {
 		}
 
 		// Wisp state lives in wisp_labels; verify via the state reader.
-		val, stderr, err := bdProxiedRunBuffers(t, bd, p.dir, "state", wisp.ID, "patrol")
+		val, stderr, err := issuegraphProxiedRunBuffers(t, issuegraph, p.dir, "state", wisp.ID, "patrol")
 		if err != nil {
 			t.Fatalf("state on wisp: %v\nstderr:\n%s", err, stderr)
 		}
@@ -181,10 +181,10 @@ func TestProxiedServerSetState(t *testing.T) {
 	})
 
 	t.Run("state_change_on_wisp_swaps_in_place", func(t *testing.T) {
-		wisp := bdProxiedCreate(t, bd, p.dir, "Wisp set-state swap", "--ephemeral")
+		wisp := issuegraphProxiedCreate(t, issuegraph, p.dir, "Wisp set-state swap", "--ephemeral")
 
 		for _, spec := range []string{"phase=planning", "phase=running"} {
-			if out, err := bdProxiedRun(t, bd, p.dir, "set-state", wisp.ID, spec, "--json"); err != nil {
+			if out, err := issuegraphProxiedRun(t, issuegraph, p.dir, "set-state", wisp.ID, spec, "--json"); err != nil {
 				t.Fatalf("set-state %s on wisp: %v\n%s", spec, err, out)
 			}
 		}

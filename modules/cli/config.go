@@ -8,17 +8,17 @@ import (
 	"sort"
 	"strings"
 
+	"github.com/borg0ai/dx-issuegraph/internal/config"
+	"github.com/borg0ai/dx-issuegraph/internal/git"
+	"github.com/borg0ai/dx-issuegraph/internal/issuegraph"
+	"github.com/borg0ai/dx-issuegraph/internal/metrics"
+	"github.com/borg0ai/dx-issuegraph/internal/remotecache"
+	"github.com/borg0ai/dx-issuegraph/internal/tracker"
+	"github.com/borg0ai/dx-issuegraph/internal/types"
+	"github.com/borg0ai/dx-issuegraph/issueops"
+	"github.com/borg0ai/dx-issuegraph/modules/cli/doctor"
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
-	"github.com/steveyegge/beads/modules/cli/doctor"
-	"github.com/steveyegge/beads/internal/beads"
-	"github.com/steveyegge/beads/internal/config"
-	"github.com/steveyegge/beads/internal/git"
-	"github.com/steveyegge/beads/internal/metrics"
-	"github.com/steveyegge/beads/internal/remotecache"
-	"github.com/steveyegge/beads/internal/tracker"
-	"github.com/steveyegge/beads/internal/types"
-	"github.com/steveyegge/beads/issueops"
 )
 
 var configCmd = &cobra.Command{
@@ -27,7 +27,7 @@ var configCmd = &cobra.Command{
 	Short:   "Manage configuration settings",
 	Long: `Manage configuration settings for external integrations and preferences.
 
-Configuration is stored per-project in the beads database and is version-control-friendly.
+Configuration is stored per-project in the issuegraph database and is version-control-friendly.
 
 Common namespaces:
   - export.*          Auto-export settings (stored in config.yaml)
@@ -41,36 +41,36 @@ Common namespaces:
   - custom.*          Custom integration settings
   - status.*          Issue status configuration
   - claim.*           Claim arbitration settings (pool-aware claiming)
-  - doctor.suppress.* Suppress specific bd doctor warnings (GH#1095)
+  - doctor.suppress.* Suppress specific issuegraph doctor warnings (GH#1095)
   - lint.*            Additional per-type lint sections (stored in config.yaml)
 
 Auto-Export (config.yaml):
-  Optional JSONL export to .beads/issues.jsonl after write commands (throttled).
+  Optional JSONL export to .issuegraph/issues.jsonl after write commands (throttled).
   Useful for viewers (bv), interchange, and issue-level migration; not a backup.
-  It is not cross-machine sync; use bd dolt push/pull with a Dolt remote.
+  It is not cross-machine sync; use issuegraph dolt push/pull with a Dolt remote.
   Disabled by default. Enable only for integrations that need fresh JSONL.
   Auto-staging is separate and disabled by default.
 
   Keys:
     export.auto       Enable/disable auto-export (default: false)
-    export.path       Output filename relative to .beads/ (default: issues.jsonl)
+    export.path       Output filename relative to .issuegraph/ (default: issues.jsonl)
     export.interval   Minimum time between exports (default: 60s)
     export.git-add    Auto-stage the export file (default: false)
 
 Auto-Import (config.yaml):
-  Reads .beads/issues.jsonl by default when a JSONL import path is implied.
-  Use a relative filename/path so the import stays within the project .beads/
+  Reads .issuegraph/issues.jsonl by default when a JSONL import path is implied.
+  Use a relative filename/path so the import stays within the project .issuegraph/
   directory and remains portable across machines.
 
   Keys:
-    import.path       Input filename relative to .beads/ (default: issues.jsonl)
+    import.path       Input filename relative to .issuegraph/ (default: issues.jsonl)
 
 Custom Status States:
   You can define custom status states for multi-step pipelines using the
   status.custom config key. Statuses should be comma-separated.
 
   Example:
-    bd config set status.custom "awaiting_review,awaiting_testing,awaiting_docs"
+    issuegraph config set status.custom "awaiting_review,awaiting_testing,awaiting_docs"
 
   This enables issues to use statuses like 'awaiting_review' in addition to
   the built-in statuses (open, in_progress, blocked, deferred, closed).
@@ -80,37 +80,37 @@ Claim Pools:
   "fable-crew") and let any actor take them with --claim. List the pool
   aliases in the claim.pools config key, comma-separated:
 
-    bd config set claim.pools "fable-crew,night-crew"
+    issuegraph config set claim.pools "fable-crew,night-crew"
 
   Issues assigned to a real actor (or to an alias not in the list) keep
   their anti-steal protection. Pool takes carry the normal lease; note
-  that if a taker's lease expires, bd reclaim returns the issue to the
+  that if a taker's lease expires, issuegraph reclaim returns the issue to the
   unassigned pool, not to the pool alias it was dispatched to.
 
 Suppressing Doctor Warnings:
-  Suppress specific bd doctor warnings by check name slug:
-    bd config set doctor.suppress.pending-migrations true
-    bd config set doctor.suppress.git-hooks true
+  Suppress specific issuegraph doctor warnings by check name slug:
+    issuegraph config set doctor.suppress.pending-migrations true
+    issuegraph config set doctor.suppress.git-hooks true
   Check names are converted to slugs: "Git Hooks" → "git-hooks".
   Only warnings are suppressed (errors and passing checks always show).
-  To unsuppress: bd config unset doctor.suppress.<slug>
+  To unsuppress: issuegraph config unset doctor.suppress.<slug>
 
 Examples:
-  bd config set export.auto true                       # Enable auto-export for viewer integrations
-  bd config set export.path "beads.jsonl"              # Custom export filename
-  bd config set import.path "beads.jsonl"              # Custom import filename
-  bd config set export.git-add true                    # Also stage the export file
-  bd config set jira.url "https://company.atlassian.net"
-  bd config set jira.project "PROJ"
-  bd config set status.custom "awaiting_review,awaiting_testing"
-  bd config set claim.pools "fable-crew,night-crew"    # Pool aliases claimable by any actor
-  bd config set doctor.suppress.pending-migrations true
-  bd config set dolt.debug true                        # Enable Dolt sql-server debug mode (loglevel=debug, --prof cpu)
-  bd config set dolt.local-only true                   # Skip wiring a Dolt sync remote during bd init
-  bd config set lint.sections.epic "Standards scorecard, Cost"   # Extra sections bd lint requires for epics
-  bd config get export.auto
-  bd config list
-  bd config unset jira.url`,
+  issuegraph config set export.auto true                       # Enable auto-export for viewer integrations
+  issuegraph config set export.path "issuegraph.jsonl"              # Custom export filename
+  issuegraph config set import.path "issuegraph.jsonl"              # Custom import filename
+  issuegraph config set export.git-add true                    # Also stage the export file
+  issuegraph config set jira.url "https://company.atlassian.net"
+  issuegraph config set jira.project "PROJ"
+  issuegraph config set status.custom "awaiting_review,awaiting_testing"
+  issuegraph config set claim.pools "fable-crew,night-crew"    # Pool aliases claimable by any actor
+  issuegraph config set doctor.suppress.pending-migrations true
+  issuegraph config set dolt.debug true                        # Enable Dolt sql-server debug mode (loglevel=debug, --prof cpu)
+  issuegraph config set dolt.local-only true                   # Skip wiring a Dolt sync remote during issuegraph init
+  issuegraph config set lint.sections.epic "Standards scorecard, Cost"   # Extra sections issuegraph lint requires for epics
+  issuegraph config get export.auto
+  issuegraph config list
+  issuegraph config unset jira.url`,
 }
 
 var forceGitTracked bool
@@ -139,7 +139,7 @@ var configSetCmd = &cobra.Command{
 
 		if key == "dolt.debug" && !usesSQLServer() {
 			fmt.Fprintln(os.Stderr, "Error: dolt.debug requires a sql-server-backed project (embedded mode has no managed server).")
-			fmt.Fprintln(os.Stderr, "  To migrate: re-init with 'bd init --server' or 'bd init --shared-server'.")
+			fmt.Fprintln(os.Stderr, "  To migrate: re-init with 'issuegraph init --server' or 'issuegraph init --shared-server'.")
 			return SilentExit()
 		}
 
@@ -156,7 +156,7 @@ var configSetCmd = &cobra.Command{
 			} else {
 				fmt.Fprintf(os.Stderr, "Warning: %q is not a recognized config key. Use 'custom.*' for user-defined keys.\n", key)
 			}
-			fmt.Fprintf(os.Stderr, "Run 'bd config --help' for valid namespaces.\n")
+			fmt.Fprintf(os.Stderr, "Run 'issuegraph config --help' for valid namespaces.\n")
 		}
 
 		if !forceGitTracked {
@@ -193,14 +193,14 @@ var configSetCmd = &cobra.Command{
 			return nil
 		}
 
-		if key == "beads.role" {
+		if key == "issuegraph.role" {
 			validRoles := map[string]bool{"maintainer": true, "contributor": true}
 			if !validRoles[value] {
 				return HandleError("invalid role %q (valid values: maintainer, contributor)", value)
 			}
-			cmd := exec.Command("git", "config", "beads.role", value) //nolint:gosec // value is validated against allowlist above
+			cmd := exec.Command("git", "config", "issuegraph.role", value) //nolint:gosec // value is validated against allowlist above
 			if err := cmd.Run(); err != nil {
-				return HandleError("setting beads.role in git config: %v", err)
+				return HandleError("setting issuegraph.role in git config: %v", err)
 			}
 			if jsonOutput {
 				if err := outputJSON(map[string]interface{}{
@@ -305,8 +305,8 @@ var configGetCmd = &cobra.Command{
 			// User-global keys (e.g. metrics.*) must be read from the user-global
 			// config.yaml only — the same source the runtime uses for metrics
 			// consent and endpoint. Reading the merged value here would let a
-			// project's .beads/config.yaml shadow the effective value and report the
-			// opposite of what `bd metrics` actually honors.
+			// project's .issuegraph/config.yaml shadow the effective value and report the
+			// opposite of what `issuegraph metrics` actually honors.
 			if config.IsUserGlobalKey(key) {
 				value := config.GetUserYamlConfig(key)
 				location := config.UserConfigYamlDisplayPath()
@@ -342,8 +342,8 @@ var configGetCmd = &cobra.Command{
 			return nil
 		}
 
-		if key == "beads.role" {
-			cmd := exec.Command("git", "config", "--get", "beads.role")
+		if key == "issuegraph.role" {
+			cmd := exec.Command("git", "config", "--get", "issuegraph.role")
 			output, err := cmd.Output()
 			value := strings.TrimSpace(string(output))
 			if err != nil {
@@ -481,13 +481,13 @@ var configListCmd = &cobra.Command{
 }
 
 // showConfigYAMLOverrides warns when config.yaml or env vars override database settings.
-// This addresses the confusion when `bd config list` shows one value but the effective
+// This addresses the confusion when `issuegraph config list` shows one value but the effective
 // value used by commands is different due to higher-priority config sources.
 func showConfigYAMLOverrides(dbConfig map[string]string) {
 	var envWarnings []string
 
 	// Check each DB config key for env var overrides using config.EnvVarName
-	// which handles both BD_* and legacy BEADS_* prefixes with LookupEnv.
+	// which handles both ISSUEGRAPH_* and legacy ISSUEGRAPH_* prefixes with LookupEnv.
 	for key, dbValue := range dbConfig {
 		if envName := config.EnvVarName(key); envName != "" {
 			envValue := os.Getenv(envName)
@@ -549,7 +549,7 @@ func showConfigYAMLOverrides(dbConfig map[string]string) {
 		}
 	}
 
-	fmt.Println("\nTip: Run 'bd config show' for all effective config with provenance.")
+	fmt.Println("\nTip: Run 'issuegraph config show' for all effective config with provenance.")
 }
 
 var configUnsetCmd = &cobra.Command{
@@ -595,10 +595,10 @@ var configUnsetCmd = &cobra.Command{
 			return nil
 		}
 
-		if key == "beads.role" {
-			gitCmd := exec.Command("git", "config", "--unset", "beads.role")
+		if key == "issuegraph.role" {
+			gitCmd := exec.Command("git", "config", "--unset", "issuegraph.role")
 			if err := gitCmd.Run(); err != nil {
-				return HandleError("unsetting beads.role in git config: %v", err)
+				return HandleError("unsetting issuegraph.role in git config: %v", err)
 			}
 			if jsonOutput {
 				if err := outputJSON(map[string]interface{}{
@@ -649,8 +649,8 @@ Checks:
   - routing.mode is valid (auto, maintainer, contributor, explicit)
 
 	Examples:
-	  bd config validate
-	  bd config validate --json`,
+	  issuegraph config validate
+	  issuegraph config validate --json`,
 	SilenceUsage:  true,
 	SilenceErrors: true,
 	RunE: func(cmd *cobra.Command, args []string) error {
@@ -694,7 +694,7 @@ Checks:
 				fmt.Printf("  • %s\n", issue)
 			}
 		}
-		fmt.Println("\nRun 'bd config set <key> <value>' to fix configuration issues.")
+		fmt.Println("\nRun 'issuegraph config set <key> <value>' to fix configuration issues.")
 		return SilentExit()
 	},
 }
@@ -706,7 +706,7 @@ func validateSyncConfig(repoPath string) []string {
 
 	// Load config.yaml from the resolved workspace so shared worktrees validate
 	// the same config file they actually run with.
-	configPath := filepath.Join(doctor.ResolveBeadsDirForRepo(repoPath), "config.yaml")
+	configPath := filepath.Join(doctor.ResolveIssueGraphDirForRepo(repoPath), "config.yaml")
 	v := viper.New()
 	v.SetConfigType("yaml")
 	v.SetConfigFile(configPath)
@@ -758,12 +758,12 @@ func isValidRemoteURL(rawURL string) bool {
 	return remotecache.ValidateRemoteURL(rawURL) == nil
 }
 
-// findBeadsRepoRoot walks up from the given path to find the repo root (containing .beads)
-func findBeadsRepoRoot(startPath string) string {
+// findIssueGraphRepoRoot walks up from the given path to find the repo root (containing .issuegraph)
+func findIssueGraphRepoRoot(startPath string) string {
 	path := startPath
 	for {
-		beadsDir := filepath.Join(path, ".beads")
-		if info, err := os.Stat(beadsDir); err == nil && info.IsDir() {
+		issuegraphDir := filepath.Join(path, ".issuegraph")
+		if info, err := os.Stat(issuegraphDir); err == nil && info.IsDir() {
 			return path
 		}
 		parent := filepath.Dir(path)
@@ -774,7 +774,7 @@ func findBeadsRepoRoot(startPath string) string {
 	}
 
 	if isGitRepo() && git.IsWorktree() {
-		if fallbackDir := beads.GetWorktreeFallbackBeadsDir(); fallbackDir != "" {
+		if fallbackDir := issuegraph.GetWorktreeFallbackIssueGraphDir(); fallbackDir != "" {
 			return filepath.Dir(fallbackDir)
 		}
 	}
@@ -782,15 +782,15 @@ func findBeadsRepoRoot(startPath string) string {
 	return ""
 }
 
-// resolvedConfigRepoRoot returns the repository root for the active beads
-// workspace. It follows FindBeadsDir semantics, including BEADS_DIR and
+// resolvedConfigRepoRoot returns the repository root for the active issuegraph
+// workspace. It follows FindIssueGraphDir semantics, including ISSUEGRAPH_DIR and
 // worktree/shared fallback resolution.
 func resolvedConfigRepoRoot() (string, error) {
-	beadsDir := beads.FindBeadsDir()
-	if beadsDir == "" {
+	issuegraphDir := issuegraph.FindIssueGraphDir()
+	if issuegraphDir == "" {
 		return "", fmt.Errorf("%s", activeWorkspaceNotFoundError())
 	}
-	return filepath.Dir(beadsDir), nil
+	return filepath.Dir(issuegraphDir), nil
 }
 
 var configSetManyCmd = &cobra.Command{
@@ -799,12 +799,12 @@ var configSetManyCmd = &cobra.Command{
 	Long: `Set multiple configuration values at once with a single auto-commit and auto-push.
 
 Each argument must be in key=value format. All values are validated before
-any writes occur. This is faster and less noisy than separate 'bd config set'
+any writes occur. This is faster and less noisy than separate 'issuegraph config set'
 calls, especially in CI.
 
 Examples:
-  bd config set-many ado.state_map.open=New ado.state_map.closed=Closed
-  bd config set-many jira.url=https://example.atlassian.net jira.project=PROJ`,
+  issuegraph config set-many ado.state_map.open=New ado.state_map.closed=Closed
+  issuegraph config set-many jira.url=https://example.atlassian.net jira.project=PROJ`,
 	Args:          cobra.MinimumNArgs(1),
 	SilenceUsage:  true,
 	SilenceErrors: true,
@@ -829,8 +829,8 @@ Examples:
 		}
 
 		for _, p := range pairs {
-			// The same refusal `bd config set` makes, and it was MISSING here:
-			// `bd config set-many issue_prefix=x` re-prefixed the workspace
+			// The same refusal `issuegraph config set` makes, and it was MISSING here:
+			// `issuegraph config set-many issue_prefix=x` re-prefixed the workspace
 			// behind the guard the single-key verb enforces. This verb does not
 			// go through issueops.WorkspaceConfig (see the write below), so it
 			// makes the refusal itself, before any pair is written.
@@ -838,7 +838,7 @@ Examples:
 				fmt.Fprintln(os.Stderr, msg)
 				return SilentExit()
 			}
-			if p.key == "beads.role" {
+			if p.key == "issuegraph.role" {
 				validRoles := map[string]bool{"maintainer": true, "contributor": true}
 				if !validRoles[p.value] {
 					return HandleError("invalid role %q (valid values: maintainer, contributor)", p.value)
@@ -860,7 +860,7 @@ Examples:
 		for _, p := range pairs {
 			if config.IsYamlOnlyKey(p.key) {
 				yamlPairs = append(yamlPairs, p)
-			} else if p.key == "beads.role" {
+			} else if p.key == "issuegraph.role" {
 				gitPairs = append(gitPairs, p)
 			} else {
 				dbPairs = append(dbPairs, p)
@@ -888,7 +888,7 @@ Examples:
 		}
 
 		for _, p := range gitPairs {
-			cmd := exec.Command("git", "config", "beads.role", p.value) //nolint:gosec // value is validated against allowlist above
+			cmd := exec.Command("git", "config", "issuegraph.role", p.value) //nolint:gosec // value is validated against allowlist above
 			if err := cmd.Run(); err != nil {
 				return HandleError("setting %s in git config: %v", p.key, err)
 			}
@@ -932,7 +932,7 @@ Examples:
 					location = config.UserConfigYamlDisplayPath()
 				} else if config.IsYamlOnlyKey(p.key) {
 					location = "config.yaml"
-				} else if p.key == "beads.role" {
+				} else if p.key == "issuegraph.role" {
 					location = "git config"
 				}
 				results = append(results, map[string]string{
@@ -951,7 +951,7 @@ Examples:
 					location = fmt.Sprintf(" (in %s)", config.UserConfigYamlDisplayPath())
 				} else if config.IsYamlOnlyKey(p.key) {
 					location = " (in config.yaml)"
-				} else if p.key == "beads.role" {
+				} else if p.key == "issuegraph.role" {
 					location = " (in git config)"
 				}
 				fmt.Printf("Set %s = %s%s\n", p.key, p.value, location)
@@ -1006,7 +1006,7 @@ func validateStorageClassConfig(key, value string) error {
 // allRecognizedConfigPrefixes returns the static namespaces plus the prefix of
 // every registered tracker ("ado.", "jira.", ...). Deriving tracker prefixes
 // from the registry keeps config-key recognition in sync with the set of
-// trackers compiled into bd instead of a hand-maintained allowlist (GH#4427).
+// trackers compiled into issuegraph instead of a hand-maintained allowlist (GH#4427).
 func allRecognizedConfigPrefixes() []string {
 	names := tracker.List()
 	prefixes := make([]string, 0, len(recognizedConfigPrefixes)+len(names))
@@ -1022,15 +1022,15 @@ var recognizedConfigKeys = map[string]bool{
 	"no-db": true, "json": true, "db": true, "actor": true,
 	"identity": true, "no-push": true, "no-git-ops": true,
 	"node_id":                    true, // replica identity for the lease guard (read from yaml/env, never the DB)
-	"create.require-description": true, "beads.role": true,
+	"create.require-description": true, "issuegraph.role": true,
 	"auto_compact_enabled": true, "schema_version": true,
 	"output.title-length": true,
 	"prime.max-memories":  true, "prime.max-memory-chars": true,
 	// The events-journal family. All four are startup settings that land in
 	// config.yaml (config.YamlOnlyKeys), and every one of them is documented as
-	// a `bd config set` invocation — including the auto-prune opt-out, where an
+	// a `issuegraph config set` invocation — including the auto-prune opt-out, where an
 	// unrecognized-key warning next to a command that DID take effect reads as
-	// "that did not work" on the one setting whose whole purpose is to stop bd
+	// "that did not work" on the one setting whose whole purpose is to stop issuegraph
 	// deleting records.
 	"events-journal": true, "events-journal-auto-prune": true,
 	"events-journal-retain-days": true, "events-journal-retain-rows": true,
@@ -1049,20 +1049,20 @@ func isRecognizedConfigKey(key string) bool {
 }
 
 // rejectProtectedConfigKey rejects keys that are owned by a dedicated
-// lifecycle command (init/rename) rather than 'bd config set'. The canonical
-// example is issue_prefix: 'bd create' reads YAML "issue-prefix"
-// then DB "issue_prefix", while 'bd config set' would land in DB
+// lifecycle command (init/rename) rather than 'issuegraph config set'. The canonical
+// example is issue_prefix: 'issuegraph create' reads YAML "issue-prefix"
+// then DB "issue_prefix", while 'issuegraph config set' would land in DB
 // "issue-prefix" — a third key no reader consults. Accepting either the
 // dash or underscore form silently produces a write that looks like it
-// succeeded but is never visible to 'bd create'. Reject both and point the
+// succeeded but is never visible to 'issuegraph create'. Reject both and point the
 // user at the right command.
 func rejectProtectedConfigKey(key string) (string, bool) {
 	switch key {
 	case "issue_prefix", "issue-prefix":
-		return "Error: issue_prefix cannot be set via 'bd config set'.\n" +
-			"  - New project:       bd init --prefix <prefix>\n" +
-			"  - Fresh clone:       bd bootstrap\n" +
-			"  - Rename existing:   bd rename-prefix <new-prefix>", true
+		return "Error: issue_prefix cannot be set via 'issuegraph config set'.\n" +
+			"  - New project:       issuegraph init --prefix <prefix>\n" +
+			"  - Fresh clone:       issuegraph bootstrap\n" +
+			"  - Rename existing:   issuegraph rename-prefix <new-prefix>", true
 	}
 	return "", false
 }

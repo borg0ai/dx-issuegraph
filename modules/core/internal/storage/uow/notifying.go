@@ -1,14 +1,14 @@
 // Package uow — notifying.go
 //
-// bd has two write plumbings. The DoltStorage decorator chain fires the
+// issuegraph has two write plumbings. The DoltStorage decorator chain fires the
 // workspace's script hooks after every mutation it lands
 // (internal/storage/hook_decorator.go and its per-role siblings). The
 // unit-of-work plumbing — the one proxied-server mode writes through — fired
-// nothing, so any script wired to .beads/hooks/ silently missed every mutation
+// nothing, so any script wired to .issuegraph/hooks/ silently missed every mutation
 // that went through it.
 //
 // A NotifyingProvider closes that gap. It wraps a UnitOfWorkProvider so that
-// every committed bead mutation performed through a unit of work runs the same
+// every committed issue mutation performed through a unit of work runs the same
 // fire-and-forget hooks the DoltStorage plumbing runs, with the same event per
 // operation (see hookEventForOp).
 //
@@ -50,18 +50,18 @@
 //     dependency-editor role applies (hook_dependency_editor.go), and two edges
 //     leaving an issue are one change to it.
 //
-//  3. IMPORT FIRES NOTHING. `bd import` runs the batch-upsert engine on the
+//  3. IMPORT FIRES NOTHING. `issuegraph import` runs the batch-upsert engine on the
 //     unit of work's statement runner (importer.go), so its writes never pass a
 //     use case for the recorder to see. The DoltStorage plumbing imports
 //     through the same engine and fires nothing either; a hook per imported
 //     issue would be a new behavior on both, not a fix to this one.
 //
-//  4. A GUARDED VERB'S PRECONDITION IS NOT AN UPDATE. `bd close
+//  4. A GUARDED VERB'S PRECONDITION IS NOT AN UPDATE. `issuegraph close
 //     --expect-version` spells its compare-and-set as a separate ApplyUpdate
 //     that writes nothing; the DoltStorage plumbing passes the precondition
 //     into the close. See specWrites.
 //
-//  5. THE PROMOTION COMMENT. `bd promote` records an audit comment on the
+//  5. THE PROMOTION COMMENT. `issuegraph promote` records an audit comment on the
 //     promoted issue, and this plumbing's one comment verb fires on_update for
 //     it. The DoltStorage route writes that comment through the legacy
 //     AddComment, which the decorator wraps only INSIDE a transaction
@@ -82,13 +82,13 @@ import (
 	"fmt"
 	"reflect"
 
-	"github.com/steveyegge/beads/internal/hooks"
-	"github.com/steveyegge/beads/internal/storage"
-	"github.com/steveyegge/beads/internal/storage/domain"
-	storageissueops "github.com/steveyegge/beads/internal/storage/issueops"
-	"github.com/steveyegge/beads/internal/types"
-	publicops "github.com/steveyegge/beads/issueops"
-	"github.com/steveyegge/beads/memoryops"
+	"github.com/borg0ai/dx-issuegraph/internal/hooks"
+	"github.com/borg0ai/dx-issuegraph/internal/storage"
+	"github.com/borg0ai/dx-issuegraph/internal/storage/domain"
+	storageissueops "github.com/borg0ai/dx-issuegraph/internal/storage/issueops"
+	"github.com/borg0ai/dx-issuegraph/internal/types"
+	publicops "github.com/borg0ai/dx-issuegraph/issueops"
+	"github.com/borg0ai/dx-issuegraph/memoryops"
 )
 
 // hookRunner is the subset of *hooks.Runner this plumbing needs — the same
@@ -109,10 +109,10 @@ func (s Sinks) empty() bool { return s.Hook == nil }
 
 // NewNotifyingProvider wraps inner so committed mutations fire hooks
 // post-commit. With no sinks configured — `no-hooks`, or a caller that has no
-// runner to give — inner is returned unwrapped, so a bd that cannot fire hooks
+// runner to give — inner is returned unwrapped, so a issuegraph that cannot fire hooks
 // pays nothing for this file.
 //
-// A workspace whose .beads/hooks/ holds no script is NOT that case: the runner
+// A workspace whose .issuegraph/hooks/ holds no script is NOT that case: the runner
 // exists, the wrapper is built, and the buffering happens; the runner then
 // finds no script and does nothing. That is the same deal the DoltStorage chain
 // takes (wireStorageDecorators wraps whenever a runner exists), and it is what
@@ -168,7 +168,7 @@ type unitOfWorkUnwrapper interface {
 // of work reaches the transaction, where a write fires no hook, and
 // notifying_parity_test.go can only account for the callers it can PARSE. Keep
 // it reachable only from this package and that guard stays complete. The
-// provider twin is exported because `bd serve` genuinely needs it and peeling
+// provider twin is exported because `issuegraph serve` genuinely needs it and peeling
 // there loses no coverage — it hands back a provider, not a transaction.
 func unwrapUOW(uw UnitOfWork) UnitOfWork {
 	for {
@@ -182,7 +182,7 @@ func unwrapUOW(uw UnitOfWork) UnitOfWork {
 
 // UnwrapProvider peels any chain of decorators and returns the innermost
 // provider. A caller that must NOT run the workspace's hook scripts asks for
-// this: `bd serve` serves from beneath the hook layer, as it does on the store
+// this: `issuegraph serve` serves from beneath the hook layer, as it does on the store
 // side ((*storage.HookFiringStore).Unwrap).
 func UnwrapProvider(p UnitOfWorkProvider) UnitOfWorkProvider {
 	for {
@@ -320,7 +320,7 @@ func (p *notifyingProvider) EventsJournalCursor() (storage.EventsJournalCursor, 
 
 // RunNonTx forwards the maintenance escape hatch. It runs on a pinned
 // connection OUTSIDE any unit of work, so there is nothing to record: its
-// callers are server-wide database maintenance, not bead writes.
+// callers are server-wide database maintenance, not issue writes.
 func (p *notifyingProvider) RunNonTx(ctx context.Context, fn func(ctx context.Context, conn *sql.Conn) error) error {
 	mp, ok := p.inner.(MaintenanceProvider)
 	if !ok {
@@ -360,7 +360,7 @@ type eventsMaintenanceRunner = storageissueops.EventsMaintenanceRunner
 // RunEventsMaintenanceTx forwards one events-journal retention step to the
 // inner provider's transaction machinery. It is maintenance on a dolt_ignored
 // table — a prefix delete of records already committed — so there is nothing
-// for a hook to describe and no bead a script could be handed.
+// for a hook to describe and no issue a script could be handed.
 //
 // A provider that cannot maintain the journal fails here rather than silently
 // succeeding, matching RunNonTx above: the caller logs it and carries on.
@@ -580,7 +580,7 @@ const (
 
 // hookEventForOp maps a mutation to its script-hook event, matching the
 // DoltStorage plumbing verb for verb: creates fire on_create, closes fire
-// on_close, and everything else that changes a bead — field updates, reopens,
+// on_close, and everything else that changes a issue — field updates, reopens,
 // claims, labels, comments, dependency edits — fires on_update, which is what
 // HookFiringStore fires for each of them. Deletes are absent on purpose: they
 // fire no script hook there either (hook_deleter.go), and the vocabulary has no
@@ -600,7 +600,7 @@ func hookEventForOp(op string) (string, bool) {
 
 // cloneIssueForHook deep-copies a snapshot before it is buffered. The runner
 // marshals the issue on its own goroutine while the caller goes on to mutate
-// the result it was handed — `bd update` and `bd reopen` both strip fields off
+// the result it was handed — `issuegraph update` and `issuegraph reopen` both strip fields off
 // theirs — so the buffer must not share it. The DoltStorage decorator clones
 // for the same reason.
 func cloneIssueForHook(issue *types.Issue) *types.Issue {
@@ -769,7 +769,7 @@ func (u *recordingIssueUC) CreateWisps(ctx context.Context, params []domain.Crea
 // EVERY issue whose graph the create edited — the created row included.
 //
 // The far ends are not incidental. A create names its edges, and a REVERSE edge
-// (`bd create --blocks X`) leaves the EXISTING issue rather than the new one, so
+// (`issuegraph create --blocks X`) leaves the EXISTING issue rather than the new one, so
 // the create mutated X's graph and X's watchers have to hear about it. The
 // DoltStorage plumbing fires that update from the request's edge list
 // (storage.CreatePublicCreateDependencies feeding dependencyHookEvents), which
@@ -777,7 +777,7 @@ func (u *recordingIssueUC) CreateWisps(ctx context.Context, params []domain.Crea
 // off the params — ParentID, WaitsFor, Dependencies — because a reverse edge
 // never appears in the created issue's own records.
 //
-// THE CREATED ROW IS A SOURCE LIKE ANY OTHER. A forward edge (`bd create
+// THE CREATED ROW IS A SOURCE LIKE ANY OTHER. A forward edge (`issuegraph create
 // --parent X`) leaves the new issue, and the DoltStorage plumbing fires an
 // on_update for it carrying its dependency records — its on_create does not,
 // which is the whole reason the update follows. Skipping it here on the grounds
@@ -1006,7 +1006,7 @@ func (u *recordingIssueUC) UpdateWisp(ctx context.Context, id string, updates ma
 // pinning a table.
 //
 // A spec that only states EXPECTATIONS writes nothing — it is the
-// compare-and-set precondition `bd close --expect-version` and `bd reopen`
+// compare-and-set precondition `issuegraph close --expect-version` and `issuegraph reopen`
 // spell as a separate call before the operation they guard (issue_operations.go)
 // — so it records nothing. The DoltStorage plumbing passes that precondition
 // INTO the close and fires the close hook alone; recording here would put an

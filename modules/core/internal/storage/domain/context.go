@@ -3,7 +3,7 @@ package domain
 import (
 	"context"
 
-	"github.com/steveyegge/beads/internal/configfile"
+	"github.com/borg0ai/dx-issuegraph/internal/configfile"
 )
 
 type ContextRepository interface {
@@ -16,11 +16,11 @@ type ContextRepository interface {
 }
 
 type RepoPaths struct {
-	BeadsDir     string
-	RepoRoot     string
-	CWDRepoRoot  string
-	IsRedirected bool
-	IsWorktree   bool
+	IssueGraphDir string
+	RepoRoot      string
+	CWDRepoRoot   string
+	IsRedirected  bool
+	IsWorktree    bool
 }
 
 type BackendConfig struct {
@@ -40,27 +40,27 @@ type BackendConfig struct {
 }
 
 type ContextInfo struct {
-	BeadsDir     string
-	RepoRoot     string
-	CWDRepoRoot  string
-	IsRedirected bool
-	IsWorktree   bool
-	Backend      string
-	DoltMode     string
-	ServerHost   string
-	ServerPort   int
-	ProxiedDir   string
-	Database     string
-	DataDir      string
-	ProjectID    string
-	SyncRemote   string
-	Role         string
-	BdVersion    string
+	IssueGraphDir string
+	RepoRoot      string
+	CWDRepoRoot   string
+	IsRedirected  bool
+	IsWorktree    bool
+	Backend       string
+	DoltMode      string
+	ServerHost    string
+	ServerPort    int
+	ProxiedDir    string
+	Database      string
+	DataDir       string
+	ProjectID     string
+	SyncRemote    string
+	Role          string
+	BdVersion     string
 }
 
 // PublishedContextFields is the workspace identity every context surface
-// answers with, projected off the snapshot exactly once. `bd context` prints
-// it, `bd context --json` marshals it, and GET /v0/beads/context serves it —
+// answers with, projected off the snapshot exactly once. `issuegraph context` prints
+// it, `issuegraph context --json` marshals it, and GET /v0/issuegraph/context serves it —
 // and because the projection below is the only way any of them gets these
 // values, the three cannot drift into naming the same workspace differently.
 //
@@ -83,26 +83,26 @@ type ContextInfo struct {
 // — reads them off the snapshot itself, beside this projection and visibly
 // so.
 type PublishedContextFields struct {
-	BdVersion string
-	Backend   string
-	DoltMode  string
-	Database  string
-	BeadsDir  string
-	RepoRoot  string
-	ProjectID string
+	BdVersion     string
+	Backend       string
+	DoltMode      string
+	Database      string
+	IssueGraphDir string
+	RepoRoot      string
+	ProjectID     string
 }
 
 // PublishedContext projects a workspace snapshot onto the fields every context
 // surface publishes.
 func PublishedContext(info ContextInfo) PublishedContextFields {
 	return PublishedContextFields{
-		BdVersion: info.BdVersion,
-		Backend:   info.Backend,
-		DoltMode:  info.DoltMode,
-		Database:  info.Database,
-		BeadsDir:  info.BeadsDir,
-		RepoRoot:  info.RepoRoot,
-		ProjectID: info.ProjectID,
+		BdVersion:     info.BdVersion,
+		Backend:       info.Backend,
+		DoltMode:      info.DoltMode,
+		Database:      info.Database,
+		IssueGraphDir: info.IssueGraphDir,
+		RepoRoot:      info.RepoRoot,
+		ProjectID:     info.ProjectID,
 	}
 }
 
@@ -110,22 +110,22 @@ func PublishedContext(info ContextInfo) PublishedContextFields {
 // Dolt-derived identity ONLY when that backend is Dolt.
 //
 // It is a method rather than three assignments because there are two routes to
-// a snapshot — this package's use case, and `bd context`'s direct route, which
+// a snapshot — this package's use case, and `issuegraph context`'s direct route, which
 // reads the config files itself so it can answer in degraded states where no
 // database opens — and one policy they both call is what keeps them from naming
 // one workspace two ways.
 //
 // The gate is load-bearing, not defensive, because both Dolt values DEFAULT
 // rather than fail: configfile reads an absent dolt_mode as "embedded" and an
-// absent dolt_database as "beads". So a workspace on a registered backend,
+// absent dolt_database as "issuegraph". So a workspace on a registered backend,
 // which configures neither, was described in confident detail as embedded Dolt
-// on database "beads" — on `bd context`, on `bd context --json`, and on GET
-// /v0/beads/context, which is the one endpoint automation is told to trust for
+// on database "issuegraph" — on `issuegraph context`, on `issuegraph context --json`, and on GET
+// /v0/issuegraph/context, which is the one endpoint automation is told to trust for
 // a server's identity.
 //
 // A non-Dolt backend reports the EMPTY string for both, and that is the only
-// value bd can assert. A registered backend's Open reads whatever it wants out
-// of the workspace; bd does not implement it and cannot know which logical
+// value issuegraph can assert. A registered backend's Open reads whatever it wants out
+// of the workspace; issuegraph does not implement it and cannot know which logical
 // database it settled on, so any non-empty guess would be the same lie made
 // quieter. Both remain required strings on the wire — the shape is unchanged,
 // only the claim is dropped.
@@ -174,14 +174,14 @@ func (u *contextUseCaseImpl) GetContextInfo(ctx context.Context) (ContextInfo, e
 	}
 
 	info := ContextInfo{
-		BeadsDir:     paths.BeadsDir,
-		RepoRoot:     paths.RepoRoot,
-		CWDRepoRoot:  paths.CWDRepoRoot,
-		IsRedirected: paths.IsRedirected,
-		IsWorktree:   paths.IsWorktree,
-		ProjectID:    backend.ProjectID,
-		DataDir:      backend.DataDir,
-		BdVersion:    u.version,
+		IssueGraphDir: paths.IssueGraphDir,
+		RepoRoot:      paths.RepoRoot,
+		CWDRepoRoot:   paths.CWDRepoRoot,
+		IsRedirected:  paths.IsRedirected,
+		IsWorktree:    paths.IsWorktree,
+		ProjectID:     backend.ProjectID,
+		DataDir:       backend.DataDir,
+		BdVersion:     u.version,
 	}
 	info.SetBackendIdentity(backend.Backend, backend.DoltMode, backend.Database)
 

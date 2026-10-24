@@ -7,14 +7,14 @@ import (
 	"sort"
 	"strings"
 
-	"github.com/steveyegge/beads/internal/storage"
-	"github.com/steveyegge/beads/internal/storage/uow"
-	"github.com/steveyegge/beads/internal/types"
-	"github.com/steveyegge/beads/internal/ui"
-	"github.com/steveyegge/beads/internal/workapi"
+	"github.com/borg0ai/dx-issuegraph/internal/storage"
+	"github.com/borg0ai/dx-issuegraph/internal/storage/uow"
+	"github.com/borg0ai/dx-issuegraph/internal/types"
+	"github.com/borg0ai/dx-issuegraph/internal/ui"
+	"github.com/borg0ai/dx-issuegraph/internal/workapi"
 )
 
-// resolveLabelTargetProxied is `bd label`'s exact-id lookup on the
+// resolveLabelTargetProxied is `issuegraph label`'s exact-id lookup on the
 // proxied-server route: the same issue-then-wisp resolution
 // workapi.GetIssueOrWisp gives every other proxied front door, with not-found
 // normalized to the shape the direct route's resolver produces.
@@ -74,7 +74,7 @@ func runLabelListAllProxiedServer(ctx context.Context) error {
 	// THE QUESTION HAS NO ROLE, which is the reason ga-26w10 left `list-all`
 	// behind and the reason it is still here: no issueops surface answers
 	// "every distinct label in this workspace, with a count". Reader.Get is one
-	// detail view per call, so asking it would be one round trip per bead to
+	// detail view per call, so asking it would be one round trip per issue to
 	// build a histogram. A label-vocabulary role is the follow-up
 	// (ga-2ltro.12).
 	if len(permIDs) > 0 {
@@ -138,7 +138,7 @@ func runLabelPropagateProxiedServer(ctx context.Context, args []string) error {
 		return HandleErrorRespectJSON("label cannot be empty")
 	}
 	if strings.HasPrefix(label, "provides:") {
-		return HandleErrorRespectJSON("'provides:' labels are reserved for cross-project capabilities. Hint: use 'bd ship %s' instead", strings.TrimPrefix(label, "provides:"))
+		return HandleErrorRespectJSON("'provides:' labels are reserved for cross-project capabilities. Hint: use 'issuegraph ship %s' instead", strings.TrimPrefix(label, "provides:"))
 	}
 	if uowProvider == nil {
 		return HandleError("proxied-server UOW provider not initialized")
@@ -167,8 +167,8 @@ func runLabelPropagateProxiedServer(ctx context.Context, args []string) error {
 			return "", nil
 		}
 		// THE ONE SURVIVING WISP SWITCH, and it is named rather than hidden.
-		// This is the same four-way shape ga-26w10 deleted from `bd label` and
-		// ga-2ltro.12 deleted from `bd tag`, `bd set-state` and the molecule
+		// This is the same four-way shape ga-26w10 deleted from `issuegraph label` and
+		// ga-2ltro.12 deleted from `issuegraph tag`, `issuegraph set-state` and the molecule
 		// port — the branch a front door can get backwards and put a wisp's
 		// label in the durable table. It survives because propagate is a search
 		// plus a fan-out that must land as ONE transaction over N children, and
@@ -189,7 +189,7 @@ func runLabelPropagateProxiedServer(ctx context.Context, args []string) error {
 				return "", fmt.Errorf("add label '%s' on %s: %w", label, child.ID, e)
 			}
 		}
-		return fmt.Sprintf("bd: propagate label '%s' from %s to %d children", label, parentID, len(children)), nil
+		return fmt.Sprintf("issuegraph: propagate label '%s' from %s to %d children", label, parentID, len(children)), nil
 	})
 	if err != nil {
 		return HandleErrorRespectJSON("label propagate: %v", err)

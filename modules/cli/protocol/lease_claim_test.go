@@ -4,7 +4,7 @@
 // composition (L3.5), and the JSONL round-trip of the lease fields (L1.2).
 //
 // These live at the CLI surface rather than the store because they are what a
-// worker fleet actually drives: `bd ready --claim` is the whole coordination
+// worker fleet actually drives: `issuegraph ready --claim` is the whole coordination
 // protocol between N workers and one queue.
 package protocol
 
@@ -18,15 +18,15 @@ import (
 	"time"
 )
 
-// claimReady runs `bd ready --claim --json` as actor and returns the claimed
+// claimReady runs `issuegraph ready --claim --json` as actor and returns the claimed
 // issues (empty when the front holds nothing claimable). It fails the test if
 // the command exits nonzero — an empty front is success (L3.4), not an error.
 func claimReady(t *testing.T, w *workspace, actor string, args ...string) []map[string]any {
 	t.Helper()
 	full := append([]string{"ready", "--claim", "--json"}, args...)
-	out, err := w.tryRunEnv([]string{"BEADS_ACTOR=" + actor}, full...)
+	out, err := w.tryRunEnv([]string{"ISSUEGRAPH_ACTOR=" + actor}, full...)
 	if err != nil {
-		t.Fatalf("bd %s as %s: %v\n%s", strings.Join(full, " "), actor, err, out)
+		t.Fatalf("issuegraph %s as %s: %v\n%s", strings.Join(full, " "), actor, err, out)
 	}
 	return parseJSONOutput(t, out)
 }
@@ -34,7 +34,7 @@ func claimReady(t *testing.T, w *workspace, actor string, args ...string) []map[
 // TestProtocol_ClaimIsUnassignedOnly pins clause L3.1, the single most
 // bitten-in-production rule of the claim protocol: `--claim` considers only
 // issues that are open AND unassigned. An open issue that carries an assignee —
-// even with no lease on it, even though `bd ready` happily LISTS it — is never a
+// even with no lease on it, even though `issuegraph ready` happily LISTS it — is never a
 // claim candidate. This is the gotcha behind a backlog generated with
 // self-assigned creates: it looks ready and claims nothing, and a worker fleet
 // pointed at it spins on an empty front while the queue sits full.
@@ -50,24 +50,24 @@ func TestProtocol_ClaimIsUnassignedOnly(t *testing.T) {
 	// The listing is NOT filtered by assignee (§R): both are on the ready front.
 	ready := parseReadyIDs(t, w)
 	if !ready[assigned] || !ready[free] {
-		t.Fatalf("precondition: bd ready should list both %s (assigned) and %s (unassigned), got %v", assigned, free, ready)
+		t.Fatalf("precondition: issuegraph ready should list both %s (assigned) and %s (unassigned), got %v", assigned, free, ready)
 	}
 
 	claimed := claimReady(t, w, "alice")
 	if len(claimed) != 1 {
-		t.Fatalf("bd ready --claim returned %d issues, want 1", len(claimed))
+		t.Fatalf("issuegraph ready --claim returned %d issues, want 1", len(claimed))
 	}
 	if got := claimed[0]["id"]; got != free {
 		t.Fatalf("L3.1: --claim returned %v, want the unassigned issue %s (the assigned one %s must never be a candidate)", got, free, assigned)
 	}
 
 	// With only the assigned issue left, the front is empty for claiming — even
-	// though bd ready still lists it.
+	// though issuegraph ready still lists it.
 	if again := claimReady(t, w, "alice"); len(again) != 0 {
 		t.Errorf("L3.1: --claim returned %v with only an assigned-but-open issue left; want nothing claimable", again)
 	}
 	if still := parseReadyIDs(t, w); !still[assigned] {
-		t.Errorf("bd ready stopped listing the assigned issue %s; only --claim filters to unassigned (§R)", assigned)
+		t.Errorf("issuegraph ready stopped listing the assigned issue %s; only --claim filters to unassigned (§R)", assigned)
 	}
 
 	// The rejected candidate was not touched: still open, still someone else's.
@@ -81,7 +81,7 @@ func TestProtocol_ClaimIsUnassignedOnly(t *testing.T) {
 }
 
 // TestProtocol_ReadyClaimEmptyFrontIsSuccess pins clause L3.4 (and §E1): when
-// nothing is claimable, `bd ready --claim --json` MUST exit 0 with an explicit
+// nothing is claimable, `issuegraph ready --claim --json` MUST exit 0 with an explicit
 // empty JSON array. Queue-drained is the steady state of a worker fleet, not an
 // error — a nonzero exit here would make every idle worker look like a failure.
 func TestProtocol_ReadyClaimEmptyFrontIsSuccess(t *testing.T) {
@@ -89,9 +89,9 @@ func TestProtocol_ReadyClaimEmptyFrontIsSuccess(t *testing.T) {
 	w := newWorkspace(t)
 
 	// (a) Never had any work.
-	out, err := w.tryRunEnv([]string{"BEADS_ACTOR=alice"}, "ready", "--claim", "--json")
+	out, err := w.tryRunEnv([]string{"ISSUEGRAPH_ACTOR=alice"}, "ready", "--claim", "--json")
 	if err != nil {
-		t.Fatalf("L3.4: bd ready --claim --json on an empty tracker exited nonzero: %v\n%s", err, out)
+		t.Fatalf("L3.4: issuegraph ready --claim --json on an empty tracker exited nonzero: %v\n%s", err, out)
 	}
 	if trimmed := strings.TrimSpace(out); trimmed != "[]" {
 		t.Errorf("L3.4: empty front printed %q, want the explicit empty array []", trimmed)
@@ -102,9 +102,9 @@ func TestProtocol_ReadyClaimEmptyFrontIsSuccess(t *testing.T) {
 	if claimed := claimReady(t, w, "alice"); len(claimed) != 1 || claimed[0]["id"] != only {
 		t.Fatalf("setup: first claim = %v, want [%s]", claimed, only)
 	}
-	out, err = w.tryRunEnv([]string{"BEADS_ACTOR=bob"}, "ready", "--claim", "--json")
+	out, err = w.tryRunEnv([]string{"ISSUEGRAPH_ACTOR=bob"}, "ready", "--claim", "--json")
 	if err != nil {
-		t.Fatalf("L3.4: bd ready --claim --json on a drained queue exited nonzero: %v\n%s", err, out)
+		t.Fatalf("L3.4: issuegraph ready --claim --json on a drained queue exited nonzero: %v\n%s", err, out)
 	}
 	if trimmed := strings.TrimSpace(out); trimmed != "[]" {
 		t.Errorf("L3.4: drained queue printed %q, want []", trimmed)
@@ -113,7 +113,7 @@ func TestProtocol_ReadyClaimEmptyFrontIsSuccess(t *testing.T) {
 
 // TestProtocol_ReadyClaimComposesWithFilters pins clause L3.5: `--claim` composes
 // with the ready-front filters, and the issue it claims satisfies the same filter
-// the plain `bd ready` listing would. This is what lets several fleets drain one
+// the plain `issuegraph ready` listing would. This is what lets several fleets drain one
 // shared queue without colliding — each claims only its own lane (--label) or its
 // own epic (--parent, transitive per R3).
 func TestProtocol_ReadyClaimComposesWithFilters(t *testing.T) {
@@ -177,7 +177,7 @@ func TestProtocol_ReadyClaimComposesWithFilters(t *testing.T) {
 // tracker to JSONL, and returns the export path plus the parsed lines by id.
 func exportLeaseFixture(t *testing.T, w *workspace, leased, idle string) (string, map[string]map[string]any) {
 	t.Helper()
-	w.runEnv([]string{"BEADS_ACTOR=alice"}, "update", leased, "--claim")
+	w.runEnv([]string{"ISSUEGRAPH_ACTOR=alice"}, "update", leased, "--claim")
 
 	path := filepath.Join(w.dir, "export.jsonl")
 	w.run("export", "-o", path)
@@ -233,7 +233,7 @@ func TestProtocol_LeaseFieldsExportToJSONL(t *testing.T) {
 }
 
 // TestProtocol_LeaseFieldsRoundTripJSONL pins the other half of clause L1.2: the
-// lease fields must survive the round trip, not just the export. bd import once
+// lease fields must survive the round trip, not just the export. issuegraph import once
 // dropped them (wy-urlct: the sole issue INSERT path, issueops.InsertIssueIntoTable,
 // listed no lease columns), so an issue exported while claimed was imported as
 // in_progress with a NULL lease. Reclaim only recovers leased claims (L5.1),
@@ -282,7 +282,7 @@ func TestProtocol_ImportNeverClobbersLiveLocalLease(t *testing.T) {
 	w := newWorkspace(t)
 
 	leased := w.create("--title", "Locally claimed", "--type", "task")
-	w.runEnv([]string{"BEADS_ACTOR=alice"}, "update", leased, "--claim")
+	w.runEnv([]string{"ISSUEGRAPH_ACTOR=alice"}, "update", leased, "--claim")
 	local := w.showJSON(leased)
 	localExpiry := requireRFC3339(t, local, "lease_expires_at", leased)
 	if !localExpiry.After(time.Now()) {
@@ -351,11 +351,11 @@ func TestProtocol_GrantingReplicaRoundTripsJSONL(t *testing.T) {
 	w := newWorkspace(t)
 
 	leased := w.create("--title", "Claimed on the mini", "--type", "task")
-	w.runEnv([]string{"BEADS_ACTOR=alice", "BEADS_NODE_ID=mini"}, "update", leased, "--claim")
+	w.runEnv([]string{"ISSUEGRAPH_ACTOR=alice", "ISSUEGRAPH_NODE_ID=mini"}, "update", leased, "--claim")
 
 	exported := w.showJSON(leased)
 	if got := exported["lease_granted_node"]; got != "mini" {
-		t.Fatalf("L1.2: claim under BEADS_NODE_ID=mini recorded lease_granted_node=%v, want %q", got, "mini")
+		t.Fatalf("L1.2: claim under ISSUEGRAPH_NODE_ID=mini recorded lease_granted_node=%v, want %q", got, "mini")
 	}
 
 	// Export, then age the lease into the past. A freshly-claimed lease is not
@@ -369,7 +369,7 @@ func TestProtocol_GrantingReplicaRoundTripsJSONL(t *testing.T) {
 	// Import into a DIFFERENT replica. The restored lease must still name
 	// mini: this node never granted it and cannot enforce it.
 	fresh := newWorkspace(t)
-	out, err := fresh.tryRunEnv([]string{"BEADS_NODE_ID=laptop"}, "import", stalePath)
+	out, err := fresh.tryRunEnv([]string{"ISSUEGRAPH_NODE_ID=laptop"}, "import", stalePath)
 	if err != nil {
 		t.Fatalf("import on laptop: %v\n%s", err, out)
 	}
@@ -384,7 +384,7 @@ func TestProtocol_GrantingReplicaRoundTripsJSONL(t *testing.T) {
 
 	// The laptop's reaper must decline this stale lease: mini granted it, and
 	// the laptop's view of alice's liveness is a full sync interval old.
-	reclaimOut, err := fresh.tryRunEnv([]string{"BEADS_NODE_ID=laptop"},
+	reclaimOut, err := fresh.tryRunEnv([]string{"ISSUEGRAPH_NODE_ID=laptop"},
 		"reclaim", "--older-than", "0s", "--json")
 	if err != nil {
 		t.Fatalf("reclaim on laptop: %v\n%s", err, reclaimOut)
@@ -399,7 +399,7 @@ func TestProtocol_GrantingReplicaRoundTripsJSONL(t *testing.T) {
 	// ...and --any-replica reverts the very same row, which is what proves the
 	// replica guard was the thing that declined it rather than some unrelated
 	// ineligibility (staleness, scope, an absent lease row).
-	overrideOut, err := fresh.tryRunEnv([]string{"BEADS_NODE_ID=laptop"},
+	overrideOut, err := fresh.tryRunEnv([]string{"ISSUEGRAPH_NODE_ID=laptop"},
 		"reclaim", "--older-than", "0s", "--any-replica", "--json")
 	if err != nil {
 		t.Fatalf("reclaim --any-replica on laptop: %v\n%s", err, overrideOut)

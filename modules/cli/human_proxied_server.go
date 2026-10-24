@@ -5,15 +5,15 @@ import (
 	"errors"
 	"fmt"
 
-	"github.com/steveyegge/beads/internal/storage"
-	"github.com/steveyegge/beads/internal/storage/domain"
-	"github.com/steveyegge/beads/internal/storage/uow"
-	"github.com/steveyegge/beads/internal/types"
-	"github.com/steveyegge/beads/internal/ui"
-	"github.com/steveyegge/beads/internal/workapi"
+	"github.com/borg0ai/dx-issuegraph/internal/storage"
+	"github.com/borg0ai/dx-issuegraph/internal/storage/domain"
+	"github.com/borg0ai/dx-issuegraph/internal/storage/uow"
+	"github.com/borg0ai/dx-issuegraph/internal/types"
+	"github.com/borg0ai/dx-issuegraph/internal/ui"
+	"github.com/borg0ai/dx-issuegraph/internal/workapi"
 )
 
-// The proxied-server twins of the four `bd human` subcommands. The direct
+// The proxied-server twins of the four `issuegraph human` subcommands. The direct
 // route reaches storage through ensureStoreActive(), which in proxied mode
 // would lazily open a DIRECT store and silently bypass the proxy (bd-m7zzd) —
 // so each RunE branches here BEFORE that call. Reads ride one read-only unit
@@ -23,7 +23,7 @@ import (
 // proxiedHumanIssues is the proxied-server side of humanIssues: the SAME
 // humanListRequest, resolved against the workspace's own status/type config
 // and queried through a unit of work. It goes through openAndPrepare rather
-// than hand-building a filter so `bd human list` cannot mean one thing in
+// than hand-building a filter so `issuegraph human list` cannot mean one thing in
 // direct mode and another behind the proxy — the divergence a second
 // hand-built filter here would reintroduce the next time the defaults move.
 func proxiedHumanIssues(ctx context.Context, status string) ([]*types.Issue, error) {
@@ -41,7 +41,7 @@ func proxiedHumanIssues(ctx context.Context, status string) ([]*types.Issue, err
 }
 
 // runHumanRespondProxiedServer takes the fully-formatted comment text, not the
-// raw response: `bd human respond` resolves its text sources and applies the
+// raw response: `issuegraph human respond` resolves its text sources and applies the
 // "Response: " shape once, so both backends store identically-shaped comments.
 func runHumanRespondProxiedServer(ctx context.Context, issueID, commentText string) error {
 	res, err := closeHumanProxied(ctx, issueID, commentText, "Responded", "human respond")
@@ -51,12 +51,12 @@ func runHumanRespondProxiedServer(ctx context.Context, issueID, commentText stri
 	if res.labelsKnown {
 		warnIfNotHumanLabeled(res.issue)
 	}
-	fmt.Printf("%s Bead %s closed with response.\n", ui.RenderPass("✔"), res.issue.ID)
+	fmt.Printf("%s Issue %s closed with response.\n", ui.RenderPass("✔"), res.issue.ID)
 	return nil
 }
 
 // runHumanDismissProxiedServer takes the fully-formatted close reason, not the
-// raw dismissal note: `bd human dismiss` resolves its text sources and applies
+// raw dismissal note: `issuegraph human dismiss` resolves its text sources and applies
 // the shared dismissedCloseReason prefix once for both backends.
 func runHumanDismissProxiedServer(ctx context.Context, issueID, closeReason string) error {
 	res, err := closeHumanProxied(ctx, issueID, "", closeReason, "human dismiss")
@@ -66,11 +66,11 @@ func runHumanDismissProxiedServer(ctx context.Context, issueID, closeReason stri
 	if res.labelsKnown {
 		warnIfNotHumanLabeled(res.issue)
 	}
-	fmt.Printf("%s Bead %s dismissed.\n", ui.RenderPass("✔"), res.issue.ID)
+	fmt.Printf("%s Issue %s dismissed.\n", ui.RenderPass("✔"), res.issue.ID)
 	return nil
 }
 
-// humanCloseResult carries the bead as read inside the close transaction, with
+// humanCloseResult carries the issue as read inside the close transaction, with
 // its labels when they loaded, so the caller can warn once the transaction has
 // committed. labelsKnown separates "loaded, and the label is absent" from "the
 // load failed" — only the first is grounds for the advisory warning.
@@ -79,13 +79,13 @@ type humanCloseResult struct {
 	labelsKnown bool
 }
 
-// closeHumanProxied resolves a bead and closes it with closeReason inside ONE
+// closeHumanProxied resolves a issue and closes it with closeReason inside ONE
 // proxied-server transaction, adding comment first when it is non-empty, so
 // the already-closed verdict and the close ride the same snapshot.
 //
 // It resolves through GetIssueOrWisp rather than proxiedRequireIssue because a
-// human-labeled bead can be a WISP: `bd human list` shows the whole ephemeral
-// plane, so a bead a person can see here must be one they can also answer. A
+// human-labeled issue can be a WISP: `issuegraph human list` shows the whole ephemeral
+// plane, so a issue a person can see here must be one they can also answer. A
 // wisp takes the wisp-side comment and close calls; the durable path is
 // unchanged.
 //
@@ -138,8 +138,8 @@ func closeHumanProxied(ctx context.Context, id, comment, closeReason, commitVerb
 			_, err = uw.IssueUseCase().CloseIssue(ctx, issue.ID, params, actor)
 		}
 		if err != nil {
-			return humanCloseResult{}, "", fmt.Errorf("closing bead: %w", err)
+			return humanCloseResult{}, "", fmt.Errorf("closing issue: %w", err)
 		}
-		return res, fmt.Sprintf("bd: %s %s", commitVerb, issue.ID), nil
+		return res, fmt.Sprintf("issuegraph: %s %s", commitVerb, issue.ID), nil
 	})
 }

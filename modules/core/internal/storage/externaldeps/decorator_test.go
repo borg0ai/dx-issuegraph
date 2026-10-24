@@ -7,10 +7,10 @@ import (
 	"testing"
 	"time"
 
-	"github.com/steveyegge/beads/internal/storage"
-	"github.com/steveyegge/beads/internal/storage/issueops"
-	"github.com/steveyegge/beads/internal/types"
-	publicops "github.com/steveyegge/beads/issueops"
+	"github.com/borg0ai/dx-issuegraph/internal/storage"
+	"github.com/borg0ai/dx-issuegraph/internal/storage/issueops"
+	"github.com/borg0ai/dx-issuegraph/internal/types"
+	publicops "github.com/borg0ai/dx-issuegraph/issueops"
 )
 
 type fakeStore struct {
@@ -394,7 +394,7 @@ func TestCountReadyWorkUsesExternalPolicy(t *testing.T) {
 	}
 }
 
-// TestReadyPageTotalUsesExternalPolicy: the page `bd ready --json` lists and
+// TestReadyPageTotalUsesExternalPolicy: the page `issuegraph ready --json` lists and
 // the total it prints beside it must both exclude externally blocked work. The
 // decorator embeds the inner store, so without its own override this method
 // would pass straight through and count the excluded rows.
@@ -420,8 +420,8 @@ func TestReadyPageTotalUsesExternalPolicy(t *testing.T) {
 	}
 }
 
-// TestReadyTotalsAgreeAcrossOutputModes: text `bd ready` sizes a full page
-// through the ReadyCounter role, `bd ready --json` through the in-band total.
+// TestReadyTotalsAgreeAcrossOutputModes: text `issuegraph ready` sizes a full page
+// through the ReadyCounter role, `issuegraph ready --json` through the in-band total.
 // With an externally blocked issue present both must exclude it; before the
 // decorator overrode ReadyCounter, the text total passed through to the inner
 // store and counted it.

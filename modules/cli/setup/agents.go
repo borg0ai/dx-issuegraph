@@ -8,23 +8,23 @@ import (
 	"path/filepath"
 	"strings"
 
-	"github.com/steveyegge/beads/internal/config"
-	"github.com/steveyegge/beads/internal/templates/agents"
+	"github.com/borg0ai/dx-issuegraph/internal/config"
+	"github.com/borg0ai/dx-issuegraph/internal/templates/agents"
 )
 
 // readFileBytesImpl is used in tests; avoids import cycle.
 var readFileBytesImpl = os.ReadFile
 
-// AGENTS.md integration markers for beads section
+// AGENTS.md integration markers for issuegraph section
 const (
-	agentsBeginMarker = "<!-- BEGIN BEADS INTEGRATION -->"
-	agentsEndMarker   = "<!-- END BEADS INTEGRATION -->"
+	agentsBeginMarker = "<!-- BEGIN ISSUEGRAPH INTEGRATION -->"
+	agentsEndMarker   = "<!-- END ISSUEGRAPH INTEGRATION -->"
 )
 
 var (
-	errAgentsFileMissing   = errors.New("agents file not found")
-	errBeadsSectionMissing = errors.New("beads section missing")
-	errBeadsSectionStale   = errors.New("beads section is stale")
+	errAgentsFileMissing        = errors.New("agents file not found")
+	errIssueGraphSectionMissing = errors.New("issuegraph section missing")
+	errIssueGraphSectionStale   = errors.New("issuegraph section is stale")
 )
 
 const muxAgentInstructionsURL = "https://mux.coder.com/AGENTS.md"
@@ -54,7 +54,7 @@ func defaultAgentsEnv() agentsEnv {
 
 // detectRenderOptsImpl checks whether a Dolt sync remote is configured and returns
 // appropriate RenderOpts. When no remote is configured, the rendered template
-// omits "bd dolt push" from session-completion instructions.
+// omits "issuegraph dolt push" from session-completion instructions.
 // Exposed as a variable so tests can override.
 var detectRenderOptsImpl = func() agents.RenderOpts {
 	return agents.RenderOpts{
@@ -67,10 +67,10 @@ func detectRenderOpts() agents.RenderOpts {
 	return detectRenderOptsImpl()
 }
 
-// containsBeadsMarker returns true if content contains a BEGIN BEADS INTEGRATION marker
+// containsIssueGraphMarker returns true if content contains a BEGIN ISSUEGRAPH INTEGRATION marker
 // (either legacy or new format with metadata).
-func containsBeadsMarker(content string) bool {
-	return strings.Contains(content, "<!-- BEGIN BEADS INTEGRATION")
+func containsIssueGraphMarker(content string) bool {
+	return strings.Contains(content, "<!-- BEGIN ISSUEGRAPH INTEGRATION")
 }
 
 // resolveProfile returns the integration's profile, defaulting to full.
@@ -131,31 +131,31 @@ func installAgents(env agentsEnv, integration agentsIntegration) error {
 	// Profile precedence: if the file already has a full profile and we're
 	// requesting minimal, preserve full to avoid information loss (e.g. when
 	// CLAUDE.md is a symlink to AGENTS.md and both Claude and Codex target it).
-	if currentContent != "" && containsBeadsMarker(currentContent) {
-		existingProfile := existingBeadsProfile(currentContent)
+	if currentContent != "" && containsIssueGraphMarker(currentContent) {
+		existingProfile := existingIssueGraphProfile(currentContent)
 		if existingProfile == agents.ProfileFull && profile == agents.ProfileMinimal {
 			_, _ = fmt.Fprintf(env.stdout, "  ℹ File already has full profile; preserving (higher-information) content\n")
 			profile = agents.ProfileFull
 		}
 	}
 
-	beadsSection := agents.RenderSectionWithOpts(profile, opts)
+	issuegraphSection := agents.RenderSectionWithOpts(profile, opts)
 
 	if currentContent != "" {
-		if containsBeadsMarker(currentContent) {
-			newContent := updateBeadsSectionWithOpts(currentContent, profile, opts)
+		if containsIssueGraphMarker(currentContent) {
+			newContent := updateIssueGraphSectionWithOpts(currentContent, profile, opts)
 			if err := atomicWriteFile(env.agentsPath, []byte(newContent)); err != nil {
 				_, _ = fmt.Fprintf(env.stderr, "Error: write %s: %v\n", env.agentsPath, err)
 				return err
 			}
-			_, _ = fmt.Fprintf(env.stdout, "✓ Updated existing beads section in %s\n", agentsFile)
+			_, _ = fmt.Fprintf(env.stdout, "✓ Updated existing issuegraph section in %s\n", agentsFile)
 		} else {
-			newContent := currentContent + "\n\n" + beadsSection
+			newContent := currentContent + "\n\n" + issuegraphSection
 			if err := atomicWriteFile(env.agentsPath, []byte(newContent)); err != nil {
 				_, _ = fmt.Fprintf(env.stderr, "Error: write %s: %v\n", env.agentsPath, err)
 				return err
 			}
-			_, _ = fmt.Fprintf(env.stdout, "✓ Added beads section to existing %s\n", agentsFile)
+			_, _ = fmt.Fprintf(env.stdout, "✓ Added issuegraph section to existing %s\n", agentsFile)
 		}
 	} else {
 		newContent := createNewAgentsFileWithOpts(profile, opts)
@@ -163,7 +163,7 @@ func installAgents(env agentsEnv, integration agentsIntegration) error {
 			_, _ = fmt.Fprintf(env.stderr, "Error: write %s: %v\n", env.agentsPath, err)
 			return err
 		}
-		_, _ = fmt.Fprintf(env.stdout, "✓ Created new %s with beads integration\n", agentsFile)
+		_, _ = fmt.Fprintf(env.stdout, "✓ Created new %s with issuegraph integration\n", agentsFile)
 	}
 
 	_, _ = fmt.Fprintf(env.stdout, "\n✓ %s integration installed\n", integration.name)
@@ -192,15 +192,15 @@ func checkAgents(env agentsEnv, integration agentsIntegration) error {
 	}
 
 	content := string(data)
-	if !containsBeadsMarker(content) {
-		_, _ = fmt.Fprintf(env.stdout, "⚠ %s exists but no beads section found\n", agentsFile)
-		_, _ = fmt.Fprintf(env.stdout, "  Run: %s (to add beads section)\n", integration.setupCommand)
-		return errBeadsSectionMissing
+	if !containsIssueGraphMarker(content) {
+		_, _ = fmt.Fprintf(env.stdout, "⚠ %s exists but no issuegraph section found\n", agentsFile)
+		_, _ = fmt.Fprintf(env.stdout, "  Run: %s (to add issuegraph section)\n", integration.setupCommand)
+		return errIssueGraphSectionMissing
 	}
 
 	// Section exists — check freshness via profile and hash
 	profile := resolveProfile(integration)
-	existingProf := existingBeadsProfile(content)
+	existingProf := existingIssueGraphProfile(content)
 
 	// Extract hash from marker
 	idx := findBeginMarker(content)
@@ -226,7 +226,7 @@ func checkAgents(env agentsEnv, integration agentsIntegration) error {
 	// Stale or legacy section
 	_, _ = fmt.Fprintf(env.stdout, "⚠ %s integration installed but stale: %s\n", integration.name, env.agentsPath)
 	_, _ = fmt.Fprintf(env.stdout, "  Run: %s (to update)\n", integration.setupCommand)
-	return errBeadsSectionStale
+	return errIssueGraphSectionStale
 }
 
 func removeAgents(env agentsEnv, integration agentsIntegration) error {
@@ -242,36 +242,36 @@ func removeAgents(env agentsEnv, integration agentsIntegration) error {
 	}
 
 	content := string(data)
-	if !containsBeadsMarker(content) {
-		_, _ = fmt.Fprintf(env.stdout, "No beads section found in %s\n", agentsFile)
+	if !containsIssueGraphMarker(content) {
+		_, _ = fmt.Fprintf(env.stdout, "No issuegraph section found in %s\n", agentsFile)
 		return nil
 	}
 
-	newContent := removeBeadsSection(content)
+	newContent := removeIssueGraphSection(content)
 
 	if err := atomicWriteFile(env.agentsPath, []byte(newContent)); err != nil {
 		_, _ = fmt.Fprintf(env.stderr, "Error: write %s: %v\n", env.agentsPath, err)
 		return err
 	}
-	_, _ = fmt.Fprintf(env.stdout, "✓ Removed beads section from %s\n", agentsFile)
+	_, _ = fmt.Fprintf(env.stdout, "✓ Removed issuegraph section from %s\n", agentsFile)
 	return nil
 }
 
-// updateBeadsSection replaces the beads section in existing content using the full profile.
+// updateIssueGraphSection replaces the issuegraph section in existing content using the full profile.
 // Kept for backward compatibility with existing callers and tests.
-func updateBeadsSection(content string) string {
-	return updateBeadsSectionWithProfile(content, agents.ProfileFull)
+func updateIssueGraphSection(content string) string {
+	return updateIssueGraphSectionWithProfile(content, agents.ProfileFull)
 }
 
-// updateBeadsSectionWithProfile replaces the beads section with the given profile.
+// updateIssueGraphSectionWithProfile replaces the issuegraph section with the given profile.
 // Delegates to the canonical agents.ReplaceSection. Returns an error string on
 // malformed markers (logged by callers) instead of silently appending.
-func updateBeadsSectionWithProfile(content string, profile agents.Profile) string {
-	return updateBeadsSectionWithOpts(content, profile, agents.DefaultRenderOpts())
+func updateIssueGraphSectionWithProfile(content string, profile agents.Profile) string {
+	return updateIssueGraphSectionWithOpts(content, profile, agents.DefaultRenderOpts())
 }
 
-// updateBeadsSectionWithOpts replaces the beads section with the given profile and render opts.
-func updateBeadsSectionWithOpts(content string, profile agents.Profile, opts agents.RenderOpts) string {
+// updateIssueGraphSectionWithOpts replaces the issuegraph section with the given profile and render opts.
+func updateIssueGraphSectionWithOpts(content string, profile agents.Profile, opts agents.RenderOpts) string {
 	replaced, _, err := agents.ReplaceSectionWithOpts(content, profile, opts)
 	if err != nil {
 		return content
@@ -279,8 +279,8 @@ func updateBeadsSectionWithOpts(content string, profile agents.Profile, opts age
 	return replaced
 }
 
-// removeBeadsSection removes the beads section from content
-func removeBeadsSection(content string) string {
+// removeIssueGraphSection removes the issuegraph section from content
+func removeIssueGraphSection(content string) string {
 	start := findBeginMarker(content)
 	end := strings.Index(content, agentsEndMarker)
 
@@ -307,18 +307,18 @@ func removeBeadsSection(content string) string {
 	return content[:start] + content[endOfEndMarker:]
 }
 
-// findBeginMarker returns the index of the BEGIN BEADS INTEGRATION marker in content,
+// findBeginMarker returns the index of the BEGIN ISSUEGRAPH INTEGRATION marker in content,
 // matching both legacy (exact) and new (with metadata) formats via prefix match.
 // Returns -1 if not found.
 func findBeginMarker(content string) int {
-	return strings.Index(content, "<!-- BEGIN BEADS INTEGRATION")
+	return strings.Index(content, "<!-- BEGIN ISSUEGRAPH INTEGRATION")
 }
 
-// existingBeadsProfile extracts the profile from an existing beads section's
+// existingIssueGraphProfile extracts the profile from an existing issuegraph section's
 // begin marker. Returns ProfileFull if the marker contains "profile:full" or
 // if it's a legacy marker (legacy sections contain full content).
 // Returns ProfileMinimal only if explicitly marked as such.
-func existingBeadsProfile(content string) agents.Profile {
+func existingIssueGraphProfile(content string) agents.Profile {
 	idx := findBeginMarker(content)
 	if idx == -1 {
 		return agents.ProfileFull
@@ -347,13 +347,13 @@ func createNewAgentsFileWithProfile(profile agents.Profile) string {
 
 // createNewAgentsFileWithOpts creates a new AGENTS.md with the given profile and render opts.
 func createNewAgentsFileWithOpts(profile agents.Profile, opts agents.RenderOpts) string {
-	beadsSection := agents.RenderSectionWithOpts(profile, opts)
+	issuegraphSection := agents.RenderSectionWithOpts(profile, opts)
 
 	return `# Project Instructions for AI Agents
 
 This file provides instructions and context for AI coding agents working on this project.
 
-` + beadsSection + `
+` + issuegraphSection + `
 
 ## Build & Test
 

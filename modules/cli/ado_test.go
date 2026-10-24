@@ -1,4 +1,4 @@
-// Package main provides the bd CLI commands.
+// Package main provides the issuegraph CLI commands.
 package main
 
 import (
@@ -13,9 +13,9 @@ import (
 	"sync"
 	"testing"
 
+	"github.com/borg0ai/dx-issuegraph/internal/ado"
+	"github.com/borg0ai/dx-issuegraph/internal/types"
 	"github.com/spf13/cobra"
-	"github.com/steveyegge/beads/internal/ado"
-	"github.com/steveyegge/beads/internal/types"
 )
 
 // adoStdioMutex serializes tests that redirect os.Stdout/os.Stderr.

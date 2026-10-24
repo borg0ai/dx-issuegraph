@@ -37,13 +37,13 @@ func TestDoctorRepair_DatabaseIntegrity_DBWriteLocked_ImportFailsFast(t *testing
 	t.Skip("SQLite write-lock chaos test; Dolt uses server connections, not file locks (bd-o0u)")
 }
 
-func TestDoctorRepair_CorruptDatabase_ReadOnlyBeadsDir_PermissionsFixMakesWritable(t *testing.T) {
+func TestDoctorRepair_CorruptDatabase_ReadOnlyIssueGraphDir_PermissionsFixMakesWritable(t *testing.T) {
 	t.Skip("SQLite file corruption + read-only dir chaos test; not applicable to Dolt backend (bd-o0u)")
 }
 
-func startDaemonForChaosTest(t *testing.T, bdExe, ws, dbPath string) *exec.Cmd {
+func startDaemonForChaosTest(t *testing.T, issuegraphExe, ws, dbPath string) *exec.Cmd {
 	t.Helper()
-	cmd := exec.Command(bdExe, "--db", dbPath, "daemon", "--start", "--foreground", "--local", "--interval", "10m")
+	cmd := exec.Command(issuegraphExe, "--db", dbPath, "daemon", "--start", "--foreground", "--local", "--interval", "10m")
 	cmd.Dir = ws
 	var stdout, stderr bytes.Buffer
 	cmd.Stdout = &stdout
@@ -56,7 +56,7 @@ func startDaemonForChaosTest(t *testing.T, bdExe, ws, dbPath string) *exec.Cmd {
 	}
 
 	// Wait for socket to appear.
-	sock := filepath.Join(ws, ".beads", "bd.sock")
+	sock := filepath.Join(ws, ".issuegraph", "issuegraph.sock")
 	deadline := time.Now().Add(8 * time.Second)
 	for time.Now().Before(deadline) {
 		if _, err := os.Stat(sock); err == nil {
@@ -74,14 +74,14 @@ func startDaemonForChaosTest(t *testing.T, bdExe, ws, dbPath string) *exec.Cmd {
 	return nil
 }
 
-func runBDWithEnv(ctx context.Context, exe, dir, dbPath string, env map[string]string, args ...string) (string, error) {
+func runIssueGraphWithEnv(ctx context.Context, exe, dir, dbPath string, env map[string]string, args ...string) (string, error) {
 	fullArgs := []string{"--db", dbPath}
 	fullArgs = append(fullArgs, args...)
 
 	cmd := exec.CommandContext(ctx, exe, fullArgs...)
 	cmd.Dir = dir
 	cmd.Env = append(os.Environ(),
-		"BEADS_DIR="+filepath.Join(dir, ".beads"),
+		"ISSUEGRAPH_DIR="+filepath.Join(dir, ".issuegraph"),
 	)
 	for k, v := range env {
 		cmd.Env = append(cmd.Env, k+"="+v)

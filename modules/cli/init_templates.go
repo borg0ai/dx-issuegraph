@@ -8,8 +8,8 @@ import (
 
 // createConfigYaml creates the config.yaml template in the specified directory
 // In --no-db mode, the prefix is saved here since there's no database to store it.
-func createConfigYaml(beadsDir string, noDbMode bool, prefix string) error {
-	configYamlPath := filepath.Join(beadsDir, "config.yaml")
+func createConfigYaml(issuegraphDir string, noDbMode bool, prefix string) error {
+	configYamlPath := filepath.Join(issuegraphDir, "config.yaml")
 
 	// Skip if already exists
 	if _, err := os.Stat(configYamlPath); err == nil {
@@ -35,18 +35,18 @@ func renderInitConfigYAML(prefix string, noDbMode bool) []byte {
 		prefixLine = fmt.Sprintf("issue-prefix: %q", prefix)
 	}
 
-	body := fmt.Sprintf(`# Beads Configuration File
-# This file configures default behavior for all bd commands in this repository
-# All settings can also be set via environment variables (BD_* prefix)
+	body := fmt.Sprintf(`# IssueGraph Configuration File
+# This file configures default behavior for all issuegraph commands in this repository
+# All settings can also be set via environment variables (ISSUEGRAPH_* prefix)
 # or overridden with command-line flags
 
-# Issue prefix for this repository (used by bd init)
-# If not set, bd init will auto-detect from directory name
+# Issue prefix for this repository (used by issuegraph init)
+# If not set, issuegraph init will auto-detect from directory name
 # Example: issue-prefix: "myproject" creates issues like "myproject-1", "myproject-2", etc.
 %s
 
 # Use no-db mode: JSONL-only, no Dolt database
-# When true, .beads/issues.jsonl is the only local store
+# When true, .issuegraph/issues.jsonl is the only local store
 %s
 
 # Enable JSON output by default
@@ -57,18 +57,18 @@ func renderInitConfigYAML(prefix string, noDbMode bool) []byte {
 # output:
 #   title-length: 255
 
-# Default actor for audit trails (overridden by BEADS_ACTOR or --actor)
+# Default actor for audit trails (overridden by ISSUEGRAPH_ACTOR or --actor)
 # actor: ""
 
 # Optional JSONL sidecar for explicit agent/tool interaction audit records.
 # Issue history is always recorded in the database and is visible with
-# bd history <id> --events; this only controls .beads/interactions.jsonl.
+# issuegraph history <id> --events; this only controls .issuegraph/interactions.jsonl.
 # audit:
 #   enabled: false
 
-# Export events (audit trail) to .beads/events.jsonl on each flush/sync
+# Export events (audit trail) to .issuegraph/events.jsonl on each flush/sync
 # When enabled, new events are appended incrementally using a high-water mark.
-# Use 'bd export --events' to trigger manually regardless of this setting.
+# Use 'issuegraph export --events' to trigger manually regardless of this setting.
 # events-export: false
 
 # Multi-repo configuration (experimental - bd-307)
@@ -76,7 +76,7 @@ func renderInitConfigYAML(prefix string, noDbMode bool) []byte {
 # repos:
 #   primary: "."  # Primary repo (where this database lives)
 #   additional:   # Additional repos to hydrate from (read-only)
-#     - ~/beads-planning  # Personal planning repo
+#     - ~/issuegraph-planning  # Personal planning repo
 #     - ~/work-planning   # Work planning repo
 
 # Dolt-native backup (periodic backup for off-machine recovery)
@@ -88,8 +88,8 @@ func renderInitConfigYAML(prefix string, noDbMode bool) []byte {
 #   git-repo: ""       # Separate git repo for backups (default: project repo)
 
 # Optional JSONL auto-export for viewers, interchange, and issue-level migration.
-# Disabled by default; enable only when an integration needs fresh .beads/issues.jsonl.
-# Use relative paths under .beads/ for JSONL import/export filenames.
+# Disabled by default; enable only when an integration needs fresh .issuegraph/issues.jsonl.
+# Use relative paths under .issuegraph/ for JSONL import/export filenames.
 # export:
 #   auto: false
 #   path: issues.jsonl
@@ -98,7 +98,7 @@ func renderInitConfigYAML(prefix string, noDbMode bool) []byte {
 # import:
 #   path: issues.jsonl
 
-# Integration settings (access with 'bd config get/set')
+# Integration settings (access with 'issuegraph config get/set')
 # Non-secret keys (stored in the database):
 # - jira.url, jira.project
 # - linear.team_id
@@ -111,15 +111,15 @@ func renderInitConfigYAML(prefix string, noDbMode bool) []byte {
 	return []byte(body)
 }
 
-const BeadsReadmeTemplate = `# Beads - AI-Native Issue Tracking
+const IssueGraphReadmeTemplate = `# IssueGraph - AI-Native Issue Tracking
 
-Welcome to Beads! This repository uses **Beads** for issue tracking - a modern, AI-native tool designed to live directly in your codebase alongside your code.
+Welcome to IssueGraph! This repository uses **IssueGraph** for issue tracking - a modern, AI-native tool designed to live directly in your codebase alongside your code.
 
-## What is Beads?
+## What is IssueGraph?
 
-Beads is issue tracking that lives in your repo, making it perfect for AI coding agents and developers who want their issues close to their code. No web UI required - everything works through the CLI and integrates seamlessly with git.
+IssueGraph is issue tracking that lives in your repo, making it perfect for AI coding agents and developers who want their issues close to their code. No web UI required - everything works through the CLI and integrates seamlessly with git.
 
-**Learn more:** [github.com/steveyegge/beads](https://github.com/steveyegge/beads)
+**Learn more:** [github.com/borg0ai/dx-issuegraph](https://github.com/borg0ai/dx-issuegraph)
 
 ## Quick Start
 
@@ -127,31 +127,31 @@ Beads is issue tracking that lives in your repo, making it perfect for AI coding
 
 ` + "```bash" + `
 # Create new issues
-bd create "Add user authentication"
+issuegraph create "Add user authentication"
 
 # View all issues
-bd list
+issuegraph list
 
 # View issue details
-bd show <issue-id>
+issuegraph show <issue-id>
 
 # Update issue status
-bd update <issue-id> --claim
-bd update <issue-id> --status done
+issuegraph update <issue-id> --claim
+issuegraph update <issue-id> --status done
 
 # Sync with Dolt remote
-bd dolt push
+issuegraph dolt push
 ` + "```" + `
 
 ### Working with Issues
 
-Issues in Beads are:
+Issues in IssueGraph are:
 - **Git-native**: Stored in Dolt database with version control and branching
 - **AI-friendly**: CLI-first design works perfectly with AI coding agents
 - **Branch-aware**: Issues can follow your branch workflow
 - **Sync-ready**: Uses Dolt remotes for backup and team sharing
 
-## Why Beads?
+## Why IssueGraph?
 
 ✨ **AI-Native Design**
 - Built specifically for AI-assisted development workflows
@@ -164,38 +164,38 @@ Issues in Beads are:
 - Fast, lightweight, and stays out of your way
 
 🔧 **Git Integration**
-- Dolt-native sync via bd dolt push / bd dolt pull
+- Dolt-native sync via issuegraph dolt push / issuegraph dolt pull
 - Branch-aware issue tracking
 - Dolt-native three-way merge resolution
 
-## Get Started with Beads
+## Get Started with IssueGraph
 
-Try Beads in your own projects:
+Try IssueGraph in your own projects:
 
 ` + "```bash" + `
-# Install Beads
-curl -sSL https://raw.githubusercontent.com/steveyegge/beads/main/scripts/install.sh | bash
+# Install IssueGraph
+curl -sSL https://raw.githubusercontent.com/borg0ai/issuegraph/main/scripts/install.sh | bash
 
 # Initialize in your repo
-bd init
+issuegraph init
 
 # Create your first issue
-bd create "Try out Beads"
+issuegraph create "Try out IssueGraph"
 ` + "```" + `
 
 ## Learn More
 
-- **Documentation**: [github.com/steveyegge/beads/docs](https://github.com/steveyegge/beads/tree/main/docs)
-- **Quick Start Guide**: Run ` + "`bd quickstart`" + `
-- **Examples**: [github.com/steveyegge/beads/examples](https://github.com/steveyegge/beads/tree/main/examples)
+- **Documentation**: [github.com/borg0ai/dx-issuegraph/docs](https://github.com/borg0ai/dx-issuegraph/tree/main/docs)
+- **Quick Start Guide**: Run ` + "`issuegraph quickstart`" + `
+- **Examples**: [github.com/borg0ai/dx-issuegraph/examples](https://github.com/borg0ai/dx-issuegraph/tree/main/examples)
 
 ---
 
-*Beads: Issue tracking that moves at the speed of thought* ⚡
+*IssueGraph: Issue tracking that moves at the speed of thought* ⚡
 `
 
-func createReadme(beadsDir string) error {
-	readmePath := filepath.Join(beadsDir, "README.md")
+func createReadme(issuegraphDir string) error {
+	readmePath := filepath.Join(issuegraphDir, "README.md")
 
 	// Skip if already exists
 	if _, err := os.Stat(readmePath); err == nil {
@@ -204,7 +204,7 @@ func createReadme(beadsDir string) error {
 
 	// Write README.md (0644 is standard for markdown files)
 	// #nosec G306 - README needs to be readable
-	if err := os.WriteFile(readmePath, []byte(BeadsReadmeTemplate), 0644); err != nil {
+	if err := os.WriteFile(readmePath, []byte(IssueGraphReadmeTemplate), 0644); err != nil {
 		return fmt.Errorf("failed to write README.md: %w", err)
 	}
 

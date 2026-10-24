@@ -18,19 +18,19 @@ import (
 	"testing"
 	"time"
 
-	"github.com/steveyegge/beads/internal/procid"
-	"github.com/steveyegge/beads/internal/storage/dbproxy/pidfile"
-	"github.com/steveyegge/beads/internal/storage/dbproxy/proxy"
-	"github.com/steveyegge/beads/internal/storage/dbproxy/server"
-	"github.com/steveyegge/beads/internal/storage/dbproxy/util"
+	"github.com/borg0ai/dx-issuegraph/internal/procid"
+	"github.com/borg0ai/dx-issuegraph/internal/storage/dbproxy/pidfile"
+	"github.com/borg0ai/dx-issuegraph/internal/storage/dbproxy/proxy"
+	"github.com/borg0ai/dx-issuegraph/internal/storage/dbproxy/server"
+	"github.com/borg0ai/dx-issuegraph/internal/storage/dbproxy/util"
 )
 
 const managedLocalIdentityIdleTimeout = 5 * time.Minute
 
 func TestManagedLocalProxiedForeignListenerNotAdopted(t *testing.T) {
 	requireManagedLocalProxiedEnv(t)
-	bd := buildEmbeddedBD(t)
-	p, oldProxy, _ := initStoppedManagedLocal(t, bd, "mlforeign")
+	issuegraph := buildEmbeddedBD(t)
+	p, oldProxy, _ := initStoppedManagedLocal(t, issuegraph, "mlforeign")
 
 	listener := startManagedForeignListener(t, oldProxy.Port)
 	wrongBirth, err := procid.Capture(os.Getpid())
@@ -43,8 +43,8 @@ func TestManagedLocalProxiedForeignListenerNotAdopted(t *testing.T) {
 		t.Fatalf("write doctored proxy record: %v", err)
 	}
 
-	if out, err := bdProxiedRun(t, bd, p.dir, "list", "--json"); err != nil {
-		t.Fatalf("bd list did not self-heal a foreign listener: %v\n%s", err, out)
+	if out, err := issuegraphProxiedRun(t, issuegraph, p.dir, "list", "--json"); err != nil {
+		t.Fatalf("issuegraph list did not self-heal a foreign listener: %v\n%s", err, out)
 	}
 	newProxy, newBackend := waitForManagedProxiedHealthy(t, p)
 	if newProxy.Port == oldProxy.Port {
@@ -57,8 +57,8 @@ func TestManagedLocalProxiedForeignListenerNotAdopted(t *testing.T) {
 
 func TestManagedLocalProxiedReusedPidNeverKilled(t *testing.T) {
 	requireManagedLocalProxiedEnv(t)
-	bd := buildEmbeddedBD(t)
-	p, oldProxy, _ := initStoppedManagedLocal(t, bd, "mlreused")
+	issuegraph := buildEmbeddedBD(t)
+	p, oldProxy, _ := initStoppedManagedLocal(t, issuegraph, "mlreused")
 	helper := startManagedSleepProcess(t)
 
 	doctored := *oldProxy
@@ -70,8 +70,8 @@ func TestManagedLocalProxiedReusedPidNeverKilled(t *testing.T) {
 		t.Fatalf("write reused-pid proxy record: %v", err)
 	}
 
-	if out, err := bdProxiedRun(t, bd, p.dir, "list", "--json"); err != nil {
-		t.Fatalf("bd list did not self-heal reused PID record: %v\n%s", err, out)
+	if out, err := issuegraphProxiedRun(t, issuegraph, p.dir, "list", "--json"); err != nil {
+		t.Fatalf("issuegraph list did not self-heal reused PID record: %v\n%s", err, out)
 	}
 	newProxy, newBackend := waitForManagedProxiedHealthy(t, p)
 	assertManagedPidfilesConsistent(t, p, newProxy, newBackend)
@@ -83,15 +83,15 @@ func TestManagedLocalProxiedReusedPidNeverKilled(t *testing.T) {
 
 func TestManagedLocalProxiedLegacyRecordFailClosed(t *testing.T) {
 	requireManagedLocalProxiedEnv(t)
-	bd := buildEmbeddedBD(t)
+	issuegraph := buildEmbeddedBD(t)
 
 	t.Run("free lock quarantines without signaling", func(t *testing.T) {
-		p, oldProxy, _ := initStoppedManagedLocal(t, bd, "mllegacyfree")
+		p, oldProxy, _ := initStoppedManagedLocal(t, issuegraph, "mllegacyfree")
 		helper := startManagedSleepProcess(t)
 		writeManagedLegacyProxyRecord(t, p, helper.cmd.Process.Pid, oldProxy.Port)
 
-		if out, err := bdProxiedRun(t, bd, p.dir, "list", "--json"); err != nil {
-			t.Fatalf("bd list did not replace free-lock legacy record: %v\n%s", err, out)
+		if out, err := issuegraphProxiedRun(t, issuegraph, p.dir, "list", "--json"); err != nil {
+			t.Fatalf("issuegraph list did not replace free-lock legacy record: %v\n%s", err, out)
 		}
 		waitForManagedProxiedHealthy(t, p)
 		if !processAlive(helper.cmd.Process.Pid) {
@@ -101,24 +101,24 @@ func TestManagedLocalProxiedLegacyRecordFailClosed(t *testing.T) {
 	})
 
 	t.Run("held lock refuses foreign executable", func(t *testing.T) {
-		p, oldProxy, _ := initStoppedManagedLocal(t, bd, "mllegacyforeign")
+		p, oldProxy, _ := initStoppedManagedLocal(t, issuegraph, "mllegacyforeign")
 		helper := startManagedSleepProcessHoldingLock(t, p)
 		writeManagedLegacyProxyRecord(t, p, helper.cmd.Process.Pid, oldProxy.Port)
 
-		listOut := bdProxiedListFail(t, bd, p)
+		listOut := issuegraphProxiedListFail(t, issuegraph, p)
 		assertManagedActionableLegacyError(t, listOut, p)
 
-		_, stopStderr, stopErr := bdProxiedRunBuffers(t, bd, p.dir, "dolt", "stop")
+		_, stopStderr, stopErr := issuegraphProxiedRunBuffers(t, issuegraph, p.dir, "dolt", "stop")
 		if stopErr == nil {
-			t.Fatalf("bd dolt stop unexpectedly accepted held legacy record:\n%s", stopStderr)
+			t.Fatalf("issuegraph dolt stop unexpectedly accepted held legacy record:\n%s", stopStderr)
 		}
 		assertManagedActionableLegacyError(t, stopStderr, p)
 
-		forceStdout, forceStderr, forceErr := bdProxiedRunBuffers(
-			t, bd, p.dir, "dolt", "stop", "--force", "--json",
+		forceStdout, forceStderr, forceErr := issuegraphProxiedRunBuffers(
+			t, issuegraph, p.dir, "dolt", "stop", "--force", "--json",
 		)
 		if forceErr == nil {
-			t.Fatalf("bd dolt stop --force signaled a foreign executable:\n%s", forceStdout)
+			t.Fatalf("issuegraph dolt stop --force signaled a foreign executable:\n%s", forceStdout)
 		}
 		result := decodeManagedDoltStopResult(t, forceStdout)
 		if got := result["process_left_alone"]; got != true {
@@ -127,7 +127,7 @@ func TestManagedLocalProxiedLegacyRecordFailClosed(t *testing.T) {
 		if got := result["record_left_alone"]; got != true {
 			t.Errorf("record_left_alone = %v, want true; result=%v", got, result)
 		}
-		if !strings.Contains(fmt.Sprint(result["error"]), "want bd or dolt") {
+		if !strings.Contains(fmt.Sprint(result["error"]), "want issuegraph or dolt") {
 			t.Errorf("force error does not explain executable refusal: %v", result)
 		}
 		if strings.TrimSpace(forceStderr) != "" {
@@ -146,29 +146,29 @@ func TestManagedLocalProxiedLegacyRecordFailClosed(t *testing.T) {
 		}
 	})
 
-	t.Run("held lock accepts copied bd executable", func(t *testing.T) {
-		p, oldProxy, _ := initStoppedManagedLocal(t, bd, "mllegacybd")
-		helper := startCopiedBDManagedHelper(t, bd, p)
+	t.Run("held lock accepts copied issuegraph executable", func(t *testing.T) {
+		p, oldProxy, _ := initStoppedManagedLocal(t, issuegraph, "mllegacybd")
+		helper := startCopiedIssueGraphManagedHelper(t, issuegraph, p)
 		writeManagedLegacyProxyRecord(t, p, helper.cmd.Process.Pid, oldProxy.Port)
 
-		_, stopStderr, stopErr := bdProxiedRunBuffers(t, bd, p.dir, "dolt", "stop")
+		_, stopStderr, stopErr := issuegraphProxiedRunBuffers(t, issuegraph, p.dir, "dolt", "stop")
 		if stopErr == nil {
-			t.Fatalf("bd dolt stop unexpectedly accepted held legacy record:\n%s", stopStderr)
+			t.Fatalf("issuegraph dolt stop unexpectedly accepted held legacy record:\n%s", stopStderr)
 		}
 		assertManagedActionableLegacyError(t, stopStderr, p)
 
-		forceStdout, forceStderr, forceErr := bdProxiedRunBuffers(
-			t, bd, p.dir, "dolt", "stop", "--force", "--json",
+		forceStdout, forceStderr, forceErr := issuegraphProxiedRunBuffers(
+			t, issuegraph, p.dir, "dolt", "stop", "--force", "--json",
 		)
 		if forceErr != nil {
-			t.Fatalf("bd dolt stop --force rejected copied bd helper: %v\nstdout:\n%s\nstderr:\n%s",
+			t.Fatalf("issuegraph dolt stop --force rejected copied issuegraph helper: %v\nstdout:\n%s\nstderr:\n%s",
 				forceErr, forceStdout, forceStderr)
 		}
 		result := decodeManagedDoltStopResult(t, forceStdout)
 		for field, want := range map[string]any{
 			"stopped":             true,
 			"force":               true,
-			"executable":          "bd",
+			"executable":          "issuegraph",
 			"executable_verified": true,
 			"signal_sent":         true,
 		} {
@@ -180,7 +180,7 @@ func TestManagedLocalProxiedLegacyRecordFailClosed(t *testing.T) {
 			t.Errorf("force result omitted quarantined_path: %v", result)
 		}
 		if processAlive(helper.cmd.Process.Pid) {
-			t.Fatalf("copied bd helper pid %d survived successful force stop", helper.cmd.Process.Pid)
+			t.Fatalf("copied issuegraph helper pid %d survived successful force stop", helper.cmd.Process.Pid)
 		}
 		if _, err := os.Stat(pidfile.Path(p.proxyRoot, proxy.PIDFileName)); !os.IsNotExist(err) {
 			t.Fatalf("legacy record remains after successful force stop: %v", err)
@@ -191,8 +191,8 @@ func TestManagedLocalProxiedLegacyRecordFailClosed(t *testing.T) {
 
 func TestManagedLocalProxiedOrphanBackendReaped(t *testing.T) {
 	requireManagedLocalProxiedEnv(t)
-	bd := buildEmbeddedBD(t)
-	p := bdManagedLocalInit(t, bd, "mlorphan", managedLocalIdentityIdleTimeout)
+	issuegraph := buildEmbeddedBD(t)
+	p := issuegraphManagedLocalInit(t, issuegraph, "mlorphan", managedLocalIdentityIdleTimeout)
 	oldProxy, oldBackend := waitForManagedProxiedHealthy(t, p)
 
 	proc, err := os.FindProcess(oldProxy.Pid)
@@ -209,8 +209,8 @@ func TestManagedLocalProxiedOrphanBackendReaped(t *testing.T) {
 		t.Fatalf("backend pid %d did not survive proxy SIGKILL; test did not create an orphan", oldBackend.Pid)
 	}
 
-	if out, err := bdProxiedRun(t, bd, p.dir, "list", "--json"); err != nil {
-		t.Fatalf("bd list did not recover orphan backend: %v\n%s", err, out)
+	if out, err := issuegraphProxiedRun(t, issuegraph, p.dir, "list", "--json"); err != nil {
+		t.Fatalf("issuegraph list did not recover orphan backend: %v\n%s", err, out)
 	}
 	newProxy, newBackend := waitForManagedProxiedHealthy(t, p)
 	if processAlive(oldBackend.Pid) {
@@ -226,8 +226,8 @@ func TestManagedLocalProxiedOrphanBackendReaped(t *testing.T) {
 
 func TestManagedLocalProxiedNProcessColdStartConvergence(t *testing.T) {
 	requireManagedLocalProxiedEnv(t)
-	bd := buildEmbeddedBD(t)
-	p, _, _ := initStoppedManagedLocal(t, bd, "mlconverge")
+	issuegraph := buildEmbeddedBD(t)
+	p, _, _ := initStoppedManagedLocal(t, issuegraph, "mlconverge")
 
 	const workers = 5
 	ctx, cancel := context.WithTimeout(context.Background(), 60*time.Second)
@@ -240,7 +240,7 @@ func TestManagedLocalProxiedNProcessColdStartConvergence(t *testing.T) {
 		go func(index int) {
 			defer wg.Done()
 			<-start
-			results[index] = runManagedCommand(ctx, bd, p.dir, "list", "--json")
+			results[index] = runManagedCommand(ctx, issuegraph, p.dir, "list", "--json")
 		}(i)
 	}
 	close(start)
@@ -267,8 +267,8 @@ func TestManagedLocalProxiedNProcessColdStartConvergence(t *testing.T) {
 
 func TestManagedLocalProxiedStopStartInterleave(t *testing.T) {
 	requireManagedLocalProxiedEnv(t)
-	bd := buildEmbeddedBD(t)
-	p, _, _ := initStoppedManagedLocal(t, bd, "mlinterleave")
+	issuegraph := buildEmbeddedBD(t)
+	p, _, _ := initStoppedManagedLocal(t, issuegraph, "mlinterleave")
 
 	ctx, cancel := context.WithTimeout(context.Background(), 60*time.Second)
 	defer cancel()
@@ -279,12 +279,12 @@ func TestManagedLocalProxiedStopStartInterleave(t *testing.T) {
 	go func() {
 		defer wg.Done()
 		<-start
-		listResult = runManagedCommand(ctx, bd, p.dir, "list", "--json")
+		listResult = runManagedCommand(ctx, issuegraph, p.dir, "list", "--json")
 	}()
 	go func() {
 		defer wg.Done()
 		<-start
-		stopResult = runManagedCommand(ctx, bd, p.dir, "dolt", "stop")
+		stopResult = runManagedCommand(ctx, issuegraph, p.dir, "dolt", "stop")
 	}()
 	close(start)
 	wg.Wait()
@@ -319,14 +319,14 @@ func TestManagedLocalProxiedStopStartInterleave(t *testing.T) {
 
 func initStoppedManagedLocal(
 	t *testing.T,
-	bd string,
+	issuegraph string,
 	prefix string,
 ) (proxiedProject, *pidfile.PidFile, *pidfile.PidFile) {
 	t.Helper()
-	p := bdManagedLocalInit(t, bd, prefix, managedLocalIdentityIdleTimeout)
+	p := issuegraphManagedLocalInit(t, issuegraph, prefix, managedLocalIdentityIdleTimeout)
 	proxyPF, backendPF := waitForManagedProxiedHealthy(t, p)
-	if out, err := bdProxiedRun(t, bd, p.dir, "dolt", "stop"); err != nil {
-		t.Fatalf("bd dolt stop: %v\n%s", err, out)
+	if out, err := issuegraphProxiedRun(t, issuegraph, p.dir, "dolt", "stop"); err != nil {
+		t.Fatalf("issuegraph dolt stop: %v\n%s", err, out)
 	}
 	waitForManagedProxiedShutdown(t, p, proxyPF.Pid, backendPF.Pid, 60*time.Second)
 	return p, proxyPF, backendPF
@@ -417,7 +417,7 @@ func assertManagedActionableLegacyError(t *testing.T, output string, p proxiedPr
 	t.Helper()
 	for _, want := range []string{
 		"legacy",
-		"old bd binary",
+		"old issuegraph binary",
 		pidfile.Path(p.proxyRoot, proxy.PIDFileName),
 		".stale-<unix-timestamp>",
 	} {
@@ -528,14 +528,14 @@ func stopManagedProcess(t *testing.T, helper managedProcess) {
 	}
 }
 
-func startCopiedBDManagedHelper(t *testing.T, bd string, p proxiedProject) managedProcess {
+func startCopiedIssueGraphManagedHelper(t *testing.T, issuegraph string, p proxiedProject) managedProcess {
 	t.Helper()
-	copyPath := filepath.Join(t.TempDir(), "bd")
-	copyExecutable(t, bd, copyPath)
+	copyPath := filepath.Join(t.TempDir(), "issuegraph")
+	copyExecutable(t, issuegraph, copyPath)
 
 	upstream, err := net.Listen("tcp", "127.0.0.1:0")
 	if err != nil {
-		t.Fatalf("listen for copied-bd upstream: %v", err)
+		t.Fatalf("listen for copied-issuegraph upstream: %v", err)
 	}
 	t.Cleanup(func() { _ = upstream.Close() })
 	go func() {
@@ -565,7 +565,7 @@ func startCopiedBDManagedHelper(t *testing.T, bd string, p proxiedProject) manag
 		"--external-port", strconv.Itoa(upstreamPort),
 	)
 	helper := startManagedProcessHoldingProxyLock(t, p, cmd)
-	waitForManagedProxied(t, 10*time.Second, "copied bd helper to publish identity", func() (bool, string) {
+	waitForManagedProxied(t, 10*time.Second, "copied issuegraph helper to publish identity", func() (bool, string) {
 		pf, readErr := pidfile.Read(helperRoot, proxy.PIDFileName)
 		if readErr != nil {
 			return false, readErr.Error()
@@ -578,7 +578,7 @@ func startCopiedBDManagedHelper(t *testing.T, bd string, p proxiedProject) manag
 
 func copyExecutable(t *testing.T, source, target string) {
 	t.Helper()
-	in, err := os.Open(source) //nolint:gosec // source is the test-selected bd binary
+	in, err := os.Open(source) //nolint:gosec // source is the test-selected issuegraph binary
 	if err != nil {
 		t.Fatalf("open helper source %s: %v", source, err)
 	}
@@ -600,7 +600,7 @@ func decodeManagedDoltStopResult(t *testing.T, output string) map[string]any {
 	t.Helper()
 	var result map[string]any
 	if err := json.Unmarshal([]byte(strings.TrimSpace(output)), &result); err != nil {
-		t.Fatalf("decode bd dolt stop JSON: %v\n%s", err, output)
+		t.Fatalf("decode issuegraph dolt stop JSON: %v\n%s", err, output)
 	}
 	return result
 }
@@ -612,10 +612,10 @@ type managedCommandResult struct {
 	ended  time.Time
 }
 
-func runManagedCommand(ctx context.Context, bd, dir string, args ...string) managedCommandResult {
-	cmd := exec.CommandContext(ctx, bd, args...)
+func runManagedCommand(ctx context.Context, issuegraph, dir string, args ...string) managedCommandResult {
+	cmd := exec.CommandContext(ctx, issuegraph, args...)
 	cmd.Dir = dir
-	cmd.Env = bdProxiedEnv(dir)
+	cmd.Env = issuegraphProxiedEnv(dir)
 	var stdout, stderr bytes.Buffer
 	cmd.Stdout = &stdout
 	cmd.Stderr = &stderr
@@ -633,7 +633,7 @@ func managedProcessPIDs(p proxiedProject) (proxyPIDs, backendPIDs []int) {
 	if err != nil {
 		return nil, nil
 	}
-	configPath := proxiedServerConfigPath(p.beadsDir)
+	configPath := proxiedServerConfigPath(p.issuegraphDir)
 	for _, entry := range entries {
 		pid, err := strconv.Atoi(entry.Name())
 		if err != nil {

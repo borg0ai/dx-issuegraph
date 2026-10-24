@@ -14,9 +14,9 @@ import (
 	"sync"
 	"testing"
 
-	"github.com/steveyegge/beads/internal/doltserver"
-	"github.com/steveyegge/beads/internal/storage/dolt"
-	"github.com/steveyegge/beads/internal/testutil"
+	"github.com/borg0ai/dx-issuegraph/internal/doltserver"
+	"github.com/borg0ai/dx-issuegraph/internal/storage/dolt"
+	"github.com/borg0ai/dx-issuegraph/internal/testutil"
 )
 
 // e2eDoctorResult mirrors the JSON output struct from modules/cli/doctor.go.
@@ -35,14 +35,14 @@ type e2eDoctorCheck struct {
 	Category string `json:"category,omitempty"`
 }
 
-// testBDPath holds the path to the bd binary built from the current branch.
+// testIssueGraphPath holds the path to the issuegraph binary built from the current branch.
 // Built once via sync.Once to avoid redundant compilations across tests.
-// testBDDir is cleaned up by TestMain after all tests complete.
+// testIssueGraphDir is cleaned up by TestMain after all tests complete.
 var (
-	testBDPath string
-	testBDDir  string
-	testBDOnce sync.Once
-	testBDErr  error
+	testIssueGraphPath string
+	testIssueGraphDir  string
+	testIssueGraphOnce sync.Once
+	testIssueGraphErr  error
 )
 
 // testSharedDB is the name of the shared database for branch-per-test isolation.
@@ -56,11 +56,11 @@ func TestMain(m *testing.M) {
 }
 
 func testMainInner(m *testing.M) int {
-	os.Setenv("BEADS_TEST_MODE", "1")
+	os.Setenv("ISSUEGRAPH_TEST_MODE", "1")
 	// AD-01 (be-c5p): doctor e2e tests connect to a per-package test server.
 	// The dolt.New database-name firewall requires this opt-in to allow
 	// doctor_pkg_shared and doctest_*-prefixed databases through.
-	os.Setenv("BEADS_TEST_SERVER", "1")
+	os.Setenv("ISSUEGRAPH_TEST_SERVER", "1")
 
 	// Clear out the roots of earlier runs of this suite whose process is
 	// gone, before claiming one of our own. A `go test -timeout` panic skips
@@ -72,7 +72,7 @@ func testMainInner(m *testing.M) int {
 
 	// Pin t.TempDir() under a suite-owned root so SweepSuiteTestServers
 	// can reap AutoStart leftovers whose t.TempDir() cleanup failed because
-	// the live child still holds the tree (gastownhall/beads#5631).
+	// the live child still holds the tree (borg0ai/dx-issuegraph#5631).
 	root, pinErr := testutil.PinSuiteTempRoot(suiteRootPrefix + "*")
 	if pinErr != nil {
 		fmt.Fprintf(os.Stderr, "FATAL: suite temp root: %v\n", pinErr)
@@ -114,14 +114,14 @@ func testMainInner(m *testing.M) int {
 
 	// Best-effort reap of any dolt sql-server left running under a temp dir
 	// this suite created (e.g. a SIGKILLed run) — see
-	// gastownhall/beads mybd-q6cz / #5631.
-	swept := doltserver.SweepSuiteTestServers(root, testBDDir)
+	// borg0ai/dx-issuegraph mybd-q6cz / #5631.
+	swept := doltserver.SweepSuiteTestServers(root, testIssueGraphDir)
 	code = doltserver.ApplyLeakPolicy("modules/cli/doctor", code, swept)
 
-	os.Unsetenv("BEADS_DOLT_PORT")
-	os.Unsetenv("BEADS_TEST_MODE")
-	if testBDDir != "" {
-		os.RemoveAll(testBDDir)
+	os.Unsetenv("ISSUEGRAPH_DOLT_PORT")
+	os.Unsetenv("ISSUEGRAPH_TEST_MODE")
+	if testIssueGraphDir != "" {
+		os.RemoveAll(testIssueGraphDir)
 	}
 	return code
 }
@@ -141,7 +141,7 @@ func initDoctorSharedSchema(port int) error {
 	}
 	defer store.Close()
 
-	if err := store.SetConfig(ctx, "issue_prefix", "bd"); err != nil {
+	if err := store.SetConfig(ctx, "issue_prefix", "issuegraph"); err != nil {
 		return fmt.Errorf("SetConfig(issue_prefix): %w", err)
 	}
 	if err := store.SetConfig(ctx, "types.custom", "molecule,gate,convoy,merge-request,slot,agent,role,rig,event,message"); err != nil {
@@ -163,29 +163,29 @@ func initDoctorSharedSchema(port int) error {
 	return nil
 }
 
-// buildTestBD compiles the bd binary from the current worktree. This ensures
-// E2E tests run against the code in this branch, not the system-installed bd.
+// buildTestBD compiles the issuegraph binary from the current worktree. This ensures
+// E2E tests run against the code in this branch, not the system-installed issuegraph.
 func buildTestBD(t *testing.T) string {
 	t.Helper()
 
-	testBDOnce.Do(func() {
-		bdBinary := "bd-test"
+	testIssueGraphOnce.Do(func() {
+		issuegraphBinary := "bd-test"
 		if runtime.GOOS == "windows" {
-			bdBinary = "bd-test.exe"
+			issuegraphBinary = "bd-test.exe"
 		}
 
 		dir, err := os.MkdirTemp("", "bd-dolt-e2e-*")
 		if err != nil {
-			testBDErr = err
+			testIssueGraphErr = err
 			return
 		}
-		testBDDir = dir
+		testIssueGraphDir = dir
 
-		testBDPath = filepath.Join(dir, bdBinary)
+		testIssueGraphPath = filepath.Join(dir, issuegraphBinary)
 
 		// Build from modules/cli relative to the module root.
 		// The test runs from modules/cli/doctor/, so module root is ../../../
-		cmd := exec.Command("go", "build", "-tags", "gms_pure_go", "-o", testBDPath, "./modules/cli")
+		cmd := exec.Command("go", "build", "-tags", "gms_pure_go", "-o", testIssueGraphPath, "./modules/cli")
 
 		// Find the module root by looking for go.mod
 		modRoot := findModuleRoot(t)
@@ -205,16 +205,16 @@ func buildTestBD(t *testing.T) string {
 
 		out, err := cmd.CombinedOutput()
 		if err != nil {
-			testBDErr = &buildError{output: string(out), err: err}
+			testIssueGraphErr = &buildError{output: string(out), err: err}
 			return
 		}
 	})
 
-	if testBDErr != nil {
-		t.Skipf("skipping E2E test: failed to build bd binary: %v", testBDErr)
+	if testIssueGraphErr != nil {
+		t.Skipf("skipping E2E test: failed to build issuegraph binary: %v", testIssueGraphErr)
 	}
 
-	return testBDPath
+	return testIssueGraphPath
 }
 
 type buildError struct {
@@ -259,7 +259,7 @@ func icuPrefixPath() string {
 	return string(out[:len(out)-1]) // trim trailing newline
 }
 
-// setupMinimalGitRepo creates a temp dir with a git repo and .beads/ directory.
+// setupMinimalGitRepo creates a temp dir with a git repo and .issuegraph/ directory.
 // Doctor requires git context for workspace detection.
 func setupMinimalGitRepo(t *testing.T) string {
 	t.Helper()
@@ -276,21 +276,21 @@ func setupMinimalGitRepo(t *testing.T) string {
 		}
 	}
 
-	beadsDir := filepath.Join(tmpDir, ".beads")
-	if err := os.MkdirAll(beadsDir, 0o755); err != nil {
-		t.Fatalf("failed to create .beads dir: %v", err)
+	issuegraphDir := filepath.Join(tmpDir, ".issuegraph")
+	if err := os.MkdirAll(issuegraphDir, 0o755); err != nil {
+		t.Fatalf("failed to create .issuegraph dir: %v", err)
 	}
 
 	return tmpDir
 }
 
-// runBDDoctor executes `bd doctor <path> --json` using the branch-built binary
+// runIssueGraphDoctor executes `issuegraph doctor <path> --json` using the branch-built binary
 // and returns the parsed result, raw stdout, and any exec error. The JSON is on
 // stdout even when exit code is 1 (doctor exits 1 when checks fail).
-func runBDDoctor(t *testing.T, bdPath, path string) (e2eDoctorResult, string, error) {
+func runIssueGraphDoctor(t *testing.T, issuegraphPath, path string) (e2eDoctorResult, string, error) {
 	t.Helper()
 
-	cmd := exec.Command(bdPath, "doctor", path, "--json")
+	cmd := exec.Command(issuegraphPath, "doctor", path, "--json")
 	cmd.Env = os.Environ()
 
 	out, execErr := cmd.Output()

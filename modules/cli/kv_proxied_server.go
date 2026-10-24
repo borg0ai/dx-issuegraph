@@ -4,10 +4,10 @@ import (
 	"context"
 	"fmt"
 
-	"github.com/steveyegge/beads/internal/storage/uow"
+	"github.com/borg0ai/dx-issuegraph/internal/storage/uow"
 )
 
-// Proxied-server handlers for `bd kv`. The kv store is a thin prefix layer
+// Proxied-server handlers for `issuegraph kv`. The kv store is a thin prefix layer
 // (kv.*) over the config table, so these mirror config_proxied_server.go:
 // one RunTx per write invocation with a real commit message, RunTxRead for
 // reads. Key validation happens in the RunE before dispatch; presentation
@@ -29,7 +29,7 @@ func runKVSetProxiedServer(ctx context.Context, key, value string) error {
 		if err := uw.ConfigUseCase().SetConfig(ctx, storageKey, value); err != nil {
 			return "", err
 		}
-		return fmt.Sprintf("bd: kv set %s", key), nil
+		return fmt.Sprintf("issuegraph: kv set %s", key), nil
 	})
 	if err != nil {
 		return HandleErrorRespectJSON("setting key: %v", err)
@@ -65,7 +65,7 @@ func runKVClearProxiedServer(ctx context.Context, key string) error {
 		if err := uw.ConfigUseCase().DeleteConfig(ctx, storageKey); err != nil {
 			return "", err
 		}
-		return fmt.Sprintf("bd: kv clear %s", key), nil
+		return fmt.Sprintf("issuegraph: kv clear %s", key), nil
 	})
 	if err != nil {
 		return HandleErrorRespectJSON("deleting key: %v", err)

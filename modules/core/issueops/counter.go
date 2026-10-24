@@ -25,8 +25,8 @@ const (
 // It is a HIGH-LEVEL request in the sense ReadyRequest and ListRequest are —
 // label normalization, id splitting and the wisp-tier policy all happen inside
 // — but it is NOT a ListRequest with the paging fields removed, and the
-// difference is the whole reason this is a separate type. A default `bd list`
-// hides closed, pinned, template and gate rows; a default `bd count` hides
+// difference is the whole reason this is a separate type. A default `issuegraph list`
+// hides closed, pinned, template and gate rows; a default `issuegraph count` hides
 // none of them and answers for every durable row that matches. Sharing
 // ListRequest would have made the two questions look interchangeable at the
 // call site while their answers differed by every one of those exclusions.
@@ -108,13 +108,13 @@ type CountRequest struct {
 	NoLabels   bool
 
 	// IncludeInfra switches the count from the durable plane to the cardinality
-	// of `bd list --include-infra --all`, which is FOUR changes at once and not
+	// of `issuegraph list --include-infra --all`, which is FOUR changes at once and not
 	// one (GH#4387):
 	//
 	//   - the ephemeral wisps tier is merged in, picking up both wisps and the
-	//     no_history beads that are durable work stored in that tier;
+	//     no_history issuegraph that are durable work stored in that tier;
 	//   - template molecules are excluded, which a default count includes;
-	//   - gate beads are excluded, unless IssueType asks for gates by name;
+	//   - gate issuegraph are excluded, unless IssueType asks for gates by name;
 	//   - an IssueType the workspace calls infra routes the count to the
 	//     ephemeral tier instead of the durable one.
 	//
@@ -123,7 +123,7 @@ type CountRequest struct {
 	// config load this role exists to keep off both front doors.
 	//
 	// Unset, the count is durable-plane only and applies none of those four —
-	// the historical `bd count` answer, kept exactly so a scripted caller reads
+	// the historical `issuegraph count` answer, kept exactly so a scripted caller reads
 	// the same number it read yesterday.
 	IncludeInfra bool
 }
@@ -132,7 +132,7 @@ type CountRequest struct {
 type CountResult struct {
 	// Total is the number of matching rows. It is an int64 because the storage
 	// seam counts in one, not because a workspace is expected to hold four
-	// billion beads.
+	// billion issuegraph.
 	Total int64
 }
 
@@ -186,7 +186,7 @@ type CountByGroupResult struct {
 	Total int64
 }
 
-// Counter describes counting issues: the operation `bd count` performs, and —
+// Counter describes counting issues: the operation `issuegraph count` performs, and —
 // like Lifecycle, Reader, ReadyClaimer, BatchCloser, DependencyEditor,
 // Commenter and Relations — a role with its own accessor. A new capability
 // gets a new role interface and its own accessor; never append a method here.
@@ -209,7 +209,7 @@ type CountByGroupResult struct {
 // overlap and the sum is wrong (see CountByGroupResult.Total) — so splitting
 // them would put one role's promise inside another role's result.
 //
-// WHAT IS NOT HERE. `bd status` and its `bd stats` alias look like counts and
+// WHAT IS NOT HERE. `issuegraph status` and its `issuegraph stats` alias look like counts and
 // are not: their numbers are dependency-aware (ready work, blocked work,
 // staleness) and are not expressible as a predicate over one table, so they
 // get a role of their own rather than a sixth CountGroup. The count of READY

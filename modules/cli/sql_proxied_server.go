@@ -7,8 +7,8 @@ import (
 	"os"
 	"strings"
 
-	"github.com/steveyegge/beads/internal/storage/domain"
-	"github.com/steveyegge/beads/internal/storage/uow"
+	"github.com/borg0ai/dx-issuegraph/internal/storage/domain"
+	"github.com/borg0ai/dx-issuegraph/internal/storage/uow"
 )
 
 func runSQLProxiedServer(ctx context.Context, query string, csvOutput bool) error {
@@ -35,7 +35,7 @@ func runSQLProxiedServer(ctx context.Context, query string, csvOutput bool) erro
 		if err != nil {
 			return 0, "", err
 		}
-		return affected, "bd sql: " + query, nil
+		return affected, "issuegraph sql: " + query, nil
 	})
 	if err != nil {
 		return HandleErrorRespectJSON("exec error: %v", err)

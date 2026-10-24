@@ -6,8 +6,8 @@ import (
 
 	"github.com/spf13/cobra"
 
-	"github.com/steveyegge/beads/internal/config"
-	"github.com/steveyegge/beads/internal/configfile"
+	"github.com/borg0ai/dx-issuegraph/internal/config"
+	"github.com/borg0ai/dx-issuegraph/internal/configfile"
 )
 
 // annotate returns a command carrying the skip-store annotation set to v.
@@ -54,22 +54,22 @@ func TestCommandOptsOutOfStore(t *testing.T) {
 		},
 		{
 			name: "child inherits annotated parent",
-			cmd:  newTree(&cobra.Command{Use: "bd"}, annotate("remote", "1"), &cobra.Command{Use: "use"}),
+			cmd:  newTree(&cobra.Command{Use: "issuegraph"}, annotate("remote", "1"), &cobra.Command{Use: "use"}),
 			want: true,
 		},
 		{
 			name: "grandchild inherits annotated root ancestor",
-			cmd:  newTree(annotate("bd", "1"), &cobra.Command{Use: "remote"}, &cobra.Command{Use: "use"}),
+			cmd:  newTree(annotate("issuegraph", "1"), &cobra.Command{Use: "remote"}, &cobra.Command{Use: "use"}),
 			want: true,
 		},
 		{
 			name: "child of unannotated parent does not opt out",
-			cmd:  newTree(&cobra.Command{Use: "bd"}, &cobra.Command{Use: "remote"}, &cobra.Command{Use: "use"}),
+			cmd:  newTree(&cobra.Command{Use: "issuegraph"}, &cobra.Command{Use: "remote"}, &cobra.Command{Use: "use"}),
 			want: false,
 		},
 		{
 			name: "annotated child under unannotated parent opts out",
-			cmd:  newTree(&cobra.Command{Use: "bd"}, &cobra.Command{Use: "remote"}, annotate("use", "1")),
+			cmd:  newTree(&cobra.Command{Use: "issuegraph"}, &cobra.Command{Use: "remote"}, annotate("use", "1")),
 			want: true,
 		},
 	}
@@ -110,17 +110,17 @@ func TestCommandOptsOutOfStore_NilSafe(t *testing.T) {
 // it is set on both the skip and full-store paths, so it does not discriminate.
 func TestPersistentPreRunHonorsSkipStoreAnnotation(t *testing.T) {
 	repoDir := t.TempDir()
-	beadsDir := filepath.Join(repoDir, ".beads")
-	writeTestConfigYAML(t, beadsDir, "")
-	writeMetadataConfig(t, beadsDir, configfile.DoltModeServer, "skip_annotation_test")
+	issuegraphDir := filepath.Join(repoDir, ".issuegraph")
+	writeTestConfigYAML(t, issuegraphDir, "")
+	writeMetadataConfig(t, issuegraphDir, configfile.DoltModeServer, "skip_annotation_test")
 
 	t.Chdir(repoDir)
-	t.Setenv("BEADS_DIR", beadsDir)
-	t.Setenv("BEADS_DOLT_SHARED_SERVER", "")
-	t.Setenv("BEADS_DOLT_SERVER_DATABASE", "")
-	t.Setenv("BEADS_DOLT_SERVER_PORT", "")
+	t.Setenv("ISSUEGRAPH_DIR", issuegraphDir)
+	t.Setenv("ISSUEGRAPH_DOLT_SHARED_SERVER", "")
+	t.Setenv("ISSUEGRAPH_DOLT_SERVER_DATABASE", "")
+	t.Setenv("ISSUEGRAPH_DOLT_SERVER_PORT", "")
 	// If the store IS opened (a broken gate), fail fast: never auto-start a server.
-	t.Setenv("BEADS_DOLT_AUTO_START", "0")
+	t.Setenv("ISSUEGRAPH_DOLT_AUTO_START", "0")
 
 	config.ResetForTesting()
 	t.Cleanup(config.ResetForTesting)

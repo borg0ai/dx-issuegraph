@@ -9,12 +9,12 @@ import (
 	"sort"
 	"strings"
 
+	"github.com/borg0ai/dx-issuegraph/internal/configfile"
+	"github.com/borg0ai/dx-issuegraph/internal/doltserver"
+	"github.com/borg0ai/dx-issuegraph/internal/issuegraph"
+	"github.com/borg0ai/dx-issuegraph/internal/storage/dolt"
+	"github.com/borg0ai/dx-issuegraph/internal/storage/doltutil"
 	mysql "github.com/go-sql-driver/mysql"
-	"github.com/steveyegge/beads/internal/beads"
-	"github.com/steveyegge/beads/internal/configfile"
-	"github.com/steveyegge/beads/internal/doltserver"
-	"github.com/steveyegge/beads/internal/storage/dolt"
-	"github.com/steveyegge/beads/internal/storage/doltutil"
 )
 
 type serverDatabaseMetadata struct {
@@ -26,17 +26,17 @@ type serverDatabaseMetadata struct {
 var listServerMetadataDatabases = inspectServerMetadataDatabases
 
 // FixMissingMetadata checks and repairs missing metadata fields in a Dolt database.
-// Fields checked: bd_version, repo_id, clone_id.
-// The bdVersion parameter should be the current CLI version string (from the caller
+// Fields checked: issuegraph_version, repo_id, clone_id.
+// The issuegraphVersion parameter should be the current CLI version string (from the caller
 // in package main, since this package cannot import it directly).
 // Returns nil if all fields are present or successfully repaired.
-func FixMissingMetadata(path string, bdVersion string) error {
-	beadsDir, err := resolvedWorkspaceBeadsDir(path)
+func FixMissingMetadata(path string, issuegraphVersion string) error {
+	issuegraphDir, err := resolvedWorkspaceIssueGraphDir(path)
 	if err != nil {
 		return err
 	}
 
-	cfg, err := configfile.Load(beadsDir)
+	cfg, err := configfile.Load(issuegraphDir)
 	if err != nil {
 		return nil // Can't load config, nothing to fix
 	}
@@ -49,7 +49,7 @@ func FixMissingMetadata(path string, bdVersion string) error {
 
 	ctx := context.Background()
 
-	store, err := dolt.NewFromConfig(ctx, beadsDir)
+	store, err := dolt.NewFromConfig(ctx, issuegraphDir)
 	if err != nil {
 		return fmt.Errorf("failed to open store: %w", err)
 	}
@@ -57,19 +57,19 @@ func FixMissingMetadata(path string, bdVersion string) error {
 
 	var repaired []string
 
-	// Check and repair bd_version (clone-local, dolt-ignored)
-	if val, err := store.GetLocalMetadata(ctx, "bd_version"); err == nil && val == "" {
-		if bdVersion != "" {
-			if err := store.SetLocalMetadata(ctx, "bd_version", bdVersion); err != nil {
-				return fmt.Errorf("failed to set bd_version local metadata: %w", err)
+	// Check and repair issuegraph_version (clone-local, dolt-ignored)
+	if val, err := store.GetLocalMetadata(ctx, "issuegraph_version"); err == nil && val == "" {
+		if issuegraphVersion != "" {
+			if err := store.SetLocalMetadata(ctx, "issuegraph_version", issuegraphVersion); err != nil {
+				return fmt.Errorf("failed to set issuegraph_version local metadata: %w", err)
 			}
-			repaired = append(repaired, "bd_version")
+			repaired = append(repaired, "issuegraph_version")
 		}
 	}
 
 	// Check and repair repo_id
 	if val, err := store.GetMetadata(ctx, "repo_id"); err == nil && val == "" {
-		repoID, err := beads.ComputeRepoIDForPath(path)
+		repoID, err := issuegraph.ComputeRepoIDForPath(path)
 		if err != nil {
 			// Non-git environment: warn and skip (FR-015)
 			fmt.Printf("  Warning: could not compute repo_id (not in a git repo?): %v\n", err)
@@ -83,7 +83,7 @@ func FixMissingMetadata(path string, bdVersion string) error {
 
 	// Check and repair clone_id
 	if val, err := store.GetMetadata(ctx, "clone_id"); err == nil && val == "" {
-		cloneID, err := beads.GetCloneIDForPath(path)
+		cloneID, err := issuegraph.GetCloneIDForPath(path)
 		if err != nil {
 			// Non-standard environment: warn and skip (FR-016)
 			fmt.Printf("  Warning: could not compute clone_id: %v\n", err)
@@ -107,12 +107,12 @@ func FixMissingMetadata(path string, bdVersion string) error {
 // metadata.json and the database metadata table. For pre-GH#2372 projects that
 // lack cross-project identity verification.
 func FixProjectIdentity(path string) error {
-	beadsDir, err := resolvedWorkspaceBeadsDir(path)
+	issuegraphDir, err := resolvedWorkspaceIssueGraphDir(path)
 	if err != nil {
 		return err
 	}
 
-	cfg, err := configfile.Load(beadsDir)
+	cfg, err := configfile.Load(issuegraphDir)
 	if err != nil {
 		return fmt.Errorf("failed to load metadata.json: %w", err)
 	}
@@ -132,7 +132,7 @@ func FixProjectIdentity(path string) error {
 
 	ctx := context.Background()
 
-	store, err := dolt.NewFromConfig(ctx, beadsDir)
+	store, err := dolt.NewFromConfig(ctx, issuegraphDir)
 	if err != nil {
 		return fmt.Errorf("failed to open store: %w", err)
 	}
@@ -168,7 +168,7 @@ func FixProjectIdentity(path string) error {
 	// Backfill metadata.json
 	if !hasLocalID {
 		cfg.ProjectID = projectID
-		if err := cfg.Save(beadsDir); err != nil {
+		if err := cfg.Save(issuegraphDir); err != nil {
 			return fmt.Errorf("failed to save project_id to metadata.json: %w", err)
 		}
 		repaired = append(repaired, "metadata.json")
@@ -188,16 +188,16 @@ func FixProjectIdentity(path string) error {
 
 // FixMissingDoltDatabase detects and repairs missing dolt_database in metadata.json.
 // Pre-#2142 migrations created databases without writing dolt_database to config,
-// so after upgrading, bd falls back to default "beads" (empty) instead of the real
-// database. This fix probes the server for a database with beads tables and backfills
+// so after upgrading, issuegraph falls back to default "issuegraph" (empty) instead of the real
+// database. This fix probes the server for a database with issuegraph tables and backfills
 // the config. (GH#2160)
 func FixMissingDoltDatabase(path string) error {
-	beadsDir, err := resolvedWorkspaceBeadsDir(path)
+	issuegraphDir, err := resolvedWorkspaceIssueGraphDir(path)
 	if err != nil {
 		return err
 	}
 
-	cfg, err := configfile.Load(beadsDir)
+	cfg, err := configfile.Load(issuegraphDir)
 	if err != nil || cfg == nil {
 		return nil // No config, nothing to fix
 	}
@@ -222,7 +222,7 @@ func FixMissingDoltDatabase(path string) error {
 	// point (that's the condition that got us here), so there is no target
 	// database identity to verify yet — this call establishes it by probing
 	// schema across the server, it does not delete or mutate anything.
-	db, _, err := openDoltDB(beadsDir)
+	db, _, err := openDoltDB(issuegraphDir)
 	if err != nil {
 		fmt.Printf("  dolt_database fix skipped (server not reachable: %v)\n", err)
 		return nil
@@ -236,7 +236,7 @@ func FixMissingDoltDatabase(path string) error {
 
 	// Backfill dolt_database in metadata.json
 	cfg.DoltDatabase = correctDB
-	if err := cfg.Save(beadsDir); err != nil {
+	if err := cfg.Save(issuegraphDir); err != nil {
 		return fmt.Errorf("failed to save metadata.json: %w", err)
 	}
 
@@ -246,7 +246,7 @@ func FixMissingDoltDatabase(path string) error {
 }
 
 // probeForCorrectDoltDatabase checks if another database on the server has the
-// expected beads tables (issues, dependencies, config). Returns the database name
+// expected issuegraph tables (issues, dependencies, config). Returns the database name
 // if found, empty string otherwise.
 func probeForCorrectDoltDatabase(db *sql.DB, skipDB string) string {
 	ctx := context.Background()
@@ -298,12 +298,12 @@ func probeForCorrectDoltDatabase(db *sql.DB, skipDB string) string {
 //  1. A stale dolt_database when another server DB matches the local project_id.
 //  2. A stale/missing local project_id when the currently configured DB has one.
 func ResolveAuthoritativeServerMetadata(path string, apply bool) (*configfile.Config, string, error) {
-	if err := validateBeadsWorkspace(path); err != nil {
+	if err := validateIssueGraphWorkspace(path); err != nil {
 		return nil, "", err
 	}
 
-	beadsDir := resolveBeadsDir(filepath.Join(path, ".beads"))
-	cfg, err := configfile.Load(beadsDir)
+	issuegraphDir := resolveIssueGraphDir(filepath.Join(path, ".issuegraph"))
+	cfg, err := configfile.Load(issuegraphDir)
 	if err != nil || cfg == nil {
 		return cfg, "", err
 	}
@@ -316,8 +316,8 @@ func resolveAuthoritativeServerMetadata(path string, cfg *configfile.Config, app
 		return "", nil
 	}
 
-	beadsDir := resolveBeadsDir(filepath.Join(path, ".beads"))
-	databases, err := listServerMetadataDatabases(beadsDir, cfg)
+	issuegraphDir := resolveIssueGraphDir(filepath.Join(path, ".issuegraph"))
+	databases, err := listServerMetadataDatabases(issuegraphDir, cfg)
 	if err != nil {
 		return "", err
 	}
@@ -327,7 +327,7 @@ func resolveAuthoritativeServerMetadata(path string, cfg *configfile.Config, app
 		return msg, err
 	}
 	if apply {
-		if err := cfg.Save(beadsDir); err != nil {
+		if err := cfg.Save(issuegraphDir); err != nil {
 			return "", fmt.Errorf("failed to save metadata.json: %w", err)
 		}
 		return msg, nil
@@ -413,15 +413,15 @@ func reconcileAuthoritativeServerMetadata(cfg *configfile.Config, databases []se
 			cfg.ProjectID = candidate.ProjectID
 		}
 		if len(repairs) > 0 {
-			return true, "repaired metadata from the only server database with Beads schema (" + strings.Join(repairs, "; ") + ")", nil
+			return true, "repaired metadata from the only server database with IssueGraph schema (" + strings.Join(repairs, "; ") + ")", nil
 		}
 	}
 
 	return false, "", nil
 }
 
-func inspectServerMetadataDatabases(beadsDir string, cfg *configfile.Config) ([]serverDatabaseMetadata, error) {
-	db, err := openServerCatalogDB(beadsDir, cfg)
+func inspectServerMetadataDatabases(issuegraphDir string, cfg *configfile.Config) ([]serverDatabaseMetadata, error) {
+	db, err := openServerCatalogDB(issuegraphDir, cfg)
 	if err != nil {
 		return nil, fmt.Errorf("server metadata probe failed: %w", err)
 	}
@@ -478,9 +478,9 @@ func inspectServerMetadataDatabases(beadsDir string, cfg *configfile.Config) ([]
 // simply doesn't exist — or that this user cannot inspect that database —
 // safe to treat as "not present" when enumerating SHOW DATABASES.
 //
-// GH#4931: shared sql-servers often host non-beads databases the beads
+// GH#4931: shared sql-servers often host non-issuegraph databases the issuegraph
 // user cannot read. Access denied on those peers must not abort bootstrap
-// / metadata reconciliation for the configured beads database.
+// / metadata reconciliation for the configured issuegraph database.
 //
 // Hard connection failures (server down, auth to the catalog itself) still
 // surface via openServerCatalogDB / SHOW DATABASES, not this probe helper.
@@ -521,8 +521,8 @@ func isExpectedProbeError(err error) bool {
 	return false
 }
 
-func openServerCatalogDB(beadsDir string, cfg *configfile.Config) (*sql.DB, error) {
-	port := doltserver.DefaultConfig(beadsDir).Port
+func openServerCatalogDB(issuegraphDir string, cfg *configfile.Config) (*sql.DB, error) {
+	port := doltserver.DefaultConfig(issuegraphDir).Port
 	connStr := doltutil.ServerDSN{
 		Host:     cfg.GetDoltServerHost(),
 		Port:     port,

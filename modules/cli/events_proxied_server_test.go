@@ -9,11 +9,11 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/steveyegge/beads/internal/eventsjournal"
-	"github.com/steveyegge/beads/internal/storage"
+	"github.com/borg0ai/dx-issuegraph/internal/eventsjournal"
+	"github.com/borg0ai/dx-issuegraph/internal/storage"
 )
 
-// TestEventsJournalProxiedServer is the end-to-end guard for bd's SECOND write
+// TestEventsJournalProxiedServer is the end-to-end guard for issuegraph's SECOND write
 // plumbing. In proxied-server mode no store is ever opened: commands dispatch
 // through the unit-of-work provider, whose repositories reach the same issueops
 // emit helpers over their own pinned transactions.
@@ -28,15 +28,15 @@ func TestEventsJournalProxiedServer(t *testing.T) {
 	requireProxiedServerEnv(t)
 	t.Parallel()
 
-	bd := buildEmbeddedBD(t)
-	p := bdProxiedInit(t, bd, "pjr")
+	issuegraph := buildEmbeddedBD(t)
+	p := issuegraphProxiedInit(t, issuegraph, "pjr")
 
-	journalEnv := []string{"BD_EVENTS_JOURNAL=1"}
+	journalEnv := []string{"ISSUEGRAPH_EVENTS_JOURNAL=1"}
 	run := func(args ...string) string {
 		t.Helper()
-		stdout, stderr, err := bdProxiedRunBuffersWithEnv(t, bd, p.dir, journalEnv, args...)
+		stdout, stderr, err := issuegraphProxiedRunBuffersWithEnv(t, issuegraph, p.dir, journalEnv, args...)
 		if err != nil {
-			t.Fatalf("bd %s: %v\nstdout:\n%s\nstderr:\n%s", strings.Join(args, " "), err, stdout, stderr)
+			t.Fatalf("issuegraph %s: %v\nstdout:\n%s\nstderr:\n%s", strings.Join(args, " "), err, stdout, stderr)
 		}
 		return stdout
 	}
@@ -80,11 +80,11 @@ func TestEventsJournalProxiedServer(t *testing.T) {
 	// since the journal table is dolt_ignored) and honors the floors.
 	head := records[len(records)-1].Seq
 	pruneEnv := append(append([]string{}, journalEnv...),
-		"BD_EVENTS_JOURNAL_RETAIN_DAYS=0", "BD_EVENTS_JOURNAL_RETAIN_ROWS=0")
-	stdout, stderr, err := bdProxiedRunBuffersWithEnv(t, bd, p.dir, pruneEnv,
+		"ISSUEGRAPH_EVENTS_JOURNAL_RETAIN_DAYS=0", "ISSUEGRAPH_EVENTS_JOURNAL_RETAIN_ROWS=0")
+	stdout, stderr, err := issuegraphProxiedRunBuffersWithEnv(t, issuegraph, p.dir, pruneEnv,
 		"events", "prune", "--before", itoa(head), "--json")
 	if err != nil {
-		t.Fatalf("bd events prune: %v\nstdout:\n%s\nstderr:\n%s", err, stdout, stderr)
+		t.Fatalf("issuegraph events prune: %v\nstdout:\n%s\nstderr:\n%s", err, stdout, stderr)
 	}
 	var pruned struct {
 		Pruned int64 `json:"pruned"`
@@ -99,7 +99,7 @@ func TestEventsJournalProxiedServer(t *testing.T) {
 	// And the truncation contract reaches the proxied read path too: a
 	// checkpoint below the surviving floor fails typed rather than presenting
 	// the remaining suffix as a whole history.
-	stdout, stderr, err = bdProxiedRunBuffersWithEnv(t, bd, p.dir, journalEnv, "events", "export", "--json")
+	stdout, stderr, err = issuegraphProxiedRunBuffersWithEnv(t, issuegraph, p.dir, journalEnv, "events", "export", "--json")
 	if err == nil {
 		t.Fatalf("export from a pruned-past checkpoint succeeded; want a truncation failure\nstdout:\n%s", stdout)
 	}
@@ -121,20 +121,20 @@ func TestEventsJournalProxiedServerOffByDefault(t *testing.T) {
 	requireProxiedServerEnv(t)
 	t.Parallel()
 
-	bd := buildEmbeddedBD(t)
-	p := bdProxiedInit(t, bd, "pjo")
+	issuegraph := buildEmbeddedBD(t)
+	p := issuegraphProxiedInit(t, issuegraph, "pjo")
 
-	// Explicitly unset, not merely absent: a developer with BD_EVENTS_JOURNAL
+	// Explicitly unset, not merely absent: a developer with ISSUEGRAPH_EVENTS_JOURNAL
 	// exported would otherwise turn this assertion into a false green.
-	clean := envWithout(bdProxiedEnv(p.dir), "BD_EVENTS_JOURNAL")
+	clean := envWithout(issuegraphProxiedEnv(p.dir), "ISSUEGRAPH_EVENTS_JOURNAL")
 	mustRun := func(args ...string) string {
 		t.Helper()
-		cmd := exec.Command(bd, args...)
+		cmd := exec.Command(issuegraph, args...)
 		cmd.Dir = p.dir
 		cmd.Env = clean
 		stdout, stderr, err := runCommandBuffers(t, cmd)
 		if err != nil {
-			t.Fatalf("bd %s: %v\nstdout:\n%s\nstderr:\n%s", strings.Join(args, " "), err, stdout.String(), stderr.String())
+			t.Fatalf("issuegraph %s: %v\nstdout:\n%s\nstderr:\n%s", strings.Join(args, " "), err, stdout.String(), stderr.String())
 		}
 		return stdout.String()
 	}

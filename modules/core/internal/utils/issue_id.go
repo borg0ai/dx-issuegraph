@@ -7,21 +7,21 @@ import (
 	"strings"
 )
 
-// ExtractIssuePrefix extracts the prefix from an issue ID like "bd-123" -> "bd"
+// ExtractIssuePrefix extracts the prefix from an issue ID like "issuegraph-123" -> "issuegraph"
 // Uses the last hyphen before a numeric or hash-like suffix:
-//   - "beads-vscode-1" -> "beads-vscode" (numeric suffix)
+//   - "issuegraph-vscode-1" -> "issuegraph-vscode" (numeric suffix)
 //   - "web-app-a3f8e9" -> "web-app" (hash suffix with digits)
 //   - "my-cool-app-123" -> "my-cool-app" (numeric suffix)
-//   - "bd-a3f" -> "bd" (3-char hash)
+//   - "bd-a3f" -> "issuegraph" (3-char hash)
 //
 // Falls back to first hyphen when suffix looks like an English word (4+ chars, no digits):
 //   - "vc-baseline-test" -> "vc" (word-like suffix: "test" is not a hash)
-//   - "bd-multi-part-id" -> "bd" (word-like suffix: "id" is too short but "part-id" path)
+//   - "bd-multi-part-id" -> "issuegraph" (word-like suffix: "id" is too short but "part-id" path)
 //
 // This distinguishes hash IDs (which may contain letters but have digits or are 3 chars)
 // from multi-part IDs where the suffix after the first hyphen is the entire ID.
 func ExtractIssuePrefix(issueID string) string {
-	// Try last hyphen first (handles multi-part prefixes like "beads-vscode-1")
+	// Try last hyphen first (handles multi-part prefixes like "issuegraph-vscode-1")
 	lastIdx := strings.LastIndex(issueID, "-")
 	if lastIdx <= 0 {
 		return ""
@@ -79,7 +79,7 @@ func isNumeric(s string) bool {
 //   - 4-char: 36⁴ = 1.6M hashes, ~3000 words = ~0.2% (digit requirement is safe)
 //   - 5+ char: collision rate negligible
 //
-// Hash IDs in beads use adaptive length scaling from 3-8 characters.
+// Hash IDs in issuegraph use adaptive length scaling from 3-8 characters.
 func isLikelyHash(s string) bool {
 	if len(s) < 3 || len(s) > 8 {
 		return false
@@ -179,7 +179,7 @@ func splitIDSegments(id string) []string {
 	return segments
 }
 
-// ExtractIssueNumber extracts the number from an issue ID like "bd-123" -> 123
+// ExtractIssueNumber extracts the number from an issue ID like "issuegraph-123" -> 123
 func ExtractIssueNumber(issueID string) int {
 	idx := strings.LastIndex(issueID, "-")
 	if idx < 0 || idx == len(issueID)-1 {

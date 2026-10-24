@@ -5,8 +5,8 @@ import (
 	"errors"
 	"testing"
 
-	"github.com/steveyegge/beads/internal/storage"
-	"github.com/steveyegge/beads/issueops"
+	"github.com/borg0ai/dx-issuegraph/internal/storage"
+	"github.com/borg0ai/dx-issuegraph/issueops"
 )
 
 type fakeIssueClaimer struct {
@@ -34,7 +34,7 @@ func (s *claimerDoltStore) IssueClaimer() (issueops.Claimer, error) { return s.c
 // s.Unwrap().IssueClaimer()` compiles, satisfies Storage, passes every other
 // test, and leaves the one write on this role unspanned forever.
 func TestInstrumentedStorageIssueClaimerInstrumentsInner(t *testing.T) {
-	t.Setenv("BD_OTEL_STDOUT", "true")
+	t.Setenv("ISSUEGRAPH_OTEL_STDOUT", "true")
 	inner := &fakeIssueClaimer{}
 	wrapped := WrapStorage(&claimerDoltStore{claimer: inner}).(*InstrumentedStorage)
 
@@ -52,7 +52,7 @@ func TestInstrumentedStorageIssueClaimerInstrumentsInner(t *testing.T) {
 }
 
 func TestInstrumentedStorageIssueClaimerPropagatesInnerError(t *testing.T) {
-	t.Setenv("BD_OTEL_STDOUT", "true")
+	t.Setenv("ISSUEGRAPH_OTEL_STDOUT", "true")
 	want := errors.New("inner refused")
 	wrapped := WrapStorage(&claimerDoltStore{err: want}).(*InstrumentedStorage)
 
@@ -68,7 +68,7 @@ func TestInstrumentedStorageIssueClaimerPropagatesInnerError(t *testing.T) {
 // TestInstrumentedIssueClaimerForwardsEveryCallOnce: the span wrapper must not
 // swallow, duplicate or reorder the claim, on either outcome.
 func TestInstrumentedIssueClaimerForwardsEveryCallOnce(t *testing.T) {
-	t.Setenv("BD_OTEL_STDOUT", "true")
+	t.Setenv("ISSUEGRAPH_OTEL_STDOUT", "true")
 	base := WrapStorage(&fakeDoltStore{}).(*InstrumentedStorage)
 
 	t.Run("success", func(t *testing.T) {

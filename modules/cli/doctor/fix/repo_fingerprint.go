@@ -6,9 +6,9 @@ import (
 	"os"
 	"strings"
 
-	"github.com/steveyegge/beads/internal/beads"
-	"github.com/steveyegge/beads/internal/configfile"
-	"github.com/steveyegge/beads/internal/storage/dolt"
+	"github.com/borg0ai/dx-issuegraph/internal/configfile"
+	"github.com/borg0ai/dx-issuegraph/internal/issuegraph"
+	"github.com/borg0ai/dx-issuegraph/internal/storage/dolt"
 )
 
 var repoFingerprintReadLine = readLineUnbuffered
@@ -36,17 +36,17 @@ func readLineUnbuffered() (string, error) {
 
 // updateRepoIDInProcess updates the repo_id metadata directly in the Dolt store,
 // avoiding subprocess lock contention. (GH#1805)
-func updateRepoIDInProcess(path string, beadsDir string, autoYes bool) error {
+func updateRepoIDInProcess(path string, issuegraphDir string, autoYes bool) error {
 	ctx := context.Background()
 
 	// Compute new repo ID
-	newRepoID, err := beads.ComputeRepoIDForPath(path)
+	newRepoID, err := issuegraph.ComputeRepoIDForPath(path)
 	if err != nil {
 		return fmt.Errorf("failed to compute repository ID: %w", err)
 	}
 
 	// Open database
-	store, err := dolt.NewFromConfig(ctx, beadsDir)
+	store, err := dolt.NewFromConfig(ctx, issuegraphDir)
 	if err != nil {
 		return fmt.Errorf("failed to open database: %w", err)
 	}
@@ -93,14 +93,14 @@ func updateRepoIDInProcess(path string, beadsDir string, autoYes bool) error {
 // RepoFingerprint fixes repo fingerprint mismatches by prompting the user
 // for which action to take. This is interactive because the consequences
 // differ significantly between options:
-//  1. Update repo ID (if URL changed or bd upgraded)
+//  1. Update repo ID (if URL changed or issuegraph upgraded)
 //  2. Reinitialize database (if wrong database was copied)
 //  3. Skip (do nothing)
 //
 // All operations are performed in-process to avoid Dolt lock contention
-// that occurs when spawning bd subcommands. (GH#1805)
+// that occurs when spawning issuegraph subcommands. (GH#1805)
 func RepoFingerprint(path string, autoYes bool) error {
-	beadsDir, err := resolvedWorkspaceBeadsDir(path)
+	issuegraphDir, err := resolvedWorkspaceIssueGraphDir(path)
 	if err != nil {
 		return err
 	}
@@ -108,14 +108,14 @@ func RepoFingerprint(path string, autoYes bool) error {
 	// In --yes mode, auto-select the recommended safe action [1].
 	if autoYes {
 		fmt.Println("  → Auto mode (--yes): updating repo ID in-process...")
-		return updateRepoIDInProcess(path, beadsDir, true)
+		return updateRepoIDInProcess(path, issuegraphDir, true)
 	}
 
 	// Prompt user for action
 	fmt.Println("\n  Repo fingerprint mismatch detected. Choose an action:")
 	fmt.Println()
-	fmt.Println("    [1] Update repo ID (if git remote URL changed or bd was upgraded)")
-	fmt.Println("    [2] Reinitialize database (if wrong .beads was copied here)")
+	fmt.Println("    [1] Update repo ID (if git remote URL changed or issuegraph was upgraded)")
+	fmt.Println("    [2] Reinitialize database (if wrong .issuegraph was copied here)")
 	fmt.Println("    [s] Skip (do nothing)")
 	fmt.Println()
 	fmt.Print("  Choice [1/2/s]: ")
@@ -130,15 +130,15 @@ func RepoFingerprint(path string, autoYes bool) error {
 
 	switch response {
 	case "1":
-		return updateRepoIDInProcess(path, beadsDir, false)
+		return updateRepoIDInProcess(path, issuegraphDir, false)
 
 	case "2":
 		// Detect backend to determine what to remove
-		cfg, cfgErr := configfile.Load(beadsDir)
+		cfg, cfgErr := configfile.Load(issuegraphDir)
 		if cfgErr != nil || cfg == nil {
 			cfg = configfile.DefaultConfig()
 		}
-		dbPath := cfg.DatabasePath(beadsDir)
+		dbPath := cfg.DatabasePath(issuegraphDir)
 		isDolt := cfg.GetBackend() == configfile.BackendDolt
 
 		// Confirm before destructive action
@@ -170,7 +170,7 @@ func RepoFingerprint(path string, autoYes bool) error {
 		// Reinitialize by creating a new store (auto-bootstraps from JSONL)
 		fmt.Println("  → Reinitializing database from JSONL...")
 		ctx := context.Background()
-		store, err := dolt.NewFromConfig(ctx, beadsDir)
+		store, err := dolt.NewFromConfig(ctx, issuegraphDir)
 		if err != nil {
 			return fmt.Errorf("failed to initialize database: %w", err)
 		}

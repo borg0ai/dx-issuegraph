@@ -3,7 +3,7 @@ package storage
 import (
 	"context"
 
-	"github.com/steveyegge/beads/issueops"
+	"github.com/borg0ai/dx-issuegraph/issueops"
 )
 
 // Releaser returns the inner store's claim-release surface with this
@@ -17,7 +17,7 @@ import (
 // than a new opinion.
 //
 // It recurses instead of delegating, for the reason Commenter does: the write
-// this role replaces — `bd unclaim` through the store's own UnclaimIssue —
+// this role replaces — `issuegraph unclaim` through the store's own UnclaimIssue —
 // reaches the hook layer today, so a blind delegation would hand back the inner
 // store's surface and silently stop firing it.
 func (h *HookFiringStore) Releaser() (issueops.Releaser, error) {

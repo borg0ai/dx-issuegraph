@@ -6,8 +6,8 @@ import (
 	"context"
 	"testing"
 
-	"github.com/steveyegge/beads/backend/conformance"
-	"github.com/steveyegge/beads/internal/workapi"
+	"github.com/borg0ai/dx-issuegraph/backend/conformance"
+	"github.com/borg0ai/dx-issuegraph/internal/workapi"
 )
 
 // TestBootstrapperContract runs the Bootstrapper and InitVerifier contract
@@ -48,7 +48,7 @@ func TestBootstrapperContract(t *testing.T) {
 		conformance.RunBootstrapperLeavesTheSubstrateUntouchedWhenItCannotComplete(t, ctx, fixture)
 	})
 	// ZERO, not one, and not a range. This store reaches its transaction
-	// through withConn, which mints no Dolt commit, because `bd init`'s own
+	// through withConn, which mints no Dolt commit, because `issuegraph init`'s own
 	// commit at the front door is what records the identity; the unit-of-work
 	// wiring pins ONE because its proxied front door has no commit of its own.
 	// The two are a ratified split, so do not "fix" either by matching it to

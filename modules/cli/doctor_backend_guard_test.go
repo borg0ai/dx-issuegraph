@@ -12,27 +12,27 @@ import (
 )
 
 func TestDoctorRejectsCorruptMetadataBeforeSharedServerChecks(t *testing.T) {
-	bd := buildBDUnderTest(t)
+	issuegraph := buildIssueGraphUnderTest(t)
 	root := t.TempDir()
-	beadsDir := filepath.Join(root, ".beads")
-	if err := os.MkdirAll(beadsDir, 0o700); err != nil {
-		t.Fatalf("create .beads: %v", err)
+	issuegraphDir := filepath.Join(root, ".issuegraph")
+	if err := os.MkdirAll(issuegraphDir, 0o700); err != nil {
+		t.Fatalf("create .issuegraph: %v", err)
 	}
 
 	metadata := []byte("{\n")
-	metadataPath := filepath.Join(beadsDir, "metadata.json")
+	metadataPath := filepath.Join(issuegraphDir, "metadata.json")
 	if err := os.WriteFile(metadataPath, metadata, 0o600); err != nil {
 		t.Fatalf("write corrupt metadata.json: %v", err)
 	}
 
-	cmd := exec.Command(bd, "doctor", "--json")
+	cmd := exec.Command(issuegraph, "doctor", "--json")
 	cmd.Dir = root
-	cmd.Env = append(removedBackendTestEnv(beadsDir),
-		"BEADS_DOLT_SHARED_SERVER=1",
-		"BEADS_DOLT_SERVER_PORT=1",
-		"BEADS_DOLT_AUTO_START=0",
-		"BEADS_NO_DAEMON=1",
-		"BD_DISABLE_METRICS=1",
+	cmd.Env = append(removedBackendTestEnv(issuegraphDir),
+		"ISSUEGRAPH_DOLT_SHARED_SERVER=1",
+		"ISSUEGRAPH_DOLT_SERVER_PORT=1",
+		"ISSUEGRAPH_DOLT_AUTO_START=0",
+		"ISSUEGRAPH_NO_DAEMON=1",
+		"ISSUEGRAPH_DISABLE_METRICS=1",
 	)
 	out, err := cmd.CombinedOutput()
 	if err == nil {
@@ -53,8 +53,8 @@ func TestDoctorRejectsCorruptMetadataBeforeSharedServerChecks(t *testing.T) {
 	if !bytes.Equal(after, metadata) {
 		t.Fatalf("doctor rewrote corrupt metadata:\nbefore: %q\nafter:  %q", metadata, after)
 	}
-	for _, name := range []string{".local_version", "embeddeddolt", "dolt", "beads.db", "dolt-server.pid", "dolt-server.port"} {
-		if _, statErr := os.Stat(filepath.Join(beadsDir, name)); !os.IsNotExist(statErr) {
+	for _, name := range []string{".local_version", "embeddeddolt", "dolt", "issuegraph.db", "dolt-server.pid", "dolt-server.port"} {
+		if _, statErr := os.Stat(filepath.Join(issuegraphDir, name)); !os.IsNotExist(statErr) {
 			t.Fatalf("doctor created %s before rejecting corrupt metadata (stat error: %v)", name, statErr)
 		}
 	}

@@ -16,23 +16,23 @@ import (
 	"strings"
 	"unicode/utf8"
 
+	"github.com/borg0ai/dx-issuegraph/internal/config"
+	"github.com/borg0ai/dx-issuegraph/internal/git"
+	"github.com/borg0ai/dx-issuegraph/internal/issuegraph"
+	"github.com/borg0ai/dx-issuegraph/internal/metrics"
+	"github.com/borg0ai/dx-issuegraph/internal/ui"
+	"github.com/borg0ai/dx-issuegraph/internal/worktreeremove"
 	"github.com/spf13/cobra"
-	"github.com/steveyegge/beads/internal/beads"
-	"github.com/steveyegge/beads/internal/config"
-	"github.com/steveyegge/beads/internal/git"
-	"github.com/steveyegge/beads/internal/metrics"
-	"github.com/steveyegge/beads/internal/ui"
-	"github.com/steveyegge/beads/internal/worktreeremove"
 )
 
 // WorktreeInfo contains information about a git worktree
 type WorktreeInfo struct {
-	Name       string `json:"name"`
-	Path       string `json:"path"`
-	Branch     string `json:"branch"`
-	IsMain     bool   `json:"is_main"`
-	BeadsState string `json:"beads_state"` // "redirect", "shared", "none"
-	RedirectTo string `json:"redirect_to,omitempty"`
+	Name            string `json:"name"`
+	Path            string `json:"path"`
+	Branch          string `json:"branch"`
+	IsMain          bool   `json:"is_main"`
+	IssueGraphState string `json:"issuegraph_state"` // "redirect", "shared", "none"
+	RedirectTo      string `json:"redirect_to,omitempty"`
 }
 
 var worktreeCmd = &cobra.Command{
@@ -40,20 +40,20 @@ var worktreeCmd = &cobra.Command{
 	Short:       "Manage git worktrees for parallel development",
 	GroupID:     "maint",
 	Annotations: map[string]string{skipStoreAnnotation: "1"},
-	Long: `Manage git worktrees with proper beads configuration.
+	Long: `Manage git worktrees with proper issuegraph configuration.
 
 Worktrees allow multiple working directories sharing the same git repository,
 enabling parallel development (e.g., multiple agents or features).
 
-Worktrees automatically share the same beads database as the main repository
+Worktrees automatically share the same issuegraph database as the main repository
 via git common directory discovery — no manual redirect configuration needed.
 
 Examples:
-  bd worktree create feature-auth           # Create worktree
-  bd worktree create bugfix --branch fix-1  # Create with specific branch name
-  bd worktree list                          # List all worktrees
-  bd worktree remove feature-auth           # Remove worktree (with safety checks)
-  bd worktree info                          # Show info about current worktree`,
+  issuegraph worktree create feature-auth           # Create worktree
+  issuegraph worktree create bugfix --branch fix-1  # Create with specific branch name
+  issuegraph worktree list                          # List all worktrees
+  issuegraph worktree remove feature-auth           # Remove worktree (with safety checks)
+  issuegraph worktree info                          # Show info about current worktree`,
 }
 
 var worktreeCreateCmd = &cobra.Command{
@@ -65,13 +65,13 @@ This command:
 1. Creates a git worktree at ./<name> (or specified path)
 2. Adds the worktree path to .gitignore (if inside repo root)
 
-The worktree automatically shares the same beads database as the main
+The worktree automatically shares the same issuegraph database as the main
 repository via git common directory discovery — no redirect file needed.
 
 Examples:
-  bd worktree create feature-auth           # Create at ./feature-auth
-  bd worktree create bugfix --branch fix-1  # Create with branch name
-  bd worktree create ../agents/worker-1     # Create at relative path`,
+  issuegraph worktree create feature-auth           # Create at ./feature-auth
+  issuegraph worktree create bugfix --branch fix-1  # Create with branch name
+  issuegraph worktree create ../agents/worker-1     # Create at relative path`,
 	Args:          cobra.ExactArgs(1),
 	SilenceUsage:  true,
 	SilenceErrors: true,
@@ -81,17 +81,17 @@ Examples:
 var worktreeListCmd = &cobra.Command{
 	Use:   "list",
 	Short: "List all git worktrees",
-	Long: `List all git worktrees and their beads configuration state.
+	Long: `List all git worktrees and their issuegraph configuration state.
 
 Shows each worktree with:
 - Name (directory name)
 - Path (full path)
 - Branch
-- Beads state: "redirect" (uses shared db), "shared" (is main), "none" (no beads)
+- IssueGraph state: "redirect" (uses shared db), "shared" (is main), "none" (no issuegraph)
 
 Examples:
-  bd worktree list          # List all worktrees
-  bd worktree list --json   # JSON output`,
+  issuegraph worktree list          # List all worktrees
+  issuegraph worktree list --json   # JSON output`,
 	Args:          cobra.NoArgs,
 	SilenceUsage:  true,
 	SilenceErrors: true,
@@ -106,12 +106,12 @@ var worktreeInfoCmd = &cobra.Command{
 If the current directory is in a git worktree, shows:
 - Worktree path and name
 - Branch
-- Beads configuration (redirect or main)
+- IssueGraph configuration (redirect or main)
 - Main repository location
 
 Examples:
-  bd worktree info          # Show current worktree info
-  bd worktree info --json   # JSON output`,
+  issuegraph worktree info          # Show current worktree info
+  issuegraph worktree info --json   # JSON output`,
 	Args:          cobra.NoArgs,
 	SilenceUsage:  true,
 	SilenceErrors: true,
@@ -132,16 +132,16 @@ func init() {
 	rootCmd.AddCommand(worktreeCmd)
 }
 
-// repairWorktreeBeadsPermissions applies FixBeadsDirPermissions to worktreePath/.beads when
-// the directory exists. Git worktree checkout can leave tracked .beads/ at permissive modes.
-func repairWorktreeBeadsPermissions(worktreePath string) {
-	beadsDir := filepath.Join(worktreePath, ".beads")
-	if fixed, err := config.FixBeadsDirPermissions(beadsDir); err != nil {
+// repairWorktreeIssueGraphPermissions applies FixIssueGraphDirPermissions to worktreePath/.issuegraph when
+// the directory exists. Git worktree checkout can leave tracked .issuegraph/ at permissive modes.
+func repairWorktreeIssueGraphPermissions(worktreePath string) {
+	issuegraphDir := filepath.Join(worktreePath, ".issuegraph")
+	if fixed, err := config.FixIssueGraphDirPermissions(issuegraphDir); err != nil {
 		if !jsonOutput {
-			fmt.Fprintf(os.Stderr, "Warning: could not fix worktree .beads permissions: %v\n", err)
+			fmt.Fprintf(os.Stderr, "Warning: could not fix worktree .issuegraph permissions: %v\n", err)
 		}
 	} else if fixed && !jsonOutput {
-		fmt.Fprintf(os.Stderr, "Fixed .beads permissions to %04o\n", config.BeadsDirPerm)
+		fmt.Fprintf(os.Stderr, "Fixed .issuegraph permissions to %04o\n", config.IssueGraphDirPerm)
 	}
 }
 
@@ -170,13 +170,13 @@ func runWorktreeCreate(cmd *cobra.Command, args []string) error {
 		return fmt.Errorf("path already exists: %s", worktreePath)
 	}
 
-	// Get repository context (validates .beads exists and resolves paths)
-	rc, err := beads.GetRepoContext()
+	// Get repository context (validates .issuegraph exists and resolves paths)
+	rc, err := issuegraph.GetRepoContext()
 	if err != nil {
 		return fmt.Errorf("%s; %s: %w", activeWorkspaceNotFoundError(), diagHint(), err)
 	}
 
-	// Worktree operations use CWD repo (where user is working), not BEADS_DIR repo
+	// Worktree operations use CWD repo (where user is working), not ISSUEGRAPH_DIR repo
 	repoRoot := rc.CWDRepoRoot
 	if repoRoot == "" {
 		return fmt.Errorf("not in a git repository")
@@ -204,9 +204,9 @@ func runWorktreeCreate(cmd *cobra.Command, args []string) error {
 		return err
 	}
 
-	// Tracked .beads/ checked out by git worktree add can inherit umask defaults (0755).
-	// Align with bd init / GH#3391 so agent loops do not hit permission warnings (GH#3593).
-	repairWorktreeBeadsPermissions(worktreePath)
+	// Tracked .issuegraph/ checked out by git worktree add can inherit umask defaults (0755).
+	// Align with issuegraph init / GH#3391 so agent loops do not hit permission warnings (GH#3593).
+	repairWorktreeIssueGraphPermissions(worktreePath)
 
 	// Add to .gitignore if worktree is inside repo root
 	if strings.HasPrefix(worktreePath, repoRoot+string(os.PathSeparator)) {
@@ -248,15 +248,15 @@ func runWorktreeList(cmd *cobra.Command, args []string) error {
 	ctx := context.Background()
 
 	// Get repository context
-	rc, err := beads.GetRepoContext()
+	rc, err := issuegraph.GetRepoContext()
 	if err != nil {
-		// Allow listing worktrees even without .beads (but no beads state info)
+		// Allow listing worktrees even without .issuegraph (but no issuegraph state info)
 		// Fall back to git.GetRepoRoot() for this case
 		repoRoot := git.GetRepoRoot()
 		if repoRoot == "" {
 			return fmt.Errorf("not in a git repository")
 		}
-		return listWorktreesWithoutBeads(ctx, repoRoot)
+		return listWorktreesWithoutIssueGraph(ctx, repoRoot)
 	}
 
 	// Worktree operations use CWD repo (where user is working)
@@ -275,11 +275,11 @@ func runWorktreeList(cmd *cobra.Command, args []string) error {
 	// Parse worktree list
 	worktrees := parseWorktreeList(string(output))
 
-	// Enrich with beads state (using BeadsDir from RepoContext)
-	mainBeadsDir := rc.BeadsDir
+	// Enrich with issuegraph state (using IssueGraphDir from RepoContext)
+	mainIssueGraphDir := rc.IssueGraphDir
 	for i := range worktrees {
-		worktrees[i].BeadsState = getBeadsState(worktrees[i].Path, mainBeadsDir)
-		if worktrees[i].BeadsState == "redirect" {
+		worktrees[i].IssueGraphState = getIssueGraphState(worktrees[i].Path, mainIssueGraphDir)
+		if worktrees[i].IssueGraphState == "redirect" {
 			worktrees[i].RedirectTo = getRedirectTarget(worktrees[i].Path)
 		}
 	}
@@ -296,21 +296,21 @@ func runWorktreeList(cmd *cobra.Command, args []string) error {
 		return nil
 	}
 
-	fmt.Printf("%-20s %-40s %-20s %s\n", "NAME", "PATH", "BRANCH", "BEADS")
+	fmt.Printf("%-20s %-40s %-20s %s\n", "NAME", "PATH", "BRANCH", "ISSUEGRAPH")
 	for _, wt := range worktrees {
 		name := filepath.Base(wt.Path)
 		if wt.IsMain {
 			name = "(main)"
 		}
-		beadsInfo := wt.BeadsState
+		issuegraphInfo := wt.IssueGraphState
 		if wt.RedirectTo != "" {
-			beadsInfo = fmt.Sprintf("redirect → %s", filepath.Base(filepath.Dir(wt.RedirectTo)))
+			issuegraphInfo = fmt.Sprintf("redirect → %s", filepath.Base(filepath.Dir(wt.RedirectTo)))
 		}
 		fmt.Printf("%-20s %-40s %-20s %s\n",
 			truncate(name, 20),
 			truncate(wt.Path, 40),
 			truncate(wt.Branch, 20),
-			beadsInfo)
+			issuegraphInfo)
 	}
 
 	return nil
@@ -380,7 +380,7 @@ func runWorktreeInfo(cmd *cobra.Command, args []string) error {
 
 	// Check if we're in a worktree (use RepoContext if available, fallback to git)
 	var isWorktree bool
-	rc, rcErr := beads.GetRepoContext()
+	rc, rcErr := issuegraph.GetRepoContext()
 	if rcErr == nil {
 		isWorktree = rc.IsWorktree
 	} else {
@@ -407,20 +407,20 @@ func runWorktreeInfo(cmd *cobra.Command, args []string) error {
 	}
 
 	branch := getWorktreeCurrentBranch(ctx, cwd)
-	redirectInfo := beads.GetRedirectInfo()
+	redirectInfo := issuegraph.GetRedirectInfo()
 
 	if jsonOutput {
 		result := map[string]interface{}{
-			"is_worktree":      true,
-			"path":             cwd,
-			"name":             filepath.Base(cwd),
-			"branch":           branch,
-			"main_repo":        mainRepoRoot,
-			"beads_redirected": redirectInfo.IsRedirected,
+			"is_worktree":           true,
+			"path":                  cwd,
+			"name":                  filepath.Base(cwd),
+			"branch":                branch,
+			"main_repo":             mainRepoRoot,
+			"issuegraph_redirected": redirectInfo.IsRedirected,
 		}
 		if redirectInfo.IsRedirected {
-			result["beads_local"] = redirectInfo.LocalDir
-			result["beads_target"] = redirectInfo.TargetDir
+			result["issuegraph_local"] = redirectInfo.LocalDir
+			result["issuegraph_target"] = redirectInfo.TargetDir
 		}
 		encoder := json.NewEncoder(os.Stdout)
 		encoder.SetIndent("", "  ")
@@ -432,9 +432,9 @@ func runWorktreeInfo(cmd *cobra.Command, args []string) error {
 	fmt.Printf("  Branch: %s\n", branch)
 	fmt.Printf("  Main repo: %s\n", mainRepoRoot)
 	if redirectInfo.IsRedirected {
-		fmt.Printf("  Beads: redirects to %s\n", redirectInfo.TargetDir)
+		fmt.Printf("  IssueGraph: redirects to %s\n", redirectInfo.TargetDir)
 	} else {
-		fmt.Printf("  Beads: local (no redirect)\n")
+		fmt.Printf("  IssueGraph: local (no redirect)\n")
 	}
 
 	return nil
@@ -475,9 +475,9 @@ func gitCmdInDir(ctx context.Context, dir string, args ...string) *exec.Cmd {
 	return cmd
 }
 
-// listWorktreesWithoutBeads lists worktrees when no .beads directory exists.
+// listWorktreesWithoutIssueGraph lists worktrees when no .issuegraph directory exists.
 // This fallback allows the command to work in repos that haven't been initialized.
-func listWorktreesWithoutBeads(ctx context.Context, repoRoot string) error {
+func listWorktreesWithoutIssueGraph(ctx context.Context, repoRoot string) error {
 	gitCmd := gitCmdInDir(ctx, repoRoot, "worktree", "list", "--porcelain")
 	output, err := gitCmd.CombinedOutput()
 	if err != nil {
@@ -486,9 +486,9 @@ func listWorktreesWithoutBeads(ctx context.Context, repoRoot string) error {
 
 	worktrees := parseWorktreeList(string(output))
 
-	// Set beads state to "none" for all worktrees
+	// Set issuegraph state to "none" for all worktrees
 	for i := range worktrees {
-		worktrees[i].BeadsState = "none"
+		worktrees[i].IssueGraphState = "none"
 	}
 
 	if jsonOutput {
@@ -503,7 +503,7 @@ func listWorktreesWithoutBeads(ctx context.Context, repoRoot string) error {
 		return nil
 	}
 
-	fmt.Printf("%-20s %-40s %-20s %s\n", "NAME", "PATH", "BRANCH", "BEADS")
+	fmt.Printf("%-20s %-40s %-20s %s\n", "NAME", "PATH", "BRANCH", "ISSUEGRAPH")
 	for _, wt := range worktrees {
 		name := filepath.Base(wt.Path)
 		if wt.IsMain {
@@ -555,18 +555,18 @@ func parseWorktreeList(output string) []WorktreeInfo {
 	return worktrees
 }
 
-func getBeadsState(worktreePath, mainBeadsDir string) string {
-	beadsDir := filepath.Join(worktreePath, ".beads")
-	redirectFile := filepath.Join(beadsDir, beads.RedirectFileName)
+func getIssueGraphState(worktreePath, mainIssueGraphDir string) string {
+	issuegraphDir := filepath.Join(worktreePath, ".issuegraph")
+	redirectFile := filepath.Join(issuegraphDir, issuegraph.RedirectFileName)
 
 	if _, err := os.Stat(redirectFile); err == nil {
 		return "redirect"
 	}
-	if _, err := os.Stat(beadsDir); err == nil {
-		// Check if this is the main beads dir
-		absBeadsDir, _ := filepath.Abs(beadsDir)
-		absMainBeadsDir, _ := filepath.Abs(mainBeadsDir)
-		if absBeadsDir == absMainBeadsDir {
+	if _, err := os.Stat(issuegraphDir); err == nil {
+		// Check if this is the main issuegraph dir
+		absIssueGraphDir, _ := filepath.Abs(issuegraphDir)
+		absMainIssueGraphDir, _ := filepath.Abs(mainIssueGraphDir)
+		if absIssueGraphDir == absMainIssueGraphDir {
 			return "shared"
 		}
 		return "local"
@@ -575,7 +575,7 @@ func getBeadsState(worktreePath, mainBeadsDir string) string {
 }
 
 func getRedirectTarget(worktreePath string) string {
-	redirectFile := filepath.Join(worktreePath, ".beads", beads.RedirectFileName)
+	redirectFile := filepath.Join(worktreePath, ".issuegraph", issuegraph.RedirectFileName)
 	// #nosec G304 - path is constructed from worktreePath which comes from git worktree list
 	data, err := os.ReadFile(redirectFile)
 	if err != nil {
@@ -612,7 +612,7 @@ func resolveWorktreePath(ctx context.Context, repoRoot, name string) (string, er
 
 	// Consult git's worktree registry - match by name (basename) or path
 	// This handles worktrees created in subdirectories (e.g., .worktrees/foo)
-	// where the name shown in "bd worktree list" doesn't match a simple path
+	// where the name shown in "issuegraph worktree list" doesn't match a simple path
 	gitCmd := gitCmdInDir(ctx, repoRoot, "worktree", "list", "--porcelain")
 	output, err := gitCmd.CombinedOutput()
 	if err == nil {
@@ -2093,7 +2093,7 @@ func addToGitignore(ctx context.Context, repoRoot, entry string) error {
 	}
 
 	// Add comment and entry
-	if _, err := f.WriteString(fmt.Sprintf("# bd worktree\n%s/\n", entry)); err != nil {
+	if _, err := f.WriteString(fmt.Sprintf("# issuegraph worktree\n%s/\n", entry)); err != nil {
 		return err
 	}
 
@@ -2218,7 +2218,7 @@ func removeManagedGitignoreEntry(content []byte, entry string) ([]byte, bool) {
 	updated := make([]byte, 0, len(content))
 	changed := false
 	for index := 0; index < len(lines); {
-		if lines[index].body == "# bd worktree" &&
+		if lines[index].body == "# issuegraph worktree" &&
 			index+1 < len(lines) &&
 			gitignoreLineMatchesEntry(lines[index+1].body, entry) {
 			changed = true

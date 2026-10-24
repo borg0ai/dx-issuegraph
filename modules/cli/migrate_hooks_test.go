@@ -4,7 +4,7 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/steveyegge/beads/modules/cli/doctor"
+	"github.com/borg0ai/dx-issuegraph/modules/cli/doctor"
 )
 
 func TestBuildHookMigrationJSON(t *testing.T) {
@@ -131,7 +131,7 @@ func TestFormatHookMigrationPlan_WithMigrations(t *testing.T) {
 	if !strings.Contains(rendered, "- pre-commit: legacy_with_old_sidecar [migrate]") {
 		t.Fatalf("expected hook entry, got: %s", rendered)
 	}
-	if !strings.Contains(rendered, "Next: run 'bd migrate hooks --apply'") {
+	if !strings.Contains(rendered, "Next: run 'issuegraph migrate hooks --apply'") {
 		t.Fatalf("expected next-step hint, got: %s", rendered)
 	}
 }

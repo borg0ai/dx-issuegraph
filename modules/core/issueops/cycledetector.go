@@ -3,7 +3,7 @@ package issueops
 import (
 	"context"
 
-	"github.com/steveyegge/beads/internal/types"
+	"github.com/borg0ai/dx-issuegraph/internal/types"
 )
 
 // DetectCyclesRequest asks for the whole blocking graph's cycles.
@@ -12,7 +12,7 @@ import (
 // placeholder. A cycle is a property of the graph as a whole: there is no
 // predicate that narrows it, because narrowing the EDGE set would delete
 // cycles that exist and narrowing the reported set would need an anchor this
-// question does not have. `bd dep cycles` takes no flags for the same reason.
+// question does not have. `issuegraph dep cycles` takes no flags for the same reason.
 //
 // It exists as a type so that a later option — a bound on how much of the graph
 // is walked, say — is a new field rather than a new method or a changed
@@ -94,7 +94,7 @@ type CycleReport struct {
 }
 
 // CycleDetector describes finding circular dependencies: the operation
-// `bd dep cycles` performs, and the sweep both `bd dep add` routes run to warn
+// `issuegraph dep cycles` performs, and the sweep both `issuegraph dep add` routes run to warn
 // after an edge lands. Like Lifecycle, Reader, ReadyClaimer, BatchCloser,
 // DependencyEditor, Commenter, Counter and Relations it is a role with its own
 // accessor. A new capability gets a new role interface and its own accessor;

@@ -8,8 +8,8 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/steveyegge/beads/internal/storage/embeddeddolt"
-	"github.com/steveyegge/beads/internal/storage/schema"
+	"github.com/borg0ai/dx-issuegraph/internal/storage/embeddeddolt"
+	"github.com/borg0ai/dx-issuegraph/internal/storage/schema"
 )
 
 // TestEmbeddedRemoteMigrateGate_BlocksReopen verifies that the #4259
@@ -17,19 +17,19 @@ import (
 // was filed against): reopening an existing, remote-backed embedded database
 // that is behind the binary must refuse to auto-migrate.
 func TestEmbeddedRemoteMigrateGate_BlocksReopen(t *testing.T) {
-	if os.Getenv("BEADS_TEST_EMBEDDED_DOLT") != "1" {
-		t.Skip("set BEADS_TEST_EMBEDDED_DOLT=1 to run embedded dolt tests")
+	if os.Getenv("ISSUEGRAPH_TEST_EMBEDDED_DOLT") != "1" {
+		t.Skip("set ISSUEGRAPH_TEST_EMBEDDED_DOLT=1 to run embedded dolt tests")
 	}
 	t.Setenv(schema.AllowRemoteMigrateEnv, "0")
 	// Blunt-gate coverage: pin the (default-on) smart router off.
 	t.Setenv(schema.SmartGateEnv, "0")
 
 	ctx := t.Context()
-	beadsDir := filepath.Join(t.TempDir(), ".beads")
-	dataDir := filepath.Join(beadsDir, "embeddeddolt")
+	issuegraphDir := filepath.Join(t.TempDir(), ".issuegraph")
+	dataDir := filepath.Join(issuegraphDir, "embeddeddolt")
 
 	// Create and fully migrate the embedded database.
-	store, err := embeddeddolt.Open(ctx, beadsDir, "testdb", "main")
+	store, err := embeddeddolt.Open(ctx, issuegraphDir, "testdb", "main")
 	if err != nil {
 		t.Fatalf("Open: %v", err)
 	}
@@ -53,7 +53,7 @@ func TestEmbeddedRemoteMigrateGate_BlocksReopen(t *testing.T) {
 	store.Close()
 
 	// Reopen must hit the gate.
-	reopened, reErr := embeddeddolt.Open(ctx, beadsDir, "testdb", "main")
+	reopened, reErr := embeddeddolt.Open(ctx, issuegraphDir, "testdb", "main")
 	if reErr == nil {
 		reopened.Close()
 		t.Fatal("Open (reopen) = nil, want *schema.RemoteMigrateGateError for a behind, remote-backed DB")
@@ -69,19 +69,19 @@ func TestEmbeddedRemoteMigrateGate_BlocksReopen(t *testing.T) {
 // history or working set, and must refuse write transactions — while plain
 // Open of the same behind, remote-backed database stays gated.
 func TestEmbeddedOpenReadOnly_SkipsGateAndMigrations(t *testing.T) {
-	if os.Getenv("BEADS_TEST_EMBEDDED_DOLT") != "1" {
-		t.Skip("set BEADS_TEST_EMBEDDED_DOLT=1 to run embedded dolt tests")
+	if os.Getenv("ISSUEGRAPH_TEST_EMBEDDED_DOLT") != "1" {
+		t.Skip("set ISSUEGRAPH_TEST_EMBEDDED_DOLT=1 to run embedded dolt tests")
 	}
 	t.Setenv(schema.AllowRemoteMigrateEnv, "0")
 	// Blunt-gate coverage: pin the (default-on) smart router off.
 	t.Setenv(schema.SmartGateEnv, "0")
 
 	ctx := t.Context()
-	beadsDir := filepath.Join(t.TempDir(), ".beads")
-	dataDir := filepath.Join(beadsDir, "embeddeddolt")
+	issuegraphDir := filepath.Join(t.TempDir(), ".issuegraph")
+	dataDir := filepath.Join(issuegraphDir, "embeddeddolt")
 
 	// Create and fully migrate the embedded database, with a marker config row.
-	store, err := embeddeddolt.Open(ctx, beadsDir, "testdb", "main")
+	store, err := embeddeddolt.Open(ctx, issuegraphDir, "testdb", "main")
 	if err != nil {
 		t.Fatalf("Open: %v", err)
 	}
@@ -107,7 +107,7 @@ func TestEmbeddedOpenReadOnly_SkipsGateAndMigrations(t *testing.T) {
 	commitsBefore, dirtyBefore := snapshot()
 
 	// Read-only open of an up-to-date database: reads work, writes are refused.
-	ro, err := embeddeddolt.OpenReadOnly(ctx, beadsDir, "testdb", "main")
+	ro, err := embeddeddolt.OpenReadOnly(ctx, issuegraphDir, "testdb", "main")
 	if err != nil {
 		t.Fatalf("OpenReadOnly: %v", err)
 	}
@@ -155,7 +155,7 @@ func TestEmbeddedOpenReadOnly_SkipsGateAndMigrations(t *testing.T) {
 	}
 	_ = cleanup()
 
-	if gated, gateErr := embeddeddolt.Open(ctx, beadsDir, "testdb", "main"); gateErr == nil {
+	if gated, gateErr := embeddeddolt.Open(ctx, issuegraphDir, "testdb", "main"); gateErr == nil {
 		gated.Close()
 		t.Fatal("Open of behind, remote-backed DB = nil error, want remote-migrate gate")
 	} else if !schema.IsRemoteMigrateGateError(gateErr) {
@@ -165,7 +165,7 @@ func TestEmbeddedOpenReadOnly_SkipsGateAndMigrations(t *testing.T) {
 	// The read-only open stays exempt from the remote-migrate gate, but a
 	// behind database now fails at open with a clear behind-drift error
 	// instead of unknown-column errors at query time (bd-578h9.12)...
-	if ro2, roErr := embeddeddolt.OpenReadOnly(ctx, beadsDir, "testdb", "main"); roErr == nil {
+	if ro2, roErr := embeddeddolt.OpenReadOnly(ctx, issuegraphDir, "testdb", "main"); roErr == nil {
 		ro2.Close()
 		t.Fatal("OpenReadOnly of behind DB = nil error, want *schema.SchemaBehindError")
 	} else if schema.IsRemoteMigrateGateError(roErr) {
@@ -174,9 +174,9 @@ func TestEmbeddedOpenReadOnly_SkipsGateAndMigrations(t *testing.T) {
 		t.Fatalf("OpenReadOnly error = %T (%v), want *schema.SchemaBehindError", roErr, roErr)
 	}
 
-	// ...and BD_IGNORE_SCHEMA_SKEW=1 keeps the escape hatch open.
-	t.Setenv("BD_IGNORE_SCHEMA_SKEW", "1")
-	ro2, err := embeddeddolt.OpenReadOnly(ctx, beadsDir, "testdb", "main")
+	// ...and ISSUEGRAPH_IGNORE_SCHEMA_SKEW=1 keeps the escape hatch open.
+	t.Setenv("ISSUEGRAPH_IGNORE_SCHEMA_SKEW", "1")
+	ro2, err := embeddeddolt.OpenReadOnly(ctx, issuegraphDir, "testdb", "main")
 	if err != nil {
 		t.Fatalf("OpenReadOnly (behind, skew ignored) = %v, want nil", err)
 	}
@@ -187,21 +187,21 @@ func TestEmbeddedOpenReadOnly_SkipsGateAndMigrations(t *testing.T) {
 }
 
 // TestEmbeddedOpenReadOnly_FreshDatabaseNoWrites covers the fresh-database
-// half of the strict --readonly hermeticity contract (gastownhall/beads#4930
-// maintainer review, 2026-07-23): OpenReadOnly against a beadsDir that has no
+// half of the strict --readonly hermeticity contract (borg0ai/dx-issuegraph#4930
+// maintainer review, 2026-07-23): OpenReadOnly against a issuegraphDir that has no
 // embeddeddolt/ data directory yet must fail rather than create one — unlike
 // Open/OpenForReadOnlyCommand, which create the data directory and initialize
 // the schema on first use.
 func TestEmbeddedOpenReadOnly_FreshDatabaseNoWrites(t *testing.T) {
 	ctx := t.Context()
-	beadsDir := filepath.Join(t.TempDir(), ".beads")
-	dataDir := filepath.Join(beadsDir, "embeddeddolt")
+	issuegraphDir := filepath.Join(t.TempDir(), ".issuegraph")
+	dataDir := filepath.Join(issuegraphDir, "embeddeddolt")
 
-	if _, err := os.Stat(beadsDir); !os.IsNotExist(err) {
-		t.Fatalf("beadsDir must not pre-exist: stat error = %v", err)
+	if _, err := os.Stat(issuegraphDir); !os.IsNotExist(err) {
+		t.Fatalf("issuegraphDir must not pre-exist: stat error = %v", err)
 	}
 
-	ro, err := embeddeddolt.OpenReadOnly(ctx, beadsDir, "testdb", "main")
+	ro, err := embeddeddolt.OpenReadOnly(ctx, issuegraphDir, "testdb", "main")
 	if err == nil {
 		ro.Close()
 		t.Fatal("OpenReadOnly on a fresh (nonexistent) database = nil error, want refusal")
@@ -210,8 +210,8 @@ func TestEmbeddedOpenReadOnly_FreshDatabaseNoWrites(t *testing.T) {
 	if _, statErr := os.Stat(dataDir); !os.IsNotExist(statErr) {
 		t.Fatalf("OpenReadOnly on a fresh database created %s (stat error: %v)", dataDir, statErr)
 	}
-	if _, statErr := os.Stat(beadsDir); !os.IsNotExist(statErr) {
-		t.Fatalf("OpenReadOnly on a fresh database created %s (stat error: %v)", beadsDir, statErr)
+	if _, statErr := os.Stat(issuegraphDir); !os.IsNotExist(statErr) {
+		t.Fatalf("OpenReadOnly on a fresh database created %s (stat error: %v)", issuegraphDir, statErr)
 	}
 }
 
@@ -221,19 +221,19 @@ func TestEmbeddedOpenReadOnly_FreshDatabaseNoWrites(t *testing.T) {
 // migrating (the schema stays behind), while plain Open of the same database
 // stays gated.
 func TestEmbeddedOpenForReadOnlyCommand_LenientGate(t *testing.T) {
-	if os.Getenv("BEADS_TEST_EMBEDDED_DOLT") != "1" {
-		t.Skip("set BEADS_TEST_EMBEDDED_DOLT=1 to run embedded dolt tests")
+	if os.Getenv("ISSUEGRAPH_TEST_EMBEDDED_DOLT") != "1" {
+		t.Skip("set ISSUEGRAPH_TEST_EMBEDDED_DOLT=1 to run embedded dolt tests")
 	}
 	t.Setenv(schema.AllowRemoteMigrateEnv, "0")
 	// Blunt-gate coverage: pin the (default-on) smart router off.
 	t.Setenv(schema.SmartGateEnv, "0")
 
 	ctx := t.Context()
-	beadsDir := filepath.Join(t.TempDir(), ".beads")
-	dataDir := filepath.Join(beadsDir, "embeddeddolt")
+	issuegraphDir := filepath.Join(t.TempDir(), ".issuegraph")
+	dataDir := filepath.Join(issuegraphDir, "embeddeddolt")
 
 	// Create and fully migrate the embedded database.
-	store, err := embeddeddolt.Open(ctx, beadsDir, "testdb", "main")
+	store, err := embeddeddolt.Open(ctx, issuegraphDir, "testdb", "main")
 	if err != nil {
 		t.Fatalf("Open: %v", err)
 	}
@@ -257,7 +257,7 @@ func TestEmbeddedOpenForReadOnlyCommand_LenientGate(t *testing.T) {
 	store.Close()
 
 	// Plain Open must stay gated.
-	if gated, gateErr := embeddeddolt.Open(ctx, beadsDir, "testdb", "main"); gateErr == nil {
+	if gated, gateErr := embeddeddolt.Open(ctx, issuegraphDir, "testdb", "main"); gateErr == nil {
 		gated.Close()
 		t.Fatal("Open (reopen) = nil, want remote-migrate gate refusal")
 	} else if !schema.IsRemoteMigrateGateError(gateErr) {
@@ -265,7 +265,7 @@ func TestEmbeddedOpenForReadOnlyCommand_LenientGate(t *testing.T) {
 	}
 
 	// The read-only-command open must succeed without migrating.
-	roStore, roErr := embeddeddolt.OpenForReadOnlyCommand(ctx, beadsDir, "testdb", "main")
+	roStore, roErr := embeddeddolt.OpenForReadOnlyCommand(ctx, issuegraphDir, "testdb", "main")
 	if roErr != nil {
 		t.Fatalf("OpenForReadOnlyCommand: %v", roErr)
 	}

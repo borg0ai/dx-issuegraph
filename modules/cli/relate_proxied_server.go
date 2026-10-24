@@ -6,11 +6,11 @@ import (
 	"errors"
 	"fmt"
 
-	"github.com/steveyegge/beads/internal/storage"
-	"github.com/steveyegge/beads/internal/storage/domain"
-	"github.com/steveyegge/beads/internal/storage/uow"
-	"github.com/steveyegge/beads/internal/types"
-	"github.com/steveyegge/beads/internal/ui"
+	"github.com/borg0ai/dx-issuegraph/internal/storage"
+	"github.com/borg0ai/dx-issuegraph/internal/storage/domain"
+	"github.com/borg0ai/dx-issuegraph/internal/storage/uow"
+	"github.com/borg0ai/dx-issuegraph/internal/types"
+	"github.com/borg0ai/dx-issuegraph/internal/ui"
 )
 
 // proxiedRequireIssue mirrors the direct route's pre-flight for the verbs that
@@ -64,12 +64,12 @@ func runRelateProxiedServer(ctx context.Context, args []string) error {
 			{IssueID: id1, DependsOnID: id2, Type: types.DepRelatesTo},
 			{IssueID: id2, DependsOnID: id1, Type: types.DepRelatesTo},
 		}
-		// bd relate is an explicit dependency verb, so the bulk path's
+		// issuegraph relate is an explicit dependency verb, so the bulk path's
 		// EmitEvent trail matches the direct route's history behavior.
 		if _, err := uw.DependencyUseCase().AddDependencies(ctx, deps, actor, domain.BulkAddDepsOpts{}); err != nil {
 			return "", err
 		}
-		return fmt.Sprintf("bd: relate %s %s", id1, id2), nil
+		return fmt.Sprintf("issuegraph: relate %s %s", id1, id2), nil
 	})
 	if err != nil {
 		return HandleErrorRespectJSON("%v", err)
@@ -122,7 +122,7 @@ func runUnrelateProxiedServer(ctx context.Context, args []string) error {
 		if !removed1 && !removed2 {
 			return "", nil
 		}
-		return fmt.Sprintf("bd: unrelate %s %s", id1, id2), nil
+		return fmt.Sprintf("issuegraph: unrelate %s %s", id1, id2), nil
 	})
 	if err != nil {
 		return HandleErrorRespectJSON("%v", err)

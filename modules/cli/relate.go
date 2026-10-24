@@ -5,12 +5,12 @@ import (
 	"fmt"
 	"os"
 
+	"github.com/borg0ai/dx-issuegraph/internal/metrics"
+	"github.com/borg0ai/dx-issuegraph/internal/storage"
+	"github.com/borg0ai/dx-issuegraph/internal/types"
+	"github.com/borg0ai/dx-issuegraph/internal/ui"
+	"github.com/borg0ai/dx-issuegraph/internal/utils"
 	"github.com/spf13/cobra"
-	"github.com/steveyegge/beads/internal/metrics"
-	"github.com/steveyegge/beads/internal/storage"
-	"github.com/steveyegge/beads/internal/types"
-	"github.com/steveyegge/beads/internal/ui"
-	"github.com/steveyegge/beads/internal/utils"
 )
 
 var relateCmd = &cobra.Command{
@@ -22,8 +22,8 @@ The relates_to link is bidirectional - both issues will reference each other.
 This enables knowledge graph connections without blocking or hierarchy.
 
 Examples:
-  bd relate bd-abc bd-xyz    # Link two related issues
-  bd relate bd-123 bd-456    # Create see-also connection`,
+  issuegraph relate bd-abc bd-xyz    # Link two related issues
+  issuegraph relate bd-123 bd-456    # Create see-also connection`,
 	Args: cobra.ExactArgs(2),
 	RunE: runRelate,
 }
@@ -36,7 +36,7 @@ var unrelateCmd = &cobra.Command{
 Removes the link in both directions.
 
 Example:
-  bd unrelate bd-abc bd-xyz`,
+  issuegraph unrelate bd-abc bd-xyz`,
 	Args: cobra.ExactArgs(2),
 	RunE: runUnrelate,
 }
@@ -109,8 +109,8 @@ func runRelate(cmd *cobra.Command, args []string) error {
 		DependsOnID: id2,
 		Type:        types.DepRelatesTo,
 	}
-	// bd relate is an explicit dependency verb, so it records history like
-	// bd link / bd dep add (EmitEvent); only structural edge wiring stays silent.
+	// issuegraph relate is an explicit dependency verb, so it records history like
+	// issuegraph link / issuegraph dep add (EmitEvent); only structural edge wiring stays silent.
 	if err := store.AddDependencyWithOptions(ctx, dep1, actor, storage.DependencyAddOptions{EmitEvent: true}); err != nil {
 		return fmt.Errorf("failed to add relates-to %s -> %s: %w", id1, id2, err)
 	}
@@ -187,8 +187,8 @@ func runUnrelate(cmd *cobra.Command, args []string) error {
 
 	// Remove relates-to dependency in both directions
 	// Per Decision 004, relates-to links are now stored in dependencies table.
-	// bd unrelate is an explicit dependency verb, so it records history
-	// (EmitEvent) like bd dep remove; only structural teardown stays silent.
+	// issuegraph unrelate is an explicit dependency verb, so it records history
+	// (EmitEvent) like issuegraph dep remove; only structural teardown stays silent.
 	// Remove id1 -> id2
 	if err := store.RemoveDependencyWithOptions(ctx, id1, id2, actor, storage.DependencyRemoveOptions{EmitEvent: true}); err != nil {
 		return fmt.Errorf("failed to remove relates-to %s -> %s: %w", id1, id2, err)

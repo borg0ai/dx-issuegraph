@@ -3,8 +3,8 @@ package storage
 import (
 	"encoding/json"
 
-	"github.com/steveyegge/beads/internal/types"
-	"github.com/steveyegge/beads/issueops"
+	"github.com/borg0ai/dx-issuegraph/internal/types"
+	"github.com/borg0ai/dx-issuegraph/issueops"
 )
 
 // CreatePublicCreateDependencies returns the dependency snapshot described by

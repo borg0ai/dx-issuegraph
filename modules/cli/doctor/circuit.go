@@ -9,13 +9,13 @@ import (
 )
 
 // CheckCircuitBreaker checks for stale circuit breaker state files that may
-// block all bd operations. Returns a fixable DoctorCheck if stale files exist.
+// block all issuegraph operations. Returns a fixable DoctorCheck if stale files exist.
 func CheckCircuitBreaker() DoctorCheck {
 	// Derived from os.TempDir() to match where the storage layer now writes
 	// breaker files; hardcoding "/tmp" checked the wrong place on Windows,
 	// where files land under %TEMP% not C:\tmp (GH#4636).
-	dir := filepath.Join(os.TempDir(), "beads-circuit")
-	pattern := filepath.Join(dir, "beads-dolt-circuit-*.json")
+	dir := filepath.Join(os.TempDir(), "issuegraph-circuit")
+	pattern := filepath.Join(dir, "issuegraph-dolt-circuit-*.json")
 	matches, err := filepath.Glob(pattern)
 	if err != nil || len(matches) == 0 {
 		return DoctorCheck{
@@ -68,7 +68,7 @@ func CheckCircuitBreaker() DoctorCheck {
 		Name:     "Circuit Breaker",
 		Status:   StatusWarning,
 		Message:  fmt.Sprintf("%d stale circuit breaker file(s) found in %s", staleCount, dir),
-		Fix:      "Run 'bd doctor --fix' to clear stale circuit breaker files",
+		Fix:      "Run 'issuegraph doctor --fix' to clear stale circuit breaker files",
 		Category: CategoryRuntime,
 	}
 }

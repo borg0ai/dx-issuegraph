@@ -14,15 +14,15 @@ import (
 	"testing"
 	"time"
 
-	"github.com/steveyegge/beads/internal/storage/dolt"
-	storageissueops "github.com/steveyegge/beads/internal/storage/issueops"
-	"github.com/steveyegge/beads/internal/types"
+	"github.com/borg0ai/dx-issuegraph/internal/storage/dolt"
+	storageissueops "github.com/borg0ai/dx-issuegraph/internal/storage/issueops"
+	"github.com/borg0ai/dx-issuegraph/internal/types"
 )
 
 func TestDependencySuite(t *testing.T) {
 	t.Parallel()
 	tmpDir := t.TempDir()
-	testDB := filepath.Join(tmpDir, ".beads", "beads.db")
+	testDB := filepath.Join(tmpDir, ".issuegraph", "issuegraph.db")
 	s := newTestStore(t, testDB)
 	ctx := context.Background()
 
@@ -1174,19 +1174,19 @@ func TestDepRoutedTargetOpensReadOnly(t *testing.T) {
 	ctx := context.Background()
 
 	tmpDir := t.TempDir()
-	townBeadsDir := filepath.Join(tmpDir, ".beads")
-	if err := os.MkdirAll(townBeadsDir, 0755); err != nil {
-		t.Fatalf("create town beads dir: %v", err)
+	townIssueGraphDir := filepath.Join(tmpDir, ".issuegraph")
+	if err := os.MkdirAll(townIssueGraphDir, 0755); err != nil {
+		t.Fatalf("create town issuegraph dir: %v", err)
 	}
-	rigBeadsDir := filepath.Join(tmpDir, "rig", ".beads")
-	if err := os.MkdirAll(rigBeadsDir, 0755); err != nil {
-		t.Fatalf("create rig beads dir: %v", err)
+	rigIssueGraphDir := filepath.Join(tmpDir, "rig", ".issuegraph")
+	if err := os.MkdirAll(rigIssueGraphDir, 0755); err != nil {
+		t.Fatalf("create rig issuegraph dir: %v", err)
 	}
 
-	townDBPath := filepath.Join(townBeadsDir, "dolt")
+	townDBPath := filepath.Join(townIssueGraphDir, "dolt")
 	townStore := newTestStoreIsolatedDB(t, townDBPath, "hq")
 
-	rigDBPath := filepath.Join(rigBeadsDir, "dolt")
+	rigDBPath := filepath.Join(rigIssueGraphDir, "dolt")
 	rigStore := newTestStoreIsolatedDB(t, rigDBPath, "gt")
 	if err := rigStore.CreateIssue(ctx, &types.Issue{
 		ID:        "gt-target1",
@@ -1200,7 +1200,7 @@ func TestDepRoutedTargetOpensReadOnly(t *testing.T) {
 	// Release the rig store before routing reopens it.
 	rigStore.Close()
 
-	routesPath := filepath.Join(townBeadsDir, "routes.jsonl")
+	routesPath := filepath.Join(townIssueGraphDir, "routes.jsonl")
 	if err := os.WriteFile(routesPath, []byte(`{"prefix":"gt-","path":"rig"}`), 0644); err != nil {
 		t.Fatalf("write routes.jsonl: %v", err)
 	}
@@ -1257,9 +1257,9 @@ func TestDepRoutedTargetOpensReadOnly(t *testing.T) {
 	}
 }
 
-// TestDepListCrossRigRouting tests that bd dep list resolves issues via routing
+// TestDepListCrossRigRouting tests that issuegraph dep list resolves issues via routing
 // when run from the town root for rig-level issues. This is the regression test
-// for bd-ciouf: "bd dep list cross-rig routing broken from town root".
+// for bd-ciouf: "issuegraph dep list cross-rig routing broken from town root".
 //
 // NOTE: This test uses os.Chdir and cannot run in parallel with other tests.
 func TestDepListCrossRigRouting(t *testing.T) {
@@ -1267,32 +1267,32 @@ func TestDepListCrossRigRouting(t *testing.T) {
 
 	// Create temp directory structure:
 	// tmpDir/
-	//   .beads/
+	//   .issuegraph/
 	//     dolt/ (town database, prefix "hq")
 	//     routes.jsonl (routing config)
 	//   rig/
-	//     .beads/
+	//     .issuegraph/
 	//       dolt/ (rig database, prefix "gt")
 	tmpDir := t.TempDir()
 
-	// Create town .beads directory
-	townBeadsDir := filepath.Join(tmpDir, ".beads")
-	if err := os.MkdirAll(townBeadsDir, 0755); err != nil {
-		t.Fatalf("Failed to create town beads dir: %v", err)
+	// Create town .issuegraph directory
+	townIssueGraphDir := filepath.Join(tmpDir, ".issuegraph")
+	if err := os.MkdirAll(townIssueGraphDir, 0755); err != nil {
+		t.Fatalf("Failed to create town issuegraph dir: %v", err)
 	}
 
-	// Create rig .beads directory
-	rigBeadsDir := filepath.Join(tmpDir, "rig", ".beads")
-	if err := os.MkdirAll(rigBeadsDir, 0755); err != nil {
-		t.Fatalf("Failed to create rig beads dir: %v", err)
+	// Create rig .issuegraph directory
+	rigIssueGraphDir := filepath.Join(tmpDir, "rig", ".issuegraph")
+	if err := os.MkdirAll(rigIssueGraphDir, 0755); err != nil {
+		t.Fatalf("Failed to create rig issuegraph dir: %v", err)
 	}
 
 	// Initialize town database
-	townDBPath := filepath.Join(townBeadsDir, "dolt")
+	townDBPath := filepath.Join(townIssueGraphDir, "dolt")
 	townStore := newTestStoreIsolatedDB(t, townDBPath, "hq")
 
 	// Initialize rig database
-	rigDBPath := filepath.Join(rigBeadsDir, "dolt")
+	rigDBPath := filepath.Join(rigIssueGraphDir, "dolt")
 	rigStore := newTestStoreIsolatedDB(t, rigDBPath, "gt")
 
 	// Create test issues in rig database with a dependency
@@ -1330,9 +1330,9 @@ func TestDepListCrossRigRouting(t *testing.T) {
 	// Close rig store to release Dolt lock before routing opens it
 	rigStore.Close()
 
-	// Create routes.jsonl in town .beads directory
+	// Create routes.jsonl in town .issuegraph directory
 	routesContent := `{"prefix":"gt-","path":"rig"}`
-	routesPath := filepath.Join(townBeadsDir, "routes.jsonl")
+	routesPath := filepath.Join(townIssueGraphDir, "routes.jsonl")
 	if err := os.WriteFile(routesPath, []byte(routesContent), 0644); err != nil {
 		t.Fatalf("Failed to write routes.jsonl: %v", err)
 	}

@@ -5,8 +5,8 @@ import (
 	"fmt"
 	"os"
 
-	"github.com/steveyegge/beads/internal/config"
-	"github.com/steveyegge/beads/internal/storage/uow"
+	"github.com/borg0ai/dx-issuegraph/internal/config"
+	"github.com/borg0ai/dx-issuegraph/internal/storage/uow"
 )
 
 func runDoltRemoteRemoveProxied(ctx context.Context, name string) error {
@@ -18,7 +18,7 @@ func runDoltRemoteRemoveProxied(ctx context.Context, name string) error {
 		if err := uw.DoltRemoteUseCase().DeleteRemote(ctx, name); err != nil {
 			return "", err
 		}
-		return fmt.Sprintf("bd: remove remote %s", name), nil
+		return fmt.Sprintf("issuegraph: remove remote %s", name), nil
 	})
 	if err != nil {
 		if jsonOutput {
@@ -35,7 +35,7 @@ func runDoltRemoteRemoveProxied(ctx context.Context, name string) error {
 				fmt.Fprintf(os.Stderr, "Warning: failed to clear sync.remote from config.yaml: %v\n", err)
 			}
 			if isGitRepo() {
-				commitBeadsConfig("bd: clear sync.remote")
+				commitIssueGraphConfig("issuegraph: clear sync.remote")
 			}
 		}
 	}

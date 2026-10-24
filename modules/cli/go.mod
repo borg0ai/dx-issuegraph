@@ -1,4 +1,4 @@
-module github.com/steveyegge/beads/modules/cli
+module github.com/borg0ai/dx-issuegraph/modules/cli
 
 go 1.26.5
 
@@ -17,7 +17,7 @@ require (
 	github.com/spf13/cobra v1.10.2
 	github.com/spf13/pflag v1.0.10
 	github.com/spf13/viper v1.21.0
-	github.com/steveyegge/beads v0.0.0
+	github.com/borg0ai/dx-issuegraph v0.0.0
 	github.com/stretchr/testify v1.11.1
 	github.com/subosito/gotenv v1.6.0
 	go.opentelemetry.io/otel v1.45.0
@@ -269,4 +269,4 @@ require (
 	gopkg.in/yaml.v2 v2.4.0 // indirect
 )
 
-replace github.com/steveyegge/beads => ../core
+replace github.com/borg0ai/dx-issuegraph => ../core

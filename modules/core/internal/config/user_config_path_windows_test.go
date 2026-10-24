@@ -31,7 +31,7 @@ func TestWindowsUserConfigCandidatesAcceptUNCPaths(t *testing.T) {
 			t.Errorf("%s UNC path %q is not absolute", name, path)
 		}
 	}
-	if candidates.documented != filepath.Join(home, ".config", "bd", "config.yaml") {
+	if candidates.documented != filepath.Join(home, ".config", "issuegraph", "config.yaml") {
 		t.Fatalf("documented UNC path = %q", candidates.documented)
 	}
 }

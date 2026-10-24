@@ -7,18 +7,18 @@ import (
 	"testing"
 )
 
-// setupTestWorkspace creates a temporary directory with a .beads directory
+// setupTestWorkspace creates a temporary directory with a .issuegraph directory
 func setupTestWorkspace(t *testing.T) string {
 	t.Helper()
 	dir := t.TempDir()
-	beadsDir := filepath.Join(dir, ".beads")
-	if err := os.MkdirAll(beadsDir, 0755); err != nil {
-		t.Fatalf("failed to create .beads directory: %v", err)
+	issuegraphDir := filepath.Join(dir, ".issuegraph")
+	if err := os.MkdirAll(issuegraphDir, 0755); err != nil {
+		t.Fatalf("failed to create .issuegraph directory: %v", err)
 	}
 	return dir
 }
 
-// setupTestGitRepo creates a temporary git repository with a .beads directory
+// setupTestGitRepo creates a temporary git repository with a .issuegraph directory
 func setupTestGitRepo(t *testing.T) string {
 	t.Helper()
 	dir := setupTestWorkspace(t)
@@ -91,10 +91,10 @@ func runGit(t *testing.T, dir string, args ...string) string {
 	return string(output)
 }
 
-// TestValidateBeadsWorkspace tests the workspace validation function
-func TestValidateBeadsWorkspace(t *testing.T) {
+// TestValidateIssueGraphWorkspace tests the workspace validation function
+func TestValidateIssueGraphWorkspace(t *testing.T) {
 	t.Run("invalid path", func(t *testing.T) {
-		err := validateBeadsWorkspace("/nonexistent/path/that/does/not/exist")
+		err := validateIssueGraphWorkspace("/nonexistent/path/that/does/not/exist")
 		if err == nil {
 			t.Error("expected error for nonexistent path")
 		}

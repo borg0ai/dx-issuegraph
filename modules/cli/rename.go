@@ -6,11 +6,11 @@ import (
 	"fmt"
 	"regexp"
 
+	"github.com/borg0ai/dx-issuegraph/internal/metrics"
+	"github.com/borg0ai/dx-issuegraph/internal/storage"
+	"github.com/borg0ai/dx-issuegraph/internal/types"
+	"github.com/borg0ai/dx-issuegraph/internal/ui"
 	"github.com/spf13/cobra"
-	"github.com/steveyegge/beads/internal/metrics"
-	"github.com/steveyegge/beads/internal/storage"
-	"github.com/steveyegge/beads/internal/types"
-	"github.com/steveyegge/beads/internal/ui"
 )
 
 var renameCmd = &cobra.Command{
@@ -25,8 +25,8 @@ This updates:
 - Labels, comments, and events
 
 Examples:
-  bd rename bd-w382l bd-dolt     # Rename to memorable ID
-  bd rename gt-abc123 gt-auth    # Use descriptive ID
+  issuegraph rename bd-w382l bd-dolt     # Rename to memorable ID
+  issuegraph rename gt-abc123 gt-auth    # Use descriptive ID
 
 Note: The new ID must use a valid prefix for this database.`,
 	Args:          cobra.ExactArgs(2),

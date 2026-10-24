@@ -6,13 +6,13 @@ import (
 	"os"
 	"reflect"
 
-	"github.com/steveyegge/beads/internal/ui"
+	"github.com/borg0ai/dx-issuegraph/internal/ui"
 )
 
 const JSONSchemaVersion = 1
 
 // PaginationMeta carries truncation context for paginated JSON responses.
-// It is included in the BD_JSON_ENVELOPE=1 output under the "pagination" key
+// It is included in the ISSUEGRAPH_JSON_ENVELOPE=1 output under the "pagination" key
 // whenever the result set was capped by a --limit.
 type PaginationMeta struct {
 	Returned  int  `json:"returned"`
@@ -21,7 +21,7 @@ type PaginationMeta struct {
 }
 
 func jsonEnvelopeEnabled() bool {
-	return os.Getenv("BD_JSON_ENVELOPE") == "1"
+	return os.Getenv("ISSUEGRAPH_JSON_ENVELOPE") == "1"
 }
 
 func outputJSON(v interface{}) error {
@@ -29,7 +29,7 @@ func outputJSON(v interface{}) error {
 }
 
 // outputJSONWithPagination emits v as JSON, optionally including pagination
-// metadata. When BD_JSON_ENVELOPE=1 and p is non-nil, the envelope gains a
+// metadata. When ISSUEGRAPH_JSON_ENVELOPE=1 and p is non-nil, the envelope gains a
 // "pagination" key so programmatic consumers can detect truncation without
 // parsing stderr. When the envelope is not active, p is ignored and the
 // existing stderr text hint handles the human/text path.
@@ -106,8 +106,8 @@ func emitEnvelopeDeprecation() {
 	}
 	envelopeDeprecationEmitted = true
 	fmt.Fprintf(os.Stderr,
-		"NOTE: bd --json output format will change in v2.0. "+
-			"Set BD_JSON_ENVELOPE=1 to opt in early. "+
+		"NOTE: issuegraph --json output format will change in v2.0. "+
+			"Set ISSUEGRAPH_JSON_ENVELOPE=1 to opt in early. "+
 			"See docs/reference/json-schema.md for migration details.\n")
 }
 

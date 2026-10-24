@@ -19,8 +19,8 @@ Display:
 - Compatibility status (✓ compatible or ⚠️ update needed)
 
 If versions are mismatched, provide instructions:
-- Update issuegraph CLI: `curl -fsSL https://raw.githubusercontent.com/gastownhall/beads/main/scripts/install.sh | bash`
-- Update plugin: `/plugin update beads`
+- Update issuegraph CLI: `curl -fsSL https://raw.githubusercontent.com/borg0ai/dx-issuegraph/main/scripts/install.sh | bash`
+- Update plugin: `/plugin update issuegraph`
 - Restart Claude Code after updating
 
 Suggest checking for updates if the user is on an older version.

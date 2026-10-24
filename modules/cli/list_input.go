@@ -6,18 +6,18 @@ import (
 	"strings"
 	"time"
 
+	"github.com/borg0ai/dx-issuegraph/internal/config"
+	"github.com/borg0ai/dx-issuegraph/internal/storage"
+	"github.com/borg0ai/dx-issuegraph/internal/types"
+	"github.com/borg0ai/dx-issuegraph/internal/ui"
+	"github.com/borg0ai/dx-issuegraph/internal/utils"
+	"github.com/borg0ai/dx-issuegraph/internal/validation"
+	"github.com/borg0ai/dx-issuegraph/internal/workapi"
+	"github.com/borg0ai/dx-issuegraph/issueops"
 	"github.com/spf13/cobra"
-	"github.com/steveyegge/beads/internal/config"
-	"github.com/steveyegge/beads/internal/storage"
-	"github.com/steveyegge/beads/internal/types"
-	"github.com/steveyegge/beads/internal/ui"
-	"github.com/steveyegge/beads/internal/utils"
-	"github.com/steveyegge/beads/internal/validation"
-	"github.com/steveyegge/beads/internal/workapi"
-	"github.com/steveyegge/beads/issueops"
 )
 
-// listInput is everything `bd list` parsed off the command line: the
+// listInput is everything `issuegraph list` parsed off the command line: the
 // frontend-independent query knobs (issueops.ListRequest, the request the
 // reader role takes and the filter is built from) plus the presentation
 // choices that never leave the CLI.
@@ -378,7 +378,7 @@ func gatherListInput(cmd *cobra.Command) (listInput, error) {
 	// filter after the builder has produced it (issueops.ListRequest.MaxRows).
 	//
 	// Resolving it HERE also means it is resolved exactly once per invocation.
-	// resolveMaxRowsEnvOnly warns on a malformed BEADS_MAX_ROWS every time it
+	// resolveMaxRowsEnvOnly warns on a malformed ISSUEGRAPH_MAX_ROWS every time it
 	// runs, so a second resolve downstream would warn twice.
 	maxRows, maxRowsSource, err := resolveMaxRows(cmd)
 	if err != nil {
@@ -410,9 +410,9 @@ func parseListTimeFlag(cmd *cobra.Command, name string) (*time.Time, error) {
 const agentModeLimit = 20
 
 // unflaggedLimit is the limit a listing command uses when the caller named
-// none: the part of the policy `bd list` and `bd query` share, so the two
+// none: the part of the policy `issuegraph list` and `issuegraph query` share, so the two
 // cannot drift (GH#6229). Each command resolves its own earlier branches first
-// (an explicit --limit, `bd list`'s --all and list.limit) and hands its own
+// (an explicit --limit, `issuegraph list`'s --all and list.limit) and hands its own
 // default here as fallback.
 func unflaggedLimit(fallback int) int {
 	return resolveUnflaggedLimit(fallback, ui.IsTerminal(), ui.IsAgentMode())

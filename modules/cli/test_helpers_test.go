@@ -18,10 +18,10 @@ import (
 	"testing"
 	"time"
 
-	"github.com/steveyegge/beads/internal/configfile"
-	"github.com/steveyegge/beads/internal/storage/dolt"
-	"github.com/steveyegge/beads/internal/storage/doltutil"
-	"github.com/steveyegge/beads/internal/testutil"
+	"github.com/borg0ai/dx-issuegraph/internal/configfile"
+	"github.com/borg0ai/dx-issuegraph/internal/storage/dolt"
+	"github.com/borg0ai/dx-issuegraph/internal/storage/doltutil"
+	"github.com/borg0ai/dx-issuegraph/internal/testutil"
 )
 
 // testDoltServerPort is the port of the shared test Dolt server (0 = not running).
@@ -41,7 +41,7 @@ var testDoltServerPort int
 // The fallback branch (per-test DB, exercised only when shared-schema init
 // in test_dolt_server_cgo_test.go fails) runs a full v0->v65 migration
 // replay from scratch, which is genuinely slow, not hung: a single isolated
-// measurement (BEADS_TEST_FORCE_FALLBACK_DIAG diagnostic, reverted after
+// measurement (ISSUEGRAPH_TEST_FORCE_FALLBACK_DIAG diagnostic, reverted after
 // use) clocked one such replay at 219.62s on this hardware. 60s (an earlier
 // calibration attempt, matching contributor_routing_e2e_test.go's precedent)
 // measurably undershot this and produced a clean "context deadline exceeded"
@@ -53,14 +53,14 @@ var testDoltServerPort int
 // fallback case.
 const testStoreOpenTimeout = 300 * time.Second
 
-// writeTestMetadata writes metadata.json in the .beads directory (parent of dbPath)
+// writeTestMetadata writes metadata.json in the .issuegraph directory (parent of dbPath)
 // so that NewFromConfig can find the correct database name and server settings when
 // routing reopens a store by path.
 func writeTestMetadata(t *testing.T, dbPath string, database string) {
 	t.Helper()
-	beadsDir := filepath.Dir(dbPath)
-	if err := os.MkdirAll(beadsDir, 0755); err != nil {
-		t.Fatalf("Failed to create beads dir: %v", err)
+	issuegraphDir := filepath.Dir(dbPath)
+	if err := os.MkdirAll(issuegraphDir, 0755); err != nil {
+		t.Fatalf("Failed to create issuegraph dir: %v", err)
 	}
 	cfg := &configfile.Config{
 		Database:       "dolt",
@@ -70,7 +70,7 @@ func writeTestMetadata(t *testing.T, dbPath string, database string) {
 		DoltServerHost: "127.0.0.1",
 		DoltServerPort: testDoltServerPort,
 	}
-	if err := cfg.Save(beadsDir); err != nil {
+	if err := cfg.Save(issuegraphDir); err != nil {
 		t.Fatalf("Failed to write test metadata.json: %v", err)
 	}
 }
@@ -420,7 +420,7 @@ func dropTestDatabase(dbName string, port int) {
 
 // openExistingTestDB reopens an existing Dolt store for verification in tests.
 // It tries NewFromConfig first (reads metadata.json for correct database name),
-// then falls back to direct open for BEADS_DB or other non-standard paths.
+// then falls back to direct open for ISSUEGRAPH_DB or other non-standard paths.
 func openExistingTestDB(t *testing.T, dbPath string) (*dolt.DoltStore, error) {
 	t.Helper()
 	// Serialize dolt.New() to avoid race in Dolt's InitStatusVariables (bd-cqjoi)
@@ -429,8 +429,8 @@ func openExistingTestDB(t *testing.T, dbPath string) (*dolt.DoltStore, error) {
 	ctx, cancel := context.WithTimeout(context.Background(), testStoreOpenTimeout)
 	defer cancel()
 	// Try NewFromConfig which reads metadata.json for correct database name
-	beadsDir := filepath.Dir(dbPath)
-	if store, err := dolt.NewFromConfig(ctx, beadsDir); err == nil {
+	issuegraphDir := filepath.Dir(dbPath)
+	if store, err := dolt.NewFromConfig(ctx, issuegraphDir); err == nil {
 		return store, nil
 	}
 	// Fallback: open directly with test server config

@@ -7,8 +7,8 @@ import (
 
 	"context"
 
-	"github.com/steveyegge/beads/internal/storage/dberrors"
-	storageissueops "github.com/steveyegge/beads/internal/storage/issueops"
+	"github.com/borg0ai/dx-issuegraph/internal/storage/dberrors"
+	storageissueops "github.com/borg0ai/dx-issuegraph/internal/storage/issueops"
 )
 
 // WakeExpiredDefers runs the lazy defer-wake sweep in its own unit of work,
@@ -52,7 +52,7 @@ func WakeExpiredDefers(ctx context.Context, p UnitOfWorkProvider) (int, error) {
 
 // advisoryAccessDeniedOnce rate-limits the access-denied advisory to one
 // warning per process: a read-only-privileged SQL user hits it on every
-// ready-front read, and repeating a configuration fact on each `bd ready`
+// ready-front read, and repeating a configuration fact on each `issuegraph ready`
 // is noise, not signal.
 var advisoryAccessDeniedOnce sync.Once
 

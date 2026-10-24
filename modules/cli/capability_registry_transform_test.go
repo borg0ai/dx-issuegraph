@@ -12,7 +12,7 @@ import (
 )
 
 func transformTestCommand(path string, flags ...string) *cobra.Command {
-	root := &cobra.Command{Use: "bd"}
+	root := &cobra.Command{Use: "issuegraph"}
 	cmd := &cobra.Command{Use: path}
 	for _, flag := range flags {
 		if flag == "of" || flag == "with" {
@@ -96,7 +96,7 @@ func TestProxyDuplicatesAutoMergeDryRunMatrix(t *testing.T) {
 }
 
 func TestProxyTransformRefusalRendering(t *testing.T) {
-	t.Setenv("BD_JSON_ENVELOPE", "")
+	t.Setenv("ISSUEGRAPH_JSON_ENVELOPE", "")
 	cmd := transformTestCommand("rename")
 	oldJSON := jsonOutput
 	t.Cleanup(func() { jsonOutput = oldJSON })
@@ -129,7 +129,7 @@ func TestProxyTransformRefusalRendering(t *testing.T) {
 }
 
 func TestProxyTransformMatcherIgnoresInheritedOutputFlags(t *testing.T) {
-	root := &cobra.Command{Use: "bd"}
+	root := &cobra.Command{Use: "issuegraph"}
 	root.PersistentFlags().Bool("json", false, "output JSON")
 	cmd := &cobra.Command{Use: "duplicates"}
 	cmd.Flags().Bool("auto-merge", false, "")

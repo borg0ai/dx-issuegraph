@@ -15,16 +15,16 @@ const SendMetricsSubcommand = "send-metrics"
 // set, so the flusher can never spawn another flusher (an unbounded process
 // chain). This structural guard does not depend on send-metrics calling os.Exit
 // before control returns to main()'s spawn tail.
-const EnvIsFlusher = "BD_IS_FLUSHER"
+const EnvIsFlusher = "ISSUEGRAPH_IS_FLUSHER"
 
 // EnvTestMode is the same test-run flag the storage layer already checks
 // (e.g. internal/storage/dolt/open.go, store.go): `os.Getenv(EnvTestMode) ==
 // "1"`. MaybeSpawnFlusher honors it too so test suites no longer need to
-// hand-set BD_DISABLE_EVENT_FLUSH=1 just to stop the detached send-metrics
-// child from racing t.TempDir's RemoveAll (gastownhall/beads#5032).
-const EnvTestMode = "BEADS_TEST_MODE"
+// hand-set ISSUEGRAPH_DISABLE_EVENT_FLUSH=1 just to stop the detached send-metrics
+// child from racing t.TempDir's RemoveAll (borg0ai/dx-issuegraph#5032).
+const EnvTestMode = "ISSUEGRAPH_TEST_MODE"
 
-// inTestMode reports whether the process is running under a beads test
+// inTestMode reports whether the process is running under a issuegraph test
 // suite, using the same idiom as the rest of the codebase.
 func inTestMode() bool {
 	return os.Getenv(EnvTestMode) == "1"
@@ -47,7 +47,7 @@ func shouldSpawnFlusher() bool {
 }
 
 // flushInterval is the minimum spacing between detached send-metrics spawns.
-// Every bd invocation used to spawn one unconditionally — a full re-exec of
+// Every issuegraph invocation used to spawn one unconditionally — a full re-exec of
 // the ~200MB binary plus an HTTPS POST, measured at 8.5-14.1ms in-band before
 // the child even starts, ~10k spawns/day on a busy machine. Events tolerate
 // batching: nothing downstream needs sub-5-minute telemetry latency, and any
@@ -144,7 +144,7 @@ func hasQueuedEvents(dir string, now time.Time) bool {
 // cannot be written the worst case is the old always-spawn behavior.
 //
 // The marker is per-eventsData-dir. On a shared $HOME where enabled and
-// disabled bd invocations target one dir, a disabled prune-only spawn also
+// disabled issuegraph invocations target one dir, a disabled prune-only spawn also
 // stamps it, so it can make a post-throttle window prune-only and delay (worst
 // case, if disabled traffic dominates, starve) the enabled stream's uploads.
 // This is design-tolerated latency, not a data-safety issue: enabled and
@@ -183,7 +183,7 @@ func MaybeSpawnFlusher() {
 	cmd.Stderr = nil
 	// Hand the child an explicit environment rather than letting it inherit ours
 	// wholesale. By the time we spawn, the parent command may have loaded a
-	// project .beads/.env that set BEADS_METRICS_ENDPOINT; an inherited value
+	// project .issuegraph/.env that set ISSUEGRAPH_METRICS_ENDPOINT; an inherited value
 	// would let a hostile repository redirect where the user's telemetry is
 	// uploaded. Pin the endpoint to the value the parent already resolved from
 	// env + user-global config (see resolveMetricsEndpoint in modules/cli) and mark
@@ -219,8 +219,8 @@ func startDetached(cmd *exec.Cmd) (int, error) {
 }
 
 // flusherChildEnv returns a copy of env with the metrics endpoint pinned to
-// endpoint and the flusher marker set. Any inherited BEADS_METRICS_ENDPOINT (for
-// example one a project .beads/.env loaded into the parent process) is dropped
+// endpoint and the flusher marker set. Any inherited ISSUEGRAPH_METRICS_ENDPOINT (for
+// example one a project .issuegraph/.env loaded into the parent process) is dropped
 // so the detached flusher cannot be redirected by project-controlled
 // environment.
 func flusherChildEnv(env []string, endpoint string) []string {

@@ -12,7 +12,7 @@ issuegraph setup kiro
 issuegraph setup kiro --check
 ```
 
-The setup command writes IssueGraph workflow guidance to `.kiro/steering/beads.md`.
+The setup command writes IssueGraph workflow guidance to `.kiro/steering/issuegraph.md`.
 Kiro reads workspace steering files when it starts a session.
 
 ## Remove

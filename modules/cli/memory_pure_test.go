@@ -5,7 +5,7 @@ package main
 
 import "testing"
 
-// TestMatchesKnownCommand guards the `bd remember <subcommand>` misfire fix
+// TestMatchesKnownCommand guards the `issuegraph remember <subcommand>` misfire fix
 // (GH#4401): a bare word that names a real top-level command must be flagged so
 // it is not silently stored as memory content, while genuine multi-word
 // insights (and arbitrary single words) must pass through untouched.

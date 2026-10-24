@@ -27,8 +27,8 @@ import (
 	"testing"
 	"time"
 
-	"github.com/steveyegge/beads/internal/config"
-	"github.com/steveyegge/beads/internal/storage"
+	"github.com/borg0ai/dx-issuegraph/internal/config"
+	"github.com/borg0ai/dx-issuegraph/internal/storage"
 )
 
 const windowsOS = "windows"
@@ -81,25 +81,25 @@ func generateUniqueTestID(t *testing.T, prefix string, index int) string {
 }
 
 // initConfigForTest initializes viper config for a test and ensures cleanup.
-// main.go's init() calls config.Initialize() which picks up the real .beads/config.yaml.
+// main.go's init() calls config.Initialize() which picks up the real .issuegraph/config.yaml.
 // TestMain resets viper, but any test calling config.Initialize() re-loads the real config.
 // This helper ensures viper is reset after the test completes, preventing state pollution
 // (e.g., repo config values leaking into JSONL export tests).
 //
-// Tests automatically opt out of <module-root>/.beads/config.yaml via
-// BEADS_TEST_IGNORE_REPO_CONFIG; tests that want the repo config must override
+// Tests automatically opt out of <module-root>/.issuegraph/config.yaml via
+// ISSUEGRAPH_TEST_IGNORE_REPO_CONFIG; tests that want the repo config must override
 // before calling this helper.
 //
-// BEADS_DIR is pinned via t.Setenv here so that a test earlier in the binary which
-// resolved a real BEADS_DIR via raw os.Setenv (e.g. running actual CLI command
+// ISSUEGRAPH_DIR is pinned via t.Setenv here so that a test earlier in the binary which
+// resolved a real ISSUEGRAPH_DIR via raw os.Setenv (e.g. running actual CLI command
 // dispatch) doesn't leak it forward past this test. config.Initialize honors
-// BEADS_TEST_IGNORE_REPO_CONFIG on the BEADS_DIR source too, so such a leaked value
+// ISSUEGRAPH_TEST_IGNORE_REPO_CONFIG on the ISSUEGRAPH_DIR source too, so such a leaked value
 // can no longer re-import the repo's own config (ga-e6h6i); tests that want the repo
 // config must unset the flag before calling this helper.
 func initConfigForTest(t *testing.T) {
 	t.Helper()
-	t.Setenv("BEADS_DIR", os.Getenv("BEADS_DIR"))
-	t.Setenv("BEADS_TEST_IGNORE_REPO_CONFIG", "1")
+	t.Setenv("ISSUEGRAPH_DIR", os.Getenv("ISSUEGRAPH_DIR"))
+	t.Setenv("ISSUEGRAPH_TEST_IGNORE_REPO_CONFIG", "1")
 	config.ResetForTesting()
 	if err := config.Initialize(); err != nil {
 		t.Fatalf("config.Initialize: %v", err)
@@ -107,11 +107,11 @@ func initConfigForTest(t *testing.T) {
 	t.Cleanup(config.ResetForTesting)
 }
 
-// ensureTestMode is a no-op; BEADS_TEST_MODE is set once in TestMain.
+// ensureTestMode is a no-op; ISSUEGRAPH_TEST_MODE is set once in TestMain.
 // Previously each test set/unset the env var, which raced under t.Parallel().
 func ensureTestMode(t *testing.T) {
 	t.Helper()
-	// BEADS_TEST_MODE is set in TestMain and stays set for the entire test run.
+	// ISSUEGRAPH_TEST_MODE is set in TestMain and stays set for the entire test run.
 }
 
 // ensureCleanGlobalState resets global state that may have been modified by other tests.
@@ -120,10 +120,10 @@ func ensureCleanGlobalState(t *testing.T) {
 	t.Helper()
 	// Reset CommandContext so accessor functions fall back to globals
 	resetCommandContext()
-	// Pin BEADS_DIR so real CLI command dispatch this test triggers (which sets
-	// BEADS_DIR via raw os.Setenv with no restore, e.g. prepareSelectedCommandContext)
+	// Pin ISSUEGRAPH_DIR so real CLI command dispatch this test triggers (which sets
+	// ISSUEGRAPH_DIR via raw os.Setenv with no restore, e.g. prepareSelectedCommandContext)
 	// doesn't leak into later tests in the same binary.
-	t.Setenv("BEADS_DIR", os.Getenv("BEADS_DIR"))
+	t.Setenv("ISSUEGRAPH_DIR", os.Getenv("ISSUEGRAPH_DIR"))
 }
 
 // savedGlobals holds a snapshot of package-level globals for safe restoration.
@@ -296,67 +296,67 @@ func captureStderr(t *testing.T, fn func()) string {
 	return buf.String()
 }
 
-// buildBDOnce builds the bd binary once for subprocess tests.
+// buildIssueGraphOnce builds the issuegraph binary once for subprocess tests.
 // Uses sync.Once for efficiency when multiple tests need the binary.
 var (
-	initTestBD     string
-	initTestBDOnce sync.Once
-	initTestBDErr  error
+	initTestBD             string
+	initTestIssueGraphOnce sync.Once
+	initTestIssueGraphErr  error
 )
 
-func findPrebuiltBDBinary() (string, error) {
-	if configured := os.Getenv("BEADS_TEST_BD_BINARY"); configured != "" {
+func findPrebuiltIssueGraphBinary() (string, error) {
+	if configured := os.Getenv("ISSUEGRAPH_TEST_ISSUEGRAPH_BINARY"); configured != "" {
 		if _, err := os.Stat(configured); err != nil {
-			return "", fmt.Errorf("BEADS_TEST_BD_BINARY %q is not usable: %w", configured, err)
+			return "", fmt.Errorf("ISSUEGRAPH_TEST_ISSUEGRAPH_BINARY %q is not usable: %w", configured, err)
 		}
 		return filepath.Abs(configured)
 	}
 	return "", nil
 }
 
-// buildBDForInitTests builds (or locates) a bd binary suitable for subprocess
+// buildIssueGraphForInitTests builds (or locates) a issuegraph binary suitable for subprocess
 // tests. Uses the gms_pure_go tag so the resulting binary works in either
 // CGO mode. Lives in the pure-Go helpers file so subprocess-style tests can
 // run without the test package itself depending on cgo at compile time.
 //
-// The fast path is BEADS_TEST_BD_BINARY (exported by scripts/test.sh and CI),
-// via findPrebuiltBDBinary. There is deliberately NO repo-root ./bd reuse
+// The fast path is ISSUEGRAPH_TEST_ISSUEGRAPH_BINARY (exported by scripts/test.sh and CI),
+// via findPrebuiltIssueGraphBinary. There is deliberately NO repo-root ./issuegraph reuse
 // here anymore: that "optimization" silently ran subprocess tests against
 // whatever stale binary happened to sit in the checkout root — a two-day-old
 // one produced phantom TestCreateDepsAtomicity failures (features the source
 // under test had, the binary didn't). Tests must exercise the checkout's
 // source or an explicitly supplied binary, never an incidental artifact
 // (wy-4mtr0).
-func buildBDForInitTests(t *testing.T) string {
+func buildIssueGraphForInitTests(t *testing.T) string {
 	t.Helper()
-	initTestBDOnce.Do(func() {
-		prebuilt, err := findPrebuiltBDBinary()
+	initTestIssueGraphOnce.Do(func() {
+		prebuilt, err := findPrebuiltIssueGraphBinary()
 		if err != nil {
-			initTestBDErr = err
+			initTestIssueGraphErr = err
 			return
 		}
 		if prebuilt != "" {
 			initTestBD = prebuilt
 			return
 		}
-		bdBinary := "bd"
+		issuegraphBinary := "issuegraph"
 		if runtime.GOOS == windowsOS {
-			bdBinary = "bd.exe"
+			issuegraphBinary = "issuegraph.exe"
 		}
 		// Fall back to building.
-		tmpDir, err := testTempDir("bd-init-test-*")
+		tmpDir, err := testTempDir("issuegraph-init-test-*")
 		if err != nil {
-			initTestBDErr = fmt.Errorf("failed to create temp dir: %w", err)
+			initTestIssueGraphErr = fmt.Errorf("failed to create temp dir: %w", err)
 			return
 		}
-		initTestBD = filepath.Join(tmpDir, bdBinary)
+		initTestBD = filepath.Join(tmpDir, issuegraphBinary)
 		cmd := exec.Command("go", "build", "-tags", "gms_pure_go", "-o", initTestBD, ".")
 		if out, err := cmd.CombinedOutput(); err != nil {
-			initTestBDErr = fmt.Errorf("go build failed: %v\n%s", err, out)
+			initTestIssueGraphErr = fmt.Errorf("go build failed: %v\n%s", err, out)
 		}
 	})
-	if initTestBDErr != nil {
-		t.Fatalf("Failed to build bd binary: %v", initTestBDErr)
+	if initTestIssueGraphErr != nil {
+		t.Fatalf("Failed to build issuegraph binary: %v", initTestIssueGraphErr)
 	}
 	return initTestBD
 }
@@ -376,8 +376,8 @@ func runGitForBootstrapTest(t *testing.T, dir string, args ...string) {
 }
 
 // initGitRepoAt turns dir into a git repository with a test identity, giving
-// the no-workspace tests a walk boundary so FindBeadsDir cannot climb out of
-// the temp dir into a real .beads above it.
+// the no-workspace tests a walk boundary so FindIssueGraphDir cannot climb out of
+// the temp dir into a real .issuegraph above it.
 //
 // This lives in the pure-Go helper file, not alongside the embedded-Dolt
 // helpers: modules/cli/where_test.go carries no build tag, so it compiles under

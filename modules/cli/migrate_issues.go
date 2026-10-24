@@ -6,10 +6,10 @@ import (
 	"os"
 	"strings"
 
+	"github.com/borg0ai/dx-issuegraph/internal/metrics"
+	"github.com/borg0ai/dx-issuegraph/internal/storage"
+	"github.com/borg0ai/dx-issuegraph/internal/types"
 	"github.com/spf13/cobra"
-	"github.com/steveyegge/beads/internal/metrics"
-	"github.com/steveyegge/beads/internal/storage"
-	"github.com/steveyegge/beads/internal/types"
 )
 
 var migrateIssuesCmd = &cobra.Command{
@@ -24,16 +24,16 @@ This command updates the source_repo field for selected issues, allowing you to:
 
 Examples:
   # Preview migration from planning repo to current repo
-  bd migrate-issues --from ~/.beads-planning --to . --dry-run
+  issuegraph migrate-issues --from ~/.issuegraph-planning --to . --dry-run
 
   # Move all open P1 bugs
-  bd migrate-issues --from ~/repo1 --to ~/repo2 --priority 1 --type bug --status open
+  issuegraph migrate-issues --from ~/repo1 --to ~/repo2 --priority 1 --type bug --status open
 
   # Move specific issues with their dependencies
-  bd migrate-issues --from . --to ~/archive --id bd-abc --id bd-xyz --include closure
+  issuegraph migrate-issues --from . --to ~/archive --id bd-abc --id bd-xyz --include closure
 
   # Move issues with label filter
-  bd migrate-issues --from . --to ~/feature-work --label frontend --label urgent`,
+  issuegraph migrate-issues --from . --to ~/feature-work --label frontend --label urgent`,
 	SilenceUsage:  true,
 	SilenceErrors: true,
 	RunE: func(cmd *cobra.Command, args []string) error {
@@ -203,7 +203,7 @@ func executeMigrateIssues(ctx context.Context, p migrateIssuesParams) error {
 }
 
 func validateRepos(ctx context.Context, s storage.DoltStorage, from, to string, strict bool) error {
-	// migrate-issues is a round-trip path — opt out of BEADS_MAX_ROWS
+	// migrate-issues is a round-trip path — opt out of ISSUEGRAPH_MAX_ROWS
 	// (designer §4.1) so a misconfigured env doesn't abort migration.
 	// Check if source repo has any issues
 	fromIssues, err := s.SearchIssues(ctx, "", types.IssueFilter{
@@ -245,7 +245,7 @@ func validateRepos(ctx context.Context, s storage.DoltStorage, from, to string, 
 }
 
 func findCandidateIssues(ctx context.Context, s storage.DoltStorage, p migrateIssuesParams) ([]string, error) {
-	// Build filter from params. Opt out of BEADS_MAX_ROWS (designer §4.1) —
+	// Build filter from params. Opt out of ISSUEGRAPH_MAX_ROWS (designer §4.1) —
 	// migrate-issues is round-trip and must enumerate every candidate.
 	filter := types.IssueFilter{
 		SourceRepo:    &p.from,
@@ -596,7 +596,7 @@ func confirmMigration(plan migrationPlan) bool {
 }
 
 func executeMigration(ctx context.Context, s storage.DoltStorage, migrationSet []string, to string) error {
-	return transact(ctx, s, fmt.Sprintf("bd: migrate %d issues to %s", len(migrationSet), to), func(tx storage.Transaction) error {
+	return transact(ctx, s, fmt.Sprintf("issuegraph: migrate %d issues to %s", len(migrationSet), to), func(tx storage.Transaction) error {
 		for _, id := range migrationSet {
 			if err := tx.UpdateIssue(ctx, id, map[string]interface{}{
 				"source_repo": to,
@@ -651,6 +651,6 @@ func init() {
 	migrateIssuesAliasCmd := *migrateIssuesCmd
 	migrateIssuesAliasCmd.Use = "migrate-issues"
 	migrateIssuesAliasCmd.Hidden = true
-	migrateIssuesAliasCmd.Deprecated = "use 'bd migrate issues' instead (will be removed in v1.0.0)"
+	migrateIssuesAliasCmd.Deprecated = "use 'issuegraph migrate issues' instead (will be removed in v1.0.0)"
 	rootCmd.AddCommand(&migrateIssuesAliasCmd)
 }

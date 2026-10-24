@@ -15,7 +15,7 @@ import (
 // transparent compression for the inode — new files created inside a
 // directory with this flag inherit it automatically.
 //
-// We apply this to the .beads/ directory (and its dolt data subdirs) to
+// We apply this to the .issuegraph/ directory (and its dolt data subdirs) to
 // avoid pathological kworker thrashing on dolt's hot append-only write
 // path: with btrfs compression enabled, each small append forces a
 // read-modify-write-recompress of the existing compressed extent. Setting
@@ -78,17 +78,17 @@ func setInodeFlags(fd int, flags int) error {
 // Note: setting FS_NOCOW_FL on an already-populated directory only affects
 // files created *after* the flag is set. Existing files retain their prior
 // compression state and must be rewritten (e.g. via `mv` away and back) to
-// pick up the new flag. The bd doctor check surfaces this caveat.
+// pick up the new flag. The issuegraph doctor check surfaces this caveat.
 func applyNoCOW(path string) error {
 	onBtrfs, err := isBtrfs(path)
 	if err != nil || !onBtrfs {
 		// Not btrfs (or statfs failed): nothing to do. We deliberately
 		// don't propagate statfs errors because this is a best-effort
-		// optimization — a failure here must not break `bd init`.
+		// optimization — a failure here must not break `issuegraph init`.
 		return nil
 	}
 
-	// nolint:gosec // G304: path is the .beads/ dolt directory owned by the caller
+	// nolint:gosec // G304: path is the .issuegraph/ dolt directory owned by the caller
 	f, err := os.Open(path)
 	if err != nil {
 		return err
@@ -117,7 +117,7 @@ func hasNoCOW(path string) (bool, error) {
 		return false, nil
 	}
 
-	// nolint:gosec // G304: path is the .beads/ dolt directory owned by the caller
+	// nolint:gosec // G304: path is the .issuegraph/ dolt directory owned by the caller
 	f, err := os.Open(path)
 	if err != nil {
 		return false, err

@@ -14,7 +14,7 @@
 
 ## Goals
 
-以下子 RFC 全部 Approved 后实施：先完成章程边界 [0005](completed/0005-charter-sync-boundary.md)、JS workspace [0006](0006-issuegraph-monorepo.md)、Go module/CLI 输出 [0009](0009-go-module-cli-build.md)、产品资产布局 [0010](0010-issuegraph-asset-layout.md)，再做产品身份 [0002](0002-product-identity.md)、Git hooks [0007](0007-git-hooks.md)、Git 快照 [0004](0004-git-tracked-snapshot.md)、移除 Dolt 远程同步 [0003](0003-drop-remote-sync.md) 和外部 tracker 离线化 [0008](0008-external-trackers-local-only.md)。0003 必须在 0005、0004 后实施；0008 在 0003 后实施。伞关闭时所有子项均为 Implemented。
+以下子 RFC 全部 Approved 后实施：先完成章程边界 [0005](completed/0005-charter-sync-boundary.md)、JS workspace [0006](0006-issuegraph-monorepo.md)、Go module/CLI 输出 [0009](0009-go-module-cli-build.md)、产品资产布局 [0010](0010-issuegraph-asset-layout.md)，再做产品身份 [0002](completed/0002-product-identity.md)、Git hooks [0007](0007-git-hooks.md)、Git 快照 [0004](0004-git-tracked-snapshot.md)、移除 Dolt 远程同步 [0003](0003-drop-remote-sync.md) 和外部 tracker 离线化 [0008](0008-external-trackers-local-only.md)。0003 必须在 0005、0004 后实施；0008 在 0003 后实施。伞关闭时所有子项均为 Implemented。
 
 ## Non-goals
 
@@ -30,7 +30,7 @@
 | [0008](0008-external-trackers-local-only.md) | Disable external tracker network sync |
 | [0005](completed/0005-charter-sync-boundary.md) | 修订章程与同步边界 |
 | [0006](0006-issuegraph-monorepo.md) | pnpm/Turborepo 与 npm workspace 目录 |
-| [0002](0002-product-identity.md) | 产品名与命令名改为 IssueGraph / `issuegraph` |
+| [0002](completed/0002-product-identity.md) | 产品名与命令名改为 IssueGraph / `issuegraph` |
 | [0004](0004-git-tracked-snapshot.md) | Git 跟踪完整本地快照 |
 | [0003](0003-drop-remote-sync.md) | 移除 IssueGraph 的远程 issue 数据同步 |
 | [0007](0007-git-hooks.md) | 使用仓库自带 Git hooks 管理本地检查 |

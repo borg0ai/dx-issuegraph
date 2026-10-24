@@ -11,33 +11,33 @@ import (
 	"testing"
 )
 
-// bdPrime runs "bd prime" with the given args and returns stdout.
-func bdPrime(t *testing.T, bd, dir string, args ...string) string {
+// issuegraphPrime runs "issuegraph prime" with the given args and returns stdout.
+func issuegraphPrime(t *testing.T, issuegraph, dir string, args ...string) string {
 	t.Helper()
 	fullArgs := append([]string{"prime"}, args...)
-	cmd := exec.Command(bd, fullArgs...)
+	cmd := exec.Command(issuegraph, fullArgs...)
 	cmd.Dir = dir
-	cmd.Env = bdEnv(dir)
+	cmd.Env = issuegraphEnv(dir)
 	stdout, stderr, err := runCommandBuffers(t, cmd)
 	if err != nil {
-		t.Fatalf("bd prime %s failed: %v\nstdout:\n%s\nstderr:\n%s", strings.Join(args, " "), err, stdout.String(), stderr.String())
+		t.Fatalf("issuegraph prime %s failed: %v\nstdout:\n%s\nstderr:\n%s", strings.Join(args, " "), err, stdout.String(), stderr.String())
 	}
 	return stdout.String()
 }
 
 func TestEmbeddedPrime(t *testing.T) {
-	if os.Getenv("BEADS_TEST_EMBEDDED_DOLT") != "1" {
-		t.Skip("set BEADS_TEST_EMBEDDED_DOLT=1 to run embedded dolt integration tests")
+	if os.Getenv("ISSUEGRAPH_TEST_EMBEDDED_DOLT") != "1" {
+		t.Skip("set ISSUEGRAPH_TEST_EMBEDDED_DOLT=1 to run embedded dolt integration tests")
 	}
 	t.Parallel()
 
-	bd := buildEmbeddedBD(t)
-	dir, _, _ := bdInit(t, bd, "--prefix", "tp")
+	issuegraph := buildEmbeddedBD(t)
+	dir, _, _ := issuegraphInit(t, issuegraph, "--prefix", "tp")
 
 	// ===== Default Output =====
 
 	t.Run("prime_default", func(t *testing.T) {
-		out := bdPrime(t, bd, dir)
+		out := issuegraphPrime(t, issuegraph, dir)
 		if len(strings.TrimSpace(out)) == 0 {
 			t.Error("expected non-empty prime output")
 		}
@@ -46,20 +46,20 @@ func TestEmbeddedPrime(t *testing.T) {
 	// ===== Full Flag =====
 
 	t.Run("prime_full", func(t *testing.T) {
-		out := bdPrime(t, bd, dir, "--full")
+		out := issuegraphPrime(t, issuegraph, dir, "--full")
 		if len(strings.TrimSpace(out)) == 0 {
 			t.Error("expected non-empty prime --full output")
 		}
 		// Full mode should include command references
-		if !strings.Contains(out, "bd") {
-			t.Errorf("expected 'bd' command references in --full output: %s", out[:min(200, len(out))])
+		if !strings.Contains(out, "issuegraph") {
+			t.Errorf("expected 'issuegraph' command references in --full output: %s", out[:min(200, len(out))])
 		}
 	})
 
 	// ===== Export Flag =====
 
 	t.Run("prime_export", func(t *testing.T) {
-		out := bdPrime(t, bd, dir, "--export")
+		out := issuegraphPrime(t, issuegraph, dir, "--export")
 		if len(strings.TrimSpace(out)) == 0 {
 			t.Error("expected non-empty prime --export output")
 		}
@@ -69,16 +69,16 @@ func TestEmbeddedPrime(t *testing.T) {
 
 	t.Run("prime_memories_injected", func(t *testing.T) {
 		// Store a memory
-		cmd := exec.Command(bd, "remember", "always use -race flag in tests", "--key", "prime-test-mem")
+		cmd := exec.Command(issuegraph, "remember", "always use -race flag in tests", "--key", "prime-test-mem")
 		cmd.Dir = dir
-		cmd.Env = bdEnv(dir)
+		cmd.Env = issuegraphEnv(dir)
 		stdout, stderr, err := runCommandBuffers(t, cmd)
 		if err != nil {
-			t.Fatalf("bd remember failed: %v\nstdout:\n%s\nstderr:\n%s", err, stdout.String(), stderr.String())
+			t.Fatalf("issuegraph remember failed: %v\nstdout:\n%s\nstderr:\n%s", err, stdout.String(), stderr.String())
 		}
 
 		// Prime should include the memory
-		primeOut := bdPrime(t, bd, dir, "--full")
+		primeOut := issuegraphPrime(t, issuegraph, dir, "--full")
 		if !strings.Contains(primeOut, "race") {
 			t.Errorf("expected memory content in prime output: %s", primeOut[:min(500, len(primeOut))])
 		}
@@ -92,7 +92,7 @@ func TestEmbeddedPrime(t *testing.T) {
 	// ===== Memories Only =====
 
 	t.Run("prime_memories_only", func(t *testing.T) {
-		out := bdPrime(t, bd, dir, "--memories-only")
+		out := issuegraphPrime(t, issuegraph, dir, "--memories-only")
 		if !strings.Contains(out, "prime-test-mem") {
 			t.Errorf("expected memory content in --memories-only output: %s", out)
 		}
@@ -104,13 +104,13 @@ func TestEmbeddedPrime(t *testing.T) {
 
 // TestEmbeddedPrimeConcurrent exercises prime operations concurrently.
 func TestEmbeddedPrimeConcurrent(t *testing.T) {
-	if os.Getenv("BEADS_TEST_EMBEDDED_DOLT") != "1" {
-		t.Skip("set BEADS_TEST_EMBEDDED_DOLT=1 to run embedded dolt integration tests")
+	if os.Getenv("ISSUEGRAPH_TEST_EMBEDDED_DOLT") != "1" {
+		t.Skip("set ISSUEGRAPH_TEST_EMBEDDED_DOLT=1 to run embedded dolt integration tests")
 	}
 	t.Parallel()
 
-	bd := buildEmbeddedBD(t)
-	dir, _, _ := bdInit(t, bd, "--prefix", "px")
+	issuegraph := buildEmbeddedBD(t)
+	dir, _, _ := issuegraphInit(t, issuegraph, "--prefix", "px")
 
 	const numWorkers = 8
 
@@ -128,9 +128,9 @@ func TestEmbeddedPrimeConcurrent(t *testing.T) {
 			defer wg.Done()
 			r := workerResult{worker: worker}
 
-			cmd := exec.Command(bd, "prime", "--full")
+			cmd := exec.Command(issuegraph, "prime", "--full")
 			cmd.Dir = dir
-			cmd.Env = bdEnv(dir)
+			cmd.Env = issuegraphEnv(dir)
 			out, err := cmd.CombinedOutput()
 			if err != nil {
 				r.err = fmt.Errorf("prime --full (worker %d): %v\n%s", worker, err, out)

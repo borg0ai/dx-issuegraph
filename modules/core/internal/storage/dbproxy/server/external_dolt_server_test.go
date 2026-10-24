@@ -11,7 +11,7 @@ import (
 	"testing"
 	"time"
 
-	"github.com/steveyegge/beads/internal/configfile"
+	"github.com/borg0ai/dx-issuegraph/internal/configfile"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
@@ -55,8 +55,8 @@ func TestExternalDoltConfigValidate(t *testing.T) {
 			Host:        "hosted-dolt.example.com",
 			Port:        3306,
 			TLSRequired: true,
-			TLSCert:     testPlatformPath(t, "/etc/beads/client.pem"),
-			TLSKey:      testPlatformPath(t, "/etc/beads/client.key"),
+			TLSCert:     testPlatformPath(t, "/etc/issuegraph/client.pem"),
+			TLSKey:      testPlatformPath(t, "/etc/issuegraph/client.key"),
 		}.Validate())
 	})
 
@@ -123,13 +123,13 @@ func TestExternalDoltConfigValidate(t *testing.T) {
 	})
 
 	t.Run("tls cert without key rejected", func(t *testing.T) {
-		err := configfile.ExternalDoltConfig{Host: "db", Port: 3306, TLSCert: testPlatformPath(t, "/etc/beads/client.pem")}.Validate()
+		err := configfile.ExternalDoltConfig{Host: "db", Port: 3306, TLSCert: testPlatformPath(t, "/etc/issuegraph/client.pem")}.Validate()
 		require.Error(t, err)
 		assert.Contains(t, err.Error(), "TLSCert set without TLSKey")
 	})
 
 	t.Run("tls key without cert rejected", func(t *testing.T) {
-		err := configfile.ExternalDoltConfig{Host: "db", Port: 3306, TLSKey: testPlatformPath(t, "/etc/beads/client.key")}.Validate()
+		err := configfile.ExternalDoltConfig{Host: "db", Port: 3306, TLSKey: testPlatformPath(t, "/etc/issuegraph/client.key")}.Validate()
 		require.Error(t, err)
 		assert.Contains(t, err.Error(), "TLSKey set without TLSCert")
 	})
@@ -139,7 +139,7 @@ func TestExternalDoltConfigValidate(t *testing.T) {
 			Host:    "db",
 			Port:    3306,
 			TLSCert: "client.pem",
-			TLSKey:  testPlatformPath(t, "/etc/beads/client.key"),
+			TLSKey:  testPlatformPath(t, "/etc/issuegraph/client.key"),
 		}.Validate()
 		require.Error(t, err)
 		assert.Contains(t, err.Error(), "TLSCert")
@@ -150,7 +150,7 @@ func TestExternalDoltConfigValidate(t *testing.T) {
 		err := configfile.ExternalDoltConfig{
 			Host:    "db",
 			Port:    3306,
-			TLSCert: testPlatformPath(t, "/etc/beads/client.pem"),
+			TLSCert: testPlatformPath(t, "/etc/issuegraph/client.pem"),
 			TLSKey:  "client.key",
 		}.Validate()
 		require.Error(t, err)
@@ -215,10 +215,10 @@ func TestExternalDoltServerID_PureFunctionMatchesServer(t *testing.T) {
 func TestExternalDoltServerID_AuthFieldsDoNotChangeID(t *testing.T) {
 	base := configfile.ExternalDoltConfig{Host: "db", Port: 3306}
 	withAuth := base
-	withAuth.User = "beads"
+	withAuth.User = "issuegraph"
 	withAuth.TLSRequired = true
-	withAuth.TLSCert = testPlatformPath(t, "/etc/beads/client.pem")
-	withAuth.TLSKey = testPlatformPath(t, "/etc/beads/client.key")
+	withAuth.TLSCert = testPlatformPath(t, "/etc/issuegraph/client.pem")
+	withAuth.TLSKey = testPlatformPath(t, "/etc/issuegraph/client.key")
 	assert.Equal(t, ExternalDoltServerID(base), ExternalDoltServerID(withAuth))
 }
 
@@ -226,23 +226,23 @@ func TestExternalDoltServer_DSN(t *testing.T) {
 	t.Run("tcp without tls", func(t *testing.T) {
 		s, err := NewExternalDoltServer(configfile.ExternalDoltConfig{Host: "db", Port: 3306})
 		require.NoError(t, err)
-		dsn := s.DSN(context.Background(), "beads", "root", "secret")
+		dsn := s.DSN(context.Background(), "issuegraph", "root", "secret")
 		assert.Contains(t, dsn, "tcp(db:3306)")
-		assert.Contains(t, dsn, "/beads")
+		assert.Contains(t, dsn, "/issuegraph")
 		assert.Contains(t, dsn, "tls=false")
 	})
 
 	t.Run("tls terminates client-side, not in this dsn", func(t *testing.T) {
 		s, err := NewExternalDoltServer(configfile.ExternalDoltConfig{Host: "db", Port: 3306, TLSRequired: true})
 		require.NoError(t, err)
-		dsn := s.DSN(context.Background(), "beads", "root", "")
+		dsn := s.DSN(context.Background(), "issuegraph", "root", "")
 		assert.Contains(t, dsn, "tls=false")
 	})
 
 	t.Run("unix socket", func(t *testing.T) {
 		s, err := NewExternalDoltServer(configfile.ExternalDoltConfig{Socket: testPlatformPath(t, "/var/run/dolt.sock")})
 		require.NoError(t, err)
-		dsn := s.DSN(context.Background(), "beads", "root", "")
+		dsn := s.DSN(context.Background(), "issuegraph", "root", "")
 		assert.Contains(t, dsn, "unix("+testPlatformPath(t, "/var/run/dolt.sock")+")")
 		assert.NotContains(t, dsn, "tcp(")
 	})
@@ -250,7 +250,7 @@ func TestExternalDoltServer_DSN(t *testing.T) {
 	t.Run("password embedded", func(t *testing.T) {
 		s, err := NewExternalDoltServer(configfile.ExternalDoltConfig{Host: "db", Port: 3306})
 		require.NoError(t, err)
-		dsn := s.DSN(context.Background(), "beads", "u", "p@ss")
+		dsn := s.DSN(context.Background(), "issuegraph", "u", "p@ss")
 		assert.True(t, strings.HasPrefix(dsn, "u:p@ss@") || strings.Contains(dsn, "u:p%40ss@"))
 	})
 }

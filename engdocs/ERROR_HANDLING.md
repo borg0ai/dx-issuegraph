@@ -67,7 +67,7 @@ return a `HandleError*` value instead of adding more.
 
 **Example:**
 ```go
-if err := createConfigYaml(beadsDir, false); err != nil {
+if err := createConfigYaml(issuegraphDir, false); err != nil {
     fmt.Fprintf(os.Stderr, "Warning: failed to create config.yaml: %v\n", err)
     // Non-fatal - continue anyway
 }
@@ -166,7 +166,7 @@ if err != nil {
 ### Creating Auxiliary Config Files → Pattern B (Warn)
 
 ```go
-if err := createConfigYaml(localBeadsDir, false); err != nil {
+if err := createConfigYaml(localIssueGraphDir, false); err != nil {
     fmt.Fprintf(os.Stderr, "Warning: failed to create config.yaml: %v\n", err)
     // Non-fatal - continue anyway
 }
@@ -253,7 +253,7 @@ if err := installGitHooks(); err != nil {
 if err := installGitHooks(); err != nil {
     yellow := color.New(color.FgYellow).SprintFunc()
     fmt.Fprintf(os.Stderr, "\n%s Failed to install git hooks: %v\n", yellow("⚠"), err)
-    fmt.Fprintf(os.Stderr, "You can try again with: %s\n\n", cyan("bd doctor --fix"))
+    fmt.Fprintf(os.Stderr, "You can try again with: %s\n\n", cyan("issuegraph doctor --fix"))
 }
 ```
 
@@ -303,7 +303,7 @@ Tracking metadata **enhances functionality** but the system works without it:
 
 ```go
 // Pattern B: Warn and continue
-if err := store.SetMetadata(ctx, "bd_version", Version); err != nil {
+if err := store.SetMetadata(ctx, "issuegraph_version", Version); err != nil {
     fmt.Fprintf(os.Stderr, "Warning: failed to store version metadata: %v\n", err)
     // Non-fatal - continue anyway
 }
@@ -318,7 +318,7 @@ if err := store.SetMetadata(ctx, "last_import_hash", hash); err != nil {
 ```
 
 **Examples:**
-- `bd_version` - Enables version mismatch warnings on upgrades
+- `issuegraph_version` - Enables version mismatch warnings on upgrades
 - `repo_id` / `clone_id` - Helps with collision detection across clones
 - `last_import_hash` - Optimizes staleness detection (falls back to mtime if unavailable)
 

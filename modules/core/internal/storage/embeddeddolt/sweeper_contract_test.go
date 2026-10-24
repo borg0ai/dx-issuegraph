@@ -7,9 +7,9 @@ import (
 	"fmt"
 	"testing"
 
-	"github.com/steveyegge/beads/backend/conformance"
-	"github.com/steveyegge/beads/internal/storage/embeddeddolt"
-	"github.com/steveyegge/beads/issueops"
+	"github.com/borg0ai/dx-issuegraph/backend/conformance"
+	"github.com/borg0ai/dx-issuegraph/internal/storage/embeddeddolt"
+	"github.com/borg0ai/dx-issuegraph/issueops"
 )
 
 // TestSweeperContract runs the Sweeper contract against the embedded store,
@@ -40,8 +40,8 @@ func TestSweeperContract(t *testing.T) {
 	t.Run("TreatsALegacyTypedWispAsEphemeralTier", func(t *testing.T) {
 		conformance.RunSweeperTreatsALegacyTypedWispAsEphemeralTier(t, ctx, fixture)
 	})
-	t.Run("LeavesNoHistoryBeadsToTheDurableTier", func(t *testing.T) {
-		conformance.RunSweeperLeavesNoHistoryBeadsToTheDurableTier(t, ctx, fixture)
+	t.Run("LeavesNoHistoryIssueGraphToTheDurableTier", func(t *testing.T) {
+		conformance.RunSweeperLeavesNoHistoryIssueGraphToTheDurableTier(t, ctx, fixture)
 	})
 	t.Run("ProtectsPinnedRows", func(t *testing.T) {
 		conformance.RunSweeperProtectsPinnedRows(t, ctx, fixture)

@@ -8,7 +8,7 @@ import (
 	"sort"
 	"strings"
 
-	"github.com/steveyegge/beads/internal/types"
+	"github.com/borg0ai/dx-issuegraph/internal/types"
 )
 
 // ErrAmbiguousID is the sentinel wrapped into the error ResolvePartialID
@@ -55,7 +55,7 @@ func ResolvePartialID(ctx context.Context, store PartialIDResolverStore, input s
 	}
 
 	// Fast path: Use SearchIssues with exact ID filter (GH#942).
-	// This uses the same query path as "bd list --id", ensuring consistency.
+	// This uses the same query path as "issuegraph list --id", ensuring consistency.
 	// Previously we used GetIssue which could fail in cases where SearchIssues
 	// with filter.IDs succeeded, likely due to subtle query differences.
 	exactFilter := types.IssueFilter{IDs: []string{input}}
@@ -66,7 +66,7 @@ func ResolvePartialID(ctx context.Context, store PartialIDResolverStore, input s
 	// Get the configured prefix
 	prefix, err := store.GetConfig(ctx, "issue_prefix")
 	if err != nil || prefix == "" {
-		prefix = "bd"
+		prefix = "issuegraph"
 	}
 
 	// Ensure prefix has hyphen for ID format

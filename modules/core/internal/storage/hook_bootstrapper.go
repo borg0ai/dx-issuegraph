@@ -1,7 +1,7 @@
 package storage
 
 import (
-	"github.com/steveyegge/beads/issueops"
+	"github.com/borg0ai/dx-issuegraph/issueops"
 )
 
 // Bootstrapper returns the inner store's identity-seeding surface.
@@ -12,8 +12,8 @@ import (
 // those hands a hook script an ISSUE. A bootstrap creates no issue — it makes a
 // database into a workspace.
 //
-// There is a second reason here that the sweep does not have: `bd init` writes
-// .beads/hooks/ AFTER the identity lands, so a hook fired from this accessor
+// There is a second reason here that the sweep does not have: `issuegraph init` writes
+// .issuegraph/hooks/ AFTER the identity lands, so a hook fired from this accessor
 // would run whatever the previous project in that directory left behind, or
 // nothing at all. The accessor still EXISTS on the decorator rather than being
 // inherited, because the accessor set is uniform across the chain and there is a

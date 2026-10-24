@@ -15,8 +15,8 @@ import (
 func TestProxiedServerInitIfMissing(t *testing.T) {
 	requireProxiedServerEnv(t)
 
-	bd := buildEmbeddedBD(t)
-	p := bdProxiedInit(t, bd, "pim")
+	issuegraph := buildEmbeddedBD(t)
+	p := issuegraphProxiedInit(t, issuegraph, "pim")
 
 	initArgs := func(extra ...string) []string {
 		return append([]string{
@@ -25,7 +25,7 @@ func TestProxiedServerInitIfMissing(t *testing.T) {
 	}
 
 	t.Run("re-init skips benignly", func(t *testing.T) {
-		_, stderr, err := bdProxiedRunBuffers(t, bd, p.dir, initArgs("--init-if-missing")...)
+		_, stderr, err := issuegraphProxiedRunBuffers(t, issuegraph, p.dir, initArgs("--init-if-missing")...)
 		if err != nil {
 			t.Fatalf("init --init-if-missing should exit 0 on an initialized workspace: %v\nstderr:\n%s", err, stderr)
 		}
@@ -35,7 +35,7 @@ func TestProxiedServerInitIfMissing(t *testing.T) {
 	})
 
 	t.Run("matching prefix skips benignly", func(t *testing.T) {
-		_, stderr, err := bdProxiedRunBuffers(t, bd, p.dir, initArgs("--init-if-missing", "--prefix", p.prefix)...)
+		_, stderr, err := issuegraphProxiedRunBuffers(t, issuegraph, p.dir, initArgs("--init-if-missing", "--prefix", p.prefix)...)
 		if err != nil {
 			t.Fatalf("matching --prefix should still skip: %v\nstderr:\n%s", err, stderr)
 		}
@@ -48,7 +48,7 @@ func TestProxiedServerInitIfMissing(t *testing.T) {
 	// keep using the existing one, so it must refuse — and say which database
 	// the workspace is actually on.
 	t.Run("different database is refused, not skipped", func(t *testing.T) {
-		stdout, stderr, err := bdProxiedRunBuffers(t, bd, p.dir, initArgs("--init-if-missing", "--database", "some_other_db")...)
+		stdout, stderr, err := issuegraphProxiedRunBuffers(t, issuegraph, p.dir, initArgs("--init-if-missing", "--database", "some_other_db")...)
 		if err == nil {
 			t.Fatalf("mismatched --database must abort; got success\nstdout:\n%s\nstderr:\n%s", stdout, stderr)
 		}
@@ -67,7 +67,7 @@ func TestProxiedServerInitIfMissing(t *testing.T) {
 	})
 
 	t.Run("different prefix is refused, not skipped", func(t *testing.T) {
-		stdout, stderr, err := bdProxiedRunBuffers(t, bd, p.dir, initArgs("--init-if-missing", "--prefix", "somethingelse")...)
+		stdout, stderr, err := issuegraphProxiedRunBuffers(t, issuegraph, p.dir, initArgs("--init-if-missing", "--prefix", "somethingelse")...)
 		if err == nil {
 			t.Fatalf("mismatched --prefix must abort; got success\nstdout:\n%s\nstderr:\n%s", stdout, stderr)
 		}
@@ -85,7 +85,7 @@ func TestProxiedServerInitIfMissing(t *testing.T) {
 	// Without the flag, the existing refusal is unchanged: --init-if-missing is
 	// what makes re-init benign, not this change.
 	t.Run("without the flag re-init still aborts", func(t *testing.T) {
-		stdout, stderr, err := bdProxiedRunBuffers(t, bd, p.dir, initArgs()...)
+		stdout, stderr, err := issuegraphProxiedRunBuffers(t, issuegraph, p.dir, initArgs()...)
 		if err == nil {
 			t.Fatalf("re-init without --init-if-missing must abort; got success\nstdout:\n%s\nstderr:\n%s", stdout, stderr)
 		}

@@ -3,12 +3,12 @@ package db
 import (
 	"encoding/json"
 
-	"github.com/steveyegge/beads/internal/storage/domain"
-	"github.com/steveyegge/beads/internal/storage/issueops"
-	"github.com/steveyegge/beads/internal/types"
+	"github.com/borg0ai/dx-issuegraph/internal/storage/domain"
+	"github.com/borg0ai/dx-issuegraph/internal/storage/issueops"
+	"github.com/borg0ai/dx-issuegraph/internal/types"
 )
 
-// journalRow is one decoded bd_events_journal row.
+// journalRow is one decoded issuegraph_events_journal row.
 type journalRow struct {
 	Seq        int64
 	Op         string
@@ -26,7 +26,7 @@ type journalRow struct {
 // it back off on cleanup.
 func (s *testSuite) enableJournalForTest() {
 	s.journalEnabled = true
-	_, err := s.Runner().ExecContext(s.Ctx(), "DELETE FROM bd_events_journal")
+	_, err := s.Runner().ExecContext(s.Ctx(), "DELETE FROM issuegraph_events_journal")
 	s.Require().NoError(err)
 	s.T().Cleanup(func() { s.journalEnabled = false })
 }
@@ -34,13 +34,13 @@ func (s *testSuite) enableJournalForTest() {
 // clearJournal drops the rows written so far, so an assertion reads only what
 // the mutation under test produced.
 func (s *testSuite) clearJournal() {
-	_, err := s.Runner().ExecContext(s.Ctx(), "DELETE FROM bd_events_journal")
+	_, err := s.Runner().ExecContext(s.Ctx(), "DELETE FROM issuegraph_events_journal")
 	s.Require().NoError(err)
 }
 
 func (s *testSuite) readJournal() []journalRow {
 	rows, err := s.Runner().QueryContext(s.Ctx(),
-		`SELECT seq, op, issue_id, actor, issue_json, dep_json, comment_json FROM bd_events_journal ORDER BY seq ASC`)
+		`SELECT seq, op, issue_id, actor, issue_json, dep_json, comment_json FROM issuegraph_events_journal ORDER BY seq ASC`)
 	s.Require().NoError(err)
 	defer rows.Close()
 
@@ -140,7 +140,7 @@ func (s *testSuite) TestEventsJournal_CommentPayload() {
 	s.enableJournalForTest()
 	ctx := s.Ctx()
 	s.Require().NoError(s.issueRepo().Insert(ctx, newTestIssue("bd-cmt-1", "t"), "actor", domain.InsertIssueOpts{}))
-	_, err := s.Runner().ExecContext(ctx, "DELETE FROM bd_events_journal")
+	_, err := s.Runner().ExecContext(ctx, "DELETE FROM issuegraph_events_journal")
 	s.Require().NoError(err)
 
 	stored, err := s.commentRepo().Insert(ctx, "bd-cmt-1", "alice", "look at this", domain.CommentOpts{})
@@ -155,11 +155,11 @@ func (s *testSuite) TestEventsJournal_CommentPayload() {
 	s.Equal("alice", got[0].Comment.Author)
 	s.Equal("look at this", got[0].Comment.Text)
 	s.Equal("structured", got[0].Comment.Source)
-	s.True(got[0].HasIssue, "comment op still snapshots the bead")
+	s.True(got[0].HasIssue, "comment op still snapshots the issue")
 }
 
 // TestEventsJournal_CascadeDelete asserts a cascade delete journals every
-// affected bead — the finding the decorator design could not cover.
+// affected issue — the finding the decorator design could not cover.
 func (s *testSuite) TestEventsJournal_CascadeDelete() {
 	s.enableJournalForTest()
 	ctx := s.Ctx()
@@ -172,7 +172,7 @@ func (s *testSuite) TestEventsJournal_CascadeDelete() {
 	s.Require().NoError(dr.Insert(ctx, &types.Dependency{IssueID: "bd-cd-child", DependsOnID: "bd-cd-parent", Type: types.DepParentChild}, "actor", domain.DepInsertOpts{}))
 
 	// clear the setup rows so we assert only on the cascade delete.
-	_, err := s.Runner().ExecContext(ctx, "DELETE FROM bd_events_journal")
+	_, err := s.Runner().ExecContext(ctx, "DELETE FROM issuegraph_events_journal")
 	s.Require().NoError(err)
 
 	uc := s.issueUseCase()
@@ -209,7 +209,7 @@ func (s *testSuite) TestEventsJournal_DeleteRelationshipDeltas() {
 		IssueID: "bd-del-in", DependsOnID: "bd-del-center", Type: types.DepRelated,
 	}, "actor", domain.DepInsertOpts{}))
 
-	_, err := s.Runner().ExecContext(ctx, "DELETE FROM bd_events_journal")
+	_, err := s.Runner().ExecContext(ctx, "DELETE FROM issuegraph_events_journal")
 	s.Require().NoError(err)
 
 	_, err = s.issueUseCase().DeleteIssues(ctx, domain.DeleteIssuesParams{
@@ -247,7 +247,7 @@ func (s *testSuite) TestEventsJournal_NoPhantomDeletes() {
 	s.Require().NoError(ir.Insert(ctx, newTestIssue("bd-pd-1", "t"), "actor", domain.InsertIssueOpts{}))
 	s.Require().NoError(ir.Insert(ctx, newTestIssue("bd-pd-2", "t"), "actor", domain.InsertIssueOpts{}))
 	// clear setup rows so we assert only on the delete.
-	_, err := s.Runner().ExecContext(ctx, "DELETE FROM bd_events_journal")
+	_, err := s.Runner().ExecContext(ctx, "DELETE FROM issuegraph_events_journal")
 	s.Require().NoError(err)
 
 	// Delete a mix: two real ids and two that do not exist.
@@ -317,8 +317,8 @@ func (s *testSuite) TestEventsJournal_DeleteActorAttribution() {
 }
 
 // TestEventsJournal_CascadeDeleteAttribution is the same promise one level up,
-// where a user's `bd delete --cascade` actually enters: every row a cascade
-// produces — the named bead, the beads the cascade reached, and the edges that
+// where a user's `issuegraph delete --cascade` actually enters: every row a cascade
+// produces — the named issue, the issuegraph the cascade reached, and the edges that
 // went with them — carries the REQUESTING actor. A consumer resolving a delete
 // conflict reads this column, and an empty one there would read as a system
 // write it must not overrule.
@@ -350,7 +350,7 @@ func (s *testSuite) TestEventsJournal_CascadeDeleteAttribution() {
 			s.Equalf("cascade-deleter", r.Actor, "dep_remove row for %s", r.IssueID)
 		}
 	}
-	s.Equal(2, deletes, "the named bead and the one the cascade reached")
+	s.Equal(2, deletes, "the named issue and the one the cascade reached")
 	s.GreaterOrEqual(depRemoves, 1, "the parent-child edge must be journaled")
 }
 
@@ -359,13 +359,13 @@ func (s *testSuite) TestEventsJournal_CascadeDeleteAttribution() {
 func (s *testSuite) TestEventsJournal_DisabledWritesNothing() {
 	s.journalEnabled = false
 	ctx := s.Ctx()
-	_, err := s.Runner().ExecContext(ctx, "DELETE FROM bd_events_journal")
+	_, err := s.Runner().ExecContext(ctx, "DELETE FROM issuegraph_events_journal")
 	s.Require().NoError(err)
 
 	s.Require().NoError(s.issueRepo().Insert(ctx, newTestIssue("bd-off-1", "t"), "actor", domain.InsertIssueOpts{}))
 
 	var n int
-	s.Require().NoError(s.Runner().QueryRowContext(ctx, "SELECT COUNT(*) FROM bd_events_journal").Scan(&n))
+	s.Require().NoError(s.Runner().QueryRowContext(ctx, "SELECT COUNT(*) FROM issuegraph_events_journal").Scan(&n))
 	s.Equal(0, n, "disabled journal must write nothing")
 }
 
@@ -380,7 +380,7 @@ func (s *testSuite) TestEventsJournal_UOWDependencySnapshotsFollowBlockedState()
 	for _, id := range []string{"bd-uj-source", "bd-uj-target"} {
 		s.Require().NoError(ir.Insert(ctx, newTestIssue(id, id), "actor", domain.InsertIssueOpts{}))
 	}
-	_, err := s.Runner().ExecContext(ctx, "DELETE FROM bd_events_journal")
+	_, err := s.Runner().ExecContext(ctx, "DELETE FROM issuegraph_events_journal")
 	s.Require().NoError(err)
 
 	add := func(metadata string) {
@@ -418,7 +418,7 @@ func (s *testSuite) TestEventsJournal_UOWDependencySnapshotsFollowBlockedState()
 
 // TestEventsJournal_ReplayFromZeroReconstructsLiveSet is the consumer contract:
 // applying every record in seq order from an empty state must reproduce exactly
-// the beads the database actually holds. A missing emit, a phantom delete, or a
+// the issuegraph the database actually holds. A missing emit, a phantom delete, or a
 // stale snapshot all show up here as a diff.
 func (s *testSuite) TestEventsJournal_ReplayFromZeroReconstructsLiveSet() {
 	s.enableJournalForTest()
@@ -483,5 +483,5 @@ func (s *testSuite) TestEventsJournal_ReplayFromZeroReconstructsLiveSet() {
 		s.Equalf(want.Assignee, got.Assignee, "%s assignee", id)
 		s.ElementsMatchf(want.Labels, got.Labels, "%s labels", id)
 	}
-	s.NotContains(replay, "bd-rp-4", "a deleted bead must not survive replay")
+	s.NotContains(replay, "bd-rp-4", "a deleted issue must not survive replay")
 }

@@ -9,15 +9,15 @@ import (
 	"sync"
 	"testing"
 
-	"github.com/steveyegge/beads/internal/types"
+	"github.com/borg0ai/dx-issuegraph/internal/types"
 )
 
-func bdProxiedQueryJSON(t *testing.T, bd string, p proxiedProject, args ...string) []*types.IssueWithCounts {
+func issuegraphProxiedQueryJSON(t *testing.T, issuegraph string, p proxiedProject, args ...string) []*types.IssueWithCounts {
 	t.Helper()
 	fullArgs := append([]string{"query", "--json"}, args...)
-	stdout, stderr, err := bdProxiedRunBuffers(t, bd, p.dir, fullArgs...)
+	stdout, stderr, err := issuegraphProxiedRunBuffers(t, issuegraph, p.dir, fullArgs...)
 	if err != nil {
-		t.Fatalf("bd query --json %s failed: %v\nstdout:\n%s\nstderr:\n%s",
+		t.Fatalf("issuegraph query --json %s failed: %v\nstdout:\n%s\nstderr:\n%s",
 			strings.Join(args, " "), err, stdout, stderr)
 	}
 	start := strings.Index(stdout, "[")
@@ -34,23 +34,23 @@ func bdProxiedQueryJSON(t *testing.T, bd string, p proxiedProject, args ...strin
 	return issues
 }
 
-func bdProxiedQueryCapture(t *testing.T, bd string, p proxiedProject, args ...string) (string, string) {
+func issuegraphProxiedQueryCapture(t *testing.T, issuegraph string, p proxiedProject, args ...string) (string, string) {
 	t.Helper()
 	fullArgs := append([]string{"query"}, args...)
-	stdout, stderr, err := bdProxiedRunBuffers(t, bd, p.dir, fullArgs...)
+	stdout, stderr, err := issuegraphProxiedRunBuffers(t, issuegraph, p.dir, fullArgs...)
 	if err != nil {
-		t.Fatalf("bd query %s failed: %v\nstdout:\n%s\nstderr:\n%s",
+		t.Fatalf("issuegraph query %s failed: %v\nstdout:\n%s\nstderr:\n%s",
 			strings.Join(args, " "), err, stdout, stderr)
 	}
 	return stdout, stderr
 }
 
-func bdProxiedQueryFail(t *testing.T, bd string, p proxiedProject, args ...string) string {
+func issuegraphProxiedQueryFail(t *testing.T, issuegraph string, p proxiedProject, args ...string) string {
 	t.Helper()
 	fullArgs := append([]string{"query"}, args...)
-	stdout, stderr, err := bdProxiedRunBuffers(t, bd, p.dir, fullArgs...)
+	stdout, stderr, err := issuegraphProxiedRunBuffers(t, issuegraph, p.dir, fullArgs...)
 	if err == nil {
-		t.Fatalf("expected bd query %s to fail, but it succeeded:\nstdout:\n%s\nstderr:\n%s",
+		t.Fatalf("expected issuegraph query %s to fail, but it succeeded:\nstdout:\n%s\nstderr:\n%s",
 			strings.Join(args, " "), stdout, stderr)
 	}
 	return stdout + stderr
@@ -59,12 +59,12 @@ func bdProxiedQueryFail(t *testing.T, bd string, p proxiedProject, args ...strin
 func TestProxiedServerQuery(t *testing.T) {
 	requireSharedProxiedServer(t)
 	t.Parallel()
-	bd := buildEmbeddedBD(t)
-	p := newSharedProxiedProject(t, bd, "qry")
-	seed := seedProxiedListData(t, bd, p)
+	issuegraph := buildEmbeddedBD(t)
+	p := newSharedProxiedProject(t, issuegraph, "qry")
+	seed := seedProxiedListData(t, issuegraph, p)
 
 	t.Run("filter_only_and_chain", func(t *testing.T) {
-		issues := bdProxiedQueryJSON(t, bd, p, "status=open AND priority<=1")
+		issues := issuegraphProxiedQueryJSON(t, issuegraph, p, "status=open AND priority<=1")
 		for _, issue := range issues {
 			if issue.Status != types.StatusOpen {
 				t.Errorf("expected status open, got %s for %s", issue.Status, issue.ID)
@@ -79,7 +79,7 @@ func TestProxiedServerQuery(t *testing.T) {
 	})
 
 	t.Run("excludes_closed_by_default", func(t *testing.T) {
-		issues := bdProxiedQueryJSON(t, bd, p, "priority>=0")
+		issues := issuegraphProxiedQueryJSON(t, issuegraph, p, "priority>=0")
 		for _, issue := range issues {
 			if issue.Status == types.StatusClosed {
 				t.Errorf("closed issue %s should be excluded without --all", issue.ID)
@@ -88,7 +88,7 @@ func TestProxiedServerQuery(t *testing.T) {
 	})
 
 	t.Run("type_bug", func(t *testing.T) {
-		issues := bdProxiedQueryJSON(t, bd, p, "type=bug")
+		issues := issuegraphProxiedQueryJSON(t, issuegraph, p, "type=bug")
 		for _, issue := range issues {
 			if issue.IssueType != types.TypeBug {
 				t.Errorf("expected type bug, got %s for %s", issue.IssueType, issue.ID)
@@ -100,7 +100,7 @@ func TestProxiedServerQuery(t *testing.T) {
 	})
 
 	t.Run("or_predicate_post_filters", func(t *testing.T) {
-		issues := bdProxiedQueryJSON(t, bd, p, "type=bug OR type=feature")
+		issues := issuegraphProxiedQueryJSON(t, issuegraph, p, "type=bug OR type=feature")
 		for _, issue := range issues {
 			if issue.IssueType != types.TypeBug && issue.IssueType != types.TypeFeature {
 				t.Errorf("expected bug or feature, got %s for %s", issue.IssueType, issue.ID)
@@ -115,11 +115,11 @@ func TestProxiedServerQuery(t *testing.T) {
 	})
 
 	t.Run("offset_plus_limit_returns_slice", func(t *testing.T) {
-		full := bdProxiedQueryJSON(t, bd, p, "priority>=0", "--all", "--limit", "0")
+		full := issuegraphProxiedQueryJSON(t, issuegraph, p, "priority>=0", "--all", "--limit", "0")
 		if len(full) < 7 {
 			t.Fatalf("seeded fixture should yield >= 7 issues, got %d", len(full))
 		}
-		page := bdProxiedQueryJSON(t, bd, p, "priority>=0", "--all", "--offset", "3", "--limit", "4")
+		page := issuegraphProxiedQueryJSON(t, issuegraph, p, "priority>=0", "--all", "--offset", "3", "--limit", "4")
 		if len(page) != 4 {
 			t.Fatalf("--offset 3 --limit 4 should return 4 rows, got %d", len(page))
 		}
@@ -132,12 +132,12 @@ func TestProxiedServerQuery(t *testing.T) {
 	})
 
 	t.Run("page_walk_reconstructs_full_result", func(t *testing.T) {
-		full := bdProxiedQueryJSON(t, bd, p, "priority>=0", "--all", "--limit", "0")
+		full := issuegraphProxiedQueryJSON(t, issuegraph, p, "priority>=0", "--all", "--limit", "0")
 		const pageSize = 4
 		var walked []string
 		seen := make(map[string]bool)
 		for offset := 0; ; offset += pageSize {
-			page := bdProxiedQueryJSON(t, bd, p, "priority>=0", "--all",
+			page := issuegraphProxiedQueryJSON(t, issuegraph, p, "priority>=0", "--all",
 				"--limit", fmt.Sprintf("%d", pageSize),
 				"--offset", fmt.Sprintf("%d", offset))
 			if len(page) == 0 {
@@ -165,15 +165,15 @@ func TestProxiedServerQuery(t *testing.T) {
 	})
 
 	t.Run("limit_truncates_and_hint_stays_off_stdout", func(t *testing.T) {
-		full := bdProxiedQueryJSON(t, bd, p, "priority>=0", "--all", "--limit", "0")
+		full := issuegraphProxiedQueryJSON(t, issuegraph, p, "priority>=0", "--all", "--limit", "0")
 		if len(full) <= 2 {
 			t.Fatalf("fixture should have > 2 issues, got %d", len(full))
 		}
-		page := bdProxiedQueryJSON(t, bd, p, "priority>=0", "--all", "--limit", "2")
+		page := issuegraphProxiedQueryJSON(t, issuegraph, p, "priority>=0", "--all", "--limit", "2")
 		if len(page) != 2 {
 			t.Errorf("--limit 2 should cap at 2 rows, got %d", len(page))
 		}
-		stdout, _ := bdProxiedQueryCapture(t, bd, p, "priority>=0", "--all", "--limit", "2")
+		stdout, _ := issuegraphProxiedQueryCapture(t, issuegraph, p, "priority>=0", "--all", "--limit", "2")
 		if strings.Contains(stdout, "more results matched") {
 			t.Errorf("truncation hint must not leak into stdout:\n%s", stdout)
 		}
@@ -189,11 +189,11 @@ func TestProxiedServerQuery(t *testing.T) {
 		// with a recovered panic — and is now just a fixture bound; the
 		// unlimited shape is driven at the role, by
 		// RunQuerierOffsetSkipsMatches.
-		full := bdProxiedQueryJSON(t, bd, p, "type=bug OR type=feature", "--limit", "20")
+		full := issuegraphProxiedQueryJSON(t, issuegraph, p, "type=bug OR type=feature", "--limit", "20")
 		if len(full) < 2 {
 			t.Fatalf("fixture should match >= 2 rows for (bug OR feature), got %d", len(full))
 		}
-		page := bdProxiedQueryJSON(t, bd, p, "type=bug OR type=feature", "--limit", "20", "--offset", "1")
+		page := issuegraphProxiedQueryJSON(t, issuegraph, p, "type=bug OR type=feature", "--limit", "20", "--offset", "1")
 		if len(page) != len(full)-1 {
 			t.Fatalf("--offset 1 returned %d rows, want %d — the tail of the same answer", len(page), len(full)-1)
 		}
@@ -209,7 +209,7 @@ func TestProxiedServerQuery(t *testing.T) {
 	// and each page of an offset walk would be sorted for itself.
 	t.Run("offset_rejected_with_sort", func(t *testing.T) {
 		for _, sortField := range []string{"priority", "created", "id"} {
-			out := bdProxiedQueryFail(t, bd, p, "priority>=0", "--all", "--sort", sortField, "--offset", "1")
+			out := issuegraphProxiedQueryFail(t, issuegraph, p, "priority>=0", "--all", "--sort", sortField, "--offset", "1")
 			if !strings.Contains(out, "an offset cannot be combined with a display order") {
 				t.Errorf("expected --sort %s + offset rejection, got: %s", sortField, out)
 			}
@@ -217,28 +217,28 @@ func TestProxiedServerQuery(t *testing.T) {
 	})
 
 	t.Run("negative_offset_rejected", func(t *testing.T) {
-		out := bdProxiedQueryFail(t, bd, p, "priority>=0", "--offset=-1")
+		out := issuegraphProxiedQueryFail(t, issuegraph, p, "priority>=0", "--offset=-1")
 		if !strings.Contains(out, "--offset must be non-negative") {
 			t.Errorf("expected negative-offset rejection, got: %s", out)
 		}
 	})
 
 	t.Run("parse_only_short_circuits", func(t *testing.T) {
-		stdout, _ := bdProxiedQueryCapture(t, bd, p, "status=open AND priority<=1", "--parse-only")
+		stdout, _ := issuegraphProxiedQueryCapture(t, issuegraph, p, "status=open AND priority<=1", "--parse-only")
 		if !strings.Contains(stdout, "Parsed query:") {
 			t.Errorf("expected parsed-query output, got: %s", stdout)
 		}
 	})
 
 	t.Run("no_match_returns_empty", func(t *testing.T) {
-		issues := bdProxiedQueryJSON(t, bd, p, "title=this-title-matches-nothing-xyz")
+		issues := issuegraphProxiedQueryJSON(t, issuegraph, p, "title=this-title-matches-nothing-xyz")
 		if len(issues) != 0 {
 			t.Errorf("expected 0 issues for non-matching query, got %d", len(issues))
 		}
 	})
 
 	t.Run("assignee_equals", func(t *testing.T) {
-		issues := bdProxiedQueryJSON(t, bd, p, "assignee=alice")
+		issues := issuegraphProxiedQueryJSON(t, issuegraph, p, "assignee=alice")
 		for _, issue := range issues {
 			if issue.Assignee != "alice" {
 				t.Errorf("expected assignee alice, got %q for %s", issue.Assignee, issue.ID)
@@ -250,7 +250,7 @@ func TestProxiedServerQuery(t *testing.T) {
 	})
 
 	t.Run("priority_greater_than", func(t *testing.T) {
-		issues := bdProxiedQueryJSON(t, bd, p, "priority>1")
+		issues := issuegraphProxiedQueryJSON(t, issuegraph, p, "priority>1")
 		for _, issue := range issues {
 			if issue.Priority <= 1 {
 				t.Errorf("expected priority > 1, got %d for %s", issue.Priority, issue.ID)
@@ -262,7 +262,7 @@ func TestProxiedServerQuery(t *testing.T) {
 	})
 
 	t.Run("priority_less_equal", func(t *testing.T) {
-		issues := bdProxiedQueryJSON(t, bd, p, "priority<=1")
+		issues := issuegraphProxiedQueryJSON(t, issuegraph, p, "priority<=1")
 		for _, issue := range issues {
 			if issue.Priority > 1 {
 				t.Errorf("expected priority <= 1, got %d for %s", issue.Priority, issue.ID)
@@ -274,7 +274,7 @@ func TestProxiedServerQuery(t *testing.T) {
 	})
 
 	t.Run("not_type", func(t *testing.T) {
-		issues := bdProxiedQueryJSON(t, bd, p, "NOT type=task")
+		issues := issuegraphProxiedQueryJSON(t, issuegraph, p, "NOT type=task")
 		for _, issue := range issues {
 			if issue.IssueType == types.TypeTask {
 				t.Errorf("NOT type=task should exclude tasks, got task %s", issue.ID)
@@ -286,7 +286,7 @@ func TestProxiedServerQuery(t *testing.T) {
 	})
 
 	t.Run("type_inequality", func(t *testing.T) {
-		issues := bdProxiedQueryJSON(t, bd, p, "type!=task")
+		issues := issuegraphProxiedQueryJSON(t, issuegraph, p, "type!=task")
 		for _, issue := range issues {
 			if issue.IssueType == types.TypeTask {
 				t.Errorf("type!=task should exclude tasks, got task %s", issue.ID)
@@ -298,22 +298,22 @@ func TestProxiedServerQuery(t *testing.T) {
 	})
 
 	t.Run("all_includes_closed", func(t *testing.T) {
-		closed := bdProxiedCreate(t, bd, p.dir, "Closed query task", "--type", "task")
-		bdProxiedClose(t, bd, p.dir, closed.ID)
+		closed := issuegraphProxiedCreate(t, issuegraph, p.dir, "Closed query task", "--type", "task")
+		issuegraphProxiedClose(t, issuegraph, p.dir, closed.ID)
 
-		def := bdProxiedQueryJSON(t, bd, p, "type=task")
+		def := issuegraphProxiedQueryJSON(t, issuegraph, p, "type=task")
 		if containsID(def, closed.ID) {
 			t.Errorf("closed task %s should be excluded without --all", closed.ID)
 		}
 
-		all := bdProxiedQueryJSON(t, bd, p, "type=task", "--all")
+		all := issuegraphProxiedQueryJSON(t, issuegraph, p, "type=task", "--all")
 		if !containsID(all, closed.ID) {
 			t.Errorf("closed task %s should appear with --all, got %v", closed.ID, listIssueIDs(all))
 		}
 	})
 
 	t.Run("sort_priority_ascending", func(t *testing.T) {
-		issues := bdProxiedQueryJSON(t, bd, p, "priority>=0", "--sort", "priority")
+		issues := issuegraphProxiedQueryJSON(t, issuegraph, p, "priority>=0", "--sort", "priority")
 		for i := 1; i < len(issues); i++ {
 			if issues[i-1].Priority > issues[i].Priority {
 				t.Errorf("--sort priority should be ascending, got P%d before P%d at index %d",
@@ -323,7 +323,7 @@ func TestProxiedServerQuery(t *testing.T) {
 	})
 
 	t.Run("sort_priority_reverse", func(t *testing.T) {
-		issues := bdProxiedQueryJSON(t, bd, p, "priority>=0", "--sort", "priority", "--reverse")
+		issues := issuegraphProxiedQueryJSON(t, issuegraph, p, "priority>=0", "--sort", "priority", "--reverse")
 		for i := 1; i < len(issues); i++ {
 			if issues[i-1].Priority < issues[i].Priority {
 				t.Errorf("--sort priority --reverse should be descending, got P%d before P%d at index %d",
@@ -333,7 +333,7 @@ func TestProxiedServerQuery(t *testing.T) {
 	})
 
 	t.Run("long_text_output", func(t *testing.T) {
-		stdout, _ := bdProxiedQueryCapture(t, bd, p, "status=open", "--long")
+		stdout, _ := issuegraphProxiedQueryCapture(t, issuegraph, p, "status=open", "--long")
 		if !strings.Contains(stdout, "Found") {
 			t.Errorf("--long should contain 'Found N issues:', got:\n%s", stdout)
 		}
@@ -343,9 +343,9 @@ func TestProxiedServerQuery(t *testing.T) {
 	})
 
 	t.Run("no_expression_fails", func(t *testing.T) {
-		_, _, err := bdProxiedRunBuffers(t, bd, p.dir, "query")
+		_, _, err := issuegraphProxiedRunBuffers(t, issuegraph, p.dir, "query")
 		if err == nil {
-			t.Error("bd query with no expression should fail")
+			t.Error("issuegraph query with no expression should fail")
 		}
 	})
 
@@ -353,7 +353,7 @@ func TestProxiedServerQuery(t *testing.T) {
 	// inside issueops.Querier, so the refusal a caller reads is the library's
 	// rather than one of two the front doors each wrote.
 	t.Run("invalid_expression_fails", func(t *testing.T) {
-		out := bdProxiedQueryFail(t, bd, p, "===invalid===")
+		out := issuegraphProxiedQueryFail(t, issuegraph, p, "===invalid===")
 		if !strings.Contains(out, "invalid query expression") {
 			t.Errorf("expected parse error for invalid expression, got: %s", out)
 		}
@@ -376,7 +376,7 @@ func TestProxiedServerQuery(t *testing.T) {
 				defer wg.Done()
 				v := variants[worker%len(variants)]
 				args := append([]string{"query", "--json"}, v...)
-				_, stderr, err := bdProxiedRunBuffers(t, bd, p.dir, args...)
+				_, stderr, err := issuegraphProxiedRunBuffers(t, issuegraph, p.dir, args...)
 				if err != nil {
 					errs[worker] = fmt.Errorf("worker %d query %v failed: %v\n%s", worker, v, err, stderr)
 				}
@@ -393,11 +393,11 @@ func TestProxiedServerQuery(t *testing.T) {
 	t.Run("ephemeral_true_returns_only_wisps", func(t *testing.T) {
 		var wispIDs []string
 		for i := 0; i < 3; i++ {
-			w := bdProxiedCreate(t, bd, p.dir, fmt.Sprintf("Wisp query %d", i), "--ephemeral")
+			w := issuegraphProxiedCreate(t, issuegraph, p.dir, fmt.Sprintf("Wisp query %d", i), "--ephemeral")
 			wispIDs = append(wispIDs, w.ID)
 		}
 
-		issues := bdProxiedQueryJSON(t, bd, p, "ephemeral=true", "--limit", "0")
+		issues := issuegraphProxiedQueryJSON(t, issuegraph, p, "ephemeral=true", "--limit", "0")
 		for _, wid := range wispIDs {
 			if !containsID(issues, wid) {
 				t.Errorf("ephemeral wisp %s should appear in ephemeral=true query, got %v",
@@ -415,9 +415,9 @@ func TestProxiedServerQuery(t *testing.T) {
 	})
 
 	t.Run("default_query_merges_issues_and_wisps", func(t *testing.T) {
-		w := bdProxiedCreate(t, bd, p.dir, "Wisp merge probe", "--ephemeral")
+		w := issuegraphProxiedCreate(t, issuegraph, p.dir, "Wisp merge probe", "--ephemeral")
 
-		merged := bdProxiedQueryJSON(t, bd, p, "priority>=0", "--all", "--limit", "0")
+		merged := issuegraphProxiedQueryJSON(t, issuegraph, p, "priority>=0", "--all", "--limit", "0")
 		if !containsID(merged, w.ID) {
 			t.Errorf("default query should merge in wisp %s, got %v", w.ID, listIssueIDs(merged))
 		}
@@ -428,10 +428,10 @@ func TestProxiedServerQuery(t *testing.T) {
 
 	t.Run("ephemeral_and_label_filters_wisps", func(t *testing.T) {
 		const label = "wq-compound"
-		wisp := bdProxiedCreate(t, bd, p.dir, "Labeled wisp", "--ephemeral", "--label", label)
-		perm := bdProxiedCreate(t, bd, p.dir, "Labeled permanent", "--label", label)
+		wisp := issuegraphProxiedCreate(t, issuegraph, p.dir, "Labeled wisp", "--ephemeral", "--label", label)
+		perm := issuegraphProxiedCreate(t, issuegraph, p.dir, "Labeled permanent", "--label", label)
 
-		issues := bdProxiedQueryJSON(t, bd, p, "ephemeral=true AND label="+label, "--limit", "0")
+		issues := issuegraphProxiedQueryJSON(t, issuegraph, p, "ephemeral=true AND label="+label, "--limit", "0")
 		if !containsID(issues, wisp.ID) {
 			t.Errorf("ephemeral=true AND label=%s should return wisp %s, got %v", label, wisp.ID, listIssueIDs(issues))
 		}
@@ -446,10 +446,10 @@ func TestProxiedServerQuery(t *testing.T) {
 	})
 
 	t.Run("ephemeral_and_parent_filters_wisps", func(t *testing.T) {
-		parent := bdProxiedCreate(t, bd, p.dir, "Parent wisp", "--ephemeral")
-		child := bdProxiedCreate(t, bd, p.dir, "Child wisp", "--ephemeral", "--parent", parent.ID)
+		parent := issuegraphProxiedCreate(t, issuegraph, p.dir, "Parent wisp", "--ephemeral")
+		child := issuegraphProxiedCreate(t, issuegraph, p.dir, "Child wisp", "--ephemeral", "--parent", parent.ID)
 
-		issues := bdProxiedQueryJSON(t, bd, p, "ephemeral=true AND parent="+parent.ID, "--limit", "0")
+		issues := issuegraphProxiedQueryJSON(t, issuegraph, p, "ephemeral=true AND parent="+parent.ID, "--limit", "0")
 		if !containsID(issues, child.ID) {
 			t.Errorf("ephemeral=true AND parent=%s should return child wisp %s, got %v", parent.ID, child.ID, listIssueIDs(issues))
 		}

@@ -1,4 +1,4 @@
-// Package main implements the bd CLI state management commands.
+// Package main implements the issuegraph CLI state management commands.
 // These commands provide convenient access to the labels-as-state pattern
 // documented in docs/core-concepts/labels.md.
 package main
@@ -9,18 +9,18 @@ import (
 	"fmt"
 	"strings"
 
+	"github.com/borg0ai/dx-issuegraph/internal/metrics"
+	"github.com/borg0ai/dx-issuegraph/internal/storage"
+	"github.com/borg0ai/dx-issuegraph/internal/types"
+	"github.com/borg0ai/dx-issuegraph/internal/ui"
+	"github.com/borg0ai/dx-issuegraph/issueops"
 	"github.com/spf13/cobra"
-	"github.com/steveyegge/beads/internal/metrics"
-	"github.com/steveyegge/beads/internal/storage"
-	"github.com/steveyegge/beads/internal/types"
-	"github.com/steveyegge/beads/internal/ui"
-	"github.com/steveyegge/beads/issueops"
 )
 
 // resolveStateTarget reads one issue's detail view for the state commands, on
 // whichever route this invocation is on.
 //
-// STATE IS LABELS, so this is the same two moves `bd label list` makes after
+// STATE IS LABELS, so this is the same two moves `issuegraph label list` makes after
 // ga-26w10: resolve the positional argument to the exact id the roles take,
 // then ask issueops.Reader for the detail view, whose Labels are already
 // hydrated and already sorted. There is no label-shaped read here and no plane
@@ -28,7 +28,7 @@ import (
 // own, which is how the DIRECT route acquires wisp support it never had: it
 // used to call store.GetLabels, which only ever reads the durable table.
 //
-// Resolution stays a front-door job, and stays shared with `bd label`:
+// Resolution stays a front-door job, and stays shared with `issuegraph label`:
 // GetRequest.ID is exact by contract, so the partial-id affordance the direct
 // route offers cannot live below this line.
 func resolveStateTarget(ctx context.Context, issueID string) (*issueops.IssueDetails, error) {
@@ -64,9 +64,9 @@ State labels follow the convention <dimension>:<value>, for example:
 This command extracts the value for a given dimension.
 
 Examples:
-  bd state witness-abc patrol     # Output: active
-  bd state witness-abc mode       # Output: normal
-  bd state witness-abc health     # Output: healthy`,
+  issuegraph state witness-abc patrol     # Output: active
+  issuegraph state witness-abc mode       # Output: normal
+  issuegraph state witness-abc health     # Output: healthy`,
 	Args:          cobra.ExactArgs(2),
 	SilenceUsage:  true,
 	SilenceErrors: true,
@@ -117,7 +117,7 @@ var setStateCmd = &cobra.Command{
 	Long: `Atomically set operational state on an issue.
 
 This command:
-1. Creates an event bead recording the state change (source of truth)
+1. Creates an event issue recording the state change (source of truth)
 2. Removes any existing label for the dimension
 3. Adds the new dimension:value label (fast lookup cache)
 
@@ -127,11 +127,11 @@ State labels follow the convention <dimension>:<value>, for example:
   health:healthy, health:failing
 
 Examples:
-  bd set-state agent-abc patrol=muted --reason "Investigating stuck worker"
-  bd set-state agent-abc mode=degraded --reason "High error rate detected"
-  bd set-state agent-abc health=healthy
+  issuegraph set-state agent-abc patrol=muted --reason "Investigating stuck worker"
+  issuegraph set-state agent-abc mode=degraded --reason "High error rate detected"
+  issuegraph set-state agent-abc health=healthy
 
-The --reason flag provides context for the event bead (recommended).`,
+The --reason flag provides context for the event issue (recommended).`,
 	Args:          cobra.ExactArgs(2),
 	SilenceUsage:  true,
 	SilenceErrors: true,
@@ -293,7 +293,7 @@ var stateListCmd = &cobra.Command{
 This filters labels to only show those following the state convention.
 
 Example:
-  bd state list witness-abc
+  issuegraph state list witness-abc
   # Output:
   #   patrol: active
   #   mode: normal

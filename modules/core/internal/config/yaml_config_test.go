@@ -28,7 +28,7 @@ func TestIsYamlOnlyKey(t *testing.T) {
 		{"sync.require_confirmation_on_mass_delete", true},
 		{"directory.labels", true},
 		{"repos.primary", true},
-		{"external_projects.beads", true},
+		{"external_projects.issuegraph", true},
 		{"list.limit", true},
 
 		// Hierarchy settings (GH#995)
@@ -274,32 +274,32 @@ func TestFormatYamlValue(t *testing.T) {
 }
 
 func TestSetYamlConfig(t *testing.T) {
-	oldBeadsDir := os.Getenv("BEADS_DIR")
-	if err := os.Unsetenv("BEADS_DIR"); err != nil {
-		t.Fatalf("Failed to unset BEADS_DIR: %v", err)
+	oldIssueGraphDir := os.Getenv("ISSUEGRAPH_DIR")
+	if err := os.Unsetenv("ISSUEGRAPH_DIR"); err != nil {
+		t.Fatalf("Failed to unset ISSUEGRAPH_DIR: %v", err)
 	}
 	defer func() {
-		if oldBeadsDir == "" {
-			_ = os.Unsetenv("BEADS_DIR")
+		if oldIssueGraphDir == "" {
+			_ = os.Unsetenv("ISSUEGRAPH_DIR")
 		} else {
-			_ = os.Setenv("BEADS_DIR", oldBeadsDir)
+			_ = os.Setenv("ISSUEGRAPH_DIR", oldIssueGraphDir)
 		}
 	}()
 
-	// Create a temp directory with .beads/config.yaml
-	tmpDir, err := os.MkdirTemp("", "beads-yaml-test-*")
+	// Create a temp directory with .issuegraph/config.yaml
+	tmpDir, err := os.MkdirTemp("", "issuegraph-yaml-test-*")
 	if err != nil {
 		t.Fatalf("Failed to create temp dir: %v", err)
 	}
 	defer os.RemoveAll(tmpDir)
 
-	beadsDir := filepath.Join(tmpDir, ".beads")
-	if err := os.MkdirAll(beadsDir, 0755); err != nil {
-		t.Fatalf("Failed to create .beads dir: %v", err)
+	issuegraphDir := filepath.Join(tmpDir, ".issuegraph")
+	if err := os.MkdirAll(issuegraphDir, 0755); err != nil {
+		t.Fatalf("Failed to create .issuegraph dir: %v", err)
 	}
 
-	configPath := filepath.Join(beadsDir, "config.yaml")
-	initialConfig := `# Beads Config
+	configPath := filepath.Join(issuegraphDir, "config.yaml")
+	initialConfig := `# IssueGraph Config
 # no-db: false
 other-setting: value
 `
@@ -351,18 +351,18 @@ func TestSetYamlConfigInDir_WritesTargetConfigDespiteLocalStub(t *testing.T) {
 	}()
 
 	tmpDir := t.TempDir()
-	targetBeadsDir := filepath.Join(tmpDir, "shared", ".beads")
-	if err := os.MkdirAll(targetBeadsDir, 0o755); err != nil {
-		t.Fatalf("failed to create target beads dir: %v", err)
+	targetIssueGraphDir := filepath.Join(tmpDir, "shared", ".issuegraph")
+	if err := os.MkdirAll(targetIssueGraphDir, 0o755); err != nil {
+		t.Fatalf("failed to create target issuegraph dir: %v", err)
 	}
-	targetConfigPath := filepath.Join(targetBeadsDir, "config.yaml")
+	targetConfigPath := filepath.Join(targetIssueGraphDir, "config.yaml")
 	if err := os.WriteFile(targetConfigPath, []byte("json: false\n"), 0o644); err != nil {
 		t.Fatalf("failed to write target config.yaml: %v", err)
 	}
 
 	worktreeDir := filepath.Join(tmpDir, "worktree")
-	if err := os.MkdirAll(filepath.Join(worktreeDir, ".beads"), 0o755); err != nil {
-		t.Fatalf("failed to create worktree stub beads dir: %v", err)
+	if err := os.MkdirAll(filepath.Join(worktreeDir, ".issuegraph"), 0o755); err != nil {
+		t.Fatalf("failed to create worktree stub issuegraph dir: %v", err)
 	}
 
 	oldWd, _ := os.Getwd()
@@ -372,7 +372,7 @@ func TestSetYamlConfigInDir_WritesTargetConfigDespiteLocalStub(t *testing.T) {
 	defer os.Chdir(oldWd)
 
 	const remoteURL = "git+ssh://git@example.com/acme/repo.git"
-	if err := SetYamlConfigInDir(targetBeadsDir, "sync.remote", remoteURL); err != nil {
+	if err := SetYamlConfigInDir(targetIssueGraphDir, "sync.remote", remoteURL); err != nil {
 		t.Fatalf("SetYamlConfigInDir() error = %v", err)
 	}
 
@@ -384,36 +384,36 @@ func TestSetYamlConfigInDir_WritesTargetConfigDespiteLocalStub(t *testing.T) {
 		t.Fatalf("expected target config.yaml to contain %q, got:\n%s", remoteURL, string(targetContent))
 	}
 
-	if _, err := os.Stat(filepath.Join(worktreeDir, ".beads", "config.yaml")); !os.IsNotExist(err) {
+	if _, err := os.Stat(filepath.Join(worktreeDir, ".issuegraph", "config.yaml")); !os.IsNotExist(err) {
 		t.Fatalf("expected worktree stub to remain untouched, got err=%v", err)
 	}
 }
 
 func TestWorkspaceYamlValueStrictDistinguishesMissingAndMalformed(t *testing.T) {
-	beadsDir := filepath.Join(t.TempDir(), ".beads")
-	if value, present, err := WorkspaceYamlValueStrict(beadsDir, "dolt.shared-server"); err != nil || present || value != "" {
+	issuegraphDir := filepath.Join(t.TempDir(), ".issuegraph")
+	if value, present, err := WorkspaceYamlValueStrict(issuegraphDir, "dolt.shared-server"); err != nil || present || value != "" {
 		t.Fatalf("missing config = (%q, %v, %v), want empty/false/nil", value, present, err)
 	}
-	if err := os.MkdirAll(beadsDir, 0o755); err != nil {
+	if err := os.MkdirAll(issuegraphDir, 0o755); err != nil {
 		t.Fatal(err)
 	}
-	if err := os.WriteFile(filepath.Join(beadsDir, "config.yaml"), []byte("dolt: ["), 0o600); err != nil {
+	if err := os.WriteFile(filepath.Join(issuegraphDir, "config.yaml"), []byte("dolt: ["), 0o600); err != nil {
 		t.Fatal(err)
 	}
-	if _, _, err := WorkspaceYamlValueStrict(beadsDir, "dolt.shared-server"); err == nil {
+	if _, _, err := WorkspaceYamlValueStrict(issuegraphDir, "dolt.shared-server"); err == nil {
 		t.Fatal("malformed config should return an error")
 	}
 }
 
 func TestWorkspaceYamlValueStrictReadsNestedScalar(t *testing.T) {
-	beadsDir := filepath.Join(t.TempDir(), ".beads")
-	if err := os.MkdirAll(beadsDir, 0o755); err != nil {
+	issuegraphDir := filepath.Join(t.TempDir(), ".issuegraph")
+	if err := os.MkdirAll(issuegraphDir, 0o755); err != nil {
 		t.Fatal(err)
 	}
-	if err := os.WriteFile(filepath.Join(beadsDir, "config.yaml"), []byte("dolt:\n  shared-server: false\n"), 0o600); err != nil {
+	if err := os.WriteFile(filepath.Join(issuegraphDir, "config.yaml"), []byte("dolt:\n  shared-server: false\n"), 0o600); err != nil {
 		t.Fatal(err)
 	}
-	value, present, err := WorkspaceYamlValueStrict(beadsDir, "dolt.shared-server")
+	value, present, err := WorkspaceYamlValueStrict(issuegraphDir, "dolt.shared-server")
 	if err != nil || !present || value != "false" {
 		t.Fatalf("nested scalar = (%q, %v, %v), want false/true/nil", value, present, err)
 	}
@@ -422,14 +422,14 @@ func TestWorkspaceYamlValueStrictReadsNestedScalar(t *testing.T) {
 func TestWorkspaceYamlValueStrictRejectsNullAndWrongParent(t *testing.T) {
 	for _, body := range []string{"dolt:\n  shared-server: null\n", "dolt: false\n", "dolt: []\n"} {
 		t.Run(strings.ReplaceAll(body, "\n", "_"), func(t *testing.T) {
-			beadsDir := filepath.Join(t.TempDir(), ".beads")
-			if err := os.MkdirAll(beadsDir, 0o755); err != nil {
+			issuegraphDir := filepath.Join(t.TempDir(), ".issuegraph")
+			if err := os.MkdirAll(issuegraphDir, 0o755); err != nil {
 				t.Fatal(err)
 			}
-			if err := os.WriteFile(filepath.Join(beadsDir, "config.yaml"), []byte(body), 0o600); err != nil {
+			if err := os.WriteFile(filepath.Join(issuegraphDir, "config.yaml"), []byte(body), 0o600); err != nil {
 				t.Fatal(err)
 			}
-			if _, _, err := WorkspaceYamlValueStrict(beadsDir, "dolt.shared-server"); err == nil {
+			if _, _, err := WorkspaceYamlValueStrict(issuegraphDir, "dolt.shared-server"); err == nil {
 				t.Fatalf("config %q should be rejected", body)
 			}
 		})
@@ -437,9 +437,9 @@ func TestWorkspaceYamlValueStrictRejectsNullAndWrongParent(t *testing.T) {
 }
 
 func TestSetYamlConfigInDir_ValidatesBeforeOpeningConfig(t *testing.T) {
-	beadsDir := filepath.Join(t.TempDir(), ".beads")
+	issuegraphDir := filepath.Join(t.TempDir(), ".issuegraph")
 
-	err := SetYamlConfigInDir(beadsDir, "hierarchy.max-depth", "0")
+	err := SetYamlConfigInDir(issuegraphDir, "hierarchy.max-depth", "0")
 	if err == nil {
 		t.Fatal("expected validation error")
 	}
@@ -449,12 +449,12 @@ func TestSetYamlConfigInDir_ValidatesBeforeOpeningConfig(t *testing.T) {
 }
 
 func TestSetYamlConfigInDir_MissingConfig(t *testing.T) {
-	beadsDir := filepath.Join(t.TempDir(), ".beads")
-	if err := os.MkdirAll(beadsDir, 0o755); err != nil {
-		t.Fatalf("failed to create beads dir: %v", err)
+	issuegraphDir := filepath.Join(t.TempDir(), ".issuegraph")
+	if err := os.MkdirAll(issuegraphDir, 0o755); err != nil {
+		t.Fatalf("failed to create issuegraph dir: %v", err)
 	}
 
-	err := SetYamlConfigInDir(beadsDir, "json", "true")
+	err := SetYamlConfigInDir(issuegraphDir, "json", "true")
 	if err == nil {
 		t.Fatal("expected missing config error")
 	}
@@ -463,25 +463,25 @@ func TestSetYamlConfigInDir_MissingConfig(t *testing.T) {
 	}
 }
 
-func TestFindProjectConfigYamlWithFinder_BEADS_DIRMissingConfig(t *testing.T) {
+func TestFindProjectConfigYamlWithFinder_ISSUEGRAPH_DIRMissingConfig(t *testing.T) {
 	restore := envSnapshot(t)
 	defer restore()
 
-	beadsDir := filepath.Join(t.TempDir(), ".beads")
-	if err := os.MkdirAll(beadsDir, 0o755); err != nil {
-		t.Fatalf("failed to create beads dir: %v", err)
+	issuegraphDir := filepath.Join(t.TempDir(), ".issuegraph")
+	if err := os.MkdirAll(issuegraphDir, 0o755); err != nil {
+		t.Fatalf("failed to create issuegraph dir: %v", err)
 	}
-	t.Setenv("BEADS_DIR", beadsDir)
+	t.Setenv("ISSUEGRAPH_DIR", issuegraphDir)
 
 	got, err := findProjectConfigYamlWithFinder(nil)
 	if err == nil {
-		t.Fatal("expected error when BEADS_DIR has no config.yaml")
+		t.Fatal("expected error when ISSUEGRAPH_DIR has no config.yaml")
 	}
 	if got != "" {
 		t.Fatalf("findProjectConfigYamlWithFinder() = %q, want empty path on error", got)
 	}
-	if !strings.Contains(err.Error(), "no config.yaml found in BEADS_DIR") {
-		t.Fatalf("expected BEADS_DIR-specific error, got: %v", err)
+	if !strings.Contains(err.Error(), "no config.yaml found in ISSUEGRAPH_DIR") {
+		t.Fatalf("expected ISSUEGRAPH_DIR-specific error, got: %v", err)
 	}
 }
 
@@ -498,16 +498,16 @@ func TestFindProjectConfigYamlWithFinder_UsesFinderResult(t *testing.T) {
 		overriddenKeys = previousOverrides
 	}()
 
-	beadsDir := filepath.Join(t.TempDir(), ".beads")
-	if err := os.MkdirAll(beadsDir, 0o755); err != nil {
-		t.Fatalf("failed to create beads dir: %v", err)
+	issuegraphDir := filepath.Join(t.TempDir(), ".issuegraph")
+	if err := os.MkdirAll(issuegraphDir, 0o755); err != nil {
+		t.Fatalf("failed to create issuegraph dir: %v", err)
 	}
-	configPath := filepath.Join(beadsDir, "config.yaml")
+	configPath := filepath.Join(issuegraphDir, "config.yaml")
 	if err := os.WriteFile(configPath, []byte("json: true\n"), 0o644); err != nil {
 		t.Fatalf("failed to write config.yaml: %v", err)
 	}
 
-	got, err := findProjectConfigYamlWithFinder(func() string { return beadsDir })
+	got, err := findProjectConfigYamlWithFinder(func() string { return issuegraphDir })
 	if err != nil {
 		t.Fatalf("findProjectConfigYamlWithFinder() error = %v", err)
 	}
@@ -533,7 +533,7 @@ func TestFindProjectConfigYamlWithFinder_NoFinderNoConfig(t *testing.T) {
 	if got != "" {
 		t.Fatalf("findProjectConfigYamlWithFinder() = %q, want empty path on error", got)
 	}
-	if !strings.Contains(err.Error(), "no .beads/config.yaml found") {
+	if !strings.Contains(err.Error(), "no .issuegraph/config.yaml found") {
 		t.Fatalf("expected generic missing config error, got: %v", err)
 	}
 }
@@ -553,13 +553,13 @@ func TestProjectConfigPathFromLoadedState(t *testing.T) {
 
 	t.Run("rejects non config yaml", func(t *testing.T) {
 		v = viper.New()
-		v.SetConfigFile(filepath.Join(t.TempDir(), ".beads", "config.local.yaml"))
+		v.SetConfigFile(filepath.Join(t.TempDir(), ".issuegraph", "config.local.yaml"))
 		if got := projectConfigPathFromLoadedState(); got != "" {
 			t.Fatalf("projectConfigPathFromLoadedState() = %q, want empty for config.local.yaml", got)
 		}
 	})
 
-	t.Run("rejects config outside beads dir", func(t *testing.T) {
+	t.Run("rejects config outside issuegraph dir", func(t *testing.T) {
 		configPath := filepath.Join(t.TempDir(), "config.yaml")
 		if err := os.WriteFile(configPath, []byte("json: true\n"), 0o644); err != nil {
 			t.Fatalf("failed to write config.yaml: %v", err)
@@ -569,24 +569,24 @@ func TestProjectConfigPathFromLoadedState(t *testing.T) {
 		v.SetConfigFile(configPath)
 
 		if got := projectConfigPathFromLoadedState(); got != "" {
-			t.Fatalf("projectConfigPathFromLoadedState() = %q, want empty for non-.beads config", got)
+			t.Fatalf("projectConfigPathFromLoadedState() = %q, want empty for non-.issuegraph config", got)
 		}
 	})
 
 	t.Run("rejects missing file", func(t *testing.T) {
 		v = viper.New()
-		v.SetConfigFile(filepath.Join(t.TempDir(), ".beads", "config.yaml"))
+		v.SetConfigFile(filepath.Join(t.TempDir(), ".issuegraph", "config.yaml"))
 		if got := projectConfigPathFromLoadedState(); got != "" {
 			t.Fatalf("projectConfigPathFromLoadedState() = %q, want empty for missing config", got)
 		}
 	})
 
 	t.Run("accepts valid config yaml", func(t *testing.T) {
-		beadsDir := filepath.Join(t.TempDir(), ".beads")
-		if err := os.MkdirAll(beadsDir, 0o755); err != nil {
-			t.Fatalf("failed to create beads dir: %v", err)
+		issuegraphDir := filepath.Join(t.TempDir(), ".issuegraph")
+		if err := os.MkdirAll(issuegraphDir, 0o755); err != nil {
+			t.Fatalf("failed to create issuegraph dir: %v", err)
 		}
-		configPath := filepath.Join(beadsDir, "config.yaml")
+		configPath := filepath.Join(issuegraphDir, "config.yaml")
 		if err := os.WriteFile(configPath, []byte("json: true\n"), 0o644); err != nil {
 			t.Fatalf("failed to write config.yaml: %v", err)
 		}
@@ -600,14 +600,14 @@ func TestProjectConfigPathFromLoadedState(t *testing.T) {
 	})
 }
 
-func TestFindProjectBeadsDir_NonGitTreeWithoutConfig(t *testing.T) {
+func TestFindProjectIssueGraphDir_NonGitTreeWithoutConfig(t *testing.T) {
 	restore := envSnapshot(t)
 	defer restore()
 
 	t.Chdir(t.TempDir())
 
-	if got := findProjectBeadsDir(); got != "" {
-		t.Fatalf("findProjectBeadsDir() = %q, want empty", got)
+	if got := findProjectIssueGraphDir(); got != "" {
+		t.Fatalf("findProjectIssueGraphDir() = %q, want empty", got)
 	}
 }
 
@@ -808,8 +808,8 @@ func TestIsSecretKey(t *testing.T) {
 		{"some.secret", true},
 		{"some.api-key", true},
 
-		// Spellings the wire redaction has to cover. GET /v0/beads/config
-		// publishes a value for any key this returns false for, and bd serve's
+		// Spellings the wire redaction has to cover. GET /v0/issuegraph/config
+		// publishes a value for any key this returns false for, and issuegraph serve's
 		// bearer — optional, and shared and surface-wide where it is
 		// configured — cannot withhold one value from one caller, so each of
 		// these is a credential in cleartext if it regresses. "apikey" in
@@ -860,7 +860,7 @@ func TestSecretKeyEnvVarHint(t *testing.T) {
 		{"linear.api_key", "LINEAR_API_KEY"},
 		{"github.token", "GITHUB_TOKEN"},
 		{"ai.api_key", "ANTHROPIC_API_KEY"},
-		{"custom.secret-token", "BD_CUSTOM_SECRET_TOKEN"},
+		{"custom.secret-token", "ISSUEGRAPH_CUSTOM_SECRET_TOKEN"},
 	}
 
 	for _, tt := range tests {
@@ -883,12 +883,12 @@ func TestCheckSecretKeyGitSafety_RefusesGitTrackedSecret(t *testing.T) {
 		t.Fatalf("git init failed: %v\n%s", err, out)
 	}
 
-	// Create .beads/config.yaml and git-add it
-	beadsDir := filepath.Join(tmpDir, ".beads")
-	if err := os.MkdirAll(beadsDir, 0755); err != nil {
-		t.Fatalf("failed to create .beads dir: %v", err)
+	// Create .issuegraph/config.yaml and git-add it
+	issuegraphDir := filepath.Join(tmpDir, ".issuegraph")
+	if err := os.MkdirAll(issuegraphDir, 0755); err != nil {
+		t.Fatalf("failed to create .issuegraph dir: %v", err)
 	}
-	configPath := filepath.Join(beadsDir, "config.yaml")
+	configPath := filepath.Join(issuegraphDir, "config.yaml")
 	if err := os.WriteFile(configPath, []byte("json: false\n"), 0644); err != nil {
 		t.Fatalf("failed to write config.yaml: %v", err)
 	}
@@ -923,11 +923,11 @@ func TestCheckSecretKeyGitSafety_AllowsDatabaseBackedSecretKey(t *testing.T) {
 		t.Fatalf("git init failed: %v\n%s", err, out)
 	}
 
-	beadsDir := filepath.Join(tmpDir, ".beads")
-	if err := os.MkdirAll(beadsDir, 0755); err != nil {
-		t.Fatalf("failed to create .beads dir: %v", err)
+	issuegraphDir := filepath.Join(tmpDir, ".issuegraph")
+	if err := os.MkdirAll(issuegraphDir, 0755); err != nil {
+		t.Fatalf("failed to create .issuegraph dir: %v", err)
 	}
-	configPath := filepath.Join(beadsDir, "config.yaml")
+	configPath := filepath.Join(issuegraphDir, "config.yaml")
 	if err := os.WriteFile(configPath, []byte("json: false\n"), 0644); err != nil {
 		t.Fatalf("failed to write config.yaml: %v", err)
 	}
@@ -954,11 +954,11 @@ func TestCheckSecretKeyGitSafety_AllowsUntrackedConfig(t *testing.T) {
 		t.Fatalf("git init failed: %v\n%s", err, out)
 	}
 
-	beadsDir := filepath.Join(tmpDir, ".beads")
-	if err := os.MkdirAll(beadsDir, 0755); err != nil {
-		t.Fatalf("failed to create .beads dir: %v", err)
+	issuegraphDir := filepath.Join(tmpDir, ".issuegraph")
+	if err := os.MkdirAll(issuegraphDir, 0755); err != nil {
+		t.Fatalf("failed to create .issuegraph dir: %v", err)
 	}
-	configPath := filepath.Join(beadsDir, "config.yaml")
+	configPath := filepath.Join(issuegraphDir, "config.yaml")
 	if err := os.WriteFile(configPath, []byte("json: false\n"), 0644); err != nil {
 		t.Fatalf("failed to write config.yaml: %v", err)
 	}
@@ -979,11 +979,11 @@ func TestCheckSecretKeyGitSafety_AllowsNonSecretKeyOnTrackedConfig(t *testing.T)
 		t.Fatalf("git init failed: %v\n%s", err, out)
 	}
 
-	beadsDir := filepath.Join(tmpDir, ".beads")
-	if err := os.MkdirAll(beadsDir, 0755); err != nil {
-		t.Fatalf("failed to create .beads dir: %v", err)
+	issuegraphDir := filepath.Join(tmpDir, ".issuegraph")
+	if err := os.MkdirAll(issuegraphDir, 0755); err != nil {
+		t.Fatalf("failed to create .issuegraph dir: %v", err)
 	}
-	configPath := filepath.Join(beadsDir, "config.yaml")
+	configPath := filepath.Join(issuegraphDir, "config.yaml")
 	if err := os.WriteFile(configPath, []byte("json: false\n"), 0644); err != nil {
 		t.Fatalf("failed to write config.yaml: %v", err)
 	}
@@ -1047,32 +1047,32 @@ func TestCommentOutYamlKey(t *testing.T) {
 }
 
 func TestUnsetYamlConfig(t *testing.T) {
-	oldBeadsDir := os.Getenv("BEADS_DIR")
-	if err := os.Unsetenv("BEADS_DIR"); err != nil {
-		t.Fatalf("Failed to unset BEADS_DIR: %v", err)
+	oldIssueGraphDir := os.Getenv("ISSUEGRAPH_DIR")
+	if err := os.Unsetenv("ISSUEGRAPH_DIR"); err != nil {
+		t.Fatalf("Failed to unset ISSUEGRAPH_DIR: %v", err)
 	}
 	defer func() {
-		if oldBeadsDir == "" {
-			_ = os.Unsetenv("BEADS_DIR")
+		if oldIssueGraphDir == "" {
+			_ = os.Unsetenv("ISSUEGRAPH_DIR")
 		} else {
-			_ = os.Setenv("BEADS_DIR", oldBeadsDir)
+			_ = os.Setenv("ISSUEGRAPH_DIR", oldIssueGraphDir)
 		}
 	}()
 
-	// Create a temp directory with .beads/config.yaml
-	tmpDir, err := os.MkdirTemp("", "beads-yaml-unset-test-*")
+	// Create a temp directory with .issuegraph/config.yaml
+	tmpDir, err := os.MkdirTemp("", "issuegraph-yaml-unset-test-*")
 	if err != nil {
 		t.Fatalf("Failed to create temp dir: %v", err)
 	}
 	defer os.RemoveAll(tmpDir)
 
-	beadsDir := filepath.Join(tmpDir, ".beads")
-	if err := os.MkdirAll(beadsDir, 0755); err != nil {
-		t.Fatalf("Failed to create .beads dir: %v", err)
+	issuegraphDir := filepath.Join(tmpDir, ".issuegraph")
+	if err := os.MkdirAll(issuegraphDir, 0755); err != nil {
+		t.Fatalf("Failed to create .issuegraph dir: %v", err)
 	}
 
-	configPath := filepath.Join(beadsDir, "config.yaml")
-	initialConfig := `# Beads Config
+	configPath := filepath.Join(issuegraphDir, "config.yaml")
+	initialConfig := `# IssueGraph Config
 backup.enabled: false
 other-setting: value
 `
@@ -1107,29 +1107,29 @@ other-setting: value
 	}
 }
 
-func TestFindProjectConfigYaml_UsesBEADS_DIRFirst(t *testing.T) {
-	tmpDir, err := os.MkdirTemp("", "beads-yaml-beadsdir-*")
+func TestFindProjectConfigYaml_UsesISSUEGRAPH_DIRFirst(t *testing.T) {
+	tmpDir, err := os.MkdirTemp("", "issuegraph-yaml-issuegraphdir-*")
 	if err != nil {
 		t.Fatalf("Failed to create temp dir: %v", err)
 	}
 	defer os.RemoveAll(tmpDir)
 
-	// Runtime config pointed to by BEADS_DIR
-	runtimeBeadsDir := filepath.Join(tmpDir, "runtime", ".beads")
-	if err := os.MkdirAll(runtimeBeadsDir, 0755); err != nil {
-		t.Fatalf("Failed to create runtime .beads dir: %v", err)
+	// Runtime config pointed to by ISSUEGRAPH_DIR
+	runtimeIssueGraphDir := filepath.Join(tmpDir, "runtime", ".issuegraph")
+	if err := os.MkdirAll(runtimeIssueGraphDir, 0755); err != nil {
+		t.Fatalf("Failed to create runtime .issuegraph dir: %v", err)
 	}
-	runtimeConfigPath := filepath.Join(runtimeBeadsDir, "config.yaml")
+	runtimeConfigPath := filepath.Join(runtimeIssueGraphDir, "config.yaml")
 	if err := os.WriteFile(runtimeConfigPath, []byte("no-git-ops: false\n"), 0644); err != nil {
 		t.Fatalf("Failed to write runtime config.yaml: %v", err)
 	}
 
-	// Also create a local .beads/config.yaml under CWD that should be ignored
+	// Also create a local .issuegraph/config.yaml under CWD that should be ignored
 	cwdRepoDir := filepath.Join(tmpDir, "cwd-repo")
-	if err := os.MkdirAll(filepath.Join(cwdRepoDir, ".beads"), 0755); err != nil {
-		t.Fatalf("Failed to create cwd repo .beads dir: %v", err)
+	if err := os.MkdirAll(filepath.Join(cwdRepoDir, ".issuegraph"), 0755); err != nil {
+		t.Fatalf("Failed to create cwd repo .issuegraph dir: %v", err)
 	}
-	if err := os.WriteFile(filepath.Join(cwdRepoDir, ".beads", "config.yaml"), []byte("no-git-ops: true\n"), 0644); err != nil {
+	if err := os.WriteFile(filepath.Join(cwdRepoDir, ".issuegraph", "config.yaml"), []byte("no-git-ops: true\n"), 0644); err != nil {
 		t.Fatalf("Failed to write cwd config.yaml: %v", err)
 	}
 
@@ -1139,15 +1139,15 @@ func TestFindProjectConfigYaml_UsesBEADS_DIRFirst(t *testing.T) {
 	}
 	defer os.Chdir(oldWd)
 
-	oldBeadsDir := os.Getenv("BEADS_DIR")
-	if err := os.Setenv("BEADS_DIR", runtimeBeadsDir); err != nil {
-		t.Fatalf("Failed to set BEADS_DIR: %v", err)
+	oldIssueGraphDir := os.Getenv("ISSUEGRAPH_DIR")
+	if err := os.Setenv("ISSUEGRAPH_DIR", runtimeIssueGraphDir); err != nil {
+		t.Fatalf("Failed to set ISSUEGRAPH_DIR: %v", err)
 	}
 	defer func() {
-		if oldBeadsDir == "" {
-			_ = os.Unsetenv("BEADS_DIR")
+		if oldIssueGraphDir == "" {
+			_ = os.Unsetenv("ISSUEGRAPH_DIR")
 		} else {
-			_ = os.Setenv("BEADS_DIR", oldBeadsDir)
+			_ = os.Setenv("ISSUEGRAPH_DIR", oldIssueGraphDir)
 		}
 	}()
 
@@ -1160,24 +1160,24 @@ func TestFindProjectConfigYaml_UsesBEADS_DIRFirst(t *testing.T) {
 	}
 }
 
-func TestSetAndUnsetYamlConfig_WithBEADS_DIR_FromOutsideRepo(t *testing.T) {
-	tmpDir, err := os.MkdirTemp("", "beads-yaml-beadsdir-outside-*")
+func TestSetAndUnsetYamlConfig_WithISSUEGRAPH_DIR_FromOutsideRepo(t *testing.T) {
+	tmpDir, err := os.MkdirTemp("", "issuegraph-yaml-issuegraphdir-outside-*")
 	if err != nil {
 		t.Fatalf("Failed to create temp dir: %v", err)
 	}
 	defer os.RemoveAll(tmpDir)
 
-	runtimeBeadsDir := filepath.Join(tmpDir, "runtime", ".beads")
-	if err := os.MkdirAll(runtimeBeadsDir, 0755); err != nil {
-		t.Fatalf("Failed to create runtime .beads dir: %v", err)
+	runtimeIssueGraphDir := filepath.Join(tmpDir, "runtime", ".issuegraph")
+	if err := os.MkdirAll(runtimeIssueGraphDir, 0755); err != nil {
+		t.Fatalf("Failed to create runtime .issuegraph dir: %v", err)
 	}
-	configPath := filepath.Join(runtimeBeadsDir, "config.yaml")
+	configPath := filepath.Join(runtimeIssueGraphDir, "config.yaml")
 	initialConfig := "no-git-ops: false\nother-setting: value\n"
 	if err := os.WriteFile(configPath, []byte(initialConfig), 0644); err != nil {
 		t.Fatalf("Failed to write runtime config.yaml: %v", err)
 	}
 
-	// CWD intentionally has no .beads/config.yaml
+	// CWD intentionally has no .issuegraph/config.yaml
 	outsideDir := filepath.Join(tmpDir, "outside")
 	if err := os.MkdirAll(outsideDir, 0755); err != nil {
 		t.Fatalf("Failed to create outside dir: %v", err)
@@ -1189,15 +1189,15 @@ func TestSetAndUnsetYamlConfig_WithBEADS_DIR_FromOutsideRepo(t *testing.T) {
 	}
 	defer os.Chdir(oldWd)
 
-	oldBeadsDir := os.Getenv("BEADS_DIR")
-	if err := os.Setenv("BEADS_DIR", runtimeBeadsDir); err != nil {
-		t.Fatalf("Failed to set BEADS_DIR: %v", err)
+	oldIssueGraphDir := os.Getenv("ISSUEGRAPH_DIR")
+	if err := os.Setenv("ISSUEGRAPH_DIR", runtimeIssueGraphDir); err != nil {
+		t.Fatalf("Failed to set ISSUEGRAPH_DIR: %v", err)
 	}
 	defer func() {
-		if oldBeadsDir == "" {
-			_ = os.Unsetenv("BEADS_DIR")
+		if oldIssueGraphDir == "" {
+			_ = os.Unsetenv("ISSUEGRAPH_DIR")
 		} else {
-			_ = os.Setenv("BEADS_DIR", oldBeadsDir)
+			_ = os.Setenv("ISSUEGRAPH_DIR", oldIssueGraphDir)
 		}
 	}()
 
@@ -1231,9 +1231,9 @@ func TestSetAndUnsetYamlConfig_WithBEADS_DIR_FromOutsideRepo(t *testing.T) {
 }
 
 // TestMetricsConsentResolvesUserGlobalOnly is the regression guard for the
-// metrics opt-out authority blocker on PR #4419: a user who runs `bd metrics
+// metrics opt-out authority blocker on PR #4419: a user who runs `issuegraph metrics
 // off` (or pins their own endpoint) in the user-global config must not have
-// that choice re-enabled or redirected by a repository's project/BEADS_DIR
+// that choice re-enabled or redirected by a repository's project/ISSUEGRAPH_DIR
 // config, which has the highest viper precedence in the merged config.
 func TestMetricsConsentResolvesUserGlobalOnly(t *testing.T) {
 	home := t.TempDir()
@@ -1245,7 +1245,7 @@ func TestMetricsConsentResolvesUserGlobalOnly(t *testing.T) {
 	const projectEndpoint = "https://project-override.example/collect"
 
 	// User opted out globally and pinned their own endpoint.
-	userCfgDir := filepath.Join(home, ".config", "bd")
+	userCfgDir := filepath.Join(home, ".config", "issuegraph")
 	if err := os.MkdirAll(userCfgDir, 0o755); err != nil {
 		t.Fatalf("mkdir user config dir: %v", err)
 	}
@@ -1255,16 +1255,16 @@ func TestMetricsConsentResolvesUserGlobalOnly(t *testing.T) {
 	}
 
 	// A repository tries to re-enable metrics and redirect the endpoint through
-	// the highest-precedence BEADS_DIR config.
-	projectBeadsDir := filepath.Join(t.TempDir(), ".beads")
-	if err := os.MkdirAll(projectBeadsDir, 0o755); err != nil {
-		t.Fatalf("mkdir project .beads: %v", err)
+	// the highest-precedence ISSUEGRAPH_DIR config.
+	projectIssueGraphDir := filepath.Join(t.TempDir(), ".issuegraph")
+	if err := os.MkdirAll(projectIssueGraphDir, 0o755); err != nil {
+		t.Fatalf("mkdir project .issuegraph: %v", err)
 	}
 	projectCfg := "metrics.disabled: false\nmetrics.endpoint: " + projectEndpoint + "\n"
-	if err := os.WriteFile(filepath.Join(projectBeadsDir, "config.yaml"), []byte(projectCfg), 0o644); err != nil {
+	if err := os.WriteFile(filepath.Join(projectIssueGraphDir, "config.yaml"), []byte(projectCfg), 0o644); err != nil {
 		t.Fatalf("write project config: %v", err)
 	}
-	t.Setenv("BEADS_DIR", projectBeadsDir)
+	t.Setenv("ISSUEGRAPH_DIR", projectIssueGraphDir)
 
 	ResetForTesting()
 	t.Cleanup(ResetForTesting)
@@ -1292,10 +1292,10 @@ func TestMetricsConsentResolvesUserGlobalOnly(t *testing.T) {
 }
 
 // TestGetUserYamlConfigIgnoresProjectOverride is the regression guard for the
-// `bd config get metrics.*` / effective-config-display finding on PR #4419: a
+// `issuegraph config get metrics.*` / effective-config-display finding on PR #4419: a
 // read of a user-global key must report the user-global value that actually
 // governs runtime metrics behavior, not the merged value a repository's
-// project/BEADS_DIR config (highest viper precedence) can shadow.
+// project/ISSUEGRAPH_DIR config (highest viper precedence) can shadow.
 // GetUserYamlConfig backs the config get / config show user-global path.
 func TestGetUserYamlConfigIgnoresProjectOverride(t *testing.T) {
 	home := t.TempDir()
@@ -1306,7 +1306,7 @@ func TestGetUserYamlConfigIgnoresProjectOverride(t *testing.T) {
 	const userEndpoint = "https://user-global.example/collect"
 	const projectEndpoint = "https://project-override.example/collect"
 
-	userCfgDir := filepath.Join(home, ".config", "bd")
+	userCfgDir := filepath.Join(home, ".config", "issuegraph")
 	if err := os.MkdirAll(userCfgDir, 0o755); err != nil {
 		t.Fatalf("mkdir user config dir: %v", err)
 	}
@@ -1316,16 +1316,16 @@ func TestGetUserYamlConfigIgnoresProjectOverride(t *testing.T) {
 	}
 
 	// A repository tries to flip metrics and redirect the endpoint through the
-	// highest-precedence BEADS_DIR config.
-	projectBeadsDir := filepath.Join(t.TempDir(), ".beads")
-	if err := os.MkdirAll(projectBeadsDir, 0o755); err != nil {
-		t.Fatalf("mkdir project .beads: %v", err)
+	// highest-precedence ISSUEGRAPH_DIR config.
+	projectIssueGraphDir := filepath.Join(t.TempDir(), ".issuegraph")
+	if err := os.MkdirAll(projectIssueGraphDir, 0o755); err != nil {
+		t.Fatalf("mkdir project .issuegraph: %v", err)
 	}
 	projectCfg := "metrics.disabled: false\nmetrics.endpoint: " + projectEndpoint + "\n"
-	if err := os.WriteFile(filepath.Join(projectBeadsDir, "config.yaml"), []byte(projectCfg), 0o644); err != nil {
+	if err := os.WriteFile(filepath.Join(projectIssueGraphDir, "config.yaml"), []byte(projectCfg), 0o644); err != nil {
 		t.Fatalf("write project config: %v", err)
 	}
-	t.Setenv("BEADS_DIR", projectBeadsDir)
+	t.Setenv("ISSUEGRAPH_DIR", projectIssueGraphDir)
 
 	ResetForTesting()
 	t.Cleanup(ResetForTesting)
@@ -1341,7 +1341,7 @@ func TestGetUserYamlConfigIgnoresProjectOverride(t *testing.T) {
 	}
 
 	// Contract: a user-global key read reports the user-global value, matching
-	// what `bd metrics` actually honors — not the project override.
+	// what `issuegraph metrics` actually honors — not the project override.
 	if got := GetUserYamlConfig("metrics.disabled"); got != "true" {
 		t.Errorf("GetUserYamlConfig(metrics.disabled) = %q, want %q; project config must not shadow the user-global value", got, "true")
 	}
@@ -1362,7 +1362,7 @@ func TestGetUserYamlConfigIgnoresProjectOverride(t *testing.T) {
 func TestMetricsNoticeShownResolvesUserGlobalOnly(t *testing.T) {
 	writeUserNotice := func(t *testing.T, home string, body string) {
 		t.Helper()
-		userCfgDir := filepath.Join(home, ".config", "bd")
+		userCfgDir := filepath.Join(home, ".config", "issuegraph")
 		if err := os.MkdirAll(userCfgDir, 0o755); err != nil {
 			t.Fatalf("mkdir user config dir: %v", err)
 		}
@@ -1372,15 +1372,15 @@ func TestMetricsNoticeShownResolvesUserGlobalOnly(t *testing.T) {
 	}
 	writeProjectNotice := func(t *testing.T, value string) {
 		t.Helper()
-		projectBeadsDir := filepath.Join(t.TempDir(), ".beads")
-		if err := os.MkdirAll(projectBeadsDir, 0o755); err != nil {
-			t.Fatalf("mkdir project .beads: %v", err)
+		projectIssueGraphDir := filepath.Join(t.TempDir(), ".issuegraph")
+		if err := os.MkdirAll(projectIssueGraphDir, 0o755); err != nil {
+			t.Fatalf("mkdir project .issuegraph: %v", err)
 		}
-		if err := os.WriteFile(filepath.Join(projectBeadsDir, "config.yaml"),
+		if err := os.WriteFile(filepath.Join(projectIssueGraphDir, "config.yaml"),
 			[]byte("metrics.notice_shown: "+value+"\n"), 0o644); err != nil {
 			t.Fatalf("write project config: %v", err)
 		}
-		t.Setenv("BEADS_DIR", projectBeadsDir)
+		t.Setenv("ISSUEGRAPH_DIR", projectIssueGraphDir)
 	}
 
 	t.Run("project true cannot suppress an unseen notice", func(t *testing.T) {

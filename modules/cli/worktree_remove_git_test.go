@@ -8,7 +8,7 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/steveyegge/beads/internal/worktreeremove"
+	"github.com/borg0ai/dx-issuegraph/internal/worktreeremove"
 )
 
 // runWorktreeRemoveGitAdapter exercises the real Git and filesystem adapter
@@ -164,13 +164,13 @@ func TestWorktreeRemoveGitAdapterComparatorAndCleanupContracts(t *testing.T) {
 		{"CRLF cleanup", "lane", func(t *testing.T, f *worktreeRemovalFixture) {
 			f.commitLane(t, "contained")
 			f.mergeLaneIntoMain(t)
-			before := "# bd worktree\r\nlane/\r\n# bd worktree\r\nother/\r\n# unrelated\r\nignored/\r\n"
+			before := "# issuegraph worktree\r\nlane/\r\n# issuegraph worktree\r\nother/\r\n# unrelated\r\nignored/\r\n"
 			if err := os.WriteFile(filepath.Join(f.repo, ".gitignore"), []byte(before), 0644); err != nil {
 				t.Fatal(err)
 			}
 		}},
 		{"leading space cleanup", " lane", func(t *testing.T, f *worktreeRemovalFixture) {
-			if err := os.WriteFile(filepath.Join(f.repo, ".gitignore"), []byte("# bd worktree\n lane/\n# bd worktree\nlane/\nignored/\n"), 0644); err != nil {
+			if err := os.WriteFile(filepath.Join(f.repo, ".gitignore"), []byte("# issuegraph worktree\n lane/\n# issuegraph worktree\nlane/\nignored/\n"), 0644); err != nil {
 				t.Fatal(err)
 			}
 		}},
@@ -187,10 +187,10 @@ func TestWorktreeRemoveGitAdapterComparatorAndCleanupContracts(t *testing.T) {
 				t.Fatal(err)
 			}
 			fixture.assertRemovedAndCleaned(t)
-			if test.name == "CRLF cleanup" && fixture.readGitignore(t) != "# bd worktree\r\nother/\r\n# unrelated\r\nignored/\r\n" {
+			if test.name == "CRLF cleanup" && fixture.readGitignore(t) != "# issuegraph worktree\r\nother/\r\n# unrelated\r\nignored/\r\n" {
 				t.Fatal("CRLF cleanup changed unrelated bytes")
 			}
-			if test.name == "leading space cleanup" && fixture.readGitignore(t) != "# bd worktree\nlane/\nignored/\n" {
+			if test.name == "leading space cleanup" && fixture.readGitignore(t) != "# issuegraph worktree\nlane/\nignored/\n" {
 				t.Fatal("leading-space cleanup conflated entries")
 			}
 		})

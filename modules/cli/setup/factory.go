@@ -1,10 +1,10 @@
 package setup
 
-import "github.com/steveyegge/beads/internal/templates/agents"
+import "github.com/borg0ai/dx-issuegraph/internal/templates/agents"
 
 var factoryIntegration = agentsIntegration{
 	name:         "Factory.ai (Droid)",
-	setupCommand: "bd setup factory",
+	setupCommand: "issuegraph setup factory",
 	readHint:     "Factory Droid will automatically read AGENTS.md on session start.",
 	profile:      agents.ProfileFull,
 }

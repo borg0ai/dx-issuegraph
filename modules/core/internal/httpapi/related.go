@@ -5,12 +5,12 @@ import (
 	"net/http"
 	"strings"
 
-	"github.com/steveyegge/beads/internal/httpapi/apigen"
-	"github.com/steveyegge/beads/internal/types"
-	"github.com/steveyegge/beads/issueops"
+	"github.com/borg0ai/dx-issuegraph/internal/httpapi/apigen"
+	"github.com/borg0ai/dx-issuegraph/internal/types"
+	"github.com/borg0ai/dx-issuegraph/issueops"
 )
 
-// handleListRelatedIssues answers GET /v0/beads/issues/{id}/related.
+// handleListRelatedIssues answers GET /v0/issuegraph/issues/{id}/related.
 //
 // Everything below the wire is on issueops.Relations: which planes the anchor is
 // resolved against, that an anchor naming nothing is ErrNotFound rather than an
@@ -20,7 +20,7 @@ import (
 // id's bound, two parameters, and the wire envelope.
 //
 // THE DIRECTION IS NOT VALIDATED HERE, deliberately, and it is the same call
-// GET /v0/beads/dependencies:count made. It is the role's closed vocabulary and
+// GET /v0/issuegraph/dependencies:count made. It is the role's closed vocabulary and
 // ValidateRelatedRequest refuses the zero value outright, so every accessor
 // raises it and refusing at the edge would be a second definition of one rule.
 // The opposite choice belongs where NO role refusal is reachable — the
@@ -110,7 +110,7 @@ func (s *Server) failRelatedErr(w http.ResponseWriter, r *http.Request, err erro
 
 // wireRelated projects the role's neighbor list onto the generated envelope's
 // element type, which is an ALIAS of types.IssueWithDependencyMetadata — the
-// same struct `bd show --json` marshals under `dependencies` and `dependents` —
+// same struct `issuegraph show --json` marshals under `dependencies` and `dependents` —
 // so this dereferences pointers and does nothing else. There is no second wire
 // struct here and there must never be one.
 //

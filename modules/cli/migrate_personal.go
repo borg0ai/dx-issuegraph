@@ -8,13 +8,13 @@ import (
 	"path/filepath"
 	"strings"
 
+	"github.com/borg0ai/dx-issuegraph/internal/doltserver"
+	"github.com/borg0ai/dx-issuegraph/internal/routing"
+	"github.com/borg0ai/dx-issuegraph/internal/storage"
+	"github.com/borg0ai/dx-issuegraph/internal/storage/dolt"
+	"github.com/borg0ai/dx-issuegraph/internal/types"
+	"github.com/borg0ai/dx-issuegraph/internal/ui"
 	"github.com/spf13/cobra"
-	"github.com/steveyegge/beads/internal/doltserver"
-	"github.com/steveyegge/beads/internal/routing"
-	"github.com/steveyegge/beads/internal/storage"
-	"github.com/steveyegge/beads/internal/storage/dolt"
-	"github.com/steveyegge/beads/internal/types"
-	"github.com/steveyegge/beads/internal/ui"
 )
 
 // openMigrationPlanningStore opens the personal planning workspace's store for
@@ -22,15 +22,15 @@ import (
 //
 // It is a factory rather than an inline dolt.New because the store it returns
 // is WRITTEN THROUGH: the migration creates every issue in the planning
-// workspace and then deletes them from the project. Those are ordinary bead
+// workspace and then deletes them from the project. Those are ordinary issue
 // mutations in another workspace, so they belong in that workspace's events
 // journal if it has one enabled — and the setting is read from there, not from
-// the workspace bd was launched in.
-func openMigrationPlanningStore(ctx context.Context, planningBeadsDir string) (s storage.DoltStorage, err error) {
-	defer func() { s, err = activateEventsJournalStore(planningBeadsDir, s, err) }()
+// the workspace issuegraph was launched in.
+func openMigrationPlanningStore(ctx context.Context, planningIssueGraphDir string) (s storage.DoltStorage, err error) {
+	defer func() { s, err = activateEventsJournalStore(planningIssueGraphDir, s, err) }()
 	return dolt.New(ctx, &dolt.Config{
-		Path:     doltserver.ResolveDoltDir(planningBeadsDir),
-		BeadsDir: planningBeadsDir,
+		Path:          doltserver.ResolveDoltDir(planningIssueGraphDir),
+		IssueGraphDir: planningIssueGraphDir,
 	})
 }
 
@@ -38,7 +38,7 @@ var migratePersonalCmd = &cobra.Command{
 	Use:   "migrate-personal",
 	Short: "Move personal planning issues from the project database to your planning repo",
 	Long: `Identify issues you created in the project database and move them to your
-personal planning repository (~/.beads-planning by default).
+personal planning repository (~/.issuegraph-planning by default).
 
 This is a one-time migration for contributors who created personal planning
 issues before contributor routing was configured.
@@ -49,8 +49,8 @@ The command:
   3. Moves them to the planning repo configured in routing.contributor
 
 EXAMPLES:
-  bd migrate-personal        # Interactive: show list and prompt
-  bd migrate-personal -y     # Non-interactive: skip confirmation`,
+  issuegraph migrate-personal        # Interactive: show list and prompt
+  issuegraph migrate-personal -y     # Non-interactive: skip confirmation`,
 	GroupID: "setup",
 	RunE:    runMigratePersonal,
 }
@@ -104,14 +104,14 @@ func runMigratePersonal(cmd *cobra.Command, args []string) error {
 		planningRaw = getRoutingConfigValue(ctx, store, "contributor.planning_repo")
 	}
 	if planningRaw == "" {
-		return fmt.Errorf("no planning repository configured; run 'bd init --contributor' or 'bd init' in a fork repo first")
+		return fmt.Errorf("no planning repository configured; run 'issuegraph init --contributor' or 'issuegraph init' in a fork repo first")
 	}
 	planningPath := routing.ExpandPath(planningRaw)
 
 	// Validate planning DB path before any destructive operation
-	planningBeadsDir := filepath.Join(planningPath, ".beads")
-	if _, err := os.Stat(planningBeadsDir); os.IsNotExist(err) {
-		return fmt.Errorf("planning repo at %s has no .beads directory; initialize it first with 'bd init'", planningPath)
+	planningIssueGraphDir := filepath.Join(planningPath, ".issuegraph")
+	if _, err := os.Stat(planningIssueGraphDir); os.IsNotExist(err) {
+		return fmt.Errorf("planning repo at %s has no .issuegraph directory; initialize it first with 'issuegraph init'", planningPath)
 	}
 
 	fmt.Printf("Move to planning repo: %s\n\n", ui.RenderAccent(planningPath))
@@ -136,10 +136,10 @@ func runMigratePersonal(cmd *cobra.Command, args []string) error {
 	}
 
 	// Open planning store (writable). This is a SECOND workspace's store, and
-	// the copy below creates and deletes real beads in it, so it takes the
+	// the copy below creates and deletes real issuegraph in it, so it takes the
 	// planning workspace's own events-journal setting — not the launching
 	// workspace's. See openMigrationPlanningStore.
-	planningStore, err := openMigrationPlanningStore(ctx, planningBeadsDir)
+	planningStore, err := openMigrationPlanningStore(ctx, planningIssueGraphDir)
 	if err != nil {
 		return fmt.Errorf("failed to open planning store at %s: %w", planningPath, err)
 	}

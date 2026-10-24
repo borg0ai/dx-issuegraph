@@ -16,10 +16,10 @@ import (
 	"testing"
 	"time"
 
-	"github.com/steveyegge/beads/internal/ado"
-	"github.com/steveyegge/beads/internal/storage/dolt"
-	"github.com/steveyegge/beads/internal/tracker"
-	"github.com/steveyegge/beads/internal/types"
+	"github.com/borg0ai/dx-issuegraph/internal/ado"
+	"github.com/borg0ai/dx-issuegraph/internal/storage/dolt"
+	"github.com/borg0ai/dx-issuegraph/internal/tracker"
+	"github.com/borg0ai/dx-issuegraph/internal/types"
 )
 
 // mockADOServer is a stateful mock that stores only what the ADO client sends,
@@ -259,7 +259,7 @@ func (m *mockADOServer) itemCount() int {
 // container infrastructure. Uses newTestStoreIsolatedDB for per-test DB isolation.
 func adoTestStore(t *testing.T, prefix string) *dolt.DoltStore {
 	t.Helper()
-	dbPath := filepath.Join(t.TempDir(), ".beads", "dolt")
+	dbPath := filepath.Join(t.TempDir(), ".issuegraph", "dolt")
 	return newTestStoreIsolatedDB(t, dbPath, prefix)
 }
 
@@ -271,7 +271,7 @@ func TestADORoundTripCoreFields(t *testing.T) {
 	project := "TestProject"
 
 	// --- 1. Setup source DB ---
-	sourceStore := adoTestStore(t, "bd")
+	sourceStore := adoTestStore(t, "issuegraph")
 
 	// Start mock server
 	mock := newMockADOServer(project)
@@ -356,7 +356,7 @@ func TestADORoundTripCoreFields(t *testing.T) {
 	}
 
 	// --- 4. Setup target DB (fresh) ---
-	targetStore := adoTestStore(t, "bd")
+	targetStore := adoTestStore(t, "issuegraph")
 
 	for k, v := range map[string]string{
 		"ado.pat":     "test-pat",
@@ -444,13 +444,13 @@ func TestADORoundTripCoreFields(t *testing.T) {
 }
 
 // TestADORoundTripBlockedStatus tests that blocked status survives a round-trip
-// via the beads:blocked tag mechanism (ADO has no native blocked state).
+// via the issuegraph:blocked tag mechanism (ADO has no native blocked state).
 func TestADORoundTripBlockedStatus(t *testing.T) {
 
 	ctx := context.Background()
 	project := "TestProject"
 
-	sourceStore := adoTestStore(t, "bd")
+	sourceStore := adoTestStore(t, "issuegraph")
 
 	mock := newMockADOServer(project)
 	server := httptest.NewServer(mock)
@@ -488,7 +488,7 @@ func TestADORoundTripBlockedStatus(t *testing.T) {
 	}
 
 	// Pull into fresh DB
-	targetStore := adoTestStore(t, "bd")
+	targetStore := adoTestStore(t, "issuegraph")
 	for k, v := range map[string]string{
 		"ado.pat": "test-pat", "ado.url": server.URL,
 		"ado.project": project,
@@ -521,17 +521,17 @@ func TestADORoundTripBlockedStatus(t *testing.T) {
 }
 
 // TestADORoundTripLossyPriority tests the lossy priority mapping behavior.
-// beads priorities 3 and 4 both map to ADO priority 4. On a fresh pull, ADO 4
-// maps back to beads 3, so priority 4 (Backlog) is lost. This test documents
+// issuegraph priorities 3 and 4 both map to ADO priority 4. On a fresh pull, ADO 4
+// maps back to issuegraph 3, so priority 4 (Backlog) is lost. This test documents
 // the current behavior:
-//   - P3 survives round-trip (ADO 4 → beads 3)
-//   - P4 degrades to P3 (ADO 4 → beads 3) — this is a known lossy mapping
+//   - P3 survives round-trip (ADO 4 → issuegraph 3)
+//   - P4 degrades to P3 (ADO 4 → issuegraph 3) — this is a known lossy mapping
 func TestADORoundTripLossyPriority(t *testing.T) {
 
 	ctx := context.Background()
 	project := "TestProject"
 
-	sourceStore := adoTestStore(t, "bd")
+	sourceStore := adoTestStore(t, "issuegraph")
 
 	mock := newMockADOServer(project)
 	server := httptest.NewServer(mock)
@@ -571,7 +571,7 @@ func TestADORoundTripLossyPriority(t *testing.T) {
 	}
 
 	// Pull into fresh DB (simulating a different machine)
-	targetStore := adoTestStore(t, "bd")
+	targetStore := adoTestStore(t, "issuegraph")
 	for k, v := range map[string]string{
 		"ado.pat": "test-pat", "ado.url": server.URL,
 		"ado.project": project,
@@ -599,8 +599,8 @@ func TestADORoundTripLossyPriority(t *testing.T) {
 		t.Fatalf("got %d issues, want 2", len(pulled))
 	}
 
-	// P3 survives perfectly (ADO 4 → beads 3)
-	// P4 degrades to P3 (known lossy mapping: ADO 4 → beads 3)
+	// P3 survives perfectly (ADO 4 → issuegraph 3)
+	// P4 degrades to P3 (known lossy mapping: ADO 4 → issuegraph 3)
 	for _, issue := range pulled {
 		switch {
 		case strings.Contains(issue.Title, "Priority 3"):
@@ -619,13 +619,13 @@ func TestADORoundTripLossyPriority(t *testing.T) {
 }
 
 // TestADORoundTripLabels tests that user labels survive a round-trip and
-// internal beads:* tags are correctly filtered on pull.
+// internal issuegraph:* tags are correctly filtered on pull.
 func TestADORoundTripLabels(t *testing.T) {
 
 	ctx := context.Background()
 	project := "TestProject"
 
-	sourceStore := adoTestStore(t, "bd")
+	sourceStore := adoTestStore(t, "issuegraph")
 
 	mock := newMockADOServer(project)
 	server := httptest.NewServer(mock)
@@ -663,7 +663,7 @@ func TestADORoundTripLabels(t *testing.T) {
 	}
 
 	// Pull into fresh DB
-	targetStore := adoTestStore(t, "bd")
+	targetStore := adoTestStore(t, "issuegraph")
 	for k, v := range map[string]string{
 		"ado.pat": "test-pat", "ado.url": server.URL,
 		"ado.project": project,
@@ -691,7 +691,7 @@ func TestADORoundTripLabels(t *testing.T) {
 		t.Fatalf("got %d issues, want 1", len(pulled))
 	}
 
-	// Verify labels survived and no beads:* tags leaked through
+	// Verify labels survived and no issuegraph:* tags leaked through
 	gotLabels := pulled[0].Labels
 	wantLabels := []string{"backend", "urgent", "api"}
 	if len(gotLabels) != len(wantLabels) {
@@ -707,9 +707,9 @@ func TestADORoundTripLabels(t *testing.T) {
 			}
 		}
 	}
-	// Ensure no beads:* tags leaked
+	// Ensure no issuegraph:* tags leaked
 	for _, l := range gotLabels {
-		if strings.HasPrefix(l, "beads:") {
+		if strings.HasPrefix(l, "issuegraph:") {
 			t.Errorf("internal tag leaked through: %q", l)
 		}
 	}

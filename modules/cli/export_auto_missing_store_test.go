@@ -9,8 +9,8 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/steveyegge/beads/internal/testutil"
-	"github.com/steveyegge/beads/internal/types"
+	"github.com/borg0ai/dx-issuegraph/internal/testutil"
+	"github.com/borg0ai/dx-issuegraph/internal/types"
 )
 
 // TestReconcileAutoExportJSONL_IgnoresCompactedWisp pins the actual GH#4988
@@ -40,13 +40,13 @@ func TestReconcileAutoExportJSONL_IgnoresCompactedWisp(t *testing.T) {
 	saveAndRestoreGlobals(t)
 
 	tmpDir := t.TempDir()
-	beadsDir := filepath.Join(tmpDir, ".beads")
-	if err := os.MkdirAll(beadsDir, 0755); err != nil {
+	issuegraphDir := filepath.Join(tmpDir, ".issuegraph")
+	if err := os.MkdirAll(issuegraphDir, 0755); err != nil {
 		t.Fatal(err)
 	}
 
 	dbName := uniqueTestDBName(t)
-	testDBPath := filepath.Join(beadsDir, "dolt")
+	testDBPath := filepath.Join(issuegraphDir, "dolt")
 	writeTestMetadata(t, testDBPath, dbName)
 	inner := newTestStore(t, testDBPath)
 	store = inner

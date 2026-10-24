@@ -6,8 +6,8 @@ import (
 	"strings"
 	"unicode"
 
-	"github.com/steveyegge/beads/internal/debug"
-	"github.com/steveyegge/beads/internal/ui"
+	"github.com/borg0ai/dx-issuegraph/internal/debug"
+	"github.com/borg0ai/dx-issuegraph/internal/ui"
 )
 
 // warnLabelsContainingWhitespace warns when a label being written contains a
@@ -16,7 +16,7 @@ import (
 // It is a WARNING and not an error, because a label containing a space is a
 // legitimate thing to ask for and the shell already has the vocabulary to ask:
 // `--labels 'one two'`, `--labels "one two"` and `--labels one\ two` all send
-// one argument, exactly as they do for a filename containing a space. bd honors
+// one argument, exactly as they do for a filename containing a space. issuegraph honors
 // that boundary rather than re-splitting it — a caller who quoted or escaped
 // has already said where the word ends, and overriding that would make labels
 // the one place on the command line where quoting does not mean what it means

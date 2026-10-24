@@ -4,8 +4,8 @@ import (
 	"context"
 	"fmt"
 
-	"github.com/steveyegge/beads/internal/workapi"
-	publicops "github.com/steveyegge/beads/issueops"
+	"github.com/borg0ai/dx-issuegraph/internal/workapi"
+	publicops "github.com/borg0ai/dx-issuegraph/issueops"
 )
 
 // StatsReporterSource is the capability accessor a unit-of-work provider offers
@@ -56,7 +56,7 @@ func (r *statsReporter) Stats(ctx context.Context, _ publicops.StatsRequest) (pu
 
 // AssigneeStats folds one actor's rows and ready work into a summary, through
 // the same builder and the same fold the store-backed body uses — which is
-// what makes "your work" mean one thing on both `bd status --assigned` routes.
+// what makes "your work" mean one thing on both `issuegraph status --assigned` routes.
 //
 // BOTH QUERIES SHARE ONE UNIT OF WORK here, where the store seam has no
 // transaction to share, so this backend's two halves see one snapshot. The role

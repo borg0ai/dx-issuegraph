@@ -7,7 +7,7 @@ import (
 	"path/filepath"
 	"testing"
 
-	"github.com/steveyegge/beads/issueops"
+	"github.com/borg0ai/dx-issuegraph/issueops"
 )
 
 type listFilterGoldenCase struct {
@@ -33,7 +33,7 @@ type listFilterGoldenCase struct {
 // ONE case has been deliberately RE-recorded rather than preserved:
 // status_all_keyword's Pinned went false -> null. The old builder compared the
 // raw selector string to "pinned"/"hooked", so --status=all — which promises
-// EVERY status — silently kept forcing Pinned=false and hid pinned beads from
+// EVERY status — silently kept forcing Pinned=false and hid pinned issuegraph from
 // the one selector that says it hides nothing. TestPinnedDefaultBySelector
 // below owns that behavior now; see the PR body for the compatibility note.
 func TestBuildListFilterGolden(t *testing.T) {

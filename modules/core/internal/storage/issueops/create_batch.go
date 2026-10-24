@@ -5,9 +5,9 @@ import (
 	"database/sql"
 	"fmt"
 
-	"github.com/steveyegge/beads/internal/storage"
-	"github.com/steveyegge/beads/internal/types"
-	publicops "github.com/steveyegge/beads/issueops"
+	"github.com/borg0ai/dx-issuegraph/internal/storage"
+	"github.com/borg0ai/dx-issuegraph/internal/types"
+	publicops "github.com/borg0ai/dx-issuegraph/issueops"
 )
 
 // CloneCreateBatchRequest returns a deep copy of request, so a body can
@@ -89,11 +89,11 @@ func CreateBatchCommitMessage(request publicops.CreateBatchRequest, result publi
 	var fallback string
 	switch {
 	case durable > 0:
-		fallback = fmt.Sprintf("bd: create %d issue(s)", durable)
+		fallback = fmt.Sprintf("issuegraph: create %d issue(s)", durable)
 	case ephemeral == 1:
-		fallback = "bd: create 1 ephemeral item"
+		fallback = "issuegraph: create 1 ephemeral item"
 	case ephemeral > 1:
-		fallback = fmt.Sprintf("bd: create %d ephemeral items", ephemeral)
+		fallback = fmt.Sprintf("issuegraph: create %d ephemeral items", ephemeral)
 	default:
 		return ""
 	}

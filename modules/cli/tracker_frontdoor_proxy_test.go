@@ -8,9 +8,9 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/steveyegge/beads/internal/linear"
-	"github.com/steveyegge/beads/internal/tracker"
-	"github.com/steveyegge/beads/internal/types"
+	"github.com/borg0ai/dx-issuegraph/internal/linear"
+	"github.com/borg0ai/dx-issuegraph/internal/tracker"
+	"github.com/borg0ai/dx-issuegraph/internal/types"
 )
 
 // configOnlyTrackerStore exercises front-door validation without constructing
@@ -101,7 +101,7 @@ func TestBuildLinearParentLinksForStoreUsesProxiedStore(t *testing.T) {
 
 func TestBuildLinearClientAPIOnlyDoesNotProbeLocalStore(t *testing.T) {
 	oldPath, oldStore := dbPath, store
-	dbPath, store = "/definitely/missing/local/beads.db", nil
+	dbPath, store = "/definitely/missing/local/issuegraph.db", nil
 	t.Cleanup(func() { dbPath, store = oldPath, oldStore })
 	t.Setenv("LINEAR_API_KEY", "api-key")
 	client, err := buildLinearClientAPIOnly(context.Background(), "", nil)
@@ -127,7 +127,7 @@ func TestRunLinearTeamsAPIOnlyDoesNotOpenLocalStore(t *testing.T) {
 	t.Cleanup(func() {
 		dbPath, store, jsonOutput, rootCtx, http.DefaultTransport = oldPath, oldStore, oldJSON, oldCtx, oldTransport
 	})
-	dbPath, store, jsonOutput, rootCtx = "/definitely/missing/local/beads.db", nil, true, context.Background()
+	dbPath, store, jsonOutput, rootCtx = "/definitely/missing/local/issuegraph.db", nil, true, context.Background()
 	t.Setenv("LINEAR_API_KEY", "api-key")
 	rt := &teamsRoundTripper{}
 	http.DefaultTransport = rt

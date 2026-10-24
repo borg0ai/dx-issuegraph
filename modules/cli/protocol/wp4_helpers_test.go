@@ -3,15 +3,15 @@
 //
 // Two things the base workspace harness does not do:
 //
-//  1. Run bd with extra environment. The versioning clauses (V2/V3) are gated
-//     on env vars (BD_ALLOW_REMOTE_MIGRATE, BD_IGNORE_SCHEMA_SKEW) and the
+//  1. Run issuegraph with extra environment. The versioning clauses (V2/V3) are gated
+//     on env vars (ISSUEGRAPH_ALLOW_REMOTE_MIGRATE, ISSUEGRAPH_IGNORE_SCHEMA_SKEW) and the
 //     claim error classes (E4) need two distinct actors, so these tests need to
 //     append to the workspace's fixed environment.
 //
 //  2. Reach the store directly. V2 (pending migration) and V3 (database ahead
-//     of the binary) are properties of the *database*, not of any bd command —
+//     of the binary) are properties of the *database*, not of any issuegraph command —
 //     the only way to stage them is to write the schema-cursor table behind
-//     bd's back. That is the "store fixture" the conformance corpus explicitly
+//     issuegraph's back. That is the "store fixture" the conformance corpus explicitly
 //     allows (proposal §14): the assertion still runs against the frozen CLI
 //     surface, only the precondition is staged out-of-band.
 package protocol
@@ -26,10 +26,10 @@ import (
 	"testing"
 )
 
-// command builds a bd invocation in the workspace with extra environment
+// command builds a issuegraph invocation in the workspace with extra environment
 // appended to the workspace's fixed env.
 func (w *workspace) command(extraEnv []string, args ...string) *exec.Cmd {
-	cmd := exec.Command(w.bd, args...)
+	cmd := exec.Command(w.issuegraph, args...)
 	cmd.Dir = w.dir
 	cmd.Env = append(w.env(), extraEnv...)
 	return cmd
@@ -40,22 +40,22 @@ func exitCodeOf(t *testing.T, err error, args []string) int {
 	t.Helper()
 	var exitErr *exec.ExitError
 	if !errors.As(err, &exitErr) {
-		t.Fatalf("bd %s: unexpected error type: %v", strings.Join(args, " "), err)
+		t.Fatalf("issuegraph %s: unexpected error type: %v", strings.Join(args, " "), err)
 	}
 	return exitErr.ExitCode()
 }
 
-// runEnv runs bd with extra environment appended, expecting success.
+// runEnv runs issuegraph with extra environment appended, expecting success.
 func (w *workspace) runEnv(extraEnv []string, args ...string) string {
 	w.t.Helper()
 	out, err := w.tryRunEnv(extraEnv, args...)
 	if err != nil {
-		w.t.Fatalf("bd %s (env %v): %v\n%s", strings.Join(args, " "), extraEnv, err, out)
+		w.t.Fatalf("issuegraph %s (env %v): %v\n%s", strings.Join(args, " "), extraEnv, err, out)
 	}
 	return out
 }
 
-// tryRunEnv runs bd with extra environment appended, returning output and error.
+// tryRunEnv runs issuegraph with extra environment appended, returning output and error.
 func (w *workspace) tryRunEnv(extraEnv []string, args ...string) (string, error) {
 	w.t.Helper()
 	cmd := w.command(extraEnv, args...)
@@ -63,13 +63,13 @@ func (w *workspace) tryRunEnv(extraEnv []string, args ...string) (string, error)
 	return string(out), err
 }
 
-// runEnvExpectError runs bd with extra environment appended, expecting a
+// runEnvExpectError runs issuegraph with extra environment appended, expecting a
 // non-zero exit. Returns the combined output and the exit code.
 func (w *workspace) runEnvExpectError(extraEnv []string, args ...string) (string, int) {
 	w.t.Helper()
 	out, err := w.tryRunEnv(extraEnv, args...)
 	if err == nil {
-		w.t.Fatalf("bd %s (env %v): expected non-zero exit, got success\nOutput: %s",
+		w.t.Fatalf("issuegraph %s (env %v): expected non-zero exit, got success\nOutput: %s",
 			strings.Join(args, " "), extraEnv, out)
 	}
 	code := exitCodeOf(w.t, err, args)
@@ -81,12 +81,12 @@ func (w *workspace) runEnvExpectError(extraEnv []string, args ...string) (string
 // ---------------------------------------------------------------------------
 
 // jsonErrorFrom extracts the structured error object from a failed --json
-// command's output. bd emits JSON errors on stderr for some paths and stdout
+// command's output. issuegraph emits JSON errors on stderr for some paths and stdout
 // for others (proposal OQ-5), and other lines may share the stream, so the
 // object is located rather than assumed to be the whole output.
 //
 // It returns the first JSON object in the output that carries an "error" key,
-// unwrapping the BD_JSON_ENVELOPE form ({schema_version, data:{...}}) so callers
+// unwrapping the ISSUEGRAPH_JSON_ENVELOPE form ({schema_version, data:{...}}) so callers
 // see one shape either way. The second return reports whether an object was
 // found.
 func jsonErrorFrom(t *testing.T, out string) (map[string]any, bool) {
@@ -103,7 +103,7 @@ func jsonErrorFrom(t *testing.T, out string) (map[string]any, bool) {
 		if _, ok := obj["error"]; ok {
 			return obj, true
 		}
-		// BD_JSON_ENVELOPE=1 nests the error under "data".
+		// ISSUEGRAPH_JSON_ENVELOPE=1 nests the error under "data".
 		if data, ok := obj["data"].(map[string]any); ok {
 			if _, ok := data["error"]; ok {
 				// Lift schema_version from the envelope so the caller can
@@ -148,18 +148,18 @@ func errorMessage(obj map[string]any) string {
 // ---------------------------------------------------------------------------
 //
 // The workspace is backed by an embedded Dolt database under
-// .beads/embeddeddolt/<db>, so the fixture drives the `dolt` CLI against that
+// .issuegraph/embeddeddolt/<db>, so the fixture drives the `dolt` CLI against that
 // directory — the same binary newWorkspace already requires, and no new
-// dependency. bd holds no lock between commands, so a write here is visible to
-// the next bd invocation.
+// dependency. issuegraph holds no lock between commands, so a write here is visible to
+// the next issuegraph invocation.
 
 // storeDatabase returns the name of the database backing the workspace, as the
-// workspace itself recorded it at init. Read from bd's metadata rather than
+// workspace itself recorded it at init. Read from issuegraph's metadata rather than
 // re-derived from the prefix, so a fixture that guesses wrong fails loudly here
 // instead of silently testing nothing.
 func (w *workspace) storeDatabase(t *testing.T) string {
 	t.Helper()
-	path := filepath.Join(w.dir, ".beads", "metadata.json")
+	path := filepath.Join(w.dir, ".issuegraph", "metadata.json")
 	data, err := os.ReadFile(path)
 	if err != nil {
 		t.Fatalf("read %s: %v", path, err)
@@ -181,11 +181,11 @@ func (w *workspace) storeDatabase(t *testing.T) string {
 }
 
 // storeExec runs one SQL statement against the workspace's database, behind
-// bd's back. Values are interpolated (the dolt CLI takes no bind parameters),
+// issuegraph's back. Values are interpolated (the dolt CLI takes no bind parameters),
 // so callers must pass only test-controlled literals.
 func (w *workspace) storeExec(t *testing.T, query string) {
 	t.Helper()
-	dbDir := filepath.Join(w.dir, ".beads", "embeddeddolt", w.storeDatabase(t))
+	dbDir := filepath.Join(w.dir, ".issuegraph", "embeddeddolt", w.storeDatabase(t))
 	if _, err := os.Stat(dbDir); err != nil {
 		t.Fatalf("workspace is not embedded-Dolt backed (%s): %v", dbDir, err)
 	}

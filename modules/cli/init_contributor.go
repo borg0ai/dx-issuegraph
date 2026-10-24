@@ -9,15 +9,15 @@ import (
 	"path/filepath"
 	"strings"
 
-	"github.com/steveyegge/beads/internal/config"
-	"github.com/steveyegge/beads/internal/storage"
-	"github.com/steveyegge/beads/internal/ui"
+	"github.com/borg0ai/dx-issuegraph/internal/config"
+	"github.com/borg0ai/dx-issuegraph/internal/storage"
+	"github.com/borg0ai/dx-issuegraph/internal/ui"
 )
 
 // runContributorWizard guides the user through OSS contributor setup
 func runContributorWizard(ctx context.Context, store storage.DoltStorage) error {
-	fmt.Printf("\n%s %s\n\n", ui.RenderBold("bd"), ui.RenderBold("Contributor Workflow Setup Wizard"))
-	fmt.Println("This wizard will configure beads for OSS contribution.")
+	fmt.Printf("\n%s %s\n\n", ui.RenderBold("issuegraph"), ui.RenderBold("Contributor Workflow Setup Wizard"))
+	fmt.Println("This wizard will configure issuegraph for OSS contribution.")
 	fmt.Println()
 
 	if ctx == nil {
@@ -25,10 +25,10 @@ func runContributorWizard(ctx context.Context, store storage.DoltStorage) error 
 	}
 	reader := bufio.NewReader(os.Stdin)
 
-	// Early check: BEADS_DIR takes precedence over routing
-	if beadsDir := os.Getenv("BEADS_DIR"); beadsDir != "" {
-		fmt.Printf("%s BEADS_DIR is set: %s\n", ui.RenderWarn("⚠"), beadsDir)
-		fmt.Println("\n  BEADS_DIR takes precedence over contributor routing.")
+	// Early check: ISSUEGRAPH_DIR takes precedence over routing
+	if issuegraphDir := os.Getenv("ISSUEGRAPH_DIR"); issuegraphDir != "" {
+		fmt.Printf("%s ISSUEGRAPH_DIR is set: %s\n", ui.RenderWarn("⚠"), issuegraphDir)
+		fmt.Println("\n  ISSUEGRAPH_DIR takes precedence over contributor routing.")
 		fmt.Println("  If you're using the ACF pattern (external tracking repo),")
 		fmt.Println("  you likely don't need --contributor.")
 		fmt.Println()
@@ -115,11 +115,11 @@ func runContributorWizard(ctx context.Context, store storage.DoltStorage) error 
 		return fmt.Errorf("failed to get home directory: %w", err)
 	}
 
-	// Use BEADS_DIR as default if set (user explicitly set it and continued past warning)
-	// Otherwise fall back to ~/.beads-planning
-	defaultPlanningRepo := filepath.Join(homeDir, ".beads-planning")
-	if envBeadsDir := os.Getenv("BEADS_DIR"); envBeadsDir != "" {
-		defaultPlanningRepo = envBeadsDir
+	// Use ISSUEGRAPH_DIR as default if set (user explicitly set it and continued past warning)
+	// Otherwise fall back to ~/.issuegraph-planning
+	defaultPlanningRepo := filepath.Join(homeDir, ".issuegraph-planning")
+	if envIssueGraphDir := os.Getenv("ISSUEGRAPH_DIR"); envIssueGraphDir != "" {
+		defaultPlanningRepo = envIssueGraphDir
 	}
 
 	fmt.Printf("\nWhere should contributor planning issues be stored?\n")
@@ -159,15 +159,15 @@ func runContributorWizard(ctx context.Context, store storage.DoltStorage) error 
 			return fmt.Errorf("failed to initialize git in planning repo: %w", err)
 		}
 
-		// Initialize beads in planning repo
-		beadsDir := filepath.Join(planningPath, ".beads")
-		if err := os.MkdirAll(beadsDir, 0750); err != nil {
-			return fmt.Errorf("failed to create .beads in planning repo: %w", err)
+		// Initialize issuegraph in planning repo
+		issuegraphDir := filepath.Join(planningPath, ".issuegraph")
+		if err := os.MkdirAll(issuegraphDir, 0750); err != nil {
+			return fmt.Errorf("failed to create .issuegraph in planning repo: %w", err)
 		}
 
 		// Create README in planning repo
 		readmePath := filepath.Join(planningPath, "README.md")
-		readmeContent := fmt.Sprintf(`# Beads Planning Repository
+		readmeContent := fmt.Sprintf(`# IssueGraph Planning Repository
 
 This repository stores contributor planning issues for OSS projects.
 
@@ -181,7 +181,7 @@ This repository stores contributor planning issues for OSS projects.
 
 Issues here are automatically created when working on forked repositories.
 
-Created by: bd init --contributor
+Created by: issuegraph init --contributor
 `)
 		// #nosec G306 -- README should be world-readable
 		if err := os.WriteFile(readmePath, []byte(readmeContent), 0644); err != nil {
@@ -193,7 +193,7 @@ Created by: bd init --contributor
 		cmd.Dir = planningPath
 		_ = cmd.Run()
 
-		cmd = exec.Command("git", "commit", "-m", "Initial commit: beads planning repository")
+		cmd = exec.Command("git", "commit", "-m", "Initial commit: issuegraph planning repository")
 		cmd.Dir = planningPath
 		_ = cmd.Run()
 
@@ -233,10 +233,10 @@ Created by: bd init --contributor
 	}
 
 	fmt.Printf("%s Hydration enabled for planning repo\n", ui.RenderPass("✓"))
-	fmt.Println("  Issues from planning repo will appear in 'bd list'")
+	fmt.Println("  Issues from planning repo will appear in 'issuegraph list'")
 
-	// If this is a fork, configure sync to pull beads from upstream (bd-bx9)
-	// This ensures `bd dolt pull` gets the latest issues from the source repo,
+	// If this is a fork, configure sync to pull issuegraph from upstream (bd-bx9)
+	// This ensures `issuegraph dolt pull` gets the latest issues from the source repo,
 	// not from the fork's potentially outdated origin/main
 	if isFork {
 		if err := store.SetConfig(ctx, "sync.remote", "upstream"); err != nil {
@@ -249,21 +249,21 @@ Created by: bd init --contributor
 	fmt.Printf("\n%s %s\n\n", ui.RenderPass("✓"), ui.RenderBold("Contributor setup complete!"))
 
 	fmt.Println("Configuration:")
-	fmt.Printf("  Current repo issues: %s\n", ui.RenderAccent(".beads/issues.jsonl"))
-	fmt.Printf("  Planning repo issues: %s\n", ui.RenderAccent(filepath.Join(planningPath, ".beads/issues.jsonl")))
+	fmt.Printf("  Current repo issues: %s\n", ui.RenderAccent(".issuegraph/issues.jsonl"))
+	fmt.Printf("  Planning repo issues: %s\n", ui.RenderAccent(filepath.Join(planningPath, ".issuegraph/issues.jsonl")))
 	fmt.Println()
 	fmt.Println("How it works:")
 	fmt.Println("  • Issues you create will route to the planning repo")
 	fmt.Println("  • Planning stays out of your PRs to upstream")
-	fmt.Println("  • Use 'bd list' to see issues from both repos")
+	fmt.Println("  • Use 'issuegraph list' to see issues from both repos")
 	fmt.Println()
-	fmt.Printf("Try it: %s\n", ui.RenderAccent("bd create \"Plan feature X\" -p 2"))
+	fmt.Printf("Try it: %s\n", ui.RenderAccent("issuegraph create \"Plan feature X\" -p 2"))
 	fmt.Println()
 
 	return nil
 }
 
-// autoConfigureForkContributor configures contributor routing when bd init
+// autoConfigureForkContributor configures contributor routing when issuegraph init
 // detects a fork (upstream remote present) and routing is not yet set.
 // Non-interactive and idempotent. roleFlag is the --role flag value (if any).
 func autoConfigureForkContributor(ctx context.Context, store storage.DoltStorage, quiet bool, roleFlag string) error {
@@ -277,7 +277,7 @@ func autoConfigureForkContributor(ctx context.Context, store storage.DoltStorage
 		if !quiet {
 			fmt.Printf("\n  %s Fork detected (upstream: %s)\n", ui.RenderWarn("⚠"), upstreamURL)
 			fmt.Printf("    Contributor routing skipped (--role=maintainer).\n")
-			fmt.Printf("    To set up contributor routing later: bd init --contributor\n")
+			fmt.Printf("    To set up contributor routing later: issuegraph init --contributor\n")
 		}
 		return nil
 	}
@@ -287,7 +287,7 @@ func autoConfigureForkContributor(ctx context.Context, store storage.DoltStorage
 		if !quiet {
 			fmt.Printf("\n  %s Fork detected (upstream: %s)\n", ui.RenderWarn("⚠"), upstreamURL)
 			fmt.Printf("    Contributor routing already configured → %s\n", existing)
-			fmt.Printf("    Skipping auto-setup. To reconfigure: bd init --contributor\n")
+			fmt.Printf("    Skipping auto-setup. To reconfigure: issuegraph init --contributor\n")
 		}
 		return nil
 	}
@@ -296,7 +296,7 @@ func autoConfigureForkContributor(ctx context.Context, store storage.DoltStorage
 			if !quiet {
 				fmt.Printf("\n  %s Fork detected (upstream: %s)\n", ui.RenderWarn("⚠"), upstreamURL)
 				fmt.Printf("    Contributor routing configured via config.yaml → %s\n", yamlVal)
-				fmt.Printf("    Skipping auto-setup. To reconfigure: bd init --contributor\n")
+				fmt.Printf("    Skipping auto-setup. To reconfigure: issuegraph init --contributor\n")
 			}
 			return nil
 		}
@@ -306,7 +306,7 @@ func autoConfigureForkContributor(ctx context.Context, store storage.DoltStorage
 	if err != nil {
 		return fmt.Errorf("failed to get home directory: %w", err)
 	}
-	planningPath := filepath.Join(homeDir, ".beads-planning")
+	planningPath := filepath.Join(homeDir, ".issuegraph-planning")
 
 	createdPlanning := false
 	if _, err := os.Stat(planningPath); os.IsNotExist(err) {
@@ -319,15 +319,15 @@ func autoConfigureForkContributor(ctx context.Context, store storage.DoltStorage
 		if err := gitInit.Run(); err != nil {
 			return fmt.Errorf("failed to init git in planning repo: %w", err)
 		}
-		planningBeadsDir := filepath.Join(planningPath, ".beads")
-		if err := os.MkdirAll(planningBeadsDir, 0750); err != nil {
-			return fmt.Errorf("failed to create .beads in planning repo: %w", err)
+		planningIssueGraphDir := filepath.Join(planningPath, ".issuegraph")
+		if err := os.MkdirAll(planningIssueGraphDir, 0750); err != nil {
+			return fmt.Errorf("failed to create .issuegraph in planning repo: %w", err)
 		}
-		// Initialize the planning Dolt schema so commands like bd migrate-personal
+		// Initialize the planning Dolt schema so commands like issuegraph migrate-personal
 		// can open the store immediately without hitting an uninitialized DB.
 		// Non-fatal: no-CGO and server-mode builds skip this silently; the schema
 		// initializes on first use once a Dolt server is running for that path.
-		if planningStore, storeErr := newDoltStoreFromConfig(ctx, planningBeadsDir); storeErr == nil {
+		if planningStore, storeErr := newDoltStoreFromConfig(ctx, planningIssueGraphDir); storeErr == nil {
 			_ = planningStore.Close()
 		}
 	}
@@ -342,7 +342,7 @@ func autoConfigureForkContributor(ctx context.Context, store storage.DoltStorage
 		return fmt.Errorf("failed to set sync.remote: %w", err)
 	}
 
-	_ = exec.Command("git", "config", "beads.role", "contributor").Run()
+	_ = exec.Command("git", "config", "issuegraph.role", "contributor").Run()
 
 	if configPath, err := config.FindConfigYAMLPath(); err == nil {
 		if addErr := config.AddRepo(configPath, planningPath); addErr != nil && !strings.Contains(addErr.Error(), "already exists") {
@@ -357,9 +357,9 @@ func autoConfigureForkContributor(ctx context.Context, store storage.DoltStorage
 		fmt.Printf("  %s Issues will route to planning repo (routing.mode=auto)\n", ui.RenderPass("✓"))
 		fmt.Printf("  %s Sync remote set to upstream\n", ui.RenderPass("✓"))
 		if createdPlanning {
-			fmt.Printf("  %s Added .beads/ to planning repo\n", ui.RenderPass("✓"))
+			fmt.Printf("  %s Added .issuegraph/ to planning repo\n", ui.RenderPass("✓"))
 		}
-		fmt.Printf("\n  To use maintainer mode instead: bd init --role=maintainer\n")
+		fmt.Printf("\n  To use maintainer mode instead: issuegraph init --role=maintainer\n")
 	}
 	return nil
 }

@@ -5,18 +5,18 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/steveyegge/beads/internal/types"
+	"github.com/borg0ai/dx-issuegraph/internal/types"
 )
 
 // The assignee fold this command used to own moved to
-// internal/workapi.FoldStatsAssigneeSummary when `bd status` went behind
+// internal/workapi.FoldStatsAssigneeSummary when `issuegraph status` went behind
 // issueops.StatsReporter, and its test moved with it
 // (internal/workapi/stats_test.go). It is the definition of what
-// `bd status --assigned` means and both routes now read it from there, so a
+// `issuegraph status --assigned` means and both routes now read it from there, so a
 // copy of the test here would pin a function this package no longer has.
 
 func TestRenderStatusJSON(t *testing.T) {
-	t.Setenv("BD_JSON_ENVELOPE", "0")
+	t.Setenv("ISSUEGRAPH_JSON_ENVELOPE", "0")
 
 	count := func(n int) *int { return &n }
 	tests := []struct {

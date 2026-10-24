@@ -10,8 +10,8 @@ import (
 	"testing"
 	"time"
 
-	"github.com/steveyegge/beads/internal/types"
-	"github.com/steveyegge/beads/internal/workapi"
+	"github.com/borg0ai/dx-issuegraph/internal/types"
+	"github.com/borg0ai/dx-issuegraph/internal/workapi"
 )
 
 type watchListDependencyStoreStub struct {
@@ -91,9 +91,9 @@ func TestListBuildIssueTree_ParentChildByDotID(t *testing.T) {
 	}
 }
 
-// Regression test for gastownhall/beads#3936:
+// Regression test for borg0ai/dx-issuegraph#3936:
 // `relates-to` is a loose graph link, not a hierarchy edge. It must not nest
-// issues under each other in `bd list` — and a bidirectional relates-to between
+// issues under each other in `issuegraph list` — and a bidirectional relates-to between
 // two epics must not collapse both subtrees out of the root set.
 func TestListBuildIssueTree_RelatesToDoesNotNestEpics(t *testing.T) {
 	epicA := &types.Issue{ID: "bd-a", Title: "Epic A", Status: types.StatusOpen, Priority: 2, IssueType: types.TypeEpic}
@@ -130,7 +130,7 @@ func TestListBuildIssueTree_RelatesToDoesNotNestEpics(t *testing.T) {
 	})
 }
 
-// Regression test for https://github.com/steveyegge/beads/issues/1446
+// Regression test for https://github.com/borg0ai/dx-issuegraph/issues/1446
 // A task with multiple dependencies on the same epic should only appear once.
 func TestListBuildIssueTree_NoDuplicateChildrenFromMultipleDeps(t *testing.T) {
 	epic := &types.Issue{ID: "bd-epic", Title: "Epic", Status: types.StatusOpen, Priority: 2, IssueType: types.TypeEpic}
@@ -159,7 +159,7 @@ func TestListBuildIssueTree_NoDuplicateChildrenFromMultipleDeps(t *testing.T) {
 
 // A non-parent-child dependency on an epic (blocks / waits-for / discovered-from)
 // is a workflow edge, not membership. It must not nest the source under the epic
-// in `bd list --tree`. The storage layer already scopes an epic's children to
+// in `issuegraph list --tree`. The storage layer already scopes an epic's children to
 // parent-child edges only (epic_closure.go), so the tree view must match: nesting
 // a mere blocker as a child made 2-layer parent trees render as 6+ level tangles
 // and triggered false "the hierarchy is broken" conclusions during grooming.
@@ -419,7 +419,7 @@ func TestDisplayWatchedIssueList_UsesDependencyHierarchy(t *testing.T) {
 func TestLoadWatchedIssues_WithParentIncludesHierarchyAndStableOrder(t *testing.T) {
 	ctx := context.Background()
 	tmpDir := t.TempDir()
-	testDB := filepath.Join(tmpDir, ".beads", "beads.db")
+	testDB := filepath.Join(tmpDir, ".issuegraph", "issuegraph.db")
 	store := newTestStore(t, testDB)
 
 	createIssue := func(title string, issueType types.IssueType) *types.Issue {
@@ -484,7 +484,7 @@ func TestLoadWatchedIssues_WithParentIncludesHierarchyAndStableOrder(t *testing.
 func TestLoadWatchedIssues_ReadyWithParentPreservesReadySemantics(t *testing.T) {
 	ctx := context.Background()
 	tmpDir := t.TempDir()
-	testDB := filepath.Join(tmpDir, ".beads", "beads.db")
+	testDB := filepath.Join(tmpDir, ".issuegraph", "issuegraph.db")
 	store := newTestStore(t, testDB)
 
 	createIssue := func(title string, issueType types.IssueType) *types.Issue {
@@ -541,7 +541,7 @@ func TestLoadWatchedIssues_ReadyWithParentPreservesReadySemantics(t *testing.T) 
 func TestGetHierarchicalChildrenIncludesDescendantsBeyondDepthTen(t *testing.T) {
 	ctx := context.Background()
 	tmpDir := t.TempDir()
-	testDB := filepath.Join(tmpDir, ".beads", "beads.db")
+	testDB := filepath.Join(tmpDir, ".issuegraph", "issuegraph.db")
 	store := newTestStore(t, testDB)
 
 	root := &types.Issue{

@@ -8,8 +8,8 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/steveyegge/beads/internal/types"
-	"github.com/steveyegge/beads/issueops"
+	"github.com/borg0ai/dx-issuegraph/internal/types"
+	"github.com/borg0ai/dx-issuegraph/issueops"
 )
 
 // These pin the DATABASE-FREE half of issueops.BatchApplier: what a request
@@ -550,7 +550,7 @@ func TestPlanApplyBatchDoesNotMutateTheCallerRequest(t *testing.T) {
 func TestPlanApplyBatchCarriesTheRequestForward(t *testing.T) {
 	plan, err := PlanApplyBatch(issueops.ApplyBatchRequest{
 		Actor:                 "planner",
-		Provenance:            "bd: apply plan.md",
+		Provenance:            "issuegraph: apply plan.md",
 		ForceIDPrefix:         true,
 		SkipPerEdgeCycleCheck: true,
 		Items:                 []issueops.ApplyItem{planApplyCreate("root")},
@@ -558,7 +558,7 @@ func TestPlanApplyBatchCarriesTheRequestForward(t *testing.T) {
 	if err != nil {
 		t.Fatalf("PlanApplyBatch = %v", err)
 	}
-	if plan.Actor != "planner" || plan.Provenance != "bd: apply plan.md" ||
+	if plan.Actor != "planner" || plan.Provenance != "issuegraph: apply plan.md" ||
 		!plan.ForceIDPrefix || !plan.SkipPerEdgeCycleCheck {
 		t.Fatalf("plan = %+v, want every request field carried", plan)
 	}

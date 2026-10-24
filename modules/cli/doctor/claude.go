@@ -18,7 +18,7 @@ var latestPyPIVersionFetcher = fetchLatestPyPIVersion
 // repoPath is the project root directory.
 func CheckClaude(repoPath string) DoctorCheck {
 	// Check what's installed
-	hasPlugin := isBeadsPluginInstalled(repoPath)
+	hasPlugin := isIssueGraphPluginInstalled(repoPath)
 	hasMCP := isMCPServerInstalled(repoPath)
 	hasHooks := hasClaudeHooks(repoPath)
 	inClaudeCode := os.Getenv("CLAUDECODE") == "1"
@@ -52,16 +52,16 @@ func CheckClaude(repoPath string) DoctorCheck {
 			Status:  "warning",
 			Message: "MCP server installed but hooks missing",
 			Detail: "MCP-only mode: relies on tools for every query (~10.5k tokens)\n" +
-				"  bd prime hooks provide much better token efficiency",
-			Fix: "Add bd prime hooks for better token efficiency:\n" +
-				"  1. Run 'bd setup claude' to add SessionStart hooks\n" +
+				"  issuegraph prime hooks provide much better token efficiency",
+			Fix: "Add issuegraph prime hooks for better token efficiency:\n" +
+				"  1. Run 'issuegraph setup claude' to add SessionStart hooks\n" +
 				"\n" +
 				"Benefits:\n" +
 				"  • MCP mode: ~50 tokens vs ~10.5k for full tool scan (99% reduction)\n" +
 				"  • Automatic context refresh on session start and compaction\n" +
 				"  • Works alongside MCP tools for when you need them\n" +
 				"\n" +
-				"See: bd setup claude --help",
+				"See: issuegraph setup claude --help",
 		}
 	} else if !inClaudeCode || !isClaudePresent() {
 		// Not in Claude Code, or CLAUDECODE=1 was set by another AI tool but
@@ -70,7 +70,7 @@ func CheckClaude(repoPath string) DoctorCheck {
 			Name:    "Claude Integration",
 			Status:  "ok",
 			Message: "CLI-only mode",
-			Detail:  "To enable Claude integration, run bd setup claude",
+			Detail:  "To enable Claude integration, run issuegraph setup claude",
 		}
 	} else {
 		// In Claude Code but plugin not installed
@@ -78,14 +78,14 @@ func CheckClaude(repoPath string) DoctorCheck {
 			Name:    "Claude Integration",
 			Status:  "warning",
 			Message: "Not configured",
-			Detail:  "Claude can use bd more effectively with the beads plugin",
+			Detail:  "Claude can use issuegraph more effectively with the issuegraph plugin",
 			Fix: "Set up Claude integration:\n" +
-				"  Option 1: Install the beads plugin (recommended)\n" +
+				"  Option 1: Install the issuegraph plugin (recommended)\n" +
 				"    • Provides hooks, slash commands, and MCP tools automatically\n" +
-				"    • See: https://github.com/gastownhall/beads/blob/main/docs/integrations/claude-code-plugin.md\n" +
+				"    • See: https://github.com/borg0ai/dx-issuegraph/blob/main/docs/integrations/claude-code-plugin.md\n" +
 				"\n" +
 				"  Option 2: CLI-only mode\n" +
-				"    • Run 'bd setup claude' to add SessionStart hooks\n" +
+				"    • Run 'issuegraph setup claude' to add SessionStart hooks\n" +
 				"    • No slash commands, but hooks provide workflow context\n" +
 				"\n" +
 				"Benefits:\n" +
@@ -95,11 +95,11 @@ func CheckClaude(repoPath string) DoctorCheck {
 	}
 }
 
-// isBeadsPluginInstalled checks if beads plugin is enabled in Claude Code.
+// isIssueGraphPluginInstalled checks if issuegraph plugin is enabled in Claude Code.
 // It checks user-level (~/.claude/settings.json) and project-level settings
 // (.claude/settings.json and .claude/settings.local.json).
 // repoPath is the project root directory.
-func isBeadsPluginInstalled(repoPath string) bool {
+func isIssueGraphPluginInstalled(repoPath string) bool {
 	home, err := os.UserHomeDir()
 	if err != nil {
 		return false
@@ -126,7 +126,7 @@ func isBeadsPluginInstalled(repoPath string) bool {
 	return false
 }
 
-// checkPluginInSettings checks if beads plugin is enabled in a settings file
+// checkPluginInSettings checks if issuegraph plugin is enabled in a settings file
 func checkPluginInSettings(settingsPath string) bool {
 	data, err := os.ReadFile(settingsPath) // #nosec G304 -- settingsPath is constructed from known safe locations, not user input
 	if err != nil {
@@ -138,15 +138,15 @@ func checkPluginInSettings(settingsPath string) bool {
 		return false
 	}
 
-	// Check enabledPlugins section for beads
+	// Check enabledPlugins section for issuegraph
 	enabledPlugins, ok := settings["enabledPlugins"].(map[string]interface{})
 	if !ok {
 		return false
 	}
 
-	// Look for beads@beads-marketplace plugin
+	// Look for issuegraph@issuegraph-marketplace plugin
 	for key, value := range enabledPlugins {
-		if strings.Contains(strings.ToLower(key), "beads") {
+		if strings.Contains(strings.ToLower(key), "issuegraph") {
 			// Check if it's enabled (value should be true)
 			if enabled, ok := value.(bool); ok && enabled {
 				return true
@@ -188,7 +188,7 @@ func isMCPServerInstalled(repoPath string) bool {
 	return false
 }
 
-// checkMCPInSettings checks if beads MCP server is configured in a settings file
+// checkMCPInSettings checks if issuegraph MCP server is configured in a settings file
 func checkMCPInSettings(settingsPath string) bool {
 	data, err := os.ReadFile(settingsPath) // #nosec G304 -- settingsPath is constructed from known safe locations, not user input
 	if err != nil {
@@ -200,15 +200,15 @@ func checkMCPInSettings(settingsPath string) bool {
 		return false
 	}
 
-	// Check mcpServers section for beads
+	// Check mcpServers section for issuegraph
 	mcpServers, ok := settings["mcpServers"].(map[string]interface{})
 	if !ok {
 		return false
 	}
 
-	// Look for beads server (any key containing "beads")
+	// Look for issuegraph server (any key containing "issuegraph")
 	for key := range mcpServers {
-		if strings.Contains(strings.ToLower(key), "beads") {
+		if strings.Contains(strings.ToLower(key), "issuegraph") {
 			return true
 		}
 	}
@@ -228,11 +228,11 @@ func hasClaudeHooks(repoPath string) bool {
 	projectSettings := filepath.Join(repoPath, ".claude", "settings.json")
 	projectLocalSettings := filepath.Join(repoPath, ".claude", "settings.local.json")
 
-	return hasBeadsHooks(globalSettings) || hasBeadsHooks(projectSettings) || hasBeadsHooks(projectLocalSettings)
+	return hasIssueGraphHooks(globalSettings) || hasIssueGraphHooks(projectSettings) || hasIssueGraphHooks(projectLocalSettings)
 }
 
-// hasBeadsHooks checks if a settings file has bd prime hooks
-func hasBeadsHooks(settingsPath string) bool {
+// hasIssueGraphHooks checks if a settings file has issuegraph prime hooks
+func hasIssueGraphHooks(settingsPath string) bool {
 	data, err := os.ReadFile(settingsPath) // #nosec G304 -- settingsPath is constructed from known safe locations (user home/.claude), not user input
 	if err != nil {
 		return false
@@ -248,7 +248,7 @@ func hasBeadsHooks(settingsPath string) bool {
 		return false
 	}
 
-	// Check SessionStart and PreCompact for "bd prime"
+	// Check SessionStart and PreCompact for "issuegraph prime"
 	for _, event := range []string{"SessionStart", "PreCompact"} {
 		eventHooks, ok := hooks[event].([]interface{})
 		if !ok {
@@ -271,8 +271,8 @@ func hasBeadsHooks(settingsPath string) bool {
 				}
 				cmdStr, _ := cmdMap["command"].(string)
 				switch cmdStr {
-				case "bd prime", "bd prime --stealth",
-					"bd prime --hook-json", "bd prime --stealth --hook-json":
+				case "issuegraph prime", "issuegraph prime --stealth",
+					"issuegraph prime --hook-json", "issuegraph prime --stealth --hook-json":
 					return true
 				}
 			}
@@ -282,24 +282,24 @@ func hasBeadsHooks(settingsPath string) bool {
 	return false
 }
 
-// VerifyPrimeOutput checks if bd prime command works and adapts correctly.
+// VerifyPrimeOutput checks if issuegraph prime command works and adapts correctly.
 // repoPath is the project root directory.
 func VerifyPrimeOutput(repoPath string) DoctorCheck {
-	cmd := exec.Command("bd", "prime")
+	cmd := exec.Command("issuegraph", "prime")
 	output, err := cmd.CombinedOutput()
 
 	if err != nil {
 		return DoctorCheck{
-			Name:    "bd prime Command",
+			Name:    "issuegraph prime Command",
 			Status:  "error",
 			Message: "Command failed to execute",
-			Fix:     "Ensure bd is installed and in PATH",
+			Fix:     "Ensure issuegraph is installed and in PATH",
 		}
 	}
 
 	if len(output) == 0 {
 		return DoctorCheck{
-			Name:    "bd prime Command",
+			Name:    "issuegraph prime Command",
 			Status:  "error",
 			Message: "No output produced",
 			Detail:  "Expected workflow context markdown",
@@ -310,54 +310,54 @@ func VerifyPrimeOutput(repoPath string) DoctorCheck {
 	hasMCP := isMCPServerInstalled(repoPath)
 	outputStr := string(output)
 
-	if hasMCP && strings.Contains(outputStr, "mcp__plugin_beads_beads__") {
+	if hasMCP && strings.Contains(outputStr, "mcp__plugin_issuegraph_issuegraph__") {
 		return DoctorCheck{
-			Name:    "bd prime Output",
+			Name:    "issuegraph prime Output",
 			Status:  "ok",
 			Message: "MCP mode detected",
 			Detail:  "Outputting workflow reminders",
 		}
-	} else if !hasMCP && strings.Contains(outputStr, "bd ready") {
+	} else if !hasMCP && strings.Contains(outputStr, "issuegraph ready") {
 		return DoctorCheck{
-			Name:    "bd prime Output",
+			Name:    "issuegraph prime Output",
 			Status:  "ok",
 			Message: "CLI mode detected",
 			Detail:  "Outputting full command reference",
 		}
 	} else {
 		return DoctorCheck{
-			Name:    "bd prime Output",
+			Name:    "issuegraph prime Output",
 			Status:  "warning",
 			Message: "Output may not be adapting to environment",
 		}
 	}
 }
 
-// CheckBdInPath verifies that 'bd' command is available in PATH.
-// This is important because Claude hooks rely on executing 'bd prime'.
+// CheckBdInPath verifies that 'issuegraph' command is available in PATH.
+// This is important because Claude hooks rely on executing 'issuegraph prime'.
 func CheckBdInPath() DoctorCheck {
-	_, err := exec.LookPath("bd")
+	_, err := exec.LookPath("issuegraph")
 	if err != nil {
 		return DoctorCheck{
 			Name:    "CLI Availability",
 			Status:  "warning",
-			Message: "'bd' command not found in PATH",
-			Detail:  "Claude hooks execute 'bd prime' and won't work without bd in PATH",
-			Fix: "Install bd globally:\n" +
-				"  • Homebrew: brew install beads\n" +
+			Message: "'issuegraph' command not found in PATH",
+			Detail:  "Claude hooks execute 'issuegraph prime' and won't work without issuegraph in PATH",
+			Fix: "Install issuegraph globally:\n" +
+				"  • Homebrew: brew install issuegraph\n" +
 				"  • Script: " + installScriptCommand + "\n" +
-				"  • Or add bd to your PATH",
+				"  • Or add issuegraph to your PATH",
 		}
 	}
 
 	return DoctorCheck{
 		Name:    "CLI Availability",
 		Status:  "ok",
-		Message: "'bd' command available in PATH",
+		Message: "'issuegraph' command available in PATH",
 	}
 }
 
-// CheckDocumentationBdPrimeReference checks if the agents file or CLAUDE.md reference 'bd prime'
+// CheckDocumentationBdPrimeReference checks if the agents file or CLAUDE.md reference 'issuegraph prime'
 // and verifies the command exists. This helps catch version mismatches where docs
 // reference features not available in the installed version.
 // Also supports local-only variants (claude.local.md) that are gitignored.
@@ -371,32 +371,32 @@ func CheckDocumentationBdPrimeReference(repoPath string) DoctorCheck {
 			continue
 		}
 
-		if strings.Contains(string(content), "bd prime") {
+		if strings.Contains(string(content), "issuegraph prime") {
 			filesWithBdPrime = append(filesWithBdPrime, filepath.Base(docFile))
 		}
 	}
 
-	// If no docs reference bd prime, that's fine - not everyone uses it
+	// If no docs reference issuegraph prime, that's fine - not everyone uses it
 	if len(filesWithBdPrime) == 0 {
 		return DoctorCheck{
 			Name:    "Prime Documentation",
 			Status:  "ok",
-			Message: "No bd prime references in documentation",
+			Message: "No issuegraph prime references in documentation",
 		}
 	}
 
-	// Docs reference bd prime - verify the command works
-	cmd := exec.Command("bd", "prime", "--help")
+	// Docs reference issuegraph prime - verify the command works
+	cmd := exec.Command("issuegraph", "prime", "--help")
 	if err := cmd.Run(); err != nil {
 		return DoctorCheck{
 			Name:    "Prime Documentation",
 			Status:  "warning",
-			Message: "Documentation references 'bd prime' but command not found",
+			Message: "Documentation references 'issuegraph prime' but command not found",
 			Detail:  "Files: " + strings.Join(filesWithBdPrime, ", "),
-			Fix: "Upgrade bd to get the 'bd prime' command:\n" +
-				"  • Homebrew: brew upgrade beads\n" +
+			Fix: "Upgrade issuegraph to get the 'issuegraph prime' command:\n" +
+				"  • Homebrew: brew upgrade issuegraph\n" +
 				"  • Script: " + installScriptCommand + "\n" +
-				"  Or remove 'bd prime' references from documentation if using older version",
+				"  Or remove 'issuegraph prime' references from documentation if using older version",
 		}
 	}
 
@@ -424,7 +424,7 @@ func isClaudePresent() bool {
 	return err == nil && info.IsDir()
 }
 
-// CheckClaudePlugin checks if the beads Claude Code plugin is installed and up to date.
+// CheckClaudePlugin checks if the issuegraph Claude Code plugin is installed and up to date.
 func CheckClaudePlugin() DoctorCheck {
 	// Check if running in Claude Code.
 	// CLAUDECODE=1 may be set by AI tools other than Claude Code, so also verify
@@ -452,13 +452,13 @@ func CheckClaudePlugin() DoctorCheck {
 		return DoctorCheck{
 			Name:    "Claude Plugin",
 			Status:  StatusWarning,
-			Message: "beads plugin not installed",
-			Fix:     "Install plugin: /plugin marketplace add steveyegge/beads && /plugin install beads (see docs/integrations/claude-code-plugin.md)",
+			Message: "issuegraph plugin not installed",
+			Fix:     "Install plugin: /plugin marketplace add borg0ai/issuegraph && /plugin install issuegraph (see docs/integrations/claude-code-plugin.md)",
 		}
 	}
 
 	// Query PyPI for latest MCP version
-	latestMCPVersion, err := latestPyPIVersionFetcher("beads-mcp")
+	latestMCPVersion, err := latestPyPIVersionFetcher("issuegraph-mcp")
 	if err != nil {
 		// Network error - don't fail
 		return DoctorCheck{
@@ -482,7 +482,7 @@ func CheckClaudePlugin() DoctorCheck {
 			Name:    "Claude Plugin",
 			Status:  StatusWarning,
 			Message: fmt.Sprintf("version %s (latest: %s)", pluginVersion, latestMCPVersion),
-			Fix:     "Update plugin: /plugin update beads@beads-marketplace\nRestart Claude Code after update",
+			Fix:     "Update plugin: /plugin update issuegraph@issuegraph-marketplace\nRestart Claude Code after update",
 		}
 	}
 
@@ -518,8 +518,8 @@ func CheckClaudePluginLocalOnly() DoctorCheck {
 		return DoctorCheck{
 			Name:    "Claude Plugin",
 			Status:  StatusWarning,
-			Message: "beads plugin not installed",
-			Fix:     "Install plugin: /plugin marketplace add steveyegge/beads && /plugin install beads (see docs/integrations/claude-code-plugin.md)",
+			Message: "issuegraph plugin not installed",
+			Fix:     "Install plugin: /plugin marketplace add borg0ai/issuegraph && /plugin install issuegraph (see docs/integrations/claude-code-plugin.md)",
 		}
 	}
 
@@ -530,7 +530,7 @@ func CheckClaudePluginLocalOnly() DoctorCheck {
 	}
 }
 
-// GetClaudePluginVersion returns the installed beads Claude plugin version.
+// GetClaudePluginVersion returns the installed issuegraph Claude plugin version.
 func GetClaudePluginVersion() (version string, installed bool, err error) {
 	// Get user home directory (cross-platform)
 	homeDir, err := os.UserHomeDir()
@@ -570,8 +570,8 @@ func GetClaudePluginVersion() (version string, installed bool, err error) {
 			return "", false, fmt.Errorf("unable to parse plugin file v2: %w", err)
 		}
 
-		// Look for beads plugin - take first entry from the array
-		if entries, ok := pluginDataV2.Plugins["beads@beads-marketplace"]; ok && len(entries) > 0 {
+		// Look for issuegraph plugin - take first entry from the array
+		if entries, ok := pluginDataV2.Plugins["issuegraph@issuegraph-marketplace"]; ok && len(entries) > 0 {
 			return entries[0].Version, true, nil
 		}
 		return "", false, nil
@@ -588,8 +588,8 @@ func GetClaudePluginVersion() (version string, installed bool, err error) {
 		return "", false, fmt.Errorf("unable to parse plugin file: %w", err)
 	}
 
-	// Look for beads plugin
-	if plugin, ok := pluginDataV1.Plugins["beads@beads-marketplace"]; ok {
+	// Look for issuegraph plugin
+	if plugin, ok := pluginDataV1.Plugins["issuegraph@issuegraph-marketplace"]; ok {
 		return plugin.Version, true, nil
 	}
 
@@ -609,7 +609,7 @@ func fetchLatestPyPIVersion(packageName string) (string, error) {
 	}
 
 	// Set User-Agent
-	req.Header.Set("User-Agent", "beads-cli-doctor")
+	req.Header.Set("User-Agent", "issuegraph-cli-doctor")
 
 	resp, err := client.Do(req)
 	if err != nil {
@@ -702,7 +702,7 @@ func CheckClaudeSettingsHealth(repoPath string) DoctorCheck {
 
 // CheckClaudeHookCompleteness verifies that when hooks are installed,
 // SessionStart is covered. Claude Code fires SessionStart on startup, resume,
-// clear, and after compaction, so current bd prime context injection only needs
+// clear, and after compaction, so current issuegraph prime context injection only needs
 // SessionStart.
 // repoPath is the project root directory.
 func CheckClaudeHookCompleteness(repoPath string) DoctorCheck {
@@ -756,8 +756,8 @@ func CheckClaudeHookCompleteness(repoPath string) DoctorCheck {
 		Status:  StatusWarning,
 		Message: "Missing hook event(s): SessionStart",
 		Detail:  "SessionStart injects context on new sessions and after compaction.",
-		Fix: "Run 'bd setup claude' to install hooks, or\n" +
-			"install the beads plugin which includes hooks automatically.",
+		Fix: "Run 'issuegraph setup claude' to install hooks, or\n" +
+			"install the issuegraph plugin which includes hooks automatically.",
 	}
 }
 
@@ -799,8 +799,8 @@ func checkHookEvents(settingsPath string) (hasSessionStart, hasPreCompact bool) 
 				}
 				cmdStr, _ := cmdMap["command"].(string)
 				switch cmdStr {
-				case "bd prime", "bd prime --stealth",
-					"bd prime --hook-json", "bd prime --stealth --hook-json":
+				case "issuegraph prime", "issuegraph prime --stealth",
+					"issuegraph prime --hook-json", "issuegraph prime --stealth --hook-json":
 					return true
 				}
 			}

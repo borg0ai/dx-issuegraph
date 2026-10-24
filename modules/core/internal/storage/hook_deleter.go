@@ -1,7 +1,7 @@
 package storage
 
 import (
-	"github.com/steveyegge/beads/issueops"
+	"github.com/borg0ai/dx-issuegraph/issueops"
 )
 
 // Deleter returns the inner store's named-row erasure surface.
@@ -13,7 +13,7 @@ import (
 // neighbors' text, and those rows survive an update — so an on_update hook
 // could in principle fire for them. It does not, deliberately: the rewrite is
 // a consequence of the deletion rather than an update a user asked for, and a
-// `bd delete` of one bead that fired a subprocess per neighbor would be a new
+// `issuegraph delete` of one issue that fired a subprocess per neighbor would be a new
 // failure mode. The direct CLI route this role replaces fired no hook for those
 // updates either.
 //

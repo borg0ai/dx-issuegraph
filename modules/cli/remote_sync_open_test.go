@@ -8,19 +8,19 @@ import (
 	"strings"
 	"testing"
 
+	"github.com/borg0ai/dx-issuegraph/internal/storage/schema"
 	"github.com/spf13/cobra"
-	"github.com/steveyegge/beads/internal/storage/schema"
 )
 
 // TestIsRemoteSyncCommand pins which command gets the #6575 narrow lenient
-// open. It is exactly `bd dolt pull` — the command the data-behind refusal
+// open. It is exactly `issuegraph dolt pull` — the command the data-behind refusal
 // prescribes, which before this fix was blocked by the refusal that prescribed
 // it (the #4566 deadlock shape, one refusal over).
 //
-// The negative cases matter as much as the positive one: `bd sync` also pushes
+// The negative cases matter as much as the positive one: `issuegraph sync` also pushes
 // and can write issue rows, and a write against a stale schema is the hazard
 // the gate exists for, so it is deliberately NOT enrolled. A bare `pull` with
-// no `dolt` parent must not match either, or any future `bd <x> pull` would
+// no `dolt` parent must not match either, or any future `issuegraph <x> pull` would
 // inherit an exemption nobody reviewed.
 func TestIsRemoteSyncCommand(t *testing.T) {
 	build := func(parent, child string) *cobra.Command {
@@ -54,7 +54,7 @@ func TestIsRemoteSyncCommand(t *testing.T) {
 
 // TestIsRemoteSyncCommandMatchesTheRealPullCommand guards the classification
 // against the real command tree rather than a hand-built stand-in, so renaming
-// or re-parenting `bd dolt pull` cannot silently drop the exemption and
+// or re-parenting `issuegraph dolt pull` cannot silently drop the exemption and
 // re-wedge the refused cohort.
 func TestIsRemoteSyncCommandMatchesTheRealPullCommand(t *testing.T) {
 	if !isRemoteSyncCommand(doltPullCmd) {
@@ -72,9 +72,9 @@ func TestIsRemoteSyncCommandMatchesTheRealPullCommand(t *testing.T) {
 // agent-facing block for the #6575 stop used to carry only an opaque
 // `fallback_reason: "data-behind"` while observed/expected/options stayed the
 // blunt migrate-or-adopt default — so an agent reading the documented contract
-// surfaced `bd migrate --force` (the bug) followed by a `bd dolt push` that is
+// surfaced `issuegraph migrate --force` (the bug) followed by a `issuegraph dolt push` that is
 // guaranteed to be rejected non-fast-forward while the clone is still behind,
-// plus a `bd bootstrap` that no-ops. The prose remedy existed only in text
+// plus a `issuegraph bootstrap` that no-ops. The prose remedy existed only in text
 // --json never emitted.
 func TestHandleRemoteMigrateGateJSON_DataBehind(t *testing.T) {
 	capture := func(t *testing.T, gate *schema.RemoteMigrateGateError) map[string]interface{} {
@@ -144,7 +144,7 @@ func TestHandleRemoteMigrateGateJSON_DataBehind(t *testing.T) {
 			}
 			// The docs pointer is part of the same payload and was the one
 			// field the observed/expected rewrite left behind: the default
-			// anchor's ordering rule says `bd dolt pull` is refused on every
+			// anchor's ordering rule says `issuegraph dolt pull` is refused on every
 			// pending-migration open, contradicting the option above. Pin it
 			// so the next rewrite of this arm cannot drop the pointer again.
 			if got, _ := obj["docs"].(string); got != dataBehindDocsURL {
@@ -185,7 +185,7 @@ func TestHandleRemoteMigrateGateJSON_DataBehind(t *testing.T) {
 			if err != nil {
 				t.Fatal(err)
 			}
-			for _, banned := range []string{"bd bootstrap", "bd migrate --force"} {
+			for _, banned := range []string{"issuegraph bootstrap", "issuegraph migrate --force"} {
 				if strings.Contains(string(blob), banned) {
 					t.Errorf("the data-behind block offers %q, which was measured not to work from this state:\n%s", banned, blob)
 				}
@@ -195,7 +195,7 @@ func TestHandleRemoteMigrateGateJSON_DataBehind(t *testing.T) {
 
 	// A shared, data-behind refusal carries the #5920 consent verb in its
 	// second option, and that verb is target-scoped: under --global the
-	// project-scoped `bd migrate schema` would consent the WRONG database and
+	// project-scoped `issuegraph migrate schema` would consent the WRONG database and
 	// leave the refusal in place. This stop reaches the renderer through the
 	// default (empty-Decision) arm, so the retarget cannot be keyed on
 	// Decision alone the way shared-no-remote's is.
@@ -243,7 +243,7 @@ func TestHandleRemoteMigrateGateJSON_DataBehind(t *testing.T) {
 // stop"` and `risk: "none — a pure fast-forward"`, and AgentDirective says the
 // same, yet an agent keying on this field stopped to ask a human to approve an
 // unconditional, riskless step. The cost of that stall is the operator
-// reaching for `bd migrate --force` instead — the #6575 wedge.
+// reaching for `issuegraph migrate --force` instead — the #6575 wedge.
 //
 // The two narrowings are the substance of the finding: a diverged pull MERGES
 // and can need conflict resolution (and a `--strategy ours|theirs` choice), and

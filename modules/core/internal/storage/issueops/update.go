@@ -9,8 +9,8 @@ import (
 	"strings"
 	"time"
 
-	"github.com/steveyegge/beads/internal/storage"
-	"github.com/steveyegge/beads/internal/types"
+	"github.com/borg0ai/dx-issuegraph/internal/storage"
+	"github.com/borg0ai/dx-issuegraph/internal/types"
 )
 
 // IsAllowedUpdateField checks if a field name is valid for issue updates.
@@ -33,14 +33,14 @@ func IsAllowedUpdateField(key string) bool {
 
 // ManageClosedAt brings the close-lifecycle columns along with a status
 // transition, so a generic update that crosses into closed lands the same row
-// `bd close` would and a reopen leaves nothing of the old close behind.
+// `issuegraph close` would and a reopen leaves nothing of the old close behind.
 //
 // closeIssueInTx writes closed_at, close_reason and closed_by_session on EVERY
 // close, including the empty reason and session a caller that supplied neither
 // produces. The update funnels write a column only when the caller names its
 // key, so without these defaults a generic close inherits whatever the previous
 // close left: a re-close after a generic reopen keeps the old session and
-// `bd show` reports the new close as the old session's work (ga-kjkv1). Each
+// `issuegraph show` reports the new close as the old session's work (ga-kjkv1). Each
 // default is suppressed by its own explicit key, so a caller that names the
 // column still wins — the CLI's own closed_by_session pass-through included.
 //
@@ -188,8 +188,8 @@ func ManageStartedAt(oldIssue *types.Issue, updates map[string]interface{}, setC
 
 // ManageLeaseOnUpdate keeps lease ownership coherent when generic updates alter
 // status or assignee. Leases are armed ONLY by the lease-aware verbs — claim
-// (ClaimIssueInTx, bd update --claim, bd ready --claim) and heartbeat — never by
-// a generic update. A bare `bd update -s in_progress -a <who>` is an interactive
+// (ClaimIssueInTx, issuegraph update --claim, issuegraph ready --claim) and heartbeat — never by
+// a generic update. A bare `issuegraph update -s in_progress -a <who>` is an interactive
 // hand-dole claim: nobody is heartbeating it, so arming a lease here just turns
 // the claim into reclaim-bait that reverts to open after the TTL (bd-9hpgf,
 // GH#4716). This helper therefore only ever CLEARS lease columns:
@@ -401,7 +401,7 @@ func updateIssueInTx(ctx context.Context, tx DBTX, id string, updates map[string
 	// a done-to-done restatement policy-free, and running after the callers'
 	// version and assignee preconditions keeps force away from those: it
 	// bypasses the two close refusals and nothing else, exactly as it does for
-	// `bd close`. A refusal returns here, before any write, and aborts the
+	// `issuegraph close`. A refusal returns here, before any write, and aborts the
 	// caller's transaction.
 	crossing, err := CrossesIntoDoneCategoryInTx(ctx, tx, oldIssue.Status, updates)
 	if err != nil {
@@ -538,7 +538,7 @@ func updateIssueInTx(ctx context.Context, tx DBTX, id string, updates map[string
 	}
 
 	// Snapshot only after all derived blocked-state maintenance has completed,
-	// so the journal row carries the settled bead. recordEvent controls the
+	// so the journal row carries the settled issue. recordEvent controls the
 	// human-facing audit event only: the journal is a machine replay feed and
 	// must never have a hole punched in it by an audit-suppressing caller.
 	if err := RecordEventInTx(ctx, tx, EventUpdate, id, actor); err != nil {
@@ -562,21 +562,21 @@ func cloneUpdateFields(updates map[string]interface{}) map[string]interface{} {
 // different keys of the same issue cannot erase each other.
 const (
 	// OpMergeMetadata merges a JSON object's top-level keys into the issue's
-	// metadata (bd update --metadata). Value: string, []byte, or json.RawMessage.
+	// metadata (issuegraph update --metadata). Value: string, []byte, or json.RawMessage.
 	OpMergeMetadata = "_merge_metadata"
 	// OpSetMetadata sets individual metadata entries. CLI callers use []string
 	// key=value values; public issue operations use map[string]json.RawMessage.
 	OpSetMetadata = "_set_metadata"
-	// OpUnsetMetadata removes metadata keys (bd update --unset-metadata).
+	// OpUnsetMetadata removes metadata keys (issuegraph update --unset-metadata).
 	// Value: []string.
 	OpUnsetMetadata = "_unset_metadata"
 	// OpAppendNotes appends a line to the issue's notes
-	// (bd update --append-notes). Value: string.
+	// (issuegraph update --append-notes). Value: string.
 	OpAppendNotes = "append_notes"
 )
 
 // OpForceClosePolicy carries a close-policy override into a generic update
-// (bd update --force). Value: bool. It is not a merge operation and not a
+// (issuegraph update --force). Value: bool. It is not a merge operation and not a
 // column — the write funnels pop it before validating fields, so it never
 // reaches SQL.
 //

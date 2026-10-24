@@ -9,15 +9,15 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/steveyegge/beads/internal/doltserver"
+	"github.com/borg0ai/dx-issuegraph/internal/doltserver"
 )
 
 // These tests cover the auto-start port-provenance fail-closed behavior
 // (GH#4052): when the configured Dolt server port is unreachable and
-// auto-start ends up on a different port, bd must fail closed instead of
+// auto-start ends up on a different port, issuegraph must fail closed instead of
 // silently retargeting when the configured port came from an authoritative
 // source (env var, project/global config.yaml, metadata.json). Retargeting
-// stays unchanged when the source is bd's own port-file bookkeeping, or when
+// stays unchanged when the source is issuegraph's own port-file bookkeeping, or when
 // no port was ever configured (ServerPort == 0).
 //
 // stubEnsureRunningDetailed replaces the package-level ensureRunningDetailed
@@ -26,18 +26,18 @@ func stubEnsureRunningDetailed(t *testing.T, port int, startedByUs bool, err err
 	t.Helper()
 	orig := ensureRunningDetailed
 	t.Cleanup(func() { ensureRunningDetailed = orig })
-	ensureRunningDetailed = func(beadsDir string) (int, bool, error) {
+	ensureRunningDetailed = func(issuegraphDir string) (int, bool, error) {
 		return port, startedByUs, err
 	}
 }
 
 // baseAutoStartCfg returns a Config that will reach the auto-start branch of
 // newServerMode: the initial dial to ServerPort fails (nothing listens on
-// port 1), auto-start is permitted, and BEADS_TEST_MODE disables the real
+// port 1), auto-start is permitted, and ISSUEGRAPH_TEST_MODE disables the real
 // circuit breaker so no state files are touched.
 func baseAutoStartCfg(t *testing.T, database string, serverPort int, source doltserver.PortSource) *Config {
 	t.Helper()
-	t.Setenv("BEADS_TEST_MODE", "1")
+	t.Setenv("ISSUEGRAPH_TEST_MODE", "1")
 	return &Config{
 		Database:         database,
 		Path:             t.TempDir(),
@@ -69,7 +69,7 @@ func TestNewServerMode_AuthoritativePortSource_RetargetedPort_FailsClosed(t *tes
 		strconv.Itoa(configuredPort),
 		strconv.Itoa(newPort),
 		"will not silently use",
-		"bd dolt start",
+		"issuegraph dolt start",
 	} {
 		if !strings.Contains(msg, want) {
 			t.Errorf("error message missing %q: %s", want, msg)
@@ -109,7 +109,7 @@ func TestNewServerMode_AllAuthoritativeSources_FailClosed(t *testing.T) {
 }
 
 // TestNewServerMode_PortFileSource_RetargetedPort_StillRetargets guards
-// against the UX regression: bd's own port-file bookkeeping must keep
+// against the UX regression: issuegraph's own port-file bookkeeping must keep
 // today's silent-retarget-with-warning behavior. Since the retargeted port
 // (54323) is not a real server either, the open still ultimately fails, but
 // via the old "auto-started but still unreachable" path, not the new
@@ -182,7 +182,7 @@ func TestNewServerMode_ZeroServerPort_Unaffected(t *testing.T) {
 //
 // In shared-server mode, DefaultConfig resolves the port from the *shared*
 // server directory's port sources (or falls back to DefaultSharedServerPort
-// when none resolve one), but EnsureRunningDetailed(resolvedBeadsDir) in
+// when none resolve one), but EnsureRunningDetailed(resolvedIssueGraphDir) in
 // newServerMode's auto-start branch always starts a *repo-local* server.
 // That is a different database than the shared one, so a port change here
 // must fail closed regardless of ServerPortSource — including
@@ -222,7 +222,7 @@ func TestNewServerMode_SharedServerResolvedPort_PortFileSource_FailsClosed(t *te
 		strconv.Itoa(newPort),
 		"Shared Dolt server",
 		"different database",
-		"bd dolt start",
+		"issuegraph dolt start",
 	} {
 		if !strings.Contains(msg, want) {
 			t.Errorf("error message missing %q: %s", want, msg)
@@ -239,7 +239,7 @@ func TestNewServerMode_SharedServerResolvedPort_PortFileSource_FailsClosed(t *te
 // listening port *before* newServerMode's fail-closed checks run — see
 // doltserver.Start's writePortFile, and the adopt-existing-server path's
 // EnsurePortFile. Left in place, that write survives a fail-closed return:
-// the port file is bd's own bookkeeping and the second-highest-precedence
+// the port file is issuegraph's own bookkeeping and the second-highest-precedence
 // port source (above config.yaml/metadata.json, below only the env var), so
 // a second, otherwise-identical invocation would resolve PortSourcePortFile
 // (non-authoritative) instead of the authoritative source that just failed,
@@ -258,8 +258,8 @@ func stubEnsureRunningDetailedWithPortFileWrite(t *testing.T, port int, startedB
 	t.Helper()
 	orig := ensureRunningDetailed
 	t.Cleanup(func() { ensureRunningDetailed = orig })
-	ensureRunningDetailed = func(beadsDir string) (int, bool, error) {
-		serverDir := doltserver.ResolveServerDir(beadsDir)
+	ensureRunningDetailed = func(issuegraphDir string) (int, bool, error) {
+		serverDir := doltserver.ResolveServerDir(issuegraphDir)
 		portFile := filepath.Join(serverDir, doltserver.PortFileName)
 		if err := os.WriteFile(portFile, []byte(strconv.Itoa(port)), 0o600); err != nil {
 			t.Fatalf("simulating production port-file write: %v", err)
@@ -273,14 +273,14 @@ func stubEnsureRunningDetailedWithPortFileWrite(t *testing.T, port int, startedB
 // port file existed prior to the call, so the fail-closed return must leave
 // none behind either.
 func TestNewServerMode_AuthoritativeSource_FailClosed_RestoresAbsentPortFile(t *testing.T) {
-	beadsDir := t.TempDir()
+	issuegraphDir := t.TempDir()
 	const configuredPort = 1
 	const newPort = 54401
-	t.Setenv("BEADS_TEST_MODE", "1")
+	t.Setenv("ISSUEGRAPH_TEST_MODE", "1")
 	cfg := &Config{
 		Database:         "test_port_provenance_restore_absent",
-		BeadsDir:         beadsDir,
-		Path:             filepath.Join(beadsDir, "dolt"),
+		IssueGraphDir:    issuegraphDir,
+		Path:             filepath.Join(issuegraphDir, "dolt"),
 		ServerHost:       "127.0.0.1",
 		ServerPort:       configuredPort,
 		ServerPortSource: doltserver.PortSourceConfigYaml,
@@ -288,7 +288,7 @@ func TestNewServerMode_AuthoritativeSource_FailClosed_RestoresAbsentPortFile(t *
 	}
 	stubEnsureRunningDetailedWithPortFileWrite(t, newPort, false)
 
-	if got := doltserver.ReadPortFile(beadsDir); got != 0 {
+	if got := doltserver.ReadPortFile(issuegraphDir); got != 0 {
 		t.Fatalf("precondition: port file unexpectedly present (%d)", got)
 	}
 
@@ -299,7 +299,7 @@ func TestNewServerMode_AuthoritativeSource_FailClosed_RestoresAbsentPortFile(t *
 	if !strings.Contains(err.Error(), "will not silently use") {
 		t.Fatalf("expected fail-closed message, got: %v", err)
 	}
-	if got := doltserver.ReadPortFile(beadsDir); got != 0 {
+	if got := doltserver.ReadPortFile(issuegraphDir); got != 0 {
 		t.Fatalf("port file not restored to absent: got port %d (fail-closed left auto-start's port-file write in place — this re-disarms the guard on a retry)", got)
 	}
 }
@@ -309,12 +309,12 @@ func TestNewServerMode_AuthoritativeSource_FailClosed_RestoresAbsentPortFile(t *
 // previous run is already recorded; the fail-closed return must restore
 // those exact bytes, not the new port auto-start just wrote.
 func TestNewServerMode_AuthoritativeSource_FailClosed_RestoresPriorPortFileBytes(t *testing.T) {
-	beadsDir := t.TempDir()
+	issuegraphDir := t.TempDir()
 	const configuredPort = 1
 	const priorPort = 9999
 	const newPort = 54402
-	t.Setenv("BEADS_TEST_MODE", "1")
-	portFilePath := filepath.Join(beadsDir, doltserver.PortFileName)
+	t.Setenv("ISSUEGRAPH_TEST_MODE", "1")
+	portFilePath := filepath.Join(issuegraphDir, doltserver.PortFileName)
 	priorBytes := []byte(strconv.Itoa(priorPort))
 	if err := os.WriteFile(portFilePath, priorBytes, 0o600); err != nil {
 		t.Fatal(err)
@@ -322,8 +322,8 @@ func TestNewServerMode_AuthoritativeSource_FailClosed_RestoresPriorPortFileBytes
 
 	cfg := &Config{
 		Database:         "test_port_provenance_restore_bytes",
-		BeadsDir:         beadsDir,
-		Path:             filepath.Join(beadsDir, "dolt"),
+		IssueGraphDir:    issuegraphDir,
+		Path:             filepath.Join(issuegraphDir, "dolt"),
 		ServerHost:       "127.0.0.1",
 		ServerPort:       configuredPort,
 		ServerPortSource: doltserver.PortSourceConfigYaml,
@@ -349,12 +349,12 @@ func TestNewServerMode_AuthoritativeSource_FailClosed_RestoresPriorPortFileBytes
 // byte-identical-restoration assertion for the shared-server-mode fail-closed
 // path (ServerPortSharedServer true).
 func TestNewServerMode_SharedServer_FailClosed_RestoresPortFile(t *testing.T) {
-	beadsDir := t.TempDir()
+	issuegraphDir := t.TempDir()
 	const configuredPort = 1
 	const priorPort = 8888
 	const newPort = 54407
-	t.Setenv("BEADS_TEST_MODE", "1")
-	portFilePath := filepath.Join(beadsDir, doltserver.PortFileName)
+	t.Setenv("ISSUEGRAPH_TEST_MODE", "1")
+	portFilePath := filepath.Join(issuegraphDir, doltserver.PortFileName)
 	priorBytes := []byte(strconv.Itoa(priorPort))
 	if err := os.WriteFile(portFilePath, priorBytes, 0o600); err != nil {
 		t.Fatal(err)
@@ -362,8 +362,8 @@ func TestNewServerMode_SharedServer_FailClosed_RestoresPortFile(t *testing.T) {
 
 	cfg := &Config{
 		Database:               "test_port_provenance_shared_restore",
-		BeadsDir:               beadsDir,
-		Path:                   filepath.Join(beadsDir, "dolt"),
+		IssueGraphDir:          issuegraphDir,
+		Path:                   filepath.Join(issuegraphDir, "dolt"),
 		ServerHost:             "127.0.0.1",
 		ServerPort:             configuredPort,
 		ServerPortSource:       doltserver.PortSourcePortFile,
@@ -392,20 +392,20 @@ func TestNewServerMode_SharedServer_FailClosed_RestoresPortFile(t *testing.T) {
 // TestNewServerMode_AuthoritativeSource_SecondCallStillFailsClosed is the
 // direct regression test for the user-visible bug: a SECOND, independent
 // invocation with freshly-resolved config (as a retrying user running
-// `bd close` again would produce) must still fail closed. It resolves the
+// `issuegraph close` again would produce) must still fail closed. It resolves the
 // port source via the real doltserver.DefaultConfig/config.yaml precedence
 // chain (not a hand-set field) so the port file's on-disk state genuinely
-// participates in resolution, exactly like a real second `bd` invocation
+// participates in resolution, exactly like a real second `issuegraph` invocation
 // would. Before the fix, the first call's stray port-file write flipped the
 // second call's resolved source to PortSourcePortFile (non-authoritative),
 // silently disarming the guard.
 func TestNewServerMode_AuthoritativeSource_SecondCallStillFailsClosed(t *testing.T) {
-	t.Setenv("BEADS_TEST_MODE", "0")
-	t.Setenv("BEADS_DOLT_SERVER_PORT", "")
-	t.Setenv("BEADS_DOLT_SHARED_SERVER", "")
+	t.Setenv("ISSUEGRAPH_TEST_MODE", "0")
+	t.Setenv("ISSUEGRAPH_DOLT_SERVER_PORT", "")
+	t.Setenv("ISSUEGRAPH_DOLT_SHARED_SERVER", "")
 
-	beadsDir := t.TempDir()
-	doltDir := filepath.Join(beadsDir, "dolt")
+	issuegraphDir := t.TempDir()
+	doltDir := filepath.Join(issuegraphDir, "dolt")
 	if err := os.MkdirAll(doltDir, 0o755); err != nil {
 		t.Fatal(err)
 	}
@@ -417,7 +417,7 @@ func TestNewServerMode_AuthoritativeSource_SecondCallStillFailsClosed(t *testing
 
 	buildCfg := func(t *testing.T, database string) *Config {
 		t.Helper()
-		dc := doltserver.DefaultConfig(beadsDir)
+		dc := doltserver.DefaultConfig(issuegraphDir)
 		if dc.Port != configuredPort {
 			t.Fatalf("precondition: DefaultConfig resolved port %d, want %d (from dolt config.yaml)", dc.Port, configuredPort)
 		}
@@ -426,10 +426,10 @@ func TestNewServerMode_AuthoritativeSource_SecondCallStillFailsClosed(t *testing
 		}
 		return &Config{
 			// Not a test-mode database name: this test deliberately runs
-			// with BEADS_TEST_MODE=0 to exercise the untracked (non-test)
+			// with ISSUEGRAPH_TEST_MODE=0 to exercise the untracked (non-test)
 			// auto-start-stop path in newServerMode/undoRejectedAutoStart.
 			Database:               database,
-			BeadsDir:               beadsDir,
+			IssueGraphDir:          issuegraphDir,
 			Path:                   doltDir,
 			ServerHost:             dc.Host,
 			ServerPort:             dc.Port,
@@ -477,7 +477,7 @@ func stubStopRejectedAutoStartedServer(t *testing.T) *int {
 	calls := new(int)
 	orig := stopRejectedAutoStartedServer
 	t.Cleanup(func() { stopRejectedAutoStartedServer = orig })
-	stopRejectedAutoStartedServer = func(beadsDir string) error {
+	stopRejectedAutoStartedServer = func(issuegraphDir string) error {
 		*calls++
 		return nil
 	}
@@ -513,13 +513,13 @@ func TestUndoRejectedAutoStart_AdoptedServer_NotStopped(t *testing.T) {
 // actually read.
 func TestUndoRejectedAutoStart_PortFileSnapshotError_SkipsRestore(t *testing.T) {
 	stubStopRejectedAutoStartedServer(t)
-	beadsDir := t.TempDir()
-	portFilePath := filepath.Join(beadsDir, doltserver.PortFileName)
+	issuegraphDir := t.TempDir()
+	portFilePath := filepath.Join(issuegraphDir, doltserver.PortFileName)
 	if err := os.WriteFile(portFilePath, []byte("54408"), 0o600); err != nil {
 		t.Fatal(err)
 	}
 
-	undoRejectedAutoStart(beadsDir, true, "", doltserver.PortFileSnapshot{}, fmt.Errorf("simulated snapshot read failure"))
+	undoRejectedAutoStart(issuegraphDir, true, "", doltserver.PortFileSnapshot{}, fmt.Errorf("simulated snapshot read failure"))
 
 	if _, err := os.Stat(portFilePath); err != nil {
 		t.Fatalf("port file should have been left alone after a snapshot error, stat err = %v", err)

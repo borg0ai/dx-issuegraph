@@ -17,12 +17,12 @@ import (
 	"testing"
 	"time"
 
+	"github.com/borg0ai/dx-issuegraph/internal/storage"
+	"github.com/borg0ai/dx-issuegraph/internal/storage/issueops"
+	"github.com/borg0ai/dx-issuegraph/internal/storage/schema"
+	"github.com/borg0ai/dx-issuegraph/internal/storage/versioncontrolops"
+	"github.com/borg0ai/dx-issuegraph/internal/types"
 	mysql "github.com/go-sql-driver/mysql"
-	"github.com/steveyegge/beads/internal/storage"
-	"github.com/steveyegge/beads/internal/storage/issueops"
-	"github.com/steveyegge/beads/internal/storage/schema"
-	"github.com/steveyegge/beads/internal/storage/versioncontrolops"
-	"github.com/steveyegge/beads/internal/types"
 )
 
 // Federation Prototype Tests
@@ -263,7 +263,7 @@ func TestFederationRemoteConfiguration(t *testing.T) {
 
 	// Add a remote (configuration only - won't actually connect)
 	// Production would use: dolthub://org/repo, s3://bucket/path, etc.
-	err := store.AddRemote(ctx, "origin", "dolthub://example/beads")
+	err := store.AddRemote(ctx, "origin", "dolthub://example/issuegraph")
 	if err != nil {
 		// AddRemote may fail if remote can't be validated, which is expected
 		t.Logf("AddRemote result: %v (expected for unreachable remote)", err)
@@ -272,7 +272,7 @@ func TestFederationRemoteConfiguration(t *testing.T) {
 	}
 
 	// Add federation peer remote
-	err = store.AddRemote(ctx, "town-beta", "dolthub://acme/town-beta-beads")
+	err = store.AddRemote(ctx, "town-beta", "dolthub://acme/town-beta-issuegraph")
 	if err != nil {
 		t.Logf("AddRemote town-beta result: %v", err)
 	} else {
@@ -423,7 +423,7 @@ func TestFederationSyncCommitsPendingPeerMetadataBeforeFetch(t *testing.T) {
 
 	peer := &storage.FederationPeer{
 		Name:        "peer-metadata-sync",
-		RemoteURL:   "file:///tmp/beads-no-such-federation-peer",
+		RemoteURL:   "file:///tmp/issuegraph-no-such-federation-peer",
 		Sovereignty: "T2",
 	}
 	if err := store.AddFederationPeer(ctx, peer); err != nil {
@@ -1386,8 +1386,8 @@ func TestFilteredPushExcludesCustomType(t *testing.T) {
 // derives blocked state from its filtered graph: removing X and W->X must
 // publish retained waiter W with is_blocked=false.
 func TestFilteredStagingPublishesRetainedWaiterUnblocked(t *testing.T) {
-	if os.Getenv("BEADS_TEST_ENV_RUN_DOLT") == "1" && testServerPort == 0 {
-		t.Fatal("BEADS_TEST_ENV_RUN_DOLT=1 but real-Dolt test infrastructure is unavailable")
+	if os.Getenv("ISSUEGRAPH_TEST_ENV_RUN_DOLT") == "1" && testServerPort == 0 {
+		t.Fatal("ISSUEGRAPH_TEST_ENV_RUN_DOLT=1 but real-Dolt test infrastructure is unavailable")
 	}
 	store, cleanup := setupConcurrentTestStore(t)
 	defer cleanup()
@@ -1521,9 +1521,9 @@ func setupFederationStore(t *testing.T, ctx context.Context, path, prefix string
 		// Each town needs its own database, not just its own Path: New()
 		// always connects in server mode, and TestMain runs one shared Dolt
 		// server for the whole test binary, so Path alone does not isolate
-		// two stores — Database does. A shared literal "beads" here let every
+		// two stores — Database does. A shared literal "issuegraph" here let every
 		// town silently attach to the same database (be-3c78s).
-		Database:        "beads_test_federation_" + prefix,
+		Database:        "issuegraph_test_federation_" + prefix,
 		CreateIfMissing: true, // test creates fresh database
 	}
 

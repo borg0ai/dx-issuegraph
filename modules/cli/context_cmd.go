@@ -3,17 +3,17 @@ package main
 import (
 	"fmt"
 
+	"github.com/borg0ai/dx-issuegraph/internal/configfile"
+	"github.com/borg0ai/dx-issuegraph/internal/doltserver"
+	"github.com/borg0ai/dx-issuegraph/internal/issuegraph"
+	"github.com/borg0ai/dx-issuegraph/internal/metrics"
+	"github.com/borg0ai/dx-issuegraph/internal/storage/domain"
 	"github.com/spf13/cobra"
-	"github.com/steveyegge/beads/internal/beads"
-	"github.com/steveyegge/beads/internal/configfile"
-	"github.com/steveyegge/beads/internal/doltserver"
-	"github.com/steveyegge/beads/internal/metrics"
-	"github.com/steveyegge/beads/internal/storage/domain"
 )
 
 // ContextInfo contains the effective backend identity and repository context.
 type ContextInfo struct {
-	BeadsDir      string `json:"beads_dir"`
+	IssueGraphDir string `json:"issuegraph_dir"`
 	RepoRoot      string `json:"repo_root"`
 	CWDRepoRoot   string `json:"cwd_repo_root,omitempty"`
 	IsRedirected  bool   `json:"is_redirected"`
@@ -29,7 +29,7 @@ type ContextInfo struct {
 	SyncRemote    string `json:"sync_remote,omitempty"`
 	SyncGitRemote string `json:"sync_git_remote,omitempty"` // Deprecated: use sync_remote
 	Role          string `json:"role,omitempty"`
-	BdVersion     string `json:"bd_version"`
+	BdVersion     string `json:"issuegraph_version"`
 }
 
 var contextCmd = &cobra.Command{
@@ -43,8 +43,8 @@ This command reads directly from config files and does not require the
 database to be open, making it useful for diagnostics in degraded states.
 
 Examples:
-  bd context           # Show context information
-  bd context --json    # Output in JSON format
+  issuegraph context           # Show context information
+  issuegraph context --json    # Output in JSON format
 `,
 	SilenceUsage:  true,
 	SilenceErrors: true,
@@ -64,18 +64,18 @@ Examples:
 		// contextinfo provider — it must answer in degraded states where no
 		// database can be opened — but it assembles the SAME snapshot the
 		// proxied route gets from the provider, and hands it to the same
-		// view. That is what keeps `bd context` one answer across two routes,
-		// and what puts both of them on the projection GET /v0/beads/context
+		// view. That is what keeps `issuegraph context` one answer across two routes,
+		// and what puts both of them on the projection GET /v0/issuegraph/context
 		// serves. TestContextRoutesNameOneWorkspaceTheSameWay holds them to it;
 		// until it existed both routes carried their own `Backend: dolt` and
 		// agreed by telling the same lie.
 		snapshot := domain.ContextInfo{BdVersion: Version}
 
-		if selected := selectedNoDBBeadsDir(cmd); selected != "" {
+		if selected := selectedNoDBIssueGraphDir(cmd); selected != "" {
 			prepareSelectedNoDBContext(selected)
 		}
 
-		rc, err := beads.GetRepoContext()
+		rc, err := issuegraph.GetRepoContext()
 		if err != nil {
 			if jsonOutput {
 				if jerr := outputJSON(map[string]string{"error": fmt.Sprintf("cannot resolve repo context: %v", err)}); jerr != nil {
@@ -86,7 +86,7 @@ Examples:
 			return HandleError("cannot resolve repo context: %v", err)
 		}
 
-		snapshot.BeadsDir = rc.BeadsDir
+		snapshot.IssueGraphDir = rc.IssueGraphDir
 		snapshot.RepoRoot = rc.RepoRoot
 		snapshot.CWDRepoRoot = rc.CWDRepoRoot
 		snapshot.IsRedirected = rc.IsRedirected
@@ -96,7 +96,7 @@ Examples:
 			snapshot.Role = string(role)
 		}
 
-		cfg, err := configfile.LoadForDiscovery(rc.BeadsDir)
+		cfg, err := configfile.LoadForDiscovery(rc.IssueGraphDir)
 		if err != nil {
 			cfg = configfile.DefaultConfig()
 		}
@@ -104,11 +104,11 @@ Examples:
 			cfg = configfile.DefaultConfig()
 		}
 
-		if err := applyContextBackend(&snapshot, rc.BeadsDir, cfg); err != nil {
+		if err := applyContextBackend(&snapshot, rc.IssueGraphDir, cfg); err != nil {
 			return HandleError("%v", err)
 		}
 
-		snapshot.SyncRemote = resolveSyncRemoteFromDir(rc.BeadsDir)
+		snapshot.SyncRemote = resolveSyncRemoteFromDir(rc.IssueGraphDir)
 
 		info := contextInfoView(snapshot)
 		if jsonOutput {
@@ -123,26 +123,26 @@ Examples:
 // off the config files it just read.
 //
 // It is a named function rather than a run of assignments inside the command so
-// that the claim above it — that both `bd context` routes assemble the SAME
+// that the claim above it — that both `issuegraph context` routes assemble the SAME
 // snapshot — is something a test can drive rather than something a reader has
 // to check by eye. TestContextRoutesNameOneWorkspaceTheSameWay does exactly
 // that, comparing this against the contextinfo provider the proxied route and
-// GET /v0/beads/context both go through.
+// GET /v0/issuegraph/context both go through.
 //
 // The identity itself goes through domain.SetBackendIdentity, which is the one
 // policy both routes share: it is what stops a non-Dolt workspace from being
-// described as embedded Dolt on database "beads", which is what both routes did
+// described as embedded Dolt on database "issuegraph", which is what both routes did
 // while each held its own copy of `Backend: configfile.BackendDolt`.
-func applyContextBackend(snapshot *domain.ContextInfo, beadsDir string, cfg *configfile.Config) error {
+func applyContextBackend(snapshot *domain.ContextInfo, issuegraphDir string, cfg *configfile.Config) error {
 	snapshot.SetBackendIdentity(cfg.GetBackend(), cfg.GetDoltMode(), cfg.GetDoltDatabase())
 	snapshot.ProjectID = cfg.ProjectID
 
 	if cfg.IsDoltServerMode() {
 		snapshot.ServerHost = cfg.GetDoltServerHost()
-		snapshot.ServerPort = doltserver.DefaultConfig(beadsDir).Port
+		snapshot.ServerPort = doltserver.DefaultConfig(issuegraphDir).Port
 	}
 	if cfg.IsDoltProxiedServerMode() {
-		p, err := resolveProxiedServerRootPath(beadsDir)
+		p, err := resolveProxiedServerRootPath(issuegraphDir)
 		if err != nil {
 			return fmt.Errorf("resolve proxied server root: %w", err)
 		}
@@ -155,12 +155,12 @@ func applyContextBackend(snapshot *domain.ContextInfo, beadsDir string, cfg *con
 }
 
 func printContextText(info ContextInfo) {
-	fmt.Printf("bd version:     %s\n", info.BdVersion)
+	fmt.Printf("issuegraph version:     %s\n", info.BdVersion)
 	fmt.Println()
 
 	// Repository
 	fmt.Println("Repository:")
-	fmt.Printf("  beads dir:    %s\n", info.BeadsDir)
+	fmt.Printf("  issuegraph dir:    %s\n", info.IssueGraphDir)
 	fmt.Printf("  repo root:    %s\n", info.RepoRoot)
 	if info.CWDRepoRoot != "" && info.CWDRepoRoot != info.RepoRoot {
 		fmt.Printf("  cwd repo:     %s\n", info.CWDRepoRoot)

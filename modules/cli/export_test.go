@@ -13,9 +13,9 @@ import (
 	"testing"
 	"time"
 
-	"github.com/steveyegge/beads/internal/storage/kvkeys"
-	"github.com/steveyegge/beads/internal/testutil"
-	"github.com/steveyegge/beads/internal/types"
+	"github.com/borg0ai/dx-issuegraph/internal/storage/kvkeys"
+	"github.com/borg0ai/dx-issuegraph/internal/testutil"
+	"github.com/borg0ai/dx-issuegraph/internal/types"
 )
 
 func TestExportToFile(t *testing.T) {
@@ -31,8 +31,8 @@ func TestExportToFile(t *testing.T) {
 	_ = saved
 
 	tmpDir := t.TempDir()
-	beadsDir := filepath.Join(tmpDir, ".beads")
-	if err := os.MkdirAll(beadsDir, 0755); err != nil {
+	issuegraphDir := filepath.Join(tmpDir, ".issuegraph")
+	if err := os.MkdirAll(issuegraphDir, 0755); err != nil {
 		t.Fatal(err)
 	}
 
@@ -43,7 +43,7 @@ func TestExportToFile(t *testing.T) {
 	t.Cleanup(func() { _ = os.Chdir(origWd) })
 
 	dbName := uniqueTestDBName(t)
-	testDBPath := filepath.Join(beadsDir, "dolt")
+	testDBPath := filepath.Join(issuegraphDir, "dolt")
 	writeTestMetadata(t, testDBPath, dbName)
 	s := newTestStore(t, testDBPath)
 	store = s
@@ -139,8 +139,8 @@ func TestExportToStdout(t *testing.T) {
 	_ = saved
 
 	tmpDir := t.TempDir()
-	beadsDir := filepath.Join(tmpDir, ".beads")
-	if err := os.MkdirAll(beadsDir, 0755); err != nil {
+	issuegraphDir := filepath.Join(tmpDir, ".issuegraph")
+	if err := os.MkdirAll(issuegraphDir, 0755); err != nil {
 		t.Fatal(err)
 	}
 
@@ -151,7 +151,7 @@ func TestExportToStdout(t *testing.T) {
 	t.Cleanup(func() { _ = os.Chdir(origWd) })
 
 	dbName := uniqueTestDBName(t)
-	testDBPath := filepath.Join(beadsDir, "dolt")
+	testDBPath := filepath.Join(issuegraphDir, "dolt")
 	writeTestMetadata(t, testDBPath, dbName)
 	s := newTestStore(t, testDBPath)
 	store = s
@@ -226,8 +226,8 @@ func TestExportScrub(t *testing.T) {
 	_ = saved
 
 	tmpDir := t.TempDir()
-	beadsDir := filepath.Join(tmpDir, ".beads")
-	if err := os.MkdirAll(beadsDir, 0755); err != nil {
+	issuegraphDir := filepath.Join(tmpDir, ".issuegraph")
+	if err := os.MkdirAll(issuegraphDir, 0755); err != nil {
 		t.Fatal(err)
 	}
 
@@ -238,7 +238,7 @@ func TestExportScrub(t *testing.T) {
 	t.Cleanup(func() { _ = os.Chdir(origWd) })
 
 	dbName := uniqueTestDBName(t)
-	testDBPath := filepath.Join(beadsDir, "dolt")
+	testDBPath := filepath.Join(issuegraphDir, "dolt")
 	writeTestMetadata(t, testDBPath, dbName)
 	s := newTestStore(t, testDBPath)
 	store = s
@@ -310,8 +310,8 @@ func TestExportImportRoundTrip(t *testing.T) {
 	_ = saved
 
 	tmpDir := t.TempDir()
-	beadsDir := filepath.Join(tmpDir, ".beads")
-	if err := os.MkdirAll(beadsDir, 0755); err != nil {
+	issuegraphDir := filepath.Join(tmpDir, ".issuegraph")
+	if err := os.MkdirAll(issuegraphDir, 0755); err != nil {
 		t.Fatal(err)
 	}
 
@@ -322,7 +322,7 @@ func TestExportImportRoundTrip(t *testing.T) {
 	t.Cleanup(func() { _ = os.Chdir(origWd) })
 
 	dbName := uniqueTestDBName(t)
-	testDBPath := filepath.Join(beadsDir, "dolt")
+	testDBPath := filepath.Join(issuegraphDir, "dolt")
 	writeTestMetadata(t, testDBPath, dbName)
 	s := newTestStore(t, testDBPath)
 	store = s
@@ -439,10 +439,10 @@ func TestFilterOutPollution(t *testing.T) {
 	}
 }
 
-func TestExportNoHistoryBeadRoundTrip(t *testing.T) {
-	// GH#2619: NoHistory beads are stored in the wisps table. The JSONL export
+func TestExportNoHistoryIssueRoundTrip(t *testing.T) {
+	// GH#2619: NoHistory issuegraph are stored in the wisps table. The JSONL export
 	// must include them with no_history=true, and import must preserve the flag.
-	// If no_history is dropped during import, the bead becomes GC-eligible.
+	// If no_history is dropped during import, the issue becomes GC-eligible.
 	if testDoltServerPort == 0 {
 		t.Skip("Dolt test server not available")
 	}
@@ -455,8 +455,8 @@ func TestExportNoHistoryBeadRoundTrip(t *testing.T) {
 	_ = saved
 
 	tmpDir := t.TempDir()
-	beadsDir := filepath.Join(tmpDir, ".beads")
-	if err := os.MkdirAll(beadsDir, 0755); err != nil {
+	issuegraphDir := filepath.Join(tmpDir, ".issuegraph")
+	if err := os.MkdirAll(issuegraphDir, 0755); err != nil {
 		t.Fatal(err)
 	}
 
@@ -467,7 +467,7 @@ func TestExportNoHistoryBeadRoundTrip(t *testing.T) {
 	t.Cleanup(func() { _ = os.Chdir(origWd) })
 
 	dbName := uniqueTestDBName(t)
-	testDBPath := filepath.Join(beadsDir, "dolt")
+	testDBPath := filepath.Join(issuegraphDir, "dolt")
 	writeTestMetadata(t, testDBPath, dbName)
 	s := newTestStore(t, testDBPath)
 	store = s
@@ -484,15 +484,15 @@ func TestExportNoHistoryBeadRoundTrip(t *testing.T) {
 	ctx := context.Background()
 	rootCtx = ctx
 
-	// Create a NoHistory bead using the store API (routes to wisps table with no_history=1).
-	noHistoryBead := &types.Issue{
-		Title:     "NoHistory export test bead",
+	// Create a NoHistory issue using the store API (routes to wisps table with no_history=1).
+	noHistoryIssue := &types.Issue{
+		Title:     "NoHistory export test issue",
 		Status:    types.StatusOpen,
 		Priority:  2,
 		IssueType: types.TypeTask,
 		NoHistory: true,
 	}
-	if err := s.CreateIssue(ctx, noHistoryBead, "test"); err != nil {
+	if err := s.CreateIssue(ctx, noHistoryIssue, "test"); err != nil {
 		t.Fatalf("CreateIssue (NoHistory): %v", err)
 	}
 
@@ -522,7 +522,7 @@ func TestExportNoHistoryBeadRoundTrip(t *testing.T) {
 		t.Fatalf("read export file: %v", err)
 	}
 
-	// Verify the NoHistory bead appears in the export with no_history=true.
+	// Verify the NoHistory issue appears in the export with no_history=true.
 	lines := splitJSONL(data)
 	if len(lines) < 2 {
 		t.Fatalf("expected at least 2 lines in export (regular + NoHistory), got %d", len(lines))
@@ -534,16 +534,16 @@ func TestExportNoHistoryBeadRoundTrip(t *testing.T) {
 		if err := json.Unmarshal(line, &rec); err != nil {
 			t.Fatalf("parse exported JSONL: %v", err)
 		}
-		if rec["title"] == "NoHistory export test bead" {
+		if rec["title"] == "NoHistory export test issue" {
 			noHistoryLine = rec
 			break
 		}
 	}
 	if noHistoryLine == nil {
-		t.Fatal("NoHistory bead not found in exported JSONL — export missed wisps with no_history=true")
+		t.Fatal("NoHistory issue not found in exported JSONL — export missed wisps with no_history=true")
 	}
 	if noHistoryLine["no_history"] != true {
-		t.Errorf("exported NoHistory bead has no_history=%v, want true", noHistoryLine["no_history"])
+		t.Errorf("exported NoHistory issue has no_history=%v, want true", noHistoryLine["no_history"])
 	}
 
 	// Import the exported JSONL into a fresh store and verify no_history survives.
@@ -559,16 +559,16 @@ func TestExportNoHistoryBeadRoundTrip(t *testing.T) {
 		t.Errorf("expected at least 2 issues imported, got %d", count)
 	}
 
-	// Retrieve the NoHistory bead from the new store and check the flag.
-	imported, err := store2.GetIssue(ctx, noHistoryBead.ID)
+	// Retrieve the NoHistory issue from the new store and check the flag.
+	imported, err := store2.GetIssue(ctx, noHistoryIssue.ID)
 	if err != nil {
-		t.Fatalf("GetIssue(%s) after import: %v", noHistoryBead.ID, err)
+		t.Fatalf("GetIssue(%s) after import: %v", noHistoryIssue.ID, err)
 	}
 	if !imported.NoHistory {
-		t.Error("no_history=true was lost during export→import roundtrip: bead is now GC-eligible")
+		t.Error("no_history=true was lost during export→import roundtrip: issue is now GC-eligible")
 	}
 	if imported.Ephemeral {
-		t.Error("NoHistory bead must not become ephemeral=true after roundtrip")
+		t.Error("NoHistory issue must not become ephemeral=true after roundtrip")
 	}
 }
 
@@ -588,8 +588,8 @@ func TestExportMemoryDeterminism(t *testing.T) {
 	_ = saved
 
 	tmpDir := t.TempDir()
-	beadsDir := filepath.Join(tmpDir, ".beads")
-	if err := os.MkdirAll(beadsDir, 0755); err != nil {
+	issuegraphDir := filepath.Join(tmpDir, ".issuegraph")
+	if err := os.MkdirAll(issuegraphDir, 0755); err != nil {
 		t.Fatal(err)
 	}
 
@@ -600,7 +600,7 @@ func TestExportMemoryDeterminism(t *testing.T) {
 	t.Cleanup(func() { _ = os.Chdir(origWd) })
 
 	dbName := uniqueTestDBName(t)
-	testDBPath := filepath.Join(beadsDir, "dolt")
+	testDBPath := filepath.Join(issuegraphDir, "dolt")
 	writeTestMetadata(t, testDBPath, dbName)
 	s := newTestStore(t, testDBPath)
 	store = s
@@ -676,9 +676,9 @@ func TestExportMemoryDeterminism(t *testing.T) {
 }
 
 func TestExportByteStabilityAllRecordTypes(t *testing.T) {
-	// Follow-up to gh beads 3787 / GH#3474: TestExportMemoryDeterminism only
+	// Follow-up to gh issuegraph 3787 / GH#3474: TestExportMemoryDeterminism only
 	// proves memory lines are stable. This generalizes the invariant — running
-	// `bd export` repeatedly over unchanged data must produce byte-identical
+	// `issuegraph export` repeatedly over unchanged data must produce byte-identical
 	// output for EVERY record type (issues + their labels, dependencies, and
 	// comments, plus memories). Go's randomized map iteration is the usual
 	// source of phantom diffs, so any collection serialized without a total
@@ -695,8 +695,8 @@ func TestExportByteStabilityAllRecordTypes(t *testing.T) {
 	_ = saved
 
 	tmpDir := t.TempDir()
-	beadsDir := filepath.Join(tmpDir, ".beads")
-	if err := os.MkdirAll(beadsDir, 0755); err != nil {
+	issuegraphDir := filepath.Join(tmpDir, ".issuegraph")
+	if err := os.MkdirAll(issuegraphDir, 0755); err != nil {
 		t.Fatal(err)
 	}
 
@@ -707,7 +707,7 @@ func TestExportByteStabilityAllRecordTypes(t *testing.T) {
 	t.Cleanup(func() { _ = os.Chdir(origWd) })
 
 	dbName := uniqueTestDBName(t)
-	testDBPath := filepath.Join(beadsDir, "dolt")
+	testDBPath := filepath.Join(issuegraphDir, "dolt")
 	writeTestMetadata(t, testDBPath, dbName)
 	s := newTestStore(t, testDBPath)
 	store = s
@@ -878,8 +878,8 @@ func TestExportNoDuplicateWisps(t *testing.T) {
 	_ = saved
 
 	tmpDir := t.TempDir()
-	beadsDir := filepath.Join(tmpDir, ".beads")
-	if err := os.MkdirAll(beadsDir, 0755); err != nil {
+	issuegraphDir := filepath.Join(tmpDir, ".issuegraph")
+	if err := os.MkdirAll(issuegraphDir, 0755); err != nil {
 		t.Fatal(err)
 	}
 
@@ -890,7 +890,7 @@ func TestExportNoDuplicateWisps(t *testing.T) {
 	t.Cleanup(func() { _ = os.Chdir(origWd) })
 
 	dbName := uniqueTestDBName(t)
-	testDBPath := filepath.Join(beadsDir, "dolt")
+	testDBPath := filepath.Join(issuegraphDir, "dolt")
 	writeTestMetadata(t, testDBPath, dbName)
 	s := newTestStore(t, testDBPath)
 	store = s
@@ -995,7 +995,7 @@ func TestExportNoDuplicateWisps(t *testing.T) {
 }
 
 func TestExportExcludesMemoriesByDefault(t *testing.T) {
-	// GH#3650: bd export must exclude memories by default because they may
+	// GH#3650: issuegraph export must exclude memories by default because they may
 	// contain sensitive agent context. Only --include-memories or --all
 	// should include them.
 	if testDoltServerPort == 0 {
@@ -1010,8 +1010,8 @@ func TestExportExcludesMemoriesByDefault(t *testing.T) {
 	_ = saved
 
 	tmpDir := t.TempDir()
-	beadsDir := filepath.Join(tmpDir, ".beads")
-	if err := os.MkdirAll(beadsDir, 0755); err != nil {
+	issuegraphDir := filepath.Join(tmpDir, ".issuegraph")
+	if err := os.MkdirAll(issuegraphDir, 0755); err != nil {
 		t.Fatal(err)
 	}
 
@@ -1022,7 +1022,7 @@ func TestExportExcludesMemoriesByDefault(t *testing.T) {
 	t.Cleanup(func() { _ = os.Chdir(origWd) })
 
 	dbName := uniqueTestDBName(t)
-	testDBPath := filepath.Join(beadsDir, "dolt")
+	testDBPath := filepath.Join(issuegraphDir, "dolt")
 	writeTestMetadata(t, testDBPath, dbName)
 	s := newTestStore(t, testDBPath)
 	store = s
@@ -1122,7 +1122,7 @@ func TestExportExcludesMemoriesByDefault(t *testing.T) {
 }
 
 func TestExportExcludesWispsByDefault(t *testing.T) {
-	// GH#3649: bd export must exclude ephemeral wisps by default.
+	// GH#3649: issuegraph export must exclude ephemeral wisps by default.
 	// Wisps are private/transient and must not reach git history.
 	// Only --all should include them.
 	if testDoltServerPort == 0 {
@@ -1137,8 +1137,8 @@ func TestExportExcludesWispsByDefault(t *testing.T) {
 	_ = saved
 
 	tmpDir := t.TempDir()
-	beadsDir := filepath.Join(tmpDir, ".beads")
-	if err := os.MkdirAll(beadsDir, 0755); err != nil {
+	issuegraphDir := filepath.Join(tmpDir, ".issuegraph")
+	if err := os.MkdirAll(issuegraphDir, 0755); err != nil {
 		t.Fatal(err)
 	}
 
@@ -1149,7 +1149,7 @@ func TestExportExcludesWispsByDefault(t *testing.T) {
 	t.Cleanup(func() { _ = os.Chdir(origWd) })
 
 	dbName := uniqueTestDBName(t)
-	testDBPath := filepath.Join(beadsDir, "dolt")
+	testDBPath := filepath.Join(issuegraphDir, "dolt")
 	writeTestMetadata(t, testDBPath, dbName)
 	s := newTestStore(t, testDBPath)
 	store = s

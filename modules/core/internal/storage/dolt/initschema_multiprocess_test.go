@@ -15,27 +15,27 @@ import (
 	"testing"
 	"time"
 
+	"github.com/borg0ai/dx-issuegraph/internal/doltserver"
+	"github.com/borg0ai/dx-issuegraph/internal/storage/doltutil"
+	"github.com/borg0ai/dx-issuegraph/internal/testutil/integration"
 	_ "github.com/go-sql-driver/mysql"
-	"github.com/steveyegge/beads/internal/doltserver"
-	"github.com/steveyegge/beads/internal/storage/doltutil"
-	"github.com/steveyegge/beads/internal/testutil/integration"
 	"golang.org/x/sync/errgroup"
 )
 
 // TestHelperSchemaInit is the subprocess entry point for multi-process schema
-// init tests. It is only executed when BEADS_SCHEMA_INIT_HELPER=1 is set.
+// init tests. It is only executed when ISSUEGRAPH_SCHEMA_INIT_HELPER=1 is set.
 // Each subprocess connects to the dolt server and calls initSchemaOnDB.
 func TestHelperSchemaInit(t *testing.T) {
-	if os.Getenv("BEADS_SCHEMA_INIT_HELPER") != "1" {
+	if os.Getenv("ISSUEGRAPH_SCHEMA_INIT_HELPER") != "1" {
 		return // Not a subprocess — skip.
 	}
 
-	port := os.Getenv("BEADS_SCHEMA_INIT_PORT")
-	dbName := os.Getenv("BEADS_SCHEMA_INIT_DB")
-	procID := os.Getenv("BEADS_SCHEMA_INIT_PROC_ID")
+	port := os.Getenv("ISSUEGRAPH_SCHEMA_INIT_PORT")
+	dbName := os.Getenv("ISSUEGRAPH_SCHEMA_INIT_DB")
+	procID := os.Getenv("ISSUEGRAPH_SCHEMA_INIT_PROC_ID")
 
 	if port == "" || dbName == "" {
-		fmt.Fprintf(os.Stderr, "FATAL: missing BEADS_SCHEMA_INIT_PORT or BEADS_SCHEMA_INIT_DB\n")
+		fmt.Fprintf(os.Stderr, "FATAL: missing ISSUEGRAPH_SCHEMA_INIT_PORT or ISSUEGRAPH_SCHEMA_INIT_DB\n")
 		os.Exit(1)
 	}
 
@@ -71,7 +71,7 @@ func TestHelperSchemaInit(t *testing.T) {
 	// through this wrapper, and the 5s GET_LOCK wait in
 	// schema.MigrateUpWithLock is deliberately sized to fit inside its retry
 	// budget — see migrationLockAcquireTimeoutSeconds. Racing the raw call and
-	// demanding a first-try win asserts on a path no bd process ever takes:
+	// demanding a first-try win asserts on a path no issuegraph process ever takes:
 	// with N processes on one fresh database, N-1 of them are supposed to lose
 	// the lock and come back. #5880 made the same change in this file's
 	// TestMultiProcessSchemaInit_DoltVerify and missed this subprocess helper.
@@ -148,11 +148,11 @@ func TestMultiProcessSchemaInit(t *testing.T) {
 			)
 			cmd.Env = integration.FilterEnv(os.Environ())
 			cmd.Env = append(cmd.Env,
-				"BEADS_SCHEMA_INIT_HELPER=1",
-				"BEADS_SCHEMA_INIT_PORT="+portStr,
-				"BEADS_SCHEMA_INIT_DB="+dbName,
-				"BEADS_SCHEMA_INIT_PROC_ID="+procID,
-				"BEADS_TEST_MODE=1",
+				"ISSUEGRAPH_SCHEMA_INIT_HELPER=1",
+				"ISSUEGRAPH_SCHEMA_INIT_PORT="+portStr,
+				"ISSUEGRAPH_SCHEMA_INIT_DB="+dbName,
+				"ISSUEGRAPH_SCHEMA_INIT_PROC_ID="+procID,
+				"ISSUEGRAPH_TEST_MODE=1",
 			)
 			out, err := cmd.CombinedOutput()
 			if err != nil {
@@ -220,12 +220,12 @@ func TestMultiProcessSchemaInit_DoltVerify(t *testing.T) {
 	doltPath := integration.RequireDolt(t)
 
 	tmpDir := t.TempDir()
-	beadsDir := filepath.Join(tmpDir, ".beads")
-	if err := os.MkdirAll(beadsDir, 0700); err != nil {
+	issuegraphDir := filepath.Join(tmpDir, ".issuegraph")
+	if err := os.MkdirAll(issuegraphDir, 0700); err != nil {
 		t.Fatalf("mkdir: %v", err)
 	}
 
-	doltDir := filepath.Join(beadsDir, "dolt")
+	doltDir := filepath.Join(issuegraphDir, "dolt")
 	if err := os.MkdirAll(doltDir, 0700); err != nil {
 		t.Fatalf("mkdir dolt: %v", err)
 	}
@@ -238,21 +238,21 @@ func TestMultiProcessSchemaInit_DoltVerify(t *testing.T) {
 	}
 
 	// Start a local server.
-	t.Setenv("BEADS_DOLT_SHARED_SERVER", "0")
-	t.Setenv("BEADS_DOLT_AUTO_START", "1")
+	t.Setenv("ISSUEGRAPH_DOLT_SHARED_SERVER", "0")
+	t.Setenv("ISSUEGRAPH_DOLT_AUTO_START", "1")
 
-	// Regression coverage for a round-1 review finding: BEADS_DOLT_SERVER_PORT
+	// Regression coverage for a round-1 review finding: ISSUEGRAPH_DOLT_SERVER_PORT
 	// is the top-priority, authoritative port source (see portSources in
 	// internal/doltserver/doltserver.go) — an ambient value left by an
 	// unrelated process on a shared host pointed doltserver.Start at that
 	// process's port, and Start correctly refused to steal it, failing this
 	// test for a reason unrelated to schema init. This test manages its own
 	// throwaway server, so it isolates itself from ambient port config the
-	// same way it already isolates BEADS_DOLT_SHARED_SERVER/
-	// BEADS_DOLT_AUTO_START above.
-	t.Setenv("BEADS_DOLT_SERVER_PORT", "")
+	// same way it already isolates ISSUEGRAPH_DOLT_SHARED_SERVER/
+	// ISSUEGRAPH_DOLT_AUTO_START above.
+	t.Setenv("ISSUEGRAPH_DOLT_SERVER_PORT", "")
 
-	state, err := doltserver.Start(beadsDir)
+	state, err := doltserver.Start(issuegraphDir)
 	if err != nil {
 		t.Fatalf("Start: %v", err)
 	}
@@ -261,7 +261,7 @@ func TestMultiProcessSchemaInit_DoltVerify(t *testing.T) {
 		reg.Register(p)
 	}
 	t.Cleanup(func() {
-		_ = doltserver.Stop(beadsDir)
+		_ = doltserver.Stop(issuegraphDir)
 		reg.Deregister(state.PID)
 	})
 
@@ -296,7 +296,7 @@ func TestMultiProcessSchemaInit_DoltVerify(t *testing.T) {
 			defer db.Close()
 			db.SetMaxOpenConns(2)
 			<-ready
-			// initSchemaOnDBWithRetry, not the raw initSchemaOnDB: real bd
+			// initSchemaOnDBWithRetry, not the raw initSchemaOnDB: real issuegraph
 			// processes racing for the migration lock go through this same
 			// retry wrapper (store.go's initSchema), which exists precisely so
 			// contended GET_LOCK attempts converge instead of one unlucky
@@ -312,7 +312,7 @@ func TestMultiProcessSchemaInit_DoltVerify(t *testing.T) {
 	}
 
 	// Stop server before running dolt verify (verify needs exclusive access).
-	if err := doltserver.Stop(beadsDir); err != nil {
+	if err := doltserver.Stop(issuegraphDir); err != nil {
 		t.Logf("Stop before verify: %v", err)
 	}
 	reg.Deregister(state.PID)

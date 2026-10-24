@@ -11,12 +11,12 @@ import (
 	"strings"
 	"time"
 
+	"github.com/borg0ai/dx-issuegraph/internal/config"
+	"github.com/borg0ai/dx-issuegraph/internal/issuegraph"
+	"github.com/borg0ai/dx-issuegraph/internal/metrics"
+	"github.com/borg0ai/dx-issuegraph/internal/storage/uow"
+	"github.com/borg0ai/dx-issuegraph/internal/types"
 	"github.com/spf13/cobra"
-	"github.com/steveyegge/beads/internal/beads"
-	"github.com/steveyegge/beads/internal/config"
-	"github.com/steveyegge/beads/internal/metrics"
-	"github.com/steveyegge/beads/internal/storage/uow"
-	"github.com/steveyegge/beads/internal/types"
 )
 
 var importCmd = &cobra.Command{
@@ -24,19 +24,19 @@ var importCmd = &cobra.Command{
 	Short: "Import issues from a JSONL file or stdin into the database",
 	Long: `Import issues from a JSONL file (newline-delimited JSON) into the database.
 
-If no file is specified, imports from the configured import.path under .beads/
+If no file is specified, imports from the configured import.path under .issuegraph/
 (default: issues.jsonl). Use "-" to read from stdin; redirecting stdin without
-"-" or a file argument is an error, so a typo'd 'bd import < file' cannot
+"-" or a file argument is an error, so a typo'd 'issuegraph import < file' cannot
 silently import the default file instead. This is the incremental counterpart to
-'bd export': new issues are created and existing issues are updated (upsert
+'issuegraph export': new issues are created and existing issues are updated (upsert
 semantics).
 
 Memory records (lines with "_type":"memory") are automatically detected and
-imported as persistent memories (equivalent to 'bd remember'). This makes
-'bd export | bd import' a full round-trip for both issues and memories.
+imported as persistent memories (equivalent to 'issuegraph remember'). This makes
+'issuegraph export | issuegraph import' a full round-trip for both issues and memories.
 
 Each JSONL line should map to an issue. The importer accepts every field
-'bd export' emits — see 'bd export' output for the canonical schema. Only
+'issuegraph export' emits — see 'issuegraph export' output for the canonical schema. Only
 "title" is required; everything else is optional.
 
 Common fields:
@@ -78,7 +78,7 @@ local state.
 
 Large imports are written in bounded transactions (a few hundred issues
 each, with a short pause between commits) with progress on stderr, so
-concurrent bd commands keep working while the import runs instead of
+concurrent issuegraph commands keep working while the import runs instead of
 stalling on one batch-wide write lock. Rows land in dependency order
 with their blocking edges in the same transaction, so a half-finished
 import never shows a blocked issue as ready. If an import fails partway,
@@ -87,15 +87,15 @@ re-running the same import is safe and converges (rows upsert,
 labels/comments/dependencies deduplicate).
 
 EXAMPLES:
-  bd import                        # Import from configured import.path
-  bd import backup.jsonl           # Import from a specific file
-  bd import -i backup.jsonl        # Legacy alias for a specific file
-  bd import -                      # Read JSONL from stdin
-  cat issues.jsonl | bd import -   # Pipe JSONL from another tool
-  bd import --dry-run              # Show what would be imported
-  bd import --dedup                # Skip issues with duplicate titles
-  bd import --allow-stale old.jsonl # Restore an older snapshot (overwrites newer local rows)
-  bd import --json                 # Structured output with created and skipped IDs`,
+  issuegraph import                        # Import from configured import.path
+  issuegraph import backup.jsonl           # Import from a specific file
+  issuegraph import -i backup.jsonl        # Legacy alias for a specific file
+  issuegraph import -                      # Read JSONL from stdin
+  cat issues.jsonl | issuegraph import -   # Pipe JSONL from another tool
+  issuegraph import --dry-run              # Show what would be imported
+  issuegraph import --dedup                # Skip issues with duplicate titles
+  issuegraph import --allow-stale old.jsonl # Restore an older snapshot (overwrites newer local rows)
+  issuegraph import --json                 # Structured output with created and skipped IDs`,
 	GroupID:       "sync",
 	SilenceUsage:  true,
 	SilenceErrors: true,
@@ -117,8 +117,8 @@ func init() {
 	rootCmd.AddCommand(importCmd)
 }
 
-// importPoolReadTimeout is the per-I/O read deadline a `bd import` gets on
-// its shared-pool connections when neither the caller, BEADS_DOLT_POOL_READ_TIMEOUT
+// importPoolReadTimeout is the per-I/O read deadline a `issuegraph import` gets on
+// its shared-pool connections when neither the caller, ISSUEGRAPH_DOLT_POOL_READ_TIMEOUT
 // nor dolt.pool-read-timeout set one. The pool default (10s) is a fast-fail
 // tuned for interactive commands; an import's chunk COMMIT of 250 rows with
 // their aux tables legitimately outlives it whenever the server pauses — a
@@ -129,7 +129,7 @@ func init() {
 const importPoolReadTimeout = 5 * time.Minute
 
 // bulkLoadPoolReadTimeout returns the pool read-timeout fallback for cmd: the
-// bulk-load deadline for `bd import`, zero (keep the pool default) otherwise.
+// bulk-load deadline for `issuegraph import`, zero (keep the pool default) otherwise.
 // It is a FALLBACK, not an override — an operator's explicit setting still wins
 // (see dolt.Config.PoolReadTimeoutFallback).
 func bulkLoadPoolReadTimeout(cmd *cobra.Command) time.Duration {
@@ -142,12 +142,12 @@ func bulkLoadPoolReadTimeout(cmd *cobra.Command) time.Duration {
 func runImport(cmd *cobra.Command, args []string) error {
 	// Explicit call, not inherited from CheckReadonly: runImport doesn't call
 	// CheckReadonly at all (a separate, pre-existing gap — readonlyMode
-	// doesn't gate bd import either), so it can't pick up the freeze check
+	// doesn't gate issuegraph import either), so it can't pick up the freeze check
 	// folded into CheckReadonly the way create/update/close/remember do.
 	// The path that makes this call load-bearing rather than redundant is
-	// `bd import --dry-run`: a preview sets useReadOnly, so it skips the early
+	// `issuegraph import --dry-run`: a preview sets useReadOnly, so it skips the early
 	// gate in PersistentPreRunE, and runImport is the only chokepoint left.
-	// Plain `bd import` is already stopped by that early gate.
+	// Plain `issuegraph import` is already stopped by that early gate.
 	if err := migrationFreezeGateFor(cmd, "import"); err != nil {
 		return err
 	}
@@ -187,23 +187,23 @@ func runImportInner(args []string) error {
 	} else if len(args) > 0 {
 		jsonlPath = args[0]
 	} else {
-		// bd-axluy: `bd import < file` (or `... | bd import`) without "-"
+		// bd-axluy: `issuegraph import < file` (or `... | issuegraph import`) without "-"
 		// used to silently ignore stdin and import the default JSONL — a
 		// mutating command diverging from what the user piped. Demand an
 		// explicit source instead. /dev/null (the stdin subprocesses get by
-		// default) is a character device, so scripted bare `bd import` with
+		// default) is a character device, so scripted bare `issuegraph import` with
 		// no redirection still works.
 		if fi, statErr := os.Stdin.Stat(); statErr == nil && fi.Mode()&os.ModeCharDevice == 0 {
-			return fmt.Errorf("stdin is redirected, but without \"-\" bd import ignores it and imports the default JSONL instead; use 'bd import -' to import what you piped, or name a file explicitly")
+			return fmt.Errorf("stdin is redirected, but without \"-\" issuegraph import ignores it and imports the default JSONL instead; use 'issuegraph import -' to import what you piped, or name a file explicitly")
 		}
-		beadsDir := beads.FindBeadsDir()
-		if beadsDir == "" {
+		issuegraphDir := issuegraph.FindIssueGraphDir()
+		if issuegraphDir == "" {
 			return fmt.Errorf("%s — %s", activeWorkspaceNotFoundError(), diagHint())
 		}
 		if globalFlag {
-			jsonlPath = filepath.Join(beadsDir, "global-issues.jsonl")
+			jsonlPath = filepath.Join(issuegraphDir, "global-issues.jsonl")
 		} else {
-			jsonlPath = configuredImportJSONLPath(beadsDir)
+			jsonlPath = configuredImportJSONLPath(issuegraphDir)
 		}
 	}
 
@@ -255,13 +255,13 @@ func runImportFromReader(ctx context.Context, r io.Reader, source string) error 
 	}
 
 	if store == nil {
-		return fmt.Errorf("no database — run 'bd init' or 'bd bootstrap' first")
+		return fmt.Errorf("no database — run 'issuegraph init' or 'issuegraph bootstrap' first")
 	}
 	return runImportRecordsClassic(ctx, issues, memories, source)
 }
 
 // parseImportRecords scans one JSONL stream into issue rows and memory
-// records — the `bd import` / `bd import -` parse loop, shared by the classic
+// records — the `issuegraph import` / `issuegraph import -` parse loop, shared by the classic
 // and proxied modes. Same record vocabulary as parseJSONLFile (the bootstrap
 // reader): the optional _schema header and tombstones are skipped, and the
 // "wisp_plane" boolean is honored as the explicit wisps-plane marker (and
@@ -284,14 +284,14 @@ func parseImportRecords(r io.Reader) ([]*types.Issue, []memoryRecord, error) {
 			return nil, nil, fmt.Errorf("failed to parse JSONL line: %w", err)
 		}
 
-		// Skip the optional beads-jsonl header record (§J1.3). A canonical
+		// Skip the optional issuegraph-jsonl header record (§J1.3). A canonical
 		// export may prepend a provenance line, e.g.
-		// {"_schema":"beads-jsonl/1","_dolt_branch":"main","_sort":"stable-v1"}.
+		// {"_schema":"issuegraph-jsonl/1","_dolt_branch":"main","_sort":"stable-v1"}.
 		// It carries no _type and no issue fields; without this guard it falls
 		// through to the issue path, unmarshals into an empty Issue, and aborts
 		// the whole import with "title is required". parseJSONLFile (the
-		// bootstrap reader) has always skipped it; this loop — the one `bd
-		// import` and `bd import -` run through — did not.
+		// bootstrap reader) has always skipped it; this loop — the one `issuegraph
+		// import` and `issuegraph import -` run through — did not.
 		if _, isHeader := peek["_schema"]; isHeader {
 			continue
 		}
@@ -376,7 +376,7 @@ func runImportRecordsClassic(ctx context.Context, issues []*types.Issue, memorie
 	}
 
 	if result.Created > 0 || result.Memories > 0 {
-		commitMsg := fmt.Sprintf("bd import: %d issues", result.Created)
+		commitMsg := fmt.Sprintf("issuegraph import: %d issues", result.Created)
 		if result.Memories > 0 {
 			commitMsg += fmt.Sprintf(", %d memories", result.Memories)
 		}
@@ -395,12 +395,12 @@ func runImportRecordsClassic(ctx context.Context, issues []*types.Issue, memorie
 	// store.Commit skips the config table (GH#2455), so we use CommitWithConfig
 	// for this intentional config update after the issues commit completes.
 	// config.yaml is authoritative here and existing issue IDs are intentionally
-	// left unchanged: this deliberately bypasses the `bd config set issue_prefix`
+	// left unchanged: this deliberately bypasses the `issuegraph config set issue_prefix`
 	// guard for the import/migration flow and is not a rename.
 	if yamlPrefix := config.GetString("issue-prefix"); yamlPrefix != "" {
 		if dbPrefix, _ := store.GetConfig(ctx, "issue_prefix"); dbPrefix != yamlPrefix {
 			if setErr := store.SetConfig(ctx, "issue_prefix", yamlPrefix); setErr == nil {
-				_ = store.CommitWithConfig(ctx, "bd import: sync issue_prefix from config.yaml")
+				_ = store.CommitWithConfig(ctx, "issuegraph import: sync issue_prefix from config.yaml")
 			}
 		}
 	}

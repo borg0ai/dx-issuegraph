@@ -17,7 +17,7 @@ type ClaimRequest struct {
 // all omitted. That is deliberate, and it is the one place this family differs
 // from UpdateResult, CloseResult and ReopenResult, which all carry labels and
 // dependency records. The reason is that this role answers an already-published
-// surface — the v0 claim response and `bd update --claim --json` both report
+// surface — the v0 claim response and `issuegraph update --claim --json` both report
 // the bare row, verified against an issue that does carry labels — so
 // hydrating here would change what a shipped body returns. Enriching it is a
 // decision for the next revision window, not a side effect of moving the

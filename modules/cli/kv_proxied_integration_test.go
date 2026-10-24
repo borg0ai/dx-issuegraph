@@ -8,39 +8,39 @@ import (
 	"testing"
 )
 
-func bdProxiedKV(t *testing.T, bd, dir string, args ...string) string {
+func issuegraphProxiedKV(t *testing.T, issuegraph, dir string, args ...string) string {
 	t.Helper()
 	fullArgs := append([]string{"kv"}, args...)
-	stdout, stderr, err := bdProxiedRunBuffers(t, bd, dir, fullArgs...)
+	stdout, stderr, err := issuegraphProxiedRunBuffers(t, issuegraph, dir, fullArgs...)
 	if err != nil {
-		t.Fatalf("bd kv %s failed: %v\nstdout:\n%s\nstderr:\n%s",
+		t.Fatalf("issuegraph kv %s failed: %v\nstdout:\n%s\nstderr:\n%s",
 			strings.Join(args, " "), err, stdout, stderr)
 	}
 	return stdout
 }
 
-func bdProxiedKVFail(t *testing.T, bd, dir string, args ...string) string {
+func issuegraphProxiedKVFail(t *testing.T, issuegraph, dir string, args ...string) string {
 	t.Helper()
 	fullArgs := append([]string{"kv"}, args...)
-	stdout, stderr, err := bdProxiedRunBuffers(t, bd, dir, fullArgs...)
+	stdout, stderr, err := issuegraphProxiedRunBuffers(t, issuegraph, dir, fullArgs...)
 	if err == nil {
-		t.Fatalf("expected bd kv %s to fail; got stdout:\n%s\nstderr:\n%s",
+		t.Fatalf("expected issuegraph kv %s to fail; got stdout:\n%s\nstderr:\n%s",
 			strings.Join(args, " "), stdout, stderr)
 	}
 	return stdout + stderr
 }
 
-// kvListJSONRaw runs `bd kv list --json` and returns the raw JSON object
+// kvListJSONRaw runs `issuegraph kv list --json` and returns the raw JSON object
 // text plus the parsed pairs. It pins the wire shape the wyvern wheelhouse
 // mail transport parses: a flat JSON object whose only non-string member is
 // the outputJSON-injected numeric "schema_version" (present in classic mode
-// too — see bdKVListJSON in kv_embedded_test.go); every kv pair is a plain
+// too — see issuegraphKVListJSON in kv_embedded_test.go); every kv pair is a plain
 // string-to-string entry with no envelope.
-func kvListJSONRaw(t *testing.T, bd, dir string) (string, map[string]string) {
+func kvListJSONRaw(t *testing.T, issuegraph, dir string) (string, map[string]string) {
 	t.Helper()
-	stdout, stderr, err := bdProxiedRunBuffers(t, bd, dir, "kv", "list", "--json")
+	stdout, stderr, err := issuegraphProxiedRunBuffers(t, issuegraph, dir, "kv", "list", "--json")
 	if err != nil {
-		t.Fatalf("bd kv list --json failed: %v\nstdout:\n%s\nstderr:\n%s", err, stdout, stderr)
+		t.Fatalf("issuegraph kv list --json failed: %v\nstdout:\n%s\nstderr:\n%s", err, stdout, stderr)
 	}
 	s := strings.TrimSpace(stdout)
 	start := strings.Index(s, "{")
@@ -81,21 +81,21 @@ const mailEnvelope = "{\n  \"to\": \"marshal\",\n  \"subject\": \"fleet status\"
 func TestProxiedServerKV(t *testing.T) {
 	requireSharedProxiedServer(t)
 	t.Parallel()
-	bd := buildEmbeddedBD(t)
+	issuegraph := buildEmbeddedBD(t)
 
 	t.Run("set_get_roundtrip", func(t *testing.T) {
 		t.Parallel()
-		p := newSharedProxiedProject(t, bd, "pkv")
+		p := newSharedProxiedProject(t, issuegraph, "pkv")
 
-		bdProxiedKV(t, bd, p.dir, "set", "mykey", "myvalue")
-		out := bdProxiedKV(t, bd, p.dir, "get", "mykey")
+		issuegraphProxiedKV(t, issuegraph, p.dir, "set", "mykey", "myvalue")
+		out := issuegraphProxiedKV(t, issuegraph, p.dir, "get", "mykey")
 		if out != "myvalue\n" {
 			t.Errorf("get after set: expected %q, got %q", "myvalue\n", out)
 		}
 
 		// Overwrite
-		bdProxiedKV(t, bd, p.dir, "set", "mykey", "second")
-		out = bdProxiedKV(t, bd, p.dir, "get", "mykey")
+		issuegraphProxiedKV(t, issuegraph, p.dir, "set", "mykey", "second")
+		out = issuegraphProxiedKV(t, issuegraph, p.dir, "get", "mykey")
 		if out != "second\n" {
 			t.Errorf("get after overwrite: expected %q, got %q", "second\n", out)
 		}
@@ -103,19 +103,19 @@ func TestProxiedServerKV(t *testing.T) {
 
 	t.Run("multiline_json_envelope_roundtrip", func(t *testing.T) {
 		t.Parallel()
-		p := newSharedProxiedProject(t, bd, "pkvm")
+		p := newSharedProxiedProject(t, issuegraph, "pkvm")
 
 		// The whole envelope is ONE argv element; no trimming or re-encoding
 		// may happen anywhere on the path.
-		bdProxiedKV(t, bd, p.dir, "set", "mail/inbox/marshal", mailEnvelope)
+		issuegraphProxiedKV(t, issuegraph, p.dir, "set", "mail/inbox/marshal", mailEnvelope)
 
-		out := bdProxiedKV(t, bd, p.dir, "get", "mail/inbox/marshal")
+		out := issuegraphProxiedKV(t, issuegraph, p.dir, "get", "mail/inbox/marshal")
 		if out != mailEnvelope+"\n" {
 			t.Errorf("envelope did not round-trip byte-for-byte:\nwant: %q\ngot:  %q", mailEnvelope+"\n", out)
 		}
 
 		// The same bytes must come back through list --json.
-		_, m := kvListJSONRaw(t, bd, p.dir)
+		_, m := kvListJSONRaw(t, issuegraph, p.dir)
 		if got, ok := m["mail/inbox/marshal"]; !ok || got != mailEnvelope {
 			t.Errorf("list --json envelope mismatch (exists=%v):\nwant: %q\ngot:  %q", ok, mailEnvelope, got)
 		}
@@ -123,12 +123,12 @@ func TestProxiedServerKV(t *testing.T) {
 
 	t.Run("list_json_shape", func(t *testing.T) {
 		t.Parallel()
-		p := newSharedProxiedProject(t, bd, "pkvl")
+		p := newSharedProxiedProject(t, issuegraph, "pkvl")
 
-		bdProxiedKV(t, bd, p.dir, "set", "alpha", "1")
-		bdProxiedKV(t, bd, p.dir, "set", "beta", "two words")
+		issuegraphProxiedKV(t, issuegraph, p.dir, "set", "alpha", "1")
+		issuegraphProxiedKV(t, issuegraph, p.dir, "set", "beta", "two words")
 
-		raw, m := kvListJSONRaw(t, bd, p.dir)
+		raw, m := kvListJSONRaw(t, issuegraph, p.dir)
 		want := map[string]string{"alpha": "1", "beta": "two words"}
 		if len(m) != len(want) {
 			t.Errorf("expected exactly %d kv pairs, got %d: %s", len(want), len(m), raw)
@@ -150,19 +150,19 @@ func TestProxiedServerKV(t *testing.T) {
 		t.Parallel()
 		// Same binary, same commands, classic embedded project: the JSON
 		// documents (parsed) must be identical — a mail client parses this.
-		proxied := newSharedProxiedProject(t, bd, "pkvc")
-		classicDir, _, _ := bdInit(t, bd, "--prefix", "kvc")
+		proxied := newSharedProxiedProject(t, issuegraph, "pkvc")
+		classicDir, _, _ := issuegraphInit(t, issuegraph, "--prefix", "kvc")
 
 		for _, kvp := range [][2]string{
 			{"plain", "value"},
 			{"envelope", mailEnvelope},
 		} {
-			bdProxiedKV(t, bd, proxied.dir, "set", kvp[0], kvp[1])
-			bdKV(t, bd, classicDir, "set", kvp[0], kvp[1])
+			issuegraphProxiedKV(t, issuegraph, proxied.dir, "set", kvp[0], kvp[1])
+			issuegraphKV(t, issuegraph, classicDir, "set", kvp[0], kvp[1])
 		}
 
-		_, proxiedMap := kvListJSONRaw(t, bd, proxied.dir)
-		classicMap := bdKVListJSON(t, bd, classicDir)
+		_, proxiedMap := kvListJSONRaw(t, issuegraph, proxied.dir)
+		classicMap := issuegraphKVListJSON(t, issuegraph, classicDir)
 
 		if len(proxiedMap) != len(classicMap) {
 			t.Fatalf("map size mismatch: proxied=%v classic=%v", proxiedMap, classicMap)
@@ -176,8 +176,8 @@ func TestProxiedServerKV(t *testing.T) {
 
 	t.Run("get_missing_key", func(t *testing.T) {
 		t.Parallel()
-		p := newSharedProxiedProject(t, bd, "pkvg")
-		out := bdProxiedKVFail(t, bd, p.dir, "get", "never_set_key")
+		p := newSharedProxiedProject(t, issuegraph, "pkvg")
+		out := issuegraphProxiedKVFail(t, issuegraph, p.dir, "get", "never_set_key")
 		if !strings.Contains(out, "not set") {
 			t.Errorf("expected 'not set' for missing key, got: %s", out)
 		}
@@ -185,16 +185,16 @@ func TestProxiedServerKV(t *testing.T) {
 
 	t.Run("clear", func(t *testing.T) {
 		t.Parallel()
-		p := newSharedProxiedProject(t, bd, "pkvd")
+		p := newSharedProxiedProject(t, issuegraph, "pkvd")
 
-		bdProxiedKV(t, bd, p.dir, "set", "clearme", "temporary")
-		out := bdProxiedKV(t, bd, p.dir, "clear", "clearme")
+		issuegraphProxiedKV(t, issuegraph, p.dir, "set", "clearme", "temporary")
+		out := issuegraphProxiedKV(t, issuegraph, p.dir, "clear", "clearme")
 		if !strings.Contains(out, "Cleared clearme") {
 			t.Errorf("expected 'Cleared clearme', got: %s", out)
 		}
 
-		bdProxiedKVFail(t, bd, p.dir, "get", "clearme")
-		_, m := kvListJSONRaw(t, bd, p.dir)
+		issuegraphProxiedKVFail(t, issuegraph, p.dir, "get", "clearme")
+		_, m := kvListJSONRaw(t, issuegraph, p.dir)
 		if _, ok := m["clearme"]; ok {
 			t.Error("expected clearme absent from kv list after clear")
 		}
@@ -202,7 +202,7 @@ func TestProxiedServerKV(t *testing.T) {
 		// Idempotent-friendly: clearing an already-absent key succeeds,
 		// exactly like the classic path (DELETE of a missing row is a no-op
 		// and the empty tx commits as nothing-to-commit).
-		out = bdProxiedKV(t, bd, p.dir, "clear", "clearme")
+		out = issuegraphProxiedKV(t, issuegraph, p.dir, "clear", "clearme")
 		if !strings.Contains(out, "Cleared clearme") {
 			t.Errorf("expected idempotent 'Cleared clearme' on second clear, got: %s", out)
 		}
@@ -210,17 +210,17 @@ func TestProxiedServerKV(t *testing.T) {
 
 	t.Run("invalid_keys_refused", func(t *testing.T) {
 		t.Parallel()
-		p := newSharedProxiedProject(t, bd, "pkvi")
+		p := newSharedProxiedProject(t, issuegraph, "pkvi")
 
-		out := bdProxiedKVFail(t, bd, p.dir, "set", "kv.nested", "v")
+		out := issuegraphProxiedKVFail(t, issuegraph, p.dir, "set", "kv.nested", "v")
 		if !strings.Contains(out, "nested prefix") {
 			t.Errorf("expected nested-prefix refusal, got: %s", out)
 		}
-		out = bdProxiedKVFail(t, bd, p.dir, "set", "memory.sneaky", "v")
+		out = issuegraphProxiedKVFail(t, issuegraph, p.dir, "set", "memory.sneaky", "v")
 		if !strings.Contains(out, "reserved for persistent memories") {
 			t.Errorf("expected memory-namespace refusal, got: %s", out)
 		}
-		out = bdProxiedKVFail(t, bd, p.dir, "set", "sync.mode", "v")
+		out = issuegraphProxiedKVFail(t, issuegraph, p.dir, "set", "sync.mode", "v")
 		if !strings.Contains(out, "reserved prefix") {
 			t.Errorf("expected reserved-prefix refusal, got: %s", out)
 		}
@@ -228,11 +228,11 @@ func TestProxiedServerKV(t *testing.T) {
 
 	t.Run("set_creates_dolt_commit", func(t *testing.T) {
 		t.Parallel()
-		p := newSharedProxiedProject(t, bd, "pkvh")
+		p := newSharedProxiedProject(t, issuegraph, "pkvh")
 		db := openProxiedDB(t, p)
 		before := proxiedDoltHead(t, db)
 
-		bdProxiedKV(t, bd, p.dir, "set", "committed", "v1")
+		issuegraphProxiedKV(t, issuegraph, p.dir, "set", "committed", "v1")
 
 		after := proxiedDoltHead(t, db)
 		if after == before {

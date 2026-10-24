@@ -7,16 +7,16 @@ import (
 	"strings"
 	"time"
 
+	"github.com/borg0ai/dx-issuegraph/internal/audit"
+	"github.com/borg0ai/dx-issuegraph/internal/config"
+	"github.com/borg0ai/dx-issuegraph/internal/debug"
+	"github.com/borg0ai/dx-issuegraph/internal/metrics"
+	"github.com/borg0ai/dx-issuegraph/internal/storage"
+	"github.com/borg0ai/dx-issuegraph/internal/types"
+	"github.com/borg0ai/dx-issuegraph/internal/ui"
+	"github.com/borg0ai/dx-issuegraph/internal/validation"
+	"github.com/borg0ai/dx-issuegraph/issueops"
 	"github.com/spf13/cobra"
-	"github.com/steveyegge/beads/internal/audit"
-	"github.com/steveyegge/beads/internal/config"
-	"github.com/steveyegge/beads/internal/debug"
-	"github.com/steveyegge/beads/internal/metrics"
-	"github.com/steveyegge/beads/internal/storage"
-	"github.com/steveyegge/beads/internal/types"
-	"github.com/steveyegge/beads/internal/ui"
-	"github.com/steveyegge/beads/internal/validation"
-	"github.com/steveyegge/beads/issueops"
 )
 
 var closeCmd = &cobra.Command{
@@ -30,7 +30,7 @@ If no issue ID is provided, closes the last touched issue (from most recent
 create, update, show, or close operation). This fallback only applies in
 interactive sessions (stdin is a terminal); in scripts and agent sessions a
 missing ID is an error, so a command built from an empty variable cannot
-silently close an unrelated issue. Set BD_LAST_TOUCHED_FALLBACK=1 to allow
+silently close an unrelated issue. Set ISSUEGRAPH_LAST_TOUCHED_FALLBACK=1 to allow
 the fallback anywhere, or =0 to disable it entirely.
 
 When closing multiple issues, provide one --reason for all IDs or repeat
@@ -42,7 +42,7 @@ the flags appear in the command line.`,
 	// (bd-m00pb); see updateCmd for the full rationale.
 	Args: func(cmd *cobra.Command, args []string) error {
 		if len(args) == 0 && !AllowLastTouchedFallback() {
-			return HandleErrorRespectJSON("no issue ID provided (the last-touched fallback only applies in interactive sessions; pass an explicit issue ID or set BD_LAST_TOUCHED_FALLBACK=1)")
+			return HandleErrorRespectJSON("no issue ID provided (the last-touched fallback only applies in interactive sessions; pass an explicit issue ID or set ISSUEGRAPH_LAST_TOUCHED_FALLBACK=1)")
 		}
 		return nil
 	},
@@ -228,7 +228,7 @@ the flags appear in the command line.`,
 			// The operation's own post-state snapshot is what gets reported. A
 			// real close and an idempotent no-op both report the closed issue
 			// here, matching the historical output shape. Dependency records are
-			// dropped from it because `bd close` has never printed them: the
+			// dropped from it because `issuegraph close` has never printed them: the
 			// re-read this replaced did not hydrate them either.
 			closedIssue := res.Issue
 			if closedIssue != nil {
@@ -249,7 +249,7 @@ the flags appear in the command line.`,
 		// (closedCount) or confirmed an already-closed idempotent no-op
 		// (alreadyClosed). last-touched, --continue, --suggest-next, and --claim-next
 		// all re-derive their result from current state, so they must replay on an
-		// already-closed retry; `bd close --continue` in particular is a workflow-
+		// already-closed retry; `issuegraph close --continue` in particular is a workflow-
 		// advancement trigger a crash/retry has to be able to re-drive. The real
 		// close-mutation side effects (audit, event, molecule auto-close) stay
 		// suppressed for an already-closed no-op via the `else` branch above; the
@@ -257,10 +257,10 @@ the flags appear in the command line.`,
 		// also populates.
 		closedForCommand := closedCount > 0 || alreadyClosed > 0
 
-		// Record the closed issue as last-touched so `bd close` honors its own
+		// Record the closed issue as last-touched so `issuegraph close` honors its own
 		// documented contract (the "last touched issue ... from create, update,
 		// show, or close" behavior) and downstream write-marker consumers see the
-		// close (GH#3965). Mirrors bd update's firstUpdatedID pattern. A later
+		// close (GH#3965). Mirrors issuegraph update's firstUpdatedID pattern. A later
 		// --claim-next overwrites this with the claimed issue (the newer touch).
 		if closedForCommand {
 			SetLastTouchedID(firstSettledID)
@@ -289,10 +289,10 @@ the flags appear in the command line.`,
 				fmt.Fprintf(os.Stderr, "Warning: could not advance to next step: %v\n", err)
 			} else if result != nil {
 				// Mirror --claim-next: when AdvanceToNextStep auto-claims the
-				// next step, update .beads/last-touched so subsequent default-
-				// target commands (e.g. bare `bd update`, `bd close`) target
+				// next step, update .issuegraph/last-touched so subsequent default-
+				// target commands (e.g. bare `issuegraph update`, `issuegraph close`) target
 				// it. Without this, last-touched stays pointed at the just-
-				// closed step. See gastownhall/beads#3769.
+				// closed step. See borg0ai/dx-issuegraph#3769.
 				if result.AutoAdvanced && result.NextStep != nil {
 					SetLastTouchedID(result.NextStep.ID)
 					// The auto-claim mutated postCloseStore's working set. Register it
@@ -438,7 +438,7 @@ func resolveCloseReasons(cmd *cobra.Command, args []string) ([]string, []string,
 		reasons = []string{fileReason}
 	}
 
-	// Desire-path: "bd done <id> <message>" treats last positional arg as reason
+	// Desire-path: "issuegraph done <id> <message>" treats last positional arg as reason
 	// when no reason flag was explicitly provided (hq-pe8ce)
 	if len(reasons) == 0 && cmd.CalledAs() == "done" && len(args) >= 2 {
 		reasons = []string{args[len(args)-1]}
@@ -493,7 +493,7 @@ func reasonForCloseIndex(reasons []string, i int) string {
 }
 
 // closeClaimNextRequest is --claim-next as the batch expresses it. BOTH of
-// `bd close`'s routes build it here, so the claim asks one question no matter
+// `issuegraph close`'s routes build it here, so the claim asks one question no matter
 // which door it came through.
 //
 // The role runs it inside the closes' transaction and only when at least one
@@ -541,7 +541,7 @@ func isMachineCheckableGate(issue *types.Issue) bool {
 		return true
 	case issue.AwaitType == "timer":
 		return true
-	case issue.AwaitType == "bead":
+	case issue.AwaitType == "issue":
 		return true
 	default:
 		return false
@@ -567,8 +567,8 @@ func checkGateSatisfaction(issue *types.Issue) error {
 		resolved, escalated, reason, err = checkGHPR(issue)
 	case issue.AwaitType == "timer":
 		resolved, escalated, reason, err = checkTimer(issue, time.Now())
-	case issue.AwaitType == "bead":
-		resolved, reason = checkBeadGate(rootCtx, routedBeadGateGetter{localStore: store}, issue.AwaitID)
+	case issue.AwaitType == "issue":
+		resolved, reason = checkIssueGate(rootCtx, routedIssueGateGetter{localStore: store}, issue.AwaitID)
 		if resolved {
 			return nil
 		}
@@ -654,7 +654,7 @@ func shouldAutoCloseCompletedRoot(root *types.Issue) bool {
 	}
 
 	for _, label := range root.Labels {
-		if label == BeadsTemplateLabel {
+		if label == IssueGraphTemplateLabel {
 			return true
 		}
 	}
@@ -662,11 +662,11 @@ func shouldAutoCloseCompletedRoot(root *types.Issue) bool {
 	return false
 }
 
-// resolveReasonFile resolves the --reason-file flag for `bd close`.
+// resolveReasonFile resolves the --reason-file flag for `issuegraph close`.
 // Returns (content, true, nil) when --reason-file was set and read successfully.
 // Returns (_, false, nil) when --reason-file was not set.
 // Returns an error on conflict with an existing reason, file read failure, or empty content.
-// Mirrors the --body-file pattern from `bd create` so agents can pass structured close
+// Mirrors the --body-file pattern from `issuegraph create` so agents can pass structured close
 // templates without shell-escaping hell.
 func resolveReasonFile(cmd *cobra.Command, hasExistingReason bool) (string, bool, error) {
 	if !cmd.Flags().Changed("reason-file") {
@@ -686,7 +686,7 @@ func resolveReasonFile(cmd *cobra.Command, hasExistingReason bool) (string, bool
 	return content, true, nil
 }
 
-// resolveCloseTargets resolves a batch of partial issue IDs for `bd close`,
+// resolveCloseTargets resolves a batch of partial issue IDs for `issuegraph close`,
 // preserving input order. For each ID it tries the local store first, then
 // explicit prefix routing via routes.jsonl, then a shared contributor-routed
 // store. This matches resolveAndGetIssueWithRouting's routing precedence.

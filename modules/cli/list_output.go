@@ -8,8 +8,8 @@ import (
 	"strings"
 	"text/template"
 
-	"github.com/steveyegge/beads/internal/types"
-	"github.com/steveyegge/beads/internal/ui"
+	"github.com/borg0ai/dx-issuegraph/internal/types"
+	"github.com/borg0ai/dx-issuegraph/internal/ui"
 )
 
 // printTruncationHint emits a one-line notice to stderr when the list output

@@ -5,23 +5,23 @@ import (
 	"path/filepath"
 	"testing"
 
-	"github.com/steveyegge/beads/internal/config"
+	"github.com/borg0ai/dx-issuegraph/internal/config"
 )
 
-// bindSelectedWorkspaceConfig loads beadsDir's config.yaml into the process
+// bindSelectedWorkspaceConfig loads issuegraphDir's config.yaml into the process
 // config state the way PersistentPreRunE does — prepareSelectedCommandContext
 // binds the discovered target before admission precisely so the guard reads the
 // selected workspace's config rather than the caller's. The Dolt env vars are
 // pinned off so a developer's ambient shell cannot decide a mode for the guard.
-func bindSelectedWorkspaceConfig(t *testing.T, beadsDir string) {
+func bindSelectedWorkspaceConfig(t *testing.T, issuegraphDir string) {
 	t.Helper()
 	t.Setenv("HOME", t.TempDir())
 	t.Setenv("XDG_CONFIG_HOME", t.TempDir())
-	t.Setenv("BEADS_TEST_IGNORE_REPO_CONFIG", "1")
-	t.Setenv("BEADS_DIR", beadsDir)
-	t.Setenv("BEADS_DOLT_SERVER_MODE", "0")
-	t.Setenv("BEADS_DOLT_SHARED_SERVER", "0")
-	t.Setenv("BEADS_DOLT_SERVER_HOST", "")
+	t.Setenv("ISSUEGRAPH_TEST_IGNORE_REPO_CONFIG", "1")
+	t.Setenv("ISSUEGRAPH_DIR", issuegraphDir)
+	t.Setenv("ISSUEGRAPH_DOLT_SERVER_MODE", "0")
+	t.Setenv("ISSUEGRAPH_DOLT_SHARED_SERVER", "0")
+	t.Setenv("ISSUEGRAPH_DOLT_SERVER_HOST", "")
 
 	config.ResetForTesting()
 	if err := config.Initialize(); err != nil {
@@ -31,37 +31,37 @@ func bindSelectedWorkspaceConfig(t *testing.T, beadsDir string) {
 }
 
 // writeDoltRootWorkspace lays down the ambiguous shape the guard classifies: a
-// .beads directory that owns a local Dolt root, plus whatever metadata.json,
+// .issuegraph directory that owns a local Dolt root, plus whatever metadata.json,
 // config.yaml and version witness the case needs. An empty string means "do not
 // write this file at all".
 func writeDoltRootWorkspace(t *testing.T, metadata, configYaml, version string) string {
 	t.Helper()
-	beadsDir := t.TempDir()
+	issuegraphDir := t.TempDir()
 	write := func(name, contents string) {
 		if contents == "" {
 			return
 		}
-		if err := os.WriteFile(filepath.Join(beadsDir, name), []byte(contents), 0o600); err != nil {
+		if err := os.WriteFile(filepath.Join(issuegraphDir, name), []byte(contents), 0o600); err != nil {
 			t.Fatal(err)
 		}
 	}
 	write("metadata.json", metadata)
 	write("config.yaml", configYaml)
 	if version != "" {
-		if err := writeLocalVersion(filepath.Join(beadsDir, localVersionFile), version); err != nil {
+		if err := writeLocalVersion(filepath.Join(issuegraphDir, localVersionFile), version); err != nil {
 			t.Fatal(err)
 		}
 	}
-	if err := os.Mkdir(filepath.Join(beadsDir, "dolt"), 0o700); err != nil {
+	if err := os.Mkdir(filepath.Join(issuegraphDir, "dolt"), 0o700); err != nil {
 		t.Fatal(err)
 	}
-	bindSelectedWorkspaceConfig(t, beadsDir)
-	return beadsDir
+	bindSelectedWorkspaceConfig(t, issuegraphDir)
+	return issuegraphDir
 }
 
 // configYamlServerMode reproduces the gc-provisioned config.yaml: dolt.mode is
-// declared as a flat dotted key beside a nested dolt map, which is how bd's own
-// `bd config set` writer emits it.
+// declared as a flat dotted key beside a nested dolt map, which is how issuegraph's own
+// `issuegraph config set` writer emits it.
 const configYamlServerMode = "issue_prefix: gc\n" +
 	"dolt:\n" +
 	"  disable-event-flush: true\n" +
@@ -69,10 +69,10 @@ const configYamlServerMode = "issue_prefix: gc\n" +
 
 // TestLegacyUpgradeGuardAdmitsConfigYamlServerModeWorkspace pins the shape the
 // v1.3.0 release candidate refused after creating it itself: dolt.mode declared
-// in .beads/config.yaml, a local .beads/dolt root, a current-era version
+// in .issuegraph/config.yaml, a local .issuegraph/dolt root, a current-era version
 // witness, and no metadata.json. LoadForDiscovery reads metadata.json only, so
 // the guard classified a server workspace as embedded — and an embedded
-// workspace owning a .beads/dolt root is exactly what it refuses.
+// workspace owning a .issuegraph/dolt root is exactly what it refuses.
 func TestLegacyUpgradeGuardAdmitsConfigYamlServerModeWorkspace(t *testing.T) {
 	versions := []string{
 		"1.3.0",
@@ -84,9 +84,9 @@ func TestLegacyUpgradeGuardAdmitsConfigYamlServerModeWorkspace(t *testing.T) {
 	for _, version := range versions {
 		t.Run(version, func(t *testing.T) {
 			warnings := captureLegacyUpgradeWarnings(t)
-			beadsDir := writeDoltRootWorkspace(t, "", configYamlServerMode, version)
+			issuegraphDir := writeDoltRootWorkspace(t, "", configYamlServerMode, version)
 
-			if err := guardLegacyUpgradeWorkspace(beadsDir); err != nil {
+			if err := guardLegacyUpgradeWorkspace(issuegraphDir); err != nil {
 				t.Fatalf("guardLegacyUpgradeWorkspace() = %v, want nil", err)
 			}
 			if warnings.Len() != 0 {
@@ -97,18 +97,18 @@ func TestLegacyUpgradeGuardAdmitsConfigYamlServerModeWorkspace(t *testing.T) {
 
 	t.Run("nested dolt.mode mapping", func(t *testing.T) {
 		captureLegacyUpgradeWarnings(t)
-		beadsDir := writeDoltRootWorkspace(t, "", "dolt:\n  mode: server\n", "1.3.0")
+		issuegraphDir := writeDoltRootWorkspace(t, "", "dolt:\n  mode: server\n", "1.3.0")
 
-		if err := guardLegacyUpgradeWorkspace(beadsDir); err != nil {
+		if err := guardLegacyUpgradeWorkspace(issuegraphDir); err != nil {
 			t.Fatalf("guardLegacyUpgradeWorkspace() = %v, want nil", err)
 		}
 	})
 
 	t.Run("unreadable witness warns and opens", func(t *testing.T) {
 		warnings := captureLegacyUpgradeWarnings(t)
-		beadsDir := writeDoltRootWorkspace(t, "", configYamlServerMode, "not-a-version")
+		issuegraphDir := writeDoltRootWorkspace(t, "", configYamlServerMode, "not-a-version")
 
-		if err := guardLegacyUpgradeWorkspace(beadsDir); err != nil {
+		if err := guardLegacyUpgradeWorkspace(issuegraphDir); err != nil {
 			t.Fatalf("guardLegacyUpgradeWorkspace() = %v, want nil", err)
 		}
 		if warnings.Len() == 0 {
@@ -135,9 +135,9 @@ func TestLegacyUpgradeGuardStillRefusesLegacyConfigYamlServerWorkspace(t *testin
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			captureLegacyUpgradeWarnings(t)
-			beadsDir := writeDoltRootWorkspace(t, "", configYamlServerMode, tt.version)
+			issuegraphDir := writeDoltRootWorkspace(t, "", configYamlServerMode, tt.version)
 
-			if err := guardLegacyUpgradeWorkspace(beadsDir); !isLegacyUpgradeRefusal(err) {
+			if err := guardLegacyUpgradeWorkspace(issuegraphDir); !isLegacyUpgradeRefusal(err) {
 				t.Fatalf("guardLegacyUpgradeWorkspace() = %v, want migration refusal", err)
 			}
 		})
@@ -148,17 +148,17 @@ func TestLegacyUpgradeGuardStillRefusesLegacyConfigYamlServerWorkspace(t *testin
 		// metadata.json's dolt_mode is the highest-priority layer, so this stays
 		// an embedded workspace — and the embedded arm deliberately does not
 		// trust an unreadable witness.
-		beadsDir := writeDoltRootWorkspace(t,
+		issuegraphDir := writeDoltRootWorkspace(t,
 			`{"backend":"dolt","dolt_mode":"embedded"}`, configYamlServerMode, "not-a-version")
 
-		if err := guardLegacyUpgradeWorkspace(beadsDir); !isLegacyUpgradeRefusal(err) {
+		if err := guardLegacyUpgradeWorkspace(issuegraphDir); !isLegacyUpgradeRefusal(err) {
 			t.Fatalf("guardLegacyUpgradeWorkspace() = %v, want migration refusal", err)
 		}
 	})
 }
 
 // TestCurrentVersionWitnessVetoesLegacyVerdictInEveryMode pins the general
-// safety net: a witness naming bd 1.0 or later can only have been written by a
+// safety net: a witness naming issuegraph 1.0 or later can only have been written by a
 // current-era binary, and only after this guard already admitted the workspace,
 // so it settles the era regardless of which mode the workspace resolves to. The
 // escape hatch used to live inside the server-mode arm, where a misclassified
@@ -177,42 +177,42 @@ func TestCurrentVersionWitnessVetoesLegacyVerdictInEveryMode(t *testing.T) {
 	for _, mode := range modes {
 		t.Run(mode.name, func(t *testing.T) {
 			captureLegacyUpgradeWarnings(t)
-			beadsDir := writeDoltRootWorkspace(t, mode.metadata, "", "1.3.0")
+			issuegraphDir := writeDoltRootWorkspace(t, mode.metadata, "", "1.3.0")
 
-			if err := guardLegacyUpgradeWorkspace(beadsDir); err != nil {
+			if err := guardLegacyUpgradeWorkspace(issuegraphDir); err != nil {
 				t.Fatalf("guardLegacyUpgradeWorkspace() = %v, want nil", err)
 			}
 		})
 
 		t.Run(mode.name+"/pre-1.0 witness still refuses", func(t *testing.T) {
 			captureLegacyUpgradeWarnings(t)
-			beadsDir := writeDoltRootWorkspace(t, mode.metadata, "", "0.62.21")
+			issuegraphDir := writeDoltRootWorkspace(t, mode.metadata, "", "0.62.21")
 
-			if err := guardLegacyUpgradeWorkspace(beadsDir); !isLegacyUpgradeRefusal(err) {
+			if err := guardLegacyUpgradeWorkspace(issuegraphDir); !isLegacyUpgradeRefusal(err) {
 				t.Fatalf("guardLegacyUpgradeWorkspace() = %v, want migration refusal", err)
 			}
 		})
 
 		t.Run(mode.name+"/missing witness still refuses", func(t *testing.T) {
 			captureLegacyUpgradeWarnings(t)
-			beadsDir := writeDoltRootWorkspace(t, mode.metadata, "", "")
+			issuegraphDir := writeDoltRootWorkspace(t, mode.metadata, "", "")
 
-			if err := guardLegacyUpgradeWorkspace(beadsDir); !isLegacyUpgradeRefusal(err) {
+			if err := guardLegacyUpgradeWorkspace(issuegraphDir); !isLegacyUpgradeRefusal(err) {
 				t.Fatalf("guardLegacyUpgradeWorkspace() = %v, want migration refusal", err)
 			}
 		})
 	}
 
 	// The unreadable-witness admission is deliberately NOT hoisted: outside
-	// server mode a .beads/dolt root is itself strong legacy evidence, and
+	// server mode a .issuegraph/dolt root is itself strong legacy evidence, and
 	// TestLegacyUpgradeGuardRefusesOldDoltRootWithoutTrustingVersionWitness
 	// pins that arm. Keep the boundary explicit so a later cleanup cannot widen
 	// it by accident.
 	t.Run("embedded mode still refuses an unreadable witness", func(t *testing.T) {
 		captureLegacyUpgradeWarnings(t)
-		beadsDir := writeDoltRootWorkspace(t, `{"backend":"dolt"}`, "", "not-a-version")
+		issuegraphDir := writeDoltRootWorkspace(t, `{"backend":"dolt"}`, "", "not-a-version")
 
-		if err := guardLegacyUpgradeWorkspace(beadsDir); !isLegacyUpgradeRefusal(err) {
+		if err := guardLegacyUpgradeWorkspace(issuegraphDir); !isLegacyUpgradeRefusal(err) {
 			t.Fatalf("guardLegacyUpgradeWorkspace() = %v, want migration refusal", err)
 		}
 	})
@@ -222,7 +222,7 @@ func TestCurrentVersionWitnessVetoesLegacyVerdictInEveryMode(t *testing.T) {
 // the shared-server escape reachable now that a config.yaml `dolt.mode: server`
 // workspace resolves to the server arm. Before the hoist this admission lived
 // only in the embedded arm, so classifying the same workspace correctly would
-// have turned a workspace bd admits today into a refusal — trading one
+// have turned a workspace issuegraph admits today into a refusal — trading one
 // false-refusal class for another.
 func TestLegacyUpgradeGuardSharedServerAdmissionSurvivesServerClassification(t *testing.T) {
 	tests := []struct {
@@ -241,9 +241,9 @@ func TestLegacyUpgradeGuardSharedServerAdmissionSurvivesServerClassification(t *
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			captureLegacyUpgradeWarnings(t)
-			beadsDir := writeDoltRootWorkspace(t, "", tt.configYaml, tt.version)
+			issuegraphDir := writeDoltRootWorkspace(t, "", tt.configYaml, tt.version)
 
-			err := guardLegacyUpgradeWorkspace(beadsDir)
+			err := guardLegacyUpgradeWorkspace(issuegraphDir)
 			if tt.wantRefusal && !isLegacyUpgradeRefusal(err) {
 				t.Fatalf("guardLegacyUpgradeWorkspace() = %v, want migration refusal", err)
 			}

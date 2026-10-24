@@ -12,39 +12,39 @@ import (
 )
 
 func TestEmbeddedOnboard(t *testing.T) {
-	if os.Getenv("BEADS_TEST_EMBEDDED_DOLT") != "1" {
-		t.Skip("set BEADS_TEST_EMBEDDED_DOLT=1 to run embedded dolt integration tests")
+	if os.Getenv("ISSUEGRAPH_TEST_EMBEDDED_DOLT") != "1" {
+		t.Skip("set ISSUEGRAPH_TEST_EMBEDDED_DOLT=1 to run embedded dolt integration tests")
 	}
 	t.Parallel()
 
-	bd := buildEmbeddedBD(t)
-	dir, _, _ := bdInit(t, bd, "--prefix", "to")
+	issuegraph := buildEmbeddedBD(t)
+	dir, _, _ := issuegraphInit(t, issuegraph, "--prefix", "to")
 
 	t.Run("onboard_output", func(t *testing.T) {
-		cmd := exec.Command(bd, "onboard")
+		cmd := exec.Command(issuegraph, "onboard")
 		cmd.Dir = dir
-		cmd.Env = bdEnv(dir)
+		cmd.Env = issuegraphEnv(dir)
 		stdout, stderr, err := runCommandBuffers(t, cmd)
 		if err != nil {
-			t.Fatalf("bd onboard failed: %v\nstdout:\n%s\nstderr:\n%s", err, stdout.String(), stderr.String())
+			t.Fatalf("issuegraph onboard failed: %v\nstdout:\n%s\nstderr:\n%s", err, stdout.String(), stderr.String())
 		}
 		if len(strings.TrimSpace(stdout.String())) == 0 {
 			t.Error("expected non-empty onboard output")
 		}
-		if !strings.Contains(stdout.String(), "prime") && !strings.Contains(stdout.String(), "bd") {
-			t.Errorf("expected 'prime' or 'bd' in onboard output: %s", stdout.String())
+		if !strings.Contains(stdout.String(), "prime") && !strings.Contains(stdout.String(), "issuegraph") {
+			t.Errorf("expected 'prime' or 'issuegraph' in onboard output: %s", stdout.String())
 		}
 	})
 }
 
 func TestEmbeddedOnboardConcurrent(t *testing.T) {
-	if os.Getenv("BEADS_TEST_EMBEDDED_DOLT") != "1" {
-		t.Skip("set BEADS_TEST_EMBEDDED_DOLT=1 to run embedded dolt integration tests")
+	if os.Getenv("ISSUEGRAPH_TEST_EMBEDDED_DOLT") != "1" {
+		t.Skip("set ISSUEGRAPH_TEST_EMBEDDED_DOLT=1 to run embedded dolt integration tests")
 	}
 	t.Parallel()
 
-	bd := buildEmbeddedBD(t)
-	dir, _, _ := bdInit(t, bd, "--prefix", "ox")
+	issuegraph := buildEmbeddedBD(t)
+	dir, _, _ := issuegraphInit(t, issuegraph, "--prefix", "ox")
 
 	const numWorkers = 8
 	type workerResult struct {
@@ -59,9 +59,9 @@ func TestEmbeddedOnboardConcurrent(t *testing.T) {
 		go func(worker int) {
 			defer wg.Done()
 			r := workerResult{worker: worker}
-			cmd := exec.Command(bd, "onboard")
+			cmd := exec.Command(issuegraph, "onboard")
 			cmd.Dir = dir
-			cmd.Env = bdEnv(dir)
+			cmd.Env = issuegraphEnv(dir)
 			out, err := cmd.CombinedOutput()
 			if err != nil {
 				r.err = fmt.Errorf("onboard (worker %d): %v\n%s", worker, err, out)

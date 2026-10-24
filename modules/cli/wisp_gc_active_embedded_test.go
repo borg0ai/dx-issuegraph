@@ -10,19 +10,19 @@ import (
 )
 
 // TestWispGCProtectsActiveWisps is the regression test for GH#4394:
-// `bd mol wisp gc --age` deleted active (blocked/in-progress) molecule
+// `issuegraph mol wisp gc --age` deleted active (blocked/in-progress) molecule
 // steps. is_blocked is derived state and a recompute deliberately does NOT bump
 // updated_at, so a step that has been waiting (blocked) longer than --age looks
 // stale and was reclaimed mid-execution, self-destructing the molecule. Active
 // wisps must never be reclaimed by age, no matter how old their updated_at is.
 func TestWispGCProtectsActiveWisps(t *testing.T) {
-	if os.Getenv("BEADS_TEST_EMBEDDED_DOLT") != "1" {
-		t.Skip("set BEADS_TEST_EMBEDDED_DOLT=1 to run embedded dolt integration tests")
+	if os.Getenv("ISSUEGRAPH_TEST_EMBEDDED_DOLT") != "1" {
+		t.Skip("set ISSUEGRAPH_TEST_EMBEDDED_DOLT=1 to run embedded dolt integration tests")
 	}
 	t.Parallel()
 
-	bd := buildEmbeddedBD(t)
-	dir, _, _ := bdInit(t, bd, "--prefix", "gc")
+	issuegraph := buildEmbeddedBD(t)
+	dir, _, _ := issuegraphInit(t, issuegraph, "--prefix", "gc")
 
 	// Custom statuses participate on the same footing as built-ins, by
 	// category. "reviewing" is wip (protected); "triaging" is active, which
@@ -32,44 +32,44 @@ func TestWispGCProtectsActiveWisps(t *testing.T) {
 	// Ordering matters: every wisp expected to be RECLAIMED is created and
 	// last-touched first, before the protected ones. The age predicate is
 	// now.Sub(updated_at) > threshold against a timestamp written by the
-	// database, so the most recently touched bead can briefly appear
+	// database, so the most recently touched issue can briefly appear
 	// not-yet-stale if the DB clock runs ahead of the test process. Protected
 	// wisps are excluded regardless of age, so only the reclaimable
 	// assertions are sensitive to this.
-	bdCommand(t, bd, dir, "config", "set", "status.custom", "reviewing:wip,triaging:active")
+	issuegraphCommand(t, issuegraph, dir, "config", "set", "status.custom", "reviewing:wip,triaging:active")
 
 	// Genuinely abandoned: an idle open ephemeral wisp. Must be reclaimed.
-	idle := bdCreate(t, bd, dir, "idle wisp", "--ephemeral").ID
+	idle := issuegraphCreate(t, issuegraph, dir, "idle wisp", "--ephemeral").ID
 
 	// A custom status in the active category behaves like plain open.
-	customActive := bdCreate(t, bd, dir, "custom active step", "--ephemeral").ID
-	bdCommand(t, bd, dir, "update", customActive, "--status", "triaging")
+	customActive := issuegraphCreate(t, issuegraph, dir, "custom active step", "--ephemeral").ID
+	issuegraphCommand(t, issuegraph, dir, "update", customActive, "--status", "triaging")
 
 	// Active molecule: parent step (the blocker) + child step blocked on it.
 	// The child is is_blocked=1 and must be protected.
-	parent := bdCreate(t, bd, dir, "parent step", "--ephemeral").ID
-	blocked := bdCreate(t, bd, dir, "blocked step", "--ephemeral").ID
-	bdDepAdd(t, bd, dir, blocked, parent)
+	parent := issuegraphCreate(t, issuegraph, dir, "parent step", "--ephemeral").ID
+	blocked := issuegraphCreate(t, issuegraph, dir, "blocked step", "--ephemeral").ID
+	issuegraphDepAdd(t, issuegraph, dir, blocked, parent)
 
 	// In-progress step must also be protected.
-	inProgress := bdCreate(t, bd, dir, "running step", "--ephemeral").ID
-	bdCommand(t, bd, dir, "update", inProgress, "--status", "in_progress")
+	inProgress := issuegraphCreate(t, issuegraph, dir, "running step", "--ephemeral").ID
+	issuegraphCommand(t, issuegraph, dir, "update", inProgress, "--status", "in_progress")
 
 	// Frozen-category statuses are work deliberately put on ice; reclaiming
 	// something a user explicitly deferred defeats the point of deferring it.
-	deferred := bdCreate(t, bd, dir, "deferred step", "--ephemeral").ID
-	bdCommand(t, bd, dir, "update", deferred, "--status", "deferred")
-	pinned := bdCreate(t, bd, dir, "pinned step", "--ephemeral").ID
-	bdCommand(t, bd, dir, "update", pinned, "--status", "pinned")
+	deferred := issuegraphCreate(t, issuegraph, dir, "deferred step", "--ephemeral").ID
+	issuegraphCommand(t, issuegraph, dir, "update", deferred, "--status", "deferred")
+	pinned := issuegraphCreate(t, issuegraph, dir, "pinned step", "--ephemeral").ID
+	issuegraphCommand(t, issuegraph, dir, "update", pinned, "--status", "pinned")
 
 	// A custom status in the wip category is protected like a built-in one.
-	customWIP := bdCreate(t, bd, dir, "custom wip step", "--ephemeral").ID
-	bdCommand(t, bd, dir, "update", customWIP, "--status", "reviewing")
+	customWIP := issuegraphCreate(t, issuegraph, dir, "custom wip step", "--ephemeral").ID
+	issuegraphCommand(t, issuegraph, dir, "update", customWIP, "--status", "reviewing")
 
 	// Every wisp above was created well over 1ms ago by the time gc runs, so a
 	// 1ms threshold makes them all "stale" by updated_at. Only the genuinely
 	// abandoned ones should be reclaimed.
-	out := bdCommand(t, bd, dir, "mol", "wisp", "gc", "--age", "1ms", "--dry-run", "--json")
+	out := issuegraphCommand(t, issuegraph, dir, "mol", "wisp", "gc", "--age", "1ms", "--dry-run", "--json")
 
 	var res struct {
 		CleanedIDs []string `json:"cleaned_ids"`

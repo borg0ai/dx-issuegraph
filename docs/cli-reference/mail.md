@@ -1,33 +1,33 @@
 ---
-title: "bd mail"
+title: "issuegraph mail"
 description: "Delegates mail operations to an external mail provider."
 ---
 
 {/* AUTO-GENERATED: do not edit manually */}
 
-Generated from `bd help --doc mail`.
+Generated from `issuegraph help --doc mail`.
 
 Delegates mail operations to an external mail provider.
 
-Agents often type 'bd mail' when working with beads, but mail functionality
+Agents often type 'issuegraph mail' when working with issuegraph, but mail functionality
 is typically provided by the orchestrator. This command bridges that gap
 by delegating to the configured mail provider.
 
 Configuration (checked in order):
-  1. BEADS_MAIL_DELEGATE or BD_MAIL_DELEGATE environment variable
-  2. 'mail.delegate' config setting (bd config set mail.delegate "gt mail")
+  1. ISSUEGRAPH_MAIL_DELEGATE or ISSUEGRAPH_MAIL_DELEGATE environment variable
+  2. 'mail.delegate' config setting (issuegraph config set mail.delegate "gt mail")
 
 Examples:
   # Configure delegation (one-time setup)
-  `export BEADS_MAIL_DELEGATE="gt mail"`
+  `export ISSUEGRAPH_MAIL_DELEGATE="gt mail"`
   # or
-  bd config set mail.delegate "gt mail"
+  issuegraph config set mail.delegate "gt mail"
 
-  # Then use bd mail as if it were gt mail
-  bd mail inbox                    # Lists inbox
-  bd mail send mayor/ -s "Hi"      # Sends mail
-  bd mail read msg-123             # Reads a message
+  # Then use issuegraph mail as if it were gt mail
+  issuegraph mail inbox                    # Lists inbox
+  issuegraph mail send mayor/ -s "Hi"      # Sends mail
+  issuegraph mail read msg-123             # Reads a message
 
 ```
-bd mail [subcommand] [args...] [flags]
+issuegraph mail [subcommand] [args...] [flags]
 ```

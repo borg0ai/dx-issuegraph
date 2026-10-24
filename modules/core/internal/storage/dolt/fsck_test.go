@@ -101,7 +101,7 @@ func TestFsckCouldNotOpen(t *testing.T) {
 	}{
 		{
 			name:   "windows url.Parse bug pre-1.86.4 (dolthub/dolt#10915)",
-			output: `Could not open dolt database: CreateFile \C:\Users\x\.beads\...\.dolt\noms: The filename, directory name, or volume label syntax is incorrect.`,
+			output: `Could not open dolt database: CreateFile \C:\Users\x\.issuegraph\...\.dolt\noms: The filename, directory name, or volume label syntax is incorrect.`,
 			want:   true,
 		},
 		{
@@ -177,7 +177,7 @@ func TestClassifyFSCKFailure(t *testing.T) {
 			wantContains: "interrupted",
 		},
 		// (c) Parent deadline exceeded → ErrFSCKTimeout, guidance names
-		//     dolt.auto-push-timeout; the "raise via BEADS_FSCK_TIMEOUT env var"
+		//     dolt.auto-push-timeout; the "raise via ISSUEGRAPH_FSCK_TIMEOUT env var"
 		//     phrasing must NOT appear (it cannot extend the caller deadline).
 		{
 			name:         "parent DeadlineExceeded → ErrFSCKTimeout with caller-timeout guidance",
@@ -187,18 +187,18 @@ func TestClassifyFSCKFailure(t *testing.T) {
 			wantIs:       ErrFSCKTimeout,
 			wantIsNot:    []error{ErrDanglingReference},
 			wantContains: "dolt.auto-push-timeout",
-			wantAbsent:   "BEADS_FSCK_TIMEOUT environment variable",
+			wantAbsent:   "ISSUEGRAPH_FSCK_TIMEOUT environment variable",
 		},
 		// (d) Only fsck's own timeout fired (parent still running) → ErrFSCKTimeout
-		//     with BEADS_FSCK_TIMEOUT guidance. Message must differ from (c).
+		//     with ISSUEGRAPH_FSCK_TIMEOUT guidance. Message must differ from (c).
 		{
-			name:         "own fsck DeadlineExceeded → ErrFSCKTimeout with BEADS_FSCK_TIMEOUT guidance",
+			name:         "own fsck DeadlineExceeded → ErrFSCKTimeout with ISSUEGRAPH_FSCK_TIMEOUT guidance",
 			parentErr:    nil,
 			fsckErr:      context.DeadlineExceeded,
 			output:       "",
 			wantIs:       ErrFSCKTimeout,
 			wantIsNot:    []error{ErrDanglingReference},
-			wantContains: "BEADS_FSCK_TIMEOUT",
+			wantContains: "ISSUEGRAPH_FSCK_TIMEOUT",
 		},
 		// (e) Cancellation phrasing in output with no context error (bd-f2b15
 		//     pin): a killed process group leaves "context canceled" in the
@@ -240,7 +240,7 @@ func TestClassifyFSCKFailure(t *testing.T) {
 			output:       "context deadline exceeded",
 			wantIs:       ErrFSCKTimeout,
 			wantIsNot:    []error{ErrDanglingReference},
-			wantContains: "BEADS_FSCK_TIMEOUT",
+			wantContains: "ISSUEGRAPH_FSCK_TIMEOUT",
 		},
 		// Negative sentinel: real corruption output without cancellation
 		// phrasing must still abort.
@@ -308,7 +308,7 @@ func TestFsckOutputInterrupted(t *testing.T) {
 		want   bool
 	}{
 		{
-			name:   "context canceled (observed: killed background bd dolt push, bd-f2b15)",
+			name:   "context canceled (observed: killed background issuegraph dolt push, bd-f2b15)",
 			output: "context canceled",
 			want:   true,
 		},
@@ -351,7 +351,7 @@ func TestFsckOutputInterrupted(t *testing.T) {
 
 // TestClassifyFSCKFailure_CallerVsOwnTimeout verifies that caller-deadline (c)
 // and own-timeout (d) produce distinct guidance text — the first must name
-// dolt.auto-push-timeout and the second must name BEADS_FSCK_TIMEOUT.
+// dolt.auto-push-timeout and the second must name ISSUEGRAPH_FSCK_TIMEOUT.
 func TestClassifyFSCKFailure_CallerVsOwnTimeout(t *testing.T) {
 	t.Parallel()
 
@@ -367,18 +367,18 @@ func TestClassifyFSCKFailure_CallerVsOwnTimeout(t *testing.T) {
 	if !strings.Contains(callerMsg, "dolt.auto-push-timeout") {
 		t.Errorf("caller-deadline message should name dolt.auto-push-timeout; got: %q", callerMsg)
 	}
-	if strings.Contains(callerMsg, "BEADS_FSCK_TIMEOUT environment variable") {
-		t.Errorf("caller-deadline message must not say BEADS_FSCK_TIMEOUT environment variable; got: %q", callerMsg)
+	if strings.Contains(callerMsg, "ISSUEGRAPH_FSCK_TIMEOUT environment variable") {
+		t.Errorf("caller-deadline message must not say ISSUEGRAPH_FSCK_TIMEOUT environment variable; got: %q", callerMsg)
 	}
-	if !strings.Contains(ownMsg, "BEADS_FSCK_TIMEOUT") {
-		t.Errorf("own-timeout message should name BEADS_FSCK_TIMEOUT; got: %q", ownMsg)
+	if !strings.Contains(ownMsg, "ISSUEGRAPH_FSCK_TIMEOUT") {
+		t.Errorf("own-timeout message should name ISSUEGRAPH_FSCK_TIMEOUT; got: %q", ownMsg)
 	}
 	if strings.Contains(ownMsg, "dolt.auto-push-timeout") {
 		t.Errorf("own-timeout message must not name dolt.auto-push-timeout; got: %q", ownMsg)
 	}
 }
 
-// TestFsckTimeoutDuration verifies BEADS_FSCK_TIMEOUT parsing: valid durations
+// TestFsckTimeoutDuration verifies ISSUEGRAPH_FSCK_TIMEOUT parsing: valid durations
 // are honored, unset and invalid values fall back to the compiled-in default.
 func TestFsckTimeoutDuration(t *testing.T) {
 	t.Run("valid duration honored", func(t *testing.T) {

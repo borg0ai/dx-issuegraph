@@ -85,7 +85,7 @@ func TestRenderPrimeMemoriesCompactCaps(t *testing.T) {
 	if !strings.Contains(out, "## Memories (showing 3 of 4)\n") {
 		t.Fatalf("expected compact capped header, got %q", out)
 	}
-	if !strings.Contains(out, "- 1 more not shown (capped by max-memories=3); browse with `bd memories <keyword>`\n") {
+	if !strings.Contains(out, "- 1 more not shown (capped by max-memories=3); browse with `issuegraph memories <keyword>`\n") {
 		t.Fatalf("expected compact elision line, got %q", out)
 	}
 	if strings.Contains(out, "mem-03") {

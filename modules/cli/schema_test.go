@@ -5,7 +5,7 @@ import (
 	"testing"
 )
 
-// TestSchemaDocument verifies `bd schema` emits a valid JSON Schema document
+// TestSchemaDocument verifies `issuegraph schema` emits a valid JSON Schema document
 // pinned to JSONSchemaVersion, with the issue/dependency record schemas and the
 // enriched string enums sourced from internal/types. It exercises the pure
 // schemaDocument() builder, so it needs no workspace or database.

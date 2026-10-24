@@ -8,15 +8,15 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/steveyegge/beads/internal/types"
+	"github.com/borg0ai/dx-issuegraph/internal/types"
 )
 
-func bdProxiedBlockedJSON(t *testing.T, bd string, p proxiedProject, args ...string) []*types.BlockedIssue {
+func issuegraphProxiedBlockedJSON(t *testing.T, issuegraph string, p proxiedProject, args ...string) []*types.BlockedIssue {
 	t.Helper()
 	fullArgs := append([]string{"blocked", "--json"}, args...)
-	stdout, stderr, err := bdProxiedRunBuffers(t, bd, p.dir, fullArgs...)
+	stdout, stderr, err := issuegraphProxiedRunBuffers(t, issuegraph, p.dir, fullArgs...)
 	if err != nil {
-		t.Fatalf("bd blocked --json %s failed: %v\nstdout:\n%s\nstderr:\n%s",
+		t.Fatalf("issuegraph blocked --json %s failed: %v\nstdout:\n%s\nstderr:\n%s",
 			strings.Join(args, " "), err, stdout, stderr)
 	}
 	s := strings.TrimSpace(stdout)
@@ -31,12 +31,12 @@ func bdProxiedBlockedJSON(t *testing.T, bd string, p proxiedProject, args ...str
 	return out
 }
 
-func bdProxiedBlockedCapture(t *testing.T, bd string, p proxiedProject, args ...string) (string, string) {
+func issuegraphProxiedBlockedCapture(t *testing.T, issuegraph string, p proxiedProject, args ...string) (string, string) {
 	t.Helper()
 	fullArgs := append([]string{"blocked"}, args...)
-	stdout, stderr, err := bdProxiedRunBuffers(t, bd, p.dir, fullArgs...)
+	stdout, stderr, err := issuegraphProxiedRunBuffers(t, issuegraph, p.dir, fullArgs...)
 	if err != nil {
-		t.Fatalf("bd blocked %s failed: %v\nstdout:\n%s\nstderr:\n%s",
+		t.Fatalf("issuegraph blocked %s failed: %v\nstdout:\n%s\nstderr:\n%s",
 			strings.Join(args, " "), err, stdout, stderr)
 	}
 	return stdout, stderr
@@ -45,15 +45,15 @@ func bdProxiedBlockedCapture(t *testing.T, bd string, p proxiedProject, args ...
 func TestProxiedServerBlocked(t *testing.T) {
 	requireSharedProxiedServer(t)
 	t.Parallel()
-	bd := buildEmbeddedBD(t)
+	issuegraph := buildEmbeddedBD(t)
 
 	t.Run("json_and_text_with_blockers", func(t *testing.T) {
 		t.Parallel()
-		p := newSharedProxiedProject(t, bd, "bk1")
-		blocker := bdProxiedCreate(t, bd, p.dir, "The blocker")
-		dependent := bdProxiedCreate(t, bd, p.dir, "I am blocked", "--deps", "depends-on:"+blocker.ID)
+		p := newSharedProxiedProject(t, issuegraph, "bk1")
+		blocker := issuegraphProxiedCreate(t, issuegraph, p.dir, "The blocker")
+		dependent := issuegraphProxiedCreate(t, issuegraph, p.dir, "I am blocked", "--deps", "depends-on:"+blocker.ID)
 
-		got := bdProxiedBlockedJSON(t, bd, p)
+		got := issuegraphProxiedBlockedJSON(t, issuegraph, p)
 		var entry *types.BlockedIssue
 		for _, bi := range got {
 			if bi.ID == dependent.ID {
@@ -72,7 +72,7 @@ func TestProxiedServerBlocked(t *testing.T) {
 			t.Errorf("BlockedBy = %v, want [%s]", entry.BlockedBy, blocker.ID)
 		}
 
-		stdout, _ := bdProxiedBlockedCapture(t, bd, p)
+		stdout, _ := issuegraphProxiedBlockedCapture(t, issuegraph, p)
 		if !strings.Contains(stdout, "Blocked issues") {
 			t.Errorf("expected heading in text output, got: %s", stdout)
 		}
@@ -83,12 +83,12 @@ func TestProxiedServerBlocked(t *testing.T) {
 
 	t.Run("empty_case", func(t *testing.T) {
 		t.Parallel()
-		p := newSharedProxiedProject(t, bd, "bk2")
-		bdProxiedCreate(t, bd, p.dir, "Nothing blocked here")
+		p := newSharedProxiedProject(t, issuegraph, "bk2")
+		issuegraphProxiedCreate(t, issuegraph, p.dir, "Nothing blocked here")
 
-		out, err := bdProxiedRun(t, bd, p.dir, "blocked", "--json")
+		out, err := issuegraphProxiedRun(t, issuegraph, p.dir, "blocked", "--json")
 		if err != nil {
-			t.Fatalf("bd blocked --json failed: %v\n%s", err, out)
+			t.Fatalf("issuegraph blocked --json failed: %v\n%s", err, out)
 		}
 		var empty []*types.BlockedIssue
 		if err := json.Unmarshal(bytes.TrimSpace(out), &empty); err != nil {
@@ -98,7 +98,7 @@ func TestProxiedServerBlocked(t *testing.T) {
 			t.Errorf("expected [] for no blockers, got %d entries", len(empty))
 		}
 
-		stdout, _ := bdProxiedBlockedCapture(t, bd, p)
+		stdout, _ := issuegraphProxiedBlockedCapture(t, issuegraph, p)
 		if !strings.Contains(stdout, "No blocked issues") {
 			t.Errorf("expected 'No blocked issues' message, got: %s", stdout)
 		}
@@ -106,14 +106,14 @@ func TestProxiedServerBlocked(t *testing.T) {
 
 	t.Run("parent_filter_restricts_to_descendants", func(t *testing.T) {
 		t.Parallel()
-		p := newSharedProxiedProject(t, bd, "bk3")
-		parent := bdProxiedCreate(t, bd, p.dir, "Parent epic", "--type", "epic")
-		blocker := bdProxiedCreate(t, bd, p.dir, "Inside blocker")
-		inside := bdProxiedCreate(t, bd, p.dir, "Inside blocked", "--parent", parent.ID, "--deps", "depends-on:"+blocker.ID)
-		outsideBlocker := bdProxiedCreate(t, bd, p.dir, "Outside blocker")
-		outside := bdProxiedCreate(t, bd, p.dir, "Outside blocked", "--deps", "depends-on:"+outsideBlocker.ID)
+		p := newSharedProxiedProject(t, issuegraph, "bk3")
+		parent := issuegraphProxiedCreate(t, issuegraph, p.dir, "Parent epic", "--type", "epic")
+		blocker := issuegraphProxiedCreate(t, issuegraph, p.dir, "Inside blocker")
+		inside := issuegraphProxiedCreate(t, issuegraph, p.dir, "Inside blocked", "--parent", parent.ID, "--deps", "depends-on:"+blocker.ID)
+		outsideBlocker := issuegraphProxiedCreate(t, issuegraph, p.dir, "Outside blocker")
+		outside := issuegraphProxiedCreate(t, issuegraph, p.dir, "Outside blocked", "--deps", "depends-on:"+outsideBlocker.ID)
 
-		got := bdProxiedBlockedJSON(t, bd, p, "--parent", parent.ID)
+		got := issuegraphProxiedBlockedJSON(t, issuegraph, p, "--parent", parent.ID)
 		ids := map[string]bool{}
 		for _, bi := range got {
 			ids[bi.ID] = true

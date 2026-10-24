@@ -6,8 +6,8 @@ import (
 	"strings"
 	"time"
 
-	"github.com/steveyegge/beads/internal/configfile"
-	"github.com/steveyegge/beads/internal/types"
+	"github.com/borg0ai/dx-issuegraph/internal/configfile"
+	"github.com/borg0ai/dx-issuegraph/internal/types"
 )
 
 // StaleClosedIssues deletes stale closed issues.
@@ -16,13 +16,13 @@ import (
 // This fix is DISABLED by default (stale_closed_issues_days=0). Users must
 // explicitly set a positive threshold in metadata.json to enable cleanup.
 func StaleClosedIssues(path string) error {
-	beadsDir, err := resolvedWorkspaceBeadsDir(path)
+	issuegraphDir, err := resolvedWorkspaceIssueGraphDir(path)
 	if err != nil {
 		return err
 	}
 
 	// Load config and check if cleanup is enabled
-	cfg, err := configfile.Load(beadsDir)
+	cfg, err := configfile.Load(issuegraphDir)
 	if err != nil {
 		return fmt.Errorf("failed to load config: %w", err)
 	}
@@ -40,9 +40,9 @@ func StaleClosedIssues(path string) error {
 
 	// Open database using factory to respect backend configuration (bd-m2jr:
 	// SQLite fallback fix). This handler DELETES issues, so it opens through
-	// the bead-mutating factory: the deletes are journaled like any other.
+	// the issue-mutating factory: the deletes are journaled like any other.
 	ctx := context.Background()
-	store, err := openBeadMutatingStore(ctx, beadsDir)
+	store, err := openIssueMutatingStore(ctx, issuegraphDir)
 	if err != nil {
 		return fmt.Errorf("failed to open database: %w", err)
 	}
@@ -90,25 +90,25 @@ func StaleClosedIssues(path string) error {
 	return nil
 }
 
-// PatrolPollution deletes patrol digest and session ended beads that pollute the database.
+// PatrolPollution deletes patrol digest and session ended issuegraph that pollute the database.
 // This is the fix handler for the "Patrol Pollution" doctor check.
 //
-// It removes beads matching:
+// It removes issuegraph matching:
 // - Patrol digests: titles matching "Digest: mol-*-patrol"
-// - Session ended beads: titles matching "Session ended: *"
+// - Session ended issuegraph: titles matching "Session ended: *"
 //
 // After deletion, cleans up any orphaned data.
 func PatrolPollution(path string) error {
-	beadsDir, err := resolvedWorkspaceBeadsDir(path)
+	issuegraphDir, err := resolvedWorkspaceIssueGraphDir(path)
 	if err != nil {
 		return err
 	}
 
 	// Open database using factory to respect backend configuration (bd-m2jr:
 	// SQLite fallback fix). This handler DELETES issues, so it opens through
-	// the bead-mutating factory: the deletes are journaled like any other.
+	// the issue-mutating factory: the deletes are journaled like any other.
 	ctx := context.Background()
-	store, err := openBeadMutatingStore(ctx, beadsDir)
+	store, err := openIssueMutatingStore(ctx, issuegraphDir)
 	if err != nil {
 		return fmt.Errorf("failed to open database: %w", err)
 	}
@@ -121,7 +121,7 @@ func PatrolPollution(path string) error {
 		return fmt.Errorf("failed to query issues: %w", err)
 	}
 
-	var patrolDigestCount, sessionBeadCount int
+	var patrolDigestCount, sessionIssueCount int
 	var toDelete []string
 
 	for _, issue := range issues {
@@ -136,17 +136,17 @@ func PatrolPollution(path string) error {
 
 		// Check for session ended pattern: "Session ended: *"
 		if strings.HasPrefix(title, "Session ended:") {
-			sessionBeadCount++
+			sessionIssueCount++
 			toDelete = append(toDelete, issue.ID)
 		}
 	}
 
 	if len(toDelete) == 0 {
-		fmt.Println("  No patrol pollution beads to delete")
+		fmt.Println("  No patrol pollution issuegraph to delete")
 		return nil
 	}
 
-	// Delete all pollution beads
+	// Delete all pollution issuegraph
 	var deleted int
 	for _, id := range toDelete {
 		if err := store.DeleteIssue(ctx, id); err != nil {
@@ -158,12 +158,12 @@ func PatrolPollution(path string) error {
 
 	// Report results
 	if patrolDigestCount > 0 {
-		fmt.Printf("  Deleted %d patrol digest bead(s)\n", patrolDigestCount)
+		fmt.Printf("  Deleted %d patrol digest issue(s)\n", patrolDigestCount)
 	}
-	if sessionBeadCount > 0 {
-		fmt.Printf("  Deleted %d session ended bead(s)\n", sessionBeadCount)
+	if sessionIssueCount > 0 {
+		fmt.Printf("  Deleted %d session ended issue(s)\n", sessionIssueCount)
 	}
-	fmt.Printf("  Total: %d pollution bead(s) removed\n", deleted)
+	fmt.Printf("  Total: %d pollution issue(s) removed\n", deleted)
 
 	return nil
 }

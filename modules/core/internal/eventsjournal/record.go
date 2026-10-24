@@ -3,13 +3,13 @@ package eventsjournal
 import (
 	"encoding/json"
 
-	"github.com/steveyegge/beads/internal/storage"
+	"github.com/borg0ai/dx-issuegraph/internal/storage"
 )
 
 // The record envelope every consumer of the journal receives, in ONE place.
 //
-// It started in modules/cli as the shape `bd events tail` printed, and moved here
-// when GET /v0/beads/events published the same records over HTTP. Two encoders
+// It started in modules/cli as the shape `issuegraph events tail` printed, and moved here
+// when GET /v0/issuegraph/events published the same records over HTTP. Two encoders
 // of the same journal row is exactly the drift this package exists to prevent:
 // the CLI's JSONL output is byte-pinned by the protocol corpus, so a second
 // struct in internal/httpapi would have satisfied its own tests while quietly
@@ -24,7 +24,7 @@ import (
 // between them is the whole content of this file.
 
 // Record is one journal line as a consumer receives it, on the CLI's stdout and
-// in a GET /v0/beads/events body alike.
+// in a GET /v0/issuegraph/events body alike.
 //
 // Issue, Dep and Comment are raw JSON so the stored payloads travel unchanged:
 // re-encoding them here would reorder members and renormalize numbers against a

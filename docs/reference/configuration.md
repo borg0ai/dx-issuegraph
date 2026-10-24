@@ -16,16 +16,16 @@ issuegraph has two complementary configuration systems:
 
 The split is deliberate: tool settings are user-specific; project config is team-shared and travels with the database when you run `issuegraph dolt push`. That is also why secrets are refused in the database — see [Security](#security-where-secrets-live).
 
-Dolt is the only storage backend. Embedded mode (the default) stores data at `.beads/embeddeddolt/`; server mode (`issuegraph init --server` or `BEADS_DOLT_SERVER_MODE=1`) uses `.beads/dolt/`. See [Dolt architecture](/architecture/dolt).
+Dolt is the only storage backend. Embedded mode (the default) stores data at `.issuegraph/embeddeddolt/`; server mode (`issuegraph init --server` or `ISSUEGRAPH_DOLT_SERVER_MODE=1`) uses `.issuegraph/dolt/`. See [Dolt architecture](/architecture/dolt).
 
 ## Configuration Locations
 
 `config.yaml` is searched in this order, with later files overriding earlier ones:
 
-1. `~/.beads/config.yaml` (legacy user-level, lowest priority)
-2. `~/.config/bd/config.yaml` (user-level; this exact path is checked even on platforms whose native user-config directory differs)
-3. `<repo>/.beads/config.yaml` (project-level, walked up from the current directory)
-4. `$BEADS_DIR/config.yaml` (highest priority, when `BEADS_DIR` points at a different workspace)
+1. `~/.issuegraph/config.yaml` (legacy user-level, lowest priority)
+2. `~/.config/issuegraph/config.yaml` (user-level; this exact path is checked even on platforms whose native user-config directory differs)
+3. `<repo>/.issuegraph/config.yaml` (project-level, walked up from the current directory)
+4. `$ISSUEGRAPH_DIR/config.yaml` (highest priority, when `ISSUEGRAPH_DIR` points at a different workspace)
 
 A `config.local.yaml` next to the project `config.yaml` is also merged in last for machine-specific overrides that should not be committed.
 
@@ -34,7 +34,7 @@ A `config.local.yaml` next to the project `config.yaml` is also merged in last f
 For Viper-managed (YAML) keys, highest to lowest:
 
 1. **Command-line flags** (e.g. `--json`, `--db`, `--actor`)
-2. **Environment variables** (`BD_*`, plus a small set of legacy `BEADS_*` names — see below)
+2. **Environment variables** (`ISSUEGRAPH_*`, plus a small set of legacy `ISSUEGRAPH_*` names — see below)
 3. **`config.yaml`** files (in the order listed above)
 4. **Built-in defaults**
 
@@ -72,7 +72,7 @@ issuegraph config validate
 issuegraph config unset jira.url
 ```
 
-`issuegraph config set` automatically routes the write to the right location: keys in the YAML namespace (see below) are written to the project `config.yaml`; everything else is written to the Dolt database. `beads.role` is stored in git config.
+`issuegraph config set` automatically routes the write to the right location: keys in the YAML namespace (see below) are written to the project `config.yaml`; everything else is written to the Dolt database. `issuegraph.role` is stored in git config.
 
 Unrecognized keys produce a warning with a did-you-mean suggestion; use the `custom.*` namespace for user-defined keys.
 
@@ -96,62 +96,62 @@ Any key whose name contains `api_key`, `api-key`, `secret`, `token`, or `passwor
 
 | Setting | Flag | Env Var | Default | Description |
 |---|---|---|---|---|
-| `json` | `--json` | `BD_JSON` | `false` | JSON output for scripting |
-| `db` | `--db` | `BD_DB` | (auto-discover) | Database path |
-| `actor` | `--actor` | `BEADS_ACTOR` | `git config user.name` | Actor name for audit trail (see [Actor identity](#actor-identity-resolution)) |
-| `identity` | `--identity` | `BEADS_IDENTITY` | (git user / hostname) | Sender identity for `issuegraph mail` |
-| `no-db` | `--no-db` | `BD_NO_DAEMON` (related) | `false` | Run without opening the database |
-| `no-push` | `--no-push` | `BD_NO_PUSH` | `false` | Skip pushing to the remote in `issuegraph dolt push` |
+| `json` | `--json` | `ISSUEGRAPH_JSON` | `false` | JSON output for scripting |
+| `db` | `--db` | `ISSUEGRAPH_DB` | (auto-discover) | Database path |
+| `actor` | `--actor` | `ISSUEGRAPH_ACTOR` | `git config user.name` | Actor name for audit trail (see [Actor identity](#actor-identity-resolution)) |
+| `identity` | `--identity` | `ISSUEGRAPH_IDENTITY` | (git user / hostname) | Sender identity for `issuegraph mail` |
+| `no-db` | `--no-db` | `ISSUEGRAPH_NO_DAEMON` (related) | `false` | Run without opening the database |
+| `no-push` | `--no-push` | `ISSUEGRAPH_NO_PUSH` | `false` | Skip pushing to the remote in `issuegraph dolt push` |
 | `no-git-ops` | — | — | `false` | Disable git ops in `issuegraph prime` close protocol |
-| `agent.profile` | — | `BD_AGENT_PROFILE` | `conservative` | Policy profile `issuegraph prime` uses for git/commit authority: `conservative`, `minimal`, `team-maintainer`; invalid values fall back to `conservative` |
-| `prime.max-memories` | `--max-memories` | `BD_PRIME_MAX_MEMORIES` | `0` | Max persistent memories injected by `issuegraph prime` (0 = unlimited) |
-| `prime.max-memory-chars` | `--max-memory-chars` | `BD_PRIME_MAX_MEMORY_CHARS` | `0` | Max total bytes of memory entries injected by `issuegraph prime`, at whole-memory boundaries (0 = unlimited) |
-| `dolt.auto-commit` | `--dolt-auto-commit` | `BD_DOLT_AUTO_COMMIT` | `on` | Create a Dolt history commit after each successful write (see [below](#auto-commit-sql-commits-vs-dolt-commits)) |
-| `dolt.auto-push` | — | `BD_DOLT_AUTO_PUSH` | `false` | Auto-push to Dolt remote after writes (opt-in; see [below](#auto-push)) |
-| `dolt.auto-push-interval` | — | `BD_DOLT_AUTO_PUSH_INTERVAL` | `5m` | Minimum time between auto-pushes |
-| `dolt.auto-push-timeout` | — | `BD_DOLT_AUTO_PUSH_TIMEOUT` | `30s` | Timeout for a single auto-push attempt |
-| `dolt.shared-server` | `--shared-server` | `BEADS_DOLT_SHARED_SERVER` | `false` | Share one Dolt server at `~/.beads/shared-server/` |
-| `dolt.max-conns` | — | `BEADS_DOLT_MAX_CONNS` | `10` | Connection pool size |
-| `git.author` | — | `BD_GIT_AUTHOR` | (none) | Override commit author for issuegraph commits |
-| `git.no-gpg-sign` | — | `BD_GIT_NO_GPG_SIGN` | `false` | Disable GPG signing for issuegraph commits |
-| `create.require-description` | — | `BD_CREATE_REQUIRE_DESCRIPTION` | `false` | Require description on `issuegraph create` |
-| `validation.on-create` | — | `BD_VALIDATION_ON_CREATE` | `none` | Template validation: `none`, `warn`, `error` |
-| `validation.on-close` | — | `BD_VALIDATION_ON_CLOSE` | `none` | Template validation on close |
-| `validation.on-sync` | — | `BD_VALIDATION_ON_SYNC` | `none` | Template validation before sync |
+| `agent.profile` | — | `ISSUEGRAPH_AGENT_PROFILE` | `conservative` | Policy profile `issuegraph prime` uses for git/commit authority: `conservative`, `minimal`, `team-maintainer`; invalid values fall back to `conservative` |
+| `prime.max-memories` | `--max-memories` | `ISSUEGRAPH_PRIME_MAX_MEMORIES` | `0` | Max persistent memories injected by `issuegraph prime` (0 = unlimited) |
+| `prime.max-memory-chars` | `--max-memory-chars` | `ISSUEGRAPH_PRIME_MAX_MEMORY_CHARS` | `0` | Max total bytes of memory entries injected by `issuegraph prime`, at whole-memory boundaries (0 = unlimited) |
+| `dolt.auto-commit` | `--dolt-auto-commit` | `ISSUEGRAPH_DOLT_AUTO_COMMIT` | `on` | Create a Dolt history commit after each successful write (see [below](#auto-commit-sql-commits-vs-dolt-commits)) |
+| `dolt.auto-push` | — | `ISSUEGRAPH_DOLT_AUTO_PUSH` | `false` | Auto-push to Dolt remote after writes (opt-in; see [below](#auto-push)) |
+| `dolt.auto-push-interval` | — | `ISSUEGRAPH_DOLT_AUTO_PUSH_INTERVAL` | `5m` | Minimum time between auto-pushes |
+| `dolt.auto-push-timeout` | — | `ISSUEGRAPH_DOLT_AUTO_PUSH_TIMEOUT` | `30s` | Timeout for a single auto-push attempt |
+| `dolt.shared-server` | `--shared-server` | `ISSUEGRAPH_DOLT_SHARED_SERVER` | `false` | Share one Dolt server at `~/.issuegraph/shared-server/` |
+| `dolt.max-conns` | — | `ISSUEGRAPH_DOLT_MAX_CONNS` | `10` | Connection pool size |
+| `git.author` | — | `ISSUEGRAPH_GIT_AUTHOR` | (none) | Override commit author for issuegraph commits |
+| `git.no-gpg-sign` | — | `ISSUEGRAPH_GIT_NO_GPG_SIGN` | `false` | Disable GPG signing for issuegraph commits |
+| `create.require-description` | — | `ISSUEGRAPH_CREATE_REQUIRE_DESCRIPTION` | `false` | Require description on `issuegraph create` |
+| `validation.on-create` | — | `ISSUEGRAPH_VALIDATION_ON_CREATE` | `none` | Template validation: `none`, `warn`, `error` |
+| `validation.on-close` | — | `ISSUEGRAPH_VALIDATION_ON_CLOSE` | `none` | Template validation on close |
+| `validation.on-sync` | — | `ISSUEGRAPH_VALIDATION_ON_SYNC` | `none` | Template validation before sync |
 | `validation.metadata.mode` | — | — | `none` | Metadata schema validation |
 | `hierarchy.max-depth` | — | — | `3` | Max hierarchical ID nesting depth |
-| `backup.enabled` | — | `BD_BACKUP_ENABLED` | `false` | Enable periodic Dolt-native backup to `.beads/backup/` (see [below](#auto-backup)) |
-| `backup.interval` | — | `BD_BACKUP_INTERVAL` | `15m` | Minimum time between auto-backups |
+| `backup.enabled` | — | `ISSUEGRAPH_BACKUP_ENABLED` | `false` | Enable periodic Dolt-native backup to `.issuegraph/backup/` (see [below](#auto-backup)) |
+| `backup.interval` | — | `ISSUEGRAPH_BACKUP_INTERVAL` | `15m` | Minimum time between auto-backups |
 | `backup.git-push` | — | — | `false` | Auto-push backup repo |
-| `backup.git-repo` | — | `BD_BACKUP_GIT_REPO` | (none) | Backup git repo URL; when set, backups go to a `backup/` directory inside that repo |
-| `audit.enabled` | — | `BD_AUDIT_ENABLED` | `false` | Enable the optional JSONL interaction sidecar at `.beads/interactions.jsonl`, written by `issuegraph audit record` / `issuegraph audit label`. While disabled, `issuegraph init` does not create the file and `issuegraph audit record` / `issuegraph audit label` refuse to write. Issue history is always recorded in the database either way — see `issuegraph history <id> --events` |
-| `export.auto` | — | — | `false` | Refresh `.beads/issues.jsonl` export after every write; not cross-machine sync |
-| `export.path` | — | — | `issues.jsonl` | Output filename relative to `.beads/` |
+| `backup.git-repo` | — | `ISSUEGRAPH_BACKUP_GIT_REPO` | (none) | Backup git repo URL; when set, backups go to a `backup/` directory inside that repo |
+| `audit.enabled` | — | `ISSUEGRAPH_AUDIT_ENABLED` | `false` | Enable the optional JSONL interaction sidecar at `.issuegraph/interactions.jsonl`, written by `issuegraph audit record` / `issuegraph audit label`. While disabled, `issuegraph init` does not create the file and `issuegraph audit record` / `issuegraph audit label` refuse to write. Issue history is always recorded in the database either way — see `issuegraph history <id> --events` |
+| `export.auto` | — | — | `false` | Refresh `.issuegraph/issues.jsonl` export after every write; not cross-machine sync |
+| `export.path` | — | — | `issues.jsonl` | Output filename relative to `.issuegraph/` |
 | `export.interval` | — | — | `60s` | Minimum time between auto-exports |
 | `export.git-add` | — | — | `false` | Run `git add` on the export file |
-| `import.auto` | — | `BD_IMPORT_AUTO` | `true` | Master switch for automatic JSONL imports: the git-hook fallback used when no Dolt remote is configured, and the empty-database recovery import when `.beads/issues.jsonl` exists but the database is empty. `false` disables all auto-imports; explicit `issuegraph import` always works |
-| `import.path` | — | — | `issues.jsonl` | Input filename relative to `.beads/` for implied JSONL imports (including `issuegraph init --from-jsonl` and empty-DB auto-import); use relative paths for portability |
+| `import.auto` | — | `ISSUEGRAPH_IMPORT_AUTO` | `true` | Master switch for automatic JSONL imports: the git-hook fallback used when no Dolt remote is configured, and the empty-database recovery import when `.issuegraph/issues.jsonl` exists but the database is empty. `false` disables all auto-imports; explicit `issuegraph import` always works |
+| `import.path` | — | — | `issues.jsonl` | Input filename relative to `.issuegraph/` for implied JSONL imports (including `issuegraph init --from-jsonl` and empty-DB auto-import); use relative paths for portability |
 | `routing.mode` | — | — | (none) | Multi-repo routing: `auto`, `maintainer`, `contributor`, `explicit` |
 | `routing.default` | — | — | `.` | Default routing target |
 | `routing.maintainer` | — | — | `.` | Maintainer-routed path |
-| `routing.contributor` | — | — | `~/.beads-planning` | Contributor-routed path |
-| `list.limit` | `--limit` / `-n` | `BD_LIST_LIMIT` | `50` | Default limit for `issuegraph list` results |
+| `routing.contributor` | — | — | `~/.issuegraph-planning` | Contributor-routed path |
+| `list.limit` | `--limit` / `-n` | `ISSUEGRAPH_LIST_LIMIT` | `50` | Default limit for `issuegraph list` results |
 | `directory.labels` | — | — | `{}` | Map directory patterns → labels for monorepos |
 | `external_projects` | — | — | `{}` | Map project names → paths for cross-project deps |
-| `federation.remote` | — | `BD_FEDERATION_REMOTE` | (none) | Dolt remote URL (`dolthub://`, `gs://`, `s3://`, `az://`, `file://`) |
-| `federation.sovereignty` | — | `BD_FEDERATION_SOVEREIGNTY` | (none) | Sovereignty tier: `T1`, `T2`, `T3`, `T4` (see [below](#sync-and-federation)) |
+| `federation.remote` | — | `ISSUEGRAPH_FEDERATION_REMOTE` | (none) | Dolt remote URL (`dolthub://`, `gs://`, `s3://`, `az://`, `file://`) |
+| `federation.sovereignty` | — | `ISSUEGRAPH_FEDERATION_SOVEREIGNTY` | (none) | Sovereignty tier: `T1`, `T2`, `T3`, `T4` (see [below](#sync-and-federation)) |
 | `federation.allowed-remote-patterns` | — | — | `[]` | Glob patterns restricting allowed remote URLs |
 | `federation.exclude_types` | — | — | `[wisp]` | Issue types excluded from federation push |
 | `sync.require_confirmation_on_mass_delete` | — | — | `false` | Prompt before pushing when a merge deletes most issues |
 | `output.title-length` | — | — | `255` | Title display in feedback (`0` hides); see routing note below |
-| `ai.model` | — | `BD_AI_MODEL` | `claude-haiku-4-5-20251001` | Default AI model |
+| `ai.model` | — | `ISSUEGRAPH_AI_MODEL` | `claude-haiku-4-5-20251001` | Default AI model |
 | `agents.file` | — | — | `AGENTS.md` | Agents instruction filename; see routing note below |
 
 <Warning>
 **JSONL export is opt-in**
 
 `export.auto` and `export.git-add` are disabled unless configured explicitly.
-`.beads/issues.jsonl` is an optional export for viewers, interchange, and
+`.issuegraph/issues.jsonl` is an optional export for viewers, interchange, and
 issue-level migration. It is not the canonical source of truth, not
 cross-machine sync, and not a full database backup.
 
@@ -198,7 +198,7 @@ dolt:
 
 ### Auto-backup
 
-Periodic Dolt-native backup to `.beads/backup/` provides a recovery path independent of the live database. Local Dolt commits (via `dolt.auto-commit`) remain the primary safety net; backup is a secondary layer. Unlike `issuegraph export` or `.beads/issues.jsonl`, this is a full database backup: it preserves tables, branches, commit history, and working-set data.
+Periodic Dolt-native backup to `.issuegraph/backup/` provides a recovery path independent of the live database. Local Dolt commits (via `dolt.auto-commit`) remain the primary safety net; backup is a secondary layer. Unlike `issuegraph export` or `.issuegraph/issues.jsonl`, this is a full database backup: it preserves tables, branches, commit history, and working-set data.
 
 ```yaml
 backup:
@@ -209,7 +209,7 @@ backup:
 How it works:
 
 - After each write command, `issuegraph` compares the Dolt HEAD commit hash against the last backup state.
-- If data changed and the throttle interval has passed, a Dolt-native backup is synced to `.beads/backup/` (or to a `backup/` directory inside `backup.git-repo` when configured).
+- If data changed and the throttle interval has passed, a Dolt-native backup is synced to `.issuegraph/backup/` (or to a `backup/` directory inside `backup.git-repo` when configured).
 - State is tracked in `backup_state.json` inside the backup directory.
 
 Manual commands (see [issuegraph backup](/cli-reference/backup)):
@@ -239,25 +239,25 @@ How it works:
 - Pushes are debounced: skipped if the last push was less than `dolt.auto-push-interval` ago.
 - Change detection: skipped if the Dolt HEAD commit hasn't changed since the last push.
 - Push failures are warnings only (non-fatal), and failed attempts are throttled too.
-- Last push time and commit are tracked in `.beads/push-state.json`, a per-machine file (not in the database, to avoid merge conflicts across machines).
+- Last push time and commit are tracked in `.issuegraph/push-state.json`, a per-machine file (not in the database, to avoid merge conflicts across machines).
 
-Before pushing, `issuegraph` verifies the local chunk store with `dolt fsck --quiet`, bounded by a 30-second timeout. For large stores, raise it with the runtime-only `BEADS_FSCK_TIMEOUT` environment variable (accepts durations like `2m` or bare seconds like `90`).
+Before pushing, `issuegraph` verifies the local chunk store with `dolt fsck --quiet`, bounded by a 30-second timeout. For large stores, raise it with the runtime-only `ISSUEGRAPH_FSCK_TIMEOUT` environment variable (accepts durations like `2m` or bare seconds like `90`).
 
 ## Actor Identity Resolution
 
 The actor name (used for `created_by` and audit trails) is resolved in this order:
 
 1. `--actor` flag (explicit override)
-2. `BEADS_ACTOR` environment variable
-3. `BD_ACTOR` environment variable (deprecated alias)
+2. `ISSUEGRAPH_ACTOR` environment variable
+3. `ISSUEGRAPH_ACTOR` environment variable (deprecated alias)
 4. `git config user.name`
 5. `$USER` environment variable
 6. `"unknown"` (final fallback)
 
-For most developers no configuration is needed — issue authorship matches commit authorship automatically. To override, set `BEADS_ACTOR` in your shell profile:
+For most developers no configuration is needed — issue authorship matches commit authorship automatically. To override, set `ISSUEGRAPH_ACTOR` in your shell profile:
 
 ```bash
-export BEADS_ACTOR="my-github-handle"
+export ISSUEGRAPH_ACTOR="my-github-handle"
 ```
 
 ## Project-Level Settings (Database)
@@ -314,19 +314,19 @@ Use `issuegraph statuses` and `issuegraph types` to list everything configured.
 
 ### Sequential Counter IDs
 
-By default, issuegraph generates hash-based IDs (e.g. `bd-a3f2`). For projects that prefer short sequential IDs (`bd-1`, `bd-2`, ...), enable counter mode:
+By default, issuegraph generates hash-based IDs (e.g. `issuegraph-a3f2`). For projects that prefer short sequential IDs (`issuegraph-1`, `issuegraph-2`, ...), enable counter mode:
 
 ```bash
 issuegraph config set issue_id_mode counter
 
-issuegraph create "First issue" -p 1    # → bd-1
-issuegraph create "Second issue" -p 2   # → bd-2
+issuegraph create "First issue" -p 1    # → issuegraph-1
+issuegraph create "Second issue" -p 2   # → issuegraph-2
 ```
 
 | Value | Behavior |
 |---|---|
 | `hash` | (default) Hash-based IDs, adaptive length, collision-safe |
-| `counter` | Sequential integers per prefix: `bd-1`, `bd-2`, `bd-3`, ... |
+| `counter` | Sequential integers per prefix: `issuegraph-1`, `issuegraph-2`, `issuegraph-3`, ... |
 
 Counter mode behavior:
 
@@ -340,7 +340,7 @@ Tradeoff — hash vs. counter:
 
 | | Hash IDs | Counter IDs |
 |---|---|---|
-| Human readability | Lower (`bd-a3f2`) | Higher (`bd-1`) |
+| Human readability | Lower (`issuegraph-a3f2`) | Higher (`issuegraph-1`) |
 | Distributed/concurrent safety | Excellent (collision-free across branches) | Needs care (counters can diverge on parallel branches) |
 | Predictability | Unpredictable | Sequential |
 | Best for | Multi-agent, multi-branch workflows | Single-writer or project-management UIs |
@@ -380,11 +380,11 @@ Federation settings live in `config.yaml`:
 
 ```yaml
 federation:
-  remote: dolthub://myorg/beads
+  remote: dolthub://myorg/issuegraph
   sovereignty: T2
 ```
 
-- `federation.remote`: Dolt remote URL (`dolthub://org/beads`, `gs://bucket/beads`, `s3://bucket/beads`, `az://account.blob.core.windows.net/container/beads`, `file://...`)
+- `federation.remote`: Dolt remote URL (`dolthub://org/issuegraph`, `gs://bucket/issuegraph`, `s3://bucket/issuegraph`, `az://account.blob.core.windows.net/container/issuegraph`, `file://...`)
 - `federation.sovereignty`: data sovereignty tier:
   - `T1`: Full sovereignty — data never leaves controlled infrastructure
   - `T2`: Regional sovereignty — data stays within region/jurisdiction
@@ -435,7 +435,7 @@ When `linear.team_ids` is set, `issuegraph linear sync` fetches issues from all 
 
 Mapping namespaces — `linear.priority_map.*` (Linear 0–4 → issuegraph 0–4), `linear.state_map.*` (Linear state types and custom state names → issuegraph statuses, e.g. `issuegraph config set linear.state_map.in_review in_progress`), `linear.label_type_map.*` (Linear labels → issuegraph issue types), and `linear.relation_map.*` (Linear relations → issuegraph dependencies; imported only when pulling with `--relations`) — are documented with defaults in [issuegraph linear](/cli-reference/linear).
 
-Staleness detection: after each successful pull, `issuegraph` writes a timestamp to `.beads/last_pull` (a local-only, per-machine file covered by the `.beads/.gitignore` template). `issuegraph linear sync --pull-if-stale` pulls only when data is older than the threshold (`--threshold`, default 20m), and a 5-minute debounce prevents agent loops. `issuegraph prime` and other core commands never contact Linear — run `issuegraph linear sync --pull-if-stale` from a session-start hook to keep data fresh in agent sessions.
+Staleness detection: after each successful pull, `issuegraph` writes a timestamp to `.issuegraph/last_pull` (a local-only, per-machine file covered by the `.issuegraph/.gitignore` template). `issuegraph linear sync --pull-if-stale` pulls only when data is older than the threshold (`--threshold`, default 20m), and a 5-minute debounce prevents agent loops. `issuegraph prime` and other core commands never contact Linear — run `issuegraph linear sync --pull-if-stale` from a session-start hook to keep data fresh in agent sessions.
 
 ### GitHub
 
@@ -457,31 +457,31 @@ Connection keys (`ado.pat`, `ado.org`, `ado.project`, `ado.projects`, `ado.url`)
 
 ## Environment Variables
 
-The Viper env prefix is `BD_`. Config keys map to env vars by upper-casing and replacing `.` and `-` with `_` (e.g. `dolt.auto-commit` → `BD_DOLT_AUTO_COMMIT`, `validation.on-create` → `BD_VALIDATION_ON_CREATE`).
+The Viper env prefix is `ISSUEGRAPH_`. Config keys map to env vars by upper-casing and replacing `.` and `-` with `_` (e.g. `dolt.auto-commit` → `ISSUEGRAPH_DOLT_AUTO_COMMIT`, `validation.on-create` → `ISSUEGRAPH_VALIDATION_ON_CREATE`).
 
 Selected commonly-used variables:
 
 | Variable | Description |
 |---|---|
-| `BD_DB`, `BEADS_DB` | Database path (legacy `BEADS_DB` still honored) |
-| `BD_JSON` | Force JSON output |
-| `BD_DOLT_AUTO_COMMIT` | Override `dolt.auto-commit` (`on`/`off`) |
-| `BD_DOLT_AUTO_PUSH`, `BD_DOLT_AUTO_PUSH_INTERVAL`, `BD_DOLT_AUTO_PUSH_TIMEOUT` | Override auto-push settings |
-| `BD_BACKUP_ENABLED`, `BD_BACKUP_INTERVAL`, `BD_BACKUP_GIT_REPO` | Override backup settings |
-| `BD_AGENT_PROFILE` | Override `agent.profile` |
-| `BD_AI_MODEL` | Override AI model |
-| `BD_FEDERATION_REMOTE`, `BD_FEDERATION_SOVEREIGNTY` | Override federation settings |
-| `BD_VALIDATION_ON_CREATE` / `_ON_CLOSE` / `_ON_SYNC` | Override validation modes |
-| `BD_NO_PAGER`, `BD_PAGER` | Pager behavior |
-| `BD_NON_INTERACTIVE` | Disable prompts |
-| `BD_DEBUG` | Enable debug logging |
-| `BD_MIGRATION_FREEZE_FILE` | Check this exact path for the freeze marker instead of walking ancestor directories; authoritative when set (see [Migration Freeze](#migration-freeze)) |
-| `BEADS_DIR` | Force the active issuegraph workspace directory |
-| `BEADS_ACTOR` | Actor identity (preferred over `BD_ACTOR`, which is a deprecated alias) |
-| `BEADS_IDENTITY` | Sender identity for `issuegraph mail` |
-| `BEADS_FSCK_TIMEOUT` | Runtime-only timeout for the pre-push `dolt fsck --quiet` integrity check (default `30s`) |
-| `BEADS_DOLT_SERVER_MODE`, `BEADS_DOLT_SHARED_SERVER`, `BEADS_DOLT_DATA_DIR`, `BEADS_DOLT_PORT`, ... | Embedded/server Dolt overrides |
-| `BEADS_DOLT_BIN` | Pin the exact external `dolt` CLI binary managed proxied-server mode spawns, overriding PATH lookup (highest precedence; an explicit path that fails validation is an error, not a silent fallback to PATH). On Windows the executable extension may be omitted — `C:\tools\dolt` finds `C:\tools\dolt.exe` via PATHEXT, though a file at the exact spelled path wins if both exist |
+| `ISSUEGRAPH_DB`, `ISSUEGRAPH_DB` | Database path (legacy `ISSUEGRAPH_DB` still honored) |
+| `ISSUEGRAPH_JSON` | Force JSON output |
+| `ISSUEGRAPH_DOLT_AUTO_COMMIT` | Override `dolt.auto-commit` (`on`/`off`) |
+| `ISSUEGRAPH_DOLT_AUTO_PUSH`, `ISSUEGRAPH_DOLT_AUTO_PUSH_INTERVAL`, `ISSUEGRAPH_DOLT_AUTO_PUSH_TIMEOUT` | Override auto-push settings |
+| `ISSUEGRAPH_BACKUP_ENABLED`, `ISSUEGRAPH_BACKUP_INTERVAL`, `ISSUEGRAPH_BACKUP_GIT_REPO` | Override backup settings |
+| `ISSUEGRAPH_AGENT_PROFILE` | Override `agent.profile` |
+| `ISSUEGRAPH_AI_MODEL` | Override AI model |
+| `ISSUEGRAPH_FEDERATION_REMOTE`, `ISSUEGRAPH_FEDERATION_SOVEREIGNTY` | Override federation settings |
+| `ISSUEGRAPH_VALIDATION_ON_CREATE` / `_ON_CLOSE` / `_ON_SYNC` | Override validation modes |
+| `ISSUEGRAPH_NO_PAGER`, `ISSUEGRAPH_PAGER` | Pager behavior |
+| `ISSUEGRAPH_NON_INTERACTIVE` | Disable prompts |
+| `ISSUEGRAPH_DEBUG` | Enable debug logging |
+| `ISSUEGRAPH_MIGRATION_FREEZE_FILE` | Check this exact path for the freeze marker instead of walking ancestor directories; authoritative when set (see [Migration Freeze](#migration-freeze)) |
+| `ISSUEGRAPH_DIR` | Force the active issuegraph workspace directory |
+| `ISSUEGRAPH_ACTOR` | Actor identity (preferred over `ISSUEGRAPH_ACTOR`, which is a deprecated alias) |
+| `ISSUEGRAPH_IDENTITY` | Sender identity for `issuegraph mail` |
+| `ISSUEGRAPH_FSCK_TIMEOUT` | Runtime-only timeout for the pre-push `dolt fsck --quiet` integrity check (default `30s`) |
+| `ISSUEGRAPH_DOLT_SERVER_MODE`, `ISSUEGRAPH_DOLT_SHARED_SERVER`, `ISSUEGRAPH_DOLT_DATA_DIR`, `ISSUEGRAPH_DOLT_PORT`, ... | Embedded/server Dolt overrides |
+| `ISSUEGRAPH_DOLT_BIN` | Pin the exact external `dolt` CLI binary managed proxied-server mode spawns, overriding PATH lookup (highest precedence; an explicit path that fails validation is an error, not a silent fallback to PATH). On Windows the executable extension may be omitted — `C:\tools\dolt` finds `C:\tools\dolt.exe` via PATHEXT, though a file at the exact spelled path wins if both exist |
 
 Integration secrets follow tracker-specific conventions: `LINEAR_API_KEY`, `GITHUB_TOKEN`, `GITLAB_TOKEN`, `JIRA_API_TOKEN`, `AZURE_DEVOPS_PAT`, `ANTHROPIC_API_KEY`. These are preferred over storing the value in `config.yaml` for git-tracked projects.
 
@@ -491,11 +491,11 @@ Integration secrets follow tracker-specific conventions: `LINEAR_API_KEY`, `GITH
 
 Maintenance that runs outside `issuegraph` — moving a database to a new host, rewriting schema by hand — needs a way to stop writes for its duration without uninstalling the tool. Create a file named `MIGRATION-FREEZE` and every write command refuses to run until you delete it.
 
-issuegraph looks for the marker in the workspace directory and in the working directory, plus every ancestor of each, so one file above a tree of repositories freezes all of them at once — and targeting a frozen workspace from elsewhere (`BEADS_DIR=…`, `issuegraph -C …`) is refused the same way.
+issuegraph looks for the marker in the workspace directory and in the working directory, plus every ancestor of each, so one file above a tree of repositories freezes all of them at once — and targeting a frozen workspace from elsewhere (`ISSUEGRAPH_DIR=…`, `issuegraph -C …`) is refused the same way.
 
 Markers found in a world-writable sticky directory such as `/tmp` are ignored: anyone on a shared machine could plant one there, and the sticky bit would stop you removing it. Put the marker at the root of the tree you are freezing.
 
-A freeze marker must be a regular file. A directory or a symlink named `MIGRATION-FREEZE` that the ancestor walk finds is ignored — the symlink with a one-line warning on stderr, so a stray link never disarms the gate in silence. To drive the freeze through an indirection on purpose, name that link with `BD_MIGRATION_FREEZE_FILE` (below), which issuegraph follows.
+A freeze marker must be a regular file. A directory or a symlink named `MIGRATION-FREEZE` that the ancestor walk finds is ignored — the symlink with a one-line warning on stderr, so a stray link never disarms the gate in silence. To drive the freeze through an indirection on purpose, name that link with `ISSUEGRAPH_MIGRATION_FREEZE_FILE` (below), which issuegraph follows.
 
 ```bash
 touch MIGRATION-FREEZE     # the file's existence is the whole signal
@@ -523,15 +523,15 @@ An `issuegraph serve` process started before the marker appeared keeps accepting
 
 If issuegraph cannot tell whether a marker is present — a permission error on the marker or on a directory above it — it refuses the write and says so, rather than assuming the workspace is open.
 
-`BD_MIGRATION_FREEZE_FILE` names one explicit path to consult instead of walking ancestors, for markers that live outside the tree. It is authoritative: when it is set, nothing else is checked. Because you name that path deliberately, it may be a symlink — issuegraph follows it and freezes when the link resolves to a regular marker file — so an indirection such as `current -> releases/42/MIGRATION-FREEZE` works as the authoritative signal.
+`ISSUEGRAPH_MIGRATION_FREEZE_FILE` names one explicit path to consult instead of walking ancestors, for markers that live outside the tree. It is authoritative: when it is set, nothing else is checked. Because you name that path deliberately, it may be a symlink — issuegraph follows it and freezes when the link resolves to a regular marker file — so an indirection such as `current -> releases/42/MIGRATION-FREEZE` works as the authoritative signal.
 
 ## Security: Where Secrets Live
 
 - Tokens and API keys are never stored in the Dolt database — database config is pushed to remotes, which would expose secrets and trip GitHub secret scanning. `issuegraph config set` routes secret keys to the local `config.yaml` instead.
 - Writing a secret to a git-tracked `config.yaml` is refused unless you pass `--force-git-tracked`; environment variables are the safer default.
-- `issuegraph init` writes a `.beads/.gitignore` that keeps the database directories (`embeddeddolt/`, `dolt/`), runtime files, push state, and the federation credential key out of git.
+- `issuegraph init` writes a `.issuegraph/.gitignore` that keeps the database directories (`embeddeddolt/`, `dolt/`), runtime files, push state, and the federation credential key out of git.
 
-## Example `.beads/config.yaml`
+## Example `.issuegraph/config.yaml`
 
 ```yaml
 # Default JSON output for scripting
@@ -553,10 +553,10 @@ validation:
 
 # Git commit signing for issuegraph commits (GH#600)
 git:
-  author: "beads-bot <beads@example.com>"
+  author: "issuegraph-bot <issuegraph@example.com>"
   no-gpg-sign: true
 
-# Periodic Dolt-native backup to .beads/backup/
+# Periodic Dolt-native backup to .issuegraph/backup/
 backup:
   enabled: true
   interval: 15m
@@ -570,7 +570,7 @@ export:
 
 # Optional Dolt federation
 federation:
-  remote: dolthub://myorg/beads
+  remote: dolthub://myorg/issuegraph
   sovereignty: T2
 
 # Directory-aware label scoping for monorepos (GH#541)
@@ -579,16 +579,16 @@ directory:
     packages/maverick: maverick
     packages/agency: agency
 
-# Cross-project dependency resolution (bd-h807)
+# Cross-project dependency resolution (issuegraph-h807)
 external_projects:
-  beads: ../beads
+  issuegraph: ../issuegraph
   other-project: /absolute/path/to/other-project
 
 output:
   title-length: 255
 ```
 
-For machine-specific overrides that should not be committed, drop them in `.beads/config.local.yaml`; it is merged in last.
+For machine-specific overrides that should not be committed, drop them in `.issuegraph/config.local.yaml`; it is merged in last.
 
 ## Per-Command Override
 

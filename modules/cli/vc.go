@@ -7,22 +7,22 @@ import (
 	"os"
 	"strings"
 
+	"github.com/borg0ai/dx-issuegraph/internal/metrics"
+	"github.com/borg0ai/dx-issuegraph/internal/storage"
+	"github.com/borg0ai/dx-issuegraph/internal/ui"
 	"github.com/spf13/cobra"
-	"github.com/steveyegge/beads/internal/metrics"
-	"github.com/steveyegge/beads/internal/storage"
-	"github.com/steveyegge/beads/internal/ui"
 )
 
 var vcCmd = &cobra.Command{
 	Use:     "vc",
 	GroupID: "sync",
 	Short:   "Version control operations",
-	Long: `Version control operations for the beads database.
+	Long: `Version control operations for the issuegraph database.
 
 These commands provide git-like version control for your issue data, including branching, merging, and
 viewing history.
 
-Note: 'bd history', 'bd diff', and 'bd branch' also work for quick access.
+Note: 'issuegraph history', 'issuegraph diff', and 'issuegraph branch' also work for quick access.
 This subcommand provides additional operations like merge and commit.`,
 }
 
@@ -48,7 +48,7 @@ type blockedAfterMergeRecomputer interface {
 // itself always failed and the post-merge recompute was silently skipped on
 // every rig carrying a hook layer, which is essentially all of them
 // (main.go builds a hook runner whenever dbPath != ""; only no-hooks:true /
-// BD_NO_HOOKS=1 leaves it off). Same defect class as wy-xtv17's
+// ISSUEGRAPH_NO_HOOKS=1 leaves it off). Same defect class as wy-xtv17's
 // persistedRemoteProber; wy-163oy.
 func blockedAfterMergeRecomputerFor(st storage.DoltStorage) (blockedAfterMergeRecomputer, bool) {
 	if st == nil {
@@ -67,9 +67,9 @@ If there are merge conflicts, they will be reported. You can resolve
 conflicts with --strategy.
 
 Examples:
-  bd vc merge feature-xyz                    # Merge feature-xyz into current branch
-  bd vc merge feature-xyz --strategy ours    # Merge, preferring our changes on conflict
-  bd vc merge feature-xyz --strategy theirs  # Merge, preferring their changes on conflict`,
+  issuegraph vc merge feature-xyz                    # Merge feature-xyz into current branch
+  issuegraph vc merge feature-xyz --strategy ours    # Merge, preferring our changes on conflict
+  issuegraph vc merge feature-xyz --strategy theirs  # Merge, preferring their changes on conflict`,
 	Args:          cobra.ExactArgs(1),
 	SilenceUsage:  true,
 	SilenceErrors: true,
@@ -147,7 +147,7 @@ Examples:
 			for _, conflict := range conflicts {
 				fmt.Printf("  - %s\n", conflict.Field)
 			}
-			fmt.Printf("\nResolve conflicts with: bd vc merge %s --strategy [ours|theirs]\n\n", branchName)
+			fmt.Printf("\nResolve conflicts with: issuegraph vc merge %s --strategy [ours|theirs]\n\n", branchName)
 			return nil
 		}
 
@@ -172,9 +172,9 @@ var vcCommitCmd = &cobra.Command{
 	Long: `Create a new Dolt commit with all current changes.
 
 Examples:
-  bd vc commit -m "Added new feature issues"
-  bd vc commit --message "Fixed priority on several issues"
-  echo "Multi-line message" | bd vc commit --stdin`,
+  issuegraph vc commit -m "Added new feature issues"
+  issuegraph vc commit --message "Fixed priority on several issues"
+  echo "Multi-line message" | issuegraph vc commit --stdin`,
 	SilenceUsage:  true,
 	SilenceErrors: true,
 	RunE: func(cmd *cobra.Command, args []string) error {
@@ -254,7 +254,7 @@ var vcStatusCmd = &cobra.Command{
 	Long: `Show the current branch, commit hash, and any uncommitted changes.
 
 Examples:
-  bd vc status`,
+  issuegraph vc status`,
 	SilenceUsage:  true,
 	SilenceErrors: true,
 	RunE: func(cmd *cobra.Command, args []string) error {

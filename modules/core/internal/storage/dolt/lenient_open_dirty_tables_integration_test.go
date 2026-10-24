@@ -14,18 +14,18 @@ import (
 
 	_ "github.com/go-sql-driver/mysql"
 
-	"github.com/steveyegge/beads/internal/doltserver"
-	"github.com/steveyegge/beads/internal/storage/doltutil"
-	"github.com/steveyegge/beads/internal/storage/schema"
-	"github.com/steveyegge/beads/internal/testutil"
-	"github.com/steveyegge/beads/internal/testutil/integration"
+	"github.com/borg0ai/dx-issuegraph/internal/doltserver"
+	"github.com/borg0ai/dx-issuegraph/internal/storage/doltutil"
+	"github.com/borg0ai/dx-issuegraph/internal/storage/schema"
+	"github.com/borg0ai/dx-issuegraph/internal/testutil"
+	"github.com/borg0ai/dx-issuegraph/internal/testutil/integration"
 )
 
-// TestServerModeLenientOpenDirtyTableGate covers gastownhall/beads#5781, the
+// TestServerModeLenientOpenDirtyTableGate covers borg0ai/dx-issuegraph#5781, the
 // server-mode counterpart of #4566, which was fixed for embedded only. A pending
 // schema migration that alters a table carrying uncommitted rows must refuse a
-// plain writable open, but the working-set-reconcile open behind "bd dolt
-// commit" / "bd vc commit" (Config.LenientOpen) must still succeed, because
+// plain writable open, but the working-set-reconcile open behind "issuegraph dolt
+// commit" / "issuegraph vc commit" (Config.LenientOpen) must still succeed, because
 // that commit is the refusal's own documented recovery. Against an external
 // Dolt server there is no equivalent of deleting the local database, so
 // without this the operator's only escape is hand-issuing DOLT_ADD/DOLT_COMMIT
@@ -36,21 +36,21 @@ func TestServerModeLenientOpenDirtyTableGate(t *testing.T) {
 	if err != nil {
 		t.Fatalf("find free port: %v", err)
 	}
-	t.Setenv("BEADS_DOLT_SHARED_SERVER", "0")
-	t.Setenv("BEADS_DOLT_SERVER_PORT", strconv.Itoa(port))
-	t.Setenv("BEADS_DOLT_PORT", "")
-	t.Setenv("BEADS_DOLT_PASSWORD", "")
+	t.Setenv("ISSUEGRAPH_DOLT_SHARED_SERVER", "0")
+	t.Setenv("ISSUEGRAPH_DOLT_SERVER_PORT", strconv.Itoa(port))
+	t.Setenv("ISSUEGRAPH_DOLT_PORT", "")
+	t.Setenv("ISSUEGRAPH_DOLT_PASSWORD", "")
 
-	beadsDir := filepath.Join(t.TempDir(), ".beads")
-	if err := os.MkdirAll(beadsDir, 0o700); err != nil {
-		t.Fatalf("mkdir beads dir: %v", err)
+	issuegraphDir := filepath.Join(t.TempDir(), ".issuegraph")
+	if err := os.MkdirAll(issuegraphDir, 0o700); err != nil {
+		t.Fatalf("mkdir issuegraph dir: %v", err)
 	}
-	state, err := doltserver.Start(beadsDir)
+	state, err := doltserver.Start(issuegraphDir)
 	if err != nil {
 		t.Fatalf("start local Dolt server: %v", err)
 	}
 	t.Cleanup(func() {
-		current, stateErr := doltserver.IsRunning(beadsDir)
+		current, stateErr := doltserver.IsRunning(issuegraphDir)
 		if stateErr != nil {
 			t.Errorf("check local Dolt server before stop: %v", stateErr)
 			return
@@ -58,7 +58,7 @@ func TestServerModeLenientOpenDirtyTableGate(t *testing.T) {
 		if current == nil || !current.Running {
 			return
 		}
-		if err := doltserver.Stop(beadsDir); err != nil {
+		if err := doltserver.Stop(issuegraphDir); err != nil {
 			t.Errorf("stop local Dolt server: %v", err)
 		}
 	})
@@ -68,7 +68,7 @@ func TestServerModeLenientOpenDirtyTableGate(t *testing.T) {
 
 	t.Run("dirty database deadlocks a plain open and recovers through a lenient one", func(t *testing.T) {
 		const database = "lenient_dirty"
-		cfg := lenientOpenConfig(beadsDir, state.Port, database)
+		cfg := lenientOpenConfig(issuegraphDir, state.Port, database)
 		admin := prepareLenientOpenDatabaseAtV51(t, ctx, state.Port, database)
 		defer admin.Close()
 
@@ -92,7 +92,7 @@ func TestServerModeLenientOpenDirtyTableGate(t *testing.T) {
 			t.Fatalf("DirtyTablesError.Tables = %v, want to include %q", dirtyErr.Tables, "issues")
 		}
 
-		lenientCfg := lenientOpenConfig(beadsDir, state.Port, database)
+		lenientCfg := lenientOpenConfig(issuegraphDir, state.Port, database)
 		lenientCfg.LenientOpen = true
 		store, err := New(ctx, lenientCfg)
 		if err != nil {
@@ -112,7 +112,7 @@ func TestServerModeLenientOpenDirtyTableGate(t *testing.T) {
 		}
 		store.Close()
 
-		migrated, err := New(ctx, lenientOpenConfig(beadsDir, state.Port, database))
+		migrated, err := New(ctx, lenientOpenConfig(issuegraphDir, state.Port, database))
 		if err != nil {
 			t.Fatalf("New (post-commit plain open): %v", err)
 		}
@@ -127,7 +127,7 @@ func TestServerModeLenientOpenDirtyTableGate(t *testing.T) {
 		admin := prepareLenientOpenDatabaseAtV51(t, ctx, state.Port, database)
 		defer admin.Close()
 
-		cfg := lenientOpenConfig(beadsDir, state.Port, database)
+		cfg := lenientOpenConfig(issuegraphDir, state.Port, database)
 		cfg.LenientOpen = true
 		store, err := New(ctx, cfg)
 		if err != nil {
@@ -141,16 +141,16 @@ func TestServerModeLenientOpenDirtyTableGate(t *testing.T) {
 	})
 }
 
-func lenientOpenConfig(beadsDir string, port int, database string) *Config {
+func lenientOpenConfig(issuegraphDir string, port int, database string) *Config {
 	return &Config{
-		Path:           filepath.Join(beadsDir, database),
-		BeadsDir:       beadsDir,
+		Path:           filepath.Join(issuegraphDir, database),
+		IssueGraphDir:  issuegraphDir,
 		ServerHost:     "127.0.0.1",
 		ServerPort:     port,
 		ServerUser:     "root",
 		Database:       database,
-		CommitterName:  "Beads Test",
-		CommitterEmail: "beads@example.com",
+		CommitterName:  "IssueGraph Test",
+		CommitterEmail: "issuegraph@example.com",
 		MaxOpenConns:   1,
 	}
 }
@@ -190,7 +190,7 @@ func prepareLenientOpenDatabaseAtV51(t *testing.T, ctx context.Context, port int
 		t.Fatalf("migrate %s to v51: %v", database, err)
 	}
 	if _, err := conn.ExecContext(ctx,
-		"CALL DOLT_COMMIT('-Am', 'test: v51 baseline', '--author', 'Beads Test <beads@example.com>')",
+		"CALL DOLT_COMMIT('-Am', 'test: v51 baseline', '--author', 'IssueGraph Test <issuegraph@example.com>')",
 	); err != nil {
 		db.Close()
 		t.Fatalf("commit v51 baseline: %v", err)

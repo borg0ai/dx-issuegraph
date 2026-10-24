@@ -11,11 +11,11 @@ import (
 	"strconv"
 	"time"
 
-	"github.com/steveyegge/beads/internal/eventsjournal"
-	"github.com/steveyegge/beads/internal/storage"
+	"github.com/borg0ai/dx-issuegraph/internal/eventsjournal"
+	"github.com/borg0ai/dx-issuegraph/internal/storage"
 )
 
-// The events journal, PUSHED. GET /v0/beads/events:watch is the poll read's
+// The events journal, PUSHED. GET /v0/issuegraph/events:watch is the poll read's
 // sibling, not a mode of it: same cursor, same records, same refusals, held
 // open as text/event-stream so a consumer learns about a mutation when it
 // happens instead of on its next interval.
@@ -97,7 +97,7 @@ const (
 // wait real seconds for a heartbeat would either be slow or would not exist.
 const (
 	// watchPollInterval is how often the loop asks for new records. One second
-	// is what `bd events tail --follow` uses, and the stream is deliberately no
+	// is what `issuegraph events tail --follow` uses, and the stream is deliberately no
 	// fresher than the CLI's own follow: a tighter loop would multiply database
 	// reads across every open stream to shave a delay nothing here promises.
 	watchPollInterval = time.Second
@@ -130,7 +130,7 @@ const (
 // because it is both read from the request and named in a refusal.
 const lastEventIDHeader = "Last-Event-ID"
 
-// handleWatchEvents answers GET /v0/beads/events:watch.
+// handleWatchEvents answers GET /v0/issuegraph/events:watch.
 //
 // EVERY REFUSAL IS AN ORDINARY PROBLEM RESPONSE, and the ordering below is what
 // makes that true: validation, activation, transport, capacity, and then the

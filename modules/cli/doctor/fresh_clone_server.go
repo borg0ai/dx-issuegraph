@@ -9,7 +9,7 @@ import (
 
 	_ "github.com/go-sql-driver/mysql"
 
-	"github.com/steveyegge/beads/internal/storage/doltutil"
+	"github.com/borg0ai/dx-issuegraph/internal/storage/doltutil"
 )
 
 // freshCloneDBCheck holds the result of checking whether a database exists on
@@ -77,7 +77,7 @@ func checkFreshCloneDB(host string, port int, user, password, dbName string, tls
 // When dbExists is false and syncGitRemote is empty, returns StatusWarning
 // suggesting the user set sync.remote (FR-020).
 // When dbExists is false and syncGitRemote is set, returns StatusWarning
-// suggesting bd init to bootstrap from the remote.
+// suggesting issuegraph init to bootstrap from the remote.
 func freshCloneServerResult(dbExists bool, dbName, host string, port int, syncRemote string) DoctorCheck {
 	if dbExists {
 		return DoctorCheck{
@@ -90,12 +90,12 @@ func freshCloneServerResult(dbExists bool, dbName, host string, port int, syncRe
 	var msg strings.Builder
 	fmt.Fprintf(&msg, "Fresh clone detected: database %q not found on server at %s:%d.", dbName, host, port)
 
-	fix := "bd bootstrap"
+	fix := "issuegraph bootstrap"
 	if syncRemote == "" {
-		msg.WriteString(" Run bd bootstrap first as the safe recovery entry point. It may recover existing state or initialize if no prior state can be found. If bootstrap cannot find the expected remote automatically, then set sync.remote in .beads/config.yaml and rerun bd bootstrap.")
-		fix = "bd bootstrap"
+		msg.WriteString(" Run issuegraph bootstrap first as the safe recovery entry point. It may recover existing state or initialize if no prior state can be found. If bootstrap cannot find the expected remote automatically, then set sync.remote in .issuegraph/config.yaml and rerun issuegraph bootstrap.")
+		fix = "issuegraph bootstrap"
 	} else {
-		fmt.Fprintf(&msg, " sync.remote is configured (%s) — run bd bootstrap to recover from the remote, or use --dry-run to inspect the plan first.", syncRemote)
+		fmt.Fprintf(&msg, " sync.remote is configured (%s) — run issuegraph bootstrap to recover from the remote, or use --dry-run to inspect the plan first.", syncRemote)
 	}
 
 	return DoctorCheck{
@@ -114,7 +114,7 @@ func freshCloneServerResult(dbExists bool, dbName, host string, port int, syncRe
 //
 // The message identifies that we're in server mode, points at the configured
 // host:port, surfaces the underlying connection error for diagnostics, and
-// suggests connectivity/credential checks rather than bd bootstrap (which
+// suggests connectivity/credential checks rather than issuegraph bootstrap (which
 // won't help when the server itself is unreachable).
 func freshCloneServerUnreachableResult(dbName, host string, port int, connErr error) DoctorCheck {
 	var msg strings.Builder
@@ -123,7 +123,7 @@ func freshCloneServerUnreachableResult(dbName, host string, port int, connErr er
 
 	var detail strings.Builder
 	detail.WriteString("dolt_mode=server is configured but the doctor check could not reach the server.\n")
-	detail.WriteString("  In server mode, beads stores data on the Dolt server, so no local .beads/dolt directory is expected.\n")
+	detail.WriteString("  In server mode, issuegraph stores data on the Dolt server, so no local .issuegraph/dolt directory is expected.\n")
 	if connErr != nil {
 		fmt.Fprintf(&detail, "  Underlying error: %v\n", connErr)
 	}
@@ -136,9 +136,9 @@ func freshCloneServerUnreachableResult(dbName, host string, port int, connErr er
 		Detail:  detail.String(),
 		Fix: "Verify Dolt server connectivity:\n" +
 			"  1. Confirm the server is running and reachable from this host\n" +
-			"  2. Check .beads/metadata.json: dolt_server_host, dolt_server_port, dolt_server_tls\n" +
-			"  3. Verify credentials in ~/.config/beads/credentials (or BEADS_DOLT_PASSWORD)\n" +
-			"  4. Try a CRUD command (e.g. 'bd ready') to confirm the server is usable\n" +
-			"  5. Re-run 'bd doctor' once connectivity is restored",
+			"  2. Check .issuegraph/metadata.json: dolt_server_host, dolt_server_port, dolt_server_tls\n" +
+			"  3. Verify credentials in ~/.config/issuegraph/credentials (or ISSUEGRAPH_DOLT_PASSWORD)\n" +
+			"  4. Try a CRUD command (e.g. 'issuegraph ready') to confirm the server is usable\n" +
+			"  5. Re-run 'issuegraph doctor' once connectivity is restored",
 	}
 }

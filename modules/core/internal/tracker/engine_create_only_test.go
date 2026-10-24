@@ -5,11 +5,11 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/steveyegge/beads/internal/types"
+	"github.com/borg0ai/dx-issuegraph/internal/types"
 )
 
 // TestEngineDryRunHonorsCreateOnly pins the sequential push dry-run to the
-// real run's --create-only gate (gastownhall/beads#6337): a linked issue that a
+// real run's --create-only gate (borg0ai/dx-issuegraph#6337): a linked issue that a
 // real --create-only push skips must preview as skipped, not "Would update".
 // Runs on the pure-Go UOW store so it needs no Dolt server.
 func TestEngineDryRunHonorsCreateOnly(t *testing.T) {
@@ -32,7 +32,7 @@ func TestEngineDryRunHonorsCreateOnly(t *testing.T) {
 				Priority:  2,
 			},
 		},
-		configs: map[string]string{"issue_prefix": "bd"},
+		configs: map[string]string{"issue_prefix": "issuegraph"},
 	}
 	tracker := newMockTracker("test")
 	engine := NewEngine(tracker, NewUOWStore(&engineUOWProvider{state: state}), "test-actor")
@@ -96,7 +96,7 @@ func createOnlyState() *engineUOWState {
 				Priority:  2,
 			},
 		},
-		configs: map[string]string{"issue_prefix": "bd"},
+		configs: map[string]string{"issue_prefix": "issuegraph"},
 	}
 }
 
@@ -163,7 +163,7 @@ var (
 )
 
 // TestEngineBatchFallThroughDryRunCountsEachIssueOnce pins the dry-run fall
-// through for batch trackers without a batch dry-runner (gastownhall/beads#6712
+// through for batch trackers without a batch dry-runner (borg0ai/dx-issuegraph#6712
 // review): collectBatchPushIssues already counts its skips, so the sequential
 // preview must not count those issues again.
 func TestEngineBatchFallThroughDryRunCountsEachIssueOnce(t *testing.T) {

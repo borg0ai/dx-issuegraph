@@ -9,14 +9,14 @@ import (
 	"testing"
 )
 
-// TestProxiedServerRelate covers the bd-m7zzd port of `bd dep relate` /
-// `bd dep unrelate` to proxied-server mode: before it, both verbs died with
+// TestProxiedServerRelate covers the bd-m7zzd port of `issuegraph dep relate` /
+// `issuegraph dep unrelate` to proxied-server mode: before it, both verbs died with
 // the opaque "cannot resolve issue ID: storage is nil" (id_parser.go) because
 // runRelate/runUnrelate had no usesProxiedServer() branch.
 func TestProxiedServerRelate(t *testing.T) {
 	requireSharedProxiedServer(t)
 	t.Parallel()
-	bd := buildEmbeddedBD(t)
+	issuegraph := buildEmbeddedBD(t)
 
 	countRelatesTo := func(t *testing.T, db *sql.DB, issueID, dependsOnID string) int {
 		t.Helper()
@@ -32,14 +32,14 @@ func TestProxiedServerRelate(t *testing.T) {
 
 	t.Run("relate_happy_path", func(t *testing.T) {
 		t.Parallel()
-		p := newSharedProxiedProject(t, bd, "rl1")
-		a := bdProxiedCreate(t, bd, p.dir, "Relate A", "--type", "task")
-		b := bdProxiedCreate(t, bd, p.dir, "Relate B", "--type", "task")
+		p := newSharedProxiedProject(t, issuegraph, "rl1")
+		a := issuegraphProxiedCreate(t, issuegraph, p.dir, "Relate A", "--type", "task")
+		b := issuegraphProxiedCreate(t, issuegraph, p.dir, "Relate B", "--type", "task")
 
 		db := openProxiedDB(t, p)
 		head := readDoltHead(t, db)
 
-		out := bdProxiedDep(t, bd, p.dir, "relate", a.ID, b.ID)
+		out := issuegraphProxiedDep(t, issuegraph, p.dir, "relate", a.ID, b.ID)
 		if !strings.Contains(out, "Linked") {
 			t.Errorf("expected 'Linked' output: %s", out)
 		}
@@ -53,17 +53,17 @@ func TestProxiedServerRelate(t *testing.T) {
 		if n := readDoltLogCountSince(t, db, head); n != 1 {
 			t.Errorf("expected exactly 1 commit for relate, got %d", n)
 		}
-		if msg := readDoltLogTopMessage(t, db); !strings.Contains(msg, "bd: relate") {
-			t.Errorf("expected 'bd: relate' commit message, got %q", msg)
+		if msg := readDoltLogTopMessage(t, db); !strings.Contains(msg, "issuegraph: relate") {
+			t.Errorf("expected 'issuegraph: relate' commit message, got %q", msg)
 		}
 	})
 
 	t.Run("relate_json", func(t *testing.T) {
 		t.Parallel()
-		p := newSharedProxiedProject(t, bd, "rl2")
-		a := bdProxiedCreate(t, bd, p.dir, "JSON A", "--type", "task")
-		b := bdProxiedCreate(t, bd, p.dir, "JSON B", "--type", "task")
-		m := bdProxiedDepJSON(t, bd, p.dir, "relate", a.ID, b.ID)
+		p := newSharedProxiedProject(t, issuegraph, "rl2")
+		a := issuegraphProxiedCreate(t, issuegraph, p.dir, "JSON A", "--type", "task")
+		b := issuegraphProxiedCreate(t, issuegraph, p.dir, "JSON B", "--type", "task")
+		m := issuegraphProxiedDepJSON(t, issuegraph, p.dir, "relate", a.ID, b.ID)
 		if related, _ := m["related"].(bool); !related {
 			t.Errorf("expected related=true in JSON output: %v", m)
 		}
@@ -74,15 +74,15 @@ func TestProxiedServerRelate(t *testing.T) {
 
 	t.Run("unrelate_removes_both_directions", func(t *testing.T) {
 		t.Parallel()
-		p := newSharedProxiedProject(t, bd, "rl3")
-		a := bdProxiedCreate(t, bd, p.dir, "Unrelate A", "--type", "task")
-		b := bdProxiedCreate(t, bd, p.dir, "Unrelate B", "--type", "task")
-		bdProxiedDep(t, bd, p.dir, "relate", a.ID, b.ID)
+		p := newSharedProxiedProject(t, issuegraph, "rl3")
+		a := issuegraphProxiedCreate(t, issuegraph, p.dir, "Unrelate A", "--type", "task")
+		b := issuegraphProxiedCreate(t, issuegraph, p.dir, "Unrelate B", "--type", "task")
+		issuegraphProxiedDep(t, issuegraph, p.dir, "relate", a.ID, b.ID)
 
 		db := openProxiedDB(t, p)
 		head := readDoltHead(t, db)
 
-		out := bdProxiedDep(t, bd, p.dir, "unrelate", a.ID, b.ID)
+		out := issuegraphProxiedDep(t, issuegraph, p.dir, "unrelate", a.ID, b.ID)
 		if !strings.Contains(out, "Unlinked") {
 			t.Errorf("expected 'Unlinked' output: %s", out)
 		}
@@ -95,23 +95,23 @@ func TestProxiedServerRelate(t *testing.T) {
 		if n := readDoltLogCountSince(t, db, head); n != 1 {
 			t.Errorf("expected exactly 1 commit for unrelate, got %d", n)
 		}
-		if msg := readDoltLogTopMessage(t, db); !strings.Contains(msg, "bd: unrelate") {
-			t.Errorf("expected 'bd: unrelate' commit message, got %q", msg)
+		if msg := readDoltLogTopMessage(t, db); !strings.Contains(msg, "issuegraph: unrelate") {
+			t.Errorf("expected 'issuegraph: unrelate' commit message, got %q", msg)
 		}
 	})
 
 	t.Run("unrelate_idempotent_no_commit", func(t *testing.T) {
 		t.Parallel()
-		p := newSharedProxiedProject(t, bd, "rl4")
-		a := bdProxiedCreate(t, bd, p.dir, "Idem A", "--type", "task")
-		b := bdProxiedCreate(t, bd, p.dir, "Idem B", "--type", "task")
+		p := newSharedProxiedProject(t, issuegraph, "rl4")
+		a := issuegraphProxiedCreate(t, issuegraph, p.dir, "Idem A", "--type", "task")
+		b := issuegraphProxiedCreate(t, issuegraph, p.dir, "Idem B", "--type", "task")
 
 		db := openProxiedDB(t, p)
 		head := readDoltHead(t, db)
 
 		// No edge exists: still a success (matches the direct route), and a
 		// deliberate no-commit no-op.
-		out := bdProxiedDep(t, bd, p.dir, "unrelate", a.ID, b.ID)
+		out := issuegraphProxiedDep(t, issuegraph, p.dir, "unrelate", a.ID, b.ID)
 		if !strings.Contains(out, "Unlinked") {
 			t.Errorf("expected 'Unlinked' output: %s", out)
 		}
@@ -122,9 +122,9 @@ func TestProxiedServerRelate(t *testing.T) {
 
 	t.Run("self_relate_refused", func(t *testing.T) {
 		t.Parallel()
-		p := newSharedProxiedProject(t, bd, "rl5")
-		a := bdProxiedCreate(t, bd, p.dir, "Self A", "--type", "task")
-		out := bdProxiedDepFail(t, bd, p.dir, "relate", a.ID, a.ID)
+		p := newSharedProxiedProject(t, issuegraph, "rl5")
+		a := issuegraphProxiedCreate(t, issuegraph, p.dir, "Self A", "--type", "task")
+		out := issuegraphProxiedDepFail(t, issuegraph, p.dir, "relate", a.ID, a.ID)
 		if !strings.Contains(out, "cannot relate an issue to itself") {
 			t.Errorf("expected self-relate refusal: %s", out)
 		}
@@ -132,11 +132,11 @@ func TestProxiedServerRelate(t *testing.T) {
 
 	t.Run("missing_issue_clean_error_not_storage_nil", func(t *testing.T) {
 		t.Parallel()
-		p := newSharedProxiedProject(t, bd, "rl6")
-		a := bdProxiedCreate(t, bd, p.dir, "Lonely A", "--type", "task")
+		p := newSharedProxiedProject(t, issuegraph, "rl6")
+		a := issuegraphProxiedCreate(t, issuegraph, p.dir, "Lonely A", "--type", "task")
 
 		for _, verb := range []string{"relate", "unrelate"} {
-			out := bdProxiedDepFail(t, bd, p.dir, verb, a.ID, "rl6-nonexistent")
+			out := issuegraphProxiedDepFail(t, issuegraph, p.dir, verb, a.ID, "rl6-nonexistent")
 			if !strings.Contains(out, "issue not found") {
 				t.Errorf("%s: expected 'issue not found' refusal: %s", verb, out)
 			}

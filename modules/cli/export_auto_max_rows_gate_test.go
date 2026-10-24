@@ -8,20 +8,20 @@ import (
 	"path/filepath"
 	"testing"
 
-	"github.com/steveyegge/beads/internal/testutil"
+	"github.com/borg0ai/dx-issuegraph/internal/testutil"
 )
 
 // TestExportAuto_FilterHasZeroMaxRows is the be-x42v.4 opt-out gate for
-// `bd export --auto` (the incremental auto-export run from
+// `issuegraph export --auto` (the incremental auto-export run from
 // PersistentPostRun). Asserts that exportToFile — the shared helper
-// behind both `bd export -o` and auto-export, at modules/cli/export_auto.go:140
+// behind both `issuegraph export -o` and auto-export, at modules/cli/export_auto.go:140
 // — never constructs an IssueFilter with MaxRows>0 or a non-empty
 // MaxRowsSource.
 //
 // The auto-export path is particularly sensitive: it runs as a side
-// effect of nearly every bd command and writes a git-tracked JSONL
-// snapshot. If a stray BEADS_MAX_ROWS in CI tipped the filter into the
-// cap branch, the auto-export would fail and every subsequent bd
+// effect of nearly every issuegraph command and writes a git-tracked JSONL
+// snapshot. If a stray ISSUEGRAPH_MAX_ROWS in CI tipped the filter into the
+// cap branch, the auto-export would fail and every subsequent issuegraph
 // invocation would re-attempt it, propagating the error to every
 // command-completion. This gate prevents that regression at write time.
 //
@@ -43,8 +43,8 @@ func TestExportAuto_FilterHasZeroMaxRows(t *testing.T) {
 	_ = saved
 
 	tmpDir := t.TempDir()
-	beadsDir := filepath.Join(tmpDir, ".beads")
-	if err := os.MkdirAll(beadsDir, 0755); err != nil {
+	issuegraphDir := filepath.Join(tmpDir, ".issuegraph")
+	if err := os.MkdirAll(issuegraphDir, 0755); err != nil {
 		t.Fatal(err)
 	}
 	origWd, _ := os.Getwd()
@@ -54,7 +54,7 @@ func TestExportAuto_FilterHasZeroMaxRows(t *testing.T) {
 	t.Cleanup(func() { _ = os.Chdir(origWd) })
 
 	dbName := uniqueTestDBName(t)
-	testDBPath := filepath.Join(beadsDir, "dolt")
+	testDBPath := filepath.Join(issuegraphDir, "dolt")
 	writeTestMetadata(t, testDBPath, dbName)
 	inner := newTestStore(t, testDBPath)
 	spy := newFilterCapturingStore(inner)
@@ -88,10 +88,10 @@ func TestExportAuto_FilterHasZeroMaxRows(t *testing.T) {
 
 	for i, f := range spy.AllFilters() {
 		if f.MaxRows != 0 {
-			t.Errorf("be-x42v.4 gate: SearchIssues call %d had filter.MaxRows=%d; bd export --auto must opt out (MaxRows=0) — designer §4.1 snapshot integrity", i, f.MaxRows)
+			t.Errorf("be-x42v.4 gate: SearchIssues call %d had filter.MaxRows=%d; issuegraph export --auto must opt out (MaxRows=0) — designer §4.1 snapshot integrity", i, f.MaxRows)
 		}
 		if f.MaxRowsSource != "" {
-			t.Errorf("be-x42v.4 gate: SearchIssues call %d had filter.MaxRowsSource=%q; bd export --auto must opt out (MaxRowsSource=\"\")", i, f.MaxRowsSource)
+			t.Errorf("be-x42v.4 gate: SearchIssues call %d had filter.MaxRowsSource=%q; issuegraph export --auto must opt out (MaxRowsSource=\"\")", i, f.MaxRowsSource)
 		}
 	}
 }

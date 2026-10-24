@@ -8,35 +8,35 @@ import (
 	"testing"
 )
 
-// TestRepairWorktreeBeadsPermissions is the regression for GH#3593: after worktree
-// creation, permissive .beads/ (e.g. 0755 from checkout + umask) must be repaired to 0700.
-func TestRepairWorktreeBeadsPermissions(t *testing.T) {
+// TestRepairWorktreeIssueGraphPermissions is the regression for GH#3593: after worktree
+// creation, permissive .issuegraph/ (e.g. 0755 from checkout + umask) must be repaired to 0700.
+func TestRepairWorktreeIssueGraphPermissions(t *testing.T) {
 	tmp := t.TempDir()
 	worktreePath := filepath.Join(tmp, "demo-wt")
-	beadsDir := filepath.Join(worktreePath, ".beads")
-	if err := os.MkdirAll(beadsDir, 0o755); err != nil {
-		t.Fatalf("mkdir .beads: %v", err)
+	issuegraphDir := filepath.Join(worktreePath, ".issuegraph")
+	if err := os.MkdirAll(issuegraphDir, 0o755); err != nil {
+		t.Fatalf("mkdir .issuegraph: %v", err)
 	}
-	if err := os.Chmod(beadsDir, 0o755); err != nil {
-		t.Fatalf("chmod .beads: %v", err)
+	if err := os.Chmod(issuegraphDir, 0o755); err != nil {
+		t.Fatalf("chmod .issuegraph: %v", err)
 	}
 
 	saveJSON := jsonOutput
 	jsonOutput = true // suppress stderr from repair helper
 	t.Cleanup(func() { jsonOutput = saveJSON })
 
-	repairWorktreeBeadsPermissions(worktreePath)
+	repairWorktreeIssueGraphPermissions(worktreePath)
 
-	info, err := os.Stat(beadsDir)
+	info, err := os.Stat(issuegraphDir)
 	if err != nil {
-		t.Fatalf("stat .beads: %v", err)
+		t.Fatalf("stat .issuegraph: %v", err)
 	}
 	if got := info.Mode().Perm(); got != 0o700 {
-		t.Fatalf(".beads permissions = %04o, want 0700", got)
+		t.Fatalf(".issuegraph permissions = %04o, want 0700", got)
 	}
 }
 
-func TestRepairWorktreeBeadsPermissionsRejectsSymlink(t *testing.T) {
+func TestRepairWorktreeIssueGraphPermissionsRejectsSymlink(t *testing.T) {
 	tmp := t.TempDir()
 	worktreePath := filepath.Join(tmp, "demo-wt")
 	if err := os.Mkdir(worktreePath, 0o755); err != nil {
@@ -49,12 +49,12 @@ func TestRepairWorktreeBeadsPermissionsRejectsSymlink(t *testing.T) {
 	if err := os.Chmod(target, 0o755); err != nil {
 		t.Fatalf("chmod target: %v", err)
 	}
-	if err := os.Symlink(target, filepath.Join(worktreePath, ".beads")); err != nil {
-		t.Fatalf("symlink .beads: %v", err)
+	if err := os.Symlink(target, filepath.Join(worktreePath, ".issuegraph")); err != nil {
+		t.Fatalf("symlink .issuegraph: %v", err)
 	}
 
 	suppressRepairOutput(t)
-	repairWorktreeBeadsPermissions(worktreePath)
+	repairWorktreeIssueGraphPermissions(worktreePath)
 
 	info, err := os.Stat(target)
 	if err != nil {
@@ -65,29 +65,29 @@ func TestRepairWorktreeBeadsPermissionsRejectsSymlink(t *testing.T) {
 	}
 }
 
-func TestRepairWorktreeBeadsPermissionsRejectsNonDirectory(t *testing.T) {
+func TestRepairWorktreeIssueGraphPermissionsRejectsNonDirectory(t *testing.T) {
 	tmp := t.TempDir()
 	worktreePath := filepath.Join(tmp, "demo-wt")
 	if err := os.Mkdir(worktreePath, 0o755); err != nil {
 		t.Fatalf("mkdir worktree: %v", err)
 	}
-	beadsPath := filepath.Join(worktreePath, ".beads")
-	if err := os.WriteFile(beadsPath, []byte("not a directory"), 0o755); err != nil {
-		t.Fatalf("write .beads: %v", err)
+	issuegraphPath := filepath.Join(worktreePath, ".issuegraph")
+	if err := os.WriteFile(issuegraphPath, []byte("not a directory"), 0o755); err != nil {
+		t.Fatalf("write .issuegraph: %v", err)
 	}
-	if err := os.Chmod(beadsPath, 0o755); err != nil {
-		t.Fatalf("chmod .beads: %v", err)
+	if err := os.Chmod(issuegraphPath, 0o755); err != nil {
+		t.Fatalf("chmod .issuegraph: %v", err)
 	}
 
 	suppressRepairOutput(t)
-	repairWorktreeBeadsPermissions(worktreePath)
+	repairWorktreeIssueGraphPermissions(worktreePath)
 
-	info, err := os.Stat(beadsPath)
+	info, err := os.Stat(issuegraphPath)
 	if err != nil {
-		t.Fatalf("stat .beads: %v", err)
+		t.Fatalf("stat .issuegraph: %v", err)
 	}
 	if got := info.Mode().Perm(); got != 0o755 {
-		t.Fatalf("non-directory .beads permissions = %04o, want unchanged 0755", got)
+		t.Fatalf("non-directory .issuegraph permissions = %04o, want unchanged 0755", got)
 	}
 }
 

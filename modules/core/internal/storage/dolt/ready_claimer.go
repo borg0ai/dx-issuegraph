@@ -4,11 +4,11 @@ import (
 	"context"
 	"database/sql"
 
-	"github.com/steveyegge/beads/internal/storage"
-	storageissueops "github.com/steveyegge/beads/internal/storage/issueops"
-	"github.com/steveyegge/beads/internal/types"
-	"github.com/steveyegge/beads/internal/workapi"
-	"github.com/steveyegge/beads/issueops"
+	"github.com/borg0ai/dx-issuegraph/internal/storage"
+	storageissueops "github.com/borg0ai/dx-issuegraph/internal/storage/issueops"
+	"github.com/borg0ai/dx-issuegraph/internal/types"
+	"github.com/borg0ai/dx-issuegraph/internal/workapi"
+	"github.com/borg0ai/dx-issuegraph/issueops"
 )
 
 // ReadyClaimer returns the guarded take-ready-work surface for this store.
@@ -51,7 +51,7 @@ func (c *readyClaimer) ClaimNext(ctx context.Context, request issueops.ClaimNext
 		return issueops.ClaimNextResult{}, err
 	}
 
-	// Wake expired dated defers before selecting, so a bead whose snooze just
+	// Wake expired dated defers before selecting, so a issue whose snooze just
 	// ended is claimable the moment its date passes. Advisory, in a write tx
 	// of its own: a failed sweep must not cost the claim.
 	c.store.wakeExpiredDefers(ctx)
@@ -80,7 +80,7 @@ func (c *readyClaimer) ClaimNext(ctx context.Context, request issueops.ClaimNext
 					return tables, "", nil
 				}
 				claimed = attempt.Claimed.Issue
-				// The message names the claimed issue because that is the one `bd
+				// The message names the claimed issue because that is the one `issuegraph
 				// dolt log` affordance callers actually grep, and it is what the
 				// store's own ClaimReadyIssue wrote before the claim moved here.
 				// Post-tx ordering caveat: a concurrent writer's commit can absorb

@@ -16,8 +16,8 @@ Thank you for your interest in contributing to issuegraph! This document provide
 
 ```bash
 # Clone the repository
-git clone https://github.com/gastownhall/beads
-cd beads
+git clone https://github.com/borg0ai/dx-issuegraph
+cd issuegraph
 
 # Build the project (uses gms_pure_go tag via Makefile)
 make build
@@ -32,7 +32,7 @@ make install
 ## Project Structure
 
 ```
-beads/
+issuegraph/
 ├── modules/cli/              # CLI entry point and commands
 ├── internal/
 │   ├── types/           # Core data types (Issue, Dependency, etc.)
@@ -117,7 +117,7 @@ Add cycle detection for dependency graphs
 
 - Keep PRs focused on a single feature or fix
 - Do not include unrelated changes, cleanup, or "while I'm here" improvements
-- Do not include `.beads/` data (database, JSONL) in your PR
+- Do not include `.issuegraph/` data (database, JSONL) in your PR
 - Make sure there are no extra generated or garbage files in your diff
 - Include tests for new functionality
 - Update documentation as needed
@@ -161,7 +161,7 @@ For test commands, test design, and PR-readiness gates, see the canonical
 `types.IssueFilter` carries a defensive row cap (`MaxRows int`,
 `MaxRowsSource string`) that the storage layer enforces via
 `*issueops.ErrTooManyRows`. The cap is wired from `--max-rows` /
-`BEADS_MAX_ROWS` on user-facing commands listed in designer §4 of be-x42v
+`ISSUEGRAPH_MAX_ROWS` on user-facing commands listed in designer §4 of be-x42v
 (`issuegraph list`, `issuegraph ready`, `issuegraph dep tree`, `issuegraph find-duplicates`, `issuegraph graph`,
 plus env-only on the doctor family).
 
@@ -286,7 +286,7 @@ docker run --rm -v $(pwd):/workspace -w /workspace nixos/nix \
 
 # Verify the build works
 docker run --rm -v $(pwd):/workspace -w /workspace nixos/nix \
-  sh -c 'echo "experimental-features = nix-command flakes" >> /etc/nix/nix.conf && nix build .#default && ./result/bin/bd version'
+  sh -c 'echo "experimental-features = nix-command flakes" >> /etc/nix/nix.conf && nix build .#default && ./result/bin/issuegraph version'
 ```
 
 If the build fails with a `vendorHash` mismatch, run `./scripts/update-nix-vendorhash.sh` to recompute and update `default.nix`, or update it manually with the `got:` hash from the error message and rebuild.
@@ -317,7 +317,7 @@ dlv debug ./modules/cli -- create "Test issue"
 
 ## Questions?
 
-- Check existing [issues](https://github.com/gastownhall/beads/issues)
+- Check existing [issues](https://github.com/borg0ai/dx-issuegraph/issues)
 - Open a new issue for questions
 - Review [README.md](README.md) and other documentation
 

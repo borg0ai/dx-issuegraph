@@ -7,17 +7,17 @@
 // # Hierarchical Loading
 //
 // Molecules are loaded from multiple locations in priority order (later overrides earlier):
-//  1. Built-in molecules (shipped with bd binary)
-//  2. Town-level: $GT_ROOT/.beads/molecules.jsonl (if orchestrator detected via GT_ROOT)
-//  3. User-level: ~/.beads/molecules.jsonl
-//  4. Project-level: .beads/molecules.jsonl in the current project
+//  1. Built-in molecules (shipped with issuegraph binary)
+//  2. Town-level: $GT_ROOT/.issuegraph/molecules.jsonl (if orchestrator detected via GT_ROOT)
+//  3. User-level: ~/.issuegraph/molecules.jsonl
+//  4. Project-level: .issuegraph/molecules.jsonl in the current project
 //
 // # Key Properties
 //
 //   - Templates are marked with is_template: true
 //   - Templates are read-only (mutations are rejected)
-//   - bd list excludes templates by default
-//   - bd molecule list shows the catalog
+//   - issuegraph list excludes templates by default
+//   - issuegraph molecule list shows the catalog
 package molecules
 
 import (
@@ -29,9 +29,9 @@ import (
 	"path/filepath"
 	"strings"
 
-	"github.com/steveyegge/beads/internal/debug"
-	"github.com/steveyegge/beads/internal/storage"
-	"github.com/steveyegge/beads/internal/types"
+	"github.com/borg0ai/dx-issuegraph/internal/debug"
+	"github.com/borg0ai/dx-issuegraph/internal/storage"
+	"github.com/borg0ai/dx-issuegraph/internal/types"
 )
 
 // MoleculeFileName is the canonical name for molecule catalog files.
@@ -58,7 +58,7 @@ func NewLoader(store storage.DoltStorage) *Loader {
 // LoadAll loads molecules from all available catalog locations.
 // Molecules are loaded in priority order: built-in < town < user < project.
 // Later sources override earlier ones if they have the same ID.
-func (l *Loader) LoadAll(ctx context.Context, beadsDir string) (*LoadResult, error) {
+func (l *Loader) LoadAll(ctx context.Context, issuegraphDir string) (*LoadResult, error) {
 	result := &LoadResult{
 		Sources: make([]string, 0),
 	}
@@ -76,7 +76,7 @@ func (l *Loader) LoadAll(ctx context.Context, beadsDir string) (*LoadResult, err
 		}
 	}
 
-	// 2. Load town-level molecules ($GT_ROOT/.beads/molecules.jsonl)
+	// 2. Load town-level molecules ($GT_ROOT/.issuegraph/molecules.jsonl)
 	townPath := getTownMoleculesPath()
 	if townPath != "" {
 		if molecules, err := loadMoleculesFromFile(townPath); err == nil && len(molecules) > 0 {
@@ -90,7 +90,7 @@ func (l *Loader) LoadAll(ctx context.Context, beadsDir string) (*LoadResult, err
 		}
 	}
 
-	// 3. Load user-level molecules (~/.beads/molecules.jsonl)
+	// 3. Load user-level molecules (~/.issuegraph/molecules.jsonl)
 	userPath := getUserMoleculesPath()
 	if userPath != "" && userPath != townPath {
 		if molecules, err := loadMoleculesFromFile(userPath); err == nil && len(molecules) > 0 {
@@ -104,9 +104,9 @@ func (l *Loader) LoadAll(ctx context.Context, beadsDir string) (*LoadResult, err
 		}
 	}
 
-	// 4. Load project-level molecules (.beads/molecules.jsonl)
-	if beadsDir != "" {
-		projectPath := filepath.Join(beadsDir, MoleculeFileName)
+	// 4. Load project-level molecules (.issuegraph/molecules.jsonl)
+	if issuegraphDir != "" {
+		projectPath := filepath.Join(issuegraphDir, MoleculeFileName)
 		if molecules, err := loadMoleculesFromFile(projectPath); err == nil && len(molecules) > 0 {
 			count, err := l.loadMolecules(ctx, molecules)
 			if err != nil {
@@ -213,7 +213,7 @@ func getTownMoleculesPath() string {
 	}
 
 	// Check for orchestrator molecules file
-	gtPath := filepath.Join(gtRoot, ".beads", MoleculeFileName)
+	gtPath := filepath.Join(gtRoot, ".issuegraph", MoleculeFileName)
 	if _, err := os.Stat(gtPath); err == nil {
 		return gtPath
 	}
@@ -222,14 +222,14 @@ func getTownMoleculesPath() string {
 }
 
 // getUserMoleculesPath returns the path to user-level molecules.jsonl
-// (~/.beads/molecules.jsonl).
+// (~/.issuegraph/molecules.jsonl).
 func getUserMoleculesPath() string {
 	homeDir, err := os.UserHomeDir()
 	if err != nil {
 		return ""
 	}
 
-	userPath := filepath.Join(homeDir, ".beads", MoleculeFileName)
+	userPath := filepath.Join(homeDir, ".issuegraph", MoleculeFileName)
 	if _, err := os.Stat(userPath); err == nil {
 		return userPath
 	}
@@ -237,7 +237,7 @@ func getUserMoleculesPath() string {
 	return ""
 }
 
-// getBuiltinMolecules returns the built-in molecule templates shipped with bd.
+// getBuiltinMolecules returns the built-in molecule templates shipped with issuegraph.
 // These provide common workflow patterns out of the box.
 func getBuiltinMolecules() []*types.Issue {
 	// For now, return an empty slice. Built-in molecules can be added later

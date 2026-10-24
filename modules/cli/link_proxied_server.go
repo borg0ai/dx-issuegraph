@@ -6,10 +6,10 @@ import (
 
 	"github.com/spf13/cobra"
 
-	"github.com/steveyegge/beads/internal/storage/domain"
-	"github.com/steveyegge/beads/internal/storage/uow"
-	"github.com/steveyegge/beads/internal/types"
-	"github.com/steveyegge/beads/internal/ui"
+	"github.com/borg0ai/dx-issuegraph/internal/storage/domain"
+	"github.com/borg0ai/dx-issuegraph/internal/storage/uow"
+	"github.com/borg0ai/dx-issuegraph/internal/types"
+	"github.com/borg0ai/dx-issuegraph/internal/ui"
 )
 
 func runLinkProxiedServer(cmd *cobra.Command, ctx context.Context, args []string) error {
@@ -33,12 +33,12 @@ func runLinkProxiedServer(cmd *cobra.Command, ctx context.Context, args []string
 	if err := uow.RunTx(ctx, uowProvider, func(ctx context.Context, uw uow.UnitOfWork) (string, error) {
 		dep := &types.Dependency{IssueID: id1, DependsOnID: id2, Type: dt}
 		// Source-routed, like the direct twin's store.AddDependencyWithOptions:
-		// `bd link` takes whatever id the caller names, and a wisp source has no
+		// `issuegraph link` takes whatever id the caller names, and a wisp source has no
 		// row in the issues plane for the edge to hang off.
 		if _, err := uw.DependencyUseCase().AddDependencies(ctx, []*types.Dependency{dep}, actor, domain.BulkAddDepsOpts{}); err != nil {
 			return "", err
 		}
-		return fmt.Sprintf("bd: link %s %s", id1, id2), nil
+		return fmt.Sprintf("issuegraph: link %s %s", id1, id2), nil
 	}); err != nil {
 		return HandleErrorRespectJSON("%v", err)
 	}

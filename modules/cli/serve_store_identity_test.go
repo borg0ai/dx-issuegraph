@@ -14,19 +14,19 @@ import (
 	"sync/atomic"
 	"testing"
 
-	"github.com/steveyegge/beads/internal/beads"
-	"github.com/steveyegge/beads/internal/configfile"
-	"github.com/steveyegge/beads/internal/storage"
-	"github.com/steveyegge/beads/internal/storage/backends"
-	"github.com/steveyegge/beads/internal/types"
-	"github.com/steveyegge/beads/issueops"
-	"github.com/steveyegge/beads/memoryops"
+	"github.com/borg0ai/dx-issuegraph/internal/configfile"
+	"github.com/borg0ai/dx-issuegraph/internal/issuegraph"
+	"github.com/borg0ai/dx-issuegraph/internal/storage"
+	"github.com/borg0ai/dx-issuegraph/internal/storage/backends"
+	"github.com/borg0ai/dx-issuegraph/internal/types"
+	"github.com/borg0ai/dx-issuegraph/issueops"
+	"github.com/borg0ai/dx-issuegraph/memoryops"
 )
 
 // TestServeAnswersFromTheStoreTheRootCommandOpened pins the one property this
 // whole arm exists for, and pins it as a property rather than as a shape.
 //
-// "Serve answers from the store bd already opened" and "serve opens a second
+// "Serve answers from the store issuegraph already opened" and "serve opens a second
 // store of its own" produce identical output on every other assertion available:
 // the same reads, the same claims, the same handshake, the same clean shutdown.
 // The difference is a leaked handle with no owner, doubled pools, and — on a
@@ -49,36 +49,36 @@ func TestServeAnswersFromTheStoreTheRootCommandOpened(t *testing.T) {
 		}, nil
 	}
 	backends.Register(name, backends.Backend{
-		Open:                open,
-		OpenReadOnly:        open,
-		WorkspaceIsBeadsDir: true,
+		Open:                     open,
+		OpenReadOnly:             open,
+		WorkspaceIsIssueGraphDir: true,
 	})
 	t.Cleanup(func() { backends.Deregister(name) })
 
 	dir := t.TempDir()
 	initGitRepoAt(t, dir)
-	beadsDir := filepath.Join(dir, ".beads")
-	if err := os.MkdirAll(beadsDir, 0o755); err != nil {
-		t.Fatalf("mkdir .beads: %v", err)
+	issuegraphDir := filepath.Join(dir, ".issuegraph")
+	if err := os.MkdirAll(issuegraphDir, 0o755); err != nil {
+		t.Fatalf("mkdir .issuegraph: %v", err)
 	}
-	if err := (&configfile.Config{Backend: name}).Save(beadsDir); err != nil {
+	if err := (&configfile.Config{Backend: name}).Save(issuegraphDir); err != nil {
 		t.Fatalf("save metadata.json: %v", err)
 	}
 
 	useStorageModeGlobals(t)
 	restoreServeGlobals(t)
 	t.Chdir(dir)
-	t.Setenv("BEADS_DIR", beadsDir)
+	t.Setenv("ISSUEGRAPH_DIR", issuegraphDir)
 	// The workspace snapshot is resolved once per process and cached, so a test
 	// that chdirs into its own workspace has to clear it going in and coming
 	// out.
-	beads.ResetCaches()
-	t.Cleanup(beads.ResetCaches)
+	issuegraph.ResetCaches()
+	t.Cleanup(issuegraph.ResetCaches)
 
 	// Stand in for PersistentPreRunE, which opens the workspace through exactly
-	// this dispatch and leaves it in `store`. This is the store bd already
+	// this dispatch and leaves it in `store`. This is the store issuegraph already
 	// opened, and it is store-1.
-	opened, err := openRegisteredStoreForTest(t, name, beadsDir)
+	opened, err := openRegisteredStoreForTest(t, name, issuegraphDir)
 	if err != nil {
 		t.Fatalf("open the registered backend: %v", err)
 	}
@@ -98,15 +98,15 @@ func TestServeAnswersFromTheStoreTheRootCommandOpened(t *testing.T) {
 	}()
 	addr := waitForBoundAddress(t, lines, done)
 
-	body := getBody(t, "http://"+addr+"/v0/beads/ready?limit=5")
+	body := getBody(t, "http://"+addr+"/v0/issuegraph/ready?limit=5")
 	if !strings.Contains(body, opened.id) {
-		t.Errorf("GET /v0/beads/ready answered from a store other than the one bd opened (%s):\n%s", opened.id, body)
+		t.Errorf("GET /v0/issuegraph/ready answered from a store other than the one issuegraph opened (%s):\n%s", opened.id, body)
 	}
 	// Named separately, because the two failures are different bugs: the body
 	// above says the server is on the wrong store, and this says a store was
 	// created that nobody will ever close.
 	if n := opens.Load(); n != 1 {
-		t.Errorf("the registered backend was opened %d times, want 1: bd serve created a store of its own", n)
+		t.Errorf("the registered backend was opened %d times, want 1: issuegraph serve created a store of its own", n)
 	}
 
 	cancel()
@@ -117,13 +117,13 @@ func TestServeAnswersFromTheStoreTheRootCommandOpened(t *testing.T) {
 
 // openRegisteredStoreForTest opens the workspace the way PersistentPreRunE
 // does: through the registry, by name, with no knowledge of what is behind it.
-func openRegisteredStoreForTest(t *testing.T, name, beadsDir string) (*serveIdentityDoltStore, error) {
+func openRegisteredStoreForTest(t *testing.T, name, issuegraphDir string) (*serveIdentityDoltStore, error) {
 	t.Helper()
 	backend, ok := backends.Lookup(name)
 	if !ok {
 		t.Fatalf("backend %q is not registered", name)
 	}
-	opened, err := backend.Open(t.Context(), beadsDir)
+	opened, err := backend.Open(t.Context(), issuegraphDir)
 	if err != nil {
 		return nil, err
 	}
@@ -223,7 +223,7 @@ func (*serveIdentityStore) EdgeReader() (issueops.EdgeReader, error) { return se
 // one this stub was CAUGHT missing rather than written with: the edge-count
 // role is a read, so its hook decorator recurses, and the recursion lands on a
 // type whose embedded storage.DoltStorage is nil. That is a promoted method on
-// a nil interface — a segfault inside `bd serve`'s role extraction, not a
+// a nil interface — a segfault inside `issuegraph serve`'s role extraction, not a
 // compile error — and it surfaced only on the full-suite macOS shard, because
 // no test name here matches the ones a role slice thinks to run.
 func (*serveIdentityStore) GraphCounter() (issueops.GraphCounter, error) {

@@ -10,7 +10,7 @@ import (
 // explicit-commit fix. Embedded Commit already stages everything via
 // DOLT_COMMIT('-Am'), so the staging gap is server-mode-only; what CommitAll
 // adds here is the honest report: (true, nil) exactly when a commit was
-// created, (false, nil) when there was nothing to commit — so `bd vc commit`
+// created, (false, nil) when there was nothing to commit — so `issuegraph vc commit`
 // can print "Nothing to commit" instead of "Created commit <existing HEAD>".
 func TestCommitAllOutOfBandChangeAndHonestNoOp(t *testing.T) {
 	ctx := t.Context()

@@ -14,7 +14,7 @@ import (
 const DoltDockerImage = "dolthub/dolt-sql-server:2.2.0"
 
 // RequireDoltBinary ensures the `dolt` CLI binary is available, and honors
-// BEADS_TEST_SKIP=dolt for tests that also depend on the shared
+// ISSUEGRAPH_TEST_SKIP=dolt for tests that also depend on the shared
 // containerized Dolt SQL server. The test is skipped locally when dolt is
 // missing but fatally fails under GitHub Actions (GITHUB_ACTIONS=true). CI
 // is expected to install dolt; a missing binary there means the workflow is
@@ -22,15 +22,15 @@ const DoltDockerImage = "dolthub/dolt-sql-server:2.2.0"
 func RequireDoltBinary(t *testing.T) {
 	t.Helper()
 	if hasTestSkipForDoltBinary("dolt") {
-		t.Skip("skipping: Dolt tests skipped (BEADS_TEST_SKIP=dolt)")
+		t.Skip("skipping: Dolt tests skipped (ISSUEGRAPH_TEST_SKIP=dolt)")
 	}
 	requireDoltBinaryPresent(t)
 }
 
 // RequireDoltCLIOnly ensures the `dolt` CLI binary is available, WITHOUT
-// honoring BEADS_TEST_SKIP=dolt. Use this for tests that shell out to the
+// honoring ISSUEGRAPH_TEST_SKIP=dolt. Use this for tests that shell out to the
 // local `dolt` CLI directly and have no dependency on the shared
-// containerized Dolt SQL server — BEADS_TEST_SKIP=dolt is a blanket switch
+// containerized Dolt SQL server — ISSUEGRAPH_TEST_SKIP=dolt is a blanket switch
 // meant to exclude tests that need that server, so it must not also skip
 // tests that only need the CLI binary.
 func RequireDoltCLIOnly(t *testing.T) {
@@ -51,7 +51,7 @@ func requireDoltBinaryPresent(t *testing.T) {
 }
 
 func hasTestSkipForDoltBinary(service string) bool {
-	for _, s := range strings.Split(os.Getenv("BEADS_TEST_SKIP"), ",") {
+	for _, s := range strings.Split(os.Getenv("ISSUEGRAPH_TEST_SKIP"), ",") {
 		if strings.TrimSpace(s) == service {
 			return true
 		}

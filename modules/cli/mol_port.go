@@ -7,11 +7,11 @@ import (
 	"fmt"
 	"time"
 
-	"github.com/steveyegge/beads/internal/storage"
-	"github.com/steveyegge/beads/internal/storage/domain"
-	"github.com/steveyegge/beads/internal/storage/uow"
-	"github.com/steveyegge/beads/internal/types"
-	"github.com/steveyegge/beads/internal/workapi"
+	"github.com/borg0ai/dx-issuegraph/internal/storage"
+	"github.com/borg0ai/dx-issuegraph/internal/storage/domain"
+	"github.com/borg0ai/dx-issuegraph/internal/storage/uow"
+	"github.com/borg0ai/dx-issuegraph/internal/types"
+	"github.com/borg0ai/dx-issuegraph/internal/workapi"
 )
 
 type molReader interface {
@@ -98,7 +98,7 @@ func (w storeMolWriter) GetConfig(ctx context.Context, key string) (string, erro
 }
 
 func (w storeMolWriter) ClaimStepIfOpen(ctx context.Context, id, actor string) error {
-	return w.DoltStorage.RunInTransaction(ctx, fmt.Sprintf("bd: advance to step %s", id), func(tx storage.Transaction) error {
+	return w.DoltStorage.RunInTransaction(ctx, fmt.Sprintf("issuegraph: advance to step %s", id), func(tx storage.Transaction) error {
 		current, err := tx.GetIssue(ctx, id)
 		if err != nil {
 			return err

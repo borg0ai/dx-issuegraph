@@ -4,11 +4,11 @@ import (
 	"context"
 	"database/sql"
 
-	"github.com/steveyegge/beads/internal/storage/uow"
+	"github.com/borg0ai/dx-issuegraph/internal/storage/uow"
 )
 
-func runDoltCleanDatabasesProxied(ctx context.Context, beadsDir string, opts cleanDatabasesOptions) error {
-	provider, err := newProxiedServerUOWProviderAdopting(ctx, beadsDir, "")
+func runDoltCleanDatabasesProxied(ctx context.Context, issuegraphDir string, opts cleanDatabasesOptions) error {
+	provider, err := newProxiedServerUOWProviderAdopting(ctx, issuegraphDir, "")
 	if err != nil {
 		return HandleError("failed to open uow provider: %v", err)
 	}

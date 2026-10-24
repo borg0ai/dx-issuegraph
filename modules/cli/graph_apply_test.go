@@ -10,11 +10,11 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/steveyegge/beads/internal/types"
+	"github.com/borg0ai/dx-issuegraph/internal/types"
 )
 
 // TestDocsGraphPlanExampleValidates pins the --graph doc supplement's example
-// to the validator: the canonical example must stay a plan `bd create --graph`
+// to the validator: the canonical example must stay a plan `issuegraph create --graph`
 // actually accepts (review caught it shipping with event fields on a task
 // node and edges duplicating parent_key). The embedded supplement is the
 // source of truth; the docs drift gate keeps the generated CLI reference
@@ -557,7 +557,7 @@ func TestGraphApplyParentDepPairs(t *testing.T) {
 
 // TestEmitGraphApplyDryRun_JSON verifies that the dry-run path emits valid
 // JSON with the expected structure when jsonOutput is set. This exercises the
-// code path that `bd create --graph --dry-run --json` takes, confirming the
+// code path that `issuegraph create --graph --dry-run --json` takes, confirming the
 // GraphApplyDryRun struct serializes correctly and that no persistence occurs
 // (emitGraphApplyDryRun only formats output — it never touches the store).
 // Regression coverage for GH#3893.
@@ -693,7 +693,7 @@ func TestValidateGraphApplyPlanNodeFieldRules(t *testing.T) {
 		wantErr        string
 	}{
 		{name: "invalid status", mutate: func(n *GraphApplyNode) { n.Status = "bogus" }, wantErr: "invalid status"},
-		{name: "alias type accepted like bd create", mutate: func(n *GraphApplyNode) { n.Type = "feat" }},
+		{name: "alias type accepted like issuegraph create", mutate: func(n *GraphApplyNode) { n.Type = "feat" }},
 		{name: "builtin status accepted", mutate: func(n *GraphApplyNode) { n.Status = "in_progress" }},
 		{name: "custom status accepted", customStatuses: []string{"triage"}, mutate: func(n *GraphApplyNode) { n.Status = "triage" }},
 		{name: "custom status rejected without config", mutate: func(n *GraphApplyNode) { n.Status = "triage" }, wantErr: "invalid status"},
@@ -956,7 +956,7 @@ func TestValidateGraphApplyExplicitIDPrefixes(t *testing.T) {
 		{Key: "pinnedID", Title: "Pinned", ID: "zz-a1b2c3"},
 	}}
 
-	if err := validateGraphApplyExplicitIDPrefixes(plan, "bd", "", false); err == nil {
+	if err := validateGraphApplyExplicitIDPrefixes(plan, "issuegraph", "", false); err == nil {
 		t.Fatal("expected foreign-prefix explicit id to be rejected")
 	} else if !strings.Contains(err.Error(), `node "pinnedID"`) {
 		t.Fatalf("error should name the node, got %v", err)
@@ -964,16 +964,16 @@ func TestValidateGraphApplyExplicitIDPrefixes(t *testing.T) {
 	if err := validateGraphApplyExplicitIDPrefixes(plan, "zz", "", false); err != nil {
 		t.Fatalf("matching prefix rejected: %v", err)
 	}
-	if err := validateGraphApplyExplicitIDPrefixes(plan, "bd", "zz", false); err != nil {
+	if err := validateGraphApplyExplicitIDPrefixes(plan, "issuegraph", "zz", false); err != nil {
 		t.Fatalf("allowed_prefixes rejected: %v", err)
 	}
-	if err := validateGraphApplyExplicitIDPrefixes(plan, "bd", "", true); err != nil {
+	if err := validateGraphApplyExplicitIDPrefixes(plan, "issuegraph", "", true); err != nil {
 		t.Fatalf("--force rejected: %v", err)
 	}
 }
 
 // TestGraphApplyNodeCoversCreateIssueParams pins full issue-model parity
-// between single-issue `bd create` and graph plans: every createIssueParams
+// between single-issue `issuegraph create` and graph plans: every createIssueParams
 // field must be addressable from a GraphApplyNode or listed here with a
 // reason. This keeps the schema gap from silently reopening as create grows.
 //

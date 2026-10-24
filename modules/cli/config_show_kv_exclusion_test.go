@@ -4,10 +4,10 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/steveyegge/beads/internal/storage/kvkeys"
+	"github.com/borg0ai/dx-issuegraph/internal/storage/kvkeys"
 )
 
-// TestConfigShowExcludesTheKVPlane pins that `bd config show` does not print
+// TestConfigShowExcludesTheKVPlane pins that `issuegraph config show` does not print
 // memories under source=database.
 //
 // It asserts the pure half of collectDatabaseEntries rather than shelling out,
@@ -17,11 +17,11 @@ import (
 // Why this route needed telling separately: it reads the store's GetAllConfig
 // RAW rather than through issueops.WorkspaceConfig, so it inherited neither the
 // enumeration exclusion nor the point-read refusal, and it prints values in
-// FULL because it is the operator's provenance view. Every `bd remember` memory
+// FULL because it is the operator's provenance view. Every `issuegraph remember` memory
 // went into every terminal and pasted bug report that ran the command.
 func TestConfigShowExcludesTheKVPlane(t *testing.T) {
 	stored := map[string]string{
-		"issue_prefix":    "bd",
+		"issue_prefix":    "issuegraph",
 		"custom.statuses": "awaiting_review",
 		kvkeys.MemoryConfigKeyPrefix + "deploy-notes": "the staging deploy token is sk-live-000",
 		kvkeys.Prefix + "release.channel":             "beta",
@@ -35,7 +35,7 @@ func TestConfigShowExcludesTheKVPlane(t *testing.T) {
 	seen := make(map[string]string, len(got))
 	for _, entry := range got {
 		if strings.HasPrefix(entry.Key, kvkeys.Prefix) {
-			t.Errorf("bd config show would print %q = %q under source=database: the kv plane is user data "+
+			t.Errorf("issuegraph config show would print %q = %q under source=database: the kv plane is user data "+
 				"riding in the settings table, and this view prints values in full", entry.Key, entry.Value)
 		}
 		if entry.Source != "database" {
@@ -44,7 +44,7 @@ func TestConfigShowExcludesTheKVPlane(t *testing.T) {
 		seen[entry.Key] = entry.Value
 	}
 	for key, want := range map[string]string{
-		"issue_prefix":              "bd",
+		"issue_prefix":              "issuegraph",
 		"custom.statuses":           "awaiting_review",
 		"kvetch":                    "not under the kv prefix",
 		"custom.mentions.kv.inside": "kept",

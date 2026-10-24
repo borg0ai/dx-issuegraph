@@ -6,9 +6,9 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/steveyegge/beads/internal/config"
-	"github.com/steveyegge/beads/internal/storage/domain"
-	"github.com/steveyegge/beads/internal/types"
+	"github.com/borg0ai/dx-issuegraph/internal/config"
+	"github.com/borg0ai/dx-issuegraph/internal/storage/domain"
+	"github.com/borg0ai/dx-issuegraph/internal/types"
 )
 
 func TestParseDepSpecs(t *testing.T) {
@@ -146,7 +146,7 @@ func TestParseDepSpecs(t *testing.T) {
 }
 
 // TestCanonicalDependencyType is a table test for the alias-normalization
-// helper shared by `bd create --deps` (parseDepSpec) and `bd dep add --type`
+// helper shared by `issuegraph create --deps` (parseDepSpec) and `issuegraph dep add --type`
 // (GH#5069): both "blocked-by" and "depends-on" must map to the canonical
 // "blocks" type that ready/blocked gating checks, and any other value
 // (well-known or custom) must pass through unchanged.
@@ -174,7 +174,7 @@ func TestCanonicalDependencyType(t *testing.T) {
 }
 
 // TestValidateDependencyType covers the shared validity/well-known-ness gate
-// used by both `bd create --deps` and `bd dep add --type`. Per the intent
+// used by both `issuegraph create --deps` and `issuegraph dep add --type`. Per the intent
 // documented on types.WellKnownDependencyTypes, both commands reject
 // custom/unknown dependency types identically.
 func TestValidateDependencyType(t *testing.T) {

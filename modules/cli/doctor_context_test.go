@@ -5,10 +5,10 @@ import (
 	"path/filepath"
 	"testing"
 
-	"github.com/steveyegge/beads/internal/beads"
-	"github.com/steveyegge/beads/internal/config"
-	"github.com/steveyegge/beads/internal/configfile"
-	"github.com/steveyegge/beads/internal/utils"
+	"github.com/borg0ai/dx-issuegraph/internal/config"
+	"github.com/borg0ai/dx-issuegraph/internal/configfile"
+	"github.com/borg0ai/dx-issuegraph/internal/issuegraph"
+	"github.com/borg0ai/dx-issuegraph/internal/utils"
 )
 
 func savePersistentPreRunState(t *testing.T) {
@@ -16,8 +16,8 @@ func savePersistentPreRunState(t *testing.T) {
 
 	// Track env vars that PersistentPreRun may modify via prepareSelectedCommandContext
 	// or applyChangeDirSelection. Without this, a call to PersistentPreRun leaves
-	// BEADS_DIR set to the project's .beads dir, corrupting subsequent tests.
-	for _, key := range []string{"BEADS_DIR", "BEADS_DB", "BD_DB"} {
+	// ISSUEGRAPH_DIR set to the project's .issuegraph dir, corrupting subsequent tests.
+	for _, key := range []string{"ISSUEGRAPH_DIR", "ISSUEGRAPH_DB", "ISSUEGRAPH_DB"} {
 		t.Setenv(key, os.Getenv(key))
 	}
 
@@ -49,29 +49,29 @@ func savePersistentPreRunState(t *testing.T) {
 	doltAutoCommit = ""
 }
 
-func writeMetadataConfig(t *testing.T, beadsDir string, doltMode string, database string) {
+func writeMetadataConfig(t *testing.T, issuegraphDir string, doltMode string, database string) {
 	t.Helper()
 
 	if err := (&configfile.Config{
 		Backend:      configfile.BackendDolt,
 		DoltMode:     doltMode,
 		DoltDatabase: database,
-	}).Save(beadsDir); err != nil {
+	}).Save(issuegraphDir); err != nil {
 		t.Fatalf("save metadata: %v", err)
 	}
 }
 
 func TestDoctorPersistentPreRunLoadsServerModeForNoDBCommand(t *testing.T) {
 	repoDir := t.TempDir()
-	beadsDir := filepath.Join(repoDir, ".beads")
-	writeTestConfigYAML(t, beadsDir, "")
-	writeMetadataConfig(t, beadsDir, configfile.DoltModeServer, "doctor_ctx_test")
+	issuegraphDir := filepath.Join(repoDir, ".issuegraph")
+	writeTestConfigYAML(t, issuegraphDir, "")
+	writeMetadataConfig(t, issuegraphDir, configfile.DoltModeServer, "doctor_ctx_test")
 
 	t.Chdir(repoDir)
-	t.Setenv("BEADS_DIR", beadsDir)
-	t.Setenv("BEADS_DOLT_SHARED_SERVER", "")
-	t.Setenv("BEADS_DOLT_SERVER_DATABASE", "")
-	t.Setenv("BEADS_DOLT_SERVER_PORT", "")
+	t.Setenv("ISSUEGRAPH_DIR", issuegraphDir)
+	t.Setenv("ISSUEGRAPH_DOLT_SHARED_SERVER", "")
+	t.Setenv("ISSUEGRAPH_DOLT_SERVER_DATABASE", "")
+	t.Setenv("ISSUEGRAPH_DOLT_SERVER_PORT", "")
 
 	config.ResetForTesting()
 	t.Cleanup(config.ResetForTesting)
@@ -91,26 +91,26 @@ func TestDoctorPersistentPreRunLoadsServerModeForNoDBCommand(t *testing.T) {
 
 func TestDoctorPersistentPreRunUsesExplicitDBTarget(t *testing.T) {
 	callerRepo := filepath.Join(t.TempDir(), "caller")
-	callerBeadsDir := filepath.Join(callerRepo, ".beads")
-	writeTestConfigYAML(t, callerBeadsDir, "")
-	writeMetadataConfig(t, callerBeadsDir, configfile.DoltModeEmbedded, "caller_ctx_test")
+	callerIssueGraphDir := filepath.Join(callerRepo, ".issuegraph")
+	writeTestConfigYAML(t, callerIssueGraphDir, "")
+	writeMetadataConfig(t, callerIssueGraphDir, configfile.DoltModeEmbedded, "caller_ctx_test")
 
 	targetRepo := filepath.Join(t.TempDir(), "target")
-	targetBeadsDir := filepath.Join(targetRepo, ".beads")
-	writeTestConfigYAML(t, targetBeadsDir, "")
-	writeMetadataConfig(t, targetBeadsDir, configfile.DoltModeServer, "target_ctx_test")
+	targetIssueGraphDir := filepath.Join(targetRepo, ".issuegraph")
+	writeTestConfigYAML(t, targetIssueGraphDir, "")
+	writeMetadataConfig(t, targetIssueGraphDir, configfile.DoltModeServer, "target_ctx_test")
 
 	t.Chdir(callerRepo)
-	t.Setenv("BEADS_DIR", callerBeadsDir)
-	t.Setenv("BEADS_DOLT_SHARED_SERVER", "")
-	t.Setenv("BEADS_DOLT_SERVER_DATABASE", "")
-	t.Setenv("BEADS_DOLT_SERVER_PORT", "")
+	t.Setenv("ISSUEGRAPH_DIR", callerIssueGraphDir)
+	t.Setenv("ISSUEGRAPH_DOLT_SHARED_SERVER", "")
+	t.Setenv("ISSUEGRAPH_DOLT_SERVER_DATABASE", "")
+	t.Setenv("ISSUEGRAPH_DOLT_SERVER_PORT", "")
 
 	config.ResetForTesting()
 	t.Cleanup(config.ResetForTesting)
 	savePersistentPreRunState(t)
 
-	targetDBPath := filepath.Join(targetBeadsDir, "dolt")
+	targetDBPath := filepath.Join(targetIssueGraphDir, "dolt")
 	dbPath = targetDBPath
 	if flag := rootCmd.PersistentFlags().Lookup("db"); flag != nil {
 		flag.Changed = true
@@ -120,8 +120,8 @@ func TestDoctorPersistentPreRunUsesExplicitDBTarget(t *testing.T) {
 		t.Fatalf("PersistentPreRunE: %v", err)
 	}
 
-	if got := os.Getenv("BEADS_DIR"); got != targetBeadsDir {
-		t.Fatalf("BEADS_DIR = %q, want %q", got, targetBeadsDir)
+	if got := os.Getenv("ISSUEGRAPH_DIR"); got != targetIssueGraphDir {
+		t.Fatalf("ISSUEGRAPH_DIR = %q, want %q", got, targetIssueGraphDir)
 	}
 	if !serverMode {
 		t.Fatal("doctor should use the explicit target repo's server mode")
@@ -130,26 +130,26 @@ func TestDoctorPersistentPreRunUsesExplicitDBTarget(t *testing.T) {
 
 func TestBootstrapPersistentPreRunUsesExplicitDBTarget(t *testing.T) {
 	callerRepo := filepath.Join(t.TempDir(), "caller")
-	callerBeadsDir := filepath.Join(callerRepo, ".beads")
-	writeTestConfigYAML(t, callerBeadsDir, "")
-	writeMetadataConfig(t, callerBeadsDir, configfile.DoltModeEmbedded, "caller_bootstrap_test")
+	callerIssueGraphDir := filepath.Join(callerRepo, ".issuegraph")
+	writeTestConfigYAML(t, callerIssueGraphDir, "")
+	writeMetadataConfig(t, callerIssueGraphDir, configfile.DoltModeEmbedded, "caller_bootstrap_test")
 
 	targetRepo := filepath.Join(t.TempDir(), "target")
-	targetBeadsDir := filepath.Join(targetRepo, ".beads")
-	writeTestConfigYAML(t, targetBeadsDir, "")
-	writeMetadataConfig(t, targetBeadsDir, configfile.DoltModeServer, "target_bootstrap_test")
+	targetIssueGraphDir := filepath.Join(targetRepo, ".issuegraph")
+	writeTestConfigYAML(t, targetIssueGraphDir, "")
+	writeMetadataConfig(t, targetIssueGraphDir, configfile.DoltModeServer, "target_bootstrap_test")
 
 	t.Chdir(callerRepo)
-	t.Setenv("BEADS_DIR", callerBeadsDir)
-	t.Setenv("BEADS_DOLT_SHARED_SERVER", "")
-	t.Setenv("BEADS_DOLT_SERVER_DATABASE", "")
-	t.Setenv("BEADS_DOLT_SERVER_PORT", "")
+	t.Setenv("ISSUEGRAPH_DIR", callerIssueGraphDir)
+	t.Setenv("ISSUEGRAPH_DOLT_SHARED_SERVER", "")
+	t.Setenv("ISSUEGRAPH_DOLT_SERVER_DATABASE", "")
+	t.Setenv("ISSUEGRAPH_DOLT_SERVER_PORT", "")
 
 	config.ResetForTesting()
 	t.Cleanup(config.ResetForTesting)
 	savePersistentPreRunState(t)
 
-	targetDBPath := filepath.Join(targetBeadsDir, "dolt")
+	targetDBPath := filepath.Join(targetIssueGraphDir, "dolt")
 	dbPath = targetDBPath
 	if flag := rootCmd.PersistentFlags().Lookup("db"); flag != nil {
 		flag.Changed = true
@@ -159,59 +159,59 @@ func TestBootstrapPersistentPreRunUsesExplicitDBTarget(t *testing.T) {
 		t.Fatalf("PersistentPreRunE: %v", err)
 	}
 
-	if got := os.Getenv("BEADS_DIR"); got != targetBeadsDir {
-		t.Fatalf("BEADS_DIR = %q, want %q", got, targetBeadsDir)
+	if got := os.Getenv("ISSUEGRAPH_DIR"); got != targetIssueGraphDir {
+		t.Fatalf("ISSUEGRAPH_DIR = %q, want %q", got, targetIssueGraphDir)
 	}
 }
 
-func TestLoadSelectionEnvironmentUsesAmbientEnvFileForBEADSDB(t *testing.T) {
+func TestLoadSelectionEnvironmentUsesAmbientEnvFileForISSUEGRAPHDB(t *testing.T) {
 	callerRepo := filepath.Join(t.TempDir(), "caller")
-	callerBeadsDir := filepath.Join(callerRepo, ".beads")
-	writeTestConfigYAML(t, callerBeadsDir, "")
+	callerIssueGraphDir := filepath.Join(callerRepo, ".issuegraph")
+	writeTestConfigYAML(t, callerIssueGraphDir, "")
 
 	targetRepo := filepath.Join(t.TempDir(), "target")
-	targetBeadsDir := filepath.Join(targetRepo, ".beads")
-	writeTestConfigYAML(t, targetBeadsDir, "")
-	targetDBPath := filepath.Join(targetBeadsDir, "dolt")
+	targetIssueGraphDir := filepath.Join(targetRepo, ".issuegraph")
+	writeTestConfigYAML(t, targetIssueGraphDir, "")
+	targetDBPath := filepath.Join(targetIssueGraphDir, "dolt")
 	if err := os.MkdirAll(targetDBPath, 0o700); err != nil {
 		t.Fatalf("mkdir target db dir: %v", err)
 	}
-	if err := os.WriteFile(filepath.Join(callerBeadsDir, ".env"), []byte("BEADS_DB="+targetDBPath+"\n"), 0o600); err != nil {
+	if err := os.WriteFile(filepath.Join(callerIssueGraphDir, ".env"), []byte("ISSUEGRAPH_DB="+targetDBPath+"\n"), 0o600); err != nil {
 		t.Fatalf("write caller .env: %v", err)
 	}
 
 	t.Chdir(callerRepo)
-	t.Setenv("BEADS_DIR", "")
-	t.Setenv("BEADS_DB", "")
-	t.Setenv("BD_DB", "")
+	t.Setenv("ISSUEGRAPH_DIR", "")
+	t.Setenv("ISSUEGRAPH_DB", "")
+	t.Setenv("ISSUEGRAPH_DB", "")
 
 	loadSelectionEnvironment()
 
-	if got := os.Getenv("BEADS_DB"); utils.CanonicalizePath(got) != utils.CanonicalizePath(targetDBPath) {
-		t.Fatalf("BEADS_DB = %q, want %q", got, targetDBPath)
+	if got := os.Getenv("ISSUEGRAPH_DB"); utils.CanonicalizePath(got) != utils.CanonicalizePath(targetDBPath) {
+		t.Fatalf("ISSUEGRAPH_DB = %q, want %q", got, targetDBPath)
 	}
-	if got := beads.FindDatabasePath(); utils.CanonicalizePath(got) != utils.CanonicalizePath(targetDBPath) {
+	if got := issuegraph.FindDatabasePath(); utils.CanonicalizePath(got) != utils.CanonicalizePath(targetDBPath) {
 		t.Fatalf("FindDatabasePath() = %q, want %q", got, targetDBPath)
 	}
 }
-func TestSelectedDoltBeadsDirUsesReboundBEADSDir(t *testing.T) {
+func TestSelectedDoltIssueGraphDirUsesReboundISSUEGRAPHDir(t *testing.T) {
 	callerRepo := filepath.Join(t.TempDir(), "caller")
-	callerBeadsDir := filepath.Join(callerRepo, ".beads")
-	writeTestConfigYAML(t, callerBeadsDir, "")
+	callerIssueGraphDir := filepath.Join(callerRepo, ".issuegraph")
+	writeTestConfigYAML(t, callerIssueGraphDir, "")
 
 	targetRepo := filepath.Join(t.TempDir(), "target")
-	targetBeadsDir := filepath.Join(targetRepo, ".beads")
-	writeTestConfigYAML(t, targetBeadsDir, "")
-	targetDBPath := filepath.Join(targetBeadsDir, "dolt")
+	targetIssueGraphDir := filepath.Join(targetRepo, ".issuegraph")
+	writeTestConfigYAML(t, targetIssueGraphDir, "")
+	targetDBPath := filepath.Join(targetIssueGraphDir, "dolt")
 	if err := os.MkdirAll(targetDBPath, 0o700); err != nil {
 		t.Fatalf("mkdir target db dir: %v", err)
 	}
 
 	t.Chdir(callerRepo)
-	t.Setenv("BEADS_DIR", targetBeadsDir)
-	t.Setenv("BEADS_DB", filepath.Join(callerBeadsDir, "dolt"))
+	t.Setenv("ISSUEGRAPH_DIR", targetIssueGraphDir)
+	t.Setenv("ISSUEGRAPH_DB", filepath.Join(callerIssueGraphDir, "dolt"))
 
-	if got := selectedDoltBeadsDir(); utils.CanonicalizePath(got) != utils.CanonicalizePath(targetBeadsDir) {
-		t.Fatalf("selectedDoltBeadsDir() = %q, want %q", got, targetBeadsDir)
+	if got := selectedDoltIssueGraphDir(); utils.CanonicalizePath(got) != utils.CanonicalizePath(targetIssueGraphDir) {
+		t.Fatalf("selectedDoltIssueGraphDir() = %q, want %q", got, targetIssueGraphDir)
 	}
 }

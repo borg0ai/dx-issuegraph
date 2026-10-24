@@ -8,16 +8,16 @@ import (
 
 func TestReadTypesFromYAML_FlowSequence(t *testing.T) {
 	dir := t.TempDir()
-	beadsDir := filepath.Join(dir, ".beads")
-	if err := os.MkdirAll(beadsDir, 0o755); err != nil {
+	issuegraphDir := filepath.Join(dir, ".issuegraph")
+	if err := os.MkdirAll(issuegraphDir, 0o755); err != nil {
 		t.Fatal(err)
 	}
 	content := "types:\n  custom: [bug-report, feature-request, hotfix]\n"
-	if err := os.WriteFile(filepath.Join(beadsDir, "config.yaml"), []byte(content), 0o644); err != nil {
+	if err := os.WriteFile(filepath.Join(issuegraphDir, "config.yaml"), []byte(content), 0o644); err != nil {
 		t.Fatal(err)
 	}
 
-	types, err := readTypesFromYAML(beadsDir)
+	types, err := readTypesFromYAML(issuegraphDir)
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
@@ -34,16 +34,16 @@ func TestReadTypesFromYAML_FlowSequence(t *testing.T) {
 
 func TestReadTypesFromYAML_BlockSequence(t *testing.T) {
 	dir := t.TempDir()
-	beadsDir := filepath.Join(dir, ".beads")
-	if err := os.MkdirAll(beadsDir, 0o755); err != nil {
+	issuegraphDir := filepath.Join(dir, ".issuegraph")
+	if err := os.MkdirAll(issuegraphDir, 0o755); err != nil {
 		t.Fatal(err)
 	}
 	content := "types:\n  custom:\n    - mail\n    - molecule\n    - wisp\n"
-	if err := os.WriteFile(filepath.Join(beadsDir, "config.yaml"), []byte(content), 0o644); err != nil {
+	if err := os.WriteFile(filepath.Join(issuegraphDir, "config.yaml"), []byte(content), 0o644); err != nil {
 		t.Fatal(err)
 	}
 
-	types, err := readTypesFromYAML(beadsDir)
+	types, err := readTypesFromYAML(issuegraphDir)
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
@@ -60,16 +60,16 @@ func TestReadTypesFromYAML_BlockSequence(t *testing.T) {
 
 func TestReadTypesFromYAML_Empty(t *testing.T) {
 	dir := t.TempDir()
-	beadsDir := filepath.Join(dir, ".beads")
-	if err := os.MkdirAll(beadsDir, 0o755); err != nil {
+	issuegraphDir := filepath.Join(dir, ".issuegraph")
+	if err := os.MkdirAll(issuegraphDir, 0o755); err != nil {
 		t.Fatal(err)
 	}
 	content := "types:\n  custom: []\n"
-	if err := os.WriteFile(filepath.Join(beadsDir, "config.yaml"), []byte(content), 0o644); err != nil {
+	if err := os.WriteFile(filepath.Join(issuegraphDir, "config.yaml"), []byte(content), 0o644); err != nil {
 		t.Fatal(err)
 	}
 
-	types, err := readTypesFromYAML(beadsDir)
+	types, err := readTypesFromYAML(issuegraphDir)
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
@@ -80,16 +80,16 @@ func TestReadTypesFromYAML_Empty(t *testing.T) {
 
 func TestReadTypesFromYAML_NoTypesSection(t *testing.T) {
 	dir := t.TempDir()
-	beadsDir := filepath.Join(dir, ".beads")
-	if err := os.MkdirAll(beadsDir, 0o755); err != nil {
+	issuegraphDir := filepath.Join(dir, ".issuegraph")
+	if err := os.MkdirAll(issuegraphDir, 0o755); err != nil {
 		t.Fatal(err)
 	}
 	content := "backend: dolt\nsync-branch: main\n"
-	if err := os.WriteFile(filepath.Join(beadsDir, "config.yaml"), []byte(content), 0o644); err != nil {
+	if err := os.WriteFile(filepath.Join(issuegraphDir, "config.yaml"), []byte(content), 0o644); err != nil {
 		t.Fatal(err)
 	}
 
-	types, err := readTypesFromYAML(beadsDir)
+	types, err := readTypesFromYAML(issuegraphDir)
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
@@ -100,12 +100,12 @@ func TestReadTypesFromYAML_NoTypesSection(t *testing.T) {
 
 func TestReadTypesFromYAML_MissingFile(t *testing.T) {
 	dir := t.TempDir()
-	beadsDir := filepath.Join(dir, ".beads")
-	if err := os.MkdirAll(beadsDir, 0o755); err != nil {
+	issuegraphDir := filepath.Join(dir, ".issuegraph")
+	if err := os.MkdirAll(issuegraphDir, 0o755); err != nil {
 		t.Fatal(err)
 	}
 
-	_, err := readTypesFromYAML(beadsDir)
+	_, err := readTypesFromYAML(issuegraphDir)
 	if err == nil {
 		t.Fatal("expected error for missing file")
 	}
@@ -113,16 +113,16 @@ func TestReadTypesFromYAML_MissingFile(t *testing.T) {
 
 func TestReadTypesFromYAML_OtherKeysIgnored(t *testing.T) {
 	dir := t.TempDir()
-	beadsDir := filepath.Join(dir, ".beads")
-	if err := os.MkdirAll(beadsDir, 0o755); err != nil {
+	issuegraphDir := filepath.Join(dir, ".issuegraph")
+	if err := os.MkdirAll(issuegraphDir, 0o755); err != nil {
 		t.Fatal(err)
 	}
 	content := "backend: dolt\ntypes:\n  custom:\n    - mr\n  builtin:\n    - bug\nother: value\n"
-	if err := os.WriteFile(filepath.Join(beadsDir, "config.yaml"), []byte(content), 0o644); err != nil {
+	if err := os.WriteFile(filepath.Join(issuegraphDir, "config.yaml"), []byte(content), 0o644); err != nil {
 		t.Fatal(err)
 	}
 
-	types, err := readTypesFromYAML(beadsDir)
+	types, err := readTypesFromYAML(issuegraphDir)
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}

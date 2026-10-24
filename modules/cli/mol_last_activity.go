@@ -4,9 +4,9 @@ import (
 	"fmt"
 	"time"
 
+	"github.com/borg0ai/dx-issuegraph/internal/metrics"
+	"github.com/borg0ai/dx-issuegraph/internal/utils"
 	"github.com/spf13/cobra"
-	"github.com/steveyegge/beads/internal/metrics"
-	"github.com/steveyegge/beads/internal/utils"
 )
 
 var molLastActivityCmd = &cobra.Command{
@@ -23,8 +23,8 @@ Activity sources:
   molecule_updated - The molecule root itself was updated
 
 Examples:
-  bd mol last-activity hq-wisp-0laki
-  bd mol last-activity hq-wisp-0laki --json`,
+  issuegraph mol last-activity hq-wisp-0laki
+  issuegraph mol last-activity hq-wisp-0laki --json`,
 	Args:          cobra.ExactArgs(1),
 	SilenceUsage:  true,
 	SilenceErrors: true,

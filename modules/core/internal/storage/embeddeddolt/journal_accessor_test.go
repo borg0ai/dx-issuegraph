@@ -6,15 +6,15 @@ import (
 	"context"
 	"testing"
 
-	"github.com/steveyegge/beads/internal/types"
+	"github.com/borg0ai/dx-issuegraph/internal/types"
 )
 
 // TestEventsJournalAccessor guards the embedded store's events-journal
-// read/prune capability end to end. This is the path `bd events tail/export/
+// read/prune capability end to end. This is the path `issuegraph events tail/export/
 // prune` take in the default (embedded) workspace, where there is no stable
 // *sql.DB to reach via RawDBAccessor — so it must go through the store's own
 // per-operation connection. A regression here silently breaks every
-// `bd events` command locally.
+// `issuegraph events` command locally.
 func TestEventsJournalAccessor(t *testing.T) {
 	env := newTestEnv(t, "jrn")
 	ctx := context.Background()

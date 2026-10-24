@@ -4,10 +4,10 @@ import (
 	"fmt"
 	"time"
 
+	"github.com/borg0ai/dx-issuegraph/internal/metrics"
+	"github.com/borg0ai/dx-issuegraph/internal/types"
+	"github.com/borg0ai/dx-issuegraph/internal/ui"
 	"github.com/spf13/cobra"
-	"github.com/steveyegge/beads/internal/metrics"
-	"github.com/steveyegge/beads/internal/types"
-	"github.com/steveyegge/beads/internal/ui"
 )
 
 // CleanupEmptyResponse is returned when there are no closed issues to delete
@@ -26,16 +26,16 @@ var cleanupCmd = &cobra.Command{
 This command permanently removes closed issues from the database.
 
 NOTE: This command only manages issue lifecycle (closed -> deleted). For general
-health checks and automatic repairs, use 'bd doctor --fix' instead.
+health checks and automatic repairs, use 'issuegraph doctor --fix' instead.
 
 By default, deletes ALL closed issues. Use --older-than to only delete
 issues closed before a certain date.
 
 EXAMPLES:
-  bd admin cleanup --force                          # Delete all closed issues
-  bd admin cleanup --older-than 30 --force          # Only issues closed 30+ days ago
-  bd admin cleanup --ephemeral --force              # Only closed wisps (transient molecules)
-  bd admin cleanup --dry-run                        # Preview what would be deleted
+  issuegraph admin cleanup --force                          # Delete all closed issues
+  issuegraph admin cleanup --older-than 30 --force          # Only issues closed 30+ days ago
+  issuegraph admin cleanup --ephemeral --force              # Only closed wisps (transient molecules)
+  issuegraph admin cleanup --dry-run                        # Preview what would be deleted
 
 SAFETY:
 - Requires --force flag to actually delete (unless --dry-run)
@@ -44,8 +44,8 @@ SAFETY:
 - Use --json for programmatic output
 
 SEE ALSO:
-  bd doctor --fix    Automatic health checks and repairs (recommended for routine maintenance)
-  bd admin compact   Compact old closed issues to save space`,
+  issuegraph doctor --fix    Automatic health checks and repairs (recommended for routine maintenance)
+  issuegraph admin compact   Compact old closed issues to save space`,
 	SilenceUsage:  true,
 	SilenceErrors: true,
 	RunE: func(cmd *cobra.Command, args []string) error {
@@ -77,7 +77,7 @@ SEE ALSO:
 		ctx := rootCtx
 
 		// Build filter for closed issues. Cleanup is a scripted sweep — opt out
-		// of BEADS_MAX_ROWS (designer §4.1) so a misconfigured env doesn't abort
+		// of ISSUEGRAPH_MAX_ROWS (designer §4.1) so a misconfigured env doesn't abort
 		// cleanup mid-run and leave the database in an unswept state.
 		statusClosed := types.StatusClosed
 		filter := types.IssueFilter{

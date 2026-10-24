@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 #
 # IssueGraph (issuegraph) installation script
-# Usage: curl -fsSL https://raw.githubusercontent.com/gastownhall/beads/main/scripts/install.sh | bash
+# Usage: curl -fsSL https://raw.githubusercontent.com/borg0ai/dx-issuegraph/main/scripts/install.sh | bash
 #
 # ⚠️ IMPORTANT: This script must be EXECUTED, never SOURCED
 # ❌ WRONG: source install.sh (will exit your shell on errors)
@@ -113,7 +113,7 @@ verify_release_checksum() {
     local archive_path=$4
 
     local checksums_name="checksums.txt"
-    local checksums_url="https://github.com/gastownhall/beads/releases/download/${version}/${checksums_name}"
+    local checksums_url="https://github.com/borg0ai/dx-issuegraph/releases/download/${version}/${checksums_name}"
 
     if ! release_has_asset "$release_json" "$checksums_name"; then
         log_error "Release metadata is missing ${checksums_name}; refusing to install unverified binary"
@@ -177,9 +177,9 @@ resign_for_macos() {
 
     # Keep re-signing opt-in so users can decide whether to preserve
     # the release signature/Gatekeeper behavior.
-    if [ "${BEADS_INSTALL_RESIGN_MACOS:-0}" != "1" ]; then
+    if [ "${ISSUEGRAPH_INSTALL_RESIGN_MACOS:-0}" != "1" ]; then
         log_info "Skipping macOS ad-hoc re-signing (default)"
-        log_info "Set BEADS_INSTALL_RESIGN_MACOS=1 to opt in"
+        log_info "Set ISSUEGRAPH_INSTALL_RESIGN_MACOS=1 to opt in"
         return 0
     fi
 
@@ -210,7 +210,7 @@ detect_platform() {
             echo "" >&2
             echo "  This bash installer is for macOS/Linux. On Windows, use the PowerShell installer:" >&2
             echo "" >&2
-            echo "    irm https://raw.githubusercontent.com/gastownhall/beads/main/install.ps1 | iex" >&2
+            echo "    irm https://raw.githubusercontent.com/borg0ai/dx-issuegraph/main/install.ps1 | iex" >&2
             echo "" >&2
             exit 1
             ;;
@@ -225,7 +225,7 @@ detect_platform() {
         echo "  This will install the Linux version of issuegraph, usable only inside WSL." >&2
         echo "  If you want issuegraph available in native Windows (PowerShell, cmd), use:" >&2
         echo "" >&2
-        echo "    irm https://raw.githubusercontent.com/gastownhall/beads/main/install.ps1 | iex" >&2
+        echo "    irm https://raw.githubusercontent.com/borg0ai/dx-issuegraph/main/install.ps1 | iex" >&2
         echo "" >&2
         # Only show interactive message and pause if running in a terminal (skip in CI/non-interactive shells)
         if [ -t 0 ]; then
@@ -281,7 +281,7 @@ install_from_release() {
 
     # Get latest release version
     log_info "Fetching latest release..."
-    local latest_url="https://api.github.com/repos/gastownhall/beads/releases/latest"
+    local latest_url="https://api.github.com/repos/borg0ai/dx-issuegraph/releases/latest"
     local version
     local release_json
 
@@ -304,8 +304,8 @@ install_from_release() {
     log_info "Latest version: $version"
 
     # Download URL
-    local archive_name="beads_${version#v}_${platform}.tar.gz"
-    local download_url="https://github.com/gastownhall/beads/releases/download/${version}/${archive_name}"
+    local archive_name="issuegraph_${version#v}_${platform}.tar.gz"
+    local download_url="https://github.com/borg0ai/dx-issuegraph/releases/download/${version}/${archive_name}"
 
     if ! release_has_asset "$release_json" "$archive_name"; then
         log_warning "No prebuilt archive available for platform ${platform}. Falling back to source installation methods."
@@ -465,11 +465,10 @@ install_with_go() {
         bin_dir="$(go env GOPATH)/bin"
     fi
 
-    # The repository lives under gastownhall, but the Go module path remains
-    # github.com/steveyegge/beads for compatibility with released tags.
+    # Go module path follows the canonical repository and CLI module directory.
     # `go install` names the binary after the package directory (cli), not
     # the product name.
-    if CGO_ENABLED=1 GOFLAGS="${GOFLAGS:+$GOFLAGS }-tags=gms_pure_go" go install github.com/steveyegge/beads/modules/cli@latest; then
+    if CGO_ENABLED=1 GOFLAGS="${GOFLAGS:+$GOFLAGS }-tags=gms_pure_go" go install github.com/borg0ai/dx-issuegraph/modules/cli@latest; then
         log_success "issuegraph installed via go install (embedded-capable)"
         LAST_INSTALL_PATH="$bin_dir/cli"
 
@@ -478,7 +477,7 @@ install_with_go() {
         fi
     else
         log_warning "go install with CGO failed; retrying without CGO (server-mode-only binary)"
-        if CGO_ENABLED=0 go install github.com/steveyegge/beads/modules/cli@latest; then
+        if CGO_ENABLED=0 go install github.com/borg0ai/dx-issuegraph/modules/cli@latest; then
             log_success "issuegraph installed via go install (CGO_ENABLED=0, server mode only)"
             log_warning "This build cannot use embedded Dolt. Run 'issuegraph init --server' to use an external dolt sql-server, or reinstall with a C toolchain for embedded mode."
             LAST_INSTALL_PATH="$bin_dir/cli"
@@ -514,11 +513,11 @@ build_from_source() {
     cd "$tmp_dir"
     log_info "Cloning repository..."
 
-    if git clone --depth 1 https://github.com/gastownhall/beads.git; then
-        cd beads
+    if git clone --depth 1 https://github.com/borg0ai/dx-issuegraph.git; then
+        cd issuegraph
         log_info "Building binary..."
 
-        if CGO_ENABLED=1 go build -tags gms_pure_go -o issuegraph github.com/steveyegge/beads/modules/cli; then
+        if CGO_ENABLED=1 go build -tags gms_pure_go -o issuegraph github.com/borg0ai/dx-issuegraph/modules/cli; then
             if ! verify_binary_has_cgo "./issuegraph" "source build"; then
                 cd - > /dev/null || cd "$HOME"
                 rm -rf "$tmp_dir"
@@ -599,7 +598,7 @@ verify_installation() {
 }
 
 # Returns a list of full paths to 'issuegraph' found in PATH (earlier entries first)
-get_bd_paths_in_path() {
+get_issuegraph_paths_in_path() {
     local IFS=':'
     local -a entries
     read -ra entries <<< "$PATH"
@@ -632,18 +631,18 @@ get_bd_paths_in_path() {
 
 warn_if_multiple_bd() {
     # Use bash 3.2-compatible approach instead of mapfile (bash 4.0+)
-    bd_paths=()
+    issuegraph_paths=()
     while IFS= read -r line; do
-        bd_paths+=("$line")
-    done < <(get_bd_paths_in_path)
-    if [ "${#bd_paths[@]}" -le 1 ]; then
+        issuegraph_paths+=("$line")
+    done < <(get_issuegraph_paths_in_path)
+    if [ "${#issuegraph_paths[@]}" -le 1 ]; then
         return 0
     fi
 
     log_warning "Multiple 'issuegraph' executables found on your PATH. An older copy may be executed instead of the one we installed."
     echo "Found the following 'issuegraph' executables (entries earlier in PATH take precedence):"
     local i=1
-    for p in "${bd_paths[@]}"; do
+    for p in "${issuegraph_paths[@]}"; do
         local ver
         if [ -x "$p" ]; then
             ver=$("$p" version 2>/dev/null || true)
@@ -657,7 +656,7 @@ warn_if_multiple_bd() {
         echo ""
         echo "We installed to: $LAST_INSTALL_PATH"
         # Compare first PATH entry vs installed path
-        first="${bd_paths[0]}"
+        first="${issuegraph_paths[0]}"
         if [ "$first" != "$LAST_INSTALL_PATH" ]; then
             log_warning "The 'issuegraph' executable that appears first in your PATH is different from the one we installed. To make the newly installed 'issuegraph' the one you get when running 'issuegraph', either:"
             echo "  - Remove or rename the older $first from your PATH, or"
@@ -724,13 +723,13 @@ main() {
     log_error "Installation failed"
     echo ""
     echo "Manual installation:"
-    echo "  1. Download from https://github.com/gastownhall/beads/releases/latest"
+    echo "  1. Download from https://github.com/borg0ai/dx-issuegraph/releases/latest"
     echo "  2. Verify SHA256 checksum against checksums.txt"
     echo "  3. Extract and move 'issuegraph' to your PATH"
     echo ""
     echo "Or install from source:"
     echo "  1. Install Go from https://go.dev/dl/"
-    echo "  2. Run: CGO_ENABLED=1 GOFLAGS=-tags=gms_pure_go go install github.com/steveyegge/beads/modules/cli@latest"
+    echo "  2. Run: CGO_ENABLED=1 GOFLAGS=-tags=gms_pure_go go install github.com/borg0ai/dx-issuegraph/modules/cli@latest"
     echo ""
     exit 1
 }

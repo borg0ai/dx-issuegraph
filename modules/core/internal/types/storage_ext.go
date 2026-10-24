@@ -1,4 +1,4 @@
-// Package types defines core data structures for the bd issue tracker.
+// Package types defines core data structures for the issuegraph issue tracker.
 package types
 
 import "time"
@@ -16,7 +16,7 @@ type CompactionCandidate struct {
 
 // IssueSnapshot is a pre-compaction copy of an issue's mutable text content,
 // archived (into compaction_snapshots) before compaction destructively
-// overwrites it. It is the source of truth for `bd restore`. The JSON tags are
+// overwrites it. It is the source of truth for `issuegraph restore`. The JSON tags are
 // the on-disk snapshot_json wire format and must not be renamed: older archived
 // rows are decoded with these names.
 type IssueSnapshot struct {

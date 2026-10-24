@@ -7,16 +7,16 @@ import (
 	"strings"
 )
 
-// trackedRuntimePatterns are file patterns under .beads/ that should never be
+// trackedRuntimePatterns are file patterns under .issuegraph/ that should never be
 // tracked by git. These are runtime artifacts, lock files, corrupt backups,
-// and sensitive files that may have been committed before .beads/.gitignore
+// and sensitive files that may have been committed before .issuegraph/.gitignore
 // covered them.
 //
-// Each entry is matched against the relative path within .beads/ using
+// Each entry is matched against the relative path within .issuegraph/ using
 // filepath.Match or prefix matching for directory patterns (trailing /).
 //
 // Note: interactions.jsonl is intentionally omitted — it may be versioned
-// per bd audit policy (see `bd audit` help text).
+// per issuegraph audit policy (see `issuegraph audit` help text).
 var trackedRuntimePatterns = []string{
 	// Lock files
 	"*.lock",
@@ -32,8 +32,8 @@ var trackedRuntimePatterns = []string{
 	"dolt-server.port",
 
 	// Socket files
-	"bd.sock",
-	"bd.sock.startlock",
+	"issuegraph.sock",
+	"issuegraph.sock.startlock",
 	".exclusive-lock",
 
 	// Runtime state
@@ -55,7 +55,7 @@ var trackedRuntimePatterns = []string{
 	"ephemeral.sqlite3-shm",
 }
 
-// trackedRuntimeDirPrefixes are directory prefixes under .beads/ that should
+// trackedRuntimeDirPrefixes are directory prefixes under .issuegraph/ that should
 // never be tracked. Any file whose relative path starts with one of these
 // prefixes is flagged.
 var trackedRuntimeDirPrefixes = []string{
@@ -65,27 +65,27 @@ var trackedRuntimeDirPrefixes = []string{
 }
 
 // sensitiveFileNames are filenames that indicate a security concern if
-// committed anywhere under .beads/.
+// committed anywhere under .issuegraph/.
 var sensitiveFileNames = []string{
-	".beads-credential-key",
+	".issuegraph-credential-key",
 	"credential-key",
 }
 
 // corruptBackupPattern matches corrupt backup directories created by
-// bd doctor --fix recovery (e.g. dolt.20260312T123507Z.corrupt.backup/).
+// issuegraph doctor --fix recovery (e.g. dolt.20260312T123507Z.corrupt.backup/).
 const corruptBackupDirFragment = ".corrupt.backup/"
 
-// CheckTrackedRuntimeFiles detects files tracked by git under .beads/ that
+// CheckTrackedRuntimeFiles detects files tracked by git under .issuegraph/ that
 // should be gitignored. These are runtime artifacts, lock files, corrupt
 // backups, and sensitive files that may have been committed before the
-// current .beads/.gitignore patterns existed.
+// current .issuegraph/.gitignore patterns existed.
 // repoPath is the project root directory.
 func CheckTrackedRuntimeFiles(repoPath string) DoctorCheck {
-	beadsDir := ResolveBeadsDirForRepo(repoPath)
-	repoRoot := resolvedBeadsRepoRoot(repoPath)
+	issuegraphDir := ResolveIssueGraphDirForRepo(repoPath)
+	repoRoot := resolvedIssueGraphRepoRoot(repoPath)
 
-	// Get all files tracked by git under .beads/
-	cmd := exec.Command("git", "ls-files", ".beads") // #nosec G204 - args are constructed from known parts
+	// Get all files tracked by git under .issuegraph/
+	cmd := exec.Command("git", "ls-files", ".issuegraph") // #nosec G204 - args are constructed from known parts
 	cmd.Dir = repoRoot
 	output, err := cmd.Output()
 	if err != nil {
@@ -102,7 +102,7 @@ func CheckTrackedRuntimeFiles(repoPath string) DoctorCheck {
 		return DoctorCheck{
 			Name:     "Tracked Runtime Files",
 			Status:   StatusOK,
-			Message:  "No .beads/ files tracked by git",
+			Message:  "No .issuegraph/ files tracked by git",
 			Category: CategoryGit,
 		}
 	}
@@ -116,8 +116,8 @@ func CheckTrackedRuntimeFiles(repoPath string) DoctorCheck {
 			continue
 		}
 
-		// Get the path relative to .beads/
-		rel, err := filepath.Rel(beadsDir, filepath.Join(repoRoot, line))
+		// Get the path relative to .issuegraph/
+		rel, err := filepath.Rel(issuegraphDir, filepath.Join(repoRoot, line))
 		if err != nil {
 			continue
 		}
@@ -161,12 +161,12 @@ func CheckTrackedRuntimeFiles(repoPath string) DoctorCheck {
 		Status:   status,
 		Message:  message,
 		Detail:   detail,
-		Fix:      "Run 'bd doctor --fix' to untrack, or manually: git rm --cached <files>",
+		Fix:      "Run 'issuegraph doctor --fix' to untrack, or manually: git rm --cached <files>",
 		Category: CategoryGit,
 	}
 }
 
-// shouldFlagTrackedFile checks if a path relative to .beads/ is a runtime
+// shouldFlagTrackedFile checks if a path relative to .issuegraph/ is a runtime
 // or sensitive file that should not be tracked by git.
 func shouldFlagTrackedFile(rel string) bool {
 	base := filepath.Base(rel)
@@ -190,7 +190,7 @@ func shouldFlagTrackedFile(rel string) bool {
 		}
 	}
 
-	// Only match patterns against top-level .beads/ files (not files in subdirs)
+	// Only match patterns against top-level .issuegraph/ files (not files in subdirs)
 	if strings.Contains(rel, "/") {
 		return false
 	}
@@ -208,11 +208,11 @@ func shouldFlagTrackedFile(rel string) bool {
 // FixTrackedRuntimeFiles untracks runtime/sensitive files from git.
 // repoPath is the project root directory.
 func FixTrackedRuntimeFiles(repoPath string) error {
-	beadsDir := ResolveBeadsDirForRepo(repoPath)
-	repoRoot := resolvedBeadsRepoRoot(repoPath)
+	issuegraphDir := ResolveIssueGraphDirForRepo(repoPath)
+	repoRoot := resolvedIssueGraphRepoRoot(repoPath)
 
-	// Get all files tracked by git under .beads/
-	cmd := exec.Command("git", "ls-files", ".beads") // #nosec G204 - args are constructed from known parts
+	// Get all files tracked by git under .issuegraph/
+	cmd := exec.Command("git", "ls-files", ".issuegraph") // #nosec G204 - args are constructed from known parts
 	cmd.Dir = repoRoot
 	output, err := cmd.Output()
 	if err != nil {
@@ -231,7 +231,7 @@ func FixTrackedRuntimeFiles(repoPath string) error {
 			continue
 		}
 
-		rel, err := filepath.Rel(beadsDir, filepath.Join(repoRoot, line))
+		rel, err := filepath.Rel(issuegraphDir, filepath.Join(repoRoot, line))
 		if err != nil {
 			continue
 		}

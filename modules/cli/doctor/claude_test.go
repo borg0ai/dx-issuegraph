@@ -9,8 +9,8 @@ import (
 
 func TestCheckBdInPath(t *testing.T) {
 	// This test verifies CheckBdInPath works correctly
-	// Note: This test will pass if bd is in PATH (which it likely is during development)
-	// In CI environments, the test may show "warning" if bd isn't installed
+	// Note: This test will pass if issuegraph is in PATH (which it likely is during development)
+	// In CI environments, the test may show "warning" if issuegraph isn't installed
 	check := CheckBdInPath()
 
 	// Just verify the check returns a valid result
@@ -42,58 +42,58 @@ func TestCheckDocumentationBdPrimeReference(t *testing.T) {
 			expectDetail:   false,
 		},
 		{
-			name: "documentation without bd prime",
+			name: "documentation without issuegraph prime",
 			fileContent: map[string]string{
-				"AGENTS.md": "# Agents\n\nUse bd ready to see ready issues.",
+				"AGENTS.md": "# Agents\n\nUse issuegraph ready to see ready issues.",
 			},
 			expectedStatus: "ok",
 			expectDetail:   false,
 		},
 		{
-			name: "AGENTS.md references bd prime",
+			name: "AGENTS.md references issuegraph prime",
 			fileContent: map[string]string{
-				"AGENTS.md": "# Agents\n\nRun `bd prime` to get context.",
+				"AGENTS.md": "# Agents\n\nRun `issuegraph prime` to get context.",
 			},
-			expectedStatus: "ok", // Will be ok if bd is installed, warning otherwise
+			expectedStatus: "ok", // Will be ok if issuegraph is installed, warning otherwise
 			expectDetail:   true,
 		},
 		{
-			name: "CLAUDE.md references bd prime",
+			name: "CLAUDE.md references issuegraph prime",
 			fileContent: map[string]string{
-				"CLAUDE.md": "# Claude\n\nUse bd prime for workflow context.",
-			},
-			expectedStatus: "ok",
-			expectDetail:   true,
-		},
-		{
-			name: ".claude/CLAUDE.md references bd prime",
-			fileContent: map[string]string{
-				".claude/CLAUDE.md": "Run bd prime to see workflow.",
+				"CLAUDE.md": "# Claude\n\nUse issuegraph prime for workflow context.",
 			},
 			expectedStatus: "ok",
 			expectDetail:   true,
 		},
 		{
-			name: "claude.local.md references bd prime (local-only)",
+			name: ".claude/CLAUDE.md references issuegraph prime",
 			fileContent: map[string]string{
-				"claude.local.md": "Run bd prime for context.",
+				".claude/CLAUDE.md": "Run issuegraph prime to see workflow.",
 			},
 			expectedStatus: "ok",
 			expectDetail:   true,
 		},
 		{
-			name: ".claude/claude.local.md references bd prime (local-only)",
+			name: "claude.local.md references issuegraph prime (local-only)",
 			fileContent: map[string]string{
-				".claude/claude.local.md": "Use bd prime for workflow context.",
+				"claude.local.md": "Run issuegraph prime for context.",
 			},
 			expectedStatus: "ok",
 			expectDetail:   true,
 		},
 		{
-			name: "multiple files reference bd prime",
+			name: ".claude/claude.local.md references issuegraph prime (local-only)",
 			fileContent: map[string]string{
-				"AGENTS.md": "Use bd prime",
-				"CLAUDE.md": "Run bd prime",
+				".claude/claude.local.md": "Use issuegraph prime for workflow context.",
+			},
+			expectedStatus: "ok",
+			expectDetail:   true,
+		},
+		{
+			name: "multiple files reference issuegraph prime",
+			fileContent: map[string]string{
+				"AGENTS.md": "Use issuegraph prime",
+				"CLAUDE.md": "Run issuegraph prime",
 			},
 			expectedStatus: "ok",
 			expectDetail:   true,
@@ -124,14 +124,14 @@ func TestCheckDocumentationBdPrimeReference(t *testing.T) {
 				t.Errorf("Expected check name 'Prime Documentation', got %s", check.Name)
 			}
 
-			// The status depends on whether bd is installed, so we accept both ok and warning
+			// The status depends on whether issuegraph is installed, so we accept both ok and warning
 			if check.Status != "ok" && check.Status != "warning" {
 				t.Errorf("Expected status 'ok' or 'warning', got %s", check.Status)
 			}
 
 			// If we expect detail (files were found), verify it's present
 			if tt.expectDetail && check.Status == "ok" && check.Detail == "" {
-				t.Error("Expected Detail field to be set when files reference bd prime")
+				t.Error("Expected Detail field to be set when files reference issuegraph prime")
 			}
 
 			// If warning, should have a fix message
@@ -151,7 +151,7 @@ func TestCheckDocumentationBdPrimeReferenceNoFiles(t *testing.T) {
 		t.Errorf("Expected status 'ok' for no documentation files, got %s", check.Status)
 	}
 
-	if check.Message != "No bd prime references in documentation" {
+	if check.Message != "No issuegraph prime references in documentation" {
 		t.Errorf("Expected message about no references, got: %s", check.Message)
 	}
 }
@@ -171,7 +171,7 @@ func TestIsMCPServerInstalled(t *testing.T) {
 }
 
 func TestIsMCPServerInstalledProjectLevel(t *testing.T) {
-	mcpContent := `{"mcpServers":{"beads":{"command":"beads-mcp"}}}`
+	mcpContent := `{"mcpServers":{"issuegraph":{"command":"issuegraph-mcp"}}}`
 
 	// Test that MCP server is detected in each project-level settings file
 	for _, filename := range []string{"settings.json", "settings.local.json"} {
@@ -208,7 +208,7 @@ func TestIsMCPServerInstalledProjectLevel(t *testing.T) {
 		}
 	})
 
-	t.Run("mcpServers but not beads", func(t *testing.T) {
+	t.Run("mcpServers but not issuegraph", func(t *testing.T) {
 		tmpDir := t.TempDir()
 
 		if err := os.MkdirAll(filepath.Join(tmpDir, ".claude"), 0o755); err != nil {
@@ -220,22 +220,22 @@ func TestIsMCPServerInstalledProjectLevel(t *testing.T) {
 		}
 
 		if isMCPServerInstalled(tmpDir) {
-			t.Error("expected NOT to detect MCP server when beads not present")
+			t.Error("expected NOT to detect MCP server when issuegraph not present")
 		}
 	})
 }
 
-func TestIsBeadsPluginInstalled(t *testing.T) {
+func TestIsIssueGraphPluginInstalled(t *testing.T) {
 	// Similar sanity check for plugin detection
-	result := isBeadsPluginInstalled(".")
+	result := isIssueGraphPluginInstalled(".")
 
 	// Just verify it returns a boolean without panicking
 	if result != true && result != false {
-		t.Error("Expected boolean result from isBeadsPluginInstalled")
+		t.Error("Expected boolean result from isIssueGraphPluginInstalled")
 	}
 }
 
-func TestIsBeadsPluginInstalledProjectLevel(t *testing.T) {
+func TestIsIssueGraphPluginInstalledProjectLevel(t *testing.T) {
 	// Test that plugin is detected in each project-level settings file
 	for _, filename := range []string{"settings.json", "settings.local.json"} {
 		t.Run(filename, func(t *testing.T) {
@@ -244,12 +244,12 @@ func TestIsBeadsPluginInstalledProjectLevel(t *testing.T) {
 			if err := os.MkdirAll(filepath.Join(tmpDir, ".claude"), 0o755); err != nil {
 				t.Fatal(err)
 			}
-			content := `{"enabledPlugins":{"beads@beads-marketplace":true}}`
+			content := `{"enabledPlugins":{"issuegraph@issuegraph-marketplace":true}}`
 			if err := os.WriteFile(filepath.Join(tmpDir, ".claude", filename), []byte(content), 0o644); err != nil {
 				t.Fatal(err)
 			}
 
-			if !isBeadsPluginInstalled(tmpDir) {
+			if !isIssueGraphPluginInstalled(tmpDir) {
 				t.Errorf("expected to detect plugin in .claude/%s", filename)
 			}
 		})
@@ -265,12 +265,12 @@ func TestIsBeadsPluginInstalledProjectLevel(t *testing.T) {
 		if err := os.MkdirAll(filepath.Join(tmpDir, ".claude"), 0o755); err != nil {
 			t.Fatal(err)
 		}
-		content := `{"enabledPlugins":{"beads@beads-marketplace":false}}`
+		content := `{"enabledPlugins":{"issuegraph@issuegraph-marketplace":false}}`
 		if err := os.WriteFile(filepath.Join(tmpDir, ".claude", "settings.json"), []byte(content), 0o644); err != nil {
 			t.Fatal(err)
 		}
 
-		if isBeadsPluginInstalled(tmpDir) {
+		if isIssueGraphPluginInstalled(tmpDir) {
 			t.Error("expected NOT to detect plugin when explicitly disabled")
 		}
 	})
@@ -289,7 +289,7 @@ func TestIsBeadsPluginInstalledProjectLevel(t *testing.T) {
 			t.Fatal(err)
 		}
 
-		if isBeadsPluginInstalled(tmpDir) {
+		if isIssueGraphPluginInstalled(tmpDir) {
 			t.Error("expected NOT to detect plugin when enabledPlugins section missing")
 		}
 	})
@@ -309,7 +309,7 @@ func TestHasClaudeHooksProjectLevel(t *testing.T) {
 	hooksContent := `{
 		"hooks": {
 			"SessionStart": [
-				{"matcher": "", "hooks": [{"type": "command", "command": "bd prime"}]}
+				{"matcher": "", "hooks": [{"type": "command", "command": "issuegraph prime"}]}
 			]
 		}
 	}`
@@ -357,7 +357,7 @@ func TestHasClaudeHooksProjectLevel(t *testing.T) {
 		}
 	})
 
-	t.Run("hooks but not bd prime", func(t *testing.T) {
+	t.Run("hooks but not issuegraph prime", func(t *testing.T) {
 		tmpDir := t.TempDir()
 		setTempHome(t, t.TempDir())
 
@@ -376,7 +376,7 @@ func TestHasClaudeHooksProjectLevel(t *testing.T) {
 		}
 
 		if hasClaudeHooks(tmpDir) {
-			t.Error("expected NOT to detect hooks when bd prime not present")
+			t.Error("expected NOT to detect hooks when issuegraph prime not present")
 		}
 	})
 }
@@ -400,16 +400,16 @@ func TestCheckClaude(t *testing.T) {
 	}
 }
 
-func TestHasBeadsHooksWithInvalidPath(t *testing.T) {
-	// Test that hasBeadsHooks handles invalid/missing paths gracefully
-	result := hasBeadsHooks("/nonexistent/path/to/settings.json")
+func TestHasIssueGraphHooksWithInvalidPath(t *testing.T) {
+	// Test that hasIssueGraphHooks handles invalid/missing paths gracefully
+	result := hasIssueGraphHooks("/nonexistent/path/to/settings.json")
 
 	if result != false {
 		t.Error("Expected false for non-existent settings file")
 	}
 }
 
-func TestHasBeadsHooksWithInvalidJSON(t *testing.T) {
+func TestHasIssueGraphHooksWithInvalidJSON(t *testing.T) {
 	tmpDir := t.TempDir()
 	settingsPath := filepath.Join(tmpDir, "settings.json")
 
@@ -418,14 +418,14 @@ func TestHasBeadsHooksWithInvalidJSON(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	result := hasBeadsHooks(settingsPath)
+	result := hasIssueGraphHooks(settingsPath)
 
 	if result != false {
 		t.Error("Expected false for invalid JSON settings file")
 	}
 }
 
-func TestHasBeadsHooksWithNoHooksSection(t *testing.T) {
+func TestHasIssueGraphHooksWithNoHooksSection(t *testing.T) {
 	tmpDir := t.TempDir()
 	settingsPath := filepath.Join(tmpDir, "settings.json")
 
@@ -434,27 +434,27 @@ func TestHasBeadsHooksWithNoHooksSection(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	result := hasBeadsHooks(settingsPath)
+	result := hasIssueGraphHooks(settingsPath)
 
 	if result != false {
 		t.Error("Expected false for settings file without hooks section")
 	}
 }
 
-func TestHasBeadsHooksWithBdPrime(t *testing.T) {
+func TestHasIssueGraphHooksWithBdPrime(t *testing.T) {
 	tmpDir := t.TempDir()
 	settingsPath := filepath.Join(tmpDir, "settings.json")
 
-	// Write settings with bd prime hook
+	// Write settings with issuegraph prime hook
 	settingsContent := `{
 		"hooks": {
 			"SessionStart": [
 				{
-					"matcher": "beads",
+					"matcher": "issuegraph",
 					"hooks": [
 						{
 							"type": "command",
-							"command": "bd prime"
+							"command": "issuegraph prime"
 						}
 					]
 				}
@@ -465,18 +465,18 @@ func TestHasBeadsHooksWithBdPrime(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	result := hasBeadsHooks(settingsPath)
+	result := hasIssueGraphHooks(settingsPath)
 
 	if result != true {
-		t.Error("Expected true for settings file with bd prime hook")
+		t.Error("Expected true for settings file with issuegraph prime hook")
 	}
 }
 
-func TestHasBeadsHooksWithoutBdPrime(t *testing.T) {
+func TestHasIssueGraphHooksWithoutBdPrime(t *testing.T) {
 	tmpDir := t.TempDir()
 	settingsPath := filepath.Join(tmpDir, "settings.json")
 
-	// Write settings with hooks but not bd prime
+	// Write settings with hooks but not issuegraph prime
 	settingsContent := `{
 		"hooks": {
 			"SessionStart": [
@@ -496,14 +496,14 @@ func TestHasBeadsHooksWithoutBdPrime(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	result := hasBeadsHooks(settingsPath)
+	result := hasIssueGraphHooks(settingsPath)
 
 	if result != false {
-		t.Error("Expected false for settings file without bd prime hook")
+		t.Error("Expected false for settings file without issuegraph prime hook")
 	}
 }
 
-func TestHasBeadsHooksWithStealthMode(t *testing.T) {
+func TestHasIssueGraphHooksWithStealthMode(t *testing.T) {
 	tmpDir := t.TempDir()
 	settingsPath := filepath.Join(tmpDir, "settings.json")
 
@@ -515,7 +515,7 @@ func TestHasBeadsHooksWithStealthMode(t *testing.T) {
 					"hooks": [
 						{
 							"type": "command",
-							"command": "bd prime --stealth"
+							"command": "issuegraph prime --stealth"
 						}
 					]
 				}
@@ -526,10 +526,10 @@ func TestHasBeadsHooksWithStealthMode(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	result := hasBeadsHooks(settingsPath)
+	result := hasIssueGraphHooks(settingsPath)
 
 	if result != true {
-		t.Error("Expected true for settings file with bd prime --stealth hook")
+		t.Error("Expected true for settings file with issuegraph prime --stealth hook")
 	}
 }
 
@@ -639,8 +639,8 @@ func TestCheckClaudeHookCompleteness(t *testing.T) {
 		}
 		content := `{
 			"hooks": {
-				"SessionStart": [{"matcher":"","hooks":[{"type":"command","command":"bd prime"}]}],
-				"PreCompact": [{"matcher":"","hooks":[{"type":"command","command":"bd prime"}]}]
+				"SessionStart": [{"matcher":"","hooks":[{"type":"command","command":"issuegraph prime"}]}],
+				"PreCompact": [{"matcher":"","hooks":[{"type":"command","command":"issuegraph prime"}]}]
 			}
 		}`
 		if err := os.WriteFile(filepath.Join(tmpDir, ".claude", "settings.json"), []byte(content), 0o644); err != nil {
@@ -663,7 +663,7 @@ func TestCheckClaudeHookCompleteness(t *testing.T) {
 		}
 		content := `{
 			"hooks": {
-				"SessionStart": [{"matcher":"","hooks":[{"type":"command","command":"bd prime"}]}]
+				"SessionStart": [{"matcher":"","hooks":[{"type":"command","command":"issuegraph prime"}]}]
 			}
 		}`
 		if err := os.WriteFile(filepath.Join(tmpDir, ".claude", "settings.json"), []byte(content), 0o644); err != nil {
@@ -686,7 +686,7 @@ func TestCheckClaudeHookCompleteness(t *testing.T) {
 		}
 		content := `{
 			"hooks": {
-				"PreCompact": [{"matcher":"","hooks":[{"type":"command","command":"bd prime"}]}]
+				"PreCompact": [{"matcher":"","hooks":[{"type":"command","command":"issuegraph prime"}]}]
 			}
 		}`
 		if err := os.WriteFile(filepath.Join(tmpDir, ".claude", "settings.json"), []byte(content), 0o644); err != nil {
@@ -709,8 +709,8 @@ func TestCheckClaudeHookCompleteness(t *testing.T) {
 		}
 		content := `{
 			"hooks": {
-				"SessionStart": [{"matcher":"","hooks":[{"type":"command","command":"bd prime --stealth"}]}],
-				"PreCompact": [{"matcher":"","hooks":[{"type":"command","command":"bd prime --stealth"}]}]
+				"SessionStart": [{"matcher":"","hooks":[{"type":"command","command":"issuegraph prime --stealth"}]}],
+				"PreCompact": [{"matcher":"","hooks":[{"type":"command","command":"issuegraph prime --stealth"}]}]
 			}
 		}`
 		if err := os.WriteFile(filepath.Join(tmpDir, ".claude", "settings.json"), []byte(content), 0o644); err != nil {
@@ -749,8 +749,8 @@ func TestCheckHookEvents(t *testing.T) {
 		path := filepath.Join(tmpDir, "settings.json")
 		content := `{
 			"hooks": {
-				"SessionStart": [{"matcher":"","hooks":[{"type":"command","command":"bd prime"}]}],
-				"PreCompact": [{"matcher":"","hooks":[{"type":"command","command":"bd prime"}]}]
+				"SessionStart": [{"matcher":"","hooks":[{"type":"command","command":"issuegraph prime"}]}],
+				"PreCompact": [{"matcher":"","hooks":[{"type":"command","command":"issuegraph prime"}]}]
 			}
 		}`
 		if err := os.WriteFile(path, []byte(content), 0o644); err != nil {
@@ -767,7 +767,7 @@ func TestCheckHookEvents(t *testing.T) {
 		path := filepath.Join(tmpDir, "settings.json")
 		content := `{
 			"hooks": {
-				"SessionStart": [{"matcher":"","hooks":[{"type":"command","command":"bd prime"}]}]
+				"SessionStart": [{"matcher":"","hooks":[{"type":"command","command":"issuegraph prime"}]}]
 			}
 		}`
 		if err := os.WriteFile(path, []byte(content), 0o644); err != nil {

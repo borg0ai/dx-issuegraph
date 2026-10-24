@@ -6,7 +6,7 @@ import (
 	"testing"
 	"time"
 
-	"github.com/steveyegge/beads/internal/types"
+	"github.com/borg0ai/dx-issuegraph/internal/types"
 )
 
 // TestMatchGatesToRuns_ScopesPerGateRepo is the core SF1 regression test:
@@ -239,7 +239,7 @@ func TestGateDiscoveryQueryFailures_IgnoresMetadataErrors(t *testing.T) {
 // match nothing, forever. But an EXPLICIT `--branch` must survive for a
 // foreign repo too: it is a deliberate instruction about the target repo's
 // branch, not a guess about the local checkout, and dropping it silently
-// would make `bd gate discover --branch main` appear to work cross-repo
+// would make `issuegraph gate discover --branch main` appear to work cross-repo
 // while actually doing nothing.
 func TestBranchFilterForRepo(t *testing.T) {
 	tests := []struct {

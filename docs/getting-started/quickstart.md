@@ -20,13 +20,13 @@ Open issues: Set up database, Create API, Add authentication
 **IssueGraph:**
 ```bash
 $ issuegraph ready
-1. [P1] [task] bd-1: Set up database
+1. [P1] [task] issuegraph-1: Set up database
 
 $ issuegraph ready --explain --json | jq '.blocked[0]'
 {
-  "id": "bd-3",
+  "id": "issuegraph-3",
   "title": "Add authentication",
-  "blocked_by": [{"id": "bd-2", "title": "Create API", "status": "open"}]
+  "blocked_by": [{"id": "issuegraph-2", "title": "Create API", "status": "open"}]
 }
 ```
 
@@ -65,13 +65,13 @@ issuegraph init --team
 ```
 
 The wizard will:
-- Create `.beads/` directory and embedded Dolt database
+- Create `.issuegraph/` directory and embedded Dolt database
 - **Prompt for your role** (maintainer or contributor) unless a flag is provided
 - Import existing issues from git (if any)
 - Install git hooks (skip with `--skip-hooks`)
 
 Notes:
-- Dolt is the default (and only) storage backend. Data is stored in `.beads/embeddeddolt/`.
+- Dolt is the default (and only) storage backend. Data is stored in `.issuegraph/embeddeddolt/`.
 - By default, Dolt runs in **embedded mode** (in-process, no server needed).
 - For multi-writer setups, use `issuegraph init --server` to connect to a `dolt sql-server` instead.
 - To import issues from an older installation, run `issuegraph init --from-jsonl`.
@@ -83,27 +83,27 @@ During `issuegraph init`, you'll be asked: "Contributing to someone else's repo?
 - Answer **Y** if you're contributing to a fork (runs contributor wizard)
 - Answer **N** if you're the maintainer or have push access
 
-This sets `git config beads.role` which determines how issuegraph routes issues:
+This sets `git config issuegraph.role` which determines how issuegraph routes issues:
 
 | Role | Use case | Issue storage |
 |------|----------|---------------|
-| `maintainer` | Repo owner, team with push access | In-repo `.beads/` |
+| `maintainer` | Repo owner, team with push access | In-repo `.issuegraph/` |
 | `contributor` | Fork contributor, OSS contributor | Separate planning repo |
 
 You can also configure manually:
 
 ```bash
 # Set as contributor
-git config beads.role contributor
+git config issuegraph.role contributor
 
 # Set as maintainer
-git config beads.role maintainer
+git config issuegraph.role maintainer
 
 # Check current role
-git config --get beads.role
+git config --get issuegraph.role
 ```
 
-**Note:** If `beads.role` is not configured, issuegraph falls back to URL-based detection (deprecated). Run `issuegraph doctor` to check configuration status.
+**Note:** If `issuegraph.role` is not configured, issuegraph falls back to URL-based detection (deprecated). Run `issuegraph doctor` to check configuration status.
 
 ## Your first issues
 
@@ -117,7 +117,7 @@ issuegraph create "Add authentication" -p 2 -t feature
 issuegraph list
 ```
 
-**Note:** Issue IDs are hash-based (e.g., `bd-a1b2`, `bd-f14c`) to prevent collisions when multiple agents/branches work concurrently.
+**Note:** Issue IDs are hash-based (e.g., `issuegraph-a1b2`, `issuegraph-f14c`) to prevent collisions when multiple agents/branches work concurrently.
 
 ## Hierarchical issues (epics)
 
@@ -126,25 +126,25 @@ For large features, use hierarchical IDs to organize work:
 ```bash
 # Create epic (generates parent hash ID)
 issuegraph create "Auth System" -t epic -p 1
-# Returns: bd-a3f8e9
+# Returns: issuegraph-a3f8e9
 
 # Create child tasks (use --parent to attach to the epic)
-issuegraph create "Design login UI" -p 1 --parent bd-a3f8e9       # bd-a3f8e9.1
-issuegraph create "Backend validation" -p 1 --parent bd-a3f8e9    # bd-a3f8e9.2
-issuegraph create "Integration tests" -p 1 --parent bd-a3f8e9     # bd-a3f8e9.3
+issuegraph create "Design login UI" -p 1 --parent issuegraph-a3f8e9       # issuegraph-a3f8e9.1
+issuegraph create "Backend validation" -p 1 --parent issuegraph-a3f8e9    # issuegraph-a3f8e9.2
+issuegraph create "Integration tests" -p 1 --parent issuegraph-a3f8e9     # issuegraph-a3f8e9.3
 
 # View hierarchy
-issuegraph dep tree bd-a3f8e9
+issuegraph dep tree issuegraph-a3f8e9
 ```
 
 Output:
 ```
-Dependency tree for bd-a3f8e9:
+Dependency tree for issuegraph-a3f8e9:
 
-> bd-a3f8e9: Auth System [epic] [P1] (open)
-  > bd-a3f8e9.1: Design login UI [P1] (open)
-  > bd-a3f8e9.2: Backend validation [P1] (open)
-  > bd-a3f8e9.3: Integration tests [P1] (open)
+> issuegraph-a3f8e9: Auth System [epic] [P1] (open)
+  > issuegraph-a3f8e9.1: Design login UI [P1] (open)
+  > issuegraph-a3f8e9.2: Backend validation [P1] (open)
+  > issuegraph-a3f8e9.3: Integration tests [P1] (open)
 ```
 
 Children inherit the epic's labels by default — if the epic carries a size/effort label, see [Labels](/core-concepts/labels) for how to keep it off the children.
@@ -153,29 +153,29 @@ Children inherit the epic's labels by default — if the epic carries a size/eff
 
 ```bash
 # API depends on database
-issuegraph dep add bd-2 bd-1
+issuegraph dep add issuegraph-2 issuegraph-1
 
 # Auth depends on API
-issuegraph dep add bd-3 bd-2
+issuegraph dep add issuegraph-3 issuegraph-2
 
 # View the tree
-issuegraph dep tree bd-3
+issuegraph dep tree issuegraph-3
 ```
 
 Output:
 ```
-Dependency tree for bd-3:
+Dependency tree for issuegraph-3:
 
-> bd-3: Add authentication [P2] (open)
-  > bd-2: Create API [P2] (open)
-    > bd-1: Set up database [P1] (open)
+> issuegraph-3: Add authentication [P2] (open)
+  > issuegraph-2: Create API [P2] (open)
+    > issuegraph-1: Set up database [P1] (open)
 ```
 
 **Dependency visibility:** `issuegraph list` shows blocking dependencies inline:
 ```
-○ bd-a1b2 [P1] [task] - Set up database
-○ bd-f14c [P2] [feature] - Create API (blocked by: bd-a1b2)
-○ bd-g25d [P2] [feature] - Add authentication (blocked by: bd-f14c)
+○ issuegraph-a1b2 [P1] [task] - Set up database
+○ issuegraph-f14c [P2] [feature] - Create API (blocked by: issuegraph-a1b2)
+○ issuegraph-g25d [P2] [feature] - Add authentication (blocked by: issuegraph-f14c)
 ```
 
 ## Find ready work
@@ -188,10 +188,10 @@ Output:
 ```
 Ready work (1 issues with no active blockers):
 
-1. [P1] bd-1: Set up database
+1. [P1] issuegraph-1: Set up database
 ```
 
-Only bd-1 is ready because bd-2 and bd-3 are blocked.
+Only issuegraph-1 is ready because issuegraph-2 and issuegraph-3 are blocked.
 
 **Understanding why:** Use `--explain` to see the full graph reasoning:
 
@@ -205,17 +205,17 @@ Ready Work Explanation
 
 ● Ready (1 issues):
 
-  bd-1 [P1] Set up database
+  issuegraph-1 [P1] Set up database
     Reason: no blocking dependencies
     Unblocks: 1 issue(s)
 
 ● Blocked (2 issues):
 
-  bd-2 [P2] Create API
-    ← blocked by bd-1: Set up database [open]
+  issuegraph-2 [P2] Create API
+    ← blocked by issuegraph-1: Set up database [open]
 
-  bd-3 [P2] Add authentication
-    ← blocked by bd-2: Create API [open]
+  issuegraph-3 [P2] Add authentication
+    ← blocked by issuegraph-2: Create API [open]
 
 ─ Summary: 1 ready, 2 blocked
 ```
@@ -225,17 +225,17 @@ Ready Work Explanation
 ## Work the queue
 
 ```bash
-# Start working on bd-1
-issuegraph update bd-1 --claim
+# Start working on issuegraph-1
+issuegraph update issuegraph-1 --claim
 
 # Complete it
-issuegraph close bd-1 --reason "Database setup complete"
+issuegraph close issuegraph-1 --reason "Database setup complete"
 
 # Check ready work again
 issuegraph ready
 ```
 
-Now bd-2 is ready.
+Now issuegraph-2 is ready.
 
 ## Track progress
 
@@ -303,7 +303,7 @@ issuegraph notion sync --push
 
 ## Database location
 
-By default (embedded mode), data is stored in `.beads/embeddeddolt/` within your repository.
+By default (embedded mode), data is stored in `.issuegraph/embeddeddolt/` within your repository.
 In server mode, data is managed by the external `dolt sql-server`.
 
 ## Migrating databases
@@ -320,7 +320,7 @@ issuegraph info --schema --json
 # Preview migration changes
 issuegraph migrate --dry-run
 
-# Migrate old databases to beads.db
+# Migrate old databases to issuegraph.db
 issuegraph migrate
 
 # Migrate and clean up old files
@@ -341,7 +341,7 @@ issuegraph admin compact --stats
 issuegraph admin compact --analyze --json
 
 # Apply agent-generated summary
-issuegraph admin compact --apply --id bd-42 --summary summary.txt
+issuegraph admin compact --apply --id issuegraph-42 --summary summary.txt
 
 # Immediately delete closed issues (CAUTION: permanent!)
 issuegraph admin cleanup --force
@@ -366,4 +366,4 @@ issuegraph admin cleanup --force
 - More sync scenarios: [`issuegraph dolt`](/cli-reference/dolt)
 - Full command list: [CLI Reference](/cli-reference/index)
 
-See the [repository README](https://github.com/gastownhall/beads/blob/main/README.md) for an overview and links to deeper docs.
+See the [repository README](https://github.com/borg0ai/dx-issuegraph/blob/main/README.md) for an overview and links to deeper docs.

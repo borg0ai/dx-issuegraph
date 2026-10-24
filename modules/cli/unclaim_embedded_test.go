@@ -9,51 +9,51 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/steveyegge/beads/internal/types"
+	"github.com/borg0ai/dx-issuegraph/internal/types"
 )
 
-// bdUnclaim runs "bd unclaim" with the given args and returns stdout.
+// issuegraphUnclaim runs "issuegraph unclaim" with the given args and returns stdout.
 // Retries on flock contention.
-func bdUnclaim(t *testing.T, bd, dir string, args ...string) string {
+func issuegraphUnclaim(t *testing.T, issuegraph, dir string, args ...string) string {
 	t.Helper()
 	fullArgs := append([]string{"unclaim"}, args...)
-	out, err := bdRunWithFlockRetry(t, bd, dir, fullArgs...)
+	out, err := issuegraphRunWithFlockRetry(t, issuegraph, dir, fullArgs...)
 	if err != nil {
-		t.Fatalf("bd unclaim %s failed: %v\n%s", strings.Join(args, " "), err, out)
+		t.Fatalf("issuegraph unclaim %s failed: %v\n%s", strings.Join(args, " "), err, out)
 	}
 	return string(out)
 }
 
-// bdUnclaimFail runs "bd unclaim" expecting failure.
-func bdUnclaimFail(t *testing.T, bd, dir string, args ...string) string {
+// issuegraphUnclaimFail runs "issuegraph unclaim" expecting failure.
+func issuegraphUnclaimFail(t *testing.T, issuegraph, dir string, args ...string) string {
 	t.Helper()
 	fullArgs := append([]string{"unclaim"}, args...)
-	cmd := exec.Command(bd, fullArgs...)
+	cmd := exec.Command(issuegraph, fullArgs...)
 	cmd.Dir = dir
-	cmd.Env = bdEnv(dir)
+	cmd.Env = issuegraphEnv(dir)
 	out, err := cmd.CombinedOutput()
 	if err == nil {
-		t.Fatalf("expected bd unclaim %s to fail, but it succeeded:\n%s", strings.Join(args, " "), out)
+		t.Fatalf("expected issuegraph unclaim %s to fail, but it succeeded:\n%s", strings.Join(args, " "), out)
 	}
 	return string(out)
 }
 
 func TestEmbeddedUnclaim(t *testing.T) {
-	if os.Getenv("BEADS_TEST_EMBEDDED_DOLT") != "1" {
-		t.Skip("set BEADS_TEST_EMBEDDED_DOLT=1 to run embedded dolt integration tests")
+	if os.Getenv("ISSUEGRAPH_TEST_EMBEDDED_DOLT") != "1" {
+		t.Skip("set ISSUEGRAPH_TEST_EMBEDDED_DOLT=1 to run embedded dolt integration tests")
 	}
 	t.Parallel()
 
-	bd := buildEmbeddedBD(t)
-	dir, _, _ := bdInit(t, bd, "--prefix", "tu")
+	issuegraph := buildEmbeddedBD(t)
+	dir, _, _ := issuegraphInit(t, issuegraph, "--prefix", "tu")
 
 	// ===== Basic Success =====
 
 	t.Run("unclaim_from_in_progress", func(t *testing.T) {
-		issue := bdCreate(t, bd, dir, "Unclaim test", "--type", "task")
-		bdUpdate(t, bd, dir, issue.ID, "--claim")
-		bdUnclaim(t, bd, dir, issue.ID)
-		got := bdShow(t, bd, dir, issue.ID)
+		issue := issuegraphCreate(t, issuegraph, dir, "Unclaim test", "--type", "task")
+		issuegraphUpdate(t, issuegraph, dir, issue.ID, "--claim")
+		issuegraphUnclaim(t, issuegraph, dir, issue.ID)
+		got := issuegraphShow(t, issuegraph, dir, issue.ID)
 		if got.Assignee != "" {
 			t.Errorf("expected assignee to be empty after unclaim, got %q", got.Assignee)
 		}
@@ -63,13 +63,13 @@ func TestEmbeddedUnclaim(t *testing.T) {
 	})
 
 	t.Run("unclaim_from_open_stuck_claim", func(t *testing.T) {
-		issue := bdCreate(t, bd, dir, "Stuck claim test", "--type", "task")
+		issue := issuegraphCreate(t, issuegraph, dir, "Stuck claim test", "--type", "task")
 		// Manually set assignee without changing status (simulates stuck claim).
-		bdUpdate(t, bd, dir, issue.ID, "--assignee", "alice")
+		issuegraphUpdate(t, issuegraph, dir, issue.ID, "--assignee", "alice")
 		// Release as the owner: ownership enforcement (fe908d40b) rejects a
 		// non-owner release without --force.
-		bdUnclaim(t, bd, dir, issue.ID, "--actor", "alice")
-		got := bdShow(t, bd, dir, issue.ID)
+		issuegraphUnclaim(t, issuegraph, dir, issue.ID, "--actor", "alice")
+		got := issuegraphShow(t, issuegraph, dir, issue.ID)
 		if got.Assignee != "" {
 			t.Errorf("expected assignee to be empty after unclaim, got %q", got.Assignee)
 		}
@@ -81,13 +81,13 @@ func TestEmbeddedUnclaim(t *testing.T) {
 	// ===== With Reason =====
 
 	t.Run("unclaim_with_reason", func(t *testing.T) {
-		issue := bdCreate(t, bd, dir, "Reason test", "--type", "task")
-		bdUpdate(t, bd, dir, issue.ID, "--claim")
-		out := bdUnclaim(t, bd, dir, issue.ID, "--reason", "Agent crashed")
+		issue := issuegraphCreate(t, issuegraph, dir, "Reason test", "--type", "task")
+		issuegraphUpdate(t, issuegraph, dir, issue.ID, "--claim")
+		out := issuegraphUnclaim(t, issuegraph, dir, issue.ID, "--reason", "Agent crashed")
 		if !strings.Contains(out, "Agent crashed") {
 			t.Errorf("expected reason in output, got: %s", out)
 		}
-		got := bdShow(t, bd, dir, issue.ID)
+		got := issuegraphShow(t, issuegraph, dir, issue.ID)
 		if got.Assignee != "" {
 			t.Errorf("expected assignee to be empty after unclaim, got %q", got.Assignee)
 		}
@@ -99,10 +99,10 @@ func TestEmbeddedUnclaim(t *testing.T) {
 	// ===== JSON Output =====
 
 	t.Run("unclaim_json_output", func(t *testing.T) {
-		issue := bdCreate(t, bd, dir, "JSON test", "--type", "task")
-		bdUpdate(t, bd, dir, issue.ID, "--claim")
-		out := bdUnclaim(t, bd, dir, issue.ID, "--json")
-		// bd unclaim --json emits an array of the affected issues. A cleared
+		issue := issuegraphCreate(t, issuegraph, dir, "JSON test", "--type", "task")
+		issuegraphUpdate(t, issuegraph, dir, issue.ID, "--claim")
+		out := issuegraphUnclaim(t, issuegraph, dir, issue.ID, "--json")
+		// issuegraph unclaim --json emits an array of the affected issues. A cleared
 		// assignee is empty and omitempty drops it from the payload, so parse
 		// and assert on the decoded fields rather than raw substrings.
 		var unclaimed []struct {
@@ -126,13 +126,13 @@ func TestEmbeddedUnclaim(t *testing.T) {
 	// ===== Multiple IDs =====
 
 	t.Run("unclaim_multiple_ids", func(t *testing.T) {
-		issue1 := bdCreate(t, bd, dir, "Multi test 1", "--type", "task")
-		issue2 := bdCreate(t, bd, dir, "Multi test 2", "--type", "task")
-		bdUpdate(t, bd, dir, issue1.ID, "--claim")
-		bdUpdate(t, bd, dir, issue2.ID, "--claim")
-		bdUnclaim(t, bd, dir, issue1.ID, issue2.ID)
-		got1 := bdShow(t, bd, dir, issue1.ID)
-		got2 := bdShow(t, bd, dir, issue2.ID)
+		issue1 := issuegraphCreate(t, issuegraph, dir, "Multi test 1", "--type", "task")
+		issue2 := issuegraphCreate(t, issuegraph, dir, "Multi test 2", "--type", "task")
+		issuegraphUpdate(t, issuegraph, dir, issue1.ID, "--claim")
+		issuegraphUpdate(t, issuegraph, dir, issue2.ID, "--claim")
+		issuegraphUnclaim(t, issuegraph, dir, issue1.ID, issue2.ID)
+		got1 := issuegraphShow(t, issuegraph, dir, issue1.ID)
+		got2 := issuegraphShow(t, issuegraph, dir, issue2.ID)
 		if got1.Assignee != "" {
 			t.Errorf("expected assignee to be empty for issue1, got %q", got1.Assignee)
 		}
@@ -150,26 +150,26 @@ func TestEmbeddedUnclaim(t *testing.T) {
 	// ===== Error Cases =====
 
 	t.Run("unclaim_non_existent_issue", func(t *testing.T) {
-		out := bdUnclaimFail(t, bd, dir, "nonexistent")
+		out := issuegraphUnclaimFail(t, issuegraph, dir, "nonexistent")
 		if !strings.Contains(out, "not found") && !strings.Contains(out, "Error") {
 			t.Errorf("expected error about non-existent issue, got: %s", out)
 		}
 	})
 
 	t.Run("unclaim_closed_issue", func(t *testing.T) {
-		issue := bdCreate(t, bd, dir, "Closed test", "--type", "task")
-		bdUpdate(t, bd, dir, issue.ID, "--claim")
+		issue := issuegraphCreate(t, issuegraph, dir, "Closed test", "--type", "task")
+		issuegraphUpdate(t, issuegraph, dir, issue.ID, "--claim")
 		// Close the issue first
-		bdClose(t, bd, dir, issue.ID)
-		out := bdUnclaimFail(t, bd, dir, issue.ID)
+		issuegraphClose(t, issuegraph, dir, issue.ID)
+		out := issuegraphUnclaimFail(t, issuegraph, dir, issue.ID)
 		if !strings.Contains(out, "cannot unclaim closed issue") {
 			t.Errorf("expected error about closed issue, got: %s", out)
 		}
 	})
 
 	t.Run("unclaim_unassigned_issue", func(t *testing.T) {
-		issue := bdCreate(t, bd, dir, "Unassigned test", "--type", "task")
-		out := bdUnclaimFail(t, bd, dir, issue.ID)
+		issue := issuegraphCreate(t, issuegraph, dir, "Unassigned test", "--type", "task")
+		out := issuegraphUnclaimFail(t, issuegraph, dir, issue.ID)
 		if !strings.Contains(out, "is not assigned") {
 			t.Errorf("expected error about unassigned issue, got: %s", out)
 		}
@@ -180,10 +180,10 @@ func TestEmbeddedUnclaim(t *testing.T) {
 	// A non-owner may not release another agent's claim: the release is rejected
 	// with ErrNotOwner (non-zero exit) and the claim is left intact.
 	t.Run("unclaim_non_owner_rejected", func(t *testing.T) {
-		issue := bdCreate(t, bd, dir, "Owned by alice", "--type", "task")
-		bdUpdate(t, bd, dir, issue.ID, "--claim", "--actor", "alice")
+		issue := issuegraphCreate(t, issuegraph, dir, "Owned by alice", "--type", "task")
+		issuegraphUpdate(t, issuegraph, dir, issue.ID, "--claim", "--actor", "alice")
 
-		out := bdUnclaimFail(t, bd, dir, issue.ID, "--actor", "bob")
+		out := issuegraphUnclaimFail(t, issuegraph, dir, issue.ID, "--actor", "bob")
 		// ErrNotOwner surfaces as "issue claimed by a different actor: ... held by alice".
 		if !strings.Contains(out, "held by alice") && !strings.Contains(out, "claimed by a different actor") {
 			t.Errorf("expected ownership-rejection error, got: %s", out)
@@ -195,7 +195,7 @@ func TestEmbeddedUnclaim(t *testing.T) {
 		}
 
 		// The claim must be untouched after the rejected release.
-		got := bdShow(t, bd, dir, issue.ID)
+		got := issuegraphShow(t, issuegraph, dir, issue.ID)
 		if got.Assignee != "alice" {
 			t.Errorf("expected assignee to remain alice after rejected unclaim, got %q", got.Assignee)
 		}
@@ -206,12 +206,12 @@ func TestEmbeddedUnclaim(t *testing.T) {
 
 	// --force lets a non-owner (admin/reaper) release someone else's claim.
 	t.Run("unclaim_non_owner_force_succeeds", func(t *testing.T) {
-		issue := bdCreate(t, bd, dir, "Force release", "--type", "task")
-		bdUpdate(t, bd, dir, issue.ID, "--claim", "--actor", "alice")
+		issue := issuegraphCreate(t, issuegraph, dir, "Force release", "--type", "task")
+		issuegraphUpdate(t, issuegraph, dir, issue.ID, "--claim", "--actor", "alice")
 
-		bdUnclaim(t, bd, dir, issue.ID, "--force", "--actor", "bob")
+		issuegraphUnclaim(t, issuegraph, dir, issue.ID, "--force", "--actor", "bob")
 
-		got := bdShow(t, bd, dir, issue.ID)
+		got := issuegraphShow(t, issuegraph, dir, issue.ID)
 		if got.Assignee != "" {
 			t.Errorf("expected assignee to be cleared after --force unclaim, got %q", got.Assignee)
 		}
@@ -227,12 +227,12 @@ func TestEmbeddedUnclaim(t *testing.T) {
 	// former, or the UPDATE would silently affect zero rows and the release
 	// would fail even though the Go precheck said it should succeed.
 	t.Run("unclaim_owner_different_spelling_succeeds", func(t *testing.T) {
-		issue := bdCreate(t, bd, dir, "Owner spelling variant", "--type", "task")
-		bdUpdate(t, bd, dir, issue.ID, "--claim", "--actor", "gastown.mayor")
+		issue := issuegraphCreate(t, issuegraph, dir, "Owner spelling variant", "--type", "task")
+		issuegraphUpdate(t, issuegraph, dir, issue.ID, "--claim", "--actor", "gastown.mayor")
 
-		bdUnclaim(t, bd, dir, issue.ID, "--actor", "gastown_mayor")
+		issuegraphUnclaim(t, issuegraph, dir, issue.ID, "--actor", "gastown_mayor")
 
-		got := bdShow(t, bd, dir, issue.ID)
+		got := issuegraphShow(t, issuegraph, dir, issue.ID)
 		if got.Assignee != "" {
 			t.Errorf("expected assignee to be cleared after same-identity unclaim, got %q", got.Assignee)
 		}

@@ -23,11 +23,11 @@ WINGET_DIR="$SCRIPT_DIR/../winget"
 
 # Get SHA256 from release checksums
 echo "Fetching SHA256 for v$VERSION..."
-SHA256=$(curl -sL "https://github.com/gastownhall/beads/releases/download/v$VERSION/checksums.txt" | grep windows | awk '{print $1}')
+SHA256=$(curl -sL "https://github.com/borg0ai/dx-issuegraph/releases/download/v$VERSION/checksums.txt" | grep windows | awk '{print $1}')
 
 if [ -z "$SHA256" ]; then
     echo "Error: Could not find Windows checksum for v$VERSION"
-    echo "Make sure the release exists: https://github.com/gastownhall/beads/releases/tag/v$VERSION"
+    echo "Make sure the release exists: https://github.com/borg0ai/dx-issuegraph/releases/tag/v$VERSION"
     exit 1
 fi
 
@@ -39,9 +39,9 @@ echo ""
 echo "Updating manifest files..."
 
 # Update version manifest
-cat > "$WINGET_DIR/SteveYegge.beads.yaml" << EOF
+cat > "$WINGET_DIR/SteveYegge.issuegraph.yaml" << EOF
 # yaml-language-server: \$schema=https://aka.ms/winget-manifest.version.1.6.0.schema.json
-PackageIdentifier: SteveYegge.beads
+PackageIdentifier: SteveYegge.issuegraph
 PackageVersion: $VERSION
 DefaultLocale: en-US
 ManifestType: version
@@ -49,44 +49,44 @@ ManifestVersion: 1.6.0
 EOF
 
 # Update installer manifest
-cat > "$WINGET_DIR/SteveYegge.beads.installer.yaml" << EOF
+cat > "$WINGET_DIR/SteveYegge.issuegraph.installer.yaml" << EOF
 # yaml-language-server: \$schema=https://aka.ms/winget-manifest.installer.1.6.0.schema.json
-PackageIdentifier: SteveYegge.beads
+PackageIdentifier: SteveYegge.issuegraph
 PackageVersion: $VERSION
 InstallerType: zip
 NestedInstallerType: portable
 NestedInstallerFiles:
-  - RelativeFilePath: bd.exe
-    PortableCommandAlias: bd
+  - RelativeFilePath: issuegraph.exe
+    PortableCommandAlias: issuegraph
 Installers:
   - Architecture: x64
-    InstallerUrl: https://github.com/gastownhall/beads/releases/download/v$VERSION/beads_${VERSION}_windows_amd64.zip
+    InstallerUrl: https://github.com/borg0ai/dx-issuegraph/releases/download/v$VERSION/issuegraph_${VERSION}_windows_amd64.zip
     InstallerSha256: $SHA256
 ManifestType: installer
 ManifestVersion: 1.6.0
 EOF
 
 # Update locale manifest
-cat > "$WINGET_DIR/SteveYegge.beads.locale.en-US.yaml" << EOF
+cat > "$WINGET_DIR/SteveYegge.issuegraph.locale.en-US.yaml" << EOF
 # yaml-language-server: \$schema=https://aka.ms/winget-manifest.defaultLocale.1.6.0.schema.json
-PackageIdentifier: SteveYegge.beads
+PackageIdentifier: SteveYegge.issuegraph
 PackageVersion: $VERSION
 PackageLocale: en-US
 Publisher: Steve Yegge
 PublisherUrl: https://github.com/steveyegge
-PublisherSupportUrl: https://github.com/gastownhall/beads/issues
+PublisherSupportUrl: https://github.com/borg0ai/dx-issuegraph/issues
 Author: Steve Yegge
-PackageName: beads
-PackageUrl: https://github.com/gastownhall/beads
+PackageName: issuegraph
+PackageUrl: https://github.com/borg0ai/dx-issuegraph
 License: MIT
-LicenseUrl: https://github.com/gastownhall/beads/blob/main/LICENSE
+LicenseUrl: https://github.com/borg0ai/dx-issuegraph/blob/main/LICENSE
 Copyright: Copyright (c) 2024 Steve Yegge
 ShortDescription: Distributed, Dolt-powered graph issue tracker for AI agents
 Description: |
-  beads (bd) is a distributed, Dolt-powered graph issue tracker designed for AI-supervised coding workflows.
+  issuegraph (issuegraph) is a distributed, Dolt-powered graph issue tracker designed for AI-supervised coding workflows.
   It provides a persistent, structured memory for coding agents, replacing messy markdown plans with a
   dependency-aware graph that allows agents to handle long-horizon tasks without losing context.
-Moniker: bd
+Moniker: issuegraph
 Tags:
   - issue-tracker
   - ai
@@ -94,7 +94,7 @@ Tags:
   - git
   - cli
   - developer-tools
-ReleaseNotesUrl: https://github.com/gastownhall/beads/releases/tag/v$VERSION
+ReleaseNotesUrl: https://github.com/borg0ai/dx-issuegraph/releases/tag/v$VERSION
 ManifestType: defaultLocale
 ManifestVersion: 1.6.0
 EOF
@@ -105,5 +105,5 @@ echo ""
 echo "Next steps:"
 echo "1. Commit these changes"
 echo "2. Fork https://github.com/microsoft/winget-pkgs"
-echo "3. Copy winget/*.yaml to manifests/s/SteveYegge/beads/$VERSION/"
+echo "3. Copy winget/*.yaml to manifests/s/SteveYegge/issuegraph/$VERSION/"
 echo "4. Submit PR to microsoft/winget-pkgs"

@@ -8,7 +8,7 @@ import (
 	"github.com/spf13/cobra"
 )
 
-func TestResolveChangeDirBeadsDirDoesNotChangeCWD(t *testing.T) {
+func TestResolveChangeDirIssueGraphDirDoesNotChangeCWD(t *testing.T) {
 	origWD, err := os.Getwd()
 	if err != nil {
 		t.Fatalf("Getwd: %v", err)
@@ -24,20 +24,20 @@ func TestResolveChangeDirBeadsDirDoesNotChangeCWD(t *testing.T) {
 	if resolved, err := filepath.EvalSymlinks(projectDir); err == nil {
 		projectDir = resolved
 	}
-	beadsDir := filepath.Join(projectDir, ".beads")
-	if err := os.MkdirAll(beadsDir, 0o755); err != nil {
+	issuegraphDir := filepath.Join(projectDir, ".issuegraph")
+	if err := os.MkdirAll(issuegraphDir, 0o755); err != nil {
 		t.Fatalf("MkdirAll: %v", err)
 	}
-	if err := os.WriteFile(filepath.Join(beadsDir, "metadata.json"), []byte(`{"backend":"dolt"}`), 0o644); err != nil {
+	if err := os.WriteFile(filepath.Join(issuegraphDir, "metadata.json"), []byte(`{"backend":"dolt"}`), 0o644); err != nil {
 		t.Fatalf("WriteFile: %v", err)
 	}
 
-	got, err := resolveChangeDirBeadsDir(projectDir)
+	got, err := resolveChangeDirIssueGraphDir(projectDir)
 	if err != nil {
-		t.Fatalf("resolveChangeDirBeadsDir: %v", err)
+		t.Fatalf("resolveChangeDirIssueGraphDir: %v", err)
 	}
-	if got != beadsDir {
-		t.Fatalf("resolveChangeDirBeadsDir() = %q, want %q", got, beadsDir)
+	if got != issuegraphDir {
+		t.Fatalf("resolveChangeDirIssueGraphDir() = %q, want %q", got, issuegraphDir)
 	}
 
 	afterWD, err := os.Getwd()
@@ -49,20 +49,20 @@ func TestResolveChangeDirBeadsDirDoesNotChangeCWD(t *testing.T) {
 	}
 }
 
-func TestResolveChangeDirBeadsDirRejectsFile(t *testing.T) {
+func TestResolveChangeDirIssueGraphDirRejectsFile(t *testing.T) {
 	filePath := filepath.Join(t.TempDir(), "not-a-directory")
 	if err := os.WriteFile(filePath, []byte("x"), 0o644); err != nil {
 		t.Fatalf("WriteFile: %v", err)
 	}
 
-	if _, err := resolveChangeDirBeadsDir(filePath); err == nil {
+	if _, err := resolveChangeDirIssueGraphDir(filePath); err == nil {
 		t.Fatal("expected non-directory -C target to fail")
 	}
 }
 
-func TestResolveChangeDirBeadsDirRejectsDirectoryWithoutProject(t *testing.T) {
-	if _, err := resolveChangeDirBeadsDir(t.TempDir()); err == nil {
-		t.Fatal("expected -C target without a beads project to fail")
+func TestResolveChangeDirIssueGraphDirRejectsDirectoryWithoutProject(t *testing.T) {
+	if _, err := resolveChangeDirIssueGraphDir(t.TempDir()); err == nil {
+		t.Fatal("expected -C target without a issuegraph project to fail")
 	}
 }
 

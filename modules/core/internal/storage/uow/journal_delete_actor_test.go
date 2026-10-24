@@ -6,14 +6,14 @@ import (
 
 	"github.com/stretchr/testify/require"
 
-	"github.com/steveyegge/beads/internal/storage"
-	"github.com/steveyegge/beads/internal/types"
-	publicops "github.com/steveyegge/beads/issueops"
+	"github.com/borg0ai/dx-issuegraph/internal/storage"
+	"github.com/borg0ai/dx-issuegraph/internal/types"
+	publicops "github.com/borg0ai/dx-issuegraph/issueops"
 )
 
 // TestDeleterAttributesTheRequesterInTheJournal is the #5985 regression on the
 // SECOND write plumbing: a delete through the unit-of-work Deleter — the route
-// proxied-server `bd delete` and the HTTP API's deleteIssues both take — must
+// proxied-server `issuegraph delete` and the HTTP API's deleteIssues both take — must
 // journal its delete row and the cascade dep_remove rows under the request's
 // actor.
 //

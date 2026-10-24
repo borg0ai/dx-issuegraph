@@ -9,18 +9,18 @@ import (
 )
 
 func TestCheckStaleLockFiles(t *testing.T) {
-	t.Run("no beads dir", func(t *testing.T) {
+	t.Run("no issuegraph dir", func(t *testing.T) {
 		tmpDir := t.TempDir()
 		result := CheckStaleLockFiles(tmpDir)
 		if result.Status != StatusOK {
-			t.Errorf("expected OK for missing .beads dir, got %s: %s", result.Status, result.Message)
+			t.Errorf("expected OK for missing .issuegraph dir, got %s: %s", result.Status, result.Message)
 		}
 	})
 
 	t.Run("no lock files", func(t *testing.T) {
 		tmpDir := t.TempDir()
-		beadsDir := filepath.Join(tmpDir, ".beads")
-		if err := os.MkdirAll(beadsDir, 0755); err != nil {
+		issuegraphDir := filepath.Join(tmpDir, ".issuegraph")
+		if err := os.MkdirAll(issuegraphDir, 0755); err != nil {
 			t.Fatal(err)
 		}
 
@@ -32,13 +32,13 @@ func TestCheckStaleLockFiles(t *testing.T) {
 
 	t.Run("fresh bootstrap lock not stale", func(t *testing.T) {
 		tmpDir := t.TempDir()
-		beadsDir := filepath.Join(tmpDir, ".beads")
-		if err := os.MkdirAll(beadsDir, 0755); err != nil {
+		issuegraphDir := filepath.Join(tmpDir, ".issuegraph")
+		if err := os.MkdirAll(issuegraphDir, 0755); err != nil {
 			t.Fatal(err)
 		}
 
 		// Create a fresh bootstrap lock (should not be flagged)
-		lockPath := filepath.Join(beadsDir, "dolt.bootstrap.lock")
+		lockPath := filepath.Join(issuegraphDir, "dolt.bootstrap.lock")
 		if err := os.WriteFile(lockPath, []byte("lock"), 0600); err != nil {
 			t.Fatal(err)
 		}
@@ -51,13 +51,13 @@ func TestCheckStaleLockFiles(t *testing.T) {
 
 	t.Run("stale bootstrap lock detected", func(t *testing.T) {
 		tmpDir := t.TempDir()
-		beadsDir := filepath.Join(tmpDir, ".beads")
-		if err := os.MkdirAll(beadsDir, 0755); err != nil {
+		issuegraphDir := filepath.Join(tmpDir, ".issuegraph")
+		if err := os.MkdirAll(issuegraphDir, 0755); err != nil {
 			t.Fatal(err)
 		}
 
 		// Create an old bootstrap lock
-		lockPath := filepath.Join(beadsDir, "dolt.bootstrap.lock")
+		lockPath := filepath.Join(issuegraphDir, "dolt.bootstrap.lock")
 		if err := os.WriteFile(lockPath, []byte("lock"), 0600); err != nil {
 			t.Fatal(err)
 		}
@@ -75,13 +75,13 @@ func TestCheckStaleLockFiles(t *testing.T) {
 
 	t.Run("stale sync lock detected", func(t *testing.T) {
 		tmpDir := t.TempDir()
-		beadsDir := filepath.Join(tmpDir, ".beads")
-		if err := os.MkdirAll(beadsDir, 0755); err != nil {
+		issuegraphDir := filepath.Join(tmpDir, ".issuegraph")
+		if err := os.MkdirAll(issuegraphDir, 0755); err != nil {
 			t.Fatal(err)
 		}
 
 		// Create an old sync lock
-		lockPath := filepath.Join(beadsDir, ".sync.lock")
+		lockPath := filepath.Join(issuegraphDir, ".sync.lock")
 		if err := os.WriteFile(lockPath, []byte("lock"), 0600); err != nil {
 			t.Fatal(err)
 		}
@@ -99,13 +99,13 @@ func TestCheckStaleLockFiles(t *testing.T) {
 
 	t.Run("stale startlock detected", func(t *testing.T) {
 		tmpDir := t.TempDir()
-		beadsDir := filepath.Join(tmpDir, ".beads")
-		if err := os.MkdirAll(beadsDir, 0755); err != nil {
+		issuegraphDir := filepath.Join(tmpDir, ".issuegraph")
+		if err := os.MkdirAll(issuegraphDir, 0755); err != nil {
 			t.Fatal(err)
 		}
 
 		// Create an old startlock
-		lockPath := filepath.Join(beadsDir, "bd.sock.startlock")
+		lockPath := filepath.Join(issuegraphDir, "issuegraph.sock.startlock")
 		if err := os.WriteFile(lockPath, []byte("12345"), 0600); err != nil {
 			t.Fatal(err)
 		}
@@ -123,22 +123,22 @@ func TestCheckStaleLockFiles(t *testing.T) {
 
 	t.Run("multiple stale locks", func(t *testing.T) {
 		tmpDir := t.TempDir()
-		beadsDir := filepath.Join(tmpDir, ".beads")
-		if err := os.MkdirAll(beadsDir, 0755); err != nil {
+		issuegraphDir := filepath.Join(tmpDir, ".issuegraph")
+		if err := os.MkdirAll(issuegraphDir, 0755); err != nil {
 			t.Fatal(err)
 		}
 
 		oldTime := time.Now().Add(-2 * time.Hour)
 
 		// Create stale bootstrap lock
-		bootstrapLock := filepath.Join(beadsDir, "dolt.bootstrap.lock")
+		bootstrapLock := filepath.Join(issuegraphDir, "dolt.bootstrap.lock")
 		if err := os.WriteFile(bootstrapLock, []byte("lock"), 0600); err != nil {
 			t.Fatal(err)
 		}
 		_ = os.Chtimes(bootstrapLock, oldTime, oldTime)
 
 		// Create stale sync lock
-		syncLock := filepath.Join(beadsDir, ".sync.lock")
+		syncLock := filepath.Join(issuegraphDir, ".sync.lock")
 		if err := os.WriteFile(syncLock, []byte("lock"), 0600); err != nil {
 			t.Fatal(err)
 		}
@@ -155,16 +155,16 @@ func TestCheckStaleLockFiles(t *testing.T) {
 	})
 
 	t.Run("shared worktree fallback detects stale locks", func(t *testing.T) {
-		clearResolveBeadsDirCache()
-		t.Cleanup(clearResolveBeadsDirCache)
+		clearResolveIssueGraphDirCache()
+		t.Cleanup(clearResolveIssueGraphDirCache)
 
 		mainRepoDir, worktreeDir := setupWorktreeRepo(t)
-		beadsDir := filepath.Join(mainRepoDir, ".beads")
-		if err := os.MkdirAll(beadsDir, 0755); err != nil {
+		issuegraphDir := filepath.Join(mainRepoDir, ".issuegraph")
+		if err := os.MkdirAll(issuegraphDir, 0755); err != nil {
 			t.Fatal(err)
 		}
 
-		lockPath := filepath.Join(beadsDir, "dolt.bootstrap.lock")
+		lockPath := filepath.Join(issuegraphDir, "dolt.bootstrap.lock")
 		if err := os.WriteFile(lockPath, []byte("lock"), 0600); err != nil {
 			t.Fatal(err)
 		}

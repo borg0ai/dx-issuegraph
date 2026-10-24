@@ -9,8 +9,8 @@ import (
 )
 
 // helperSentinelRead matches how a TestHelper* entry point reads its own
-// sentinel, e.g. os.Getenv("BEADS_SCHEMA_INIT_HELPER").
-var helperSentinelRead = regexp.MustCompile(`os\.Getenv\("(BEADS_[A-Z0-9_]*_HELPER)"\)`)
+// sentinel, e.g. os.Getenv("ISSUEGRAPH_SCHEMA_INIT_HELPER").
+var helperSentinelRead = regexp.MustCompile(`os\.Getenv\("(ISSUEGRAPH_[A-Z0-9_]*_HELPER)"\)`)
 
 // TestHelperSubprocessSentinelsAreComplete keeps helperSubprocessSentinels in
 // sync with the helper entry points that actually exist. A missing entry is

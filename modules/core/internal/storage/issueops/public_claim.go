@@ -6,18 +6,18 @@ import (
 	"errors"
 	"fmt"
 
-	"github.com/steveyegge/beads/internal/storage"
-	"github.com/steveyegge/beads/internal/types"
-	publicops "github.com/steveyegge/beads/issueops"
+	"github.com/borg0ai/dx-issuegraph/internal/storage"
+	"github.com/borg0ai/dx-issuegraph/internal/types"
+	publicops "github.com/borg0ai/dx-issuegraph/issueops"
 )
 
 // ClaimCommitMessage names the claimed issue and its claimant in the storage
 // commit. It lives here so every implementation of the claim role spells it
-// identically and `bd dolt log` reads the same on all of them. The actor is in
+// identically and `issuegraph dolt log` reads the same on all of them. The actor is in
 // it because that line IS the audit trail — which is why every surface
 // reaching the role validates the actor before calling it.
 func ClaimCommitMessage(issueID, actor string) string {
-	return fmt.Sprintf("bd: claim %s by %s", issueID, actor)
+	return fmt.Sprintf("issuegraph: claim %s by %s", issueID, actor)
 }
 
 // ExecuteClaim applies a guarded claim in tx and reports durable tables changed.
@@ -61,7 +61,7 @@ func ExecuteClaim(ctx context.Context, tx *sql.Tx, request publicops.ClaimReques
 	// facade family where that is true. GetIssueInTx hydrates labels on its
 	// way past; the snapshot this role promises is the BARE post-state row,
 	// because that is what the frozen v0 claim response carries and what
-	// `bd update --claim --json` prints beside it — verified against a labeled
+	// `issuegraph update --claim --json` prints beside it — verified against a labeled
 	// issue, which neither surface reports labels for. Hydrating here would
 	// change an already-published body.
 	issue.Labels = nil

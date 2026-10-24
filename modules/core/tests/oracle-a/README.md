@@ -1,9 +1,9 @@
-# Oracle A — refactor-safety differential conformance for `bd`
+# Oracle A — refactor-safety differential conformance for `issuegraph`
 
 Oracle A answers one question mechanically: **did this change alter any
-user-visible `bd` behavior?**
+user-visible `issuegraph` behavior?**
 
-It runs the same curated CLI scenarios against two separately-built `bd`
+It runs the same curated CLI scenarios against two separately-built `issuegraph`
 binaries and diffs every step:
 
 | role | built from | meaning |
@@ -11,7 +11,7 @@ binaries and diffs every step:
 | **REFERENCE** | the merge-base with `origin/main` (overridable via `REF_REF`) | the "before" |
 | **CANDIDATE** | the current working tree (HEAD + uncommitted) | the "after" |
 
-Each scenario is an ordered list of `bd` CLI argv steps run as real processes in
+Each scenario is an ordered list of `issuegraph` CLI argv steps run as real processes in
 a throwaway workspace (`issuegraph init` + steps). For every step the harness compares
 **exit code**, **stderr**, and **JSON-aware stdout** (object key order ignored;
 array order compared as a multiset by default, as an ordered sequence for
@@ -35,7 +35,7 @@ Overrides:
   (e.g. a release tag, or `origin/main`'s tip).
 - `ORACLE_CATALOG=1` — **deep tier**: in addition to the curated scenarios, run
   the full enumerated catalog (`harness/scenarios/enumerated.json`, ~500
-  deterministic scenarios covering the wider `bd` CLI surface). Much broader
+  deterministic scenarios covering the wider `issuegraph` CLI surface). Much broader
   coverage, ~10–15 min. Off by default so the everyday gate stays fast.
 - `KEEP_ARTIFACTS=1` — keep the scratch build dir (binaries, goldens, scoreboard
   output) for inspection instead of deleting it on exit.
@@ -54,7 +54,7 @@ Overrides:
 ## Prerequisites
 
 - **Rust / `cargo`** — builds the conformance harness (`harness/`).
-- **A CGO toolchain (`gcc`/`cc`)** and **`go`** — `bd` embeds Dolt, which is cgo;
+- **A CGO toolchain (`gcc`/`cc`)** and **`go`** — `issuegraph` embeds Dolt, which is cgo;
   both binaries build with `CGO_ENABLED=1 -tags gms_pure_go` (the `gms_pure_go`
   tag is mandatory per `engdocs/ICU-POLICY.md`).
 - **`git`** with `origin/main` fetched (the script resolves `REF_REF` locally;
@@ -64,10 +64,10 @@ Overrides:
 
 ## Runtime
 
-Dominated by the **cold reference build** (a full `bd` compile, ~1 min on a warm
+Dominated by the **cold reference build** (a full `issuegraph` compile, ~1 min on a warm
 module cache, several minutes cold). The candidate build reuses the local build
 cache and is fast. Harness build is ~10 s. Golden capture + scoring run the
-curated scenarios as real `bd` processes (~30–60 s). End-to-end: **~2–7 minutes**
+curated scenarios as real `issuegraph` processes (~30–60 s). End-to-end: **~2–7 minutes**
 depending on Go build-cache warmth (the **deep tier**, `ORACLE_CATALOG=1`, adds the
 ~500-scenario catalog for **~10–15 minutes** total). There is no Dolt *server* in
 the loop — every scenario uses embedded Dolt in its own tempdir.
@@ -75,8 +75,8 @@ the loop — every scenario uses embedded Dolt in its own tempdir.
 ## What green PROVES
 
 - For the **curated contract scenarios** (see `harness/src/scenarios.rs`), the
-  candidate `bd` produces byte-identical (post-normalization) exit codes, stderr,
-  and JSON-structural stdout to the reference `bd`, step for step.
+  candidate `issuegraph` produces byte-identical (post-normalization) exit codes, stderr,
+  and JSON-structural stdout to the reference `issuegraph`, step for step.
 - This covers the semantics most likely to break under a storage or serialization
   refactor: the close→ready `is_blocked` propagation, transitive/parent-child
   blocking, cycle rejection, claim lifecycle + idempotent self-reclaim, storage
@@ -91,12 +91,12 @@ the loop — every scenario uses embedded Dolt in its own tempdir.
 - **Only the in-scope surface.** The predicate is the contract commands + flags in
   `harness/src/bin/scoreboard.rs` (`IN_SCOPE_CMDS` / `IN_SCOPE_FLAGS`, with `--json`
   required for the JSON-output commands). Behavior outside that set — most of the
-  wider `bd` command surface, human/plain output modes, and any flag not listed —
+  wider `issuegraph` command surface, human/plain output modes, and any flag not listed —
   is reported as out-of-scope and is **not** a gate. A change that touches only
   out-of-scope behavior passes Oracle A.
 - **Ordering tiebreaks are UNGATED.** `ready`/`list` order among equal-priority
   issues is empirically **nondeterministic** here: every issue is created seconds
-  apart, bd orders equal priorities by `created_at DESC` (with an `id ASC` final
+  apart, issuegraph orders equal priorities by `created_at DESC` (with an `id ASC` final
   tiebreak), and `created_at` is both sub-second-precision-dependent AND normalized
   to `<TS>` — so the same equal-priority creates land in a different order run to
   run. Array output is therefore compared as a **multiset** by default; only
@@ -113,10 +113,10 @@ the loop — every scenario uses embedded Dolt in its own tempdir.
   rollback-suppressed side effects, and N-commits-instead-of-one are deliberately
   NOT asserted here. Timestamp *values* are erased by `<TS>` normalization, so a
   local-vs-UTC divergence in a timestamp value is also out of reach.
-- **The scenario environment is scrubbed, and `BEADS_TEST_MODE=1` is ungated.**
+- **The scenario environment is scrubbed, and `ISSUEGRAPH_TEST_MODE=1` is ungated.**
   Scenarios run with an explicit env whitelist (`PATH`/`HOME`/`TMPDIR` +
-  `BEADS_TEST_MODE=1`) rather than the inherited host env, so a green certifies the
-  *same* configuration every run. But `BEADS_TEST_MODE=1` itself changes store
+  `ISSUEGRAPH_TEST_MODE=1`) rather than the inherited host env, so a green certifies the
+  *same* configuration every run. But `ISSUEGRAPH_TEST_MODE=1` itself changes store
   construction (auto-server decisions off, port rewiring), so this rig does NOT
   cover the mode/topology construction paths — do not cite Oracle A green for those.
 - **This is a same-backend gate.** Oracle A is same-backend (embedded Dolt)
@@ -126,8 +126,8 @@ the loop — every scenario uses embedded Dolt in its own tempdir.
 
 The Rust crate under `harness/` is a self-contained conformance rig
 (MIT OR Apache-2.0). It builds two binaries — `capture_golden` (records the
-reference `bd`'s per-step traces) and `scoreboard` (replays every scenario against
-the candidate `bd` and diffs it against the goldens). Goldens are re-captured from
+reference `issuegraph`'s per-step traces) and `scoreboard` (replays every scenario against
+the candidate `issuegraph` and diffs it against the goldens). Goldens are re-captured from
 the reference build into `harness/testdata/golden/` (git-ignored) on **every** run,
 so the gate always reflects the current "before" — nothing is pinned to a stale
 snapshot. See `harness/PROVENANCE.md` for how goldens, the environment contract,

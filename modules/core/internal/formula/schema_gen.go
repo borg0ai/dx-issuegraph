@@ -3,7 +3,7 @@
 package formula
 
 // Primitives is the discoverability index of every exported struct in
-// types.go. Surfaced via `bd formula schema`. Regenerate with `go generate ./...`.
+// types.go. Surfaced via `issuegraph formula schema`. Regenerate with `go generate ./...`.
 var Primitives = []PrimitiveDoc{
 	{
 		Name: "AdviceRule",
@@ -335,7 +335,7 @@ Used with TypeAspect to specify which steps the aspect applies to.`,
 				Type:     "string",
 				JSONName: "phase",
 				Doc: `Phase indicates the recommended instantiation phase: "liquid" (pour) or "vapor" (wisp).
-If "vapor", bd pour will warn and suggest using bd mol wisp instead.
+If "vapor", issuegraph pour will warn and suggest using issuegraph mol wisp instead.
 Patrol and release workflows should typically use "vapor" since they're operational.`,
 			},
 			{
@@ -359,14 +359,14 @@ tracking is worth the DB overhead. Patrol formulas should NOT set this.`,
 				Type:     "string",
 				JSONName: "intent",
 				Doc: `Intent is an optional caller-defined hint about the formula's runtime
-intent (e.g. "mail_only"). Opaque to bd; consumed by downstream tools.`,
+intent (e.g. "mail_only"). Opaque to issuegraph; consumed by downstream tools.`,
 			},
 		},
 	},
 	{
 		Name: "Gate",
 		Doc: `Gate defines an async wait condition for formula steps.
-When a step has a Gate, bd cook creates a gate issue that blocks the step.
+When a step has a Gate, issuegraph cook creates a gate issue that blocks the step.
 The gate must be closed (manually or via watchers) to unblock the step.`,
 		Fields: []FieldDoc{
 			{
@@ -399,7 +399,7 @@ formula authors because it maps directly to Issue.AwaitID.`,
 				Name:     "Repo",
 				Type:     "string",
 				JSONName: "repo",
-				Doc:      "Repo optionally selects the GitHub repository (OWNER/REPO or\nHOST/OWNER/REPO) a gh:run or gh:pr gate's condition is checked\nagainst. Empty means the current Git repository - the same default\nas an ad-hoc `bd gate create` gate. Ignored for non-GitHub gate\ntypes (human, timer, bead).",
+				Doc:      "Repo optionally selects the GitHub repository (OWNER/REPO or\nHOST/OWNER/REPO) a gh:run or gh:pr gate's condition is checked\nagainst. Empty means the current Git repository - the same default\nas an ad-hoc `issuegraph gate create` gate. Ignored for non-GitHub gate\ntypes (human, timer, issue).",
 			},
 		},
 	},
@@ -747,8 +747,8 @@ Evaluated at cook/pour time via FilterStepsByCondition.`,
 				Type:     "*Gate",
 				JSONName: "gate",
 				Doc: `Gate defines an async wait condition for this step.
-When set, bd cook creates a gate issue that blocks this step.
-Close the gate issue (bd close bd-xxx.gate-stepid) to unblock.`,
+When set, issuegraph cook creates a gate issue that blocks this step.
+Close the gate issue (issuegraph close bd-xxx.gate-stepid) to unblock.`,
 			},
 			{
 				Name:     "Loop",

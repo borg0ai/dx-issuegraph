@@ -7,8 +7,8 @@ import (
 	"os"
 	"path/filepath"
 
-	"github.com/steveyegge/beads/internal/storage"
-	"github.com/steveyegge/beads/internal/types"
+	"github.com/borg0ai/dx-issuegraph/internal/storage"
+	"github.com/borg0ai/dx-issuegraph/internal/types"
 )
 
 // jsonlImporter is implemented by stores that support single-transaction
@@ -28,8 +28,8 @@ type jsonlImporter interface {
 // upgrade-recovery into an empty DB, so insert-if-new and UPSERT are
 // equivalent on the legitimate path — but if the emptiness guard above ever
 // regresses again (cf. PR #3630), conflict-skip makes the fallback a
-// harmless no-op instead of clobbering live rows. Explicit `bd import`,
-// `bd bootstrap`, and `bd init --from-jsonl` are unaffected and keep UPSERT.
+// harmless no-op instead of clobbering live rows. Explicit `issuegraph import`,
+// `issuegraph bootstrap`, and `issuegraph init --from-jsonl` are unaffected and keep UPSERT.
 var fallbackImporter = importFromLocalJSONLConflictSkip
 
 type autoImportStamp struct {
@@ -37,12 +37,12 @@ type autoImportStamp struct {
 	ModTimeNano int64 `json:"mtime_ns"`
 }
 
-func autoImportStampPath(beadsDir string) string {
-	return filepath.Join(beadsDir, ".auto-import-issues.jsonl")
+func autoImportStampPath(issuegraphDir string) string {
+	return filepath.Join(issuegraphDir, ".auto-import-issues.jsonl")
 }
 
-func autoImportStampMatches(beadsDir string, info os.FileInfo) bool {
-	data, err := os.ReadFile(autoImportStampPath(beadsDir))
+func autoImportStampMatches(issuegraphDir string, info os.FileInfo) bool {
+	data, err := os.ReadFile(autoImportStampPath(issuegraphDir))
 	if err != nil {
 		return false
 	}
@@ -53,19 +53,19 @@ func autoImportStampMatches(beadsDir string, info os.FileInfo) bool {
 	return stamp.Size == info.Size() && stamp.ModTimeNano == info.ModTime().UnixNano()
 }
 
-func writeAutoImportStamp(beadsDir string, info os.FileInfo) {
+func writeAutoImportStamp(issuegraphDir string, info os.FileInfo) {
 	stamp := autoImportStamp{Size: info.Size(), ModTimeNano: info.ModTime().UnixNano()}
 	data, err := json.Marshal(stamp)
 	if err != nil {
 		return
 	}
-	_ = os.WriteFile(autoImportStampPath(beadsDir), data, 0o600)
+	_ = os.WriteFile(autoImportStampPath(issuegraphDir), data, 0o600)
 }
 
 // maybeAutoImportJSONL checks whether the database is empty and the configured
-// import.path JSONL file exists in beadsDir. When both conditions are true it
+// import.path JSONL file exists in issuegraphDir. When both conditions are true it
 // auto-imports the JSONL data so users upgrading from pre-0.56 (which used
-// .beads/dolt/) to 1.0+ (which uses .beads/embeddeddolt/) don't appear to
+// .issuegraph/dolt/) to 1.0+ (which uses .issuegraph/embeddeddolt/) don't appear to
 // lose their issues.  See GH#2994.
 //
 // The top-level emptiness guard (GetStatistics) is the primary
@@ -81,14 +81,14 @@ func writeAutoImportStamp(beadsDir string, info os.FileInfo) {
 //
 // The function is best-effort: failures are logged as warnings but do not
 // prevent the store from being used.
-func maybeAutoImportJSONL(ctx context.Context, s storage.DoltStorage, beadsDir string) {
+func maybeAutoImportJSONL(ctx context.Context, s storage.DoltStorage, issuegraphDir string) {
 	// Quick check: does the JSONL file exist and have content?
-	jsonlPath := configuredImportJSONLPath(beadsDir)
+	jsonlPath := configuredImportJSONLPath(issuegraphDir)
 	info, err := os.Stat(jsonlPath)
 	if err != nil || info.Size() == 0 {
 		return // no JSONL file or empty — nothing to import
 	}
-	if autoImportStampMatches(beadsDir, info) {
+	if autoImportStampMatches(issuegraphDir, info) {
 		return // already attempted for this exact JSONL version — retry only when issues.jsonl changes
 	}
 
@@ -111,7 +111,7 @@ func maybeAutoImportJSONL(ctx context.Context, s storage.DoltStorage, beadsDir s
 	// Parse the JSONL file without touching the store.
 	issues, configEntries, err := parseJSONLFile(jsonlPath)
 	if err != nil {
-		writeAutoImportStamp(beadsDir, info)
+		writeAutoImportStamp(issuegraphDir, info)
 		fmt.Fprintf(os.Stderr, "warning: auto-import: failed to parse %s: %v\n", jsonlPath, err)
 		return
 	}
@@ -124,15 +124,15 @@ func maybeAutoImportJSONL(ctx context.Context, s storage.DoltStorage, beadsDir s
 	if importer, ok := s.(jsonlImporter); ok {
 		imported, err := importer.ImportJSONLData(ctx, issues, configEntries, "auto-import")
 		if err != nil {
-			writeAutoImportStamp(beadsDir, info)
+			writeAutoImportStamp(issuegraphDir, info)
 			fmt.Fprintf(os.Stderr, "warning: auto-import from %s failed: %v\n", jsonlPath, err)
 			fmt.Fprintf(os.Stderr, "\nYour issues are still safe in %s.\n", jsonlPath)
-			fmt.Fprintf(os.Stderr, "Try: bd init --from-jsonl   (re-initialize and import from the JSONL file)\n")
-			fmt.Fprintf(os.Stderr, "If this persists, please report at https://github.com/gastownhall/beads/issues\n\n")
+			fmt.Fprintf(os.Stderr, "Try: issuegraph init --from-jsonl   (re-initialize and import from the JSONL file)\n")
+			fmt.Fprintf(os.Stderr, "If this persists, please report at https://github.com/borg0ai/dx-issuegraph/issues\n\n")
 			return
 		}
 		if imported > 0 {
-			writeAutoImportStamp(beadsDir, info)
+			writeAutoImportStamp(issuegraphDir, info)
 			// Signal PersistentPostRun to auto-commit (no explicit DOLT_COMMIT here).
 			commandDidWrite.Store(true)
 			fmt.Fprintf(os.Stderr, "auto-imported %d issues", imported)
@@ -149,11 +149,11 @@ func maybeAutoImportJSONL(ctx context.Context, s storage.DoltStorage, beadsDir s
 
 	result, err := fallbackImporter(ctx, s, jsonlPath)
 	if err != nil {
-		writeAutoImportStamp(beadsDir, info)
+		writeAutoImportStamp(issuegraphDir, info)
 		fmt.Fprintf(os.Stderr, "warning: auto-import from %s failed: %v\n", jsonlPath, err)
 		fmt.Fprintf(os.Stderr, "\nYour issues are still safe in %s.\n", jsonlPath)
-		fmt.Fprintf(os.Stderr, "Try: bd init --from-jsonl   (re-initialize and import from the JSONL file)\n")
-		fmt.Fprintf(os.Stderr, "If this persists, please report at https://github.com/gastownhall/beads/issues\n\n")
+		fmt.Fprintf(os.Stderr, "Try: issuegraph init --from-jsonl   (re-initialize and import from the JSONL file)\n")
+		fmt.Fprintf(os.Stderr, "If this persists, please report at https://github.com/borg0ai/dx-issuegraph/issues\n\n")
 		return
 	}
 
@@ -163,12 +163,12 @@ func maybeAutoImportJSONL(ctx context.Context, s storage.DoltStorage, beadsDir s
 		commitMsg = fmt.Sprintf("auto-import: %d issues, %d memories from %s (upgrade recovery, GH#2994)", result.Issues, result.Memories, filepath.Base(jsonlPath))
 	}
 	if err := s.Commit(ctx, commitMsg); err != nil {
-		writeAutoImportStamp(beadsDir, info)
+		writeAutoImportStamp(issuegraphDir, info)
 		fmt.Fprintf(os.Stderr, "warning: auto-import: dolt commit failed: %v\n", err)
 		return
 	}
 	if result.Issues > 0 || result.Memories > 0 {
-		writeAutoImportStamp(beadsDir, info)
+		writeAutoImportStamp(issuegraphDir, info)
 	}
 
 	if result.Memories > 0 {

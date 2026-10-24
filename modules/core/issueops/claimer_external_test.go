@@ -7,7 +7,7 @@ import (
 	"reflect"
 	"testing"
 
-	"github.com/steveyegge/beads/issueops"
+	"github.com/borg0ai/dx-issuegraph/issueops"
 )
 
 // TestClaimerIsItsOwnRoleWithOneMethod pins the shape claim was given rather
@@ -47,7 +47,7 @@ func TestClaimRequestAndResultHaveUsefulZeroValues(t *testing.T) {
 // typed conflict: it ADDS the losing state without replacing anything. The
 // sentinel still matches, and the message is byte-for-byte the refusal's — the
 // carefully-worded copy that deliberately names no release command, and the
-// fragments beads.ParseClaimConflict still parses.
+// fragments issuegraph.ParseClaimConflict still parses.
 func TestClaimConflictErrorWrapsTheRefusalItReports(t *testing.T) {
 	for _, tc := range []struct {
 		name     string

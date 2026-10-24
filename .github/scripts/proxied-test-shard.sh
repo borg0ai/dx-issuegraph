@@ -9,14 +9,14 @@
 # `-run '^TestProxiedServer'`). Tests listed in proxied-cmd-test-shards.txt for
 # the requested shard count use that committed assignment; newly-added tests
 # fall back to hash(name) % total. Runs the matching subset using the pre-built
-# test binary at BEADS_TEST_CMD_BINARY (or /tmp/bd-cmd-test).
+# test binary at ISSUEGRAPH_TEST_CMD_BINARY (or /tmp/bd-cmd-test).
 #
 # Environment:
-#   BEADS_TEST_PROXIED_SERVER=1   required (tests skip without it)
-#   BEADS_TEST_BD_BINARY=<path>   pre-built bd binary used as the subprocess
-#   BEADS_TEST_CMD_BINARY=<path>  pre-built modules/cli test binary (default: /tmp/bd-cmd-test)
-#   BEADS_TEST_SHARD_MANIFEST=<path>  override committed manifest path
-#   BEADS_TEST_SHARD_LIST_ONLY=1  print selected tests without running them
+#   ISSUEGRAPH_TEST_PROXIED_SERVER=1   required (tests skip without it)
+#   ISSUEGRAPH_TEST_ISSUEGRAPH_BINARY=<path>   pre-built issuegraph binary used as the subprocess
+#   ISSUEGRAPH_TEST_CMD_BINARY=<path>  pre-built modules/cli test binary (default: /tmp/bd-cmd-test)
+#   ISSUEGRAPH_TEST_SHARD_MANIFEST=<path>  override committed manifest path
+#   ISSUEGRAPH_TEST_SHARD_LIST_ONLY=1  print selected tests without running them
 
 set -euo pipefail
 
@@ -34,7 +34,7 @@ if (( TOTAL_SHARDS < 1 || SHARD_NUMBER < 1 || SHARD_NUMBER > TOTAL_SHARDS )); th
 fi
 
 SHARD_INDEX=$(( SHARD_NUMBER - 1 ))
-MANIFEST="${BEADS_TEST_SHARD_MANIFEST:-.github/scripts/proxied-cmd-test-shards.txt}"
+MANIFEST="${ISSUEGRAPH_TEST_SHARD_MANIFEST:-.github/scripts/proxied-cmd-test-shards.txt}"
 
 # Discover all top-level TestProxiedServer* functions across every modules/cli test
 # file (integration suites live in *_proxied_integration_test.go, but
@@ -123,8 +123,8 @@ printf "  %s\n" "${SHARD_TESTS[@]}"
 echo ""
 
 # Use pre-built test binary if available, otherwise fall back to go test.
-CMD_BINARY="${BEADS_TEST_CMD_BINARY:-/tmp/bd-cmd-test}"
-if [ "${BEADS_TEST_SHARD_LIST_ONLY:-}" = "1" ]; then
+CMD_BINARY="${ISSUEGRAPH_TEST_CMD_BINARY:-/tmp/bd-cmd-test}"
+if [ "${ISSUEGRAPH_TEST_SHARD_LIST_ONLY:-}" = "1" ]; then
   exit 0
 fi
 
@@ -137,5 +137,5 @@ else
   exec go test -tags=gms_pure_go -v -count=1 -timeout 15m \
     -run "$RUN_REGEX" \
     "$@" \
-    github.com/steveyegge/beads/modules/cli
+    github.com/borg0ai/dx-issuegraph/modules/cli
 fi

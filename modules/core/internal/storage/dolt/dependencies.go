@@ -6,12 +6,12 @@ import (
 	"fmt"
 	"strings"
 
-	"github.com/steveyegge/beads/internal/storage"
-	"github.com/steveyegge/beads/internal/storage/issueops"
-	"github.com/steveyegge/beads/internal/types"
+	"github.com/borg0ai/dx-issuegraph/internal/storage"
+	"github.com/borg0ai/dx-issuegraph/internal/storage/issueops"
+	"github.com/borg0ai/dx-issuegraph/internal/types"
 )
 
-// isCrossPrefixDep returns true if the two bead IDs have different prefixes,
+// isCrossPrefixDep returns true if the two issue IDs have different prefixes,
 // meaning the target lives in a different rig's database.
 func isCrossPrefixDep(sourceID, targetID string) bool {
 	return types.ExtractPrefix(sourceID) != types.ExtractPrefix(targetID)
@@ -84,7 +84,7 @@ func (s *DoltStore) addDependencyWithOptions(ctx context.Context, dep *types.Dep
 
 // RemoveDependency removes a dependency between two issues without recording a
 // dependency_removed event — the no-event default for structural callers (issue
-// delete, reparent, batch, duplicate cleanup). The explicit bd dep remove verb
+// delete, reparent, batch, duplicate cleanup). The explicit issuegraph dep remove verb
 // calls RemoveDependencyWithOptions with EmitEvent set.
 func (s *DoltStore) RemoveDependency(ctx context.Context, issueID, dependsOnID string, actor string) error {
 	return s.RemoveDependencyWithOptions(ctx, issueID, dependsOnID, actor, storage.DependencyRemoveOptions{})

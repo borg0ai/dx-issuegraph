@@ -12,16 +12,16 @@ import (
 	"sync"
 	"testing"
 
-	"github.com/steveyegge/beads/internal/storage/depid"
-	"github.com/steveyegge/beads/internal/storage/embeddeddolt"
-	"github.com/steveyegge/beads/internal/storage/issueops"
-	"github.com/steveyegge/beads/internal/storage/schema"
-	"github.com/steveyegge/beads/internal/types"
+	"github.com/borg0ai/dx-issuegraph/internal/storage/depid"
+	"github.com/borg0ai/dx-issuegraph/internal/storage/embeddeddolt"
+	"github.com/borg0ai/dx-issuegraph/internal/storage/issueops"
+	"github.com/borg0ai/dx-issuegraph/internal/storage/schema"
+	"github.com/borg0ai/dx-issuegraph/internal/types"
 )
 
 // Real-Dolt coverage for the merge-aware dependency-id re-key
 // (rekeyDependencyIDs, internal/storage/schema/dep_id_backfill.go) and its
-// completion marker, ignored migration 0026 (gastownhall/beads#5268).
+// completion marker, ignored migration 0026 (borg0ai/dx-issuegraph#5268).
 //
 // Why this cannot be a sqlmock test. The bug IS Dolt's primary-key enforcement:
 // the old row-at-a-time rewrite issued statements a statement-echo mock happily
@@ -387,8 +387,8 @@ func TestEmbeddedDepRekeyAbortLeavesMarkerUnrecorded(t *testing.T) {
 	if !errors.As(err, &conflict) {
 		t.Fatalf("error %v is not a *schema.DependencyRekeyConflictError", err)
 	}
-	if !strings.Contains(err.Error(), "bd doctor") {
-		t.Errorf("error %q does not point at bd doctor", err)
+	if !strings.Contains(err.Error(), "issuegraph doctor") {
+		t.Errorf("error %q does not point at issuegraph doctor", err)
 	}
 	if ignoredVersionRecorded(t, ctx, conn2, depRekeyMarkerVersion) {
 		t.Fatalf("ignored migration %d recorded despite the failed re-key", depRekeyMarkerVersion)
@@ -401,7 +401,7 @@ func TestEmbeddedDepRekeyAbortLeavesMarkerUnrecorded(t *testing.T) {
 
 	// A read-only command must still open. The re-key is a convergence repair,
 	// not a precondition for reading, and before it existed this clone opened
-	// fine; bricking `bd list` on latent id corruption the user cannot inspect
+	// fine; bricking `issuegraph list` on latent id corruption the user cannot inspect
 	// without it would be the worse outcome. Nothing is lost: the marker is
 	// still unrecorded, so the next strict open retries.
 	closeConn2()
@@ -411,7 +411,7 @@ func TestEmbeddedDepRekeyAbortLeavesMarkerUnrecorded(t *testing.T) {
 	}
 	store.Close()
 
-	// Repair the way `bd doctor` would -- break the rotation by giving one row
+	// Repair the way `issuegraph doctor` would -- break the rotation by giving one row
 	// a free id -- and prove the retried pass converges.
 	conn3, closeConn3 := openDepConn(t, ctx, dataDir)
 	mustExecConn(t, ctx, conn3, "UPDATE dependencies SET id = ? WHERE id = ?",
@@ -501,7 +501,7 @@ VALUES (?, ?, ?, ?, ?, 'blocks', NOW(), 'tester', JSON_OBJECT())`,
 }
 
 // renameIssue drives the real rename path (issueops.UpdateIssueIDInTx), so the
-// FK's ON UPDATE CASCADE fires exactly as it does for `bd rename`.
+// FK's ON UPDATE CASCADE fires exactly as it does for `issuegraph rename`.
 func renameIssue(t *testing.T, ctx context.Context, conn *sql.Conn, oldID, newID string) {
 	t.Helper()
 	tx, err := conn.BeginTx(ctx, nil)

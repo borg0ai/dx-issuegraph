@@ -1,16 +1,16 @@
 ---
-title: "bd doctor"
-description: "Sanity check the beads installation for the current directory or specified path."
+title: "issuegraph doctor"
+description: "Sanity check the issuegraph installation for the current directory or specified path."
 ---
 
 {/* AUTO-GENERATED: do not edit manually */}
 
-Generated from `bd help --doc doctor`.
+Generated from `issuegraph help --doc doctor`.
 
-Sanity check the beads installation for the current directory or specified path.
+Sanity check the issuegraph installation for the current directory or specified path.
 
 This command checks:
-  - If .beads/ directory exists
+  - If .issuegraph/ directory exists
   - Database version and migration status
   - Schema compatibility (all required tables and columns present)
   - Whether using hash-based vs sequential IDs
@@ -19,12 +19,12 @@ This command checks:
   - File permissions
   - Circular dependencies
   - Git hooks (pre-commit, post-merge, pre-push)
-  - .beads/.gitignore up to date
+  - .issuegraph/.gitignore up to date
   - Metadata.json version tracking (LastBdVersion field)
 
 Performance Mode (--perf):
   Run performance diagnostics on your database:
-  - Times key operations (bd ready, bd list, bd show, etc.)
+  - Times key operations (issuegraph ready, issuegraph list, issuegraph show, etc.)
   - Collects system info (OS, arch, SQLite version, database stats)
   - Generates CPU profile for analysis
   - Outputs shareable report for bug reports
@@ -35,8 +35,8 @@ Export Mode (--output):
 
 Specific Check Mode (--check):
   Run a specific check in detail. Available checks:
-  - artifacts: Detect and optionally clean beads classic artifacts
-    (stale JSONL, SQLite files, cruft .beads dirs). Use with --clean.
+  - artifacts: Detect and optionally clean issuegraph classic artifacts
+    (stale JSONL, SQLite files, cruft .issuegraph dirs). Use with --clean.
   - conventions: Check for convention drift (lint warnings, stale
     issues, orphaned issues). Advisory only - warns, never blocks.
   - pollution: Detect and optionally clean test issues from database
@@ -49,16 +49,16 @@ Deep Validation Mode (--deep):
   - Parent consistency: All parent-child deps point to existing issues
   - Dependency integrity: All deps reference valid issues
   - Epic completeness: Find epics ready to close (all children closed)
-  - Agent bead integrity: Agent beads have valid state values
+  - Agent issue integrity: Agent issuegraph have valid state values
   - Mail thread integrity: Thread IDs reference existing issues
   - Molecule integrity: Molecules have valid parent-child structures
 
 Server Mode (--server):
-  Run health checks for Dolt server mode connections (bd-dolt.2.3):
+  Run health checks for Dolt server mode connections (issuegraph-dolt.2.3):
   - Server reachable: Can connect to configured host:port?
   - Dolt version: Is it a Dolt server (not vanilla MySQL)?
-  - Database exists: Does the 'beads' database exist?
-  - Schema compatible: Can query beads tables?
+  - Database exists: Does the 'issuegraph' database exist?
+  - Schema compatible: Can query issuegraph tables?
   - Connection pool: Pool health metrics
 
 Migration Validation Mode (--migration):
@@ -89,42 +89,42 @@ Agent Mode (--agent):
 
 Suppressing Warnings:
   Suppress specific warnings by setting doctor.suppress.&lt;check-slug&gt; config:
-    bd config set doctor.suppress.pending-migrations true
-    bd config set doctor.suppress.git-hooks true
+    issuegraph config set doctor.suppress.pending-migrations true
+    issuegraph config set doctor.suppress.git-hooks true
   Check names are converted to slugs: "Git Hooks" → "git-hooks".
   Only warnings are suppressed; errors and passing checks always show.
-  To unsuppress: bd config unset doctor.suppress.&lt;slug&gt;
+  To unsuppress: issuegraph config unset doctor.suppress.&lt;slug&gt;
 
 Examples:
-  bd doctor              # Check current directory
-  bd doctor /path/to/repo # Check specific repository
-  bd doctor --json       # Machine-readable output
-  bd doctor --agent      # Agent-facing diagnostic output
-  bd doctor --agent --json  # Structured agent diagnostics (JSON)
-  bd doctor --fix        # Automatically fix issues (with confirmation)
-  bd doctor --fix --yes  # Automatically fix issues (no confirmation)
-  bd doctor --fix -i     # Confirm each fix individually
-  bd doctor --fix --fix-child-parent  # Also fix child→parent deps (opt-in)
-  bd doctor --fix --force # Force repair even when database can't be opened
-  bd doctor --fix --source=jsonl # Rebuild database from a JSONL export
-  bd doctor --dry-run    # Preview what --fix would do without making changes
-  bd doctor --perf       # Performance diagnostics
-  bd doctor --output diagnostics.json  # Export diagnostics to file
-  bd doctor --check=artifacts           # Show classic artifacts (JSONL, SQLite, cruft dirs)
-  bd doctor --check=artifacts --clean  # Delete safe-to-delete artifacts (with confirmation)
-  bd doctor --check=conventions        # Convention drift check (lint, stale, orphans)
-  bd doctor --check=pollution          # Show potential test issues
-  bd doctor --check=pollution --clean  # Delete test issues (with confirmation)
-  bd doctor --check=validate         # Data-integrity checks only
-  bd doctor --check=validate --fix   # Auto-fix data-integrity issues
-  bd doctor --deep             # Full graph integrity validation
-  bd doctor --server           # Dolt server mode health checks
-  bd doctor --migration=pre    # Validate readiness for Dolt migration
-  bd doctor --migration=post   # Validate Dolt migration completed
-  bd doctor --migration=pre --json  # Machine-parseable migration validation
+  issuegraph doctor              # Check current directory
+  issuegraph doctor /path/to/repo # Check specific repository
+  issuegraph doctor --json       # Machine-readable output
+  issuegraph doctor --agent      # Agent-facing diagnostic output
+  issuegraph doctor --agent --json  # Structured agent diagnostics (JSON)
+  issuegraph doctor --fix        # Automatically fix issues (with confirmation)
+  issuegraph doctor --fix --yes  # Automatically fix issues (no confirmation)
+  issuegraph doctor --fix -i     # Confirm each fix individually
+  issuegraph doctor --fix --fix-child-parent  # Also fix child→parent deps (opt-in)
+  issuegraph doctor --fix --force # Force repair even when database can't be opened
+  issuegraph doctor --fix --source=jsonl # Rebuild database from a JSONL export
+  issuegraph doctor --dry-run    # Preview what --fix would do without making changes
+  issuegraph doctor --perf       # Performance diagnostics
+  issuegraph doctor --output diagnostics.json  # Export diagnostics to file
+  issuegraph doctor --check=artifacts           # Show classic artifacts (JSONL, SQLite, cruft dirs)
+  issuegraph doctor --check=artifacts --clean  # Delete safe-to-delete artifacts (with confirmation)
+  issuegraph doctor --check=conventions        # Convention drift check (lint, stale, orphans)
+  issuegraph doctor --check=pollution          # Show potential test issues
+  issuegraph doctor --check=pollution --clean  # Delete test issues (with confirmation)
+  issuegraph doctor --check=validate         # Data-integrity checks only
+  issuegraph doctor --check=validate --fix   # Auto-fix data-integrity issues
+  issuegraph doctor --deep             # Full graph integrity validation
+  issuegraph doctor --server           # Dolt server mode health checks
+  issuegraph doctor --migration=pre    # Validate readiness for Dolt migration
+  issuegraph doctor --migration=post   # Validate Dolt migration completed
+  issuegraph doctor --migration=pre --json  # Machine-parseable migration validation
 
 ```
-bd doctor [path] [flags]
+issuegraph doctor [path] [flags]
 ```
 
 **Flags:**

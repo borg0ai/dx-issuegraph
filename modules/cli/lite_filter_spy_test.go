@@ -6,9 +6,9 @@ import (
 	"context"
 	"sync"
 
-	"github.com/steveyegge/beads/internal/storage"
-	"github.com/steveyegge/beads/internal/storage/dolt"
-	"github.com/steveyegge/beads/internal/types"
+	"github.com/borg0ai/dx-issuegraph/internal/storage"
+	"github.com/borg0ai/dx-issuegraph/internal/storage/dolt"
+	"github.com/borg0ai/dx-issuegraph/internal/types"
 )
 
 // filterCapturingStore is the shared spy used by the round-trip /
@@ -21,7 +21,7 @@ import (
 //
 // The same spy is intended to be reused by be-uwvs.5's parallel
 // Lite=false gate tests (TestExportFilterIsAlwaysFull and friends);
-// whichever bead lands first creates the spy, the other reuses it.
+// whichever issue lands first creates the spy, the other reuses it.
 //
 // It embeds *dolt.DoltStore (concrete) rather than the narrow
 // storage.Storage interface so that modules/cli's capability assertions

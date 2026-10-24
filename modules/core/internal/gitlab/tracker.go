@@ -9,9 +9,9 @@ import (
 	"strconv"
 	"strings"
 
-	"github.com/steveyegge/beads/internal/config"
-	"github.com/steveyegge/beads/internal/tracker"
-	"github.com/steveyegge/beads/internal/types"
+	"github.com/borg0ai/dx-issuegraph/internal/config"
+	"github.com/borg0ai/dx-issuegraph/internal/tracker"
+	"github.com/borg0ai/dx-issuegraph/internal/types"
 )
 
 func init() {
@@ -216,7 +216,7 @@ func (t *Tracker) CreateIssue(ctx context.Context, issue *types.Issue) (*tracker
 		}
 	}
 
-	fields := BeadsIssueToGitLabFields(issue, t.config)
+	fields := IssueGraphIssueToGitLabFields(issue, t.config)
 	labels, _ := fields["labels"].([]string)
 
 	created, err := t.client.CreateIssue(ctx, issue.Title, issue.Description, labels)
@@ -233,12 +233,12 @@ func (t *Tracker) CreateIssue(ctx context.Context, issue *types.Issue) (*tracker
 		}
 	}
 
-	// GitLab's POST /issues cannot set state, so a closed bead is created
+	// GitLab's POST /issues cannot set state, so a closed issue is created
 	// "opened". Close it with a follow-up update so the state carries. On
 	// failure we keep the created issue and its external_ref (returning an error
 	// here would strand the issue and re-create a duplicate on the next push).
 	// The trade-off: the push skip-guard treats the just-created remote as
-	// up-to-date, so a failed close is not retried until the bead is next
+	// up-to-date, so a failed close is not retried until the issue is next
 	// modified — hence the warning. A closed-state push is the common bulk case
 	// and this call rarely fails.
 	var warnings []string
@@ -268,7 +268,7 @@ func (t *Tracker) UpdateIssue(ctx context.Context, externalID string, issue *typ
 		return nil, fmt.Errorf("invalid GitLab IID %q: %w", externalID, err)
 	}
 
-	updates := BeadsIssueToGitLabFields(issue, t.config)
+	updates := IssueGraphIssueToGitLabFields(issue, t.config)
 
 	// Assign milestone from parent epic if one exists
 	if t.store != nil {
@@ -286,7 +286,7 @@ func (t *Tracker) UpdateIssue(ctx context.Context, externalID string, issue *typ
 	return &ti, nil
 }
 
-// createMilestone creates a GitLab milestone for an epic bead.
+// createMilestone creates a GitLab milestone for an epic issue.
 func (t *Tracker) createMilestone(ctx context.Context, issue *types.Issue) (*tracker.TrackerIssue, error) {
 	ms, err := t.client.CreateMilestone(ctx, issue.Title, issue.Description)
 	if err != nil {
@@ -312,7 +312,7 @@ func (t *Tracker) createMilestone(ctx context.Context, issue *types.Issue) (*tra
 	return ti, nil
 }
 
-// updateMilestone updates a GitLab milestone for an epic bead.
+// updateMilestone updates a GitLab milestone for an epic issue.
 func (t *Tracker) updateMilestone(ctx context.Context, externalID string, issue *types.Issue) (*tracker.TrackerIssue, error) {
 	mid, ok, err := parseMilestoneIdentifier(externalID)
 	if err != nil {
@@ -425,7 +425,7 @@ func (t *Tracker) createTaskWorkItem(ctx context.Context, issue *types.Issue, pa
 
 	// Work items are created open; close via the issues API (work items share
 	// the project IID space, as the milestone assignment above relies on) if the
-	// bead is closed. Best effort with the same failure trade-off as CreateIssue.
+	// issue is closed. Best effort with the same failure trade-off as CreateIssue.
 	var warnings []string
 	if issue.Status == types.StatusClosed && iid > 0 {
 		if _, err := t.client.UpdateIssue(ctx, iid, map[string]interface{}{

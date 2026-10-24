@@ -10,10 +10,10 @@ import (
 
 	"github.com/spf13/cobra"
 
-	"github.com/steveyegge/beads/internal/storage"
-	"github.com/steveyegge/beads/internal/storage/domain"
-	"github.com/steveyegge/beads/internal/storage/uow"
-	"github.com/steveyegge/beads/internal/types"
+	"github.com/borg0ai/dx-issuegraph/internal/storage"
+	"github.com/borg0ai/dx-issuegraph/internal/storage/domain"
+	"github.com/borg0ai/dx-issuegraph/internal/storage/uow"
+	"github.com/borg0ai/dx-issuegraph/internal/types"
 )
 
 // stubLookupIssueUC answers the two lookups workapi.GetIssueOrWisp makes and
@@ -100,7 +100,7 @@ const (
 	stubBackendError = "connection reset by peer"
 )
 
-// showViewCmd builds the command for one of `bd show`'s alternate views.
+// showViewCmd builds the command for one of `issuegraph show`'s alternate views.
 // Only the named flag is registered; gatherShowProxiedInput reads the rest off
 // an empty flag set, which yields their zero values.
 func showViewCmd(view string) *cobra.Command {
@@ -109,7 +109,7 @@ func showViewCmd(view string) *cobra.Command {
 	return cmd
 }
 
-// closeReasonCmd registers the reason flags `bd close` reads before it resolves
+// closeReasonCmd registers the reason flags `issuegraph close` reads before it resolves
 // anything. collectCloseReasonFlags returns an error for an unregistered one,
 // which would abort the command ahead of the lookup under test.
 func closeReasonCmd() *cobra.Command {
@@ -308,7 +308,7 @@ var proxiedLookupCommands = []struct {
 		},
 		// Both routes now resolve through resolveLabelTarget, so this is the
 		// direct route's message rather than the retired proxied twin's
-		// "issue bd-missing not found" — the same alignment `bd label`'s
+		// "issue bd-missing not found" — the same alignment `issuegraph label`'s
 		// migration made, and for the same reason: resolution happens before
 		// the role is asked for anything, so the failure is not about state.
 		wantNotFound: "Error: resolving bd-missing: not found",

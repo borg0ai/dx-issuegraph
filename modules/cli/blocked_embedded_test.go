@@ -13,23 +13,23 @@ import (
 )
 
 func TestEmbeddedBlocked(t *testing.T) {
-	if os.Getenv("BEADS_TEST_EMBEDDED_DOLT") != "1" {
-		t.Skip("set BEADS_TEST_EMBEDDED_DOLT=1 to run embedded dolt integration tests")
+	if os.Getenv("ISSUEGRAPH_TEST_EMBEDDED_DOLT") != "1" {
+		t.Skip("set ISSUEGRAPH_TEST_EMBEDDED_DOLT=1 to run embedded dolt integration tests")
 	}
 	t.Parallel()
 
-	bd := buildEmbeddedBD(t)
-	dir, _, _ := bdInit(t, bd, "--prefix", "bl")
+	issuegraph := buildEmbeddedBD(t)
+	dir, _, _ := issuegraphInit(t, issuegraph, "--prefix", "bl")
 
 	// ===== Default Empty =====
 
 	t.Run("blocked_default_empty", func(t *testing.T) {
-		cmd := exec.Command(bd, "blocked")
+		cmd := exec.Command(issuegraph, "blocked")
 		cmd.Dir = dir
-		cmd.Env = bdEnv(dir)
+		cmd.Env = issuegraphEnv(dir)
 		stdout, stderr, err := runCommandBuffers(t, cmd)
 		if err != nil {
-			t.Fatalf("bd blocked failed: %v\nstdout:\n%s\nstderr:\n%s", err, stdout.String(), stderr.String())
+			t.Fatalf("issuegraph blocked failed: %v\nstdout:\n%s\nstderr:\n%s", err, stdout.String(), stderr.String())
 		}
 		// No blocked issues on fresh db
 		_ = stdout.String()
@@ -38,23 +38,23 @@ func TestEmbeddedBlocked(t *testing.T) {
 	// ===== With Blocked Issue =====
 
 	t.Run("blocked_with_issue", func(t *testing.T) {
-		blocker := bdCreate(t, bd, dir, "Blocker for blocked test", "--type", "task")
-		blocked := bdCreate(t, bd, dir, "I am blocked", "--type", "task")
+		blocker := issuegraphCreate(t, issuegraph, dir, "Blocker for blocked test", "--type", "task")
+		blocked := issuegraphCreate(t, issuegraph, dir, "I am blocked", "--type", "task")
 
 		// blocked depends on blocker (blocker blocks blocked)
-		cmd := exec.Command(bd, "dep", "add", blocked.ID, blocker.ID)
+		cmd := exec.Command(issuegraph, "dep", "add", blocked.ID, blocker.ID)
 		cmd.Dir = dir
-		cmd.Env = bdEnv(dir)
+		cmd.Env = issuegraphEnv(dir)
 		if out, err := cmd.CombinedOutput(); err != nil {
 			t.Fatalf("dep add failed: %v\n%s", err, out)
 		}
 
-		cmd = exec.Command(bd, "blocked")
+		cmd = exec.Command(issuegraph, "blocked")
 		cmd.Dir = dir
-		cmd.Env = bdEnv(dir)
+		cmd.Env = issuegraphEnv(dir)
 		stdout, stderr, err := runCommandBuffers(t, cmd)
 		if err != nil {
-			t.Fatalf("bd blocked failed: %v\nstdout:\n%s\nstderr:\n%s", err, stdout.String(), stderr.String())
+			t.Fatalf("issuegraph blocked failed: %v\nstdout:\n%s\nstderr:\n%s", err, stdout.String(), stderr.String())
 		}
 		if !strings.Contains(stdout.String(), blocked.ID) {
 			t.Errorf("expected %s in blocked output: %s", blocked.ID, stdout.String())
@@ -64,12 +64,12 @@ func TestEmbeddedBlocked(t *testing.T) {
 	// ===== --json =====
 
 	t.Run("blocked_json", func(t *testing.T) {
-		cmd := exec.Command(bd, "blocked", "--json")
+		cmd := exec.Command(issuegraph, "blocked", "--json")
 		cmd.Dir = dir
-		cmd.Env = bdEnv(dir)
+		cmd.Env = issuegraphEnv(dir)
 		stdout, stderr, err := runCommandBuffers(t, cmd)
 		if err != nil {
-			t.Fatalf("bd blocked --json failed: %v\nstdout:\n%s\nstderr:\n%s", err, stdout.String(), stderr.String())
+			t.Fatalf("issuegraph blocked --json failed: %v\nstdout:\n%s\nstderr:\n%s", err, stdout.String(), stderr.String())
 		}
 		s := strings.TrimSpace(stdout.String())
 		start := strings.IndexAny(s, "[{")
@@ -83,15 +83,15 @@ func TestEmbeddedBlocked(t *testing.T) {
 }
 
 func TestEmbeddedBlockedConcurrent(t *testing.T) {
-	if os.Getenv("BEADS_TEST_EMBEDDED_DOLT") != "1" {
-		t.Skip("set BEADS_TEST_EMBEDDED_DOLT=1 to run embedded dolt integration tests")
+	if os.Getenv("ISSUEGRAPH_TEST_EMBEDDED_DOLT") != "1" {
+		t.Skip("set ISSUEGRAPH_TEST_EMBEDDED_DOLT=1 to run embedded dolt integration tests")
 	}
 	t.Parallel()
 
-	bd := buildEmbeddedBD(t)
-	dir, _, _ := bdInit(t, bd, "--prefix", "bx")
+	issuegraph := buildEmbeddedBD(t)
+	dir, _, _ := issuegraphInit(t, issuegraph, "--prefix", "bx")
 
-	bdCreate(t, bd, dir, "Blocked concurrent issue", "--type", "task")
+	issuegraphCreate(t, issuegraph, dir, "Blocked concurrent issue", "--type", "task")
 
 	const numWorkers = 8
 	type workerResult struct {
@@ -106,9 +106,9 @@ func TestEmbeddedBlockedConcurrent(t *testing.T) {
 		go func(worker int) {
 			defer wg.Done()
 			r := workerResult{worker: worker}
-			cmd := exec.Command(bd, "blocked")
+			cmd := exec.Command(issuegraph, "blocked")
 			cmd.Dir = dir
-			cmd.Env = bdEnv(dir)
+			cmd.Env = issuegraphEnv(dir)
 			out, err := cmd.CombinedOutput()
 			if err != nil {
 				r.err = fmt.Errorf("blocked (worker %d): %v\n%s", worker, err, out)
@@ -124,16 +124,16 @@ func TestEmbeddedBlockedConcurrent(t *testing.T) {
 	}
 }
 
-// bdBlockedJSON runs "bd blocked --json" and parses the result as a slice.
-func bdBlockedJSON(t *testing.T, bd, dir string, args ...string) []map[string]interface{} {
+// issuegraphBlockedJSON runs "issuegraph blocked --json" and parses the result as a slice.
+func issuegraphBlockedJSON(t *testing.T, issuegraph, dir string, args ...string) []map[string]interface{} {
 	t.Helper()
 	fullArgs := append([]string{"blocked", "--json"}, args...)
-	cmd := exec.Command(bd, fullArgs...)
+	cmd := exec.Command(issuegraph, fullArgs...)
 	cmd.Dir = dir
-	cmd.Env = bdEnv(dir)
+	cmd.Env = issuegraphEnv(dir)
 	stdout, stderr, err := runCommandBuffers(t, cmd)
 	if err != nil {
-		t.Fatalf("bd blocked --json %s failed: %v\nstdout:\n%s\nstderr:\n%s", strings.Join(args, " "), err, stdout.String(), stderr.String())
+		t.Fatalf("issuegraph blocked --json %s failed: %v\nstdout:\n%s\nstderr:\n%s", strings.Join(args, " "), err, stdout.String(), stderr.String())
 	}
 	s := strings.TrimSpace(stdout.String())
 	start := strings.Index(s, "[")
@@ -148,34 +148,34 @@ func bdBlockedJSON(t *testing.T, bd, dir string, args ...string) []map[string]in
 }
 
 // TestEmbeddedBlockedLabelFilters covers --label, --label-any and
-// --exclude-label on bd blocked. The flags filter the blocked issues
+// --exclude-label on issuegraph blocked. The flags filter the blocked issues
 // themselves, never their blockers: a blocked issue stays visible under
 // --label whatever labels the thing blocking it happens to carry.
 func TestEmbeddedBlockedLabelFilters(t *testing.T) {
-	if os.Getenv("BEADS_TEST_EMBEDDED_DOLT") != "1" {
-		t.Skip("set BEADS_TEST_EMBEDDED_DOLT=1 to run embedded dolt integration tests")
+	if os.Getenv("ISSUEGRAPH_TEST_EMBEDDED_DOLT") != "1" {
+		t.Skip("set ISSUEGRAPH_TEST_EMBEDDED_DOLT=1 to run embedded dolt integration tests")
 	}
 	t.Parallel()
 
-	bd := buildEmbeddedBD(t)
-	dir, _, _ := bdInit(t, bd, "--prefix", "bt")
+	issuegraph := buildEmbeddedBD(t)
+	dir, _, _ := issuegraphInit(t, issuegraph, "--prefix", "bt")
 
-	blocker := bdCreate(t, bd, dir, "Blocker", "--type", "task", "--labels", "theme:blocker-only")
-	alpha := bdCreate(t, bd, dir, "Blocked alpha", "--type", "task", "--labels", "theme:alpha")
-	beta := bdCreate(t, bd, dir, "Blocked beta", "--type", "task", "--labels", "theme:beta")
-	alphaUrgent := bdCreate(t, bd, dir, "Blocked alpha urgent", "--type", "task", "--labels", "theme:alpha,urgent")
+	blocker := issuegraphCreate(t, issuegraph, dir, "Blocker", "--type", "task", "--labels", "theme:blocker-only")
+	alpha := issuegraphCreate(t, issuegraph, dir, "Blocked alpha", "--type", "task", "--labels", "theme:alpha")
+	beta := issuegraphCreate(t, issuegraph, dir, "Blocked beta", "--type", "task", "--labels", "theme:beta")
+	alphaUrgent := issuegraphCreate(t, issuegraph, dir, "Blocked alpha urgent", "--type", "task", "--labels", "theme:alpha,urgent")
 
 	for _, blocked := range []string{alpha.ID, beta.ID, alphaUrgent.ID} {
-		cmd := exec.Command(bd, "dep", "add", blocked, blocker.ID)
+		cmd := exec.Command(issuegraph, "dep", "add", blocked, blocker.ID)
 		cmd.Dir = dir
-		cmd.Env = bdEnv(dir)
+		cmd.Env = issuegraphEnv(dir)
 		if out, err := cmd.CombinedOutput(); err != nil {
 			t.Fatalf("dep add %s -> %s failed: %v\n%s", blocked, blocker.ID, err, out)
 		}
 	}
 
 	t.Run("label_scopes_to_one_theme", func(t *testing.T) {
-		ids := idSet(bdBlockedJSON(t, bd, dir, "--label", "theme:alpha"))
+		ids := idSet(issuegraphBlockedJSON(t, issuegraph, dir, "--label", "theme:alpha"))
 		if !ids[alpha.ID] || !ids[alphaUrgent.ID] {
 			t.Errorf("expected both theme:alpha blocked issues, got %v", ids)
 		}
@@ -185,7 +185,7 @@ func TestEmbeddedBlockedLabelFilters(t *testing.T) {
 	})
 
 	t.Run("repeated_label_is_AND", func(t *testing.T) {
-		ids := idSet(bdBlockedJSON(t, bd, dir, "--label", "theme:alpha", "--label", "urgent"))
+		ids := idSet(issuegraphBlockedJSON(t, issuegraph, dir, "--label", "theme:alpha", "--label", "urgent"))
 		if !ids[alphaUrgent.ID] {
 			t.Errorf("expected %s carrying both labels, got %v", alphaUrgent.ID, ids)
 		}
@@ -195,7 +195,7 @@ func TestEmbeddedBlockedLabelFilters(t *testing.T) {
 	})
 
 	t.Run("label_any_is_OR", func(t *testing.T) {
-		ids := idSet(bdBlockedJSON(t, bd, dir, "--label-any", "theme:alpha,theme:beta"))
+		ids := idSet(issuegraphBlockedJSON(t, issuegraph, dir, "--label-any", "theme:alpha,theme:beta"))
 		for _, id := range []string{alpha.ID, beta.ID, alphaUrgent.ID} {
 			if !ids[id] {
 				t.Errorf("expected %s from --label-any, got %v", id, ids)
@@ -204,7 +204,7 @@ func TestEmbeddedBlockedLabelFilters(t *testing.T) {
 	})
 
 	t.Run("exclude_label_drops_matches", func(t *testing.T) {
-		ids := idSet(bdBlockedJSON(t, bd, dir, "--exclude-label", "theme:alpha"))
+		ids := idSet(issuegraphBlockedJSON(t, issuegraph, dir, "--exclude-label", "theme:alpha"))
 		if ids[alpha.ID] || ids[alphaUrgent.ID] {
 			t.Errorf("--exclude-label theme:alpha still returned alpha issues: %v", ids)
 		}
@@ -217,7 +217,7 @@ func TestEmbeddedBlockedLabelFilters(t *testing.T) {
 		// theme:blocker-only lives on the blocker, not on anything blocked,
 		// so scoping to it must return nothing rather than the issues it
 		// blocks.
-		ids := idSet(bdBlockedJSON(t, bd, dir, "--label", "theme:blocker-only"))
+		ids := idSet(issuegraphBlockedJSON(t, issuegraph, dir, "--label", "theme:blocker-only"))
 		for _, id := range []string{alpha.ID, beta.ID, alphaUrgent.ID} {
 			if ids[id] {
 				t.Errorf("blocked issue %s matched a label carried only by its blocker: %v", id, ids)
@@ -226,7 +226,7 @@ func TestEmbeddedBlockedLabelFilters(t *testing.T) {
 	})
 
 	t.Run("no_label_flags_returns_everything", func(t *testing.T) {
-		ids := idSet(bdBlockedJSON(t, bd, dir))
+		ids := idSet(issuegraphBlockedJSON(t, issuegraph, dir))
 		for _, id := range []string{alpha.ID, beta.ID, alphaUrgent.ID} {
 			if !ids[id] {
 				t.Errorf("expected %s in unfiltered blocked output, got %v", id, ids)
@@ -238,7 +238,7 @@ func TestEmbeddedBlockedLabelFilters(t *testing.T) {
 	// Without it an untrimmed value returns nothing and is indistinguishable
 	// from "nothing blocked carries that label".
 	t.Run("leading_space_is_trimmed_like_every_other_label_filter", func(t *testing.T) {
-		ids := idSet(bdBlockedJSON(t, bd, dir, "--label", " theme:alpha"))
+		ids := idSet(issuegraphBlockedJSON(t, issuegraph, dir, "--label", " theme:alpha"))
 		if !ids[alpha.ID] || !ids[alphaUrgent.ID] {
 			t.Errorf("expected ' theme:alpha' to match theme:alpha, got %v", ids)
 		}
@@ -248,18 +248,18 @@ func TestEmbeddedBlockedLabelFilters(t *testing.T) {
 	})
 
 	t.Run("empty_element_does_not_annihilate_the_filter", func(t *testing.T) {
-		ids := idSet(bdBlockedJSON(t, bd, dir, "--label", "theme:alpha,,urgent"))
+		ids := idSet(issuegraphBlockedJSON(t, issuegraph, dir, "--label", "theme:alpha,,urgent"))
 		if !ids[alphaUrgent.ID] {
 			t.Errorf("expected %s to survive an empty label element, got %v", alphaUrgent.ID, ids)
 		}
 	})
 
 	t.Run("normalization_applies_to_label_any_and_exclude_label", func(t *testing.T) {
-		anyIDs := idSet(bdBlockedJSON(t, bd, dir, "--label-any", " theme:beta"))
+		anyIDs := idSet(issuegraphBlockedJSON(t, issuegraph, dir, "--label-any", " theme:beta"))
 		if !anyIDs[beta.ID] {
 			t.Errorf("expected ' theme:beta' to match via --label-any, got %v", anyIDs)
 		}
-		excludeIDs := idSet(bdBlockedJSON(t, bd, dir, "--exclude-label", " theme:alpha"))
+		excludeIDs := idSet(issuegraphBlockedJSON(t, issuegraph, dir, "--exclude-label", " theme:alpha"))
 		if excludeIDs[alpha.ID] || excludeIDs[alphaUrgent.ID] {
 			t.Errorf("' theme:alpha' failed to exclude the alpha issues: %v", excludeIDs)
 		}

@@ -33,8 +33,8 @@ var markdownLinkRE = regexp.MustCompile(`\[[^][]*\]\(([^)]+)\)`)
 // pages get an entry in the docs.json redirects array, not a pointer stub
 // (engdocs/decisions/2026-07-10-mintlify-docs-overhaul.md, decision 6).
 var docsPublishExemptions = map[string]bool{
-	"CLI_REFERENCE.md": true, // generated single-file reference (bd help --all)
-	// Deliberate exception to decision 6: released bd binaries print this
+	"CLI_REFERENCE.md": true, // generated single-file reference (issuegraph help --all)
+	// Deliberate exception to decision 6: released issuegraph binaries print this
 	// path (v1.1.0 printAncestorPKMismatchGuidance emits
 	// docs/RECOVERY.md#pk-fork-refused), and github.com blob URLs cannot be
 	// redirected. Keep until no supported release prints it.

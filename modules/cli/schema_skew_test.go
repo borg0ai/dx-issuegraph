@@ -7,8 +7,8 @@ import (
 	"os"
 	"testing"
 
-	"github.com/steveyegge/beads/internal/config"
-	"github.com/steveyegge/beads/internal/storage/schema"
+	"github.com/borg0ai/dx-issuegraph/internal/config"
+	"github.com/borg0ai/dx-issuegraph/internal/storage/schema"
 )
 
 // TestHandleSchemaSkewJSON_Shape verifies the JSON written to stderr by
@@ -86,20 +86,20 @@ func TestIgnoreSchemaSkewFlagRegistered(t *testing.T) {
 }
 
 // TestIgnoreSchemaSkewFlagPropagatesEnvVar verifies that PersistentPreRun
-// sets BD_IGNORE_SCHEMA_SKEW=1 when --ignore-schema-skew is true, so all
+// sets ISSUEGRAPH_IGNORE_SCHEMA_SKEW=1 when --ignore-schema-skew is true, so all
 // store-open paths see the escape hatch uniformly (not just checkSchemaSkew).
 func TestIgnoreSchemaSkewFlagPropagatesEnvVar(t *testing.T) {
-	// Isolate CWD and BEADS_DIR before invoking PersistentPreRunE below.
-	// Without this, selectedNoDBBeadsDir falls through to FindBeadsDir(),
-	// which auto-detects a real .beads dir from the ambient working
-	// directory (e.g. the shared .beads of a git worktree's main
-	// checkout) and leaks it into BEADS_DIR for the rest of the test
-	// binary — corrupting later tests that assume BEADS_DIR is unset.
+	// Isolate CWD and ISSUEGRAPH_DIR before invoking PersistentPreRunE below.
+	// Without this, selectedNoDBIssueGraphDir falls through to FindIssueGraphDir(),
+	// which auto-detects a real .issuegraph dir from the ambient working
+	// directory (e.g. the shared .issuegraph of a git worktree's main
+	// checkout) and leaks it into ISSUEGRAPH_DIR for the rest of the test
+	// binary — corrupting later tests that assume ISSUEGRAPH_DIR is unset.
 	t.Chdir(t.TempDir())
-	t.Setenv("BEADS_DIR", "")
-	t.Setenv("BD_IGNORE_SCHEMA_SKEW", "")
-	t.Setenv("BEADS_DOLT_SERVER_DATABASE", "")
-	t.Setenv("BEADS_DOLT_SERVER_PORT", "")
+	t.Setenv("ISSUEGRAPH_DIR", "")
+	t.Setenv("ISSUEGRAPH_IGNORE_SCHEMA_SKEW", "")
+	t.Setenv("ISSUEGRAPH_DOLT_SERVER_DATABASE", "")
+	t.Setenv("ISSUEGRAPH_DOLT_SERVER_PORT", "")
 
 	config.ResetForTesting()
 	t.Cleanup(config.ResetForTesting)
@@ -116,7 +116,7 @@ func TestIgnoreSchemaSkewFlagPropagatesEnvVar(t *testing.T) {
 		t.Fatalf("PersistentPreRunE: %v", err)
 	}
 
-	if got := os.Getenv("BD_IGNORE_SCHEMA_SKEW"); got != "1" {
-		t.Errorf("BD_IGNORE_SCHEMA_SKEW = %q after PersistentPreRun with --ignore-schema-skew; want 1", got)
+	if got := os.Getenv("ISSUEGRAPH_IGNORE_SCHEMA_SKEW"); got != "1" {
+		t.Errorf("ISSUEGRAPH_IGNORE_SCHEMA_SKEW = %q after PersistentPreRun with --ignore-schema-skew; want 1", got)
 	}
 }

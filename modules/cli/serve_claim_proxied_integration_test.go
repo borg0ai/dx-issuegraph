@@ -18,7 +18,7 @@ import (
 )
 
 // End-to-end for the one write in v0, against real Dolt through a real
-// `bd serve` subprocess. The pure tests in internal/httpapi cover the wire edge;
+// `issuegraph serve` subprocess. The pure tests in internal/httpapi cover the wire edge;
 // what only this level can prove is the CAS itself — that two surfaces claiming
 // the same issue agree, that a race has exactly one winner, and that the JSON
 // the endpoint answers with is the JSON the CLI answers with.
@@ -32,7 +32,7 @@ func (sp *serveProcess) claim(t *testing.T, id, actor string) (int, map[string]a
 
 func (sp *serveProcess) claimWithBody(t *testing.T, id, body string) (int, map[string]any, http.Header) {
 	t.Helper()
-	req, err := http.NewRequest(http.MethodPost, sp.url("/v0/beads/issues/"+id+":claim"), strings.NewReader(body))
+	req, err := http.NewRequest(http.MethodPost, sp.url("/v0/issuegraph/issues/"+id+":claim"), strings.NewReader(body))
 	if err != nil {
 		t.Fatalf("new claim request: %v", err)
 	}
@@ -58,12 +58,12 @@ func (sp *serveProcess) claimWithBody(t *testing.T, id, body string) (int, map[s
 func TestProxiedServerServeClaim(t *testing.T) {
 	requireSharedProxiedServer(t)
 	t.Parallel()
-	bd := buildEmbeddedBD(t)
-	p := newSharedProxiedProject(t, bd, "srvcl")
-	sp := startServe(t, bd, p.dir, bdProxiedEnv(p.dir))
+	issuegraph := buildEmbeddedBD(t)
+	p := newSharedProxiedProject(t, issuegraph, "srvcl")
+	sp := startServe(t, issuegraph, p.dir, issuegraphProxiedEnv(p.dir))
 
 	t.Run("a claim over HTTP is the same claim the CLI sees", func(t *testing.T) {
-		issue := bdProxiedCreate(t, bd, p.dir, "claim over http", "-p", "1")
+		issue := issuegraphProxiedCreate(t, issuegraph, p.dir, "claim over http", "-p", "1")
 
 		status, body := sp.claim(t, issue.ID, "http-agent")
 		if status != http.StatusOK {
@@ -81,23 +81,23 @@ func TestProxiedServerServeClaim(t *testing.T) {
 		}
 
 		// The CLI reads the same row through its own path.
-		shown := bdProxiedShow(t, bd, p.dir, issue.ID)
+		shown := issuegraphProxiedShow(t, issuegraph, p.dir, issue.ID)
 		if shown.Assignee != "http-agent" || string(shown.Status) != "in_progress" {
-			t.Errorf("bd show reports assignee %q status %q; the HTTP claim did not land",
+			t.Errorf("issuegraph show reports assignee %q status %q; the HTTP claim did not land",
 				shown.Assignee, shown.Status)
 		}
 
 		// And the CLI's own claim of it now loses, with the copy it has always
 		// produced — the HTTP endpoint changed nothing about CLI semantics.
-		out := bdProxiedUpdateFail(t, bd, p.dir, issue.ID, "--claim", "--actor", "cli-agent")
+		out := issuegraphProxiedUpdateFail(t, issuegraph, p.dir, issue.ID, "--claim", "--actor", "cli-agent")
 		if !strings.Contains(out, issue.ID) {
 			t.Errorf("CLI claim refusal does not name the issue:\n%s", out)
 		}
 	})
 
 	t.Run("a foreign holder is a typed 409 carrying the holder", func(t *testing.T) {
-		issue := bdProxiedCreate(t, bd, p.dir, "claimed by the cli first", "-p", "1")
-		bdProxiedUpdateOne(t, bd, p.dir, issue.ID, "--claim", "--actor", "cli-agent")
+		issue := issuegraphProxiedCreate(t, issuegraph, p.dir, "claimed by the cli first", "-p", "1")
+		issuegraphProxiedUpdateOne(t, issuegraph, p.dir, issue.ID, "--claim", "--actor", "cli-agent")
 
 		status, body := sp.claim(t, issue.ID, "http-agent")
 		if status != http.StatusConflict {
@@ -120,9 +120,9 @@ func TestProxiedServerServeClaim(t *testing.T) {
 	})
 
 	t.Run("a closed issue is not claimable", func(t *testing.T) {
-		issue := bdProxiedCreate(t, bd, p.dir, "already closed", "-p", "2")
-		if out, err := bdProxiedRun(t, bd, p.dir, "close", issue.ID, "--reason", "done"); err != nil {
-			t.Fatalf("bd close: %v\n%s", err, out)
+		issue := issuegraphProxiedCreate(t, issuegraph, p.dir, "already closed", "-p", "2")
+		if out, err := issuegraphProxiedRun(t, issuegraph, p.dir, "close", issue.ID, "--reason", "done"); err != nil {
+			t.Fatalf("issuegraph close: %v\n%s", err, out)
 		}
 
 		status, body := sp.claim(t, issue.ID, "http-agent")
@@ -154,7 +154,7 @@ func TestProxiedServerServeClaim(t *testing.T) {
 		// The route pattern is a whole-segment wildcard, so this POST reaches
 		// the claim handler; the detail path is documented GET-only and must
 		// not be treated as a claim of the issue it names.
-		req, err := http.NewRequest(http.MethodPost, sp.url("/v0/beads/issues/bd-1"), strings.NewReader(`{"actor":"http-agent"}`))
+		req, err := http.NewRequest(http.MethodPost, sp.url("/v0/issuegraph/issues/bd-1"), strings.NewReader(`{"actor":"http-agent"}`))
 		if err != nil {
 			t.Fatalf("new request: %v", err)
 		}
@@ -170,7 +170,7 @@ func TestProxiedServerServeClaim(t *testing.T) {
 	})
 
 	t.Run("a refused actor writes nothing", func(t *testing.T) {
-		issue := bdProxiedCreate(t, bd, p.dir, "never claimed", "-p", "2")
+		issue := issuegraphProxiedCreate(t, issuegraph, p.dir, "never claimed", "-p", "2")
 
 		for _, body := range []string{
 			`{"actor":"   "}`,
@@ -188,7 +188,7 @@ func TestProxiedServerServeClaim(t *testing.T) {
 		}
 
 		// The refusals are wire-edge refusals: nothing reached the database.
-		shown := bdProxiedShow(t, bd, p.dir, issue.ID)
+		shown := issuegraphProxiedShow(t, issuegraph, p.dir, issue.ID)
 		if shown.Assignee != "" || string(shown.Status) != "open" {
 			t.Errorf("a refused claim wrote to the row: assignee %q status %q", shown.Assignee, shown.Status)
 		}
@@ -199,8 +199,8 @@ func TestProxiedServerServeClaim(t *testing.T) {
 	// by construction" is exactly the reasoning that rule exists to forbid: a
 	// later CLI-side enrichment of update output must fail here rather than
 	// drift silently against the HTTP body.
-	t.Run("the claimed issue matches bd update --claim --json element 0", func(t *testing.T) {
-		issue := bdProxiedCreate(t, bd, p.dir, "parity oracle", "-p", "1",
+	t.Run("the claimed issue matches issuegraph update --claim --json element 0", func(t *testing.T) {
+		issue := issuegraphProxiedCreate(t, issuegraph, p.dir, "parity oracle", "-p", "1",
 			"-d", "described", "--acceptance", "accepted", "--label", "oracle")
 
 		status, body := sp.claim(t, issue.ID, "parity-agent")
@@ -214,19 +214,19 @@ func TestProxiedServerServeClaim(t *testing.T) {
 
 		// A same-actor re-claim through the CLI: idempotent under CLI semantics,
 		// so it writes nothing and both sides describe the same row. Element [0]
-		// of `bd update --claim --json` is the proxied path's own re-fetch.
-		fromCLI := bdProxiedUpdateOneRaw(t, bd, p.dir, issue.ID, "--claim", "--actor", "parity-agent")
+		// of `issuegraph update --claim --json` is the proxied path's own re-fetch.
+		fromCLI := issuegraphProxiedUpdateOneRaw(t, issuegraph, p.dir, issue.ID, "--claim", "--actor", "parity-agent")
 
 		// The allowlist is EMPTY: both surfaces marshal the same canonical
 		// struct from the same re-read, so any difference at all is a real
 		// divergence and belongs in review, not in this list.
 		if diff := diffJSONObjects(fromHTTP, fromCLI, nil); diff != "" {
-			t.Errorf("ClaimResponse.issue and `bd update --claim --json`[0] disagree:\n%s", diff)
+			t.Errorf("ClaimResponse.issue and `issuegraph update --claim --json`[0] disagree:\n%s", diff)
 		}
 	})
 
 	t.Run("a re-claim by the holder is idempotent", func(t *testing.T) {
-		issue := bdProxiedCreate(t, bd, p.dir, "idempotent", "-p", "2")
+		issue := issuegraphProxiedCreate(t, issuegraph, p.dir, "idempotent", "-p", "2")
 
 		if status, body := sp.claim(t, issue.ID, "http-agent"); status != http.StatusOK {
 			t.Fatalf("first claim: status = %d: %v", status, body)
@@ -243,7 +243,7 @@ func TestProxiedServerServeClaim(t *testing.T) {
 	// The concurrency requirement, against the real CAS. Anything less than
 	// "exactly one" is a double-claim: two agents doing the same work.
 	t.Run("concurrent claimants produce exactly one winner", func(t *testing.T) {
-		issue := bdProxiedCreate(t, bd, p.dir, "contested", "-p", "0")
+		issue := issuegraphProxiedCreate(t, issuegraph, p.dir, "contested", "-p", "0")
 
 		const claimants = 8
 		type outcome struct {
@@ -300,8 +300,8 @@ func TestProxiedServerServeClaim(t *testing.T) {
 		}
 
 		// And the database agrees with the wire.
-		if shown := bdProxiedShow(t, bd, p.dir, issue.ID); shown.Assignee != winners[0] {
-			t.Errorf("bd show reports %q holds the issue, the winning response said %q",
+		if shown := issuegraphProxiedShow(t, issuegraph, p.dir, issue.ID); shown.Assignee != winners[0] {
+			t.Errorf("issuegraph show reports %q holds the issue, the winning response said %q",
 				shown.Assignee, winners[0])
 		}
 	})
@@ -314,12 +314,12 @@ func TestProxiedServerServeClaim(t *testing.T) {
 	// this half pins the consequence an operator would see — the server keeps
 	// serving claims afterwards.
 	t.Run("client disconnects mid-claim leave the server serving", func(t *testing.T) {
-		issue := bdProxiedCreate(t, bd, p.dir, "abandoned claims", "-p", "2")
+		issue := issuegraphProxiedCreate(t, issuegraph, p.dir, "abandoned claims", "-p", "2")
 
 		for i := range 20 {
 			ctx, cancel := context.WithTimeout(context.Background(), time.Millisecond)
 			req, err := http.NewRequestWithContext(ctx, http.MethodPost,
-				sp.url("/v0/beads/issues/"+issue.ID+":claim"),
+				sp.url("/v0/issuegraph/issues/"+issue.ID+":claim"),
 				strings.NewReader(fmt.Sprintf(`{"actor":"quitter-%d"}`, i)))
 			if err != nil {
 				cancel()
@@ -339,7 +339,7 @@ func TestProxiedServerServeClaim(t *testing.T) {
 		if status, _, _ := sp.get(t, "/healthz"); status != http.StatusOK {
 			t.Fatalf("/healthz = %d after abandoned claims", status)
 		}
-		fresh := bdProxiedCreate(t, bd, p.dir, "after the disconnects", "-p", "2")
+		fresh := issuegraphProxiedCreate(t, issuegraph, p.dir, "after the disconnects", "-p", "2")
 		status, body := sp.claim(t, fresh.ID, "survivor")
 		if status != http.StatusOK {
 			t.Fatalf("claim after %d abandoned requests: status = %d, want 200: %v", 20, status, body)
@@ -349,16 +349,16 @@ func TestProxiedServerServeClaim(t *testing.T) {
 	sp.shutdown(t)
 }
 
-// bdProxiedUpdateOneRaw is bdProxiedUpdateOne decoded as a generic object
+// issuegraphProxiedUpdateOneRaw is issuegraphProxiedUpdateOne decoded as a generic object
 // rather than into types.Issue: the parity oracle compares the JSON both
 // surfaces actually emit, and decoding through the struct would hide exactly
 // the field-level drift it exists to catch.
-func bdProxiedUpdateOneRaw(t *testing.T, bd, dir string, args ...string) map[string]any {
+func issuegraphProxiedUpdateOneRaw(t *testing.T, issuegraph, dir string, args ...string) map[string]any {
 	t.Helper()
 	full := append([]string{"update", "--json"}, args...)
-	out, err := bdProxiedRun(t, bd, dir, full...)
+	out, err := issuegraphProxiedRun(t, issuegraph, dir, full...)
 	if err != nil {
-		t.Fatalf("bd update --json %s failed: %v\n%s", strings.Join(args, " "), err, out)
+		t.Fatalf("issuegraph update --json %s failed: %v\n%s", strings.Join(args, " "), err, out)
 	}
 	s := string(out)
 	start := strings.Index(s, "[")

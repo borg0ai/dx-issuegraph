@@ -11,26 +11,26 @@
 # safe to run between test invocations. Dirs whose lockfile / mtime
 # suggests an in-progress run are skipped.
 #
-# See bd-3q2u / gastownhall/beads#4106.
+# See bd-3q2u / borg0ai/dx-issuegraph#4106.
 
 set -euo pipefail
 
 tmpdir="${TMPDIR:-/tmp}"
 
-# Patterns created by modules/cli test helpers (see test_repo_beads_guard_test.go
+# Patterns created by modules/cli test helpers (see test_repo_issuegraph_guard_test.go
 # and the package-level sync.Once builders).
 patterns=(
-    "beads-bd-tests-*"
-    "beads-shared-server-bd-*"
-    "bd-testbin-*"
-    "bd-init-test-*"
-    "bd-init-permissions-test-*"
-    "bd-embedded-init-test-*"
+    "issuegraph-issuegraph-tests-*"
+    "issuegraph-shared-server-*"
+    "issuegraph-testbin-*"
+    "issuegraph-init-test-*"
+    "issuegraph-init-permissions-test-*"
+    "issuegraph-embedded-init-test-*"
 )
 
 # Only sweep dirs older than this many minutes, so we don't blow away
 # a test run that's mid-flight in another worktree.
-min_age_min="${BEADS_CLEAN_TEST_TMP_MIN_AGE:-30}"
+min_age_min="${ISSUEGRAPH_CLEAN_TEST_TMP_MIN_AGE:-30}"
 
 removed=0
 skipped=0

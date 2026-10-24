@@ -6,12 +6,12 @@ import (
 	"strings"
 	"time"
 
+	"github.com/borg0ai/dx-issuegraph/internal/metrics"
+	"github.com/borg0ai/dx-issuegraph/internal/timeparsing"
+	"github.com/borg0ai/dx-issuegraph/internal/types"
+	"github.com/borg0ai/dx-issuegraph/internal/ui"
+	"github.com/borg0ai/dx-issuegraph/internal/utils"
 	"github.com/spf13/cobra"
-	"github.com/steveyegge/beads/internal/metrics"
-	"github.com/steveyegge/beads/internal/timeparsing"
-	"github.com/steveyegge/beads/internal/types"
-	"github.com/steveyegge/beads/internal/ui"
-	"github.com/steveyegge/beads/internal/utils"
 )
 
 var deferCmd = &cobra.Command{
@@ -24,18 +24,18 @@ just postponed for future consideration. Unlike blocked issues, there's no
 dependency keeping them from being worked. Unlike closed issues, they will
 be revisited.
 
-Deferred issues don't show in 'bd ready' but remain visible in 'bd list'.
+Deferred issues don't show in 'issuegraph ready' but remain visible in 'issuegraph list'.
 
 A defer WITH a date is a snooze: once --until passes, the next ready-front
-read returns the issue to open automatically (same shape as 'bd undefer').
+read returns the issue to open automatically (same shape as 'issuegraph undefer').
 A defer WITHOUT a date is the indefinite icebox: it stays deferred until
-someone runs 'bd undefer'.
+someone runs 'issuegraph undefer'.
 
 Examples:
-  bd defer bd-abc                  # Icebox indefinitely (until bd undefer)
-  bd defer bd-abc --until=tomorrow # Snooze: auto-wakes once the date passes
-  bd defer bd-abc --reason="waiting on API access"
-  bd defer bd-abc bd-def           # Defer multiple issues`,
+  issuegraph defer bd-abc                  # Icebox indefinitely (until issuegraph undefer)
+  issuegraph defer bd-abc --until=tomorrow # Snooze: auto-wakes once the date passes
+  issuegraph defer bd-abc --reason="waiting on API access"
+  issuegraph defer bd-abc bd-def           # Defer multiple issues`,
 	Args:          cobra.MinimumNArgs(1),
 	SilenceUsage:  true,
 	SilenceErrors: true,
@@ -55,7 +55,7 @@ Examples:
 				return HandleError("invalid --until format %q. Examples: +1h, tomorrow, next monday, 2025-01-15", untilStr)
 			}
 			if t.Before(time.Now()) && !jsonOutput {
-				fmt.Fprintf(os.Stderr, "%s Defer date %q is in the past. Issue will appear in bd ready immediately.\n",
+				fmt.Fprintf(os.Stderr, "%s Defer date %q is in the past. Issue will appear in issuegraph ready immediately.\n",
 					ui.RenderWarn("!"), t.Local().Format("2006-01-02 15:04"))
 				fmt.Fprintf(os.Stderr, "  Did you mean a future date? Use --until=+1h or --until=tomorrow\n")
 			}

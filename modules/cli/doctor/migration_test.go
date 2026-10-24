@@ -15,16 +15,16 @@ func TestCheckPendingMigrations(t *testing.T) {
 		wantMigrations int
 	}{
 		{
-			name:        "no beads directory",
+			name:        "no issuegraph directory",
 			setup:       func(t *testing.T, dir string) {},
 			wantStatus:  StatusOK,
 			wantMessage: "None required",
 		},
 		{
-			name: "empty beads directory",
+			name: "empty issuegraph directory",
 			setup: func(t *testing.T, dir string) {
-				if err := os.MkdirAll(filepath.Join(dir, ".beads"), 0755); err != nil {
-					t.Fatalf("failed to create .beads: %v", err)
+				if err := os.MkdirAll(filepath.Join(dir, ".issuegraph"), 0755); err != nil {
+					t.Fatalf("failed to create .issuegraph: %v", err)
 				}
 			},
 			wantStatus:  StatusOK,
@@ -60,7 +60,7 @@ func TestCheckPendingMigrations(t *testing.T) {
 }
 
 func TestDetectPendingMigrations(t *testing.T) {
-	t.Run("no beads directory returns empty", func(t *testing.T) {
+	t.Run("no issuegraph directory returns empty", func(t *testing.T) {
 		tmpDir, err := os.MkdirTemp("", "bd-doctor-migration-*")
 		if err != nil {
 			t.Fatalf("failed to create temp dir: %v", err)
@@ -73,15 +73,15 @@ func TestDetectPendingMigrations(t *testing.T) {
 		}
 	})
 
-	t.Run("empty beads directory returns empty", func(t *testing.T) {
+	t.Run("empty issuegraph directory returns empty", func(t *testing.T) {
 		tmpDir, err := os.MkdirTemp("", "bd-doctor-migration-*")
 		if err != nil {
 			t.Fatalf("failed to create temp dir: %v", err)
 		}
 		defer os.RemoveAll(tmpDir)
 
-		if err := os.MkdirAll(filepath.Join(tmpDir, ".beads"), 0755); err != nil {
-			t.Fatalf("failed to create .beads: %v", err)
+		if err := os.MkdirAll(filepath.Join(tmpDir, ".issuegraph"), 0755); err != nil {
+			t.Fatalf("failed to create .issuegraph: %v", err)
 		}
 
 		migrations := DetectPendingMigrations(tmpDir)

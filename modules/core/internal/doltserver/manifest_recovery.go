@@ -18,7 +18,7 @@ const (
 
 	// corruptJournalSignature is emitted by dolt sql-server when the journal
 	// contains damaged blocks. Unlike the empty-manifest case, Dolt may still
-	// have user data to recover, so bd must not run destructive repair
+	// have user data to recover, so issuegraph must not run destructive repair
 	// automatically. See GH#2559.
 	corruptJournalSignature = "corrupted journal"
 )
@@ -41,7 +41,7 @@ func logHasCorruptJournalError(logPath string) (bool, error) {
 }
 
 func logHasSignature(logPath, signature string) (bool, error) {
-	f, err := os.Open(logPath) //nolint:gosec // G304: path derived from beadsDir
+	f, err := os.Open(logPath) //nolint:gosec // G304: path derived from issuegraphDir
 	if err != nil {
 		if errors.Is(err, os.ErrNotExist) {
 			return false, nil
@@ -70,25 +70,25 @@ func logHasSignature(logPath, signature string) (bool, error) {
 	return strings.Contains(string(buf), signature), nil
 }
 
-func corruptJournalRecoveryHint(beadsDir string) string {
+func corruptJournalRecoveryHint(issuegraphDir string) string {
 	ts := time.Now().UTC().Format("20060102T150405Z")
-	doltDir := filepath.Join(beadsDir, "dolt")
-	backupDir := filepath.Join(beadsDir, "dolt.corrupt."+ts)
+	doltDir := filepath.Join(issuegraphDir, "dolt")
+	backupDir := filepath.Join(issuegraphDir, "dolt.corrupt."+ts)
 	return fmt.Sprintf(`Dolt journal corruption detected in %s.
 
-bd will not run automatic journal repair because Dolt's repair mode can discard data.
+issuegraph will not run automatic journal repair because Dolt's repair mode can discard data.
 Recommended recovery when your remote is current:
   mv %s %s
-  bd bootstrap --dry-run
-  bd bootstrap --yes
-  bd stats
+  issuegraph bootstrap --dry-run
+  issuegraph bootstrap --yes
+  issuegraph stats
 
 If the remote may be stale, snapshot %s first and inspect with:
   dolt fsck
   dolt fsck --revive-journal-with-data-loss
 
 Only use the fsck revive path after reviewing Dolt's data-loss warning.`,
-		logPath(beadsDir), doltDir, backupDir, doltDir)
+		logPath(issuegraphDir), doltDir, backupDir, doltDir)
 }
 
 // findCorruptNomsDirs walks doltDir and returns the paths of every
@@ -192,13 +192,13 @@ func isLowerAlphaName(s string) bool {
 // data (empty journal, empty oldgen). Returns the corrupt .dolt/noms
 // directories, or nil when the condition does not hold. Detection only —
 // never modifies anything; repair is RecoverCorruptManifest, which must stay
-// behind an explicit user action (bd doctor --fix; bd-6dnrw.6).
-func DetectCorruptManifest(beadsDir string) ([]string, error) {
-	return detectCorruptManifest(beadsDir, ResolveDoltDir(beadsDir))
+// behind an explicit user action (issuegraph doctor --fix; bd-6dnrw.6).
+func DetectCorruptManifest(issuegraphDir string) ([]string, error) {
+	return detectCorruptManifest(issuegraphDir, ResolveDoltDir(issuegraphDir))
 }
 
-func detectCorruptManifest(beadsDir, doltDir string) ([]string, error) {
-	hasErr, err := logHasCorruptManifestError(logPath(beadsDir))
+func detectCorruptManifest(issuegraphDir, doltDir string) ([]string, error) {
+	hasErr, err := logHasCorruptManifestError(logPath(issuegraphDir))
 	if err != nil || !hasErr {
 		return nil, err
 	}
@@ -209,16 +209,16 @@ func detectCorruptManifest(beadsDir, doltDir string) ([]string, error) {
 // reported by DetectCorruptManifest: each corrupt .dolt/ directory is backed
 // up with a timestamped suffix and the database is reinitialized in place.
 // Destructive — callers must only invoke this on explicit user request
-// (bd doctor --fix), never automatically (bd-6dnrw.6).
+// (issuegraph doctor --fix), never automatically (bd-6dnrw.6).
 //
 // Returns the list of backup paths created. If the preconditions do not
 // hold, returns (nil, nil).
-func RecoverCorruptManifest(beadsDir string) ([]string, error) {
-	return recoverCorruptManifest(beadsDir, ResolveDoltDir(beadsDir))
+func RecoverCorruptManifest(issuegraphDir string) ([]string, error) {
+	return recoverCorruptManifest(issuegraphDir, ResolveDoltDir(issuegraphDir))
 }
 
-func recoverCorruptManifest(beadsDir, doltDir string) ([]string, error) {
-	nomsDirs, err := detectCorruptManifest(beadsDir, doltDir)
+func recoverCorruptManifest(issuegraphDir, doltDir string) ([]string, error) {
+	nomsDirs, err := detectCorruptManifest(issuegraphDir, doltDir)
 	if err != nil {
 		return nil, err
 	}

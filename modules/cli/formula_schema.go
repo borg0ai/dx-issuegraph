@@ -5,9 +5,9 @@ import (
 	"os"
 	"strings"
 
+	"github.com/borg0ai/dx-issuegraph/internal/formula"
+	"github.com/borg0ai/dx-issuegraph/internal/ui"
 	"github.com/spf13/cobra"
-	"github.com/steveyegge/beads/internal/formula"
-	"github.com/steveyegge/beads/internal/ui"
 )
 
 var formulaSchemaCmd = &cobra.Command{
@@ -22,10 +22,10 @@ struct definitions are the source of truth, so this list cannot drift. It is
 structural reference, not proof that every declared runtime behavior is wired.
 
 Examples:
-  bd formula schema                 # list every declared schema struct
-  bd formula schema loop            # show LoopSpec fields
-  bd formula primitives gate        # alias; shows Gate fields
-  bd formula schema --json          # machine-readable index
+  issuegraph formula schema                 # list every declared schema struct
+  issuegraph formula schema loop            # show LoopSpec fields
+  issuegraph formula primitives gate        # alias; shows Gate fields
+  issuegraph formula schema --json          # machine-readable index
 
 Curated smoke-tested fixtures for wired primitives live in
 examples/formulas/primitives/ (with a smoke harness that proves they work).`,
@@ -54,7 +54,7 @@ func runFormulaSchemaList() error {
 	for _, p := range formula.Primitives {
 		fmt.Printf("  %-18s %s\n", p.Name, firstDocLine(p.Doc))
 	}
-	fmt.Printf("\n%s\n", ui.RenderMuted("Show fields:       bd formula schema <name>"))
+	fmt.Printf("\n%s\n", ui.RenderMuted("Show fields:       issuegraph formula schema <name>"))
 	fmt.Printf("%s\n", ui.RenderMuted("Wired examples:    examples/formulas/primitives/"))
 	fmt.Printf("%s\n", ui.RenderMuted("Note: schema output is structural; smoke-tested examples are the verified authoring surface."))
 	return nil

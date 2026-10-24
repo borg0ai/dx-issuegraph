@@ -5,7 +5,7 @@ description: Dependency-aware, Dolt-backed issue tracker built for AI coding age
 
 **IssueGraph** (`issuegraph`) is a Dolt-powered issue tracker designed for AI-supervised coding workflows.
 
-These docs are for the 1.3.0 release of issuegraph — see the [v1.3.0 release notes](https://github.com/gastownhall/beads/releases/tag/v1.3.0). Upgrading from 1.2.2 or earlier crosses a schema migration; read [Upgrading](/getting-started/upgrading) first.
+These docs are for the 1.3.0 release of issuegraph — see the [v1.3.0 release notes](https://github.com/borg0ai/dx-issuegraph/releases/tag/v1.3.0). Upgrading from 1.2.2 or earlier crosses a schema migration; read [Upgrading](/getting-started/upgrading) first.
 
 ## Why IssueGraph?
 
@@ -21,10 +21,10 @@ Traditional issue trackers (Jira, GitHub Issues) weren't designed for AI agents.
 
 ```bash
 # Install via Homebrew (macOS/Linux)
-brew install beads
+brew install issuegraph
 
 # Or quick install (macOS/Linux/FreeBSD)
-curl -fsSL https://raw.githubusercontent.com/gastownhall/beads/main/scripts/install.sh | bash
+curl -fsSL https://raw.githubusercontent.com/borg0ai/dx-issuegraph/main/scripts/install.sh | bash
 
 # Initialize in your project
 cd your-project
@@ -43,7 +43,7 @@ The whole model on one page: [How IssueGraph Works](/core-concepts/index).
 
 | Concept | Description |
 |---------|-------------|
-| [**Beads (issues)**](/core-concepts/issues) | Work items with priorities, types, labels, and dependencies |
+| [**IssueGraph (issues)**](/core-concepts/issues) | Work items with priorities, types, labels, and dependencies |
 | [**Dependencies**](/core-concepts/dependencies) | `blocks`, `parent-child`, `discovered-from`, `related` |
 | [**Sync**](/core-concepts/sync-concepts) | Dolt push/pull over your git remote — no server to run |
 | [**Formulas**](/workflows/formulas) | Declarative workflow templates (TOML or JSON) |
@@ -57,11 +57,11 @@ IssueGraph is optimized for AI coding agents:
 ```bash
 # Always use --json for programmatic access
 issuegraph list --json
-issuegraph show bd-42 --json
+issuegraph show issuegraph-42 --json
 
 # Track discovered work during implementation
 issuegraph create "Found bug in auth" --description="Details..." \
-  --deps discovered-from:bd-100 --json
+  --deps discovered-from:issuegraph-100 --json
 
 # Push changes at end of session
 issuegraph dolt push
@@ -72,8 +72,8 @@ See the [Claude Code integration](/integrations/claude-code) for detailed agent 
 ## Architecture
 
 ```
-Dolt DB (.beads/embeddeddolt/ in embedded mode,
-         .beads/dolt/ in server mode; gitignored)
+Dolt DB (.issuegraph/embeddeddolt/ in embedded mode,
+         .issuegraph/dolt/ in server mode; gitignored)
     ↕ dolt commit
 Local Dolt history
     ↕ dolt push/pull

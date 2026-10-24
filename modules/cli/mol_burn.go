@@ -5,11 +5,11 @@ import (
 	"fmt"
 	"os"
 
+	"github.com/borg0ai/dx-issuegraph/internal/metrics"
+	"github.com/borg0ai/dx-issuegraph/internal/storage"
+	"github.com/borg0ai/dx-issuegraph/internal/ui"
+	"github.com/borg0ai/dx-issuegraph/internal/utils"
 	"github.com/spf13/cobra"
-	"github.com/steveyegge/beads/internal/metrics"
-	"github.com/steveyegge/beads/internal/storage"
-	"github.com/steveyegge/beads/internal/ui"
-	"github.com/steveyegge/beads/internal/utils"
 )
 
 var molBurnCmd = &cobra.Command{
@@ -28,13 +28,13 @@ The burn operation differs based on molecule phase:
   - Mol (persistent): Cascade delete (syncs to remotes)
 
 CAUTION: This is a destructive operation. The molecule's data will be
-permanently lost. If you want to preserve a summary, use 'bd mol squash'.
+permanently lost. If you want to preserve a summary, use 'issuegraph mol squash'.
 
 Example:
-  bd mol burn bd-abc123              # Delete molecule with no trace
-  bd mol burn bd-abc123 --dry-run    # Preview what would be deleted
-  bd mol burn bd-abc123 --force      # Skip confirmation
-  bd mol burn bd-a1 bd-b2 bd-c3      # Batch delete multiple wisps`,
+  issuegraph mol burn bd-abc123              # Delete molecule with no trace
+  issuegraph mol burn bd-abc123 --dry-run    # Preview what would be deleted
+  issuegraph mol burn bd-abc123 --force      # Skip confirmation
+  issuegraph mol burn bd-a1 bd-b2 bd-c3      # Batch delete multiple wisps`,
 	Args:          cobra.MinimumNArgs(1),
 	SilenceUsage:  true,
 	SilenceErrors: true,
@@ -278,14 +278,14 @@ func burnWispMolecule(ctx context.Context, resolvedID string, dryRun, force bool
 				fmt.Printf("  - [%s] %s (%s)\n", status, issue.Title, issue.ID)
 			}
 		}
-		fmt.Printf("\nNo digest will be created (use 'bd mol squash' to create one).\n")
+		fmt.Printf("\nNo digest will be created (use 'issuegraph mol squash' to create one).\n")
 		return nil
 	}
 
 	if !force && !jsonOutput {
 		fmt.Printf("About to burn wisp %s (%d issues)\n", resolvedID, len(wispIDs))
 		fmt.Printf("This will permanently delete all wisp data with no digest.\n")
-		fmt.Printf("Use 'bd mol squash' instead if you want to preserve a summary.\n")
+		fmt.Printf("Use 'issuegraph mol squash' instead if you want to preserve a summary.\n")
 		fmt.Printf("\nContinue? [y/N] ")
 
 		var response string
@@ -347,7 +347,7 @@ func burnPersistentMolecule(ctx context.Context, resolvedID string, dryRun, forc
 			}
 		}
 		fmt.Printf("\nNote: Persistent mol - deletions sync to remotes.\n")
-		fmt.Printf("No digest will be created (use 'bd mol squash' to create one).\n")
+		fmt.Printf("No digest will be created (use 'issuegraph mol squash' to create one).\n")
 		return nil
 	}
 
@@ -355,7 +355,7 @@ func burnPersistentMolecule(ctx context.Context, resolvedID string, dryRun, forc
 		fmt.Printf("About to burn mol %s (%d issues)\n", resolvedID, len(issueIDs))
 		fmt.Printf("This will permanently delete all molecule data with no digest.\n")
 		fmt.Printf("Note: Persistent mol - deletions sync to remotes.\n")
-		fmt.Printf("Use 'bd mol squash' instead if you want to preserve a summary.\n")
+		fmt.Printf("Use 'issuegraph mol squash' instead if you want to preserve a summary.\n")
 		fmt.Printf("\nContinue? [y/N] ")
 
 		var response string
@@ -376,7 +376,7 @@ func burnPersistentMolecule(ctx context.Context, resolvedID string, dryRun, forc
 // If any delete fails, the entire operation is rolled back to prevent partial deletion.
 func burnWisps(ctx context.Context, s storage.DoltStorage, ids []string, actorName string) (*BurnResult, error) {
 	var result *BurnResult
-	err := transact(ctx, s, "bd: burn wisps", func(tx storage.Transaction) error {
+	err := transact(ctx, s, "issuegraph: burn wisps", func(tx storage.Transaction) error {
 		r, err := burnWispsInto(ctx, storeMolWriter{DoltStorage: s, tx: tx}, ids, actorName)
 		if err != nil {
 			return err

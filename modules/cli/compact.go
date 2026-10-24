@@ -10,12 +10,12 @@ import (
 	"strings"
 	"time"
 
+	"github.com/borg0ai/dx-issuegraph/internal/compact"
+	"github.com/borg0ai/dx-issuegraph/internal/config"
+	"github.com/borg0ai/dx-issuegraph/internal/issuegraph"
+	"github.com/borg0ai/dx-issuegraph/internal/storage"
+	"github.com/borg0ai/dx-issuegraph/internal/types"
 	"github.com/spf13/cobra"
-	"github.com/steveyegge/beads/internal/beads"
-	"github.com/steveyegge/beads/internal/compact"
-	"github.com/steveyegge/beads/internal/config"
-	"github.com/steveyegge/beads/internal/storage"
-	"github.com/steveyegge/beads/internal/types"
 )
 
 var (
@@ -60,27 +60,27 @@ Dolt Garbage Collection:
   With auto-commit per mutation, Dolt commit history grows over time. Use
   --dolt to run Dolt garbage collection and reclaim disk space.
 
-  --dolt: Run Dolt GC on .beads/dolt directory to free disk space.
+  --dolt: Run Dolt GC on .issuegraph/dolt directory to free disk space.
           This removes unreachable commits and compacts storage.
 
 Examples:
   # Dolt garbage collection
-  bd compact --dolt                        # Run Dolt GC
-  bd compact --dolt --dry-run              # Preview without running GC
+  issuegraph compact --dolt                        # Run Dolt GC
+  issuegraph compact --dolt --dry-run              # Preview without running GC
 
   # Agent-driven workflow (recommended)
-  bd compact --analyze --json              # Get candidates with full content
-  bd compact --apply --id bd-42 --summary summary.txt
-  bd compact --apply --id bd-42 --summary - < summary.txt
+  issuegraph compact --analyze --json              # Get candidates with full content
+  issuegraph compact --apply --id bd-42 --summary summary.txt
+  issuegraph compact --apply --id bd-42 --summary - < summary.txt
 
   # AI-powered workflow
-  bd compact --auto --dry-run              # Preview candidates
-  bd compact --auto --all                  # Compact all eligible issues
-  bd compact --auto --id bd-42             # Compact specific issue
-  MINIMAX_API_KEY=... bd compact --auto --all
+  issuegraph compact --auto --dry-run              # Preview candidates
+  issuegraph compact --auto --all                  # Compact all eligible issues
+  issuegraph compact --auto --id bd-42             # Compact specific issue
+  MINIMAX_API_KEY=... issuegraph compact --auto --all
 
   # Statistics
-  bd compact --stats                       # Show statistics
+  issuegraph compact --stats                       # Show statistics
 `,
 	RunE: func(_ *cobra.Command, _ []string) error {
 		if usesProxiedServer() {
@@ -90,7 +90,7 @@ Examples:
 			// Same string the "admin compact" refusal row carries; the
 			// pre-provider gate short-circuits this path, so the two are kept
 			// identical rather than left to drift.
-			return HandleErrorRespectJSON("only 'bd admin compact --dolt' is supported in proxied-server mode")
+			return HandleErrorRespectJSON("only 'issuegraph admin compact --dolt' is supported in proxied-server mode")
 		}
 		// Block mutating operations in embedded mode; allow --stats, --analyze, --dry-run read-only paths.
 		if !compactStats && !compactAnalyze && !compactDryRun {
@@ -743,18 +743,18 @@ func runCompactApply(ctx context.Context, store storage.DoltStorage) error {
 	return nil
 }
 
-// runCompactDolt runs Dolt garbage collection on the .beads/dolt directory
+// runCompactDolt runs Dolt garbage collection on the .issuegraph/dolt directory
 func runCompactDolt() error {
 	start := time.Now()
 
-	// Find beads directory
-	beadsDir := beads.FindBeadsDir()
-	if beadsDir == "" {
+	// Find issuegraph directory
+	issuegraphDir := issuegraph.FindIssueGraphDir()
+	if issuegraphDir == "" {
 		return HandleErrorWithHint(activeWorkspaceNotFoundError(), diagHint())
 	}
 
 	// Check for dolt directory
-	doltPath := filepath.Join(beadsDir, "dolt")
+	doltPath := filepath.Join(issuegraphDir, "dolt")
 	if _, err := os.Stat(doltPath); os.IsNotExist(err) {
 		if compactDryRun {
 			if jsonOutput {
@@ -962,7 +962,7 @@ func init() {
 	compactCmd.Flags().StringVar(&compactSummary, "summary", "", "Path to summary file (use '-' for stdin)")
 	compactCmd.Flags().StringVar(&compactActor, "actor", "agent", "Actor name for audit trail")
 	compactCmd.Flags().IntVar(&compactLimit, "limit", 0, "Limit number of candidates (0 = no limit)")
-	compactCmd.Flags().BoolVar(&compactDolt, "dolt", false, "Dolt mode: run Dolt garbage collection on .beads/dolt")
+	compactCmd.Flags().BoolVar(&compactDolt, "dolt", false, "Dolt mode: run Dolt garbage collection on .issuegraph/dolt")
 
 	// Note: compactCmd is added to adminCmd in admin.go
 }

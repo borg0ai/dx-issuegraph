@@ -4,9 +4,9 @@ import (
 	"context"
 	"fmt"
 
+	"github.com/borg0ai/dx-issuegraph/internal/issuegraph"
+	"github.com/borg0ai/dx-issuegraph/internal/types"
 	"github.com/spf13/cobra"
-	"github.com/steveyegge/beads/internal/beads"
-	"github.com/steveyegge/beads/internal/types"
 )
 
 // issueIDCompletion provides shell completion for issue IDs by querying the storage
@@ -21,7 +21,7 @@ func issueIDCompletion(cmd *cobra.Command, args []string, toComplete string) ([]
 	// Get database path - use same logic as in PersistentPreRun
 	currentDBPath := dbPath
 	if currentDBPath == "" {
-		currentDBPath = beads.FindDatabasePath()
+		currentDBPath = issuegraph.FindDatabasePath()
 		if currentDBPath == "" {
 			return nil, cobra.ShellCompDirectiveNoFileComp
 		}

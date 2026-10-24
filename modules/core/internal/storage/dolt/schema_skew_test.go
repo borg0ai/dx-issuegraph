@@ -7,7 +7,7 @@ import (
 	"os"
 	"testing"
 
-	"github.com/steveyegge/beads/internal/storage/schema"
+	"github.com/borg0ai/dx-issuegraph/internal/storage/schema"
 )
 
 // TestCheckForwardDrift_ForwardDrift_ReturnsSchemaSkewError verifies that
@@ -46,8 +46,8 @@ func TestCheckForwardDrift_ForwardDrift_ReturnsSchemaSkewError(t *testing.T) {
 // TestCheckForwardDrift_CurrentVersion_NoError verifies that CheckForwardDrift
 // returns nil when the DB schema matches the binary.
 func TestCheckForwardDrift_CurrentVersion_NoError(t *testing.T) {
-	if os.Getenv("BD_IGNORE_SCHEMA_SKEW") != "" {
-		t.Skip("BD_IGNORE_SCHEMA_SKEW is set — skipping to keep the non-escape-hatch path clean")
+	if os.Getenv("ISSUEGRAPH_IGNORE_SCHEMA_SKEW") != "" {
+		t.Skip("ISSUEGRAPH_IGNORE_SCHEMA_SKEW is set — skipping to keep the non-escape-hatch path clean")
 	}
 
 	store, cleanup := setupTestStore(t)
@@ -62,7 +62,7 @@ func TestCheckForwardDrift_CurrentVersion_NoError(t *testing.T) {
 }
 
 // TestCheckForwardDrift_EscapeHatch_ReturnsNil verifies that
-// BD_IGNORE_SCHEMA_SKEW=1 suppresses the forward-drift error.
+// ISSUEGRAPH_IGNORE_SCHEMA_SKEW=1 suppresses the forward-drift error.
 //
 // Uses a dedicated database rather than setupTestStore: this test calls
 // t.Setenv, which Go forbids in a parallel test, and setupTestStore marks the
@@ -70,7 +70,7 @@ func TestCheckForwardDrift_CurrentVersion_NoError(t *testing.T) {
 // the test Dolt server is running.)
 func TestCheckForwardDrift_EscapeHatch_ReturnsNil(t *testing.T) {
 	skipIfNoDolt(t)
-	t.Setenv("BD_IGNORE_SCHEMA_SKEW", "1")
+	t.Setenv("ISSUEGRAPH_IGNORE_SCHEMA_SKEW", "1")
 
 	ctx, cancel := testContext(t)
 	defer cancel()
@@ -100,7 +100,7 @@ func TestCheckForwardDrift_EscapeHatch_ReturnsNil(t *testing.T) {
 	}
 
 	if err := schema.CheckForwardDrift(ctx, store.db); err != nil {
-		t.Fatalf("CheckForwardDrift = %v, want nil when BD_IGNORE_SCHEMA_SKEW=1", err)
+		t.Fatalf("CheckForwardDrift = %v, want nil when ISSUEGRAPH_IGNORE_SCHEMA_SKEW=1", err)
 	}
 }
 
@@ -159,10 +159,10 @@ func TestDoltNew_ReadOnly_ForwardDrift_ReturnsSchemaSkewError(t *testing.T) {
 }
 
 // TestDoltNew_ReadOnly_ForwardDrift_EscapeHatch_Succeeds verifies that
-// BD_IGNORE_SCHEMA_SKEW=1 allows a read-only store to open despite forward drift.
+// ISSUEGRAPH_IGNORE_SCHEMA_SKEW=1 allows a read-only store to open despite forward drift.
 func TestDoltNew_ReadOnly_ForwardDrift_EscapeHatch_Succeeds(t *testing.T) {
 	skipIfNoDolt(t)
-	t.Setenv("BD_IGNORE_SCHEMA_SKEW", "1")
+	t.Setenv("ISSUEGRAPH_IGNORE_SCHEMA_SKEW", "1")
 
 	ctx, cancel := testContext(t)
 	defer cancel()

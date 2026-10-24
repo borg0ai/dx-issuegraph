@@ -14,17 +14,17 @@ import (
 	"strings"
 	"time"
 
+	"github.com/borg0ai/dx-issuegraph/internal/config"
+	"github.com/borg0ai/dx-issuegraph/internal/configfile"
+	"github.com/borg0ai/dx-issuegraph/internal/doltserver"
+	"github.com/borg0ai/dx-issuegraph/internal/issuegraph"
+	"github.com/borg0ai/dx-issuegraph/internal/storage"
+	"github.com/borg0ai/dx-issuegraph/internal/storage/dberrors"
+	"github.com/borg0ai/dx-issuegraph/internal/storage/dbproxy/proxy"
+	"github.com/borg0ai/dx-issuegraph/internal/storage/doltutil"
+	"github.com/borg0ai/dx-issuegraph/internal/storage/versioncontrolops"
+	"github.com/borg0ai/dx-issuegraph/internal/ui"
 	"github.com/spf13/cobra"
-	"github.com/steveyegge/beads/internal/beads"
-	"github.com/steveyegge/beads/internal/config"
-	"github.com/steveyegge/beads/internal/configfile"
-	"github.com/steveyegge/beads/internal/doltserver"
-	"github.com/steveyegge/beads/internal/storage"
-	"github.com/steveyegge/beads/internal/storage/dberrors"
-	"github.com/steveyegge/beads/internal/storage/dbproxy/proxy"
-	"github.com/steveyegge/beads/internal/storage/doltutil"
-	"github.com/steveyegge/beads/internal/storage/versioncontrolops"
-	"github.com/steveyegge/beads/internal/ui"
 	"golang.org/x/term"
 )
 
@@ -34,67 +34,67 @@ var doltCmd = &cobra.Command{
 	Short:   "Configure Dolt database settings",
 	Long: `Configure and manage Dolt database settings and server lifecycle.
 
-Beads runs Dolt embedded (in-process) by default: there is no sql-server and
+IssueGraph runs Dolt embedded (in-process) by default: there is no sql-server and
 nothing is auto-started. A database only uses a dolt sql-server when it is
 configured for one: shared-server mode, an explicit server mode, or a
 non-localhost dolt_server_host. The server-only commands below fail with
 "not supported in embedded mode (no Dolt server)" on an embedded database.
 
 Server lifecycle (server mode only):
-  bd dolt start        Start the Dolt server for this project
-  bd dolt stop         Stop the Dolt server for this project
+  issuegraph dolt start        Start the Dolt server for this project
+  issuegraph dolt stop         Stop the Dolt server for this project
 
 Diagnostics (both modes):
-  bd dolt status       Show Dolt engine status (embedded: in-process, data dir)
-  bd dolt show         Show current Dolt configuration with connection test
+  issuegraph dolt status       Show Dolt engine status (embedded: in-process, data dir)
+  issuegraph dolt show         Show current Dolt configuration with connection test
 
 Configuration (server mode only):
-  bd dolt set <k> <v>  Set a configuration value
-  bd dolt test         Test server connection
+  issuegraph dolt set <k> <v>  Set a configuration value
+  issuegraph dolt test         Test server connection
 
 Version control:
-  bd dolt commit       Commit pending changes
-  bd dolt push         Push commits to Dolt remote
-  bd dolt pull         Pull commits from Dolt remote
+  issuegraph dolt commit       Commit pending changes
+  issuegraph dolt push         Push commits to Dolt remote
+  issuegraph dolt pull         Pull commits from Dolt remote
 
 Remote management:
-  bd dolt remote add <name> <url>   Add a Dolt remote
-  bd dolt remote list                List configured remotes
-  bd dolt remote remove <name>       Remove a Dolt remote
+  issuegraph dolt remote add <name> <url>   Add a Dolt remote
+  issuegraph dolt remote list                List configured remotes
+  issuegraph dolt remote remove <name>       Remove a Dolt remote
 
-Configuration keys for 'bd dolt set':
-  database  Database name (default: issue prefix or "beads")
+Configuration keys for 'issuegraph dolt set':
+  database  Database name (default: issue prefix or "issuegraph")
   host      Server host (default: 127.0.0.1)
-  port      Server port (auto-detected; override with bd dolt set port <N>)
+  port      Server port (auto-detected; override with issuegraph dolt set port <N>)
   user      MySQL user (default: root)
-  data-dir  Custom dolt data directory (absolute path; default: .beads/dolt)
+  data-dir  Custom dolt data directory (absolute path; default: .issuegraph/dolt)
 
-Remote server authentication (password + TLS) is NOT stored via 'bd dolt set'
+Remote server authentication (password + TLS) is NOT stored via 'issuegraph dolt set'
 (keeps secrets out of metadata.json). Configure them with:
 
-  BEADS_DOLT_PASSWORD       Server password (highest priority)
-  BEADS_DOLT_SERVER_TLS     Enable TLS (set to "1" or "true")
-  BEADS_DOLT_SERVER_USER    MySQL user override (else use 'bd dolt set user')
-  BEADS_CREDENTIALS_FILE    Optional path to credentials file
+  ISSUEGRAPH_DOLT_PASSWORD       Server password (highest priority)
+  ISSUEGRAPH_DOLT_SERVER_TLS     Enable TLS (set to "1" or "true")
+  ISSUEGRAPH_DOLT_SERVER_USER    MySQL user override (else use 'issuegraph dolt set user')
+  ISSUEGRAPH_CREDENTIALS_FILE    Optional path to credentials file
 
-  Default credentials file: ~/.config/beads/credentials (Linux/macOS)
-                            %APPDATA%\beads\credentials (Windows)
+  Default credentials file: ~/.config/issuegraph/credentials (Linux/macOS)
+                            %APPDATA%\issuegraph\credentials (Windows)
   Format (INI, section = host:port of the resolved connection):
     [127.0.0.1:3307]
     password = secret
 
-  Password resolution: BEADS_DOLT_PASSWORD → credentials [host:port] → empty.
+  Password resolution: ISSUEGRAPH_DOLT_PASSWORD → credentials [host:port] → empty.
   Full reference: docs/architecture/dolt.md (Environment Variables / Credentials).
 
-Flags for 'bd dolt set':
+Flags for 'issuegraph dolt set':
   --update-config  Also write to config.yaml for team-wide defaults
 
 Examples:
-  bd dolt set database myproject
-  bd dolt set host 192.168.1.100 --update-config
-  bd dolt set data-dir /home/user/.beads-dolt/myproject
-  export BEADS_DOLT_PASSWORD=... BEADS_DOLT_SERVER_TLS=1
-  bd dolt test`,
+  issuegraph dolt set database myproject
+  issuegraph dolt set host 192.168.1.100 --update-config
+  issuegraph dolt set data-dir /home/user/.issuegraph-dolt/myproject
+  export ISSUEGRAPH_DOLT_PASSWORD=... ISSUEGRAPH_DOLT_SERVER_TLS=1
+  issuegraph dolt test`,
 }
 
 var doltShowCmd = &cobra.Command{
@@ -115,45 +115,45 @@ var doltSetCmd = &cobra.Command{
 	Long: `Set a Dolt configuration value in metadata.json.
 
 Keys:
-  database  Database name (default: issue prefix or "beads")
+  database  Database name (default: issue prefix or "issuegraph")
   host      Server host (default: 127.0.0.1)
-  port      Server port (auto-detected; override with bd dolt set port <N>)
+  port      Server port (auto-detected; override with issuegraph dolt set port <N>)
   user      MySQL user (default: root)
-  data-dir  Custom dolt data directory (absolute path; default: .beads/dolt)
+  data-dir  Custom dolt data directory (absolute path; default: .issuegraph/dolt)
 
 There is no 'password' or 'tls' key here on purpose — secrets and TLS must
 not land in metadata.json. Use environment variables or the credentials file:
 
-  BEADS_DOLT_PASSWORD     Server password (highest priority)
-  BEADS_DOLT_SERVER_TLS   Enable TLS ("1" or "true")
-  BEADS_CREDENTIALS_FILE  Optional override path for credentials
+  ISSUEGRAPH_DOLT_PASSWORD     Server password (highest priority)
+  ISSUEGRAPH_DOLT_SERVER_TLS   Enable TLS ("1" or "true")
+  ISSUEGRAPH_CREDENTIALS_FILE  Optional override path for credentials
 
-  Default credentials file: ~/.config/beads/credentials
+  Default credentials file: ~/.config/issuegraph/credentials
   Format:
     [host:port]
     password = secret
 
-  See: bd dolt --help and docs/architecture/dolt.md
+  See: issuegraph dolt --help and docs/architecture/dolt.md
 
 Use --update-config to also write to config.yaml for team-wide defaults.
 
 Examples:
-  bd dolt set database myproject
-  bd dolt set host 192.168.1.100
-  bd dolt set port 3307 --update-config
-  bd dolt set data-dir /home/user/.beads-dolt/myproject
-  export BEADS_DOLT_PASSWORD=... BEADS_DOLT_SERVER_TLS=1`,
+  issuegraph dolt set database myproject
+  issuegraph dolt set host 192.168.1.100
+  issuegraph dolt set port 3307 --update-config
+  issuegraph dolt set data-dir /home/user/.issuegraph-dolt/myproject
+  export ISSUEGRAPH_DOLT_PASSWORD=... ISSUEGRAPH_DOLT_SERVER_TLS=1`,
 	Args: cobra.ExactArgs(2),
 	RunE: func(cmd *cobra.Command, args []string) error {
-		beadsDir := selectedDoltBeadsDir()
-		if beadsDir == "" {
+		issuegraphDir := selectedDoltIssueGraphDir()
+		if issuegraphDir == "" {
 			return HandleErrorWithHint(activeWorkspaceNotFoundError(), diagHint())
 		}
-		if _, err := loadDoltBackendConfig(beadsDir); err != nil {
+		if _, err := loadDoltBackendConfig(issuegraphDir); err != nil {
 			return HandleError("%v", err)
 		}
 		if !usesSQLServer() {
-			return HandleError("'bd dolt set' is not supported in embedded mode (no Dolt server)")
+			return HandleError("'issuegraph dolt set' is not supported in embedded mode (no Dolt server)")
 		}
 		key := args[0]
 		value := args[1]
@@ -175,15 +175,15 @@ This verifies that:
 
 Use this before switching to server mode to ensure the server is running.`,
 	RunE: func(cmd *cobra.Command, args []string) error {
-		beadsDir := selectedDoltBeadsDir()
-		if beadsDir == "" {
+		issuegraphDir := selectedDoltIssueGraphDir()
+		if issuegraphDir == "" {
 			return HandleErrorWithHint(activeWorkspaceNotFoundError(), diagHint())
 		}
-		if _, err := loadDoltBackendConfig(beadsDir); err != nil {
+		if _, err := loadDoltBackendConfig(issuegraphDir); err != nil {
 			return HandleError("%v", err)
 		}
 		if !usesSQLServer() {
-			return HandleError("'bd dolt test' is not supported in embedded mode (no Dolt server)")
+			return HandleError("'issuegraph dolt test' is not supported in embedded mode (no Dolt server)")
 		}
 		return testDoltConnection()
 	},
@@ -191,7 +191,7 @@ Use this before switching to server mode to ensure the server is running.`,
 
 // isRemoteNotFoundErr checks whether the error is a Dolt "remote not found"
 // error. This typically happens when the remote was added via `dolt remote add`
-// (filesystem config) but not via `bd dolt remote add` (which also registers it
+// (filesystem config) but not via `issuegraph dolt remote add` (which also registers it
 // in the SQL server's dolt_remotes table).
 func isRemoteNotFoundErr(err error) bool {
 	if err == nil {
@@ -236,7 +236,7 @@ func isConfirmedNoRemote(ctx context.Context, st remoteLister, err error) bool {
 // hasNoRemoteConfigured is the structural half of isConfirmedNoRemote: the
 // positive proof that this rig really has no remote, independent of how the
 // failure worded itself. It is what actually makes an exit-0 skip safe, so a
-// caller with a different (broader) error classification — `bd sync`, which
+// caller with a different (broader) error classification — `issuegraph sync`, which
 // runs on a timer and must not fail every tick on a solo rig — can reuse the
 // proof without loosening it.
 func hasNoRemoteConfigured(ctx context.Context, st remoteLister) bool {
@@ -246,9 +246,9 @@ func hasNoRemoteConfigured(ctx context.Context, st remoteLister) bool {
 
 // hasConfiguredRemote decides, from evidence, whether a rig has a Dolt remote
 // at all. It is the one decider for the push/sync no-remote question: both
-// hasNoRemoteConfigured (the `bd sync` / `bd dolt push|pull` exit-0 gate) and
+// hasNoRemoteConfigured (the `issuegraph sync` / `issuegraph dolt push|pull` exit-0 gate) and
 // adoptGitOriginRemoteForPush go through it. The MUTATING siblings —
-// `bd config apply`, ensureDoltRemote, and the git-protocol CLI push route —
+// `issuegraph config apply`, ensureDoltRemote, and the git-protocol CLI push route —
 // consult the same persisted evidence via PersistedRemoteInfos (wy-6k7f7);
 // the read-only doctor/drift diagnostics still judge from len(ListRemotes)
 // alone and can report a false "no origin remote" during the cold-start
@@ -260,12 +260,12 @@ func hasNoRemoteConfigured(ctx context.Context, st remoteLister) bool {
 // dolt_remotes while the remote IS persisted on disk in .dolt/repo_state.json
 // (GH#2118), so the on-disk probe gets a veto. The probe has to be reached
 // through the storage decorator chain, since HasPersistedRemote is not part of
-// storage.DoltStorage and the store bd holds is all but always decorated —
+// storage.DoltStorage and the store issuegraph holds is all but always decorated —
 // that is wy-xtv17.
 //
 // A failed listing is neither evidence: it returns the error, and callers must
 // not read it as "no remote". Having two sibling functions decide this from
-// different evidence is what left `bd dolt push` still trusting an empty
+// different evidence is what left `issuegraph dolt push` still trusting an empty
 // dolt_remotes after wy-xtv17 hardened the no-remote gate (wy-82hc5), so the
 // rule lives here once.
 func hasConfiguredRemote(ctx context.Context, st remoteLister) (bool, error) {
@@ -286,14 +286,14 @@ func hasConfiguredRemote(ctx context.Context, st remoteLister) (bool, error) {
 // storage decorators.
 //
 // HasPersistedRemote is not part of storage.DoltStorage — only the concrete
-// *dolt.DoltStore implements it — while the store bd actually holds is the
+// *dolt.DoltStore implements it — while the store issuegraph actually holds is the
 // composed chain caller → HookFiringStore → InstrumentedStorage → DoltStore
 // (wireStorageDecorators). The hook layer is present on essentially every rig:
 // main.go builds a hook runner whenever there is a dbPath, whether or not any
-// hook scripts exist, so only no-hooks:true / BD_NO_HOOKS=1 leaves it off.
+// hook scripts exist, so only no-hooks:true / ISSUEGRAPH_NO_HOOKS=1 leaves it off.
 // Asserting straight on the passed store therefore all but always failed,
-// silently skipping the GH#2118 cold-start probe and letting `bd sync` /
-// `bd dolt push|pull` report "no remote configured" and exit 0 forever on a rig
+// silently skipping the GH#2118 cold-start probe and letting `issuegraph sync` /
+// `issuegraph dolt push|pull` report "no remote configured" and exit 0 forever on a rig
 // whose remote is persisted in .dolt/repo_state.json (wy-xtv17).
 //
 // It peels via storage.Unwrapper, the same contract storage.UnwrapStore uses,
@@ -396,24 +396,24 @@ func printAncestorPKMismatchGuidance(err error) {
 	fmt.Fprintln(w, "the local and remote histories (or in their common ancestor).")
 	fmt.Fprintln(w, "")
 	fmt.Fprintln(w, "This is a schema fork: two clones reshaped the table's primary key")
-	fmt.Fprintln(w, "independently, usually by upgrading bd (and so running schema migrations)")
+	fmt.Fprintln(w, "independently, usually by upgrading issuegraph (and so running schema migrations)")
 	fmt.Fprintln(w, "separately on each clone while un-synced changes existed on both sides.")
 	fmt.Fprintln(w, "Retrying will not help — these histories can no longer be merged.")
 	fmt.Fprintln(w, "")
 	fmt.Fprintln(w, "Recovery (bootstrap from one canonical clone):")
 	fmt.Fprintln(w, "")
 	fmt.Fprintln(w, "  1. Pick ONE clone as canonical (usually the most complete/up-to-date),")
-	fmt.Fprintln(w, "     upgrade bd there, and make the remote authoritative:")
-	fmt.Fprintln(w, "       bd dolt push --force")
+	fmt.Fprintln(w, "     upgrade issuegraph there, and make the remote authoritative:")
+	fmt.Fprintln(w, "       issuegraph dolt push --force")
 	fmt.Fprintln(w, "")
 	fmt.Fprintln(w, "  2. On EVERY other clone, save local-only work, re-clone, re-apply:")
-	fmt.Fprintln(w, "       bd export --all -o /tmp/beads-local.jsonl")
-	fmt.Fprintln(w, "       rm -rf .beads/dolt")
-	fmt.Fprintln(w, "       bd bootstrap")
-	fmt.Fprintln(w, "       bd import /tmp/beads-local.jsonl")
+	fmt.Fprintln(w, "       issuegraph export --all -o /tmp/issuegraph-local.jsonl")
+	fmt.Fprintln(w, "       rm -rf .issuegraph/dolt")
+	fmt.Fprintln(w, "       issuegraph bootstrap")
+	fmt.Fprintln(w, "       issuegraph import /tmp/issuegraph-local.jsonl")
 	fmt.Fprintln(w, "")
 	fmt.Fprintln(w, "Full playbook (and how to prevent this during upgrades):")
-	fmt.Fprintln(w, "  https://github.com/gastownhall/beads/blob/main/docs/recovery/init-safety.md#pk-fork-refused")
+	fmt.Fprintln(w, "  https://github.com/borg0ai/dx-issuegraph/blob/main/docs/recovery/init-safety.md#pk-fork-refused")
 }
 
 // printNoRemoteGuidance prints an informational message (to stdout) when
@@ -423,11 +423,11 @@ func printNoRemoteGuidance() {
 	fmt.Println("No remote is configured — skipping.")
 	fmt.Println("")
 	fmt.Println("For solo use, pushing is optional — your issues are stored locally")
-	fmt.Println("in .beads/ and versioned by Dolt automatically.")
+	fmt.Println("in .issuegraph/ and versioned by Dolt automatically.")
 	fmt.Println("")
 	fmt.Println("To set up remote sync (for backup or team sharing):")
-	fmt.Println("  bd dolt remote add origin <url>")
-	fmt.Println("  bd dolt push")
+	fmt.Println("  issuegraph dolt remote add origin <url>")
+	fmt.Println("  issuegraph dolt push")
 	fmt.Println("")
 	fmt.Println("Supported remote URLs:")
 	fmt.Println("  • GitHub (via git):   git+ssh://git@github.com/org/repo.git")
@@ -436,7 +436,7 @@ func printNoRemoteGuidance() {
 }
 
 // adoptGitOriginRemoteForPush gives a rig with no Dolt remote the one its git
-// origin implies, so `bd dolt push` works out of the box.
+// origin implies, so `issuegraph dolt push` works out of the box.
 //
 // It asks hasConfiguredRemote rather than reading len(ListRemotes) itself: an
 // empty dolt_remotes is not proof of a remote-less rig during the GH#2118
@@ -456,7 +456,7 @@ func adoptGitOriginRemoteForPush(ctx context.Context, st storage.DoltStorage, po
 		return false, err
 	}
 	// Deriving the URL comes first and is read-only (`git remote get-url`).
-	// Workspace resolution is deliberately NOT done yet: selectedDoltBeadsDir
+	// Workspace resolution is deliberately NOT done yet: selectedDoltIssueGraphDir
 	// calls prepareSelectedNoDBContext, which mutates process and on-disk
 	// workspace state, and nothing may mutate before consent is established.
 	originURL, err := gitOriginGetURLForActiveRepo(ctx)
@@ -469,20 +469,20 @@ func adoptGitOriginRemoteForPush(ctx context.Context, st storage.DoltStorage, po
 		return false, err
 	}
 
-	beadsDir := selectedDoltBeadsDir()
-	if beadsDir == "" {
-		return false, fmt.Errorf("no active beads workspace")
+	issuegraphDir := selectedDoltIssueGraphDir()
+	if issuegraphDir == "" {
+		return false, fmt.Errorf("no active issuegraph workspace")
 	}
 
 	if err := st.AddRemote(ctx, "origin", remoteURL); err != nil {
 		return false, err
 	}
 
-	if err := config.SetYamlConfigInDir(beadsDir, "sync.remote", remoteURL); err != nil {
+	if err := config.SetYamlConfigInDir(issuegraphDir, "sync.remote", remoteURL); err != nil {
 		return false, fmt.Errorf("failed to persist sync.remote to config.yaml: %w", err)
 	}
-	fmt.Fprintln(os.Stderr, "Committing .beads/config.yaml (sync.remote) under your git identity.")
-	commitBeadsConfigForActiveRepo(ctx, "bd: update sync.remote")
+	fmt.Fprintln(os.Stderr, "Committing .issuegraph/config.yaml (sync.remote) under your git identity.")
+	commitIssueGraphConfigForActiveRepo(ctx, "issuegraph: update sync.remote")
 	return true, nil
 }
 
@@ -497,18 +497,18 @@ func printDivergedHistoryGuidance(operation string) {
 	fmt.Fprintln(os.Stderr, "Recovery options:")
 	fmt.Fprintln(os.Stderr, "")
 	fmt.Fprintln(os.Stderr, "  1. Keep remote, discard local (recommended if remote is authoritative):")
-	fmt.Fprintln(os.Stderr, "       bd bootstrap              # re-clone from remote")
+	fmt.Fprintln(os.Stderr, "       issuegraph bootstrap              # re-clone from remote")
 	fmt.Fprintln(os.Stderr, "")
 	fmt.Fprintln(os.Stderr, "  2. Keep local, overwrite remote (if local is authoritative):")
-	fmt.Fprintln(os.Stderr, "       bd dolt push --force       # force-push local history to remote")
+	fmt.Fprintln(os.Stderr, "       issuegraph dolt push --force       # force-push local history to remote")
 	fmt.Fprintln(os.Stderr, "")
 	fmt.Fprintln(os.Stderr, "  3. Manual recovery (re-initialize local database):")
-	fmt.Fprintln(os.Stderr, "       rm -rf .beads/dolt         # delete local Dolt database")
-	fmt.Fprintln(os.Stderr, "       bd bootstrap              # re-clone from remote")
+	fmt.Fprintln(os.Stderr, "       rm -rf .issuegraph/dolt         # delete local Dolt database")
+	fmt.Fprintln(os.Stderr, "       issuegraph bootstrap              # re-clone from remote")
 	fmt.Fprintln(os.Stderr, "")
 	fmt.Fprintln(os.Stderr, "Tip: This usually happens when multiple agents independently initialize")
-	fmt.Fprintln(os.Stderr, "databases and push to the same remote. Use 'bd bootstrap' to clone an")
-	fmt.Fprintln(os.Stderr, "existing remote instead of 'bd init' to avoid divergent histories.")
+	fmt.Fprintln(os.Stderr, "databases and push to the same remote. Use 'issuegraph bootstrap' to clone an")
+	fmt.Fprintln(os.Stderr, "existing remote instead of 'issuegraph init' to avoid divergent histories.")
 }
 
 var doltPushCmd = &cobra.Command{
@@ -519,8 +519,8 @@ var doltPushCmd = &cobra.Command{
 	Long: `Push local Dolt commits to the configured remote.
 
 Requires a Dolt remote to be configured in the database directory. With no
-remote configured, bd can adopt one derived from git origin — only with
-consent: interactively, or via --yes; --no-adopt or BD_NO_REMOTE_ADOPT=1
+remote configured, issuegraph can adopt one derived from git origin — only with
+consent: interactively, or via --yes; --no-adopt or ISSUEGRAPH_NO_REMOTE_ADOPT=1
 disables adoption entirely.
 For Hosted Dolt, set DOLT_REMOTE_USER and DOLT_REMOTE_PASSWORD environment
 variables for authentication.
@@ -529,7 +529,7 @@ Use --force to overwrite remote changes (e.g., when the remote has
 uncommitted changes in its working set).
 
 Use --remote to push to a specific named remote instead of the default.
-The remote must already exist (see 'bd dolt remote add').`,
+The remote must already exist (see 'issuegraph dolt remote add').`,
 	RunE: func(cmd *cobra.Command, args []string) error {
 		if config.GetBool("no-push") {
 			fmt.Println("skipping push: rig is local-only (no-push: true)")
@@ -543,8 +543,8 @@ The remote must already exist (see 'bd dolt remote add').`,
 				return nil
 			}
 			fmt.Println("Remote sync is disabled for this project (dolt.local-only=true).")
-			fmt.Println("Your issues are stored locally in .beads/.")
-			fmt.Println("To re-enable remote sync: bd config unset dolt.local-only")
+			fmt.Println("Your issues are stored locally in .issuegraph/.")
+			fmt.Println("To re-enable remote sync: issuegraph config unset dolt.local-only")
 			return nil
 		}
 		ctx := context.Background()
@@ -560,8 +560,8 @@ The remote must already exist (see 'bd dolt remote add').`,
 				fmt.Fprintf(os.Stderr, "Error: %v\n", err)
 				if isRemoteNotFoundErr(err) {
 					fmt.Fprintf(os.Stderr, "\nRemote %q is not configured.\n", remote)
-					fmt.Fprintln(os.Stderr, "Use 'bd dolt remote add <name> <url>' to add it.")
-					fmt.Fprintln(os.Stderr, "Use 'bd dolt remote list' to see configured remotes.")
+					fmt.Fprintln(os.Stderr, "Use 'issuegraph dolt remote add <name> <url>' to add it.")
+					fmt.Fprintln(os.Stderr, "Use 'issuegraph dolt remote list' to see configured remotes.")
 				} else if isAncestorPKMismatchErr(err) {
 					printAncestorPKMismatchGuidance(err)
 				} else if isDivergedHistoryErr(err) {
@@ -622,12 +622,12 @@ For Hosted Dolt, set DOLT_REMOTE_USER and DOLT_REMOTE_PASSWORD environment
 variables for authentication.
 
 Use --remote to pull from a specific named remote instead of the default.
-The remote must already exist (see 'bd dolt remote add').
+The remote must already exist (see 'issuegraph dolt remote add').
 
 Use --strategy ours|theirs to resolve conflicts the auto-resolver declines
 (e.g. both sides edited the same issue since the last sync) instead of
 aborting the pull for manual resolution. Embedded storage only (#4992); on
-server-mode/sql-server storage use 'bd conflicts resolve' after a pull that
+server-mode/sql-server storage use 'issuegraph conflicts resolve' after a pull that
 reports conflicts.`,
 	RunE: func(cmd *cobra.Command, args []string) error {
 		if isDoltLocalOnly() {
@@ -639,7 +639,7 @@ reports conflicts.`,
 			}
 			fmt.Println("Remote sync is disabled for this project (dolt.local-only=true).")
 			fmt.Println("Nothing to pull.")
-			fmt.Println("To re-enable remote sync: bd config unset dolt.local-only")
+			fmt.Println("To re-enable remote sync: issuegraph config unset dolt.local-only")
 			return nil
 		}
 		ctx := context.Background()
@@ -659,7 +659,7 @@ reports conflicts.`,
 			var ok bool
 			puller, ok = storage.UnwrapStore(st).(storage.StrategicPuller)
 			if !ok {
-				return HandleError("storage backend %T does not support --strategy pulls (#4992): only embedded storage does; on server-mode/sql-server storage, resolve conflicts with 'bd conflicts resolve' or the raw dolt CLI", storage.UnwrapStore(st))
+				return HandleError("storage backend %T does not support --strategy pulls (#4992): only embedded storage does; on server-mode/sql-server storage, resolve conflicts with 'issuegraph conflicts resolve' or the raw dolt CLI", storage.UnwrapStore(st))
 			}
 		}
 		if remote != "" {
@@ -674,8 +674,8 @@ reports conflicts.`,
 				fmt.Fprintf(os.Stderr, "Error: %v\n", err)
 				if isRemoteNotFoundErr(err) {
 					fmt.Fprintf(os.Stderr, "\nRemote %q is not configured.\n", remote)
-					fmt.Fprintln(os.Stderr, "Use 'bd dolt remote add <name> <url>' to add it.")
-					fmt.Fprintln(os.Stderr, "Use 'bd dolt remote list' to see configured remotes.")
+					fmt.Fprintln(os.Stderr, "Use 'issuegraph dolt remote add <name> <url>' to add it.")
+					fmt.Fprintln(os.Stderr, "Use 'issuegraph dolt remote list' to see configured remotes.")
 				} else if isAncestorPKMismatchErr(err) {
 					printAncestorPKMismatchGuidance(err)
 				} else if isDivergedHistoryErr(err) {
@@ -717,13 +717,13 @@ var doltCommitCmd = &cobra.Command{
 	Long: `Create a Dolt commit from any uncommitted changes in the working set.
 
 This is the primary commit point for batch mode. When auto-commit is set to
-"batch", changes accumulate in the working set across multiple bd commands and
+"batch", changes accumulate in the working set across multiple issuegraph commands and
 are committed together here with a descriptive summary message.
 
 Also useful before push operations that require a clean working set, or when
 auto-commit was off or changes were made externally.
 
-For more options (--stdin, custom messages), see: bd vc commit`,
+For more options (--stdin, custom messages), see: issuegraph vc commit`,
 	SilenceUsage:  true,
 	SilenceErrors: true,
 	RunE: func(cmd *cobra.Command, args []string) error {
@@ -734,7 +734,7 @@ For more options (--stdin, custom messages), see: bd vc commit`,
 		}
 		msg, _ := cmd.Flags().GetString("message")
 		if msg == "" {
-			msg = fmt.Sprintf("bd: dolt commit (auto-commit) by %s", getActor())
+			msg = fmt.Sprintf("issuegraph: dolt commit (auto-commit) by %s", getActor())
 		}
 		// CommitAll, not Commit: this command's contract is "any uncommitted
 		// changes in the working set", including changes made externally and
@@ -767,39 +767,39 @@ var doltStartCmd = &cobra.Command{
 	SilenceUsage:  true,
 	SilenceErrors: true,
 	Short:         "Start the Dolt SQL server for this project",
-	Long: `Start a dolt sql-server for the current beads project.
+	Long: `Start a dolt sql-server for the current issuegraph project.
 
 The server runs in the background on a per-project port derived from the
-project path. PID and logs are stored in .beads/.
+project path. PID and logs are stored in .issuegraph/.
 
 The server auto-starts transparently when needed, so manual start is rarely
 required. Use this command for explicit control or diagnostics.
 
 Not available in proxied-server mode: there the proxy owns its dolt backend's
 lifecycle and starts it on demand, so a server started here would be a second,
-unsupervised one over the same data directory. Use 'bd dolt status' to see what
-is running and 'bd dolt stop' to shut it down.`,
+unsupervised one over the same data directory. Use 'issuegraph dolt status' to see what
+is running and 'issuegraph dolt stop' to shut it down.`,
 	RunE: func(cmd *cobra.Command, args []string) error {
-		beadsDir := selectedDoltBeadsDir()
-		if beadsDir == "" {
+		issuegraphDir := selectedDoltIssueGraphDir()
+		if issuegraphDir == "" {
 			return HandleErrorWithHint(activeWorkspaceNotFoundError(), diagHint())
 		}
-		fileCfg, err := loadDoltBackendConfig(beadsDir)
+		fileCfg, err := loadDoltBackendConfig(issuegraphDir)
 		if err != nil {
 			return HandleError("%v", err)
 		}
 		// A proxied workspace already has a server manager. The proxy spawns
 		// its dolt child on demand and reaps the whole tree when idle, so
-		// there is no state for bd to add here — only a second one to
+		// there is no state for issuegraph to add here — only a second one to
 		// collide with. With the tree down, doltserver.Start resolves the
 		// proxied root's own configured port and launches an unsupervised
-		// sql-server directly over .beads/dolt, and the next ordinary bd
+		// sql-server directly over .issuegraph/dolt, and the next ordinary issuegraph
 		// command then fails because the relaunched proxy finds a foreign
 		// server on its port; with the tree up, Start instead adopts the
-		// proxy's child into bd's classic PID/port records, leaving two
+		// proxy's child into issuegraph's classic PID/port records, leaving two
 		// managers for one process. Refused rather than routed: the proxy
 		// owns its child's lifecycle, and an idle reaper means a "started"
-		// postcondition bd cannot honor for more than the idle window.
+		// postcondition issuegraph cannot honor for more than the idle window.
 		//
 		// Both the process-wide mode and the selected workspace's own
 		// metadata are consulted, and this runs before the embedded guard:
@@ -809,16 +809,16 @@ is running and 'bd dolt stop' to shut it down.`,
 			return HandleProxyCapabilityError(proxiedDoltStartRefusal())
 		}
 		if !usesSQLServer() {
-			return HandleError("'bd dolt start' is not supported in embedded mode (no Dolt server)")
+			return HandleError("'issuegraph dolt start' is not supported in embedded mode (no Dolt server)")
 		}
-		// A remote (non-localhost) server host means bd does not own the
+		// A remote (non-localhost) server host means issuegraph does not own the
 		// server lifecycle (GH#3545/GH#3518): starting a repo-local
 		// server here would write local PID/port state that shadows the
 		// configured remote endpoint.
 		if host := fileCfg.GetDoltServerHost(); !configfile.IsLocalHostString(host) {
-			return HandleError("the configured Dolt server host is remote (%s); 'bd dolt start' only manages a local server.\nStart the server on that host, or clear dolt_server_host / dolt.host / BEADS_DOLT_SERVER_HOST to run one locally", host)
+			return HandleError("the configured Dolt server host is remote (%s); 'issuegraph dolt start' only manages a local server.\nStart the server on that host, or clear dolt_server_host / dolt.host / ISSUEGRAPH_DOLT_SERVER_HOST to run one locally", host)
 		}
-		serverDir := doltserver.ResolveServerDir(beadsDir)
+		serverDir := doltserver.ResolveServerDir(issuegraphDir)
 
 		state, err := doltserver.Start(serverDir)
 		if err != nil {
@@ -837,8 +837,8 @@ is running and 'bd dolt stop' to shut it down.`,
 		}
 		if doltserver.IsDebugMode() {
 			fmt.Println("  Debug: on (loglevel=debug, --prof cpu)")
-			fmt.Printf("  Profile dir: %s\n", doltserver.DebugProfileDir(beadsDir))
-			fmt.Println("  Note: cpu.pprof is written when the server exits cleanly (bd dolt stop).")
+			fmt.Printf("  Profile dir: %s\n", doltserver.DebugProfileDir(issuegraphDir))
+			fmt.Println("  Note: cpu.pprof is written when the server exits cleanly (issuegraph dolt stop).")
 		}
 		return nil
 	},
@@ -849,40 +849,40 @@ var doltStopCmd = &cobra.Command{
 	SilenceUsage:  true,
 	SilenceErrors: true,
 	Short:         "Stop the Dolt SQL server for this project",
-	Long: `Stop the dolt sql-server managed by beads for the current project.
+	Long: `Stop the dolt sql-server managed by issuegraph for the current project.
 
 This sends a graceful shutdown signal. The server will restart automatically
-on the next bd command unless auto-start is disabled.
+on the next issuegraph command unless auto-start is disabled.
 
 For a managed proxied server, --force can recover unverifiable or legacy
 process records (both the proxy and its backend) only after each live process
-executable is matched to bd or dolt and its command line ties it to this
+executable is matched to issuegraph or dolt and its command line ties it to this
 workspace. In that recovery path, force still refuses to signal a process
-whose executable identity cannot be matched to bd or dolt, or whose workspace
+whose executable identity cannot be matched to issuegraph or dolt, or whose workspace
 scope cannot be established.`,
 	RunE: func(cmd *cobra.Command, args []string) error {
-		beadsDir := selectedDoltBeadsDir()
-		if beadsDir == "" {
+		issuegraphDir := selectedDoltIssueGraphDir()
+		if issuegraphDir == "" {
 			return HandleErrorWithHint(activeWorkspaceNotFoundError(), diagHint())
 		}
-		fileCfg, err := loadDoltBackendConfig(beadsDir)
+		fileCfg, err := loadDoltBackendConfig(issuegraphDir)
 		if err != nil {
 			return HandleError("%v", err)
 		}
 		if !usesSQLServer() {
-			return HandleError("'bd dolt stop' is not supported in embedded mode (no Dolt server)")
+			return HandleError("'issuegraph dolt stop' is not supported in embedded mode (no Dolt server)")
 		}
-		// Same remote-host ownership guard as 'bd dolt start': with a
+		// Same remote-host ownership guard as 'issuegraph dolt start': with a
 		// remote server host, the repo-local PID state (if any) is a
 		// leftover, and stopping it would report success while the
 		// configured external server keeps running (GH#3545/GH#3518).
 		if host := fileCfg.GetDoltServerHost(); !usesProxiedServer() && !configfile.IsLocalHostString(host) {
-			return HandleError("the configured Dolt server host is remote (%s); 'bd dolt stop' only manages a local server.\nStop the server on that host, or clear dolt_server_host / dolt.host / BEADS_DOLT_SERVER_HOST to manage one locally", host)
+			return HandleError("the configured Dolt server host is remote (%s); 'issuegraph dolt stop' only manages a local server.\nStop the server on that host, or clear dolt_server_host / dolt.host / ISSUEGRAPH_DOLT_SERVER_HOST to manage one locally", host)
 		}
 		force, _ := cmd.Flags().GetBool("force")
 
 		if usesProxiedServer() {
-			rootDir, err := resolveProxiedServerRootPath(beadsDir)
+			rootDir, err := resolveProxiedServerRootPath(issuegraphDir)
 			if err != nil {
 				return HandleError("%v", err)
 			}
@@ -902,7 +902,7 @@ scope cannot be established.`,
 			return renderDoltStopResult(newForcedDoltStopResult(shutdownErr, report, forceErr))
 		}
 
-		serverDir := doltserver.ResolveServerDir(beadsDir)
+		serverDir := doltserver.ResolveServerDir(issuegraphDir)
 
 		if err := doltserver.StopWithForce(serverDir, force); err != nil {
 			return HandleError("%v", err)
@@ -974,7 +974,7 @@ func newForcedDoltStopResult(
 	}
 	if report.Executable != "" {
 		result.ExecutableVerified = boolPointer(
-			report.Executable == "bd" || report.Executable == "dolt",
+			report.Executable == "issuegraph" || report.Executable == "dolt",
 		)
 	}
 	result.ProcessLeftAlone = report.RecordFound &&
@@ -1035,9 +1035,9 @@ func renderDoltStopResult(result doltStopResult) error {
 	}
 	if result.Executable != "" {
 		if result.ExecutableVerified != nil && *result.ExecutableVerified {
-			fmt.Printf("  Executable: %s (matched bd/dolt)\n", result.Executable)
+			fmt.Printf("  Executable: %s (matched issuegraph/dolt)\n", result.Executable)
 		} else {
-			fmt.Printf("  Executable: %s (not bd/dolt)\n", result.Executable)
+			fmt.Printf("  Executable: %s (not issuegraph/dolt)\n", result.Executable)
 		}
 	}
 	switch {
@@ -1087,35 +1087,35 @@ var doltStatusCmd = &cobra.Command{
 	Long: `Show the status of the Dolt engine for the current project.
 
 In embedded mode, reports that the Dolt engine runs in-process and shows
-the on-disk data directory. For beads-managed (local) servers, displays
+the on-disk data directory. For issuegraph-managed (local) servers, displays
 PID, port, and data directory from the local PID file. For externally-
 managed servers — a shared server (dolt.shared-server: true), a remote
-dolt_server_host, or a local server managed outside bd (dolt.auto-start:
+dolt_server_host, or a local server managed outside issuegraph (dolt.auto-start:
 false, e.g. an orchestrator-shared sql-server) — pings the configured
 endpoint via SQL and reports reachability, server version, and database.
 
-In proxied-server mode, reports the proxy (the endpoint every bd command
+In proxied-server mode, reports the proxy (the endpoint every issuegraph command
 connects through) and the dolt backend behind it separately, read from the
 proxy's own process records. Reporting starts nothing: a quiesced workspace
-is shown as not running, and the next bd command launches it.`,
+is shown as not running, and the next issuegraph command launches it.`,
 	RunE: func(cmd *cobra.Command, args []string) error {
-		beadsDir := selectedDoltBeadsDir()
-		if beadsDir == "" {
+		issuegraphDir := selectedDoltIssueGraphDir()
+		if issuegraphDir == "" {
 			return HandleErrorWithHint(activeWorkspaceNotFoundError(), diagHint())
 		}
-		cfg, cfgErr := configfile.Load(beadsDir)
+		cfg, cfgErr := configfile.Load(issuegraphDir)
 		if cfgErr != nil {
 			return HandleError("loading config: %v", cfgErr)
 		}
 		if cfg == nil {
 			cfg = configfile.DefaultConfig()
 		}
-		if err := validateConfiguredBackend(cfg, beadsDir); err != nil {
+		if err := validateConfiguredBackend(cfg, issuegraphDir); err != nil {
 			return HandleError("%v", err)
 		}
 		// A non-Dolt backend (SQLite or a removed-backend tombstone) has no Dolt engine;
 		// report the backend rather than misdescribing an embedded Dolt server
-		// (parity with `bd dolt show`, which already special-cases this).
+		// (parity with `issuegraph dolt show`, which already special-cases this).
 		if cfg.GetBackend() != configfile.BackendDolt {
 			fmt.Printf("Backend: %s (no Dolt engine)\n", cfg.GetBackend())
 			return nil
@@ -1125,10 +1125,10 @@ is shown as not running, and the next bd command launches it.`,
 		// while the proxy is serving CRUD, and shouldUseExternalDoltStatus
 		// deliberately excludes proxied so the SQL-probe path never sees it
 		// either. Keyed on the loaded config rather than the process-wide
-		// mode so `bd --db <proxied workspace> dolt status` describes the
+		// mode so `issuegraph --db <proxied workspace> dolt status` describes the
 		// workspace it was pointed at.
 		if cfg.IsDoltProxiedServerMode() {
-			status, err := collectProxiedDoltStatus(beadsDir)
+			status, err := collectProxiedDoltStatus(issuegraphDir)
 			if err != nil {
 				return HandleError("%v", err)
 			}
@@ -1136,7 +1136,7 @@ is shown as not running, and the next bd command launches it.`,
 			return nil
 		}
 		if !usesSQLServer() {
-			showEmbeddedDoltStatus(beadsDir)
+			showEmbeddedDoltStatus(issuegraphDir)
 			return nil
 		}
 
@@ -1148,16 +1148,16 @@ is shown as not running, and the next bd command launches it.`,
 		//     systemd manages the server lifecycle, be-0eyj)
 		//
 		// IsAutoStartDisabled reads the active (globally-bound) config and
-		// BEADS_DOLT_AUTO_START env, not the per-beadsDir cfg loaded above.
+		// ISSUEGRAPH_DOLT_AUTO_START env, not the per-issuegraphDir cfg loaded above.
 		// That coupling is intentional and consistent with every
 		// other call site of IsAutoStartDisabled in this package — both
 		// resolve against the same active workspace at command time.
 		if cfg != nil && shouldUseExternalDoltStatus(cfg, doltserver.IsAutoStartDisabled(), doltserver.IsSharedServerMode()) {
-			runExternalDoltStatus(beadsDir, cfg)
+			runExternalDoltStatus(issuegraphDir, cfg)
 			return nil
 		}
 
-		serverDir := doltserver.ResolveServerDir(beadsDir)
+		serverDir := doltserver.ResolveServerDir(issuegraphDir)
 
 		state, err := doltserver.IsRunning(serverDir)
 		if err != nil {
@@ -1203,15 +1203,15 @@ func renderLocalDoltStatus(state *doltserver.State, serverDir string) {
 	}
 }
 
-// shouldUseExternalDoltStatus reports whether bd dolt status should treat
+// shouldUseExternalDoltStatus reports whether issuegraph dolt status should treat
 // the server as externally-managed and probe via SQL instead of consulting
 // the local PID file. Returns true when:
 //   - shared-server mode is enabled (and not proxied) — a shared server's
-//     lifecycle is owned by something other than bd (a Homebrew service,
-//     systemd/launchd unit, or a sibling clone), so bd has no PID file for
+//     lifecycle is owned by something other than issuegraph (a Homebrew service,
+//     systemd/launchd unit, or a sibling clone), so issuegraph has no PID file for
 //     it even when the host is local and auto-start is enabled. Without this
-//     branch, status reports "not running" while bd CRUD commands, bd dolt
-//     test, and bd dolt show all connect to the server fine (GH#3218). This
+//     branch, status reports "not running" while issuegraph CRUD commands, issuegraph dolt
+//     test, and issuegraph dolt show all connect to the server fine (GH#3218). This
 //     is checked BEFORE the server-mode guard because shared-server mode
 //     wins over a stale metadata.json that still pins dolt_mode="embedded"
 //     — mirroring the loadServerMode override in main.go (GH#2946). That
@@ -1220,10 +1220,10 @@ func renderLocalDoltStatus(state *doltserver.State, serverDir string) {
 //     GH#3218 bug lived.
 //   - dolt_mode=server with a non-local host (Hosted Dolt, remote shared
 //     sql-server) — the PID file is on a different machine.
-//   - dolt_mode=server with a local host but bd auto-start is disabled —
-//     the server lifecycle is owned by something outside bd (e.g. an
-//     orchestrator or systemd unit), so no bd PID file exists. Without
-//     this branch, status reports "not running" even when bd CRUD
+//   - dolt_mode=server with a local host but issuegraph auto-start is disabled —
+//     the server lifecycle is owned by something outside issuegraph (e.g. an
+//     orchestrator or systemd unit), so no issuegraph PID file exists. Without
+//     this branch, status reports "not running" even when issuegraph CRUD
 //     commands successfully connect to the server (be-0eyj).
 //
 // When false, the caller falls back to the PID-file path that reports
@@ -1255,7 +1255,7 @@ func shouldUseExternalDoltStatus(cfg *configfile.Config, autoStartDisabled, shar
 }
 
 // isLocalHost reports whether host refers to this machine. Used to
-// distinguish beads-managed local servers from externally-hosted ones.
+// distinguish issuegraph-managed local servers from externally-hosted ones.
 func isLocalHost(host string) bool {
 	h := strings.ToLower(strings.TrimSpace(host))
 	if h == "" {
@@ -1272,9 +1272,9 @@ func isLocalHost(host string) bool {
 // (or returns, for --json) status. Unlike the local path, there is no PID or
 // log file — reachability, version, host/port/database, and TLS mode are the
 // user-relevant signals.
-func runExternalDoltStatus(beadsDir string, cfg *configfile.Config) {
+func runExternalDoltStatus(issuegraphDir string, cfg *configfile.Config) {
 	host := cfg.GetDoltServerHost()
-	port := doltserver.DefaultConfig(beadsDir).Port
+	port := doltserver.DefaultConfig(issuegraphDir).Port
 	user := cfg.GetDoltServerUser()
 	database := cfg.GetDoltDatabase()
 	tls := cfg.GetDoltServerTLS()
@@ -1353,9 +1353,9 @@ func runExternalDoltStatus(beadsDir string, cfg *configfile.Config) {
 
 // showEmbeddedDoltStatus reports Dolt engine status when running in
 // embedded mode. There is no separate server process; the engine runs
-// in-process and data lives at .beads/embeddeddolt/.
-func showEmbeddedDoltStatus(beadsDir string) {
-	dataDir := filepath.Join(beadsDir, "embeddeddolt")
+// in-process and data lives at .issuegraph/embeddeddolt/.
+func showEmbeddedDoltStatus(issuegraphDir string) {
+	dataDir := filepath.Join(issuegraphDir, "embeddeddolt")
 	dataDirExists := false
 	if info, err := os.Stat(dataDir); err == nil && info.IsDir() {
 		dataDirExists = true
@@ -1379,7 +1379,7 @@ func showEmbeddedDoltStatus(beadsDir string) {
 	fmt.Println("Dolt engine: embedded (in-process, no server)")
 	fmt.Printf("  Data: %s\n", dataDir)
 	if !dataDirExists {
-		fmt.Printf("  %s\n", ui.RenderWarn("Data directory does not exist — run 'bd init' to create it"))
+		fmt.Printf("  %s\n", ui.RenderWarn("Data directory does not exist — run 'issuegraph init' to create it"))
 	}
 	if isDoltLocalOnly() {
 		fmt.Println("  Remote sync: disabled (dolt.local-only=true)")
@@ -1392,7 +1392,7 @@ var doltKillallCmd = &cobra.Command{
 	Long: `Find and kill orphan dolt sql-server processes not tracked by the
 canonical PID file for the current repo's Dolt data directory.
 
-Under an orchestrator, the canonical server lives at $GT_ROOT/.beads/. Any other
+Under an orchestrator, the canonical server lives at $GT_ROOT/.issuegraph/. Any other
 dolt sql-server processes using that shared data directory are considered
 orphans and will be killed.
 
@@ -1402,20 +1402,20 @@ servers are preserved.`,
 	SilenceUsage:  true,
 	SilenceErrors: true,
 	RunE: func(cmd *cobra.Command, args []string) error {
-		beadsDir := selectedDoltBeadsDir()
-		if beadsDir != "" {
-			if _, err := loadDoltBackendConfig(beadsDir); err != nil {
+		issuegraphDir := selectedDoltIssueGraphDir()
+		if issuegraphDir != "" {
+			if _, err := loadDoltBackendConfig(issuegraphDir); err != nil {
 				return HandleError("%v", err)
 			}
 		}
 		if !usesSQLServer() {
-			return HandleError("'bd dolt killall' is not supported in embedded mode (no Dolt server)")
+			return HandleError("'issuegraph dolt killall' is not supported in embedded mode (no Dolt server)")
 		}
-		if beadsDir == "" {
-			beadsDir = "." // best effort
+		if issuegraphDir == "" {
+			issuegraphDir = "." // best effort
 		}
 
-		killed, err := doltserver.KillStaleServers(beadsDir)
+		killed, err := doltserver.KillStaleServers(issuegraphDir)
 		if err != nil {
 			return HandleError("%v", err)
 		}
@@ -1430,30 +1430,30 @@ servers are preserved.`,
 }
 
 // staleDatabasePrefixes lists database name prefixes that
-// `bd dolt clean-databases` will drop. This is the cleanup side of the
+// `issuegraph dolt clean-databases` will drop. This is the cleanup side of the
 // test/prod split. Two sibling lists must converge with it (be-avn):
 //   - internal/storage/dolt/store.go:testDatabasePrefixes (firewall side)
 //   - .gc/system/packs/dolt/formulas/mol-dog-stale-db.toml (city formula)
 //
 // The firewall list, this cleanup list, and the formula list MUST
-// converge — operators rely on consistent semantics across `bd dolt
+// converge — operators rely on consistent semantics across `issuegraph dolt
 // clean-databases`, the SQL-side firewall, and `gc dolt cleanup`.
 //
 // Origin of each prefix:
-//   - testdb_     : applyConfigDefaults derives this for BEADS_TEST_MODE=1
+//   - testdb_     : applyConfigDefaults derives this for ISSUEGRAPH_TEST_MODE=1
 //     without an explicit Database (FNV hash of cfg.Path).
-//   - beads_test  : convention for hand-written integration tests.
-//   - beads_pt    : property-test fixtures.
-//   - beads_vr    : version-roundtrip / migration fixtures.
-//   - doctest_    : `bd doctor` self-check fixtures.
-//   - doctortest_ : older `bd doctor` fixture name (kept for back-compat).
+//   - issuegraph_test  : convention for hand-written integration tests.
+//   - issuegraph_pt    : property-test fixtures.
+//   - issuegraph_vr    : version-roundtrip / migration fixtures.
+//   - doctest_    : `issuegraph doctor` self-check fixtures.
+//   - doctortest_ : older `issuegraph doctor` fixture name (kept for back-compat).
 //   - benchdb_    : per-bench scratch DBs (modules/cli/template_test.go
 //     newTemplateBenchmarkStore, format `benchdb_<unixnano>`).
 var staleDatabasePrefixes = []string{
 	"testdb_",
-	"beads_test",
-	"beads_pt",
-	"beads_vr",
+	"issuegraph_test",
+	"issuegraph_pt",
+	"issuegraph_vr",
 	"doctest_",
 	"doctortest_",
 	"benchdb_",
@@ -1467,7 +1467,7 @@ var doltCleanDatabasesCmd = &cobra.Command{
 	Long: `Identify and drop leftover test and agent databases that accumulate
 on the shared Dolt server from interrupted test runs and terminated agents.
 
-Stale database prefixes: testdb_*, beads_test*, beads_pt*, beads_vr*, doctest_*, doctortest_*, benchdb_*
+Stale database prefixes: testdb_*, issuegraph_test*, issuegraph_pt*, issuegraph_vr*, doctest_*, doctortest_*, benchdb_*
 
 These waste server memory and can degrade performance under concurrent load.
 Use --dry-run to see what would be dropped without actually dropping.
@@ -1488,26 +1488,26 @@ clean-databases runs even if this run finds no stale databases to drop.
 Only pass it when nothing else on the server may be relying on DOLT_UNDROP
 recovery.`,
 	RunE: func(cmd *cobra.Command, args []string) error {
-		beadsDir := selectedDoltBeadsDir()
-		if beadsDir == "" {
+		issuegraphDir := selectedDoltIssueGraphDir()
+		if issuegraphDir == "" {
 			return HandleErrorWithHint(activeWorkspaceNotFoundError(), diagHint())
 		}
-		if _, err := loadDoltBackendConfig(beadsDir); err != nil {
+		if _, err := loadDoltBackendConfig(issuegraphDir); err != nil {
 			return HandleError("%v", err)
 		}
 		if !usesSQLServer() {
-			return HandleError("'bd dolt clean-databases' is not supported in embedded mode (no Dolt server)")
+			return HandleError("'issuegraph dolt clean-databases' is not supported in embedded mode (no Dolt server)")
 		}
 		dryRun, _ := cmd.Flags().GetBool("dry-run")
 		purgeDropped, _ := cmd.Flags().GetBool("purge-dropped")
 		opts := cleanDatabasesOptions{dryRun: dryRun, purgeDropped: purgeDropped}
 
 		if usesProxiedServer() {
-			return runDoltCleanDatabasesProxied(rootCtx, beadsDir, opts)
+			return runDoltCleanDatabasesProxied(rootCtx, issuegraphDir, opts)
 		}
 
 		// Connect directly to the Dolt server via config instead of getStore(),
-		// which isn't initialized for dolt subcommands (beads-9vt).
+		// which isn't initialized for dolt subcommands (issuegraph-9vt).
 		db, cleanup, err := openDoltServerConnection()
 		if err != nil {
 			return err
@@ -1654,7 +1654,7 @@ var doltRemoteAddCmd = &cobra.Command{
 	RunE: func(cmd *cobra.Command, args []string) error {
 		if isDoltLocalOnly() {
 			fmt.Fprintln(os.Stderr, "Error: cannot add Dolt remote: remote sync is disabled (dolt.local-only=true).")
-			fmt.Fprintln(os.Stderr, "To re-enable remote sync: bd config unset dolt.local-only")
+			fmt.Fprintln(os.Stderr, "To re-enable remote sync: issuegraph config unset dolt.local-only")
 			return SilentExit()
 		}
 		allowGitOrigin, _ := cmd.Flags().GetBool("allow-git-origin")
@@ -1693,7 +1693,7 @@ var doltRemoteAddCmd = &cobra.Command{
 				return HandleError("failed to persist sync.remote to config.yaml: %v", err)
 			}
 			if isGitRepo() {
-				commitBeadsConfig("bd: update sync.remote")
+				commitIssueGraphConfig("issuegraph: update sync.remote")
 			}
 		}
 
@@ -1807,7 +1807,7 @@ var doltRemoteRemoveCmd = &cobra.Command{
 					fmt.Fprintf(os.Stderr, "Warning: failed to clear sync.remote from config.yaml: %v\n", err)
 				}
 				if isGitRepo() {
-					commitBeadsConfig("bd: clear sync.remote")
+					commitIssueGraphConfig("issuegraph: clear sync.remote")
 				}
 			}
 		}
@@ -1845,11 +1845,11 @@ func isTimeoutError(err error) bool {
 
 func init() {
 	doltSetCmd.Flags().Bool("update-config", false, "Also write to config.yaml for team-wide defaults")
-	doltStopCmd.Flags().Bool("force", false, "Force stop (proxied recovery still requires a bd/dolt executable match)")
+	doltStopCmd.Flags().Bool("force", false, "Force stop (proxied recovery still requires a issuegraph/dolt executable match)")
 	doltPushCmd.Flags().Bool("force", false, "Force push (overwrite remote changes)")
 	doltPushCmd.Flags().String("remote", "", "Push to a specific named remote instead of the default")
 	doltPushCmd.Flags().BoolP("yes", "y", false, "Consent to adopting a Dolt remote derived from git origin when none is configured")
-	doltPushCmd.Flags().Bool("no-adopt", false, "Never derive a Dolt remote from git origin (also BD_NO_REMOTE_ADOPT=1)")
+	doltPushCmd.Flags().Bool("no-adopt", false, "Never derive a Dolt remote from git origin (also ISSUEGRAPH_NO_REMOTE_ADOPT=1)")
 	doltPullCmd.Flags().String("remote", "", "Pull from a specific named remote instead of the default")
 	doltPullCmd.Flags().String("strategy", "", "Conflict resolution strategy for conflicts the auto-resolver declines: 'ours' or 'theirs' (embedded storage only, #4992)")
 	doltCommitCmd.Flags().StringP("message", "m", "", "Commit message (default: auto-generated)")
@@ -1876,25 +1876,25 @@ func init() {
 	rootCmd.AddCommand(doltCmd)
 }
 
-func selectedDoltBeadsDir() string {
-	beadsDir := ""
-	if os.Getenv("BEADS_DIR") != "" {
-		beadsDir = beads.FindBeadsDir()
+func selectedDoltIssueGraphDir() string {
+	issuegraphDir := ""
+	if os.Getenv("ISSUEGRAPH_DIR") != "" {
+		issuegraphDir = issuegraph.FindIssueGraphDir()
 	}
-	if beadsDir == "" {
-		beadsDir = selectedNoDBBeadsDir(nil)
+	if issuegraphDir == "" {
+		issuegraphDir = selectedNoDBIssueGraphDir(nil)
 	}
-	if beadsDir == "" {
+	if issuegraphDir == "" {
 		return ""
 	}
-	prepareSelectedNoDBContext(beadsDir)
-	return beadsDir
+	prepareSelectedNoDBContext(issuegraphDir)
+	return issuegraphDir
 }
 
-// resolveDoltShowRemotes returns remotes for `bd dolt show`.
+// resolveDoltShowRemotes returns remotes for `issuegraph dolt show`.
 // `show` is a no-store diagnostic command, so getStore() is usually nil and
 // ListRemotes is unavailable. Fall back to on-disk repo_state.json (same
-// source as the remote-migrate gate) so remotes match `bd dolt remote list`
+// source as the remote-migrate gate) so remotes match `issuegraph dolt remote list`
 // (GH#4619).
 //
 // The physical root is resolved through the same mode-aware path selection
@@ -1915,17 +1915,17 @@ func selectedDoltBeadsDir() string {
 //     disk (embeddeddolt/, else dolt/), while the CLI open path additionally
 //     promotes a nil config to server mode via the
 //     `cfg == nil && configfile.DefaultConfig().IsDoltServerMode()` rescue in
-//     main.go (BEADS_DOLT_SERVER_MODE=1 / config.yaml dolt.mode). So a
+//     main.go (ISSUEGRAPH_DOLT_SERVER_MODE=1 / config.yaml dolt.mode). So a
 //     workspace with no metadata.json, that env set, and a leftover
 //     embeddeddolt/ tree reports the embedded root's remotes under a
 //     server-mode header. Mirroring the rescue inside the resolver is the real
 //     fix but changes every ResolvePhysicalRoots caller, so it is a follow-up
 //     rather than part of this command's fix.
 //   - a remote-host server workspace has no local root to read, so this
-//     returns nil and `bd dolt show` renders "(none)". Read that as "not
-//     locally knowable" rather than "no remotes configured"; `bd dolt remote
+//     returns nil and `issuegraph dolt show` renders "(none)". Read that as "not
+//     locally knowable" rather than "no remotes configured"; `issuegraph dolt remote
 //     list` against the server is the authoritative answer.
-func resolveDoltShowRemotes(beadsDir string, cfg *configfile.Config) []storage.RemoteInfo {
+func resolveDoltShowRemotes(issuegraphDir string, cfg *configfile.Config) []storage.RemoteInfo {
 	ctx := context.Background()
 	if st := getStore(); st != nil {
 		if remotes, err := st.ListRemotes(ctx); err == nil && len(remotes) > 0 {
@@ -1936,7 +1936,7 @@ func resolveDoltShowRemotes(beadsDir string, cfg *configfile.Config) []storage.R
 	if cfg != nil {
 		dbName = cfg.GetDoltDatabase()
 	}
-	physical, err := doltserver.ResolvePhysicalRoots(beadsDir)
+	physical, err := doltserver.ResolvePhysicalRoots(issuegraphDir)
 	if err != nil {
 		fmt.Fprintf(os.Stderr, "%s\n", ui.RenderWarn(fmt.Sprintf("could not resolve Dolt data directory: %v", err)))
 		return nil
@@ -1946,7 +1946,7 @@ func resolveDoltShowRemotes(beadsDir string, cfg *configfile.Config) []storage.R
 	}
 
 	// Every ResolvePhysicalRoots branch appends exactly one root today; Roots
-	// is a slice because other callers (beads.OpenGated) union several.
+	// is a slice because other callers (issuegraph.OpenGated) union several.
 	// Revisit this if the resolver ever does that here, or the extra
 	// candidates would vanish without a trace.
 	root := physical.Roots[0]
@@ -1978,19 +1978,19 @@ func resolveDoltShowRemotes(beadsDir string, cfg *configfile.Config) []storage.R
 }
 
 func showDoltConfig(testConnection bool) error {
-	beadsDir := selectedDoltBeadsDir()
-	if beadsDir == "" {
+	issuegraphDir := selectedDoltIssueGraphDir()
+	if issuegraphDir == "" {
 		return HandleErrorWithHint(activeWorkspaceNotFoundError(), diagHint())
 	}
 
-	cfg, err := configfile.Load(beadsDir)
+	cfg, err := configfile.Load(issuegraphDir)
 	if err != nil {
 		return HandleError("loading config: %v", err)
 	}
 	if cfg == nil {
 		cfg = configfile.DefaultConfig()
 	}
-	if err := validateConfiguredBackend(cfg, beadsDir); err != nil {
+	if err := validateConfiguredBackend(cfg, issuegraphDir); err != nil {
 		return HandleError("%v", err)
 	}
 
@@ -1999,9 +1999,9 @@ func showDoltConfig(testConnection bool) error {
 
 	// Resolve actual server port for connection testing
 	showHost := cfg.GetDoltServerHost()
-	dsCfg := doltserver.DefaultConfig(beadsDir)
+	dsCfg := doltserver.DefaultConfig(issuegraphDir)
 	showPort := dsCfg.Port
-	embeddedDataDir := filepath.Join(beadsDir, "embeddeddolt")
+	embeddedDataDir := filepath.Join(issuegraphDir, "embeddeddolt")
 
 	if jsonOutput {
 		result := map[string]interface{}{
@@ -2065,7 +2065,7 @@ func showDoltConfig(testConnection bool) error {
 	}
 
 	fmt.Println("\nRemotes:")
-	remotes := resolveDoltShowRemotes(beadsDir, cfg)
+	remotes := resolveDoltShowRemotes(issuegraphDir, cfg)
 	if len(remotes) == 0 {
 		fmt.Println("  (none)")
 	} else {
@@ -2089,12 +2089,12 @@ func printDoltShowConfigSources(w io.Writer) {
 }
 
 func setDoltConfig(key, value string, updateConfig bool) error {
-	beadsDir := selectedDoltBeadsDir()
-	if beadsDir == "" {
+	issuegraphDir := selectedDoltIssueGraphDir()
+	if issuegraphDir == "" {
 		return HandleErrorWithHint(activeWorkspaceNotFoundError(), diagHint())
 	}
 
-	cfg, err := loadDoltBackendConfig(beadsDir)
+	cfg, err := loadDoltBackendConfig(issuegraphDir)
 	if err != nil {
 		return HandleError("%v", err)
 	}
@@ -2152,11 +2152,11 @@ func setDoltConfig(key, value string, updateConfig bool) error {
 			fmt.Fprintf(os.Stderr, "not the local data directory. Setting data-dir would silently disconnect\n")
 			fmt.Fprintf(os.Stderr, "from the configured database '%s'.\n", cfg.GetDoltDatabase())
 			fmt.Fprintf(os.Stderr, "\nTo change which database to use:\n")
-			fmt.Fprintf(os.Stderr, "  bd dolt set database <name>\n")
+			fmt.Fprintf(os.Stderr, "  issuegraph dolt set database <name>\n")
 			return SilentExit()
 		}
 		if value == "" {
-			// Allow clearing the custom data dir (revert to default .beads/dolt)
+			// Allow clearing the custom data dir (revert to default .issuegraph/dolt)
 			cfg.DoltDataDir = ""
 		} else {
 			if !filepath.IsAbs(value) {
@@ -2168,7 +2168,7 @@ func setDoltConfig(key, value string, updateConfig bool) error {
 			// persistence across sessions. (GH#2251)
 			fmt.Fprintf(os.Stderr, "Note: absolute paths are not saved to metadata.json (it propagates via git).\n")
 			fmt.Fprintf(os.Stderr, "For persistence, add to your shell profile:\n")
-			fmt.Fprintf(os.Stderr, "  export BEADS_DOLT_DATA_DIR=%s\n", value)
+			fmt.Fprintf(os.Stderr, "  export ISSUEGRAPH_DOLT_DATA_DIR=%s\n", value)
 		}
 		yamlKey = "dolt.data-dir"
 
@@ -2193,7 +2193,7 @@ func setDoltConfig(key, value string, updateConfig bool) error {
 		}
 		if lower == "true" {
 			fmt.Println("Shared server mode enabled.")
-			fmt.Println("All projects will use a single Dolt server at ~/.beads/shared-server/.")
+			fmt.Println("All projects will use a single Dolt server at ~/.issuegraph/shared-server/.")
 			fmt.Println("Each project's data remains isolated in its own database.")
 		} else {
 			fmt.Println("Shared server mode disabled. Each project will use its own Dolt server.")
@@ -2207,10 +2207,10 @@ func setDoltConfig(key, value string, updateConfig bool) error {
 	}
 
 	// Audit log: record who changed what
-	logDoltConfigChange(beadsDir, key, value)
+	logDoltConfigChange(issuegraphDir, key, value)
 
 	// Save to metadata.json
-	if err := cfg.Save(beadsDir); err != nil {
+	if err := cfg.Save(issuegraphDir); err != nil {
 		return HandleError("saving config: %v", err)
 	}
 
@@ -2243,18 +2243,18 @@ func setDoltConfig(key, value string, updateConfig bool) error {
 }
 
 func testDoltConnection() error {
-	beadsDir := selectedDoltBeadsDir()
-	if beadsDir == "" {
+	issuegraphDir := selectedDoltIssueGraphDir()
+	if issuegraphDir == "" {
 		return HandleErrorWithHint(activeWorkspaceNotFoundError(), diagHint())
 	}
 
-	cfg, err := loadDoltBackendConfig(beadsDir)
+	cfg, err := loadDoltBackendConfig(issuegraphDir)
 	if err != nil {
 		return HandleError("%v", err)
 	}
 
 	host := cfg.GetDoltServerHost()
-	port := doltserver.DefaultConfig(beadsDir).Port
+	port := doltserver.DefaultConfig(issuegraphDir).Port
 	addr := fmt.Sprintf("%s:%d", host, port)
 
 	if jsonOutput {
@@ -2278,7 +2278,7 @@ func testDoltConnection() error {
 		fmt.Printf("%s\n", ui.RenderPass("✓ Connection successful"))
 	} else {
 		fmt.Printf("%s\n", ui.RenderWarn("✗ Connection failed"))
-		fmt.Println("\nStart the server with: bd dolt start")
+		fmt.Println("\nStart the server with: issuegraph dolt start")
 		return SilentExit()
 	}
 
@@ -2401,24 +2401,24 @@ func testHTTPConnectivity(url string) bool {
 }
 
 // openDoltServerConnection opens a direct MySQL connection to the Dolt server
-// using config from the beads directory. This bypasses getStore() which isn't
-// initialized for dolt subcommands (beads-9vt). Connects without selecting a
+// using config from the issuegraph directory. This bypasses getStore() which isn't
+// initialized for dolt subcommands (issuegraph-9vt). Connects without selecting a
 // database so callers can operate on all databases (SHOW DATABASES, DROP DATABASE).
 func openDoltServerConnection() (*sql.DB, func(), error) {
-	beadsDir := selectedDoltBeadsDir()
-	if beadsDir == "" {
+	issuegraphDir := selectedDoltIssueGraphDir()
+	if issuegraphDir == "" {
 		return nil, nil, HandleErrorWithHint(activeWorkspaceNotFoundError(), diagHint())
 	}
 
-	cfg, err := loadDoltBackendConfig(beadsDir)
+	cfg, err := loadDoltBackendConfig(issuegraphDir)
 	if err != nil {
 		return nil, nil, HandleError("%v", err)
 	}
 
 	host := cfg.GetDoltServerHost()
-	port := doltserver.DefaultConfig(beadsDir).Port
+	port := doltserver.DefaultConfig(issuegraphDir).Port
 	user := cfg.GetDoltServerUser()
-	password := os.Getenv("BEADS_DOLT_PASSWORD")
+	password := os.Getenv("ISSUEGRAPH_DOLT_PASSWORD")
 
 	connStr := doltutil.ServerDSN{
 		Host:     host,
@@ -2443,7 +2443,7 @@ func openDoltServerConnection() (*sql.DB, func(), error) {
 	if err := db.PingContext(ctx); err != nil {
 		_ = db.Close()
 		fmt.Fprintf(os.Stderr, "Error: cannot reach Dolt server at %s:%d: %v\n", host, port, err)
-		fmt.Fprintln(os.Stderr, "Start the server with: bd dolt start")
+		fmt.Fprintln(os.Stderr, "Start the server with: issuegraph dolt start")
 		return nil, nil, SilentExit()
 	}
 
@@ -2451,19 +2451,16 @@ func openDoltServerConnection() (*sql.DB, func(), error) {
 }
 
 // doltServerPidFile returns the path to the PID file for the managed dolt server.
-// logDoltConfigChange appends an audit entry to .beads/dolt-config.log.
-// Includes the beadsDir path for debugging worktree config pollution (bd-la2cl).
-func logDoltConfigChange(beadsDir, key, value string) {
-	logPath := filepath.Join(beadsDir, "dolt-config.log")
-	actor := os.Getenv("BEADS_ACTOR")
-	if actor == "" {
-		actor = os.Getenv("BD_ACTOR") // deprecated fallback
-	}
+// logDoltConfigChange appends an audit entry to .issuegraph/dolt-config.log.
+// Includes the issuegraphDir path for debugging worktree config pollution (bd-la2cl).
+func logDoltConfigChange(issuegraphDir, key, value string) {
+	logPath := filepath.Join(issuegraphDir, "dolt-config.log")
+	actor := os.Getenv("ISSUEGRAPH_ACTOR")
 	if actor == "" {
 		actor = "unknown"
 	}
-	entry := fmt.Sprintf("%s actor=%s key=%s value=%s beads_dir=%s\n",
-		time.Now().UTC().Format(time.RFC3339), actor, key, value, beadsDir)
+	entry := fmt.Sprintf("%s actor=%s key=%s value=%s issuegraph_dir=%s\n",
+		time.Now().UTC().Format(time.RFC3339), actor, key, value, issuegraphDir)
 	f, err := os.OpenFile(logPath, os.O_APPEND|os.O_CREATE|os.O_WRONLY, 0600)
 	if err != nil {
 		return // best effort

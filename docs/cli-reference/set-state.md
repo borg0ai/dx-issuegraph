@@ -1,16 +1,16 @@
 ---
-title: "bd set-state"
+title: "issuegraph set-state"
 description: "Atomically set operational state on an issue."
 ---
 
 {/* AUTO-GENERATED: do not edit manually */}
 
-Generated from `bd help --doc set-state`.
+Generated from `issuegraph help --doc set-state`.
 
 Atomically set operational state on an issue.
 
 This command:
-1. Creates an event bead recording the state change (source of truth)
+1. Creates an event issue recording the state change (source of truth)
 2. Removes any existing label for the dimension
 3. Adds the new dimension:value label (fast lookup cache)
 
@@ -20,14 +20,14 @@ State labels follow the convention &lt;dimension&gt;:&lt;value&gt;, for example:
   health:healthy, health:failing
 
 Examples:
-  bd set-state agent-abc patrol=muted --reason "Investigating stuck worker"
-  bd set-state agent-abc mode=degraded --reason "High error rate detected"
-  bd set-state agent-abc health=healthy
+  issuegraph set-state agent-abc patrol=muted --reason "Investigating stuck worker"
+  issuegraph set-state agent-abc mode=degraded --reason "High error rate detected"
+  issuegraph set-state agent-abc health=healthy
 
-The --reason flag provides context for the event bead (recommended).
+The --reason flag provides context for the event issue (recommended).
 
 ```
-bd set-state <issue-id> <dimension>=<value> [flags]
+issuegraph set-state <issue-id> <dimension>=<value> [flags]
 ```
 
 **Flags:**

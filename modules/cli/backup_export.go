@@ -9,10 +9,10 @@ import (
 	"strings"
 	"time"
 
-	"github.com/steveyegge/beads/internal/beads"
-	"github.com/steveyegge/beads/internal/config"
-	"github.com/steveyegge/beads/internal/debug"
-	"github.com/steveyegge/beads/internal/storage"
+	"github.com/borg0ai/dx-issuegraph/internal/config"
+	"github.com/borg0ai/dx-issuegraph/internal/debug"
+	"github.com/borg0ai/dx-issuegraph/internal/issuegraph"
+	"github.com/borg0ai/dx-issuegraph/internal/storage"
 )
 
 // backupState tracks watermarks for backup change detection.
@@ -23,7 +23,7 @@ type backupState struct {
 
 // backupDir returns the backup directory path, creating it if needed.
 // When backup.git-repo is set to a valid git repo, returns a backup/ subdirectory
-// inside that repo. Otherwise it requires an active beads workspace and uses its
+// inside that repo. Otherwise it requires an active issuegraph workspace and uses its
 // backup/ subdirectory.
 func backupDir() (string, error) {
 	gitRepo := config.GetString("backup.git-repo")
@@ -33,7 +33,7 @@ func backupDir() (string, error) {
 			gitRepo = filepath.Join(home, gitRepo[2:])
 		}
 		if _, err := os.Stat(filepath.Join(gitRepo, ".git")); err != nil {
-			fmt.Fprintf(os.Stderr, "Warning: backup.git-repo %s is not a git repo, falling back to .beads/backup\n", gitRepo)
+			fmt.Fprintf(os.Stderr, "Warning: backup.git-repo %s is not a git repo, falling back to .issuegraph/backup\n", gitRepo)
 		} else {
 			dir := filepath.Join(gitRepo, "backup")
 			if err := os.MkdirAll(dir, 0700); err != nil {
@@ -42,11 +42,11 @@ func backupDir() (string, error) {
 			return dir, nil
 		}
 	}
-	beadsDir := beads.FindBeadsDir()
-	if beadsDir == "" {
+	issuegraphDir := issuegraph.FindIssueGraphDir()
+	if issuegraphDir == "" {
 		return "", fmt.Errorf("%s; %s", activeWorkspaceNotFoundError(), diagHint())
 	}
-	dir := filepath.Join(beadsDir, "backup")
+	dir := filepath.Join(issuegraphDir, "backup")
 	if err := os.MkdirAll(dir, 0700); err != nil {
 		return "", fmt.Errorf("failed to create backup directory: %w", err)
 	}
@@ -122,7 +122,7 @@ func atomicWriteFile(path string, data []byte) error {
 	return nil
 }
 
-// runBackupExport performs a Dolt-native backup to .beads/backup/.
+// runBackupExport performs a Dolt-native backup to .issuegraph/backup/.
 // Returns the updated state.
 func runBackupExport(ctx context.Context, force bool) (*backupState, error) {
 	dir, err := backupDir()
@@ -157,7 +157,7 @@ func runBackupExport(ctx context.Context, force bool) (*backupState, error) {
 		// interval (checked by maybeAutoBackup via state.Timestamp)
 		// applies to the next command. Without this, a sync that keeps
 		// failing — e.g. a slow/overloaded shared Dolt server — retries
-		// on EVERY bd command instead of once per interval, turning a
+		// on EVERY issuegraph command instead of once per interval, turning a
 		// transient slowdown into a self-amplifying storm (the 2026-07
 		// shared-dolt CPU-pin incident). LastDoltCommit is deliberately
 		// left unchanged so change-detection still sees pending work and

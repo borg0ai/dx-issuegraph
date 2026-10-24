@@ -9,27 +9,27 @@ import (
 
 	"github.com/spf13/cobra"
 
-	"github.com/steveyegge/beads/internal/configfile"
+	"github.com/borg0ai/dx-issuegraph/internal/configfile"
 )
 
-// writeWorkspaceMode lays down a .beads/metadata.json recording mode and
-// points BEADS_DIR at it, which is what resolveInitBeadsDir consults first.
+// writeWorkspaceMode lays down a .issuegraph/metadata.json recording mode and
+// points ISSUEGRAPH_DIR at it, which is what resolveInitIssueGraphDir consults first.
 func writeWorkspaceMode(t *testing.T, mode string) string {
 	t.Helper()
-	beadsDir := filepath.Join(t.TempDir(), ".beads")
-	if err := os.MkdirAll(beadsDir, 0o755); err != nil {
-		t.Fatalf("mkdir .beads: %v", err)
+	issuegraphDir := filepath.Join(t.TempDir(), ".issuegraph")
+	if err := os.MkdirAll(issuegraphDir, 0o755); err != nil {
+		t.Fatalf("mkdir .issuegraph: %v", err)
 	}
 	body := map[string]string{"dolt_mode": mode, "dolt_database": "proj"}
 	blob, err := json.Marshal(body)
 	if err != nil {
 		t.Fatalf("marshal metadata: %v", err)
 	}
-	if err := os.WriteFile(filepath.Join(beadsDir, "metadata.json"), blob, 0o644); err != nil {
+	if err := os.WriteFile(filepath.Join(issuegraphDir, "metadata.json"), blob, 0o644); err != nil {
 		t.Fatalf("write metadata.json: %v", err)
 	}
-	t.Setenv("BEADS_DIR", beadsDir)
-	return beadsDir
+	t.Setenv("ISSUEGRAPH_DIR", issuegraphDir)
+	return issuegraphDir
 }
 
 // TestExistingWorkspaceDoltModeReadsRawField is the input half of #3885: the
@@ -59,7 +59,7 @@ func TestExistingWorkspaceDoltModeReadsRawField(t *testing.T) {
 }
 
 func TestExistingWorkspaceDoltModeMissingWorkspace(t *testing.T) {
-	t.Setenv("BEADS_DIR", filepath.Join(t.TempDir(), "nope", ".beads"))
+	t.Setenv("ISSUEGRAPH_DIR", filepath.Join(t.TempDir(), "nope", ".issuegraph"))
 	if got := existingWorkspaceDoltMode(); got != "" {
 		t.Errorf("existingWorkspaceDoltMode() = %q on a missing workspace, want \"\"", got)
 	}
@@ -83,9 +83,9 @@ func TestInitModeExplicitlyRequested(t *testing.T) {
 	clearModeEnv := func(t *testing.T) {
 		t.Helper()
 		for _, e := range []string{
-			"BEADS_DOLT_SERVER_MODE",
-			"BEADS_DOLT_SHARED_SERVER",
-			"BEADS_DOLT_PROXIED_SERVER",
+			"ISSUEGRAPH_DOLT_SERVER_MODE",
+			"ISSUEGRAPH_DOLT_SHARED_SERVER",
+			"ISSUEGRAPH_DOLT_PROXIED_SERVER",
 		} {
 			t.Setenv(e, "")
 		}
@@ -94,7 +94,7 @@ func TestInitModeExplicitlyRequested(t *testing.T) {
 	t.Run("bare invocation is not explicit", func(t *testing.T) {
 		clearModeEnv(t)
 		if initModeExplicitlyRequested(newModeFlagCmd()) {
-			t.Error("a bare `bd init` counted as an explicit mode request; a re-init would silently rewrite the mode")
+			t.Error("a bare `issuegraph init` counted as an explicit mode request; a re-init would silently rewrite the mode")
 		}
 	})
 
@@ -124,9 +124,9 @@ func TestInitModeExplicitlyRequested(t *testing.T) {
 	})
 
 	for _, env := range []string{
-		"BEADS_DOLT_SERVER_MODE",
-		"BEADS_DOLT_SHARED_SERVER",
-		"BEADS_DOLT_PROXIED_SERVER",
+		"ISSUEGRAPH_DOLT_SERVER_MODE",
+		"ISSUEGRAPH_DOLT_SHARED_SERVER",
+		"ISSUEGRAPH_DOLT_PROXIED_SERVER",
 	} {
 		t.Run(env+" is explicit", func(t *testing.T) {
 			clearModeEnv(t)
@@ -165,7 +165,7 @@ func TestInheritWorkspaceDoltMode(t *testing.T) {
 	})
 
 	t.Run("missing workspace inherits nothing", func(t *testing.T) {
-		t.Setenv("BEADS_DIR", filepath.Join(t.TempDir(), "nope", ".beads"))
+		t.Setenv("ISSUEGRAPH_DIR", filepath.Join(t.TempDir(), "nope", ".issuegraph"))
 		inheritServer, err := inheritWorkspaceDoltMode()
 		if err != nil || inheritServer {
 			t.Errorf("missing workspace: got (%v, %v), want (false, nil)", inheritServer, err)

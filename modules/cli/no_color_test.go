@@ -5,7 +5,7 @@ import (
 	"testing"
 
 	lipgloss "charm.land/lipgloss/v2"
-	"github.com/steveyegge/beads/internal/ui"
+	"github.com/borg0ai/dx-issuegraph/internal/ui"
 )
 
 func TestApplyNoColorFlag(t *testing.T) {

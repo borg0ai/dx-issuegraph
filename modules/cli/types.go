@@ -5,12 +5,12 @@ import (
 	"fmt"
 	"strings"
 
+	"github.com/borg0ai/dx-issuegraph/internal/metrics"
+	"github.com/borg0ai/dx-issuegraph/internal/types"
 	"github.com/spf13/cobra"
-	"github.com/steveyegge/beads/internal/metrics"
-	"github.com/steveyegge/beads/internal/types"
 )
 
-// coreWorkTypes are the built-in types that beads validates without configuration.
+// coreWorkTypes are the built-in types that issuegraph validates without configuration.
 var coreWorkTypes = []struct {
 	Type        types.IssueType
 	Description string
@@ -30,15 +30,15 @@ var typesCmd = &cobra.Command{
 	Use:     "types",
 	GroupID: "views",
 	Short:   "List valid issue types",
-	Long: `List all valid issue types that can be used with bd create --type.
+	Long: `List all valid issue types that can be used with issuegraph create --type.
 
 Core work types (bug, task, feature, chore, epic, decision, spike, story, milestone) are always valid.
-Additional types require configuration via types.custom in .beads/config.yaml.
+Additional types require configuration via types.custom in .issuegraph/config.yaml.
 
 Examples:
-  bd types              # List all types with descriptions
-  bd types --sections   # List required sections for each type
-  bd types --json       # Output as JSON
+  issuegraph types              # List all types with descriptions
+  issuegraph types --sections   # List required sections for each type
+  issuegraph types --json       # Output as JSON
 `,
 	SilenceUsage:  true,
 	SilenceErrors: true,
@@ -104,7 +104,7 @@ func renderTypes(customTypes []string) error {
 		}
 	} else {
 		fmt.Println("\nNo custom types configured.")
-		fmt.Println("Configure with: bd config set types.custom \"type1,type2,...\"")
+		fmt.Println("Configure with: issuegraph config set types.custom \"type1,type2,...\"")
 	}
 	return nil
 }

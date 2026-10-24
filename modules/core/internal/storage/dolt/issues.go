@@ -12,10 +12,10 @@ import (
 	"go.opentelemetry.io/otel/attribute"
 	"go.opentelemetry.io/otel/metric"
 
-	"github.com/steveyegge/beads/internal/idgen"
-	"github.com/steveyegge/beads/internal/storage"
-	"github.com/steveyegge/beads/internal/storage/issueops"
-	"github.com/steveyegge/beads/internal/types"
+	"github.com/borg0ai/dx-issuegraph/internal/idgen"
+	"github.com/borg0ai/dx-issuegraph/internal/storage"
+	"github.com/borg0ai/dx-issuegraph/internal/storage/issueops"
+	"github.com/borg0ai/dx-issuegraph/internal/types"
 )
 
 // CreateIssue creates a new issue.
@@ -58,7 +58,7 @@ func (s *DoltStore) createIssue(ctx context.Context, issue *types.Issue, actor s
 	// Dolt versioning — wisps and no-history issues skip DOLT_COMMIT.
 	if !issue.Ephemeral && !issue.NoHistory {
 		if err := s.doltAddAndCommit(ctx, createIssueCommitTables(ctx, issue, result),
-			fmt.Sprintf("bd: create %s", issue.ID)); err != nil {
+			fmt.Sprintf("issuegraph: create %s", issue.ID)); err != nil {
 			return err
 		}
 	}
@@ -131,7 +131,7 @@ func (s *DoltStore) createIssuesWithFullOptions(ctx context.Context, issues []*t
 	// GH#2455: Stage only the tables we modified, then commit without -A.
 	return s.doltAddAndCommit(ctx,
 		createIssuesCommitTables(ctx, issues, result),
-		fmt.Sprintf("bd: create %d issue(s)", len(issues)))
+		fmt.Sprintf("issuegraph: create %d issue(s)", len(issues)))
 }
 
 // GetIssue retrieves an issue by ID.
@@ -234,7 +234,7 @@ func (s *DoltStore) updateIssue(ctx context.Context, id string, updates map[stri
 			return nil
 		}
 
-		commitMsg := fmt.Sprintf("bd: update %s", id)
+		commitMsg := fmt.Sprintf("issuegraph: update %s", id)
 		return s.doltAddAndCommitInTx(ctx, tx, []string{"issues", "events"}, commitMsg)
 	})
 }
@@ -311,7 +311,7 @@ func (s *DoltStore) updateIssueChecked(ctx context.Context, id string, updates m
 				return nil
 			}
 
-			commitMsg := fmt.Sprintf("bd: update %s", id)
+			commitMsg := fmt.Sprintf("issuegraph: update %s", id)
 			return s.doltAddAndCommitInTx(ctx, tx, []string{"issues", "events"}, commitMsg)
 		})
 	}
@@ -361,7 +361,7 @@ func (s *DoltStore) claimIssue(ctx context.Context, id string, actor string) err
 				return err
 			}
 
-			commitMsg := fmt.Sprintf("bd: claim %s", id)
+			commitMsg := fmt.Sprintf("issuegraph: claim %s", id)
 			return s.doltAddAndCommitInTx(ctx, tx, []string{"issues", "events"}, commitMsg)
 		})
 	})
@@ -396,7 +396,7 @@ func (s *DoltStore) ClaimReadyIssue(ctx context.Context, filter types.WorkFilter
 					return nil
 				}
 
-				commitMsg := fmt.Sprintf("bd: claim ready %s", got.ID)
+				commitMsg := fmt.Sprintf("issuegraph: claim ready %s", got.ID)
 				return s.doltAddAndCommitInTx(ctx, tx, []string{"issues", "events"}, commitMsg)
 			})
 			return got, werr
@@ -477,7 +477,7 @@ func (s *DoltStore) ReclaimExpiredLeases(ctx context.Context, olderThan time.Dur
 		if len(reclaimed) == 0 {
 			return nil
 		}
-		commitMsg := fmt.Sprintf("bd: reclaim %d expired lease(s)", len(reclaimed))
+		commitMsg := fmt.Sprintf("issuegraph: reclaim %d expired lease(s)", len(reclaimed))
 		return s.doltAddAndCommitInTx(ctx, tx, []string{"issues", "events"}, commitMsg)
 	})
 	if err != nil {
@@ -509,7 +509,7 @@ func (s *DoltStore) UnclaimIssue(ctx context.Context, id string, actor string, f
 					return err
 				}
 
-				commitMsg := fmt.Sprintf("bd: unclaim %s", id)
+				commitMsg := fmt.Sprintf("issuegraph: unclaim %s", id)
 				return s.doltAddAndCommitInTx(ctx, tx, []string{"issues", "events"}, commitMsg)
 			})
 		})
@@ -535,7 +535,7 @@ func (s *DoltStore) UnclaimIssueIfAssignee(ctx context.Context, id string, actor
 					return err
 				}
 
-				commitMsg := fmt.Sprintf("bd: unclaim %s", id)
+				commitMsg := fmt.Sprintf("issuegraph: unclaim %s", id)
 				return s.doltAddAndCommitInTx(ctx, tx, []string{"issues", "events"}, commitMsg)
 			})
 		})
@@ -555,9 +555,9 @@ func (s *DoltStore) ReopenIssue(ctx context.Context, id string, reason string, a
 		}
 		switch {
 		case !res.IsWisp:
-			return s.doltAddAndCommitInTx(ctx, tx, []string{"issues", "events"}, fmt.Sprintf("bd: reopen %s", id))
+			return s.doltAddAndCommitInTx(ctx, tx, []string{"issues", "events"}, fmt.Sprintf("issuegraph: reopen %s", id))
 		case res.IssueRowsChanged:
-			return s.doltAddAndCommitInTx(ctx, tx, []string{"issues"}, fmt.Sprintf("bd: reopen %s", id))
+			return s.doltAddAndCommitInTx(ctx, tx, []string{"issues"}, fmt.Sprintf("issuegraph: reopen %s", id))
 		default:
 			return nil
 		}
@@ -597,7 +597,7 @@ func (s *DoltStore) closeIssue(ctx context.Context, id string, reason string, ac
 			return err
 		}
 
-		commitMsg := fmt.Sprintf("bd: close %s", id)
+		commitMsg := fmt.Sprintf("issuegraph: close %s", id)
 		return s.doltAddAndCommitInTx(ctx, tx, []string{"issues", "events"}, commitMsg)
 	})
 }
@@ -640,7 +640,7 @@ func (s *DoltStore) closeIssueChecked(ctx context.Context, id string, actor stri
 		}
 		result = storage.CloseIssueResult{Unchanged: res.AlreadyClosed, OpenChildren: res.OpenChildren}
 
-		commitMsg := fmt.Sprintf("bd: close %s", id)
+		commitMsg := fmt.Sprintf("issuegraph: close %s", id)
 		return s.doltAddAndCommitInTx(ctx, tx, []string{"issues", "events"}, commitMsg)
 	}); err != nil {
 		return storage.CloseIssueResult{}, err
@@ -667,7 +667,7 @@ func (s *DoltStore) deleteIssue(ctx context.Context, id string) error {
 			return err
 		}
 
-		commitMsg := fmt.Sprintf("bd: delete %s", id)
+		commitMsg := fmt.Sprintf("issuegraph: delete %s", id)
 		return s.doltAddAndCommitInTx(ctx, tx,
 			[]string{"issues", "dependencies", "labels", "comments", "events", "provenance_events", "child_counters", "issue_snapshots", "compaction_snapshots"},
 			commitMsg)
@@ -683,7 +683,7 @@ func (s *DoltStore) deleteIssue(ctx context.Context, id string) error {
 // If both are false, returns an error if any issue has dependents.
 // If dryRun is true, only computes statistics without deleting.
 // deleteBatchSize controls the maximum number of IDs per IN-clause query.
-// Kept small to avoid large IN-clause queries. See steveyegge/beads#1692.
+// Kept small to avoid large IN-clause queries. See borg0ai/issuegraph#1692.
 const deleteBatchSize = 50
 
 // maxRecursiveResults is the safety limit for the total number of issues discovered
@@ -750,7 +750,7 @@ func (s *DoltStore) deleteIssues(ctx context.Context, ids []string, cascade bool
 			return nil
 		}
 
-		commitMsg := fmt.Sprintf("bd: delete %d issue(s)", result.DeletedCount)
+		commitMsg := fmt.Sprintf("issuegraph: delete %d issue(s)", result.DeletedCount)
 		return s.doltAddAndCommitInTx(ctx, tx,
 			[]string{"issues", "dependencies", "labels", "comments", "events", "provenance_events", "child_counters", "issue_snapshots", "compaction_snapshots"},
 			commitMsg)

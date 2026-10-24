@@ -11,7 +11,7 @@ import (
 
 	"golang.org/x/sys/windows"
 
-	"github.com/steveyegge/beads/internal/doltserver"
+	"github.com/borg0ai/dx-issuegraph/internal/doltserver"
 )
 
 // TestIsServerProbablyRunningReportsDeadPIDWithLingeringHandle guards the
@@ -51,13 +51,13 @@ func TestIsServerProbablyRunningReportsDeadPIDWithLingeringHandle(t *testing.T) 
 	}
 	windows.CloseHandle(probe)
 
-	beadsDir := t.TempDir()
-	pidFile := filepath.Join(beadsDir, doltserver.PIDFileName)
+	issuegraphDir := t.TempDir()
+	pidFile := filepath.Join(issuegraphDir, doltserver.PIDFileName)
 	if err := os.WriteFile(pidFile, []byte(strconv.Itoa(pid)+"\n"), 0o600); err != nil {
 		t.Fatalf("write pid file: %v", err)
 	}
 
-	if isServerProbablyRunning(beadsDir) {
+	if isServerProbablyRunning(issuegraphDir) {
 		t.Errorf("dead pid %d reported as running (lingering-handle false positive)", pid)
 	}
 }

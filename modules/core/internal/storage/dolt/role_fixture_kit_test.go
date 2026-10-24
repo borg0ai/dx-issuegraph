@@ -4,9 +4,9 @@ import (
 	"context"
 	"testing"
 
-	"github.com/steveyegge/beads/backend/conformance"
-	"github.com/steveyegge/beads/internal/storage"
-	"github.com/steveyegge/beads/internal/types"
+	"github.com/borg0ai/dx-issuegraph/backend/conformance"
+	"github.com/borg0ai/dx-issuegraph/internal/storage"
+	"github.com/borg0ai/dx-issuegraph/internal/types"
 )
 
 // roleFixtureKit is the server-backed store's answer to the hooks every
@@ -23,7 +23,7 @@ import (
 //
 // FROZEN SURFACE. This file is owned by the scaffolding slice (bd-kue5t) and
 // no role slice edits it. A role that needs a hook this kit does not expose
-// routes the addition through a follow-up commit against that bead, so the
+// routes the addition through a follow-up commit against that issue, so the
 // three kits never drift apart in a worktree.
 //
 // NAMING CONVENTION FOR EVERYTHING BUILT ON THIS KIT: every unexported helper a

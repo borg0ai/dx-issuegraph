@@ -6,13 +6,13 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/steveyegge/beads/internal/configfile"
-	"github.com/steveyegge/beads/internal/debug"
+	"github.com/borg0ai/dx-issuegraph/internal/configfile"
+	"github.com/borg0ai/dx-issuegraph/internal/debug"
 )
 
 func TestLogConfigDiscoveryIncludesMetadataAndYAMLState(t *testing.T) {
-	beadsDir := t.TempDir()
-	metadataPath := filepath.Join(beadsDir, configfile.ConfigFileName)
+	issuegraphDir := t.TempDir()
+	metadataPath := filepath.Join(issuegraphDir, configfile.ConfigFileName)
 	if err := os.WriteFile(metadataPath, []byte(`{"database":"dolt"}`), 0o600); err != nil {
 		t.Fatalf("write metadata: %v", err)
 	}
@@ -21,11 +21,11 @@ func TestLogConfigDiscoveryIncludesMetadataAndYAMLState(t *testing.T) {
 	defer debug.SetVerbose(false)
 
 	stderr := captureStderr(t, func() {
-		logConfigDiscovery(beadsDir, "metadata loaded without dolt_database; using default database name \"beads\"")
+		logConfigDiscovery(issuegraphDir, "metadata loaded without dolt_database; using default database name \"issuegraph\"")
 	})
 
 	for _, want := range []string{
-		`metadata loaded without dolt_database; using default database name "beads"`,
+		`metadata loaded without dolt_database; using default database name "issuegraph"`,
 		"metadata=true",
 		"config.yaml=false",
 	} {
@@ -68,7 +68,7 @@ func TestShouldLogDefaultDoltDatabase(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			t.Setenv("BEADS_DOLT_SERVER_DATABASE", tt.envDatabase)
+			t.Setenv("ISSUEGRAPH_DOLT_SERVER_DATABASE", tt.envDatabase)
 
 			if got := shouldLogDefaultDoltDatabase(tt.cfg); got != tt.want {
 				t.Fatalf("shouldLogDefaultDoltDatabase() = %v, want %v", got, tt.want)

@@ -1,11 +1,11 @@
 ---
-title: "bd migrate"
+title: "issuegraph migrate"
 description: "Database migration and data transformation commands."
 ---
 
 {/* AUTO-GENERATED: do not edit manually */}
 
-Generated from `bd help --doc migrate`.
+Generated from `issuegraph help --doc migrate`.
 
 Database migration and data transformation commands.
 
@@ -19,7 +19,7 @@ Subcommands:
 
 
 ```
-bd migrate [flags]
+issuegraph migrate [flags]
 ```
 
 **Flags:**
@@ -32,7 +32,7 @@ bd migrate [flags]
       --yes              Auto-confirm prompts
 ```
 
-## bd migrate hooks
+## issuegraph migrate hooks
 
 Analyze git hook files and sidecar artifacts for migration to marker-managed format.
 
@@ -41,13 +41,13 @@ Modes:
   --apply    Apply migration operations
 
 Examples:
-  bd migrate hooks --dry-run
-  bd migrate hooks --apply
-  bd migrate hooks --apply --yes
-  bd migrate hooks --dry-run --json
+  issuegraph migrate hooks --dry-run
+  issuegraph migrate hooks --apply
+  issuegraph migrate hooks --apply --yes
+  issuegraph migrate hooks --dry-run --json
 
 ```
-bd migrate hooks [path] [flags]
+issuegraph migrate hooks [path] [flags]
 ```
 
 **Flags:**
@@ -59,7 +59,7 @@ bd migrate hooks [path] [flags]
       --yes       Skip confirmation prompt for --apply
 ```
 
-## bd migrate issues
+## issuegraph migrate issues
 
 Move issues from one source repository to another with filtering and dependency preservation.
 
@@ -70,19 +70,19 @@ This command updates the source_repo field for selected issues, allowing you to:
 
 Examples:
   # Preview migration from planning repo to current repo
-  bd migrate-issues --from ~/.beads-planning --to . --dry-run
+  issuegraph migrate-issues --from ~/.issuegraph-planning --to . --dry-run
 
   # Move all open P1 bugs
-  bd migrate-issues --from ~/repo1 --to ~/repo2 --priority 1 --type bug --status open
+  issuegraph migrate-issues --from ~/repo1 --to ~/repo2 --priority 1 --type bug --status open
 
   # Move specific issues with their dependencies
-  bd migrate-issues --from . --to ~/archive --id bd-abc --id bd-xyz --include closure
+  issuegraph migrate-issues --from . --to ~/archive --id issuegraph-abc --id issuegraph-xyz --include closure
 
   # Move issues with label filter
-  bd migrate-issues --from . --to ~/feature-work --label frontend --label urgent
+  issuegraph migrate-issues --from . --to ~/feature-work --label frontend --label urgent
 
 ```
-bd migrate issues [flags]
+issuegraph migrate issues [flags]
 ```
 
 **Flags:**
@@ -103,7 +103,7 @@ bd migrate issues [flags]
       --yes                Skip confirmation prompt
 ```
 
-## bd migrate schema
+## issuegraph migrate schema
 
 Apply pending schema migrations idempotently.
 
@@ -112,11 +112,11 @@ is typically a no-op. It exists to make migration explicit and observable
 in CI, release gates, and recovery scenarios.
 
 Example:
-  bd migrate schema
-  bd migrate schema --json
+  issuegraph migrate schema
+  issuegraph migrate schema --json
 
 ```
-bd migrate schema [flags]
+issuegraph migrate schema [flags]
 ```
 
 **Flags:**
@@ -125,7 +125,7 @@ bd migrate schema [flags]
       --json   Output in JSON format
 ```
 
-## bd migrate sync
+## issuegraph migrate sync
 
 Configure separate branch workflow for multi-clone setups.
 
@@ -133,10 +133,10 @@ This sets the sync.branch config value so that issue data is committed
 to a dedicated branch, keeping your main branch clean.
 
 Example:
-  bd migrate sync beads-sync
+  issuegraph migrate sync issuegraph-sync
 
 ```
-bd migrate sync <branch> [flags]
+issuegraph migrate sync <branch> [flags]
 ```
 
 **Flags:**

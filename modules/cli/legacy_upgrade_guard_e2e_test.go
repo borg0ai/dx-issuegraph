@@ -21,21 +21,21 @@ import (
 )
 
 func TestLegacyUpgradeGuardRefusesBeforeMutatingHistoricalWorkspace(t *testing.T) {
-	bd := buildBDUnderTest(t)
+	issuegraph := buildIssueGraphUnderTest(t)
 
 	layouts := []struct {
 		name       string
 		wantReason string
-		setup      func(t *testing.T, beadsDir string)
+		setup      func(t *testing.T, issuegraphDir string)
 	}{
 		{
 			name:       "legacy server Dolt",
 			wantReason: "legacy Dolt server workspace",
-			setup: func(t *testing.T, beadsDir string) {
+			setup: func(t *testing.T, issuegraphDir string) {
 				t.Helper()
-				writeFile(t, filepath.Join(beadsDir, "metadata.json"), []byte(`{"backend":"dolt","dolt_mode":"server"}`))
-				writeFile(t, filepath.Join(beadsDir, localVersionFile), []byte("0.62.0\n"))
-				if err := os.Mkdir(filepath.Join(beadsDir, "dolt"), 0o700); err != nil {
+				writeFile(t, filepath.Join(issuegraphDir, "metadata.json"), []byte(`{"backend":"dolt","dolt_mode":"server"}`))
+				writeFile(t, filepath.Join(issuegraphDir, localVersionFile), []byte("0.62.0\n"))
+				if err := os.Mkdir(filepath.Join(issuegraphDir, "dolt"), 0o700); err != nil {
 					t.Fatal(err)
 				}
 			},
@@ -43,18 +43,18 @@ func TestLegacyUpgradeGuardRefusesBeforeMutatingHistoricalWorkspace(t *testing.T
 		{
 			name:       "metadata-less v0.9.1 SQLite",
 			wantReason: "historical SQLite workspace",
-			setup: func(t *testing.T, beadsDir string) {
+			setup: func(t *testing.T, issuegraphDir string) {
 				t.Helper()
-				writeFile(t, filepath.Join(beadsDir, "vc.db"), []byte("SQLite format 3\x00"))
+				writeFile(t, filepath.Join(issuegraphDir, "vc.db"), []byte("SQLite format 3\x00"))
 			},
 		},
 		{
 			name:       "blank-mode old Dolt root without version witness",
 			wantReason: "legacy Dolt workspace",
-			setup: func(t *testing.T, beadsDir string) {
+			setup: func(t *testing.T, issuegraphDir string) {
 				t.Helper()
-				writeFile(t, filepath.Join(beadsDir, "metadata.json"), []byte(`{"backend":"dolt"}`))
-				if err := os.Mkdir(filepath.Join(beadsDir, "dolt"), 0o700); err != nil {
+				writeFile(t, filepath.Join(issuegraphDir, "metadata.json"), []byte(`{"backend":"dolt"}`))
+				if err := os.Mkdir(filepath.Join(issuegraphDir, "dolt"), 0o700); err != nil {
 					t.Fatal(err)
 				}
 			},
@@ -62,9 +62,9 @@ func TestLegacyUpgradeGuardRefusesBeforeMutatingHistoricalWorkspace(t *testing.T
 		{
 			name:       "metadata-less old Dolt root",
 			wantReason: "legacy Dolt workspace",
-			setup: func(t *testing.T, beadsDir string) {
+			setup: func(t *testing.T, issuegraphDir string) {
 				t.Helper()
-				if err := os.MkdirAll(filepath.Join(beadsDir, "dolt"), 0o700); err != nil {
+				if err := os.MkdirAll(filepath.Join(issuegraphDir, "dolt"), 0o700); err != nil {
 					t.Fatal(err)
 				}
 			},
@@ -88,28 +88,28 @@ func TestLegacyUpgradeGuardRefusesBeforeMutatingHistoricalWorkspace(t *testing.T
 		t.Run(layout.name, func(t *testing.T) {
 			repoDir := t.TempDir()
 			initGitRepo(t, repoDir)
-			beadsDir := filepath.Join(repoDir, ".beads")
-			layout.setup(t, beadsDir)
-			if err := os.Chmod(beadsDir, 0o700); err != nil {
+			issuegraphDir := filepath.Join(repoDir, ".issuegraph")
+			layout.setup(t, issuegraphDir)
+			if err := os.Chmod(issuegraphDir, 0o700); err != nil {
 				t.Fatal(err)
 			}
 
 			for _, tc := range commands {
 				t.Run(tc.name, func(t *testing.T) {
-					before := legacyUpgradeTreeDigest(t, beadsDir)
+					before := legacyUpgradeTreeDigest(t, issuegraphDir)
 					commandCtx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
-					cmd := exec.CommandContext(commandCtx, bd, tc.args...)
+					cmd := exec.CommandContext(commandCtx, issuegraph, tc.args...)
 					cmd.Dir = repoDir
 					// Pin the mode inputs the guard now reads through
 					// IsDoltServerMode: this child inherits os.Environ(), so
 					// without them a developer's shell decides which refusal
 					// text these historical layouts produce.
 					cmd.Env = append(os.Environ(),
-						"BD_DISABLE_METRICS=1",
-						"BEADS_DOLT_AUTO_START=0",
-						"BEADS_DOLT_SERVER_MODE=0",
-						"BEADS_DOLT_SHARED_SERVER=0",
-						"BEADS_DOLT_SERVER_HOST=",
+						"ISSUEGRAPH_DISABLE_METRICS=1",
+						"ISSUEGRAPH_DOLT_AUTO_START=0",
+						"ISSUEGRAPH_DOLT_SERVER_MODE=0",
+						"ISSUEGRAPH_DOLT_SHARED_SERVER=0",
+						"ISSUEGRAPH_DOLT_SERVER_HOST=",
 					)
 					var stdout, stderr bytes.Buffer
 					cmd.Stdout = &stdout
@@ -119,14 +119,14 @@ func TestLegacyUpgradeGuardRefusesBeforeMutatingHistoricalWorkspace(t *testing.T
 					cancel()
 					output := stdout.String() + stderr.String()
 					if commandContextErr != nil {
-						t.Fatalf("bd %s did not refuse before the command deadline: %v\n%s", strings.Join(tc.args, " "), commandContextErr, output)
+						t.Fatalf("issuegraph %s did not refuse before the command deadline: %v\n%s", strings.Join(tc.args, " "), commandContextErr, output)
 					}
 					if (err == nil) != tc.wantOK {
-						t.Fatalf("bd %s error = %v, want success=%v\n%s", strings.Join(tc.args, " "), err, tc.wantOK, output)
+						t.Fatalf("issuegraph %s error = %v, want success=%v\n%s", strings.Join(tc.args, " "), err, tc.wantOK, output)
 					}
 					if !strings.Contains(output, layout.wantReason) ||
 						!strings.Contains(output, "explicit migration is required") {
-						t.Fatalf("bd %s did not report the expected migration refusal:\n%s", strings.Join(tc.args, " "), output)
+						t.Fatalf("issuegraph %s did not report the expected migration refusal:\n%s", strings.Join(tc.args, " "), output)
 					}
 					if tc.wantJSON {
 						var payload map[string]any
@@ -143,8 +143,8 @@ func TestLegacyUpgradeGuardRefusesBeforeMutatingHistoricalWorkspace(t *testing.T
 							t.Fatalf("doctor advertised the SQLite bridge for %s", layout.name)
 						}
 					}
-					if after := legacyUpgradeTreeDigest(t, beadsDir); after != before {
-						t.Fatalf("bd %s mutated legacy source: before=%s after=%s", strings.Join(tc.args, " "), before, after)
+					if after := legacyUpgradeTreeDigest(t, issuegraphDir); after != before {
+						t.Fatalf("issuegraph %s mutated legacy source: before=%s after=%s", strings.Join(tc.args, " "), before, after)
 					}
 				})
 			}
@@ -153,7 +153,7 @@ func TestLegacyUpgradeGuardRefusesBeforeMutatingHistoricalWorkspace(t *testing.T
 }
 
 func TestLegacyNoStoreCommandExemptions(t *testing.T) {
-	syntheticRoot := &cobra.Command{Use: "bd"}
+	syntheticRoot := &cobra.Command{Use: "issuegraph"}
 	helpCmd := &cobra.Command{Use: "help", Run: func(*cobra.Command, []string) {}}
 	completeCmd := &cobra.Command{Use: "__complete", Run: func(*cobra.Command, []string) {}}
 	syntheticRoot.AddCommand(helpCmd, completeCmd)
@@ -182,41 +182,41 @@ func TestLegacyNoStoreCommandExemptions(t *testing.T) {
 		})
 	}
 
-	beadsDir := t.TempDir()
-	writeFile(t, filepath.Join(beadsDir, "vc.db"), []byte("SQLite format 3\x00"))
-	if err := guardLegacyNoStoreCommand(contextCmd, beadsDir); !isLegacyUpgradeRefusal(err) {
+	issuegraphDir := t.TempDir()
+	writeFile(t, filepath.Join(issuegraphDir, "vc.db"), []byte("SQLite format 3\x00"))
+	if err := guardLegacyNoStoreCommand(contextCmd, issuegraphDir); !isLegacyUpgradeRefusal(err) {
 		t.Fatalf("context admission = %v, want legacy migration refusal", err)
 	}
 }
 
 func TestVersionLeavesHistoricalWorkspaceUnchanged(t *testing.T) {
-	bd := buildBDUnderTest(t)
+	issuegraph := buildIssueGraphUnderTest(t)
 	repoDir := t.TempDir()
 	initGitRepo(t, repoDir)
-	beadsDir := filepath.Join(repoDir, ".beads")
-	if err := os.MkdirAll(beadsDir, 0o700); err != nil {
+	issuegraphDir := filepath.Join(repoDir, ".issuegraph")
+	if err := os.MkdirAll(issuegraphDir, 0o700); err != nil {
 		t.Fatal(err)
 	}
-	writeFile(t, filepath.Join(beadsDir, "vc.db"), []byte("SQLite format 3\x00"))
-	before := legacyUpgradeTreeDigest(t, beadsDir)
+	writeFile(t, filepath.Join(issuegraphDir, "vc.db"), []byte("SQLite format 3\x00"))
+	before := legacyUpgradeTreeDigest(t, issuegraphDir)
 
-	cmd := exec.Command(bd, "version")
+	cmd := exec.Command(issuegraph, "version")
 	cmd.Dir = repoDir
-	cmd.Env = append(os.Environ(), "BD_DISABLE_METRICS=1", "BEADS_DOLT_AUTO_START=0")
+	cmd.Env = append(os.Environ(), "ISSUEGRAPH_DISABLE_METRICS=1", "ISSUEGRAPH_DOLT_AUTO_START=0")
 	output, err := cmd.CombinedOutput()
 	if err != nil {
-		t.Fatalf("bd version failed: %v\n%s", err, output)
+		t.Fatalf("issuegraph version failed: %v\n%s", err, output)
 	}
-	if !strings.Contains(string(output), "bd version") {
-		t.Fatalf("bd version output missing version: %s", output)
+	if !strings.Contains(string(output), "issuegraph version") {
+		t.Fatalf("issuegraph version output missing version: %s", output)
 	}
-	if after := legacyUpgradeTreeDigest(t, beadsDir); after != before {
-		t.Fatalf("bd version mutated historical source: before=%s after=%s", before, after)
+	if after := legacyUpgradeTreeDigest(t, issuegraphDir); after != before {
+		t.Fatalf("issuegraph version mutated historical source: before=%s after=%s", before, after)
 	}
 }
 
 func TestLegacyBackendConfigRefusesBeforeMetadataMigration(t *testing.T) {
-	bd := buildBDUnderTest(t)
+	issuegraph := buildIssueGraphUnderTest(t)
 	commands := [][]string{
 		{"list", "--json", "--limit", "0", "--all"},
 		{"init", "--force", "--quiet", "--non-interactive", "--skip-hooks", "--skip-agents"},
@@ -226,38 +226,38 @@ func TestLegacyBackendConfigRefusesBeforeMetadataMigration(t *testing.T) {
 		t.Run(backend, func(t *testing.T) {
 			repoDir := t.TempDir()
 			initGitRepo(t, repoDir)
-			beadsDir := filepath.Join(repoDir, ".beads")
-			if err := os.MkdirAll(beadsDir, 0o700); err != nil {
+			issuegraphDir := filepath.Join(repoDir, ".issuegraph")
+			if err := os.MkdirAll(issuegraphDir, 0o700); err != nil {
 				t.Fatal(err)
 			}
-			legacyPath := filepath.Join(beadsDir, "config.json")
+			legacyPath := filepath.Join(issuegraphDir, "config.json")
 			legacy := []byte("{\n  \"backend\": \"" + backend + "\"\n}\n")
 			writeFile(t, legacyPath, legacy)
 
 			for _, args := range commands {
-				before := legacyUpgradeTreeDigest(t, beadsDir)
-				cmd := exec.Command(bd, args...)
+				before := legacyUpgradeTreeDigest(t, issuegraphDir)
+				cmd := exec.Command(issuegraph, args...)
 				cmd.Dir = repoDir
-				cmd.Env = append(os.Environ(), "BD_DISABLE_METRICS=1", "BEADS_DOLT_AUTO_START=0")
+				cmd.Env = append(os.Environ(), "ISSUEGRAPH_DISABLE_METRICS=1", "ISSUEGRAPH_DOLT_AUTO_START=0")
 				output, err := cmd.CombinedOutput()
 				if err == nil {
-					t.Fatalf("bd %s unexpectedly accepted backend %q:\n%s", strings.Join(args, " "), backend, output)
+					t.Fatalf("issuegraph %s unexpectedly accepted backend %q:\n%s", strings.Join(args, " "), backend, output)
 				}
 				if !strings.Contains(string(output), backend) {
-					t.Fatalf("bd %s error did not identify backend %q:\n%s", strings.Join(args, " "), backend, output)
+					t.Fatalf("issuegraph %s error did not identify backend %q:\n%s", strings.Join(args, " "), backend, output)
 				}
-				if after := legacyUpgradeTreeDigest(t, beadsDir); after != before {
-					t.Fatalf("bd %s mutated legacy config: before=%s after=%s", strings.Join(args, " "), before, after)
+				if after := legacyUpgradeTreeDigest(t, issuegraphDir); after != before {
+					t.Fatalf("issuegraph %s mutated legacy config: before=%s after=%s", strings.Join(args, " "), before, after)
 				}
 				after, readErr := os.ReadFile(legacyPath)
 				if readErr != nil {
 					t.Fatal(readErr)
 				}
 				if !bytes.Equal(after, legacy) {
-					t.Fatalf("bd %s rewrote config.json: got %q, want %q", strings.Join(args, " "), after, legacy)
+					t.Fatalf("issuegraph %s rewrote config.json: got %q, want %q", strings.Join(args, " "), after, legacy)
 				}
-				if _, statErr := os.Stat(filepath.Join(beadsDir, "metadata.json")); !os.IsNotExist(statErr) {
-					t.Fatalf("bd %s created metadata.json: %v", strings.Join(args, " "), statErr)
+				if _, statErr := os.Stat(filepath.Join(issuegraphDir, "metadata.json")); !os.IsNotExist(statErr) {
+					t.Fatalf("issuegraph %s created metadata.json: %v", strings.Join(args, " "), statErr)
 				}
 			}
 		})
@@ -265,165 +265,165 @@ func TestLegacyBackendConfigRefusesBeforeMetadataMigration(t *testing.T) {
 }
 
 func TestBootstrapRefusesLegacyServerBeforeMigratingLegacyConfig(t *testing.T) {
-	bd := buildBDUnderTest(t)
+	issuegraph := buildIssueGraphUnderTest(t)
 	repoDir := t.TempDir()
 	initGitRepo(t, repoDir)
-	beadsDir := filepath.Join(repoDir, ".beads")
-	if err := os.MkdirAll(beadsDir, 0o700); err != nil {
+	issuegraphDir := filepath.Join(repoDir, ".issuegraph")
+	if err := os.MkdirAll(issuegraphDir, 0o700); err != nil {
 		t.Fatal(err)
 	}
 
-	legacyPath := filepath.Join(beadsDir, "config.json")
+	legacyPath := filepath.Join(issuegraphDir, "config.json")
 	legacy := []byte("{\n  \"backend\": \"dolt\",\n  \"dolt_mode\": \"server\"\n}\n")
 	writeFile(t, legacyPath, legacy)
-	writeFile(t, filepath.Join(beadsDir, localVersionFile), []byte("0.62.0\n"))
-	if err := os.Mkdir(filepath.Join(beadsDir, "dolt"), 0o700); err != nil {
+	writeFile(t, filepath.Join(issuegraphDir, localVersionFile), []byte("0.62.0\n"))
+	if err := os.Mkdir(filepath.Join(issuegraphDir, "dolt"), 0o700); err != nil {
 		t.Fatal(err)
 	}
 
-	before := legacyUpgradeTreeDigest(t, beadsDir)
-	cmd := exec.Command(bd, "bootstrap", "--dry-run", "--yes")
+	before := legacyUpgradeTreeDigest(t, issuegraphDir)
+	cmd := exec.Command(issuegraph, "bootstrap", "--dry-run", "--yes")
 	cmd.Dir = repoDir
-	cmd.Env = append(os.Environ(), "BD_DISABLE_METRICS=1", "BEADS_DOLT_AUTO_START=0")
+	cmd.Env = append(os.Environ(), "ISSUEGRAPH_DISABLE_METRICS=1", "ISSUEGRAPH_DOLT_AUTO_START=0")
 	output, err := cmd.CombinedOutput()
 	if err == nil {
-		t.Fatalf("bd bootstrap unexpectedly accepted historical server workspace:\n%s", output)
+		t.Fatalf("issuegraph bootstrap unexpectedly accepted historical server workspace:\n%s", output)
 	}
 	if !strings.Contains(string(output), "legacy Dolt server workspace") ||
 		!strings.Contains(string(output), "explicit migration is required") {
-		t.Fatalf("bd bootstrap did not report the expected migration refusal:\n%s", output)
+		t.Fatalf("issuegraph bootstrap did not report the expected migration refusal:\n%s", output)
 	}
-	if after := legacyUpgradeTreeDigest(t, beadsDir); after != before {
-		t.Fatalf("bd bootstrap mutated legacy source: before=%s after=%s", before, after)
+	if after := legacyUpgradeTreeDigest(t, issuegraphDir); after != before {
+		t.Fatalf("issuegraph bootstrap mutated legacy source: before=%s after=%s", before, after)
 	}
 	after, readErr := os.ReadFile(legacyPath)
 	if readErr != nil {
 		t.Fatal(readErr)
 	}
 	if !bytes.Equal(after, legacy) {
-		t.Fatalf("bd bootstrap rewrote config.json: got %q, want %q", after, legacy)
+		t.Fatalf("issuegraph bootstrap rewrote config.json: got %q, want %q", after, legacy)
 	}
-	if _, statErr := os.Stat(filepath.Join(beadsDir, "metadata.json")); !os.IsNotExist(statErr) {
-		t.Fatalf("bd bootstrap created metadata.json: %v", statErr)
+	if _, statErr := os.Stat(filepath.Join(issuegraphDir, "metadata.json")); !os.IsNotExist(statErr) {
+		t.Fatalf("issuegraph bootstrap created metadata.json: %v", statErr)
 	}
 }
 
 func TestBootstrapRefusesLegacyAncestorConfigWithoutMigratingIt(t *testing.T) {
-	bd := buildBDUnderTest(t)
+	issuegraph := buildIssueGraphUnderTest(t)
 	root := t.TempDir()
-	ancestorBeadsDir := filepath.Join(root, ".beads")
-	if err := os.MkdirAll(ancestorBeadsDir, 0o700); err != nil {
+	ancestorIssueGraphDir := filepath.Join(root, ".issuegraph")
+	if err := os.MkdirAll(ancestorIssueGraphDir, 0o700); err != nil {
 		t.Fatal(err)
 	}
-	legacyPath := filepath.Join(ancestorBeadsDir, "config.json")
+	legacyPath := filepath.Join(ancestorIssueGraphDir, "config.json")
 	legacy := []byte("{\n  \"backend\": \"dolt\",\n  \"dolt_mode\": \"server\"\n}\n")
 	writeFile(t, legacyPath, legacy)
-	writeFile(t, filepath.Join(ancestorBeadsDir, localVersionFile), []byte("0.62.0\n"))
-	if err := os.Mkdir(filepath.Join(ancestorBeadsDir, "dolt"), 0o700); err != nil {
+	writeFile(t, filepath.Join(ancestorIssueGraphDir, localVersionFile), []byte("0.62.0\n"))
+	if err := os.Mkdir(filepath.Join(ancestorIssueGraphDir, "dolt"), 0o700); err != nil {
 		t.Fatal(err)
 	}
 
-	selectedBeadsDir := filepath.Join(root, "rig", ".beads")
-	if err := os.MkdirAll(selectedBeadsDir, 0o700); err != nil {
+	selectedIssueGraphDir := filepath.Join(root, "rig", ".issuegraph")
+	if err := os.MkdirAll(selectedIssueGraphDir, 0o700); err != nil {
 		t.Fatal(err)
 	}
-	if err := os.Mkdir(filepath.Join(selectedBeadsDir, "dolt"), 0o700); err != nil {
+	if err := os.Mkdir(filepath.Join(selectedIssueGraphDir, "dolt"), 0o700); err != nil {
 		t.Fatal(err)
 	}
-	before := legacyUpgradeTreeDigest(t, ancestorBeadsDir)
-	cmd := exec.Command(bd, "bootstrap", "--dry-run", "--yes")
+	before := legacyUpgradeTreeDigest(t, ancestorIssueGraphDir)
+	cmd := exec.Command(issuegraph, "bootstrap", "--dry-run", "--yes")
 	cmd.Dir = root
 	cmd.Env = append(os.Environ(),
-		"BD_DISABLE_METRICS=1",
-		"BEADS_DOLT_AUTO_START=0",
-		"BEADS_DOLT_SHARED_SERVER=1",
-		"BEADS_DIR="+selectedBeadsDir,
+		"ISSUEGRAPH_DISABLE_METRICS=1",
+		"ISSUEGRAPH_DOLT_AUTO_START=0",
+		"ISSUEGRAPH_DOLT_SHARED_SERVER=1",
+		"ISSUEGRAPH_DIR="+selectedIssueGraphDir,
 	)
 	output, err := cmd.CombinedOutput()
 	if err == nil {
-		t.Fatalf("bd bootstrap unexpectedly accepted historical ancestor workspace:\n%s", output)
+		t.Fatalf("issuegraph bootstrap unexpectedly accepted historical ancestor workspace:\n%s", output)
 	}
 	if !strings.Contains(string(output), "legacy Dolt server workspace") ||
 		!strings.Contains(string(output), "explicit migration is required") {
-		t.Fatalf("bd bootstrap did not report the expected ancestor migration refusal:\n%s", output)
+		t.Fatalf("issuegraph bootstrap did not report the expected ancestor migration refusal:\n%s", output)
 	}
-	if after := legacyUpgradeTreeDigest(t, ancestorBeadsDir); after != before {
-		t.Fatalf("bd bootstrap mutated legacy ancestor source: before=%s after=%s", before, after)
+	if after := legacyUpgradeTreeDigest(t, ancestorIssueGraphDir); after != before {
+		t.Fatalf("issuegraph bootstrap mutated legacy ancestor source: before=%s after=%s", before, after)
 	}
 	after, readErr := os.ReadFile(legacyPath)
 	if readErr != nil {
 		t.Fatal(readErr)
 	}
 	if !bytes.Equal(after, legacy) {
-		t.Fatalf("bd bootstrap rewrote ancestor config.json: got %q, want %q", after, legacy)
+		t.Fatalf("issuegraph bootstrap rewrote ancestor config.json: got %q, want %q", after, legacy)
 	}
-	if _, statErr := os.Stat(filepath.Join(ancestorBeadsDir, "metadata.json")); !os.IsNotExist(statErr) {
-		t.Fatalf("bd bootstrap created ancestor metadata.json: %v", statErr)
+	if _, statErr := os.Stat(filepath.Join(ancestorIssueGraphDir, "metadata.json")); !os.IsNotExist(statErr) {
+		t.Fatalf("issuegraph bootstrap created ancestor metadata.json: %v", statErr)
 	}
 }
 
 func TestInitProxiedServerRefusesHistoricalExternalWorkspaceBeforeMutation(t *testing.T) {
-	bd := buildBDUnderTest(t)
+	issuegraph := buildIssueGraphUnderTest(t)
 	repoDir := t.TempDir()
 	initGitRepo(t, repoDir)
-	beadsDir := filepath.Join(repoDir, ".beads")
-	if err := os.MkdirAll(beadsDir, 0o700); err != nil {
+	issuegraphDir := filepath.Join(repoDir, ".issuegraph")
+	if err := os.MkdirAll(issuegraphDir, 0o700); err != nil {
 		t.Fatal(err)
 	}
 	legacyConfig := []byte("{\n  \"backend\": \"dolt\",\n  \"dolt_mode\": \"server\",\n  \"dolt_database\": \"historical\"\n}\n")
-	legacyConfigPath := filepath.Join(beadsDir, "config.json")
+	legacyConfigPath := filepath.Join(issuegraphDir, "config.json")
 	writeFile(t, legacyConfigPath, legacyConfig)
-	writeFile(t, filepath.Join(beadsDir, localVersionFile), []byte("0.62.0\n"))
-	before := legacyUpgradeTreeDigest(t, beadsDir)
+	writeFile(t, filepath.Join(issuegraphDir, localVersionFile), []byte("0.62.0\n"))
+	before := legacyUpgradeTreeDigest(t, issuegraphDir)
 	home := t.TempDir()
 
-	cmd := exec.Command(bd, "init", "--proxied-server", "--quiet", "--non-interactive", "--skip-hooks", "--skip-agents")
+	cmd := exec.Command(issuegraph, "init", "--proxied-server", "--quiet", "--non-interactive", "--skip-hooks", "--skip-agents")
 	cmd.Dir = repoDir
 	cmd.Env = append(os.Environ(),
-		"BD_DISABLE_METRICS=1",
-		"BD_DISABLE_EVENT_FLUSH=1",
-		"BEADS_DOLT_AUTO_START=0",
+		"ISSUEGRAPH_DISABLE_METRICS=1",
+		"ISSUEGRAPH_DISABLE_EVENT_FLUSH=1",
+		"ISSUEGRAPH_DOLT_AUTO_START=0",
 		"HOME="+home,
 	)
 	output, err := cmd.CombinedOutput()
 	if err == nil {
-		t.Fatalf("bd init --proxied-server unexpectedly accepted historical external workspace:\n%s", output)
+		t.Fatalf("issuegraph init --proxied-server unexpectedly accepted historical external workspace:\n%s", output)
 	}
 	if !strings.Contains(string(output), "legacy Dolt server workspace") ||
 		!strings.Contains(string(output), "explicit migration is required") {
-		t.Fatalf("bd init --proxied-server did not report the expected migration refusal:\n%s", output)
+		t.Fatalf("issuegraph init --proxied-server did not report the expected migration refusal:\n%s", output)
 	}
-	if after := legacyUpgradeTreeDigest(t, beadsDir); after != before {
-		t.Fatalf("bd init --proxied-server mutated historical source: before=%s after=%s", before, after)
+	if after := legacyUpgradeTreeDigest(t, issuegraphDir); after != before {
+		t.Fatalf("issuegraph init --proxied-server mutated historical source: before=%s after=%s", before, after)
 	}
 	afterConfig, err := os.ReadFile(legacyConfigPath)
 	if err != nil {
-		t.Fatalf("bd init --proxied-server removed historical config.json: %v", err)
+		t.Fatalf("issuegraph init --proxied-server removed historical config.json: %v", err)
 	}
 	if !bytes.Equal(afterConfig, legacyConfig) {
-		t.Fatalf("bd init --proxied-server rewrote config.json: got %q, want %q", afterConfig, legacyConfig)
+		t.Fatalf("issuegraph init --proxied-server rewrote config.json: got %q, want %q", afterConfig, legacyConfig)
 	}
-	if _, err := os.Stat(filepath.Join(beadsDir, "metadata.json")); !os.IsNotExist(err) {
-		t.Fatalf("bd init --proxied-server created metadata.json before refusing: %v", err)
+	if _, err := os.Stat(filepath.Join(issuegraphDir, "metadata.json")); !os.IsNotExist(err) {
+		t.Fatalf("issuegraph init --proxied-server created metadata.json before refusing: %v", err)
 	}
-	if _, err := os.Stat(filepath.Join(beadsDir, "dolt")); !os.IsNotExist(err) {
-		t.Fatalf("bd init --proxied-server created local Dolt state: %v", err)
+	if _, err := os.Stat(filepath.Join(issuegraphDir, "dolt")); !os.IsNotExist(err) {
+		t.Fatalf("issuegraph init --proxied-server created local Dolt state: %v", err)
 	}
-	if _, err := os.Stat(filepath.Join(home, ".beads")); !os.IsNotExist(err) {
-		t.Fatalf("bd init --proxied-server created client state before refusing: %v", err)
+	if _, err := os.Stat(filepath.Join(home, ".issuegraph")); !os.IsNotExist(err) {
+		t.Fatalf("issuegraph init --proxied-server created client state before refusing: %v", err)
 	}
 }
 
 func TestLegacyGuardUsesSelectedTargetSharedServerConfig(t *testing.T) {
-	bd := buildBDUnderTest(t)
+	issuegraph := buildIssueGraphUnderTest(t)
 	selectors := []struct {
 		name string
-		args func(target, targetBeadsDir string) []string
+		args func(target, targetIssueGraphDir string) []string
 	}{
 		{
 			name: "explicit db",
-			args: func(_, targetBeadsDir string) []string {
-				return []string{"--db", filepath.Join(targetBeadsDir, "dolt"), "list", "--json", "--limit", "0", "--all"}
+			args: func(_, targetIssueGraphDir string) []string {
+				return []string{"--db", filepath.Join(targetIssueGraphDir, "dolt"), "list", "--json", "--limit", "0", "--all"}
 			},
 		},
 		{
@@ -447,41 +447,41 @@ func TestLegacyGuardUsesSelectedTargetSharedServerConfig(t *testing.T) {
 		for _, tt := range tests {
 			t.Run(selector.name+"/"+tt.name, func(t *testing.T) {
 				caller := t.TempDir()
-				callerBeadsDir := filepath.Join(caller, ".beads")
-				if err := os.MkdirAll(callerBeadsDir, 0o700); err != nil {
+				callerIssueGraphDir := filepath.Join(caller, ".issuegraph")
+				if err := os.MkdirAll(callerIssueGraphDir, 0o700); err != nil {
 					t.Fatal(err)
 				}
-				writeFile(t, filepath.Join(callerBeadsDir, "metadata.json"), []byte(`{"backend":"dolt","dolt_mode":"embedded"}`))
-				writeFile(t, filepath.Join(callerBeadsDir, "config.yaml"), []byte("dolt:\n  shared-server: "+strconv.FormatBool(tt.callerShared)+"\n"))
+				writeFile(t, filepath.Join(callerIssueGraphDir, "metadata.json"), []byte(`{"backend":"dolt","dolt_mode":"embedded"}`))
+				writeFile(t, filepath.Join(callerIssueGraphDir, "config.yaml"), []byte("dolt:\n  shared-server: "+strconv.FormatBool(tt.callerShared)+"\n"))
 
 				target := t.TempDir()
-				targetBeadsDir := filepath.Join(target, ".beads")
-				if err := os.MkdirAll(filepath.Join(targetBeadsDir, "dolt"), 0o700); err != nil {
+				targetIssueGraphDir := filepath.Join(target, ".issuegraph")
+				if err := os.MkdirAll(filepath.Join(targetIssueGraphDir, "dolt"), 0o700); err != nil {
 					t.Fatal(err)
 				}
-				writeFile(t, filepath.Join(targetBeadsDir, "metadata.json"), []byte(`{"backend":"dolt"}`))
-				writeFile(t, filepath.Join(targetBeadsDir, "config.yaml"), []byte("dolt:\n  shared-server: "+strconv.FormatBool(tt.targetShared)+"\n"))
+				writeFile(t, filepath.Join(targetIssueGraphDir, "metadata.json"), []byte(`{"backend":"dolt"}`))
+				writeFile(t, filepath.Join(targetIssueGraphDir, "config.yaml"), []byte("dolt:\n  shared-server: "+strconv.FormatBool(tt.targetShared)+"\n"))
 
-				cmd := exec.Command(bd, selector.args(target, targetBeadsDir)...)
+				cmd := exec.Command(issuegraph, selector.args(target, targetIssueGraphDir)...)
 				cmd.Dir = caller
 				cmd.Env = append(os.Environ(),
-					"BD_DISABLE_METRICS=1",
-					"BD_DISABLE_EVENT_FLUSH=1",
-					"BEADS_DOLT_AUTO_START=0",
-					"BEADS_DOLT_SERVER_PORT=59999",
-					"BEADS_DOLT_SHARED_SERVER=0",
+					"ISSUEGRAPH_DISABLE_METRICS=1",
+					"ISSUEGRAPH_DISABLE_EVENT_FLUSH=1",
+					"ISSUEGRAPH_DOLT_AUTO_START=0",
+					"ISSUEGRAPH_DOLT_SERVER_PORT=59999",
+					"ISSUEGRAPH_DOLT_SHARED_SERVER=0",
 					"HOME="+t.TempDir(),
 				)
 				output, err := cmd.CombinedOutput()
 				if err == nil {
-					t.Fatalf("bd %s target list unexpectedly succeeded:\n%s", selector.name, output)
+					t.Fatalf("issuegraph %s target list unexpectedly succeeded:\n%s", selector.name, output)
 				}
 				hasLegacyRefusal := strings.Contains(string(output), "explicit migration is required")
 				if hasLegacyRefusal != tt.wantLegacyRefusal {
-					t.Fatalf("bd %s target list legacy refusal=%v, want %v:\n%s", selector.name, hasLegacyRefusal, tt.wantLegacyRefusal, output)
+					t.Fatalf("issuegraph %s target list legacy refusal=%v, want %v:\n%s", selector.name, hasLegacyRefusal, tt.wantLegacyRefusal, output)
 				}
 				if !tt.wantLegacyRefusal && !strings.Contains(string(output), "Dolt server") {
-					t.Fatalf("bd %s target list did not use the target shared-server config:\n%s", selector.name, output)
+					t.Fatalf("issuegraph %s target list did not use the target shared-server config:\n%s", selector.name, output)
 				}
 			})
 		}
@@ -490,7 +490,7 @@ func TestLegacyGuardUsesSelectedTargetSharedServerConfig(t *testing.T) {
 
 // TestLegacyGuardAdmitsConfigYamlServerWorkspace runs the real binary against
 // the workspace shape gc provisions — `dolt.mode: server` in
-// .beads/config.yaml, a local .beads/dolt root, a metadata.json that names no
+// .issuegraph/config.yaml, a local .issuegraph/dolt root, a metadata.json that names no
 // dolt_mode — and pins that the guard no longer calls it legacy. The in-process
 // guard tests bind the workspace config themselves; only a subprocess proves
 // that PersistentPreRunE's own binding puts the selected workspace's
@@ -501,7 +501,7 @@ func TestLegacyGuardUsesSelectedTargetSharedServerConfig(t *testing.T) {
 // succeeded and the workspace routed as a server workspace rather than being
 // refused or opened as a phantom embedded database.
 func TestLegacyGuardAdmitsConfigYamlServerWorkspace(t *testing.T) {
-	bd := buildBDUnderTest(t)
+	issuegraph := buildIssueGraphUnderTest(t)
 	tests := []struct {
 		name              string
 		version           string
@@ -517,41 +517,41 @@ func TestLegacyGuardAdmitsConfigYamlServerWorkspace(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			repoDir := t.TempDir()
 			initGitRepo(t, repoDir)
-			beadsDir := filepath.Join(repoDir, ".beads")
-			if err := os.MkdirAll(filepath.Join(beadsDir, "dolt"), 0o700); err != nil {
+			issuegraphDir := filepath.Join(repoDir, ".issuegraph")
+			if err := os.MkdirAll(filepath.Join(issuegraphDir, "dolt"), 0o700); err != nil {
 				t.Fatal(err)
 			}
-			writeFile(t, filepath.Join(beadsDir, "metadata.json"), []byte(`{"backend":"dolt","dolt_database":"hq"}`))
-			writeFile(t, filepath.Join(beadsDir, "config.yaml"), []byte("dolt:\n  mode: server\n  auto-start: false\n"))
+			writeFile(t, filepath.Join(issuegraphDir, "metadata.json"), []byte(`{"backend":"dolt","dolt_database":"hq"}`))
+			writeFile(t, filepath.Join(issuegraphDir, "config.yaml"), []byte("dolt:\n  mode: server\n  auto-start: false\n"))
 			if tt.version != "" {
-				writeFile(t, filepath.Join(beadsDir, localVersionFile), []byte(tt.version+"\n"))
+				writeFile(t, filepath.Join(issuegraphDir, localVersionFile), []byte(tt.version+"\n"))
 			}
 
 			commandCtx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
 			defer cancel()
-			cmd := exec.CommandContext(commandCtx, bd, "list", "--json", "--limit", "0", "--all")
+			cmd := exec.CommandContext(commandCtx, issuegraph, "list", "--json", "--limit", "0", "--all")
 			cmd.Dir = repoDir
 			cmd.Env = append(os.Environ(),
-				"BD_DISABLE_METRICS=1",
-				"BD_DISABLE_EVENT_FLUSH=1",
-				"BEADS_DOLT_AUTO_START=0",
-				"BEADS_DOLT_SERVER_PORT=59999",
-				"BEADS_DOLT_SHARED_SERVER=0",
+				"ISSUEGRAPH_DISABLE_METRICS=1",
+				"ISSUEGRAPH_DISABLE_EVENT_FLUSH=1",
+				"ISSUEGRAPH_DOLT_AUTO_START=0",
+				"ISSUEGRAPH_DOLT_SERVER_PORT=59999",
+				"ISSUEGRAPH_DOLT_SHARED_SERVER=0",
 				"HOME="+t.TempDir(),
 			)
 			output, err := cmd.CombinedOutput()
 			if err == nil {
-				t.Fatalf("bd list unexpectedly succeeded against an unreachable server:\n%s", output)
+				t.Fatalf("issuegraph list unexpectedly succeeded against an unreachable server:\n%s", output)
 			}
 			hasLegacyRefusal := strings.Contains(string(output), "explicit migration is required")
 			if hasLegacyRefusal != tt.wantLegacyRefusal {
-				t.Fatalf("bd list legacy refusal=%v, want %v:\n%s", hasLegacyRefusal, tt.wantLegacyRefusal, output)
+				t.Fatalf("issuegraph list legacy refusal=%v, want %v:\n%s", hasLegacyRefusal, tt.wantLegacyRefusal, output)
 			}
 			if !tt.wantLegacyRefusal && !strings.Contains(string(output), "Dolt server") {
 				t.Fatalf("admitted workspace did not route as a server workspace:\n%s", output)
 			}
 			if !tt.wantLegacyRefusal {
-				if _, err := os.Stat(filepath.Join(beadsDir, "embeddeddolt")); !os.IsNotExist(err) {
+				if _, err := os.Stat(filepath.Join(issuegraphDir, "embeddeddolt")); !os.IsNotExist(err) {
 					t.Fatalf("admitted server workspace created a phantom embedded database: %v", err)
 				}
 			}

@@ -7,10 +7,10 @@ import (
 	"sort"
 	"testing"
 
-	"github.com/steveyegge/beads/internal/storage"
-	"github.com/steveyegge/beads/internal/storage/domain"
-	"github.com/steveyegge/beads/internal/storage/uow"
-	"github.com/steveyegge/beads/internal/types"
+	"github.com/borg0ai/dx-issuegraph/internal/storage"
+	"github.com/borg0ai/dx-issuegraph/internal/storage/domain"
+	"github.com/borg0ai/dx-issuegraph/internal/storage/uow"
+	"github.com/borg0ai/dx-issuegraph/internal/types"
 )
 
 type engineUOWState struct {
@@ -140,7 +140,7 @@ func (p *engineUOWProvider) NewUOW(context.Context) (uow.UnitOfWork, error) {
 func (*engineUOWProvider) Close(context.Context) error { return nil }
 
 func TestUOWStoreEngineMutationsCommitThroughProvider(t *testing.T) {
-	state := &engineUOWState{issues: map[string]*types.Issue{}, configs: map[string]string{"issue_prefix": "bd"}}
+	state := &engineUOWState{issues: map[string]*types.Issue{}, configs: map[string]string{"issue_prefix": "issuegraph"}}
 	st := NewUOWStore(&engineUOWProvider{state: state})
 	issue := &types.Issue{ID: "bd-new", Title: "new"}
 	if err := st.CreateIssue(context.Background(), issue, "test"); err != nil {
@@ -164,7 +164,7 @@ func TestUOWStoreEngineMutationsCommitThroughProvider(t *testing.T) {
 // external_ref present on both planes must resolve to the ISSUE on both routes.
 // A merged search has no plane preference, and the consumer is the pull dedup,
 // which updates whatever row comes back — so a divergence here is a silent
-// write to the wrong local bead in proxied mode only.
+// write to the wrong local issue in proxied mode only.
 func TestUOWStoreGetIssueByExternalRefPrefersIssuePlane(t *testing.T) {
 	ctx := context.Background()
 	ref := "https://tracker.test/EXT-1"
@@ -196,7 +196,7 @@ func TestUOWStoreGetIssueByExternalRefPrefersIssuePlane(t *testing.T) {
 // The ephemeral=0 subtest is why the fallback is the merged search rather than
 // Ephemeral=true: that flag contributes an `ephemeral = 1` predicate the direct
 // backend's `SELECT id FROM wisps WHERE external_ref = ?` does not have, and
-// wisp-plane rows legitimately carry ephemeral=0 (NoHistory beads, and typed
+// wisp-plane rows legitimately carry ephemeral=0 (NoHistory issuegraph, and typed
 // wisps minted without the flag — see types.IssueFilter.EphemeralTier).
 func TestUOWStoreGetIssueByExternalRefFallsBackToWispPlane(t *testing.T) {
 	ctx := context.Background()

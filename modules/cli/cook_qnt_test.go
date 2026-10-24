@@ -9,13 +9,13 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/steveyegge/beads/internal/types"
+	"github.com/borg0ai/dx-issuegraph/internal/types"
 )
 
 // TestBdMolPour_NeedsAndWaitsForSameTarget is a regression test for GH#3783:
 // a step that has both `needs = [X]` and `waits_for = "all-children"` (with
 // no explicit spawner, so the spawner is inferred from needs[0] == X)
-// causes bd mol pour to fail with a dep-type collision —
+// causes issuegraph mol pour to fail with a dep-type collision —
 //
 //	dependency <step> -> <X> already exists with type "blocks"
 //	  (requested "waits-for")
@@ -32,11 +32,11 @@ import (
 // specific target — the waits-for dep already carries the blocking
 // semantics plus the gate metadata, so the blocks dep is redundant.
 func TestBdMolPour_NeedsAndWaitsForSameTarget(t *testing.T) {
-	bd := buildEmbeddedBD(t)
+	issuegraph := buildEmbeddedBD(t)
 
-	dir, beadsDir, _ := bdInit(t, bd, "--prefix", "qnt")
+	dir, issuegraphDir, _ := issuegraphInit(t, issuegraph, "--prefix", "qnt")
 
-	formulaDir := filepath.Join(beadsDir, "formulas")
+	formulaDir := filepath.Join(issuegraphDir, "formulas")
 	if err := os.MkdirAll(formulaDir, 0o755); err != nil {
 		t.Fatalf("mkdir formulas dir: %v", err)
 	}
@@ -66,9 +66,9 @@ waits_for = "all-children"
 	//   Error: pouring proto: failed to create dependency:
 	//   dependency qnt-mol-XXX -> qnt-mol-YYY already exists with type "blocks"
 	//     (requested "waits-for")
-	out, err := bdRunWithFlockRetry(t, bd, dir, "mol", "pour", "qnt-repro")
+	out, err := issuegraphRunWithFlockRetry(t, issuegraph, dir, "mol", "pour", "qnt-repro")
 	if err != nil {
-		t.Fatalf("bd mol pour should succeed for a step with both needs and waits_for; got error: %v\noutput:\n%s", err, out)
+		t.Fatalf("issuegraph mol pour should succeed for a step with both needs and waits_for; got error: %v\noutput:\n%s", err, out)
 	}
 
 	outStr := string(out)
@@ -77,7 +77,7 @@ waits_for = "all-children"
 	}
 }
 
-// pourJSONResult mirrors the anonymous pourResult wrapper `bd mol pour --json`
+// pourJSONResult mirrors the anonymous pourResult wrapper `issuegraph mol pour --json`
 // emits (modules/cli/pour.go): the embedded InstantiateResult fields plus attached
 // count and phase.
 type pourJSONResult struct {
@@ -86,12 +86,12 @@ type pourJSONResult struct {
 	Created   int               `json:"created"`
 }
 
-// readyIDs runs `bd ready --json` and returns the set of ready issue IDs.
-func readyIDs(t *testing.T, bd, dir string) map[string]bool {
+// readyIDs runs `issuegraph ready --json` and returns the set of ready issue IDs.
+func readyIDs(t *testing.T, issuegraph, dir string) map[string]bool {
 	t.Helper()
-	out, err := bdRunWithFlockRetry(t, bd, dir, "ready", "--json", "--limit", "0")
+	out, err := issuegraphRunWithFlockRetry(t, issuegraph, dir, "ready", "--json", "--limit", "0")
 	if err != nil {
-		t.Fatalf("bd ready --json: %v\noutput:\n%s", err, out)
+		t.Fatalf("issuegraph ready --json: %v\noutput:\n%s", err, out)
 	}
 	var ready []types.IssueWithCounts
 	if err := json.Unmarshal(out, &ready); err != nil {
@@ -116,11 +116,11 @@ func readyIDs(t *testing.T, bd, dir string) map[string]bool {
 // This asserts the waiter stays blocked immediately after pour (spawner
 // open, zero children spawned yet), and unblocks once the spawner closes.
 func TestBdMolPour_NeedsAndWaitsForSameTarget_SpawnerOpenBlocksWaiter(t *testing.T) {
-	bd := buildEmbeddedBD(t)
+	issuegraph := buildEmbeddedBD(t)
 
-	dir, beadsDir, _ := bdInit(t, bd, "--prefix", "qnw")
+	dir, issuegraphDir, _ := issuegraphInit(t, issuegraph, "--prefix", "qnw")
 
-	formulaDir := filepath.Join(beadsDir, "formulas")
+	formulaDir := filepath.Join(issuegraphDir, "formulas")
 	if err := os.MkdirAll(formulaDir, 0o755); err != nil {
 		t.Fatalf("mkdir formulas dir: %v", err)
 	}
@@ -146,9 +146,9 @@ waits_for = "all-children"
 		t.Fatalf("write formula: %v", err)
 	}
 
-	out, err := bdRunWithFlockRetry(t, bd, dir, "mol", "pour", "qnw-repro", "--json")
+	out, err := issuegraphRunWithFlockRetry(t, issuegraph, dir, "mol", "pour", "qnw-repro", "--json")
 	if err != nil {
-		t.Fatalf("bd mol pour --json: %v\noutput:\n%s", err, out)
+		t.Fatalf("issuegraph mol pour --json: %v\noutput:\n%s", err, out)
 	}
 
 	var result pourJSONResult
@@ -169,17 +169,17 @@ waits_for = "all-children"
 	// be blocked, not ready. Before the also_blocks fix this regressed:
 	// dropping the blocks edge left the waits-for gate blind to a still-open,
 	// childless spawner.
-	if readyIDs(t, bd, dir)[waiterID] {
+	if readyIDs(t, issuegraph, dir)[waiterID] {
 		t.Fatalf("waiter %s is ready while its spawner %s is still open with no children spawned yet (pre-fanout window)", waiterID, spawnerID)
 	}
 
-	if _, err := bdRunWithFlockRetry(t, bd, dir, "close", spawnerID, "--reason", "no fanout needed"); err != nil {
-		t.Fatalf("bd close %s: %v", spawnerID, err)
+	if _, err := issuegraphRunWithFlockRetry(t, issuegraph, dir, "close", spawnerID, "--reason", "no fanout needed"); err != nil {
+		t.Fatalf("issuegraph close %s: %v", spawnerID, err)
 	}
 
 	// The spawner is now closed (and never spawned any children) — the
 	// waiter must unblock.
-	if !readyIDs(t, bd, dir)[waiterID] {
+	if !readyIDs(t, issuegraph, dir)[waiterID] {
 		t.Fatalf("waiter %s did not become ready after its childless spawner %s closed", waiterID, spawnerID)
 	}
 }

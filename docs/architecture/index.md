@@ -50,9 +50,9 @@ Recovery uses `issuegraph snapshot restore` with both snapshot files, or restore
 
 ## Data Model
 
-The database stores five kinds of records: issues (the beads themselves), dependencies (typed edges such as `blocks`, `parent-child`, `related`, and `discovered-from`), labels, comments, and events (the audit trail). What each means — and how `issuegraph ready` computes the claimable frontier from them — is covered in [How IssueGraph Works](/core-concepts/index).
+The database stores five kinds of records: issues (the issuegraph themselves), dependencies (typed edges such as `blocks`, `parent-child`, `related`, and `discovered-from`), labels, comments, and events (the audit trail). What each means — and how `issuegraph ready` computes the claimable frontier from them — is covered in [How IssueGraph Works](/core-concepts/index).
 
-Issue IDs are content-derived hashes (`bd-a1b2`) so that concurrent writers never collide and no central ID coordination is needed. See [Hash-based IDs](/core-concepts/hash-ids) for the design and [COLLISION_MATH](https://github.com/gastownhall/beads/blob/main/engdocs/COLLISION_MATH.md) for the birthday-paradox analysis of hash length vs collision probability.
+Issue IDs are content-derived hashes (`issuegraph-a1b2`) so that concurrent writers never collide and no central ID coordination is needed. See [Hash-based IDs](/core-concepts/hash-ids) for the design and [COLLISION_MATH](https://github.com/borg0ai/dx-issuegraph/blob/main/engdocs/COLLISION_MATH.md) for the birthday-paradox analysis of hash length vs collision probability.
 
 ### Issue Schema
 
@@ -60,7 +60,7 @@ Core fields on every issue, as stored in Dolt and emitted in `issuegraph export`
 
 | Field | Type | Description |
 |-------|------|-------------|
-| `id` | string | Unique hash ID (e.g., `bd-a1b2`) |
+| `id` | string | Unique hash ID (e.g., `issuegraph-a1b2`) |
 | `title` | string | Issue title (required) |
 | `description` | string | Detailed description (optional) |
 | `design` | string | Design notes (optional) |
@@ -84,7 +84,7 @@ Issues also carry workflow-layer field groups, among others: scheduling (`due_at
 
 Internal fields — `content_hash` (a SHA-256 of the issue's canonical content, used for change detection), `source_repo`, and `id_prefix` — never appear in exports.
 
-The schema is stable by default: prefer the `metadata` field for integration-, orchestrator-, or team-specific data before proposing new first-class fields. See the [Project Charter's schema boundary](https://github.com/gastownhall/beads/blob/main/engdocs/PROJECT_CHARTER.md#schema-boundary).
+The schema is stable by default: prefer the `metadata` field for integration-, orchestrator-, or team-specific data before proposing new first-class fields. See the [Project Charter's schema boundary](https://github.com/borg0ai/dx-issuegraph/blob/main/engdocs/PROJECT_CHARTER.md#schema-boundary).
 
 ## Data Flow
 
@@ -121,9 +121,9 @@ The Dolt server handles local database operations:
 - Manages the Dolt database backend
 - Handles auto-commit for change tracking
 - Provides concurrent access for multiple agents
-- Runtime files live directly in `.beads/`: `dolt-server.pid`, `dolt-server.log`, and `dolt-server.port`
+- Runtime files live directly in `.issuegraph/`: `dolt-server.pid`, `dolt-server.log`, and `dolt-server.port`
 
-An opt-in *shared server* mode runs a single Dolt server at `~/.beads/shared-server/` for all projects, enabled with `dolt.shared-server: true` in `config.yaml` or `BEADS_DOLT_SHARED_SERVER=1` — see [Dolt Backend](/architecture/dolt#shared-server-mode).
+An opt-in *shared server* mode runs a single Dolt server at `~/.issuegraph/shared-server/` for all projects, enabled with `dolt.shared-server: true` in `config.yaml` or `ISSUEGRAPH_DOLT_SHARED_SERVER=1` — see [Dolt Backend](/architecture/dolt#shared-server-mode).
 
 <Tip>
 Start the Dolt server with `issuegraph dolt start`. Check health with `issuegraph doctor`.
@@ -131,7 +131,7 @@ Start the Dolt server with `issuegraph dolt start`. Check health with `issuegrap
 
 ### Embedded Mode (No Server)
 
-Embedded mode is the default (`issuegraph init` with no flags): Dolt runs in-process, single-writer, with data at `.beads/embeddeddolt/` — no server process and no separate Dolt install. Server mode is opt-in via `issuegraph init --server`; the choice is persisted in `.beads/metadata.json`.
+Embedded mode is the default (`issuegraph init` with no flags): Dolt runs in-process, single-writer, with data at `.issuegraph/embeddeddolt/` — no server process and no separate Dolt install. Server mode is opt-in via `issuegraph init --server`; the choice is persisted in `.issuegraph/metadata.json`.
 
 ```bash
 issuegraph create "CI-generated issue"
@@ -159,7 +159,7 @@ issuegraph create "CI-generated issue"
 The database directory is local runtime state; the JSONL and manifest are the
 portable issue snapshot. The generated `.issuegraph/.gitignore` keeps database
 and runtime files out of Git while allowing those two snapshot files to be
-tracked. Existing `.beads/` workspaces remain readable during migration.
+tracked. Existing `.issuegraph/` workspaces remain readable during migration.
 
 ## Recovery Model
 
@@ -235,11 +235,11 @@ For these use cases, consider GitHub Issues, Linear, or Jira.
 
 ## Related Documentation
 
-- [How IssueGraph Works](/core-concepts/index) — The concept model: beads, dependencies, ready work, molecules
+- [How IssueGraph Works](/core-concepts/index) — The concept model: issuegraph, dependencies, ready work, molecules
 - [Sync Concepts](/core-concepts/sync-concepts) — Cross-machine sync, wire format, and anti-patterns
 - [Dolt Backend](/architecture/dolt) — Embedded vs server mode in depth, shared server, migration
 - [Recovery Runbooks](/recovery/index) — Step-by-step procedures for common issues
 - [CLI Reference](/cli-reference/index) — Complete command documentation
 - [Getting Started](/index) — Installation and first steps
-- [Project Charter](https://github.com/gastownhall/beads/blob/main/engdocs/PROJECT_CHARTER.md) — Product scope and boundaries (contributor doc)
-- [Internals](https://github.com/gastownhall/beads/blob/main/engdocs/INTERNALS.md) — Implementation details (contributor doc)
+- [Project Charter](https://github.com/borg0ai/dx-issuegraph/blob/main/engdocs/PROJECT_CHARTER.md) — Product scope and boundaries (contributor doc)
+- [Internals](https://github.com/borg0ai/dx-issuegraph/blob/main/engdocs/INTERNALS.md) — Implementation details (contributor doc)

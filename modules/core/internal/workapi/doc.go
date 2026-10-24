@@ -1,4 +1,4 @@
-// Package workapi holds the work-query contract shared by every bd frontend.
+// Package workapi holds the work-query contract shared by every issuegraph frontend.
 //
 // Filter construction, defaults, validation, and response shaping live here
 // so the CLI and any other frontend answer the same question the same way

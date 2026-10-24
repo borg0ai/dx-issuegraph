@@ -8,11 +8,11 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/steveyegge/beads/internal/templates/agents"
+	"github.com/borg0ai/dx-issuegraph/internal/templates/agents"
 )
 
-func TestUpdateBeadsSection(t *testing.T) {
-	beadsSection := agents.RenderSection(agents.ProfileFull)
+func TestUpdateIssueGraphSection(t *testing.T) {
+	issuegraphSection := agents.RenderSection(agents.ProfileFull)
 
 	tests := []struct {
 		name     string
@@ -25,16 +25,16 @@ func TestUpdateBeadsSection(t *testing.T) {
 
 Some content
 
-<!-- BEGIN BEADS INTEGRATION -->
+<!-- BEGIN ISSUEGRAPH INTEGRATION -->
 Old content here
-<!-- END BEADS INTEGRATION -->
+<!-- END ISSUEGRAPH INTEGRATION -->
 
 More content after`,
 			expected: `# My Project
 
 Some content
 
-` + beadsSection + `
+` + issuegraphSection + `
 More content after`,
 		},
 		{
@@ -46,26 +46,26 @@ More content after`,
 			name: "handle section at end of file",
 			content: `# My Project
 
-<!-- BEGIN BEADS INTEGRATION -->
+<!-- BEGIN ISSUEGRAPH INTEGRATION -->
 Old content
-<!-- END BEADS INTEGRATION -->`,
+<!-- END ISSUEGRAPH INTEGRATION -->`,
 			expected: `# My Project
 
-` + beadsSection,
+` + issuegraphSection,
 		},
 	}
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			got := updateBeadsSection(tt.content)
+			got := updateIssueGraphSection(tt.content)
 			if got != tt.expected {
-				t.Errorf("updateBeadsSection() mismatch\ngot:\n%s\nwant:\n%s", got, tt.expected)
+				t.Errorf("updateIssueGraphSection() mismatch\ngot:\n%s\nwant:\n%s", got, tt.expected)
 			}
 		})
 	}
 }
 
-func TestRemoveBeadsSection(t *testing.T) {
+func TestRemoveIssueGraphSection(t *testing.T) {
 	tests := []struct {
 		name     string
 		content  string
@@ -75,9 +75,9 @@ func TestRemoveBeadsSection(t *testing.T) {
 			name: "remove section in middle",
 			content: `# My Project
 
-<!-- BEGIN BEADS INTEGRATION -->
-Beads content
-<!-- END BEADS INTEGRATION -->
+<!-- BEGIN ISSUEGRAPH INTEGRATION -->
+IssueGraph content
+<!-- END ISSUEGRAPH INTEGRATION -->
 
 More content`,
 			expected: `# My Project
@@ -91,9 +91,9 @@ More content`,
 
 Content
 
-<!-- BEGIN BEADS INTEGRATION -->
-Beads content
-<!-- END BEADS INTEGRATION -->`,
+<!-- BEGIN ISSUEGRAPH INTEGRATION -->
+IssueGraph content
+<!-- END ISSUEGRAPH INTEGRATION -->`,
 			expected: `# My Project
 
 Content
@@ -102,26 +102,26 @@ Content
 		},
 		{
 			name:     "no markers - return unchanged",
-			content:  "# My Project\n\nNo beads section",
-			expected: "# My Project\n\nNo beads section",
+			content:  "# My Project\n\nNo issuegraph section",
+			expected: "# My Project\n\nNo issuegraph section",
 		},
 		{
 			name:     "only begin marker - return unchanged",
-			content:  "# My Project\n<!-- BEGIN BEADS INTEGRATION -->\nContent",
-			expected: "# My Project\n<!-- BEGIN BEADS INTEGRATION -->\nContent",
+			content:  "# My Project\n<!-- BEGIN ISSUEGRAPH INTEGRATION -->\nContent",
+			expected: "# My Project\n<!-- BEGIN ISSUEGRAPH INTEGRATION -->\nContent",
 		},
 		{
 			name:     "preserve surrounding whitespace and unrelated content",
-			content:  "Header\n\n" + agents.EmbeddedBeadsSection() + "\n\nFooter\n",
+			content:  "Header\n\n" + agents.EmbeddedIssueGraphSection() + "\n\nFooter\n",
 			expected: "Header\n\n\n\nFooter\n",
 		},
 	}
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			got := removeBeadsSection(tt.content)
+			got := removeIssueGraphSection(tt.content)
 			if got != tt.expected {
-				t.Errorf("removeBeadsSection() mismatch\ngot:\n%q\nwant:\n%q", got, tt.expected)
+				t.Errorf("removeIssueGraphSection() mismatch\ngot:\n%q\nwant:\n%q", got, tt.expected)
 			}
 		})
 	}
@@ -135,7 +135,7 @@ func TestCreateNewAgentsFile(t *testing.T) {
 		t.Error("Missing header in new agents file")
 	}
 
-	if !containsBeadsMarker(content) {
+	if !containsIssueGraphMarker(content) {
 		t.Error("Missing begin marker in new agents file")
 	}
 
@@ -187,7 +187,7 @@ func TestInstallFactoryCreatesNewFile(t *testing.T) {
 		t.Fatalf("failed to read AGENTS.md: %v", err)
 	}
 	content := string(data)
-	if !containsBeadsMarker(content) || !strings.Contains(content, agentsEndMarker) {
+	if !containsIssueGraphMarker(content) || !strings.Contains(content, agentsEndMarker) {
 		t.Fatal("missing factory markers in new file")
 	}
 	if !strings.Contains(stdout.String(), "Factory.ai (Droid) integration installed") {
@@ -199,9 +199,9 @@ func TestInstallFactoryUpdatesExistingSection(t *testing.T) {
 	env, _, _ := newFactoryTestEnv(t)
 	initial := `# Header
 
-<!-- BEGIN BEADS INTEGRATION -->
+<!-- BEGIN ISSUEGRAPH INTEGRATION -->
 Old content
-<!-- END BEADS INTEGRATION -->
+<!-- END ISSUEGRAPH INTEGRATION -->
 
 # Footer`
 	if err := os.WriteFile(env.agentsPath, []byte(initial), 0644); err != nil {
@@ -216,10 +216,10 @@ Old content
 	}
 	content := string(data)
 	if strings.Contains(content, "Old content") {
-		t.Error("old beads section should be replaced")
+		t.Error("old issuegraph section should be replaced")
 	}
 	if !strings.Contains(content, "# Footer") {
-		t.Error("content after beads section should remain")
+		t.Error("content after issuegraph section should remain")
 	}
 }
 
@@ -245,7 +245,7 @@ func TestCheckFactoryScenarios(t *testing.T) {
 		if !errors.Is(err, errAgentsFileMissing) {
 			t.Fatalf("expected errAgentsFileMissing, got %v", err)
 		}
-		if !strings.Contains(stdout.String(), "Run: bd setup factory") {
+		if !strings.Contains(stdout.String(), "Run: issuegraph setup factory") {
 			t.Error("expected guidance message")
 		}
 	})
@@ -256,19 +256,19 @@ func TestCheckFactoryScenarios(t *testing.T) {
 			t.Fatalf("failed to write file: %v", err)
 		}
 		err := checkFactory(env)
-		if !errors.Is(err, errBeadsSectionMissing) {
-			t.Fatalf("expected errBeadsSectionMissing, got %v", err)
+		if !errors.Is(err, errIssueGraphSectionMissing) {
+			t.Fatalf("expected errIssueGraphSectionMissing, got %v", err)
 		}
-		if !strings.Contains(stdout.String(), "no beads section") {
+		if !strings.Contains(stdout.String(), "no issuegraph section") {
 			t.Error("expected warning output")
 		}
 	})
 
 	t.Run("success", func(t *testing.T) {
 		env, stdout, _ := newFactoryTestEnv(t)
-		// Use current rendered section (not legacy EmbeddedBeadsSection) so check reports "current"
-		beadsSection := agents.RenderSection(agents.ProfileFull)
-		if err := os.WriteFile(env.agentsPath, []byte(beadsSection), 0644); err != nil {
+		// Use current rendered section (not legacy EmbeddedIssueGraphSection) so check reports "current"
+		issuegraphSection := agents.RenderSection(agents.ProfileFull)
+		if err := os.WriteFile(env.agentsPath, []byte(issuegraphSection), 0644); err != nil {
 			t.Fatalf("failed to seed file: %v", err)
 		}
 		if err := checkFactory(env); err != nil {
@@ -281,13 +281,13 @@ func TestCheckFactoryScenarios(t *testing.T) {
 
 	t.Run("stale legacy section", func(t *testing.T) {
 		env, stdout, _ := newFactoryTestEnv(t)
-		beadsSection := agents.EmbeddedBeadsSection()
-		if err := os.WriteFile(env.agentsPath, []byte(beadsSection), 0644); err != nil {
+		issuegraphSection := agents.EmbeddedIssueGraphSection()
+		if err := os.WriteFile(env.agentsPath, []byte(issuegraphSection), 0644); err != nil {
 			t.Fatalf("failed to seed file: %v", err)
 		}
 		err := checkFactory(env)
-		if !errors.Is(err, errBeadsSectionStale) {
-			t.Fatalf("expected errBeadsSectionStale, got %v", err)
+		if !errors.Is(err, errIssueGraphSectionStale) {
+			t.Fatalf("expected errIssueGraphSectionStale, got %v", err)
 		}
 		if !strings.Contains(stdout.String(), "stale") {
 			t.Error("expected stale output")
@@ -298,8 +298,8 @@ func TestCheckFactoryScenarios(t *testing.T) {
 func TestRemoveFactoryScenarios(t *testing.T) {
 	t.Run("remove section and keep file", func(t *testing.T) {
 		env, stdout, _ := newFactoryTestEnv(t)
-		beadsSection := agents.EmbeddedBeadsSection()
-		content := "# Top\n\n" + beadsSection + "\n\n# Bottom"
+		issuegraphSection := agents.EmbeddedIssueGraphSection()
+		content := "# Top\n\n" + issuegraphSection + "\n\n# Bottom"
 		if err := os.WriteFile(env.agentsPath, []byte(content), 0644); err != nil {
 			t.Fatalf("failed to seed AGENTS.md: %v", err)
 		}
@@ -311,17 +311,17 @@ func TestRemoveFactoryScenarios(t *testing.T) {
 			t.Fatalf("failed to read AGENTS.md: %v", err)
 		}
 		if strings.Contains(string(data), agentsBeginMarker) {
-			t.Error("beads section should be removed")
+			t.Error("issuegraph section should be removed")
 		}
-		if !strings.Contains(stdout.String(), "Removed beads section") {
+		if !strings.Contains(stdout.String(), "Removed issuegraph section") {
 			t.Error("expected removal message")
 		}
 	})
 
-	t.Run("clear file when only beads", func(t *testing.T) {
+	t.Run("clear file when only issuegraph", func(t *testing.T) {
 		env, stdout, _ := newFactoryTestEnv(t)
-		beadsSection := agents.EmbeddedBeadsSection()
-		if err := os.WriteFile(env.agentsPath, []byte(beadsSection), 0644); err != nil {
+		issuegraphSection := agents.EmbeddedIssueGraphSection()
+		if err := os.WriteFile(env.agentsPath, []byte(issuegraphSection), 0644); err != nil {
 			t.Fatalf("failed to seed AGENTS.md: %v", err)
 		}
 		if err := removeFactory(env); err != nil {
@@ -332,9 +332,9 @@ func TestRemoveFactoryScenarios(t *testing.T) {
 			t.Fatalf("failed to read AGENTS.md after remove: %v", err)
 		}
 		if strings.TrimSpace(string(data)) != "" {
-			t.Fatal("AGENTS.md should remain present but empty when only beads section existed")
+			t.Fatal("AGENTS.md should remain present but empty when only issuegraph section existed")
 		}
-		if !strings.Contains(stdout.String(), "Removed beads section") {
+		if !strings.Contains(stdout.String(), "Removed issuegraph section") {
 			t.Error("expected removal message")
 		}
 	})
@@ -372,8 +372,8 @@ func TestWrapperReturnsErrorOnFailure(t *testing.T) {
 
 	t.Run("RemoveFactory", func(t *testing.T) {
 		env := factoryEnv{agentsPath: filepath.Join(t.TempDir(), "AGENTS.md"), stdout: &bytes.Buffer{}, stderr: &bytes.Buffer{}}
-		beadsSection := agents.EmbeddedBeadsSection()
-		if err := os.WriteFile(env.agentsPath, []byte(beadsSection), 0644); err != nil {
+		issuegraphSection := agents.EmbeddedIssueGraphSection()
+		if err := os.WriteFile(env.agentsPath, []byte(issuegraphSection), 0644); err != nil {
 			t.Fatalf("failed to seed file: %v", err)
 		}
 		if err := os.Chmod(env.agentsPath, 0o000); err != nil {
@@ -386,12 +386,12 @@ func TestWrapperReturnsErrorOnFailure(t *testing.T) {
 	})
 }
 
-func TestFactoryBeadsSectionContent(t *testing.T) {
-	section := agents.EmbeddedBeadsSection()
-	required := []string{"bd create", "bd update", "bd close", "bd ready", "discovered-from"}
+func TestFactoryIssueGraphSectionContent(t *testing.T) {
+	section := agents.EmbeddedIssueGraphSection()
+	required := []string{"issuegraph create", "issuegraph update", "issuegraph close", "issuegraph ready", "discovered-from"}
 	for _, token := range required {
 		if !strings.Contains(section, token) {
-			t.Errorf("EmbeddedBeadsSection() missing %q", token)
+			t.Errorf("EmbeddedIssueGraphSection() missing %q", token)
 		}
 	}
 }
@@ -406,54 +406,54 @@ func TestFactoryMarkers(t *testing.T) {
 }
 
 func TestMarkersMatch(t *testing.T) {
-	beadsSection := agents.EmbeddedBeadsSection()
-	if !strings.HasPrefix(beadsSection, agentsBeginMarker) {
+	issuegraphSection := agents.EmbeddedIssueGraphSection()
+	if !strings.HasPrefix(issuegraphSection, agentsBeginMarker) {
 		t.Error("section should start with begin marker")
 	}
-	trimmed := strings.TrimSpace(beadsSection)
+	trimmed := strings.TrimSpace(issuegraphSection)
 	if !strings.HasSuffix(trimmed, agentsEndMarker) {
 		t.Error("section should end with end marker")
 	}
 }
 
-func TestUpdateBeadsSectionPreservesWhitespace(t *testing.T) {
-	beadsSection := agents.EmbeddedBeadsSection()
-	content := "# Header\n\n" + beadsSection + "\n\n# Footer"
-	updated := updateBeadsSection(content)
+func TestUpdateIssueGraphSectionPreservesWhitespace(t *testing.T) {
+	issuegraphSection := agents.EmbeddedIssueGraphSection()
+	content := "# Header\n\n" + issuegraphSection + "\n\n# Footer"
+	updated := updateIssueGraphSection(content)
 	if !strings.Contains(updated, "# Header") || !strings.Contains(updated, "# Footer") {
 		t.Error("update should preserve surrounding content")
 	}
 }
 
-func TestRoundTripAddRemoveLeavesNoBeadsContent(t *testing.T) {
+func TestRoundTripAddRemoveLeavesNoIssueGraphContent(t *testing.T) {
 	userContent := "# My Project\n\nSome user content here.\n"
 
-	// Simulate bd init adding the beads section to an existing file
-	withBeads := userContent + "\n" + agents.EmbeddedBeadsSection()
+	// Simulate issuegraph init adding the issuegraph section to an existing file
+	withIssueGraph := userContent + "\n" + agents.EmbeddedIssueGraphSection()
 
-	// Verify beads content (including landing) is present
-	if !strings.Contains(withBeads, "BEGIN BEADS INTEGRATION") {
-		t.Fatal("beads markers should be present after adding section")
+	// Verify issuegraph content (including landing) is present
+	if !strings.Contains(withIssueGraph, "BEGIN ISSUEGRAPH INTEGRATION") {
+		t.Fatal("issuegraph markers should be present after adding section")
 	}
-	if !strings.Contains(withBeads, "Session Completion") {
-		t.Fatal("session-completion should be present inside beads section")
+	if !strings.Contains(withIssueGraph, "Session Completion") {
+		t.Fatal("session-completion should be present inside issuegraph section")
 	}
 
-	// Remove the beads section
-	cleaned := removeBeadsSection(withBeads)
+	// Remove the issuegraph section
+	cleaned := removeIssueGraphSection(withIssueGraph)
 
-	// Verify no beads-added content remains
-	if strings.Contains(cleaned, "BEGIN BEADS INTEGRATION") {
+	// Verify no issuegraph-added content remains
+	if strings.Contains(cleaned, "BEGIN ISSUEGRAPH INTEGRATION") {
 		t.Error("begin marker should not remain after removal")
 	}
-	if strings.Contains(cleaned, "END BEADS INTEGRATION") {
+	if strings.Contains(cleaned, "END ISSUEGRAPH INTEGRATION") {
 		t.Error("end marker should not remain after removal")
 	}
 	if strings.Contains(cleaned, "Session Completion") {
 		t.Error("session-completion should not remain after removal (must be inside markers)")
 	}
-	if strings.Contains(cleaned, "bd ready") {
-		t.Error("beads commands should not remain after removal")
+	if strings.Contains(cleaned, "issuegraph ready") {
+		t.Error("issuegraph commands should not remain after removal")
 	}
 
 	// User content should be preserved

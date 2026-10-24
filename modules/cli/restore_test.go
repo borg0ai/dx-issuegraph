@@ -8,8 +8,8 @@ import (
 	"path/filepath"
 	"testing"
 
-	"github.com/steveyegge/beads/internal/storage"
-	"github.com/steveyegge/beads/internal/types"
+	"github.com/borg0ai/dx-issuegraph/internal/storage"
+	"github.com/borg0ai/dx-issuegraph/internal/types"
 )
 
 func TestIssueContentSize(t *testing.T) {
@@ -56,7 +56,7 @@ func TestIssueContentSize(t *testing.T) {
 // gracefully without panicking.
 func TestRestoreWithInvalidIssueID(t *testing.T) {
 	tmpDir := t.TempDir()
-	dbPath := filepath.Join(tmpDir, ".beads", "beads.db")
+	dbPath := filepath.Join(tmpDir, ".issuegraph", "issuegraph.db")
 	testStore := newTestStore(t, dbPath)
 	defer testStore.Close()
 

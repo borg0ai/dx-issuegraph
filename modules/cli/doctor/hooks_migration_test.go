@@ -33,7 +33,7 @@ func TestPlanHookMigration_LegacyWithOldSidecar(t *testing.T) {
 		t.Fatalf("resolveGitHooksDir failed: %v", err)
 	}
 
-	writeHookFile(t, filepath.Join(hooksDir, "pre-commit"), "#!/bin/sh\n# bd-shim v2\n# bd-hooks-version: 0.56.1\nexec bd hooks run pre-commit \"$@\"\n")
+	writeHookFile(t, filepath.Join(hooksDir, "pre-commit"), "#!/bin/sh\n# bd-shim v2\n# bd-hooks-version: 0.56.1\nexec issuegraph hooks run pre-commit \"$@\"\n")
 	writeHookFile(t, filepath.Join(hooksDir, "pre-commit.old"), "#!/bin/sh\necho legacy\n")
 
 	plan, err := PlanHookMigration(tmpDir)
@@ -67,7 +67,7 @@ func TestPlanHookMigration_MarkerManaged(t *testing.T) {
 		t.Fatalf("resolveGitHooksDir failed: %v", err)
 	}
 
-	writeHookFile(t, filepath.Join(hooksDir, "pre-commit"), "#!/bin/sh\n# --- BEGIN BEADS INTEGRATION v0.57.0 ---\nbd hook pre-commit \"$@\"\n# --- END BEADS INTEGRATION v0.57.0 ---\n")
+	writeHookFile(t, filepath.Join(hooksDir, "pre-commit"), "#!/bin/sh\n# --- BEGIN ISSUEGRAPH INTEGRATION v0.57.0 ---\nbd hook pre-commit \"$@\"\n# --- END ISSUEGRAPH INTEGRATION v0.57.0 ---\n")
 
 	plan, err := PlanHookMigration(tmpDir)
 	if err != nil {
@@ -100,7 +100,7 @@ func TestPlanHookMigration_BrokenMarker(t *testing.T) {
 		t.Fatalf("resolveGitHooksDir failed: %v", err)
 	}
 
-	writeHookFile(t, filepath.Join(hooksDir, "pre-commit"), "#!/bin/sh\n# --- BEGIN BEADS INTEGRATION v0.57.0 ---\nbd hook pre-commit \"$@\"\n")
+	writeHookFile(t, filepath.Join(hooksDir, "pre-commit"), "#!/bin/sh\n# --- BEGIN ISSUEGRAPH INTEGRATION v0.57.0 ---\nbd hook pre-commit \"$@\"\n")
 
 	plan, err := PlanHookMigration(tmpDir)
 	if err != nil {
@@ -154,7 +154,7 @@ func TestPlanHookMigration_MissingHookWithBackupSidecar(t *testing.T) {
 }
 
 func TestDetectHookMarkerState_DuplicateBeginTags(t *testing.T) {
-	content := "#!/bin/sh\n# --- BEGIN BEADS INTEGRATION v0.57.0 ---\n# --- BEGIN BEADS INTEGRATION v0.57.0 ---\nbd hook pre-commit \"$@\"\n# --- END BEADS INTEGRATION v0.57.0 ---\n"
+	content := "#!/bin/sh\n# --- BEGIN ISSUEGRAPH INTEGRATION v0.57.0 ---\n# --- BEGIN ISSUEGRAPH INTEGRATION v0.57.0 ---\nbd hook pre-commit \"$@\"\n# --- END ISSUEGRAPH INTEGRATION v0.57.0 ---\n"
 	got := detectHookMarkerState(content)
 	if got != hookMarkerStateBroken {
 		t.Fatalf("expected broken for duplicate BEGIN tags, got %q", got)
@@ -162,7 +162,7 @@ func TestDetectHookMarkerState_DuplicateBeginTags(t *testing.T) {
 }
 
 func TestDetectHookMarkerState_DuplicateMarkerBlocks(t *testing.T) {
-	content := "#!/bin/sh\n# --- BEGIN BEADS INTEGRATION v0.57.0 ---\nbd hook pre-commit \"$@\"\n# --- END BEADS INTEGRATION v0.57.0 ---\n# --- BEGIN BEADS INTEGRATION v0.57.0 ---\nbd hook pre-push \"$@\"\n# --- END BEADS INTEGRATION v0.57.0 ---\n"
+	content := "#!/bin/sh\n# --- BEGIN ISSUEGRAPH INTEGRATION v0.57.0 ---\nbd hook pre-commit \"$@\"\n# --- END ISSUEGRAPH INTEGRATION v0.57.0 ---\n# --- BEGIN ISSUEGRAPH INTEGRATION v0.57.0 ---\nbd hook pre-push \"$@\"\n# --- END ISSUEGRAPH INTEGRATION v0.57.0 ---\n"
 	got := detectHookMarkerState(content)
 	if got != hookMarkerStateBroken {
 		t.Fatalf("expected broken for duplicate marker blocks, got %q", got)
@@ -170,7 +170,7 @@ func TestDetectHookMarkerState_DuplicateMarkerBlocks(t *testing.T) {
 }
 
 func TestDetectHookMarkerState_ReversedOrder(t *testing.T) {
-	content := "#!/bin/sh\n# --- END BEADS INTEGRATION v0.57.0 ---\nbd hook pre-commit \"$@\"\n# --- BEGIN BEADS INTEGRATION v0.57.0 ---\n"
+	content := "#!/bin/sh\n# --- END ISSUEGRAPH INTEGRATION v0.57.0 ---\nbd hook pre-commit \"$@\"\n# --- BEGIN ISSUEGRAPH INTEGRATION v0.57.0 ---\n"
 	got := detectHookMarkerState(content)
 	if got != hookMarkerStateBroken {
 		t.Fatalf("expected broken for reversed marker order, got %q", got)
@@ -178,7 +178,7 @@ func TestDetectHookMarkerState_ReversedOrder(t *testing.T) {
 }
 
 func TestDetectHookMarkerState_ValidSingle(t *testing.T) {
-	content := "#!/bin/sh\n# --- BEGIN BEADS INTEGRATION v0.57.0 ---\nbd hook pre-commit \"$@\"\n# --- END BEADS INTEGRATION v0.57.0 ---\n"
+	content := "#!/bin/sh\n# --- BEGIN ISSUEGRAPH INTEGRATION v0.57.0 ---\nbd hook pre-commit \"$@\"\n# --- END ISSUEGRAPH INTEGRATION v0.57.0 ---\n"
 	got := detectHookMarkerState(content)
 	if got != hookMarkerStateValid {
 		t.Fatalf("expected valid for correct single marker block, got %q", got)

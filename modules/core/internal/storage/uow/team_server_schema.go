@@ -4,8 +4,8 @@ import (
 	"context"
 	"fmt"
 
-	"github.com/steveyegge/beads/internal/storage/issueops"
-	"github.com/steveyegge/beads/internal/storage/schema"
+	"github.com/borg0ai/dx-issuegraph/internal/storage/issueops"
+	"github.com/borg0ai/dx-issuegraph/internal/storage/schema"
 )
 
 // checkTeamServerSchema verifies that a bts-managed database's schema version
@@ -19,16 +19,16 @@ func checkTeamServerSchema(ctx context.Context, conn schema.DBConn, database str
 	switch {
 	case current == 0:
 		return fmt.Errorf(
-			"uow: database %q has no beads schema — the schema is managed by beads-team-server; ask your operator to run 'bts init' first",
+			"uow: database %q has no issuegraph schema — the schema is managed by issuegraph-team-server; ask your operator to run 'bts init' first",
 			database)
 	case current > latest:
 		return schema.CheckForwardDrift(ctx, conn)
 	case current < latest:
-		// No BD_IGNORE_SCHEMA_SKEW hatch here: it would let a newer bd write
+		// No ISSUEGRAPH_IGNORE_SCHEMA_SKEW hatch here: it would let a newer issuegraph write
 		// against an older bts schema. Not SchemaBehindError either: its "run
-		// any bd write command to migrate" advice is wrong for a bts-owned schema.
+		// any issuegraph write command to migrate" advice is wrong for a bts-owned schema.
 		return fmt.Errorf(
-			"uow: database %q is at schema v%d, this bd expects v%d; the schema is managed by beads-team-server — ask your operator to run 'bts migrate', or use a bd built against schema v%d",
+			"uow: database %q is at schema v%d, this issuegraph expects v%d; the schema is managed by issuegraph-team-server — ask your operator to run 'bts migrate', or use a issuegraph built against schema v%d",
 			database, current, latest, current)
 	}
 	return nil
@@ -40,16 +40,16 @@ func checkTeamServerSchema(ctx context.Context, conn schema.DBConn, database str
 //
 // The proxied/team-server path never constructs a DoltStore, so
 // DoltStore.verifyProjectIdentity — which guards every non-CreateIfMissing
-// gateway open — is unreachable here. `bd init --team-server` ADOPTS whatever
+// gateway open — is unreachable here. `issuegraph init --team-server` ADOPTS whatever
 // identity the shared database carries (it has no expected value to assert
 // against), and before this check nothing re-asserted it on any later open.
-// That was tolerable while proxied-server meant a per-workspace database bd
-// created itself; --team-server points bd at a long-lived operator-managed
+// That was tolerable while proxied-server meant a per-workspace database issuegraph
+// created itself; --team-server points issuegraph at a long-lived operator-managed
 // database selectable per invocation via --database, which is exactly the
 // "serving a DIFFERENT project" case the gateway guard exists to catch.
 //
 // expectedProjectID is empty for the paths that legitimately have no
-// assertion to make (`bd init`, which adopts, and server-wide database
+// assertion to make (`issuegraph init`, which adopts, and server-wide database
 // maintenance); those skip the check.
 func checkTeamServerIdentity(ctx context.Context, conn schema.DBConn, database, expectedProjectID string) error {
 	// Soft-skip semantics deliberately mirror DoltStore.verifyProjectIdentity:
@@ -60,7 +60,7 @@ func checkTeamServerIdentity(ctx context.Context, conn schema.DBConn, database, 
 		return nil
 	}
 	// A read error is surfaced rather than skipped: checkTeamServerSchema has
-	// already proven the beads schema is present at this binary's version, so
+	// already proven the issuegraph schema is present at this binary's version, so
 	// the metadata table exists and a failure here is a real fault, not the
 	// legacy-database case verifyProjectIdentity tolerates.
 	dbProjectID, err := issueops.GetMetadataInTx(ctx, conn, "_project_id")
@@ -75,7 +75,7 @@ func checkTeamServerIdentity(ctx context.Context, conn schema.DBConn, database, 
 	// disables this guard for every client.
 	if dbProjectID == "" {
 		return fmt.Errorf(
-			"uow: database %q has no project identity (metadata._project_id) — the schema is managed by beads-team-server; ask your operator to provision it with 'bts init' (or heal an older bts database with 'bts migrate')",
+			"uow: database %q has no project identity (metadata._project_id) — the schema is managed by issuegraph-team-server; ask your operator to provision it with 'bts init' (or heal an older bts database with 'bts migrate')",
 			database)
 	}
 	if dbProjectID != expectedProjectID {
@@ -86,10 +86,10 @@ func checkTeamServerIdentity(ctx context.Context, conn schema.DBConn, database, 
 				"The team server is serving a DIFFERENT project's database.\n"+
 				"This can happen when:\n"+
 				"  - --database (or a --db name override) points at another project\n"+
-				"  - the configured dolt_database was repointed after 'bd init'\n"+
+				"  - the configured dolt_database was repointed after 'issuegraph init'\n"+
 				"  - the operator re-provisioned this database for another project\n\n"+
-				"Check dolt_database in .beads/metadata.json and any --database/--db\n"+
-				"override. 'bd init --team-server' re-adopts the provisioned identity\n"+
+				"Check dolt_database in .issuegraph/metadata.json and any --database/--db\n"+
+				"override. 'issuegraph init --team-server' re-adopts the provisioned identity\n"+
 				"and never writes to the shared database, so it is safe to re-run.",
 			expectedProjectID, database, dbProjectID)
 	}

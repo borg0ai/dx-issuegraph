@@ -14,44 +14,44 @@ import (
 	"testing"
 )
 
-func bdProxiedDep(t *testing.T, bd, dir string, args ...string) string {
+func issuegraphProxiedDep(t *testing.T, issuegraph, dir string, args ...string) string {
 	t.Helper()
 	fullArgs := append([]string{"dep"}, args...)
-	cmd := exec.Command(bd, fullArgs...)
+	cmd := exec.Command(issuegraph, fullArgs...)
 	cmd.Dir = dir
-	cmd.Env = bdProxiedEnv(dir)
+	cmd.Env = issuegraphProxiedEnv(dir)
 	stdout, stderr, err := runCommandBuffers(t, cmd)
 	if err != nil {
-		t.Fatalf("bd dep %s failed: %v\nstdout:\n%s\nstderr:\n%s",
+		t.Fatalf("issuegraph dep %s failed: %v\nstdout:\n%s\nstderr:\n%s",
 			strings.Join(args, " "), err, stdout.String(), stderr.String())
 	}
 	return stdout.String()
 }
 
-func bdProxiedDepFail(t *testing.T, bd, dir string, args ...string) string {
+func issuegraphProxiedDepFail(t *testing.T, issuegraph, dir string, args ...string) string {
 	t.Helper()
 	fullArgs := append([]string{"dep"}, args...)
-	cmd := exec.Command(bd, fullArgs...)
+	cmd := exec.Command(issuegraph, fullArgs...)
 	cmd.Dir = dir
-	cmd.Env = bdProxiedEnv(dir)
+	cmd.Env = issuegraphProxiedEnv(dir)
 	out, err := cmd.CombinedOutput()
 	if err == nil {
-		t.Fatalf("expected bd dep %s to fail, but succeeded:\n%s",
+		t.Fatalf("expected issuegraph dep %s to fail, but succeeded:\n%s",
 			strings.Join(args, " "), out)
 	}
 	return string(out)
 }
 
-func bdProxiedDepJSON(t *testing.T, bd, dir string, args ...string) map[string]interface{} {
+func issuegraphProxiedDepJSON(t *testing.T, issuegraph, dir string, args ...string) map[string]interface{} {
 	t.Helper()
 	fullArgs := append([]string{"dep"}, args...)
 	fullArgs = append(fullArgs, "--json")
-	cmd := exec.Command(bd, fullArgs...)
+	cmd := exec.Command(issuegraph, fullArgs...)
 	cmd.Dir = dir
-	cmd.Env = bdProxiedEnv(dir)
+	cmd.Env = issuegraphProxiedEnv(dir)
 	stdout, stderr, err := runCommandBuffers(t, cmd)
 	if err != nil {
-		t.Fatalf("bd dep --json %s failed: %v\nstdout:\n%s\nstderr:\n%s",
+		t.Fatalf("issuegraph dep --json %s failed: %v\nstdout:\n%s\nstderr:\n%s",
 			strings.Join(args, " "), err, stdout.String(), stderr.String())
 	}
 	s := strings.TrimSpace(stdout.String())
@@ -66,16 +66,16 @@ func bdProxiedDepJSON(t *testing.T, bd, dir string, args ...string) map[string]i
 	return m
 }
 
-func bdProxiedDepJSONArray(t *testing.T, bd, dir string, args ...string) []interface{} {
+func issuegraphProxiedDepJSONArray(t *testing.T, issuegraph, dir string, args ...string) []interface{} {
 	t.Helper()
 	fullArgs := append([]string{"dep"}, args...)
 	fullArgs = append(fullArgs, "--json")
-	cmd := exec.Command(bd, fullArgs...)
+	cmd := exec.Command(issuegraph, fullArgs...)
 	cmd.Dir = dir
-	cmd.Env = bdProxiedEnv(dir)
+	cmd.Env = issuegraphProxiedEnv(dir)
 	stdout, stderr, err := runCommandBuffers(t, cmd)
 	if err != nil {
-		t.Fatalf("bd dep --json %s failed: %v\nstdout:\n%s\nstderr:\n%s",
+		t.Fatalf("issuegraph dep --json %s failed: %v\nstdout:\n%s\nstderr:\n%s",
 			strings.Join(args, " "), err, stdout.String(), stderr.String())
 	}
 	s := strings.TrimSpace(stdout.String())
@@ -90,31 +90,31 @@ func bdProxiedDepJSONArray(t *testing.T, bd, dir string, args ...string) []inter
 	return arr
 }
 
-func bdProxiedDepWithInput(t *testing.T, bd, dir, input string, args ...string) string {
+func issuegraphProxiedDepWithInput(t *testing.T, issuegraph, dir, input string, args ...string) string {
 	t.Helper()
 	fullArgs := append([]string{"dep"}, args...)
-	cmd := exec.Command(bd, fullArgs...)
+	cmd := exec.Command(issuegraph, fullArgs...)
 	cmd.Dir = dir
-	cmd.Env = bdProxiedEnv(dir)
+	cmd.Env = issuegraphProxiedEnv(dir)
 	cmd.Stdin = strings.NewReader(input)
 	stdout, stderr, err := runCommandBuffers(t, cmd)
 	if err != nil {
-		t.Fatalf("bd dep %s failed: %v\nstdout:\n%s\nstderr:\n%s",
+		t.Fatalf("issuegraph dep %s failed: %v\nstdout:\n%s\nstderr:\n%s",
 			strings.Join(args, " "), err, stdout.String(), stderr.String())
 	}
 	return stdout.String()
 }
 
-func bdProxiedDepWithInputFail(t *testing.T, bd, dir, input string, args ...string) string {
+func issuegraphProxiedDepWithInputFail(t *testing.T, issuegraph, dir, input string, args ...string) string {
 	t.Helper()
 	fullArgs := append([]string{"dep"}, args...)
-	cmd := exec.Command(bd, fullArgs...)
+	cmd := exec.Command(issuegraph, fullArgs...)
 	cmd.Dir = dir
-	cmd.Env = bdProxiedEnv(dir)
+	cmd.Env = issuegraphProxiedEnv(dir)
 	cmd.Stdin = strings.NewReader(input)
 	out, err := cmd.CombinedOutput()
 	if err == nil {
-		t.Fatalf("expected bd dep %s to fail, but succeeded:\n%s",
+		t.Fatalf("expected issuegraph dep %s to fail, but succeeded:\n%s",
 			strings.Join(args, " "), out)
 	}
 	return string(out)
@@ -123,16 +123,16 @@ func bdProxiedDepWithInputFail(t *testing.T, bd, dir, input string, args ...stri
 func TestProxiedServerDep(t *testing.T) {
 	requireSharedProxiedServer(t)
 	t.Parallel()
-	bd := buildEmbeddedBD(t)
+	issuegraph := buildEmbeddedBD(t)
 
 	t.Run("Blocks", func(t *testing.T) {
 		t.Parallel()
 		t.Run("happy_path", func(t *testing.T) {
 			t.Parallel()
-			p := newSharedProxiedProject(t, bd, "dpb1")
-			a := bdProxiedCreate(t, bd, p.dir, "Block A", "--type", "task")
-			b := bdProxiedCreate(t, bd, p.dir, "Block B", "--type", "task")
-			out := bdProxiedDep(t, bd, p.dir, a.ID, "--blocks", b.ID)
+			p := newSharedProxiedProject(t, issuegraph, "dpb1")
+			a := issuegraphProxiedCreate(t, issuegraph, p.dir, "Block A", "--type", "task")
+			b := issuegraphProxiedCreate(t, issuegraph, p.dir, "Block B", "--type", "task")
+			out := issuegraphProxiedDep(t, issuegraph, p.dir, a.ID, "--blocks", b.ID)
 			if !strings.Contains(out, "Added") || !strings.Contains(out, "blocks") {
 				t.Errorf("expected 'Added ... blocks' output: %s", out)
 			}
@@ -143,10 +143,10 @@ func TestProxiedServerDep(t *testing.T) {
 		t.Parallel()
 		t.Run("positional_args", func(t *testing.T) {
 			t.Parallel()
-			p := newSharedProxiedProject(t, bd, "dpa1")
-			a := bdProxiedCreate(t, bd, p.dir, "Pos A", "--type", "task")
-			b := bdProxiedCreate(t, bd, p.dir, "Pos B", "--type", "task")
-			out := bdProxiedDep(t, bd, p.dir, "add", a.ID, b.ID)
+			p := newSharedProxiedProject(t, issuegraph, "dpa1")
+			a := issuegraphProxiedCreate(t, issuegraph, p.dir, "Pos A", "--type", "task")
+			b := issuegraphProxiedCreate(t, issuegraph, p.dir, "Pos B", "--type", "task")
+			out := issuegraphProxiedDep(t, issuegraph, p.dir, "add", a.ID, b.ID)
 			if !strings.Contains(out, "Added dependency") {
 				t.Errorf("expected 'Added dependency': %s", out)
 			}
@@ -154,13 +154,13 @@ func TestProxiedServerDep(t *testing.T) {
 
 		t.Run("type_parent_child", func(t *testing.T) {
 			t.Parallel()
-			p := newSharedProxiedProject(t, bd, "dpa2")
-			epic := bdProxiedCreate(t, bd, p.dir, "Epic", "--type", "epic")
-			c1 := bdProxiedCreate(t, bd, p.dir, "Child 1", "--type", "task")
-			c2 := bdProxiedCreate(t, bd, p.dir, "Child 2", "--type", "task")
-			bdProxiedDep(t, bd, p.dir, "add", c1.ID, epic.ID, "--type", "parent-child")
-			bdProxiedDep(t, bd, p.dir, "add", c2.ID, epic.ID, "--type", "parent-child")
-			out := bdProxiedDep(t, bd, p.dir, "list", epic.ID, "--direction", "up")
+			p := newSharedProxiedProject(t, issuegraph, "dpa2")
+			epic := issuegraphProxiedCreate(t, issuegraph, p.dir, "Epic", "--type", "epic")
+			c1 := issuegraphProxiedCreate(t, issuegraph, p.dir, "Child 1", "--type", "task")
+			c2 := issuegraphProxiedCreate(t, issuegraph, p.dir, "Child 2", "--type", "task")
+			issuegraphProxiedDep(t, issuegraph, p.dir, "add", c1.ID, epic.ID, "--type", "parent-child")
+			issuegraphProxiedDep(t, issuegraph, p.dir, "add", c2.ID, epic.ID, "--type", "parent-child")
+			out := issuegraphProxiedDep(t, issuegraph, p.dir, "list", epic.ID, "--direction", "up")
 			if !strings.Contains(out, c1.ID) || !strings.Contains(out, c2.ID) {
 				t.Errorf("expected both children in dependents: %s", out)
 			}
@@ -168,11 +168,11 @@ func TestProxiedServerDep(t *testing.T) {
 
 		t.Run("type_tracks", func(t *testing.T) {
 			t.Parallel()
-			p := newSharedProxiedProject(t, bd, "dpa3")
-			tracker := bdProxiedCreate(t, bd, p.dir, "Tracker", "--type", "task")
-			tracked := bdProxiedCreate(t, bd, p.dir, "Tracked", "--type", "task")
-			bdProxiedDep(t, bd, p.dir, "add", tracker.ID, tracked.ID, "--type", "tracks")
-			out := bdProxiedDep(t, bd, p.dir, "list", tracker.ID)
+			p := newSharedProxiedProject(t, issuegraph, "dpa3")
+			tracker := issuegraphProxiedCreate(t, issuegraph, p.dir, "Tracker", "--type", "task")
+			tracked := issuegraphProxiedCreate(t, issuegraph, p.dir, "Tracked", "--type", "task")
+			issuegraphProxiedDep(t, issuegraph, p.dir, "add", tracker.ID, tracked.ID, "--type", "tracks")
+			out := issuegraphProxiedDep(t, issuegraph, p.dir, "list", tracker.ID)
 			if !strings.Contains(out, tracked.ID) {
 				t.Errorf("expected tracked issue in deps: %s", out)
 			}
@@ -180,10 +180,10 @@ func TestProxiedServerDep(t *testing.T) {
 
 		t.Run("type_related", func(t *testing.T) {
 			t.Parallel()
-			p := newSharedProxiedProject(t, bd, "dpa4")
-			r1 := bdProxiedCreate(t, bd, p.dir, "Related 1", "--type", "task")
-			r2 := bdProxiedCreate(t, bd, p.dir, "Related 2", "--type", "task")
-			out := bdProxiedDep(t, bd, p.dir, "add", r1.ID, r2.ID, "--type", "related")
+			p := newSharedProxiedProject(t, issuegraph, "dpa4")
+			r1 := issuegraphProxiedCreate(t, issuegraph, p.dir, "Related 1", "--type", "task")
+			r2 := issuegraphProxiedCreate(t, issuegraph, p.dir, "Related 2", "--type", "task")
+			out := issuegraphProxiedDep(t, issuegraph, p.dir, "add", r1.ID, r2.ID, "--type", "related")
 			if !strings.Contains(out, "Added dependency") {
 				t.Errorf("expected related edge accepted: %s", out)
 			}
@@ -191,11 +191,11 @@ func TestProxiedServerDep(t *testing.T) {
 
 		t.Run("blocked_by_flag", func(t *testing.T) {
 			t.Parallel()
-			p := newSharedProxiedProject(t, bd, "dpa5")
-			x := bdProxiedCreate(t, bd, p.dir, "Blocked", "--type", "task")
-			y := bdProxiedCreate(t, bd, p.dir, "Blocker", "--type", "task")
-			bdProxiedDep(t, bd, p.dir, "add", x.ID, "--blocked-by", y.ID)
-			out := bdProxiedDep(t, bd, p.dir, "list", x.ID)
+			p := newSharedProxiedProject(t, issuegraph, "dpa5")
+			x := issuegraphProxiedCreate(t, issuegraph, p.dir, "Blocked", "--type", "task")
+			y := issuegraphProxiedCreate(t, issuegraph, p.dir, "Blocker", "--type", "task")
+			issuegraphProxiedDep(t, issuegraph, p.dir, "add", x.ID, "--blocked-by", y.ID)
+			out := issuegraphProxiedDep(t, issuegraph, p.dir, "list", x.ID)
 			if !strings.Contains(out, y.ID) {
 				t.Errorf("expected blocker in deps: %s", out)
 			}
@@ -203,11 +203,11 @@ func TestProxiedServerDep(t *testing.T) {
 
 		t.Run("depends_on_flag", func(t *testing.T) {
 			t.Parallel()
-			p := newSharedProxiedProject(t, bd, "dpa6")
-			x := bdProxiedCreate(t, bd, p.dir, "Dependent", "--type", "task")
-			y := bdProxiedCreate(t, bd, p.dir, "Dependency", "--type", "task")
-			bdProxiedDep(t, bd, p.dir, "add", x.ID, "--depends-on", y.ID)
-			out := bdProxiedDep(t, bd, p.dir, "list", x.ID)
+			p := newSharedProxiedProject(t, issuegraph, "dpa6")
+			x := issuegraphProxiedCreate(t, issuegraph, p.dir, "Dependent", "--type", "task")
+			y := issuegraphProxiedCreate(t, issuegraph, p.dir, "Dependency", "--type", "task")
+			issuegraphProxiedDep(t, issuegraph, p.dir, "add", x.ID, "--depends-on", y.ID)
+			out := issuegraphProxiedDep(t, issuegraph, p.dir, "list", x.ID)
 			if !strings.Contains(out, y.ID) {
 				t.Errorf("expected dependency in deps: %s", out)
 			}
@@ -215,11 +215,11 @@ func TestProxiedServerDep(t *testing.T) {
 
 		t.Run("cycle_rejected", func(t *testing.T) {
 			t.Parallel()
-			p := newSharedProxiedProject(t, bd, "dpa7")
-			a := bdProxiedCreate(t, bd, p.dir, "Cyc A", "--type", "task")
-			b := bdProxiedCreate(t, bd, p.dir, "Cyc B", "--type", "task")
-			bdProxiedDep(t, bd, p.dir, "add", a.ID, b.ID)
-			out := bdProxiedDepFail(t, bd, p.dir, "add", b.ID, a.ID)
+			p := newSharedProxiedProject(t, issuegraph, "dpa7")
+			a := issuegraphProxiedCreate(t, issuegraph, p.dir, "Cyc A", "--type", "task")
+			b := issuegraphProxiedCreate(t, issuegraph, p.dir, "Cyc B", "--type", "task")
+			issuegraphProxiedDep(t, issuegraph, p.dir, "add", a.ID, b.ID)
+			out := issuegraphProxiedDepFail(t, issuegraph, p.dir, "add", b.ID, a.ID)
 			if !strings.Contains(strings.ToLower(out), "cycle") {
 				t.Errorf("expected 'cycle' error: %s", out)
 			}
@@ -227,10 +227,10 @@ func TestProxiedServerDep(t *testing.T) {
 
 		t.Run("child_parent_antipattern", func(t *testing.T) {
 			t.Parallel()
-			p := newSharedProxiedProject(t, bd, "dpa8")
-			parent := bdProxiedCreate(t, bd, p.dir, "AP Parent", "--type", "epic")
-			child := bdProxiedCreate(t, bd, p.dir, "AP Child", "--type", "task", "--parent", parent.ID)
-			out := bdProxiedDepFail(t, bd, p.dir, "add", child.ID, parent.ID)
+			p := newSharedProxiedProject(t, issuegraph, "dpa8")
+			parent := issuegraphProxiedCreate(t, issuegraph, p.dir, "AP Parent", "--type", "epic")
+			child := issuegraphProxiedCreate(t, issuegraph, p.dir, "AP Child", "--type", "task", "--parent", parent.ID)
+			out := issuegraphProxiedDepFail(t, issuegraph, p.dir, "add", child.ID, parent.ID)
 			if !strings.Contains(out, "child") && !strings.Contains(out, "deadlock") {
 				t.Errorf("expected child→parent rejection: %s", out)
 			}
@@ -238,10 +238,10 @@ func TestProxiedServerDep(t *testing.T) {
 
 		t.Run("json_output", func(t *testing.T) {
 			t.Parallel()
-			p := newSharedProxiedProject(t, bd, "dpa9")
-			j1 := bdProxiedCreate(t, bd, p.dir, "JSON A", "--type", "task")
-			j2 := bdProxiedCreate(t, bd, p.dir, "JSON B", "--type", "task")
-			m := bdProxiedDepJSON(t, bd, p.dir, "add", j1.ID, j2.ID)
+			p := newSharedProxiedProject(t, issuegraph, "dpa9")
+			j1 := issuegraphProxiedCreate(t, issuegraph, p.dir, "JSON A", "--type", "task")
+			j2 := issuegraphProxiedCreate(t, issuegraph, p.dir, "JSON B", "--type", "task")
+			m := issuegraphProxiedDepJSON(t, issuegraph, p.dir, "add", j1.ID, j2.ID)
 			if m["status"] != "added" {
 				t.Errorf("expected status=added, got %v", m["status"])
 			}
@@ -252,25 +252,25 @@ func TestProxiedServerDep(t *testing.T) {
 
 		t.Run("bulk_file_jsonl", func(t *testing.T) {
 			t.Parallel()
-			p := newSharedProxiedProject(t, bd, "dpa10")
-			b1 := bdProxiedCreate(t, bd, p.dir, "Bulk A", "--type", "task")
-			b2 := bdProxiedCreate(t, bd, p.dir, "Bulk B", "--type", "task")
-			b3 := bdProxiedCreate(t, bd, p.dir, "Bulk C", "--type", "task")
+			p := newSharedProxiedProject(t, issuegraph, "dpa10")
+			b1 := issuegraphProxiedCreate(t, issuegraph, p.dir, "Bulk A", "--type", "task")
+			b2 := issuegraphProxiedCreate(t, issuegraph, p.dir, "Bulk B", "--type", "task")
+			b3 := issuegraphProxiedCreate(t, issuegraph, p.dir, "Bulk C", "--type", "task")
 			path := filepath.Join(t.TempDir(), "deps.jsonl")
 			body := fmt.Sprintf("{\"from\":%q,\"to\":%q}\n{\"issue_id\":%q,\"depends_on_id\":%q,\"type\":\"tracks\"}\n",
 				b1.ID, b2.ID, b3.ID, b2.ID)
 			if err := os.WriteFile(path, []byte(body), 0o600); err != nil {
 				t.Fatalf("write deps file: %v", err)
 			}
-			out := bdProxiedDep(t, bd, p.dir, "add", "--file", path)
+			out := issuegraphProxiedDep(t, issuegraph, p.dir, "add", "--file", path)
 			if !strings.Contains(out, "Added 2 dependencies") {
 				t.Fatalf("expected bulk add summary: %s", out)
 			}
-			list1 := bdProxiedDep(t, bd, p.dir, "list", b1.ID)
+			list1 := issuegraphProxiedDep(t, issuegraph, p.dir, "list", b1.ID)
 			if !strings.Contains(list1, b2.ID) {
 				t.Fatalf("expected first bulk dep in list: %s", list1)
 			}
-			list3 := bdProxiedDep(t, bd, p.dir, "list", b3.ID)
+			list3 := issuegraphProxiedDep(t, issuegraph, p.dir, "list", b3.ID)
 			if !strings.Contains(list3, b2.ID) || !strings.Contains(list3, "tracks") {
 				t.Fatalf("expected typed bulk dep in list: %s", list3)
 			}
@@ -278,20 +278,20 @@ func TestProxiedServerDep(t *testing.T) {
 
 		t.Run("bulk_file_validation_atomic", func(t *testing.T) {
 			t.Parallel()
-			p := newSharedProxiedProject(t, bd, "dpa11")
-			v1 := bdProxiedCreate(t, bd, p.dir, "Valid A", "--type", "task")
-			v2 := bdProxiedCreate(t, bd, p.dir, "Valid B", "--type", "task")
+			p := newSharedProxiedProject(t, issuegraph, "dpa11")
+			v1 := issuegraphProxiedCreate(t, issuegraph, p.dir, "Valid A", "--type", "task")
+			v2 := issuegraphProxiedCreate(t, issuegraph, p.dir, "Valid B", "--type", "task")
 			path := filepath.Join(t.TempDir(), "bad-deps.jsonl")
 			body := fmt.Sprintf("{\"from\":%q,\"to\":%q}\n{\"from\":\"\",\"to\":%q}\n{\"from\":%q,\"to\":\"\"}\n",
 				v1.ID, v2.ID, v2.ID, v1.ID)
 			if err := os.WriteFile(path, []byte(body), 0o600); err != nil {
 				t.Fatalf("write bad deps file: %v", err)
 			}
-			out := bdProxiedDepFail(t, bd, p.dir, "add", "--file", path)
+			out := issuegraphProxiedDepFail(t, issuegraph, p.dir, "add", "--file", path)
 			if !strings.Contains(out, "line 2: missing from") || !strings.Contains(out, "line 3: missing to") {
 				t.Fatalf("expected all validation errors: %s", out)
 			}
-			list := bdProxiedDep(t, bd, p.dir, "list", v1.ID)
+			list := issuegraphProxiedDep(t, issuegraph, p.dir, "list", v1.ID)
 			if strings.Contains(list, v2.ID) {
 				t.Fatalf("bulk validation failure should not partial-commit: %s", list)
 			}
@@ -299,48 +299,48 @@ func TestProxiedServerDep(t *testing.T) {
 
 		t.Run("no_cycle_check_chain", func(t *testing.T) {
 			t.Parallel()
-			p := newSharedProxiedProject(t, bd, "dpa12")
+			p := newSharedProxiedProject(t, issuegraph, "dpa12")
 			const n = 10
 			ids := make([]string, n)
 			for i := 0; i < n; i++ {
-				issue := bdProxiedCreate(t, bd, p.dir, fmt.Sprintf("chain-%d", i), "--type", "task")
+				issue := issuegraphProxiedCreate(t, issuegraph, p.dir, fmt.Sprintf("chain-%d", i), "--type", "task")
 				ids[i] = issue.ID
 			}
 			for i := 1; i < n; i++ {
-				out := bdProxiedDep(t, bd, p.dir, "add", ids[i], ids[i-1], "--no-cycle-check")
+				out := issuegraphProxiedDep(t, issuegraph, p.dir, "add", ids[i], ids[i-1], "--no-cycle-check")
 				if strings.Contains(out, "cycle") {
 					t.Errorf("unexpected cycle output with --no-cycle-check: %s", out)
 				}
 			}
-			cyclesOut := bdProxiedDep(t, bd, p.dir, "cycles")
+			cyclesOut := issuegraphProxiedDep(t, issuegraph, p.dir, "cycles")
 			if strings.Contains(cyclesOut, "Found") {
 				t.Errorf("unexpected cycles after acyclic chain wiring: %s", cyclesOut)
 			}
-			extra := bdProxiedCreate(t, bd, p.dir, "chain-extra", "--type", "task")
-			bdProxiedDep(t, bd, p.dir, extra.ID, "--blocks", ids[n-1], "--no-cycle-check")
+			extra := issuegraphProxiedCreate(t, issuegraph, p.dir, "chain-extra", "--type", "task")
+			issuegraphProxiedDep(t, issuegraph, p.dir, extra.ID, "--blocks", ids[n-1], "--no-cycle-check")
 		})
 
 		t.Run("bulk_no_cycle_check_whole_graph_gate", func(t *testing.T) {
 			t.Parallel()
-			p := newSharedProxiedProject(t, bd, "dpa13")
-			a := bdProxiedCreate(t, bd, p.dir, "Gate A", "--type", "task")
-			b := bdProxiedCreate(t, bd, p.dir, "Gate B", "--type", "task")
-			c := bdProxiedCreate(t, bd, p.dir, "Gate C", "--type", "task")
+			p := newSharedProxiedProject(t, issuegraph, "dpa13")
+			a := issuegraphProxiedCreate(t, issuegraph, p.dir, "Gate A", "--type", "task")
+			b := issuegraphProxiedCreate(t, issuegraph, p.dir, "Gate B", "--type", "task")
+			c := issuegraphProxiedCreate(t, issuegraph, p.dir, "Gate C", "--type", "task")
 
 			okInput := fmt.Sprintf("{\"from\":%q,\"to\":%q}\n{\"from\":%q,\"to\":%q}\n",
 				a.ID, b.ID, b.ID, c.ID)
-			out := bdProxiedDepWithInput(t, bd, p.dir, okInput, "add", "--file", "-", "--no-cycle-check")
+			out := issuegraphProxiedDepWithInput(t, issuegraph, p.dir, okInput, "add", "--file", "-", "--no-cycle-check")
 			if !strings.Contains(out, "Added 2 dependencies") {
 				t.Fatalf("expected acyclic bulk add summary: %s", out)
 			}
 
 			cycleInput := fmt.Sprintf("{\"from\":%q,\"to\":%q}\n", c.ID, a.ID)
-			failOut := bdProxiedDepWithInputFail(t, bd, p.dir, cycleInput, "add", "--file", "-", "--no-cycle-check")
+			failOut := issuegraphProxiedDepWithInputFail(t, issuegraph, p.dir, cycleInput, "add", "--file", "-", "--no-cycle-check")
 			if !strings.Contains(strings.ToLower(failOut), "cycle") {
 				t.Fatalf("expected whole-graph cycle rejection: %s", failOut)
 			}
 
-			cycles := bdProxiedDep(t, bd, p.dir, "cycles")
+			cycles := issuegraphProxiedDep(t, issuegraph, p.dir, "cycles")
 			if !strings.Contains(cycles, "No dependency cycles detected") {
 				t.Fatalf("expected rolled-back bulk add to leave graph acyclic: %s", cycles)
 			}
@@ -348,11 +348,11 @@ func TestProxiedServerDep(t *testing.T) {
 
 		t.Run("commit_visible_to_subsequent_invocation", func(t *testing.T) {
 			t.Parallel()
-			p := newSharedProxiedProject(t, bd, "dpa14")
-			a := bdProxiedCreate(t, bd, p.dir, "Commit A", "--type", "task")
-			b := bdProxiedCreate(t, bd, p.dir, "Commit B", "--type", "task")
-			bdProxiedDep(t, bd, p.dir, "add", a.ID, b.ID)
-			out := bdProxiedDep(t, bd, p.dir, "list", a.ID)
+			p := newSharedProxiedProject(t, issuegraph, "dpa14")
+			a := issuegraphProxiedCreate(t, issuegraph, p.dir, "Commit A", "--type", "task")
+			b := issuegraphProxiedCreate(t, issuegraph, p.dir, "Commit B", "--type", "task")
+			issuegraphProxiedDep(t, issuegraph, p.dir, "add", a.ID, b.ID)
+			out := issuegraphProxiedDep(t, issuegraph, p.dir, "list", a.ID)
 			if !strings.Contains(out, b.ID) {
 				t.Fatalf("dep not visible in fresh CLI invocation after add: %s", out)
 			}
@@ -360,12 +360,12 @@ func TestProxiedServerDep(t *testing.T) {
 
 		t.Run("bulk_external_ref_passthrough", func(t *testing.T) {
 			t.Parallel()
-			p := newSharedProxiedProject(t, bd, "dpa15")
-			src := bdProxiedCreate(t, bd, p.dir, "Ext src", "--type", "task")
+			p := newSharedProxiedProject(t, issuegraph, "dpa15")
+			src := issuegraphProxiedCreate(t, issuegraph, p.dir, "Ext src", "--type", "task")
 			input := fmt.Sprintf("{\"from\":%q,\"to\":\"external:other:capability\"}\n", src.ID)
-			cmd := exec.Command(bd, "dep", "add", "--file", "-")
+			cmd := exec.Command(issuegraph, "dep", "add", "--file", "-")
 			cmd.Dir = p.dir
-			cmd.Env = bdProxiedEnv(p.dir)
+			cmd.Env = issuegraphProxiedEnv(p.dir)
 			cmd.Stdin = strings.NewReader(input)
 			out, err := cmd.CombinedOutput()
 			if err != nil {
@@ -385,17 +385,17 @@ func TestProxiedServerDep(t *testing.T) {
 func TestProxiedServerDep2(t *testing.T) {
 	requireSharedProxiedServer(t)
 	t.Parallel()
-	bd := buildEmbeddedBD(t)
+	issuegraph := buildEmbeddedBD(t)
 
 	t.Run("Remove", func(t *testing.T) {
 		t.Parallel()
 		t.Run("basic", func(t *testing.T) {
 			t.Parallel()
-			p := newSharedProxiedProject(t, bd, "dpr1")
-			a := bdProxiedCreate(t, bd, p.dir, "Rm A", "--type", "task")
-			b := bdProxiedCreate(t, bd, p.dir, "Rm B", "--type", "task")
-			bdProxiedDep(t, bd, p.dir, "add", a.ID, b.ID)
-			out := bdProxiedDep(t, bd, p.dir, "remove", a.ID, b.ID)
+			p := newSharedProxiedProject(t, issuegraph, "dpr1")
+			a := issuegraphProxiedCreate(t, issuegraph, p.dir, "Rm A", "--type", "task")
+			b := issuegraphProxiedCreate(t, issuegraph, p.dir, "Rm B", "--type", "task")
+			issuegraphProxiedDep(t, issuegraph, p.dir, "add", a.ID, b.ID)
+			out := issuegraphProxiedDep(t, issuegraph, p.dir, "remove", a.ID, b.ID)
 			if !strings.Contains(out, "Removed") {
 				t.Errorf("expected 'Removed': %s", out)
 			}
@@ -403,11 +403,11 @@ func TestProxiedServerDep2(t *testing.T) {
 
 		t.Run("rm_alias", func(t *testing.T) {
 			t.Parallel()
-			p := newSharedProxiedProject(t, bd, "dpr2")
-			a := bdProxiedCreate(t, bd, p.dir, "Rm A", "--type", "task")
-			b := bdProxiedCreate(t, bd, p.dir, "Rm B", "--type", "task")
-			bdProxiedDep(t, bd, p.dir, "add", a.ID, b.ID)
-			out := bdProxiedDep(t, bd, p.dir, "rm", a.ID, b.ID)
+			p := newSharedProxiedProject(t, issuegraph, "dpr2")
+			a := issuegraphProxiedCreate(t, issuegraph, p.dir, "Rm A", "--type", "task")
+			b := issuegraphProxiedCreate(t, issuegraph, p.dir, "Rm B", "--type", "task")
+			issuegraphProxiedDep(t, issuegraph, p.dir, "add", a.ID, b.ID)
+			out := issuegraphProxiedDep(t, issuegraph, p.dir, "rm", a.ID, b.ID)
 			if !strings.Contains(out, "Removed") {
 				t.Errorf("expected 'Removed' via rm alias: %s", out)
 			}
@@ -415,11 +415,11 @@ func TestProxiedServerDep2(t *testing.T) {
 
 		t.Run("json_output", func(t *testing.T) {
 			t.Parallel()
-			p := newSharedProxiedProject(t, bd, "dpr3")
-			a := bdProxiedCreate(t, bd, p.dir, "Rm JSON A", "--type", "task")
-			b := bdProxiedCreate(t, bd, p.dir, "Rm JSON B", "--type", "task")
-			bdProxiedDep(t, bd, p.dir, "add", a.ID, b.ID)
-			m := bdProxiedDepJSON(t, bd, p.dir, "remove", a.ID, b.ID)
+			p := newSharedProxiedProject(t, issuegraph, "dpr3")
+			a := issuegraphProxiedCreate(t, issuegraph, p.dir, "Rm JSON A", "--type", "task")
+			b := issuegraphProxiedCreate(t, issuegraph, p.dir, "Rm JSON B", "--type", "task")
+			issuegraphProxiedDep(t, issuegraph, p.dir, "add", a.ID, b.ID)
+			m := issuegraphProxiedDepJSON(t, issuegraph, p.dir, "remove", a.ID, b.ID)
 			if m["status"] != "removed" {
 				t.Errorf("expected status=removed, got %v", m["status"])
 			}
@@ -430,14 +430,14 @@ func TestProxiedServerDep2(t *testing.T) {
 
 		t.Run("missing_edge_reports_noop", func(t *testing.T) {
 			t.Parallel()
-			p := newSharedProxiedProject(t, bd, "dpr4")
-			a := bdProxiedCreate(t, bd, p.dir, "Missing edge A", "--type", "task")
-			b := bdProxiedCreate(t, bd, p.dir, "Missing edge B", "--type", "task")
-			out := bdProxiedDep(t, bd, p.dir, "remove", a.ID, b.ID)
+			p := newSharedProxiedProject(t, issuegraph, "dpr4")
+			a := issuegraphProxiedCreate(t, issuegraph, p.dir, "Missing edge A", "--type", "task")
+			b := issuegraphProxiedCreate(t, issuegraph, p.dir, "Missing edge B", "--type", "task")
+			out := issuegraphProxiedDep(t, issuegraph, p.dir, "remove", a.ID, b.ID)
 			if !strings.Contains(out, "No dependency found") || strings.Contains(out, "✓") {
 				t.Errorf("missing edge should report a no-op, got: %s", out)
 			}
-			m := bdProxiedDepJSON(t, bd, p.dir, "remove", a.ID, b.ID)
+			m := issuegraphProxiedDepJSON(t, issuegraph, p.dir, "remove", a.ID, b.ID)
 			if m["status"] != "not_found" || m["removed"] != false {
 				t.Errorf("missing edge JSON = %v, want status=not_found removed=false", m)
 			}
@@ -448,11 +448,11 @@ func TestProxiedServerDep2(t *testing.T) {
 		t.Parallel()
 		t.Run("default_direction_down", func(t *testing.T) {
 			t.Parallel()
-			p := newSharedProxiedProject(t, bd, "dpl1")
-			a := bdProxiedCreate(t, bd, p.dir, "L A", "--type", "task")
-			b := bdProxiedCreate(t, bd, p.dir, "L B", "--type", "task")
-			bdProxiedDep(t, bd, p.dir, "add", a.ID, b.ID)
-			out := bdProxiedDep(t, bd, p.dir, "list", a.ID)
+			p := newSharedProxiedProject(t, issuegraph, "dpl1")
+			a := issuegraphProxiedCreate(t, issuegraph, p.dir, "L A", "--type", "task")
+			b := issuegraphProxiedCreate(t, issuegraph, p.dir, "L B", "--type", "task")
+			issuegraphProxiedDep(t, issuegraph, p.dir, "add", a.ID, b.ID)
+			out := issuegraphProxiedDep(t, issuegraph, p.dir, "list", a.ID)
 			if !strings.Contains(out, b.ID) {
 				t.Errorf("expected dependency in list output: %s", out)
 			}
@@ -460,11 +460,11 @@ func TestProxiedServerDep2(t *testing.T) {
 
 		t.Run("direction_up", func(t *testing.T) {
 			t.Parallel()
-			p := newSharedProxiedProject(t, bd, "dpl2")
-			a := bdProxiedCreate(t, bd, p.dir, "Up A", "--type", "task")
-			b := bdProxiedCreate(t, bd, p.dir, "Up B", "--type", "task")
-			bdProxiedDep(t, bd, p.dir, "add", a.ID, b.ID)
-			out := bdProxiedDep(t, bd, p.dir, "list", b.ID, "--direction", "up")
+			p := newSharedProxiedProject(t, issuegraph, "dpl2")
+			a := issuegraphProxiedCreate(t, issuegraph, p.dir, "Up A", "--type", "task")
+			b := issuegraphProxiedCreate(t, issuegraph, p.dir, "Up B", "--type", "task")
+			issuegraphProxiedDep(t, issuegraph, p.dir, "add", a.ID, b.ID)
+			out := issuegraphProxiedDep(t, issuegraph, p.dir, "list", b.ID, "--direction", "up")
 			if !strings.Contains(out, a.ID) {
 				t.Errorf("expected dependent in --direction up: %s", out)
 			}
@@ -472,13 +472,13 @@ func TestProxiedServerDep2(t *testing.T) {
 
 		t.Run("type_filter", func(t *testing.T) {
 			t.Parallel()
-			p := newSharedProxiedProject(t, bd, "dpl3")
-			epic := bdProxiedCreate(t, bd, p.dir, "TF epic", "--type", "epic")
-			c1 := bdProxiedCreate(t, bd, p.dir, "TF c1", "--type", "task")
-			c2 := bdProxiedCreate(t, bd, p.dir, "TF c2", "--type", "task")
-			bdProxiedDep(t, bd, p.dir, "add", c1.ID, epic.ID, "--type", "parent-child")
-			bdProxiedDep(t, bd, p.dir, "add", c2.ID, epic.ID, "--type", "parent-child")
-			out := bdProxiedDep(t, bd, p.dir, "list", epic.ID, "--direction", "up", "--type", "parent-child")
+			p := newSharedProxiedProject(t, issuegraph, "dpl3")
+			epic := issuegraphProxiedCreate(t, issuegraph, p.dir, "TF epic", "--type", "epic")
+			c1 := issuegraphProxiedCreate(t, issuegraph, p.dir, "TF c1", "--type", "task")
+			c2 := issuegraphProxiedCreate(t, issuegraph, p.dir, "TF c2", "--type", "task")
+			issuegraphProxiedDep(t, issuegraph, p.dir, "add", c1.ID, epic.ID, "--type", "parent-child")
+			issuegraphProxiedDep(t, issuegraph, p.dir, "add", c2.ID, epic.ID, "--type", "parent-child")
+			out := issuegraphProxiedDep(t, issuegraph, p.dir, "list", epic.ID, "--direction", "up", "--type", "parent-child")
 			if !strings.Contains(out, c1.ID) || !strings.Contains(out, c2.ID) {
 				t.Errorf("expected children in type-filtered list: %s", out)
 			}
@@ -486,11 +486,11 @@ func TestProxiedServerDep2(t *testing.T) {
 
 		t.Run("json_output", func(t *testing.T) {
 			t.Parallel()
-			p := newSharedProxiedProject(t, bd, "dpl4")
-			a := bdProxiedCreate(t, bd, p.dir, "LJ A", "--type", "task")
-			b := bdProxiedCreate(t, bd, p.dir, "LJ B", "--type", "task")
-			bdProxiedDep(t, bd, p.dir, "add", a.ID, b.ID)
-			arr := bdProxiedDepJSONArray(t, bd, p.dir, "list", a.ID)
+			p := newSharedProxiedProject(t, issuegraph, "dpl4")
+			a := issuegraphProxiedCreate(t, issuegraph, p.dir, "LJ A", "--type", "task")
+			b := issuegraphProxiedCreate(t, issuegraph, p.dir, "LJ B", "--type", "task")
+			issuegraphProxiedDep(t, issuegraph, p.dir, "add", a.ID, b.ID)
+			arr := issuegraphProxiedDepJSONArray(t, issuegraph, p.dir, "list", a.ID)
 			if len(arr) == 0 {
 				t.Fatalf("expected non-empty JSON list array")
 			}
@@ -502,18 +502,18 @@ func TestProxiedServerDep2(t *testing.T) {
 
 		t.Run("batch_multi_arg", func(t *testing.T) {
 			t.Parallel()
-			p := newSharedProxiedProject(t, bd, "dpl5")
-			a := bdProxiedCreate(t, bd, p.dir, "B A", "--type", "task")
-			b := bdProxiedCreate(t, bd, p.dir, "B B", "--type", "task")
-			c := bdProxiedCreate(t, bd, p.dir, "B C", "--type", "task")
-			d := bdProxiedCreate(t, bd, p.dir, "B D", "--type", "task")
-			bdProxiedDep(t, bd, p.dir, "add", a.ID, b.ID)
-			bdProxiedDep(t, bd, p.dir, "add", c.ID, d.ID)
-			out := bdProxiedDep(t, bd, p.dir, "list", a.ID, c.ID)
+			p := newSharedProxiedProject(t, issuegraph, "dpl5")
+			a := issuegraphProxiedCreate(t, issuegraph, p.dir, "B A", "--type", "task")
+			b := issuegraphProxiedCreate(t, issuegraph, p.dir, "B B", "--type", "task")
+			c := issuegraphProxiedCreate(t, issuegraph, p.dir, "B C", "--type", "task")
+			d := issuegraphProxiedCreate(t, issuegraph, p.dir, "B D", "--type", "task")
+			issuegraphProxiedDep(t, issuegraph, p.dir, "add", a.ID, b.ID)
+			issuegraphProxiedDep(t, issuegraph, p.dir, "add", c.ID, d.ID)
+			out := issuegraphProxiedDep(t, issuegraph, p.dir, "list", a.ID, c.ID)
 			if !strings.Contains(out, b.ID) || !strings.Contains(out, d.ID) {
 				t.Errorf("expected both deps in batch list: %s", out)
 			}
-			arr := bdProxiedDepJSONArray(t, bd, p.dir, "list", a.ID, c.ID)
+			arr := issuegraphProxiedDepJSONArray(t, issuegraph, p.dir, "list", a.ID, c.ID)
 			if len(arr) != 2 {
 				t.Errorf("expected 2 deps in batch JSON, got %d: %v", len(arr), arr)
 			}
@@ -521,10 +521,10 @@ func TestProxiedServerDep2(t *testing.T) {
 
 		t.Run("batch_partitions_wisp_and_issue_ids", func(t *testing.T) {
 			t.Parallel()
-			p := newSharedProxiedProject(t, bd, "dpl6")
-			issueSrc := bdProxiedCreate(t, bd, p.dir, "WP issue src", "--type", "task")
-			issueTgt := bdProxiedCreate(t, bd, p.dir, "WP issue tgt", "--type", "task")
-			bdProxiedDep(t, bd, p.dir, "add", issueSrc.ID, issueTgt.ID)
+			p := newSharedProxiedProject(t, issuegraph, "dpl6")
+			issueSrc := issuegraphProxiedCreate(t, issuegraph, p.dir, "WP issue src", "--type", "task")
+			issueTgt := issuegraphProxiedCreate(t, issuegraph, p.dir, "WP issue tgt", "--type", "task")
+			issuegraphProxiedDep(t, issuegraph, p.dir, "add", issueSrc.ID, issueTgt.ID)
 
 			db := openProxiedDB(t, p)
 			wispSrc := fmt.Sprintf("%s-wisp-src", p.prefix)
@@ -540,7 +540,7 @@ func TestProxiedServerDep2(t *testing.T) {
 				t.Fatalf("seed wisp dep: %v", err)
 			}
 
-			arr := bdProxiedDepJSONArray(t, bd, p.dir, "list", issueSrc.ID, wispSrc)
+			arr := issuegraphProxiedDepJSONArray(t, issuegraph, p.dir, "list", issueSrc.ID, wispSrc)
 			raw, _ := json.Marshal(arr)
 			if !strings.Contains(string(raw), issueTgt.ID) {
 				t.Errorf("expected issue target %s in batch list: %s", issueTgt.ID, string(raw))
@@ -555,11 +555,11 @@ func TestProxiedServerDep2(t *testing.T) {
 		t.Parallel()
 		t.Run("basic", func(t *testing.T) {
 			t.Parallel()
-			p := newSharedProxiedProject(t, bd, "dpt1")
-			root := bdProxiedCreate(t, bd, p.dir, "Tree root", "--type", "task")
-			child := bdProxiedCreate(t, bd, p.dir, "Tree child", "--type", "task")
-			bdProxiedDep(t, bd, p.dir, "add", root.ID, child.ID)
-			out := bdProxiedDep(t, bd, p.dir, "tree", root.ID)
+			p := newSharedProxiedProject(t, issuegraph, "dpt1")
+			root := issuegraphProxiedCreate(t, issuegraph, p.dir, "Tree root", "--type", "task")
+			child := issuegraphProxiedCreate(t, issuegraph, p.dir, "Tree child", "--type", "task")
+			issuegraphProxiedDep(t, issuegraph, p.dir, "add", root.ID, child.ID)
+			out := issuegraphProxiedDep(t, issuegraph, p.dir, "tree", root.ID)
 			if !strings.Contains(out, root.ID) {
 				t.Errorf("expected root ID in tree: %s", out)
 			}
@@ -567,11 +567,11 @@ func TestProxiedServerDep2(t *testing.T) {
 
 		t.Run("direction_up", func(t *testing.T) {
 			t.Parallel()
-			p := newSharedProxiedProject(t, bd, "dpt2")
-			root := bdProxiedCreate(t, bd, p.dir, "Up tree root", "--type", "task")
-			dep := bdProxiedCreate(t, bd, p.dir, "Up tree dep", "--type", "task")
-			bdProxiedDep(t, bd, p.dir, "add", root.ID, dep.ID)
-			out := bdProxiedDep(t, bd, p.dir, "tree", dep.ID, "--direction", "up")
+			p := newSharedProxiedProject(t, issuegraph, "dpt2")
+			root := issuegraphProxiedCreate(t, issuegraph, p.dir, "Up tree root", "--type", "task")
+			dep := issuegraphProxiedCreate(t, issuegraph, p.dir, "Up tree dep", "--type", "task")
+			issuegraphProxiedDep(t, issuegraph, p.dir, "add", root.ID, dep.ID)
+			out := issuegraphProxiedDep(t, issuegraph, p.dir, "tree", dep.ID, "--direction", "up")
 			if len(strings.TrimSpace(out)) == 0 {
 				t.Error("expected non-empty tree output for --direction up")
 			}
@@ -579,11 +579,11 @@ func TestProxiedServerDep2(t *testing.T) {
 
 		t.Run("direction_both", func(t *testing.T) {
 			t.Parallel()
-			p := newSharedProxiedProject(t, bd, "dpt3")
-			root := bdProxiedCreate(t, bd, p.dir, "Both root", "--type", "task")
-			dep := bdProxiedCreate(t, bd, p.dir, "Both dep", "--type", "task")
-			bdProxiedDep(t, bd, p.dir, "add", root.ID, dep.ID)
-			out := bdProxiedDep(t, bd, p.dir, "tree", root.ID, "--direction", "both")
+			p := newSharedProxiedProject(t, issuegraph, "dpt3")
+			root := issuegraphProxiedCreate(t, issuegraph, p.dir, "Both root", "--type", "task")
+			dep := issuegraphProxiedCreate(t, issuegraph, p.dir, "Both dep", "--type", "task")
+			issuegraphProxiedDep(t, issuegraph, p.dir, "add", root.ID, dep.ID)
+			out := issuegraphProxiedDep(t, issuegraph, p.dir, "tree", root.ID, "--direction", "both")
 			if len(strings.TrimSpace(out)) == 0 {
 				t.Error("expected non-empty tree output for --direction both")
 			}
@@ -591,13 +591,13 @@ func TestProxiedServerDep2(t *testing.T) {
 
 		t.Run("both_does_not_duplicate_root", func(t *testing.T) {
 			t.Parallel()
-			p := newSharedProxiedProject(t, bd, "dpt4")
-			root := bdProxiedCreate(t, bd, p.dir, "Dedup root", "--type", "task")
-			depDown := bdProxiedCreate(t, bd, p.dir, "Dedup down", "--type", "task")
-			depUp := bdProxiedCreate(t, bd, p.dir, "Dedup up", "--type", "task")
-			bdProxiedDep(t, bd, p.dir, "add", root.ID, depDown.ID)
-			bdProxiedDep(t, bd, p.dir, "add", depUp.ID, root.ID)
-			arr := bdProxiedDepJSONArray(t, bd, p.dir, "tree", root.ID, "--direction", "both")
+			p := newSharedProxiedProject(t, issuegraph, "dpt4")
+			root := issuegraphProxiedCreate(t, issuegraph, p.dir, "Dedup root", "--type", "task")
+			depDown := issuegraphProxiedCreate(t, issuegraph, p.dir, "Dedup down", "--type", "task")
+			depUp := issuegraphProxiedCreate(t, issuegraph, p.dir, "Dedup up", "--type", "task")
+			issuegraphProxiedDep(t, issuegraph, p.dir, "add", root.ID, depDown.ID)
+			issuegraphProxiedDep(t, issuegraph, p.dir, "add", depUp.ID, root.ID)
+			arr := issuegraphProxiedDepJSONArray(t, issuegraph, p.dir, "tree", root.ID, "--direction", "both")
 			count := 0
 			for _, node := range arr {
 				m, ok := node.(map[string]interface{})
@@ -615,13 +615,13 @@ func TestProxiedServerDep2(t *testing.T) {
 
 		t.Run("max_depth", func(t *testing.T) {
 			t.Parallel()
-			p := newSharedProxiedProject(t, bd, "dpt5")
-			a := bdProxiedCreate(t, bd, p.dir, "MD A", "--type", "task")
-			b := bdProxiedCreate(t, bd, p.dir, "MD B", "--type", "task")
-			c := bdProxiedCreate(t, bd, p.dir, "MD C", "--type", "task")
-			bdProxiedDep(t, bd, p.dir, "add", a.ID, b.ID)
-			bdProxiedDep(t, bd, p.dir, "add", b.ID, c.ID)
-			out := bdProxiedDep(t, bd, p.dir, "tree", a.ID, "--max-depth", "1")
+			p := newSharedProxiedProject(t, issuegraph, "dpt5")
+			a := issuegraphProxiedCreate(t, issuegraph, p.dir, "MD A", "--type", "task")
+			b := issuegraphProxiedCreate(t, issuegraph, p.dir, "MD B", "--type", "task")
+			c := issuegraphProxiedCreate(t, issuegraph, p.dir, "MD C", "--type", "task")
+			issuegraphProxiedDep(t, issuegraph, p.dir, "add", a.ID, b.ID)
+			issuegraphProxiedDep(t, issuegraph, p.dir, "add", b.ID, c.ID)
+			out := issuegraphProxiedDep(t, issuegraph, p.dir, "tree", a.ID, "--max-depth", "1")
 			if !strings.Contains(out, a.ID) {
 				t.Errorf("expected root in shallow tree: %s", out)
 			}
@@ -629,20 +629,20 @@ func TestProxiedServerDep2(t *testing.T) {
 
 		t.Run("status_filter", func(t *testing.T) {
 			t.Parallel()
-			p := newSharedProxiedProject(t, bd, "dpt6")
-			root := bdProxiedCreate(t, bd, p.dir, "SF root", "--type", "task")
-			dep := bdProxiedCreate(t, bd, p.dir, "SF dep", "--type", "task")
-			bdProxiedDep(t, bd, p.dir, "add", root.ID, dep.ID)
-			_ = bdProxiedDep(t, bd, p.dir, "tree", root.ID, "--status", "open")
+			p := newSharedProxiedProject(t, issuegraph, "dpt6")
+			root := issuegraphProxiedCreate(t, issuegraph, p.dir, "SF root", "--type", "task")
+			dep := issuegraphProxiedCreate(t, issuegraph, p.dir, "SF dep", "--type", "task")
+			issuegraphProxiedDep(t, issuegraph, p.dir, "add", root.ID, dep.ID)
+			_ = issuegraphProxiedDep(t, issuegraph, p.dir, "tree", root.ID, "--status", "open")
 		})
 
 		t.Run("format_mermaid", func(t *testing.T) {
 			t.Parallel()
-			p := newSharedProxiedProject(t, bd, "dpt7")
-			root := bdProxiedCreate(t, bd, p.dir, "Mer root", "--type", "task")
-			dep := bdProxiedCreate(t, bd, p.dir, "Mer dep", "--type", "task")
-			bdProxiedDep(t, bd, p.dir, "add", root.ID, dep.ID)
-			out := bdProxiedDep(t, bd, p.dir, "tree", root.ID, "--format", "mermaid")
+			p := newSharedProxiedProject(t, issuegraph, "dpt7")
+			root := issuegraphProxiedCreate(t, issuegraph, p.dir, "Mer root", "--type", "task")
+			dep := issuegraphProxiedCreate(t, issuegraph, p.dir, "Mer dep", "--type", "task")
+			issuegraphProxiedDep(t, issuegraph, p.dir, "add", root.ID, dep.ID)
+			out := issuegraphProxiedDep(t, issuegraph, p.dir, "tree", root.ID, "--format", "mermaid")
 			if !strings.Contains(out, "flowchart") && !strings.Contains(out, "graph") {
 				t.Errorf("expected mermaid flowchart/graph syntax: %s", out)
 			}
@@ -650,11 +650,11 @@ func TestProxiedServerDep2(t *testing.T) {
 
 		t.Run("json_output", func(t *testing.T) {
 			t.Parallel()
-			p := newSharedProxiedProject(t, bd, "dpt8")
-			root := bdProxiedCreate(t, bd, p.dir, "JT root", "--type", "task")
-			dep := bdProxiedCreate(t, bd, p.dir, "JT dep", "--type", "task")
-			bdProxiedDep(t, bd, p.dir, "add", root.ID, dep.ID)
-			arr := bdProxiedDepJSONArray(t, bd, p.dir, "tree", root.ID)
+			p := newSharedProxiedProject(t, issuegraph, "dpt8")
+			root := issuegraphProxiedCreate(t, issuegraph, p.dir, "JT root", "--type", "task")
+			dep := issuegraphProxiedCreate(t, issuegraph, p.dir, "JT dep", "--type", "task")
+			issuegraphProxiedDep(t, issuegraph, p.dir, "add", root.ID, dep.ID)
+			arr := issuegraphProxiedDepJSONArray(t, issuegraph, p.dir, "tree", root.ID)
 			raw, _ := json.Marshal(arr)
 			if !strings.Contains(string(raw), root.ID) {
 				t.Errorf("expected root ID in JSON tree: %s", string(raw))
@@ -666,14 +666,14 @@ func TestProxiedServerDep2(t *testing.T) {
 		// on a direct workspace failed on a team server.
 		t.Run("partial_id_resolves", func(t *testing.T) {
 			t.Parallel()
-			p := newSharedProxiedProject(t, bd, "dpta")
-			root := bdProxiedCreate(t, bd, p.dir, "Partial root", "--type", "task")
-			dep := bdProxiedCreate(t, bd, p.dir, "Partial dep", "--type", "task")
-			bdProxiedDep(t, bd, p.dir, "add", root.ID, dep.ID)
+			p := newSharedProxiedProject(t, issuegraph, "dpta")
+			root := issuegraphProxiedCreate(t, issuegraph, p.dir, "Partial root", "--type", "task")
+			dep := issuegraphProxiedCreate(t, issuegraph, p.dir, "Partial dep", "--type", "task")
+			issuegraphProxiedDep(t, issuegraph, p.dir, "add", root.ID, dep.ID)
 
 			// The bare suffix, with the workspace prefix stripped.
 			bare := root.ID[strings.Index(root.ID, "-")+1:]
-			out := bdProxiedDep(t, bd, p.dir, "tree", bare)
+			out := issuegraphProxiedDep(t, issuegraph, p.dir, "tree", bare)
 			if !strings.Contains(out, root.ID) || !strings.Contains(out, dep.ID) {
 				t.Fatalf("a partial id did not resolve to the full tree: %s", out)
 			}
@@ -681,9 +681,9 @@ func TestProxiedServerDep2(t *testing.T) {
 
 		t.Run("absent_root_is_a_lookup_failure", func(t *testing.T) {
 			t.Parallel()
-			p := newSharedProxiedProject(t, bd, "dptb")
-			out := bdProxiedDepFail(t, bd, p.dir, "tree", "dptb-nosuchbead")
-			if !strings.Contains(out, "dptb-nosuchbead") {
+			p := newSharedProxiedProject(t, issuegraph, "dptb")
+			out := issuegraphProxiedDepFail(t, issuegraph, p.dir, "tree", "dptb-nosuchissue")
+			if !strings.Contains(out, "dptb-nosuchissue") {
 				t.Fatalf("the refusal does not name the id the caller gave: %s", out)
 			}
 		})
@@ -694,14 +694,14 @@ func TestProxiedServerDep2(t *testing.T) {
 		// it threads everywhere.
 		t.Run("max_rows_is_honored", func(t *testing.T) {
 			t.Parallel()
-			p := newSharedProxiedProject(t, bd, "dptc")
-			root := bdProxiedCreate(t, bd, p.dir, "Cap root", "--type", "task")
+			p := newSharedProxiedProject(t, issuegraph, "dptc")
+			root := issuegraphProxiedCreate(t, issuegraph, p.dir, "Cap root", "--type", "task")
 			for i := 0; i < 3; i++ {
-				child := bdProxiedCreate(t, bd, p.dir, fmt.Sprintf("Cap child %d", i), "--type", "task")
-				bdProxiedDep(t, bd, p.dir, "add", root.ID, child.ID)
+				child := issuegraphProxiedCreate(t, issuegraph, p.dir, fmt.Sprintf("Cap child %d", i), "--type", "task")
+				issuegraphProxiedDep(t, issuegraph, p.dir, "add", root.ID, child.ID)
 			}
 
-			out := bdProxiedDepFail(t, bd, p.dir, "tree", root.ID, "--max-rows", "2")
+			out := issuegraphProxiedDepFail(t, issuegraph, p.dir, "tree", root.ID, "--max-rows", "2")
 			if strings.Contains(out, "not supported in proxied-server mode") {
 				t.Fatalf("the cap is still being refused rather than enforced: %s", out)
 			}
@@ -714,7 +714,7 @@ func TestProxiedServerDep2(t *testing.T) {
 
 			// And the same walk under a cap it fits inside answers normally, so the
 			// case is about the cap rather than about the tree.
-			under := bdProxiedDep(t, bd, p.dir, "tree", root.ID, "--max-rows", "4")
+			under := issuegraphProxiedDep(t, issuegraph, p.dir, "tree", root.ID, "--max-rows", "4")
 			if !strings.Contains(under, root.ID) {
 				t.Fatalf("a walk under the cap did not answer: %s", under)
 			}
@@ -724,21 +724,21 @@ func TestProxiedServerDep2(t *testing.T) {
 		// script breaks, and a diamond is still rendered once.
 		t.Run("show_all_paths_is_an_accepted_no_op", func(t *testing.T) {
 			t.Parallel()
-			p := newSharedProxiedProject(t, bd, "dptd")
-			root := bdProxiedCreate(t, bd, p.dir, "Diamond root", "--type", "task")
-			left := bdProxiedCreate(t, bd, p.dir, "Diamond left", "--type", "task")
-			right := bdProxiedCreate(t, bd, p.dir, "Diamond right", "--type", "task")
-			shared := bdProxiedCreate(t, bd, p.dir, "Diamond shared", "--type", "task")
-			bdProxiedDep(t, bd, p.dir, "add", root.ID, left.ID)
-			bdProxiedDep(t, bd, p.dir, "add", root.ID, right.ID)
-			bdProxiedDep(t, bd, p.dir, "add", left.ID, shared.ID)
-			bdProxiedDep(t, bd, p.dir, "add", right.ID, shared.ID)
+			p := newSharedProxiedProject(t, issuegraph, "dptd")
+			root := issuegraphProxiedCreate(t, issuegraph, p.dir, "Diamond root", "--type", "task")
+			left := issuegraphProxiedCreate(t, issuegraph, p.dir, "Diamond left", "--type", "task")
+			right := issuegraphProxiedCreate(t, issuegraph, p.dir, "Diamond right", "--type", "task")
+			shared := issuegraphProxiedCreate(t, issuegraph, p.dir, "Diamond shared", "--type", "task")
+			issuegraphProxiedDep(t, issuegraph, p.dir, "add", root.ID, left.ID)
+			issuegraphProxiedDep(t, issuegraph, p.dir, "add", root.ID, right.ID)
+			issuegraphProxiedDep(t, issuegraph, p.dir, "add", left.ID, shared.ID)
+			issuegraphProxiedDep(t, issuegraph, p.dir, "add", right.ID, shared.ID)
 
 			for _, args := range [][]string{
 				{"tree", root.ID},
 				{"tree", root.ID, "--show-all-paths"},
 			} {
-				arr := bdProxiedDepJSONArray(t, bd, p.dir, args...)
+				arr := issuegraphProxiedDepJSONArray(t, issuegraph, p.dir, args...)
 				count := 0
 				for _, node := range arr {
 					m, ok := node.(map[string]interface{})
@@ -757,20 +757,20 @@ func TestProxiedServerDep2(t *testing.T) {
 
 		t.Run("ignores_relates_to", func(t *testing.T) {
 			t.Parallel()
-			p := newSharedProxiedProject(t, bd, "dpt9")
-			root := bdProxiedCreate(t, bd, p.dir, "Rel root", "--type", "task")
-			blocker := bdProxiedCreate(t, bd, p.dir, "Real blocker", "--type", "task")
-			related := bdProxiedCreate(t, bd, p.dir, "Loose relation", "--type", "task")
-			bdProxiedDep(t, bd, p.dir, "add", root.ID, blocker.ID, "--type", "blocks")
-			bdProxiedDep(t, bd, p.dir, "add", root.ID, related.ID, "--type", "relates-to")
-			bdProxiedDep(t, bd, p.dir, "add", related.ID, root.ID, "--type", "relates-to")
+			p := newSharedProxiedProject(t, issuegraph, "dpt9")
+			root := issuegraphProxiedCreate(t, issuegraph, p.dir, "Rel root", "--type", "task")
+			blocker := issuegraphProxiedCreate(t, issuegraph, p.dir, "Real blocker", "--type", "task")
+			related := issuegraphProxiedCreate(t, issuegraph, p.dir, "Loose relation", "--type", "task")
+			issuegraphProxiedDep(t, issuegraph, p.dir, "add", root.ID, blocker.ID, "--type", "blocks")
+			issuegraphProxiedDep(t, issuegraph, p.dir, "add", root.ID, related.ID, "--type", "relates-to")
+			issuegraphProxiedDep(t, issuegraph, p.dir, "add", related.ID, root.ID, "--type", "relates-to")
 
-			listOut := bdProxiedDep(t, bd, p.dir, "list", root.ID)
+			listOut := issuegraphProxiedDep(t, issuegraph, p.dir, "list", root.ID)
 			if !strings.Contains(listOut, related.ID) || !strings.Contains(listOut, "relates-to") {
 				t.Fatalf("expected relates-to in dep list: %s", listOut)
 			}
 
-			treeOut := bdProxiedDep(t, bd, p.dir, "tree", root.ID)
+			treeOut := issuegraphProxiedDep(t, issuegraph, p.dir, "tree", root.ID)
 			if !strings.Contains(treeOut, root.ID) || !strings.Contains(treeOut, blocker.ID) {
 				t.Fatalf("expected root + real blocker in tree: %s", treeOut)
 			}
@@ -778,7 +778,7 @@ func TestProxiedServerDep2(t *testing.T) {
 				t.Fatalf("relates-to should not render in tree: %s", treeOut)
 			}
 
-			upOut := bdProxiedDep(t, bd, p.dir, "tree", related.ID, "--direction", "up")
+			upOut := issuegraphProxiedDep(t, issuegraph, p.dir, "tree", related.ID, "--direction", "up")
 			if strings.Contains(upOut, root.ID) {
 				t.Fatalf("reverse relates-to should not render in dependent tree: %s", upOut)
 			}
@@ -789,10 +789,10 @@ func TestProxiedServerDep2(t *testing.T) {
 		t.Parallel()
 		t.Run("detect", func(t *testing.T) {
 			t.Parallel()
-			p := newSharedProxiedProject(t, bd, "dpc1")
-			a := bdProxiedCreate(t, bd, p.dir, "C A", "--type", "task")
-			b := bdProxiedCreate(t, bd, p.dir, "C B", "--type", "task")
-			bdProxiedDep(t, bd, p.dir, "add", a.ID, b.ID)
+			p := newSharedProxiedProject(t, issuegraph, "dpc1")
+			a := issuegraphProxiedCreate(t, issuegraph, p.dir, "C A", "--type", "task")
+			b := issuegraphProxiedCreate(t, issuegraph, p.dir, "C B", "--type", "task")
+			issuegraphProxiedDep(t, issuegraph, p.dir, "add", a.ID, b.ID)
 
 			db := openProxiedDB(t, p)
 			if _, err := db.ExecContext(context.Background(),
@@ -801,7 +801,7 @@ func TestProxiedServerDep2(t *testing.T) {
 				t.Fatalf("seed cycle: %v", err)
 			}
 
-			out := bdProxiedDep(t, bd, p.dir, "cycles")
+			out := issuegraphProxiedDep(t, issuegraph, p.dir, "cycles")
 			if !strings.Contains(out, a.ID) || !strings.Contains(out, b.ID) {
 				t.Errorf("expected cycle members in output: %s", out)
 			}
@@ -809,11 +809,11 @@ func TestProxiedServerDep2(t *testing.T) {
 
 		t.Run("none", func(t *testing.T) {
 			t.Parallel()
-			p := newSharedProxiedProject(t, bd, "dpc2")
-			a := bdProxiedCreate(t, bd, p.dir, "NC A", "--type", "task")
-			b := bdProxiedCreate(t, bd, p.dir, "NC B", "--type", "task")
-			bdProxiedDep(t, bd, p.dir, "add", a.ID, b.ID)
-			out := bdProxiedDep(t, bd, p.dir, "cycles")
+			p := newSharedProxiedProject(t, issuegraph, "dpc2")
+			a := issuegraphProxiedCreate(t, issuegraph, p.dir, "NC A", "--type", "task")
+			b := issuegraphProxiedCreate(t, issuegraph, p.dir, "NC B", "--type", "task")
+			issuegraphProxiedDep(t, issuegraph, p.dir, "add", a.ID, b.ID)
+			out := issuegraphProxiedDep(t, issuegraph, p.dir, "cycles")
 			if !strings.Contains(out, "No dependency cycles detected") {
 				t.Errorf("expected no-cycle message: %s", out)
 			}
@@ -824,16 +824,16 @@ func TestProxiedServerDep2(t *testing.T) {
 func TestProxiedServerDepConcurrent(t *testing.T) {
 	requireSharedProxiedServer(t)
 	t.Parallel()
-	bd := buildEmbeddedBD(t)
-	p := newSharedProxiedProject(t, bd, "dpcon")
+	issuegraph := buildEmbeddedBD(t)
+	p := newSharedProxiedProject(t, issuegraph, "dpcon")
 
 	var ids []string
 	for i := 0; i < 16; i++ {
-		issue := bdProxiedCreate(t, bd, p.dir, fmt.Sprintf("concurrent-%d", i), "--type", "task")
+		issue := issuegraphProxiedCreate(t, issuegraph, p.dir, fmt.Sprintf("concurrent-%d", i), "--type", "task")
 		ids = append(ids, issue.ID)
 	}
 	for i := 0; i < 8; i++ {
-		bdProxiedDep(t, bd, p.dir, "add", ids[i*2], ids[i*2+1])
+		issuegraphProxiedDep(t, issuegraph, p.dir, "add", ids[i*2], ids[i*2+1])
 	}
 
 	const numWorkers = 8
@@ -851,18 +851,18 @@ func TestProxiedServerDepConcurrent(t *testing.T) {
 			r := workerResult{worker: worker}
 			id := ids[worker*2]
 
-			cmd := exec.Command(bd, "dep", "list", id, "--json")
+			cmd := exec.Command(issuegraph, "dep", "list", id, "--json")
 			cmd.Dir = p.dir
-			cmd.Env = bdProxiedEnv(p.dir)
+			cmd.Env = issuegraphProxiedEnv(p.dir)
 			if out, err := cmd.CombinedOutput(); err != nil {
 				r.err = fmt.Errorf("worker %d dep list: %v\n%s", worker, err, out)
 				results[worker] = r
 				return
 			}
 
-			cmd = exec.Command(bd, "dep", "tree", id)
+			cmd = exec.Command(issuegraph, "dep", "tree", id)
 			cmd.Dir = p.dir
-			cmd.Env = bdProxiedEnv(p.dir)
+			cmd.Env = issuegraphProxiedEnv(p.dir)
 			if out, err := cmd.CombinedOutput(); err != nil {
 				r.err = fmt.Errorf("worker %d dep tree: %v\n%s", worker, err, out)
 				results[worker] = r
@@ -886,8 +886,8 @@ func TestProxiedServerDepConcurrent(t *testing.T) {
 // runDepListProxiedServer path (modules/cli/dep_proxied_server.go), which gastown's
 // live-dolt-server deployment actually runs.
 //
-// `bd link` correctly writes an edge to an `external:` target (no row in any
-// database this session can see), but the single-id `bd dep list <id>` a
+// `issuegraph link` correctly writes an edge to an `external:` target (no row in any
+// database this session can see), but the single-id `issuegraph dep list <id>` a
 // caller runs right after used to show nothing for it — indistinguishable
 // from no dependency existing at all. Verifies the fix: stdout/--json stay
 // exactly what they were before the fix (no schema change), stderr now names
@@ -895,27 +895,27 @@ func TestProxiedServerDepConcurrent(t *testing.T) {
 func TestProxiedServerDepListSingleIDWarnsOnDroppedExternalEdge(t *testing.T) {
 	requireSharedProxiedServer(t)
 	t.Parallel()
-	bd := buildEmbeddedBD(t)
+	issuegraph := buildEmbeddedBD(t)
 
-	p := newSharedProxiedProject(t, bd, "dlw1")
-	local := bdProxiedCreate(t, bd, p.dir, "local target", "--type", "task")
-	source := bdProxiedCreate(t, bd, p.dir, "source issue", "--type", "task")
+	p := newSharedProxiedProject(t, issuegraph, "dlw1")
+	local := issuegraphProxiedCreate(t, issuegraph, p.dir, "local target", "--type", "task")
+	source := issuegraphProxiedCreate(t, issuegraph, p.dir, "source issue", "--type", "task")
 
-	bdProxiedDep(t, bd, p.dir, "add", source.ID, local.ID, "--type", "blocks")
+	issuegraphProxiedDep(t, issuegraph, p.dir, "add", source.ID, local.ID, "--type", "blocks")
 
-	linkCmd := exec.Command(bd, "link", source.ID, "external:other:capability", "--type", "related")
+	linkCmd := exec.Command(issuegraph, "link", source.ID, "external:other:capability", "--type", "related")
 	linkCmd.Dir = p.dir
-	linkCmd.Env = bdProxiedEnv(p.dir)
+	linkCmd.Env = issuegraphProxiedEnv(p.dir)
 	if out, err := linkCmd.CombinedOutput(); err != nil {
-		t.Fatalf("bd link (external): %v\n%s", err, out)
+		t.Fatalf("issuegraph link (external): %v\n%s", err, out)
 	}
 
-	cmd := exec.Command(bd, "dep", "list", source.ID)
+	cmd := exec.Command(issuegraph, "dep", "list", source.ID)
 	cmd.Dir = p.dir
-	cmd.Env = bdProxiedEnv(p.dir)
+	cmd.Env = issuegraphProxiedEnv(p.dir)
 	stdout, stderr, err := runCommandBuffers(t, cmd)
 	if err != nil {
-		t.Fatalf("bd dep list: %v\nstdout:\n%s\nstderr:\n%s", err, stdout.String(), stderr.String())
+		t.Fatalf("issuegraph dep list: %v\nstdout:\n%s\nstderr:\n%s", err, stdout.String(), stderr.String())
 	}
 
 	if !strings.Contains(stdout.String(), local.ID) {
@@ -928,12 +928,12 @@ func TestProxiedServerDepListSingleIDWarnsOnDroppedExternalEdge(t *testing.T) {
 		t.Errorf("stderr should warn about the dropped external target with its type, got:\n%s", stderr.String())
 	}
 
-	jsonCmd := exec.Command(bd, "dep", "list", source.ID, "--json")
+	jsonCmd := exec.Command(issuegraph, "dep", "list", source.ID, "--json")
 	jsonCmd.Dir = p.dir
-	jsonCmd.Env = bdProxiedEnv(p.dir)
+	jsonCmd.Env = issuegraphProxiedEnv(p.dir)
 	jsonStdout, _, err := runCommandBuffers(t, jsonCmd)
 	if err != nil {
-		t.Fatalf("bd dep list --json: %v", err)
+		t.Fatalf("issuegraph dep list --json: %v", err)
 	}
 	if strings.Contains(jsonStdout.String(), "external:other:capability") {
 		t.Errorf("--json output unexpectedly contains the external target:\n%s", jsonStdout.String())
@@ -942,12 +942,12 @@ func TestProxiedServerDepListSingleIDWarnsOnDroppedExternalEdge(t *testing.T) {
 		t.Errorf("--json output missing local dep %s:\n%s", local.ID, jsonStdout.String())
 	}
 
-	batchCmd := exec.Command(bd, "dep", "list", source.ID, source.ID)
+	batchCmd := exec.Command(issuegraph, "dep", "list", source.ID, source.ID)
 	batchCmd.Dir = p.dir
-	batchCmd.Env = bdProxiedEnv(p.dir)
+	batchCmd.Env = issuegraphProxiedEnv(p.dir)
 	batchStdout, _, err := runCommandBuffers(t, batchCmd)
 	if err != nil {
-		t.Fatalf("bd dep list (batch): %v", err)
+		t.Fatalf("issuegraph dep list (batch): %v", err)
 	}
 	if !strings.Contains(batchStdout.String(), "external:other:capability") || !strings.Contains(batchStdout.String(), local.ID) {
 		t.Errorf("batch mode should show both deps, got:\n%s", batchStdout.String())

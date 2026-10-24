@@ -11,7 +11,7 @@ type deferVersionCommitKey struct{}
 // skip the Dolt version commit they would otherwise create. The SQL write still
 // commits; only the version commit is deferred to a later explicit commit point.
 //
-// `bd --dolt-auto-commit batch` needs this: batch mode exists to avoid one
+// `issuegraph --dolt-auto-commit batch` needs this: batch mode exists to avoid one
 // version commit per issue, and the commit point for the write verbs lives
 // inside the storage layer, so the CLI has no commit message to blank the way
 // it does on the RunInTransaction path.

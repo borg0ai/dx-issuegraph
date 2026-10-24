@@ -9,9 +9,9 @@ import (
 	"testing"
 	"time"
 
-	"github.com/steveyegge/beads/internal/storage"
-	"github.com/steveyegge/beads/internal/types"
-	publicops "github.com/steveyegge/beads/issueops"
+	"github.com/borg0ai/dx-issuegraph/internal/storage"
+	"github.com/borg0ai/dx-issuegraph/internal/types"
+	publicops "github.com/borg0ai/dx-issuegraph/issueops"
 )
 
 // This file holds the semantic contract for publicops.Lifecycle.Create as the
@@ -184,8 +184,8 @@ func RunLifecycleCreateRejectsMissingDependencyTargets(t *testing.T, ctx context
 // issue and wisp tables share one ID space, so ACROSS is asserted in both
 // directions here, not only for the plane the create happens to target.
 //
-// The proxied-server `bd create` route asked its use case for a plain create
-// with no create-only guard, so `bd create --id <occupied>` silently UPSERTED
+// The proxied-server `issuegraph create` route asked its use case for a plain create
+// with no create-only guard, so `issuegraph create --id <occupied>` silently UPSERTED
 // the stored row and reported success while the direct route refused.
 //
 // THIS CASE AND conformance.go's testCreateDuplicate PIN OPPOSITE SEMANTICS OF
@@ -340,7 +340,7 @@ func RunLifecycleCreateRefusesAForeignIDPrefix(t *testing.T, ctx context.Context
 // creation" — against CreateRequest.Issue's own "Labels are authoritative" (both
 // issueops/issueops.go, CreateRequest). One create must satisfy both.
 //
-// The two `bd create --parent` front doors spell it differently — the direct
+// The two `issuegraph create --parent` front doors spell it differently — the direct
 // route merges the parent's labels itself so its --dry-run preview can show them
 // and leaves the flag off, the proxied route sets the flag — so the merge has to
 // be the same set either way.
@@ -432,7 +432,7 @@ func RunLifecycleCreateInheritsParentLabels(t *testing.T, ctx context.Context, f
 // restore and tracker-sync path in the tree: they exist to reproduce a history,
 // and a body that overwrote the pair with "now" and "the importing agent" would
 // relabel the whole backlog as today's work. A caller supplying NEITHER gets a
-// stamp anyway, which is what `bd list --stale` and every age-based report read.
+// stamp anyway, which is what `issuegraph list --stale` and every age-based report read.
 //
 // The preset is years in the past on purpose: created_at is DATETIME(0), so a
 // preset at "now" and a stamp of "now" are the same stored bytes and the case
@@ -723,7 +723,7 @@ func assertLifecycleCreateAbsent(t *testing.T, ctx context.Context, fixture Life
 // row first, so a stray wisp under an occupied durable id never reaches it.
 //
 // A backend with no separable ephemeral plane DEGRADES here rather than skipping
-// the case around it. The occupied-id refusal itself — the `bd create --id
+// the case around it. The occupied-id refusal itself — the `issuegraph create --id
 // <occupied>` upsert this contract exists to catch — is proven by the row read,
 // and losing one absence probe is not a reason to stop proving it. The drop is
 // logged so a green run is not mistaken for the whole assertion.

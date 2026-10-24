@@ -7,7 +7,7 @@ import (
 )
 
 // TestEmbeddedCommitToleratesNothingToCommit is the GH#3886 regression test:
-// `bd bootstrap` always builds an embedded store (no ServerMode) and, on a
+// `issuegraph bootstrap` always builds an embedded store (no ServerMode) and, on a
 // pristine store, calls SetConfig followed by CommitWithConfig with an
 // otherwise-clean working set. Before this fix, EmbeddedDoltStore.Commit
 // wrapped ANY DOLT_COMMIT error — including Dolt's benign "nothing to

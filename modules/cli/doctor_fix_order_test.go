@@ -14,7 +14,7 @@ func fixNames(fixes []doctorCheck) []string {
 // full is_blocked recompute ("Blocked State") must be applied after every
 // graph-mutating doctor fix so it recomputes from the corrected graph. The
 // regression it pins: removing a child→parent dependency under
-// `bd doctor --fix --fix-child-parent` unblocks the child, so a Blocked State
+// `issuegraph doctor --fix --fix-child-parent` unblocks the child, so a Blocked State
 // recompute ordered before that cleanup would leave is_blocked stale.
 func TestOrderDoctorFixes_BlockedStateRunsAfterGraphFixes(t *testing.T) {
 	// Append order that previously mis-ordered the recompute: Blocked State is

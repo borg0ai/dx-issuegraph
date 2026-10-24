@@ -13,21 +13,21 @@ import (
 )
 
 func TestEmbeddedStatus(t *testing.T) {
-	if os.Getenv("BEADS_TEST_EMBEDDED_DOLT") != "1" {
-		t.Skip("set BEADS_TEST_EMBEDDED_DOLT=1 to run embedded dolt integration tests")
+	if os.Getenv("ISSUEGRAPH_TEST_EMBEDDED_DOLT") != "1" {
+		t.Skip("set ISSUEGRAPH_TEST_EMBEDDED_DOLT=1 to run embedded dolt integration tests")
 	}
 	t.Parallel()
 
-	bd := buildEmbeddedBD(t)
-	dir, _, _ := bdInit(t, bd, "--prefix", "ss")
+	issuegraph := buildEmbeddedBD(t)
+	dir, _, _ := issuegraphInit(t, issuegraph, "--prefix", "ss")
 
-	bdCreate(t, bd, dir, "Status open 1", "--type", "task")
-	bdCreate(t, bd, dir, "Status open 2", "--type", "bug")
-	ip := bdCreate(t, bd, dir, "Status in_progress", "--type", "task", "--assignee", "alice")
-	bdUpdate(t, bd, dir, ip.ID, "--status", "in_progress")
-	closed := bdCreate(t, bd, dir, "Status closed", "--type", "task")
-	bdClose(t, bd, dir, closed.ID)
-	bdCreate(t, bd, dir, "Status assigned bob", "--type", "task", "--assignee", "bob")
+	issuegraphCreate(t, issuegraph, dir, "Status open 1", "--type", "task")
+	issuegraphCreate(t, issuegraph, dir, "Status open 2", "--type", "bug")
+	ip := issuegraphCreate(t, issuegraph, dir, "Status in_progress", "--type", "task", "--assignee", "alice")
+	issuegraphUpdate(t, issuegraph, dir, ip.ID, "--status", "in_progress")
+	closed := issuegraphCreate(t, issuegraph, dir, "Status closed", "--type", "task")
+	issuegraphClose(t, issuegraph, dir, closed.ID)
+	issuegraphCreate(t, issuegraph, dir, "Status assigned bob", "--type", "task", "--assignee", "bob")
 
 	runStatus := func(t *testing.T, env []string, actor string, args ...string) []byte {
 		t.Helper()
@@ -35,12 +35,12 @@ func TestEmbeddedStatus(t *testing.T) {
 		if actor != "" {
 			commandArgs = append([]string{"--actor", actor}, commandArgs...)
 		}
-		cmd := exec.Command(bd, commandArgs...)
+		cmd := exec.Command(issuegraph, commandArgs...)
 		cmd.Dir = dir
 		cmd.Env = env
 		stdout, stderr, err := runCommandBuffers(t, cmd)
 		if err != nil {
-			t.Fatalf("bd status %s failed: %v\nstdout:\n%s\nstderr:\n%s", strings.Join(args, " "), err, stdout.String(), stderr.String())
+			t.Fatalf("issuegraph status %s failed: %v\nstdout:\n%s\nstderr:\n%s", strings.Join(args, " "), err, stdout.String(), stderr.String())
 		}
 		return stdout.Bytes()
 	}
@@ -60,7 +60,7 @@ func TestEmbeddedStatus(t *testing.T) {
 	}
 
 	t.Run("known_counts_without_activity", func(t *testing.T) {
-		out := runStatus(t, bdEnv(dir), "", "--json", "--no-activity")
+		out := runStatus(t, issuegraphEnv(dir), "", "--json", "--no-activity")
 		var got StatusOutput
 		if err := json.Unmarshal(out, &got); err != nil {
 			t.Fatalf("unmarshal status: %v\n%s", err, out)
@@ -85,7 +85,7 @@ func TestEmbeddedStatus(t *testing.T) {
 	})
 
 	t.Run("assigned_counts_without_activity", func(t *testing.T) {
-		out := runStatus(t, bdEnv(dir), "alice", "--assigned", "--json", "--no-activity")
+		out := runStatus(t, issuegraphEnv(dir), "alice", "--assigned", "--json", "--no-activity")
 		var got StatusOutput
 		if err := json.Unmarshal(out, &got); err != nil {
 			t.Fatalf("unmarshal assigned status: %v\n%s", err, out)
@@ -105,16 +105,16 @@ func TestEmbeddedStatus(t *testing.T) {
 
 // TestEmbeddedStatusConcurrent exercises status operations concurrently.
 func TestEmbeddedStatusConcurrent(t *testing.T) {
-	if os.Getenv("BEADS_TEST_EMBEDDED_DOLT") != "1" {
-		t.Skip("set BEADS_TEST_EMBEDDED_DOLT=1 to run embedded dolt integration tests")
+	if os.Getenv("ISSUEGRAPH_TEST_EMBEDDED_DOLT") != "1" {
+		t.Skip("set ISSUEGRAPH_TEST_EMBEDDED_DOLT=1 to run embedded dolt integration tests")
 	}
 	t.Parallel()
 
-	bd := buildEmbeddedBD(t)
-	dir, _, _ := bdInit(t, bd, "--prefix", "ssc")
+	issuegraph := buildEmbeddedBD(t)
+	dir, _, _ := issuegraphInit(t, issuegraph, "--prefix", "ssc")
 
 	for i := 0; i < 10; i++ {
-		bdCreate(t, bd, dir, fmt.Sprintf("concurrent-status-%d", i), "--type", "task")
+		issuegraphCreate(t, issuegraph, dir, fmt.Sprintf("concurrent-status-%d", i), "--type", "task")
 	}
 
 	const numWorkers = 8
@@ -146,9 +146,9 @@ func TestEmbeddedStatusConcurrent(t *testing.T) {
 			q := queries[worker%len(queries)]
 
 			args := append([]string{"status"}, q...)
-			cmd := exec.Command(bd, args...)
+			cmd := exec.Command(issuegraph, args...)
 			cmd.Dir = dir
-			cmd.Env = bdEnv(dir)
+			cmd.Env = issuegraphEnv(dir)
 			stdout, stderr, err := runCommandBuffers(t, cmd)
 			if err != nil {
 				r.err = fmt.Errorf("worker %d status: %v\nstdout:\n%s\nstderr:\n%s", worker, err, stdout.String(), stderr.String())

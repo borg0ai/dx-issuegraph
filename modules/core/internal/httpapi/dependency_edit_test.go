@@ -11,9 +11,9 @@ import (
 
 	"github.com/go-sql-driver/mysql"
 
-	"github.com/steveyegge/beads/internal/storage"
-	"github.com/steveyegge/beads/internal/types"
-	"github.com/steveyegge/beads/issueops"
+	"github.com/borg0ai/dx-issuegraph/internal/storage"
+	"github.com/borg0ai/dx-issuegraph/internal/types"
+	"github.com/borg0ai/dx-issuegraph/issueops"
 )
 
 // The pins for the dependency-graph writes. What is asserted here is the WIRE
@@ -27,7 +27,7 @@ import (
 // removal really removed and that a refused batch left ZERO edges behind — and
 // that lives in modules/cli's proxied-server integration test against real Dolt.
 
-const removeDependencyPath = "/v0/beads/dependencies:remove"
+const removeDependencyPath = "/v0/issuegraph/dependencies:remove"
 
 func newDependencyServer(t *testing.T, editor *roleDependencyEditor) *testServer {
 	t.Helper()
@@ -231,7 +231,7 @@ func TestRemoveDependencyMapsRoleFailuresThroughTheSharedClassifier(t *testing.T
 	}
 }
 
-const addDependenciesPath = "/v0/beads/dependencies:add"
+const addDependenciesPath = "/v0/issuegraph/dependencies:add"
 
 // oneEdge is the smallest well-formed body, so a case that is about something
 // else does not have to spell one.
@@ -602,7 +602,7 @@ func TestAddDependenciesMapsTheGraphsTypedRefusals(t *testing.T) {
 			// The role's prose is not the wire. Its type-conflict message names
 			// a CLI command, which is the clearest thing a leaked message would
 			// drag onto an HTTP surface.
-			if detail, _ := body["detail"].(string); strings.Contains(detail, "bd dep") {
+			if detail, _ := body["detail"].(string); strings.Contains(detail, "issuegraph dep") {
 				t.Errorf("detail quotes the role's message: %q", detail)
 			}
 		})

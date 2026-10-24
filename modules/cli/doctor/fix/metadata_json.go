@@ -2,20 +2,20 @@ package fix
 
 import (
 	"fmt"
-	"github.com/steveyegge/beads/internal/configfile"
+	"github.com/borg0ai/dx-issuegraph/internal/configfile"
 	"os"
 )
 
 // FixMissingMetadataJSON detects and regenerates a missing metadata.json file.
-// This is the most common failure scenario: the file is deleted but .beads/ exists.
-// Regenerates with default config values (similar to bd init). (GH#2478)
+// This is the most common failure scenario: the file is deleted but .issuegraph/ exists.
+// Regenerates with default config values (similar to issuegraph init). (GH#2478)
 func FixMissingMetadataJSON(path string) error {
-	beadsDir, err := resolvedWorkspaceBeadsDir(path)
+	issuegraphDir, err := resolvedWorkspaceIssueGraphDir(path)
 	if err != nil {
 		return err
 	}
 
-	configPath := configfile.ConfigPath(beadsDir)
+	configPath := configfile.ConfigPath(issuegraphDir)
 
 	if _, err := os.Stat(configPath); err == nil {
 		return nil
@@ -26,7 +26,7 @@ func FixMissingMetadataJSON(path string) error {
 	cfg.Database = "dolt"
 	cfg.DoltMode = configfile.DoltModeServer
 
-	if err := cfg.Save(beadsDir); err != nil {
+	if err := cfg.Save(issuegraphDir); err != nil {
 		return fmt.Errorf("failed to regenerate metadata.json: %w", err)
 	}
 

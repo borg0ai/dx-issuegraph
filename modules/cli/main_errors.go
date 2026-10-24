@@ -10,7 +10,7 @@ import (
 
 // isFreshCloneError checks if the error is due to a fresh clone scenario
 // where the database exists but is missing required config (like issue_prefix).
-// This happens when someone clones a repo with beads but needs to initialize.
+// This happens when someone clones a repo with issuegraph but needs to initialize.
 func isFreshCloneError(err error) bool {
 	if err == nil {
 		return false
@@ -32,9 +32,9 @@ func handleFreshCloneError(err error) bool {
 	fmt.Fprintf(os.Stderr, "Error: Database not initialized\n\n")
 	fmt.Fprintf(os.Stderr, "This appears to be a fresh clone or an existing project whose database needs recovery.\n")
 	fmt.Fprintf(os.Stderr, "\nTo diagnose, run:\n")
-	fmt.Fprintf(os.Stderr, "  bd doctor\n\n")
-	fmt.Fprintf(os.Stderr, "If this is an existing project or fresh clone, run: bd bootstrap\n")
-	fmt.Fprintf(os.Stderr, "To create a brand-new database from scratch: bd init --prefix <your-prefix>\n")
+	fmt.Fprintf(os.Stderr, "  issuegraph doctor\n\n")
+	fmt.Fprintf(os.Stderr, "If this is an existing project or fresh clone, run: issuegraph bootstrap\n")
+	fmt.Fprintf(os.Stderr, "To create a brand-new database from scratch: issuegraph init --prefix <your-prefix>\n")
 	return true
 }
 
@@ -49,8 +49,8 @@ func isWispOperation(cmd *cobra.Command, args []string) bool {
 	cmdName := cmd.Name()
 
 	// Check command hierarchy for wisp subcommands
-	// bd mol wisp → parent is "mol", cmd is "wisp"
-	// bd mol wisp create → parent is "wisp", cmd is "create"
+	// issuegraph mol wisp → parent is "mol", cmd is "wisp"
+	// issuegraph mol wisp create → parent is "wisp", cmd is "create"
 	if cmd.Parent() != nil {
 		parentName := cmd.Parent().Name()
 		// Direct wisp command or subcommands under wisp
@@ -64,7 +64,7 @@ func isWispOperation(cmd *cobra.Command, args []string) bool {
 	}
 
 	// Check for ephemeral issue IDs in arguments
-	// Ephemeral IDs have "wisp" segment: bd-wisp-xxx, gt-wisp-xxx, wisp-xxx
+	// Ephemeral IDs have "wisp" segment: issuegraph-wisp-xxx, gt-wisp-xxx, wisp-xxx
 	// Also detect legacy "eph" prefix for backwards compatibility
 	for _, arg := range args {
 		// Skip flags

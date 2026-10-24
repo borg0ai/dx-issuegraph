@@ -6,16 +6,16 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/steveyegge/beads/internal/configfile"
+	"github.com/borg0ai/dx-issuegraph/internal/configfile"
 )
 
 func TestRunServerHealthChecksSQLiteIsNotAMigrationWarning(t *testing.T) {
 	tmpDir := t.TempDir()
-	beadsDir := filepath.Join(tmpDir, ".beads")
-	if err := os.MkdirAll(beadsDir, 0o750); err != nil {
+	issuegraphDir := filepath.Join(tmpDir, ".issuegraph")
+	if err := os.MkdirAll(issuegraphDir, 0o750); err != nil {
 		t.Fatal(err)
 	}
-	if err := (&configfile.Config{Backend: configfile.BackendSQLite, SQLitePath: "beads.db"}).Save(beadsDir); err != nil {
+	if err := (&configfile.Config{Backend: configfile.BackendSQLite, SQLitePath: "issuegraph.db"}).Save(issuegraphDir); err != nil {
 		t.Fatalf("save SQLite config: %v", err)
 	}
 

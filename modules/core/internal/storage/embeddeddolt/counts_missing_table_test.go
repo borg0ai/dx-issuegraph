@@ -5,7 +5,7 @@ package embeddeddolt_test
 import (
 	"testing"
 
-	"github.com/steveyegge/beads/internal/types"
+	"github.com/borg0ai/dx-issuegraph/internal/types"
 )
 
 // seedCountsPlane puts one durable issue and one wisp in the store so both
@@ -16,7 +16,7 @@ func seedCountsPlane(t *testing.T, te *testEnv, prefix string) {
 	t.Helper()
 	wisp := &types.Issue{
 		ID:        prefix + "-wisp",
-		Title:     "ephemeral bead",
+		Title:     "ephemeral issue",
 		Status:    types.StatusOpen,
 		Priority:  2,
 		IssueType: types.TypeTask,
@@ -27,7 +27,7 @@ func seedCountsPlane(t *testing.T, te *testEnv, prefix string) {
 	}
 	durable := &types.Issue{
 		ID:        prefix + "-issue",
-		Title:     "durable bead",
+		Title:     "durable issue",
 		Status:    types.StatusOpen,
 		Priority:  2,
 		IssueType: types.TypeTask,

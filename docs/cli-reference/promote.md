@@ -1,13 +1,13 @@
 ---
-title: "bd promote"
-description: "Promote a wisp (ephemeral issue) to a permanent bead."
+title: "issuegraph promote"
+description: "Promote a wisp (ephemeral issue) to a permanent issue."
 ---
 
 {/* AUTO-GENERATED: do not edit manually */}
 
-Generated from `bd help --doc promote`.
+Generated from `issuegraph help --doc promote`.
 
-Promote a wisp (ephemeral issue) to a permanent bead.
+Promote a wisp (ephemeral issue) to a permanent issue.
 
 This copies the issue from the wisps table (dolt_ignored) to the permanent
 issues table (Dolt-versioned), preserving labels, dependencies, events, and
@@ -16,11 +16,11 @@ comments. The original ID is preserved so all links keep working.
 A comment is added recording the promotion and optional reason.
 
 Examples:
-  bd promote bd-wisp-abc123
-  bd promote bd-wisp-abc123 --reason "Worth tracking long-term"
+  issuegraph promote issuegraph-wisp-abc123
+  issuegraph promote issuegraph-wisp-abc123 --reason "Worth tracking long-term"
 
 ```
-bd promote <wisp-id> [flags]
+issuegraph promote <wisp-id> [flags]
 ```
 
 **Flags:**

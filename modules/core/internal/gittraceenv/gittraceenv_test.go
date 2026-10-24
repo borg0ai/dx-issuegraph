@@ -34,7 +34,7 @@ func TestStderrDirected(t *testing.T) {
 		{"GIT_TRACE", "2", true},
 		{"GIT_TRACE", "9", true},
 		// File targets: never touch stderr, keep. This is the supported way
-		// to trace bd's git remote plumbing.
+		// to trace issuegraph's git remote plumbing.
 		{"GIT_TRACE", absPath, false},
 		// Socket target: only the GIT_TRACE2 family supports af_unix; on
 		// classic GIT_TRACE it is an unknown value that draws a warning ON

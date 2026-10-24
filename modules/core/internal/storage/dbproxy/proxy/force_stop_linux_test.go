@@ -10,17 +10,17 @@ import (
 	"testing"
 	"time"
 
-	"github.com/steveyegge/beads/internal/procid"
-	"github.com/steveyegge/beads/internal/storage/dbproxy/pidfile"
-	"github.com/steveyegge/beads/internal/storage/dbproxy/server"
-	"github.com/steveyegge/beads/internal/storage/dbproxy/util"
+	"github.com/borg0ai/dx-issuegraph/internal/procid"
+	"github.com/borg0ai/dx-issuegraph/internal/storage/dbproxy/pidfile"
+	"github.com/borg0ai/dx-issuegraph/internal/storage/dbproxy/server"
+	"github.com/borg0ai/dx-issuegraph/internal/storage/dbproxy/util"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
 
 func TestForceStopUnverifiedFreeLock(t *testing.T) {
 	root := t.TempDir()
-	helper := startNamedForceStopHelper(t, root, "bd")
+	helper := startNamedForceStopHelper(t, root, "issuegraph")
 	writeLegacyProxyRecord(t, root, helper)
 
 	report, err := ForceStopUnverified(root)
@@ -28,7 +28,7 @@ func TestForceStopUnverifiedFreeLock(t *testing.T) {
 	assert.True(t, report.RecordFound)
 	assert.False(t, report.LockWasHeld)
 	assert.Equal(t, helper.cmd.Process.Pid, report.PID)
-	assert.Equal(t, "bd", report.Executable)
+	assert.Equal(t, "issuegraph", report.Executable)
 	assert.True(t, report.SignalSent)
 	assert.NotEmpty(t, report.QuarantinedPath)
 	assertHelperExited(t, helper)
@@ -61,7 +61,7 @@ func TestForceStopUnverifiedHeldLock(t *testing.T) {
 
 func TestForceStopUnverifiedGoneProcess(t *testing.T) {
 	root := t.TempDir()
-	helper := startNamedForceStopHelper(t, root, "bd")
+	helper := startNamedForceStopHelper(t, root, "issuegraph")
 	writeLegacyProxyRecord(t, root, helper)
 	handle, err := procid.Open(helper.cmd.Process.Pid, helper.token)
 	require.NoError(t, err)
@@ -81,7 +81,7 @@ func TestForceStopUnverifiedGoneProcess(t *testing.T) {
 // still be offered and recover both records.
 func TestForceStopUnverifiedPairedLegacyRecords(t *testing.T) {
 	root := t.TempDir()
-	proxyHelper := startNamedForceStopHelper(t, root, "bd")
+	proxyHelper := startNamedForceStopHelper(t, root, "issuegraph")
 	backendHelper := startNamedForceStopHelper(t, root, "dolt")
 	writeLegacyProxyRecord(t, root, proxyHelper)
 	require.NoError(t, pidfile.Write(root, server.PIDFileName, pidfile.PidFile{
@@ -117,24 +117,24 @@ func TestForceStopUnverifiedRejectsForeignExecutable(t *testing.T) {
 	writeLegacyProxyRecord(t, root, helper)
 
 	report, err := ForceStopUnverified(root)
-	require.ErrorContains(t, err, "want bd or dolt")
+	require.ErrorContains(t, err, "want issuegraph or dolt")
 	assert.False(t, report.SignalSent)
 	assert.Empty(t, report.QuarantinedPath)
 	assertHelperAlive(t, helper)
 	assert.FileExists(t, pidfile.Path(root, PIDFileName))
 }
 
-// A recycled PID can point at an unrelated live bd process; a basename match
+// A recycled PID can point at an unrelated live issuegraph process; a basename match
 // alone must not be a license to SIGKILL it. The command line has to tie the
 // process to this workspace.
 func TestForceStopUnverifiedRejectsForeignWorkspaceProcess(t *testing.T) {
 	root := t.TempDir()
-	helper := startNamedForceStopHelper(t, t.TempDir(), "bd")
+	helper := startNamedForceStopHelper(t, t.TempDir(), "issuegraph")
 	writeLegacyProxyRecord(t, root, helper)
 
 	report, err := ForceStopUnverified(root)
 	require.ErrorContains(t, err, "does not reference workspace")
-	assert.Equal(t, "bd", report.Executable)
+	assert.Equal(t, "issuegraph", report.Executable)
 	assert.False(t, report.SignalSent)
 	assert.Empty(t, report.QuarantinedPath)
 	assertHelperAlive(t, helper)
@@ -143,7 +143,7 @@ func TestForceStopUnverifiedRejectsForeignWorkspaceProcess(t *testing.T) {
 
 func TestForceStopUnverifiedRejectsVerifiableV2Record(t *testing.T) {
 	root := t.TempDir()
-	helper := startNamedForceStopHelper(t, root, "bd")
+	helper := startNamedForceStopHelper(t, root, "issuegraph")
 	record := v2Record(t, root, pidfile.KindProxy, helper)
 	require.NoError(t, pidfile.Write(root, PIDFileName, record))
 
@@ -157,7 +157,7 @@ func TestForceStopUnverifiedRejectsVerifiableV2Record(t *testing.T) {
 
 // forceStopHelperEnv gates TestForceStopHelperProcess so a normal test run
 // skips the helper body.
-const forceStopHelperEnv = "BEADS_FORCE_STOP_HELPER"
+const forceStopHelperEnv = "ISSUEGRAPH_FORCE_STOP_HELPER"
 
 // TestForceStopHelperProcess is the body of the helper processes
 // startNamedForceStopHelper spawns: a re-exec of this test binary that idles
@@ -171,7 +171,7 @@ func TestForceStopHelperProcess(t *testing.T) {
 
 // startNamedForceStopHelper starts a long-sleeping process whose executable
 // basename is name and whose command line references dir (the binary lives
-// inside it), matching how a workspace's own bd/dolt processes reference
+// inside it), matching how a workspace's own issuegraph/dolt processes reference
 // their root path. The body is this test binary re-executed in helper mode,
 // not a renamed copy of the system sleep: on busybox/uutils-coreutils
 // systems (Ubuntu 25.10+) sleep is a multicall binary dispatching on

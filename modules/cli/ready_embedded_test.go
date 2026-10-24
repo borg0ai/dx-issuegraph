@@ -13,30 +13,30 @@ import (
 	"sync"
 	"testing"
 
-	"github.com/steveyegge/beads/internal/types"
+	"github.com/borg0ai/dx-issuegraph/internal/types"
 )
 
 func TestEmbeddedReady(t *testing.T) {
-	if os.Getenv("BEADS_TEST_EMBEDDED_DOLT") != "1" {
-		t.Skip("set BEADS_TEST_EMBEDDED_DOLT=1 to run embedded dolt integration tests")
+	if os.Getenv("ISSUEGRAPH_TEST_EMBEDDED_DOLT") != "1" {
+		t.Skip("set ISSUEGRAPH_TEST_EMBEDDED_DOLT=1 to run embedded dolt integration tests")
 	}
 	t.Parallel()
 
-	bd := buildEmbeddedBD(t)
-	dir, _, _ := bdInit(t, bd, "--prefix", "rd")
-	bdCreate(t, bd, dir, "Ready test issue", "--type", "task")
+	issuegraph := buildEmbeddedBD(t)
+	dir, _, _ := issuegraphInit(t, issuegraph, "--prefix", "rd")
+	issuegraphCreate(t, issuegraph, dir, "Ready test issue", "--type", "task")
 
 	// ===== Default =====
 
 	t.Run("ready_includes_open_issue_with_zero_dependencies", func(t *testing.T) {
-		issue := bdCreate(t, bd, dir, "GH3268 zero dependency ready issue", "--type", "task", "--label", "gh3268-zero-deps")
+		issue := issuegraphCreate(t, issuegraph, dir, "GH3268 zero dependency ready issue", "--type", "task", "--label", "gh3268-zero-deps")
 
-		cmd := exec.Command(bd, "ready", "--json", "--label", "gh3268-zero-deps")
+		cmd := exec.Command(issuegraph, "ready", "--json", "--label", "gh3268-zero-deps")
 		cmd.Dir = dir
-		cmd.Env = bdEnv(dir)
+		cmd.Env = issuegraphEnv(dir)
 		stdout, stderr, err := runCommandBuffers(t, cmd)
 		if err != nil {
-			t.Fatalf("bd ready --json failed: %v\nstdout:\n%s\nstderr:\n%s", err, stdout.String(), stderr.String())
+			t.Fatalf("issuegraph ready --json failed: %v\nstdout:\n%s\nstderr:\n%s", err, stdout.String(), stderr.String())
 		}
 
 		var ready []types.IssueWithCounts
@@ -55,12 +55,12 @@ func TestEmbeddedReady(t *testing.T) {
 	})
 
 	t.Run("ready_default", func(t *testing.T) {
-		cmd := exec.Command(bd, "ready")
+		cmd := exec.Command(issuegraph, "ready")
 		cmd.Dir = dir
-		cmd.Env = bdEnv(dir)
+		cmd.Env = issuegraphEnv(dir)
 		stdout, stderr, err := runCommandBuffers(t, cmd)
 		if err != nil {
-			t.Fatalf("bd ready failed: %v\nstdout:\n%s\nstderr:\n%s", err, stdout.String(), stderr.String())
+			t.Fatalf("issuegraph ready failed: %v\nstdout:\n%s\nstderr:\n%s", err, stdout.String(), stderr.String())
 		}
 		if !strings.Contains(stdout.String(), "Ready test issue") {
 			t.Errorf("expected issue in ready output: %s", stdout.String())
@@ -70,12 +70,12 @@ func TestEmbeddedReady(t *testing.T) {
 	// ===== --json =====
 
 	t.Run("ready_json", func(t *testing.T) {
-		cmd := exec.Command(bd, "ready", "--json")
+		cmd := exec.Command(issuegraph, "ready", "--json")
 		cmd.Dir = dir
-		cmd.Env = bdEnv(dir)
+		cmd.Env = issuegraphEnv(dir)
 		stdout, stderr, err := runCommandBuffers(t, cmd)
 		if err != nil {
-			t.Fatalf("bd ready --json failed: %v\nstdout:\n%s\nstderr:\n%s", err, stdout.String(), stderr.String())
+			t.Fatalf("issuegraph ready --json failed: %v\nstdout:\n%s\nstderr:\n%s", err, stdout.String(), stderr.String())
 		}
 		s := strings.TrimSpace(stdout.String())
 		start := strings.IndexAny(s, "[{")
@@ -89,17 +89,17 @@ func TestEmbeddedReady(t *testing.T) {
 
 	t.Run("ready_json_truncation_hint", func(t *testing.T) {
 		for i := 0; i < 3; i++ {
-			bdCreate(t, bd, dir, fmt.Sprintf("Ready capped issue %d", i), "--type", "task")
+			issuegraphCreate(t, issuegraph, dir, fmt.Sprintf("Ready capped issue %d", i), "--type", "task")
 		}
 
-		cmd := exec.Command(bd, "ready", "--json", "--limit", "2")
+		cmd := exec.Command(issuegraph, "ready", "--json", "--limit", "2")
 		cmd.Dir = dir
-		cmd.Env = bdEnv(dir)
+		cmd.Env = issuegraphEnv(dir)
 		var stderr bytes.Buffer
 		cmd.Stderr = &stderr
 		out, err := cmd.Output()
 		if err != nil {
-			t.Fatalf("bd ready --json --limit 2 failed: %v\nstderr: %s\nstdout: %s", err, stderr.String(), out)
+			t.Fatalf("issuegraph ready --json --limit 2 failed: %v\nstderr: %s\nstdout: %s", err, stderr.String(), out)
 		}
 		if !json.Valid(bytes.TrimSpace(out)) {
 			t.Fatalf("ready JSON stdout should remain parseable, got: %s", out)
@@ -111,12 +111,12 @@ func TestEmbeddedReady(t *testing.T) {
 		// The "of N" is the whole ready set, now taken in the page's own
 		// transaction: it must be exactly what an unbounded listing returns,
 		// in the hint and in the envelope's pagination alike.
-		all := exec.Command(bd, "ready", "--json", "--limit", "0")
+		all := exec.Command(issuegraph, "ready", "--json", "--limit", "0")
 		all.Dir = dir
-		all.Env = bdEnv(dir)
+		all.Env = issuegraphEnv(dir)
 		allOut, err := all.Output()
 		if err != nil {
-			t.Fatalf("bd ready --json --limit 0 failed: %v", err)
+			t.Fatalf("issuegraph ready --json --limit 0 failed: %v", err)
 		}
 		var unbounded []types.IssueWithCounts
 		if err := json.Unmarshal(bytes.TrimSpace(allOut), &unbounded); err != nil {
@@ -127,12 +127,12 @@ func TestEmbeddedReady(t *testing.T) {
 			t.Fatalf("hint = %q, want it to contain %q", stderr.String(), wantHint)
 		}
 
-		env := exec.Command(bd, "ready", "--json", "--limit", "2")
+		env := exec.Command(issuegraph, "ready", "--json", "--limit", "2")
 		env.Dir = dir
-		env.Env = append(bdEnv(dir), "BD_JSON_ENVELOPE=1")
+		env.Env = append(issuegraphEnv(dir), "ISSUEGRAPH_JSON_ENVELOPE=1")
 		envOut, err := env.Output()
 		if err != nil {
-			t.Fatalf("bd ready --json --limit 2 (envelope) failed: %v", err)
+			t.Fatalf("issuegraph ready --json --limit 2 (envelope) failed: %v", err)
 		}
 		var envelope struct {
 			Data       []types.IssueWithCounts `json:"data"`
@@ -148,14 +148,14 @@ func TestEmbeddedReady(t *testing.T) {
 	})
 
 	t.Run("ready_claim_json", func(t *testing.T) {
-		issue := bdCreate(t, bd, dir, "Ready claim json", "--type", "task", "--label", "ready-claim-json")
+		issue := issuegraphCreate(t, issuegraph, dir, "Ready claim json", "--type", "task", "--label", "ready-claim-json")
 
-		cmd := exec.Command(bd, "ready", "--claim", "--json", "--label", "missing-label")
+		cmd := exec.Command(issuegraph, "ready", "--claim", "--json", "--label", "missing-label")
 		cmd.Dir = dir
-		cmd.Env = bdEnv(dir)
+		cmd.Env = issuegraphEnv(dir)
 		stdout, stderr, err := runCommandBuffers(t, cmd)
 		if err != nil {
-			t.Fatalf("bd ready --claim --json with no matches failed: %v\nstdout:\n%s\nstderr:\n%s", err, stdout.String(), stderr.String())
+			t.Fatalf("issuegraph ready --claim --json with no matches failed: %v\nstdout:\n%s\nstderr:\n%s", err, stdout.String(), stderr.String())
 		}
 		var empty []types.IssueWithCounts
 		if err := json.Unmarshal(bytes.TrimSpace(stdout.Bytes()), &empty); err != nil {
@@ -165,15 +165,15 @@ func TestEmbeddedReady(t *testing.T) {
 			t.Fatalf("expected no claimed issues for unmatched label, got %d", len(empty))
 		}
 
-		cmd = exec.Command(bd, "ready", "--claim", "--json", "--label", "ready-claim-json")
+		cmd = exec.Command(issuegraph, "ready", "--claim", "--json", "--label", "ready-claim-json")
 		cmd.Dir = dir
-		cmd.Env = bdEnv(dir)
+		cmd.Env = issuegraphEnv(dir)
 		stdout.Reset()
 		stderr.Reset()
 		cmd.Stdout = &stdout
 		cmd.Stderr = &stderr
 		if err := cmd.Run(); err != nil {
-			t.Fatalf("bd ready --claim --json failed: %v\nstdout:\n%s\nstderr:\n%s", err, stdout.String(), stderr.String())
+			t.Fatalf("issuegraph ready --claim --json failed: %v\nstdout:\n%s\nstderr:\n%s", err, stdout.String(), stderr.String())
 		}
 		var claimed []types.IssueWithCounts
 		if err := json.Unmarshal(bytes.TrimSpace(stdout.Bytes()), &claimed); err != nil {
@@ -196,23 +196,23 @@ func TestEmbeddedReady(t *testing.T) {
 	// ===== With Blockers =====
 
 	t.Run("ready_excludes_blocked", func(t *testing.T) {
-		blocker := bdCreate(t, bd, dir, "Blocker issue", "--type", "task")
-		blocked := bdCreate(t, bd, dir, "Blocked by blocker", "--type", "task")
+		blocker := issuegraphCreate(t, issuegraph, dir, "Blocker issue", "--type", "task")
+		blocked := issuegraphCreate(t, issuegraph, dir, "Blocked by blocker", "--type", "task")
 
 		// Add blocking dependency: blocked depends on blocker
-		cmd := exec.Command(bd, "dep", "add", blocked.ID, blocker.ID)
+		cmd := exec.Command(issuegraph, "dep", "add", blocked.ID, blocker.ID)
 		cmd.Dir = dir
-		cmd.Env = bdEnv(dir)
+		cmd.Env = issuegraphEnv(dir)
 		if out, err := cmd.CombinedOutput(); err != nil {
 			t.Fatalf("dep add failed: %v\n%s", err, out)
 		}
 
-		cmd = exec.Command(bd, "ready")
+		cmd = exec.Command(issuegraph, "ready")
 		cmd.Dir = dir
-		cmd.Env = bdEnv(dir)
+		cmd.Env = issuegraphEnv(dir)
 		stdout, stderr, err := runCommandBuffers(t, cmd)
 		if err != nil {
-			t.Fatalf("bd ready failed: %v\nstdout:\n%s\nstderr:\n%s", err, stdout.String(), stderr.String())
+			t.Fatalf("issuegraph ready failed: %v\nstdout:\n%s\nstderr:\n%s", err, stdout.String(), stderr.String())
 		}
 		// The blocked issue should not appear in ready output
 		if strings.Contains(stdout.String(), "Blocked by blocker") {
@@ -223,15 +223,15 @@ func TestEmbeddedReady(t *testing.T) {
 	// ===== Exclude Label =====
 
 	t.Run("ready_exclude_label", func(t *testing.T) {
-		bdCreate(t, bd, dir, "Triage pending item", "--type", "task", "--label", "triage:pending")
-		bdCreate(t, bd, dir, "Normal ready item", "--type", "task")
+		issuegraphCreate(t, issuegraph, dir, "Triage pending item", "--type", "task", "--label", "triage:pending")
+		issuegraphCreate(t, issuegraph, dir, "Normal ready item", "--type", "task")
 
-		cmd := exec.Command(bd, "ready", "--exclude-label", "triage:pending")
+		cmd := exec.Command(issuegraph, "ready", "--exclude-label", "triage:pending")
 		cmd.Dir = dir
-		cmd.Env = bdEnv(dir)
+		cmd.Env = issuegraphEnv(dir)
 		stdout, stderr, err := runCommandBuffers(t, cmd)
 		if err != nil {
-			t.Fatalf("bd ready --exclude-label failed: %v\nstdout:\n%s\nstderr:\n%s", err, stdout.String(), stderr.String())
+			t.Fatalf("issuegraph ready --exclude-label failed: %v\nstdout:\n%s\nstderr:\n%s", err, stdout.String(), stderr.String())
 		}
 		if strings.Contains(stdout.String(), "Triage pending item") {
 			t.Errorf("triage:pending issue should not appear with --exclude-label: %s", stdout.String())
@@ -245,12 +245,12 @@ func TestEmbeddedReady(t *testing.T) {
 
 	readyIDs := func(t *testing.T, args ...string) ([]string, string) {
 		t.Helper()
-		cmd := exec.Command(bd, args...)
+		cmd := exec.Command(issuegraph, args...)
 		cmd.Dir = dir
-		cmd.Env = bdEnv(dir)
+		cmd.Env = issuegraphEnv(dir)
 		stdout, stderr, err := runCommandBuffers(t, cmd)
 		if err != nil {
-			t.Fatalf("bd %s failed: %v\nstdout:\n%s\nstderr:\n%s",
+			t.Fatalf("issuegraph %s failed: %v\nstdout:\n%s\nstderr:\n%s",
 				strings.Join(args, " "), err, stdout.String(), stderr.String())
 		}
 		var issues []types.IssueWithCounts
@@ -265,9 +265,9 @@ func TestEmbeddedReady(t *testing.T) {
 	}
 
 	t.Run("ready_label_any", func(t *testing.T) {
-		laneA := bdCreate(t, bd, dir, "Lane A work", "--type", "task", "--label", "lany:lane-a")
-		bdCreate(t, bd, dir, "Lane B work", "--type", "task", "--label", "lany:lane-b")
-		laneC := bdCreate(t, bd, dir, "Lane C work", "--type", "task", "--label", "lany:lane-c")
+		laneA := issuegraphCreate(t, issuegraph, dir, "Lane A work", "--type", "task", "--label", "lany:lane-a")
+		issuegraphCreate(t, issuegraph, dir, "Lane B work", "--type", "task", "--label", "lany:lane-b")
+		laneC := issuegraphCreate(t, issuegraph, dir, "Lane C work", "--type", "task", "--label", "lany:lane-c")
 
 		ids, raw := readyIDs(t, "ready", "--json", "--label-any", "lany:lane-a,lany:lane-c")
 
@@ -284,10 +284,10 @@ func TestEmbeddedReady(t *testing.T) {
 	})
 
 	t.Run("ready_label_any_intersects_with_label", func(t *testing.T) {
-		both := bdCreate(t, bd, dir, "Tiered lane A work", "--type", "task",
+		both := issuegraphCreate(t, issuegraph, dir, "Tiered lane A work", "--type", "task",
 			"--label", "lmix:tier", "--label", "lmix:lane-a")
-		bdCreate(t, bd, dir, "Untiered lane A work", "--type", "task", "--label", "lmix:lane-a")
-		bdCreate(t, bd, dir, "Tiered lane B work", "--type", "task",
+		issuegraphCreate(t, issuegraph, dir, "Untiered lane A work", "--type", "task", "--label", "lmix:lane-a")
+		issuegraphCreate(t, issuegraph, dir, "Tiered lane B work", "--type", "task",
 			"--label", "lmix:tier", "--label", "lmix:lane-b")
 
 		ids, raw := readyIDs(t, "ready", "--json",
@@ -303,7 +303,7 @@ func TestEmbeddedReady(t *testing.T) {
 		// An exhausted lane must claim nothing. If --label-any is dropped here
 		// the claim silently takes unfenced work while the caller believes it
 		// is fenced to its own lane.
-		bdCreate(t, bd, dir, "Fence lane B work", "--type", "task", "--label", "lfence:lane-b")
+		issuegraphCreate(t, issuegraph, dir, "Fence lane B work", "--type", "task", "--label", "lfence:lane-b")
 
 		ids, raw := readyIDs(t, "ready", "--claim", "--json", "--label-any", "lfence:lane-a")
 
@@ -315,14 +315,14 @@ func TestEmbeddedReady(t *testing.T) {
 	// ===== -C flag =====
 
 	t.Run("ready_with_C_flag", func(t *testing.T) {
-		// Run bd ready from a different directory using -C to point at the beads project
+		// Run issuegraph ready from a different directory using -C to point at the issuegraph project
 		tmpDir := t.TempDir()
-		cmd := exec.Command(bd, "-C", dir, "ready")
-		cmd.Dir = tmpDir // Run from a directory with no .beads/
-		cmd.Env = bdEnv(dir)
+		cmd := exec.Command(issuegraph, "-C", dir, "ready")
+		cmd.Dir = tmpDir // Run from a directory with no .issuegraph/
+		cmd.Env = issuegraphEnv(dir)
 		stdout, stderr, err := runCommandBuffers(t, cmd)
 		if err != nil {
-			t.Fatalf("bd -C %s ready failed: %v\nstdout:\n%s\nstderr:\n%s", dir, err, stdout.String(), stderr.String())
+			t.Fatalf("issuegraph -C %s ready failed: %v\nstdout:\n%s\nstderr:\n%s", dir, err, stdout.String(), stderr.String())
 		}
 		if !strings.Contains(stdout.String(), "Ready test issue") {
 			t.Errorf("expected issue in ready -C output: %s", stdout.String())
@@ -331,12 +331,12 @@ func TestEmbeddedReady(t *testing.T) {
 
 	t.Run("ready_with_C_flag_invalid_path", func(t *testing.T) {
 		tmpDir := t.TempDir()
-		cmd := exec.Command(bd, "-C", filepath.Join(tmpDir, "missing"), "ready")
+		cmd := exec.Command(issuegraph, "-C", filepath.Join(tmpDir, "missing"), "ready")
 		cmd.Dir = tmpDir
-		cmd.Env = bdEnv(dir)
+		cmd.Env = issuegraphEnv(dir)
 		out, err := cmd.CombinedOutput()
 		if err == nil {
-			t.Fatalf("bd -C missing ready succeeded unexpectedly:\n%s", out)
+			t.Fatalf("issuegraph -C missing ready succeeded unexpectedly:\n%s", out)
 		}
 		if !strings.Contains(string(out), "cannot use -C directory") {
 			t.Errorf("expected invalid -C path error, got: %s", out)
@@ -346,34 +346,34 @@ func TestEmbeddedReady(t *testing.T) {
 	t.Run("ready_with_C_flag_does_not_leak_cwd", func(t *testing.T) {
 		// Verify that -C does not permanently mutate the process cwd.
 		// Two sequential invocations from the same tmpDir: the first uses -C to
-		// reach the project; the second omits -C and must fail (no .beads/ in tmpDir),
-		// proving BEADS_DIR was not leaked into the test process environment.
+		// reach the project; the second omits -C and must fail (no .issuegraph/ in tmpDir),
+		// proving ISSUEGRAPH_DIR was not leaked into the test process environment.
 		tmpDir := t.TempDir()
-		env := bdEnv(dir) // strips all BEADS_* vars
+		env := issuegraphEnv(dir) // strips all ISSUEGRAPH_* vars
 
-		cmd1 := exec.Command(bd, "-C", dir, "ready")
+		cmd1 := exec.Command(issuegraph, "-C", dir, "ready")
 		cmd1.Dir = tmpDir
 		cmd1.Env = env
 		if out, err := cmd1.CombinedOutput(); err != nil {
-			t.Fatalf("first bd -C ready failed: %v\n%s", err, out)
+			t.Fatalf("first issuegraph -C ready failed: %v\n%s", err, out)
 		}
 
-		cmd2 := exec.Command(bd, "ready")
+		cmd2 := exec.Command(issuegraph, "ready")
 		cmd2.Dir = tmpDir
-		cmd2.Env = env // same env — BEADS_DIR must not have leaked
+		cmd2.Env = env // same env — ISSUEGRAPH_DIR must not have leaked
 		out2, err2 := cmd2.CombinedOutput()
 		if err2 == nil {
-			t.Fatalf("second bd ready (no -C) should have failed in tmpDir, got: %s", out2)
+			t.Fatalf("second issuegraph ready (no -C) should have failed in tmpDir, got: %s", out2)
 		}
 	})
 
 	t.Run("offset_rejected_outside_proxied", func(t *testing.T) {
-		cmd := exec.Command(bd, "ready", "--offset", "1")
+		cmd := exec.Command(issuegraph, "ready", "--offset", "1")
 		cmd.Dir = dir
-		cmd.Env = bdEnv(dir)
+		cmd.Env = issuegraphEnv(dir)
 		out, err := cmd.CombinedOutput()
 		if err == nil {
-			t.Fatalf("bd ready --offset 1 in embedded mode should have failed, got: %s", out)
+			t.Fatalf("issuegraph ready --offset 1 in embedded mode should have failed, got: %s", out)
 		}
 		if !strings.Contains(string(out), "--offset is only supported under --proxied-server") {
 			t.Errorf("expected '--offset is only supported under --proxied-server' error, got: %s", out)
@@ -386,23 +386,23 @@ func TestEmbeddedReady(t *testing.T) {
 	// again. Pinned live because the shared flag gatherer is one edit away
 	// from turning it into an exit-1 usage error.
 	// The cap is resolved before the sort policy is validated, so a typo'd
-	// BEADS_MAX_ROWS still tells the user their cap is being ignored even
+	// ISSUEGRAPH_MAX_ROWS still tells the user their cap is being ignored even
 	// though the command is about to fail for an unrelated reason. Pinned
 	// live: the warning is a side effect of resolving, so it disappears the
 	// moment the resolution moves later in the sequence.
 	t.Run("malformed_max_rows_env_warns_before_the_sort_error", func(t *testing.T) {
-		cmd := exec.Command(bd, "ready", "--sort", "bogus")
+		cmd := exec.Command(issuegraph, "ready", "--sort", "bogus")
 		cmd.Dir = dir
-		cmd.Env = append(bdEnv(dir), "BEADS_MAX_ROWS=bogus")
+		cmd.Env = append(issuegraphEnv(dir), "ISSUEGRAPH_MAX_ROWS=bogus")
 		stdout, stderr, err := runCommandBuffers(t, cmd)
 		if err == nil {
-			t.Fatalf("bd ready --sort bogus should have failed; stdout:\n%s\nstderr:\n%s", stdout.String(), stderr.String())
+			t.Fatalf("issuegraph ready --sort bogus should have failed; stdout:\n%s\nstderr:\n%s", stdout.String(), stderr.String())
 		}
-		warning := strings.Index(stderr.String(), "BEADS_MAX_ROWS=\"bogus\" is not a non-negative integer")
+		warning := strings.Index(stderr.String(), "ISSUEGRAPH_MAX_ROWS=\"bogus\" is not a non-negative integer")
 		sortErr := strings.Index(stderr.String(), "invalid sort policy")
 		switch {
 		case warning < 0:
-			t.Errorf("expected the BEADS_MAX_ROWS warning, got stderr:\n%s", stderr.String())
+			t.Errorf("expected the ISSUEGRAPH_MAX_ROWS warning, got stderr:\n%s", stderr.String())
 		case sortErr < 0:
 			t.Errorf("expected the sort-policy error, got stderr:\n%s", stderr.String())
 		case warning > sortErr:
@@ -411,12 +411,12 @@ func TestEmbeddedReady(t *testing.T) {
 	})
 
 	t.Run("negative_offset_ignored_outside_proxied", func(t *testing.T) {
-		cmd := exec.Command(bd, "ready", "--offset", "-1")
+		cmd := exec.Command(issuegraph, "ready", "--offset", "-1")
 		cmd.Dir = dir
-		cmd.Env = bdEnv(dir)
+		cmd.Env = issuegraphEnv(dir)
 		stdout, stderr, err := runCommandBuffers(t, cmd)
 		if err != nil {
-			t.Fatalf("bd ready --offset -1 in embedded mode should have listed ready work: %v\nstdout:\n%s\nstderr:\n%s", err, stdout.String(), stderr.String())
+			t.Fatalf("issuegraph ready --offset -1 in embedded mode should have listed ready work: %v\nstdout:\n%s\nstderr:\n%s", err, stdout.String(), stderr.String())
 		}
 		if !strings.Contains(stdout.String(), "Ready test issue") {
 			t.Errorf("expected ready work in output, got: %s", stdout.String())
@@ -425,15 +425,15 @@ func TestEmbeddedReady(t *testing.T) {
 }
 
 func TestEmbeddedReadyConcurrent(t *testing.T) {
-	if os.Getenv("BEADS_TEST_EMBEDDED_DOLT") != "1" {
-		t.Skip("set BEADS_TEST_EMBEDDED_DOLT=1 to run embedded dolt integration tests")
+	if os.Getenv("ISSUEGRAPH_TEST_EMBEDDED_DOLT") != "1" {
+		t.Skip("set ISSUEGRAPH_TEST_EMBEDDED_DOLT=1 to run embedded dolt integration tests")
 	}
 	t.Parallel()
 
-	bd := buildEmbeddedBD(t)
-	dir, _, _ := bdInit(t, bd, "--prefix", "rx")
+	issuegraph := buildEmbeddedBD(t)
+	dir, _, _ := issuegraphInit(t, issuegraph, "--prefix", "rx")
 
-	bdCreate(t, bd, dir, "Ready concurrent issue", "--type", "task")
+	issuegraphCreate(t, issuegraph, dir, "Ready concurrent issue", "--type", "task")
 
 	const numWorkers = 8
 	type workerResult struct {
@@ -448,9 +448,9 @@ func TestEmbeddedReadyConcurrent(t *testing.T) {
 		go func(worker int) {
 			defer wg.Done()
 			r := workerResult{worker: worker}
-			cmd := exec.Command(bd, "ready")
+			cmd := exec.Command(issuegraph, "ready")
 			cmd.Dir = dir
-			cmd.Env = bdEnv(dir)
+			cmd.Env = issuegraphEnv(dir)
 			out, err := cmd.CombinedOutput()
 			if err != nil {
 				r.err = fmt.Errorf("ready (worker %d): %v\n%s", worker, err, out)
@@ -467,15 +467,15 @@ func TestEmbeddedReadyConcurrent(t *testing.T) {
 }
 
 func TestEmbeddedReadyClaimConcurrent(t *testing.T) {
-	if os.Getenv("BEADS_TEST_EMBEDDED_DOLT") != "1" {
-		t.Skip("set BEADS_TEST_EMBEDDED_DOLT=1 to run embedded dolt integration tests")
+	if os.Getenv("ISSUEGRAPH_TEST_EMBEDDED_DOLT") != "1" {
+		t.Skip("set ISSUEGRAPH_TEST_EMBEDDED_DOLT=1 to run embedded dolt integration tests")
 	}
 	t.Parallel()
 
-	bd := buildEmbeddedBD(t)
-	dir, _, _ := bdInit(t, bd, "--prefix", "rc")
+	issuegraph := buildEmbeddedBD(t)
+	dir, _, _ := issuegraphInit(t, issuegraph, "--prefix", "rc")
 
-	issue := bdCreate(t, bd, dir, "Ready claim concurrent issue", "--type", "task")
+	issue := issuegraphCreate(t, issuegraph, dir, "Ready claim concurrent issue", "--type", "task")
 
 	const numWorkers = 8
 	type workerResult struct {
@@ -492,7 +492,7 @@ func TestEmbeddedReadyClaimConcurrent(t *testing.T) {
 		go func(worker int) {
 			defer wg.Done()
 			r := workerResult{worker: worker}
-			out, err := bdRunWithFlockRetry(t, bd, dir, "ready", "--claim", "--json")
+			out, err := issuegraphRunWithFlockRetry(t, issuegraph, dir, "ready", "--claim", "--json")
 			r.out = string(out)
 			if err != nil {
 				r.err = fmt.Errorf("ready --claim (worker %d): %v\n%s", worker, err, out)
@@ -527,7 +527,7 @@ func TestEmbeddedReadyClaimConcurrent(t *testing.T) {
 	if claimCount != 1 {
 		t.Fatalf("expected exactly one successful claim, got %d", claimCount)
 	}
-	got := bdShow(t, bd, dir, issue.ID)
+	got := issuegraphShow(t, issuegraph, dir, issue.ID)
 	if got.Status != types.StatusInProgress {
 		t.Fatalf("final status = %s, want %s", got.Status, types.StatusInProgress)
 	}

@@ -6,9 +6,9 @@ import (
 	"context"
 	"testing"
 
-	"github.com/steveyegge/beads/internal/storage/embeddeddolt"
-	"github.com/steveyegge/beads/internal/types"
-	publicops "github.com/steveyegge/beads/issueops"
+	"github.com/borg0ai/dx-issuegraph/internal/storage/embeddeddolt"
+	"github.com/borg0ai/dx-issuegraph/internal/types"
+	publicops "github.com/borg0ai/dx-issuegraph/issueops"
 )
 
 // journalOpActor is one (op, issue_id, actor) triple read straight out of the
@@ -27,7 +27,7 @@ func readJournalOpActors(t *testing.T, env *testEnv) []journalOpActor {
 		t.Fatalf("OpenSQL: %v", err)
 	}
 	defer cleanup()
-	rows, err := db.QueryContext(ctx, "SELECT op, issue_id, actor FROM bd_events_journal ORDER BY seq ASC")
+	rows, err := db.QueryContext(ctx, "SELECT op, issue_id, actor FROM issuegraph_events_journal ORDER BY seq ASC")
 	if err != nil {
 		t.Fatalf("query journal: %v", err)
 	}
@@ -61,7 +61,7 @@ func readJournalOpActors(t *testing.T, env *testEnv) []journalOpActor {
 // yet.
 //
 // The empty cases are asserted as deliberately as the attributed ones. A
-// derived is_blocked recompute is bd's own bookkeeping, not something the actor
+// derived is_blocked recompute is issuegraph's own bookkeeping, not something the actor
 // who tripped it did, and the 0066 contract says a consumer must read an empty
 // actor as system/unknown rather than as a conflicting writer — so a test that
 // let an empty actor pass anywhere would be pinning nothing.
@@ -86,7 +86,7 @@ func TestEventsJournal_ActorMatrixOnEmbedded(t *testing.T) {
 	if err := store.UpdateIssue(ctx, "am-a", map[string]any{"title": "renamed"}, "alice"); err != nil {
 		t.Fatalf("update: %v", err)
 	}
-	// Label edits journal as `update` — a label is part of the bead's state, so
+	// Label edits journal as `update` — a label is part of the issue's state, so
 	// a replaying consumer needs the whole post-mutation snapshot, not an event
 	// kind of its own.
 	if err := store.AddLabel(ctx, "am-a", "urgent", "alice"); err != nil {
@@ -103,7 +103,7 @@ func TestEventsJournal_ActorMatrixOnEmbedded(t *testing.T) {
 	}, "alice"); err != nil {
 		t.Fatalf("add dep: %v", err)
 	}
-	// A direct `bd dep remove`, which has always been attributed.
+	// A direct `issuegraph dep remove`, which has always been attributed.
 	if err := store.RemoveDependency(ctx, "am-b", "am-a", "alice"); err != nil {
 		t.Fatalf("remove dep: %v", err)
 	}
@@ -116,7 +116,7 @@ func TestEventsJournal_ActorMatrixOnEmbedded(t *testing.T) {
 	if err := store.CloseIssue(ctx, "am-b", "done", "alice", ""); err != nil {
 		t.Fatalf("close: %v", err)
 	}
-	// The role, which is what `bd delete` reaches — not storage.DeleteIssue.
+	// The role, which is what `issuegraph delete` reaches — not storage.DeleteIssue.
 	deleter, err := store.Deleter()
 	if err != nil {
 		t.Fatalf("Deleter(): %v", err)
@@ -150,7 +150,7 @@ func TestEventsJournal_ActorMatrixOnEmbedded(t *testing.T) {
 		{"dep_remove (direct)", "dep_remove", "am-b", "alice"},
 		{"close", "close", "am-b", "alice"},
 		// The delete row and the edge the cascade took with it. The edge is
-		// journaled under its SOURCE, the surviving bead, which is why the two
+		// journaled under its SOURCE, the surviving issue, which is why the two
 		// rows name different ids and the same actor.
 		{"delete (role path)", "delete", "am-a", "alice"},
 		{"dep_remove (cascade)", "dep_remove", "am-b", "alice"},
@@ -160,14 +160,14 @@ func TestEventsJournal_ActorMatrixOnEmbedded(t *testing.T) {
 		}
 	}
 
-	// The other half of the contract: derived readiness maintenance is bd's own
+	// The other half of the contract: derived readiness maintenance is issuegraph's own
 	// bookkeeping and stays unattributed. Removing am-b's only blocker flips its
 	// persisted is_blocked, which journals as an update carrying no actor.
 	if !has("update", "am-b", "") {
 		t.Errorf("no unattributed derived is_blocked update for am-b; the '' half of the contract is not being exercised\njournal: %+v", rows)
 	}
 
-	// Nothing may carry an actor bd never saw, and no attributed op may slip
+	// Nothing may carry an actor issuegraph never saw, and no attributed op may slip
 	// through empty. Every '' row in this workspace is a derived update.
 	for _, r := range rows {
 		if r.actor == "" && r.op != "update" {

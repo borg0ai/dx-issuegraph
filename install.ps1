@@ -1,12 +1,12 @@
 # IssueGraph (issuegraph) Windows installer
 # Usage:
-#   irm https://raw.githubusercontent.com/gastownhall/beads/main/install.ps1 | iex
+#   irm https://raw.githubusercontent.com/borg0ai/dx-issuegraph/main/install.ps1 | iex
 
 Set-StrictMode -Version Latest
 $ErrorActionPreference = "Stop"
 
-$Script:SkipGoInstall = $env:BEADS_INSTALL_SKIP_GOINSTALL -eq "1"
-$Script:SourceOverride = $env:BEADS_INSTALL_SOURCE
+$Script:SkipGoInstall = $env:ISSUEGRAPH_INSTALL_SKIP_GOINSTALL -eq "1"
+$Script:SourceOverride = $env:ISSUEGRAPH_INSTALL_SOURCE
 
 function Write-Info($Message)    { Write-Host "==> $Message" -ForegroundColor Cyan }
 function Write-Success($Message) { Write-Host "==> $Message" -ForegroundColor Green }
@@ -55,13 +55,13 @@ function Test-GoSupport {
 
 function Install-WithGo {
     if ($Script:SkipGoInstall) {
-        Write-Info "Skipping go install (BEADS_INSTALL_SKIP_GOINSTALL=1)."
+        Write-Info "Skipping go install (ISSUEGRAPH_INSTALL_SKIP_GOINSTALL=1)."
         return $false
     }
 
     Write-Info "Installing issuegraph via go install..."
     try {
-        & go install -tags gms_pure_go github.com/steveyegge/beads/modules/cli@latest
+        & go install -tags gms_pure_go github.com/borg0ai/dx-issuegraph/modules/cli@latest
         if ($LASTEXITCODE -ne 0) {
             Write-WarningMsg "go install exited with code $LASTEXITCODE"
             return $false
@@ -84,11 +84,11 @@ function Install-WithGo {
 
     # `go install` names the binary after the package directory (cli), not
     # the product name.
-    $bdPath = Join-Path $binDir "cli.exe"
+    $issuegraphPath = Join-Path $binDir "cli.exe"
     # Record where we expect the binary to have been installed in this run
-    $Script:LastInstallPath = $bdPath
+    $Script:LastInstallPath = $issuegraphPath
 
-    if (-not (Test-Path $bdPath)) {
+    if (-not (Test-Path $issuegraphPath)) {
         Write-WarningMsg "cli.exe not found in $binDir after install"
     }
 
@@ -162,9 +162,9 @@ function Install-FromRelease {
         return $false
     }
 
-    $apiUrl = "https://api.github.com/repos/gastownhall/beads/releases/latest"
+    $apiUrl = "https://api.github.com/repos/borg0ai/dx-issuegraph/releases/latest"
     try {
-        $release = Invoke-RestMethod -Uri $apiUrl -Headers @{ "User-Agent" = "beads-install" }
+        $release = Invoke-RestMethod -Uri $apiUrl -Headers @{ "User-Agent" = "issuegraph-install" }
     } catch {
         Write-WarningMsg "Failed to fetch latest release: $_"
         return $false
@@ -177,14 +177,14 @@ function Install-FromRelease {
     }
 
     $version = $tag.TrimStart("v")
-    $assetName = "beads_${version}_windows_${arch}.zip"
+    $assetName = "issuegraph_${version}_windows_${arch}.zip"
     $asset = $release.assets | Where-Object { $_.name -eq $assetName } | Select-Object -First 1
     if (-not $asset) {
         Write-WarningMsg "No prebuilt asset found for $assetName. Falling back to source install."
         return $false
     }
 
-    $tempRoot = Join-Path ([System.IO.Path]::GetTempPath()) ("beads-install-" + [guid]::NewGuid().ToString("N"))
+    $tempRoot = Join-Path ([System.IO.Path]::GetTempPath()) ("issuegraph-install-" + [guid]::NewGuid().ToString("N"))
     New-Item -ItemType Directory -Path $tempRoot | Out-Null
     $zipPath = Join-Path $tempRoot $assetName
 
@@ -209,8 +209,8 @@ function Install-FromRelease {
         Write-Info "Extracting archive..."
         Microsoft.PowerShell.Archive\Expand-Archive -Path $zipPath -DestinationPath $tempRoot -Force
 
-        $bdPath = Join-Path $tempRoot "issuegraph.exe"
-        if (-not (Test-Path $bdPath)) {
+        $issuegraphPath = Join-Path $tempRoot "issuegraph.exe"
+        if (-not (Test-Path $issuegraphPath)) {
             Write-WarningMsg "issuegraph.exe not found in release archive. Falling back to source install."
             return $false
         }
@@ -218,7 +218,7 @@ function Install-FromRelease {
         $installDir = Join-Path $env:LOCALAPPDATA "Programs\issuegraph"
         New-Item -ItemType Directory -Path $installDir -Force | Out-Null
 
-        Copy-Item -Path $bdPath -Destination (Join-Path $installDir "issuegraph.exe") -Force
+        Copy-Item -Path $issuegraphPath -Destination (Join-Path $installDir "issuegraph.exe") -Force
         Write-Success "issuegraph installed to $installDir\issuegraph.exe"
 
         $Script:LastInstallPath = Join-Path $installDir "issuegraph.exe"
@@ -240,11 +240,11 @@ function Install-FromRelease {
 function Install-FromSource {
     Write-Info "Building issuegraph from source..."
 
-    $tempRoot = Join-Path ([System.IO.Path]::GetTempPath()) ("beads-install-" + [guid]::NewGuid().ToString("N"))
+    $tempRoot = Join-Path ([System.IO.Path]::GetTempPath()) ("issuegraph-install-" + [guid]::NewGuid().ToString("N"))
     New-Item -ItemType Directory -Path $tempRoot | Out-Null
 
     try {
-        $repoPath = Join-Path $tempRoot "beads"
+        $repoPath = Join-Path $tempRoot "issuegraph"
         if ($Script:SourceOverride) {
             Write-Info "Using source override: $Script:SourceOverride"
             if (Test-Path $Script:SourceOverride) {
@@ -266,7 +266,7 @@ function Install-FromSource {
             }
         } else {
             Write-Info "Cloning repository..."
-            & git clone --depth 1 https://github.com/gastownhall/beads.git $repoPath
+            & git clone --depth 1 https://github.com/borg0ai/dx-issuegraph.git $repoPath
             if ($LASTEXITCODE -ne 0) {
                 throw "git clone failed with exit code $LASTEXITCODE"
             }

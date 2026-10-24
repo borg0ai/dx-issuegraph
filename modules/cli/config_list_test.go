@@ -4,16 +4,16 @@ import (
 	"os"
 	"testing"
 
-	"github.com/steveyegge/beads/internal/config"
+	"github.com/borg0ai/dx-issuegraph/internal/config"
 )
 
 func TestShowConfigYAMLOverrides_EnvVarDetection(t *testing.T) {
-	t.Setenv("BEADS_TEST_IGNORE_REPO_CONFIG", "1")
+	t.Setenv("ISSUEGRAPH_TEST_IGNORE_REPO_CONFIG", "1")
 	config.ResetForTesting()
 	_ = config.Initialize()
 
-	// Set an env var override using BD_ prefix
-	t.Setenv("BD_TEST_KEY", "env-value")
+	// Set an env var override using ISSUEGRAPH_ prefix
+	t.Setenv("ISSUEGRAPH_TEST_KEY", "env-value")
 
 	dbConfig := map[string]string{
 		"test-key": "db-value",
@@ -29,12 +29,12 @@ func TestShowConfigYAMLOverrides_EnvVarDetection(t *testing.T) {
 }
 
 func TestShowConfigYAMLOverrides_LegacyEnvVar(t *testing.T) {
-	t.Setenv("BEADS_TEST_IGNORE_REPO_CONFIG", "1")
+	t.Setenv("ISSUEGRAPH_TEST_IGNORE_REPO_CONFIG", "1")
 	config.ResetForTesting()
 	_ = config.Initialize()
 
-	// Set a legacy BEADS_ prefix env var
-	t.Setenv("BEADS_TEST_KEY", "legacy-value")
+	// Set a legacy ISSUEGRAPH_ prefix env var
+	t.Setenv("ISSUEGRAPH_TEST_KEY", "legacy-value")
 
 	dbConfig := map[string]string{
 		"test-key": "db-value",
@@ -48,7 +48,7 @@ func TestShowConfigYAMLOverrides_LegacyEnvVar(t *testing.T) {
 }
 
 func TestShowConfigYAMLOverrides_EmptyDB(t *testing.T) {
-	t.Setenv("BEADS_TEST_IGNORE_REPO_CONFIG", "1")
+	t.Setenv("ISSUEGRAPH_TEST_IGNORE_REPO_CONFIG", "1")
 	config.ResetForTesting()
 	_ = config.Initialize()
 
@@ -61,7 +61,7 @@ func TestShowConfigYAMLOverrides_EmptyDB(t *testing.T) {
 }
 
 func TestShowConfigYAMLOverrides_NoOverrides(t *testing.T) {
-	t.Setenv("BEADS_TEST_IGNORE_REPO_CONFIG", "1")
+	t.Setenv("ISSUEGRAPH_TEST_IGNORE_REPO_CONFIG", "1")
 	config.ResetForTesting()
 	_ = config.Initialize()
 

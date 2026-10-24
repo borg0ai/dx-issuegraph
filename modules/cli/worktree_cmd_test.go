@@ -9,12 +9,12 @@ import (
 	"strings"
 	"testing"
 
+	"github.com/borg0ai/dx-issuegraph/internal/config"
+	"github.com/borg0ai/dx-issuegraph/internal/configfile"
+	internalgit "github.com/borg0ai/dx-issuegraph/internal/git"
+	"github.com/borg0ai/dx-issuegraph/internal/issuegraph"
+	"github.com/borg0ai/dx-issuegraph/internal/utils"
 	"github.com/spf13/cobra"
-	"github.com/steveyegge/beads/internal/beads"
-	"github.com/steveyegge/beads/internal/config"
-	"github.com/steveyegge/beads/internal/configfile"
-	internalgit "github.com/steveyegge/beads/internal/git"
-	"github.com/steveyegge/beads/internal/utils"
 )
 
 // TestWorktreeCommandNoStoreContract locks the complete command subtree that
@@ -69,9 +69,9 @@ func TestWorktreeCommandNoStoreContract(t *testing.T) {
 // this test fails before reaching that command-specific refusal.
 func TestWorktreeCreateRejectsInvalidPathBeforeStoreOpen(t *testing.T) {
 	repoDir := t.TempDir()
-	beadsDir := filepath.Join(repoDir, ".beads")
-	writeTestConfigYAML(t, beadsDir, "")
-	writeMetadataConfig(t, beadsDir, configfile.DoltModeServer, "worktree_skip_store_test")
+	issuegraphDir := filepath.Join(repoDir, ".issuegraph")
+	writeTestConfigYAML(t, issuegraphDir, "")
+	writeMetadataConfig(t, issuegraphDir, configfile.DoltModeServer, "worktree_skip_store_test")
 
 	existingPath := filepath.Join(repoDir, "already-exists")
 	if err := os.Mkdir(existingPath, 0o755); err != nil {
@@ -79,13 +79,13 @@ func TestWorktreeCreateRejectsInvalidPathBeforeStoreOpen(t *testing.T) {
 	}
 
 	t.Chdir(repoDir)
-	t.Setenv("BEADS_DIR", beadsDir)
-	t.Setenv("BEADS_DOLT_SHARED_SERVER", "")
-	t.Setenv("BEADS_DOLT_SERVER_DATABASE", "")
-	t.Setenv("BEADS_DOLT_SERVER_PORT", "")
-	t.Setenv("BEADS_DOLT_AUTO_START", "0")
-	t.Setenv("BD_DISABLE_METRICS", "1")
-	t.Setenv("BD_DISABLE_EVENT_FLUSH", "1")
+	t.Setenv("ISSUEGRAPH_DIR", issuegraphDir)
+	t.Setenv("ISSUEGRAPH_DOLT_SHARED_SERVER", "")
+	t.Setenv("ISSUEGRAPH_DOLT_SERVER_DATABASE", "")
+	t.Setenv("ISSUEGRAPH_DOLT_SERVER_PORT", "")
+	t.Setenv("ISSUEGRAPH_DOLT_AUTO_START", "0")
+	t.Setenv("ISSUEGRAPH_DISABLE_METRICS", "1")
+	t.Setenv("ISSUEGRAPH_DISABLE_EVENT_FLUSH", "1")
 
 	config.ResetForTesting()
 	t.Cleanup(config.ResetForTesting)
@@ -123,24 +123,24 @@ func TestWorktreeCreateRejectsInvalidPathBeforeStoreOpen(t *testing.T) {
 
 // TestGetRedirectTarget tests that getRedirectTarget resolves redirect paths correctly.
 // This is the fix for GH#1266: relative paths must be resolved from the worktree root
-// (parent of .beads/), not from .beads/ itself, matching FollowRedirect behavior.
+// (parent of .issuegraph/), not from .issuegraph/ itself, matching FollowRedirect behavior.
 func TestGetRedirectTarget(t *testing.T) {
 	tmpDir := t.TempDir()
 
 	t.Run("relative path resolved from worktree root", func(t *testing.T) {
 		worktreeDir := filepath.Join(tmpDir, "worktrees", "feat-branch")
-		worktreeBeadsDir := filepath.Join(worktreeDir, ".beads")
-		if err := os.MkdirAll(worktreeBeadsDir, 0755); err != nil {
-			t.Fatalf("failed to create worktree .beads dir: %v", err)
+		worktreeIssueGraphDir := filepath.Join(worktreeDir, ".issuegraph")
+		if err := os.MkdirAll(worktreeIssueGraphDir, 0755); err != nil {
+			t.Fatalf("failed to create worktree .issuegraph dir: %v", err)
 		}
 
-		mainBeadsDir := filepath.Join(tmpDir, ".beads")
-		if err := os.MkdirAll(mainBeadsDir, 0755); err != nil {
-			t.Fatalf("failed to create main .beads dir: %v", err)
+		mainIssueGraphDir := filepath.Join(tmpDir, ".issuegraph")
+		if err := os.MkdirAll(mainIssueGraphDir, 0755); err != nil {
+			t.Fatalf("failed to create main .issuegraph dir: %v", err)
 		}
 
-		redirectFile := filepath.Join(worktreeBeadsDir, "redirect")
-		if err := os.WriteFile(redirectFile, []byte("../../.beads\n"), 0644); err != nil {
+		redirectFile := filepath.Join(worktreeIssueGraphDir, "redirect")
+		if err := os.WriteFile(redirectFile, []byte("../../.issuegraph\n"), 0644); err != nil {
 			t.Fatalf("failed to write redirect file: %v", err)
 		}
 
@@ -150,7 +150,7 @@ func TestGetRedirectTarget(t *testing.T) {
 		}
 
 		canonicalGot := utils.CanonicalizePath(got)
-		canonicalExpected := utils.CanonicalizePath(mainBeadsDir)
+		canonicalExpected := utils.CanonicalizePath(mainIssueGraphDir)
 
 		if canonicalGot != canonicalExpected {
 			t.Errorf("getRedirectTarget() mismatch:\n  got:      %s\n  expected: %s", canonicalGot, canonicalExpected)
@@ -159,17 +159,17 @@ func TestGetRedirectTarget(t *testing.T) {
 
 	t.Run("absolute path returned as-is", func(t *testing.T) {
 		worktreeDir := filepath.Join(tmpDir, "worktrees", "abs-test")
-		worktreeBeadsDir := filepath.Join(worktreeDir, ".beads")
-		if err := os.MkdirAll(worktreeBeadsDir, 0755); err != nil {
-			t.Fatalf("failed to create worktree .beads dir: %v", err)
+		worktreeIssueGraphDir := filepath.Join(worktreeDir, ".issuegraph")
+		if err := os.MkdirAll(worktreeIssueGraphDir, 0755); err != nil {
+			t.Fatalf("failed to create worktree .issuegraph dir: %v", err)
 		}
 
-		absTarget := filepath.Join(tmpDir, "abs-target-beads")
+		absTarget := filepath.Join(tmpDir, "abs-target-issuegraph")
 		if err := os.MkdirAll(absTarget, 0755); err != nil {
 			t.Fatalf("failed to create abs target dir: %v", err)
 		}
 
-		redirectFile := filepath.Join(worktreeBeadsDir, "redirect")
+		redirectFile := filepath.Join(worktreeIssueGraphDir, "redirect")
 		if err := os.WriteFile(redirectFile, []byte(absTarget+"\n"), 0644); err != nil {
 			t.Fatalf("failed to write redirect file: %v", err)
 		}
@@ -185,9 +185,9 @@ func TestGetRedirectTarget(t *testing.T) {
 
 	t.Run("missing redirect file returns empty", func(t *testing.T) {
 		worktreeDir := filepath.Join(tmpDir, "worktrees", "no-redirect")
-		worktreeBeadsDir := filepath.Join(worktreeDir, ".beads")
-		if err := os.MkdirAll(worktreeBeadsDir, 0755); err != nil {
-			t.Fatalf("failed to create worktree .beads dir: %v", err)
+		worktreeIssueGraphDir := filepath.Join(worktreeDir, ".issuegraph")
+		if err := os.MkdirAll(worktreeIssueGraphDir, 0755); err != nil {
+			t.Fatalf("failed to create worktree .issuegraph dir: %v", err)
 		}
 
 		got := getRedirectTarget(worktreeDir)
@@ -273,7 +273,7 @@ func TestAddToGitignore(t *testing.T) {
 		}
 		content := string(updated)
 
-		if count := strings.Count(content, "# bd worktree"); count != 1 {
+		if count := strings.Count(content, "# issuegraph worktree"); count != 1 {
 			t.Fatalf("expected one worktree marker, got %d:\n%s", count, content)
 		}
 		if count := strings.Count(content, entry+"/"); count != 1 {
@@ -317,17 +317,17 @@ func TestEnsureCreatedWorktreeCleanRejectsDirtyWorktree(t *testing.T) {
 func TestRunWorktreeCreateFailsWhenCreatedWorktreeIsDirty(t *testing.T) {
 	repoRoot := newGitRepo(t)
 	commitTestFile(t, repoRoot, "README.md", "# Test\n", "initial commit")
-	if err := os.Mkdir(filepath.Join(repoRoot, ".beads"), 0755); err != nil {
-		t.Fatalf("failed to create .beads dir: %v", err)
+	if err := os.Mkdir(filepath.Join(repoRoot, ".issuegraph"), 0755); err != nil {
+		t.Fatalf("failed to create .issuegraph dir: %v", err)
 	}
-	if err := os.WriteFile(filepath.Join(repoRoot, ".beads", "beads.db"), []byte{}, 0644); err != nil {
-		t.Fatalf("failed to create beads db marker: %v", err)
+	if err := os.WriteFile(filepath.Join(repoRoot, ".issuegraph", "issuegraph.db"), []byte{}, 0644); err != nil {
+		t.Fatalf("failed to create issuegraph db marker: %v", err)
 	}
 
-	beads.ResetCaches()
+	issuegraph.ResetCaches()
 	internalgit.ResetCaches()
 	t.Cleanup(func() {
-		beads.ResetCaches()
+		issuegraph.ResetCaches()
 		internalgit.ResetCaches()
 	})
 	t.Chdir(repoRoot)

@@ -9,14 +9,14 @@ import (
 	"testing"
 	"time"
 
-	"github.com/steveyegge/beads/internal/storage"
-	"github.com/steveyegge/beads/internal/storage/dolt"
-	"github.com/steveyegge/beads/internal/storage/domain"
-	"github.com/steveyegge/beads/internal/types"
-	"github.com/steveyegge/beads/issueops"
+	"github.com/borg0ai/dx-issuegraph/internal/storage"
+	"github.com/borg0ai/dx-issuegraph/internal/storage/dolt"
+	"github.com/borg0ai/dx-issuegraph/internal/storage/domain"
+	"github.com/borg0ai/dx-issuegraph/internal/types"
+	"github.com/borg0ai/dx-issuegraph/issueops"
 )
 
-// The bulk `bd dep add --file` route asserts its edges through the
+// The bulk `issuegraph dep add --file` route asserts its edges through the
 // DependencyEditor role, so the invariants the hand-rolled bulk transaction
 // used to carry are pinned here against the role the route now calls — entered
 // through the store's own accessor, exactly as addDependencyEdgesDirect enters
@@ -34,7 +34,7 @@ import (
 func TestBulkDepAddRoleAppliesHierarchyBeforeBlockingEdges(t *testing.T) {
 	t.Parallel()
 	tmpDir := t.TempDir()
-	s := newTestStore(t, filepath.Join(tmpDir, ".beads", "beads.db"))
+	s := newTestStore(t, filepath.Join(tmpDir, ".issuegraph", "issuegraph.db"))
 	ctx := context.Background()
 
 	const grand, parent, child = "test-bulk-order-grand", "test-bulk-order-parent", "test-bulk-order-child"
@@ -78,7 +78,7 @@ func TestBulkDepAddRoleAppliesHierarchyBeforeBlockingEdges(t *testing.T) {
 func TestBulkDepAddRoleWholeGraphGateRollsBack(t *testing.T) {
 	t.Parallel()
 	tmpDir := t.TempDir()
-	s := newTestStore(t, filepath.Join(tmpDir, ".beads", "beads.db"))
+	s := newTestStore(t, filepath.Join(tmpDir, ".issuegraph", "issuegraph.db"))
 	ctx := context.Background()
 
 	const a, b = "test-cyc-a", "test-cyc-b"
@@ -104,7 +104,7 @@ func TestBulkDepAddRoleWholeGraphGateRollsBack(t *testing.T) {
 		t.Fatalf("final gate error = %v, want errors.Is domain.ErrDependencyCycle", err)
 	}
 	// Typing must not alter the rendered text: no sentinel string appended.
-	const wantMsg = "dependency cycle would be created: test-cyc-b → test-cyc-a → test-cyc-b (no edges added; run 'bd dep cycles' for analysis)"
+	const wantMsg = "dependency cycle would be created: test-cyc-b → test-cyc-a → test-cyc-b (no edges added; run 'issuegraph dep cycles' for analysis)"
 	if err.Error() != wantMsg {
 		t.Fatalf("final gate message = %q, want byte-identical %q", err.Error(), wantMsg)
 	}
@@ -124,7 +124,7 @@ func TestBulkDepAddRoleWholeGraphGateRollsBack(t *testing.T) {
 func TestBulkDepAddRoleIgnoresPreexistingCycleAtEndpoint(t *testing.T) {
 	t.Parallel()
 	tmpDir := t.TempDir()
-	s := newTestStore(t, filepath.Join(tmpDir, ".beads", "beads.db"))
+	s := newTestStore(t, filepath.Join(tmpDir, ".issuegraph", "issuegraph.db"))
 	ctx := context.Background()
 
 	const a, b, c = "test-pre-a", "test-pre-b", "test-pre-c"

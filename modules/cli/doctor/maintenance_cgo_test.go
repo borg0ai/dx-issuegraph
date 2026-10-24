@@ -9,7 +9,7 @@ import (
 	"testing"
 	"time"
 
-	"github.com/steveyegge/beads/internal/types"
+	"github.com/borg0ai/dx-issuegraph/internal/types"
 )
 
 // Test #2: Disabled (threshold=0), small closed count → OK
@@ -321,7 +321,7 @@ func TestCheckPersistentMolIssues_UsesDoltWithoutJSONL(t *testing.T) {
 func TestCheckMisclassifiedWisps_UsesDoltWithoutJSONL(t *testing.T) {
 	// Test the core logic directly
 	issues := []*types.Issue{
-		{ID: "bd-wisp-misclassified", Ephemeral: false},
+		{ID: "issuegraph-wisp-misclassified", Ephemeral: false},
 	}
 
 	check := checkMisclassifiedWispsForIssues(issues)
@@ -350,7 +350,7 @@ func TestCheckPatrolPollution_UsesDoltWithoutJSONL(t *testing.T) {
 	if check.Status != StatusWarning {
 		t.Fatalf("status = %q, want %q", check.Status, StatusWarning)
 	}
-	if !strings.Contains(check.Message, "11 patrol digest beads (should be 0)") {
+	if !strings.Contains(check.Message, "11 patrol digest issuegraph (should be 0)") {
 		t.Fatalf("message = %q, want patrol digest warning", check.Message)
 	}
 }

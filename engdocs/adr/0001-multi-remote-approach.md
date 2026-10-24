@@ -59,7 +59,7 @@ Add config-managed additional remotes:
 - Add `federation.additional-remotes` as an ordered list of named remotes:
   ```yaml
   federation:
-    remote: "dolthub://org/beads"     # primary, Dolt remote name: "origin"
+    remote: "dolthub://org/issuegraph"     # primary, Dolt remote name: "origin"
     additional-remotes:
       - name: backup
         url: "az://account.blob.core.windows.net/container/path"

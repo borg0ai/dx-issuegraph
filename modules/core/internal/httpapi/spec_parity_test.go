@@ -12,9 +12,9 @@ import (
 
 	"gopkg.in/yaml.v3"
 
-	"github.com/steveyegge/beads/internal/httpapi/apigen"
-	"github.com/steveyegge/beads/internal/httpapi/spec"
-	"github.com/steveyegge/beads/internal/workapi"
+	"github.com/borg0ai/dx-issuegraph/internal/httpapi/apigen"
+	"github.com/borg0ai/dx-issuegraph/internal/httpapi/spec"
+	"github.com/borg0ai/dx-issuegraph/internal/workapi"
 )
 
 // These tests are the spec drift gates. They are pure — no database, no
@@ -586,7 +586,7 @@ func TestSpecStatusCodesMatchHandlerTable(t *testing.T) {
 }
 
 // TestDefaultsMatchCLIFlags guards every default this document repeats from a
-// cobra flag registration. A client swapping a `bd` subprocess for an HTTP call
+// cobra flag registration. A client swapping a `issuegraph` subprocess for an HTTP call
 // gets the same answer only if the two surfaces default the same way, and a
 // default is the one piece of the contract nobody passes explicitly — so a
 // divergence is invisible until the result sets differ.
@@ -609,8 +609,8 @@ func TestDefaultsMatchCLIFlags(t *testing.T) {
 		file string
 		want string
 	}{
-		{"../../modules/cli/list.go", "workapi.DefaultListLimit"},
-		{"../../modules/cli/ready.go", "workapi.DefaultReadyLimit"},
+		{"../../../cli/list.go", "workapi.DefaultListLimit"},
+		{"../../../cli/ready.go", "workapi.DefaultReadyLimit"},
 	} {
 		src, err := os.ReadFile(tc.file)
 		if err != nil {
@@ -632,12 +632,12 @@ func TestDefaultsMatchCLIFlags(t *testing.T) {
 	// Note for anyone tempted to "correct" the spec back to hybrid: the
 	// storage layer maps an EMPTY policy to hybrid
 	// (internal/storage/sqlbuild/ready.go), but the CLI never sends empty —
-	// the flag registers a concrete default — so that fallback is not `bd
+	// the flag registers a concrete default — so that fallback is not `issuegraph
 	// ready`'s behavior and must not be this parameter's default. A handler
 	// that forwards an absent `sort` as "" reintroduces the divergence with
 	// the spec still saying the right thing.
 	sortFlag := regexp.MustCompile(`StringP\("sort",\s*"s",\s*"([a-z]+)"`)
-	src, err := os.ReadFile("../../modules/cli/ready.go")
+	src, err := os.ReadFile("../../../cli/ready.go")
 	if err != nil {
 		t.Fatalf("read modules/cli/ready.go: %v", err)
 	}
@@ -655,7 +655,7 @@ func TestDefaultsMatchCLIFlags(t *testing.T) {
 	schema := mapAt(t, specParam(t, so, "sort"), "schema")
 	specSort, _ := schema["default"].(string)
 	if specSort != cliSort {
-		t.Errorf("spec documents sort default %q, `bd ready --sort` registers %q", specSort, cliSort)
+		t.Errorf("spec documents sort default %q, `issuegraph ready --sort` registers %q", specSort, cliSort)
 	}
 	if !slices.Contains(toStrings(t, schema["enum"]), specSort) {
 		t.Errorf("sort default %q is not in the documented enum %v", specSort, schema["enum"])
@@ -665,11 +665,11 @@ func TestDefaultsMatchCLIFlags(t *testing.T) {
 	// while both of them still read correctly, which is the only place a
 	// wrong default actually changes what a client receives.
 	if readySortDefault != cliSort {
-		t.Errorf("handleReady defaults `sort` to %q, `bd ready --sort` registers %q", readySortDefault, cliSort)
+		t.Errorf("handleReady defaults `sort` to %q, `issuegraph ready --sort` registers %q", readySortDefault, cliSort)
 	}
 }
 
-// contextResponseAllowlist is the ENTIRE field set of GET /v0/beads/context,
+// contextResponseAllowlist is the ENTIRE field set of GET /v0/issuegraph/context,
 // frozen. The handshake is assembled from the server's own configuration, which
 // is exactly the kind of struct that grows a field nobody meant to publish, so
 // this list is the gate: adding a member to the response is an edit here, in
@@ -681,7 +681,7 @@ func TestDefaultsMatchCLIFlags(t *testing.T) {
 // database directly). Both are named here rather than only in prose so that
 // re-adding one costs a test edit.
 var contextResponseAllowlist = []string{
-	"api_version", "backend", "bd_version", "beads_dir", "capabilities",
+	"api_version", "backend", "issuegraph_version", "issuegraph_dir", "capabilities",
 	"database", "dolt_mode", "project_id", "repo_root", "schema_version",
 }
 
@@ -726,7 +726,7 @@ func TestContextResponseAllowlist(t *testing.T) {
 // two servers apart. The schema's own text calls publishing them a cost the
 // operator accepts; while they were required, accepting it was the only
 // conforming option.
-var contextResponseOptional = []string{"beads_dir", "repo_root"}
+var contextResponseOptional = []string{"issuegraph_dir", "repo_root"}
 
 // TestContextResponseRequiredSet pins the split from both sides: the document's
 // `required` list and the generated struct's pointer-ness, which is what tells
@@ -994,8 +994,8 @@ func TestClaimNextAdmitsExactlyTheListingsFilters(t *testing.T) {
 		}
 		return out
 	}
-	listing := names("/v0/beads/ready", "get")
-	claimNext := names("/v0/beads/issues:claimNext", "post")
+	listing := names("/v0/issuegraph/ready", "get")
+	claimNext := names("/v0/issuegraph/issues:claimNext", "post")
 
 	pageKnobs := map[string]string{
 		"limit": "bounds the page; a claim takes one row however large the pool it scanned",
@@ -1097,7 +1097,7 @@ func TestSetSettingRequestMembersMatchTheHandler(t *testing.T) {
 // Both absences are the contract. `removed` cannot be honest — the storage seam
 // discards the affected-row count on every implementation — and `value` would
 // publish, on the one settings operation that withholds nothing, exactly the
-// credential `GET /v0/beads/config/{key}` redacts.
+// credential `GET /v0/issuegraph/config/{key}` redacts.
 func TestRemovedSettingPublishesNothingButTheKey(t *testing.T) {
 	if got := jsonTagNames(t, reflect.TypeOf(apigen.RemovedSetting{})); len(got) != 1 || !got["key"] {
 		t.Errorf("RemovedSetting declares %v, want `key` alone", got)

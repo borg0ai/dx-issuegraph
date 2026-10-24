@@ -5,7 +5,7 @@ package embeddeddolt_test
 import (
 	"testing"
 
-	"github.com/steveyegge/beads/internal/types"
+	"github.com/borg0ai/dx-issuegraph/internal/types"
 )
 
 func ephemeralOnly() *bool { b := true; return &b }
@@ -31,14 +31,14 @@ func TestSearchWithMissingWispPlaneTables(t *testing.T) {
 	seed := func(t *testing.T, te *testEnv, prefix string) {
 		t.Helper()
 		wisp := &types.Issue{
-			ID: prefix + "-wisp", Title: "ephemeral bead", Status: types.StatusOpen,
+			ID: prefix + "-wisp", Title: "ephemeral issue", Status: types.StatusOpen,
 			Priority: 2, IssueType: types.TypeTask, Ephemeral: true,
 		}
 		if err := te.store.CreateIssue(t.Context(), wisp, "tester"); err != nil {
 			t.Fatalf("CreateIssue wisp: %v", err)
 		}
 		durable := &types.Issue{
-			ID: prefix + "-issue", Title: "durable bead", Status: types.StatusOpen,
+			ID: prefix + "-issue", Title: "durable issue", Status: types.StatusOpen,
 			Priority: 2, IssueType: types.TypeTask,
 		}
 		if err := te.store.CreateIssue(t.Context(), durable, "tester"); err != nil {

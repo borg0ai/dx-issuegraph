@@ -89,8 +89,8 @@ func registerHelpAllFlag() {
 // writeAllHelp writes a complete markdown reference for all commands,
 // generated from the live Cobra command tree.
 func writeAllHelp(w io.Writer, root *cobra.Command) {
-	fmt.Fprintf(w, "# bd — Complete Command Reference\n\n")
-	fmt.Fprintf(w, "Reference for bd Latest. Generated from `bd help --all`.\n\n")
+	fmt.Fprintf(w, "# issuegraph — Complete Command Reference\n\n")
+	fmt.Fprintf(w, "Reference for issuegraph Latest. Generated from `issuegraph help --all`.\n\n")
 
 	// Collect commands grouped by their GroupID
 	type group struct {
@@ -138,14 +138,14 @@ func writeAllHelp(w io.Writer, root *cobra.Command) {
 		fmt.Fprintf(w, "### %s\n\n", grp.title)
 		for _, cmd := range grp.commands {
 			anchor := "bd-" + strings.ReplaceAll(cmd.Name(), "-", "-")
-			fmt.Fprintf(w, "- [bd %s](#%s) — %s\n", cmd.Name(), anchor, escapeMDXText(cmd.Short))
+			fmt.Fprintf(w, "- [issuegraph %s](#%s) — %s\n", cmd.Name(), anchor, escapeMDXText(cmd.Short))
 			// Include subcommands in TOC
 			for _, sub := range cmd.Commands() {
 				if !sub.IsAvailableCommand() {
 					continue
 				}
 				subAnchor := "bd-" + cmd.Name() + "-" + strings.ReplaceAll(sub.Name(), "-", "-")
-				fmt.Fprintf(w, "  - [bd %s %s](#%s) — %s\n", cmd.Name(), sub.Name(), subAnchor, escapeMDXText(sub.Short))
+				fmt.Fprintf(w, "  - [issuegraph %s %s](#%s) — %s\n", cmd.Name(), sub.Name(), subAnchor, escapeMDXText(sub.Short))
 			}
 		}
 		fmt.Fprintf(w, "\n")
@@ -166,7 +166,7 @@ func writeAllHelp(w io.Writer, root *cobra.Command) {
 		}
 		fmt.Fprintf(w, "## %s\n\n", grp.title)
 		for _, cmd := range grp.commands {
-			writeCommandHelp(w, cmd, "bd", 3)
+			writeCommandHelp(w, cmd, "issuegraph", 3)
 		}
 	}
 }
@@ -249,7 +249,7 @@ func writeCommandBody(w io.Writer, cmd *cobra.Command) {
 }
 
 // writeSingleCommandDoc generates one command's documentation page as generic
-// Markdown: title/description frontmatter and portable CommonMark. bd never
+// Markdown: title/description frontmatter and portable CommonMark. issuegraph never
 // emits site-generator-specific output (Docusaurus ids/slugs, Mintlify JSX,
 // navigation fragments) — repo post-processors adapt these pages to whatever
 // the documentation site needs.
@@ -266,13 +266,13 @@ func writeSingleCommandDoc(w io.Writer, root *cobra.Command, cmdName string) err
 	}
 
 	fmt.Fprintf(w, "---\n")
-	fmt.Fprintf(w, "title: %q\n", "bd "+docCommand)
+	fmt.Fprintf(w, "title: %q\n", "issuegraph "+docCommand)
 	if cmd.Short != "" {
 		fmt.Fprintf(w, "description: %q\n", cmd.Short)
 	}
 	fmt.Fprintf(w, "---\n\n")
 	fmt.Fprintf(w, "<!-- AUTO-GENERATED: do not edit manually -->\n\n")
-	fmt.Fprintf(w, "Generated from `bd help --doc %s`.\n\n", docCommand)
+	fmt.Fprintf(w, "Generated from `issuegraph help --doc %s`.\n\n", docCommand)
 
 	// The frontmatter title serves as the page heading, so the top command
 	// emits its body without a duplicate heading; subcommands start at ##.
@@ -347,11 +347,11 @@ func genericCLIReferenceIndex(root *cobra.Command, commands []string) string {
 	var b strings.Builder
 	fmt.Fprintf(&b, "---\n")
 	fmt.Fprintf(&b, "title: CLI Reference\n")
-	fmt.Fprintf(&b, "description: Generated reference for every bd command\n")
+	fmt.Fprintf(&b, "description: Generated reference for every issuegraph command\n")
 	fmt.Fprintf(&b, "---\n\n")
 	fmt.Fprintf(&b, "<!-- AUTO-GENERATED: do not edit manually -->\n\n")
-	fmt.Fprintf(&b, "Generated from `bd help --docs-root`.\n\n")
-	fmt.Fprintf(&b, "This reference covers all %d live top-level `bd` commands. Regenerate it with:\n\n", len(commands))
+	fmt.Fprintf(&b, "Generated from `issuegraph help --docs-root`.\n\n")
+	fmt.Fprintf(&b, "This reference covers all %d live top-level `issuegraph` commands. Regenerate it with:\n\n", len(commands))
 	fmt.Fprintf(&b, "```bash\n")
 	fmt.Fprintf(&b, "./scripts/generate-cli-docs.sh\n")
 	fmt.Fprintf(&b, "```\n\n")
@@ -364,7 +364,7 @@ func genericCLIReferenceIndex(root *cobra.Command, commands []string) string {
 	}
 	fmt.Fprintf(&b, "## Commands\n\n")
 	for _, cmd := range commands {
-		fmt.Fprintf(&b, "- [`bd %s`](./%s.md)\n", cmd, commandDocID(cmd))
+		fmt.Fprintf(&b, "- [`issuegraph %s`](./%s.md)\n", cmd, commandDocID(cmd))
 	}
 	return b.String()
 }

@@ -8,15 +8,15 @@ import (
 	"testing"
 	"time"
 
-	"github.com/steveyegge/beads/internal/types"
+	"github.com/borg0ai/dx-issuegraph/internal/types"
 )
 
-// TestRelateCommand tests the bd relate command functionality.
+// TestRelateCommand tests the issuegraph relate command functionality.
 // This is a regression test for Decision 004 Phase 4 - relates-to links
 // are now stored in the dependencies table.
 func TestRelateCommand(t *testing.T) {
 	tmpDir := t.TempDir()
-	testDB := filepath.Join(tmpDir, ".beads", "beads.db")
+	testDB := filepath.Join(tmpDir, ".issuegraph", "issuegraph.db")
 	s := newTestStore(t, testDB)
 	ctx := context.Background()
 
@@ -46,7 +46,7 @@ func TestRelateCommand(t *testing.T) {
 			t.Fatalf("CreateIssue failed: %v", err)
 		}
 
-		// Simulate what bd relate does: add bidirectional relates-to
+		// Simulate what issuegraph relate does: add bidirectional relates-to
 		dep1 := &types.Dependency{
 			IssueID:     issue1.ID,
 			DependsOnID: issue2.ID,
@@ -139,7 +139,7 @@ func TestRelateCommand(t *testing.T) {
 			t.Fatalf("AddDependency (2->1) failed: %v", err)
 		}
 
-		// Simulate what bd unrelate does: remove both directions
+		// Simulate what issuegraph unrelate does: remove both directions
 		if err := s.RemoveDependency(ctx, issue1.ID, issue2.ID, "test"); err != nil {
 			t.Fatalf("RemoveDependency (1->2) failed: %v", err)
 		}

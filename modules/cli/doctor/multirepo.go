@@ -9,11 +9,11 @@ import (
 
 	"gopkg.in/yaml.v3"
 
-	"github.com/steveyegge/beads/internal/config"
-	"github.com/steveyegge/beads/internal/configfile"
-	"github.com/steveyegge/beads/internal/storage/dolt"
-	"github.com/steveyegge/beads/internal/storage/issueops"
-	"github.com/steveyegge/beads/internal/types"
+	"github.com/borg0ai/dx-issuegraph/internal/config"
+	"github.com/borg0ai/dx-issuegraph/internal/configfile"
+	"github.com/borg0ai/dx-issuegraph/internal/storage/dolt"
+	"github.com/borg0ai/dx-issuegraph/internal/storage/issueops"
+	"github.com/borg0ai/dx-issuegraph/internal/types"
 )
 
 // multiRepoYAMLConfig represents the types section of config.yaml for YAML unmarshaling.
@@ -86,16 +86,16 @@ func discoverChildTypes(repoPath string) []string {
 		}
 	}
 
-	beadsDir := ResolveBeadsDirForRepo(repoPath)
+	issuegraphDir := ResolveIssueGraphDirForRepo(repoPath)
 
 	// First try reading from database config table
-	types, err := readTypesFromDB(beadsDir)
+	types, err := readTypesFromDB(issuegraphDir)
 	if err == nil && len(types) > 0 {
 		return types
 	}
 
 	// Fall back to reading from config.yaml
-	types, err = readTypesFromYAML(beadsDir)
+	types, err = readTypesFromYAML(issuegraphDir)
 	if err == nil {
 		return types
 	}
@@ -105,8 +105,8 @@ func discoverChildTypes(repoPath string) []string {
 }
 
 // readTypesFromDB reads types.custom from the database config table
-func readTypesFromDB(beadsDir string) ([]string, error) {
-	cfg, err := configfile.Load(beadsDir)
+func readTypesFromDB(issuegraphDir string) ([]string, error) {
+	cfg, err := configfile.Load(issuegraphDir)
 	if err != nil || cfg == nil {
 		return nil, fmt.Errorf("no config")
 	}
@@ -114,13 +114,13 @@ func readTypesFromDB(beadsDir string) ([]string, error) {
 		return nil, fmt.Errorf("not dolt backend")
 	}
 
-	doltPath := getDatabasePath(beadsDir)
+	doltPath := getDatabasePath(issuegraphDir)
 	if _, err := os.Stat(doltPath); os.IsNotExist(err) {
 		return nil, err
 	}
 
 	ctx := context.Background()
-	store, err := dolt.NewFromConfigWithCLIOptions(ctx, beadsDir, &dolt.Config{ReadOnly: true})
+	store, err := dolt.NewFromConfigWithCLIOptions(ctx, issuegraphDir, &dolt.Config{ReadOnly: true})
 	if err != nil {
 		return nil, err
 	}
@@ -136,8 +136,8 @@ func readTypesFromDB(beadsDir string) ([]string, error) {
 }
 
 // readTypesFromYAML reads types.custom from config.yaml
-func readTypesFromYAML(beadsDir string) ([]string, error) {
-	configPath := filepath.Join(beadsDir, "config.yaml")
+func readTypesFromYAML(issuegraphDir string) ([]string, error) {
+	configPath := filepath.Join(issuegraphDir, "config.yaml")
 	content, err := os.ReadFile(configPath) // #nosec G304 - path is controlled
 	if err != nil {
 		return nil, err
@@ -157,9 +157,9 @@ func readTypesFromYAML(beadsDir string) ([]string, error) {
 
 // findUnknownTypesInHydratedIssues checks if any hydrated issues use types not found in any config
 func findUnknownTypesInHydratedIssues(repoPath string, multiRepo *config.MultiRepoConfig) []string {
-	beadsDir := ResolveBeadsDirForRepo(repoPath)
+	issuegraphDir := ResolveIssueGraphDirForRepo(repoPath)
 
-	cfg, err := configfile.Load(beadsDir)
+	cfg, err := configfile.Load(issuegraphDir)
 	if err != nil || cfg == nil {
 		return nil
 	}
@@ -167,13 +167,13 @@ func findUnknownTypesInHydratedIssues(repoPath string, multiRepo *config.MultiRe
 		return nil
 	}
 
-	doltPath := getDatabasePath(beadsDir)
+	doltPath := getDatabasePath(issuegraphDir)
 	if _, err := os.Stat(doltPath); os.IsNotExist(err) {
 		return nil
 	}
 
 	ctx := context.Background()
-	store, err := dolt.NewFromConfigWithCLIOptions(ctx, beadsDir, &dolt.Config{ReadOnly: true})
+	store, err := dolt.NewFromConfigWithCLIOptions(ctx, issuegraphDir, &dolt.Config{ReadOnly: true})
 	if err != nil {
 		return nil
 	}

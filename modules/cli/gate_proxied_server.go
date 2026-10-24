@@ -9,13 +9,13 @@ import (
 
 	"github.com/spf13/cobra"
 
-	"github.com/steveyegge/beads/internal/audit"
-	"github.com/steveyegge/beads/internal/metrics"
-	"github.com/steveyegge/beads/internal/storage"
-	"github.com/steveyegge/beads/internal/storage/domain"
-	"github.com/steveyegge/beads/internal/storage/uow"
-	"github.com/steveyegge/beads/internal/types"
-	"github.com/steveyegge/beads/internal/workapi"
+	"github.com/borg0ai/dx-issuegraph/internal/audit"
+	"github.com/borg0ai/dx-issuegraph/internal/metrics"
+	"github.com/borg0ai/dx-issuegraph/internal/storage"
+	"github.com/borg0ai/dx-issuegraph/internal/storage/domain"
+	"github.com/borg0ai/dx-issuegraph/internal/storage/uow"
+	"github.com/borg0ai/dx-issuegraph/internal/types"
+	"github.com/borg0ai/dx-issuegraph/internal/workapi"
 )
 
 type proxiedGateClose struct {
@@ -158,7 +158,7 @@ func runGateCheckProxiedServer(cmd *cobra.Command, ctx context.Context) error {
 			})
 		}
 
-		return out, "bd: gate check", nil
+		return out, "issuegraph: gate check", nil
 	})
 	if err != nil {
 		return HandleErrorRespectJSON("%v", err)
@@ -188,7 +188,7 @@ func runGateCheckProxiedServer(cmd *cobra.Command, ctx context.Context) error {
 
 // gateProxiedNotFound reports whether an issue lookup failed because the row
 // does not exist, as opposed to the read itself failing. The distinction is
-// what keeps `bd gate show` fail-closed: "no gate" and "could not read" must
+// what keeps `issuegraph gate show` fail-closed: "no gate" and "could not read" must
 // not collapse into one message.
 func gateProxiedNotFound(err error) bool {
 	return errors.Is(err, storage.ErrNotFound) || errors.Is(err, sql.ErrNoRows)
@@ -285,7 +285,7 @@ func runGateAddWaiterProxiedServer(_ *cobra.Command, ctx context.Context, args [
 		if after, getErr := uw.IssueUseCase().GetIssue(ctx, gateID); getErr == nil {
 			out.after = after
 		}
-		return out, fmt.Sprintf("bd: gate add-waiter %s", gateID), nil
+		return out, fmt.Sprintf("issuegraph: gate add-waiter %s", gateID), nil
 	})
 	if err != nil {
 		return HandleError("%v", err)
@@ -363,7 +363,7 @@ func runGateCreateProxiedServer(cmd *cobra.Command, ctx context.Context) error {
 
 		out.gate = res.Issue
 		out.target = target
-		return out, fmt.Sprintf("bd: create gate %s blocking %s", res.Issue.ID, target.ID), nil
+		return out, fmt.Sprintf("issuegraph: create gate %s blocking %s", res.Issue.ID, target.ID), nil
 	})
 	if err != nil {
 		return HandleErrorRespectJSON("%v", err)
@@ -429,7 +429,7 @@ func runGateResolveProxiedServer(cmd *cobra.Command, ctx context.Context, args [
 			out.oldStatus = string(issue.Status)
 		}
 		out.closed = res.Closed
-		return out, fmt.Sprintf("bd: gate resolve %s", gateID), nil
+		return out, fmt.Sprintf("issuegraph: gate resolve %s", gateID), nil
 	})
 	if err != nil {
 		return HandleError("%v", err)

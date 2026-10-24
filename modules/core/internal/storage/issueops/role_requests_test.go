@@ -4,9 +4,9 @@ import (
 	"errors"
 	"testing"
 
-	"github.com/steveyegge/beads/internal/storage"
-	"github.com/steveyegge/beads/internal/types"
-	publicops "github.com/steveyegge/beads/issueops"
+	"github.com/borg0ai/dx-issuegraph/internal/storage"
+	"github.com/borg0ai/dx-issuegraph/internal/types"
+	publicops "github.com/borg0ai/dx-issuegraph/issueops"
 )
 
 // TestValidateClaimNextRequestRejectsPagingKnobs pins the rule that makes the
@@ -111,7 +111,7 @@ func TestValidateCloseBatchRequest(t *testing.T) {
 
 // TestCloseBatchCommitMessageNamesWhatLanded pins that a skipped id stays out
 // of the history entry. Composing the message from the REQUEST would put an id
-// in `bd dolt log` that the commit never touched — and so would composing it
+// in `issuegraph dolt log` that the commit never touched — and so would composing it
 // from every nil-Err outcome, because an idempotent re-close is a per-item
 // success that touched nothing (issueops/batchcloser.go:60-64, 119-122).
 func TestCloseBatchCommitMessageNamesWhatLanded(t *testing.T) {
@@ -132,21 +132,21 @@ func TestCloseBatchCommitMessageNamesWhatLanded(t *testing.T) {
 			result: publicops.CloseBatchResult{Outcomes: []publicops.CloseOutcome{
 				landed("bd-1"), landed("bd-2"), landed("bd-3"),
 			}},
-			want: "bd: close bd-1, bd-2, bd-3",
+			want: "issuegraph: close bd-1, bd-2, bd-3",
 		},
 		{
 			name: "a refused id is not named",
 			result: publicops.CloseBatchResult{Outcomes: []publicops.CloseOutcome{
 				landed("bd-1"), refused, landed("bd-3"),
 			}},
-			want: "bd: close bd-1, bd-3",
+			want: "issuegraph: close bd-1, bd-3",
 		},
 		{
 			name: "an idempotent re-close is not named",
 			result: publicops.CloseBatchResult{Outcomes: []publicops.CloseOutcome{
 				landed("bd-1"), {IssueID: "bd-3"},
 			}},
-			want: "bd: close bd-1",
+			want: "issuegraph: close bd-1",
 		},
 		{
 			name:   "nothing landed records no entry",
@@ -163,24 +163,24 @@ func TestCloseBatchCommitMessageNamesWhatLanded(t *testing.T) {
 		{
 			name: "a wisp landing is not named",
 			result: publicops.CloseBatchResult{Outcomes: []publicops.CloseOutcome{
-				landed("bd-1"), landedWisp("bd-wisp-2"),
+				landed("bd-1"), landedWisp("issuegraph-wisp-2"),
 			}},
-			want: "bd: close bd-1",
+			want: "issuegraph: close bd-1",
 		},
 		{
 			name: "an ephemeral-only batch is counted, never named",
 			result: publicops.CloseBatchResult{Outcomes: []publicops.CloseOutcome{
-				landedWisp("bd-wisp-1"), landedWisp("bd-wisp-2"),
+				landedWisp("issuegraph-wisp-1"), landedWisp("issuegraph-wisp-2"),
 			}},
-			want: "bd: close 2 ephemeral items",
+			want: "issuegraph: close 2 ephemeral items",
 		},
 		{
 			name: "an ephemeral-only batch that claimed names the claim",
 			result: publicops.CloseBatchResult{
-				Outcomes:    []publicops.CloseOutcome{landedWisp("bd-wisp-1")},
+				Outcomes:    []publicops.CloseOutcome{landedWisp("issuegraph-wisp-1")},
 				ClaimedNext: &publicops.IssueWithCounts{Issue: &types.Issue{ID: "bd-9"}},
 			},
-			want: "bd: close 1 ephemeral item; claim bd-9",
+			want: "issuegraph: close 1 ephemeral item; claim bd-9",
 		},
 	} {
 		t.Run(tc.name, func(t *testing.T) {

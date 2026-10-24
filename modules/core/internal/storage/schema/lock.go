@@ -11,11 +11,11 @@ import (
 	"sync/atomic"
 	"time"
 
-	"github.com/steveyegge/beads/internal/debug"
+	"github.com/borg0ai/dx-issuegraph/internal/debug"
 )
 
 const (
-	migrationLockPrefix        = "bd_schema_init:"
+	migrationLockPrefix        = "issuegraph_schema_init:"
 	migrationLockNameMaxLength = 64
 	// Keep this below the server-mode callers' retry budgets so a contended
 	// lock wait can time out and still leave room for a real retry.
@@ -150,7 +150,7 @@ func CaptureFreshBootstrapHealCapability(
 }
 
 // WithFreshBootstrapHeal enables the fresh-bootstrap self-heal for the #4566
-// dirty-table guard (gastownhall/beads#5012). The capability must have been
+// dirty-table guard (borg0ai/dx-issuegraph#5012). The capability must have been
 // captured immediately after this logical open's exact CREATE DATABASE, and
 // endpoint must identify the connection pool used for migration. Before any
 // DOLT_RESET, MigrateUpWithLock revalidates the capability against the pinned,
@@ -196,7 +196,7 @@ type DatabaseSelector func(ctx context.Context, conn DBConn, databaseName string
 type MigrationGate func(context.Context, *sql.Conn) error
 
 // WithMigrationGate installs a pre-migration gate for callers whose migration
-// runs entirely inside MigrateUpWithLock — the proxied/`bd serve` provider,
+// runs entirely inside MigrateUpWithLock — the proxied/`issuegraph serve` provider,
 // which has no separate pre-open gate hook of the kind internal/storage/dolt
 // runs in its own retry loop.
 //
@@ -248,7 +248,7 @@ func MigrateUpWithLock(ctx context.Context, conn *sql.Conn, databaseName string,
 	// Steady-state fast path. In the overwhelmingly common case the database
 	// is already at this binary's schema and the whole locked pass is a probe
 	// that finds nothing to do — but running that probe under the
-	// database-scoped GET_LOCK serialized every bd invocation on a shared Dolt
+	// database-scoped GET_LOCK serialized every issuegraph invocation on a shared Dolt
 	// server behind every other one (96.7% lock saturation on an 18-seat rig;
 	// see alreadyConverged). Answer the same question first, without the lock,
 	// and take the lock only on the path that can actually migrate.
@@ -269,7 +269,7 @@ func MigrateUpWithLock(ctx context.Context, conn *sql.Conn, databaseName string,
 			// below, so this is never fatal. But a silently discarded error is
 			// a fast path that has quietly stopped firing — the exact failure
 			// mode that leaves the GET_LOCK saturation this exists to remove
-			// looking like a mystery. Say so where BD_DEBUG/-v can see it.
+			// looking like a mystery. Say so where ISSUEGRAPH_DEBUG/-v can see it.
 			debug.Logf("schema: convergence fast path unavailable for %q, taking the migration lock: %v\n",
 				databaseName, convergedErr)
 		case converged:

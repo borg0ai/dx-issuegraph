@@ -7,11 +7,11 @@ import (
 	"strconv"
 	"strings"
 
+	"github.com/borg0ai/dx-issuegraph/internal/metrics"
+	"github.com/borg0ai/dx-issuegraph/internal/types"
+	"github.com/borg0ai/dx-issuegraph/internal/ui"
+	"github.com/borg0ai/dx-issuegraph/internal/utils"
 	"github.com/spf13/cobra"
-	"github.com/steveyegge/beads/internal/metrics"
-	"github.com/steveyegge/beads/internal/types"
-	"github.com/steveyegge/beads/internal/ui"
-	"github.com/steveyegge/beads/internal/utils"
 )
 
 // LargeMoleculeThreshold is the step count above which we show summary instead of full list.
@@ -54,8 +54,8 @@ The output shows all steps with status indicators:
 
 For large molecules (>100 steps), a summary is shown instead.
 Use --limit or --range to view specific steps:
-  bd mol current <id> --limit 50       # Show first 50 steps
-  bd mol current <id> --range 100-150  # Show steps 100-150`,
+  issuegraph mol current <id> --limit 50       # Show first 50 steps
+  issuegraph mol current <id> --range 100-150  # Show steps 100-150`,
 	Args:          cobra.MaximumNArgs(1),
 	SilenceUsage:  true,
 	SilenceErrors: true,
@@ -144,8 +144,8 @@ Use --limit or --range to view specific steps:
 				}
 				fmt.Println(".")
 				fmt.Println("\nTo start work on a molecule:")
-				fmt.Println("  bd mol wisp create <proto-id>  # Instantiate as ephemeral wisp")
-				fmt.Println("  bd update <step-id> --claim  # Claim a step")
+				fmt.Println("  issuegraph mol wisp create <proto-id>  # Instantiate as ephemeral wisp")
+				fmt.Println("  issuegraph update <step-id> --claim  # Claim a step")
 				return nil
 			}
 		}
@@ -316,7 +316,7 @@ func findHookedMolecules(ctx context.Context, s molReader, agent string) []*Mole
 	moleculeMap := make(map[string]*MoleculeProgress)
 	for _, issue := range hookedIssues {
 		// Check if the hooked issue itself is a molecule (e.g., patrol wisps
-		// are directly hooked without a separate handoff bead). hq-3paz0m
+		// are directly hooked without a separate handoff issue). hq-3paz0m
 		if issue.IssueType == types.TypeEpic {
 			if _, exists := moleculeMap[issue.ID]; !exists {
 				progress, err := getMoleculeProgress(ctx, s, issue.ID)
@@ -347,7 +347,7 @@ func findHookedMolecules(ctx context.Context, s molReader, agent string) []*Mole
 			isMolecule := candidate.IssueType == types.TypeEpic
 			if !isMolecule {
 				for _, label := range candidate.Labels {
-					if label == BeadsTemplateLabel {
+					if label == IssueGraphTemplateLabel {
 						isMolecule = true
 						break
 					}
@@ -464,16 +464,16 @@ func findParentMolecules(ctx context.Context, s molReader, issueIDs []string) ma
 
 	isMolecule := make(map[string]bool, len(rootIssues))
 	for _, issue := range rootIssues {
-		// `bd mol pour` creates roots with TypeMolecule (no template label),
-		// while distilled-from-epic templates use TypeEpic + BeadsTemplateLabel.
+		// `issuegraph mol pour` creates roots with TypeMolecule (no template label),
+		// while distilled-from-epic templates use TypeEpic + IssueGraphTemplateLabel.
 		// Both shapes must be recognized so --continue can advance through
-		// poured molecules. See gastownhall/beads#3719.
+		// poured molecules. See borg0ai/dx-issuegraph#3719.
 		if issue.IssueType == types.TypeEpic || issue.IssueType == types.TypeMolecule {
 			isMolecule[issue.ID] = true
 			continue
 		}
 		for _, label := range issue.Labels {
-			if label == BeadsTemplateLabel {
+			if label == IssueGraphTemplateLabel {
 				isMolecule[issue.ID] = true
 				break
 			}
@@ -547,7 +547,7 @@ func printMoleculeProgress(mol *MoleculeProgress) {
 
 	if mol.NextStep != nil && mol.CurrentStep == nil {
 		fmt.Printf("\nNext ready: %s - %s\n", mol.NextStep.ID, mol.NextStep.Title)
-		fmt.Printf("  Start with: bd update %s --claim\n", mol.NextStep.ID)
+		fmt.Printf("  Start with: issuegraph update %s --claim\n", mol.NextStep.ID)
 	}
 
 	// Show hint about viewing step instructions
@@ -558,7 +558,7 @@ func printMoleculeProgress(mol *MoleculeProgress) {
 		hintStepID = mol.NextStep.ID
 	}
 	if hintStepID != "" {
-		fmt.Printf("\n%s Run `bd show %s` to see detailed instructions.\n", ui.RenderAccent("💡"), hintStepID)
+		fmt.Printf("\n%s Run `issuegraph show %s` to see detailed instructions.\n", ui.RenderAccent("💡"), hintStepID)
 	}
 }
 
@@ -666,7 +666,7 @@ func PrintContinueResult(result *ContinueResult) {
 
 	if result.MolComplete {
 		fmt.Printf("\n%s Molecule %s complete! All steps closed.\n", ui.RenderPass("✓"), result.MoleculeID)
-		fmt.Println("Consider: bd mol squash " + result.MoleculeID + " --summary '...'")
+		fmt.Println("Consider: issuegraph mol squash " + result.MoleculeID + " --summary '...'")
 		return
 	}
 
@@ -681,7 +681,7 @@ func PrintContinueResult(result *ContinueResult) {
 	if result.AutoAdvanced {
 		fmt.Printf("\n%s Marked in_progress (use --no-auto to skip)\n", ui.RenderWarn("→"))
 	} else {
-		fmt.Printf("\nStart with: bd update %s --claim\n", result.NextStep.ID)
+		fmt.Printf("\nStart with: issuegraph update %s --claim\n", result.NextStep.ID)
 	}
 }
 
@@ -747,13 +747,13 @@ func printLargeMoleculeSummary(stats *types.MoleculeProgressStats) {
 	fmt.Printf("%s This molecule has %d steps (threshold: %d).\n",
 		ui.RenderWarn("Note:"), stats.Total, LargeMoleculeThreshold)
 	fmt.Println("To view steps, use one of:")
-	fmt.Printf("  bd mol current %s --limit 50        # First 50 steps\n", stats.MoleculeID)
-	fmt.Printf("  bd mol current %s --range 1-50     # Steps 1-50\n", stats.MoleculeID)
-	fmt.Printf("  bd mol progress %s                 # Efficient progress summary\n", stats.MoleculeID)
+	fmt.Printf("  issuegraph mol current %s --limit 50        # First 50 steps\n", stats.MoleculeID)
+	fmt.Printf("  issuegraph mol current %s --range 1-50     # Steps 1-50\n", stats.MoleculeID)
+	fmt.Printf("  issuegraph mol progress %s                 # Efficient progress summary\n", stats.MoleculeID)
 
 	// Show hint about viewing step instructions
 	if stats.CurrentStepID != "" {
-		fmt.Printf("\n%s Run `bd show %s` to see detailed instructions.\n", ui.RenderAccent("💡"), stats.CurrentStepID)
+		fmt.Printf("\n%s Run `issuegraph show %s` to see detailed instructions.\n", ui.RenderAccent("💡"), stats.CurrentStepID)
 	}
 }
 

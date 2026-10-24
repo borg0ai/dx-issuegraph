@@ -10,8 +10,8 @@ concurrency:
   cancel-in-progress: true
 
 env:
-  BD_DISABLE_METRICS: "1"
-  BD_DISABLE_EVENT_FLUSH: "1"
+  ISSUEGRAPH_DISABLE_METRICS: "1"
+  ISSUEGRAPH_DISABLE_EVENT_FLUSH: "1"
 
 jobs:
   detect-ci-tier:
@@ -56,13 +56,13 @@ jobs:
           } >> "$GITHUB_STEP_SUMMARY"
 
   # End-to-end coverage for proxied-server CLI subcommands, sharded across the
-  # CI matrix. Each sub-test drives the bd CLI subprocess against a real dolt
+  # CI matrix. Each sub-test drives the issuegraph CLI subprocess against a real dolt
   # sql-server started via testcontainers by the shared proxied harness
   # (modules/cli/*_proxied_integration_test.go).
   #
   # Reuses the modules/cli test binary compiled once by build-embedded: the proxied
   # tests live in the same package and are gated at runtime by
-  # BEADS_TEST_PROXIED_SERVER=1, so no separate build is needed. Shard
+  # ISSUEGRAPH_TEST_PROXIED_SERVER=1, so no separate build is needed. Shard
   # assignment is committed in .github/scripts/proxied-cmd-test-shards.txt;
   # newly-added TestProxiedServer* tests hash-distribute until listed there.
   test-proxied-cmd:
@@ -95,9 +95,9 @@ jobs:
       - name: Configure Git and Dolt identity
         run: |
           git config --global user.name "CI Bot"
-          git config --global user.email "ci@beads.test"
+          git config --global user.email "ci@issuegraph.test"
           dolt config --global --add user.name "CI Bot"
-          dolt config --global --add user.email "ci@beads.test"
+          dolt config --global --add user.email "ci@issuegraph.test"
 
       - name: Pull Dolt sql-server image
         # The shared proxied harness requires the image cached locally
@@ -108,9 +108,9 @@ jobs:
       - name: Test proxied-server cmd shard
         timeout-minutes: 16
         env:
-          BEADS_TEST_PROXIED_SERVER: "1"
-          BEADS_TEST_BD_BINARY: /tmp/bd-proxied
-          BEADS_TEST_CMD_BINARY: /tmp/bd-cmd-test
+          ISSUEGRAPH_TEST_PROXIED_SERVER: "1"
+          ISSUEGRAPH_TEST_ISSUEGRAPH_BINARY: /tmp/bd-proxied
+          ISSUEGRAPH_TEST_CMD_BINARY: /tmp/bd-cmd-test
         run: bash .github/scripts/proxied-test-shard.sh ${{ matrix.shard }} 15
 
   # Embedded Dolt tests - test the in-process Dolt engine (no server required)
@@ -138,45 +138,45 @@ jobs:
         uses: actions/cache/restore@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
         with:
           path: ~/go/pkg/mod
-          key: beads-go-mod-v2-${{ runner.os }}-${{ runner.arch }}-go-${{ steps.setup-go.outputs.go-version }}-${{ hashFiles('go.mod', 'go.sum') }}
-          restore-keys: beads-go-mod-v2-${{ runner.os }}-${{ runner.arch }}-go-${{ steps.setup-go.outputs.go-version }}-
+          key: issuegraph-go-mod-v2-${{ runner.os }}-${{ runner.arch }}-go-${{ steps.setup-go.outputs.go-version }}-${{ hashFiles('go.mod', 'go.sum') }}
+          restore-keys: issuegraph-go-mod-v2-${{ runner.os }}-${{ runner.arch }}-go-${{ steps.setup-go.outputs.go-version }}-
 
       - name: Restore race Go build cache
         uses: actions/cache/restore@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
         with:
           path: ${{ runner.temp }}/go-cache/race
-          key: beads-go-build-v2-${{ runner.os }}-${{ runner.arch }}-go-${{ steps.setup-go.outputs.go-version }}-base-gms_pure_go-race-${{ github.sha }}
-          restore-keys: beads-go-build-v2-${{ runner.os }}-${{ runner.arch }}-go-${{ steps.setup-go.outputs.go-version }}-base-gms_pure_go-race-
+          key: issuegraph-go-build-v2-${{ runner.os }}-${{ runner.arch }}-go-${{ steps.setup-go.outputs.go-version }}-base-gms_pure_go-race-${{ github.sha }}
+          restore-keys: issuegraph-go-build-v2-${{ runner.os }}-${{ runner.arch }}-go-${{ steps.setup-go.outputs.go-version }}-base-gms_pure_go-race-
 
       - name: Restore non-race Go build cache
         uses: actions/cache/restore@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
         with:
           path: ${{ runner.temp }}/go-cache/non-race
-          key: beads-go-build-v2-${{ runner.os }}-${{ runner.arch }}-go-${{ steps.setup-go.outputs.go-version }}-base-gms_pure_go-non-race-${{ github.sha }}
-          restore-keys: beads-go-build-v2-${{ runner.os }}-${{ runner.arch }}-go-${{ steps.setup-go.outputs.go-version }}-base-gms_pure_go-non-race-
+          key: issuegraph-go-build-v2-${{ runner.os }}-${{ runner.arch }}-go-${{ steps.setup-go.outputs.go-version }}-base-gms_pure_go-non-race-${{ github.sha }}
+          restore-keys: issuegraph-go-build-v2-${{ runner.os }}-${{ runner.arch }}-go-${{ steps.setup-go.outputs.go-version }}-base-gms_pure_go-non-race-
 
-      - name: Build embedded bd binary
+      - name: Build embedded issuegraph binary
         env:
           GOCACHE: ${{ runner.temp }}/go-cache/race
-        run: go build -tags gms_pure_go -race -o /tmp/bd-embedded-test github.com/steveyegge/beads/modules/cli
+        run: go build -tags gms_pure_go -race -o /tmp/bd-embedded-test github.com/borg0ai/dx-issuegraph/modules/cli
 
       - name: Build embedded storage test binary
         env:
           GOCACHE: ${{ runner.temp }}/go-cache/race
-        run: go test -tags gms_pure_go -race -c -o /tmp/embeddeddolt-test github.com/steveyegge/beads/internal/storage/embeddeddolt/
+        run: go test -tags gms_pure_go -race -c -o /tmp/embeddeddolt-test github.com/borg0ai/dx-issuegraph/internal/storage/embeddeddolt/
 
       - name: Build embedded cmd test binary
         env:
           GOCACHE: ${{ runner.temp }}/go-cache/race
-        run: go test -tags gms_pure_go -race -c -o /tmp/bd-cmd-test github.com/steveyegge/beads/modules/cli
+        run: go test -tags gms_pure_go -race -c -o /tmp/bd-cmd-test github.com/borg0ai/dx-issuegraph/modules/cli
 
-      # Non-race bd used as the proxied-server test subprocess. The proxied
-      # tests spawn bd many times per sub-test; a -race subprocess would slow
-      # every invocation, so build a plain binary for BEADS_TEST_BD_BINARY.
-      - name: Build proxied bd subprocess binary
+      # Non-race issuegraph used as the proxied-server test subprocess. The proxied
+      # tests spawn issuegraph many times per sub-test; a -race subprocess would slow
+      # every invocation, so build a plain binary for ISSUEGRAPH_TEST_ISSUEGRAPH_BINARY.
+      - name: Build proxied issuegraph subprocess binary
         env:
           GOCACHE: ${{ runner.temp }}/go-cache/non-race
-        run: go build -tags gms_pure_go -o /tmp/bd-proxied github.com/steveyegge/beads/modules/cli
+        run: go build -tags gms_pure_go -o /tmp/bd-proxied github.com/borg0ai/dx-issuegraph/modules/cli
 
       # Server-Dolt conformance binary. No -race: the Dolt server runs
       # out-of-process in a container, and omitting it keeps the run inside the
@@ -185,7 +185,7 @@ jobs:
       - name: Build server Dolt conformance test binary
         env:
           GOCACHE: ${{ runner.temp }}/go-cache/non-race
-        run: go test -tags=integration,gms_pure_go -c -o /tmp/dolt-conformance-test github.com/steveyegge/beads/internal/storage/dolt/
+        run: go test -tags=integration,gms_pure_go -c -o /tmp/dolt-conformance-test github.com/borg0ai/dx-issuegraph/internal/storage/dolt/
 
       - name: Upload binaries
         uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7
@@ -224,12 +224,12 @@ jobs:
       - name: Configure Git
         run: |
           git config --global user.name "CI Bot"
-          git config --global user.email "ci@beads.test"
+          git config --global user.email "ci@issuegraph.test"
 
       - name: Test
         env:
-          BEADS_TEST_EMBEDDED_DOLT: "1"
-          BEADS_TEST_EMBEDDED_TEST_BINARY: /tmp/embeddeddolt-test
+          ISSUEGRAPH_TEST_EMBEDDED_DOLT: "1"
+          ISSUEGRAPH_TEST_EMBEDDED_TEST_BINARY: /tmp/embeddeddolt-test
         # Manifest-driven shard of the storage suite (mirrors test-embedded-cmd
         # / embedded-test-shard.sh). Conformance runs separately in the
         # dedicated test-embedded-conformance job; embedded-storage-test-shard.sh
@@ -248,8 +248,8 @@ jobs:
       matrix:
         partition: [core, audit]
     env:
-      BEADS_TEST_EMBEDDED_DOLT: "1"
-      BEADS_TEST_EMBEDDED_TEST_BINARY: /tmp/embeddeddolt-test
+      ISSUEGRAPH_TEST_EMBEDDED_DOLT: "1"
+      ISSUEGRAPH_TEST_EMBEDDED_TEST_BINARY: /tmp/embeddeddolt-test
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v6
 
@@ -265,7 +265,7 @@ jobs:
       - name: Configure Git
         run: |
           git config --global user.name "CI Bot"
-          git config --global user.email "ci@beads.test"
+          git config --global user.email "ci@issuegraph.test"
 
       - name: Test core conformance
         if: matrix.partition == 'core'
@@ -301,7 +301,7 @@ jobs:
       - name: Configure Git
         run: |
           git config --global user.name "CI Bot"
-          git config --global user.email "ci@beads.test"
+          git config --global user.email "ci@issuegraph.test"
 
       - name: Install Dolt
         run: ./scripts/ci/install-dolt.sh
@@ -309,7 +309,7 @@ jobs:
       - name: Configure Dolt
         run: |
           dolt config --global --add user.name "CI Bot"
-          dolt config --global --add user.email "ci@beads.test"
+          dolt config --global --add user.email "ci@issuegraph.test"
           dolt version
 
       - name: Pull Dolt sql-server image
@@ -321,7 +321,7 @@ jobs:
       - name: Test
         # Server twin of test-embedded-conformance: same conformance.RunAll, but
         # against the container-backed server-mode Dolt backend. No -short / no
-        # BEADS_TEST_SKIP=dolt, so TestMain starts the shared server and the
+        # ISSUEGRAPH_TEST_SKIP=dolt, so TestMain starts the shared server and the
         # suite runs instead of self-skipping.
         run: /tmp/dolt-conformance-test -test.v -test.count=1 -test.timeout=15m -test.run '^TestConformance$'
 
@@ -350,7 +350,7 @@ jobs:
       - name: Configure Git
         run: |
           git config --global user.name "CI Bot"
-          git config --global user.email "ci@beads.test"
+          git config --global user.email "ci@issuegraph.test"
 
       - name: Install Dolt
         run: ./scripts/ci/install-dolt.sh
@@ -358,7 +358,7 @@ jobs:
       - name: Configure Dolt
         run: |
           dolt config --global --add user.name "CI Bot"
-          dolt config --global --add user.email "ci@beads.test"
+          dolt config --global --add user.email "ci@issuegraph.test"
           dolt version
 
       - name: Pull Dolt sql-server image
@@ -385,7 +385,7 @@ jobs:
         # excludes TestConformance from discovery, so it never lands in one of
         # these shards.
         env:
-          BEADS_TEST_ENV_RUN_DOLT: "1"
+          ISSUEGRAPH_TEST_ENV_RUN_DOLT: "1"
         run: bash .github/scripts/server-storage-test-shard.sh ${{ matrix.shard }} 16
 
   test-embedded-cmd:
@@ -412,12 +412,12 @@ jobs:
       - name: Configure Git
         run: |
           git config --global user.name "CI Bot"
-          git config --global user.email "ci@beads.test"
+          git config --global user.email "ci@issuegraph.test"
 
       - name: Test
         env:
-          BEADS_TEST_EMBEDDED_DOLT: "1"
-          BEADS_TEST_BD_BINARY: /tmp/bd-embedded-test
+          ISSUEGRAPH_TEST_EMBEDDED_DOLT: "1"
+          ISSUEGRAPH_TEST_ISSUEGRAPH_BINARY: /tmp/bd-embedded-test
         run: bash .github/scripts/embedded-test-shard.sh ${{ matrix.shard }} 20
 
   test-nix:
@@ -427,7 +427,7 @@ jobs:
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v6
       - uses: DeterminateSystems/determinate-nix-action@527f17dd63d2d60d3e5552934bc84b9a33a14d11 # v3
-      - name: Run bd help via Nix
+      - name: Run issuegraph help via Nix
         id: nix_help
         run: |
           nix run .#default -- --help > help.txt
@@ -435,7 +435,7 @@ jobs:
         if: steps.nix_help.outcome == 'success'
         run: |
           FIRST_LINE=$(head -n 1 help.txt)
-          EXPECTED="Issues chained together like beads. A lightweight issue tracker with first-class dependency support."
+          EXPECTED="Issues chained together like issuegraph. A lightweight issue tracker with first-class dependency support."
           if [ "$FIRST_LINE" != "$EXPECTED" ]; then
             echo "First line of help.txt doesn't match expected output"
             echo "Expected: $EXPECTED"

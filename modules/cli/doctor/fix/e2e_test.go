@@ -11,7 +11,7 @@ import (
 )
 
 // skipIfTestBinary skips the test if running as a test binary.
-// E2E tests that need to execute 'bd' subcommands cannot run in test mode.
+// E2E tests that need to execute 'issuegraph' subcommands cannot run in test mode.
 func skipIfTestBinary(t *testing.T) {
 	t.Helper()
 	_, err := getBdBinary()
@@ -41,10 +41,10 @@ func isWSL() bool {
 
 // TestGitHooks_E2E tests the full GitHooks fix flow
 func TestGitHooks_E2E(t *testing.T) {
-	// Skip if bd binary not available or running as test binary
+	// Skip if issuegraph binary not available or running as test binary
 	skipIfTestBinary(t)
-	if _, err := exec.LookPath("bd"); err != nil {
-		t.Skip("bd binary not in PATH, skipping e2e test")
+	if _, err := exec.LookPath("issuegraph"); err != nil {
+		t.Skip("issuegraph binary not in PATH, skipping e2e test")
 	}
 
 	t.Run("installs hooks in git repo", func(t *testing.T) {
@@ -68,13 +68,13 @@ func TestGitHooks_E2E(t *testing.T) {
 			t.Error("pre-commit hook was not installed")
 		}
 
-		// Check hook content has bd reference
+		// Check hook content has issuegraph reference
 		content, err := os.ReadFile(preCommit)
 		if err != nil {
 			t.Fatalf("failed to read hook: %v", err)
 		}
-		if !strings.Contains(string(content), "bd") {
-			t.Error("hook doesn't contain bd reference")
+		if !strings.Contains(string(content), "issuegraph") {
+			t.Error("hook doesn't contain issuegraph reference")
 		}
 	})
 }
@@ -93,7 +93,7 @@ func TestGetBdBinary_Errors(t *testing.T) {
 	t.Run("returns current executable when available", func(t *testing.T) {
 		path, err := getBdBinary()
 		if err != nil {
-			// This is expected in test environment if bd isn't the test binary
+			// This is expected in test environment if issuegraph isn't the test binary
 			t.Logf("getBdBinary returned error (expected in test): %v", err)
 			return
 		}
@@ -111,24 +111,24 @@ func TestFilePermissionErrors(t *testing.T) {
 
 	t.Run("Permissions handles read-only directory", func(t *testing.T) {
 		dir := t.TempDir()
-		beadsDir := filepath.Join(dir, ".beads")
-		if err := os.MkdirAll(beadsDir, 0755); err != nil {
+		issuegraphDir := filepath.Join(dir, ".issuegraph")
+		if err := os.MkdirAll(issuegraphDir, 0755); err != nil {
 			t.Fatal(err)
 		}
 
 		// Create a file
-		dbPath := filepath.Join(beadsDir, "beads.db")
+		dbPath := filepath.Join(issuegraphDir, "issuegraph.db")
 		if err := os.WriteFile(dbPath, []byte("test"), 0644); err != nil {
 			t.Fatal(err)
 		}
 
 		// Make directory read-only
-		if err := os.Chmod(beadsDir, 0444); err != nil {
+		if err := os.Chmod(issuegraphDir, 0444); err != nil {
 			t.Fatal(err)
 		}
 		defer func() {
 			// Restore permissions for cleanup
-			_ = os.Chmod(beadsDir, 0755)
+			_ = os.Chmod(issuegraphDir, 0755)
 		}()
 
 		// Permissions fix should handle this gracefully
@@ -149,23 +149,23 @@ func TestFixGitignore_PartialPatterns(t *testing.T) {
 	// These tests would go in gitignore_test.go in the doctor package
 	// Here we test the common validation used by fixes
 
-	t.Run("validateBeadsWorkspace requires .beads directory", func(t *testing.T) {
+	t.Run("validateIssueGraphWorkspace requires .issuegraph directory", func(t *testing.T) {
 		dir := t.TempDir()
 
-		err := validateBeadsWorkspace(dir)
+		err := validateIssueGraphWorkspace(dir)
 		if err == nil {
-			t.Error("expected error for missing .beads directory")
+			t.Error("expected error for missing .issuegraph directory")
 		}
 	})
 
-	t.Run("validateBeadsWorkspace accepts valid workspace", func(t *testing.T) {
+	t.Run("validateIssueGraphWorkspace accepts valid workspace", func(t *testing.T) {
 		dir := t.TempDir()
-		beadsDir := filepath.Join(dir, ".beads")
-		if err := os.MkdirAll(beadsDir, 0755); err != nil {
+		issuegraphDir := filepath.Join(dir, ".issuegraph")
+		if err := os.MkdirAll(issuegraphDir, 0755); err != nil {
 			t.Fatal(err)
 		}
 
-		err := validateBeadsWorkspace(dir)
+		err := validateIssueGraphWorkspace(dir)
 		if err != nil {
 			t.Errorf("unexpected error: %v", err)
 		}
@@ -176,15 +176,15 @@ func TestFixGitignore_PartialPatterns(t *testing.T) {
 // Edge Case E2E Tests
 // =============================================================================
 
-// TestGitHooksWithExistingHooks_E2E tests preserving existing non-bd hooks
+// TestGitHooksWithExistingHooks_E2E tests preserving existing non-issuegraph hooks
 func TestGitHooksWithExistingHooks_E2E(t *testing.T) {
-	// Skip if bd binary not available or running as test binary
+	// Skip if issuegraph binary not available or running as test binary
 	skipIfTestBinary(t)
-	if _, err := exec.LookPath("bd"); err != nil {
-		t.Skip("bd binary not in PATH, skipping e2e test")
+	if _, err := exec.LookPath("issuegraph"); err != nil {
+		t.Skip("issuegraph binary not in PATH, skipping e2e test")
 	}
 
-	t.Run("preserves existing non-bd hooks", func(t *testing.T) {
+	t.Run("preserves existing non-issuegraph hooks", func(t *testing.T) {
 		dir := setupTestGitRepo(t)
 
 		// Create a custom pre-commit hook
@@ -199,7 +199,7 @@ func TestGitHooksWithExistingHooks_E2E(t *testing.T) {
 			t.Fatalf("failed to create custom hook: %v", err)
 		}
 
-		// Run fix to install bd hooks
+		// Run fix to install issuegraph hooks
 		err := GitHooks(dir)
 		if err != nil {
 			t.Fatalf("GitHooks fix failed: %v", err)
@@ -221,12 +221,12 @@ func TestGitHooksWithExistingHooks_E2E(t *testing.T) {
 		}
 
 		hookContent := string(content)
-		// Verify bd hook was installed (should contain bd reference)
-		if !strings.Contains(hookContent, "bd") {
-			t.Error("hook should contain bd reference after installation")
+		// Verify issuegraph hook was installed (should contain issuegraph reference)
+		if !strings.Contains(hookContent, "issuegraph") {
+			t.Error("hook should contain issuegraph reference after installation")
 		}
 
-		// Note: The exact preservation behavior depends on 'bd hooks install' implementation
+		// Note: The exact preservation behavior depends on 'issuegraph hooks install' implementation
 		// This test verifies the fix runs without destroying existing hooks
 	})
 }
@@ -236,7 +236,7 @@ func TestUntrackedJSONLWithUncommittedChanges_E2E(t *testing.T) {
 	t.Skip("UntrackedJSONL removed as part of JSONL removal (bd-9ni.2)")
 }
 
-// TestPermissionsWithWrongPermissions_E2E tests fixing wrong permissions on .beads
+// TestPermissionsWithWrongPermissions_E2E tests fixing wrong permissions on .issuegraph
 func TestPermissionsWithWrongPermissions_E2E(t *testing.T) {
 	if runtime.GOOS == "windows" {
 		t.Skip("skipping Unix permission test on Windows")
@@ -245,20 +245,20 @@ func TestPermissionsWithWrongPermissions_E2E(t *testing.T) {
 		t.Skip("skipping permission tests when running as root")
 	}
 
-	t.Run("fixes .beads directory with wrong permissions", func(t *testing.T) {
+	t.Run("fixes .issuegraph directory with wrong permissions", func(t *testing.T) {
 		dir := t.TempDir()
-		beadsDir := filepath.Join(dir, ".beads")
-		if err := os.MkdirAll(beadsDir, 0755); err != nil {
+		issuegraphDir := filepath.Join(dir, ".issuegraph")
+		if err := os.MkdirAll(issuegraphDir, 0755); err != nil {
 			t.Fatal(err)
 		}
 
 		// Set wrong permissions (too permissive)
-		if err := os.Chmod(beadsDir, 0777); err != nil {
+		if err := os.Chmod(issuegraphDir, 0777); err != nil {
 			t.Fatal(err)
 		}
 
 		// Verify wrong permissions
-		info, err := os.Stat(beadsDir)
+		info, err := os.Stat(issuegraphDir)
 		if err != nil {
 			t.Fatal(err)
 		}
@@ -273,7 +273,7 @@ func TestPermissionsWithWrongPermissions_E2E(t *testing.T) {
 		}
 
 		// Verify permissions were fixed
-		info, err = os.Stat(beadsDir)
+		info, err = os.Stat(issuegraphDir)
 		if err != nil {
 			t.Fatal(err)
 		}
@@ -284,13 +284,13 @@ func TestPermissionsWithWrongPermissions_E2E(t *testing.T) {
 
 	t.Run("fixes database file with wrong permissions", func(t *testing.T) {
 		dir := t.TempDir()
-		beadsDir := filepath.Join(dir, ".beads")
-		if err := os.MkdirAll(beadsDir, 0700); err != nil {
+		issuegraphDir := filepath.Join(dir, ".issuegraph")
+		if err := os.MkdirAll(issuegraphDir, 0700); err != nil {
 			t.Fatal(err)
 		}
 
 		// Create database file with wrong permissions
-		dbPath := filepath.Join(beadsDir, "beads.db")
+		dbPath := filepath.Join(issuegraphDir, "issuegraph.db")
 		if err := os.WriteFile(dbPath, []byte("test"), 0644); err != nil {
 			t.Fatal(err)
 		}
@@ -318,13 +318,13 @@ func TestPermissionsWithWrongPermissions_E2E(t *testing.T) {
 
 	t.Run("fixes database file without read permission", func(t *testing.T) {
 		dir := t.TempDir()
-		beadsDir := filepath.Join(dir, ".beads")
-		if err := os.MkdirAll(beadsDir, 0700); err != nil {
+		issuegraphDir := filepath.Join(dir, ".issuegraph")
+		if err := os.MkdirAll(issuegraphDir, 0700); err != nil {
 			t.Fatal(err)
 		}
 
 		// Create database file
-		dbPath := filepath.Join(beadsDir, "beads.db")
+		dbPath := filepath.Join(issuegraphDir, "issuegraph.db")
 		if err := os.WriteFile(dbPath, []byte("test"), 0200); err != nil {
 			t.Fatal(err)
 		}
@@ -349,27 +349,27 @@ func TestPermissionsWithWrongPermissions_E2E(t *testing.T) {
 		}
 	})
 
-	t.Run("handles .beads directory without write permission", func(t *testing.T) {
+	t.Run("handles .issuegraph directory without write permission", func(t *testing.T) {
 		dir := t.TempDir()
-		beadsDir := filepath.Join(dir, ".beads")
-		if err := os.MkdirAll(beadsDir, 0700); err != nil {
+		issuegraphDir := filepath.Join(dir, ".issuegraph")
+		if err := os.MkdirAll(issuegraphDir, 0700); err != nil {
 			t.Fatal(err)
 		}
 
-		// Create a test file in .beads
-		testFile := filepath.Join(beadsDir, "test.txt")
+		// Create a test file in .issuegraph
+		testFile := filepath.Join(issuegraphDir, "test.txt")
 		if err := os.WriteFile(testFile, []byte("test"), 0600); err != nil {
 			t.Fatal(err)
 		}
 
-		// Make .beads read-only (no write, no execute)
-		if err := os.Chmod(beadsDir, 0400); err != nil {
+		// Make .issuegraph read-only (no write, no execute)
+		if err := os.Chmod(issuegraphDir, 0400); err != nil {
 			t.Fatal(err)
 		}
 
 		// Restore permissions for cleanup
 		defer func() {
-			_ = os.Chmod(beadsDir, 0700)
+			_ = os.Chmod(issuegraphDir, 0700)
 		}()
 
 		// Run fix - should restore write permission
@@ -379,7 +379,7 @@ func TestPermissionsWithWrongPermissions_E2E(t *testing.T) {
 		}
 
 		// Verify directory now has correct permissions
-		info, err := os.Stat(beadsDir)
+		info, err := os.Stat(issuegraphDir)
 		if err != nil {
 			t.Fatal(err)
 		}
@@ -390,13 +390,13 @@ func TestPermissionsWithWrongPermissions_E2E(t *testing.T) {
 
 	t.Run("handles multiple files with wrong permissions", func(t *testing.T) {
 		dir := t.TempDir()
-		beadsDir := filepath.Join(dir, ".beads")
-		if err := os.MkdirAll(beadsDir, 0777); err != nil {
+		issuegraphDir := filepath.Join(dir, ".issuegraph")
+		if err := os.MkdirAll(issuegraphDir, 0777); err != nil {
 			t.Fatal(err)
 		}
 
 		// Create database with wrong permissions
-		dbPath := filepath.Join(beadsDir, "beads.db")
+		dbPath := filepath.Join(issuegraphDir, "issuegraph.db")
 		if err := os.WriteFile(dbPath, []byte("db"), 0666); err != nil {
 			t.Fatal(err)
 		}
@@ -408,7 +408,7 @@ func TestPermissionsWithWrongPermissions_E2E(t *testing.T) {
 		}
 
 		// Verify both directory and file were fixed
-		dirInfo, err := os.Stat(beadsDir)
+		dirInfo, err := os.Stat(issuegraphDir)
 		if err != nil {
 			t.Fatal(err)
 		}

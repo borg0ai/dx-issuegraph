@@ -11,51 +11,51 @@ import (
 	"testing"
 )
 
-// bdFlatten runs "bd flatten" with the given args and returns stdout.
-func bdFlatten(t *testing.T, bd, dir string, args ...string) string {
+// issuegraphFlatten runs "issuegraph flatten" with the given args and returns stdout.
+func issuegraphFlatten(t *testing.T, issuegraph, dir string, args ...string) string {
 	t.Helper()
 	fullArgs := append([]string{"flatten"}, args...)
-	cmd := exec.Command(bd, fullArgs...)
+	cmd := exec.Command(issuegraph, fullArgs...)
 	cmd.Dir = dir
-	cmd.Env = bdEnv(dir)
+	cmd.Env = issuegraphEnv(dir)
 	stdout, stderr, err := runCommandBuffers(t, cmd)
 	if err != nil {
-		t.Fatalf("bd flatten %s failed: %v\nstdout:\n%s\nstderr:\n%s", strings.Join(args, " "), err, stdout.String(), stderr.String())
+		t.Fatalf("issuegraph flatten %s failed: %v\nstdout:\n%s\nstderr:\n%s", strings.Join(args, " "), err, stdout.String(), stderr.String())
 	}
 	return stdout.String()
 }
 
-// bdFlattenFail runs "bd flatten" expecting failure.
-func bdFlattenFail(t *testing.T, bd, dir string, args ...string) string {
+// issuegraphFlattenFail runs "issuegraph flatten" expecting failure.
+func issuegraphFlattenFail(t *testing.T, issuegraph, dir string, args ...string) string {
 	t.Helper()
 	fullArgs := append([]string{"flatten"}, args...)
-	cmd := exec.Command(bd, fullArgs...)
+	cmd := exec.Command(issuegraph, fullArgs...)
 	cmd.Dir = dir
-	cmd.Env = bdEnv(dir)
+	cmd.Env = issuegraphEnv(dir)
 	out, err := cmd.CombinedOutput()
 	if err == nil {
-		t.Fatalf("expected bd flatten %s to fail, but succeeded:\n%s", strings.Join(args, " "), out)
+		t.Fatalf("expected issuegraph flatten %s to fail, but succeeded:\n%s", strings.Join(args, " "), out)
 	}
 	return string(out)
 }
 
 func TestEmbeddedFlatten(t *testing.T) {
-	if os.Getenv("BEADS_TEST_EMBEDDED_DOLT") != "1" {
-		t.Skip("set BEADS_TEST_EMBEDDED_DOLT=1 to run embedded dolt integration tests")
+	if os.Getenv("ISSUEGRAPH_TEST_EMBEDDED_DOLT") != "1" {
+		t.Skip("set ISSUEGRAPH_TEST_EMBEDDED_DOLT=1 to run embedded dolt integration tests")
 	}
 	t.Parallel()
 
-	bd := buildEmbeddedBD(t)
+	issuegraph := buildEmbeddedBD(t)
 
 	// ===== Dry Run =====
 
 	t.Run("flatten_dry_run", func(t *testing.T) {
-		dir, _, _ := bdInit(t, bd, "--prefix", "fd")
+		dir, _, _ := issuegraphInit(t, issuegraph, "--prefix", "fd")
 		// Create issues to generate commits
-		bdCreate(t, bd, dir, "Flatten dry-run issue 1", "--type", "task")
-		bdCreate(t, bd, dir, "Flatten dry-run issue 2", "--type", "task")
+		issuegraphCreate(t, issuegraph, dir, "Flatten dry-run issue 1", "--type", "task")
+		issuegraphCreate(t, issuegraph, dir, "Flatten dry-run issue 2", "--type", "task")
 
-		out := bdFlatten(t, bd, dir, "--dry-run")
+		out := issuegraphFlatten(t, issuegraph, dir, "--dry-run")
 		if !strings.Contains(out, "Commits") || !strings.Contains(out, "DRY RUN") {
 			t.Errorf("expected commit count and DRY RUN in output: %s", out)
 		}
@@ -64,10 +64,10 @@ func TestEmbeddedFlatten(t *testing.T) {
 	// ===== Already Flat =====
 
 	t.Run("flatten_fresh_db", func(t *testing.T) {
-		dir, _, _ := bdInit(t, bd, "--prefix", "fa")
+		dir, _, _ := issuegraphInit(t, issuegraph, "--prefix", "fa")
 		// Fresh init may have 1 or more commits depending on schema setup.
 		// Either "Already flat" or successful flatten is fine.
-		out := bdFlatten(t, bd, dir, "--force")
+		out := issuegraphFlatten(t, issuegraph, dir, "--force")
 		if !strings.Contains(out, "Already flat") && !strings.Contains(out, "Flattened") && !strings.Contains(out, "already flat") {
 			t.Errorf("expected 'Already flat' or 'Flattened' message: %s", out)
 		}
@@ -79,48 +79,48 @@ func TestEmbeddedFlatten(t *testing.T) {
 	// These tests skip when that happens rather than failing.
 
 	t.Run("flatten_no_force", func(t *testing.T) {
-		dir, _, _ := bdInit(t, bd, "--prefix", "fn")
-		bdCreate(t, bd, dir, "Flatten no-force 1", "--type", "task")
-		bdCreate(t, bd, dir, "Flatten no-force 2", "--type", "task")
+		dir, _, _ := issuegraphInit(t, issuegraph, "--prefix", "fn")
+		issuegraphCreate(t, issuegraph, dir, "Flatten no-force 1", "--type", "task")
+		issuegraphCreate(t, issuegraph, dir, "Flatten no-force 2", "--type", "task")
 
-		dryOut := bdFlatten(t, bd, dir, "--dry-run")
+		dryOut := issuegraphFlatten(t, issuegraph, dir, "--dry-run")
 		if strings.Contains(dryOut, "Already flat") || strings.Contains(dryOut, "Commits:        0") {
 			t.Skip("store.Log() returns 0 commits in embedded mode — flatten guard untestable")
 		}
-		bdFlattenFail(t, bd, dir)
+		issuegraphFlattenFail(t, issuegraph, dir)
 	})
 
 	// ===== Force =====
 
 	t.Run("flatten_force", func(t *testing.T) {
-		dir, _, _ := bdInit(t, bd, "--prefix", "ff")
-		bdCreate(t, bd, dir, "Flatten force 1", "--type", "task")
-		bdCreate(t, bd, dir, "Flatten force 2", "--type", "task")
-		bdCreate(t, bd, dir, "Flatten force 3", "--type", "task")
+		dir, _, _ := issuegraphInit(t, issuegraph, "--prefix", "ff")
+		issuegraphCreate(t, issuegraph, dir, "Flatten force 1", "--type", "task")
+		issuegraphCreate(t, issuegraph, dir, "Flatten force 2", "--type", "task")
+		issuegraphCreate(t, issuegraph, dir, "Flatten force 3", "--type", "task")
 
-		dryOut := bdFlatten(t, bd, dir, "--dry-run")
+		dryOut := issuegraphFlatten(t, issuegraph, dir, "--dry-run")
 		if strings.Contains(dryOut, "Already flat") || strings.Contains(dryOut, "Commits:        0") {
 			t.Skip("store.Log() returns 0 commits in embedded mode — flatten untestable")
 		}
 
-		out := bdFlatten(t, bd, dir, "--force")
+		out := issuegraphFlatten(t, issuegraph, dir, "--force")
 		if !strings.Contains(out, "Flattened") {
 			t.Errorf("expected 'Flattened' in output: %s", out)
 		}
 
 		// Verify only 1 commit remains
-		dryOut = bdFlatten(t, bd, dir, "--dry-run")
+		dryOut = issuegraphFlatten(t, issuegraph, dir, "--dry-run")
 		if !strings.Contains(dryOut, "Already flat") && !strings.Contains(dryOut, "1") {
 			t.Errorf("expected 1 commit after flatten: %s", dryOut)
 		}
 
 		// Verify issues still exist after flatten
-		cmd := exec.Command(bd, "count")
+		cmd := exec.Command(issuegraph, "count")
 		cmd.Dir = dir
-		cmd.Env = bdEnv(dir)
+		cmd.Env = issuegraphEnv(dir)
 		stdout, stderr, err := runCommandBuffers(t, cmd)
 		if err != nil {
-			t.Fatalf("bd count after flatten failed: %v\nstdout:\n%s\nstderr:\n%s", err, stdout.String(), stderr.String())
+			t.Fatalf("issuegraph count after flatten failed: %v\nstdout:\n%s\nstderr:\n%s", err, stdout.String(), stderr.String())
 		}
 		if strings.Contains(stdout.String(), ": 0") {
 			t.Errorf("expected issues to survive flatten: %s", stdout.String())
@@ -130,15 +130,15 @@ func TestEmbeddedFlatten(t *testing.T) {
 
 // TestEmbeddedFlattenConcurrent exercises flatten --dry-run concurrently.
 func TestEmbeddedFlattenConcurrent(t *testing.T) {
-	if os.Getenv("BEADS_TEST_EMBEDDED_DOLT") != "1" {
-		t.Skip("set BEADS_TEST_EMBEDDED_DOLT=1 to run embedded dolt integration tests")
+	if os.Getenv("ISSUEGRAPH_TEST_EMBEDDED_DOLT") != "1" {
+		t.Skip("set ISSUEGRAPH_TEST_EMBEDDED_DOLT=1 to run embedded dolt integration tests")
 	}
 	t.Parallel()
 
-	bd := buildEmbeddedBD(t)
-	dir, _, _ := bdInit(t, bd, "--prefix", "fx")
+	issuegraph := buildEmbeddedBD(t)
+	dir, _, _ := issuegraphInit(t, issuegraph, "--prefix", "fx")
 
-	bdCreate(t, bd, dir, "Flatten concurrent issue", "--type", "task")
+	issuegraphCreate(t, issuegraph, dir, "Flatten concurrent issue", "--type", "task")
 
 	const numWorkers = 8
 	type workerResult struct {
@@ -153,9 +153,9 @@ func TestEmbeddedFlattenConcurrent(t *testing.T) {
 		go func(worker int) {
 			defer wg.Done()
 			r := workerResult{worker: worker}
-			cmd := exec.Command(bd, "flatten", "--dry-run")
+			cmd := exec.Command(issuegraph, "flatten", "--dry-run")
 			cmd.Dir = dir
-			cmd.Env = bdEnv(dir)
+			cmd.Env = issuegraphEnv(dir)
 			out, err := cmd.CombinedOutput()
 			if err != nil {
 				r.err = fmt.Errorf("flatten --dry-run (worker %d): %v\n%s", worker, err, out)

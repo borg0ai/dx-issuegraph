@@ -10,8 +10,8 @@ import (
 	"path/filepath"
 	"strings"
 
-	"github.com/steveyegge/beads/internal/config"
-	"github.com/steveyegge/beads/internal/templates/agents"
+	"github.com/borg0ai/dx-issuegraph/internal/config"
+	"github.com/borg0ai/dx-issuegraph/internal/templates/agents"
 )
 
 var (
@@ -23,7 +23,7 @@ const claudeInstructionsFile = "CLAUDE.md"
 
 var claudeAgentsIntegration = agentsIntegration{
 	name:         "Claude Code",
-	setupCommand: "bd setup claude",
+	setupCommand: "issuegraph setup claude",
 	profile:      agents.ProfileMinimal,
 }
 
@@ -83,7 +83,7 @@ func marshalSettings(settings map[string]interface{}) ([]byte, error) {
 }
 
 // writeSettingsIfChanged writes data to path only when it differs from what is
-// already on disk. GH#5693: bd init / bd setup claude marshaled and wrote
+// already on disk. GH#5693: issuegraph init / issuegraph setup claude marshaled and wrote
 // settings.json on every run, so a no-op run still churned the file's mtime
 // and — because MarshalIndent emits no trailing newline — silently stripped it.
 func writeSettingsIfChanged(env claudeEnv, path string, data []byte) error {
@@ -106,7 +106,7 @@ func claudeAgentsEnvRedirect(env claudeEnv) (agentsEnv, bool) {
 	claudePath := filepath.Join(env.projectDir, claudeInstructionsFile)
 
 	// If CLAUDE.md is a thin stub that imports AGENTS.md via the @-include
-	// convention (Claude Code expands @-imports), redirect the managed beads
+	// convention (Claude Code expands @-imports), redirect the managed issuegraph
 	// section to AGENTS.md instead of duplicating it in the stub. This matches
 	// the shared-authoritative-file pattern used by repos that keep AGENTS.md
 	// as the single source of agent instructions.
@@ -131,8 +131,8 @@ func claudeAgentsEnvRedirect(env claudeEnv) (agentsEnv, bool) {
 	}, false
 }
 
-// stripStaleClaudeBlock removes a beads-managed block left behind in CLAUDE.md
-// by an older bd version, once the AGENTS.md redirect is active. Older bd
+// stripStaleClaudeBlock removes a issuegraph-managed block left behind in CLAUDE.md
+// by an older issuegraph version, once the AGENTS.md redirect is active. Older issuegraph
 // releases wrote the managed block directly into CLAUDE.md; a project that has
 // since adopted the "@AGENTS.md" import-stub pattern would otherwise carry a
 // stale duplicate of that block alongside the one now maintained in AGENTS.md.
@@ -144,15 +144,15 @@ func stripStaleClaudeBlock(env claudeEnv) error {
 	}
 
 	content := string(data)
-	if !containsBeadsMarker(content) {
+	if !containsIssueGraphMarker(content) {
 		return nil
 	}
 
-	newContent := removeBeadsSection(content)
+	newContent := removeIssueGraphSection(content)
 	if err := env.writeFile(claudePath, []byte(newContent)); err != nil {
 		return err
 	}
-	_, _ = fmt.Fprintf(env.stdout, "✓ Removed stale beads block from %s (now redirected to %s)\n", claudeInstructionsFile, config.SafeAgentsFile())
+	_, _ = fmt.Fprintf(env.stdout, "✓ Removed stale issuegraph block from %s (now redirected to %s)\n", claudeInstructionsFile, config.SafeAgentsFile())
 	return nil
 }
 
@@ -223,7 +223,7 @@ func InstallClaude(global bool, stealth bool) error {
 }
 
 // InstallClaudeProject installs project-local Claude hooks, returning an error
-// instead of exiting. Used by bd init to integrate Claude setup automatically.
+// instead of exiting. Used by issuegraph init to integrate Claude setup automatically.
 func InstallClaudeProject(stealth bool) error {
 	env, err := claudeEnvProvider()
 	if err != nil {
@@ -269,16 +269,16 @@ func installClaude(env claudeEnv, global bool, stealth bool) error {
 		}
 	}
 
-	command := "bd prime --hook-json"
+	command := "issuegraph prime --hook-json"
 	if stealth {
-		command = "bd prime --stealth --hook-json"
+		command = "issuegraph prime --stealth --hook-json"
 	}
 
-	// Migration sweep: remove bare "bd prime" variants registered by older
+	// Migration sweep: remove bare "issuegraph prime" variants registered by older
 	// installations. Claude Code's current context-injection contract uses
 	// the SessionStart JSON envelope; SessionStart also fires after compaction
-	// with source=compact, so PreCompact no longer needs a bd prime hook.
-	legacyBareVariants := []string{"bd prime", "bd prime --stealth"}
+	// with source=compact, so PreCompact no longer needs a issuegraph prime hook.
+	legacyBareVariants := []string{"issuegraph prime", "issuegraph prime --stealth"}
 	for _, legacy := range legacyBareVariants {
 		if legacy == command {
 			continue
@@ -286,14 +286,14 @@ func installClaude(env claudeEnv, global bool, stealth bool) error {
 		removeHookCommand(hooks, "SessionStart", legacy)
 		removeHookCommand(hooks, "PreCompact", legacy)
 	}
-	removeHookCommand(hooks, "PreCompact", "bd prime --hook-json")
-	removeHookCommand(hooks, "PreCompact", "bd prime --stealth --hook-json")
+	removeHookCommand(hooks, "PreCompact", "issuegraph prime --hook-json")
+	removeHookCommand(hooks, "PreCompact", "issuegraph prime --stealth --hook-json")
 
-	// GH#3192: Skip writing hooks if the beads plugin is already providing them,
-	// so project-level hooks don't fire bd prime twice per session.
-	pluginManaged := hasBeadsPlugin(env)
+	// GH#3192: Skip writing hooks if the issuegraph plugin is already providing them,
+	// so project-level hooks don't fire issuegraph prime twice per session.
+	pluginManaged := hasIssueGraphPlugin(env)
 	if pluginManaged {
-		_, _ = fmt.Fprintln(env.stdout, "✓ Beads plugin detected — hooks are plugin-managed, skipping")
+		_, _ = fmt.Fprintln(env.stdout, "✓ IssueGraph plugin detected — hooks are plugin-managed, skipping")
 	} else {
 		if addHookCommand(hooks, "SessionStart", command) {
 			_, _ = fmt.Fprintln(env.stdout, "✓ Registered SessionStart hook")
@@ -311,15 +311,15 @@ func installClaude(env claudeEnv, global bool, stealth bool) error {
 		return err
 	}
 
-	// Migrate legacy hooks: remove beads hooks from settings.local.json if present
+	// Migrate legacy hooks: remove issuegraph hooks from settings.local.json if present
 	if !global {
 		legacyPath := legacyProjectSettingsPath(env.projectDir)
-		if hasBeadsHooks(legacyPath) {
+		if hasIssueGraphHooks(legacyPath) {
 			if legacyData, readErr := env.readFile(legacyPath); readErr == nil {
 				var legacySettings map[string]interface{}
 				if json.Unmarshal(legacyData, &legacySettings) == nil {
 					if legacyHooks, ok := legacySettings["hooks"].(map[string]interface{}); ok {
-						for _, v := range []string{"bd prime", "bd prime --stealth", "bd prime --hook-json", "bd prime --stealth --hook-json"} {
+						for _, v := range []string{"issuegraph prime", "issuegraph prime --stealth", "issuegraph prime --hook-json", "issuegraph prime --stealth --hook-json"} {
 							removeHookCommand(legacyHooks, "SessionStart", v)
 							removeHookCommand(legacyHooks, "PreCompact", v)
 						}
@@ -334,8 +334,8 @@ func installClaude(env claudeEnv, global bool, stealth bool) error {
 		}
 	}
 
-	// Install minimal beads section in CLAUDE.md.
-	// Hooks handle the heavy lifting via bd prime; CLAUDE.md just needs a pointer.
+	// Install minimal issuegraph section in CLAUDE.md.
+	// Hooks handle the heavy lifting via issuegraph prime; CLAUDE.md just needs a pointer.
 	agentsEnv, redirected := claudeAgentsEnvRedirect(env)
 	agentsSkipped := false
 	agentsEnv.skipped = &agentsSkipped
@@ -347,11 +347,11 @@ func installClaude(env claudeEnv, global bool, stealth bool) error {
 	// Only strip the stale CLAUDE.md block once the redirect has actually
 	// written the replacement to AGENTS.md. If installAgents skipped injection
 	// (e.g. AGENTS.md is a symlink), stripping here would delete-before-write
-	// and leave the project with no beads section anywhere.
+	// and leave the project with no issuegraph section anywhere.
 	if redirected && !agentsSkipped {
 		if err := stripStaleClaudeBlock(env); err != nil {
 			// Non-fatal: the redirect itself already succeeded above
-			_, _ = fmt.Fprintf(env.stderr, "Warning: failed to clean stale beads block from %s: %v\n", claudeInstructionsFile, err)
+			_, _ = fmt.Fprintf(env.stderr, "Warning: failed to clean stale issuegraph block from %s: %v\n", claudeInstructionsFile, err)
 		}
 	}
 
@@ -367,7 +367,7 @@ func installClaude(env claudeEnv, global bool, stealth bool) error {
 }
 
 // claudeSettingsUsesRemovedSyncCommand reports whether any hook command references
-// bd sync (removed as a real command; GH#3546).
+// issuegraph sync (removed as a real command; GH#3546).
 func claudeSettingsUsesRemovedSyncCommand(data []byte) bool {
 	var settings map[string]interface{}
 	if err := json.Unmarshal(data, &settings); err != nil {
@@ -397,7 +397,7 @@ func claudeSettingsUsesRemovedSyncCommand(data []byte) bool {
 					continue
 				}
 				command, _ := cmdMap["command"].(string)
-				if strings.Contains(command, "bd sync") {
+				if strings.Contains(command, "issuegraph sync") {
 					return true
 				}
 			}
@@ -420,7 +420,7 @@ func warnIfClaudeHooksUseRemovedSync(env claudeEnv) {
 		if !claudeSettingsUsesRemovedSyncCommand(data) {
 			continue
 		}
-		_, _ = fmt.Fprintf(env.stderr, "Warning: %s contains a hook using removed \"bd sync\". Run bd setup claude to refresh hooks (bd prime / bd dolt push), or edit settings manually.\n", p)
+		_, _ = fmt.Fprintf(env.stderr, "Warning: %s contains a hook using removed \"issuegraph sync\". Run issuegraph setup claude to refresh hooks (issuegraph prime / issuegraph dolt push), or edit settings manually.\n", p)
 	}
 }
 
@@ -440,19 +440,19 @@ func checkClaude(env claudeEnv) error {
 	legacySettings := legacyProjectSettingsPath(env.projectDir)
 
 	switch {
-	case hasBeadsHooks(projectSettings):
+	case hasIssueGraphHooks(projectSettings):
 		_, _ = fmt.Fprintf(env.stdout, "✓ Project hooks installed: %s\n", projectSettings)
-	case hasBeadsHooks(globalSettings):
+	case hasIssueGraphHooks(globalSettings):
 		_, _ = fmt.Fprintf(env.stdout, "✓ Global hooks installed: %s\n", globalSettings)
-	case hasBeadsHooks(legacySettings):
+	case hasIssueGraphHooks(legacySettings):
 		_, _ = fmt.Fprintf(env.stdout, "✓ Project hooks installed (legacy): %s\n", legacySettings)
-		_, _ = fmt.Fprintf(env.stdout, "  Consider running 'bd setup claude' to migrate to .claude/settings.json\n")
-	case hasBeadsPlugin(env):
+		_, _ = fmt.Fprintf(env.stdout, "  Consider running 'issuegraph setup claude' to migrate to .claude/settings.json\n")
+	case hasIssueGraphPlugin(env):
 		// GH#3192: Plugin provides hooks via plugin.json — no project-level hooks needed
-		_, _ = fmt.Fprintln(env.stdout, "✓ Hooks provided by beads plugin (plugin-managed)")
+		_, _ = fmt.Fprintln(env.stdout, "✓ Hooks provided by issuegraph plugin (plugin-managed)")
 	default:
 		_, _ = fmt.Fprintln(env.stdout, "✗ No hooks installed")
-		_, _ = fmt.Fprintln(env.stdout, "  Run: bd setup claude")
+		_, _ = fmt.Fprintln(env.stdout, "  Run: issuegraph setup claude")
 		return errClaudeHooksMissing
 	}
 
@@ -491,7 +491,7 @@ func removeClaude(env claudeEnv, global bool) error {
 		if !ok {
 			_, _ = fmt.Fprintln(env.stdout, "No hooks found")
 		} else {
-			for _, v := range []string{"bd prime", "bd prime --stealth", "bd prime --hook-json", "bd prime --stealth --hook-json"} {
+			for _, v := range []string{"issuegraph prime", "issuegraph prime --stealth", "issuegraph prime --hook-json", "issuegraph prime --stealth --hook-json"} {
 				removeHookCommand(hooks, "SessionStart", v)
 				removeHookCommand(hooks, "PreCompact", v)
 			}
@@ -516,7 +516,7 @@ func removeClaude(env claudeEnv, global bool) error {
 			var legacySettings map[string]interface{}
 			if json.Unmarshal(legacyData, &legacySettings) == nil {
 				if legacyHooks, ok := legacySettings["hooks"].(map[string]interface{}); ok {
-					for _, v := range []string{"bd prime", "bd prime --stealth", "bd prime --hook-json", "bd prime --stealth --hook-json"} {
+					for _, v := range []string{"issuegraph prime", "issuegraph prime --stealth", "issuegraph prime --hook-json", "issuegraph prime --stealth --hook-json"} {
 						removeHookCommand(legacyHooks, "SessionStart", v)
 						removeHookCommand(legacyHooks, "PreCompact", v)
 					}
@@ -531,12 +531,12 @@ func removeClaude(env claudeEnv, global bool) error {
 	agentsEnv, redirected := claudeAgentsEnvRedirect(env)
 	if redirected {
 		// When redirected, AGENTS.md carries the project-authoritative shared
-		// beads section (created by `bd init` or another agent's setup), not a
+		// issuegraph section (created by `issuegraph init` or another agent's setup), not a
 		// Claude-specific one. Removing Claude integration must not delete it;
 		// only clean up any stale block left directly in CLAUDE.md.
-		_, _ = fmt.Fprintf(env.stdout, "  Leaving shared beads section in %s untouched (project-authoritative, not Claude-specific)\n", config.SafeAgentsFile())
+		_, _ = fmt.Fprintf(env.stdout, "  Leaving shared issuegraph section in %s untouched (project-authoritative, not Claude-specific)\n", config.SafeAgentsFile())
 		if err := stripStaleClaudeBlock(env); err != nil {
-			_, _ = fmt.Fprintf(env.stderr, "Warning: failed to clean stale beads block from %s: %v\n", claudeInstructionsFile, err)
+			_, _ = fmt.Fprintf(env.stderr, "Warning: failed to clean stale issuegraph block from %s: %v\n", claudeInstructionsFile, err)
 		}
 	} else {
 		if err := removeAgents(agentsEnv, claudeAgentsIntegration); err != nil {
@@ -558,7 +558,7 @@ func addHookCommand(hooks map[string]interface{}, event, command string) bool {
 		eventHooks = []interface{}{}
 	}
 
-	// Check if bd hook already registered
+	// Check if issuegraph hook already registered
 	for _, hook := range eventHooks {
 		hookMap, ok := hook.(map[string]interface{})
 		if !ok {
@@ -580,7 +580,7 @@ func addHookCommand(hooks map[string]interface{}, event, command string) bool {
 		}
 	}
 
-	// Add bd hook to array
+	// Add issuegraph hook to array
 	newHook := map[string]interface{}{
 		"matcher": "",
 		"hooks": []interface{}{
@@ -658,25 +658,25 @@ func removeHookCommand(hooks map[string]interface{}, event, command string) {
 	}
 }
 
-// hasBeadsPlugin checks if the beads Claude Code plugin is enabled in any
+// hasIssueGraphPlugin checks if the issuegraph Claude Code plugin is enabled in any
 // settings file. The plugin declares its own SessionStart hooks in plugin.json,
-// so project-level hooks from bd setup claude would duplicate them.
-func hasBeadsPlugin(env claudeEnv) bool {
+// so project-level hooks from issuegraph setup claude would duplicate them.
+func hasIssueGraphPlugin(env claudeEnv) bool {
 	paths := []string{
 		projectSettingsPath(env.projectDir),
 		globalSettingsPath(env.homeDir),
 		legacyProjectSettingsPath(env.projectDir),
 	}
 	for _, p := range paths {
-		if checkBeadsPluginInFile(env.readFile, p) {
+		if checkIssueGraphPluginInFile(env.readFile, p) {
 			return true
 		}
 	}
 	return false
 }
 
-// checkBeadsPluginInFile checks if the beads plugin is enabled in a single settings file.
-func checkBeadsPluginInFile(readFile func(string) ([]byte, error), path string) bool {
+// checkIssueGraphPluginInFile checks if the issuegraph plugin is enabled in a single settings file.
+func checkIssueGraphPluginInFile(readFile func(string) ([]byte, error), path string) bool {
 	data, err := readFile(path)
 	if err != nil {
 		return false
@@ -692,10 +692,10 @@ func checkBeadsPluginInFile(readFile func(string) ([]byte, error), path string) 
 	for key, value := range enabledPlugins {
 		// enabledPlugins keys are "<pluginName>@<marketplace>". Match the
 		// plugin-name segment exactly: a substring test (GH#4244) mistakes any
-		// "*beads*" plugin (e.g. design-to-beads) for the beads hook plugin and
+		// "*issuegraph*" plugin (e.g. design-to-issuegraph) for the issuegraph hook plugin and
 		// wrongly skips the SessionStart hook write.
 		name, _, _ := strings.Cut(strings.ToLower(key), "@")
-		if name == "beads" {
+		if name == "issuegraph" {
 			if enabled, ok := value.(bool); ok && enabled {
 				return true
 			}
@@ -704,8 +704,8 @@ func checkBeadsPluginInFile(readFile func(string) ([]byte, error), path string) 
 	return false
 }
 
-// hasBeadsHooks checks if a settings file has bd prime hooks
-func hasBeadsHooks(settingsPath string) bool {
+// hasIssueGraphHooks checks if a settings file has issuegraph prime hooks
+func hasIssueGraphHooks(settingsPath string) bool {
 	data, err := os.ReadFile(settingsPath) // #nosec G304 -- settingsPath is constructed from known safe locations (user home/.claude), not user input
 	if err != nil {
 		return false
@@ -721,7 +721,7 @@ func hasBeadsHooks(settingsPath string) bool {
 		return false
 	}
 
-	// Check SessionStart and PreCompact for "bd prime"
+	// Check SessionStart and PreCompact for "issuegraph prime"
 	for _, event := range []string{"SessionStart", "PreCompact"} {
 		eventHooks, ok := hooks[event].([]interface{})
 		if !ok {
@@ -744,8 +744,8 @@ func hasBeadsHooks(settingsPath string) bool {
 				}
 				// Recognize both current (--hook-json) and legacy bare variants.
 				switch cmdMap["command"] {
-				case "bd prime", "bd prime --stealth",
-					"bd prime --hook-json", "bd prime --stealth --hook-json":
+				case "issuegraph prime", "issuegraph prime --stealth",
+					"issuegraph prime --hook-json", "issuegraph prime --stealth --hook-json":
 					return true
 				}
 			}

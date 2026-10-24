@@ -399,9 +399,9 @@ func TestMergeIssuesConflictRow_CloseGroupIsAtomic(t *testing.T) {
 	})
 }
 
-// TestMergeIssuesConflictRow_NonScalarColumnsDecline pins that the columns bd
+// TestMergeIssuesConflictRow_NonScalarColumnsDecline pins that the columns issuegraph
 // merges structurally are never settled by per-cell LWW: `notes` is
-// append-only (bd note = --append-notes) and `metadata` is a JSON object
+// append-only (issuegraph note = --append-notes) and `metadata` is a JSON object
 // mutated key-wise, so LWW would silently delete one side's append or key.
 func TestMergeIssuesConflictRow_NonScalarColumnsDecline(t *testing.T) {
 	for _, col := range []string{"notes", "metadata"} {
@@ -770,7 +770,7 @@ func newMockDB(t *testing.T) (*sql.DB, sqlmock.Sqlmock) {
 }
 
 // TestMergeIssuesConflictRow_SettledRowGetsFreshRowLock pins the CAS hazard fix
-// absorbed from gastownhall/beads#4682: a settle that changes the row must mint
+// absorbed from borg0ai/dx-issuegraph#4682: a settle that changes the row must mint
 // a row_lock distinct from BOTH parents' tokens, or a stale ExpectedVersion
 // read against one pre-merge row could win a CAS against content the merge just
 // changed.

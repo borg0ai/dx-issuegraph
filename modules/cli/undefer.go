@@ -4,11 +4,11 @@ import (
 	"fmt"
 	"os"
 
+	"github.com/borg0ai/dx-issuegraph/internal/metrics"
+	"github.com/borg0ai/dx-issuegraph/internal/types"
+	"github.com/borg0ai/dx-issuegraph/internal/ui"
+	"github.com/borg0ai/dx-issuegraph/internal/utils"
 	"github.com/spf13/cobra"
-	"github.com/steveyegge/beads/internal/metrics"
-	"github.com/steveyegge/beads/internal/types"
-	"github.com/steveyegge/beads/internal/ui"
-	"github.com/steveyegge/beads/internal/utils"
 )
 
 var undeferCmd = &cobra.Command{
@@ -17,11 +17,11 @@ var undeferCmd = &cobra.Command{
 	Long: `Undefer issues to restore them to open status.
 
 This brings issues back from the icebox so they can be worked on again.
-Issues will appear in 'bd ready' if they have no blockers.
+Issues will appear in 'issuegraph ready' if they have no blockers.
 
 Examples:
-  bd undefer bd-abc        # Undefer a single issue
-  bd undefer bd-abc bd-def # Undefer multiple issues`,
+  issuegraph undefer bd-abc        # Undefer a single issue
+  issuegraph undefer bd-abc bd-def # Undefer multiple issues`,
 	Args:          cobra.MinimumNArgs(1),
 	SilenceUsage:  true,
 	SilenceErrors: true,

@@ -10,7 +10,7 @@ import (
 	"testing"
 
 	"github.com/DATA-DOG/go-sqlmock"
-	"github.com/steveyegge/beads/internal/testutil"
+	"github.com/borg0ai/dx-issuegraph/internal/testutil"
 )
 
 // TestEnsureContentHashColumnAddsWhenMissing verifies the idempotent upgrade adds
@@ -66,7 +66,7 @@ func TestEnsureContentHashColumnNoOpWhenPresent(t *testing.T) {
 
 // TestAllMigrationsSQLRecordsContentHashes applies the full migration bundle
 // through the dolt CLI and verifies every recorded migration carries the SHA-256
-// of its migration file content (gastownhall/beads#4259 reporter fix No.2).
+// of its migration file content (borg0ai/dx-issuegraph#4259 reporter fix No.2).
 func TestAllMigrationsSQLRecordsContentHashes(t *testing.T) {
 	testutil.RequireDoltBinary(t)
 
@@ -96,7 +96,7 @@ func TestAllMigrationsSQLRecordsContentHashes(t *testing.T) {
 }
 
 // TestMigrationWorkNeededAddsContentHashColumnOnUpToDateDB is the regression for
-// the silent no-op (gastownhall/beads#4259 reporter fix No.2 review): a database
+// the silent no-op (borg0ai/dx-issuegraph#4259 reporter fix No.2 review): a database
 // already at the latest migration version that predates the content_hash column
 // must still report work needed, so MigrateUp runs migrate()'s idempotent ALTER
 // instead of short-circuiting and leaving the recording/detection surface

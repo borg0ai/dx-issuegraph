@@ -7,8 +7,8 @@ import (
 	"runtime"
 	"testing"
 
-	"github.com/steveyegge/beads/internal/doltserver"
-	"github.com/steveyegge/beads/internal/git"
+	"github.com/borg0ai/dx-issuegraph/internal/doltserver"
+	"github.com/borg0ai/dx-issuegraph/internal/git"
 )
 
 func chdirForDriftTest(t *testing.T, dir string) {
@@ -34,8 +34,8 @@ func TestCheckHooksDriftNotGitRepo(t *testing.T) {
 	}
 }
 
-// TestCheckServerDriftNoBeadsDir verifies server check skips when no .beads exists.
-func TestCheckServerDriftNoBeadsDir(t *testing.T) {
+// TestCheckServerDriftNoIssueGraphDir verifies server check skips when no .issuegraph exists.
+func TestCheckServerDriftNoIssueGraphDir(t *testing.T) {
 	chdirForDriftTest(t, t.TempDir())
 
 	items := checkServerDrift()
@@ -47,8 +47,8 @@ func TestCheckServerDriftNoBeadsDir(t *testing.T) {
 	}
 }
 
-// TestCheckRemoteDriftNoBeadsDir verifies remote check skips when no .beads exists.
-func TestCheckRemoteDriftNoBeadsDir(t *testing.T) {
+// TestCheckRemoteDriftNoIssueGraphDir verifies remote check skips when no .issuegraph exists.
+func TestCheckRemoteDriftNoIssueGraphDir(t *testing.T) {
 	chdirForDriftTest(t, t.TempDir())
 
 	items := checkRemoteDrift()
@@ -109,22 +109,22 @@ func TestIsServerProbablyRunningOwnPID(t *testing.T) {
 	}
 }
 
-func setupServerDriftTest(t *testing.T, sharedServer bool) (beadsDir, sharedDir string) {
+func setupServerDriftTest(t *testing.T, sharedServer bool) (issuegraphDir, sharedDir string) {
 	t.Helper()
 	root := t.TempDir()
-	beadsDir = filepath.Join(root, ".beads")
-	if err := os.MkdirAll(beadsDir, 0o755); err != nil {
-		t.Fatalf("create project beads dir: %v", err)
+	issuegraphDir = filepath.Join(root, ".issuegraph")
+	if err := os.MkdirAll(issuegraphDir, 0o755); err != nil {
+		t.Fatalf("create project issuegraph dir: %v", err)
 	}
 	configBody := fmt.Sprintf("dolt:\n  shared-server: %t\n", sharedServer)
-	if err := os.WriteFile(filepath.Join(beadsDir, "config.yaml"), []byte(configBody), 0o600); err != nil {
+	if err := os.WriteFile(filepath.Join(issuegraphDir, "config.yaml"), []byte(configBody), 0o600); err != nil {
 		t.Fatalf("write config.yaml: %v", err)
 	}
 	sharedDir = filepath.Join(root, "shared-server")
-	t.Setenv("BEADS_DIR", beadsDir)
-	t.Setenv("BEADS_SHARED_SERVER_DIR", sharedDir)
+	t.Setenv("ISSUEGRAPH_DIR", issuegraphDir)
+	t.Setenv("ISSUEGRAPH_SHARED_SERVER_DIR", sharedDir)
 	initConfigForTest(t)
-	return beadsDir, sharedDir
+	return issuegraphDir, sharedDir
 }
 
 func writeLiveServerPID(t *testing.T, dir string) {
@@ -147,37 +147,37 @@ func requireServerPIDLivenessForDriftTest(t *testing.T) {
 
 func TestCheckServerDriftSharedServerHealthyWithoutProjectPID(t *testing.T) {
 	requireServerPIDLivenessForDriftTest(t)
-	beadsDir, sharedDir := setupServerDriftTest(t, true)
+	issuegraphDir, sharedDir := setupServerDriftTest(t, true)
 	writeLiveServerPID(t, sharedDir)
 
 	items := checkServerDrift()
 	if len(items) != 1 || items[0].Status != driftStatusOK {
 		t.Fatalf("checkServerDrift = %+v, want one ok item", items)
 	}
-	if _, err := os.Stat(filepath.Join(beadsDir, doltserver.PIDFileName)); !os.IsNotExist(err) {
+	if _, err := os.Stat(filepath.Join(issuegraphDir, doltserver.PIDFileName)); !os.IsNotExist(err) {
 		t.Fatalf("project PID file unexpectedly exists: %v", err)
 	}
 }
 
 func TestCheckServerDriftSharedServerEnvOverride(t *testing.T) {
 	requireServerPIDLivenessForDriftTest(t)
-	beadsDir, sharedDir := setupServerDriftTest(t, false)
-	t.Setenv("BEADS_DOLT_SHARED_SERVER", "1")
+	issuegraphDir, sharedDir := setupServerDriftTest(t, false)
+	t.Setenv("ISSUEGRAPH_DOLT_SHARED_SERVER", "1")
 	writeLiveServerPID(t, sharedDir)
 
 	items := checkServerDrift()
 	if len(items) != 1 || items[0].Status != driftStatusOK {
 		t.Fatalf("checkServerDrift = %+v, want one ok item", items)
 	}
-	if _, err := os.Stat(filepath.Join(beadsDir, doltserver.PIDFileName)); !os.IsNotExist(err) {
+	if _, err := os.Stat(filepath.Join(issuegraphDir, doltserver.PIDFileName)); !os.IsNotExist(err) {
 		t.Fatalf("project PID file unexpectedly exists: %v", err)
 	}
 }
 
 func TestCheckServerDriftSharedServerMissingIgnoresProjectPID(t *testing.T) {
 	requireServerPIDLivenessForDriftTest(t)
-	beadsDir, sharedDir := setupServerDriftTest(t, true)
-	writeLiveServerPID(t, beadsDir)
+	issuegraphDir, sharedDir := setupServerDriftTest(t, true)
+	writeLiveServerPID(t, issuegraphDir)
 
 	items := checkServerDrift()
 	if len(items) != 1 || items[0].Status != driftStatusDrift {
@@ -190,8 +190,8 @@ func TestCheckServerDriftSharedServerMissingIgnoresProjectPID(t *testing.T) {
 
 func TestCheckServerDriftStandaloneRunningPreservesInfo(t *testing.T) {
 	requireServerPIDLivenessForDriftTest(t)
-	beadsDir, _ := setupServerDriftTest(t, false)
-	writeLiveServerPID(t, beadsDir)
+	issuegraphDir, _ := setupServerDriftTest(t, false)
+	writeLiveServerPID(t, issuegraphDir)
 
 	items := checkServerDrift()
 	if len(items) != 1 || items[0].Status != driftStatusInfo {
@@ -217,7 +217,7 @@ func TestDriftItemStatuses(t *testing.T) {
 
 // TestRunDriftChecksReturnsResults verifies the aggregator returns results from all checks.
 func TestRunDriftChecksReturnsResults(t *testing.T) {
-	// When run from a non-beads directory, we should still get results (skipped checks)
+	// When run from a non-issuegraph directory, we should still get results (skipped checks)
 	chdirForDriftTest(t, t.TempDir())
 
 	items := runDriftChecks()

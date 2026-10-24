@@ -3,11 +3,11 @@ package issueops
 import "strings"
 
 // canonicalActor normalizes an identity string so two spellings of the same
-// Gas Town identity compare equal. The same identity arrives at bd in more
+// Gas Town identity compare equal. The same identity arrives at issuegraph in more
 // than one spelling depending on which layer produced the string it was
 // handed: a dotted alias like "gastown.mayor" gets its dot replaced wherever
 // a dot is unsafe for that context — "__" in a session name, "_" in a Dolt
-// table/database name, "-" elsewhere — and bd only ever sees the resulting
+// table/database name, "-" elsewhere — and issuegraph only ever sees the resulting
 // string, never the substitution itself (ga-wzl83). None of ".", "_", "-"
 // carries meaning in an identity string: each is always a positional
 // separator between a rig and a role/agent name, never part of either name.

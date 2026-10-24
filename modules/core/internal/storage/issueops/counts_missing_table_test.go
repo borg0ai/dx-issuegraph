@@ -10,7 +10,7 @@ import (
 
 	sqlmock "github.com/DATA-DOG/go-sqlmock"
 
-	"github.com/steveyegge/beads/internal/types"
+	"github.com/borg0ai/dx-issuegraph/internal/types"
 )
 
 // countsEntryPoint is one read path that answers a count (or a counted page)
@@ -247,8 +247,8 @@ func readyFilter() types.WorkFilter {
 // TestCountsBrokenWispPlaneIsAnError is the counts/ready twin of
 // TestSearchInTxBrokenWispPlaneIsAnError: a wisp query that failed because a
 // table it reads but the wisp plane does not own has gone missing was reported
-// as "no wisps", so `bd count`, `bd count --by-*`, `bd search --counts` and
-// `bd ready` answered a durable-only number over a broken database and told
+// as "no wisps", so `issuegraph count`, `issuegraph count --by-*`, `issuegraph search --counts` and
+// `issuegraph ready` answered a durable-only number over a broken database and told
 // the caller nothing.
 //
 // The assertion is errors.Is against the primed driver error rather than a

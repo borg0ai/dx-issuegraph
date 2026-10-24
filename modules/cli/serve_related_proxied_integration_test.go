@@ -11,7 +11,7 @@ import (
 )
 
 // End-to-end for the neighbor read, against real Dolt through a real
-// `bd serve` subprocess.
+// `issuegraph serve` subprocess.
 //
 // The pure tests in internal/httpapi cover the wire edge on a fake role — the
 // parameter projection, the envelope, the path bound and the two refusals. What
@@ -27,7 +27,7 @@ import (
 //     fake can be asked about two tables;
 //   - a wisp is a legal ANCHOR, not just a legal neighbor;
 //   - an edge whose far end this database holds no row for is not a neighbor,
-//     while the same edge IS a row on `GET /v0/beads/dependencies` — the one
+//     while the same edge IS a row on `GET /v0/issuegraph/dependencies` — the one
 //     observation that separates the two operations;
 //   - an id that names nothing is a 404 here, where the batched reads report it
 //     in the body.
@@ -39,7 +39,7 @@ import (
 // status and the decoded elements.
 func (sp *serveProcess) relatedNeighbors(t *testing.T, id, query string) (int, []map[string]any) {
 	t.Helper()
-	resp, err := sp.client.Get(sp.url("/v0/beads/issues/" + id + "/related" + query))
+	resp, err := sp.client.Get(sp.url("/v0/issuegraph/issues/" + id + "/related" + query))
 	if err != nil {
 		t.Fatalf("GET issues/%s/related%s: %v\nstderr:\n%s", id, query, err, sp.stderr.String())
 	}
@@ -97,9 +97,9 @@ func equalIDs(got, want []string) bool {
 func TestProxiedServerServeRelatedIssues(t *testing.T) {
 	requireSharedProxiedServer(t)
 	t.Parallel()
-	bd := buildEmbeddedBD(t)
-	p := newSharedProxiedProject(t, bd, "srvrelated")
-	sp := startServe(t, bd, p.dir, bdProxiedEnv(p.dir))
+	issuegraph := buildEmbeddedBD(t)
+	p := newSharedProxiedProject(t, issuegraph, "srvrelated")
+	sp := startServe(t, issuegraph, p.dir, issuegraphProxiedEnv(p.dir))
 
 	// THE TWO DIRECTIONS ARE THE INVERSE GRAPH, and this is the shape that shows
 	// it: a hub that depends on two issues and is depended on by three, so out
@@ -107,16 +107,16 @@ func TestProxiedServerServeRelatedIssues(t *testing.T) {
 	// the wrong one could pass by coincidence. A symmetric fixture would have
 	// made the required `direction` parameter unfalsifiable.
 	t.Run("out and in answer disjoint neighbor sets", func(t *testing.T) {
-		hub := bdProxiedCreate(t, bd, p.dir, "the hub", "-p", "2")
+		hub := issuegraphProxiedCreate(t, issuegraph, p.dir, "the hub", "-p", "2")
 		var dependsOn, dependents []string
 		for range 2 {
-			dependsOn = append(dependsOn, bdProxiedCreate(t, bd, p.dir, "a dependency", "-p", "2").ID)
+			dependsOn = append(dependsOn, issuegraphProxiedCreate(t, issuegraph, p.dir, "a dependency", "-p", "2").ID)
 		}
 		for range 3 {
-			dependents = append(dependents, bdProxiedCreate(t, bd, p.dir, "a dependent", "-p", "2").ID)
+			dependents = append(dependents, issuegraphProxiedCreate(t, issuegraph, p.dir, "a dependent", "-p", "2").ID)
 		}
 		// THE EDGES ARE SEEDED IN DESCENDING NEIGHBOR ID, which is what makes
-		// the order assertion below falsifiable. bd mints ids from a hash rather
+		// the order assertion below falsifiable. issuegraph mints ids from a hash rather
 		// than a counter, so creation order and id order are unrelated — an
 		// implementation answering in insertion order would coincide with the
 		// pinned one about half the time on a two-element fixture. Sorting the
@@ -124,12 +124,12 @@ func TestProxiedServerServeRelatedIssues(t *testing.T) {
 		slices.Sort(dependsOn)
 		slices.Sort(dependents)
 		for _, target := range slices.Backward(dependsOn) {
-			if out, err := bdProxiedRun(t, bd, p.dir, "dep", "add", hub.ID, target); err != nil {
+			if out, err := issuegraphProxiedRun(t, issuegraph, p.dir, "dep", "add", hub.ID, target); err != nil {
 				t.Fatalf("dep add %s -> %s: %v\n%s", hub.ID, target, err, out)
 			}
 		}
 		for _, source := range slices.Backward(dependents) {
-			if out, err := bdProxiedRun(t, bd, p.dir, "dep", "add", source, hub.ID); err != nil {
+			if out, err := issuegraphProxiedRun(t, issuegraph, p.dir, "dep", "add", source, hub.ID); err != nil {
 				t.Fatalf("dep add %s -> %s: %v\n%s", source, hub.ID, err, out)
 			}
 		}
@@ -177,13 +177,13 @@ func TestProxiedServerServeRelatedIssues(t *testing.T) {
 	// durable dependent and silently drop the wisp, which is a shorter list with
 	// nothing wrong-looking in it.
 	t.Run("the neighbors span both planes", func(t *testing.T) {
-		durable := bdProxiedCreate(t, bd, p.dir, "a durable anchor", "-p", "2")
-		durableDependent := bdProxiedCreate(t, bd, p.dir, "a durable dependent", "-p", "2")
-		wisp := bdProxiedCreate(t, bd, p.dir, "an ephemeral dependent", "-p", "2",
+		durable := issuegraphProxiedCreate(t, issuegraph, p.dir, "a durable anchor", "-p", "2")
+		durableDependent := issuegraphProxiedCreate(t, issuegraph, p.dir, "a durable dependent", "-p", "2")
+		wisp := issuegraphProxiedCreate(t, issuegraph, p.dir, "an ephemeral dependent", "-p", "2",
 			"--ephemeral", "--wisp-type", "heartbeat")
 
 		for _, source := range []string{durableDependent.ID, wisp.ID} {
-			if out, err := bdProxiedRun(t, bd, p.dir, "dep", "add", source, durable.ID); err != nil {
+			if out, err := issuegraphProxiedRun(t, issuegraph, p.dir, "dep", "add", source, durable.ID); err != nil {
 				t.Fatalf("dep add %s -> %s: %v\n%s", source, durable.ID, err, out)
 			}
 		}
@@ -221,15 +221,15 @@ func TestProxiedServerServeRelatedIssues(t *testing.T) {
 
 	// AN EDGE WITH NO FAR END IS NOT A NEIGHBOR, and it IS a row next door.
 	// This is the single observation that separates this operation from
-	// `GET /v0/beads/dependencies`, and it is why the length of `items` is a
+	// `GET /v0/issuegraph/dependencies`, and it is why the length of `items` is a
 	// neighbor count rather than an edge count.
 	t.Run("an external target is a row next door and no neighbor here", func(t *testing.T) {
-		anchor := bdProxiedCreate(t, bd, p.dir, "an anchor with a dangling edge", "-p", "2")
-		resolvable := bdProxiedCreate(t, bd, p.dir, "a real dependency", "-p", "2")
-		if out, err := bdProxiedRun(t, bd, p.dir, "dep", "add", anchor.ID, resolvable.ID); err != nil {
+		anchor := issuegraphProxiedCreate(t, issuegraph, p.dir, "an anchor with a dangling edge", "-p", "2")
+		resolvable := issuegraphProxiedCreate(t, issuegraph, p.dir, "a real dependency", "-p", "2")
+		if out, err := issuegraphProxiedRun(t, issuegraph, p.dir, "dep", "add", anchor.ID, resolvable.ID); err != nil {
 			t.Fatalf("dep add: %v\n%s", err, out)
 		}
-		if out, err := bdProxiedRun(t, bd, p.dir, "dep", "add", anchor.ID, "external:jira:JIRA-4141"); err != nil {
+		if out, err := issuegraphProxiedRun(t, issuegraph, p.dir, "dep", "add", anchor.ID, "external:jira:JIRA-4141"); err != nil {
 			t.Fatalf("dep add external: %v\n%s", err, out)
 		}
 
@@ -239,7 +239,7 @@ func TestProxiedServerServeRelatedIssues(t *testing.T) {
 		// The same graph, read as rows: both edges are there, so the difference
 		// is this operation's and not the fixture's.
 		if rows := len(sp.storedEdges(t, anchor.ID)); rows != 2 {
-			t.Errorf("GET /v0/beads/dependencies returned %d rows, want 2 — the dangling edge is stored", rows)
+			t.Errorf("GET /v0/issuegraph/dependencies returned %d rows, want 2 — the dangling edge is stored", rows)
 		}
 	})
 
@@ -249,7 +249,7 @@ func TestProxiedServerServeRelatedIssues(t *testing.T) {
 	// neighbor list is the common case, so a typo answered with one would never
 	// surface.
 	t.Run("an absent anchor is refused and an empty one is not", func(t *testing.T) {
-		lonely := bdProxiedCreate(t, bd, p.dir, "an issue with no neighbors", "-p", "2")
+		lonely := issuegraphProxiedCreate(t, issuegraph, p.dir, "an issue with no neighbors", "-p", "2")
 
 		status, items := sp.relatedNeighbors(t, lonely.ID, "?direction=in")
 		if status != http.StatusOK {
@@ -259,7 +259,7 @@ func TestProxiedServerServeRelatedIssues(t *testing.T) {
 			t.Errorf("an issue with no neighbors returned %d, want an empty list", len(items))
 		}
 
-		if status, _ := sp.relatedNeighbors(t, "bd-nosuchbead", "?direction=in"); status != http.StatusNotFound {
+		if status, _ := sp.relatedNeighbors(t, "bd-nosuchissue", "?direction=in"); status != http.StatusNotFound {
 			t.Errorf("an id that names nothing: status = %d, want 404", status)
 		}
 	})
@@ -268,9 +268,9 @@ func TestProxiedServerServeRelatedIssues(t *testing.T) {
 	// has no default and the role refuses its zero value, so an omitted one is a
 	// 400 rather than a walk in some direction the caller did not choose.
 	t.Run("a missing direction is refused by name", func(t *testing.T) {
-		anchor := bdProxiedCreate(t, bd, p.dir, "an anchor", "-p", "2")
+		anchor := issuegraphProxiedCreate(t, issuegraph, p.dir, "an anchor", "-p", "2")
 
-		resp, err := sp.client.Get(sp.url("/v0/beads/issues/" + anchor.ID + "/related"))
+		resp, err := sp.client.Get(sp.url("/v0/issuegraph/issues/" + anchor.ID + "/related"))
 		if err != nil {
 			t.Fatalf("GET: %v", err)
 		}

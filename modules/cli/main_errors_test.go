@@ -33,10 +33,10 @@ func TestHandleFreshCloneError_UsesBootstrapFirstGuidance(t *testing.T) {
 		t.Fatal("expected fresh clone error to be handled")
 	}
 	msg := buf.String()
-	if !strings.Contains(msg, "bd bootstrap") {
+	if !strings.Contains(msg, "issuegraph bootstrap") {
 		t.Fatalf("expected bootstrap guidance, got:\n%s", msg)
 	}
-	if strings.Contains(msg, "To initialize a new database: bd init") {
+	if strings.Contains(msg, "To initialize a new database: issuegraph init") {
 		t.Fatalf("did not expect init-first guidance for fresh clone recovery, got:\n%s", msg)
 	}
 	if !strings.Contains(msg, "brand-new database from scratch") {

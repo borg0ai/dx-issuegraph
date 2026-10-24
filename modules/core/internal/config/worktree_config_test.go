@@ -7,7 +7,7 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/steveyegge/beads/internal/git"
+	"github.com/borg0ai/dx-issuegraph/internal/git"
 )
 
 func setupConfigWorktree(t *testing.T) (mainRepoDir, worktreeDir, mainConfigPath string) {
@@ -51,20 +51,20 @@ func setupConfigWorktree(t *testing.T) (mainRepoDir, worktreeDir, mainConfigPath
 		_ = removeWorktree.Run()
 	})
 
-	mainBeadsDir := filepath.Join(mainRepoDir, ".beads")
-	if err := os.MkdirAll(mainBeadsDir, 0o755); err != nil {
-		t.Fatalf("failed to create main .beads dir: %v", err)
+	mainIssueGraphDir := filepath.Join(mainRepoDir, ".issuegraph")
+	if err := os.MkdirAll(mainIssueGraphDir, 0o755); err != nil {
+		t.Fatalf("failed to create main .issuegraph dir: %v", err)
 	}
-	mainConfigPath = filepath.Join(mainBeadsDir, "config.yaml")
+	mainConfigPath = filepath.Join(mainIssueGraphDir, "config.yaml")
 	if err := os.WriteFile(mainConfigPath, []byte("no-git-ops: false\n"), 0o644); err != nil {
 		t.Fatalf("failed to write main config.yaml: %v", err)
 	}
 
-	if err := os.RemoveAll(filepath.Join(worktreeDir, ".beads")); err != nil {
-		t.Fatalf("failed to remove worktree .beads: %v", err)
+	if err := os.RemoveAll(filepath.Join(worktreeDir, ".issuegraph")); err != nil {
+		t.Fatalf("failed to remove worktree .issuegraph: %v", err)
 	}
 
-	t.Setenv("BEADS_DIR", "")
+	t.Setenv("ISSUEGRAPH_DIR", "")
 	t.Chdir(worktreeDir)
 	git.ResetCaches()
 	t.Cleanup(git.ResetCaches)
@@ -87,7 +87,7 @@ func TestSetYamlConfig_WorktreeFallbackUsesMainRepoConfig(t *testing.T) {
 		t.Fatalf("expected shared config.yaml to be updated, got:\n%s", string(content))
 	}
 
-	if _, err := os.Stat(filepath.Join(worktreeDir, ".beads", "config.yaml")); !os.IsNotExist(err) {
+	if _, err := os.Stat(filepath.Join(worktreeDir, ".issuegraph", "config.yaml")); !os.IsNotExist(err) {
 		t.Fatalf("expected no worktree-local config.yaml, got err=%v", err)
 	}
 }
@@ -95,11 +95,11 @@ func TestSetYamlConfig_WorktreeFallbackUsesMainRepoConfig(t *testing.T) {
 func TestSetYamlConfig_PrefersWorktreeLocalConfigWhenPresent(t *testing.T) {
 	_, worktreeDir, mainConfigPath := setupConfigWorktree(t)
 
-	worktreeBeadsDir := filepath.Join(worktreeDir, ".beads")
-	if err := os.MkdirAll(worktreeBeadsDir, 0o755); err != nil {
-		t.Fatalf("failed to create worktree .beads dir: %v", err)
+	worktreeIssueGraphDir := filepath.Join(worktreeDir, ".issuegraph")
+	if err := os.MkdirAll(worktreeIssueGraphDir, 0o755); err != nil {
+		t.Fatalf("failed to create worktree .issuegraph dir: %v", err)
 	}
-	worktreeConfigPath := filepath.Join(worktreeBeadsDir, "config.yaml")
+	worktreeConfigPath := filepath.Join(worktreeIssueGraphDir, "config.yaml")
 	if err := os.WriteFile(worktreeConfigPath, []byte("no-git-ops: false\nactor: worktree-user\n"), 0o644); err != nil {
 		t.Fatalf("failed to write worktree config.yaml: %v", err)
 	}
@@ -177,7 +177,7 @@ func TestInitialize_IgnoresWorktreeFallbackConfigWhenRequested(t *testing.T) {
 	if err := os.WriteFile(mainConfigPath, []byte("json: true\nactor: shared-user\n"), 0o644); err != nil {
 		t.Fatalf("failed to write main config.yaml: %v", err)
 	}
-	t.Setenv("BEADS_TEST_IGNORE_REPO_CONFIG", "1")
+	t.Setenv("ISSUEGRAPH_TEST_IGNORE_REPO_CONFIG", "1")
 
 	ResetForTesting()
 	if err := Initialize(); err != nil {
@@ -195,7 +195,7 @@ func TestInitialize_IgnoresWorktreeFallbackConfigWhenRequested(t *testing.T) {
 	}
 }
 
-func TestInitialize_BEADS_DIRDoesNotMergeWorktreeFallbackConfig(t *testing.T) {
+func TestInitialize_ISSUEGRAPH_DIRDoesNotMergeWorktreeFallbackConfig(t *testing.T) {
 	restore := envSnapshot(t)
 	defer restore()
 
@@ -204,14 +204,14 @@ func TestInitialize_BEADS_DIRDoesNotMergeWorktreeFallbackConfig(t *testing.T) {
 		t.Fatalf("failed to write main config.yaml: %v", err)
 	}
 
-	runtimeBeadsDir := filepath.Join(t.TempDir(), ".beads")
-	if err := os.MkdirAll(runtimeBeadsDir, 0o755); err != nil {
-		t.Fatalf("failed to create runtime .beads dir: %v", err)
+	runtimeIssueGraphDir := filepath.Join(t.TempDir(), ".issuegraph")
+	if err := os.MkdirAll(runtimeIssueGraphDir, 0o755); err != nil {
+		t.Fatalf("failed to create runtime .issuegraph dir: %v", err)
 	}
-	if err := os.WriteFile(filepath.Join(runtimeBeadsDir, "config.yaml"), []byte("actor: runtime-user\n"), 0o644); err != nil {
+	if err := os.WriteFile(filepath.Join(runtimeIssueGraphDir, "config.yaml"), []byte("actor: runtime-user\n"), 0o644); err != nil {
 		t.Fatalf("failed to write runtime config.yaml: %v", err)
 	}
-	t.Setenv("BEADS_DIR", runtimeBeadsDir)
+	t.Setenv("ISSUEGRAPH_DIR", runtimeIssueGraphDir)
 
 	ResetForTesting()
 	if err := Initialize(); err != nil {
@@ -219,13 +219,13 @@ func TestInitialize_BEADS_DIRDoesNotMergeWorktreeFallbackConfig(t *testing.T) {
 	}
 
 	if got := GetBool("json"); got {
-		t.Fatalf("GetBool(json) = %v, want false because worktree fallback config must not merge under BEADS_DIR", got)
+		t.Fatalf("GetBool(json) = %v, want false because worktree fallback config must not merge under ISSUEGRAPH_DIR", got)
 	}
 	if got := GetString("actor"); got != "runtime-user" {
 		t.Fatalf("GetString(actor) = %q, want %q", got, "runtime-user")
 	}
-	if got := filepath.Clean(ConfigFileUsed()); got != filepath.Clean(filepath.Join(runtimeBeadsDir, "config.yaml")) {
-		t.Fatalf("ConfigFileUsed() = %q, want runtime BEADS_DIR config", got)
+	if got := filepath.Clean(ConfigFileUsed()); got != filepath.Clean(filepath.Join(runtimeIssueGraphDir, "config.yaml")) {
+		t.Fatalf("ConfigFileUsed() = %q, want runtime ISSUEGRAPH_DIR config", got)
 	}
 }
 

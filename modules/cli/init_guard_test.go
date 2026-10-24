@@ -19,51 +19,51 @@ func TestInitGuardServerMessage(t *testing.T) {
 		wantNotContain []string
 	}{
 		"DB missing, no sync.remote configured (FR-010, FR-011)": {
-			dbName:     "acf_beads",
+			dbName:     "acf_issuegraph",
 			host:       "127.0.0.1",
 			port:       3309,
 			prefix:     "acf",
 			syncRemote: "",
 			wantContains: []string{
-				`"acf_beads"`,
+				`"acf_issuegraph"`,
 				"127.0.0.1:3309",
 				"not found on server",
-				"bd doctor",
-				"bd dolt status",
-				"bd bootstrap",
+				"issuegraph doctor",
+				"issuegraph dolt status",
+				"issuegraph bootstrap",
 				"set sync.remote",
-				".beads/config.yaml",
+				".issuegraph/config.yaml",
 				"Aborting",
 				"--force destroys ALL existing issues",
 			},
 			wantNotContain: []string{
 				"sync.remote is configured",
 				// GH#2363: must NOT suggest --force as the primary action
-				"bd init --force --prefix",
+				"issuegraph init --force --prefix",
 			},
 		},
 		"DB missing, sync.remote IS configured (FR-010, FR-011)": {
-			dbName:     "beads_kc",
+			dbName:     "issuegraph_kc",
 			host:       "192.168.1.50",
 			port:       3307,
 			prefix:     "kc",
-			syncRemote: "https://doltremoteapi.dolthub.com/myorg/beads",
+			syncRemote: "https://doltremoteapi.dolthub.com/myorg/issuegraph",
 			wantContains: []string{
-				`"beads_kc"`,
+				`"issuegraph_kc"`,
 				"192.168.1.50:3307",
 				"not found on server",
-				"bd doctor",
-				"bd dolt status",
-				"bd bootstrap",
+				"issuegraph doctor",
+				"issuegraph dolt status",
+				"issuegraph bootstrap",
 				"sync.remote is configured",
-				"https://doltremoteapi.dolthub.com/myorg/beads",
+				"https://doltremoteapi.dolthub.com/myorg/issuegraph",
 				"--force destroys ALL existing issues",
 			},
 			wantNotContain: []string{
 				"set sync.remote",
 				// GH#2363: must NOT suggest --force as the primary action
-				"bd init --force --prefix",
-				"bd init --force to bootstrap",
+				"issuegraph init --force --prefix",
+				"issuegraph init --force to bootstrap",
 			},
 		},
 	}
@@ -121,7 +121,7 @@ func TestInitGuardDBCheck_ExistsPath(t *testing.T) {
 		if !strings.Contains(err.Error(), "not found on server") {
 			t.Errorf("expected 'not found on server' in message, got:\n%s", err.Error())
 		}
-		if !strings.Contains(err.Error(), "bd bootstrap") {
+		if !strings.Contains(err.Error(), "issuegraph bootstrap") {
 			t.Errorf("expected bootstrap-first recovery guidance, got:\n%s", err.Error())
 		}
 	})
@@ -153,8 +153,8 @@ func TestInitGuard_FreshCloneWithMetadataJSON(t *testing.T) {
 		defer func() { serverMode = oldServerMode }()
 
 		tmpDir := t.TempDir()
-		beadsDir := filepath.Join(tmpDir, ".beads")
-		if err := os.MkdirAll(beadsDir, 0755); err != nil {
+		issuegraphDir := filepath.Join(tmpDir, ".issuegraph")
+		if err := os.MkdirAll(issuegraphDir, 0755); err != nil {
 			t.Fatal(err)
 		}
 
@@ -167,14 +167,14 @@ func TestInitGuard_FreshCloneWithMetadataJSON(t *testing.T) {
 			"dolt_database": "myproject",
 		}
 		data, _ := json.Marshal(metadata)
-		metadataPath := filepath.Join(beadsDir, "metadata.json")
+		metadataPath := filepath.Join(issuegraphDir, "metadata.json")
 		if err := os.WriteFile(metadataPath, data, 0644); err != nil {
 			t.Fatal(err)
 		}
 
 		// No dolt/ directory — simulates fresh clone with gitignored dolt/.
 		// No server running — simulates machine B with no local server.
-		err := checkExistingBeadsDataAt(beadsDir, "myproject")
+		err := checkExistingIssueGraphDataAt(issuegraphDir, "myproject")
 		if err != nil {
 			t.Errorf("fresh clone with metadata.json should allow init, got: %v", err)
 		}
@@ -187,8 +187,8 @@ func TestInitGuard_FreshCloneWithMetadataJSON(t *testing.T) {
 		defer func() { serverMode = oldServerMode }()
 
 		tmpDir := t.TempDir()
-		beadsDir := filepath.Join(tmpDir, ".beads")
-		if err := os.MkdirAll(beadsDir, 0755); err != nil {
+		issuegraphDir := filepath.Join(tmpDir, ".issuegraph")
+		if err := os.MkdirAll(issuegraphDir, 0755); err != nil {
 			t.Fatal(err)
 		}
 
@@ -200,17 +200,17 @@ func TestInitGuard_FreshCloneWithMetadataJSON(t *testing.T) {
 			"dolt_database": "myproject",
 		}
 		data, _ := json.Marshal(metadata)
-		if err := os.WriteFile(filepath.Join(beadsDir, "metadata.json"), data, 0644); err != nil {
+		if err := os.WriteFile(filepath.Join(issuegraphDir, "metadata.json"), data, 0644); err != nil {
 			t.Fatal(err)
 		}
 
 		// Create dolt/ directory — this is NOT a fresh clone
-		doltDir := filepath.Join(beadsDir, "dolt")
+		doltDir := filepath.Join(issuegraphDir, "dolt")
 		if err := os.MkdirAll(doltDir, 0755); err != nil {
 			t.Fatal(err)
 		}
 
-		err := checkExistingBeadsDataAt(beadsDir, "myproject")
+		err := checkExistingIssueGraphDataAt(issuegraphDir, "myproject")
 		if err == nil {
 			t.Error("existing dolt directory should block init")
 		}
@@ -226,8 +226,8 @@ func TestInitGuard_FreshCloneWithMetadataJSON(t *testing.T) {
 	t.Run("embedded_mode_no_embeddeddolt_dir_allows_init", func(t *testing.T) {
 		// Embedded mode is the default — no need to set serverMode
 		tmpDir := t.TempDir()
-		beadsDir := filepath.Join(tmpDir, ".beads")
-		if err := os.MkdirAll(beadsDir, 0755); err != nil {
+		issuegraphDir := filepath.Join(tmpDir, ".issuegraph")
+		if err := os.MkdirAll(issuegraphDir, 0755); err != nil {
 			t.Fatal(err)
 		}
 
@@ -238,12 +238,12 @@ func TestInitGuard_FreshCloneWithMetadataJSON(t *testing.T) {
 			"dolt_mode": "embedded",
 		}
 		data, _ := json.Marshal(metadata)
-		if err := os.WriteFile(filepath.Join(beadsDir, "metadata.json"), data, 0644); err != nil {
+		if err := os.WriteFile(filepath.Join(issuegraphDir, "metadata.json"), data, 0644); err != nil {
 			t.Fatal(err)
 		}
 
 		// No embeddeddolt/ directory — simulates fresh clone
-		err := checkExistingBeadsDataAt(beadsDir, "test")
+		err := checkExistingIssueGraphDataAt(issuegraphDir, "test")
 		if err != nil {
 			t.Errorf("fresh clone with embedded metadata should allow init, got: %v", err)
 		}
@@ -252,8 +252,8 @@ func TestInitGuard_FreshCloneWithMetadataJSON(t *testing.T) {
 	t.Run("embedded_mode_with_existing_db_blocks_init", func(t *testing.T) {
 		// Embedded mode is the default — no need to set serverMode
 		tmpDir := t.TempDir()
-		beadsDir := filepath.Join(tmpDir, ".beads")
-		if err := os.MkdirAll(beadsDir, 0755); err != nil {
+		issuegraphDir := filepath.Join(tmpDir, ".issuegraph")
+		if err := os.MkdirAll(issuegraphDir, 0755); err != nil {
 			t.Fatal(err)
 		}
 
@@ -264,17 +264,17 @@ func TestInitGuard_FreshCloneWithMetadataJSON(t *testing.T) {
 			"dolt_mode": "embedded",
 		}
 		data, _ := json.Marshal(metadata)
-		if err := os.WriteFile(filepath.Join(beadsDir, "metadata.json"), data, 0644); err != nil {
+		if err := os.WriteFile(filepath.Join(issuegraphDir, "metadata.json"), data, 0644); err != nil {
 			t.Fatal(err)
 		}
 
 		// Create embeddeddolt/<db>/.dolt/ to simulate an existing embedded database
-		dbDir := filepath.Join(beadsDir, "embeddeddolt", "beads", ".dolt")
+		dbDir := filepath.Join(issuegraphDir, "embeddeddolt", "issuegraph", ".dolt")
 		if err := os.MkdirAll(dbDir, 0755); err != nil {
 			t.Fatal(err)
 		}
 
-		err := checkExistingBeadsDataAt(beadsDir, "test")
+		err := checkExistingIssueGraphDataAt(issuegraphDir, "test")
 		if err == nil {
 			t.Error("existing embedded database should block init")
 		}
@@ -288,11 +288,11 @@ func TestInitGuard_FreshCloneWithMetadataJSON(t *testing.T) {
 	})
 
 	t.Run("embedded_metadata_ignores_ambient_shared_server_mode", func(t *testing.T) {
-		t.Setenv("BEADS_DOLT_SHARED_SERVER", "1")
+		t.Setenv("ISSUEGRAPH_DOLT_SHARED_SERVER", "1")
 
 		tmpDir := t.TempDir()
-		beadsDir := filepath.Join(tmpDir, ".beads")
-		if err := os.MkdirAll(beadsDir, 0755); err != nil {
+		issuegraphDir := filepath.Join(tmpDir, ".issuegraph")
+		if err := os.MkdirAll(issuegraphDir, 0755); err != nil {
 			t.Fatal(err)
 		}
 
@@ -302,16 +302,16 @@ func TestInitGuard_FreshCloneWithMetadataJSON(t *testing.T) {
 			"dolt_mode": "embedded",
 		}
 		data, _ := json.Marshal(metadata)
-		if err := os.WriteFile(filepath.Join(beadsDir, "metadata.json"), data, 0644); err != nil {
+		if err := os.WriteFile(filepath.Join(issuegraphDir, "metadata.json"), data, 0644); err != nil {
 			t.Fatal(err)
 		}
 
-		dbDir := filepath.Join(beadsDir, "embeddeddolt", "beads", ".dolt")
+		dbDir := filepath.Join(issuegraphDir, "embeddeddolt", "issuegraph", ".dolt")
 		if err := os.MkdirAll(dbDir, 0755); err != nil {
 			t.Fatal(err)
 		}
 
-		err := checkExistingBeadsDataAt(beadsDir, "test")
+		err := checkExistingIssueGraphDataAt(issuegraphDir, "test")
 		if err == nil {
 			t.Error("existing embedded database should still block init when shared server mode is enabled elsewhere")
 		}
@@ -326,60 +326,60 @@ func TestInitGuard_FreshCloneWithMetadataJSON(t *testing.T) {
 
 	t.Run("no_metadata_json_allows_init", func(t *testing.T) {
 		tmpDir := t.TempDir()
-		beadsDir := filepath.Join(tmpDir, ".beads")
-		if err := os.MkdirAll(beadsDir, 0755); err != nil {
+		issuegraphDir := filepath.Join(tmpDir, ".issuegraph")
+		if err := os.MkdirAll(issuegraphDir, 0755); err != nil {
 			t.Fatal(err)
 		}
 
 		// No metadata.json, no dolt/ — fresh project, never initialized
-		err := checkExistingBeadsDataAt(beadsDir, "test")
+		err := checkExistingIssueGraphDataAt(issuegraphDir, "test")
 		if err != nil {
-			t.Errorf("empty beads dir should allow init, got: %v", err)
+			t.Errorf("empty issuegraph dir should allow init, got: %v", err)
 		}
 	})
 }
 
-// GH#2363: Regression — AI agent followed "bd init --force" suggestion and wiped DB.
+// GH#2363: Regression — AI agent followed "issuegraph init --force" suggestion and wiped DB.
 // Ensure the message never suggests --force as an actionable command.
 func TestInitGuardServerMessage_NoForceAsAction(t *testing.T) {
-	err := initGuardServerMessage("test_beads", "127.0.0.1", 3307, "test", "")
+	err := initGuardServerMessage("test_issuegraph", "127.0.0.1", 3307, "test", "")
 	msg := err.Error()
 
 	// The message should mention --force only in the caution/warning section,
 	// never as a suggested command to run.
-	if strings.Contains(msg, "bd init --force --prefix") {
-		t.Errorf("message must NOT suggest 'bd init --force --prefix' as an action:\n%s", msg)
+	if strings.Contains(msg, "issuegraph init --force --prefix") {
+		t.Errorf("message must NOT suggest 'issuegraph init --force --prefix' as an action:\n%s", msg)
 	}
-	if strings.Contains(msg, "bd init --force to") {
-		t.Errorf("message must NOT suggest 'bd init --force to ...' as an action:\n%s", msg)
+	if strings.Contains(msg, "issuegraph init --force to") {
+		t.Errorf("message must NOT suggest 'issuegraph init --force to ...' as an action:\n%s", msg)
 	}
 }
 
 // GH#3684: Regression — init "already initialized" messages must suggest
 // --reinit-local (not the deprecated --force) for the reinit path.
-func TestCheckExistingBeadsData_SuggestsReinitLocal(t *testing.T) {
+func TestCheckExistingIssueGraphData_SuggestsReinitLocal(t *testing.T) {
 	t.Run("embedded_dolt", func(t *testing.T) {
 		tmpDir := t.TempDir()
-		beadsDir := filepath.Join(tmpDir, ".beads")
+		issuegraphDir := filepath.Join(tmpDir, ".issuegraph")
 
 		// Write metadata.json with embedded dolt mode
-		if err := os.MkdirAll(beadsDir, 0755); err != nil {
+		if err := os.MkdirAll(issuegraphDir, 0755); err != nil {
 			t.Fatal(err)
 		}
 		metadata := map[string]interface{}{
 			"database": "dolt", "backend": "dolt", "dolt_mode": "embedded",
 		}
 		data, _ := json.Marshal(metadata)
-		if err := os.WriteFile(filepath.Join(beadsDir, "metadata.json"), data, 0644); err != nil {
+		if err := os.WriteFile(filepath.Join(issuegraphDir, "metadata.json"), data, 0644); err != nil {
 			t.Fatal(err)
 		}
 
 		// Create embeddeddolt/<db>/.dolt/ to simulate existing DB
-		if err := os.MkdirAll(filepath.Join(beadsDir, "embeddeddolt", "beads", ".dolt"), 0755); err != nil {
+		if err := os.MkdirAll(filepath.Join(issuegraphDir, "embeddeddolt", "issuegraph", ".dolt"), 0755); err != nil {
 			t.Fatal(err)
 		}
 
-		err := checkExistingBeadsDataAt(beadsDir, "test")
+		err := checkExistingIssueGraphDataAt(issuegraphDir, "test")
 		if err == nil {
 			t.Fatal("expected error for existing database")
 		}
@@ -394,17 +394,17 @@ func TestCheckExistingBeadsData_SuggestsReinitLocal(t *testing.T) {
 
 	t.Run("sqlite_db_file", func(t *testing.T) {
 		tmpDir := t.TempDir()
-		beadsDir := filepath.Join(tmpDir, ".beads")
-		if err := os.MkdirAll(beadsDir, 0755); err != nil {
+		issuegraphDir := filepath.Join(tmpDir, ".issuegraph")
+		if err := os.MkdirAll(issuegraphDir, 0755); err != nil {
 			t.Fatal(err)
 		}
 
-		// Create a fake beads.db file (no metadata.json → falls through to SQLite check)
-		if err := os.WriteFile(filepath.Join(beadsDir, "beads.db"), []byte("fake"), 0644); err != nil {
+		// Create a fake issuegraph.db file (no metadata.json → falls through to SQLite check)
+		if err := os.WriteFile(filepath.Join(issuegraphDir, "issuegraph.db"), []byte("fake"), 0644); err != nil {
 			t.Fatal(err)
 		}
 
-		err := checkExistingBeadsDataAt(beadsDir, "test")
+		err := checkExistingIssueGraphDataAt(issuegraphDir, "test")
 		if err == nil {
 			t.Fatal("expected error for existing database file")
 		}
@@ -434,20 +434,20 @@ func TestInitGuardServerMessage_IncludesTargetIdentity(t *testing.T) {
 // GH#1111: Regression — safe recovery paths must be suggested before destructive ones.
 // Verify that diagnostic commands appear before any mention of --force.
 func TestInitGuardServerMessage_DiagnosticsBeforeForce(t *testing.T) {
-	err := initGuardServerMessage("test_beads", "127.0.0.1", 3307, "test", "")
+	err := initGuardServerMessage("test_issuegraph", "127.0.0.1", 3307, "test", "")
 	msg := err.Error()
 
-	doctorIdx := strings.Index(msg, "bd doctor")
+	doctorIdx := strings.Index(msg, "issuegraph doctor")
 	forceIdx := strings.Index(msg, "--force")
 
 	if doctorIdx == -1 {
-		t.Fatal("message must contain 'bd doctor'")
+		t.Fatal("message must contain 'issuegraph doctor'")
 	}
 	if forceIdx == -1 {
 		t.Fatal("message must contain '--force' (in caution section)")
 	}
 	if doctorIdx > forceIdx {
-		t.Errorf("'bd doctor' (at %d) must appear before '--force' (at %d) in message:\n%s",
+		t.Errorf("'issuegraph doctor' (at %d) must appear before '--force' (at %d) in message:\n%s",
 			doctorIdx, forceIdx, msg)
 	}
 }

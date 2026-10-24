@@ -10,17 +10,17 @@ import (
 func TestProxiedServerMolSquash(t *testing.T) {
 	requireSharedProxiedServer(t)
 	t.Parallel()
-	bd := buildEmbeddedBD(t)
+	issuegraph := buildEmbeddedBD(t)
 
 	t.Run("basic_squash_deletes_ephemeral_children", func(t *testing.T) {
 		t.Parallel()
-		p := newSharedProxiedProject(t, bd, "msq")
-		root := bdProxiedCreate(t, bd, p.dir, "Squash root", "--type", "epic", "--ephemeral")
-		child := bdProxiedCreate(t, bd, p.dir, "Squash child", "--type", "task", "--parent", root.ID, "--ephemeral")
+		p := newSharedProxiedProject(t, issuegraph, "msq")
+		root := issuegraphProxiedCreate(t, issuegraph, p.dir, "Squash root", "--type", "epic", "--ephemeral")
+		child := issuegraphProxiedCreate(t, issuegraph, p.dir, "Squash child", "--type", "task", "--parent", root.ID, "--ephemeral")
 
-		out, err := bdProxiedRun(t, bd, p.dir, "mol", "squash", root.ID, "--json")
+		out, err := issuegraphProxiedRun(t, issuegraph, p.dir, "mol", "squash", root.ID, "--json")
 		if err != nil {
-			t.Fatalf("bd mol squash --json: %v\n%s", err, out)
+			t.Fatalf("issuegraph mol squash --json: %v\n%s", err, out)
 		}
 		var got struct {
 			DigestID      string `json:"digest_id"`
@@ -65,13 +65,13 @@ func TestProxiedServerMolSquash(t *testing.T) {
 
 	t.Run("keep_children_preserves_wisps", func(t *testing.T) {
 		t.Parallel()
-		p := newSharedProxiedProject(t, bd, "msqk")
-		root := bdProxiedCreate(t, bd, p.dir, "Keep-children root", "--type", "epic", "--ephemeral")
-		child := bdProxiedCreate(t, bd, p.dir, "Keep-children child", "--type", "task", "--parent", root.ID, "--ephemeral")
+		p := newSharedProxiedProject(t, issuegraph, "msqk")
+		root := issuegraphProxiedCreate(t, issuegraph, p.dir, "Keep-children root", "--type", "epic", "--ephemeral")
+		child := issuegraphProxiedCreate(t, issuegraph, p.dir, "Keep-children child", "--type", "task", "--parent", root.ID, "--ephemeral")
 
-		out, err := bdProxiedRun(t, bd, p.dir, "mol", "squash", root.ID, "--keep-children", "--json")
+		out, err := issuegraphProxiedRun(t, issuegraph, p.dir, "mol", "squash", root.ID, "--keep-children", "--json")
 		if err != nil {
-			t.Fatalf("bd mol squash --keep-children --json: %v\n%s", err, out)
+			t.Fatalf("issuegraph mol squash --keep-children --json: %v\n%s", err, out)
 		}
 		var got struct {
 			DeletedCount int  `json:"deleted_count"`
@@ -96,13 +96,13 @@ func TestProxiedServerMolSquash(t *testing.T) {
 
 	t.Run("agent_summary_used_verbatim", func(t *testing.T) {
 		t.Parallel()
-		p := newSharedProxiedProject(t, bd, "msqs")
-		root := bdProxiedCreate(t, bd, p.dir, "Summary root", "--type", "epic", "--ephemeral")
-		bdProxiedCreate(t, bd, p.dir, "Summary child", "--type", "task", "--parent", root.ID, "--ephemeral")
+		p := newSharedProxiedProject(t, issuegraph, "msqs")
+		root := issuegraphProxiedCreate(t, issuegraph, p.dir, "Summary root", "--type", "epic", "--ephemeral")
+		issuegraphProxiedCreate(t, issuegraph, p.dir, "Summary child", "--type", "task", "--parent", root.ID, "--ephemeral")
 
-		out, err := bdProxiedRun(t, bd, p.dir, "mol", "squash", root.ID, "--summary", "Agent-provided summary text", "--json")
+		out, err := issuegraphProxiedRun(t, issuegraph, p.dir, "mol", "squash", root.ID, "--summary", "Agent-provided summary text", "--json")
 		if err != nil {
-			t.Fatalf("bd mol squash --summary --json: %v\n%s", err, out)
+			t.Fatalf("issuegraph mol squash --summary --json: %v\n%s", err, out)
 		}
 		var got struct {
 			DigestID string `json:"digest_id"`
@@ -110,7 +110,7 @@ func TestProxiedServerMolSquash(t *testing.T) {
 		if err := json.Unmarshal(out, &got); err != nil {
 			t.Fatalf("unmarshal: %v\n%s", err, out)
 		}
-		digest := bdProxiedShow(t, bd, p.dir, got.DigestID)
+		digest := issuegraphProxiedShow(t, issuegraph, p.dir, got.DigestID)
 		if digest.Description != "Agent-provided summary text" {
 			t.Errorf("digest description = %q, want %q", digest.Description, "Agent-provided summary text")
 		}

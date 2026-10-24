@@ -9,12 +9,12 @@ import (
 	"testing"
 	"time"
 
-	"github.com/steveyegge/beads/internal/storage"
-	"github.com/steveyegge/beads/internal/types"
-	"github.com/steveyegge/beads/issueops"
+	"github.com/borg0ai/dx-issuegraph/internal/storage"
+	"github.com/borg0ai/dx-issuegraph/internal/types"
+	"github.com/borg0ai/dx-issuegraph/issueops"
 )
 
-// The wire edge of POST /v0/beads/issues/{id}/comments, on a fake role.
+// The wire edge of POST /v0/issuegraph/issues/{id}/comments, on a fake role.
 //
 // Which plane the anchor lives on, whether a history entry is recorded and the
 // atomicity of the append are issueops.Commenter's, held to on three legs by its
@@ -24,7 +24,7 @@ import (
 // stored row reaches the wire rather than the request reflected back, and that
 // each refusal arrives naming the member it is about.
 
-const commentPath = "/v0/beads/issues/bd-1/comments"
+const commentPath = "/v0/issuegraph/issues/bd-1/comments"
 
 func (ts *testServer) addComment(t *testing.T, path, body string) *http.Response {
 	t.Helper()
@@ -74,9 +74,9 @@ func TestAddCommentProjectsTheWholeRequest(t *testing.T) {
 		{
 			// The anchor is the PATH segment, percent-decoded once.
 			name: "a percent-escaped anchor is decoded once",
-			path: "bd%2Fslash",
+			path: "issuegraph%2Fslash",
 			body: `{"author":"alice","text":"looks good"}`,
-			want: issueops.AddCommentRequest{Author: "alice", IssueID: "bd/slash", Text: "looks good"},
+			want: issueops.AddCommentRequest{Author: "alice", IssueID: "issuegraph/slash", Text: "looks good"},
 		},
 		{
 			// A comment is written in newlines. `text` lands in a TEXT column
@@ -102,7 +102,7 @@ func TestAddCommentProjectsTheWholeRequest(t *testing.T) {
 			commenter := &roleCommenter{comment: storedComment(tc.want.IssueID)}
 			ts := newCommentServer(t, commenter)
 
-			resp := ts.addComment(t, "/v0/beads/issues/"+tc.path+"/comments", tc.body)
+			resp := ts.addComment(t, "/v0/issuegraph/issues/"+tc.path+"/comments", tc.body)
 			if resp.StatusCode != http.StatusOK {
 				t.Fatalf("status = %d, want 200: %s", resp.StatusCode, readAll(t, resp))
 			}
@@ -257,7 +257,7 @@ func TestAddCommentAcceptsATextNoOtherMemberWould(t *testing.T) {
 // role's own sentence rather than as a generic 500.
 //
 // It is the ROLE's rule deliberately: refusing blankness at the edge would be a
-// second definition of what a comment is, and `bd comment` and this endpoint
+// second definition of what a comment is, and `issuegraph comment` and this endpoint
 // would be one edit away from disagreeing about the same input.
 func TestAddCommentRefusesABlankBodyThroughTheRole(t *testing.T) {
 	ts := newCommentServer(t, &roleCommenter{
@@ -288,7 +288,7 @@ func TestAddCommentMissesAreNotFound(t *testing.T) {
 			err: fmt.Errorf("issue bd-404: %w", storage.ErrNotFound),
 		})
 
-		resp := ts.addComment(t, "/v0/beads/issues/bd-404/comments", `{"author":"alice","text":"hi"}`)
+		resp := ts.addComment(t, "/v0/issuegraph/issues/bd-404/comments", `{"author":"alice","text":"hi"}`)
 		if resp.StatusCode != http.StatusNotFound {
 			t.Fatalf("status = %d, want 404: %s", resp.StatusCode, readAll(t, resp))
 		}
@@ -303,7 +303,7 @@ func TestAddCommentMissesAreNotFound(t *testing.T) {
 
 		// One character past the id column, so it names no row that can exist.
 		id := strings.Repeat("b", types.MaxFieldLen+1)
-		resp := ts.addComment(t, "/v0/beads/issues/"+id+"/comments", `{"author":"alice","text":"hi"}`)
+		resp := ts.addComment(t, "/v0/issuegraph/issues/"+id+"/comments", `{"author":"alice","text":"hi"}`)
 		if resp.StatusCode != http.StatusNotFound {
 			t.Fatalf("status = %d, want 404: %s", resp.StatusCode, readAll(t, resp))
 		}
@@ -389,7 +389,7 @@ func TestAddCommentDoesNotDereferenceAMissingRow(t *testing.T) {
 // TestAddCommentPathReachesItsHandler drives the documented path against the
 // real router, which is the half TestSpecRouteParity cannot see: that test
 // compares strings, and the POST wildcard the custom methods share
-// (/v0/beads/issues/{idop}) is registered under the same method one segment up.
+// (/v0/issuegraph/issues/{idop}) is registered under the same method one segment up.
 // If ServeMux ever preferred it, every comment would be dispatched as an
 // unrouted custom method and answered 404.
 func TestAddCommentPathReachesItsHandler(t *testing.T) {

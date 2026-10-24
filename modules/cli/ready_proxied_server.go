@@ -9,18 +9,18 @@ import (
 
 	"github.com/spf13/cobra"
 
-	"github.com/steveyegge/beads/internal/debug"
-	"github.com/steveyegge/beads/internal/storage/uow"
-	"github.com/steveyegge/beads/internal/types"
-	"github.com/steveyegge/beads/internal/ui"
-	"github.com/steveyegge/beads/internal/workapi"
-	"github.com/steveyegge/beads/issueops"
+	"github.com/borg0ai/dx-issuegraph/internal/debug"
+	"github.com/borg0ai/dx-issuegraph/internal/storage/uow"
+	"github.com/borg0ai/dx-issuegraph/internal/types"
+	"github.com/borg0ai/dx-issuegraph/internal/ui"
+	"github.com/borg0ai/dx-issuegraph/internal/workapi"
+	"github.com/borg0ai/dx-issuegraph/issueops"
 )
 
 func runReadyProxiedServer(cmd *cobra.Command, ctx context.Context) error {
 	// --offset is supported here and nowhere else, so this is where a negative
 	// value is rejected. It stays out of the shared gatherer because the direct
-	// route reaches that gatherer too, and `bd ready --offset -1` has always
+	// route reaches that gatherer too, and `issuegraph ready --offset -1` has always
 	// been a no-op there rather than an error. HandleError, not the RespectJSON
 	// variant, for the same reason: this message is the proxied route's alone,
 	// and it has always gone to stderr as plain text.
@@ -28,7 +28,7 @@ func runReadyProxiedServer(cmd *cobra.Command, ctx context.Context) error {
 		return HandleError("--offset must be >= 0")
 	}
 
-	// No cap resolver: --max-rows / BEADS_MAX_ROWS has already been resolved
+	// No cap resolver: --max-rows / ISSUEGRAPH_MAX_ROWS has already been resolved
 	// twice before this route runs — once at the proxied front door and once
 	// in the RunE that routed here — and any positive cap was refused by both,
 	// on --claim as much as on a bulk read. Resolving it a third time would
@@ -204,7 +204,7 @@ func runReadyProxiedList(ctx context.Context, uw uow.UnitOfWork, in readyInput) 
 	return nil
 }
 
-// runReadyProxiedClaim is the proxied route of `bd ready --claim`, on the same
+// runReadyProxiedClaim is the proxied route of `issuegraph ready --claim`, on the same
 // ReadyClaimer role the direct route reaches through the store's accessor.
 // Both build their request in claimNextRequest, so the two doors ask one
 // question — and neither opens a unit of work of its own: the role's request

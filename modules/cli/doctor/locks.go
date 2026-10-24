@@ -18,13 +18,13 @@ var staleLockThresholds = map[string]time.Duration{
 // CheckStaleLockFiles detects leftover lock files from crashed processes.
 // Stale lock files can block bootstrap and sync operations.
 func CheckStaleLockFiles(path string) DoctorCheck {
-	beadsDir := ResolveBeadsDirForRepo(path)
+	issuegraphDir := ResolveIssueGraphDirForRepo(path)
 
-	if _, err := os.Stat(beadsDir); os.IsNotExist(err) {
+	if _, err := os.Stat(issuegraphDir); os.IsNotExist(err) {
 		return DoctorCheck{
 			Name:     "Lock Files",
 			Status:   StatusOK,
-			Message:  "N/A (no .beads directory)",
+			Message:  "N/A (no .issuegraph directory)",
 			Category: CategoryRuntime,
 		}
 	}
@@ -33,7 +33,7 @@ func CheckStaleLockFiles(path string) DoctorCheck {
 	var details []string
 
 	// Check bootstrap lock (dolt.bootstrap.lock)
-	bootstrapLockPath := filepath.Join(beadsDir, "dolt.bootstrap.lock")
+	bootstrapLockPath := filepath.Join(issuegraphDir, "dolt.bootstrap.lock")
 	if info, err := os.Stat(bootstrapLockPath); err == nil {
 		age := time.Since(info.ModTime())
 		if age > staleLockThresholds["bootstrap.lock"] {
@@ -44,7 +44,7 @@ func CheckStaleLockFiles(path string) DoctorCheck {
 	}
 
 	// Check sync lock (.sync.lock)
-	syncLockPath := filepath.Join(beadsDir, ".sync.lock")
+	syncLockPath := filepath.Join(issuegraphDir, ".sync.lock")
 	if info, err := os.Stat(syncLockPath); err == nil {
 		age := time.Since(info.ModTime())
 		if age > staleLockThresholds[".sync.lock"] {
@@ -59,9 +59,9 @@ func CheckStaleLockFiles(path string) DoctorCheck {
 	// Removing them WILL cause unrecoverable data corruption and data loss.
 	// Dolt manages these files itself; external interference is never safe.
 
-	// Check startup lock (bd.sock.startlock)
-	// Look for any .startlock files in beadsDir
-	entries, err := os.ReadDir(beadsDir)
+	// Check startup lock (issuegraph.sock.startlock)
+	// Look for any .startlock files in issuegraphDir
+	entries, err := os.ReadDir(issuegraphDir)
 	if err == nil {
 		for _, entry := range entries {
 			if strings.HasSuffix(entry.Name(), ".startlock") {
@@ -94,7 +94,7 @@ func CheckStaleLockFiles(path string) DoctorCheck {
 		Status:   StatusWarning,
 		Message:  fmt.Sprintf("%d stale lock file(s): %s", len(staleFiles), strings.Join(staleFiles, ", ")),
 		Detail:   strings.Join(details, "; "),
-		Fix:      "Run 'bd doctor --fix' to remove stale lock files, or delete manually from .beads/",
+		Fix:      "Run 'issuegraph doctor --fix' to remove stale lock files, or delete manually from .issuegraph/",
 		Category: CategoryRuntime,
 	}
 }

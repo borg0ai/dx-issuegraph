@@ -10,7 +10,7 @@ import (
 	"testing"
 )
 
-// initExecTestDB initializes a test database using the bd binary and returns the temp dir.
+// initExecTestDB initializes a test database using the issuegraph binary and returns the temp dir.
 func initExecTestDB(t *testing.T) string {
 	t.Helper()
 	tmpDir := createTempDirWithCleanup(t)
@@ -23,7 +23,7 @@ func initExecTestDB(t *testing.T) string {
 	return tmpDir
 }
 
-// createExecTestIssue creates a test issue using the bd binary and returns the ID.
+// createExecTestIssue creates a test issue using the issuegraph binary and returns the ID.
 func createExecTestIssue(t *testing.T, tmpDir, title string) string {
 	t.Helper()
 	createCmd := exec.Command(testBD, "create", title, "-p", "1", "--json")

@@ -13,12 +13,12 @@ import (
 	"unicode"
 	"unicode/utf8"
 
-	"github.com/steveyegge/beads/internal/httpapi/apigen"
-	"github.com/steveyegge/beads/internal/storage"
-	"github.com/steveyegge/beads/internal/storage/uow"
-	"github.com/steveyegge/beads/internal/types"
-	"github.com/steveyegge/beads/issueops"
-	"github.com/steveyegge/beads/memoryops"
+	"github.com/borg0ai/dx-issuegraph/internal/httpapi/apigen"
+	"github.com/borg0ai/dx-issuegraph/internal/storage"
+	"github.com/borg0ai/dx-issuegraph/internal/storage/uow"
+	"github.com/borg0ai/dx-issuegraph/internal/types"
+	"github.com/borg0ai/dx-issuegraph/issueops"
+	"github.com/borg0ai/dx-issuegraph/memoryops"
 )
 
 const (
@@ -272,7 +272,7 @@ func validateNameMember(member, value string) (string, *Result) {
 // U+2028/U+2029 line separators.
 //
 // C1 is refused for the reason C0 is, not for tidiness: U+0085 is NEL, a line
-// break on a VT-conformant terminal, so "alice<U+0085>bd: claim bd-9 by
+// break on a VT-conformant terminal, so "alice<U+0085>issuegraph: claim bd-9 by
 // mallory" forges exactly the audit-trail line the C0 check exists to prevent
 // once the actor reaches the storage commit message. U+009B is the one-byte CSI
 // introducer, which makes an unfiltered actor an escape-sequence payload in

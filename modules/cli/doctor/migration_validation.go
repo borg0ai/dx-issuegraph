@@ -9,10 +9,10 @@ import (
 	"path/filepath"
 	"strings"
 
-	"github.com/steveyegge/beads/internal/configfile"
-	"github.com/steveyegge/beads/internal/storage"
-	"github.com/steveyegge/beads/internal/storage/dolt"
-	"github.com/steveyegge/beads/internal/utils"
+	"github.com/borg0ai/dx-issuegraph/internal/configfile"
+	"github.com/borg0ai/dx-issuegraph/internal/storage"
+	"github.com/borg0ai/dx-issuegraph/internal/storage/dolt"
+	"github.com/borg0ai/dx-issuegraph/internal/utils"
 )
 
 // MigrationValidationResult provides machine-parseable migration validation output.
@@ -38,7 +38,7 @@ type MigrationValidationResult struct {
 	ForeignPrefixes    map[string]int `json:"foreign_prefixes"`     // prefix -> count for foreign-prefix issues
 }
 
-// CheckMigrationReadiness validates that a beads installation is ready for Dolt migration.
+// CheckMigrationReadiness validates that a issuegraph installation is ready for Dolt migration.
 // This is a pre-migration check that ensures:
 // 1. JSONL file exists and is valid (parseable, no corruption)
 // 2. All issues in JSONL are also in the database (or explains discrepancies)
@@ -53,23 +53,23 @@ func CheckMigrationReadiness(path string) (DoctorCheck, MigrationValidationResul
 		SchemaValid: true,
 	}
 
-	beadsDir := ResolveBeadsDirForRepo(path)
+	issuegraphDir := ResolveIssueGraphDirForRepo(path)
 
-	// Check if .beads exists
-	if _, err := os.Stat(beadsDir); os.IsNotExist(err) {
+	// Check if .issuegraph exists
+	if _, err := os.Stat(issuegraphDir); os.IsNotExist(err) {
 		result.Ready = false
-		result.Errors = append(result.Errors, "No active beads workspace found")
+		result.Errors = append(result.Errors, "No active issuegraph workspace found")
 		return DoctorCheck{
 			Name:     "Migration Readiness",
 			Status:   StatusError,
-			Message:  "No active beads workspace found",
-			Fix:      "Run 'bd where' to inspect the resolved workspace, or 'bd init' to create a beads installation",
+			Message:  "No active issuegraph workspace found",
+			Fix:      "Run 'issuegraph where' to inspect the resolved workspace, or 'issuegraph init' to create a issuegraph installation",
 			Category: CategoryMaintenance,
 		}, result
 	}
 
 	// Detect current backend
-	result.Backend = GetBackend(beadsDir)
+	result.Backend = GetBackend(issuegraphDir)
 
 	// Already on Dolt - no migration needed
 	if result.Backend == configfile.BackendDolt {
@@ -82,7 +82,7 @@ func CheckMigrationReadiness(path string) (DoctorCheck, MigrationValidationResul
 	}
 
 	// Find JSONL file
-	jsonlPath := findJSONLFile(beadsDir)
+	jsonlPath := findJSONLFile(issuegraphDir)
 	if jsonlPath == "" {
 		result.Ready = false
 		result.Errors = append(result.Errors, "No JSONL file found")
@@ -90,8 +90,8 @@ func CheckMigrationReadiness(path string) (DoctorCheck, MigrationValidationResul
 			Name:     "Migration Readiness",
 			Status:   StatusError,
 			Message:  "No JSONL file found",
-			Detail:   "Migration requires issues.jsonl or beads.jsonl",
-			Fix:      "Run 'bd export' to create JSONL file from database",
+			Detail:   "Migration requires issues.jsonl or issuegraph.jsonl",
+			Fix:      "Run 'issuegraph export' to create JSONL file from database",
 			Category: CategoryMaintenance,
 		}, result
 	}
@@ -109,7 +109,7 @@ func CheckMigrationReadiness(path string) (DoctorCheck, MigrationValidationResul
 			Status:   StatusError,
 			Message:  fmt.Sprintf("JSONL has %d malformed lines", malformed),
 			Detail:   err.Error(),
-			Fix:      "Run 'bd doctor --fix' to repair JSONL from database",
+			Fix:      "Run 'issuegraph doctor --fix' to repair JSONL from database",
 			Category: CategoryMaintenance,
 		}, result
 	}
@@ -146,7 +146,7 @@ func CheckMigrationReadiness(path string) (DoctorCheck, MigrationValidationResul
 		Status:   status,
 		Message:  message,
 		Detail:   strings.Join(result.Warnings, "\n"),
-		Fix:      "Follow 'bd help init-safety' to reinitialize with Dolt, then import and verify this JSONL export",
+		Fix:      "Follow 'issuegraph help init-safety' to reinitialize with Dolt, then import and verify this JSONL export",
 		Category: CategoryMaintenance,
 	}, result
 }
@@ -165,23 +165,23 @@ func CheckMigrationCompletion(path string) (DoctorCheck, MigrationValidationResu
 		SchemaValid: true,
 	}
 
-	beadsDir := ResolveBeadsDirForRepo(path)
+	issuegraphDir := ResolveIssueGraphDirForRepo(path)
 
-	// Check if .beads exists
-	if _, err := os.Stat(beadsDir); os.IsNotExist(err) {
+	// Check if .issuegraph exists
+	if _, err := os.Stat(issuegraphDir); os.IsNotExist(err) {
 		result.Ready = false
 		result.DoltHealthy = false
-		result.Errors = append(result.Errors, "No active beads workspace found")
+		result.Errors = append(result.Errors, "No active issuegraph workspace found")
 		return DoctorCheck{
 			Name:     "Migration Completion",
 			Status:   StatusError,
-			Message:  "No active beads workspace found",
+			Message:  "No active issuegraph workspace found",
 			Category: CategoryMaintenance,
 		}, result
 	}
 
 	// Detect current backend
-	result.Backend = GetBackend(beadsDir)
+	result.Backend = GetBackend(issuegraphDir)
 
 	// Not on Dolt - migration incomplete or not started
 	if result.Backend != configfile.BackendDolt {
@@ -193,15 +193,15 @@ func CheckMigrationCompletion(path string) (DoctorCheck, MigrationValidationResu
 			Status:   StatusError,
 			Message:  "Not using Dolt backend",
 			Detail:   fmt.Sprintf("Current backend: %s", result.Backend),
-			Fix:      "Follow 'bd help init-safety' to reinitialize with Dolt, then import and verify the issue export",
+			Fix:      "Follow 'issuegraph help init-safety' to reinitialize with Dolt, then import and verify the issue export",
 			Category: CategoryMaintenance,
 		}, result
 	}
 
 	// Check Dolt database health
 	ctx := context.Background()
-	doltPath := getDatabasePath(beadsDir)
-	store, err := dolt.New(ctx, doltServerConfig(beadsDir, doltPath))
+	doltPath := getDatabasePath(issuegraphDir)
+	store, err := dolt.New(ctx, doltServerConfig(issuegraphDir, doltPath))
 	if err != nil {
 		result.Ready = false
 		result.DoltHealthy = false
@@ -235,7 +235,7 @@ func CheckMigrationCompletion(path string) (DoctorCheck, MigrationValidationResu
 	result.DoltCount = stats.TotalIssues
 
 	// Check for Dolt locks/uncommitted changes
-	doltLocked, lockDetail, lockErr := checkDoltLocks(beadsDir)
+	doltLocked, lockDetail, lockErr := checkDoltLocks(issuegraphDir)
 	if lockErr != nil {
 		result.Warnings = append(result.Warnings, fmt.Sprintf("Could not check Dolt locks: %v", lockErr))
 	} else {
@@ -246,7 +246,7 @@ func CheckMigrationCompletion(path string) (DoctorCheck, MigrationValidationResu
 	}
 
 	// Find JSONL file for comparison
-	jsonlPath := findJSONLFile(beadsDir)
+	jsonlPath := findJSONLFile(issuegraphDir)
 	if jsonlPath != "" {
 		jsonlCount, _, jsonlIDs, err := validateJSONLForMigration(jsonlPath)
 		result.JSONLCount = jsonlCount
@@ -300,7 +300,7 @@ func CheckMigrationCompletion(path string) (DoctorCheck, MigrationValidationResu
 			Status:   StatusError,
 			Message:  fmt.Sprintf("Migration incomplete: %d error(s)", len(result.Errors)),
 			Detail:   strings.Join(result.Errors, "\n"),
-			Fix:      "Check the export/import results; follow 'bd help init-safety' before reinitializing again",
+			Fix:      "Check the export/import results; follow 'issuegraph help init-safety' before reinitializing again",
 			Category: CategoryMaintenance,
 		}, result
 	}
@@ -323,10 +323,10 @@ func CheckMigrationCompletion(path string) (DoctorCheck, MigrationValidationResu
 
 // CheckDoltLocks checks if the Dolt database has any locks or uncommitted changes.
 func CheckDoltLocks(path string) DoctorCheck {
-	beadsDir := ResolveBeadsDirForRepo(path)
+	issuegraphDir := ResolveIssueGraphDirForRepo(path)
 
 	// Only run for Dolt backend
-	if !IsDoltBackend(beadsDir) {
+	if !IsDoltBackend(issuegraphDir) {
 		return DoctorCheck{
 			Name:     "Dolt Locks",
 			Status:   StatusOK,
@@ -335,7 +335,7 @@ func CheckDoltLocks(path string) DoctorCheck {
 		}
 	}
 
-	locked, detail, err := checkDoltLocks(beadsDir)
+	locked, detail, err := checkDoltLocks(issuegraphDir)
 	if err != nil {
 		return DoctorCheck{
 			Name:     "Dolt Locks",
@@ -352,7 +352,7 @@ func CheckDoltLocks(path string) DoctorCheck {
 			Status:   StatusWarning,
 			Message:  "Uncommitted changes detected",
 			Detail:   detail,
-			Fix:      "Run 'bd vc commit -m \"commit changes\"' to commit, or changes will auto-commit on next bd command",
+			Fix:      "Run 'issuegraph vc commit -m \"commit changes\"' to commit, or changes will auto-commit on next issuegraph command",
 			Category: CategoryMaintenance,
 		}
 	}
@@ -367,11 +367,11 @@ func CheckDoltLocks(path string) DoctorCheck {
 
 // Helper functions
 
-// findJSONLFile locates the JSONL file in a .beads directory.
+// findJSONLFile locates the JSONL file in a .issuegraph directory.
 // Temporary: will be removed with Phase 2c (doctor JSONL cleanup).
-func findJSONLFile(beadsDir string) string {
-	for _, name := range []string{"issues.jsonl", "beads.jsonl"} {
-		p := filepath.Join(beadsDir, name)
+func findJSONLFile(issuegraphDir string) string {
+	for _, name := range []string{"issues.jsonl", "issuegraph.jsonl"} {
+		p := filepath.Join(issuegraphDir, name)
 		if _, err := os.Stat(p); err == nil {
 			return p
 		}
@@ -481,8 +481,8 @@ func compareDoltWithJSONL(ctx context.Context, store storage.DoltStorage, jsonlI
 // checkDoltLocks checks for uncommitted changes in Dolt.
 // Returns (locked, detail, error). A non-nil error means the check could not
 // be performed (e.g. connection failure) and the locked result is meaningless.
-func checkDoltLocks(beadsDir string) (bool, string, error) {
-	conn, err := openDoltConn(beadsDir)
+func checkDoltLocks(issuegraphDir string) (bool, string, error) {
+	conn, err := openDoltConn(issuegraphDir)
 	if err != nil {
 		return false, "", fmt.Errorf("cannot connect to Dolt: %w", err)
 	}

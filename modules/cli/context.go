@@ -8,8 +8,8 @@ import (
 	"os"
 	"time"
 
-	"github.com/steveyegge/beads/internal/hooks"
-	"github.com/steveyegge/beads/internal/storage"
+	"github.com/borg0ai/dx-issuegraph/internal/hooks"
+	"github.com/borg0ai/dx-issuegraph/internal/storage"
 )
 
 // CommandContext holds all runtime state for command execution.
@@ -282,7 +282,7 @@ func setVersionUpgradeDetected(detected bool) {
 	versionUpgradeDetected = detected
 }
 
-// getPreviousVersion returns the previous bd version.
+// getPreviousVersion returns the previous issuegraph version.
 func getPreviousVersion() string {
 	if shouldUseGlobals() {
 		return previousVersion

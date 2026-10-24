@@ -36,7 +36,7 @@ The wizard will:
 ### Step 2: Protected Branch Configuration
 
 If your main branch is protected (GitHub/GitLab), the wizard will:
-- Create a separate `beads-metadata` branch for issue updates
+- Create a separate `issuegraph-metadata` branch for issue updates
 - Configure issuegraph to commit to this branch automatically
 - Set up periodic PR workflow for merging to main
 
@@ -82,13 +82,13 @@ If main is protected:
 # Create issue
 issuegraph create "Implement feature X" -p 1
 
-# Auto-commits to beads-metadata branch
+# Auto-commits to issuegraph-metadata branch
 # (or run 'issuegraph dolt push' manually)
 
-# Push beads-metadata
-git push origin beads-metadata
+# Push issuegraph-metadata
+git push origin issuegraph-metadata
 
-# Periodically: merge beads-metadata to main via PR
+# Periodically: merge issuegraph-metadata to main via PR
 ```
 
 ## Configuration
@@ -98,7 +98,7 @@ The wizard configures:
 ```yaml
 team:
   enabled: true
-  sync_branch: beads-metadata  # or main if not protected
+  sync_branch: issuegraph-metadata  # or main if not protected
 
 dolt:
   auto-commit: on
@@ -111,7 +111,7 @@ dolt:
 issuegraph config set team.enabled true
 
 # Set sync branch
-issuegraph config set team.sync_branch beads-metadata
+issuegraph config set team.sync_branch issuegraph-metadata
 
 # Enable auto-commit
 issuegraph config set dolt.auto-commit on
@@ -133,7 +133,7 @@ git pull
 issuegraph list  # Sees Alice's issue
 
 # Bob claims it
-issuegraph update bd-abc --claim
+issuegraph update issuegraph-abc --claim
 
 # Auto-commits Bob's update
 # Alice pulls and sees Bob is working on it
@@ -145,17 +145,17 @@ issuegraph update bd-abc --claim
 # Alice creates an issue
 issuegraph create "Add new API endpoint" -p 1
 
-# Auto-commits to beads-metadata
-git push origin beads-metadata
+# Auto-commits to issuegraph-metadata
+git push origin issuegraph-metadata
 
-# Bob pulls beads-metadata
-git pull origin beads-metadata
+# Bob pulls issuegraph-metadata
+git pull origin issuegraph-metadata
 issuegraph list  # Sees Alice's issue
 
-# Later: merge beads-metadata to main via PR
+# Later: merge issuegraph-metadata to main via PR
 git checkout main
 git pull origin main
-git merge beads-metadata
+git merge issuegraph-metadata
 # Create PR, get approval, merge
 ```
 
@@ -183,11 +183,11 @@ issuegraph create "Add profile page" -p 1
 issuegraph create "Fix responsive layout" -p 2
 
 # Assign to team members
-issuegraph update bd-abc --assignee alice
-issuegraph update bd-def --assignee bob
+issuegraph update issuegraph-abc --assignee alice
+issuegraph update issuegraph-def --assignee bob
 
 # Track dependencies
-issuegraph dep add bd-def bd-abc --type blocks
+issuegraph dep add issuegraph-def issuegraph-abc --type blocks
 ```
 
 ### PR Integration
@@ -197,14 +197,14 @@ issuegraph dep add bd-def bd-abc --type blocks
 issuegraph create "Refactor auth module" -p 1
 
 # Work on it
-issuegraph update bd-abc --claim
+issuegraph update issuegraph-abc --claim
 
 # Open PR with issue reference
 git push origin feature-branch
-# PR title: "feat: refactor auth module (bd-abc)"
+# PR title: "feat: refactor auth module (issuegraph-abc)"
 
 # Close when PR merges
-issuegraph close bd-abc --reason "PR #123 merged"
+issuegraph close issuegraph-abc --reason "PR #123 merged"
 ```
 
 ## Sync Strategies
@@ -258,14 +258,14 @@ issuegraph dolt push
 
 ### For Protected Main:
 
-1. **Create beads-metadata branch**
+1. **Create issuegraph-metadata branch**
    ```bash
-   git checkout -b beads-metadata
-   git push origin beads-metadata
+   git checkout -b issuegraph-metadata
+   git push origin issuegraph-metadata
    ```
 
 2. **Configure protection rules**
-   - Allow direct pushes to beads-metadata
+   - Allow direct pushes to issuegraph-metadata
    - Require PR for main
 
 3. **Periodic PR workflow**
@@ -273,19 +273,19 @@ issuegraph dolt push
    # Once per day/sprint
    git checkout main
    git pull origin main
-   git checkout beads-metadata
-   git pull origin beads-metadata
+   git checkout issuegraph-metadata
+   git pull origin issuegraph-metadata
    git checkout main
-   git merge beads-metadata
+   git merge issuegraph-metadata
    # Create PR, get approval, merge
    ```
 
-4. **Keep beads-metadata clean**
+4. **Keep issuegraph-metadata clean**
    ```bash
    # After PR merges
-   git checkout beads-metadata
+   git checkout issuegraph-metadata
    git rebase main
-   git push origin beads-metadata --force-with-lease
+   git push origin issuegraph-metadata --force-with-lease
    ```
 
 ## Common Questions
@@ -332,7 +332,7 @@ A: Add to your CI pipeline:
 - name: Sync issuegraph issues
   run: |
     issuegraph dolt push
-    git push origin beads-metadata
+    git push origin issuegraph-metadata
 ```
 
 ## Troubleshooting

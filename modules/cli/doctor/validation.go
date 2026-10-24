@@ -9,17 +9,17 @@ import (
 	"path/filepath"
 	"strings"
 
-	"github.com/steveyegge/beads/internal/configfile"
-	"github.com/steveyegge/beads/internal/storage"
-	"github.com/steveyegge/beads/internal/storage/dolt"
+	"github.com/borg0ai/dx-issuegraph/internal/configfile"
+	"github.com/borg0ai/dx-issuegraph/internal/storage"
+	"github.com/borg0ai/dx-issuegraph/internal/storage/dolt"
 )
 
-// openStoreDB opens the beads database and returns the underlying *sql.DB for
+// openStoreDB opens the issuegraph database and returns the underlying *sql.DB for
 // raw queries. The caller must close the returned store when done.
-func openStoreDB(beadsDir string) (*sql.DB, storage.DoltStorage, error) {
+func openStoreDB(issuegraphDir string) (*sql.DB, storage.DoltStorage, error) {
 	ctx := context.Background()
-	doltPath := getDatabasePath(beadsDir)
-	cfg := doltServerConfig(beadsDir, doltPath)
+	doltPath := getDatabasePath(issuegraphDir)
+	cfg := doltServerConfig(issuegraphDir, doltPath)
 	store, err := dolt.New(ctx, cfg)
 	if err != nil {
 		return nil, nil, err
@@ -34,9 +34,9 @@ func openStoreDB(beadsDir string) (*sql.DB, storage.DoltStorage, error) {
 
 // CheckOrphanedDependencies detects dependencies pointing to non-existent issues.
 func CheckOrphanedDependencies(path string) DoctorCheck {
-	beadsDir := ResolveBeadsDirForRepo(path)
+	issuegraphDir := ResolveIssueGraphDirForRepo(path)
 
-	db, store, err := openStoreDB(beadsDir)
+	db, store, err := openStoreDB(issuegraphDir)
 	if err != nil {
 		return DoctorCheck{
 			Name:    "Orphaned Dependencies",
@@ -107,7 +107,7 @@ func checkOrphanedDependenciesDB(db *sql.DB) DoctorCheck {
 		Status:  "warning",
 		Message: fmt.Sprintf("%d orphaned dependency reference(s)", len(orphans)),
 		Detail:  detail,
-		Fix:     "Run 'bd doctor --fix' to remove orphaned dependencies",
+		Fix:     "Run 'issuegraph doctor --fix' to remove orphaned dependencies",
 	}
 }
 
@@ -115,9 +115,9 @@ func checkOrphanedDependenciesDB(db *sql.DB) DoctorCheck {
 // When orchestratorMode is true, the threshold parameter defines how many duplicates
 // are acceptable before warning (default 1000 for orchestrator's ephemeral wisps).
 func CheckDuplicateIssues(path string, orchestratorMode bool, orchestratorThreshold int) DoctorCheck {
-	beadsDir := ResolveBeadsDirForRepo(path)
+	issuegraphDir := ResolveIssueGraphDirForRepo(path)
 
-	db, store, err := openStoreDB(beadsDir)
+	db, store, err := openStoreDB(issuegraphDir)
 	if err != nil {
 		return DoctorCheck{
 			Name:    "Duplicate Issues",
@@ -181,7 +181,7 @@ func checkDuplicateIssuesDB(db *sql.DB, orchestratorMode bool, orchestratorThres
 			Status:  "warning",
 			Message: fmt.Sprintf("%d duplicate issue(s) in %d group(s)", totalDuplicates, duplicateGroups),
 			Detail:  "Duplicates cannot be auto-fixed",
-			Fix:     "Run 'bd duplicates' to review and merge duplicates",
+			Fix:     "Run 'issuegraph duplicates' to review and merge duplicates",
 		}
 	}
 
@@ -199,9 +199,9 @@ func checkDuplicateIssuesDB(db *sql.DB, orchestratorMode bool, orchestratorThres
 
 // CheckTestPollution detects test issues that may have leaked into the database.
 func CheckTestPollution(path string) DoctorCheck {
-	beadsDir := ResolveBeadsDirForRepo(path)
+	issuegraphDir := ResolveIssueGraphDirForRepo(path)
 
-	db, store, err := openStoreDB(beadsDir)
+	db, store, err := openStoreDB(issuegraphDir)
 	if err != nil {
 		return DoctorCheck{
 			Name:    "Test Pollution",
@@ -243,7 +243,7 @@ func CheckTestPollution(path string) DoctorCheck {
 		Status:  "warning",
 		Message: fmt.Sprintf("%d potential test issue(s) detected", count),
 		Detail:  "Test issues may have leaked into production database",
-		Fix:     "Run 'bd doctor --check=pollution' to review and clean test issues",
+		Fix:     "Run 'issuegraph doctor --check=pollution' to review and clean test issues",
 	}
 }
 
@@ -251,23 +251,23 @@ func CheckTestPollution(path string) DoctorCheck {
 // For Dolt backends, queries the dolt_conflicts system table (GH-2249).
 // For legacy backends, scans JSONL files for git conflict markers.
 func CheckGitConflicts(path string) DoctorCheck {
-	backend, beadsDir := getBackendAndBeadsDir(path)
+	backend, issuegraphDir := getBackendAndIssueGraphDir(path)
 
 	// Dolt backend: check for unresolved Dolt merge conflicts
 	if backend == configfile.BackendDolt {
-		return checkDoltConflicts(beadsDir)
+		return checkDoltConflicts(issuegraphDir)
 	}
 
-	if _, err := os.Stat(beadsDir); os.IsNotExist(err) {
+	if _, err := os.Stat(issuegraphDir); os.IsNotExist(err) {
 		return DoctorCheck{
 			Name:    "Git Conflicts",
 			Status:  StatusOK,
-			Message: "N/A (no .beads directory)",
+			Message: "N/A (no .issuegraph directory)",
 		}
 	}
 
 	// Legacy: scan JSONL files for conflict markers
-	matches, err := filepath.Glob(filepath.Join(beadsDir, "*.jsonl"))
+	matches, err := filepath.Glob(filepath.Join(issuegraphDir, "*.jsonl"))
 	if err != nil || len(matches) == 0 {
 		return DoctorCheck{
 			Name:    "Git Conflicts",
@@ -278,7 +278,7 @@ func CheckGitConflicts(path string) DoctorCheck {
 
 	var conflictFiles []string
 	for _, fpath := range matches {
-		f, err := os.Open(fpath) // #nosec G304 - path constructed from beadsDir
+		f, err := os.Open(fpath) // #nosec G304 - path constructed from issuegraphDir
 		if err != nil {
 			continue
 		}
@@ -293,7 +293,7 @@ func CheckGitConflicts(path string) DoctorCheck {
 		}
 		_ = f.Close()
 		if hasConflict {
-			if rel, err := filepath.Rel(beadsDir, fpath); err == nil {
+			if rel, err := filepath.Rel(issuegraphDir, fpath); err == nil {
 				conflictFiles = append(conflictFiles, rel)
 			} else {
 				conflictFiles = append(conflictFiles, filepath.Base(fpath))
@@ -314,7 +314,7 @@ func CheckGitConflicts(path string) DoctorCheck {
 		Status:  StatusError,
 		Message: fmt.Sprintf("Unresolved git conflicts in %d file(s)", len(conflictFiles)),
 		Detail:  strings.Join(conflictFiles, ", "),
-		Fix:     "Resolve merge conflicts in .beads/ files, then commit",
+		Fix:     "Resolve merge conflicts in .issuegraph/ files, then commit",
 	}
 }
 
@@ -322,9 +322,9 @@ func CheckGitConflicts(path string) DoctorCheck {
 // These often indicate a modeling mistake (deadlock: child waits for parent, parent waits for children).
 // However, they may be intentional in some workflows, so removal requires explicit opt-in.
 func CheckChildParentDependencies(path string) DoctorCheck {
-	beadsDir := ResolveBeadsDirForRepo(path)
+	issuegraphDir := ResolveIssueGraphDirForRepo(path)
 
-	db, store, err := openStoreDB(beadsDir)
+	db, store, err := openStoreDB(issuegraphDir)
 	if err != nil {
 		return DoctorCheck{
 			Name:    "Child-Parent Dependencies",
@@ -338,8 +338,8 @@ func CheckChildParentDependencies(path string) DoctorCheck {
 }
 
 // checkDoltConflicts queries the Dolt server for unresolved merge conflicts (GH-2249).
-func checkDoltConflicts(beadsDir string) DoctorCheck {
-	doltPath := getDatabasePath(beadsDir)
+func checkDoltConflicts(issuegraphDir string) DoctorCheck {
+	doltPath := getDatabasePath(issuegraphDir)
 	if _, err := os.Stat(doltPath); os.IsNotExist(err) {
 		return DoctorCheck{
 			Name:    "Git Conflicts",
@@ -348,7 +348,7 @@ func checkDoltConflicts(beadsDir string) DoctorCheck {
 		}
 	}
 
-	db, store, err := openStoreDB(beadsDir)
+	db, store, err := openStoreDB(issuegraphDir)
 	if err != nil {
 		return DoctorCheck{
 			Name:    "Git Conflicts",
@@ -409,7 +409,7 @@ func checkDoltConflicts(beadsDir string) DoctorCheck {
 		Status:  StatusError,
 		Message: fmt.Sprintf("Unresolved Dolt merge conflicts in %d table(s)", len(tables)),
 		Detail:  strings.Join(tables, ", "),
-		Fix:     "Resolve conflicts with 'bd dolt conflicts resolve' or 'dolt conflicts resolve --ours/--theirs'",
+		Fix:     "Resolve conflicts with 'issuegraph dolt conflicts resolve' or 'dolt conflicts resolve --ours/--theirs'",
 	}
 }
 
@@ -470,7 +470,7 @@ func checkChildParentDependenciesDB(db *sql.DB) DoctorCheck {
 		Status:   "warning",
 		Message:  fmt.Sprintf("%d child→parent dependency detected (may cause deadlock)", len(badDeps)),
 		Detail:   detail,
-		Fix:      "Run 'bd doctor --fix --fix-child-parent' to remove (if unintentional)",
+		Fix:      "Run 'issuegraph doctor --fix --fix-child-parent' to remove (if unintentional)",
 		Category: CategoryMetadata,
 	}
 }

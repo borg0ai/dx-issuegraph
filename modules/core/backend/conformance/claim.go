@@ -5,9 +5,9 @@ import (
 	"testing"
 	"time"
 
-	"github.com/steveyegge/beads/internal/storage"
-	"github.com/steveyegge/beads/internal/storage/issueops"
-	"github.com/steveyegge/beads/internal/types"
+	"github.com/borg0ai/dx-issuegraph/internal/storage"
+	"github.com/borg0ai/dx-issuegraph/internal/storage/issueops"
+	"github.com/borg0ai/dx-issuegraph/internal/types"
 )
 
 // Claim / lease behavior (Gas Station v1.1 dead-worker recovery). The in-tree backends
@@ -221,7 +221,7 @@ func testReclaimSkipsFreshLease(t *testing.T, f Factory) {
 // of the same conditional release finds the claim already gone and fails with
 // storage.ErrAssigneeMismatch instead of silently succeeding — the "exactly
 // once" property a release-if-current caller (e.g. a supervisor returning a
-// dead worker's bead) depends on.
+// dead worker's issue) depends on.
 func testUnclaimIfAssigneeMatch(t *testing.T, f Factory) {
 	s := f(t)
 	must(t, s.CreateIssue(ctx(), withDefaults(&types.Issue{ID: "ur-1", Title: "T"}), "a"))

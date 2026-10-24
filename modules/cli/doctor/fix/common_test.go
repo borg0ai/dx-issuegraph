@@ -39,12 +39,12 @@ func TestSafeWorkspacePath(t *testing.T) {
 	}{
 		{
 			name:    "normal relative path",
-			relPath: ".beads/issues.jsonl",
+			relPath: ".issuegraph/issues.jsonl",
 			wantErr: false,
 		},
 		{
 			name:    "nested relative path",
-			relPath: filepath.Join(".beads", "nested", "file.txt"),
+			relPath: filepath.Join(".issuegraph", "nested", "file.txt"),
 			wantErr: false,
 		},
 		{
@@ -77,88 +77,88 @@ func TestSafeWorkspacePath(t *testing.T) {
 	}
 }
 
-func TestResolvedWorkspaceBeadsDir(t *testing.T) {
-	t.Run("local workspace returns local beads dir", func(t *testing.T) {
+func TestResolvedWorkspaceIssueGraphDir(t *testing.T) {
+	t.Run("local workspace returns local issuegraph dir", func(t *testing.T) {
 		dir := setupTestWorkspace(t)
 
-		got, err := resolvedWorkspaceBeadsDir(dir)
+		got, err := resolvedWorkspaceIssueGraphDir(dir)
 		if err != nil {
-			t.Fatalf("resolvedWorkspaceBeadsDir() error = %v", err)
+			t.Fatalf("resolvedWorkspaceIssueGraphDir() error = %v", err)
 		}
 
-		want := resolvePathForTest(t, filepath.Join(dir, ".beads"))
+		want := resolvePathForTest(t, filepath.Join(dir, ".issuegraph"))
 		if got != want {
-			t.Fatalf("resolvedWorkspaceBeadsDir() = %q, want %q", got, want)
+			t.Fatalf("resolvedWorkspaceIssueGraphDir() = %q, want %q", got, want)
 		}
 	})
 
-	t.Run("shared worktree falls back to main repo beads dir", func(t *testing.T) {
+	t.Run("shared worktree falls back to main repo issuegraph dir", func(t *testing.T) {
 		mainRepoDir, worktreeDir := setupSharedWorktreeWorkspace(t)
-		mainBeadsDir := filepath.Join(mainRepoDir, ".beads")
-		if err := os.MkdirAll(mainBeadsDir, 0o755); err != nil {
-			t.Fatalf("failed to create main .beads dir: %v", err)
+		mainIssueGraphDir := filepath.Join(mainRepoDir, ".issuegraph")
+		if err := os.MkdirAll(mainIssueGraphDir, 0o755); err != nil {
+			t.Fatalf("failed to create main .issuegraph dir: %v", err)
 		}
 
-		got, err := resolvedWorkspaceBeadsDir(worktreeDir)
+		got, err := resolvedWorkspaceIssueGraphDir(worktreeDir)
 		if err != nil {
-			t.Fatalf("resolvedWorkspaceBeadsDir() error = %v", err)
+			t.Fatalf("resolvedWorkspaceIssueGraphDir() error = %v", err)
 		}
 
-		want := resolvePathForTest(t, mainBeadsDir)
+		want := resolvePathForTest(t, mainIssueGraphDir)
 		if got != want {
-			t.Fatalf("resolvedWorkspaceBeadsDir() = %q, want %q", got, mainBeadsDir)
+			t.Fatalf("resolvedWorkspaceIssueGraphDir() = %q, want %q", got, mainIssueGraphDir)
 		}
 	})
 
-	t.Run("worktree local beads dir takes precedence over shared fallback", func(t *testing.T) {
+	t.Run("worktree local issuegraph dir takes precedence over shared fallback", func(t *testing.T) {
 		mainRepoDir, worktreeDir := setupSharedWorktreeWorkspace(t)
-		mainBeadsDir := filepath.Join(mainRepoDir, ".beads")
-		worktreeBeadsDir := filepath.Join(worktreeDir, ".beads")
-		if err := os.MkdirAll(mainBeadsDir, 0o755); err != nil {
-			t.Fatalf("failed to create main .beads dir: %v", err)
+		mainIssueGraphDir := filepath.Join(mainRepoDir, ".issuegraph")
+		worktreeIssueGraphDir := filepath.Join(worktreeDir, ".issuegraph")
+		if err := os.MkdirAll(mainIssueGraphDir, 0o755); err != nil {
+			t.Fatalf("failed to create main .issuegraph dir: %v", err)
 		}
-		if err := os.MkdirAll(worktreeBeadsDir, 0o755); err != nil {
-			t.Fatalf("failed to create worktree .beads dir: %v", err)
+		if err := os.MkdirAll(worktreeIssueGraphDir, 0o755); err != nil {
+			t.Fatalf("failed to create worktree .issuegraph dir: %v", err)
 		}
 
-		got, err := resolvedWorkspaceBeadsDir(worktreeDir)
+		got, err := resolvedWorkspaceIssueGraphDir(worktreeDir)
 		if err != nil {
-			t.Fatalf("resolvedWorkspaceBeadsDir() error = %v", err)
+			t.Fatalf("resolvedWorkspaceIssueGraphDir() error = %v", err)
 		}
 
-		want := resolvePathForTest(t, worktreeBeadsDir)
+		want := resolvePathForTest(t, worktreeIssueGraphDir)
 		if got != want {
-			t.Fatalf("resolvedWorkspaceBeadsDir() = %q, want %q", got, worktreeBeadsDir)
+			t.Fatalf("resolvedWorkspaceIssueGraphDir() = %q, want %q", got, worktreeIssueGraphDir)
 		}
 	})
 }
 
-func TestLocalWorkspaceBeadsDir(t *testing.T) {
-	t.Run("returns local beads path for local workspace", func(t *testing.T) {
+func TestLocalWorkspaceIssueGraphDir(t *testing.T) {
+	t.Run("returns local issuegraph path for local workspace", func(t *testing.T) {
 		dir := setupTestWorkspace(t)
 
-		got, err := localWorkspaceBeadsDir(dir)
+		got, err := localWorkspaceIssueGraphDir(dir)
 		if err != nil {
-			t.Fatalf("localWorkspaceBeadsDir() error = %v", err)
+			t.Fatalf("localWorkspaceIssueGraphDir() error = %v", err)
 		}
 
-		want := filepath.Join(absPathForTest(t, dir), ".beads")
+		want := filepath.Join(absPathForTest(t, dir), ".issuegraph")
 		if got != want {
-			t.Fatalf("localWorkspaceBeadsDir() = %q, want %q", got, want)
+			t.Fatalf("localWorkspaceIssueGraphDir() = %q, want %q", got, want)
 		}
 	})
 
 	t.Run("shared worktree still returns worktree local path", func(t *testing.T) {
 		_, worktreeDir := setupSharedWorktreeWorkspace(t)
 
-		got, err := localWorkspaceBeadsDir(worktreeDir)
+		got, err := localWorkspaceIssueGraphDir(worktreeDir)
 		if err != nil {
-			t.Fatalf("localWorkspaceBeadsDir() error = %v", err)
+			t.Fatalf("localWorkspaceIssueGraphDir() error = %v", err)
 		}
 
-		want := filepath.Join(absPathForTest(t, worktreeDir), ".beads")
+		want := filepath.Join(absPathForTest(t, worktreeDir), ".issuegraph")
 		if got != want {
-			t.Fatalf("localWorkspaceBeadsDir() = %q, want %q", got, want)
+			t.Fatalf("localWorkspaceIssueGraphDir() = %q, want %q", got, want)
 		}
 	})
 }

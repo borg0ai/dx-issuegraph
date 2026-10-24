@@ -8,8 +8,8 @@ import (
 
 	"github.com/spf13/cobra"
 
-	"github.com/steveyegge/beads/internal/metrics"
-	"github.com/steveyegge/beads/internal/storage/kvkeys"
+	"github.com/borg0ai/dx-issuegraph/internal/metrics"
+	"github.com/borg0ai/dx-issuegraph/internal/storage/kvkeys"
 )
 
 // kvPrefix is prepended to all user keys to separate them from internal config
@@ -29,13 +29,13 @@ func validateKVKey(key string) error {
 		return fmt.Errorf("key cannot start with 'kv.' (would create nested prefix)")
 	}
 	// Reserve the persistent-memory namespace: a generic memory.* key would
-	// store to kv.memory.*, indistinguishable from a `bd remember` memory, and
+	// store to kv.memory.*, indistinguishable from a `issuegraph remember` memory, and
 	// the merge resolver auto-resolves kv.memory.* conflicts with --theirs
 	// (GH#2474). Without this guard a user's deliberate kv value could be
 	// silently overridden by a remote on pull. Keep the namespace owned by
-	// bd remember / bd forget.
+	// issuegraph remember / issuegraph forget.
 	if strings.HasPrefix(key, kvkeys.MemoryPrefix) {
-		return fmt.Errorf("key cannot start with %q (reserved for persistent memories; use 'bd remember' / 'bd forget')", kvkeys.MemoryPrefix)
+		return fmt.Errorf("key cannot start with %q (reserved for persistent memories; use 'issuegraph remember' / 'issuegraph forget')", kvkeys.MemoryPrefix)
 	}
 	// Prevent keys that look like internal config
 	if strings.HasPrefix(key, "sync.") || strings.HasPrefix(key, "conflict.") ||
@@ -47,7 +47,7 @@ func validateKVKey(key string) error {
 	return nil
 }
 
-// printKVSetResult renders the `bd kv set` success output. Shared by the
+// printKVSetResult renders the `issuegraph kv set` success output. Shared by the
 // classic and proxied-server paths so the output shape cannot drift.
 func printKVSetResult(key, value string) error {
 	if jsonOutput {
@@ -60,7 +60,7 @@ func printKVSetResult(key, value string) error {
 	return nil
 }
 
-// printKVGetResult renders the `bd kv get` output (including the not-found
+// printKVGetResult renders the `issuegraph kv get` output (including the not-found
 // SilentExit contract). Shared by the classic and proxied-server paths.
 func printKVGetResult(key, value string) error {
 	if jsonOutput {
@@ -84,7 +84,7 @@ func printKVGetResult(key, value string) error {
 	return nil
 }
 
-// printKVClearResult renders the `bd kv clear` success output. Shared by the
+// printKVClearResult renders the `issuegraph kv clear` success output. Shared by the
 // classic and proxied-server paths.
 func printKVClearResult(key string) error {
 	if jsonOutput {
@@ -110,7 +110,7 @@ func kvPairsFromConfig(allConfig map[string]string) map[string]string {
 	return kvPairs
 }
 
-// printKVListResult renders the `bd kv list` output. Shared by the classic
+// printKVListResult renders the `issuegraph kv list` output. Shared by the classic
 // and proxied-server paths (a mail client parses the --json shape; keep it
 // byte-identical across modes).
 func printKVListResult(kvPairs map[string]string) error {
@@ -141,31 +141,31 @@ var kvCmd = &cobra.Command{
 	Use:     "kv",
 	GroupID: "setup",
 	Short:   "Key-value store commands",
-	Long: `Commands for working with the beads key-value store.
+	Long: `Commands for working with the issuegraph key-value store.
 
 The key-value store is useful for storing flags, environment variables,
 or other user-defined data that persists across sessions.
 
 Examples:
-  bd kv set mykey myvalue    # Set a value
-  bd kv get mykey            # Get a value
-  bd kv clear mykey          # Delete a key
-  bd kv list                 # List all key-value pairs`,
+  issuegraph kv set mykey myvalue    # Set a value
+  issuegraph kv get mykey            # Get a value
+  issuegraph kv clear mykey          # Delete a key
+  issuegraph kv list                 # List all key-value pairs`,
 }
 
 // kvSetCmd sets a key-value pair
 var kvSetCmd = &cobra.Command{
 	Use:   "set <key> <value>",
 	Short: "Set a key-value pair",
-	Long: `Set a key-value pair in the beads key-value store.
+	Long: `Set a key-value pair in the issuegraph key-value store.
 
 This is useful for storing flags, environment variables, or other
 user-defined data that persists across sessions.
 
 Examples:
-  bd kv set feature_flag true
-  bd kv set api_endpoint https://api.example.com
-  bd kv set max_retries 3`,
+  issuegraph kv set feature_flag true
+  issuegraph kv set api_endpoint https://api.example.com
+  issuegraph kv set max_retries 3`,
 	Args:          cobra.ExactArgs(2),
 	SilenceUsage:  true,
 	SilenceErrors: true,
@@ -208,11 +208,11 @@ Examples:
 var kvGetCmd = &cobra.Command{
 	Use:   "get <key>",
 	Short: "Get a value by key",
-	Long: `Get a value from the beads key-value store.
+	Long: `Get a value from the issuegraph key-value store.
 
 Examples:
-  bd kv get feature_flag
-  bd kv get api_endpoint`,
+  issuegraph kv get feature_flag
+  issuegraph kv get api_endpoint`,
 	Args:          cobra.ExactArgs(1),
 	SilenceUsage:  true,
 	SilenceErrors: true,
@@ -250,11 +250,11 @@ Examples:
 var kvClearCmd = &cobra.Command{
 	Use:   "clear <key>",
 	Short: "Delete a key-value pair",
-	Long: `Delete a key from the beads key-value store.
+	Long: `Delete a key from the issuegraph key-value store.
 
 Examples:
-  bd kv clear feature_flag
-  bd kv clear api_endpoint`,
+  issuegraph kv clear feature_flag
+  issuegraph kv clear api_endpoint`,
 	Args:          cobra.ExactArgs(1),
 	SilenceUsage:  true,
 	SilenceErrors: true,
@@ -296,11 +296,11 @@ Examples:
 var kvListCmd = &cobra.Command{
 	Use:   "list",
 	Short: "List all key-value pairs",
-	Long: `List all key-value pairs in the beads key-value store.
+	Long: `List all key-value pairs in the issuegraph key-value store.
 
 Examples:
-  bd kv list
-  bd kv list --json`,
+  issuegraph kv list
+  issuegraph kv list --json`,
 	SilenceUsage:  true,
 	SilenceErrors: true,
 	RunE: func(cmd *cobra.Command, args []string) error {

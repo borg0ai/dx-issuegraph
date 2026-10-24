@@ -5,14 +5,14 @@ import (
 	"errors"
 	"fmt"
 
-	"github.com/steveyegge/beads/internal/beads"
+	"github.com/borg0ai/dx-issuegraph/internal/issuegraph"
 )
 
-// ErrNoBeadsDatabase reports that no beads workspace could be resolved at all,
+// ErrNoIssueGraphDatabase reports that no issuegraph workspace could be resolved at all,
 // as distinct from a workspace whose storage failed to open. Callers that must
-// tell "nothing here" apart from "the store is broken" — `bd prime`'s memory
+// tell "nothing here" apart from "the store is broken" — `issuegraph prime`'s memory
 // injection, for one — match on it with errors.Is rather than on the message.
-var ErrNoBeadsDatabase = errors.New("no beads database found")
+var ErrNoIssueGraphDatabase = errors.New("no issuegraph database found")
 
 // ensureDirectMode makes sure the CLI is operating in direct-storage mode.
 func ensureDirectMode(_ string) error {
@@ -37,22 +37,22 @@ func ensureStoreActiveWithContext(ctx context.Context) error {
 		return nil
 	}
 
-	// Find the .beads directory
-	beadsDir := beads.FindBeadsDir()
-	if beadsDir == "" {
+	// Find the .issuegraph directory
+	issuegraphDir := issuegraph.FindIssueGraphDir()
+	if issuegraphDir == "" {
 		return fmt.Errorf("%w.\n"+
-			"Hint: run 'bd init' to create a database in the current directory", ErrNoBeadsDatabase)
+			"Hint: run 'issuegraph init' to create a database in the current directory", ErrNoIssueGraphDatabase)
 	}
 
 	// Use the factory to create the appropriate backend
 	// based on metadata.json configuration and build tags
-	store, err := newDoltStoreFromConfig(ctx, beadsDir)
+	store, err := newDoltStoreFromConfig(ctx, issuegraphDir)
 	if err != nil {
 		return fmt.Errorf("failed to open database: %w\nHint: %s", err, diagHint())
 	}
 
 	// Update the database path for compatibility with code that expects it
-	if dbPath := beads.FindDatabasePath(); dbPath != "" {
+	if dbPath := issuegraph.FindDatabasePath(); dbPath != "" {
 		setDBPath(dbPath)
 	}
 

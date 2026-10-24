@@ -7,8 +7,8 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/steveyegge/beads/internal/types"
-	"github.com/steveyegge/beads/issueops"
+	"github.com/borg0ai/dx-issuegraph/internal/types"
+	"github.com/borg0ai/dx-issuegraph/issueops"
 )
 
 // These are pure: the release path runs end to end over a real listener against
@@ -24,7 +24,7 @@ import (
 // by internal/storage/uow/releaser_contract_test.go, which this slice cites
 // rather than duplicates.
 
-const releasePath = "/v0/beads/issues/bd-1:release"
+const releasePath = "/v0/issuegraph/issues/bd-1:release"
 
 func (ts *testServer) releaseIssue(t *testing.T, path, body string) *http.Response {
 	t.Helper()

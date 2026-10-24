@@ -5,12 +5,12 @@ import (
 	"database/sql"
 	"testing"
 
-	"github.com/steveyegge/beads/internal/storage"
-	"github.com/steveyegge/beads/internal/types"
+	"github.com/borg0ai/dx-issuegraph/internal/storage"
+	"github.com/borg0ai/dx-issuegraph/internal/types"
 )
 
 // depEventsOfType returns the events on issue id whose type matches et, as read
-// back through the store (working-set view, the same view bd and library
+// back through the store (working-set view, the same view issuegraph and library
 // callers see).
 func depEventsOfType(t *testing.T, ctx context.Context, store *DoltStore, id string, et types.EventType) []*types.Event {
 	t.Helper()
@@ -111,7 +111,7 @@ func TestDependencyEventEmission(t *testing.T) {
 		}, "tester", storage.DependencyAddOptions{EmitEvent: true}); err != nil {
 			t.Fatalf("AddDependency: %v", err)
 		}
-		// Only the explicit bd dep remove verb (EmitEvent) records history.
+		// Only the explicit issuegraph dep remove verb (EmitEvent) records history.
 		if err := store.RemoveDependencyWithOptions(ctx, src, tgt, "remover", storage.DependencyRemoveOptions{EmitEvent: true}); err != nil {
 			t.Fatalf("RemoveDependency: %v", err)
 		}
@@ -154,7 +154,7 @@ func TestDependencyEventEmission(t *testing.T) {
 			t.Fatalf("AddDependency: %v", err)
 		}
 		// The plain RemoveDependency is the silent structural default — the same
-		// call issue delete / bd update reparent / batch / duplicate cleanup make.
+		// call issue delete / issuegraph update reparent / batch / duplicate cleanup make.
 		// It removes the edge but records NO dependency_removed event, matching
 		// the proxied DeleteAllForIDs(DepInsertOpts{}) path.
 		if err := store.RemoveDependency(ctx, src, tgt, "structural"); err != nil {
@@ -257,7 +257,7 @@ func TestRunInTransactionAddRemoveDependencyCommitsEvents(t *testing.T) {
 
 // TestCreateTimeTxAddDependencyDoesNotEmit proves the create-with-deps path —
 // tx.AddDependency without EmitEvent, exactly what createIssueWithDeps runs for
-// bd create --parent/--deps/--waits-for — wires the edge but records NO
+// issuegraph create --parent/--deps/--waits-for — wires the edge but records NO
 // dependency_added event. This keeps implicit create-time edges quiet and in
 // parity with the proxied create-with-deps contract (depRepo.Insert without
 // EmitEvent), which the domain consistency test asserts on the proxied side.
@@ -272,7 +272,7 @@ func TestCreateTimeTxAddDependencyDoesNotEmit(t *testing.T) {
 	createPerm(t, ctx, store, child)
 
 	// Mirror createIssueWithDeps: add the implicit parent-child edge through the
-	// plain transaction AddDependency (no EmitEvent), the exact call bd create
+	// plain transaction AddDependency (no EmitEvent), the exact call issuegraph create
 	// --parent makes.
 	if err := store.RunInTransaction(ctx, "test: create-time parent edge", func(tx storage.Transaction) error {
 		return tx.AddDependency(ctx, &types.Dependency{IssueID: child, DependsOnID: parent, Type: types.DepParentChild}, "tester")

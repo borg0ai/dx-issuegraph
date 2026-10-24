@@ -12,49 +12,49 @@ import (
 	"testing"
 )
 
-// bdSupersede runs "bd supersede" with the given args and returns raw stdout.
-func bdSupersede(t *testing.T, bd, dir string, args ...string) string {
+// issuegraphSupersede runs "issuegraph supersede" with the given args and returns raw stdout.
+func issuegraphSupersede(t *testing.T, issuegraph, dir string, args ...string) string {
 	t.Helper()
 	fullArgs := append([]string{"supersede"}, args...)
-	cmd := exec.Command(bd, fullArgs...)
+	cmd := exec.Command(issuegraph, fullArgs...)
 	cmd.Dir = dir
-	cmd.Env = bdEnv(dir)
+	cmd.Env = issuegraphEnv(dir)
 	stdout, stderr, err := runCommandBuffers(t, cmd)
 	if err != nil {
-		t.Fatalf("bd supersede %s failed: %v\nstdout:\n%s\nstderr:\n%s", strings.Join(args, " "), err, stdout.String(), stderr.String())
+		t.Fatalf("issuegraph supersede %s failed: %v\nstdout:\n%s\nstderr:\n%s", strings.Join(args, " "), err, stdout.String(), stderr.String())
 	}
 	return stdout.String()
 }
 
-// bdSupersedeFail runs "bd supersede" expecting failure.
-func bdSupersedeFail(t *testing.T, bd, dir string, args ...string) string {
+// issuegraphSupersedeFail runs "issuegraph supersede" expecting failure.
+func issuegraphSupersedeFail(t *testing.T, issuegraph, dir string, args ...string) string {
 	t.Helper()
 	fullArgs := append([]string{"supersede"}, args...)
-	cmd := exec.Command(bd, fullArgs...)
+	cmd := exec.Command(issuegraph, fullArgs...)
 	cmd.Dir = dir
-	cmd.Env = bdEnv(dir)
+	cmd.Env = issuegraphEnv(dir)
 	out, err := cmd.CombinedOutput()
 	if err == nil {
-		t.Fatalf("expected bd supersede %s to fail, but succeeded:\n%s", strings.Join(args, " "), out)
+		t.Fatalf("expected issuegraph supersede %s to fail, but succeeded:\n%s", strings.Join(args, " "), out)
 	}
 	return string(out)
 }
 
 func TestEmbeddedSupersede(t *testing.T) {
-	if os.Getenv("BEADS_TEST_EMBEDDED_DOLT") != "1" {
-		t.Skip("set BEADS_TEST_EMBEDDED_DOLT=1 to run embedded dolt integration tests")
+	if os.Getenv("ISSUEGRAPH_TEST_EMBEDDED_DOLT") != "1" {
+		t.Skip("set ISSUEGRAPH_TEST_EMBEDDED_DOLT=1 to run embedded dolt integration tests")
 	}
 	t.Parallel()
 
-	bd := buildEmbeddedBD(t)
-	dir, beadsDir, _ := bdInit(t, bd, "--prefix", "ss")
+	issuegraph := buildEmbeddedBD(t)
+	dir, issuegraphDir, _ := issuegraphInit(t, issuegraph, "--prefix", "ss")
 
 	// ===== Mark as superseded =====
 
 	t.Run("mark_superseded", func(t *testing.T) {
-		oldIssue := bdCreate(t, bd, dir, "Old spec v1", "--type", "task")
-		newIssue := bdCreate(t, bd, dir, "New spec v2", "--type", "task")
-		out := bdSupersede(t, bd, dir, oldIssue.ID, "--with", newIssue.ID)
+		oldIssue := issuegraphCreate(t, issuegraph, dir, "Old spec v1", "--type", "task")
+		newIssue := issuegraphCreate(t, issuegraph, dir, "New spec v2", "--type", "task")
+		out := issuegraphSupersede(t, issuegraph, dir, oldIssue.ID, "--with", newIssue.ID)
 		if !strings.Contains(out, "superseded") {
 			t.Errorf("expected 'superseded' in output: %s", out)
 		}
@@ -63,11 +63,11 @@ func TestEmbeddedSupersede(t *testing.T) {
 	// ===== Verify closure =====
 
 	t.Run("superseded_is_closed", func(t *testing.T) {
-		oldIssue := bdCreate(t, bd, dir, "Closed old", "--type", "task")
-		newIssue := bdCreate(t, bd, dir, "Closed new", "--type", "task")
-		bdSupersede(t, bd, dir, oldIssue.ID, "--with", newIssue.ID)
+		oldIssue := issuegraphCreate(t, issuegraph, dir, "Closed old", "--type", "task")
+		newIssue := issuegraphCreate(t, issuegraph, dir, "Closed new", "--type", "task")
+		issuegraphSupersede(t, issuegraph, dir, oldIssue.ID, "--with", newIssue.ID)
 
-		s := openStore(t, beadsDir, "ss")
+		s := openStore(t, issuegraphDir, "ss")
 		issue, err := s.GetIssue(t.Context(), oldIssue.ID)
 		if err != nil {
 			t.Fatalf("GetIssue: %v", err)
@@ -83,11 +83,11 @@ func TestEmbeddedSupersede(t *testing.T) {
 	// ===== Creates supersedes link =====
 
 	t.Run("creates_supersedes_link", func(t *testing.T) {
-		oldIssue := bdCreate(t, bd, dir, "Link old", "--type", "task")
-		newIssue := bdCreate(t, bd, dir, "Link new", "--type", "task")
-		bdSupersede(t, bd, dir, oldIssue.ID, "--with", newIssue.ID)
+		oldIssue := issuegraphCreate(t, issuegraph, dir, "Link old", "--type", "task")
+		newIssue := issuegraphCreate(t, issuegraph, dir, "Link new", "--type", "task")
+		issuegraphSupersede(t, issuegraph, dir, oldIssue.ID, "--with", newIssue.ID)
 
-		out := bdDep(t, bd, dir, "list", oldIssue.ID)
+		out := issuegraphDep(t, issuegraph, dir, "list", oldIssue.ID)
 		if !strings.Contains(out, newIssue.ID) {
 			t.Errorf("expected new issue in dep list: %s", out)
 		}
@@ -96,12 +96,12 @@ func TestEmbeddedSupersede(t *testing.T) {
 	// ===== JSON output =====
 
 	t.Run("json_output", func(t *testing.T) {
-		oldIssue := bdCreate(t, bd, dir, "JSON old", "--type", "task")
-		newIssue := bdCreate(t, bd, dir, "JSON new", "--type", "task")
+		oldIssue := issuegraphCreate(t, issuegraph, dir, "JSON old", "--type", "task")
+		newIssue := issuegraphCreate(t, issuegraph, dir, "JSON new", "--type", "task")
 		fullArgs := []string{"supersede", oldIssue.ID, "--with", newIssue.ID, "--json"}
-		cmd := exec.Command(bd, fullArgs...)
+		cmd := exec.Command(issuegraph, fullArgs...)
 		cmd.Dir = dir
-		cmd.Env = bdEnv(dir)
+		cmd.Env = issuegraphEnv(dir)
 		stdout, stderr, err := runCommandBuffers(t, cmd)
 		if err != nil {
 			t.Fatalf("supersede --json failed: %v\nstdout:\n%s\nstderr:\n%s", err, stdout.String(), stderr.String())
@@ -126,32 +126,32 @@ func TestEmbeddedSupersede(t *testing.T) {
 	// ===== Error: same ID =====
 
 	t.Run("error_same_id", func(t *testing.T) {
-		issue := bdCreate(t, bd, dir, "Same ID", "--type", "task")
-		bdSupersedeFail(t, bd, dir, issue.ID, "--with", issue.ID)
+		issue := issuegraphCreate(t, issuegraph, dir, "Same ID", "--type", "task")
+		issuegraphSupersedeFail(t, issuegraph, dir, issue.ID, "--with", issue.ID)
 	})
 
 	// ===== Error: nonexistent replacement =====
 
 	t.Run("error_nonexistent_replacement", func(t *testing.T) {
-		issue := bdCreate(t, bd, dir, "No replacement", "--type", "task")
-		bdSupersedeFail(t, bd, dir, issue.ID, "--with", "ss-nonexistent999")
+		issue := issuegraphCreate(t, issuegraph, dir, "No replacement", "--type", "task")
+		issuegraphSupersedeFail(t, issuegraph, dir, issue.ID, "--with", "ss-nonexistent999")
 	})
 }
 
 // TestEmbeddedSupersedeConcurrent exercises supersede operations concurrently.
 func TestEmbeddedSupersedeConcurrent(t *testing.T) {
-	if os.Getenv("BEADS_TEST_EMBEDDED_DOLT") != "1" {
-		t.Skip("set BEADS_TEST_EMBEDDED_DOLT=1 to run embedded dolt integration tests")
+	if os.Getenv("ISSUEGRAPH_TEST_EMBEDDED_DOLT") != "1" {
+		t.Skip("set ISSUEGRAPH_TEST_EMBEDDED_DOLT=1 to run embedded dolt integration tests")
 	}
 	t.Parallel()
 
-	bd := buildEmbeddedBD(t)
-	dir, _, _ := bdInit(t, bd, "--prefix", "ssc")
+	issuegraph := buildEmbeddedBD(t)
+	dir, _, _ := issuegraphInit(t, issuegraph, "--prefix", "ssc")
 
-	newIssue := bdCreate(t, bd, dir, "Concurrent replacement", "--type", "task")
+	newIssue := issuegraphCreate(t, issuegraph, dir, "Concurrent replacement", "--type", "task")
 	var oldIDs []string
 	for i := 0; i < 8; i++ {
-		old := bdCreate(t, bd, dir, fmt.Sprintf("concurrent-old-%d", i), "--type", "task")
+		old := issuegraphCreate(t, issuegraph, dir, fmt.Sprintf("concurrent-old-%d", i), "--type", "task")
 		oldIDs = append(oldIDs, old.ID)
 	}
 
@@ -170,9 +170,9 @@ func TestEmbeddedSupersedeConcurrent(t *testing.T) {
 			r := workerResult{worker: worker}
 
 			args := []string{"supersede", oldIDs[worker], "--with", newIssue.ID}
-			cmd := exec.Command(bd, args...)
+			cmd := exec.Command(issuegraph, args...)
 			cmd.Dir = dir
-			cmd.Env = bdEnv(dir)
+			cmd.Env = issuegraphEnv(dir)
 			out, err := cmd.CombinedOutput()
 			if err != nil {
 				r.err = fmt.Errorf("worker %d: %v\n%s", worker, err, out)

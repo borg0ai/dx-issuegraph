@@ -1,6 +1,7 @@
 #!/usr/bin/env node
 
 const https = require('https');
+const crypto = require('crypto');
 const fs = require('fs');
 const path = require('path');
 const os = require('os');
@@ -17,7 +18,7 @@ function getPlatformInfo() {
 
   let platformName;
   let archName;
-  let binaryName = 'bd';
+  let binaryName = 'issuegraph';
 
   // Map Node.js platform names to GitHub release names
   switch (platform) {
@@ -32,7 +33,7 @@ function getPlatformInfo() {
       break;
     case 'win32':
       platformName = 'windows';
-      binaryName = 'bd.exe';
+      binaryName = 'issuegraph.exe';
       break;
     default:
       throw new Error(`Unsupported platform: ${platform}`);
@@ -121,6 +122,19 @@ function downloadFile(url, dest) {
       reject(err);
     });
   });
+}
+
+// Verify an archive against the release's checksums.txt ("<sha256>  <name>" lines)
+function verifyChecksum(archivePath, checksumsText, archiveName) {
+  const line = checksumsText.split('\n').find((l) => l.trim().split(/\s+/)[1] === archiveName);
+  if (!line) {
+    throw new Error(`No checksum listed for ${archiveName}`);
+  }
+  const expected = line.trim().split(/\s+/)[0].toLowerCase();
+  const actual = crypto.createHash('sha256').update(fs.readFileSync(archivePath)).digest('hex');
+  if (actual !== expected) {
+    throw new Error(`Checksum mismatch for ${archiveName}: expected ${expected}, got ${actual}`);
+  }
 }
 
 // Extract tar.gz file
@@ -248,7 +262,7 @@ async function install() {
   try {
     const { platformName, archName, binaryName } = getPlatformInfo();
 
-    console.log(`Installing bd v${VERSION} for ${platformName}-${archName}...`);
+    console.log(`Installing issuegraph v${VERSION} for ${platformName}-${archName}...`);
 
     // Determine destination paths
     const binDir = path.join(__dirname, '..', 'bin');
@@ -260,16 +274,31 @@ async function install() {
     }
 
     // Construct download URL
-    // Format: https://github.com/gastownhall/beads/releases/download/v0.21.5/beads_0.21.5_darwin_amd64.tar.gz
+    // Format: https://github.com/borg0ai/dx-issuegraph/releases/download/v0.21.5/issuegraph_0.21.5_darwin_amd64.tar.gz
     const releaseVersion = VERSION;
     const archiveExt = platformName === 'windows' ? 'zip' : 'tar.gz';
-    const archiveName = `beads_${releaseVersion}_${platformName}_${archName}.${archiveExt}`;
-    const downloadUrl = `https://github.com/gastownhall/beads/releases/download/v${releaseVersion}/${archiveName}`;
+    const archiveName = `issuegraph_${releaseVersion}_${platformName}_${archName}.${archiveExt}`;
+    const downloadUrl = `https://github.com/borg0ai/dx-issuegraph/releases/download/v${releaseVersion}/${archiveName}`;
     const archivePath = path.join(binDir, archiveName);
 
     // Download the archive
-    console.log(`Downloading bd binary...`);
+    console.log(`Downloading issuegraph binary...`);
     await downloadFile(downloadUrl, archivePath);
+
+    // Verify the archive against the release checksums before extracting it.
+    const checksumsPath = path.join(binDir, 'checksums.txt');
+    try {
+      await downloadFile(
+        `https://github.com/borg0ai/dx-issuegraph/releases/download/v${releaseVersion}/checksums.txt`,
+        checksumsPath
+      );
+      verifyChecksum(archivePath, fs.readFileSync(checksumsPath, 'utf8'), archiveName);
+    } catch (err) {
+      fs.rmSync(archivePath, { force: true });
+      throw err;
+    } finally {
+      fs.rmSync(checksumsPath, { force: true });
+    }
 
     // On Windows, wait for the OS to release the file lock before extracting.
     // Windows may hold the file handle for a short time after close().
@@ -290,24 +319,28 @@ async function install() {
     // Verify the binary works
     try {
       const output = execSync(`"${binaryPath}" version`, { encoding: 'utf8' });
-      console.log(`✓ bd installed successfully: ${output.trim()}`);
+      console.log(`✓ issuegraph installed successfully: ${output.trim()}`);
     } catch (err) {
       throw new Error(`Binary verification failed: ${err.message}`);
     }
 
   } catch (err) {
-    console.error(`Error installing bd: ${err.message}`);
+    console.error(`Error installing issuegraph: ${err.message}`);
     console.error('');
     console.error('Installation failed. You can try:');
-    console.error('1. Installing manually from: https://github.com/gastownhall/beads/releases');
-    console.error('2. Using the install script: curl -fsSL https://raw.githubusercontent.com/gastownhall/beads/main/scripts/install.sh | bash');
-    console.error('3. Opening an issue: https://github.com/gastownhall/beads/issues');
+    console.error('1. Installing manually from: https://github.com/borg0ai/dx-issuegraph/releases');
+    console.error('2. Using the install script: curl -fsSL https://raw.githubusercontent.com/borg0ai/dx-issuegraph/main/scripts/install.sh | bash');
+    console.error('3. Opening an issue: https://github.com/borg0ai/dx-issuegraph/issues');
     process.exit(1);
   }
 }
 
+module.exports = { verifyChecksum };
+
 // Run installation if not in CI environment
-if (!process.env.CI) {
+if (require.main !== module) {
+  // loaded as a module (tests)
+} else if (!process.env.CI) {
   install();
 } else {
   console.log('Skipping binary download in CI environment');

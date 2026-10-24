@@ -7,7 +7,7 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/steveyegge/beads/internal/config"
+	"github.com/borg0ai/dx-issuegraph/internal/config"
 )
 
 func TestCheckResult_Passed(t *testing.T) {
@@ -263,19 +263,19 @@ func TestRunFmtCheck_Unformatted(t *testing.T) {
 	}
 }
 
-func TestRunBeadsPollutionCheck_Clean(t *testing.T) {
-	// In a clean repo state (no uncommitted .beads changes), the check should pass.
-	result := runBeadsPollutionCheck()
+func TestRunIssueGraphPollutionCheck_Clean(t *testing.T) {
+	// In a clean repo state (no uncommitted .issuegraph changes), the check should pass.
+	result := runIssueGraphPollutionCheck()
 	if !result.Passed {
-		// If this fails, it means the test environment itself has .beads changes,
+		// If this fails, it means the test environment itself has .issuegraph changes,
 		// which is valid — skip rather than fail.
 		if strings.Contains(result.Output, "modified") {
-			t.Skip("test environment has .beads changes, skipping")
+			t.Skip("test environment has .issuegraph changes, skipping")
 		}
 		if result.Skipped {
 			t.Skip("cannot determine branch in test environment")
 		}
-		t.Fatalf("expected beads pollution check to pass in clean state, got: %q", result.Output)
+		t.Fatalf("expected issuegraph pollution check to pass in clean state, got: %q", result.Output)
 	}
 }
 
@@ -321,7 +321,7 @@ func writeMarkerDir(t *testing.T, files map[string]string) string {
 }
 
 func TestBuildPreflightChecklist(t *testing.T) {
-	beadsGoMod := "module github.com/steveyegge/beads\n\ngo 1.22\n"
+	issuegraphGoMod := "module github.com/borg0ai/dx-issuegraph\n\ngo 1.22\n"
 	otherGoMod := "module example.com/foo\n\ngo 1.22\n"
 
 	cases := []struct {
@@ -331,9 +331,9 @@ func TestBuildPreflightChecklist(t *testing.T) {
 		wantAbsent  []string // substring present in no item
 	}{
 		{
-			name:        "beads repo keeps rich Go+Nix checklist",
-			files:       map[string]string{"go.mod": beadsGoMod, "default.nix": "{}", ".beads": ""},
-			wantContain: []string{"gms_pure_go", "Version sync", "Nix hash", "No beads pollution"},
+			name:        "issuegraph repo keeps rich Go+Nix checklist",
+			files:       map[string]string{"go.mod": issuegraphGoMod, "default.nix": "{}", ".issuegraph": ""},
+			wantContain: []string{"gms_pure_go", "Version sync", "Nix hash", "No issuegraph pollution"},
 		},
 		{
 			name:        "generic Go project gets plain go commands",
@@ -360,8 +360,8 @@ func TestBuildPreflightChecklist(t *testing.T) {
 		},
 		{
 			name:        "python setup.py",
-			files:       map[string]string{"setup.py": "", ".beads": ""},
-			wantContain: []string{"pytest", "No beads pollution"},
+			files:       map[string]string{"setup.py": "", ".issuegraph": ""},
+			wantContain: []string{"pytest", "No issuegraph pollution"},
 		},
 		{
 			name:        "unknown stack gets generic reminder",
@@ -389,18 +389,18 @@ func TestBuildPreflightChecklist(t *testing.T) {
 	}
 }
 
-func TestIsBeadsRepo(t *testing.T) {
-	beads := writeMarkerDir(t, map[string]string{"go.mod": "module github.com/steveyegge/beads\n"})
-	if !isBeadsRepo(beads) {
-		t.Error("expected beads module to be detected as the beads repo")
+func TestIsIssueGraphRepo(t *testing.T) {
+	issuegraph := writeMarkerDir(t, map[string]string{"go.mod": "module github.com/borg0ai/dx-issuegraph\n"})
+	if !isIssueGraphRepo(issuegraph) {
+		t.Error("expected issuegraph module to be detected as the issuegraph repo")
 	}
 	other := writeMarkerDir(t, map[string]string{"go.mod": "module example.com/foo\n"})
-	if isBeadsRepo(other) {
-		t.Error("non-beads module should not be detected as the beads repo")
+	if isIssueGraphRepo(other) {
+		t.Error("non-issuegraph module should not be detected as the issuegraph repo")
 	}
 	empty := t.TempDir()
-	if isBeadsRepo(empty) {
-		t.Error("dir without go.mod should not be detected as the beads repo")
+	if isIssueGraphRepo(empty) {
+		t.Error("dir without go.mod should not be detected as the issuegraph repo")
 	}
 }
 

@@ -3,9 +3,9 @@ package main
 import (
 	"fmt"
 
+	"github.com/borg0ai/dx-issuegraph/internal/metrics"
+	"github.com/borg0ai/dx-issuegraph/internal/ui"
 	"github.com/spf13/cobra"
-	"github.com/steveyegge/beads/internal/metrics"
-	"github.com/steveyegge/beads/internal/ui"
 )
 
 // validateCommentArgs runs as cobra's Args validation for the singular
@@ -15,10 +15,10 @@ import (
 // only job is "add a comment to <id>" — so when the id positional argument
 // is exactly a word that IS a real subcommand on the plural sibling ("list",
 // "add"), the near-certain explanation is that the caller confused the
-// singular and plural forms, not that a bead is genuinely named "list" or
+// singular and plural forms, not that a issue is genuinely named "list" or
 // "add" (real ids always carry a prefix+hyphen — see looksLikePrefixedID).
 // Left unguarded, that word silently resolves via ResolvePartialID's
-// substring/prefix fallback to whatever existing bead or wisp id happens to
+// substring/prefix fallback to whatever existing issue or wisp id happens to
 // contain it, and the comment lands on the WRONG issue with no error.
 func validateCommentArgs(cmd *cobra.Command, args []string) error {
 	if err := cobra.MinimumNArgs(1)(cmd, args); err != nil {
@@ -26,24 +26,24 @@ func validateCommentArgs(cmd *cobra.Command, args []string) error {
 	}
 	switch args[0] {
 	case "list":
-		return HandleErrorRespectJSON(`"bd comment list ..." is not valid — "comment" (singular) takes an issue id first and has no "list" subcommand.
+		return HandleErrorRespectJSON(`"issuegraph comment list ..." is not valid — "comment" (singular) takes an issue id first and has no "list" subcommand.
 
 To list comments on an issue:
-  bd comments <issue-id>
+  issuegraph comments <issue-id>
 
 To add a comment:
-  bd comment <issue-id> "text"
+  issuegraph comment <issue-id> "text"
 
-See: bd comment --help`)
+See: issuegraph comment --help`)
 	case "add":
-		return HandleErrorRespectJSON(`"bd comment add ..." is not valid — "comment" (singular) already means "add a comment" and takes an issue id first, not the word "add".
+		return HandleErrorRespectJSON(`"issuegraph comment add ..." is not valid — "comment" (singular) already means "add a comment" and takes an issue id first, not the word "add".
 
 To add a comment:
-  bd comment <issue-id> "text"
+  issuegraph comment <issue-id> "text"
 
-("add" is only a subcommand of the plural form: bd comments add <issue-id> "text".)
+("add" is only a subcommand of the plural form: issuegraph comments add <issue-id> "text".)
 
-See: bd comment --help`)
+See: issuegraph comment --help`)
 	}
 	return nil
 }
@@ -54,16 +54,16 @@ var commentCmd = &cobra.Command{
 	Short:   "Add a comment to an issue",
 	Long: `Add a comment to an issue.
 
-Shorthand for 'bd comments add <id> "text"'.
+Shorthand for 'issuegraph comments add <id> "text"'.
 
 Examples:
-  bd comment bd-123 "Working on this now"
-  bd comment bd-123 Working on this now
-  echo "comment from pipe" | bd comment bd-123 --stdin
-  bd comment bd-123 --file notes.txt
+  issuegraph comment bd-123 "Working on this now"
+  issuegraph comment bd-123 Working on this now
+  echo "comment from pipe" | issuegraph comment bd-123 --stdin
+  issuegraph comment bd-123 --file notes.txt
 
 Note: "comment" (singular) only adds a comment — it has no "list" subcommand.
-To list comments on an issue, use the plural form: bd comments <id>`,
+To list comments on an issue, use the plural form: issuegraph comments <id>`,
 	Args:          validateCommentArgs,
 	SilenceUsage:  true,
 	SilenceErrors: true,

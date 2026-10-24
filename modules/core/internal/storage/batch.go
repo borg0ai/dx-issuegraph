@@ -14,7 +14,7 @@ type BatchCreateOptions struct {
 	// Used only by the auto-import upgrade-recovery fallback (GH#3955), so
 	// that if the emptiness guard in maybeAutoImportJSONL ever regresses
 	// again (cf. PR #3630), auto-import degrades to a harmless no-op instead
-	// of clobbering live rows. Explicit `bd import` keeps UPSERT semantics.
+	// of clobbering live rows. Explicit `issuegraph import` keeps UPSERT semantics.
 	ConflictSkip bool
 	// RejectStaleUpserts makes the issue-row UPSERT conditional on updated_at:
 	// the incoming row only rewrites the stored columns when it is strictly
@@ -26,7 +26,7 @@ type BatchCreateOptions struct {
 	// of the import stale guard (bd-pkim8): modules/cli's filterStaleImportIssues
 	// reads local updated_at before the batch write, so a local update
 	// committing in between would otherwise be silently overwritten (the
-	// PR 4204 race). Set by `bd import` unless --allow-stale; create paths
+	// PR 4204 race). Set by `issuegraph import` unless --allow-stale; create paths
 	// leave it false.
 	RejectStaleUpserts bool
 	// SkipDependencyValidationErrors skips dependency validation failures that

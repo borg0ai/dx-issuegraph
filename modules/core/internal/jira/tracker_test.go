@@ -12,12 +12,12 @@ import (
 	"testing"
 	"time"
 
-	"github.com/steveyegge/beads/internal/config"
-	"github.com/steveyegge/beads/internal/storage"
-	"github.com/steveyegge/beads/internal/tracker"
-	"github.com/steveyegge/beads/internal/types"
-	"github.com/steveyegge/beads/issueops"
-	"github.com/steveyegge/beads/memoryops"
+	"github.com/borg0ai/dx-issuegraph/internal/config"
+	"github.com/borg0ai/dx-issuegraph/internal/storage"
+	"github.com/borg0ai/dx-issuegraph/internal/tracker"
+	"github.com/borg0ai/dx-issuegraph/internal/types"
+	"github.com/borg0ai/dx-issuegraph/issueops"
+	"github.com/borg0ai/dx-issuegraph/memoryops"
 )
 
 func TestRegistered(t *testing.T) {
@@ -201,7 +201,7 @@ func TestPlainTextToADF(t *testing.T) {
 	}
 }
 
-func TestFieldMapperIssueToBeads(t *testing.T) {
+func TestFieldMapperIssueToIssueGraph(t *testing.T) {
 	ji := &Issue{
 		ID:   "10001",
 		Key:  "PROJ-42",
@@ -221,10 +221,10 @@ func TestFieldMapperIssueToBeads(t *testing.T) {
 
 	ti := jiraToTrackerIssue(ji, nil)
 	mapper := &jiraFieldMapper{}
-	conv := mapper.IssueToBeads(&ti)
+	conv := mapper.IssueToIssueGraph(&ti)
 
 	if conv == nil {
-		t.Fatal("IssueToBeads returned nil")
+		t.Fatal("IssueToIssueGraph returned nil")
 	}
 	if conv.Issue.Title != "Test issue" {
 		t.Errorf("Title = %q, want %q", conv.Issue.Title, "Test issue")
@@ -549,7 +549,7 @@ func TestStatusToTrackerUsesCustomMap(t *testing.T) {
 			"open":        "Backlog",
 			"in_progress": "Active Sprint",
 			"closed":      "Released",
-			"review":      "Code Review", // custom non-standard beads status
+			"review":      "Code Review", // custom non-standard issuegraph status
 		},
 	}
 
@@ -571,13 +571,13 @@ func TestStatusToTrackerUsesCustomMap(t *testing.T) {
 	}
 }
 
-func TestStatusToBeadsUsesCustomMap(t *testing.T) {
+func TestStatusToIssueGraphUsesCustomMap(t *testing.T) {
 	mapper := &jiraFieldMapper{
 		statusMap: map[string]string{
 			"open":        "Backlog",
 			"in_progress": "Active Sprint",
 			"closed":      "Released",
-			"review":      "Code Review", // custom non-standard beads status
+			"review":      "Code Review", // custom non-standard issuegraph status
 		},
 	}
 
@@ -594,9 +594,9 @@ func TestStatusToBeadsUsesCustomMap(t *testing.T) {
 		{"In Progress", types.StatusInProgress}, // not in custom map → falls back to default
 	}
 	for _, tt := range tests {
-		got := mapper.StatusToBeads(tt.jiraStatus)
+		got := mapper.StatusToIssueGraph(tt.jiraStatus)
 		if got != tt.want {
-			t.Errorf("StatusToBeads(%q) = %q, want %q", tt.jiraStatus, got, tt.want)
+			t.Errorf("StatusToIssueGraph(%q) = %q, want %q", tt.jiraStatus, got, tt.want)
 		}
 	}
 }
@@ -607,9 +607,9 @@ func TestStatusMapCaseInsensitiveMatch(t *testing.T) {
 	}
 
 	// Custom map match should be case-insensitive.
-	got := mapper.StatusToBeads("active sprint")
+	got := mapper.StatusToIssueGraph("active sprint")
 	if got != types.StatusInProgress {
-		t.Errorf("StatusToBeads(\"active sprint\") = %q, want %q", got, types.StatusInProgress)
+		t.Errorf("StatusToIssueGraph(\"active sprint\") = %q, want %q", got, types.StatusInProgress)
 	}
 }
 
@@ -1006,7 +1006,7 @@ func TestInitLoadsCustomStatusMapFromAllConfig(t *testing.T) {
 			"jira.project":                "PROJ",
 			"jira.status_map.open":        "Backlog",
 			"jira.status_map.in_progress": "Active Sprint",
-			"jira.status_map.review":      "Code Review", // custom non-standard beads status
+			"jira.status_map.review":      "Code Review", // custom non-standard issuegraph status
 		},
 	}
 
@@ -1055,21 +1055,21 @@ func TestInitLoadsCustomTypeMapFromAllConfig(t *testing.T) {
 	mapper := tr.FieldMapper()
 
 	// Custom "story" type should map from Jira "User Story"
-	got := mapper.TypeToBeads("User Story")
+	got := mapper.TypeToIssueGraph("User Story")
 	if got != "story" {
-		t.Errorf("TypeToBeads(\"User Story\") = %q, want %q", got, "story")
+		t.Errorf("TypeToIssueGraph(\"User Story\") = %q, want %q", got, "story")
 	}
 
 	// Custom "feature" should map from Jira "Feature"
-	got = mapper.TypeToBeads("Feature")
+	got = mapper.TypeToIssueGraph("Feature")
 	if got != "feature" {
-		t.Errorf("TypeToBeads(\"Feature\") = %q, want %q", got, "feature")
+		t.Errorf("TypeToIssueGraph(\"Feature\") = %q, want %q", got, "feature")
 	}
 
 	// Unmapped Jira types fall back to defaults
-	got = mapper.TypeToBeads("Bug")
+	got = mapper.TypeToIssueGraph("Bug")
 	if got != types.TypeBug {
-		t.Errorf("TypeToBeads(\"Bug\") = %q, want %q", got, types.TypeBug)
+		t.Errorf("TypeToIssueGraph(\"Bug\") = %q, want %q", got, types.TypeBug)
 	}
 
 	// Reverse: custom "story" → "User Story"
@@ -1317,7 +1317,7 @@ func TestPriorityToTrackerUsesCustomMap(t *testing.T) {
 	}
 }
 
-func TestPriorityToBeadsUsesCustomMap(t *testing.T) {
+func TestPriorityToIssueGraphUsesCustomMap(t *testing.T) {
 	mapper := &jiraFieldMapper{
 		priorityMap: map[string]string{
 			"0": "Critical",
@@ -1336,9 +1336,9 @@ func TestPriorityToBeadsUsesCustomMap(t *testing.T) {
 		{"Lowest", 4},   // not in map → default
 	}
 	for _, tt := range tests {
-		got := mapper.PriorityToBeads(tt.name)
+		got := mapper.PriorityToIssueGraph(tt.name)
 		if got != tt.want {
-			t.Errorf("PriorityToBeads(%q) = %d, want %d", tt.name, got, tt.want)
+			t.Errorf("PriorityToIssueGraph(%q) = %d, want %d", tt.name, got, tt.want)
 		}
 	}
 }
@@ -1350,7 +1350,7 @@ func TestPriorityMapCaseInsensitiveMatch(t *testing.T) {
 		},
 	}
 
-	// PriorityToBeads should match case-insensitively
+	// PriorityToIssueGraph should match case-insensitively
 	tests := []struct {
 		name string
 		want int
@@ -1361,9 +1361,9 @@ func TestPriorityMapCaseInsensitiveMatch(t *testing.T) {
 		{"CrItIcAl", 0},
 	}
 	for _, tt := range tests {
-		got := mapper.PriorityToBeads(tt.name)
+		got := mapper.PriorityToIssueGraph(tt.name)
 		if got != tt.want {
-			t.Errorf("PriorityToBeads(%q) = %d, want %d", tt.name, got, tt.want)
+			t.Errorf("PriorityToIssueGraph(%q) = %d, want %d", tt.name, got, tt.want)
 		}
 	}
 }
@@ -1399,24 +1399,24 @@ func TestGetConfig_YamlOnlyKeyBypassesStore(t *testing.T) {
 }
 
 // TestGetConfig_YamlOnlyKeyReadsFromYaml verifies that jira.api_token is
-// read from .beads/config.yaml when set there, without depending on the
+// read from .issuegraph/config.yaml when set there, without depending on the
 // JIRA_API_TOKEN env var.
 func TestGetConfig_YamlOnlyKeyReadsFromYaml(t *testing.T) {
 	const wantToken = "yaml-config-token-value"
 
 	tmpDir := t.TempDir()
-	beadsDir := filepath.Join(tmpDir, ".beads")
-	if err := os.MkdirAll(beadsDir, 0o750); err != nil {
-		t.Fatalf("mkdir .beads: %v", err)
+	issuegraphDir := filepath.Join(tmpDir, ".issuegraph")
+	if err := os.MkdirAll(issuegraphDir, 0o750); err != nil {
+		t.Fatalf("mkdir .issuegraph: %v", err)
 	}
 	yamlBody := "jira.api_token: \"" + wantToken + "\"\n"
-	if err := os.WriteFile(filepath.Join(beadsDir, "config.yaml"), []byte(yamlBody), 0o600); err != nil {
+	if err := os.WriteFile(filepath.Join(issuegraphDir, "config.yaml"), []byte(yamlBody), 0o600); err != nil {
 		t.Fatalf("write config.yaml: %v", err)
 	}
 
 	t.Setenv("JIRA_API_TOKEN", "")
-	t.Setenv("BEADS_DIR", "")
-	t.Setenv("BEADS_TEST_IGNORE_REPO_CONFIG", "1")
+	t.Setenv("ISSUEGRAPH_DIR", "")
+	t.Setenv("ISSUEGRAPH_TEST_IGNORE_REPO_CONFIG", "1")
 	t.Setenv("HOME", filepath.Join(tmpDir, "home"))
 	t.Setenv("XDG_CONFIG_HOME", filepath.Join(tmpDir, "xdg"))
 	t.Chdir(tmpDir)

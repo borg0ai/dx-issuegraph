@@ -13,8 +13,8 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/steveyegge/beads/internal/storage"
-	"github.com/steveyegge/beads/internal/types"
+	"github.com/borg0ai/dx-issuegraph/internal/storage"
+	"github.com/borg0ai/dx-issuegraph/internal/types"
 )
 
 // concludeProbeStore keeps the real Dolt store underneath the command while
@@ -53,7 +53,7 @@ func (s *concludeProbeStore) CommitMergeResolution(ctx context.Context, message 
 func wedgeResolvedConcludeMerge(t *testing.T) storage.DoltStorage {
 	t.Helper()
 	ctx := context.Background()
-	raw := newTestStore(t, filepath.Join(t.TempDir(), ".beads", "beads.db"))
+	raw := newTestStore(t, filepath.Join(t.TempDir(), ".issuegraph", "issuegraph.db"))
 	db := raw.DB()
 
 	const issueID = "conclude-command-1"

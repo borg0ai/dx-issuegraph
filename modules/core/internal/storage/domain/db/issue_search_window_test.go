@@ -10,7 +10,7 @@ import (
 // SKIP, and therefore which rows EnforceMaxRowsCap counts.
 //
 // The callers that reach this seam with both an offset and a cap consume the
-// FILTER as a value — proxied `bd list --watch`, with and without --ready, and
+// FILTER as a value — proxied `issuegraph list --watch`, with and without --ready, and
 // the hierarchical --parent walk — so they run no page epilogue and there is
 // nothing above them to re-decide it. issueops.Reader's own callers never get
 // here with an offset at all; they widen the filter first. That makes this

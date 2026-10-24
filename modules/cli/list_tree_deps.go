@@ -6,9 +6,9 @@ import (
 	"slices"
 	"strings"
 
-	"github.com/steveyegge/beads/internal/types"
-	"github.com/steveyegge/beads/internal/ui"
-	"github.com/steveyegge/beads/internal/utils"
+	"github.com/borg0ai/dx-issuegraph/internal/types"
+	"github.com/borg0ai/dx-issuegraph/internal/ui"
+	"github.com/borg0ai/dx-issuegraph/internal/utils"
 )
 
 // depGlyph marks a dependency/relationship edge in the --deps tree view. It is
@@ -27,7 +27,7 @@ type depRender struct {
 // depEdgeDisplay classifies a dependency edge for the --deps view.
 //   - label: how the edge reads from the source node's perspective. A stored
 //     "blocks" edge (issue_id depends on depends_on_id) reads as "depends-on",
-//     matching `bd show`.
+//     matching `issuegraph show`.
 //   - scheduling: true for edges that constrain execution order (depends-on,
 //     conditional-blocks, waits-for). Only these drive sibling ordering.
 //   - ok: false for parent-child, which is hierarchy and never appears here.
@@ -48,7 +48,7 @@ func depEdgeDisplay(t types.DependencyType) (label string, scheduling, ok bool) 
 	case types.DepDuplicates:
 		return "duplicates", false, true
 	case types.DepSupersedes:
-		// `bd supersede old --with new` stores (old, new), so the source end of
+		// `issuegraph supersede old --with new` stores (old, new), so the source end of
 		// the edge is the issue being replaced.
 		return "superseded-by", false, true
 	case types.DepRepliesTo:

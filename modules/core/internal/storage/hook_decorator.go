@@ -18,8 +18,8 @@ package storage
 import (
 	"context"
 
-	"github.com/steveyegge/beads/internal/hooks"
-	"github.com/steveyegge/beads/internal/types"
+	"github.com/borg0ai/dx-issuegraph/internal/hooks"
+	"github.com/borg0ai/dx-issuegraph/internal/types"
 )
 
 // HookFiringStore wraps a DoltStorage and fires hooks after mutations.
@@ -65,12 +65,12 @@ func (h *HookFiringStore) Unwrap() DoltStorage { return h.inner }
 // workspace's user hook scripts.
 //
 // It is the question a caller cannot answer from the role's own type, and the
-// one a NETWORK server has to answer before it serves anything: `bd serve`
+// one a NETWORK server has to answer before it serves anything: `issuegraph serve`
 // documents that hooks do not fire (a user-controlled subprocess per mutation
 // is an unbounded latency multiplier and an orphaned child at shutdown), and
 // the accessors on a decorated store return decorated roles by design —
 // IssueClaimer recurses precisely so a CLI claim keeps its on_update. So the
-// exact value the obvious `store.IssueClaimer()` produces on bd's own storage
+// exact value the obvious `store.IssueClaimer()` produces on issuegraph's own storage
 // chain is the one value that server must refuse, and this is what lets it.
 //
 // A decorator built with a nil runner still answers true. Whether hooks fire
@@ -137,18 +137,18 @@ func RoleFiresHooks(role any) bool {
 	// (hook_ready_claimer.go) — a claim sets the assignee and moves the status,
 	// so it is an update as far as a hook script is concerned. It is the one
 	// whose caller is a polling loop by design: an agent draining a queue
-	// through POST /v0/beads/issues:claimNext would run the workspace's script
-	// once per bead it picked up.
+	// through POST /v0/issuegraph/issues:claimNext would run the workspace's script
+	// once per issue it picked up.
 	case *hookReadyClaimer:
 		return true
 	// The batch closer fires the close hook once per LANDED ITEM and the update
 	// hook for the claim it may chain (hook_batch_closer.go), so one request
-	// through POST /v0/beads/issues:batchClose is N+1 subprocesses.
+	// through POST /v0/issuegraph/issues:batchClose is N+1 subprocesses.
 	case *hookBatchCloser:
 		return true
 	// The batch creator fires the create hook once PER ITEM
 	// (hook_batch_creator.go), so a hundred-item
-	// POST /v0/beads/issues:batchCreate served unpeeled is a hundred of the
+	// POST /v0/issuegraph/issues:batchCreate served unpeeled is a hundred of the
 	// workspace's subprocesses inside one HTTP call — the batch applier's
 	// hazard, on the operation that reaches it with nothing else in the way.
 	case *hookBatchCreator:

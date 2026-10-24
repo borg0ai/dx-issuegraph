@@ -11,10 +11,10 @@ import (
 	"testing"
 	"time"
 
-	"github.com/steveyegge/beads/internal/storage/dolt"
-	"github.com/steveyegge/beads/internal/types"
-	"github.com/steveyegge/beads/internal/ui"
-	"github.com/steveyegge/beads/internal/utils"
+	"github.com/borg0ai/dx-issuegraph/internal/storage/dolt"
+	"github.com/borg0ai/dx-issuegraph/internal/types"
+	"github.com/borg0ai/dx-issuegraph/internal/ui"
+	"github.com/borg0ai/dx-issuegraph/internal/utils"
 )
 
 // listTestHelper provides test setup and assertion methods
@@ -98,7 +98,7 @@ func (h *listTestHelper) assertAtMost(count, maxCount int, desc string) {
 func TestListCommandSuite(t *testing.T) {
 	t.Parallel()
 	tmpDir := t.TempDir()
-	testDB := filepath.Join(tmpDir, ".beads", "beads.db")
+	testDB := filepath.Join(tmpDir, ".issuegraph", "issuegraph.db")
 	s := newTestStore(t, testDB)
 
 	t.Run("ListCommand", func(t *testing.T) {
@@ -240,7 +240,7 @@ func TestListCommandSuite(t *testing.T) {
 func TestListQueryCapabilitiesSuite(t *testing.T) {
 	t.Parallel()
 	tmpDir := t.TempDir()
-	testDB := filepath.Join(tmpDir, ".beads", "beads.db")
+	testDB := filepath.Join(tmpDir, ".issuegraph", "issuegraph.db")
 	s := newTestStore(t, testDB)
 	ctx := context.Background()
 
@@ -576,7 +576,7 @@ func TestListQueryCapabilitiesSuite(t *testing.T) {
 func TestListLabelFiltersAcnquj(t *testing.T) {
 	t.Parallel()
 	tmpDir := t.TempDir()
-	testDB := filepath.Join(tmpDir, ".beads", "beads.db")
+	testDB := filepath.Join(tmpDir, ".issuegraph", "issuegraph.db")
 	s := newTestStore(t, testDB)
 	ctx := context.Background()
 
@@ -613,7 +613,7 @@ func TestListLabelFiltersAcnquj(t *testing.T) {
 		return out
 	}
 
-	// AC#1: -l X returns ONLY beads with label X.
+	// AC#1: -l X returns ONLY issuegraph with label X.
 	t.Run("label_single", func(t *testing.T) {
 		results, err := s.SearchIssues(ctx, "", types.IssueFilter{Labels: []string{"fruit"}})
 		if err != nil {
@@ -700,7 +700,7 @@ func TestListLabelFiltersAcnquj(t *testing.T) {
 func TestStableTreeOrdering(t *testing.T) {
 	t.Parallel()
 	tmpDir := t.TempDir()
-	testDB := filepath.Join(tmpDir, ".beads", "beads.db")
+	testDB := filepath.Join(tmpDir, ".issuegraph", "issuegraph.db")
 	store := newTestStore(t, testDB)
 	ctx := context.Background()
 
@@ -1344,7 +1344,7 @@ func TestParseTimeFlag(t *testing.T) {
 func TestListTimeBasedFilters(t *testing.T) {
 	t.Parallel()
 	tmpDir := t.TempDir()
-	testDB := filepath.Join(tmpDir, ".beads", "beads.db")
+	testDB := filepath.Join(tmpDir, ".issuegraph", "issuegraph.db")
 	s := newTestStore(t, testDB)
 	ctx := context.Background()
 
@@ -1519,7 +1519,7 @@ func TestListTimeBasedFilters(t *testing.T) {
 func TestHierarchicalChildren(t *testing.T) {
 	t.Parallel()
 	tmpDir := t.TempDir()
-	testDB := filepath.Join(tmpDir, ".beads", "beads.db")
+	testDB := filepath.Join(tmpDir, ".issuegraph", "issuegraph.db")
 	store := newTestStore(t, testDB)
 	ctx := context.Background()
 
@@ -1706,7 +1706,7 @@ func TestFormatIssueCompactWithParent(t *testing.T) {
 func TestGetBlockingInfoForIssues_ParentChildSeparation(t *testing.T) {
 	t.Parallel()
 	tmpDir := t.TempDir()
-	testDB := filepath.Join(tmpDir, ".beads", "beads.db")
+	testDB := filepath.Join(tmpDir, ".issuegraph", "issuegraph.db")
 	store := newTestStore(t, testDB)
 	ctx := context.Background()
 
@@ -1778,11 +1778,11 @@ func TestGetBlockingInfoForIssues_ParentChildSeparation(t *testing.T) {
 	}
 }
 
-// TestListJSON_ParentField tests that bd list --json includes computed parent field (bd-ym8c)
+// TestListJSON_ParentField tests that issuegraph list --json includes computed parent field (bd-ym8c)
 func TestListJSON_ParentField(t *testing.T) {
 	t.Parallel()
 	tmpDir := t.TempDir()
-	testDB := filepath.Join(tmpDir, ".beads", "beads.db")
+	testDB := filepath.Join(tmpDir, ".issuegraph", "issuegraph.db")
 	store := newTestStore(t, testDB)
 	ctx := context.Background()
 
@@ -1861,7 +1861,7 @@ func TestListCommandInit(t *testing.T) {
 	// Verify --exclude-label flag exists and defaults to empty slice
 	excludeLabelFlag := listCmd.Flags().Lookup("exclude-label")
 	if excludeLabelFlag == nil {
-		t.Fatal("--exclude-label flag should exist on bd list")
+		t.Fatal("--exclude-label flag should exist on issuegraph list")
 	}
 	if excludeLabelFlag.DefValue != "[]" {
 		t.Errorf("--exclude-label default should be '[]', got %q", excludeLabelFlag.DefValue)

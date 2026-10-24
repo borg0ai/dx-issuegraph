@@ -9,8 +9,8 @@ import (
 	"testing"
 	"time"
 
-	"github.com/steveyegge/beads/internal/storage/embeddeddolt"
-	"github.com/steveyegge/beads/internal/types"
+	"github.com/borg0ai/dx-issuegraph/internal/storage/embeddeddolt"
+	"github.com/borg0ai/dx-issuegraph/internal/types"
 )
 
 // TestEventsJournal_EmbeddedConcurrentGaplessNoDup is the commit-ordered-seq
@@ -76,7 +76,7 @@ func TestEventsJournal_EmbeddedConcurrentGaplessNoDup(t *testing.T) {
 	}
 }
 
-// readJournalSeqs reads bd_events_journal seqs in order over a short-lived raw
+// readJournalSeqs reads issuegraph_events_journal seqs in order over a short-lived raw
 // connection. S1 has no accessor capability yet, so the test reads the table
 // directly.
 func readJournalSeqs(t *testing.T, env *testEnv) []int64 {
@@ -87,7 +87,7 @@ func readJournalSeqs(t *testing.T, env *testEnv) []int64 {
 		t.Fatalf("OpenSQL: %v", err)
 	}
 	defer cleanup()
-	rows, err := db.QueryContext(ctx, "SELECT seq FROM bd_events_journal ORDER BY seq ASC")
+	rows, err := db.QueryContext(ctx, "SELECT seq FROM issuegraph_events_journal ORDER BY seq ASC")
 	if err != nil {
 		t.Fatalf("query journal: %v", err)
 	}

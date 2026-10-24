@@ -8,8 +8,8 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/steveyegge/beads/internal/formula"
-	"github.com/steveyegge/beads/internal/types"
+	"github.com/borg0ai/dx-issuegraph/internal/formula"
+	"github.com/borg0ai/dx-issuegraph/internal/types"
 )
 
 func TestParseDistillVar(t *testing.T) {
@@ -713,7 +713,7 @@ func TestSquashWispMoleculeClearsRootEphemeral(t *testing.T) {
 	dbPath := t.TempDir() + "/test.db"
 	s := newTestStore(t, dbPath)
 
-	// Wisp molecule: root is ephemeral too (created via `bd mol wisp`).
+	// Wisp molecule: root is ephemeral too (created via `issuegraph mol wisp`).
 	root := &types.Issue{
 		Title:     "Wisp Molecule Root",
 		Status:    types.StatusOpen,
@@ -1349,7 +1349,7 @@ func TestGetMoleculeProgress(t *testing.T) {
 		Status:    types.StatusOpen,
 		Priority:  1,
 		IssueType: types.TypeEpic,
-		Labels:    []string{BeadsTemplateLabel},
+		Labels:    []string{IssueGraphTemplateLabel},
 		Assignee:  "test-agent",
 	}
 	if err := s.CreateIssue(ctx, root, "test"); err != nil {
@@ -1443,7 +1443,7 @@ func TestFindParentMolecule(t *testing.T) {
 		Status:    types.StatusOpen,
 		Priority:  1,
 		IssueType: types.TypeEpic,
-		Labels:    []string{BeadsTemplateLabel},
+		Labels:    []string{IssueGraphTemplateLabel},
 	}
 	if err := s.CreateIssue(ctx, root, "test"); err != nil {
 		t.Fatalf("Failed to create root: %v", err)
@@ -1533,7 +1533,7 @@ func TestFindParentMoleculesBatch(t *testing.T) {
 		Status:    types.StatusOpen,
 		Priority:  1,
 		IssueType: types.TypeEpic,
-		Labels:    []string{BeadsTemplateLabel},
+		Labels:    []string{IssueGraphTemplateLabel},
 	}
 	if err := s.CreateIssue(ctx, root, "test"); err != nil {
 		t.Fatalf("Failed to create root: %v", err)
@@ -1610,13 +1610,13 @@ func TestFindParentMoleculesBatch(t *testing.T) {
 
 // TestFindParentMolecule_RootShapes covers every shape of molecule root that
 // findParentMolecule(s) needs to recognize:
-//   - TypeEpic + BeadsTemplateLabel  (distilled / older formula path)
-//   - TypeMolecule with no label     (`bd mol pour` path — gastownhall/beads#3719)
-//   - TypeTask + BeadsTemplateLabel  (template-label-only fallback)
+//   - TypeEpic + IssueGraphTemplateLabel  (distilled / older formula path)
+//   - TypeMolecule with no label     (`issuegraph mol pour` path — borg0ai/dx-issuegraph#3719)
+//   - TypeTask + IssueGraphTemplateLabel  (template-label-only fallback)
 //   - TypeTask, no label             (not a molecule)
 //
 // Before the fix for #3719 the TypeMolecule case returned "", which caused
-// `bd close --continue` to silently no-op for any poured molecule.
+// `issuegraph close --continue` to silently no-op for any poured molecule.
 func TestFindParentMolecule_RootShapes(t *testing.T) {
 	ctx := context.Background()
 	dbPath := t.TempDir() + "/test.db"
@@ -1628,9 +1628,9 @@ func TestFindParentMolecule_RootShapes(t *testing.T) {
 		rootLabels []string
 		isMolecule bool
 	}{
-		{"epic with template label", types.TypeEpic, []string{BeadsTemplateLabel}, true},
+		{"epic with template label", types.TypeEpic, []string{IssueGraphTemplateLabel}, true},
 		{"poured molecule (no label)", types.TypeMolecule, nil, true},
-		{"task with template label", types.TypeTask, []string{BeadsTemplateLabel}, true},
+		{"task with template label", types.TypeTask, []string{IssueGraphTemplateLabel}, true},
 		{"plain task is not a molecule", types.TypeTask, nil, false},
 	}
 
@@ -1681,8 +1681,8 @@ func TestFindParentMolecule_RootShapes(t *testing.T) {
 	}
 }
 
-// TestAdvanceToNextStep_PouredMolecule reproduces gastownhall/beads#3719: when a
-// step lives under a TypeMolecule root (as `bd mol pour` creates), AdvanceToNextStep
+// TestAdvanceToNextStep_PouredMolecule reproduces borg0ai/dx-issuegraph#3719: when a
+// step lives under a TypeMolecule root (as `issuegraph mol pour` creates), AdvanceToNextStep
 // must find the parent molecule and (with autoClaim=true) claim the next ready step.
 // Before the fix it silently returned (nil, nil).
 func TestAdvanceToNextStep_PouredMolecule(t *testing.T) {
@@ -1690,7 +1690,7 @@ func TestAdvanceToNextStep_PouredMolecule(t *testing.T) {
 	dbPath := t.TempDir() + "/test.db"
 	s := newTestStore(t, dbPath)
 
-	// Root shaped like `bd mol pour` output: TypeMolecule, no template label.
+	// Root shaped like `issuegraph mol pour` output: TypeMolecule, no template label.
 	root := &types.Issue{
 		Title:     "Poured Molecule",
 		Status:    types.StatusOpen,
@@ -1848,7 +1848,7 @@ func TestAdvanceToNextStep(t *testing.T) {
 		Status:    types.StatusOpen,
 		Priority:  1,
 		IssueType: types.TypeEpic,
-		Labels:    []string{BeadsTemplateLabel},
+		Labels:    []string{IssueGraphTemplateLabel},
 	}
 	if err := s.CreateIssue(ctx, root, "test"); err != nil {
 		t.Fatalf("Failed to create root: %v", err)
@@ -1943,7 +1943,7 @@ func TestAdvanceToNextStepMoleculeComplete(t *testing.T) {
 		Status:    types.StatusOpen,
 		Priority:  1,
 		IssueType: types.TypeEpic,
-		Labels:    []string{BeadsTemplateLabel},
+		Labels:    []string{IssueGraphTemplateLabel},
 	}
 	if err := s.CreateIssue(ctx, root, "test"); err != nil {
 		t.Fatalf("Failed to create root: %v", err)
@@ -2024,7 +2024,7 @@ func TestAdvanceToNextStepConcurrentClaim(t *testing.T) {
 		Status:    types.StatusOpen,
 		Priority:  1,
 		IssueType: types.TypeEpic,
-		Labels:    []string{BeadsTemplateLabel},
+		Labels:    []string{IssueGraphTemplateLabel},
 	}
 	if err := s.CreateIssue(ctx, root, "test"); err != nil {
 		t.Fatalf("Failed to create root: %v", err)
@@ -2120,7 +2120,7 @@ func TestAdvanceToNextStepAllClaimed(t *testing.T) {
 		Status:    types.StatusOpen,
 		Priority:  1,
 		IssueType: types.TypeEpic,
-		Labels:    []string{BeadsTemplateLabel},
+		Labels:    []string{IssueGraphTemplateLabel},
 	}
 	if err := s.CreateIssue(ctx, root, "test"); err != nil {
 		t.Fatalf("Failed to create root: %v", err)
@@ -2993,7 +2993,7 @@ func TestSpawnMoleculeFromFormulaEphemeral(t *testing.T) {
 		},
 	}
 
-	// Spawn with ephemeral=true (simulating bd mol wisp <formula>)
+	// Spawn with ephemeral=true (simulating issuegraph mol wisp <formula>)
 	result, err := spawnMolecule(ctx, s, subgraph, nil, "", "test", true, "wisp")
 	if err != nil {
 		t.Fatalf("spawnMolecule failed: %v", err)
@@ -3034,7 +3034,7 @@ func TestSpawnMoleculeFromFormulaEphemeral(t *testing.T) {
 
 // TestSpawnMolecule_PreservesStepMetadata verifies that a cooked formula with
 // per-step metadata results in spawned issues whose Metadata field carries the
-// declared keys through to the database. Regression for gastownhall/beads#3341.
+// declared keys through to the database. Regression for borg0ai/dx-issuegraph#3341.
 func TestSpawnMolecule_PreservesStepMetadata(t *testing.T) {
 	ctx := context.Background()
 	dbPath := t.TempDir() + "/test.db"
@@ -3192,7 +3192,7 @@ func TestFormatBondType(t *testing.T) {
 // TestPourRootTitleDescSubstitution verifies that the root molecule's title and description
 // are substituted with {{title}} and {{desc}} variables when pouring a formula.
 // This is a tracer bullet test for GitHub issue #852:
-// https://github.com/steveyegge/beads/issues/852
+// https://github.com/borg0ai/dx-issuegraph/issues/852
 func TestPourRootTitleDescSubstitution(t *testing.T) {
 	ctx := context.Background()
 	dbPath := t.TempDir() + "/test.db"
@@ -3259,7 +3259,7 @@ func TestPourRootTitleDescSubstitution(t *testing.T) {
 		t.Errorf("Root description should contain 'My description' from variable substitution, got: %q", spawnedRoot.Description)
 	}
 
-	// Verify child beads DO have correct substitution (this should pass)
+	// Verify child issuegraph DO have correct substitution (this should pass)
 	for oldID, newID := range result.IDMapping {
 		if oldID == f.Formula {
 			continue // Skip root

@@ -1,43 +1,43 @@
 ---
-title: "bd admin"
-description: "Administrative commands for beads database maintenance."
+title: "issuegraph admin"
+description: "Administrative commands for issuegraph database maintenance."
 ---
 
 {/* AUTO-GENERATED: do not edit manually */}
 
-Generated from `bd help --doc admin`.
+Generated from `issuegraph help --doc admin`.
 
-Administrative commands for beads database maintenance.
+Administrative commands for issuegraph database maintenance.
 
 These commands are for advanced users and should be used carefully:
   cleanup   Delete closed issues (issue lifecycle)
   compact   Compact old closed issues to save space (storage optimization)
-  reset     Remove all beads data and configuration (full reset)
+  reset     Remove all issuegraph data and configuration (full reset)
 
-For routine maintenance, prefer 'bd doctor --fix' which handles common repairs
+For routine maintenance, prefer 'issuegraph doctor --fix' which handles common repairs
 automatically. Use these admin commands for targeted database operations.
 
 ```
-bd admin [flags]
+issuegraph admin [flags]
 ```
 
-## bd admin cleanup
+## issuegraph admin cleanup
 
 Delete closed issues to reduce database size.
 
 This command permanently removes closed issues from the database.
 
 NOTE: This command only manages issue lifecycle (closed -&gt; deleted). For general
-health checks and automatic repairs, use 'bd doctor --fix' instead.
+health checks and automatic repairs, use 'issuegraph doctor --fix' instead.
 
 By default, deletes ALL closed issues. Use --older-than to only delete
 issues closed before a certain date.
 
 EXAMPLES:
-  bd admin cleanup --force                          # Delete all closed issues
-  bd admin cleanup --older-than 30 --force          # Only issues closed 30+ days ago
-  bd admin cleanup --ephemeral --force              # Only closed wisps (transient molecules)
-  bd admin cleanup --dry-run                        # Preview what would be deleted
+  issuegraph admin cleanup --force                          # Delete all closed issues
+  issuegraph admin cleanup --older-than 30 --force          # Only issues closed 30+ days ago
+  issuegraph admin cleanup --ephemeral --force              # Only closed wisps (transient molecules)
+  issuegraph admin cleanup --dry-run                        # Preview what would be deleted
 
 SAFETY:
 - Requires --force flag to actually delete (unless --dry-run)
@@ -46,11 +46,11 @@ SAFETY:
 - Use --json for programmatic output
 
 SEE ALSO:
-  bd doctor --fix    Automatic health checks and repairs (recommended for routine maintenance)
-  bd admin compact   Compact old closed issues to save space
+  issuegraph doctor --fix    Automatic health checks and repairs (recommended for routine maintenance)
+  issuegraph admin compact   Compact old closed issues to save space
 
 ```
-bd admin cleanup [flags]
+issuegraph admin cleanup [flags]
 ```
 
 **Flags:**
@@ -63,7 +63,7 @@ bd admin cleanup [flags]
       --older-than int   Only delete issues closed more than N days ago (0 = all closed issues)
 ```
 
-## bd admin compact
+## issuegraph admin compact
 
 Compact old closed issues using semantic summarization.
 
@@ -84,30 +84,30 @@ Dolt Garbage Collection:
   With auto-commit per mutation, Dolt commit history grows over time. Use
   --dolt to run Dolt garbage collection and reclaim disk space.
 
-  --dolt: Run Dolt GC on .beads/dolt directory to free disk space.
+  --dolt: Run Dolt GC on .issuegraph/dolt directory to free disk space.
           This removes unreachable commits and compacts storage.
 
 Examples:
   # Dolt garbage collection
-  bd compact --dolt                        # Run Dolt GC
-  bd compact --dolt --dry-run              # Preview without running GC
+  issuegraph compact --dolt                        # Run Dolt GC
+  issuegraph compact --dolt --dry-run              # Preview without running GC
 
   # Agent-driven workflow (recommended)
-  bd compact --analyze --json              # Get candidates with full content
-  bd compact --apply --id bd-42 --summary summary.txt
-  bd compact --apply --id bd-42 --summary - &lt; summary.txt
+  issuegraph compact --analyze --json              # Get candidates with full content
+  issuegraph compact --apply --id issuegraph-42 --summary summary.txt
+  issuegraph compact --apply --id issuegraph-42 --summary - &lt; summary.txt
 
   # Legacy AI-powered workflow
-  bd compact --auto --dry-run              # Preview candidates
-  bd compact --auto --all                  # Compact all eligible issues
-  bd compact --auto --id bd-42             # Compact specific issue
+  issuegraph compact --auto --dry-run              # Preview candidates
+  issuegraph compact --auto --all                  # Compact all eligible issues
+  issuegraph compact --auto --id issuegraph-42             # Compact specific issue
 
   # Statistics
-  bd compact --stats                       # Show statistics
+  issuegraph compact --stats                       # Show statistics
 
 
 ```
-bd admin compact [flags]
+issuegraph admin compact [flags]
 ```
 
 **Flags:**
@@ -119,7 +119,7 @@ bd admin compact [flags]
       --apply            Apply mode: accept agent-provided summary
       --auto             Auto mode: AI-powered compaction (legacy)
       --batch-size int   Issues per batch (default 10)
-      --dolt             Dolt mode: run Dolt garbage collection on .beads/dolt
+      --dolt             Dolt mode: run Dolt garbage collection on .issuegraph/dolt
       --dry-run          Preview without compacting
       --force            Force compact (bypass checks, requires --id)
       --id string        Compact specific issue
@@ -131,24 +131,24 @@ bd admin compact [flags]
       --workers int      Parallel workers (default 5)
 ```
 
-## bd admin reset
+## issuegraph admin reset
 
-Reset beads to an uninitialized state, removing all local data.
+Reset issuegraph to an uninitialized state, removing all local data.
 
 This command removes:
-  - The .beads directory (database, JSONL, config)
-  - Git hooks installed by bd
+  - The .issuegraph directory (database, JSONL, config)
+  - Git hooks installed by issuegraph
   - Sync branch worktrees
 
 By default, shows what would be deleted (dry-run mode).
 Use --force to actually perform the reset.
 
 Examples:
-  bd reset              # Show what would be deleted
-  bd reset --force      # Actually delete everything
+  issuegraph reset              # Show what would be deleted
+  issuegraph reset --force      # Actually delete everything
 
 ```
-bd admin reset [flags]
+issuegraph admin reset [flags]
 ```
 
 **Flags:**

@@ -98,7 +98,7 @@ func codexHookInjectPrime(ctx context.Context, stdout io.Writer, event string) e
 
 func codexHookPreCompactCheck(ctx context.Context, stdout io.Writer) error {
 	if _, err := codexHookExecPrime(ctx, true); err != nil {
-		return writeCodexHookSystemMessage(stdout, fmt.Sprintf("Beads context check failed before compaction: %v", err))
+		return writeCodexHookSystemMessage(stdout, fmt.Sprintf("IssueGraph context check failed before compaction: %v", err))
 	}
 	return nil
 }
@@ -114,7 +114,7 @@ func codexHookMaybeRefresh(ctx context.Context, input codexHookInput, stdout io.
 	}
 	out, err := codexHookExecPrime(ctx, false)
 	if err != nil {
-		return writeCodexHookSystemMessage(stdout, fmt.Sprintf("Beads context refresh after compaction failed: %v", err))
+		return writeCodexHookSystemMessage(stdout, fmt.Sprintf("IssueGraph context refresh after compaction failed: %v", err))
 	}
 	_ = os.Remove(path)
 	if strings.TrimSpace(out) == "" {

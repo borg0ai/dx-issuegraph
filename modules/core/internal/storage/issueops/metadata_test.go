@@ -10,8 +10,8 @@ import (
 	"testing"
 
 	"github.com/DATA-DOG/go-sqlmock"
-	"github.com/steveyegge/beads/internal/config"
-	"github.com/steveyegge/beads/internal/storage"
+	"github.com/borg0ai/dx-issuegraph/internal/config"
+	"github.com/borg0ai/dx-issuegraph/internal/storage"
 )
 
 // expectNonWisp makes IsActiveWispInTx report "not a wisp" (empty result set).
@@ -59,7 +59,7 @@ func TestMergeMetadataInTx(t *testing.T) {
 func TestMergeMetadataInTxSchemaValidation(t *testing.T) {
 	// t.Setenv forces non-parallel; ignore the repo's tracked config so only the
 	// schema we inject below is in effect.
-	t.Setenv("BEADS_TEST_IGNORE_REPO_CONFIG", "1")
+	t.Setenv("ISSUEGRAPH_TEST_IGNORE_REPO_CONFIG", "1")
 	if err := config.Initialize(); err != nil {
 		t.Fatalf("config.Initialize: %v", err)
 	}

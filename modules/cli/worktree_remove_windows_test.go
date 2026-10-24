@@ -34,7 +34,7 @@ func TestWorktreeRemoveWindowsE2ELaneAndLaneSiblingIdentity(t *testing.T) {
 	}
 	fixture.git(t, fixture.repo, "rev-parse", "--verify", "refs/heads/lane")
 	fixture.git(t, fixture.repo, "rev-parse", "--verify", "refs/heads/upper-lane")
-	if got := fixture.readGitignore(t); got != "# bd worktree\nLane/\nignored/\n" {
+	if got := fixture.readGitignore(t); got != "# issuegraph worktree\nLane/\nignored/\n" {
 		t.Fatalf("cleanup targeted wrong sibling: %q", got)
 	}
 }
@@ -81,7 +81,7 @@ func TestWorktreeRemoveWindowsE2EFinalBoundaryDisappearanceAndIgnoreCaseFlip(t *
 	if got := fixture.git(t, fixture.repo, "config", "--get", "core.ignorecase"); got != "true" {
 		t.Fatalf("core.ignorecase = %q", got)
 	}
-	if got := fixture.readGitignore(t); got != "# bd worktree\nLane/\nignored/\n" {
+	if got := fixture.readGitignore(t); got != "# issuegraph worktree\nLane/\nignored/\n" {
 		t.Fatalf("cleanup targeted wrong sibling: %q", got)
 	}
 }

@@ -5,11 +5,11 @@ import (
 	"database/sql"
 	"fmt"
 
-	"github.com/steveyegge/beads/internal/storage"
-	storeops "github.com/steveyegge/beads/internal/storage/issueops"
-	"github.com/steveyegge/beads/internal/storage/schema"
-	"github.com/steveyegge/beads/internal/workapi"
-	"github.com/steveyegge/beads/issueops"
+	"github.com/borg0ai/dx-issuegraph/internal/storage"
+	storeops "github.com/borg0ai/dx-issuegraph/internal/storage/issueops"
+	"github.com/borg0ai/dx-issuegraph/internal/storage/schema"
+	"github.com/borg0ai/dx-issuegraph/internal/workapi"
+	"github.com/borg0ai/dx-issuegraph/issueops"
 )
 
 // Sweeper returns the guarded bulk-clearance surface for this store.
@@ -76,7 +76,7 @@ func (s *sweeper) Sweep(ctx context.Context, req issueops.SweepRequest) (issueop
 		for _, table := range sweptTables {
 			_ = schema.DrainCall(ctx, tx, "CALL DOLT_ADD(?)", table)
 		}
-		msg := fmt.Sprintf("bd: sweep %d %s bead(s)", result.Swept, req.Tier)
+		msg := fmt.Sprintf("issuegraph: sweep %d %s issue(s)", result.Swept, req.Tier)
 		if err := schema.DrainCall(ctx, tx, "CALL DOLT_COMMIT('-m', ?, '--author', ?)",
 			msg, s.store.commitAuthorString()); err != nil && !isDoltNothingToCommit(err) {
 			return fmt.Errorf("dolt commit: %w", err)

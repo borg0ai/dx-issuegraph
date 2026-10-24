@@ -14,9 +14,9 @@ import (
 	"testing"
 	"time"
 
+	"github.com/borg0ai/dx-issuegraph/internal/storage/doltutil"
+	"github.com/borg0ai/dx-issuegraph/internal/testutil/integration"
 	_ "github.com/go-sql-driver/mysql"
-	"github.com/steveyegge/beads/internal/storage/doltutil"
-	"github.com/steveyegge/beads/internal/testutil/integration"
 )
 
 // TestUnixSocket_ConnectAndQuery starts a Dolt server with --socket,
@@ -28,8 +28,8 @@ func TestUnixSocket_ConnectAndQuery(t *testing.T) {
 	// Exercise data paths longer than either Linux's or macOS's socket-path
 	// budget, as happens with a long TMPDIR plus a suite-owned root.
 	tmpDir := filepath.Join(t.TempDir(), strings.Repeat("long-", 24))
-	beadsDir := filepath.Join(tmpDir, ".beads")
-	doltDir := filepath.Join(beadsDir, "dolt")
+	issuegraphDir := filepath.Join(tmpDir, ".issuegraph")
+	doltDir := filepath.Join(issuegraphDir, "dolt")
 	if err := os.MkdirAll(doltDir, 0700); err != nil {
 		t.Fatalf("mkdir: %v", err)
 	}

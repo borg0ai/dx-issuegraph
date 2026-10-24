@@ -5,12 +5,12 @@ import (
 	"strings"
 	"time"
 
-	"github.com/steveyegge/beads/internal/query"
-	"github.com/steveyegge/beads/internal/types"
-	"github.com/steveyegge/beads/issueops"
+	"github.com/borg0ai/dx-issuegraph/internal/query"
+	"github.com/borg0ai/dx-issuegraph/internal/types"
+	"github.com/borg0ai/dx-issuegraph/issueops"
 )
 
-// DefaultQueryLimit is the default number of rows `bd query` returns when the
+// DefaultQueryLimit is the default number of rows `issuegraph query` returns when the
 // caller does not ask for a specific limit. Both surfaces register their limit
 // knob from this constant so they cannot drift apart; 0 still means unlimited.
 const DefaultQueryLimit = 50

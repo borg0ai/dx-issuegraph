@@ -61,8 +61,8 @@ Current PR-related workflow names:
   Runs on `pull_request_target` for Dependabot Go bumps. It mutates Dependabot
   branches and must not be a required PR check.
 
-As of 2026-05-26, the live `gastownhall/beads` ruleset named
-`Protect main - light (beads and gastown)` enforces deletion and non-fast-forward
+As of 2026-05-26, the live `borg0ai/dx-issuegraph` ruleset named
+`Protect main - light (issuegraph and gastown)` enforces deletion and non-fast-forward
 protection on the default branch. It does not currently require status checks.
 
 ## Required Check Contract
@@ -87,7 +87,7 @@ Do not require these existing check names directly:
 - `Check pure-Go and js/wasm boundaries (CGO_ENABLED=0)`
 - `Check version consistency`
 - `Check doc flags freshness`
-- `Check for .beads changes`
+- `Check for .issuegraph changes`
 - `Test (ubuntu-latest)`
 - `Test (macos-latest)`
 - `Test (storage domain + uow)`
@@ -145,7 +145,7 @@ intentionally not kept in lockstep with later leaf additions and renames; use
       - check-version-consistency
       - check-no-duplicate-migrations
       - check-doc-flags
-      - check-no-beads-changes
+      - check-no-issuegraph-changes
       - detect-package-gates
       - package-mcp
       - package-npm
@@ -166,11 +166,11 @@ intentionally not kept in lockstep with later leaf additions and renames; use
           CI_GATE_REQUIRED: >-
             BUILD_ARTIFACTS
             CHECK_BUILD_TAGS
-            CHECK_CMD_BD_PUREGEO_TESTS
+            CHECK_CMD_ISSUEGRAPH_PUREGEO_TESTS
             CHECK_VERSION_CONSISTENCY
             CHECK_NO_DUPLICATE_MIGRATIONS
             CHECK_DOC_FLAGS
-            CHECK_NO_BEADS_CHANGES
+            CHECK_NO_ISSUEGRAPH_CHANGES
             DETECT_PACKAGE_GATES
             PACKAGE_MCP
             PACKAGE_NPM
@@ -183,11 +183,11 @@ intentionally not kept in lockstep with later leaf additions and renames; use
             LINT
           BUILD_ARTIFACTS: ${{ needs.build-artifacts.result }}
           CHECK_BUILD_TAGS: ${{ needs.check-build-tags.result }}
-          CHECK_CMD_BD_PUREGEO_TESTS: ${{ needs.check-cmd-bd-puregeo-tests.result }}
+          CHECK_CMD_ISSUEGRAPH_PUREGEO_TESTS: ${{ needs.check-cmd-bd-puregeo-tests.result }}
           CHECK_VERSION_CONSISTENCY: ${{ needs.check-version-consistency.result }}
           CHECK_NO_DUPLICATE_MIGRATIONS: ${{ needs.check-no-duplicate-migrations.result }}
           CHECK_DOC_FLAGS: ${{ needs.check-doc-flags.result }}
-          CHECK_NO_BEADS_CHANGES: ${{ needs.check-no-beads-changes.result }}
+          CHECK_NO_ISSUEGRAPH_CHANGES: ${{ needs.check-no-issuegraph-changes.result }}
           DETECT_PACKAGE_GATES: ${{ needs.detect-package-gates.result }}
           PACKAGE_MCP: ${{ needs.package-mcp.result }}
           PACKAGE_NPM: ${{ needs.package-npm.result }}
@@ -201,7 +201,7 @@ intentionally not kept in lockstep with later leaf additions and renames; use
         run: |
           skipped_ok=""
           if [[ "$GITHUB_EVENT_NAME" == "merge_group" ]]; then
-            skipped_ok="CHECK_NO_BEADS_CHANGES"
+            skipped_ok="CHECK_NO_ISSUEGRAPH_CHANGES"
           fi
           export CI_GATE_SKIPPED_OK="$skipped_ok"
           bash .github/scripts/ci-gate.sh
@@ -216,7 +216,7 @@ intentionally not kept in lockstep with later leaf additions and renames; use
 `failure` or `cancelled` result. It accepts `skipped` only for jobs that are
 intentionally absent for that event or risk tier:
 
-- `CHECK_NO_BEADS_CHANGES=skipped` is acceptable on `merge_group` because the
+- `CHECK_NO_ISSUEGRAPH_CHANGES=skipped` is acceptable on `merge_group` because the
   job is PR-only.
 - In the risk aggregate, `BUILD_EMBEDDED`, `TEST_EMBEDDED_STORAGE`, and
   `TEST_EMBEDDED_CMD` may be `skipped` only when `FULL_EMBEDDED != true`.
@@ -351,7 +351,7 @@ Policy for `merge_group`:
   `merge_group`, because the merge group commit may combine individually safe
   PRs into a risky integration state.
 - The aggregate gate should evaluate the merge group results exactly like PR
-  results, except PR-only hygiene checks such as `Check for .beads changes` may
+  results, except PR-only hygiene checks such as `Check for .issuegraph changes` may
   be skipped by design.
 
 ## Initial Rollout Snapshot

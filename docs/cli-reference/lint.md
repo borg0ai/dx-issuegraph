@@ -1,11 +1,11 @@
 ---
-title: "bd lint"
+title: "issuegraph lint"
 description: "Check issues for missing recommended sections based on issue type."
 ---
 
 {/* AUTO-GENERATED: do not edit manually */}
 
-Generated from `bd help --doc lint`.
+Generated from `issuegraph help --doc lint`.
 
 Check issues for missing recommended sections based on issue type.
 
@@ -19,15 +19,15 @@ Section requirements by type:
   chore:    (none)
 
 Examples:
-  bd lint                    # Lint all open issues
-  bd lint bd-abc             # Lint specific issue
-  bd lint bd-abc bd-def      # Lint multiple issues
-  bd lint --type bug         # Lint only bugs
-  bd lint --status all       # Lint all issues (including closed)
+  issuegraph lint                    # Lint all open issues
+  issuegraph lint issuegraph-abc             # Lint specific issue
+  issuegraph lint issuegraph-abc issuegraph-def      # Lint multiple issues
+  issuegraph lint --type bug         # Lint only bugs
+  issuegraph lint --status all       # Lint all issues (including closed)
 
 
 ```
-bd lint [issue-id...] [flags]
+issuegraph lint [issue-id...] [flags]
 ```
 
 **Flags:**

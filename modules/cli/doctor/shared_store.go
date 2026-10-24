@@ -4,8 +4,8 @@ import (
 	"context"
 	"os"
 
-	"github.com/steveyegge/beads/internal/configfile"
-	"github.com/steveyegge/beads/internal/storage/dolt"
+	"github.com/borg0ai/dx-issuegraph/internal/configfile"
+	"github.com/borg0ai/dx-issuegraph/internal/storage/dolt"
 )
 
 // SharedStore holds a single DoltStore open for the duration of a doctor run,
@@ -22,26 +22,26 @@ import (
 // shared store when available, falling back to opening their own store when
 // called standalone (e.g., from tests or one-off checks).
 type SharedStore struct {
-	store    *dolt.DoltStore
-	beadsDir string
+	store         *dolt.DoltStore
+	issuegraphDir string
 }
 
-func beadsDirFromSharedStore(path string, ss *SharedStore) string {
-	if beadsDir := sharedStoreBeadsDir(ss); beadsDir != "" {
-		return beadsDir
+func issuegraphDirFromSharedStore(path string, ss *SharedStore) string {
+	if issuegraphDir := sharedStoreIssueGraphDir(ss); issuegraphDir != "" {
+		return issuegraphDir
 	}
-	return ResolveBeadsDirForRepo(path)
+	return ResolveIssueGraphDirForRepo(path)
 }
 
-func sharedStoreBeadsDir(ss *SharedStore) string {
+func sharedStoreIssueGraphDir(ss *SharedStore) string {
 	if ss == nil {
 		return ""
 	}
-	return ss.BeadsDir()
+	return ss.IssueGraphDir()
 }
 
-func sharedStoreNeedsLocalDoltDir(beadsDir string) bool {
-	cfg, err := configfile.Load(beadsDir)
+func sharedStoreNeedsLocalDoltDir(issuegraphDir string) bool {
+	cfg, err := configfile.Load(issuegraphDir)
 	return err != nil || cfg == nil || !cfg.IsDoltServerMode()
 }
 
@@ -49,18 +49,18 @@ func sharedStoreNeedsLocalDoltDir(beadsDir string) bool {
 // If the database doesn't exist or can't be opened, Store() will return nil.
 // The caller MUST call Close() when done (typically via defer).
 func NewSharedStore(path string) *SharedStore {
-	beadsDir := ResolveBeadsDirForRepo(path)
-	ss := &SharedStore{beadsDir: beadsDir}
+	issuegraphDir := ResolveIssueGraphDirForRepo(path)
+	ss := &SharedStore{issuegraphDir: issuegraphDir}
 
-	if sharedStoreNeedsLocalDoltDir(beadsDir) {
-		doltPath := getDatabasePath(beadsDir)
+	if sharedStoreNeedsLocalDoltDir(issuegraphDir) {
+		doltPath := getDatabasePath(issuegraphDir)
 		if _, err := os.Stat(doltPath); os.IsNotExist(err) {
 			return ss // No database, store stays nil
 		}
 	}
 
 	ctx := context.Background()
-	store, err := dolt.NewFromConfigWithOptions(ctx, beadsDir, &dolt.Config{ReadOnly: true})
+	store, err := dolt.NewFromConfigWithOptions(ctx, issuegraphDir, &dolt.Config{ReadOnly: true})
 	if err != nil {
 		return ss // Can't open, store stays nil
 	}
@@ -77,12 +77,12 @@ func (ss *SharedStore) Store() *dolt.DoltStore {
 	return ss.store
 }
 
-// BeadsDir returns the resolved .beads directory path.
-func (ss *SharedStore) BeadsDir() string {
+// IssueGraphDir returns the resolved .issuegraph directory path.
+func (ss *SharedStore) IssueGraphDir() string {
 	if ss == nil {
 		return ""
 	}
-	return ss.beadsDir
+	return ss.issuegraphDir
 }
 
 // Close closes the underlying DoltStore. Safe to call multiple times.

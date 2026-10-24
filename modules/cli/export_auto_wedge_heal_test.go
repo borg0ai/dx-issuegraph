@@ -13,15 +13,15 @@ import (
 	"testing"
 	"time"
 
-	"github.com/steveyegge/beads/internal/config"
-	"github.com/steveyegge/beads/internal/storage"
-	"github.com/steveyegge/beads/internal/types"
+	"github.com/borg0ai/dx-issuegraph/internal/config"
+	"github.com/borg0ai/dx-issuegraph/internal/storage"
+	"github.com/borg0ai/dx-issuegraph/internal/types"
 )
 
-// These tests cover GH#5896: `bd delete` used to leave a JSONL-only issue id
+// These tests cover GH#5896: `issuegraph delete` used to leave a JSONL-only issue id
 // that no pre-export guard could account for, so auto-export refused, never
 // saved state, and refused again on every later command — forever, with the
-// documented recovery (`bd init --from-jsonl`) undoing the delete.
+// documented recovery (`issuegraph init --from-jsonl`) undoing the delete.
 //
 // They run against a fake store that models EMBEDDED mode's capability set —
 // the default open path, and the one the in-window #5806 fix could not reach:
@@ -154,9 +154,9 @@ func wedgeHealIssue(id, title string) *types.Issue {
 	}
 }
 
-// setupWedgeHealTest wires config, globals and a .beads dir, and returns the
-// beads dir plus the export path.
-func setupWedgeHealTest(t *testing.T, store2 storage.DoltStorage) (beadsDir, exportPath string) {
+// setupWedgeHealTest wires config, globals and a .issuegraph dir, and returns the
+// issuegraph dir plus the export path.
+func setupWedgeHealTest(t *testing.T, store2 storage.DoltStorage) (issuegraphDir, exportPath string) {
 	t.Helper()
 	initConfigForTest(t)
 	config.Set("export.auto", true)
@@ -177,8 +177,8 @@ func setupWedgeHealTest(t *testing.T, store2 storage.DoltStorage) (beadsDir, exp
 		storeMutex.Unlock()
 	})
 
-	beadsDir = filepath.Join(dir, ".beads")
-	return beadsDir, filepath.Join(beadsDir, "issues.jsonl")
+	issuegraphDir = filepath.Join(dir, ".issuegraph")
+	return issuegraphDir, filepath.Join(issuegraphDir, "issues.jsonl")
 }
 
 func jsonlIDs(t *testing.T, path string) []string {
@@ -198,9 +198,9 @@ func jsonlIDs(t *testing.T, path string) []string {
 // writeWedgedExportState writes the on-disk state a pre-fix binary leaves
 // behind: a last-seen commit, an open throttle window, and whatever anchor
 // the caller wants to model.
-func writeWedgedExportState(t *testing.T, beadsDir, lastCommit, anchor string) {
+func writeWedgedExportState(t *testing.T, issuegraphDir, lastCommit, anchor string) {
 	t.Helper()
-	saveExportAutoState(beadsDir, &exportAutoState{
+	saveExportAutoState(issuegraphDir, &exportAutoState{
 		LastDoltCommit: lastCommit,
 		LastDiffAnchor: anchor,
 		Timestamp:      time.Time{},
@@ -216,7 +216,7 @@ func TestMaybeAutoExport_DeleteHealsInsteadOfWedging_Embedded(t *testing.T) {
 		wedgeHealIssue("wh-a", "Alpha"),
 		wedgeHealIssue("wh-b", "Beta"),
 	)
-	beadsDir, exportPath := setupWedgeHealTest(t, fake)
+	issuegraphDir, exportPath := setupWedgeHealTest(t, fake)
 
 	if err := maybeAutoExport(context.Background(), false); err != nil {
 		t.Fatalf("first maybeAutoExport: %v", err)
@@ -244,7 +244,7 @@ func TestMaybeAutoExport_DeleteHealsInsteadOfWedging_Embedded(t *testing.T) {
 	if titles := loadIssueTitles(t, exportPath); titles["wh-a"] != "Alpha renamed" {
 		t.Errorf("wh-a title = %q, want %q — the export was skipped, not healed", titles["wh-a"], "Alpha renamed")
 	}
-	if state := loadExportAutoState(beadsDir); state.LastDoltCommit != "head-2" {
+	if state := loadExportAutoState(issuegraphDir); state.LastDoltCommit != "head-2" {
 		t.Errorf("LastDoltCommit = %q, want %q — state must advance or the next command wedges on the same comparison", state.LastDoltCommit, "head-2")
 	}
 	if !strings.Contains(stderr, "wh-b") || !strings.Contains(stderr, "reconciled") {
@@ -261,7 +261,7 @@ func TestMaybeAutoExport_DeleteHealsInsteadOfWedging_Embedded(t *testing.T) {
 // issues vs 1 record" unless it too knows the record is a proven deletion.
 func TestMaybeAutoExport_DeleteLastIssueHealsEmptyGuard(t *testing.T) {
 	fake := newWedgeHealTestStore(t, wedgeHealIssue("wh-only", "The only one"))
-	beadsDir, exportPath := setupWedgeHealTest(t, fake)
+	issuegraphDir, exportPath := setupWedgeHealTest(t, fake)
 
 	if err := maybeAutoExport(context.Background(), false); err != nil {
 		t.Fatalf("first maybeAutoExport: %v", err)
@@ -285,7 +285,7 @@ func TestMaybeAutoExport_DeleteLastIssueHealsEmptyGuard(t *testing.T) {
 	if _, err := os.Stat(exportPath); !os.IsNotExist(err) {
 		t.Errorf("issues.jsonl still exists after the last issue was deleted (stat err = %v); the empty export removes the file", err)
 	}
-	if state := loadExportAutoState(beadsDir); state.LastDoltCommit != "head-2" {
+	if state := loadExportAutoState(issuegraphDir); state.LastDoltCommit != "head-2" {
 		t.Errorf("LastDoltCommit = %q, want %q", state.LastDoltCommit, "head-2")
 	}
 }
@@ -310,13 +310,13 @@ func TestMaybeAutoExport_PreWedgedStoreRecovers(t *testing.T) {
 			// its history remembers it. That IS the pre-fix on-disk shape.
 			fake := newWedgeHealTestStore(t, wedgeHealIssue("wh-a", "Alpha"))
 			fake.historical["wh-b"] = true
-			beadsDir, exportPath := setupWedgeHealTest(t, fake)
+			issuegraphDir, exportPath := setupWedgeHealTest(t, fake)
 
 			writeJSONLLines(t, exportPath,
 				map[string]any{"_type": "issue", "id": "wh-a", "title": "Alpha", "issue_type": "task"},
 				map[string]any{"_type": "issue", "id": "wh-b", "title": "Beta", "issue_type": "task"},
 			)
-			writeWedgedExportState(t, beadsDir, "head-0", tc.anchor)
+			writeWedgedExportState(t, issuegraphDir, "head-0", tc.anchor)
 
 			stderr := captureStderr(t, func() {
 				if err := maybeAutoExport(context.Background(), false); err != nil {
@@ -333,7 +333,7 @@ func TestMaybeAutoExport_PreWedgedStoreRecovers(t *testing.T) {
 			if !strings.Contains(stderr, "wh-b") {
 				t.Errorf("stderr = %q, want a heal notice naming wh-b", stderr)
 			}
-			if state := loadExportAutoState(beadsDir); state.LastDoltCommit != "head-1" {
+			if state := loadExportAutoState(issuegraphDir); state.LastDoltCommit != "head-1" {
 				t.Errorf("LastDoltCommit = %q, want head-1 (state must be re-saved or the wedge survives the upgrade)", state.LastDoltCommit)
 			}
 		})
@@ -355,13 +355,13 @@ func TestMaybeAutoExport_UnprovableJSONLIDStillRefuses(t *testing.T) {
 	} {
 		t.Run(tc.name, func(t *testing.T) {
 			fake := newWedgeHealTestStore(t, wedgeHealIssue("wh-a", "Alpha"))
-			beadsDir, exportPath := setupWedgeHealTest(t, fake)
+			issuegraphDir, exportPath := setupWedgeHealTest(t, fake)
 
 			writeJSONLLines(t, exportPath,
 				map[string]any{"_type": "issue", "id": "wh-a", "title": "Alpha", "issue_type": "task"},
 				map[string]any{"_type": "issue", "id": "wh-ghost", "title": "Ghost", "issue_type": "task"},
 			)
-			writeWedgedExportState(t, beadsDir, "head-0", tc.anchor)
+			writeWedgedExportState(t, issuegraphDir, "head-0", tc.anchor)
 
 			stderr := captureStderr(t, func() {
 				if err := maybeAutoExport(context.Background(), false); err != nil {
@@ -378,7 +378,7 @@ func TestMaybeAutoExport_UnprovableJSONLIDStillRefuses(t *testing.T) {
 			if got := jsonlIDs(t, exportPath); len(got) != 2 {
 				t.Errorf("exported ids = %v, want both records preserved — an unprovable divergence must never lose a line", got)
 			}
-			if state := loadExportAutoState(beadsDir); state.LastDoltCommit != "head-0" {
+			if state := loadExportAutoState(issuegraphDir); state.LastDoltCommit != "head-0" {
 				t.Errorf("LastDoltCommit = %q, want head-0 (a refusal must not advance state)", state.LastDoltCommit)
 			}
 		})
@@ -392,13 +392,13 @@ func TestMaybeAutoExport_HistoryProofFailureRefuses(t *testing.T) {
 	fake := newWedgeHealTestStore(t, wedgeHealIssue("wh-a", "Alpha"))
 	fake.historical["wh-b"] = true
 	fake.historyFailed = true
-	beadsDir, exportPath := setupWedgeHealTest(t, fake)
+	issuegraphDir, exportPath := setupWedgeHealTest(t, fake)
 
 	writeJSONLLines(t, exportPath,
 		map[string]any{"_type": "issue", "id": "wh-a", "title": "Alpha", "issue_type": "task"},
 		map[string]any{"_type": "issue", "id": "wh-b", "title": "Beta", "issue_type": "task"},
 	)
-	writeWedgedExportState(t, beadsDir, "head-0", "")
+	writeWedgedExportState(t, issuegraphDir, "head-0", "")
 
 	stderr := captureStderr(t, func() {
 		if err := maybeAutoExport(context.Background(), false); err != nil {
@@ -422,13 +422,13 @@ func TestMaybeAutoExport_HistoryProofFailureRefuses(t *testing.T) {
 func TestMaybeAutoExport_DeleteHandoffProvesWhatHistoryCannot(t *testing.T) {
 	inner := newWedgeHealTestStore(t, wedgeHealIssue("wh-a", "Alpha"))
 	fake := &fakeHistorylessStore{fakeEmbeddedStore: inner}
-	beadsDir, exportPath := setupWedgeHealTest(t, fake)
+	issuegraphDir, exportPath := setupWedgeHealTest(t, fake)
 
 	writeJSONLLines(t, exportPath,
 		map[string]any{"_type": "issue", "id": "wh-a", "title": "Alpha", "issue_type": "task"},
 		map[string]any{"_type": "issue", "id": "wh-uncommitted", "title": "Never committed", "issue_type": "task"},
 	)
-	writeWedgedExportState(t, beadsDir, "head-0", "")
+	writeWedgedExportState(t, issuegraphDir, "head-0", "")
 
 	commandDeletedIssueIDs.reset()
 	t.Cleanup(commandDeletedIssueIDs.reset)
@@ -544,17 +544,17 @@ func TestExportAutoState_VersionRoundTripAndFutureDiscard(t *testing.T) {
 	t.Run("DiscardsAFutureVersionWithoutWedging", func(t *testing.T) {
 		fake := newWedgeHealTestStore(t, wedgeHealIssue("wh-a", "Alpha"))
 		fake.historical["wh-b"] = true
-		beadsDir, exportPath := setupWedgeHealTest(t, fake)
+		issuegraphDir, exportPath := setupWedgeHealTest(t, fake)
 
 		writeJSONLLines(t, exportPath,
 			map[string]any{"_type": "issue", "id": "wh-a", "title": "Alpha", "issue_type": "task"},
 			map[string]any{"_type": "issue", "id": "wh-b", "title": "Beta", "issue_type": "task"},
 		)
 		future := `{"v":999,"last_dolt_commit":"head-1","last_diff_anchor":"future-anchor"}`
-		if err := os.WriteFile(filepath.Join(beadsDir, exportAutoStateFile), []byte(future), 0o600); err != nil {
+		if err := os.WriteFile(filepath.Join(issuegraphDir, exportAutoStateFile), []byte(future), 0o600); err != nil {
 			t.Fatal(err)
 		}
-		if state := loadExportAutoState(beadsDir); state.LastDoltCommit != "" || state.LastDiffAnchor != "" {
+		if state := loadExportAutoState(issuegraphDir); state.LastDoltCommit != "" || state.LastDiffAnchor != "" {
 			t.Fatalf("future-version state was not discarded: %+v", state)
 		}
 
@@ -572,7 +572,7 @@ func TestExportAutoState_VersionRoundTripAndFutureDiscard(t *testing.T) {
 		if got, want := jsonlIDs(t, exportPath), []string{"wh-a"}; strings.Join(got, ",") != strings.Join(want, ",") {
 			t.Errorf("exported ids = %v, want %v", got, want)
 		}
-		state := loadExportAutoState(beadsDir)
+		state := loadExportAutoState(issuegraphDir)
 		if state.FormatVersion != exportAutoStateVersion || state.LastDoltCommit != "head-1" {
 			t.Errorf("state after re-anchor = %+v, want v%d at head-1", state, exportAutoStateVersion)
 		}
@@ -602,7 +602,7 @@ func TestMaybeAutoExport_DeleteHealsInsteadOfWedging_ServerMode(t *testing.T) {
 	if err := maybeAutoExport(ctx, false); err != nil {
 		t.Fatalf("first maybeAutoExport: %v", err)
 	}
-	exportPath := filepath.Join(h.beadsDir, "issues.jsonl")
+	exportPath := filepath.Join(h.issuegraphDir, "issues.jsonl")
 	if got := countIssueLines(t, exportPath); got != 2 {
 		t.Fatalf("setup: %d issue lines, want 2", got)
 	}
@@ -614,10 +614,10 @@ func TestMaybeAutoExport_DeleteHealsInsteadOfWedging_ServerMode(t *testing.T) {
 		t.Fatalf("DeleteIssue: %v", err)
 	}
 	h.mustCommit(t, ctx, "delete sw-b")
-	state := loadExportAutoState(h.beadsDir)
+	state := loadExportAutoState(h.issuegraphDir)
 	state.LastDiffAnchor = ""
 	state.Timestamp = time.Time{}
-	saveExportAutoState(h.beadsDir, state)
+	saveExportAutoState(h.issuegraphDir, state)
 
 	stderr := captureStderr(t, func() {
 		if err := maybeAutoExport(ctx, false); err != nil {
@@ -634,7 +634,7 @@ func TestMaybeAutoExport_DeleteHealsInsteadOfWedging_ServerMode(t *testing.T) {
 	if !strings.Contains(stderr, "sw-b") {
 		t.Errorf("stderr = %q, want a heal notice naming sw-b", stderr)
 	}
-	if loadExportAutoState(h.beadsDir).LastDiffAnchor == "" {
+	if loadExportAutoState(h.issuegraphDir).LastDiffAnchor == "" {
 		t.Error("the export re-anchored to nothing; the next cycle would take the same anchorless path forever")
 	}
 }
@@ -662,8 +662,8 @@ func TestMaybeAutoExport_ProvenDeletionReachesTheIncrementalPatch(t *testing.T) 
 	if err := maybeAutoExport(ctx, false); err != nil {
 		t.Fatalf("first maybeAutoExport: %v", err)
 	}
-	exportPath := filepath.Join(h.beadsDir, "issues.jsonl")
-	anchor := loadExportAutoState(h.beadsDir).LastDiffAnchor
+	exportPath := filepath.Join(h.issuegraphDir, "issues.jsonl")
+	anchor := loadExportAutoState(h.issuegraphDir).LastDiffAnchor
 	if anchor == "" {
 		t.Fatal("setup: no diff anchor recorded, the incremental path can't be under test")
 	}
@@ -681,10 +681,10 @@ func TestMaybeAutoExport_ProvenDeletionReachesTheIncrementalPatch(t *testing.T) 
 	// Pin the anchor back to before sx-x ever existed. Now the diff's two
 	// endpoints both lack it, exactly like a create+delete inside one
 	// throttle window.
-	state := loadExportAutoState(h.beadsDir)
+	state := loadExportAutoState(h.issuegraphDir)
 	state.LastDiffAnchor = anchor
 	state.Timestamp = time.Time{}
-	saveExportAutoState(h.beadsDir, state)
+	saveExportAutoState(h.issuegraphDir, state)
 
 	if err := h.store.DeleteIssue(ctx, "sx-x"); err != nil {
 		t.Fatalf("DeleteIssue: %v", err)
@@ -701,7 +701,7 @@ func TestMaybeAutoExport_ProvenDeletionReachesTheIncrementalPatch(t *testing.T) 
 	// LastDirtyIDs reaches state only from a successful incremental patch —
 	// the full-export fallback nils it — and sx-y is the only upserted id, so
 	// exactly {sx-y} is what says "this run was incremental AND it ran".
-	if got, want := loadExportAutoState(h.beadsDir).LastDirtyIDs, []string{"sx-y"}; !reflect.DeepEqual(got, want) {
+	if got, want := loadExportAutoState(h.issuegraphDir).LastDirtyIDs, []string{"sx-y"}; !reflect.DeepEqual(got, want) {
 		t.Fatalf("LastDirtyIDs = %v, want %v — the run was skipped or fell back to a full export, and this test only means something on the incremental path", got, want)
 	}
 	titles := loadIssueTitles(t, exportPath)
@@ -753,7 +753,7 @@ func TestMaybeAutoExport_HistoryProofDoesNotSurviveARewind(t *testing.T) {
 	if err := maybeAutoExport(ctx, false); err != nil {
 		t.Fatalf("first maybeAutoExport: %v", err)
 	}
-	exportPath := filepath.Join(h.beadsDir, "issues.jsonl")
+	exportPath := filepath.Join(h.issuegraphDir, "issues.jsonl")
 
 	h.mustCreate(t, ctx, "sr-x", "Rewound")
 	h.mustCommit(t, ctx, "add sr-x")
@@ -773,10 +773,10 @@ func TestMaybeAutoExport_HistoryProofDoesNotSurviveARewind(t *testing.T) {
 	}
 	// Blank the anchor so the anchor-diff proof cannot even be consulted:
 	// whatever happens next is the history proof's answer alone.
-	state := loadExportAutoState(h.beadsDir)
+	state := loadExportAutoState(h.issuegraphDir)
 	state.LastDiffAnchor = ""
 	state.Timestamp = time.Time{}
-	saveExportAutoState(h.beadsDir, state)
+	saveExportAutoState(h.issuegraphDir, state)
 
 	stderr := captureStderr(t, func() {
 		if err := maybeAutoExport(ctx, false); err != nil {

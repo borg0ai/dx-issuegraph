@@ -11,21 +11,21 @@ import (
 	"strings"
 	"time"
 
+	"github.com/borg0ai/dx-issuegraph/internal/config"
+	"github.com/borg0ai/dx-issuegraph/internal/configfile"
+	"github.com/borg0ai/dx-issuegraph/internal/debug"
+	"github.com/borg0ai/dx-issuegraph/internal/metrics"
+	"github.com/borg0ai/dx-issuegraph/internal/remotecache"
+	"github.com/borg0ai/dx-issuegraph/internal/routing"
+	"github.com/borg0ai/dx-issuegraph/internal/storage"
+	"github.com/borg0ai/dx-issuegraph/internal/storage/dolt"
+	"github.com/borg0ai/dx-issuegraph/internal/timeparsing"
+	"github.com/borg0ai/dx-issuegraph/internal/types"
+	"github.com/borg0ai/dx-issuegraph/internal/ui"
+	"github.com/borg0ai/dx-issuegraph/internal/utils"
+	"github.com/borg0ai/dx-issuegraph/internal/validation"
+	"github.com/borg0ai/dx-issuegraph/issueops"
 	"github.com/spf13/cobra"
-	"github.com/steveyegge/beads/internal/config"
-	"github.com/steveyegge/beads/internal/configfile"
-	"github.com/steveyegge/beads/internal/debug"
-	"github.com/steveyegge/beads/internal/metrics"
-	"github.com/steveyegge/beads/internal/remotecache"
-	"github.com/steveyegge/beads/internal/routing"
-	"github.com/steveyegge/beads/internal/storage"
-	"github.com/steveyegge/beads/internal/storage/dolt"
-	"github.com/steveyegge/beads/internal/timeparsing"
-	"github.com/steveyegge/beads/internal/types"
-	"github.com/steveyegge/beads/internal/ui"
-	"github.com/steveyegge/beads/internal/utils"
-	"github.com/steveyegge/beads/internal/validation"
-	"github.com/steveyegge/beads/issueops"
 )
 
 // validateCreateArgs runs as cobra's Args validation, which executes before
@@ -111,14 +111,14 @@ var createCmd = &cobra.Command{
 		// Warn if creating a test issue in a database with existing issues.
 		// A brand-new repo with zero issues is not a "production database" (#2898).
 		// store is nil here for `create --repo=<remote URL>` from a directory with
-		// no local .beads/: PersistentPreRunE skips local store init entirely for
+		// no local .issuegraph/: PersistentPreRunE skips local store init entirely for
 		// that path, so this check is best-effort only.
 		if store != nil && isTestIssue(title) && !silent && !debug.IsQuiet() {
 			if stats, err := store.GetStatistics(context.Background()); err == nil && stats != nil && stats.TotalIssues >= 5 {
 				fmt.Fprintf(os.Stderr, "%s Creating test issue in production database\n", ui.RenderWarn("⚠"))
 				fmt.Fprintf(os.Stderr, "  Title: %q appears to be test data\n", title)
 				fmt.Fprintf(os.Stderr, "  Recommendation: Use isolated test database with --db\n")
-				fmt.Fprintf(os.Stderr, "    bd --db /tmp/test-beads create %q\n", title)
+				fmt.Fprintf(os.Stderr, "    issuegraph --db /tmp/test-issuegraph create %q\n", title)
 			}
 		}
 
@@ -171,7 +171,7 @@ var createCmd = &cobra.Command{
 		statusFlag, _ := cmd.Flags().GetString("status")
 		if statusFlag != "" {
 			if !types.Status(statusFlag).IsValidWithCustom(loadEmbeddedCustomStatuses()) {
-				return HandleErrorRespectJSON("invalid status %q (built-in: open, in_progress, blocked, deferred, closed, pinned, hooked; or configure custom statuses via 'bd config set status.custom')", statusFlag)
+				return HandleErrorRespectJSON("invalid status %q (built-in: open, in_progress, blocked, deferred, closed, pinned, hooked; or configure custom statuses via 'issuegraph config set status.custom')", statusFlag)
 			}
 		}
 
@@ -247,7 +247,7 @@ var createCmd = &cobra.Command{
 			}
 			// Warn if defer date is in the past (user probably meant future)
 			if t.Before(time.Now()) && !silent && !debug.IsQuiet() {
-				fmt.Fprintf(os.Stderr, "%s Defer date %q is in the past. Issue will appear in bd ready immediately.\n",
+				fmt.Fprintf(os.Stderr, "%s Defer date %q is in the past. Issue will appear in issuegraph ready immediately.\n",
 					ui.RenderWarn("!"), t.Local().Format("2006-01-02 15:04"))
 				fmt.Fprintf(os.Stderr, "  Did you mean a future date? Use --defer=+1h or --defer=tomorrow\n")
 			}
@@ -306,7 +306,7 @@ var createCmd = &cobra.Command{
 			}
 
 			// Build routing config with backward compatibility for legacy contributor.* keys.
-			// Prefer config.yaml values, but fall back to DB config values set by bd init --contributor.
+			// Prefer config.yaml values, but fall back to DB config values set by issuegraph init --contributor.
 			routingMode := getRoutingConfigValue(rootCtx, store, "routing.mode")
 			contributorRepo := getRoutingConfigValue(rootCtx, store, "routing.contributor")
 
@@ -391,23 +391,23 @@ var createCmd = &cobra.Command{
 					return HandleError("failed to open remote store: %v", err)
 				}
 			} else {
-				targetBeadsDir := routing.ExpandPath(repoPath)
-				debug.Logf("DEBUG: Routing to target repo: %s\n", targetBeadsDir)
+				targetIssueGraphDir := routing.ExpandPath(repoPath)
+				debug.Logf("DEBUG: Routing to target repo: %s\n", targetIssueGraphDir)
 
 				// Auto-routed paths (routing.mode: auto, routing.default)
 				// come from config, not caller input, so they're always
 				// allowed to auto-vivify as before; only an explicit --repo
 				// flag value can be ambiguous.
 				allowCreate := !isAmbiguousRepoTarget(cmd.Flags().Changed("repo"), repoOverride)
-				if err := ensureBeadsDirForPath(rootCtx, targetBeadsDir, store, allowCreate); err != nil {
+				if err := ensureIssueGraphDirForPath(rootCtx, targetIssueGraphDir, store, allowCreate); err != nil {
 					return HandleError("failed to initialize target repo: %v", err)
 				}
 
-				targetBeadsDirPath := filepath.Join(targetBeadsDir, ".beads")
+				targetIssueGraphDirPath := filepath.Join(targetIssueGraphDir, ".issuegraph")
 				var err error
-				targetStore, err = newDoltStoreFromConfig(rootCtx, targetBeadsDirPath)
+				targetStore, err = newDoltStoreFromConfig(rootCtx, targetIssueGraphDirPath)
 				if err != nil {
-					return handleCreateTargetStoreError(err, targetBeadsDirPath, "failed to open target store: %v")
+					return handleCreateTargetStoreError(err, targetIssueGraphDirPath, "failed to open target store: %v")
 				}
 			}
 
@@ -437,7 +437,7 @@ var createCmd = &cobra.Command{
 			if err != nil {
 				targetPath := repoPath
 				if !remotecache.IsRemoteURL(repoPath) {
-					targetPath = filepath.Join(routing.ExpandPath(repoPath), ".beads")
+					targetPath = filepath.Join(routing.ExpandPath(repoPath), ".issuegraph")
 				}
 				return handleCreateTargetStoreError(err, targetPath, "%v")
 			}
@@ -538,7 +538,7 @@ var createCmd = &cobra.Command{
 
 		ctx := createCtx
 
-		// Resolve partial --deps targets the way `bd dep add` does, so a bare
+		// Resolve partial --deps targets the way `issuegraph dep add` does, so a bare
 		// slug becomes a qualified id rather than a dangling edge, and an
 		// unknown target fails closed here instead of reaching the write.
 		resolvedDepSpecs, resolveErr := resolveDepSpecTargets(ctx, store, depSpecs)
@@ -583,14 +583,14 @@ var createCmd = &cobra.Command{
 			// RULING R1: an occupied --id is a refusal, not a silent full-row
 			// upsert reported as success.
 			if errors.Is(err, storage.ErrAlreadyExists) && explicitID != "" {
-				return HandleErrorRespectJSON("%s already exists; use bd update, or bd import for upsert semantics", explicitID)
+				return HandleErrorRespectJSON("%s already exists; use issuegraph update, or issuegraph import for upsert semantics", explicitID)
 			}
 			return HandleErrorRespectJSON("%v", err)
 		}
 		// Every post-write read comes from the facade's result snapshot, never
 		// from the local struct: the facade clones its request, so the local
 		// struct still has no ID for an auto-minted create and no persisted
-		// timestamps. Dependencies and comments are dropped because `bd create`
+		// timestamps. Dependencies and comments are dropped because `issuegraph create`
 		// has never printed them.
 		created := result.Issue
 		created.Dependencies = nil
@@ -605,7 +605,7 @@ var createCmd = &cobra.Command{
 				return HandleError("dolt auto-commit failed: %v", err)
 			}
 			if shouldCommit {
-				commitMsg := fmt.Sprintf("bd: create %s", created.ID)
+				commitMsg := fmt.Sprintf("issuegraph: create %s", created.ID)
 				if err := store.Commit(ctx, commitMsg); err != nil && !isDoltNothingToCommit(err) {
 					WarnError("failed to commit: %v", err)
 				}
@@ -730,7 +730,7 @@ func reconcileStorageClassPlane(class types.StorageClass, explicit, wispPlane bo
 }
 
 // resolveCreateStorageClass is the ONE create-time storage-class decision every
-// `bd create` CLI door makes: parse the flag (or fall back to the per-type
+// `issuegraph create` CLI door makes: parse the flag (or fall back to the per-type
 // storage-class.<type> config default), route the ephemeral spelling to the wisp
 // plane, and reject a durable class that contradicts the plane. Every door goes
 // through it so the direct, proxied, and --file routes cannot answer differently;
@@ -933,7 +933,7 @@ func init() {
 	createCmd.Flags().String("repo", "", "Target repository for issue (overrides auto-routing)")
 	createCmd.Flags().IntP("estimate", "e", 0, "Time estimate in minutes (e.g., 60 for 1 hour)")
 	createCmd.Flags().Bool("ephemeral", false, "Create as ephemeral (short-lived, subject to TTL compaction)")
-	createCmd.Flags().Bool("no-history", false, "Skip Dolt commit history without making GC-eligible (for permanent agent beads)")
+	createCmd.Flags().Bool("no-history", false, "Skip Dolt commit history without making GC-eligible (for permanent agent issuegraph)")
 	createCmd.Flags().String("storage-class", "", "Storage class: versioned, unversioned, or ephemeral (default: storage-class.<type> config, else versioned)")
 	createCmd.Flags().String("mol-type", "", "Molecule type: swarm (multi-agent), patrol (recurring ops), work (default)")
 	createCmd.Flags().String("wisp-type", "", "Wisp type for TTL-based compaction: heartbeat, ping, patrol, gc_report, recovery, error, escalation")
@@ -942,7 +942,7 @@ func init() {
 	// Event-specific flags (only valid when --type=event)
 	createCmd.Flags().String("event-category", "", "Event category (e.g., patrol.muted, agent.started) (requires --type=event)")
 	createCmd.Flags().String("event-actor", "", "Entity URI who caused this event (requires --type=event)")
-	createCmd.Flags().String("event-target", "", "Entity URI or bead ID affected (requires --type=event)")
+	createCmd.Flags().String("event-target", "", "Entity URI or issue ID affected (requires --type=event)")
 	createCmd.Flags().String("event-payload", "", "Event-specific JSON data (requires --type=event)")
 	// Time-based scheduling flags (GH#820)
 	// Examples:
@@ -950,10 +950,10 @@ func init() {
 	//   --due=tomorrow      Due tomorrow
 	//   --due="next monday" Due next Monday
 	//   --due=2025-01-15    Due on specific date
-	//   --defer=+1h         Hidden from bd ready for 1 hour
+	//   --defer=+1h         Hidden from issuegraph ready for 1 hour
 	//   --defer=tomorrow    Hidden until tomorrow
 	createCmd.Flags().String("due", "", "Due date/time. Formats: +6h, +1d, +2w, tomorrow, next monday, 2025-01-15")
-	createCmd.Flags().String("defer", "", "Defer until date (issue hidden from bd ready until then). Same formats as --due")
+	createCmd.Flags().String("defer", "", "Defer until date (issue hidden from issuegraph ready until then). Same formats as --due")
 	createCmd.Flags().String("metadata", "", "Set custom metadata (JSON object, or @file.json to read from file)")
 	// Note: --json flag is defined as a persistent flag in main.go, not here
 	rootCmd.AddCommand(createCmd)
@@ -970,7 +970,7 @@ func handleCreateTargetStoreError(err error, targetPath, fallbackFormat string) 
 	withContext := *capErr
 	withContext.Message = fmt.Sprintf("failed to open create target %q: %s", targetPath, capErr.Message)
 	if capErr.Code == "proxy.store.unrouted" {
-		withContext.Message = fmt.Sprintf("create target %q is a proxied-server workspace; bd cannot open it as a direct store", targetPath)
+		withContext.Message = fmt.Sprintf("create target %q is a proxied-server workspace; issuegraph cannot open it as a direct store", targetPath)
 	}
 	return HandleProxyCapabilityError(&withContext)
 }
@@ -1010,8 +1010,8 @@ func openDryRunTargetStore(ctx context.Context, repoPath string) (storage.DoltSt
 	}
 
 	targetPath := routing.ExpandPath(repoPath)
-	beadsDir := filepath.Join(targetPath, ".beads")
-	metadataPath := filepath.Join(beadsDir, "metadata.json")
+	issuegraphDir := filepath.Join(targetPath, ".issuegraph")
+	metadataPath := filepath.Join(issuegraphDir, "metadata.json")
 	if _, err := os.Stat(metadataPath); err != nil {
 		if os.IsNotExist(err) {
 			return nil, fmt.Errorf("target repo %s is not initialized; refusing to initialize it during dry-run", targetPath)
@@ -1019,7 +1019,7 @@ func openDryRunTargetStore(ctx context.Context, repoPath string) (storage.DoltSt
 		return nil, fmt.Errorf("failed to inspect target repo %s: %w", targetPath, err)
 	}
 
-	store, err := newPreviewStoreFromConfig(ctx, beadsDir)
+	store, err := newPreviewStoreFromConfig(ctx, issuegraphDir)
 	if err != nil {
 		return nil, fmt.Errorf("failed to open target store for dry-run: %w", err)
 	}
@@ -1030,35 +1030,35 @@ func openDryRunTargetStore(ctx context.Context, repoPath string) (storage.DoltSt
 // bare/relative filesystem path (not absolute, not "~/"-prefixed). Such a
 // value silently resolves against the current working directory (see
 // routing.ExpandPath) rather than failing, so a misresolved value (e.g. a
-// typo) previously wrote a bead into a brand-new, disconnected database
+// typo) previously wrote a issue into a brand-new, disconnected database
 // instead of erroring (bd-8d3f).
 func isAmbiguousRepoTarget(repoFlagChanged bool, repoOverride string) bool {
 	return repoFlagChanged && !filepath.IsAbs(repoOverride) && !strings.HasPrefix(repoOverride, "~/")
 }
 
-// ensureBeadsDirForPath ensures a beads directory exists at the target path.
-// If the .beads directory doesn't exist, it creates it and initializes with
+// ensureIssueGraphDirForPath ensures a issuegraph directory exists at the target path.
+// If the .issuegraph directory doesn't exist, it creates it and initializes with
 // the same prefix as the source store (T010, T012: prefix inheritance).
 //
 // When allowCreate is false, a target with no existing workspace is refused
 // instead of fabricated — see isAmbiguousRepoTarget.
-func ensureBeadsDirForPath(ctx context.Context, targetPath string, sourceStore storage.DoltStorage, allowCreate bool) error {
-	beadsDir := filepath.Join(targetPath, ".beads")
-	metadataPath := filepath.Join(beadsDir, "metadata.json")
+func ensureIssueGraphDirForPath(ctx context.Context, targetPath string, sourceStore storage.DoltStorage, allowCreate bool) error {
+	issuegraphDir := filepath.Join(targetPath, ".issuegraph")
+	metadataPath := filepath.Join(issuegraphDir, "metadata.json")
 
-	// Check if beads directory already exists with a Dolt database.
-	// metadata.json is the canonical marker for an initialized beads dir.
+	// Check if issuegraph directory already exists with a Dolt database.
+	// metadata.json is the canonical marker for an initialized issuegraph dir.
 	if _, err := os.Stat(metadataPath); err == nil {
 		return nil
 	}
 
 	if !allowCreate {
-		return fmt.Errorf("no beads workspace found at %s and --repo's value is a relative/bare path, so it won't be auto-created here (this is likely not the target you intended). Pass an absolute or \"~/\"-prefixed --repo path to an existing workspace instead", targetPath)
+		return fmt.Errorf("no issuegraph workspace found at %s and --repo's value is a relative/bare path, so it won't be auto-created here (this is likely not the target you intended). Pass an absolute or \"~/\"-prefixed --repo path to an existing workspace instead", targetPath)
 	}
 
-	// Create .beads directory
-	if err := os.MkdirAll(beadsDir, 0750); err != nil {
-		return fmt.Errorf("cannot create .beads directory: %w", err)
+	// Create .issuegraph directory
+	if err := os.MkdirAll(issuegraphDir, 0750); err != nil {
+		return fmt.Errorf("cannot create .issuegraph directory: %w", err)
 	}
 
 	// Initialize database via NewFromConfigWithOptions to respect Dolt config.
@@ -1066,14 +1066,14 @@ func ensureBeadsDirForPath(ctx context.Context, targetPath string, sourceStore s
 	if sourceStore != nil {
 		sourcePrefix, err := sourceStore.GetConfig(ctx, "issue_prefix")
 		if err == nil && sourcePrefix != "" {
-			// Sanitize prefix for SQL database name (same as bd init).
+			// Sanitize prefix for SQL database name (same as issuegraph init).
 			dbName := strings.ReplaceAll(sourcePrefix, "-", "_")
 
 			// Open target store temporarily to set prefix.
-			// Use newDoltStore with explicit config since the target .beads
+			// Use newDoltStore with explicit config since the target .issuegraph
 			// directory was just created and has no metadata.json yet.
 			tempStore, err := newDoltStore(ctx, &dolt.Config{
-				BeadsDir:        beadsDir,
+				IssueGraphDir:   issuegraphDir,
 				Database:        dbName,
 				CreateIfMissing: true,
 			})
@@ -1095,7 +1095,7 @@ func ensureBeadsDirForPath(ctx context.Context, targetPath string, sourceStore s
 			cfg.DoltDatabase = dbName
 			cfg.DoltMode = configfile.DoltModeEmbedded
 			cfg.ProjectID = configfile.GenerateProjectID()
-			if err := cfg.Save(beadsDir); err != nil {
+			if err := cfg.Save(issuegraphDir); err != nil {
 				return fmt.Errorf("failed to write metadata.json: %w", err)
 			}
 		}

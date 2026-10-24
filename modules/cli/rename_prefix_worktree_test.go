@@ -7,13 +7,13 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/steveyegge/beads/internal/beads"
-	"github.com/steveyegge/beads/internal/git"
+	"github.com/borg0ai/dx-issuegraph/internal/git"
+	"github.com/borg0ai/dx-issuegraph/internal/issuegraph"
 )
 
 func setupWorktree(t *testing.T) (mainRepoDir, worktreeDir string) {
 	t.Helper()
-	tmpDir, err := os.MkdirTemp("", "beads-worktree-test-*")
+	tmpDir, err := os.MkdirTemp("", "issuegraph-worktree-test-*")
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -71,7 +71,7 @@ func TestRenamePrefix_WorktreeNotBlocked(t *testing.T) {
 	}
 
 	// The worktree guard was removed: running from a worktree should not
-	// produce the old "cannot run 'bd rename-prefix' from a git worktree" error.
+	// produce the old "cannot run 'issuegraph rename-prefix' from a git worktree" error.
 	// We verify the preconditions that the old guard checked (isGitRepo && IsWorktree)
 	// are met, confirming the code path that used to block is now reachable.
 }
@@ -79,14 +79,14 @@ func TestRenamePrefix_WorktreeNotBlocked(t *testing.T) {
 func TestRenamePrefix_WorktreeResolvesMainRepoDB(t *testing.T) {
 	mainRepoDir, worktreeDir := setupWorktree(t)
 
-	mainBeadsDir := filepath.Join(mainRepoDir, ".beads")
-	if err := os.MkdirAll(mainBeadsDir, 0755); err != nil {
+	mainIssueGraphDir := filepath.Join(mainRepoDir, ".issuegraph")
+	if err := os.MkdirAll(mainIssueGraphDir, 0755); err != nil {
 		t.Fatal(err)
 	}
-	if err := os.WriteFile(filepath.Join(mainBeadsDir, "metadata.json"), []byte("{}"), 0644); err != nil {
+	if err := os.WriteFile(filepath.Join(mainIssueGraphDir, "metadata.json"), []byte("{}"), 0644); err != nil {
 		t.Fatal(err)
 	}
-	os.RemoveAll(filepath.Join(worktreeDir, ".beads"))
+	os.RemoveAll(filepath.Join(worktreeDir, ".issuegraph"))
 
 	t.Chdir(worktreeDir)
 	git.ResetCaches()
@@ -95,14 +95,14 @@ func TestRenamePrefix_WorktreeResolvesMainRepoDB(t *testing.T) {
 		t.Fatal("expected git.IsWorktree() to return true")
 	}
 
-	found := beads.FindBeadsDir()
+	found := issuegraph.FindIssueGraphDir()
 	if found == "" {
-		t.Fatal("FindBeadsDir() returned empty — store initialization would fail")
+		t.Fatal("FindIssueGraphDir() returned empty — store initialization would fail")
 	}
 
 	actual, _ := filepath.EvalSymlinks(filepath.Clean(strings.TrimSpace(found)))
-	expected, _ := filepath.EvalSymlinks(filepath.Clean(mainBeadsDir))
+	expected, _ := filepath.EvalSymlinks(filepath.Clean(mainIssueGraphDir))
 	if actual != expected {
-		t.Errorf("FindBeadsDir() = %q, want %q — rename-prefix would use wrong DB path", actual, expected)
+		t.Errorf("FindIssueGraphDir() = %q, want %q — rename-prefix would use wrong DB path", actual, expected)
 	}
 }

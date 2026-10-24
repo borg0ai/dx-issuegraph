@@ -16,10 +16,10 @@ import (
 
 	"github.com/spf13/pflag"
 
-	"github.com/steveyegge/beads/internal/beads"
-	"github.com/steveyegge/beads/internal/configfile"
-	"github.com/steveyegge/beads/internal/httpapi"
-	"github.com/steveyegge/beads/internal/storage"
+	"github.com/borg0ai/dx-issuegraph/internal/configfile"
+	"github.com/borg0ai/dx-issuegraph/internal/httpapi"
+	"github.com/borg0ai/dx-issuegraph/internal/issuegraph"
+	"github.com/borg0ai/dx-issuegraph/internal/storage"
 )
 
 // TestServeFlags pins the flag surface. Every bound that is NOT here — the
@@ -28,7 +28,7 @@ import (
 // deliberately, rather than arriving as one nobody designed.
 //
 // Every flag added here defaults to the behavior that existed without it, so
-// `bd serve` with no arguments is the same server it has always been.
+// `issuegraph serve` with no arguments is the same server it has always been.
 func TestServeFlags(t *testing.T) {
 	var got []string
 	serveCmd.Flags().VisitAll(func(f *pflag.Flag) { got = append(got, f.Name) })
@@ -39,7 +39,7 @@ func TestServeFlags(t *testing.T) {
 		"insecure-no-auth",
 	}
 	if strings.Join(got, ",") != strings.Join(want, ",") {
-		t.Errorf("bd serve flags = %v, want %v", got, want)
+		t.Errorf("issuegraph serve flags = %v, want %v", got, want)
 	}
 
 	// The defaults ARE the compatibility promise: no token file, no extra
@@ -84,7 +84,7 @@ func TestServeFlags(t *testing.T) {
 }
 
 // TestServeHelpTracksTheReadinessProbe. The help tells operators to probe
-// readiness with GET /v0/beads/ready?limit=1, which is a 501 stub in this
+// readiness with GET /v0/issuegraph/ready?limit=1, which is a 501 stub in this
 // build — a probe wired from the help alone is permanently not-ready. The
 // caveat that says so is transitional, and this keeps it honest in both
 // directions: while ready.list is unimplemented the help must carry it, and
@@ -95,9 +95,9 @@ func TestServeHelpTracksTheReadinessProbe(t *testing.T) {
 
 	switch {
 	case implemented && documented:
-		t.Error("ready.list is implemented; delete the 501 caveat from the PROBES section of `bd serve --help`")
+		t.Error("ready.list is implemented; delete the 501 caveat from the PROBES section of `issuegraph serve --help`")
 	case !implemented && !documented:
-		t.Error("`bd serve --help` sends operators to a readiness endpoint this build answers 501 to, with no hint that it does")
+		t.Error("`issuegraph serve --help` sends operators to a readiness endpoint this build answers 501 to, with no hint that it does")
 	}
 }
 
@@ -110,7 +110,7 @@ func TestServeCommandIsRegistered(t *testing.T) {
 	t.Fatal("serve is not registered under the root command")
 }
 
-// TestServeSkipsPostCommandMaintenance. In a server-mode workspace bd serve
+// TestServeSkipsPostCommandMaintenance. In a server-mode workspace issuegraph serve
 // takes the non-proxied PersistentPostRunE branch, which is the one that runs
 // the auto-commit / backup / export / push net — so on the way out of a SIGTERM
 // a server would push and export, hours of requests attributed to the shutdown.
@@ -118,12 +118,12 @@ func TestServeCommandIsRegistered(t *testing.T) {
 // telling the operator the same story.
 func TestServeSkipsPostCommandMaintenance(t *testing.T) {
 	if runsPostCommandMaintenance(serveCmdName, false) {
-		t.Error("bd serve runs post-command maintenance; the server would export and push at shutdown")
+		t.Error("issuegraph serve runs post-command maintenance; the server would export and push at shutdown")
 	}
 	// The exclusion is serve's alone: a write command in the same workspace
 	// still gets the whole net.
 	if !runsPostCommandMaintenance("update", false) {
-		t.Error("bd update no longer runs post-command maintenance")
+		t.Error("issuegraph update no longer runs post-command maintenance")
 	}
 	// And strict readonly still wins over everything, serve included.
 	if runsPostCommandMaintenance("update", true) {
@@ -182,7 +182,7 @@ func TestServeRefusalsPromiseNothing(t *testing.T) {
 			{
 				name: "shared-server",
 				apply: func(t *testing.T) {
-					t.Setenv("BEADS_DOLT_SHARED_SERVER", "1")
+					t.Setenv("ISSUEGRAPH_DOLT_SHARED_SERVER", "1")
 				},
 			},
 			{
@@ -192,11 +192,11 @@ func TestServeRefusalsPromiseNothing(t *testing.T) {
 		} {
 			t.Run(tc.name, func(t *testing.T) {
 				useStorageModeGlobals(t)
-				beadsDir := writeContractBackendConfig(t, configfile.BackendDolt)
+				issuegraphDir := writeContractBackendConfig(t, configfile.BackendDolt)
 				tc.apply(t)
-				db, err := serveDatabaseSource(beadsDir)
+				db, err := serveDatabaseSource(issuegraphDir)
 				if err != nil {
-					t.Fatalf("serveDatabaseSource() = %v, want nil: this mode has a SQL server and bd serve builds a provider for it", err)
+					t.Fatalf("serveDatabaseSource() = %v, want nil: this mode has a SQL server and issuegraph serve builds a provider for it", err)
 				}
 				if db.source != serveSourceProvider {
 					t.Errorf("source = %v, want serveSourceProvider", db.source)
@@ -212,8 +212,8 @@ func TestServeRefusalsPromiseNothing(t *testing.T) {
 			// is a constant false there, so there is no case to make.
 			t.Skip("this build cannot open an embedded workspace")
 		}
-		beadsDir := writeContractBackendConfig(t, configfile.BackendDolt)
-		_, err := serveDatabaseSource(beadsDir)
+		issuegraphDir := writeContractBackendConfig(t, configfile.BackendDolt)
+		_, err := serveDatabaseSource(issuegraphDir)
 		var unsupported *storage.ErrUnsupported
 		if !errors.As(err, &unsupported) {
 			t.Fatalf("serveDatabaseSource() = %v, want the typed embedded refusal", err)
@@ -231,7 +231,7 @@ func useStorageModeGlobals(t *testing.T) {
 	t.Helper()
 	oldServerMode, oldProxied := serverMode, proxiedServerMode
 	oldCmdCtx, oldUseGlobals := cmdCtx, testModeUseGlobals
-	t.Setenv("BEADS_DOLT_SHARED_SERVER", "0")
+	t.Setenv("ISSUEGRAPH_DOLT_SHARED_SERVER", "0")
 	serverMode, proxiedServerMode = false, false
 	cmdCtx, testModeUseGlobals = nil, true
 	t.Cleanup(func() {
@@ -242,10 +242,10 @@ func useStorageModeGlobals(t *testing.T) {
 
 // TestServeNamesOneDatabaseSourcePerServerItBuilds is the source-level half of
 // the embedded refusal. It replaces TestServeBuildsOnlyAProviderBackedServer,
-// which pinned a world in which bd built provider-backed servers only.
+// which pinned a world in which issuegraph built provider-backed servers only.
 //
 // That world ended for a reason and not by accident: the registered-backend arm
-// exists precisely so a store bd already opened can be served. But the property
+// exists precisely so a store issuegraph already opened can be served. But the property
 // the old test protected did not end with it — internal/httpapi still cannot
 // tell an embedded-backed role from any other, so the shortest edit from here to
 // a server whose per-request atomicity claim is false is still handing Listen
@@ -253,7 +253,7 @@ func useStorageModeGlobals(t *testing.T) {
 //
 // So this pins what is left, and it is narrow and checkable:
 //
-//   - every httpapi.Config bd builds names exactly ONE COMPLETE database
+//   - every httpapi.Config issuegraph builds names exactly ONE COMPLETE database
 //     source — Provider alone, or Reader and Claimer together. A half-set pair
 //     binds, answers every read, and nil-dereferences on the first claim;
 //     Listen refuses it, and so does this, one layer earlier;
@@ -405,12 +405,12 @@ func packageDir(t *testing.T) string {
 
 // TestServeRefusesStrictReadonly.
 //
-// `bd --readonly serve` is a contradiction, and until it was refused it
+// `issuegraph --readonly serve` is a contradiction, and until it was refused it
 // resolved differently on each of the two database sources — badly on both.
 //
 // On the STORE source the root command opens the workspace through
 // backend.OpenReadOnly and serve takes its claimer off that store, so the
-// server bound, GET /v0/beads/context went on advertising `issues.claim` (the
+// server bound, GET /v0/issuegraph/context went on advertising `issues.claim` (the
 // capability set is derived from the route table and knows nothing about a CLI
 // flag), and every claim came back 500 with the issue left open and unassigned.
 // A server that advertises a write it will always fail is worse than no server.
@@ -421,7 +421,7 @@ func packageDir(t *testing.T) string {
 // every claim landed. (Proxied mode never got that far — the root pre-run
 // already refuses strict readonly for it.)
 //
-// Refusing is the same policy bd already applies one layer down, where a
+// Refusing is the same policy issuegraph already applies one layer down, where a
 // backend that cannot guarantee mutation-free access is turned away rather than
 // opened anyway. It is also the only answer that is the same on both sources.
 //
@@ -436,7 +436,7 @@ func TestServeRefusesStrictReadonly(t *testing.T) {
 	t.Run("before any workspace is resolved", func(t *testing.T) {
 		stderr, err := runServeUnderReadonly(t, t.TempDir())
 		if err == nil {
-			t.Fatalf("bd --readonly serve bound a server\nstderr:\n%s", stderr)
+			t.Fatalf("issuegraph --readonly serve bound a server\nstderr:\n%s", stderr)
 		}
 		if !strings.Contains(stderr, "--readonly") {
 			t.Errorf("the refusal does not name the flag that caused it: %q", stderr)
@@ -454,13 +454,13 @@ func TestServeRefusesStrictReadonly(t *testing.T) {
 		// client can discover before connecting. Refusing the process instead
 		// leaves the published surface a property of the build.
 		if !slices.Contains(httpapi.Capabilities(), "issues.claim") {
-			t.Error("issues.claim left the advertised capability set; bd serve refuses --readonly " +
+			t.Error("issues.claim left the advertised capability set; issuegraph serve refuses --readonly " +
 				"precisely so that set never has to vary")
 		}
 	})
 }
 
-// runServeUnderReadonly runs bd serve with strict readonly set, in dir, and
+// runServeUnderReadonly runs issuegraph serve with strict readonly set, in dir, and
 // returns what it wrote to stderr. The refusal reaches the operator through
 // HandleError, which writes the message to stderr and returns an opaque exit
 // error, so the message is only observable here.
@@ -483,15 +483,15 @@ func runServeUnderReadonly(t *testing.T, dir string) (string, error) {
 	// without this a directory with no workspace would still resolve to
 	// whichever one an earlier test in this binary left behind — and "no
 	// workspace" is the whole premise of the ordering assertion above.
-	beads.ResetCaches()
-	t.Cleanup(beads.ResetCaches)
+	issuegraph.ResetCaches()
+	t.Cleanup(issuegraph.ResetCaches)
 
 	var err error
 	stderr := captureBootstrapStderr(t, func() { err = runServe() })
 	return stderr, err
 }
 
-// clearServeEnv removes the BEADS_SERVE_* fallback for one test. Without it a
+// clearServeEnv removes the ISSUEGRAPH_SERVE_* fallback for one test. Without it a
 // developer (or a CI runner) with it exported in their shell would silently
 // change what these tests assert — env is read only in this package, which is
 // what keeps the library and the dev binary immune to the same hazard.
@@ -582,7 +582,7 @@ func TestServeConfigRefusesAnUnservablePosture(t *testing.T) {
 		},
 		{
 			name:    "an allowed host with a port",
-			apply:   func(*testing.T) { serveAllowedHosts = []string{"bd.beads.svc:8080"} },
+			apply:   func(*testing.T) { serveAllowedHosts = []string{"issuegraph.issuegraph.svc:8080"} },
 			wantErr: "--allowed-host",
 		},
 	} {
@@ -647,7 +647,7 @@ func TestServeConfigCarriesTheOperatorsChoicesThrough(t *testing.T) {
 	clearServeEnv(t)
 	withServeFlags(t)
 	serveAuthTokenFile = serveTokenFile(t)
-	serveAllowedHosts = []string{"bd-proj.beads.svc.cluster.local", "bd-proj.beads.svc"}
+	serveAllowedHosts = []string{"bd-proj.issuegraph.svc.cluster.local", "bd-proj.issuegraph.svc"}
 
 	cfg, err := resolveServeConfig()
 	if err != nil {
@@ -672,7 +672,7 @@ func TestServeHelpDescribesTheAuthPosture(t *testing.T) {
 	long := serveCmd.Long
 	for _, want := range []string{"--auth-token-file", "--allowed-host", "rotat", "tls"} {
 		if !strings.Contains(strings.ToLower(long), want) {
-			t.Errorf("`bd serve --help` does not mention %q", want)
+			t.Errorf("`issuegraph serve --help` does not mention %q", want)
 		}
 	}
 	if strings.Contains(long, "No authentication and no TLS") {

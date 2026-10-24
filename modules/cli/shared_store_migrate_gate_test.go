@@ -13,19 +13,19 @@ import (
 	"testing"
 	"time"
 
-	"github.com/steveyegge/beads/internal/configfile"
-	"github.com/steveyegge/beads/internal/storage/dolt"
-	"github.com/steveyegge/beads/internal/storage/doltutil"
-	"github.com/steveyegge/beads/internal/storage/schema"
-	"github.com/steveyegge/beads/internal/types"
+	"github.com/borg0ai/dx-issuegraph/internal/configfile"
+	"github.com/borg0ai/dx-issuegraph/internal/storage/dolt"
+	"github.com/borg0ai/dx-issuegraph/internal/storage/doltutil"
+	"github.com/borg0ai/dx-issuegraph/internal/storage/schema"
+	"github.com/borg0ai/dx-issuegraph/internal/types"
 )
 
 // TestSharedServerVersionBumpDoesNotPromoteCursor reproduces
-// gastownhall/beads#5920 end to end, through the real CLI.
+// borg0ai/dx-issuegraph#5920 end to end, through the real CLI.
 //
 // The incident: a shared dolt sql-server with no remote, a team of co-resident
-// bd clients, one of them upgraded. That client's first command was a plain
-// `bd list` — a read — but the root pre-run's version-bump reconciliation
+// issuegraph clients, one of them upgraded. That client's first command was a plain
+// `issuegraph list` — a read — but the root pre-run's version-bump reconciliation
 // (autoMigrateOnVersionBump) opens its OWN writable store, which migrated the
 // database and promoted schema_migrations for everyone. Every co-resident
 // client still on the old binary then refused the database until it was
@@ -40,9 +40,9 @@ func TestSharedServerVersionBumpDoesNotPromoteCursor(t *testing.T) {
 	}
 
 	repo := t.TempDir()
-	beadsDir := filepath.Join(repo, ".beads")
-	if err := os.MkdirAll(beadsDir, 0o755); err != nil {
-		t.Fatalf("create .beads: %v", err)
+	issuegraphDir := filepath.Join(repo, ".issuegraph")
+	if err := os.MkdirAll(issuegraphDir, 0o755); err != nil {
+		t.Fatalf("create .issuegraph: %v", err)
 	}
 	database := uniqueTestDBName(t)
 	if err := (&configfile.Config{
@@ -51,7 +51,7 @@ func TestSharedServerVersionBumpDoesNotPromoteCursor(t *testing.T) {
 		DoltServerHost: "127.0.0.1",
 		DoltServerPort: testDoltServerPort,
 		DoltDatabase:   database,
-	}).Save(beadsDir); err != nil {
+	}).Save(issuegraphDir); err != nil {
 		t.Fatalf("save metadata: %v", err)
 	}
 
@@ -60,8 +60,8 @@ func TestSharedServerVersionBumpDoesNotPromoteCursor(t *testing.T) {
 	// the database from scratch, so the gate sees version 0 and allows it —
 	// creating a database is consent for its schema.
 	store, err := dolt.New(ctx, &dolt.Config{
-		Path:            filepath.Join(beadsDir, "dolt"),
-		BeadsDir:        beadsDir,
+		Path:            filepath.Join(issuegraphDir, "dolt"),
+		IssueGraphDir:   issuegraphDir,
 		ServerHost:      "127.0.0.1",
 		ServerPort:      testDoltServerPort,
 		Database:        database,
@@ -93,7 +93,7 @@ func TestSharedServerVersionBumpDoesNotPromoteCursor(t *testing.T) {
 	// shape of the auto-started localhost server the incident was reported on.
 	// The bytes live in the test container, but the directory is what arms the
 	// code path under test.
-	if err := os.MkdirAll(filepath.Join(beadsDir, "dolt"), 0o755); err != nil {
+	if err := os.MkdirAll(filepath.Join(issuegraphDir, "dolt"), 0o755); err != nil {
 		t.Fatalf("create local dolt data dir: %v", err)
 	}
 	t.Cleanup(func() { dropTestDatabase(database, testDoltServerPort) })
@@ -131,22 +131,22 @@ func TestSharedServerVersionBumpDoesNotPromoteCursor(t *testing.T) {
 	// value has to be strictly below the candidate binary's Version and still
 	// in the 1.x era — a pre-1.0 witness is refused outright by the cross-era
 	// legacy guard long before any of this runs.
-	if err := os.WriteFile(filepath.Join(beadsDir, localVersionFile), []byte("1.0.0\n"), 0o600); err != nil {
+	if err := os.WriteFile(filepath.Join(issuegraphDir, localVersionFile), []byte("1.0.0\n"), 0o600); err != nil {
 		t.Fatalf("write stale %s: %v", localVersionFile, err)
 	}
 
-	bd := buildBDForInitTests(t)
+	issuegraph := buildIssueGraphForInitTests(t)
 	run := func(args ...string) (string, string, int) {
 		t.Helper()
-		cmd := exec.Command(bd, args...)
+		cmd := exec.Command(issuegraph, args...)
 		cmd.Dir = repo
-		cmd.Env = append(filteredEnvForContextBinding("BEADS_DIR", "BEADS_DB", "BD_DB",
-			"BEADS_DOLT_SERVER_PORT", "BEADS_DOLT_SERVER_DATABASE", schema.AllowRemoteMigrateEnv),
+		cmd.Env = append(filteredEnvForContextBinding("ISSUEGRAPH_DIR", "ISSUEGRAPH_DB", "ISSUEGRAPH_DB",
+			"ISSUEGRAPH_DOLT_SERVER_PORT", "ISSUEGRAPH_DOLT_SERVER_DATABASE", schema.AllowRemoteMigrateEnv),
 			"HOME="+t.TempDir(),
 			"XDG_CONFIG_HOME="+t.TempDir(),
-			"BEADS_TEST_MODE=1",
-			"BEADS_TEST_SERVER=1",
-			"BEADS_DIR="+beadsDir,
+			"ISSUEGRAPH_TEST_MODE=1",
+			"ISSUEGRAPH_TEST_SERVER=1",
+			"ISSUEGRAPH_DIR="+issuegraphDir,
 			schema.AllowRemoteMigrateEnv+"=0",
 		)
 		var stdout, stderr strings.Builder
@@ -156,7 +156,7 @@ func TestSharedServerVersionBumpDoesNotPromoteCursor(t *testing.T) {
 		if err := cmd.Run(); err != nil {
 			var exitErr *exec.ExitError
 			if !errors.As(err, &exitErr) {
-				t.Fatalf("running bd %v: %v", args, err)
+				t.Fatalf("running issuegraph %v: %v", args, err)
 			}
 			code = exitErr.ExitCode()
 		}
@@ -165,16 +165,16 @@ func TestSharedServerVersionBumpDoesNotPromoteCursor(t *testing.T) {
 
 	stdout, stderr, code := run("list")
 	if code != 0 {
-		t.Fatalf("bd list exit = %d, want 0\nstdout:\n%s\nstderr:\n%s", code, stdout, stderr)
+		t.Fatalf("issuegraph list exit = %d, want 0\nstdout:\n%s\nstderr:\n%s", code, stdout, stderr)
 	}
 	if !strings.Contains(stdout, "shr-1") {
-		t.Errorf("bd list did not render the issue; reads must keep working on the old schema:\n%s", stdout)
+		t.Errorf("issuegraph list did not render the issue; reads must keep working on the old schema:\n%s", stdout)
 	}
 	if got := cursor(); got != behind {
-		t.Fatalf("bd list promoted the schema cursor from %d to %d — this IS gastownhall/beads#5920", behind, got)
+		t.Fatalf("issuegraph list promoted the schema cursor from %d to %d — this IS borg0ai/dx-issuegraph#5920", behind, got)
 	}
 	// The #5920 UX gap, inverted: nothing advanced, and the one-shot line says so.
-	if !strings.Contains(stderr, "not auto-applying") || !strings.Contains(stderr, "bd migrate schema") {
+	if !strings.Contains(stderr, "not auto-applying") || !strings.Contains(stderr, "issuegraph migrate schema") {
 		t.Errorf("expected the one-shot shared-store notice on stderr, got:\n%s", stderr)
 	}
 
@@ -182,10 +182,10 @@ func TestSharedServerVersionBumpDoesNotPromoteCursor(t *testing.T) {
 	// bare error.
 	stdout, stderr, code = run("create", "Should be refused", "-p", "2")
 	if code == 0 {
-		t.Fatalf("bd create succeeded on a behind shared database\nstdout:\n%s\nstderr:\n%s", stdout, stderr)
+		t.Fatalf("issuegraph create succeeded on a behind shared database\nstdout:\n%s\nstderr:\n%s", stdout, stderr)
 	}
 	if !strings.Contains(stderr, "co-resident") {
-		t.Errorf("bd create refusal missing the shared-store guidance:\n%s", stderr)
+		t.Errorf("issuegraph create refusal missing the shared-store guidance:\n%s", stderr)
 	}
 	if got := cursor(); got != behind {
 		t.Fatalf("the refused write promoted the schema cursor from %d to %d", behind, got)
@@ -194,9 +194,9 @@ func TestSharedServerVersionBumpDoesNotPromoteCursor(t *testing.T) {
 	// Consent completes the upgrade.
 	stdout, stderr, code = run("migrate", "schema")
 	if code != 0 {
-		t.Fatalf("bd migrate schema exit = %d, want 0\nstdout:\n%s\nstderr:\n%s", code, stdout, stderr)
+		t.Fatalf("issuegraph migrate schema exit = %d, want 0\nstdout:\n%s\nstderr:\n%s", code, stdout, stderr)
 	}
 	if got := cursor(); got != schema.LatestVersion() {
-		t.Fatalf("cursor = %d after bd migrate schema, want %d", got, schema.LatestVersion())
+		t.Fatalf("cursor = %d after issuegraph migrate schema, want %d", got, schema.LatestVersion())
 	}
 }

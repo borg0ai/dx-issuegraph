@@ -6,13 +6,13 @@ import (
 	"fmt"
 	"strings"
 
+	"github.com/borg0ai/dx-issuegraph/internal/formula"
+	"github.com/borg0ai/dx-issuegraph/internal/metrics"
+	"github.com/borg0ai/dx-issuegraph/internal/storage"
+	"github.com/borg0ai/dx-issuegraph/internal/types"
+	"github.com/borg0ai/dx-issuegraph/internal/ui"
+	"github.com/borg0ai/dx-issuegraph/internal/utils"
 	"github.com/spf13/cobra"
-	"github.com/steveyegge/beads/internal/formula"
-	"github.com/steveyegge/beads/internal/metrics"
-	"github.com/steveyegge/beads/internal/storage"
-	"github.com/steveyegge/beads/internal/types"
-	"github.com/steveyegge/beads/internal/ui"
-	"github.com/steveyegge/beads/internal/utils"
 )
 
 var molBondCmd = &cobra.Command{
@@ -32,7 +32,7 @@ The bond command is polymorphic - it handles different operand types:
   mol + mol         → join into compound molecule
 
 Formula names (e.g., mol-polecat-arm) are cooked inline as ephemeral protos.
-This avoids needing pre-cooked proto beads in the database.
+This avoids needing pre-cooked proto issuegraph in the database.
 
 Bond types:
   sequential (default) - B runs after A completes
@@ -53,7 +53,7 @@ Dynamic bonding (Christmas Ornament pattern):
   This creates IDs like "parent.child-ref" instead of random hashes.
 
   Example:
-    bd mol bond mol-worker-arm bd-patrol --ref arm-{{worker_name}} --var worker_name=ace
+    issuegraph mol bond mol-worker-arm bd-patrol --ref arm-{{worker_name}} --var worker_name=ace
     # Creates: bd-patrol.arm-ace (and children like bd-patrol.arm-ace.capture)
 
 Use cases:
@@ -62,13 +62,13 @@ Use cases:
   - Spawning per-worker arms on a patrol? Use --ref for readable IDs
 
 Examples:
-  bd mol bond mol-feature mol-deploy                    # Compound proto
-  bd mol bond mol-feature mol-deploy --type parallel    # Run in parallel
-  bd mol bond mol-feature bd-abc123                     # Attach proto to molecule
-  bd mol bond bd-abc123 bd-def456                       # Join two molecules
-  bd mol bond mol-critical-bug wisp-patrol --pour       # Persist found bug
-  bd mol bond mol-temp-check bd-feature --ephemeral          # Ephemeral diagnostic
-  bd mol bond mol-arm bd-patrol --ref arm-{{name}} --var name=ace  # Dynamic child ID`,
+  issuegraph mol bond mol-feature mol-deploy                    # Compound proto
+  issuegraph mol bond mol-feature mol-deploy --type parallel    # Run in parallel
+  issuegraph mol bond mol-feature bd-abc123                     # Attach proto to molecule
+  issuegraph mol bond bd-abc123 bd-def456                       # Join two molecules
+  issuegraph mol bond mol-critical-bug wisp-patrol --pour       # Persist found bug
+  issuegraph mol bond mol-temp-check bd-feature --ephemeral          # Ephemeral diagnostic
+  issuegraph mol bond mol-arm bd-patrol --ref arm-{{name}} --var name=ace  # Dynamic child ID`,
 	Args:          cobra.ExactArgs(2),
 	SilenceUsage:  true,
 	SilenceErrors: true,
@@ -295,7 +295,7 @@ func operandType(isProtoIssue bool) string {
 // bondProtoProto bonds two protos to create a compound proto
 func bondProtoProto(ctx context.Context, s storage.DoltStorage, protoA, protoB *types.Issue, bondType, customTitle, actorName string) (*BondResult, error) {
 	var result *BondResult
-	err := transact(ctx, s, fmt.Sprintf("bd: bond protos %s + %s", protoA.ID, protoB.ID), func(tx storage.Transaction) error {
+	err := transact(ctx, s, fmt.Sprintf("issuegraph: bond protos %s + %s", protoA.ID, protoB.ID), func(tx storage.Transaction) error {
 		r, err := bondProtoProtoInto(ctx, storeMolWriter{DoltStorage: s, tx: tx}, protoA, protoB, bondType, customTitle, actorName)
 		if err != nil {
 			return err
@@ -549,7 +549,7 @@ func bondMolMol(ctx context.Context, s storage.DoltStorage, molA, molB *types.Is
 	}
 
 	var result *BondResult
-	err := transact(ctx, s, fmt.Sprintf("bd: bond molecules %s + %s", molA.ID, molB.ID), func(tx storage.Transaction) error {
+	err := transact(ctx, s, fmt.Sprintf("issuegraph: bond molecules %s + %s", molA.ID, molB.ID), func(tx storage.Transaction) error {
 		r, err := bondMolMolInto(ctx, storeMolWriter{DoltStorage: s, tx: tx}, molA, molB, bondType, actorName)
 		if err != nil {
 			return err
@@ -620,7 +620,7 @@ func resolveOrDescribe(ctx context.Context, s molReader, operand string, vars ma
 	// Not found as issue — fall through to the formula registry. parser.LoadByName
 	// returns "formula %q not found in search paths" for genuinely unknown names,
 	// which is the right error. This matches the resolution behavior of
-	// bd formula show / bd mol seed / bd mol pour / bd cook.
+	// issuegraph formula show / issuegraph mol seed / issuegraph mol pour / issuegraph cook.
 	parser := formula.NewParser()
 	f, err := parser.LoadByName(operand)
 	if err != nil {

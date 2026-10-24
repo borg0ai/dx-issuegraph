@@ -9,20 +9,20 @@ import (
 	"testing"
 )
 
-func bdProxiedSQL(t *testing.T, bd, dir string, args ...string) (string, string) {
+func issuegraphProxiedSQL(t *testing.T, issuegraph, dir string, args ...string) (string, string) {
 	t.Helper()
 	fullArgs := append([]string{"sql"}, args...)
-	stdout, stderr, err := bdProxiedRunBuffers(t, bd, dir, fullArgs...)
+	stdout, stderr, err := issuegraphProxiedRunBuffers(t, issuegraph, dir, fullArgs...)
 	if err != nil {
-		t.Fatalf("bd sql %s failed: %v\nstdout:\n%s\nstderr:\n%s",
+		t.Fatalf("issuegraph sql %s failed: %v\nstdout:\n%s\nstderr:\n%s",
 			strings.Join(args, " "), err, stdout, stderr)
 	}
 	return stdout, stderr
 }
 
-func bdProxiedSQLJSON(t *testing.T, bd, dir string, query string) []map[string]interface{} {
+func issuegraphProxiedSQLJSON(t *testing.T, issuegraph, dir string, query string) []map[string]interface{} {
 	t.Helper()
-	stdout, _ := bdProxiedSQL(t, bd, dir, "--json", query)
+	stdout, _ := issuegraphProxiedSQL(t, issuegraph, dir, "--json", query)
 	start := strings.Index(stdout, "[")
 	if start < 0 {
 		t.Fatalf("no JSON array found in sql output:\n%s", stdout)
@@ -34,12 +34,12 @@ func bdProxiedSQLJSON(t *testing.T, bd, dir string, query string) []map[string]i
 	return rows
 }
 
-func bdProxiedSQLFail(t *testing.T, bd, dir string, args ...string) string {
+func issuegraphProxiedSQLFail(t *testing.T, issuegraph, dir string, args ...string) string {
 	t.Helper()
 	fullArgs := append([]string{"sql"}, args...)
-	stdout, stderr, err := bdProxiedRunBuffers(t, bd, dir, fullArgs...)
+	stdout, stderr, err := issuegraphProxiedRunBuffers(t, issuegraph, dir, fullArgs...)
 	if err == nil {
-		t.Fatalf("expected bd sql %s to fail, but it succeeded:\nstdout:\n%s\nstderr:\n%s",
+		t.Fatalf("expected issuegraph sql %s to fail, but it succeeded:\nstdout:\n%s\nstderr:\n%s",
 			strings.Join(args, " "), stdout, stderr)
 	}
 	return stdout + stderr
@@ -48,15 +48,15 @@ func bdProxiedSQLFail(t *testing.T, bd, dir string, args ...string) string {
 func TestProxiedServerSQL(t *testing.T) {
 	requireSharedProxiedServer(t)
 	t.Parallel()
-	bd := buildEmbeddedBD(t)
-	p := newSharedProxiedProject(t, bd, "sql")
+	issuegraph := buildEmbeddedBD(t)
+	p := newSharedProxiedProject(t, issuegraph, "sql")
 
-	one := bdProxiedCreate(t, bd, p.dir, "Test issue one", "--type", "task", "--priority", "1")
-	two := bdProxiedCreate(t, bd, p.dir, "Test issue two", "--type", "bug", "--priority", "2")
-	bdProxiedClose(t, bd, p.dir, two.ID)
+	one := issuegraphProxiedCreate(t, issuegraph, p.dir, "Test issue one", "--type", "task", "--priority", "1")
+	two := issuegraphProxiedCreate(t, issuegraph, p.dir, "Test issue two", "--type", "bug", "--priority", "2")
+	issuegraphProxiedClose(t, issuegraph, p.dir, two.ID)
 
 	t.Run("select_count", func(t *testing.T) {
-		rows := bdProxiedSQLJSON(t, bd, p.dir, "SELECT COUNT(*) as count FROM issues")
+		rows := issuegraphProxiedSQLJSON(t, issuegraph, p.dir, "SELECT COUNT(*) as count FROM issues")
 		if len(rows) != 1 {
 			t.Fatalf("expected 1 row, got %d", len(rows))
 		}
@@ -70,7 +70,7 @@ func TestProxiedServerSQL(t *testing.T) {
 	})
 
 	t.Run("select_with_filter", func(t *testing.T) {
-		rows := bdProxiedSQLJSON(t, bd, p.dir, `SELECT id, title FROM issues WHERE status = 'open'`)
+		rows := issuegraphProxiedSQLJSON(t, issuegraph, p.dir, `SELECT id, title FROM issues WHERE status = 'open'`)
 		if len(rows) != 1 {
 			t.Fatalf("expected 1 open issue, got %d", len(rows))
 		}
@@ -83,14 +83,14 @@ func TestProxiedServerSQL(t *testing.T) {
 	})
 
 	t.Run("empty_result_json", func(t *testing.T) {
-		rows := bdProxiedSQLJSON(t, bd, p.dir, `SELECT * FROM issues WHERE title = 'nonexistent'`)
+		rows := issuegraphProxiedSQLJSON(t, issuegraph, p.dir, `SELECT * FROM issues WHERE title = 'nonexistent'`)
 		if len(rows) != 0 {
 			t.Errorf("expected 0 rows, got %d", len(rows))
 		}
 	})
 
 	t.Run("table_output", func(t *testing.T) {
-		stdout, _ := bdProxiedSQL(t, bd, p.dir, "SELECT COUNT(*) as count FROM issues")
+		stdout, _ := issuegraphProxiedSQL(t, issuegraph, p.dir, "SELECT COUNT(*) as count FROM issues")
 		if !strings.Contains(stdout, "count") {
 			t.Errorf("expected table header 'count' in output: %s", stdout)
 		}
@@ -100,14 +100,14 @@ func TestProxiedServerSQL(t *testing.T) {
 	})
 
 	t.Run("empty_table_output", func(t *testing.T) {
-		stdout, _ := bdProxiedSQL(t, bd, p.dir, `SELECT * FROM issues WHERE title = 'nonexistent'`)
+		stdout, _ := issuegraphProxiedSQL(t, issuegraph, p.dir, `SELECT * FROM issues WHERE title = 'nonexistent'`)
 		if !strings.Contains(stdout, "(0 rows)") {
 			t.Errorf("expected '(0 rows)' in output: %s", stdout)
 		}
 	})
 
 	t.Run("csv_output", func(t *testing.T) {
-		stdout, _ := bdProxiedSQL(t, bd, p.dir, "--csv", `SELECT id, title FROM issues WHERE status = 'open'`)
+		stdout, _ := issuegraphProxiedSQL(t, issuegraph, p.dir, "--csv", `SELECT id, title FROM issues WHERE status = 'open'`)
 		lines := strings.Split(strings.TrimSpace(stdout), "\n")
 		if len(lines) != 2 {
 			t.Fatalf("expected header + 1 data row, got %d lines:\n%s", len(lines), stdout)
@@ -121,7 +121,7 @@ func TestProxiedServerSQL(t *testing.T) {
 	})
 
 	t.Run("exec_update_reports_rows_affected", func(t *testing.T) {
-		stdout, _ := bdProxiedSQL(t, bd, p.dir,
+		stdout, _ := issuegraphProxiedSQL(t, issuegraph, p.dir,
 			"--json", "UPDATE issues SET priority = 3 WHERE id = '"+one.ID+"'")
 		var res map[string]interface{}
 		start := strings.Index(stdout, "{")
@@ -135,7 +135,7 @@ func TestProxiedServerSQL(t *testing.T) {
 			t.Errorf("expected rows_affected=1, got %v", res["rows_affected"])
 		}
 
-		rows := bdProxiedSQLJSON(t, bd, p.dir,
+		rows := issuegraphProxiedSQLJSON(t, issuegraph, p.dir,
 			"SELECT priority FROM issues WHERE id = '"+one.ID+"'")
 		if len(rows) != 1 {
 			t.Fatalf("expected 1 row after update, got %d", len(rows))
@@ -146,7 +146,7 @@ func TestProxiedServerSQL(t *testing.T) {
 	})
 
 	t.Run("exec_persists_across_connections", func(t *testing.T) {
-		bdProxiedSQL(t, bd, p.dir,
+		issuegraphProxiedSQL(t, issuegraph, p.dir,
 			"UPDATE issues SET priority = 4 WHERE id = '"+two.ID+"'")
 
 		db := openProxiedDB(t, p)
@@ -161,7 +161,7 @@ func TestProxiedServerSQL(t *testing.T) {
 	})
 
 	t.Run("invalid_sql_fails", func(t *testing.T) {
-		out := bdProxiedSQLFail(t, bd, p.dir, "SELECT * FROM nonexistent_table")
+		out := issuegraphProxiedSQLFail(t, issuegraph, p.dir, "SELECT * FROM nonexistent_table")
 		if !strings.Contains(strings.ToLower(out), "error") {
 			t.Errorf("expected error for invalid SQL, got: %s", out)
 		}

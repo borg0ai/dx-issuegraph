@@ -15,31 +15,31 @@ import (
 	"testing"
 )
 
-func bdProxiedConfig(t *testing.T, bd, dir string, args ...string) string {
+func issuegraphProxiedConfig(t *testing.T, issuegraph, dir string, args ...string) string {
 	t.Helper()
 	fullArgs := append([]string{"config"}, args...)
-	stdout, stderr, err := bdProxiedRunBuffers(t, bd, dir, fullArgs...)
+	stdout, stderr, err := issuegraphProxiedRunBuffers(t, issuegraph, dir, fullArgs...)
 	if err != nil {
-		t.Fatalf("bd config %s failed: %v\nstdout:\n%s\nstderr:\n%s",
+		t.Fatalf("issuegraph config %s failed: %v\nstdout:\n%s\nstderr:\n%s",
 			strings.Join(args, " "), err, stdout, stderr)
 	}
 	return stdout
 }
 
-func bdProxiedConfigFail(t *testing.T, bd, dir string, args ...string) string {
+func issuegraphProxiedConfigFail(t *testing.T, issuegraph, dir string, args ...string) string {
 	t.Helper()
 	fullArgs := append([]string{"config"}, args...)
-	stdout, stderr, err := bdProxiedRunBuffers(t, bd, dir, fullArgs...)
+	stdout, stderr, err := issuegraphProxiedRunBuffers(t, issuegraph, dir, fullArgs...)
 	if err == nil {
-		t.Fatalf("expected bd config %s to fail; got stdout:\n%s\nstderr:\n%s",
+		t.Fatalf("expected issuegraph config %s to fail; got stdout:\n%s\nstderr:\n%s",
 			strings.Join(args, " "), stdout, stderr)
 	}
 	return stdout + stderr
 }
 
-func bdProxiedConfigListJSON(t *testing.T, bd, dir string) map[string]string {
+func issuegraphProxiedConfigListJSON(t *testing.T, issuegraph, dir string) map[string]string {
 	t.Helper()
-	out := bdProxiedConfig(t, bd, dir, "list", "--json")
+	out := issuegraphProxiedConfig(t, issuegraph, dir, "list", "--json")
 	s := strings.TrimSpace(out)
 	start := strings.Index(s, "{")
 	if start < 0 {
@@ -83,13 +83,13 @@ func proxiedDoltCommitCountSince(t *testing.T, db *sql.DB, sinceHash string) int
 func TestProxiedServerConfig(t *testing.T) {
 	requireSharedProxiedServer(t)
 	t.Parallel()
-	bd := buildEmbeddedBD(t)
+	issuegraph := buildEmbeddedBD(t)
 
 	t.Run("config_set_and_get", func(t *testing.T) {
 		t.Parallel()
-		p := newSharedProxiedProject(t, bd, "pcs")
-		bdProxiedConfig(t, bd, p.dir, "set", "test.key1", "hello")
-		out := bdProxiedConfig(t, bd, p.dir, "get", "test.key1")
+		p := newSharedProxiedProject(t, issuegraph, "pcs")
+		issuegraphProxiedConfig(t, issuegraph, p.dir, "set", "test.key1", "hello")
+		out := issuegraphProxiedConfig(t, issuegraph, p.dir, "get", "test.key1")
 		if !strings.Contains(out, "hello") {
 			t.Errorf("expected 'hello' in get output: %s", out)
 		}
@@ -97,10 +97,10 @@ func TestProxiedServerConfig(t *testing.T) {
 
 	t.Run("config_set_overwrite", func(t *testing.T) {
 		t.Parallel()
-		p := newSharedProxiedProject(t, bd, "pco")
-		bdProxiedConfig(t, bd, p.dir, "set", "test.overwrite", "first")
-		bdProxiedConfig(t, bd, p.dir, "set", "test.overwrite", "second")
-		out := bdProxiedConfig(t, bd, p.dir, "get", "test.overwrite")
+		p := newSharedProxiedProject(t, issuegraph, "pco")
+		issuegraphProxiedConfig(t, issuegraph, p.dir, "set", "test.overwrite", "first")
+		issuegraphProxiedConfig(t, issuegraph, p.dir, "set", "test.overwrite", "second")
+		out := issuegraphProxiedConfig(t, issuegraph, p.dir, "get", "test.overwrite")
 		if !strings.Contains(out, "second") {
 			t.Errorf("expected 'second' after overwrite: %s", out)
 		}
@@ -108,9 +108,9 @@ func TestProxiedServerConfig(t *testing.T) {
 
 	t.Run("config_set_namespaced", func(t *testing.T) {
 		t.Parallel()
-		p := newSharedProxiedProject(t, bd, "pcn")
-		bdProxiedConfig(t, bd, p.dir, "set", "jira.url", "https://example.atlassian.net")
-		out := bdProxiedConfig(t, bd, p.dir, "get", "jira.url")
+		p := newSharedProxiedProject(t, issuegraph, "pcn")
+		issuegraphProxiedConfig(t, issuegraph, p.dir, "set", "jira.url", "https://example.atlassian.net")
+		out := issuegraphProxiedConfig(t, issuegraph, p.dir, "get", "jira.url")
 		if !strings.Contains(out, "https://example.atlassian.net") {
 			t.Errorf("expected jira URL in output: %s", out)
 		}
@@ -118,9 +118,9 @@ func TestProxiedServerConfig(t *testing.T) {
 
 	t.Run("config_set_and_get_linear_state_map_dotted_key", func(t *testing.T) {
 		t.Parallel()
-		p := newSharedProxiedProject(t, bd, "pcd")
-		bdProxiedConfig(t, bd, p.dir, "set", "linear.state_map.closed", "Done")
-		out := bdProxiedConfig(t, bd, p.dir, "get", "linear.state_map.closed")
+		p := newSharedProxiedProject(t, issuegraph, "pcd")
+		issuegraphProxiedConfig(t, issuegraph, p.dir, "set", "linear.state_map.closed", "Done")
+		out := issuegraphProxiedConfig(t, issuegraph, p.dir, "get", "linear.state_map.closed")
 		if strings.TrimSpace(out) != "Done" {
 			t.Errorf("expected exact state_map value, got: %s", out)
 		}
@@ -128,8 +128,8 @@ func TestProxiedServerConfig(t *testing.T) {
 
 	t.Run("config_list", func(t *testing.T) {
 		t.Parallel()
-		p := newSharedProxiedProject(t, bd, "pcl")
-		out := bdProxiedConfig(t, bd, p.dir, "list")
+		p := newSharedProxiedProject(t, issuegraph, "pcl")
+		out := issuegraphProxiedConfig(t, issuegraph, p.dir, "list")
 		if !strings.Contains(out, "issue_prefix") {
 			t.Errorf("expected issue_prefix in list output: %s", out)
 		}
@@ -137,9 +137,9 @@ func TestProxiedServerConfig(t *testing.T) {
 
 	t.Run("config_list_json", func(t *testing.T) {
 		t.Parallel()
-		p := newSharedProxiedProject(t, bd, "pcj")
-		bdProxiedConfig(t, bd, p.dir, "set", "test.key1", "hello")
-		m := bdProxiedConfigListJSON(t, bd, p.dir)
+		p := newSharedProxiedProject(t, issuegraph, "pcj")
+		issuegraphProxiedConfig(t, issuegraph, p.dir, "set", "test.key1", "hello")
+		m := issuegraphProxiedConfigListJSON(t, issuegraph, p.dir)
 		if _, ok := m["issue_prefix"]; !ok {
 			t.Error("expected issue_prefix in JSON config list")
 		}
@@ -150,18 +150,18 @@ func TestProxiedServerConfig(t *testing.T) {
 
 	t.Run("config_unset", func(t *testing.T) {
 		t.Parallel()
-		p := newSharedProxiedProject(t, bd, "pcu")
-		bdProxiedConfig(t, bd, p.dir, "set", "test.removeme", "temp")
-		out := bdProxiedConfig(t, bd, p.dir, "get", "test.removeme")
+		p := newSharedProxiedProject(t, issuegraph, "pcu")
+		issuegraphProxiedConfig(t, issuegraph, p.dir, "set", "test.removeme", "temp")
+		out := issuegraphProxiedConfig(t, issuegraph, p.dir, "get", "test.removeme")
 		if !strings.Contains(out, "temp") {
 			t.Fatalf("expected 'temp' before unset: %s", out)
 		}
-		bdProxiedConfig(t, bd, p.dir, "unset", "test.removeme")
-		out = bdProxiedConfig(t, bd, p.dir, "get", "test.removeme")
+		issuegraphProxiedConfig(t, issuegraph, p.dir, "unset", "test.removeme")
+		out = issuegraphProxiedConfig(t, issuegraph, p.dir, "get", "test.removeme")
 		if !strings.Contains(out, "not set") {
 			t.Errorf("expected 'not set' after unset: %s", out)
 		}
-		m := bdProxiedConfigListJSON(t, bd, p.dir)
+		m := issuegraphProxiedConfigListJSON(t, issuegraph, p.dir)
 		if _, ok := m["test.removeme"]; ok {
 			t.Error("expected test.removeme to be absent from config list after unset")
 		}
@@ -169,8 +169,8 @@ func TestProxiedServerConfig(t *testing.T) {
 
 	t.Run("config_get_missing_key", func(t *testing.T) {
 		t.Parallel()
-		p := newSharedProxiedProject(t, bd, "pcm")
-		out := bdProxiedConfig(t, bd, p.dir, "get", "nonexistent.key.xyz")
+		p := newSharedProxiedProject(t, issuegraph, "pcm")
+		out := issuegraphProxiedConfig(t, issuegraph, p.dir, "get", "nonexistent.key.xyz")
 		if !strings.Contains(out, "not set") {
 			t.Errorf("expected 'not set' for missing key: %s", out)
 		}
@@ -178,23 +178,23 @@ func TestProxiedServerConfig(t *testing.T) {
 
 	t.Run("config_set_no_args", func(t *testing.T) {
 		t.Parallel()
-		p := newSharedProxiedProject(t, bd, "pcsna")
-		bdProxiedConfigFail(t, bd, p.dir, "set")
+		p := newSharedProxiedProject(t, issuegraph, "pcsna")
+		issuegraphProxiedConfigFail(t, issuegraph, p.dir, "set")
 	})
 
 	t.Run("config_unset_no_args", func(t *testing.T) {
 		t.Parallel()
-		p := newSharedProxiedProject(t, bd, "pcuna")
-		bdProxiedConfigFail(t, bd, p.dir, "unset")
+		p := newSharedProxiedProject(t, issuegraph, "pcuna")
+		issuegraphProxiedConfigFail(t, issuegraph, p.dir, "unset")
 	})
 
 	t.Run("config_set_creates_dolt_commit", func(t *testing.T) {
 		t.Parallel()
-		p := newSharedProxiedProject(t, bd, "pcsc")
+		p := newSharedProxiedProject(t, issuegraph, "pcsc")
 		db := openProxiedDB(t, p)
 		before := proxiedDoltHead(t, db)
 
-		bdProxiedConfig(t, bd, p.dir, "set", "test.commit", "v1")
+		issuegraphProxiedConfig(t, issuegraph, p.dir, "set", "test.commit", "v1")
 
 		after := proxiedDoltHead(t, db)
 		if after == before {
@@ -204,13 +204,13 @@ func TestProxiedServerConfig(t *testing.T) {
 
 	t.Run("config_unset_creates_dolt_commit", func(t *testing.T) {
 		t.Parallel()
-		p := newSharedProxiedProject(t, bd, "pcuc")
-		bdProxiedConfig(t, bd, p.dir, "set", "test.commit", "v1")
+		p := newSharedProxiedProject(t, issuegraph, "pcuc")
+		issuegraphProxiedConfig(t, issuegraph, p.dir, "set", "test.commit", "v1")
 
 		db := openProxiedDB(t, p)
 		before := proxiedDoltHead(t, db)
 
-		bdProxiedConfig(t, bd, p.dir, "unset", "test.commit")
+		issuegraphProxiedConfig(t, issuegraph, p.dir, "unset", "test.commit")
 
 		after := proxiedDoltHead(t, db)
 		if after == before {
@@ -220,23 +220,23 @@ func TestProxiedServerConfig(t *testing.T) {
 
 	t.Run("config_yaml_only_key_skips_dolt_commit", func(t *testing.T) {
 		t.Parallel()
-		p := newSharedProxiedProject(t, bd, "pcy")
+		p := newSharedProxiedProject(t, issuegraph, "pcy")
 		db := openProxiedDB(t, p)
 		before := proxiedDoltHead(t, db)
 
-		bdProxiedConfig(t, bd, p.dir, "set", "export.auto", "true")
+		issuegraphProxiedConfig(t, issuegraph, p.dir, "set", "export.auto", "true")
 
 		after := proxiedDoltHead(t, db)
 		if after != before {
 			t.Errorf("yaml-only set should not advance HEAD: before=%s after=%s", before, after)
 		}
 
-		out := bdProxiedConfig(t, bd, p.dir, "get", "export.auto")
+		out := issuegraphProxiedConfig(t, issuegraph, p.dir, "get", "export.auto")
 		if !strings.Contains(out, "true") {
 			t.Errorf("expected export.auto=true via get: %s", out)
 		}
 
-		yamlPath := filepath.Join(p.beadsDir, "config.yaml")
+		yamlPath := filepath.Join(p.issuegraphDir, "config.yaml")
 		body, err := os.ReadFile(yamlPath)
 		if err != nil {
 			t.Fatalf("read %s: %v", yamlPath, err)
@@ -246,41 +246,41 @@ func TestProxiedServerConfig(t *testing.T) {
 		}
 
 		before = proxiedDoltHead(t, db)
-		bdProxiedConfig(t, bd, p.dir, "unset", "export.auto")
+		issuegraphProxiedConfig(t, issuegraph, p.dir, "unset", "export.auto")
 		after = proxiedDoltHead(t, db)
 		if after != before {
 			t.Errorf("yaml-only unset should not advance HEAD: before=%s after=%s", before, after)
 		}
 	})
 
-	t.Run("config_beads_role_skips_dolt_commit", func(t *testing.T) {
+	t.Run("config_issuegraph_role_skips_dolt_commit", func(t *testing.T) {
 		t.Parallel()
-		p := newSharedProxiedProject(t, bd, "pcr")
+		p := newSharedProxiedProject(t, issuegraph, "pcr")
 		db := openProxiedDB(t, p)
 		before := proxiedDoltHead(t, db)
 
-		bdProxiedConfig(t, bd, p.dir, "set", "beads.role", "contributor")
+		issuegraphProxiedConfig(t, issuegraph, p.dir, "set", "issuegraph.role", "contributor")
 
 		after := proxiedDoltHead(t, db)
 		if after != before {
-			t.Errorf("beads.role set should not advance HEAD: before=%s after=%s", before, after)
+			t.Errorf("issuegraph.role set should not advance HEAD: before=%s after=%s", before, after)
 		}
 
-		gitCmd := exec.Command("git", "config", "--get", "beads.role")
+		gitCmd := exec.Command("git", "config", "--get", "issuegraph.role")
 		gitCmd.Dir = p.dir
 		out, err := gitCmd.Output()
 		if err != nil {
-			t.Fatalf("git config --get beads.role: %v", err)
+			t.Fatalf("git config --get issuegraph.role: %v", err)
 		}
 		if strings.TrimSpace(string(out)) != "contributor" {
-			t.Errorf("expected beads.role=contributor in git config, got %q", out)
+			t.Errorf("expected issuegraph.role=contributor in git config, got %q", out)
 		}
 
 		before = proxiedDoltHead(t, db)
-		bdProxiedConfig(t, bd, p.dir, "unset", "beads.role")
+		issuegraphProxiedConfig(t, issuegraph, p.dir, "unset", "issuegraph.role")
 		after = proxiedDoltHead(t, db)
 		if after != before {
-			t.Errorf("beads.role unset should not advance HEAD: before=%s after=%s", before, after)
+			t.Errorf("issuegraph.role unset should not advance HEAD: before=%s after=%s", before, after)
 		}
 	})
 }
@@ -288,15 +288,15 @@ func TestProxiedServerConfig(t *testing.T) {
 func TestProxiedServerConfigSetMany(t *testing.T) {
 	requireSharedProxiedServer(t)
 	t.Parallel()
-	bd := buildEmbeddedBD(t)
+	issuegraph := buildEmbeddedBD(t)
 
 	t.Run("set_many_single_dolt_commit", func(t *testing.T) {
 		t.Parallel()
-		p := newSharedProxiedProject(t, bd, "pcsm")
+		p := newSharedProxiedProject(t, issuegraph, "pcsm")
 		db := openProxiedDB(t, p)
 		before := proxiedDoltHead(t, db)
 
-		bdProxiedConfig(t, bd, p.dir, "set-many",
+		issuegraphProxiedConfig(t, issuegraph, p.dir, "set-many",
 			"ado.state_map.open=New",
 			"ado.state_map.in_progress=Active",
 			"ado.state_map.closed=Closed",
@@ -314,8 +314,8 @@ func TestProxiedServerConfigSetMany(t *testing.T) {
 
 	t.Run("set_many_cli_round_trip", func(t *testing.T) {
 		t.Parallel()
-		p := newSharedProxiedProject(t, bd, "pcsmr")
-		bdProxiedConfig(t, bd, p.dir, "set-many",
+		p := newSharedProxiedProject(t, issuegraph, "pcsmr")
+		issuegraphProxiedConfig(t, issuegraph, p.dir, "set-many",
 			"jira.url=https://example.atlassian.net",
 			"jira.project=PROJ",
 			"linear.state_map.closed=Done",
@@ -327,13 +327,13 @@ func TestProxiedServerConfigSetMany(t *testing.T) {
 			"linear.state_map.closed": "Done",
 		}
 		for k, v := range want {
-			out := bdProxiedConfig(t, bd, p.dir, "get", k)
+			out := issuegraphProxiedConfig(t, issuegraph, p.dir, "get", k)
 			if strings.TrimSpace(out) != v {
 				t.Errorf("get %s: expected %q, got %q", k, v, out)
 			}
 		}
 
-		m := bdProxiedConfigListJSON(t, bd, p.dir)
+		m := issuegraphProxiedConfigListJSON(t, issuegraph, p.dir)
 		for k, v := range want {
 			if got, ok := m[k]; !ok || got != v {
 				t.Errorf("list --json: %s expected %q, got %q (exists=%v)", k, v, got, ok)
@@ -345,9 +345,9 @@ func TestProxiedServerConfigSetMany(t *testing.T) {
 func TestProxiedServerConfigConcurrent(t *testing.T) {
 	requireSharedProxiedServer(t)
 	t.Parallel()
-	bd := buildEmbeddedBD(t)
+	issuegraph := buildEmbeddedBD(t)
 
-	p := newSharedProxiedProject(t, bd, "pcc")
+	p := newSharedProxiedProject(t, issuegraph, "pcc")
 
 	const numWorkers = 8
 
@@ -368,7 +368,7 @@ func TestProxiedServerConfigConcurrent(t *testing.T) {
 			for i := 0; i < 5; i++ {
 				key := fmt.Sprintf("worker%d.key%d", worker, i)
 				value := fmt.Sprintf("value-%d-%d", worker, i)
-				if _, err := bdProxiedRun(t, bd, p.dir, "config", "set", key, value); err != nil {
+				if _, err := issuegraphProxiedRun(t, issuegraph, p.dir, "config", "set", key, value); err != nil {
 					r.err = fmt.Errorf("set %s: %v", key, err)
 					results[worker] = r
 					return
@@ -378,7 +378,7 @@ func TestProxiedServerConfigConcurrent(t *testing.T) {
 			for i := 0; i < 5; i++ {
 				key := fmt.Sprintf("worker%d.key%d", worker, i)
 				expected := fmt.Sprintf("value-%d-%d", worker, i)
-				out, err := bdProxiedRun(t, bd, p.dir, "config", "get", key)
+				out, err := issuegraphProxiedRun(t, issuegraph, p.dir, "config", "get", key)
 				if err != nil {
 					r.err = fmt.Errorf("get %s: %v\n%s", key, err, out)
 					results[worker] = r
@@ -404,7 +404,7 @@ func TestProxiedServerConfigConcurrent(t *testing.T) {
 		}
 	}
 
-	m := bdProxiedConfigListJSON(t, bd, p.dir)
+	m := issuegraphProxiedConfigListJSON(t, issuegraph, p.dir)
 	var successCount int
 	for _, r := range results {
 		if r.err != nil {

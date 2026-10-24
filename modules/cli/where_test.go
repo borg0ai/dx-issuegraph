@@ -8,14 +8,14 @@ import (
 	"strings"
 	"testing"
 
+	"github.com/borg0ai/dx-issuegraph/internal/configfile"
+	"github.com/borg0ai/dx-issuegraph/internal/git"
+	"github.com/borg0ai/dx-issuegraph/internal/issuegraph"
+	"github.com/borg0ai/dx-issuegraph/internal/utils"
 	"github.com/spf13/cobra"
-	"github.com/steveyegge/beads/internal/beads"
-	"github.com/steveyegge/beads/internal/configfile"
-	"github.com/steveyegge/beads/internal/git"
-	"github.com/steveyegge/beads/internal/utils"
 )
 
-func TestResolveWhereBeadsDir_FallsBackToFindBeadsDir(t *testing.T) {
+func TestResolveWhereIssueGraphDir_FallsBackToFindIssueGraphDir(t *testing.T) {
 	saveAndRestoreGlobals(t)
 	ensureCleanGlobalState(t)
 
@@ -27,11 +27,11 @@ func TestResolveWhereBeadsDir_FallsBackToFindBeadsDir(t *testing.T) {
 	resetCommandContext()
 
 	repoDir := t.TempDir()
-	beadsDir := filepath.Join(repoDir, ".beads")
-	if err := os.MkdirAll(beadsDir, 0o755); err != nil {
-		t.Fatalf("mkdir beads dir: %v", err)
+	issuegraphDir := filepath.Join(repoDir, ".issuegraph")
+	if err := os.MkdirAll(issuegraphDir, 0o755); err != nil {
+		t.Fatalf("mkdir issuegraph dir: %v", err)
 	}
-	if err := os.WriteFile(filepath.Join(beadsDir, "config.yaml"), []byte("issue-prefix: fallback\n"), 0o644); err != nil {
+	if err := os.WriteFile(filepath.Join(issuegraphDir, "config.yaml"), []byte("issue-prefix: fallback\n"), 0o644); err != nil {
 		t.Fatalf("write config.yaml: %v", err)
 	}
 
@@ -48,9 +48,9 @@ func TestResolveWhereBeadsDir_FallsBackToFindBeadsDir(t *testing.T) {
 		git.ResetCaches()
 	})
 
-	t.Setenv("BEADS_DIR", "")
-	t.Setenv("BEADS_DB", "")
-	t.Setenv("BD_DB", "")
+	t.Setenv("ISSUEGRAPH_DIR", "")
+	t.Setenv("ISSUEGRAPH_DB", "")
+	t.Setenv("ISSUEGRAPH_DB", "")
 	setDBPath("")
 
 	dbFlag := rootCmd.PersistentFlags().Lookup("db")
@@ -65,12 +65,12 @@ func TestResolveWhereBeadsDir_FallsBackToFindBeadsDir(t *testing.T) {
 		dbFlag.Changed = originalFlagChanged
 	})
 
-	if got := resolveWhereBeadsDir(nil); !utils.PathsEqual(got, beadsDir) {
-		t.Fatalf("resolveWhereBeadsDir(nil) = %q, want %q", got, beadsDir)
+	if got := resolveWhereIssueGraphDir(nil); !utils.PathsEqual(got, issuegraphDir) {
+		t.Fatalf("resolveWhereIssueGraphDir(nil) = %q, want %q", got, issuegraphDir)
 	}
 }
 
-func TestResolveWhereBeadsDir_ReturnsEmptyWithoutWorkspace(t *testing.T) {
+func TestResolveWhereIssueGraphDir_ReturnsEmptyWithoutWorkspace(t *testing.T) {
 	saveAndRestoreGlobals(t)
 	ensureCleanGlobalState(t)
 
@@ -96,9 +96,9 @@ func TestResolveWhereBeadsDir_ReturnsEmptyWithoutWorkspace(t *testing.T) {
 		git.ResetCaches()
 	})
 
-	t.Setenv("BEADS_DIR", "")
-	t.Setenv("BEADS_DB", "")
-	t.Setenv("BD_DB", "")
+	t.Setenv("ISSUEGRAPH_DIR", "")
+	t.Setenv("ISSUEGRAPH_DB", "")
+	t.Setenv("ISSUEGRAPH_DB", "")
 	setDBPath("")
 
 	dbFlag := rootCmd.PersistentFlags().Lookup("db")
@@ -113,12 +113,12 @@ func TestResolveWhereBeadsDir_ReturnsEmptyWithoutWorkspace(t *testing.T) {
 		dbFlag.Changed = originalFlagChanged
 	})
 
-	if got := resolveWhereBeadsDir(nil); got != "" {
-		t.Fatalf("resolveWhereBeadsDir(nil) = %q, want empty", got)
+	if got := resolveWhereIssueGraphDir(nil); got != "" {
+		t.Fatalf("resolveWhereIssueGraphDir(nil) = %q, want empty", got)
 	}
 }
 
-func TestResolveWhereBeadsDir_UsesInitializedDBPath(t *testing.T) {
+func TestResolveWhereIssueGraphDir_UsesInitializedDBPath(t *testing.T) {
 	saveAndRestoreGlobals(t)
 	ensureCleanGlobalState(t)
 
@@ -130,8 +130,8 @@ func TestResolveWhereBeadsDir_UsesInitializedDBPath(t *testing.T) {
 	resetCommandContext()
 
 	repoDir := t.TempDir()
-	beadsDir := filepath.Join(repoDir, ".beads")
-	dbDir := filepath.Join(beadsDir, "dolt")
+	issuegraphDir := filepath.Join(repoDir, ".issuegraph")
+	dbDir := filepath.Join(issuegraphDir, "dolt")
 	if err := os.MkdirAll(dbDir, 0o755); err != nil {
 		t.Fatalf("mkdir db dir: %v", err)
 	}
@@ -140,7 +140,7 @@ func TestResolveWhereBeadsDir_UsesInitializedDBPath(t *testing.T) {
 		Database: "dolt",
 		Backend:  configfile.BackendDolt,
 	}
-	if err := cfg.Save(beadsDir); err != nil {
+	if err := cfg.Save(issuegraphDir); err != nil {
 		t.Fatalf("save metadata: %v", err)
 	}
 
@@ -158,13 +158,13 @@ func TestResolveWhereBeadsDir_UsesInitializedDBPath(t *testing.T) {
 		git.ResetCaches()
 	})
 
-	t.Setenv("BEADS_DIR", "")
-	t.Setenv("BEADS_DB", "")
-	t.Setenv("BD_DB", "")
+	t.Setenv("ISSUEGRAPH_DIR", "")
+	t.Setenv("ISSUEGRAPH_DB", "")
+	t.Setenv("ISSUEGRAPH_DB", "")
 	setDBPath(dbDir)
 
-	if got := resolveWhereBeadsDir(nil); !utils.PathsEqual(got, beadsDir) {
-		t.Fatalf("resolveWhereBeadsDir(nil) = %q, want %q", got, beadsDir)
+	if got := resolveWhereIssueGraphDir(nil); !utils.PathsEqual(got, issuegraphDir) {
+		t.Fatalf("resolveWhereIssueGraphDir(nil) = %q, want %q", got, issuegraphDir)
 	}
 }
 
@@ -179,8 +179,8 @@ func TestResolveWhereDatabasePath_PrefersInitializedDBPath(t *testing.T) {
 	resetCommandContext()
 
 	repoDir := t.TempDir()
-	beadsDir := filepath.Join(repoDir, ".beads")
-	dbDir := filepath.Join(beadsDir, "dolt")
+	issuegraphDir := filepath.Join(repoDir, ".issuegraph")
+	dbDir := filepath.Join(issuegraphDir, "dolt")
 	if err := os.MkdirAll(dbDir, 0o755); err != nil {
 		t.Fatalf("mkdir db dir: %v", err)
 	}
@@ -189,14 +189,14 @@ func TestResolveWhereDatabasePath_PrefersInitializedDBPath(t *testing.T) {
 		Database: "dolt",
 		Backend:  configfile.BackendDolt,
 	}
-	if err := cfg.Save(beadsDir); err != nil {
+	if err := cfg.Save(issuegraphDir); err != nil {
 		t.Fatalf("save metadata: %v", err)
 	}
 
 	dbPath = dbDir
-	t.Setenv("BEADS_DIR", "")
+	t.Setenv("ISSUEGRAPH_DIR", "")
 
-	prepareSelectedNoDBContext(beadsDir)
+	prepareSelectedNoDBContext(issuegraphDir)
 
 	if got := resolveWhereDatabasePath(); !utils.PathsEqual(got, dbDir) {
 		t.Fatalf("resolveWhereDatabasePath() = %q, want %q", got, dbDir)
@@ -279,55 +279,55 @@ func TestIsSelectedNoDBCommand(t *testing.T) {
 }
 
 func TestShouldReadWherePrefixFromStore(t *testing.T) {
-	t.Setenv("BEADS_DOLT_SERVER_MODE", "")
-	t.Setenv("BEADS_DOLT_SHARED_SERVER", "")
+	t.Setenv("ISSUEGRAPH_DOLT_SERVER_MODE", "")
+	t.Setenv("ISSUEGRAPH_DOLT_SHARED_SERVER", "")
 
-	t.Run("empty beads dir", func(t *testing.T) {
+	t.Run("empty issuegraph dir", func(t *testing.T) {
 		if got := shouldReadWherePrefixFromStore(""); got {
 			t.Fatal("shouldReadWherePrefixFromStore(\"\") = true, want false")
 		}
 	})
 
 	t.Run("missing metadata", func(t *testing.T) {
-		beadsDir := filepath.Join(t.TempDir(), ".beads")
-		if err := os.MkdirAll(beadsDir, 0o755); err != nil {
-			t.Fatalf("mkdir beads dir: %v", err)
+		issuegraphDir := filepath.Join(t.TempDir(), ".issuegraph")
+		if err := os.MkdirAll(issuegraphDir, 0o755); err != nil {
+			t.Fatalf("mkdir issuegraph dir: %v", err)
 		}
-		if got := shouldReadWherePrefixFromStore(beadsDir); !got {
+		if got := shouldReadWherePrefixFromStore(issuegraphDir); !got {
 			t.Fatal("shouldReadWherePrefixFromStore(missing metadata) = false, want true")
 		}
 	})
 
 	t.Run("server mode metadata", func(t *testing.T) {
-		beadsDir := filepath.Join(t.TempDir(), ".beads")
-		if err := os.MkdirAll(beadsDir, 0o755); err != nil {
-			t.Fatalf("mkdir beads dir: %v", err)
+		issuegraphDir := filepath.Join(t.TempDir(), ".issuegraph")
+		if err := os.MkdirAll(issuegraphDir, 0o755); err != nil {
+			t.Fatalf("mkdir issuegraph dir: %v", err)
 		}
 		cfg := &configfile.Config{
 			Backend:  configfile.BackendDolt,
 			DoltMode: configfile.DoltModeServer,
 		}
-		if err := cfg.Save(beadsDir); err != nil {
+		if err := cfg.Save(issuegraphDir); err != nil {
 			t.Fatalf("save metadata: %v", err)
 		}
-		if got := shouldReadWherePrefixFromStore(beadsDir); got {
+		if got := shouldReadWherePrefixFromStore(issuegraphDir); got {
 			t.Fatal("shouldReadWherePrefixFromStore(server mode) = true, want false")
 		}
 	})
 
 	t.Run("embedded mode metadata", func(t *testing.T) {
-		beadsDir := filepath.Join(t.TempDir(), ".beads")
-		if err := os.MkdirAll(beadsDir, 0o755); err != nil {
-			t.Fatalf("mkdir beads dir: %v", err)
+		issuegraphDir := filepath.Join(t.TempDir(), ".issuegraph")
+		if err := os.MkdirAll(issuegraphDir, 0o755); err != nil {
+			t.Fatalf("mkdir issuegraph dir: %v", err)
 		}
 		cfg := &configfile.Config{
 			Backend:  configfile.BackendDolt,
 			DoltMode: configfile.DoltModeEmbedded,
 		}
-		if err := cfg.Save(beadsDir); err != nil {
+		if err := cfg.Save(issuegraphDir); err != nil {
 			t.Fatalf("save metadata: %v", err)
 		}
-		if got := shouldReadWherePrefixFromStore(beadsDir); !got {
+		if got := shouldReadWherePrefixFromStore(issuegraphDir); !got {
 			t.Fatal("shouldReadWherePrefixFromStore(embedded mode) = false, want true")
 		}
 	})
@@ -350,8 +350,8 @@ func TestWhereCommand_UsesConfigPrefixFromSelectedDB(t *testing.T) {
 	resetCommandContext()
 
 	repoDir := t.TempDir()
-	beadsDir := filepath.Join(repoDir, ".beads")
-	dbDir := filepath.Join(beadsDir, "dolt")
+	issuegraphDir := filepath.Join(repoDir, ".issuegraph")
+	dbDir := filepath.Join(issuegraphDir, "dolt")
 	if err := os.MkdirAll(dbDir, 0o755); err != nil {
 		t.Fatalf("mkdir db dir: %v", err)
 	}
@@ -360,16 +360,16 @@ func TestWhereCommand_UsesConfigPrefixFromSelectedDB(t *testing.T) {
 		Database: "dolt",
 		Backend:  configfile.BackendDolt,
 	}
-	if err := cfg.Save(beadsDir); err != nil {
+	if err := cfg.Save(issuegraphDir); err != nil {
 		t.Fatalf("save metadata: %v", err)
 	}
-	if err := os.WriteFile(filepath.Join(beadsDir, "config.yaml"), []byte("issue-prefix: yamlprefix\n"), 0o644); err != nil {
+	if err := os.WriteFile(filepath.Join(issuegraphDir, "config.yaml"), []byte("issue-prefix: yamlprefix\n"), 0o644); err != nil {
 		t.Fatalf("write config.yaml: %v", err)
 	}
 
-	t.Setenv("BEADS_DIR", "")
-	t.Setenv("BEADS_DB", dbDir)
-	t.Setenv("BD_DB", "")
+	t.Setenv("ISSUEGRAPH_DIR", "")
+	t.Setenv("ISSUEGRAPH_DB", dbDir)
+	t.Setenv("ISSUEGRAPH_DB", "")
 
 	dbFlag := rootCmd.PersistentFlags().Lookup("db")
 	originalFlagValue := dbFlag.Value.String()
@@ -395,8 +395,8 @@ func TestWhereCommand_UsesConfigPrefixFromSelectedDB(t *testing.T) {
 		t.Fatalf("json.Unmarshal(%q): %v", output, err)
 	}
 
-	if !utils.PathsEqual(result.Path, beadsDir) {
-		t.Fatalf("Path = %q, want %q", result.Path, beadsDir)
+	if !utils.PathsEqual(result.Path, issuegraphDir) {
+		t.Fatalf("Path = %q, want %q", result.Path, issuegraphDir)
 	}
 	if !utils.PathsEqual(result.DatabasePath, dbDir) {
 		t.Fatalf("DatabasePath = %q, want %q", result.DatabasePath, dbDir)
@@ -406,81 +406,81 @@ func TestWhereCommand_UsesConfigPrefixFromSelectedDB(t *testing.T) {
 	}
 }
 
-// TestFindOriginalBeadsDir_BeadsDirEnvWithoutRedirectFallsThrough guards
-// against a regression where `bd where` silently dropped its "(via redirect
-// from ...)" footnote after #3230 started rebinding BEADS_DIR to the
-// post-redirect target. Before the fix, an early `return ""` when BEADS_DIR
+// TestFindOriginalIssueGraphDir_IssueGraphDirEnvWithoutRedirectFallsThrough guards
+// against a regression where `issuegraph where` silently dropped its "(via redirect
+// from ...)" footnote after #3230 started rebinding ISSUEGRAPH_DIR to the
+// post-redirect target. Before the fix, an early `return ""` when ISSUEGRAPH_DIR
 // was set but had no redirect file short-circuited the filesystem walk,
-// so `bd where` from inside a redirecting worktree never reported the
+// so `issuegraph where` from inside a redirecting worktree never reported the
 // redirect source.
 //
-// Scenario: worktree's .beads/ holds a redirect file pointing to the
-// shared .beads/, and BEADS_DIR has been set to the shared target (as
-// bd's own startup does for rebound commands). findOriginalBeadsDir must
-// still walk up from cwd and discover the worktree's redirecting .beads/.
-func TestFindOriginalBeadsDir_BeadsDirEnvWithoutRedirectFallsThrough(t *testing.T) {
+// Scenario: worktree's .issuegraph/ holds a redirect file pointing to the
+// shared .issuegraph/, and ISSUEGRAPH_DIR has been set to the shared target (as
+// issuegraph's own startup does for rebound commands). findOriginalIssueGraphDir must
+// still walk up from cwd and discover the worktree's redirecting .issuegraph/.
+func TestFindOriginalIssueGraphDir_IssueGraphDirEnvWithoutRedirectFallsThrough(t *testing.T) {
 	tmp := t.TempDir()
 
-	// Redirect source: worktree/.beads/ with a redirect file.
+	// Redirect source: worktree/.issuegraph/ with a redirect file.
 	worktreeRoot := filepath.Join(tmp, "worktree")
-	worktreeBeads := filepath.Join(worktreeRoot, ".beads")
-	if err := os.MkdirAll(worktreeBeads, 0o755); err != nil {
+	worktreeIssueGraph := filepath.Join(worktreeRoot, ".issuegraph")
+	if err := os.MkdirAll(worktreeIssueGraph, 0o755); err != nil {
 		t.Fatal(err)
 	}
-	target := filepath.Join(tmp, "main", ".beads")
+	target := filepath.Join(tmp, "main", ".issuegraph")
 	if err := os.MkdirAll(target, 0o755); err != nil {
 		t.Fatal(err)
 	}
-	redirectFile := filepath.Join(worktreeBeads, beads.RedirectFileName)
+	redirectFile := filepath.Join(worktreeIssueGraph, issuegraph.RedirectFileName)
 	if err := os.WriteFile(redirectFile, []byte(target), 0o644); err != nil {
 		t.Fatal(err)
 	}
 
-	// Simulate bd's post-rebind state: BEADS_DIR points at the resolved
+	// Simulate issuegraph's post-rebind state: ISSUEGRAPH_DIR points at the resolved
 	// target, which does NOT carry a redirect file.
-	t.Setenv("BEADS_DIR", target)
+	t.Setenv("ISSUEGRAPH_DIR", target)
 	t.Chdir(worktreeRoot)
 
-	got := findOriginalBeadsDir()
+	got := findOriginalIssueGraphDir()
 	if got == "" {
-		t.Fatal("findOriginalBeadsDir returned empty; expected the redirecting worktree .beads/")
+		t.Fatal("findOriginalIssueGraphDir returned empty; expected the redirecting worktree .issuegraph/")
 	}
 	// Compare by base+parent since /var vs /private/var may be resolved either way.
-	if !strings.HasSuffix(got, filepath.Join("worktree", ".beads")) {
-		t.Errorf("findOriginalBeadsDir = %q, want a path ending in worktree/.beads", got)
+	if !strings.HasSuffix(got, filepath.Join("worktree", ".issuegraph")) {
+		t.Errorf("findOriginalIssueGraphDir = %q, want a path ending in worktree/.issuegraph", got)
 	}
 }
 
-// TestFindOriginalBeadsDir_BeadsDirEnvWithRedirectReturnsEnv keeps the
-// BEADS_DIR fast path working when the env var itself points at a
-// redirecting directory (a user-set BEADS_DIR override). The env value
+// TestFindOriginalIssueGraphDir_IssueGraphDirEnvWithRedirectReturnsEnv keeps the
+// ISSUEGRAPH_DIR fast path working when the env var itself points at a
+// redirecting directory (a user-set ISSUEGRAPH_DIR override). The env value
 // should win without a filesystem walk.
-func TestFindOriginalBeadsDir_BeadsDirEnvWithRedirectReturnsEnv(t *testing.T) {
+func TestFindOriginalIssueGraphDir_IssueGraphDirEnvWithRedirectReturnsEnv(t *testing.T) {
 	tmp := t.TempDir()
-	envBeads := filepath.Join(tmp, "alt", ".beads")
-	if err := os.MkdirAll(envBeads, 0o755); err != nil {
+	envIssueGraph := filepath.Join(tmp, "alt", ".issuegraph")
+	if err := os.MkdirAll(envIssueGraph, 0o755); err != nil {
 		t.Fatal(err)
 	}
-	target := filepath.Join(tmp, "shared", ".beads")
+	target := filepath.Join(tmp, "shared", ".issuegraph")
 	if err := os.MkdirAll(target, 0o755); err != nil {
 		t.Fatal(err)
 	}
-	if err := os.WriteFile(filepath.Join(envBeads, beads.RedirectFileName), []byte(target), 0o644); err != nil {
+	if err := os.WriteFile(filepath.Join(envIssueGraph, issuegraph.RedirectFileName), []byte(target), 0o644); err != nil {
 		t.Fatal(err)
 	}
 
 	// Run cwd from an unrelated directory so the fs walk alone cannot find
-	// the redirect — only the BEADS_DIR env check can.
+	// the redirect — only the ISSUEGRAPH_DIR env check can.
 	unrelated := filepath.Join(tmp, "unrelated")
 	if err := os.MkdirAll(unrelated, 0o755); err != nil {
 		t.Fatal(err)
 	}
-	t.Setenv("BEADS_DIR", envBeads)
+	t.Setenv("ISSUEGRAPH_DIR", envIssueGraph)
 	t.Chdir(unrelated)
 
-	got := findOriginalBeadsDir()
+	got := findOriginalIssueGraphDir()
 	// Compare by suffix for macOS /var vs /private/var differences.
-	if !strings.HasSuffix(got, filepath.Join("alt", ".beads")) {
-		t.Errorf("findOriginalBeadsDir = %q, want a path ending in alt/.beads", got)
+	if !strings.HasSuffix(got, filepath.Join("alt", ".issuegraph")) {
+		t.Errorf("findOriginalIssueGraphDir = %q, want a path ending in alt/.issuegraph", got)
 	}
 }

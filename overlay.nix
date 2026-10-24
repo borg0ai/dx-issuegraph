@@ -3,65 +3,65 @@
 # supply a flake output on its own). flake.nix applies this as
 # `import ./overlay.nix self`.
 self: final: prev: {
-  # Unwrapped Go build of the bd binary. Exposed so downstream consumers can
+  # Unwrapped Go build of the issuegraph binary. Exposed so downstream consumers can
   # override inputs (vendorHash, buildGoModule, etc.) via the standard
   # callPackage `.override` pattern, e.g.
   #
   #   final: prev: {
-  #     beads-unwrapped = prev.beads-unwrapped.override (prevArgs: {
+  #     issuegraph-unwrapped = prev.issuegraph-unwrapped.override (prevArgs: {
   #       buildGoModule = args:
   #         prevArgs.buildGoModule (args // { vendorHash = "..."; });
   #     });
   #   }
-  beads-unwrapped = final.callPackage ./default.nix {
+  issuegraph-unwrapped = final.callPackage ./default.nix {
     inherit self;
     buildGoModule = final.buildGo126Module;
   };
 
-  # Wrap the unwrapped binary with shell completions and a `beads` alias.
-  beads = final.stdenv.mkDerivation {
-    pname = "beads";
-    version = final.beads-unwrapped.version;
+  # Wrap the unwrapped binary with shell completions and a `issuegraph` alias.
+  issuegraph = final.stdenv.mkDerivation {
+    pname = "issuegraph";
+    version = final.issuegraph-unwrapped.version;
 
     phases = [ "installPhase" ];
 
-    env.BD_DISABLE_METRICS = "1";
-    env.BD_DISABLE_EVENT_FLUSH = "1";
+    env.ISSUEGRAPH_DISABLE_METRICS = "1";
+    env.ISSUEGRAPH_DISABLE_EVENT_FLUSH = "1";
 
     installPhase = ''
       mkdir -p $out/bin
-      cp ${final.beads-unwrapped}/bin/bd $out/bin/bd
+      cp ${final.issuegraph-unwrapped}/bin/issuegraph $out/bin/issuegraph
 
-      # Create 'beads' alias symlink
-      ln -s bd $out/bin/beads
+      # Create 'issuegraph' alias symlink
+      ln -s issuegraph $out/bin/issuegraph
 
       # Generate shell completions
       mkdir -p $out/share/fish/vendor_completions.d
       mkdir -p $out/share/bash-completion/completions
       mkdir -p $out/share/zsh/site-functions
 
-      $out/bin/bd completion fish > $out/share/fish/vendor_completions.d/bd.fish
-      $out/bin/bd completion bash > $out/share/bash-completion/completions/bd
-      $out/bin/bd completion zsh > $out/share/zsh/site-functions/_bd
+      $out/bin/issuegraph completion fish > $out/share/fish/vendor_completions.d/issuegraph.fish
+      $out/bin/issuegraph completion bash > $out/share/bash-completion/completions/issuegraph
+      $out/bin/issuegraph completion zsh > $out/share/zsh/site-functions/_bd
     '';
 
-    meta = final.beads-unwrapped.meta;
+    meta = final.issuegraph-unwrapped.meta;
 
     passthru = {
       # Per-shell completion outputs for users who only want one shell.
-      fish-completions = final.runCommand "bd-fish-completions" { } ''
+      fish-completions = final.runCommand "issuegraph-fish-completions" { } ''
         mkdir -p $out/share/fish/vendor_completions.d
-        ln -s ${final.beads}/share/fish/vendor_completions.d/bd.fish $out/share/fish/vendor_completions.d/bd.fish
+        ln -s ${final.issuegraph}/share/fish/vendor_completions.d/issuegraph.fish $out/share/fish/vendor_completions.d/issuegraph.fish
       '';
 
-      bash-completions = final.runCommand "bd-bash-completions" { } ''
+      bash-completions = final.runCommand "issuegraph-bash-completions" { } ''
         mkdir -p $out/share/bash-completion/completions
-        ln -s ${final.beads}/share/bash-completion/completions/bd $out/share/bash-completion/completions/bd
+        ln -s ${final.issuegraph}/share/bash-completion/completions/issuegraph $out/share/bash-completion/completions/issuegraph
       '';
 
-      zsh-completions = final.runCommand "bd-zsh-completions" { } ''
+      zsh-completions = final.runCommand "issuegraph-zsh-completions" { } ''
         mkdir -p $out/share/zsh/site-functions
-        ln -s ${final.beads}/share/zsh/site-functions/_bd $out/share/zsh/site-functions/_bd
+        ln -s ${final.issuegraph}/share/zsh/site-functions/_bd $out/share/zsh/site-functions/_bd
       '';
     };
   };

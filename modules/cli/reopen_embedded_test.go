@@ -10,46 +10,46 @@ import (
 	"sync"
 	"testing"
 
-	"github.com/steveyegge/beads/internal/types"
+	"github.com/borg0ai/dx-issuegraph/internal/types"
 )
 
-// bdReopen runs "bd reopen" with the given args and returns stdout.
-func bdReopen(t *testing.T, bd, dir string, args ...string) string {
+// issuegraphReopen runs "issuegraph reopen" with the given args and returns stdout.
+func issuegraphReopen(t *testing.T, issuegraph, dir string, args ...string) string {
 	t.Helper()
 	fullArgs := append([]string{"reopen"}, args...)
-	cmd := exec.Command(bd, fullArgs...)
+	cmd := exec.Command(issuegraph, fullArgs...)
 	cmd.Dir = dir
-	cmd.Env = bdEnv(dir)
+	cmd.Env = issuegraphEnv(dir)
 	stdout, stderr, err := runCommandBuffers(t, cmd)
 	if err != nil {
-		t.Fatalf("bd reopen %s failed: %v\nstdout:\n%s\nstderr:\n%s", strings.Join(args, " "), err, stdout.String(), stderr.String())
+		t.Fatalf("issuegraph reopen %s failed: %v\nstdout:\n%s\nstderr:\n%s", strings.Join(args, " "), err, stdout.String(), stderr.String())
 	}
 	return stdout.String()
 }
 
 func TestEmbeddedReopen(t *testing.T) {
-	if os.Getenv("BEADS_TEST_EMBEDDED_DOLT") != "1" {
-		t.Skip("set BEADS_TEST_EMBEDDED_DOLT=1 to run embedded dolt integration tests")
+	if os.Getenv("ISSUEGRAPH_TEST_EMBEDDED_DOLT") != "1" {
+		t.Skip("set ISSUEGRAPH_TEST_EMBEDDED_DOLT=1 to run embedded dolt integration tests")
 	}
 	t.Parallel()
 
-	bd := buildEmbeddedBD(t)
-	dir, _, _ := bdInit(t, bd, "--prefix", "ro")
+	issuegraph := buildEmbeddedBD(t)
+	dir, _, _ := issuegraphInit(t, issuegraph, "--prefix", "ro")
 
 	t.Run("reopen_single", func(t *testing.T) {
-		issue := bdCreate(t, bd, dir, "Reopen me", "--type", "task")
-		bdClose(t, bd, dir, issue.ID)
-		got := bdShow(t, bd, dir, issue.ID)
+		issue := issuegraphCreate(t, issuegraph, dir, "Reopen me", "--type", "task")
+		issuegraphClose(t, issuegraph, dir, issue.ID)
+		got := issuegraphShow(t, issuegraph, dir, issue.ID)
 		if got.Status != types.StatusClosed {
 			t.Fatalf("expected closed before reopen, got %s", got.Status)
 		}
 
-		out := bdReopen(t, bd, dir, issue.ID)
+		out := issuegraphReopen(t, issuegraph, dir, issue.ID)
 		if !strings.Contains(out, "Reopened") {
 			t.Errorf("expected 'Reopened' in output: %s", out)
 		}
 
-		got = bdShow(t, bd, dir, issue.ID)
+		got = issuegraphShow(t, issuegraph, dir, issue.ID)
 		if got.Status != types.StatusOpen {
 			t.Errorf("expected open after reopen, got %s", got.Status)
 		}
@@ -59,14 +59,14 @@ func TestEmbeddedReopen(t *testing.T) {
 	})
 
 	t.Run("reopen_multiple", func(t *testing.T) {
-		issue1 := bdCreate(t, bd, dir, "Multi reopen 1", "--type", "task")
-		issue2 := bdCreate(t, bd, dir, "Multi reopen 2", "--type", "task")
-		bdClose(t, bd, dir, issue1.ID, issue2.ID)
+		issue1 := issuegraphCreate(t, issuegraph, dir, "Multi reopen 1", "--type", "task")
+		issue2 := issuegraphCreate(t, issuegraph, dir, "Multi reopen 2", "--type", "task")
+		issuegraphClose(t, issuegraph, dir, issue1.ID, issue2.ID)
 
-		bdReopen(t, bd, dir, issue1.ID, issue2.ID)
+		issuegraphReopen(t, issuegraph, dir, issue1.ID, issue2.ID)
 
-		got1 := bdShow(t, bd, dir, issue1.ID)
-		got2 := bdShow(t, bd, dir, issue2.ID)
+		got1 := issuegraphShow(t, issuegraph, dir, issue1.ID)
+		got2 := issuegraphShow(t, issuegraph, dir, issue2.ID)
 		if got1.Status != types.StatusOpen {
 			t.Errorf("issue1: expected open, got %s", got1.Status)
 		}
@@ -76,10 +76,10 @@ func TestEmbeddedReopen(t *testing.T) {
 	})
 
 	t.Run("reopen_with_reason", func(t *testing.T) {
-		issue := bdCreate(t, bd, dir, "Reason reopen", "--type", "task")
-		bdClose(t, bd, dir, issue.ID)
+		issue := issuegraphCreate(t, issuegraph, dir, "Reason reopen", "--type", "task")
+		issuegraphClose(t, issuegraph, dir, issue.ID)
 
-		out := bdReopen(t, bd, dir, issue.ID, "--reason", "Not actually done")
+		out := issuegraphReopen(t, issuegraph, dir, issue.ID, "--reason", "Not actually done")
 		if !strings.Contains(out, "Reopened") {
 			t.Errorf("expected 'Reopened' in output: %s", out)
 		}
@@ -89,25 +89,25 @@ func TestEmbeddedReopen(t *testing.T) {
 	})
 
 	t.Run("reopen_with_reason_short", func(t *testing.T) {
-		issue := bdCreate(t, bd, dir, "Short reason reopen", "--type", "task")
-		bdClose(t, bd, dir, issue.ID)
-		bdReopen(t, bd, dir, issue.ID, "-r", "Needs more work")
-		got := bdShow(t, bd, dir, issue.ID)
+		issue := issuegraphCreate(t, issuegraph, dir, "Short reason reopen", "--type", "task")
+		issuegraphClose(t, issuegraph, dir, issue.ID)
+		issuegraphReopen(t, issuegraph, dir, issue.ID, "-r", "Needs more work")
+		got := issuegraphShow(t, issuegraph, dir, issue.ID)
 		if got.Status != types.StatusOpen {
 			t.Errorf("expected open, got %s", got.Status)
 		}
 	})
 
 	t.Run("reopen_json", func(t *testing.T) {
-		issue := bdCreate(t, bd, dir, "JSON reopen", "--type", "task")
-		bdClose(t, bd, dir, issue.ID)
+		issue := issuegraphCreate(t, issuegraph, dir, "JSON reopen", "--type", "task")
+		issuegraphClose(t, issuegraph, dir, issue.ID)
 
-		cmd := exec.Command(bd, "reopen", issue.ID, "--json")
+		cmd := exec.Command(issuegraph, "reopen", issue.ID, "--json")
 		cmd.Dir = dir
-		cmd.Env = bdEnv(dir)
+		cmd.Env = issuegraphEnv(dir)
 		stdout, stderr, err := runCommandBuffers(t, cmd)
 		if err != nil {
-			t.Fatalf("bd reopen --json failed: %v\nstdout:\n%s\nstderr:\n%s", err, stdout.String(), stderr.String())
+			t.Fatalf("issuegraph reopen --json failed: %v\nstdout:\n%s\nstderr:\n%s", err, stdout.String(), stderr.String())
 		}
 		s := strings.TrimSpace(stdout.String())
 		start := strings.Index(s, "[")
@@ -121,28 +121,28 @@ func TestEmbeddedReopen(t *testing.T) {
 	})
 
 	t.Run("reopen_already_open", func(t *testing.T) {
-		issue := bdCreate(t, bd, dir, "Already open", "--type", "task")
+		issue := issuegraphCreate(t, issuegraph, dir, "Already open", "--type", "task")
 		// Reopen an already-open issue — should not error, just print message
-		out := bdReopen(t, bd, dir, issue.ID)
+		out := issuegraphReopen(t, issuegraph, dir, issue.ID)
 		if !strings.Contains(out, "already open") {
 			t.Logf("already-open message: %s", out)
 		}
 	})
 
 	t.Run("reopen_clears_defer_until", func(t *testing.T) {
-		issue := bdCreate(t, bd, dir, "Deferred reopen", "--type", "task", "--defer", "2030-01-01")
-		bdClose(t, bd, dir, issue.ID)
-		bdReopen(t, bd, dir, issue.ID)
-		got := bdShow(t, bd, dir, issue.ID)
+		issue := issuegraphCreate(t, issuegraph, dir, "Deferred reopen", "--type", "task", "--defer", "2030-01-01")
+		issuegraphClose(t, issuegraph, dir, issue.ID)
+		issuegraphReopen(t, issuegraph, dir, issue.ID)
+		got := issuegraphShow(t, issuegraph, dir, issue.ID)
 		if got.Status != types.StatusOpen {
 			t.Errorf("expected open, got %s", got.Status)
 		}
 	})
 
 	t.Run("reopen_nonexistent", func(t *testing.T) {
-		cmd := exec.Command(bd, "reopen", "ro-nonexistent999")
+		cmd := exec.Command(issuegraph, "reopen", "ro-nonexistent999")
 		cmd.Dir = dir
-		cmd.Env = bdEnv(dir)
+		cmd.Env = issuegraphEnv(dir)
 		out, err := cmd.CombinedOutput()
 		if err == nil {
 			t.Fatalf("expected reopen of nonexistent to fail, got: %s", out)
@@ -152,21 +152,21 @@ func TestEmbeddedReopen(t *testing.T) {
 
 // TestEmbeddedReopenConcurrent exercises reopen concurrently.
 func TestEmbeddedReopenConcurrent(t *testing.T) {
-	if os.Getenv("BEADS_TEST_EMBEDDED_DOLT") != "1" {
-		t.Skip("set BEADS_TEST_EMBEDDED_DOLT=1 to run embedded dolt integration tests")
+	if os.Getenv("ISSUEGRAPH_TEST_EMBEDDED_DOLT") != "1" {
+		t.Skip("set ISSUEGRAPH_TEST_EMBEDDED_DOLT=1 to run embedded dolt integration tests")
 	}
 	t.Parallel()
 
-	bd := buildEmbeddedBD(t)
-	dir, _, _ := bdInit(t, bd, "--prefix", "rx")
+	issuegraph := buildEmbeddedBD(t)
+	dir, _, _ := issuegraphInit(t, issuegraph, "--prefix", "rx")
 
 	const numWorkers = 8
 
 	// Pre-create and close issues
 	var issueIDs []string
 	for i := 0; i < numWorkers; i++ {
-		issue := bdCreate(t, bd, dir, fmt.Sprintf("concurrent-reopen-%d", i), "--type", "task")
-		bdClose(t, bd, dir, issue.ID)
+		issue := issuegraphCreate(t, issuegraph, dir, fmt.Sprintf("concurrent-reopen-%d", i), "--type", "task")
+		issuegraphClose(t, issuegraph, dir, issue.ID)
 		issueIDs = append(issueIDs, issue.ID)
 	}
 
@@ -184,9 +184,9 @@ func TestEmbeddedReopenConcurrent(t *testing.T) {
 			defer wg.Done()
 			r := workerResult{worker: worker}
 
-			cmd := exec.Command(bd, "reopen", issueIDs[worker])
+			cmd := exec.Command(issuegraph, "reopen", issueIDs[worker])
 			cmd.Dir = dir
-			cmd.Env = bdEnv(dir)
+			cmd.Env = issuegraphEnv(dir)
 			out, err := cmd.CombinedOutput()
 			if err != nil {
 				r.err = fmt.Errorf("reopen %s: %v\n%s", issueIDs[worker], err, out)
@@ -218,7 +218,7 @@ func TestEmbeddedReopenConcurrent(t *testing.T) {
 			continue
 		}
 		id := issueIDs[r.worker]
-		got := bdShow(t, bd, dir, id)
+		got := issuegraphShow(t, issuegraph, dir, id)
 		if got.Status != types.StatusOpen {
 			t.Errorf("expected %s to be open after reopen, got %s", id, got.Status)
 		}

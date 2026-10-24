@@ -14,7 +14,7 @@ import (
 
 // TestCLI_ReparentDottedIDExcludesOldParent tests that after reparenting a
 // dotted-ID child to a new parent, it no longer appears under the old parent
-// in `bd list --parent`.
+// in `issuegraph list --parent`.
 //
 // The bug: dotted-ID prefix matching (e.g., "parent.1" matches parent "parent")
 // continued to show the child under the old parent even after an explicit
@@ -78,7 +78,7 @@ func createExecTestIssueWithID(t *testing.T, tmpDir, title, id string) string {
 	return issue["id"].(string)
 }
 
-// runBD runs a bd command and fails the test on error.
+// runBD runs a issuegraph command and fails the test on error.
 func runBD(t *testing.T, tmpDir string, args ...string) []byte {
 	t.Helper()
 	cmd := exec.Command(testBD, args...)
@@ -86,12 +86,12 @@ func runBD(t *testing.T, tmpDir string, args ...string) []byte {
 	cmd.Env = os.Environ()
 	out, err := cmd.CombinedOutput()
 	if err != nil {
-		t.Fatalf("bd %s failed: %v\n%s", strings.Join(args, " "), err, out)
+		t.Fatalf("issuegraph %s failed: %v\n%s", strings.Join(args, " "), err, out)
 	}
 	return out
 }
 
-// assertParentLists checks whether childID appears in `bd list --parent parentID`.
+// assertParentLists checks whether childID appears in `issuegraph list --parent parentID`.
 func assertParentLists(t *testing.T, tmpDir, parentID, childID string, shouldAppear bool, msg string) {
 	t.Helper()
 	cmd := exec.Command(testBD, "list", "--parent", parentID, "--json")

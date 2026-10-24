@@ -3,7 +3,7 @@ package main
 import (
 	"testing"
 
-	"github.com/steveyegge/beads/internal/utils"
+	"github.com/borg0ai/dx-issuegraph/internal/utils"
 )
 
 func TestIsNumericID_EdgeCases(t *testing.T) {
@@ -38,7 +38,7 @@ func TestExtractPrefix(t *testing.T) {
 		input    string
 		expected string
 	}{
-		{"bd-123", "bd"},
+		{"bd-123", "issuegraph"},
 		{"custom-1", "custom"},
 		{"TEST-999", "TEST"},
 		{"no-number", "no"}, // Has hyphen, suffix not numeric, first hyphen
@@ -47,10 +47,10 @@ func TestExtractPrefix(t *testing.T) {
 		// Multi-part non-numeric suffixes (bd-fasa regression tests)
 		{"vc-baseline-test", "vc"},
 		{"vc-92cl-gate-test", "vc"},
-		{"bd-multi-part-id", "bd"},
+		{"bd-multi-part-id", "issuegraph"},
 		{"prefix-a-b-c-d", "prefix"},
 		// Multi-part prefixes with numeric suffixes
-		{"beads-vscode-1", "beads-vscode"},
+		{"issuegraph-vscode-1", "issuegraph-vscode"},
 		{"alpha-beta-123", "alpha-beta"},
 		{"my-project-42", "my-project"},
 	}

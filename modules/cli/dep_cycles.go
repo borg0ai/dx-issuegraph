@@ -5,13 +5,13 @@ import (
 	"fmt"
 	"os"
 
-	"github.com/steveyegge/beads/internal/storage"
-	"github.com/steveyegge/beads/internal/storage/uow"
-	"github.com/steveyegge/beads/internal/ui"
-	"github.com/steveyegge/beads/issueops"
+	"github.com/borg0ai/dx-issuegraph/internal/storage"
+	"github.com/borg0ai/dx-issuegraph/internal/storage/uow"
+	"github.com/borg0ai/dx-issuegraph/internal/ui"
+	"github.com/borg0ai/dx-issuegraph/issueops"
 )
 
-// `bd dep cycles`, and the post-add warning every route that wires an edge
+// `issuegraph dep cycles`, and the post-add warning every route that wires an edge
 // prints, on ONE role and ONE renderer.
 
 // openCycleDetector hands back the cycle role for whichever route this
@@ -36,7 +36,7 @@ func proxiedCycleDetector() (issueops.CycleDetector, error) {
 	return src.CycleDetector()
 }
 
-// runDepCycles is the whole of `bd dep cycles` on both routes.
+// runDepCycles is the whole of `issuegraph dep cycles` on both routes.
 func runDepCycles() error {
 	detector, err := openCycleDetector()
 	if err != nil {
@@ -149,5 +149,5 @@ func printCycleWarnings(cycles []issueops.Cycle) {
 		}
 		fmt.Fprintf(os.Stderr, "\n")
 	}
-	fmt.Fprintf(os.Stderr, "\nRun 'bd dep cycles' for detailed analysis.\n\n")
+	fmt.Fprintf(os.Stderr, "\nRun 'issuegraph dep cycles' for detailed analysis.\n\n")
 }

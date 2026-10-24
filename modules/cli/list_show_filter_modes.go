@@ -8,20 +8,20 @@ import (
 	"syscall"
 	"time"
 
-	"github.com/steveyegge/beads/internal/storage"
-	"github.com/steveyegge/beads/internal/storage/uow"
-	"github.com/steveyegge/beads/internal/types"
-	"github.com/steveyegge/beads/internal/workapi"
+	"github.com/borg0ai/dx-issuegraph/internal/storage"
+	"github.com/borg0ai/dx-issuegraph/internal/storage/uow"
+	"github.com/borg0ai/dx-issuegraph/internal/types"
+	"github.com/borg0ai/dx-issuegraph/internal/workapi"
 )
 
-// The modes of `bd list` and `bd show` that consume the FILTER ITSELF rather
+// The modes of `issuegraph list` and `issuegraph show` that consume the FILTER ITSELF rather
 // than the page a query answers with, gathered here because that is exactly
 // what the guard on the rest of modules/cli is a statement about.
 //
 // A forbidigo rule in .golangci.yml makes NAMING types.IssueFilter or
 // types.WorkFilter a lint failure anywhere under modules/cli, and this file is one
 // of the exceptions the config lists by name with its reason. So no file
-// implementing `bd list` or `bd show` can WRITE a filter — it takes one back
+// implementing `issuegraph list` or `issuegraph show` can WRITE a filter — it takes one back
 // from a workapi builder instead — and that keeps holding for a file those
 // commands are split or renamed into tomorrow, which is why the rule is deny
 // by default rather than a list of filenames. What it does NOT establish is
@@ -35,7 +35,7 @@ import (
 // back; and --current, which resolves an id from a deliberately BARE filter
 // that must not pick up the default listing's exclusions.
 //
-// The list is SHORTER by everything it no longer holds. `bd list`'s page is
+// The list is SHORTER by everything it no longer holds. `issuegraph list`'s page is
 // issueops.Reader.List's on both routes, and the two filter-consuming modes
 // above are what is left over — so this file is now the exception's whole
 // remaining reason rather than one of several. It did not leave the config's
@@ -168,7 +168,7 @@ func displayWatchedIssueList(ctx context.Context, store watchListDependencyStore
 }
 
 // watchIssues returns an error only for the initial query — a failure there
-// means bd list --watch never displayed anything, so (unlike a mid-poll
+// means issuegraph list --watch never displayed anything, so (unlike a mid-poll
 // refresh failure, which just logs and keeps the last good snapshot on
 // screen) it must propagate to the caller. In particular this lets
 // runListCore route a MaxRows cap violation through handleMaxRowsError for

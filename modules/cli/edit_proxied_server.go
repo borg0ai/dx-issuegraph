@@ -10,9 +10,9 @@ import (
 
 	"github.com/spf13/cobra"
 
-	"github.com/steveyegge/beads/internal/storage"
-	"github.com/steveyegge/beads/internal/ui"
-	"github.com/steveyegge/beads/internal/workapi"
+	"github.com/borg0ai/dx-issuegraph/internal/storage"
+	"github.com/borg0ai/dx-issuegraph/internal/ui"
+	"github.com/borg0ai/dx-issuegraph/internal/workapi"
 )
 
 func runEditProxiedServer(cmd *cobra.Command, ctx context.Context, args []string) error {
@@ -121,7 +121,7 @@ func runEditProxiedServer(cmd *cobra.Command, ctx context.Context, args []string
 		return HandleErrorRespectJSON("title cannot be empty")
 	}
 
-	updated, err := proxiedUpdateIssueFields(ctx, id, "bd: edit "+id, map[string]any{fieldToEdit: newValue}, false)
+	updated, err := proxiedUpdateIssueFields(ctx, id, "issuegraph: edit "+id, map[string]any{fieldToEdit: newValue}, false)
 	if err != nil {
 		fmt.Fprintf(os.Stderr, "Your edits are preserved in: %s\n", tmpPath) //nolint:gosec // G705: stderr, not a browser context
 		return HandleErrorRespectJSON("updating issue: %v", err)

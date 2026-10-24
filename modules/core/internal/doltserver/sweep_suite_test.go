@@ -102,7 +102,7 @@ func TestSuiteOwnerMarkerRoundTrip(t *testing.T) {
 // signals a real process — the liveness probe and the reaper are injected.
 func TestSweepDeadSuiteRootsSelection(t *testing.T) {
 	parent := t.TempDir()
-	const prefix = "beads-bd-tests-"
+	const prefix = "issuegraph-issuegraph-tests-"
 
 	mkRoot := func(name string, markerPID int) string {
 		dir := filepath.Join(parent, name)
@@ -122,7 +122,7 @@ func TestSweepDeadSuiteRootsSelection(t *testing.T) {
 	dead := mkRoot(prefix+"dead", deadPID)
 	live := mkRoot(prefix+"live", livePID)
 	unclaimed := mkRoot(prefix+"unclaimed", 0)
-	otherSuite := mkRoot("beads-storage-dolt-tests-dead", deadPID)
+	otherSuite := mkRoot("issuegraph-storage-dolt-tests-dead", deadPID)
 
 	// A plain file and a symlink that both match the prefix: neither is a
 	// directory this suite created, and neither may be removed.
@@ -177,7 +177,7 @@ func TestSweepDeadSuiteRootsSelection(t *testing.T) {
 // swept again, by design. The marker must go back naming the same dead owner.
 func TestSweepDeadSuiteRootsRestoresMarkerOnPartialRemoval(t *testing.T) {
 	parent := t.TempDir()
-	const prefix = "beads-partial-tests-"
+	const prefix = "issuegraph-partial-tests-"
 	const deadPID = 4242
 
 	root := filepath.Join(parent, prefix+"stuck")
@@ -271,7 +271,7 @@ func TestSweepDeadSuiteRootsRefusesUnboundedGlob(t *testing.T) {
 	if got := sweepDeadSuiteRoots(parent, "", dead, fatalSweep, fatalRemove); got != nil {
 		t.Errorf("empty prefix swept %v, want nothing", got)
 	}
-	if got := sweepDeadSuiteRoots("", "beads-bd-tests-", dead, fatalSweep, fatalRemove); got != nil {
+	if got := sweepDeadSuiteRoots("", "issuegraph-issuegraph-tests-", dead, fatalSweep, fatalRemove); got != nil {
 		t.Errorf("empty parent dir swept %v, want nothing", got)
 	}
 }
@@ -281,7 +281,7 @@ func TestSweepDeadSuiteRootsRefusesUnboundedGlob(t *testing.T) {
 // a directory the very same glob will match on the next call.
 func TestSweepDeadSuiteRootsSkipsSelf(t *testing.T) {
 	parent := t.TempDir()
-	const prefix = "beads-self-tests-"
+	const prefix = "issuegraph-self-tests-"
 	mine := filepath.Join(parent, prefix+"mine")
 	if err := os.MkdirAll(mine, 0o700); err != nil {
 		t.Fatalf("mkdir: %v", err)
@@ -303,7 +303,7 @@ func TestSweepDeadSuiteRootsSkipsSelf(t *testing.T) {
 // TestApplyLeakPolicyForSuite covers the exit-code arithmetic of the
 // leak-as-failure rule and its env-gated downgrade.
 func TestApplyLeakPolicyForSuite(t *testing.T) {
-	oneLeak := []SweptServer{{PID: 101, Cwd: "/tmp/TestLeaky123/001/.beads/dolt"}}
+	oneLeak := []SweptServer{{PID: 101, Cwd: "/tmp/TestLeaky123/001/.issuegraph/dolt"}}
 	cases := []struct {
 		name  string
 		env   string
@@ -349,7 +349,7 @@ func TestApplyLeakPolicyForSuite(t *testing.T) {
 // test that created it. Reporting it is what turns "modules/cli leaked a server"
 // into a specific fixture to fix (wy-j2zc8q).
 func TestApplyLeakPolicyNamesTheLeakingDirectory(t *testing.T) {
-	const cwd = "/tmp/beads-bd-tests-xyz/TestLeakyFixture123/001/.beads/dolt"
+	const cwd = "/tmp/issuegraph-issuegraph-tests-xyz/TestLeakyFixture123/001/.issuegraph/dolt"
 	swept := []SweptServer{{PID: 21881, Cwd: cwd}}
 
 	t.Run("the failure line", func(t *testing.T) {

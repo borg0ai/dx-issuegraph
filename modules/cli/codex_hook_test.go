@@ -25,7 +25,7 @@ func TestCodexHookSessionStartInjectsPrimeContext(t *testing.T) {
 		if memoriesOnly {
 			t.Fatal("SessionStart should request full prime output")
 		}
-		return "BEADS PRIME\nbd ready --json\n", nil
+		return "ISSUEGRAPH PRIME\nbd ready --json\n", nil
 	})
 
 	var out bytes.Buffer
@@ -41,7 +41,7 @@ func TestCodexHookSessionStartInjectsPrimeContext(t *testing.T) {
 	if got.HookSpecificOutput.HookEventName != codexHookSessionStart {
 		t.Fatalf("hook event = %q", got.HookSpecificOutput.HookEventName)
 	}
-	if !strings.Contains(got.HookSpecificOutput.AdditionalContext, "bd ready --json") {
+	if !strings.Contains(got.HookSpecificOutput.AdditionalContext, "issuegraph ready --json") {
 		t.Fatalf("expected prime output in additionalContext: %#v", got)
 	}
 }
@@ -64,7 +64,7 @@ func TestCodexHookPreCompactWarnsWhenMemoriesUnavailable(t *testing.T) {
 	if err := json.Unmarshal(out.Bytes(), &got); err != nil {
 		t.Fatalf("parse output: %v\n%s", err, out.String())
 	}
-	if !strings.Contains(got.SystemMessage, "Beads context check failed") {
+	if !strings.Contains(got.SystemMessage, "IssueGraph context check failed") {
 		t.Fatalf("expected warning systemMessage, got %#v", got)
 	}
 }
@@ -80,7 +80,7 @@ func TestCodexHookPostCompactMarksAndUserPromptRefreshesOnce(t *testing.T) {
 		if memoriesOnly {
 			t.Fatal("UserPromptSubmit refresh should request full prime output")
 		}
-		return "REFRESHED BEADS CONTEXT\n", nil
+		return "REFRESHED ISSUEGRAPH CONTEXT\n", nil
 	})
 
 	input := codexHookInput{SessionID: "s1", CWD: filepath.Join("repo", "sub"), HookEventName: codexHookPostCompact}
@@ -105,7 +105,7 @@ func TestCodexHookPostCompactMarksAndUserPromptRefreshesOnce(t *testing.T) {
 	if _, err := os.Stat(marker); !os.IsNotExist(err) {
 		t.Fatalf("expected refresh marker removed, stat err=%v", err)
 	}
-	if !strings.Contains(out.String(), "REFRESHED BEADS CONTEXT") {
+	if !strings.Contains(out.String(), "REFRESHED ISSUEGRAPH CONTEXT") {
 		t.Fatalf("expected refreshed context, got %s", out.String())
 	}
 

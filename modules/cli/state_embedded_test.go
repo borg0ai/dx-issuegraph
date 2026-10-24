@@ -12,61 +12,61 @@ import (
 	"testing"
 )
 
-// bdState runs "bd state" with the given args and returns stdout.
-func bdState(t *testing.T, bd, dir string, args ...string) string {
+// issuegraphState runs "issuegraph state" with the given args and returns stdout.
+func issuegraphState(t *testing.T, issuegraph, dir string, args ...string) string {
 	t.Helper()
 	fullArgs := append([]string{"state"}, args...)
-	cmd := exec.Command(bd, fullArgs...)
+	cmd := exec.Command(issuegraph, fullArgs...)
 	cmd.Dir = dir
-	cmd.Env = bdEnv(dir)
+	cmd.Env = issuegraphEnv(dir)
 	stdout, stderr, err := runCommandBuffers(t, cmd)
 	if err != nil {
-		t.Fatalf("bd state %s failed: %v\nstdout:\n%s\nstderr:\n%s", strings.Join(args, " "), err, stdout.String(), stderr.String())
+		t.Fatalf("issuegraph state %s failed: %v\nstdout:\n%s\nstderr:\n%s", strings.Join(args, " "), err, stdout.String(), stderr.String())
 	}
 	return stdout.String()
 }
 
-// bdSetState runs "bd set-state" with the given args and returns stdout.
-func bdSetState(t *testing.T, bd, dir string, args ...string) string {
+// issuegraphSetState runs "issuegraph set-state" with the given args and returns stdout.
+func issuegraphSetState(t *testing.T, issuegraph, dir string, args ...string) string {
 	t.Helper()
 	fullArgs := append([]string{"set-state"}, args...)
-	cmd := exec.Command(bd, fullArgs...)
+	cmd := exec.Command(issuegraph, fullArgs...)
 	cmd.Dir = dir
-	cmd.Env = bdEnv(dir)
+	cmd.Env = issuegraphEnv(dir)
 	stdout, stderr, err := runCommandBuffers(t, cmd)
 	if err != nil {
-		t.Fatalf("bd set-state %s failed: %v\nstdout:\n%s\nstderr:\n%s", strings.Join(args, " "), err, stdout.String(), stderr.String())
+		t.Fatalf("issuegraph set-state %s failed: %v\nstdout:\n%s\nstderr:\n%s", strings.Join(args, " "), err, stdout.String(), stderr.String())
 	}
 	return stdout.String()
 }
 
 func TestEmbeddedState(t *testing.T) {
-	if os.Getenv("BEADS_TEST_EMBEDDED_DOLT") != "1" {
-		t.Skip("set BEADS_TEST_EMBEDDED_DOLT=1 to run embedded dolt integration tests")
+	if os.Getenv("ISSUEGRAPH_TEST_EMBEDDED_DOLT") != "1" {
+		t.Skip("set ISSUEGRAPH_TEST_EMBEDDED_DOLT=1 to run embedded dolt integration tests")
 	}
 	t.Parallel()
 
-	bd := buildEmbeddedBD(t)
-	dir, _, _ := bdInit(t, bd, "--prefix", "st")
+	issuegraph := buildEmbeddedBD(t)
+	dir, _, _ := issuegraphInit(t, issuegraph, "--prefix", "st")
 
-	issue := bdCreate(t, bd, dir, "State test issue", "--type", "task")
+	issue := issuegraphCreate(t, issuegraph, dir, "State test issue", "--type", "task")
 
 	// ===== set-state =====
 
 	t.Run("set_state_basic", func(t *testing.T) {
-		out := bdSetState(t, bd, dir, issue.ID, "phase=planning")
+		out := issuegraphSetState(t, issuegraph, dir, issue.ID, "phase=planning")
 		if !strings.Contains(out, "planning") {
 			t.Logf("set-state output: %s", out)
 		}
 	})
 
 	t.Run("set_state_json", func(t *testing.T) {
-		cmd := exec.Command(bd, "set-state", issue.ID, "env=staging", "--json")
+		cmd := exec.Command(issuegraph, "set-state", issue.ID, "env=staging", "--json")
 		cmd.Dir = dir
-		cmd.Env = bdEnv(dir)
+		cmd.Env = issuegraphEnv(dir)
 		stdout, stderr, err := runCommandBuffers(t, cmd)
 		if err != nil {
-			t.Fatalf("bd set-state --json failed: %v\nstdout:\n%s\nstderr:\n%s", err, stdout.String(), stderr.String())
+			t.Fatalf("issuegraph set-state --json failed: %v\nstdout:\n%s\nstderr:\n%s", err, stdout.String(), stderr.String())
 		}
 		s := strings.TrimSpace(stdout.String())
 		start := strings.Index(s, "{")
@@ -79,15 +79,15 @@ func TestEmbeddedState(t *testing.T) {
 	})
 
 	t.Run("set_state_with_reason", func(t *testing.T) {
-		out := bdSetState(t, bd, dir, issue.ID, "risk=high", "--reason", "New vulnerability found")
+		out := issuegraphSetState(t, issuegraph, dir, issue.ID, "risk=high", "--reason", "New vulnerability found")
 		_ = out
 	})
 
 	t.Run("set_state_overwrites", func(t *testing.T) {
-		bdSetState(t, bd, dir, issue.ID, "phase=development")
-		bdSetState(t, bd, dir, issue.ID, "phase=testing")
+		issuegraphSetState(t, issuegraph, dir, issue.ID, "phase=development")
+		issuegraphSetState(t, issuegraph, dir, issue.ID, "phase=testing")
 
-		out := bdState(t, bd, dir, issue.ID, "phase")
+		out := issuegraphState(t, issuegraph, dir, issue.ID, "phase")
 		if !strings.Contains(out, "testing") {
 			t.Errorf("expected 'testing' after overwrite, got: %s", out)
 		}
@@ -96,25 +96,25 @@ func TestEmbeddedState(t *testing.T) {
 	// ===== state query =====
 
 	t.Run("state_query", func(t *testing.T) {
-		out := bdState(t, bd, dir, issue.ID, "phase")
+		out := issuegraphState(t, issuegraph, dir, issue.ID, "phase")
 		if !strings.Contains(out, "testing") {
 			t.Logf("state query output: %s", out)
 		}
 	})
 
 	t.Run("state_query_json", func(t *testing.T) {
-		cmd := exec.Command(bd, "state", issue.ID, "phase", "--json")
+		cmd := exec.Command(issuegraph, "state", issue.ID, "phase", "--json")
 		cmd.Dir = dir
-		cmd.Env = bdEnv(dir)
+		cmd.Env = issuegraphEnv(dir)
 		stdout, stderr, err := runCommandBuffers(t, cmd)
 		if err != nil {
-			t.Fatalf("bd state --json failed: %v\nstdout:\n%s\nstderr:\n%s", err, stdout.String(), stderr.String())
+			t.Fatalf("issuegraph state --json failed: %v\nstdout:\n%s\nstderr:\n%s", err, stdout.String(), stderr.String())
 		}
 		_ = stdout.String()
 	})
 
 	t.Run("state_query_nonexistent_dimension", func(t *testing.T) {
-		out := bdState(t, bd, dir, issue.ID, "nonexistent")
+		out := issuegraphState(t, issuegraph, dir, issue.ID, "nonexistent")
 		// Should return empty/not-set, not error
 		_ = out
 	})
@@ -122,7 +122,7 @@ func TestEmbeddedState(t *testing.T) {
 	// ===== state list =====
 
 	t.Run("state_list", func(t *testing.T) {
-		out := bdState(t, bd, dir, "list", issue.ID)
+		out := issuegraphState(t, issuegraph, dir, "list", issue.ID)
 		// Should show the dimensions we set
 		if !strings.Contains(out, "phase") {
 			t.Logf("state list output: %s", out)
@@ -130,34 +130,34 @@ func TestEmbeddedState(t *testing.T) {
 	})
 
 	t.Run("state_list_json", func(t *testing.T) {
-		cmd := exec.Command(bd, "state", "list", issue.ID, "--json")
+		cmd := exec.Command(issuegraph, "state", "list", issue.ID, "--json")
 		cmd.Dir = dir
-		cmd.Env = bdEnv(dir)
+		cmd.Env = issuegraphEnv(dir)
 		stdout, stderr, err := runCommandBuffers(t, cmd)
 		if err != nil {
-			t.Fatalf("bd state list --json failed: %v\nstdout:\n%s\nstderr:\n%s", err, stdout.String(), stderr.String())
+			t.Fatalf("issuegraph state list --json failed: %v\nstdout:\n%s\nstderr:\n%s", err, stdout.String(), stderr.String())
 		}
 		_ = stdout.String()
 	})
 
 	t.Run("state_list_no_dimensions", func(t *testing.T) {
-		fresh := bdCreate(t, bd, dir, "No state", "--type", "task")
-		out := bdState(t, bd, dir, "list", fresh.ID)
+		fresh := issuegraphCreate(t, issuegraph, dir, "No state", "--type", "task")
+		out := issuegraphState(t, issuegraph, dir, "list", fresh.ID)
 		_ = out
 	})
 }
 
 // TestEmbeddedStateConcurrent exercises set-state concurrently on different dimensions.
 func TestEmbeddedStateConcurrent(t *testing.T) {
-	if os.Getenv("BEADS_TEST_EMBEDDED_DOLT") != "1" {
-		t.Skip("set BEADS_TEST_EMBEDDED_DOLT=1 to run embedded dolt integration tests")
+	if os.Getenv("ISSUEGRAPH_TEST_EMBEDDED_DOLT") != "1" {
+		t.Skip("set ISSUEGRAPH_TEST_EMBEDDED_DOLT=1 to run embedded dolt integration tests")
 	}
 	t.Parallel()
 
-	bd := buildEmbeddedBD(t)
-	dir, _, _ := bdInit(t, bd, "--prefix", "sx")
+	issuegraph := buildEmbeddedBD(t)
+	dir, _, _ := issuegraphInit(t, issuegraph, "--prefix", "sx")
 
-	issue := bdCreate(t, bd, dir, "Concurrent state", "--type", "task")
+	issue := issuegraphCreate(t, issuegraph, dir, "Concurrent state", "--type", "task")
 
 	const numWorkers = 6
 
@@ -176,9 +176,9 @@ func TestEmbeddedStateConcurrent(t *testing.T) {
 			r := workerResult{worker: worker}
 
 			dim := fmt.Sprintf("dim%d=val%d", worker, worker)
-			cmd := exec.Command(bd, "set-state", issue.ID, dim)
+			cmd := exec.Command(issuegraph, "set-state", issue.ID, dim)
 			cmd.Dir = dir
-			cmd.Env = bdEnv(dir)
+			cmd.Env = issuegraphEnv(dir)
 			out, err := cmd.CombinedOutput()
 			if err != nil {
 				r.err = fmt.Errorf("set-state %s: %v\n%s", dim, err, out)

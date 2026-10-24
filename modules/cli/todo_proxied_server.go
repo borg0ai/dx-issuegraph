@@ -10,12 +10,12 @@ import (
 
 	"github.com/spf13/cobra"
 
-	"github.com/steveyegge/beads/internal/storage"
-	"github.com/steveyegge/beads/internal/storage/domain"
-	"github.com/steveyegge/beads/internal/storage/uow"
-	"github.com/steveyegge/beads/internal/types"
-	"github.com/steveyegge/beads/internal/ui"
-	"github.com/steveyegge/beads/internal/workapi"
+	"github.com/borg0ai/dx-issuegraph/internal/storage"
+	"github.com/borg0ai/dx-issuegraph/internal/storage/domain"
+	"github.com/borg0ai/dx-issuegraph/internal/storage/uow"
+	"github.com/borg0ai/dx-issuegraph/internal/types"
+	"github.com/borg0ai/dx-issuegraph/internal/ui"
+	"github.com/borg0ai/dx-issuegraph/internal/workapi"
 )
 
 func todoListProxied(ctx context.Context, filter types.IssueFilter) ([]*types.Issue, error) {
@@ -58,7 +58,7 @@ func runTodoAddProxiedServer(cmd *cobra.Command, ctx context.Context, args []str
 		if err != nil {
 			return nil, "", err
 		}
-		return result.Issue, fmt.Sprintf("bd: create %s", result.Issue.ID), nil
+		return result.Issue, fmt.Sprintf("issuegraph: create %s", result.Issue.ID), nil
 	})
 	if err != nil {
 		return HandleError("failed to create TODO: %v", err)
@@ -107,7 +107,7 @@ func runTodoDoneProxiedServer(cmd *cobra.Command, ctx context.Context, args []st
 			if e != nil {
 				return struct{}{}, "", e
 			}
-			return struct{}{}, fmt.Sprintf("bd: close %s", issue.ID), nil
+			return struct{}{}, fmt.Sprintf("issuegraph: close %s", issue.ID), nil
 		})
 		if err != nil {
 			fmt.Fprintf(os.Stderr, "Error: failed to close %s: %v\n", issueID, err)

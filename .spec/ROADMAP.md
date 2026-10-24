@@ -3,7 +3,7 @@
 | RFC | Title | Status |
 |-----|-------|--------|
 | 0001 | [IssueGraph 本地优先产品重组 (Umbrella)](rfc/0001-issuegraph-local-git.md) | Approved |
-| 0002 | [产品与命令统一为 IssueGraph (child of 0001)](rfc/0002-product-identity.md) | Approved |
+| 0002 | [产品与命令统一为 IssueGraph (child of 0001)](rfc/completed/0002-product-identity.md) | Implemented |
 | 0003 | [去掉一切远程 issue 同步 (child of 0001)](rfc/0003-drop-remote-sync.md) | Approved |
 | 0004 | [Git 跟踪快照成为唯一外带载体 (child of 0001)](rfc/0004-git-tracked-snapshot.md) | Approved |
 | 0005 | [修订章程中的同步边界 (child of 0001)](rfc/completed/0005-charter-sync-boundary.md) | Implemented |

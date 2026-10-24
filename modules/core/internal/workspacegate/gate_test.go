@@ -45,7 +45,7 @@ func helperMain() {
 		if os.Args[2] == "exclusive" {
 			mode = Exclusive
 		}
-		g, err := ForWorkspace(filepath.Join(dir, ".beads"))
+		g, err := ForWorkspace(filepath.Join(dir, ".issuegraph"))
 		if err != nil {
 			fmt.Println("ERR", err)
 			os.Exit(1)
@@ -71,7 +71,7 @@ func helperMain() {
 func testGate(t *testing.T) (Gate, string) {
 	t.Helper()
 	dir := t.TempDir()
-	g, err := ForWorkspace(filepath.Join(dir, ".beads"))
+	g, err := ForWorkspace(filepath.Join(dir, ".issuegraph"))
 	if err != nil {
 		t.Fatalf("ForWorkspace: %v", err)
 	}
@@ -89,9 +89,9 @@ func mustAcquire(t *testing.T, g Gate, mode Mode, opts Options) *Handle {
 
 func TestGateFileLocation(t *testing.T) {
 	g, dir := testGate(t)
-	want := filepath.Join(mustEval(t, dir), ".beads.gate.lock")
+	want := filepath.Join(mustEval(t, dir), ".issuegraph.gate.lock")
 	if g.Path() != want {
-		t.Fatalf("gate path = %s, want %s (sibling of .beads, never inside it)", g.Path(), want)
+		t.Fatalf("gate path = %s, want %s (sibling of .issuegraph, never inside it)", g.Path(), want)
 	}
 }
 
@@ -389,11 +389,11 @@ func TestCanonicalizationAgreesAcrossSymlinkSpellings(t *testing.T) {
 	if err := os.Symlink(real, link); err != nil {
 		t.Skipf("symlink: %v", err)
 	}
-	g1, err := ForWorkspace(filepath.Join(real, ".beads"))
+	g1, err := ForWorkspace(filepath.Join(real, ".issuegraph"))
 	if err != nil {
 		t.Fatal(err)
 	}
-	g2, err := ForWorkspace(filepath.Join(link, ".beads"))
+	g2, err := ForWorkspace(filepath.Join(link, ".issuegraph"))
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -405,19 +405,19 @@ func TestCanonicalizationAgreesAcrossSymlinkSpellings(t *testing.T) {
 	// (identity must survive the directory being absent or recreated, so
 	// it derives from parent + literal base, never from resolving the
 	// guarded path) — it is refused rather than gated ambiguously.
-	realBeads := filepath.Join(real, ".beads")
-	if err := os.Mkdir(realBeads, 0o755); err != nil {
+	realIssueGraph := filepath.Join(real, ".issuegraph")
+	if err := os.Mkdir(realIssueGraph, 0o755); err != nil {
 		t.Fatal(err)
 	}
-	linkBeads := filepath.Join(dir, "beads-alias")
-	if err := os.Symlink(realBeads, linkBeads); err != nil {
+	linkIssueGraph := filepath.Join(dir, "issuegraph-alias")
+	if err := os.Symlink(realIssueGraph, linkIssueGraph); err != nil {
 		t.Skipf("symlink: %v", err)
 	}
-	if _, err := ForWorkspace(linkBeads); err == nil {
-		t.Fatal("ForWorkspace on a symlinked .beads must be refused")
+	if _, err := ForWorkspace(linkIssueGraph); err == nil {
+		t.Fatal("ForWorkspace on a symlinked .issuegraph must be refused")
 	}
-	if _, err := ForWorkspace(realBeads); err != nil {
-		t.Fatalf("ForWorkspace on the physical .beads: %v", err)
+	if _, err := ForWorkspace(realIssueGraph); err != nil {
+		t.Fatalf("ForWorkspace on the physical .issuegraph: %v", err)
 	}
 }
 
@@ -574,7 +574,7 @@ func TestExclusiveHolderErrorReturn(t *testing.T) {
 
 // --- cross-process tests ---
 
-// holderProc is a helper process holding the gate for <dir>/.beads.
+// holderProc is a helper process holding the gate for <dir>/.issuegraph.
 type holderProc struct {
 	cmd     *exec.Cmd
 	stdin   io.WriteCloser
@@ -628,7 +628,7 @@ func spawnHolder(t *testing.T, dir, mode string) *holderProc {
 
 func TestCrossProcessExclusion(t *testing.T) {
 	dir := t.TempDir()
-	g, err := ForWorkspace(filepath.Join(dir, ".beads"))
+	g, err := ForWorkspace(filepath.Join(dir, ".issuegraph"))
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -654,7 +654,7 @@ func TestCrossProcessExclusion(t *testing.T) {
 
 func TestCrossProcessSharedCoexist(t *testing.T) {
 	dir := t.TempDir()
-	g, err := ForWorkspace(filepath.Join(dir, ".beads"))
+	g, err := ForWorkspace(filepath.Join(dir, ".issuegraph"))
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -672,7 +672,7 @@ func TestCrossProcessSharedCoexist(t *testing.T) {
 
 func TestCrashReleasesLock(t *testing.T) {
 	dir := t.TempDir()
-	g, err := ForWorkspace(filepath.Join(dir, ".beads"))
+	g, err := ForWorkspace(filepath.Join(dir, ".issuegraph"))
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -696,14 +696,14 @@ func TestCrashReleasesLock(t *testing.T) {
 
 func TestSpawnedChildDoesNotInheritGate(t *testing.T) {
 	dir := t.TempDir()
-	g, err := ForWorkspace(filepath.Join(dir, ".beads"))
+	g, err := ForWorkspace(filepath.Join(dir, ".issuegraph"))
 	if err != nil {
 		t.Fatal(err)
 	}
 	h := mustAcquire(t, g, Exclusive, Options{})
 
 	// Spawn a child that sleeps while we hold the gate, mirroring how a
-	// bd command spawns a long-lived dolt/proxy child. If the lock handle
+	// issuegraph command spawns a long-lived dolt/proxy child. If the lock handle
 	// leaked into the child, releasing here would not free the gate.
 	exe, err := os.Executable()
 	if err != nil {

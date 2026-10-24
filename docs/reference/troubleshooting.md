@@ -13,13 +13,13 @@ Common issues and solutions. For step-by-step runbooks, see the
 ```bash
 # Check if installed
 which issuegraph
-go list -f {{.Target}} github.com/steveyegge/beads/modules/cli
+go list -f {{.Target}} github.com/borg0ai/dx-issuegraph/modules/cli
 
 # Add Go bin to PATH (add to ~/.bashrc or ~/.zshrc)
 export PATH="$PATH:$(go env GOPATH)/bin"
 
 # Or reinstall with the recommended installer
-curl -fsSL https://raw.githubusercontent.com/gastownhall/beads/main/scripts/install.sh | bash
+curl -fsSL https://raw.githubusercontent.com/borg0ai/dx-issuegraph/main/scripts/install.sh | bash
 ```
 
 ### Wrong version of issuegraph running
@@ -55,18 +55,18 @@ ahead of a newer package-manager install. Choose one installation method
 CGO/SQLite compatibility issue:
 
 ```bash
-CGO_ENABLED=1 GOFLAGS=-tags=gms_pure_go go install github.com/steveyegge/beads/modules/cli@latest
+CGO_ENABLED=1 GOFLAGS=-tags=gms_pure_go go install github.com/borg0ai/dx-issuegraph/modules/cli@latest
 
 # Or if building from source
-git clone https://github.com/gastownhall/beads
-cd beads
+git clone https://github.com/borg0ai/dx-issuegraph
+cd issuegraph
 CGO_ENABLED=1 go build -tags gms_pure_go -o issuegraph ./modules/cli
 sudo mv issuegraph /usr/local/bin/
 ```
 
 Homebrew builds already enable CGO, so this shouldn't be necessary there. If
 you still see crashes with the Homebrew version, please
-[file an issue](https://github.com/gastownhall/beads/issues).
+[file an issue](https://github.com/borg0ai/dx-issuegraph/issues).
 
 ### Permission denied
 
@@ -84,7 +84,7 @@ export PATH="$HOME/.local/bin:$PATH"
 Kaspersky, Windows Defender, and others sometimes flag `issuegraph` as a generic
 trojan. This is a **false positive** — Go binaries commonly trigger antivirus
 heuristics. Verify the binary's SHA256 checksum against the
-[GitHub release page](https://github.com/gastownhall/beads/releases) before
+[GitHub release page](https://github.com/borg0ai/dx-issuegraph/releases) before
 adding an exclusion. See [Antivirus False Positives](/reference/antivirus) for
 per-vendor instructions.
 
@@ -96,8 +96,8 @@ per-vendor instructions.
 # Initialize issuegraph
 issuegraph init --quiet
 
-# Or point issuegraph at an existing .beads directory
-BEADS_DIR=/path/to/.beads issuegraph list
+# Or point issuegraph at an existing .issuegraph directory
+ISSUEGRAPH_DIR=/path/to/.issuegraph issuegraph list
 ```
 
 ### Database locked
@@ -148,8 +148,8 @@ For physical corruption, rebuild from a Dolt remote or a backup:
 
 ```bash
 # Move the damaged data directory aside:
-mv .beads/embeddeddolt .beads/embeddeddolt.backup   # embedded mode (default)
-mv .beads/dolt .beads/dolt.backup                   # server mode
+mv .issuegraph/embeddeddolt .issuegraph/embeddeddolt.backup   # embedded mode (default)
+mv .issuegraph/dolt .issuegraph/dolt.backup                   # server mode
 
 issuegraph init
 issuegraph dolt pull    # Pull from Dolt remote if configured
@@ -163,7 +163,7 @@ See [Database Corruption](/recovery/database-corruption) for the full runbook.
 ### Dolt journal corruption after restart
 
 **Symptom (server mode):** After a system restart, `issuegraph` reports that the Dolt
-server started but is not accepting connections, and `.beads/dolt-server.log`
+server started but is not accepting connections, and `.issuegraph/dolt-server.log`
 contains:
 
 ```text
@@ -177,8 +177,8 @@ will not run Dolt's data-loss repair mode automatically.
 **Safe recovery when your remote is current:**
 
 ```bash
-# Server mode data lives at .beads/dolt; embedded mode at .beads/embeddeddolt
-mv .beads/dolt .beads/dolt.corrupt.$(date +%Y%m%dT%H%M%S)
+# Server mode data lives at .issuegraph/dolt; embedded mode at .issuegraph/embeddeddolt
+mv .issuegraph/dolt .issuegraph/dolt.corrupt.$(date +%Y%m%dT%H%M%S)
 issuegraph bootstrap --dry-run
 issuegraph bootstrap --yes
 issuegraph stats
@@ -196,16 +196,16 @@ ones. Clear the local database and re-initialize from an export:
 
 ```bash
 # DESTROYS the local database — export first if unsure
-rm -rf .beads/embeddeddolt   # embedded mode (default)
-rm -rf .beads/dolt           # server mode
+rm -rf .issuegraph/embeddeddolt   # embedded mode (default)
+rm -rf .issuegraph/dolt           # server mode
 
 issuegraph init --from-jsonl
 ```
 
 ### Imported children whose parent is gone
 
-Bootstrapping from JSONL or pulling hierarchical issues (e.g., `bd-abc.1`) can
-land children whose parent `bd-abc` no longer exists — typically after
+Bootstrapping from JSONL or pulling hierarchical issues (e.g., `issuegraph-abc.1`) can
+land children whose parent `issuegraph-abc` no longer exists — typically after
 `issuegraph delete` on a parent, a branch merge where one side deleted it, or an
 incomplete import.
 
@@ -239,7 +239,7 @@ expected — an empty "shadow" database on the wrong server.
 
 ```bash
 # Check what mode and server issuegraph is using
-cat .beads/metadata.json | grep -E "dolt_mode|dolt_server_port"
+cat .issuegraph/metadata.json | grep -E "dolt_mode|dolt_server_port"
 
 # Run server-mode health checks
 issuegraph doctor --server
@@ -250,7 +250,7 @@ issuegraph sql 'SELECT COUNT(*) FROM issues'
 
 **Fix:** ensure your Dolt server is running from the correct data directory
 and that `metadata.json` points at the right server and port. If a stale
-`.beads/dolt/` directory exists alongside an external-server configuration,
+`.issuegraph/dolt/` directory exists alongside an external-server configuration,
 it can shadow the real database — confirm your real data lives on the server
 before removing the stale directory.
 
@@ -274,7 +274,7 @@ dolt sql-server --host 127.0.0.1 --port 3307 --data-dir /path/to/your/dolt/data
 ```
 
 If you want auto-start behavior, remove `dolt_server_port` from
-`.beads/metadata.json`.
+`.issuegraph/metadata.json`.
 
 ### Port conflicts with multiple projects
 
@@ -288,7 +288,7 @@ which can conflict on machines with many projects.
 
 ```bash
 # Option 1: Machine-wide (add to ~/.bashrc or ~/.zshrc)
-export BEADS_DOLT_SHARED_SERVER=1
+export ISSUEGRAPH_DOLT_SHARED_SERVER=1
 
 # Option 2: Per-project
 issuegraph config set dolt.shared-server true
@@ -298,11 +298,11 @@ After enabling, existing projects may need `issuegraph init --reinit-local -q` t
 create their database on the shared server.
 
 **Verify:** `issuegraph dolt status` from any project should show the same server,
-port 3308, and `~/.beads/shared-server/` as the data directory.
+port 3308, and `~/.issuegraph/shared-server/` as the data directory.
 
 ### Multiple databases detected warning
 
-issuegraph warns when it finds more than one `.beads` directory in your directory
+issuegraph warns when it finds more than one `.issuegraph` directory in your directory
 hierarchy, marking the one in use with `▶` (usually the closest to your
 current directory). Multiple databases risk working in the wrong one or
 tracking the same work twice.
@@ -310,15 +310,15 @@ tracking the same work twice.
 - **Nested projects (intentional):** this is supported — just note which
   database is active, or pin it explicitly.
 - **Accidental duplicates:** export from the unwanted database
-  (`issuegraph export -o issue-export.jsonl`), then remove its `.beads` directory.
+  (`issuegraph export -o issue-export.jsonl`), then remove its `.issuegraph` directory.
 - **Override selection:**
 
   ```bash
-  # Point issuegraph at a specific .beads directory (recommended)
-  export BEADS_DIR=/path/to/.beads
+  # Point issuegraph at a specific .issuegraph directory (recommended)
+  export ISSUEGRAPH_DIR=/path/to/.issuegraph
 
   # Legacy method (deprecated, points at the database file directly)
-  export BEADS_DB=/path/to/db
+  export ISSUEGRAPH_DB=/path/to/db
   ```
 
 ### Circuit breaker: "server appears down, failing fast"
@@ -328,8 +328,8 @@ tracking the same work twice.
 persisting across repeated invocations.
 
 **Cause:** The circuit breaker tripped after repeated connection failures.
-Its state lives in a file under `/tmp/beads-circuit/` (named
-`beads-dolt-circuit-<host>-<port>[-<db>].json`, keyed on host:port) and is
+Its state lives in a file under `/tmp/issuegraph-circuit/` (named
+`issuegraph-dolt-circuit-<host>-<port>[-<db>].json`, keyed on host:port) and is
 shared across all `issuegraph` processes. Once tripped, all commands to that host:port
 are rejected until a successful probe resets it.
 
@@ -341,19 +341,19 @@ accepting connections on the expected port.
 
 ```bash
 # Check circuit breaker state
-cat /tmp/beads-circuit/beads-dolt-circuit-*.json
+cat /tmp/issuegraph-circuit/issuegraph-dolt-circuit-*.json
 
 # Check if the Dolt server is actually listening
 lsof -i :<port>
 
 # Compare the configured port with what's running
-cat .beads/metadata.json | grep port
+cat .issuegraph/metadata.json | grep port
 ```
 
 **Fix:**
 
 ```bash
-rm /tmp/beads-circuit/beads-dolt-circuit-*.json
+rm /tmp/issuegraph-circuit/issuegraph-dolt-circuit-*.json
 issuegraph dolt stop
 issuegraph dolt start
 issuegraph list
@@ -371,7 +371,7 @@ on restart — the state file can persist across reboots.
 issuegraph doctor
 
 # Check server logs (server mode; embedded mode runs in-process, no server log)
-cat .beads/dolt-server.log
+cat .issuegraph/dolt-server.log
 
 # Restart the server
 issuegraph dolt stop
@@ -390,7 +390,7 @@ issuegraph dolt start
 ### Proxied-server mode: "dolt is older than the recommended minimum" warning
 
 Managed proxied-server mode spawns an external `dolt` CLI it finds via
-`BEADS_DOLT_BIN` or PATH (in that order — see
+`ISSUEGRAPH_DOLT_BIN` or PATH (in that order — see
 [Environment Variables](/reference/configuration#environment-variables); a
 clone-local sidecar setting will slot between the two when the sidecar
 reader lands in contract part 2). On
@@ -405,7 +405,7 @@ This is a warning, not a hard failure — there is deliberately no hard
 version floor, so an older dolt can still be used at your own risk. To
 resolve it, install the pinned dolt version — see
 [Which Dolt version to install](/architecture/dolt#which-dolt-version-to-install)
-— and either update PATH or set `BEADS_DOLT_BIN` to the new binary's path.
+— and either update PATH or set `ISSUEGRAPH_DOLT_BIN` to the new binary's path.
 Install that specific version rather than `latest`: 2.3.x is a newer release
 that satisfies this warning but carries a
 [separate data-operation defect](/architecture/dolt#which-dolt-version-to-install).
@@ -423,26 +423,26 @@ don't know", not "this is definitely broken". A genuinely missing or
 broken `dolt` binary (not found, not executable, or the probe itself
 fails/times out) is a hard error, not a warning.
 
-### Proxied-server mode: closing a bead gate fails with "no local store available"
+### Proxied-server mode: closing a issue gate fails with "no local store available"
 
 ```
-gate condition not satisfied: bead gate "bd-a1b2": no local store available (use --force to override)
+gate condition not satisfied: issue gate "issuegraph-a1b2": no local store available (use --force to override)
 ```
 
-`issuegraph close` on a bead gate refuses this way in proxied-server mode even when
-the awaited bead is closed. Proxied-server commands run against a shared
+`issuegraph close` on a issue gate refuses this way in proxied-server mode even when
+the awaited issue is closed. Proxied-server commands run against a shared
 `dolt sql-server` and never open a local store, so the close path has
-nothing to read the awaited bead's status from.
+nothing to read the awaited issue's status from.
 
-`issuegraph gate check` does evaluate bead gates in proxied-server mode, and closes
+`issuegraph gate check` does evaluate issue gates in proxied-server mode, and closes
 the ones whose target has closed:
 
 ```bash
-issuegraph gate check --type=bead      # closes bead gates whose awaited bead is closed
+issuegraph gate check --type=issue      # closes issue gates whose awaited issue is closed
 issuegraph close <gate-id> --force     # or close without verifying the condition
 ```
 
-Tracked in [#5861](https://github.com/gastownhall/beads/issues/5861).
+Tracked in [#5861](https://github.com/borg0ai/dx-issuegraph/issues/5861).
 
 ### Prefix routing: "proxy server store needs to be uow provider"
 
@@ -450,11 +450,11 @@ A lookup routed through the orchestrator's `routes.jsonl` prefix routes
 fails with this error when the rig that owns the prefix is itself running in
 proxied-server mode — routed reads cannot open a proxied-server rig. In an
 all-proxied shared-server topology that applies to every routed target, so
-cross-rig bead gates and a plain `issuegraph show <routed-id>` both dead-end here.
+cross-rig issue gates and a plain `issuegraph show <routed-id>` both dead-end here.
 
 Run the command from the owning rig's own workspace instead, where the ID
 resolves locally rather than through a route. Tracked in
-[#5861](https://github.com/gastownhall/beads/issues/5861).
+[#5861](https://github.com/borg0ai/dx-issuegraph/issues/5861).
 
 ## Sync Issues
 
@@ -520,7 +520,7 @@ cat .git/hooks/pre-commit
 
 **Symptom:** After `issuegraph hooks install`, chained pre-commit hooks (eslint,
 prettier, ruff, etc.) stop running, with:
-`beads: hook 'pre-commit' timed out after 300s -- continuing without beads`.
+`issuegraph: hook 'pre-commit' timed out after 300s -- continuing without issuegraph`.
 
 **Cause:** The issuegraph hook shim wraps `issuegraph hooks run` with an OS-level timeout.
 Since `issuegraph hooks run` chains to your original hook internally, the timeout
@@ -530,7 +530,7 @@ covers both issuegraph's own work and your entire hook pipeline.
 
 ```bash
 # Add to ~/.bashrc or ~/.zshrc
-export BEADS_HOOK_TIMEOUT=600  # 10 minutes (in seconds)
+export ISSUEGRAPH_HOOK_TIMEOUT=600  # 10 minutes (in seconds)
 ```
 
 The value must be a positive whole number of seconds. Invalid values and zero
@@ -563,7 +563,7 @@ the indexed blob contains multi-line Markdown instead of a one-line symlink
 target. On macOS this can make clones or checkouts fail.
 
 This affects repositories corrupted by older setup behavior (fixed in
-[#4192](https://github.com/gastownhall/beads/pull/4192)). To repair an
+[#4192](https://github.com/borg0ai/dx-issuegraph/pull/4192)). To repair an
 existing bad index entry:
 
 ```bash
@@ -583,15 +583,15 @@ git diff -- CLAUDE.md
 
 Commit the mode repair after review.
 
-### "Branch already checked out" or unexpected `.git/beads-worktrees/`
+### "Branch already checked out" or unexpected `.git/issuegraph-worktrees/`
 
 Older issuegraph versions created hidden git worktrees for a removed sync-branch
 feature; leftovers can lock branches (`fatal: 'main' is already checked out
-at .../beads-worktrees/...`). Remove them:
+at .../issuegraph-worktrees/...`). Remove them:
 
 ```bash
-rm -rf .git/beads-worktrees
-rm -rf .git/worktrees/beads-*
+rm -rf .git/issuegraph-worktrees
+rm -rf .git/worktrees/issuegraph-*
 git worktree prune
 ```
 
@@ -626,7 +626,7 @@ issuegraph prevents dependency cycles, which break ready work detection:
 issuegraph dep cycles
 
 # Remove one dependency
-issuegraph dep remove bd-A bd-B
+issuegraph dep remove issuegraph-A issuegraph-B
 ```
 
 See [Circular Dependencies](/recovery/circular-dependencies) for the full
@@ -654,8 +654,8 @@ ready work. See [Dependencies](/core-concepts/dependencies).
 issuegraph stats
 
 # Check on-disk size
-du -sh .beads/embeddeddolt   # embedded mode (default)
-du -sh .beads/dolt           # server mode
+du -sh .issuegraph/embeddeddolt   # embedded mode (default)
+du -sh .issuegraph/dolt           # server mode
 
 # Preview compaction candidates
 issuegraph admin compact --dry-run --all
@@ -737,7 +737,7 @@ issuegraph label add <issue-id> related-to-feature-X
 
 ```bash
 # Verify the MCP server is installed
-pip list | grep beads-mcp
+pip list | grep issuegraph-mcp
 
 # Check MCP configuration (Claude Desktop on macOS)
 cat ~/Library/Application\ Support/Claude/claude_desktop_config.json
@@ -774,7 +774,7 @@ issuegraph dolt push
 
 If staleness errors persist, `issuegraph doctor --fix` forces a metadata refresh
 (low risk — it updates tracking metadata, not issues). Background:
-[GH#353](https://github.com/gastownhall/beads/issues/353).
+[GH#353](https://github.com/borg0ai/dx-issuegraph/issues/353).
 
 ## Platform-Specific Issues
 
@@ -809,7 +809,7 @@ notification, making this hard to diagnose without the `-v` flag:
 
 ```pwsh
 issuegraph init -v
-# Error: failed to create .beads directory: mkdir .beads: The system cannot find the file specified
+# Error: failed to create .issuegraph directory: mkdir .issuegraph: The system cannot find the file specified
 ```
 
 **Solution:** Whitelist `issuegraph.exe`: Windows Security → Virus & threat
@@ -817,16 +817,16 @@ protection → Ransomware protection → Controlled folder access → "Allow an
 app through Controlled folder access" → browse to `issuegraph.exe` (typically
 `%USERPROFILE%\go\bin\issuegraph.exe`). Then retry `issuegraph init`.
 
-### Windows: `ENOENT` when a Node program spawns `bd`
+### Windows: `ENOENT` when a Node program spawns `issuegraph`
 
 **Symptom:** An editor extension, MCP server, or script that shells out to
-`bd` fails on Windows with `spawn bd ENOENT`, even though `bd` runs fine in
+`issuegraph` fails on Windows with `spawn issuegraph ENOENT`, even though `issuegraph` runs fine in
 the same terminal.
 
-The npm package installs `bd` as a generated `bd.cmd` shim, not as an
-executable named `bd`. Node's `execFile()` and `spawn()` run their target
+The npm package installs `issuegraph` as a generated `issuegraph.cmd` shim, not as an
+executable named `issuegraph`. Node's `execFile()` and `spawn()` run their target
 directly instead of through a shell, so they never apply the `PATHEXT`
-resolution that finds `bd.cmd` — and a batch file is not directly executable
+resolution that finds `issuegraph.cmd` — and a batch file is not directly executable
 in the first place.
 
 **Solution:** Name the shim explicitly and give it a shell:
@@ -837,7 +837,7 @@ const { execFile } = require('node:child_process');
 const isWindows = process.platform === 'win32';
 
 execFile(
-  isWindows ? 'bd.cmd' : 'bd',
+  isWindows ? 'issuegraph.cmd' : 'issuegraph',
   ['ready', '--json'],
   { shell: isWindows },
   (err, stdout) => { /* ... */ },
@@ -845,7 +845,7 @@ execFile(
 ```
 
 To avoid a shell — and the argument quoting that comes with it — spawn the
-native binary the shim wraps, at `node_modules/@beads/bd/bin/bd.exe`.
+native binary the shim wraps, at `node_modules/@borg0ai/issuegraph/bin/issuegraph.exe`.
 
 ### Windows: `/tmp` paths silently land in the drive root
 
@@ -868,8 +868,8 @@ Windows converts standalone POSIX-path arguments to Windows paths before
 
 ```js
 // From Node on Windows: no path conversion happens
-execFile('bd.cmd', ['export', '-o', '/tmp/issues.jsonl'], { shell: true }, ...);
-// bd writes C:\tmp\issues.jsonl — and exits 0
+execFile('issuegraph.cmd', ['export', '-o', '/tmp/issues.jsonl'], { shell: true }, ...);
+// issuegraph writes C:\tmp\issues.jsonl — and exits 0
 ```
 
 **Solution:** Hand `issuegraph` a Windows path — `os.tmpdir()` from Node,
@@ -880,7 +880,7 @@ any path argument, including `--db` and config values.
 
 1. Verify the downloaded binary checksum matches the release `checksums.txt`.
 2. If you used `scripts/install.sh`, note that macOS ad-hoc re-signing is
-   opt-in (`BEADS_INSTALL_RESIGN_MACOS=1`).
+   opt-in (`ISSUEGRAPH_INSTALL_RESIGN_MACOS=1`).
 3. Approve the binary:
 
 ```bash
@@ -897,28 +897,28 @@ them when troubleshooting or when requested by maintainers.
 
 | Variable | Purpose | Output |
 |----------|---------|--------|
-| `BD_DEBUG` | General debug logging | stderr |
-| `BD_DEBUG_RPC` | RPC communication between CLI and Dolt server | stderr |
-| `BD_DEBUG_SYNC` | Sync and import timestamp protection | stderr |
-| `BD_DEBUG_ROUTING` | Issue routing and multi-repo resolution | stderr |
-| `BD_DEBUG_FRESHNESS` | Database file replacement detection | server log |
+| `ISSUEGRAPH_DEBUG` | General debug logging | stderr |
+| `ISSUEGRAPH_DEBUG_RPC` | RPC communication between CLI and Dolt server | stderr |
+| `ISSUEGRAPH_DEBUG_SYNC` | Sync and import timestamp protection | stderr |
+| `ISSUEGRAPH_DEBUG_ROUTING` | Issue routing and multi-repo resolution | stderr |
+| `ISSUEGRAPH_DEBUG_FRESHNESS` | Database file replacement detection | server log |
 
 Set any of them to `1` to enable; `unset` to disable.
 
 ```bash
 # General debugging
-BD_DEBUG=1 issuegraph ready
+ISSUEGRAPH_DEBUG=1 issuegraph ready
 
 # Capture debug output to a file
-BD_DEBUG=1 issuegraph dolt push 2> debug.log
+ISSUEGRAPH_DEBUG=1 issuegraph dolt push 2> debug.log
 
 # Sync timestamp protection, e.g.:
-# [debug] Protected bd-123: local=2024-01-20T10:00:00Z >= incoming=2024-01-20T09:55:00Z
-BD_DEBUG_SYNC=1 issuegraph dolt push
+# [debug] Protected issuegraph-123: local=2024-01-20T10:00:00Z >= incoming=2024-01-20T09:55:00Z
+ISSUEGRAPH_DEBUG_SYNC=1 issuegraph dolt push
 
 # Freshness output goes to the server log (server mode), not stderr
-BD_DEBUG_FRESHNESS=1 issuegraph dolt start
-tail -f .beads/dolt-server.log | grep freshness
+ISSUEGRAPH_DEBUG_FRESHNESS=1 issuegraph dolt start
+tail -f .issuegraph/dolt-server.log | grep freshness
 ```
 
 For multi-repo routing configuration, see [Routing](/multi-agent/routing).
@@ -935,7 +935,7 @@ issuegraph --verbose list
 
 ```bash
 # Server mode (embedded mode runs in-process, no server log)
-cat .beads/dolt-server.log
+cat .issuegraph/dolt-server.log
 ```
 
 ### System info
@@ -953,5 +953,5 @@ issuegraph info --json
 uname -a
 ```
 
-Report at: https://github.com/gastownhall/beads/issues — or ask in
-[GitHub Discussions](https://github.com/gastownhall/beads/discussions).
+Report at: https://github.com/borg0ai/dx-issuegraph/issues — or ask in
+[GitHub Discussions](https://github.com/borg0ai/dx-issuegraph/discussions).

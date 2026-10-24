@@ -3,7 +3,7 @@ package main
 import (
 	"testing"
 
-	"github.com/steveyegge/beads/internal/tracker"
+	"github.com/borg0ai/dx-issuegraph/internal/tracker"
 )
 
 func TestJiraSyncStats(t *testing.T) {

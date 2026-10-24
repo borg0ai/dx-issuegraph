@@ -7,9 +7,9 @@ import (
 	"testing"
 
 	"github.com/DATA-DOG/go-sqlmock"
-	"github.com/steveyegge/beads/internal/config"
-	"github.com/steveyegge/beads/internal/storage"
-	"github.com/steveyegge/beads/internal/types"
+	"github.com/borg0ai/dx-issuegraph/internal/config"
+	"github.com/borg0ai/dx-issuegraph/internal/storage"
+	"github.com/borg0ai/dx-issuegraph/internal/types"
 )
 
 func TestNullString(t *testing.T) {
@@ -320,8 +320,8 @@ func TestReadConfigPrefix(t *testing.T) {
 		msg := err.Error()
 		if !containsAll(msg,
 			"issue_prefix config is missing",
-			"bd init --prefix",
-			"bd bootstrap",
+			"issuegraph init --prefix",
+			"issuegraph bootstrap",
 		) {
 			t.Fatalf("ReadConfigPrefix error missing actionable recovery commands: %s", msg)
 		}
@@ -336,10 +336,10 @@ func TestReadConfigPrefix(t *testing.T) {
 // next reader.
 //
 // Not parallel: it initializes and mutates the process-global viper config.
-// BEADS_TEST_IGNORE_REPO_CONFIG keeps the checkout's own tracked config.yaml
+// ISSUEGRAPH_TEST_IGNORE_REPO_CONFIG keeps the checkout's own tracked config.yaml
 // out of the picture, so only the value injected below is in effect.
 func TestReadConfigPrefixDoesNotRecommendInertYAMLKey(t *testing.T) {
-	t.Setenv("BEADS_TEST_IGNORE_REPO_CONFIG", "1")
+	t.Setenv("ISSUEGRAPH_TEST_IGNORE_REPO_CONFIG", "1")
 	if err := config.Initialize(); err != nil {
 		t.Fatalf("config.Initialize: %v", err)
 	}
@@ -367,7 +367,7 @@ func TestReadConfigPrefixDoesNotRecommendInertYAMLKey(t *testing.T) {
 	if strings.Contains(msg, "use key 'issue-prefix'") {
 		t.Fatalf("ReadConfigPrefix recommends a config.yaml key that does not satisfy it: %s", msg)
 	}
-	if !containsAll(msg, "bd init --prefix", "bd bootstrap") {
+	if !containsAll(msg, "issuegraph init --prefix", "issuegraph bootstrap") {
 		t.Fatalf("ReadConfigPrefix error missing actionable recovery commands: %s", msg)
 	}
 }

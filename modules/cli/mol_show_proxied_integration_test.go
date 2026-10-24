@@ -10,17 +10,17 @@ import (
 func TestProxiedServerMolShow(t *testing.T) {
 	requireSharedProxiedServer(t)
 	t.Parallel()
-	bd := buildEmbeddedBD(t)
+	issuegraph := buildEmbeddedBD(t)
 
 	t.Run("shows_root_children_and_deps", func(t *testing.T) {
 		t.Parallel()
-		p := newSharedProxiedProject(t, bd, "msh")
-		root := bdProxiedCreate(t, bd, p.dir, "Molecule root", "--type", "epic")
-		child := bdProxiedCreate(t, bd, p.dir, "Step one", "--type", "task", "--parent", root.ID)
+		p := newSharedProxiedProject(t, issuegraph, "msh")
+		root := issuegraphProxiedCreate(t, issuegraph, p.dir, "Molecule root", "--type", "epic")
+		child := issuegraphProxiedCreate(t, issuegraph, p.dir, "Step one", "--type", "task", "--parent", root.ID)
 
-		out, err := bdProxiedRun(t, bd, p.dir, "mol", "show", root.ID, "--json")
+		out, err := issuegraphProxiedRun(t, issuegraph, p.dir, "mol", "show", root.ID, "--json")
 		if err != nil {
-			t.Fatalf("bd mol show --json: %v\n%s", err, out)
+			t.Fatalf("issuegraph mol show --json: %v\n%s", err, out)
 		}
 		var got struct {
 			Root struct {
@@ -56,17 +56,17 @@ func TestProxiedServerMolShow(t *testing.T) {
 
 	t.Run("parallel_marks_ready_and_blocked_steps", func(t *testing.T) {
 		t.Parallel()
-		p := newSharedProxiedProject(t, bd, "mshp")
-		root := bdProxiedCreate(t, bd, p.dir, "Parallel root", "--type", "epic")
-		blocker := bdProxiedCreate(t, bd, p.dir, "Blocker step", "--type", "task", "--parent", root.ID)
-		blocked := bdProxiedCreate(t, bd, p.dir, "Blocked step", "--type", "task", "--parent", root.ID)
-		if out, err := bdProxiedRun(t, bd, p.dir, "dep", "add", blocked.ID, blocker.ID); err != nil {
-			t.Fatalf("bd dep add: %v\n%s", err, out)
+		p := newSharedProxiedProject(t, issuegraph, "mshp")
+		root := issuegraphProxiedCreate(t, issuegraph, p.dir, "Parallel root", "--type", "epic")
+		blocker := issuegraphProxiedCreate(t, issuegraph, p.dir, "Blocker step", "--type", "task", "--parent", root.ID)
+		blocked := issuegraphProxiedCreate(t, issuegraph, p.dir, "Blocked step", "--type", "task", "--parent", root.ID)
+		if out, err := issuegraphProxiedRun(t, issuegraph, p.dir, "dep", "add", blocked.ID, blocker.ID); err != nil {
+			t.Fatalf("issuegraph dep add: %v\n%s", err, out)
 		}
 
-		out, err := bdProxiedRun(t, bd, p.dir, "mol", "show", root.ID, "--parallel", "--json")
+		out, err := issuegraphProxiedRun(t, issuegraph, p.dir, "mol", "show", root.ID, "--parallel", "--json")
 		if err != nil {
-			t.Fatalf("bd mol show --parallel --json: %v\n%s", err, out)
+			t.Fatalf("issuegraph mol show --parallel --json: %v\n%s", err, out)
 		}
 		var got struct {
 			Parallel struct {
@@ -89,8 +89,8 @@ func TestProxiedServerMolShow(t *testing.T) {
 
 	t.Run("unknown_id_errors", func(t *testing.T) {
 		t.Parallel()
-		p := newSharedProxiedProject(t, bd, "mshu")
-		stdout, stderr, err := bdProxiedRunBuffers(t, bd, p.dir, "mol", "show", "bd-doesnotexist")
+		p := newSharedProxiedProject(t, issuegraph, "mshu")
+		stdout, stderr, err := issuegraphProxiedRunBuffers(t, issuegraph, p.dir, "mol", "show", "bd-doesnotexist")
 		if err == nil {
 			t.Fatalf("expected error, got stdout:%s stderr:%s", stdout, stderr)
 		}

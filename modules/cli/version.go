@@ -9,13 +9,13 @@ import (
 	"runtime/debug"
 	"strings"
 
+	"github.com/borg0ai/dx-issuegraph/internal/issuegraph"
+	"github.com/borg0ai/dx-issuegraph/internal/metrics"
 	"github.com/spf13/cobra"
-	"github.com/steveyegge/beads/internal/beads"
-	"github.com/steveyegge/beads/internal/metrics"
 )
 
 var (
-	// Version is the current version of bd (overridden by ldflags at build time)
+	// Version is the current version of issuegraph (overridden by ldflags at build time)
 	Version = "1.3.0"
 	// Build can be set via ldflags at compile time
 	Build = "dev"
@@ -56,17 +56,17 @@ var versionCmd = &cobra.Command{
 			}
 		} else {
 			if commit != "" && branch != "" {
-				fmt.Printf("bd version %s (%s: %s@%s)\n", Version, Build, branch, shortCommit(commit))
+				fmt.Printf("issuegraph version %s (%s: %s@%s)\n", Version, Build, branch, shortCommit(commit))
 			} else if commit != "" {
-				fmt.Printf("bd version %s (%s: %s)\n", Version, Build, shortCommit(commit))
+				fmt.Printf("issuegraph version %s (%s: %s)\n", Version, Build, shortCommit(commit))
 			} else {
-				fmt.Printf("bd version %s (%s)\n", Version, Build)
+				fmt.Printf("issuegraph version %s (%s)\n", Version, Build)
 			}
 		}
 
-		// Check for multiple bd binaries in PATH
+		// Check for multiple issuegraph binaries in PATH
 		if dups := findDuplicateBinaries(); len(dups) > 1 {
-			fmt.Fprintf(os.Stderr, "\nWarning: multiple 'bd' binaries found in PATH:\n")
+			fmt.Fprintf(os.Stderr, "\nWarning: multiple 'issuegraph' binaries found in PATH:\n")
 			for _, p := range dups {
 				fmt.Fprintf(os.Stderr, "  %s\n", p)
 			}
@@ -120,7 +120,7 @@ func resolveBranch() string {
 	// Fallback: try to get branch from git at runtime
 	// Use symbolic-ref to work in fresh repos without commits
 	// Uses CWD repo context since this shows user's current branch
-	if rc, err := beads.GetRepoContext(); err == nil {
+	if rc, err := issuegraph.GetRepoContext(); err == nil {
 		cmd := rc.GitCmdCWD(context.Background(), "symbolic-ref", "--short", "HEAD")
 		if output, err := cmd.Output(); err == nil {
 			if branch := strings.TrimSpace(string(output)); branch != "" && branch != "HEAD" {
@@ -132,12 +132,12 @@ func resolveBranch() string {
 	return ""
 }
 
-// findDuplicateBinaries searches PATH for all "bd" executables.
+// findDuplicateBinaries searches PATH for all "issuegraph" executables.
 // Returns their full paths. If len > 1, there are duplicates.
 func findDuplicateBinaries() []string {
-	name := "bd"
+	name := "issuegraph"
 	if runtime.GOOS == "windows" {
-		name = "bd.exe"
+		name = "issuegraph.exe"
 	}
 
 	seen := make(map[string]bool)

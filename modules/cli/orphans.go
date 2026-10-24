@@ -9,13 +9,13 @@ import (
 
 	"context"
 
+	"github.com/borg0ai/dx-issuegraph/internal/config"
+	"github.com/borg0ai/dx-issuegraph/internal/metrics"
+	"github.com/borg0ai/dx-issuegraph/internal/types"
+	"github.com/borg0ai/dx-issuegraph/internal/ui"
+	"github.com/borg0ai/dx-issuegraph/internal/utils"
+	"github.com/borg0ai/dx-issuegraph/modules/cli/doctor"
 	"github.com/spf13/cobra"
-	"github.com/steveyegge/beads/modules/cli/doctor"
-	"github.com/steveyegge/beads/internal/config"
-	"github.com/steveyegge/beads/internal/metrics"
-	"github.com/steveyegge/beads/internal/types"
-	"github.com/steveyegge/beads/internal/ui"
-	"github.com/steveyegge/beads/internal/utils"
 )
 
 // doctorFindOrphanedIssues is the function used to find orphaned issues.
@@ -23,7 +23,7 @@ import (
 var doctorFindOrphanedIssues = doctor.FindOrphanedIssues
 
 var closeIssueRunner = func(issueID string) error {
-	cmd := exec.Command("bd", "close", issueID, "--reason", "Implemented")
+	cmd := exec.Command("issuegraph", "close", issueID, "--reason", "Implemented")
 	return cmd.Run()
 }
 
@@ -35,12 +35,12 @@ var orphansCmd = &cobra.Command{
 This helps identify work that has been implemented but not formally closed.
 
 Examples:
-  bd orphans              # Show orphaned issues
-  bd orphans --json       # Machine-readable output
-  bd orphans --details    # Show full commit information
-  bd orphans --fix        # Close orphaned issues with confirmation
-  bd orphans --label theme:personal             # Only orphans with this label
-  bd orphans --label-any theme:personal,theme:ventures  # Orphans with either label`,
+  issuegraph orphans              # Show orphaned issues
+  issuegraph orphans --json       # Machine-readable output
+  issuegraph orphans --details    # Show full commit information
+  issuegraph orphans --fix        # Close orphaned issues with confirmation
+  issuegraph orphans --label theme:personal             # Only orphans with this label
+  issuegraph orphans --label-any theme:personal,theme:ventures  # Orphans with either label`,
 	SilenceUsage:  true,
 	SilenceErrors: true,
 	RunE: func(cmd *cobra.Command, args []string) error {
@@ -167,7 +167,7 @@ func (p *doltStoreProvider) GetIssuePrefix() string {
 	ctx := context.Background()
 	prefix, err := store.GetConfig(ctx, "issue_prefix")
 	if err != nil || prefix == "" {
-		return "bd"
+		return "issuegraph"
 	}
 	return prefix
 }
@@ -219,7 +219,7 @@ func findOrphanedIssuesWithProvider(path string, provider types.IssueProvider) (
 	return output, nil
 }
 
-// closeIssue closes an issue using bd close
+// closeIssue closes an issue using issuegraph close
 func closeIssue(issueID string) error {
 	return closeIssueRunner(issueID)
 }

@@ -1,10 +1,10 @@
 #!/usr/bin/env bash
 # Shared command timing helpers for CI wrappers.
 
-if [[ -n "${BEADS_CI_TIMING_SH_LOADED:-}" ]]; then
+if [[ -n "${ISSUEGRAPH_CI_TIMING_SH_LOADED:-}" ]]; then
     return 0
 fi
-BEADS_CI_TIMING_SH_LOADED=1
+ISSUEGRAPH_CI_TIMING_SH_LOADED=1
 
 ci_markdown_escape() {
     local value="$1"
@@ -19,13 +19,13 @@ ci_timing_write_summary() {
 
     [[ -n "${GITHUB_STEP_SUMMARY:-}" ]] || return 0
 
-    if [[ -z "${BEADS_CI_TIMING_SUMMARY_HEADER_WRITTEN:-}" ]]; then
+    if [[ -z "${ISSUEGRAPH_CI_TIMING_SUMMARY_HEADER_WRITTEN:-}" ]]; then
         {
             printf '### CI command timings\n\n'
             printf '| Command | Duration | Status |\n'
             printf '|---|---:|---:|\n'
         } >>"$GITHUB_STEP_SUMMARY"
-        BEADS_CI_TIMING_SUMMARY_HEADER_WRITTEN=1
+        ISSUEGRAPH_CI_TIMING_SUMMARY_HEADER_WRITTEN=1
     fi
 
     printf '| %s | %ss | %s |\n' \

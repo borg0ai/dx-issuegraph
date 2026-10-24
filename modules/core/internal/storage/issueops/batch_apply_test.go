@@ -4,8 +4,8 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/steveyegge/beads/internal/storage"
-	publicops "github.com/steveyegge/beads/issueops"
+	"github.com/borg0ai/dx-issuegraph/internal/storage"
+	publicops "github.com/borg0ai/dx-issuegraph/issueops"
 )
 
 // applyBatchCommitResult builds a result from a (kind, changed) list, which is
@@ -34,19 +34,19 @@ func TestApplyBatchCommitMessageNamesWhatLanded(t *testing.T) {
 			name:   "one of each kind",
 			result: applyBatchCommitResult(applyBatchItem(publicops.ItemCreate, true), applyBatchItem(publicops.ItemUpdate, true), applyBatchItem(publicops.ItemClose, true), applyBatchItem(publicops.ItemDepAdd, true)),
 			write:  BatchApplyWrite{Changed: true},
-			want:   "bd: apply 1 create, 1 update, 1 close, 1 edge",
+			want:   "issuegraph: apply 1 create, 1 update, 1 close, 1 edge",
 		},
 		{
 			name:   "counts are pluralized and ordered by kind, never by request position",
 			result: applyBatchCommitResult(applyBatchItem(publicops.ItemDepAdd, true), applyBatchItem(publicops.ItemCreate, true), applyBatchItem(publicops.ItemDepAdd, true), applyBatchItem(publicops.ItemCreate, true)),
 			write:  BatchApplyWrite{Changed: true},
-			want:   "bd: apply 2 creates, 2 edges",
+			want:   "issuegraph: apply 2 creates, 2 edges",
 		},
 		{
 			name:   "an item that changed nothing is not counted",
 			result: applyBatchCommitResult(applyBatchItem(publicops.ItemCreate, true), applyBatchItem(publicops.ItemClose, false)),
 			write:  BatchApplyWrite{Changed: true},
-			want:   "bd: apply 1 create",
+			want:   "issuegraph: apply 1 create",
 		},
 		{
 			// The counts are ItemResult.Changed, which is what a CALLER can
@@ -58,7 +58,7 @@ func TestApplyBatchCommitMessageNamesWhatLanded(t *testing.T) {
 			name:   "a request that wrote without landing anything still names an entry",
 			result: applyBatchCommitResult(applyBatchItem(publicops.ItemDepAdd, false)),
 			write:  BatchApplyWrite{Changed: true, Tables: ChangedTables{"dependencies": true}},
-			want:   "bd: apply batch",
+			want:   "issuegraph: apply batch",
 		},
 		{
 			name:   "nothing changed and nothing was staged is the empty message",
@@ -74,20 +74,20 @@ func TestApplyBatchCommitMessageNamesWhatLanded(t *testing.T) {
 			name:   "an all-ephemeral batch still gets a message",
 			result: applyBatchCommitResult(applyBatchItem(publicops.ItemCreate, true), applyBatchItem(publicops.ItemCreate, true)),
 			write:  BatchApplyWrite{Changed: true},
-			want:   "bd: apply 2 creates",
+			want:   "issuegraph: apply 2 creates",
 		},
 		{
 			name:       "provenance replaces the default",
-			provenance: "bd: apply plan.md",
+			provenance: "issuegraph: apply plan.md",
 			result:     applyBatchCommitResult(applyBatchItem(publicops.ItemCreate, true)),
 			write:      BatchApplyWrite{Changed: true},
-			want:       "bd: apply plan.md",
+			want:       "issuegraph: apply plan.md",
 		},
 		{
 			// Provenance changes how the entry READS, never WHETHER one is
 			// recorded — UpdateRequest.Provenance's rule, inherited whole.
 			name:       "provenance does not conjure an entry out of a request that wrote nothing",
-			provenance: "bd: apply plan.md",
+			provenance: "issuegraph: apply plan.md",
 			result:     applyBatchCommitResult(applyBatchItem(publicops.ItemUpdate, false)),
 			write:      BatchApplyWrite{},
 			want:       "",
@@ -117,7 +117,7 @@ func TestApplyBatchCommitMessageNamesNoIDs(t *testing.T) {
 			t.Fatalf("commit message %q names %s; the default names a COUNT and never an id", message, id)
 		}
 	}
-	if message != "bd: apply 3 creates" {
+	if message != "issuegraph: apply 3 creates" {
 		t.Fatalf("commit message = %q, want the count spelling", message)
 	}
 }

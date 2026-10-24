@@ -88,7 +88,7 @@ for f in "${candidates[@]}"; do
         # Allow third-party tool invocations pinned by version:
         #   `go install some/tool@version`
         #   `go run some/tool@version`
-        # These build their own module, not beads, so our tags don't apply.
+        # These build their own module, not issuegraph, so our tags don't apply.
         if [[ "$verb" == "install" || "$verb" == "run" ]]; then
             if [[ "$stripped" =~ @(latest|main|v[0-9]) ]]; then
                 continue
@@ -128,7 +128,7 @@ done
 if [[ "$fail" -ne 0 ]]; then
     cat >&2 <<'EOF'
 
-The beads project requires every `go build|test|run|generate|install`
+The issuegraph project requires every `go build|test|run|generate|install`
 invocation to build with -tags=gms_pure_go (see engdocs/ICU-POLICY.md).
 
 Fix by EITHER:

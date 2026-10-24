@@ -9,10 +9,10 @@ import (
 	"strconv"
 	"strings"
 
+	"github.com/borg0ai/dx-issuegraph/internal/configfile"
+	"github.com/borg0ai/dx-issuegraph/internal/issuegraph"
+	"github.com/borg0ai/dx-issuegraph/internal/storage/dolt"
 	"github.com/spf13/viper"
-	"github.com/steveyegge/beads/internal/beads"
-	"github.com/steveyegge/beads/internal/configfile"
-	"github.com/steveyegge/beads/internal/storage/dolt"
 	"gopkg.in/yaml.v3"
 )
 
@@ -88,24 +88,24 @@ func formatConfigValuesResult(issues []string) DoctorCheck {
 		Status:  "warning",
 		Message: fmt.Sprintf("Found %d configuration issue(s)", len(issues)),
 		Detail:  strings.Join(issues, "\n"),
-		Fix:     "Edit config files to fix invalid values. Run 'bd config' to view current settings.",
+		Fix:     "Edit config files to fix invalid values. Run 'issuegraph config' to view current settings.",
 	}
 }
 
 // findConfigPath locates config.yaml in standard locations.
 func findConfigPath(repoPath string) string {
-	configPath := filepath.Join(ResolveBeadsDirForRepo(repoPath), "config.yaml")
+	configPath := filepath.Join(ResolveIssueGraphDirForRepo(repoPath), "config.yaml")
 	if _, err := os.Stat(configPath); err == nil {
 		return configPath
 	}
 	if configDir, err := os.UserConfigDir(); err == nil {
-		userConfigPath := filepath.Join(configDir, "bd", "config.yaml")
+		userConfigPath := filepath.Join(configDir, "issuegraph", "config.yaml")
 		if _, err := os.Stat(userConfigPath); err == nil {
 			return userConfigPath
 		}
 	}
 	if homeDir, err := os.UserHomeDir(); err == nil {
-		homeConfigPath := filepath.Join(homeDir, ".beads", "config.yaml")
+		homeConfigPath := filepath.Join(homeDir, ".issuegraph", "config.yaml")
 		if _, err := os.Stat(homeConfigPath); err == nil {
 			return homeConfigPath
 		}
@@ -219,7 +219,7 @@ func checkYAMLConfigValues(repoPath string) []string {
 
 		// Validate routing + hydration consistency (bd-fix-routing)
 		// When routing.mode=auto with routing targets, those targets should be in repos.additional
-		// so routed issues are visible in bd list via multi-repo hydration
+		// so routed issues are visible in issuegraph list via multi-repo hydration
 		if mode == "auto" {
 			contributorRepo := v.GetString("routing.contributor")
 			maintainerRepo := v.GetString("routing.maintainer")
@@ -235,8 +235,8 @@ func checkYAMLConfigValues(repoPath string) []string {
 				if !hasHydration {
 					issues = append(issues,
 						"routing.mode=auto with routing targets but repos.additional not configured. "+
-							"Issues created via routing will not be visible in bd list. "+
-							"Run 'bd repo add <routing-target>' to enable hydration.")
+							"Issues created via routing will not be visible in issuegraph list. "+
+							"Run 'issuegraph repo add <routing-target>' to enable hydration.")
 				} else {
 					// Check if routing targets are in hydration list
 					additionalSet := make(map[string]bool)
@@ -249,7 +249,7 @@ func checkYAMLConfigValues(repoPath string) []string {
 						if !additionalSet[expandedContributor] {
 							issues = append(issues, fmt.Sprintf(
 								"routing.contributor=%q is not in repos.additional. "+
-									"Run 'bd repo add %s' to make routed issues visible.",
+									"Run 'issuegraph repo add %s' to make routed issues visible.",
 								contributorRepo, contributorRepo))
 						}
 					}
@@ -259,7 +259,7 @@ func checkYAMLConfigValues(repoPath string) []string {
 						if !additionalSet[expandedMaintainer] {
 							issues = append(issues, fmt.Sprintf(
 								"routing.maintainer=%q is not in repos.additional. "+
-									"Run 'bd repo add %s' to make routed issues visible.",
+									"Run 'issuegraph repo add %s' to make routed issues visible.",
 								maintainerRepo, maintainerRepo))
 						}
 					}
@@ -379,8 +379,8 @@ func expandPath(path string) string {
 func checkMetadataConfigValues(repoPath string) []string {
 	var issues []string
 
-	beadsDir := ResolveBeadsDirForRepo(repoPath)
-	cfg, err := configfile.Load(beadsDir)
+	issuegraphDir := ResolveIssueGraphDirForRepo(repoPath)
+	cfg, err := configfile.Load(issuegraphDir)
 	if err != nil {
 		issues = append(issues, fmt.Sprintf("metadata.json: failed to load: %v", err))
 		return issues
@@ -402,7 +402,7 @@ func checkMetadataConfigValues(repoPath string) []string {
 			if strings.HasSuffix(cfg.Database, ".db") || strings.HasSuffix(cfg.Database, ".sqlite") || strings.HasSuffix(cfg.Database, ".sqlite3") {
 				issues = append(issues, fmt.Sprintf("metadata.json database: %q looks like a SQLite file, but backend is dolt (expected a directory like %q)", cfg.Database, "dolt"))
 			}
-			if cfg.Database == beads.CanonicalDatabaseName {
+			if cfg.Database == issuegraph.CanonicalDatabaseName {
 				issues = append(issues, fmt.Sprintf("metadata.json database: %q is misleading for dolt backend (expected %q)", cfg.Database, "dolt"))
 			}
 		}
@@ -435,13 +435,13 @@ func checkMetadataConfigValues(repoPath string) []string {
 func checkDatabaseConfigValues(repoPath string) []string {
 	var issues []string
 
-	beadsDir := ResolveBeadsDirForRepo(repoPath)
-	if _, err := os.Stat(beadsDir); os.IsNotExist(err) {
-		return issues // No .beads directory, nothing to check
+	issuegraphDir := ResolveIssueGraphDirForRepo(repoPath)
+	if _, err := os.Stat(issuegraphDir); os.IsNotExist(err) {
+		return issues // No .issuegraph directory, nothing to check
 	}
 
 	// Check backend
-	cfg, err := configfile.Load(beadsDir)
+	cfg, err := configfile.Load(issuegraphDir)
 	if err != nil {
 		return issues
 	}
@@ -456,14 +456,14 @@ func checkDatabaseConfigValues(repoPath string) []string {
 	}
 
 	// Check if Dolt directory exists
-	doltPath := getDatabasePath(beadsDir)
+	doltPath := getDatabasePath(issuegraphDir)
 	if _, err := os.Stat(doltPath); os.IsNotExist(err) {
 		return issues // No database, nothing to check
 	}
 
 	// Open Dolt store in read-only mode
 	ctx := context.Background()
-	store, err := dolt.NewFromConfigWithCLIOptions(ctx, beadsDir, configValidationStoreOptions())
+	store, err := dolt.NewFromConfigWithCLIOptions(ctx, issuegraphDir, configValidationStoreOptions())
 	if err != nil {
 		issues = append(issues, fmt.Sprintf("database: failed to open Dolt store: %v", err))
 		return issues

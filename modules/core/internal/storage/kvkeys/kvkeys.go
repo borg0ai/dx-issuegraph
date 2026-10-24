@@ -17,13 +17,13 @@ const (
 	// user data out of internal config keys such as issue_prefix.
 	Prefix = "kv."
 
-	// MemoryPrefix namespaces persistent `bd remember` memories within Prefix.
+	// MemoryPrefix namespaces persistent `issuegraph remember` memories within Prefix.
 	MemoryPrefix = "memory."
 
 	// MemoryConfigKeyPrefix is the full config-table key prefix for persistent
 	// memories (Prefix + MemoryPrefix == "kv.memory."). The merge resolver
 	// treats a config conflict as a convergent memory conflict only when every
 	// conflicted key carries this prefix; modules/cli reserves it so generic
-	// `bd kv set` keys cannot collide with the `bd remember` namespace.
+	// `issuegraph kv set` keys cannot collide with the `issuegraph remember` namespace.
 	MemoryConfigKeyPrefix = Prefix + MemoryPrefix
 )

@@ -8,7 +8,7 @@ import (
 	"fmt"
 	"os"
 
-	"github.com/steveyegge/beads/internal/formula/schemagen"
+	"github.com/borg0ai/dx-issuegraph/internal/formula/schemagen"
 )
 
 func main() {

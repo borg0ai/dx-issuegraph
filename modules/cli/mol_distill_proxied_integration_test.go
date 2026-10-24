@@ -13,23 +13,23 @@ import (
 func TestProxiedServerMolDistill(t *testing.T) {
 	requireSharedProxiedServer(t)
 	t.Parallel()
-	bd := buildEmbeddedBD(t)
+	issuegraph := buildEmbeddedBD(t)
 
 	t.Run("distills_epic_to_formula_file", func(t *testing.T) {
 		t.Parallel()
-		p := newSharedProxiedProject(t, bd, "mds")
-		epic := bdProxiedCreate(t, bd, p.dir, "Ship feature auth", "--type", "epic")
-		bdProxiedCreate(t, bd, p.dir, "Implement auth", "--type", "task", "--parent", epic.ID)
-		bdProxiedCreate(t, bd, p.dir, "Test auth", "--type", "task", "--parent", epic.ID)
+		p := newSharedProxiedProject(t, issuegraph, "mds")
+		epic := issuegraphProxiedCreate(t, issuegraph, p.dir, "Ship feature auth", "--type", "epic")
+		issuegraphProxiedCreate(t, issuegraph, p.dir, "Implement auth", "--type", "task", "--parent", epic.ID)
+		issuegraphProxiedCreate(t, issuegraph, p.dir, "Test auth", "--type", "task", "--parent", epic.ID)
 
 		outputDir := filepath.Join(p.dir, "out")
 		if err := os.MkdirAll(outputDir, 0o755); err != nil {
 			t.Fatalf("mkdir output dir: %v", err)
 		}
 
-		out, err := bdProxiedRun(t, bd, p.dir, "mol", "distill", epic.ID, "auth-workflow", "--output", outputDir, "--json")
+		out, err := issuegraphProxiedRun(t, issuegraph, p.dir, "mol", "distill", epic.ID, "auth-workflow", "--output", outputDir, "--json")
 		if err != nil {
-			t.Fatalf("bd mol distill --json: %v\n%s", err, out)
+			t.Fatalf("issuegraph mol distill --json: %v\n%s", err, out)
 		}
 		var got struct {
 			FormulaName string `json:"formula_name"`
@@ -52,18 +52,18 @@ func TestProxiedServerMolDistill(t *testing.T) {
 
 	t.Run("dry_run_writes_nothing", func(t *testing.T) {
 		t.Parallel()
-		p := newSharedProxiedProject(t, bd, "mdsd")
-		epic := bdProxiedCreate(t, bd, p.dir, "Dry run epic", "--type", "epic")
-		bdProxiedCreate(t, bd, p.dir, "Dry run step", "--type", "task", "--parent", epic.ID)
+		p := newSharedProxiedProject(t, issuegraph, "mdsd")
+		epic := issuegraphProxiedCreate(t, issuegraph, p.dir, "Dry run epic", "--type", "epic")
+		issuegraphProxiedCreate(t, issuegraph, p.dir, "Dry run step", "--type", "task", "--parent", epic.ID)
 
 		outputDir := filepath.Join(p.dir, "dryout")
 		if err := os.MkdirAll(outputDir, 0o755); err != nil {
 			t.Fatalf("mkdir output dir: %v", err)
 		}
 
-		stdout, _, err := bdProxiedRunBuffers(t, bd, p.dir, "mol", "distill", epic.ID, "dry-workflow", "--output", outputDir, "--dry-run")
+		stdout, _, err := issuegraphProxiedRunBuffers(t, issuegraph, p.dir, "mol", "distill", epic.ID, "dry-workflow", "--output", outputDir, "--dry-run")
 		if err != nil {
-			t.Fatalf("bd mol distill --dry-run: %v\n%s", err, stdout)
+			t.Fatalf("issuegraph mol distill --dry-run: %v\n%s", err, stdout)
 		}
 		if !strings.Contains(stdout, "Dry run") {
 			t.Errorf("expected dry-run preview, got: %s", stdout)
@@ -79,19 +79,19 @@ func TestProxiedServerMolDistill(t *testing.T) {
 
 	t.Run("var_flag_both_syntaxes", func(t *testing.T) {
 		t.Parallel()
-		p := newSharedProxiedProject(t, bd, "mdsv")
-		epic := bdProxiedCreate(t, bd, p.dir, "Release feature-auth", "--type", "epic")
-		bdProxiedCreate(t, bd, p.dir, "Deploy feature-auth to prod", "--type", "task", "--parent", epic.ID)
+		p := newSharedProxiedProject(t, issuegraph, "mdsv")
+		epic := issuegraphProxiedCreate(t, issuegraph, p.dir, "Release feature-auth", "--type", "epic")
+		issuegraphProxiedCreate(t, issuegraph, p.dir, "Deploy feature-auth to prod", "--type", "task", "--parent", epic.ID)
 
 		outputDir := filepath.Join(p.dir, "varout")
 		if err := os.MkdirAll(outputDir, 0o755); err != nil {
 			t.Fatalf("mkdir output dir: %v", err)
 		}
 
-		out, err := bdProxiedRun(t, bd, p.dir, "mol", "distill", epic.ID, "var-workflow-1",
+		out, err := issuegraphProxiedRun(t, issuegraph, p.dir, "mol", "distill", epic.ID, "var-workflow-1",
 			"--output", outputDir, "--var", "branch=feature-auth", "--json")
 		if err != nil {
-			t.Fatalf("bd mol distill (spawn-style var) --json: %v\n%s", err, out)
+			t.Fatalf("issuegraph mol distill (spawn-style var) --json: %v\n%s", err, out)
 		}
 		var got1 struct {
 			Variables []string `json:"variables"`
@@ -103,10 +103,10 @@ func TestProxiedServerMolDistill(t *testing.T) {
 			t.Errorf("variables = %+v, want [branch]", got1.Variables)
 		}
 
-		out2, err := bdProxiedRun(t, bd, p.dir, "mol", "distill", epic.ID, "var-workflow-2",
+		out2, err := issuegraphProxiedRun(t, issuegraph, p.dir, "mol", "distill", epic.ID, "var-workflow-2",
 			"--output", outputDir, "--var", "feature-auth=branch", "--json")
 		if err != nil {
-			t.Fatalf("bd mol distill (substitution-style var) --json: %v\n%s", err, out2)
+			t.Fatalf("issuegraph mol distill (substitution-style var) --json: %v\n%s", err, out2)
 		}
 		var got2 struct {
 			Variables []string `json:"variables"`

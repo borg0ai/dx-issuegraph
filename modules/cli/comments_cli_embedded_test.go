@@ -13,47 +13,47 @@ import (
 	"testing"
 )
 
-// bdComments runs "bd comments" with the given args and returns stdout.
-func bdComments(t *testing.T, bd, dir string, args ...string) string {
+// issuegraphComments runs "issuegraph comments" with the given args and returns stdout.
+func issuegraphComments(t *testing.T, issuegraph, dir string, args ...string) string {
 	t.Helper()
 	fullArgs := append([]string{"comments"}, args...)
-	cmd := exec.Command(bd, fullArgs...)
+	cmd := exec.Command(issuegraph, fullArgs...)
 	cmd.Dir = dir
-	cmd.Env = bdEnv(dir)
+	cmd.Env = issuegraphEnv(dir)
 	stdout, stderr, err := runCommandBuffers(t, cmd)
 	if err != nil {
-		t.Fatalf("bd comments %s failed: %v\nstdout:\n%s\nstderr:\n%s", strings.Join(args, " "), err, stdout.String(), stderr.String())
+		t.Fatalf("issuegraph comments %s failed: %v\nstdout:\n%s\nstderr:\n%s", strings.Join(args, " "), err, stdout.String(), stderr.String())
 	}
 	return stdout.String()
 }
 
 func TestEmbeddedCommentsCLI(t *testing.T) {
-	if os.Getenv("BEADS_TEST_EMBEDDED_DOLT") != "1" {
-		t.Skip("set BEADS_TEST_EMBEDDED_DOLT=1 to run embedded dolt integration tests")
+	if os.Getenv("ISSUEGRAPH_TEST_EMBEDDED_DOLT") != "1" {
+		t.Skip("set ISSUEGRAPH_TEST_EMBEDDED_DOLT=1 to run embedded dolt integration tests")
 	}
 	t.Parallel()
 
-	bd := buildEmbeddedBD(t)
-	dir, _, _ := bdInit(t, bd, "--prefix", "cc")
+	issuegraph := buildEmbeddedBD(t)
+	dir, _, _ := issuegraphInit(t, issuegraph, "--prefix", "cc")
 
 	// ===== comments add =====
 
 	t.Run("comments_add", func(t *testing.T) {
-		issue := bdCreate(t, bd, dir, "Comment target", "--type", "task")
-		out := bdComments(t, bd, dir, "add", issue.ID, "Hello world")
+		issue := issuegraphCreate(t, issuegraph, dir, "Comment target", "--type", "task")
+		out := issuegraphComments(t, issuegraph, dir, "add", issue.ID, "Hello world")
 		if !strings.Contains(out, "Comment added") {
 			t.Errorf("expected 'Comment added' in output: %s", out)
 		}
 	})
 
 	t.Run("comments_add_json", func(t *testing.T) {
-		issue := bdCreate(t, bd, dir, "JSON comment", "--type", "task")
-		cmd := exec.Command(bd, "comments", "add", issue.ID, "JSON", "comment", "text", "--json")
+		issue := issuegraphCreate(t, issuegraph, dir, "JSON comment", "--type", "task")
+		cmd := exec.Command(issuegraph, "comments", "add", issue.ID, "JSON", "comment", "text", "--json")
 		cmd.Dir = dir
-		cmd.Env = bdEnv(dir)
+		cmd.Env = issuegraphEnv(dir)
 		stdout, stderr, err := runCommandBuffers(t, cmd)
 		if err != nil {
-			t.Fatalf("bd comments add --json failed: %v\nstdout:\n%s\nstderr:\n%s", err, stdout.String(), stderr.String())
+			t.Fatalf("issuegraph comments add --json failed: %v\nstdout:\n%s\nstderr:\n%s", err, stdout.String(), stderr.String())
 		}
 		s := strings.TrimSpace(stdout.String())
 		start := strings.Index(s, "{")
@@ -70,46 +70,46 @@ func TestEmbeddedCommentsCLI(t *testing.T) {
 	})
 
 	t.Run("comments_add_from_file", func(t *testing.T) {
-		issue := bdCreate(t, bd, dir, "File comment", "--type", "task")
+		issue := issuegraphCreate(t, issuegraph, dir, "File comment", "--type", "task")
 
 		// Write comment to a file
 		tmpFile := filepath.Join(t.TempDir(), "comment.txt")
 		os.WriteFile(tmpFile, []byte("Comment from file"), 0644)
 
-		out := bdComments(t, bd, dir, "add", issue.ID, "--file", tmpFile)
+		out := issuegraphComments(t, issuegraph, dir, "add", issue.ID, "--file", tmpFile)
 		if !strings.Contains(out, "Comment added") {
 			t.Errorf("expected 'Comment added' in output: %s", out)
 		}
 	})
 
 	t.Run("comments_add_nonexistent_issue", func(t *testing.T) {
-		cmd := exec.Command(bd, "comments", "add", "cc-nonexistent999", "nope")
+		cmd := exec.Command(issuegraph, "comments", "add", "cc-nonexistent999", "nope")
 		cmd.Dir = dir
-		cmd.Env = bdEnv(dir)
+		cmd.Env = issuegraphEnv(dir)
 		out, err := cmd.CombinedOutput()
 		if err == nil {
 			t.Fatalf("expected failure for nonexistent issue, got: %s", out)
 		}
 	})
 
-	// Swapped-order add (`bd comments <id> add <text>`) must be rejected, not
+	// Swapped-order add (`issuegraph comments <id> add <text>`) must be rejected, not
 	// silently dropped with exit 0 (GH#4642).
 	t.Run("comments_swapped_add_rejected", func(t *testing.T) {
-		issue := bdCreate(t, bd, dir, "Swapped add target", "--type", "task")
+		issue := issuegraphCreate(t, issuegraph, dir, "Swapped add target", "--type", "task")
 
-		cmd := exec.Command(bd, "comments", issue.ID, "add", "should not be stored")
+		cmd := exec.Command(issuegraph, "comments", issue.ID, "add", "should not be stored")
 		cmd.Dir = dir
-		cmd.Env = bdEnv(dir)
+		cmd.Env = issuegraphEnv(dir)
 		out, err := cmd.CombinedOutput()
 		if err == nil {
 			t.Fatalf("expected non-zero exit for swapped-order add, got success:\n%s", out)
 		}
-		if !strings.Contains(string(out), "bd comments add") {
-			t.Errorf("expected hint pointing to `bd comments add`, got:\n%s", out)
+		if !strings.Contains(string(out), "issuegraph comments add") {
+			t.Errorf("expected hint pointing to `issuegraph comments add`, got:\n%s", out)
 		}
 
 		// The stray "add"/text must NOT have been written as a comment.
-		list := bdComments(t, bd, dir, issue.ID)
+		list := issuegraphComments(t, issuegraph, dir, issue.ID)
 		if strings.Contains(list, "should not be stored") {
 			t.Errorf("swapped-order add silently stored a comment:\n%s", list)
 		}
@@ -117,10 +117,10 @@ func TestEmbeddedCommentsCLI(t *testing.T) {
 
 	// Any other stray trailing arg on the list form is also rejected.
 	t.Run("comments_extra_arg_rejected", func(t *testing.T) {
-		issue := bdCreate(t, bd, dir, "Extra arg target", "--type", "task")
-		cmd := exec.Command(bd, "comments", issue.ID, "stray")
+		issue := issuegraphCreate(t, issuegraph, dir, "Extra arg target", "--type", "task")
+		cmd := exec.Command(issuegraph, "comments", issue.ID, "stray")
 		cmd.Dir = dir
-		cmd.Env = bdEnv(dir)
+		cmd.Env = issuegraphEnv(dir)
 		out, err := cmd.CombinedOutput()
 		if err == nil {
 			t.Fatalf("expected non-zero exit for stray trailing arg, got success:\n%s", out)
@@ -130,11 +130,11 @@ func TestEmbeddedCommentsCLI(t *testing.T) {
 	// ===== comments list =====
 
 	t.Run("comments_list", func(t *testing.T) {
-		issue := bdCreate(t, bd, dir, "List comments", "--type", "task")
-		bdComments(t, bd, dir, "add", issue.ID, "First comment")
-		bdComments(t, bd, dir, "add", issue.ID, "Second comment")
+		issue := issuegraphCreate(t, issuegraph, dir, "List comments", "--type", "task")
+		issuegraphComments(t, issuegraph, dir, "add", issue.ID, "First comment")
+		issuegraphComments(t, issuegraph, dir, "add", issue.ID, "Second comment")
 
-		out := bdComments(t, bd, dir, issue.ID)
+		out := issuegraphComments(t, issuegraph, dir, issue.ID)
 		if !strings.Contains(out, "First comment") {
 			t.Errorf("expected 'First comment' in list: %s", out)
 		}
@@ -144,15 +144,15 @@ func TestEmbeddedCommentsCLI(t *testing.T) {
 	})
 
 	t.Run("comments_list_json", func(t *testing.T) {
-		issue := bdCreate(t, bd, dir, "JSON list comments", "--type", "task")
-		bdComments(t, bd, dir, "add", issue.ID, "A comment")
+		issue := issuegraphCreate(t, issuegraph, dir, "JSON list comments", "--type", "task")
+		issuegraphComments(t, issuegraph, dir, "add", issue.ID, "A comment")
 
-		cmd := exec.Command(bd, "comments", issue.ID, "--json")
+		cmd := exec.Command(issuegraph, "comments", issue.ID, "--json")
 		cmd.Dir = dir
-		cmd.Env = bdEnv(dir)
+		cmd.Env = issuegraphEnv(dir)
 		stdout, stderr, err := runCommandBuffers(t, cmd)
 		if err != nil {
-			t.Fatalf("bd comments list --json failed: %v\nstdout:\n%s\nstderr:\n%s", err, stdout.String(), stderr.String())
+			t.Fatalf("issuegraph comments list --json failed: %v\nstdout:\n%s\nstderr:\n%s", err, stdout.String(), stderr.String())
 		}
 		s := strings.TrimSpace(stdout.String())
 		start := strings.Index(s, "[")
@@ -168,22 +168,22 @@ func TestEmbeddedCommentsCLI(t *testing.T) {
 	})
 
 	t.Run("comments_list_empty", func(t *testing.T) {
-		issue := bdCreate(t, bd, dir, "No comments", "--type", "task")
-		out := bdComments(t, bd, dir, issue.ID)
+		issue := issuegraphCreate(t, issuegraph, dir, "No comments", "--type", "task")
+		out := issuegraphComments(t, issuegraph, dir, issue.ID)
 		// Should not error, may show "no comments"
 		_ = out
 	})
 
 	t.Run("comments_list_local_time", func(t *testing.T) {
-		issue := bdCreate(t, bd, dir, "Local time comments", "--type", "task")
-		bdComments(t, bd, dir, "add", issue.ID, "Timed comment")
+		issue := issuegraphCreate(t, issuegraph, dir, "Local time comments", "--type", "task")
+		issuegraphComments(t, issuegraph, dir, "add", issue.ID, "Timed comment")
 
-		cmd := exec.Command(bd, "comments", issue.ID, "--local-time")
+		cmd := exec.Command(issuegraph, "comments", issue.ID, "--local-time")
 		cmd.Dir = dir
-		cmd.Env = bdEnv(dir)
+		cmd.Env = issuegraphEnv(dir)
 		stdout, stderr, err := runCommandBuffers(t, cmd)
 		if err != nil {
-			t.Fatalf("bd comments list --local-time failed: %v\nstdout:\n%s\nstderr:\n%s", err, stdout.String(), stderr.String())
+			t.Fatalf("issuegraph comments list --local-time failed: %v\nstdout:\n%s\nstderr:\n%s", err, stdout.String(), stderr.String())
 		}
 		_ = stdout.String()
 	})
@@ -191,12 +191,12 @@ func TestEmbeddedCommentsCLI(t *testing.T) {
 	// ===== Round-trip =====
 
 	t.Run("comments_add_then_list_round_trip", func(t *testing.T) {
-		issue := bdCreate(t, bd, dir, "Round trip", "--type", "task")
-		bdComments(t, bd, dir, "add", issue.ID, "Round trip comment")
+		issue := issuegraphCreate(t, issuegraph, dir, "Round trip", "--type", "task")
+		issuegraphComments(t, issuegraph, dir, "add", issue.ID, "Round trip comment")
 
-		cmd := exec.Command(bd, "comments", issue.ID, "--json")
+		cmd := exec.Command(issuegraph, "comments", issue.ID, "--json")
 		cmd.Dir = dir
-		cmd.Env = bdEnv(dir)
+		cmd.Env = issuegraphEnv(dir)
 		stdout, stderr, err := runCommandBuffers(t, cmd)
 		if err != nil {
 			t.Fatalf("list failed: %v\nstdout:\n%s\nstderr:\n%s", err, stdout.String(), stderr.String())
@@ -221,15 +221,15 @@ func TestEmbeddedCommentsCLI(t *testing.T) {
 
 // TestEmbeddedCommentsCLIConcurrent exercises comments concurrently.
 func TestEmbeddedCommentsCLIConcurrent(t *testing.T) {
-	if os.Getenv("BEADS_TEST_EMBEDDED_DOLT") != "1" {
-		t.Skip("set BEADS_TEST_EMBEDDED_DOLT=1 to run embedded dolt integration tests")
+	if os.Getenv("ISSUEGRAPH_TEST_EMBEDDED_DOLT") != "1" {
+		t.Skip("set ISSUEGRAPH_TEST_EMBEDDED_DOLT=1 to run embedded dolt integration tests")
 	}
 	t.Parallel()
 
-	bd := buildEmbeddedBD(t)
-	dir, _, _ := bdInit(t, bd, "--prefix", "cy")
+	issuegraph := buildEmbeddedBD(t)
+	dir, _, _ := issuegraphInit(t, issuegraph, "--prefix", "cy")
 
-	issue := bdCreate(t, bd, dir, "Concurrent comments target", "--type", "task")
+	issue := issuegraphCreate(t, issuegraph, dir, "Concurrent comments target", "--type", "task")
 
 	const numWorkers = 8
 
@@ -248,9 +248,9 @@ func TestEmbeddedCommentsCLIConcurrent(t *testing.T) {
 			r := workerResult{worker: worker}
 
 			text := fmt.Sprintf("Comment from worker %d", worker)
-			cmd := exec.Command(bd, "comments", "add", issue.ID, text)
+			cmd := exec.Command(issuegraph, "comments", "add", issue.ID, text)
 			cmd.Dir = dir
-			cmd.Env = bdEnv(dir)
+			cmd.Env = issuegraphEnv(dir)
 			out, err := cmd.CombinedOutput()
 			if err != nil {
 				r.err = fmt.Errorf("add comment: %v\n%s", err, out)

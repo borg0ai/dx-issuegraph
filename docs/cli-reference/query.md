@@ -1,11 +1,11 @@
 ---
-title: "bd query"
+title: "issuegraph query"
 description: "Query issues using a simple query language that supports compound filters,"
 ---
 
 {/* AUTO-GENERATED: do not edit manually */}
 
-Generated from `bd help --doc query`.
+Generated from `issuegraph help --doc query`.
 
 Query issues using a simple query language that supports compound filters,
 boolean operators, and date-relative expressions.
@@ -28,7 +28,7 @@ Boolean operators (case-insensitive):
   (expr)            Grouping with parentheses
 
 Supported fields:
-  status            Stored status (open, in_progress, blocked, deferred, closed). Note: dependency-blocked issues stay "open"; use 'bd blocked' to find them
+  status            Stored status (open, in_progress, blocked, deferred, closed). Note: dependency-blocked issues stay "open"; use 'issuegraph blocked' to find them
   priority          Priority level (0-4)
   type              Issue type (bug, feature, task, epic, chore, decision)
   assignee          Assigned user (use "none" for unassigned)
@@ -41,7 +41,7 @@ Supported fields:
   updated           Last update date/time
   started           Date/time issue first transitioned to in_progress
   closed            Close date/time
-  id                Issue ID (supports wildcards: bd-*)
+  id                Issue ID (supports wildcards: issuegraph-*)
   spec              Spec ID (supports wildcards)
   pinned            Boolean (true/false)
   ephemeral         Boolean (true/false)
@@ -55,18 +55,18 @@ Date values:
   Natural language: tomorrow, "next monday", "in 3 days"
 
 Examples:
-  bd query "status=open AND priority&gt;1"
-  bd query "status=open AND priority&lt;=2 AND updated&gt;7d"
-  bd query "(status=open OR status=blocked) AND priority&lt;2"
-  bd query "type=bug AND label=urgent"
-  bd query "NOT status=closed"
-  bd query "assignee=none AND type=task"
-  bd query "created&gt;30d AND status!=closed"
-  bd query "label=frontend OR label=backend"
-  bd query "title=authentication AND priority=0"
+  issuegraph query "status=open AND priority&gt;1"
+  issuegraph query "status=open AND priority&lt;=2 AND updated&gt;7d"
+  issuegraph query "(status=open OR status=blocked) AND priority&lt;2"
+  issuegraph query "type=bug AND label=urgent"
+  issuegraph query "NOT status=closed"
+  issuegraph query "assignee=none AND type=task"
+  issuegraph query "created&gt;30d AND status!=closed"
+  issuegraph query "label=frontend OR label=backend"
+  issuegraph query "title=authentication AND priority=0"
 
 ```
-bd query [expression] [flags]
+issuegraph query [expression] [flags]
 ```
 
 **Flags:**

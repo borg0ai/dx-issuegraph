@@ -7,10 +7,10 @@ import (
 	"path/filepath"
 	"strings"
 
-	"github.com/steveyegge/beads/internal/config"
-	"github.com/steveyegge/beads/internal/debug"
-	"github.com/steveyegge/beads/internal/routing"
-	"github.com/steveyegge/beads/internal/storage"
+	"github.com/borg0ai/dx-issuegraph/internal/config"
+	"github.com/borg0ai/dx-issuegraph/internal/debug"
+	"github.com/borg0ai/dx-issuegraph/internal/routing"
+	"github.com/borg0ai/dx-issuegraph/internal/storage"
 )
 
 var routingConfigKeys = []string{
@@ -98,36 +98,36 @@ func determineAutoRoutedRepoPath(ctx context.Context, store storage.DoltStorage)
 func routingNoticeText(rule routing.RoutingRule) (reason, fix string) {
 	switch rule {
 	case routing.RuleContributor:
-		// The contributor rule fires on explicit beads.role=contributor OR on
-		// origin-URL inference with beads.role unset — don't claim the config
+		// The contributor rule fires on explicit issuegraph.role=contributor OR on
+		// origin-URL inference with issuegraph.role unset — don't claim the config
 		// key is set when it may not be.
-		return "contributor routing (beads.role=contributor, or inferred from the origin URL) routes bd list/ready to the contributor planning store, not this project",
-			"git config beads.role maintainer"
+		return "contributor routing (issuegraph.role=contributor, or inferred from the origin URL) routes issuegraph list/ready to the contributor planning store, not this project",
+			"git config issuegraph.role maintainer"
 	case routing.RuleMaintainer:
-		return "routing.maintainer routes bd list/ready to a different planning store than this project",
-			"bd config unset routing.maintainer"
+		return "routing.maintainer routes issuegraph list/ready to a different planning store than this project",
+			"issuegraph config unset routing.maintainer"
 	case routing.RuleDefault:
-		return "routing.default routes bd list/ready to a different planning store than this project",
-			"bd config unset routing.default"
+		return "routing.default routes issuegraph list/ready to a different planning store than this project",
+			"issuegraph config unset routing.default"
 	default:
-		return "an auto-routing rule sends bd list/ready to a different planning store than this project",
-			"bd config get routing.mode routing.contributor routing.maintainer routing.default"
+		return "an auto-routing rule sends issuegraph list/ready to a different planning store than this project",
+			"issuegraph config get routing.mode routing.contributor routing.maintainer routing.default"
 	}
 }
 
-// printContributorRoutingNotice tells the user that `bd list`/`bd ready` are
+// printContributorRoutingNotice tells the user that `issuegraph list`/`issuegraph ready` are
 // reading from an auto-routed store instead of the local project database,
 // so a short or empty result doesn't look like data loss. Without this, a
 // routed-but-unrelated (often empty) planning store silently replaces the
-// local result set with no indication anything changed: `bd stats` and
-// `bd show <id>` don't route (see openRoutedReadStore callers), so they keep
+// local result set with no indication anything changed: `issuegraph stats` and
+// `issuegraph show <id>` don't route (see openRoutedReadStore callers), so they keep
 // reporting the local project truth while list/ready go quiet — exactly the
 // split that makes this so hard to diagnose from the CLI alone.
 //
 // The notice text and remediation command are branched on rule, the
 // routing.RoutingRule that actually matched in determineAutoRoutedRepoPath,
 // so a maintainer- or default-routed swap doesn't get misattributed to
-// beads.role=contributor.
+// issuegraph.role=contributor.
 //
 // Gated on !quietFlag: --quiet is documented as "Suppress non-essential
 // output (errors only)" (modules/cli/main.go), and other non-error stderr
@@ -140,7 +140,7 @@ func printContributorRoutingNotice(ctx context.Context, localStore storage.DoltS
 	if localStore != nil {
 		if stats, err := localStore.GetStatistics(ctx); err == nil {
 			// stats.TotalIssues is an unfiltered COUNT(*) FROM issues, so it
-			// includes closed/deferred/blocked issues that bd ready's
+			// includes closed/deferred/blocked issues that issuegraph ready's
 			// predicates would never surface anyway. Report it as the
 			// project's total issue count rather than claiming all of them
 			// are "hidden as a result" of routing.
@@ -166,8 +166,8 @@ func openRoutedReadStore(ctx context.Context, store storage.DoltStorage) (storag
 	}
 
 	targetRepoPath := routing.ExpandPath(repoPath)
-	targetBeadsDir := filepath.Join(targetRepoPath, ".beads")
-	targetStore, err := newReadOnlyStoreFromConfig(ctx, targetBeadsDir)
+	targetIssueGraphDir := filepath.Join(targetRepoPath, ".issuegraph")
+	targetStore, err := newReadOnlyStoreFromConfig(ctx, targetIssueGraphDir)
 	if err != nil {
 		return nil, false, rule, fmt.Errorf("failed to open routed store at %s: %w", targetRepoPath, err)
 	}

@@ -12,9 +12,9 @@ import (
 	"testing"
 	"time"
 
-	"github.com/steveyegge/beads/internal/configfile"
-	"github.com/steveyegge/beads/internal/storage/dolt"
-	"github.com/steveyegge/beads/internal/types"
+	"github.com/borg0ai/dx-issuegraph/internal/configfile"
+	"github.com/borg0ai/dx-issuegraph/internal/storage/dolt"
+	"github.com/borg0ai/dx-issuegraph/internal/types"
 )
 
 func TestPatrolPollution_DeletesFromDoltWithoutJSONL(t *testing.T) {
@@ -22,9 +22,9 @@ func TestPatrolPollution_DeletesFromDoltWithoutJSONL(t *testing.T) {
 	port := fixTestServerPort()
 
 	tmpDir := t.TempDir()
-	beadsDir := filepath.Join(tmpDir, ".beads")
-	if err := os.MkdirAll(beadsDir, 0755); err != nil {
-		t.Fatalf("failed to create .beads: %v", err)
+	issuegraphDir := filepath.Join(tmpDir, ".issuegraph")
+	if err := os.MkdirAll(issuegraphDir, 0755); err != nil {
+		t.Fatalf("failed to create .issuegraph: %v", err)
 	}
 
 	cfg := configfile.DefaultConfig()
@@ -34,16 +34,16 @@ func TestPatrolPollution_DeletesFromDoltWithoutJSONL(t *testing.T) {
 	cfg.DoltServerPort = port
 	h := sha256.Sum256([]byte(t.Name() + fmt.Sprintf("%d", time.Now().UnixNano())))
 	cfg.DoltDatabase = "doctest_" + hex.EncodeToString(h[:6])
-	if err := cfg.Save(beadsDir); err != nil {
+	if err := cfg.Save(issuegraphDir); err != nil {
 		t.Fatalf("failed to save config: %v", err)
 	}
 
 	ctx := context.Background()
-	store, err := dolt.NewFromConfigWithOptions(ctx, beadsDir, &dolt.Config{CreateIfMissing: true})
+	store, err := dolt.NewFromConfigWithOptions(ctx, issuegraphDir, &dolt.Config{CreateIfMissing: true})
 	if err != nil {
 		t.Fatalf("dolt.NewFromConfigWithOptions against running test container: %v", err)
 	}
-	if err := store.SetConfig(ctx, "issue_prefix", "bd"); err != nil {
+	if err := store.SetConfig(ctx, "issue_prefix", "issuegraph"); err != nil {
 		_ = store.Close()
 		t.Fatalf("failed to set issue_prefix: %v", err)
 	}
@@ -84,7 +84,7 @@ func TestPatrolPollution_DeletesFromDoltWithoutJSONL(t *testing.T) {
 		t.Fatalf("failed to close setup store: %v", err)
 	}
 
-	if _, err := os.Stat(filepath.Join(beadsDir, "issues.jsonl")); !os.IsNotExist(err) {
+	if _, err := os.Stat(filepath.Join(issuegraphDir, "issues.jsonl")); !os.IsNotExist(err) {
 		t.Fatalf("expected no JSONL file before fix, stat err=%v", err)
 	}
 
@@ -92,7 +92,7 @@ func TestPatrolPollution_DeletesFromDoltWithoutJSONL(t *testing.T) {
 		t.Fatalf("PatrolPollution returned error: %v", err)
 	}
 
-	verifyStore, err := dolt.NewFromConfig(ctx, beadsDir)
+	verifyStore, err := dolt.NewFromConfig(ctx, issuegraphDir)
 	if err != nil {
 		t.Fatalf("failed to reopen store for verification: %v", err)
 	}

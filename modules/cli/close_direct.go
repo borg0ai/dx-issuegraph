@@ -5,12 +5,12 @@ import (
 	"errors"
 	"fmt"
 
-	"github.com/steveyegge/beads/internal/storage"
-	"github.com/steveyegge/beads/internal/types"
-	"github.com/steveyegge/beads/issueops"
+	"github.com/borg0ai/dx-issuegraph/internal/storage"
+	"github.com/borg0ai/dx-issuegraph/internal/types"
+	"github.com/borg0ai/dx-issuegraph/issueops"
 )
 
-// closeDirectItem is one argument that survived `bd close`'s own close policy,
+// closeDirectItem is one argument that survived `issuegraph close`'s own close policy,
 // paired with the store that actually owns it. arg is the argument position, so
 // an outcome can be folded back onto the list the caller typed.
 type closeDirectItem struct {
@@ -33,7 +33,7 @@ type closeDirectPlan struct {
 	refusals []string
 }
 
-// closeDirectPreflight applies `bd close`'s own close policy to every resolved
+// closeDirectPreflight applies `issuegraph close`'s own close policy to every resolved
 // argument, and hands the batch only the items that survived.
 //
 // Neither check is library policy — the template/pin/assignee fence and gate
@@ -46,7 +46,7 @@ type closeDirectPlan struct {
 // CloseOpenChildrenError whose message is the one this route used to compose
 // by hand. Keeping a copy here would be a second implementation of a rule the
 // role already states, and a read-then-write window besides — one that made
-// `bd close <child> <parent>` depend on argument order.
+// `issuegraph close <child> <parent>` depend on argument order.
 func closeDirectPreflight(results []*RoutedResult, resolvedIDs, reasons []string, force bool) closeDirectPlan {
 	plan := closeDirectPlan{refusals: make([]string, len(resolvedIDs))}
 	for i, id := range resolvedIDs {
@@ -70,9 +70,9 @@ func closeDirectCheckOne(id string, issue *types.Issue, force bool) string {
 	// Close validation guards a state change; a row already at literal
 	// StatusClosed has none to guard, so skip it and let the re-close reach the
 	// engine as the idempotent no-op it has always been (ga-ktn9pe.4.8).
-	// Without this, a forced close of a boolean-pinned bead leaves pinned=true
+	// Without this, a forced close of a boolean-pinned issue leaves pinned=true
 	// (the close write never touches the column — deliberately, it is the
-	// deletion-protection flag bd gc/purge/cleanup honor) and the plain retry
+	// deletion-protection flag issuegraph gc/purge/cleanup honor) and the plain retry
 	// hits NotPinned and exits nonzero, which strands the molecule auto-close
 	// the unchanged branch re-drives. Only a literal closed status qualifies:
 	// reaching a configured done status is still a real close, mirroring the
@@ -110,7 +110,7 @@ type closeDirectBatch struct {
 // the REQUEST is the transaction boundary, so N ids on one store land as one
 // transaction with one Dolt commit and one history entry instead of N. A second
 // store is a second boundary because a transaction cannot span two databases —
-// `bd close` reaches one only when its ids route to another repo.
+// `issuegraph close` reaches one only when its ids route to another repo.
 func closeDirectBatches(items []closeDirectItem) []closeDirectBatch {
 	var batches []closeDirectBatch
 	at := make(map[storage.DoltStorage]int, len(items))
@@ -128,7 +128,7 @@ func closeDirectBatches(items []closeDirectItem) []closeDirectBatch {
 
 // closeDirectRequest is one store's slice as the BatchCloser role expresses it.
 // It is the same request closeProxiedServer builds from the same flags: the
-// per-item reasons `bd close a b c -r x -r y -r z` has always mapped
+// per-item reasons `issuegraph close a b c -r x -r y -r z` has always mapped
 // positionally, one request-wide session, one request-wide --force.
 //
 // claimNext rides on the batch of claimStore and no other, because --claim-next

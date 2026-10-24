@@ -1,11 +1,11 @@
 ---
-title: "bd delete"
+title: "issuegraph delete"
 description: "Delete one or more issues and clean up all references to them."
 ---
 
 {/* AUTO-GENERATED: do not edit manually */}
 
-Generated from `bd help --doc delete`.
+Generated from `issuegraph help --doc delete`.
 
 Delete one or more issues and clean up all references to them.
 This command will:
@@ -17,26 +17,26 @@ This is a destructive operation that cannot be undone. Use with caution.
 
 BATCH DELETION:
 Delete multiple issues at once:
-  bd delete bd-1 bd-2 bd-3 --force
+  issuegraph delete issuegraph-1 issuegraph-2 issuegraph-3 --force
 
 Delete from file (one ID per line):
-  bd delete --from-file deletions.txt --force
+  issuegraph delete --from-file deletions.txt --force
 
 Preview before deleting:
-  bd delete --from-file deletions.txt --dry-run
+  issuegraph delete --from-file deletions.txt --dry-run
 
 DEPENDENCY HANDLING:
 Default: Fails if any issue has dependents not in deletion set
-  bd delete bd-1 bd-2
+  issuegraph delete issuegraph-1 issuegraph-2
 
 Cascade: Recursively delete all dependents
-  bd delete bd-1 --cascade --force
+  issuegraph delete issuegraph-1 --cascade --force
 
 Force: Delete and orphan dependents
-  bd delete bd-1 --force
+  issuegraph delete issuegraph-1 --force
 
 ```
-bd delete <issue-id> [issue-id...] [flags]
+issuegraph delete <issue-id> [issue-id...] [flags]
 ```
 
 **Flags:**

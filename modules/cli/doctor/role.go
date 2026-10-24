@@ -6,18 +6,18 @@ import (
 	"os/exec"
 	"strings"
 
-	"github.com/steveyegge/beads/internal/storage/dolt"
+	"github.com/borg0ai/dx-issuegraph/internal/storage/dolt"
 )
 
-// CheckBeadsRole verifies that beads.role is configured.
+// CheckIssueGraphRole verifies that issuegraph.role is configured.
 // Checks git config first (canonical location), then falls back to the
-// database config for users who ran "bd config set role maintainer"
-// (without the "beads." prefix) or "bd config set beads.role maintainer"
+// database config for users who ran "issuegraph config set role maintainer"
+// (without the "issuegraph." prefix) or "issuegraph config set issuegraph.role maintainer"
 // before GH#1531 moved storage to git config.
-// Opens its own store; prefer CheckBeadsRoleWithStore when a shared store is available.
-func CheckBeadsRole(path string) DoctorCheck {
-	// Read beads.role from git config (canonical location)
-	cmd := exec.Command("git", "config", "--get", "beads.role")
+// Opens its own store; prefer CheckIssueGraphRoleWithStore when a shared store is available.
+func CheckIssueGraphRole(path string) DoctorCheck {
+	// Read issuegraph.role from git config (canonical location)
+	cmd := exec.Command("git", "config", "--get", "issuegraph.role")
 	if path != "" {
 		cmd.Dir = path
 	}
@@ -29,19 +29,19 @@ func CheckBeadsRole(path string) DoctorCheck {
 	}
 
 	// Git config not set — check database config as fallback.
-	// Users may have set it via "bd config set role maintainer" (stored in Dolt)
+	// Users may have set it via "issuegraph config set role maintainer" (stored in Dolt)
 	// or the git config may be unavailable (e.g., worktree without local config).
 	if role := getRoleFromDatabase(path); role != "" {
 		return validateRole(role)
 	}
 
-	return checkBeadsRoleNotInGit(path)
+	return checkIssueGraphRoleNotInGit(path)
 }
 
-// CheckBeadsRoleWithStore verifies beads.role using a shared store (GH#2636).
-func CheckBeadsRoleWithStore(path string, ss *SharedStore) DoctorCheck {
-	// Read beads.role from git config (canonical location)
-	cmd := exec.Command("git", "config", "--get", "beads.role")
+// CheckIssueGraphRoleWithStore verifies issuegraph.role using a shared store (GH#2636).
+func CheckIssueGraphRoleWithStore(path string, ss *SharedStore) DoctorCheck {
+	// Read issuegraph.role from git config (canonical location)
+	cmd := exec.Command("git", "config", "--get", "issuegraph.role")
 	if path != "" {
 		cmd.Dir = path
 	}
@@ -57,10 +57,10 @@ func CheckBeadsRoleWithStore(path string, ss *SharedStore) DoctorCheck {
 		return validateRole(role)
 	}
 
-	return checkBeadsRoleNotInGit(path)
+	return checkIssueGraphRoleNotInGit(path)
 }
 
-func checkBeadsRoleNotInGit(path string) DoctorCheck {
+func checkIssueGraphRoleNotInGit(path string) DoctorCheck {
 	// Check if we're even in a git repository. If not, skip the check rather
 	// than warn about missing config that may be correctly set in a worktree
 	// (e.g., rig roots use .repo.git instead of .git).
@@ -77,9 +77,9 @@ func checkBeadsRoleNotInGit(path string) DoctorCheck {
 	return DoctorCheck{
 		Name:     "Role Configuration",
 		Status:   StatusWarning,
-		Message:  "beads.role not configured",
+		Message:  "issuegraph.role not configured",
 		Detail:   "Role must be set for routing to work. Run one of the commands below.",
-		Fix:      "git config beads.role maintainer",
+		Fix:      "git config issuegraph.role maintainer",
 		Category: CategoryData,
 	}
 }
@@ -99,9 +99,9 @@ func validateRole(role string) DoctorCheck {
 		return DoctorCheck{
 			Name:     "Role Configuration",
 			Status:   StatusWarning,
-			Message:  fmt.Sprintf("Invalid beads.role value: %q", role),
-			Detail:   "Valid values are 'maintainer' or 'contributor'. Run 'bd init' to reconfigure.",
-			Fix:      "bd init",
+			Message:  fmt.Sprintf("Invalid issuegraph.role value: %q", role),
+			Detail:   "Valid values are 'maintainer' or 'contributor'. Run 'issuegraph init' to reconfigure.",
+			Fix:      "issuegraph init",
 			Category: CategoryData,
 		}
 	}
@@ -115,15 +115,15 @@ func validateRole(role string) DoctorCheck {
 }
 
 // getRoleFromDatabase checks for role in the database config.
-// Checks both "beads.role" and "role" keys since users may have used either.
+// Checks both "issuegraph.role" and "role" keys since users may have used either.
 func getRoleFromDatabase(path string) string {
-	_, beadsDir := getBackendAndBeadsDir(path)
-	if beadsDir == "" {
+	_, issuegraphDir := getBackendAndIssueGraphDir(path)
+	if issuegraphDir == "" {
 		return ""
 	}
 
 	ctx := context.Background()
-	store, err := dolt.NewFromConfigWithCLIOptions(ctx, beadsDir, &dolt.Config{ReadOnly: true})
+	store, err := dolt.NewFromConfigWithCLIOptions(ctx, issuegraphDir, &dolt.Config{ReadOnly: true})
 	if err != nil {
 		return ""
 	}
@@ -139,8 +139,8 @@ func getRoleFromStore(store *dolt.DoltStore) string {
 	}
 
 	ctx := context.Background()
-	// Check "beads.role" first, then "role"
-	for _, key := range []string{"beads.role", "role"} {
+	// Check "issuegraph.role" first, then "role"
+	for _, key := range []string{"issuegraph.role", "role"} {
 		if val, err := store.GetConfig(ctx, key); err == nil && val != "" {
 			return strings.TrimSpace(val)
 		}

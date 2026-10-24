@@ -1,14 +1,14 @@
 #!/usr/bin/env bash
-# test-git-remote.sh — E2E test: bd CLI workflow with Dolt git remotes
+# test-git-remote.sh — E2E test: issuegraph CLI workflow with Dolt git remotes
 #
-# Exercises: bd init (dolt backend), bd create, dolt remote add,
+# Exercises: issuegraph init (dolt backend), issuegraph create, dolt remote add,
 #   dolt push, dolt clone, data verification, incremental push+pull.
 #
 # Usage:
 #   ./scripts/test-git-remote.sh              # Local bare git repo (default)
 #   ./scripts/test-git-remote.sh <github-url> # Push to real GitHub repo
 #
-# Requirements: bd, dolt (>= 2.2.0), git
+# Requirements: issuegraph, dolt (>= 2.2.0), git
 #
 # The script is self-contained: creates temp dirs, cleans up on exit.
 
@@ -41,8 +41,8 @@ trap cleanup EXIT
 
 section "Prerequisites"
 
-if ! command -v bd &>/dev/null; then
-    echo "Error: bd not found in PATH" >&2; exit 1
+if ! command -v issuegraph &>/dev/null; then
+    echo "Error: issuegraph not found in PATH" >&2; exit 1
 fi
 if ! command -v dolt &>/dev/null; then
     echo "Error: dolt not found in PATH" >&2; exit 1
@@ -51,16 +51,16 @@ if ! command -v git &>/dev/null; then
     echo "Error: git not found in PATH" >&2; exit 1
 fi
 
-BD_VERSION=$(bd version 2>&1 | head -1)
+ISSUEGRAPH_VERSION=$(issuegraph version 2>&1 | head -1)
 DOLT_VERSION=$(dolt version 2>&1 | head -1)
-info "bd:   $BD_VERSION"
+info "issuegraph:   $ISSUEGRAPH_VERSION"
 info "dolt: $DOLT_VERSION"
 
 # ── Setup ────────────────────────────────────────────────────────────
 
 section "Setup"
 
-WORKDIR=$(mktemp -d "${TMPDIR:-/tmp}/bd-git-remote-test.XXXXXX")
+WORKDIR=$(mktemp -d "${TMPDIR:-/tmp}/issuegraph-git-remote-test.XXXXXX")
 CLEANUP_DIRS+=("$WORKDIR")
 info "Working directory: $WORKDIR"
 
@@ -85,11 +85,11 @@ else
 fi
 
 PREFIX="e2e"
-DOLT_DB="beads_${PREFIX}"
+DOLT_DB="issuegraph_${PREFIX}"
 
-# ── Step 1: Initialize bd workspace with dolt backend ────────────────
+# ── Step 1: Initialize issuegraph workspace with dolt backend ────────────────
 
-section "Step 1: bd init --backend dolt"
+section "Step 1: issuegraph init --backend dolt"
 
 WORKSPACE_A="$WORKDIR/workspace-a"
 mkdir -p "$WORKSPACE_A"
@@ -98,31 +98,31 @@ git init >/dev/null 2>&1
 # Ensure a main branch exists (some git versions default to master)
 git checkout -b main 2>/dev/null || true
 
-bd init --backend dolt --prefix "$PREFIX" -q --skip-hooks --skip-merge-driver --force 2>/dev/null
+issuegraph init --backend dolt --prefix "$PREFIX" -q --skip-hooks --skip-merge-driver --force 2>/dev/null
 
 # Verify dolt database was created
-DOLT_DIR="$WORKSPACE_A/.beads/dolt/$DOLT_DB"
+DOLT_DIR="$WORKSPACE_A/.issuegraph/dolt/$DOLT_DB"
 if [[ -d "$DOLT_DIR/.dolt" ]]; then
-    pass "Dolt database created at .beads/dolt/$DOLT_DB"
+    pass "Dolt database created at .issuegraph/dolt/$DOLT_DB"
 else
-    fail "Dolt database NOT found at .beads/dolt/$DOLT_DB"
-    echo "Contents of .beads/dolt/:" >&2
-    ls -la "$WORKSPACE_A/.beads/dolt/" 2>&1 >&2 || true
+    fail "Dolt database NOT found at .issuegraph/dolt/$DOLT_DB"
+    echo "Contents of .issuegraph/dolt/:" >&2
+    ls -la "$WORKSPACE_A/.issuegraph/dolt/" 2>&1 >&2 || true
     exit 1
 fi
 
 # Verify metadata.json has dolt backend
-if grep -q '"dolt"' "$WORKSPACE_A/.beads/metadata.json" 2>/dev/null; then
+if grep -q '"dolt"' "$WORKSPACE_A/.issuegraph/metadata.json" 2>/dev/null; then
     pass "metadata.json specifies dolt backend"
 else
     fail "metadata.json does not specify dolt backend"
 fi
 
-# ── Step 2: Create issues via bd CLI ─────────────────────────────────
+# ── Step 2: Create issues via issuegraph CLI ─────────────────────────────────
 
 section "Step 2: Create issues"
 
-ISSUE1_ID=$(bd create "First test issue" -t task -q 2>&1 | grep -oE "${PREFIX}-[a-z0-9]+")
+ISSUE1_ID=$(issuegraph create "First test issue" -t task -q 2>&1 | grep -oE "${PREFIX}-[a-z0-9]+")
 if [[ -n "$ISSUE1_ID" ]]; then
     pass "Created issue: $ISSUE1_ID"
 else
@@ -130,7 +130,7 @@ else
     exit 1
 fi
 
-ISSUE2_ID=$(bd create "Second test issue with priority" -t bug --priority 1 -q 2>&1 | grep -oE "${PREFIX}-[a-z0-9]+")
+ISSUE2_ID=$(issuegraph create "Second test issue with priority" -t bug --priority 1 -q 2>&1 | grep -oE "${PREFIX}-[a-z0-9]+")
 if [[ -n "$ISSUE2_ID" ]]; then
     pass "Created issue: $ISSUE2_ID"
 else
@@ -138,12 +138,12 @@ else
     exit 1
 fi
 
-# Verify issues exist via bd list
-ISSUE_COUNT=$(bd list --limit 0 2>/dev/null | grep -c "^" || true)
+# Verify issues exist via issuegraph list
+ISSUE_COUNT=$(issuegraph list --limit 0 2>/dev/null | grep -c "^" || true)
 if [[ "$ISSUE_COUNT" -ge 2 ]]; then
-    pass "bd list shows $ISSUE_COUNT issues"
+    pass "issuegraph list shows $ISSUE_COUNT issues"
 else
-    fail "bd list shows $ISSUE_COUNT issues, expected >= 2"
+    fail "issuegraph list shows $ISSUE_COUNT issues, expected >= 2"
 fi
 
 # ── Step 3: Add dolt remote and push ────────────────────────────────
@@ -200,10 +200,10 @@ cd "$WORKSPACE_B"
 git init >/dev/null 2>&1
 git checkout -b main 2>/dev/null || true
 
-# Initialize bd in workspace-b
-bd init --backend dolt --prefix "$PREFIX" -q --skip-hooks --skip-merge-driver --force 2>/dev/null
+# Initialize issuegraph in workspace-b
+issuegraph init --backend dolt --prefix "$PREFIX" -q --skip-hooks --skip-merge-driver --force 2>/dev/null
 
-DOLT_DIR_B="$WORKSPACE_B/.beads/dolt/$DOLT_DB"
+DOLT_DIR_B="$WORKSPACE_B/.issuegraph/dolt/$DOLT_DB"
 
 # Remove the empty dolt db and clone from remote instead
 rm -rf "$DOLT_DIR_B"
@@ -253,7 +253,7 @@ section "Step 7: Incremental push (workspace-a)"
 
 cd "$WORKSPACE_A"
 
-ISSUE3_ID=$(bd create "Third issue for incremental test" -t task -q 2>&1 | grep -oE "${PREFIX}-[a-z0-9]+")
+ISSUE3_ID=$(issuegraph create "Third issue for incremental test" -t task -q 2>&1 | grep -oE "${PREFIX}-[a-z0-9]+")
 if [[ -n "$ISSUE3_ID" ]]; then
     pass "Created incremental issue: $ISSUE3_ID"
 else

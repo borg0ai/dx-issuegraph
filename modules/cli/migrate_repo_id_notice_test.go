@@ -3,7 +3,7 @@ package main
 import (
 	"testing"
 
-	"github.com/steveyegge/beads/internal/beads"
+	"github.com/borg0ai/dx-issuegraph/internal/issuegraph"
 )
 
 // bd-ek28z: the path-hash propagation notice must fire exactly when an
@@ -14,13 +14,13 @@ func TestPathHashRepoIDStampNotice(t *testing.T) {
 		name       string
 		oldRepoID  string
 		newRepoID  string
-		source     beads.RepoIDSource
+		source     issuegraph.RepoIDSource
 		wantNotice bool
 	}{
-		{"path hash replacing different id", "aaaa1111", "bbbb2222", beads.RepoIDSourcePath, true},
-		{"no stored id (bootstrap)", "", "bbbb2222", beads.RepoIDSourcePath, false},
-		{"unchanged id", "aaaa1111", "aaaa1111", beads.RepoIDSourcePath, false},
-		{"remote-derived new id", "aaaa1111", "bbbb2222", beads.RepoIDSourceRemote, false},
+		{"path hash replacing different id", "aaaa1111", "bbbb2222", issuegraph.RepoIDSourcePath, true},
+		{"no stored id (bootstrap)", "", "bbbb2222", issuegraph.RepoIDSourcePath, false},
+		{"unchanged id", "aaaa1111", "aaaa1111", issuegraph.RepoIDSourcePath, false},
+		{"remote-derived new id", "aaaa1111", "bbbb2222", issuegraph.RepoIDSourceRemote, false},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {

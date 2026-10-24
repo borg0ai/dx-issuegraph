@@ -11,21 +11,21 @@ import (
 func TestProxiedServerMolProgress(t *testing.T) {
 	requireSharedProxiedServer(t)
 	t.Parallel()
-	bd := buildEmbeddedBD(t)
+	issuegraph := buildEmbeddedBD(t)
 
 	t.Run("explicit_id_reports_totals", func(t *testing.T) {
 		t.Parallel()
-		p := newSharedProxiedProject(t, bd, "mpg")
-		root := bdProxiedCreate(t, bd, p.dir, "Progress root", "--type", "epic")
-		step1 := bdProxiedCreate(t, bd, p.dir, "Step 1", "--type", "task", "--parent", root.ID)
-		bdProxiedCreate(t, bd, p.dir, "Step 2", "--type", "task", "--parent", root.ID)
-		if out, err := bdProxiedRun(t, bd, p.dir, "close", step1.ID); err != nil {
-			t.Fatalf("bd close: %v\n%s", err, out)
+		p := newSharedProxiedProject(t, issuegraph, "mpg")
+		root := issuegraphProxiedCreate(t, issuegraph, p.dir, "Progress root", "--type", "epic")
+		step1 := issuegraphProxiedCreate(t, issuegraph, p.dir, "Step 1", "--type", "task", "--parent", root.ID)
+		issuegraphProxiedCreate(t, issuegraph, p.dir, "Step 2", "--type", "task", "--parent", root.ID)
+		if out, err := issuegraphProxiedRun(t, issuegraph, p.dir, "close", step1.ID); err != nil {
+			t.Fatalf("issuegraph close: %v\n%s", err, out)
 		}
 
-		out, err := bdProxiedRun(t, bd, p.dir, "mol", "progress", root.ID, "--json")
+		out, err := issuegraphProxiedRun(t, issuegraph, p.dir, "mol", "progress", root.ID, "--json")
 		if err != nil {
-			t.Fatalf("bd mol progress --json: %v\n%s", err, out)
+			t.Fatalf("issuegraph mol progress --json: %v\n%s", err, out)
 		}
 		var got struct {
 			MoleculeID string `json:"molecule_id"`
@@ -45,16 +45,16 @@ func TestProxiedServerMolProgress(t *testing.T) {
 
 	t.Run("infers_current_from_in_progress", func(t *testing.T) {
 		t.Parallel()
-		p := newSharedProxiedProject(t, bd, "mpgi")
-		root := bdProxiedCreate(t, bd, p.dir, "Inferred progress root", "--type", "epic")
-		step := bdProxiedCreate(t, bd, p.dir, "In progress step", "--type", "task", "--parent", root.ID)
-		if out, err := bdProxiedRun(t, bd, p.dir, "update", step.ID, "--claim"); err != nil {
-			t.Fatalf("bd update --claim: %v\n%s", err, out)
+		p := newSharedProxiedProject(t, issuegraph, "mpgi")
+		root := issuegraphProxiedCreate(t, issuegraph, p.dir, "Inferred progress root", "--type", "epic")
+		step := issuegraphProxiedCreate(t, issuegraph, p.dir, "In progress step", "--type", "task", "--parent", root.ID)
+		if out, err := issuegraphProxiedRun(t, issuegraph, p.dir, "update", step.ID, "--claim"); err != nil {
+			t.Fatalf("issuegraph update --claim: %v\n%s", err, out)
 		}
 
-		out, err := bdProxiedRun(t, bd, p.dir, "mol", "progress", "--json")
+		out, err := issuegraphProxiedRun(t, issuegraph, p.dir, "mol", "progress", "--json")
 		if err != nil {
-			t.Fatalf("bd mol progress --json: %v\n%s", err, out)
+			t.Fatalf("issuegraph mol progress --json: %v\n%s", err, out)
 		}
 		var got struct {
 			MoleculeID string `json:"molecule_id"`
@@ -69,10 +69,10 @@ func TestProxiedServerMolProgress(t *testing.T) {
 
 	t.Run("no_molecules_in_progress_empty", func(t *testing.T) {
 		t.Parallel()
-		p := newSharedProxiedProject(t, bd, "mpgn")
-		out, err := bdProxiedRun(t, bd, p.dir, "mol", "progress", "--json")
+		p := newSharedProxiedProject(t, issuegraph, "mpgn")
+		out, err := issuegraphProxiedRun(t, issuegraph, p.dir, "mol", "progress", "--json")
 		if err != nil {
-			t.Fatalf("bd mol progress --json: %v\n%s", err, out)
+			t.Fatalf("issuegraph mol progress --json: %v\n%s", err, out)
 		}
 		if strings.TrimSpace(string(out)) != "[]" {
 			t.Errorf("expected empty JSON array, got: %s", out)

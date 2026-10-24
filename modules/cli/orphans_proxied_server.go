@@ -3,9 +3,9 @@ package main
 import (
 	"context"
 
-	"github.com/steveyegge/beads/internal/config"
-	"github.com/steveyegge/beads/internal/storage/uow"
-	"github.com/steveyegge/beads/internal/types"
+	"github.com/borg0ai/dx-issuegraph/internal/config"
+	"github.com/borg0ai/dx-issuegraph/internal/storage/uow"
+	"github.com/borg0ai/dx-issuegraph/internal/types"
 )
 
 func runOrphansProxiedServer(ctx context.Context, labels, labelsAny []string, fix, details bool) error {
@@ -59,7 +59,7 @@ func (p *uowIssueProvider) GetIssuePrefix() string {
 	}
 	prefix, err := p.uw.ConfigUseCase().GetConfig(p.ctx, "issue_prefix")
 	if err != nil || prefix == "" {
-		return "bd"
+		return "issuegraph"
 	}
 	return prefix
 }

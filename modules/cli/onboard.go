@@ -4,39 +4,39 @@ import (
 	"fmt"
 	"io"
 
+	"github.com/borg0ai/dx-issuegraph/internal/config"
+	"github.com/borg0ai/dx-issuegraph/internal/metrics"
+	"github.com/borg0ai/dx-issuegraph/internal/ui"
 	"github.com/spf13/cobra"
-	"github.com/steveyegge/beads/internal/config"
-	"github.com/steveyegge/beads/internal/metrics"
-	"github.com/steveyegge/beads/internal/ui"
 )
 
 const copilotInstructionsContent = `# GitHub Copilot Instructions
 
 ## Issue Tracking
 
-This project uses **bd (beads)** for issue tracking.
-Run ` + "`bd prime`" + ` for workflow context, or install hooks (` + "`bd hooks install`" + `) for auto-injection.
+This project uses **issuegraph (issuegraph)** for issue tracking.
+Run ` + "`issuegraph prime`" + ` for workflow context, or install hooks (` + "`issuegraph hooks install`" + `) for auto-injection.
 
 **Quick reference:**
-- ` + "`bd ready`" + ` - Find unblocked work
-- ` + "`bd create \"Title\" --type task --priority 2`" + ` - Create issue
-- ` + "`bd close <id>`" + ` - Complete work
-- ` + "`bd dolt push`" + ` - Push beads to remote
+- ` + "`issuegraph ready`" + ` - Find unblocked work
+- ` + "`issuegraph create \"Title\" --type task --priority 2`" + ` - Create issue
+- ` + "`issuegraph close <id>`" + ` - Complete work
+- ` + "`issuegraph dolt push`" + ` - Push issuegraph to remote
 
-For full workflow details: ` + "`bd prime`" + ``
+For full workflow details: ` + "`issuegraph prime`" + ``
 
 const agentsContent = `## Issue Tracking
 
-This project uses **bd (beads)** for issue tracking.
-Run ` + "`bd prime`" + ` for workflow context, or install hooks (` + "`bd hooks install`" + `) for auto-injection.
+This project uses **issuegraph (issuegraph)** for issue tracking.
+Run ` + "`issuegraph prime`" + ` for workflow context, or install hooks (` + "`issuegraph hooks install`" + `) for auto-injection.
 
 **Quick reference:**
-- ` + "`bd ready`" + ` - Find unblocked work
-- ` + "`bd create \"Title\" --type task --priority 2`" + ` - Create issue
-- ` + "`bd close <id>`" + ` - Complete work
-- ` + "`bd dolt push`" + ` - Push beads to remote
+- ` + "`issuegraph ready`" + ` - Find unblocked work
+- ` + "`issuegraph create \"Title\" --type task --priority 2`" + ` - Create issue
+- ` + "`issuegraph close <id>`" + ` - Complete work
+- ` + "`issuegraph dolt push`" + ` - Push issuegraph to remote
 
-For full workflow details: ` + "`bd prime`" + ``
+For full workflow details: ` + "`issuegraph prime`" + ``
 
 func renderOnboardInstructions(w io.Writer) error {
 	writef := func(format string, args ...interface{}) error {
@@ -52,7 +52,7 @@ func renderOnboardInstructions(w io.Writer) error {
 		return err
 	}
 
-	if err := writef("\n%s\n\n", ui.RenderBold("bd Onboarding")); err != nil {
+	if err := writef("\n%s\n\n", ui.RenderBold("issuegraph Onboarding")); err != nil {
 		return err
 	}
 	agentsFile := config.AgentsFile()
@@ -86,10 +86,10 @@ func renderOnboardInstructions(w io.Writer) error {
 	if err := writef("%s\n", ui.RenderBold("How it works:")); err != nil {
 		return err
 	}
-	if err := writef("   • %s provides dynamic workflow context (~80 lines)\n", ui.RenderAccent("bd prime")); err != nil {
+	if err := writef("   • %s provides dynamic workflow context (~80 lines)\n", ui.RenderAccent("issuegraph prime")); err != nil {
 		return err
 	}
-	if err := writef("   • %s auto-injects bd prime at session start\n", ui.RenderAccent("bd hooks install")); err != nil {
+	if err := writef("   • %s auto-injects issuegraph prime at session start\n", ui.RenderAccent("issuegraph hooks install")); err != nil {
 		return err
 	}
 	if err := writeln("   • " + agentsFile + " only needs this minimal pointer, not full instructions"); err != nil {
@@ -99,7 +99,7 @@ func renderOnboardInstructions(w io.Writer) error {
 		return err
 	}
 
-	if err := writef("%s\n\n", ui.RenderPass("This keeps "+agentsFile+" lean while bd prime provides up-to-date workflow details.")); err != nil {
+	if err := writef("%s\n\n", ui.RenderPass("This keeps "+agentsFile+" lean while issuegraph prime provides up-to-date workflow details.")); err != nil {
 		return err
 	}
 
@@ -110,21 +110,21 @@ var onboardCmd = &cobra.Command{
 	Use:     "onboard",
 	GroupID: "setup",
 	Short:   "Display minimal snippet for agent instructions file",
-	Long: `Display a minimal snippet to add to your agent instructions file for bd integration.
+	Long: `Display a minimal snippet to add to your agent instructions file for issuegraph integration.
 
-By default, the agent instructions file is AGENTS.md. Use 'bd init --agents-file'
-to configure a different filename (e.g. BEADS.md).
+By default, the agent instructions file is AGENTS.md. Use 'issuegraph init --agents-file'
+to configure a different filename (e.g. ISSUEGRAPH.md).
 
-This outputs a small (~10 line) snippet that points to 'bd prime' for full
-workflow context. This is the same minimal profile that 'bd init' generates
+This outputs a small (~10 line) snippet that points to 'issuegraph prime' for full
+workflow context. This is the same minimal profile that 'issuegraph init' generates
 by default. This approach:
 
   • Keeps your agent file lean (doesn't bloat with instructions)
-  • bd prime provides dynamic, always-current workflow details
-  • Hooks auto-inject bd prime at session start
+  • issuegraph prime provides dynamic, always-current workflow details
+  • Hooks auto-inject issuegraph prime at session start
 
 For agents or environments that do not auto-inject hook output, use
-'bd init --agents-profile=full' to embed the complete command reference.`,
+'issuegraph init --agents-profile=full' to embed the complete command reference.`,
 	SilenceUsage:  true,
 	SilenceErrors: true,
 	RunE: func(cmd *cobra.Command, args []string) error {

@@ -7,8 +7,8 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/steveyegge/beads/internal/storage/depid"
-	"github.com/steveyegge/beads/internal/storage/schema"
+	"github.com/borg0ai/dx-issuegraph/internal/storage/depid"
+	"github.com/borg0ai/dx-issuegraph/internal/storage/schema"
 )
 
 // TestSchemaMigrationsPopulatedAfterInit verifies that initSchemaOnDB populates
@@ -231,7 +231,7 @@ func TestMigration0053RepairsIssuesMissingRigColumns(t *testing.T) {
 
 	// Simulate the pre-rig issues shape. Databases in the wild can be
 	// missing any subset; drop all six to cover the worst case.
-	for _, col := range []string{"hook_bead", "role_bead", "agent_state", "last_activity", "role_type", "rig"} {
+	for _, col := range []string{"hook_issue", "role_issue", "agent_state", "last_activity", "role_type", "rig"} {
 		if _, err := store.db.ExecContext(ctx, "ALTER TABLE issues DROP COLUMN "+col); err != nil {
 			t.Fatalf("drop issues.%s: %v", col, err)
 		}

@@ -9,30 +9,30 @@ import (
 )
 
 // TestManagedLocalProxiedMoleculeFrontDoorPositive exercises the production
-// fresh-project topology: bd owns a loopback proxy and a local Dolt child.
+// fresh-project topology: issuegraph owns a loopback proxy and a local Dolt child.
 // The external-TCP parity test covers the shared server lane; this test keeps
 // the managed-local path honest without introducing a second storage API.
 func TestManagedLocalProxiedMoleculeFrontDoorPositive(t *testing.T) {
 	requireManagedLocalProxiedEnv(t)
-	bd := buildEmbeddedBD(t)
-	p := bdManagedLocalInit(t, bd, "mf", 5*time.Minute)
-	r := moleculeFrontDoorRunner{name: "managed-local", dir: p.dir, env: bdProxiedEnv}
+	issuegraph := buildEmbeddedBD(t)
+	p := issuegraphManagedLocalInit(t, issuegraph, "mf", 5*time.Minute)
+	r := moleculeFrontDoorRunner{name: "managed-local", dir: p.dir, env: issuegraphProxiedEnv}
 
-	buildMoleculeFrontDoorFixture(t, bd, r)
-	showRaw := r.mustRun(t, bd, "mol", "show", "mf-root", "--json")
+	buildMoleculeFrontDoorFixture(t, issuegraph, r)
+	showRaw := r.mustRun(t, issuegraph, "mol", "show", "mf-root", "--json")
 	assertMoleculeFrontDoorRead(t, "show", showRaw)
 	if normalizedMoleculeJSON(t, showRaw) == nil {
 		t.Fatal("managed-local mol show returned nil")
 	}
 
 	// Positive graph write through the managed proxy.
-	r.mustRun(t, bd, "create", "Managed bond A", "--type", "epic", "--id", "mf-local-a")
-	r.mustRun(t, bd, "create", "Managed bond B", "--type", "epic", "--id", "mf-local-b")
+	r.mustRun(t, issuegraph, "create", "Managed bond A", "--type", "epic", "--id", "mf-local-a")
+	r.mustRun(t, issuegraph, "create", "Managed bond B", "--type", "epic", "--id", "mf-local-b")
 	var bond struct {
 		ResultID   string `json:"result_id"`
 		ResultType string `json:"result_type"`
 	}
-	if err := json.Unmarshal([]byte(r.mustRun(t, bd, "mol", "bond", "mf-local-a", "mf-local-b", "--type", "sequential", "--json")), &bond); err != nil {
+	if err := json.Unmarshal([]byte(r.mustRun(t, issuegraph, "mol", "bond", "mf-local-a", "mf-local-b", "--type", "sequential", "--json")), &bond); err != nil {
 		t.Fatalf("parse managed-local mol bond: %v", err)
 	}
 	if bond.ResultID != "mf-local-a" || bond.ResultType != "compound_molecule" {
@@ -45,7 +45,7 @@ func TestManagedLocalProxiedMoleculeFrontDoorPositive(t *testing.T) {
 		Created int    `json:"created"`
 		Phase   string `json:"phase"`
 	}
-	if err := json.Unmarshal([]byte(r.mustRun(t, bd, "mol", "pour", f.Formula, "--json")), &pour); err != nil {
+	if err := json.Unmarshal([]byte(r.mustRun(t, issuegraph, "mol", "pour", f.Formula, "--json")), &pour); err != nil {
 		t.Fatalf("parse managed-local mol pour: %v", err)
 	}
 	if pour.Created != 2 || pour.Phase != "liquid" {
@@ -55,7 +55,7 @@ func TestManagedLocalProxiedMoleculeFrontDoorPositive(t *testing.T) {
 		Created int    `json:"created"`
 		Phase   string `json:"phase"`
 	}
-	if err := json.Unmarshal([]byte(r.mustRun(t, bd, "mol", "wisp", "create", f.Formula, "--json")), &wisp); err != nil {
+	if err := json.Unmarshal([]byte(r.mustRun(t, issuegraph, "mol", "wisp", "create", f.Formula, "--json")), &wisp); err != nil {
 		t.Fatalf("parse managed-local mol wisp: %v", err)
 	}
 	if wisp.Created != 2 || wisp.Phase != "vapor" {

@@ -9,25 +9,25 @@ import (
 	"path/filepath"
 	"testing"
 
-	"github.com/steveyegge/beads/internal/configfile"
-	"github.com/steveyegge/beads/internal/storage/dolt"
-	"github.com/steveyegge/beads/internal/testutil"
+	"github.com/borg0ai/dx-issuegraph/internal/configfile"
+	"github.com/borg0ai/dx-issuegraph/internal/storage/dolt"
+	"github.com/borg0ai/dx-issuegraph/internal/testutil"
 )
 
-// setupDoltWorkspace creates a temp beads workspace with a Dolt database.
+// setupDoltWorkspace creates a temp issuegraph workspace with a Dolt database.
 // The database is initialized with the metadata table but no metadata values.
 // Returns the workspace root path.
 func setupDoltWorkspace(t *testing.T) string {
 	t.Helper()
 	testutil.RequireDoltBinary(t)
 	// Binary present != server listening; see dep_keys_test.go. dolt.New
-	// below needs the container port TestMain publishes via BEADS_DOLT_PORT.
+	// below needs the container port TestMain publishes via ISSUEGRAPH_DOLT_PORT.
 	requireFixDoltContainer(t)
 
 	dir := t.TempDir()
-	beadsDir := filepath.Join(dir, ".beads")
-	if err := os.MkdirAll(beadsDir, 0755); err != nil {
-		t.Fatalf("failed to create .beads directory: %v", err)
+	issuegraphDir := filepath.Join(dir, ".issuegraph")
+	if err := os.MkdirAll(issuegraphDir, 0755); err != nil {
+		t.Fatalf("failed to create .issuegraph directory: %v", err)
 	}
 
 	// Set up git repo for repo_id computation (from cached template)
@@ -47,16 +47,16 @@ func setupDoltWorkspace(t *testing.T) string {
 		Database: "dolt",
 		Backend:  configfile.BackendDolt,
 	}
-	if err := cfg.Save(beadsDir); err != nil {
+	if err := cfg.Save(issuegraphDir); err != nil {
 		t.Fatalf("failed to save config: %v", err)
 	}
 
 	// Create the Dolt store via factory (which bootstraps the database)
 	ctx := context.Background()
-	doltPath := filepath.Join(beadsDir, "dolt")
+	doltPath := filepath.Join(issuegraphDir, "dolt")
 	store, err := dolt.New(ctx, &dolt.Config{
 		Path:            doltPath,
-		Database:        "beads",
+		Database:        "issuegraph",
 		CreateIfMissing: true,
 	})
 	if err != nil {
@@ -83,20 +83,20 @@ func TestFixMissingMetadata_DoltRepair(t *testing.T) {
 
 	// Verify metadata was written by opening the store
 	ctx := context.Background()
-	beadsDir := filepath.Join(dir, ".beads")
-	store, err := dolt.NewFromConfig(ctx, beadsDir)
+	issuegraphDir := filepath.Join(dir, ".issuegraph")
+	store, err := dolt.NewFromConfig(ctx, issuegraphDir)
 	if err != nil {
 		t.Fatalf("failed to reopen store for verification: %v", err)
 	}
 	defer func() { _ = store.Close() }()
 
-	// Check bd_version
-	bdVersion, err := store.GetLocalMetadata(ctx, "bd_version")
+	// Check issuegraph_version
+	issuegraphVersion, err := store.GetLocalMetadata(ctx, "issuegraph_version")
 	if err != nil {
-		t.Fatalf("GetLocalMetadata(bd_version) error: %v", err)
+		t.Fatalf("GetLocalMetadata(issuegraph_version) error: %v", err)
 	}
-	if bdVersion != "0.49.6" {
-		t.Errorf("bd_version = %q, want %q", bdVersion, "0.49.6")
+	if issuegraphVersion != "0.49.6" {
+		t.Errorf("issuegraph_version = %q, want %q", issuegraphVersion, "0.49.6")
 	}
 
 	// Check repo_id (should be set since we have a git repo with remote)
@@ -131,12 +131,12 @@ func TestFixMissingMetadata_DoltIdempotent(t *testing.T) {
 
 	// Read the values that were set
 	ctx := context.Background()
-	beadsDir := filepath.Join(dir, ".beads")
-	store, err := dolt.NewFromConfig(ctx, beadsDir)
+	issuegraphDir := filepath.Join(dir, ".issuegraph")
+	store, err := dolt.NewFromConfig(ctx, issuegraphDir)
 	if err != nil {
 		t.Fatalf("failed to open store: %v", err)
 	}
-	origVersion, _ := store.GetLocalMetadata(ctx, "bd_version")
+	origVersion, _ := store.GetLocalMetadata(ctx, "issuegraph_version")
 	origRepoID, _ := store.GetMetadata(ctx, "repo_id")
 	origCloneID, _ := store.GetMetadata(ctx, "clone_id")
 	_ = store.Close()
@@ -147,15 +147,15 @@ func TestFixMissingMetadata_DoltIdempotent(t *testing.T) {
 	}
 
 	// Verify values did not change (version should remain 0.49.6, not 0.50.0)
-	store2, err := dolt.NewFromConfig(ctx, beadsDir)
+	store2, err := dolt.NewFromConfig(ctx, issuegraphDir)
 	if err != nil {
 		t.Fatalf("failed to reopen store: %v", err)
 	}
 	defer func() { _ = store2.Close() }()
 
-	newVersion, _ := store2.GetLocalMetadata(ctx, "bd_version")
+	newVersion, _ := store2.GetLocalMetadata(ctx, "issuegraph_version")
 	if newVersion != origVersion {
-		t.Errorf("bd_version changed from %q to %q (should be idempotent)", origVersion, newVersion)
+		t.Errorf("issuegraph_version changed from %q to %q (should be idempotent)", origVersion, newVersion)
 	}
 
 	newRepoID, _ := store2.GetMetadata(ctx, "repo_id")
@@ -174,15 +174,15 @@ func TestFixMissingMetadata_DoltIdempotent(t *testing.T) {
 func TestFixMissingMetadata_DoltPartialRepair(t *testing.T) {
 	dir := setupDoltWorkspace(t)
 
-	// Pre-set only bd_version
+	// Pre-set only issuegraph_version
 	ctx := context.Background()
-	beadsDir := filepath.Join(dir, ".beads")
-	store, err := dolt.NewFromConfig(ctx, beadsDir)
+	issuegraphDir := filepath.Join(dir, ".issuegraph")
+	store, err := dolt.NewFromConfig(ctx, issuegraphDir)
 	if err != nil {
 		t.Fatalf("failed to open store: %v", err)
 	}
-	if err := store.SetLocalMetadata(ctx, "bd_version", "0.48.0"); err != nil {
-		t.Fatalf("failed to pre-set bd_version: %v", err)
+	if err := store.SetLocalMetadata(ctx, "issuegraph_version", "0.48.0"); err != nil {
+		t.Fatalf("failed to pre-set issuegraph_version: %v", err)
 	}
 	_ = store.Close()
 
@@ -191,16 +191,16 @@ func TestFixMissingMetadata_DoltPartialRepair(t *testing.T) {
 		t.Fatalf("FixMissingMetadata failed: %v", err)
 	}
 
-	// Verify: bd_version should remain 0.48.0 (not overwritten)
-	store2, err := dolt.NewFromConfig(ctx, beadsDir)
+	// Verify: issuegraph_version should remain 0.48.0 (not overwritten)
+	store2, err := dolt.NewFromConfig(ctx, issuegraphDir)
 	if err != nil {
 		t.Fatalf("failed to reopen store: %v", err)
 	}
 	defer func() { _ = store2.Close() }()
 
-	bdVersion, _ := store2.GetLocalMetadata(ctx, "bd_version")
-	if bdVersion != "0.48.0" {
-		t.Errorf("bd_version = %q, want %q (should not overwrite existing)", bdVersion, "0.48.0")
+	issuegraphVersion, _ := store2.GetLocalMetadata(ctx, "issuegraph_version")
+	if issuegraphVersion != "0.48.0" {
+		t.Errorf("issuegraph_version = %q, want %q (should not overwrite existing)", issuegraphVersion, "0.48.0")
 	}
 
 	// repo_id and clone_id should have been set

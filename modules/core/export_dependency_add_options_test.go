@@ -1,10 +1,10 @@
-package beads
+package issuegraph
 
 import (
 	"context"
 	"testing"
 
-	"github.com/steveyegge/beads/internal/types"
+	"github.com/borg0ai/dx-issuegraph/internal/types"
 )
 
 // Compile-time proof that the exported alias is accepted by the Transaction

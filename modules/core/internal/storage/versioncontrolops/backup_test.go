@@ -10,7 +10,7 @@ import (
 // into a bogus local path. filepath.Abs treats "https://host/repo" as a
 // relative path, so without the check this helper would hand DOLT_BACKUP
 // "file:///cwd/https:/host/repo" and the failure would name a directory nobody
-// asked for. No caller can reach it today — `bd backup restore` stats its
+// asked for. No caller can reach it today — `issuegraph backup restore` stats its
 // argument first — but every caller is a restore path, and restore-from-a-remote
 // is the open capability that would reach it.
 func TestDirToFileURLRejectsSchemes(t *testing.T) {

@@ -61,7 +61,7 @@ func TestEnforceMaxRowsCap_AtCap_NoError(t *testing.T) {
 // the cap, the helper returns a *ErrTooManyRows carrying Found/Cap/Source.
 // The full SearchIssues integration path (issuing LIMIT cap+1 against a real
 // table, then handing the count to this helper) is tested by the per-backend
-// validator beads against live Dolt and embedded fixtures.
+// validator issuegraph against live Dolt and embedded fixtures.
 func TestSearchIssues_MaxRows_Exceeded_ReturnsErrTooManyRows(t *testing.T) {
 	t.Parallel()
 
@@ -72,7 +72,7 @@ func TestSearchIssues_MaxRows_Exceeded_ReturnsErrTooManyRows(t *testing.T) {
 		source string
 	}{
 		{name: "cap-of-5-found-6 from --max-rows", found: 6, cap: 5, source: "--max-rows"},
-		{name: "cap-of-1-found-2 from BEADS_MAX_ROWS", found: 2, cap: 1, source: "BEADS_MAX_ROWS"},
+		{name: "cap-of-1-found-2 from ISSUEGRAPH_MAX_ROWS", found: 2, cap: 1, source: "ISSUEGRAPH_MAX_ROWS"},
 		{name: "cap-of-10-found-100 from library caller", found: 100, cap: 10, source: ""},
 	}
 

@@ -7,12 +7,12 @@ import (
 	"os"
 	"time"
 
-	"github.com/steveyegge/beads/internal/formula"
-	"github.com/steveyegge/beads/internal/storage/domain"
-	"github.com/steveyegge/beads/internal/storage/uow"
-	"github.com/steveyegge/beads/internal/types"
-	"github.com/steveyegge/beads/internal/ui"
-	"github.com/steveyegge/beads/internal/utils"
+	"github.com/borg0ai/dx-issuegraph/internal/formula"
+	"github.com/borg0ai/dx-issuegraph/internal/storage/domain"
+	"github.com/borg0ai/dx-issuegraph/internal/storage/uow"
+	"github.com/borg0ai/dx-issuegraph/internal/types"
+	"github.com/borg0ai/dx-issuegraph/internal/ui"
+	"github.com/borg0ai/dx-issuegraph/internal/utils"
 )
 
 type pourProxiedResult struct {
@@ -143,7 +143,7 @@ func runPourProxiedServer(ctx context.Context, in pourInput) error {
 		}
 
 		return pourProxiedResult{spawn: spawnResult, totalAttached: totalAttached, attachCount: len(attachments)},
-			fmt.Sprintf("bd: mol pour %s", protoID), nil
+			fmt.Sprintf("issuegraph: mol pour %s", protoID), nil
 	})
 	if err != nil {
 		return HandleError("%v", err)
@@ -239,8 +239,8 @@ func runMolCurrentProxiedServer(ctx context.Context, args []string, agent string
 			}
 			fmt.Println(".")
 			fmt.Println("\nTo start work on a molecule:")
-			fmt.Println("  bd mol wisp create <proto-id>  # Instantiate as ephemeral wisp")
-			fmt.Println("  bd update <step-id> --claim  # Claim a step")
+			fmt.Println("  issuegraph mol wisp create <proto-id>  # Instantiate as ephemeral wisp")
+			fmt.Println("  issuegraph update <step-id> --claim  # Claim a step")
 			return nil
 		}
 	}
@@ -280,7 +280,7 @@ func runMolProgressProxiedServer(ctx context.Context, args []string) error {
 				return outputJSON([]interface{}{})
 			}
 			fmt.Println("No molecules in progress.")
-			fmt.Println("\nUse: bd mol progress <molecule-id>")
+			fmt.Println("\nUse: issuegraph mol progress <molecule-id>")
 			return nil
 		}
 		moleculeID = moleculeIDs[0]
@@ -431,7 +431,7 @@ func runMolBondProxiedServer(ctx context.Context, in molBondInput) error {
 			return bondTxResult{}, "", fmt.Errorf("bonding: %w", err)
 		}
 		return bondTxResult{result: result, idA: issueA.ID, idB: issueB.ID},
-			fmt.Sprintf("bd: mol bond %s %s", issueA.ID, issueB.ID), nil
+			fmt.Sprintf("issuegraph: mol bond %s %s", issueA.ID, issueB.ID), nil
 	})
 	if err != nil {
 		return HandleErrorRespectJSON("%v", err)
@@ -495,7 +495,7 @@ func runMolSquashProxiedServer(ctx context.Context, in molSquashInput) error {
 		if err != nil {
 			return nil, "", fmt.Errorf("squashing molecule: %w", err)
 		}
-		return result, fmt.Sprintf("bd: mol squash %s", moleculeID), nil
+		return result, fmt.Sprintf("issuegraph: mol squash %s", moleculeID), nil
 	})
 	if err != nil {
 		return HandleErrorRespectJSON("%v", err)
@@ -622,7 +622,7 @@ func runMolBurnProxiedServer(ctx context.Context, args []string, dryRun, force b
 			if err != nil {
 				return nil, "", err
 			}
-			return r, fmt.Sprintf("bd: mol burn %d wisp(s)", len(wispIDs)), nil
+			return r, fmt.Sprintf("issuegraph: mol burn %d wisp(s)", len(wispIDs)), nil
 		})
 		if err != nil {
 			if !jsonOutput {
@@ -656,7 +656,7 @@ func runMolBurnProxiedServer(ctx context.Context, args []string, dryRun, force b
 				MoleculeID:   id,
 				DeletedIDs:   issueIDs,
 				DeletedCount: res.DeletedCount,
-			}, fmt.Sprintf("bd: mol burn %s", id), nil
+			}, fmt.Sprintf("issuegraph: mol burn %s", id), nil
 		})
 		if err != nil {
 			if !jsonOutput {

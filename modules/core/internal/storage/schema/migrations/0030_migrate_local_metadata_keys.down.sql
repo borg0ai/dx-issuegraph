@@ -3,6 +3,6 @@
 INSERT IGNORE INTO metadata (`key`, value)
     SELECT `key`, value FROM local_metadata WHERE `key` LIKE 'tip\_%' ESCAPE '\\';
 INSERT IGNORE INTO metadata (`key`, value)
-    SELECT `key`, value FROM local_metadata WHERE `key` IN ('bd_version', 'bd_version_max');
+    SELECT `key`, value FROM local_metadata WHERE `key` IN ('issuegraph_version', 'issuegraph_version_max');
 INSERT IGNORE INTO config (`key`, value)
     SELECT `key`, value FROM local_metadata WHERE `key` LIKE '%.last\_sync' ESCAPE '\\';

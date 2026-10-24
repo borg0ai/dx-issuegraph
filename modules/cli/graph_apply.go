@@ -12,23 +12,23 @@ import (
 	"strings"
 	"time"
 
-	"github.com/steveyegge/beads/internal/config"
-	"github.com/steveyegge/beads/internal/storage"
-	"github.com/steveyegge/beads/internal/types"
-	"github.com/steveyegge/beads/internal/validation"
-	"github.com/steveyegge/beads/internal/workapi"
+	"github.com/borg0ai/dx-issuegraph/internal/config"
+	"github.com/borg0ai/dx-issuegraph/internal/storage"
+	"github.com/borg0ai/dx-issuegraph/internal/types"
+	"github.com/borg0ai/dx-issuegraph/internal/validation"
+	"github.com/borg0ai/dx-issuegraph/internal/workapi"
 )
 
-// GraphApplyPlan describes a symbolic bead graph to create atomically.
+// GraphApplyPlan describes a symbolic issue graph to create atomically.
 type GraphApplyPlan struct {
 	CommitMessage string           `json:"commit_message,omitempty"`
 	Nodes         []GraphApplyNode `json:"nodes"`
 	Edges         []GraphApplyEdge `json:"edges,omitempty"`
 }
 
-// GraphApplyNode describes a single bead to create. Field names follow the
-// types.Issue JSON tags (the names `bd show --json` emits), covering every
-// field single-issue `bd create` can set plus initial status and pinned.
+// GraphApplyNode describes a single issue to create. Field names follow the
+// types.Issue JSON tags (the names `issuegraph show --json` emits), covering every
+// field single-issue `issuegraph create` can set plus initial status and pinned.
 type GraphApplyNode struct {
 	Key                string                     `json:"key"`
 	ID                 string                     `json:"id,omitempty"` // explicit issue ID (default: generated)
@@ -100,7 +100,7 @@ type GraphApplyNodeDep struct {
 	Target string `json:"target"`
 }
 
-// GraphApplyResult returns the concrete bead IDs assigned to each symbolic key.
+// GraphApplyResult returns the concrete issue IDs assigned to each symbolic key.
 type GraphApplyResult struct {
 	IDs map[string]string `json:"ids"`
 }
@@ -121,7 +121,7 @@ func (opts GraphApplyOptions) Validate() error {
 }
 
 // GraphApplyDryRun describes the actions that would be taken by a graph plan,
-// without performing any writes. Emitted by `bd create --graph --dry-run`.
+// without performing any writes. Emitted by `issuegraph create --graph --dry-run`.
 type GraphApplyDryRun struct {
 	DryRun          bool                  `json:"dry_run"`
 	NodeCount       int                   `json:"node_count"`
@@ -283,7 +283,7 @@ func warnUnknownGraphFields(w io.Writer, unknown map[string][]string) []string {
 	for _, loc := range locations {
 		fields := append([]string(nil), unknown[loc]...)
 		sort.Strings(fields)
-		fmt.Fprintf(w, "warning: graph plan %s has unknown field(s): %v (silently dropped — see 'bd create --graph' schema)\n", loc, fields)
+		fmt.Fprintf(w, "warning: graph plan %s has unknown field(s): %v (silently dropped — see 'issuegraph create --graph' schema)\n", loc, fields)
 		for _, f := range fields {
 			distinct[f] = struct{}{}
 		}
@@ -328,7 +328,7 @@ func loadEmbeddedCustomStatuses() []string {
 	return cs
 }
 
-// createIssuesFromGraph handles `bd create --graph <plan-file>`.
+// createIssuesFromGraph handles `issuegraph create --graph <plan-file>`.
 // When dryRun is true, the plan is parsed and validated but no writes occur;
 // a preview is emitted to stdout (JSON when jsonOutput is set, otherwise
 // human-readable). Unknown plan/node/edge fields are reported to stderr in
@@ -394,7 +394,7 @@ func createIssuesFromGraph(planFile string, dryRun bool, opts GraphApplyOptions)
 	return nil
 }
 
-// emitGraphApplyDryRun prints what `bd create --graph` would do without
+// emitGraphApplyDryRun prints what `issuegraph create --graph` would do without
 // performing any writes. Mirrors the JSON-vs-human split of the live path.
 // (GH#3367)
 func emitGraphApplyDryRun(plan *GraphApplyPlan, opts GraphApplyOptions) error {
@@ -497,7 +497,7 @@ func validateFullGraphPlan(plan *GraphApplyPlan, cfg graphPlanConfig, opts Graph
 
 // validateGraphApplyExplicitIDCollisions rejects plan nodes whose explicit id
 // already belongs to a stored issue or wisp. The insert path upserts on a
-// duplicate ID (matching `bd create --id`), which for an atomic graph create
+// duplicate ID (matching `issuegraph create --id`), which for an atomic graph create
 // would silently rewrite the existing issue while reporting creation — a plan
 // must fail fast instead. Deliberately not overridable by --force: that flag
 // vouches for a foreign prefix, not for destroying existing data. Best-effort
@@ -645,7 +645,7 @@ func validateGraphApplyPlan(plan *GraphApplyPlan, customTypes, customStatuses []
 }
 
 // validateGraphApplyNodeFields checks the single-node fields added for
-// bd-create parity, mirroring the flag-shape checks `bd create` applies
+// bd-create parity, mirroring the flag-shape checks `issuegraph create` applies
 // (config-gated template linting is not run on graph plans).
 func validateGraphApplyNodeFields(node GraphApplyNode, customTypes, customStatuses []string, opts GraphApplyOptions) error {
 	if node.ID != "" {
@@ -655,7 +655,7 @@ func validateGraphApplyNodeFields(node GraphApplyNode, customTypes, customStatus
 	}
 	// Friendlier status message than the issue-model validator's below.
 	if node.Status != "" && !types.Status(node.Status).IsValidWithCustom(customStatuses) {
-		return fmt.Errorf("node %q: invalid status %q (valid: %s; configure custom statuses via 'bd config set status.custom')", node.Key, node.Status, workapi.ValidStatusList(customStatuses))
+		return fmt.Errorf("node %q: invalid status %q (valid: %s; configure custom statuses via 'issuegraph config set status.custom')", node.Key, node.Status, workapi.ValidStatusList(customStatuses))
 	}
 	if node.WispType != "" && !types.WispType(node.WispType).IsValid() {
 		return fmt.Errorf("node %q: invalid wisp_type %q (must be %s)", node.Key, node.WispType, types.ValidWispTypeNames())
@@ -701,7 +701,7 @@ func validateGraphApplyStorageClasses(plan *GraphApplyPlan, opts GraphApplyOptio
 	return useWisp, nil
 }
 
-// validateGraphApplyExplicitIDPrefixes mirrors the `bd create --id` prefix
+// validateGraphApplyExplicitIDPrefixes mirrors the `issuegraph create --id` prefix
 // check for every plan node that pins an explicit ID: the ID must start with
 // the database prefix (or one of allowed_prefixes) unless force is set.
 func validateGraphApplyExplicitIDPrefixes(plan *GraphApplyPlan, dbPrefix, allowedPrefixes string, force bool) error {
@@ -784,7 +784,7 @@ func validateGraphApplyLocalCycles(plan *GraphApplyPlan, knownKeys map[string]bo
 }
 
 // graphApplyNodeIssue materializes a plan node into an issue via the same
-// createIssueParams path used by single-issue `bd create`, so every field the
+// createIssueParams path used by single-issue `issuegraph create`, so every field the
 // CLI can set stays addressable from graph plans. Assignee handling is left
 // to the caller (embedded and proxied paths defer assignment differently).
 func graphApplyNodeIssue(node GraphApplyNode, opts GraphApplyOptions, createdBy, owner string) (*types.Issue, error) {
@@ -938,7 +938,7 @@ func executeGraphApply(ctx context.Context, plan *GraphApplyPlan, opts GraphAppl
 
 	commitMsg := plan.CommitMessage
 	if commitMsg == "" {
-		commitMsg = fmt.Sprintf("bd: graph-apply %d nodes", len(plan.Nodes))
+		commitMsg = fmt.Sprintf("issuegraph: graph-apply %d nodes", len(plan.Nodes))
 	}
 
 	if err := store.RunInTransaction(ctx, commitMsg, func(tx storage.Transaction) error {

@@ -12,92 +12,92 @@ import (
 	"testing"
 )
 
-// bdPromote runs "bd promote" with the given args and returns stdout.
-func bdPromote(t *testing.T, bd, dir string, args ...string) string {
+// issuegraphPromote runs "issuegraph promote" with the given args and returns stdout.
+func issuegraphPromote(t *testing.T, issuegraph, dir string, args ...string) string {
 	t.Helper()
 	fullArgs := append([]string{"promote"}, args...)
-	cmd := exec.Command(bd, fullArgs...)
+	cmd := exec.Command(issuegraph, fullArgs...)
 	cmd.Dir = dir
-	cmd.Env = bdEnv(dir)
+	cmd.Env = issuegraphEnv(dir)
 	stdout, stderr, err := runCommandBuffers(t, cmd)
 	if err != nil {
-		t.Fatalf("bd promote %s failed: %v\nstdout:\n%s\nstderr:\n%s", strings.Join(args, " "), err, stdout.String(), stderr.String())
+		t.Fatalf("issuegraph promote %s failed: %v\nstdout:\n%s\nstderr:\n%s", strings.Join(args, " "), err, stdout.String(), stderr.String())
 	}
 	return stdout.String()
 }
 
-// bdPromoteFail runs "bd promote" expecting failure.
-func bdPromoteFail(t *testing.T, bd, dir string, args ...string) string {
+// issuegraphPromoteFail runs "issuegraph promote" expecting failure.
+func issuegraphPromoteFail(t *testing.T, issuegraph, dir string, args ...string) string {
 	t.Helper()
 	fullArgs := append([]string{"promote"}, args...)
-	cmd := exec.Command(bd, fullArgs...)
+	cmd := exec.Command(issuegraph, fullArgs...)
 	cmd.Dir = dir
-	cmd.Env = bdEnv(dir)
+	cmd.Env = issuegraphEnv(dir)
 	out, err := cmd.CombinedOutput()
 	if err == nil {
-		t.Fatalf("expected bd promote %s to fail, but succeeded:\n%s", strings.Join(args, " "), out)
+		t.Fatalf("expected issuegraph promote %s to fail, but succeeded:\n%s", strings.Join(args, " "), out)
 	}
 	return string(out)
 }
 
 func TestEmbeddedPromoteCLI(t *testing.T) {
-	if os.Getenv("BEADS_TEST_EMBEDDED_DOLT") != "1" {
-		t.Skip("set BEADS_TEST_EMBEDDED_DOLT=1 to run embedded dolt integration tests")
+	if os.Getenv("ISSUEGRAPH_TEST_EMBEDDED_DOLT") != "1" {
+		t.Skip("set ISSUEGRAPH_TEST_EMBEDDED_DOLT=1 to run embedded dolt integration tests")
 	}
 	t.Parallel()
 
-	bd := buildEmbeddedBD(t)
-	dir, beadsDir, _ := bdInit(t, bd, "--prefix", "pr")
+	issuegraph := buildEmbeddedBD(t)
+	dir, issuegraphDir, _ := issuegraphInit(t, issuegraph, "--prefix", "pr")
 
 	t.Run("promote_basic", func(t *testing.T) {
 		// Create ephemeral issue
-		issue := bdCreate(t, bd, dir, "CLI promote basic", "--ephemeral")
+		issue := issuegraphCreate(t, issuegraph, dir, "CLI promote basic", "--ephemeral")
 
 		// Verify it's ephemeral
-		got := bdShow(t, bd, dir, issue.ID)
+		got := issuegraphShow(t, issuegraph, dir, issue.ID)
 		if !got.Ephemeral {
 			t.Skip("issue not ephemeral; cannot test promote")
 		}
 
-		out := bdPromote(t, bd, dir, issue.ID)
+		out := issuegraphPromote(t, issuegraph, dir, issue.ID)
 		if !strings.Contains(out, "Promoted") {
 			t.Errorf("expected 'Promoted' in output: %s", out)
 		}
 
 		// Verify no longer ephemeral
-		got = bdShow(t, bd, dir, issue.ID)
+		got = issuegraphShow(t, issuegraph, dir, issue.ID)
 		if got.Ephemeral {
 			t.Error("expected non-ephemeral after promote")
 		}
 	})
 
 	t.Run("promote_with_reason", func(t *testing.T) {
-		issue := bdCreate(t, bd, dir, "CLI promote reason", "--ephemeral")
+		issue := issuegraphCreate(t, issuegraph, dir, "CLI promote reason", "--ephemeral")
 
-		out := bdPromote(t, bd, dir, issue.ID, "--reason", "Important enough to persist")
+		out := issuegraphPromote(t, issuegraph, dir, issue.ID, "--reason", "Important enough to persist")
 		if !strings.Contains(out, "Promoted") {
 			t.Errorf("expected 'Promoted' in output: %s", out)
 		}
 	})
 
 	t.Run("promote_with_reason_short", func(t *testing.T) {
-		issue := bdCreate(t, bd, dir, "CLI promote -r", "--ephemeral")
+		issue := issuegraphCreate(t, issuegraph, dir, "CLI promote -r", "--ephemeral")
 
-		out := bdPromote(t, bd, dir, issue.ID, "-r", "Short reason")
+		out := issuegraphPromote(t, issuegraph, dir, issue.ID, "-r", "Short reason")
 		if !strings.Contains(out, "Promoted") {
 			t.Errorf("expected 'Promoted' in output: %s", out)
 		}
 	})
 
 	t.Run("promote_json", func(t *testing.T) {
-		issue := bdCreate(t, bd, dir, "CLI promote JSON", "--ephemeral")
+		issue := issuegraphCreate(t, issuegraph, dir, "CLI promote JSON", "--ephemeral")
 
-		cmd := exec.Command(bd, "promote", issue.ID, "--json")
+		cmd := exec.Command(issuegraph, "promote", issue.ID, "--json")
 		cmd.Dir = dir
-		cmd.Env = bdEnv(dir)
+		cmd.Env = issuegraphEnv(dir)
 		stdout, stderr, err := runCommandBuffers(t, cmd)
 		if err != nil {
-			t.Fatalf("bd promote --json failed: %v\nstdout:\n%s\nstderr:\n%s", err, stdout.String(), stderr.String())
+			t.Fatalf("issuegraph promote --json failed: %v\nstdout:\n%s\nstderr:\n%s", err, stdout.String(), stderr.String())
 		}
 		s := strings.TrimSpace(stdout.String())
 		start := strings.Index(s, "{")
@@ -114,10 +114,10 @@ func TestEmbeddedPromoteCLI(t *testing.T) {
 	})
 
 	t.Run("promote_preserves_labels", func(t *testing.T) {
-		issue := bdCreate(t, bd, dir, "Promote labels", "--ephemeral", "--label", "keep-me")
-		bdPromote(t, bd, dir, issue.ID)
+		issue := issuegraphCreate(t, issuegraph, dir, "Promote labels", "--ephemeral", "--label", "keep-me")
+		issuegraphPromote(t, issuegraph, dir, issue.ID)
 
-		store := openStore(t, beadsDir, "pr")
+		store := openStore(t, issuegraphDir, "pr")
 		labels, err := store.GetLabels(t.Context(), issue.ID)
 		if err != nil {
 			t.Fatalf("GetLabels: %v", err)
@@ -134,18 +134,18 @@ func TestEmbeddedPromoteCLI(t *testing.T) {
 	})
 
 	t.Run("promote_nonexistent_fails", func(t *testing.T) {
-		bdPromoteFail(t, bd, dir, "pr-nonexistent999")
+		issuegraphPromoteFail(t, issuegraph, dir, "pr-nonexistent999")
 	})
 
 	t.Run("promote_already_permanent_fails", func(t *testing.T) {
-		issue := bdCreate(t, bd, dir, "Already permanent", "--type", "task")
-		bdPromoteFail(t, bd, dir, issue.ID)
+		issue := issuegraphCreate(t, issuegraph, dir, "Already permanent", "--type", "task")
+		issuegraphPromoteFail(t, issuegraph, dir, issue.ID)
 	})
 
 	t.Run("promote_no_args_fails", func(t *testing.T) {
-		cmd := exec.Command(bd, "promote")
+		cmd := exec.Command(issuegraph, "promote")
 		cmd.Dir = dir
-		cmd.Env = bdEnv(dir)
+		cmd.Env = issuegraphEnv(dir)
 		out, err := cmd.CombinedOutput()
 		if err == nil {
 			t.Fatalf("expected promote with no args to fail, got: %s", out)
@@ -155,20 +155,20 @@ func TestEmbeddedPromoteCLI(t *testing.T) {
 
 // TestEmbeddedPromoteCLIConcurrent exercises promote concurrently.
 func TestEmbeddedPromoteCLIConcurrent(t *testing.T) {
-	if os.Getenv("BEADS_TEST_EMBEDDED_DOLT") != "1" {
-		t.Skip("set BEADS_TEST_EMBEDDED_DOLT=1 to run embedded dolt integration tests")
+	if os.Getenv("ISSUEGRAPH_TEST_EMBEDDED_DOLT") != "1" {
+		t.Skip("set ISSUEGRAPH_TEST_EMBEDDED_DOLT=1 to run embedded dolt integration tests")
 	}
 	t.Parallel()
 
-	bd := buildEmbeddedBD(t)
-	dir, _, _ := bdInit(t, bd, "--prefix", "px")
+	issuegraph := buildEmbeddedBD(t)
+	dir, _, _ := issuegraphInit(t, issuegraph, "--prefix", "px")
 
 	const numWorkers = 6
 
 	// Pre-create ephemeral issues
 	var issueIDs []string
 	for i := 0; i < numWorkers; i++ {
-		issue := bdCreate(t, bd, dir, fmt.Sprintf("concurrent-promote-%d", i), "--ephemeral")
+		issue := issuegraphCreate(t, issuegraph, dir, fmt.Sprintf("concurrent-promote-%d", i), "--ephemeral")
 		issueIDs = append(issueIDs, issue.ID)
 	}
 
@@ -187,9 +187,9 @@ func TestEmbeddedPromoteCLIConcurrent(t *testing.T) {
 			defer wg.Done()
 			r := workerResult{worker: worker}
 
-			cmd := exec.Command(bd, "promote", issueIDs[worker])
+			cmd := exec.Command(issuegraph, "promote", issueIDs[worker])
 			cmd.Dir = dir
-			cmd.Env = bdEnv(dir)
+			cmd.Env = issuegraphEnv(dir)
 			out, err := cmd.CombinedOutput()
 			r.out = string(out)
 			if err != nil {
@@ -210,7 +210,7 @@ func TestEmbeddedPromoteCLIConcurrent(t *testing.T) {
 
 	// Verify all issues are permanent.
 	for i, id := range issueIDs {
-		got := bdShow(t, bd, dir, id)
+		got := issuegraphShow(t, issuegraph, dir, id)
 		if got.Ephemeral {
 			t.Errorf("expected %s (worker %d) to be permanent after promote", id, i)
 		}

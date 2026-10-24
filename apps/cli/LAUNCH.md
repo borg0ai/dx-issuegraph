@@ -1,12 +1,12 @@
-# 🚀 @beads/bd Launch Summary
+# 🚀 @borg0ai/issuegraph Launch Summary
 
 ## ✅ Published Successfully!
 
-**Package**: @beads/bd
+**Package**: @borg0ai/issuegraph
 **Version**: 0.21.5
 **Published**: November 3, 2025
 **Registry**: https://registry.npmjs.org
-**Package Page**: https://www.npmjs.com/package/@beads/bd
+**Package Page**: https://www.npmjs.com/package/@borg0ai/issuegraph
 
 ## 📦 What Was Published
 
@@ -18,10 +18,10 @@
 ### Package Contents
 
 ```
-@beads/bd@0.21.5
+@borg0ai/issuegraph@0.21.5
 ├── bin/
-│   ├── bd              (17.1 MB - native binary)
-│   ├── bd.js           (1.3 KB - CLI wrapper)
+│   ├── issuegraph              (17.1 MB - native binary)
+│   ├── issuegraph.js           (1.3 KB - CLI wrapper)
 │   ├── CHANGELOG.md    (40.5 KB)
 │   ├── LICENSE         (1.1 KB)
 │   └── README.md       (23.6 KB)
@@ -39,10 +39,10 @@ Users can now install issuegraph via npm:
 
 ```bash
 # Global installation (recommended)
-npm install -g @beads/bd
+npm install -g @borg0ai/issuegraph
 
 # Project dependency
-npm install --save-dev @beads/bd
+npm install --save-dev @borg0ai/issuegraph
 
 # Verify installation
 issuegraph version
@@ -50,7 +50,7 @@ issuegraph version
 
 ## 🔧 How It Works
 
-1. User runs `npm install -g @beads/bd`
+1. User runs `npm install -g @borg0ai/issuegraph`
 2. npm downloads package (6.4 MB)
 3. Postinstall script runs automatically
 4. Downloads platform-specific binary from GitHub releases
@@ -64,7 +64,7 @@ Users can add to `.claude/hooks/session-start.sh`:
 
 ```bash
 #!/bin/bash
-npm install -g @beads/bd
+npm install -g @borg0ai/issuegraph
 issuegraph init --quiet
 ```
 
@@ -72,9 +72,9 @@ This gives automatic issuegraph installation in every Claude Code for Web sessio
 
 ## 📊 Success Metrics
 
-All success criteria from bd-febc met:
+All success criteria from issuegraph-febc met:
 
-- ✅ **npm install @beads/bd works** - Published and available
+- ✅ **npm install @borg0ai/issuegraph works** - Published and available
 - ✅ **All issuegraph commands function identically** - Native binary wrapper
 - ✅ **SessionStart hook documented** - Complete guide in CLAUDE_CODE_WEB.md
 - ✅ **Package published to npm registry** - Live at npmjs.com
@@ -92,19 +92,19 @@ All success criteria from bd-febc met:
 
 ### For Users
 
-1. Visit: https://www.npmjs.com/package/@beads/bd
-2. Install: `npm install -g @beads/bd`
+1. Visit: https://www.npmjs.com/package/@borg0ai/issuegraph
+2. Install: `npm install -g @borg0ai/issuegraph`
 3. Use: `issuegraph init` in your project
-4. Read: https://github.com/gastownhall/beads for full docs
+4. Read: https://github.com/borg0ai/dx-issuegraph for full docs
 
 ### For Maintainers
 
 **Future updates:**
 
-1. Update `npm-package/package.json` version to match new issuegraph release
+1. Update `apps/cli/package.json` version to match new issuegraph release
 2. Ensure GitHub release has binary assets
-3. Run `npm publish` from npm-package directory
-4. Verify at npmjs.com/package/@beads/bd
+3. Run `npm publish` from apps/cli directory
+4. Verify at npmjs.com/package/@borg0ai/issuegraph
 
 **Automation opportunity:**
 
@@ -112,10 +112,10 @@ Create `.github/workflows/publish-npm.yml` to auto-publish on GitHub releases.
 
 ## 🔗 Links
 
-- **npm package**: https://www.npmjs.com/package/@beads/bd
-- **GitHub repo**: https://github.com/gastownhall/beads
-- **npm organization**: https://www.npmjs.com/org/beads
-- **Documentation**: https://github.com/gastownhall/beads#readme
+- **npm package**: https://www.npmjs.com/package/@borg0ai/issuegraph
+- **GitHub repo**: https://github.com/borg0ai/dx-issuegraph
+- **npm organization**: https://www.npmjs.com/org/issuegraph
+- **Documentation**: https://github.com/borg0ai/dx-issuegraph#readme
 
 ## 💡 Key Features
 
@@ -130,7 +130,7 @@ Create `.github/workflows/publish-npm.yml` to auto-publish on GitHub releases.
 ## 📈 Package Stats
 
 Initial publish:
-- **Tarball**: beads-bd-0.21.5.tgz
+- **Tarball**: issuegraph-issuegraph-0.21.5.tgz
 - **Shasum**: 6f3e7d808a67e975ca6781e340fa66777aa194b3
 - **Integrity**: sha512-8fAwa9JFKaczn...U3frQIXmrWnxQ==
 - **Tag**: latest
@@ -138,7 +138,7 @@ Initial publish:
 
 ## 🎊 Celebration
 
-This completes bd-febc! The IssueGraph issue tracker is now available as an npm package, making it trivially easy to install in any Node.js environment, especially Claude Code for Web.
+This completes issuegraph-febc! The IssueGraph issue tracker is now available as an npm package, making it trivially easy to install in any Node.js environment, especially Claude Code for Web.
 
 **Time to completion**: ~1 session
 **Files created**: 10+

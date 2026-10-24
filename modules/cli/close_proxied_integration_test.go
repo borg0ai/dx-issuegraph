@@ -17,37 +17,37 @@ import (
 	"testing"
 	"time"
 
-	"github.com/steveyegge/beads/internal/types"
+	"github.com/borg0ai/dx-issuegraph/internal/types"
 )
 
-func bdProxiedClose(t *testing.T, bd, dir string, args ...string) string {
+func issuegraphProxiedClose(t *testing.T, issuegraph, dir string, args ...string) string {
 	t.Helper()
 	fullArgs := append([]string{"close"}, args...)
-	stdout, stderr, err := bdProxiedRunBuffers(t, bd, dir, fullArgs...)
+	stdout, stderr, err := issuegraphProxiedRunBuffers(t, issuegraph, dir, fullArgs...)
 	if err != nil {
-		t.Fatalf("bd close %s failed: %v\nstdout:\n%s\nstderr:\n%s",
+		t.Fatalf("issuegraph close %s failed: %v\nstdout:\n%s\nstderr:\n%s",
 			strings.Join(args, " "), err, stdout, stderr)
 	}
 	return stdout
 }
 
-func bdProxiedCloseFail(t *testing.T, bd, dir string, args ...string) string {
+func issuegraphProxiedCloseFail(t *testing.T, issuegraph, dir string, args ...string) string {
 	t.Helper()
 	fullArgs := append([]string{"close"}, args...)
-	stdout, stderr, err := bdProxiedRunBuffers(t, bd, dir, fullArgs...)
+	stdout, stderr, err := issuegraphProxiedRunBuffers(t, issuegraph, dir, fullArgs...)
 	if err == nil {
-		t.Fatalf("expected bd close %s to fail, got:\nstdout:\n%s\nstderr:\n%s",
+		t.Fatalf("expected issuegraph close %s to fail, got:\nstdout:\n%s\nstderr:\n%s",
 			strings.Join(args, " "), stdout, stderr)
 	}
 	return stdout + stderr
 }
 
-func bdProxiedCloseJSON(t *testing.T, bd, dir string, args ...string) []*types.Issue {
+func issuegraphProxiedCloseJSON(t *testing.T, issuegraph, dir string, args ...string) []*types.Issue {
 	t.Helper()
 	fullArgs := append([]string{"close", "--json"}, args...)
-	stdout, stderr, err := bdProxiedRunBuffers(t, bd, dir, fullArgs...)
+	stdout, stderr, err := issuegraphProxiedRunBuffers(t, issuegraph, dir, fullArgs...)
 	if err != nil {
-		t.Fatalf("bd close --json %s failed: %v\nstdout:\n%s\nstderr:\n%s",
+		t.Fatalf("issuegraph close --json %s failed: %v\nstdout:\n%s\nstderr:\n%s",
 			strings.Join(args, " "), err, stdout, stderr)
 	}
 	start := strings.Index(stdout, "[")
@@ -61,12 +61,12 @@ func bdProxiedCloseJSON(t *testing.T, bd, dir string, args ...string) []*types.I
 	return issues
 }
 
-func bdProxiedCloseJSONEnvelope(t *testing.T, bd, dir string, args ...string) map[string]json.RawMessage {
+func issuegraphProxiedCloseJSONEnvelope(t *testing.T, issuegraph, dir string, args ...string) map[string]json.RawMessage {
 	t.Helper()
 	fullArgs := append([]string{"close", "--json"}, args...)
-	stdout, stderr, err := bdProxiedRunBuffers(t, bd, dir, fullArgs...)
+	stdout, stderr, err := issuegraphProxiedRunBuffers(t, issuegraph, dir, fullArgs...)
 	if err != nil {
-		t.Fatalf("bd close --json %s failed: %v\nstdout:\n%s\nstderr:\n%s",
+		t.Fatalf("issuegraph close --json %s failed: %v\nstdout:\n%s\nstderr:\n%s",
 			strings.Join(args, " "), err, stdout, stderr)
 	}
 	start := strings.Index(stdout, "{")
@@ -200,14 +200,14 @@ func readDoltLogCountSince(t *testing.T, db *sql.DB, sinceHash string) int {
 func TestProxiedServerClose(t *testing.T) {
 	requireSharedProxiedServer(t)
 	t.Parallel()
-	bd := buildEmbeddedBD(t)
+	issuegraph := buildEmbeddedBD(t)
 
 	t.Run("basic_close", func(t *testing.T) {
 		t.Parallel()
-		p := newSharedProxiedProject(t, bd, "cb")
-		issue := bdProxiedCreate(t, bd, p.dir, "Close me")
-		bdProxiedClose(t, bd, p.dir, issue.ID)
-		got := bdProxiedShow(t, bd, p.dir, issue.ID)
+		p := newSharedProxiedProject(t, issuegraph, "cb")
+		issue := issuegraphProxiedCreate(t, issuegraph, p.dir, "Close me")
+		issuegraphProxiedClose(t, issuegraph, p.dir, issue.ID)
+		got := issuegraphProxiedShow(t, issuegraph, p.dir, issue.ID)
 		if got.Status != types.StatusClosed {
 			t.Errorf("status: got %q, want closed", got.Status)
 		}
@@ -218,9 +218,9 @@ func TestProxiedServerClose(t *testing.T) {
 
 	t.Run("close_default_reason", func(t *testing.T) {
 		t.Parallel()
-		p := newSharedProxiedProject(t, bd, "cdr")
-		issue := bdProxiedCreate(t, bd, p.dir, "Default reason")
-		bdProxiedClose(t, bd, p.dir, issue.ID)
+		p := newSharedProxiedProject(t, issuegraph, "cdr")
+		issue := issuegraphProxiedCreate(t, issuegraph, p.dir, "Default reason")
+		issuegraphProxiedClose(t, issuegraph, p.dir, issue.ID)
 		db := openProxiedDB(t, p)
 		if got := readCloseReason(t, db, issue.ID); got != "Closed" {
 			t.Errorf("close_reason: got %q, want %q", got, "Closed")
@@ -229,9 +229,9 @@ func TestProxiedServerClose(t *testing.T) {
 
 	t.Run("close_with_reason", func(t *testing.T) {
 		t.Parallel()
-		p := newSharedProxiedProject(t, bd, "cwr")
-		issue := bdProxiedCreate(t, bd, p.dir, "Reason test")
-		bdProxiedClose(t, bd, p.dir, issue.ID, "--reason", "done")
+		p := newSharedProxiedProject(t, issuegraph, "cwr")
+		issue := issuegraphProxiedCreate(t, issuegraph, p.dir, "Reason test")
+		issuegraphProxiedClose(t, issuegraph, p.dir, issue.ID, "--reason", "done")
 		db := openProxiedDB(t, p)
 		if got := readCloseReason(t, db, issue.ID); got != "done" {
 			t.Errorf("close_reason: got %q, want %q", got, "done")
@@ -240,9 +240,9 @@ func TestProxiedServerClose(t *testing.T) {
 
 	t.Run("close_with_reason_short", func(t *testing.T) {
 		t.Parallel()
-		p := newSharedProxiedProject(t, bd, "cwrs")
-		issue := bdProxiedCreate(t, bd, p.dir, "Short reason")
-		bdProxiedClose(t, bd, p.dir, issue.ID, "-r", "fixed")
+		p := newSharedProxiedProject(t, issuegraph, "cwrs")
+		issue := issuegraphProxiedCreate(t, issuegraph, p.dir, "Short reason")
+		issuegraphProxiedClose(t, issuegraph, p.dir, issue.ID, "-r", "fixed")
 		db := openProxiedDB(t, p)
 		if got := readCloseReason(t, db, issue.ID); got != "fixed" {
 			t.Errorf("close_reason: got %q, want %q", got, "fixed")
@@ -251,9 +251,9 @@ func TestProxiedServerClose(t *testing.T) {
 
 	t.Run("close_with_message_alias", func(t *testing.T) {
 		t.Parallel()
-		p := newSharedProxiedProject(t, bd, "cwma")
-		issue := bdProxiedCreate(t, bd, p.dir, "Message alias")
-		bdProxiedClose(t, bd, p.dir, issue.ID, "-m", "via message")
+		p := newSharedProxiedProject(t, issuegraph, "cwma")
+		issue := issuegraphProxiedCreate(t, issuegraph, p.dir, "Message alias")
+		issuegraphProxiedClose(t, issuegraph, p.dir, issue.ID, "-m", "via message")
 		db := openProxiedDB(t, p)
 		if got := readCloseReason(t, db, issue.ID); got != "via message" {
 			t.Errorf("close_reason: got %q, want %q", got, "via message")
@@ -262,9 +262,9 @@ func TestProxiedServerClose(t *testing.T) {
 
 	t.Run("close_with_resolution_alias", func(t *testing.T) {
 		t.Parallel()
-		p := newSharedProxiedProject(t, bd, "cwra")
-		issue := bdProxiedCreate(t, bd, p.dir, "Resolution alias")
-		bdProxiedClose(t, bd, p.dir, issue.ID, "--resolution", "wontfix")
+		p := newSharedProxiedProject(t, issuegraph, "cwra")
+		issue := issuegraphProxiedCreate(t, issuegraph, p.dir, "Resolution alias")
+		issuegraphProxiedClose(t, issuegraph, p.dir, issue.ID, "--resolution", "wontfix")
 		db := openProxiedDB(t, p)
 		if got := readCloseReason(t, db, issue.ID); got != "wontfix" {
 			t.Errorf("close_reason: got %q, want %q", got, "wontfix")
@@ -273,9 +273,9 @@ func TestProxiedServerClose(t *testing.T) {
 
 	t.Run("close_with_comment_alias", func(t *testing.T) {
 		t.Parallel()
-		p := newSharedProxiedProject(t, bd, "cwca")
-		issue := bdProxiedCreate(t, bd, p.dir, "Comment alias")
-		bdProxiedClose(t, bd, p.dir, issue.ID, "--comment", "duplicate")
+		p := newSharedProxiedProject(t, issuegraph, "cwca")
+		issue := issuegraphProxiedCreate(t, issuegraph, p.dir, "Comment alias")
+		issuegraphProxiedClose(t, issuegraph, p.dir, issue.ID, "--comment", "duplicate")
 		db := openProxiedDB(t, p)
 		if got := readCloseReason(t, db, issue.ID); got != "duplicate" {
 			t.Errorf("close_reason: got %q, want %q", got, "duplicate")
@@ -284,10 +284,10 @@ func TestProxiedServerClose(t *testing.T) {
 
 	t.Run("close_multiple_ids", func(t *testing.T) {
 		t.Parallel()
-		p := newSharedProxiedProject(t, bd, "cmi")
-		a := bdProxiedCreate(t, bd, p.dir, "Multi A")
-		b := bdProxiedCreate(t, bd, p.dir, "Multi B")
-		bdProxiedClose(t, bd, p.dir, a.ID, b.ID)
+		p := newSharedProxiedProject(t, issuegraph, "cmi")
+		a := issuegraphProxiedCreate(t, issuegraph, p.dir, "Multi A")
+		b := issuegraphProxiedCreate(t, issuegraph, p.dir, "Multi B")
+		issuegraphProxiedClose(t, issuegraph, p.dir, a.ID, b.ID)
 		db := openProxiedDB(t, p)
 		if got := readStatus(t, db, a.ID); got != types.StatusClosed {
 			t.Errorf("a status: got %q, want closed", got)
@@ -299,10 +299,10 @@ func TestProxiedServerClose(t *testing.T) {
 
 	t.Run("close_multiple_ids_with_per_id_reasons", func(t *testing.T) {
 		t.Parallel()
-		p := newSharedProxiedProject(t, bd, "cmpr")
-		a := bdProxiedCreate(t, bd, p.dir, "Multi reason A")
-		b := bdProxiedCreate(t, bd, p.dir, "Multi reason B")
-		bdProxiedClose(t, bd, p.dir, a.ID, "--reason", "fixed A", b.ID, "--reason", "fixed B")
+		p := newSharedProxiedProject(t, issuegraph, "cmpr")
+		a := issuegraphProxiedCreate(t, issuegraph, p.dir, "Multi reason A")
+		b := issuegraphProxiedCreate(t, issuegraph, p.dir, "Multi reason B")
+		issuegraphProxiedClose(t, issuegraph, p.dir, a.ID, "--reason", "fixed A", b.ID, "--reason", "fixed B")
 		db := openProxiedDB(t, p)
 		if got := readCloseReason(t, db, a.ID); got != "fixed A" {
 			t.Errorf("a reason: got %q, want %q", got, "fixed A")
@@ -314,10 +314,10 @@ func TestProxiedServerClose(t *testing.T) {
 
 	t.Run("close_already_closed", func(t *testing.T) {
 		t.Parallel()
-		p := newSharedProxiedProject(t, bd, "cac")
-		issue := bdProxiedCreate(t, bd, p.dir, "Double close")
-		bdProxiedClose(t, bd, p.dir, issue.ID, "--reason", "first")
-		stdout, stderr, err := bdProxiedRunBuffers(t, bd, p.dir, "close", issue.ID, "--reason", "second")
+		p := newSharedProxiedProject(t, issuegraph, "cac")
+		issue := issuegraphProxiedCreate(t, issuegraph, p.dir, "Double close")
+		issuegraphProxiedClose(t, issuegraph, p.dir, issue.ID, "--reason", "first")
+		stdout, stderr, err := issuegraphProxiedRunBuffers(t, issuegraph, p.dir, "close", issue.ID, "--reason", "second")
 		_ = stdout
 		_ = stderr
 		_ = err
@@ -329,8 +329,8 @@ func TestProxiedServerClose(t *testing.T) {
 
 	t.Run("close_nonexistent_id", func(t *testing.T) {
 		t.Parallel()
-		p := newSharedProxiedProject(t, bd, "cni")
-		out := bdProxiedCloseFail(t, bd, p.dir, "cni-does-not-exist")
+		p := newSharedProxiedProject(t, issuegraph, "cni")
+		out := issuegraphProxiedCloseFail(t, issuegraph, p.dir, "cni-does-not-exist")
 		if !strings.Contains(out, "not found") {
 			t.Errorf("expected 'not found' error, got: %s", out)
 		}
@@ -338,10 +338,10 @@ func TestProxiedServerClose(t *testing.T) {
 
 	t.Run("close_blocked_refuses_without_force", func(t *testing.T) {
 		t.Parallel()
-		p := newSharedProxiedProject(t, bd, "cbr")
-		blocker := bdProxiedCreate(t, bd, p.dir, "Blocker")
-		blocked := bdProxiedCreate(t, bd, p.dir, "Blocked", "--deps", "depends-on:"+blocker.ID)
-		out := bdProxiedCloseFail(t, bd, p.dir, blocked.ID)
+		p := newSharedProxiedProject(t, issuegraph, "cbr")
+		blocker := issuegraphProxiedCreate(t, issuegraph, p.dir, "Blocker")
+		blocked := issuegraphProxiedCreate(t, issuegraph, p.dir, "Blocked", "--deps", "depends-on:"+blocker.ID)
+		out := issuegraphProxiedCloseFail(t, issuegraph, p.dir, blocked.ID)
 		if !strings.Contains(out, "blocked by") {
 			t.Errorf("expected blocker error, got: %s", out)
 		}
@@ -353,10 +353,10 @@ func TestProxiedServerClose(t *testing.T) {
 
 	t.Run("close_blocked_with_force", func(t *testing.T) {
 		t.Parallel()
-		p := newSharedProxiedProject(t, bd, "cbf")
-		blocker := bdProxiedCreate(t, bd, p.dir, "Blocker force")
-		blocked := bdProxiedCreate(t, bd, p.dir, "Blocked force", "--deps", "depends-on:"+blocker.ID)
-		bdProxiedClose(t, bd, p.dir, blocked.ID, "--force")
+		p := newSharedProxiedProject(t, issuegraph, "cbf")
+		blocker := issuegraphProxiedCreate(t, issuegraph, p.dir, "Blocker force")
+		blocked := issuegraphProxiedCreate(t, issuegraph, p.dir, "Blocked force", "--deps", "depends-on:"+blocker.ID)
+		issuegraphProxiedClose(t, issuegraph, p.dir, blocked.ID, "--force")
 		db := openProxiedDB(t, p)
 		if got := readStatus(t, db, blocked.ID); got != types.StatusClosed {
 			t.Errorf("status with --force: got %q, want closed", got)
@@ -365,10 +365,10 @@ func TestProxiedServerClose(t *testing.T) {
 
 	t.Run("close_pinned_refuses_without_force", func(t *testing.T) {
 		t.Parallel()
-		p := newSharedProxiedProject(t, bd, "cpr")
-		issue := bdProxiedCreate(t, bd, p.dir, "Pinned")
-		bdProxiedUpdateOne(t, bd, p.dir, issue.ID, "-s", "pinned")
-		bdProxiedCloseFail(t, bd, p.dir, issue.ID)
+		p := newSharedProxiedProject(t, issuegraph, "cpr")
+		issue := issuegraphProxiedCreate(t, issuegraph, p.dir, "Pinned")
+		issuegraphProxiedUpdateOne(t, issuegraph, p.dir, issue.ID, "-s", "pinned")
+		issuegraphProxiedCloseFail(t, issuegraph, p.dir, issue.ID)
 		db := openProxiedDB(t, p)
 		if got := readStatus(t, db, issue.ID); got == types.StatusClosed {
 			t.Error("pinned issue should remain pinned without --force")
@@ -377,10 +377,10 @@ func TestProxiedServerClose(t *testing.T) {
 
 	t.Run("close_pinned_with_force", func(t *testing.T) {
 		t.Parallel()
-		p := newSharedProxiedProject(t, bd, "cpf")
-		issue := bdProxiedCreate(t, bd, p.dir, "Pinned force")
-		bdProxiedUpdateOne(t, bd, p.dir, issue.ID, "-s", "pinned")
-		bdProxiedClose(t, bd, p.dir, issue.ID, "--force")
+		p := newSharedProxiedProject(t, issuegraph, "cpf")
+		issue := issuegraphProxiedCreate(t, issuegraph, p.dir, "Pinned force")
+		issuegraphProxiedUpdateOne(t, issuegraph, p.dir, issue.ID, "-s", "pinned")
+		issuegraphProxiedClose(t, issuegraph, p.dir, issue.ID, "--force")
 		db := openProxiedDB(t, p)
 		if got := readStatus(t, db, issue.ID); got != types.StatusClosed {
 			t.Errorf("status: got %q, want closed", got)
@@ -392,15 +392,15 @@ func TestProxiedServerClose(t *testing.T) {
 	// just closed.
 	t.Run("close_boolean_pinned_reclose_is_idempotent", func(t *testing.T) {
 		t.Parallel()
-		p := newSharedProxiedProject(t, bd, "cbpr")
+		p := newSharedProxiedProject(t, issuegraph, "cbpr")
 		plan := `{"nodes": [{"key": "p", "title": "Boolean pinned", "type": "task", "pinned": true}]}`
 		planFile := filepath.Join(p.dir, "boolean-pinned-plan.json")
 		if err := os.WriteFile(planFile, []byte(plan), 0644); err != nil {
 			t.Fatal(err)
 		}
-		out, err := bdProxiedRun(t, bd, p.dir, "create", "--graph", planFile, "--json")
+		out, err := issuegraphProxiedRun(t, issuegraph, p.dir, "create", "--graph", planFile, "--json")
 		if err != nil {
-			t.Fatalf("bd create --graph failed: %v\n%s", err, out)
+			t.Fatalf("issuegraph create --graph failed: %v\n%s", err, out)
 		}
 		var created GraphApplyResult
 		if err := json.Unmarshal(out, &created); err != nil {
@@ -410,30 +410,30 @@ func TestProxiedServerClose(t *testing.T) {
 		if id == "" {
 			t.Fatalf("expected an ID for key p, got %#v", created.IDs)
 		}
-		if seeded := bdProxiedShow(t, bd, p.dir, id); !seeded.Pinned {
-			t.Fatalf("precondition: expected pinned=true on the seeded bead, got %+v", seeded)
+		if seeded := issuegraphProxiedShow(t, issuegraph, p.dir, id); !seeded.Pinned {
+			t.Fatalf("precondition: expected pinned=true on the seeded issue, got %+v", seeded)
 		}
 
-		bdProxiedClose(t, bd, p.dir, id, "--force")
+		issuegraphProxiedClose(t, issuegraph, p.dir, id, "--force")
 		// No --force on the retry. Pre-fix this exited nonzero with the pinned
-		// refusal, so bdProxiedClose's t.Fatalf is the red assertion.
-		bdProxiedClose(t, bd, p.dir, id)
+		// refusal, so issuegraphProxiedClose's t.Fatalf is the red assertion.
+		issuegraphProxiedClose(t, issuegraph, p.dir, id)
 
-		got := bdProxiedShow(t, bd, p.dir, id)
+		got := issuegraphProxiedShow(t, issuegraph, p.dir, id)
 		if got.Status != types.StatusClosed {
 			t.Errorf("status: got %q, want closed", got.Status)
 		}
 		if !got.Pinned {
-			t.Error("expected the pin to survive the close: it is what protects the row from bd gc/purge/cleanup")
+			t.Error("expected the pin to survive the close: it is what protects the row from issuegraph gc/purge/cleanup")
 		}
 	})
 
 	t.Run("close_epic_open_children_refuses", func(t *testing.T) {
 		t.Parallel()
-		p := newSharedProxiedProject(t, bd, "ceor")
-		epic := bdProxiedCreate(t, bd, p.dir, "Epic", "-t", "epic")
-		_ = bdProxiedCreate(t, bd, p.dir, "Child", "--parent", epic.ID)
-		out := bdProxiedCloseFail(t, bd, p.dir, epic.ID)
+		p := newSharedProxiedProject(t, issuegraph, "ceor")
+		epic := issuegraphProxiedCreate(t, issuegraph, p.dir, "Epic", "-t", "epic")
+		_ = issuegraphProxiedCreate(t, issuegraph, p.dir, "Child", "--parent", epic.ID)
+		out := issuegraphProxiedCloseFail(t, issuegraph, p.dir, epic.ID)
 		if !strings.Contains(out, "open child") {
 			t.Errorf("expected 'open child' error, got: %s", out)
 		}
@@ -441,10 +441,10 @@ func TestProxiedServerClose(t *testing.T) {
 
 	t.Run("close_epic_open_children_force", func(t *testing.T) {
 		t.Parallel()
-		p := newSharedProxiedProject(t, bd, "ceof")
-		epic := bdProxiedCreate(t, bd, p.dir, "Epic force", "-t", "epic")
-		_ = bdProxiedCreate(t, bd, p.dir, "Child force", "--parent", epic.ID)
-		bdProxiedClose(t, bd, p.dir, epic.ID, "--force")
+		p := newSharedProxiedProject(t, issuegraph, "ceof")
+		epic := issuegraphProxiedCreate(t, issuegraph, p.dir, "Epic force", "-t", "epic")
+		_ = issuegraphProxiedCreate(t, issuegraph, p.dir, "Child force", "--parent", epic.ID)
+		issuegraphProxiedClose(t, issuegraph, p.dir, epic.ID, "--force")
 		db := openProxiedDB(t, p)
 		if got := readStatus(t, db, epic.ID); got != types.StatusClosed {
 			t.Errorf("status: got %q, want closed", got)
@@ -453,10 +453,10 @@ func TestProxiedServerClose(t *testing.T) {
 
 	t.Run("close_last_child_keeps_regular_epic_open", func(t *testing.T) {
 		t.Parallel()
-		p := newSharedProxiedProject(t, bd, "clce")
-		epic := bdProxiedCreate(t, bd, p.dir, "Regular epic", "-t", "epic")
-		child := bdProxiedCreate(t, bd, p.dir, "Last child", "--parent", epic.ID)
-		bdProxiedClose(t, bd, p.dir, child.ID)
+		p := newSharedProxiedProject(t, issuegraph, "clce")
+		epic := issuegraphProxiedCreate(t, issuegraph, p.dir, "Regular epic", "-t", "epic")
+		child := issuegraphProxiedCreate(t, issuegraph, p.dir, "Last child", "--parent", epic.ID)
+		issuegraphProxiedClose(t, issuegraph, p.dir, child.ID)
 		db := openProxiedDB(t, p)
 		if got := readStatus(t, db, epic.ID); got != types.StatusOpen {
 			t.Errorf("regular epic should stay open after last child closes, got %q", got)
@@ -465,14 +465,14 @@ func TestProxiedServerClose(t *testing.T) {
 
 	t.Run("close_unblocks_dependent", func(t *testing.T) {
 		t.Parallel()
-		p := newSharedProxiedProject(t, bd, "cud")
-		blocker := bdProxiedCreate(t, bd, p.dir, "Unblock blocker")
-		blocked := bdProxiedCreate(t, bd, p.dir, "Unblock blocked", "--deps", "depends-on:"+blocker.ID)
+		p := newSharedProxiedProject(t, issuegraph, "cud")
+		blocker := issuegraphProxiedCreate(t, issuegraph, p.dir, "Unblock blocker")
+		blocked := issuegraphProxiedCreate(t, issuegraph, p.dir, "Unblock blocked", "--deps", "depends-on:"+blocker.ID)
 		db := openProxiedDB(t, p)
 		if !readIsBlocked(t, db, blocked.ID) {
 			t.Fatal("dependent should be blocked before blocker closes")
 		}
-		bdProxiedClose(t, bd, p.dir, blocker.ID)
+		issuegraphProxiedClose(t, issuegraph, p.dir, blocker.ID)
 		if readIsBlocked(t, db, blocked.ID) {
 			t.Error("dependent should be unblocked after blocker closes")
 		}
@@ -480,10 +480,10 @@ func TestProxiedServerClose(t *testing.T) {
 
 	t.Run("close_suggest_next", func(t *testing.T) {
 		t.Parallel()
-		p := newSharedProxiedProject(t, bd, "csn")
-		blocker := bdProxiedCreate(t, bd, p.dir, "Suggest blocker")
-		blocked := bdProxiedCreate(t, bd, p.dir, "Suggest blocked", "--deps", "depends-on:"+blocker.ID)
-		out := bdProxiedClose(t, bd, p.dir, blocker.ID, "--suggest-next")
+		p := newSharedProxiedProject(t, issuegraph, "csn")
+		blocker := issuegraphProxiedCreate(t, issuegraph, p.dir, "Suggest blocker")
+		blocked := issuegraphProxiedCreate(t, issuegraph, p.dir, "Suggest blocked", "--deps", "depends-on:"+blocker.ID)
+		out := issuegraphProxiedClose(t, issuegraph, p.dir, blocker.ID, "--suggest-next")
 		if !strings.Contains(out, blocked.ID) {
 			t.Errorf("suggest-next output missing unblocked id %s:\n%s", blocked.ID, out)
 		}
@@ -494,14 +494,14 @@ func TestProxiedServerClose(t *testing.T) {
 func TestProxiedServerClose2(t *testing.T) {
 	requireSharedProxiedServer(t)
 	t.Parallel()
-	bd := buildEmbeddedBD(t)
+	issuegraph := buildEmbeddedBD(t)
 
 	t.Run("close_suggest_next_json", func(t *testing.T) {
 		t.Parallel()
-		p := newSharedProxiedProject(t, bd, "csnj")
-		blocker := bdProxiedCreate(t, bd, p.dir, "Suggest JSON blocker")
-		blocked := bdProxiedCreate(t, bd, p.dir, "Suggest JSON blocked", "--deps", "depends-on:"+blocker.ID)
-		env := bdProxiedCloseJSONEnvelope(t, bd, p.dir, blocker.ID, "--suggest-next")
+		p := newSharedProxiedProject(t, issuegraph, "csnj")
+		blocker := issuegraphProxiedCreate(t, issuegraph, p.dir, "Suggest JSON blocker")
+		blocked := issuegraphProxiedCreate(t, issuegraph, p.dir, "Suggest JSON blocked", "--deps", "depends-on:"+blocker.ID)
+		env := issuegraphProxiedCloseJSONEnvelope(t, issuegraph, p.dir, blocker.ID, "--suggest-next")
 		raw, ok := env["unblocked"]
 		if !ok {
 			t.Fatalf("envelope missing 'unblocked' key: %v", env)
@@ -517,10 +517,10 @@ func TestProxiedServerClose2(t *testing.T) {
 
 	t.Run("close_claim_next", func(t *testing.T) {
 		t.Parallel()
-		p := newSharedProxiedProject(t, bd, "ccn")
-		toClose := bdProxiedCreate(t, bd, p.dir, "Claim next close")
-		nextIssue := bdProxiedCreate(t, bd, p.dir, "Claim next target")
-		bdProxiedClose(t, bd, p.dir, toClose.ID, "--claim-next")
+		p := newSharedProxiedProject(t, issuegraph, "ccn")
+		toClose := issuegraphProxiedCreate(t, issuegraph, p.dir, "Claim next close")
+		nextIssue := issuegraphProxiedCreate(t, issuegraph, p.dir, "Claim next target")
+		issuegraphProxiedClose(t, issuegraph, p.dir, toClose.ID, "--claim-next")
 		db := openProxiedDB(t, p)
 		if got := readStatus(t, db, nextIssue.ID); got != types.StatusInProgress {
 			t.Errorf("next issue status: got %q, want in_progress", got)
@@ -532,9 +532,9 @@ func TestProxiedServerClose2(t *testing.T) {
 
 	t.Run("close_claim_next_no_ready", func(t *testing.T) {
 		t.Parallel()
-		p := newSharedProxiedProject(t, bd, "ccnr")
-		issue := bdProxiedCreate(t, bd, p.dir, "Only issue")
-		out := bdProxiedClose(t, bd, p.dir, issue.ID, "--claim-next")
+		p := newSharedProxiedProject(t, issuegraph, "ccnr")
+		issue := issuegraphProxiedCreate(t, issuegraph, p.dir, "Only issue")
+		out := issuegraphProxiedClose(t, issuegraph, p.dir, issue.ID, "--claim-next")
 		if !strings.Contains(out, "No ready issues") {
 			t.Errorf("expected 'No ready issues', got: %s", out)
 		}
@@ -542,10 +542,10 @@ func TestProxiedServerClose2(t *testing.T) {
 
 	t.Run("close_claim_next_json", func(t *testing.T) {
 		t.Parallel()
-		p := newSharedProxiedProject(t, bd, "ccnj")
-		toClose := bdProxiedCreate(t, bd, p.dir, "Claim JSON close")
-		_ = bdProxiedCreate(t, bd, p.dir, "Claim JSON target")
-		env := bdProxiedCloseJSONEnvelope(t, bd, p.dir, toClose.ID, "--claim-next")
+		p := newSharedProxiedProject(t, issuegraph, "ccnj")
+		toClose := issuegraphProxiedCreate(t, issuegraph, p.dir, "Claim JSON close")
+		_ = issuegraphProxiedCreate(t, issuegraph, p.dir, "Claim JSON target")
+		env := issuegraphProxiedCloseJSONEnvelope(t, issuegraph, p.dir, toClose.ID, "--claim-next")
 		if _, ok := env["closed"]; !ok {
 			t.Errorf("envelope missing 'closed' key: %v", env)
 		}
@@ -556,9 +556,9 @@ func TestProxiedServerClose2(t *testing.T) {
 
 	t.Run("close_with_session", func(t *testing.T) {
 		t.Parallel()
-		p := newSharedProxiedProject(t, bd, "cws")
-		issue := bdProxiedCreate(t, bd, p.dir, "Session flag")
-		bdProxiedClose(t, bd, p.dir, issue.ID, "--session", "sess-456")
+		p := newSharedProxiedProject(t, issuegraph, "cws")
+		issue := issuegraphProxiedCreate(t, issuegraph, p.dir, "Session flag")
+		issuegraphProxiedClose(t, issuegraph, p.dir, issue.ID, "--session", "sess-456")
 		db := openProxiedDB(t, p)
 		if got := readClosedBySession(t, db, issue.ID); got != "sess-456" {
 			t.Errorf("closed_by_session: got %q, want %q", got, "sess-456")
@@ -567,9 +567,9 @@ func TestProxiedServerClose2(t *testing.T) {
 
 	t.Run("close_session_from_env", func(t *testing.T) {
 		t.Parallel()
-		p := newSharedProxiedProject(t, bd, "cse")
-		issue := bdProxiedCreate(t, bd, p.dir, "Session env")
-		if _, stderr, err := bdProxiedRunEnv(t, bd, p.dir, []string{"CLAUDE_SESSION_ID=sess-env"}, "close", issue.ID); err != nil {
+		p := newSharedProxiedProject(t, issuegraph, "cse")
+		issue := issuegraphProxiedCreate(t, issuegraph, p.dir, "Session env")
+		if _, stderr, err := issuegraphProxiedRunEnv(t, issuegraph, p.dir, []string{"CLAUDE_SESSION_ID=sess-env"}, "close", issue.ID); err != nil {
 			t.Fatalf("close failed: %v\n%s", err, stderr)
 		}
 		db := openProxiedDB(t, p)
@@ -580,9 +580,9 @@ func TestProxiedServerClose2(t *testing.T) {
 
 	t.Run("close_json_output", func(t *testing.T) {
 		t.Parallel()
-		p := newSharedProxiedProject(t, bd, "cjo")
-		issue := bdProxiedCreate(t, bd, p.dir, "JSON close")
-		issues := bdProxiedCloseJSON(t, bd, p.dir, issue.ID)
+		p := newSharedProxiedProject(t, issuegraph, "cjo")
+		issue := issuegraphProxiedCreate(t, issuegraph, p.dir, "JSON close")
+		issues := issuegraphProxiedCloseJSON(t, issuegraph, p.dir, issue.ID)
 		if len(issues) != 1 || issues[0].ID != issue.ID {
 			t.Errorf("close JSON: got %+v, want [%s]", issues, issue.ID)
 		}
@@ -593,11 +593,11 @@ func TestProxiedServerClose2(t *testing.T) {
 
 	t.Run("done_alias", func(t *testing.T) {
 		t.Parallel()
-		p := newSharedProxiedProject(t, bd, "da")
-		issue := bdProxiedCreate(t, bd, p.dir, "Done alias")
-		stdout, stderr, err := bdProxiedRunBuffers(t, bd, p.dir, "done", issue.ID)
+		p := newSharedProxiedProject(t, issuegraph, "da")
+		issue := issuegraphProxiedCreate(t, issuegraph, p.dir, "Done alias")
+		stdout, stderr, err := issuegraphProxiedRunBuffers(t, issuegraph, p.dir, "done", issue.ID)
 		if err != nil {
-			t.Fatalf("bd done failed: %v\nstdout:\n%s\nstderr:\n%s", err, stdout, stderr)
+			t.Fatalf("issuegraph done failed: %v\nstdout:\n%s\nstderr:\n%s", err, stdout, stderr)
 		}
 		db := openProxiedDB(t, p)
 		if got := readStatus(t, db, issue.ID); got != types.StatusClosed {
@@ -607,11 +607,11 @@ func TestProxiedServerClose2(t *testing.T) {
 
 	t.Run("done_positional_reason", func(t *testing.T) {
 		t.Parallel()
-		p := newSharedProxiedProject(t, bd, "dpr")
-		issue := bdProxiedCreate(t, bd, p.dir, "Done reason")
-		stdout, stderr, err := bdProxiedRunBuffers(t, bd, p.dir, "done", issue.ID, "the reason")
+		p := newSharedProxiedProject(t, issuegraph, "dpr")
+		issue := issuegraphProxiedCreate(t, issuegraph, p.dir, "Done reason")
+		stdout, stderr, err := issuegraphProxiedRunBuffers(t, issuegraph, p.dir, "done", issue.ID, "the reason")
 		if err != nil {
-			t.Fatalf("bd done with reason failed: %v\nstdout:\n%s\nstderr:\n%s", err, stdout, stderr)
+			t.Fatalf("issuegraph done with reason failed: %v\nstdout:\n%s\nstderr:\n%s", err, stdout, stderr)
 		}
 		db := openProxiedDB(t, p)
 		if got := readCloseReason(t, db, issue.ID); got != "the reason" {
@@ -621,10 +621,10 @@ func TestProxiedServerClose2(t *testing.T) {
 
 	t.Run("close_continue_multiple_ids_fails", func(t *testing.T) {
 		t.Parallel()
-		p := newSharedProxiedProject(t, bd, "ccmi")
-		a := bdProxiedCreate(t, bd, p.dir, "Continue multi A")
-		b := bdProxiedCreate(t, bd, p.dir, "Continue multi B")
-		out := bdProxiedCloseFail(t, bd, p.dir, a.ID, b.ID, "--continue")
+		p := newSharedProxiedProject(t, issuegraph, "ccmi")
+		a := issuegraphProxiedCreate(t, issuegraph, p.dir, "Continue multi A")
+		b := issuegraphProxiedCreate(t, issuegraph, p.dir, "Continue multi B")
+		out := issuegraphProxiedCloseFail(t, issuegraph, p.dir, a.ID, b.ID, "--continue")
 		if !strings.Contains(out, "single issue") {
 			t.Errorf("expected single-issue error, got: %s", out)
 		}
@@ -632,10 +632,10 @@ func TestProxiedServerClose2(t *testing.T) {
 
 	t.Run("close_suggest_next_multiple_ids_fails", func(t *testing.T) {
 		t.Parallel()
-		p := newSharedProxiedProject(t, bd, "csmi")
-		a := bdProxiedCreate(t, bd, p.dir, "Suggest multi A")
-		b := bdProxiedCreate(t, bd, p.dir, "Suggest multi B")
-		out := bdProxiedCloseFail(t, bd, p.dir, a.ID, b.ID, "--suggest-next")
+		p := newSharedProxiedProject(t, issuegraph, "csmi")
+		a := issuegraphProxiedCreate(t, issuegraph, p.dir, "Suggest multi A")
+		b := issuegraphProxiedCreate(t, issuegraph, p.dir, "Suggest multi B")
+		out := issuegraphProxiedCloseFail(t, issuegraph, p.dir, a.ID, b.ID, "--suggest-next")
 		if !strings.Contains(out, "single issue") {
 			t.Errorf("expected single-issue error, got: %s", out)
 		}
@@ -643,13 +643,13 @@ func TestProxiedServerClose2(t *testing.T) {
 
 	t.Run("single_transaction_dolt_commit", func(t *testing.T) {
 		t.Parallel()
-		p := newSharedProxiedProject(t, bd, "stdc")
-		a := bdProxiedCreate(t, bd, p.dir, "Tx A")
-		b := bdProxiedCreate(t, bd, p.dir, "Tx B")
-		c := bdProxiedCreate(t, bd, p.dir, "Tx C")
+		p := newSharedProxiedProject(t, issuegraph, "stdc")
+		a := issuegraphProxiedCreate(t, issuegraph, p.dir, "Tx A")
+		b := issuegraphProxiedCreate(t, issuegraph, p.dir, "Tx B")
+		c := issuegraphProxiedCreate(t, issuegraph, p.dir, "Tx C")
 		db := openProxiedDB(t, p)
 		before := readDoltHead(t, db)
-		bdProxiedClose(t, bd, p.dir, a.ID, b.ID, c.ID)
+		issuegraphProxiedClose(t, issuegraph, p.dir, a.ID, b.ID, c.ID)
 		count := readDoltLogCountSince(t, db, before)
 		if count != 1 {
 			t.Errorf("expected exactly 1 new dolt commit for batch close, got %d", count)
@@ -660,15 +660,15 @@ func TestProxiedServerClose2(t *testing.T) {
 				t.Errorf("dolt commit message %q should contain id %s", msg, id)
 			}
 		}
-		if !strings.HasPrefix(msg, "bd: close ") {
-			t.Errorf("dolt commit message should begin with 'bd: close ', got: %q", msg)
+		if !strings.HasPrefix(msg, "issuegraph: close ") {
+			t.Errorf("dolt commit message should begin with 'issuegraph: close ', got: %q", msg)
 		}
 	})
 
 	t.Run("no_ids_errors", func(t *testing.T) {
 		t.Parallel()
-		p := newSharedProxiedProject(t, bd, "nie")
-		out := bdProxiedCloseFail(t, bd, p.dir)
+		p := newSharedProxiedProject(t, issuegraph, "nie")
+		out := issuegraphProxiedCloseFail(t, issuegraph, p.dir)
 		if !strings.Contains(out, "no issue ID provided") {
 			t.Errorf("expected 'no issue ID provided', got: %s", out)
 		}
@@ -676,9 +676,9 @@ func TestProxiedServerClose2(t *testing.T) {
 
 	t.Run("last_touched_not_supported", func(t *testing.T) {
 		t.Parallel()
-		p := newSharedProxiedProject(t, bd, "ltns")
-		_ = bdProxiedCreate(t, bd, p.dir, "Recent create")
-		out := bdProxiedCloseFail(t, bd, p.dir)
+		p := newSharedProxiedProject(t, issuegraph, "ltns")
+		_ = issuegraphProxiedCreate(t, issuegraph, p.dir, "Recent create")
+		out := issuegraphProxiedCloseFail(t, issuegraph, p.dir)
 		if !strings.Contains(out, "no issue ID provided") {
 			t.Errorf("proxied mode must not fall back to last-touched; got: %s", out)
 		}
@@ -686,9 +686,9 @@ func TestProxiedServerClose2(t *testing.T) {
 
 	t.Run("close_wisp_issue", func(t *testing.T) {
 		t.Parallel()
-		p := newSharedProxiedProject(t, bd, "cwi")
-		wisp := bdProxiedCreate(t, bd, p.dir, "Wisp close", "--ephemeral")
-		bdProxiedClose(t, bd, p.dir, wisp.ID)
+		p := newSharedProxiedProject(t, issuegraph, "cwi")
+		wisp := issuegraphProxiedCreate(t, issuegraph, p.dir, "Wisp close", "--ephemeral")
+		issuegraphProxiedClose(t, issuegraph, p.dir, wisp.ID)
 		db := openProxiedDB(t, p)
 		var status string
 		if err := db.QueryRowContext(context.Background(),
@@ -702,10 +702,10 @@ func TestProxiedServerClose2(t *testing.T) {
 
 	t.Run("close_wisp_epic_open_children", func(t *testing.T) {
 		t.Parallel()
-		p := newSharedProxiedProject(t, bd, "cweoc")
-		wispEpic := bdProxiedCreate(t, bd, p.dir, "Wisp epic", "-t", "epic", "--ephemeral")
-		_ = bdProxiedCreate(t, bd, p.dir, "Wisp child", "--ephemeral", "--parent", wispEpic.ID)
-		out := bdProxiedCloseFail(t, bd, p.dir, wispEpic.ID)
+		p := newSharedProxiedProject(t, issuegraph, "cweoc")
+		wispEpic := issuegraphProxiedCreate(t, issuegraph, p.dir, "Wisp epic", "-t", "epic", "--ephemeral")
+		_ = issuegraphProxiedCreate(t, issuegraph, p.dir, "Wisp child", "--ephemeral", "--parent", wispEpic.ID)
+		out := issuegraphProxiedCloseFail(t, issuegraph, p.dir, wispEpic.ID)
 		if !strings.Contains(out, "open child") {
 			t.Errorf("expected 'open child' error for wisp epic, got: %s", out)
 		}
@@ -713,10 +713,10 @@ func TestProxiedServerClose2(t *testing.T) {
 
 	t.Run("close_wisp_blocked_refuses", func(t *testing.T) {
 		t.Parallel()
-		p := newSharedProxiedProject(t, bd, "cwbr")
-		blocker := bdProxiedCreate(t, bd, p.dir, "Blocker for wisp")
-		wisp := bdProxiedCreate(t, bd, p.dir, "Blocked wisp", "--ephemeral", "--deps", "depends-on:"+blocker.ID)
-		out := bdProxiedCloseFail(t, bd, p.dir, wisp.ID)
+		p := newSharedProxiedProject(t, issuegraph, "cwbr")
+		blocker := issuegraphProxiedCreate(t, issuegraph, p.dir, "Blocker for wisp")
+		wisp := issuegraphProxiedCreate(t, issuegraph, p.dir, "Blocked wisp", "--ephemeral", "--deps", "depends-on:"+blocker.ID)
+		out := issuegraphProxiedCloseFail(t, issuegraph, p.dir, wisp.ID)
 		if !strings.Contains(out, "blocked by") {
 			t.Errorf("expected wisp blocker error, got: %s", out)
 		}
@@ -724,12 +724,12 @@ func TestProxiedServerClose2(t *testing.T) {
 
 	t.Run("continue_advances_to_next_ready_step", func(t *testing.T) {
 		t.Parallel()
-		p := newSharedProxiedProject(t, bd, "cantrs")
-		root := bdProxiedCreate(t, bd, p.dir, "Molecule root", "-t", "epic", "--labels", "template")
-		step1 := bdProxiedCreate(t, bd, p.dir, "Step 1", "--parent", root.ID)
-		step2 := bdProxiedCreate(t, bd, p.dir, "Step 2", "--parent", root.ID, "--deps", "depends-on:"+step1.ID)
-		_ = bdProxiedCreate(t, bd, p.dir, "Step 3", "--parent", root.ID, "--deps", "depends-on:"+step2.ID)
-		bdProxiedClose(t, bd, p.dir, step1.ID, "--continue")
+		p := newSharedProxiedProject(t, issuegraph, "cantrs")
+		root := issuegraphProxiedCreate(t, issuegraph, p.dir, "Molecule root", "-t", "epic", "--labels", "template")
+		step1 := issuegraphProxiedCreate(t, issuegraph, p.dir, "Step 1", "--parent", root.ID)
+		step2 := issuegraphProxiedCreate(t, issuegraph, p.dir, "Step 2", "--parent", root.ID, "--deps", "depends-on:"+step1.ID)
+		_ = issuegraphProxiedCreate(t, issuegraph, p.dir, "Step 3", "--parent", root.ID, "--deps", "depends-on:"+step2.ID)
+		issuegraphProxiedClose(t, issuegraph, p.dir, step1.ID, "--continue")
 		db := openProxiedDB(t, p)
 		if got := readStatus(t, db, step2.ID); got != types.StatusInProgress {
 			t.Errorf("step2 status after --continue: got %q, want in_progress", got)
@@ -741,11 +741,11 @@ func TestProxiedServerClose2(t *testing.T) {
 
 	t.Run("continue_no_auto_does_not_claim", func(t *testing.T) {
 		t.Parallel()
-		p := newSharedProxiedProject(t, bd, "cnac")
-		root := bdProxiedCreate(t, bd, p.dir, "Molecule root", "-t", "epic", "--labels", "template")
-		step1 := bdProxiedCreate(t, bd, p.dir, "Step 1", "--parent", root.ID)
-		step2 := bdProxiedCreate(t, bd, p.dir, "Step 2", "--parent", root.ID, "--deps", "depends-on:"+step1.ID)
-		bdProxiedClose(t, bd, p.dir, step1.ID, "--continue", "--no-auto")
+		p := newSharedProxiedProject(t, issuegraph, "cnac")
+		root := issuegraphProxiedCreate(t, issuegraph, p.dir, "Molecule root", "-t", "epic", "--labels", "template")
+		step1 := issuegraphProxiedCreate(t, issuegraph, p.dir, "Step 1", "--parent", root.ID)
+		step2 := issuegraphProxiedCreate(t, issuegraph, p.dir, "Step 2", "--parent", root.ID, "--deps", "depends-on:"+step1.ID)
+		issuegraphProxiedClose(t, issuegraph, p.dir, step1.ID, "--continue", "--no-auto")
 		db := openProxiedDB(t, p)
 		if got := readStatus(t, db, step2.ID); got != types.StatusOpen {
 			t.Errorf("step2 status with --no-auto: got %q, want open", got)
@@ -757,11 +757,11 @@ func TestProxiedServerClose2(t *testing.T) {
 
 	t.Run("auto_close_completed_molecule", func(t *testing.T) {
 		t.Parallel()
-		p := newSharedProxiedProject(t, bd, "accm")
-		root := bdProxiedCreate(t, bd, p.dir, "Molecule root", "-t", "epic", "--labels", "template")
-		s1 := bdProxiedCreate(t, bd, p.dir, "Step 1", "--parent", root.ID)
-		s2 := bdProxiedCreate(t, bd, p.dir, "Step 2", "--parent", root.ID)
-		bdProxiedClose(t, bd, p.dir, s1.ID, s2.ID)
+		p := newSharedProxiedProject(t, issuegraph, "accm")
+		root := issuegraphProxiedCreate(t, issuegraph, p.dir, "Molecule root", "-t", "epic", "--labels", "template")
+		s1 := issuegraphProxiedCreate(t, issuegraph, p.dir, "Step 1", "--parent", root.ID)
+		s2 := issuegraphProxiedCreate(t, issuegraph, p.dir, "Step 2", "--parent", root.ID)
+		issuegraphProxiedClose(t, issuegraph, p.dir, s1.ID, s2.ID)
 		db := openProxiedDB(t, p)
 		if got := readStatus(t, db, root.ID); got != types.StatusClosed {
 			t.Errorf("template-labeled molecule root should auto-close after all steps complete, got %q", got)
@@ -778,9 +778,9 @@ func TestProxiedServerClose2(t *testing.T) {
 		if runtime.GOOS == "windows" {
 			t.Skip("hook script form is POSIX shell")
 		}
-		p := newSharedProxiedProjectWithHooks(t, bd, "hfc", map[string]string{"on_close": script})
-		issue := bdProxiedCreate(t, bd, p.dir, "Hook fire")
-		bdProxiedClose(t, bd, p.dir, issue.ID)
+		p := newSharedProxiedProjectWithHooks(t, issuegraph, "hfc", map[string]string{"on_close": script})
+		issue := issuegraphProxiedCreate(t, issuegraph, p.dir, "Hook fire")
+		issuegraphProxiedClose(t, issuegraph, p.dir, issue.ID)
 		// Polled, not read once: hooks fire fire-and-forget off the write
 		// plumbing now, so the marker appears shortly AFTER the command exits
 		// rather than during it.
@@ -801,9 +801,9 @@ func shellQuote(s string) string {
 func TestProxiedServerCloseConcurrent(t *testing.T) {
 	requireSharedProxiedServer(t)
 	t.Parallel()
-	bd := buildEmbeddedBD(t)
+	issuegraph := buildEmbeddedBD(t)
 
-	p := newSharedProxiedProject(t, bd, "cxc")
+	p := newSharedProxiedProject(t, issuegraph, "cxc")
 
 	const (
 		numWorkers      = 10
@@ -825,9 +825,9 @@ func TestProxiedServerCloseConcurrent(t *testing.T) {
 			r := &results[w]
 			for i := 0; i < issuesPerWorker; i++ {
 				title := fmt.Sprintf("worker-%d-issue-%d", w, i)
-				cmd := exec.Command(bd, "create", "--json", title)
+				cmd := exec.Command(issuegraph, "create", "--json", title)
 				cmd.Dir = p.dir
-				cmd.Env = bdProxiedEnv(p.dir)
+				cmd.Env = issuegraphProxiedEnv(p.dir)
 				var stdout, stderr bytes.Buffer
 				cmd.Stdout = &stdout
 				cmd.Stderr = &stderr
@@ -847,9 +847,9 @@ func TestProxiedServerCloseConcurrent(t *testing.T) {
 					continue
 				}
 
-				closeCmd := exec.Command(bd, "close", issue.ID)
+				closeCmd := exec.Command(issuegraph, "close", issue.ID)
 				closeCmd.Dir = p.dir
-				closeCmd.Env = bdProxiedEnv(p.dir)
+				closeCmd.Env = issuegraphProxiedEnv(p.dir)
 				var cstdout, cstderr bytes.Buffer
 				closeCmd.Stdout = &cstdout
 				closeCmd.Stderr = &cstderr

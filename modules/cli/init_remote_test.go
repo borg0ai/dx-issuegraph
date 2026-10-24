@@ -6,8 +6,8 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/steveyegge/beads/internal/config"
-	"github.com/steveyegge/beads/internal/configfile"
+	"github.com/borg0ai/dx-issuegraph/internal/config"
+	"github.com/borg0ai/dx-issuegraph/internal/configfile"
 )
 
 func TestInitCommandRegistersRemoteFlag(t *testing.T) {
@@ -38,17 +38,17 @@ func TestInitExplicitRemoteDrivesCloneAndPersistence(t *testing.T) {
 		t.Fatal("explicit remote was not treated as user-configured sync URL")
 	}
 
-	beadsDir := filepath.Join(t.TempDir(), ".beads")
-	if err := os.MkdirAll(beadsDir, 0o750); err != nil {
+	issuegraphDir := filepath.Join(t.TempDir(), ".issuegraph")
+	if err := os.MkdirAll(issuegraphDir, 0o750); err != nil {
 		t.Fatal(err)
 	}
-	if err := os.WriteFile(filepath.Join(beadsDir, "config.yaml"), []byte("# Beads Config\n"), 0o600); err != nil {
+	if err := os.WriteFile(filepath.Join(issuegraphDir, "config.yaml"), []byte("# IssueGraph Config\n"), 0o600); err != nil {
 		t.Fatal(err)
 	}
-	if err := persistInitSyncRemote(beadsDir, remote, syncURL, syncFromRemote, syncURLFromConfig, false); err != nil {
+	if err := persistInitSyncRemote(issuegraphDir, remote, syncURL, syncFromRemote, syncURLFromConfig, false); err != nil {
 		t.Fatalf("persistInitSyncRemote failed: %v", err)
 	}
-	configBytes, err := os.ReadFile(filepath.Join(beadsDir, "config.yaml"))
+	configBytes, err := os.ReadFile(filepath.Join(issuegraphDir, "config.yaml"))
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -80,9 +80,9 @@ func TestInitDoltServerTLSFromEnv(t *testing.T) {
 	for _, tc := range tests {
 		t.Run(tc.name, func(t *testing.T) {
 			if tc.env == "" {
-				t.Setenv("BEADS_DOLT_SERVER_TLS", "")
+				t.Setenv("ISSUEGRAPH_DOLT_SERVER_TLS", "")
 			} else {
-				t.Setenv("BEADS_DOLT_SERVER_TLS", tc.env)
+				t.Setenv("ISSUEGRAPH_DOLT_SERVER_TLS", tc.env)
 			}
 			if got := initDoltServerTLSFromEnv(); got != tc.want {
 				t.Fatalf("initDoltServerTLSFromEnv() = %v, want %v", got, tc.want)
@@ -116,20 +116,20 @@ func TestInitExplicitEmptyRemoteSkipsAmbientConfig(t *testing.T) {
 func TestPersistInitSyncRemoteExplicitRemoteWritesTargetDir(t *testing.T) {
 	tmpDir := t.TempDir()
 	callerDir := filepath.Join(tmpDir, "caller")
-	targetBeadsDir := filepath.Join(tmpDir, "target", ".beads")
-	callerBeadsDir := filepath.Join(callerDir, ".beads")
-	if err := os.MkdirAll(callerBeadsDir, 0o750); err != nil {
+	targetIssueGraphDir := filepath.Join(tmpDir, "target", ".issuegraph")
+	callerIssueGraphDir := filepath.Join(callerDir, ".issuegraph")
+	if err := os.MkdirAll(callerIssueGraphDir, 0o750); err != nil {
 		t.Fatal(err)
 	}
-	if err := os.MkdirAll(targetBeadsDir, 0o750); err != nil {
+	if err := os.MkdirAll(targetIssueGraphDir, 0o750); err != nil {
 		t.Fatal(err)
 	}
 
-	callerConfig := filepath.Join(callerBeadsDir, "config.yaml")
+	callerConfig := filepath.Join(callerIssueGraphDir, "config.yaml")
 	const callerRemote = "git+ssh://git@example.com/wrong/repo.git"
-	seedSyncRemote(t, callerBeadsDir, callerRemote)
-	targetConfig := filepath.Join(targetBeadsDir, "config.yaml")
-	if err := os.WriteFile(targetConfig, []byte("# Beads Config\n"), 0o600); err != nil {
+	seedSyncRemote(t, callerIssueGraphDir, callerRemote)
+	targetConfig := filepath.Join(targetIssueGraphDir, "config.yaml")
+	if err := os.WriteFile(targetConfig, []byte("# IssueGraph Config\n"), 0o600); err != nil {
 		t.Fatal(err)
 	}
 
@@ -143,7 +143,7 @@ func TestPersistInitSyncRemoteExplicitRemoteWritesTargetDir(t *testing.T) {
 	}
 
 	const remote = "git+ssh://git@example.com/right/repo.git"
-	if err := persistInitSyncRemote(targetBeadsDir, remote, remote, false, true, false); err != nil {
+	if err := persistInitSyncRemote(targetIssueGraphDir, remote, remote, false, true, false); err != nil {
 		t.Fatalf("persistInitSyncRemote failed: %v", err)
 	}
 
@@ -165,12 +165,12 @@ func TestPersistInitSyncRemoteExplicitRemoteWritesTargetDir(t *testing.T) {
 	// Stronger than the absence above: the caller still resolves to what it had.
 	// A write that landed somewhere unreadable would satisfy "does not contain
 	// the new remote" while having quietly destroyed the old one.
-	if got := config.GetStringFromDir(callerBeadsDir, "sync.remote"); got != callerRemote {
+	if got := config.GetStringFromDir(callerIssueGraphDir, "sync.remote"); got != callerRemote {
 		t.Fatalf("caller sync.remote = %q, want it untouched at %q:\n%s", got, callerRemote, callerBytes)
 	}
 }
 
-// `bd init --remote` runs createConfigYaml and then immediately writes
+// `issuegraph init --remote` runs createConfigYaml and then immediately writes
 // sync.remote into what it just created. That template is comments and nothing
 // else, which is the one document shape yaml.v3 parses to no nodes at all — so a
 // writer that round-trips a node tree has nothing to write back but the key it
@@ -180,24 +180,24 @@ func TestPersistInitSyncRemoteExplicitRemoteWritesTargetDir(t *testing.T) {
 // This runs the real pair in the real order rather than asserting on a replica
 // of the template, so it stays true if either side moves.
 func TestInitPersistingSyncRemoteKeepsTheConfigTemplate(t *testing.T) {
-	beadsDir := filepath.Join(t.TempDir(), ".beads")
-	if err := os.MkdirAll(beadsDir, 0o750); err != nil {
+	issuegraphDir := filepath.Join(t.TempDir(), ".issuegraph")
+	if err := os.MkdirAll(issuegraphDir, 0o750); err != nil {
 		t.Fatal(err)
 	}
-	if err := createConfigYaml(beadsDir, false, ""); err != nil {
+	if err := createConfigYaml(issuegraphDir, false, ""); err != nil {
 		t.Fatalf("createConfigYaml: %v", err)
 	}
-	template, err := os.ReadFile(filepath.Join(beadsDir, "config.yaml"))
+	template, err := os.ReadFile(filepath.Join(issuegraphDir, "config.yaml"))
 	if err != nil {
 		t.Fatal(err)
 	}
 
 	const remote = "git+ssh://git@example.com/right/repo.git"
-	if err := persistInitSyncRemote(beadsDir, remote, remote, false, true, false); err != nil {
+	if err := persistInitSyncRemote(issuegraphDir, remote, remote, false, true, false); err != nil {
 		t.Fatalf("persistInitSyncRemote: %v", err)
 	}
 
-	body, err := os.ReadFile(filepath.Join(beadsDir, "config.yaml"))
+	body, err := os.ReadFile(filepath.Join(issuegraphDir, "config.yaml"))
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -209,19 +209,19 @@ func TestInitPersistingSyncRemoteKeepsTheConfigTemplate(t *testing.T) {
 			t.Errorf("init dropped a line of its own config template: %q\ngot:\n%s", line, body)
 		}
 	}
-	if got := config.GetStringFromDir(beadsDir, "sync.remote"); got != remote {
+	if got := config.GetStringFromDir(issuegraphDir, "sync.remote"); got != remote {
 		t.Errorf("sync.remote = %q, want %q\n%s", got, remote, body)
 	}
 }
 
 func TestInitTimeCloneConfigExternalDefaultsAreSelfContained(t *testing.T) {
-	t.Setenv("BEADS_DOLT_SERVER_HOST", "")
-	t.Setenv("BEADS_DOLT_SERVER_PORT", "")
-	t.Setenv("BEADS_DOLT_PORT", "")
-	t.Setenv("BEADS_DOLT_SERVER_USER", "")
-	t.Setenv("BEADS_DOLT_SERVER_DATABASE", "")
+	t.Setenv("ISSUEGRAPH_DOLT_SERVER_HOST", "")
+	t.Setenv("ISSUEGRAPH_DOLT_SERVER_PORT", "")
+	t.Setenv("ISSUEGRAPH_DOLT_PORT", "")
+	t.Setenv("ISSUEGRAPH_DOLT_SERVER_USER", "")
+	t.Setenv("ISSUEGRAPH_DOLT_SERVER_DATABASE", "")
 
-	cfg := initTimeCloneConfig(true, "", 3312, "", "", "beads_proj")
+	cfg := initTimeCloneConfig(true, "", 3312, "", "", "issuegraph_proj")
 
 	if cfg.GetDoltMode() != configfile.DoltModeServer {
 		t.Fatalf("dolt mode = %q, want server", cfg.GetDoltMode())
@@ -235,7 +235,7 @@ func TestInitTimeCloneConfigExternalDefaultsAreSelfContained(t *testing.T) {
 	if cfg.GetDoltServerPort() != 3312 {
 		t.Fatalf("port = %d, want 3312", cfg.GetDoltServerPort())
 	}
-	if cfg.GetDoltDatabase() != "beads_proj" {
-		t.Fatalf("database = %q, want beads_proj", cfg.GetDoltDatabase())
+	if cfg.GetDoltDatabase() != "issuegraph_proj" {
+		t.Fatalf("database = %q, want issuegraph_proj", cfg.GetDoltDatabase())
 	}
 }

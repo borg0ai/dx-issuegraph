@@ -4,8 +4,8 @@ import (
 	"reflect"
 	"testing"
 
-	"github.com/steveyegge/beads/internal/types"
-	"github.com/steveyegge/beads/issueops"
+	"github.com/borg0ai/dx-issuegraph/internal/types"
+	"github.com/borg0ai/dx-issuegraph/issueops"
 )
 
 // TestBuildReadyFilterPropagatesLabelPatternAndRegex moved here from modules/cli's
@@ -61,7 +61,7 @@ func TestBuildReadyFilterNormalizes(t *testing.T) {
 }
 
 // TestBuildReadyFilterRejectsSortPolicy pins the message modules/cli used to print
-// itself: `bd ready --sort bogus` renders this error verbatim behind "Error: ".
+// itself: `issuegraph ready --sort bogus` renders this error verbatim behind "Error: ".
 func TestBuildReadyFilterRejectsSortPolicy(t *testing.T) {
 	_, err := BuildReadyFilter(issueops.ReadyRequest{Sort: "bogus"})
 	if err == nil {

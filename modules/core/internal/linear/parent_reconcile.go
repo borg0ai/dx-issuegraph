@@ -71,7 +71,7 @@ func isRateLimitExhausted(err error) bool {
 
 // ParentLink describes a desired parent-child relationship to wire up
 // on the Linear side. Both fields are Linear identifiers (e.g. "HOU-159")
-// — typically extracted from each bead's external_ref via
+// — typically extracted from each issue's external_ref via
 // Tracker.ExtractIdentifier.
 type ParentLink struct {
 	ChildIdentifier  string
@@ -98,7 +98,7 @@ type ParentReconcileStats struct {
 	// the desired value — no API mutation was issued.
 	Skipped int
 	// NotFound is the list of identifiers (child or parent) that didn't
-	// resolve to a Linear issue (typically because their bead has no
+	// resolve to a Linear issue (typically because their issue has no
 	// external_ref yet, or the Linear issue was deleted out-of-band).
 	// Their links are silently skipped; the next sync will retry.
 	NotFound []string
@@ -106,7 +106,7 @@ type ParentReconcileStats struct {
 	Errors []error
 }
 
-// ReconcileParents wires parent-child relationships from bead-side
+// ReconcileParents wires parent-child relationships from issue-side
 // dependencies to Linear's parent issue field. Used as a post-sync pass
 // to handle two cases that the per-issue create/update path can't cover:
 //
@@ -115,7 +115,7 @@ type ParentReconcileStats struct {
 //     This pass closes the loop after every issue in the tree has an
 //     external ref.
 //  2. Orphan repair: existing Linear issues that were created (in earlier
-//     bd versions or by interrupted syncs) without parentId can be wired
+//     issuegraph versions or by interrupted syncs) without parentId can be wired
 //     up retroactively.
 //
 // Idempotent: fetches each child's current parent and only issues

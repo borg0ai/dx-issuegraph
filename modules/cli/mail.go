@@ -7,35 +7,35 @@ import (
 
 	"github.com/spf13/cobra"
 
-	"github.com/steveyegge/beads/internal/metrics"
+	"github.com/borg0ai/dx-issuegraph/internal/metrics"
 )
 
 // mailCmd delegates to an external mail provider.
-// This enables agents to use 'bd mail' consistently, while the actual
+// This enables agents to use 'issuegraph mail' consistently, while the actual
 // mail implementation is provided by the orchestrator.
 var mailCmd = &cobra.Command{
 	Use:   "mail [subcommand] [args...]",
 	Short: "Delegate to mail provider (e.g., gt mail)",
 	Long: `Delegates mail operations to an external mail provider.
 
-Agents often type 'bd mail' when working with beads, but mail functionality
+Agents often type 'issuegraph mail' when working with issuegraph, but mail functionality
 is typically provided by the orchestrator. This command bridges that gap
 by delegating to the configured mail provider.
 
 Configuration (checked in order):
-  1. BEADS_MAIL_DELEGATE or BD_MAIL_DELEGATE environment variable
-  2. 'mail.delegate' config setting (bd config set mail.delegate "gt mail")
+  1. ISSUEGRAPH_MAIL_DELEGATE or ISSUEGRAPH_MAIL_DELEGATE environment variable
+  2. 'mail.delegate' config setting (issuegraph config set mail.delegate "gt mail")
 
 Examples:
   # Configure delegation (one-time setup)
-  export BEADS_MAIL_DELEGATE="gt mail"
+  export ISSUEGRAPH_MAIL_DELEGATE="gt mail"
   # or
-  bd config set mail.delegate "gt mail"
+  issuegraph config set mail.delegate "gt mail"
 
-  # Then use bd mail as if it were gt mail
-  bd mail inbox                    # Lists inbox
-  bd mail send mayor/ -s "Hi"      # Sends mail
-  bd mail read msg-123             # Reads a message`,
+  # Then use issuegraph mail as if it were gt mail
+  issuegraph mail inbox                    # Lists inbox
+  issuegraph mail send mayor/ -s "Hi"      # Sends mail
+  issuegraph mail read msg-123             # Reads a message`,
 	DisableFlagParsing: true,
 	SilenceUsage:       true,
 	SilenceErrors:      true,
@@ -58,7 +58,7 @@ Examples:
 		if delegate == "" {
 			return HandleErrorWithHint(
 				"no mail delegate configured",
-				"Set BEADS_MAIL_DELEGATE=\"gt mail\" or run: bd config set mail.delegate \"gt mail\"")
+				"Set ISSUEGRAPH_MAIL_DELEGATE=\"gt mail\" or run: issuegraph config set mail.delegate \"gt mail\"")
 		}
 
 		parts := strings.Fields(delegate)
@@ -86,17 +86,17 @@ Examples:
 }
 
 // findMailDelegate checks for mail delegation configuration
-// Priority: env vars > bd config
+// Priority: env vars > issuegraph config
 func findMailDelegate() string {
 	// Check environment variables first
-	if delegate := os.Getenv("BEADS_MAIL_DELEGATE"); delegate != "" {
+	if delegate := os.Getenv("ISSUEGRAPH_MAIL_DELEGATE"); delegate != "" {
 		return delegate
 	}
-	if delegate := os.Getenv("BD_MAIL_DELEGATE"); delegate != "" {
+	if delegate := os.Getenv("ISSUEGRAPH_MAIL_DELEGATE"); delegate != "" {
 		return delegate
 	}
 
-	// Check bd config (requires database)
+	// Check issuegraph config (requires database)
 	// This works even without a database connection since we use direct mode
 	if store != nil {
 		if delegate, err := store.GetConfig(rootCtx, "mail.delegate"); err == nil && delegate != "" {

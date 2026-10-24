@@ -12,9 +12,9 @@ import (
 
 	mysql "github.com/go-sql-driver/mysql"
 
-	"github.com/steveyegge/beads/internal/storage"
-	"github.com/steveyegge/beads/internal/types"
-	"github.com/steveyegge/beads/issueops"
+	"github.com/borg0ai/dx-issuegraph/internal/storage"
+	"github.com/borg0ai/dx-issuegraph/internal/types"
+	"github.com/borg0ai/dx-issuegraph/issueops"
 )
 
 // The plain proxied update joined the claim on issueops.Lifecycle, so these pin
@@ -80,12 +80,12 @@ func TestProxiedUpdateRunsOnTheLifecycleContract(t *testing.T) {
 	}
 	// The commit message this path has always written, carried on the request
 	// instead of being spelled at the commit site.
-	if req.Provenance != "bd: update bd-1" {
+	if req.Provenance != "issuegraph: update bd-1" {
 		t.Errorf("Provenance = %q, want the message the proxied update has always written", req.Provenance)
 	}
 	// A CLI update resolves either plane; only the HTTP surface restricts it.
 	if req.IssuePlaneOnly {
-		t.Error("the CLI update restricted the plane; `bd update` has always resolved a wisp id")
+		t.Error("the CLI update restricted the plane; `issuegraph update` has always resolved a wisp id")
 	}
 	if p.uows != 0 {
 		t.Errorf("the update path opened %d units of work; the contract owns the transaction", p.uows)
@@ -288,7 +288,7 @@ func TestProxiedUpdateGuardMismatchExitsThirteen(t *testing.T) {
 }
 
 // TestProxiedUpdateAbortsTheBatchOnCancellation is the plain-update half of the
-// claim's own cancellation rule: SIGINT cancels bd's root context, every
+// claim's own cancellation rule: SIGINT cancels issuegraph's root context, every
 // remaining id would fail the same way, so the loop aborts instead of recording
 // one "context canceled" failure per id.
 func TestProxiedUpdateAbortsTheBatchOnCancellation(t *testing.T) {

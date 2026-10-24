@@ -10,26 +10,26 @@ import (
 // ArtifactFinding represents a single detected artifact that may need cleanup.
 type ArtifactFinding struct {
 	Path        string // Absolute path to the artifact
-	Type        string // "jsonl", "sqlite", "cruft-beads", "redirect"
+	Type        string // "jsonl", "sqlite", "cruft-issuegraph", "redirect"
 	Description string // Human-readable description
 	SafeDelete  bool   // Whether this is safe to delete without data loss
 }
 
 // ArtifactReport contains all findings from an artifact scan.
 type ArtifactReport struct {
-	SQLiteArtifacts []ArtifactFinding
-	CruftBeadsDirs  []ArtifactFinding
-	RedirectIssues  []ArtifactFinding
-	TotalCount      int
-	SafeDeleteCount int
+	SQLiteArtifacts     []ArtifactFinding
+	CruftIssueGraphDirs []ArtifactFinding
+	RedirectIssues      []ArtifactFinding
+	TotalCount          int
+	SafeDeleteCount     int
 }
 
-// CheckClassicArtifacts scans for beads classic artifacts that should be cleaned up
+// CheckClassicArtifacts scans for issuegraph classic artifacts that should be cleaned up
 // after the Dolt migration. This includes stale JSONL files in dolt-native directories,
-// leftover SQLite database files, cruft .beads directories that should be redirect-only,
+// leftover SQLite database files, cruft .issuegraph directories that should be redirect-only,
 // and invalid redirect files.
 //
-// The scan is rooted at the given path and looks for .beads/ directories recursively,
+// The scan is rooted at the given path and looks for .issuegraph/ directories recursively,
 // checking each for artifacts that indicate incomplete migration cleanup.
 func CheckClassicArtifacts(path string) DoctorCheck {
 	report, err := ScanForArtifacts(path)
@@ -57,8 +57,8 @@ func CheckClassicArtifacts(path string) DoctorCheck {
 	if len(report.SQLiteArtifacts) > 0 {
 		parts = append(parts, fmt.Sprintf("%d SQLite artifact(s)", len(report.SQLiteArtifacts)))
 	}
-	if len(report.CruftBeadsDirs) > 0 {
-		parts = append(parts, fmt.Sprintf("%d cruft .beads dir(s)", len(report.CruftBeadsDirs)))
+	if len(report.CruftIssueGraphDirs) > 0 {
+		parts = append(parts, fmt.Sprintf("%d cruft .issuegraph dir(s)", len(report.CruftIssueGraphDirs)))
 	}
 	if len(report.RedirectIssues) > 0 {
 		parts = append(parts, fmt.Sprintf("%d redirect issue(s)", len(report.RedirectIssues)))
@@ -70,7 +70,7 @@ func CheckClassicArtifacts(path string) DoctorCheck {
 	var details []string
 	for _, findings := range [][]ArtifactFinding{
 		report.SQLiteArtifacts,
-		report.CruftBeadsDirs, report.RedirectIssues,
+		report.CruftIssueGraphDirs, report.RedirectIssues,
 	} {
 		for i, f := range findings {
 			if i >= 3 {
@@ -86,18 +86,18 @@ func CheckClassicArtifacts(path string) DoctorCheck {
 		Status:   StatusWarning,
 		Message:  msg,
 		Detail:   strings.Join(details, "\n"),
-		Fix:      "Run 'bd doctor --fix' to clean up, or 'bd doctor --check=artifacts' for details",
+		Fix:      "Run 'issuegraph doctor --fix' to clean up, or 'issuegraph doctor --check=artifacts' for details",
 		Category: CategoryMaintenance,
 	}
 }
 
-// ScanForArtifacts performs a recursive scan of the given path for classic beads artifacts.
+// ScanForArtifacts performs a recursive scan of the given path for classic issuegraph artifacts.
 // Returns an error if the walk itself fails (e.g., root path doesn't exist or is inaccessible).
 // Individual unreadable subdirectories are skipped without error.
 func ScanForArtifacts(rootPath string) (ArtifactReport, error) {
 	var report ArtifactReport
 
-	// Walk the directory tree looking for .beads/ directories
+	// Walk the directory tree looking for .issuegraph/ directories
 	walkErr := filepath.Walk(rootPath, func(path string, info os.FileInfo, err error) error {
 		if err != nil {
 			return nil // Skip directories we can't read
@@ -114,15 +114,15 @@ func ScanForArtifacts(rootPath string) (ArtifactReport, error) {
 			return filepath.SkipDir
 		}
 
-		// We only care about directories named ".beads"
-		if !info.IsDir() || base != ".beads" {
+		// We only care about directories named ".issuegraph"
+		if !info.IsDir() || base != ".issuegraph" {
 			return nil
 		}
 
-		// Found a .beads directory - scan it
-		scanBeadsDir(path, &report)
+		// Found a .issuegraph directory - scan it
+		scanIssueGraphDir(path, &report)
 
-		// Don't descend into .beads/ itself (we've scanned it)
+		// Don't descend into .issuegraph/ itself (we've scanned it)
 		return filepath.SkipDir
 	})
 	if walkErr != nil {
@@ -130,11 +130,11 @@ func ScanForArtifacts(rootPath string) (ArtifactReport, error) {
 	}
 
 	report.TotalCount = len(report.SQLiteArtifacts) +
-		len(report.CruftBeadsDirs) + len(report.RedirectIssues)
+		len(report.CruftIssueGraphDirs) + len(report.RedirectIssues)
 
 	for _, findings := range [][]ArtifactFinding{
 		report.SQLiteArtifacts,
-		report.CruftBeadsDirs, report.RedirectIssues,
+		report.CruftIssueGraphDirs, report.RedirectIssues,
 	} {
 		for _, f := range findings {
 			if f.SafeDelete {
@@ -148,9 +148,9 @@ func ScanForArtifacts(rootPath string) (ArtifactReport, error) {
 
 // scanGitWorktreeArtifacts scans the git-managed worktree area only.
 // This avoids traversing the entire .git directory tree, which can be large and
-// is unrelated to classic beads artifact cleanup.
+// is unrelated to classic issuegraph artifact cleanup.
 func scanGitWorktreeArtifacts(gitDir string, report *ArtifactReport) {
-	worktreesDir := filepath.Join(gitDir, "beads-worktrees")
+	worktreesDir := filepath.Join(gitDir, "issuegraph-worktrees")
 	info, err := os.Stat(worktreesDir)
 	if err != nil || !info.IsDir() {
 		return
@@ -160,76 +160,76 @@ func scanGitWorktreeArtifacts(gitDir string, report *ArtifactReport) {
 		if err != nil {
 			return nil
 		}
-		if !info.IsDir() || filepath.Base(path) != ".beads" {
+		if !info.IsDir() || filepath.Base(path) != ".issuegraph" {
 			return nil
 		}
-		scanBeadsDir(path, report)
+		scanIssueGraphDir(path, report)
 		return filepath.SkipDir
 	})
 }
 
-// scanBeadsDir checks a single .beads directory for artifacts.
-func scanBeadsDir(beadsDir string, report *ArtifactReport) {
+// scanIssueGraphDir checks a single .issuegraph directory for artifacts.
+func scanIssueGraphDir(issuegraphDir string, report *ArtifactReport) {
 	// Check if this should be a redirect-only directory
-	isRedirectExpected := isRedirectExpectedDir(beadsDir)
+	isRedirectExpected := isRedirectExpectedDir(issuegraphDir)
 
 	// Check if it has a redirect file
-	hasRedirect := hasRedirectFile(beadsDir)
+	hasRedirect := hasRedirectFile(issuegraphDir)
 
 	// 1. Check for SQLite artifacts
-	scanSQLiteArtifacts(beadsDir, report)
+	scanSQLiteArtifacts(issuegraphDir, report)
 
-	// 2. Check for cruft .beads directories (should be redirect-only)
+	// 2. Check for cruft .issuegraph directories (should be redirect-only)
 	if isRedirectExpected {
-		scanCruftBeadsDir(beadsDir, report)
+		scanCruftIssueGraphDir(issuegraphDir, report)
 	}
 
 	// 3. Validate redirect files
 	if hasRedirect {
-		validateRedirect(beadsDir, report)
+		validateRedirect(issuegraphDir, report)
 	}
 }
 
-// isRedirectExpectedDir returns true if this .beads directory should contain
+// isRedirectExpectedDir returns true if this .issuegraph directory should contain
 // only a redirect file (i.e., it's in a worktree or orchestrator subdirectory).
 // NOTE: The polecats/crew/refinery patterns are retained for backwards compatibility
 // with existing orchestrator installations.
-func isRedirectExpectedDir(beadsDir string) bool {
-	// The parent of .beads is the project dir
-	// We need to determine if this is a "leaf" .beads that should redirect
-	// to a "canonical" .beads (typically in the main rig or main worktree)
+func isRedirectExpectedDir(issuegraphDir string) bool {
+	// The parent of .issuegraph is the project dir
+	// We need to determine if this is a "leaf" .issuegraph that should redirect
+	// to a "canonical" .issuegraph (typically in the main rig or main worktree)
 
-	parent := filepath.Dir(beadsDir)
+	parent := filepath.Dir(issuegraphDir)
 	parentName := filepath.Base(parent)
 	grandparent := filepath.Dir(parent)
 	grandparentName := filepath.Base(grandparent)
 
-	// Pattern: */polecats/*/.beads/ (orchestrator worker worktree — backwards compat)
+	// Pattern: */polecats/*/.issuegraph/ (orchestrator worker worktree — backwards compat)
 	if grandparentName == "polecats" {
 		return true
 	}
 
-	// Pattern: */crew/*/.beads/ (orchestrator assistant workspace — backwards compat)
+	// Pattern: */crew/*/.issuegraph/ (orchestrator assistant workspace — backwards compat)
 	if grandparentName == "crew" {
 		return true
 	}
 
-	// Pattern: */refinery/rig/.beads/ (orchestrator processor — backwards compat)
+	// Pattern: */refinery/rig/.issuegraph/ (orchestrator processor — backwards compat)
 	if parentName == "rig" && grandparentName == "refinery" {
 		return true
 	}
 
-	// Pattern: .git/beads-worktrees/*/.beads/
-	if grandparentName == "beads-worktrees" {
+	// Pattern: .git/issuegraph-worktrees/*/.issuegraph/
+	if grandparentName == "issuegraph-worktrees" {
 		return true
 	}
 
-	// Check if this is a rig-root .beads/ (e.g., my-project/.beads/)
-	// that should redirect to mayor/rig/.beads/
-	// A rig-root .beads has a sibling "mayor/" or "polecats/" directory
+	// Check if this is a rig-root .issuegraph/ (e.g., my-project/.issuegraph/)
+	// that should redirect to mayor/rig/.issuegraph/
+	// A rig-root .issuegraph has a sibling "mayor/" or "polecats/" directory
 	if hasSibling(parent, "mayor") || hasSibling(parent, "polecats") {
 		// This looks like a rig root, check if there's a canonical location
-		canonicalDir := filepath.Join(parent, "mayor", "rig", ".beads")
+		canonicalDir := filepath.Join(parent, "mayor", "rig", ".issuegraph")
 		if _, err := os.Stat(canonicalDir); err == nil {
 			return true
 		}
@@ -245,21 +245,21 @@ func hasSibling(dir string, siblingName string) bool {
 	return err == nil && info.IsDir()
 }
 
-// hasRedirectFile returns true if the .beads directory has a redirect file.
-func hasRedirectFile(beadsDir string) bool {
-	_, err := os.Stat(filepath.Join(beadsDir, "redirect"))
+// hasRedirectFile returns true if the .issuegraph directory has a redirect file.
+func hasRedirectFile(issuegraphDir string) bool {
+	_, err := os.Stat(filepath.Join(issuegraphDir, "redirect"))
 	return err == nil
 }
 
 // scanSQLiteArtifacts checks for leftover SQLite database files.
 // Only flags SQLite files as artifacts if Dolt is the active backend.
-// If SQLite is still the active backend, beads.db is the live database.
-func scanSQLiteArtifacts(beadsDir string, report *ArtifactReport) {
-	if !IsDoltBackend(beadsDir) {
+// If SQLite is still the active backend, issuegraph.db is the live database.
+func scanSQLiteArtifacts(issuegraphDir string, report *ArtifactReport) {
+	if !IsDoltBackend(issuegraphDir) {
 		return
 	}
 
-	entries, err := os.ReadDir(beadsDir)
+	entries, err := os.ReadDir(issuegraphDir)
 	if err != nil {
 		return
 	}
@@ -270,21 +270,21 @@ func scanSQLiteArtifacts(beadsDir string, report *ArtifactReport) {
 		}
 		name := entry.Name()
 
-		// beads.db and its WAL/SHM files
-		if name == "beads.db" || name == "beads.db-shm" || name == "beads.db-wal" {
+		// issuegraph.db and its WAL/SHM files
+		if name == "issuegraph.db" || name == "issuegraph.db-shm" || name == "issuegraph.db-wal" {
 			report.SQLiteArtifacts = append(report.SQLiteArtifacts, ArtifactFinding{
-				Path:        filepath.Join(beadsDir, name),
+				Path:        filepath.Join(issuegraphDir, name),
 				Type:        "sqlite",
 				Description: "SQLite database file (Dolt is active backend)",
-				SafeDelete:  name == "beads.db-shm" || name == "beads.db-wal",
+				SafeDelete:  name == "issuegraph.db-shm" || name == "issuegraph.db-wal",
 			})
 			continue
 		}
 
-		// beads.backup-*.db pre-migration backups
-		if strings.HasPrefix(name, "beads.backup-") && strings.HasSuffix(name, ".db") {
+		// issuegraph.backup-*.db pre-migration backups
+		if strings.HasPrefix(name, "issuegraph.backup-") && strings.HasSuffix(name, ".db") {
 			report.SQLiteArtifacts = append(report.SQLiteArtifacts, ArtifactFinding{
-				Path:        filepath.Join(beadsDir, name),
+				Path:        filepath.Join(issuegraphDir, name),
 				Type:        "sqlite",
 				Description: "pre-migration backup",
 				SafeDelete:  true,
@@ -293,10 +293,10 @@ func scanSQLiteArtifacts(beadsDir string, report *ArtifactReport) {
 	}
 }
 
-// scanCruftBeadsDir checks if a .beads directory that should be redirect-only
+// scanCruftIssueGraphDir checks if a .issuegraph directory that should be redirect-only
 // contains extra files beyond the redirect file.
-func scanCruftBeadsDir(beadsDir string, report *ArtifactReport) {
-	entries, err := os.ReadDir(beadsDir)
+func scanCruftIssueGraphDir(issuegraphDir string, report *ArtifactReport) {
+	entries, err := os.ReadDir(issuegraphDir)
 	if err != nil {
 		return
 	}
@@ -325,17 +325,17 @@ func scanCruftBeadsDir(beadsDir string, report *ArtifactReport) {
 		desc = fmt.Sprintf("should be redirect-only but contains %d extra files", len(extraFiles))
 	}
 
-	report.CruftBeadsDirs = append(report.CruftBeadsDirs, ArtifactFinding{
-		Path:        beadsDir,
-		Type:        "cruft-beads",
+	report.CruftIssueGraphDirs = append(report.CruftIssueGraphDirs, ArtifactFinding{
+		Path:        issuegraphDir,
+		Type:        "cruft-issuegraph",
 		Description: desc,
 		SafeDelete:  true, // Safe: location is redirect-expected, extra files are cruft
 	})
 }
 
 // validateRedirect checks that a redirect file points to a valid target.
-func validateRedirect(beadsDir string, report *ArtifactReport) {
-	redirectPath := filepath.Join(beadsDir, "redirect")
+func validateRedirect(issuegraphDir string, report *ArtifactReport) {
+	redirectPath := filepath.Join(issuegraphDir, "redirect")
 	data, err := os.ReadFile(redirectPath) // #nosec G304 - path constructed from walked dir
 	if err != nil {
 		report.RedirectIssues = append(report.RedirectIssues, ArtifactFinding{
@@ -373,7 +373,7 @@ func validateRedirect(beadsDir string, report *ArtifactReport) {
 	// Resolve relative paths
 	resolvedTarget := target
 	if !filepath.IsAbs(target) {
-		projectRoot := filepath.Dir(beadsDir)
+		projectRoot := filepath.Dir(issuegraphDir)
 		resolvedTarget = filepath.Join(projectRoot, target)
 	}
 
@@ -399,10 +399,10 @@ func validateRedirect(beadsDir string, report *ArtifactReport) {
 		return
 	}
 
-	// gastownhall/beads#4692: FollowRedirect ignores a redirect whose target
+	// borg0ai/dx-issuegraph#4692: FollowRedirect ignores a redirect whose target
 	// has no metadata.json and no recognizable database (a stray
-	// worktree-depth redirect, e.g. a relic of the "bd worktree create"
-	// write-site removed in #3051, can point past the real .beads dir into
+	// worktree-depth redirect, e.g. a relic of the "issuegraph worktree create"
+	// write-site removed in #3051, can point past the real .issuegraph dir into
 	// an empty location). Flag that here too as an actionable warning, not
 	// SafeDelete cruft -- the fix is to correct or remove the redirect file,
 	// not to delete anything automatically.
@@ -410,7 +410,7 @@ func validateRedirect(beadsDir string, report *ArtifactReport) {
 		report.RedirectIssues = append(report.RedirectIssues, ArtifactFinding{
 			Path:        redirectPath,
 			Type:        "redirect",
-			Description: fmt.Sprintf("redirect target has no database or metadata.json (ignored by bd): %s", target),
+			Description: fmt.Sprintf("redirect target has no database or metadata.json (ignored by issuegraph): %s", target),
 			SafeDelete:  false,
 		})
 	}
@@ -418,8 +418,8 @@ func validateRedirect(beadsDir string, report *ArtifactReport) {
 
 // hasDatabaseOrMetadata reports whether dir contains a metadata.json or a
 // recognizable Dolt/SQLite database. Mirrors the target-validity check
-// FollowRedirect (internal/beads) applies before honoring a redirect;
-// duplicated locally (rather than importing internal/beads) to keep this
+// FollowRedirect (internal/issuegraph) applies before honoring a redirect;
+// duplicated locally (rather than importing internal/issuegraph) to keep this
 // package's existing pattern of small, self-contained filesystem checks
 // (see isRedirectExpectedDir/hasRedirectFile above).
 func hasDatabaseOrMetadata(dir string) bool {

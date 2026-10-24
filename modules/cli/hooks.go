@@ -9,31 +9,31 @@ import (
 	"path/filepath"
 	"strings"
 
+	"github.com/borg0ai/dx-issuegraph/internal/config"
+	"github.com/borg0ai/dx-issuegraph/internal/debug"
+	"github.com/borg0ai/dx-issuegraph/internal/git"
+	"github.com/borg0ai/dx-issuegraph/internal/issuegraph"
+	"github.com/borg0ai/dx-issuegraph/internal/metrics"
+	"github.com/borg0ai/dx-issuegraph/internal/ui"
+	"github.com/borg0ai/dx-issuegraph/modules/cli/doctor"
 	"github.com/spf13/cobra"
-	"github.com/steveyegge/beads/modules/cli/doctor"
-	"github.com/steveyegge/beads/internal/beads"
-	"github.com/steveyegge/beads/internal/config"
-	"github.com/steveyegge/beads/internal/debug"
-	"github.com/steveyegge/beads/internal/git"
-	"github.com/steveyegge/beads/internal/metrics"
-	"github.com/steveyegge/beads/internal/ui"
 )
 
-// managedHookNames lists the git hooks managed by beads.
+// managedHookNames lists the git hooks managed by issuegraph.
 // Hook content is generated dynamically by generateHookSection().
 var managedHookNames = []string{"pre-commit", "post-merge", "pre-push", "post-checkout", "prepare-commit-msg"}
 
 const hookVersionPrefix = "# bd-hooks-version: "
 const shimVersionPrefix = "# bd-shim "
 
-// inlineHookMarker identifies inline hooks created by bd init (GH#1120)
+// inlineHookMarker identifies inline hooks created by issuegraph init (GH#1120)
 // These hooks have the logic embedded directly rather than using shims
-const inlineHookMarker = "# bd (beads)"
+const inlineHookMarker = "# issuegraph (issuegraph)"
 
 // Section markers for git hooks (GH#1380) — consistent with AGENTS.md pattern.
-// Only content between markers is managed by beads; user content outside is preserved.
-const hookSectionBeginPrefix = "# --- BEGIN BEADS INTEGRATION"
-const hookSectionEndPrefix = "# --- END BEADS INTEGRATION"
+// Only content between markers is managed by issuegraph; user content outside is preserved.
+const hookSectionBeginPrefix = "# --- BEGIN ISSUEGRAPH INTEGRATION"
+const hookSectionEndPrefix = "# --- END ISSUEGRAPH INTEGRATION"
 
 // hookSectionBeginLine returns the full begin marker line with the current version.
 func hookSectionBeginLine() string {
@@ -45,93 +45,93 @@ func hookSectionEndLine() string {
 	return fmt.Sprintf("%s v%s ---", hookSectionEndPrefix, Version)
 }
 
-// hookTimeoutSeconds is the soft deadline for a beads hook. GNU timeout sends
-// SIGTERM at the deadline, while Perl's alarm terminates the direct bd process.
+// hookTimeoutSeconds is the soft deadline for a issuegraph hook. GNU timeout sends
+// SIGTERM at the deadline, while Perl's alarm terminates the direct issuegraph process.
 // Neither backend promises containment of TERM-resistant descendant work. When
 // neither helper is available, the generated hook warns that it is unbounded.
 // The default is 300 seconds (5 minutes) to accommodate chained hooks — e.g.
 // pre-commit framework pipelines that run linters, type-checkers, and builds
-// inside `bd hooks run` via the `.old` hook chain (GH#2732).
-// The value can be overridden via the BEADS_HOOK_TIMEOUT environment variable.
+// inside `issuegraph hooks run` via the `.old` hook chain (GH#2732).
+// The value can be overridden via the ISSUEGRAPH_HOOK_TIMEOUT environment variable.
 const hookTimeoutSeconds = 300
 
 // generateHookSection returns the marked section content for a given hook name.
-// The section is self-contained: it checks for bd availability, runs the hook
-// via 'bd hooks run', and propagates exit codes — without preventing any user
+// The section is self-contained: it checks for issuegraph availability, runs the hook
+// via 'issuegraph hooks run', and propagates exit codes — without preventing any user
 // content after the section from executing on success.
 //
 // Resilience (GH#2453, GH#2449):
 //   - A compatible timeout helper applies a best-effort soft deadline.
-//   - BEADS_HOOK_TIMEOUT accepts positive whole seconds only.
+//   - ISSUEGRAPH_HOOK_TIMEOUT accepts positive whole seconds only.
 //   - Helper argv is separated with -- so user input cannot become an option.
 //   - If no compatible helper exists, the direct fallback is explicitly
 //     unbounded rather than silently pretending to enforce a deadline.
 //   - Only GNU coreutils timeout implementations are selected; Windows
 //     timeout.exe has the same name but an incompatible command line (GH#5503).
-//   - If the beads database is not initialized (exit code 3), the hook exits
+//   - If the issuegraph database is not initialized (exit code 3), the hook exits
 //     successfully with a warning so that git operations are not blocked.
 func generateHookSection(hookName string) string {
 	return hookSectionBeginLine() + "\n" +
-		"# This section is managed by beads. Do not remove these markers.\n" +
-		"if command -v bd >/dev/null 2>&1; then\n" +
-		"  export BD_GIT_HOOK=1\n" +
-		"  _bd_timeout=${BEADS_HOOK_TIMEOUT:-" + fmt.Sprintf("%d", hookTimeoutSeconds) + "}\n" +
-		"  case \"$_bd_timeout\" in\n" +
-		"    *[!0-9]*|'') _bd_timeout_invalid=1 ;;\n" +
-		"    *[1-9]*) _bd_timeout_invalid=0 ;;\n" +
-		"    *) _bd_timeout_invalid=1 ;;\n" +
+		"# This section is managed by issuegraph. Do not remove these markers.\n" +
+		"if command -v issuegraph >/dev/null 2>&1; then\n" +
+		"  export ISSUEGRAPH_GIT_HOOK=1\n" +
+		"  _issuegraph_timeout=${ISSUEGRAPH_HOOK_TIMEOUT:-" + fmt.Sprintf("%d", hookTimeoutSeconds) + "}\n" +
+		"  case \"$_issuegraph_timeout\" in\n" +
+		"    *[!0-9]*|'') _issuegraph_timeout_invalid=1 ;;\n" +
+		"    *[1-9]*) _issuegraph_timeout_invalid=0 ;;\n" +
+		"    *) _issuegraph_timeout_invalid=1 ;;\n" +
 		"  esac\n" +
-		"  if [ \"$_bd_timeout_invalid\" -eq 1 ]; then\n" +
-		"    echo >&2 \"beads: invalid BEADS_HOOK_TIMEOUT; using " + fmt.Sprintf("%d", hookTimeoutSeconds) + " seconds\"\n" +
-		"    _bd_timeout=" + fmt.Sprintf("%d", hookTimeoutSeconds) + "\n" +
+		"  if [ \"$_issuegraph_timeout_invalid\" -eq 1 ]; then\n" +
+		"    echo >&2 \"issuegraph: invalid ISSUEGRAPH_HOOK_TIMEOUT; using " + fmt.Sprintf("%d", hookTimeoutSeconds) + " seconds\"\n" +
+		"    _issuegraph_timeout=" + fmt.Sprintf("%d", hookTimeoutSeconds) + "\n" +
 		"  fi\n" +
-		"  _bd_timeout_backend=none\n" +
-		"  _bd_timeout_command=\n" +
-		"  for _bd_timeout_candidate in timeout gtimeout; do\n" +
-		"    if command -v \"$_bd_timeout_candidate\" >/dev/null 2>&1; then\n" +
-		"      if _bd_timeout_version=\"$(\"$_bd_timeout_candidate\" --version 2>/dev/null)\"; then\n" +
-		"        case \"$_bd_timeout_version\" in\n" +
-		"          \"timeout (GNU coreutils) \"*) _bd_timeout_command=$_bd_timeout_candidate; break ;;\n" +
+		"  _issuegraph_timeout_backend=none\n" +
+		"  _issuegraph_timeout_command=\n" +
+		"  for _issuegraph_timeout_candidate in timeout gtimeout; do\n" +
+		"    if command -v \"$_issuegraph_timeout_candidate\" >/dev/null 2>&1; then\n" +
+		"      if _issuegraph_timeout_version=\"$(\"$_issuegraph_timeout_candidate\" --version 2>/dev/null)\"; then\n" +
+		"        case \"$_issuegraph_timeout_version\" in\n" +
+		"          \"timeout (GNU coreutils) \"*) _issuegraph_timeout_command=$_issuegraph_timeout_candidate; break ;;\n" +
 		"        esac\n" +
 		"      fi\n" +
 		"    fi\n" +
 		"  done\n" +
-		"  if [ -n \"$_bd_timeout_command\" ]; then\n" +
-		"    _bd_timeout_backend=coreutils\n" +
-		"    if \"$_bd_timeout_command\" -- \"$_bd_timeout\" bd hooks run " + hookName + " \"$@\"; then\n" +
-		"      _bd_exit=0\n" +
+		"  if [ -n \"$_issuegraph_timeout_command\" ]; then\n" +
+		"    _issuegraph_timeout_backend=coreutils\n" +
+		"    if \"$_issuegraph_timeout_command\" -- \"$_issuegraph_timeout\" issuegraph hooks run " + hookName + " \"$@\"; then\n" +
+		"      _issuegraph_exit=0\n" +
 		"    else\n" +
-		"      _bd_exit=$?\n" +
+		"      _issuegraph_exit=$?\n" +
 		"    fi\n" +
 		"  elif command -v perl >/dev/null 2>&1; then\n" +
-		"    _bd_timeout_backend=perl\n" +
-		"    if perl -e 'alarm shift; exec @ARGV' -- \"$_bd_timeout\" bd hooks run " + hookName + " \"$@\"; then\n" +
-		"      _bd_exit=0\n" +
+		"    _issuegraph_timeout_backend=perl\n" +
+		"    if perl -e 'alarm shift; exec @ARGV' -- \"$_issuegraph_timeout\" issuegraph hooks run " + hookName + " \"$@\"; then\n" +
+		"      _issuegraph_exit=0\n" +
 		"    else\n" +
-		"      _bd_exit=$?\n" +
+		"      _issuegraph_exit=$?\n" +
 		"    fi\n" +
 		"  else\n" +
-		"    echo >&2 \"beads: hook '" + hookName + "' running without timeout; install coreutils or perl to enable BEADS_HOOK_TIMEOUT\"\n" +
-		"    if bd hooks run " + hookName + " \"$@\"; then\n" +
-		"      _bd_exit=0\n" +
+		"    echo >&2 \"issuegraph: hook '" + hookName + "' running without timeout; install coreutils or perl to enable ISSUEGRAPH_HOOK_TIMEOUT\"\n" +
+		"    if issuegraph hooks run " + hookName + " \"$@\"; then\n" +
+		"      _issuegraph_exit=0\n" +
 		"    else\n" +
-		"      _bd_exit=$?\n" +
+		"      _issuegraph_exit=$?\n" +
 		"    fi\n" +
 		"  fi\n" +
-		"  if { [ \"$_bd_timeout_backend\" = coreutils ] && [ \"$_bd_exit\" -eq 124 ]; } || { [ \"$_bd_timeout_backend\" = perl ] && [ \"$_bd_exit\" -eq 142 ]; }; then\n" +
-		"    echo >&2 \"beads: hook '" + hookName + "' timed out after ${_bd_timeout}s — continuing without beads\"\n" +
-		"    _bd_exit=0\n" +
+		"  if { [ \"$_issuegraph_timeout_backend\" = coreutils ] && [ \"$_issuegraph_exit\" -eq 124 ]; } || { [ \"$_issuegraph_timeout_backend\" = perl ] && [ \"$_issuegraph_exit\" -eq 142 ]; }; then\n" +
+		"    echo >&2 \"issuegraph: hook '" + hookName + "' timed out after ${_issuegraph_timeout}s — continuing without issuegraph\"\n" +
+		"    _issuegraph_exit=0\n" +
 		"  fi\n" +
-		"  if [ \"$_bd_exit\" -eq 3 ]; then\n" +
-		"    echo >&2 \"beads: database not initialized — skipping hook '" + hookName + "'\"\n" +
-		"    _bd_exit=0\n" +
+		"  if [ \"$_issuegraph_exit\" -eq 3 ]; then\n" +
+		"    echo >&2 \"issuegraph: database not initialized — skipping hook '" + hookName + "'\"\n" +
+		"    _issuegraph_exit=0\n" +
 		"  fi\n" +
-		"  if [ \"$_bd_exit\" -ne 0 ]; then exit \"$_bd_exit\"; fi\n" +
+		"  if [ \"$_issuegraph_exit\" -ne 0 ]; then exit \"$_issuegraph_exit\"; fi\n" +
 		"fi\n" +
 		hookSectionEndLine() + "\n"
 }
 
-// injectHookSection merges the beads section into existing hook file content.
+// injectHookSection merges the issuegraph section into existing hook file content.
 // If section markers are found, only the content between them is replaced.
 // If broken markers exist (orphaned BEGIN, reversed order), the stale markers
 // are removed before injecting the new section.
@@ -190,7 +190,7 @@ func injectHookSectionWithDepth(existing, section string, depth int) string {
 	// Case 3: no markers. If the existing hook ends in an exec-replacing
 	// block (e.g. the templated hook produced by `pre-commit init-templatedir`,
 	// which ends with `exec "$INSTALL_PYTHON" -mpre_commit ...`), appending
-	// at the bottom would make the bd section unreachable. Detect that
+	// at the bottom would make the issuegraph section unreachable. Detect that
 	// pattern and inject above the exec block instead. (GH#3537)
 	if injectAt := findExecBlockInjectionPoint(existing); injectAt >= 0 {
 		return existing[:injectAt] + section + "\n" + existing[injectAt:]
@@ -208,7 +208,7 @@ func injectHookSectionWithDepth(existing, section string, depth int) string {
 // findExecBlockInjectionPoint inspects the tail of a hook file. If it ends in
 // an exec-replacing chain (a final `exec <cmd>` reachable from the bottom of
 // the file, possibly inside an `if`/`elif`/`else`/`fi` ladder whose other
-// branches only `echo`/`exit`), returns the byte offset where the bd section
+// branches only `echo`/`exit`), returns the byte offset where the issuegraph section
 // should be injected — i.e. just above the start of the enclosing control
 // structure (or above the bare `exec` line if there is none). Returns -1 when
 // the file does not end in such a pattern; callers should fall back to
@@ -379,7 +379,7 @@ func removeMarkerLine(content string, markerIdx int, markerPrefix string) string
 	return content[:lineStart] + content[lineEnd:]
 }
 
-// removeHookSection removes only the beads section from hook file content.
+// removeHookSection removes only the issuegraph section from hook file content.
 // Returns the content with the section removed, and true if a section was found.
 // Handles valid BEGIN...END pairs, orphaned BEGIN, orphaned END, and reversed markers.
 func removeHookSection(content string) (string, bool) {
@@ -439,13 +439,13 @@ func removeHookSection(content string) (string, bool) {
 // isOnlyShebangOrEmpty reports whether the given hook content consists of
 // nothing meaningful — only an optional shebang line plus blank lines and
 // comments. Used by shouldPreserveHookContent to decide, after stripping a
-// BEADS INTEGRATION block, whether anything user-owned remains worth
+// ISSUEGRAPH INTEGRATION block, whether anything user-owned remains worth
 // preserving.
 //
 // Note: non-shebang comment lines (e.g. `# preamble`) are intentionally
 // treated as non-content. A file that's only a shebang plus a comment is
 // classified empty and skipped — comments alone aren't user logic worth
-// carrying forward to .beads/hooks/<name>. (GH#3536)
+// carrying forward to .issuegraph/hooks/<name>. (GH#3536)
 func isOnlyShebangOrEmpty(content string) bool {
 	for _, line := range strings.Split(content, "\n") {
 		trimmed := strings.TrimSpace(line)
@@ -459,17 +459,17 @@ func isOnlyShebangOrEmpty(content string) bool {
 
 // shouldPreserveHookContent decides what preservePreexistingHooks should do
 // with one hook file's content. Returns (transformedContent, true) when the
-// file should be preserved into the target directory (possibly with the bd
+// file should be preserved into the target directory (possibly with the issuegraph
 // section stripped or the husky helper-layout sanitized); returns
 // ("", false) when preservation should skip this file because it's wholly
 // bd-managed and contains nothing user-owned worth keeping.
 //
 // Decision rules (GH#3536):
-//   - inlineHookMarker (the "# bd (beads)" tag from GH#1120) marks files
+//   - inlineHookMarker (the "# issuegraph (issuegraph)" tag from GH#1120) marks files
 //     that were always wholly bd-owned one-liners — skip.
-//   - hookSectionBeginPrefix marks files that were *user-owned* with bd's
+//   - hookSectionBeginPrefix marks files that were *user-owned* with issuegraph's
 //     block injected into them (the v0.49+ section-marker model). Strip
-//     the bd block and preserve the remaining user content. If only a
+//     the issuegraph block and preserve the remaining user content. If only a
 //     shebang/blank/comments remain, treat as wholly bd-owned and skip.
 //   - When fromHusky is true, sanitize the (possibly stripped) content so
 //     it doesn't depend on husky's helper-layout being mirrored into the
@@ -487,7 +487,7 @@ func shouldPreserveHookContent(content string, fromHusky bool) (string, bool) {
 		}
 		// Normalize CRLF → LF on the preserved-and-stripped content so
 		// Windows / autocrlf=true repos don't end up with `\r\n` line
-		// endings in .beads/hooks/<name>. Mirrors the normalization that
+		// endings in .issuegraph/hooks/<name>. Mirrors the normalization that
 		// injectHookSection does on its output (`hooks.go` ~line 622).
 		content = strings.ReplaceAll(stripped, "\r\n", "\n")
 	}
@@ -506,7 +506,7 @@ type HookStatus struct {
 	Outdated  bool
 }
 
-// CheckGitHooks checks the status of bd git hooks in .git/hooks/
+// CheckGitHooks checks the status of issuegraph git hooks in .git/hooks/
 func CheckGitHooks() []HookStatus {
 	hooks := []string{"pre-commit", "post-merge", "pre-push", "post-checkout", "prepare-commit-msg"}
 	statuses := make([]HookStatus, 0, len(hooks))
@@ -537,8 +537,8 @@ func CheckGitHooks() []HookStatus {
 			status.Version = versionInfo.Version
 			status.IsShim = versionInfo.IsShim
 
-			// Thin shims are never outdated (they delegate to bd)
-			// bd hooks are outdated if version is missing (legacy inline) or differs
+			// Thin shims are never outdated (they delegate to issuegraph)
+			// issuegraph hooks are outdated if version is missing (legacy inline) or differs
 			if !versionInfo.IsShim && versionInfo.IsBdHook && versionInfo.Version != Version {
 				status.Outdated = true
 			}
@@ -552,9 +552,9 @@ func CheckGitHooks() []HookStatus {
 
 // hookVersionInfo contains version information extracted from a hook file
 type hookVersionInfo struct {
-	Version  string // bd version (for legacy hooks) or shim version
+	Version  string // issuegraph version (for legacy hooks) or shim version
 	IsShim   bool   // true if this is a thin shim
-	IsBdHook bool   // true if this is any type of bd hook (shim or inline)
+	IsBdHook bool   // true if this is any type of issuegraph hook (shim or inline)
 }
 
 // getHookVersion extracts the version from a hook file
@@ -575,7 +575,7 @@ func getHookVersion(path string) (hookVersionInfo, error) {
 		content.WriteString("\n")
 		// Check for section marker (GH#1380) — can appear anywhere in the file
 		if strings.HasPrefix(line, hookSectionBeginPrefix) {
-			// Extract version from "# --- BEGIN BEADS INTEGRATION v0.56.1 ---"
+			// Extract version from "# --- BEGIN ISSUEGRAPH INTEGRATION v0.56.1 ---"
 			after := strings.TrimPrefix(line, hookSectionBeginPrefix)
 			after = strings.TrimSpace(after)
 			after = strings.TrimPrefix(after, "v")
@@ -599,13 +599,13 @@ func getHookVersion(path string) (hookVersionInfo, error) {
 		return hookVersionInfo{}, fmt.Errorf("reading hook file: %w", err)
 	}
 
-	// Check if it's an inline bd hook (from bd init) - GH#1120
-	// These don't have version markers but have "# bd (beads)" comment
+	// Check if it's an inline issuegraph hook (from issuegraph init) - GH#1120
+	// These don't have version markers but have "# issuegraph (issuegraph)" comment
 	if strings.Contains(content.String(), inlineHookMarker) {
 		return hookVersionInfo{IsBdHook: true}, nil
 	}
 
-	// No version found and not a bd hook
+	// No version found and not a issuegraph hook
 	return hookVersionInfo{}, nil
 }
 
@@ -626,12 +626,12 @@ func FormatHookWarnings(statuses []HookStatus) string {
 
 	if missingCount > 0 {
 		warnings = append(warnings, fmt.Sprintf("⚠️  Git hooks not installed (%d missing)", missingCount))
-		warnings = append(warnings, "   Run: bd hooks install")
+		warnings = append(warnings, "   Run: issuegraph hooks install")
 	}
 
 	if outdatedCount > 0 {
 		warnings = append(warnings, fmt.Sprintf("⚠️  Git hooks are outdated (%d hooks)", outdatedCount))
-		warnings = append(warnings, "   Run: bd hooks install")
+		warnings = append(warnings, "   Run: issuegraph hooks install")
 	}
 
 	if len(warnings) > 0 {
@@ -646,8 +646,8 @@ func FormatHookWarnings(statuses []HookStatus) string {
 var hooksCmd = &cobra.Command{
 	Use:     "hooks",
 	GroupID: "setup",
-	Short:   "Manage git hooks for beads integration",
-	Long: `Install, uninstall, or list git hooks for beads integration.
+	Short:   "Manage git hooks for issuegraph integration",
+	Long: `Install, uninstall, or list git hooks for issuegraph integration.
 
 The hooks provide:
 - pre-commit: Run chained hooks before commit
@@ -659,12 +659,12 @@ The hooks provide:
 
 var hooksInstallCmd = &cobra.Command{
 	Use:   "install",
-	Short: "Install bd git hooks",
-	Long: `Install git hooks for beads integration.
+	Short: "Install issuegraph git hooks",
+	Long: `Install git hooks for issuegraph integration.
 
 By default, hooks are installed to .git/hooks/ in the current repository.
-Use --beads to install to .beads/hooks/ (recommended for Dolt backend).
-Use --shared to install to a versioned directory (.beads-hooks/) that can be
+Use --issuegraph to install to .issuegraph/hooks/ (recommended for Dolt backend).
+Use --shared to install to a versioned directory (.issuegraph-hooks/) that can be
 committed to git and shared with team members.
 
 Hooks use section markers to coexist with existing hooks — any user content
@@ -689,34 +689,34 @@ Installed hooks:
 		force, _ := cmd.Flags().GetBool("force")
 		shared, _ := cmd.Flags().GetBool("shared")
 		chain, _ := cmd.Flags().GetBool("chain")
-		beadsHooks, _ := cmd.Flags().GetBool("beads")
+		issuegraphHooks, _ := cmd.Flags().GetBool("issuegraph")
 
-		if err := installHooksWithOptions(managedHookNames, force, shared, chain, beadsHooks); err != nil {
+		if err := installHooksWithOptions(managedHookNames, force, shared, chain, issuegraphHooks); err != nil {
 			return HandleErrorRespectJSON("installing hooks: %v", err)
 		}
 
 		if jsonOutput {
 			output := map[string]interface{}{
-				"success":    true,
-				"message":    "Git hooks installed successfully",
-				"shared":     shared,
-				"chained":    chain,
-				"beadsHooks": beadsHooks,
+				"success":         true,
+				"message":         "Git hooks installed successfully",
+				"shared":          shared,
+				"chained":         chain,
+				"issuegraphHooks": issuegraphHooks,
 			}
 			jsonBytes, _ := json.MarshalIndent(output, "", "  ")
 			fmt.Println(string(jsonBytes))
 		} else {
 			fmt.Println("✓ Git hooks installed successfully")
 			fmt.Println()
-			if beadsHooks {
-				fmt.Println("Hooks installed to: .beads/hooks/")
-				fmt.Println("Git config set: core.hooksPath=.beads/hooks")
+			if issuegraphHooks {
+				fmt.Println("Hooks installed to: .issuegraph/hooks/")
+				fmt.Println("Git config set: core.hooksPath=.issuegraph/hooks")
 				fmt.Println()
 			} else if shared {
-				fmt.Println("Hooks installed to: .beads-hooks/")
-				fmt.Println("Git config set: core.hooksPath=.beads-hooks")
+				fmt.Println("Hooks installed to: .issuegraph-hooks/")
+				fmt.Println("Git config set: core.hooksPath=.issuegraph-hooks")
 				fmt.Println()
-				fmt.Println("⚠️  Remember to commit .beads-hooks/ to share with your team!")
+				fmt.Println("⚠️  Remember to commit .issuegraph-hooks/ to share with your team!")
 				fmt.Println()
 			}
 			fmt.Println("Installed hooks:")
@@ -730,8 +730,8 @@ Installed hooks:
 
 var hooksUninstallCmd = &cobra.Command{
 	Use:           "uninstall",
-	Short:         "Uninstall bd git hooks",
-	Long:          `Remove bd git hooks from .git/hooks/ directory.`,
+	Short:         "Uninstall issuegraph git hooks",
+	Long:          `Remove issuegraph git hooks from .git/hooks/ directory.`,
 	SilenceUsage:  true,
 	SilenceErrors: true,
 	RunE: func(cmd *cobra.Command, args []string) error {
@@ -763,7 +763,7 @@ var hooksUninstallCmd = &cobra.Command{
 var hooksListCmd = &cobra.Command{
 	Use:           "list",
 	Short:         "List installed git hooks status",
-	Long:          `Show the status of bd git hooks (installed, outdated, missing).`,
+	Long:          `Show the status of issuegraph git hooks (installed, outdated, missing).`,
 	SilenceUsage:  true,
 	SilenceErrors: true,
 	RunE: func(cmd *cobra.Command, args []string) error {
@@ -802,12 +802,12 @@ var hooksListCmd = &cobra.Command{
 }
 
 // guardHookWritePath refuses hook writes that would silently modify files
-// bd does not own (bd-5vdt8):
+// issuegraph does not own (bd-5vdt8):
 //   - a symlinked hook path: os.WriteFile follows the link (O_TRUNC) and
 //     rewrites the target inode — e.g. a repo-tracked script the hook
 //     points at, dirtying every clone that shares it
 //   - a hook file tracked by git: writing it dirties the working tree.
-//     allowTracked exempts shared installs (.beads-hooks/ is deliberately
+//     allowTracked exempts shared installs (.issuegraph-hooks/ is deliberately
 //     committed).
 func guardHookWritePath(hookPath string, allowTracked bool) error {
 	fi, err := os.Lstat(hookPath)
@@ -829,20 +829,20 @@ func guardHookWritePath(hookPath string, allowTracked bool) error {
 	if allowTracked {
 		return nil
 	}
-	// A tracked file is refused only when bd does NOT own it: writing into a
+	// A tracked file is refused only when issuegraph does NOT own it: writing into a
 	// foreign tracked file dirties every clone that shares it (the wy-81fnur
 	// incident). A bd-owned hook the user chose to commit (e.g. a team-shared
-	// .beads/hooks/) is bd's to maintain — same policy as shared installs.
+	// .issuegraph/hooks/) is issuegraph's to maintain — same policy as shared installs.
 	if isGitTrackedFile(hookPath) && !isBdOwnedHookFile(hookPath) {
-		return fmt.Errorf("%s is tracked by git and not a bd-managed hook; bd will not modify committed files it does not own\nUntrack it (git rm --cached) or move hooks to an untracked directory and re-run", hookPath)
+		return fmt.Errorf("%s is tracked by git and not a bd-managed hook; issuegraph will not modify committed files it does not own\nUntrack it (git rm --cached) or move hooks to an untracked directory and re-run", hookPath)
 	}
 	return nil
 }
 
 // isBdOwnedHookFile reports whether the hook file at path is bd-managed:
-// either section-marker format or a legacy bd hook (shim or inline).
+// either section-marker format or a legacy issuegraph hook (shim or inline).
 func isBdOwnedHookFile(path string) bool {
-	content, err := os.ReadFile(path) // #nosec G304 -- path is a hook location bd resolved
+	content, err := os.ReadFile(path) // #nosec G304 -- path is a hook location issuegraph resolved
 	if err != nil {
 		return false
 	}
@@ -860,27 +860,27 @@ func isGitTrackedFile(path string) bool {
 	dir := filepath.Dir(path)
 	base := filepath.Base(path)
 	// #nosec G204 G702 - fixed "git" command; dir/base come from the hooks
-	// directory bd itself resolved, not user input
+	// directory issuegraph itself resolved, not user input
 	cmd := exec.Command("git", "-C", dir, "ls-files", "--error-unmatch", "--", base)
 	return cmd.Run() == nil
 }
 
 //nolint:unparam // force and chain kept for CLI flag compatibility; section markers make them no-ops
-func installHooksWithOptions(hookNames []string, force bool, shared bool, chain bool, beadsHooks bool) error {
+func installHooksWithOptions(hookNames []string, force bool, shared bool, chain bool, issuegraphHooks bool) error {
 	var hooksDir string
-	if beadsHooks {
-		// Use .beads/hooks/ directory (preferred for Dolt backend)
-		beadsDir := beads.FindBeadsDir()
-		if beadsDir == "" {
+	if issuegraphHooks {
+		// Use .issuegraph/hooks/ directory (preferred for Dolt backend)
+		issuegraphDir := issuegraph.FindIssueGraphDir()
+		if issuegraphDir == "" {
 			return fmt.Errorf("%s", activeWorkspaceNotFoundError())
 		}
-		hooksDir = filepath.Join(beadsDir, "hooks")
+		hooksDir = filepath.Join(issuegraphDir, "hooks")
 	} else if shared {
 		// Use versioned directory for shared hooks
 		if mainRoot, err := git.GetMainRepoRoot(); err == nil && mainRoot != "" {
-			hooksDir = filepath.Join(mainRoot, ".beads-hooks")
+			hooksDir = filepath.Join(mainRoot, ".issuegraph-hooks")
 		} else {
-			hooksDir = ".beads-hooks"
+			hooksDir = ".issuegraph-hooks"
 		}
 	} else {
 		// Use common git directory for hooks (shared across worktrees)
@@ -892,21 +892,21 @@ func installHooksWithOptions(hookNames []string, force bool, shared bool, chain 
 	}
 
 	// Create hooks directory if it doesn't exist.
-	// Directories inside .beads/ use BeadsDirPerm (0700); git-managed hook
-	// dirs (.git/hooks, .beads-hooks) use 0755 so git can execute them.
+	// Directories inside .issuegraph/ use IssueGraphDirPerm (0700); git-managed hook
+	// dirs (.git/hooks, .issuegraph-hooks) use 0755 so git can execute them.
 	hooksDirPerm := os.FileMode(0755)
-	if beadsHooks {
-		hooksDirPerm = config.BeadsDirPerm
+	if issuegraphHooks {
+		hooksDirPerm = config.IssueGraphDirPerm
 	}
 	if err := os.MkdirAll(hooksDir, hooksDirPerm); err != nil {
 		return fmt.Errorf("failed to create hooks directory: %w", err)
 	}
 
-	// When setting a local core.hooksPath (beads or shared mode), preserve any
+	// When setting a local core.hooksPath (issuegraph or shared mode), preserve any
 	// hooks from the previously effective hooks directory (e.g. a global
 	// core.hooksPath or the default .git/hooks). Without this, setting a local
 	// core.hooksPath silently shadows the global one and those hooks stop running.
-	if beadsHooks || shared {
+	if issuegraphHooks || shared {
 		preservePreexistingHooks(hooksDir)
 	}
 
@@ -919,7 +919,7 @@ func installHooksWithOptions(hookNames []string, force bool, shared bool, chain 
 	}
 
 	// Install each hook using section markers (GH#1380).
-	// Only the content between markers is managed by beads; user content
+	// Only the content between markers is managed by issuegraph; user content
 	// outside the markers is preserved across reinstalls and upgrades.
 	for _, hookName := range hookNames {
 		hookPath := filepath.Join(hooksDir, hookName)
@@ -944,20 +944,20 @@ func installHooksWithOptions(hookNames []string, force bool, shared bool, chain 
 				// Update only the section between markers
 				newContent = injectHookSection(existingStr, section)
 			} else {
-				// Check if this is a legacy bd hook (shim or inline)
+				// Check if this is a legacy issuegraph hook (shim or inline)
 				versionInfo, _ := getHookVersion(hookPath)
 				if versionInfo.IsBdHook {
-					// Legacy bd hook — replace entire file with section format
+					// Legacy issuegraph hook — replace entire file with section format
 					newContent = "#!/usr/bin/env sh\n" + section
 				} else {
-					// Non-bd hook — this is the one write that modifies a file
-					// bd does not own. Preserve the original as a one-time
+					// Non-issuegraph hook — this is the one write that modifies a file
+					// issuegraph does not own. Preserve the original as a one-time
 					// .backup sidecar before injecting (bd-5vdt8).
 					backupPath := hookPath + ".backup"
 					if _, statErr := os.Lstat(backupPath); os.IsNotExist(statErr) {
 						// #nosec G306 -- keep executable so a rename restores a working hook
 						if backupErr := os.WriteFile(backupPath, existing, 0755); backupErr != nil {
-							return fmt.Errorf("failed to back up %s before injecting bd section: %w", hookName, backupErr)
+							return fmt.Errorf("failed to back up %s before injecting issuegraph section: %w", hookName, backupErr)
 						}
 					}
 					// Inject section, preserving existing content
@@ -977,8 +977,8 @@ func installHooksWithOptions(hookNames []string, force bool, shared bool, chain 
 	}
 
 	// Configure git to use the hooks directory
-	if beadsHooks {
-		if err := configureBeadsHooksPath(); err != nil {
+	if issuegraphHooks {
+		if err := configureIssueGraphHooksPath(); err != nil {
 			return fmt.Errorf("failed to configure git hooks path: %w", err)
 		}
 	} else if shared {
@@ -990,10 +990,10 @@ func installHooksWithOptions(hookNames []string, force bool, shared bool, chain 
 	return nil
 }
 
-// preservePreexistingHooks copies non-beads hooks from the currently effective
+// preservePreexistingHooks copies non-issuegraph hooks from the currently effective
 // hooks directory into targetDir. This prevents hooks from a global
 // core.hooksPath (or the default .git/hooks/) from being silently lost when
-// beads sets a local core.hooksPath override.
+// issuegraph sets a local core.hooksPath override.
 func preservePreexistingHooks(targetDir string) {
 	// Get the hooks directory git would currently use (before we override it).
 	currentDir, err := git.GetGitHooksDir()
@@ -1016,22 +1016,22 @@ func preservePreexistingHooks(targetDir string) {
 		return
 	}
 
-	// If current dir is already a beads-managed directory, skip.
+	// If current dir is already a issuegraph-managed directory, skip.
 	repoRoot, _ := git.GetMainRepoRoot()
 	if repoRoot == "" {
 		repoRoot = git.GetRepoRoot()
 	}
 	if repoRoot != "" {
-		absBeadsHooks, _ := filepath.Abs(filepath.Join(repoRoot, ".beads", "hooks"))
-		absSharedHooks, _ := filepath.Abs(filepath.Join(repoRoot, ".beads-hooks"))
-		if absCurrent == absBeadsHooks || absCurrent == absSharedHooks {
+		absIssueGraphHooks, _ := filepath.Abs(filepath.Join(repoRoot, ".issuegraph", "hooks"))
+		absSharedHooks, _ := filepath.Abs(filepath.Join(repoRoot, ".issuegraph-hooks"))
+		if absCurrent == absIssueGraphHooks || absCurrent == absSharedHooks {
 			return
 		}
 	}
 
 	// Detect whether the source hooks live inside a husky directory. Husky v8
 	// hooks source `.husky/_/husky.sh`; husky v9 hooks source `.husky/_/h`.
-	// When the copy target is a beads-managed directory (e.g. .beads/hooks/),
+	// When the copy target is a issuegraph-managed directory (e.g. .issuegraph/hooks/),
 	// those sourced helpers are not present relative to the copied hook, so
 	// we must either also copy the helpers or rewrite the hooks to not need
 	// them. We choose the latter: inline-sanitize the hook body and skip the
@@ -1093,7 +1093,7 @@ func preservePreexistingHooks(targetDir string) {
 }
 
 // fixHuskyHookLayout handles two husky-specific issues when hooks are copied
-// from a husky-managed directory into .beads/hooks/.
+// from a husky-managed directory into .issuegraph/hooks/.
 //
 // Bug 1 (v8): Husky v8 hooks source "$(dirname "$0")/_/husky.sh", but the
 // _/ subdirectory is not copied because preservePreexistingHooks skips
@@ -1124,7 +1124,7 @@ func fixHuskyHookLayout(sourceDir, targetDir string) {
 	// Husky v9 sets core.hooksPath=.husky/_/ where each hook is a shim that
 	// sources "h" (the dispatcher). The dispatcher uses dirname(dirname($0))
 	// to find user hooks in the parent .husky/ directory — this path math
-	// breaks when the shim is relocated to .beads/hooks/.
+	// breaks when the shim is relocated to .issuegraph/hooks/.
 	//
 	// Detect v9 by checking for the dispatcher in the *source* directory:
 	// preservePreexistingHooks intentionally skips copying `h` to target, so
@@ -1239,7 +1239,7 @@ func sanitizeHuskyHook(content string) string {
 	for i, line := range out {
 		result = append(result, line)
 		if !injected && i == 0 && strings.HasPrefix(strings.TrimSpace(line), "#!") {
-			result = append(result, "# Injected by beads (GH#3132): husky helper layout not mirrored into this dir.")
+			result = append(result, "# Injected by issuegraph (GH#3132): husky helper layout not mirrored into this dir.")
 			result = append(result, pathLine)
 			injected = true
 		}
@@ -1277,7 +1277,7 @@ func isHuskyHelperSourceLine(line string) bool {
 }
 
 func configureSharedHooksPath() error {
-	// Set git config core.hooksPath to an absolute path pointing to .beads-hooks.
+	// Set git config core.hooksPath to an absolute path pointing to .issuegraph-hooks.
 	// Using an absolute path is critical for git worktrees (GH#2414):
 	// git resolves relative core.hooksPath relative to the working tree root.
 	repoRoot, _ := git.GetMainRepoRoot()
@@ -1287,7 +1287,7 @@ func configureSharedHooksPath() error {
 	if repoRoot == "" {
 		return fmt.Errorf("not in a git repository")
 	}
-	absHooksPath := filepath.Join(repoRoot, ".beads-hooks")
+	absHooksPath := filepath.Join(repoRoot, ".issuegraph-hooks")
 	cmd := exec.Command("git", "config", "core.hooksPath", absHooksPath)
 	cmd.Dir = repoRoot
 	if output, err := cmd.CombinedOutput(); err != nil {
@@ -1296,12 +1296,12 @@ func configureSharedHooksPath() error {
 	return nil
 }
 
-func configureBeadsHooksPath() error {
-	// Set git config core.hooksPath to an absolute path pointing to .beads/hooks.
+func configureIssueGraphHooksPath() error {
+	// Set git config core.hooksPath to an absolute path pointing to .issuegraph/hooks.
 	// Using an absolute path is critical for git worktrees (GH#2414):
 	// git resolves relative core.hooksPath relative to the working tree root,
-	// so in a worktree ".beads/hooks" would resolve to <worktree>/.beads/hooks/
-	// which doesn't exist — the hooks live in the main repo's .beads/hooks/.
+	// so in a worktree ".issuegraph/hooks" would resolve to <worktree>/.issuegraph/hooks/
+	// which doesn't exist — the hooks live in the main repo's .issuegraph/hooks/.
 	repoRoot, _ := git.GetMainRepoRoot()
 	if repoRoot == "" {
 		repoRoot = git.GetRepoRoot()
@@ -1309,7 +1309,7 @@ func configureBeadsHooksPath() error {
 	if repoRoot == "" {
 		return fmt.Errorf("not in a git repository")
 	}
-	absHooksPath := filepath.Join(repoRoot, ".beads", "hooks")
+	absHooksPath := filepath.Join(repoRoot, ".issuegraph", "hooks")
 	cmd := exec.Command("git", "config", "core.hooksPath", absHooksPath)
 	cmd.Dir = repoRoot
 	if output, err := cmd.CombinedOutput(); err != nil {
@@ -1338,7 +1338,7 @@ func uninstallHooks() error {
 			return fmt.Errorf("failed to read %s: %w", hookName, err)
 		}
 
-		// Try to remove only the beads section (GH#1380)
+		// Try to remove only the issuegraph section (GH#1380)
 		newContent, found := removeHookSection(string(content))
 		if found {
 			remaining := strings.TrimSpace(newContent)
@@ -1356,7 +1356,7 @@ func uninstallHooks() error {
 			continue
 		}
 
-		// No section markers — check if it's a legacy bd hook (remove entire file)
+		// No section markers — check if it's a legacy issuegraph hook (remove entire file)
 		versionInfo, verr := getHookVersion(hookPath)
 		if verr == nil && versionInfo.IsBdHook {
 			if err := os.Remove(hookPath); err != nil {
@@ -1370,28 +1370,28 @@ func uninstallHooks() error {
 				}
 			}
 		}
-		// Not a bd hook at all — leave it alone
+		// Not a issuegraph hook at all — leave it alone
 	}
 
-	// Reset beads-managed git config (core.hooksPath, beads.role) now that the
+	// Reset issuegraph-managed git config (core.hooksPath, issuegraph.role) now that the
 	// hook files themselves are removed. A failure here must not be a
-	// scrolling stderr warning — bd hooks uninstall must not report success
-	// while beads-managed config is still left behind (GH#4440).
-	if err := resetHooksPathIfBeadsManaged(); err != nil {
-		return fmt.Errorf("hook files removed, but failed to reset beads-managed git config: %w", err)
+	// scrolling stderr warning — issuegraph hooks uninstall must not report success
+	// while issuegraph-managed config is still left behind (GH#4440).
+	if err := resetHooksPathIfIssueGraphManaged(); err != nil {
+		return fmt.Errorf("hook files removed, but failed to reset issuegraph-managed git config: %w", err)
 	}
 
 	return nil
 }
 
-// resetHooksPathIfBeadsManaged unsets core.hooksPath if it points to a
-// beads-managed hooks directory (.beads/hooks or .beads-hooks), and unsets
-// beads.role. beads.role marks a repo as beads-managed independent of
+// resetHooksPathIfIssueGraphManaged unsets core.hooksPath if it points to a
+// issuegraph-managed hooks directory (.issuegraph/hooks or .issuegraph-hooks), and unsets
+// issuegraph.role. issuegraph.role marks a repo as issuegraph-managed independent of
 // core.hooksPath, so it is cleared unconditionally here rather than gated on
 // the hooksPath match — otherwise an uninstall that runs after core.hooksPath
-// was already cleared (e.g. by `bd doctor --fix`) would leave a stale
-// beads.role behind. A key that is already absent is not an error.
-func resetHooksPathIfBeadsManaged() error {
+// was already cleared (e.g. by `issuegraph doctor --fix`) would leave a stale
+// issuegraph.role behind. A key that is already absent is not an error.
+func resetHooksPathIfIssueGraphManaged() error {
 	repoRoot, _ := git.GetMainRepoRoot()
 	if repoRoot == "" {
 		repoRoot = git.GetRepoRoot()
@@ -1406,11 +1406,11 @@ func resetHooksPathIfBeadsManaged() error {
 	cmd.Dir = repoRoot
 	if out, err := cmd.Output(); err == nil {
 		hooksPath := strings.TrimSpace(string(out))
-		// Matches both relative (legacy) and absolute (GH#2414) beads hooks
+		// Matches both relative (legacy) and absolute (GH#2414) issuegraph hooks
 		// paths, symlink-resolving the absolute forms. Shared with
-		// doctor.CheckHooksPath/FixHooksPath so uninstall and `bd doctor --fix`
-		// cannot disagree about what "beads-managed" means.
-		if doctor.IsBeadsManagedHooksPath(repoRoot, hooksPath) {
+		// doctor.CheckHooksPath/FixHooksPath so uninstall and `issuegraph doctor --fix`
+		// cannot disagree about what "issuegraph-managed" means.
+		if doctor.IsIssueGraphManagedHooksPath(repoRoot, hooksPath) {
 			unsetCmd := exec.Command("git", "config", "--unset", "core.hooksPath")
 			unsetCmd.Dir = repoRoot
 			if output, err := unsetCmd.CombinedOutput(); err != nil {
@@ -1419,20 +1419,20 @@ func resetHooksPathIfBeadsManaged() error {
 		}
 	}
 	// core.hooksPath not set at all — nothing to reset there; still fall
-	// through to beads.role below.
+	// through to issuegraph.role below.
 
 	// Read before unsetting rather than treating git's exit 5 as "already
 	// absent". Exit 5 also means "the key has multiple values, refusing an
-	// ambiguous unset" — a repo with a duplicated beads.role (bad merge, hand
+	// ambiguous unset" — a repo with a duplicated issuegraph.role (bad merge, hand
 	// edit) would then report a clean uninstall while leaving the key set,
 	// which is the exact failure this is supposed to stop.
-	getRoleCmd := exec.Command("git", "config", "--get", "beads.role")
+	getRoleCmd := exec.Command("git", "config", "--get", "issuegraph.role")
 	getRoleCmd.Dir = repoRoot
 	if _, err := getRoleCmd.Output(); err == nil {
-		roleCmd := exec.Command("git", "config", "--unset", "beads.role")
+		roleCmd := exec.Command("git", "config", "--unset", "issuegraph.role")
 		roleCmd.Dir = repoRoot
 		if output, err := roleCmd.CombinedOutput(); err != nil {
-			failures = append(failures, fmt.Sprintf("beads.role: %v (output: %s)", err, strings.TrimSpace(string(output))))
+			failures = append(failures, fmt.Sprintf("issuegraph.role: %v (output: %s)", err, strings.TrimSpace(string(output))))
 		}
 	}
 
@@ -1444,7 +1444,7 @@ func resetHooksPathIfBeadsManaged() error {
 }
 
 // =============================================================================
-// Hook Implementation Functions (called by thin shims via 'bd hooks run')
+// Hook Implementation Functions (called by thin shims via 'issuegraph hooks run')
 // =============================================================================
 
 // runChainedHook runs a .old hook if it exists. Returns the exit code.
@@ -1467,12 +1467,12 @@ func runChainedHook(hookName string, args []string) int {
 		return 0 // Not executable
 	}
 
-	// Check if .old is itself a bd hook (shim or inline) - skip to prevent infinite recursion
-	// This can happen if user runs `bd hooks install --chain` multiple times,
-	// renaming an existing bd hook to .old. See: GH#843, GH#1120
+	// Check if .old is itself a issuegraph hook (shim or inline) - skip to prevent infinite recursion
+	// This can happen if user runs `issuegraph hooks install --chain` multiple times,
+	// renaming an existing issuegraph hook to .old. See: GH#843, GH#1120
 	versionInfo, err := getHookVersion(oldHookPath)
 	if err == nil && versionInfo.IsBdHook {
-		// Skip execution - .old is a bd hook which would call us again
+		// Skip execution - .old is a issuegraph hook which would call us again
 		return 0
 	}
 
@@ -1505,7 +1505,7 @@ func runPreCommitHook() int {
 
 	// GH#2489, GH#1863: Export JSONL before commit so issue state lands in
 	// the same commit as code changes.  maybeAutoExport() skips when
-	// BD_GIT_HOOK=1, so we invoke `bd export` as a subprocess instead.
+	// ISSUEGRAPH_GIT_HOOK=1, so we invoke `issuegraph export` as a subprocess instead.
 	exportJSONLForCommit()
 
 	return 0
@@ -1521,8 +1521,8 @@ func exportJSONLForCommit() {
 		return
 	}
 
-	beadsDir := beads.FindBeadsDir()
-	if beadsDir == "" {
+	issuegraphDir := issuegraph.FindIssueGraphDir()
+	if issuegraphDir == "" {
 		return
 	}
 
@@ -1530,29 +1530,29 @@ func exportJSONLForCommit() {
 	if exportPath == "" {
 		exportPath = "issues.jsonl"
 	}
-	fullPath := filepath.Join(beadsDir, exportPath)
+	fullPath := filepath.Join(issuegraphDir, exportPath)
 
 	// If the export file is staged for deletion (user ran `git rm`), do not
 	// re-export or re-stage it. GIT_INDEX_FILE is set during an actual commit,
 	// so git-diff-index reads the pending index — where the deletion lives.
 	// Without this guard, git add fullPath would convert the staged deletion
 	// back to a modification and the file would never be removed from the
-	// repo. Reimplements gastownhall/beads#3838 (ckumar1).
+	// repo. Reimplements borg0ai/dx-issuegraph#3838 (ckumar1).
 	if isExportFileStagedForDeletion(fullPath) {
 		debug.Logf("pre-commit: %s staged for deletion — skipping export\n", exportPath)
 		return
 	}
 
-	if !preCommitHasStagedBeadsFiles(beadsDir) {
-		debug.Logf("pre-commit: skipping JSONL export — no staged .beads paths\n")
+	if !preCommitHasStagedIssueGraphFiles(issuegraphDir) {
+		debug.Logf("pre-commit: skipping JSONL export — no staged .issuegraph paths\n")
 		return
 	}
 
 	debug.Logf("pre-commit: exporting JSONL to %s\n", fullPath)
 	warnJSONLWithoutDoltRemote("pre-commit auto-export")
 
-	// Shell out to `bd export` which initializes its own store.
-	// Clear BD_GIT_HOOK from the subprocess env so that its
+	// Shell out to `issuegraph export` which initializes its own store.
+	// Clear ISSUEGRAPH_GIT_HOOK from the subprocess env so that its
 	// PersistentPostRun auto-export path does not also fire.
 	//
 	// NOTE: we intentionally preserve GIT_DIR et al. in the subprocess
@@ -1560,22 +1560,22 @@ func exportJSONLForCommit() {
 	// gitAddFile as the parent, which relies on the inherited GIT_DIR to
 	// identify the hook's worktree and apply the cross-worktree staging
 	// guard (GH#3311 part 2). Scrubbing here would disable that guard.
-	// Run from the project root, not .beads/. Embedded Dolt discovery starts
-	// from cwd, so cwd=.beads/ can make the export subprocess look for a
-	// nested .beads/.beads workspace and warn on every commit (GH#3454).
-	cmd := exec.Command("bd", "export", "-o", fullPath)
-	cmd.Dir = exportSubprocessDir(beadsDir)
-	cmd.Env = filterEnv(os.Environ(), "BD_GIT_HOOK")
+	// Run from the project root, not .issuegraph/. Embedded Dolt discovery starts
+	// from cwd, so cwd=.issuegraph/ can make the export subprocess look for a
+	// nested .issuegraph/.issuegraph workspace and warn on every commit (GH#3454).
+	cmd := exec.Command("issuegraph", "export", "-o", fullPath)
+	cmd.Dir = exportSubprocessDir(issuegraphDir)
+	cmd.Env = filterEnv(os.Environ(), "ISSUEGRAPH_GIT_HOOK")
 	cmd.Stderr = os.Stderr
 	if err := cmd.Run(); err != nil {
-		fmt.Fprintf(os.Stderr, "beads: pre-commit export warning: %v\n", err)
+		fmt.Fprintf(os.Stderr, "issuegraph: pre-commit export warning: %v\n", err)
 		return
 	}
 
 	// Stage the exported file if configured. Skip when no-git-ops is set
 	// (GH#3314). gitAddFile scrubs the inherited git hook env vars so git
 	// rediscovers the repo from cwd, and silently skips when fullPath is
-	// outside the hook's worktree (the .beads/redirect case where fullPath
+	// outside the hook's worktree (the .issuegraph/redirect case where fullPath
 	// points into the main repo, not this worktree). See GH#3311.
 	if config.GetBool("export.git-add") && !config.GetBool("no-git-ops") {
 		if err := gitAddFile(fullPath); err != nil {
@@ -1584,19 +1584,19 @@ func exportJSONLForCommit() {
 	}
 }
 
-// isExportFileStagedForDeletion reports whether the beads export file at
+// isExportFileStagedForDeletion reports whether the issuegraph export file at
 // fullPath is staged for deletion (the user ran `git rm` on it). When true,
 // exportJSONLForCommit must skip re-exporting and re-staging it: running
 // `git add` on a freshly regenerated file would convert the staged deletion
 // back into a modification, silently reviving a file the user intentionally
 // removed.
 //
-// Unlike preCommitHasStagedBeadsFiles and gitAddFile, this deliberately runs
+// Unlike preCommitHasStagedIssueGraphFiles and gitAddFile, this deliberately runs
 // git with the hook's inherited environment intact rather than scrubbing
 // GIT_* vars. GIT_INDEX_FILE is set during an actual commit and points at
 // the pending index — where the staged deletion lives — so scrubbing it
 // here would make git fall back to the on-disk index and miss the
-// deletion. Reimplements gastownhall/beads#3838 (ckumar1).
+// deletion. Reimplements borg0ai/dx-issuegraph#3838 (ckumar1).
 func isExportFileStagedForDeletion(fullPath string) bool {
 	checkCmd := exec.Command("git", "diff", "--cached", "--diff-filter=D", "--name-only", "--", filepath.Base(fullPath))
 	checkCmd.Dir = filepath.Dir(fullPath)
@@ -1604,38 +1604,38 @@ func isExportFileStagedForDeletion(fullPath string) bool {
 	return len(out) > 0
 }
 
-func preCommitHasStagedBeadsFiles(beadsDir string) bool {
-	cmdDir := exportSubprocessDir(beadsDir)
+func preCommitHasStagedIssueGraphFiles(issuegraphDir string) bool {
+	cmdDir := exportSubprocessDir(issuegraphDir)
 	if hookRoot := hookWorkTreeRoot(); hookRoot != "" {
 		cmdDir = hookRoot
 	}
-	cmd := exec.Command("git", "diff", "--cached", "--name-only", "--", ".beads")
+	cmd := exec.Command("git", "diff", "--cached", "--name-only", "--", ".issuegraph")
 	cmd.Dir = cmdDir
 	cmd.Env = scrubGitHookEnv(os.Environ())
 	out, err := cmd.Output()
 	if err != nil {
-		debug.Logf("pre-commit: failed to inspect staged .beads paths: %v\n", err)
+		debug.Logf("pre-commit: failed to inspect staged .issuegraph paths: %v\n", err)
 		return false
 	}
 	return strings.TrimSpace(string(out)) != ""
 }
 
-func exportSubprocessDir(beadsDir string) string {
-	return filepath.Dir(beadsDir)
+func exportSubprocessDir(issuegraphDir string) string {
+	return filepath.Dir(issuegraphDir)
 }
 
 // syncImportJSONLPath returns the JSONL path used by the legacy git-hook sync
 // import path. Existing projects may have customized export.path before
 // import.path existed, so keep importing from export.path unless import.path is
 // explicitly configured.
-func syncImportJSONLPath(beadsDir string) string {
+func syncImportJSONLPath(issuegraphDir string) string {
 	if config.GetValueSource("import.path") == config.SourceDefault {
 		exportPath := config.GetString("export.path")
 		if exportPath != "" {
-			return filepath.Join(beadsDir, exportPath)
+			return filepath.Join(issuegraphDir, exportPath)
 		}
 	}
-	return configuredImportJSONLPath(beadsDir)
+	return configuredImportJSONLPath(issuegraphDir)
 }
 
 // importJSONLForSync imports JSONL into Dolt after a git
@@ -1644,7 +1644,7 @@ func syncImportJSONLPath(beadsDir string) string {
 // import is skipped because upsert-only import cannot reconcile stale exports.
 //
 // Errors are logged as warnings but never block the merge/checkout. The
-// import is upsert; running it on an unchanged JSONL is a no-op (bd
+// import is upsert; running it on an unchanged JSONL is a no-op (issuegraph
 // import returns "Error 1105: nothing to commit", which we tolerate).
 //
 // See GH#3729.
@@ -1657,12 +1657,12 @@ func importJSONLForSync(reason string) {
 		return
 	}
 
-	beadsDir := beads.FindBeadsDir()
-	if beadsDir == "" {
+	issuegraphDir := issuegraph.FindIssueGraphDir()
+	if issuegraphDir == "" {
 		return
 	}
 
-	fullPath := syncImportJSONLPath(beadsDir)
+	fullPath := syncImportJSONLPath(issuegraphDir)
 
 	if info, err := os.Stat(fullPath); err != nil || info.Size() == 0 {
 		return
@@ -1671,37 +1671,37 @@ func importJSONLForSync(reason string) {
 	debug.Logf("%s: importing JSONL from %s\n", reason, fullPath)
 	warnJSONLWithoutDoltRemote(reason + " JSONL import")
 
-	// Shell out to `bd import` — same pattern as exportJSONLForCommit.
-	// Clear BD_GIT_HOOK so the subprocess's own hook-detection logic
+	// Shell out to `issuegraph import` — same pattern as exportJSONLForCommit.
+	// Clear ISSUEGRAPH_GIT_HOOK so the subprocess's own hook-detection logic
 	// doesn't suppress its work.
-	cmd := exec.Command("bd", "import", "--quiet", fullPath)
-	cmd.Dir = exportSubprocessDir(beadsDir)
-	cmd.Env = filterEnv(os.Environ(), "BD_GIT_HOOK")
+	cmd := exec.Command("issuegraph", "import", "--quiet", fullPath)
+	cmd.Dir = exportSubprocessDir(issuegraphDir)
+	cmd.Env = filterEnv(os.Environ(), "ISSUEGRAPH_GIT_HOOK")
 
 	out, err := cmd.CombinedOutput()
 	if err == nil {
 		return
 	}
-	// Tolerate the no-op case: when JSONL matches Dolt exactly, bd import
+	// Tolerate the no-op case: when JSONL matches Dolt exactly, issuegraph import
 	// produces "nothing to commit" from the underlying Dolt commit. That
 	// is success for our purposes.
 	if strings.Contains(string(out), "nothing to commit") {
 		return
 	}
-	fmt.Fprintf(os.Stderr, "beads: %s import warning: %v\n%s", reason, err, out)
+	fmt.Fprintf(os.Stderr, "issuegraph: %s import warning: %v\n%s", reason, err, out)
 }
 
 func warnJSONLWithoutDoltRemote(reason string) {
 	if config.GetBool("no-git-ops") || resolveSyncRemote() != "" || !isGitRepo() {
 		return
 	}
-	fmt.Fprintf(os.Stderr, "beads: %s warning: no Dolt remote configured.\n", reason)
-	fmt.Fprintln(os.Stderr, "beads: .beads/issues.jsonl is an export, not cross-machine sync or source of truth.")
+	fmt.Fprintf(os.Stderr, "issuegraph: %s warning: no Dolt remote configured.\n", reason)
+	fmt.Fprintln(os.Stderr, "issuegraph: .issuegraph/issues.jsonl is an export, not cross-machine sync or source of truth.")
 	if originURL, err := gitOriginGetURL(); err == nil && originURL != "" {
-		fmt.Fprintf(os.Stderr, "beads: repair: bd dolt remote add origin %s && bd dolt push\n", normalizeRemoteURL(originURL))
+		fmt.Fprintf(os.Stderr, "issuegraph: repair: issuegraph dolt remote add origin %s && issuegraph dolt push\n", normalizeRemoteURL(originURL))
 		return
 	}
-	fmt.Fprintln(os.Stderr, "beads: repair: add a git origin, then run 'bd dolt remote add origin <git-remote-url>' and 'bd dolt push'.")
+	fmt.Fprintln(os.Stderr, "issuegraph: repair: add a git origin, then run 'issuegraph dolt remote add origin <git-remote-url>' and 'issuegraph dolt push'.")
 }
 
 // filterEnv returns a copy of env with entries matching the given key removed.
@@ -1787,8 +1787,8 @@ func runPrepareCommitMsgHook(args []string) int {
 		return 0
 	}
 
-	// Detect actor context from BD_ACTOR env var
-	actor := os.Getenv("BD_ACTOR")
+	// Detect actor context from ISSUEGRAPH_ACTOR env var
+	actor := os.Getenv("ISSUEGRAPH_ACTOR")
 	if actor == "" {
 		return 0 // Not in agent context, nothing to add
 	}
@@ -1850,9 +1850,9 @@ Supported hooks:
   - post-checkout: Run chained hooks after branch checkout
   - prepare-commit-msg: Add agent identity trailers for forensics
 
-The thin shim keeps delegated hook logic in sync with the installed bd
-version. Upgrading bd updates that delegated behavior. To adopt changes to the
-shim's generated shell policy, refresh it with 'bd hooks install'.`,
+The thin shim keeps delegated hook logic in sync with the installed issuegraph
+version. Upgrading issuegraph updates that delegated behavior. To adopt changes to the
+shim's generated shell policy, refresh it with 'issuegraph hooks install'.`,
 	Args:          cobra.MinimumNArgs(1),
 	SilenceUsage:  true,
 	SilenceErrors: true,
@@ -1864,7 +1864,7 @@ shim's generated shell policy, refresh it with 'bd hooks install'.`,
 			}
 		}()
 
-		_ = os.Setenv("BD_GIT_HOOK", "1")
+		_ = os.Setenv("ISSUEGRAPH_GIT_HOOK", "1")
 		ui.DisableColors()
 
 		hookName := args[0]
@@ -1894,10 +1894,10 @@ shim's generated shell policy, refresh it with 'bd hooks install'.`,
 }
 
 func init() {
-	hooksInstallCmd.Flags().Bool("force", false, "No-op, kept for compatibility (section markers always preserve non-bd content)")
-	hooksInstallCmd.Flags().Bool("shared", false, "Install hooks to .beads-hooks/ (versioned) instead of .git/hooks/")
-	hooksInstallCmd.Flags().Bool("chain", false, "No-op, kept for compatibility (existing hook content always runs alongside the bd section)")
-	hooksInstallCmd.Flags().Bool("beads", false, "Install hooks to .beads/hooks/ (recommended for Dolt backend)")
+	hooksInstallCmd.Flags().Bool("force", false, "No-op, kept for compatibility (section markers always preserve non-issuegraph content)")
+	hooksInstallCmd.Flags().Bool("shared", false, "Install hooks to .issuegraph-hooks/ (versioned) instead of .git/hooks/")
+	hooksInstallCmd.Flags().Bool("chain", false, "No-op, kept for compatibility (existing hook content always runs alongside the issuegraph section)")
+	hooksInstallCmd.Flags().Bool("issuegraph", false, "Install hooks to .issuegraph/hooks/ (recommended for Dolt backend)")
 
 	hooksCmd.AddCommand(hooksInstallCmd)
 	hooksCmd.AddCommand(hooksUninstallCmd)

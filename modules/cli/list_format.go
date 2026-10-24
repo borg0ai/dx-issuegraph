@@ -7,10 +7,10 @@ import (
 	"strings"
 	"time"
 
-	"github.com/steveyegge/beads/internal/storage"
-	"github.com/steveyegge/beads/internal/timeparsing"
-	"github.com/steveyegge/beads/internal/types"
-	"github.com/steveyegge/beads/internal/ui"
+	"github.com/borg0ai/dx-issuegraph/internal/storage"
+	"github.com/borg0ai/dx-issuegraph/internal/timeparsing"
+	"github.com/borg0ai/dx-issuegraph/internal/types"
+	"github.com/borg0ai/dx-issuegraph/internal/ui"
 )
 
 // parseTimeFlag parses time strings using the layered time parsing architecture.
@@ -203,7 +203,7 @@ func buildBlockingMaps(allDeps map[string][]*types.Dependency, closedIDs map[str
 
 // getClosedBlockerIDs collects all unique blocker IDs from dependency records
 // and returns the subset that are closed or unreachable. This is used to filter
-// stale "blocked by" annotations in bd list output.
+// stale "blocked by" annotations in issuegraph list output.
 func getClosedBlockerIDs(ctx context.Context, s storage.DoltStorage, allDeps map[string][]*types.Dependency) map[string]bool {
 	// Collect unique blocker IDs
 	blockerIDs := make(map[string]bool)
@@ -233,7 +233,7 @@ func getClosedBlockerIDs(ctx context.Context, s storage.DoltStorage, allDeps map
 }
 
 // formatIssueCompact formats a single issue in compact format to a buffer
-// Uses status icons for better scanability - consistent with bd graph
+// Uses status icons for better scanability - consistent with issuegraph graph
 // Format: [icon] [pin] ID [Priority] [Type] @assignee [labels] - Title (parent: X, blocked by: Y, blocks: Z)
 func formatIssueCompact(buf *strings.Builder, issue *types.Issue, labels []string, blockedBy, blocks []string, parent string) {
 	labelsStr := ""

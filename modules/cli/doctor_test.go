@@ -10,11 +10,11 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/steveyegge/beads/modules/cli/doctor"
-	"github.com/steveyegge/beads/internal/git"
+	"github.com/borg0ai/dx-issuegraph/internal/git"
+	"github.com/borg0ai/dx-issuegraph/modules/cli/doctor"
 )
 
-func TestDoctorNoBeadsDir(t *testing.T) {
+func TestDoctorNoIssueGraphDir(t *testing.T) {
 	// Create temporary directory
 	tmpDir := t.TempDir()
 
@@ -23,7 +23,7 @@ func TestDoctorNoBeadsDir(t *testing.T) {
 
 	// Should fail overall
 	if result.OverallOK {
-		t.Error("Expected OverallOK to be false when .beads/ directory is missing")
+		t.Error("Expected OverallOK to be false when .issuegraph/ directory is missing")
 	}
 
 	// Check installation check failed
@@ -43,11 +43,11 @@ func TestDoctorNoBeadsDir(t *testing.T) {
 	}
 }
 
-func TestDoctorWithBeadsDir(t *testing.T) {
-	// Create temporary directory with .beads
+func TestDoctorWithIssueGraphDir(t *testing.T) {
+	// Create temporary directory with .issuegraph
 	tmpDir := t.TempDir()
-	beadsDir := filepath.Join(tmpDir, ".beads")
-	if err := os.Mkdir(beadsDir, 0750); err != nil {
+	issuegraphDir := filepath.Join(tmpDir, ".issuegraph")
+	if err := os.Mkdir(issuegraphDir, 0750); err != nil {
 		t.Fatal(err)
 	}
 
@@ -68,37 +68,37 @@ func TestDoctorWithBeadsDir(t *testing.T) {
 	}
 }
 
-func TestDoctorWithBeadsDir_DoesNotPolluteCallerBeadsDir(t *testing.T) {
-	// Simulate a caller context that has its own valid .beads directory.
+func TestDoctorWithIssueGraphDir_DoesNotPolluteCallerIssueGraphDir(t *testing.T) {
+	// Simulate a caller context that has its own valid .issuegraph directory.
 	callerDir := t.TempDir()
-	callerBeadsDir := filepath.Join(callerDir, ".beads")
-	if err := os.Mkdir(callerBeadsDir, 0750); err != nil {
+	callerIssueGraphDir := filepath.Join(callerDir, ".issuegraph")
+	if err := os.Mkdir(callerIssueGraphDir, 0750); err != nil {
 		t.Fatal(err)
 	}
-	if err := os.WriteFile(filepath.Join(callerBeadsDir, "beads.db"), []byte{}, 0600); err != nil {
+	if err := os.WriteFile(filepath.Join(callerIssueGraphDir, "issuegraph.db"), []byte{}, 0600); err != nil {
 		t.Fatal(err)
 	}
-	t.Setenv("BEADS_DIR", callerBeadsDir)
+	t.Setenv("ISSUEGRAPH_DIR", callerIssueGraphDir)
 
-	// Doctor target path should be isolated from caller's BEADS_DIR.
+	// Doctor target path should be isolated from caller's ISSUEGRAPH_DIR.
 	targetDir := t.TempDir()
-	targetBeadsDir := filepath.Join(targetDir, ".beads")
-	if err := os.Mkdir(targetBeadsDir, 0750); err != nil {
+	targetIssueGraphDir := filepath.Join(targetDir, ".issuegraph")
+	if err := os.Mkdir(targetIssueGraphDir, 0750); err != nil {
 		t.Fatal(err)
 	}
 
 	_ = runDiagnostics(targetDir)
 
-	// Regression: runDiagnostics() must not create metadata in caller's .beads.
-	if _, err := os.Stat(filepath.Join(callerBeadsDir, "metadata.json")); err == nil {
-		t.Fatalf("runDiagnostics unexpectedly created %s", filepath.Join(callerBeadsDir, "metadata.json"))
+	// Regression: runDiagnostics() must not create metadata in caller's .issuegraph.
+	if _, err := os.Stat(filepath.Join(callerIssueGraphDir, "metadata.json")); err == nil {
+		t.Fatalf("runDiagnostics unexpectedly created %s", filepath.Join(callerIssueGraphDir, "metadata.json"))
 	} else if !os.IsNotExist(err) {
 		t.Fatalf("failed to stat caller metadata.json: %v", err)
 	}
 
 	// It also must not write local version tracking in caller scope.
-	if _, err := os.Stat(filepath.Join(callerBeadsDir, localVersionFile)); err == nil {
-		t.Fatalf("runDiagnostics unexpectedly created %s", filepath.Join(callerBeadsDir, localVersionFile))
+	if _, err := os.Stat(filepath.Join(callerIssueGraphDir, localVersionFile)); err == nil {
+		t.Fatalf("runDiagnostics unexpectedly created %s", filepath.Join(callerIssueGraphDir, localVersionFile))
 	} else if !os.IsNotExist(err) {
 		t.Fatalf("failed to stat caller %s: %v", localVersionFile, err)
 	}
@@ -140,11 +140,11 @@ func TestDoctorJSONOutput(t *testing.T) {
 
 func TestRunDiagnostics_JSONSkipsNetworkUpdateChecks(t *testing.T) {
 	tmpDir := t.TempDir()
-	beadsDir := filepath.Join(tmpDir, ".beads")
-	if err := os.Mkdir(beadsDir, 0750); err != nil {
+	issuegraphDir := filepath.Join(tmpDir, ".issuegraph")
+	if err := os.Mkdir(issuegraphDir, 0750); err != nil {
 		t.Fatal(err)
 	}
-	if err := os.WriteFile(filepath.Join(beadsDir, "metadata.json"), []byte(`{"backend":"sqlite"}`), 0644); err != nil {
+	if err := os.WriteFile(filepath.Join(issuegraphDir, "metadata.json"), []byte(`{"backend":"sqlite"}`), 0644); err != nil {
 		t.Fatal(err)
 	}
 
@@ -178,7 +178,7 @@ func TestCheckIDFormat(t *testing.T) {
 }
 
 func TestCheckInstallation(t *testing.T) {
-	// Test with missing .beads directory
+	// Test with missing .issuegraph directory
 	tmpDir := t.TempDir()
 	check := doctor.CheckInstallation(tmpDir)
 
@@ -189,9 +189,9 @@ func TestCheckInstallation(t *testing.T) {
 		t.Error("Expected fix to be provided")
 	}
 
-	// Test with existing .beads directory
-	beadsDir := filepath.Join(tmpDir, ".beads")
-	if err := os.Mkdir(beadsDir, 0750); err != nil {
+	// Test with existing .issuegraph directory
+	issuegraphDir := filepath.Join(tmpDir, ".issuegraph")
+	if err := os.Mkdir(issuegraphDir, 0750); err != nil {
 		t.Fatal(err)
 	}
 
@@ -205,17 +205,17 @@ func TestCheckDatabaseVersionJSONLMode(t *testing.T) {
 	// Dolt backend doesn't have a "JSONL-only" mode; it reports fresh clone
 	// when no dolt/ directory exists but JSONL is present.
 	tmpDir := t.TempDir()
-	beadsDir := filepath.Join(tmpDir, ".beads")
-	if err := os.Mkdir(beadsDir, 0750); err != nil {
+	issuegraphDir := filepath.Join(tmpDir, ".issuegraph")
+	if err := os.Mkdir(issuegraphDir, 0750); err != nil {
 		t.Fatal(err)
 	}
 
-	jsonlPath := filepath.Join(beadsDir, "issues.jsonl")
+	jsonlPath := filepath.Join(issuegraphDir, "issues.jsonl")
 	if err := os.WriteFile(jsonlPath, []byte{}, 0644); err != nil {
 		t.Fatal(err)
 	}
 
-	configPath := filepath.Join(beadsDir, "config.yaml")
+	configPath := filepath.Join(issuegraphDir, "config.yaml")
 	if err := os.WriteFile(configPath, []byte("no-db: true\n"), 0644); err != nil {
 		t.Fatal(err)
 	}
@@ -232,16 +232,16 @@ func TestCheckDatabaseVersionJSONLMode(t *testing.T) {
 }
 
 func TestCheckDatabaseVersionFreshClone(t *testing.T) {
-	// Create temporary directory with .beads and JSONL but no database
-	// This simulates a fresh clone that needs 'bd init'
+	// Create temporary directory with .issuegraph and JSONL but no database
+	// This simulates a fresh clone that needs 'issuegraph init'
 	tmpDir := t.TempDir()
-	beadsDir := filepath.Join(tmpDir, ".beads")
-	if err := os.Mkdir(beadsDir, 0750); err != nil {
+	issuegraphDir := filepath.Join(tmpDir, ".issuegraph")
+	if err := os.Mkdir(issuegraphDir, 0750); err != nil {
 		t.Fatal(err)
 	}
 
 	// Create issues.jsonl with an issue (no config.yaml = not no-db mode)
-	jsonlPath := filepath.Join(beadsDir, "issues.jsonl")
+	jsonlPath := filepath.Join(issuegraphDir, "issues.jsonl")
 	if err := os.WriteFile(jsonlPath, []byte(`{"id":"test-1","title":"Test"}`+"\n"), 0644); err != nil {
 		t.Fatal(err)
 	}
@@ -256,7 +256,7 @@ func TestCheckDatabaseVersionFreshClone(t *testing.T) {
 		t.Errorf("Expected 'No dolt database found' message, got %s", check.Message)
 	}
 	if check.Fix == "" {
-		t.Error("Expected fix field to recommend 'bd init'")
+		t.Error("Expected fix field to recommend 'issuegraph init'")
 	}
 }
 
@@ -286,8 +286,8 @@ func TestCompareVersions(t *testing.T) {
 
 func TestCheckPermissions(t *testing.T) {
 	tmpDir := t.TempDir()
-	beadsDir := filepath.Join(tmpDir, ".beads")
-	if err := os.Mkdir(beadsDir, 0750); err != nil {
+	issuegraphDir := filepath.Join(tmpDir, ".issuegraph")
+	if err := os.Mkdir(issuegraphDir, 0750); err != nil {
 		t.Fatal(err)
 	}
 
@@ -460,7 +460,7 @@ func TestGetClaudePluginVersion(t *testing.T) {
 			pluginJSON: `{
 				"version": 1,
 				"plugins": {
-					"beads@beads-marketplace": {
+					"issuegraph@issuegraph-marketplace": {
 						"version": "0.21.3"
 					}
 				}
@@ -474,7 +474,7 @@ func TestGetClaudePluginVersion(t *testing.T) {
 			pluginJSON: `{
 				"version": 2,
 				"plugins": {
-					"beads@beads-marketplace": [
+					"issuegraph@issuegraph-marketplace": [
 						{
 							"scope": "user",
 							"installPath": "/path/to/plugin",
@@ -592,14 +592,14 @@ func TestCheckMetadataVersionTracking(t *testing.T) {
 	tests := []struct {
 		name           string
 		skip           bool
-		setupVersion   func(beadsDir string) error
+		setupVersion   func(issuegraphDir string) error
 		expectedStatus string
 		expectWarning  bool
 	}{
 		{
 			name: "valid current version",
-			setupVersion: func(beadsDir string) error {
-				return os.WriteFile(filepath.Join(beadsDir, ".local_version"), []byte(Version+"\n"), 0644)
+			setupVersion: func(issuegraphDir string) error {
+				return os.WriteFile(filepath.Join(issuegraphDir, ".local_version"), []byte(Version+"\n"), 0644)
 			},
 			expectedStatus: doctor.StatusOK,
 			expectWarning:  false,
@@ -607,39 +607,39 @@ func TestCheckMetadataVersionTracking(t *testing.T) {
 		{
 			name: "slightly outdated version",
 			skip: !canTestSlightlyOld,
-			setupVersion: func(beadsDir string) error {
-				return os.WriteFile(filepath.Join(beadsDir, ".local_version"), []byte(slightlyOld+"\n"), 0644)
+			setupVersion: func(issuegraphDir string) error {
+				return os.WriteFile(filepath.Join(issuegraphDir, ".local_version"), []byte(slightlyOld+"\n"), 0644)
 			},
 			expectedStatus: doctor.StatusOK,
 			expectWarning:  false,
 		},
 		{
 			name: "very old version",
-			setupVersion: func(beadsDir string) error {
-				return os.WriteFile(filepath.Join(beadsDir, ".local_version"), []byte(veryOld+"\n"), 0644)
+			setupVersion: func(issuegraphDir string) error {
+				return os.WriteFile(filepath.Join(issuegraphDir, ".local_version"), []byte(veryOld+"\n"), 0644)
 			},
 			expectedStatus: doctor.StatusWarning,
 			expectWarning:  true,
 		},
 		{
 			name: "empty version file",
-			setupVersion: func(beadsDir string) error {
-				return os.WriteFile(filepath.Join(beadsDir, ".local_version"), []byte(""), 0644)
+			setupVersion: func(issuegraphDir string) error {
+				return os.WriteFile(filepath.Join(issuegraphDir, ".local_version"), []byte(""), 0644)
 			},
 			expectedStatus: doctor.StatusWarning,
 			expectWarning:  true,
 		},
 		{
 			name: "invalid version format",
-			setupVersion: func(beadsDir string) error {
-				return os.WriteFile(filepath.Join(beadsDir, ".local_version"), []byte("invalid-version\n"), 0644)
+			setupVersion: func(issuegraphDir string) error {
+				return os.WriteFile(filepath.Join(issuegraphDir, ".local_version"), []byte("invalid-version\n"), 0644)
 			},
 			expectedStatus: doctor.StatusWarning,
 			expectWarning:  true,
 		},
 		{
 			name: "missing .local_version file",
-			setupVersion: func(beadsDir string) error {
+			setupVersion: func(issuegraphDir string) error {
 				// Don't create .local_version
 				return nil
 			},
@@ -655,13 +655,13 @@ func TestCheckMetadataVersionTracking(t *testing.T) {
 			}
 
 			tmpDir := t.TempDir()
-			beadsDir := filepath.Join(tmpDir, ".beads")
-			if err := os.Mkdir(beadsDir, 0750); err != nil {
+			issuegraphDir := filepath.Join(tmpDir, ".issuegraph")
+			if err := os.Mkdir(issuegraphDir, 0750); err != nil {
 				t.Fatal(err)
 			}
 
 			// Setup .local_version file
-			if err := tc.setupVersion(beadsDir); err != nil {
+			if err := tc.setupVersion(issuegraphDir); err != nil {
 				t.Fatal(err)
 			}
 
@@ -778,13 +778,13 @@ func TestExportDiagnostics(t *testing.T) {
 			{
 				Name:    "Installation",
 				Status:  "ok",
-				Message: ".beads/ directory found",
+				Message: ".issuegraph/ directory found",
 			},
 			{
 				Name:    "Git Hooks",
 				Status:  "warning",
 				Message: "No hooks installed",
-				Fix:     "Run 'bd hooks install'",
+				Fix:     "Run 'issuegraph hooks install'",
 			},
 		},
 	}
@@ -841,8 +841,8 @@ func TestExportDiagnosticsInvalidPath(t *testing.T) {
 	}
 }
 
-// TestDoctor_WithBEADS_DIR tests that doctor respects BEADS_DIR environment variable
-func TestDoctor_WithBEADS_DIR(t *testing.T) {
+// TestDoctor_WithISSUEGRAPH_DIR tests that doctor respects ISSUEGRAPH_DIR environment variable
+func TestDoctor_WithISSUEGRAPH_DIR(t *testing.T) {
 	// Reset Cobra flags to avoid interference
 	defer func() {
 		doctorFix = false
@@ -851,16 +851,16 @@ func TestDoctor_WithBEADS_DIR(t *testing.T) {
 		doctorDryRun = false
 	}()
 
-	// Create target directory (where BEADS_DIR points)
+	// Create target directory (where ISSUEGRAPH_DIR points)
 	targetDir := t.TempDir()
-	targetBeadsDir := filepath.Join(targetDir, ".beads")
-	if err := os.Mkdir(targetBeadsDir, 0750); err != nil {
+	targetIssueGraphDir := filepath.Join(targetDir, ".issuegraph")
+	if err := os.Mkdir(targetIssueGraphDir, 0750); err != nil {
 		t.Fatal(err)
 	}
 
 	// Create CWD directory (where we run from - should be ignored)
 	cwdDir := t.TempDir()
-	// Explicitly do NOT create .beads here - doctor should not check CWD
+	// Explicitly do NOT create .issuegraph here - doctor should not check CWD
 
 	// Save original working directory
 	origDir, err := os.Getwd()
@@ -868,7 +868,7 @@ func TestDoctor_WithBEADS_DIR(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	// Change to CWD (no .beads)
+	// Change to CWD (no .issuegraph)
 	if err := os.Chdir(cwdDir); err != nil {
 		t.Fatal(err)
 	}
@@ -876,20 +876,20 @@ func TestDoctor_WithBEADS_DIR(t *testing.T) {
 		_ = os.Chdir(origDir)
 	}()
 
-	// Set BEADS_DIR to point to target/.beads
-	t.Setenv("BEADS_DIR", targetBeadsDir)
+	// Set ISSUEGRAPH_DIR to point to target/.issuegraph
+	t.Setenv("ISSUEGRAPH_DIR", targetIssueGraphDir)
 
-	// The doctor command's Run function determines path from BEADS_DIR
-	// We test that by verifying runDiagnostics receives the parent of BEADS_DIR
+	// The doctor command's Run function determines path from ISSUEGRAPH_DIR
+	// We test that by verifying runDiagnostics receives the parent of ISSUEGRAPH_DIR
 	// Direct call: runDiagnostics uses the path it's given
-	// Through cobra: Run function computes path from BEADS_DIR
+	// Through cobra: Run function computes path from ISSUEGRAPH_DIR
 
 	// Test the path resolution logic directly
-	beadsDir := os.Getenv("BEADS_DIR")
-	if beadsDir == "" {
-		t.Fatal("BEADS_DIR should be set")
+	issuegraphDir := os.Getenv("ISSUEGRAPH_DIR")
+	if issuegraphDir == "" {
+		t.Fatal("ISSUEGRAPH_DIR should be set")
 	}
-	checkPath := filepath.Dir(beadsDir) // Parent of .beads
+	checkPath := filepath.Dir(issuegraphDir) // Parent of .issuegraph
 
 	// Verify we get the target directory, not CWD
 	if checkPath != targetDir {
@@ -899,60 +899,60 @@ func TestDoctor_WithBEADS_DIR(t *testing.T) {
 	// Run diagnostics on the computed path (simulates what cobra Run does)
 	result := runDiagnostics(checkPath)
 
-	// Should find .beads at target location
+	// Should find .issuegraph at target location
 	if len(result.Checks) == 0 {
 		t.Fatal("Expected at least one check")
 	}
 	installCheck := result.Checks[0]
 	if installCheck.Status != "ok" {
-		t.Errorf("Expected Installation to pass (found .beads at BEADS_DIR parent), got status=%s, message=%s",
+		t.Errorf("Expected Installation to pass (found .issuegraph at ISSUEGRAPH_DIR parent), got status=%s, message=%s",
 			installCheck.Status, installCheck.Message)
 	}
 }
 
-// TestDoctor_ExplicitPathOverridesBEADS_DIR tests that explicit path arg takes precedence
-func TestDoctor_ExplicitPathOverridesBEADS_DIR(t *testing.T) {
-	// Create two directories: one for explicit path, one for BEADS_DIR
+// TestDoctor_ExplicitPathOverridesISSUEGRAPH_DIR tests that explicit path arg takes precedence
+func TestDoctor_ExplicitPathOverridesISSUEGRAPH_DIR(t *testing.T) {
+	// Create two directories: one for explicit path, one for ISSUEGRAPH_DIR
 	explicitDir := t.TempDir()
-	explicitBeadsDir := filepath.Join(explicitDir, ".beads")
-	if err := os.Mkdir(explicitBeadsDir, 0750); err != nil {
+	explicitIssueGraphDir := filepath.Join(explicitDir, ".issuegraph")
+	if err := os.Mkdir(explicitIssueGraphDir, 0750); err != nil {
 		t.Fatal(err)
 	}
 	// Mark explicit with a file so we can verify it was used
-	if err := os.WriteFile(filepath.Join(explicitBeadsDir, "explicit-marker"), []byte("explicit"), 0644); err != nil {
+	if err := os.WriteFile(filepath.Join(explicitIssueGraphDir, "explicit-marker"), []byte("explicit"), 0644); err != nil {
 		t.Fatal(err)
 	}
 
-	beadsDirTarget := t.TempDir()
-	beadsDirBeads := filepath.Join(beadsDirTarget, ".beads")
-	if err := os.Mkdir(beadsDirBeads, 0750); err != nil {
+	issuegraphDirTarget := t.TempDir()
+	issuegraphDirIssueGraph := filepath.Join(issuegraphDirTarget, ".issuegraph")
+	if err := os.Mkdir(issuegraphDirIssueGraph, 0750); err != nil {
 		t.Fatal(err)
 	}
 
-	// Set BEADS_DIR
-	t.Setenv("BEADS_DIR", beadsDirBeads)
+	// Set ISSUEGRAPH_DIR
+	t.Setenv("ISSUEGRAPH_DIR", issuegraphDirIssueGraph)
 
-	// Test precedence: explicit arg > BEADS_DIR > CWD
-	// When explicit path is given, BEADS_DIR should be ignored
+	// Test precedence: explicit arg > ISSUEGRAPH_DIR > CWD
+	// When explicit path is given, ISSUEGRAPH_DIR should be ignored
 
 	// Simulate the logic from doctor.go's Run function:
 	args := []string{explicitDir}
 	var checkPath string
 	if len(args) > 0 {
 		checkPath = args[0]
-	} else if beadsDir := os.Getenv("BEADS_DIR"); beadsDir != "" {
-		checkPath = filepath.Dir(beadsDir)
+	} else if issuegraphDir := os.Getenv("ISSUEGRAPH_DIR"); issuegraphDir != "" {
+		checkPath = filepath.Dir(issuegraphDir)
 	} else {
 		checkPath = "."
 	}
 
-	// Should use explicit path, not BEADS_DIR
+	// Should use explicit path, not ISSUEGRAPH_DIR
 	if checkPath != explicitDir {
 		t.Errorf("Expected explicit path %s to take precedence, got %s", explicitDir, checkPath)
 	}
 
 	// Verify the marker file exists at the chosen path
-	markerPath := filepath.Join(checkPath, ".beads", "explicit-marker")
+	markerPath := filepath.Join(checkPath, ".issuegraph", "explicit-marker")
 	if _, err := os.Stat(markerPath); os.IsNotExist(err) {
 		t.Error("Expected to find explicit-marker in chosen path - wrong directory was selected")
 	}

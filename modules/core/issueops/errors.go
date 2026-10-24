@@ -4,7 +4,7 @@ import (
 	"errors"
 	"fmt"
 
-	"github.com/steveyegge/beads/beadserrors"
+	"github.com/borg0ai/dx-issuegraph/issuegrapherrors"
 )
 
 // ErrAlreadyClaimed is returned when attempting to claim an issue that is already
@@ -44,7 +44,7 @@ func (e *ClaimConflictError) Error() string { return e.Err.Error() }
 func (e *ClaimConflictError) Unwrap() error { return e.Err }
 
 // ErrUnsupported reports a capability this backend does not serve. It is an
-// alias of beadserrors.ErrUnsupported — the same type, so one errors.As arm
+// alias of issuegrapherrors.ErrUnsupported — the same type, so one errors.As arm
 // matches it under either name — and it is re-exported here because a caller
 // holding an issueops role should not have to discover a second package to
 // classify the refusal.
@@ -52,7 +52,7 @@ func (e *ClaimConflictError) Unwrap() error { return e.Err }
 // It is declared there rather than here because the capability shell is not an
 // issue concept: a memory role can go unimplemented by a backend exactly as a
 // Reader can.
-type ErrUnsupported = beadserrors.ErrUnsupported
+type ErrUnsupported = issuegrapherrors.ErrUnsupported
 
 // ErrAssigneeMismatch is returned by a conditional release or update whose
 // ExpectedAssignee does not match the issue's current assignee (including when
@@ -63,7 +63,7 @@ var ErrAssigneeMismatch = errors.New("assignee mismatch")
 
 // ErrNotOwner is returned when an actor tries to release a claim that a
 // different actor holds. Releasing another actor's claim requires the force
-// escape hatch (ReleaseRequest.Force, `bd unclaim --force`), reserved for
+// escape hatch (ReleaseRequest.Force, `issuegraph unclaim --force`), reserved for
 // abandoned claims — or ReleaseRequest.ExpectedAssignee, which authorizes the
 // same thing by naming the holder instead of ignoring it.
 //
@@ -77,7 +77,7 @@ var ErrAssigneeMismatch = errors.New("assignee mismatch")
 // beside Releaser: both refusals answer "whose claim is this".
 var ErrNotOwner = errors.New("issue claimed by a different actor")
 
-// The namespace-neutral part of this vocabulary is declared by beadserrors and
+// The namespace-neutral part of this vocabulary is declared by issuegrapherrors and
 // re-exported here. These are ALIASES, so they are the same values: every
 // existing issueops.ErrX reference and every errors.Is site keeps matching the
 // identical error, and a leaf that never imports issueops still matches it too.
@@ -87,12 +87,12 @@ var ErrNotOwner = errors.New("issue claimed by a different actor")
 // plane. The refusals BELOW that name issue concepts stay here.
 var (
 	// ErrNotFound is returned when a requested entity does not exist in the database.
-	ErrNotFound = beadserrors.ErrNotFound
+	ErrNotFound = issuegrapherrors.ErrNotFound
 	// ErrValidation classifies deterministic request-validation failures.
-	ErrValidation = beadserrors.ErrValidation
+	ErrValidation = issuegrapherrors.ErrValidation
 	// ErrNotInitialized is returned when the database has not been initialized
 	// (e.g., issue_prefix config is missing).
-	ErrNotInitialized = beadserrors.ErrNotInitialized
+	ErrNotInitialized = issuegrapherrors.ErrNotInitialized
 )
 
 // ErrPrefixMismatch is returned when an issue ID does not match the configured prefix.
@@ -131,7 +131,7 @@ var ErrAlreadyExists = errors.New("issue already exists")
 // already carries a workspace identity. It is its own sentinel rather than
 // ErrAlreadyExists because that one is about an occupied ISSUE ID in a shared
 // id space, and a caller that classifies the two together would answer a
-// re-init with advice about `bd update`.
+// re-init with advice about `issuegraph update`.
 var ErrAlreadyIdentified = errors.New("workspace already identified")
 
 // AlreadyIdentifiedError reports the identity a substrate was found carrying
@@ -193,7 +193,7 @@ var ErrDependencyCycle = errors.New("adding dependency would create a cycle")
 // DependencyTypeConflictError is returned when an edge already exists between
 // the same pair with a DIFFERENT type. Its message is byte-identical to the
 // embedded issueops path (internal/storage/issueops/dependencies.go) so
-// `bd dep add` surfaces the same user-facing retype error on the domain/db seam
+// `issuegraph dep add` surfaces the same user-facing retype error on the domain/db seam
 // as on the embedded store. It is a typed error so the use-case can pass it
 // through unwrapped instead of burying it under an "add dep: insert:" prefix.
 type DependencyTypeConflictError struct {
@@ -204,7 +204,7 @@ type DependencyTypeConflictError struct {
 }
 
 func (e *DependencyTypeConflictError) Error() string {
-	return fmt.Sprintf("dependency %s -> %s already exists with type %q (requested %q); remove it first with 'bd dep remove' then re-add",
+	return fmt.Sprintf("dependency %s -> %s already exists with type %q (requested %q); remove it first with 'issuegraph dep remove' then re-add",
 		e.IssueID, e.DependsOnID, e.ExistingType, e.RequestedType)
 }
 

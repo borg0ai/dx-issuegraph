@@ -7,8 +7,8 @@ import (
 	"strings"
 	"testing"
 
-	internalbeads "github.com/steveyegge/beads/internal/beads"
-	internalgit "github.com/steveyegge/beads/internal/git"
+	internalgit "github.com/borg0ai/dx-issuegraph/internal/git"
+	internalissuegraph "github.com/borg0ai/dx-issuegraph/internal/issuegraph"
 )
 
 func TestNormalizeRemoteURL(t *testing.T) {
@@ -17,7 +17,7 @@ func TestNormalizeRemoteURL(t *testing.T) {
 		want  string
 	}{
 		// Dolt-native schemes — returned as-is
-		{"dolthub://myorg/beads", "dolthub://myorg/beads"},
+		{"dolthub://myorg/issuegraph", "dolthub://myorg/issuegraph"},
 		{"file:///tmp/doltdb", "file:///tmp/doltdb"},
 		{"aws://[dolt-table:us-east-1]/mydb", "aws://[dolt-table:us-east-1]/mydb"},
 		{"gs://my-bucket/mydb", "gs://my-bucket/mydb"},
@@ -30,8 +30,8 @@ func TestNormalizeRemoteURL(t *testing.T) {
 		{"http://github.com/org/repo.git", "git+http://github.com/org/repo.git"},
 		{"ssh://git@github.com/org/repo.git", "git+ssh://git@github.com/org/repo.git"},
 		{"git@github.com:org/repo.git", "git+ssh://git@github.com/org/repo.git"},
-		{"C:/Users/alice/repos/beads.git", "git+C:/Users/alice/repos/beads.git"},
-		{`D:\repos\beads.git`, `git+D:\repos\beads.git`},
+		{"C:/Users/alice/repos/issuegraph.git", "git+C:/Users/alice/repos/issuegraph.git"},
+		{`D:\repos\issuegraph.git`, `git+D:\repos\issuegraph.git`},
 
 		// Dolt remotesapi URLs — also converted (callers that need
 		// pass-through for user-provided URLs should skip normalization)
@@ -48,19 +48,19 @@ func TestNormalizeRemoteURL(t *testing.T) {
 	}
 }
 
-func TestCommitBeadsConfigSkipsGitHooks(t *testing.T) {
+func TestCommitIssueGraphConfigSkipsGitHooks(t *testing.T) {
 	repo := t.TempDir()
 
-	// Pin bd's repo resolution to this temp repo. commitBeadsConfig resolves the
-	// target repo via GetRepoContext -> FindBeadsDir, which walks UP the
+	// Pin issuegraph's repo resolution to this temp repo. commitIssueGraphConfig resolves the
+	// target repo via GetRepoContext -> FindIssueGraphDir, which walks UP the
 	// directory tree. When the test runs from a checkout nested inside another
-	// beads repo (e.g. a verification worktree under the coordination repo),
-	// FindBeadsDir escapes the temp repo and resolves to the OUTER repo's
-	// .beads; commitBeadsConfig then commits against the wrong repository and
+	// issuegraph repo (e.g. a verification worktree under the coordination repo),
+	// FindIssueGraphDir escapes the temp repo and resolves to the OUTER repo's
+	// .issuegraph; commitIssueGraphConfig then commits against the wrong repository and
 	// fails (observed as `git commit` exit 128 and "branch has no commits yet").
 	// os.Chdir below is not enough because resolution is not purely CWD-based.
-	// BEADS_DIR pins it deterministically regardless of where the test runs.
-	t.Setenv("BEADS_DIR", filepath.Join(repo, ".beads"))
+	// ISSUEGRAPH_DIR pins it deterministically regardless of where the test runs.
+	t.Setenv("ISSUEGRAPH_DIR", filepath.Join(repo, ".issuegraph"))
 
 	// Isolate git config and pin the initial branch so the commit never depends
 	// on the developer's ~/.gitconfig or the ambient init.defaultBranch.
@@ -73,11 +73,11 @@ func TestCommitBeadsConfigSkipsGitHooks(t *testing.T) {
 	runGitForCommitConfigTest(t, repo, "config", "user.email", "test@example.com")
 	runGitForCommitConfigTest(t, repo, "config", "user.name", "Test User")
 
-	beadsDir := filepath.Join(repo, ".beads")
-	if err := os.MkdirAll(beadsDir, 0o755); err != nil {
-		t.Fatalf("mkdir .beads: %v", err)
+	issuegraphDir := filepath.Join(repo, ".issuegraph")
+	if err := os.MkdirAll(issuegraphDir, 0o755); err != nil {
+		t.Fatalf("mkdir .issuegraph: %v", err)
 	}
-	configPath := filepath.Join(beadsDir, "config.yaml")
+	configPath := filepath.Join(issuegraphDir, "config.yaml")
 	if err := os.WriteFile(configPath, []byte("sync:\n  remote: git+https://example.com/repo.git\n"), 0o644); err != nil {
 		t.Fatalf("write config: %v", err)
 	}
@@ -98,22 +98,22 @@ func TestCommitBeadsConfigSkipsGitHooks(t *testing.T) {
 	if err := os.Chdir(repo); err != nil {
 		t.Fatalf("chdir: %v", err)
 	}
-	internalbeads.ResetCaches()
+	internalissuegraph.ResetCaches()
 	internalgit.ResetCaches()
 	t.Cleanup(func() {
 		_ = os.Chdir(oldWD)
-		internalbeads.ResetCaches()
+		internalissuegraph.ResetCaches()
 		internalgit.ResetCaches()
 	})
 
-	commitBeadsConfig("bd: update sync.remote")
+	commitIssueGraphConfig("issuegraph: update sync.remote")
 
 	if _, err := os.Stat(hookMarker); !os.IsNotExist(err) {
 		t.Fatalf("pre-commit hook ran during internal config commit")
 	}
 	out := runGitForCommitConfigTest(t, repo, "log", "-1", "--format=%s")
-	if got := strings.TrimSpace(out); got != "bd: update sync.remote" {
-		t.Fatalf("commit subject = %q, want %q", got, "bd: update sync.remote")
+	if got := strings.TrimSpace(out); got != "issuegraph: update sync.remote" {
+		t.Fatalf("commit subject = %q, want %q", got, "issuegraph: update sync.remote")
 	}
 }
 
@@ -133,7 +133,7 @@ func shellQuoteForTest(s string) string {
 }
 
 // TestRedactRemoteURL pins the credential scrubbing applied to every remote URL
-// bd echoes into an error, a hint, a log line or JSON. CI commonly configures
+// issuegraph echoes into an error, a hint, a log line or JSON. CI commonly configures
 // sync.remote as https://x-access-token:<token>@github.com/org/repo.git.
 func TestRedactRemoteURL(t *testing.T) {
 	tests := []struct {

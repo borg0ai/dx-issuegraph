@@ -6,7 +6,7 @@ import (
 	"testing"
 	"time"
 
-	"github.com/steveyegge/beads/internal/types"
+	"github.com/borg0ai/dx-issuegraph/internal/types"
 )
 
 // TestIssueJSONUnmarshal verifies that GitLab API JSON responses
@@ -268,7 +268,7 @@ func TestLabelParsing(t *testing.T) {
 	}
 }
 
-// TestgetPriorityFromLabel verifies priority label value to beads priority mapping.
+// TestgetPriorityFromLabel verifies priority label value to issuegraph priority mapping.
 func TestGetPriorityFromLabel(t *testing.T) {
 	tests := []struct {
 		value string
@@ -294,7 +294,7 @@ func TestGetPriorityFromLabel(t *testing.T) {
 	}
 }
 
-// TestgetStatusFromLabel verifies status label value to beads status mapping.
+// TestgetStatusFromLabel verifies status label value to issuegraph status mapping.
 func TestGetStatusFromLabel(t *testing.T) {
 	tests := []struct {
 		value string
@@ -320,7 +320,7 @@ func TestGetStatusFromLabel(t *testing.T) {
 	}
 }
 
-// TestgetTypeFromLabel verifies type label value to beads issue type mapping.
+// TestgetTypeFromLabel verifies type label value to issuegraph issue type mapping.
 func TestGetTypeFromLabel(t *testing.T) {
 	tests := []struct {
 		value string

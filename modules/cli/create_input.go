@@ -7,14 +7,14 @@ import (
 	"strings"
 	"time"
 
+	"github.com/borg0ai/dx-issuegraph/internal/config"
+	"github.com/borg0ai/dx-issuegraph/internal/debug"
+	"github.com/borg0ai/dx-issuegraph/internal/timeparsing"
+	"github.com/borg0ai/dx-issuegraph/internal/types"
+	"github.com/borg0ai/dx-issuegraph/internal/ui"
+	"github.com/borg0ai/dx-issuegraph/internal/utils"
+	"github.com/borg0ai/dx-issuegraph/internal/validation"
 	"github.com/spf13/cobra"
-	"github.com/steveyegge/beads/internal/config"
-	"github.com/steveyegge/beads/internal/debug"
-	"github.com/steveyegge/beads/internal/timeparsing"
-	"github.com/steveyegge/beads/internal/types"
-	"github.com/steveyegge/beads/internal/ui"
-	"github.com/steveyegge/beads/internal/utils"
-	"github.com/steveyegge/beads/internal/validation"
 )
 
 type createInput struct {
@@ -263,7 +263,7 @@ func gatherCreateInput(cmd *cobra.Command, args []string) (createInput, error) {
 			return in, HandleError("invalid --defer format %q. Examples: +1h, tomorrow, next monday, 2025-01-15", deferStr)
 		}
 		if t.Before(time.Now()) && !in.silent && !debug.IsQuiet() {
-			fmt.Fprintf(os.Stderr, "%s Defer date %q is in the past. Issue will appear in bd ready immediately.\n",
+			fmt.Fprintf(os.Stderr, "%s Defer date %q is in the past. Issue will appear in issuegraph ready immediately.\n",
 				ui.RenderWarn("!"), t.Local().Format("2006-01-02 15:04"))
 			fmt.Fprintf(os.Stderr, "  Did you mean a future date? Use --defer=+1h or --defer=tomorrow\n")
 		}
@@ -363,7 +363,7 @@ func resolveTitle(args []string, titleFlag, markdownFile, graphFile string) (str
 		title = args[0]
 	case len(args) > 0:
 		if strings.HasPrefix(args[0], "-") {
-			return "", HandleError("title %q looks like a flag (starts with '-').\n  Run 'bd create --help' for available options.\n  To use this title anyway, pass it explicitly: bd create --title=%q", args[0], args[0])
+			return "", HandleError("title %q looks like a flag (starts with '-').\n  Run 'issuegraph create --help' for available options.\n  To use this title anyway, pass it explicitly: issuegraph create --title=%q", args[0], args[0])
 		}
 		title = args[0]
 	case titleFlag != "":

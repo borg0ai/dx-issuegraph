@@ -13,14 +13,14 @@ import (
 	"testing"
 	"time"
 
-	"github.com/steveyegge/beads/internal/formula"
-	"github.com/steveyegge/beads/internal/storage/dolt"
-	"github.com/steveyegge/beads/internal/testutil"
-	"github.com/steveyegge/beads/internal/types"
+	"github.com/borg0ai/dx-issuegraph/internal/formula"
+	"github.com/borg0ai/dx-issuegraph/internal/storage/dolt"
+	"github.com/borg0ai/dx-issuegraph/internal/testutil"
+	"github.com/borg0ai/dx-issuegraph/internal/types"
 )
 
 // =============================================================================
-// Beads Template Tests (for bd template instantiate)
+// IssueGraph Template Tests (for issuegraph template instantiate)
 // =============================================================================
 
 // TestExtractVariables tests the {{variable}} pattern extraction
@@ -240,13 +240,13 @@ func TestSubstituteMetadataRepo_PreservesUnrelatedValuesByteIdentical(t *testing
 func TestCloneSubgraph_SubstitutesGateRepoMetadata(t *testing.T) {
 	t.Parallel()
 	tmpDir := t.TempDir()
-	testDB := filepath.Join(tmpDir, ".beads", "beads.db")
+	testDB := filepath.Join(tmpDir, ".issuegraph", "issuegraph.db")
 	s := newTestStore(t, testDB)
 	ctx := context.Background()
 	h := &templateTestHelper{s: s, ctx: ctx, t: t}
 
 	epic := h.createIssue("Release {{version}}", "", types.TypeEpic, 1)
-	h.addLabel(epic.ID, BeadsTemplateLabel)
+	h.addLabel(epic.ID, IssueGraphTemplateLabel)
 
 	gate := &types.Issue{
 		Title:     "Gate: gh:run",
@@ -293,7 +293,7 @@ func TestCloneSubgraph_SubstitutesGateRepoMetadata(t *testing.T) {
 	}
 }
 
-// templateTestHelper provides helpers for Beads template tests
+// templateTestHelper provides helpers for IssueGraph template tests
 type templateTestHelper struct {
 	s   *dolt.DoltStore
 	ctx context.Context
@@ -386,7 +386,7 @@ func newTemplateBenchmarkStore(b *testing.B) (*dolt.DoltStore, context.Context) 
 	}
 
 	ctx := context.Background()
-	testDB := filepath.Join(b.TempDir(), ".beads", "beads.db")
+	testDB := filepath.Join(b.TempDir(), ".issuegraph", "issuegraph.db")
 	database := fmt.Sprintf("benchdb_%d", time.Now().UnixNano())
 
 	s, err := dolt.New(ctx, &dolt.Config{
@@ -459,7 +459,7 @@ func seedHierarchicalTemplateGraph(b *testing.B, ctx context.Context, s *dolt.Do
 func TestTemplateSuite(t *testing.T) {
 	t.Parallel()
 	tmpDir := t.TempDir()
-	testDB := filepath.Join(tmpDir, ".beads", "beads.db")
+	testDB := filepath.Join(tmpDir, ".issuegraph", "issuegraph.db")
 	s := newTestStore(t, testDB)
 	ctx := context.Background()
 	h := &templateTestHelper{s: s, ctx: ctx, t: t}
@@ -468,7 +468,7 @@ func TestTemplateSuite(t *testing.T) {
 
 	t.Run("LoadTemplate_EpicWithNoChildren", func(t *testing.T) {
 		epic := h.createIssue("Template Epic", "Description", types.TypeEpic, 1)
-		h.addLabel(epic.ID, BeadsTemplateLabel)
+		h.addLabel(epic.ID, IssueGraphTemplateLabel)
 
 		subgraph, err := loadTemplateSubgraph(ctx, s, epic.ID)
 		if err != nil {
@@ -484,7 +484,7 @@ func TestTemplateSuite(t *testing.T) {
 
 	t.Run("LoadTemplate_EpicWithChildren", func(t *testing.T) {
 		epic := h.createIssue("Template {{name}}", "Epic for {{name}}", types.TypeEpic, 1)
-		h.addLabel(epic.ID, BeadsTemplateLabel)
+		h.addLabel(epic.ID, IssueGraphTemplateLabel)
 
 		child1 := h.createIssue("Task 1 for {{name}}", "", types.TypeTask, 2)
 		child2 := h.createIssue("Task 2 for {{name}}", "", types.TypeTask, 2)
@@ -525,7 +525,7 @@ func TestTemplateSuite(t *testing.T) {
 
 	t.Run("Clone_SimpleTemplate", func(t *testing.T) {
 		epic := h.createIssue("Release {{version}}", "Release notes for {{version}}", types.TypeEpic, 1)
-		h.addLabel(epic.ID, BeadsTemplateLabel)
+		h.addLabel(epic.ID, IssueGraphTemplateLabel)
 
 		subgraph, err := loadTemplateSubgraph(ctx, s, epic.ID)
 		if err != nil {
@@ -565,7 +565,7 @@ func TestTemplateSuite(t *testing.T) {
 
 		h.addParentChild(child1.ID, epic.ID)
 		h.addParentChild(child2.ID, epic.ID)
-		h.addLabel(epic.ID, BeadsTemplateLabel)
+		h.addLabel(epic.ID, IssueGraphTemplateLabel)
 
 		subgraph, err := loadTemplateSubgraph(ctx, s, epic.ID)
 		if err != nil {
@@ -745,7 +745,7 @@ func TestTemplateSuite(t *testing.T) {
 
 	t.Run("ManyChildren_4Children", func(t *testing.T) {
 		epic := h.createIssue("Proto Workflow", "Workflow with 4 steps", types.TypeEpic, 1)
-		h.addLabel(epic.ID, BeadsTemplateLabel)
+		h.addLabel(epic.ID, IssueGraphTemplateLabel)
 
 		child1 := h.createIssue("load-context", "", types.TypeTask, 2)
 		child2 := h.createIssue("implement", "", types.TypeTask, 2)
@@ -779,7 +779,7 @@ func TestTemplateSuite(t *testing.T) {
 
 	t.Run("ManyChildren_CloneCreatesAll4", func(t *testing.T) {
 		epic := h.createIssue("Polecat Work", "", types.TypeEpic, 1)
-		h.addLabel(epic.ID, BeadsTemplateLabel)
+		h.addLabel(epic.ID, IssueGraphTemplateLabel)
 
 		child1 := h.createIssue("load-context", "", types.TypeTask, 2)
 		child2 := h.createIssue("implement", "", types.TypeTask, 2)
@@ -814,7 +814,7 @@ func TestTemplateSuite(t *testing.T) {
 
 	t.Run("ManyChildren_HierarchicalIDs", func(t *testing.T) {
 		epic := h.createIssueWithID("test-lwuu", "mol-polecat-work", "", types.TypeEpic, 1)
-		h.addLabel(epic.ID, BeadsTemplateLabel)
+		h.addLabel(epic.ID, IssueGraphTemplateLabel)
 
 		child1 := h.createIssueWithID("test-lwuu.1", "load-context", "", types.TypeTask, 2)
 		child2 := h.createIssueWithID("test-lwuu.2", "implement", "", types.TypeTask, 2)
@@ -847,7 +847,7 @@ func TestTemplateSuite(t *testing.T) {
 
 	t.Run("ManyChildren_WrongDepTypeNotLoaded", func(t *testing.T) {
 		epic := h.createIssue("Proto with mixed deps", "", types.TypeEpic, 1)
-		h.addLabel(epic.ID, BeadsTemplateLabel)
+		h.addLabel(epic.ID, IssueGraphTemplateLabel)
 
 		child1 := h.createIssue("load-context", "", types.TypeTask, 2)
 		child2 := h.createIssue("implement", "", types.TypeTask, 2)
@@ -877,7 +877,7 @@ func TestTemplateSuite(t *testing.T) {
 
 	t.Run("ManyChildren_HierarchicalWrongDepTypeLoaded", func(t *testing.T) {
 		epic := h.createIssueWithID("test-pcat", "Proto with mixed deps", "", types.TypeEpic, 1)
-		h.addLabel(epic.ID, BeadsTemplateLabel)
+		h.addLabel(epic.ID, IssueGraphTemplateLabel)
 
 		child1 := h.createIssueWithID("test-pcat.1", "load-context", "", types.TypeTask, 2)
 		child2 := h.createIssueWithID("test-pcat.2", "implement", "", types.TypeTask, 2)
@@ -915,19 +915,19 @@ func TestTemplateSuite(t *testing.T) {
 func TestResolveProtoIDOrTitle(t *testing.T) {
 	t.Parallel()
 	tmpDir := t.TempDir()
-	testDB := filepath.Join(tmpDir, ".beads", "beads.db")
+	testDB := filepath.Join(tmpDir, ".issuegraph", "issuegraph.db")
 	s := newTestStore(t, testDB)
 	ctx := context.Background()
 	h := &templateTestHelper{s: s, ctx: ctx, t: t}
 
 	proto1 := h.createIssue("mol-polecat-work", "Polecat workflow", types.TypeEpic, 1)
-	h.addLabel(proto1.ID, BeadsTemplateLabel)
+	h.addLabel(proto1.ID, IssueGraphTemplateLabel)
 
 	proto2 := h.createIssue("mol-version-bump", "Version bump workflow", types.TypeEpic, 1)
-	h.addLabel(proto2.ID, BeadsTemplateLabel)
+	h.addLabel(proto2.ID, IssueGraphTemplateLabel)
 
 	proto3 := h.createIssue("mol-release", "Release workflow", types.TypeEpic, 1)
-	h.addLabel(proto3.ID, BeadsTemplateLabel)
+	h.addLabel(proto3.ID, IssueGraphTemplateLabel)
 
 	nonProto := h.createIssue("mol-test", "Not a proto", types.TypeTask, 2)
 
@@ -1003,7 +1003,7 @@ func TestFindHierarchicalChildren_DirectChildrenOnly(t *testing.T) {
 	t.Parallel()
 
 	tmpDir := t.TempDir()
-	testDB := filepath.Join(tmpDir, ".beads", "beads.db")
+	testDB := filepath.Join(tmpDir, ".issuegraph", "issuegraph.db")
 	s := newTestStore(t, testDB)
 	ctx := context.Background()
 	h := &templateTestHelper{s: s, ctx: ctx, t: t}

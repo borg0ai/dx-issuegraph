@@ -10,10 +10,10 @@ import (
 	"testing"
 	"time"
 
+	"github.com/borg0ai/dx-issuegraph/internal/git"
+	"github.com/borg0ai/dx-issuegraph/internal/issuegraph"
+	"github.com/borg0ai/dx-issuegraph/internal/types"
 	"github.com/spf13/cobra"
-	"github.com/steveyegge/beads/internal/beads"
-	"github.com/steveyegge/beads/internal/git"
-	"github.com/steveyegge/beads/internal/types"
 )
 
 func TestIssueIDCompletion(t *testing.T) {
@@ -32,7 +32,7 @@ func TestIssueIDCompletion(t *testing.T) {
 	// Create dolt store for testing
 	tmpDir := t.TempDir()
 	testDB := filepath.Join(tmpDir, "test.db")
-	testStore := newTestStoreWithPrefix(t, testDB, "bd")
+	testStore := newTestStoreWithPrefix(t, testDB, "issuegraph")
 	store = testStore
 
 	// Create test issues
@@ -267,7 +267,7 @@ func TestIssueIDCompletion_UsesWorktreeFallbackWhenStoreNil(t *testing.T) {
 		_ = cleanupCmd.Run()
 	})
 
-	testDB := filepath.Join(mainRepoDir, ".beads", "beads.db")
+	testDB := filepath.Join(mainRepoDir, ".issuegraph", "issuegraph.db")
 	testStore := newTestStoreWithPrefix(t, testDB, "wt")
 	if err := testStore.CreateIssue(ctx, &types.Issue{
 		ID:        "wt-abc1",
@@ -283,10 +283,10 @@ func TestIssueIDCompletion_UsesWorktreeFallbackWhenStoreNil(t *testing.T) {
 	dbPath = ""
 
 	t.Chdir(worktreeDir)
-	beads.ResetCaches()
+	issuegraph.ResetCaches()
 	git.ResetCaches()
 	t.Cleanup(func() {
-		beads.ResetCaches()
+		issuegraph.ResetCaches()
 		git.ResetCaches()
 	})
 
@@ -303,14 +303,14 @@ func TestIssueIDCompletion_UsesWorktreeFallbackWhenStoreNil(t *testing.T) {
 }
 
 func TestCompleteCommandWorksWithoutDatabase(t *testing.T) {
-	// This test verifies that shell completions work even without a beads database.
+	// This test verifies that shell completions work even without a issuegraph database.
 	// The __complete command must be in noDbCommands list so that PersistentPreRun
-	// doesn't exit with "no beads database found" error.
+	// doesn't exit with "no issuegraph database found" error.
 	//
 	// This test will FAIL on versions before the fix was applied, where __complete
 	// was not in the noDbCommands list.
 
-	// Create a temp directory with no .beads database
+	// Create a temp directory with no .issuegraph database
 	tmpDir := t.TempDir()
 
 	// Save original state
@@ -326,10 +326,10 @@ func TestCompleteCommandWorksWithoutDatabase(t *testing.T) {
 	dbPath = ""
 
 	// Reset caches so FindDatabasePath won't use stale git worktree info
-	beads.ResetCaches()
+	issuegraph.ResetCaches()
 	git.ResetCaches()
 	defer func() {
-		beads.ResetCaches()
+		issuegraph.ResetCaches()
 		git.ResetCaches()
 	}()
 
@@ -367,17 +367,17 @@ func TestCompleteCommandWorksWithoutDatabase(t *testing.T) {
 }
 
 func TestCompleteCommandInNoDbCommandsList(t *testing.T) {
-	// This integration test verifies that running `bd __complete show ""`
-	// does NOT fail with "no beads database found" error.
+	// This integration test verifies that running `issuegraph __complete show ""`
+	// does NOT fail with "no issuegraph database found" error.
 	//
 	// The __complete command is Cobra's internal command for shell completions.
 	// It must be in the noDbCommands list to skip database initialization.
 	//
 	// Before the fix: this test would fail because __complete wasn't in noDbCommands,
-	// causing PersistentPreRun to exit with "no beads database found".
+	// causing PersistentPreRun to exit with "no issuegraph database found".
 	// After the fix: this test passes because __complete is in noDbCommands.
 
-	// Create a temp directory with no .beads database
+	// Create a temp directory with no .issuegraph database
 	tmpDir := t.TempDir()
 
 	// Change to temp directory (no database present)
@@ -445,7 +445,7 @@ func TestIssueIDCompletion_EmptyDatabase(t *testing.T) {
 	// Create empty dolt store
 	tmpDir := t.TempDir()
 	testDB := filepath.Join(tmpDir, "test.db")
-	testStore := newTestStoreWithPrefix(t, testDB, "bd")
+	testStore := newTestStoreWithPrefix(t, testDB, "issuegraph")
 	store = testStore
 
 	cmd := &cobra.Command{}

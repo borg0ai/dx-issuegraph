@@ -8,13 +8,13 @@ import (
 	"path/filepath"
 	"time"
 
-	"github.com/steveyegge/beads/internal/beads"
-	"github.com/steveyegge/beads/internal/config"
-	"github.com/steveyegge/beads/internal/debug"
-	"github.com/steveyegge/beads/internal/storage"
+	"github.com/borg0ai/dx-issuegraph/internal/config"
+	"github.com/borg0ai/dx-issuegraph/internal/debug"
+	"github.com/borg0ai/dx-issuegraph/internal/issuegraph"
+	"github.com/borg0ai/dx-issuegraph/internal/storage"
 )
 
-// pushState tracks auto-push state in a local file (.beads/push-state.json)
+// pushState tracks auto-push state in a local file (.issuegraph/push-state.json)
 // instead of the Dolt metadata table, to avoid merge conflicts on multi-machine
 // setups (GH#2466).
 type pushState struct {
@@ -28,11 +28,11 @@ type autoPushTarget interface {
 }
 
 func pushStatePath() (string, error) {
-	beadsDir := beads.FindBeadsDir()
-	if beadsDir == "" {
+	issuegraphDir := issuegraph.FindIssueGraphDir()
+	if issuegraphDir == "" {
 		return "", fmt.Errorf("%s", activeWorkspaceNotFoundError())
 	}
-	return filepath.Join(beadsDir, "push-state.json"), nil
+	return filepath.Join(issuegraphDir, "push-state.json"), nil
 }
 
 func loadPushState() (*pushState, error) {
@@ -72,7 +72,7 @@ const autoPushTimeout = 30 * time.Second
 
 // isDoltAutoPushEnabled returns whether auto-push to Dolt remote should run.
 // Returns true only when explicitly opted in via dolt.auto-push=true in
-// .beads/config.yaml (or BD_DOLT_AUTO_PUSH=true env var).
+// .issuegraph/config.yaml (or ISSUEGRAPH_DOLT_AUTO_PUSH=true env var).
 //
 // Previously the default was to auto-enable when an "origin" remote exists.
 // That is unsafe at any concurrency above one writer: git+ssh remotes have no
@@ -183,7 +183,7 @@ func maybeAutoPush(ctx context.Context) {
 		}
 		debug.Logf("dolt auto-push: push error: %v\n", err)
 		// Throttle retries after failure so a hanging remote doesn't make every
-		// subsequent bd command pay the push timeout. We record the attempt
+		// subsequent issuegraph command pay the push timeout. We record the attempt
 		// timestamp but NOT a new LastCommit, so when the remote recovers the
 		// change-detection check (currentCommit != LastCommit) still triggers.
 		if ps == nil {

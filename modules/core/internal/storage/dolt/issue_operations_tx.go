@@ -5,7 +5,7 @@ import (
 	"database/sql"
 	"log"
 
-	storageissueops "github.com/steveyegge/beads/internal/storage/issueops"
+	storageissueops "github.com/borg0ai/dx-issuegraph/internal/storage/issueops"
 )
 
 func (s *DoltStore) runIssueOperationTx(ctx context.Context, commitMsg string, fn func(*sql.Tx) (storageissueops.ChangedTables, error)) error {
@@ -47,7 +47,7 @@ func (s *DoltStore) runIssueOperationTx(ctx context.Context, commitMsg string, f
 // CloseBatch route through here and, unlike the claim paths, have no
 // verify-by-re-read recovery — so for them a nil error means "data durable in
 // the branch working set; the trailing Dolt history commit may be deferred and
-// is observable only via bd.db.post_tx_commit_dropped." That is the conscious,
+// is observable only via issuegraph.db.post_tx_commit_dropped." That is the conscious,
 // documented contract: a nil return is not a retry signal, and propagating a
 // publish-failure sentinel to those callers would reintroduce the double-apply
 // inversion this reorder exists to prevent.
@@ -90,7 +90,7 @@ func (s *DoltStore) runIssueOperationTxWithMessage(ctx context.Context, fn func(
 		// A body can dirty tables without composing a message (e.g. a ready
 		// claim whose side effects landed but which claimed nothing); never
 		// mint a Dolt commit with an empty message.
-		commitMsg = "bd: issue operation"
+		commitMsg = "issuegraph: issue operation"
 	}
 	if err := s.doltAddAndCommitPostTx(ctx, staged, commitMsg); err != nil {
 		// See the failure-mode note above: the mutation is applied and

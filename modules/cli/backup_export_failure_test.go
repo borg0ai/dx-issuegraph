@@ -8,8 +8,8 @@ import (
 	"testing"
 	"time"
 
-	"github.com/steveyegge/beads/internal/config"
-	"github.com/steveyegge/beads/internal/storage"
+	"github.com/borg0ai/dx-issuegraph/internal/config"
+	"github.com/borg0ai/dx-issuegraph/internal/storage"
 )
 
 // failingBackupStore is a minimal DoltStorage stand-in whose Dolt-native
@@ -35,18 +35,18 @@ func (f *failingBackupStore) RestoreDatabase(context.Context, string, bool) erro
 
 // TestRunBackupExport_PersistsThrottleOnFailure is the wy-zrmqr repro: a
 // failing Dolt backup sync must still advance the throttle timestamp so the
-// next bd command is throttled instead of retrying immediately. Before the
+// next issuegraph command is throttled instead of retrying immediately. Before the
 // fix, saveBackupState ran only on success, so a slow/failing shared Dolt
 // server was hammered on EVERY subsequent command — the amplifier behind the
 // 2026-07 CPU-pin incident.
 func TestRunBackupExport_PersistsThrottleOnFailure(t *testing.T) {
 	// Point backupDir() at a temp git repo via backup.git-repo so we don't
-	// need a live beads workspace.
+	// need a live issuegraph workspace.
 	repo := t.TempDir()
 	if err := os.MkdirAll(filepath.Join(repo, ".git"), 0o755); err != nil {
 		t.Fatal(err)
 	}
-	t.Setenv("BD_BACKUP_GIT_REPO", repo)
+	t.Setenv("ISSUEGRAPH_BACKUP_GIT_REPO", repo)
 	config.ResetForTesting()
 	t.Cleanup(config.ResetForTesting)
 	if err := config.Initialize(); err != nil {

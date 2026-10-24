@@ -5,10 +5,10 @@ import (
 	"fmt"
 	"sort"
 
+	"github.com/borg0ai/dx-issuegraph/internal/metrics"
+	"github.com/borg0ai/dx-issuegraph/internal/types"
+	"github.com/borg0ai/dx-issuegraph/internal/ui"
 	"github.com/spf13/cobra"
-	"github.com/steveyegge/beads/internal/metrics"
-	"github.com/steveyegge/beads/internal/types"
-	"github.com/steveyegge/beads/internal/ui"
 )
 
 // GatedMolecule represents a molecule ready for gate-resume dispatch
@@ -19,7 +19,7 @@ type GatedMolecule struct {
 	ReadyStep     *types.Issue `json:"ready_step"`
 }
 
-// GatedReadyOutput is the JSON output for bd mol ready --gated
+// GatedReadyOutput is the JSON output for issuegraph mol ready --gated
 type GatedReadyOutput struct {
 	Molecules []*GatedMolecule `json:"molecules"`
 	Count     int              `json:"count"`
@@ -31,8 +31,8 @@ var molReadyGatedCmd = &cobra.Command{
 	Long: `Find molecules where a gate has closed and the workflow is ready to resume.
 
 This command discovers molecules waiting at a gate step where:
-1. The molecule has a gate bead that blocks a step
-2. The gate bead is now closed (condition satisfied)
+1. The molecule has a gate issue that blocks a step
+2. The gate issue is now closed (condition satisfied)
 3. The blocked step is now ready to proceed
 4. No agent currently has this molecule hooked
 
@@ -40,8 +40,8 @@ This enables discovery-based resume without explicit waiter tracking.
 The patrol system uses this to find and dispatch gate-ready molecules.
 
 Examples:
-  bd mol ready --gated           # Find all gate-ready molecules
-  bd mol ready --gated --json    # JSON output for automation`,
+  issuegraph mol ready --gated           # Find all gate-ready molecules
+  issuegraph mol ready --gated --json    # JSON output for automation`,
 	SilenceUsage:  true,
 	SilenceErrors: true,
 	RunE:          runMolReadyGated,
@@ -59,10 +59,10 @@ func runMolReadyGated(cmd *cobra.Command, args []string) error {
 }
 
 // runMolReadyGatedCore runs the gate-ready molecule discovery and rendering
-// without emitting a metrics event, so the caller owns emission. `bd ready
+// without emitting a metrics event, so the caller owns emission. `issuegraph ready
 // --gated` delegates here after recording its own "ready" event, while the
 // standalone runMolReadyGated entrypoint records "mol-ready-gated"; this keeps a
-// single `bd ready --gated` invocation to exactly one cli_command event.
+// single `issuegraph ready --gated` invocation to exactly one cli_command event.
 func runMolReadyGatedCore(_ *cobra.Command, _ []string) error {
 	if usesProxiedServer() {
 		return runMolReadyGatedProxiedServer(rootCtx)
@@ -114,20 +114,20 @@ func renderGatedReadyMolecules(molecules []*GatedMolecule) error {
 	}
 
 	fmt.Println("To dispatch a molecule:")
-	fmt.Println("  bd sling <agent> --mol <molecule-id>")
+	fmt.Println("  issuegraph sling <agent> --mol <molecule-id>")
 	return nil
 }
 
 // findGateReadyMolecules finds molecules where a gate has closed and work can resume.
 //
 // Logic:
-// 1. Find all closed gate beads
+// 1. Find all closed gate issuegraph
 // 2. For each closed gate, find what step it was blocking
 // 3. Check if that step is now ready (unblocked)
 // 4. Find the parent molecule
 // 5. Filter out molecules that are already hooked by someone
 func findGateReadyMolecules(ctx context.Context, s molReader) ([]*GatedMolecule, error) {
-	// Step 1: Find all closed gate beads
+	// Step 1: Find all closed gate issuegraph
 	gateType := types.IssueType("gate")
 	closedStatus := types.StatusClosed
 	gateFilter := types.IssueFilter{
@@ -239,10 +239,10 @@ func findGateReadyMolecules(ctx context.Context, s molReader) ([]*GatedMolecule,
 }
 
 func init() {
-	// `bd ready --gated` registers --gated on readyCmd in ready.go.
-	// `bd mol ready` is a separate subcommand under molCmd that always runs
+	// `issuegraph ready --gated` registers --gated on readyCmd in ready.go.
+	// `issuegraph mol ready` is a separate subcommand under molCmd that always runs
 	// in gated mode, so accept --gated here too: both spellings work and the
-	// documented `bd mol ready --gated` form actually matches the help text.
+	// documented `issuegraph mol ready --gated` form actually matches the help text.
 	molReadyGatedCmd.Flags().Bool("gated", false, "Find molecules ready for gate-resume dispatch (always on for this subcommand)")
 	molCmd.AddCommand(molReadyGatedCmd)
 }

@@ -3,7 +3,7 @@ package issueops
 import (
 	"context"
 
-	"github.com/steveyegge/beads/internal/types"
+	"github.com/borg0ai/dx-issuegraph/internal/types"
 )
 
 // TreeNode is one node of a walked dependency tree: the issue, the depth it was
@@ -11,13 +11,13 @@ import (
 // led there.
 //
 // It is the canonical struct rather than a view of one — the same value
-// `bd dep tree --json` marshals — so the CLI's output and the HTTP body are one
+// `issuegraph dep tree --json` marshals — so the CLI's output and the HTTP body are one
 // compatibility domain and a field added to an issue appears on both at once.
 //
 // TRUNCATED IS DEAD AND THIS ROLE NEVER SETS IT. No writer in the tree has ever
 // set it: the walk stops at MaxDepth by not descending, and a node that was not
 // reached is absent rather than present-and-flagged. It stays on the struct
-// because it is on the wire — `bd dep tree --json` has always emitted
+// because it is on the wire — `issuegraph dep tree --json` has always emitted
 // `"truncated": false` — and removing it is a shape change nobody asked this
 // commit for. Read it as always false.
 type TreeNode = types.TreeNode
@@ -25,7 +25,7 @@ type TreeNode = types.TreeNode
 // TreeDirection selects which way a walk follows the dependency graph.
 //
 // It is a STRING rather than a bool because there are three answers and the two
-// front doors already spell them these three ways. `bd dep tree --reverse` is
+// front doors already spell them these three ways. `issuegraph dep tree --reverse` is
 // the deprecated spelling of TreeUp and the CLI translates it before it gets
 // here; nothing below this contract knows about it.
 type TreeDirection string
@@ -104,7 +104,7 @@ type WalkTreeRequest struct {
 	// A PRUNE THAT MATCHES NOTHING RETURNS NO NODES AT ALL, including the root —
 	// the root is kept only as somebody's ancestor, never for its own sake. That
 	// is a sharp edge and it is stated because it is the behavior both routes
-	// ship: `bd dep tree X --status=closed` on a tree with no closed member
+	// ship: `issuegraph dep tree X --status=closed` on a tree with no closed member
 	// prints nothing rather than printing X.
 	//
 	// The value is NOT checked against the workspace's status vocabulary. An
@@ -127,7 +127,7 @@ type WalkTreeRequest struct {
 	// filter to thread a cap through — it is a recursion of single-row reads —
 	// so the whole tree is built and then counted. The cap therefore bounds what
 	// a caller is HANDED, not what the database was asked to do. That is what
-	// `bd dep tree`'s own --help has always said, and stating it here keeps the
+	// `issuegraph dep tree`'s own --help has always said, and stating it here keeps the
 	// promise honest rather than implied.
 	//
 	// EVERY IMPLEMENTATION HONORS IT, as ListRequest.MaxRows is honored
@@ -136,7 +136,7 @@ type WalkTreeRequest struct {
 	// the same window.
 	MaxRows int
 	// MaxRowsSource attributes the cap to whatever knob set it — "--max-rows",
-	// "BEADS_MAX_ROWS", or empty for a library caller — and that attribution is
+	// "ISSUEGRAPH_MAX_ROWS", or empty for a library caller — and that attribution is
 	// what the refusal text reads back. It decides no answer: a request is
 	// refused on MaxRows alone, and this only decides how the refusal reads.
 	MaxRowsSource string
@@ -154,7 +154,7 @@ type TreeResult struct {
 	// promised to be stable against a change in the underlying edge rows, for
 	// the honest reason that the adjacency comes back in the storage layer's
 	// order and this role does not re-sort it. Two calls against an unchanged
-	// database do agree; that is the property `bd dep tree` has always had and
+	// database do agree; that is the property `issuegraph dep tree` has always had and
 	// the one a caller may rely on. It is deliberately WEAKER than
 	// CycleReport's canonicalization, which had to be strong because the walk
 	// there chose which cycles exist.
@@ -166,12 +166,12 @@ type TreeResult struct {
 	//   - A CYCLE TERMINATES. Revisiting a node on the current path stops the
 	//     descent, so the walk finishes on a cyclic graph instead of recursing
 	//     forever. This role therefore never fails on a cycle and never reports
-	//     one; `bd dep cycles` and issueops.CycleDetector are where a cycle is
+	//     one; `issuegraph dep cycles` and issueops.CycleDetector are where a cycle is
 	//     an answer.
 	//   - A SHARED SUBTREE IS RENDERED ONCE. A diamond — two parents reaching
 	//     one child — shows the child under whichever parent the walk reached
 	//     first, and the second parent has no visible edge to it. There is no
-	//     option to show it twice. `bd dep tree --show-all-paths` is a
+	//     option to show it twice. `issuegraph dep tree --show-all-paths` is a
 	//     DOCUMENTED NO-OP that predates this role: it was accepted and threaded
 	//     and never read by any walk, and nobody has specified what "all paths"
 	//     means for a DAG with shared subtrees. This contract deliberately does
@@ -196,7 +196,7 @@ type TreeResult struct {
 }
 
 // TreeWalker describes walking the dependency graph from ONE ROOT and answering
-// with the nodes it reached: the operation `bd dep tree` performs. Like
+// with the nodes it reached: the operation `issuegraph dep tree` performs. Like
 // Lifecycle, Reader, ReadyClaimer, DependencyEditor, Relations, EdgeReader and
 // CycleDetector it is a role with its own accessor. A new capability gets a new
 // role interface and its own accessor; never append a method here.
@@ -221,7 +221,7 @@ type TreeResult struct {
 // WHAT COUNTS AS AN EDGE HERE is every dependency type EXCEPT `relates-to`.
 // That is WIDER than CycleDetector's walk, which follows `blocks` and
 // `conditional-blocks` only, and it is deliberate rather than an oversight in
-// either place: `bd dep tree` is the picture of how work hangs together, so
+// either place: `issuegraph dep tree` is the picture of how work hangs together, so
 // `parent-child`, `discovered-from` and `tracks` belong in it, while a cycle
 // report is about SCHEDULING DEADLOCK and a mutual `parent-child` is not one.
 // `relates-to` is excluded here because it is symmetric annotation — following
@@ -246,7 +246,7 @@ type TreeResult struct {
 // an id in another repository's namespace therefore contributes no node, and
 // nothing in the answer says a branch stopped for that reason rather than
 // because it ended. That is today's behavior on both routes, stated rather
-// than changed; fixing it is a node-shape change and wants its own bead.
+// than changed; fixing it is a node-shape change and wants its own issue.
 //
 // Implementations never mutate caller-owned request values, snapshot the
 // request at method entry, and apply validation and normalization only to

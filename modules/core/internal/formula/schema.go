@@ -4,7 +4,7 @@ package formula
 
 // PrimitiveDoc describes one exported struct (a "primitive") in this package.
 // The slice Primitives in schema_gen.go is generated from types.go and serves
-// as the discoverability index surfaced by `bd formula schema`.
+// as the discoverability index surfaced by `issuegraph formula schema`.
 type PrimitiveDoc struct {
 	// Name is the Go struct name (e.g. "Formula", "LoopSpec").
 	Name string `json:"name"`

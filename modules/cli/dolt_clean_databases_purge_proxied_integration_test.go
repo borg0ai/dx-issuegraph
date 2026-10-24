@@ -11,38 +11,38 @@ import (
 func TestProxiedServerCleanDatabasesPurgeDropped(t *testing.T) {
 	requireProxiedServerEnv(t)
 
-	bd := buildEmbeddedBD(t)
-	p := bdProxiedInit(t, bd, "purge")
+	issuegraph := buildEmbeddedBD(t)
+	p := issuegraphProxiedInit(t, issuegraph, "purge")
 
 	createDatabase := func(t *testing.T, name string) {
 		t.Helper()
-		bdProxiedSQL(t, bd, p.dir, "CREATE DATABASE `"+name+"`")
+		issuegraphProxiedSQL(t, issuegraph, p.dir, "CREATE DATABASE `"+name+"`")
 	}
 
 	dropDatabase := func(t *testing.T, name string) {
 		t.Helper()
-		bdProxiedSQL(t, bd, p.dir, "DROP DATABASE `"+name+"`")
+		issuegraphProxiedSQL(t, issuegraph, p.dir, "DROP DATABASE `"+name+"`")
 	}
 
 	databaseExists := func(t *testing.T, name string) bool {
 		t.Helper()
-		rows := bdProxiedSQLJSON(t, bd, p.dir,
+		rows := issuegraphProxiedSQLJSON(t, issuegraph, p.dir,
 			"SELECT COUNT(*) as count FROM information_schema.schemata WHERE schema_name = '"+name+"'")
 		return len(rows) == 1 && sqlValueEquals(rows[0]["count"], 1)
 	}
 
 	undropSucceeds := func(t *testing.T, name string) bool {
 		t.Helper()
-		_, _, err := bdProxiedRunBuffers(t, bd, p.dir, "sql", fmt.Sprintf("CALL DOLT_UNDROP('%s')", name))
+		_, _, err := issuegraphProxiedRunBuffers(t, issuegraph, p.dir, "sql", fmt.Sprintf("CALL DOLT_UNDROP('%s')", name))
 		return err == nil
 	}
 
 	cleanDatabasesRun := func(t *testing.T, args ...string) string {
 		t.Helper()
 		full := append([]string{"dolt", "clean-databases"}, args...)
-		stdout, stderr, err := bdProxiedRunBuffers(t, bd, p.dir, full...)
+		stdout, stderr, err := issuegraphProxiedRunBuffers(t, issuegraph, p.dir, full...)
 		if err != nil {
-			t.Fatalf("bd dolt clean-databases %s failed: %v\nstdout:\n%s\nstderr:\n%s",
+			t.Fatalf("issuegraph dolt clean-databases %s failed: %v\nstdout:\n%s\nstderr:\n%s",
 				strings.Join(args, " "), err, stdout, stderr)
 		}
 		return stdout

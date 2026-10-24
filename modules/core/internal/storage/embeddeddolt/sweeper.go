@@ -7,10 +7,10 @@ import (
 	"database/sql"
 	"fmt"
 
-	"github.com/steveyegge/beads/internal/storage"
-	storeops "github.com/steveyegge/beads/internal/storage/issueops"
-	"github.com/steveyegge/beads/internal/workapi"
-	"github.com/steveyegge/beads/issueops"
+	"github.com/borg0ai/dx-issuegraph/internal/storage"
+	storeops "github.com/borg0ai/dx-issuegraph/internal/storage/issueops"
+	"github.com/borg0ai/dx-issuegraph/internal/workapi"
+	"github.com/borg0ai/dx-issuegraph/issueops"
 )
 
 // Sweeper returns the guarded bulk-clearance surface for this store.
@@ -74,7 +74,7 @@ func (s *sweeper) Sweep(ctx context.Context, req issueops.SweepRequest) (issueop
 		if result.Swept == 0 {
 			return nil, "", nil
 		}
-		return sweptTables(), fmt.Sprintf("bd: sweep %d %s bead(s)", result.Swept, req.Tier), nil
+		return sweptTables(), fmt.Sprintf("issuegraph: sweep %d %s issue(s)", result.Swept, req.Tier), nil
 	}); err != nil {
 		return issueops.SweepResult{}, err
 	}

@@ -4,7 +4,7 @@ import (
 	"fmt"
 	"strings"
 
-	"github.com/steveyegge/beads/modules/cli/doctor"
+	"github.com/borg0ai/dx-issuegraph/modules/cli/doctor"
 )
 
 // agentDoctorResult is the top-level output for --agent mode.
@@ -73,7 +73,7 @@ func buildAgentResult(result doctorResult) agentDoctorResult {
 // printAgentDiagnostics outputs agent-facing prose diagnostics.
 // Designed for LLM consumption: structured natural language, not table formatting.
 func printAgentDiagnostics(ar agentDoctorResult) {
-	fmt.Printf("## bd doctor (agent diagnostic mode) v%s\n\n", ar.CLIVersion)
+	fmt.Printf("## issuegraph doctor (agent diagnostic mode) v%s\n\n", ar.CLIVersion)
 	fmt.Printf("**Path:** %s\n", ar.Path)
 	fmt.Printf("**Status:** %s\n\n", ar.Summary)
 

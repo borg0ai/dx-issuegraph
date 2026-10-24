@@ -1,35 +1,35 @@
 ---
-title: "bd backup"
-description: "Back up your beads database for off-machine recovery."
+title: "issuegraph backup"
+description: "Back up your issuegraph database for off-machine recovery."
 ---
 
 {/* AUTO-GENERATED: do not edit manually */}
 
-Generated from `bd help --doc backup`.
+Generated from `issuegraph help --doc backup`.
 
-Back up your beads database for off-machine recovery.
+Back up your issuegraph database for off-machine recovery.
 
 This is a Dolt-native database backup. It preserves the database state,
 including tables, branches, commit history, and working-set data. This is
-different from 'bd export', which writes issue records to JSONL for migration
+different from 'issuegraph export', which writes issue records to JSONL for migration
 and interoperability.
 
 Commands:
-  bd backup init &lt;path&gt;    Set up a backup destination (filesystem or DoltHub)
-  bd backup sync           Push to configured backup destination
-  bd backup restore [path] Restore from a backup directory
-  bd backup remove         Remove backup destination
-  bd backup status         Show backup status
+  issuegraph backup init &lt;path&gt;    Set up a backup destination (filesystem or DoltHub)
+  issuegraph backup sync           Push to configured backup destination
+  issuegraph backup restore [path] Restore from a backup directory
+  issuegraph backup remove         Remove backup destination
+  issuegraph backup status         Show backup status
 
 DoltHub is recommended for cloud backup:
-  bd backup init https://doltremoteapi.dolthub.com/&lt;user&gt;/&lt;repo&gt;
+  issuegraph backup init https://doltremoteapi.dolthub.com/&lt;user&gt;/&lt;repo&gt;
   Set DOLT_REMOTE_USER and DOLT_REMOTE_PASSWORD for authentication.
 
 ```
-bd backup [flags]
+issuegraph backup [flags]
 ```
 
-## bd backup init
+## issuegraph backup init
 
 Configure a filesystem path or URL as a backup destination.
 
@@ -38,21 +38,21 @@ DoltHub remote URL. If the destination was previously configured, it is
 updated to the new path.
 
 Filesystem examples:
-  bd backup add /mnt/usb/beads-backup
-  bd backup add ~/Dropbox/beads-backup
+  issuegraph backup add /mnt/usb/issuegraph-backup
+  issuegraph backup add ~/Dropbox/issuegraph-backup
 
 DoltHub (recommended for cloud backup):
-  bd backup add https://doltremoteapi.dolthub.com/myuser/beads-backup
+  issuegraph backup add https://doltremoteapi.dolthub.com/myuser/issuegraph-backup
 
-After adding, run 'bd backup sync' to push your data.
+After adding, run 'issuegraph backup sync' to push your data.
 
 ```
-bd backup init <path> [flags]
+issuegraph backup init <path> [flags]
 ```
 
 **Aliases:** add
 
-## bd backup remove
+## issuegraph backup remove
 
 Remove the configured backup destination.
 
@@ -60,29 +60,29 @@ This unregisters the backup remote from Dolt and removes the local
 backup configuration. The backup data at the destination is not deleted.
 
 ```
-bd backup remove [flags]
+issuegraph backup remove [flags]
 ```
 
 **Aliases:** rm
 
-## bd backup restore
+## issuegraph backup restore
 
-Restore the beads database from a Dolt-native backup.
+Restore the issuegraph database from a Dolt-native backup.
 
-By default, reads from .beads/backup/ (or the configured backup directory).
+By default, reads from .issuegraph/backup/ (or the configured backup directory).
 Optionally specify a path to a directory containing a Dolt backup.
 
-This restores a full database backup created by 'bd backup sync' or an
-equivalent Dolt backup. JSONL files produced by 'bd export' are issue exports,
+This restores a full database backup created by 'issuegraph backup sync' or an
+equivalent Dolt backup. JSONL files produced by 'issuegraph export' are issue exports,
 not restore targets for this command.
 
 Use --force to overwrite an existing database with the backup contents.
 
-The database must already be initialized (run 'bd init' first if needed).
-To initialize and restore in one step, use: bd init &amp;&amp; bd backup restore
+The database must already be initialized (run 'issuegraph init' first if needed).
+To initialize and restore in one step, use: issuegraph init &amp;&amp; issuegraph backup restore
 
 ```
-bd backup restore [path] [flags]
+issuegraph backup restore [path] [flags]
 ```
 
 **Flags:**
@@ -91,25 +91,25 @@ bd backup restore [path] [flags]
       --force   Overwrite existing database with backup contents
 ```
 
-## bd backup status
+## issuegraph backup status
 
 Show last backup status
 
 ```
-bd backup status [flags]
+issuegraph backup status [flags]
 ```
 
-## bd backup sync
+## issuegraph backup sync
 
-Sync the current beads database to the configured Dolt backup destination.
+Sync the current issuegraph database to the configured Dolt backup destination.
 
 This pushes the entire database state (all branches, full history) to the
-backup location configured with 'bd backup init'.
+backup location configured with 'issuegraph backup init'.
 
 The backup is atomic — if the sync fails, the previous backup state is preserved.
 
-Run 'bd backup init &lt;path&gt;' first to configure a destination.
+Run 'issuegraph backup init &lt;path&gt;' first to configure a destination.
 
 ```
-bd backup sync [flags]
+issuegraph backup sync [flags]
 ```

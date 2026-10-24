@@ -10,7 +10,7 @@ import (
 )
 
 // End-to-end for the READ-SIDE revision token, against real Dolt through a real
-// `bd serve` subprocess.
+// `issuegraph serve` subprocess.
 //
 // The pure tests in internal/httpapi cover the wire edge on a fake role: that
 // the row's token arrives under `revision`, that a legacy zero is emitted
@@ -38,7 +38,7 @@ import (
 // revisionOf, which does exactly that and says why.
 func (sp *serveProcess) getIssueRaw(t *testing.T, id string) (int, []byte) {
 	t.Helper()
-	resp, err := sp.client.Get(sp.url("/v0/beads/issues/" + id))
+	resp, err := sp.client.Get(sp.url("/v0/issuegraph/issues/" + id))
 	if err != nil {
 		t.Fatalf("GET issues/%s: %v\nstderr:\n%s", id, err, sp.stderr.String())
 	}
@@ -53,16 +53,16 @@ func (sp *serveProcess) getIssueRaw(t *testing.T, id string) (int, []byte) {
 func TestProxiedServerServeReadRevision(t *testing.T) {
 	requireSharedProxiedServer(t)
 	t.Parallel()
-	bd := buildEmbeddedBD(t)
-	p := newSharedProxiedProject(t, bd, "srvrev")
-	sp := startServe(t, bd, p.dir, bdProxiedEnv(p.dir))
+	issuegraph := buildEmbeddedBD(t)
+	p := newSharedProxiedProject(t, issuegraph, "srvrev")
+	sp := startServe(t, issuegraph, p.dir, issuegraphProxiedEnv(p.dir))
 
 	// THE LOOP THE MEMBER EXISTS FOR. Before this token was published, the
 	// first guarded write of any read-modify-write chain had to be preceded by
 	// a write the caller did not want to make, because only writes answered
 	// with a token. This is that chain with a READ at the front of it.
 	t.Run("a token read off the detail view guards the next write", func(t *testing.T) {
-		issue := bdProxiedCreate(t, bd, p.dir, "guarded from a read", "-p", "2")
+		issue := issuegraphProxiedCreate(t, issuegraph, p.dir, "guarded from a read", "-p", "2")
 
 		status, raw := sp.getIssueRaw(t, issue.ID)
 		if status != http.StatusOK {
@@ -83,7 +83,7 @@ func TestProxiedServerServeReadRevision(t *testing.T) {
 		if writeStatus != http.StatusOK {
 			t.Fatalf("guarded write: status = %d, want 200: %s", writeStatus, written)
 		}
-		if shown := bdProxiedShow(t, bd, p.dir, issue.ID); shown.Title != "guarded by a read" {
+		if shown := issuegraphProxiedShow(t, issuegraph, p.dir, issue.ID); shown.Title != "guarded by a read" {
 			t.Errorf("title = %q, want the guarded write to have landed", shown.Title)
 		}
 
@@ -126,7 +126,7 @@ func TestProxiedServerServeReadRevision(t *testing.T) {
 		if problem["param"] != "expected_version" {
 			t.Errorf("param = %v, want expected_version", problem["param"])
 		}
-		if shown := bdProxiedShow(t, bd, p.dir, issue.ID); shown.Title == "never" {
+		if shown := issuegraphProxiedShow(t, issuegraph, p.dir, issue.ID); shown.Title == "never" {
 			t.Error("a refused guard wrote to the row")
 		}
 
@@ -142,7 +142,7 @@ func TestProxiedServerServeReadRevision(t *testing.T) {
 		if retryStatus != http.StatusOK {
 			t.Fatalf("the retry: status = %d, want 200: %v", retryStatus, retry)
 		}
-		if shown := bdProxiedShow(t, bd, p.dir, issue.ID); shown.Title != "retried" {
+		if shown := issuegraphProxiedShow(t, issuegraph, p.dir, issue.ID); shown.Title != "retried" {
 			t.Errorf("title = %q, want the re-read guard to have landed", shown.Title)
 		}
 	})
@@ -154,7 +154,7 @@ func TestProxiedServerServeReadRevision(t *testing.T) {
 	// patch path and wrong for the close path would be a member that works
 	// until the first caller composes the chain the spec describes.
 	t.Run("the read's token guards a close", func(t *testing.T) {
-		issue := bdProxiedCreate(t, bd, p.dir, "closed under a read guard", "-p", "2")
+		issue := issuegraphProxiedCreate(t, issuegraph, p.dir, "closed under a read guard", "-p", "2")
 
 		status, raw := sp.getIssueRaw(t, issue.ID)
 		if status != http.StatusOK {
@@ -167,7 +167,7 @@ func TestProxiedServerServeReadRevision(t *testing.T) {
 		if closeStatus != http.StatusOK {
 			t.Fatalf("guarded close: status = %d, want 200: %s", closeStatus, closed)
 		}
-		if shown := bdProxiedShow(t, bd, p.dir, issue.ID); string(shown.Status) != "closed" {
+		if shown := issuegraphProxiedShow(t, issuegraph, p.dir, issue.ID); string(shown.Status) != "closed" {
 			t.Errorf("status = %q, want the guarded close to have landed", shown.Status)
 		}
 
@@ -191,7 +191,7 @@ func TestProxiedServerServeReadRevision(t *testing.T) {
 	// migration and a lookup that read the issues column would find nothing and
 	// leave the field at its zero.
 	t.Run("an ephemeral row carries its own token", func(t *testing.T) {
-		id := bdProxiedCreateSilent(t, bd, p.dir, "an ephemeral row", "-p", "2", "--ephemeral")
+		id := issuegraphProxiedCreateSilent(t, issuegraph, p.dir, "an ephemeral row", "-p", "2", "--ephemeral")
 
 		status, raw := sp.getIssueRaw(t, id)
 		if status != http.StatusOK {

@@ -11,19 +11,19 @@ import (
 )
 
 const (
-	testScriptFakeGoLogEnv      = "BEADS_TEST_SCRIPT_FAKE_GO_LOG"
-	testScriptExpectedBinaryEnv = "BEADS_TEST_SCRIPT_EXPECTED_BINARY"
-	testScriptExpectedBaseEnv   = "BEADS_TEST_SCRIPT_EXPECTED_BASENAME"
-	testScriptDriverEnv         = "BEADS_TEST_SCRIPT_DRIVER"
-	testScriptNativeSuffixEnv   = "BEADS_TEST_SCRIPT_NATIVE_SUFFIX"
-	testScriptLaunchProbeEnv    = "BEADS_TEST_SCRIPT_LAUNCH_PROBE"
+	testScriptFakeGoLogEnv      = "ISSUEGRAPH_TEST_SCRIPT_FAKE_GO_LOG"
+	testScriptExpectedBinaryEnv = "ISSUEGRAPH_TEST_SCRIPT_EXPECTED_BINARY"
+	testScriptExpectedBaseEnv   = "ISSUEGRAPH_TEST_SCRIPT_EXPECTED_BASENAME"
+	testScriptDriverEnv         = "ISSUEGRAPH_TEST_SCRIPT_DRIVER"
+	testScriptNativeSuffixEnv   = "ISSUEGRAPH_TEST_SCRIPT_NATIVE_SUFFIX"
+	testScriptLaunchProbeEnv    = "ISSUEGRAPH_TEST_SCRIPT_LAUNCH_PROBE"
 )
 
 const testScriptFakeGo = `#!/usr/bin/env bash
 set -euo pipefail
 
 record() {
-    printf '%s\n' "$1" >>"$BEADS_TEST_SCRIPT_FAKE_GO_LOG"
+    printf '%s\n' "$1" >>"$ISSUEGRAPH_TEST_SCRIPT_FAKE_GO_LOG"
 }
 
 case "${1:-}" in
@@ -33,7 +33,7 @@ case "${1:-}" in
             printf 'fake go: unsupported env arguments: %s\n' "$*" >&2
             exit 90
         fi
-        printf '%s\n' "$BEADS_TEST_SCRIPT_NATIVE_SUFFIX"
+        printf '%s\n' "$ISSUEGRAPH_TEST_SCRIPT_NATIVE_SUFFIX"
         ;;
     build)
         record build
@@ -51,16 +51,16 @@ case "${1:-}" in
                 shift
             fi
         done
-        if [[ -z "$output" || "$output" != "$BEADS_TEST_SCRIPT_EXPECTED_BINARY" ]]; then
-            printf 'fake go: build output %q, want %q\n' "$output" "$BEADS_TEST_SCRIPT_EXPECTED_BINARY" >&2
+        if [[ -z "$output" || "$output" != "$ISSUEGRAPH_TEST_SCRIPT_EXPECTED_BINARY" ]]; then
+            printf 'fake go: build output %q, want %q\n' "$output" "$ISSUEGRAPH_TEST_SCRIPT_EXPECTED_BINARY" >&2
             exit 90
         fi
-        cp -f -- "$BEADS_TEST_SCRIPT_DRIVER" "$output"
+        cp -f -- "$ISSUEGRAPH_TEST_SCRIPT_DRIVER" "$output"
         chmod +x "$output"
         ;;
     test)
         record test
-        "$BEADS_TEST_SCRIPT_DRIVER" \
+        "$ISSUEGRAPH_TEST_SCRIPT_DRIVER" \
             -test.run '^TestTestScriptPrebuiltBinaryLaunchProbe$' \
             -test.count=1
         ;;
@@ -82,7 +82,7 @@ func TestTestScriptPrebuiltBinaryContract(t *testing.T) {
 		if err := os.MkdirAll(fixtureRoot, 0o755); err != nil {
 			t.Fatalf("create caller fixture root: %v", err)
 		}
-		callerBinary := filepath.Join(fixtureRoot, "caller supplied bd"+nativeExecutableSuffix())
+		callerBinary := filepath.Join(fixtureRoot, "caller supplied issuegraph"+nativeExecutableSuffix())
 		copyCurrentTestExecutable(t, callerBinary)
 
 		commands := runTestScriptWithFakeGo(t, callerBinary)
@@ -98,7 +98,7 @@ func TestTestScriptPrebuiltBinaryLaunchProbe(t *testing.T) {
 		t.Skip("re-exec probe runs only under the test.sh fake-go driver")
 	}
 
-	prebuilt := os.Getenv("BEADS_TEST_BD_BINARY")
+	prebuilt := os.Getenv("ISSUEGRAPH_TEST_ISSUEGRAPH_BINARY")
 	expected := os.Getenv(testScriptExpectedBinaryEnv)
 	if prebuilt == "" || expected == "" || !sameTestScriptFile(prebuilt, expected) {
 		t.Fatalf("exported prebuilt binary %q is not expected file %q", prebuilt, expected)
@@ -138,7 +138,7 @@ func runTestScriptWithFakeGo(t *testing.T, callerBinary string) []string {
 
 	expected := callerBinary
 	if expected == "" {
-		expected = filepath.Join(testEnvRoot, "prebuilt-bd", "bd"+nativeExecutableSuffix())
+		expected = filepath.Join(testEnvRoot, "prebuilt-issuegraph", "issuegraph"+nativeExecutableSuffix())
 	}
 
 	bash, err := exec.LookPath("bash")
@@ -152,7 +152,7 @@ func runTestScriptWithFakeGo(t *testing.T, callerBinary string) []string {
 	driverShellPath := shellPathUnderEnv(t, bash, currentTestExecutable(t), env)
 	callLogShellPath := shellPathUnderEnv(t, bash, callLog, env)
 	env = append(env,
-		"BEADS_TEST_COMMAND_PATH="+fakeBinShellPath+":/usr/bin:/bin",
+		"ISSUEGRAPH_TEST_COMMAND_PATH="+fakeBinShellPath+":/usr/bin:/bin",
 		testScriptDriverEnv+"="+driverShellPath,
 		testScriptFakeGoLogEnv+"="+callLogShellPath,
 	)
@@ -162,7 +162,7 @@ func runTestScriptWithFakeGo(t *testing.T, callerBinary string) []string {
 		"--noprofile",
 		"--norc",
 		"-c",
-		`PATH="$BEADS_TEST_COMMAND_PATH"; export PATH; exec "$BASH" --noprofile --norc "$1" "$2"`,
+		`PATH="$ISSUEGRAPH_TEST_COMMAND_PATH"; export PATH; exec "$BASH" --noprofile --norc "$1" "$2"`,
 		"test-script",
 		shellPathUnderEnv(t, bash, filepath.Join(repoRoot, "scripts", "test.sh"), env),
 		"./modules/cli",
@@ -197,15 +197,15 @@ func testScriptEnvironment(testEnvRoot string, tempRoot string, expected string,
 		"ENV=",
 		"CGO_ENABLED=1",
 		"GOFLAGS=",
-		"BEADS_TEST_ENV_ACTIVE=1",
-		"BEADS_TEST_ENV_ROOT=" + portableTestScriptPath(testEnvRoot),
+		"ISSUEGRAPH_TEST_ENV_ACTIVE=1",
+		"ISSUEGRAPH_TEST_ENV_ROOT=" + portableTestScriptPath(testEnvRoot),
 		testScriptExpectedBinaryEnv + "=" + portableTestScriptPath(expected),
 		testScriptExpectedBaseEnv + "=" + filepath.Base(expected),
 		testScriptNativeSuffixEnv + "=" + nativeExecutableSuffix(),
 		testScriptLaunchProbeEnv + "=1",
 	}
 	if callerBinary != "" {
-		env = append(env, "BEADS_TEST_BD_BINARY="+portableTestScriptPath(callerBinary))
+		env = append(env, "ISSUEGRAPH_TEST_ISSUEGRAPH_BINARY="+portableTestScriptPath(callerBinary))
 	}
 	for _, key := range []string{"SYSTEMROOT", "WINDIR", "COMSPEC", "PATHEXT"} {
 		if value, ok := os.LookupEnv(key); ok {

@@ -5,8 +5,8 @@ import (
 	"testing"
 )
 
-// TestProtocol_DeferPastDateWarns asserts that bd defer --until with a past
-// date warns the user. The bd update --defer path already warns; bd defer
+// TestProtocol_DeferPastDateWarns asserts that issuegraph defer --until with a past
+// date warns the user. The issuegraph update --defer path already warns; issuegraph defer
 // should be consistent.
 func TestProtocol_DeferPastDateWarns(t *testing.T) {
 	t.Parallel()
@@ -15,11 +15,11 @@ func TestProtocol_DeferPastDateWarns(t *testing.T) {
 
 	out, _ := w.tryRun("defer", id, "--until=2020-01-01")
 	if !strings.Contains(out, "past") {
-		t.Errorf("bd defer --until=<past date> should warn about past date:\n%s", out)
+		t.Errorf("issuegraph defer --until=<past date> should warn about past date:\n%s", out)
 	}
 }
 
-// TestProtocol_DeferReasonAppendsNotes asserts that `bd defer --reason`
+// TestProtocol_DeferReasonAppendsNotes asserts that `issuegraph defer --reason`
 // records the audit context at the same time as the deferral.
 func TestProtocol_DeferReasonAppendsNotes(t *testing.T) {
 	t.Parallel()
@@ -41,6 +41,6 @@ func TestProtocol_DeferRejectsEmptyReason(t *testing.T) {
 	id := w.create("--title", "Blank reason", "--type", "task")
 
 	if _, err := w.tryRun("defer", id, "--reason", "   "); err == nil {
-		t.Error("bd defer --reason with whitespace-only text should fail but exited 0")
+		t.Error("issuegraph defer --reason with whitespace-only text should fail but exited 0")
 	}
 }

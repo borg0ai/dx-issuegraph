@@ -6,9 +6,9 @@ import (
 )
 
 // TestProtocol_WaitsForAppearsInBlocked asserts that an issue blocked by a
-// waits-for dependency appears in bd blocked output. Previously,
+// waits-for dependency appears in issuegraph blocked output. Previously,
 // GetBlockedIssues only checked 'blocks' deps, making waits-for blocked
-// issues invisible to both bd ready and bd blocked.
+// issues invisible to both issuegraph ready and issuegraph blocked.
 func TestProtocol_WaitsForAppearsInBlocked(t *testing.T) {
 	t.Parallel()
 	w := newWorkspace(t)
@@ -24,19 +24,19 @@ func TestProtocol_WaitsForAppearsInBlocked(t *testing.T) {
 	// Add waits-for dependency: gate waits-for spawner's children
 	w.run("dep", "add", gate, spawner, "--type", "waits-for")
 
-	// Verify gate does NOT appear in bd ready
+	// Verify gate does NOT appear in issuegraph ready
 	readyIDs := parseReadyIDs(t, w)
 	if readyIDs[gate] {
-		t.Errorf("gate issue %s should NOT be in bd ready (has waits-for dep on %s)", gate, spawner)
+		t.Errorf("gate issue %s should NOT be in issuegraph ready (has waits-for dep on %s)", gate, spawner)
 	}
 
-	// Verify gate DOES appear in bd blocked
+	// Verify gate DOES appear in issuegraph blocked
 	blockedOut := w.run("blocked", "--json")
 	var blocked []struct {
 		ID string `json:"id"`
 	}
 	if err := json.Unmarshal([]byte(blockedOut), &blocked); err != nil {
-		t.Fatalf("failed to parse bd blocked --json: %v\noutput: %s", err, blockedOut)
+		t.Fatalf("failed to parse issuegraph blocked --json: %v\noutput: %s", err, blockedOut)
 	}
 
 	found := false
@@ -47,7 +47,7 @@ func TestProtocol_WaitsForAppearsInBlocked(t *testing.T) {
 		}
 	}
 	if !found {
-		t.Errorf("gate issue %s should appear in bd blocked (waits-for %s with active child)",
+		t.Errorf("gate issue %s should appear in issuegraph blocked (waits-for %s with active child)",
 			gate, spawner)
 	}
 }

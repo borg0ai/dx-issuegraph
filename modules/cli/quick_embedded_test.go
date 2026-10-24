@@ -11,33 +11,33 @@ import (
 	"testing"
 )
 
-// bdQuick runs "bd q" with the given args and returns the trimmed ID output.
-func bdQuick(t *testing.T, bd, dir string, args ...string) string {
+// issuegraphQuick runs "issuegraph q" with the given args and returns the trimmed ID output.
+func issuegraphQuick(t *testing.T, issuegraph, dir string, args ...string) string {
 	t.Helper()
 	fullArgs := append([]string{"q"}, args...)
-	out, err := bdRunWithFlockRetry(t, bd, dir, fullArgs...)
+	out, err := issuegraphRunWithFlockRetry(t, issuegraph, dir, fullArgs...)
 	if err != nil {
-		t.Fatalf("bd q %s failed: %v\n%s", strings.Join(args, " "), err, out)
+		t.Fatalf("issuegraph q %s failed: %v\n%s", strings.Join(args, " "), err, out)
 	}
 	return strings.TrimSpace(string(out))
 }
 
 func TestEmbeddedQuick(t *testing.T) {
-	if os.Getenv("BEADS_TEST_EMBEDDED_DOLT") != "1" {
-		t.Skip("set BEADS_TEST_EMBEDDED_DOLT=1 to run embedded dolt integration tests")
+	if os.Getenv("ISSUEGRAPH_TEST_EMBEDDED_DOLT") != "1" {
+		t.Skip("set ISSUEGRAPH_TEST_EMBEDDED_DOLT=1 to run embedded dolt integration tests")
 	}
 	t.Parallel()
 
-	bd := buildEmbeddedBD(t)
-	dir, beadsDir, _ := bdInit(t, bd, "--prefix", "qq")
+	issuegraph := buildEmbeddedBD(t)
+	dir, issuegraphDir, _ := issuegraphInit(t, issuegraph, "--prefix", "qq")
 
 	t.Run("basic_quick_create", func(t *testing.T) {
-		id := bdQuick(t, bd, dir, "Quick task")
+		id := issuegraphQuick(t, issuegraph, dir, "Quick task")
 		if !strings.HasPrefix(id, "qq-") {
 			t.Errorf("expected ID with prefix qq-, got %q", id)
 		}
 		// Verify the issue exists with correct title
-		got := bdShow(t, bd, dir, id)
+		got := issuegraphShow(t, issuegraph, dir, id)
 		if got.Title != "Quick task" {
 			t.Errorf("expected title 'Quick task', got %q", got.Title)
 		}
@@ -47,7 +47,7 @@ func TestEmbeddedQuick(t *testing.T) {
 	})
 
 	t.Run("quick_output_is_id_only", func(t *testing.T) {
-		id := bdQuick(t, bd, dir, "ID only check")
+		id := issuegraphQuick(t, issuegraph, dir, "ID only check")
 		// Output should be a single line with just the ID
 		lines := strings.Split(id, "\n")
 		if len(lines) != 1 {
@@ -59,49 +59,49 @@ func TestEmbeddedQuick(t *testing.T) {
 	})
 
 	t.Run("quick_priority", func(t *testing.T) {
-		id := bdQuick(t, bd, dir, "Priority test", "-p", "1")
-		got := bdShow(t, bd, dir, id)
+		id := issuegraphQuick(t, issuegraph, dir, "Priority test", "-p", "1")
+		got := issuegraphShow(t, issuegraph, dir, id)
 		if got.Priority != 1 {
 			t.Errorf("expected priority 1, got %d", got.Priority)
 		}
 	})
 
 	t.Run("quick_priority_pn_format", func(t *testing.T) {
-		id := bdQuick(t, bd, dir, "P0 test", "-p", "P0")
-		got := bdShow(t, bd, dir, id)
+		id := issuegraphQuick(t, issuegraph, dir, "P0 test", "-p", "P0")
+		got := issuegraphShow(t, issuegraph, dir, id)
 		if got.Priority != 0 {
 			t.Errorf("expected priority 0 for P0, got %d", got.Priority)
 		}
 	})
 
 	t.Run("quick_type", func(t *testing.T) {
-		id := bdQuick(t, bd, dir, "Bug quick", "-t", "bug")
-		got := bdShow(t, bd, dir, id)
+		id := issuegraphQuick(t, issuegraph, dir, "Bug quick", "-t", "bug")
+		got := issuegraphShow(t, issuegraph, dir, id)
 		if got.IssueType != "bug" {
 			t.Errorf("expected type bug, got %s", got.IssueType)
 		}
 	})
 
 	t.Run("quick_default_type", func(t *testing.T) {
-		id := bdQuick(t, bd, dir, "Default type")
-		got := bdShow(t, bd, dir, id)
+		id := issuegraphQuick(t, issuegraph, dir, "Default type")
+		got := issuegraphShow(t, issuegraph, dir, id)
 		if got.IssueType != "task" {
 			t.Errorf("expected default type task, got %s", got.IssueType)
 		}
 	})
 
 	t.Run("quick_default_priority", func(t *testing.T) {
-		id := bdQuick(t, bd, dir, "Default priority")
-		got := bdShow(t, bd, dir, id)
+		id := issuegraphQuick(t, issuegraph, dir, "Default priority")
+		got := issuegraphShow(t, issuegraph, dir, id)
 		if got.Priority != 2 {
 			t.Errorf("expected default priority 2, got %d", got.Priority)
 		}
 	})
 
 	t.Run("quick_labels", func(t *testing.T) {
-		id := bdQuick(t, bd, dir, "Labeled quick", "-l", "urgent", "-l", "backend")
+		id := issuegraphQuick(t, issuegraph, dir, "Labeled quick", "-l", "urgent", "-l", "backend")
 		// Verify labels via show --json
-		m := bdShowDetails(t, bd, dir, id)
+		m := issuegraphShowDetails(t, issuegraph, dir, id)
 		labels, _ := m["labels"].([]interface{})
 		labelSet := map[string]bool{}
 		for _, l := range labels {
@@ -113,26 +113,26 @@ func TestEmbeddedQuick(t *testing.T) {
 	})
 
 	t.Run("quick_multi_word_title", func(t *testing.T) {
-		id := bdQuick(t, bd, dir, "This", "is", "multi", "word")
-		got := bdShow(t, bd, dir, id)
+		id := issuegraphQuick(t, issuegraph, dir, "This", "is", "multi", "word")
+		got := issuegraphShow(t, issuegraph, dir, id)
 		if got.Title != "This is multi word" {
 			t.Errorf("expected multi-word title, got %q", got.Title)
 		}
 	})
 
 	t.Run("quick_no_title_fails", func(t *testing.T) {
-		cmd := exec.Command(bd, "q")
+		cmd := exec.Command(issuegraph, "q")
 		cmd.Dir = dir
-		cmd.Env = bdEnv(dir)
+		cmd.Env = issuegraphEnv(dir)
 		out, err := cmd.CombinedOutput()
 		if err == nil {
-			t.Fatalf("expected bd q with no title to fail, got: %s", out)
+			t.Fatalf("expected issuegraph q with no title to fail, got: %s", out)
 		}
 	})
 
 	t.Run("quick_parent", func(t *testing.T) {
-		parent := bdCreate(t, bd, dir, "Quick parent epic", "-t", "epic")
-		id := bdQuick(t, bd, dir, "Quick child", "--parent", parent.ID)
+		parent := issuegraphCreate(t, issuegraph, dir, "Quick parent epic", "-t", "epic")
+		id := issuegraphQuick(t, issuegraph, dir, "Quick child", "--parent", parent.ID)
 
 		if !strings.HasPrefix(id, parent.ID+".") {
 			t.Errorf("child ID %q should start with %q.", id, parent.ID)
@@ -142,14 +142,14 @@ func TestEmbeddedQuick(t *testing.T) {
 			t.Errorf("expected single-line ID output, got %d lines: %q", len(lines), id)
 		}
 
-		assertDepExists(t, beadsDir, "qq", id, parent.ID)
+		assertDepExists(t, issuegraphDir, "qq", id, parent.ID)
 	})
 
 	t.Run("quick_parent_label_inheritance", func(t *testing.T) {
-		parent := bdCreate(t, bd, dir, "Quick labeled parent", "-t", "epic", "-l", "team-q,inherited")
-		id := bdQuick(t, bd, dir, "Quick labeled child", "--parent", parent.ID, "-l", "own")
+		parent := issuegraphCreate(t, issuegraph, dir, "Quick labeled parent", "-t", "epic", "-l", "team-q,inherited")
+		id := issuegraphQuick(t, issuegraph, dir, "Quick labeled child", "--parent", parent.ID, "-l", "own")
 
-		m := bdShowDetails(t, bd, dir, id)
+		m := issuegraphShowDetails(t, issuegraph, dir, id)
 		labels, _ := m["labels"].([]interface{})
 		labelSet := map[string]bool{}
 		for _, l := range labels {
@@ -163,12 +163,12 @@ func TestEmbeddedQuick(t *testing.T) {
 	})
 
 	t.Run("quick_parent_not_found_fails", func(t *testing.T) {
-		cmd := exec.Command(bd, "q", "Orphan child", "--parent", "qq-doesnotexist")
+		cmd := exec.Command(issuegraph, "q", "Orphan child", "--parent", "qq-doesnotexist")
 		cmd.Dir = dir
-		cmd.Env = bdEnv(dir)
+		cmd.Env = issuegraphEnv(dir)
 		out, err := cmd.CombinedOutput()
 		if err == nil {
-			t.Fatalf("expected bd q --parent with nonexistent parent to fail, got: %s", out)
+			t.Fatalf("expected issuegraph q --parent with nonexistent parent to fail, got: %s", out)
 		}
 		if !strings.Contains(string(out), "not found") {
 			t.Errorf("expected 'not found' in error output, got: %s", out)
@@ -178,13 +178,13 @@ func TestEmbeddedQuick(t *testing.T) {
 
 // TestEmbeddedQuickConcurrent exercises quick-create concurrently.
 func TestEmbeddedQuickConcurrent(t *testing.T) {
-	if os.Getenv("BEADS_TEST_EMBEDDED_DOLT") != "1" {
-		t.Skip("set BEADS_TEST_EMBEDDED_DOLT=1 to run embedded dolt integration tests")
+	if os.Getenv("ISSUEGRAPH_TEST_EMBEDDED_DOLT") != "1" {
+		t.Skip("set ISSUEGRAPH_TEST_EMBEDDED_DOLT=1 to run embedded dolt integration tests")
 	}
 	t.Parallel()
 
-	bd := buildEmbeddedBD(t)
-	dir, _, _ := bdInit(t, bd, "--prefix", "qc")
+	issuegraph := buildEmbeddedBD(t)
+	dir, _, _ := issuegraphInit(t, issuegraph, "--prefix", "qc")
 
 	const (
 		numWorkers      = 8
@@ -208,7 +208,7 @@ func TestEmbeddedQuickConcurrent(t *testing.T) {
 
 			for i := 0; i < issuesPerWorker; i++ {
 				title := fmt.Sprintf("w%d-quick-%d", worker, i)
-				out, err := bdRunWithFlockRetry(t, bd, dir, "q", title)
+				out, err := issuegraphRunWithFlockRetry(t, issuegraph, dir, "q", title)
 				if err != nil {
 					r.err = fmt.Errorf("q %s: %v\n%s", title, err, out)
 					results[worker] = r

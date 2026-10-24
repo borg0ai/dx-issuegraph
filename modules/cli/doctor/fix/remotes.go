@@ -7,18 +7,18 @@ import (
 	"fmt"
 	"time"
 
-	"github.com/steveyegge/beads/internal/configfile"
-	"github.com/steveyegge/beads/internal/doltserver"
-	"github.com/steveyegge/beads/internal/storage/doltutil"
-	"github.com/steveyegge/beads/internal/storage/issueops"
+	"github.com/borg0ai/dx-issuegraph/internal/configfile"
+	"github.com/borg0ai/dx-issuegraph/internal/doltserver"
+	"github.com/borg0ai/dx-issuegraph/internal/storage/doltutil"
+	"github.com/borg0ai/dx-issuegraph/internal/storage/issueops"
 )
 
-func openFixDB(beadsDir string, cfg *configfile.Config) (*sql.DB, error) {
+func openFixDB(issuegraphDir string, cfg *configfile.Config) (*sql.DB, error) {
 	host := cfg.GetDoltServerHost()
 	user := cfg.GetDoltServerUser()
 	database := cfg.GetDoltDatabase()
 	password := cfg.GetDoltServerPassword()
-	port := doltserver.DefaultConfig(beadsDir).Port
+	port := doltserver.DefaultConfig(issuegraphDir).Port
 
 	connStr := doltutil.ServerDSN{
 		Host:     host,
@@ -48,16 +48,16 @@ var errUnverifiableFixTarget = errors.New("cannot verify target database identit
 // database than the one doctor diagnosed (mybd-2qegi).
 //
 // openFixDB dials fresh on every fix call, re-resolving the port from
-// doltserver.DefaultConfig(beadsDir) independently of whatever connection
+// doltserver.DefaultConfig(issuegraphDir) independently of whatever connection
 // doctor's read-only checks used. Two different projects commonly share the
-// same database name ("beads" by default), so a stale port pointing at an
+// same database name ("issuegraph" by default), so a stale port pointing at an
 // unrelated project's server would otherwise connect successfully and
 // destructively mutate the wrong data with no error.
 //
 // This compares the freshly-dialed connection's `_project_id` (from the
 // dolt-synced metadata table, the same key internal/storage/dolt/store.go's
 // verifyProjectIdentity checks) against the local metadata.json project_id
-// for beadsDir. cfg may be nil, in which case metadata.json is loaded fresh;
+// for issuegraphDir. cfg may be nil, in which case metadata.json is loaded fresh;
 // callers that already loaded it (e.g. via openDoltDB) should pass it
 // through so the two loads cannot disagree.
 //
@@ -65,10 +65,10 @@ var errUnverifiableFixTarget = errors.New("cannot verify target database identit
 // comparison can't be made (see errUnverifiableFixTarget's doc). Returns a
 // plain (non-wrapped) error only for a confirmed project_id MISMATCH, which
 // callers must always treat as a hard abort.
-func verifyFixTargetIdentity(db *sql.DB, beadsDir string, cfg *configfile.Config) error {
+func verifyFixTargetIdentity(db *sql.DB, issuegraphDir string, cfg *configfile.Config) error {
 	metaCfg := cfg
 	if metaCfg == nil {
-		loaded, err := configfile.Load(beadsDir)
+		loaded, err := configfile.Load(issuegraphDir)
 		if err != nil {
 			return fmt.Errorf("%w: failed to load local metadata.json: %v", errUnverifiableFixTarget, err)
 		}
@@ -104,7 +104,7 @@ func verifyFixTargetIdentity(db *sql.DB, beadsDir string, cfg *configfile.Config
 				"database than the one doctor diagnosed. This can happen with a stale\n"+
 				"dolt-server.port file or the shared-mode default port pointing at\n"+
 				"another project's server.\n\n"+
-				"To diagnose: bd dolt status",
+				"To diagnose: issuegraph dolt status",
 			localID, dbID)
 	}
 	return nil
@@ -116,16 +116,16 @@ func verifyFixTargetIdentity(db *sql.DB, beadsDir string, cfg *configfile.Config
 // "database unreachable" convention at each call site), while a confirmed
 // PROJECT IDENTITY MISMATCH is a hard abort. Call sites use it as:
 //
-//	if skip, err := guardFixTarget("<Fix Name>", db, beadsDir, cfg); skip {
+//	if skip, err := guardFixTarget("<Fix Name>", db, issuegraphDir, cfg); skip {
 //		return err
 //	}
-func guardFixTarget(fixName string, db *sql.DB, beadsDir string, cfg *configfile.Config) (skip bool, err error) {
-	verr := verifyFixTargetIdentity(db, beadsDir, cfg)
+func guardFixTarget(fixName string, db *sql.DB, issuegraphDir string, cfg *configfile.Config) (skip bool, err error) {
+	verr := verifyFixTargetIdentity(db, issuegraphDir, cfg)
 	if verr == nil {
 		return false, nil
 	}
 	if errors.Is(verr, errUnverifiableFixTarget) {
-		fmt.Printf("  %s skipped: cannot verify target database identity (no project_id); run 'bd doctor --fix' to backfill project identity, then re-run\n", fixName)
+		fmt.Printf("  %s skipped: cannot verify target database identity (no project_id); run 'issuegraph doctor --fix' to backfill project identity, then re-run\n", fixName)
 		return true, nil
 	}
 	return true, verr

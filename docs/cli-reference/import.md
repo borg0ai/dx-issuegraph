@@ -1,25 +1,25 @@
 ---
-title: "bd import"
+title: "issuegraph import"
 description: "Import issues from a JSONL file (newline-delimited JSON) into the database."
 ---
 
 {/* AUTO-GENERATED: do not edit manually */}
 
-Generated from `bd help --doc import`.
+Generated from `issuegraph help --doc import`.
 
 Import issues from a JSONL file (newline-delimited JSON) into the database.
 
-If no file is specified, imports from the configured import.path under .beads/
+If no file is specified, imports from the configured import.path under .issuegraph/
 (default: issues.jsonl). Use "-" to read from stdin. This is the incremental counterpart to
-'bd export': new issues are created and existing issues are updated (upsert
+'issuegraph export': new issues are created and existing issues are updated (upsert
 semantics).
 
 Memory records (lines with "_type":"memory") are automatically detected and
-imported as persistent memories (equivalent to 'bd remember'). This makes
-'bd export | bd import' a full round-trip for both issues and memories.
+imported as persistent memories (equivalent to 'issuegraph remember'). This makes
+'issuegraph export | issuegraph import' a full round-trip for both issues and memories.
 
 Each JSONL line should map to an issue. The importer accepts every field
-'bd export' emits — see 'bd export' output for the canonical schema. Only
+'issuegraph export' emits — see 'issuegraph export' output for the canonical schema. Only
 "title" is required; everything else is optional.
 
 Common fields:
@@ -60,18 +60,18 @@ an import is visible. To deliberately restore an older snapshot, pass
 local state.
 
 EXAMPLES:
-  bd import                        # Import from configured import.path
-  bd import backup.jsonl           # Import from a specific file
-  bd import -i backup.jsonl        # Legacy alias for a specific file
-  bd import -                      # Read JSONL from stdin
-  cat issues.jsonl | bd import -   # Pipe JSONL from another tool
-  bd import --dry-run              # Show what would be imported
-  bd import --dedup                # Skip issues with duplicate titles
-  bd import --allow-stale old.jsonl # Restore an older snapshot (overwrites newer local rows)
-  bd import --json                 # Structured output with created and skipped IDs
+  issuegraph import                        # Import from configured import.path
+  issuegraph import backup.jsonl           # Import from a specific file
+  issuegraph import -i backup.jsonl        # Legacy alias for a specific file
+  issuegraph import -                      # Read JSONL from stdin
+  cat issues.jsonl | issuegraph import -   # Pipe JSONL from another tool
+  issuegraph import --dry-run              # Show what would be imported
+  issuegraph import --dedup                # Skip issues with duplicate titles
+  issuegraph import --allow-stale old.jsonl # Restore an older snapshot (overwrites newer local rows)
+  issuegraph import --json                 # Structured output with created and skipped IDs
 
 ```
-bd import [file|-] [flags]
+issuegraph import [file|-] [flags]
 ```
 
 **Flags:**

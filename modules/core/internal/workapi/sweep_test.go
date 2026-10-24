@@ -7,8 +7,8 @@ import (
 	"testing"
 	"time"
 
-	"github.com/steveyegge/beads/internal/types"
-	"github.com/steveyegge/beads/issueops"
+	"github.com/borg0ai/dx-issuegraph/internal/types"
+	"github.com/borg0ai/dx-issuegraph/issueops"
 )
 
 // The DATABASE-FREE half of issueops.Sweeper: what a request means, which
@@ -216,7 +216,7 @@ func TestNotDoneStatusesForSweepIncludesActiveCustomStatuses(t *testing.T) {
 		t.Error("an active custom status must be scanned for citations")
 	}
 	if found["shipped"] {
-		t.Error("a done custom status must not be scanned: it is not a live bead")
+		t.Error("a done custom status must not be scanned: it is not a live issue")
 	}
 	if !found[types.StatusOpen] || !found[types.StatusInProgress] {
 		t.Error("the built-in active statuses must always be scanned")
@@ -289,7 +289,7 @@ func TestCandidateIDMatcherLargeFixture(t *testing.T) {
 		bodyCount          = 10_000
 		candidateCount     = 100
 		seededRefCount     = 20
-		bodyPadding        = 5_000 // bytes of filler per bead
+		bodyPadding        = 5_000 // bytes of filler per issue
 		maxDurationSeconds = 5
 	)
 

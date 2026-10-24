@@ -27,23 +27,23 @@ func TestDoctorCheckHealthReportsVersionMismatchOnRepoLocalPort(t *testing.T) {
 		t.Skip("skipping: Dolt test container not available")
 	}
 
-	env := append(os.Environ(), "BEADS_TEST_MODE=1")
+	env := append(os.Environ(), "ISSUEGRAPH_TEST_MODE=1")
 
-	initOut, initErr := runBDExecAllowErrorWithEnv(t, tmpDir, env, "init", "--backend", "dolt", "--prefix", "test", "--quiet")
+	initOut, initErr := runIssueGraphExecAllowErrorWithEnv(t, tmpDir, env, "init", "--backend", "dolt", "--prefix", "test", "--quiet")
 	if initErr != nil {
 		lower := strings.ToLower(initOut)
 		if strings.Contains(lower, "dolt") && (strings.Contains(lower, "not supported") || strings.Contains(lower, "not available") || strings.Contains(lower, "unknown")) {
 			t.Skipf("dolt backend not available: %s", initOut)
 		}
-		t.Fatalf("bd init --backend dolt failed: %v\n%s", initErr, initOut)
+		t.Fatalf("issuegraph init --backend dolt failed: %v\n%s", initErr, initOut)
 	}
 
-	startOut, startErr := runBDExecAllowErrorWithEnv(t, tmpDir, env, "dolt", "start")
+	startOut, startErr := runIssueGraphExecAllowErrorWithEnv(t, tmpDir, env, "dolt", "start")
 	if startErr != nil {
-		t.Fatalf("bd dolt start failed: %v\n%s", startErr, startOut)
+		t.Fatalf("issuegraph dolt start failed: %v\n%s", startErr, startOut)
 	}
 
-	portBytes, err := os.ReadFile(filepath.Join(tmpDir, ".beads", "dolt-server.port"))
+	portBytes, err := os.ReadFile(filepath.Join(tmpDir, ".issuegraph", "dolt-server.port"))
 	if err != nil {
 		t.Fatalf("read dolt-server.port: %v", err)
 	}
@@ -55,14 +55,14 @@ func TestDoctorCheckHealthReportsVersionMismatchOnRepoLocalPort(t *testing.T) {
 		t.Skip("derived repo-local port unexpectedly matched 3307; not exercising regression")
 	}
 
-	sqlOut, sqlErr := runBDExecAllowErrorWithEnv(t, tmpDir, env, "sql", "UPDATE local_metadata SET value = '0.0.0' WHERE `key` = 'bd_version'")
+	sqlOut, sqlErr := runIssueGraphExecAllowErrorWithEnv(t, tmpDir, env, "sql", "UPDATE local_metadata SET value = '0.0.0' WHERE `key` = 'issuegraph_version'")
 	if sqlErr != nil {
-		t.Fatalf("bd sql UPDATE failed: %v\n%s", sqlErr, sqlOut)
+		t.Fatalf("issuegraph sql UPDATE failed: %v\n%s", sqlErr, sqlOut)
 	}
 
-	healthOut, healthErr := runBDExecAllowErrorWithEnv(t, tmpDir, env, "doctor", "--check-health")
+	healthOut, healthErr := runIssueGraphExecAllowErrorWithEnv(t, tmpDir, env, "doctor", "--check-health")
 	if healthErr == nil {
-		t.Fatalf("expected bd doctor --check-health to fail on version mismatch; output:\n%s", healthOut)
+		t.Fatalf("expected issuegraph doctor --check-health to fail on version mismatch; output:\n%s", healthOut)
 	}
 	if !strings.Contains(healthOut, "Version mismatch") {
 		t.Fatalf("expected version mismatch in doctor --check-health output; output:\n%s", healthOut)

@@ -7,13 +7,13 @@ import (
 	"os"
 	"strings"
 
+	"github.com/borg0ai/dx-issuegraph/internal/metrics"
+	"github.com/borg0ai/dx-issuegraph/internal/storage"
+	storeissueops "github.com/borg0ai/dx-issuegraph/internal/storage/issueops"
+	"github.com/borg0ai/dx-issuegraph/internal/types"
+	"github.com/borg0ai/dx-issuegraph/internal/ui"
+	"github.com/borg0ai/dx-issuegraph/issueops"
 	"github.com/spf13/cobra"
-	"github.com/steveyegge/beads/internal/metrics"
-	"github.com/steveyegge/beads/internal/storage"
-	storeissueops "github.com/steveyegge/beads/internal/storage/issueops"
-	"github.com/steveyegge/beads/internal/types"
-	"github.com/steveyegge/beads/internal/ui"
-	"github.com/steveyegge/beads/issueops"
 )
 
 var deleteCmd = &cobra.Command{
@@ -30,23 +30,23 @@ This is a destructive operation that cannot be undone. Use with caution.
 
 BATCH DELETION:
 Delete multiple issues at once:
-  bd delete bd-1 bd-2 bd-3 --force
+  issuegraph delete bd-1 bd-2 bd-3 --force
 
 Delete from file (one ID per line):
-  bd delete --from-file deletions.txt --force
+  issuegraph delete --from-file deletions.txt --force
 
 Preview before deleting:
-  bd delete --from-file deletions.txt --dry-run
+  issuegraph delete --from-file deletions.txt --dry-run
 
 DEPENDENCY HANDLING (the same on a local database and against a team server):
 Default: Fails if any issue has dependents not in deletion set
-  bd delete bd-1 bd-2
+  issuegraph delete bd-1 bd-2
 
 Cascade: Recursively delete all dependents
-  bd delete bd-1 --cascade --force
+  issuegraph delete bd-1 --cascade --force
 
 Force: Delete and orphan dependents
-  bd delete bd-1 --force`,
+  issuegraph delete bd-1 --force`,
 	Args:          cobra.MinimumNArgs(0),
 	SilenceUsage:  true,
 	SilenceErrors: true,
@@ -170,7 +170,7 @@ Force: Delete and orphan dependents
 
 		if jsonOutput {
 			// The single-issue keys, unchanged: `deleted` is the id rather than a
-			// list here, which is what every `bd delete <one-id> --json` parses.
+			// list here, which is what every `issuegraph delete <one-id> --json` parses.
 			if err := outputJSON(map[string]interface{}{
 				"deleted":              issueID,
 				"dependencies_removed": result.Dependencies,
@@ -257,7 +257,7 @@ func renderSingleDeletePreview(
 		fmt.Printf("\n(Dry-run mode - no changes made)\n")
 	} else {
 		fmt.Printf("\n%s\n", ui.RenderWarn("This operation cannot be undone!"))
-		fmt.Printf("To proceed, run: %s\n\n", ui.RenderWarn("bd delete "+issueID+" --force"))
+		fmt.Printf("To proceed, run: %s\n\n", ui.RenderWarn("issuegraph delete "+issueID+" --force"))
 	}
 	return nil
 }
@@ -267,8 +267,8 @@ func deleteIssue(ctx context.Context, issueID string) error {
 	return store.DeleteIssue(ctx, issueID)
 }
 
-// deleteBatch is the multi-id and cascade path, shared by `bd delete`,
-// `bd cleanup`, `bd wisp gc` and `bd mol burn`.
+// deleteBatch is the multi-id and cascade path, shared by `issuegraph delete`,
+// `issuegraph cleanup`, `issuegraph wisp gc` and `issuegraph mol burn`.
 //
 // It resolves the ids the way this front door always has - prefix matching and
 // cross-repository routing, which issueops.DeleteRequest deliberately does not
@@ -350,10 +350,10 @@ func deleteBatch(_ *cobra.Command, issueIDs []string, force bool, dryRun bool, c
 			fmt.Printf("\n%s\n", ui.RenderWarn("This operation cannot be undone!"))
 			if cascade {
 				fmt.Printf("To proceed with cascade deletion, run: %s\n",
-					ui.RenderWarn("bd delete "+strings.Join(resolvedIDs, " ")+" --cascade --force"))
+					ui.RenderWarn("issuegraph delete "+strings.Join(resolvedIDs, " ")+" --cascade --force"))
 			} else {
 				fmt.Printf("To proceed, run: %s\n",
-					ui.RenderWarn("bd delete "+strings.Join(resolvedIDs, " ")+" --force"))
+					ui.RenderWarn("issuegraph delete "+strings.Join(resolvedIDs, " ")+" --force"))
 			}
 		}
 		return nil

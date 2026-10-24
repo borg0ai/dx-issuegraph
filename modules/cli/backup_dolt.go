@@ -10,17 +10,17 @@ import (
 	"strings"
 	"time"
 
+	"github.com/borg0ai/dx-issuegraph/internal/issuegraph"
+	"github.com/borg0ai/dx-issuegraph/internal/metrics"
+	"github.com/borg0ai/dx-issuegraph/internal/storage"
+	"github.com/borg0ai/dx-issuegraph/internal/storage/versioncontrolops"
 	"github.com/spf13/cobra"
-	"github.com/steveyegge/beads/internal/beads"
-	"github.com/steveyegge/beads/internal/metrics"
-	"github.com/steveyegge/beads/internal/storage"
-	"github.com/steveyegge/beads/internal/storage/versioncontrolops"
 )
 
 // --- Dolt-native backup commands ---
 //
 // These wrap Dolt's built-in backup feature (CALL DOLT_BACKUP(...)) for standalone
-// users who want their beads database backed up to a filesystem path, NAS, or DoltHub.
+// users who want their issuegraph database backed up to a filesystem path, NAS, or DoltHub.
 //
 // Unlike issue JSONL exports, Dolt-native backups preserve full commit history
 // and are faster for large databases.
@@ -38,13 +38,13 @@ DoltHub remote URL. If the destination was previously configured, it is
 updated to the new path.
 
 Filesystem examples:
-  bd backup add /mnt/usb/beads-backup
-  bd backup add ~/Dropbox/beads-backup
+  issuegraph backup add /mnt/usb/issuegraph-backup
+  issuegraph backup add ~/Dropbox/issuegraph-backup
 
 DoltHub (recommended for cloud backup):
-  bd backup add https://doltremoteapi.dolthub.com/myuser/beads-backup
+  issuegraph backup add https://doltremoteapi.dolthub.com/myuser/issuegraph-backup
 
-After adding, run 'bd backup sync' to push your data.`,
+After adding, run 'issuegraph backup sync' to push your data.`,
 	Args: cobra.ExactArgs(1),
 	// As on `backup status`: the failures here are configuration and I/O
 	// errors, not usage errors, and cobra's default prints the message, then
@@ -99,7 +99,7 @@ After adding, run 'bd backup sync' to push your data.`,
 			}
 		}
 
-		// Store the backup config in beads metadata for status display
+		// Store the backup config in issuegraph metadata for status display
 		if err := saveDoltBackupConfig(backupURL); err != nil {
 			fmt.Fprintf(os.Stderr, "Warning: backup registered but failed to save config: %v\n", err)
 		}
@@ -115,7 +115,7 @@ After adding, run 'bd backup sync' to push your data.`,
 		}
 
 		fmt.Printf("Backup destination configured: %s\n", backupURL)
-		fmt.Println("Run 'bd backup sync' to push your data.")
+		fmt.Println("Run 'issuegraph backup sync' to push your data.")
 		return nil
 	},
 }
@@ -123,14 +123,14 @@ After adding, run 'bd backup sync' to push your data.`,
 var backupSyncCmd = &cobra.Command{
 	Use:   "sync",
 	Short: "Push database to configured Dolt backup",
-	Long: `Sync the current beads database to the configured Dolt backup destination.
+	Long: `Sync the current issuegraph database to the configured Dolt backup destination.
 
 This pushes the entire database state (all branches, full history) to the
-backup location configured with 'bd backup init'.
+backup location configured with 'issuegraph backup init'.
 
 The backup is atomic — if the sync fails, the previous backup state is preserved.
 
-Run 'bd backup init <path>' first to configure a destination.`,
+Run 'issuegraph backup init <path>' first to configure a destination.`,
 	SilenceUsage:  true,
 	SilenceErrors: true,
 	RunE: func(cmd *cobra.Command, args []string) error {
@@ -155,7 +155,7 @@ Run 'bd backup init <path>' first to configure a destination.`,
 		}
 
 		// First, commit any pending changes so they're included in the backup
-		if err := store.Commit(ctx, "bd: pre-backup commit"); err != nil && !isDoltNothingToCommit(err) {
+		if err := store.Commit(ctx, "issuegraph: pre-backup commit"); err != nil && !isDoltNothingToCommit(err) {
 			fmt.Fprintf(os.Stderr, "Warning: failed to commit pending changes: %v\n", err)
 		}
 		commandDidExplicitDoltCommit = true
@@ -166,7 +166,7 @@ Run 'bd backup init <path>' first to configure a destination.`,
 		if err := bs.BackupSync(ctx, defaultDoltBackupName); err != nil {
 			if strings.Contains(err.Error(), "no backup") ||
 				strings.Contains(err.Error(), "not found") {
-				return fmt.Errorf("no backup destination configured. Run 'bd backup init <path>' first")
+				return fmt.Errorf("no backup destination configured. Run 'issuegraph backup init <path>' first")
 			}
 			return fmt.Errorf("backup sync failed: %w", err)
 		}
@@ -216,7 +216,7 @@ func resolveDoltBackupURL(raw string) string {
 	return "file://" + abs
 }
 
-// doltBackupConfig stores the backup destination info in .beads/dolt-backup.json
+// doltBackupConfig stores the backup destination info in .issuegraph/dolt-backup.json
 type doltBackupConfig struct {
 	BackupURL  string    `json:"backup_url"`
 	BackupName string    `json:"backup_name"`
@@ -230,19 +230,19 @@ type doltBackupState struct {
 }
 
 func doltBackupConfigPath() (string, error) {
-	beadsDir := beads.FindBeadsDir()
-	if beadsDir == "" {
+	issuegraphDir := issuegraph.FindIssueGraphDir()
+	if issuegraphDir == "" {
 		return "", fmt.Errorf("%s", activeWorkspaceNotFoundError())
 	}
-	return filepath.Join(beadsDir, "dolt-backup.json"), nil
+	return filepath.Join(issuegraphDir, "dolt-backup.json"), nil
 }
 
 func doltBackupStatePath() (string, error) {
-	beadsDir := beads.FindBeadsDir()
-	if beadsDir == "" {
+	issuegraphDir := issuegraph.FindIssueGraphDir()
+	if issuegraphDir == "" {
 		return "", fmt.Errorf("%s", activeWorkspaceNotFoundError())
 	}
-	return filepath.Join(beadsDir, "dolt-backup-state.json"), nil
+	return filepath.Join(issuegraphDir, "dolt-backup-state.json"), nil
 }
 
 func saveDoltBackupConfig(backupURL string) error {
@@ -316,7 +316,7 @@ func loadDoltBackupState() (*doltBackupState, error) {
 	return &state, nil
 }
 
-// showDoltBackupStatus prints Dolt backup info as part of bd backup status.
+// showDoltBackupStatus prints Dolt backup info as part of issuegraph backup status.
 func showDoltBackupStatus() {
 	cfg, err := loadDoltBackupConfig()
 	if err != nil || cfg == nil {

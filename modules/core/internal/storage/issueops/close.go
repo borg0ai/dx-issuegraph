@@ -9,8 +9,8 @@ import (
 	"sync/atomic"
 	"time"
 
-	"github.com/steveyegge/beads/internal/storage"
-	"github.com/steveyegge/beads/internal/types"
+	"github.com/borg0ai/dx-issuegraph/internal/storage"
+	"github.com/borg0ai/dx-issuegraph/internal/types"
 )
 
 const closeCheckedSavepointPrefix = "issueops_close_checked_"
@@ -44,7 +44,7 @@ func CloseIssueWithoutEventInTx(ctx context.Context, tx DBTX, id string, reason,
 // The guard (IsBlockedInTx) and the close (CloseIssueInTx) share the SAME
 // transaction, so no blocker can clear between the check and the close.
 //
-// The refuse predicate is the exact historical `bd close` guard:
+// The refuse predicate is the exact historical `issuegraph close` guard:
 // blocked && len(blockers) > 0 — refuse only when the denormalized is_blocked
 // column is set AND there is at least one live, open direct blocker
 // (blocks/waits-for/conditional-blocks). A bare is_blocked=1 with no live direct

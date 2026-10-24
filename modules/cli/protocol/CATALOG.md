@@ -14,7 +14,7 @@ so a `issuegraph` release can never silently change a wire shape the consumer pa
   (timestamps → `<TS>`, object arrays stable-sorted, keys sorted, 2-space
   indent), and the provenance **manifest**.
 - `corpus_test.go` — `TestCorpusGolden` runs the plan against a live `issuegraph`
-  (built from source, Dolt-backed) in both flat and `BD_JSON_ENVELOPE=1`
+  (built from source, Dolt-backed) in both flat and `ISSUEGRAPH_JSON_ENVELOPE=1`
   variants, canonicalizes, and **byte-compares** against the committed corpus.
   A diff is a hard failure (`make corpus-regen` to update); a Dolt-boot failure
   is an infra skip, never a silent pass.

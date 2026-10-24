@@ -4,7 +4,7 @@ import (
 	"fmt"
 	"strings"
 
-	"github.com/steveyegge/beads/issueops"
+	"github.com/borg0ai/dx-issuegraph/issueops"
 )
 
 // This file holds the DECISION half of issueops.VersionReconciler: given the
@@ -21,8 +21,8 @@ import (
 // those places is a marker nothing else can find — which looks exactly like a
 // workspace that was never reconciled.
 const (
-	MetadataKeyVersion    = "bd_version"
-	MetadataKeyVersionMax = "bd_version_max"
+	MetadataKeyVersion    = "issuegraph_version"
+	MetadataKeyVersionMax = "issuegraph_version_max"
 )
 
 // VersionReconcilePlan is what a reconciliation decided, plus which of the two

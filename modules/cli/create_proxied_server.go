@@ -11,14 +11,14 @@ import (
 
 	"github.com/spf13/cobra"
 
-	"github.com/steveyegge/beads/internal/config"
-	"github.com/steveyegge/beads/internal/storage"
-	"github.com/steveyegge/beads/internal/storage/domain"
-	"github.com/steveyegge/beads/internal/storage/uow"
-	"github.com/steveyegge/beads/internal/types"
-	"github.com/steveyegge/beads/internal/ui"
-	"github.com/steveyegge/beads/internal/validation"
-	"github.com/steveyegge/beads/issueops"
+	"github.com/borg0ai/dx-issuegraph/internal/config"
+	"github.com/borg0ai/dx-issuegraph/internal/storage"
+	"github.com/borg0ai/dx-issuegraph/internal/storage/domain"
+	"github.com/borg0ai/dx-issuegraph/internal/storage/uow"
+	"github.com/borg0ai/dx-issuegraph/internal/types"
+	"github.com/borg0ai/dx-issuegraph/internal/ui"
+	"github.com/borg0ai/dx-issuegraph/internal/validation"
+	"github.com/borg0ai/dx-issuegraph/issueops"
 )
 
 func resolveProxiedCustomTypes(dbTypes []string) []string {
@@ -122,7 +122,7 @@ func runCreateProxiedSingle(_ *cobra.Command, ctx context.Context, in createInpu
 	// SPEC-GAP bd-yby99.32: Lifecycle.Create promises nothing about the
 	// version-control entry a create records and CreateRequest carries no
 	// Provenance to spell one, so this route's commit message moves from
-	// "bd: create <id>" to whatever the implementation defaults to.
+	// "issuegraph: create <id>" to whatever the implementation defaults to.
 	result, err := ops.Create(ctx, issueops.CreateRequest{
 		Actor:                   in.createdBy,
 		Issue:                   issue,
@@ -142,13 +142,13 @@ func runCreateProxiedSingle(_ *cobra.Command, ctx context.Context, in createInpu
 		// occupied --id is a refusal, not a silent full-row upsert dressed up
 		// as success.
 		if errors.Is(err, storage.ErrAlreadyExists) && in.explicitID != "" {
-			return HandleErrorRespectJSON("%s already exists; use bd update, or bd import for upsert semantics", in.explicitID)
+			return HandleErrorRespectJSON("%s already exists; use issuegraph update, or issuegraph import for upsert semantics", in.explicitID)
 		}
 		return HandleError("%v", err)
 	}
 	// Every post-write read comes from the contract's result snapshot: the
 	// local struct still has no ID for an auto-minted create. Dependencies and
-	// comments come off because `bd create` has never printed them.
+	// comments come off because `issuegraph create` has never printed them.
 	created := result.Issue
 	created.Dependencies = nil
 	created.Comments = nil
@@ -332,7 +332,7 @@ func runCreateProxiedGraph(_ *cobra.Command, ctx context.Context, in createInput
 
 	commitMsg := plan.CommitMessage
 	if commitMsg == "" {
-		commitMsg = fmt.Sprintf("bd: graph-apply %d nodes", len(plan.Nodes))
+		commitMsg = fmt.Sprintf("issuegraph: graph-apply %d nodes", len(plan.Nodes))
 	}
 
 	res, err := uow.RunTxResult(ctx, uowProvider, func(ctx context.Context, uw uow.UnitOfWork) (map[string]string, string, error) {
@@ -396,7 +396,7 @@ func validateProxiedGraphPlan(plan *GraphApplyPlan, in createInput, cctx domain.
 	cfg := graphPlanConfig{
 		customTypes: resolveProxiedCustomTypes(cctx.CustomTypes),
 		// No YAML fallback for statuses — the server database is authoritative
-		// (that's where 'bd config set status.custom' writes) and statuses are
+		// (that's where 'issuegraph config set status.custom' writes) and statuses are
 		// store-only everywhere (single-issue create, list filters), unlike
 		// custom types.
 		customStatuses:  types.CustomStatusNames(cctx.CustomStatuses),
@@ -430,7 +430,7 @@ func uowIssueExists(ctx context.Context, uw uow.UnitOfWork) func(id string) (boo
 	}
 }
 
-// graphApplyNodeIssue path (full issue-model parity with `bd create`).
+// graphApplyNodeIssue path (full issue-model parity with `issuegraph create`).
 func buildDomainGraphPlan(plan GraphApplyPlan, in createInput) (domain.GraphPlan, error) {
 	opts := in.graphApplyOptions()
 	nodes := make([]domain.GraphNode, 0, len(plan.Nodes))

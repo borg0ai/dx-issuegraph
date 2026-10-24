@@ -12,7 +12,7 @@ import (
 	"github.com/spf13/cobra"
 )
 
-// cobraBuiltinCommands are added to the tree by cobra itself, not by bd, and
+// cobraBuiltinCommands are added to the tree by cobra itself, not by issuegraph, and
 // only once something calls Execute — which another test in this package does
 // (completions_test.go runs __complete). Without this set the completeness test
 // below would pass or fail depending on test ORDER, which is the worst possible
@@ -177,7 +177,7 @@ var inlineProxiedRefusal = regexp.MustCompile(`HandleErrorRespectJSON\("([^"]*pr
 // proxied mode without being a capability refusal at all. Keeping both explicit
 // is what lets the scan below be exhaustive rather than best-effort.
 var inlineProxiedMessages = map[string]string{
-	"only 'bd admin compact --dolt' is supported in proxied-server mode": "admin compact",
+	"only 'issuegraph admin compact --dolt' is supported in proxied-server mode": "admin compact",
 	// Not a refusal: --database is the flag that only MAKES SENSE on a proxied
 	// workspace, so this fires on the direct topologies.
 	"--database (or a --db value naming a database) is only supported in proxied-server mode": "",
@@ -232,7 +232,7 @@ func TestProxyCapabilityRegistryCoversInlineRefusals(t *testing.T) {
 		}
 		row, ok := LookupCapabilityRow(path, argSet)
 		if !ok {
-			t.Errorf("%s refuses %q inside RunE with no registry row; the front door and the command disagree about what bd supports",
+			t.Errorf("%s refuses %q inside RunE with no registry row; the front door and the command disagree about what issuegraph supports",
 				file, strings.TrimSpace(path+" "+argSet))
 			continue
 		}
@@ -260,8 +260,8 @@ func inlineRefusalPath(message string) (string, bool) {
 	if !ok {
 		return "", false
 	}
-	// conflicts.go says "bd conflicts ..."; the registry keys on the path.
-	return strings.TrimPrefix(path, "bd "), true
+	// conflicts.go says "issuegraph conflicts ..."; the registry keys on the path.
+	return strings.TrimPrefix(path, "issuegraph "), true
 }
 
 // TestProxyCapabilityRegistryReasonsAreAssignedIndividually guards the one way
@@ -345,7 +345,7 @@ func TestProxyCapabilityArgSetFallsBackToBarePath(t *testing.T) {
 		{"duplicates", []string{"dry-run"}, ProxyOutcomeHonored, ""},
 	} {
 		t.Run(tc.path+" "+strings.Join(tc.flags, " "), func(t *testing.T) {
-			root := &cobra.Command{Use: "bd"}
+			root := &cobra.Command{Use: "issuegraph"}
 			cmd := &cobra.Command{Use: tc.path}
 			root.AddCommand(cmd)
 			for _, flag := range tc.flags {
@@ -371,7 +371,7 @@ func TestProxyCapabilityArgSetFallsBackToBarePath(t *testing.T) {
 // new, and it must appear without disturbing the three fields that were already
 // there.
 func TestProxyRefusalJSONCarriesReason(t *testing.T) {
-	t.Setenv("BD_JSON_ENVELOPE", "")
+	t.Setenv("ISSUEGRAPH_JSON_ENVELOPE", "")
 	oldJSON := jsonOutput
 	jsonOutput = true
 	t.Cleanup(func() { jsonOutput = oldJSON })
@@ -384,7 +384,7 @@ func TestProxyRefusalJSONCarriesReason(t *testing.T) {
 		{"sync", "proxy.sync.unsupported", ProxyReasonUnimplemented},
 	} {
 		t.Run(tc.path, func(t *testing.T) {
-			root := &cobra.Command{Use: "bd"}
+			root := &cobra.Command{Use: "issuegraph"}
 			cmd := &cobra.Command{Use: tc.path}
 			root.AddCommand(cmd)
 			out := captureStdout(t, func() error {

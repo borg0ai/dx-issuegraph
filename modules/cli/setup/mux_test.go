@@ -60,7 +60,7 @@ func TestInstallMuxReportsSkippedSymlinkRootInstructions(t *testing.T) {
 	if err != nil {
 		t.Fatalf("read target: %v", err)
 	}
-	if strings.Contains(string(data), "BEGIN BEADS INTEGRATION") {
+	if strings.Contains(string(data), "BEGIN ISSUEGRAPH INTEGRATION") {
 		t.Fatalf("symlink target should remain untouched:\n%s", data)
 	}
 }
@@ -76,7 +76,7 @@ func TestCheckMuxMissingFile(t *testing.T) {
 	if err == nil {
 		t.Fatal("expected error for missing AGENTS.md")
 	}
-	if !strings.Contains(stdout.String(), "bd setup mux") {
+	if !strings.Contains(stdout.String(), "issuegraph setup mux") {
 		t.Error("expected setup guidance for mux")
 	}
 }
@@ -144,7 +144,7 @@ func TestRemoveMuxProjectRemovesBothLayers(t *testing.T) {
 		}
 		content := string(data)
 		if strings.Contains(content, agentsBeginMarker) || strings.Contains(content, agentsEndMarker) {
-			t.Fatalf("expected beads markers removed from %s", path)
+			t.Fatalf("expected issuegraph markers removed from %s", path)
 		}
 	}
 
@@ -223,6 +223,6 @@ func TestRemoveMuxGlobalRemovesGlobalLayerSection(t *testing.T) {
 		t.Fatalf("expected %s to remain readable after remove: %v", globalPath, err)
 	}
 	if strings.Contains(string(data), agentsBeginMarker) {
-		t.Fatalf("expected beads markers removed from %s", globalPath)
+		t.Fatalf("expected issuegraph markers removed from %s", globalPath)
 	}
 }

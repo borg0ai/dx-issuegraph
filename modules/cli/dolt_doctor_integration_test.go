@@ -28,38 +28,38 @@ func TestDoltDoctor_NoSQLiteWarningsAfterInitAndCreate(t *testing.T) {
 		t.Skip("skipping: Dolt test container not available")
 	}
 
-	env := append(os.Environ(), "BEADS_TEST_MODE=1")
+	env := append(os.Environ(), "ISSUEGRAPH_TEST_MODE=1")
 
 	// Init dolt backend.
-	initOut, initErr := runBDExecAllowErrorWithEnv(t, tmpDir, env, "init", "--backend", "dolt", "--prefix", "test", "--quiet")
+	initOut, initErr := runIssueGraphExecAllowErrorWithEnv(t, tmpDir, env, "init", "--backend", "dolt", "--prefix", "test", "--quiet")
 	if initErr != nil {
 		// If dolt backend isn't available in this build, skip rather than fail.
 		lower := strings.ToLower(initOut)
 		if strings.Contains(lower, "dolt") && (strings.Contains(lower, "not supported") || strings.Contains(lower, "not available") || strings.Contains(lower, "unknown")) {
 			t.Skipf("dolt backend not available: %s", initOut)
 		}
-		t.Fatalf("bd init --backend dolt failed: %v\n%s", initErr, initOut)
+		t.Fatalf("issuegraph init --backend dolt failed: %v\n%s", initErr, initOut)
 	}
 
 	// Create one issue so the store is definitely initialized.
-	createOut, createErr := runBDExecAllowErrorWithEnv(t, tmpDir, env, "create", "doctor dolt smoke", "--json")
+	createOut, createErr := runIssueGraphExecAllowErrorWithEnv(t, tmpDir, env, "create", "doctor dolt smoke", "--json")
 	if createErr != nil {
-		t.Fatalf("bd create failed: %v\n%s", createErr, createOut)
+		t.Fatalf("issuegraph create failed: %v\n%s", createErr, createOut)
 	}
 
 	// Run doctor; it may return non-zero for unrelated warnings (upstream, claude, etc),
 	// but it should NOT include SQLite-only failures on dolt.
-	doctorOut, _ := runBDExecAllowErrorWithEnv(t, tmpDir, env, "doctor")
+	doctorOut, _ := runIssueGraphExecAllowErrorWithEnv(t, tmpDir, env, "doctor")
 
 	// Also include stderr-like output if doctor wrote it to stdout in some modes.
 	// (CombinedOutput already captures both.)
 	for _, forbidden := range []string{
-		"No beads.db found",
+		"No issuegraph.db found",
 		"Unable to read database version",
 		"Legacy database",
 	} {
 		if strings.Contains(doctorOut, forbidden) {
-			t.Fatalf("bd doctor printed sqlite-specific warning %q in dolt mode; output:\n%s", forbidden, doctorOut)
+			t.Fatalf("issuegraph doctor printed sqlite-specific warning %q in dolt mode; output:\n%s", forbidden, doctorOut)
 		}
 	}
 
@@ -67,11 +67,11 @@ func TestDoltDoctor_NoSQLiteWarningsAfterInitAndCreate(t *testing.T) {
 	if !strings.Contains(strings.ToLower(doctorOut), "dolt") {
 		// Some doctor output is terse depending on flags; don't be too strict, but
 		// if it's completely missing, that usually means we didn't use dolt config.
-		t.Fatalf("bd doctor output did not mention dolt; output:\n%s", doctorOut)
+		t.Fatalf("issuegraph doctor output did not mention dolt; output:\n%s", doctorOut)
 	}
 
 	// Regression check: dolt init must NOT create a SQLite database file.
-	if _, err := os.Stat(filepath.Join(tmpDir, ".beads", "beads.db")); err == nil {
-		t.Fatalf("unexpected sqlite database created in dolt mode: %s", filepath.Join(tmpDir, ".beads", "beads.db"))
+	if _, err := os.Stat(filepath.Join(tmpDir, ".issuegraph", "issuegraph.db")); err == nil {
+		t.Fatalf("unexpected sqlite database created in dolt mode: %s", filepath.Join(tmpDir, ".issuegraph", "issuegraph.db"))
 	}
 }

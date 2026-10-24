@@ -16,7 +16,7 @@ import (
 // interchange fixture): priorities incl. P0, several types, a closed issue
 // with a reason, labels, comments, both dependency orientations
 // (parent-child and blocks), metadata, an assignee, an ephemeral wisp that
-// default export must EXCLUDE, an infra-type (message) bead, a promoted
+// default export must EXCLUDE, an infra-type (message) issue, a promoted
 // no-history wisp (durable issues-table row still carrying no_history=true —
 // the bd-r9uce plane-classification trap, with relations), and memories.
 type exportProxiedFixture struct {
@@ -37,11 +37,11 @@ type exportProxiedFixture struct {
 	promotedFriend string
 }
 
-func seedProxiedExportFixture(t *testing.T, bd string, p proxiedProject) exportProxiedFixture {
+func seedProxiedExportFixture(t *testing.T, issuegraph string, p proxiedProject) exportProxiedFixture {
 	t.Helper()
 	var fx exportProxiedFixture
 
-	fx.critical = bdProxiedCreateSilent(t, bd, p.dir, "P0 critical bug",
+	fx.critical = issuegraphProxiedCreateSilent(t, issuegraph, p.dir, "P0 critical bug",
 		"--type", "bug", "--priority", "0",
 		"--description", "Line one\nline two — unicode: ✓",
 		"--assignee", "alice",
@@ -55,49 +55,49 @@ func seedProxiedExportFixture(t *testing.T, bd string, p proxiedProject) exportP
 	// binary-JSON order (key length first, then bytes) on read-back — and the
 	// two orders coincide exactly when all keys share one length. This is a
 	// pre-existing write-path/engine divergence visible to every read command
-	// (`bd show --json` shows it too), not an export behavior; with
+	// (`issuegraph show --json` shows it too), not an export behavior; with
 	// mixed-length keys the cross-mode byte-compare below would fail on it.
-	bdProxiedUpdateOne(t, bd, p.dir, fx.critical, "--metadata", `{"risk":"high","comp":"auth"}`)
+	issuegraphProxiedUpdateOne(t, issuegraph, p.dir, fx.critical, "--metadata", `{"risk":"high","comp":"auth"}`)
 
-	fx.epic = bdProxiedCreateSilent(t, bd, p.dir, "Epic parent", "--type", "epic", "--priority", "1")
-	fx.child = bdProxiedCreateSilent(t, bd, p.dir, "Child task", "--type", "task", "--priority", "2", "--parent", fx.epic)
-	fx.blocker = bdProxiedCreateSilent(t, bd, p.dir, "Blocker", "--type", "chore", "--priority", "3")
-	if out, err := bdProxiedRun(t, bd, p.dir, "dep", "add", fx.child, fx.blocker); err != nil {
+	fx.epic = issuegraphProxiedCreateSilent(t, issuegraph, p.dir, "Epic parent", "--type", "epic", "--priority", "1")
+	fx.child = issuegraphProxiedCreateSilent(t, issuegraph, p.dir, "Child task", "--type", "task", "--priority", "2", "--parent", fx.epic)
+	fx.blocker = issuegraphProxiedCreateSilent(t, issuegraph, p.dir, "Blocker", "--type", "chore", "--priority", "3")
+	if out, err := issuegraphProxiedRun(t, issuegraph, p.dir, "dep", "add", fx.child, fx.blocker); err != nil {
 		t.Fatalf("dep add: %v\n%s", err, out)
 	}
 
 	for _, label := range []string{"zeta", "alpha"} {
-		if out, err := bdProxiedRun(t, bd, p.dir, "label", "add", fx.child, label); err != nil {
+		if out, err := issuegraphProxiedRun(t, issuegraph, p.dir, "label", "add", fx.child, label); err != nil {
 			t.Fatalf("label add %s: %v\n%s", label, err, out)
 		}
 	}
 	for _, text := range []string{"first comment", "second comment"} {
-		if out, err := bdProxiedRun(t, bd, p.dir, "comment", fx.child, text); err != nil {
+		if out, err := issuegraphProxiedRun(t, issuegraph, p.dir, "comment", fx.child, text); err != nil {
 			t.Fatalf("comment: %v\n%s", err, out)
 		}
 	}
 
-	fx.done = bdProxiedCreateSilent(t, bd, p.dir, "Finished feature", "--type", "feature", "--priority", "4")
-	if out, err := bdProxiedRun(t, bd, p.dir, "close", fx.done, "--reason", "shipped in abc123"); err != nil {
+	fx.done = issuegraphProxiedCreateSilent(t, issuegraph, p.dir, "Finished feature", "--type", "feature", "--priority", "4")
+	if out, err := issuegraphProxiedRun(t, issuegraph, p.dir, "close", fx.done, "--reason", "shipped in abc123"); err != nil {
 		t.Fatalf("close: %v\n%s", err, out)
 	}
 
 	// Promoted no-history wisp (bd-r9uce): a durable issues-table row still
-	// carrying no_history=true, with durable-plane relations. `bd promote` is
+	// carrying no_history=true, with durable-plane relations. `issuegraph promote` is
 	// not yet ported to proxied mode (bd-27bfd) — and the fixed promote now
 	// clears the flag — so produce the wild pre-fix shape directly: durable
 	// row, no_history flipped on. In the round trip below, classic import
 	// must route it by the (absent) explicit plane marker and keep it — and
 	// its inbound edge — in the durable plane.
-	fx.promoted = bdProxiedCreateSilent(t, bd, p.dir, "Promoted no-history wisp", "--type", "task", "--priority", "3")
-	if out, err := bdProxiedRun(t, bd, p.dir, "label", "add", fx.promoted, "keepme"); err != nil {
+	fx.promoted = issuegraphProxiedCreateSilent(t, issuegraph, p.dir, "Promoted no-history wisp", "--type", "task", "--priority", "3")
+	if out, err := issuegraphProxiedRun(t, issuegraph, p.dir, "label", "add", fx.promoted, "keepme"); err != nil {
 		t.Fatalf("label add: %v\n%s", err, out)
 	}
-	if out, err := bdProxiedRun(t, bd, p.dir, "comment", fx.promoted, "survived promotion"); err != nil {
+	if out, err := issuegraphProxiedRun(t, issuegraph, p.dir, "comment", fx.promoted, "survived promotion"); err != nil {
 		t.Fatalf("comment: %v\n%s", err, out)
 	}
-	fx.promotedFriend = bdProxiedCreateSilent(t, bd, p.dir, "Promoted wisp friend", "--type", "task", "--priority", "3")
-	if out, err := bdProxiedRun(t, bd, p.dir, "dep", "add", fx.promotedFriend, fx.promoted); err != nil {
+	fx.promotedFriend = issuegraphProxiedCreateSilent(t, issuegraph, p.dir, "Promoted wisp friend", "--type", "task", "--priority", "3")
+	if out, err := issuegraphProxiedRun(t, issuegraph, p.dir, "dep", "add", fx.promotedFriend, fx.promoted); err != nil {
 		t.Fatalf("dep add: %v\n%s", err, out)
 	}
 	db := openProxiedDB(t, p)
@@ -106,28 +106,28 @@ func seedProxiedExportFixture(t *testing.T, bd string, p proxiedProject) exportP
 	}
 
 	// Ephemeral wisp: excluded from default export, included with --all.
-	fx.wisp = bdProxiedCreateSilent(t, bd, p.dir, "Ephemeral heartbeat", "--ephemeral", "--wisp-type", "heartbeat")
+	fx.wisp = issuegraphProxiedCreateSilent(t, issuegraph, p.dir, "Ephemeral heartbeat", "--ephemeral", "--wisp-type", "heartbeat")
 	// Relations on the wisp: the --all export must carry them, which is what
 	// pins the UOW plane partition (only wisp ids reach the wisp readers,
 	// wy-237yfi) against the classic-mode oracle.
-	if out, err := bdProxiedRun(t, bd, p.dir, "label", "add", fx.wisp, "wisp-label"); err != nil {
+	if out, err := issuegraphProxiedRun(t, issuegraph, p.dir, "label", "add", fx.wisp, "wisp-label"); err != nil {
 		t.Fatalf("label add on wisp: %v\n%s", err, out)
 	}
-	if out, err := bdProxiedRun(t, bd, p.dir, "comment", fx.wisp, "wisp comment"); err != nil {
+	if out, err := issuegraphProxiedRun(t, issuegraph, p.dir, "comment", fx.wisp, "wisp comment"); err != nil {
 		t.Fatalf("comment on wisp: %v\n%s", err, out)
 	}
 
-	// Infra-typed bead (message): auto-routed to the ephemeral plane and an
+	// Infra-typed issue (message): auto-routed to the ephemeral plane and an
 	// infra type, so default export must exclude it and --all include it.
-	fx.infraMsg = bdProxiedCreateSilent(t, bd, p.dir, "Infra message", "--type", "message")
+	fx.infraMsg = issuegraphProxiedCreateSilent(t, issuegraph, p.dir, "Infra message", "--type", "message")
 
-	// Memories: `bd remember` is not yet ported to proxied-server mode, so
+	// Memories: `issuegraph remember` is not yet ported to proxied-server mode, so
 	// seed the kv.memory.* config rows directly (same table, same rows).
 	for key, value := range map[string]string{
 		"kv.memory.zebra":    "last memory by key",
 		"kv.memory.aardvark": "first memory by key",
 	} {
-		if out, err := bdProxiedRun(t, bd, p.dir, "config", "set", key, value); err != nil {
+		if out, err := issuegraphProxiedRun(t, issuegraph, p.dir, "config", "set", key, value); err != nil {
 			t.Fatalf("config set %s: %v\n%s", key, err, out)
 		}
 	}
@@ -242,12 +242,12 @@ func firstStreamDiff(want, got string) string {
 	return b.String()
 }
 
-// runClassic runs the (embedded-mode) bd binary in dir with the classic env.
-func runClassic(t *testing.T, bd, dir string, args ...string) string {
+// runClassic runs the (embedded-mode) issuegraph binary in dir with the classic env.
+func runClassic(t *testing.T, issuegraph, dir string, args ...string) string {
 	t.Helper()
-	out, err := bdRunWithFlockRetry(t, bd, dir, args...)
+	out, err := issuegraphRunWithFlockRetry(t, issuegraph, dir, args...)
 	if err != nil {
-		t.Fatalf("classic bd %s failed: %v\n%s", strings.Join(args, " "), err, out)
+		t.Fatalf("classic issuegraph %s failed: %v\n%s", strings.Join(args, " "), err, out)
 	}
 	return string(out)
 }
@@ -255,16 +255,16 @@ func runClassic(t *testing.T, bd, dir string, args ...string) string {
 func TestProxiedServerExport(t *testing.T) {
 	requireSharedProxiedServer(t)
 	t.Parallel()
-	bd := buildEmbeddedBD(t)
-	p := newSharedProxiedProject(t, bd, "pxe")
-	fx := seedProxiedExportFixture(t, bd, p)
+	issuegraph := buildEmbeddedBD(t)
+	p := newSharedProxiedProject(t, issuegraph, "pxe")
+	fx := seedProxiedExportFixture(t, issuegraph, p)
 
 	durable := []string{fx.critical, fx.epic, fx.child, fx.blocker, fx.done}
 
 	t.Run("default_excludes_wisps_infra_memories", func(t *testing.T) {
-		stdout, stderr, err := bdProxiedRunBuffers(t, bd, p.dir, "export")
+		stdout, stderr, err := issuegraphProxiedRunBuffers(t, issuegraph, p.dir, "export")
 		if err != nil {
-			t.Fatalf("bd export: %v\nstdout:\n%s\nstderr:\n%s", err, stdout, stderr)
+			t.Fatalf("issuegraph export: %v\nstdout:\n%s\nstderr:\n%s", err, stdout, stderr)
 		}
 		records := exportLines(t, stdout) // fails on any non-JSON stdout line
 		ids := exportIssueIDs(records)
@@ -277,7 +277,7 @@ func TestProxiedServerExport(t *testing.T) {
 			t.Errorf("default export must exclude ephemeral wisp %s", fx.wisp)
 		}
 		if ids[fx.infraMsg] {
-			t.Errorf("default export must exclude infra-typed bead %s", fx.infraMsg)
+			t.Errorf("default export must exclude infra-typed issue %s", fx.infraMsg)
 		}
 		if keys := exportMemoryKeys(records); len(keys) != 0 {
 			t.Errorf("default export must not carry memories, got %v", keys)
@@ -293,9 +293,9 @@ func TestProxiedServerExport(t *testing.T) {
 	// impoverished stream that classic faithfully imports and re-exports, so
 	// bytes still match. These assertions pin the seeded content itself.
 	t.Run("relations_content_present", func(t *testing.T) {
-		stdout, stderr, err := bdProxiedRunBuffers(t, bd, p.dir, "export")
+		stdout, stderr, err := issuegraphProxiedRunBuffers(t, issuegraph, p.dir, "export")
 		if err != nil {
-			t.Fatalf("bd export: %v\nstdout:\n%s\nstderr:\n%s", err, stdout, stderr)
+			t.Fatalf("issuegraph export: %v\nstdout:\n%s\nstderr:\n%s", err, stdout, stderr)
 		}
 		records := exportLines(t, stdout)
 		child := exportIssueRecordByID(records, fx.child)
@@ -349,9 +349,9 @@ func TestProxiedServerExport(t *testing.T) {
 	// The export half pinned here: relations present, and NO plane marker on
 	// the record (it is durable — stamping it would re-plane it on import).
 	t.Run("promoted_no_history_relations", func(t *testing.T) {
-		stdout, stderr, err := bdProxiedRunBuffers(t, bd, p.dir, "export")
+		stdout, stderr, err := issuegraphProxiedRunBuffers(t, issuegraph, p.dir, "export")
 		if err != nil {
-			t.Fatalf("bd export: %v\nstdout:\n%s\nstderr:\n%s", err, stdout, stderr)
+			t.Fatalf("issuegraph export: %v\nstdout:\n%s\nstderr:\n%s", err, stdout, stderr)
 		}
 		records := exportLines(t, stdout)
 		rec := exportIssueRecordByID(records, fx.promoted)
@@ -390,12 +390,12 @@ func TestProxiedServerExport(t *testing.T) {
 	})
 
 	t.Run("dash_arg_streams_to_stdout", func(t *testing.T) {
-		// `bd export --all -` streams to stdout: the literal `-` is a
+		// `issuegraph export --all -` streams to stdout: the literal `-` is a
 		// positional no-op, NOT an output path (and `-o -` would mean a file
 		// named "-"). Pinned so the port preserves the quirk.
-		stdout, stderr, err := bdProxiedRunBuffers(t, bd, p.dir, "export", "--all", "-")
+		stdout, stderr, err := issuegraphProxiedRunBuffers(t, issuegraph, p.dir, "export", "--all", "-")
 		if err != nil {
-			t.Fatalf("bd export --all -: %v\nstdout:\n%s\nstderr:\n%s", err, stdout, stderr)
+			t.Fatalf("issuegraph export --all -: %v\nstdout:\n%s\nstderr:\n%s", err, stdout, stderr)
 		}
 		if len(exportLines(t, stdout)) == 0 {
 			t.Fatal("expected JSONL on stdout")
@@ -403,9 +403,9 @@ func TestProxiedServerExport(t *testing.T) {
 	})
 
 	t.Run("all_includes_wisps_infra_memories", func(t *testing.T) {
-		stdout, stderr, err := bdProxiedRunBuffers(t, bd, p.dir, "export", "--all")
+		stdout, stderr, err := issuegraphProxiedRunBuffers(t, issuegraph, p.dir, "export", "--all")
 		if err != nil {
-			t.Fatalf("bd export --all: %v\nstdout:\n%s\nstderr:\n%s", err, stdout, stderr)
+			t.Fatalf("issuegraph export --all: %v\nstdout:\n%s\nstderr:\n%s", err, stdout, stderr)
 		}
 		records := exportLines(t, stdout)
 		ids := exportIssueIDs(records)
@@ -436,9 +436,9 @@ func TestProxiedServerExport(t *testing.T) {
 	})
 
 	t.Run("include_memories_after_issues_sorted", func(t *testing.T) {
-		stdout, stderr, err := bdProxiedRunBuffers(t, bd, p.dir, "export", "--include-memories")
+		stdout, stderr, err := issuegraphProxiedRunBuffers(t, issuegraph, p.dir, "export", "--include-memories")
 		if err != nil {
-			t.Fatalf("bd export --include-memories: %v\nstdout:\n%s\nstderr:\n%s", err, stdout, stderr)
+			t.Fatalf("issuegraph export --include-memories: %v\nstdout:\n%s\nstderr:\n%s", err, stdout, stderr)
 		}
 		records := exportLines(t, stdout)
 		ids := exportIssueIDs(records)
@@ -465,9 +465,9 @@ func TestProxiedServerExport(t *testing.T) {
 
 	t.Run("output_file_atomic_summary_on_stderr", func(t *testing.T) {
 		path := filepath.Join(t.TempDir(), "export.jsonl")
-		stdout, stderr, err := bdProxiedRunBuffers(t, bd, p.dir, "export", "-o", path, "--include-memories")
+		stdout, stderr, err := issuegraphProxiedRunBuffers(t, issuegraph, p.dir, "export", "-o", path, "--include-memories")
 		if err != nil {
-			t.Fatalf("bd export -o: %v\nstdout:\n%s\nstderr:\n%s", err, stdout, stderr)
+			t.Fatalf("issuegraph export -o: %v\nstdout:\n%s\nstderr:\n%s", err, stdout, stderr)
 		}
 		if strings.TrimSpace(stdout) != "" {
 			t.Errorf("with -o, stdout must be empty, got:\n%s", stdout)
@@ -486,7 +486,7 @@ func TestProxiedServerExport(t *testing.T) {
 	// ordering. Mirrors protocol's §J6.6 round-trip, across storage modes.
 	t.Run("cross_mode_byte_identical", func(t *testing.T) {
 		proxiedPath := filepath.Join(t.TempDir(), "proxied.jsonl")
-		if _, stderr, err := bdProxiedRunBuffers(t, bd, p.dir, "export", "-o", proxiedPath, "--include-memories"); err != nil {
+		if _, stderr, err := issuegraphProxiedRunBuffers(t, issuegraph, p.dir, "export", "-o", proxiedPath, "--include-memories"); err != nil {
 			t.Fatalf("proxied export: %v\n%s", err, stderr)
 		}
 		proxiedBytes, err := os.ReadFile(proxiedPath)
@@ -494,15 +494,15 @@ func TestProxiedServerExport(t *testing.T) {
 			t.Fatal(err)
 		}
 
-		classicDir, _, _ := bdInit(t, bd, "--prefix", "cls")
+		classicDir, _, _ := issuegraphInit(t, issuegraph, "--prefix", "cls")
 		incoming := filepath.Join(classicDir, "incoming.jsonl")
 		if err := os.WriteFile(incoming, proxiedBytes, 0o644); err != nil {
 			t.Fatal(err)
 		}
-		runClassic(t, bd, classicDir, "import", "-i", incoming)
+		runClassic(t, issuegraph, classicDir, "import", "-i", incoming)
 
 		classicPath := filepath.Join(classicDir, "classic.jsonl")
-		runClassic(t, bd, classicDir, "export", "-o", classicPath, "--include-memories")
+		runClassic(t, issuegraph, classicDir, "export", "-o", classicPath, "--include-memories")
 		classicBytes, err := os.ReadFile(classicPath)
 		if err != nil {
 			t.Fatal(err)
@@ -515,12 +515,12 @@ func TestProxiedServerExport(t *testing.T) {
 
 		// Same oracle for the default (no-memories) shape both from the
 		// proxied store and from the classic store now holding the same data.
-		proxiedDefault, _, err := bdProxiedRunBuffers(t, bd, p.dir, "export")
+		proxiedDefault, _, err := issuegraphProxiedRunBuffers(t, issuegraph, p.dir, "export")
 		if err != nil {
 			t.Fatalf("proxied default export: %v", err)
 		}
 		classicDefaultPath := filepath.Join(classicDir, "classic-default.jsonl")
-		runClassic(t, bd, classicDir, "export", "-o", classicDefaultPath)
+		runClassic(t, issuegraph, classicDir, "export", "-o", classicDefaultPath)
 		classicDefault, err := os.ReadFile(classicDefaultPath)
 		if err != nil {
 			t.Fatal(err)

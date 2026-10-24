@@ -87,20 +87,20 @@ func TestLegacyServerVersionSpansHistoricalServerEra(t *testing.T) {
 // classify: a selected Dolt server workspace that still owns a local Dolt root.
 func writeSelectedServerWorkspace(t *testing.T, version string) string {
 	t.Helper()
-	beadsDir := t.TempDir()
+	issuegraphDir := t.TempDir()
 	metadata := []byte(`{"backend":"dolt","dolt_mode":"server","dolt_database":"selected_server_db"}`)
-	if err := os.WriteFile(filepath.Join(beadsDir, "metadata.json"), metadata, 0o600); err != nil {
+	if err := os.WriteFile(filepath.Join(issuegraphDir, "metadata.json"), metadata, 0o600); err != nil {
 		t.Fatal(err)
 	}
 	if version != "" {
-		if err := writeLocalVersion(filepath.Join(beadsDir, localVersionFile), version); err != nil {
+		if err := writeLocalVersion(filepath.Join(issuegraphDir, localVersionFile), version); err != nil {
 			t.Fatal(err)
 		}
 	}
-	if err := os.Mkdir(filepath.Join(beadsDir, "dolt"), 0o700); err != nil {
+	if err := os.Mkdir(filepath.Join(issuegraphDir, "dolt"), 0o700); err != nil {
 		t.Fatal(err)
 	}
-	return beadsDir
+	return issuegraphDir
 }
 
 func TestLegacyUpgradeGuardAdmitsNonReleaseVersionWitnesses(t *testing.T) {
@@ -116,9 +116,9 @@ func TestLegacyUpgradeGuardAdmitsNonReleaseVersionWitnesses(t *testing.T) {
 	for _, version := range versions {
 		t.Run(version, func(t *testing.T) {
 			warnings := captureLegacyUpgradeWarnings(t)
-			beadsDir := writeSelectedServerWorkspace(t, version)
+			issuegraphDir := writeSelectedServerWorkspace(t, version)
 
-			if err := guardLegacyUpgradeWorkspace(beadsDir); err != nil {
+			if err := guardLegacyUpgradeWorkspace(issuegraphDir); err != nil {
 				t.Fatalf("guardLegacyUpgradeWorkspace() = %v, want nil", err)
 			}
 			if warnings.Len() != 0 {
@@ -142,9 +142,9 @@ func TestLegacyUpgradeGuardStillRefusesPreOneWorkspaces(t *testing.T) {
 	for _, version := range versions {
 		t.Run(version, func(t *testing.T) {
 			captureLegacyUpgradeWarnings(t)
-			beadsDir := writeSelectedServerWorkspace(t, version)
+			issuegraphDir := writeSelectedServerWorkspace(t, version)
 
-			if err := guardLegacyUpgradeWorkspace(beadsDir); !isLegacyUpgradeRefusal(err) {
+			if err := guardLegacyUpgradeWorkspace(issuegraphDir); !isLegacyUpgradeRefusal(err) {
 				t.Fatalf("guardLegacyUpgradeWorkspace() = %v, want migration refusal", err)
 			}
 		})
@@ -154,9 +154,9 @@ func TestLegacyUpgradeGuardStillRefusesPreOneWorkspaces(t *testing.T) {
 func TestLegacyUpgradeGuardRefusesWorkspaceWithoutAnyWitness(t *testing.T) {
 	pinLegacyUpgradeGuardEnv(t)
 	captureLegacyUpgradeWarnings(t)
-	beadsDir := writeSelectedServerWorkspace(t, "")
+	issuegraphDir := writeSelectedServerWorkspace(t, "")
 
-	if err := guardLegacyUpgradeWorkspace(beadsDir); !isLegacyUpgradeRefusal(err) {
+	if err := guardLegacyUpgradeWorkspace(issuegraphDir); !isLegacyUpgradeRefusal(err) {
 		t.Fatalf("guardLegacyUpgradeWorkspace() = %v, want migration refusal", err)
 	}
 }
@@ -182,15 +182,15 @@ func TestLegacyUpgradeGuardWarnsInsteadOfRefusingPresentButBlankWitness(t *testi
 	for _, tc := range blankWitnesses {
 		t.Run(tc.name, func(t *testing.T) {
 			warnings := captureLegacyUpgradeWarnings(t)
-			beadsDir := writeSelectedServerWorkspace(t, "")
+			issuegraphDir := writeSelectedServerWorkspace(t, "")
 			// writeSelectedServerWorkspace skips the witness for an empty
 			// version, leaving a genuinely-missing witness; overwrite it with a
 			// present-but-blank file to exercise the failed-write shape.
-			if err := os.WriteFile(filepath.Join(beadsDir, localVersionFile), tc.content, 0o600); err != nil {
+			if err := os.WriteFile(filepath.Join(issuegraphDir, localVersionFile), tc.content, 0o600); err != nil {
 				t.Fatal(err)
 			}
 
-			if err := guardLegacyUpgradeWorkspace(beadsDir); err != nil {
+			if err := guardLegacyUpgradeWorkspace(issuegraphDir); err != nil {
 				t.Fatalf("guardLegacyUpgradeWorkspace() = %v, want nil for a present-but-blank witness", err)
 			}
 			if warnings.Len() == 0 {
@@ -206,9 +206,9 @@ func TestLegacyUpgradeGuardWarnsInsteadOfRefusingPresentButBlankWitness(t *testi
 		captureLegacyUpgradeWarnings(t)
 		// No .local_version is written at all: absence must keep refusing so the
 		// pre-1.0 guard invariant does not relax alongside the blank-witness fix.
-		beadsDir := writeSelectedServerWorkspace(t, "")
+		issuegraphDir := writeSelectedServerWorkspace(t, "")
 
-		if err := guardLegacyUpgradeWorkspace(beadsDir); !isLegacyUpgradeRefusal(err) {
+		if err := guardLegacyUpgradeWorkspace(issuegraphDir); !isLegacyUpgradeRefusal(err) {
 			t.Fatalf("guardLegacyUpgradeWorkspace() = %v, want migration refusal for a missing witness", err)
 		}
 	})
@@ -221,11 +221,11 @@ func TestLegacyUpgradeGuardWarnsInsteadOfRefusingPresentButBlankWitness(t *testi
 func TestLegacyUpgradeVersionWitnessPresence(t *testing.T) {
 	t.Run("present but blank reports present with empty version", func(t *testing.T) {
 		for _, content := range [][]byte{[]byte(""), []byte("\n"), []byte("  \t")} {
-			beadsDir := t.TempDir()
-			if err := os.WriteFile(filepath.Join(beadsDir, localVersionFile), content, 0o600); err != nil {
+			issuegraphDir := t.TempDir()
+			if err := os.WriteFile(filepath.Join(issuegraphDir, localVersionFile), content, 0o600); err != nil {
 				t.Fatal(err)
 			}
-			version, present := legacyUpgradeVersionWitness(beadsDir)
+			version, present := legacyUpgradeVersionWitness(issuegraphDir)
 			if !present || version != "" {
 				t.Fatalf("legacyUpgradeVersionWitness() = (%q, %v), want (%q, true) for %q", version, present, "", content)
 			}
@@ -233,19 +233,19 @@ func TestLegacyUpgradeVersionWitnessPresence(t *testing.T) {
 	})
 
 	t.Run("missing witness reports absent", func(t *testing.T) {
-		beadsDir := t.TempDir()
-		if version, present := legacyUpgradeVersionWitness(beadsDir); present || version != "" {
+		issuegraphDir := t.TempDir()
+		if version, present := legacyUpgradeVersionWitness(issuegraphDir); present || version != "" {
 			t.Fatalf("legacyUpgradeVersionWitness() = (%q, %v), want (%q, false) for a missing witness", version, present, "")
 		}
 	})
 
 	t.Run("oversized witness reports absent", func(t *testing.T) {
-		beadsDir := t.TempDir()
+		issuegraphDir := t.TempDir()
 		oversized := bytes.Repeat([]byte("a"), 65)
-		if err := os.WriteFile(filepath.Join(beadsDir, localVersionFile), oversized, 0o600); err != nil {
+		if err := os.WriteFile(filepath.Join(issuegraphDir, localVersionFile), oversized, 0o600); err != nil {
 			t.Fatal(err)
 		}
-		if version, present := legacyUpgradeVersionWitness(beadsDir); present || version != "" {
+		if version, present := legacyUpgradeVersionWitness(issuegraphDir); present || version != "" {
 			t.Fatalf("legacyUpgradeVersionWitness() = (%q, %v), want (%q, false) for an oversized witness", version, present, "")
 		}
 	})
@@ -254,9 +254,9 @@ func TestLegacyUpgradeVersionWitnessPresence(t *testing.T) {
 func TestLegacyUpgradeGuardWarnsInsteadOfRefusingUnreadableWitness(t *testing.T) {
 	pinLegacyUpgradeGuardEnv(t)
 	warnings := captureLegacyUpgradeWarnings(t)
-	beadsDir := writeSelectedServerWorkspace(t, "not-a-version")
+	issuegraphDir := writeSelectedServerWorkspace(t, "not-a-version")
 
-	if err := guardLegacyUpgradeWorkspace(beadsDir); err != nil {
+	if err := guardLegacyUpgradeWorkspace(issuegraphDir); err != nil {
 		t.Fatalf("guardLegacyUpgradeWorkspace() = %v, want nil", err)
 	}
 	warned := warnings.String()
@@ -268,14 +268,14 @@ func TestLegacyUpgradeGuardWarnsInsteadOfRefusingUnreadableWitness(t *testing.T)
 // TestLegacyUpgradeGuardWarningIsSelfHealing models the PersistentPreRunE
 // order — guard, then trackBdVersion — to show the warning is one-shot: the
 // admitted command rewrites the witness with this binary's own version, so the
-// next command reads it cleanly. Only a stamp bd rewrites identically every
+// next command reads it cleanly. Only a stamp issuegraph rewrites identically every
 // run (a Homebrew --HEAD build, GH#5603) can warn repeatedly.
 func TestLegacyUpgradeGuardWarningIsSelfHealing(t *testing.T) {
 	pinLegacyUpgradeGuardEnv(t)
 	warnings := captureLegacyUpgradeWarnings(t)
-	beadsDir := writeSelectedServerWorkspace(t, "not-a-version")
+	issuegraphDir := writeSelectedServerWorkspace(t, "not-a-version")
 
-	if err := guardLegacyUpgradeWorkspace(beadsDir); err != nil {
+	if err := guardLegacyUpgradeWorkspace(issuegraphDir); err != nil {
 		t.Fatalf("first guardLegacyUpgradeWorkspace() = %v, want nil", err)
 	}
 	if warnings.Len() == 0 {
@@ -283,12 +283,12 @@ func TestLegacyUpgradeGuardWarningIsSelfHealing(t *testing.T) {
 	}
 
 	// trackBdVersion rewrites the witness whenever it differs from Version.
-	if err := writeLocalVersion(filepath.Join(beadsDir, localVersionFile), Version); err != nil {
+	if err := writeLocalVersion(filepath.Join(issuegraphDir, localVersionFile), Version); err != nil {
 		t.Fatal(err)
 	}
 
 	warnings.Reset()
-	if err := guardLegacyUpgradeWorkspace(beadsDir); err != nil {
+	if err := guardLegacyUpgradeWorkspace(issuegraphDir); err != nil {
 		t.Fatalf("second guardLegacyUpgradeWorkspace() = %v, want nil", err)
 	}
 	if warnings.Len() != 0 {
@@ -298,7 +298,7 @@ func TestLegacyUpgradeGuardWarningIsSelfHealing(t *testing.T) {
 
 // TestLegacyUpgradeGuardAdmitsBrewHeadStamp covers the reporter's scenario in
 // GH#5603: Homebrew stamps HEAD-<shortsha> into main.Version for --HEAD
-// installs, bd writes it verbatim, and the workspace must still open. The
+// installs, issuegraph writes it verbatim, and the workspace must still open. The
 // unknown era admits it. Silencing the repeated warning for that stable stamp
 // needs the shape recognizer in GH#5625 (anisoptera), which this does not
 // duplicate.
@@ -307,9 +307,9 @@ func TestLegacyUpgradeGuardAdmitsBrewHeadStamp(t *testing.T) {
 	for _, stamp := range []string{"HEAD-f925f3f", "HEAD", "HEAD-f925f3f_1"} {
 		t.Run(stamp, func(t *testing.T) {
 			captureLegacyUpgradeWarnings(t)
-			beadsDir := writeSelectedServerWorkspace(t, stamp)
+			issuegraphDir := writeSelectedServerWorkspace(t, stamp)
 
-			if err := guardLegacyUpgradeWorkspace(beadsDir); err != nil {
+			if err := guardLegacyUpgradeWorkspace(issuegraphDir); err != nil {
 				t.Fatalf("guardLegacyUpgradeWorkspace() = %v, want nil", err)
 			}
 		})
@@ -317,7 +317,7 @@ func TestLegacyUpgradeGuardAdmitsBrewHeadStamp(t *testing.T) {
 }
 
 // TestVersionWitnessRoundTrip pins the contract the guard depends on: every
-// version string bd can write, bd can read back and recognize as current.
+// version string issuegraph can write, issuegraph can read back and recognize as current.
 func TestVersionWitnessRoundTrip(t *testing.T) {
 	versions := []string{
 		Version,
@@ -332,8 +332,8 @@ func TestVersionWitnessRoundTrip(t *testing.T) {
 
 	for _, version := range versions {
 		t.Run(version, func(t *testing.T) {
-			beadsDir := t.TempDir()
-			path := filepath.Join(beadsDir, localVersionFile)
+			issuegraphDir := t.TempDir()
+			path := filepath.Join(issuegraphDir, localVersionFile)
 			if err := writeLocalVersion(path, version); err != nil {
 				t.Fatal(err)
 			}
@@ -341,9 +341,9 @@ func TestVersionWitnessRoundTrip(t *testing.T) {
 			if got := readLocalVersion(path); got != version {
 				t.Fatalf("readLocalVersion() = %q, want %q", got, version)
 			}
-			witness, ok := legacyUpgradeVersionWitness(beadsDir)
+			witness, ok := legacyUpgradeVersionWitness(issuegraphDir)
 			if !ok {
-				t.Fatalf("legacyUpgradeVersionWitness() did not see the witness bd just wrote")
+				t.Fatalf("legacyUpgradeVersionWitness() did not see the witness issuegraph just wrote")
 			}
 			if witness != version {
 				t.Fatalf("legacyUpgradeVersionWitness() = %q, want %q", witness, version)

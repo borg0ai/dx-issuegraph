@@ -5,9 +5,9 @@ import (
 	"errors"
 	"time"
 
-	"github.com/steveyegge/beads/internal/storage/domain"
-	"github.com/steveyegge/beads/internal/storage/issueops"
-	"github.com/steveyegge/beads/internal/types"
+	"github.com/borg0ai/dx-issuegraph/internal/storage/domain"
+	"github.com/borg0ai/dx-issuegraph/internal/storage/issueops"
+	"github.com/borg0ai/dx-issuegraph/internal/types"
 )
 
 func (s *testSuite) TestIssueSQLRepository() {
@@ -506,7 +506,7 @@ func (s *testSuite) issueExistsWispRouting() {
 func (s *testSuite) issueCountForPrefixEmpty() {
 	// Use a fresh prefix that no prior test inserts under. The suite shares
 	// state across s.Run subtests within a single TestXxx method, so we
-	// can't rely on "bd" being empty here.
+	// can't rely on "issuegraph" being empty here.
 	r := s.issueRepo()
 	got, err := r.CountForPrefix(s.Ctx(), "cfpEmpty", domain.IssueTableOpts{})
 	s.Require().NoError(err)
@@ -716,7 +716,7 @@ func (s *testSuite) issueClaimEmptyID() {
 
 // issueClaimStampsLease asserts the proxied-server (uow) claim path grants a
 // lease row and rewrites row_lock, so a claim made through this path is
-// visible to bd reclaim rather than stranded (the C2 gap).
+// visible to issuegraph reclaim rather than stranded (the C2 gap).
 func (s *testSuite) issueClaimStampsLease() {
 	r := s.issueRepo()
 	s.Require().NoError(r.Insert(s.Ctx(), newTestIssue("bd-claim-lease", "x"), "tester", domain.InsertIssueOpts{}))

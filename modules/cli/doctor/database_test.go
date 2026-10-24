@@ -7,7 +7,7 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/steveyegge/beads/internal/configfile"
+	"github.com/borg0ai/dx-issuegraph/internal/configfile"
 )
 
 func TestCheckDatabaseIntegrity(t *testing.T) {
@@ -26,9 +26,9 @@ func TestCheckDatabaseIntegrity(t *testing.T) {
 			expectMessage:  "N/A (no database)",
 		},
 		{
-			name: "empty beads dir",
+			name: "empty issuegraph dir",
 			setup: func(t *testing.T, dir string) {
-				// .beads exists but no dolt/ directory
+				// .issuegraph exists but no dolt/ directory
 			},
 			expectedStatus: "ok",
 			expectMessage:  "N/A (no database)",
@@ -38,8 +38,8 @@ func TestCheckDatabaseIntegrity(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			tmpDir := t.TempDir()
-			beadsDir := filepath.Join(tmpDir, ".beads")
-			if err := os.MkdirAll(beadsDir, 0755); err != nil {
+			issuegraphDir := filepath.Join(tmpDir, ".issuegraph")
+			if err := os.MkdirAll(issuegraphDir, 0755); err != nil {
 				t.Fatal(err)
 			}
 
@@ -59,8 +59,8 @@ func TestCheckDatabaseIntegrity(t *testing.T) {
 
 func TestServerModeIntegrityManualRecoveryDetail(t *testing.T) {
 	tmpDir := t.TempDir()
-	beadsDir := filepath.Join(tmpDir, ".beads")
-	doltDir := filepath.Join(beadsDir, "dolt")
+	issuegraphDir := filepath.Join(tmpDir, ".issuegraph")
+	doltDir := filepath.Join(issuegraphDir, "dolt")
 	if err := os.MkdirAll(doltDir, 0o755); err != nil {
 		t.Fatal(err)
 	}
@@ -72,11 +72,11 @@ func TestServerModeIntegrityManualRecoveryDetail(t *testing.T) {
 		DoltServerPort: 1,
 		DoltDatabase:   "doctest_missing_server_db",
 	}
-	if err := cfg.Save(beadsDir); err != nil {
+	if err := cfg.Save(issuegraphDir); err != nil {
 		t.Fatalf("failed to save config: %v", err)
 	}
 
-	detail := serverModeIntegrityManualRecoveryDetail(beadsDir)
+	detail := serverModeIntegrityManualRecoveryDetail(issuegraphDir)
 	if detail == "" {
 		t.Fatal("expected server-mode manual recovery detail")
 	}
@@ -100,7 +100,7 @@ func TestCheckDatabaseVersion(t *testing.T) {
 		{
 			name: "no database",
 			setup: func(t *testing.T, dir string) {
-				// No dolt/ directory - error (need to run bd init)
+				// No dolt/ directory - error (need to run issuegraph init)
 			},
 			expectedStatus: "error",
 		},
@@ -109,8 +109,8 @@ func TestCheckDatabaseVersion(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			tmpDir := t.TempDir()
-			beadsDir := filepath.Join(tmpDir, ".beads")
-			if err := os.MkdirAll(beadsDir, 0755); err != nil {
+			issuegraphDir := filepath.Join(tmpDir, ".issuegraph")
+			if err := os.MkdirAll(issuegraphDir, 0755); err != nil {
 				t.Fatal(err)
 			}
 
@@ -127,12 +127,12 @@ func TestCheckDatabaseVersion(t *testing.T) {
 
 func TestCheckDatabaseVersion_BareParentWorktreeFallback(t *testing.T) {
 	bareDir, worktreeDir := setupDoctorBareParentWorktree(t)
-	bareBeadsDir := filepath.Join(bareDir, ".beads")
-	bareDoltDir := filepath.Join(bareBeadsDir, "dolt")
+	bareIssueGraphDir := filepath.Join(bareDir, ".issuegraph")
+	bareDoltDir := filepath.Join(bareIssueGraphDir, "dolt")
 	if err := os.MkdirAll(bareDoltDir, 0755); err != nil {
 		t.Fatal(err)
 	}
-	if err := os.WriteFile(filepath.Join(bareBeadsDir, "config.yaml"), []byte("dolt:\n  shared-server: true\n"), 0644); err != nil {
+	if err := os.WriteFile(filepath.Join(bareIssueGraphDir, "config.yaml"), []byte("dolt:\n  shared-server: true\n"), 0644); err != nil {
 		t.Fatal(err)
 	}
 
@@ -160,8 +160,8 @@ func TestCheckSchemaCompatibility(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			tmpDir := t.TempDir()
-			beadsDir := filepath.Join(tmpDir, ".beads")
-			if err := os.MkdirAll(beadsDir, 0755); err != nil {
+			issuegraphDir := filepath.Join(tmpDir, ".issuegraph")
+			if err := os.MkdirAll(issuegraphDir, 0755); err != nil {
 				t.Fatal(err)
 			}
 
@@ -212,19 +212,19 @@ func setupDoctorBareParentWorktree(t *testing.T) (string, string) {
 }
 
 // TestLargeDatabaseWarningRecommendsRealCommand pins the Large Database
-// remedy to a command that exists: the check used to recommend 'bd cleanup',
+// remedy to a command that exists: the check used to recommend 'issuegraph cleanup',
 // which is not a root-level command in this build (cleanup lives under
-// 'bd admin cleanup'); the operator-facing lifecycle command is 'bd prune'.
+// 'issuegraph admin cleanup'); the operator-facing lifecycle command is 'issuegraph prune'.
 func TestLargeDatabaseWarningRecommendsRealCommand(t *testing.T) {
 	dc := largeDatabaseWarning(6000, 5000)
 
 	if dc.Status != StatusWarning {
 		t.Fatalf("expected StatusWarning, got %v", dc.Status)
 	}
-	if strings.Contains(dc.Fix, "bd cleanup") {
-		t.Fatalf("Large Database fix recommends nonexistent 'bd cleanup': %q", dc.Fix)
+	if strings.Contains(dc.Fix, "issuegraph cleanup") {
+		t.Fatalf("Large Database fix recommends nonexistent 'issuegraph cleanup': %q", dc.Fix)
 	}
-	if !strings.Contains(dc.Fix, "bd prune") {
-		t.Fatalf("Large Database fix should recommend 'bd prune': %q", dc.Fix)
+	if !strings.Contains(dc.Fix, "issuegraph prune") {
+		t.Fatalf("Large Database fix should recommend 'issuegraph prune': %q", dc.Fix)
 	}
 }

@@ -11,15 +11,15 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/steveyegge/beads/internal/storage/dberrors"
-	"github.com/steveyegge/beads/internal/storage/embeddeddolt"
+	"github.com/borg0ai/dx-issuegraph/internal/storage/dberrors"
+	"github.com/borg0ai/dx-issuegraph/internal/storage/embeddeddolt"
 )
 
-// These tests cover gastownhall/beads#4356 against the real engine: a database
+// These tests cover borg0ai/dx-issuegraph#4356 against the real engine: a database
 // whose ignored_schema_migrations table is COMMITTED at HEAD.
 //
 // dolt_ignore only exempts tables that were never committed, so on such a
-// database the ignore pattern bd re-asserts at every open is inert. Every
+// database the ignore pattern issuegraph re-asserts at every open is inert. Every
 // staging path anti-joins dolt_ignore, so the table can be dirtied but never
 // committed, and Dolt's merge preflight refuses to start while a tracked table
 // is dirty — push keeps working and every pull dies with Error 1105, forever.
@@ -36,9 +36,9 @@ const untrackScratchTable = "__temp__ignored_schema_migrations_untrack"
 // store must be closed to reopen it, so the fixture hands back the paths
 // rather than a live store.
 type legacyTrackedFixture struct {
-	beadsDir string
-	dataDir  string
-	database string
+	issuegraphDir string
+	dataDir       string
+	database      string
 	// cursorRows is the cursor's contents before any heal ran, captured as
 	// "version|content_hash" so the assertion is about the rows themselves and
 	// not merely their number.
@@ -57,9 +57,9 @@ func newLegacyTrackedFixture(t *testing.T, database string) *legacyTrackedFixtur
 	closeEmbeddedDoltStore(t, pristine.store)
 
 	fixture := &legacyTrackedFixture{
-		beadsDir: pristine.beadsDir,
-		dataDir:  pristine.dataDir,
-		database: database,
+		issuegraphDir: pristine.issuegraphDir,
+		dataDir:       pristine.dataDir,
+		database:      database,
 	}
 	fixture.withRawConn(t, func(conn *sql.Conn) {
 		mustExecOn(t, ctx, conn, "CALL DOLT_ADD('-f', 'ignored_schema_migrations')")
@@ -105,7 +105,7 @@ func withRawConn(t *testing.T, dataDir, database string, fn func(conn *sql.Conn)
 // schema.MigrateUp and therefore the reconcile.
 func (f *legacyTrackedFixture) reopen(t *testing.T) *embeddeddolt.EmbeddedDoltStore {
 	t.Helper()
-	store, err := embeddeddolt.Open(t.Context(), f.beadsDir, f.database, "main")
+	store, err := embeddeddolt.Open(t.Context(), f.issuegraphDir, f.database, "main")
 	if err != nil {
 		t.Fatalf("reopen store: %v", err)
 	}
@@ -345,15 +345,15 @@ func TestLegacyTrackedIgnoredCursorUnwedgesPull(t *testing.T) {
 
 	// The peer clone inherits the tracked cursor table, heals on its own first
 	// writable open, and publishes both the untrack and a data change.
-	peerBeads := filepath.Join(t.TempDir(), "peer")
-	peerData := filepath.Join(peerBeads, "embeddeddolt")
+	peerIssueGraph := filepath.Join(t.TempDir(), "peer")
+	peerData := filepath.Join(peerIssueGraph, "embeddeddolt")
 	if err := os.MkdirAll(peerData, 0o700); err != nil {
 		t.Fatalf("create peer data dir: %v", err)
 	}
 	withRawConn(t, peerData, "", func(conn *sql.Conn) {
 		mustExecOn(t, ctx, conn, "CALL DOLT_CLONE(?, ?)", remoteURL, f.database)
 	})
-	peer, err := embeddeddolt.Open(ctx, peerBeads, f.database, "main")
+	peer, err := embeddeddolt.Open(ctx, peerIssueGraph, f.database, "main")
 	if err != nil {
 		t.Fatalf("open peer clone: %v", err)
 	}
@@ -386,7 +386,7 @@ func TestLegacyTrackedIgnoredCursorUnwedgesPull(t *testing.T) {
 			t.Fatal("pull succeeded on a tracked+dirty cursor table; the wedge is not reproduced and this test proves nothing")
 		}
 		if !strings.Contains(err.Error(), "cannot merge with uncommitted changes") {
-			t.Fatalf("pre-heal pull error = %v, want Dolt's uncommitted-changes refusal (gastownhall/beads#4356)", err)
+			t.Fatalf("pre-heal pull error = %v, want Dolt's uncommitted-changes refusal (borg0ai/dx-issuegraph#4356)", err)
 		}
 	})
 
@@ -467,7 +467,7 @@ func TestIgnoredCursorHealConvergesFromEveryCrashState(t *testing.T) {
 				backupCursorRows(t, ctx, conn)
 				mustExecOn(t, ctx, conn, "DROP TABLE IF EXISTS ignored_schema_migrations")
 				mustExecOn(t, ctx, conn, "CALL DOLT_ADD('-f', 'ignored_schema_migrations')")
-				mustExecOn(t, ctx, conn, "CALL DOLT_COMMIT('--skip-empty', '-m', 'schema: untrack legacy ignored_schema_migrations so dolt_ignore can apply (gastownhall/beads#4356)')")
+				mustExecOn(t, ctx, conn, "CALL DOLT_COMMIT('--skip-empty', '-m', 'schema: untrack legacy ignored_schema_migrations so dolt_ignore can apply (borg0ai/dx-issuegraph#4356)')")
 			},
 		},
 		{
@@ -479,7 +479,7 @@ func TestIgnoredCursorHealConvergesFromEveryCrashState(t *testing.T) {
 				backupCursorRows(t, ctx, conn)
 				mustExecOn(t, ctx, conn, "DROP TABLE IF EXISTS ignored_schema_migrations")
 				mustExecOn(t, ctx, conn, "CALL DOLT_ADD('-f', 'ignored_schema_migrations')")
-				mustExecOn(t, ctx, conn, "CALL DOLT_COMMIT('--skip-empty', '-m', 'schema: untrack legacy ignored_schema_migrations so dolt_ignore can apply (gastownhall/beads#4356)')")
+				mustExecOn(t, ctx, conn, "CALL DOLT_COMMIT('--skip-empty', '-m', 'schema: untrack legacy ignored_schema_migrations so dolt_ignore can apply (borg0ai/dx-issuegraph#4356)')")
 				restoreCursorFromScratch(t, ctx, conn)
 			},
 		},
@@ -525,7 +525,7 @@ func untrackCursorInPlace(t *testing.T, ctx context.Context, conn *sql.Conn) {
 	backupCursorRows(t, ctx, conn)
 	mustExecOn(t, ctx, conn, "DROP TABLE IF EXISTS ignored_schema_migrations")
 	mustExecOn(t, ctx, conn, "CALL DOLT_ADD('-f', 'ignored_schema_migrations')")
-	mustExecOn(t, ctx, conn, "CALL DOLT_COMMIT('--skip-empty', '-m', 'schema: untrack legacy ignored_schema_migrations so dolt_ignore can apply (gastownhall/beads#4356)')")
+	mustExecOn(t, ctx, conn, "CALL DOLT_COMMIT('--skip-empty', '-m', 'schema: untrack legacy ignored_schema_migrations so dolt_ignore can apply (borg0ai/dx-issuegraph#4356)')")
 	restoreCursorFromScratch(t, ctx, conn)
 }
 
@@ -601,7 +601,7 @@ func TestIgnoredCursorHealNeverResurrectsRolledBackVersions(t *testing.T) {
 // The operator veto is re-read on the resume path, not inherited from whatever
 // open crashed: someone who resolved a crashed repair by deliberately
 // versioning the cursor table must not have stale rows pushed back into it.
-// The scratch is still cleaned up — it is bd's own junk either way.
+// The scratch is still cleaned up — it is issuegraph's own junk either way.
 func TestIgnoredCursorHealResumeRespectsOperatorOverride(t *testing.T) {
 	ctx := t.Context()
 	f := newLegacyTrackedFixture(t, "resumeoverride")
